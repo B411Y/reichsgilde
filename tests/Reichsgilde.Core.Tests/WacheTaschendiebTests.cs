@@ -121,20 +121,38 @@ static class WacheTaschendiebTests
             Pruefe.Ungefaehr(0, w.Wache.DiesesJahr(dieb).Kopfgeld, 1e-12);
         }),
 
-        ("Die Streife ändert keine Würfe: Ohne Diebe verläuft ein Jahr mit Wachhaus mit und ohne Zuschlag zeichengleich", () =>
+        ("Ohne Wachhaus ist der Faktor 1: Ein Dieb verläuft fünf Jahre lang Wurf für Wurf wie mit Daten ohne Zuschlag – mit Wachhaus fängt die Streife mehr", () =>
         {
-            var alt = Wirtschaftsdaten.AusJson(Json.Replace(", \"taschendiebFang\": 5", ""));
-            string Lauf(Wirtschaftsdaten d)
+            // Öfter erwischt (3 % je Diebesstunde), damit es genug Fänge gibt, die sich vergleichen lassen.
+            var oft = Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0.03");
+            var mitZuschlag = Wirtschaftsdaten.AusJson(oft);
+            var ohneZuschlag = Wirtschaftsdaten.AusJson(oft.Replace(", \"taschendiebFang\": 5", ""));
+            (int Faenge, string Stand) Lauf(Wirtschaftsdaten d, bool wachhaus)
             {
                 var sim = NeueSimulation(d);
                 var w = sim.Wirtschaft!;
-                Wachhaus(w, w.KontoEroeffnen("Familie Wacker", startvermoegen: 10_000), "Wacker");
-                var k = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
-                w.Einstellen(w.BetriebEroeffnen("Gießerei Eisenbart", Betriebsart.Giesserei, k), "Geselle", 2);
-                for (var i = 0; i < Spielzeit.MinutenProTag; i++) sim.Tick();
-                return string.Join("|", w.Konten.Select(x => $"{x.Inhaber}:{x.Vermoegen:R}"));
+                var dieb = w.KontoEroeffnen("Familie Elster", startvermoegen: 10_000);
+                var loch = w.BetriebEroeffnen("Schmugglerloch Elster", Betriebsart.Schmugglerloch, dieb, startkarren: "");
+                w.Einstellen(loch, "Geselle", 4);
+                var anderes = w.KontoEroeffnen("Haus Eisenbart", startvermoegen: 10_000);
+                if (wachhaus) Wachhaus(w, anderes, "Eisenbart");
+                Pruefe.Ungefaehr(1 + d.Wache!.Patrouille.TaschendiebFang * (wachhaus ? 0.1 : 0), w.Wache.Taschendiebfaktor, 1e-9);
+                var faenge = 0;
+                for (var jahr = 0; jahr < 5; jahr++)
+                {
+                    for (var i = 0; i < Spielzeit.MinutenProTag - 1; i++) sim.Tick();
+                    faenge += w.Diebe.DiesesJahr(dieb).Faenge; // vor dem Jahreswechsel
+                    sim.Tick();
+                    w.Einstellen(loch, "Geselle", 4); // wer im Turm sitzt, wird ersetzt
+                }
+                return (faenge, string.Join("|", w.Konten.Select(x => $"{x.Inhaber}:{x.Vermoegen:R}")));
             }
-            Pruefe.Gleich(Lauf(alt), Lauf(Daten.Value));
+            var ohne = Lauf(mitZuschlag, false);
+            Pruefe.Wahr(ohne.Faenge > 0, "Es muss Fänge geben, sonst prüft der Test nichts");
+            Pruefe.Gleich(Lauf(ohneZuschlag, false), ohne);
+            var mit = Lauf(mitZuschlag, true);
+            var mitOhneZuschlag = Lauf(ohneZuschlag, true);
+            Pruefe.Wahr(mit.Faenge > mitOhneZuschlag.Faenge, $"Mit Wachhaus mehr Fänge mit Zuschlag ({mit.Faenge}) als ohne ({mitOhneZuschlag.Faenge})");
         }),
     };
 }
