@@ -42,11 +42,15 @@ public static class Speicherung
     /// <summary>Erstellt den Spielstand als JSON-Text.</summary>
     /// <param name="spieler">Das Konto des menschlichen Spielers (damit die Oberfläche es nach dem Laden wiederfindet).</param>
     /// <exception cref="InvalidOperationException">Während einer angehaltenen Ratssitzung (<see cref="SpeichernVerboten"/>).</exception>
-    public static string Speichern(Simulation simulation, Konto? spieler = null, DateTime? zeitpunkt = null)
+    public static string Speichern(Simulation simulation, Konto? spieler = null, DateTime? zeitpunkt = null) =>
+        JsonSerializer.Serialize(Erstellen(simulation, spieler, zeitpunkt), Optionen);
+
+    /// <summary>Der Spielstand als Daten (für <see cref="Speichern"/> und die Prüfsumme des Zustands).</summary>
+    internal static Speicherstand Erstellen(Simulation simulation, Konto? spieler, DateTime? zeitpunkt)
     {
         if (SpeichernVerboten(simulation) is { } grund) throw new InvalidOperationException(grund);
         var w = simulation.Wirtschaft;
-        var stand = new Speicherstand
+        return new Speicherstand
         {
             Gespeichert = zeitpunkt ?? DateTime.Now,
             Titel = $"{spieler?.Inhaber ?? "Partie"} · {simulation.Zeit.DatumText} · {simulation.Zeit.UhrzeitText}",
@@ -60,8 +64,9 @@ public static class Speicherung
             Karte = w?.Karte,
             Wirtschaft = w?.Sichern(),
             Warteschlange = simulation.Bote.Warteschlange.Count > 0 ? simulation.Bote.Warteschlange.ToList() : null,
+            MitEntwicklerhilfe = w?.Entwicklerhilfe.Benutzt ?? false,
+            EntwicklerErlaubt = w?.Entwicklerhilfe.Erlaubt ?? false,
         };
-        return JsonSerializer.Serialize(stand, Optionen);
     }
 
     /// <summary>Liest nur die Kopfdaten (Titel, Zeitpunkt) – für die Liste im Ladedialog.</summary>
@@ -103,6 +108,8 @@ public static class Speicherung
                 w.Wiederherstellen(ws);
                 w.PlaetzeNachDemLaden();
                 simulation.Bote.Wiederherstellen(stand.Warteschlange); // noch nicht ausgeführte Befehle (Mehrspieler M2)
+                w.Entwicklerhilfe.Benutzt = stand.MitEntwicklerhilfe;
+                w.Entwicklerhilfe.Erlaubt = stand.EntwicklerErlaubt;
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];
             }
