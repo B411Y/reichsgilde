@@ -4,7 +4,7 @@ Dateien: `game/assets/oberflaeche/zuege/<kennung>.png` (24). Protokoll: `docs/as
 
 ## Werkzeug
 
-- **Bilder:** vom Nutzer selbst erzeugt, 22 mit **Google Gemini**, „Pilger“ und „Gelehrt“ mit der **Bilderzeugung von ChatGPT** (Gemini-Limit erreicht). Zugangsweg und Modellversionen: unbekannt.
+- **Bilder:** vom Nutzer selbst erzeugt, 22 mit **Google Gemini**, „Pilger“ und „Gelehrt“ mit der **Bilderzeugung von ChatGPT** (Gemini-Limit erreicht). Zugangsweg: Gemini-App bzw. Web, vom Nutzer selbst bedient; Modellversionen: unbekannt.
 - Die Rohbilder liegen nicht im Repository (Austauschordner des Nutzers).
 - **Nachbearbeitung:** rund zugeschnitten; geschmiedeter Metallring (Kupfer, Gold, Eisen nach Art des Zugs) mit `tools/zugmedaillons/schmiede.gd`. Laut Notiz des Teamleiters kein Bildeingriff des Nutzers.
 - Stil: Ausnahme vom Holzschnitt, kräftig gemalt (Entscheidung des Nutzers, `docs/bereiche/oberflaeche.md`, „Stil der Zug-Icons“).

@@ -24,7 +24,7 @@ UTF-8, Komma als Trenner, erste Zeile ist der Kopf. Enthält ein Feld ein Komma,
 | `prompt_oder_quelle` | Kurztext, Pfad zur Prompt-Datei (`docs/assets/prompts/<name>.md`) oder Bezugsquelle eines Fremdpakets |
 | `datum` | erster Commit der Gruppe, `JJJJ-MM-TT` |
 | `commit_pr` | Commits und PR-Nummern, z. B. `c16f5c20 (#211)` |
-| `nachbearbeitung` | `nein`, `ja: <Umfang>` oder `unbekannt`; Bearbeitung durch Skripte und durch den Nutzer getrennt nennen |
+| `nachbearbeitung` | `nein`, `ja: <Umfang>` oder `unbekannt`. Gemeint ist jede Änderung nach der Erzeugung, durch ein Skript oder durch einen Menschen; bei „ja“ steht dabei, wer es war (Skriptpfad bzw. „Nutzer: …“) |
 | `bedingungen_werkzeug` | Link zu den Nutzungsbedingungen bzw. der Lizenz des Werkzeugs; ohne fremdes Werkzeug „entfällt“ |
 | `lizenz_ergebnis` | Lizenz der Datei, z. B. CC BY 4.0, CC0 1.0, OFL 1.1 |
 | `spieler_sieht` | ja oder nein |
