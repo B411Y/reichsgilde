@@ -159,7 +159,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Datenversion | 64; die zehn Tests, die die Nummer prüfen, nachgezogen, dazu die Völkerboni-Tests (Daten, Diebesminuten 2 %). | 29.10.2026 |
 | Messung | `messen bericht 20 30` und `--teile=2 --voelkerberufe=alle` (30 Startwerte) auf main `3a65946`, vorher und mit `07d2b55` (WIRTSCHAFTSMODELL „Gauner-Regeln“): Berufe weiter 10/10 im Band (−10,6 … +7,2 %), Fänge mit Wachhaus 0,49 → 0,79 je Jahr, Dieb mit Wachhaus Gewinn 2.859 → 2.760 (ohne 2.552), Gardist (Mensch, Bonus +2 statt +5 %) +7,3 → −0,5 %, Stadtkasse −830 → −833. Völker gegen Menschen: Dieb Zwerg −11,5 → −0,9 %, Halbling +41,6 → +35,5 %; Gardist Elb −28,0 → −16,3 %, Halbling −23,2 → −11,5 %; Geldleiher Zwerg +27,6 → +21,1 %. Beute und Sold nicht geändert (kein Beruf aus dem Band). | 29.10.2026 |
 
-### Mehrspieler M2: Befehlsbote und Warteschlange (PR #…)
+### Mehrspieler M2: Befehlsbote und Warteschlange (PR #251)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

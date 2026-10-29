@@ -157,7 +157,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Protokoll | Bilder unter `docs/` sind nicht protokollpflichtig (Prüfskript prüft nur `game/assets/` und die KI-Quellen unter `tools/`). Es sind Bildschirmfotos des Spiels, nicht KI-erzeugt. | 29.10.2026 |
 | Berichtigungen | Gegen den Code geprüft: Die Einstellungen haben **sechs** Reiter (nicht fünf: dazu „Spiel“); ein Klick auf das Porträt in der Kopfzeile öffnet das Wohnhaus, nicht das Charakterfenster; neu aufgenommen: Wege-Modus (G), X (alle Fenster zu), Rechtsklick im Gebäude, Rahmenwahl und Randschwenken drinnen, Rechtsziehen im Baumodus, Charakterfenster und Aktivitäten, Esc-Reihenfolge. | 29.10.2026 |
 
-### Befehle nur über den Boten (Mehrspieler M2)
+### Befehle nur über den Boten (Mehrspieler M2, PR #251)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
