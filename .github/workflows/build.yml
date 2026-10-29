@@ -68,6 +68,7 @@ jobs:
           name: gleichheit-${{ matrix.os }}
           path: ${{ runner.temp }}/gleichheit-pruefsumme.txt
           if-no-files-found: error
+          overwrite: true   # ein einzeln neu gestarteter Testjob ersetzt seine alte Datei, statt am Namen zu scheitern
           retention-days: 14
 
   # Mehrspieler (Lockstep): Jeder Rechner rechnet die Partie selbst, nur die Befehle gehen übers Netz. Das geht nur, wenn Windows und
