@@ -161,22 +161,164 @@ static class DetMatheTests
                 Pruefe.Gleich($"{bits:X16}", $"{BitConverter.DoubleToInt64Bits(wert):X16}", $"{was} = {wert:R}");
         }),
 
+        ("DetMathe: Die Suche nach verbotener Mathematik findet auch using static, Aliase, Zeilenumbrüche und Methodengruppen – nicht aber Kommentare und Texte", () =>
+        {
+            string[] verboten =
+            {
+                "var y = Math.Pow(x, 0.5);",
+                "var y = Math\n    .Pow(x, 0.5);",
+                "var y = System.Math.Exp(x);",
+                "var y = global::System.Math.Sin(x);",
+                "Func<double, double> f = Math.Cos;",
+                "var y = double.Atan2(a, b);",
+                "var y = MathF.Log(x);",
+                "using static System.Math;\nvar y = Pow(x, 2);",
+                "global using static System.Math;",
+                "using M = System.Math;",
+                "using M = global::System.MathF;",
+                "var s = $\"Wert {Math.Exp(x):0.#} und {(a ? \"x\" : \"y\")}\";",
+                "var y = Math.FusedMultiplyAdd(a, b, c);",
+            };
+            string[] erlaubt =
+            {
+                "var y = DetMathe.Pow(x, 0.5); // statt Math.Pow(x, 0.5)",
+                "/* Math.Sin(x) */ var y = Math.Sqrt(x) + Math.Floor(x) + Math.Abs(x) + Math.PI;",
+                "var s = \"Math.Pow(\"; var t = @\"Math.Exp(\"\"x\"\")\"; var c = '\"';",
+                "/// <see cref=\"Math.Exp\"/>\nvar y = Math.Round(x, 2);",
+                "var s = $\"{{Math.Pow}} {x}\";",
+            };
+            foreach (var code in verboten)
+                Pruefe.Wahr(VerboteneMathematik(code).Count > 0, $"nicht gefunden: {code}");
+            foreach (var code in erlaubt)
+                Pruefe.Wahr(VerboteneMathematik(code).Count == 0, $"fälschlich gefunden: {code} → {string.Join(", ", VerboteneMathematik(code))}");
+        }),
+
         ("DetMathe: Im Kern steht kein Math.Pow/Exp/Log/Sin/Cos/Tan/Atan mehr (Mehrspieler-Regel der CLAUDE.md)", () =>
         {
             var kern = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!, "src", "Reichsgilde.Core");
-            var verboten = new Regex(@"\b(Math|MathF|double|float|Double|Single)\s*\.\s*(Pow|Exp|Exp2|Exp10|ExpM1|Log|Log2|Log10|LogP1|ILogB|Sin|Cos|Tan|SinCos|Asin|Acos|Atan|Atan2|Sinh|Cosh|Tanh|Asinh|Acosh|Atanh|Cbrt|Hypot|RootN)\s*\(");
             var funde = new List<string>();
             foreach (var datei in Directory.EnumerateFiles(kern, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
             {
-                if (datei.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}") || datei.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")) continue;
-                var zeilen = File.ReadAllLines(datei);
-                for (var i = 0; i < zeilen.Length; i++)
-                {
-                    var code = zeilen[i].Split("//")[0]; // Kommentare zählen nicht
-                    if (verboten.IsMatch(code)) funde.Add($"{Path.GetRelativePath(kern, datei)}:{i + 1}: {zeilen[i].Trim()}");
-                }
+                var teile = Path.GetRelativePath(kern, datei).Split(Path.DirectorySeparatorChar);
+                if (teile[0] is "obj" or "bin") continue;
+                funde.AddRange(VerboteneMathematik(File.ReadAllText(datei)).Select(f => $"{Path.GetRelativePath(kern, datei)}:{f}"));
             }
+            // Auch keine globale Einbindung über die Projektdatei (<Using Include="System.Math" Static="true" />)
+            var projekt = File.ReadAllText(Path.Combine(kern, "Reichsgilde.Core.csproj"));
+            if (Regex.IsMatch(projekt, @"<Using\s+Include\s*=\s*""System\.(Math|MathF|Double|Single)""")) funde.Add("Reichsgilde.Core.csproj: <Using Include=\"System.Math…\">");
             Pruefe.Wahr(funde.Count == 0, "Statt Math.* bitte DetMathe verwenden (Math.Pow(x, 2) → x * x):\n  " + string.Join("\n  ", funde));
         }),
     };
+
+    // ── Die Suche nach verbotener Mathematik ──────────────────────────────────
+    // Ohne Roslyn (keine neue Abhängigkeit): Zuerst werden Kommentare und der Text in Zeichenketten entfernt – die Löcher in $"…{…}…"
+    // bleiben, denn dort steht Code. Dann sucht ein Muster über die ganze Datei, also auch über Zeilenumbrüche hinweg. „using static“ und
+    // Aliase auf Math, MathF, Double und Single sind im Kern ganz verboten: Sonst stünde dort ein nacktes Pow(…), das keine Textsuche sicher
+    // vom eigenen unterscheidet. Nicht erkannt wird generische Mathematik (T.Pow in einer Methode mit Typparameter) – im Kern gibt es keine.
+
+    const string VerboteneNamen = "Pow|Exp|Exp2|Exp10|ExpM1|Log|Log2|Log10|LogP1|Sin|Cos|Tan|SinCos|SinPi|CosPi|TanPi|Asin|Acos|Atan|Atan2|"
+                                  + "AsinPi|AcosPi|AtanPi|Atan2Pi|Sinh|Cosh|Tanh|Asinh|Acosh|Atanh|Cbrt|Hypot|RootN|FusedMultiplyAdd";
+
+    static readonly (Regex Muster, string Grund)[] Verbote =
+    {
+        (new Regex($@"\b(Math|MathF|double|float|Double|Single|Half)\s*\.\s*({VerboteneNamen})\b"), "Aufruf"),
+        (new Regex(@"\busing\s+static\s+(global\s*::\s*)?System\s*\.\s*(Math|MathF|Double|Single)\b"), "using static"),
+        (new Regex(@"\busing\s+\w+\s*=\s*(global\s*::\s*)?System\s*\.\s*(Math|MathF|Double|Single)\b"), "Alias"),
+    };
+
+    /// <summary>Fundstellen als „Zeile: Grund: Text“ (leer = sauber).</summary>
+    static List<string> VerboteneMathematik(string quelltext)
+    {
+        var code = NurCode(quelltext);
+        var funde = new List<string>();
+        foreach (var (muster, grund) in Verbote)
+            foreach (Match m in muster.Matches(code))
+            {
+                var zeile = code.Take(m.Index).Count(c => c == '\n') + 1;
+                funde.Add($"{zeile}: {grund}: {Regex.Replace(m.Value, @"\s+", " ")}");
+            }
+        return funde;
+    }
+
+    /// <summary>Der Quelltext ohne Kommentare und ohne den Text in Zeichenketten und Zeichen; Zeilenumbrüche bleiben (für die Zeilennummer).</summary>
+    static string NurCode(string q)
+    {
+        var aus = new System.Text.StringBuilder(q.Length);
+        var i = 0;
+        Code(q, ref i, aus, imLoch: false);
+        return aus.ToString();
+    }
+
+    /// <summary>Liest Code bis zum Dateiende bzw. (im Loch einer interpolierten Zeichenkette) bis zur schließenden Klammer.</summary>
+    static void Code(string q, ref int i, System.Text.StringBuilder aus, bool imLoch)
+    {
+        var tiefe = 0;
+        while (i < q.Length)
+        {
+            var c = q[i];
+            var n = i + 1 < q.Length ? q[i + 1] : '\0';
+            if (imLoch && c == '}' && tiefe == 0) return;
+            if (c == '/' && n == '/') { while (i < q.Length && q[i] != '\n') i++; continue; }
+            if (c == '/' && n == '*')
+            {
+                for (i += 2; i < q.Length && !(q[i] == '*' && i + 1 < q.Length && q[i + 1] == '/'); i++)
+                    if (q[i] == '\n') aus.Append('\n');
+                i += 2;
+                aus.Append(' ');
+                continue;
+            }
+            if (c == '\'')
+            {
+                for (i++; i < q.Length && q[i] != '\''; i++)
+                    if (q[i] == '\\') i++;
+                i++;
+                aus.Append("' '");
+                continue;
+            }
+            // Zeichenketten: "…", @"…", $"…", $@"…", @$"…"
+            var vorsatz = c is '$' or '@' ? (n == '"' ? 1 : n is '$' or '@' && i + 2 < q.Length && q[i + 2] == '"' ? 2 : 0) : 0;
+            if (c == '"' || vorsatz > 0)
+            {
+                var praefix = q.Substring(i, vorsatz);
+                i += vorsatz + 1;
+                Zeichenkette(q, ref i, aus, interpoliert: praefix.Contains('$'), woertlich: praefix.Contains('@'));
+                continue;
+            }
+            if (c == '{') tiefe++;
+            else if (c == '}') tiefe--;
+            aus.Append(c);
+            i++;
+        }
+    }
+
+    /// <summary>Liest eine Zeichenkette nach dem öffnenden Anführungszeichen; vom Text bleibt nichts, von den Löchern {…} der Code.</summary>
+    static void Zeichenkette(string q, ref int i, System.Text.StringBuilder aus, bool interpoliert, bool woertlich)
+    {
+        aus.Append('"');
+        while (i < q.Length)
+        {
+            var c = q[i];
+            var n = i + 1 < q.Length ? q[i + 1] : '\0';
+            if (!woertlich && c == '\\') { i += 2; continue; }
+            if (c == '"')
+            {
+                if (woertlich && n == '"') { i += 2; continue; }
+                i++;
+                aus.Append('"');
+                return;
+            }
+            if (interpoliert && c == '{')
+            {
+                if (n == '{') { i += 2; continue; }
+                i++;
+                aus.Append(" (");
+                Code(q, ref i, aus, imLoch: true);
+                i++; // die schließende Klammer
+                aus.Append(") ");
+                continue;
+            }
+            if (c == '\n') aus.Append('\n');
+            i++;
+        }
+    }
 }
