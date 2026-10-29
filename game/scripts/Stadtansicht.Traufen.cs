@@ -154,7 +154,7 @@ public partial class Stadtansicht
         };
         _traufNass = new GpuParticles3D
         {
-            Name = "Traufnaesse", Amount = 200, Lifetime = 3.0, Preprocess = 3.0, LocalCoords = false, Emitting = false, Visible = false,
+            Name = "Traufnaesse", Amount = 320, Lifetime = 3.0, Preprocess = 3.0, LocalCoords = false, Emitting = false, Visible = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _traufNassStoff,
             DrawPass1 = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/traufnass.gdshader") } },
             VisibilityAabb = new Aabb(new Vector3(-200, -20, -200), new Vector3(400, 40, 400)),
@@ -227,12 +227,12 @@ public partial class Stadtansicht
         _traufStoff!.ScaleMin = 0.5f * k;
         _traufStoff.ScaleMax = 0.9f * k;
         tropfen.AmountRatio = Mathf.Snapped(Mathf.Clamp(staerke, 0.1f, 1f), 0.05f);
-        _traufRingFarbe!.SetShaderParameter("farbe", new Color(0.8f * hell, 0.85f * hell, 0.95f * hell, 1f));
+        _traufRingFarbe!.SetShaderParameter("farbe", new Color(0.8f * hell, 0.85f * hell, 0.95f * hell, 0.7f));
         _traufRinge!.AmountRatio = _traufNass!.AmountRatio = tropfen.AmountRatio;
         var weit = Mathf.Max(1f, k * 1.5f); // Einschläge wachsen erst beim Herauszoomen mit (sonst Bildpunkte)
         _traufRingStoff!.ScaleMin = 0.8f * weit;
         _traufRingStoff.ScaleMax = 1.3f * weit;
-        _traufNassStoff!.ScaleMin = 1.0f * weit;
-        _traufNassStoff.ScaleMax = 1.7f * weit;
+        _traufNassStoff!.ScaleMin = 1.4f * weit;
+        _traufNassStoff.ScaleMax = 2.2f * weit;
     }
 }
