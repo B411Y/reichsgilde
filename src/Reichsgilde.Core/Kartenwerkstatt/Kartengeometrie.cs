@@ -20,7 +20,8 @@ public static class Kartengeometrie
     public static Kartenort Dreh(double lx, double lz, double grad)
     {
         var t = grad * Math.PI / 180;
-        return new Kartenort(lx * Math.Cos(t) + lz * Math.Sin(t), -lx * Math.Sin(t) + lz * Math.Cos(t));
+        var (c, s) = (DetMathe.Cos(t), DetMathe.Sin(t));
+        return new Kartenort(lx * c + lz * s, -lx * s + lz * c);
     }
 
     /// <summary>Kürzester Abstand von Punkt p zur Strecke a–b (gleich voll optimiert: die Kapazitätsprüfung ruft sie hunderttausendfach auf).</summary>

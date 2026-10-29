@@ -128,7 +128,7 @@ public static class Uhrumstellung
                 if (b["BauzeitStunden"] is JsonValue h)
                     b["BauzeitStunden"] = (int)Math.Round((int)h * (double)Zeit.Spielzeit.StundenProTag / AltStundenProTag);
         if (d["Schiffshandel"] is JsonObject s && s["ErholungJeStunde"] is JsonValue e && e.TryGetValue<double>(out var erholung))
-            s["ErholungJeStunde"] = Math.Round(1 - Math.Pow(1 - erholung, AltStundenProTag / (double)Zeit.Spielzeit.StundenProTag), 4);
+            s["ErholungJeStunde"] = Math.Round(1 - DetMathe.Pow(1 - erholung, AltStundenProTag / (double)Zeit.Spielzeit.StundenProTag), 4);
         // Fahrtzeiten der Schiffe wachsen mit dem Spieltag (Datenversion 57): je Jahr gleich viele Fahrten wie vorher.
         if (d["Schiffshandel"]?["Schiffe"] is JsonObject schiffe)
             foreach (var (_, typ) in schiffe)

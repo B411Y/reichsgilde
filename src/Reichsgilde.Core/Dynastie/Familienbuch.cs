@@ -215,9 +215,9 @@ public sealed partial class Familienbuch
     public double Sterberisiko(Volk volk, int alter)
     {
         var v = _d.Volk(volk);
-        double H(double x) => Math.Exp((x - v.Sterbealter) / v.Streuung);
+        double H(double x) => DetMathe.Exp((x - v.Sterbealter) / v.Streuung);
         var grund = alter < v.Volljaehrig ? _d.Kinderrisiko : _d.Grundrisiko;
-        return 1 - Math.Exp(-(grund + H(alter + 1) - H(alter)));
+        return 1 - DetMathe.Exp(-(grund + H(alter + 1) - H(alter)));
     }
 
     /// <summary>Grobe Angabe statt genauer Zahl – niemand kennt sein Todesjahr.</summary>
@@ -254,7 +254,7 @@ public sealed partial class Familienbuch
         var alter = frau.Alter(Jahr);
         if (alter < v.FruchtbarVon || alter > v.FruchtbarBis) return 0;
         var kinder = f.KinderVon(frau).Count(k => k.Lebt);
-        return Geburtenrate(frau, mann) * Math.Pow(_d.KinderAbnahme, kinder);
+        return Geburtenrate(frau, mann) * DetMathe.Pow(_d.KinderAbnahme, kinder);
     }
 
     /// <summary>
@@ -274,7 +274,7 @@ public sealed partial class Familienbuch
         for (var alter = frau.Alter(Jahr); alter <= v.FruchtbarBis && beideLeben > 0.01; alter++, alterMann++)
         {
             if (alter >= v.FruchtbarVon)
-                kinder += beideLeben * rate * Math.Pow(_d.KinderAbnahme, kinder);
+                kinder += beideLeben * rate * DetMathe.Pow(_d.KinderAbnahme, kinder);
             beideLeben *= (1 - Sterberisiko(frau.Volk, alter)) * (1 - Sterberisiko(mann.Volk, alterMann));
         }
         return kinder - start;
