@@ -260,7 +260,7 @@ static class BefehlsboteTests
             Pruefe.Wahr(protokoll.IstVollstaendig, "Protokoll unvollständig: " + protokoll.Luecke);
             Pruefe.Gleich(7, protokoll.Befehle.Count);
             Pruefe.Gleich(2, sim.Bote.Warteschlange.Count); // „knapp“ (+2) und der Wächter (+3) warten noch
-            Pruefe.Wahr(protokoll.EndtickAusgefuehrt, "Der letzte Befehl wirkte nach dem letzten Tick sofort.");
+            Pruefe.Wahr(protokoll.Befehle[^1].Sofort, "Der letzte Befehl wirkte nach dem letzten Tick sofort.");
             Pruefe.Wahr(sim.Zeit.Jahr == 1401, "Die Aufzeichnung sollte über den Jahreswechsel gehen.");
 
             var nachgerechnet = protokoll.Abspielen();
@@ -280,7 +280,8 @@ static class BefehlsboteTests
             sim.Bote.Einreihen(spieler, new LohnstufeSetzen(Werkstatt(sim, spieler).Name, Lohnstufe.Knapp)); // Ziel-Tick 101 = Endtick
             Ticken(sim, 1);
             var protokoll = sim.Bote.AufzeichnungBeenden();
-            Pruefe.Gleich(false, protokoll.EndtickAusgefuehrt);
+            Pruefe.Gleich(1, sim.Bote.Warteschlange.Count);
+            Pruefe.Gleich(protokoll.Endtick, sim.Bote.Warteschlange[0].ZielTick);
             GleicherStand(Stand(sim), Stand(protokoll.Abspielen()));
         }),
 
@@ -307,6 +308,187 @@ static class BefehlsboteTests
             var protokoll = sim.Bote.AufzeichnungBeenden();
             Pruefe.Wahr(!protokoll.IstVollstaendig, "Die Sitzung fehlt im Protokoll, es muss als unvollständig gelten.");
             Pruefe.WirftMitMeldung(() => protokoll.Abspielen(), "unvollständig");
+        }),
+        ("Befehlsbote: Während eines Ticks wirkt nichts sofort – der Befehl wartet auf den nächsten Tick, das Abspielen stimmt", () =>
+        {
+            var (sim, spieler) = NeuePartie(4711);
+            Ticken(sim, Spielzeit.MinutenProTag - 30);
+            var werkstatt = Werkstatt(sim, spieler).Name;
+            sim.Bote.AufzeichnungBeginnen();
+            var imTick = new List<string>();
+            var stufe = Lohnstufe.Knapp;
+            void Befehlen(string anlass)
+            {
+                var minute = sim.Zeit.VergangeneMinuten;
+                Pruefe.Wahr(sim.Bote.ImTick && !sim.Bote.WirktSofort, anlass + ": im Tick darf nichts sofort wirken.");
+                Pruefe.WirftMitMeldung(() => sim.Bote.SofortAusfuehren(spieler, new StandErwerben()), "Während eines Ticks");
+                sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, stufe), e => imTick.Add($"{anlass}:{e.Erfolg}"));
+                stufe = stufe == Lohnstufe.Knapp ? Lohnstufe.Gut : Lohnstufe.Knapp;
+                Pruefe.Gleich(sim.Bote.FruehesterTick, sim.Bote.Warteschlange[^1].ZielTick);
+                Pruefe.Wahr(!sim.Bote.Warteschlange[^1].Sofort && sim.Bote.Warteschlange[^1].ZielTick >= minute, anlass + ": Ziel-Tick zu früh.");
+            }
+            sim.PhaseBegonnen += _ => Befehlen("Phase");
+            sim.JahrBeendet += _ => Befehlen("Jahr");
+            var ausMeldungen = 0;
+            sim.Wirtschaft!.Meldung += _ => { if (ausMeldungen < 3 && sim.Bote.ImTick) { ausMeldungen++; Befehlen("Meldung"); } };
+            Ticken(sim, 60);
+            Pruefe.Wahr(!sim.Bote.ImTick, "Nach dem Tick ist der Merker wieder aus.");
+            Pruefe.Wahr(imTick.Any(t => t.StartsWith("Jahr")), "Der Befehl aus JahrBeendet fehlt: " + string.Join(",", imTick));
+            Pruefe.Gleich(0, sim.Bote.Warteschlange.Count);
+            var protokoll = sim.Bote.AufzeichnungBeenden();
+            Pruefe.Wahr(protokoll.Befehle.All(e => !e.Sofort), "Im Tick eingereiht ist nie sofort.");
+            GleicherStand(Stand(sim), Stand(protokoll.Abspielen()));
+        }),
+
+        ("Befehlsbote: In der angehaltenen Ratssitzung wirkt nur die neue Stimme sofort, wartende Befehle bleiben bis nach der Sitzung", () =>
+        {
+            var sim = StadtkasseTests.NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var reformer = StadtkasseTests.Haus(w, "Reformer", 50_000);
+            StadtkasseTests.Sitz(w, "Gefängniswärter", reformer);
+            var spieler = StadtkasseTests.Haus(w, "Spieler", 50_000);
+            StadtkasseTests.Sitz(w, "Marktmeister", spieler);
+            Pruefe.Wahr(sim.Bote.SofortAusfuehren(reformer, new StatutBeantragen(Fronstatut.FreieStadt)).Erfolg, "Antrag abgelehnt");
+            w.RatssitzungAnhalten = _ => true;
+            Ticken(sim, Spielzeit.MinutenProTag - 1);
+            sim.Bote.Verzoegerung = 1;
+            Befehlsergebnis? wartend = null;
+            sim.Bote.Einreihen(spieler, new HauswaechterSetzen(true), e => wartend = e); // Ziel-Tick: gleich nach dem Jahreswechsel
+            sim.Tick();
+            Pruefe.Wahr(sim.Ratssitzung is not null, "Die Sitzung sollte anhalten.");
+            Pruefe.Gleich(sim.Zeit.VergangeneMinuten, sim.Bote.Warteschlange.Single().ZielTick);
+            var stimme = sim.Bote.SofortAusfuehren(spieler, new StatutStimme(false));
+            Pruefe.Wahr(stimme.Erfolg, stimme.Meldung);
+            Pruefe.Wahr(wartend is null, "Der wartende Befehl wurde in die Sitzung vorgezogen: " + wartend?.Meldung);
+            sim.RatssitzungAbschliessen();
+            sim.Tick();
+            Pruefe.Wahr(wartend is not null && !wartend.Meldung.Contains("Ratssitzung"), "Nach der Sitzung: " + wartend?.Meldung);
+        }),
+
+        ("Befehlsbote: Spielende verwirft wartende Befehle mit Meldung; die Siegbedingung lässt das Protokoll vollständig, Beenden nicht", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 9, Siegbedingung = Siegbedingung.Endjahr, Endjahr = 1401 },
+                Daten.Value, new NeuePartie());
+            var werkstatt = Werkstatt(sim, spieler).Name;
+            Ticken(sim, Spielzeit.MinutenProTag - 50);
+            sim.Bote.AufzeichnungBeginnen();
+            sim.Bote.Verzoegerung = 200;
+            Befehlsergebnis? verworfen = null;
+            sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Gut), e => verworfen = e);
+            sim.Bote.Verzoegerung = 10;
+            sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Knapp));
+            Ticken(sim, 60);
+            Pruefe.Wahr(sim.IstBeendet, "Die Partie sollte 1401 enden.");
+            Pruefe.Wahr(verworfen is { Erfolg: false } && verworfen.Meldung.Contains("vorbei"), "Rückruf beim Spielende: " + verworfen?.Meldung);
+            Pruefe.Gleich(0, sim.Bote.Warteschlange.Count);
+            var nachher = sim.Bote.SofortAusfuehren(spieler, new WaechterSetzen(werkstatt, true)); // nach dem Ende steht die Zeit: sofort
+            Pruefe.Wahr(nachher.Erfolg, nachher.Meldung);
+            var protokoll = sim.Bote.AufzeichnungBeenden();
+            Pruefe.Wahr(protokoll.IstVollstaendig, "Die Siegbedingung rechnet jede Partie selbst nach: " + protokoll.Luecke);
+            GleicherStand(Stand(sim), Stand(protokoll.Abspielen()));
+
+            var (zweite, spieler2) = NeuePartie();
+            Ticken(zweite, 10);
+            zweite.Bote.AufzeichnungBeginnen();
+            zweite.Beenden("Testende");
+            Pruefe.Wahr(!zweite.Bote.AufzeichnungBeenden().IstVollstaendig, "Beenden von außen ist kein Befehl – Lücke erwartet.");
+        }),
+
+        ("Befehlsbote: Eine Ausnahme im Rückruf oder Empfänger hält die anderen Befehle nicht auf und kommt danach", () =>
+        {
+            var (sim, spieler) = NeuePartie();
+            Ticken(sim, 100);
+            var werkstatt = Werkstatt(sim, spieler).Name;
+            sim.Bote.Verzoegerung = 1;
+            var gemeldet = new List<long>();
+            var zweiter = 0;
+            sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Gut), _ => throw new InvalidOperationException("Rückruf kaputt"));
+            sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Knapp), _ => zweiter++);
+            sim.Bote.Ausgefuehrt += (e, _) => { gemeldet.Add(e.Nummer); if (gemeldet.Count == 2) throw new Exception("Empfänger kaputt"); };
+            Ticken(sim, 1); // Ziel-Tick 101 noch nicht
+            var minute = sim.Zeit.VergangeneMinuten;
+            Pruefe.WirftMitMeldung(() => sim.Tick(), "Rückruf kaputt");
+            Pruefe.Gleich(1, zweiter);
+            Pruefe.Gleich(2, gemeldet.Count);
+            Pruefe.Gleich(0, sim.Bote.Warteschlange.Count);
+            Pruefe.Gleich(Lohnstufe.Knapp, Werkstatt(sim, spieler).Lohnstufe);
+            Pruefe.Gleich(minute, sim.Zeit.VergangeneMinuten); // der abgebrochene Tick läuft beim nächsten Aufruf
+            Pruefe.Wahr(!sim.Bote.ImTick, "Auch nach dem Abbruch ist der Merker wieder aus.");
+            sim.Tick();
+            Pruefe.Gleich(minute + 1, sim.Zeit.VergangeneMinuten);
+            Pruefe.Gleich(1, zweiter); // jeder Rückruf genau einmal
+            // Sofort: Die Ausnahme kommt beim Einreihen, der Befehl hat trotzdem gewirkt
+            sim.Bote.Verzoegerung = 0;
+            Pruefe.WirftMitMeldung(() => sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Gut), _ => throw new Exception("sofort kaputt")), "sofort kaputt");
+            Pruefe.Gleich(Lohnstufe.Gut, Werkstatt(sim, spieler).Lohnstufe);
+        }),
+
+        ("Befehlsbote: Wiedereintritt – ein Befehl aus dem Rückruf wirkt danach, das Abspielen stimmt", () =>
+        {
+            var (sim, spieler) = NeuePartie(4711);
+            Ticken(sim, 300);
+            var werkstatt = Werkstatt(sim, spieler).Name;
+            sim.Bote.AufzeichnungBeginnen();
+            var reihe = new List<string>();
+            sim.Bote.Ausgefuehrt += (e, _) => reihe.Add($"{e.Nummer}{(e.Sofort ? "s" : "w")}");
+            // sofort (Pause): Der Rückruf reiht zwei weitere ein – sie wirken nach ihm, in der Reihenfolge der Nummern
+            sim.Takt.IstPausiert = true;
+            sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Gut), _ =>
+            {
+                Pruefe.WirftMitMeldung(() => sim.Bote.SofortAusfuehren(spieler, new StandErwerben()), "erst danach");
+                sim.Bote.Einreihen(spieler, new WaechterSetzen(werkstatt, true));
+                sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Knapp));
+            });
+            Pruefe.Gleich("0s,1s,2s", string.Join(",", reihe));
+            Pruefe.Gleich(Lohnstufe.Knapp, Werkstatt(sim, spieler).Lohnstufe);
+            // am Anfang eines Ticks: Der Rückruf eines wartenden Befehls reiht für den nächsten Tick ein
+            sim.Takt.IstPausiert = false;
+            sim.Bote.Verzoegerung = 1;
+            sim.Bote.Einreihen(spieler, new LohnstufeSetzen(werkstatt, Lohnstufe.Gut), _ => sim.Bote.Einreihen(spieler, new PraemieZahlen(werkstatt)));
+            Ticken(sim, 2);
+            Pruefe.Gleich(1, sim.Bote.Warteschlange.Count);
+            Pruefe.Gleich(sim.Zeit.VergangeneMinuten + 1, sim.Bote.Warteschlange[0].ZielTick); // Tick +1, dann + Verzögerung 1
+            Ticken(sim, 2);
+            Pruefe.Gleich("0s,1s,2s,3w,4w", string.Join(",", reihe));
+            GleicherStand(Stand(sim), Stand(sim.Bote.AufzeichnungBeenden().Abspielen()));
+        }),
+
+        ("Befehlsbote: Reihenfolge im Tick – sofortige vor wartenden, dann Haus vor Nummer (auch beim Abspielen)", () =>
+        {
+            // Hält das jetzige Verhalten fest: Wirken zwei Häuser im selben Tick sofort, ordnet das Abspielen sie nach dem Haus, nicht nach
+            // der Ankunft. Im Einzelspiel gibt es nur ein Haus am Boten; im Gleichschritt kommt der Pausen-Takt (M3).
+            var (sim, spieler) = NeuePartie();
+            var rivale = Rivale(sim, spieler);
+            var r = Array.IndexOf(sim.Wirtschaft!.Konten.ToArray(), rivale);
+            var t = sim.Zeit.VergangeneMinuten;
+            sim.Bote.Empfangen(new EingereihterBefehl(t, 0, 7, new StandErwerben()));           // wartend, Haus 0
+            sim.Bote.Empfangen(new EingereihterBefehl(t, r, 1, new StandErwerben(), Sofort: true)); // sofort, Rivale, früher angekommen
+            sim.Bote.Empfangen(new EingereihterBefehl(t, 0, 2, new StandErwerben(), Sofort: true)); // sofort, Haus 0, später angekommen
+            sim.Bote.Empfangen(new EingereihterBefehl(t, 0, 0, new StandErwerben()));           // wartend, Haus 0, kleinere Nummer
+            Pruefe.Gleich($"0:2:s,{r}:1:s,0:0:w,0:7:w", string.Join(",", sim.Bote.Warteschlange.Select(e => $"{e.Konto}:{e.Nummer}:{(e.Sofort ? "s" : "w")}")));
+            Pruefe.Gleich(8L, sim.Bote.NaechsteNummer);
+        }),
+
+        ("Befehlsbote: Empfangen lehnt einen Ziel-Tick in der Vergangenheit ab; die Nummer zählt nach dem Laden hinter der Schlange weiter", () =>
+        {
+            var (sim, spieler) = NeuePartie();
+            Ticken(sim, 50);
+            Pruefe.WirftMitMeldung(() => sim.Bote.Empfangen(new EingereihterBefehl(49, 0, 0, new StandErwerben())), "zu spät");
+            sim.Bote.Empfangen(new EingereihterBefehl(50, 0, 0, new StandErwerben())); // der nächste Tick geht noch
+            sim.Bote.SofortAusfuehren(spieler, new StandErwerben());                   // Nr. 1, nur im Protokoll
+            Pruefe.Gleich(2L, sim.Bote.NaechsteNummer);
+            sim.Bote.Verzoegerung = 5;
+            sim.Bote.Einreihen(spieler, new StandErwerben()); // Nr. 2
+            sim.Bote.Einreihen(spieler, new StandErwerben()); // Nr. 3
+            Pruefe.Gleich(4L, sim.Bote.NaechsteNummer);
+            var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler, Zeitpunkt));
+            Pruefe.Gleich(4L, geladen.Bote.NaechsteNummer);
+            Pruefe.Gleich("0,2,3", string.Join(",", geladen.Bote.Warteschlange.Select(e => e.Nummer)));
+            geladen.Bote.Verzoegerung = 5;
+            Pruefe.Gleich(4L, geladen.Bote.Einreihen(geladen.Wirtschaft!.Konten[0], new StandErwerben()));
+            Ticken(geladen, 10);
+            var (leer, _) = Speicherung.Laden(Speicherung.Speichern(geladen, null, Zeitpunkt));
+            Pruefe.Gleich(0L, leer.Bote.NaechsteNummer);
         }),
     };
 }
