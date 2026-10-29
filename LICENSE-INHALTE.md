@@ -8,7 +8,7 @@ Dieses Dokument hält fest, was unter welcher Lizenz steht. Es ist **keine Recht
 |---|---|
 | Code und Skripte, Shader, Zahlenwerte und Struktur der Spieldaten | MIT ([LICENSE](LICENSE)) |
 | Inhalte, veröffentlicht **bis zum Stichtag** (Merge von PR #240) | CC BY 4.0, nicht widerrufbar |
-| Inhalte, die **ab dem Stichtag** neu ins Repository kommen oder neu erstellt werden | Alle Rechte vorbehalten, © B411Y |
+| Inhalte, die **ab dem Stichtag** neu ins Repository kommen (neue Dateien, neue Texte); überarbeitete Fassungen vorhandener Dateien bleiben CC BY 4.0 | Alle Rechte vorbehalten, © B411Y |
 | Fremdmaterial (Quaternius, Schriften, TressFX …) | die Lizenz des Urhebers, unverändert |
 
 ## Code: MIT
@@ -61,9 +61,11 @@ Werkzeug, Modell, Prompt und Nachbearbeitung je Datei stehen im Asset-Protokoll 
 
 ### Ab dem Stichtag: Alle Rechte vorbehalten
 
-Inhalte, die **nach dem Merge von PR #240** neu ins Repository kommen oder neu erstellt werden (neue Dateien, neue Texte, auch neue Fassungen bestehender Dateien), stehen unter **„Alle Rechte vorbehalten“**: © 2026 B411Y. Ohne ausdrückliche Erlaubnis darf sie niemand über das hinaus nutzen, was das Gesetz oder die GitHub-Nutzungsbedingungen (siehe unten) erlauben.
+Inhalte, die **nach dem Merge von PR #240** neu ins Repository kommen oder neu erstellt werden (neue Dateien, neue Texte), stehen unter **„Alle Rechte vorbehalten“**: © 2026 B411Y. Ohne ausdrückliche Erlaubnis darf sie niemand über das hinaus nutzen, was das Gesetz oder die GitHub-Nutzungsbedingungen (siehe unten) erlauben.
 
 Jede neue Zeile im Asset-Protokoll trägt ab dann in `lizenz_ergebnis` den Wert „Alle Rechte vorbehalten“; `tools/assets/protokoll_pruefen.py` prüft das, sobald der Stichtag dort eingetragen ist.
+
+Überarbeitete oder ersetzte Fassungen bereits vorhandener Dateien bleiben unter CC BY 4.0.
 
 Das gilt nicht für Code (bleibt MIT) und nicht für Fremdmaterial.
 
