@@ -95,6 +95,8 @@ Startoptionen (nach `--`):
 - `--uigroesse=<75–200>`
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
 - `--klangtest=1` (spielt alle Oberflächenklänge nacheinander und schreibt `KLANGTEST <Ereignis>: n/m Varianten (Längen)` ins Log; am Ende `KLANGTEST fertig … 0 mit fehlenden Dateien`)
+- `--ansagetest=<liste>` (Ansagen des Haushofmeisters auslösen, alle 0,5 s eine, ohne Wiederholsperre; jede Zeile `ANSAGE <Ereignis>: gespielt|wartet|verworfen – Rang, Fassung, Variante` im Log, später `verfallen`/`kommt nach der Pause dran`. Liste: Kennungen mit Komma wie `tod_familie,feuer,krankheit`; `alle` = alle 20 Ereignisse in der Reihenfolge der Datei (zeigt Vorrang und Pause); `dateien` = je Ereignis, wie viele Aufnahmen vorhanden sind (löst nichts aus). Dahinter `:herrin` oder `:herr` erzwingt die Fassung, sonst gilt das Geschlecht des Oberhaupts. Braucht die Partie, also mit `--karte=…`/Neues Spiel; ohne Aufnahmen nur zusammen mit `--ansageplatzhalter=1` zu hören)
+- `--ansageplatzhalter=1` (statt einer fehlenden Aufnahme der Ansagen klingt ein kurzer Glockenton von Kenney; schaltet außerdem das Ansagen-Log an, das sonst nur im Entwicklermodus schreibt)
 - `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel|Ton>` (mit `--einstellungen=1`)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)

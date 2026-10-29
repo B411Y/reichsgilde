@@ -5,7 +5,7 @@ Geräusche, Musik, Stimmen, Audio-Busse. Neue Einträge unten anhängen, keine N
 ## Offen
 
 Plan (Schritte in dieser Reihenfolge):
-- Schritt 3: Ansagen des Haushofmeisters (Nutzerentscheidung 29.10.2026): eine feste, förmlich-alte Stimme („Herr, Euer Sohn ist erkrankt.“, bei einer Spielerin „Herrin“), etwa 20 wichtige Ereignisse (Tod, Krankheit, Geburt, Heirat, Aufstieg in Stand oder Meisterstufe, Wahl, Werkstatt steht still, Lager leer, Kasse knapp, Diebstahl, Feuer …), Mindestabstand, abschaltbar. Sätze vorab erzeugt, ohne Namen (der Name steht in der Textmeldung). Vorbild nur das Prinzip des Beraters aus Stronghold, keine fremden Sätze. Im Gerüst vorbereitet: `KlangDienst.AnsageSpielen` (eine zur Zeit, Warteschlange bis 2, ältere verfallen, 8 s Abstand) auf dem Bus Stimmen und Schalter „Ansagen“ im Reiter Ton (Standard an)
+- Schritt 3: Ansagen des Haushofmeisters – Einbau fertig, es fehlen die Aufnahmen: Der Teamleiter erzeugt sie nach `python3 tools/ton/ansagen_liste.py` (120 Zeilen) auf dem Grafik-PC und legt sie nach `game/assets/audio/stimmen/haushofmeister/`; dazu Protokollzeilen in `docs/assets/protokoll.csv` und `HERKUNFT.md` des Ordners (Ton, Modell, Stimmvorlage)
 - Schritt 4: Umgebung nach Zoom und Tageszeit (Schleifen mit Überblendung)
 - Schritt 5: Wetter und Jahreszeiten
 - Schritt 6: Glocken, Geräusche an Orten (Werkstätten, Markt, Hafen) und Innenräume
@@ -38,3 +38,19 @@ Plan (Schritte in dieser Reihenfolge):
 | Prüfung | `--klangtest=1` schreibt je Ereignis die geladenen Varianten und Längen ins Log | 29.10.2026 |
 
 **Zum Ausprobieren (Nutzer):** Spiel starten, Einstellungen, Reiter Ton: Regler „Oberfläche“ auf 80 %. Dann nacheinander: einen Knopf klicken (leiser Ledergriff); einen Reiter wechseln (Blättern); ein Fenster öffnen und mit dem Kreuz schließen (Pergament auf, zu); etwas kaufen, z. B. einen Karren oder Lehrling (Münzen); etwas Unmögliches versuchen, z. B. ohne Geld bauen (dumpfer Holzklopfer); eine Gefahrenmeldung abwarten (kleine Glocke); im Rat einen Antrag stimmen (Siegel); ein Gebäude setzen (Holzschlag); Pause mit Leertaste und Tempo mit 1 bis 3 (Metallklick). Alle Klänge am Stück ohne Spiel: Startoption `--klangtest=1`. Urteil bitte zu: zu laut oder zu leise, passt der Klang zum Ereignis, nervt etwas bei häufigem Klicken. Die Glocke ist ein schwerer Schlag, hochgestimmt; wenn sie zu blechern klingt, tauschen wir sie.
+
+### Ansagen des Haushofmeisters (Ton Schritt 3)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ereignisse | 20 Ereignisse, die der Kern schon meldet (keine neuen erfunden): Tod (Oberhaupt, Familie), Feuer, Pest in der Stadt, Krankheit, Überfall, Einbruch, Anklage, Schulden, Wahl gewonnen/verloren, Aufstieg im Stand, Meisterprüfung, Geburt, Hochzeit, Ratssitzung, Kasse knapp, Lager leer, Lager voll, Jahresende; je 3 Sätze, je in Fassung Herr und Herrin = 60 Sätze, 120 Aufnahmen. Liste: `game/daten/ansagen.json` | 29.10.2026 |
+| „Werkstatt steht still“ | Kein eigenes Ereignis: Der Kern meldet den Stillstand mit Grund; gemeldet werden nur „Rohstoff fehlt“ (Lager leer) und „Lager voll“. Umbau und Reparatur nach Anschlag sind gewollt bzw. schon als Feuer angesagt | 29.10.2026 |
+| Fassung | Das Spiel kennt das Geschlecht der Person (`Person.Geschlecht`), nicht „der Spielerfigur“ – gilt das Oberhaupt des Hauses zur Zeit der Meldung. Nach einem Erbfall also die Anrede des Erben. Die zwei Fassungen unterscheiden sich nur in der Anrede; Sätze meiden gegenderte Wörter (Sohn, Gemahlin, ihm/ihr) | 29.10.2026 |
+| Erkennung | Der Kern meldet nur Text; `KlangAnsagenErkennung` ordnet Wortlaute per Regex zu (ohne Änderung im Kern). Eigenes Haus: Regexgruppe `wer` gegen Betriebe und Inhaber des Spielers, bei Familienereignissen das Konto aus dem Familienbuch. Aufstieg im Stand, Jahresende, Ratssitzung und Wahl kommen als Ereignis aus der `Hauptszene`. Ein Test lässt echte Kernmeldungen erkennen, damit eine geänderte Formulierung im Kern auffällt | 29.10.2026 |
+| Rang und Pause | Rang 1 Tod, 2 Feuer/Pest, 3 Krankheit/Überfall/Einbruch/Anklage/Schulden, 4 Wahl/Aufstieg/Meister/Geburt/Hochzeit, 5 Ratssitzung/Kasse/Lager leer, 6 Lager voll/Jahresende. 20 s Echtzeit Pause nach dem Ende einer Ansage, nur die wichtigste wartet (gleicher Rang: die neuere), Verfall nach 45 s, nichts wird unterbrochen. Je Ereignis eine Wiederholsperre (60–180 s). Ersetzt die alte Warteschlange (2 Plätze, 8 s) im `KlangDienst` | 29.10.2026 |
+| Fehlende Datei | still übersprungen, Zeile im Log nur im Entwicklermodus (Entwicklerbefehle erlaubt) oder mit `--ansageplatzhalter=1` | 29.10.2026 |
+| Platzhalter | `--ansageplatzhalter=1`: Kenney-Glocke (`impact_bell_heavy_003`) statt der fehlenden Aufnahme, keine Fremdaufnahme | 29.10.2026 |
+| Werkzeug | `tools/ton/ansagen_liste.py` gibt die Sätze als CSV oder JSON aus (`--fassung`, `--fehlende`, `--pruefen`), ruft den Sprachdienst nicht auf | 29.10.2026 |
+| Prüfung | `--ansagetest=<liste|alle|dateien>[:herrin]` löst Ansagen aus und schreibt die `ANSAGE …`-Zeilen ins Log. Im Entwicklerfenster gibt es keine Schaltfläche (das gehört in `EntwicklerAnzeige`, Bereich Oberfläche); die dortigen Knöpfe Tod, Krankheit, Geburt, Heirat, Diebstahl, Feuer und Hausbrand lösen die echten Meldungen aus und damit die Ansagen | 29.10.2026 |
+
+**Zum Ausprobieren (Nutzer):** Solange keine Aufnahmen da sind: Spiel mit `--ansageplatzhalter=1` starten, F12 (Entwicklerfenster), Reiter Familie: „Sterben lassen“ bei einem Angehörigen, „Sohn“, „Heiraten“, dann „Feuer im Betrieb“ und „Hausbrand“. Pro Ereignis klingt eine Glocke, nie öfter als alle 20 Sekunden; bei dichter Folge entfällt Unwichtiges (siehe Log). Der Schalter steht unter Einstellungen, Ton, „Ansagen des Haushofmeisters“.
