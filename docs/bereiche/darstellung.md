@@ -1,6 +1,6 @@
 # Bereich Darstellung – Offen und Entscheidungen
 
-> **Archiv:** Ältere und abgelöste Entscheidungen (bis 26.10.2026) stehen in [archiv/darstellung.md](archiv/darstellung.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
+> **Archiv:** Ältere und abgelöste Entscheidungen (bis 27.10.2026) stehen in [archiv/darstellung.md](archiv/darstellung.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
 
 **Nur der Darstellungs-Chat schreibt hier.** Ausnahme: Ein anderer Bereich darf unter „Offen“ eine Zeile mit „(von …)“ anhängen, wenn er hier etwas braucht.
 
@@ -150,32 +150,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Personal und Talentbaum (PR #224): Neue Arbeitskräfte Vorarbeiter, Knecht/Altknecht/Großknecht (Altknecht ist der frühere Bergmann), Taschendieb/Dieb/Meisterdieb, Rekrut/Gefreiter/Feldwebel – die Figuren in `Stadtansicht.Innen*.cs` färben noch nach „Lehrling“/„Geselle“; besser nach `Personalwesen.Stufe(kraft)` (1 = Anfänger) und mit `Arbeiter.Volk`/`Aussehen`. Neue Einrichtung ohne Knoten `Einrichtung_<Kennung>` im Raummodell: Schleifstein, Drechselbank, Steinsaege, Athanor, Enfleurage, Gewoelbekeller, Skriptorium, Ladentheke, Lehrlingsstube (Wohnhaus: Vorratskammer, Kueche, Hauswappen, Stube, Bibliothek, Riegel, Hund).
 - (von kern) Erbgut und 2D-Porträt: Haar- und Augenfarbe stehen doppelt (`Person.Aussehen` und die Farb-Gene im `Person.Erbgut`) und können sich widersprechen. Empfehlung: im PR, der den 3D-Kopf zeigt, Haar und Augen des Porträts aus den Farb-Genen ableiten (je Volk ein Punkt pro Palettenfarbe in `erbgut.json`, die nächste gewinnt; die Wahl auf der Startseite setzt dann die Farb-Gene; der Kern streicht dafür die Farben in `Aussehenspalette.Vererben`). Das Gesicht 0–4 bleibt Bildnummer.
 - (von kern) Erbgut für Arbeiter und Ratsherren: Sie sind keine Personen und haben keins. Empfehlung: `Erbgut.Wuerfeln(Erbgutvorlage.Standard, startwert, volk)` mit einem festen Startwert aus Betrieb und Nummer bzw. dem Namen des Ratsherrn – nichts im Spielstand. Werte immer mit `SichtbarerWert(gen, geschlecht)` lesen (Bart der Frauen).
+- Charakter Phase 2 (Basiskopf): Haut hat noch keine Textur (Grundfarbe aus den Farb-Genen, Masken, Poren); Faltenkarten für das Alter, Haut je Volk und das Backen zwischen ICT- und MPFB-Topologie folgen (Phase 3). Frauen wirken ohne Haar knabenhaft. Ork und Oger erst in Phase 5.
+- Charakter Phase 2: Dunkler runder Fleck vor dem Ohr im Godot-Bild, in der Blender-Vorschau ohne Delle – vermutlich ein SSAO-Hof des Ohrs (Bühne: Radius 5 cm). Mit SSAO-Radius 2 cm prüfen.
+- Charakter Phase 2: Brauen wirken mit Alphaschwelle 0,12 als Streifen, mit 0,35 zu licht; 0,2 bis 0,25 versuchen. Wimpern unten wirken wie Punkte.
+- Charakter Phase 2: Die GPU-Zeiten der Messung (Lauf 2) sind nicht belastbar (sinken von Lauf zu Lauf, Fenster 2000 × 2300); in Ruhe und mit 1280 × 720 wiederholen.
 
 ## Entscheidungen
-
-### Kölner Dom (PR #215)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Umsetzung Modell | `koelner_dom.glb` (Blender-Skript `koelner_dom.py`): Knoten `Dach` (Chor und Notdach), `Turm` (Türme, Notportal, Kran: Kranhaus und Tretrad als eigene Kinder, falls sie sich später drehen sollen), `Wand_vorne` (Westwand des Langhausstumpfs), `Wand_hinten` (Bretterwand des Chors), `Wand_links`/`Wand_rechts`, Anker `Anker_Tuer` und `Anker_EwigesLicht` (rotes Licht im Bogen des Notportals, wie beim Dom der übrigen Karten). Entschieden vom Nutzer (Teamleiter, 27.10.2026). | 27.10.2026 |
-| Umsetzung Innenraum | `DomBauen` kennt `koelner_dom`: Der Innenraum (Bänke, Altar, Kanzel, Taufstein, Gläubige) liegt im Langhausstumpf, 4,55 m vor dem Ursprung des Modells (`pm`), 9 × 13,1 m statt 9 × 21 m: der Chor mit Altar und die Kanzel rücken um 3,9 m zur Mitte (`v`), fünf statt acht Bankreihen, der Taufstein bei z 5,8, die Schranke der Simultankirche kürzer. Beim Hineinsehen gehen Chor und Notdach (`Dach`), Türme und Kran (`Turm`) und die Wände zur Kamera weg. Klickflächen: Langhausstumpf, Chor (14 × 30 × 13,5 m) und Türme. Der Dom der übrigen Karten bleibt unverändert (`v` 0, Maße wie vorher). | 27.10.2026 |
-| Klicktest Dom | Vulkan auf der T400, Köln, Stand 4593148 + dieser Stand, neu importiert: Tag klar, Nacht mit `--messe=1` (die hohen Chorfenster leuchten orange, das Ewige Licht rot am Portal) und Innenansicht aus zwei Richtungen (Gläubige, Altar, Kanzel passen in den Stumpf, Chor und Türme blenden aus). Die Umgangfenster sind „Elbenglas“ und leuchten nie: Das Fensterlicht ist ein Material je Gruppe für die ganze Stadt, eine grüne Leuchtfarbe nur für den Dom wäre ein eigenes Material. | 27.10.2026 |
-
-### Regen, Nässe, Pfützen, Lichter und Pflaster (PR #218)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Regen | Tropfen statt gerader Linien wie beim Schnee: kurze Striche unterschiedlicher Länge und Durchsicht, leicht schräg im Wind; Spritzer und Ringe auf Boden und Pfützen. Wunsch des Nutzers nach seiner Testrunde. | 27.10.2026 |
-| Nässe | Nässe-Shader über die Material-Bibliothek: bei Regen dunkler und glänzender, Rinnsale auf schrägen Flächen in Gefällerichtung, Tropfen an Traufen, langsames Abtrocknen. Wunsch des Nutzers. | 27.10.2026 |
-| Pfützen | Eingebackene Flecken aus der Lehm-Textur entfernen (nur leichte feuchte Fleckigkeit); dynamische Pfützen in nassem Lehmbraun mit dunklem nassem Rand, leichter Himmelsspiegelung und Regenringen. Empfehlung des Teamleiters, vom Nutzer gewählt. | 27.10.2026 |
-| Lichter der Passanten | Zwei Stufen: nahe der Bildmitte echte Lichter nach Grafikstufe; alle übrigen und beim Rauszoomen selbstleuchtende Flamme und billiger Lichtfleck am Boden – jede Fackel leuchtet immer. Vom Nutzer gewählt. | 27.10.2026 |
-| Pflaster | Kopfsteinpflaster und Straßen bekommen Tiefe (Höhen-/Normalmap bzw. Parallax: Steine erhaben, Fugen tief), wie das Gras schon Form hat. Wunsch des Nutzers. | 27.10.2026 |
-| Umsetzung Lichter | Ursache: Es gab nur den Pool echter Lichter (nach Schattenqualität Hoch 8, Mittel 4, Niedrig 0; nur unter Zoom 90, nächste zum Blickpunkt); alle anderen leuchteten nur über die winzige Emission der Flamme. Jetzt Hoch 12, Mittel 6, Niedrig 0, bis Zoom 110, dazu für jede brennende Quelle ein Heiligenschein und ein Bodenfleck (`lichtfleck.gdshader`, zwei Vielfach-Zeichenaufrufe, additiv, Bodenfleck (halber Radius, sättigende Mischung `blend_premul_alpha`: viele Flecken übereinander nähern sich einer warmen Obergrenze, nie weiß, Textur bleibt sichtbar; Nutzerwunsch 27.10.) blendet dort aus, wo ein echtes Licht steht, Heiligenschein klein und dezent, nass 45 % heller, Größe wächst mit dem Zoom). Kosten gemessen kaum messbar (Hoch 17,8 gegen 17,9 Bilder/s, Niedrig 24,5 gegen 25,2). | 27.10.2026 |
-| Umsetzung Regen | `regen.gdshader`: Striche in Fallrichtung (mit dem Wind schräg), je Tropfen Länge, Dicke und Durchsicht aus der Nummer, Kopf hell, Schweif läuft aus, nie dünner als ein Bildpunkt; Menge 2500/7000/14000 je Stufe. `regenring.gdshader`: Ringe und kleiner Spritzer auf dem Boden (Partikel, ab Mittel: 1200, Hoch 3200). | 27.10.2026 |
-| Umsetzung Pfützen | Die dunklen Flecken kamen nicht aus der Lehm-Textur, sondern aus `stadtlehm` in `boden.gdshaderinc` (Pfützenmulden mit dauerhaftem Wasser, trocken sichtbar): entfernt, trocken bleibt eine leichte feuchte Fleckigkeit. Die Lehm-Textur selbst ist mit `tools/oberflaeche/bodentexturen_blender.py --nur=lehm` neu gebacken (weniger dunkle Wolken und Sprenkel, Mittel unverändert). Dynamische Pfützen (`wetter.gdshaderinc`): nasses Lehmbraun mit leichter Himmelsspiegelung, dunkler nasser Rand (`pfuetze_rand`), Regenringe wie bisher. | 27.10.2026 |
-| Umsetzung Nässe | `wetter_rinnsale` in `wetter.gdshaderinc`, aus `wetter_flaeche` (Material-Bibliothek, alle Modelle): Gefällerichtung aus der glatten Weltnormalen, quer dazu Streifen aus Rauschen, die herabwandern (Normale, Rauheit, dunkler, etwas Himmelsschimmer); globales `wetter_rinn` (Niedrig 0, Mittel 60 %, Hoch voll; bei Regen stark, danach mit der Nässe langsam aus). Tropfen an Traufen: `Stadtansicht.Traufen.cs` findet je Netz die tiefsten waagerechten Kanten der schrägen Dachdreiecke, ein `GpuParticles3D` mit Emissionspunkten (höchstens 192 Stellen nahe dem Blickpunkt, nur unter Zoom 55, ab Mittel). | 27.10.2026 |
-| Umsetzung Pflaster | Nur Bodenqualität Hoch (`--pflasterrelief=0` schaltet es für den Start aus): Parallax-Okklusion für die Pflasterschicht in `eben()` (10 Stufen, Tiefe 9 cm, blendet in der Ferne aus), Fugen dunkler nach Höhe, am Straßenrand ein Absatz von 14 cm als verschobene Straßenmaske (Oberseite wandert zur Kamera, abgewandte Seite dunkel). Kosten etwa 1,5 ms GPU. Schatten der Fackeln im Pflaster gibt es nicht (die echten Lichter werfen keine Schatten); die Normalenabbildung zeigt die Steine im Fackellicht. | 27.10.2026 |
-| Pfützenrand (Korrektur, Nutzer sah einen harten dunklen Rand wie eine Umrisslinie) | `pfuetze` in `wetter.gdshaderinc` gibt jetzt Wasser und Feuchte getrennt zurück: Die Feuchte ist ein breiter Verlauf (rund 1 m, nur 20 % dunkler, etwas glänzender) statt eines schmalen dunklen Rands, das Wasser hat einen weicheren Rand mit zwei Rauschlagen (Franse statt glatter Kontur), die Wasserfarbe ist die des Untergrunds (kein Lehmbraun mehr). Im Pflaster zählt die Tiefe der Textur mehr: Am Rand steht das Wasser zuerst in den Fugen. Klicktest Vulkan (T400), Probestadt bei Regen, vorher/nachher in `scratchpad/baumfix/pf`. | 28.10.2026 |
 
 ### Asset-Kits: Natur, Props und Dorf-Zierteile (PR #220)
 
@@ -310,3 +290,18 @@ Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --
 | Hoch, 25, Nacht mit Regen | 30,2, 30,2 | 19,1 |
 
 Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.
+
+### Charakter-Werkzeugkette Phase 2 (Branch phase5/charakter-werkzeug, noch ohne PR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weg | Mischung mit ICT-Gesicht: Mund, Zähne, Zunge, Augen und 53 ARKit-Formen vom ICT-FaceKit (MIT), Büste, Alter, Geschlecht und Formregler von MakeHuman (Assets CC0) über MPFB 2 (GPL, nur als Werkzeug). Entscheidung des Nutzers nach Phase 0. | 29.10.2026 |
+| Bildausschnitt | Kopf mit Schulteransatz und Kragen; Kragen und Hemd sind schlichte Platzhalter (Stehkragen, Leinenfarbe), später zeigen sie Stand und Beruf. Entscheidung des Nutzers. | 29.10.2026 |
+| Ork und Oger | Eigene Grundformen erst in Phase 5; das Gen „hauer“ bekommt bis dahin keine Form. Entscheidung des Nutzers. | 29.10.2026 |
+| Seiten | „…Left“ = linke Seite der Figur (aus ihrer Sicht), im Bild von vorn rechts; ICT „_L“, MakeHuman „l-“, Blender und Godot +x meinen dieselbe Seite. `jawLeft`/`mouthLeft` bewegen nach +x. Geprüft im Skript (Abbruch bei Widerspruch) und im Bild. | 29.10.2026 |
+| Makros | Formen je Ecke Alter × Geschlecht (Säugling, Kind, jung, alt × Frau, Mann; Grundnetz Mann 25) und Kraft/Gewicht minus/plus je Geschlecht und Alter (Kind, jung, alt): 31 Formen. Die Szene mischt sie wie MakeHuman bilinear; Größe und Beinlänge wirken in der Büste nicht. Verschiebung der Kopfmitte abgezogen, damit der Kopf im Bild bleibt. | 29.10.2026 |
+| Gene | 21 Gestalt-Gene als je eine Form minus/plus aus MakeHuman-Formzielen (`tools/charakter/kopf2_regler.json`), „augen_tiefe“ selbst gebaut, „ohren_spitze“ nur plus; 128 = keine Form. Farb-Gene steuern die Shader, Zubehör-Gene kommen mit Haar und Bart. | 29.10.2026 |
+| Mimik bei Kindern | Mimik und Gestalt-Gene werden mit der Gesichtsgröße skaliert (`mimikmass` je Makro-Ecke, Säugling 0,59, Kind 0,78–0,88, Erwachsene 0,90–1,0); keine Korrekturformen. Die Form wandert mit dem Gesicht mit, weil sie je Ecke gilt; nur die Weite wird angepasst. | 29.10.2026 |
+| Augen, Zähne, Zunge | Augäpfel folgen Verschiebung und Maßstab des MPFB-Hilfsauges, Zähne und Zahnfleisch je Kiefer einer affinen Abbildung der MPFB-Hilfszähne; Augen- und Mundhöhle gehen von der Naht zum Teil über; der Lidrand wird im Mittel an den Augapfel angeglichen (bis 2,9 mm bei den Makros). | 29.10.2026 |
+| Normalen der Formen | Nur die Mimik behält Normalen (Wangen blähen, Lächeln, Kiefer zeigen sonst kein Licht und keinen Schatten), Alter und Gene nicht (sehen gleich aus). Datei 30,8 MB statt 49,4 (alle) bzw. 15,1 (keine); `glb_formnormalen.py` entfernt sie nach dem Export. | 29.10.2026 |
+| Dunkle Mundhöhle | Tiefe hinter den Lippen als Eckfarbe (Mundhöhle Blau, Zähne Rot), eigene Shader `mund.gdshader` und `zaehne.gdshader` dunkeln Farbe, Glanz und Umgebungslicht ab. | 29.10.2026 |
