@@ -76,10 +76,12 @@ public sealed class WohnhausBaumAnzeige
         if (baum.Stuecke.Count == 0) { Hauptmenue.Text(_inhalt, "Für das Wohnhaus gibt es nichts zu kaufen.", 14, Grau); return; }
         _inhalt.AddChild(TalentbaumAnsicht.Bauen(baum, waehrung, r => stufen is { } l && r - 1 < l.Count ? l[r - 1].Name : $"Stufe {r}", s =>
         {
-            var ergebnis = w.Ausfuehren(_spieler, new WohnhausEinrichtungKaufen(s.Kennung));
-            Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
-            _stand = "";
-            _seitAufbau = 1;
+            UiHilfe.Befehlen(_sim, _spieler, new WohnhausEinrichtungKaufen(s.Kennung), _inhalt, ergebnis =>
+            {
+                Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+                _stand = "";
+                _seitAufbau = 1;
+            });
         }));
         Hauptmenue.Text(_inhalt, "Ein Klick kauft das Stück (bunt: kaufbar, grüner Haken: gekauft, dunkel: gesperrt). Reihen über dem Wohnhaus, das Ihr habt, sind gesperrt, bis Ihr es ausgebaut habt.", 12, Grau, umbruchBreite: 840);
     }

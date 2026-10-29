@@ -137,7 +137,7 @@ public partial class Hauptszene
         if (optionen.TryGetValue("schiff", out var anzahl) && int.TryParse(anzahl, out var n))
             for (var i = 0; i < n; i++)
             {
-                var ergebnis = w.Ausfuehren(_spieler, new SchiffKaufen());
+                var ergebnis = _simulation.Bote.SofortAusfuehren(_spieler, new SchiffKaufen());
                 Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ --schiff: " + ergebnis.Meldung);
                 if (!ergebnis.Erfolg) break;
             }
@@ -151,8 +151,8 @@ public partial class Hauptszene
                     Protokollieren($"✗ --schiffsauftrag={auftrag}: Keine Fahrt {(ziel is null ? "" : $"nach {ziel} ")}bringt zu heutigen Preisen Gewinn.");
                     continue;
                 }
-                var ergebnis = w.Ausfuehren(_spieler, new SchiffsauftragErteilen(schiff.Name, v.Ziel, v.Hinfracht, v.Rueckfracht));
-                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ --schiffsauftrag: " + ergebnis.Meldung);
+                _simulation.Bote.Einreihen(_spieler, new SchiffsauftragErteilen(schiff.Name, v.Ziel, v.Hinfracht, v.Rueckfracht), ergebnis =>
+                    Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : "✗ --schiffsauftrag: " + ergebnis.Meldung));
             }
         }
         if (optionen.TryGetValue("hafen", out var hafen) && hafen != "0")

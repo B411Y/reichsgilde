@@ -156,3 +156,21 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Werkzeug | `tools/handbuch/`: `aufnehmen.sh` (Rohbilder mit dem Klicktest), `beschriften.sh` mit `beschriften.gd` (Godot unter Xvfb setzt Rahmen und Nummern nach `bilder.json`, schreibt `.webp`). Die Bilder lassen sich nach einer Änderung der Oberfläche neu erzeugen. | 29.10.2026 |
 | Protokoll | Bilder unter `docs/` sind nicht protokollpflichtig (Prüfskript prüft nur `game/assets/` und die KI-Quellen unter `tools/`). Es sind Bildschirmfotos des Spiels, nicht KI-erzeugt. | 29.10.2026 |
 | Berichtigungen | Gegen den Code geprüft: Die Einstellungen haben **sechs** Reiter (nicht fünf: dazu „Spiel“); ein Klick auf das Porträt in der Kopfzeile öffnet das Wohnhaus, nicht das Charakterfenster; neu aufgenommen: Wege-Modus (G), X (alle Fenster zu), Rechtsklick im Gebäude, Rahmenwahl und Randschwenken drinnen, Rechtsziehen im Baumodus, Charakterfenster und Aktivitäten, Esc-Reihenfolge. | 29.10.2026 |
+
+### Befehle nur über den Boten (Mehrspieler M2, PR #251)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel | **Befehle nur über den Boten:** Keine Datei in `game/scripts/` ruft `Stadtwirtschaft.Ausfuehren` auf (Kontrolle: `git grep "\.Ausfuehren(" game/scripts` findet nichts). Eine Tafel schickt ihren Befehl mit `UiHilfe.Befehlen(simulation, spieler, befehl, this, ergebnis => { … })`; alles, was vom Ergebnis abhängt (Meldung, Neuaufbau, Schließen, „Beauftragt“), steht im Rückruf, nicht dahinter. Der Rückruf läuft nur, wenn der Besitzer (die Tafel, bei Klassen ohne Knoten ihr Wurzelknoten) noch gültig ist (`IsInstanceValid`) – im Mehrspieler wirkt der Befehl erst im Ziel-Tick, und die Tafel kann bis dahin zu sein. `UiHilfe.MeldungText` macht die übliche Meldung („✗ …“ bei Misserfolg). Neue Tafeln übernehmen das Muster in ihrer `Befehlen`-Methode. | 29.10.2026 |
+| Klicktest-Startoptionen | Brauchen sie das Ergebnis gleich (Schleifen, die bei Misserfolg abbrechen, Aufbau vor `--spulen`), nehmen sie `_simulation.Bote.SofortAusfuehren`; sonst `Bote.Einreihen` mit Rückruf (Meldung im Protokoll). Im Mehrspieler werfen die Sofort-Stellen – sie sind nur Testwerkzeug. | 29.10.2026 |
+| Einzelspiel | Verzögerung 0: Verhalten wie vorher. Klicktest (Vulkan, probestadt/greybox): Marktauftrag, Neubau mit Baurückfrage, Wegausbau, Geschenk im Rat, Werben in der Familie, Wohnhaus-Einrichtung, Schiffsauftrag in der Hafentafel und Geschenk im Charakterfenster – Gulden sinken, Meldung steht, Tafel baut sich neu auf bzw. schließt, kein SCRIPT ERROR. | 29.10.2026 |
+### Lesbarkeit und mittige Fenster (PR #250)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fenster mittig | Jedes Fenster öffnet immer in der Bildschirmmitte (senkrecht zwischen Zeitstrahl und Betriebsleiste), auch nach dem Verschieben; Verschieben bei offenem Fenster bleibt möglich. **„Fensterlage merken“ (PR #214) entfällt** (Entscheidung des Nutzers); festgehaltene Fenster, die zugleich offen sind, sind um 28 px je Fenster versetzt. Ausnahmen (`Mittig = false`): Auswahl (am Mauszeiger, im Raum rechts), Bau- und Wegtafel (rechts, die Karte bleibt frei). | 29.10.2026 |
+| Schrift | Mindestgröße 14 px zentral in `Schriften` (Labels erhalten dazu weiter den Zuschlag von 1); Zeitstrahl-Namen 14 px (Band 20 px, `KopfHoehe` 140). Gleich breite Ziffern waren schon an (`tnum`). | 29.10.2026 |
+| Kontrast | Gemessen: die Grautöne (0,60–0,75) erreichen auf dem Tafelgrund 5,9–9,2 : 1; das blasse Aussehen kam von der Größe. `Schriften.LesbareFarbe` sichert 4,5 : 1 für Label-Farben ab. Gesperrte Knöpfe: Schrift 0,62/0,58/0,52. | 29.10.2026 |
+| Knöpfe und Schalter | `Oberflaechenstil` im Standard-Thema: Fläche, Rand, Hover, gedrückt und gesperrt; Schalter und Häkchen als gezeichnete Bilder. Die Holzbalken, Bücher und Schriftrollen (spätere Schritte) lösen es ab. | 29.10.2026 |
+| Tabellen | `Streifenraster`: jede zweite Zeile hinterlegt, Zeilenabstand 10 px (Produktion, Lager, Rat; Markt und Personal sind Kacheln bzw. Karten ohne Tabelle). | 29.10.2026 |
+| Kleine Fehler | F4 Rat: Der Rollbereich lässt Zeitstrahl und Betriebsleiste frei. F7: Marke über dem Band. F5 und F8: Beschriftungen im Raum (siehe Bericht). | 29.10.2026 |

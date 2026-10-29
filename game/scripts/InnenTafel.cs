@@ -107,11 +107,12 @@ public abstract class InnenTafel
     /// <summary>Schickt den Befehl an den Kern, meldet das Ergebnis und baut die Tafel gleich neu.</summary>
     protected void Befehlen(Befehl befehl)
     {
-        if (Sim?.Wirtschaft is not { } w || Spieler is null) return;
-        var ergebnis = w.Ausfuehren(Spieler, befehl);
-        Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
-        _stand = "";
-        _seitAufbau = 1;
+        UiHilfe.Befehlen(Sim, Spieler, befehl, Tafel, ergebnis =>
+        {
+            Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+            _stand = "";
+            _seitAufbau = 1;
+        });
     }
 
     protected void HandelMelden(Betrieb b) => HandelGewuenscht?.Invoke(b);
@@ -130,12 +131,12 @@ public abstract class InnenTafel
         Inhalt.AddChild(new HSeparator());
     }
 
-    /// <summary>Ein Raster mit Spalten, in dem Zeilen als Folge von Steuerelementen stehen.</summary>
-    protected GridContainer Raster(int spalten, int abstandX = 14)
+    /// <summary>Ein Raster mit Spalten, in dem Zeilen als Folge von Steuerelementen stehen; jede zweite Zeile ist hinterlegt (<paramref name="streifen"/>: sonst ab drei Spalten – zwei Spalten sind meist ein Formular).</summary>
+    protected GridContainer Raster(int spalten, int abstandX = 14, bool? streifen = null)
     {
-        var raster = new GridContainer { Columns = spalten };
+        var raster = streifen ?? spalten > 2 ? new Streifenraster { Columns = spalten } : new GridContainer { Columns = spalten };
         raster.AddThemeConstantOverride("h_separation", abstandX);
-        raster.AddThemeConstantOverride("v_separation", 6);
+        raster.AddThemeConstantOverride("v_separation", 10);
         Inhalt.AddChild(raster);
         return raster;
     }

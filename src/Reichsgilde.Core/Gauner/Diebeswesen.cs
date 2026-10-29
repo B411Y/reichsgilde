@@ -785,9 +785,10 @@ public sealed class Diebeswesen
     internal DiebeStand Sichern(Func<Konto, int> nr) => new()
     {
         ZufallWuerfe = _zufall.Wuerfe,
-        Auftraege = _auftraege.Select(a => new DiebesauftragStand
+        Auftraege = _auftraege.Select((a, i) => new DiebesauftragStand
         {
             Dieb = nr(a.Dieb), Ziel = nr(a.Ziel), Art = a.Art, Betrieb = a.Betrieb, Person = a.Person, Betrag = a.Betrag,
+            Erfolgreich = i < _erfolgreich.Count && _erfolgreich[i],
         }).ToList(),
         Briefe = _briefe.Select(b => new DiebesbriefStand
         {
@@ -802,6 +803,8 @@ public sealed class Diebeswesen
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
         _auftraege.Clear();
         _auftraege.AddRange(s.Auftraege.Select(a => new Diebesauftrag(k[a.Dieb], k[a.Ziel], a.Art, a.Betrieb, a.Person, a.Betrag)));
+        _erfolgreich.Clear();
+        _erfolgreich.AddRange(s.Auftraege.Select(a => a.Erfolgreich));
         _briefe.Clear();
         _briefe.AddRange(s.Briefe.Select(b => new Diebesbrief(b.Art, k[b.Dieb], k[b.Opfer], b.Betrag, b.Jahr, b.Geisel)));
         foreach (var (nr, buch) in s.DiesesJahr) _diesesJahr[k[int.Parse(nr)]] = buch;

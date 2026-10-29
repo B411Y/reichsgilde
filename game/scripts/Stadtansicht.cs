@@ -1350,6 +1350,13 @@ public partial class Stadtansicht : Node3D
             label.Font = Schriften.Ueberschrift;
             label.Visible = false;
         }
+        else
+        {
+            // Schilder im Raum liegen auf hellem Boden und Mauerwerk: ein dicker, deckender dunkler Rand ist ihr Grund (F8, Dom innen) – und die Zeilen halten Abstand
+            label.OutlineSize = 30;
+            label.OutlineModulate = new Color(0.07f, 0.06f, 0.05f);
+            label.LineSpacing = 6;
+        }
         _beschriftungen.Add(label);
         (eltern ?? this).AddChild(label);
         return label;

@@ -25,6 +25,12 @@ public sealed class Simulation
     public Spielzeit Zeit { get; }
     public Taktgeber Takt { get; } = new();
 
+    /// <summary>
+    /// Der Weg der Befehle von Spielern (Mehrspieler M2): Warteschlange mit Ziel-Tick, Ergebnis als Rückruf, Aufzeichnung als Protokoll.
+    /// Im Einzelspiel wirkt ein Befehl sofort (Verzögerung 0) – wie <see cref="Stadtwirtschaft.Ausfuehren"/>.
+    /// </summary>
+    public Mehrspieler.Befehlsbote Bote { get; }
+
     /// <summary>Markt, Betriebe und Konten. Null, wenn die Simulation ohne Wirtschaftsdaten läuft.</summary>
     public Stadtwirtschaft? Wirtschaft { get; }
 
@@ -95,6 +101,7 @@ public sealed class Simulation
             throw new ArgumentException("Ungültige Partie-Einstellungen: " + string.Join(" ", fehler), nameof(einstellungen));
 
         Zeit = zeit ?? new Spielzeit();
+        Bote = new Mehrspieler.Befehlsbote(this);
         Takt.RundenDauerSekunden = Einstellungen.RundenDauerMinuten * 60;
 
         if (wirtschaftsdaten is not null)
@@ -127,20 +134,30 @@ public sealed class Simulation
         var altesJahr = Zeit.Jahr;
         var altePhase = Zeit.Tagesphase;
 
-        // Erst wird in der laufenden Minute gearbeitet, dann rückt die Uhr weiter.
-        Wirtschaft?.Tick(Zeit);
-        // Später hier: Bürger-KI, Karren, Ereignisse ...
-
-        Zeit.Weiter();
-
-        if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+        // Zuerst wirken die Befehle für diese Minute (in fester Reihenfolge), dann wird gearbeitet, dann rückt die Uhr weiter.
+        // Bis zum Ende des Ticks (samt seinen Ereignissen) wirkt kein neuer Befehl sofort – er wartet auf den nächsten Tick.
+        try
         {
-            _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
-            return;
-        }
+            Bote.TickBeginnt(Zeit.VergangeneMinuten);
+            Wirtschaft?.Tick(Zeit);
+            // Später hier: Bürger-KI, Karren, Ereignisse ...
 
-        if (!IstBeendet && Zeit.Tagesphase != altePhase)
-            PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+            Zeit.Weiter();
+
+            if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+            {
+                _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
+                Bote.LueckeMelden($"Ratssitzung {altesJahr} angehalten – ihre Schritte sind noch keine Befehle.");
+                return;
+            }
+
+            if (!IstBeendet && Zeit.Tagesphase != altePhase)
+                PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+        }
+        finally
+        {
+            Bote.TickEndet();
+        }
     }
 
     /// <returns>false, wenn die Partie vor der Ratssitzung anhält – den Rest erledigt <see cref="RatssitzungWeiter"/>.</returns>
@@ -159,7 +176,7 @@ public sealed class Simulation
         var vermoegen = (long)Math.Floor(Wirtschaft?.HoechstesVermoegen ?? 0);
         var stand = new Spielstand(Zeit.Jahr, LebendeDynastien, vermoegen);
         if (!IstBeendet && Spielende.IstErreicht(Einstellungen, stand))
-            Beenden(Einstellungen.SiegbedingungText);
+            Abschliessen(Einstellungen.SiegbedingungText); // die Siegbedingung: das rechnet jede Partie selbst nach, keine Lücke im Protokoll
     }
 
     /// <summary>
@@ -177,12 +194,24 @@ public sealed class Simulation
         Endgrund = endgrund;
     }
 
-    /// <summary>Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus.</summary>
+    /// <summary>
+    /// Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus. Wartende Befehle wirken
+    /// nicht mehr (ihre Rückrufe bekommen eine Ablehnung). Weil das von außen kommt und kein Befehl ist, gilt ein laufendes Befehlsprotokoll
+    /// danach als unvollständig.
+    /// </summary>
     public void Beenden(string grund)
+    {
+        if (IstBeendet) return;
+        Bote.LueckeMelden($"Partie von außen beendet: {grund}");
+        Abschliessen(grund);
+    }
+
+    private void Abschliessen(string grund)
     {
         if (IstBeendet) return;
         IstBeendet = true;
         Endgrund = grund;
-        PartieBeendet?.Invoke();
+        try { PartieBeendet?.Invoke(); }
+        finally { Bote.Verwerfen("Die Partie ist vorbei – der Befehl wirkte nicht mehr."); }
     }
 }
