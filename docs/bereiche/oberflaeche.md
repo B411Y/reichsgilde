@@ -325,3 +325,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Welche Karten | Karten mit Kennzeichen `spielbar` in der Kartendatei (heute Probestadt; Köln, wenn fertig) und selbst gebaute aus `user://karten/`, soweit der Haken „In der Kartenwahl anbieten“ (Reiter „Karte“ der Werkstatt) gesetzt ist – eine neue Werkstattkarte hat ihn von Anfang an. Greybox, Köln und Messstadt nur im Entwickler-Modus („Testkarte“). | 28.10.2026 |
 | Entwickler-Option | Haken „Entwickler-Optionen“ unten rechts im Hauptmenü (`Entwickler.Aktiv`, gemerkt), zentrale Stelle für spätere Entwickler-Einstellungen (Debugging …); heute nur die Kartenliste. | 28.10.2026 |
 | Vorschaubilder | Einmal aus dem Spiel mit Vulkan gerendert (`tools/kartenbilder/kartenbilder.sh`, ganze Karte, Mittag, Sommer) nach `assets/oberflaeche/karten/`. Selbst gebaute Karten zeigen einen Platzhalter mit dem Namen (einfachste saubere Lösung). | 28.10.2026 |
+
+### Wege-Modus im Baumenü (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wege nur im Baumenü | Außerhalb des Baumenüs lassen sich Wege nicht mehr anklicken (kein Wegtreffer, kein Tooltip); Klicks gehen wie sonst an Gebäude und Boden. Entscheidung des Nutzers. | 29.10.2026 |
+| Umschalter | Im Baumenü (`BauAnzeige`) oben „Gebäude \| Wege (G)“. Auf „Wege“ leuchten alle Wege nach Belag (Trampelpfad dunkelbraun, Fahrweg ocker, Kies grau-blau, Pflaster hell, Baustelle orange), der Weg unter der Maus heller; die Bauzonen sind dann aus, die Tafel zeigt die Farblegende. Verlassen des Baumenüs (Esc, B, Schließen) beendet den Modus. Entscheidung des Nutzers. | 29.10.2026 |
+| Taste | **G** (W ist die Kamera): öffnet das Baumenü im Wege-Modus bzw. schaltet zwischen Gebäude und Wege um. Teamentscheidung, weil W belegt ist. | 29.10.2026 |
+| Tooltip | Am Zeiger: Wegname, Belag (mit „wird gebaut“), nächste Stufe (Kies, dann Pflaster) mit Länge, Kosten und Bauzeit des 50-m-Abschnitts um die Maus (`Wegebau.Vorschau`, derselbe Abschnitt, den die Wegtafel vorwählt, `WegAnzeige.Vorwahl`), Sperrgrund, „Klick: Wegtafel“. Kein Kern-Eingriff nötig. Eigenes kleines Feld statt des Tooltip-Systems (das hängt an Steuerelementen, hier ist es die 3D-Welt). | 29.10.2026 |
+| Wegtafel | Öffnet bei Klick links neben der Bautafel (`WegAnzeige.Oeffnen(…, versatz)`), Ausbau, Kosten und Bauzeit wie bisher. Esc schließt zuerst die Wegtafel, dann das Baumenü. | 29.10.2026 |
