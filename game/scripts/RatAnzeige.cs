@@ -134,8 +134,8 @@ public partial class RatAnzeige : PanelContainer
             var inhaber = UiHilfe.MitWappen(raster, amt.Ratsherr is null ? amt.Konto?.Wappen : null, (amt.Ratsherr is { } r ? $"{r.Name}, {r.Daten.Volk.Einzahl()}" : amt.Inhaber) + kurz, 14, farbe);
             if (amt.Ratsherr is { } rn && w.Glaube.IstAktiv)
             {
-                var naehe = w.Glaube.Naehe(rn, _spieler);
-                inhaber.TooltipText = $"{rn.Name} ist {w.Glaube.GlaubeVon(rn).Name()} – euer Glaube bringt bei ihm {Zahlenformat.MitVorzeichen(naehe)} Punkte in der Wahl.";
+                // Die Glaubensnähe steckt in der Meinung (PR #231) – hier nur der Glaube, die Punkte zeigt der Tooltip der Spalte „Meinung“
+                inhaber.TooltipText = $"{rn.Name} ist {w.Glaube.GlaubeVon(rn).Name()} – der Glaube zählt in seiner Meinung über Euch.";
                 inhaber.MouseFilter = MouseFilterEnum.Stop;
             }
             if (amt.Ratsherr is { } ratsherr)

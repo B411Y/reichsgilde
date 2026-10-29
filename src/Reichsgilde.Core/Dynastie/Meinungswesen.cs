@@ -205,7 +205,8 @@ public sealed partial class Meinungswesen
         // Volk – wie die frühere Volksnähe im Rat; eine Ehe zwischen Völkern färbt den Blick auf das Oberhaupt.
         var gunst = _w.Daten.Politik.Gunst;
         if (von.Volk == ueber.Volk) Grund(() => $"Gleiches Volk ({ueber.Volk.Mehrzahl()})", gunst.Volksnaehe);
-        if (fb.IstAktiv && hausUeber is not null && hausUeber.Oberhaupt == ueberP && hausUeber.Ehepartner is { } partner && partner.Volk != ueberP.Volk)
+        if (fb.IstAktiv && hausUeber is not null && hausUeber.Oberhaupt == ueberP && hausUeber.Ehepartner is { } partner && partner.Volk != ueberP.Volk
+            && partner != vonP) // der Blick der anderen auf die Ehe – nicht der des Ehepartners selbst
         {
             var mischehe = fb.Daten.Mischehe;
             if (von.Volk == ueberP.Volk) Grund(() => $"Ehe mit {partner.Vorname} ({partner.Volk.Einzahl()})", mischehe.AnsehenEigenesVolk);
@@ -219,7 +220,7 @@ public sealed partial class Meinungswesen
             if (gu == Konfession.Naturglaube && gv != Konfession.Naturglaube) Grund(() => "Ein Heide", g.Heide);
             else if (gu == gv) Grund(() => $"Gleicher Glaube ({gu.Name()})", g.Gleich);
             else Grund(() => $"Anderer Glaube ({gu.Name()})", g.Anders);
-            if (hausUeber is not null && hausUeber.Oberhaupt == ueberP && hausUeber.Ehepartner is { } e2 && e2.Herkunftsglaube != gu && e2.Herkunftsglaube == gv)
+            if (hausUeber is not null && hausUeber.Oberhaupt == ueberP && hausUeber.Ehepartner is { } e2 && e2 != vonP && e2.Herkunftsglaube != gu && e2.Herkunftsglaube == gv)
                 Grund(() => $"{e2.Vorname} trat vom {gv.Glaube()} über", g.Mischehe);
         }
 

@@ -294,6 +294,13 @@ static class DynastieTests
             Pruefe.Wahr(gruende.Any(g => g.Text.StartsWith("Ehe mit") && g.Text.EndsWith("(Mensch)")), string.Join(" | ", gruende));
             Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Meinung(zwergRatsherr, konto) + buch.RhetorikPunkte(konto),
                 w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
+            // Der Ehepartner selbst sieht seine Ehe nicht als „Ehe mit … aus dem eigenen Volk“ (Befund im Klicktest).
+            var partner = buch.Von(konto)!.Ehepartner!;
+            var eigene = w.Meinungen.Gruende(partner, buch.Von(konto)!.Oberhaupt);
+            Pruefe.Wahr(eigene.All(g => !g.Text.StartsWith("Ehe mit")), string.Join(" | ", eigene));
+            var menschRatsherr = w.Rat.Ratsherren.First(r => r.Daten.Volk == Volk.Mensch);
+            Pruefe.Wahr(w.Meinungen.Gruende(menschRatsherr, buch.Von(konto)!.Oberhaupt).Any(g => g.Text.EndsWith("aus dem eigenen Volk") && g.Wert == 3),
+                "Menschen sehen die Ehe mit einer der Ihren gern");
         }),
 
         ("KI: Haus Eisenbart wirbt und heiratet in den ersten Jahren; Zwerge bekommen langsam Kinder", () =>
