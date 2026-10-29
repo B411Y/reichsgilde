@@ -301,7 +301,7 @@ public sealed class Gastwirtschaft
                 var mitBarde = _w.Betriebe.Any(b => b.Konto == konto && HatStammtisch(b) && _barde.Contains(b.Name));
                 var gunst = d.Stammtisch.Gunst * (mitBarde ? d.Barde.Stammtisch : 1);
                 foreach (var ratsherr in _w.Rat.Ratsherren)
-                    _w.Rat.GunstHinzufuegen(ratsherr, konto, gunst);
+                    _w.Rat.GunstAendern(ratsherr, konto, "stammtisch", "Stammtisch im Wirtshaus", gunst);
                 _w.Melden($"Am Stammtisch von {gasthaus.Name} sitzen die Ratsherren{(mitBarde ? " – der Barde spielt auf" : "")}: " +
                           $"{konto.Inhaber} gewinnt bei jedem {Zahlenformat.Ganz(gunst)} Gunst.");
             }

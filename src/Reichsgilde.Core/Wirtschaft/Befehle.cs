@@ -79,7 +79,7 @@ public sealed record LiegenschaftErwerben(string Name) : Befehl;
 /// <summary>Bewerbung um ein Amt im Stadtrat (eine pro Jahr, gewählt wird am Jahresende).</summary>
 public sealed record AmtBewerben(string Amt) : Befehl;
 
-/// <summary>Ein Geschenk an einen Ratsherrn – kostet Gulden, bringt seine Gunst.</summary>
+/// <summary>Ein Geschenk an einen Ratsherrn – kostet Gulden, hebt seine Meinung über das Oberhaupt (Grund „Geschenke“). Bestechung.</summary>
 public sealed record Schenken(string Ratsherr, double Betrag) : Befehl;
 
 /// <summary>Antrag im Rat, das Fron- und Sklavenstatut zu ändern (nur für Ratsmitglieder, einer pro Jahr).</summary>
@@ -94,6 +94,13 @@ public sealed record WahlStimme(string Amt, string? Kandidat) : Befehl;
 
 /// <summary>Stimme zum vorliegenden Antrag auf ein Statut festlegen: true dafür, false dagegen, null Enthaltung (frei, bis zur Ratssitzung änderbar).</summary>
 public sealed record StatutStimme(bool? Ja) : Befehl;
+
+/// <summary>
+/// Eine Aktivität des Oberhaupts mit einer wichtigen Person (PR #231): <paramref name="Art"/> aus <c>meinungen.aktivitaeten</c> („Gastmahl“),
+/// <paramref name="Mit"/> = <see cref="Dynastie.ICharakter.Kennung"/> („P12“, „R:Ulrich Wendelstein“), <paramref name="Betrag"/> nur beim Geschenk.
+/// Kostet die AP der Aktivität.
+/// </summary>
+public sealed record Aktivitaet(string Art, string Mit, double Betrag = 0) : Befehl;
 
 /// <summary>Ein Geschenk an einen Heiratskandidaten (Nummer der Person) – bringt Zuneigung, höchstens bis zur Jahresgrenze.</summary>
 public sealed record Werben(int Kandidat, double Betrag) : Befehl;

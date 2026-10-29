@@ -126,8 +126,8 @@ static class DynastieTests
             var vorher = konto.Vermoegen;
             Pruefe.Wahr(w.Ausfuehren(konto, new Werben(k.Person.Nummer, 5000)).Erfolg, "Werben");
             Pruefe.Ungefaehr(20, buch.Zuneigung(konto, k), 0.001);
-            var preis = 20 * buch.GuldenJeZuneigung(konto); // 400 ohne Rhetorik, je Stern Rhetorik 5 % billiger
-            Pruefe.Wahr(preis < 400, $"Rhetorik macht das Werben günstiger ({preis:0})");
+            var preis = 20 * buch.GuldenJeZuneigung(konto, k); // 400 ohne Rhetorik, je Stern Rhetorik 5 % billiger, dazu die Meinung des Kandidaten (PR #231)
+            Pruefe.Wahr(20 * buch.GuldenJeZuneigung(konto) < 400, $"Rhetorik macht das Werben günstiger ({preis:0})");
             Pruefe.Ungefaehr(preis, vorher - konto.Vermoegen, 0.001); // bezahlt wird nur, was wirkt
             Pruefe.Ungefaehr(preis, konto.Laufend.Familie, 0.001);
             e = w.Ausfuehren(konto, new Werben(k.Person.Nummer, 100));
@@ -288,8 +288,19 @@ static class DynastieTests
             Pruefe.Gleich(3.0, buch.Volksnaehe(Volk.Mensch, konto));
             var zwergRatsherr = w.Rat.Ratsherren.First(r => r.Daten.Volk == Volk.Zwerg);
             var amt = w.Rat.Aemter.First(a => a.Stufe == 1);
-            Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Gunst(zwergRatsherr, konto) + buch.RhetorikPunkte(konto) + w.Glaube.Naehe(zwergRatsherr, konto),
+            // Seit PR #231 steckt die Volksnähe in der Meinung des Ratsherrn (Gründe „Gleiches Volk“, „Ehe mit …“).
+            var gruende = w.Meinungen.Gruende(zwergRatsherr, buch.Von(konto)!.Oberhaupt);
+            Pruefe.Ungefaehr(buch.Volksnaehe(Volk.Zwerg, konto), gruende.Where(g => g.Text.StartsWith("Gleiches Volk") || g.Text.StartsWith("Ehe mit")).Sum(g => g.Wert), 1e-9);
+            Pruefe.Wahr(gruende.Any(g => g.Text.StartsWith("Ehe mit") && g.Text.EndsWith("(Mensch)")), string.Join(" | ", gruende));
+            Pruefe.Ungefaehr(w.Rat.Ansehen(konto) + w.Rat.Meinung(zwergRatsherr, konto) + buch.RhetorikPunkte(konto),
                 w.Rat.Punkte(zwergRatsherr, amt, konto), 1e-9);
+            // Der Ehepartner selbst sieht seine Ehe nicht als „Ehe mit … aus dem eigenen Volk“ (Befund im Klicktest).
+            var partner = buch.Von(konto)!.Ehepartner!;
+            var eigene = w.Meinungen.Gruende(partner, buch.Von(konto)!.Oberhaupt);
+            Pruefe.Wahr(eigene.All(g => !g.Text.StartsWith("Ehe mit")), string.Join(" | ", eigene));
+            var menschRatsherr = w.Rat.Ratsherren.First(r => r.Daten.Volk == Volk.Mensch);
+            Pruefe.Wahr(w.Meinungen.Gruende(menschRatsherr, buch.Von(konto)!.Oberhaupt).Any(g => g.Text.EndsWith("aus dem eigenen Volk") && g.Wert == 3),
+                "Menschen sehen die Ehe mit einer der Ihren gern");
         }),
 
         ("KI: Haus Eisenbart wirbt und heiratet in den ersten Jahren; Zwerge bekommen langsam Kinder", () =>

@@ -5,11 +5,15 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde.Core.Politik;
 
 /// <summary>Ein Ratsherr aus der Stadt (kein Spieler, keine KI) – mit fester Haltung zum Statut.</summary>
-public sealed class Ratsherr
+public sealed class Ratsherr : ICharakter
 {
     public RatsherrDaten Daten { get; }
     public string Name => Daten.Name;
     public Fronstatut Haltung => Daten.Haltung;
+    public Volk Volk => Daten.Volk;
+
+    /// <summary>„R:Ulrich Wendelstein“ – für Befehle und Meinungen (<see cref="ICharakter"/>).</summary>
+    public string Kennung => "R:" + Name;
 
     /// <summary>Mann oder Frau – aus den Daten; fehlt es dort (alte Daten), aus dem Vornamen: endet er auf a, e oder „ind“, eine Frau.</summary>
     public Geschlecht Geschlecht { get; }
@@ -25,8 +29,8 @@ public sealed class Ratsherr
 
     public bool HatZug(string kennung) => Zuege.Any(z => z.Kennung == kennung);
 
-    /// <summary>Faktor auf die Gunst je geschenktem Gulden (Gierig nimmt gern, Ehrlich ungern).</summary>
-    public double Bestechlichkeit => Zuege.Aggregate(1.0, (f, z) => f * z.Daten.Bestechlich);
+    /// <summary>Faktor auf die Meinung je geschenktem Gulden (Gierig nimmt gern, Ehrlich ungern).</summary>
+    public double Bestechlichkeit => Meinungswesen.Bestechlichkeit(this);
 
     internal Ratsherr(RatsherrDaten daten, CharakterzuegeDaten? zuege = null)
     {
@@ -88,7 +92,7 @@ public sealed record Wahlkandidat(string Name, Konto? Haus, bool IstAmtsinhaber)
 ///
 /// Ablauf über das Jahr:
 ///   • Häuser ab dem Stand Bürger bewerben sich (eine Bewerbung pro Jahr, immer eine Stufe höher als ihr Amt).
-///   • Mit Geschenken gewinnen sie die Gunst einzelner Ratsherren.
+///   • Mit Geschenken und Aktivitäten heben sie die Meinung einzelner Ratsherren über ihr Oberhaupt (PR #231, früher „Gunst“).
 ///   • Wer im Rat sitzt, kann eine Änderung des Fron- und Sklavenstatuts beantragen (ein Antrag pro Jahr).
 ///   • Häuser, die keine KI sind (der Spieler), legen ihre Stimmen vorab fest und können sie bis zur Sitzung ändern.
 ///     Ohne Stimme gilt die Vorgabe: bei Wahlen für den bisherigen Inhaber, beim Antrag Enthaltung.
@@ -99,7 +103,7 @@ public sealed record Wahlkandidat(string Name, Konto? Haus, bool IstAmtsinhaber)
 ///      einfache Mehrheit, bei Gleichstand entscheidet der Bürgermeister
 ///   3. Wahlen – höchste Ämter zuerst. Es wählen die Inhaber der höheren Ämter (beim höchsten Amt alle übrigen).
 ///      Kandidaten wählen nicht mit. Gleichstand entscheidet das Los.
-///   4. Die Gunst verblasst ein Stück.
+///   4. Danach verblassen die Gründe der Meinung aus Taten ein Stück (<see cref="Meinungswesen.Jahresende"/>).
 /// Die Sitzung läuft Punkt für Punkt als <see cref="Ratssitzung"/> – ohne Oberfläche in einem Zug, mit ihr auf Wunsch mit Halt (PR #202).
 /// </summary>
 public sealed class Stadtrat
@@ -108,7 +112,6 @@ public sealed class Stadtrat
     private readonly PolitikDaten _daten;
     private readonly List<Amt> _aemter = new();
     private readonly List<Ratsherr> _ratsherren = new();
-    private readonly Dictionary<(Ratsherr, Konto), double> _gunst = new();
     private readonly Dictionary<Konto, string> _bewerbungen = new();
     private readonly List<string> _letzteSitzung = new();
 
@@ -170,10 +173,20 @@ public sealed class Stadtrat
     public Amt? AmtVon(Konto konto) => _aemter.FirstOrDefault(a => a.Konto == konto);
     public Ratsherr? RatsherrNamens(string name) => _ratsherren.FirstOrDefault(r => r.Name == name);
 
-    public double Gunst(Ratsherr ratsherr, Konto konto) => _gunst.GetValueOrDefault((ratsherr, konto));
+    /// <summary>
+    /// Was dieser Ratsherr vom Oberhaupt dieses Hauses hält (−100 … +100, PR #231): Züge, Volk, Glaube und die Gründe aus Taten
+    /// (Geschenke, Stammtisch, Aktivitäten …). Danach richten sich seine Stimmen im Rat und vor Gericht.
+    /// </summary>
+    public double Meinung(Ratsherr ratsherr, Konto konto) => _w.Meinungen.Meinung(ratsherr, konto);
 
-    /// <summary>Gunst je geschenktem Gulden bei diesem Ratsherrn – seine Charakterzüge machen ihn mehr oder weniger bestechlich.</summary>
+    /// <summary>Die Gunst von früher: nur die Gründe aus Taten (Geschenke, Stammtisch, Moschus …) – ohne Züge, Volk und Glaube.</summary>
+    public double Gunst(Ratsherr ratsherr, Konto konto) => _w.Meinungen.Taten(ratsherr, konto);
+
+    /// <summary>Meinung je geschenktem Gulden bei diesem Ratsherrn (erstes Geschenk im Jahr) – seine Charakterzüge machen ihn mehr oder weniger bestechlich.</summary>
     public double GunstJeGulden(Ratsherr ratsherr) => _daten.Gunst.JeGulden * ratsherr.Bestechlichkeit;
+
+    /// <summary>Meinung je Gulden für das nächste Geschenk dieses Hauses – jedes weitere im selben Jahr wirkt weniger.</summary>
+    public double GunstJeGulden(Ratsherr ratsherr, Konto von) => _w.Meinungen.GeschenkJeGulden(ratsherr, von);
 
     /// <summary>Ansehen eines Hauses: Stand und Vermögen, gedeckelt – minus Schande, solange es am Pranger steht.</summary>
     public double Ansehen(Konto konto)
@@ -192,7 +205,8 @@ public sealed class Stadtrat
                + _w.Wohnen.EinrichtungAnsehen(konto)    // Wappen über der Tür (PR #224)
                + _w.Wegebau.AnsehenBonus(konto)         // ein Weg auf Antrag gepflastert
                + _w.Ratsantraege.AnsehenBonus(konto)    // ein Fest oder Bauvorhaben auf Antrag
-               - _w.Glaube.AnsehenAbzug(konto);         // gerade erst die Konfession gewechselt
+               - _w.Glaube.AnsehenAbzug(konto)          // gerade erst die Konfession gewechselt
+               - _w.Meinungen.AnsehenAbzug(konto);      // Streit im Haus (PR #231)
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>
@@ -208,23 +222,25 @@ public sealed class Stadtrat
             ? _aemter.Where(a => a != amt && a.IstBesetzt)
             : _aemter.Where(a => a.Stufe > amt.Stufe && a.IstBesetzt);
 
-    /// <summary>Wie viele Punkte ein Ratsherr einem Kandidaten gibt (Konto oder bisheriger Ratsherr).</summary>
+    /// <summary>
+    /// Wie viele Punkte ein Ratsherr einem Kandidaten gibt (Konto oder bisheriger Ratsherr): Ansehen, seine Meinung über das Oberhaupt
+    /// (darin Volk, Glaube, Züge und Geschenke – früher Gunst, Volksnähe und Glaubensnähe einzeln), Rhetorik und Amtsbonus.
+    /// </summary>
     public double Punkte(Ratsherr waehler, Amt amt, Konto? kandidat)
     {
         var g = _daten.Gunst;
         if (kandidat is null) // der bisherige Ratsherr im Amt
             return g.AnsehenRatsherr + amt.Stufe * g.AnsehenRatsherrJeStufe + (amt.Ratsherr is not null ? g.Amtsbonus : 0);
-        return Ansehen(kandidat) + Gunst(waehler, kandidat) + _w.Familien.Volksnaehe(waehler.Daten.Volk, kandidat)
-               + _w.Glaube.Naehe(waehler, kandidat)
+        return Ansehen(kandidat) + Meinung(waehler, kandidat)
                + _w.Familien.RhetorikPunkte(kandidat)
                + (amt.Konto == kandidat ? g.Amtsbonus : 0);
     }
 
-    /// <summary>Würde dieser Ratsherr dem Statut zustimmen, das dieses Haus beantragt?</summary>
+    /// <summary>Würde dieser Ratsherr dem Statut zustimmen, das dieses Haus beantragt? (Nachbarstatut: Meinung ab der Schwelle)</summary>
     public bool StimmtZu(Ratsherr ratsherr, Fronstatut statut, Konto antragsteller)
     {
         var abstand = Math.Abs((int)statut - (int)ratsherr.Haltung);
-        return abstand == 0 || abstand == 1 && Gunst(ratsherr, antragsteller) >= _daten.Gunst.SchwelleNachbarstatut;
+        return abstand == 0 || abstand == 1 && Meinung(ratsherr, antragsteller) >= _daten.Gunst.SchwelleNachbarstatut;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -418,13 +434,12 @@ public sealed class Stadtrat
         return Befehlsergebnis.Ok($"{konto.Inhaber} bewirbt sich um das Amt {amt.Name}. Gewählt wird am Jahresende.");
     }
 
-    /// <summary>Gunst ohne Geschenk (Stammtisch im Gasthaus) – hinterlässt keine Spur.</summary>
-    internal void GunstHinzufuegen(Ratsherr ratsherr, Konto konto, double wert) =>
-        _gunst[(ratsherr, konto)] = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + wert);
-
-    /// <summary>Gunst sinkt (Blume der Zwietracht) – höchstens bis zum negativen Höchstwert.</summary>
-    internal void GunstMindern(Ratsherr ratsherr, Konto konto, double wert) =>
-        _gunst[(ratsherr, konto)] = Math.Max(-_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) - wert);
+    /// <summary>
+    /// Gunst ohne Geschenk (Stammtisch, Moschus, Bekehrung) bzw. gegen ein Haus (Zwietracht, negativ): ein Grund der Meinung aus einer Tat
+    /// mit eigenem Text – hinterlässt keine Spur.
+    /// </summary>
+    internal void GunstAendern(Ratsherr ratsherr, Konto konto, string art, string text, double wert) =>
+        _w.Meinungen.GunstAendern(ratsherr, konto, art, text, wert);
 
     internal Befehlsergebnis Schenken(Konto konto, string ratsherrName, double betrag)
     {
@@ -434,11 +449,10 @@ public sealed class Stadtrat
             return Befehlsergebnis.Abgelehnt("Ein Geschenk muss etwas wert sein.");
         if (konto.Vermoegen < betrag)
             return Befehlsergebnis.Abgelehnt($"So viel Geld hat {konto.Inhaber} nicht.");
-        konto.Geschenk(betrag);
-        var neu = Math.Min(_daten.Gunst.Hoechstwert, Gunst(ratsherr, konto) + betrag * GunstJeGulden(ratsherr));
-        _gunst[(ratsherr, konto)] = neu;
+        var wert = _w.Meinungen.Schenken(konto, ratsherr, betrag); // Grund „Geschenke“, jedes weitere im Jahr wirkt weniger
         _w.Justiz.TatMelden(konto, Justiz.Vergehen.Bestechung, ratsherr.Name, betrag); // jedes Geschenk ist Bestechung
-        return Befehlsergebnis.Ok($"{ratsherr.Name} nimmt das Geschenk an. Gunst für {konto.Inhaber}: {Zahlenformat.Ganz(neu)}.");
+        return Befehlsergebnis.Ok($"{ratsherr.Name} nimmt das Geschenk an: Meinung {Zahlenformat.MitVorzeichen(wert)}, " +
+                                  $"jetzt {Zahlenformat.Ganz(Meinung(ratsherr, konto))} über {konto.Inhaber}.");
     }
 
     internal Befehlsergebnis Beantragen(Konto konto, Fronstatut statut)
@@ -508,19 +522,17 @@ public sealed class Stadtrat
     }
 
     /// <summary>Nach einer Verurteilung rückt der bestochene Ratsherr öffentlich vom Haus ab.</summary>
-    internal void GunstEntziehen(Ratsherr ratsherr, Konto konto) => _gunst.Remove((ratsherr, konto));
+    internal void GunstEntziehen(Ratsherr ratsherr, Konto konto) => _w.Meinungen.TatenEntfernen(ratsherr, konto);
 
     /// <summary>Zu Beginn der Jahresabrechnung: Das Protokoll der Ratssitzung beginnt leer.
     /// (Früher leerte erst die Sitzung selbst – dabei gingen Nachrücker aus Bankrott und Urteil verloren.)</summary>
     internal void ProtokollBeginnen() => _letzteSitzung.Clear();
 
-    /// <summary>Erbfall: Das neue Oberhaupt beginnt im Rat von vorn – ohne Amt, ohne Bewerbung, ohne Gunst.</summary>
-    internal void Neuanfang(Konto konto)
-    {
-        Ausscheiden(konto);
-        foreach (var schluessel in _gunst.Keys.Where(s => s.Item2 == konto).ToList())
-            _gunst.Remove(schluessel);
-    }
+    /// <summary>
+    /// Erbfall: Das neue Oberhaupt beginnt im Rat von vorn – ohne Amt und ohne Bewerbung. Die Meinungen gelten Personen:
+    /// Was die Ratsherren vom alten Oberhaupt hielten, gilt nicht für das neue.
+    /// </summary>
+    internal void Neuanfang(Konto konto) => Ausscheiden(konto);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Ratssitzung am Jahresende
@@ -567,15 +579,11 @@ public sealed class Stadtrat
         return sitzung;
     }
 
-    /// <summary>Letzter Schritt der Sitzung: Bewerbungen und Stimmen verfallen, die Gunst verblasst, das Protokoll wird gemeldet.</summary>
+    /// <summary>Letzter Schritt der Sitzung: Bewerbungen und Stimmen verfallen, das Protokoll wird gemeldet. (Die Meinungen verblassen gleich danach.)</summary>
     internal void SitzungBeenden()
     {
         _bewerbungen.Clear();
         _wahlStimmen.Clear(); // neues Jahr, neue Wahl
-
-        var verfall = 1 - _daten.Gunst.VerfallJeJahr;
-        foreach (var schluessel in _gunst.Keys.ToList())
-            _gunst[schluessel] *= verfall;
 
         foreach (var eintrag in _letzteSitzung)
             _w.Melden(eintrag);
@@ -693,7 +701,6 @@ public sealed class Stadtrat
             Ratsherr = a.Ratsherr?.Name,
             Konto = a.Konto is null ? null : kontoNummer(a.Konto),
         }),
-        Gunst = _gunst.OrderBy(g => kontoNummer(g.Key.Item2)).ThenBy(g => g.Key.Item1.Name, StringComparer.Ordinal).Select(g => new GunstStand { Ratsherr = g.Key.Item1.Name, Konto = kontoNummer(g.Key.Item2), Wert = g.Value }).ToList(),
         Bewerbungen = _bewerbungen.ToDictionary(b => kontoNummer(b.Key).ToString(), b => b.Value),
         AntragKonto = Antrag is { } a1 ? kontoNummer(a1.Antragsteller) : null,
         AntragStatut = Antrag?.Statut,
@@ -719,10 +726,7 @@ public sealed class Stadtrat
             amt.Ratsherr = sitz.Ratsherr is { } r ? RatsherrNamens(r) : null;
             amt.Konto = sitz.Konto is int k ? konten[k] : null;
         }
-        _gunst.Clear();
-        foreach (var g in s.Gunst)
-            if (RatsherrNamens(g.Ratsherr) is { } r)
-                _gunst[(r, konten[g.Konto])] = g.Wert;
+        // Die Gunst alter Spielstände (s.Gunst) übernimmt das Meinungswesen als Grund „Geschenke“.
         _bewerbungen.Clear();
         foreach (var (nummer, amt) in s.Bewerbungen)
             _bewerbungen[konten[int.Parse(nummer)]] = amt;

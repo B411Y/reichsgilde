@@ -648,6 +648,18 @@
   "text": "Stirbt das [[oberhaupt]], erbt das im Testament bestimmte Kind, sonst das älteste volljährige. Gibt es keines, führt nach dem Witwenrecht der Ehepartner das Haus weiter. Sonst erlischt das Haus: Bei euch ist die Partie dann verloren, bei einem KI-Haus stehen seine Betriebe zum Verkauf ([[bankrott]]) und sein [[wohnhaus]] steht [[leerstand|leer]]. Weil nur die [[talente|Talente]] des Oberhaupts zählen, lohnt es sich, ein geeignetes Kind auszubilden."
  },
  {
+  "kennung": "meinung",
+  "titel": "Meinung",
+  "gruppe": "Haus und Familie",
+  "text": "Was eine wichtige Person (Oberhaupt, Ehepartner und Erbe der Häuser, Ratsherren) von einer anderen hält, von −100 (rot) bis +100 (grün). Sie setzt sich aus festen Gründen zusammen – gleiche [[charakterzuege|Charakterzüge]] (+), gegensätzliche (−), Verwandtschaft, Volk, Glaube und Stand – und aus Taten: Geschenke, [[aktivitaeten|Aktivitäten]], ein Fest der Stadt, die Stimme im [[stadtrat|Rat]]. Die Gründe aus Taten verblassen jedes Jahr. Im Charakterfenster und in der Ratskammer zeigt der Tooltip alle Gründe. Bei Ratsherren zählt die Meinung bei Wahlen und Anträgen."
+ },
+ {
+  "kennung": "aktivitaeten",
+  "titel": "Aktivitäten",
+  "gruppe": "Haus und Familie",
+  "text": "Was Ihr mit einer wichtigen Person unternehmen könnt, um ihre [[meinung|Meinung]] zu heben: Geschenk, Gastmahl, Zechen, Messe, Brettspiel oder Jagd. Jede kostet [[aktionspunkte|AP]], manche auch Gulden. Geht es gut, steigt die Meinung, geht es schief (Streit bei Tisch, Unfall auf der Jagd), sinkt sie. Chance und Wirkung hängen von den [[charakterzuege|Charakterzügen]] der Person ab; ausgegraute Aktivitäten nennen ihren Grund (schon in diesem Jahr, anderer Glaube, zu wenig Rang). Ein Klick auf ein Porträt öffnet das Charakterfenster mit dem Knopf „Aktivitäten“."
+ },
+ {
   "kennung": "talente",
   "titel": "Talente",
   "gruppe": "Haus und Familie",
@@ -759,13 +771,13 @@
   "kennung": "ratsherr",
   "titel": "Ratsherren",
   "gruppe": "Stand und Rat",
-  "text": "Die Sitze im [[stadtrat]] halten zu Beginn Ratsherren der Stadt (Menschen, Zwerge, Elben, Halblinge). Jeder hat eine eigene Haltung zum [[statut]] und zur [[konfession]] und eine [[gunst]] für jedes Haus. Er kann beschenkt werden; ein Geschenk ist Bestechung und hinterlässt eine [[spur]]."
+  "text": "Die Sitze im [[stadtrat]] halten zu Beginn Ratsherren der Stadt (Menschen, Zwerge, Elben, Halblinge). Jeder hat eine eigene Haltung zum [[statut]] und zur [[konfession]] und eine [[meinung|Meinung]] über jedes Haus. Er kann beschenkt werden; ein Geschenk ist Bestechung und hinterlässt eine [[spur]]."
  },
  {
   "kennung": "gunst",
   "titel": "Gunst",
   "gruppe": "Stand und Rat",
-  "text": "Wie sehr ein Ratsherr euer Haus mag. Geschenke ([[aktionspunkte|AP]]) und Moschusduft ([[moschusduft]]) heben sie, die Blume der Zwietracht ([[parfumeur]]) senkt sie. Sie verblasst jedes Jahr zum Teil. Eine Prognose in der Ratskammer zeigt, wie die Wahl heute ausginge. Glaubensbrüder bekommen Pluspunkte ([[konfession]])."
+  "text": "Die frühere Gunst der Ratsherren heißt jetzt [[meinung|Meinung]]: Geschenke ([[aktionspunkte|AP]]) und Moschusduft ([[moschusduft]]) heben sie, die Blume der Zwietracht ([[parfumeur]]) senkt sie, dazu kommen die [[charakterzuege|Charakterzüge]], Volk, Glaube und Stand. Eine Prognose in der Ratskammer zeigt, wie die Wahl heute ausginge. Glaubensbrüder bekommen Pluspunkte ([[konfession]])."
  },
  {
   "kennung": "antrag",

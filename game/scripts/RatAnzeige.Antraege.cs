@@ -55,7 +55,7 @@ public partial class RatAnzeige
         Hauptmenue.Text(_inhalt, $"Ratsherren stimmen nach der Kasse: höhere Steuer, wenn weniger als ihre Reserve (um {Zahlenformat.Ganz(k.Reserve)} {waehrung}, " +
                                  "je nach Volk) darin liegt oder der Haushalt des Vorjahres im Minus war; niedrigere nur, wenn mehr als das Doppelte darin liegt und " +
                                  "der Haushalt auch mit dem neuen Satz im Plus bliebe; Bau und Fest, wenn danach noch die Reserve bleibt. " +
-                                 $"Ab {Zahlenformat.Ganz(k.AntragGunst)} Gunst stimmen sie euren Anträgen immer zu.", 12, Grau, umbruchBreite: 670);
+                                 $"Ab {Zahlenformat.Ganz(k.AntragGunst)} Meinung stimmen sie euren Anträgen immer zu.", 12, Grau, umbruchBreite: 670);
     }
 
     /// <summary>Eine Antragsart: der vorliegende Antrag mit Prognose und Stimme, sonst die Auswahl für einen eigenen Antrag.</summary>
