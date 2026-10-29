@@ -241,7 +241,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | NaN-Schutz Schnee und Ringe | Dieselbe Absicherung wie im Regen: `schnee.gdshader` (`atan(0, 0)` in der Flockenmitte war undefiniert, Alpha begrenzt, ungültige Bildpunkte verworfen), `regenring.gdshader` (`smoothstep` mit vertauschten Rändern, die in GLSL nicht definiert sind, jetzt als `1 - smoothstep`; Alpha begrenzt, Verwerfen). Aussehen unverändert. | 29.10.2026 |
 | Fahnen nach Weltwind | Alle Flaggen wehen in dieselbe Weltrichtung, die Windrichtung (`wind_richtung`), der auch der Regen folgt. Ursache: Das Tuch lag im Objektraum der Fahne (Längsachse = Ausrichtung des Gebäudes) und wurde nur senkrecht dazu ausgeschlagen, so wehte jede Fahne anders. `fahne.gdshader`: der Vertex-Shader dreht das Tuch um den Mast (Höhenachse bleibt) so, dass seine Längsachse in Windrichtung zeigt, und rechnet Lage und Normale über die Inverse der Modellmatrix zurück; die Wellen schlagen senkrecht zur neuen Tuchfläche. Wandbehänge bleiben an der Wand. Kein Skript je Bild, keine neue Shader-Datei. Geprüft mit acht um 45° gedrehten Fahnen (vorher acht Richtungen, nachher alle gleich) und im Spiel mit Sturm und Regen. Entscheidung des Teamleiters. | 29.10.2026 |
 
-### Regen 2 (PR #…)
+### Regen 2 (PR #248)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
