@@ -21,7 +21,7 @@ using Reichsgilde.Core.Zeit;
 /// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
-///   • Lauf C speichert und lädt an vier Zeitpunkten (mitten im Jahr, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
+///   • Lauf C speichert und lädt an fünf Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
 /// Verglichen wird eine SHA-256-Prüfsumme über den Spielstand (ohne Speicherzeit, Titel und Tempo) nach jedem Jahr und am Ende.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
@@ -41,8 +41,11 @@ static class GleichheitTests
         new(2026, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
     };
 
-    /// <summary>Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, zum Jahresbeginn, am Abend.</summary>
-    static readonly long[] Ladepunkte = { Minute(1, 12, 20), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
+    /// <summary>
+    /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
+    /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
+    /// </summary>
+    static readonly long[] Ladepunkte = { Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
