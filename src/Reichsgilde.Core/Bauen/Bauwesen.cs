@@ -404,7 +404,7 @@ public sealed class Bauwesen
 
         Grundstueck? BauplatzBei((double X, double Z) f) => bauplaetze.FirstOrDefault(p => p.Grundriss.Enthaelt(f.X, f.Z));
         if (!g.AufDemRaster(d.Raster) && !felder.All(f => BauplatzBei(f) is not null))
-            return $"Gebaut wird auf dem Raster von {d.Raster:0.#} m – oder genau auf einem Bauplatz.";
+            return $"Gebaut wird auf dem Raster von {Zahlenformat.Knapp(d.Raster)} m – oder genau auf einem Bauplatz.";
 
         foreach (var anderes in _grundstuecke.Where(x => x.Art != Grundstuecksart.Bauplatz))
             if (g.Ueberlappt(anderes.Grundriss))
@@ -759,8 +759,8 @@ public sealed class Bauwesen
     }
 
     private static string Dauer(int minuten) =>
-        minuten >= Spielzeit.MinutenProTag ? $"{minuten / (double)Spielzeit.MinutenProTag:0.#} {(minuten == Spielzeit.MinutenProTag ? "Jahr" : "Jahren")}"
-        : minuten >= 60 ? $"{minuten / 60.0:0.#} Stunden" : $"{minuten} Minuten";
+        minuten >= Spielzeit.MinutenProTag ? $"{Zahlenformat.Knapp(minuten / (double)Spielzeit.MinutenProTag)} {(minuten == Spielzeit.MinutenProTag ? "Jahr" : "Jahren")}"
+        : minuten >= 60 ? $"{Zahlenformat.Knapp(minuten / 60.0)} Stunden" : $"{minuten} Minuten";
 
     private Grundstueck Neu(Grundriss grundriss, Grundstuecksart art, string? kennung, Lage? lage = null)
     {
