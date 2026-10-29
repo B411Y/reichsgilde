@@ -11,6 +11,7 @@ Alles, was das Spiel kann, im Detail – ein Kapitel je Thema. Die Kurzfassung s
 - [Wirtschaft und Handel](wirtschaft-und-handel.md) – Markt, Betriebe, Karren, Handel von Hand, Hafen und Schiffe, Expansion, Meistergrade
 - [Berufe](berufe.md) – zehn Handwerke von Schmied bis Parfumeur
 - [Haus und Dynastie](haus-und-dynastie.md) – Wappen, Familie, Erbfolge, Talente, Gesundheit, Wohnhaus
+- [Erbgut](erbgut.md) – Gene mit zwei Allelen, Vererbung, Dominanz und Völker: die Grundlage der 3D-Köpfe
 - [Stand, Rat und Glaube](stand-rat-und-glaube.md) – Stände, Stadtrat, Konfessionen
 - [Unterwelt und Gericht](unterwelt-und-gericht.md) – Banden, Erpressung, Spitzel, Anklage, Kerker
 - [Einwohner](einwohner.md) – Bürger-KI mit eigenem Tagesablauf
