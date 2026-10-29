@@ -264,3 +264,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Harte Nebelkante | Ursache: Der Bodennebel (`Stadtansicht.Bodennebel.cs`) war in der Stadt auf ein Viertel gedrückt, mit einem Sprung an der Mauerlinie (Neigung je Eckpunkt, 6 m Zellen); die Mauer verdeckt, was dahinter liegt, so sah man nur das abrupte Ende der Schwade. Jetzt ein weicher Übergang: ab 6 m vor der Mauer fällt die Neigung stetig bis 30 m hinter ihr auf das Viertel (`AbstandZurStrecke`). Im Shader `bodennebel.gdshader` weitere Schwellen (0,3–0,9 statt 0,38–0,78). Der Nebel liegt an der Mauer noch fast voll und nimmt in der Stadt über 30 m auf ein Viertel ab. Es ist Bodennebel mit Wassernähe (der Bach der Probestadt), kein Höhennebel. | 29.10.2026 |
 | Leistung | Alles nur bei Nässe: `wetter_rinn` und `wetter_naesse` sind in Niedrig 0, die Zweige im Shader werden dann übersprungen; Giebelpunkte laufen mit den Traufen (nicht in Niedrig). Keine Änderung an `Stadtansicht.Grafik.cs` oder `Licht.cs`. | 29.10.2026 |
 | Sturm nass | `Wetterwerte.Von(Sturm)`: Regen 0,75 statt 0,3 (wie Regen), damit Nässe, Rinnsale und Tropfkanten bei Sturm mindestens so stark sind wie bei Regen; die Nässe und die Regenstärke der Darstellung folgen aus demselben Wert. Wunsch des Nutzers. | 29.10.2026 |
+
+### Realistisches Wasser, Phase 2 (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stil | Nur gemalt-realistisch, keine Stilwahl (Nutzer) | 29.10.2026 |
+| Shader | `wasser_realistisch.gdshader` leitet den übernommenen Shader ab (Copyright-Hinweis im Kopf; Original bleibt als `Water_Original.gdshader` unverändert): Strömung, neuer Schaum, Wind, Regenringe, Eis, Kaustik und Tiefe aus der Welt. Teile per `#define` abschaltbar (Grundlage der Grafikstufen) | 29.10.2026 |
+| Bilder | Austauschbar über Sampler-Uniforms und die Pfade in `Wasserarten.cs`; seit dem Merge von wasser-tex die eigenen Bilder aus Blender | 29.10.2026 |
+| Arten | `Wasserarten.cs`: Fluss, Bach, Teich, See, Meer, Hafenbecken, Furt und die Schaumstufe Kaisaum als Parametersätze; Zuordnung Kartenwasser → Art festgelegt (Fluss ≤ 5 m = Bach; Schaum nur Fluss ab 30 m und Meer; See ≤ 2.000 m² = Teich) | 29.10.2026 |
+| Eis | Nur optisch: Bach/Teich ganz, See nur Rand (3–6 m), Fluss, Furt, Hafenbecken, Meer nie. Winterfortschritt aus Jahreszeit und Jahresanteil (Winter: wächst im ersten Drittel, Frühling: taut im ersten Drittel) | 29.10.2026 |
+| Wind | Wellen, Richtung und Kräuselung folgen schwach dem Weltwind (höchstens +60 % Steilheit); Regenringe nur bei Regen; keine Überschwemmung | 29.10.2026 |
+| Messung | Mit Last auf der T400 schwanken Einzelläufe um das Doppelte; gemessen wird reihum in einem Prozess und das beste Ergebnis genannt. Die Brechung ist mit rund 1,8 von 4,3 ms der größte Posten | 29.10.2026 |
+
+Offen (Phase 3, Einbau): Netze müssen den Uferabstand in `COLOR.r` (m / 32) liefern; Laufrichtung je Material oder als Eckenwert; Kaisaum als eigener Streifen; Himmelsspiegelung braucht eine Himmelsquelle; Messung je Art in ruhiger Stunde; Shader beim Laden vorwärmen; Kaustik in der Furt dämpfen.

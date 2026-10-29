@@ -64,11 +64,40 @@ Schwellen als Konstanten in `Wasserarten.cs`: `SchaumAbBreite` = 30 m, `BachBisB
 
 ## Kosten (T400, Vulkan, 1600 × 900, V-Sync aus, Sonne mit Schatten)
 
-@@KOSTEN@@
+**Wichtig zur Genauigkeit:** Die T400 teilt sich der Rechner mit anderen Aufgaben (Last 9–14); Einzelläufe schwankten um das Doppelte (dieselbe Szene ohne Wasser: 33–72 Bilder/s). Darum misst die Testszene **reihum in einem Prozess** (`--wassermessung=teile1|teile2|teile3|arten|winter|regen|sturm`, Konfigurationen je 5 s, drei Runden, Werte je Runde der Median der Bildzeit) und die Tabelle nennt das **beste** Ergebnis; nur die ruhigen Läufe sind verwertbar. Die Szene „alle Arten“ hat sieben Felder zu je 60 × 60 m (rund 25.000 m² Wasser) bei 1600 × 900.
+
+| Konfiguration | beste Bildzeit | Bilder/s | Kosten gegenüber „ohne Wasser“ |
+|---|---|---|---|
+| ohne Wasser (Boden, Sonne, Schatten) | 11,7 ms | 86 | – |
+| alle sieben Arten, volle Stufe | 16,0 ms | 62 | **+4,3 ms** |
+| ohne Brechung (keine Bildschirmtextur) | 14,3 ms | 70 | −1,8 ms (**größter Einzelposten**) |
+| ohne Tiefe (keine Tiefentextur) | 15,8 ms | 63 | −0,3 ms |
+| ohne Kaustik | 16,1 ms | 62 | ±0 |
+| ohne Schaum | 15,6 ms | 64 | −0,3 ms |
+| ohne Wind | 16,7 ms (Vergleich 16,7) | 60 | ±0 |
+| ohne Regenringe (nur bei Regen wirksam) | 16,7 ms (Vergleich 16,7) | 60 | ±0 bei klarem Wetter; im Regenlauf (unruhig) ebenfalls ohne erkennbaren Unterschied |
+| ohne Eis (nur im Winter wirksam) | gleich (20,8 ms im unruhigen Winterlauf, beide) | – | ohne erkennbaren Unterschied |
+
+Folgerungen für die Grafikstufen (Phase 3): **Brechung** abschalten spart am meisten (rund ein Siebtel des Bildes in dieser Szene); der Rest (Tiefe, Schaum, Kaustik, Wind, Ringe, Eis) zusammen unter einer halben Millisekunde und ist damit für alle Stufen vertretbar. Teuer ist vor allem die **Fläche in Pixeln** (Bildschirmtextur kopieren und lesen), nicht ein einzelner Effekt; ein breiter Fluss nahe an der Kamera kostet mehr als ein Bach. **Je Art** ließ sich die Zeit wegen der Last nicht sauber trennen (die Läufe „nur Fluss … nur Furt“ lagen zwischen 20 und 26 ms bei 20–22 ms ohne Wasser, ohne verwertbare Reihenfolge); die Messung je Art gehört in eine ruhige Stunde (`--wassermessung=arten`, rund 4 Minuten). Der Start ist langsam: Der Shader übersetzt bei der ersten Benutzung (20–30 Sekunden bis zum ersten Bild, mehr bei Last); in Phase 3 beim Laden der Stadt vorwärmen.
 
 ## Bilder und ehrliche Beschreibung
 
-@@BILDER@@
+Alle Bilder habe ich selbst angesehen (T400, Vulkan, 1600 × 900). Ordner siehe unten. Namen: `s_…` und `z_…` sind die endgültigen Stände (die frühen `w_…`, `*_schraeg` zeigen Zwischenstände vor dem Abstimmen).
+
+| Bild | Zu sehen |
+|---|---|
+| `s_alle_klar`, `z_alle` (Übersicht, mit den neuen Bildern) | Sieben Felder. Fluss: dunkelgrün-blau mit weißem, weichem Saum an beiden Ufern und an den zwei Felsen. Bach: schmaler heller Streifen ohne Schaum. Teich: dunkelgrün, ohne Schaum. See: blau, ohne Schaum, zarte Kräuselung. Meer: tiefblau mit lang laufender Dünung, Brandung am Strand und Schaumkronen. Hafenbecken: dunkel, still, ohne Schaum. Furt: heller Kies sichtbar. Aus dieser Entfernung wirken Fluss und Meer richtig, Teich und See flach; Einzelheiten nur in den Nahbildern. |
+| `z_fluss` (schräg, neue Bilder) | Der Fluss: ruhige, feine Kräuselung, schwache, breite Wellenbänder quer zum Lauf (kaum noch Waschbrett), Schaum als weicher, zerrissener Saum am Ufer (rechts breiter, dichter) und als Kranz um die Felsen, kleiner Schaumfleck am Pfahl. Das Käsemuster ist weg. |
+| `s_fluss_nah` (`t0`, `t1`, 1,5 s Abstand) | Blick flussauf aus Wasserhöhe; die Kräuselung hat sich zwischen den Bildern verschoben, die Richtung ist aus den Standbildern **nicht** zu erkennen. Mit dem Auge im laufenden Spiel zu prüfen. |
+| `bach_schraeg`, `furt_schraeg` | Bach und Furt klar: Grund und Kaustik sichtbar (hellblau-weiße Lichtnetze), kein Schaum. Die Kaustik ist in der Furt stark; eher etwas dämpfen. |
+| `s_meer_gewitter`, `meer_schraeg`, `s_meer_flach` | Meer: bei Gewitter dunkel mit Brandungsschaum und mehr Seegang, aber nicht übertrieben; die erste Fassung (Sturmfaktor 1,6) war mit Wellen über die Feldgrenze viel zu stark und ist auf +60 % gesenkt. Schaumkronen auf den Kämmen, Brandung an der Küste. Von der Küste aus flach gesehen wirkt es ruhig. |
+| `s_alle_sturm` | Sturm: Meer deutlich unruhiger und dunkler, Fluss und See nur schwach wellig; dunklerer Himmel. |
+| `s_teich_regen`, `s_meer_gewitter` | Regen: Ringe auf dem Wasser sichtbar; im Gewitter zu dicht und kraterartig (in der ersten Fassung), danach schwächer und enger gemacht; beim Teich jetzt feine Ringe zwischen den Wellen. Bleibt Geschmackssache. |
+| `s_alle_winter`, `s_teich_winter`, `s_bach_winter` | Winter: Bach und Teich ganz zugefroren (weiß-blau, Risse, Schnee), See nur mit schmalem Eisrand (bei 3 m kaum zu sehen), Fluss, Meer, Hafenbecken und Furt offen. Der Teich bei 0,7 zeigt noch ein offenes Loch in der Mitte. Die Risse sind organisch, die ersten Blöcke durch den Hash sind behoben. Der Bach ist zu gleichmäßig weiß (Schnee auf dem Eis). |
+| `w_alle_eis05`, `s_alle_tauwetter` | Halb gewachsenes und tauendes Eis: Eis wächst vom Ufer nach innen, beim Tauen bleibt ein Ring am Ufer. |
+| `s_hafen_nah` | Hafenbecken an der Mauer: ruhiges Wasser ohne Schaum, ohne Saum an der Mauer; ein Kasten im Wasser zeigt Brechung. Der Kaisaum ist nicht gezeigt. |
+
+**Fehler und Auffälligkeiten:** Das Meer rechts am Feldrand überragt die Feldgrenze (Wellen heben die Fläche); der Strand des Meeres und die Kanten der Testfelder sind eckig (Testszene, kein Shaderfehler). Bei Wind aus einer Richtung zeigen See und Meer noch regelmäßige Wellenzüge. Die Himmelsspiegelung ist schwach, weil die Testszene nur einen einfachen Himmel hat.
 
 ## Testanleitung für den Nutzer
 
