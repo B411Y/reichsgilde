@@ -2160,35 +2160,37 @@ Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwer
 
 ## Meinungen und Aktivitäten (PR #231)
 
-**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Meinungen und Aktivitäten (PR #231)“ bzw. „KI nach Meinungen (PR #231)“; **Datenversion 61**): Die Gunst der Ratsherren ist in der Meinung aufgegangen (Wahlpunkte, Schwellen und Gericht rechnen mit der Meinung, darin jetzt auch Züge, Volk und Glaube), Geschenke wirken im selben Jahr an dieselbe Person jedes Mal × 0,7, Bescheiden nimmt Geschenke ungern (0,8). Neu sind die Aktivitäten (Abschnitt `meinungen`), der Haushaltsfaktor aus der Meinung des Ehepartners, die Meinung des Kandidaten in der Brautschau, der Streit im Haus und die KI-Regeln (Aktivitäten vor Geschenken, verschonte und verhasste Häuser). **Kein Grundwert eines Berufs ist geändert.**
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Meinungen und Aktivitäten (PR #231)“ bzw. „KI nach Meinungen (PR #231)“; **Datenversion 61**): Die Gunst der Ratsherren ist in der Meinung aufgegangen (Wahlpunkte, Schwellen und Gericht rechnen mit der Meinung, darin jetzt auch Züge, Volk und Glaube), Geschenke wirken im selben Jahr an dieselbe Person jedes Mal × 0,7, Bescheiden nimmt Geschenke ungern (0,8). Neu sind die Aktivitäten (Abschnitt `meinungen`), Familie als feste Gründe (Ehe und Eltern/Kind +20, Geschwister +10, weitere Verwandte +5), der Haushaltsfaktor aus der Meinung des Ehepartners, die Meinung des Kandidaten in der Brautschau, der Streit im Haus und die KI-Regeln (Aktivitäten vor Geschenken, verschonte und verhasste Häuser). **Kein Grundwert eines Berufs ist geändert.**
 
-Gemessen auf main `391874f5` (main `c43f5ae8` ändert nur Infra) + Branch `a6539f01`, `messen bericht 20 30` (1.320 Partien, 46 Minuten bei hoher Last) → `docs/messungen/balancing-2026-10-28-meinungen.json`. Vergleich: main `391874f5` mit derselben Messung – sie gibt Wert für Wert dasselbe wie `balancing-2026-10-28-charakterzuege.json` (PR #227), darum kein eigenes JSON.
+Gemessen auf main `391874f5` (bis main `b9825f32` nur Infra) + Branch `13531d4d`, `messen bericht 20 30` (1.320 Partien, 36 Minuten) → `docs/messungen/balancing-2026-10-28-meinungen.json`. Vergleich: main `391874f5` mit derselben Messung – sie gibt Wert für Wert dasselbe wie `balancing-2026-10-28-charakterzuege.json` (PR #227), darum kein eigenes JSON. Eine erste Messung vor der höheren Familien-Meinung (`a6539f01`) gab fast dasselbe (Mittel 30.839, Parfumeur +16,4 %, Karren in Not 4).
 
 | | main (mit Zügen, ohne Meinungen) | mit Meinungen |
 |---|---|---|
-| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 7/10 (Schmied +15,8 %, Dieb −16,6 %, Gardist −16,3 %) | 9/10 (Parfumeur +16,4 %) |
-| Mittel des Zuwachses | 30.280 | 30.839 (+1,8 %) |
-| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,4 … 12,1 | 7,7 … 11,6 |
-| Spieler mit einem Betrieb, Greybox / Probestadt | 39.061 / 40.499 | 38.736 / 40.901 |
-| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,01; 1,79 | 1,11; 1,75 |
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 7/10 (Schmied +15,8 %, Dieb −16,6 %, Gardist −16,3 %) | 9/10 (Parfumeur +15,7 %) |
+| Mittel des Zuwachses | 30.280 | 31.035 (+2,5 %) |
+| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 8,4 … 12,1 | 7,8 … 11,7 |
+| Spieler mit einem Betrieb, Greybox / Probestadt | 39.061 / 40.499 | 39.342 / 42.551 |
+| KI ÷ gleiche Strategie (Median); „Schwer“ | 1,01; 1,79 | 1,11; 1,78 |
 | 8 gegen 3 Häuser (Vermögen je KI-Haus) | −11 % | −15 % |
-| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,80 / 0,69 / 0,01 | 0,80 / 0,65 / 0,03 |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,80 / 0,69 / 0,01 | 0,81 / 0,66 / 0,02 |
 | Spitzel / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 91 / 231 | 92 / 216 |
-| Karren in Not verkauft | 7 | 4 |
+| Karren in Not verkauft | 7 | 8 |
 
 Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwerte; Fehler des Mittels ≈ 800–2.300), in Klammern der Abstand zum Mittel, dazu Geschenke und Familie je Jahr:
 
 | Beruf | main | mit Meinungen | Änderung | Geschenke | Familie |
 |---|---|---|---|---|---|
-| Schmied | 39.061 (+15,8 %) | 38.736 (+12,6 %) | −0,8 % | −81 → −58 | −356 → −388 |
-| Tischler | 38.249 (+13,1 %) | 36.639 (+5,8 %) | −4,2 % | −67 → −53 | −352 → −379 |
-| Steinmetz | 35.441 (+3,8 %) | 34.323 (−1,7 %) | −3,2 % | −82 → −42 | −359 → −369 |
-| Alchimist | 37.030 (+9,1 %) | 35.984 (+3,7 %) | −2,8 % | −68 → −49 | −354 → −373 |
-| Wirt | 34.696 (+1,4 %) | 36.064 (+4,0 %) | +3,9 % | −65 → −41 | −361 → −374 |
-| Prediger | 32.698 (−5,2 %) | 32.232 (−8,5 %) | −1,4 % | −67 → −42 | −355 → −360 |
-| Dieb | 29.258 (−16,6 %) | 32.756 (−6,8 %) | +12,0 % | −92 → −55 | −408 → −375 |
-| Parfumeur | 36.045 (+5,8 %) | 39.890 (+16,4 %) | +10,7 % | −75 → −43 | −362 → −381 |
-| Geldleiher | 30.958 (−11,0 %) | 31.279 (−11,5 %) | +1,0 % | −37 → −26 | −364 → −369 |
-| Gardist | 29.359 (−16,3 %) | 30.491 (−14,1 %) | +3,9 % | −25 → −12 | −327 → −343 |
+| Schmied | 39.061 (+15,8 %) | 39.342 (+13,9 %) | +0,7 % | −81 → −49 | −356 → −383 |
+| Tischler | 38.249 (+13,1 %) | 36.274 (+4,0 %) | −5,2 % | −67 → −55 | −352 → −379 |
+| Steinmetz | 35.441 (+3,8 %) | 35.028 (0,0 %) | −1,2 % | −82 → −41 | −359 → −369 |
+| Alchimist | 37.030 (+9,1 %) | 36.782 (+5,6 %) | −0,7 % | −68 → −46 | −354 → −372 |
+| Wirt | 34.696 (+1,4 %) | 36.044 (+3,2 %) | +3,9 % | −65 → −49 | −361 → −373 |
+| Prediger | 32.698 (−5,2 %) | 32.367 (−8,6 %) | −1,0 % | −67 → −43 | −355 → −361 |
+| Dieb | 29.258 (−16,6 %) | 32.695 (−7,5 %) | +11,7 % | −92 → −54 | −408 → −374 |
+| Parfumeur | 36.045 (+5,8 %) | 39.898 (+15,7 %) | +10,7 % | −75 → −45 | −362 → −382 |
+| Geldleiher | 30.958 (−11,0 %) | 31.298 (−12,0 %) | +1,1 % | −37 → −30 | −364 → −367 |
+| Gardist | 29.359 (−16,3 %) | 30.626 (−14,2 %) | +4,3 % | −25 → −14 | −327 → −340 |
 
-**Befund:** Die Wirtschaft bleibt im Band: im Mittel +1,8 %, jeder Beruf zwischen −4 und +12 % seines Werts ohne Meinungen, 9 statt 7 Berufe innerhalb ±15 %. Die KI gibt weniger für Geschenke aus (Aktivitäten sind billiger je Punkt Meinung, und jedes zweite Geschenk im Jahr wirkt weniger), dafür steigen die Familienkosten etwas (Aktivitäten werden dort gebucht; der Haushaltsrabatt des Ehepartners gleicht das nicht ganz aus). Die KI-Häuser sind gegen den Bezugsspieler etwas stärker (Median 1,01 → 1,11) und geraten seltener in Not (7 → 4 Karren). Der Parfumeur reißt das Band um 1,4 Punkte (+10,7 % gegen main, gut zwei Fehler des Mittels) – Dieb und Parfumeur bewegen sich am stärksten, beide hängen an Gericht und Gaunerei der KI (Moschus, Zwietracht, Diebstahl), die durch verschonte und verhasste Häuser anders verteilt sind. Ob nachgesteuert wird, entscheidet der Nutzer (offener Punkt in `docs/bereiche/kern.md`).
+**Heirat und Streit** (Sonde außerhalb des Berichts, 30 Partien zu 20 Jahren bzw. 40 Startwerte): KI-Häuser verheiratet nach 3 Jahren 88/90 wie main, nach 6 Jahren 90/90 (main 89/90). Ein Spieler mit 30.000 Gulden bekommt im ersten Jahr die *erste* Kandidatin nur noch in 28 statt 39 von 40 Startwerten (Ansehen 12 + Zuneigung 20 gegen die Schwelle 30 lässt 2 Punkte Luft – ihre Meinung zählt halb), irgendeine passende Kandidatin wie vorher in 39 von 40. **Streit im Haus:** 0 in 2.328 Hausjahren – ohne misslungene Aktivitäten mit der eigenen Familie (die KI unternimmt keine) kommt ein Erbe nicht auf −50.
+
+**Befund:** Die Wirtschaft bleibt im Band: im Mittel +2,5 %, jeder Beruf zwischen −5 und +12 % seines Werts ohne Meinungen, 9 statt 7 Berufe innerhalb ±15 %. Die KI gibt weniger für Geschenke aus (Aktivitäten sind billiger je Punkt Meinung, und jedes weitere Geschenk im Jahr wirkt weniger), dafür steigen die Familienkosten etwas (Aktivitäten werden dort gebucht; der Haushaltsrabatt des Ehepartners gleicht das nicht ganz aus). Die KI-Häuser sind gegen den Bezugsspieler etwas stärker (Median 1,01 → 1,11). Der Parfumeur liegt 0,7 Punkte über dem Band (+10,7 % gegen main, in beiden Messungen) – Dieb und Parfumeur bewegen sich am stärksten, beide hängen an Gericht und Gaunerei der KI, die durch verschonte und verhasste Häuser anders verteilt sind. Ob nachgesteuert wird, entscheidet der Nutzer (offener Punkt in `docs/bereiche/kern.md`).
