@@ -20,6 +20,9 @@ public partial class Stadtansicht
     /// <summary>Weiter herausgezoomt als so viel (Kamerahöhe in Metern) tropft nichts mehr: Tropfen wären Bildpunkte.</summary>
     private const float TraufenMaxZoom = 55f;
 
+    /// <summary>Ab diesem Zoom blassen Tropfen, Einschläge und nasse Tropfkante aus, bei <see cref="TraufenMaxZoom"/> sind sie ganz weg (kein Aufpoppen).</summary>
+    private const float TraufenBlassAb = 33f;
+
     private readonly List<(Node3D Modell, Vector3[] Punkte)> _traufModelle = new();
     private readonly Dictionary<Mesh, Vector3[]> _traufPunkte = new();
     private GpuParticles3D? _traufTropfen;
@@ -27,8 +30,9 @@ public partial class Stadtansicht
     private ShaderMaterial? _traufFarbe; // traufe.gdshader: einzelne dicke Tropfen, immer senkrecht
     private GpuParticles3D? _traufRinge, _traufNass; // Einschläge und nasse Tropfkante am Boden unter den Traufen
     private ParticleProcessMaterial? _traufRingStoff, _traufNassStoff;
-    private ShaderMaterial? _traufRingFarbe;
+    private ShaderMaterial? _traufRingFarbe, _traufNassFarbe;
     private double _traufUhr;
+    private float _traufBlass = 1f;
     private Vector3 _traufFokus = new(1e9f, 0, 1e9f);
 
     /// <summary>Merkt die Traufkanten der Dächer eines eben eingesetzten Modells.</summary>
@@ -152,11 +156,12 @@ public partial class Stadtansicht
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Points, Gravity = Vector3.Zero, ScaleMin = 0.5f, ScaleMax = 0.9f,
         };
+        _traufNassFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/traufnass.gdshader") };
         _traufNass = new GpuParticles3D
         {
             Name = "Traufnaesse", Amount = 320, Lifetime = 3.0, Preprocess = 3.0, LocalCoords = false, Emitting = false, Visible = false,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _traufNassStoff,
-            DrawPass1 = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/traufnass.gdshader") } },
+            DrawPass1 = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = _traufNassFarbe },
             VisibilityAabb = new Aabb(new Vector3(-200, -20, -200), new Vector3(400, 40, 400)),
         };
         AddChild(_traufNass);
@@ -222,7 +227,15 @@ public partial class Stadtansicht
             }
         }
         var hell = PartikelHelligkeit(); // unbeleuchtet: nachts dunkel
-        _traufFarbe!.SetShaderParameter("farbe", new Color(0.82f * hell, 0.88f * hell, 0.96f * hell, 1f));
+        // Beim Herauszoomen ausblassen (Tropfen, Einschläge und Fleck behalten ihre Größe in der Welt und würden zu Bildpunkten)
+        var blass = 1f - Mathf.SmoothStep(TraufenBlassAb, TraufenMaxZoom, _kamera.Size);
+        _traufFarbe!.SetShaderParameter("farbe", new Color(0.82f * hell, 0.88f * hell, 0.96f * hell, blass));
+        if (Mathf.Abs(blass - _traufBlass) > 0.01f) // nur bei merklicher Änderung an den RenderingServer
+        {
+            _traufBlass = blass;
+            _traufRingFarbe!.SetShaderParameter("weit", blass);
+            _traufNassFarbe!.SetShaderParameter("weit", blass);
+        }
         var k = Mathf.Max(0.3f, _kamera.Size / BezugsZoom);
         _traufStoff!.ScaleMin = 0.5f * k;
         _traufStoff.ScaleMax = 0.9f * k;
