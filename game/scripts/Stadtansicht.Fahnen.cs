@@ -53,6 +53,8 @@ public partial class Stadtansicht
     /// </summary>
     private ArrayMesh FahnenNetz(float laenge, float hoehe, float kerbe = 0)
     {
+        // Die Kerbe ist ein Anteil der Länge: über 1 würde die Mittelreihe hinter den Mast klappen (zerrissenes Tuch), darum begrenzt
+        kerbe = Math.Clamp(kerbe, 0f, 0.9f);
         var schluessel = (MathF.Round(laenge, 3), MathF.Round(hoehe, 3), MathF.Round(kerbe, 3));
         if (_fahnenNetze.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
 

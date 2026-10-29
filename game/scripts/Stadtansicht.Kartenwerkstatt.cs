@@ -1211,13 +1211,16 @@ public partial class Stadtansicht
     /// gewählten Fläche bzw. ein Tor oder die Linie der gewählten Mauer (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen). Dann, was unter der
     /// Maus liegt: ein Gebäude, dessen Modell über dem Boden getroffen wird (<see cref="StueckTreffer"/>), ein Tor, eine Pflanze, ein Weg, ein
     /// flaches Gebäude (Feld, Weide), eine Mauer, die Grundfläche eines Gebäudes, das Innere der gewählten Fläche (ganze Fläche ziehen), Bauzonen
-    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf.
+    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf. Ausgeblendete Ebenen werden übersprungen (<see cref="WerkstattTeilSichtbar"/>).
     /// </summary>
     private void AuswahlKlick(Vector2 maus, Vector2? boden)
     {
         if (_entwurf is null) return;
         var toleranz = Mathf.Max(0.6f, MeterJePixel * 8);
-        if (Input.IsKeyPressed(Key.Shift) && boden is { } ganz && MauerBei(ganz, toleranz) is { } ganzeMauer)
+        // Was ausgeblendet ist (Ebenen), lässt sich nicht treffen: Wege, Mauern, Tore, Flüsse und Fähren gehören zu „Wege und Grenzen“
+        var linien = WerkstattEbeneSichtbar(Werkstattebene.Linien);
+        EntwurfMauer? MauerHier(Vector2 q) => linien ? MauerBei(q, toleranz) : null;
+        if (Input.IsKeyPressed(Key.Shift) && boden is { } ganz && MauerHier(ganz) is { } ganzeMauer)
         {
             WerkstattWaehlen(ganzeMauer);
             TeilZiehenBeginnen(ganzeMauer, Ziehart.Ganz, maus, ganz, -1, -1);
@@ -1273,7 +1276,7 @@ public partial class Stadtansicht
             GebaeudeZiehenBeginnen(hoch.Gebaeude, maus, p);
             return;
         }
-        if (_entwurf.TorBei(p.X, p.Y, Mathf.Max((float)Kartenentwurf.Torfang, toleranz)) is var (mauer, torNummer, _))
+        if (linien && _entwurf.TorBei(p.X, p.Y, Mathf.Max((float)Kartenentwurf.Torfang, toleranz)) is var (mauer, torNummer, _))
         {
             WerkstattWaehlen(mauer);
             _wsGriff = new Griff(TorGriffe, torNummer);
@@ -1287,27 +1290,27 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(pflanze, Ziehart.Ganz, maus, p, -1, -1);
             return;
         }
-        if (FaehreBei(p, toleranz) is { } faehre)
+        if (linien && FaehreBei(p, toleranz) is { } faehre)
         {
             WerkstattWaehlen(faehre);
             return;
         }
-        if (WegBei(p, toleranz) is { } weg)
+        if (linien && WegBei(p, toleranz) is { } weg)
         {
             WerkstattWaehlen(weg);
             return;
         }
-        if (FlussBei(p, toleranz) is { } fluss) // Wege und Brücken gehen vor (sie liegen über dem Wasser), dann der Fluss
+        if (linien && FlussBei(p, toleranz) is { } fluss) // Wege und Brücken gehen vor (sie liegen über dem Wasser), dann der Fluss
         {
             WerkstattWaehlen(fluss);
             return;
         }
-        if ((treffer?.Gebaeude ?? (MauerBei(p, toleranz) is null ? GebaeudeAufGrund(p) : null)) is { } gebaeude)
+        if ((treffer?.Gebaeude ?? (MauerHier(p) is null ? GebaeudeAufGrund(p) : null)) is { } gebaeude)
         {
             GebaeudeZiehenBeginnen(gebaeude, maus, p);
             return;
         }
-        if (MauerBei(p, toleranz) is { } mauerLinie)
+        if (MauerHier(p) is { } mauerLinie)
         {
             WerkstattWaehlen(mauerLinie);
             return;
