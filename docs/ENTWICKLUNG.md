@@ -46,6 +46,7 @@ reichsgilde/
 │   └── Zeit/                       Spielzeit, Taktgeber, Kalender
 ├── tests/Reichsgilde.Core.Tests/   Automatische Tests für den Simulationskern
 ├── tools/assets/protokoll_pruefen.py   Prüft das Asset-Protokoll und schreibt die Steam-Liste der KI-Inhalte
+├── tools/handbuch/                 Bilder fürs Spielbuch: aufnehmen.sh (Rohbilder aus dem Spiel), beschriften.sh/.gd (nummerierte Markierungen nach bilder.json, Ausgabe docs/bilder/handbuch/*.webp)
 ├── tools/icons/knoepfe_bauen.gd    Setzt die Waren-Knöpfe aus Rahmen, Hintergrund und Motiv zusammen (Godot-Skript, Quellen in quellen/)
 ├── tools/Kartenbau/                Kartenskript (C#): Städte per Skript anlegen, prüfen, Vorschaubilder zeichnen
 ├── tools/modelle/                  Blender-Skripte, eines je Modell (schreiben nach game/assets/modelle/<unterordner>/)
@@ -79,6 +80,16 @@ dotnet run --project tests/Reichsgilde.Core.Tests
 ```
 
 Am Ende muss stehen: `Alle … Tests bestanden.`
+
+## Im Godot-Editor spielen
+
+Startet man das Spiel im Godot-Editor, läuft es im Reiter **Game** eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild (F11) ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
+
+Die Tempostufen 16× und 32× (Tasten 5 und 6) sind Testtempo für die Entwicklung; im Code stehen sie in `Taktgeber.TestTempostufen` (Suche nach `TESTTEMPO`) und fallen vor der Veröffentlichung weg.
+
+## Bilder für das Spielbuch
+
+Die beschrifteten Bilder im Spielbuch (`docs/bilder/handbuch/`) entstehen aus echten Bildschirmfotos: `tools/handbuch/aufnehmen.sh` nimmt die Rohbilder mit dem Klicktest auf, `tools/handbuch/beschriften.sh` setzt die Nummern (Datei `tools/handbuch/bilder.json`: Bild, Stelle der Nummer, Rahmen, Ausschnitt) und schreibt `.webp`. Ändert sich die Oberfläche, Rohbilder neu aufnehmen und die Stellen in `bilder.json` prüfen.
 
 ## Spiel exportieren (Windows / Linux)
 
