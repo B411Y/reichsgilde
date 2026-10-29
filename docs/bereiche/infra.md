@@ -49,3 +49,12 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Regel 3 | Notschalter `reichsgilde-stopp` (auch als Desktop-Verknüpfung): Sperrdatei `%LOCALAPPDATA%\Reichsgilde\STOPP`, beendet Godot- und dotnet-Prozesse aus dem Außenstellen-Ordner; `reichsgilde-frei` hebt auf; lange Aufgaben prüfen zwischendurch mit `pruefen.ps1` (Code 3 = abbrechen) | 29.10.2026 |
 | Technik | `tools/aussenstelle/`: nur Benutzer-PATH, keine Administratorrechte, `.cmd` ruft PowerShell mit `-ExecutionPolicy Bypass` auf, UTF-8 mit BOM, Log in `%LOCALAPPDATA%\Reichsgilde\aussenstelle.log`; keine Schlüssel, Netzwerk nur lokale Ports | 29.10.2026 |
 | Ungetestet | Auf Linux nur geschrieben (kein `pwsh`); Fenster, Ton, Leerlaufzeit, Prozess-Beenden, Verknüpfung und PATH muss der Nutzer bzw. die Außenstelle auf dem PC prüfen | 29.10.2026 |
+### Klicktest unter Windows (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | Das Spiel führt die Aktionen selbst aus (Autoload `KlicktestTreiber`, `--klickskript`/`--klickausgabe`/`--klickwarten`) statt echter Maus- und Tastenbefehle; `tools/klicktest/lauf.ps1` mit demselben Aufbau wie `lauf.sh` | 29.10.2026 |
+| Treiber | `-Treiber vulkan` (Standard) oder `d3d12`; beide liefen am 29.10. auf der RTX 4080 mit gleichem Bild (erster D3D12-Test) | 29.10.2026 |
+| Absicherung | Vor dem Start `reichsgilde-frage`, im Lauf alle 10 s `reichsgilde-pruefen` (Code 3 beendet Godot), Abbruch nach Wartezeit + Aktionen + 120 s; `user://` umgelenkt nach `%LOCALAPPDATA%\Reichsgilde\klicktest-daten` | 29.10.2026 |
+| Grenze | `Viewport.GetMousePosition` liest die echte Maus: Hover, Tooltips und die Lage der Auswahltafel folgen ihr; Klicks und Tasten wirken über das Ereignis | 29.10.2026 |
+| Argumente | `lauf.ps1` hat keinen `param`-Block, weil Windows PowerShell 5.1 bei `-File` ein `--` und `--karte=…` sonst als Parameter abweist | 29.10.2026 |

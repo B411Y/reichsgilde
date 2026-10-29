@@ -81,6 +81,20 @@ dotnet run --project tests/Reichsgilde.Core.Tests
 
 Am Ende muss stehen: `Alle … Tests bestanden.`
 
+## Klicktest unter Windows
+
+Unter Linux macht `tools/klicktest/lauf.sh` Klicktests auf einem unsichtbaren Bildschirm (Xvfb, xdotool). Unter Windows gibt es den nicht, und echte Maus- und Tastenbefehle würden stören. Darum führt das Spiel die Aktionen selbst aus (Autoload `KlicktestTreiber`), gestartet von `tools/klicktest/lauf.ps1` mit demselben Aufbau:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\klicktest\lauf.ps1 C:\Temp\k 45 "s tag;m 620 395;w 1;b 1;w 2;s klick" -- --karte=koeln --startstunde=12 --wetter=klar
+```
+
+- `-Treiber d3d12` nimmt DirectX 12 statt Vulkan; `-Daten <ordner>` lenkt `user://` um (Standard `%LOCALAPPDATA%\Reichsgilde\klicktest-daten`, damit Einstellungen und Spielstände des Spielers unberührt bleiben).
+- Godot kommt aus `$env:GODOT`, sonst aus dem winget-Ordner; genommen wird die `_console.exe`, das Log steht in `<ausgabeordner>\godot.log`.
+- Vorher fragt `reichsgilde-frage` (Außenstelle, `tools/aussenstelle/`), ob der PC frei ist; während des Laufs prüft `reichsgilde-pruefen` den Notschalter.
+- Vor dem ersten Lauf einmal `dotnet build game\Reichsgilde.csproj` und `Godot --headless --path game --import`.
+- Das Spielfenster ist sichtbar; die Maus in der Zeit vom Fenster lassen, denn Hover und Tooltips folgen der echten Maus.
+
 ## Im Godot-Editor spielen
 
 Startet man das Spiel im Godot-Editor, läuft es im Reiter **Game** eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild (F11) ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
