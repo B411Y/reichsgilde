@@ -93,7 +93,7 @@ Die Dateien unter `game/` liegen nach Art getrennt (PR #164), wie in Spielen üb
 | `karten/` | Kartendateien `<kennung>.json`, nur von der Kartenwerkstatt oder dem Kartenskript `tools/Kartenbau` geschrieben |
 | `assets/modelle/` | 3D-Modelle (`.glb`) aus `tools/modelle/`, in Unterordnern: `gebaeude/` (Wohn- und Einwohnerhäuser, Werkstätten von außen, Dom, Rathaus, Stadtmauer, Markt), `innen/` (`*_innen`), `umland/` (Umlandbetriebe, Felsberg, Umlandstellen), `natur/`, `figuren/`, `fahrzeuge/` (Karren), `tiere/` (Vögel), `wasser/` (seit PR #180: Holz- und Steinbrücke als Baukästen, Fähre mit Anlegesteg, Hafen, Furt- und Ufersteine, `wasser_*.glb`) |
 | `assets/texturen/` | Strukturen der Oberflächendetails (`strukturen.png` aus `tools/oberflaeche/texturen.py`), Bodentexturen (`boden/`), Material-Bibliothek der Modelle (`modelle/`, aus `tools/oberflaeche/materialien_blender.py`) |
-| `assets/shader/` | Shader: Fahnen, Figuren, Oberflächendetails, Nachschärfen und Farbfilter (über dem fertigen Bild) |
+| `assets/shader/` | Shader: Fahnen, Figuren, Oberflächendetails, Nachschärfen und Farbfilter (über dem fertigen Bild); `realistisches_wasser/`: fremder Wasser-Shader (MIT, UnionBytes) mit Lizenz und Herkunft, bisher nur in der Testszene `scenes/Wassertest.tscn` (Startoption `--wassertest=1`, Doku `docs/wasser/`) |
 | `assets/oberflaeche/` | Spieloberfläche: `icons/` (Waren-Icons aus `tools/icons/`), `schriften/` (mit Lizenztexten), `wappen/` (noch leer) |
 | `assets/audio/` | `musik/`, `geraeusche/` (noch leer) |
 | `scenes/`, `scripts/` | Szenen und C#-Skripte |

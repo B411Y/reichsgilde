@@ -79,6 +79,8 @@ public partial class Hauptmenue : Node
             _startoptionenGenutzt = true;
             if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
                 Callable.From(() => GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene)).CallDeferred();
+            else if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--wassertest")))
+                Callable.From(() => GetTree().ChangeSceneToFile(Wassertest.Szene)).CallDeferred();
             else
                 CallDeferred(MethodName.SpielStarten);
             return;

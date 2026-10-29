@@ -5,6 +5,7 @@ Startoptionen (nach `--`):
 ## Spiel und Tafeln
 
 - `--beruf=<Beruf>`
+- `--wassertest=1` (Testszene des fremden Realistic Water Shader statt des Spiels, Phase 1; dazu `--wassersicht=<nah|fern|schraeg|oben|flach|ufer>` und `--wasserart=keins` für den Lauf ohne Wasser; nur mit Vulkan sinnvoll, im Log steht jede Sekunde die Bildrate; siehe `docs/wasser/phase1.md`)
 - `--tiptest=1` (ein Knopf „Tooltip-Test“ in der Bildmitte mit einem Tooltip voller Verweise und vier Testbegriffen, falls das Lexikon keine liefert); `--verweistest=1` (schreibt Beispielsätze mit automatischen Lexikon-Verweisen ins Log); `--tooltipfest=<Sekunden|taste>` (Zeit bis zum Festkleben bzw. nur mit Taste, gilt nur für diesen Start)
 - `--startstunde=<Stunde>` (4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke)
 - `--glaube=<Katholisch|Evangelisch|Naturglaube>` (Konfession des eigenen Hauses bei einer neuen Partie)
