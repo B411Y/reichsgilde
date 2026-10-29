@@ -182,10 +182,10 @@ public static class Kapazitaetspruefung
                 if (Kartengeometrie.Mod(g.Drehung, 90) != 0)
                 {
                     // schräg: das umschließende Rechteck mit Drehung 0, wie der Kern
-                    var (c, s) = (Math.Abs(Math.Cos(w)), Math.Abs(Math.Sin(w)));
+                    var (c, s) = (Math.Abs(DetMathe.Cos(w)), Math.Abs(DetMathe.Sin(w)));
                     (breite, tiefe, richtung) = (breite * c + tiefe * s, breite * s + tiefe * c, (0, 1));
                 }
-                else richtung = (Math.Round(Math.Sin(w)), Math.Round(Math.Cos(w)));
+                else richtung = (Math.Round(DetMathe.Sin(w)), Math.Round(DetMathe.Cos(w)));
                 var felder = RechteckFelder(g.Punkt, breite, tiefe, richtung);
                 if (felder.Count == 0) continue;
                 Belegen(felder);

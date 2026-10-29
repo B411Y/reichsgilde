@@ -120,7 +120,11 @@ public static class Wegbelag
     public static (double Stelle, double Abstand) Projektion(IReadOnlyList<double[]> linie, double x, double z)
     {
         if (linie.Count == 0) return (0, double.MaxValue);
-        if (linie.Count == 1) return (0, Math.Sqrt(Math.Pow(x - linie[0][0], 2) + Math.Pow(z - linie[0][1], 2)));
+        if (linie.Count == 1)
+        {
+            var (ex, ez) = (x - linie[0][0], z - linie[0][1]);
+            return (0, Math.Sqrt(ex * ex + ez * ez));
+        }
         var (best, stelle, weg) = (double.MaxValue, 0.0, 0.0);
         for (var i = 0; i + 1 < linie.Count; i++)
         {
@@ -129,7 +133,8 @@ public static class Wegbelag
             var l2 = dx * dx + dz * dz;
             var l = Math.Sqrt(l2);
             var t = l2 == 0 ? 0 : Math.Clamp(((x - ax) * dx + (z - az) * dz) / l2, 0, 1);
-            var d = Math.Sqrt(Math.Pow(x - (ax + t * dx), 2) + Math.Pow(z - (az + t * dz), 2));
+            var (rx, rz) = (x - (ax + t * dx), z - (az + t * dz));
+            var d = Math.Sqrt(rx * rx + rz * rz);
             if (d < best) (best, stelle) = (d, weg + t * l);
             weg += l;
         }
@@ -144,7 +149,8 @@ public static class Wegbelag
         for (var i = 0; i + 1 < linie.Count; i++)
         {
             var (a, b) = (linie[i], linie[i + 1]);
-            var l = Math.Sqrt(Math.Pow(b[0] - a[0], 2) + Math.Pow(b[1] - a[1], 2));
+            var (ex, ez) = (b[0] - a[0], b[1] - a[1]);
+            var l = Math.Sqrt(ex * ex + ez * ez);
             if (weg + l >= stelle && l > 0)
             {
                 var t = Math.Clamp((stelle - weg) / l, 0, 1);
