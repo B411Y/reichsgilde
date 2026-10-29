@@ -215,7 +215,7 @@ public sealed class Ratsantraege
     public bool StimmtZu(Ratsherr r, Ratsantrag a)
     {
         var k = Kasse.Daten;
-        if (_w.Rat.Gunst(r, a.Antragsteller) >= k.AntragGunst) return true;
+        if (_w.Rat.Meinung(r, a.Antragsteller) >= k.AntragGunst) return true; // Meinung über das Oberhaupt (PR #231)
         var reserve = k.ReserveVon(r.Daten.Volk);
         return a.Art switch
         {
@@ -323,6 +323,7 @@ public sealed class Ratsantraege
                 Kasse.Buchen(Kassenposten.Feste, kosten);
                 _festJahr = _w.Jahr;
                 if (_d.Fest.Ansehen > 0) _ansehen.Add((a.Antragsteller, _d.Fest.Ansehen, _w.Jahr));
+                _w.Meinungen.FestAusgerichtet(a.Antragsteller); // die Stadt denkt besser über den Gastgeber (PR #231)
                 protokoll($"{was} ANGENOMMEN {stimmen}. Im Jahr {_w.Jahr} feiert die Stadt – {a.Antragsteller.Inhaber} gewinnt Ansehen.");
                 break;
         }

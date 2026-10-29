@@ -84,7 +84,7 @@ static class StadtkasseTests
     /// <summary>Alle Ratsherren schätzen dieses Haus (Gunst 100) – sie stimmen jedem Antrag zu Steuer, Bau und Fest zu.</summary>
     static void Beliebt(Stadtwirtschaft w, Konto k)
     {
-        foreach (var r in w.Rat.Ratsherren) w.Rat.GunstHinzufuegen(r, k, 100);
+        foreach (var r in w.Rat.Ratsherren) w.Rat.GunstAendern(r, k, "geschenk", "Geschenke", 100);
     }
 
     /// <summary>Ein Haus mit Beweisen für eine Tat eines anderen klagt an (zwei Beweise: sicherer Schuldspruch).</summary>

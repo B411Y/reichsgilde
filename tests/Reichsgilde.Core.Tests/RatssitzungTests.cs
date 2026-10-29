@@ -115,7 +115,7 @@ static class RatssitzungTests
             Pruefe.Wahr(statut.Stimmen.Where(s => s.Haus != spieler).All(s => !s.Frei), "nur der Spieler frei");
             Pruefe.Gleich("Keine Stimme gesetzt – Enthaltung.", statut.Stimmen.Single(s => s.Haus == spieler).Begruendung);
             Pruefe.Wahr(statut.Stimmen.Single(s => s.Haus == ki).Begruendung.Contains("Gulden"), statut.Stimmen.Single(s => s.Haus == ki).Begruendung);
-            Pruefe.Wahr(statut.Stimmen.Where(s => s.Haus is null).All(s => s.Begruendung.Contains("Haltung") || s.Begruendung.Contains("Gunst")),
+            Pruefe.Wahr(statut.Stimmen.Where(s => s.Haus is null).All(s => s.Begruendung.Contains("Haltung") || s.Begruendung.Contains("Meinung")),
                         string.Join(" | ", statut.Stimmen.Select(s => s.Begruendung)));
             // Wahl: Es wählen die höheren Ämter (ohne Kandidaten); der Spieler wählt nach der Vorgabe.
             var wahl = punkte[4];

@@ -162,9 +162,13 @@ static class GerichtTests
             BeweiseSammeln(sim, klaeger, taeter, 2);
             w.Ausfuehren(klaeger, new Anklagen(taeter.Inhaber));
             var v = w.Justiz.VerfahrenGegen(klaeger, taeter)!;
-            // 20 Beweiskraft, Schwelle 15: Jeder Richter braucht 12 Gunst mehr für den Täter (½ × 12 = 6) → 240 Gulden.
+            // 20 Beweiskraft, Schwelle 15: Jeder Richter braucht 12 Meinung mehr für den Täter als für den Kläger (½ × 12 = 6) –
+            // ohne Züge, Volk und Glaube 240 Gulden (seit PR #231 zählen sie mit, darum hier aus der Meinung gerechnet).
             foreach (var r in v.Richter.Take(2))
-                w.Ausfuehren(taeter, new Schenken(r.Ratsherr!.Name, 240));
+            {
+                var fehlt = 12 + w.Rat.Meinung(r.Ratsherr!, klaeger) - w.Rat.Meinung(r.Ratsherr!, taeter);
+                w.Ausfuehren(taeter, new Schenken(r.Ratsherr!.Name, Math.Ceiling(fehlt / w.Rat.GunstJeGulden(r.Ratsherr!, taeter))));
+            }
             Pruefe.Wahr(!Stadtgericht.IstSchuldig(w.Justiz.Prognose(v)), "Prognose sollte Freispruch sein");
             var klaegerVorher = klaeger.Vermoegen;
             JahrBeenden(sim);
