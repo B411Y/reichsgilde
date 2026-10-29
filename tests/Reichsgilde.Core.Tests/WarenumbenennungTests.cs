@@ -62,6 +62,29 @@ static class WarenumbenennungTests
             Pruefe.Wahr(neu.Contains("Gießerei Eisenbart stellt von Dolch auf Silberring um"), "Chronik der KI");
         }),
 
+        ("Dolch statt Rapier und Meinungen (PR #231): Ein alter Spielstand mit Rapieren und Gunst lädt – beides wird umgerechnet", () =>
+        {
+            // Der alte Spielstand ist von vor PR #231: Ulrich Wendelstein hat Gunst 6 für Konto 1, Meinungen gibt es noch nicht.
+            var json = AlterStand.Value;
+            var alt = System.Text.Json.Nodes.JsonNode.Parse(json)!["Wirtschaft"]!;
+            Pruefe.Wahr(alt["Meinungen"] is null, "alter Spielstand ohne Meinungen");
+            var gunst = alt["Rat"]!["Gunst"]!.AsArray().Single()!;
+            Pruefe.Gleich(("Ulrich Wendelstein", 1, 6.0), ((string)gunst["Ratsherr"]!, (int)gunst["Konto"]!, (double)gunst["Wert"]!));
+
+            var (sim, spieler) = Speicherung.Laden(json);
+            var w = sim.Wirtschaft!;
+            var r = w.Rat.RatsherrNamens("Ulrich Wendelstein")!;
+            Pruefe.Ungefaehr(6, w.Rat.Gunst(r, w.Konten[1]), 1e-9);
+            Pruefe.Ungefaehr(6, w.Meinungen.Taten(r, w.Konten[1]), 1e-9);
+            Pruefe.Wahr(w.Betriebe.Any(b => b.ImLager("Dolch") > 0), "Dolche im Lager");
+
+            var neu = Speicherung.Speichern(sim, spieler, DateTime.UnixEpoch);
+            Pruefe.Gleich(0, Anzahl(neu, "Rapier|Rapiere|Rapieren|Rapiers"), "kein Rapier mehr im neuen Spielstand");
+            var (wieder, _) = Speicherung.Laden(neu);
+            var ww = wieder.Wirtschaft!;
+            Pruefe.Ungefaehr(6, ww.Meinungen.Taten(ww.Rat.RatsherrNamens("Ulrich Wendelstein")!, ww.Konten[1]), 1e-9);
+        }),
+
         ("Dolch statt Rapier: Umbenannt geladen = nie umbenannt – derselbe Spielstand, Wurf für Wurf gleich weiter", () =>
         {
             // Bezug: der alte Spielstand, einmal geladen und mit „Dolch“ gespeichert. Daraus wieder ein „alter“ mit Rapieren.

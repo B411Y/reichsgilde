@@ -89,7 +89,7 @@ static class GeldleiherEinrichtungTests
         ("Geldleiher-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(61, Daten.Value.Version);
+            Pruefe.Gleich(62, Daten.Value.Version);
             var bank = d.EinrichtungFuer("Geldleiher");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Goldwaage Pfandkammer Kassenschrank Loeschfass Eisentuer", string.Join(" ", bank.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 die Lehrlingsstube
             Pruefe.Gleich("Rechenbretter, Hauptbücher, Goldwaage, Pfandkammer, Kassenschrank, Löschfass, Eisentür", string.Join(", ", bank.Take(7).Select(e => e.Name)));
