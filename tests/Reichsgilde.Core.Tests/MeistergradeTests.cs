@@ -47,8 +47,8 @@ static class MeistergradeTests
             Pruefe.Gleich(5, d.Meistergrade.GradFuerStufe(3));
 
             var json = File.ReadAllText(Datenpfad.Wirtschaft());
-            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace("\"produkte\": [ \"Beschlag\", \"Rapier\", \"Silberring\", \"Werkzeug\", \"Silberkette\" ]",
-                "\"produkte\": [ \"Beschlag\", \"Silberring\", \"Werkzeug\", \"Silberkette\" ]")), "ginge „Rapier“ verloren");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace("\"produkte\": [ \"Beschlag\", \"Dolch\", \"Silberring\", \"Werkzeug\", \"Silberkette\" ]",
+                "\"produkte\": [ \"Beschlag\", \"Silberring\", \"Werkzeug\", \"Silberkette\" ]")), "ginge „Dolch“ verloren");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json.Replace("\"art\": \"Mine\"", "\"art\": \"Schmiede\"")),
                 "nur Werkstätten der Stufe 1");
         }),

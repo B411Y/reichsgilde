@@ -116,7 +116,7 @@ public sealed class Startbelegung
                 Name = Partieaufbau.Rivalenname, Volk = Partieaufbau.RivalenVolk, Geschlecht = Geschlecht.Mann, Wappen = Wappen.Eisenbart, Farbe = "#b33329",
                 Betriebe =
                 {
-                    new Startbetrieb { Art = Betriebsart.Giesserei, Produkt = "Rapier", ErsatzName = "Gießerei Eisenbart" },
+                    new Startbetrieb { Art = Betriebsart.Giesserei, Produkt = "Dolch", ErsatzName = "Gießerei Eisenbart" },
                     new Startbetrieb { Art = Betriebsart.Mine, ErsatzName = "Grube Eisenbart" },
                 },
             },

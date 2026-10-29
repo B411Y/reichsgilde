@@ -292,7 +292,7 @@ public sealed record ZwietrachtSaeen(string Ratsherr, string Haus) : Befehl;
 /// <summary>Heiligenduft in der Kirche stiften: mehr Ansehen bis Ende des nächsten Jahres.</summary>
 public sealed record HeiligenduftStiften : Befehl;
 
-/// <summary>Heute Nacht das Oberhaupt eines anderen Hauses mit einem Dolch (Giftdolch, Schattendolch) vergiften.</summary>
+/// <summary>Heute Nacht das Oberhaupt eines anderen Hauses mit einem Giftdolch oder Schattendolch vergiften (nicht mit dem Dolch des Schmieds).</summary>
 public sealed record Giftanschlag(string Haus, string Dolch) : Befehl;
 
 /// <summary>Einer vergifteten Person Gegengift geben (aus dem eigenen Lager oder vom Markt).</summary>

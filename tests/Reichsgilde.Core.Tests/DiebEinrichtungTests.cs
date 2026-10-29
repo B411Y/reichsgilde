@@ -53,7 +53,7 @@ static class DiebEinrichtungTests
     {
         var k = w.KontoEroeffnen(name, startvermoegen: 10_000);
         var g = w.BetriebEroeffnen($"Gießerei {name}", Betriebsart.Giesserei, k, startkarren: "");
-        g.Einlagern("Rapier", 20);
+        g.Einlagern("Dolch", 20);
         return (k, g);
     }
 
@@ -186,14 +186,14 @@ static class DiebEinrichtungTests
                 var sim = NeueSimulation(daten, startwert: 7);
                 var (w, k, b) = Dieb(sim, Betriebsart.Diebesgilde);
                 var (opfer, g) = Opfer(w);
-                g.Einlagern("Rapier", 30); // 50 Rapiere im Lager, die Diebesgilde trägt 24
-                b.Einlagern("Rapier", 30); // schon 30 im eigenen Lager: Platz für 10 (ohne) oder 30 (mit Kammer)
+                g.Einlagern("Dolch", 30); // 50 Dolche im Lager, die Diebesgilde trägt 24
+                b.Einlagern("Dolch", 30); // schon 30 im eigenen Lager: Platz für 10 (ohne) oder 30 (mit Kammer)
                 if (kammer) Ok(w, k, new EinrichtungKaufen(b.Name, "Regale"));
                 Ok(w, k, new Einbrechen(opfer.Inhaber, g.Name));
                 while (sim.Zeit.UhrzeitInMinuten <= 20 * 60) sim.Tick();
-                var gestohlen = 50 - g.ImLager("Rapier");
+                var gestohlen = 50 - g.ImLager("Dolch");
                 Pruefe.Wahr(gestohlen == 24, $"Einbruch gelungen ({gestohlen} Stück)");
-                Pruefe.Gleich(kammer ? 54 : 40, b.ImLager("Rapier"), kammer ? "mit Hehlerkammer" : "ohne Hehlerkammer");
+                Pruefe.Gleich(kammer ? 54 : 40, b.ImLager("Dolch"), kammer ? "mit Hehlerkammer" : "ohne Hehlerkammer");
             }
         }),
 
@@ -350,7 +350,7 @@ static class DiebEinrichtungTests
                     _ = w.Diebe.AnwesenheitJetzt(g);
                 }
                 return string.Join(";", w.Konten.Select(x => $"{x.Inhaber}:{x.Vermoegen:R}")) +
-                       $"|{w.Diebe.DiesesJahr(k)}|{b.Belegt}|{b.ImLager("Rapier")}|{w.Justiz.SpurenVon(k).Count()}";
+                       $"|{w.Diebe.DiesesJahr(k)}|{b.Belegt}|{b.ImLager("Dolch")}|{w.Justiz.SpurenVon(k).Count()}";
             }
             Pruefe.Gleich(Lauf(false), Lauf(true));
 

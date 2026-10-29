@@ -154,8 +154,8 @@ static class WirtschaftTests
         ("Markt: Preis bleibt in den Grenzen (50 % bis 200 %)", () =>
         {
             var markt = new Markt(Daten.Value);
-            markt["Rapier"].Verkaufen(5000);
-            Pruefe.Ungefaehr(markt["Rapier"].Grundpreis * 0.5, markt["Rapier"].Preis, 0.01);
+            markt["Dolch"].Verkaufen(5000);
+            Pruefe.Ungefaehr(markt["Dolch"].Grundpreis * 0.5, markt["Dolch"].Preis, 0.01);
         }),
 
         ("Markt: Verkäufe zählen genau 19 Spielstunden lang (04–23 Uhr = ein Jahr)", () =>

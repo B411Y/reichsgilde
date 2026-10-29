@@ -3,7 +3,7 @@ namespace Reichsgilde.Core.Wirtschaft;
 
 public enum Betriebsart
 {
-    /// <summary>Werkstatt des Schmieds, Stufe 1. Stellt Beschlag, Rapier und Silberring her.</summary>
+    /// <summary>Werkstatt des Schmieds, Stufe 1. Stellt Beschlag, Dolch und Silberring her.</summary>
     Giesserei,
 
     /// <summary>Umlandbetrieb (gepachtet). Fördert Eisen und Silber.</summary>

@@ -2,6 +2,7 @@
 
 Begonnen am 13.10.2026 (Phase 1, Entwurf 1, **freigegeben**) · Seit 15.10.2026 im Repository (vorher im Claude-Projekt). Jeder neue Beruf und jede Balance-Änderung bekommt hier einen Abschnitt mit Werten und Messung.
 Die Werte selbst stehen in `game/daten/wirtschaft.json`. Grundsatzentscheidungen: `docs/ENTSCHEIDUNGEN.md`.
+**Hinweis:** Seit PR #232 heißt die Ware „Rapier“ des Schmieds „Dolch“ (gleiche Werte). Ältere Abschnitte und Messungen nennen sie weiter Rapier.
 **Nur der Kern-Chat schreibt hier** (seit 16.10.2026; Messungen der Spiel-KI stehen in `docs/bereiche/spiel-ki.md`). Neue Abschnitte bekommen keine Nummer mehr, sondern eine Überschrift `## Thema (PR #…)`. Jeder neue Messabschnitt nennt den `main`-Commit, auf dem er beruht („gemessen auf main `abc1234` + PR #…“). Ältere Abschnitte ohne Commit beziehen sich auf den Stand ihres PRs.
 Am Anfang stand ein interaktiver Balancing-Rechner (ein Claude-Artefakt, nicht öffentlich); sein JSON-Export wurde zu `game/data/wirtschaft.json`.
 
@@ -2194,3 +2195,41 @@ Reinvermögen nach 20 Jahren je Beruf (ein Betrieb, Greybox, Mensch, 30 Startwer
 **Heirat und Streit** (Sonde außerhalb des Berichts, 30 Partien zu 20 Jahren bzw. 40 Startwerte): KI-Häuser verheiratet nach 3 Jahren 88/90 wie main, nach 6 Jahren 90/90 (main 89/90). Ein Spieler mit 30.000 Gulden bekommt im ersten Jahr die *erste* Kandidatin nur noch in 28 statt 39 von 40 Startwerten (Ansehen 12 + Zuneigung 20 gegen die Schwelle 30 lässt 2 Punkte Luft – ihre Meinung zählt halb), irgendeine passende Kandidatin wie vorher in 39 von 40. **Streit im Haus:** 0 in 2.328 Hausjahren – ohne misslungene Aktivitäten mit der eigenen Familie (die KI unternimmt keine) kommt ein Erbe nicht auf −50.
 
 **Befund:** Die Wirtschaft bleibt im Band: im Mittel +2,5 %, jeder Beruf zwischen −5 und +12 % seines Werts ohne Meinungen, 9 statt 7 Berufe innerhalb ±15 %. Die KI gibt weniger für Geschenke aus (Aktivitäten sind billiger je Punkt Meinung, und jedes weitere Geschenk im Jahr wirkt weniger), dafür steigen die Familienkosten etwas (Aktivitäten werden dort gebucht; der Haushaltsrabatt des Ehepartners gleicht das nicht ganz aus). Die KI-Häuser sind gegen den Bezugsspieler etwas stärker (Median 1,01 → 1,11). Der Parfumeur liegt 0,7 Punkte über dem Band (+10,7 % gegen main, in beiden Messungen) – Dieb und Parfumeur bewegen sich am stärksten, beide hängen an Gericht und Gaunerei der KI, die durch verschonte und verhasste Häuser anders verteilt sind. Ob nachgesteuert wird, entscheidet der Nutzer (offener Punkt in `docs/bereiche/kern.md`).
+
+## Dolch statt Rapier (PR #232)
+
+Gemessen auf main `c43f5ae` + diesem PR (Commit `1502ff2`), `messen bericht 20 30` (1.320 Partien, keine mit Fehler), JSON in `docs/messungen/balancing-2026-10-29-dolch.json`; Vergleich mit `balancing-2026-10-28-charakterzuege.json` (main `391874f` hat denselben Kern wie dort gemessen). Datenversion noch 60.
+
+**Regeln (Entscheidungen des Nutzers und des Teamleiters):**
+
+| Ware | Zutaten | Zeit | Grundpreis | Gewinn je Minute zu Startpreisen |
+|---|---|---|---|---|
+| Dolch (vorher Rapier, Schmied) | 1 Eisen + 1 Beschlag | 60 | 141 | 1,50 (unverändert) |
+| Giftdolch (Parfumeur), vorher | 1 Eisen + 1 Politur | 50 | 153 | 1,88 |
+| Giftdolch, neu | **1 Dolch + 1 Politur** | **60** | **305** | 1,85 |
+| Blume der Zwietracht (zum Vergleich) | 2 Lavendel + 1 Jasmin | 50 | 124 | 1,87 |
+
+- **Rechnung:** Zu Startpreisen kosten Dolch und Politur 168,5 + 66,9 = 235,4 Gulden. Bei 60 Minuten und 1,85 Gulden je Minute braucht der Giftdolch 235,4 + 111 = 346 Gulden nach Steuer, also 364,5 am Markt = 305 × 1,195 (Startfaktor der Fertigwaren). Mit 60 statt 50 Minuten macht die Siederei weniger Stück im Jahr, und der Giftdolch drückt seinen eigenen Preis weniger. Bei 50 Minuten wäre es ein Grundpreis von 289.
+- **Siederei beginnt mit der Blume der Zwietracht** (vorher Giftdolch): Ein Lager voller Dolche (≈ 170 Gulden je Stück) lockt die Diebe der KI-Häuser. Mit dem Giftdolch als Startware gingen 4 von 30 Parfumeuren bis Jahr 5 bankrott (Startwert 202: fünf Einbrüche in zwei Nächten, 42 Dolche ≈ 8.800 Gulden). Die KI stellt später um, sobald der Giftdolch mehr bringt.
+- Karren kaufen weiter zum Marktpreis, ohne das Angebot zu senken: Dolche fehlen der Siederei nie, und der Schmied merkt den Einkauf nicht.
+
+**Ergebnis** (Reinvermögen des Spielers mit einem Betrieb, Ø von 30 Startwerten, ± Fehler des Mittels):
+
+| | vorher | Giftdolch als Startware | neu (Blume als Startware) |
+|---|---|---|---|
+| Parfumeur, Jahr 5 | 5.840 ± 162 | 2.840 ± 615 | 4.013 ± 413 |
+| Parfumeur, Jahr 10 | 10.884 (+2,5 %) | 9.024 (−24 %) | 10.405 (−5,1 %) |
+| Parfumeur, Jahr 20 | 36.045 (+5,8 %) | 33.243 (−2,4 %) | 32.224 ± 1.831 (−6,5 %) |
+| Parfumeur, bankrott bis Jahr 20 | 0/30 | 4/30 | 1/30 |
+| Parfumeur, Bürger im Ziel 8–12 Jahre | 30/30 (Ø 9,4) | 24/30 (Ø 9,8) | 27/30 (Ø 9,9) |
+| Schmied, Jahr 20 | 39.061 ± 2.297 (+15,8 %) | 40.275 (+21,0 %) | 40.525 ± 2.071 (+21,0 %) |
+
+- **Befund:** Der Parfumeur bleibt im Band (−6,5 % nach 20 Jahren), liegt aber in den ersten Jahren unter dem alten Stand: Wer auf den Giftdolch umstellt, verliert manchmal sein Lager an Diebe. Der Schmied ändert sich nur im Rauschen (Unterschied 1.464, Fehler beider Mittel zusammen ≈ 3.100); seine +21 % (vorher +15,8 %) kommen nicht vom Dolch, der Name ändert nur die Reihenfolge einiger sortierter Listen. Statisch liegt der Parfumeur in Stufe 1 weiter bei +16 % – das macht die Blume der Zwietracht, nicht der Giftdolch.
+- Völker, Parfumeur: −5 … +12 % gegen Menschen (vorher −19 … +13 %); Schmied −13 … +4 % (vorher −14 … +11 %). KI-Stärke unverändert (KI ÷ Bezug Median 1,03, vorher 1,01).
+- **Alte Spielstände** laufen mit ihren mitgespeicherten Daten weiter: Die Ware heißt dort Dolch, der Giftdolch bleibt aus Eisen (`Speichern/Warenumbenennung.cs`).
+
+**Schattendolch aus Dolch** (Entscheidung des Nutzers, 29.10.2026): 1 Dolch + 1 Eisen + 1 Beschlag + 1 Politur statt 2 Eisen + 2 Beschlag + 1 Politur, Grundpreis **477** (vorher 390), Zeit bleibt 100.
+
+- **Rechnung:** Zu Startpreisen kosten die Zutaten 168,5 + 12,6 + 57,4 + 66,9 = 305,4 Gulden (vorher 2 × 12,6 + 2 × 57,4 + 66,9 = 206,9), also 98,5 mehr. Mit 390 sänke der Gewinn je Minute von 2,36 auf 1,37 – unter die Blume der Zwietracht. Mit 477 (Markt 570,0, nach Steuer 541,5) bleibt er bei 2,36, knapp unter dem Heiligenduft (2,44), der in der Parfumerie das beste Produkt bleibt. Das übrige Balancing sieht der Nutzer später an (mit #231).
+- **Messung** auf main `b9825f3` + Commit `e00dad4`, `messen bericht 20 30 --teile=1` (330 Partien, keine mit Fehler), JSON in `docs/messungen/balancing-2026-10-29-schattendolch.json`: Parfumeur nach 20 Jahren 33.476 ± 1.935 (−2,6 %, vorher 32.224, −6,5 %), nach 5 Jahren 4.015, 1/30 bankrott, Bürger im Ziel 27/30; Schmied 40.133 ± 2.167 (+19,4 %, vorher 40.525, +21 %). Beides im Rauschen: Der Spieler mit einem Betrieb erreicht in 20 Jahren keine Parfumerie (Stufe 3), der Unterschied kommt nur über die KI-Häuser. Datenversion weiter 60.
+- Alte Spielstände behalten ihre mitgespeicherten Daten (Schattendolch dort weiter aus 2 Eisen + 2 Beschlag, Grundpreis 390).

@@ -53,11 +53,13 @@ static class ParfumeurTests
             Pruefe.Gleich(1, d.Waren["Goldkette"].Zutaten["Politur"]);
             Pruefe.Gleich(1, d.Waren["Prunktruhe"].Zutaten["Politur"]);
             Pruefe.Wahr(d.Art(Betriebsart.Parfumerie).Produkte.Contains("Schattendolch"), "Schattendolch in der Parfumerie");
+            // Schattendolch: 1 Dolch + 1 Eisen + 1 Beschlag + 1 Politur (Entscheidung des Nutzers, 29.10.2026; vorher 2 Eisen + 2 Beschlag + 1 Politur)
+            Pruefe.Gleich("Beschlag:1 Dolch:1 Eisen:1 Politur:1", string.Join(" ", d.Waren["Schattendolch"].Zutaten.OrderBy(z => z.Key, StringComparer.Ordinal).Select(z => $"{z.Key}:{z.Value}")));
             var falsch = Json.Replace("\"krankheit\": \"Vergiftung\"", "\"krankheit\": \"Husten\"");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "gegengift");
         }),
 
-        ("Siederei: macht aus Lavendel und Jasmin Politur, daraus mit Eisen einen Giftdolch", () =>
+        ("Siederei: macht aus Lavendel und Jasmin Politur, daraus mit einem Dolch des Schmieds einen Giftdolch", () =>
         {
             var sim = NeueSimulation();
             var w = sim.Wirtschaft!;
@@ -70,6 +72,22 @@ static class ParfumeurTests
             while (sim.Zeit.UhrzeitInMinuten != 12 * 60) sim.Tick();
             Pruefe.Wahr(b.ImLager("Politur") > 0, "Politur hergestellt");
             Pruefe.Gleich(20 - b.ImLager("Politur"), b.ImLager("Lavendel"));
+
+            // Giftdolch: 1 Dolch + 1 Politur (seit PR #232, vorher Eisen statt Dolch)
+            var zutaten = w.Daten.Waren["Giftdolch"].Zutaten;
+            Pruefe.Gleich("Dolch:1 Politur:1", string.Join(" ", zutaten.OrderBy(z => z.Key, StringComparer.Ordinal).Select(z => $"{z.Key}:{z.Value}")));
+            b.Produkt = "Giftdolch";
+            b.Einlagern("Eisen", 10);
+            while (sim.Zeit.UhrzeitInMinuten != 15 * 60) sim.Tick();
+            Pruefe.Gleich(0, b.ImLager("Giftdolch"), "aus Eisen wird kein Giftdolch");
+            var politur = b.ImLager("Politur");
+            b.Einlagern("Dolch", 5);
+            while (sim.Zeit.UhrzeitInMinuten != 19 * 60) sim.Tick();
+            var gemacht = b.ImLager("Giftdolch");
+            Pruefe.Wahr(gemacht > 0, "Giftdolch aus Dolch und Politur");
+            Pruefe.Gleich(5 - gemacht, b.ImLager("Dolch"));
+            Pruefe.Gleich(politur - gemacht, b.ImLager("Politur"));
+            Pruefe.Gleich(10, b.ImLager("Eisen"), "Eisen bleibt liegen");
         }),
 
         ("Moschus: Zuneigung über das Jahreslimit hinaus, einmal im Jahr je Kandidat; vom Markt zum Marktpreis", () =>
