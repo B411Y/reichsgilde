@@ -309,7 +309,7 @@ Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --
 
 Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.
 
-### Sonnenzeiten nach Köln (Branch phase5/sonnenzeiten)
+### Sonnenzeiten nach Köln (PR #260)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
