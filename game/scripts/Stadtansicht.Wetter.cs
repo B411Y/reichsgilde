@@ -497,7 +497,9 @@ public partial class Stadtansicht
 
         // Wind treibt Regen und Schnee schräg; Größe und Geschwindigkeit mit dem Zoom
         var wind = new Vector3(_windRichtung.X, 0, _windRichtung.Y) * _wetter.Wind;
-        _regenStoff.Direction = (Vector3.Down + wind * 0.35f).Normalized();
+        // Der Regen fällt nach dem Wind: bei Windstille senkrecht, mit der Windstärke zunehmend schräg (quadratisch: leichter Wind kaum,
+        // Sturm deutlich). Wind 0,5 (Regen) = 8°, 0,75 (Gewitter) = 18°, 1 (Sturm) = 31°. Die Tropfen der Traufen fallen immer senkrecht (Stadtansicht.Traufen.cs).
+        _regenStoff.Direction = (Vector3.Down + wind * (0.6f * _wetter.Wind)).Normalized();
         _regenFarbe.SetShaderParameter("richtung", _regenStoff.Direction);
         _regenStoff.InitialVelocityMin = 14f * k;
         _regenStoff.InitialVelocityMax = 17f * k;
@@ -517,10 +519,12 @@ public partial class Stadtansicht
         _schneeStoff.TurbulenceInfluenceMax = 0.12f + 0.15f * _wetter.Wind;
     }
 
+    private float PartikelHelligkeit() => Mathf.Clamp(_umgebung.Environment.AmbientLightEnergy * 1.1f + _sonne.LightEnergy * 0.25f, 0.18f, 1f);
+
     /// <summary>Tropfen und Flocken sind unbeleuchtet, darum nach dem Licht der Stunde getönt: nachts dunkel, beim Blitz hell.</summary>
     private void PartikelFarbe()
     {
-        var hell = Mathf.Clamp(_umgebung.Environment.AmbientLightEnergy * 1.1f + _sonne.LightEnergy * 0.25f, 0.18f, 1f);
+        var hell = PartikelHelligkeit();
         if (Mathf.Abs(hell - _partikelHell) < 0.01f) return;
         _partikelHell = hell;
         _regenFarbe.SetShaderParameter("farbe", new Color(0.78f * hell, 0.82f * hell, 0.9f * hell, 1f));

@@ -12,7 +12,7 @@ Du bist das Teammitglied „darstellung“ im Projekt Reichsgilde.
 
 Dateien: `game/scripts/Stadtansicht*.cs`, Szenen, Modelle, Licht, Kamera. Die Darstellung **liest den Kern nur** (öffentliche Abfragen); fehlt eine, ergänze sie klein im Kern mit Test und nenne es im Bericht. Die 3D-Welt ist gemalt-realistisch (schlichte Modelle mit Oberflächenstruktur, normales Licht, kein Holzschnitt-Shader); die Oberfläche ist kolorierter Holzschnitt. Modelle (`.glb`) entstehen nur nach Auftrag des Teamleiters. Klicktest mit `tools/klicktest/lauf.sh` (Vulkan für Texturen und Schatten).
 
-**Kein Asset ohne Protokolleintrag im selben PR:** Wer eine Datei unter `game/assets/` anlegt, ändert oder löscht, trägt sie in `docs/assets/protokoll.csv` ein (Werkzeug, Modellversion, Prompt als Datei in `docs/assets/prompts/`, Nachbearbeitung; Unbelegtes „unbekannt“, nicht raten) und lässt `python3 tools/assets/protokoll_pruefen.py` laufen; bei KI-Inhalten danach `--steam-liste`. Einzelheiten: `docs/assets/README.md`.
+**Kein Asset ohne Protokolleintrag im selben PR:** Wer eine Datei unter `game/assets/` anlegt, ändert oder löscht, trägt sie in `docs/assets/protokoll.csv` ein (Werkzeug, Modellversion, Prompt als Datei in `docs/assets/prompts/`, Nachbearbeitung; Unbelegtes „unbekannt“, nicht raten) und lässt `python3 tools/assets/protokoll_pruefen.py` laufen; bei KI-Inhalten danach `--steam-liste`. Einzelheiten: `docs/assets/README.md`. **Lizenz:** Neue Assets bekommen im Protokoll in `lizenz_ergebnis` „Alle Rechte vorbehalten“ (Entscheidung 29.10.2026, `LICENSE-INHALTE.md`); Fremdmaterial behält seine Lizenz, Shader und Skripte sind Code (MIT).
 
 ## Arbeitsweise (gilt für jedes schreibende Mitglied)
 

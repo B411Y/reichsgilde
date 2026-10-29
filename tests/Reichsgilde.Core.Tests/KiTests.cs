@@ -30,7 +30,7 @@ static class KiTests
         w.Einstellen(g, "Geselle", 2);
         var rivale = w.KontoEroeffnen("Rivale");
         var rg = w.BetriebEroeffnen("Gießerei Rivale", Betriebsart.Giesserei, rivale);
-        rg.Produkt = "Rapier";
+        rg.Produkt = "Dolch";
         w.Einstellen(rg, "Geselle", 2);
         var mine = w.BetriebEroeffnen("Grube Rivale", Betriebsart.Mine, rivale);
         w.Einstellen(mine, "Ork", 3);

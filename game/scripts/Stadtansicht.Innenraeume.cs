@@ -1269,7 +1269,7 @@ public partial class Stadtansicht
         "Eisen" => new Color(0.45f, 0.40f, 0.36f),
         "Silber" => new Color(0.78f, 0.80f, 0.84f),
         "Beschlag" => new Color(0.52f, 0.36f, 0.22f),
-        "Rapier" => new Color(0.40f, 0.48f, 0.60f),
+        "Dolch" => new Color(0.40f, 0.48f, 0.60f),
         "Silberring" => new Color(0.85f, 0.72f, 0.35f),
         "Gold" => new Color(0.92f, 0.75f, 0.30f),
         "Holz" => new Color(0.55f, 0.40f, 0.24f),

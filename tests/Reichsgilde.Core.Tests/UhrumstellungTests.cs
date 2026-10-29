@@ -89,7 +89,8 @@ static class UhrumstellungTests
             foreach (var (ware, stand) in staende)
             {
                 var summe = stand!["VerkaufteStueckProStunde"]!.AsArray().Sum(x => (double)x!);
-                Pruefe.Wahr(Math.Abs(summe - w.Markt[ware].SpielerAngebotImJahr) < 1e-9, $"{ware}: {summe} gegen {w.Markt[ware].SpielerAngebotImJahr}");
+                var marktstand = w.Markt[Warenumbenennung.NeuerName(ware)]; // das Rapier heißt seit PR #232 Dolch
+                Pruefe.Wahr(Math.Abs(summe - marktstand.SpielerAngebotImJahr) < 1e-9, $"{ware}: {summe} gegen {marktstand.SpielerAngebotImJahr}");
             }
             var einkaeufe = alt["Wirtschaft"]!["Einwohner"]!["Einkaeufe"]!.AsArray().Sum(x => (int)x!);
             Pruefe.Wahr(einkaeufe > 0, "Einkäufe der Bürger im alten Spielstand");

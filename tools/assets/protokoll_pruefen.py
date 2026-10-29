@@ -3,6 +3,7 @@
 
 Aufruf (aus einem beliebigen Ordner im Repository):
   python3 tools/assets/protokoll_pruefen.py                 # prüfen (so läuft es in der CI)
+  python3 tools/assets/protokoll_pruefen.py --selbsttest    # Stichtag-Regel an erfundenen Zeilen testen
   python3 tools/assets/protokoll_pruefen.py --steam-liste   # docs/assets/steam-ki-inhalte.md neu schreiben, dann prüfen
 
 Geprüft wird:
@@ -11,6 +12,7 @@ Geprüft wird:
   - Jedes Muster trifft mindestens eine Datei, und „anzahl“ stimmt mit den Treffern überein.
   - Pflichtfelder sind nicht leer („unbekannt“ ist erlaubt), Art, Herkunft, Datum und „spieler_sieht“ haben gültige Werte.
   - Verweise auf Prompt-Dateien (docs/assets/prompts/…) zeigen auf vorhandene Dateien.
+  - Zeilen mit „datum“ nach dem Stichtag (Konstante STICHTAG, None = aus) tragen kein „CC BY“ als Lizenz.
   - Die Steam-Liste entspricht dem Protokoll (sonst mit --steam-liste neu schreiben).
 
 Muster (relativ zum Repository): * = beliebig viele Zeichen ohne „/“, ** = beliebig viele Ordner, ? = ein Zeichen,
@@ -40,6 +42,11 @@ KI_HERKUENFTE = {"KI", "gemischt"}
 # Hier muss jede Datei einen Eintrag haben. Die KI-Quellen unter tools/ stehen im Repository und unter CC BY 4.0,
 # auch wenn das Spiel sie nicht ausliefert.
 PRUEFORDNER = ("game/assets/", "tools/icons/quellen/", "tools/portraets/quellen/")
+# Stichtag der Lizenzänderung (Entscheidung 29.10.2026, LICENSE-INHALTE.md): Inhalte mit späterem Datum stehen unter
+# „Alle Rechte vorbehalten“, nicht unter CC BY. Der Teamleiter trägt nach dem Merge das Merge-Datum "JJJJ-MM-TT" ein;
+# bis dahin None = Prüfung aus.
+STICHTAG = None
+
 AUSGENOMMEN_ENDUNG = (".import", ".uid")
 AUSGENOMMEN_NAME = {".gitkeep", "HERKUNFT.md"}
 
@@ -146,6 +153,10 @@ def felder_pruefen(zeile, fehler):
         fehler.append(f"{ort}: „spieler_sieht“ muss ja oder nein sein")
     if zeile["datum"] and zeile["datum"] != "unbekannt" and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", zeile["datum"]):
         fehler.append(f"{ort}: Datum als JJJJ-MM-TT oder „unbekannt“, steht dort: {zeile['datum']}")
+    if STICHTAG and re.fullmatch(r"\d{4}-\d{2}-\d{2}", zeile["datum"]) and zeile["datum"] > STICHTAG \
+            and "CC BY" in zeile["lizenz_ergebnis"]:
+        fehler.append(f"{ort}: Datum {zeile['datum']} liegt nach dem Stichtag {STICHTAG}; neue Inhalte tragen "
+                      "„Alle Rechte vorbehalten“ statt CC BY (Fremdmaterial: seine eigene Lizenz)")
     nb = zeile["nachbearbeitung"]
     if nb and not (nb.startswith("nein") or nb.startswith("ja:") or nb.startswith("unbekannt")):
         fehler.append(f"{ort}: „nachbearbeitung“ beginnt mit „nein“, „ja: <Umfang>“ oder „unbekannt“")
@@ -263,7 +274,42 @@ def steam_liste(zeilen):
     return "\n".join(z) + "\n"
 
 
+def selbsttest():
+    """Prüft die Stichtag-Regel an erfundenen Zeilen: python3 tools/assets/protokoll_pruefen.py --selbsttest"""
+    global STICHTAG
+    alt = STICHTAG
+    try:
+        zeile = {s: "x" for s in SPALTEN}
+        zeile.update(_nummer=2, pfad_muster="a", anzahl="1", art="Bild", herkunft="Nutzer", spieler_sieht="ja",
+                     nachbearbeitung="nein", prompt_oder_quelle="x")
+        faelle = [  # (Stichtag, Datum, Lizenz, erwartet Fehler)
+            (None, "2030-01-01", "CC BY 4.0", False),
+            ("2026-11-01", "2026-10-31", "CC BY 4.0", False),
+            ("2026-11-01", "2026-11-01", "CC BY 4.0", False),
+            ("2026-11-01", "2026-11-02", "CC BY 4.0", True),
+            ("2026-11-01", "2026-11-02", "Alle Rechte vorbehalten", False),
+            ("2026-11-01", "2026-11-02", "CC0 1.0", False),
+            ("2026-11-01", "unbekannt", "CC BY 4.0", False),
+        ]
+        ok = True
+        for stichtag, datum, lizenz, soll in faelle:
+            STICHTAG = stichtag
+            zeile.update(datum=datum, lizenz_ergebnis=lizenz)
+            fehler = []
+            felder_pruefen(zeile, fehler)
+            ist = any("Stichtag" in f for f in fehler)
+            if ist != soll:
+                ok = False
+                print(f"Selbsttest FEHLER: Stichtag {stichtag}, Datum {datum}, Lizenz {lizenz}: erwartet {soll}, war {ist}")
+        print("Selbsttest in Ordnung." if ok else "Selbsttest fehlgeschlagen.")
+        return 0 if ok else 1
+    finally:
+        STICHTAG = alt
+
+
 def main():
+    if sys.argv[1:] == ["--selbsttest"]:
+        return selbsttest()
     schreiben = "--steam-liste" in sys.argv[1:]
     unbekannt = [a for a in sys.argv[1:] if a != "--steam-liste"]
     if unbekannt:

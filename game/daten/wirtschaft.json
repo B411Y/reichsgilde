@@ -1,5 +1,5 @@
 {
-  "version": 61,
+  "version": 62,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -87,7 +87,7 @@
       "nachfrage": 150,
       "npcAnteil": 0.7
     },
-    "Rapier": {
+    "Dolch": {
       "typ": "Fertigprodukt",
       "grundpreis": 141,
       "zeit": 60,
@@ -535,9 +535,9 @@
     },
     "Giftdolch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 153,
-      "zeit": 50,
-      "zutaten": { "Eisen": 1, "Politur": 1 },
+      "grundpreis": 305,
+      "zeit": 60,
+      "zutaten": { "Dolch": 1, "Politur": 1 },
       "nachfrage": 150,
       "npcAnteil": 0.7
     },
@@ -567,9 +567,9 @@
     },
     "Schattendolch": {
       "typ": "Fertigprodukt",
-      "grundpreis": 390,
+      "grundpreis": 477,
       "zeit": 100,
-      "zutaten": { "Eisen": 2, "Beschlag": 2, "Politur": 1 },
+      "zutaten": { "Dolch": 1, "Eisen": 1, "Beschlag": 1, "Politur": 1 },
       "nachfrage": 50,
       "npcAnteil": 0.7
     }
@@ -841,6 +841,8 @@
     "lagerJeWare": 40,
     "abfahrtAbFuellgrad": 0.75,
     "nachkaufUnterStueck": 5,
+    "zutatenVorratStunden": 4,
+    "zutatenAnteilKasse": 0.5,
     "maxWartezeitMinuten": 240,
     "karrenVerkaufAnteil": 0.5,
     "tore": {
@@ -1042,21 +1044,21 @@
     "jahreBisBankrott": 3
   },
   "berufe": {
-    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "voelker": { "Zwerg": 0.05, "Halbling": -0.05 }, "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Rapieren und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt, Schleifziegel vom Steinmetz)." },
+    "Schmied":  { "werkstatt": "Giesserei",  "umland": "Mine",          "voelker": { "Zwerg": 0.05, "Halbling": -0.05 }, "lehrgeld": 500, "beschreibung": "Eisen und Silber aus der Grube, in der Gießerei zu Beschlägen, Dolchen und Silberringen; als Meister in Schmiede und Goldschmiede auch Werkzeug, Ketten und Prunkschwerter (Gold vom Markt, Schleifziegel vom Steinmetz)." },
     "Tischler": { "werkstatt": "Tischlerei", "umland": "Holzfaellerei", "voelker": { "Mensch": 0.05 }, "lehrgeld": 500, "beschreibung": "Holz aus dem Wald, in der Tischlerei zu Holzzapfen, Schemeln und Truhen (mit Beschlag vom Schmied); als Meister in Drechslerei und Sägewerk auch Gehstöcke, Armbrüste, Schränke und Prunktruhen." },
     "Steinmetz": { "werkstatt": "Maurerei", "umland": "Steinbruch", "voelker": { "Zwerg": 0.05, "Elb": -0.05 }, "lehrgeld": 500, "beschreibung": "Bruchstein und Granit aus dem Steinbruch, in der Maurerei zu Schleifziegeln, Grabsteinen und Mühlsteinen; als Meister in Steinschneiderei und Steinmetzhütte auch Säulen, Taufbecken, Steinfiguren (mit Werkzeug vom Schmied) und Grabmäler." },
     "Alchimist": { "werkstatt": "Tinkturei", "umland": "Kraeutergarten", "voelker": { "Elb": 0.05 }, "lehrgeld": 500, "beschreibung": "Kräuter und Kröten aus dem Kräutergarten, in der Tinkturei zu Farbe, Kräuterschnaps und Heilsalbe; als Meister in Kräuterladen und Alchimistenstube auch Rosenwasser, Gegengift, Theriak und Zinnober (mit Silber vom Schmied und Schleifziegeln vom Steinmetz). Wer das Handwerk beherrscht, mischt Krötenschleim selbst." },
     "Wirt": { "werkstatt": "Schaenke", "umland": "Bauernhof", "voelker": { "Halbling": 0.05 }, "lehrgeld": 500, "beschreibung": "Gerste und Roggen vom Bauernhof, in der Schänke zu Weingeist, Körnermahlzeit und Dünnbier – ausgeschenkt an Gäste im Haus, der Rest geht zum Markt. Die dunkle Ecke hört Gerüchte, das Wirtshaus hat einen Würfeltisch, das Gasthaus einen Stammtisch der Ratsherren." },
     "Prediger": { "werkstatt": "Kirche", "umland": "Klosterhof", "voelker": { "Elb": 0.05 }, "lehrgeld": 500, "beschreibung": "Lumpen und Bienenwachs vom Klosterhof, in der Kirche zu Papier, Kerzen und Lehrschriften. Jeden Tag kommen Gläubige zur Messe und spenden; andere Häuser kaufen Ablass für ihre Taten, und was in der Beichte gesagt wird, weiß der Prediger. Als Meister in Dom und Kathedrale auch Hetzschriften, Psalter, Stundenbücher und Reliquiare." },
     "Dieb": { "werkstatt": "Schmugglerloch", "voelker": { "Halbling": 0.05, "Zwerg": -0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Diebe im Schmugglerloch ziehen tagsüber als Taschendiebe über den Markt – wer erwischt wird, verrät sein Haus. Nachts brechen sie in fremde Lager ein und spähen andere Häuser aus; im Unterschlupf erpressen sie Schutzgeld, in der Diebesgilde entführen sie sogar Angehörige. Ehrbare Bürger meiden ein Haus von Dieben." },
-    "Parfumeur": { "werkstatt": "Siederei", "umland": "Duftgarten", "voelker": { "Elb": 0.05, "Zwerg": -0.05 }, "lehrgeld": 500, "beschreibung": "Lavendel und Jasmin aus dem Duftgarten, in der Siederei zu Politur (für Goldketten und Prunktruhen), der Blume der Zwietracht und Giftdolchen; als Meister in Duftwerkstatt und Parfumerie auch Moschusduft, Fechterduft, Heiligenduft und Schattendolch. Moschus macht Bräute und Ratsherren gewogen, die Blume säht Zwietracht im Rat, Heiligenduft hebt das Ansehen – und ein Giftdolch vergiftet das Oberhaupt eines anderen Hauses." },
+    "Parfumeur": { "werkstatt": "Siederei", "umland": "Duftgarten", "voelker": { "Elb": 0.05, "Zwerg": -0.05 }, "lehrgeld": 500, "beschreibung": "Lavendel und Jasmin aus dem Duftgarten, in der Siederei zu Politur (für Goldketten und Prunktruhen), der Blume der Zwietracht und Giftdolchen (aus Dolchen des Schmieds); als Meister in Duftwerkstatt und Parfumerie auch Moschusduft, Fechterduft, Heiligenduft und Schattendolch (aus Dolch, Eisen, Beschlag und Politur). Moschus macht Bräute und Ratsherren gewogen, die Blume säht Zwietracht im Rat, Heiligenduft hebt das Ansehen – und ein Giftdolch vergiftet das Oberhaupt eines anderen Hauses." },
     "Geldleiher": { "werkstatt": "Wechselstube", "voelker": { "Zwerg": 0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Schreiber verleihen das Geld in der Kasse an Bürger der Stadt und wechseln die Münzen auswärtiger Kaufleute. Andere Häuser leihen beim Geldleiher – zu seinem Zins; wer nicht zahlt, dem pfändet der Büttel die Ware. Ein Zins über einem Fünftel ist Wucher. Geldleihe und Bankhaus verschaffen mehr Zeit für Persönliches (Aktionspunkte)." },
     "Gardist": { "werkstatt": "Wachhaus", "umland": "Wachturm", "voelker": { "Mensch": 0.05, "Elb": -0.05, "Halbling": -0.05 }, "lehrgeld": 500, "beschreibung": "Kein Handwerk, keine Ware: Die Stadt zahlt den Wachleuten Sold. Nachts gehen sie Streife – Einbrüche und Brandanschläge misslingen öfter, Zeugen sehen mehr. Razzien bringen Beweise und Diebesgut, verurteilte Täter Kopfgeld; gegen Lohn begleitet die Stadtwache Karren ins Umland, und ein Wachturm hält die Landstraße sicherer. Ein Haus der Wache ist überall gern gesehen." }
   },
   "betriebsarten": {
-    "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Beschlag", "Rapier", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
-    "Schmiede":      { "name": "Schmiede",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Beschlag", "Rapier", "Silberring", "Werkzeug", "Silberkette" ], "standardprodukt": "Silberkette", "startkarren": "Handkarren", "ausbau": "Goldschmiede", "ausbauKosten": 5000 },
-    "Goldschmiede":  { "name": "Goldschmiede", "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Beschlag", "Rapier", "Silberring", "Werkzeug", "Silberkette", "Goldkette", "Prunkschwert" ], "standardprodukt": "Goldkette", "startkarren": "Handkarren" },
+    "Giesserei":     { "name": "Gießerei",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Beschlag", "Dolch", "Silberring" ], "standardprodukt": "Silberring", "startkarren": "Handkarren", "ausbau": "Schmiede", "ausbauKosten": 2500 },
+    "Schmiede":      { "name": "Schmiede",     "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Beschlag", "Dolch", "Silberring", "Werkzeug", "Silberkette" ], "standardprodukt": "Silberkette", "startkarren": "Handkarren", "ausbau": "Goldschmiede", "ausbauKosten": 5000 },
+    "Goldschmiede":  { "name": "Goldschmiede", "beruf": "Schmied",  "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Beschlag", "Dolch", "Silberring", "Werkzeug", "Silberkette", "Goldkette", "Prunkschwert" ], "standardprodukt": "Goldkette", "startkarren": "Handkarren" },
     "Mine":          { "name": "Grube",        "beruf": "Schmied",  "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Eisen", "Silber" ], "startkarren": "Ochsenkarren" },
     "Tischlerei":    { "name": "Tischlerei",   "beruf": "Tischler", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Holzzapfen", "Schemel", "Truhe" ], "standardprodukt": "Schemel", "startkarren": "Handkarren", "ausbau": "Drechslerei", "ausbauKosten": 2500 },
     "Drechslerei":   { "name": "Drechslerei",  "beruf": "Tischler", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Holzzapfen", "Schemel", "Truhe", "Gehstock", "Armbrust" ], "standardprodukt": "Armbrust", "startkarren": "Handkarren", "ausbau": "Saegewerk", "ausbauKosten": 5000 },
@@ -1070,7 +1072,7 @@
     "Kraeuterladen":    { "name": "Kräuterladen",     "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift" ], "standardprodukt": "Gegengift", "startkarren": "Handkarren", "ausbau": "Alchimistenstube", "ausbauKosten": 5000 },
     "Alchimistenstube": { "name": "Alchimistenstube", "beruf": "Alchimist", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Farbe", "Kräuterschnaps", "Heilsalbe", "Rosenwasser", "Gegengift", "Theriak", "Zinnober" ], "standardprodukt": "Theriak", "startkarren": "Handkarren" },
     "Kraeutergarten":   { "name": "Kräutergarten",    "beruf": "Alchimist", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Kräuter", "Kröte" ], "startkarren": "Ochsenkarren" },
-    "Siederei":         { "name": "Siederei",         "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch" ], "standardprodukt": "Giftdolch", "startkarren": "Handkarren", "ausbau": "Duftwerkstatt", "ausbauKosten": 2500 },
+    "Siederei":         { "name": "Siederei",         "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 1, "plaetze": 2, "fixkosten": 80,  "kaufpreis": 3500, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch" ], "standardprodukt": "Blume der Zwietracht", "startkarren": "Handkarren", "ausbau": "Duftwerkstatt", "ausbauKosten": 2500 },
     "Duftwerkstatt":    { "name": "Duftwerkstatt",    "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 2, "plaetze": 3, "fixkosten": 120, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft" ], "standardprodukt": "Moschusduft", "startkarren": "Handkarren", "ausbau": "Parfumerie", "ausbauKosten": 5000 },
     "Parfumerie":       { "name": "Parfumerie",       "beruf": "Parfumeur", "ort": "Werkstatt", "stufe": 3, "plaetze": 4, "fixkosten": 180, "produkte": [ "Politur", "Blume der Zwietracht", "Giftdolch", "Moschusduft", "Fechterduft", "Heiligenduft", "Schattendolch" ], "standardprodukt": "Heiligenduft", "startkarren": "Handkarren" },
     "Duftgarten":       { "name": "Duftgarten",       "beruf": "Parfumeur", "ort": "Umland",    "plaetze": 3, "fixkosten": 400, "rohstoffe": [ "Lavendel", "Jasmin" ], "startkarren": "Ochsenkarren" },
@@ -1199,7 +1201,7 @@
       "Schmied": [
         { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
         { "kennung": "Werkzeug2", "name": "Meisterwerkzeug", "preis": 800, "spalte": "Werkstatt", "abStufe": 2, "voraussetzung": "Werkzeug1", "wirkung": { "zeitFaktor": 0.9 } },
-        { "kennung": "Blasebalg", "name": "Großer Blasebalg", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Beschlag", "Rapier", "Werkzeug", "Prunkschwert"] } },
+        { "kennung": "Blasebalg", "name": "Großer Blasebalg", "preis": 350, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9, "waren": ["Beschlag", "Dolch", "Werkzeug", "Prunkschwert"] } },
         { "kennung": "Regale", "name": "Regale", "preis": 200, "spalte": "Lager & Handel", "abStufe": 1, "wirkung": { "lagerPlus": 20 } },
         { "kennung": "Loeschfass", "name": "Löschfass", "preis": 100, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "brandFaktor": 0.5 } },
         { "kennung": "Eisentuer", "name": "Eisentür", "preis": 150, "spalte": "Schutz & Personal", "abStufe": 1, "wirkung": { "einbruchFaktor": 0.5 } },
@@ -2081,7 +2083,7 @@
       {
         "name": "Weidenmünd", "richtung": "flussab", "entfernung": 1.5, "zollstellen": 3,
         "verkauft": {"Gold": {"faktor": 0.85, "menge": 72}, "Jasmin": {"faktor": 0.75, "menge": 120}, "Wachs": {"faktor": 0.75, "menge": 120}, "Kräuter": {"faktor": 0.75, "menge": 120}},
-        "kauft": {"Silberring": {"faktor": 1.4, "menge": 50}, "Silberkette": {"faktor": 1.4, "menge": 50}, "Goldkette": {"faktor": 1.35, "menge": 30}, "Rapier": {"faktor": 1.4, "menge": 50}, "Armbrust": {"faktor": 1.55, "menge": 40}, "Rosenwasser": {"faktor": 1.45, "menge": 50}, "Moschusduft": {"faktor": 1.25, "menge": 40}, "Fechterduft": {"faktor": 1.2, "menge": 40}, "Taufbecken": {"faktor": 1.35, "menge": 30}, "Steinfigur": {"faktor": 1.35, "menge": 30}}
+        "kauft": {"Silberring": {"faktor": 1.4, "menge": 50}, "Silberkette": {"faktor": 1.4, "menge": 50}, "Goldkette": {"faktor": 1.35, "menge": 30}, "Dolch": {"faktor": 1.4, "menge": 50}, "Armbrust": {"faktor": 1.55, "menge": 40}, "Rosenwasser": {"faktor": 1.45, "menge": 50}, "Moschusduft": {"faktor": 1.25, "menge": 40}, "Fechterduft": {"faktor": 1.2, "menge": 40}, "Taufbecken": {"faktor": 1.35, "menge": 30}, "Steinfigur": {"faktor": 1.35, "menge": 30}}
       }
     ],
     "zollJeStelle": 0.025,
