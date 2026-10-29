@@ -5,7 +5,7 @@ Protokoll: `docs/assets/protokoll.csv`.
 
 ## Werkzeug
 
-- **Motive:** lokale Bild-KI auf dem Grafik-PC des Nutzers: ComfyUI mit **Qwen-Image** (Text zu Bild) und dem Bearbeiten-Workflow (**Qwen-Image-Edit**, Bild plus Vorlage). Aufgerufen über ein Aufrufskript außerhalb des Repositorys, Einstellung `QUALITAET=1`. Modellversionen: unbekannt.
+- **Motive:** lokale Bild-KI auf dem Grafik-PC des Nutzers: ComfyUI mit **Qwen-Image** (Text zu Bild) und dem Bearbeiten-Workflow (**Qwen-Image-Edit**, Bild plus Vorlage). Aufgerufen über ein Aufrufskript außerhalb des Repositorys, Einstellung `QUALITAET=1`. Modelle (Stand der Abfrage 29.10.2026, nicht belegt, dass die Motive genau damit entstanden): ComfyUI v0.42.0 (Commit 0b05cd8a) mit ComfyUI-GGUF 6ea2651; Text zu Bild qwen-image-2512-Q4_K_M.gguf (Qwen-Image 2512, Apache-2.0) mit Text-Encoder qwen_2.5_vl_7b_fp8_scaled, VAE qwen_image_vae und LoRA Qwen-Image-2512-Lightning-4steps-V1.0-bf16; Bearbeiten qwen-image-edit-2511-Q4_K_M.gguf mit LoRA Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.
 - **Rahmen und Hintergründe:** die Gemini-Teile der Waren-Knöpfe aus PR #210 (`tools/icons/quellen/rahmen/`, `hintergrund/`).
 - **Zusammensetzen:** `tools/icons/knoepfe_bauen.gd`, Befehl `einrichtung` (Rahmen nach Reihe, Hintergrund nach Spalte des Talentbaums).
 
