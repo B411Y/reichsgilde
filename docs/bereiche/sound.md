@@ -5,7 +5,6 @@ Geräusche, Musik, Stimmen, Audio-Busse. Neue Einträge unten anhängen, keine N
 ## Offen
 
 Plan (Schritte in dieser Reihenfolge):
-- Schritt 2: Oberflächenklänge (Klick, Papier, Siegel) mit `AudioStreamRandomizer`-Varianten über `KlangDienst.OberflaecheSpielen`
 - Schritt 3: Ansagen des Haushofmeisters (Nutzerentscheidung 29.10.2026): eine feste, förmlich-alte Stimme („Herr, Euer Sohn ist erkrankt.“, bei einer Spielerin „Herrin“), etwa 20 wichtige Ereignisse (Tod, Krankheit, Geburt, Heirat, Aufstieg in Stand oder Meisterstufe, Wahl, Werkstatt steht still, Lager leer, Kasse knapp, Diebstahl, Feuer …), Mindestabstand, abschaltbar. Sätze vorab erzeugt, ohne Namen (der Name steht in der Textmeldung). Vorbild nur das Prinzip des Beraters aus Stronghold, keine fremden Sätze. Im Gerüst vorbereitet: `KlangDienst.AnsageSpielen` (eine zur Zeit, Warteschlange bis 2, ältere verfallen, 8 s Abstand) auf dem Bus Stimmen und Schalter „Ansagen“ im Reiter Ton (Standard an)
 - Schritt 4: Umgebung nach Zoom und Tageszeit (Schleifen mit Überblendung)
 - Schritt 5: Wetter und Jahreszeiten
@@ -27,3 +26,15 @@ Plan (Schritte in dieser Reihenfolge):
 | Speicherort | `user://einstellungen.cfg`, Abschnitt `ton`, von `KlangDienst` selbst geschrieben (nicht über `Fenster`) | 29.10.2026 |
 | Ansagen | `AnsageSpielen`: eine Ansage zur Zeit, höchstens 2 wartend (die älteste verfällt), 8 s Abstand, Schalter „Ansagen“ (Standard an, Schlüssel `ansagen`) | 29.10.2026 |
 | Reiter | „Ton“ als siebter Reiter der Einstellungen (kleine Änderung an `EinstellungenAnzeige.cs`, Bereich Oberfläche) | 29.10.2026 |
+
+### Oberflächenklänge (PR #252)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Quelle | Kenney „RPG Audio“ und „Impact Sounds“ (CC0), 29 Dateien unverändert als OGG; Original-Downloads von kenney.nl mit SHA-256-Vergleich aller Dateien (`HERKUNFT.md`), `License.txt` daneben; freesound.org nicht genutzt (Original nur mit Anmeldung). „Interface Sounds“ und „UI Audio“ klingen elektronisch und blieben draußen | 29.10.2026 |
+| Bearbeitung | keine: kein Tonwerkzeug im Container (kein ffmpeg/sox, Python-Pakete durften nicht nachgeladen werden); Lautstärke und Tonhöhe je Ereignis in der Tabelle von `KlangOberflaeche.cs`. Offen: Lautheit nach Gehör angleichen (Schritt 7) | 29.10.2026 |
+| Ereignisse | Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo; Hover stumm | 29.10.2026 |
+| Einbau | zentral: `NodeAdded` für jeden Knopf, `Fensterrahmen`, `Hauptszene.Protokollieren` (✗, ⚠, Zahlungssätze); Siegel in `RatAnzeige`, Bauen bei `Beauftragt`, Tempo in `PauseUmschalten`/`TempoSetzen`. Münzen erkennt die Meldung am Betrag in der Währung plus Kaufwort (kein Kernereignis vorhanden) | 29.10.2026 |
+| Prüfung | `--klangtest=1` schreibt je Ereignis die geladenen Varianten und Längen ins Log | 29.10.2026 |
+
+**Zum Ausprobieren (Nutzer):** Spiel starten, Einstellungen, Reiter Ton: Regler „Oberfläche“ auf 80 %. Dann nacheinander: einen Knopf klicken (leiser Ledergriff); einen Reiter wechseln (Blättern); ein Fenster öffnen und mit dem Kreuz schließen (Pergament auf, zu); etwas kaufen, z. B. einen Karren oder Lehrling (Münzen); etwas Unmögliches versuchen, z. B. ohne Geld bauen (dumpfer Holzklopfer); eine Gefahrenmeldung abwarten (kleine Glocke); im Rat einen Antrag stimmen (Siegel); ein Gebäude setzen (Holzschlag); Pause mit Leertaste und Tempo mit 1 bis 3 (Metallklick). Alle Klänge am Stück ohne Spiel: Startoption `--klangtest=1`. Urteil bitte zu: zu laut oder zu leise, passt der Klang zum Ereignis, nervt etwas bei häufigem Klicken. Die Glocke ist ein schwerer Schlag, hochgestimmt; wenn sie zu blechern klingt, tauschen wir sie.
