@@ -197,7 +197,7 @@ void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 gl, vec3 wg, vec3
 		// Laufspuren an Wänden: Mauer und Fachwerk werden dort dunkler (Wasser auf Stein ist dunkel), mit kaum Glanz – anders als auf Dächern
 		float sw = spurwand * wetter_rinn;
 		c *= 1.0 - 0.45 * sw;
-		gl += max(wetter_himmel, vec3(0.025, 0.03, 0.04)) * 0.14 * sw;
+		gl += wetter_himmel * 0.12 * sw;                    // nur tagsüber ein Hauch Schimmer: nachts bliebe aus einem festen Grundwert ein heller Fleck auf dunkler Wand
 		rau = mix(rau, max(rau * 0.7, 0.45), sw);
 	}
 }
