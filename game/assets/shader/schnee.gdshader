@@ -44,10 +44,13 @@ void vertex() {
 void fragment() {
 	vec2 p = (UV - 0.5) * 2.0;
 	float r = length(p);
-	float a = atan(p.y, p.x) - v_winkel;
+	float a = atan(p.y, p.x + 0.00001) - v_winkel;   // atan(0, 0) ist nicht definiert (Flockenmitte)
 	// weiche Scheibe mit leicht sechsstrahligem Rand (dreht sich mit der Flocke)
 	float form = r * (1.0 - 0.18 * pow(abs(cos(3.0 * a)), 3.0));
 	float rand = 1.0 - smoothstep(0.25, 1.0, form);
-	ALBEDO = farbe.rgb;
-	ALPHA = farbe.a * rand * rand;
+	// Ausgabe nie NaN oder negativ (siehe regen.gdshader): Bloom und Unschärfe würden sie verschmieren
+	float al = clamp(farbe.a * rand * rand, 0.0, 1.0);
+	if (!(al > 0.004)) discard;
+	ALBEDO = clamp(farbe.rgb, vec3(0.0), vec3(1.0));
+	ALPHA = al;
 }

@@ -21,9 +21,12 @@ void fragment() {
 	float t = v_alter;
 	float radius = 0.12 + 0.88 * t;
 	float dicke = 0.16 - 0.08 * t;
-	float ring = smoothstep(dicke, 0.0, abs(r - radius));
-	float spritzer = smoothstep(0.35, 0.0, r) * smoothstep(0.25, 0.0, t);
+	float ring = 1.0 - smoothstep(0.0, dicke, abs(r - radius));
+	float spritzer = (1.0 - smoothstep(0.0, 0.35, r)) * (1.0 - smoothstep(0.0, 0.25, t));
 	float a = (ring * (1.0 - t) * (1.0 - t) * 0.55 + spritzer * 0.6) * (0.6 + 0.4 * fract(sin(v_id * 12.9898) * 43758.5453));
-	ALBEDO = farbe.rgb;
-	ALPHA = clamp(a, 0.0, 1.0) * farbe.a;
+	// Ausgabe nie NaN oder negativ (siehe regen.gdshader)
+	float al = clamp(a, 0.0, 1.0) * farbe.a;
+	if (!(al > 0.004)) discard;
+	ALBEDO = clamp(farbe.rgb, vec3(0.0), vec3(1.0));
+	ALPHA = al;
 }

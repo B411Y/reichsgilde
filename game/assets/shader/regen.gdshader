@@ -2,6 +2,12 @@
 // Fallbewegung liegt (also mit dem Wind schräg) und zur Kamera zeigt. Länge, Dicke und Durchsicht hat jeder Tropfen aus seiner Nummer
 // (INSTANCE_ID); das untere Ende (Kopf) ist hell, der Schweif läuft weich aus – wie ein Tropfen, der im Belichtungsbild einen Strich zieht.
 // Die Fallrichtung kommt als Uniform (dieselbe wie im Partikelmaterial).
+//
+// Wichtig (PR #237): Ein Strich darf nie NaN oder einen negativen Wert ausgeben. Solche Bildpunkte werden von Bloom und Miniatur-Unschärfe
+// weitergereicht und verschmiert – Bloom malt dann eine weiße Fläche, die Unschärfe dicke schwarze Flecken, ohne beides bleiben schwarze Striche
+// im Regen. Darum: kein sqrt/pow auf Werten, die durch Interpolation an den Rändern knapp unter 0 fallen können (max/clamp), Alpha auf 0–1 begrenzt,
+// und Bildpunkte ohne Wirkung (auch NaN) werden verworfen. Die Striche sind außerdem mindestens 1,6 Bildpunkte breit mit weichem Rand: Schmalere
+// Quads treffen nur jeden zweiten Bildpunkt und zerfallen in Striche mit Lücken.
 shader_type spatial;
 render_mode unshaded, blend_mix, cull_disabled, depth_draw_never;
 
@@ -23,7 +29,7 @@ void vertex() {
 	float s = length(MODEL_MATRIX[0].xyz);   // Maßstab des Partikels (wächst mit dem Zoom)
 	float laenge = (0.8 + 1.5 * h1) * (0.8 + 0.4 * staerke) * s;
 	float px = 2.0 / PROJECTION_MATRIX[1][1] / VIEWPORT_SIZE.y;   // Meter je Bildpunkt (Kamera ohne Perspektive)
-	float breite = max((0.03 + 0.03 * h2) * s, px * (0.9 + 0.5 * h2));   // nie dünner als ein Bildpunkt, sonst verschwindet der Strich
+	float breite = max((0.03 + 0.03 * h2) * s, px * (1.6 + 0.5 * h2));   // nie dünner als ~1,6 Bildpunkte, sonst zerfällt der Strich in Punkte
 	laenge = max(laenge, px * 8.0);
 	vec3 mitte = (VIEW_MATRIX * vec4(MODEL_MATRIX[3].xyz, 1.0)).xyz;
 	vec3 d = (VIEW_MATRIX * vec4(richtung, 0.0)).xyz;
@@ -38,8 +44,11 @@ void vertex() {
 }
 
 void fragment() {
-	float quer = 1.0 - abs(UV.x - 0.5) * 2.0;
+	float quer = clamp(1.0 - abs(UV.x - 0.5) * 2.0, 0.0, 1.0);
+	quer = quer * quer * (3.0 - 2.0 * quer);   // weicher Rand quer zum Strich (keine harte Kante, die flimmert)
 	float laengs = smoothstep(0.0, 0.7, UV.y) * (1.0 - smoothstep(0.93, 1.0, UV.y));
-	ALBEDO = farbe.rgb;
-	ALPHA = farbe.a * v_alpha * sqrt(quer) * laengs;
+	float a = clamp(farbe.a * v_alpha * quer * laengs, 0.0, 1.0);
+	if (!(a > 0.004)) discard;   // „nicht größer“ fängt auch NaN
+	ALBEDO = clamp(farbe.rgb, vec3(0.0), vec3(1.0));
+	ALPHA = a;
 }
