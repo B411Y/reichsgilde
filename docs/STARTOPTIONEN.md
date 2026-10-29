@@ -59,6 +59,8 @@ Startoptionen (nach `--`):
 - `--entwicklerfenster=<1–5>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `5` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
 - `--schwierigkeit=<Normal|Schwer>` (Schwierigkeit der neuen Partie, nur für diesen Start; Normal = KI-Häuser starten wie der Spieler, Schwer = mit Umlandbetrieb)
+- `--klickskript=<aktionen>` und `--klickausgabe=<ordner>` (Klicktest ohne echte Maus, für `tools/klicktest/lauf.ps1` unter Windows: das Spiel führt die Aktionen von `lauf.sh` selbst aus – `m x y`, `w sek`, `k taste`, `b knopf`, `d x1 y1 x2 y2`, `s name`, durch `;` getrennt –, speichert die Fotos als PNG im Ordner und beendet sich; nur zusammen wirksam; zählen nicht als Startoption, das Hauptmenü bleibt also stehen)
+- `--klickwarten=<Sekunden>` (mit `--klickskript`: so lange ab Programmstart warten, bevor die erste Aktion läuft; Standard 0)
 
 ## Grafik (nur für diesen Start)
 
