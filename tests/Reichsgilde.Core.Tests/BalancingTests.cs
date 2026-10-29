@@ -24,13 +24,13 @@ static class BalancingTests
         while (sim.Zeit.Jahr == jahr) sim.Tick();
     }
 
-    /// <summary>Eine Gießerei mit zwei Gesellen an Rapieren, ohne Karren.</summary>
+    /// <summary>Eine Gießerei mit zwei Gesellen an Dolchen, ohne Karren.</summary>
     static (Stadtwirtschaft W, Konto K, Betrieb B) Giesserei(Simulation sim)
     {
         var w = sim.Wirtschaft!;
         var k = w.KontoEroeffnen("Familie Probe", startvermoegen: 10_000);
         var b = w.BetriebEroeffnen("Gießerei Probe", Betriebsart.Giesserei, k, startkarren: "");
-        b.Produkt = "Rapier";
+        b.Produkt = "Dolch";
         w.Einstellen(b, "Geselle", 2);
         return (w, k, b);
     }
@@ -101,9 +101,9 @@ static class BalancingTests
             Pruefe.Gleich(4, w.WirtschaftendeHaeuser);
             Pruefe.Ungefaehr(1, w.Markt.Einwohnerfaktor, 1e-12);
             Pruefe.Ungefaehr(d.EinwohnerGrund + 4 * d.EinwohnerJeHaus, w.Einwohner, 1e-9);
-            var rapier = w.Markt["Rapier"];
-            var daten = Daten.Value.Waren["Rapier"];
-            Pruefe.Ungefaehr(daten.Nachfrage, rapier.Grundnachfrage, 1e-9);
+            var dolch = w.Markt["Dolch"];
+            var daten = Daten.Value.Waren["Dolch"];
+            Pruefe.Ungefaehr(daten.Nachfrage, dolch.Grundnachfrage, 1e-9);
 
             // Ein Haus ohne Arbeiter zählt nicht; ein Haus mehr mit Personal schon – ab der nächsten Minute.
             var neu = w.KontoEroeffnen("Familie Neu");
@@ -116,9 +116,9 @@ static class BalancingTests
             var faktor = d.Faktor(5);
             Pruefe.Ungefaehr((d.EinwohnerGrund + 5 * d.EinwohnerJeHaus) / (d.EinwohnerGrund + 4 * d.EinwohnerJeHaus), faktor, 1e-12);
             Pruefe.Ungefaehr(faktor, w.Markt.Einwohnerfaktor, 1e-12);
-            Pruefe.Ungefaehr(daten.Nachfrage * faktor, rapier.Grundnachfrage, 1e-9);
-            Pruefe.Ungefaehr(daten.Nachfrage * faktor * daten.NpcAnteil + rapier.SpielerAngebotImJahr, rapier.Gesamtangebot, 1e-9);
-            Pruefe.Ungefaehr(rapier.Grundnachfrage * rapier.NachfrageFaktor, rapier.Nachfrage, 1e-9);
+            Pruefe.Ungefaehr(daten.Nachfrage * faktor, dolch.Grundnachfrage, 1e-9);
+            Pruefe.Ungefaehr(daten.Nachfrage * faktor * daten.NpcAnteil + dolch.SpielerAngebotImJahr, dolch.Gesamtangebot, 1e-9);
+            Pruefe.Ungefaehr(dolch.Grundnachfrage * dolch.NachfrageFaktor, dolch.Nachfrage, 1e-9);
 
             // Nach dem Laden gilt derselbe Faktor, ohne Abschnitt „stadt“ ist er 1.
             var (kopie, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
@@ -164,10 +164,10 @@ static class BalancingTests
             var (w, k, b) = Giesserei(sim);
             var ws = w.Werkstaetten;
             var gesellen = 2 * w.Daten.Arbeitskraefte["Geselle"].TempoAm(b.Ort) * w.VolksFaktor(k, "Schmied");
-            var erwartet = gesellen * b.Arbeitsminuten * Kalkulation.GewinnJeArbeitsminute(w, "Rapier") * (1 / 0.9 - 1);
-            Pruefe.Wahr(erwartet > 0, $"Rapier mit Gewinn ({erwartet:0})");
+            var erwartet = gesellen * b.Arbeitsminuten * Kalkulation.GewinnJeArbeitsminute(w, "Dolch") * (1 / 0.9 - 1);
+            Pruefe.Wahr(erwartet > 0, $"Dolch mit Gewinn ({erwartet:0})");
             Pruefe.Ungefaehr(erwartet, ws.ErwarteterMehrgewinnJeJahr(b, "Werkzeug1"), 1e-6);
-            Pruefe.Ungefaehr(erwartet, ws.ErwarteterMehrgewinnJeJahr(b, "Blasebalg"), 1e-6); // der Blasebalg gilt für Rapiere
+            Pruefe.Ungefaehr(erwartet, ws.ErwarteterMehrgewinnJeJahr(b, "Blasebalg"), 1e-6); // der Blasebalg gilt für Dolche
             Pruefe.Ungefaehr(300 / erwartet, ws.Amortisationsjahre(b, "Werkzeug1")!.Value, 1e-9);
             Pruefe.Gleich(0.0, ws.ErwarteterMehrgewinnJeJahr(b, "Regale"));
             Pruefe.Gleich<double?>(null, ws.Amortisationsjahre(b, "Regale"));

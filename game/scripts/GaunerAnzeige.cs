@@ -109,7 +109,7 @@ public partial class GaunerAnzeige : PanelContainer
         : t.Contains(" · ") && t.Contains("Gulden") ? "Haus mit Stand und Reinvermögen: ein mögliches Ziel eurer Gauner."
         : t.StartsWith("Wohnhaus:") ? "Das Wohnhaus als Ziel: Einbruch und Brandstiftung sind möglich, ein Hauswächter halbiert die Chance."
         : t.StartsWith("Karren im Umland") ? "Karren im Umland können Wegelagerer überfallen."
-        : t.StartsWith("Dolch") ? "Ein Dolch gegen ein Oberhaupt: schwerste Tat, hohe Strafe, wenn sie auffliegt."
+        : t.StartsWith("Giftanschlag:") ? "Ein Giftdolch gegen ein Oberhaupt: schwerste Tat, hohe Strafe, wenn sie auffliegt."
         : t.StartsWith("Entführung") ? "Eine Angehörige des Zielhauses entführen und Lösegeld fordern."
         : "";
 
@@ -391,7 +391,7 @@ public partial class GaunerAnzeige : PanelContainer
                     var giftZeile = new HBoxContainer();
                     giftZeile.AddThemeConstantOverride("separation", 10);
                     _inhalt.AddChild(giftZeile);
-                    Text(giftZeile, "Dolch:", 14);
+                    Text(giftZeile, "Giftanschlag:", 14);
                     if (duft.Auftraege.Any(a => a.Auftraggeber == _spieler && a.Ziel == haus))
                         Text(giftZeile, "· Giftanschlag geplant (heute Nacht)", 13, Gold);
                     else

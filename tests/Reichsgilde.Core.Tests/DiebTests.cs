@@ -54,12 +54,12 @@ static class DiebTests
         return (w, k, b);
     }
 
-    /// <summary>Ein Opfer mit einer Gießerei, deren Lager voller Rapiere ist.</summary>
+    /// <summary>Ein Opfer mit einer Gießerei, deren Lager voller Dolche ist.</summary>
     static (Konto K, Betrieb G) Opfer(Stadtwirtschaft w, string name = "Haus Eisenbart")
     {
         var k = w.KontoEroeffnen(name, startvermoegen: 10_000);
         var g = w.BetriebEroeffnen($"Gießerei {name}", Betriebsart.Giesserei, k, startkarren: "");
-        g.Einlagern("Rapier", 20);
+        g.Einlagern("Dolch", 20);
         return (k, g);
     }
 
@@ -132,8 +132,8 @@ static class DiebTests
             e = w.Ausfuehren(k, new Entfuehren(opfer.Inhaber, 1, 500));
             Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("Stufe 3"), e.Meldung);
             BisNachDerNacht(sim);
-            Pruefe.Gleich(12, b.ImLager("Rapier"));
-            Pruefe.Gleich(8, giesserei.ImLager("Rapier"));
+            Pruefe.Gleich(12, b.ImLager("Dolch"));
+            Pruefe.Gleich(8, giesserei.ImLager("Dolch"));
             Pruefe.Gleich(Vergehen.Diebstahl, w.Justiz.SpurenVon(k).Single().Art);
         }),
 
@@ -262,7 +262,7 @@ static class DiebTests
             var (opfer, giesserei) = Opfer(w);
             w.KiAnmelden(opfer, KiProfil.Standard);
             BisNachDerNacht(sim);
-            Pruefe.Wahr(versteck.ImLager("Rapier") > 0, "kein Einbruch");
+            Pruefe.Wahr(versteck.ImLager("Dolch") > 0, "kein Einbruch");
             Pruefe.Wahr(w.Justiz.SpurenVon(dieb).Any(x => x.Art == Vergehen.Schutzgeld), "kein Schutzgeld verlangt");
             // Die Opfer-KI antwortet in derselben Politikstunde – zahlen oder Wächter und Nein.
             Pruefe.Wahr(w.Diebe.BriefAn(opfer, dieb, Diebesbriefart.Schutzgeld) is null, "Das Opfer hat nicht geantwortet");

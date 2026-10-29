@@ -69,13 +69,13 @@ static class GaunerTests
             var a = Haus(w, "Familie Dieb");
             var z = Haus(w, "Familie Opfer");
             var b = w.BetriebEroeffnen("Gießerei Opfer", Betriebsart.Giesserei, z, startkarren: ""); // ohne Karren bleibt alles im Lager
-            b.Einlagern("Rapier", 5);
+            b.Einlagern("Dolch", 5);
             b.Einlagern("Eisen", 20);
             w.Ausfuehren(a, new Beauftragen(z.Inhaber, Gaunerstueck.Diebstahl, b.Name));
             while (sim.Zeit.MinuteImTag != Unterwelt.Nachtstunde) sim.Tick();
             var beute = w.Gauner.MoeglicheBeute(b);
             Pruefe.Gleich(12, beute.Sum(x => x.Stueck));
-            Pruefe.Gleich("Rapier", beute[0].Ware); // die wertvollste Ware zuerst
+            Pruefe.Gleich("Dolch", beute[0].Ware); // die wertvollste Ware zuerst
             Pruefe.Wahr(beute.Zip(beute.Skip(1)).All(p => w.Markt[p.First.Ware].Preis >= w.Markt[p.Second.Ware].Preis), "nach Preis absteigend");
             var lagerVorher = beute.ToDictionary(x => x.Ware, x => b.ImLager(x.Ware));
             var wert = beute.Sum(x => x.Wert);

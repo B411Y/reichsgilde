@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dkhdntpx87qcl"
-path="res://.godot/imported/rapier.png-a5626d8e4f9a0f882949eb19f383d39a.ctex"
+uid="uid://dpdacx3365jab"
+path="res://.godot/imported/dolch.png-18d115ef3964befd26339ec408b360f0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/oberflaeche/icons/rapier.png"
-dest_files=["res://.godot/imported/rapier.png-a5626d8e4f9a0f882949eb19f383d39a.ctex"]
+source_file="res://assets/oberflaeche/icons/dolch.png"
+dest_files=["res://.godot/imported/dolch.png-18d115ef3964befd26339ec408b360f0.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
