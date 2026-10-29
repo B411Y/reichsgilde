@@ -95,7 +95,8 @@ Startoptionen (nach `--`):
 - `--uigroesse=<75–200>`
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
 - `--klangtest=1` (spielt alle Oberflächenklänge nacheinander und schreibt `KLANGTEST <Ereignis>: n/m Varianten (Längen)` ins Log; am Ende `KLANGTEST fertig … 0 mit fehlenden Dateien`)
-- `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel|Ton>` (mit `--einstellungen=1`)
+- `--reiter=<Grafik|GrafikErweitert|Ton|Spiel|Barrierefreiheit>` (mit `--einstellungen=1`; `GrafikErweitert` öffnet Grafik mit aufgeklapptem „Erweitert“, nur für diesen Start; die früheren Namen `Voreinstellung` (= Grafik) sowie `Leistung`, `Bild` und `Stimmung` (= GrafikErweitert) gehen weiter)
+- `--schnittstellezeigen=1` (zeigt die Zeile „Grafikschnittstelle“ in Grafik → Erweitert auch außerhalb von Windows, zum Ansehen und für Klicktests; geprüft wird sonst nur unter Windows)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 

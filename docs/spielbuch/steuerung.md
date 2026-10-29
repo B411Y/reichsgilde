@@ -189,7 +189,7 @@ Wer am Spiel arbeitet oder etwas ausprobieren will, setzt im Hauptmenü unten re
 
 ## Einstellungen
 
-Das Spielmenü (**Esc** oder Knopf **Menü**) und das Hauptmenü führen zu den **Einstellungen** mit sechs Reitern – Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit und Spiel – und einer kurzen Erklärung zu jedem Regler. Die Wahl wirkt sofort und wird gespeichert; alles Weitere steht im Kapitel [Einstellungen](einstellungen.md).
+Das Spielmenü (**Esc** oder Knopf **Menü**) und das Hauptmenü führen zu den **Einstellungen** mit vier Reitern – Grafik, Ton, Spiel und Barrierefreiheit –, deren Reglern ein Tooltip erklärt, was sie tun. Die Wahl wirkt sofort und wird gespeichert; alles Weitere steht im Kapitel [Einstellungen](einstellungen.md).
 
 Das Spielfenster darfst du frei ziehen: Ein größeres Fenster zeigt mehr Stadt.
 
