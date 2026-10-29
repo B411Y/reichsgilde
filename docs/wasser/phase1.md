@@ -78,10 +78,9 @@ Genutzt wird `wasser.gdshader` in `Stadtansicht.Wasser.cs` (Flüsse und Bäche a
 
 **Eignung je Gewässerart:** Meer / See / Hafen: gut (Wellen, Tiefenfarbe, Kaustik am Ufer). Rhein: bedingt (breiter, träger Fluss; es fehlt die Strömung je Stelle, die der alte Shader hat). Bach und Furt: schlecht (knapp über dem Boden, zu seicht für Tiefenfärbung, kleine Fläche; der alte Shader mit Ufer-Durchsichtigkeit passt besser). Teich: ruhig, kleine Wellen (`wave_*` klein), Kaustik an.
 
-**Was fehlt:**
+**Was fehlt** (Nutzerentscheidung 29.10.2026: es gibt nur den gemalt-realistischen Stil der 3D-Welt, keine Stilwahl):
 
 - **Eis** (zugefrorene Gewässer im Winter): keine Eisfläche, kein Übergang, keine Schollen. Müsste ein Zustand oder eigener Shader sein (Spiel: Jahreszeit).
-- **Gemalte Stile** (kolorierter Holzschnitt für Oberfläche, Karten): Der Shader ist rein fotorealistisch; Holzschnitt-Wasser (Schraffur, Umriss) gibt es nicht. Die 3D-Welt ist laut CLAUDE.md gemalt-realistisch, das Wasser dort passt also; für Karten und Oberflächenbilder bräuchte es einen eigenen, flachen Stil.
 - Strömung je Stelle, Ufer-Durchsichtigkeit, Anbindung an Wetter, Nacht und Mondlicht (Spiegelung ist Godots normale Beleuchtung, also kein eigener Himmel).
 - Kein Rückwasser, keine Wellen am Rand eines Beckens.
 
