@@ -49,10 +49,10 @@ public partial class KlangDienst : Node
 
     private readonly Dictionary<string, SchleifenSpieler> _schleifen = new();
 
-    /// <summary>Ansagen des Haushofmeisters: höchstens so viele warten; weitere werden verworfen (zu dichte Folge).</summary>
+    /// <summary>Ansagen des Haushofmeisters: höchstens so viele warten; kommt eine weitere, verfällt die älteste (zu dichte Folge).</summary>
     public const int AnsagenWarteschlange = 2;
     /// <summary>Pause in Sekunden zwischen zwei Ansagen.</summary>
-    public const double AnsagenAbstand = 4.0;
+    public const double AnsagenAbstand = 8.0;
     private static bool _ansagenAn = true;
     private readonly Queue<AudioStream> _ansagen = new();
     private AudioStreamPlayer? _ansageSpieler;
@@ -200,7 +200,7 @@ public partial class KlangDienst : Node
 
     /// <summary>
     /// Ansage des Haushofmeisters (Bus Stimmen): immer nur eine zur Zeit, mindestens <see cref="AnsagenAbstand"/> Sekunden Pause danach.
-    /// Läuft schon eine, wartet die neue (höchstens <see cref="AnsagenWarteschlange"/>); ist die Schlange voll, wird sie verworfen.
+    /// Läuft schon eine, wartet die neue (höchstens <see cref="AnsagenWarteschlange"/>); ist die Schlange voll, verfällt die älteste.
     /// Bei ausgeschalteten Ansagen passiert nichts.
     /// </summary>
     public static void AnsageSpielen(AudioStream? ton)
@@ -208,7 +208,8 @@ public partial class KlangDienst : Node
         if (ton is null || _instanz is null || !_ansagenAn) return;
         if (_instanz._ansageSpieler?.Playing == true || Time.GetTicksMsec() / 1000.0 < _instanz._ansageFrei)
         {
-            if (_instanz._ansagen.Count < AnsagenWarteschlange) _instanz._ansagen.Enqueue(ton);
+            while (_instanz._ansagen.Count >= AnsagenWarteschlange) _instanz._ansagen.Dequeue();
+            _instanz._ansagen.Enqueue(ton);
             return;
         }
         _instanz.AnsageStarten(ton);

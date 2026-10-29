@@ -513,7 +513,7 @@ public sealed class EinstellungenAnzeige
             var (_, name, _) = KlangDienst.Regelbusse[i];
             Abschnitt(s, name);
             var (regler, wert, zeile) = Regler(s, "Lautstärke", 0, 100, 5, " %", prozent => KlangDienst.ProzentSetzen(bus, prozent));
-            var stumm = new CheckButton { Text = "Stumm", FocusMode = Control.FocusModeEnum.None };
+            var stumm = new CheckButton { Text = "Stumm", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(130, 0) };
             stumm.AddThemeFontSizeOverride("font_size", 15);
             stumm.Toggled += an => KlangDienst.StummSetzen(bus, an);
             zeile.AddChild(stumm);
