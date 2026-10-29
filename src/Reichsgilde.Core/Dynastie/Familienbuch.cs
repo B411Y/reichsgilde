@@ -537,10 +537,17 @@ public sealed partial class Familienbuch
         if (konto.Vermoegen < kosten)
             return Befehlsergebnis.Abgelehnt($"Die Hochzeit kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung} – so viel hat {konto.Inhaber} nicht.");
 
+        Vermaehlen(konto, k, kosten);
+        return Befehlsergebnis.Ok($"{_familien[konto].Oberhaupt.Vorname} und {k.Person.Vorname} sind verheiratet.");
+    }
+
+    /// <summary>Die Hochzeit selbst, ohne Prüfung (auch fürs Entwicklerfenster, dort mit <paramref name="kosten"/> 0).</summary>
+    internal void Vermaehlen(Konto konto, Kandidat k, double kosten)
+    {
         var f = _familien[konto];
         konto.Familienkosten(kosten);
         _kandidaten.Remove(k);
-        ZuneigungEntfernen(s => s.Item2 == nummer || s.Item1 == konto);
+        ZuneigungEntfernen(s => s.Item2 == k.Person.Nummer || s.Item1 == konto);
 
         var p = k.Person;
         p.Familienname = f.Nachname;
@@ -549,9 +556,9 @@ public sealed partial class Familienbuch
         f.MitgliederListe.Add(p);
         f.Ehepartner = p;
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
-                        $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre). Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." +
+                        $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre)." +
+                        (kosten > 0 ? $" Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." : "") +
                         (uebertritt ? $" {p.Vorname} tritt zum {p.Glaube.Glaube()} über – die {p.Herkunftsglaube.Gemeinde()} im Rat sehen es ungern." : ""));
-        return Befehlsergebnis.Ok($"{f.Oberhaupt.Vorname} und {p.Vorname} sind verheiratet.");
     }
 
     internal Befehlsergebnis ErbenBestimmen(Konto konto, int nummer)
@@ -797,18 +804,25 @@ public sealed partial class Familienbuch
         return kind;
     }
 
-    private void Geburt(Familie f)
+    // Im Jahreswechsel, bevor das Jahr weiterzählt: Das Kind gehört schon ins neue Jahr.
+    private void Geburt(Familie f) => Geburt(f, _zufall.Next(2) == 0 ? Geschlecht.Frau : Geschlecht.Mann, Jahr + 1);
+
+    /// <summary>Entwicklerfenster: ein Kind jetzt – von beiden Eheleuten, ohne Ehepartner vom Oberhaupt allein (wie <see cref="KindAufnehmen"/>).</summary>
+    internal Person EntwicklerGeburt(Familie f, Geschlecht geschlecht) =>
+        f.Ehepartner is { Lebt: true } e && e.Geschlecht != f.Oberhaupt.Geschlecht ? Geburt(f, geschlecht, Jahr) : KindAufnehmen(f.Konto, 0, geschlecht);
+
+    private Person Geburt(Familie f, Geschlecht geschlecht, int geburtsjahr)
     {
         Paar(f.Oberhaupt, f.Ehepartner!, out var mutter, out var vater);
-        var geschlecht = _zufall.Next(2) == 0 ? Geschlecht.Frau : Geschlecht.Mann;
         var v = _d.Volk(f.Volk);
-        var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, Jahr + 1, vater.Nummer, mutter.Nummer);
+        var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, geburtsjahr, vater.Nummer, mutter.Nummer);
         TalenteVererben(kind, mutter, vater);
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht, vater, mutter);
         kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
         ZuegeBeiGeburt(kind, vater, mutter);
         f.MitgliederListe.Add(kind);
         Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
+        return kind;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

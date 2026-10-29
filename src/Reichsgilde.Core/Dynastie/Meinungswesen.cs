@@ -277,6 +277,27 @@ public sealed partial class Meinungswesen
         taten[art] = (text, Math.Clamp(vorher + wert, -Hoechstwert, Hoechstwert));
     }
 
+    /// <summary>
+    /// Entwicklerfenster: Danach denkt <paramref name="von"/> genau <paramref name="ziel"/> über das Haus. Ein Grund „Entwicklerhilfe“ unter den
+    /// Taten gleicht den Rest aus – ohne die Grenze je Art, damit jeder Wert erreichbar ist; am Jahresende verblasst er wie jede Tat.
+    /// </summary>
+    internal void EntwicklerGrundSetzen(ICharakter von, Konto ueber, double ziel)
+    {
+        const string art = "entwickler";
+        var schluessel = (von.Kennung, HausKennung(ueber));
+        if (_taten.TryGetValue(schluessel, out var taten)) taten.Remove(art);
+        var ohne = Oberhaupt(ueber) is { } o ? Rechnen(von, o, null) : TatenSumme(von.Kennung, schluessel.Item2);
+        var wert = Begrenzen(ziel) - ohne;
+        if (Math.Abs(wert) < 1e-12)
+        {
+            if (taten is { Count: 0 }) _taten.Remove(schluessel);
+            return;
+        }
+        if (taten is null)
+            _taten[schluessel] = taten = new SortedDictionary<string, (string, double)>(StringComparer.Ordinal);
+        taten[art] = ("Entwicklerhilfe", wert);
+    }
+
     /// <summary>Die frühere Gunst: ein Ratsherr über ein Haus (Stammtisch, Moschus, Zwietracht, Bekehrung).</summary>
     internal void GunstAendern(Ratsherr r, Konto konto, string art, string text, double wert) =>
         TatEintragen(r.Kennung, HausKennung(konto), art, text, wert);
