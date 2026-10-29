@@ -67,22 +67,33 @@ public partial class WegAnzeige : PanelContainer
         if (simulation.Wirtschaft is { } w) w.Wegebau.BelagGeaendert += () => _veraltet = true;
     }
 
-    /// <summary>Öffnet die Tafel für einen Weg; der Abschnitt von etwa 50 m liegt um <paramref name="stelle"/> (Meter entlang des Verlaufs).</summary>
-    public void Oeffnen(int weg, double stelle)
+    /// <summary>
+    /// Öffnet die Tafel für einen Weg; der Abschnitt von etwa 50 m liegt um <paramref name="stelle"/> (Meter entlang des Verlaufs).
+    /// <paramref name="versatz"/>: so viele Pixel weiter links (im Wege-Modus steht die Bautafel rechts daneben).
+    /// </summary>
+    public void Oeffnen(int weg, double stelle, float versatz = 0)
     {
         if (_simulation?.Wirtschaft is not { } w || _stadt is null || !w.Wegebau.IstAktiv || w.Karte is not { } karte || weg < 0 || weg >= karte.Wege.Count) return;
-        var daten = w.Wegebau.Daten!;
-        var laenge = karte.Wege[weg].Laenge;
-        var stueck = daten.Stueck;
         _weg = weg;
-        var von = Math.Floor((stelle - 25) / stueck) * stueck;
-        von = Math.Clamp(von, 0, Math.Max(0, Math.Floor(laenge / stueck) * stueck - stueck));
-        _von = von;
-        _bis = Math.Min(laenge, von + Math.Min(50, daten.HoechstensMeter));
+        (_von, _bis) = Vorwahl(w.Wegebau, karte.Wege[weg].Laenge, stelle);
         _meldung = "";
         Aufbauen();
         Show();
         Rollbereich.RechtsAnheften(this); // rechts unter dem Zeitstrahl, über der Betriebsleiste
+        if (versatz != 0)
+        {
+            OffsetLeft -= versatz;
+            OffsetRight -= versatz;
+        }
+    }
+
+    /// <summary>Der 50-m-Abschnitt, den die Tafel um <paramref name="stelle"/> vorwählt (auch für den Tooltip im Wege-Modus: gleiche Zahlen wie die Tafel).</summary>
+    public static (double Von, double Bis) Vorwahl(Wegebau bau, double laenge, double stelle)
+    {
+        var stueck = bau.Daten!.Stueck;
+        var von = Math.Floor((stelle - 25) / stueck) * stueck;
+        von = Math.Clamp(von, 0, Math.Max(0, Math.Floor(laenge / stueck) * stueck - stueck));
+        return (von, Math.Min(laenge, von + Math.Min(50, bau.Daten.HoechstensMeter)));
     }
 
     public void Schliessen()

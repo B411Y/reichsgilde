@@ -280,9 +280,13 @@ public sealed partial class Familienbuch
         return kinder - start;
     }
 
-    /// <summary>Was die Familie jedes Jahr kostet: Haushalt für Oberhaupt und Ehepartner, Unterhalt für alle anderen.</summary>
+    /// <summary>
+    /// Was die Familie jedes Jahr kostet: Haushalt für Oberhaupt und Ehepartner, Unterhalt für alle anderen – mal dem Faktor aus der
+    /// Meinung des Ehepartners über das Oberhaupt (PR #231: wer zufrieden ist, wirtschaftet sparsamer).
+    /// </summary>
     public double Haushaltskosten(Familie f) => f.Lebende.Sum(p =>
-        (p == f.Oberhaupt || p == f.Ehepartner ? _d.Volk(p.Volk).Haushalt : _d.Volk(p.Volk).Unterhalt) * HaushaltFaktor(p));
+        (p == f.Oberhaupt || p == f.Ehepartner ? _d.Volk(p.Volk).Haushalt : _d.Volk(p.Volk).Unterhalt) * HaushaltFaktor(p))
+        * _w.Meinungen.HaushaltFaktor(f);
 
     public double Zuneigung(Konto konto, Kandidat k) => _zuneigung.GetValueOrDefault((konto, k.Person.Nummer));
 
@@ -294,11 +298,11 @@ public sealed partial class Familienbuch
     public IEnumerable<Konto> Mitbewerber(Konto konto, Kandidat k) =>
         _w.Konten.Where(x => x != konto && Zuneigung(x, k) > 0.5);
 
-    /// <summary>Zuneigung + Ansehen, ab der der Kandidat einwilligt.</summary>
+    /// <summary>Zuneigung + Ansehen (+ Meinung), ab der der Kandidat einwilligt.</summary>
     public double Heiratsschwelle(Kandidat k) => _d.Heiratsschwelle + k.Stand * _d.HeiratsschwelleJeStand;
 
-    /// <summary>Zuneigung + Ansehen des Hauses beim Kandidaten.</summary>
-    public double Bereitschaft(Konto konto, Kandidat k) => Zuneigung(konto, k) + _w.Rat.Ansehen(konto);
+    /// <summary>Zuneigung + Ansehen des Hauses beim Kandidaten + seine Meinung über das Oberhaupt (PR #231, halb gezählt).</summary>
+    public double Bereitschaft(Konto konto, Kandidat k) => Zuneigung(konto, k) + _w.Rat.Ansehen(konto) + _w.Meinungen.HeiratBereitschaft(konto, k);
 
     public double Hochzeitskosten(Kandidat k) => _d.Volk(k.Person.Volk).Hochzeit * (1 + _d.HochzeitJeStand * k.Stand);
 
@@ -308,6 +312,9 @@ public sealed partial class Familienbuch
             ? 1 / (_d.ZuneigungJeGulden * _d.Volk(f.Oberhaupt.Volk).Werbefaktor * (1 + Talent(konto, Dynastie.Talent.Rhetorik) * W.RhetorikWerben)
                    * _w.Wohnen.WerbeFaktor(konto)) // Stube im Wohnhaus (PR #224)
             : 1 / _d.ZuneigungJeGulden;
+
+    /// <summary>Gulden für einen Punkt Zuneigung bei diesem Kandidaten: Wer ihm gefällt, wirbt billiger (Meinung, PR #231).</summary>
+    public double GuldenJeZuneigung(Konto konto, Kandidat k) => GuldenJeZuneigung(konto) * _w.Meinungen.HeiratKostenFaktor(konto, k);
 
     /// <summary>Darf dieses Haus um den Kandidaten werben? (null = ja, sonst der Grund)</summary>
     public string? WerbenVerboten(Konto konto, Kandidat k)
@@ -485,7 +492,7 @@ public sealed partial class Familienbuch
             return Befehlsergebnis.Abgelehnt($"Mehr Geschenke helfen dieses Jahr nicht – {k.Person.Vorname} braucht Zeit. Im nächsten Jahr geht es weiter.");
 
         // Nur so viel bezahlen, wie dieses Jahr noch wirkt.
-        var jeZuneigung = GuldenJeZuneigung(konto);
+        var jeZuneigung = GuldenJeZuneigung(konto, k);
         var wirkung = Math.Min(betrag / jeZuneigung, rest);
         var kosten = wirkung * jeZuneigung;
         if (konto.Vermoegen < kosten)

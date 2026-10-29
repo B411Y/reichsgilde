@@ -33,7 +33,7 @@ Startoptionen (nach `--`):
 - `--sitzung=1` (sichtbare Ratssitzung vorbereiten: ohne `--amt` ein Amt der untersten Stufe und eine Bewerbung eine Stufe höher – dafür `--aufsteigen=1 --vermoegen=30000 --startstunde=6` –, ohne `--antrag` wird ein Rivale Kämmerer und beantragt ein Fest; dann bis zum Jahresende vorspulen, die Partie hält vor dem ersten Punkt). `--sitzung=letzte`: ebenso, aber ohne Halt; danach steht das Rathaus auf dem Reiter Rat mit dem Knopf „Letzte Ratssitzung ansehen“
 - `--sitzungzeigen=<immer|betroffen|nie>` (Einstellung „Ratssitzung zeigen“ nur für diesen Start)
 - `--familie=1`
-- `--charakter=<oberhaupt|ehepartner|kind|ratsherr[:n]|Personennummer>` (öffnet das Charakterfenster dieser Person, nach `--spulen`; `kind` = erstes Kind des eigenen Hauses, sonst irgendeines; `ratsherr:2` = zweiter Ratsherr mit Amt); `--charakter-ehe=1` (das Oberhaupt heiratet gleich zu Beginn die erste standesgemäße Kandidatin, mit `--vermoegen=30000`; mit `--spulen=17100` wachsen Kinder heran)
+- `--charakter=<oberhaupt|ehepartner|kind|ratsherr[:n]|Personennummer>` (öffnet das Charakterfenster dieser Person, nach `--spulen`; `kind` = erstes Kind des eigenen Hauses, sonst irgendeines; `ratsherr:2` = zweiter Ratsherr mit Amt); `--charakter-ehe=1` (das Oberhaupt heiratet gleich zu Beginn die standesgemäße Kandidatin, die am ehesten einwilligt – Zuneigung, Ansehen und ihre Meinung –, mit `--vermoegen=30000`; mit `--spulen=17100` wachsen Kinder heran)
 - `--portraets=<Volk>[,<mann|frau>[,<Gesicht 0–4>[,<Haarfarbe>[,<Augenfarbe>]]]]` (öffnet im Hauptmenü die Seite „Euer Oberhaupt“ mit dieser Vorwahl, z. B. `--portraets=elb,frau,2,silberblond,violett`; `--portraets=1` = Menschen, Mann, Gesicht 1); dazu `--blinzeln=zu|offen|<0–1>` (hält die Augen fest, für Bildschirmfotos; `0.5` = halb)
 - `--gericht=1`
 - `--hinterzimmer=1`
@@ -162,7 +162,7 @@ Nach dem Speichern und dem Umriss:
 
 Zum Bauen und Leerstand:
 
-- `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude)
+- `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude; `--bauen=wege` öffnet das Baumenü im Wege-Modus: Wege leuchten, Klick auf einen Weg öffnet die Wegtafel)
 - `--bauort=<x>,<z>,<Drehung 0–3>` (der Umriss sitzt an dieser Stelle der Stadt in Metern, bis die Maus bewegt wird; Probestellen stehen unter `probeplan` in `greybox.json`)
 - `--bauklick=1` (dort die Rückfrage öffnen; `=2` gleich bauen)
 - `--aufsteigen=1` (Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen, damit Werkstätten erlaubt sind; mit `--vermoegen=30000`)
