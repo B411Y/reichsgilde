@@ -12,10 +12,14 @@ namespace Reichsgilde.Core.Mehrspieler;
 /// nicht im Spielstand), das Konto des Menschen an diesem Rechner und die Warteschlange – sie hält Befehle für spätere Ticks, und die
 /// kommen nicht bei allen Rechnern im selben Augenblick an. Was schon gewirkt hat, steht im übrigen Zustand.
 ///
-/// Eine eigene kleine Abfrage: Hat Mehrspieler M1 eine eigene, wird diese mit ihr zusammengeführt.
+/// Geschrieben wird kompakt, ohne Einrückung: Eingerücktes JSON schreibt in .NET 8 <c>Environment.NewLine</c>, auf Windows also <c>\r\n</c> –
+/// so ergäben Linux und Windows bei gleichem Zustand verschiedene Prüfsummen. Die eine Prüfsumme des Kerns: Entwicklerfenster und
+/// Gleichheitstest (Mehrspieler M1, <c>GleichheitTests.cs</c>) benutzen sie beide.
 /// </summary>
 public static class Zustandspruefsumme
 {
+    private static readonly JsonSerializerOptions Kompakt = new(Speicherung.Optionen) { WriteIndented = false };
+
     /// <summary>Die Prüfsumme als 64 Zeichen Hexadezimal (klein) – null während einer angehaltenen Ratssitzung (dann lässt sich nicht speichern).</summary>
     public static string? Berechnen(Simulation simulation)
     {
@@ -27,7 +31,7 @@ public static class Zustandspruefsumme
             Spielerkonto = null,
             Warteschlange = null,
         };
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(stand, Speicherung.Optionen);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(stand, Kompakt);
         return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 

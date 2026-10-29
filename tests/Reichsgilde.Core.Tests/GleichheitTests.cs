@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json.Nodes;
+using Reichsgilde.Core.Mehrspieler;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Partie;
@@ -22,7 +22,8 @@ using Reichsgilde.Core.Zeit;
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
 ///   • Lauf C speichert und lädt an vier Zeitpunkten (mitten im Jahr, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
-/// Verglichen wird eine SHA-256-Prüfsumme über den Spielstand (ohne Speicherzeit, Titel und Tempo) nach jedem Jahr und am Ende.
+/// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
+/// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -134,9 +135,9 @@ static class GleichheitTests
                 sim.RatssitzungWeiter();
             }
             Pruefe.Gleich(t + 1, sim.Zeit.VergangeneMinuten, "Die Uhr läuft mit dem Skript");
-            if (sim.Zeit.Jahr != jahr) jahre.Add(Pruefsumme(sim, spieler));
+            if (sim.Zeit.Jahr != jahr) jahre.Add(Pruefsumme(sim));
         }
-        return new Lauf(jahre, Pruefsumme(sim, spieler), befehle);
+        return new Lauf(jahre, Pruefsumme(sim), befehle);
     }
 
     /// <summary>Wie ein Spieler, der speichert und gleich wieder lädt – mit allem, was die Oberfläche danach wieder einstellt.</summary>
@@ -149,14 +150,9 @@ static class GleichheitTests
         return (geladen, geladenerSpieler!);
     }
 
-    /// <summary>SHA-256 über den Spielstand ohne Speicherzeit, Titel und Tempo (die Pause steht nicht im Spielstand), ohne Einrückung.</summary>
-    static string Pruefsumme(Simulation sim, Konto spieler)
-    {
-        var stand = JsonNode.Parse(Speicherung.Speichern(sim, spieler, Zeitpunkt))!.AsObject();
-        foreach (var feld in new[] { "Gespeichert", "Titel", "Tempo" })
-            Pruefe.Wahr(stand.Remove(feld), $"Feld {feld} fehlt im Spielstand");
-        return Sha256(stand.ToJsonString()); // kompakt: ohne Zeilenumbrüche (Windows schreibt eingerückt \r\n)
-    }
+    /// <summary>Die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>): SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo, Spielerkonto und Warteschlange, kompakt.</summary>
+    static string Pruefsumme(Simulation sim) =>
+        Zustandspruefsumme.Berechnen(sim) ?? throw new Exception("Keine Prüfsumme – die Ratssitzung steht noch an.");
 
     static string Sha256(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
 
