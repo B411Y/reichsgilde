@@ -107,11 +107,12 @@ public abstract class InnenTafel
     /// <summary>Schickt den Befehl an den Kern, meldet das Ergebnis und baut die Tafel gleich neu.</summary>
     protected void Befehlen(Befehl befehl)
     {
-        if (Sim?.Wirtschaft is not { } w || Spieler is null) return;
-        var ergebnis = w.Ausfuehren(Spieler, befehl);
-        Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
-        _stand = "";
-        _seitAufbau = 1;
+        UiHilfe.Befehlen(Sim, Spieler, befehl, Tafel, ergebnis =>
+        {
+            Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+            _stand = "";
+            _seitAufbau = 1;
+        });
     }
 
     protected void HandelMelden(Betrieb b) => HandelGewuenscht?.Invoke(b);

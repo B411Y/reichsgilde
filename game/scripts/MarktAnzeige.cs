@@ -432,19 +432,22 @@ public partial class MarktAnzeige : PanelContainer
     private void Losschicken()
     {
         if (GewaehlterBetrieb is not { } b) return;
-        if (Befehlen(new Handelsauftrag(b.Name, GewaehlterKarren, new Dictionary<string, int>(_verkauf), new Dictionary<string, int>(_kauf))))
-            AuftragLeeren();
+        Befehlen(new Handelsauftrag(b.Name, GewaehlterKarren, new Dictionary<string, int>(_verkauf), new Dictionary<string, int>(_kauf)), AuftragLeeren);
     }
 
-    private bool Befehlen(Befehl befehl)
+    /// <summary>Schickt den Befehl über den Boten; <paramref name="beiErfolg"/> läuft nach der Meldung, nur wenn er gelang.</summary>
+    private void Befehlen(Befehl befehl, Action? beiErfolg = null)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null || _meldung is null) return false;
-        var e = w.Ausfuehren(_spieler, befehl);
-        _meldung.Text = e.Erfolg ? e.Meldung : "✗ " + e.Meldung;
-        _meldung.AddThemeColorOverride("font_color", e.Erfolg ? Gruen : Rot);
-        Gemeldet?.Invoke(_meldung.Text);
-        HandelAktualisieren(w);
-        return e.Erfolg;
+        if (_meldung is null) return;
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, e =>
+        {
+            if (_meldung is null || _simulation?.Wirtschaft is not { } w) return;
+            _meldung.Text = UiHilfe.MeldungText(e);
+            _meldung.AddThemeColorOverride("font_color", e.Erfolg ? Gruen : Rot);
+            Gemeldet?.Invoke(_meldung.Text);
+            HandelAktualisieren(w);
+            if (e.Erfolg) beiErfolg?.Invoke();
+        });
     }
 
     /// <summary>Texte, Schätzungen und Knöpfe des Handelsauftrags angleichen.</summary>

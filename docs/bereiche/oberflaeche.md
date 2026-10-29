@@ -157,6 +157,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Protokoll | Bilder unter `docs/` sind nicht protokollpflichtig (Prüfskript prüft nur `game/assets/` und die KI-Quellen unter `tools/`). Es sind Bildschirmfotos des Spiels, nicht KI-erzeugt. | 29.10.2026 |
 | Berichtigungen | Gegen den Code geprüft: Die Einstellungen haben **sechs** Reiter (nicht fünf: dazu „Spiel“); ein Klick auf das Porträt in der Kopfzeile öffnet das Wohnhaus, nicht das Charakterfenster; neu aufgenommen: Wege-Modus (G), X (alle Fenster zu), Rechtsklick im Gebäude, Rahmenwahl und Randschwenken drinnen, Rechtsziehen im Baumodus, Charakterfenster und Aktivitäten, Esc-Reihenfolge. | 29.10.2026 |
 
+### Befehle nur über den Boten (Mehrspieler M2)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel | **Befehle nur über den Boten:** Keine Datei in `game/scripts/` ruft `Stadtwirtschaft.Ausfuehren` auf (Kontrolle: `git grep "\.Ausfuehren(" game/scripts` findet nichts). Eine Tafel schickt ihren Befehl mit `UiHilfe.Befehlen(simulation, spieler, befehl, this, ergebnis => { … })`; alles, was vom Ergebnis abhängt (Meldung, Neuaufbau, Schließen, „Beauftragt“), steht im Rückruf, nicht dahinter. Der Rückruf läuft nur, wenn der Besitzer (die Tafel, bei Klassen ohne Knoten ihr Wurzelknoten) noch gültig ist (`IsInstanceValid`) – im Mehrspieler wirkt der Befehl erst im Ziel-Tick, und die Tafel kann bis dahin zu sein. `UiHilfe.MeldungText` macht die übliche Meldung („✗ …“ bei Misserfolg). Neue Tafeln übernehmen das Muster in ihrer `Befehlen`-Methode. | 29.10.2026 |
+| Klicktest-Startoptionen | Brauchen sie das Ergebnis gleich (Schleifen, die bei Misserfolg abbrechen, Aufbau vor `--spulen`), nehmen sie `_simulation.Bote.SofortAusfuehren`; sonst `Bote.Einreihen` mit Rückruf (Meldung im Protokoll). Im Mehrspieler werfen die Sofort-Stellen – sie sind nur Testwerkzeug. | 29.10.2026 |
+| Einzelspiel | Verzögerung 0: Verhalten wie vorher. Klicktest (Vulkan, probestadt/greybox): Marktauftrag, Neubau mit Baurückfrage, Wegausbau, Geschenk im Rat, Werben in der Familie, Wohnhaus-Einrichtung, Schiffsauftrag in der Hafentafel und Geschenk im Charakterfenster – Gulden sinken, Meldung steht, Tafel baut sich neu auf bzw. schließt, kein SCRIPT ERROR. | 29.10.2026 |
 ### Lesbarkeit und mittige Fenster (PR #250)
 
 | Thema | Entscheidung | Datum |

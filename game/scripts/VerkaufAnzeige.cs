@@ -97,10 +97,12 @@ public partial class VerkaufAnzeige : PanelContainer
     private void Bestaetigen()
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null || _betrieb is null) return;
-        var ergebnis = w.Ausfuehren(_spieler, new BetriebVerkaufen(_betrieb.Name));
-        Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
-        if (ergebnis.Erfolg) Hide();
-        else Aufbauen();
+        UiHilfe.Befehlen(_simulation, _spieler, new BetriebVerkaufen(_betrieb.Name), this, ergebnis =>
+        {
+            Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+            if (ergebnis.Erfolg) Hide();
+            else Aufbauen();
+        });
     }
 
     /// <summary>Holt die Vorschau aus dem Kern und baut den Inhalt neu – aber nur, wenn sich etwas Sichtbares geändert hat.</summary>

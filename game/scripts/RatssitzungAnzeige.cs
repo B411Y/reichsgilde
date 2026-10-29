@@ -465,12 +465,15 @@ public partial class RatssitzungAnzeige : Control
     /// <summary>Schickt die Stimme an den Kern und liest den Punkt neu (die Stimmen davor können sich mitändern, z. B. die Zählung).</summary>
     private void Stimmen(Befehl befehl)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null || _simulation.Ratssitzung is not { } sitzung) return;
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
-        if (!ergebnis.Erfolg) Gemeldet?.Invoke("✗ " + ergebnis.Meldung);
-        if (sitzung.AktuellerPunkt is { } neu && neu.Nummer == _punkt!.Nummer) _punkt = neu;
-        for (var i = 0; i < _gezeigt; i++) StimmeZeigen(i);
-        EigeneStimmeAufbauen();
+        if (_simulation?.Ratssitzung is not { } sitzung) return;
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
+        {
+            if (!ergebnis.Erfolg) Gemeldet?.Invoke("✗ " + ergebnis.Meldung);
+            if (_punkt is null) return;
+            if (sitzung.AktuellerPunkt is { } neu && neu.Nummer == _punkt.Nummer) _punkt = neu;
+            for (var i = 0; i < _gezeigt; i++) StimmeZeigen(i);
+            EigeneStimmeAufbauen();
+        });
     }
 
     private void ErgebnisZeigen(Sitzungspunkt punkt)

@@ -135,9 +135,10 @@ public partial class BetriebsUebersicht : VBoxContainer
 
     private void Befehlen(Befehl befehl)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
-        Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
+        {
+            Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+        });
     }
 
     private void Beheben()
