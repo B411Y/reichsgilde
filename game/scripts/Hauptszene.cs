@@ -1303,13 +1303,16 @@ public partial class Hauptszene : Node
         var stelle = _auswahlText.GetIndex();
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 10);
+        var wappenRand = new MarginContainer(); // das Wappen sitzt links vom ✕ des Fensterrahmens und überdeckt es nicht
+        wappenRand.AddThemeConstantOverride("margin_right", 30);
         spalte.RemoveChild(_auswahlText);
         zeile.AddChild(_auswahlText);
         _auswahlText.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _auswahlWappen = WappenBild.Neu(null, 56);
         _auswahlWappen.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         _auswahlWappen.Visible = false;
-        zeile.AddChild(_auswahlWappen);
+        wappenRand.AddChild(_auswahlWappen);
+        zeile.AddChild(wappenRand);
         spalte.AddChild(zeile);
         spalte.MoveChild(zeile, stelle);
     }
