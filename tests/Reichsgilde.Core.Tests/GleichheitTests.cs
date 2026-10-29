@@ -21,7 +21,7 @@ using Reichsgilde.Core.Zeit;
 /// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
-///   • Lauf C speichert und lädt zu mehreren Zeitpunkten, einmal direkt nach dem Löschen.
+///   • Lauf C speichert und lädt an vier Zeitpunkten (mitten im Jahr, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
 /// Verglichen wird eine SHA-256-Prüfsumme über den Spielstand (ohne Speicherzeit, Titel und Tempo) nach jedem Jahr und am Ende.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
