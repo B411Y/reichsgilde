@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 Fenster="*res://scripts/Fenster.cs"
 Tooltips="*res://scripts/Tooltips.cs"
 KlangDienst="*res://scripts/KlangDienst.cs"
+KlicktestTreiber="*res://scripts/KlicktestTreiber.cs"
 
 [display]
 
