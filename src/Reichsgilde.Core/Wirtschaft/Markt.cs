@@ -75,7 +75,7 @@ public sealed class Marktstand
     /// <summary>Preisfaktor, wenn das Angebot um <paramref name="zusatz"/> Stück anders wäre (negativ = gekauft).</summary>
     private double FaktorBei(double zusatz)
     {
-        var faktor = Math.Pow(Nachfrage / Math.Max(Gesamtangebot + zusatz, 1e-9), _allgemein.Elastizitaet);
+        var faktor = DetMathe.Pow(Nachfrage / Math.Max(Gesamtangebot + zusatz, 1e-9), _allgemein.Elastizitaet);
         return Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
     }
 
@@ -92,7 +92,7 @@ public sealed class Marktstand
         {
             var aeltestes = (_aktuellesFach + 1) % _verkaufteStueckProStunde.Length;
             var angebot = Grundnachfrage * _ware.NpcAnteil + _verkaufteStueckProStunde.Sum() - _verkaufteStueckProStunde[aeltestes];
-            var faktor = Math.Pow(Nachfrage / Math.Max(angebot, 1e-9), _allgemein.Elastizitaet);
+            var faktor = DetMathe.Pow(Nachfrage / Math.Max(angebot, 1e-9), _allgemein.Elastizitaet);
             return _ware.Grundpreis * Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
         }
     }

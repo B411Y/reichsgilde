@@ -193,6 +193,12 @@ public sealed class Konto
     internal void Raub(double warenwert) => Laufend.Raubwert += warenwert;
     internal void Verkauf(double betrag) { Vermoegen += betrag; Laufend.Verkaeufe += betrag; }
 
+    /// <summary>Entwicklerfenster: Gulden geben oder nehmen, ohne Buchung in der Jahresrechnung (<see cref="Entwickler.EntwicklerGulden"/>).</summary>
+    internal void Entwicklerhilfe(double betrag) => Vermoegen += betrag;
+
+    /// <summary>Zuschlag auf das Ansehen aus dem Entwicklerfenster (<see cref="Entwickler.EntwicklerAnsehen"/>; 0 = keiner).</summary>
+    public double EntwicklerAnsehen { get; internal set; }
+
     // ── Kredite (Geldleiher) ────────────────────────────────────────────────
     internal void Verleihen(double betrag) { Vermoegen -= betrag; Forderungen += betrag; }
     internal void Zurueckerhalten(double betrag) { Vermoegen += betrag; Forderungen -= betrag; }
@@ -219,6 +225,7 @@ public sealed class Konto
         Meistergrade = _grade.ToDictionary(x => x.Key, x => x.Value),
         Erfahrung = _erfahrung.ToDictionary(x => x.Key, x => x.Value),
         Laufend = BilanzSichern(Laufend), Vorjahr = Vorjahr is null ? null : BilanzSichern(Vorjahr),
+        EntwicklerAnsehen = EntwicklerAnsehen,
     };
 
     internal static Konto Wiederherstellen(KontoStand s)
@@ -235,6 +242,7 @@ public sealed class Konto
         konto.WohnhausFertigAb = s.WohnhausFertigAb;
         konto.WohnhausInstandBis = s.WohnhausInstandBis;
         konto.Hauswaechter = s.Hauswaechter;
+        konto.EntwicklerAnsehen = s.EntwicklerAnsehen;
         foreach (var kennung in s.WohnhausEinrichtung ?? new List<string>()) konto._wohnhausEinrichtung.Add(kennung);
         foreach (var beruf in s.Berufe ?? new List<string>())
             konto.BerufLernen(beruf);

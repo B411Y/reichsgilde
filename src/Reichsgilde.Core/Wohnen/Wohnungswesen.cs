@@ -214,7 +214,7 @@ public sealed class Wohnungswesen
         HauswertAktualisieren(k); // das Geld steckt jetzt im Haus
 
         if (Daten.BauzeitMinuten == 0) Minute(zeit);
-        var dauer = Daten.BauzeitMinuten >= 60 ? $"{Daten.BauzeitMinuten / 60.0:0.#} Stunden" : $"{Daten.BauzeitMinuten} Minuten";
+        var dauer = Daten.BauzeitMinuten >= 60 ? $"{Zahlenformat.Knapp(Daten.BauzeitMinuten / 60.0)} Stunden" : $"{Daten.BauzeitMinuten} Minuten";
         return Befehlsergebnis.Ok($"{k.Inhaber} baut das Wohnhaus zum {naechste.Name} aus " +
                                   $"({Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung}, fertig in {dauer}).");
     }

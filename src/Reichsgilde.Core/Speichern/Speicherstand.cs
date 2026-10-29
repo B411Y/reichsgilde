@@ -57,6 +57,20 @@ public sealed record Speicherstand
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public List<Mehrspieler.EingereihterBefehl>? Warteschlange { get; init; }
+
+    /// <summary>
+    /// Hat in dieser Partie je ein Entwicklerbefehl gewirkt (<see cref="Entwickler.Entwicklerhilfe.Benutzt"/>)? Steht im Kopf, damit die
+    /// Laden-Liste es zeigen kann (<see cref="Speicherung.Kopf"/>). Fehlt das Feld (alte Spielstände, nie benutzt), heißt es nein.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool MitEntwicklerhilfe { get; init; }
+
+    /// <summary>
+    /// Die Sperre der Entwicklerbefehle (<see cref="Entwickler.Entwicklerhilfe.Erlaubt"/>) – eine Regel der Partie, damit ein Befehlsprotokoll
+    /// beim Abspielen gleich abläuft. Fehlt das Feld, sind sie gesperrt; im Einzelspiel setzt die Oberfläche sie nach dem Laden neu.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool EntwicklerErlaubt { get; init; }
 }
 
 public sealed record WirtschaftStand
@@ -795,6 +809,10 @@ public sealed record KontoStand
 
     /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224; null = keine).</summary>
     public List<string>? WohnhausEinrichtung { get; init; }
+
+    /// <summary>Zuschlag auf das Ansehen aus dem Entwicklerfenster (fehlt = 0, nur geschrieben, wenn gesetzt).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public double EntwicklerAnsehen { get; init; }
 
     /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
     public List<string>? Berufe { get; init; }
