@@ -49,6 +49,18 @@ public partial class KlangDienst : Node
 
     private readonly Dictionary<string, SchleifenSpieler> _schleifen = new();
 
+    /// <summary>Ansagen des Haushofmeisters: höchstens so viele warten; weitere werden verworfen (zu dichte Folge).</summary>
+    public const int AnsagenWarteschlange = 2;
+    /// <summary>Pause in Sekunden zwischen zwei Ansagen.</summary>
+    public const double AnsagenAbstand = 4.0;
+    private static bool _ansagenAn = true;
+    private readonly Queue<AudioStream> _ansagen = new();
+    private AudioStreamPlayer? _ansageSpieler;
+    private double _ansageFrei;
+
+    /// <summary>Ansagen des Haushofmeisters an/aus (Standard an).</summary>
+    public static bool AnsagenAn => _ansagenAn;
+
     /// <summary>Ton im Hintergrund stumm (Standard an): Verliert das Fenster den Fokus, wird der Master stumm.</summary>
     public static bool HintergrundStumm => _hintergrundStumm;
 
@@ -78,6 +90,7 @@ public partial class KlangDienst : Node
             _prozent[i] = geladen ? Math.Clamp(datei.GetValue("ton", Regelbusse[i].Schluessel, StandardProzent).AsInt32(), 0, 100) : StandardProzent;
             _stumm[i] = geladen && datei.GetValue("ton", Regelbusse[i].Schluessel + "_stumm", false).AsBool();
         }
+        _ansagenAn = !geladen || datei.GetValue("ton", "ansagen", true).AsBool();
         _hintergrundStumm = !geladen || datei.GetValue("ton", "hintergrund_stumm", true).AsBool();
         for (var i = 0; i < Regelbusse.Length; i++) BusAnwenden(i);
     }
@@ -111,6 +124,17 @@ public partial class KlangDienst : Node
         _hintergrundStumm = an;
         BusAnwenden(0);
         if (speichern) Speichern("hintergrund_stumm", an);
+    }
+
+    public static void AnsagenSetzen(bool an, bool speichern = true)
+    {
+        _ansagenAn = an;
+        if (!an && _instanz is not null)
+        {
+            _instanz._ansagen.Clear();
+            _instanz._ansageSpieler?.Stop();
+        }
+        if (speichern) Speichern("ansagen", an);
     }
 
     private static void BusAnwenden(int nummer)
@@ -172,6 +196,40 @@ public partial class KlangDienst : Node
         _instanz.AddChild(spieler);
         spieler.Finished += spieler.QueueFree;
         spieler.Play();
+    }
+
+    /// <summary>
+    /// Ansage des Haushofmeisters (Bus Stimmen): immer nur eine zur Zeit, mindestens <see cref="AnsagenAbstand"/> Sekunden Pause danach.
+    /// Läuft schon eine, wartet die neue (höchstens <see cref="AnsagenWarteschlange"/>); ist die Schlange voll, wird sie verworfen.
+    /// Bei ausgeschalteten Ansagen passiert nichts.
+    /// </summary>
+    public static void AnsageSpielen(AudioStream? ton)
+    {
+        if (ton is null || _instanz is null || !_ansagenAn) return;
+        if (_instanz._ansageSpieler?.Playing == true || Time.GetTicksMsec() / 1000.0 < _instanz._ansageFrei)
+        {
+            if (_instanz._ansagen.Count < AnsagenWarteschlange) _instanz._ansagen.Enqueue(ton);
+            return;
+        }
+        _instanz.AnsageStarten(ton);
+    }
+
+    private void AnsageStarten(AudioStream ton)
+    {
+        if (_ansageSpieler is null)
+        {
+            _ansageSpieler = new AudioStreamPlayer { Bus = BusStimmen };
+            AddChild(_ansageSpieler);
+            _ansageSpieler.Finished += () => _ansageFrei = Time.GetTicksMsec() / 1000.0 + AnsagenAbstand;
+        }
+        _ansageSpieler.Stream = ton;
+        _ansageSpieler.Play();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_ansagen.Count == 0 || _ansageSpieler?.Playing == true || Time.GetTicksMsec() / 1000.0 < _ansageFrei) return;
+        AnsageStarten(_ansagen.Dequeue());
     }
 
     /// <summary>

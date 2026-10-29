@@ -137,6 +137,7 @@ public sealed class EinstellungenAnzeige
 
     private readonly List<(HSlider Regler, Label Wert, CheckButton Stumm)> _tonRegler = new();
     private readonly CheckButton _tonHintergrund;
+    private readonly CheckButton _tonAnsagen;
 
     private const string ErklaerungKantenFsr = "FSR 2.2 glättet selbst. Diese Wahl gilt wieder, wenn FSR aus ist.";
     private static readonly Color Grau = new(0.75f, 0.75f, 0.75f);
@@ -519,6 +520,9 @@ public sealed class EinstellungenAnzeige
             _tonRegler.Add((regler, wert, stumm));
             Hinweis(s, TonErklaerungen[i]);
         }
+        Abschnitt(s, "Ansagen");
+        _tonAnsagen = Schalter(s, "Ansagen des Haushofmeisters", an => KlangDienst.AnsagenSetzen(an));
+        Hinweis(s, "Bei wichtigen Ereignissen (Tod, Krankheit, Geburt, leeres Lager …) spricht der Haushofmeister einen kurzen Satz; die Meldung steht auch als Text da. Immer nur eine Ansage zur Zeit, bei dichter Folge entfallen manche.");
         Abschnitt(s, "Hintergrund");
         _tonHintergrund = Schalter(s, "Ton im Hintergrund stumm", an => KlangDienst.HintergrundStummSetzen(an));
         Hinweis(s, "Verliert das Spiel den Fokus (ein anderes Fenster ist vorn), wird alles stumm; beim Zurückkehren ist der Ton wieder da.");
@@ -630,6 +634,7 @@ public sealed class EinstellungenAnzeige
             WertSetzen(_tonRegler[i].Regler, _tonRegler[i].Wert, KlangDienst.Prozent(i), " %");
             _tonRegler[i].Stumm.SetPressedNoSignal(KlangDienst.Stumm(i));
         }
+        _tonAnsagen.SetPressedNoSignal(KlangDienst.AnsagenAn);
         _tonHintergrund.SetPressedNoSignal(KlangDienst.HintergrundStumm);
         StandAuffrischen();
     }
