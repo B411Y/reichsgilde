@@ -53,9 +53,12 @@ public partial class SpielstandListe : VBoxContainer
         foreach (var (pfad, kopf) in liste)
         {
             var auto = pfad.EndsWith(Spielstaende.AutoDatei) ? "  (automatisch)" : "";
+            // Kennzeichen: In dieser Partie hat der Spieler die Entwicklerhilfe benutzt (Kern: Speicherstand.MitEntwicklerhilfe, bleibt für immer)
+            var hilfe = kopf.MitEntwicklerhilfe ? "  [Entwicklerhilfe]" : "";
             var knopf = new Button
             {
-                Text = $"{kopf.Titel}{auto}\n{kopf.Gespeichert:dd.MM.yyyy HH:mm}",
+                Text = $"{kopf.Titel}{auto}{hilfe}\n{kopf.Gespeichert:dd.MM.yyyy HH:mm}",
+                TooltipText = kopf.MitEntwicklerhilfe ? "Mit Entwicklerhilfe: In dieser Partie wurden Werte von Hand gesetzt." : "",
                 Alignment = HorizontalAlignment.Left,
                 FocusMode = FocusModeEnum.None,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,

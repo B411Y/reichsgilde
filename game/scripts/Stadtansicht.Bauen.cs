@@ -416,7 +416,7 @@ public partial class Stadtansicht
         {
             _baumodus = value;
             if (value && _bauzonen is null) BauzonenBauen();
-            if (_bauzonen is not null) _bauzonen.Visible = value;
+            if (_bauzonen is not null) _bauzonen.Visible = value || _bauzonenHilfe;
             if (!value) BauPlatzieren(null);
         }
     }

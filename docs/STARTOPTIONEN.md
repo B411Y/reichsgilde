@@ -56,6 +56,7 @@ Startoptionen (nach `--`):
 - `--karte=<kennung>` (neue Partie auf einer anderen Karte aus `game/karten/`, z. B. `koeln`, nur für diesen Start; im Hauptmenü wählt man sie unter „Neue Partie“ → „Stadt wählen“)
 - `--stadtwahl=1` (Hauptmenü öffnet gleich die Seite „Stadt wählen“, für Bildschirmfotos)
 - `--entwickler=1|0` (Entwickler-Modus für diesen Start an oder aus, ohne die gemerkte Einstellung zu ändern; die Kartenwahl zeigt dann auch Test- und Messkarten)
+- `--entwicklerfenster=<1–5>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `5` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
 - `--schwierigkeit=<Normal|Schwer>` (Schwierigkeit der neuen Partie, nur für diesen Start; Normal = KI-Häuser starten wie der Spieler, Schwer = mit Umlandbetrieb)
 - `--klickskript=<aktionen>` und `--klickausgabe=<ordner>` (Klicktest ohne echte Maus, für `tools/klicktest/lauf.ps1` unter Windows: das Spiel führt die Aktionen von `lauf.sh` selbst aus – `m x y`, `w sek`, `k taste`, `b knopf`, `d x1 y1 x2 y2`, `s name`, durch `;` getrennt –, speichert die Fotos als PNG im Ordner und beendet sich; nur zusammen wirksam; zählen nicht als Startoption, das Hauptmenü bleibt also stehen)
