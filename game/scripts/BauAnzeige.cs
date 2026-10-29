@@ -73,7 +73,7 @@ public partial class BauAnzeige : PanelContainer
         _inhalt.AddThemeConstantOverride("separation", 6);
         rand.AddChild(_inhalt);
         Rollbereich.Einhuellen(this);
-        Fensterrahmen.Anmelden(this, "Bau", schliessbar: false); // nur ziehbar: Esc und die eigenen Knöpfe gehen die Schritte zurück
+        Fensterrahmen.Anmelden(this, "Bau", schliessbar: false).Mittig = false; // Ausnahme: bleibt rechts, die Karte muss frei bleiben; nur ziehbar: Esc und die eigenen Knöpfe gehen die Schritte zurück
         Hide();
     }
 

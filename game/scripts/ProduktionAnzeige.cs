@@ -74,7 +74,7 @@ public sealed class ProduktionAnzeige : InnenTafel
         Inhalt.AddChild(new HSeparator());
         Text(Inhalt, "Arbeiter einzeln", 16, Gold);
         if (arbeiter.Count == 0) Text(Inhalt, "Es arbeitet niemand hier.", 13, Grau);
-        var liste = Raster(2);
+        var liste = Raster(2, streifen: false);
         foreach (var z in arbeiter)
         {
             Tipp(Zelle(liste, (gewaehlt.Contains(z.Nummer) ? "» " : "") + $"{z.Arbeitskraft} Nr. {z.Nummer}", 14, gewaehlt.Contains(z.Nummer) ? Gold : Hell, 150),
