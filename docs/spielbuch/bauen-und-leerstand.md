@@ -1,0 +1,17 @@
+# Bauen und Leerstand
+
+*Bauzonen, Neubau, leere Häuser kaufen und abreißen*
+
+**Bauen.** Der Knopf **+ Bauen** in der Betriebsleiste (oder **B**) öffnet rechts die Bautafel und zeigt in der Stadt die **Bauzonen** der Karte als farbige Flächen mit 2-m-Raster: orange = Kern, blau = Mauerring, türkis = Vorstadt. Gewählt wird ein Gebäude – **Wohnhaus** (Fachwerkhaus bis Stadthof) oder **Werkstatt** (Stufe 1, je Beruf); jedes nennt Kosten, Maß und Bauzeit. Was das Haus nicht darf (Stand, Handwerk, Geld), ist ausgegraut, der Grund steht darunter. Danach folgt ein **Umriss** der Maus und rastet aufs Raster (oder auf einen Bauplatz) ein: **grün**, wenn dort gebaut werden darf, sonst **rot** mit dem Grund (keine Bauzone, steht schon etwas da, nicht an einer Straße …). Der helle Streifen vorn ist der Vorplatz, die Spitze zeigt zur Straße. **R** dreht in Vierteln, **Q/E** drehen weiter die Kamera. Ein Klick auf grün öffnet die **Rückfrage**: Preis, angerechnetes altes Haus, Kosten beim Baubeginn, Bauzeit und Fertigstellung. Erst „Bauen“ schickt den Befehl. In der Greybox-Stadt liegen drei Kernzonen im Süden innerhalb der Mauer (Platz für drei Werkstätten mit dem Tor zur Ringgasse und vier Wohnhäuser), die übrigen Zonen vor dem Westtor und an der Straße zum Steinbruch am Felsenhang.
+- **Wohnhaus:** Das alte Haus wird angerechnet; ihr wohnt bis zur Fertigstellung im alten, danach zieht ihr um, und das alte Haus wird abgerissen und zum Bauplatz. Stufe 1–2 dauert ein Spieljahr, ab Stufe 3 zwei. Stadtpalais und Stadthof gibt es nur so (oder als gekauften Leerstand), nicht als Ausbau am Platz.
+- **Werkstatt:** Preis einer freien Werkstatt der Stufe 1 plus ein Jahr Unterhalt in bar, ein Spieljahr Bauzeit. Danach öffnet sie wie jede andere (das Modell nach Beruf, in der gewählten Drehung).
+- **Baustelle:** Fundament, Mauern, die mit der Bauzeit hochwachsen, zuletzt der Dachstuhl, dazu Gerüst und Holzstapel. Ein Klick nennt, was entsteht und wann es fertig ist; ist es fertig, folgt die Auswahl dem neuen Haus.
+- **Bauplatz:** Wiese mit Pflöcken und Schnur, nach einem Abriss. Hier darf jeder bauen, was hineinpasst, auch außerhalb der Bauzonen. Ein **Wohnhausplatz** (der Platz eines abgerissenen Hauses der Karte) nimmt jedes Wohnhaus jeder Stufe auf – es passt sich der Fläche und ihrer Drehung an; eine Werkstatt darf dort nicht stehen.
+
+**Alte Spielstände.** Seit die Karte alles festlegt, was in der Stadt steht (Kartenformat 2), lädt ein alter Spielstand mit der aktuellen Karte. Eine Werkstatt, deren Platz es nicht mehr gibt (etwa eine der früheren Werkstätten zum Kauf), zieht dabei an die erste freie Stelle einer Bauzone; freie Werkstätten zum Kauf ohne Platz gibt es nicht mehr.
+
+**Leerstand.** Das Wohnhaus eines bankrotten oder erloschenen Hauses bleibt vernagelt stehen. Ein Klick darauf zeigt zwei Knöpfe: **Kaufen und sanieren** (50 % des Hauswerts plus 20 % Sanierung, abzüglich eures alten Hauses; 4 Stunden, dann zieht ihr ein; nur, wenn das Haus größer ist als eures) und **Abreißen lassen** (50 % plus Abrisskosten; danach ein Bauplatz für jeden). Beide fragen vorher mit der ganzen Rechnung nach; geht etwas nicht, ist der Knopf gesperrt und der Grund steht in der Tafel.
+
+**Zum Ausprobieren** (Startoptionen nach `--`, siehe `docs/STARTOPTIONEN.md`): `--bauen=1` öffnet den Baumodus, `--bauen=wohnhaus:1 --bauort=-96,-3,0 --bauklick=1` setzt den Umriss auf eine Probestelle und öffnet die Rückfrage, `--bauklick=2 --spulen=1100` baut gleich und lässt die Bauzeit ablaufen.
+
+[Zurück zum Inhaltsverzeichnis](README.md)
