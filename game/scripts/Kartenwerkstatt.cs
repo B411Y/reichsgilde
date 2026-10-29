@@ -95,11 +95,22 @@ public partial class Kartenwerkstatt : Node
     /// <summary>Die Wurzel aller Tafeln (für <c>--ui=0</c>).</summary>
     private CanvasLayer _oberflaeche = null!;
 
-    public override void _Ready()
+    /// <summary>
+    /// Baut die Werkstatt hinter dem Ladebildschirm auf, ein Abschnitt je Bild (async: Godot ruft <c>_Ready</c> und läuft nach jedem
+    /// <c>await</c> weiter). Bis der Ladebildschirm geht, ruhen <c>_Process</c> und Eingabe der Werkstatt und ihrer Stadt.
+    /// </summary>
+    public override async void _Ready()
     {
         _stadt = GetNode<Stadtansicht>("%Stadt");
+        _stadt.OhneHintergrund = true;
+        Ruhen(true);
+        _stadt.Ruhen(true);
         var optionen = _startoptionenErledigt ? new Dictionary<string, string>() : Startoptionen();
         _startoptionenErledigt = true;
+        var lade = Ladebildschirm.Zeigen(GetTree(), optionen.GetValueOrDefault("kartenwerkstatt"));
+        lade.Fortschritt(0.03f, "Der Entwurf wird ausgerollt …");
+        GetViewport().Disable3D = true; // erst die fertige Werkstatt zeichnen (ErsteBilderAbwarten)
+        await Ladebildschirm.Bild(GetTree());
         string? meldung = null;
         var zurueck = _auftrag is null ? _probe : null; // zurück aus der Probepartie (oder über das Hauptmenü wieder hier): weiter wie vorher
         _probe = null;
@@ -112,7 +123,9 @@ public partial class Kartenwerkstatt : Node
         _entwurf.Daten ??= _daten; // Betriebsarten je Platz und die Prüfung der Startbelegung
         Ladezeit.Marke("Kern: Entwurf und wirtschaft.json lesen");
 
-        _stadt.EntwurfZeigen(_entwurf);
+        await lade.Durchlaufen(_stadt.EntwurfZeigenSchritte(_entwurf), 0.09f, 0.60f);
+        lade.Fortschritt(0.60f, "Werkzeug wird bereitgelegt …");
+        await Ladebildschirm.Bild(GetTree());
         OberflaecheBauen(); // Kartenwerkstatt.Tafeln.cs
         Ladezeit.Marke("Werkstatt: Tafeln bauen");
         _entwurf.Geaendert += EntwurfGeaendert;
@@ -145,7 +158,43 @@ public partial class Kartenwerkstatt : Node
         if (meldung is not null) Melden(meldung);
         else if (datenFehler is not null) Melden(datenFehler, fehler: true);
         StartoptionenAusfuehren(optionen);
-        Ladezeit.BilderMessen(GetTree(), "Kartenwerkstatt"); // --ladezeit=1: Rest von _Ready, dann die ersten Bilder (Ladezeit.cs)
+        await ErsteBilderAbwarten(lade, 0.66f);
+        Ruhen(false);
+        _stadt.Ruhen(false);
+        Ladezeit.Marke("Ladebild weg");
+        lade.Schliessen();
+        Ladezeit.BilderMessen(GetTree(), "Kartenwerkstatt"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
+    }
+
+    /// <summary>Während des Aufbaus: kein <c>_Process</c> (die Tafeln fehlen noch), keine Eingabe.</summary>
+    private void Ruhen(bool ruhen)
+    {
+        SetProcess(!ruhen);
+        SetProcessInput(!ruhen);
+        SetProcessUnhandledInput(!ruhen);
+    }
+
+    /// <summary>
+    /// Die ersten Bilder noch hinter dem Ladebildschirm: Werkstatt und Stadt rechnen (Natur, Wegeschicht, Gras), der Grafiktreiber übersetzt die
+    /// Shader; Eingaben ruhen noch. Fertig, wenn drei Bilder in Folge kurz sind (höchstens 5 s).
+    /// </summary>
+    private async Task ErsteBilderAbwarten(Ladebildschirm lade, float von)
+    {
+        GetViewport().Disable3D = false;
+        SetProcess(true);
+        _stadt.SetProcess(true); // rechnen ja, Eingabe erst ohne Ladebildschirm
+        var anfang = Time.GetTicksMsec();
+        var vorher = anfang;
+        var ruhig = 0;
+        for (var bild = 0; bild < 300; bild++)
+        {
+            lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 6f), "Letzte Handgriffe …");
+            await Ladebildschirm.Bild(GetTree());
+            var jetzt = Time.GetTicksMsec();
+            ruhig = bild >= 1 && jetzt - vorher < 50 ? ruhig + 1 : 0;
+            vorher = jetzt;
+            if (ruhig >= 3 || jetzt - anfang > 5000) break;
+        }
     }
 
     /// <summary>Die Zeile in der Leiste unten: Höhe und Gefälle des Bodens unter der Maus.</summary>
@@ -180,16 +229,9 @@ public partial class Kartenwerkstatt : Node
     /// <summary>Liest <c>wirtschaft.json</c> (wie die Hauptszene) – oder nennt den Grund, warum es nicht geht.</summary>
     private static (Wirtschaftsdaten? Daten, string? Fehler) DatenLaden()
     {
-        try
-        {
-            var json = Godot.FileAccess.GetFileAsString(Hauptszene.WirtschaftsdatenPfad);
-            return string.IsNullOrEmpty(json) ? (null, $"{Hauptszene.WirtschaftsdatenPfad} fehlt – ohne sie kennt die Startbelegung keine Betriebsarten.")
-                : (Wirtschaftsdaten.AusJson(json), null);
-        }
-        catch (WirtschaftsdatenFehler fehler)
-        {
-            return (null, fehler.Message);
-        }
+        var (daten, fehler, leer) = Datenvorrat.Holen(); // meist schon im Hintergrund gelesen (Datenvorrat.cs)
+        return leer ? (null, $"{Hauptszene.WirtschaftsdatenPfad} fehlt – ohne sie kennt die Startbelegung keine Betriebsarten.")
+            : (daten, fehler?.Message);
     }
 
     /// <summary>Das Fenster soll schließen (X): bei ungespeicherten Änderungen erst fragen.</summary>

@@ -72,14 +72,18 @@ public partial class Hauptmenue : Node
     public override void _Ready()
     {
         Ladezeit.Marke("Programmstart bis Hauptmenü");
+        Datenvorrat.Vorladen(); // wirtschaft.json im Hintergrund, solange das Menü steht (Datenvorrat.cs)
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
         var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
         if (KlicktestTreiber.SpielOptionen().Length > 0 && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
+            // Die Greybox hinter dem Menü sähe niemand (spart rund 2,5 s). --menuhintergrund=1 baut sie trotzdem: wie der Weg über das Menü,
+            // das dabei Modelle und Shader schon lädt – für Vergleiche der Ladezeit (docs/STARTOPTIONEN.md).
+            GetNode<Stadtansicht>("%Stadt").OhneHintergrund = !OS.GetCmdlineUserArgs().Contains("--menuhintergrund=1");
             if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
-                Callable.From(() => { Ladezeit.Marke("Hauptmenü bis Kartenwerkstatt"); GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene); }).CallDeferred();
+                CallDeferred(MethodName.WerkstattOeffnen);
             else
                 CallDeferred(MethodName.SpielStarten);
             return;
@@ -120,10 +124,28 @@ public partial class Hauptmenue : Node
         }
     }
 
-    private void SpielStarten()
+    /// <summary>Zur Partie: erst der Ladebildschirm (zwei Bilder, damit er steht), dann die Hauptszene, die sich dahinter aufbaut.</summary>
+    private async void SpielStarten()
     {
         Ladezeit.Marke("Hauptmenü bis Spielstart");
-        GetTree().ChangeSceneToFile(Spielszene);
+        await SzeneHinterLadebild(Spielszene, Stadtkarten.StartKennung);
+    }
+
+    /// <summary>Zur Kartenwerkstatt, ebenfalls hinter dem Ladebildschirm.</summary>
+    private async void WerkstattOeffnen()
+    {
+        Ladezeit.Marke("Hauptmenü bis Kartenwerkstatt");
+        var wahl = OS.GetCmdlineUserArgs().LastOrDefault(a => a.StartsWith("--kartenwerkstatt="))?["--kartenwerkstatt=".Length..];
+        await SzeneHinterLadebild(Kartenwerkstatt.Szene, wahl);
+    }
+
+    private async Task SzeneHinterLadebild(string szene, string? karte)
+    {
+        var baum = GetTree();
+        Ladebildschirm.Zeigen(baum, karte).Fortschritt(0.02f, "Die Reise beginnt …");
+        await Ladebildschirm.Bild(baum);
+        await Ladebildschirm.Bild(baum);
+        baum.ChangeSceneToFile(szene);
     }
 
     /// <summary>Die Startoptionen haben das Menü schon einmal übersprungen.</summary>
@@ -150,7 +172,7 @@ public partial class Hauptmenue : Node
         Knopf(spalte, "Neue Partie", KartenwahlZeigen);
         Knopf(spalte, "Partie laden", () => { _liste.Auffrischen(); _ladeFehler.Text = ""; Zeigen(_laden); });
         Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
-        Knopf(spalte, "Kartenwerkstatt", () => { Ladezeit.Marke("Hauptmenü bis Kartenwerkstatt"); GetTree().ChangeSceneToFile(Kartenwerkstatt.Szene); }).TooltipText =
+        Knopf(spalte, "Kartenwerkstatt", WerkstattOeffnen).TooltipText =
             "Karten bauen und prüfen: Gebäude setzen, verschieben, drehen – Greybox und Köln öffnen (nur lesen), eigene Karten speichern";
         Knopf(spalte, "Beenden", () => GetTree().Quit());
 

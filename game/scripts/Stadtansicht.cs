@@ -329,12 +329,16 @@ public partial class Stadtansicht : Node3D
         // die Simulation erst nach diesem _Ready.
         Callable.From(() =>
         {
-            if (_simulation is not null || _entwurf is not null) return; // Partie oder Kartenwerkstatt (Stadtansicht.Kartenwerkstatt.cs)
+            if (_simulation is not null || _entwurf is not null || OhneHintergrund) return; // Partie oder Kartenwerkstatt (Stadtansicht.Kartenwerkstatt.cs)
             KarteAufbauen(Stadtkarten.Greybox);
             WohnhaeuserPruefen();
             Ladezeit.Marke("Greybox des Hauptmenüs");
         }).CallDeferred();
     }
+
+    /// <summary>Keine Greybox ohne Partie bauen: Das Hauptmenü wird gleich übersprungen (Startoptionen), oder eine Partie bzw. die Werkstatt
+    /// baut sich gleich hinter dem Ladebildschirm auf (ihre Karte kommt erst nach dem ersten Bild).</summary>
+    public bool OhneHintergrund { get; set; }
 
     private void UmgebungUndLicht()
     {
@@ -385,31 +389,56 @@ public partial class Stadtansicht : Node3D
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Zeichnet die Stadt der Partie (ihre Karte, Stadtansicht.Karte.cs) und stellt die Betriebe der Simulation hinein – jeden an seinen Platz
-    /// (<see cref="PlatzVon"/>). Freie Liegenschaften werden als Bauplatz bzw. leere Grube mit Schild gezeigt.
+    /// Verbindet die Stadt mit der Partie. Gezeichnet wird sie danach in <see cref="Aufbauen"/> (abschnittsweise hinter dem Ladebildschirm):
+    /// ihre Karte (Stadtansicht.Karte.cs), die Betriebe der Simulation – jeder an seinem Platz (<see cref="PlatzVon"/>) –, freie Liegenschaften als
+    /// Bauplatz bzw. leere Grube mit Schild und die Wohnhäuser. Bis dahin ruht die Stadt (kein <c>_Process</c>, keine Eingabe).
     /// </summary>
     public void Verbinden(Simulation simulation, Konto spieler)
     {
         _simulation = simulation;
         _spielerKonto = spieler;
-        if (simulation.Wirtschaft is not { } w)
-        {
-            KarteAufbauen(Stadtkarten.Greybox);
-            return;
-        }
+        Ruhen(true);
+        if (simulation.Wirtschaft is not { } w) return;
         _wirtschaft = w;
-        KarteAufbauen(w.Karte ?? Stadtkarten.Greybox); // vor den Betrieben: Ihre Wege hängen am Gassennetz der Karte
+        // Verkauf und Kündigung zeigt die Stadt selbst; den Erwerb meldet die Hauptszene (BetriebHinzufuegen).
+        w.BetriebAbgegeben += BetriebEntfernen;
+        w.Wegebau.BelagGeaendert += BelagVeraltetMelden; // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
+    }
+
+    /// <summary>
+    /// Zeichnet die Stadt der verbundenen Partie in Abschnitten (<see cref="Ladeschritt"/>, Anteil 0–1). Am Ende stehen auch die Wohnhäuser
+    /// (früher erst im ersten <see cref="Aktualisieren"/>), damit das erste Bild vollständig ist.
+    /// </summary>
+    public IEnumerable<Ladeschritt> Aufbauen()
+    {
+        var karte = _wirtschaft?.Karte ?? Stadtkarten.Greybox;
+        // die Karte bis 0,89, ihre Anteile darauf umgerechnet; die Betriebe hängen mit ihren Wegen am Gassennetz der Karte
+        foreach (var schritt in KarteAufbauenSchritte(karte))
+            yield return schritt with { Anteil = schritt.Anteil * 0.89f };
+        if (_wirtschaft is not { } w) yield break;
+        yield return new Ladeschritt(0.89f, "Werkstätten öffnen ihre Läden …");
         foreach (var betrieb in w.Betriebe)
             BetriebHinzufuegen(betrieb);
         Ladezeit.Marke("Szene: Betriebe (Werkstätten, Umland)");
+        yield return new Ladeschritt(0.985f, "Die Bürger ziehen ein …");
         foreach (var frei in w.FreieLiegenschaften)
             FreienPlatzZeigen(frei);
         Ladezeit.Marke("Szene: freie Plätze");
         WohnhausRaeumeAnlegen(); // Wohnstube und Kontor im eigenen Wohnhaus (Stadtansicht.Wohnhaus.cs)
         Ladezeit.Marke("Szene: Räume des Wohnhauses");
-        // Verkauf und Kündigung zeigt die Stadt selbst; den Erwerb meldet die Hauptszene (BetriebHinzufuegen).
-        w.BetriebAbgegeben += BetriebEntfernen;
-        w.Wegebau.BelagGeaendert += BelagVeraltetMelden; // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
+        WohnhaeuserPruefen(); // die Wohnhäuser der Karte, wie sie der Kern vergeben hat (sonst erst im ersten Aktualisieren)
+        GrundstueckeAktualisieren(); // Baustellen und Bauplätze (Stadtansicht.Bauen.cs)
+        Ladezeit.Marke("Szene: Wohnhäuser und Grundstücke");
+    }
+
+    /// <summary>
+    /// Während des Aufbaus hinter dem Ladebildschirm ruht die Stadt: kein <c>_Process</c> (Gras, Wegeschicht, Kamera), keine Eingabe.
+    /// </summary>
+    public void Ruhen(bool ruhen)
+    {
+        SetProcess(!ruhen);
+        SetProcessInput(!ruhen);
+        SetProcessUnhandledInput(!ruhen);
     }
 
     private Stadtwirtschaft? _wirtschaft;
