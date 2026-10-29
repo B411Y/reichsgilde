@@ -311,7 +311,7 @@ Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --
 
 Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.
 
-### Aufbau hinter dem Ladebildschirm (PR #…)
+### Aufbau hinter dem Ladebildschirm (PR #261)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

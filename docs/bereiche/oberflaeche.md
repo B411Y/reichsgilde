@@ -190,7 +190,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Startoption | `--entwicklerfenster=1` (mit `--entwickler=1` oder dem Haken) öffnet das Fenster gleich, `=2` bis `=5` auf dem Reiter 2 bis 5. | 29.10.2026 |
 | Klicktest | Vulkan (T400): Fenster mit jedem Reiter, Gulden geben (Kopfzeile 4.557 → 5.874 im Lauf, die Meldung im Fenster), Regen und Winter mit Wegenetz und Bauzonen, Bis Ratssitzung (Jahresbericht mit dem Satz zur Entwicklerhilfe, Spielstand mit dem Kennzeichen), Laden und F12 danach (Sperre offen, Gulden geben geht), 64×, Ladeliste mit „[Entwicklerhilfe]“. Kein SCRIPT ERROR. Nach dem Zusammenführen mit M1 und M2 (Integration, PR #254) noch einmal: Reiter 1, Gulden geben (+1.000), Wetter Regen, Messwerte mit Prüfsumme (b83e4195), Speichern und Ladeliste mit „[Entwicklerhilfe]“; ohne `--entwickler=1` kein Knopf und keine Reaktion auf F12. | 29.10.2026 |
 
-### Ladebildschirm (PR #…)
+### Ladebildschirm (PR #261)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
