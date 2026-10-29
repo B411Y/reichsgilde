@@ -1,0 +1,65 @@
+{
+ "name": "nah_mund",
+ "titel": "Phase 2: Zähne, Zunge und Mundhöhle folgen Alter, Genen und Mimik",
+ "zelle": [
+  400,
+  300
+ ],
+ "alle": {
+  "kopf": "kopf2.glb",
+  "winkel": 12,
+  "ansicht": "mund"
+ },
+ "spalten": [
+  {
+   "titel": "jawOpen 0,8",
+   "mimik": {
+    "jawOpen": 0.8
+   }
+  },
+  {
+   "titel": "Lächeln",
+   "mimik": {
+    "mouthSmileLeft": 1,
+    "mouthSmileRight": 1
+   }
+  },
+  {
+   "titel": "Zähne zeigen",
+   "mimik": {
+    "mouthUpperUpLeft": 1,
+    "mouthUpperUpRight": 1,
+    "mouthLowerDownLeft": 1,
+    "mouthLowerDownRight": 1,
+    "jawOpen": 0.12
+   }
+  },
+  {
+   "titel": "Mund + Kiefer breit (Gene), jawOpen 0,6",
+   "mimik": {
+    "jawOpen": 0.6
+   },
+   "gene": {
+    "mund_breite": 255,
+    "kiefer_breite": 255
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Mann 5",
+   "alter": 5,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Mann 35",
+   "alter": 35,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Frau 70",
+   "alter": 70,
+   "geschlecht": "w"
+  }
+ ]
+}

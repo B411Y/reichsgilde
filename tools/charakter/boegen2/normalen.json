@@ -1,0 +1,54 @@
+{
+ "name": "normalen",
+ "titel": "Phase 2: Formen ohne Normalen (oben) und Mimik mit Normalen (unten, Standard)",
+ "zelle": [
+  360,
+  400
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 35,
+  "alter": 35,
+  "geschlecht": "m"
+ },
+ "spalten": [
+  {
+   "titel": "jawOpen 1",
+   "mimik": {
+    "jawOpen": 1.0
+   }
+  },
+  {
+   "titel": "cheekPuff",
+   "mimik": {
+    "cheekPuffLeft": 1,
+    "cheekPuffRight": 1
+   }
+  },
+  {
+   "titel": "Lächeln + Augen zu",
+   "mimik": {
+    "mouthSmileLeft": 1,
+    "mouthSmileRight": 1,
+    "eyeSquintLeft": 1,
+    "eyeSquintRight": 1,
+    "cheekSquintLeft": 1,
+    "cheekSquintRight": 1
+   }
+  },
+  {
+   "titel": "Kind 5",
+   "alter": 5
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "ohne Normalen der Formen",
+   "kopf": "kopf2_ohne.glb"
+  },
+  {
+   "titel": "Mimik mit Normalen (kopf2.glb)",
+   "kopf": "kopf2.glb"
+  }
+ ]
+}

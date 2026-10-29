@@ -1,0 +1,67 @@
+{
+ "name": "alter_frau",
+ "titel": "Phase 2: Frau nach Alter und Mimik (Mimik mit der Gesichtsgröße skaliert, Gene = Mensch-Mittel)",
+ "zelle": [
+  360,
+  420
+ ],
+ "alle": {
+  "kopf": "kopf2.glb",
+  "geschlecht": "w",
+  "ansicht": "portraet",
+  "winkel": 20
+ },
+ "spalten": [
+  {
+   "titel": "neutral"
+  },
+  {
+   "titel": "jawOpen 0,8",
+   "mimik": {
+    "jawOpen": 0.8
+   }
+  },
+  {
+   "titel": "Lächeln",
+   "mimik": {
+    "mouthSmileLeft": 1.0,
+    "mouthSmileRight": 1.0
+   }
+  },
+  {
+   "titel": "mouthFunnel",
+   "mimik": {
+    "mouthFunnel": 1.0
+   }
+  },
+  {
+   "titel": "Blinzeln",
+   "mimik": {
+    "eyeBlinkLeft": 1.0,
+    "eyeBlinkRight": 1.0
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "5 Jahre",
+   "alter": 5
+  },
+  {
+   "titel": "20 Jahre",
+   "alter": 20
+  },
+  {
+   "titel": "35 Jahre",
+   "alter": 35
+  },
+  {
+   "titel": "50 Jahre",
+   "alter": 50
+  },
+  {
+   "titel": "70 Jahre",
+   "alter": 70
+  }
+ ]
+}

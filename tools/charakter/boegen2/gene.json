@@ -1,0 +1,133 @@
+{
+ "name": "gene",
+ "titel": "Phase 2: Gestalt-Gene ganz unten (0) und ganz oben (255), Mann 35, Kopf ¾",
+ "zelle": [
+  225,
+  270
+ ],
+ "alle": {
+  "kopf": "kopf2.glb",
+  "ansicht": "kopf",
+  "winkel": 40,
+  "alter": 35,
+  "geschlecht": "m"
+ },
+ "spalten": [
+  {
+   "titel": "gesicht_laenge"
+  },
+  {
+   "titel": "stirn_neigung"
+  },
+  {
+   "titel": "brauenwulst"
+  },
+  {
+   "titel": "nase_hoecker"
+  },
+  {
+   "titel": "wangen_fuelle"
+  },
+  {
+   "titel": "kiefer_vorstand"
+  },
+  {
+   "titel": "kinn"
+  },
+  {
+   "titel": "ohren_spitze"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Wert 0",
+   "zellen": [
+    {
+     "gene": {
+      "gesicht_laenge": 0
+     }
+    },
+    {
+     "gene": {
+      "stirn_neigung": 0
+     }
+    },
+    {
+     "gene": {
+      "brauenwulst": 0
+     }
+    },
+    {
+     "gene": {
+      "nase_hoecker": 0
+     }
+    },
+    {
+     "gene": {
+      "wangen_fuelle": 0
+     }
+    },
+    {
+     "gene": {
+      "kiefer_vorstand": 0
+     }
+    },
+    {
+     "gene": {
+      "kinn": 0
+     }
+    },
+    {
+     "gene": {
+      "ohren_spitze": 0
+     }
+    }
+   ]
+  },
+  {
+   "titel": "Wert 255",
+   "zellen": [
+    {
+     "gene": {
+      "gesicht_laenge": 255
+     }
+    },
+    {
+     "gene": {
+      "stirn_neigung": 255
+     }
+    },
+    {
+     "gene": {
+      "brauenwulst": 255
+     }
+    },
+    {
+     "gene": {
+      "nase_hoecker": 255
+     }
+    },
+    {
+     "gene": {
+      "wangen_fuelle": 255
+     }
+    },
+    {
+     "gene": {
+      "kiefer_vorstand": 255
+     }
+    },
+    {
+     "gene": {
+      "kinn": 255
+     }
+    },
+    {
+     "gene": {
+      "ohren_spitze": 255
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "name": "nah_augen",
+ "titel": "Phase 2: Augen, Lider und Wimpern folgen Alter, Genen und Mimik",
+ "zelle": [
+  400,
+  300
+ ],
+ "alle": {
+  "kopf": "kopf2.glb",
+  "winkel": 12,
+  "ansicht": "augen"
+ },
+ "spalten": [
+  {
+   "titel": "neutral"
+  },
+  {
+   "titel": "halb zu (eyeBlink 0,55)",
+   "mimik": {
+    "eyeBlinkLeft": 0.55,
+    "eyeBlinkRight": 0.55
+   }
+  },
+  {
+   "titel": "weit + groß (Gene 255)",
+   "gene": {
+    "augen_abstand": 255,
+    "augen_groesse": 255
+   }
+  },
+  {
+   "titel": "eng (0) + tief (255)",
+   "gene": {
+    "augen_abstand": 0,
+    "augen_tiefe": 255
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Mann 5",
+   "alter": 5,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Mann 35",
+   "alter": 35,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Frau 70",
+   "alter": 70,
+   "geschlecht": "w"
+  }
+ ]
+}
