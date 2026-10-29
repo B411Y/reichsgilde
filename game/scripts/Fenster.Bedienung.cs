@@ -56,29 +56,4 @@ public partial class Fenster
         einstellungen.SetValue("bedienung", "tooltip_nur_taste", nurTaste);
         einstellungen.Save(Datei);
     }
-
-    private static ConfigFile? _lagen;
-
-    /// <summary>Die gemerkte Lage (linke obere Ecke) eines Fensters, sonst null.</summary>
-    public static Vector2? FensterLage(string schluessel)
-    {
-        if (_lagen is null)
-        {
-            _lagen = new ConfigFile();
-            _lagen.Load(Datei);
-        }
-        return _lagen.HasSectionKey("fenster", schluessel) && _lagen.GetValue("fenster", schluessel).VariantType == Variant.Type.Vector2
-            ? _lagen.GetValue("fenster", schluessel).AsVector2()
-            : null;
-    }
-
-    /// <summary>Merkt die Lage eines Fensters (beim Loslassen nach dem Ziehen).</summary>
-    public static void FensterLageSetzen(string schluessel, Vector2 lage)
-    {
-        var einstellungen = new ConfigFile();
-        einstellungen.Load(Datei); // andere Einstellungen behalten
-        einstellungen.SetValue("fenster", schluessel, lage);
-        einstellungen.Save(Datei);
-        _lagen = einstellungen;
-    }
 }

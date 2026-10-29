@@ -440,9 +440,7 @@ public partial class WohnhausAnzeige : PanelContainer
 
     private void Senden(Befehl befehl)
     {
-        if (_simulation?.Wirtschaft is not { } w || _spieler is null) return;
-        var e = w.Ausfuehren(_spieler, befehl);
-        Gemeldet?.Invoke(e.Erfolg ? e.Meldung : "✗ " + e.Meldung);
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, e => Gemeldet?.Invoke(UiHilfe.MeldungText(e)));
     }
 
     private void Leihen()

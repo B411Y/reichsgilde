@@ -76,8 +76,8 @@ public partial class Hauptszene
                     Protokollieren($"--antrag={antrag}: gemeint ist steuer:<Prozent>, bau:<Kennung> oder fest.");
                     continue;
                 }
-                var ergebnis = w.Ausfuehren(_spieler, befehl);
-                Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : $"✗ --antrag={antrag}: {ergebnis.Meldung}");
+                _simulation.Bote.Einreihen(_spieler, befehl, ergebnis =>
+                    Protokollieren(ergebnis.Erfolg ? ergebnis.Meldung : $"✗ --antrag={antrag}: {ergebnis.Meldung}"));
             }
         if (optionen.TryGetValue("rathaus", out var reiterName))
         {

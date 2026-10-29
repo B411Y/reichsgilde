@@ -49,6 +49,28 @@ public sealed record Speicherstand
     public Bauen.Stadtkarte? Karte { get; init; }
 
     public WirtschaftStand? Wirtschaft { get; init; }
+
+    /// <summary>
+    /// Befehle, die eingereiht, aber noch nicht ausgeführt sind (Mehrspieler M2, <see cref="Mehrspieler.Befehlsbote"/>) – mit Ziel-Tick, Haus und
+    /// laufender Nummer. Fehlt das Feld (alte Spielstände, leere Schlange), ist die Schlange leer. Rechnet eine spätere Umstellung die Uhr um
+    /// (wie <see cref="Uhrumstellung"/>), gehört der Ziel-Tick dazu.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<Mehrspieler.EingereihterBefehl>? Warteschlange { get; init; }
+
+    /// <summary>
+    /// Hat in dieser Partie je ein Entwicklerbefehl gewirkt (<see cref="Entwickler.Entwicklerhilfe.Benutzt"/>)? Steht im Kopf, damit die
+    /// Laden-Liste es zeigen kann (<see cref="Speicherung.Kopf"/>). Fehlt das Feld (alte Spielstände, nie benutzt), heißt es nein.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool MitEntwicklerhilfe { get; init; }
+
+    /// <summary>
+    /// Die Sperre der Entwicklerbefehle (<see cref="Entwickler.Entwicklerhilfe.Erlaubt"/>) – eine Regel der Partie, damit ein Befehlsprotokoll
+    /// beim Abspielen gleich abläuft. Fehlt das Feld, sind sie gesperrt; im Einzelspiel setzt die Oberfläche sie nach dem Laden neu.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool EntwicklerErlaubt { get; init; }
 }
 
 public sealed record WirtschaftStand
@@ -411,6 +433,13 @@ public sealed record DiebesauftragStand
     public string? Betrieb { get; init; }
     public int? Person { get; init; }
     public double Betrag { get; init; }
+
+    /// <summary>
+    /// Hatte der Auftrag in dieser Nacht schon Erfolg (Gaunerei je Nachtstunde)? Sonst fiele ein misslungener späterer Versuch nach dem Laden
+    /// anders auf als ohne Speichern. Fehlt in alten Spielständen (false – wie dort beim Laden).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Erfolgreich { get; init; }
 }
 
 public sealed record DiebesbriefStand
@@ -467,6 +496,13 @@ public sealed record AuftragStand
     public int Ziel { get; init; }
     public Gauner.Gaunerstueck Art { get; init; }
     public string? Betrieb { get; init; }
+
+    /// <summary>
+    /// Hatte der Auftrag in dieser Nacht schon Erfolg (Gaunerei je Nachtstunde)? Sonst fiele ein misslungener späterer Versuch nach dem Laden
+    /// anders auf als ohne Speichern. Fehlt in alten Spielständen (false – wie dort beim Laden).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Erfolgreich { get; init; }
 }
 
 public sealed record HinterhaltStand
@@ -569,6 +605,15 @@ public sealed record FamilienbuchStand
 
     /// <summary>Würfe für erworbene Charakterzüge (0 in Spielständen von vor den Charakterzügen, PR #227).</summary>
     public long ZugWuerfe { get; init; }
+
+    /// <summary>Version der Gen-Vorlage (<c>erbgut.json</c>) beim Speichern – null in Spielständen von vor dem Erbgut.</summary>
+    public int? ErbgutVersion { get; init; }
+
+    /// <summary>
+    /// Die Kennungen der Gene in der Reihenfolge, in der <see cref="PersonStand.Erbgut"/> sie schreibt (null vor dem Erbgut). Beim Laden
+    /// fallen Gene weg, die die Vorlage nicht mehr kennt; fehlende entstehen aus dem Startwert der Person.
+    /// </summary>
+    public List<string>? ErbgutGene { get; init; }
     public List<PersonStand> Personen { get; init; } = new();
     public List<FamilieStand> Familien { get; init; } = new();
     public List<KandidatStand> Kandidaten { get; init; } = new();
@@ -609,6 +654,12 @@ public sealed record PersonStand
     public int? Gesicht { get; init; }
     public Dynastie.Haarfarbe? Haar { get; init; }
     public Dynastie.Augenfarbe? Augen { get; init; }
+
+    /// <summary>
+    /// Erbgut für den 3D-Kopf: je Gen aus <see cref="FamilienbuchStand.ErbgutGene"/> vier Hexadezimalziffern, erst das sichtbare, dann das
+    /// verdeckte Allel („8A7F…“). null in Spielständen von vor dem Erbgut – dann beim Laden vererbt oder gewürfelt, fest aus dem Startwert.
+    /// </summary>
+    public string? Erbgut { get; init; }
 
     /// <summary>
     /// Kennungen der Charakterzüge (PR #227). null in Spielständen von vor den Charakterzügen – dann werden sie beim Laden
@@ -773,6 +824,10 @@ public sealed record KontoStand
 
     /// <summary>Gekaufte Einrichtung des Wohnhauses (Kennungen aus „wohnen.einrichtung“, PR #224; null = keine).</summary>
     public List<string>? WohnhausEinrichtung { get; init; }
+
+    /// <summary>Zuschlag auf das Ansehen aus dem Entwicklerfenster (fehlt = 0, nur geschrieben, wenn gesetzt).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public double EntwicklerAnsehen { get; init; }
 
     /// <summary>Beherrschte Handwerke (null in alten Spielständen – dann die Berufe der eigenen Betriebe).</summary>
     public List<string>? Berufe { get; init; }

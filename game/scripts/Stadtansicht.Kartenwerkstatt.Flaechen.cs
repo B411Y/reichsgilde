@@ -176,13 +176,14 @@ public partial class Stadtansicht
         return beste;
     }
 
-    /// <summary>Die Fläche unter dem Punkt: Bauzonen vor Naturflächen, die kleinste zuerst – null: keine.</summary>
+    /// <summary>Die Fläche unter dem Punkt: Bauzonen vor Naturflächen, die kleinste zuerst – null: keine. Ausgeblendete Ebenen zählen nicht.</summary>
     private EntwurfFlaeche? FlaecheBei(Vector2 p)
     {
         static float Groesse(EntwurfFlaeche f) => Mathf.Abs(Flaecheninhalt(f.Ecken.Select(V2).ToList()));
-        return _entwurf!.Bauzonen.Where(z => InFlaeche(z, p)).OrderBy(Groesse).FirstOrDefault()
-            ?? (EntwurfFlaeche?)_entwurf.Seen.Where(s => InFlaeche(s, p)).OrderBy(Groesse).FirstOrDefault()
-            ?? (EntwurfFlaeche?)_entwurf.Naturflaechen.Cast<EntwurfFlaeche>().Concat(_entwurf.Felder).Where(f => InFlaeche(f, p)).OrderBy(Groesse).FirstOrDefault();
+        bool Da(EntwurfFlaeche f) => WerkstattTeilSichtbar(f) && InFlaeche(f, p);
+        return _entwurf!.Bauzonen.Where(Da).OrderBy(Groesse).FirstOrDefault()
+            ?? (EntwurfFlaeche?)_entwurf.Seen.Where(Da).OrderBy(Groesse).FirstOrDefault()
+            ?? (EntwurfFlaeche?)_entwurf.Naturflaechen.Cast<EntwurfFlaeche>().Concat(_entwurf.Felder).Where(Da).OrderBy(Groesse).FirstOrDefault();
     }
 
     /// <summary>Eine Ecke an der Maus: bei Bauzonen auf dem Raster der Karte, sonst, wo sie ist (der Kern rundet auf 5 cm).</summary>

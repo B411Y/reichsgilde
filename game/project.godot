@@ -20,6 +20,7 @@ config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 Fenster="*res://scripts/Fenster.cs"
 Tooltips="*res://scripts/Tooltips.cs"
 KlangDienst="*res://scripts/KlangDienst.cs"
+KlicktestTreiber="*res://scripts/KlicktestTreiber.cs"
 
 [display]
 
@@ -92,6 +93,8 @@ jahreszeit_anteile={
 }
 
 [rendering]
+
+rendering_device/driver.windows="vulkan"
 
 anti_aliasing/quality/screen_space_aa=2
 limits/global_shader_variables/buffer_size=1048576

@@ -100,12 +100,12 @@ public sealed record Kartengrenzen(double Breite, double Tiefe, Kartenort Mitte,
     {
         var platz = Math.Max(0, Randbreite - reserve);
         var quer = seitenverhaeltnis / 2;                                   // halbe Bildbreite am Boden je Meter Size
-        var laengs = 1 / (2 * Math.Sin(Math.Clamp(neigung, 1, 90) * Math.PI / 180)); // halbe Bildtiefe am Boden je Meter Size
+        var laengs = 1 / (2 * DetMathe.Sin(Math.Clamp(neigung, 1, 90) * Math.PI / 180)); // halbe Bildtiefe am Boden je Meter Size
         double reichweite;
         if (drehung is { } d)
         {
             var w = d * Math.PI / 180;
-            var (c, s) = (Math.Abs(Math.Cos(w)), Math.Abs(Math.Sin(w)));
+            var (c, s) = (Math.Abs(DetMathe.Cos(w)), Math.Abs(DetMathe.Sin(w)));
             reichweite = Math.Max(quer * c + laengs * s, quer * s + laengs * c);
         }
         else reichweite = Math.Sqrt(quer * quer + laengs * laengs);

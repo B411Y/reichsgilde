@@ -73,7 +73,7 @@ public partial class Hauptmenue : Node
     {
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
         var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
-        if (OS.GetCmdlineUserArgs().Length > 0 && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
+        if (KlicktestTreiber.SpielOptionen().Length > 0 && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;

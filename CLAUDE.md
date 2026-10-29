@@ -32,10 +32,11 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 - Spieltag 04:00–23:00 Uhr (1140 Ticks = 1 Spieljahr, im Code nur über die `Spielzeit`-Konstanten), Arbeitszeit 8–20 Uhr (Wirtshaus 8–22 Uhr), Gauner ab 20 Uhr.
 - Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer deutsch, kurz, ohne Emojis.
 - Tests bleiben grün, nie einen Test abschalten. **Neue Tests:** neue Datei, statische Klasse mit `public static IEnumerable<(string, Action)> Alle()` (wird automatisch gefunden); `Program.cs` nicht anfassen.
+- **Mehrspieler-Tauglichkeit** (Nutzer, 29.10.2026): Spieleraktionen nur über Befehle; der Kern bleibt deterministisch – `DetMathe` statt `Math.Pow/Exp/Log/Sin/Cos/Atan2` (`Math.Pow(x, 2)` → `x * x`), Zufall nur aus der gemeinsamen `Zufallsquelle`, keine Uhrzeit, keine Threads, keine Reihenfolge aus Dictionary/HashSet, Zahlen als Text nur über `Zahlenformat`; der Gleichheitstest (`GleichheitTests.cs`, CI-Job „Gleichheit Linux/Windows“) muss grün bleiben.
 - **Datenversion** (`"version"` in `wirtschaft.json`) erhöht nur kern.
 - **Messungen** (`messen`) nur kern und spiel-ki, jede nennt den `main`-Commit (Einzelheiten in ihren Agentendateien).
 - Was sich nicht zurücknehmen lässt: erst fragen. Neue Designfrage: nicht raten, an den Teamleiter, mit einer empfohlenen Option.
-- Commits deutsch, klein, mit der Zeile **`Agent: <name>`** (Arbeit von Gemini oder Strata: `Agent: <name> (Gemini)` bzw. `(Strata)`).
+- Commits deutsch, klein, mit der Zeile **`Agent: <name>`** (Arbeit von Strata: `Agent: <name> (Strata)`).
 
 ## Doku im selben PR
 

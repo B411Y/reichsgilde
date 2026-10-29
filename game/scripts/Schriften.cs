@@ -24,6 +24,44 @@ public static class Schriften
     /// </summary>
     public const int TextZuschlag = 1;
 
+    /// <summary>
+    /// Kleinster Schriftgrad für lesbaren Text (bei 1600×900): Tabellenköpfe, Hilfezeilen, Fußzeilen und Beschriftungen, die Tafeln mit 11–13 angeben,
+    /// werden beim Eintritt in den Baum auf diesen Wert angehoben. Eine Stelle für das ganze Spiel.
+    /// </summary>
+    public const int MindestGroesse = 14;
+
+    /// <summary>Grund der Tafeln (Tafelfarbe aus <see cref="Hauptmenue.Tafel"/>): Gegen ihn wird der Kontrast gemessen.</summary>
+    private static readonly Color TafelGrund = new(0.12f, 0.11f, 0.10f);
+
+    /// <summary>Kontrast nach WCAG (1 bis 21) zweier Farben.</summary>
+    public static float Kontrast(Color a, Color b)
+    {
+        static float Leuchtdichte(Color c)
+        {
+            static float Linear(float x) => x <= 0.03928f ? x / 12.92f : MathF.Pow((x + 0.055f) / 1.055f, 2.4f);
+            return 0.2126f * Linear(c.R) + 0.7152f * Linear(c.G) + 0.0722f * Linear(c.B);
+        }
+        var (hell, dunkel) = (Leuchtdichte(a), Leuchtdichte(b));
+        if (hell < dunkel) (hell, dunkel) = (dunkel, hell);
+        return (hell + 0.05f) / (dunkel + 0.05f);
+    }
+
+    /// <summary>
+    /// Hellt eine blasse Schriftfarbe auf, bis sie auf dem Tafelgrund mindestens 4,5 : 1 erreicht. Dunkle Farben (Schrift auf hellem Grund,
+    /// Leuchtdichte unter 0,1 wie auf Goldknöpfen) bleiben unberührt.
+    /// </summary>
+    public static Color LesbareFarbe(Color farbe)
+    {
+        if (Kontrast(farbe, TafelGrund) >= 4.5f || farbe.Luminance < 0.2f) return farbe;
+        for (var t = 0.1f; t <= 1f; t += 0.1f)
+        {
+            var heller = farbe.Lerp(Colors.White, t);
+            heller.A = farbe.A;
+            if (Kontrast(heller, TafelGrund) >= 4.5f) return heller;
+        }
+        return farbe;
+    }
+
     private static FontVariation? _text;
     private static FontVariation? _ueberschrift;
 
@@ -58,19 +96,33 @@ public static class Schriften
         ThemeDB.FallbackFont = Text;
         baum.NodeAdded += knoten =>
         {
-            if (knoten is not Label label || !label.HasThemeFontSizeOverride("font_size") || label.HasThemeFontOverride("font"))
-                return;
-            var groesse = label.GetThemeFontSize("font_size");
-            if (groesse >= UeberschriftAb)
-                label.AddThemeFontOverride("font", Ueberschrift);
-            else
+            if (knoten is not Control steuer || steuer.HasMeta(Merker)) return;
+            if (steuer is Label label)
             {
-                // Merken, dass schon vergrößert wurde – ein Label kann den Baum verlassen und wieder betreten.
-                label.AddThemeFontOverride("font", Text);
-                label.AddThemeFontSizeOverride("font_size", groesse + TextZuschlag);
+                if (!label.HasThemeFontSizeOverride("font_size") || label.HasThemeFontOverride("font")) return;
+                label.SetMeta(Merker, true); // ein Label kann den Baum verlassen und wieder betreten
+                var groesse = label.GetThemeFontSize("font_size");
+                if (groesse >= UeberschriftAb)
+                    label.AddThemeFontOverride("font", Ueberschrift);
+                else
+                {
+                    label.AddThemeFontOverride("font", Text);
+                    label.AddThemeFontSizeOverride("font_size", Math.Max(groesse + TextZuschlag, MindestGroesse));
+                }
+                if (label.HasThemeColorOverride("font_color")) label.AddThemeColorOverride("font_color", LesbareFarbe(label.GetThemeColor("font_color")));
+                return;
             }
+            // Knöpfe, Auswahlfelder, Eingabefelder und Textfelder: nur die Mindestgröße (sie hatten schon die richtige Schrift)
+            foreach (var name in new[] { "font_size", "normal_font_size" })
+                if (steuer.HasThemeFontSizeOverride(name) && steuer.GetThemeFontSize(name) < MindestGroesse)
+                {
+                    steuer.SetMeta(Merker, true);
+                    steuer.AddThemeFontSizeOverride(name, MindestGroesse);
+                }
         };
     }
+
+    private const string Merker = "rg_schrift";
 
     /// <summary>
     /// Beim Beenden aufrufen (Autoload <see cref="Fenster"/>): Thema und Ersatzschrift lassen die Schriften los, die eigenen

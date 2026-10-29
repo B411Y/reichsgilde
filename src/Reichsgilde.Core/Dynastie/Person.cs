@@ -52,6 +52,19 @@ public sealed class Person : ICharakter
     /// </summary>
     public Aussehen Aussehen { get; internal set; }
 
+    private Erbgut? _erbgut;
+
+    /// <summary>
+    /// Das Erbgut für den 3D-Kopf: zwei Allele je Gen, eines sichtbar (<see cref="Dynastie.Erbgut.SichtbarerWert(string)"/>). Das Familienbuch
+    /// würfelt oder vererbt es, sobald die Person ins Spiel kommt. Bis dahin (nur Personen, die ein Test selbst baut) gilt ein festes Erbgut
+    /// aus Nummer und Volk. Wirkt auf nichts in der Simulation; das 2D-Porträt nimmt weiter <see cref="Aussehen"/>.
+    /// </summary>
+    public Erbgut Erbgut
+    {
+        get => _erbgut ??= Erbgut.Wuerfeln(Erbgutvorlage.Standard, Zugwuerfel.Mischen(Nummer, (int)Volk, 7919), Volk);
+        internal set => _erbgut = value;
+    }
+
     private readonly double[] _talente = new double[TalentTexte.Alle.Length];
 
     /// <summary>
@@ -96,6 +109,10 @@ public sealed class Person : ICharakter
         var stelle = _zuege.FindLastIndex(z => z.Art <= zug.Art) + 1;
         _zuege.Insert(stelle, zug);
     }
+
+    /// <summary>Nimmt einen Zug wieder weg (Entwicklerfenster).</summary>
+    internal void ZugEntfernen(Charakterzug zug) => _zuege.Remove(zug);
+
     internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
 
     /// <summary>Die Krankheit, an der die Person gerade leidet (oder null).</summary>

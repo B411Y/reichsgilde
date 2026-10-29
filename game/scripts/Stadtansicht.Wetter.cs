@@ -93,6 +93,10 @@ public partial class Stadtansicht
         _wetterSofort = true;
     }
 
+    /// <summary>Startoption <c>--wetterspaeter=regen@20</c>: nach so vielen Sekunden schlägt das Wetter plötzlich um (für Messungen des ersten Regens).</summary>
+    public void WetterVorgebenNach(Wetterlage lage, double sekunden) =>
+        GetTree().CreateTimer(sekunden).Timeout += () => WetterVorgeben(lage, _jahreszeitVorgabe, _blitzHalten);
+
     private bool _wetterSofort;
 
     private Wetterablauf? WetterablaufDerPartie()
@@ -147,8 +151,8 @@ public partial class Stadtansicht
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
             EmissionBoxExtents = new Vector3(10, 0.01f, 10),
             Gravity = Vector3.Zero,
-            ScaleMin = 0.6f,
-            ScaleMax = 1.2f,
+            ScaleMin = RingGroesse,
+            ScaleMax = RingGroesse * 2f,
         };
         var ringNetz = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/regenring.gdshader") } };
         _regenRinge = new GpuParticles3D
@@ -432,6 +436,12 @@ public partial class Stadtansicht
         _ => (14000, 6000),
     };
 
+    /// <summary>Kleinster Durchmesser (Meter) eines Regenrings am Boden, der größte ist doppelt so groß: feste Größe in der Welt bei jedem Zoom.</summary>
+    private const float RingGroesse = 0.26f;
+
+    /// <summary>Zoom, ab dem die Regenringe auszublenden beginnen, und der Zoom, bei dem sie ganz weg sind (sonst wären es Bildpunkte, die flimmern).</summary>
+    private const float RingBlassAb = 60f, RingBlassBis = 115f;
+
     /// <summary>Wie viele Ringe und Spritzer am Boden höchstens zugleich zu sehen sind (Niedrig: keine).</summary>
     private static int RingeZahl(Wettereffekte stufe) => stufe switch { Wettereffekte.Niedrig => 0, Wettereffekte.Mittel => 1200, _ => 3200 };
 
@@ -487,10 +497,12 @@ public partial class Stadtansicht
             _regenRinge.Rotation = new Vector3(0, drehung, 0);
             if (neu)
             {
+                // Die Ringe behalten ihre Größe in der Welt (0,26–0,52 m, so groß wie bisher im nahen Zoom) und blenden beim Herauszoomen aus, statt mitzuwachsen
                 _ringStoff.EmissionBoxExtents = new Vector3(_kamera.Size * seiten * 0.55f, 0.01f, tiefe * 0.8f);
-                _ringStoff.ScaleMin = 0.65f * Mathf.Pow(k, 0.8f);
-                _ringStoff.ScaleMax = 1.3f * Mathf.Pow(k, 0.8f);
+                _ringStoff.ScaleMin = RingGroesse;
+                _ringStoff.ScaleMax = RingGroesse * 2f;
                 _regenRinge.VisibilityAabb = new Aabb(new Vector3(-breite, -2, -tiefe), new Vector3(2 * breite, 4, 2 * tiefe));
+                if (_regenRinge.DrawPass1?.SurfaceGetMaterial(0) is ShaderMaterial ringe) ringe.SetShaderParameter("weit", 1f - Mathf.SmoothStep(RingBlassAb, RingBlassBis, _kamera.Size));
             }
         }
         if (!neu) return;

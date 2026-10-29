@@ -206,7 +206,8 @@ public sealed class Stadtrat
                + _w.Wegebau.AnsehenBonus(konto)         // ein Weg auf Antrag gepflastert
                + _w.Ratsantraege.AnsehenBonus(konto)    // ein Fest oder Bauvorhaben auf Antrag
                - _w.Glaube.AnsehenAbzug(konto)          // gerade erst die Konfession gewechselt
-               - _w.Meinungen.AnsehenAbzug(konto);      // Streit im Haus (PR #231)
+               - _w.Meinungen.AnsehenAbzug(konto)       // Streit im Haus (PR #231)
+               + konto.EntwicklerAnsehen;               // Entwicklerfenster (0 ohne Entwicklerhilfe)
     }
 
     /// <summary>Auf welche Ämter sich ein Haus jetzt bewerben darf: genau eine Stufe über seinem Amt, Stand erfüllt.</summary>

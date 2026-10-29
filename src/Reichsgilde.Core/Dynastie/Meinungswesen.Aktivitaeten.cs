@@ -98,7 +98,7 @@ public sealed partial class Meinungswesen
         var grund = _w.Daten.Politik.Gunst.JeGulden * Bestechlichkeit(mit);
         if (GeschenkArt is not { } art) return grund;
         var schon = _diesesJahr.GetValueOrDefault((art, mit.Kennung, HausKennung(von)));
-        return grund * Math.Pow(_d!.Aktivitaeten[art].Abnahme, schon);
+        return grund * DetMathe.Pow(_d!.Aktivitaeten[art].Abnahme, schon);
     }
 
     /// <summary>

@@ -25,6 +25,12 @@ public sealed class Simulation
     public Spielzeit Zeit { get; }
     public Taktgeber Takt { get; } = new();
 
+    /// <summary>
+    /// Der Weg der Befehle von Spielern (Mehrspieler M2): Warteschlange mit Ziel-Tick, Ergebnis als Rückruf, Aufzeichnung als Protokoll.
+    /// Im Einzelspiel wirkt ein Befehl sofort (Verzögerung 0) – wie <see cref="Stadtwirtschaft.Ausfuehren"/>.
+    /// </summary>
+    public Mehrspieler.Befehlsbote Bote { get; }
+
     /// <summary>Markt, Betriebe und Konten. Null, wenn die Simulation ohne Wirtschaftsdaten läuft.</summary>
     public Stadtwirtschaft? Wirtschaft { get; }
 
@@ -95,6 +101,7 @@ public sealed class Simulation
             throw new ArgumentException("Ungültige Partie-Einstellungen: " + string.Join(" ", fehler), nameof(einstellungen));
 
         Zeit = zeit ?? new Spielzeit();
+        Bote = new Mehrspieler.Befehlsbote(this);
         Takt.RundenDauerSekunden = Einstellungen.RundenDauerMinuten * 60;
 
         if (wirtschaftsdaten is not null)
@@ -127,20 +134,30 @@ public sealed class Simulation
         var altesJahr = Zeit.Jahr;
         var altePhase = Zeit.Tagesphase;
 
-        // Erst wird in der laufenden Minute gearbeitet, dann rückt die Uhr weiter.
-        Wirtschaft?.Tick(Zeit);
-        // Später hier: Bürger-KI, Karren, Ereignisse ...
-
-        Zeit.Weiter();
-
-        if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+        // Zuerst wirken die Befehle für diese Minute (in fester Reihenfolge), dann wird gearbeitet, dann rückt die Uhr weiter.
+        // Bis zum Ende des Ticks (samt seinen Ereignissen) wirkt kein neuer Befehl sofort – er wartet auf den nächsten Tick.
+        try
         {
-            _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
-            return;
-        }
+            Bote.TickBeginnt(Zeit.VergangeneMinuten);
+            Wirtschaft?.Tick(Zeit);
+            // Später hier: Bürger-KI, Karren, Ereignisse ...
 
-        if (!IstBeendet && Zeit.Tagesphase != altePhase)
-            PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+            Zeit.Weiter();
+
+            if (Zeit.Jahr != altesJahr && !Jahresabrechnung(altesJahr))
+            {
+                _nachDerSitzung = (altesJahr, altePhase); // die Partie hält vor der Ratssitzung an
+                Bote.LueckeMelden($"Ratssitzung {altesJahr} angehalten – ihre Schritte sind noch keine Befehle.");
+                return;
+            }
+
+            if (!IstBeendet && Zeit.Tagesphase != altePhase)
+                PhaseBegonnen?.Invoke(Zeit.Tagesphase);
+        }
+        finally
+        {
+            Bote.TickEndet();
+        }
     }
 
     /// <returns>false, wenn die Partie vor der Ratssitzung anhält – den Rest erledigt <see cref="RatssitzungWeiter"/>.</returns>
@@ -159,7 +176,7 @@ public sealed class Simulation
         var vermoegen = (long)Math.Floor(Wirtschaft?.HoechstesVermoegen ?? 0);
         var stand = new Spielstand(Zeit.Jahr, LebendeDynastien, vermoegen);
         if (!IstBeendet && Spielende.IstErreicht(Einstellungen, stand))
-            Beenden(Einstellungen.SiegbedingungText);
+            Abschliessen(Einstellungen.SiegbedingungText); // die Siegbedingung: das rechnet jede Partie selbst nach, keine Lücke im Protokoll
     }
 
     /// <summary>
@@ -170,6 +187,78 @@ public sealed class Simulation
         ? w.Konten.Count(k => k.IstAktiv)
         : PlatzhalterLebendeDynastien;
 
+    // ── Entwicklerfenster ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Dürfen Entwicklerbefehle wirken und darf vorgespult werden? Standard: nein. Im Einzelspiel setzt die Oberfläche es nach dem Haken
+    /// „Entwickler-Optionen“, im Mehrspieler bleibt es aus. Steht im Spielstand (<see cref="Entwickler.Entwicklerhilfe.Erlaubt"/>);
+    /// ohne Wirtschaft immer aus. Umschalten ist kein Befehl: Während einer Aufzeichnung macht es das Befehlsprotokoll unvollständig.
+    /// </summary>
+    public bool EntwicklerErlaubt
+    {
+        get => Wirtschaft?.Entwicklerhilfe.Erlaubt ?? false;
+        set
+        {
+            if (Wirtschaft is not { } w || w.Entwicklerhilfe.Erlaubt == value) return;
+            w.Entwicklerhilfe.Erlaubt = value;
+            Bote.LueckeMelden($"Entwicklerbefehle {(value ? "erlaubt" : "gesperrt")} – das Umschalten ist kein Befehl.");
+        }
+    }
+
+    /// <summary>Hat in dieser Partie je ein Entwicklerbefehl gewirkt? Für Laden-Liste und Jahresbericht; bleibt für immer.</summary>
+    public bool MitEntwicklerhilfe => Wirtschaft?.Entwicklerhilfe.Benutzt ?? false;
+
+    /// <summary>Höchstens so viele Spielminuten auf einmal vorspulen (20 Spieljahre).</summary>
+    public const long VorspulenHoechstens = 20L * Spielzeit.MinutenProTag;
+
+    /// <summary>
+    /// Vorspulen: <paramref name="minuten"/> Ticks sofort rechnen, wie sonst über viele Bilder – mit allen Ereignissen. Ein Befehl ist das
+    /// nicht: Spulen ändert keine Regel, es rechnet nur schneller; ein <see cref="Mehrspieler.Befehlsprotokoll"/> kennt den Endtick und spielt
+    /// es von selbst gleich ab. Im Mehrspieler wäre es Sache des Zugtakts des Gastgebers. Hält an, wenn eine Ratssitzung anhält oder die Partie
+    /// endet. Setzt <see cref="MitEntwicklerhilfe"/> nicht, braucht aber <see cref="EntwicklerErlaubt"/>.
+    /// </summary>
+    public Befehlsergebnis Vorspulen(long minuten)
+    {
+        if (!EntwicklerErlaubt) return Befehlsergebnis.Abgelehnt("Vorspulen geht nur mit den Entwickler-Optionen.");
+        if (minuten < 1 || minuten > VorspulenHoechstens)
+            return Befehlsergebnis.Abgelehnt($"Vorspulen geht um 1 bis {VorspulenHoechstens} Spielminuten.");
+        if (IstBeendet) return Befehlsergebnis.Abgelehnt("Die Partie ist vorbei.");
+        if (Ratssitzung is not null) return Befehlsergebnis.Abgelehnt("Erst die Ratssitzung zu Ende führen.");
+        var gerechnet = 0L;
+        while (gerechnet < minuten && !IstBeendet && Ratssitzung is null)
+        {
+            Tick();
+            gerechnet++;
+        }
+        var wo = $"jetzt {Zeit.DatumText}, {Zeit.UhrzeitText}";
+        var gespult = gerechnet < minuten ? $"{gerechnet} von {minuten} Minuten vorgespult" : $"{gerechnet} Minuten vorgespult";
+        var halt = IstBeendet ? " – die Partie ist vorbei" : Ratssitzung is not null ? " – die Ratssitzung beginnt" : "";
+        return Befehlsergebnis.Ok($"{gespult}{halt}, {wo}.");
+    }
+
+    /// <summary>Bis zu dieser Uhrzeit vorspulen (04:00 bis 22:59); ist sie heute vorbei, bis zu ihr im nächsten Jahr.</summary>
+    public Befehlsergebnis VorspulenBisUhrzeit(int stunde, int minute = 0)
+    {
+        var ziel = stunde * 60 + minute;
+        if (minute is < 0 or > 59 || ziel < Spielzeit.TagesbeginnMinute || ziel >= Spielzeit.TagesendeMinute)
+            return Befehlsergebnis.Abgelehnt($"Der Spieltag geht von {Spielzeit.TagesbeginnMinute / 60:00}:00 bis {Spielzeit.TagesendeMinute / 60 - 1}:59.");
+        var abstand = ((ziel - Zeit.UhrzeitInMinuten) % Spielzeit.MinutenProTag + Spielzeit.MinutenProTag) % Spielzeit.MinutenProTag;
+        return abstand == 0 ? Befehlsergebnis.Abgelehnt($"Es ist schon {Zeit.UhrzeitText}.") : Vorspulen(abstand);
+    }
+
+    /// <summary>Bis zur letzten Minute des Jahres vorspulen (22:59) – der nächste Tick bringt die Jahresabrechnung.</summary>
+    public Befehlsergebnis VorspulenBisJahresende()
+    {
+        var abstand = Spielzeit.MinutenProTag - 1 - Zeit.MinuteImTag;
+        return abstand == 0 ? Befehlsergebnis.Abgelehnt("Es ist schon die letzte Minute des Jahres.") : Vorspulen(abstand);
+    }
+
+    /// <summary>
+    /// Über den Jahreswechsel vorspulen: Jahresabrechnung, Gerichtstag und Ratssitzung mit Wahlen (hält die Oberfläche sie an, steht sie danach
+    /// in <see cref="Ratssitzung"/>). Ratssitzung und Wahl gibt es nur am Jahresende – „jetzt“ heißt darum: bis dorthin spulen.
+    /// </summary>
+    public Befehlsergebnis VorspulenBisRatssitzung() => Vorspulen(Spielzeit.MinutenProTag - Zeit.MinuteImTag);
+
     /// <summary>Für das Laden eines Spielstands: Ende der Partie übernehmen, ohne das Ereignis auszulösen.</summary>
     internal void EndeWiederherstellen(bool istBeendet, string? endgrund)
     {
@@ -177,12 +266,24 @@ public sealed class Simulation
         Endgrund = endgrund;
     }
 
-    /// <summary>Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus.</summary>
+    /// <summary>
+    /// Beendet die Partie sofort, z. B. wenn der Spieler bankrott ist. Löst <see cref="PartieBeendet"/> einmal aus. Wartende Befehle wirken
+    /// nicht mehr (ihre Rückrufe bekommen eine Ablehnung). Weil das von außen kommt und kein Befehl ist, gilt ein laufendes Befehlsprotokoll
+    /// danach als unvollständig.
+    /// </summary>
     public void Beenden(string grund)
+    {
+        if (IstBeendet) return;
+        Bote.LueckeMelden($"Partie von außen beendet: {grund}");
+        Abschliessen(grund);
+    }
+
+    private void Abschliessen(string grund)
     {
         if (IstBeendet) return;
         IstBeendet = true;
         Endgrund = grund;
-        PartieBeendet?.Invoke();
+        try { PartieBeendet?.Invoke(); }
+        finally { Bote.Verwerfen("Die Partie ist vorbei – der Befehl wirkte nicht mehr."); }
     }
 }

@@ -41,12 +41,12 @@ public sealed class FerneStadt
 
     private double AnkaufBei(string ware, double zusatz) =>
         Daten.Kauft.TryGetValue(ware, out var d)
-            ? _daten.Waren[ware].Grundpreis * d.Faktor * Math.Pow(d.Menge / (d.Menge + Druck(ware) + zusatz), _daten.Allgemein.Elastizitaet)
+            ? _daten.Waren[ware].Grundpreis * d.Faktor * DetMathe.Pow(d.Menge / (d.Menge + Druck(ware) + zusatz), _daten.Allgemein.Elastizitaet)
             : 0;
 
     private double VerkaufBei(string ware, double zusatz) =>
         Daten.Verkauft.TryGetValue(ware, out var d)
-            ? _daten.Waren[ware].Grundpreis * d.Faktor * Math.Pow((d.Menge + Druck(ware) + zusatz) / d.Menge, _daten.Allgemein.Elastizitaet)
+            ? _daten.Waren[ware].Grundpreis * d.Faktor * DetMathe.Pow((d.Menge + Druck(ware) + zusatz) / d.Menge, _daten.Allgemein.Elastizitaet)
             : 0;
 
     /// <summary>Was der Verkauf so vieler Stück dort brächte (jedes Stück drückt den Preis für das nächste) – ohne zu verkaufen.</summary>

@@ -42,10 +42,10 @@ public readonly record struct Naturhindernis(double X, double Z, double Drehung,
     public bool Enthaelt(double px, double pz, double rand)
     {
         var w = Drehung * Math.PI / 180;
-        var (c, s) = (Math.Cos(w), Math.Sin(w));
+        var (c, s) = (DetMathe.Cos(w), DetMathe.Sin(w));
         var (dx, dz) = (px - X, pz - Z);
         var (lx, lz) = (dx * c - dz * s, dx * s + dz * c); // zurückgedreht: lokal x nach rechts, z zur Vorderseite
-        if (Ellipse) return Math.Pow(lx / HalbX, 2) + Math.Pow(lz / HalbZ, 2) < 1;
+        if (Ellipse) { var (ex, ez) = (lx / HalbX, lz / HalbZ); return ex * ex + ez * ez < 1; }
         return Math.Abs(lx) < HalbX + rand && Math.Abs(lz) < HalbZ + rand;
     }
 
@@ -248,7 +248,7 @@ public static class NaturVerteilung
                 {
                     var winkel = zufall.NextDouble() * Math.Tau;
                     var abstand = Math.Sqrt(zufall.NextDouble()) * gruppe.Radius;
-                    var (x, z) = (px + Math.Cos(winkel) * abstand, pz + Math.Sin(winkel) * abstand);
+                    var (x, z) = (px + DetMathe.Cos(winkel) * abstand, pz + DetMathe.Sin(winkel) * abstand);
                     var art = teil.Arten.Count == 0 ? null : katalog.Finde(NachGewicht(teil.Arten.ToList(), e => e.Value, zufall).Key);
                     var variante = zufall.Next(Math.Max(1, art?.Varianten ?? 1)) + 1;
                     var drehung = zufall.NextDouble() * 360;
@@ -299,7 +299,7 @@ public static class NaturVerteilung
                 var (mx, mz) = AufDerLinie(punkte, zufall.NextDouble() * laenge);
                 var winkel = zufall.NextDouble() * Math.Tau;
                 var weite = Math.Sqrt(zufall.NextDouble()) * radius;
-                var (x, z) = (mx + Math.Cos(winkel) * weite, mz + Math.Sin(winkel) * weite);
+                var (x, z) = (mx + DetMathe.Cos(winkel) * weite, mz + DetMathe.Sin(winkel) * weite);
                 if (belegt.Any(b => (b.X - x) * (b.X - x) + (b.Z - z) * (b.Z - z) < abstand * abstand)) continue;
                 if (frei is not null && !frei.Frei(x, z)) continue;
                 var art = katalog.Finde(NachGewicht(wahl, e => e.Value, zufall).Key)!;

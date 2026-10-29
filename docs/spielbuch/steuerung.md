@@ -102,7 +102,7 @@ Im Wege-Modus sind nur Wege anklickbar, Gebäude und Boden nicht.
 
 ### Fenster
 
-Jede Tafel hat oben rechts ein **✕** und lässt sich am **oberen Rand ziehen**; ihre Lage wird gemerkt. Ein Klick holt ein Fenster nach vorn, **Esc** schließt das oberste, **X** schließt alle. Der Knopf mit der **Nadel** („Festhalten“, bei Rat, Familie, Markt, Wohnhaus, Bericht, Hafen …) lässt ein Fenster offen, wenn eine andere Tafel aufgeht. So liegen mehrere nebeneinander, etwa Markt und Betrieb zum Vergleichen.
+Jede Tafel hat oben rechts ein **✕** und lässt sich am **oberen Rand ziehen**. Jedes Fenster öffnet **in der Bildschirmmitte** (zwischen Zeitstrahl und Betriebsleiste), auch wenn du es vorher verschoben hattest; festgehaltene Fenster, die zugleich offen sind, liegen leicht versetzt. Nur die kleine Auswahl am Mauszeiger und die Tafeln beim Bauen bleiben an ihrem Platz. Ein Klick holt ein Fenster nach vorn, **Esc** schließt das oberste, **X** schließt alle. Der Knopf mit der **Nadel** („Festhalten“, bei Rat, Familie, Markt, Wohnhaus, Bericht, Hafen …) lässt ein Fenster offen, wenn eine andere Tafel aufgeht. So liegen mehrere nebeneinander, etwa Markt und Betrieb zum Vergleichen.
 
 Tafeln, die nicht ins Fenster passen, bekommen Scrollbalken; das **Mausrad** über der Tafel rollt sie.
 
@@ -143,6 +143,7 @@ Die Buchstaben-Kürzel wirken nur im laufenden Spiel und nicht zusammen mit **St
 | **Esc** | einen Schritt zurück, zuletzt das Spielmenü |
 | **F1** | Hilfe (auch im Spielmenü) |
 | **F11** | Vollbild ein/aus (wird gespeichert) |
+| **F12** | Entwicklerfenster ein/aus – nur mit dem Haken „Entwickler-Optionen“ im Hauptmenü |
 
 ### Fenster öffnen
 
@@ -178,6 +179,13 @@ Die Buchstaben-Kürzel wirken nur im laufenden Spiel und nicht zusammen mit **St
 | **Rechtsklick** drinnen | das Gebäude verlassen |
 | **Rechtsklick** beim Bauen | zurück zur Auswahl |
 | **Titelrand ziehen** | Fenster verschieben |
+
+## Entwicklerfenster
+
+Wer am Spiel arbeitet oder etwas ausprobieren will, setzt im Hauptmenü unten rechts den Haken **Entwickler-Optionen**. Dann öffnet **F12** (oder der Knopf **Entwickler** in der Betriebsleiste) ein Fenster mit fünf Reitern: **Haus und Zeit** (Gulden, Aktionspunkte, Stand, Ansehen, Meinung, Vorspulen und Tempo bis 64×), **Familie und Ereignisse** (Geburt, Heirat, Krankheit, Tod, Charakterzüge, Diebstahl, Feuer), **Wirtschaft** (Waren und Zutaten im Lager), **Wetter und Darstellung** (Wetter, Jahreszeit, Blitz, Dunst, Unschärfe, Wegenetz, Bauzonen) und **Messwerte** (Bildrate, Zeichenaufrufe, Speicher, Prüfsumme, Einblick in die KI-Häuser). Ohne den Haken gibt es weder das Fenster noch die Taste.
+
+> [!NOTE]
+> Der erste Eingriff, der wirkt, kennzeichnet die Partie für immer: In der Ladeliste steht „[Entwicklerhilfe]“, und der Jahresbericht sagt es. Wetter und Darstellung zählen nicht dazu: Sie ändern nur das Bild.
 
 ## Einstellungen
 

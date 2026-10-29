@@ -139,11 +139,14 @@ public partial class BauRueckfrage : PanelContainer
             _ => null,
         };
         if (befehl is null) return;
-        var ergebnis = w.Ausfuehren(_spieler, befehl);
-        Gemeldet?.Invoke(ergebnis.Erfolg ? ergebnis.Meldung : "✗ " + ergebnis.Meldung);
-        if (!ergebnis.Erfolg) { Aufbauen(); return; }
-        Hide();
-        Beauftragt?.Invoke(_art == Art.Neubau);
+        var neubau = _art == Art.Neubau;
+        UiHilfe.Befehlen(_simulation, _spieler, befehl, this, ergebnis =>
+        {
+            Gemeldet?.Invoke(UiHilfe.MeldungText(ergebnis));
+            if (!ergebnis.Erfolg) { Aufbauen(); return; }
+            Hide();
+            Beauftragt?.Invoke(neubau);
+        });
     }
 
     /// <summary>Holt die Vorschau aus dem Kern und baut den Inhalt neu – aber nur, wenn sich etwas Sichtbares geändert hat.</summary>

@@ -215,9 +215,9 @@ public sealed partial class Familienbuch
     public double Sterberisiko(Volk volk, int alter)
     {
         var v = _d.Volk(volk);
-        double H(double x) => Math.Exp((x - v.Sterbealter) / v.Streuung);
+        double H(double x) => DetMathe.Exp((x - v.Sterbealter) / v.Streuung);
         var grund = alter < v.Volljaehrig ? _d.Kinderrisiko : _d.Grundrisiko;
-        return 1 - Math.Exp(-(grund + H(alter + 1) - H(alter)));
+        return 1 - DetMathe.Exp(-(grund + H(alter + 1) - H(alter)));
     }
 
     /// <summary>Grobe Angabe statt genauer Zahl – niemand kennt sein Todesjahr.</summary>
@@ -254,7 +254,7 @@ public sealed partial class Familienbuch
         var alter = frau.Alter(Jahr);
         if (alter < v.FruchtbarVon || alter > v.FruchtbarBis) return 0;
         var kinder = f.KinderVon(frau).Count(k => k.Lebt);
-        return Geburtenrate(frau, mann) * Math.Pow(_d.KinderAbnahme, kinder);
+        return Geburtenrate(frau, mann) * DetMathe.Pow(_d.KinderAbnahme, kinder);
     }
 
     /// <summary>
@@ -274,7 +274,7 @@ public sealed partial class Familienbuch
         for (var alter = frau.Alter(Jahr); alter <= v.FruchtbarBis && beideLeben > 0.01; alter++, alterMann++)
         {
             if (alter >= v.FruchtbarVon)
-                kinder += beideLeben * rate * Math.Pow(_d.KinderAbnahme, kinder);
+                kinder += beideLeben * rate * DetMathe.Pow(_d.KinderAbnahme, kinder);
             beideLeben *= (1 - Sterberisiko(frau.Volk, alter)) * (1 - Sterberisiko(mann.Volk, alterMann));
         }
         return kinder - start;
@@ -387,6 +387,7 @@ public sealed partial class Familienbuch
         // Immer würfeln, auch wenn der Spieler wählt – so sehen die KI-Familien danach gleich aus.
         oberhaupt.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk);
         if (aussehen is { } gewaehlt) oberhaupt.Aussehen = gewaehlt;
+        ErbgutWuerfeln(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
         oberhaupt.GlaubeSetzen(glaube ?? _w.Glaube.Startglaube(volk));
         ZuegeFuerErwachsenen(oberhaupt); // eigener Würfel je Person – ändert keinen anderen Wurf
         var familie = new Familie(konto, volk, nachname, oberhaupt);
@@ -437,6 +438,7 @@ public sealed partial class Familienbuch
         var person = new Person(_naechsteNummer++, vorname, name, volk, geschlecht, Jahr - alter);
         TalenteWuerfeln(person);
         person.Aussehen = Aussehenspalette.Wuerfeln(_aussehenZufall, volk); // Ehepartner von außen: gewürfelt
+        ErbgutWuerfeln(person);
         person.GlaubeSetzen(_w.Glaube.Wuerfeln(volk)); // eigener Würfel – Namen und Talente bleiben wie ohne Glauben
         ZuegeFuerErwachsenen(person);
         return new Kandidat(person, stand);
@@ -537,10 +539,17 @@ public sealed partial class Familienbuch
         if (konto.Vermoegen < kosten)
             return Befehlsergebnis.Abgelehnt($"Die Hochzeit kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung} – so viel hat {konto.Inhaber} nicht.");
 
+        Vermaehlen(konto, k, kosten);
+        return Befehlsergebnis.Ok($"{_familien[konto].Oberhaupt.Vorname} und {k.Person.Vorname} sind verheiratet.");
+    }
+
+    /// <summary>Die Hochzeit selbst, ohne Prüfung (auch fürs Entwicklerfenster, dort mit <paramref name="kosten"/> 0).</summary>
+    internal void Vermaehlen(Konto konto, Kandidat k, double kosten)
+    {
         var f = _familien[konto];
         konto.Familienkosten(kosten);
         _kandidaten.Remove(k);
-        ZuneigungEntfernen(s => s.Item2 == nummer || s.Item1 == konto);
+        ZuneigungEntfernen(s => s.Item2 == k.Person.Nummer || s.Item1 == konto);
 
         var p = k.Person;
         p.Familienname = f.Nachname;
@@ -549,9 +558,9 @@ public sealed partial class Familienbuch
         f.MitgliederListe.Add(p);
         f.Ehepartner = p;
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
-                        $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre). Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." +
+                        $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre)." +
+                        (kosten > 0 ? $" Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." : "") +
                         (uebertritt ? $" {p.Vorname} tritt zum {p.Glaube.Glaube()} über – die {p.Herkunftsglaube.Gemeinde()} im Rat sehen es ungern." : ""));
-        return Befehlsergebnis.Ok($"{f.Oberhaupt.Vorname} und {p.Vorname} sind verheiratet.");
     }
 
     internal Befehlsergebnis ErbenBestimmen(Konto konto, int nummer)
@@ -790,6 +799,7 @@ public sealed partial class Familienbuch
             o.Geschlecht == Geschlecht.Mann ? o.Nummer : null, o.Geschlecht == Geschlecht.Frau ? o.Nummer : null);
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht,
             o.Geschlecht == Geschlecht.Mann ? o : null, o.Geschlecht == Geschlecht.Frau ? o : null);
+        ErbgutVererben(kind, o.Geschlecht == Geschlecht.Mann ? o : null, o.Geschlecht == Geschlecht.Frau ? o : null);
         kind.GlaubeSetzen(o.Glaube);
         ZuegeBeiGeburt(kind);
         if (IstVolljaehrig(kind)) ZuegeAlsErwachsener(kind);
@@ -797,18 +807,26 @@ public sealed partial class Familienbuch
         return kind;
     }
 
-    private void Geburt(Familie f)
+    // Im Jahreswechsel, bevor das Jahr weiterzählt: Das Kind gehört schon ins neue Jahr.
+    private void Geburt(Familie f) => Geburt(f, _zufall.Next(2) == 0 ? Geschlecht.Frau : Geschlecht.Mann, Jahr + 1);
+
+    /// <summary>Entwicklerfenster: ein Kind jetzt – von beiden Eheleuten, ohne Ehepartner vom Oberhaupt allein (wie <see cref="KindAufnehmen"/>).</summary>
+    internal Person EntwicklerGeburt(Familie f, Geschlecht geschlecht) =>
+        f.Ehepartner is { Lebt: true } e && e.Geschlecht != f.Oberhaupt.Geschlecht ? Geburt(f, geschlecht, Jahr) : KindAufnehmen(f.Konto, 0, geschlecht);
+
+    private Person Geburt(Familie f, Geschlecht geschlecht, int geburtsjahr)
     {
         Paar(f.Oberhaupt, f.Ehepartner!, out var mutter, out var vater);
-        var geschlecht = _zufall.Next(2) == 0 ? Geschlecht.Frau : Geschlecht.Mann;
         var v = _d.Volk(f.Volk);
-        var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, Jahr + 1, vater.Nummer, mutter.Nummer);
+        var kind = new Person(_naechsteNummer++, Vorname(v, geschlecht), f.Nachname, f.Volk, geschlecht, geburtsjahr, vater.Nummer, mutter.Nummer);
         TalenteVererben(kind, mutter, vater);
         kind.Aussehen = Aussehenspalette.Vererben(_aussehenZufall, kind.Volk, geschlecht, vater, mutter);
+        ErbgutVererben(kind, vater, mutter);
         kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
         ZuegeBeiGeburt(kind, vater, mutter);
         f.MitgliederListe.Add(kind);
         Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
+        return kind;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -830,6 +848,7 @@ public sealed partial class Familienbuch
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
                 Geuebt = TalentTexte.Alle.Any(t => p.GeuebtIm(t) != 0) ? TalentTexte.Alle.Select(p.GeuebtIm).ToList() : null,
                 Gesicht = p.Aussehen.Gesicht, Haar = p.Aussehen.Haar, Augen = p.Aussehen.Augen,
+                Erbgut = ErbgutText(p),
                 Zuege = HatZuege ? p.Zuege.Select(z => z.Kennung).ToList() : null,
             }).ToList();
         return new FamilienbuchStand
@@ -840,6 +859,8 @@ public sealed partial class Familienbuch
             AussehenWuerfe = _aussehenZufall.Wuerfe,
             ZugWuerfe = _zugZufall.Wuerfe,
             NaechsteNummer = _naechsteNummer,
+            ErbgutVersion = Erbgutvorlage.Version,
+            ErbgutGene = ErbgutGene(),
             Personen = personen,
             Familien = _w.Konten.Where(_familien.ContainsKey).Select(k => _familien[k]).Select(f => new FamilieStand
             {
@@ -887,6 +908,7 @@ public sealed partial class Familienbuch
                     person.GeuebtSetzen(t, geuebt[(int)t]);
             return person;
         });
+        ErbgutWiederherstellen(s, personen); // alte Spielstände ohne Erbgut: aus dem Startwert jeder Person
 
         _familien.Clear();
         foreach (var fs in s.Familien)

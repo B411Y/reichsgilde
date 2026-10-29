@@ -76,6 +76,8 @@ public partial class JahresberichtAnzeige : PanelContainer
         if (endgrund is not null)
             Text(endgrund, 15, Grau, zentriert: true);
         Text($"{spieler.Inhaber} · {w.StandVon(spieler).Name}", 16, null, zentriert: true);
+        if (simulation.MitEntwicklerhilfe)
+            Text("Diese Partie lief mit Entwicklerhilfe: Werte wurden von Hand gesetzt.", 13, Grau, zentriert: true);
 
         // ── Jahresrechnung ──
         if (bilanz is not null)

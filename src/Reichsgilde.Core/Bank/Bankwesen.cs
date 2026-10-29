@@ -451,9 +451,9 @@ public sealed class Bankwesen
     {
         if (!IstBankbetrieb(b)) return Befehlsergebnis.Abgelehnt($"{b.Name} ist keine Geldleihe.");
         if (satz < Daten.Kredit.ZinsMindestens - 1e-9 || satz > Daten.Kredit.ZinsHoechstens + 1e-9)
-            return Befehlsergebnis.Abgelehnt($"Der Zins muss zwischen {Daten.Kredit.ZinsMindestens:P0} und {Daten.Kredit.ZinsHoechstens:P0} liegen.");
+            return Befehlsergebnis.Abgelehnt($"Der Zins muss zwischen {Zahlenformat.Prozent(Daten.Kredit.ZinsMindestens)} und {Zahlenformat.Prozent(Daten.Kredit.ZinsHoechstens)} liegen.");
         _zinssaetze[b.Konto] = satz;
-        return Befehlsergebnis.Ok($"{b.Konto.Inhaber} verleiht Geld an Häuser jetzt zu {satz:P0} im Jahr" +
+        return Befehlsergebnis.Ok($"{b.Konto.Inhaber} verleiht Geld an Häuser jetzt zu {Zahlenformat.Prozent(satz)} im Jahr" +
                                   (IstWucher(satz) ? " – das ist Wucher." : "."));
     }
 
@@ -475,7 +475,7 @@ public sealed class Bankwesen
         if (kredit.IstWucher && _w.Justiz.IstAktiv
             && _w.Justiz.TatMelden(geber, Vergehen.Wucher, nehmer.Inhaber, (satz - Daten.Wucher.Ab) * betrag * jahre) is { } spur)
             _w.Justiz.BeweisGeben(nehmer, spur); // der Schuldschein ist der Beweis
-        var text = $"{nehmer.Inhaber} leiht {Zahlenformat.Ganz(betrag)} {waehrung} bei {geber.Inhaber} – {satz:P0} Zins, {jahre} {(jahre == 1 ? "Jahr" : "Jahre")}.";
+        var text = $"{nehmer.Inhaber} leiht {Zahlenformat.Ganz(betrag)} {waehrung} bei {geber.Inhaber} – {Zahlenformat.Prozent(satz)} Zins, {jahre} {(jahre == 1 ? "Jahr" : "Jahre")}.";
         _w.Melden(text);
         return Befehlsergebnis.Ok(text + (kredit.IstWucher ? " Ein Wucherzins – der Schuldschein ist ein Beweis." : ""));
     }

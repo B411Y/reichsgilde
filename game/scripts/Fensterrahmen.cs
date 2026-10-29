@@ -4,11 +4,12 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Macht eine Tafel zum Fenster (PR #214): Sie lässt sich an ihrem oberen Rand ziehen, hat oben rechts ein ✕ (und auf Wunsch einen Knopf
-/// „Festhalten“), kommt beim Anklicken nach vorn, und ihre Lage wird in <c>user://einstellungen.cfg</c> gemerkt.
+/// „Festhalten“) und kommt beim Anklicken nach vorn. Sie öffnet <b>immer in der Bildschirmmitte</b> (<see cref="Mittig"/>), auch wenn der Spieler sie
+/// vorher verschoben hatte; eine Lage wird nicht gemerkt (PR „Lesbarkeit und mittige Fenster“, die gemerkte Lage aus PR #214 entfällt).
 ///
 /// Benutzung: nach <see cref="Rollbereich.Einhuellen"/> einmal <see cref="Anmelden"/> aufrufen – der Rahmen hängt sich als Kind an die Tafel.
-/// Die Tafel bleibt, wo ihr Container oder ihr Anker sie hinsetzt, bis der Spieler sie zieht (oder ihre gemerkte Lage greift). Danach ist sie
-/// „oberste Ebene“ (<c>TopLevel</c>): Kein Container verschiebt sie mehr, der Rahmen setzt jedes Bild ihre Lage, geklemmt in den sichtbaren Bereich.
+/// Eine Tafel ohne eigenen Platz (<see cref="PlatzSetzen"/>, <see cref="Mittig"/> = false) ist „oberste Ebene“ (<c>TopLevel</c>): Kein Container verschiebt sie,
+/// der Rahmen setzt jedes Bild ihre Lage (Mitte, bis der Spieler sie zieht), geklemmt in den sichtbaren Bereich.
 ///
 /// Festgehaltene Fenster bleiben offen, wenn die Hauptszene sonst „immer nur eine Tafel“ schließt (<see cref="SchliessenFallsLose"/>).
 /// Esc schließt das oberste (zuletzt geöffnete oder angeklickte) Fenster (<see cref="ObersteSchliessen"/>), die Taste X alle (<see cref="AlleSchliessen"/>).
@@ -30,7 +31,8 @@ public partial class Fensterrahmen : Node
     private bool _umhaengen;
     private Control? _leiste;
     private Button? _fest;
-    private bool _bewegt, _zieht, _wiederherstellen = true;
+    private bool _bewegt, _zieht;
+    private int _geoeffnet;
     private Vector2 _ziel, _griff;
     private int _zuletzt;
     private Func<Vector2, Vector2, Vector2>? _platz;
@@ -38,8 +40,25 @@ public partial class Fensterrahmen : Node
     /// <summary>Bleibt offen, wenn eine andere Tafel „alles andere schließt“.</summary>
     public bool Festgehalten { get; private set; }
 
-    /// <summary>false: Die Lage wird weder aus der Datei geholt noch beim Ziehen gemerkt (die Auswahl, die an der Maus erscheint).</summary>
-    public bool LageMerken { get; set; } = true;
+    /// <summary>
+    /// true (Standard): Bei jedem Öffnen steht das Fenster in der Mitte des Bildschirms (senkrecht in der Mitte zwischen Zeitstrahl und Betriebsleiste, damit es
+    /// beide frei lässt); es hält dort, bis der Spieler es zieht. false: eigene Regel über <see cref="PlatzSetzen"/> oder der Platz, den der Anker vorgibt
+    /// (die Auswahl an der Maus, Charakter, Bau- und Wegtafel rechts).
+    /// </summary>
+    public bool Mittig { get; set; } = true;
+
+    /// <summary>Versatz zwischen zwei festgehaltenen Fenstern, die zugleich offen sind (Pixel je weiteres Fenster).</summary>
+    private const float Staffel = 28;
+
+    /// <summary>Linke obere Ecke eines Fensters in der Mitte: waagrecht im Bild, senkrecht im Streifen zwischen Zeitstrahl und Betriebsleiste; weitere festgehaltene Fenster leicht versetzt.</summary>
+    private Vector2 MitteLage(Vector2 groesse, Vector2 sichtbar)
+    {
+        var frei = new Rect2(0, Rollbereich.KopfHoehe, sichtbar.X, Math.Max(groesse.Y, sichtbar.Y - Rollbereich.KopfHoehe - Rollbereich.LeistenHoehe));
+        var davor = Alle.Count(a => a != this && a.Festgehalten && a.Mittig && a._platz is not null && a._geoeffnet < _geoeffnet && a._tafel.IsVisibleInTree());
+        return new Vector2(
+            frei.Position.X + (frei.Size.X - groesse.X) / 2 + davor * Staffel,
+            frei.Position.Y + (frei.Size.Y - groesse.Y) / 2 + davor * Staffel);
+    }
 
     /// <summary>
     /// Legt fest, wo das Fenster steht, bis der Spieler es zieht: <paramref name="platz"/> bekommt Größe der Tafel und sichtbaren Bereich und liefert die linke obere Ecke
@@ -49,8 +68,8 @@ public partial class Fensterrahmen : Node
     {
         _platz = platz;
         if (platz is null) return;
+        Mittig = false;
         _bewegt = true;
-        _wiederherstellen = false;
     }
 
     /// <summary>Zählt bei Esc mit (false für die Auswahl, die im Ablauf von Esc ihren festen Platz hat).</summary>
@@ -67,7 +86,7 @@ public partial class Fensterrahmen : Node
     }
 
     /// <summary>
-    /// Macht die Tafel zum Fenster. <paramref name="schluessel"/> benennt es in der Datei der gemerkten Lagen. <paramref name="schliessen"/> ist, was das ✕ tut
+    /// Macht die Tafel zum Fenster. <paramref name="schluessel"/> benennt es (nur zur Unterscheidung). <paramref name="schliessen"/> ist, was das ✕ tut
     /// (Grundwert: die Tafel verstecken). <paramref name="schliessbar"/> = false: nur ziehbar, ohne ✕ und ohne Esc (Bautafeln, Rückfragen).
     /// <paramref name="festhaltbar"/>: ein Knopf „Festhalten“ neben dem ✕.
     /// </summary>
@@ -140,6 +159,12 @@ public partial class Fensterrahmen : Node
         _tafel.VisibilityChanged += BeimZeigen;
         _rolle = _tafel.GetNodeOrNull<Rollbereich>("Rollbereich");
         if (_rolle is not null) _rolle.GuiInput += BeiEingabe;
+        if (Mittig && _rolle is not null)
+        {
+            // Zeitstrahl oben und Betriebsleiste unten bleiben frei; eine hohe Tafel rollt, bevor sie an sie stößt (F4: Rat überdeckte Zeit und Vermögen)
+            _rolle.ObenFrei = Rollbereich.KopfHoehe - _rolle.Abstand;
+            _rolle.UntenFrei = Rollbereich.LeistenHoehe - _rolle.Abstand;
+        }
         if (_schliessbar || _festhaltbar) Callable.From(LeisteBauen).CallDeferred(); // die Tafel ist beim Eintritt noch „beschäftigt“ und nimmt kein Kind an
         if (_tafel.Visible) BeimZeigen();
     }
@@ -184,9 +209,19 @@ public partial class Fensterrahmen : Node
 
     private void BeimZeigen()
     {
-        if (!_tafel.Visible) return;
+        if (!_tafel.Visible)
+        {
+            if (_schliessbar) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.FensterZu); // nur schließbare Fenster (keine Leisten und Hinweise)
+            return;
+        }
+        if (_schliessbar) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.FensterAuf);
         _zuletzt = ++_zaehler;
-        _wiederherstellen = !_bewegt; // ein Fenster, das in dieser Sitzung schon gezogen wurde, behält seine Lage
+        _geoeffnet = _zuletzt;
+        if (Mittig) // immer wieder in die Mitte, auch nach dem Ziehen
+        {
+            _platz = MitteLage;
+            _bewegt = true;
+        }
         NachVornBringen();
     }
 
@@ -277,15 +312,6 @@ public partial class Fensterrahmen : Node
         if (!_tafel.IsVisibleInTree()) return;
         var sichtbar = _tafel.GetViewportRect().Size;
 
-        if (_wiederherstellen)
-        {
-            _wiederherstellen = false;
-            if (LageMerken && Fenster.FensterLage(_schluessel) is { } lage)
-            {
-                _bewegt = true;
-                _ziel = lage;
-            }
-        }
         if (_zieht)
         {
             if (Input.IsMouseButtonPressed(MouseButton.Left))
@@ -297,7 +323,6 @@ public partial class Fensterrahmen : Node
             {
                 _zieht = false;
                 _ziel = Klemmen(_ziel, sichtbar);
-                if (LageMerken) Fenster.FensterLageSetzen(_schluessel, _ziel);
             }
         }
         if (_platz is not null && !_zieht)
