@@ -2196,3 +2196,24 @@ Gemessen auf main `c43f5ae` + diesem PR (Commit `1502ff2`), `messen bericht 20 3
 - **Rechnung:** Zu Startpreisen kosten die Zutaten 168,5 + 12,6 + 57,4 + 66,9 = 305,4 Gulden (vorher 2 × 12,6 + 2 × 57,4 + 66,9 = 206,9), also 98,5 mehr. Mit 390 sänke der Gewinn je Minute von 2,36 auf 1,37 – unter die Blume der Zwietracht. Mit 477 (Markt 570,0, nach Steuer 541,5) bleibt er bei 2,36, knapp unter dem Heiligenduft (2,44), der in der Parfumerie das beste Produkt bleibt. Das übrige Balancing sieht der Nutzer später an (mit #231).
 - **Messung** auf main `b9825f3` + Commit `e00dad4`, `messen bericht 20 30 --teile=1` (330 Partien, keine mit Fehler), JSON in `docs/messungen/balancing-2026-10-29-schattendolch.json`: Parfumeur nach 20 Jahren 33.476 ± 1.935 (−2,6 %, vorher 32.224, −6,5 %), nach 5 Jahren 4.015, 1/30 bankrott, Bürger im Ziel 27/30; Schmied 40.133 ± 2.167 (+19,4 %, vorher 40.525, +21 %). Beides im Rauschen: Der Spieler mit einem Betrieb erreicht in 20 Jahren keine Parfumerie (Stufe 3), der Unterschied kommt nur über die KI-Häuser. Datenversion weiter 60.
 - Alte Spielstände behalten ihre mitgespeicherten Daten (Schattendolch dort weiter aus 2 Eisen + 2 Beschlag, Grundpreis 390).
+
+**Zutateneinkauf nach Kasse und Bedarf** (Befund der Prüfung, Entscheidung des Teamleiters): Der Karren kauft jede Zutat nur bis zum Bedarf von 4 Arbeitsstunden (mindestens 10 Stück, höchstens 40) und gibt auf einer Fahrt höchstens die Hälfte des Geldes aus, das über Löhne, Wächter und Unterhalt des Jahres hinausgeht (`logistik.zutatenVorratStunden`, `zutatenAnteilKasse`). Vorher füllte er bis zur Lagergrenze auf, auch ins Minus: Ein passiver Parfumeur mit Giftdolch (Greybox, Startwerte 7/8/9) hatte 28–40 Dolche im Lager, die Kasse nach dem ersten Jahr bei −274 / −291 / −504 und war mit Startwert 7 und 8 im dritten Jahr bankrott; jetzt höchstens 10 Dolche, Kasse nach Jahr 1 ≈ 3.000, nach Jahr 5 4.588 / 2.950 / 5.433, keiner bankrott (Test in `ParfumeurTests`). Was danach noch fehlt, holen die Diebe der KI-Häuser (Einbrüche in die Siederei: Lagerschutz, Spiel-KI).
+
+Gemessen auf main `b9825f3` + Commit `c54c661` (main `cc72d5c` hat denselben Kern), `messen bericht 20 30` (1.320 Partien, keine mit Fehler), JSON in `docs/messungen/balancing-2026-10-29-zutateneinkauf.json`; Vergleich mit `balancing-2026-10-29-dolch.json`. Spieler mit einem Betrieb, Reinvermögen nach 20 Jahren (Ø 30 Startwerte):
+
+| Beruf | vorher | neu (± Fehler) | Abstand zum Mittel vorher → neu | Gewinn je Jahr vorher → neu | Bürger im Ziel 8–12 |
+|---|---|---|---|---|---|
+| Schmied | 40.525 | 37.867 ± 1.695 | +21,0 → +7,8 % | 2.909 → 2.904 | 29 → 26 |
+| Tischler | 37.252 | 39.460 ± 1.522 | +10,2 → +12,9 % | 2.708 → 2.867 | 28 → 28 |
+| Steinmetz | 35.776 | 38.517 ± 1.226 | +5,3 → +9,9 % | 2.643 → 2.767 | 29 → 27 |
+| Alchimist | 36.919 | 34.534 ± 1.814 | +9,1 → −2,8 % | 2.657 → 2.681 | 28 → 28 |
+| Wirt | 34.495 | 36.761 ± 1.801 | +1,0 → +4,3 % | 2.634 → 2.677 | 15 → 21 |
+| Prediger | 32.593 | 38.450 ± 1.729 | −5,3 → +9,7 % | 2.485 → 2.729 | 29 → 28 |
+| Dieb | 31.859 | 30.072 ± 1.262 | −7,7 → −17,0 % | 2.674 → 2.614 | 14 → 11 |
+| Parfumeur | 32.224 | 38.370 ± 1.508 | −6,5 → +9,4 % | 2.551 → 2.821 | 27 → 29 |
+| Geldleiher | 31.570 | 30.638 ± 948 | −8,7 → −15,2 % | 2.296 → 2.298 | 26 → 27 |
+| Gardist | 28.615 | 29.375 ± 690 | −18,4 → −19,2 % | 2.065 → 2.050 | 26 → 29 |
+
+- **Befund:** Am meisten gewinnen Parfumeur (+270 Gulden Gewinn im Jahr) und Prediger (+244) – vermutlich, weil kein toter Vorrat mehr gekauft wird (der Gewinn zählt Zutaten beim Kauf, das Reinvermögen das Lager nicht) und weniger im Lager liegt, das Diebe holen können (für den Parfumeur in den Einzelpartien gesehen, für den Prediger nicht geprüft). Parfumeur nach 5 Jahren 5.326 statt 4.013, bankrott 0 statt 1 von 30. Schmied, Alchimist, Dieb, Geldleiher und Gardist ändern ihren Gewinn kaum (±60); ihr Reinvermögen schwankt über Gericht, Schiffe und Familie (Schmied: Gericht −314 statt −201 im Jahr). Weil das Mittel steigt, liegen Dieb (−17 %), Geldleiher (−15,2 %) und Gardist (−19,2 %) jetzt außerhalb ±15 %, der Schmied (+7,8 %) wieder darin. Ein Wirt ging bankrott (vorher keiner), der Wirt im Mittel aber besser (21 statt 15 von 30 im Ziel).
+- Völker streuen weiter stärker als ihr Bonus: Schmied −11 … +22 % gegen Menschen (Zwerg 41.296, vorher −13 … +4 %), Parfumeur −25 … 0 % (Zwerg 25.735, vorher −5 … +12 %) – der Mensch-Schmied fiel, der Mensch-Parfumeur stieg.
+- KI-Stärke: KI ÷ Bezug Median 1,17 (vorher 1,03); der Bezugsspieler ist ein Schmied (73.004 statt 76.634), die KI-Häuser 84.533 statt 79.139. Unter „Schwer“ 1,75 (vorher 1,78). Messstadt mit 8 Häusern 71.131 je Haus (vorher 64.797).
