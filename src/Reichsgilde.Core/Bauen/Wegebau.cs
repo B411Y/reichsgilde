@@ -416,8 +416,8 @@ public sealed class Wegebau
         _w.Karte!.Wege[weg] is { } w ? (w.Name != "" ? w.Name : $"die {Kartenweg.Anzeigename(w.Klasse)}") : "der Weg";
 
     private static string Dauer(int minuten) =>
-        minuten >= Spielzeit.MinutenProTag ? $"{minuten / (double)Spielzeit.MinutenProTag:0.#} Jahren"
-        : minuten >= 60 ? $"{minuten / 60.0:0.#} Stunden" : $"{minuten} Minuten";
+        minuten >= Spielzeit.MinutenProTag ? $"{Zahlenformat.Knapp(minuten / (double)Spielzeit.MinutenProTag)} Jahren"
+        : minuten >= 60 ? $"{Zahlenformat.Knapp(minuten / 60.0)} Stunden" : $"{minuten} Minuten";
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Was ein Ausbau den Karren eines Hauses bringt (für die KI)

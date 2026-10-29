@@ -209,7 +209,12 @@ public partial class Fensterrahmen : Node
 
     private void BeimZeigen()
     {
-        if (!_tafel.Visible) return;
+        if (!_tafel.Visible)
+        {
+            if (_schliessbar) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.FensterZu); // nur schließbare Fenster (keine Leisten und Hinweise)
+            return;
+        }
+        if (_schliessbar) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.FensterAuf);
         _zuletzt = ++_zaehler;
         _geoeffnet = _zuletzt;
         if (Mittig) // immer wieder in die Mitte, auch nach dem Ziehen

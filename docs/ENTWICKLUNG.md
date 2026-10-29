@@ -81,6 +81,20 @@ dotnet run --project tests/Reichsgilde.Core.Tests
 
 Am Ende muss stehen: `Alle … Tests bestanden.`
 
+## Klicktest unter Windows
+
+Unter Linux macht `tools/klicktest/lauf.sh` Klicktests auf einem unsichtbaren Bildschirm (Xvfb, xdotool). Unter Windows gibt es den nicht, und echte Maus- und Tastenbefehle würden stören. Darum führt das Spiel die Aktionen selbst aus (Autoload `KlicktestTreiber`), gestartet von `tools/klicktest/lauf.ps1` mit demselben Aufbau:
+
+```
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\klicktest\lauf.ps1 C:\Temp\k 45 "s tag;m 620 395;w 1;b 1;w 2;s klick" -- --karte=koeln --startstunde=12 --wetter=klar
+```
+
+- `-Treiber d3d12` nimmt DirectX 12 statt Vulkan; `-Daten <ordner>` lenkt `user://` um (Standard `%LOCALAPPDATA%\Reichsgilde\klicktest-daten`, damit Einstellungen und Spielstände des Spielers unberührt bleiben).
+- Godot kommt aus `$env:GODOT`, sonst aus dem winget-Ordner; genommen wird die `_console.exe`, das Log steht in `<ausgabeordner>\godot.log`.
+- Vorher fragt `reichsgilde-frage` (Außenstelle, `tools/aussenstelle/`), ob der PC frei ist; während des Laufs prüft `reichsgilde-pruefen` den Notschalter.
+- Vor dem ersten Lauf einmal `dotnet build game\Reichsgilde.csproj` und `Godot --headless --path game --import`.
+- Das Spielfenster ist sichtbar; die Maus in der Zeit vom Fenster lassen, denn Hover und Tooltips folgen der echten Maus.
+
 ## Im Godot-Editor spielen
 
 Startet man das Spiel im Godot-Editor, läuft es im Reiter **Game** eingebettet. Dort bestimmt der Editor die Fenstergröße, und Vollbild (F11) ist nicht möglich. Zum Testen im eigenen Fenster das Einbetten im Reiter „Game“ ausschalten.
@@ -90,6 +104,10 @@ Die Tempostufen 16× und 32× (Tasten 5 und 6) sind Testtempo für die Entwicklu
 ## Bilder für das Spielbuch
 
 Die beschrifteten Bilder im Spielbuch (`docs/bilder/handbuch/`) entstehen aus echten Bildschirmfotos: `tools/handbuch/aufnehmen.sh` nimmt die Rohbilder mit dem Klicktest auf, `tools/handbuch/beschriften.sh` setzt die Nummern (Datei `tools/handbuch/bilder.json`: Bild, Stelle der Nummer, Rahmen, Ausschnitt) und schreibt `.webp`. Ändert sich die Oberfläche, Rohbilder neu aufnehmen und die Stellen in `bilder.json` prüfen.
+
+## Außenstelle auf dem Grafik-PC
+
+Eine eigene Claude-Code-Sitzung auf dem Windows-PC führt Klicktests und Messungen aus, aber nur, wenn keine KI (Ports 8188, 8189, 8190, 8777) läuft und der Nutzer es erlaubt. Vor jedem schweren Auftrag ruft sie `tools/aussenstelle/frage.ps1` auf, bei langen Aufgaben zwischendurch `pruefen.ps1`; der Nutzer holt den PC mit `reichsgilde-stopp` zurück. Einzelheiten und Einrichtung: `tools/aussenstelle/README.md`.
 
 ## Spiel exportieren (Windows / Linux)
 
@@ -102,7 +120,8 @@ Die beschrifteten Bilder im Spielbuch (`docs/bilder/handbuch/`) entstehen aus ec
 Reichsgilde läuft auf **Windows und Linux**. Bei jedem Pull Request prüft GitHub automatisch:
 
 1. Bauen und Tests – auf Windows **und** Linux; unter Linux dazu das **Asset-Protokoll**: Jede Datei unter `game/assets/` muss in `docs/assets/protokoll.csv` stehen (Werkzeug, KI-Modell, Prompt, Lizenz), sonst scheitert die Prüfung (`python3 tools/assets/protokoll_pruefen.py`, Einzelheiten in `docs/assets/README.md`)
-2. Export für beide Systeme und ein kurzer Startversuch des Linux-Builds (Rauchtest). Meldet das Spiel dabei einen Fehler oder ein Speicherleck, wird der Start einmal wiederholt – erst ein zweiter Fund lässt die Prüfung scheitern. Die Fundstellen stehen als Anmerkung oben in der Zusammenfassung des Laufs. Stürzt das Spiel ab oder hängt es (Grenze: 3 Minuten je Start), zeigt eine Rückverfolgung mit gdb, welcher Faden wo stand – als Anmerkung und im Artefakt **„Rauchtest-Protokoll“**.
+2. **Gleichheit Linux/Windows** – der Gleichheitstest (Mehrspieler) schreibt auf beiden Systemen Prüfsummen über feste Partien; sie müssen Zeichen für Zeichen gleich sein (Einzelheiten in [ARCHITEKTUR.md](ARCHITEKTUR.md), „Gleich auf jedem Rechner“)
+3. Export für beide Systeme und ein kurzer Startversuch des Linux-Builds (Rauchtest). Meldet das Spiel dabei einen Fehler oder ein Speicherleck, wird der Start einmal wiederholt – erst ein zweiter Fund lässt die Prüfung scheitern. Die Fundstellen stehen als Anmerkung oben in der Zusammenfassung des Laufs. Stürzt das Spiel ab oder hängt es (Grenze: 3 Minuten je Start), zeigt eine Rückverfolgung mit gdb, welcher Faden wo stand – als Anmerkung und im Artefakt **„Rauchtest-Protokoll“**.
 
 Die fertigen Builds kann man unter **Actions → jeweiliger Lauf → Artifacts** herunterladen. Linux läuft dabei fest auf Ubuntu 24.04, damit ein neues Ubuntu bei GitHub die Prüfung nicht unbemerkt ändert.
 Die Konfiguration steht in [`.github/workflows/build.yml`](../.github/workflows/build.yml).

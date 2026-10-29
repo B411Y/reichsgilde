@@ -188,7 +188,7 @@ public sealed partial class Kartenentwurf
             {
                 var winkel = (k + Wurf(-0.3, 0.3)) / n * Math.Tau;
                 var weite = Wurf(0.65, 1);
-                return new Kartenort(Math.Round(m.X + Math.Cos(winkel) * r.Breite / 2 * weite), Math.Round(m.Z + Math.Sin(winkel) * r.Tiefe / 2 * weite));
+                return new Kartenort(Math.Round(m.X + DetMathe.Cos(winkel) * r.Breite / 2 * weite), Math.Round(m.Z + DetMathe.Sin(winkel) * r.Tiefe / 2 * weite));
             }).ToList();
             var f = new EntwurfNaturflaeche
             {

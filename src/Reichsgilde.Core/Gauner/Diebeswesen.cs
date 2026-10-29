@@ -459,7 +459,7 @@ public sealed class Diebeswesen
             var buch = DiesesJahr(k);
             _diesesJahr[k] = buch with { Beute = buch.Beute + beute };
 
-            var fang = 1 - Math.Pow(1 - Math.Min(1, Fangchance(b)), minuten / 60);
+            var fang = 1 - DetMathe.Pow(1 - Math.Min(1, Fangchance(b)), minuten / 60);
             if (_zufall.NextDouble() >= fang) continue;
 
             // Einer wird erwischt: Er kommt in den Turm – und ein Bürger, der ihn erkannt hat, erzählt einem Haus, wem er dient.
@@ -617,7 +617,9 @@ public sealed class Diebeswesen
                         (_chanceFaktor, _letzterVersuch, _bisherErfolg, _versuchErfolg) = (_w.Gauner.Daten.VersuchFaktor, letzter, _erfolgreich[i], false);
                         Einbruch(a);
                         _erfolgreich[i] |= _versuchErfolg;
-                        (_chanceFaktor, _letzterVersuch) = (1, true);
+                        // Zurück auf „kein Nachtversuch“: Zwischen zwei Versuchen gilt das immer, deshalb steht davon nichts im Spielstand. Auch
+                        // _bisherErfolg, sonst sähe eine Tat außerhalb der Versuche (Überfall, Entführung, Brand) den Erfolg eines anderen Auftrags.
+                        (_chanceFaktor, _letzterVersuch, _bisherErfolg) = (1, true, false);
                         erledigt = letzter;
                         break;
                     case Diebesstueck.Auskundschaften: Ausspaehen(a); break;
@@ -635,6 +637,7 @@ public sealed class Diebeswesen
     }
 
     // Der laufende Versuch einer Nacht (wie in der Unterwelt): Faktor auf die Chance, letzter Versuch?, schon Erfolg?
+    // Gilt nur während eines Einbruchsversuchs; danach wieder 1, true, false (nicht im Spielstand). Über die Stunden bleibt nur _erfolgreich.
     private double _chanceFaktor = 1;
     private bool _letzterVersuch = true, _bisherErfolg, _versuchErfolg;
     private readonly List<bool> _erfolgreich = new();

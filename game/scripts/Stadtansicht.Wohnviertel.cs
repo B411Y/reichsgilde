@@ -115,7 +115,7 @@ public partial class Stadtansicht
         }
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz nach den Wohnhäusern: {_netz.Teile()} getrennte Teile.");
-        if (WegenetzZeigen) NetzZeichnen();
+        if (WegenetzZeigen) WegenetzSichtbar = true; // Stadtansicht.Entwickler.cs
     }
 
     private readonly HashSet<Hausplatz> _gebautePlaetze = new();
@@ -208,8 +208,6 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     private static bool WegenetzZeigen => OS.GetCmdlineUserArgs().Contains("--wegenetz=1");
-
-    private void NetzZeichnen() => NetzZeichnen(_netz, this);
 
     /// <summary>
     /// Zeichnet ein Gassennetz: Kanten pink, Knoten gelb – auch die Kartenwerkstatt (Schalter „Gassennetz“), dort <paramref name="immerSichtbar"/>

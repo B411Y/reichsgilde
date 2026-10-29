@@ -256,6 +256,7 @@ public partial class Hauptszene : Node
             return;
         }
         _simulation = SimulationAufbauen(optionen);
+        EntwicklerSperreSetzen(); // Hauptszene.Entwickler.cs
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
         _ratskammer.Gemeldet += Protokollieren;
@@ -300,6 +301,7 @@ public partial class Hauptszene : Node
         _bauFrage.Beauftragt += neubau =>
         {
             if (neubau) _bau.Schliessen();
+            KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Bauen);
             if (_simulation.Wirtschaft is not { } wirtschaft || _spieler is null) return;
             // Die Auswahl zeigt jetzt die Baustelle (Neubau) bzw. die des gekauften Leerstands
             var baustelle = neubau
@@ -308,6 +310,7 @@ public partial class Hauptszene : Node
             if (baustelle is not null) _auswahlKennung = Stadtansicht.BaustellenKennung(baustelle);
         };
 
+        _pauseKnopf.SetMeta("klang", "still");
         _pauseKnopf.Pressed += PauseUmschalten;
         foreach (var tempo in Taktgeber.AlleTempostufen /* TESTTEMPO */)
         {
@@ -318,6 +321,7 @@ public partial class Hauptszene : Node
                 FocusMode = Control.FocusModeEnum.None,
                 CustomMinimumSize = new Vector2(46, 0),
             };
+            knopf.SetMeta("klang", "still");
             knopf.Pressed += () => TempoSetzen(tempo);
             if (!Taktgeber.Tempostufen.Contains(tempo)) // TESTTEMPO: Teststufen orange und mit Hinweis
             {
@@ -534,6 +538,7 @@ public partial class Hauptszene : Node
         WegBefehleStarten(optionen);
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
+        if (optionen.TryGetValue("klangtest", out var klangtest) && klangtest == "1") KlangOberflaeche.Testen(this); // spielt alle Oberflächenklänge, Ergebnis im Log
         Fenster.StartoptionenAnwenden(optionen); // Grafik nur für diesen Start: --kanten, --voreinstellung, --dunst … (Fenster.Grafik.cs)
         // Erst nach den Grafikoptionen: Das Fenster zeigt beim Öffnen die dann gültigen Werte.
         if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
@@ -551,6 +556,7 @@ public partial class Hauptszene : Node
             _lexikon.Oeffnen(lexikonWahl == "1" || lexikonWahl.StartsWith("suche:") ? "" : lexikonWahl);
             if (lexikonWahl.StartsWith("suche:")) _lexikon.Suchen(lexikonWahl[6..].Replace('_', ' '));
         }
+        EntwicklerBauen(optionen); // Fenster nur mit dem Haken „Entwickler-Optionen“ (Hauptszene.Entwickler.cs)
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
@@ -1180,6 +1186,9 @@ public partial class Hauptszene : Node
                 if (_lexikon.Offen) _lexikon.Schliessen();
                 else _lexikon.Oeffnen();
                 break;
+            case Key.F12 when imSpiel && _entwickler is not null: // Entwicklerfenster, nur mit dem Haken „Entwickler-Optionen“
+                _entwickler.Umschalten();
+                break;
             case Key.B when ohneZusatz && imSpiel:
                 if (_bau.Aktiv) _bau.Schliessen();
                 else BauenOeffnen();
@@ -1197,6 +1206,7 @@ public partial class Hauptszene : Node
     private void PauseUmschalten()
     {
         _simulation.Takt.PauseUmschalten();
+        KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Leertaste
         Protokollieren(_simulation.Takt.IstPausiert ? "Pause." : "Weiter geht's.");
     }
 
@@ -1205,6 +1215,7 @@ public partial class Hauptszene : Node
         if (tempo <= 0) return;
         _simulation.Takt.Tempo = tempo;
         _simulation.Takt.IstPausiert = false;
+        KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.Tempo); // Knopf wie Zifferntaste
     }
 
     /// <summary>Überträgt den Zustand der Simulation auf Kopfzeile, Zeitstrahl und die offenen Tafeln rechts.</summary>

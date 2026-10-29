@@ -171,6 +171,14 @@ public sealed partial class Familienbuch
         if (HatZuege && Von(konto) is { } f) ZugAnlass(konto, f.Oberhaupt, anlass);
     }
 
+    /// <summary>Entwicklerfenster: Die Person bekommt den Zug sofort; sein Gegenteil fällt weg.</summary>
+    internal void EntwicklerZugGeben(Person p, Charakterzug zug)
+    {
+        if (zug.Gegenteil is { } g && p.Zuege.FirstOrDefault(z => z.Kennung == g) is { } gegenteil)
+            p.ZugEntfernen(gegenteil);
+        Erhalten(FamilieVon(p)?.Konto, p, zug);
+    }
+
     private void Erhalten(Konto? konto, Person p, Charakterzug zug)
     {
         p.ZugHinzufuegen(zug);

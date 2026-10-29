@@ -152,6 +152,7 @@ public partial class BerichtAnzeige : PanelContainer
             hergestellt == "" ? "  Noch nichts hergestellt." : $"  Hergestellt: {hergestellt}",
             "",
         };
+        if (_simulation.MitEntwicklerhilfe) zeilen.Insert(0, "Diese Partie lief mit Entwicklerhilfe: Werte wurden von Hand gesetzt.\n");
         if (_spieler.Vorjahr is { } v)
         {
             zeilen.Add($"Jahresrechnung {v.Jahr}: Gewinn {Zahlenformat.MitVorzeichen(v.Gewinn)} {waehrung}");
