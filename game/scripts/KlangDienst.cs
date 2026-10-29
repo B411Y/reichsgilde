@@ -49,14 +49,23 @@ public partial class KlangDienst : Node
 
     private readonly Dictionary<string, SchleifenSpieler> _schleifen = new();
 
-    /// <summary>Ansagen des Haushofmeisters: höchstens so viele warten; kommt eine weitere, verfällt die älteste (zu dichte Folge).</summary>
-    public const int AnsagenWarteschlange = 2;
-    /// <summary>Pause in Sekunden zwischen zwei Ansagen.</summary>
-    public const double AnsagenAbstand = 8.0;
+    /// <summary>Pause in Echtzeit-Sekunden zwischen dem Ende einer Ansage des Haushofmeisters und der nächsten (unabhängig vom Spieltempo).</summary>
+    public const double StandardAnsagenAbstand = 20.0;
+    /// <summary>So lange wartet eine Ansage auf ihren Platz (Echtzeit-Sekunden); danach ist sie überholt und verfällt.</summary>
+    public const double StandardAnsagenVerfall = 45.0;
+    /// <summary>Die geltenden Werte (<c>KlangAnsagen</c> setzt sie aus <c>daten/ansagen.json</c>).</summary>
+    public static double AnsagenAbstand = StandardAnsagenAbstand, AnsagenVerfall = StandardAnsagenVerfall;
+    /// <summary>Für das Log der Ansagen (Verfall, Start nach Wartezeit); wird nur im Entwicklermodus oder bei einer Startoption gesetzt.</summary>
+    public static Action<string>? AnsagenLog;
+
+    /// <summary>Was aus einer angefragten Ansage wurde.</summary>
+    public enum AnsageErgebnis { Gespielt, Wartet, Verworfen }
+
     private static bool _ansagenAn = true;
-    private readonly Queue<AudioStream> _ansagen = new();
     private AudioStreamPlayer? _ansageSpieler;
-    private double _ansageFrei;
+    private bool _ansageLaeuft;
+    private double _ansageFrei, _ansageStart;
+    private (AudioStream Ton, int Rang, string Name, double Bis)? _wartend;
 
     /// <summary>Ansagen des Haushofmeisters an/aus (Standard an).</summary>
     public static bool AnsagenAn => _ansagenAn;
@@ -131,7 +140,7 @@ public partial class KlangDienst : Node
         _ansagenAn = an;
         if (!an && _instanz is not null)
         {
-            _instanz._ansagen.Clear();
+            _instanz._wartend = null;
             _instanz._ansageSpieler?.Stop();
         }
         if (speichern) Speichern("ansagen", an);
@@ -198,21 +207,31 @@ public partial class KlangDienst : Node
         spieler.Play();
     }
 
+    private static double Jetzt() => Time.GetTicksMsec() / 1000.0;
+
+    private bool AnsageFrei(double jetzt) => !_ansageLaeuft && jetzt >= _ansageFrei;
+
     /// <summary>
-    /// Ansage des Haushofmeisters (Bus Stimmen): immer nur eine zur Zeit, mindestens <see cref="AnsagenAbstand"/> Sekunden Pause danach.
-    /// Läuft schon eine, wartet die neue (höchstens <see cref="AnsagenWarteschlange"/>); ist die Schlange voll, verfällt die älteste.
-    /// Bei ausgeschalteten Ansagen passiert nichts.
+    /// Ansage des Haushofmeisters (Bus Stimmen): immer nur eine zur Zeit, danach mindestens <see cref="AnsagenAbstand"/> Sekunden Pause (Echtzeit).
+    /// Ist gerade keine Ansage dran, spielt sie sofort. Sonst wartet sie, aber nur <b>eine</b> Ansage: die wichtigste. <paramref name="rang"/>
+    /// 1 ist der höchste Rang (Tod), größere Zahlen sind unwichtiger; eine gleich wichtige ersetzt die wartende (sie ist aktueller), eine
+    /// unwichtigere verfällt sofort. Wer länger als <see cref="AnsagenVerfall"/> Sekunden wartet, verfällt auch. Eine laufende Ansage wird nie
+    /// unterbrochen. Bei ausgeschalteten Ansagen passiert nichts.
     /// </summary>
-    public static void AnsageSpielen(AudioStream? ton)
+    public static AnsageErgebnis AnsageSpielen(AudioStream? ton, int rang = 5, string name = "")
     {
-        if (ton is null || _instanz is null || !_ansagenAn) return;
-        if (_instanz._ansageSpieler?.Playing == true || Time.GetTicksMsec() / 1000.0 < _instanz._ansageFrei)
+        if (ton is null || _instanz is null || !_ansagenAn) return AnsageErgebnis.Verworfen;
+        var jetzt = Jetzt();
+        if (_instanz.AnsageFrei(jetzt))
         {
-            while (_instanz._ansagen.Count >= AnsagenWarteschlange) _instanz._ansagen.Dequeue();
-            _instanz._ansagen.Enqueue(ton);
-            return;
+            _instanz._wartend = null;
+            _instanz.AnsageStarten(ton);
+            return AnsageErgebnis.Gespielt;
         }
-        _instanz.AnsageStarten(ton);
+        if (_instanz._wartend is { } wartend && rang > wartend.Rang) return AnsageErgebnis.Verworfen;
+        if (_instanz._wartend is { } alt) AnsagenLog?.Invoke($"ANSAGE {alt.Name}: ersetzt durch {name} (Rang {rang} vor {alt.Rang})");
+        _instanz._wartend = (ton, rang, name, jetzt + AnsagenVerfall);
+        return AnsageErgebnis.Wartet;
     }
 
     private void AnsageStarten(AudioStream ton)
@@ -221,16 +240,34 @@ public partial class KlangDienst : Node
         {
             _ansageSpieler = new AudioStreamPlayer { Bus = BusStimmen };
             AddChild(_ansageSpieler);
-            _ansageSpieler.Finished += () => _ansageFrei = Time.GetTicksMsec() / 1000.0 + AnsagenAbstand;
         }
         _ansageSpieler.Stream = ton;
         _ansageSpieler.Play();
+        _ansageLaeuft = true;
+        _ansageStart = Jetzt();
     }
 
     public override void _Process(double delta)
     {
-        if (_ansagen.Count == 0 || _ansageSpieler?.Playing == true || Time.GetTicksMsec() / 1000.0 < _ansageFrei) return;
-        AnsageStarten(_ansagen.Dequeue());
+        var jetzt = Jetzt();
+        // Ende der Ansage: von hier an zählt die Pause (kein Signal, damit ein abgebrochener Spieler nichts hängen lässt)
+        if (_ansageLaeuft && jetzt - _ansageStart > 0.2 && _ansageSpieler?.Playing != true)
+        {
+            _ansageLaeuft = false;
+            _ansageFrei = jetzt + AnsagenAbstand;
+        }
+        if (_wartend is not { } wartend) return;
+        if (jetzt > wartend.Bis)
+        {
+            _wartend = null;
+            AnsagenLog?.Invoke($"ANSAGE {wartend.Name}: verfallen (länger als {AnsagenVerfall:0} s gewartet)");
+        }
+        else if (AnsageFrei(jetzt))
+        {
+            _wartend = null;
+            AnsagenLog?.Invoke($"ANSAGE {wartend.Name}: kommt nach der Pause dran");
+            AnsageStarten(wartend.Ton);
+        }
     }
 
     /// <summary>
