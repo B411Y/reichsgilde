@@ -63,6 +63,13 @@ public sealed class GenVorlage
 
     public Genverteilung Verteilung { get; }
 
+    /// <summary>
+    /// Bei Frauen zeigt sich statt dieses Gens das Gen mit dieser Kennung (null = bei beiden Geschlechtern dieses). So hat der Bart der Frauen
+    /// eigene Werte je Volk (Zwerginnen meist leicht, selten voll), ohne dass die Allele vom Geschlecht abhängen: Beide Gene trägt und vererbt
+    /// jede Person, sichtbar wird je Geschlecht eines (<see cref="Erbgut.SichtbarerWert(string, Geschlecht)"/>).
+    /// </summary>
+    public string? BeiFrauen { get; }
+
     /// <summary>Die Stelle in der Vorlage (0, 1, 2 …) – in dieser Reihenfolge stehen die Allele im <see cref="Erbgut"/>.</summary>
     public int Index { get; }
 
@@ -73,8 +80,9 @@ public sealed class GenVorlage
     internal int Schluessel { get; }
 
     internal GenVorlage(int index, string kennung, string name, string beschreibung, Genart art, int dominanz, int mutation,
-        Genverteilung verteilung, GenGrenzen[] grenzen, IReadOnlyList<Alterspunkt> alterskurve)
+        Genverteilung verteilung, GenGrenzen[] grenzen, IReadOnlyList<Alterspunkt> alterskurve, string? beiFrauen)
     {
+        BeiFrauen = beiFrauen;
         Index = index;
         Kennung = kennung;
         Name = name;
@@ -182,7 +190,8 @@ public sealed class Erbgutvorlage
         }
         catch (JsonException ex)
         {
-            throw new ErbgutvorlageFehler(new[] { $"Kein gültiges JSON (Zeile {ex.LineNumber + 1}): {ex.Message}" });
+            // Auch ein Feld, das es nicht gibt, landet hier (UnmappedMemberHandling) – der Name steht in der Meldung von .NET.
+            throw new ErbgutvorlageFehler(new[] { $"Kein gültiges JSON oder ein unbekanntes Feld (Tippfehler?) in Zeile {ex.LineNumber + 1}: {ex.Message}" });
         }
         if (datei is null) throw new ErbgutvorlageFehler(new[] { "Die Datei ist leer." });
 
@@ -191,7 +200,7 @@ public sealed class Erbgutvorlage
 
         var gene = datei.Gene.Select((g, i) => new GenVorlage(i, g.Kennung, g.Name, g.Beschreibung ?? "", g.Art, g.Dominanz, g.Mutation,
             g.Verteilung, Enum.GetValues<Volk>().Select(v => g.Voelker![v].AlsGrenzen()).ToArray(),
-            (g.Alter ?? new()).Select(p => new Alterspunkt(p.Jahre, p.Verschiebung)).ToList())).ToList();
+            (g.Alter ?? new()).Select(p => new Alterspunkt(p.Jahre, p.Verschiebung)).ToList(), g.BeiFrauen)).ToList();
         var korrelationen = (datei.Korrelationen ?? new()).Select(k => new GenKorrelation(k.Von, k.Zu, k.Staerke, k.Grund ?? "")).ToList();
         return new Erbgutvorlage(datei.Version, gene, korrelationen);
     }
@@ -241,6 +250,14 @@ public sealed class Erbgutvorlage
                 vorher = p.Jahre;
             }
         }
+        foreach (var g in d.Gene.Where(g => g.BeiFrauen is not null))
+        {
+            var wer = $"Gen „{g.Kennung}“";
+            if (d.Gene.FirstOrDefault(x => x.Kennung == g.BeiFrauen) is not { } frau)
+                fehler.Add($"{wer}: Das Gen „{g.BeiFrauen}“ für Frauen gibt es nicht.");
+            else if (frau == g || frau.BeiFrauen is not null)
+                fehler.Add($"{wer}: Das Gen für Frauen („{g.BeiFrauen}“) muss ein anderes sein und darf selbst kein „beiFrauen“ haben.");
+        }
         foreach (var k in d.Korrelationen ?? new())
         {
             var wer = $"Korrelation {k.Von} → {k.Zu}";
@@ -275,6 +292,8 @@ public sealed class Erbgutvorlage
     private static readonly JsonSerializerOptions Optionen = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        // Ein Feld, das es nicht gibt („domianz“), ist fast immer ein Tippfehler – lieber laut ablehnen als still mit dem Standardwert weiterrechnen.
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
         Converters = { new JsonStringEnumConverter() },
@@ -297,6 +316,7 @@ public sealed class Erbgutvorlage
         public int Dominanz { get; set; } = 50;
         public int Mutation { get; set; } = 3;
         public Genverteilung Verteilung { get; set; } = Genverteilung.Normal;
+        public string? BeiFrauen { get; set; }
         public List<AlterspunktDatei>? Alter { get; set; }
         public Dictionary<Volk, GrenzenDatei>? Voelker { get; set; }
     }

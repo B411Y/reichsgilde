@@ -49,14 +49,30 @@ public sealed class Erbgut
     /// <summary>Der sichtbare Wert des Gens an dieser Stelle der Vorlage.</summary>
     public int SichtbarerWert(GenVorlage gen) => _allele[2 * gen.Index];
 
+    /// <summary>
+    /// Was man bei einer Person dieses Geschlechts sieht: bei Frauen das Gen aus <see cref="GenVorlage.BeiFrauen"/>, wenn es eines gibt
+    /// („bartwuchs“ → „bartwuchs_frau“), sonst wie <see cref="SichtbarerWert(string)"/>. Die Darstellung fragt am besten immer so.
+    /// </summary>
+    public int SichtbarerWert(string gen, Geschlecht geschlecht) => SichtbarerWert(Auspraegung(gen, geschlecht));
+
     /// <summary>Das verdeckte Allel (0–255) – man sieht es nicht, aber es wird vererbt.</summary>
     public int VerdeckterWert(string gen) => _allele[2 * IndexVon(gen) + 1];
 
-    /// <summary>Der sichtbare Wert mit der Alterskurve des Gens (<see cref="GenVorlage.Altersverschiebung"/>), wieder in 0–255.</summary>
-    public int WertImAlter(string gen, int menschenjahre)
+    /// <summary>
+    /// Der sichtbare Wert mit der Alterskurve des Gens (<see cref="GenVorlage.Altersverschiebung"/>), wieder in 0–255; mit Geschlecht wie
+    /// <see cref="SichtbarerWert(string, Geschlecht)"/>.
+    /// </summary>
+    public int WertImAlter(string gen, int menschenjahre, Geschlecht? geschlecht = null)
+    {
+        var g = geschlecht is { } wer ? Auspraegung(gen, wer) : Vorlage.Gene[IndexVon(gen)];
+        return Math.Clamp(SichtbarerWert(g) + g.Altersverschiebung(menschenjahre), 0, 255);
+    }
+
+    /// <summary>Das Gen, das sich bei diesem Geschlecht zeigt.</summary>
+    private GenVorlage Auspraegung(string gen, Geschlecht geschlecht)
     {
         var g = Vorlage.Gene[IndexVon(gen)];
-        return Math.Clamp(SichtbarerWert(g) + g.Altersverschiebung(menschenjahre), 0, 255);
+        return geschlecht == Geschlecht.Frau && g.BeiFrauen is { } frau ? Vorlage.Gen(frau)! : g;
     }
 
     /// <summary>Alle Allele als Text: je Gen der Vorlage vier Hexadezimalziffern, erst das sichtbare, dann das verdeckte Allel – so im Spielstand.</summary>

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "beschreibung": "Die Gen-Vorlage des Erbguts (Phase 1 des Charakter-Editors). Jede Person trägt je Gen zwei Allele (0–255); eines ist sichtbar. Alle Völker teilen dieselbe Skala (0 = sehr wenig, 255 = sehr viel); Mann und Frau bekommen in der Darstellung eigene Formen. Je Volk: min/max = Grenzen, mittel und streuung = Glockenkurve (abgeschnitten bei ±2 Streuungen). dominanz = Chance in Prozent, dass das höhere Allel sichtbar wird (50 = Zufall). mutation = höchstens so viel weicht ein vererbtes Allel ab. alter = Verschiebung des sichtbaren Werts nach Menschenjahren (für die Darstellung). Erklärung: docs/spielbuch/erbgut.md",
+  "beschreibung": "Die Gen-Vorlage des Erbguts (Phase 1 des Charakter-Editors). Jede Person trägt je Gen zwei Allele (0–255); eines ist sichtbar. Alle Völker teilen dieselbe Skala (0 = sehr wenig, 255 = sehr viel); Mann und Frau teilen die Werte (eigene Formen gibt ihnen die Darstellung); beiFrauen = bei Frauen zeigt sich statt dieses Gens ein anderes (der Bart). Je Volk: min/max = Grenzen, die immer halten; mittel und streuung = Glockenkurve, gewürfelt höchstens ±2 Streuungen vom Mittel (die Korrelationen können einen Wert darüber hinaus schieben, aber nie über min/max). dominanz = Chance in Prozent, dass das höhere Allel sichtbar wird (50 = Zufall). mutation = höchstens so viel weicht ein vererbtes Allel ab. alter = Verschiebung des sichtbaren Werts nach Menschenjahren (für die Darstellung). Erklärung: docs/spielbuch/erbgut.md",
   "gene": [
     {
       "kennung": "groesse", "name": "Körpergröße", "art": "Makro",
@@ -477,8 +477,8 @@
     },
     {
       "kennung": "bartwuchs", "name": "Bartwuchs", "art": "Zubehoer",
-      "beschreibung": "0 = bartlos, 255 = Vollbart von Jugend an (Zwerge).",
-      "dominanz": 50, "mutation": 3,
+      "beschreibung": "Bei Männern: 0 = bartlos, um 90 = kurz, ab etwa 160 Vollbart, 255 = Vollbart von Jugend an (Zwerge). Bei Frauen zeigt sich stattdessen „bartwuchs_frau“.",
+      "dominanz": 50, "mutation": 3, "beiFrauen": "bartwuchs_frau",
       "voelker": {
         "Mensch":   { "min":  30, "mittel": 130, "max": 230, "streuung": 40 },
         "Zwerg":    { "min": 182, "mittel": 220, "max": 255, "streuung": 15 },
@@ -486,6 +486,19 @@
         "Halbling": { "min":   0, "mittel":  35, "max":  73, "streuung": 15 },
         "Ork":      { "min":   5, "mittel":  80, "max": 155, "streuung": 30 },
         "Oger":     { "min":   0, "mittel":  60, "max": 135, "streuung": 30 }
+      }
+    },
+    {
+      "kennung": "bartwuchs_frau", "name": "Bartwuchs der Frauen", "art": "Zubehoer",
+      "beschreibung": "Dieselbe Skala wie „bartwuchs“, sichtbar nur bei Frauen (Männer tragen und vererben es, man sieht es nur nicht). Nur Zwerginnen haben einen Bart: meist leicht, kurz oder geflochten (um 90), selten voll (ab etwa 160).",
+      "dominanz": 50, "mutation": 3,
+      "voelker": {
+        "Mensch":   { "min":   0, "mittel":   0, "max":   0, "streuung":  0 },
+        "Zwerg":    { "min":   0, "mittel":  90, "max": 190, "streuung": 40 },
+        "Elb":      { "min":   0, "mittel":   0, "max":   0, "streuung":  0 },
+        "Halbling": { "min":   0, "mittel":   0, "max":   0, "streuung":  0 },
+        "Ork":      { "min":   0, "mittel":   0, "max":   0, "streuung":  0 },
+        "Oger":     { "min":   0, "mittel":   0, "max":   0, "streuung":  0 }
       }
     },
     {

@@ -123,7 +123,7 @@ static class ErbgutTests
             Pruefe.Gleich(Math.Min(255, e.SichtbarerWert("nase_laenge") + 18), e.WertImAlter("nase_laenge", 90));
         }),
 
-        ("Erbgut: Die Gen-Vorlage nennt Fehler verständlich (Grenzen, fehlendes Volk, doppelte Kennung, unbekanntes Gen in einer Korrelation)", () =>
+        ("Erbgut: Die Gen-Vorlage nennt Fehler verständlich (Grenzen, fehlendes Volk, doppelte Kennung, unbekanntes Gen in einer Korrelation, unbekanntes Feld, Gen für Frauen)", () =>
         {
             var gut = TestvorlageJson();
             Pruefe.Gleich(4, Erbgutvorlage.AusJson(gut).Gene.Count);
@@ -136,6 +136,17 @@ static class ErbgutTests
             var ohneOger = gut.Replace(", \"Oger\": { \"min\": 0, \"mittel\": 128, \"max\": 255, \"streuung\": 30 }", "");
             Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(ohneOger), "Grenzen für Oger fehlen");
             Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(gut.Replace("\"version\": 3", "\"version\": 0")), "version");
+            // Unbekannte Felder sind Tippfehler und werden abgelehnt – im Gen, in den Grenzen, ganz oben
+            Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(gut.Replace("\"dominanz\": 10", "\"domianz\": 10")), "'domianz'");
+            Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(gut.Replace("\"dominanz\": 10", "\"domianz\": 10")), "unbekanntes Feld");
+            Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(gut.Replace("\"streuung\": 20 }", "\"streuung\": 20, \"farbe\": 1 }")), "'farbe'");
+            Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(gut.Replace("\"version\": 3,", "\"version\": 3, \"gen\": [],")), "'gen'");
+            // Das Gen für Frauen muss es geben, und es darf nicht selbst auf ein weiteres zeigen
+            var mitFrauen = gut.Replace("\"kennung\": \"glocke\",", "\"kennung\": \"glocke\", \"beiFrauen\": \"folge\",");
+            Pruefe.Gleich("folge", Erbgutvorlage.AusJson(mitFrauen).Gen("glocke")!.BeiFrauen);
+            Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(mitFrauen.Replace("\"beiFrauen\": \"folge\"", "\"beiFrauen\": \"bart\"")), "„bart“ für Frauen gibt es nicht");
+            Pruefe.WirftMitMeldung(() => Erbgutvorlage.AusJson(mitFrauen.Replace("\"kennung\": \"folge\",", "\"kennung\": \"folge\", \"beiFrauen\": \"haar\",")),
+                "darf selbst kein");
         }),
 
         ("Erbgut: Gleiche Eltern und gleicher Startwert ergeben dasselbe Kind, Byte für Byte – ein anderer Startwert ein anderes; Partien mit gleichem Startwert sind gleich", () =>
@@ -170,6 +181,81 @@ static class ErbgutTests
             Pruefe.Gleich(personen.Count, personen.Select(p => p.Erbgut.AlsText()).Distinct().Count());
             foreach (var p in personen.Where(p => p.Vater is null && p.Mutter is null)) // zu Spielbeginn kommen alle von außen
                 Pruefe.Gleich(Erbgut.Wuerfeln(v, a1.Wirtschaft!.Familien.ErbgutStartwert(p.Nummer), p.Volk).AlsText(), p.Erbgut.AlsText(), p.Name);
+        }),
+
+        ("Erbgut: Kind mit nur einem Elternteil – ein Allel von ihm, das andere aus der Glockenkurve des Volkes; in den Grenzen, gleiche Bytes, im Spiel wie beim Aufnehmen", () =>
+        {
+            var v = Erbgutvorlage.Standard;
+            foreach (var volk in AlleVoelker)
+                foreach (var elternVolk in AlleVoelker)
+                {
+                    var elternteil = Erbgut.Wuerfeln(v, 600 + (int)elternVolk, elternVolk);
+                    for (var i = 0; i < 30; i++)
+                    {
+                        var nurVater = Erbgut.Vererben(v, 1000 + i, volk, elternteil, null);
+                        var nurMutter = Erbgut.Vererben(v, 1000 + i, volk, null, elternteil);
+                        Pruefe.Gleich(nurVater.AlsText(), Erbgut.Vererben(v, 1000 + i, volk, elternteil, null).AlsText());
+                        Pruefe.Gleich(nurMutter.AlsText(), Erbgut.Vererben(v, 1000 + i, volk, null, elternteil).AlsText());
+                        InGrenzen(nurVater, volk, $"Kind ({volk}) eines {elternVolk.Einzahl()}s ohne Mutter");
+                        InGrenzen(nurMutter, volk, $"Kind ({volk}) einer {elternVolk.Einzahl()} ohne Vater");
+                        if (volk != elternVolk) continue;
+                        // Gleiches Volk: Je Gen stammt mindestens ein Allel (bis auf die Mutation) vom bekannten Elternteil
+                        foreach (var gen in v.Gene)
+                            foreach (var kind in new[] { nurVater, nurMutter })
+                            {
+                                var eltern = new[] { elternteil.SichtbarerWert(gen), elternteil.VerdeckterWert(gen.Kennung) };
+                                Pruefe.Wahr(new[] { kind.SichtbarerWert(gen), kind.VerdeckterWert(gen.Kennung) }
+                                    .Any(a => eltern.Any(e => Math.Abs(a - e) <= gen.Mutation)), $"{gen.Kennung}: kein Allel vom Elternteil");
+                            }
+                    }
+                }
+            // Das zweite Allel kommt aus dem Volk, nicht vom Elternteil: Über viele Kinder streut es wie die Glockenkurve
+            var mensch = Erbgut.Wuerfeln(v, 77, Volk.Mensch);
+            var kinder = Enumerable.Range(0, 400).Select(i => Erbgut.Vererben(v, 5000 + i, Volk.Mensch, mensch, null)).ToList();
+            var kinn = v.Gen("kinn")!;
+            var fremd = kinder.Select(k => new[] { k.SichtbarerWert(kinn), k.VerdeckterWert("kinn") })
+                .Select(a => Math.Abs(a[0] - mensch.SichtbarerWert(kinn)) <= 3 || Math.Abs(a[0] - mensch.VerdeckterWert("kinn")) <= 3 ? a[1] : a[0]).ToList();
+            Pruefe.Wahr(fremd.Distinct().Count() > 30, $"Das zweite Allel streut nicht ({fremd.Distinct().Count()} Werte)");
+
+            // Im Spiel: ein Kind, das das Oberhaupt allein ins Haus bringt (KindAufnehmen), erbt genau so
+            var (sim, spieler) = Partie(91);
+            var b = sim.Wirtschaft!.Familien;
+            var o = b.Von(spieler)!.Oberhaupt;
+            var aufgenommen = b.KindAufnehmen(spieler, 3);
+            var vater = o.Geschlecht == Geschlecht.Mann ? o.Erbgut : null;
+            var mutter = o.Geschlecht == Geschlecht.Frau ? o.Erbgut : null;
+            Pruefe.Gleich(Erbgut.Vererben(v, b.ErbgutStartwert(aufgenommen.Nummer), aufgenommen.Volk, vater, mutter).AlsText(), aufgenommen.Erbgut.AlsText());
+            InGrenzen(aufgenommen.Erbgut, aufgenommen.Volk, aufgenommen.Name);
+            var (kopie, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler, Zeitpunkt));
+            Pruefe.Gleich(Bild(sim.Wirtschaft!), Bild(kopie.Wirtschaft!));
+        }),
+
+        ("Erbgut: Zwerginnen tragen Bart – meist leicht (kurz oder geflochten), selten voll; Frauen anderer Völker keinen, Männer wie bisher", () =>
+        {
+            var v = Erbgutvorlage.Standard;
+            Pruefe.Gleich("bartwuchs_frau", v.Gen("bartwuchs")!.BeiFrauen);
+            var zwerge = Enumerable.Range(0, 2000).Select(i => Erbgut.Wuerfeln(v, 40_000 + i, Volk.Zwerg)).ToList();
+            var frauen = zwerge.Select(e => e.SichtbarerWert("bartwuchs", Geschlecht.Frau)).ToList();
+            var leicht = frauen.Count(x => x is >= 40 and < 160) / 2000.0;
+            var voll = frauen.Count(x => x >= 160) / 2000.0;
+            Pruefe.Wahr(leicht >= 0.8, $"Nur {leicht:P0} der Zwerginnen mit leichtem Bart");
+            Pruefe.Wahr(voll is >= 0.003 and <= 0.05, $"Vollbart bei {voll:P1} der Zwerginnen (selten heißt 0,3–5 %)");
+            Pruefe.Wahr(Mittel(frauen) < Mittel(zwerge.Select(e => e.SichtbarerWert("bartwuchs", Geschlecht.Mann))) - 80, "Zwerginnen so bärtig wie Zwerge");
+            foreach (var e in zwerge.Take(50))
+            {
+                Pruefe.Gleich(e.SichtbarerWert("bartwuchs"), e.SichtbarerWert("bartwuchs", Geschlecht.Mann));
+                Pruefe.Gleich(e.SichtbarerWert("bartwuchs_frau"), e.SichtbarerWert("bartwuchs", Geschlecht.Frau));
+                Pruefe.Gleich(e.SichtbarerWert("kinn"), e.SichtbarerWert("kinn", Geschlecht.Frau)); // ohne „beiFrauen“: dasselbe Gen
+                Pruefe.Gleich(e.SichtbarerWert("bartwuchs_frau"), e.WertImAlter("bartwuchs", 60, Geschlecht.Frau));
+            }
+            foreach (var volk in AlleVoelker.Where(x => x != Volk.Zwerg))
+                Pruefe.Wahr(Enumerable.Range(0, 200).All(i => Erbgut.Wuerfeln(v, i, volk).SichtbarerWert("bartwuchs", Geschlecht.Frau) == 0), $"Bärtige Frau ({volk})");
+            // Vererbt wird der Frauenbart wie jedes Gen – auch über den Vater; die Menschentochter einer Zwergin hat keinen
+            var zwergin = zwerge.First(e => e.SichtbarerWert("bartwuchs_frau") >= 120 && e.VerdeckterWert("bartwuchs_frau") >= 120);
+            var toechter = Enumerable.Range(0, 200).Select(i => Erbgut.Vererben(v, i, Volk.Zwerg, zwerge[i + 100], zwergin)).ToList();
+            Pruefe.Wahr(toechter.Average(t => t.SichtbarerWert("bartwuchs", Geschlecht.Frau)) > 100, "Töchter einer bärtigen Zwergin ohne mehr Bart");
+            Pruefe.Wahr(Enumerable.Range(0, 50).All(i => Erbgut.Vererben(v, i, Volk.Mensch, Erbgut.Wuerfeln(v, 300 + i, Volk.Mensch), zwergin)
+                .SichtbarerWert("bartwuchs", Geschlecht.Frau) == 0), "Menschentochter mit Bart");
         }),
 
         ("Erbgut: Volksgrenzen halten – je Volk 1000 gewürfelte Personen und ihre Kinder, auch aus Ehen zwischen Völkern", () =>
