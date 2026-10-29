@@ -278,14 +278,17 @@ public partial class Hauptszene : Node
             _simulation.Takt.IstPausiert = true;
             _jahresbericht.Zeigen(_simulation, _spieler);
         };
-        _bau.Geschlossen += () => { _bauFrage.Hide(); AuswahlAnzeigen(); };
+        _bau.Geschlossen += () => { _bauFrage.Hide(); _wegTafel.Schliessen(); AuswahlAnzeigen(); }; // mit dem Baumenü endet auch der Wege-Modus
         _wegTafel.Gemeldet += Protokollieren;
         _stadt.WegAngeklickt += (weg, stelle) =>
         {
-            if (_bau.Aktiv || _stadt.RaumKennung is not null) return;
+            // kommt nur im Wege-Modus des Baumenüs (Stadtansicht.Wegemodus.cs); die Bautafel bleibt rechts stehen, die Wegtafel links daneben
+            if (_stadt.RaumKennung is not null) return;
             RechtsSchliessen();
-            _wegTafel.Oeffnen(weg, stelle);
+            _wegTipp?.Hide();
+            _wegTafel.Oeffnen(weg, stelle, _bau.Aktiv ? _bau.Size.X + 16 : 0);
         };
+        WegeModusVerbinden();
         _stadt.BauPlatzGewaehlt += befehl =>
         {
             _stadt.BauFest = true; // der Umriss bleibt stehen, bis die Rückfrage beantwortet ist
@@ -1048,6 +1051,7 @@ public partial class Hauptszene : Node
     public override void _Process(double delta)
     {
         _simulation.Aktualisieren(delta);
+        WegTippNachfuehren();
         if (_spulen > 0 && _bauAutoKlick == 0) // Klicktest: Zeit überspringen (z. B. eine Bauzeit)
         {
             var ticks = _spulen;
@@ -1101,10 +1105,10 @@ public partial class Hauptszene : Node
                 _lexikon.Schliessen();
             else if (_bauFrage.Visible)
                 _bauFrage.Zurueck();
-            else if (_bau.Aktiv)
-                _bau.Zurueck();
             else if (_wegTafel.Aktiv)
                 _wegTafel.Schliessen();
+            else if (_bau.Aktiv)
+                _bau.Zurueck();
             else if (Fensterrahmen.ObersteSchliessen())
             { /* das zuletzt geöffnete oder angeklickte Fenster ist zu (Mitte, Innentafeln, Wohnhaus, Bericht, Hafen) */ }
             else if (_einstellungen.Tafel.Visible)
@@ -1171,6 +1175,10 @@ public partial class Hauptszene : Node
             case Key.B when ohneZusatz && imSpiel:
                 if (_bau.Aktiv) _bau.Schliessen();
                 else BauenOeffnen();
+                break;
+            case Key.G when ohneZusatz && imSpiel: // Wege-Modus (W ist die Kamera): öffnet das Baumenü auf „Wege“ bzw. schaltet um
+                if (!_bau.Aktiv) BauenOeffnen();
+                if (_bau.Aktiv) _bau.WegeModus = !_bau.WegeModus;
                 break;
             default:
                 return;
@@ -1413,7 +1421,8 @@ public partial class Hauptszene : Node
     private void BauenStarten(string wahl, Dictionary<string, string> optionen)
     {
         BauenOeffnen();
-        if (wahl == "1" || !_bau.Aktiv) return;
+        if (wahl == "wege" && _bau.Aktiv) _bau.WegeModus = true; // der Wege-Modus des Baumenüs (Klicks mit KLICKS=…)
+        if (wahl is "1" or "wege" || !_bau.Aktiv) return;
         var teile = wahl.Split(':', 2);
         Func<double, double, int, BauBefehl>? erzeuger = null;
         if (teile.Length == 2 && teile[0] == "wohnhaus" && int.TryParse(teile[1], out var stufe))

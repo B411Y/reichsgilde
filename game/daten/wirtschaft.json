@@ -841,6 +841,8 @@
     "lagerJeWare": 40,
     "abfahrtAbFuellgrad": 0.75,
     "nachkaufUnterStueck": 5,
+    "zutatenVorratStunden": 4,
+    "zutatenAnteilKasse": 0.5,
     "maxWartezeitMinuten": 240,
     "karrenVerkaufAnteil": 0.5,
     "tore": {

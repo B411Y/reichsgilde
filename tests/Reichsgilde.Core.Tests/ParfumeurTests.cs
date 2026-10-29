@@ -90,6 +90,56 @@ static class ParfumeurTests
             Pruefe.Gleich(10, b.ImLager("Eisen"), "Eisen bleibt liegen");
         }),
 
+        ("Parfumerie: Ein Schattendolch entsteht aus Dolch, Eisen, Beschlag und Politur – ohne Dolch wird keiner", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var k = w.KontoEroeffnen("Familie Rosenhain", startvermoegen: 5_000);
+            var b = w.BetriebEroeffnen("Parfumerie Rosenhain", Betriebsart.Parfumerie, k, startkarren: "");
+            w.Einstellen(b, "Geselle", 2);
+            b.Produkt = "Schattendolch";
+            foreach (var ware in new[] { "Eisen", "Beschlag", "Politur" }) b.Einlagern(ware, 10);
+            while (sim.Zeit.UhrzeitInMinuten != 12 * 60) sim.Tick();
+            Pruefe.Gleich(0, b.ImLager("Schattendolch"), "ohne Dolch kein Schattendolch");
+            b.Einlagern("Dolch", 5);
+            while (sim.Zeit.UhrzeitInMinuten != 19 * 60) sim.Tick();
+            var gemacht = b.ImLager("Schattendolch");
+            Pruefe.Wahr(gemacht > 0, "Schattendolch aus Dolch, Eisen, Beschlag und Politur");
+            Pruefe.Gleich(5 - gemacht, b.ImLager("Dolch"));
+            foreach (var ware in new[] { "Eisen", "Beschlag", "Politur" })
+                Pruefe.Gleich(10 - gemacht, b.ImLager(ware), ware);
+        }),
+
+        ("Siederei mit Giftdolch, passiv gespielt (Greybox, Startwerte 7/8/9): Der Karren kauft Dolche nach Kasse und Bedarf – kein Bankrott in 5 Jahren", () =>
+        {
+            // Vor PR #232 (Befund der Prüfung): Der Karren füllte bis zur Lagergrenze auf, ohne auf die Kasse zu sehen – 40 Dolche
+            // (≈ 7.000 Gulden) im Lager, die Kasse im ersten Jahr unter null, Bankrott im dritten bzw. vierten Jahr.
+            var karte = Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+            foreach (var startwert in new[] { 7, 8, 9 })
+            {
+                var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert },
+                    Daten.Value, new NeuePartie(Beruf: "Parfumeur"), karte: karte);
+                var w = sim.Wirtschaft!;
+                var b = w.Betriebe.Single(x => x.Konto == spieler);
+                b.Produkt = "Giftdolch";
+                var hoechstens = 0;
+                for (var jahr = 0; jahr < 5; jahr++)
+                {
+                    var j = sim.Zeit.Jahr;
+                    while (sim.Zeit.Jahr == j)
+                    {
+                        sim.Tick();
+                        hoechstens = Math.Max(hoechstens, b.ImLager("Dolch"));
+                    }
+                    Pruefe.Wahr(spieler.Vermoegen > 0, $"Startwert {startwert}, Jahr {j}: Kasse {spieler.Vermoegen:F0}");
+                }
+                Pruefe.Wahr(!spieler.IstBankrott && spieler.Schuldenjahre == 0, $"Startwert {startwert}: nicht bankrott");
+                Pruefe.Wahr(b.Vorjahr!.Umsatz > 0 && w.Markt["Giftdolch"].Preis > 0, $"Startwert {startwert}: verkauft Giftdolche");
+                // Vorrat für 4 Arbeitsstunden, mindestens 10 Stück – weit unter der Lagergrenze von 40
+                Pruefe.Wahr(hoechstens <= 15, $"Startwert {startwert}: höchstens {hoechstens} Dolche im Lager");
+            }
+        }),
+
         ("Moschus: Zuneigung über das Jahreslimit hinaus, einmal im Jahr je Kandidat; vom Markt zum Marktpreis", () =>
         {
             var sim = NeueSimulation();

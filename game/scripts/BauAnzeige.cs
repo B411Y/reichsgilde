@@ -33,6 +33,26 @@ public partial class BauAnzeige : PanelContainer
     /// <summary>Das Gebäude, dessen Platz gerade gewählt wird (null: die Liste ist offen).</summary>
     private (string Name, Func<double, double, int, BauBefehl> Erzeuger, BauBefehl Beispiel)? _gewaehlt;
 
+    /// <summary>
+    /// Wege-Modus: Statt der Gebäude zeigt die Tafel die Belagfarben, alle Wege leuchten und lassen sich anklicken (Stadtansicht.Wegemodus.cs); die Bauzonen
+    /// sind dann aus. Beim Öffnen und Schließen des Baumenüs ist er immer aus.
+    /// </summary>
+    public bool WegeModus
+    {
+        get => _wege;
+        set
+        {
+            if (_wege == value || _stadt is null) return;
+            _wege = value;
+            if (value) { _gewaehlt = null; _stadt.BauPlatzieren(null); }
+            _stadt.Baumodus = !value;
+            _stadt.WegeModus = value;
+            Aufbauen(erzwingen: true);
+        }
+    }
+
+    private bool _wege;
+
     /// <summary>Der Baumodus wurde geschlossen (Knopf, Esc) – die Hauptszene stellt die Stadt wieder normal.</summary>
     public event Action? Geschlossen;
 
@@ -68,6 +88,8 @@ public partial class BauAnzeige : PanelContainer
     public void Oeffnen()
     {
         if (_stadt is null) return;
+        _wege = false;
+        _stadt.WegeModus = false;
         _stadt.Baumodus = true;
         _gewaehlt = null;
         Aufbauen(erzwingen: true);
@@ -78,7 +100,12 @@ public partial class BauAnzeige : PanelContainer
     /// <summary>Schließt den Baumodus ganz: Bauzonen und Umriss verschwinden.</summary>
     public void Schliessen()
     {
-        if (_stadt is not null) _stadt.Baumodus = false;
+        if (_stadt is not null)
+        {
+            _stadt.WegeModus = false;
+            _stadt.Baumodus = false;
+        }
+        _wege = false;
         _gewaehlt = null;
         Hide();
         Geschlossen?.Invoke();
@@ -119,11 +146,12 @@ public partial class BauAnzeige : PanelContainer
     private void Aufbauen(bool erzwingen)
     {
         if (_simulation?.Wirtschaft is not { } w || _spieler is null || _stadt is null || !w.Bauen.IstAktiv) return;
-        var plan = _gewaehlt is { } g ? PlatzwahlPlan(w, g) : ListenPlan(w);
+        var plan = _wege ? "Wege" : _gewaehlt is { } g ? PlatzwahlPlan(w, g) : ListenPlan(w);
         if (!erzwingen && plan == _bauplan) return;
         _bauplan = plan;
         UiHilfe.KinderEntfernen(_inhalt);
-        if (_gewaehlt is { } gewaehlt) PlatzwahlZeigen(w, gewaehlt);
+        if (_wege) WegeZeigen();
+        else if (_gewaehlt is { } gewaehlt) PlatzwahlZeigen(w, gewaehlt);
         else ListeZeigen(w);
     }
 
@@ -158,6 +186,7 @@ public partial class BauAnzeige : PanelContainer
     {
         var waehrung = w.Daten.Allgemein.Waehrung;
         Hauptmenue.Text(_inhalt, "Bauen", 22, Gold, zentriert: true);
+        Umschalter();
         Hauptmenue.Text(_inhalt, $"Vermögen: {Zahlenformat.Ganz(_spieler!.Vermoegen)} {waehrung}", 15, Hell).TooltipText = "Euer Bargeld: Bauen kostet sofort, die Baustelle braucht dann Zeit.";
         Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m, mit der Vorderseite an einer Straße.",
             13, Grau, umbruchBreite: Breite);
@@ -200,6 +229,51 @@ public partial class BauAnzeige : PanelContainer
             _inhalt.AddChild(knopf);
             if (verboten is not null)
                 Hauptmenue.Text(_inhalt, "✗ " + verboten, 12, Rot, umbruchBreite: Breite);
+        }
+        Hauptmenue.Knopf(_inhalt, "Schließen (Esc)", Schliessen).SizeFlagsHorizontal = SizeFlags.ExpandFill;
+    }
+
+    /// <summary>Der Umschalter „Gebäude | Wege“ oben in der Liste (Taste G schaltet ebenfalls um).</summary>
+    private void Umschalter()
+    {
+        var zeile = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        zeile.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(zeile);
+        foreach (var (name, wege, tipp) in new[] { ("Gebäude", false, "Neue Häuser und Werkstätten bauen."), ("Wege (G)", true, "Wege anklicken und ausbauen: Kies, Pflaster, Antrag im Rat.") })
+        {
+            var knopf = new Button
+            {
+                Text = name, ToggleMode = true, ButtonPressed = _wege == wege, FocusMode = FocusModeEnum.None, TooltipText = tipp,
+                CustomMinimumSize = new Vector2(150, 32), SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            };
+            var ziel = wege;
+            knopf.Pressed += () => WegeModus = ziel;
+            zeile.AddChild(knopf);
+        }
+    }
+
+    /// <summary>Wege-Modus: Legende der Belagfarben und ein Hinweis; die Wege selbst leuchten in der Stadt.</summary>
+    private void WegeZeigen()
+    {
+        Hauptmenue.Text(_inhalt, "Wege", 22, Gold, zentriert: true);
+        Umschalter();
+        Hauptmenue.Text(_inhalt, "Alle Wege der Stadt leuchten in der Farbe ihres Belags. Fahrt mit der Maus über einen Weg, um Belag, nächste Stufe, Kosten und Bauzeit zu sehen; ein Klick öffnet die Wegtafel zum Ausbauen.",
+            13, Grau, umbruchBreite: Breite);
+        foreach (var (name, stufe, baustelle, tipp) in new[]
+        {
+            ("Trampelpfad", Belagstufe.Trampelpfad, false, "Ausgetretene Erde: Karren fahren hier am langsamsten."),
+            ("Fahrweg", Belagstufe.Fahrweg, false, "Von Rädern ausgefahrene Erde mit Spurrillen."),
+            ("Kies", Belagstufe.Kies, false, "Mit Kies geschotterte Straße (Bauauftrag)."),
+            ("Pflaster", Belagstufe.Pflaster, false, "Gepflasterte Straße: schnell und sicher, aber teuer."),
+            ("Baustelle", Belagstufe.Kies, true, "Hier wird gerade gebaut."),
+        })
+        {
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 10);
+            zeile.TooltipText = tipp;
+            _inhalt.AddChild(zeile);
+            zeile.AddChild(new ColorRect { Color = Stadtansicht.WegeFarbe(stufe, baustelle), CustomMinimumSize = new Vector2(28, 12), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Pass, TooltipText = tipp });
+            Hauptmenue.Text(zeile, name, 14, Hell).TooltipText = tipp;
         }
         Hauptmenue.Knopf(_inhalt, "Schließen (Esc)", Schliessen).SizeFlagsHorizontal = SizeFlags.ExpandFill;
     }
