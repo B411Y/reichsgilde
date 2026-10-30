@@ -19,6 +19,21 @@ public partial class Feuertest : Node
 {
     public const string Szene = "res://scenes/Feuertest.tscn";
 
+    /// <summary>
+    /// Die Startargumente der Testszene, auch wenn das einzelne „--“ fehlt. Godot gibt nur, was hinter „--“ steht, als Spielargument weiter
+    /// (<c>OS.GetCmdlineUserArgs()</c>). Steht <c>--feuertest=1</c> ohne „--“ in den Laufzeitargumenten des Editors, landet es ohne Fehlermeldung
+    /// bei Godots eigenen Argumenten (<c>OS.GetCmdlineArgs()</c>), und es kam bisher einfach das Hauptmenü (belegt mit Godot 4.7.2, Start aus dem
+    /// Editor, 30.10.2026). Darum zählen hier auch die Argumente vor „--“, aber nur die mit <c>--feuer</c> am Anfang: Vor „--“ stehen beim Start
+    /// aus dem Editor immer Godots eigene Argumente (<c>--scene</c>, <c>--position</c> …), und schon eine einzige Spieloption ließe das Hauptmenü aus
+    /// (<see cref="KlicktestTreiber.SpielOptionen"/>). Alle übrigen Startoptionen bleiben deshalb hinter „--“.
+    /// </summary>
+    public static IEnumerable<string> Startargumente() =>
+        OS.GetCmdlineArgs().Where(a => a.StartsWith("--feuer")).Concat(OS.GetCmdlineUserArgs());
+
+    /// <summary>Soll das Spiel gleich in die Testszene gehen? <c>--feuertest=1</c> oder nur <c>--feuertest</c>, mit oder ohne „--“ davor.</summary>
+    public static bool Angefordert =>
+        Startargumente().Any(a => a == "--feuertest" || (a.StartsWith("--feuertest=") && a != "--feuertest=0"));
+
     private enum Sicht { Nah, Stadt, Fern }
     private enum Zeigen { Beide, NurA, NurB, Keins }
     /// <summary>Vergleich: A links, B rechts; sonst jede Feuerart einmal, wie die Grafikstufe sie zeichnet.</summary>
@@ -79,7 +94,7 @@ public partial class Feuertest : Node
 
     public override void _Ready()
     {
-        foreach (var arg in OS.GetCmdlineUserArgs())
+        foreach (var arg in Startargumente())
         {
             var teile = arg.TrimStart('-').Split('=', 2);
             if (teile.Length == 2) _optionen[teile[0]] = teile[1];
