@@ -1,15 +1,18 @@
 // Figuren (figur_<volk>.glb, PR #149): ein Material „Figur“ für alle Teile, damit eine Figur ein Zeichenaufruf ist statt sechs.
 // Jede Fläche trägt ihre Zone in UV.x und ihre Grundfarbe in COLOR (als sRGB-Wert): 0 = feste Farbe (Auge, Leder, Holz, Eisen …),
-// 1 = Gewand, 2 = Beinkleid, 3 = Haut, 4 = Haar, 5 = Kopfbedeckung. Die Farben der Zonen 1–5 setzt das Spiel je Figur als
-// Instanz-Uniform (Stadtansicht.Figuren.cs) – alle Figuren teilen sich dieses eine Material.
+// 1 = Gewand, 2 = Beinkleid, 3 = Haut, 4 = Haar, 5 = Kopfbedeckung. Die Farben der Zonen 1–5 sind gewöhnliche Uniforms: Das Spiel gibt
+// jeder Tracht (Kombination der fünf Farben) ein Material (Stadtansicht.Figuren.cs, FigurStoff), alle Teile einer Figur teilen es.
+// Kein „instance uniform“: Jeder Knoten mit Instanz-Uniform belegt 16 Plätze im Puffer der Grafikkarte, und der ist im
+// Compatibility-Renderer (opengl3, auch der Rückfall ohne Vulkan) schon nach gut 250 Knoten voll – eine Figur hat bis zu 20 Teile
+// (Werkzeuge versteckt mitgezählt). Danach meldete Godot „Too many instances using shader instance variables“ und die Farben waren falsch.
 shader_type spatial;
 render_mode cull_disabled;
 
-instance uniform vec4 gewand : source_color = vec4(0.5, 0.4, 0.3, 1.0);
-instance uniform vec4 beinkleid : source_color = vec4(0.35, 0.3, 0.25, 1.0);
-instance uniform vec4 haut : source_color = vec4(0.85, 0.66, 0.52, 1.0);
-instance uniform vec4 haar : source_color = vec4(0.3, 0.2, 0.12, 1.0);
-instance uniform vec4 kopfbedeckung : source_color = vec4(0.6, 0.5, 0.3, 1.0);
+uniform vec4 gewand : source_color = vec4(0.5, 0.4, 0.3, 1.0);
+uniform vec4 beinkleid : source_color = vec4(0.35, 0.3, 0.25, 1.0);
+uniform vec4 haut : source_color = vec4(0.85, 0.66, 0.52, 1.0);
+uniform vec4 haar : source_color = vec4(0.3, 0.2, 0.12, 1.0);
+uniform vec4 kopfbedeckung : source_color = vec4(0.6, 0.5, 0.3, 1.0);
 
 varying flat int zone;
 varying vec3 grundfarbe;

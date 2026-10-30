@@ -20,7 +20,7 @@ public static class KlangOberflaeche
 {
     public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo }
 
-    private const string Ordner = "res://assets/audio/geraeusche/oberflaeche/";
+    public const string Ordner = "res://assets/audio/geraeusche/oberflaeche/";
     /// <summary>Sekunden nach dem Start, in denen nichts spielt (Fenster, die beim Aufbau auf- und zugehen).</summary>
     private const double Anlauf = 1.5;
     /// <summary>Mindestabstand in Sekunden zwischen zwei Klängen desselben Ereignisses.</summary>
@@ -40,6 +40,13 @@ public static class KlangOberflaeche
         [Ereignis.Bauen] = (new[] { "impact_plank_medium_000", "impact_plank_medium_001", "impact_plank_medium_002", "chop" }, -5f, 1.0f, 0.05f),
         [Ereignis.Tempo] = (new[] { "metal_click", "metal_latch" }, -9f, 1.0f, 0.04f),
     };
+
+    /// <summary>Dateien (ohne .ogg, in <see cref="Ordner"/>), Lautstärke in dB und Tonhöhe eines Ereignisses – für den Reiter „Klänge“ des Entwicklerfensters.</summary>
+    public static (IReadOnlyList<string> Dateien, float Db, float Hoehe) Angaben(Ereignis ereignis)
+    {
+        var (dateien, db, hoehe, _) = Tabelle[ereignis];
+        return (dateien, db, hoehe);
+    }
 
     private static readonly Dictionary<Ereignis, AudioStreamRandomizer?> _klaenge = new();
     private static readonly Dictionary<Ereignis, double> _zuletzt = new();

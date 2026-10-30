@@ -196,7 +196,7 @@ public partial class Ladebildschirm : CanvasLayer
 
 /// <summary>
 /// Der Fortschritt als Pergamentstreifen im Holzschnitt-Stil: heller Streifen mit eingerollten Enden und schwarzem Umriss, Schraffur im Schatten
-/// unten, der gefüllte Teil in rötlicher Handfarbe, leicht neben seinem Umriss (wie aufgemalt), darauf der Text in Tinte.
+/// unten, der gefüllte Teil in rötlicher Handfarbe, leicht neben seinem Umriss (wie aufgemalt), darauf der Text in Tinte mit einem Hof in Pergamentfarbe.
 /// Der Balken läuft dem Ziel weich nach, aber nie darüber hinaus.
 /// </summary>
 public partial class Ladebalken : Control
@@ -273,12 +273,14 @@ public partial class Ladebalken : Control
             DrawLine(new Vector2(kasten.Position.X + kasten.Size.X * 0.5f, 4), new Vector2(kasten.Position.X + kasten.Size.X * 0.5f, h - 4), new Color(Tinte, 0.55f), 1f);
         }
 
-        // Text in Tinte, mittig
+        // Text in Tinte, mittig. Darunter ein Hof in Pergamentfarbe (Umriss der Schrift): Über der roten Füllung und der Schraffur
+        // stünde die dunkle Tinte sonst schlecht lesbar – so liegt jeder Buchstabe auf „freiem Papier“, wie ausgespart beim Kolorieren.
         if (_text == "") return;
         var schrift = Schriften.Text;
         const int groesse = 20;
         var mass = schrift.GetStringSize(_text, HorizontalAlignment.Left, -1, groesse);
         var ort = new Vector2((b - mass.X) / 2, (h - mass.Y) / 2 + schrift.GetAscent(groesse));
+        DrawStringOutline(schrift, ort, _text, HorizontalAlignment.Left, -1, groesse, 7, Pergament);
         DrawString(schrift, ort, _text, HorizontalAlignment.Left, -1, groesse, Tinte);
     }
 

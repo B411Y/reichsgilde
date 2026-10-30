@@ -9,9 +9,9 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Das <b>Entwicklerfenster</b> („Trainer“, Taste <b>F12</b> und Knopf „Entwickler“ in der Betriebsleiste – beides nur mit dem Haken
-/// „Entwickler-Optionen“ im Hauptmenü, <see cref="Entwickler.Aktiv"/>): in der Bildmitte fünf Reiter. <b>Haus und Zeit</b> (Gulden, Aktionspunkte, Stand, Ansehen,
+/// „Entwickler-Optionen“ im Hauptmenü, <see cref="Entwickler.Aktiv"/>): in der Bildmitte sechs Reiter. <b>Haus und Zeit</b> (Gulden, Aktionspunkte, Stand, Ansehen,
 /// Meinung, Vorspulen), <b>Familie und Ereignisse</b> (Geburt, Heirat, Krankheit, Tod, Charakterzüge, Diebstahl, Feuer), <b>Wirtschaft</b> (Ware, Zutaten),
-/// <b>Wetter und Darstellung</b> und <b>Messwerte</b> (EntwicklerAnzeige.Darstellung.cs).
+/// <b>Wetter und Darstellung</b>, <b>Messwerte</b> (EntwicklerAnzeige.Darstellung.cs) und <b>Klänge</b> (alle Klänge zum Anhören mit Bus und Pegel, EntwicklerAnzeige.Klaenge.cs).
 ///
 /// Alles, was die Partie verändert, geht als <see cref="EntwicklerBefehl"/> über <see cref="UiHilfe.Befehlen"/> an den Kern (der prüft die Sperre
 /// <see cref="Simulation.EntwicklerErlaubt"/>, setzt das Kennzeichen „mit Entwicklerhilfe“ und liefert die Meldung, die unten im Fenster steht).
@@ -86,6 +86,7 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         WirtschaftReiter();
         DarstellungReiter();
         MesswerteReiter();
+        KlaengeReiter();
 
         spalte.AddChild(new HSeparator());
         _ergebnis = Hauptmenue.Text(spalte, "Noch nichts getan.", 14, Grau, umbruchBreite: Breite - 20);
@@ -370,6 +371,7 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     public override void _Process(double delta)
     {
         if (!Offen || _sim is null) return;
+        KlaengeAuffrischen(); // der Pegel läuft jedes Bild mit
         _seitAuffrischen += delta;
         if (_seitAuffrischen < 0.5) return;
         _seitAuffrischen = 0;
