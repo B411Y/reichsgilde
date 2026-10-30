@@ -113,6 +113,9 @@ Startoptionen (nach `--`):
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 - `--wasservergleich=1` (Kosten des Wassers: nach 10 s reihum ohne Wasser und in den vier Wasserstufen, je 4 s, drei Runden im selben Prozess; Median der GPU- und Bildzeit je Zustand als `[wassermessung] …` ins Protokoll, dann beenden; mit `--karte`, `--blick`, `--voreinstellung`, `--vsync=Aus`; `docs/wasser/phase3.md`)
+- `--schollenmessung=1` (treibende Eisschollen: alle 10 s die Rechenzeit der Simulation, Schritte, Suche, Lösen, Kontakte und gezeichnete Schollen (`[wasser] Schollen-Simulation …`) und ihr Verhalten (`[wasser] Schollen-Verhalten …`: Drehen großer Schollen an der Brücke und im Freien, Dreher, Sprünge des Scheintempos, Durchdringung der Stoßkreise, stehende Schollen, Durchsatz und Stau je Pfeilerlücke, Brüche, Taucher, Nachschub, Vorrat, Speicheranforderung je Bild); ohne die Option rechnet nichts davon; Schollen 2 in `docs/wasser/phase3.md`)
+- `--schollenumriss=1` (Prüfhilfe: Umriss jeder treibenden Scholle aus der C#-Rechnung gelb und ihre Stoßkreise rot als Linien darüber, bis 60 m um die Kamera; der gelbe Umriss muss auf der Kante der gezeichneten Scholle liegen und mit ihr drehen, auch bei Bruchstücken)
+- `--schollenbruch=<Faktor>` (Chance, dass eine Scholle beim Aufprall oder unter Druck an Pfeiler, Prahm oder Kahn bricht, mal Faktor, z. B. `10` zum Ansehen; dazu je Bruch eine Zeile `[wasser] Bruch: …` mit Ort und Zeit)
 
 ## Feuer und Flammen
 

@@ -1331,3 +1331,28 @@ Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig
 | Ursache | „Too many instances using shader instance variables“ (Köln, `opengl3`: 5.866 Meldungen je Start): Jeder Knoten, dessen Material ein `instance uniform` hat, belegt 16 Plätze im Puffer der Grafikkarte – auch versteckte Werkzeuge der Figuren und jedes Nachtlicht. Im Compatibility-Renderer begrenzt die Grafikkarte den Puffer (die Projekteinstellung hilft dort nicht), in Forward+ reichte der auf 1 048 576 vergrößerte Puffer noch. Danach bekamen Figuren falsche Farben. | 30.10.2026 |
 | Lösung | Instanz-Uniforms sparen statt Grenze anheben: `figur.gdshader` hat gewöhnliche Uniforms, ein Material je Tracht (`Stadtansicht.Figuren.cs`, `FigurStoff`; `Oberflaechendetails.FigurStoff` liest die Farben aus diesem Material). `nachtlicht.gdshader`: `phase` gewöhnliche Uniform; feste Lichter flackern nach ihrer Lage, Lichter in der Hand bekommen eine von acht Material-Varianten mit festem Startwert (`TaktStoff`). Das Spiel nutzt kein `instance uniform` mehr; `buffer_size` steht wieder auf der Vorgabe (65 536; der vergrößerte Puffer ist nicht mehr nötig). | 30.10.2026 |
 | Prüfung | Klicktest Köln: `opengl3` vorher 5.866 Meldungen, nachher 0; Vulkan (T400) 0, Figuren am Heumarkt bei Tag und Laternen bei Nacht in ihren Farben. | 30.10.2026 |
+
+### Realistisches Wasser, Phase 1 (PR #268)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Quelle | Übernommen ist der „Realistic Water Shader“ aus `godot-extended-libraries/godot-realistic-water` (UnionBytes / AiYori, MIT, Stand `fa0fc478` mit der Godot-4-Fassung von clayjohn). Der Port auf Godot 4.0 (`spicyhaydenc`) ist nicht übernommen: Sein Shader rechnet die Tiefe nach OpenGL-Art und zeigt unter 4.7 überall Schaum. Die Bilder sind in beiden Quellen byte-gleich | 29.10.2026 |
+| Nicht übernommen | Beispielszene (Boot, Fels, Boden, Seegras mit Bildern), Icon, Vorschaubild, `.material`: Herkunft nirgends belegt, nicht gebraucht. Rest-Risiko der übernommenen Bilder: Eine Einzelquelle nennt das Projekt nicht, es gilt die MIT-Erlaubnis des Repositorys | 29.10.2026 |
+| Ablage | Nach Dateiart (`assets/shader/realistisches_wasser/`, `assets/texturen/realistisches_wasser/`) statt `addons/`, damit das Asset-Protokoll sie erfasst; Shader und Bilder unverändert, `LICENSE.md` und `AUTHORS.md` daneben | 29.10.2026 |
+| Lauffähigkeit | Der Original-Shader läuft unter 4.7 Forward+ ohne Änderung; er braucht Tiefen- und Bildschirmtextur (nicht im Kompatibilitätsrenderer). Die Kaustik baut die Testszene aus dem 4×4-Atlas zu einem Textur-Feld. Kosten auf der T400: rund 6–14 ms je Bild bei 80×80 m | 29.10.2026 |
+| Testszene | `Wassertest.cs` / `Wassertest.tscn` (Startoption `--wassertest=1`), ohne Verbindung zum Spiel; das Wasser des Spiels ist unverändert. Fehlerprotokoll, Vergleich mit `wasser.gdshader`, Parameter und Testanleitung: `docs/wasser/phase1.md` | 29.10.2026 |
+
+### Realistisches Wasser, Phase 2 (PR #268)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stil | Nur gemalt-realistisch, keine Stilwahl (Nutzer) | 29.10.2026 |
+| Shader | `wasser_realistisch.gdshader` leitet den übernommenen Shader ab (Copyright-Hinweis im Kopf; Original bleibt als `Water_Original.gdshader` unverändert): Strömung, neuer Schaum, Wind, Regenringe, Eis, Kaustik und Tiefe aus der Welt. Teile per `#define` abschaltbar (Grundlage der Grafikstufen) | 29.10.2026 |
+| Bilder | Austauschbar über Sampler-Uniforms und die Pfade in `Wasserarten.cs`; seit dem Merge von wasser-tex die eigenen Bilder aus Blender | 29.10.2026 |
+| Arten | `Wasserarten.cs`: Fluss, Bach, Teich, See, Meer, Hafenbecken, Furt und die Schaumstufe Kaisaum als Parametersätze; Zuordnung Kartenwasser → Art festgelegt (Fluss ≤ 5 m = Bach; Schaum nur Fluss ab 30 m und Meer; See ≤ 2.000 m² = Teich) | 29.10.2026 |
+| Eis | Nur optisch: Bach/Teich ganz, See nur Rand (3–6 m), Fluss, Furt, Hafenbecken, Meer nie. Winterfortschritt aus Jahreszeit und Jahresanteil (Winter: wächst im ersten Drittel, Frühling: taut im ersten Drittel) | 29.10.2026 |
+| Wind | Wellen, Richtung und Kräuselung folgen schwach dem Weltwind (höchstens +60 % Steilheit); Regenringe nur bei Regen; keine Überschwemmung | 29.10.2026 |
+| Messung | Mit Last auf der T400 schwanken Einzelläufe um das Doppelte; gemessen wird reihum in einem Prozess und das beste Ergebnis genannt. Die Brechung ist mit rund 1,8 von 4,3 ms der größte Posten | 29.10.2026 |
+| Meer, Wellenvielfalt (Nachtrag) | Fünf Wellenzüge mit eigener Länge, Richtung und eigenem Tempo; ihre Stärke schwankt als langsam wanderndes Rauschen mit festem Hash (Gruppen großer Wellen, ruhige Stellen). Meer voll, See 0,6, Hafenbecken 0,3; Teich, Bach, Fluss und Furt unverändert. Wellen klingen am Rand des Testfeldes ab; Kaustik der Furt von 1,0 auf 0,35, des Bachs auf 0,8 gesenkt | 29.10.2026 |
+
+Offen nach Phase 3: Messung je Art in ruhiger Stunde.
