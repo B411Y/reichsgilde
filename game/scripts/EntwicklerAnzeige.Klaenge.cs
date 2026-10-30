@@ -47,6 +47,8 @@ public sealed partial class EntwicklerAnzeige
                 MinValue = -60, MaxValue = 0, Value = -60, ShowPercentage = false, CustomMinimumSize = new Vector2(220, 14),
                 SizeFlagsVertical = SizeFlags.ShrinkCenter, TooltipText = "Pegel des Busses jetzt (lauterer Kanal, −60 bis 0 dB).",
             };
+            pegel.AddThemeStyleboxOverride("background", new StyleBoxFlat { BgColor = new Color(0.12f, 0.10f, 0.08f), BorderColor = Grau, BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1 });
+            pegel.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = Gruen });
             raster.AddChild(pegel);
             _busZeilen.Add((i, wert, pegel));
         }
