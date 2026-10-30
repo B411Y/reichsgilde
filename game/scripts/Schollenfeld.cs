@@ -358,7 +358,7 @@ public sealed class Schollenfeld
         var liste = new List<(float S, float Q, float R, float Schwelle)>();
         var raster = new Dictionary<(int, int), List<int>>();
         const float rasterM = 3f;
-        var versuche = (int)(_laenge * 2f * band * 0.9f);
+        var versuche = (int)(_laenge * 2f * band * 1.8f); // dicht: Randeis großer Flüsse ist fast ganz angefrorenes Treibeis
         for (var k = 0; k < versuche; k++)
         {
             var u = (float)rnd.NextDouble();
@@ -398,7 +398,7 @@ public sealed class Schollenfeld
                         {
                             var o = liste[n];
                             var (ds, dq) = (o.S - s, o.Q - q);
-                            var min = 0.8f * (o.R + r);
+                            var min = 0.78f * (o.R + r);
                             if (ds * ds + dq * dq < min * min) { platzFrei = false; break; }
                         }
             if (!platzFrei) continue;
