@@ -236,15 +236,15 @@ class Stirnfransen(Stil):
 
 class Krauskopf(Stil):
     """m07: Krauskopf – dichte, kräftige Locken, etwa 8 cm, viel Volumen."""
-    name, geschlecht, anzahl, punkte = "krauskopf", "m", 4200, 32
-    schritt, volumen, volumen_weg, hub, steif = 0.003, (0.004, 0.028), 0.03, 0.7, 0.3
+    name, geschlecht, anzahl, punkte = "krauskopf", "m", 4600, 32
+    schritt, volumen, volumen_weg, hub, steif = 0.003, (0.008, 0.038), 0.035, 0.9, 0.3
     wellen, klumpen, kraus = (0.006, 0.022), (8, 0.35), 0.3
 
     def dichte(self, q):
         return self.h.kopfhaut(q, ohr_frei=(0.018, 0.026))
 
     def kamm(self, q, n, s, w):
-        return _norm(_vom_wirbel(self.h, q, vorn=0.2, unten=0.25) + Vector(n) * 0.5)
+        return _norm(_vom_wirbel(self.h, q, vorn=0.2, unten=0.25) + Vector(n) * 0.8)
 
     def schwere(self, s, w):
         return 0.3 * glatt(s, 0.03, 0.08)
@@ -650,17 +650,80 @@ class Spitzbart(k4.Bart):
     name, anzahl = "spitzbart", 1800
 
     def dichte(self, q):
-        return self.flaechen(q)["kinn"]
+        q = np.atleast_2d(q)
+        return self.flaechen(q)["kinn"] * (1 - glatt(np.abs(q[:, 0]), 0.35 * self.mundbreite, 0.55 * self.mundbreite))
 
     def kamm(self, q, n, s, w):
-        spitze = Vector((0.0, self.m68[8, 1] - 0.012 * self.M, self.m68[8, 2] - 0.035 * self.M))
-        return _norm(UNTEN + (spitze - q) * 20.0)
+        spitze = Vector((0.0, self.m68[8, 1] - 0.012 * self.M, self.m68[8, 2] - 0.03 * self.M))
+        return _norm(UNTEN + (spitze - q) * 25.0)
 
     def schwere(self, s, w):
         return 0.5
 
     def laenge(self, w, n):
-        return (0.028 + 0.016 * glatt(self.mundbreite - abs(w[0]), 0, self.mundbreite)) * self.rng.uniform(0.85, 1.1) * self.M
+        return (0.022 + 0.012 * glatt(self.mundbreite - abs(w[0]), 0, self.mundbreite)) * self.rng.uniform(0.85, 1.1) * self.M
+
+
+class KurzerVollbart(k4.Vollbart):
+    """b03: kurzer Vollbart – gestutzt, 1,5–2 cm, dicht, Wangen bis zur Linie Ohr – Mundwinkel."""
+    name, anzahl, punkte = "vollbart", 6500, 8
+    volumen = (0.0008, 0.004)
+
+    def laenge(self, w, n):
+        z = self.zone(w)
+        if z == "schnurr":
+            return 0.013 * self.rng.uniform(0.85, 1.1) * self.M
+        L = {"kinn": 0.022, "wange": 0.015, "hals": 0.016}[z]
+        return L * self.rng.uniform(0.85, 1.1) * self.M
+
+
+class SchnurrKinnbart(k4.Bart):
+    """b07: schmaler Schnurrbart (nur über der Lippe, außen kurz eingedreht) und ein kleines Büschel unter der
+    Unterlippe."""
+    name, anzahl = "kinnbart", 1400
+
+    def dichte(self, q):
+        q = np.atleast_2d(q)
+        f = self.flaechen(q)
+        schmal = glatt(q[:, 2] - (self.lippe_oben + 0.001 * self.M), 0.0, 0.002 * self.M) \
+            * (1 - glatt(q[:, 2] - (self.lippe_oben + 0.007 * self.M), 0.0, 0.002 * self.M))
+        mitte = 1 - glatt(np.abs(q[:, 0]), 0.25 * self.mundbreite, 0.4 * self.mundbreite)
+        unter_lippe = glatt(self.lippe_unten - 0.002 * self.M - q[:, 2], 0.0, 0.002 * self.M) \
+            * (1 - glatt(self.lippe_unten - 0.02 * self.M - q[:, 2], 0.0, 0.004 * self.M))
+        return np.maximum(f["schnurr"] * schmal, f["kinn"] * mitte * unter_lippe)
+
+    def kamm(self, q, n, s, w):
+        if w[2] > self.lippe_oben - 0.002 * self.M:
+            sx = 1.0 if w[0] >= 0 else -1.0
+            return _norm(Vector((sx * 1.0, -0.1, -0.35)))
+        return _norm(UNTEN + VORN * 0.2)
+
+    def schwere(self, s, w):
+        return 0.3
+
+    def laenge(self, w, n):
+        if w[2] > self.lippe_oben - 0.002 * self.M:
+            return (0.008 + 0.012 * glatt(abs(w[0]), 0.0, self.mundbreite)) * self.rng.uniform(0.85, 1.1) * self.M
+        return 0.02 * self.rng.uniform(0.8, 1.1) * self.M
+
+
+class LangerSchnurrbart(k4.Schnurrbart):
+    """b08: langer, hängender Schnurrbart – die Enden hängen an den Mundwinkeln bis unter das Kinn."""
+    name, anzahl, punkte = "schnurrbart", 1500, 16
+    schritt = 0.002
+
+    def kamm(self, q, n, s, w):
+        sx = 1.0 if w[0] >= 0 else -1.0
+        aussen = glatt(abs(w[0]), 0.0, self.mundbreite)
+        k = glatt(s, 0.008, 0.02)
+        return _norm(Vector((sx * (0.5 + 0.5 * aussen) * (1 - k) + sx * 0.08 * k, -0.15, -1.0)))
+
+    def schwere(self, s, w):
+        return 0.8 * glatt(s, 0.01, 0.03)
+
+    def laenge(self, w, n):
+        aussen = glatt(abs(w[0]), 0.2 * self.mundbreite, self.mundbreite + 0.004 * self.M)
+        return (0.014 + 0.065 * aussen ** 2) * self.rng.uniform(0.85, 1.1) * self.M
 
 
 class Backenbart(k4.Bart):
@@ -708,4 +771,5 @@ FRISUREN = {"m": [Topfschnitt, Pagenkopf, Haarrolle, Schulterlang, Geschoren, St
             "w": [Zoepfe, EinZopf, Offen, Flechtkranz, Schnecken, Zopfschlaufen, Nackenknoten, Haarnetz, HoheStirn,
                   KrauseLocken]}
 # Bart 0 (rasiert) hat keine Strähnen; die Liste beginnt mit b02
-BAERTE = [Stoppeln, k4.Vollbart, k4.Langbart, Gabelbart, Spitzbart, k4.Kinnbart, k4.Schnurrbart, Backenbart, Wildbart]
+BAERTE = [Stoppeln, KurzerVollbart, k4.Langbart, Gabelbart, Spitzbart, SchnurrKinnbart, LangerSchnurrbart, Backenbart,
+          Wildbart]

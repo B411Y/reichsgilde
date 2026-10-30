@@ -33,7 +33,7 @@ const STUFE := 0.26                  # jede Reihe höher (Tribüne), damit man a
 const BODEN := 0.6
 
 var args := {}
-var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb4")
+var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb5")
 var bilder := OS.get_environment("HOME").path_join("werkzeuge/charakter/bilder/phase4")
 var koepfe: Array = []            # [Kopf, ton, mann, alter]
 var umgebung: Environment
@@ -69,7 +69,11 @@ func _ready() -> void:
 	_buehne()
 	if not DirAccess.dir_exists_absolute(glb_ordner):
 		glb_ordner = glb_ordner.get_base_dir().path_join("glb3")
-	var standard := "kopf4.glb" if FileAccess.file_exists(glb_ordner.path_join("kopf4.glb")) else "kopf3.glb"
+	var standard := "kopf3.glb"
+	for n in ["kopf5.glb", "kopf4.glb"]:
+		if FileAccess.file_exists(glb_ordner.path_join(n)):
+			standard = n
+			break
 	var datei := glb_ordner.path_join(args.get("kopf", standard))
 	haar_modus = args.get("haar", "karten")
 	var basis := Kopf.new()

@@ -1,0 +1,147 @@
+{
+ "name": "frisuren10_w",
+ "titel": "Phase 5: zehn Frisuren der Frauen (TressFX, 30 Jahre, Haarstruktur glatt)",
+ "zelle": [
+  300,
+  350
+ ],
+ "alle": {
+  "kopf": "standard",
+  "alter": 30,
+  "geschlecht": "w",
+  "gene": {
+   "haar_helligkeit": 85
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "hinten",
+   "winkel": 160
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "f01 frau_zoepfe",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "frau_zoepfe",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f02 ein_zopf",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "ein_zopf",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f03 frau_offen",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "frau_offen",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f04 flechtkranz",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "flechtkranz",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f05 schnecken",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "schnecken",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f06 zopfschlaufen",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "zopfschlaufen",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f07 frau_knoten",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f08 haarnetz",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "haarnetz",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f09 hohe_stirn",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "hohe_stirn",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "f10 krause_locken",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "krause_locken",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  }
+ ]
+}

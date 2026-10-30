@@ -1,0 +1,147 @@
+{
+ "name": "frisuren10_m",
+ "titel": "Phase 5: zehn Frisuren der Männer (TressFX, 35 Jahre, Haarstruktur glatt)",
+ "zelle": [
+  300,
+  350
+ ],
+ "alle": {
+  "kopf": "standard",
+  "alter": 35,
+  "geschlecht": "m",
+  "gene": {
+   "haar_helligkeit": 85
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "hinten",
+   "winkel": 160
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "m01 topfschnitt",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "topfschnitt",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m02 mann_pagen",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_pagen",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m03 haarrolle",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "haarrolle",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m04 schulterlang",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "schulterlang",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m05 mann_kurz",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m06 stirnfransen",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "stirnfransen",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m07 krauskopf",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "krauskopf",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m08 tonsur",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "tonsur",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m09 zerzaust",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "zerzaust",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "m10 kranz",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "kranz",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  }
+ ]
+}

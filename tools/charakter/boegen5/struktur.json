@@ -1,0 +1,141 @@
+{
+ "name": "struktur",
+ "titel": "Phase 5: Haarstruktur glatt – wellig – lockig (vorläufiges Gen „haarstruktur“)",
+ "zelle": [
+  320,
+  370
+ ],
+ "alle": {
+  "kopf": "standard",
+  "winkel": 30,
+  "gene": {
+   "haar_helligkeit": 85,
+   "bartwuchs": 200
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "glatt (0)"
+  },
+  {
+   "titel": "wellig (128)"
+  },
+  {
+   "titel": "lockig (255)"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "schulterlang + Vollbart",
+   "alter": 35,
+   "geschlecht": "m",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "schulterlang",
+       "bart": "vollbart",
+       "struktur": 0.0
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "schulterlang",
+       "bart": "vollbart",
+       "struktur": 0.5
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "schulterlang",
+       "bart": "vollbart",
+       "struktur": 1.0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "Frau offen",
+   "alter": 30,
+   "geschlecht": "w",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": "",
+       "struktur": 0.0
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": "",
+       "struktur": 0.5
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": "",
+       "struktur": 1.0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "Pagenkopf + langer Bart",
+   "alter": 45,
+   "geschlecht": "m",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": "langbart",
+       "struktur": 0.0
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": "langbart",
+       "struktur": 0.5
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": "langbart",
+       "struktur": 1.0
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,151 @@
+{
+ "name": "baerte10",
+ "titel": "Phase 5: zehn Bärte (TressFX, Mann 40, kurz geschoren)",
+ "zelle": [
+  300,
+  350
+ ],
+ "alle": {
+  "kopf": "standard",
+  "alter": 40,
+  "geschlecht": "m",
+  "gene": {
+   "bartwuchs": 200,
+   "haar_helligkeit": 85
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "¾, Mund offen",
+   "winkel": 30,
+   "mimik": {
+    "jawOpen": 0.5
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "b01 rasiert",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b02 stoppeln",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "stoppeln",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b03 vollbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "vollbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b04 langbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "langbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b05 gabelbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "gabelbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b06 spitzbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "spitzbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b07 kinnbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "kinnbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b08 schnurrbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "schnurrbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b09 backenbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "backenbart",
+     "struktur": 0.0
+    }
+   }
+  },
+  {
+   "titel": "b10 wildbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "wildbart",
+     "struktur": 0.0
+    }
+   }
+  }
+ ]
+}
