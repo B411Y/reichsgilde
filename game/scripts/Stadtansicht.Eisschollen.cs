@@ -9,6 +9,8 @@ namespace Reichsgilde;
 /// mit Dicke statt eines Musters auf dem Wasser. Gebaut wird es ein Bild nach den Wasserflächen (dann stehen auch die Brücken, deren Pfeiler die
 /// Schollen umfahren); jedes Bild treibt es mit der Strömung, folgt dem Eisfortschritt der Art und weicht dem Prahm der Fähren und den Kähnen aus.
 /// Die Netze hängen unter den Wasserflächen: Sie verschwinden mit ihnen (Messung „ohne Wasser“) und entstehen neu, wenn die Grafikstufe wechselt.
+/// Seit Phase 3d stoßen die Schollen aneinander und an Pfeilern, und festgefrorene Schollen geben dem Randeis Dicke (<see cref="Schollenfeld"/>);
+/// sie liegen nicht in Rinnen der Fähren, in der offenen Rinne einer Mündung und nicht am Kai.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -24,6 +26,12 @@ public partial class Stadtansicht
 
     /// <summary>Halbe Ausdehnung des Prahms der Fähre (quer zum Fluss, also entlang der Fährlinie, und längs) und eines Kahns am Kai.</summary>
     private const float PrahmQuer = 6.2f, PrahmLaengs = 2.6f, KahnQuer = 2.2f, KahnLaengs = 7f;
+
+    /// <summary>Startoption <c>--schollenmessung=1</c>: alle 10 s Rechenzeit der Simulation und Zahl der Schollen ins Protokoll.</summary>
+    private static readonly bool SchollenMessung = OS.GetCmdlineUserArgs().Contains("--schollenmessung=1");
+
+    private double _schollenMessZeit, _schollenMessSumme;
+    private int _schollenMessBilder;
 
     private void SchollenVergessen()
     {
@@ -63,6 +71,16 @@ public partial class Stadtansicht
                 }
             feld.Bild(delta, kamera, Wasserarten.EisFortschritt(art, _wasserWinter), art.Schollen, _schollenBeweglich);
         }
+        if (!SchollenMessung) return;
+        foreach (var (feld, _) in _schollenFelder) _schollenMessSumme += feld.SimulationMs;
+        _schollenMessBilder++;
+        _schollenMessZeit += delta;
+        if (_schollenMessZeit < 10) return;
+        var f0 = _schollenFelder[0].Feld;
+        GD.Print($"[wasser] Schollen-Simulation: {_schollenMessSumme / Math.Max(_schollenMessBilder, 1):0.000} ms je Bild ({_schollenMessBilder} Bilder), " +
+                 $"{f0.Aktiv} aktiv, {f0.Gezeichnet} gezeichnet, {f0.Feste} fest; letztes Bild: {f0.Teilschritte} Teilschritte, Stöße {f0.StoesseMs:0.00} ms, " +
+                 $"{f0.Pruefungen} Paarprüfungen, {f0.Beruehrungen} Berührungen");
+        (_schollenMessZeit, _schollenMessSumme, _schollenMessBilder) = (0, 0, 0);
     }
 
     private void SchollenBauen(Wasserlauf lauf, Wasserart art)
@@ -78,11 +96,37 @@ public partial class Stadtansicht
             if (abstand < punkte[(int)Mathf.Clamp(stelle, 0, punkte.Length - 1)].Halb + 4f)
                 hindernisse.Add(new(quer, stelle, halbQuer, halbLaengs));
         }
-        var feld = new Schollenfeld(punkte, (float)lauf.Stroemung, art.EisReichweite, (int)(saat * 100), _wasserStufe, hindernisse, lauf.Name);
+        var feld = new Schollenfeld(punkte, (float)lauf.Stroemung, art.EisReichweite, (int)(saat * 100), _wasserStufe, hindernisse, lauf.Name,
+            FesteSchollenFrei(lauf));
         Wasserarten.WellenSetzen(feld.Stoff, art, Vector2.Up, lauf: true, fliesst: true, Wasserarten.NetzAbstand(_wasserStufe), saat);
         _wasserFlaechen.AddChild(feld.Knoten);
         _schollenFelder.Add((feld, art));
-        GD.Print($"[wasser] Eisschollen {lauf.Name}: {feld.Anzahl} Schollen auf {punkte.Length} m, {hindernisse.Count} Pfeiler");
+        GD.Print($"[wasser] Eisschollen {lauf.Name}: {feld.Anzahl} treibend auf {punkte.Length} m, {feld.Feste} fest im Randeis, {hindernisse.Count} Pfeiler" +
+                 (hindernisse.Count > 0 ? $" ({string.Join("; ", _wasserPfeiler.Select(p => $"{p.Ort.X:0},{p.Ort.Y:0}"))})" : ""));
+    }
+
+    /// <summary>
+    /// Wo im Randeis eines Flusses feste Schollen liegen dürfen: nicht in der Rinne einer Fähre und nicht an einer Furt (dort ist das Eis offen),
+    /// nicht in der offenen Rinne stromab einer Mündung (Loch mit weichem Rand), nicht am Kai (dort friert das stille Wasser wie das Hafenbecken)
+    /// und nicht im Bereich eines anderen Gewässers.
+    /// </summary>
+    private Func<Vector2, float, bool>? FesteSchollenFrei(Wasserlauf lauf)
+    {
+        if (GewaesserForm is not { } form) return null;
+        var offen = OffeneStellen(form, lauf.Nummer, lauf.Name);
+        var andere = AndereGewaesser(form, lauf, null);
+        var rinnen = new List<(Vector2 A, Vector2 B, float Halb)>();
+        foreach (var m in _muendungen)
+            if (m.Ziel == lauf && LaufStelle(lauf, m.Ort) is { } st)
+                rinnen.Add((m.Ort, m.Ort + st.Richtung * (6f + 3f * m.Halb), m.Halb + 0.6f + LochRand));
+        return (ort, r) =>
+        {
+            var (o, kai) = Offenheit(offen, ort, 1f);
+            if (o > 0.05f || kai > 0.05f) return false;
+            foreach (var (a, b, halb) in rinnen)
+                if (AbstandStrecke(ort, a, b) < halb + r * 0.6f) return false;
+            return andere.Count == 0 || !ImAnderenWasser(form, andere, ort, lauf, null);
+        };
     }
 
     /// <summary>Die Mittellinie eines Laufs je Meter (der Kern gibt etwa einen Punkt je Meter): Ort, Spiegel, halbe Breite, Fließrichtung wie im Netz.</summary>
