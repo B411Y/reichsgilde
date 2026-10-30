@@ -1,0 +1,90 @@
+{
+ "titel": "P7 Formprüfung – N5, L-V, ohne Haar (Kinder in K2 mit automatischer Spanne)",
+ "pruefplan": "P7",
+ "ab": "A",
+ "zelle": [
+  720,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": -30,
+  "hoehe": 0,
+  "spanne_m": 0.07,
+  "ziel_m": -0.035,
+  "ziel_x": -0.035,
+  "schluessel_richtung": [
+   -110,
+   15
+  ],
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "titel": "neutral",
+   "mimik": {}
+  },
+  {
+   "titel": "jawOpen 0,7",
+   "mimik": {
+    "jawOpen": 0.7
+   }
+  },
+  {
+   "titel": "eyeBlink 1",
+   "mimik": {
+    "eyeBlinkLeft": 1.0,
+    "eyeBlinkRight": 1.0
+   }
+  },
+  {
+   "titel": "mouthSmile 0,8",
+   "mimik": {
+    "mouthSmileLeft": 0.8,
+    "mouthSmileRight": 0.8
+   }
+  },
+  {
+   "titel": "browInnerUp 0,8",
+   "mimik": {
+    "browInnerUp": 0.8
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "alter": 1,
+   "geschlecht": "m",
+   "haar": {
+    "modus": "aus"
+   },
+   "titel": "Säugling 1"
+  },
+  {
+   "alter": 5,
+   "geschlecht": "w",
+   "haar": {
+    "modus": "aus"
+   },
+   "titel": "Kind 5"
+  },
+  {
+   "alter": 35,
+   "geschlecht": "m",
+   "haar": {
+    "modus": "aus"
+   },
+   "titel": "Mann 35"
+  },
+  {
+   "alter": 35,
+   "geschlecht": "w",
+   "haar": {
+    "modus": "aus"
+   },
+   "titel": "Frau 35"
+  }
+ ],
+ "name": "p07_formpruefung_n5"
+}

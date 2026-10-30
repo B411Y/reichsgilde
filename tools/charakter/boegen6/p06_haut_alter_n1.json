@@ -1,0 +1,122 @@
+{
+ "titel": "P6 Haut und Alter – N1, L-S (für die Blindschätzung gemischt ab S11)",
+ "pruefplan": "P6",
+ "ab": "C",
+ "zelle": [
+  720,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": -30,
+  "hoehe": 0,
+  "spanne_m": 0.07,
+  "ziel_m": -0.035,
+  "ziel_x": -0.035,
+  "kopf": "standard",
+  "licht": "spiel"
+ },
+ "spalten": [
+  {
+   "titel": "20 Jahre",
+   "alter": 20
+  },
+  {
+   "titel": "35 Jahre",
+   "alter": 35
+  },
+  {
+   "titel": "50 Jahre",
+   "alter": 50
+  },
+  {
+   "titel": "70 Jahre",
+   "alter": 70
+  }
+ ],
+ "zeilen": [
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "titel": "Mann, Wetter 0",
+   "wetter": 0
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "titel": "Mann, Wetter 1",
+   "wetter": 1
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau, Wetter 0",
+   "wetter": 0,
+   "gene": {
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau, Wetter 1",
+   "wetter": 1,
+   "gene": {
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  }
+ ],
+ "name": "p06_haut_alter_n1"
+}

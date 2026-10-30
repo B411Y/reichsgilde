@@ -1,0 +1,77 @@
+{
+ "titel": "P14 Extreme (Gerüst; die 20 extremsten nach K und 10 zufällige aus 10001–11000 wählt S5)",
+ "pruefplan": "P14",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "m",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "mann_kurz",
+    "bart": ""
+   }
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "10001",
+   "saat": 10001
+  },
+  {
+   "titel": "10002",
+   "saat": 10002
+  },
+  {
+   "titel": "10003",
+   "saat": 10003
+  },
+  {
+   "titel": "10004",
+   "saat": 10004
+  },
+  {
+   "titel": "10005",
+   "saat": 10005
+  },
+  {
+   "titel": "10006",
+   "saat": 10006
+  },
+  {
+   "titel": "10007",
+   "saat": 10007
+  },
+  {
+   "titel": "10008",
+   "saat": 10008
+  },
+  {
+   "titel": "10009",
+   "saat": 10009
+  },
+  {
+   "titel": "10010",
+   "saat": 10010
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "K1"
+  }
+ ],
+ "name": "p14_extreme"
+}

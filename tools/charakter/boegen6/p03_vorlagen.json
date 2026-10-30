@@ -1,0 +1,507 @@
+{
+ "titel": "P3 Vorlagen: Vorlage vorn | Stand 5 | Stand 6 | Vorlage ¾ | Stand 6 ¾ (L-V, auf den IPD der Vorlage gelegt; ¾ wie die Vorlagen nach rechts gedreht = K2 gespiegelt)",
+ "pruefplan": "P3",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "titel": "Vorlage vorn"
+  },
+  {
+   "titel": "Stand 5"
+  },
+  {
+   "titel": "Stand 6"
+  },
+  {
+   "titel": "Vorlage ¾"
+  },
+  {
+   "titel": "Stand 6 ¾"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "m01 (Mann ~35, Topfschnitt)",
+   "geschlecht": "m",
+   "alter": 35,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "topfschnitt",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/m01_topfschnitt/vorn.png",
+      "pupillen": [
+       [
+        397.3,
+        414.4
+       ],
+       [
+        590.8,
+        413.7
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/m01_topfschnitt/dreiviertel.png",
+      "pupillen": [
+       [
+        591.0,
+        401.0
+       ],
+       [
+        714.0,
+        400.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "m05 (Mann ~35, kurz geschoren)",
+   "geschlecht": "m",
+   "alter": 35,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/m05_kurz_geschoren/vorn.png",
+      "pupillen": [
+       [
+        397.3,
+        405.9
+       ],
+       [
+        588.8,
+        403.3
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/m05_kurz_geschoren/dreiviertel.png",
+      "pupillen": [
+       [
+        580.0,
+        375.0
+       ],
+       [
+        712.0,
+        372.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "b01 (Mann ~45, rasiert)",
+   "geschlecht": "m",
+   "alter": 45,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/b01_rasiert/vorn.png",
+      "pupillen": [
+       [
+        397.3,
+        407.1
+       ],
+       [
+        585.9,
+        405.6
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "kopf": null,
+     "titel": "(keine Merkpunkte)"
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "f02 (Frau ~30, ein Zopf)",
+   "geschlecht": "w",
+   "alter": 30,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "ein_zopf",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/f02_ein_zopf/vorn.png",
+      "pupillen": [
+       [
+        436.1,
+        327.4
+       ],
+       [
+        580.2,
+        325.4
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -75,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "kopf": null,
+     "titel": "(keine Merkpunkte)"
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -75,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "f07 (Frau ~30, Nackenknoten)",
+   "geschlecht": "w",
+   "alter": 30,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/f07_nackenknoten/vorn.png",
+      "pupillen": [
+       [
+        414.7,
+        379.8
+       ],
+       [
+        584.1,
+        374.7
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/f07_nackenknoten/dreiviertel.png",
+      "pupillen": [
+       [
+        605.0,
+        378.0
+       ],
+       [
+        716.0,
+        377.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "f09 (Frau ~30, hohe Stirn)",
+   "geschlecht": "w",
+   "alter": 30,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "hohe_stirn",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-haar/f09_hohe_stirn/vorn.png",
+      "pupillen": [
+       [
+        413.9,
+        379.3
+       ],
+       [
+        584.2,
+        373.8
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "kopf": null,
+     "titel": "(keine Merkpunkte)"
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  }
+ ],
+ "name": "p03_vorlagen"
+}

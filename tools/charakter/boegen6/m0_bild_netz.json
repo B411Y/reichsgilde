@@ -1,0 +1,52 @@
+{
+ "titel": "M0 Bild gegen Netz: vorn ortho | vorn perspektivisch | Profil ortho | Profil perspektivisch (L-S, ohne Haar)",
+ "pruefplan": "S0",
+ "ab": "A",
+ "zelle": [
+  900,
+  1080
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "spiel",
+  "ansicht": "kopf",
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "haar": {
+   "modus": "aus"
+  },
+  "alter": 30
+ },
+ "spalten": [
+  {
+   "titel": "vorn ortho",
+   "winkel": 0,
+   "kamera": "ortho"
+  },
+  {
+   "titel": "vorn perspektivisch",
+   "winkel": 0
+  },
+  {
+   "titel": "Profil ortho",
+   "winkel": 90,
+   "kamera": "ortho"
+  },
+  {
+   "titel": "Profil perspektivisch",
+   "winkel": 90
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Mann 30",
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Frau 30",
+   "geschlecht": "w"
+  }
+ ],
+ "name": "m0_bild_netz"
+}

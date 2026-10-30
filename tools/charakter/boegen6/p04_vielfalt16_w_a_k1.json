@@ -1,0 +1,103 @@
+{
+ "titel": "P4 Vielfalt 16 Frauen 35 – alle Gene gewürfelt, K1, L-S",
+ "pruefplan": "P4",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "saat_arten": [],
+  "geschlecht": "w",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "6101",
+   "saat": 6101
+  },
+  {
+   "titel": "6102",
+   "saat": 6102
+  },
+  {
+   "titel": "6103",
+   "saat": 6103
+  },
+  {
+   "titel": "6104",
+   "saat": 6104
+  },
+  {
+   "titel": "6105",
+   "saat": 6105
+  },
+  {
+   "titel": "6106",
+   "saat": 6106
+  },
+  {
+   "titel": "6107",
+   "saat": 6107
+  },
+  {
+   "titel": "6108",
+   "saat": 6108
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "1–8"
+  },
+  {
+   "titel": "9–16",
+   "zellen": [
+    {
+     "titel": "6109",
+     "saat": 6109
+    },
+    {
+     "titel": "6110",
+     "saat": 6110
+    },
+    {
+     "titel": "6111",
+     "saat": 6111
+    },
+    {
+     "titel": "6112",
+     "saat": 6112
+    },
+    {
+     "titel": "6113",
+     "saat": 6113
+    },
+    {
+     "titel": "6114",
+     "saat": 6114
+    },
+    {
+     "titel": "6115",
+     "saat": 6115
+    },
+    {
+     "titel": "6116",
+     "saat": 6116
+    }
+   ]
+  }
+ ],
+ "name": "p04_vielfalt16_w_a_k1"
+}

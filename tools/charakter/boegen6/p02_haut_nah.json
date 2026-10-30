@@ -1,0 +1,202 @@
+{
+ "titel": "P2 Haut nah (N1–N6, L-V); Wetter wirkt ab S9",
+ "pruefplan": "P2",
+ "ab": "C",
+ "zelle": [
+  720,
+  720
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "ansicht": "kopf",
+   "winkel": -30,
+   "hoehe": 0,
+   "spanne_m": 0.07,
+   "ziel_m": -0.035,
+   "ziel_x": -0.035,
+   "titel": "N1"
+  },
+  {
+   "ansicht": "augen",
+   "winkel": 12,
+   "hoehe": 0,
+   "spanne_m": 0.075,
+   "ziel_m": 0.0,
+   "titel": "N2"
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": 15,
+   "hoehe": 0,
+   "spanne_m": 0.12,
+   "ziel_m": 0.0,
+   "titel": "N3"
+  },
+  {
+   "ansicht": "mund",
+   "winkel": 15,
+   "hoehe": 0,
+   "spanne_m": 0.09,
+   "ziel_m": -0.07,
+   "titel": "N4"
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": -30,
+   "hoehe": 0,
+   "spanne_m": 0.07,
+   "ziel_m": -0.035,
+   "ziel_x": -0.035,
+   "schluessel_richtung": [
+    -110,
+    15
+   ],
+   "titel": "N5"
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": 35,
+   "hoehe": 0,
+   "spanne_m": 0.34,
+   "ziel_m": -0.02,
+   "licht": "spiel",
+   "schluessel": {
+    "visible": false
+   },
+   "titel": "N6"
+  }
+ ],
+ "zeilen": [
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "alter": 35,
+   "titel": "Mann 35"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "alter": 70,
+   "titel": "Mann 70"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "alter": 35,
+   "titel": "Frau 35",
+   "gene": {
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "alter": 70,
+   "titel": "Frau 70",
+   "gene": {
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "alter": 50,
+   "wetter": 0,
+   "titel": "Mann 50, Wetter 0"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "alter": 50,
+   "wetter": 1,
+   "titel": "Mann 50, Wetter 1"
+  }
+ ],
+ "name": "p02_haut_nah"
+}

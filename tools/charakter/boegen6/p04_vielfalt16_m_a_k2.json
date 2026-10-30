@@ -1,0 +1,103 @@
+{
+ "titel": "P4 Vielfalt 16 Männer 35 – alle Gene gewürfelt, K2, L-S",
+ "pruefplan": "P4",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 35,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "saat_arten": [],
+  "geschlecht": "m",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "6001",
+   "saat": 6001
+  },
+  {
+   "titel": "6002",
+   "saat": 6002
+  },
+  {
+   "titel": "6003",
+   "saat": 6003
+  },
+  {
+   "titel": "6004",
+   "saat": 6004
+  },
+  {
+   "titel": "6005",
+   "saat": 6005
+  },
+  {
+   "titel": "6006",
+   "saat": 6006
+  },
+  {
+   "titel": "6007",
+   "saat": 6007
+  },
+  {
+   "titel": "6008",
+   "saat": 6008
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "1–8"
+  },
+  {
+   "titel": "9–16",
+   "zellen": [
+    {
+     "titel": "6009",
+     "saat": 6009
+    },
+    {
+     "titel": "6010",
+     "saat": 6010
+    },
+    {
+     "titel": "6011",
+     "saat": 6011
+    },
+    {
+     "titel": "6012",
+     "saat": 6012
+    },
+    {
+     "titel": "6013",
+     "saat": 6013
+    },
+    {
+     "titel": "6014",
+     "saat": 6014
+    },
+    {
+     "titel": "6015",
+     "saat": 6015
+    },
+    {
+     "titel": "6016",
+     "saat": 6016
+    }
+   ]
+  }
+ ],
+ "name": "p04_vielfalt16_m_a_k2"
+}

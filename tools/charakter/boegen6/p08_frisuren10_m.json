@@ -1,0 +1,199 @@
+{
+ "titel": "P8 Zehn Frisuren Männer – vorn, ¾, Profil, hinten (L-S)",
+ "pruefplan": "P8",
+ "ab": "B",
+ "zelle": [
+  420,
+  480
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "ansicht": "kopf",
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "hinten",
+   "winkel": 160
+  }
+ ],
+ "zeilen": [
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "topfschnitt",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "topfschnitt"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_pagen",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "mann_pagen"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "haarrolle",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "haarrolle"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "schulterlang",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "schulterlang"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "mann_kurz"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "stirnfransen",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "stirnfransen"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "krauskopf",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "krauskopf"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "tonsur",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "tonsur"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "zerzaust",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "zerzaust"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "kranz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "kranz"
+  }
+ ],
+ "name": "p08_frisuren10_m"
+}

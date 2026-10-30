@@ -1,0 +1,56 @@
+{
+ "titel": "P15 Stilvergleich BG3/CK3 (Referenztafel nur lokal, ~/werkzeuge/charakter/referenz_stil/)",
+ "pruefplan": "P15",
+ "ab": "C",
+ "zelle": [
+  760,
+  860
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 25,
+  "hoehe": 3,
+  "spanne_m": 0.34,
+  "ziel_m": -0.03,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35
+ },
+ "spalten": [
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "Mann 35"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau 35"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "K4"
+  }
+ ],
+ "name": "p15_referenz_stil"
+}

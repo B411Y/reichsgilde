@@ -1,0 +1,233 @@
+{
+ "titel": "P5 Familie (Allelregel „mittel“, wirkt ab S7) – K2, L-S, alle 35 Jahre",
+ "pruefplan": "P5",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 35,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "familie": {
+   "6211": [
+    6201,
+    6202
+   ],
+   "6212": [
+    6203,
+    6204
+   ],
+   "6221": [
+    6211,
+    6212
+   ],
+   "6222": [
+    6211,
+    6212
+   ],
+   "6223": [
+    6211,
+    6212
+   ],
+   "6224": [
+    6211,
+    6212
+   ]
+  },
+  "allelregel": "mittel"
+ },
+ "spalten": [
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Großeltern",
+   "zellen": [
+    {
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45,
+     "saat": 6201,
+     "titel": "6201"
+    },
+    {
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45,
+     "saat": 6202,
+     "titel": "6202"
+    },
+    {
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45,
+     "saat": 6203,
+     "titel": "6203"
+    },
+    {
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45,
+     "saat": 6204,
+     "titel": "6204"
+    }
+   ]
+  },
+  {
+   "titel": "Eltern",
+   "zellen": [
+    {
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45,
+     "saat": 6211,
+     "titel": "6211"
+    },
+    {
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45,
+     "saat": 6212,
+     "titel": "6212"
+    }
+   ]
+  },
+  {
+   "titel": "Kinder",
+   "zellen": [
+    {
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45,
+     "saat": 6221,
+     "titel": "6221"
+    },
+    {
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45,
+     "saat": 6222,
+     "titel": "6222"
+    },
+    {
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45,
+     "saat": 6223,
+     "titel": "6223"
+    },
+    {
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45,
+     "saat": 6224,
+     "titel": "6224"
+    }
+   ]
+  }
+ ],
+ "name": "p05_familie_mittel"
+}

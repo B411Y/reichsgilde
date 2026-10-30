@@ -1,0 +1,70 @@
+{
+ "titel": "P9 Stufen Niedrig | Mittel | Hoch | Ultra (wirkt ab S14) – K4, L-S",
+ "pruefplan": "P9",
+ "ab": "D",
+ "zelle": [
+  760,
+  860
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 25,
+  "hoehe": 3,
+  "spanne_m": 0.34,
+  "ziel_m": -0.03,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35
+ },
+ "spalten": [
+  {
+   "titel": "Niedrig",
+   "stufe": "niedrig"
+  },
+  {
+   "titel": "Mittel",
+   "stufe": "mittel"
+  },
+  {
+   "titel": "Hoch",
+   "stufe": "hoch"
+  },
+  {
+   "titel": "Ultra",
+   "stufe": "ultra",
+   "ultra": true
+  }
+ ],
+ "zeilen": [
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "titel": "Mann 35"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau 35"
+  }
+ ],
+ "name": "p09_stufen"
+}

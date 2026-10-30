@@ -1,0 +1,278 @@
+{
+ "titel": "P16 Ruhegesicht und Lebensspuren (wirkt ab S12) – K4, L-S",
+ "pruefplan": "P16",
+ "ab": "D",
+ "zelle": [
+  760,
+  860
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 25,
+  "hoehe": 3,
+  "spanne_m": 0.34,
+  "ziel_m": -0.03,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 40
+ },
+ "spalten": [
+  {
+   "titel": "Jaehzornig",
+   "saat": 6301,
+   "leben": {
+    "zuege": [
+     "Jaehzornig"
+    ]
+   },
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45
+  },
+  {
+   "titel": "Gesellig",
+   "saat": 6302,
+   "leben": {
+    "zuege": [
+     "Gesellig"
+    ]
+   },
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45
+  },
+  {
+   "titel": "Feige",
+   "saat": 6303,
+   "leben": {
+    "zuege": [
+     "Feige"
+    ]
+   },
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45
+  },
+  {
+   "titel": "Zynisch",
+   "saat": 6304,
+   "leben": {
+    "zuege": [
+     "Zynisch"
+    ]
+   },
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45
+  },
+  {
+   "titel": "Hochmuetig",
+   "saat": 6305,
+   "leben": {
+    "zuege": [
+     "Hochmuetig"
+    ]
+   },
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130
+   },
+   "warten": 45
+  },
+  {
+   "titel": "Scheu",
+   "saat": 6306,
+   "leben": {
+    "zuege": [
+     "Scheu"
+    ]
+   },
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "1–6"
+  },
+  {
+   "titel": "7–12",
+   "zellen": [
+    {
+     "titel": "Trinker",
+     "saat": 6307,
+     "leben": {
+      "zuege": [
+       "Trinker"
+      ]
+     },
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45
+    },
+    {
+     "titel": "Kraenklich",
+     "saat": 6308,
+     "leben": {
+      "zuege": [
+       "Kraenklich"
+      ]
+     },
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45
+    },
+    {
+     "titel": "Schoen",
+     "saat": 6309,
+     "leben": {
+      "zuege": [
+       "Schoen"
+      ]
+     },
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45
+    },
+    {
+     "titel": "Stark",
+     "saat": 6310,
+     "leben": {
+      "zuege": [
+       "Stark"
+      ]
+     },
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45
+    },
+    {
+     "titel": "Gesellig",
+     "saat": 6311,
+     "leben": {
+      "zuege": [
+       "Gesellig"
+      ]
+     },
+     "geschlecht": "m",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     },
+     "gene": {
+      "bartwuchs": 130
+     },
+     "warten": 45
+    },
+    {
+     "titel": "Jaehzornig",
+     "saat": 6312,
+     "leben": {
+      "zuege": [
+       "Jaehzornig"
+      ]
+     },
+     "geschlecht": "w",
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     },
+     "warten": 45
+    }
+   ]
+  }
+ ],
+ "name": "p16_ruhegesicht"
+}

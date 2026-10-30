@@ -1,0 +1,169 @@
+{
+ "titel": "P11 Farbtafel Haar, Bart und Brauen (Spalten haar_helligkeit 0/60/100/160/225) – K4, L-S",
+ "pruefplan": "P11",
+ "ab": "A",
+ "zelle": [
+  760,
+  860
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 25,
+  "hoehe": 3,
+  "spanne_m": 0.34,
+  "ziel_m": -0.03,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "m",
+  "warten": 45,
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "mann_pagen",
+    "bart": "vollbart"
+   }
+  }
+ },
+ "spalten": [
+  {
+   "titel": "helligkeit 0"
+  },
+  {
+   "titel": "helligkeit 60"
+  },
+  {
+   "titel": "helligkeit 100"
+  },
+  {
+   "titel": "helligkeit 160"
+  },
+  {
+   "titel": "helligkeit 225"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "haar_rot 0",
+   "zellen": [
+    {
+     "gene": {
+      "haar_helligkeit": 0,
+      "haar_rot": 0,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 60,
+      "haar_rot": 0,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 100,
+      "haar_rot": 0,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 160,
+      "haar_rot": 0,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 225,
+      "haar_rot": 0,
+      "bartwuchs": 190
+     }
+    }
+   ]
+  },
+  {
+   "titel": "haar_rot 70",
+   "zellen": [
+    {
+     "gene": {
+      "haar_helligkeit": 0,
+      "haar_rot": 70,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 60,
+      "haar_rot": 70,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 100,
+      "haar_rot": 70,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 160,
+      "haar_rot": 70,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 225,
+      "haar_rot": 70,
+      "bartwuchs": 190
+     }
+    }
+   ]
+  },
+  {
+   "titel": "haar_rot 170",
+   "zellen": [
+    {
+     "gene": {
+      "haar_helligkeit": 0,
+      "haar_rot": 170,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 60,
+      "haar_rot": 170,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 100,
+      "haar_rot": 170,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 160,
+      "haar_rot": 170,
+      "bartwuchs": 190
+     }
+    },
+    {
+     "gene": {
+      "haar_helligkeit": 225,
+      "haar_rot": 170,
+      "bartwuchs": 190
+     }
+    }
+   ]
+  }
+ ],
+ "name": "p11_farbtafel_haar"
+}

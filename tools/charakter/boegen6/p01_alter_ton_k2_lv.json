@@ -1,0 +1,156 @@
+{
+ "titel": "P1 Alter und Hautton – K2, L-V (Mittelgesicht)",
+ "pruefplan": "P1",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 35,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "titel": "20 Jahre",
+   "alter": 20
+  },
+  {
+   "titel": "35 Jahre",
+   "alter": 35
+  },
+  {
+   "titel": "50 Jahre",
+   "alter": 50
+  },
+  {
+   "titel": "70 Jahre",
+   "alter": 70
+  }
+ ],
+ "zeilen": [
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 235,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "titel": "Mann hell (H1)"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "titel": "Mann mittel (H2)"
+  },
+  {
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "bartwuchs": 130,
+    "haut_helligkeit": 135,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "titel": "Mann dunkel (H3)"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau hell (H1)",
+   "gene": {
+    "haut_helligkeit": 235,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau mittel (H2)",
+   "gene": {
+    "haut_helligkeit": 185,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "Frau dunkel (H3)",
+   "gene": {
+    "haut_helligkeit": 135,
+    "haut_ton": 105,
+    "haar_helligkeit": 60,
+    "haar_rot": 40
+   }
+  }
+ ],
+ "name": "p01_alter_ton_k2_lv"
+}

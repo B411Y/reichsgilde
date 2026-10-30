@@ -1,0 +1,169 @@
+{
+ "titel": "P8 Zehn Frisuren Frauen – vorn, ¾, Profil, hinten (L-S)",
+ "pruefplan": "P8",
+ "ab": "B",
+ "zelle": [
+  420,
+  480
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "ansicht": "kopf",
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "hinten",
+   "winkel": 160
+  }
+ ],
+ "zeilen": [
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_zoepfe",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "frau_zoepfe"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "ein_zopf",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "ein_zopf"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_offen",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "frau_offen"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "flechtkranz",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "flechtkranz"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "schnecken",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "schnecken"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "zopfschlaufen",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "zopfschlaufen"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "frau_knoten"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "haarnetz",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "haarnetz"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "hohe_stirn",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "hohe_stirn"
+  },
+  {
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "krause_locken",
+     "bart": ""
+    }
+   },
+   "warten": 45,
+   "titel": "krause_locken"
+  }
+ ],
+ "name": "p08_frisuren10_w"
+}

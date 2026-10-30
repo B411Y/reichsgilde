@@ -1,0 +1,49 @@
+{
+ "titel": "P10 Kalibrierung: Graukarte 18 % | Hautfeld Typ III | Farbtest (Albedo) | Prüfkugeln (Wrap 0, Wrap 0,4, Standard) L-V | dieselben L-S",
+ "pruefplan": "P10",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "titel": "Graukarte",
+   "pruefkoerper": "graukarte"
+  },
+  {
+   "titel": "Hautfeld III",
+   "pruefkoerper": "hautfeld"
+  },
+  {
+   "titel": "Farbtest (Albedo)",
+   "pruefkoerper": "farbtest",
+   "anzeige": "albedo"
+  },
+  {
+   "titel": "Kugeln L-V",
+   "pruefkoerper": "kugel"
+  },
+  {
+   "titel": "Kugeln L-S",
+   "pruefkoerper": "kugel",
+   "licht": "spiel"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Stand 5",
+   "stand": 5
+  }
+ ],
+ "name": "p10_kalibrier"
+}

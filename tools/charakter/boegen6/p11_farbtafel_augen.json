@@ -1,0 +1,218 @@
+{
+ "titel": "P11 Farbtafel Augen (Spalten augen_helligkeit 25/75/130/180/230) – N2 (Augen nah), L-S",
+ "pruefplan": "P11",
+ "ab": "A",
+ "zelle": [
+  720,
+  504
+ ],
+ "alle": {
+  "ansicht": "augen",
+  "winkel": 12,
+  "hoehe": 0,
+  "spanne_m": 0.075,
+  "ziel_m": 0.0,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "m",
+  "haar": {
+   "modus": "aus"
+  }
+ },
+ "spalten": [
+  {
+   "titel": "helligkeit 25"
+  },
+  {
+   "titel": "helligkeit 75"
+  },
+  {
+   "titel": "helligkeit 130"
+  },
+  {
+   "titel": "helligkeit 180"
+  },
+  {
+   "titel": "helligkeit 230"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "augen_ton 30",
+   "zellen": [
+    {
+     "gene": {
+      "augen_helligkeit": 25,
+      "augen_ton": 30
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 75,
+      "augen_ton": 30
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 130,
+      "augen_ton": 30
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 180,
+      "augen_ton": 30
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 230,
+      "augen_ton": 30
+     }
+    }
+   ]
+  },
+  {
+   "titel": "augen_ton 80",
+   "zellen": [
+    {
+     "gene": {
+      "augen_helligkeit": 25,
+      "augen_ton": 80
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 75,
+      "augen_ton": 80
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 130,
+      "augen_ton": 80
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 180,
+      "augen_ton": 80
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 230,
+      "augen_ton": 80
+     }
+    }
+   ]
+  },
+  {
+   "titel": "augen_ton 135",
+   "zellen": [
+    {
+     "gene": {
+      "augen_helligkeit": 25,
+      "augen_ton": 135
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 75,
+      "augen_ton": 135
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 130,
+      "augen_ton": 135
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 180,
+      "augen_ton": 135
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 230,
+      "augen_ton": 135
+     }
+    }
+   ]
+  },
+  {
+   "titel": "augen_ton 185",
+   "zellen": [
+    {
+     "gene": {
+      "augen_helligkeit": 25,
+      "augen_ton": 185
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 75,
+      "augen_ton": 185
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 130,
+      "augen_ton": 185
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 180,
+      "augen_ton": 185
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 230,
+      "augen_ton": 185
+     }
+    }
+   ]
+  },
+  {
+   "titel": "augen_ton 235",
+   "zellen": [
+    {
+     "gene": {
+      "augen_helligkeit": 25,
+      "augen_ton": 235
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 75,
+      "augen_ton": 235
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 130,
+      "augen_ton": 235
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 180,
+      "augen_ton": 235
+     }
+    },
+    {
+     "gene": {
+      "augen_helligkeit": 230,
+      "augen_ton": 235
+     }
+    }
+   ]
+  }
+ ],
+ "name": "p11_farbtafel_augen"
+}
