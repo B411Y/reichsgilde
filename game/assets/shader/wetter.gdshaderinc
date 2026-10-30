@@ -83,9 +83,10 @@ vec2 pfuetze(vec2 wp, float tiefe, float stadt, float naesse) {
 }
 
 // Regentropfen auf nassem Boden, in Pfützen und auf flachen Flächen der Modelle (Regen 4: ersetzt die Ringe als Partikel, die an einer Ebene in Höhe der
-// Bildmitte lagen – wo das Gelände höher stieg, verschwanden sie hinter einer geraden Linie, die beim Verschieben mitsprang). Je Zelle (0,5 m, zwei
-// versetzte Lagen) fällt im eigenen Takt (0,75–1,25 s) ein Tropfen, aber nur in einem Teil der Takte (dichte): ein kurzer Spritzer, dann ein flacher
-// Ring, der sich auf gut 0,2 m weitet und verklingt – außen ein Wellenkamm, innen dicht dahinter eine Rinne. Feste Größe in der Welt; die Linie ist nie
+// Bildmitte lagen – wo das Gelände höher stieg, verschwanden sie hinter einer geraden Linie, die beim Verschieben mitsprang). Je Zelle (0,45 m, eine
+// Lage: zwei kosteten auf der T400 rund 1 ms mehr) fällt im eigenen Takt (0,8–1,25 s) ein Tropfen, aber nur in einem Teil der Takte (dichte): ein
+// kurzer Spritzer, dann ein flacher Ring, der sich auf 0,15 m Halbmesser weitet und verklingt – außen ein Wellenkamm, innen dicht dahinter eine Rinne;
+// die Mitte liegt so weit innen in der Zelle, dass der Ring nie an ihrem Rand abgeschnitten wird. Feste Größe in der Welt; die Linie ist nie
 // schmaler als gut ein Bildpunkt (breiter = etwas schwächer), und weiter weg (px ab 0,08, ganz weg bei 0,2; px aus fwidth, rund das Doppelte der
 // Meter je Bildpunkt: Zoom 25 etwa 0,05, Zoom 60 etwa 0,12) werden die Tropfen weich schwächer – der Übergang folgt dem Abstand im Bild, ohne Kante.
 // Gibt (Neigung x, Neigung z, Zeichnung) zurück: Zeichnung > 0 heller Kamm, < 0 dunkle Rinne. px vor jeder Verzweigung berechnet.
@@ -93,28 +94,20 @@ vec3 regentropfen(vec2 p, float zeit, float px, float dichte) {
 	float sicht = 1.0 - smoothstep(0.08, 0.2, px);
 	if (sicht <= 0.0 || dichte <= 0.001) return vec3(0.0);
 	float breite = max(0.016, 0.8 * px);
-	float energie = clamp(sqrt(0.02 / breite), 0.65, 1.0);   // breitere Linie (weiter weg) etwas schwächer, aber sichtbar
-	vec3 summe = vec3(0.0);
-	for (int k = 0; k < 2; k++) {
-		vec2 q = p * 2.0 + float(k) * vec2(0.5, 0.37);
-		vec2 zelle = floor(q);
-		float z = w_hash(zelle + float(k) * 13.0);
-		float takt = 0.75 + 0.5 * w_hash(zelle + 71.0 + float(k) * 5.0);
-		float lauf = zeit / takt + z;
-		float t = fract(lauf);
-		float an = step(w_hash(zelle + vec2(floor(lauf) * 3.1, 17.0 * float(k))), dichte);
-		vec2 mitte = (zelle + 0.15 + 0.7 * vec2(z, w_hash(zelle + 31.0 + float(k)))) * 0.5 - float(k) * vec2(0.25, 0.185);
-		vec2 d = p - mitte;
-		float r = length(d);
-		float radius = 0.02 + 0.2 * sqrt(t);
-		float kamm = exp(-pow((r - radius) / breite, 2.0));
-		float rinne = exp(-pow((r - radius + 1.7 * breite) / breite, 2.0));
-		float alt = an * (1.0 - t) * (1.0 - t);
-		float spritz = an * (1.0 - smoothstep(0.0, 0.025 + breite, r)) * (1.0 - smoothstep(0.0, 0.1, t));
-		summe.xy += d / max(r, 0.001) * (kamm - rinne) * alt * energie;
-		summe.z += ((kamm * 0.8 - rinne * 0.6) * alt + spritz * 0.7) * energie;
-	}
-	return summe * sicht;
+	vec2 zelle = floor(p * (1.0 / 0.45));
+	float z = w_hash(zelle);
+	float lauf = zeit * (0.8 + 0.5 * fract(z * 7.31)) + z;
+	float t = fract(lauf);
+	float an = step(w_hash(zelle + vec2(floor(lauf) * 3.1, 17.0)), dichte) * sicht * clamp(sqrt(0.02 / breite), 0.65, 1.0);
+	vec2 d = p - (zelle + 0.35 + 0.3 * vec2(z, fract(z * 13.7))) * 0.45;
+	float r = length(d);
+	float ka = (r - 0.015 - 0.135 * sqrt(t)) / breite;
+	float ri = ka + 1.7;
+	float kamm = exp(-ka * ka);
+	float rinne = exp(-ri * ri);
+	float alt = an * (1.0 - t) * (1.0 - t);
+	float spritz = an * (1.0 - smoothstep(0.0, 0.025 + breite, r)) * (1.0 - smoothstep(0.0, 0.1, t));
+	return vec3(d / max(r, 0.001) * (kamm - rinne) * alt, (kamm * 0.8 - rinne * 0.6) * alt + spritz * 0.7);
 }
 
 // Nasse Tropfkante unter den Traufen (Stadtansicht.Traufen.cs): Abstand am Boden (m), ab dem nichts mehr nass ist (Wert 1 im Bild traufe_maske, das
