@@ -99,6 +99,10 @@ public partial class Stadtansicht
     /// <summary>Die Flammen der festen Lichter (Feuerkörbe, Wandlaternen, Torfeuer): sichtbar, solange die Lichter brennen.</summary>
     private readonly List<Feuer> _festeFlammen = new();
     private bool _festeFlammenAn; // aus, bis die Nachtlichter das erste Mal gestellt werden (Hauptmenü und Kartenwerkstatt: nie)
+
+    /// <summary>So viele Varianten je Material mit festem Startwert des Flackerns für die Lichter in der Hand (<see cref="TaktStoff"/>).</summary>
+    private const int TaktVarianten = 8;
+    private readonly Dictionary<(ShaderMaterial Grund, int Nummer), ShaderMaterial> _taktStoffe = new();
     private bool _lichterGeladen;
 
     /// <summary>0 = Lichter aus (Tag), 1 = alle brennen; dazwischen die Dämmerung. Der gestellte Wert wird nur bei merklicher Änderung weitergegeben.</summary>
@@ -174,18 +178,38 @@ public partial class Stadtansicht
         _flammenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _laternenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _ewigesStoff?.SetShaderParameter("helligkeit", Mathf.Max(_lampenAn, 0.22f));
+        foreach (var ((grund, _), variante) in _taktStoffe) variante.SetShaderParameter("helligkeit", grund.GetShaderParameter("helligkeit"));
     }
 
     /// <summary>
-    /// Ein Licht aus dem Baukasten als eigener Knoten, mit seiner echten Flamme als Kind (<see cref="FlammeAnhaengen"/>); <paramref name="nummer"/> gibt
-    /// ihm seinen eigenen Takt. <paramref name="wandert"/> (in der Hand): Die Fackel brennt ohne Rauchsäule.
+    /// Eine Variante des Nachtlicht-Materials <paramref name="grund"/> mit festem Startwert des Flackerns (Lichter in der Hand: Ihre Lage
+    /// wandert mit, der Startwert aus der Lage würde springen). Acht Varianten je Material genügen, damit Nachbarn nicht im Gleichtakt flackern;
+    /// früher stand der Startwert als Instanz-Uniform am Knoten, das belegte je Licht 16 Plätze im knappen Puffer der Grafikkarte.
+    /// </summary>
+    private ShaderMaterial TaktStoff(ShaderMaterial grund, int nummer)
+    {
+        var schluessel = (grund, (int)(Streuung(nummer, 207) % TaktVarianten));
+        if (_taktStoffe.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
+        var variante = (ShaderMaterial)grund.Duplicate();
+        variante.SetShaderParameter("phase", (schluessel.Item2 + 0.5f) / TaktVarianten);
+        return _taktStoffe[schluessel] = variante;
+    }
+
+    /// <summary>
+    /// Ein Licht aus dem Baukasten als eigener Knoten, mit seiner echten Flamme als Kind (<see cref="FlammeAnhaengen"/>, Startwert aus
+    /// <paramref name="nummer"/>). Die Scheiben fester Lichter flackern im Takt aus ihrer Lage (der Shader rechnet ihn aus der Welt-Position);
+    /// ein Licht, das sich bewegt (<paramref name="wandert"/>, in der Hand), bekommt nach <paramref name="nummer"/> eine Material-Variante mit
+    /// festem Takt, und seine Fackel brennt ohne Rauchsäule.
     /// </summary>
     private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool wandert = false)
     {
         LichterLaden();
         if (!_lichtNetze.TryGetValue(art, out var teil)) return null;
         var knoten = new MeshInstance3D { Name = art.ToString(), Mesh = teil.Netz, Transform = teil.Lage, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-        knoten.SetInstanceShaderParameter("phase", (Streuung(nummer, 207) & 0xFFFF) / 65535f);
+        if (wandert)
+            for (var i = 0; i < teil.Netz.GetSurfaceCount(); i++)
+                if (teil.Netz.SurfaceGetMaterial(i) is ShaderMaterial nachtlicht)
+                    knoten.SetSurfaceOverrideMaterial(i, TaktStoff(nachtlicht, nummer));
         FlammeAnhaengen(knoten, art, nummer, wandert);
         LichterStoffStellen();
         return knoten;
@@ -266,7 +290,7 @@ public partial class Stadtansicht
                     : name == "Anker_Laterne" ? Lichtart.Wandlaterne
                     : name == "Anker_EwigesLicht" ? Lichtart.EwigesLicht
                     : (Lichtart?)null;
-            if (art is not { } a || LichtKnoten(a, _lichtquellen.Count) is not { } licht) continue;
+            if (art is not { } a || LichtKnoten(a, _lichtquellen.Count) is not { } licht) continue; // flackert im Takt seiner Lage
             anker.AddChild(licht);
             var flamme = FlammeVon(licht);
             FesteFlammeMerken(flamme);

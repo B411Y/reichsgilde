@@ -59,3 +59,10 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Absicherung | Vor dem Start `reichsgilde-frage`, im Lauf alle 10 s `reichsgilde-pruefen` (Code 3 beendet Godot), Abbruch nach Wartezeit + Aktionen + 120 s; `user://` umgelenkt nach `%LOCALAPPDATA%\Reichsgilde\klicktest-daten` | 29.10.2026 |
 | Grenze | `Viewport.GetMousePosition` liest die echte Maus: Hover, Tooltips und die Lage der Auswahltafel folgen ihr; Klicks und Tasten wirken über das Ereignis | 29.10.2026 |
 | Argumente | `lauf.ps1` hat keinen `param`-Block, weil Windows PowerShell 5.1 bei `-File` ein `--` und `--karte=…` sonst als Parameter abweist | 29.10.2026 |
+
+### Absturz beim Beenden im Klicktest (PR #263)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | `lauf.sh` beendet Godot mit SIGTERM; die .NET-Laufzeit beantwortet das mit `exit()` aus ihrem Signal-Faden, während Godot noch zeichnet und den Shader-Cache schreibt – statische Objekte werden unter laufenden Fäden abgebaut, Absturz mit Signal 11 (bzw. „Illegal instruction“) bei jedem Xvfb-Lauf | 30.10.2026 |
+| Lösung | `Fenster.SigtermAbfangen` (Bereich Oberfläche, klein): SIGTERM abfangen und über `GetTree().Quit()` sauber beenden – gilt auch für Spieler unter Linux; `lauf.sh` wartet bis zu 20 s auf das Ende, dann `kill -9`. Klicktest Köln (Vulkan): kein Absturz, keine Fehler beim Beenden | 30.10.2026 |

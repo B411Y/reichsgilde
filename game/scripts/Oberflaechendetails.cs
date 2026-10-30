@@ -209,13 +209,12 @@ internal sealed class Oberflaechendetails
 
     /// <summary>
     /// Das Material einer Figur: Zone und Grundfarbe je Fläche stehen im Netz (UV.x, Eckenfarbe), die Farben von Gewand, Haut,
-    /// Haar … je Figur setzt das Spiel als Instanz-Uniform am Knoten (<c>figur.gdshader</c>). Hier werden sie zu gewöhnlichen Uniforms eines
-    /// Materials je Tracht: Jede Instanz mit Instanz-Uniform belegt 16 Plätze im Puffer der Grafikkarte (4096 in Forward+, 256 im
-    /// Compatibility-Renderer), und die Oberflächendetails gelten für alle Knoten der Stadt.
+    /// Haar … stehen als Uniforms im Figurenmaterial der Tracht (<c>figur.gdshader</c>, eines je Tracht). Hier wird daraus je Tracht ein
+    /// Material mit Oberflächendetails, ebenfalls mit gewöhnlichen Uniforms (keine Instanz-Uniforms: deren Puffer ist knapp).
     /// </summary>
-    private ShaderMaterial FigurStoff(GeometryInstance3D knoten)
+    private ShaderMaterial FigurStoff(ShaderMaterial figurStoff)
     {
-        Color Farbe(string name, Color vorgabe) => knoten.GetInstanceShaderParameter(name) is { VariantType: Variant.Type.Color } v ? v.AsColor() : vorgabe;
+        Color Farbe(string name, Color vorgabe) => figurStoff.GetShaderParameter(name) is { VariantType: Variant.Type.Color } v ? v.AsColor() : vorgabe;
         var tracht = new Tracht(Farbe("gewand", new Color(0.5f, 0.4f, 0.3f)), Farbe("beinkleid", new Color(0.35f, 0.3f, 0.25f)),
                                 Farbe("haut", new Color(0.85f, 0.66f, 0.52f)), Farbe("haar", new Color(0.3f, 0.2f, 0.12f)), Farbe("kopfbedeckung", new Color(0.6f, 0.5f, 0.3f)));
         if (_trachten.TryGetValue(tracht, out var vorhanden)) return vorhanden;
@@ -274,8 +273,8 @@ internal sealed class Oberflaechendetails
         var instanz = knoten.GetInstance();
         if (knoten.MaterialOverride is { } alles)
         {
-            var figur = alles is ShaderMaterial { Shader.ResourcePath: FigurShaderPfad };
-            RenderingServer.InstanceGeometrySetMaterialOverride(instanz, (figur ? FigurStoff(knoten) : Ableiten(alles) ?? alles).GetRid());
+            var ziel = alles is ShaderMaterial { Shader.ResourcePath: FigurShaderPfad } figur ? FigurStoff(figur) : Ableiten(alles) ?? alles;
+            RenderingServer.InstanceGeometrySetMaterialOverride(instanz, ziel.GetRid());
             return;
         }
         RenderingServer.InstanceGeometrySetMaterialOverride(instanz, new Rid());
