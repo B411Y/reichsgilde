@@ -151,7 +151,12 @@ def kaemmen(stil, wurzel, normal, rng):
         soll0 = lage * glatt(s, 0.0, stil.volumen_weg)
         # frei hängend (weiter als 4 mm über der Lagenhöhe): kein Kämmen mehr, nur Schwere und Schwung
         frei = glatt(abst - soll0, 0.004, 0.015) * stil.frei_faellt
-        c = _tangential(stil.kamm(p, nn, s, wurzel), nn) * (1.0 - frei)
+        if stil.frei_faellt == 0 and abst > soll0 + 0.004:
+            # Anker (Knoten, Zopf): abseits der Haut nicht auf die Haut legen – sonst verschwindet der Zug zum Anker,
+            # sobald die Strähne hinter ihm liegt, und sie fliegt geradeaus weiter
+            c = stil.kamm(p, nn, s, wurzel)
+        else:
+            c = _tangential(stil.kamm(p, nn, s, wurzel), nn) * (1.0 - frei)
         g = stil.schwere(s, wurzel) + frei * 0.6
         if stil.einwaerts and frei > 0:
             # frei hängende Enden laufen zum Hals hin ein (Pagenkopf, Nacken)
@@ -172,6 +177,10 @@ def kaemmen(stil, wurzel, normal, rng):
         p = q
         pkt.append(Vector(p))
         if stil.ende(p, s, wurzel) or len(pkt) > 600:
+            break
+        # Haupthaar fällt nicht über das Gesicht (Augen, Wangen): dort endet die Strähne
+        if stil.teil == "frisur" and abs(p[0]) < 0.052 * h.k.mass and p[1] < h.auge_y + 0.025 * h.k.mass \
+                and p[2] < h.brauen_oben + 0.004 * h.k.mass and s > 0.01:
             break
     return np.array([tuple(v) for v in pkt])
 
@@ -301,7 +310,7 @@ class MannPagen(Stil):
     def ende(self, q, s, w):
         h = self.h
         r = float(h.richtung(np.asarray(q))[0])
-        schnitt = np.interp(r, [0, 30, 70, 110, 180], [h.auge_z - 0.015 * self.M, h.mund_z + 0.01 * self.M,
+        schnitt = np.interp(r, [0, 25, 45, 70, 110, 180], [h.brauen_oben + 0.004 * self.M, h.auge_z, h.mund_z + 0.01 * self.M,
                                                        h.mund_z - 0.012 * self.M, h.kinn[2] - 0.005 * self.M, h.kinn[2] - 0.035 * self.M])
         return q[2] < schnitt + (hash((round(w[0], 5), round(w[1], 5))) % 1000) / 1000 * 0.012 * self.M
 
@@ -382,7 +391,7 @@ class FrauKnoten(FrauScheitel):
         return 0.4
 
     def ende(self, q, s, w):
-        return (q - self.anker).length < 0.02 * self.M
+        return (q - self.anker).length < 0.024 * self.M
 
 
 class FrauOffen(FrauScheitel):
@@ -440,7 +449,7 @@ class FrauZoepfe(FrauScheitel):
         return 0.4
 
     def ende(self, q, s, w):
-        return (q - self.anker[self._seite(w)]).length < 0.014 * self.M
+        return (q - self.anker[self._seite(w)]).length < 0.018 * self.M
 
 
 def zopf_bahn(h, anker, seite, M, laenge=0.27):
