@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// Vergleich mit und ohne globale Beleuchtung (Startoption <c>--givergleich=&lt;Stufen&gt;</c>, z. B. <c>0,2</c> = Aus und Mittel) – ein Teil der
 /// <c>partial class Stadtansicht</c>. Mit <c>--innen=…</c> geht er jeden Raum der Raumleiste durch, sonst misst er den Blick der Stadt
 /// (dann mit <c>--sdfgi-aussen=1</c>). Je Raum und Stufe: umschalten, warten, bis das Bild wieder flüssig läuft (das erste Einschalten übersetzt
-/// Shader) und sich das Licht gesetzt hat, dann 2,5 s lang die GPU-Zeit messen (Median), ein Bildschirmfoto speichern und die mittlere Helligkeit
+/// Shader) und sich das Licht gesetzt hat (4 s), dann 4 s lang die GPU-Zeit messen (Median), ein Bildschirmfoto speichern und die mittlere Helligkeit
 /// ins Log schreiben (<c>[givergleich]</c>): Leuchtdichte nach Rec. 709 auf den sRGB-Werten 0–255, dazu das dunkelste und hellste Zehntel und das
 /// Verhältnis Rot zu Blau (Farbstich). Zwei Runden (Aus, Mittel, Aus, Mittel), damit fremde Last auf der Grafikkarte nicht nur eine Stufe trifft;
 /// am Ende je Raum eine Zusammenfassung, dann beendet sich das Spiel. Die Bilder liegen in <c>--givergleich-ordner=&lt;Ordner&gt;</c>
@@ -28,7 +28,8 @@ public partial class Stadtansicht
                    .ToArray();
     }
 
-    private const double GiVergleichVorlauf = 10, GiVergleichMessdauer = 2.5;
+    /// <summary>Vorlauf nach dem Start, Wartezeit nach dem Umschalten (sobald das Bild flüssig läuft; SDFGI legt sein Feld in den ersten Sekunden an) und Messdauer, in Sekunden.</summary>
+    private const double GiVergleichVorlauf = 10, GiVergleichRuheAus = 1.5, GiVergleichRuheGi = 4, GiVergleichMessdauer = 4;
     private const int GiVergleichRunden = 2;
 
     /// <summary>Ein Schritt: Gebäude (null = Stadt), Raum (Kennung, leer = Stadt), Runde und Stufe.</summary>
@@ -77,7 +78,7 @@ public partial class Stadtansicht
         {
             _gvFluessig = delta < 0.1 ? _gvFluessig + 1 : 0;
             if (_gvFluessig < 20) { _gvZeit = 0; return; }
-            if (_gvZeit < (schritt.Stufe == GlobaleBeleuchtung.Aus ? 1.0 : 3.0)) return;
+            if (_gvZeit < (schritt.Stufe == GlobaleBeleuchtung.Aus ? GiVergleichRuheAus : GiVergleichRuheGi)) return;
             _gvMisst = true;
             _gvZeit = 0;
             _gvGpu.Clear();

@@ -150,7 +150,7 @@ public partial class Stadtansicht
     private const float FuellVersatz = 1f;
 
     /// <summary>Anteil von Fenster, Glut und Laterne an SDFGI (<c>LightIndirectEnergy</c> ihrer Zwillinge; 1 = so stark wie ihr Licht im Raum).</summary>
-    internal const float FensterGi = 6f, GlutGi = 0.6f, LampeGi = 1f;
+    internal const float FensterGi = 5f, GlutGi = 0.6f, LampeGi = 1f;
 
     /// <summary>Zwilling eines Fensters: so weit vor der Scheibe, so weit reichend und so breit (Grad) wie ein Lichtkegel durchs Fenster; Glut und Laterne: so weit darüber bzw. darunter.</summary>
     private const float FensterGiVersatz = 0.6f, FensterGiWeite = 9f, FensterGiWinkel = 75f, GlutGiVersatz = 0.35f;
