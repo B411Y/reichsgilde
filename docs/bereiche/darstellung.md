@@ -393,7 +393,7 @@ Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig
 | Lösung | Instanz-Uniforms sparen statt Grenze anheben: `figur.gdshader` hat gewöhnliche Uniforms, ein Material je Tracht (`Stadtansicht.Figuren.cs`, `FigurStoff`; `Oberflaechendetails.FigurStoff` liest die Farben aus diesem Material). `nachtlicht.gdshader`: `phase` gewöhnliche Uniform; feste Lichter flackern nach ihrer Lage, Lichter in der Hand bekommen eine von acht Material-Varianten mit festem Startwert (`TaktStoff`). Das Spiel nutzt kein `instance uniform` mehr; `buffer_size` steht wieder auf der Vorgabe (65 536; der vergrößerte Puffer ist nicht mehr nötig). | 30.10.2026 |
 | Prüfung | Klicktest Köln: `opengl3` vorher 5.866 Meldungen, nachher 0; Vulkan (T400) 0, Figuren am Heumarkt bei Tag und Laternen bei Nacht in ihren Farben. | 30.10.2026 |
 
-### Nebel: Morgennebel, Kanten, Nachtnebel (PR #…)
+### Nebel: Morgennebel, Kanten, Nachtnebel (PR #266)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
