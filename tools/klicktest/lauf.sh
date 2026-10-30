@@ -58,4 +58,7 @@ for a in "${A[@]}"; do
     s) DISPLAY=:$DISPLAY_NR $X/root/usr/bin/xwd -root -silent > "$OUT/$2.xwd"; python3 $X/skripte/xwd2png.py "$OUT/$2.xwd" "$OUT/$2.png"; rm "$OUT/$2.xwd";;
   esac
 done
-kill $GPID; sleep 1; kill $XPID
+# SIGTERM: Das Spiel beendet sich über seine Hauptschleife (Fenster.SigtermAbfangen); bis zu 20 s warten, erst dann hart
+kill $GPID; for i in $(seq 40); do kill -0 $GPID 2>/dev/null || break; sleep 0.5; done
+kill -0 $GPID 2>/dev/null && { echo "Godot beendet sich nicht, hart beendet" >&2; kill -9 $GPID; }
+sleep 0.5; kill $XPID
