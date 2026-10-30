@@ -36,6 +36,9 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     private Label _stand = null!;
     private double _seitAuffrischen = 1;
 
+    /// <summary>Welche Reiter fertig gebaut sind (<see cref="Bauen"/>). Nur diese frischt das Fenster auf: Bei einem abgebrochenen Aufbau fehlen Felder.</summary>
+    private bool _hausFertig, _familieFertig, _wirtschaftFertig, _darstellungFertig, _messwerteFertig, _klaengeFertig;
+
     private Waehler _haus = null!, _meinungVon = null!, _standWahl = null!;
     private Waehler _person = null!, _krankheit = null!, _zug = null!, _kandidat = null!, _betriebEreignis = null!;
     private Waehler _betriebWare = null!, _ware = null!;
@@ -48,7 +51,10 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     /// <summary>Ist das Fenster zu sehen? (Die Tafel kann nach dem Ziehen außerhalb dieses Containers hängen und allein versteckt werden.)</summary>
     public bool Offen => Visible && Tafel.Visible;
 
-    /// <summary>Verbindet das Fenster mit der Partie. <paramref name="tempo"/> stellt die Spielgeschwindigkeit (wie die Zifferntasten).</summary>
+    /// <summary>
+    /// Verbindet das Fenster mit der Partie. <paramref name="tempo"/> stellt die Spielgeschwindigkeit (wie die Zifferntasten).
+    /// Vor dem Einhängen in den Baum aufrufen (Hauptszene.Entwickler.cs): <see cref="_Ready"/> baut die Reiter schon während <c>AddChild</c>.
+    /// </summary>
     public void Verbinden(Simulation simulation, Konto spieler, Stadtansicht stadt, Action<double> tempo)
     {
         _sim = simulation;
@@ -81,12 +87,12 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         _stand = Hauptmenue.Text(spalte, "", 13, Grau, umbruchBreite: Breite - 20);
         _reiter = new TabContainer { FocusMode = FocusModeEnum.None, ClipTabs = false, CustomMinimumSize = new Vector2(Breite - 40, 470) };
         spalte.AddChild(_reiter);
-        HausReiter();
-        FamilieReiter();
-        WirtschaftReiter();
-        DarstellungReiter();
-        MesswerteReiter();
-        KlaengeReiter();
+        _hausFertig = Bauen(HausReiter);
+        _familieFertig = Bauen(FamilieReiter);
+        _wirtschaftFertig = Bauen(WirtschaftReiter);
+        _darstellungFertig = Bauen(DarstellungReiter);
+        _messwerteFertig = Bauen(MesswerteReiter);
+        _klaengeFertig = Bauen(KlaengeReiter);
 
         spalte.AddChild(new HSeparator());
         _ergebnis = Hauptmenue.Text(spalte, "Noch nichts getan.", 14, Grau, umbruchBreite: Breite - 20);
@@ -103,6 +109,7 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         Tafel.Show(); // nach dem Ziehen hängt die Tafel in der Fensterebene, nicht mehr in diesem Container
         if (reiter >= 0 && reiter < _reiter.GetTabCount()) _reiter.CurrentTab = reiter;
         Auffrischen(true);
+        DarstellungAuffrischen(); // die Schalter gleich auf dem Stand der Stadt, nicht erst nach einer halben Sekunde
     }
 
     public void Schliessen()
@@ -120,6 +127,26 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     // ═════════════════════════════════════════════════════════════════════════
     //  Bausteine
     // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Baut einen Reiter (in <see cref="_Ready"/>). Der Aufbau liest die Partie nicht: Den Stand der Schalter und Listen setzen die
+    /// Auffrisch-Methoden beim Öffnen und zweimal je Sekunde, so stimmt er auch, wenn ihn etwas anderes ändert. Wirft der Aufbau trotzdem
+    /// eine Ausnahme, steht sie einmal im Log, und der Reiter bleibt unvollständig und wird nicht aufgefrischt (sonst käme dieselbe Ausnahme
+    /// jedes Bild wieder); die übrigen Reiter, das ✕ und das Verstecken des Fensters laufen weiter.
+    /// </summary>
+    private static bool Bauen(Action aufbau)
+    {
+        try
+        {
+            aufbau();
+            return true;
+        }
+        catch (Exception e)
+        {
+            GD.PushError($"Entwicklerfenster: {aufbau.Method.Name} ist abgebrochen, der Reiter bleibt unvollständig und wird nicht aufgefrischt. {e}");
+            return false;
+        }
+    }
 
     /// <summary>Ein Reiter: eine Spalte mit dem Titel als Reitername.</summary>
     private VBoxContainer NeuerReiter(string name)
@@ -332,34 +359,46 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     //  Auswahllisten aus dem Zustand füllen
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Füllt die Listen neu (nur wenn sich ihr Inhalt ändert) und die Stand-Zeile; <paramref name="sofort"/>: auch außerhalb des Takts.</summary>
+    /// <summary>
+    /// Füllt die Listen der fertig gebauten Reiter neu (nur wenn sich ihr Inhalt ändert) und die Stand-Zeile; <paramref name="sofort"/>: auch
+    /// außerhalb des Takts.
+    /// </summary>
     private void Auffrischen(bool sofort)
     {
         if (_sim?.Wirtschaft is not { } w) return;
         var aktiv = w.Konten.Where(k => k.IstAktiv).ToList();
         _haus.Fuellen(aktiv.Select(k => (k.Inhaber, k == _spieler ? k.Inhaber + " (ihr)" : k.Inhaber)).ToList(), _spieler.Inhaber);
-        _standWahl.Fuellen(w.Daten.Staende.Select((st, i) => (i.ToString(), $"{i} · {st.Name}")).ToList(), w.StandVon(_spieler) is { } aktuell ? w.Daten.Staende.IndexOf(aktuell).ToString() : null);
-        var charaktere = w.Meinungen.WichtigePersonen();
-        _meinungVon.Fuellen(charaktere.Select(c => (c.Charakter.Kennung, $"{c.Charakter.Name} – {c.Rolle}")).ToList(), null);
+        if (_hausFertig)
+        {
+            _standWahl.Fuellen(w.Daten.Staende.Select((st, i) => (i.ToString(), $"{i} · {st.Name}")).ToList(), w.StandVon(_spieler) is { } aktuell ? w.Daten.Staende.IndexOf(aktuell).ToString() : null);
+            var charaktere = w.Meinungen.WichtigePersonen();
+            _meinungVon.Fuellen(charaktere.Select(c => (c.Charakter.Kennung, $"{c.Charakter.Name} – {c.Rolle}")).ToList(), null);
+        }
 
-        var lebende = w.Familien.IstAktiv
-            ? aktiv.Select(k => (Konto: k, Familie: w.Familien.Von(k))).Where(x => x.Familie is not null)
-                .SelectMany(x => x.Familie!.Lebende.Select(p => (p.Nummer.ToString(), $"{p.Name} ({x.Konto.Inhaber}{(p == x.Familie.Oberhaupt ? ", Oberhaupt" : "")})"))).ToList()
-            : new List<(string, string)>();
-        lebende.AddRange(w.Familien.Kandidaten.Select(k => (k.Person.Nummer.ToString(), $"{k.Person.Name} (Brautschau)")));
-        _person.Fuellen(lebende, null);
-        var krankheiten = new List<(string, string)> { ("", "geheilt (gesund machen)") };
-        krankheiten.AddRange(w.Gesundheit.Daten.Krankheiten.Keys.Select(k => (k, k)));
-        krankheiten.Add((Erkrankung.PestName, Erkrankung.PestName));
-        _krankheit.Fuellen(krankheiten, null);
-        _zug.Fuellen(w.Familien.Zugkatalog.Select(z => (z.Kennung, z.Name)).ToList(), null);
-        var kandidaten = new List<(string, string)> { ("", "der erste Passende") };
-        kandidaten.AddRange(w.Familien.Kandidaten.Select(k => (k.Person.Nummer.ToString(), $"{k.Person.Name} ({k.Person.Geschlecht}, Stand {k.Stand})")));
-        _kandidat.Fuellen(kandidaten, null);
         var betriebe = w.Betriebe.OrderBy(b => b.Konto == _spieler ? 0 : 1).Select(b => (b.Name, $"{b.Name} ({b.Konto.Inhaber})")).ToList();
-        _betriebEreignis.Fuellen(betriebe, null);
-        _betriebWare.Fuellen(betriebe, null);
-        _ware.Fuellen(w.Daten.Waren.Keys.OrderBy(x => x, StringComparer.CurrentCulture).Select(x => (x, x)).ToList(), null);
+        if (_familieFertig)
+        {
+            var lebende = w.Familien.IstAktiv
+                ? aktiv.Select(k => (Konto: k, Familie: w.Familien.Von(k))).Where(x => x.Familie is not null)
+                    .SelectMany(x => x.Familie!.Lebende.Select(p => (p.Nummer.ToString(), $"{p.Name} ({x.Konto.Inhaber}{(p == x.Familie.Oberhaupt ? ", Oberhaupt" : "")})"))).ToList()
+                : new List<(string, string)>();
+            lebende.AddRange(w.Familien.Kandidaten.Select(k => (k.Person.Nummer.ToString(), $"{k.Person.Name} (Brautschau)")));
+            _person.Fuellen(lebende, null);
+            var krankheiten = new List<(string, string)> { ("", "geheilt (gesund machen)") };
+            krankheiten.AddRange(w.Gesundheit.Daten.Krankheiten.Keys.Select(k => (k, k)));
+            krankheiten.Add((Erkrankung.PestName, Erkrankung.PestName));
+            _krankheit.Fuellen(krankheiten, null);
+            _zug.Fuellen(w.Familien.Zugkatalog.Select(z => (z.Kennung, z.Name)).ToList(), null);
+            var kandidaten = new List<(string, string)> { ("", "der erste Passende") };
+            kandidaten.AddRange(w.Familien.Kandidaten.Select(k => (k.Person.Nummer.ToString(), $"{k.Person.Name} ({k.Person.Geschlecht}, Stand {k.Stand})")));
+            _kandidat.Fuellen(kandidaten, null);
+            _betriebEreignis.Fuellen(betriebe, null);
+        }
+        if (_wirtschaftFertig)
+        {
+            _betriebWare.Fuellen(betriebe, null);
+            _ware.Fuellen(w.Daten.Waren.Keys.OrderBy(x => x, StringComparer.CurrentCulture).Select(x => (x, x)).ToList(), null);
+        }
 
         var ap = w.Daten.Aktionspunkte is { } a ? $" · AP {_spieler.Aktionspunkte.Vorrat}/{a.Hoechstens}" : "";
         _stand.Text = $"{_spieler.Inhaber}: {Zahlenformat.Ganz(_spieler.Vermoegen)} {w.Daten.Allgemein.Waehrung} · {w.StandVon(_spieler).Name}{ap} · Ansehen {Zahlenformat.Ganz(w.Rat.Ansehen(_spieler))}"
@@ -377,6 +416,7 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         _seitAuffrischen = 0;
         Auffrischen(false);
         DarstellungAuffrischen();
+        if (_reiter.CurrentTab == _messwerteNummer) MesswerteAuffrischen();
     }
 
     /// <summary>Eine Auswahlliste, die ihre Einträge aus dem Zustand der Partie bekommt und die Wahl behält, solange es den Eintrag noch gibt.</summary>
