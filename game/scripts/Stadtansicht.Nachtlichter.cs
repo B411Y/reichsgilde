@@ -59,6 +59,10 @@ public partial class Stadtansicht
 
     private readonly Dictionary<Lichtart, (Mesh Netz, Transform3D Lage)> _lichtNetze = new();
     private ShaderMaterial? _flammenStoff, _laternenStoff, _ewigesStoff;
+
+    /// <summary>So viele Varianten je Material mit festem Startwert des Flackerns für die Lichter in der Hand (<see cref="TaktStoff"/>).</summary>
+    private const int TaktVarianten = 8;
+    private readonly Dictionary<(ShaderMaterial Grund, int Nummer), ShaderMaterial> _taktStoffe = new();
     private static Shader? _nachtlichtShader;
     private bool _lichterGeladen;
 
@@ -128,15 +132,36 @@ public partial class Stadtansicht
         _flammenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _laternenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _ewigesStoff?.SetShaderParameter("helligkeit", Mathf.Max(_lampenAn, 0.22f));
+        foreach (var ((grund, _), variante) in _taktStoffe) variante.SetShaderParameter("helligkeit", grund.GetShaderParameter("helligkeit"));
     }
 
-    /// <summary>Ein Licht aus dem Baukasten als eigener Knoten; <paramref name="nummer"/> gibt ihm seinen eigenen Takt.</summary>
-    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer)
+    /// <summary>
+    /// Eine Variante des Nachtlicht-Materials <paramref name="grund"/> mit festem Startwert des Flackerns (Lichter in der Hand: Ihre Lage
+    /// wandert mit, der Startwert aus der Lage würde springen). Acht Varianten je Material genügen, damit Nachbarn nicht im Gleichtakt flackern;
+    /// früher stand der Startwert als Instanz-Uniform am Knoten, das belegte je Licht 16 Plätze im knappen Puffer der Grafikkarte.
+    /// </summary>
+    private ShaderMaterial TaktStoff(ShaderMaterial grund, int nummer)
+    {
+        var schluessel = (grund, (int)(Streuung(nummer, 207) % TaktVarianten));
+        if (_taktStoffe.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
+        var variante = (ShaderMaterial)grund.Duplicate();
+        variante.SetShaderParameter("phase", (schluessel.Item2 + 0.5f) / TaktVarianten);
+        return _taktStoffe[schluessel] = variante;
+    }
+
+    /// <summary>
+    /// Ein Licht aus dem Baukasten als eigener Knoten. Feste Lichter flackern im Takt aus ihrer Lage (der Shader rechnet ihn aus der Welt-Position);
+    /// ein Licht, das sich bewegt (<paramref name="wandert"/>, in der Hand), bekommt nach <paramref name="nummer"/> eine Material-Variante mit festem Takt.
+    /// </summary>
+    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool wandert = false)
     {
         LichterLaden();
         if (!_lichtNetze.TryGetValue(art, out var teil)) return null;
         var knoten = new MeshInstance3D { Name = art.ToString(), Mesh = teil.Netz, Transform = teil.Lage, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-        knoten.SetInstanceShaderParameter("phase", (Streuung(nummer, 207) & 0xFFFF) / 65535f);
+        if (wandert)
+            for (var i = 0; i < teil.Netz.GetSurfaceCount(); i++)
+                if (teil.Netz.SurfaceGetMaterial(i) is ShaderMaterial nachtlicht)
+                    knoten.SetSurfaceOverrideMaterial(i, TaktStoff(nachtlicht, nummer));
         LichterStoffStellen();
         return knoten;
     }
@@ -172,7 +197,7 @@ public partial class Stadtansicht
                     : name == "Anker_Laterne" ? Lichtart.Wandlaterne
                     : name == "Anker_EwigesLicht" ? Lichtart.EwigesLicht
                     : (Lichtart?)null;
-            if (art is not { } a || LichtKnoten(a, _lichtquellen.Count) is not { } licht) continue;
+            if (art is not { } a || LichtKnoten(a, _lichtquellen.Count) is not { } licht) continue; // flackert im Takt seiner Lage
             anker.AddChild(licht);
             LichtquelleMerken(licht, a);
         }
@@ -223,7 +248,7 @@ public partial class Stadtansicht
     {
         var skelett = figur.Modell.FindChild("Skelett", true, false) as Skeleton3D
                       ?? figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
-        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer) is not { } lampe) return null;
+        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer, wandert: true) is not { } lampe) return null;
         var anhang = new BoneAttachment3D { Name = "Licht", Visible = false };
         skelett.AddChild(anhang);
         anhang.BoneName = "Unterarm_R";
