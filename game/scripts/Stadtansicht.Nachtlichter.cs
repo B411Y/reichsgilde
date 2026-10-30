@@ -193,7 +193,7 @@ public partial class Stadtansicht
     /// <summary>Hängt die echte Flamme einer Lichtart an den Knoten (im Raum des Teils aus <c>lichter.glb</c>); ohne eigenes Licht, das stellt der Pool.</summary>
     private Feuer? FlammeAnhaengen(Node3D knoten, Lichtart art, int nummer, bool inHand = false)
     {
-        if (FlammenFuss(art) is not { } f) return null;
+        if (FlammenFuss(art) is not { } f || OS.GetEnvironment("RG_OHNEFLAMMEN") != "") return null; // RG_OHNEFLAMMEN: nur für Messungen
         var flamme = Feuer.Neu(f.Vorgabe, false, (Streuung(nummer, 2071) & 0xFFFF) / 65535f, f.Groesse);
         if (inHand && art == Lichtart.Fackel) flamme.Art = Handfackel();
         flamme.Name = "Flamme";

@@ -244,6 +244,7 @@ public partial class Stadtansicht
     private void KamineAnbringen(Node3D modell, string datei, string kennung)
     {
         if (kennung == "Dom") return; // Fialen und Turmhelme sind keine Schornsteine, und eine Kirche heizt nicht
+        if (OS.GetEnvironment("RG_OHNERAUCH") != "") return; // nur für Messungen: ohne Kaminrauch
         if (!_schornsteinListen.TryGetValue(datei, out var liste))
         {
             _schornsteinListen[datei] = liste = SchornsteineSuchen(modell);
