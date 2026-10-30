@@ -2,7 +2,8 @@
 // (R = Zufallswert des Haars, G = Abstand der Wurzel zur Brauenmitte, B = Lage entlang des Haars, A = Deckung).
 // Dichte und Breite aus den Genen schneiden ganze Haare weg; graue Haare einzeln (Salz und Pfeffer). Kanten über
 // Alpha-to-Coverage (braucht MSAA), sonst Alpha-Schere; in der Ferne (Mipmaps) wird die Deckung angehoben, damit die
-// feinen Haare nicht verschwinden.
+// feinen Haare nicht verschwinden. Phase 4: Wimpern in vier Bändern (Unterlid, Oberlid Haupt-, lange und Fülllage),
+// Brauen dünner und lichter; das Bild ist dasselbe Format.
 shader_type spatial;
 render_mode cull_disabled;
 
@@ -12,7 +13,7 @@ uniform vec3 farbe_grau : source_color = vec3(0.78, 0.77, 0.75);
 uniform float grau = 0.0;           // Anteil grauer Haare
 uniform float dichte = 1.0;         // Haare mit Zufallswert < dichte bleiben
 uniform float breite = 1.0;         // nur Brauen: Haare mit Wurzelabstand < breite bleiben
-uniform float schwelle = 0.4;
+uniform float schwelle = 0.3;       // Phase 4: tiefer (feinere, lichtere Haare; Kanten über Alpha-to-Coverage)
 uniform float dunkel = 0.6;         // Haare verschatten sich gegenseitig
 
 void fragment() {

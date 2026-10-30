@@ -5,8 +5,10 @@ Statt der MakeHuman-Karten (Streifen mit grobem Alpha) eigene Karten, deren Bild
 - Brauen: zwei Lagen je Seite entlang der ICT-Merkpunkte 17–21 bzw. 22–26 (oberer Brauenrand), auf die Haut gelegt
   (0,35 mm und 0,9 mm darüber). UV: u = innen (0) → außen (1), v = unten (0) → oben (1); untere Lage im Bild
   v 0..0,5, obere Lage v 0,5..1.
-- Wimpern: je Lid ein gebogener Streifen von der Lidkante nach vorn und oben (oben) bzw. vorn und unten (unten).
-  UV: u = innen → außen, v = Wurzel → Spitze; Oberlid im Bild v 0,5..1, Unterlid v 0..0,5.
+- Wimpern (Phase 4): am Oberlid drei Lagen geschwungener Streifen (Hauptlage, lange lockere Lage mit stärkerem
+  Schwung, kurze Fülllage an der Wurzel), am Unterlid eine; jede Lage hat im Bild ein eigenes Band (WIMPER_BAENDER):
+  UV u = innen → außen, v = Wurzel → Spitze im Band (Band 0 Unterlid, 1–3 Oberlid). Die Lagen folgen beim Blinzeln
+  dem Lidrand wie bisher (kopf2_bauen.py dreht jede Wimperecke mit dem Lid um die Augenmitte).
 Achsen wie im Bau: Blender (z oben, Gesicht nach -y, +x = linke Seite der Figur), Meter.
 """
 import numpy as np
@@ -18,6 +20,10 @@ BRAUE_LAGEN = (0.00035, 0.0009)
 # Wimpern: Länge (m) innen/Mitte/außen
 WIMPER_OBEN = (0.0058, 0.0088, 0.0082)
 WIMPER_UNTEN = (0.0026, 0.0042, 0.0043)
+# Lagen: (Oberlid?, Band im Bild, Längenfaktor, Schwung nach oben, Wurzel nach hinten (m), seitliche Neigung)
+WIMPER_LAGEN = ((0, 0, 1.0, 1.0, 0.0, 1.0), (1, 1, 1.0, 1.0, 0.0, 1.0), (1, 2, 1.12, 1.3, 0.00022, 1.3),
+                (1, 3, 0.62, 0.75, -0.00018, 0.7))
+WIMPER_BAENDER = 4
 
 
 def catmull_rom(p, n):
@@ -133,7 +139,8 @@ def wimpern(lidnaht_punkte, augen, n=22, nv=5):
     for s in ("l", "r"):
         mitte, halb = augen[s]
         oben, unten = lidkante_ordnen(lidnaht_punkte[s], mitte)
-        for ist_oben, folge, laengen in ((1, oben, WIMPER_OBEN), (0, unten, WIMPER_UNTEN)):
+        for ist_oben, band, l_f, schwung, zurueck, neigung in WIMPER_LAGEN:
+            folge, laengen = (oben, WIMPER_OBEN) if ist_oben else (unten, WIMPER_UNTEN)
             if len(folge) < 4:
                 continue
             k = _glatte_folge(folge, n)
@@ -143,18 +150,18 @@ def wimpern(lidnaht_punkte, augen, n=22, nv=5):
             radial = k - mitte
             radial -= np.outer(radial @ vorn, vorn)
             radial /= np.linalg.norm(radial, axis=1, keepdims=True)
-            # Wurzel 0,5 mm vor der Lidnaht, auf der Außenkante des Lids
-            wurzel = k + vorn * 0.0005 + radial * 0.0003
-            L = np.interp(t, [0.0, 0.55, 1.0], laengen)
-            seitlich = tang * (0.04 + 0.12 * t)[:, None]      # nach außen geneigt, außen stärker
+            # Wurzel 0,5 mm vor der Lidnaht, auf der Außenkante des Lids (Lagen leicht versetzt)
+            wurzel = k + vorn * (0.0005 - zurueck) + radial * 0.0003
+            L = np.interp(t, [0.0, 0.55, 1.0], laengen) * l_f
+            seitlich = tang * ((0.04 + 0.12 * t) * neigung)[:, None]      # nach außen geneigt, außen stärker
             o = len(ecken)
             pkt = []
             for i in range(len(k)):
                 if ist_oben:
                     # erst nach vorn und leicht abwärts aus der Lidkante, dann nach oben gebogen (von vorn sieht man
-                    # die Wimper ab der Lidkante)
+                    # die Wimper ab der Lidkante); „schwung“ biegt die Spitze weiter hinauf
                     p1 = wurzel[i] + L[i] * 0.5 * (0.92 * vorn - 0.12 * radial[i]) + L[i] * 0.3 * seitlich[i]
-                    p2 = wurzel[i] + L[i] * (0.62 * vorn + 0.62 * radial[i]) + L[i] * seitlich[i]
+                    p2 = wurzel[i] + L[i] * ((0.62 - 0.12 * (schwung - 1)) * vorn + 0.62 * schwung * radial[i]) + L[i] * seitlich[i]
                 else:
                     p1 = wurzel[i] + L[i] * 0.5 * (0.85 * vorn + 0.35 * radial[i]) + L[i] * 0.3 * seitlich[i]
                     p2 = wurzel[i] + L[i] * (0.55 * vorn + 0.8 * radial[i]) + L[i] * seitlich[i]
@@ -168,7 +175,7 @@ def wimpern(lidnaht_punkte, augen, n=22, nv=5):
             fl = _ausrichten(alle, fl, np.tile(vorn, (len(alle), 1)))
             ecken.extend(pkt.tolist())
             for f in fl:
-                uvs.append([((f_ - o) // nv / (len(k) - 1), 0.5 * ist_oben + 0.5 * ((f_ - o) % nv) / (nv - 1)) for f_ in f])
+                uvs.append([((f_ - o) // nv / (len(k) - 1), (band + ((f_ - o) % nv) / (nv - 1)) / WIMPER_BAENDER) for f_ in f])
             flaechen.extend(fl)
             oben_je.extend([ist_oben] * len(pkt))
             seite.extend([s] * len(pkt))
