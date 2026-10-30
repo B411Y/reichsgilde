@@ -119,6 +119,27 @@ def netzmasse(gew_datei, glb_pfad):
     return erg
 
 
+# ------------------------------------------------------------------ 2b. Bevölkerung (Stichprobe aus dem Gewichteausdruck)
+def bevoelkerung_pruefen(gew_datei, glb_pfad):
+    if not gew_datei or not os.path.exists(gew_datei):
+        return
+    d = json.load(open(gew_datei, encoding="utf-8"))
+    nm = Netzmesser(Glb(glb_pfad or d["kopf"]))
+    for g, wer in ((1.0, "m"), (0.0, "w")):
+        ms = [nm.messen(p["szene"]) for p in d["personen"] if p.get("saat") and abs(p["geschlecht"] - g) < 0.5]
+        if len(ms) < 3:
+            continue
+        k = bevoelkerung.kennzahlen(ms, wer)
+        teile = []
+        for name in ("se_me", "zy", "mundbreite", "n_sn"):
+            e = k["masse"].get(name)
+            if e and "niosh_streuung" in e:
+                teile.append(f"{name} σ {f(e['streuung'], 1)} = {f(e['anteil_streuung'])}·NIOSH")
+        zeile("Bevölkerung (Stichprobe)", f"{k['anzahl']} Zufallspersonen {wer}, 35 Jahre (Saat über den Kern)",
+              " · ".join(teile) + f" · K p95 {f(k.get('K', {}).get('p95'))} · Nachbar Median {f(k.get('nachbar', {}).get('median'))}",
+              "S5: 0,65–0,85·NIOSH je Maß; S7: Nachbar Median ≥ 0,7", "Stand", "1000er-Prüfung ab S5")
+
+
 # ------------------------------------------------------------------ 3. Gewichte: Ausdruck gegen Szene
 def gewichte_vergleich(gew_datei, mappe):
     zellen = sorted(glob.glob(os.path.join(mappe, "m1_gewichte20", "*.json")))
@@ -407,6 +428,7 @@ def main():
     nm = Netzmesser(Glb(glb_pfad))
     farben_statisch()
     netzmasse(gew, glb_pfad)
+    bevoelkerung_pruefen(gew, glb_pfad)
     gewichte_vergleich(gew, mappe)
     bildwerte(mappe, nm, opt.get("alt5"))
     kalibrierung(mappe)
