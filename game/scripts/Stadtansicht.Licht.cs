@@ -48,7 +48,7 @@ public partial class Stadtansicht
     /// <summary>Der gemeinsame Dämmerungswert der gezeigten Stimmung (0 = Tag, 1 = Nacht), aus dem alle Lichter der Stadt ihren Beginn nehmen.</summary>
     private float _daemmerung;
 
-    /// <summary>Die Uhrzeit auf dem Bezugstag (<see cref="BezugsStunde"/>): Sie folgt der Jahreszeit; Bodennebel und andere Morgenstimmung richten sich danach (12 ohne Uhr).</summary>
+    /// <summary>Die Uhrzeit auf dem Bezugstag (<see cref="BezugsStunde"/>): Sie folgt der Jahreszeit (12 ohne Uhr). Der Bodennebel rechnet seit Oktober 2026 direkt mit den Sonnenzeiten (Stadtansicht.Bodennebel.cs).</summary>
     private float _bezugStunde = 12f;
 
     /// <summary>Startoption <c>--lichtuhr</c>: Licht, Himmel und Fenster zeigen diese Uhrzeit (Stunde mit Bruchteil, auch vor 4 Uhr), unabhängig von der Spielzeit; nur für Bildschirmfotos.</summary>
@@ -435,6 +435,7 @@ public partial class Stadtansicht
     /// </summary>
     private void SchattenNachfuehren()
     {
+        if (FreiAktiv) return; // die freie Kamera hat eigene Schatten (Stadtansicht.FreieKamera.cs)
         var bild = GetViewport().GetVisibleRect().Size;
         var seiten = bild.Y > 0 ? bild.X / bild.Y : 16f / 9f;
         var stand = (_kamera.Size, seiten, Fenster.AktuelleSchattenqualitaet, BodenBewegt);

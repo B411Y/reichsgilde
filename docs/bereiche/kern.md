@@ -46,6 +46,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Mehrspieler M3) Was heute außer Befehlen den Zustand ändert, muss zu Befehlen im Zugtakt werden, sonst bleibt das Befehlsprotokoll unvollständig: die Schritte der angehaltenen Ratssitzung (`Simulation.RatssitzungWeiter`, heute meldet der Bote eine Lücke), Pause und Tempo, `Simulation.Beenden` von außen (Bankrott, Erlöschen in der Hauptszene; auch hier eine Lücke) sowie die Startoptionen des Klicktests, die Werte direkt setzen. Dazu der Pausen-Takt und der Zugtakt des Gastgebers (Vorschläge unter „Mehrspieler M2“).
 - (Erbgut) Eigener Kopf zu Spielbeginn: Der Editor braucht ein Feld `NeuePartie.Erbgut` (sichtbare Werte je Gen, geprüft gegen die Volksgrenzen). Empfehlung: nur die sichtbaren Werte setzen, das verdeckte Allel weiter würfeln – dann bleibt die Vererbung spannend.
 - (Erbgut) Angeborene Züge und Erbgut hängen nicht zusammen (Stark ohne Muskelkraft, Schön ohne Gesicht). Empfehlung: erst mit der Darstellung entscheiden, dann z. B. „Stark“ hebt `kraft` beim Würfeln um eine Streuung.
+- (von darstellung) Strenger Winter: Ein seltenes Ereignis „strenger Winter, der Rhein friert zu“ (historisch etwa im Winter 1407/08) gehört in den Kern (Wetter bzw. Ereignis, mit Folgen für Fähren, Hafen und Handel). Die Darstellung zeichnet bisher nur Randeis und Schollen auf Flüssen (`Wasserarten.Fluss`); empfohlen: eine Abfrage im Kern (z. B. `Wetter.FlussZugefroren`), dann setzt die Darstellung beim Fluss `Eisregel.Voll`.
 
 ## Entscheidungen
 

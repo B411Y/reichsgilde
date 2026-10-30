@@ -80,6 +80,10 @@ wetter_wind={
 "type": "float",
 "value": 0.25
 }
+wellen_seegang={
+"type": "float",
+"value": 0.25
+}
 boden_pom={
 "type": "float",
 "value": 0.0

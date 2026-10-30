@@ -486,8 +486,8 @@ public partial class Stadtansicht
     /// <summary>Wo der Strahl durch diese Bildschirmstelle den Boden trifft (mit Höhe), null: er trifft ihn nicht (über dem Horizont, außerhalb der Höhen).</summary>
     private Vector3? BodenTrefferBei(Vector2 bildschirm)
     {
-        var von = _kamera.ProjectRayOrigin(bildschirm);
-        var richtung = _kamera.ProjectRayNormal(bildschirm);
+        var von = StadtKamera.ProjectRayOrigin(bildschirm);
+        var richtung = StadtKamera.ProjectRayNormal(bildschirm);
         if (richtung.Y >= -1e-4f) return null;
         if (!BodenBewegt)
             return new Plane(Vector3.Up, 0).IntersectsRay(von, richtung);

@@ -87,6 +87,8 @@ public partial class Hauptmenue : Node
                 Callable.From(FeuertestOeffnen).CallDeferred();
             else if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
                 CallDeferred(MethodName.WerkstattOeffnen);
+            else if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--wassertest")))
+                Callable.From(() => GetTree().ChangeSceneToFile(Wassertest.Szene)).CallDeferred();
             else
                 CallDeferred(MethodName.SpielStarten);
             return;
