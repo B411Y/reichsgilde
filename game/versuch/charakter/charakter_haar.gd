@@ -188,6 +188,11 @@ static func _netz(datei: String) -> ArrayMesh:
 	if _netze.has(datei):
 		return _netze[datei]
 	var d := laden(datei)
+	var m := ArrayMesh.new()
+	if not d.has("karten_pos"):
+		push_warning("Keine Haarkarten in " + datei)
+		_netze[datei] = m
+		return m
 	var arr := []
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = _vec3(d["karten_pos"])
@@ -204,7 +209,6 @@ static func _netz(datei: String) -> ArrayMesh:
 	arr[Mesh.ARRAY_CUSTOM0] = d["karten_idx"]
 	arr[Mesh.ARRAY_CUSTOM1] = d["karten_gew"]
 	arr[Mesh.ARRAY_INDEX] = d["karten_index"]
-	var m := ArrayMesh.new()
 	var flags := (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT) | (Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT)
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, flags)
 	_netze[datei] = m
@@ -387,6 +391,6 @@ func _parameter() -> void:
 func dreiecke() -> int:
 	var n := 0
 	for t in _teile:
-		if modus == "karten" and t.get("karte"):
+		if modus == "karten" and t.get("karte") and t["karte"].mesh.get_surface_count() > 0:
 			n += t["karte"].mesh.surface_get_array_index_len(0) / 3
 	return n

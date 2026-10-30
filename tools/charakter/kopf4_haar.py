@@ -141,7 +141,7 @@ def teil_daten(h, st, wurzeln_, buschel, karten_art, rang=True):
     info = np.stack([zufall, rg, bz, np.zeros(S)], 1)
     felder = {"straehnen_pos": pos.reshape(S, P, 3), "straehnen_idx": idx.reshape(S, P, 4),
               "straehnen_gew": gew.reshape(S, P, 4), "straehnen_info": info}
-    if karten_art:
+    if karten_art is not None:
         E, N, T, UV, UV2, F, I, MS = kk.karten(st, wurzeln_, h, rng, **karten_art)
         for m, o, n in MS:
             F[o:o + n, 0] = rg[m]
