@@ -217,7 +217,7 @@ void vertex() {
 		}
 		float unruhe_v = min(reich_v, 12.0) * 0.42 * rand_unruhe;
 		float zelle_v = clamp(reich_v * 0.75, 1.3, 3.6);
-		float vor_kante = ufer - (eis_v * reich_v + (w_fbm(wp.xz * 0.045 + 17.0) - 0.5) * 2.0 * unruhe_v * smoothstep(0.0, 0.3, eis_v));
+		float vor_kante = ufer - (eis_v * reich_v * (rand_unruhe < 0.99 ? 1.3 : 1.0) + (w_fbm(wp.xz * 0.045 + 17.0) - 0.5) * 2.0 * unruhe_v * smoothstep(0.0, 0.3, eis_v));
 		float ab = (zelle_v * 0.45 + 0.2) * smoothstep(0.0, 0.15, eis_v);
 		staerke *= smoothstep(ab, ab + 2.5, vor_kante);
 	}
@@ -436,7 +436,7 @@ void fragment() {
 		float gross = min(reichweite, 12.0);
 		float unruhe = gross * 0.42 * rand_unruhe;  // großflächige Buchten und Zungen (m)
 		// Weiter draußen als Eis, Platten und Grieseis reichen können: nichts rechnen (spart im offenen Fluss alles)
-		if (abstand < eis_art * reichweite + unruhe + 3.5) {
+		if (abstand < eis_art * reichweite * 1.3 + unruhe + 3.5) {
 			float offen_hier = offen;
 			if (loch_zahl > 0) {
 				offen_hier = max(offen_hier, loch_offen(welt_xz));
@@ -458,15 +458,17 @@ void fragment() {
 				eis_c1 = eis_art * (1.0 - max(offen, loch_offen(c1)));
 				eis_c2 = eis_art * (1.0 - max(offen, loch_offen(c2)));
 			}
-			float w1 = eis_c1 * reichweite + ((w_fbm(c1 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c1 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
+			// Eine Decke (Bach, Teich, Hafenbecken) schließt sicher: etwas mehr Reichweite, sonst blieben im schmalen Bach einzelne Platten offen
+			bool decke = rand_unruhe < 0.99;
+			float reich_w = reichweite * (decke ? 1.3 : 1.0);
+			float w1 = eis_c1 * reich_w + ((w_fbm(c1 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c1 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
 				- (abstand + dot(c1 - p, grad));
-			float w2 = eis_c2 * reichweite + ((w_fbm(c2 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c2 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
+			float w2 = eis_c2 * reich_w + ((w_fbm(c2 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c2 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
 				- (abstand + dot(c2 - p, grad));
 			float aa = bildpunkt_m * 1.2 + 0.01;
 			float kante_aussen = 99.0;  // Abstand (m) vor der nächsten Platte (offenes Wasser)
 			float kante_innen = 99.0;   // Abstand (m) hinter der Bruchkante (auf dem Eis): nasser Rand, Lippe
 			float riss_platte = 0.0;    // Fuge zwischen zwei Platten
-			bool decke = rand_unruhe < 0.99; // ganz zufrierendes Wasser (Bach, Teich, Hafenbecken): eine zusammenhängende Decke
 			if (w1 > 0.0 && w2 > 0.0) {
 				eismaske = 1.0;
 				// Randeis: Nahe der Kante gehen manche Fugen auf (bis 9 cm, offenes Wasser darin), weiter innen sind sie feine Risse, nur nah.
@@ -489,7 +491,7 @@ void fragment() {
 			}
 
 			// Grieseis: vor der Kante ein grauer, matter, löchriger Saum (gut 1,5 m), der mit dem Wasser treibt und kaum Kräusel hat
-			float w_hier = eis_hier * reichweite + (w_fbm(p * 0.045 + 17.0) - 0.5) * 2.0 * unruhe * anlauf - abstand;
+			float w_hier = eis_hier * reich_w + (w_fbm(p * 0.045 + 17.0) - 0.5) * 2.0 * unruhe * anlauf - abstand;
 			float matsch = (1.0 - smoothstep(0.0, 1.8, -w_hier)) * smoothstep(-0.2, 0.5, 1.5 - max(w_hier, 0.0)) * smoothstep(0.0, 0.15, eis_hier);
 			vec2 tp = lauf_uv - stroemung * TIME * 0.6;
 			matsch *= smoothstep(0.25, 0.6, w_fbm(tp * 0.9 + 4.0)) * (1.0 - eismaske);
