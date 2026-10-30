@@ -310,8 +310,8 @@ public partial class Stadtansicht
             foreach (var v in s.Voegel)
             {
                 var mitte = v.Knoten.GlobalPosition + new Vector3(0, 0.15f, 0);
-                if (_kamera.IsPositionBehind(mitte)) continue;
-                var abstand = _kamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
+                if (StadtKamera.IsPositionBehind(mitte)) continue;
+                var abstand = StadtKamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
                 if (abstand < besterAbstand) { besterAbstand = abstand; getroffen = s; }
             }
         if (getroffen is null) return false;

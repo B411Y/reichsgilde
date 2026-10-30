@@ -435,6 +435,7 @@ public partial class Stadtansicht
     /// </summary>
     private void SchattenNachfuehren()
     {
+        if (FreiAktiv) return; // die freie Kamera hat eigene Schatten (Stadtansicht.FreieKamera.cs)
         var bild = GetViewport().GetVisibleRect().Size;
         var seiten = bild.Y > 0 ? bild.X / bild.Y : 16f / 9f;
         var stand = (_kamera.Size, seiten, Fenster.AktuelleSchattenqualitaet, BodenBewegt);

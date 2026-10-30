@@ -18,6 +18,8 @@ Die Tafel **Einstellungen** (Hauptmenü und Spielmenü) hat vier Reiter: **Grafi
 | Hoch | SMAA | Hoch | Mittel | An | Aus | An | Hoch | Dicht | 100 % | Leicht | An | Niedrig | Hoch |
 | Ultra | MSAA 4× | Hoch | Hoch, mit indirektem Licht | An | Aus | An | Hoch | Sehr dicht | 100 % | Leicht | An | Hoch | Hoch |
 
+**Wasser** hat keinen eigenen Regler, es folgt der Voreinstellung (bei „Eigene“ der Stufe, der die Regler am meisten gleichen): *Niedrig* ohne Brechung, Tiefenbild und Lichtnetze und mit nur einer Kräuselkarte – Farbe, Durchsicht und Uferschaum kommen aus dem Abstand zum Ufer; *Mittel* mit Tiefe (Grund im Flachen durchsichtig, Schaum auch an Pfeilern und Steinen) und Lichtnetzen, ohne Brechung und Regenringe; *Hoch* dazu Brechung (der Grund verzieht sich unter den Wellen, am teuersten) und Regenringe; *Ultra* wie Hoch mit doppelt so feinem Wassernetz, sodass sich auch die kürzeren Wellen als Bewegung der Fläche zeigen.
+
 **Grafik, Erweitert.** In Gruppen wie oben:
 
 - **Leistung (erweitert):** **Dynamische Auflösung** mit einer Ziel-Bildrate: Wird es eng, rechnet das Spiel das 3D-Bild in Schritten bis auf 50 % kleiner und holt es auf volle Größe – mit FSR 2.2, wenn es an ist, sonst einfach vergrößert; geregelt wird ruhig, höchstens alle zwei Sekunden ein Schritt. **Renderauflösung** (FSR) – nur sichtbar, wenn FSR an und die dynamische Auflösung aus ist. **Detailstufe:** Natur-Dichte (Anteil von Gras, Büschen, Steinen und Holz, Bäume dünnen nur halb so stark aus), Passanten (wie viele Einwohner als Figur zu sehen sind – die Stadt rechnet weiter mit allen) und Sichtweite der Feinheiten (bis zu welchem Zoom Bodenpflanzen, Kiesel und Holz gezeichnet werden).
