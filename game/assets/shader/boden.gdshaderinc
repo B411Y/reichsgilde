@@ -100,6 +100,11 @@ const float PFLASTER_ABSATZ = 0.14;
 global uniform float boden_pom;
 global uniform vec3 boden_blick;
 
+// Nasse Tropfkante unter den Traufen (Stadtansicht.Traufen.cs, wetter.gdshaderinc: traufe_nass): ein Bild um den Blickpunkt mit dem Abstand jedes Punkts
+// zur nächsten Traufkante (0–1 = 0–TRAUFE_WEIT m); traufe_feld = (Ecke x, Ecke z, 1 / Seitenlänge in m, Stärke 0–1; 0 = keine Tropfkante).
+global uniform vec4 traufe_feld;
+global uniform sampler2D traufe_maske : filter_linear, repeat_disable;
+
 varying vec2 welt;
 varying vec3 welt_n;
 
@@ -803,9 +808,17 @@ void fragment() {
 			farbe *= 1.0 - 0.62 * absatz_seite; // die Seite des Absatzes liegt im Schatten
 		}
 	}
-	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen) und Schnee (wetter.gdshaderinc)
+	// Nasse Tropfkante: Abstand zur nächsten Traufkante aus dem Bild um den Blickpunkt; zu seinem Rand hin (letzte 4 m) blendet sie aus
+	vec2 traufe = vec2(9.0, 0.0);
+	if (traufe_feld.w > 0.001) {
+		vec2 tu = (welt - traufe_feld.xy) * traufe_feld.z;
+		vec2 rand = min(tu, 1.0 - tu) / traufe_feld.z;
+		float drin = smoothstep(0.0, 4.0, min(rand.x, rand.y));
+		if (drin > 0.0) traufe = vec2(textureLod(traufe_maske, tu, 0.0).r * TRAUFE_WEIT, traufe_feld.w * drin);
+	}
+	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen), Tropfkante und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE >= 2, TIME);
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE >= 2, TIME, traufe);
 	ALBEDO = farbe;
 	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);

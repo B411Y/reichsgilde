@@ -76,6 +76,10 @@ wetter_wind={
 "type": "float",
 "value": 0.25
 }
+wellen_seegang={
+"type": "float",
+"value": 0.25
+}
 boden_pom={
 "type": "float",
 "value": 0.0
@@ -91,6 +95,14 @@ wetter_himmel={
 jahreszeit_anteile={
 "type": "vec4",
 "value": Vector4(0, 1, 0, 0)
+}
+traufe_feld={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+traufe_maske={
+"type": "sampler2D",
+"value": ""
 }
 
 [rendering]

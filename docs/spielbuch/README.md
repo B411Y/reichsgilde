@@ -8,6 +8,7 @@ Alles, was das Spiel kann, im Detail – ein Kapitel je Thema. Die Kurzfassung s
 - [Bauen und Leerstand](bauen-und-leerstand.md) – Bauzonen, Neubau, leere Häuser kaufen und abreißen
 - [Partie und Spieltag](partie-und-spieltag.md) – Hauptmenü, Spieltag 4–23 Uhr, Speichern, Aktionspunkte
 - [Einstellungen](einstellungen.md) – Voreinstellungen, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel
+- [Ton und Ansagen](ton.md) – Haushofmeister: die 20 Ereignisse, Vorrang, Pause, Abschalten
 - [Wirtschaft und Handel](wirtschaft-und-handel.md) – Markt, Betriebe, Karren, Handel von Hand, Hafen und Schiffe, Expansion, Meistergrade
 - [Berufe](berufe.md) – zehn Handwerke von Schmied bis Parfumeur
 - [Haus und Dynastie](haus-und-dynastie.md) – Wappen, Familie, Erbfolge, Talente, Gesundheit, Wohnhaus

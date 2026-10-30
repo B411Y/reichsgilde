@@ -142,10 +142,10 @@ public sealed partial class EntwicklerAnzeige
         return ergebnis;
     }
 
-    /// <summary>Busse und Pegel (jedes Bild, solange der Reiter offen ist).</summary>
+    /// <summary>Busse und Pegel (jedes Bild, solange der Reiter offen ist; nur wenn er fertig gebaut ist).</summary>
     private void KlaengeAuffrischen()
     {
-        if (_reiter.CurrentTab != _klaengeNummer) return;
+        if (!_klaengeFertig || _reiter.CurrentTab != _klaengeNummer) return;
         foreach (var (nummer, wert, pegel) in _busZeilen)
         {
             var index = AudioServer.GetBusIndex(KlangDienst.Regelbusse[nummer].Bus);

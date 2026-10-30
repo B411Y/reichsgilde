@@ -1,0 +1,589 @@
+{
+  "version": 1,
+  "hinweis": "Satzliste des Haushofmeisters (Ton Schritt 3). Fassung herr: 'Mein Herr', herrin: 'Meine Herrin'. Dateinamen: <ereignis>_<nr>[_herrin].ogg im Ordner. Prioritaet 1 = wichtigster Rang; sperre = Sekunden Echtzeit, bevor dasselbe Ereignis wieder angesagt wird.",
+  "ordner": "res://assets/audio/stimmen/haushofmeister/",
+  "abstand": 20,
+  "verfall": 45,
+  "ereignisse": [
+    {
+      "id": "tod_oberhaupt",
+      "titel": "Das Oberhaupt des Hauses ist gestorben (der Erbe tritt an)",
+      "prioritaet": 1,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, das Oberhaupt unseres Hauses ist verschieden. Nun ruht die Last auf Euch.",
+          "herrin": "Meine Herrin, das Oberhaupt unseres Hauses ist verschieden. Nun ruht die Last auf Euch.",
+          "datei_herr": "tod_oberhaupt_1.ogg",
+          "datei_herrin": "tod_oberhaupt_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, ich bringe traurige Kunde: Das Haupt des Hauses ist von uns gegangen.",
+          "herrin": "Meine Herrin, ich bringe traurige Kunde: Das Haupt des Hauses ist von uns gegangen.",
+          "datei_herr": "tod_oberhaupt_2.ogg",
+          "datei_herrin": "tod_oberhaupt_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, das Oberhaupt ist heimgegangen. Das Erbe liegt nun in Euren Händen.",
+          "herrin": "Meine Herrin, das Oberhaupt ist heimgegangen. Das Erbe liegt nun in Euren Händen.",
+          "datei_herr": "tod_oberhaupt_3.ogg",
+          "datei_herrin": "tod_oberhaupt_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "tod_familie",
+      "titel": "Ein Mitglied der Familie ist gestorben",
+      "prioritaet": 1,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, ein Glied Eures Hauses ist verschieden. Gott schenke der Seele Frieden.",
+          "herrin": "Meine Herrin, ein Glied Eures Hauses ist verschieden. Gott schenke der Seele Frieden.",
+          "datei_herr": "tod_familie_1.ogg",
+          "datei_herrin": "tod_familie_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, es ist ein Todesfall zu beklagen. Euer Haus ist in Trauer.",
+          "herrin": "Meine Herrin, es ist ein Todesfall zu beklagen. Euer Haus ist in Trauer.",
+          "datei_herr": "tod_familie_2.ogg",
+          "datei_herrin": "tod_familie_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, jemand aus Eurer Familie ist von uns gegangen.",
+          "herrin": "Meine Herrin, jemand aus Eurer Familie ist von uns gegangen.",
+          "datei_herr": "tod_familie_3.ogg",
+          "datei_herrin": "tod_familie_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "feuer",
+      "titel": "Feuer im Wohnhaus oder in einer Werkstatt",
+      "prioritaet": 2,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, es brennt! Feuer auf Eurem Besitz!",
+          "herrin": "Meine Herrin, es brennt! Feuer auf Eurem Besitz!",
+          "datei_herr": "feuer_1.ogg",
+          "datei_herrin": "feuer_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, Alarm! Ein Feuer wütet in Eurem Haus.",
+          "herrin": "Meine Herrin, Alarm! Ein Feuer wütet in Eurem Haus.",
+          "datei_herr": "feuer_2.ogg",
+          "datei_herrin": "feuer_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Feuer ist ausgebrochen. Möge Gott Schlimmeres verhüten.",
+          "herrin": "Meine Herrin, Feuer ist ausgebrochen. Möge Gott Schlimmeres verhüten.",
+          "datei_herr": "feuer_3.ogg",
+          "datei_herrin": "feuer_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "pest_stadt",
+      "titel": "Die Pest ist in der Stadt",
+      "prioritaet": 2,
+      "sperre": 120,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, die Pest ist in der Stadt. Möge Gott uns beistehen.",
+          "herrin": "Meine Herrin, die Pest ist in der Stadt. Möge Gott uns beistehen.",
+          "datei_herr": "pest_stadt_1.ogg",
+          "datei_herrin": "pest_stadt_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, schlimme Kunde: Die Pest geht um in den Gassen.",
+          "herrin": "Meine Herrin, schlimme Kunde: Die Pest geht um in den Gassen.",
+          "datei_herr": "pest_stadt_2.ogg",
+          "datei_herrin": "pest_stadt_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, die Seuche ist ausgebrochen. Die Arbeit wird darunter leiden.",
+          "herrin": "Meine Herrin, die Seuche ist ausgebrochen. Die Arbeit wird darunter leiden.",
+          "datei_herr": "pest_stadt_3.ogg",
+          "datei_herrin": "pest_stadt_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "krankheit",
+      "titel": "Ein Mitglied der Familie ist erkrankt",
+      "prioritaet": 3,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, jemand in Eurem Haus ist erkrankt. Vielleicht braucht es einen Medicus.",
+          "herrin": "Meine Herrin, jemand in Eurem Haus ist erkrankt. Vielleicht braucht es einen Medicus.",
+          "datei_herr": "krankheit_1.ogg",
+          "datei_herrin": "krankheit_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, ein Glied Eurer Familie liegt krank darnieder.",
+          "herrin": "Meine Herrin, ein Glied Eurer Familie liegt krank darnieder.",
+          "datei_herr": "krankheit_2.ogg",
+          "datei_herrin": "krankheit_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Krankheit ist im Haus. Ich rate, nach dem Medicus zu schicken.",
+          "herrin": "Meine Herrin, Krankheit ist im Haus. Ich rate, nach dem Medicus zu schicken.",
+          "datei_herr": "krankheit_3.ogg",
+          "datei_herrin": "krankheit_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "ueberfall",
+      "titel": "Fracht eines Karrens oder Schiffs wurde geraubt",
+      "prioritaet": 3,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, ein Überfall! Räuber haben unsere Fracht erbeutet.",
+          "herrin": "Meine Herrin, ein Überfall! Räuber haben unsere Fracht erbeutet.",
+          "datei_herr": "ueberfall_1.ogg",
+          "datei_herrin": "ueberfall_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, Wegelagerer haben einen Eurer Transporte geplündert.",
+          "herrin": "Meine Herrin, Wegelagerer haben einen Eurer Transporte geplündert.",
+          "datei_herr": "ueberfall_2.ogg",
+          "datei_herrin": "ueberfall_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, schlimme Kunde: Die Ladung ist geraubt worden.",
+          "herrin": "Meine Herrin, schlimme Kunde: Die Ladung ist geraubt worden.",
+          "datei_herr": "ueberfall_3.ogg",
+          "datei_herrin": "ueberfall_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "diebstahl",
+      "titel": "Einbruch ins Wohnhaus oder in eine Werkstatt",
+      "prioritaet": 3,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, Diebe waren hier! Man hat uns bestohlen.",
+          "herrin": "Meine Herrin, Diebe waren hier! Man hat uns bestohlen.",
+          "datei_herr": "diebstahl_1.ogg",
+          "datei_herrin": "diebstahl_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, es wurde eingebrochen. Das Diebesgut ist fort.",
+          "herrin": "Meine Herrin, es wurde eingebrochen. Das Diebesgut ist fort.",
+          "datei_herr": "diebstahl_2.ogg",
+          "datei_herrin": "diebstahl_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, ein Einbruch! Die Diebe sind entkommen.",
+          "herrin": "Meine Herrin, ein Einbruch! Die Diebe sind entkommen.",
+          "datei_herr": "diebstahl_3.ogg",
+          "datei_herrin": "diebstahl_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "anklage",
+      "titel": "Das Haus wurde vor Gericht angeklagt",
+      "prioritaet": 3,
+      "sperre": 120,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, Ihr seid angeklagt. Das Gericht wird Euch laden.",
+          "herrin": "Meine Herrin, Ihr seid angeklagt. Das Gericht wird Euch laden.",
+          "datei_herr": "anklage_1.ogg",
+          "datei_herrin": "anklage_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, man klagt Euch vor Gericht an. Seid auf der Hut.",
+          "herrin": "Meine Herrin, man klagt Euch vor Gericht an. Seid auf der Hut.",
+          "datei_herr": "anklage_2.ogg",
+          "datei_herrin": "anklage_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, eine Anklage wurde gegen Euer Haus erhoben.",
+          "herrin": "Meine Herrin, eine Anklage wurde gegen Euer Haus erhoben.",
+          "datei_herr": "anklage_3.ogg",
+          "datei_herrin": "anklage_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "schulden",
+      "titel": "Der Kämmerer mahnt Schulden an",
+      "prioritaet": 3,
+      "sperre": 120,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, der Kämmerer mahnt. Euer Haus steht in der Schuld.",
+          "herrin": "Meine Herrin, der Kämmerer mahnt. Euer Haus steht in der Schuld.",
+          "datei_herr": "schulden_1.ogg",
+          "datei_herrin": "schulden_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, Euer Haus hat Schulden. Der Kämmerer wird ungeduldig.",
+          "herrin": "Meine Herrin, Euer Haus hat Schulden. Der Kämmerer wird ungeduldig.",
+          "datei_herr": "schulden_2.ogg",
+          "datei_herrin": "schulden_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, die Gläubiger werden unruhig. Wir sollten die Schulden begleichen.",
+          "herrin": "Meine Herrin, die Gläubiger werden unruhig. Wir sollten die Schulden begleichen.",
+          "datei_herr": "schulden_3.ogg",
+          "datei_herrin": "schulden_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "wahl_verloren",
+      "titel": "Wahl im Rat verloren",
+      "prioritaet": 4,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, die Wahl ist verloren. Der Rat hat sich anders entschieden.",
+          "herrin": "Meine Herrin, die Wahl ist verloren. Der Rat hat sich anders entschieden.",
+          "datei_herr": "wahl_verloren_1.ogg",
+          "datei_herrin": "wahl_verloren_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, leider hat der Rat nicht für Euch gestimmt.",
+          "herrin": "Meine Herrin, leider hat der Rat nicht für Euch gestimmt.",
+          "datei_herr": "wahl_verloren_2.ogg",
+          "datei_herrin": "wahl_verloren_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, die Stimmen reichten nicht. Das nächste Jahr bringt eine neue Wahl.",
+          "herrin": "Meine Herrin, die Stimmen reichten nicht. Das nächste Jahr bringt eine neue Wahl.",
+          "datei_herr": "wahl_verloren_3.ogg",
+          "datei_herrin": "wahl_verloren_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "wahl_gewonnen",
+      "titel": "Wahl im Rat gewonnen",
+      "prioritaet": 4,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, die Wahl ist gewonnen. Der Rat vertraut Euch das Amt an.",
+          "herrin": "Meine Herrin, die Wahl ist gewonnen. Der Rat vertraut Euch das Amt an.",
+          "datei_herr": "wahl_gewonnen_1.ogg",
+          "datei_herrin": "wahl_gewonnen_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, der Rat hat für Euch gestimmt. Ihr seid gewählt.",
+          "herrin": "Meine Herrin, der Rat hat für Euch gestimmt. Ihr seid gewählt.",
+          "datei_herr": "wahl_gewonnen_2.ogg",
+          "datei_herrin": "wahl_gewonnen_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Glückwunsch: Ihr habt die Wahl gewonnen.",
+          "herrin": "Meine Herrin, Glückwunsch: Ihr habt die Wahl gewonnen.",
+          "datei_herr": "wahl_gewonnen_3.ogg",
+          "datei_herrin": "wahl_gewonnen_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "stand_aufstieg",
+      "titel": "Aufstieg in einen höheren Stand",
+      "prioritaet": 4,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, Ihr seid im Stand aufgestiegen. Die Stadt blickt auf Euch.",
+          "herrin": "Meine Herrin, Ihr seid im Stand aufgestiegen. Die Stadt blickt auf Euch.",
+          "datei_herr": "stand_aufstieg_1.ogg",
+          "datei_herrin": "stand_aufstieg_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, eine hohe Ehre: Euer Haus ist im Stand gestiegen.",
+          "herrin": "Meine Herrin, eine hohe Ehre: Euer Haus ist im Stand gestiegen.",
+          "datei_herr": "stand_aufstieg_2.ogg",
+          "datei_herrin": "stand_aufstieg_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Euer Ansehen wächst. Ihr tragt nun einen höheren Stand.",
+          "herrin": "Meine Herrin, Euer Ansehen wächst. Ihr tragt nun einen höheren Stand.",
+          "datei_herr": "stand_aufstieg_3.ogg",
+          "datei_herrin": "stand_aufstieg_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "meisterpruefung",
+      "titel": "Meisterprüfung bestanden (nächster Meistergrad)",
+      "prioritaet": 4,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, die Meisterprüfung ist bestanden. Meinen Glückwunsch.",
+          "herrin": "Meine Herrin, die Meisterprüfung ist bestanden. Meinen Glückwunsch.",
+          "datei_herr": "meisterpruefung_1.ogg",
+          "datei_herrin": "meisterpruefung_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, Ihr habt einen höheren Meistergrad erlangt. Das Handwerk ehrt Euch.",
+          "herrin": "Meine Herrin, Ihr habt einen höheren Meistergrad erlangt. Das Handwerk ehrt Euch.",
+          "datei_herr": "meisterpruefung_2.ogg",
+          "datei_herrin": "meisterpruefung_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Ihr seid in Eurem Handwerk weiter aufgestiegen. Die Zunft ist stolz.",
+          "herrin": "Meine Herrin, Ihr seid in Eurem Handwerk weiter aufgestiegen. Die Zunft ist stolz.",
+          "datei_herr": "meisterpruefung_3.ogg",
+          "datei_herrin": "meisterpruefung_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "geburt",
+      "titel": "Ein Kind wurde geboren",
+      "prioritaet": 4,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, ich habe frohe Kunde: Euer Haus hat Zuwachs bekommen.",
+          "herrin": "Meine Herrin, ich habe frohe Kunde: Euer Haus hat Zuwachs bekommen.",
+          "datei_herr": "geburt_1.ogg",
+          "datei_herrin": "geburt_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, ein Kind ist geboren! Gott segne es.",
+          "herrin": "Meine Herrin, ein Kind ist geboren! Gott segne es.",
+          "datei_herr": "geburt_2.ogg",
+          "datei_herrin": "geburt_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Glückwunsch. Die Familie ist um ein Kind reicher.",
+          "herrin": "Meine Herrin, Glückwunsch. Die Familie ist um ein Kind reicher.",
+          "datei_herr": "geburt_3.ogg",
+          "datei_herrin": "geburt_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "heirat",
+      "titel": "Das Oberhaupt hat geheiratet",
+      "prioritaet": 4,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, Ihr seid nun vermählt. Möge Gott Eure Ehe segnen.",
+          "herrin": "Meine Herrin, Ihr seid nun vermählt. Möge Gott Eure Ehe segnen.",
+          "datei_herr": "heirat_1.ogg",
+          "datei_herrin": "heirat_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, die Hochzeit ist vollzogen. Eure Familie wächst.",
+          "herrin": "Meine Herrin, die Hochzeit ist vollzogen. Eure Familie wächst.",
+          "datei_herr": "heirat_2.ogg",
+          "datei_herrin": "heirat_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Glückwunsch zur Vermählung. Das Haus freut sich mit Euch.",
+          "herrin": "Meine Herrin, Glückwunsch zur Vermählung. Das Haus freut sich mit Euch.",
+          "datei_herr": "heirat_3.ogg",
+          "datei_herrin": "heirat_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "ratssitzung",
+      "titel": "Die Ratssitzung beginnt (das Haus ist beteiligt)",
+      "prioritaet": 5,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, der Rat tritt zusammen. Man erwartet Euch im Rathaus.",
+          "herrin": "Meine Herrin, der Rat tritt zusammen. Man erwartet Euch im Rathaus.",
+          "datei_herr": "ratssitzung_1.ogg",
+          "datei_herrin": "ratssitzung_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, die Ratssitzung beginnt. Die Ratsherren warten.",
+          "herrin": "Meine Herrin, die Ratssitzung beginnt. Die Ratsherren warten.",
+          "datei_herr": "ratssitzung_2.ogg",
+          "datei_herrin": "ratssitzung_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, es ist Zeit für die Ratssitzung.",
+          "herrin": "Meine Herrin, es ist Zeit für die Ratssitzung.",
+          "datei_herr": "ratssitzung_3.ogg",
+          "datei_herrin": "ratssitzung_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "kasse_knapp",
+      "titel": "Die Kasse eines Betriebs ist knapp",
+      "prioritaet": 5,
+      "sperre": 180,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, die Kasse ist knapp. Seid sparsam.",
+          "herrin": "Meine Herrin, die Kasse ist knapp. Seid sparsam.",
+          "datei_herr": "kasse_knapp_1.ogg",
+          "datei_herrin": "kasse_knapp_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, die Münzen werden rar. Wir sollten Ausgaben meiden.",
+          "herrin": "Meine Herrin, die Münzen werden rar. Wir sollten Ausgaben meiden.",
+          "datei_herr": "kasse_knapp_2.ogg",
+          "datei_herrin": "kasse_knapp_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, Eure Kasse leert sich. Ich rate zur Vorsicht.",
+          "herrin": "Meine Herrin, Eure Kasse leert sich. Ich rate zur Vorsicht.",
+          "datei_herr": "kasse_knapp_3.ogg",
+          "datei_herrin": "kasse_knapp_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "lager_leer",
+      "titel": "Einem Betrieb fehlt Rohstoff, die Arbeit ruht",
+      "prioritaet": 5,
+      "sperre": 180,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, einer Eurer Betriebe hat nichts mehr zu verarbeiten. Das Lager ist leer.",
+          "herrin": "Meine Herrin, einer Eurer Betriebe hat nichts mehr zu verarbeiten. Das Lager ist leer.",
+          "datei_herr": "lager_leer_1.ogg",
+          "datei_herrin": "lager_leer_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, das Lager ist leer. Die Arbeit steht still.",
+          "herrin": "Meine Herrin, das Lager ist leer. Die Arbeit steht still.",
+          "datei_herr": "lager_leer_2.ogg",
+          "datei_herrin": "lager_leer_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, es mangelt an Rohstoffen. Ohne Nachschub ruht die Arbeit.",
+          "herrin": "Meine Herrin, es mangelt an Rohstoffen. Ohne Nachschub ruht die Arbeit.",
+          "datei_herr": "lager_leer_3.ogg",
+          "datei_herrin": "lager_leer_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "lager_voll",
+      "titel": "Das Lager eines Betriebs ist voll, die Werkstatt steht still",
+      "prioritaet": 6,
+      "sperre": 180,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, eine Werkstatt steht still. Das Lager ist voll.",
+          "herrin": "Meine Herrin, eine Werkstatt steht still. Das Lager ist voll.",
+          "datei_herr": "lager_voll_1.ogg",
+          "datei_herrin": "lager_voll_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, die Lager sind voll, die Arbeit ruht. Ihr solltet verkaufen.",
+          "herrin": "Meine Herrin, die Lager sind voll, die Arbeit ruht. Ihr solltet verkaufen.",
+          "datei_herr": "lager_voll_2.ogg",
+          "datei_herrin": "lager_voll_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, ohne Platz im Lager kann nicht weitergearbeitet werden.",
+          "herrin": "Meine Herrin, ohne Platz im Lager kann nicht weitergearbeitet werden.",
+          "datei_herr": "lager_voll_3.ogg",
+          "datei_herrin": "lager_voll_3_herrin.ogg"
+        }
+      ]
+    },
+    {
+      "id": "jahresende",
+      "titel": "Das Jahr ist zu Ende (Jahresabrechnung)",
+      "prioritaet": 6,
+      "sperre": 60,
+      "varianten": [
+        {
+          "nr": 1,
+          "herr": "Mein Herr, ein Jahr geht zu Ende. Die Bücher sind zum Abschluss bereit.",
+          "herrin": "Meine Herrin, ein Jahr geht zu Ende. Die Bücher sind zum Abschluss bereit.",
+          "datei_herr": "jahresende_1.ogg",
+          "datei_herrin": "jahresende_1_herrin.ogg"
+        },
+        {
+          "nr": 2,
+          "herr": "Mein Herr, das Jahr ist um. Hier ist die Rechnung des Hauses.",
+          "herrin": "Meine Herrin, das Jahr ist um. Hier ist die Rechnung des Hauses.",
+          "datei_herr": "jahresende_2.ogg",
+          "datei_herrin": "jahresende_2_herrin.ogg"
+        },
+        {
+          "nr": 3,
+          "herr": "Mein Herr, ein neues Jahr bricht an. Möge es uns gnädig sein.",
+          "herrin": "Meine Herrin, ein neues Jahr bricht an. Möge es uns gnädig sein.",
+          "datei_herr": "jahresende_3.ogg",
+          "datei_herrin": "jahresende_3_herrin.ogg"
+        }
+      ]
+    }
+  ]
+}

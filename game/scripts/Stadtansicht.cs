@@ -374,7 +374,9 @@ public partial class Stadtansicht : Node3D
             Position = new Vector3(0, 0, KameraAbstand), // Near und Far folgen dem Zoom (SchattenNachfuehren)
         };
         neigung.AddChild(_kamera);
+        Feuer.AusblendenZuschlag = KameraAbstand; // die Fernausblendung der Feuerlichter misst von der Kamera, die 150 m vor dem Blickpunkt steht (Feuer.cs)
         RaumKameraAufbauen(); // wohin die Kamera beim Start blickt, sagt die Karte (KameraAusKarte)
+        FreieKameraEinrichten(); // --freiekamera=1: frei fliegen statt der Spielkamera (Stadtansicht.FreieKamera.cs)
     }
 
     private static float AbstandZurStrecke(Vector3 p, Vector3 a, Vector3 b)
@@ -723,6 +725,7 @@ public partial class Stadtansicht : Node3D
     /// <summary>Jedes Bild: Licht nach Uhrzeit, Esse, Karren.</summary>
     public void Aktualisieren(double delta)
     {
+        Feuer.UhrStellen(delta); // die gemeinsame Uhr aller Flammen und des Rauchs (Feuer.cs), auch wenn kein Feuer ein eigenes Licht hat
         if (_simulation is null) return;
         var uhr = Ladezeit.Uhr(); // --ladezeit=1: was die ersten Bilder kosten (Ladezeit.cs)
         WohnhaeuserPruefen(); // einmal, sobald der Kern die Wohnhäuser vergeben hat
@@ -762,6 +765,7 @@ public partial class Stadtansicht : Node3D
                 GlutSetzen(modell, glueht);
             }
             if (ansicht.Modell is { } haus) FenstergruppeSetzen(haus, FenstergruppeVon(betrieb, w)); // Stadtansicht.Modelle.cs, nur beim Wechsel
+            WerkstattBrandPruefen(betrieb, ansicht, zeit.VergangeneMinuten); // ein Feuer im Betrieb (Stadtansicht.Feuer.cs)
             if (ansicht == _innen)
                 InnenAktualisieren(ansicht, zeit, hierArbeitszeit, arbeitet, delta);
 
@@ -778,6 +782,7 @@ public partial class Stadtansicht : Node3D
                 ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         NachtwaechterAktualisieren(w, zeit, bruchteil, delta); // Wachleute auf Streife (Stadtansicht.Nachtlichter.cs)
+        FeuerAktualisieren(w, zeit, bruchteil, delta); // Kaminrauch und brennende Häuser (Stadtansicht.Feuer.cs)
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
@@ -966,11 +971,12 @@ public partial class Stadtansicht : Node3D
 
     public override void _Process(double delta)
     {
+        var frei = FreieKameraBild(); // --freiekamera=1: die Spielkamera folgt der freien (Stadtansicht.FreieKamera.cs)
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
-        WasserBild(delta);       // Himmelsfarbe im Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
+        WasserBild(delta);       // Eis auf dem Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
         WegeModusBild();         // Wege-Modus: Leuchten nachziehen, Weg unter der Maus (Stadtansicht.Wegemodus.cs)
         var uhr = Ladezeit.Uhr(); // --ladezeit=1: was die ersten Bilder kosten (Ladezeit.cs)
@@ -992,7 +998,7 @@ public partial class Stadtansicht : Node3D
         // Sanft auf die Zieldrehung zudrehen (Q/E)
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
-        KameraGrenzenAnwenden(delta); // zurückfedern, Zoom begrenzen (Stadtansicht.Rand.cs)
+        if (!frei) KameraGrenzenAnwenden(delta); // zurückfedern, Zoom begrenzen (Stadtansicht.Rand.cs)
         KameraHoeheNachfuehren(delta); // mit dem Gelände steigen und fallen (Stadtansicht.Gelaende.cs)
         if (_innen is { Raumansicht: false }) Aufschneiden(_innen);
         if (_raum is not null)
@@ -1001,8 +1007,8 @@ public partial class Stadtansicht : Node3D
             return; // feste Ansicht: im Raum wird nicht verschoben
         }
 
-        // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld und nicht mit Strg (Strg+S speichert in der Kartenwerkstatt)
-        if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
+        // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld, nicht mit Strg (Strg+S speichert in der Kartenwerkstatt) und nicht mit freier Kamera
+        if (frei || GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
         var richtung = Vector2.Zero;
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) richtung.Y -= 1;
         if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) richtung.Y += 1;
@@ -1042,6 +1048,10 @@ public partial class Stadtansicht : Node3D
             RaumEingabe(eingabe);
             return;
         }
+        // Mausrad, rechte Maustaste und Q/E gehören der freien Kamera, wenn sie aktiv ist (Stadtansicht.FreieKamera.cs)
+        if (FreiAktiv && eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown or MouseButton.Right }
+                or InputEventKey { Keycode: Key.Q or Key.E })
+            return;
         if (BauEingabe(eingabe) || WerkstattEingabe(eingabe)) // Baumodus: R dreht, Klick setzt (Stadtansicht.Bauen.cs); Kartenwerkstatt (Stadtansicht.Kartenwerkstatt.cs)
         {
             GetViewport().SetInputAsHandled();
@@ -1113,7 +1123,7 @@ public partial class Stadtansicht : Node3D
     private string? KennungBei(Vector2 bildschirm)
     {
         if (PassantBei(bildschirm) is { } einwohner) return einwohner; // Figuren vor Gebäuden (Stadtansicht.Passanten.cs)
-        var kamera = _raum is not null ? _raumKamera : _kamera;
+        var kamera = _raum is not null ? _raumKamera : StadtKamera;
         var von = kamera.ProjectRayOrigin(bildschirm);
         var bis = von + kamera.ProjectRayNormal(bildschirm) * 500;
         var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));

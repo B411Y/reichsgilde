@@ -65,6 +65,7 @@ public partial class Stadtansicht
     {
         _fahrflaechen.Clear();
         _faehren.Clear();
+        _wasserPfeiler.Clear();
     }
 
     /// <summary>Hängt die Fähren der Karte als Kanten ans Gassennetz: Nur Karren fahren darüber (<see cref="Gassennetz.Pfad"/> mit <c>faehren</c>), nie Passanten.</summary>
@@ -226,6 +227,7 @@ public partial class Stadtansicht
             for (var i = 0; i < q.Felder; i++)
             {
                 var mitte = a + d * (feld * (i + 0.5f));
+                if (i > 0) _wasserPfeiler.Add((a + d * (feld * i), 0.6f, 2.5f)); // Pfähle zwischen den Jochen: Eisschollen weichen aus
                 WasserTeil(datei, "Holz_Joch", gruppe, BausteinLage(mitte, ufer, phi, streckung));
                 WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, ufer, phi, streckung));
                 WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, ufer, phi + Mathf.Pi, streckung));
@@ -245,7 +247,10 @@ public partial class Stadtansicht
                 WasserTeil(datei, "Stein_Bruestung", gruppe, BausteinLage(mitte, ufer, phi, streckung));
                 WasserTeil(datei, "Stein_Bruestung", gruppe, BausteinLage(mitte, ufer, phi + Mathf.Pi, streckung));
                 if (i + 1 < q.Felder)
+                {
                     WasserTeil(datei, "Stein_Pfeiler", gruppe, BausteinLage(a + d * (i * (feld + 2f) + feld + 1f), ufer, phi)); // nie gedreht: Eisbrecher stromauf
+                    _wasserPfeiler.Add((a + d * (i * (feld + 2f) + feld + 1f), 1.4f, 4f)); // Eisschollen weichen dem Pfeiler aus
+                }
             }
             FahrflaecheBruecke(a, d, weite, q, flach: 2, rampe: 8);
         }
@@ -611,10 +616,12 @@ public partial class Stadtansicht
         return form.Becken.FirstOrDefault(b => b.Enthaelt(p))?.Spiegel;
     }
 
-    /// <summary>Alles Bewegte am Wasser, jedes Bild (aus <c>_Process</c>).</summary>
+    /// <summary>Alles Bewegte am Wasser, jedes Bild (aus <c>_Process</c>): Eis nach dem Winterfortschritt (Stadtansicht.Wasser.cs), Fähren, Häfen.</summary>
     private void WasserBild(double delta)
     {
-        WasserFarbeNachfuehren();
+        WasserWinterNachfuehren();
+        SchollenBild(delta);     // treibende Eisschollen (Stadtansicht.Eisschollen.cs)
+        WassermessungSchritt(delta); // nur mit --wasservergleich=1 (Stadtansicht.Wassermessung.cs)
         FaehrenBewegen(delta);
         HaefenBewegen(delta);
     }

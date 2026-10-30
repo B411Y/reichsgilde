@@ -32,7 +32,7 @@ Jede Zeile führt in das passende Kapitel des [Spielbuchs](docs/spielbuch/README
 
 | | Thema | Was schon geht |
 |---|---|---|
-| 🏰 | [Stadt und Ansicht](docs/spielbuch/stadt-und-ansicht.md) | Drehbare Schrägansicht mit sichtbaren Einwohnern, Tag und Nacht, Wetter von Sonne bis Gewitter, vier Jahreszeiten mit Schnee; Hügel, Flüsse, Brücken, Furten und Fähren; die Karte Köln mit Dom, Rathaus und Rheinhafen. |
+| 🏰 | [Stadt und Ansicht](docs/spielbuch/stadt-und-ansicht.md) | Drehbare Schrägansicht mit sichtbaren Einwohnern, Tag und Nacht, Wetter von Sonne bis Gewitter, vier Jahreszeiten mit Schnee; lodernde Flammen an Fackeln und Feuerkörben, Rauch aus den Schornsteinen und brennende Häuser; Hügel, Flüsse, Brücken, Furten und Fähren; die Karte Köln mit Dom, Rathaus und Rheinhafen. |
 | 🚪 | [Gebäude betreten](docs/spielbuch/gebaeude-betreten.md) | Werkstätten aller zehn Berufe, Wohnhaus, Rathaus und Dom von innen – mit Arbeitern, Kunden, Familie, Ratsherren und Gläubigen aus der Simulation. |
 | 🏗️ | [Bauen und Leerstand](docs/spielbuch/bauen-und-leerstand.md) | Bauzonen, Wohnhaus und Werkstatt frei bauen, leere Häuser kaufen, sanieren oder abreißen. |
 | ⏳ | [Partie und Spieltag](docs/spielbuch/partie-und-spieltag.md) | Ein Spieltag von 4 bis 23 Uhr ist ein Spieljahr; Hauptmenü mit Stadtwahl und Schwierigkeit, Speichern, Aktionspunkte, Zeitstrahl, Betriebsleiste und Meldungen. |

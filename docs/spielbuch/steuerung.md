@@ -46,6 +46,17 @@ Der Name eines Gebäudes steht über ihm, wenn die Maus darauf ruht oder wenn es
 
 Freie Plätze tragen ein Schild am Pfosten: **ocker** heißt **zu verkaufen**, **grün** **zu verpachten** (mehr dazu in [Bauen und Leerstand](bauen-und-leerstand.md)).
 
+**Freie Kamera (zum Ansehen und Testen).** Mit der Startoption `--freiekamera=1` fliegst du frei durch die Stadt statt mit der schrägen Spielkamera, auch ganz nah an Wasser, Häuser und Figuren heran. Die Testszenen (zum Beispiel `--wassertest=1`) starten immer so.
+
+| Du willst … | So geht es |
+|---|---|
+| dich umsehen | **rechte Maustaste halten** und die Maus bewegen (die Maus ist dabei gefangen; ohne die Taste bleibt sie frei für die Tafeln) |
+| fahren | **W A S D** in Blickrichtung, **Q** runter, **E** hoch |
+| schneller | **Shift** halten (viermal so schnell), das Grundtempo stellt das **Mausrad** ein |
+| die Hilfe oben rechts aus- und einblenden | **F2** auf der Spielkarte (H öffnet dort das Hinterzimmer), **H** in den Testszenen |
+
+Klicks auf Gebäude gehen wie gewohnt. Mausrad, Q/E und das Ziehen mit der rechten Taste steuern dann nur die freie Kamera.
+
 ## Gebäude anklicken und betreten
 
 - **Linksklick** auf ein Gebäude öffnet seine Tafel neben dem Zeiger; sie lässt sich verschieben und schließen. Bei deinem **Betrieb** ist es die Kurzübersicht, beim eigenen **Wohnhaus** das Wohnhaus mit Reitern, beim **Rathaus** der Rat mit Ämtern, Statut und Gericht, beim **Marktplatz** der Markt mit den Preisen. Hafen, Kran, Schuppen und eigene Schiffe öffnen die Hafentafel.

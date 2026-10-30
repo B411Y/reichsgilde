@@ -147,6 +147,7 @@ public partial class Stadtansicht
         TraufenMelden(modell); // Tropfen an der Dachkante bei Regen (Stadtansicht.Traufen.cs)
         KronenMelden(modell); // Laubkrone im Sommer, kahle Äste im Winter (Stadtansicht.Natur.cs)
         if (!zustand.Leerstand) NachtlichterAnbringen(modell); // Feuerkörbe, Wandlaternen, Ewiges Licht an den Ankern (Stadtansicht.Nachtlichter.cs)
+        if (!zustand.Leerstand && ankerKennung is not null) KamineAnbringen(modell, datei, ankerKennung); // Rauch aus den Schornsteinen (Stadtansicht.Feuer.cs)
         if (modell.FindChild("Tretrad", true, false) is not null) HafenBelebt(modell); // das Tretrad dreht sich, die Kähne sitzen auf dem Wasser (Stadtansicht.Wasser.Uebergaenge.cs)
         if (ankerKennung is not null)
             _modellAnker[ankerKennung] = (modell.FindChild("Anker_Tuer", true, false) as Node3D, modell.FindChild("Anker_Karren", true, false) as Node3D);

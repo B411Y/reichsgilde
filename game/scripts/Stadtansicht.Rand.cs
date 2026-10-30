@@ -163,6 +163,10 @@ public partial class Stadtansicht
     {
         if (_dunstRing is null) return;
         var farbe = _umgebung.Environment.BackgroundColor;
+        // Mit der freien Kamera (Stadtansicht.FreieKamera.cs) sieht man den Hintergrund hinter dem Kartenrand. Godot zeichnet die Hintergrundfarbe
+        // dunkler als dieselbe Farbe im Ring (gemessen: Himmel 64,107,156, Ring 137,173,205 – wie einmal zu oft von sRGB nach linear gewandelt);
+        // die Spielkamera sieht den Hintergrund nie. Ein so gewandelter Ring geht ohne Kante in den Himmel über.
+        if (FreiAktiv) farbe = farbe.SrgbToLinear();
         if (farbe == _dunstFarbe) return;
         _dunstFarbe = farbe;
         _dunstRing.SetShaderParameter("farbe", farbe);
