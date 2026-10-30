@@ -122,8 +122,8 @@ public partial class FeuerArt : Resource
         // Esse: flaches Glutbett mit niedrigen, gedämpften Flammen (sonst nur ein heller Fleck im Bloom) und aufstiebenden Glutstückchen
         FeuerVorgabe.Esse => new FeuerArt
         {
-            Bezeichnung = "Esse", Form = FeuerForm.Glut, Hoehe = 0.26f, Breite = 0.2f, Zungen = 3, Radius = 0.18f, Flackern = 0.25f, Tempo = 0.85f, Helligkeit = 1.4f,
-            Toenung = new Color(1.0f, 0.85f, 0.8f),
+            Bezeichnung = "Esse", Form = FeuerForm.Glut, Hoehe = 0.22f, Breite = 0.18f, Zungen = 3, Radius = 0.18f, Flackern = 0.25f, Tempo = 0.85f, Helligkeit = 1.0f,
+            Toenung = new Color(1.0f, 0.8f, 0.7f),
             Funken = 5, FunkenHoehe = 5f, FunkenGroesse = 0.010f,
             RauchMenge = 0.3f, RauchHoehe = 2.6f, RauchBreite = 0.6f, RauchRuss = 0.4f, RauchGlut = 0.5f,
             LichtEnergie = 3.2f, LichtReichweite = 7.5f, LichtFlackern = 0.22f, LichtFarbeKalt = new Color(1.0f, 0.38f, 0.1f), LichtFarbeHeiss = new Color(1.0f, 0.6f, 0.25f),

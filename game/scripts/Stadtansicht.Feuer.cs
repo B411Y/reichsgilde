@@ -511,6 +511,7 @@ public partial class Stadtansicht
         _herdfeuer.Form = FeuerForm.Flamme;
         _herdfeuer.RauchMenge = 0f;
         _herdfeuer.Zungen = 4;
+        _herdfeuer.Helligkeit = 1.1f; // im hellen Raum genügt weniger, sonst wird die Esse ein Fleck im Bloom
         return _herdfeuer;
     }
 
@@ -544,12 +545,15 @@ public partial class Stadtansicht
                     else if (schmiede && g.Y < 0.12f && Mathf.Min(g.X, g.Z) is >= 0.4f and <= 2f && Mathf.Max(g.X, g.Z) <= 2.2f && b.Normale.Y > 0.7f)
                     {
                         // Glutbett der Esse: niedrige Flammen über der Mitte
-                        flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(essen + 3, 77) & 0xFFFF) / 65535f, Mathf.Clamp(Mathf.Min(g.X, g.Z) / 0.55f, 1f, 1.7f));
+                        flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(essen + 3, 77) & 0xFFFF) / 65535f, Mathf.Clamp(Mathf.Min(g.X, g.Z) / 0.75f, 0.9f, 1.25f));
                         flamme.Art = Herdfeuer();
                         flamme.Position = new Vector3(b.Mitte.X, b.Max.Y, b.Mitte.Z);
                         essen++;
                     }
                     if (flamme is null) continue;
+                    // Im Raum blickt die Kamera nur leicht von oben: aufrecht stehende Flammen (nur um die Hochachse gedreht), sonst neigt sich die Fläche
+                    // nach vorn und legt sich vor eine Figur, die vor der Esse steht
+                    flamme.Ausrichtung = FeuerAusrichtung.Hochachse;
                     flamme.Name = "Flamme";
                     flamme.Visible = md.Glueht;
                     teil.AddChild(flamme);

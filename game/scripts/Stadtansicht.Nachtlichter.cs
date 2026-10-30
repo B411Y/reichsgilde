@@ -58,7 +58,7 @@ public partial class Stadtansicht
     private static (Vector3 Fuss, FeuerVorgabe Vorgabe, float Groesse)? FlammenFuss(Lichtart art) => art switch
     {
         Lichtart.Fackel => (new Vector3(0, 0.5f, 0), FeuerVorgabe.Fackel, 0.85f),
-        Lichtart.Feuerkorb => (new Vector3(0, 2.04f, 0), FeuerVorgabe.Feuerkorb, 0.85f),
+        Lichtart.Feuerkorb => (new Vector3(0, 2.04f, 0), FeuerVorgabe.Feuerkorb, 1f),
         Lichtart.Handlaterne => (new Vector3(0, -0.25f, 0), FeuerVorgabe.Laterne, 0.9f),
         Lichtart.Wandlaterne => (new Vector3(0, -0.55f, -0.58f), FeuerVorgabe.Laterne, 1.3f),
         _ => null,
