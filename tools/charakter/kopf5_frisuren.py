@@ -774,6 +774,20 @@ class Gabelbart(k4.Langbart):
         # Mitte: Scheitel unter dem Kinn (die Strähnen jeder Seite laufen zu ihrer Spitze, nicht zur Mitte)
         return _norm(UNTEN * (1 - k) * 0.6 + Vector((sx * 0.4, -0.1, 0)) * (1 - k) + _norm(spitze - q) * 3.0 * k)
 
+    def nach(self, pkt, w, rng):
+        """Die zwei Spitzen deutlich machen: unterhalb des Kinns zieht jede Strähne zur Achse ihrer Spitze (Kegel)."""
+        if self.zone(w) == "schnurr":
+            return pkt
+        M = self.M
+        sx = 1.0 if w[0] >= 0 else -1.0
+        pkt = np.array(pkt, dtype=np.float64)
+        tiefe = self.m68[8, 2] - pkt[:, 2]
+        k = (glatt(tiefe, 0.01 * M, 0.13 * M) * 0.9)[:, None]
+        ziel = pkt.copy()
+        ziel[:, 0] = sx * 0.034 * M
+        ziel[:, 1] = self.m68[8, 1] - 0.02 * M
+        return pkt * (1 - k) + ziel * k
+
     def laenge(self, w, n):
         z = self.zone(w)
         if z == "schnurr":
@@ -805,26 +819,29 @@ class Spitzbart(k4.Bart):
 class KurzerVollbart(k4.Vollbart):
     """b03: kurzer Vollbart – gestutzt, 1,5–2 cm, dicht, Wangen bis zur Linie Ohr – Mundwinkel."""
     name, anzahl, punkte = "vollbart", 6500, 8
-    volumen = (0.0008, 0.004)
+    volumen = (0.0005, 0.0025)
+    hub = 0.35
 
     def dichte(self, q):
         # Hals rasiert, saubere Linie knapp unter dem Kiefer: Kinn- und Wangenzone reichen sonst 3–3,5 cm unter das Kinn
         # (Unterseite des Kiefers), das wirkte in der ¾-Ansicht wie ein langer Bart
         q = np.atleast_2d(q)
         f = self.flaechen(q)
-        linie = glatt(q[:, 2] - (self.m68[8, 2] - 0.012 * self.M), 0.0, 0.005 * self.M)
+        linie = glatt(q[:, 2] - (self.m68[8, 2] - 0.006 * self.M), 0.0, 0.004 * self.M)
         return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"] * linie, f["wange"] * linie]), 0, 1)
 
     def kamm(self, q, n, s, w):
         if self.zone(w) == "hals":
             return _norm(UNTEN * 0.3 + VORN * 0.6)        # am Hals anliegend nach vorn zum Kinn
+        if self.zone(w) == "kinn":
+            return _norm(UNTEN * 0.6 + VORN * 0.4)        # gestutzt: liegt am Kinn an statt herabzuhängen
         return k4.Vollbart.kamm(self, q, n, s, w)
 
     def laenge(self, w, n):
         z = self.zone(w)
         if z == "schnurr":
             return 0.01 * self.rng.uniform(0.85, 1.1) * self.M
-        L = {"kinn": 0.013, "wange": 0.009, "hals": 0.006}[z]
+        L = {"kinn": 0.01, "wange": 0.009, "hals": 0.006}[z]
         return L * self.rng.uniform(0.85, 1.1) * self.M
 
 
