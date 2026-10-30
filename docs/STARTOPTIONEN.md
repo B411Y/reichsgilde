@@ -58,6 +58,9 @@ Startoptionen (nach `--`):
 - `--entwickler=1|0` (Entwickler-Modus für diesen Start an oder aus, ohne die gemerkte Einstellung zu ändern; die Kartenwahl zeigt dann auch Test- und Messkarten)
 - `--entwicklerfenster=<1–5>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `5` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
+- `--ladezeit=1|ende` (Messausgabe der Ladezeit: Zeilen „Ladezeit: …“ mit den Millisekunden je Abschnitt – Kern, Gelände, Häuser, Wege, Wasser, Natur, Modelle laden –, danach die Dauer der ersten Bilder samt übersetzten Pipelines und der Arbeit in ihnen; `ende` beendet das Spiel, sobald die Bilder ruhig sind. Mit dem Ladebildschirm misst „Ladebild weg“ die Bilder hinter ihm, die Bildzeiten danach gelten den ersten sichtbaren Bildern; „Bild zwischen den Abschnitten“ ist das Bild, das der Balken je Abschnitt braucht. Dazu `--ladezeitbilder=<ordner>`: Fotos beim ersten Bild, nach 1 s, nach 3 s und am Ende; `game/scripts/Ladezeit.cs`)
+- `--menuhintergrund=1` (die Greybox hinter dem übersprungenen Hauptmenü trotzdem bauen – wie der Weg über das Menü, das dabei Modelle und Shader schon lädt; nur für Vergleiche der Ladezeit, sonst lassen Startoptionen sie weg)
+- `--vorwaermen=0` (Regen und Schnee hinter dem Ladebildschirm nicht vorab zeigen; für Vergleiche des ersten Regens)
 - `--schwierigkeit=<Normal|Schwer>` (Schwierigkeit der neuen Partie, nur für diesen Start; Normal = KI-Häuser starten wie der Spieler, Schwer = mit Umlandbetrieb)
 - `--klickskript=<aktionen>` und `--klickausgabe=<ordner>` (Klicktest ohne echte Maus, für `tools/klicktest/lauf.ps1` unter Windows: das Spiel führt die Aktionen von `lauf.sh` selbst aus – `m x y`, `w sek`, `k taste`, `b knopf`, `d x1 y1 x2 y2`, `s name`, durch `;` getrennt –, speichert die Fotos als PNG im Ordner und beendet sich; nur zusammen wirksam; zählen nicht als Startoption, das Hauptmenü bleibt also stehen)
 - `--klickwarten=<Sekunden>` (mit `--klickskript`: so lange ab Programmstart warten, bevor die erste Aktion läuft; Standard 0)
@@ -84,7 +87,9 @@ Startoptionen (nach `--`):
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
+- `--lichtuhr=<Stunde>` (Licht, Himmel, Fenster und Nachtlichter zeigen diese feste Uhrzeit, mit Bruchteil: `3.5` = 3:30 Uhr, auch vor 4 Uhr; nur Darstellung, die Spielzeit läuft weiter; mit `--jahreszeit` wählt man die Sonnenzeiten)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
+- `--wetterspaeter=<lage>@<Sekunden>` (das Wetter schlägt nach so vielen Sekunden plötzlich um, z. B. `regen@14`; für Messungen des ersten Regens: ohne `--wetter` ändert es sich erst dann, sonst gilt `--wetter` bis dahin)
 - `--pflasterrelief=0` (Pflaster ohne Tiefe: schaltet die Parallax im Pflaster für diesen Start aus, nur in der Bodenqualität Hoch wirksam; für Vergleiche und Messungen)
 - `--messe=1` (Kirchen und Dom leuchten, als liefe gerade die Messe; nur Darstellung, für Bildschirmfotos bei Nacht)
 - `--tonemapping=<Bisher|Agx>`
@@ -94,9 +99,10 @@ Startoptionen (nach `--`):
 - `--uigroesse=<75–200>`
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
 - `--klangtest=1` (spielt alle Oberflächenklänge nacheinander und schreibt `KLANGTEST <Ereignis>: n/m Varianten (Längen)` ins Log; am Ende `KLANGTEST fertig … 0 mit fehlenden Dateien`)
-- `--reiter=<Voreinstellung|Leistung|Bild|Stimmung|Barrierefreiheit|Spiel|Ton>` (mit `--einstellungen=1`)
+- `--reiter=<Grafik|GrafikErweitert|Ton|Spiel|Barrierefreiheit>` (mit `--einstellungen=1`; `GrafikErweitert` öffnet Grafik mit aufgeklapptem „Erweitert“, nur für diesen Start; die früheren Namen `Voreinstellung` (= Grafik) sowie `Leistung`, `Bild` und `Stimmung` (= GrafikErweitert) gehen weiter)
+- `--schnittstellezeigen=1` (zeigt die Zeile „Grafikschnittstelle“ in Grafik → Erweitert auch außerhalb von Windows, zum Ansehen und für Klicktests; geprüft wird sonst nur unter Windows)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
-- `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
+- `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 
 ## Feuer und Flammen (Testszene, Phase 1)
 

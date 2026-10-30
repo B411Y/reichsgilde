@@ -72,7 +72,7 @@ public partial class Stadtansicht
     /// <summary>Die Fahne der Belegung an der vorderen linken Ecke der Grundfläche: Mast und Tuch in der Hausfarbe, beim Spieler weiß mit goldenem Rand und Schwalbenschwanz.</summary>
     private void BelegungsfahneBauen(Vector2 groesse, Belegungsanzeige b, Node3D wurzel)
     {
-        const float hoehe = 11;
+        const float hoehe = 15; // hoch genug, dass das Tuch über dem Dachfirst weht (Haus bis etwa 11 m)
         var fahne = new Node3D { Name = "Belegung", Position = new Vector3(-groesse.X / 2 + 0.6f, 0, groesse.Y / 2 - 0.6f) };
         wurzel.AddChild(fahne);
         fahne.AddChild(new MeshInstance3D
@@ -80,7 +80,7 @@ public partial class Stadtansicht
             Name = "Mast", Mesh = new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.16f, Height = hoehe, RadialSegments = 8 },
             Position = new Vector3(0, hoehe / 2, 0), MaterialOverride = Material(Mastholz),
         });
-        FahnenTuchAmMast(new Vector3(0, hoehe - 1.5f, 0), Vector3.Right, 4.5f, 2.8f, b.Farbe, fahne, kerbe: b.Spieler ? 1.4f : 0,
+        FahnenTuchAmMast(new Vector3(0, hoehe - 1.5f, 0), Vector3.Right, 4.5f, 2.8f, b.Farbe, fahne, kerbe: b.Spieler ? 0.3f : 0, // Schwalbenschwanz: 30 % der Länge (1,35 m)
             rand: b.Spieler ? SpielerFahnenrand : null);
     }
 

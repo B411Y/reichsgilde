@@ -165,9 +165,20 @@ public partial class Stadtansicht
     /// </summary>
     public void EntwurfZeigen(Kartenentwurf entwurf)
     {
-        if (_karteGebaut) return;
+        foreach (var _ in EntwurfZeigenSchritte(entwurf)) { }
+    }
+
+    /// <summary>
+    /// <see cref="EntwurfZeigen"/> in Abschnitten für den Ladebildschirm (<see cref="Ladeschritt"/>, Anteil 0–1, nach der Messung mit
+    /// <c>--ladezeit=1</c>, Köln 29.10.2026); gerechnet wird beim nächsten Weiterzählen.
+    /// </summary>
+    public IEnumerable<Ladeschritt> EntwurfZeigenSchritte(Kartenentwurf entwurf)
+    {
+        if (_karteGebaut) yield break;
         _karteGebaut = true;
         _entwurf = entwurf;
+        Ladezeit.Marke("vor dem Kartenaufbau");
+        yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = entwurf.Gelaendeform; // folgt jeder Änderung des Entwurfs von selbst
         _karte = HintergrundVon(entwurf);
         if (_karte is { } karte)
@@ -182,17 +193,31 @@ public partial class Stadtansicht
             KameraAusKarte(karte);
         }
         else BodenBauen(entwurf.Kartengrenzen); // Boden, Dunst und Kartenrand (Stadtansicht.Rand.cs)
+        Ladezeit.Marke("Werkstatt-Szene: Boden und Gelände");
+        yield return new Ladeschritt(0.27f, "Häuser werden aufgestellt …");
 
         entwurf.Fangpunkte = Halteplaetze; // Karrenplätze und Gatter aus den Modellen (Stadtansicht.Kartenwerkstatt.Wege.cs)
         _stueckeKnoten = new Node3D { Name = "Stuecke" };
         AddChild(_stueckeKnoten);
         foreach (var g in entwurf.Gebaeude) StueckBauen(g);
+        Ladezeit.Marke("Werkstatt-Szene: Stücke (Gebäude)");
+        yield return new Ladeschritt(0.72f, "Wege werden gepflastert …");
         WegeAufbauen();      // Stadtansicht.Kartenwerkstatt.Wege.cs
+        Ladezeit.Marke("Werkstatt-Szene: Wege");
+        yield return new Ladeschritt(0.73f, "Wald und Felder werden abgesteckt …");
         FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
+        Ladezeit.Marke("Werkstatt-Szene: Flächen");
+        yield return new Ladeschritt(0.97f, "Bäume werden gepflanzt …");
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        Ladezeit.Marke("Werkstatt-Szene: Natur");
         BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
+        Ladezeit.Marke("Werkstatt-Szene: Bodendeko");
+        yield return new Ladeschritt(0.975f, "Die Stadtmauer wird hochgezogen …");
         MauernAufbauen();    // Stadtansicht.Kartenwerkstatt.Mauern.cs
+        Ladezeit.Marke("Werkstatt-Szene: Mauern");
+        yield return new Ladeschritt(0.98f, "Der Fluss wird eingelassen …");
         WasserAufbauen();    // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        Ladezeit.Marke("Werkstatt-Szene: Wasser");
         _wsFehlerNeu = true;
         entwurf.Geaendert += EntwurfGeaendert;
         LichtNachUhrzeit(12 * 60, 100); // heller Mittag, sofort ohne Überblenden
@@ -1211,13 +1236,16 @@ public partial class Stadtansicht
     /// gewählten Fläche bzw. ein Tor oder die Linie der gewählten Mauer (Stützpunkt bzw. Ecke einfügen, gleich weiterziehen). Dann, was unter der
     /// Maus liegt: ein Gebäude, dessen Modell über dem Boden getroffen wird (<see cref="StueckTreffer"/>), ein Tor, eine Pflanze, ein Weg, ein
     /// flaches Gebäude (Feld, Weide), eine Mauer, die Grundfläche eines Gebäudes, das Innere der gewählten Fläche (ganze Fläche ziehen), Bauzonen
-    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf.
+    /// und Naturflächen. Ein Klick ins Leere hebt die Auswahl auf. Ausgeblendete Ebenen werden übersprungen (<see cref="WerkstattTeilSichtbar"/>).
     /// </summary>
     private void AuswahlKlick(Vector2 maus, Vector2? boden)
     {
         if (_entwurf is null) return;
         var toleranz = Mathf.Max(0.6f, MeterJePixel * 8);
-        if (Input.IsKeyPressed(Key.Shift) && boden is { } ganz && MauerBei(ganz, toleranz) is { } ganzeMauer)
+        // Was ausgeblendet ist (Ebenen), lässt sich nicht treffen: Wege, Mauern, Tore, Flüsse und Fähren gehören zu „Wege und Grenzen“
+        var linien = WerkstattEbeneSichtbar(Werkstattebene.Linien);
+        EntwurfMauer? MauerHier(Vector2 q) => linien ? MauerBei(q, toleranz) : null;
+        if (Input.IsKeyPressed(Key.Shift) && boden is { } ganz && MauerHier(ganz) is { } ganzeMauer)
         {
             WerkstattWaehlen(ganzeMauer);
             TeilZiehenBeginnen(ganzeMauer, Ziehart.Ganz, maus, ganz, -1, -1);
@@ -1273,7 +1301,7 @@ public partial class Stadtansicht
             GebaeudeZiehenBeginnen(hoch.Gebaeude, maus, p);
             return;
         }
-        if (_entwurf.TorBei(p.X, p.Y, Mathf.Max((float)Kartenentwurf.Torfang, toleranz)) is var (mauer, torNummer, _))
+        if (linien && _entwurf.TorBei(p.X, p.Y, Mathf.Max((float)Kartenentwurf.Torfang, toleranz)) is var (mauer, torNummer, _))
         {
             WerkstattWaehlen(mauer);
             _wsGriff = new Griff(TorGriffe, torNummer);
@@ -1287,27 +1315,27 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(pflanze, Ziehart.Ganz, maus, p, -1, -1);
             return;
         }
-        if (FaehreBei(p, toleranz) is { } faehre)
+        if (linien && FaehreBei(p, toleranz) is { } faehre)
         {
             WerkstattWaehlen(faehre);
             return;
         }
-        if (WegBei(p, toleranz) is { } weg)
+        if (linien && WegBei(p, toleranz) is { } weg)
         {
             WerkstattWaehlen(weg);
             return;
         }
-        if (FlussBei(p, toleranz) is { } fluss) // Wege und Brücken gehen vor (sie liegen über dem Wasser), dann der Fluss
+        if (linien && FlussBei(p, toleranz) is { } fluss) // Wege und Brücken gehen vor (sie liegen über dem Wasser), dann der Fluss
         {
             WerkstattWaehlen(fluss);
             return;
         }
-        if ((treffer?.Gebaeude ?? (MauerBei(p, toleranz) is null ? GebaeudeAufGrund(p) : null)) is { } gebaeude)
+        if ((treffer?.Gebaeude ?? (MauerHier(p) is null ? GebaeudeAufGrund(p) : null)) is { } gebaeude)
         {
             GebaeudeZiehenBeginnen(gebaeude, maus, p);
             return;
         }
-        if (MauerBei(p, toleranz) is { } mauerLinie)
+        if (MauerHier(p) is { } mauerLinie)
         {
             WerkstattWaehlen(mauerLinie);
             return;

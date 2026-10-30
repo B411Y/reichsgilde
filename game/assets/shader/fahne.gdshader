@@ -83,6 +83,7 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = farbe.rgb;
+	if (!FRONT_FACING) NORMAL = -NORMAL; // Rückseite: Normale zum Betrachter, sonst liest die Umgebungsverdeckung sie falsch
 	if (rand_breite > 0.0) {
 		// Abstand zur nächsten Kante in Metern (am Schwalbenschwanz läuft u = 1 an der Kerbe entlang, dort wird der Rand etwas schmaler)
 		float kante = min(min(UV.x, 1.0 - UV.x) * UV2.x, min(UV.y, 1.0 - UV.y) * UV2.y);

@@ -32,7 +32,7 @@ public partial class Stadtansicht
     {
         if (_modellSzenen.TryGetValue(datei, out var szene)) return szene;
         var pfad = $"res://assets/modelle/{datei}.glb";
-        szene = ResourceLoader.Exists(pfad) ? ResourceLoader.Load<PackedScene>(pfad) : null;
+        szene = ResourceLoader.Exists(pfad) ? Ladezeit.Zaehlen("Modelle laden", () => ResourceLoader.Load<PackedScene>(pfad)) : null;
         if (szene is null) GD.PushError($"Modell fehlt: {pfad}");
         return _modellSzenen[datei] = szene;
     }

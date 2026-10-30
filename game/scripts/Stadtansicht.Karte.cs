@@ -97,37 +97,67 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Zeichnet die Stadt der Karte – einmal, vor allen Betrieben: aus <see cref="Verbinden"/> mit der Karte der Partie, ohne Partie (Hauptmenü)
-    /// nach dem Aufbau der Szene mit der Greybox-Karte.
+    /// nach dem Aufbau der Szene mit der Greybox-Karte. In einem Zug; der Ladebildschirm nimmt <see cref="KarteAufbauenSchritte"/>.
     /// </summary>
     private void KarteAufbauen(Stadtkarte? karte)
     {
-        if (_karteGebaut) return;
+        foreach (var _ in KarteAufbauenSchritte(karte)) { }
+    }
+
+    /// <summary>
+    /// Der Aufbau der Karte in Abschnitten (für den Ladebildschirm): Vor jedem Abschnitt meldet er, wie viel schon fertig ist und was jetzt kommt;
+    /// gerechnet wird beim nächsten Weiterzählen. Die Anteile folgen der Messung mit <c>--ladezeit=1</c> (Köln, 29.10.2026).
+    /// </summary>
+    private IEnumerable<Ladeschritt> KarteAufbauenSchritte(Stadtkarte? karte)
+    {
+        if (_karteGebaut) yield break;
         _karteGebaut = true;
         _karte = karte;
         if (karte is null)
         {
             Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f); // ohne Karte nur die Wiese (der Fehler ist schon gemeldet)
-            return;
+            yield break;
         }
+        Ladezeit.Marke("vor dem Kartenaufbau");
+        yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
         LagenLesen(karte);
         BodenLegen(karte);
+        Ladezeit.Marke("Szene: Boden und Gelände");
+        yield return new Ladeschritt(0.28f, "Die Stadtmauer wird hochgezogen …");
         foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); // Häuser bekommen ihren Sockel selbst
         foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
+        Ladezeit.Marke("Szene: Sockel und Mauern");
+        yield return new Ladeschritt(0.30f, "Rathaus und Dom werden errichtet …");
         if (karte.GebaeudeDerArt(Bausteinart.Sonderbau).FirstOrDefault(g => g.Katalog == "markt") is { } markt) Marktstaende(markt); // Stadtansicht.Markt.cs
         SonderbautenBauen(karte); // Rathaus, Dom und Bauten ohne eigene Ansicht
+        Ladezeit.Marke("Szene: Markt und Sonderbauten");
+        yield return new Ladeschritt(0.33f, "Häuser werden gebaut …");
         Kulissenhaeuser(karte);
+        Ladezeit.Marke("Szene: Kulissenhäuser");
+        yield return new Ladeschritt(0.34f, "Wege werden gepflastert …");
         foreach (var berg in karte.GebaeudeDerArt(Bausteinart.Berg)) BergBauen(berg);
         WegeAnlegen(karte);
+        Ladezeit.Marke("Szene: Berge und Wege");
+        yield return new Ladeschritt(0.54f, "Der Fluss wird eingelassen …");
         GewaesserBauen();    // Wasser, Brücken, Furten, Fähren (Stadtansicht.Wasser.cs)
         FaehrenAnsNetz();    // Karren setzen mit Fähren über (Stadtansicht.Wasser.Uebergaenge.cs)
+        Ladezeit.Marke("Szene: Wasser");
+        yield return new Ladeschritt(0.555f, "Höfe und Gruben werden angelegt …");
         UmlandstellenBauen(karte); // Stadtansicht.Umland.cs
         Anschliessen(karte);
+        Ladezeit.Marke("Szene: Umland und Anschlüsse");
+        yield return new Ladeschritt(0.58f, "Bäume werden gepflanzt …");
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
+        Ladezeit.Marke("Szene: Natur");
+        yield return new Ladeschritt(0.605f, "Felder werden bestellt …");
         FelderAusKarte(karte); // Stadtansicht.Rand.cs
+        Ladezeit.Marke("Szene: Felder");
+        yield return new Ladeschritt(0.70f, "Das Pflaster wird gelegt …");
         KameraAusKarte(karte);
         _schichtAlles = true;
         WegeschichtBild(); // Wege, Anschlüsse und Pflaster in den Boden (Stadtansicht.Wegeschicht.cs)
+        Ladezeit.Marke("Szene: Wegeschicht");
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz der Karte „{karte.Kennung}“: {_netz.Teile()} getrennte Teile – nicht jedes Ziel ist erreichbar.");
     }

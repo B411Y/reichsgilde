@@ -14,6 +14,7 @@ config/name="Reichsgilde"
 config/description="Wirtschaftssimulation im spätmittelalterlichen Heiligen Römischen Reich – im Stil von „Die Gilde“."
 run/main_scene="res://scenes/Hauptmenue.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+config/project_settings_override="user://grafikschnittstelle.cfg"
 
 [autoload]
 
@@ -93,6 +94,8 @@ jahreszeit_anteile={
 }
 
 [rendering]
+
+rendering_device/driver.windows="vulkan"
 
 anti_aliasing/quality/screen_space_aa=2
 limits/global_shader_variables/buffer_size=1048576

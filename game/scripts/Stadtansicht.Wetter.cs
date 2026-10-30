@@ -93,7 +93,31 @@ public partial class Stadtansicht
         _wetterSofort = true;
     }
 
+    /// <summary>Startoption <c>--wetterspaeter=regen@20</c>: nach so vielen Sekunden schlägt das Wetter plötzlich um (für Messungen des ersten Regens).</summary>
+    public void WetterVorgebenNach(Wetterlage lage, double sekunden) =>
+        GetTree().CreateTimer(sekunden).Timeout += () => WetterVorgeben(lage, _jahreszeitVorgabe, _blitzHalten);
+
     private bool _wetterSofort;
+
+    /// <summary>
+    /// Shader vorwärmen hinter dem Ladebildschirm (Hauptszene.ErsteBilderAbwarten): <paramref name="probe"/> zeigt diese Wetterlage sofort und ganz,
+    /// null kehrt zum Wetter davor zurück (Vorgabe der Startoptionen oder Wetter der Partie, ebenfalls sofort, ohne die Nässe der Probe).
+    /// </summary>
+    public void WetterProbe(Wetterlage? probe)
+    {
+        if (probe is { } lage)
+        {
+            _wetterVorProbe ??= (_wetterVorgabe, _jahreszeitVorgabe, _blitzHalten);
+            WetterVorgeben(lage, _wetterVorProbe.Value.Jahreszeit, false);
+            return;
+        }
+        if (_wetterVorProbe is not { } vorher) return;
+        _wetterVorProbe = null;
+        WetterVorgeben(vorher.Lage, vorher.Jahreszeit, vorher.Blitz);
+        _naesseMinute = -1; // die Nässe wieder aus dem Wetter der Partie, nicht aus der Probe
+    }
+
+    private (Wetterlage? Lage, Jahreszeit? Jahreszeit, bool Blitz)? _wetterVorProbe;
 
     private Wetterablauf? WetterablaufDerPartie()
     {
