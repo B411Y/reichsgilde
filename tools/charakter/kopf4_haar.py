@@ -3,6 +3,7 @@ Quelle, dazu Kartenbild und Kopfhautkarten (eigener Code, MIT).
 
 Aufruf:  tools/charakter/blender.sh -b --factory-startup -P tools/charakter/kopf4_haar.py -- <glb-ordner> \
            [backdaten=<npz>] [kopf=kopf4_mn.glb] [nur=mann_kurz,vollbart] [faktor=1.0] [vorschau=<ordner>]
+         [nur_karten=1]   Karten (und Kopfhautkarten) aus den gespeicherten Strähnen neu bauen, ohne neu zu kämmen
          (oder tools/charakter/kopf4.sh)
 
 Ergebnis in <glb-ordner>/haar4/ (nicht im Repository):
@@ -100,6 +101,36 @@ def zur_grundlage(h, punkte):
     return kd.nach_godot(zur), idx, gew
 
 
+def aus_bin(h, pfad_ohne):
+    """Gespeicherte Strähnen eines Teils lesen und in die Lage der Hülle zurückrechnen (für nur_karten)."""
+    kopf_j = json.load(open(pfad_ohne + ".json", encoding="utf-8"))
+    roh = open(pfad_ohne + ".bin", "rb").read()
+    felder = {}
+    for name, b in kopf_j["bloecke"].items():
+        art = "<f4" if b["art"] == "f32" else "<i4"
+        felder[name] = np.frombuffer(roh[b["start"]:b["start"] + b["bytes"]], art).reshape(b["form"])
+    S, P = kopf_j["straehnen"], kopf_j["punkte"]
+    pos = kd.von_godot(felder["straehnen_pos"].reshape(-1, 3).astype(np.float64))
+    idx = felder["straehnen_idx"].reshape(-1, 4)
+    gew = felder["straehnen_gew"].reshape(-1, 4).astype(np.float64)
+    st = (pos + (h.stuetz_versatz[idx] * gew[..., None]).sum(1)).reshape(S, P, 3)
+    return {k: v for k, v in felder.items() if k.startswith("straehnen")}, st
+
+
+def karten_neu(h, felder, st, karten_art):
+    rg = felder["straehnen_info"][:, 1]
+    E, N, T, UV, UV2, F, I, MS = kk.karten(st, st[:, 0], h, rng, **karten_art)
+    for m, o, n in MS:
+        F[o:o + n, 0] = rg[m]
+    kpos, kidx, kgew = zur_grundlage(h, E)
+    felder = dict(felder)
+    felder.update({"karten_pos": kpos, "karten_nrm": kd.nach_godot(N), "karten_tan": np.concatenate([kd.nach_godot(T[:, :3]), T[:, 3:]], 1),
+                   "karten_uv": UV, "karten_uv2": UV2, "karten_farbe": F, "karten_idx": kidx.astype(np.float32),
+                   "karten_gew": kgew, "karten_index": I})
+    S, P, _ = st.shape
+    return felder, {"straehnen": int(S), "punkte": int(P), "karten_ecken": int(len(kpos)), "karten_dreiecke": int(len(I) // 3)}
+
+
 def teil_daten(h, st, wurzeln_, buschel, karten_art, rang=True):
     S, P, _ = st.shape
     pos, idx, gew = zur_grundlage(h, st.reshape(-1, 3))
@@ -122,10 +153,13 @@ def teil_daten(h, st, wurzeln_, buschel, karten_art, rang=True):
                     "karten_dreiecke": int(len(felder.get("karten_index", [])) // 3)}
 
 
-KARTEN_HAAR = {"je_karte": 9, "breite": (0.004, 0.02)}
-KARTEN_KURZ = {"je_karte": 7, "breite": (0.004, 0.016)}
-KARTEN_BART = {"je_karte": 6, "breite": (0.003, 0.012), "bart": True, "lagen": ((1.0, 0.0, (6, 7)), (0.4, 1.0, (6, 7)))}
-KARTEN_ZOPF = {"je_karte": 6, "breite": (0.004, 0.012), "lagen": ((1.0, 1.0, (0, 2)),)}
+KARTEN_HAAR = {}
+KARTEN_KURZ = {"lagen": ({"je": 10, "anteil": 1.0, "lage": 0, "spalten": (0, 1, 2, 3), "breite": (0.005, 0.012), "faktor": 1.3},
+                        {"je": 1, "anteil": 0.45, "lage": 1, "spalten": (4, 5), "breite": (0.0025, 0.004), "faktor": 1.0})}
+KARTEN_BART = {"bart": True, "lagen": ({"je": 8, "anteil": 1.0, "lage": 0, "spalten": (6, 7), "breite": (0.004, 0.01), "faktor": 1.2},
+                                       {"je": 1, "anteil": 0.4, "lage": 1, "spalten": (6, 7), "breite": (0.002, 0.0035), "faktor": 1.0})}
+KARTEN_ZOPF = {"lagen": ({"je": 6, "anteil": 1.0, "lage": 1, "spalten": (0, 2), "breite": (0.004, 0.012), "faktor": 1.0},)}
+KARTEN_KNOTEN = {"lagen": ({"je": 6, "anteil": 1.0, "lage": 1, "spalten": (0, 1, 2), "breite": (0.004, 0.012), "faktor": 1.0},)}
 
 uebersicht = {}
 wurzeln_je_stil = {}
@@ -138,9 +172,27 @@ for Klasse in alle_stile:
     h = huelle(Klasse.geschlecht)
     stil = Klasse(h, rng)
     stil.anzahl = int(stil.anzahl * FAKTOR)
+    art = KARTEN_BART if stil.teil == "bart" else (KARTEN_KURZ if name == "mann_kurz" else KARTEN_HAAR)
+    if "nur_karten" in OPT:
+        teile = []
+        vorschau_teile[name] = []
+        for teil, endung, ka in (("haupt", "", art), ("zusatz", "_zusatz", KARTEN_ZOPF if name == "frau_zoepfe" else KARTEN_KNOTEN)):
+            pf = os.path.join(AUS, name + endung)
+            if not os.path.exists(pf + ".bin"):
+                continue
+            felder, st = aus_bin(h, pf)
+            if teil == "haupt":
+                wurzeln_je_stil[name] = (Klasse.geschlecht, st[:, 0].copy())
+            felder, zahlen = karten_neu(h, felder, st, ka)
+            bloecke_schreiben(pf, {"name": name, "art": stil.teil if teil == "haupt" else "zusatz", "geschlecht": stil.geschlecht,
+                                   "teil": teil, **zahlen}, felder)
+            teile.append({"name": teil, **zahlen})
+            vorschau_teile[name].append(st)
+        uebersicht[name] = {"art": stil.teil, "geschlecht": stil.geschlecht, "teile": teile}
+        zeit(f"{name}: Karten neu {teile}")
+        continue
     st, ww, nn, buschel = kf.erzeugen(stil, rng, log=lambda t: zeit(t))
     wurzeln_je_stil[name] = (Klasse.geschlecht, ww)
-    art = KARTEN_BART if stil.teil == "bart" else (KARTEN_KURZ if name == "mann_kurz" else KARTEN_HAAR)
     felder, zahlen = teil_daten(h, st, ww, buschel, art, rang=stil.teil != "bart")
     teile = [{"name": "haupt", **zahlen}]
     vorschau_teile[name] = [st]
@@ -157,8 +209,7 @@ for Klasse in alle_stile:
     if z is not None:
         zw = z[:, 0]
         zb = np.arange(len(z)) // 6
-        felder, zahlen = teil_daten(h, z, zw, zb, KARTEN_ZOPF if name == "frau_zoepfe" else
-                                    {"je_karte": 6, "breite": (0.004, 0.012), "lagen": ((1.0, 1.0, (0, 1, 2)),)}, rang=False)
+        felder, zahlen = teil_daten(h, z, zw, zb, KARTEN_ZOPF if name == "frau_zoepfe" else KARTEN_KNOTEN, rang=False)
         bloecke_schreiben(os.path.join(AUS, name + "_zusatz"), {"name": name, "art": "zusatz", "geschlecht": stil.geschlecht,
                                                                 "teil": "zusatz", **zahlen}, felder)
         teile.append({"name": "zusatz", **zahlen})

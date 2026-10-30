@@ -257,7 +257,7 @@ def erzeugen(stil, rng, log=print):
 class MannKurz(Stil):
     """Kurz geschnitten (3–5 cm), vom Wirbel aus, oben leicht nach vorn, Ohren frei."""
     name, geschlecht, anzahl, punkte = "mann_kurz", "m", 5200, 8
-    schritt, volumen, volumen_weg, hub, steif = 0.0025, (0.0015, 0.0055), 0.015, 0.5, 0.4
+    schritt, volumen, volumen_weg, hub, steif = 0.0025, (0.0012, 0.0042), 0.012, 0.22, 0.4
     wellen, klumpen = (0.0012, 0.025), (10, 0.25)
 
     def dichte(self, q):
@@ -266,7 +266,7 @@ class MannKurz(Stil):
     def kamm(self, q, n, s, w):
         h = self.h
         weg = _norm(Vector(np.asarray(q) - h.wirbel))
-        return _norm(weg + VORN * 0.45 + UNTEN * 0.25)
+        return _norm(weg + VORN * 0.35 + UNTEN * 0.5)
 
     def schwere(self, s, w):
         return 0.15

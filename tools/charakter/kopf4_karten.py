@@ -25,35 +25,41 @@ ATLAS = 2048
 
 
 # ---------------------------------------------------------------- Karten
-def karten(st, wurzeln_, h, rng, je_karte=9, breite=(0.004, 0.02), lagen=((1.0, 0.0, (0, 1, 2, 3)), (0.45, 1.0, (4, 5))),
-           bart=False, mitte=None):
-    """Karten aus Strähnen (S,P,3). lagen: (Anteil der Büschel, Lage 0 innen / 1 außen, Spalten).
-    Gibt Ecken, Normalen, Tangenten, UV, UV2 (Lage im Haar, Zufall), Farbe (Rang-Platzhalter, Zufall, Lage, Wurzelabstand)
+LAGEN_HAAR = ({"je": 14, "anteil": 1.0, "lage": 0, "spalten": (0, 1, 2, 3), "breite": (0.006, 0.014), "faktor": 1.25},
+              {"je": 6, "anteil": 0.6, "lage": 0.5, "spalten": (0, 1, 3), "breite": (0.004, 0.009), "faktor": 1.0},
+              {"je": 1, "anteil": 0.4, "lage": 1, "spalten": (4, 5), "breite": (0.0025, 0.0045), "faktor": 1.0})
+
+
+def karten(st, wurzeln_, h, rng, lagen=LAGEN_HAAR, bart=False, mitte=None):
+    """Karten aus Strähnen (S,P,3). Je Lage: „je“ Strähnen je Büschel (1 = eine schmale Strähnenkarte je Strähne für einen
+    Anteil der Strähnen), Lage 0 innen … 1 außen, Spalten des Kartenbilds, Breite (min, max), Faktor auf die Breite.
+    Gibt Ecken, Normalen, Tangenten, UV, UV2 (Lage im Haar, Zufall), Farbe (Rang-Platzhalter, Zufall, Lage, –)
     und Indizes zurück; dazu je Karte die Nummer der Mittelsträhne (für den Rang)."""
     S, P, _ = st.shape
     mitte = h.kopfmitte if mitte is None else mitte
     E, N, T, UV, UV2, F, I, MS = [], [], [], [], [], [], [], []
-    for anteil, lage, spalten in lagen:
-        nk = max(4, int(S / je_karte * anteil))
-        if lage > 0:
-            nk = max(4, int(nk * 1.6))
-        # Büschel: weit auseinanderliegende Wurzeln, Strähnen zur nächsten Mitte
-        start = int(rng.integers(S))
-        wahl = [start]
-        d = np.linalg.norm(wurzeln_ - wurzeln_[start], axis=1)
-        for _ in range(nk - 1):
-            i = int(np.argmax(d))
-            wahl.append(i)
-            d = np.minimum(d, np.linalg.norm(wurzeln_ - wurzeln_[i], axis=1))
-        wahl = np.array(wahl)
-        zu = np.argmin(np.linalg.norm(wurzeln_[:, None] - wurzeln_[wahl][None], axis=2), axis=1)
-        for b, m in enumerate(wahl):
-            glieder = np.nonzero(zu == b)[0]
+    for la in lagen:
+        je, anteil, lage, spalten, breite, faktor = la["je"], la["anteil"], la["lage"], la["spalten"], la["breite"], la["faktor"]
+        if je <= 1:
+            wahl = np.sort(rng.choice(S, max(1, int(S * anteil)), replace=False))
+            gruppen = [(m, np.array([m])) for m in wahl]
+        else:
+            nk = max(4, int(S / je * anteil))
+            start = int(rng.integers(S))
+            wahl = [start]
+            d = np.linalg.norm(wurzeln_ - wurzeln_[start], axis=1)
+            for _ in range(nk - 1):
+                i = int(np.argmax(d))
+                wahl.append(i)
+                d = np.minimum(d, np.linalg.norm(wurzeln_ - wurzeln_[i], axis=1))
+            wahl = np.array(wahl)
+            zu = np.argmin(np.linalg.norm(wurzeln_[:, None] - wurzeln_[wahl][None], axis=2), axis=1)
+            gruppen = [(m, np.nonzero(zu == b)[0]) for b, m in enumerate(wahl)]
+        for m, glieder in gruppen:
             if len(glieder) == 0:
                 continue
             c = st[m].copy()
             if lage == 0 and len(glieder) > 2:
-                # innen: Mittel der Glieder (glatter, liegt am Kopf)
                 c = 0.5 * c + 0.5 * st[glieder].mean(0)
             tang = np.gradient(c, axis=0)
             tang /= np.maximum(np.linalg.norm(tang, axis=1, keepdims=True), 1e-9)
@@ -61,32 +67,34 @@ def karten(st, wurzeln_, h, rng, je_karte=9, breite=(0.004, 0.02), lagen=((1.0, 
             aus -= tang * (aus * tang).sum(1, keepdims=True)
             aus /= np.maximum(np.linalg.norm(aus, axis=1, keepdims=True), 1e-9)
             quer = np.cross(tang, aus)
-            # Breite: Streuung der Glieder quer zur Karte
             if len(glieder) > 1:
                 ab = ((st[glieder] - c[None]) * quer[None]).sum(2)
-                w = 2.2 * np.sqrt((ab ** 2).mean(0))
+                w = np.clip(2.0 * np.sqrt((ab ** 2).mean(0)), breite[0], breite[1])
             else:
-                w = np.full(P, breite[0])
-            w = np.clip(w, breite[0], breite[1]) * (1.6 if lage == 0 else 1.0)
+                w = np.full(P, rng.uniform(*breite))
+            w = w * faktor
             t = np.linspace(0, 1, P)
-            w *= (1.0 - 0.45 * t ** 2) if not bart else (1.0 - 0.3 * t)
+            w *= (1.0 - 0.4 * t ** 2) if not bart else (1.0 - 0.3 * t)
             w = np.maximum(w, breite[0] * 0.6)
+            # Strähnenkarten etwas um die Haarrichtung gedreht (nicht alle flach auf dem Kopf)
+            if je <= 1:
+                dreh = rng.uniform(-0.6, 0.6)
+                quer = quer * np.cos(dreh) + aus * np.sin(dreh)
+                aus = np.cross(quer, tang)
             spalte = int(rng.choice(spalten))
             u0 = spalte / SPALTEN
             uw = 1.0 / SPALTEN
             zufall = rng.random()
-            wurzelabstand = 0.0
             o = len(E)
             for j in range(P):
                 for k, a in enumerate((-1.0, 0.0, 1.0)):
-                    # gebogene Karte: Mitte etwas vom Kopf weg
                     pkt = c[j] + quer[j] * a * w[j] * 0.5 + aus[j] * (0.15 * w[j] * (1 - abs(a)) - 0.05 * w[j])
                     E.append(pkt)
                     N.append(aus[j])
                     T.append(np.concatenate([tang[j], [1.0]]))
                     UV.append((u0 + uw * (0.03 + 0.94 * (a + 1) / 2), t[j] * 0.995 + 0.002))
                     UV2.append((t[j], zufall))
-                    F.append((0.0, zufall, lage, wurzelabstand))
+                    F.append((0.0, zufall, lage, 0.0))
             for j in range(P - 1):
                 for k in range(2):
                     a0 = o + j * 3 + k
@@ -193,8 +201,9 @@ def kartenbild(pfad, rng):
         haare.sort(key=lambda h: -h[1])
         for u, r in haare:
             k = 24
-            laenge = rng.uniform(lmin, 1.0)
-            start = rng.uniform(0.0, 0.04)
+            # Wurzeln nicht auf einer Linie (sonst harte Kante an der Kartenwurzel), Spitzen verstreut
+            start = rng.uniform(0.0, 0.16) ** 1.3
+            laenge = rng.uniform(lmin, 1.0) * (1.0 - start)
             s = np.linspace(start, min(start + laenge, 0.995), k)
             phase = rng.random() * 2 * np.pi
             wl = rng.uniform(0.18, 0.35)
@@ -206,8 +215,8 @@ def kartenbild(pfad, rng):
             x = np.clip(x, 2, sw - 3) + x0
             y = s * (ATLAS - 1)
             pkt = np.stack([x, y], 1)
-            br = np.linspace(1.0, 0.25, k) ** 0.7 * dicke * rng.uniform(0.75, 1.2)
-            bild.haar(pkt, br, r, rng.uniform(0.3, 0.7), deckung=rng.uniform(0.8, 1.0), s0=0.0, s1=1.0)
+            br = np.minimum(1.0, np.linspace(0.0, 1.0, k) * 8) ** 0.5 * np.linspace(1.0, 0.2, k) ** 0.7 * dicke * rng.uniform(0.75, 1.2)
+            bild.haar(pkt, np.maximum(br, 0.2), r, rng.uniform(0.3, 0.7), deckung=rng.uniform(0.6, 0.95), s0=0.0, s1=1.0)
     bild.speichern(pfad)
 
 
