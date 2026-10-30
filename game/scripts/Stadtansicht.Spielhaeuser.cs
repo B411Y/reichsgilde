@@ -51,25 +51,29 @@ public partial class Stadtansicht
     /// 4 Stadthof), eingesetzt über <see cref="ModellEinsetzen"/>; fehlt eine Datei, meldet das Spiel einen Fehler und das Haus fehlt.
     /// Bei laufendem Ausbau steht ein Gerüst davor, nach einem Brand ist das Dach rußig, im Leerstand sind Tür und Fenster vernagelt.
     /// <paramref name="ankerKennung"/> ist der Schlüssel für Tür- und Karrenanker (<see cref="TuerAnker"/>); ohne Angabe die <paramref name="kennung"/>.
+    /// <paramref name="brennt"/>: Seit dieser Spielminute brennt das Haus (Flammen, dann Schwelen, Stadtansicht.Feuer.cs) – solange ohne Gerüst.
     /// </summary>
     private Node3D SpielhausModell(Vector3 mitte, float drehungY, float platzBreite, float platzTiefe, float vorne,
                                    int stufe, bool imBau, bool brand, bool leer, Color? farbe, string? kennung, string? name, string? zusatz = null,
-                                   string? ankerKennung = null)
+                                   string? ankerKennung = null, long? brennt = null)
     {
         var flaeche = new Vector2(platzBreite, platzTiefe);
         var g = new Node3D { Name = "Spielhaus", Position = AufFundament(mitte, drehungY, flaeche), Rotation = new Vector3(0, drehungY, 0) };
         AddChild(g);
         GruppenSockel(g, drehungY, flaeche); // auf einem Hang steht das Haus auf einem Bruchsteinsockel (Stadtansicht.Gelaende.cs)
         if (Katalog?.Wohnhaus(stufe) is { Modell: { } datei } baustein)
-            ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
-                new ModellZustand(Geruest: imBau || brand, Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);
+        {
+            var instanz = ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
+                new ModellZustand(Geruest: imBau || (brand && brennt is null), Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);
+            if (brennt is { } start && instanz is not null && kennung is not null) BrandAnbringen(kennung, instanz, start);
+        }
         else
             GD.PushError($"Das Wohnhaus der Stufe {stufe} fehlt im Gebäudekatalog.");
 
         if (kennung is not null)
         {
             Klickflaeche(kennung, new Vector3(0, 5, 0), new Vector3(Mathf.Min(16, platzBreite), 10, platzTiefe), g);
-            var text = name + (zusatz is not null ? $" ({zusatz})" : imBau ? " (Ausbau)" : brand ? " (nach Brand)" : leer ? " (Leerstand)" : "");
+            var text = name + (zusatz is not null ? $" ({zusatz})" : imBau ? " (Ausbau)" : brennt is not null ? " (brennt)" : brand ? " (nach Brand)" : leer ? " (Leerstand)" : "");
             Beschriftung(text, new Vector3(0, 16, 0), 44, g, kennung);
         }
         return g;

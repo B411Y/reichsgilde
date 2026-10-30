@@ -75,14 +75,17 @@ public partial class Hauptmenue : Node
         Datenvorrat.Vorladen(); // wirtschaft.json im Hintergrund, solange das Menü steht (Datenvorrat.cs)
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
         var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
-        if (KlicktestTreiber.SpielOptionen().Length > 0 && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
+        var feuertest = Feuertest.Angefordert; // auch ohne „--“ davor erkannt (Feuertest.Startargumente)
+        if ((feuertest || KlicktestTreiber.SpielOptionen().Length > 0) && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
             // Die Greybox hinter dem Menü sähe niemand (spart rund 2,5 s). --menuhintergrund=1 baut sie trotzdem: wie der Weg über das Menü,
             // das dabei Modelle und Shader schon lädt – für Vergleiche der Ladezeit (docs/STARTOPTIONEN.md).
             GetNode<Stadtansicht>("%Stadt").OhneHintergrund = !OS.GetCmdlineUserArgs().Contains("--menuhintergrund=1");
-            if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
+            if (feuertest)
+                Callable.From(FeuertestOeffnen).CallDeferred();
+            else if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--kartenwerkstatt")))
                 CallDeferred(MethodName.WerkstattOeffnen);
             else
                 CallDeferred(MethodName.SpielStarten);
@@ -137,6 +140,18 @@ public partial class Hauptmenue : Node
         Ladezeit.Marke("Hauptmenü bis Kartenwerkstatt");
         var wahl = OS.GetCmdlineUserArgs().LastOrDefault(a => a.StartsWith("--kartenwerkstatt="))?["--kartenwerkstatt=".Length..];
         await SzeneHinterLadebild(Kartenwerkstatt.Szene, wahl);
+    }
+
+    /// <summary>
+    /// Zur Testszene „Feuer und Flammen“ (<c>--feuertest=1</c>), ohne Ladebildschirm: Er hängt an der Wurzel und schaltet die 3D-Welt ab, bis
+    /// Hauptszene oder Kartenwerkstatt ihn schließen – über der Testszene bliebe er stehen.
+    /// Lädt sie nicht, steht das im Protokoll (Ausgabefenster des Editors), statt dass nur ein leeres Fenster bleibt.
+    /// </summary>
+    private void FeuertestOeffnen()
+    {
+        var fehler = GetTree().ChangeSceneToFile(Feuertest.Szene);
+        if (fehler != Error.Ok)
+            GD.PushError($"[feuer] Die Testszene {Feuertest.Szene} ließ sich nicht laden ({fehler}). Ist das Projekt gebaut (Hammer oben rechts)?");
     }
 
     private async Task SzeneHinterLadebild(string szene, string? karte)
