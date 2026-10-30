@@ -154,7 +154,7 @@ public sealed class Schollensimulation
     private readonly float[] _sekA, _sekB;         // Ausschnitt um den Netz-Ursprung (Winkel im Netz); −1 = ganz
     private readonly byte[] _gen;
     private readonly float[] _sperre, _duldung;
-    private readonly byte[] _tauchen;              // 0 normal, 1 taucht ab, 2 unter Wasser, 3 taucht auf, 4 vergeht
+    private readonly byte[] _tauchen;              // 0 normal, 1 taucht ab, 2 unter Wasser, 3 taucht auf, 4 vergeht, 5 geschmolzen (geparkt)
     private readonly float[] _tauchZeit;
     private readonly bool[] _frisch, _ohneWarm;
     private readonly int[] _kontaktZahl, _belastet;
@@ -689,7 +689,7 @@ public sealed class Schollensimulation
         (_rg[i], _rs[i], _mTau[i], _mAbrieb[i]) = (0f, 1f, 0f, 0f);
         _w[i] = winkel;
         var (sin, cos) = MathF.SinCos(winkel);
-        _r[i] = sch.Halbmesser;
+        _r[i] = 0f; // wächst erst auf (Größe im nächsten Bild aus Wachsen und Schmelzen)
         _s[i] = sUrsprung + (f.Cx * cos - f.Cy * sin) * sch.Halbmesser;
         _q[i] = qUrsprung + (f.Cx * sin + f.Cy * cos) * sch.Halbmesser;
         _vs[i] = _tempo * Profil(_q[i], HalbAn(_s[i]));
@@ -809,7 +809,7 @@ public sealed class Schollensimulation
             var a = MathF.Abs(_brueckeS[b] - sBlick);
             if (a < 220f && a < beste) (beste, _brueckeVon, _brueckeBis) = (a, _brueckeS[b] - 60f, _brueckeS[b] + 10f);
         }
-        var aktiv = 0;
+        var (aktiv, neuImFenster) = (0, 0);
         (_fensterZahl, _taucherZahl) = (0, 0);
         _treibenRunde = (_treibenRunde + 1) & 3;
         var k4 = 1f - MathF.Exp(-4f * dt / 5f);
@@ -817,13 +817,28 @@ public sealed class Schollensimulation
         {
             var stamm = _stamm[i];
             if (stamm < 0) continue;
+            if (_tauchen[i] == 5)
+            {
+                // geschmolzen und geparkt: kommt oben neu, sobald eine Scholle dieser Größe wieder bestehen kann (Tauwetter zurück)
+                if (!schmelzen || SchmelzZiel(i, _tauen) * _rGleich[i] >= 0.2f) Nachschub(i);
+                else
+                {
+                    Zustand[i] = Schollenmessung.Aus;
+                    continue;
+                }
+            }
             var schwelle = _schollen[stamm].Schwelle;
             var wachsen = _dichte >= schwelle + 0.08f ? 1f : _dichte <= schwelle ? 0f : Mathf.SmoothStep(schwelle, schwelle + 0.08f, _dichte);
             var s = _s[i];
             var ziel = s > ende0 && s < ende1 ? wachsen : wachsen * Mathf.SmoothStep(0f, ende0, s) * Mathf.SmoothStep(_laenge, ende1, s);
             var neu = _neu[i] || _erstesBild;
             var r0 = _r0[i];
-            if (_erstesBild) _rg[i] = ziel;
+            if (_erstesBild)
+            {
+                // beim Laden gleich im Zustand des Tauwetters (sonst schmölzen alle erst in den ersten Minuten)
+                (_rg[i], _mTau[i]) = (ziel, mZiel);
+                if (schmelzen) _rs[i] = Mathf.Max(SchmelzZiel(i, _tauen), 0.05f);
+            }
             else if (_rg[i] != ziel && dt > 0)
             {
                 var d = (ziel - _rg[i]) * r0;
@@ -883,6 +898,7 @@ public sealed class Schollensimulation
             if (drin && Zustand[i] != Schollenmessung.ImFenster)
             {
                 // neu im Fenster (am Rand, wo niemand hinsieht): Kontakte mit der nächsten Suche, bis dahin trennt FrischeTrennen nichts
+                neuImFenster++;
                 _frisch[i] = true;
                 _ohneWarm[i] = true;
                 Ereignis[i] |= Schollenmessung.EreignisVersetzt;
@@ -898,6 +914,8 @@ public sealed class Schollensimulation
             else if (dt > 0) Treiben(i, dt, k4);
         }
         Aktiv = aktiv;
+        // Kamerasprung (viele neu im Fenster): gleich suchen und trennen – im selben Bild, in dem sich das ganze Bild ändert, sieht man es nicht
+        if (neuImFenster > 20) _suchen = true;
     }
 
     private bool Stoesst(int i) => Zustand[i] == Schollenmessung.ImFenster && _tauchen[i] == 0 && _r[i] > 0.05f;
@@ -2060,6 +2078,12 @@ public sealed class Schollensimulation
             if (i >= _n)
             {
                 Freigeben(i);
+                return true;
+            }
+            if (SchmelzZiel(i, _tauen) * _rGleich[i] < 0.2f)
+            {
+                // bei diesem Tauwetter kann sie nicht bestehen: parken statt oben gleich wieder vergehen zu lassen
+                (_tauchen[i], Zustand[i]) = (5, Schollenmessung.Aus);
                 return true;
             }
             Nachschub(i);
