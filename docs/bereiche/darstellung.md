@@ -316,3 +316,11 @@ Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig
 | Stöße (Empfehlung Teamleiter) | Eigene 2D-Simulation in `Schollenfeld` statt Physik-Engine: Kreise, Gitter 2 m, unelastisch, Pfeiler als Kapseln mit kurzem Haften (Stau, 1–4 s; eingekeilte Schollen schieben sich nach 4 s kurz über die Nachbarn, damit sich keine Eisbrücke bildet), Stöße nur ±160 m um die Kamera, höchstens zwei Teilschritte je Bild | 30.10.2026 |
 | Starres Eis | Keine Wellen unter festem Eis und bis knapp vor seine Kante; treibende Schollen schaukeln als starre Körper, feste gar nicht | 30.10.2026 |
 | Seegang (Empfehlung Teamleiter) | Feste Richtungen der Wellenzüge, Wind ändert nur die Höhe; `wellen_seegang` folgt dem Wind träge (40 s Aufbau, 80 s Abklingen, bei höherem Tempo geteilt durch dessen Wurzel), Regen, Schaum und Farbe schnell | 30.10.2026 |
+
+### Eis nur im Winter, Eisgang am Winterende – Wasser Phase 3e (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Eis nur im Winter (Nutzer) | Kein Eis und keine Schollen außerhalb des Winters; vorher taute das Eis erst im ersten Drittel des Frühlings, und `--winter` setzte es auch im Frühling | 30.10.2026 |
+| Eisgang (Teamleiter, Nutzer) | Im letzten Stück des Winters (72–96 % des Jahres): Decken und Randeis brechen in Platten auf, die vergehen, erst mehr treibende Schollen, dann schmelzen sie; ab 96 % kein Eis; Schnee schmilzt mit. Folge der Länge des Spieljahres (ein Tag): Der Eisgang liegt am Winterabend, meist im Dunkeln | 30.10.2026 |
+| Startoptionen (eigene Entscheidung) | `--winter` über 0 zeigt ohne `--jahreszeit` den Winter (sonst sähe man mit den alten Testbefehlen kein Eis mehr); neu `--tauwetter=0..1` | 30.10.2026 |

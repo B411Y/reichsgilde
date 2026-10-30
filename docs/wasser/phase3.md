@@ -52,7 +52,7 @@ Keine Karte hat einen See über 2.000 m², einen Graben (stiller Lauf) oder Meer
 | **Rhein und breite Flüsse samt Fährstelle**: Randeis und treibende Schollen, nie eine Decke | `Eisregel.Rand`, Randeis 5 % der Breite (1,2–5 m), von 0,3 bis 1; Schollen seit Phase 3c als Körper (`Schollenfeld`, siehe Phase 3c unten; vorher ein Muster im Shader). An der Fähre hält eine Rinne (Breite der Fähre + 1 m) das Randeis offen, weil der Prahm pendelt |
 | Größere Seen nur Randeis 3–6 m (wie bisher) | `Eisregel.Rand`, von 0,1 bis 0,9 |
 | Offenes Wasser im Winter (die Furt wirkte sommerlich) | `winter_ton` = 2,5 × Winterfortschritt (voll ab 0,4, kalt ist das Wasser, bevor es friert): Farbe bis 65 % zu einem dunklen, kühlen Grau, Lichtnetze bis −85 %; vor jeder Eiskante ein Saum Grieseis (gut 1 m, grau, matt, kaum Kräusel) |
-| Das Eis wächst über den Winter und taut im Frühling | `Winterfortschritt`: Winter 0 → 1 über die ersten drei Fünftel des Spieljahres (erst schnell, dann langsamer), Frühling 1 → 0 im ersten Drittel; je Art `EisFortschritt` = (Winterfortschritt − `EisAb`) / (`EisBis` − `EisAb`) |
+| Das Eis wächst über den Winter und vergeht im Eisgang am Winterende (seit Phase 3e: Eis nur im Winter) | `Winterfortschritt`: Winter 0 → 1 über die ersten 55 % des Spieljahres (erst schnell, dann langsamer), dann Eisgang (`Tauwetter`, 72–96 % des Winters), im Frühling kein Eis mehr; je Art `EisFortschritt` = (Winterfortschritt − `EisAb`) / (`EisBis` − `EisAb`) |
 
 Was `--winter` zeigt: **0,3** Teich und Hafen (Wasser vor der Kaimauer) größtenteils zu, Bach nur dünne Ränder, Rhein noch offen; **0,6** stilles Wasser ganz zu, Bach halb, Rhein schmales Randeis und erste Schollen; **1,0** Bach zu bis auf die Löcher, an den Furten nur Randeis, Rhein 5 m Randeis und dichtes Treibeis.
 
@@ -168,7 +168,7 @@ Ohne gedrückte rechte Maustaste bleibt die Maus frei: Tafeln und Klicks auf Geb
 6. **Hochfliegen:** in Schritt 4 mit E und Shift auf 300–500 m steigen. Erwartet: die Stadt mit ihrem Rand, der in die Himmelsfarbe ausläuft, kein Loch und keine harte Kante; mit `--voreinstellung=Ultra --startstunde=6` auch im Morgendunst.
 7. **Randeis an einem See:** `--kartenwerkstatt=probestadt --werkstatt-see=-180,20;-120,10;-110,60;-170,75 --blick=-145,40,50 --werkstatt-kamerastart=1 --werkstatt-ebenen=alle --winter=1 --freiekamera=1`: nur ein Eisrand von gut 3 m, die Mitte offen.
 8. **Testszene:** `--wassertest=1 --jahreszeit=winter --winter=0.6` zeigt alle Arten nebeneinander (Fluss mit Schollen, Bach, Teich, See, Meer, Hafen, Furt), frei zu befliegen (Hilfe mit H aus).
-9. **Eis über das Jahr:** eine Partie im Herbst bis in den Winter laufen lassen (Tempo hoch): erst wird das Wasser kälter, dann frieren Teich und Hafen, danach die Bäche, zuletzt bekommt der Rhein Randeis und Schollen; im Frühling taut alles in den ersten Stunden.
+9. **Eis über das Jahr:** eine Partie im Herbst bis in den Winter laufen lassen (Tempo hoch): erst wird das Wasser kälter, dann frieren Teich und Hafen, danach die Bäche, zuletzt bekommt der Rhein Randeis und Schollen; am Abend des Winters bricht alles im Eisgang auf und vergeht, der Frühling beginnt ohne Eis und Schnee.
 10. **Grafikstufen:** Einstellungen → Voreinstellung Niedrig, Mittel, Hoch, Ultra umschalten, während Köln offen ist; das Wasser stellt sich sofort um. Oder `--wasserstufe=niedrig` (bis `ultra`).
 11. **Bildrate:** `--karte=koeln --blick=75,-60,45 --vsync=Aus --wasservergleich=1` misst gut zwei Minuten lang reihum und schreibt `[wassermessung] …` ins Protokoll, dann beendet sich das Spiel.
 12. **Zurückmelden:** (a) Eis je Gewässerart bei 0,3, 0,6, 1,0 – stimmt die Reihenfolge, gefallen Schollen und Randeis? (b) Wirkt das offene Wasser im Winter kalt genug (Furt)? (c) Freie Kamera: Steuerung, Tempo, stört etwas beim Hochfliegen (Nebel, Kanten, fehlendes Gras)? (d) Fehler (Kanten, Flackern, schwarzes oder fehlendes Wasser).
@@ -202,7 +202,7 @@ Im Spiel ist das Wasser mit Eis in Hoch damit eher **gut 2 ms billiger** als vor
 
 ### Testanleitung (Windows)
 
-Wie oben bauen (`dotnet build Reichsgilde.sln`), dann aus der Eingabeaufforderung (`godot` = Pfad zu `Godot_v4.7.2-stable_mono_win64.exe`). **Wetter erzwingen:** `--wetter=klar|regen|sturm|schnee` (Regenringe nur mit Wettereffekten Hoch, also Voreinstellung Hoch oder Ultra). **Eis:** `--winter=0..1` (fest), dazu `--jahreszeit=winter` für Schnee am Boden; ohne `--jahreszeit` liegt kein Schnee (wie auf den Bildern des Nutzers).
+Wie oben bauen (`dotnet build Reichsgilde.sln`), dann aus der Eingabeaufforderung (`godot` = Pfad zu `Godot_v4.7.2-stable_mono_win64.exe`). **Wetter erzwingen:** `--wetter=klar|regen|sturm|schnee` (Regenringe nur mit Wettereffekten Hoch, also Voreinstellung Hoch oder Ultra). **Eis:** `--winter=0..1` (fest). Seit Phase 3e gibt es Eis nur im Winter: `--winter` über 0 zeigt ohne `--jahreszeit` den Winter, also mit Schnee am Boden (vorher lag ohne `--jahreszeit` kein Schnee, die Ansicht zeigte Frühling mit Eis).
 
 **Wo die Mündung liegt:** Der Duffesbach mündet bei **(60, 124)** von Westen in den linken (westlichen) Rand des Rheins; der Rhein fließt nach Norden (z wird kleiner), das Bachwasser zieht also am linken Ufer nach Norden (Richtung Brücke, die bei z ≈ 20–40 über den Rhein geht).
 
@@ -339,3 +339,47 @@ Wie oben bauen (`dotnet build Reichsgilde.sln`), dann aus der Eingabeaufforderun
 - **Feste Schollen nur an Flüssen:** Bach, Teich und Hafenbecken haben eine flache Decke (aus demselben Material, aber ohne Körper an der Kante); an einer Furt und an der Mündung des Baches sieht man die Kante deshalb noch flach.
 - **Spiegelung:** Die festen Schollen spiegeln sich nicht im Wasser (keine Bildschirmspiegelung), ebenso die treibenden.
 - **Wellenstruktur beim Wetterwechsel** ist an den Werten im Protokoll und an den Bildfolgen geprüft, nicht an einem Video; ein Ruck einzelner Bilder ließe sich nur im laufenden Spiel sehen.
+
+## Phase 3e: Eis nur im Winter, Eisgang am Winterende (30.10.2026)
+
+Der Nutzer und ein anderes Mitglied sahen **im Frühling noch Eisschollen auf dem Rhein**. Entscheidung des Nutzers: Eis und Schollen nur im Winter.
+
+**Ursache** (zwei Wege zum Frühlingseis):
+1. **Regel:** `Wasserarten.Winterfortschritt` ließ das Eis erst im Frühling tauen (Frühling 1 → 0 über das erste Drittel des Jahres). Am ersten Frühlingstag stand also das volle Winter-Eis samt Schollen, ein Drittel des Frühlings lang (bei Tempo 1 gut fünf Minuten).
+2. **Startoption:** `--winter` setzte das Eis unabhängig von der Jahreszeit. Ohne `--jahreszeit` beginnt jede Partie im Frühling 1400 – die Testbefehle der Phasen 3–3d (`--winter=1.0 --wetter=regen …`) zeigten deshalb Frühling mit Eis und ohne Schnee.
+
+Laden war nicht die Ursache: Das Eis steht nicht im Spielstand, die Ansicht rechnet es beim Aufbau und jedes Bild aus der Uhr (Protokoll „[wasser] Eis beim Aufbau …“).
+
+**Lösung**
+
+| Teil | Umsetzung | Dateien |
+|---|---|---|
+| Eis nur im Winter | `Winterfortschritt` ist außerhalb des Winters 0; im Winter wächst das Eis über die ersten 55 % des Jahres und steht dann | `Wasserarten.cs` |
+| **Eisgang** im letzten Stück des Winters | Neu `Wasserarten.Tauwetter`: 0 → 1 von 72 % bis 96 % des Winterjahres (im Spiel etwa 17:40–22:15 Uhr, bei Tempo 1 knapp vier Minuten, auf dem belasteten Testrechner gut fünf). Uniform `eis_tauen` für Wasser und Schollen (`eis_material.gdshaderinc`). **Decken von Bach, Teich und Hafenbecken** brechen auf: Alle Fugen öffnen sich (bis gut ein Zehntel der Plattengröße, grauer Brei darin), die Platten vergehen eine nach der anderen (zufällig je Platte, bei 0,9 alle). **Randeis** ebenso, die festen Schollen darin vergehen nach und nach. **Treibende Schollen:** erst mehr (von drei Vierteln auf alle), das Randeis gibt die Breite frei, dann schmelzen sie (kleiner, weniger), bei 1 sind keine mehr da. Das Eis wird morsch: grau, nass, ohne Schnee. Die Wellen kommen zurück, das Wasser verliert die Wintertönung. Ab 96 % des Winters ist kein Eis mehr zu sehen; der Frühling beginnt ohne Eis | `Wasserarten.cs`, `wasser_realistisch.gdshaderinc`, `eis_material.gdshaderinc`, `eis_scholle.gdshaderinc`, `Schollenfeld.Bild`, `Stadtansicht.Wasser.cs` |
+| **Schnee** | Die Schneedecke (Boden, Dächer) schmilzt im Eisgang mit (ab Tauwetter 0,15, bei 0,9 weg); fällt gerade Schnee, bleibt er bis Tauwetter 0,6 liegen. Im Frühling liegt keiner (das Wetter kennt dort keinen Schnee; nur `--wetter=schnee` legt ihn hin). Vorher verschwand er erst beim Jahreswechsel, in gut einer Sekunde | `Stadtansicht.Wetter.cs` |
+| Startoptionen | `--winter` über 0 zeigt ohne `--jahreszeit` den Winter (mit Schnee und Winterlicht); mit einer anderen vorgegebenen Jahreszeit bleibt das Wasser offen. Neu `--tauwetter=0..1` (Eisgang fest, ohne `--winter` mit vollem Eis) | `Stadtansicht.Wasser.cs`, `Stadtansicht.Wetter.cs` (`GezeigteJahreszeit`), `docs/STARTOPTIONEN.md` |
+| Protokoll | `[wasser] Eis beim Aufbau: Winter …, Tauwetter … (gezeigt …, Uhr …)` und im Übergang alle 20 s bzw. bei jedem Sprung `[wasser] Eis: Winter …, Tauwetter … (… des Jahres)` | `Stadtansicht.Wasser.cs` |
+
+Die Wintertage des Spiels gehen von 4 bis 23 Uhr; der Eisgang liegt damit am Abend, meist im Dunkeln. Wer ihn bei Licht sehen will: `--tauwetter` oder `--lichtuhr=13`.
+
+### Testanleitung (Windows)
+
+1. **Eisgang bei Licht:** `godot --path game -- --karte=koeln --startstunde=11 --freiekamera=1 --winter=1 --tauwetter=0.3 --freiekamera-start=40,32,150:66,0,112` (Mündung), dann `0.6` und `0.9`; Brücke: `--tauwetter=0.5 --freiekamera-start=96,40,62:90,0,12`, Bach von oben: `--freiekamera-start=-130,40,150:-125,0,128`. Erwartet: bei 0,3 offene Fugen in Bach und Randeis, mehr Schollen; bei 0,6 viele Platten weg, grau und nass, Schnee schmilzt; bei 0,9 nur noch Reste, kaum Schollen.
+2. **Über die Jahresgrenze:** eine Partie bis in den Winter spielen (oder `--spulen=4200`: Winter 1403, 17 Uhr; mit `--speichern=winterende.json` einen Stand schreiben und mit `--laden=winterende.json --tempo=1 --lichtuhr=13` laden), Tempo 1, an den Rhein: Ab etwa 17:40 bricht das Eis auf, gegen 22:15 ist es weg, der Frühling 1404 beginnt ohne Eis und Schnee.
+3. **Frühling laden:** einen Spielstand aus dem Frühling laden (z. B. die automatische Sicherung nach dem Jahreswechsel): kein Eis, kein Schnee; im Protokoll `Eis beim Aufbau: Winter 0.000, Tauwetter 0.000 (gezeigt Fruehling, Uhr Fruehling)`.
+
+### Bilder und Protokoll
+
+Alle selbst angesehen (T400, Vulkan, 1600 × 900, freie Kamera), unter `/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/wasser3d/tau/<name>/<bild>.png` (nicht im Repository).
+
+| Bild | Zu sehen |
+|---|---|
+| `grenze3` (a–n, je gut 20 s; `zeiten.txt`) | Spielstand Winter 1403, 17 Uhr, Tempo 1, über die Mündung: a (17:14) volles Eis, Schnee; h (20:02) Decken aufgebrochen, Randeis in Stücken, Schollen grau und nass, Schnee fleckig; n (22:38) kein Eis, kein liegender Schnee (es schneit, bleibt aber nicht liegen) |
+| `grenze2` (a–d) | Derselbe Stand mit Tempo 4 über die Jahresgrenze: Frühling 1404 beginnt ohne Eis und ohne Schnee (Jahresbericht im Bild) |
+| `fruehling_laden` | Spielstand aus dem Frühling 1404 geladen: kein Eis, kein Schnee |
+| `tau_0.3`, `tau_0.6`, `tau_0.9` | Eisgang fest (`--tauwetter`) bei Mittag: Fugen offen, dann Platten weg und Schnee fleckig, dann nur noch einzelne Schollen |
+| `tau_0.5_pfeiler`, `tau_0.5_bach`, `tau_0.5_nah` | Mitten im Eisgang: dichtes Treibeis vor der Brücke; Bach-Decke in Platten aufgebrochen; Randeis nah |
+
+Protokoll des Laufs `grenze3` (`[wasser] Eis: …`): Tauwetter 0,002 bei 0,725 des Winterjahres, 0,51 bei 0,841, 0,99 bei 0,943; nach dem Jahreswechsel (Lauf `grenze2`) `Winter 0.000, Tauwetter 0.000 (Fruehling, Fruehling 0.000 des Jahres)`. Beim Laden im Frühling: `Eis beim Aufbau: Winter 0.000, Tauwetter 0.000 (gezeigt Fruehling, Uhr Fruehling)`.
+
+**Offen:** Der Eisgang liegt durch die Länge des Spieljahres am Abend, meist im Dunkeln. Treibende Schollen schmelzen gleichmäßig kleiner, sie brechen nicht in Stücke; auf Bach und Teich treiben die aufgebrochenen Platten nicht ab.
