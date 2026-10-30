@@ -168,7 +168,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Realistisches Wasser, Phase 1 (PR #…)
+### Realistisches Wasser, Phase 1 (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -178,7 +178,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Lauffähigkeit | Der Original-Shader läuft unter 4.7 Forward+ ohne Änderung; er braucht Tiefen- und Bildschirmtextur (nicht im Kompatibilitätsrenderer). Die Kaustik baut die Testszene aus dem 4×4-Atlas zu einem Textur-Feld. Kosten auf der T400: rund 6–14 ms je Bild bei 80×80 m | 29.10.2026 |
 | Testszene | `Wassertest.cs` / `Wassertest.tscn` (Startoption `--wassertest=1`), ohne Verbindung zum Spiel; das Wasser des Spiels ist unverändert. Fehlerprotokoll, Vergleich mit `wasser.gdshader`, Parameter und Testanleitung: `docs/wasser/phase1.md` | 29.10.2026 |
 
-### Realistisches Wasser, Phase 2 (PR #…)
+### Realistisches Wasser, Phase 2 (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -193,7 +193,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 
-### Realistisches Wasser, Phase 3: Einbau und Grafikstufen (PR #…)
+### Realistisches Wasser, Phase 3: Einbau und Grafikstufen (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -208,7 +208,7 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Messung | `--wasservergleich=1`: im selben Prozess reihum ohne Wasser und in den vier Stufen (Median der GPU-Zeit je Zustand, drei Runden) – Einzelläufe schwanken auf der geteilten T400 um das Doppelte | 29.10.2026 |
 | Kosten | Köln, Hafen, T400, GPU-Zeit des Wassers alt → neu je Voreinstellung: Niedrig 1,8 → 2,6 ms, Mittel 2,7 → 5,0, Hoch 3,5 → 6,5, Ultra 4,2 → 8,7 ms. Brechung rund 0,8 ms, Tiefe mit Kaustik und zweiter Normalkarte 1,1 ms, 1-m-Netz 1 ms; der Rest ist die durchsichtige, beleuchtete Fläche selbst. Schaum wird nur nahe am Hindernis gerechnet, Niedrig nimmt nur eine Normalkarte. Tabelle: `docs/wasser/phase3.md` | 29.10.2026 |
 
-### Eis nach Gewässerart (PR #…)
+### Eis nach Gewässerart (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -223,7 +223,7 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | „Sommerliche“ Furt | Offenes Wasser wird mit dem Winterfortschritt kälter (voll ab 0,4): Farbe zu 65 % zu einem dunklen, kühlen Grau, Lichtnetze bis −85 %; vor jeder Eiskante ein Saum Grieseis (gut 1 m, grau, matt, ruhig) | 30.10.2026 |
 | Strenger Winter | Ein Ereignis „Rhein friert zu“ gehört in den Kern (Wetter/Ereignis), nicht in die Darstellung; als „(von darstellung)“ in `kern.md` notiert | 30.10.2026 |
 
-### Freie Kamera (PR #…)
+### Freie Kamera (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -234,7 +234,7 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Nebel und Dunst | Schatten mit vier Stufen bis 400 m; Morgendunst Hoch: Nebelvolumen wächst mit der Höhe (3 · Höhe + 300 m, bis 1.500 m), sonst harte Kante beim Hochfliegen. Höhennebel (Niedrig) und Dunstring am Kartenrand (Farbe des Hintergrunds) brauchen nichts | 30.10.2026 |
 | Grenzen | Gras, Feinheiten und Figuren-Bewegung gelten nur um den Blickpunkt (wie bei der Spielkamera), weiter weg fehlt das Gras; Wolkenschatten nur 1 km um den Blickpunkt; Wetter-Nebel ist für 150 m Abstand gerechnet und wird von hoch oben dichter; keine Miniatur-Unschärfe | 30.10.2026 |
 
-### Eis, Schollen als Körper, Mündung, Flusswellen – Wasser Phase 3c (PR #…)
+### Eis, Schollen als Körper, Mündung, Flusswellen – Wasser Phase 3c (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -245,7 +245,7 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Mündung | Löcher als Uniforms (Kapseln, je Platte gerechnet, Rand bricht wie die Eiskante; Felder als Zahlenreihe, ein Farbfeld nimmt Godot für `vec4[]` nicht an) statt über die Netzecken; im Fluss eine Rinne stromab am Ufer (6 + 3 × halbe Bachbreite); Bach blendet am Flussrand weich aus und fällt auf dessen Spiegel; trüber Streifen mit Schlieren und dünnen Schaumlinien im Fluss (`muendung[]`), kein Uferschaum an der Mündung, Winterschaum grau | 30.10.2026 |
 | Flusswellen | Wellen in `wasser_wellen.gdshaderinc` (Wasser und Schollen); Flüsse in Laufachsen; Fluss: Länge 3, Stärke 0,24, Vielfalt 0,8 (Felder 40–110 m), Extra-Züge 0,5, Startwert aus dem Namen (`Wasserarten.Saat`), Windhöhe 2,2: ruhig etwa 6–10 cm, Sturm etwa 25–35 cm; Bäche unverändert | 30.10.2026 |
 
-### Ein Eismaterial, feste Schollen, Stöße, starres Eis, träger Seegang – Wasser Phase 3d (PR #…)
+### Ein Eismaterial, feste Schollen, Stöße, starres Eis, träger Seegang – Wasser Phase 3d (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -257,7 +257,7 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Starres Eis | Keine Wellen unter festem Eis und bis knapp vor seine Kante; treibende Schollen schaukeln als starre Körper, feste gar nicht | 30.10.2026 |
 | Seegang (Empfehlung Teamleiter) | Feste Richtungen der Wellenzüge, Wind ändert nur die Höhe; `wellen_seegang` folgt dem Wind träge (40 s Aufbau, 80 s Abklingen, bei höherem Tempo geteilt durch dessen Wurzel), Regen, Schaum und Farbe schnell | 30.10.2026 |
 
-### Eis nur im Winter, Eisgang am Winterende – Wasser Phase 3e (PR #…)
+### Eis nur im Winter, Eisgang am Winterende – Wasser Phase 3e (PR #268)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
