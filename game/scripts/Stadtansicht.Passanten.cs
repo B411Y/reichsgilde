@@ -716,8 +716,8 @@ public partial class Stadtansicht
         {
             if (!p.Knoten.Visible) continue;
             var mitte = p.Knoten.GlobalPosition + new Vector3(0, 0.9f, 0);
-            if (_kamera.IsPositionBehind(mitte)) continue;
-            var abstand = _kamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
+            if (StadtKamera.IsPositionBehind(mitte)) continue;
+            var abstand = StadtKamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
             if (abstand < besterAbstand) { besterAbstand = abstand; beste = "einwohner:" + nummer; }
         }
         return beste;

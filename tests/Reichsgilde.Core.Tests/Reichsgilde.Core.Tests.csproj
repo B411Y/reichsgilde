@@ -15,4 +15,8 @@
     <!-- Das Kartenskript (Stadtskripte, Schreiben mit Schreibschutz, Vorschau) – KartenbauTests.cs -->
     <ProjectReference Include="..\..\tools\Kartenbau\Kartenbau.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Die Erkennung der Haushofmeister-Ansagen liegt im Spielordner, kennt aber Godot nicht – so lässt sie sich mit echten Kernmeldungen prüfen (AnsagenErkennungTests.cs) -->
+    <Compile Include="..\..\game\scripts\KlangAnsagenErkennung.cs" Link="Ansagen\KlangAnsagenErkennung.cs" />
+  </ItemGroup>
 </Project>

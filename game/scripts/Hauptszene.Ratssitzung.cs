@@ -35,7 +35,11 @@ public partial class Hauptszene
         _sitzungsTafel.RedeBeendet += _stadt.RatssitzungRednerFort;
         _sitzungsTafel.AmZug += amt => _stadt.RatssitzungAmZug(amt);
         _sitzungsTafel.StimmeGezeigt += stimme => _stadt.RatssitzungStimme(stimme);
-        _sitzungsTafel.ErgebnisGezeigt += punkt => _stadt.RatssitzungErgebnis(punkt);
+        _sitzungsTafel.ErgebnisGezeigt += punkt =>
+        {
+            _stadt.RatssitzungErgebnis(punkt);
+            SitzungErgebnisAnsagen(punkt); // Wahl gewonnen oder verloren (Haushofmeister)
+        };
         _sitzungsTafel.Gemeldet += Protokollieren;
         _sitzungsTafel.Beendet += wiederholung =>
         {
@@ -89,6 +93,7 @@ public partial class Hauptszene
         _sitzungsTafel.SitzungZeigen();
         RaumleisteAufbauen();
         Protokollieren("Die Ratssitzung beginnt – die Partie steht, bis alle Punkte abgehalten sind.");
+        SitzungAnsagen(_simulation.Ratssitzung!); // Haushofmeister
     }
 
     /// <summary>Zeigt die letzte abgehaltene Sitzung noch einmal (Knopf „Letzte Ratssitzung ansehen“ im Rathaus).</summary>

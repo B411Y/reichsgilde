@@ -97,7 +97,7 @@ public partial class Stadtansicht
         if (innen) _raumKamera.MakeCurrent();
         else
         {
-            _kamera.MakeCurrent();
+            ((Camera3D?)_freieKamera ?? _kamera).MakeCurrent(); // zurück zur freien Kamera, wenn sie lief (Stadtansicht.FreieKamera.cs)
             _raum = null;
         }
     }
