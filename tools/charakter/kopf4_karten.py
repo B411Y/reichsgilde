@@ -44,16 +44,10 @@ def karten(st, wurzeln_, h, rng, lagen=LAGEN_HAAR, bart=False, mitte=None):
             wahl = np.sort(rng.choice(S, max(1, int(S * anteil)), replace=False))
             gruppen = [(m, np.array([m])) for m in wahl]
         else:
+            # Büschel nach dem Weg der Strähnen (Wurzel, Mitte, Spitze), damit eine Karte nicht zwei Richtungen mittelt
+            from kopf4_frisuren import buschel, buschel_merkmal
             nk = max(4, int(S / je * anteil))
-            start = int(rng.integers(S))
-            wahl = [start]
-            d = np.linalg.norm(wurzeln_ - wurzeln_[start], axis=1)
-            for _ in range(nk - 1):
-                i = int(np.argmax(d))
-                wahl.append(i)
-                d = np.minimum(d, np.linalg.norm(wurzeln_ - wurzeln_[i], axis=1))
-            wahl = np.array(wahl)
-            zu = np.argmin(np.linalg.norm(wurzeln_[:, None] - wurzeln_[wahl][None], axis=2), axis=1)
+            wahl, zu = buschel(buschel_merkmal(st), nk, rng)
             gruppen = [(m, np.nonzero(zu == b)[0]) for b, m in enumerate(wahl)]
         for m, glieder in gruppen:
             if len(glieder) == 0:

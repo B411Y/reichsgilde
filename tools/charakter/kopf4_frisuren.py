@@ -193,6 +193,27 @@ def umtasten(pts, n):
     return np.stack([np.interp(t, d, pts[:, k]) for k in range(3)], 1)
 
 
+def buschel_merkmal(st):
+    P = st.shape[1]
+    return np.concatenate([st[:, 0], st[:, P // 2] * 1.5, st[:, -1]], 1)
+
+
+def buschel(merkmal, nk, rng):
+    """Büschelmitten (am weitesten auseinander) und Zuordnung jeder Strähne zur nächsten Mitte."""
+    S = len(merkmal)
+    mitte = [int(rng.integers(S))]
+    d = np.linalg.norm(merkmal - merkmal[mitte[0]], axis=1)
+    for _ in range(nk - 1):
+        i = int(np.argmax(d))
+        mitte.append(i)
+        d = np.minimum(d, np.linalg.norm(merkmal - merkmal[i], axis=1))
+    mitte = np.array(mitte)
+    zu = np.empty(S, np.int64)
+    for a in range(0, S, 2000):
+        zu[a:a + 2000] = np.argmin(np.linalg.norm(merkmal[a:a + 2000, None] - merkmal[mitte][None], axis=2), axis=1)
+    return mitte, zu
+
+
 def wellen_und_klumpen(st, wurzeln_, stil, rng, aussen=None):
     """Wellen quer zur Strähne (je Büschel gleiche Phase) und Klumpen: Spitzen laufen zur Mittelsträhne."""
     S, P, _ = st.shape
@@ -200,15 +221,10 @@ def wellen_und_klumpen(st, wurzeln_, stil, rng, aussen=None):
         return st, np.zeros(S, np.int64)
     je, zug = stil.klumpen
     nk = max(1, S // je)
-    # Büschelmitten: am weitesten voneinander entfernte Wurzeln
-    mitte = [int(rng.integers(S))]
-    d = np.linalg.norm(wurzeln_ - wurzeln_[mitte[0]], axis=1)
-    for _ in range(nk - 1):
-        i = int(np.argmax(d))
-        mitte.append(i)
-        d = np.minimum(d, np.linalg.norm(wurzeln_ - wurzeln_[i], axis=1))
-    mitte = np.array(mitte)
-    zu = np.argmin(np.linalg.norm(wurzeln_[:, None] - wurzeln_[mitte][None], axis=2), axis=1)
+    # Büschel nach dem Weg der Strähne (Wurzel, Mitte, Spitze), nicht nur nach der Wurzel: sonst landen am Scheitel
+    # Strähnen beider Seiten in einem Büschel und ihre Spitzen werden quer über Stirn und Gesicht gezogen
+    merkmal = buschel_merkmal(st)
+    mitte, zu = buschel(merkmal, nk, rng)
     t = np.linspace(0, 1, P)[None, :, None]
     neu = st.copy()
     hoehe, wl = stil.wellen
@@ -223,7 +239,9 @@ def wellen_und_klumpen(st, wurzeln_, stil, rng, aussen=None):
         amp = hoehe * glatt(bogen, 0.01, 0.05) * rng.uniform(0.6, 1.2, (S, 1))
         neu += quer * (amp * np.sin(2 * np.pi * bogen / wl + phase[zu][:, None]))[..., None]
     m = neu[mitte][zu]
-    k = zug * t ** 1.6 * rng.uniform(0.6, 1.0, (S, 1, 1))
+    # nur, wenn die Spitzen nah beieinander liegen (sonst kein Zug)
+    nah = (np.linalg.norm(st[:, -1] - st[mitte][zu][:, -1], axis=1) < 0.03 * stil.M)[:, None, None]
+    k = zug * t ** 1.6 * rng.uniform(0.6, 1.0, (S, 1, 1)) * nah
     neu = neu * (1 - k) + m * k
     return neu, zu
 
