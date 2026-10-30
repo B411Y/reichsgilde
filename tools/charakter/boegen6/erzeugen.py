@@ -148,12 +148,18 @@ for vid, v in vorlagen.items():
     zellen = [dict(zelle("K1"), **vorlage("vorn", vorn)), dict(zelle("K1"), stand=5), dict(zelle("K1"), stand=6),
               dict(zelle("K2"), winkel=w34, **vorlage("dreiviertel", drei)), dict(zelle("K2"), winkel=w34, stand=6)]
     basis["zellen"] = zellen
-    zeilen.append(basis)
-erzeugt.append(schreiben("p03_vorlagen", {
+    zeilen.append((v.get("satz", ""), basis))
+# P3 in Bögen zu höchstens 6 Zeilen (passt in ein Fenster 3200 × 4560): der alte Satz (Haar-Vorlagen der Phase 5) als
+# p03_vorlagen, der neue Satz aus S1 in Gruppen zu fünf als p03_vorlagen_s1a, _s1b, …
+P3_KOPF = {
     "titel": "P3 Vorlagen: Vorlage vorn | Stand 5 | Stand 6 | Vorlage ¾ | Stand 6 ¾ (L-V, auf den IPD der Vorlage gelegt; ¾ wie die Vorlagen nach rechts gedreht = K2 gespiegelt)",
     "pruefplan": "P3", "ab": "A", "zelle": ZELLE["K1"], "alle": {"kopf": "standard", "licht": "vorlage"},
-    "spalten": [{"titel": "Vorlage vorn"}, {"titel": "Stand 5"}, {"titel": "Stand 6"}, {"titel": "Vorlage ¾"}, {"titel": "Stand 6 ¾"}],
-    "zeilen": zeilen}))
+    "spalten": [{"titel": "Vorlage vorn"}, {"titel": "Stand 5"}, {"titel": "Stand 6"}, {"titel": "Vorlage ¾"}, {"titel": "Stand 6 ¾"}]}
+alt = [b for s, b in zeilen if s != "phase6-s1"]
+neu = [b for s, b in zeilen if s == "phase6-s1"]
+erzeugt.append(schreiben("p03_vorlagen", dict(P3_KOPF, zeilen=alt)))
+for i in range(0, len(neu), 5):
+    erzeugt.append(schreiben(f"p03_vorlagen_s1{chr(ord('a') + i // 5)}", dict(P3_KOPF, zeilen=neu[i:i + 5])))
 
 # ------------------------------------------------------------------ P4 vielfalt16 (ab B, A als Vorher)
 for g, saaten in (("m", range(6001, 6017)), ("w", range(6101, 6117))):

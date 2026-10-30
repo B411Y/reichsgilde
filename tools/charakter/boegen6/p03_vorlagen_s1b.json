@@ -1,0 +1,454 @@
+{
+ "titel": "P3 Vorlagen: Vorlage vorn | Stand 5 | Stand 6 | Vorlage ¾ | Stand 6 ¾ (L-V, auf den IPD der Vorlage gelegt; ¾ wie die Vorlagen nach rechts gedreht = K2 gespiegelt)",
+ "pruefplan": "P3",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "titel": "Vorlage vorn"
+  },
+  {
+   "titel": "Stand 5"
+  },
+  {
+   "titel": "Stand 6"
+  },
+  {
+   "titel": "Vorlage ¾"
+  },
+  {
+   "titel": "Stand 6 ¾"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "a_m20 (Mann 20, S1)",
+   "geschlecht": "m",
+   "alter": 20,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/a_m20/vorn.png",
+      "pupillen": [
+       [
+        406.4,
+        400.6
+       ],
+       [
+        598.2,
+        398.5
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/a_m20/dreiviertel.png",
+      "pupillen": [
+       [
+        580.0,
+        387.0
+       ],
+       [
+        717.0,
+        382.5
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "h_w35_hell (Frau 35 hell, S1)",
+   "geschlecht": "w",
+   "alter": 35,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/h_w35_hell/vorn.png",
+      "pupillen": [
+       [
+        409.4,
+        376.4
+       ],
+       [
+        594.7,
+        374.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/h_w35_hell/dreiviertel.png",
+      "pupillen": [
+       [
+        587.1,
+        361.4
+       ],
+       [
+        712.5,
+        362.6
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "a_w20 (Frau 20, S1)",
+   "geschlecht": "w",
+   "alter": 20,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/a_w20/vorn.png",
+      "pupillen": [
+       [
+        413.9,
+        368.0
+       ],
+       [
+        586.2,
+        362.9
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -55,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/a_w20/dreiviertel.png",
+      "pupillen": [
+       [
+        653.0,
+        353.0
+       ],
+       [
+        749.0,
+        346.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -55,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "h_w35_dunkel (Frau 35 dunkler, S1)",
+   "geschlecht": "w",
+   "alter": 35,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/h_w35_dunkel/vorn.png",
+      "pupillen": [
+       [
+        410.4,
+        359.1
+       ],
+       [
+        575.9,
+        359.9
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/h_w35_dunkel/dreiviertel.png",
+      "pupillen": [
+       [
+        557.1,
+        350.7
+       ],
+       [
+        682.1,
+        350.7
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "a_w50 (Frau 50, S1)",
+   "geschlecht": "w",
+   "alter": 50,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/a_w50/vorn.png",
+      "pupillen": [
+       [
+        411.0,
+        374.5
+       ],
+       [
+        595.4,
+        373.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/a_w50/dreiviertel.png",
+      "pupillen": [
+       [
+        581.0,
+        378.0
+       ],
+       [
+        709.0,
+        380.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  }
+ ],
+ "name": "p03_vorlagen_s1b"
+}

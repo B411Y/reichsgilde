@@ -1,0 +1,460 @@
+{
+ "titel": "P3 Vorlagen: Vorlage vorn | Stand 5 | Stand 6 | Vorlage ¾ | Stand 6 ¾ (L-V, auf den IPD der Vorlage gelegt; ¾ wie die Vorlagen nach rechts gedreht = K2 gespiegelt)",
+ "pruefplan": "P3",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "vorlage"
+ },
+ "spalten": [
+  {
+   "titel": "Vorlage vorn"
+  },
+  {
+   "titel": "Stand 5"
+  },
+  {
+   "titel": "Stand 6"
+  },
+  {
+   "titel": "Vorlage ¾"
+  },
+  {
+   "titel": "Stand 6 ¾"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "d_bauer45 (Bauer 45, S1)",
+   "geschlecht": "m",
+   "alter": 45,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "wetter": 1,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/d_bauer45/vorn.png",
+      "pupillen": [
+       [
+        394.1,
+        411.9
+       ],
+       [
+        608.1,
+        412.4
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/d_bauer45/dreiviertel.png",
+      "pupillen": [
+       [
+        555.0,
+        386.0
+       ],
+       [
+        717.5,
+        378.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "d_fischer55 (Fischer 55, S1)",
+   "geschlecht": "m",
+   "alter": 55,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "wetter": 1,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/d_fischer55/vorn.png",
+      "pupillen": [
+       [
+        387.9,
+        408.1
+       ],
+       [
+        605.7,
+        404.7
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/d_fischer55/dreiviertel.png",
+      "pupillen": [
+       [
+        538.0,
+        397.0
+       ],
+       [
+        702.0,
+        397.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "d_baeuerin45 (Bäuerin 45, S1)",
+   "geschlecht": "w",
+   "alter": 45,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40
+   },
+   "warten": 45,
+   "wetter": 1,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/d_baeuerin45/vorn.png",
+      "pupillen": [
+       [
+        424.0,
+        376.0
+       ],
+       [
+        602.6,
+        378.3
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/d_baeuerin45/dreiviertel.png",
+      "pupillen": [
+       [
+        583.0,
+        371.5
+       ],
+       [
+        714.5,
+        371.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "i_schreiber45 (Schreiber 45, S1)",
+   "geschlecht": "m",
+   "alter": 45,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/i_schreiber45/vorn.png",
+      "pupillen": [
+       [
+        399.8,
+        395.4
+       ],
+       [
+        596.2,
+        393.1
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/i_schreiber45/dreiviertel.png",
+      "pupillen": [
+       [
+        552.0,
+        369.0
+       ],
+       [
+        697.5,
+        370.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -40,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  },
+  {
+   "titel": "i_patrizier50 (Patrizier 50, S1)",
+   "geschlecht": "m",
+   "alter": 50,
+   "haar": {
+    "modus": "tressfx",
+    "ruhe": true,
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   },
+   "gene": {
+    "haar_helligkeit": 65,
+    "haar_rot": 40,
+    "bartwuchs": 130
+   },
+   "warten": 45,
+   "zellen": [
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/i_patrizier50/vorn.png",
+      "pupillen": [
+       [
+        414.3,
+        370.1
+       ],
+       [
+        594.3,
+        366.4
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 5
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": 0,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "vorlage": {
+      "bild": "~/werkzeuge/charakter/vorlagen-gesicht6/i_patrizier50/dreiviertel.png",
+      "pupillen": [
+       [
+        571.5,
+        349.0
+       ],
+       [
+        695.0,
+        350.0
+       ]
+      ]
+     }
+    },
+    {
+     "ansicht": "kopf",
+     "winkel": -45,
+     "hoehe": 0,
+     "spanne_m": 0.34,
+     "ziel_m": -0.02,
+     "stand": 6
+    }
+   ]
+  }
+ ],
+ "name": "p03_vorlagen_s1c"
+}
