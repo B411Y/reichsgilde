@@ -5,7 +5,7 @@ using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
 
-/// <summary>Wann ein Gewässer zufriert: nie, ganz (kleine Gewässer) oder nur am Rand.</summary>
+/// <summary>Wann ein Gewässer zufriert: nie, ganz (kleine und stille Gewässer) oder nur am Rand (Seen, Flüsse, Furten).</summary>
 public enum Eisregel { Nie, Voll, Rand }
 
 /// <summary>
@@ -25,40 +25,60 @@ public enum Eisregel { Nie, Voll, Rand }
 /// <param name="Kaustik">Stärke der hellen Lichtmuster auf dem Grund.</param>
 /// <param name="EisReichweite">Meter vom Ufer, die das Eis im tiefsten Winter erreicht; 0 = friert nie. Bei <see cref="Eisregel.Voll"/> und
 /// <see cref="Eisregel.Rand"/> setzt <see cref="Wasserarten.Fuer"/> sie aus der Größe des Gewässers.</param>
+/// <param name="EisAb">Ab diesem Winterfortschritt (0–1) wächst das Eis dieser Art …</param>
+/// <param name="EisBis">… und hat bei diesem seine volle Reichweite: Stilles Wasser friert zuerst (Teich, Hafenbecken, Graben 0–0,5), ein Bach
+/// später (0,15–1), ein Fluss bekommt erst spät Randeis (0,3–1). Siehe <see cref="Wasserarten.EisFortschritt"/>.</param>
+/// <param name="Schollen">1 = im Winter treiben Eisschollen mit der Strömung (breite Flüsse); 0 = keine.</param>
 public sealed record Wasserart(
     string Name, float WellenStaerke, float WellenLaenge, float WindAnteil, float Stroemung,
     Color Flach, Color Tief, float Klarheit, float Brechung, float Rauheit,
-    float SchaumStaerke, float SchaumBreite, float SchaumKamm, float Kaustik, Eisregel Eis, float EisReichweite = 0f, float Vielfalt = 0f, float ExtraWellen = 0f);
+    float SchaumStaerke, float SchaumBreite, float SchaumKamm, float Kaustik, Eisregel Eis, float EisReichweite = 0f, float Vielfalt = 0f, float ExtraWellen = 0f,
+    float EisAb = 0f, float EisBis = 1f, float Schollen = 0f);
 
 /// <summary>Die Gewässerarten, ihre Zuordnung zum Kartenwasser und der Winterfortschritt des Eises (alles nur Darstellung).</summary>
 public static class Wasserarten
 {
     /// <summary>Flüsse ab dieser Breite (m) haben Uferschaum; schmalere keinen.</summary>
     public const float SchaumAbBreite = 30f;
-    /// <summary>Bäche und Flüsse bis zu dieser Breite (m) heißen Bach und frieren ganz zu; breitere Flüsse nie.</summary>
+    /// <summary>Bäche und Flüsse bis zu dieser Breite (m) heißen Bach und frieren ganz zu; breitere Flüsse bekommen nur Randeis und Schollen.</summary>
     public const float BachBisBreite = 5f;
     /// <summary>Teiche und Tümpel bis zu dieser Fläche (m²) frieren ganz zu; größere Seen nur am Rand (3–6 m).</summary>
     public const float TeichBisFlaeche = 2000f;
     public const float RandEisMin = 3f, RandEisMax = 6f;
+    /// <summary>Randeis eines Flusses: 5 % der Breite, mindestens 1,2 m, höchstens 5 m (Rhein bei 100 m Breite: 5 m an jedem Ufer).</summary>
+    public const float FlussRandEisAnteil = 0.05f, FlussRandEisMin = 1.2f, FlussRandEisMax = 5f;
+    /// <summary>Ein Lauf, der langsamer fließt (m/s), ist stilles Wasser: ein Graben (friert früh und ganz zu, wie ein Teich).</summary>
+    public const float GrabenBisTempo = 0.1f;
+    /// <summary>
+    /// Furt: Randeis vom Ufer her bis zu diesem Anteil der halben Breite (mindestens 0,3 m, höchstens 3 m), die Mitte bleibt offen – über der
+    /// flachen Furt läuft das Wasser schnell.
+    /// </summary>
+    public const float FurtRandAnteil = 0.35f, FurtRandMin = 0.3f, FurtRandMax = 3f;
 
+    // Eis (Nutzer 30.10.2026): Stilles Wasser friert zuerst und ganz zu (Teich, Hafenbecken, Graben), ein Bach später und ganz (offen bleiben nur
+    // Mündung und schnelle Stellen), eine Furt nur am Rand, ein breiter Fluss bekommt spät Randeis und treibende Schollen, nie eine Decke.
     public static readonly Wasserart Fluss = new("Fluss", 0.25f, 1.6f, 0.4f, 1.2f, new(0.40f, 0.45f, 0.32f), new(0.10f, 0.19f, 0.21f), 1.3f, 0.06f, 0.22f,
-        SchaumStaerke: 0.9f, SchaumBreite: 0.9f, SchaumKamm: 0f, Kaustik: 0.3f, Eisregel.Nie);
+        SchaumStaerke: 0.9f, SchaumBreite: 0.9f, SchaumKamm: 0f, Kaustik: 0.3f, Eisregel.Rand, EisReichweite: 1.8f, EisAb: 0.3f, EisBis: 1f, Schollen: 1f);
     public static readonly Wasserart Bach = new("Bach", 0.14f, 0.5f, 0.1f, 0.8f, new(0.55f, 0.62f, 0.52f), new(0.22f, 0.36f, 0.36f), 0.9f, 0.05f, 0.18f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.8f, Eisregel.Voll);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.8f, Eisregel.Voll, EisAb: 0.15f, EisBis: 1f);
     public static readonly Wasserart Teich = new("Teich", 0.12f, 0.5f, 0.3f, 0f, new(0.35f, 0.42f, 0.30f), new(0.12f, 0.22f, 0.20f), 1.6f, 0.05f, 0.18f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Voll);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Voll, EisAb: 0f, EisBis: 0.5f);
+    /// <summary>Stiller Lauf (Strömung unter <see cref="GrabenBisTempo"/>): Stadtgraben, Mühlgraben ohne Zulauf – friert wie ein Teich früh und ganz zu.</summary>
+    public static readonly Wasserart Graben = Teich with { Name = "Graben", WellenStaerke = 0.08f, Klarheit = 1.8f };
     public static readonly Wasserart See = new("See", 0.38f, 1.3f, 0.7f, 0f, new(0.48f, 0.60f, 0.58f), new(0.12f, 0.27f, 0.37f), 1.4f, 0.07f, 0.2f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Rand, Vielfalt: 0.6f, ExtraWellen: 0.5f);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.6f, Eisregel.Rand, Vielfalt: 0.6f, ExtraWellen: 0.5f, EisAb: 0.1f, EisBis: 0.9f);
     public static readonly Wasserart Meer = new("Meer", 1.0f, 3.5f, 1.0f, 0f, new(0.44f, 0.60f, 0.60f), new(0.05f, 0.17f, 0.29f), 0.8f, 0.08f, 0.2f,
         SchaumStaerke: 0.8f, SchaumBreite: 1.2f, SchaumKamm: 0.35f, Kaustik: 0.5f, Eisregel.Nie, Vielfalt: 1f, ExtraWellen: 1f);
+    /// <summary>Ruhiges Becken vor der Kaimauer: friert früh und ganz zu, von den Mauern her (im Spiel trägt das Netz den Abstand zur Mauer, höchstens 3 m).</summary>
     public static readonly Wasserart Hafenbecken = new("Hafenbecken", 0.12f, 0.6f, 0.2f, 0f, new(0.40f, 0.45f, 0.38f), new(0.10f, 0.17f, 0.20f), 1.8f, 0.05f, 0.2f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.2f, Eisregel.Nie, Vielfalt: 0.3f, ExtraWellen: 0.25f);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.2f, Eisregel.Voll, EisReichweite: 4.5f, Vielfalt: 0.3f, ExtraWellen: 0.25f, EisAb: 0f, EisBis: 0.5f);
+    /// <summary>Furt in der Testszene (im Spiel ist sie Teil des Bach- oder Flussbandes): Randeis bis gut 1 m, die Mitte bleibt offen.</summary>
     public static readonly Wasserart Furt = new("Furt", 0.10f, 0.4f, 0.1f, 1.0f, new(0.58f, 0.60f, 0.50f), new(0.30f, 0.40f, 0.36f), 0.6f, 0.04f, 0.18f,
-        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.35f, Eisregel.Nie);
+        SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.35f, Eisregel.Rand, EisReichweite: 1.2f, EisAb: 0.3f, EisBis: 1f);
     /// <summary>Schmaler, schwacher Strömungssaum, nur dort, wo der offene Fluss an eine Kaimauer strömt (eigener Streifen, Phase 3); im ruhigen Hafenbecken nie.</summary>
     public static readonly Wasserart KaiSaum = Fluss with { Name = "Kaisaum", SchaumStaerke = 0.3f, SchaumBreite = 0.35f, Eis = Eisregel.Nie, EisReichweite = 0f };
 
-    /// <summary>Alle Arten in der Reihenfolge der Testszene (ohne Kaisaum, das ist nur eine Schaumstufe).</summary>
+    /// <summary>Alle Arten in der Reihenfolge der Testszene (ohne Kaisaum, das ist nur eine Schaumstufe, und ohne Graben, der wie ein Teich aussieht).</summary>
     public static readonly Wasserart[] Alle = { Fluss, Bach, Teich, See, Meer, Hafenbecken, Furt };
 
     public static Wasserart? Nach(string name) =>
@@ -66,35 +86,70 @@ public static class Wasserarten
 
     /// <summary>
     /// Kartenwasser → Art. <paramref name="kartenart"/> ist das Feld <c>art</c> der Karte: <c>fluss</c>/<c>bach</c> sind Linien mit <paramref name="breite"/>
-    /// (Meter, beim Einbau die größte Breite des Laufs), <c>see</c>/<c>teich</c> sind Flächen mit <paramref name="flaeche"/> (m²). Es entscheidet die Größe,
-    /// nicht der Name (Nutzer 29.10.2026): Ein Lauf bis 5 m ist ein Bach und friert ganz zu, ein breiterer ein Fluss und friert nie; eine Fläche bis
-    /// 2.000 m² ist ein Teich (friert ganz zu), eine größere ein See (nur Randeis). Schaum haben nur Flüsse ab 30 m Breite und das Meer.
+    /// (Meter, beim Einbau die größte Breite des Laufs) und <paramref name="stroemung"/> (m/s, negativ = unbekannt), <c>see</c>/<c>teich</c> sind Flächen
+    /// mit <paramref name="flaeche"/> (m²). Es entscheidet die Größe, nicht der Name (Nutzer 29.10.2026): Ein Lauf bis 5 m ist ein Bach und friert ganz
+    /// zu, ein breiterer ein Fluss (nur Randeis und Schollen); ein Lauf, der fast steht, ist ein Graben (friert früh und ganz zu); eine Fläche bis
+    /// 2.000 m² ist ein Teich (friert früh und ganz zu), eine größere ein See (nur Randeis). Schaum haben nur Flüsse ab 30 m Breite und das Meer.
     /// Hafenbecken (vor der Kaimauer eines Hafens) und Furt (Übergang) ergeben sich nicht aus der Kartenart, sondern aus dem Ort; das Meer kennt
     /// die Karte noch nicht (<see cref="Meer"/> für spätere Küsten).
     /// </summary>
-    public static Wasserart AusKarte(string kartenart, double breite, double flaeche = 0)
+    public static Wasserart AusKarte(string kartenart, double breite, double flaeche = 0, double stroemung = -1)
     {
         if (kartenart.ToLowerInvariant() is "fluss" or "bach")
-            return breite <= BachBisBreite ? Fuer(Bach, (float)breite, 0) : Fuer(Fluss, (float)breite, 0);
+            return stroemung is >= 0 and < GrabenBisTempo ? Fuer(Graben, (float)breite, 0)
+                : breite <= BachBisBreite ? Fuer(Bach, (float)breite, 0) : Fuer(Fluss, (float)breite, 0);
         // see / teich (und alles Unbekannte mit Fläche)
         return flaeche <= TeichBisFlaeche ? Fuer(Teich, 0, (float)flaeche) : Fuer(See, 0, (float)flaeche);
     }
 
     /// <summary>
-    /// Passt die Art an die Größe an: Schaum beim Fluss nur ab 30 m Breite; Eisreichweite bei vollem Zufrieren bis über die Mitte (halbe Breite bzw.
-    /// Halbmesser der Fläche, mit Zuschlag), bei Randeis 3–6 m (größerer See, breiterer Rand).
+    /// Passt die Art an die Größe an: Schaum beim Fluss nur ab 30 m Breite, sein Randeis 5 % der Breite (1,2–5 m); Eisreichweite bei vollem Zufrieren
+    /// bis über die Mitte (halbe Breite bzw. Halbmesser der Fläche, mit Zuschlag), beim See 3–6 m (größerer See, breiterer Rand).
     /// </summary>
     public static Wasserart Fuer(Wasserart art, float breite, float flaeche)
     {
         if (art == Fluss)
-            return breite >= SchaumAbBreite ? art : art with { SchaumStaerke = 0f };
+        {
+            var rand = Mathf.Clamp(breite * FlussRandEisAnteil, FlussRandEisMin, FlussRandEisMax);
+            return breite >= SchaumAbBreite ? art with { EisReichweite = rand } : art with { SchaumStaerke = 0f, EisReichweite = rand };
+        }
         return art.Eis switch
         {
             Eisregel.Voll when breite > 0 => art with { EisReichweite = breite * 0.5f * 1.2f + 0.5f },
-            Eisregel.Voll => art with { EisReichweite = (flaeche > 0 ? Mathf.Sqrt(flaeche / Mathf.Pi) : 25f) * 1.2f + 0.5f },
-            Eisregel.Rand => art with { EisReichweite = RandEisMin + (RandEisMax - RandEisMin) * Mathf.Clamp((flaeche - TeichBisFlaeche) / 20000f, 0f, 1f) },
+            Eisregel.Voll when flaeche > 0 => art with { EisReichweite = Mathf.Sqrt(flaeche / Mathf.Pi) * 1.2f + 0.5f },
+            Eisregel.Rand when flaeche > 0 => art with { EisReichweite = RandEisMin + (RandEisMax - RandEisMin) * Mathf.Clamp((flaeche - TeichBisFlaeche) / 20000f, 0f, 1f) },
             _ => art,
         };
+    }
+
+    /// <summary>
+    /// Wie weit das Eis dieser Art beim Winterfortschritt <paramref name="winter"/> (0–1) ist: 0 vor <see cref="Wasserart.EisAb"/>, 1 ab
+    /// <see cref="Wasserart.EisBis"/>, dazwischen gleichmäßig. So friert stilles Wasser zuerst ganz zu, während der Bach erst Ränder hat.
+    /// </summary>
+    /// <summary>Wintertönung des offenen Wassers (kälter, dunkler, schwächere Lichtnetze): voll schon ab 0,4 des Winterfortschritts – kalt ist das Wasser,
+    /// bevor es friert.</summary>
+    public static float WinterTon(float winter) => Mathf.Clamp(winter * 2.5f, 0f, 1f);
+
+    public static float EisFortschritt(Wasserart art, float winter) =>
+        art.Eis == Eisregel.Nie ? 0f : Mathf.Clamp((winter - art.EisAb) / Mathf.Max(art.EisBis - art.EisAb, 0.01f), 0f, 1f);
+
+    /// <summary>
+    /// Der Eiskanal einer Netzecke (<c>COLOR.g</c>, wie <c>wasser_realistisch.gdshaderinc</c> ihn liest): 0,5 = wie die Art; darunter bleibt das Eis um
+    /// <paramref name="offen"/> zurück (0 = friert nie), darüber friert es <paramref name="still"/> wie stilles Wasser (Hafenbecken). Beides zugleich gibt es
+    /// nicht: Offen geht vor.
+    /// </summary>
+    public static float EisKanal(float offen, float still = 0f) =>
+        offen > 0.001f ? 0.5f * (1f - Mathf.Clamp(offen, 0f, 1f)) : 0.5f + 0.5f * Mathf.Clamp(still, 0f, 1f);
+
+    /// <summary>
+    /// Furt: Anteil „offen“ (0–1), der das Eis dieser Art auf <see cref="FurtRandAnteil"/> der halben Breite <paramref name="halb"/> begrenzt – das Eis
+    /// reicht im Shader <c>eis · (1 − offen) · Reichweite</c> weit. 1 = friert gar nicht (Art ohne Eis).
+    /// </summary>
+    public static float FurtOffen(Wasserart art, float halb)
+    {
+        if (art.Eis == Eisregel.Nie || art.EisReichweite <= 0.01f) return 1f;
+        var rand = Mathf.Clamp(halb * FurtRandAnteil, FurtRandMin, FurtRandMax);
+        return 1f - Mathf.Clamp(rand / art.EisReichweite, 0f, 1f);
     }
 
     /// <summary>
@@ -158,7 +213,8 @@ public static class Wasserarten
 
     /// <summary>
     /// Setzt die Werte einer Art auf ein Wassermaterial. <paramref name="richtung"/> ist die Laufrichtung (x, z) für Strömung und Wellen;
-    /// <paramref name="winter"/> der Winterfortschritt (<see cref="Winterfortschritt"/>); <paramref name="uferImNetz"/>: das Netz liefert in
+    /// <paramref name="winter"/> der Winterfortschritt (<see cref="Winterfortschritt"/>; das Eis der Art folgt ihm nach <see cref="EisFortschritt"/>, das
+    /// offene Wasser wird mit ihm kälter und dunkler); <paramref name="uferImNetz"/>: das Netz liefert in
     /// <c>COLOR</c> Uferabstand, offen, Schaumanteil und Deckkraft (sonst schätzt der Shader das Eis aus der Tiefe). <paramref name="lauf"/>: Netz
     /// eines Flusses mit Laufachsen in <c>UV</c> und Strömung je Ecke in <c>UV2</c> (Stadtansicht.Wasser.cs); <paramref name="tempo"/> ersetzt dann
     /// das Tempo der Art (aus der Karte). <paramref name="netzAbstand"/>: Abstand der Netzecken in m (0 = fein genug für alle Wellen).
@@ -199,7 +255,11 @@ public static class Wasserarten
         m.SetShaderParameter("schaum_kamm", art.SchaumKamm);
         m.SetShaderParameter("kaustik_staerke", art.Kaustik);
         m.SetShaderParameter("eis_reichweite", art.Eis == Eisregel.Nie ? 0f : art.EisReichweite);
-        m.SetShaderParameter("eis", art.Eis == Eisregel.Nie ? 0f : winter);
+        m.SetShaderParameter("eis", EisFortschritt(art, winter));
+        m.SetShaderParameter("winter_ton", WinterTon(winter));
+        m.SetShaderParameter("schollen", art.Schollen);
+        m.SetShaderParameter("eis_still", EisFortschritt(Hafenbecken, winter));
+        m.SetShaderParameter("still_reichweite", Hafenbecken.EisReichweite);
         m.SetShaderParameter("ufer_im_netz", uferImNetz ? 1f : 0f);
     }
 

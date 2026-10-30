@@ -15,14 +15,16 @@ namespace Reichsgilde;
 /// <item><b>Flüsse und Bäche</b> (<see cref="FlussNetze"/>): ein Band entlang der Mittellinie auf der Höhe des Spiegels (er fällt nur, steigt nie), etwas breiter
 /// als der Fluss – die Ränder verschwinden im Ufer –, quer und längs in Ecken zu 2 m (Ultra 1 m) geteilt und in Stücke zu 64 m (Godot zeichnet nur die
 /// Stücke im Bild). Wo der gezeichnete Boden das Bett nicht zeigt (ein schmaler Bach, eine Furt), liegt das Band knapp darüber (<see cref="Wasserdeckel"/>).
-/// Die Ecken tragen Laufachsen und Strömung (die Wellen folgen den Kurven) und in <c>COLOR</c> Uferabstand, „offen“ (friert nie: Furt, Fähre, Hafen,
-/// Mündung), Schaumanteil (nur ab 30 m Breite; an einem Hafen nur ein schmaler Saum) und Deckkraft (in der Mündung übernimmt das größere Gewässer).</item>
+/// Die Ecken tragen Laufachsen und Strömung (die Wellen folgen den Kurven) und in <c>COLOR</c> Uferabstand, „offen“ (Eis bleibt zurück: an einer Furt
+/// nur Randeis, Mündung, schnelle Stelle eines Baches und Fährrinne frieren nie), Schaumanteil (nur ab 30 m Breite; an einem Hafen nur ein schmaler Saum) und Deckkraft (in der Mündung übernimmt das größere Gewässer).</item>
 /// <item><b>Seen und Teiche</b> (<see cref="SeeNetz"/>): eine Fläche genau über den Zellen des Bodens (<see cref="RasterDreiecke"/>) auf der Höhe des
 /// Wasserstands, der Uferabstand jeder Ecke aus dem Umriss.</item>
 /// <item><b>Hafenbecken</b> (<see cref="BeckenNetz"/>): vor der Kaimauer eines Hafens hebt der Kern das Ufer aus; darin liegt ruhiges Wasser ohne Schaum auf dem
 /// Spiegel des Flusses davor und blendet dort, wo der Fluss beginnt, in ihn über.</item>
 /// <item><b>Eis</b> (<see cref="WasserWinterNachfuehren"/>): Winterfortschritt aus Jahreszeit und Tageszeit des Kerns (ein Spieltag ist ein Jahr), Regeln je
-/// Art (<see cref="Wasserarten"/>). <b>Wetter</b>: Wind, Regen, Schnee und Himmelsfarbe liest der Shader aus den globalen Werten (Stadtansicht.Wetter.cs).</item>
+/// Art (<see cref="Wasserarten"/>, Nutzer 30.10.2026): Teich, Hafenbecken und Graben frieren zuerst ganz zu, ein Bach später (offen bleiben ein Loch an der
+/// Mündung und an schnellen Stellen, <see cref="Muendungen"/>, <see cref="SchnelleStellen"/>), an einer Furt nur Randeis, ein Fluss bekommt Randeis und
+/// Schollen. <b>Wetter</b>: Wind, Regen, Schnee und Himmelsfarbe liest der Shader aus den globalen Werten (Stadtansicht.Wetter.cs).</item>
 /// <item><b>Übergänge, Fähren, Hafen</b>: Stadtansicht.Wasser.Uebergaenge.cs.</item>
 /// </list>
 /// Im Spiel entsteht das Wasser einmal mit der Karte (<see cref="GewaesserBauen"/>), in der Kartenwerkstatt neu, sobald ein Befehl Gewässer, Wege, Fähren oder
@@ -42,8 +44,18 @@ public partial class Stadtansicht
     /// <summary>So hoch (Meter) liegt das Wasser mindestens über dem gezeichneten Boden (und dem Weg einer Furt) in der Mitte des Bandes.</summary>
     private const float WasserUeberBoden = 0.03f;
 
-    /// <summary>Um Furt (ab der halben Wegbreite), Fähre und Hafenbecken bleibt das Wasser in diesem Umkreis (m) offen und geht bis zur doppelten Weite ins Eis über.</summary>
+    /// <summary>Um eine Furt (ab der halben Wegbreite) bleibt in diesem Umkreis (m) nur Randeis; bis zur doppelten Weite geht es ins volle Eis über.</summary>
     private const float OffenUmkreis = 3f;
+
+    /// <summary>Fährrinne: Der Fährmann hält quer durch das Randeis eine Rinne offen, so breit wie die Fähre (halbe Breite 2 m) und dieser Zugabe (m), weich bis zur doppelten.</summary>
+    private const float FaehreHalb = 2f, RinneZugabe = 1f;
+
+    /// <summary>Loch im Eis (Mündung, schnelle Stelle): offen im Halbmesser der Stelle, weich ins Eis über diese Meter.</summary>
+    private const float LochRand = 3f;
+
+    /// <summary>Schnelle Stelle eines Baches: Gefälle des Spiegels (über ±<see cref="GefaelleFenster"/> m) ab diesem Wert; je Stück die steilste Stelle, höchstens eine je <see cref="SchnellAbstand"/> m.</summary>
+    private const float SchnellAbGefaelle = 0.035f, SchnellAbstand = 40f;
+    private const int GefaelleFenster = 4;
 
     /// <summary>
     /// Grundspiegelung des Himmels (<c>himmel_grund</c>): Die Stadt hat keinen Himmel, den Godot im Wasser spiegeln könnte (nur eine Hintergrundfarbe), und die
@@ -59,6 +71,9 @@ public partial class Stadtansicht
     private readonly List<(ShaderMaterial Stoff, Wasserart Art)> _wasserStoffe = new();
     private Wasserstufe _wasserStufe;
     private float _wasserWinter = -1;
+
+    /// <summary>Wo das Eis aller Gewässer ein Loch hat (Mündungen, schnelle Stellen der Bäche), beim Bau der Flächen gerechnet.</summary>
+    private List<OffeneStelle> _wasserLoecher = new();
 
     /// <summary>Startoption <c>--winter=0..1</c>: Eis so weit gewachsen, unabhängig von der Uhr (für Bildschirmfotos).</summary>
     private static readonly float? WinterVorgabe =
@@ -101,24 +116,27 @@ public partial class Stadtansicht
         var shader = Wasserarten.ShaderFuer(_wasserStufe);
         var abstand = Wasserarten.NetzAbstand(_wasserStufe);
         _wasserWinter = WinterJetzt();
+        var arten = form.Laeufe.ToDictionary(l => l, l => Wasserarten.AusKarte(l.Art, l.Punkte.Count > 0 ? l.Punkte.Max(p => p.Breite) : 0, 0, l.Stroemung));
+        _wasserLoecher = Muendungen(form);
+        foreach (var (lauf, art) in arten)
+            if (art.Name == Wasserarten.Bach.Name) _wasserLoecher.AddRange(SchnelleStellen(lauf));
 
         foreach (var lauf in form.Laeufe)
         {
             if (lauf.Punkte.Count < 2) continue;
-            var breite = lauf.Punkte.Max(p => p.Breite);
-            var art = Wasserarten.AusKarte(lauf.Art, breite);
+            var art = arten[lauf];
             var (anfang, ende) = (lauf.Punkte[0].Ort, lauf.Punkte[^1].Ort);
             var richtung = new Vector2((float)(ende.X - anfang.X), (float)(ende.Z - anfang.Z));
             // Reihenfolge der Durchsichtigen: Flüsse zuerst, Bäche darüber (sie blenden in der Mündung in den Fluss über)
-            var stoff = WasserStoff(shader, art, richtung, lauf: true, (float)lauf.Stroemung, abstand, breite > Wasserarten.BachBisBreite ? -8 : -7);
+            var stoff = WasserStoff(shader, art, richtung, lauf: true, (float)lauf.Stroemung, abstand, art.Name == Wasserarten.Fluss.Name ? -8 : -7);
             var nr = 0;
-            foreach (var netz in FlussNetze(lauf, form, abstand))
+            foreach (var netz in FlussNetze(lauf, form, abstand, art))
                 _wasserFlaechen.AddChild(WasserInstanz($"Fluss_{lauf.Name}_{nr++}", netz, stoff));
         }
         foreach (var see in form.Seen)
         {
-            if (SeeNetz(see, form, abstand) is not { } netz) continue;
             var art = Wasserarten.AusKarte(see.Art, 0, Flaecheninhalt(see.Umriss));
+            if (SeeNetz(see, form, abstand, art) is not { } netz) continue;
             _wasserFlaechen.AddChild(WasserInstanz("See_" + see.Name, netz, WasserStoff(shader, art, new Vector2(1, 0.4f), lauf: false, null, abstand, -8)));
         }
         if (form.Becken.Count > 0)
@@ -128,10 +146,12 @@ public partial class Stadtansicht
                 if (BeckenNetz(becken, form, abstand) is { } netz)
                     _wasserFlaechen.AddChild(WasserInstanz("Becken_" + becken.Name, netz, stoff));
         }
-        // Für Klicktests: was gebaut ist und wo die Furten liegen (dort friert nichts)
+        // Für Klicktests: was gebaut ist, wo die Furten (nur Randeis) und die Löcher im Eis (Mündung, schnelle Stelle) liegen
         var furten = Uebergangsplan?.Querungen.Where(q => q.Art == Uebergangsart.Furt).Select(q => $"{q.GewaesserName} bei {q.Mitte.X:0},{q.Mitte.Z:0}") ?? Enumerable.Empty<string>();
         GD.Print($"[wasser] Stufe {_wasserStufe}, Netz {abstand:0} m, {_wasserFlaechen.GetChildCount()} Flächen, " +
-                 $"{string.Join(", ", _wasserStoffe.Select(s => s.Art.Name).Distinct())}; Furten: {string.Join("; ", furten)}");
+                 $"{string.Join(", ", _wasserStoffe.Select(s => s.Art.Name).Distinct())}; Furten: {string.Join("; ", furten)}; " +
+                 $"Löcher im Eis: {string.Join("; ", _wasserLoecher.Select(l => $"{l.Name} bei {l.A.X:0},{l.A.Y:0}"))}; " +
+                 $"Hafenbecken: {string.Join("; ", form.Becken.Select(b => $"{b.Name} {b.Bereich.X0:0},{b.Bereich.Z0:0} bis {b.Bereich.X1:0},{b.Bereich.Z1:0}"))}");
     }
 
     private ShaderMaterial WasserStoff(Shader shader, Wasserart art, Vector2 richtung, bool lauf, float? tempo, float abstand, int reihenfolge)
@@ -178,7 +198,10 @@ public partial class Stadtansicht
         return Wasserarten.Winterfortschritt(zeit.Jahreszeit, anteil);
     }
 
-    /// <summary>Jedes Bild (aus <see cref="WasserBild"/>): das Eis aller Gewässer, die zufrieren können, auf den Winterfortschritt (nur bei Änderung).</summary>
+    /// <summary>
+    /// Jedes Bild (aus <see cref="WasserBild"/>): das Eis aller Gewässer auf den Winterfortschritt, je Art nach <see cref="Wasserarten.EisFortschritt"/>,
+    /// und die Wintertönung des offenen Wassers (nur bei Änderung).
+    /// </summary>
     private void WasserWinterNachfuehren()
     {
         if (_wasserStoffe.Count == 0) return;
@@ -186,7 +209,11 @@ public partial class Stadtansicht
         if (Mathf.Abs(winter - _wasserWinter) < 0.002f) return;
         _wasserWinter = winter;
         foreach (var (stoff, art) in _wasserStoffe)
-            if (art.Eis != Eisregel.Nie) stoff.SetShaderParameter("eis", winter);
+        {
+            stoff.SetShaderParameter("eis", Wasserarten.EisFortschritt(art, winter));
+            stoff.SetShaderParameter("eis_still", Wasserarten.EisFortschritt(Wasserarten.Hafenbecken, winter));
+            stoff.SetShaderParameter("winter_ton", Wasserarten.WinterTon(winter));
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -196,9 +223,10 @@ public partial class Stadtansicht
     /// <summary>
     /// Das Band eines Flusses in Stücken: Reihen alle <paramref name="abstand"/> Meter entlang der Mittellinie, in jeder Reihe gleich viele Ecken quer
     /// (Abstand höchstens <paramref name="abstand"/>, mindestens vier Felder), alle auf der Höhe des Spiegels. UV = (quer, Stelle) in Metern, UV2 = Strömung
-    /// nach x und z, COLOR = (Uferabstand / 32, offen, Schaumanteil, Deckkraft) – wie <c>wasser_realistisch.gdshaderinc</c> sie liest.
+    /// nach x und z, COLOR = (Uferabstand / 32, Eiskanal (<see cref="Wasserarten.EisKanal"/>: offen bzw. still vor einer Kaimauer), Schaumanteil, Deckkraft) –
+    /// wie <c>wasser_realistisch.gdshaderinc</c> sie liest.
     /// </summary>
-    private List<ArrayMesh> FlussNetze(Wasserlauf lauf, Wasserform form, float abstand)
+    private List<ArrayMesh> FlussNetze(Wasserlauf lauf, Wasserform form, float abstand, Wasserart art)
     {
         var netze = new List<ArrayMesh>();
         var p = lauf.Punkte;
@@ -230,6 +258,7 @@ public partial class Stadtansicht
             var mitte = new Vector2((float)pt.Ort.X, (float)pt.Ort.Z);
             var hoehe = Mathf.Max((float)pt.Spiegel, Wasserdeckel(mitte, richtung, halb));
             var schaum = Mathf.SmoothStep(Wasserarten.SchaumAbBreite - 4f, Wasserarten.SchaumAbBreite, (float)pt.Breite);
+            var furtOffen = Wasserarten.FurtOffen(art, halb);
             for (var j = 0; j <= felder; j++)
             {
                 var o = halb * FlussRandFaktor * (2f * j / felder - 1f);
@@ -237,9 +266,10 @@ public partial class Stadtansicht
                 ecken.Add(new Vector3(ort.X, hoehe, ort.Y));
                 uv.Add(new Vector2(o, (float)pt.Stelle));
                 uv2.Add(richtung * tempo);
-                var (offen, kai) = Offenheit(offenStellen, ort);
+                var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
                 var fremd = andere.Count > 0 && ImAnderenWasser(form, andere, ort, lauf, null);
-                farben.Add(new Color(Mathf.Clamp((halb - Mathf.Abs(o)) / 32f, 0f, 1f), fremd ? 1f : offen,
+                // Vor einer Kaimauer ist das Wasser still und friert wie das Hafenbecken (das Becken selbst ist in Köln schmal und liegt unter den Kähnen)
+                farben.Add(new Color(Mathf.Clamp((halb - Mathf.Abs(o)) / 32f, 0f, 1f), Wasserarten.EisKanal(fremd ? 1f : offen, kai),
                     schaum * Mathf.Lerp(1f, Wasserarten.KaiSchaumAnteil, kai), fremd ? 0f : 1f));
             }
             // Stück abschließen: nach FlussStueck Metern oder am Ende (die letzte Reihe ist zugleich die erste des nächsten Stücks)
@@ -311,38 +341,122 @@ public partial class Stadtansicht
     //  Offene Stellen, Mündungen
     // ═════════════════════════════════════════════════════════════════════════
 
+    /// <summary>Was eine offene Stelle mit dem Eis macht: Furt (nur Randeis), Rinne (Fähre, quer durch das Randeis offen), Loch (Mündung, schnelle Stelle:
+    /// rund offen), Kai (an einer Kaimauer bleibt vom Uferschaum ein schmaler Saum, und das Wasser friert dort früh wie im Hafenbecken).</summary>
+    private enum Offenart { Furt, Rinne, Loch, Kai }
+
+    /// <summary>Eine Stelle als Strecke <see cref="A"/>–<see cref="B"/> (beim Loch ein Punkt) mit halber Breite bzw. Halbmesser <see cref="Halb"/>.</summary>
+    private readonly record struct OffeneStelle(Vector2 A, Vector2 B, float Halb, Offenart Art, string Name);
+
     /// <summary>
-    /// Wo ein Gewässer nie zufriert („bewegtes Wasser“, Nutzer 29.10.2026): Furten über dieses Gewässer (Strecke und halbe Wegbreite), Fährlinien und
-    /// Hafenbecken; die Becken zählen zugleich als Kaimauer (dort bleibt vom Uferschaum nur ein schmaler Saum).
+    /// Wo das Eis eines Gewässers zurückbleibt (Nutzer 30.10.2026): Furten über dieses Gewässer (Strecke und halbe Wegbreite, nur Randeis), Fährlinien
+    /// (Rinne), die Löcher an Mündungen und schnellen Stellen (<see cref="_wasserLoecher"/>, für alle Gewässer: auch das Randeis des Flusses hat an der
+    /// Mündung eines Baches eine Lücke) und die Seiten der Hafenbecken als Kaimauer (schmaler Schaum, und das Wasser davor ist still: es friert wie das Becken).
     /// </summary>
-    private List<(Vector2 A, Vector2 B, float Halb, bool Kai)> OffeneStellen(Wasserform form, int nummer, string name)
+    private List<OffeneStelle> OffeneStellen(Wasserform form, int nummer, string name)
     {
-        var stellen = new List<(Vector2, Vector2, float, bool)>();
+        var stellen = new List<OffeneStelle>(_wasserLoecher);
         static Vector2 V(Kartenort o) => new((float)o.X, (float)o.Z);
         if (Uebergangsplan is { } plan)
         {
             foreach (var q in plan.Querungen)
-                if (q.Art == Uebergangsart.Furt && q.Gewaesser == nummer) stellen.Add((V(q.Anfang), V(q.Ende), (float)q.Breite / 2, false));
+                if (q.Art == Uebergangsart.Furt && q.Gewaesser == nummer) stellen.Add(new(V(q.Anfang), V(q.Ende), (float)q.Breite / 2, Offenart.Furt, "Furt"));
             foreach (var f in plan.Faehren)
-                if (f.Gewaesser == name) stellen.Add((V(f.Von), V(f.Bis), 2f, false));
+                if (f.Gewaesser == name) stellen.Add(new(V(f.Von), V(f.Bis), FaehreHalb, Offenart.Rinne, f.Name));
         }
         foreach (var b in form.Becken)
             for (var k = 0; k < b.Umriss.Count; k++) // die Seiten des Beckens
-                stellen.Add((V(b.Umriss[k]), V(b.Umriss[(k + 1) % b.Umriss.Count]), 0f, true));
+                stellen.Add(new(V(b.Umriss[k]), V(b.Umriss[(k + 1) % b.Umriss.Count]), 0f, Offenart.Kai, b.Name));
         return stellen;
     }
 
-    /// <summary>Wie offen das Wasser am Ort ist (1 = friert nie, weich ins Eis übergehend) und wie nah an einer Kaimauer (1 = dort).</summary>
-    private static (float Offen, float Kai) Offenheit(List<(Vector2 A, Vector2 B, float Halb, bool Kai)> stellen, Vector2 p)
+    /// <summary>
+    /// Wie weit das Eis am Ort zurückbleibt (1 = friert nie, weich ins Eis übergehend; an einer Furt <paramref name="furtOffen"/>, also nur Randeis) und
+    /// wie nah eine Kaimauer ist (1 = dort).
+    /// </summary>
+    private static (float Offen, float Kai) Offenheit(List<OffeneStelle> stellen, Vector2 p, float furtOffen)
     {
         float offen = 0, kai = 0;
-        foreach (var (a, b, halb, istKai) in stellen)
+        foreach (var s in stellen)
         {
-            var d = Mathf.Max(0, AbstandStrecke(p, a, b) - halb);
-            offen = Mathf.Max(offen, 1f - Mathf.SmoothStep(OffenUmkreis, 2 * OffenUmkreis, d));
-            if (istKai) kai = Mathf.Max(kai, 1f - Mathf.SmoothStep(2f, 8f, d));
+            var d = Mathf.Max(0, AbstandStrecke(p, s.A, s.B) - s.Halb);
+            switch (s.Art)
+            {
+                case Offenart.Furt: offen = Mathf.Max(offen, furtOffen * (1f - Mathf.SmoothStep(OffenUmkreis, 2 * OffenUmkreis, d))); break;
+                case Offenart.Rinne: offen = Mathf.Max(offen, 1f - Mathf.SmoothStep(RinneZugabe, 2 * RinneZugabe + 1f, d)); break;
+                case Offenart.Loch: offen = Mathf.Max(offen, 1f - Mathf.SmoothStep(0f, LochRand, d)); break;
+                case Offenart.Kai: kai = Mathf.Max(kai, 1f - Mathf.SmoothStep(2f, 8f, d)); break;
+            }
         }
         return (offen, kai);
+    }
+
+    /// <summary>
+    /// Die Mündungen: wo die Mittellinie eines Laufs in ein anderes Gewässer tritt, das dort gilt (oder aus ihm kommt) – ein Loch im Eis mit dem halben
+    /// Lauf als Halbmesser (mindestens 1 m). Dort mischt sich das Wasser, das Eis bleibt dünn oder fehlt.
+    /// </summary>
+    private static List<OffeneStelle> Muendungen(Wasserform form)
+    {
+        var loecher = new List<OffeneStelle>();
+        foreach (var lauf in form.Laeufe)
+        {
+            var andere = AndereGewaesser(form, lauf, null);
+            if (andere.Count == 0 || lauf.Punkte.Count < 2) continue;
+            bool? vorher = null;
+            for (var i = 0; i < lauf.Punkte.Count; i++)
+            {
+                var o = lauf.Punkte[i].Ort;
+                var drin = ImAnderenWasser(form, andere, new Vector2((float)o.X, (float)o.Z), lauf, null);
+                if (vorher is { } v && v != drin)
+                {
+                    var aussen = lauf.Punkte[drin ? i - 1 : i]; // der letzte Punkt, an dem noch dieser Lauf gilt
+                    var ort = new Vector2((float)aussen.Ort.X, (float)aussen.Ort.Z);
+                    loecher.Add(new(ort, ort, Mathf.Max(1f, (float)aussen.Breite / 2), Offenart.Loch, "Mündung " + lauf.Name));
+                }
+                vorher = drin;
+            }
+        }
+        return loecher;
+    }
+
+    /// <summary>
+    /// Die schnellen Stellen eines Baches: wo der Spiegel steil fällt (Gefälle über ±<see cref="GefaelleFenster"/> m ab <see cref="SchnellAbGefaelle"/>), läuft
+    /// das Wasser schnell und friert nicht. Je zusammenhängendes Stück die steilste Stelle, höchstens eine je <see cref="SchnellAbstand"/> m, ein Loch mit dem
+    /// halben Bach als Halbmesser (mindestens 0,8 m).
+    /// </summary>
+    private static List<OffeneStelle> SchnelleStellen(Wasserlauf lauf)
+    {
+        var p = lauf.Punkte;
+        var loecher = new List<OffeneStelle>();
+        var (besteI, besteG) = (-1, 0.0);
+        var letzteStelle = double.MinValue;
+        void Abschliessen()
+        {
+            if (besteI < 0) return;
+            if (p[besteI].Stelle - letzteStelle >= SchnellAbstand)
+            {
+                var ort = new Vector2((float)p[besteI].Ort.X, (float)p[besteI].Ort.Z);
+                loecher.Add(new(ort, ort, Mathf.Max(0.8f, (float)p[besteI].Breite / 2), Offenart.Loch, $"Schnelle Stelle {lauf.Name} ({besteG * 100:0.0} %)"));
+                letzteStelle = p[besteI].Stelle;
+            }
+            (besteI, besteG) = (-1, 0.0);
+        }
+        for (var i = GefaelleFenster; i + GefaelleFenster < p.Count; i++)
+        {
+            var (a, b) = (p[i - GefaelleFenster], p[i + GefaelleFenster]);
+            var gefaelle = (a.Spiegel - b.Spiegel) / Math.Max(0.5, b.Stelle - a.Stelle);
+            if (gefaelle >= SchnellAbGefaelle)
+            {
+                if (gefaelle > besteG) (besteI, besteG) = (i, gefaelle);
+            }
+            else Abschliessen();
+        }
+        Abschliessen();
+        var steilste = 0.0;
+        for (var i = GefaelleFenster; i + GefaelleFenster < p.Count; i++)
+            steilste = Math.Max(steilste, (p[i - GefaelleFenster].Spiegel - p[i + GefaelleFenster].Spiegel) / Math.Max(0.5, p[i + GefaelleFenster].Stelle - p[i - GefaelleFenster].Stelle));
+        GD.Print($"[wasser] {lauf.Name}: steilstes Gefälle {steilste * 100:0.0} %, {loecher.Count} schnelle Stellen (ab {SchnellAbGefaelle * 100:0.0} %)");
+        return loecher;
     }
 
     private static float AbstandStrecke(Vector2 p, Vector2 a, Vector2 b)
@@ -392,9 +506,9 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Fläche eines Sees: Dreiecke genau über den Zellen des Bodens (so klafft am Ufer kein Spalt), alle auf der Höhe des Wasserstands, in Ultra
-    /// geviertelt. COLOR = (Abstand zum Umriss / 32, offen, 1, Deckkraft).
+    /// geviertelt. COLOR = (Abstand zum Umriss / 32, Eiskanal, 1, Deckkraft).
     /// </summary>
-    private ArrayMesh? SeeNetz(Wassersee see, Wasserform form, float abstand)
+    private ArrayMesh? SeeNetz(Wassersee see, Wasserform form, float abstand, Wasserart art)
     {
         if (see.Umriss.Count < 3 || _gelaende is null) return null;
         var umriss = see.Umriss.Select(o => new Vector2((float)o.X, (float)o.Z)).ToArray();
@@ -402,6 +516,7 @@ public partial class Stadtansicht
         if (ecken.Count == 0) return null;
         var andere = AndereGewaesser(form, null, see);
         var offenStellen = OffeneStellen(form, see.Nummer, see.Name);
+        var furtOffen = Wasserarten.FurtOffen(art, 8f);
         var werte = new Dictionary<(float, float), Color>();
         var farben = ecken.Select(e =>
         {
@@ -409,24 +524,35 @@ public partial class Stadtansicht
             var ort = new Vector2(e.X, e.Z);
             var rand = (float)see.Randabstand(new Kartenort(e.X, e.Z));
             var fremd = andere.Count > 0 && ImAnderenWasser(form, andere, ort, null, see);
-            return werte[(e.X, e.Z)] = new Color(Mathf.Clamp(rand / 32f, 0f, 1f), fremd ? 1f : Offenheit(offenStellen, ort).Offen, 1f, fremd ? 0f : 1f);
+            var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
+            return werte[(e.X, e.Z)] = new Color(Mathf.Clamp(rand / 32f, 0f, 1f), Wasserarten.EisKanal(fremd ? 1f : offen, kai), 1f, fremd ? 0f : 1f);
         }).ToList();
         return DreieckNetz(ecken, farben);
     }
 
     /// <summary>
     /// Das Wasser eines Hafenbeckens: wie ein See genau über den Zellen des Bodens, auf dem Spiegel des Gewässers vor der Kaimauer. Wo der Fluss beginnt, ist
-    /// die Deckkraft der Ecke 0 – dort blendet das Becken in das Band des Flusses über (das zuerst gezeichnet wird). COLOR = (Tiefe · 2 / 32, 1, 1, Deckkraft):
-    /// Ohne Tiefentextur (Stufe Niedrig) liest der Shader den halben Uferabstand als Tiefe.
+    /// die Deckkraft der Ecke 0 – dort blendet das Becken in das Band des Flusses über (das zuerst gezeichnet wird). COLOR = (Uferabstand / 32, Eiskanal 0,5, 1, Deckkraft);
+    /// der Uferabstand ist der Abstand zu Kaimauer und Seiten (das Eis wächst von dort), höchstens die doppelte Tiefe (ohne Tiefentextur, Stufe Niedrig,
+    /// liest der Shader den halben Uferabstand als Tiefe).
     /// </summary>
     private ArrayMesh? BeckenNetz(Hafenbecken becken, Wasserform form, float abstand)
     {
         if (_gelaende is null) return null;
         var spiegel = (float)becken.Spiegel;
-        var ecken = FeinerTeilen(RasterDreiecke(becken.Umriss.Select(o => new Vector2((float)o.X, (float)o.Z)).ToArray(), 0, spiegel), abstand);
+        var umriss = becken.Umriss.Select(o => new Vector2((float)o.X, (float)o.Z)).ToArray();
+        var ecken = FeinerTeilen(RasterDreiecke(umriss, 0, spiegel), abstand);
         if (ecken.Count == 0) return null;
-        var farben = ecken.Select(e => new Color(Mathf.Clamp((spiegel - BodenHoehe(e.X, e.Z)) * 2f / 32f, 0f, 1f), 1f, 1f,
-            form.IstWasser(e.X, e.Z) ? 0f : 1f)).ToList();
+        // Die Seiten am Land: Kaimauer (0–1) und die beiden Seiten (1–2, 3–0); die vierte (2–3) liegt zum Fluss hin
+        var land = umriss.Length == 4 ? new[] { (umriss[0], umriss[1]), (umriss[1], umriss[2]), (umriss[3], umriss[0]) }
+            : umriss.Select((a, k) => (a, umriss[(k + 1) % umriss.Length])).ToArray();
+        var farben = ecken.Select(e =>
+        {
+            var p = new Vector2(e.X, e.Z);
+            var mauer = land.Min(s => AbstandStrecke(p, s.Item1, s.Item2));
+            var ufer = Mathf.Min((spiegel - BodenHoehe(e.X, e.Z)) * 2f, mauer);
+            return new Color(Mathf.Clamp(ufer / 32f, 0f, 1f), Wasserarten.EisKanal(0f), 1f, form.IstWasser(e.X, e.Z) ? 0f : 1f);
+        }).ToList();
         return DreieckNetz(ecken, farben);
     }
 
