@@ -51,10 +51,20 @@ public partial class Stadtansicht
     /// <summary>Die Uhrzeit auf dem Bezugstag (<see cref="BezugsStunde"/>): Sie folgt der Jahreszeit; Bodennebel und andere Morgenstimmung richten sich danach (12 ohne Uhr).</summary>
     private float _bezugStunde = 12f;
 
+    /// <summary>Startoption <c>--lichtuhr</c>: Licht, Himmel und Fenster zeigen diese Uhrzeit (Stunde mit Bruchteil, auch vor 4 Uhr), unabhängig von der Spielzeit; nur für Bildschirmfotos.</summary>
+    private float? _lichtUhrVorgabe;
+
+    /// <summary>Hält die Lichtuhr auf einer Uhrzeit (<c>--lichtuhr=3.5</c> = 3:30 Uhr); <c>null</c> gibt sie wieder frei.</summary>
+    public void LichtUhrVorgeben(float? stunde) => _lichtUhrVorgabe = stunde;
+
+    /// <summary>Die festgehaltene Lichtuhr (Stunde mit Bruchteil) oder <c>null</c>; der Zeitstrahl zeigt dann dieselbe Uhrzeit (nur für Bildschirmfotos).</summary>
+    public float? LichtUhrErzwungen => _lichtUhrVorgabe;
+
     private Lichtstimmung? _gezeigteStimmung;
     private Lichtstimmung _ueberblendenVon;
     private float _ueberblendung = 1f;
     private float _letzteLichtUhrzeit = -1f;
+    private Jahreszeit? _letzteLichtJahreszeit;
 
     /// <summary>
     /// Sonne bei Tag, Mond bei Nacht – beide werfen Schatten.
@@ -69,12 +79,15 @@ public partial class Stadtansicht
     private void LichtNachUhrzeit(float uhrzeitInMinuten, double echtzeit, Jahreszeit jahreszeit = Jahreszeit.Fruehling)
     {
         var ziel = StimmungUm(uhrzeitInMinuten / 60f, jahreszeit);
-        if (_letzteLichtUhrzeit >= 0 && Mathf.Abs(uhrzeitInMinuten - _letzteLichtUhrzeit) > SprungMinuten && _gezeigteStimmung is { } alt)
+        // Springt die Uhr oder wechselt die Jahreszeit mitten am Tag (Entwicklerfenster, --jahreszeit): von der gezeigten Stimmung überblenden
+        var jahreszeitGewechselt = _letzteLichtJahreszeit is { } vorher && vorher != jahreszeit;
+        if (_letzteLichtUhrzeit >= 0 && (Mathf.Abs(uhrzeitInMinuten - _letzteLichtUhrzeit) > SprungMinuten || jahreszeitGewechselt) && _gezeigteStimmung is { } alt)
         {
             _ueberblendenVon = alt;
             _ueberblendung = 0;
         }
         _letzteLichtUhrzeit = uhrzeitInMinuten;
+        _letzteLichtJahreszeit = jahreszeit;
         _bezugStunde = BezugsStunde(uhrzeitInMinuten / 60f, jahreszeit);
         if (_ueberblendung < 1)
         {
@@ -98,12 +111,13 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Lichtstimmung zur Uhrzeit (<paramref name="stunde"/> mit Bruchteil). Die Kurven gelten für den <b>Bezugstag</b> (siehe <see cref="BezugsStunde"/>, 5 bis 22 Uhr), der Spieltag läuft von 04 bis 23 Uhr:
+    /// Die Lichtstimmung zur Uhrzeit (<paramref name="stunde"/> mit Bruchteil). Die Kurven gelten für den <b>Bezugstag</b> (siehe <see cref="BezugsStunde"/>, 5 bis 22 Uhr),
+    /// den jede Jahreszeit auf ihre Sonnenzeiten (<see cref="Sonnenzeiten"/>, Vorbild Köln) streckt. Auf dem Bezugstag gilt:
     /// <list type="bullet">
-    /// <item>05:00 Morgengrauen im Mondlicht – genauso wie 22:00 (Bezugstag): Die Nacht vor dem Spieltagsbeginn und nach dem Spieltagsende ist dieselbe, auch wenn die Uhr um 23 Uhr auf 04 Uhr des nächsten Jahres springt.</item>
-    /// <item>05:00–05:27 der Mond blendet aus, 05:30–06:30 die Sonne ein (Morgenrot), ab etwa 07:30 voller Tag.</item>
-    /// <item>ab 18:00 Abendrot, die Sonne sinkt zum Horizont und blendet von 19:00 bis 19:54 aus.</item>
-    /// <item>ab 19:57 blendet der Mond ein (voll um 20:45), ab 21:00 ist richtig Nacht.</item>
+    /// <item>05:00 Dämmerung beginnt (Mondlicht, wie um 22:00 – die Nacht vor dem Spieltagsbeginn und nach dem Spieltagsende ist dieselbe, auch wenn die Uhr um 23 Uhr auf 04 Uhr des nächsten Jahres springt).</item>
+    /// <item>05:00–05:27 der Mond blendet aus, 05:30–06:30 die Sonne ein (Morgenrot); 06:00 ist der Sonnenaufgang, ab 07:30 voller Tag.</item>
+    /// <item>ab 18:00 Abendrot, die Sonne sinkt zum Horizont und blendet von 19:00 bis 19:54 aus; 19:30 ist der Sonnenuntergang.</item>
+    /// <item>ab 19:57 blendet der Mond ein (voll um 20:45), 21:00 ist richtig dunkel.</item>
     /// </list>
     /// Sonne und Mond sind <b>ein</b> Licht mit einer Schattenkarte (das spart die Hälfte der Schattenarbeit). Es wechselt die
     /// Richtung nur, wenn es gerade ganz ausgeblendet ist – darum kippen die Schatten nie sichtbar.
@@ -113,6 +127,7 @@ public partial class Stadtansicht
         var stunde = BezugsStunde(uhrStunde, jahreszeit); // alle Kurven unten gelten für den Bezugstag (siehe BezugsStunde)
         // Sonne: Aufgang 05:30 im Osten (+X), Untergang 20:00 im Westen. Sie blendet nach dem Aufgang ein und kurz vor dem
         // Untergang aus – so steht sie nie mit voller Kraft auf dem Horizont (dort wären alle Schatten endlos lang).
+        // Wie hoch sie mittags steht, hängt von der Jahreszeit ab (SonnenHoechststand): im Winter flach mit langen Schatten.
         var bogen = Mathf.Clamp((stunde - 5.5f) / 14.5f, 0f, 1f);
         var sonnenhoehe = Mathf.Sin(bogen * Mathf.Pi);
         var sonnenSicht = Mathf.SmoothStep(5.5f, 6.5f, stunde) * (1 - Mathf.SmoothStep(19f, 19.9f, stunde));
@@ -131,7 +146,7 @@ public partial class Stadtansicht
         if (sonnenStaerke >= mondStaerke)
         {
             // Tief stehende Sonne: warm und rot (Morgen- und Abendrot), hoch stehende: fast weiß
-            richtung = Drehung(4 + 56 * sonnenhoehe, 90 - bogen * 180);
+            richtung = Drehung(4 + (SonnenHoechststand(jahreszeit) - 4) * sonnenhoehe, 90 - bogen * 180);
             farbe = new Color(1f, 0.55f, 0.32f).Lerp(new Color(1f, 0.97f, 0.9f), Mathf.SmoothStep(0.05f, 0.6f, sonnenhoehe));
             staerke = sonnenStaerke;
             schatten = 1f;
@@ -157,39 +172,52 @@ public partial class Stadtansicht
         var luecke = (1 - Mathf.Max(sonnenSicht, mondSicht)) * (1 - hell);
 
         // Dämmerungswert (0 = Tag, 1 = Nacht), der gemeinsame für alle Lichter der Stadt (Fensterlicht, Nachtlichter, Licht in der Hand,
-        // Kirchenfenster zur Messe): geht im Abendrot nach und nach an und morgens wieder aus. Er hängt am Bezugstag, folgt also der Jahreszeit.
-        var fenster = stunde >= 12 ? Mathf.SmoothStep(18.5f, 20.5f, stunde) : 1 - Mathf.SmoothStep(5.5f, 7f, stunde);
+        // Kirchenfenster zur Messe): abends gehen die Lichter mit dem Sonnenuntergang (19:30) an und sind zur Dunkelheit (21:00) alle an,
+        // morgens gehen sie mit der Morgendämmerung aus (bis zum Aufgang um 06:00 etwa zur Hälfte, bis 06:36 ganz). Er hängt am Bezugstag,
+        // folgt also den Sonnenzeiten der Jahreszeit.
+        var fenster = stunde >= 12 ? Mathf.SmoothStep(19.3f, 20.9f, stunde) : 1 - Mathf.SmoothStep(5.3f, 6.6f, stunde);
 
         return new Lichtstimmung(richtung, farbe, staerke, schatten, Himmelsfarbe(stunde * 60), umgebung,
                                  0.18f + 0.52f * hell + 0.2f * luecke, hell, fenster);
     }
 
-    /// <summary>
-    /// Wann es hell und wann es dunkel wird, je Jahreszeit (Uhrzeit mit Bruchteil): Der Himmel ist ab <c>Hell</c> voller Tag und ab <c>Dunkel</c> richtig
-    /// Nacht. Winter hell gegen 7:30 und dunkel gegen 16:30, Sommer 4:30 und 21:30, Frühling und Herbst dazwischen (6:00 und 19:00).
-    /// </summary>
-    private static (float Hell, float Dunkel) Sonnenzeiten(Jahreszeit jahreszeit) => jahreszeit switch
+    /// <summary>Wie hoch die Sonne mittags über dem Horizont steht (Grad), je Jahreszeit: im Winter flach, im Sommer hoch (Köln: Tag-und-Nacht-Gleiche etwa 39°, hier etwas höher, damit die Stadt hell bleibt).</summary>
+    private static float SonnenHoechststand(Jahreszeit jahreszeit) => jahreszeit switch
     {
-        Jahreszeit.Winter => (7.5f, 16.5f),
-        Jahreszeit.Sommer => (4.5f, 21.5f),
-        _ => (6f, 19f),
+        Jahreszeit.Winter => 30f,
+        Jahreszeit.Sommer => 60f,
+        _ => 46f,
     };
 
     /// <summary>
-    /// Rechnet die Uhrzeit auf den <b>Bezugstag</b> um, für den <see cref="StimmungUm"/> seine Kurven kennt (Sonne 5:30–6:30 auf, 19:00–19:54 unter,
-    /// richtig Nacht ab 21:00, um 5 und um 22 Uhr dieselbe Nacht – die echten Uhrzeiten 23 und 04 Uhr liegen davor bzw. danach und bleiben in dieser Nacht). Aus der Jahreszeit folgen zwei Zeiten (<see cref="Sonnenzeiten"/>): Morgens ist der
-    /// Bezugstag um 7:30 voll hell und 2,5 Stunden früher Nacht, abends ist er bei 21:00 ganz dunkel; die Dämmerung läuft in 2 echten Stunden durch
-    /// (18 bis 21 Uhr des Bezugstags). Dazwischen vergeht der Bezugstag gleichmäßig. Vor dem Morgengrauen und nach dem Dunkelwerden bleibt er in der
-    /// Nacht (5 bzw. 22 Uhr). Der Spieltag selbst (Beginn und Ende, <see cref="Spielzeit.TagesbeginnMinute"/>) kommt hier nicht vor: Er darf
-    /// beliebig früh beginnen und spät enden, die Nacht davor und danach ist immer dieselbe.
+    /// Rechnet die Uhrzeit auf den <b>Bezugstag</b> um, für den <see cref="StimmungUm"/> seine Kurven kennt. Die Sonnenzeiten der Jahreszeit
+    /// (<see cref="Reichsgilde.Core.Zeit.Sonnenzeiten"/>, die einzige Stelle mit diesen Zahlen) werden auf feste Punkte des Bezugstags gelegt,
+    /// dazwischen vergeht er gleichmäßig:
+    /// <list type="table">
+    /// <item><term>Dämmerung beginnt</term><description>05:00 (davor bleibt es 05:00: Nacht)</description></item>
+    /// <item><term>Sonnenaufgang</term><description>06:00</description></item>
+    /// <item><term>1,5 Stunden nach dem Aufgang</term><description>07:30 (voller Tag)</description></item>
+    /// <item><term>1,5 Stunden vor dem Untergang</term><description>18:00 (Abendrot beginnt)</description></item>
+    /// <item><term>Sonnenuntergang</term><description>19:30</description></item>
+    /// <item><term>dunkel</term><description>21:00 (danach läuft er bis 22:00 weiter und bleibt dort: Nacht)</description></item>
+    /// </list>
+    /// Der Spieltag selbst (Beginn und Ende, <see cref="Spielzeit.TagesbeginnMinute"/>) kommt hier nicht vor: Er darf
+    /// beliebig früh beginnen und spät enden, die Nacht davor und danach ist immer dieselbe. Zwischen den Jahreszeiten gibt es keinen Übergang –
+    /// die Jahreszeit gilt für das ganze Spieljahr.
     /// </summary>
     private static float BezugsStunde(float stunde, Jahreszeit jahreszeit)
     {
-        var (hell, dunkel) = Sonnenzeiten(jahreszeit);
-        var abendBeginn = dunkel - 2f;
-        if (stunde <= hell) return Mathf.Max(5f, 7.5f - 1.5f * (hell - stunde));
-        if (stunde < abendBeginn) return 7.5f + (stunde - hell) * (18f - 7.5f) / (abendBeginn - hell);
-        if (stunde < dunkel) return 18f + 1.5f * (stunde - abendBeginn);
+        var lauf = Reichsgilde.Core.Zeit.Sonnenzeiten.Fuer(jahreszeit);
+        float daemmerung = lauf.Daemmerung / 60f, aufgang = lauf.Aufgang / 60f, untergang = lauf.Untergang / 60f, dunkel = lauf.Dunkel / 60f;
+        // Der Tag zwischen Aufgang und Untergang muss länger als 3 Stunden sein (Test SonnenzeitenTests); sonst rücken voller Tag und Abendrot in die Mitte zusammen
+        var vollerTag = Mathf.Min(aufgang + 1.5f, (aufgang + untergang) / 2);
+        var abendrot = Mathf.Max(untergang - 1.5f, (aufgang + untergang) / 2);
+        if (stunde <= daemmerung) return 5f;
+        if (stunde < aufgang) return Mathf.Lerp(5f, 6f, (stunde - daemmerung) / (aufgang - daemmerung));
+        if (stunde < vollerTag) return Mathf.Lerp(6f, 7.5f, (stunde - aufgang) / (vollerTag - aufgang));
+        if (stunde < abendrot) return Mathf.Lerp(7.5f, 18f, (stunde - vollerTag) / (abendrot - vollerTag));
+        if (stunde < untergang) return Mathf.Lerp(18f, 19.5f, (stunde - abendrot) / (untergang - abendrot));
+        if (stunde < dunkel) return Mathf.Lerp(19.5f, 21f, (stunde - untergang) / (dunkel - untergang));
         return Mathf.Min(22f, 21f + (stunde - dunkel));
     }
 
