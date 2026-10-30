@@ -96,8 +96,27 @@ public partial class Stadtansicht
 
     private const string FigurShaderPfad = "res://assets/shader/figur.gdshader";
 
-    /// <summary>Das eine Material aller Figuren (PR #149: Zone in UV.x, feste Farbe in COLOR).</summary>
-    private static ShaderMaterial? _figurStoff;
+    /// <summary>
+    /// Die Materialien der Figuren (PR #149: Zone in UV.x, feste Farbe in COLOR), eines je Tracht – die fünf Farben sind gewöhnliche Uniforms,
+    /// keine Instanz-Uniforms (deren Puffer läuft im Compatibility-Renderer schon bei wenigen Figuren über, <c>figur.gdshader</c>).
+    /// Die Farben kommen aus festen Paletten, es bleiben wenige Dutzend Materialien.
+    /// </summary>
+    private readonly Dictionary<(Color, Color, Color, Color, Color), ShaderMaterial> _figurStoffe = new();
+    private static Shader? _figurShader;
+
+    /// <summary>Das Material für eine Tracht (gemeinsam für alle Figuren mit denselben fünf Farben).</summary>
+    private ShaderMaterial FigurStoff(FigurAussehen aussehen)
+    {
+        var schluessel = (aussehen.Gewand, aussehen.Beinkleid, aussehen.Haut, aussehen.Haar, aussehen.Kopffarbe);
+        if (_figurStoffe.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
+        var stoff = new ShaderMaterial { Shader = _figurShader ??= GD.Load<Shader>(FigurShaderPfad) };
+        stoff.SetShaderParameter("gewand", aussehen.Gewand);
+        stoff.SetShaderParameter("beinkleid", aussehen.Beinkleid);
+        stoff.SetShaderParameter("haut", aussehen.Haut);
+        stoff.SetShaderParameter("haar", aussehen.Haar);
+        stoff.SetShaderParameter("kopfbedeckung", aussehen.Kopffarbe);
+        return _figurStoffe[schluessel] = stoff;
+    }
 
     /// <summary>Dateien, deren Bewegungen schon auf Schleife gestellt sind (die Animationen teilen sich alle Figuren einer Datei).</summary>
     private readonly HashSet<string> _figurSchleifen = new();
@@ -105,7 +124,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Setzt eine Figur als Kind von <paramref name="eltern"/> ein (Lage und Drehung bestimmt der Elternknoten): Grundkörper nach
     /// Geschlecht, Trachtteile nach <paramref name="aussehen"/>, Farben für Gewand, Beinkleid, Haut, Haar und Kopfbedeckung über
-    /// das gemeinsame Material <c>figur.gdshader</c> (Zonen im Modell, Farben je Teil als Instanz-Uniform). Hacke und Stab bleiben versteckt da, bis eine
+    /// das Material <c>figur.gdshader</c> der Tracht (Zonen im Modell, Farben als Uniforms, <see cref="FigurStoff"/>). Hacke und Stab bleiben versteckt da, bis eine
     /// Bewegung sie braucht; alle übrigen Teile werden gelöscht. Null, wenn das Modell fehlt.
     /// </summary>
     private Figur? FigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer)
@@ -127,6 +146,7 @@ public partial class Stadtansicht
             Modell = modell, Spieler = spieler, Nummer = nummer, StabImmer = aussehen.Last == Last.Stab,
             Beinfaktor = huefte / 0.92f * modell.Scale.Y, Kniehoehe = knie * modell.Scale.Y,
         };
+        var stoff = FigurStoff(aussehen);
         var kopf = aussehen.Kopf switch
         {
             Kopfbedeckung.Strohhut => "Strohhut", Kopfbedeckung.Barett => "Barett", Kopfbedeckung.Kapuze => "Kapuze",
@@ -153,13 +173,8 @@ public partial class Stadtansicht
             if (WerkzeugNamen.Contains(name)) { figur.Werkzeuge[name] = teil; teil.Visible = false; }
             if (name == "Stab") { figur.Stab = teil; teil.Visible = figur.StabImmer; }
             figur.Teile.Add(teil);
-            // Ein Material für alle Teile (figur.gdshader), die Farben je Figur als Instanz-Uniform: ein Zeichenaufruf je Teil.
-            teil.MaterialOverride = _figurStoff ??= new ShaderMaterial { Shader = GD.Load<Shader>(FigurShaderPfad) };
-            teil.SetInstanceShaderParameter("gewand", aussehen.Gewand);
-            teil.SetInstanceShaderParameter("beinkleid", aussehen.Beinkleid);
-            teil.SetInstanceShaderParameter("haut", aussehen.Haut);
-            teil.SetInstanceShaderParameter("haar", aussehen.Haar);
-            teil.SetInstanceShaderParameter("kopfbedeckung", aussehen.Kopffarbe);
+            // Ein Material für alle Teile (figur.gdshader, je Tracht): ein Zeichenaufruf je Teil.
+            teil.MaterialOverride = stoff;
         }
         BewegungSetzen(figur, "Stehen");
         return figur;

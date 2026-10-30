@@ -242,7 +242,7 @@ public partial class Stadtansicht
         foreach (var (name, wert) in new (string, Variant)[]
                  {
                      ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_rinn", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
-                     ("wetter_wind", 0.25f), ("wellen_seegang", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)),
+                     ("wetter_wind", 0.25f), ("wellen_seegang", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)), ("traufe_feld", Vector4.Zero),
                      ("wind_staerke", Fenster.FahnenBewegen ? 0.5f : 0f), // der Grundwert der Fahnen (Fenster.Grafik.cs)
                  })
             RenderingServer.GlobalShaderParameterSet(name, wert);
@@ -405,7 +405,7 @@ public partial class Stadtansicht
     {
         var umgebung = _umgebung.Environment;
         var nebel = _raum is null ? Mathf.Max(_wetter.Nebel, 0.12f * _wetter.Regen + 0.15f * _wetter.Schnee) : 0f;
-        var dunst = Fenster.AktuellerDunst == Morgendunst.Niedrig;
+        var dunst = DunstWirksam == Morgendunst.Niedrig; // Höhennebel des Morgendunsts (Hoch ohne Volumennebel unter OpenGL ebenso, Stadtansicht.Grafik.cs)
         var an = dunst || nebel > 0.01f;
         if (umgebung.FogEnabled != an) umgebung.FogEnabled = an;
         var dichte = WetterNebelDichte * nebel;

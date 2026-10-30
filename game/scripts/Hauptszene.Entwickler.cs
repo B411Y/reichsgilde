@@ -15,7 +15,7 @@ public partial class Hauptszene
     /// <summary>Sperre des Kerns nach dem Haken setzen (gleich nach dem Aufbau der Simulation, ob neu oder geladen).</summary>
     private void EntwicklerSperreSetzen() => _simulation.EntwicklerErlaubt = Entwickler.Aktiv && _simulation.Wirtschaft is not null;
 
-    /// <summary>Baut das Fenster, wenn der Haken gesetzt ist. Startoptionen: <c>--entwicklerfenster=1|&lt;Reiter 1–5&gt;</c> öffnet es gleich.</summary>
+    /// <summary>Baut das Fenster, wenn der Haken gesetzt ist. Startoptionen: <c>--entwicklerfenster=1|&lt;Reiter 1–6&gt;</c> öffnet es gleich.</summary>
     private void EntwicklerBauen(Dictionary<string, string> optionen)
     {
         if (!Entwickler.Aktiv || _spieler is null) return;

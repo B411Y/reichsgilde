@@ -21,6 +21,8 @@ namespace Reichsgilde;
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
+///   --nachtnebel=aus   Nebel in der Nacht aus (wie Lösung A vom 29.10.2026; Standard an) – nur Darstellung (Stadtansicht.Bodennebel.cs)
+///   --morgennebel=1    Nebel des Spieltags fest vorgeben (0–1, sonst gewürfelt nach Jahreszeit und Nacht) – nur Darstellung
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
@@ -527,6 +529,9 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("pflasterrelief", out var relief)) _stadt.PflasterReliefVorgeben(relief != "0"); // Parallax im Pflaster (Stadtansicht.Pflasterrelief.cs)
         if (optionen.TryGetValue("kischmied", out var kiSchmied)) _stadt.KiSchmiedVorgeben(kiSchmied); // aus|wenige|alle (Stadtansicht.KiFiguren.cs)
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
+        if (optionen.TryGetValue("nachtnebel", out var nachtnebel)) _stadt.Nachtnebel = nachtnebel is not ("aus" or "0"); // Nebel bei Nacht (Stadtansicht.Bodennebel.cs)
+        if (optionen.TryGetValue("morgennebel", out var morgennebel) && float.TryParse(morgennebel, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var nebelTag))
+            _stadt.MorgennebelVorgabe = Mathf.Clamp(nebelTag, 0f, 1f); // --morgennebel=1: Nebel des Tages fest statt gewürfelt
         if (optionen.TryGetValue("ui", out var ui) && ui == "0")
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
         if (optionen.TryGetValue("kartenbild", out var kartenbild)) KartenbildAufnehmen(kartenbild);
@@ -607,6 +612,9 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
         if (optionen.TryGetValue("klangtest", out var klangtest) && klangtest == "1") KlangOberflaeche.Testen(this); // spielt alle Oberflächenklänge, Ergebnis im Log
+        if (optionen.TryGetValue("ansageplatzhalter", out var platzhalter) && platzhalter == "1") KlangAnsagen.Platzhalter = true; // Glockenton statt fehlender Aufnahme
+        if (optionen.TryGetValue("ansagetest", out var ansagetest) && _simulation.Wirtschaft is { } ansageWirtschaft && _spieler is not null)
+            KlangAnsagen.Testen(this, ansagetest, KlangAnsagenErkennung.Herrin(ansageWirtschaft, _spieler)); // löst Ansagen aus, Ergebnis im Log
         Fenster.StartoptionenAnwenden(optionen); // Grafik nur für diesen Start: --kanten, --voreinstellung, --dunst … (Fenster.Grafik.cs)
         // Erst nach den Grafikoptionen: Das Fenster zeigt beim Öffnen die dann gültigen Werte.
         if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
@@ -1068,6 +1076,7 @@ public partial class Hauptszene : Node
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
         w.Meldung += meldung => Protokollieren(SchiffsMeldung(meldung)); // Überfälle auf eigene Schiffe als Warnung (Hauptszene.Hafen.cs)
+        AnsagenVerbinden(simulation, w, spieler);
         // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
         foreach (var rivale in w.Rivalen)
             foreach (var zug in rivale.Entscheidungen.Reverse())

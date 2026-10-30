@@ -19,8 +19,10 @@ uniform float helligkeit = 0.0;
 // Wie stark das Licht flackert (wie FLACKERN im Fensterlicht) und wie schnell
 uniform float flackern = 0.32;
 uniform float tempo = 1.0;
-// Eigener Startwert eines einzelnen Lichts (0–1); ohne (−1) kommt er aus der Lage des Lichts in der Welt (feste Lichter, auch gebündelt)
-instance uniform float phase = -1.0;
+// Startwert des Flackerns (0–1); ohne (−1) kommt er aus der Lage des Lichts in der Welt (feste Lichter, auch gebündelt). Lichter in der
+// Hand wandern mit der Figur – die Lage taugt dort nicht, sie bekommen eine von wenigen Varianten des Materials mit festem Startwert
+// (Stadtansicht.Nachtlichter.cs, TaktStoff). Kein „instance uniform“: Das belegte je Licht 16 Plätze im knappen Puffer der Grafikkarte.
+uniform float phase = -1.0;
 
 const float UNRUHE_FAKTOR = 1.55;   // in unruhigen Augenblicken so viel stärker
 

@@ -58,7 +58,7 @@ Startoptionen (nach `--`):
 - `--karte=<kennung>` (neue Partie auf einer anderen Karte aus `game/karten/`, z. B. `koeln`, nur für diesen Start; im Hauptmenü wählt man sie unter „Neue Partie“ → „Stadt wählen“)
 - `--stadtwahl=1` (Hauptmenü öffnet gleich die Seite „Stadt wählen“, für Bildschirmfotos)
 - `--entwickler=1|0` (Entwickler-Modus für diesen Start an oder aus, ohne die gemerkte Einstellung zu ändern; die Kartenwahl zeigt dann auch Test- und Messkarten)
-- `--entwicklerfenster=<1–5>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `5` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
+- `--entwicklerfenster=<1–6>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `6` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte, Klänge; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
 - `--ladezeit=1|ende` (Messausgabe der Ladezeit: Zeilen „Ladezeit: …“ mit den Millisekunden je Abschnitt – Kern, Gelände, Häuser, Wege, Wasser, Natur, Modelle laden –, danach die Dauer der ersten Bilder samt übersetzten Pipelines und der Arbeit in ihnen; `ende` beendet das Spiel, sobald die Bilder ruhig sind. Mit dem Ladebildschirm misst „Ladebild weg“ die Bilder hinter ihm, die Bildzeiten danach gelten den ersten sichtbaren Bildern; „Bild zwischen den Abschnitten“ ist das Bild, das der Balken je Abschnitt braucht. Dazu `--ladezeitbilder=<ordner>`: Fotos beim ersten Bild, nach 1 s, nach 3 s und am Ende; `game/scripts/Ladezeit.cs`)
 - `--menuhintergrund=1` (die Greybox hinter dem übersprungenen Hauptmenü trotzdem bauen – wie der Weg über das Menü, das dabei Modelle und Shader schon lädt; nur für Vergleiche der Ladezeit, sonst lassen Startoptionen sie weg)
@@ -93,6 +93,8 @@ Startoptionen (nach `--`):
 - `--winter=<0..1>` (Winterfortschritt des Eises, unabhängig von der Uhr; 1 = tiefster Winter; nur Darstellung, z. B. `--jahreszeit=winter --winter=0.4`). Eis gibt es nur im Winter: über 0 zeigt die Ansicht ohne `--jahreszeit` den Winter (mit Schnee); mit einer anderen `--jahreszeit` bleibt das Wasser offen. Teiche, Hafenbecken und Gräben sind ab 0,5 ganz zu, Bäche wachsen von 0,15 bis 1 zu, Flüsse bekommen ab 0,3 Randeis und Schollen (`docs/wasser/phase3.md`)
 - `--tauwetter=<0..1>` (Eisgang am Winterende, unabhängig von der Uhr: 0 = noch keiner, 0,5 = Decken aufgebrochen, viele Schollen, 1 = alles geschmolzen, auch der Schnee; zeigt den Winter, ohne `--winter` mit vollem Eis; `docs/wasser/phase3.md`, Phase 3e)
 - `--lichtuhr=<Stunde>` (Licht, Himmel, Fenster und Nachtlichter zeigen diese feste Uhrzeit, mit Bruchteil: `3.5` = 3:30 Uhr, auch vor 4 Uhr; nur Darstellung, die Spielzeit läuft weiter; mit `--jahreszeit` wählt man die Sonnenzeiten)
+- `--nachtnebel=<an|aus>` (Nebel bei Nacht, nur für diesen Start; Standard `an`: Nach Einbruch der Dunkelheit wächst der Nebel einer ruhigen Nacht weiter, so dunkel wie eine unbeleuchtete Wand, mit Lichthof um Laternen und Feuer; `aus` = Lösung A vom 29.10.2026, nachts klare Luft, der Nebel kommt erst mit der Morgendämmerung. Dasselbe im Entwicklerfenster, Reiter „Wetter und Darstellung“. Zum Vergleich: `--lichtuhr=23` oder `--lichtuhr=3` mit `--morgennebel=1`)
+- `--morgennebel=<0–1>` (Nebel des Spieltags fest vorgeben statt gewürfelt: `1` = dichtester Nebelmorgen, `0` = keiner; nur Darstellung, nur für diesen Start; die Uhrzeit, der Wind und Regen wirken weiter. Für Bilder mit `--wetter=klar --lichtuhr=6.67`)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
 - `--wetterspaeter=<lage>@<Sekunden>` (das Wetter schlägt nach so vielen Sekunden plötzlich um, z. B. `regen@14`; für Messungen des ersten Regens: ohne `--wetter` ändert es sich erst dann, sonst gilt `--wetter` bis dahin)
 - `--pflasterrelief=0` (Pflaster ohne Tiefe: schaltet die Parallax im Pflaster für diesen Start aus, nur in der Bodenqualität Hoch wirksam; für Vergleiche und Messungen)
@@ -104,11 +106,32 @@ Startoptionen (nach `--`):
 - `--uigroesse=<75–200>`
 - `--farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>`
 - `--klangtest=1` (spielt alle Oberflächenklänge nacheinander und schreibt `KLANGTEST <Ereignis>: n/m Varianten (Längen)` ins Log; am Ende `KLANGTEST fertig … 0 mit fehlenden Dateien`)
+- `--ansagetest=<liste>` (Ansagen des Haushofmeisters auslösen, alle 0,5 s eine, ohne Wiederholsperre; jede Zeile `ANSAGE <Ereignis>: gespielt|wartet|verworfen – Rang, Fassung, Variante` im Log, später `verfallen`/`kommt nach der Pause dran`. Liste: Kennungen mit Komma wie `tod_familie,feuer,krankheit`; `alle` = alle 20 Ereignisse in der Reihenfolge der Datei (zeigt Vorrang und Pause); `dateien` = je Ereignis, wie viele Aufnahmen vorhanden sind (löst nichts aus). Dahinter `:herrin` oder `:herr` erzwingt die Fassung, sonst gilt das Geschlecht des Oberhaupts. Braucht die Partie, also mit `--karte=…`/Neues Spiel; ohne Aufnahmen nur zusammen mit `--ansageplatzhalter=1` zu hören)
+- `--ansageplatzhalter=1` (statt einer fehlenden Aufnahme der Ansagen klingt ein kurzer Glockenton von Kenney; schaltet außerdem das Ansagen-Log an, das sonst nur im Entwicklermodus schreibt)
 - `--reiter=<Grafik|GrafikErweitert|Ton|Spiel|Barrierefreiheit>` (mit `--einstellungen=1`; `GrafikErweitert` öffnet Grafik mit aufgeklapptem „Erweitert“, nur für diesen Start; die früheren Namen `Voreinstellung` (= Grafik) sowie `Leistung`, `Bild` und `Stimmung` (= GrafikErweitert) gehen weiter)
 - `--schnittstellezeigen=1` (zeigt die Zeile „Grafikschnittstelle“ in Grafik → Erweitert auch außerhalb von Windows, zum Ansehen und für Klicktests; geprüft wird sonst nur unter Windows)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 - `--wasservergleich=1` (Kosten des Wassers: nach 10 s reihum ohne Wasser und in den vier Wasserstufen, je 4 s, drei Runden im selben Prozess; Median der GPU- und Bildzeit je Zustand als `[wassermessung] …` ins Protokoll, dann beenden; mit `--karte`, `--blick`, `--voreinstellung`, `--vsync=Aus`; `docs/wasser/phase3.md`)
+
+## Feuer und Flammen
+
+Im Spiel (Phase 2, nur Darstellung):
+
+- `--brand=werkstatt|haus|<Betriebsname>` (ein Gebäude brennt gleich beim Start, **nur in der Darstellung**, der Kern merkt nichts: `werkstatt` (oder `1`) die eigene Werkstatt, `haus` das eigene Wohnhaus, sonst der Betrieb mit diesem Namen; Flammen aus Dach und Fenstern für 120 Spielminuten, danach schwelt es 180 Minuten; am besten mit `--startstunde=21` und `--blick`. Ein echtes Feuer des Kerns lösen im Entwicklerfenster die Knöpfe „Feuer im Betrieb“ und „Hausbrand“ aus, `--entwickler=1 --entwicklerfenster=2`)
+
+Die Testszene `scenes/Feuertest.tscn` (`Feuertest.cs`) zeigt die sieben Feuerarten nebeneinander (von links 1 Kerze, 2 Fackel, 3 Laterne, 4 Feuerkorb, 5 Esse, 6 Kamin, 7 Gebäudebrand), jede so, wie das Spiel sie auf allen Grafikstufen zeichnet (seit Phase 2: Flamme aus der Simulation, Rauch und Funken im Shader). Das Hauptmenü startet sie von selbst, sobald `--feuertest` angegeben ist; die Anleitung für den Editor steht in `docs/feuer/phase2.md`. Als Ausnahme gelten `--feuertest` und alle Optionen, die mit `--feuer` beginnen, auch **vor** dem einzelnen `--` (`Feuertest.Startargumente`): Godot reicht Argumente davor nur als eigene weiter, und ohne `--` kam bisher stumm das Hauptmenü. Alle übrigen Optionen, auch `--bildrate` und `--vsync`, wirken nur hinter `--`. Alle Optionen gelten nur für diesen Start. Für Messungen `--bildrate=0 --vsync=Aus` dazugeben (Bildrate und Bildzeit stehen jede Sekunde im Protokoll, Zeilen mit `[feuer]`).
+
+- `--feuertest=1` (die Testszene statt des Spiels starten)
+- `--feuersicht=nah|stadt|fern` (wo die freie Kamera beginnt: `nah` = leicht von oben, ganz nah an der Feuerart; `stadt` = 40° von oben, Ausschnitt wie der nächste Zoom der Stadt, 25 m hoch; `fern` = wie der weiteste Zoom, 95 m, alle Feuerarten; Standard `nah`)
+- `--feuerpaar=<1–7>` (welche Feuerart `nah` und `stadt` zeigen, Standard 2 = Fackel)
+- `--feuertag=1` (Tageslicht; ohne die Option ist es Nacht)
+- `--feuerzeigen=0` (nur die Aufbauten, ohne Feuer, für den Vergleich der Bildrate; Taste `T`)
+- `--feuerlicht=0|1` (die Lichter der Feuer aus oder an)
+- `--feuerfackeln=<n>` (Messung: statt der Feuerarten `n` Fackeln im Raster, 10 je Reihe; Standardsicht `stadt`) und `--feuerlichter=<m>` (nur die ersten `m` Fackeln leuchten mit einem echten Licht)
+- `--feuerzyklus=<Sekunden>` (Messzyklus: die Szene wechselt von selbst zwischen ohne und mit Feuer, im Fackelraster durch ohne Feuer und Feuer mit 0, 12 und allen Lichtern, jeden Zustand so viele Sekunden lang; der Zustand steht in jeder Protokollzeile `[feuer] … zustand=…`; `tools/feuer/messen.sh` fasst ihn zusammen)
+- Entfallen mit Phase 2 (es gibt nur noch eine Fassung): `--feuerart`, `--feuerstufe`, `--feuerfassung`
+- Tasten in der Testszene: `1`–`7` oder Pfeile links/rechts (Feuerart), `V` (Sicht), `N` (Nacht/Tag), `T` (Feuer an/aus), `L` (Lichter), `B` (Beschriftung), `Esc` (Ende); freie Kamera: rechte Maustaste halten (umsehen), `W` `A` `S` `D` `Q` `E` (fahren), `Shift` (schneller), Mausrad (Tempo), `H` (ihre Hilfe)
 
 ## Kartenwerkstatt
 
