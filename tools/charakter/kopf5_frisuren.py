@@ -89,7 +89,12 @@ class Topfschnitt(Stil):
     wellen, klumpen = (0.0012, 0.04), (14, 0.3)
 
     def dichte(self, q):
-        return self.h.kopfhaut(q, ohr_frei=(0.018, 0.026))
+        # Nacken unter der Schnittlinie ausrasiert (sonst stehen dort Stoppeln)
+        q = np.atleast_2d(q)
+        h, M = self.h, self.M
+        hinten = glatt(h.richtung(q), 100, 140)
+        frei = glatt(q[:, 2] - (h.ohr_z - 0.022 * M), 0.0, 0.006 * M)
+        return self.h.kopfhaut(q, ohr_frei=(0.018, 0.026)) * (1 - hinten * (1 - frei))
 
     def kamm(self, q, n, s, w):
         return _vom_wirbel(self.h, q, vorn=0.35, unten=0.55)
@@ -113,6 +118,9 @@ class Pagenkopf(Topfschnitt):
     name, anzahl = "mann_pagen", 5200
     volumen, hub = (0.0012, 0.0055), 0.22
     einwaerts = 1.1
+
+    def dichte(self, q):
+        return self.h.kopfhaut(q, ohr_frei=(0.018, 0.026))
 
     def schwere(self, s, w):
         return 0.9 * glatt(s, 0.015, 0.06)
@@ -291,7 +299,10 @@ class Tonsur(Stil):
     def dichte(self, q):
         h, M = self.h, self.M
         q = np.atleast_2d(q)
-        kranz = glatt(h.haaransatz_z(h.richtung(q)) + 0.036 * M - q[:, 2], -0.003 * M, 0.003 * M)
+        r = h.richtung(q)
+        oben = np.interp(r, [0, 40, 70, 100, 180], [h.haaransatz_z(0.0) + 0.036 * M, h.haaransatz_z(40.0) + 0.034 * M,
+                                                   h.auge_z + 0.05 * M, h.ohr_z + 0.055 * M, h.ohr_z + 0.05 * M])
+        kranz = glatt(oben - q[:, 2], -0.003 * M, 0.003 * M)
         return h.kopfhaut(q, ohr_frei=(0.024, 0.034)) * kranz
 
     def kamm(self, q, n, s, w):
@@ -306,7 +317,7 @@ class Tonsur(Stil):
     def ende(self, q, s, w):
         h, M = self.h, self.M
         z = _schnitt(h, q, [(0, h.brauen_oben + 0.022 * M), (60, h.auge_z + 0.014 * M), (90, h.ohr_z + 0.01 * M),
-                            (180, h.ohr_z - 0.03 * M)])
+                            (180, h.ohr_z + 0.005 * M)])
         return q[2] < z
 
 
@@ -531,16 +542,16 @@ class Haarnetz(_Hochgesteckt):
     def __init__(self, h, rng):
         super().__init__(h, rng)
         M = self.M
-        l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.12 * M, h.ohr_z - 0.005 * M]))
-        self.anker = Vector(l) + Vector(n) * 0.016 * M
+        l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.12 * M, h.ohr_z + 0.012 * M]))
+        self.anker = Vector(l) + Vector(n) * 0.022 * M
         self.anker_n = np.array([0.0, 0.94, 0.34])
 
     def anker_fuer(self, w):
         return self.anker
 
     def zusatz(self, rng, faktor):
-        o = _Objekt(self.anker, self.anker_n, self.M * 1.3)
-        return knoten_straehnen(o, rng, anzahl=int(900 * faktor)), "knoten"
+        o = _Objekt(self.anker, self.anker_n, self.M * 1.6)          # großer runder Knoten (Crespine)
+        return knoten_straehnen(o, rng, anzahl=int(1300 * faktor)), "knoten"
 
 
 class HoheStirn(_Hochgesteckt):
@@ -626,15 +637,17 @@ class Stoppeln(k4.Bart):
 class Gabelbart(k4.Langbart):
     """b05: Gabelbart – Vollbart etwa 10 cm, unter dem Kinn gescheitelt, zwei Spitzen; Schnurrbart geht in den Bart."""
     name, anzahl, punkte = "gabelbart", 5200, 16
+    klumpen = (10, 0.15)
 
     def kamm(self, q, n, s, w):
         if self.zone(w) == "schnurr":
             return k4.Schnurrbart.kamm(self, q, n, s, w)
         M = self.M
         sx = 1.0 if w[0] >= 0 else -1.0
-        spitze = Vector((sx * 0.03 * M, self.m68[8, 1] - 0.018 * M, self.m68[8, 2] - 0.095 * M))
-        k = glatt(s, 0.01, 0.04)
-        return _norm(UNTEN * (1 - k) + Vector((-w[0] * 4.0, -0.15, 0)) * 0.3 * (1 - k) + _norm(spitze - q) * 2.2 * k)
+        spitze = Vector((sx * 0.032 * M, self.m68[8, 1] - 0.018 * M, self.m68[8, 2] - 0.1 * M))
+        k = glatt(s, 0.005, 0.025)
+        # Mitte: Scheitel unter dem Kinn (die Strähnen jeder Seite laufen zu ihrer Spitze, nicht zur Mitte)
+        return _norm(UNTEN * (1 - k) * 0.6 + Vector((sx * 0.4, -0.1, 0)) * (1 - k) + _norm(spitze - q) * 3.0 * k)
 
     def laenge(self, w, n):
         z = self.zone(w)

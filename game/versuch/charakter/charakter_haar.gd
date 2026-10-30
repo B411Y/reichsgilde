@@ -243,11 +243,18 @@ func _tfx_anlegen(t: Dictionary) -> void:
 		s.set_shader_parameter("tip_fade", 0.3)
 		s.set_shader_parameter("root_shadow", 0.35)
 		s.set_shader_parameter("innen_dunkel", 0.45)
+		if String(t["datei"]).get_file() == "stoppeln":
+			# Stoppeln: feine, kurze Haare – sonst wirken sie wie ein dichter Pelz
+			s.set_shader_parameter("fiber_radius", 0.00011)
+			s.set_shader_parameter("fiber_ratio", 0.6)
+			s.set_shader_parameter("tip_fade", 0.2)
+			s.set_shader_parameter("innen_dunkel", 0.7)
 	add_child(haar)
 	haar.set("material", s)
 	# Formbindung: die gekämmte Ruheform soll halten; Bart und Zöpfe fast starr
 	var steif: bool = bart or t["art"] == "zusatz"
-	haar.set("num_follow_hairs", (2 if tfx_sparsam else 3) if not bart else (2 if tfx_sparsam else 3))
+	var stoppeln := String(t["datei"]).get_file() == "stoppeln"
+	haar.set("num_follow_hairs", 1 if stoppeln else ((2 if tfx_sparsam else 3) if not bart else (2 if tfx_sparsam else 3)))
 	haar.set("follow_radius", 0.004 if not bart else 0.003)
 	haar.set("tip_separation", 0.3 if not bart else 0.15)
 	haar.set("global_stiffness", 1.0 if steif else 0.85)

@@ -1,0 +1,72 @@
+{
+ "name": "portraet",
+ "titel": "Phase 5: großes Porträt (TressFX)",
+ "zelle": [
+  760,
+  860
+ ],
+ "alle": {
+  "kopf": "standard",
+  "winkel": 25,
+  "ansicht": "kopf",
+  "warten": 50
+ },
+ "spalten": [
+  {
+   "titel": "Mann 35, Topfschnitt, kurzer Vollbart",
+   "alter": 35,
+   "geschlecht": "m",
+   "gene": {
+    "haar_helligkeit": 70,
+    "bartwuchs": 190
+   },
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "topfschnitt",
+     "bart": "vollbart",
+     "struktur": 0.25
+    }
+   }
+  },
+  {
+   "titel": "Frau 30, Flechtkranz",
+   "alter": 30,
+   "geschlecht": "w",
+   "gene": {
+    "haar_helligkeit": 80
+   },
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "flechtkranz",
+     "bart": "",
+     "struktur": 0.2
+    }
+   }
+  },
+  {
+   "titel": "Mann 60, Halbglatze, langer Bart",
+   "alter": 60,
+   "geschlecht": "m",
+   "gene": {
+    "haar_helligkeit": 90,
+    "bartwuchs": 210,
+    "ergrauen": 90
+   },
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "kranz",
+     "bart": "langbart",
+     "struktur": 0.3
+    }
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": ""
+  }
+ ]
+}

@@ -472,6 +472,11 @@ func _messen() -> void:
 		{"name": "haar_karten_frau_offen", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "karten", "vorgabe": {"frisur": "frau_offen"}}},
 		{"name": "haar_tressfx_frau_offen", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "frau_offen"}}},
 		{"name": "haar_karten_ohne_schatten", "kopf": kd, "bewegt": "keine", "haar": {"modus": "karten", "vorgabe": vk, "schatten": false}},
+		# Phase 5: die teuersten der zehn Stile (Locken mit 32/64 Punkten, wilder Bart) und ein schlichter
+		{"name": "haar_tressfx_krauskopf_wildbart", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "krauskopf", "bart": "wildbart"}}},
+		{"name": "haar_tressfx_frau_locken", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "krause_locken"}}},
+		{"name": "haar_tressfx_geschoren_stoppeln", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "mann_kurz", "bart": "stoppeln"}}},
+		{"name": "haar_tressfx_lockig", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "mann_pagen", "bart": "vollbart", "struktur": 1.0}}},
 		{"name": "haar_tressfx_sparsam", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": vk, "sparsam": true}},
 		{"name": "x8_karten_ohne_schatten", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "karten", "vorgabe": vk, "schatten": false}},
 		{"name": "x8_ohne_haar", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "aus"}},
