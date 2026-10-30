@@ -72,6 +72,7 @@ Startoptionen (nach `--`):
 - `--bloom=<An|Aus>` und `--bloomstaerke=<0–100>` (Bloom, nur für diesen Start)
 - `--ssao=<Aus|Niedrig|Mittel|Hoch>` (Umgebungsverdeckung)
 - `--ssil=<An|Aus>` (indirektes Licht)
+- `--sdfgi=<0–3>` (globale Beleuchtung SDFGI: 0 Aus, 1 Niedrig, 2 Mittel, 3 Hoch, auch die Namen; nur für diesen Start, unter `opengl3` ohne Wirkung)
 - `--fsr=<An|Aus>` (FSR 2.2) und `--renderaufloesung=<25–100>` (Renderauflösung bei FSR in Prozent), alle nur für diesen Start, dazu (ebenso nur für diesen Start) `--voreinstellung=<Niedrig|Mittel|Hoch|Ultra>` (alle Grafikregler einer Stufe, einzelne Optionen danach überschreiben sie)
 - `--bildrate=<Zahl, 0 = unbegrenzt>`
 - `--vsync=<Aus|An|Adaptiv>`
