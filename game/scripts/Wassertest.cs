@@ -35,6 +35,10 @@ public partial class Wassertest : Node3D
     private double _messZeit;
     private readonly List<double> _messRahmen = new();
     private readonly Dictionary<string, List<double>> _messErgebnis = new();
+    private readonly List<(Schollenfeld Feld, Wasserart Art, float Winter)> _schollen = new();
+    private bool _schollenAn = true;
+    private Camera3D? _kamera;
+    private static readonly List<Schollenfeld.Hindernis> KeineHindernisse = new();
 
     public override void _Ready()
     {
@@ -199,10 +203,23 @@ public partial class Wassertest : Node3D
         };
         Wasserarten.Anwenden(m, gewaesser, richtung, winter, uferImNetz: true);
         m.SetShaderParameter("netz_halb", new Vector2(30f, 30f)); // Wellen klingen zum Rand des Testfeldes ab
+        if (gewaesser.Schollen > 0) SchollenFeld(gewaesser, mitte, winter);
         var netz = new MeshInstance3D { Mesh = WasserNetz(art), MaterialOverride = m, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         knoten.AddChild(netz);
         _wasser.Add((art, netz, m));
         if (art == Wasserarten.Hafenbecken) Kai(knoten);
+    }
+
+    /// <summary>Eisschollen als Körper (Phase 3c) auf dem Fluss des Feldes: eine gerade Mittellinie längs z, 36 m breit, wie <see cref="Gelaende"/>.</summary>
+    private void SchollenFeld(Wasserart art, Vector3 mitte, float winter)
+    {
+        var lauf = new Schollenfeld.Laufpunkt[61];
+        for (var i = 0; i < lauf.Length; i++)
+            lauf[i] = new Schollenfeld.Laufpunkt(new Vector2(mitte.X, mitte.Z - 30f + i), 0f, 18f, Vector2.Up);
+        var feld = new Schollenfeld(lauf, art.Stroemung, art.EisReichweite, 7, Wasserarten.StufeVorgabe ?? Wasserstufe.Hoch, new(), "Testfeld");
+        Wasserarten.WellenSetzen(feld.Stoff, art, Vector2.Up, lauf: false, fliesst: true, 0f, 0f);
+        AddChild(feld.Knoten);
+        _schollen.Add((feld, art, winter));
     }
 
     private static Mesh BodenNetz(Wasserart art, float schnee)
@@ -335,12 +352,14 @@ public partial class Wassertest : Node3D
     {
         var voll = Variante();
         var folge = new List<(string, Action)>();
-        void Alle(string name, Shader shader) => folge.Add((name, () => { foreach (var w in _wasser) { w.Netz.Visible = true; w.Stoff.Shader = shader; } }));
-        folge.Add(("ohne Wasser", () => { foreach (var w in _wasser) w.Netz.Visible = false; }));
+        // Die Eisschollen (Körper) gehören zum Eis: ohne Wasser und ohne Eis sind sie aus
+        void Alle(string name, Shader shader, bool schollen = true) =>
+            folge.Add((name, () => { _schollenAn = schollen; foreach (var w in _wasser) { w.Netz.Visible = true; w.Stoff.Shader = shader; } }));
+        folge.Add(("ohne Wasser", () => { _schollenAn = false; foreach (var w in _wasser) w.Netz.Visible = false; }));
         Alle(art == "stufen" ? "Stufe Hoch" : "alle Arten, volle Stufe", voll);
         switch (art)
         {
-            case "winter": Alle("ohne Eis", Variante("eis")); break;
+            case "winter": Alle("ohne Eis", Variante("eis"), schollen: false); break;
             case "regen": Alle("ohne Ringe", Variante("ringe")); break;
             case "sturm": Alle("ohne Wind", Variante("wind")); break;
             case "teile1": foreach (var teil in new[] { "brechung", "tiefe" }) Alle("ohne " + teil, Variante(teil)); break;
@@ -422,11 +441,14 @@ public partial class Wassertest : Node3D
         var kamera = FreieKamera.Einhaengen(this, pos, ziel);
         kamera.Fov = 55;
         kamera.Tempo = alle ? 20f : 6f * s;
+        _kamera = kamera;
     }
 
     public override void _Process(double delta)
     {
         MessungSchritt(delta);
+        foreach (var (feld, art, winter) in _schollen)
+            feld.Bild(delta, _kamera, Wasserarten.EisFortschritt(art, winter), _schollenAn ? art.Schollen : 0f, KeineHindernisse);
         _sek += delta;
         _gesamt += delta;
         _bilder++;

@@ -28,12 +28,15 @@ public enum Eisregel { Nie, Voll, Rand }
 /// <param name="EisAb">Ab diesem Winterfortschritt (0–1) wächst das Eis dieser Art …</param>
 /// <param name="EisBis">… und hat bei diesem seine volle Reichweite: Stilles Wasser friert zuerst (Teich, Hafenbecken, Graben 0–0,5), ein Bach
 /// später (0,15–1), ein Fluss bekommt erst spät Randeis (0,3–1). Siehe <see cref="Wasserarten.EisFortschritt"/>.</param>
-/// <param name="Schollen">1 = im Winter treiben Eisschollen mit der Strömung (breite Flüsse); 0 = keine.</param>
+/// <param name="Schollen">1 = im Winter treiben Eisschollen mit der Strömung (breite Flüsse, als Körper: <see cref="Schollenfeld"/>); 0 = keine.</param>
+/// <param name="WindHoehe">So viel höher (Faktor − 1) werden die Wellen von leichtem Wind bis Sturm (Fluss: ruhig 5–10 cm, Sturm etwa 30 cm); 0 = nur der
+/// allgemeine Windanteil.</param>
+/// <param name="VielfaltSkala">Faktor auf die Feinheit der Felder aus <paramref name="Vielfalt"/>: kleiner = längere Abschnitte mit gleichen Wellen.</param>
 public sealed record Wasserart(
     string Name, float WellenStaerke, float WellenLaenge, float WindAnteil, float Stroemung,
     Color Flach, Color Tief, float Klarheit, float Brechung, float Rauheit,
     float SchaumStaerke, float SchaumBreite, float SchaumKamm, float Kaustik, Eisregel Eis, float EisReichweite = 0f, float Vielfalt = 0f, float ExtraWellen = 0f,
-    float EisAb = 0f, float EisBis = 1f, float Schollen = 0f);
+    float EisAb = 0f, float EisBis = 1f, float Schollen = 0f, float WindHoehe = 0f, float VielfaltSkala = 1f);
 
 /// <summary>Die Gewässerarten, ihre Zuordnung zum Kartenwasser und der Winterfortschritt des Eises (alles nur Darstellung).</summary>
 public static class Wasserarten
@@ -57,8 +60,11 @@ public static class Wasserarten
 
     // Eis (Nutzer 30.10.2026): Stilles Wasser friert zuerst und ganz zu (Teich, Hafenbecken, Graben), ein Bach später und ganz (offen bleiben nur
     // Mündung und schnelle Stellen), eine Furt nur am Rand, ein breiter Fluss bekommt spät Randeis und treibende Schollen, nie eine Decke.
-    public static readonly Wasserart Fluss = new("Fluss", 0.25f, 1.6f, 0.4f, 1.2f, new(0.40f, 0.45f, 0.32f), new(0.10f, 0.19f, 0.21f), 1.3f, 0.06f, 0.22f,
-        SchaumStaerke: 0.9f, SchaumBreite: 0.9f, SchaumKamm: 0f, Kaustik: 0.3f, Eisregel.Rand, EisReichweite: 1.8f, EisAb: 0.3f, EisBis: 1f, Schollen: 1f);
+    // Wellen des Flusses (Nutzer 30.10.2026, Phase 3c): wie beim Meer mehrere Züge mit wandernder Stärke, je Abschnitt (Startwert aus der Karte)
+    // andere Größe und anderes Tempo, längs mit der Strömung; ruhig 5–10 cm hoch, im Sturm etwa 30 cm (WindHoehe).
+    public static readonly Wasserart Fluss = new("Fluss", 0.24f, 3.0f, 0.4f, 1.2f, new(0.40f, 0.45f, 0.32f), new(0.10f, 0.19f, 0.21f), 1.3f, 0.06f, 0.22f,
+        SchaumStaerke: 0.9f, SchaumBreite: 0.9f, SchaumKamm: 0f, Kaustik: 0.3f, Eisregel.Rand, EisReichweite: 1.8f, Vielfalt: 0.8f, ExtraWellen: 0.5f,
+        EisAb: 0.3f, EisBis: 1f, Schollen: 1f, WindHoehe: 2.2f, VielfaltSkala: 0.45f);
     public static readonly Wasserart Bach = new("Bach", 0.14f, 0.5f, 0.1f, 0.8f, new(0.55f, 0.62f, 0.52f), new(0.22f, 0.36f, 0.36f), 0.9f, 0.05f, 0.18f,
         SchaumStaerke: 0f, SchaumBreite: 0f, SchaumKamm: 0f, Kaustik: 0.8f, Eisregel.Voll, EisAb: 0.15f, EisBis: 1f);
     public static readonly Wasserart Teich = new("Teich", 0.12f, 0.5f, 0.3f, 0f, new(0.35f, 0.42f, 0.30f), new(0.12f, 0.22f, 0.20f), 1.6f, 0.05f, 0.18f,
@@ -220,30 +226,13 @@ public static class Wasserarten
     /// das Tempo der Art (aus der Karte). <paramref name="netzAbstand"/>: Abstand der Netzecken in m (0 = fein genug für alle Wellen).
     /// </summary>
     public static void Anwenden(ShaderMaterial m, Wasserart art, Vector2 richtung, float winter, bool uferImNetz, bool lauf = false, float? tempo = null,
-        float netzAbstand = 0f)
+        float netzAbstand = 0f, float saat = 0f)
     {
         var r = richtung.LengthSquared() > 0.0001f ? richtung.Normalized() : new Vector2(1, 0.4f).Normalized();
         var fliesst = (tempo ?? art.Stroemung) > 0;
-        m.SetShaderParameter("wellen_staerke", art.WellenStaerke);
-        m.SetShaderParameter("wellen_laenge", art.WellenLaenge);
-        m.SetShaderParameter("wind_anteil", art.WindAnteil);
-        m.SetShaderParameter("wellen_vielfalt", art.Vielfalt);
-        m.SetShaderParameter("extra_wellen", art.ExtraWellen);
-        var d = r.Rotated(-1.1f);
-        var e = r.Rotated(2.0f);
-        m.SetShaderParameter("wave_d", new Vector4(d.X, d.Y, 0.22f, 6.3f));
-        m.SetShaderParameter("wave_e", new Vector4(e.X, e.Y, 0.16f, 2.3f));
+        WellenSetzen(m, art, r, lauf, fliesst, netzAbstand, saat);
         // Ein Fluss rechnet die Strömung in seinen Laufachsen (quer, längs): (0, Tempo); sonst in Weltachsen
-        m.SetShaderParameter("lauf_netz", lauf ? 1f : 0f);
         m.SetShaderParameter("stroemung", lauf ? new Vector2(0, tempo ?? art.Stroemung) : r * (tempo ?? art.Stroemung));
-        m.SetShaderParameter("netz_abstand", netzAbstand);
-        // Drei Wellen aus leicht verschiedenen Richtungen (im Fluss enger um die Laufrichtung, sonst weiter), damit kein Waschbrett entsteht
-        var faecher = fliesst ? 0.5f : 0.9f;
-        var b = r.Rotated(faecher);
-        var c = r.Rotated(-faecher * 0.7f);
-        m.SetShaderParameter("wave_a", new Vector4(r.X, r.Y, 0.35f, 3f));
-        m.SetShaderParameter("wave_b", new Vector4(b.X, b.Y, 0.30f, 1.55f));
-        m.SetShaderParameter("wave_c", new Vector4(c.X, c.Y, 0.25f, 0.9f));
         m.SetShaderParameter("ruhe_drift", fliesst ? new Vector2(0.01f, 0.01f) : new Vector2(0.05f, 0.04f));
         m.SetShaderParameter("color_shallow", art.Flach);
         m.SetShaderParameter("color_deep", art.Tief);
@@ -257,10 +246,52 @@ public static class Wasserarten
         m.SetShaderParameter("eis_reichweite", art.Eis == Eisregel.Nie ? 0f : art.EisReichweite);
         m.SetShaderParameter("eis", EisFortschritt(art, winter));
         m.SetShaderParameter("winter_ton", WinterTon(winter));
-        m.SetShaderParameter("schollen", art.Schollen);
         m.SetShaderParameter("eis_still", EisFortschritt(Hafenbecken, winter));
+        m.SetShaderParameter("rand_unruhe", art.Eis == Eisregel.Voll ? 0.5f : 1f);
+        // Wo das Eis vor dem Ufer unregelmäßig aufhört (dort liegt der Grund, keine gerade Naht): am Fluss und See bis 1,3 m, am Bach und Teich
+        // nach der Größe, am Hafenbecken nicht (das Eis friert an die Kaimauer)
+        m.SetShaderParameter("ufer_saum", art.Name == Hafenbecken.Name ? 0f : art.Eis == Eisregel.Voll ? Mathf.Clamp(art.EisReichweite * 0.15f, 0.25f, 1f) : 1.3f);
         m.SetShaderParameter("still_reichweite", Hafenbecken.EisReichweite);
         m.SetShaderParameter("ufer_im_netz", uferImNetz ? 1f : 0f);
+    }
+
+    /// <summary>
+    /// Die Wellen einer Art (<c>wasser_wellen.gdshaderinc</c>) – für die Wasserfläche und für die Eisschollen darauf (<see cref="Schollenfeld"/>), damit
+    /// beide dieselbe Fläche sehen. <paramref name="richtung"/>: Laufrichtung (Einheitsvektor, Welt); bei <paramref name="lauf"/> rechnen die Wellen in
+    /// den Laufachsen des Flusses, die Hauptrichtung ist dann längs (0, 1) – sie folgt den Kurven. <paramref name="saat"/>: Startwert je Gewässer.
+    /// </summary>
+    public static void WellenSetzen(ShaderMaterial m, Wasserart art, Vector2 richtung, bool lauf, bool fliesst, float netzAbstand, float saat)
+    {
+        var r = lauf ? new Vector2(0, 1) : richtung;
+        m.SetShaderParameter("wellen_staerke", art.WellenStaerke);
+        m.SetShaderParameter("wellen_laenge", art.WellenLaenge);
+        m.SetShaderParameter("wind_anteil", art.WindAnteil);
+        m.SetShaderParameter("wellen_vielfalt", art.Vielfalt);
+        m.SetShaderParameter("vielfalt_skala", art.VielfaltSkala);
+        m.SetShaderParameter("wellen_saat", saat);
+        m.SetShaderParameter("wind_hoehe", art.WindHoehe);
+        m.SetShaderParameter("extra_wellen", art.ExtraWellen);
+        m.SetShaderParameter("lauf_netz", lauf ? 1f : 0f);
+        m.SetShaderParameter("netz_abstand", netzAbstand);
+        var d = r.Rotated(-1.1f);
+        var e = r.Rotated(2.0f);
+        m.SetShaderParameter("wave_d", new Vector4(d.X, d.Y, 0.22f, 6.3f));
+        m.SetShaderParameter("wave_e", new Vector4(e.X, e.Y, 0.16f, 2.3f));
+        // Drei Wellen aus leicht verschiedenen Richtungen (im Fluss enger um die Laufrichtung, sonst weiter), damit kein Waschbrett entsteht
+        var faecher = fliesst ? 0.5f : 0.9f;
+        var b = r.Rotated(faecher);
+        var c = r.Rotated(-faecher * 0.7f);
+        m.SetShaderParameter("wave_a", new Vector4(r.X, r.Y, 0.35f, 3f));
+        m.SetShaderParameter("wave_b", new Vector4(b.X, b.Y, 0.30f, 1.55f));
+        m.SetShaderParameter("wave_c", new Vector4(c.X, c.Y, 0.25f, 0.9f));
+    }
+
+    /// <summary>Startwert der Wellen eines Gewässers aus seinem Namen in der Karte (fest: gleiche Karte, gleiche Abschnitte), 0–100.</summary>
+    public static float Saat(string name)
+    {
+        var h = 2166136261u;
+        foreach (var z in name) h = (h ^ z) * 16777619u;
+        return h % 10000 / 100f;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -336,6 +367,7 @@ public static class Wasserarten
     /// übersetzt, wo das Wasser zuerst zu sehen ist). Baut unter <paramref name="eltern"/> ein kleines unsichtbares Bild (eigener
     /// <see cref="SubViewport"/> mit eigener Welt, 64 × 64) mit je einem Stück Wasser der Stufe (bzw. aller Stufen), lässt es einige Bilder lang
     /// zeichnen, entfernt es wieder und meldet die Zeit im Log. Schaden kann es nicht: Ist das Wasser schon übersetzt, kostet es nur diese Bilder.
+    /// Die Eisschollen (<see cref="Schollenfeld"/>) der Stufe werden mit übersetzt.
     /// </summary>
     /// <param name="eltern">Ein Knoten im Baum (z. B. der Ladebildschirm selbst).</param>
     /// <param name="alleStufen">true: alle drei Shader (Niedrig, Mittel, Hoch/Ultra), etwa wenn der Spieler die Stufe gleich wechseln könnte.</param>
@@ -363,6 +395,23 @@ public static class Wasserarten
                 Mesh = new PlaneMesh { Size = new Vector2(1, 1) }, MaterialOverride = stoff, Position = new Vector3(i * 0.3f - 0.3f, 0, 0),
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             });
+        }
+        // dazu die Eisschollen (Phase 3c) der Stufe: eine Scholle im MultiMesh, damit genau diese Fassung des Shaders übersetzt wird
+        foreach (var stufe in stufen)
+        {
+            var schollen = new ShaderMaterial
+            {
+                Shader = GD.Load<Shader>(stufe >= Wasserstufe.Hoch ? "res://assets/shader/eis_scholle.gdshader" : "res://assets/shader/eis_scholle_einfach.gdshader"),
+            };
+            var mm = new MultiMesh
+            {
+                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, UseCustomData = true,
+                Mesh = Schollenfeld.ScheibenNetz(24, fein: true), InstanceCount = 1,
+            };
+            mm.SetInstanceTransform(0, new Transform3D(Basis.Identity.Scaled(Vector3.One * 0.2f), Vector3.Zero));
+            mm.SetInstanceColor(0, new Color(1, 0.2f, 0, 0));
+            mm.SetInstanceCustomData(0, new Color(0, 0, 0, 1));
+            bild.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = schollen, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         }
         eltern.AddChild(bild);
         var baum = eltern.GetTree();
