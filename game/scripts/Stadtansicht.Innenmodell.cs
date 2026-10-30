@@ -359,6 +359,7 @@ public partial class Stadtansicht
         md.Kundenplaetze.Sort((x, y) => x.Art != y.Art ? x.Art.CompareTo(y.Art) : x.Reihe.CompareTo(y.Reihe));
         DampfAnlegen(wurzel, md);
         InnenFlammenAnlegen(md, wurzel, datei, dauerfeuer); // Kerzen und Esse mit echter Flamme (Stadtansicht.Feuer.cs)
+        GiFensterGewichten(md.Lichter.Where(l => l.Art == LichtArt.Fenster).Select(l => l.Licht)); // viele Fenster in einem Raum: jedes trägt weniger zu SDFGI bei (Stadtansicht.GlobaleBeleuchtung.cs)
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke, Dampf und Flammen
 

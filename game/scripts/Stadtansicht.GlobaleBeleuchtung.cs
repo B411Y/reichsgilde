@@ -127,7 +127,8 @@ public partial class Stadtansicht
     //     Es hellt Wände, Boden und Decke auf, und was sie zurückwerfen, ist das weiche Licht mit dunkleren Ecken und Nischen.
     //  3. Zwillinge der Raumlichter (GiZwillingAnlegen): Die Fensterlichter der Modelle sitzen in der Wand, Glut und Laterne in ihrem Körper – SDFGI fände
     //     den Weg zu ihnen verdeckt. Ein Zwilling davor (Fenster, 0,6 m, weiter und breiter), darüber (Glut) oder darunter (Laterne) bringt ihr Licht hinein;
-    //     das Tageslicht der Fenster stark (FensterGi), die Glut gedämpft (GlutGi), damit die Esse den Raum nicht rot färbt, aber warm bleibt.
+    //     das Tageslicht der Fenster stark (FensterGi, bei mehr als vier Fenstern im Raum geteilt), die Glut gedämpft (GlutGi), damit die Esse den Raum
+    //     nicht rot färbt, aber warm bleibt.
     //  4. Leuchtende Flächen (Glut, Fensterscheiben) trägt Godot nur beim Anlegen des Feldes ein: Der Raum legt es neu an, wenn die Glut an- oder ausgeht und
     //     wenn sich das Tageslicht merklich geändert hat (GiRaumNeuAnlegen).
     // Messung und Bilder: docs/bereiche/darstellung.md („Globale Beleuchtung SDFGI: Innenräume und Außenansicht“), Startoption --givergleich.
@@ -190,10 +191,12 @@ public partial class Stadtansicht
     private void GiRaumlichtNachfuehren(float hell)
     {
         if (_giFuelllicht is null) return;
-        if (_raumUmgebung.SdfgiEnabled != _giZwillingeAn)
+        var raumKennung = _raumUmgebung.SdfgiEnabled ? _raum?.Kennung : null;
+        if (raumKennung != _giZwillingeRaum) // nur die Zwillinge des gezeigten Raums: jedes Licht kostet SDFGI Rechenzeit in jeder Kaskade, die es erreicht
         {
-            _giZwillingeAn = _raumUmgebung.SdfgiEnabled;
-            foreach (var zwilling in _giZwillinge) zwilling.Visible = _giZwillingeAn;
+            _giZwillingeRaum = raumKennung;
+            foreach (var zwilling in _giZwillinge)
+                zwilling.Visible = raumKennung is not null && zwilling.GetMeta(GiRaumMeta, "").AsString() is var r && (r == "" || r == raumKennung);
         }
         var an = _raum is not null && _raumUmgebung.SdfgiEnabled;
         if (_giFuelllicht.Visible != an)
@@ -215,9 +218,13 @@ public partial class Stadtansicht
     /// <summary>Glut und Laterne: Versatz des Zwillings in Weltrichtung (senkrecht, egal wie der Anker im Modell gedreht ist).</summary>
     private const string GiVersatzMeta = "gi_versatz";
 
-    /// <summary>Alle Zwillinge der Raumlichter (nur für SDFGI), damit sie mit der Einstellung an- und ausgehen.</summary>
+    /// <summary>Raum eines Zwillings (Kennung wie <c>raum:werk</c>, leer: unter keinem Raumknoten): Er leuchtet nur, solange dieser Raum gezeigt wird.</summary>
+    private const string GiRaumMeta = "gi_raum";
+
+    /// <summary>Alle Zwillinge der Raumlichter (nur für SDFGI), damit sie mit der Einstellung und dem gezeigten Raum an- und ausgehen.</summary>
     private readonly List<Light3D> _giZwillinge = new();
-    private bool _giZwillingeAn;
+    /// <summary>Der Raum, dessen Zwillinge gerade leuchten (null: keiner, SDFGI aus oder Stadt).</summary>
+    private string? _giZwillingeRaum;
 
     /// <summary>
     /// Die Lichter der Raummodelle (<c>Licht_&lt;n&gt;</c>) sitzen in der Wand (Fenster), in der Glut oder in der Laterne. SDFGI prüft für jede Zelle, ob
@@ -236,11 +243,30 @@ public partial class Stadtansicht
         zwilling.LightSpecular = 0;
         zwilling.LightColor = licht.LightColor;
         zwilling.LightIndirectEnergy = art switch { LichtArt.Glut => GlutGi, LichtArt.Lampe => LampeGi, _ => FensterGi };
-        zwilling.Visible = _giZwillingeAn;
+        zwilling.Visible = false; // an, sobald sein Raum mit SDFGI gezeigt wird (GiRaumlichtNachfuehren)
         zwilling.SetMeta(NurGiMeta, true);
+        zwilling.SetMeta(GiRaumMeta, RaumSchluesselVon(licht) is { Length: > 0 } schluessel ? RaumKennungVon(schluessel) : "");
         if (art != LichtArt.Fenster) zwilling.SetMeta(GiVersatzMeta, new Vector3(0, art == LichtArt.Glut ? GlutGiVersatz : -GlutGiVersatz, 0));
         licht.AddChild(zwilling);
         _giZwillinge.Add(zwilling);
+    }
+
+    /// <summary>
+    /// So viele Fenster eines Raums tragen voll bei; hat er mehr, teilen sie sich diesen Anteil. Das Kirchenschiff des Predigers hat neun Fensterlichter
+    /// und wurde mit vollem Anteil am Tag 16 % heller als ohne SDFGI (Ziel höchstens 10 %); die Werkstätten haben zwei bis vier.
+    /// </summary>
+    private const int FensterGiHoechstens = 4;
+
+    /// <summary>Nach dem Laden eines Raummodells: Je Raum (<c>Raum_&lt;Schlüssel&gt;</c>) tragen die Fenster zusammen höchstens so viel bei wie <see cref="FensterGiHoechstens"/> einzelne.</summary>
+    private static void GiFensterGewichten(IEnumerable<Light3D> fensterlichter)
+    {
+        foreach (var raum in fensterlichter.GroupBy(RaumSchluesselVon))
+        {
+            var anteil = FensterGi * Mathf.Min(1f, FensterGiHoechstens / (float)raum.Count());
+            foreach (var licht in raum)
+                foreach (var kind in licht.GetChildren())
+                    if (kind is Light3D zwilling && zwilling.HasMeta(NurGiMeta)) zwilling.LightIndirectEnergy = anteil;
+        }
     }
 
     /// <summary>Der Zwilling leuchtet so stark wie sein Licht (Tageszeit, Arbeit); sein Anteil an SDFGI steht in <c>LightIndirectEnergy</c>.</summary>
