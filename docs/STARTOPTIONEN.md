@@ -86,6 +86,7 @@ Startoptionen (nach `--`):
 - `--dunst=<Aus|Niedrig|Hoch>`
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
+- `--naesse=<0–1>` (Nässe von Boden, Dächern und Wänden fest auf diesem Wert, egal welches Wetter, nur Darstellung; z. B. `--wetter=klar --naesse=0.9` für Sonne nach dem Regen, `0.5` für fleckig abtrocknende Dächer)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
 - `--lichtuhr=<Stunde>` (Licht, Himmel, Fenster und Nachtlichter zeigen diese feste Uhrzeit, mit Bruchteil: `3.5` = 3:30 Uhr, auch vor 4 Uhr; nur Darstellung, die Spielzeit läuft weiter; mit `--jahreszeit` wählt man die Sonnenzeiten)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
