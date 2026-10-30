@@ -597,7 +597,9 @@ void fragment() {
 	// Eis spiegelt und leuchtet wie die Schollen (eis_material.gdshaderinc)
 	EMISSION = mix(EMISSION, eis_leuchten, eismaske);
 	NORMAL_MAP = normalmap;
-	NORMAL_MAP_DEPTH = mix(normal_tiefe * (1.0 + sturm * 0.6), 1.0, eismaske);
+	// Tangente und Binormale sind so lang wie die Summe der Wellenzüge (3 bzw. 5): Für das Relief des Eises gleicht die Tiefe das aus, damit es so
+	// stark geneigt ist wie auf den Schollen (sonst fünffach: das Eis wirkte fleckig und dunkler als die Schollen daneben)
+	NORMAL_MAP_DEPTH = mix(normal_tiefe * (1.0 + sturm * 0.6), 0.8 / max(length(vertex_tangent), 1.0), eismaske);
 #ifdef MIT_EIS
 	BACKLIGHT = eis_durch * eismaske;
 #endif
