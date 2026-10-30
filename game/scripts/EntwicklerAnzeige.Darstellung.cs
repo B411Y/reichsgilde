@@ -106,10 +106,11 @@ public sealed partial class EntwicklerAnzeige
 
     /// <summary>
     /// Gleicht die Schalter dieses Reiters mit dem tatsächlichen Stand ab (Wetter und Jahreszeit, Dunst, Nebel, Unschärfe, Hilfsanzeigen; auch wenn
-    /// sie anderswo geändert wurden), beim Öffnen und zweimal je Sekunde.
+    /// sie anderswo geändert wurden), beim Öffnen und zweimal je Sekunde. Nur wenn der Reiter fertig gebaut ist.
     /// </summary>
     private void DarstellungAuffrischen()
     {
+        if (!_darstellungFertig || _stadt is null) return;
         foreach (var (lage, knopf) in _wetterKnoepfe) knopf.SetPressedNoSignal(lage == _stadt.WetterErzwungen);
         foreach (var (zeit, knopf) in _zeitKnoepfe) knopf.SetPressedNoSignal(zeit == _stadt.JahreszeitErzwungen);
         if (_dunst.Selected != (int)Fenster.AktuellerDunst) _dunst.Select((int)Fenster.AktuellerDunst);
@@ -121,7 +122,6 @@ public sealed partial class EntwicklerAnzeige
         _nebelHeute.Text = $"heute {heute:0.00} ({grund})";
         if (_wegenetz.ButtonPressed != _stadt.WegenetzSichtbar) _wegenetz.SetPressedNoSignal(_stadt.WegenetzSichtbar);
         if (_bauzonen.ButtonPressed != _stadt.BauzonenHilfe) _bauzonen.SetPressedNoSignal(_stadt.BauzonenHilfe);
-        if (_reiter.CurrentTab == _messwerteNummer) MesswerteAuffrischen();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -159,14 +159,14 @@ public sealed partial class EntwicklerAnzeige
 
     private void KiAuffrischen()
     {
-        if (_sim?.Wirtschaft is not { } w) return;
+        if (!_messwerteFertig || _sim?.Wirtschaft is not { } w) return;
         var einblicke = KiEinblick.Alle(w);
         _ki.Text = einblicke.Count == 0 ? "In dieser Partie gibt es keine KI-Häuser." : string.Join("\n\n", einblicke.Select(e => string.Join("\n", e.Zeilen)));
     }
 
     private void MesswerteAuffrischen()
     {
-        if (_sim is null) return;
+        if (!_messwerteFertig || _sim is null) return;
         _seitLichter += 0.5;
         if (_seitLichter >= 2) // der ganze Szenenbaum: nur alle zwei Sekunden
         {
