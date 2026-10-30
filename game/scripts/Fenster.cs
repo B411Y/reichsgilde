@@ -83,7 +83,9 @@ public partial class Fenster : Node
         var verdeckung = geladen ? einstellungen.GetValue("anzeige", "ssao", "").AsString() : "";
         UmgebungsverdeckungSetzen(Enum.TryParse<Umgebungsverdeckung>(verdeckung, out var v) ? v : StandardUmgebungsverdeckung, speichern: false);
         IndirektesLichtSetzen(geladen && einstellungen.GetValue("anzeige", "ssil", false).AsBool(), speichern: false);
-        // Ohne den Schlüssel (Dateien vor dem Versuch SDFGI, 30.10.2026): aus.
+        // Ohne den Schlüssel (Dateien vor dem Versuch SDFGI, 30.10.2026): aus; die Unterschalter ohne Schlüssel: Innenräume an, Außenansicht aus.
+        GlobaleBeleuchtungInnen = !geladen || einstellungen.GetValue("anzeige", "sdfgi_innen", true).AsBool();
+        GlobaleBeleuchtungAussen = geladen && einstellungen.GetValue("anzeige", "sdfgi_aussen", false).AsBool();
         var gi = geladen ? einstellungen.GetValue("anzeige", "sdfgi", "").AsString() : "";
         GlobaleBeleuchtungSetzen(Enum.TryParse<GlobaleBeleuchtung>(gi, out var g) ? g : GlobaleBeleuchtung.Aus, speichern: false);
         FsrSetzen(geladen && einstellungen.GetValue("anzeige", "fsr", false).AsBool(),
@@ -247,6 +249,38 @@ public partial class Fenster : Node
         Stadtansicht.GlobaleBeleuchtungGueteSetzen(stufe);
         VerdeckungGeaendert?.Invoke();
         if (speichern) Speichern("sdfgi", stufe.ToString());
+    }
+
+    /// <summary>
+    /// Unterschalter „Innenräume“ (Entscheidung des Nutzers 30.10.2026): Gilt die globale Beleuchtung in der Raumansicht (Werkstätten, Wohnhaus, Rathaus)?
+    /// Ohne gespeicherte Wahl an – dort wirkt SDFGI sichtbar. Zählt nur, solange die Stufe nicht Aus ist.
+    /// </summary>
+    public static bool GlobaleBeleuchtungInnen { get; private set; } = true;
+
+    /// <summary>
+    /// Unterschalter „Außenansicht – experimentell“: Gilt die globale Beleuchtung auch in der Stadt (und im Diorama des Doms)? Ohne gespeicherte Wahl aus:
+    /// Die Stadtkamera steht weit über der Stadt, SDFGI rechnet dort nur in groben Feldern und kostet trotzdem Leistung (Stadtansicht.GlobaleBeleuchtung.cs).
+    /// </summary>
+    public static bool GlobaleBeleuchtungAussen { get; private set; }
+
+    /// <summary>Wirkt die globale Beleuchtung in dieser Ansicht? Stufe nicht Aus, Forward+ und der Unterschalter der Ansicht an (<paramref name="raum"/>: Raumansicht, sonst Stadt).</summary>
+    public static bool GlobaleBeleuchtungWirkt(bool raum) =>
+        AktuelleGlobaleBeleuchtung != GlobaleBeleuchtung.Aus && GlobaleBeleuchtungMoeglich && (raum ? GlobaleBeleuchtungInnen : GlobaleBeleuchtungAussen);
+
+    /// <summary>Schaltet die globale Beleuchtung in den Räumen an oder aus (Unterschalter „Innenräume“); wirkt sofort, auch im gerade gezeigten Raum.</summary>
+    public static void GlobaleBeleuchtungInnenSetzen(bool an, bool speichern = true)
+    {
+        GlobaleBeleuchtungInnen = an;
+        VerdeckungGeaendert?.Invoke();
+        if (speichern) Speichern("sdfgi_innen", an);
+    }
+
+    /// <summary>Schaltet die globale Beleuchtung in der Stadt an oder aus (Unterschalter „Außenansicht – experimentell“); wirkt sofort.</summary>
+    public static void GlobaleBeleuchtungAussenSetzen(bool an, bool speichern = true)
+    {
+        GlobaleBeleuchtungAussen = an;
+        VerdeckungGeaendert?.Invoke();
+        if (speichern) Speichern("sdfgi_aussen", an);
     }
 
     private static void VerdeckungGueteSetzen()

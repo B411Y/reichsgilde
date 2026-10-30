@@ -686,7 +686,9 @@ public partial class Fenster
                         Zahl("bloomstaerke", out var bloomStaerke) ? bloomStaerke : BloomStaerke, speichern: false);
         if (Art<Umgebungsverdeckung>("ssao", out var ssao)) UmgebungsverdeckungSetzen(ssao, speichern: false);
         if (optionen.TryGetValue("ssil", out var ssil)) IndirektesLichtSetzen(An(ssil), speichern: false);
-        // --sdfgi=0..3 (Aus, Niedrig, Mittel, Hoch) oder der Name der Stufe
+        // --sdfgi=0..3 (Aus, Niedrig, Mittel, Hoch) oder der Name der Stufe; die Unterschalter mit --sdfgi-innen=0|1 und --sdfgi-aussen=0|1
+        if (optionen.TryGetValue("sdfgi-innen", out var giInnen)) GlobaleBeleuchtungInnenSetzen(An(giInnen), speichern: false);
+        if (optionen.TryGetValue("sdfgi-aussen", out var giAussen)) GlobaleBeleuchtungAussenSetzen(An(giAussen), speichern: false);
         if (optionen.TryGetValue("sdfgi", out var sdfgi) && Enum.TryParse<GlobaleBeleuchtung>(sdfgi, true, out var gi) && Enum.IsDefined(gi))
             GlobaleBeleuchtungSetzen(gi, speichern: false);
         if (optionen.ContainsKey("fsr") || optionen.ContainsKey("renderaufloesung")) // ebenso
