@@ -192,12 +192,12 @@ neu ist eine Nachbearbeitung je Strähne (`nach`: Haarrolle, Locken), Zöpfe ent
 | f05 | Schnecken (`schnecken`) | glatt zu den Ohren; je Seite eine flache Spirale (etwa 8–9 cm) über dem Ohr |
 | f06 | Zopfschlaufen (`zopfschlaufen`) | je Seite ein Zopf von der Schläfe vor dem Ohr bis Kieferhöhe, dann nach hinten zu einem flachen Knoten im Nacken |
 | f07 | Nackenknoten (`frau_knoten`) | wie Phase 4 |
-| f08 | Crespine (`haarnetz`) | Mittelscheitel; das Haar an jeder Seite über Schläfe und Ohr zu einem Polster (Ø 5,4 cm, 8,5 cm hoch) gelegt; darüber ein Rautennetz aus Goldschnur (Maschen etwa 1 cm) mit Perlen an den Kreuzungen; ein schmales Goldband (Fillet) über den Scheitel. Netz und Perlen sind eigene TressFX-Teile (`haarnetz_netz`, `haarnetz_perlen`) mit fester Farbe |
+| f08 | Crespine (`haarnetz`) | Mittelscheitel; das Haar an jeder Seite über Schläfe und Ohr zu einem Polster (Ø 5,4 cm, 8,5 cm hoch) gelegt; darüber ein Rautennetz aus Goldschnur (Maschen etwa 1 cm) mit Perlen an den Kreuzungen (je drei kleine Schlaufen); ein schmales Goldband (Fillet, acht Schnüre) über den Scheitel. Netz und Perlen sind eigene TressFX-Teile (`haarnetz_netz`, `haarnetz_perlen`) mit fester Farbe |
 | f09 | hohe Stirn (`hohe_stirn`) | Haaransatz vorn 3,5 cm höher (ausgezupft), ohne Scheitel straff zurück zu einem Knoten am oberen Hinterkopf |
 | f10 | krause Locken (`krause_locken`) | lang bis unter die Schultern, Volumen, Schraubenlocken (Wellenlänge 4,5 cm, 64 Punkte je Strähne) |
 | b01 | rasiert | keine Strähnen (Bartschatten der Haut) |
 | b02 | Stoppeln (`stoppeln`) | 9 000 Strähnen, 2–3 mm (kürzere verwirft das Kämmen), wo ein Vollbart wächst; feine Fasern (0,11 mm), ein Folgehaar |
-| b03 | kurzer Vollbart (`vollbart`) | etwa 1 cm (Kinn 1,3 cm), dicht, Schnurrbart verbunden |
+| b03 | kurzer Vollbart (`vollbart`) | etwa 1 cm (Kinn 1,3 cm), dicht, Schnurrbart verbunden; saubere Linie 1,2 cm unter dem Kinn, Hals rasiert |
 | b04 | langer Vollbart (`langbart`) | bis zur Brust (Kinn 25 cm), voller Schnurrbart, gerade, leicht wellig, unten schmaler; 32 Punkte je Strähne |
 | b05 | Gabelbart (`gabelbart`) | unter dem Kinn gescheitelt, zwei Spitzen 7 cm auseinander, bis 15 cm unter das Kinn; 32 Punkte je Strähne |
 | b06 | Kinnbart (`spitzbart`) | nur am Kinn, schmal, 3,5–5 cm, spitz |

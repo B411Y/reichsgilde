@@ -328,7 +328,7 @@ class Tonsur(Stil):
     def ende(self, q, s, w):
         h, M = self.h, self.M
         z = _schnitt(h, q, [(0, h.brauen_oben + 0.024 * M), (60, h.auge_z + 0.016 * M), (90, h.ohr_z + 0.016 * M),
-                            (180, h.ohr_z - 0.01 * M)])
+                            (130, h.ohr_z - 0.03 * M), (180, h.ohr_z - 0.06 * M)])
         return q[2] < z
 
 
@@ -372,8 +372,10 @@ class Kranz(Stil):
         return h.kopfhaut(q, ohr_frei=(0.016, 0.024)) * glatt(h.rang(q), 0.42, 0.6)
 
     def kamm(self, q, n, s, w):
+        # hinten ohne Seitenzug (kein Scheitel bis in den Nacken)
         sx = 1.0 if w[0] >= 0 else -1.0
-        return _norm(Vector((0.35 * sx, 0.25, -1.0)))
+        hinten = glatt(w[1] - self.h.kopfmitte[1], 0.0, 0.04 * self.M)
+        return _norm(Vector((0.35 * sx * (1 - hinten), 0.25, -1.0)))
 
     def schwere(self, s, w):
         return 1.0 * glatt(s, 0.01, 0.06)
@@ -670,7 +672,7 @@ class Haarnetz(_Hochgesteckt):
             stuetz = [a + np.array([0, versatz, 0.04 * M]), np.array([0.06 * M, top[1] + versatz, top[2] - 0.025 * M]),
                       top + np.array([0, versatz, 0]), np.array([-0.06 * M, top[1] + versatz, top[2] - 0.025 * M]),
                       b + np.array([0, versatz, 0.04 * M])]
-            band.append(umtasten(bahn_auf_kopf(h, stuetz, M, abstand=0.0035, n=120, glaetten=3), 32))
+            band.append(umtasten(bahn_auf_kopf(h, stuetz, M, abstand=0.0085, n=120, glaetten=3), 32))   # auf dem Haar
         netz = np.concatenate(netz + [np.array(band)])
         return [("zusatz", np.concatenate(haar), "knoten"), ("netz", netz, "netz"),
                 ("perlen", perlen(np.concatenate(kreuz), rng, r=0.0016 * M), "perlen")]
@@ -806,9 +808,12 @@ class KurzerVollbart(k4.Vollbart):
     volumen = (0.0008, 0.004)
 
     def dichte(self, q):
-        # Hals rasiert, saubere Linie unter dem Kiefer (sonst hängt der kurze Bart wie ein Vorhang unter den Kiefer)
+        # Hals rasiert, saubere Linie knapp unter dem Kiefer: Kinn- und Wangenzone reichen sonst 3–3,5 cm unter das Kinn
+        # (Unterseite des Kiefers), das wirkte in der ¾-Ansicht wie ein langer Bart
+        q = np.atleast_2d(q)
         f = self.flaechen(q)
-        return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"], f["wange"]]), 0, 1)
+        linie = glatt(q[:, 2] - (self.m68[8, 2] - 0.012 * self.M), 0.0, 0.005 * self.M)
+        return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"] * linie, f["wange"] * linie]), 0, 1)
 
     def kamm(self, q, n, s, w):
         if self.zone(w) == "hals":
