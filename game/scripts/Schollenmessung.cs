@@ -11,8 +11,8 @@ namespace Reichsgilde;
 /// <para>Zonen wie im Nachbau: <b>Brücke</b> = 30 m stromauf bis 6 m stromab der Pfeilerachse der Brücke, die dem Blickpunkt am nächsten liegt;
 /// <b>frei</b> = 80–150 m stromauf des Blickpunkts. „Groß“ heißt ein Ausgangshalbmesser ab 1,5 m. Ein <b>Sprung</b> ist eine Änderung des
 /// Scheintempos (aus der gezeichneten Lage) von einem Bild zum nächsten um mehr als 0,5 bzw. 1,5 m/s; nicht gezählt werden Bilder mit Umlauf,
-/// Neueinsetzen, Bruch, Tauchen oder einer Bildzeit über 0,1 s, „ohne Aufprall“ zusätzlich nicht die Bilder, in denen eine Scholle neu an ein
-/// Hindernis stößt (dort bremst sie wirklich hart).</para>
+/// Neueinsetzen, Bruch, Tauchen oder einem Ruckler (Bildzeit über 0,1 s und über dem 1,6-Fachen des Mittels, oder über 0,25 s), „ohne Aufprall“
+/// zusätzlich nicht die Bilder, in denen eine Scholle neu an ein Hindernis stößt (dort bremst sie wirklich hart).</para>
 /// </summary>
 public sealed class Schollenmessung
 {
@@ -26,8 +26,9 @@ public sealed class Schollenmessung
     public sealed class Daten
     {
         public int Plaetze;
-        /// <summary>Gezeichnete Lage (Laufachsen, m), Tempo (m/s), Drehtempo (rad/s), Ausgangshalbmesser (m).</summary>
-        public float[] S = Array.Empty<float>(), Q = Array.Empty<float>(), Vs = Array.Empty<float>(), Vq = Array.Empty<float>(), Om = Array.Empty<float>(), R0 = Array.Empty<float>();
+        /// <summary>Gezeichnete Lage (Laufachsen, m), Tempo (m/s), Drehtempo (rad/s), Ausgangshalbmesser und jetziger Halbmesser (m).</summary>
+        public float[] S = Array.Empty<float>(), Q = Array.Empty<float>(), Vs = Array.Empty<float>(), Vq = Array.Empty<float>(), Om = Array.Empty<float>(), R0 = Array.Empty<float>(),
+            R = Array.Empty<float>();
         public byte[] Zustand = Array.Empty<byte>(), Ereignis = Array.Empty<byte>();
         /// <summary>Stoßkreise: je Platz <see cref="KreisSchritt"/> Einträge (Mitte s, q und Halbmesser; Halbmesser 0 = keiner).</summary>
         public float[] KreisS = Array.Empty<float>(), KreisQ = Array.Empty<float>(), KreisR = Array.Empty<float>();
@@ -92,7 +93,7 @@ public sealed class Schollenmessung
     private long _dreherProben, _dreher, _spruenge05, _spruenge15, _ohneStoss05, _ohneStoss15, _sprungProben, _ohneStossProben;
     private float _sprungHoechst, _ohneStossHoechst;
     private long _stehendSumme, _bilder, _durch, _kontaktSumme, _bytesSumme, _bytesHoechst, _oben;
-    private double _messZeit, _uhr;
+    private double _messZeit, _uhr, _dtMittel;
     private int _bild;
 
     // Brücken (aus den festen Hindernissen): Achse (Stelle) und Lücken zwischen den Pfeilern (quer, mit den äußeren bis zur Eiskante)
@@ -196,13 +197,17 @@ public sealed class Schollenmessung
         var b = _bruecke;
         if (b >= 0) Array.Clear(_stehendVor[b]);
         var fdt = (float)dt;
-        var gueltig = dt > 1e-4 && dt <= 0.1;
+        // Ruckler nicht zählen: Bildzeit über 0,1 s und über dem 1,6-Fachen des gleitenden Mittels (auf einem langsamen Rechner liegt jedes Bild
+        // über 0,1 s) oder über 0,25 s
+        var gueltig = dt > 1e-4 && dt <= 0.25 && (dt <= 0.1 || dt <= 1.6 * _dtMittel);
+        _dtMittel = _dtMittel <= 0 ? dt : _dtMittel + (dt - _dtMittel) * 0.05;
         var (stehend, zahlZone) = (0, 0);
         var d = _d;
         for (var i = 0; i < d.Plaetze; i++)
         {
-            if (d.Zustand[i] == Aus)
+            if (d.Zustand[i] == Aus || (d.R.Length > 0 && d.R[i] < 0.06f))
             {
+                // nicht da oder zu klein, um gezeichnet zu werden
                 _alt[i] = 0;
                 continue;
             }
@@ -226,7 +231,7 @@ public sealed class Schollenmessung
                 if (zone == 1)
                 {
                     if (v2 < 0.1f * 0.1f) stehend++;
-                    _zone[zahlZone++] = i;
+                    if ((ereignis & EreignisTauchen) == 0) _zone[zahlZone++] = i; // tauchende stoßen nicht
                 }
             }
             // Scheintempo aus der gezeichneten Lage; Sprung = seine Änderung von Bild zu Bild
