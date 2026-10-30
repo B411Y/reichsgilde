@@ -113,7 +113,7 @@ void fragment() {
 	ALPHA = clamp((v_expanded - dist) / max(expand_pixels, 1e-3), 0.0, 1.0);
 	float ende = min(1.0, v_ende);
 	ALPHA *= smoothstep(ende, ende - tip_fade * ende, v_t);
-	AO = mix(1.0 - root_shadow, 1.0, v_t);
+	AO = mix(1.0 - root_shadow * (1.0 - 0.6 * grau), 1.0, v_t);
 	AO_LIGHT_AFFECT = 1.0;
 }
 

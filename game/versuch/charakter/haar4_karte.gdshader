@@ -68,8 +68,9 @@ void fragment() {
 	vec3 c = farbe * (0.78 + 0.44 * t.g);
 	c = mix(c, farbe_grau * (0.88 + 0.24 * t.g), step(fract(z * 2.37 + 0.11), grau));
 	// Ansatz dunkler, Spitzen heller; innere Lage dunkler
-	c *= mix(wurzel_dunkel, 1.0, smoothstep(0.0, 0.35, lage_karte)) * mix(1.0, 1.12, smoothstep(0.6, 1.0, t.b));
-	c *= mix(innen_dunkel, 1.0, info.b);
+	// graues Haar ist am Ansatz und innen kaum dunkler (sonst wirkt ein weißer Haarkranz wie ein dunkler Fleck)
+	c *= mix(mix(wurzel_dunkel, 0.9, grau), 1.0, smoothstep(0.0, 0.35, lage_karte)) * mix(1.0, 1.12, smoothstep(0.6, 1.0, t.b));
+	c *= mix(mix(innen_dunkel, 0.9, grau), 1.0, info.b);
 	ALBEDO = c;
 	ALPHA = a;
 	ALPHA_SCISSOR_THRESHOLD = schwelle;
