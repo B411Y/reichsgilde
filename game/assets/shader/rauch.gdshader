@@ -1,8 +1,10 @@
-// Rauch, Technik A (Phase 1 „Feuer und Flammen“, Feuer.cs): eine senkrechte Rauchsäule aus einer einzigen Fläche (Billboard um die Hochachse).
-// Das wandernde Rauschen (texturen/feuer/rauschen.png) steigt nach oben, die Säule wird mit der Höhe breiter, franst aus und löst sich auf;
-// der Wind (globale Uniforms wetter_wind, wind_richtung) biegt sie. Am Fuß leuchtet sie vom Feuer orange, weiter oben ist sie grau und folgt
-// dem Umgebungslicht („umgebung“: 0 Nacht … 1 Tag; Feuer.cs setzt es), nachts also dunkel. Ein Material je Feuerart, Startwert je Säule als
-// Instanz-Uniform `phase`. Mehrere Flächen mit verschiedenem Startwert ergeben eine dichtere Säule.
+// Rauch (Feuer.cs; seit Phase 2 der einzige Rauch, für alle Feuer und Grafikstufen): eine senkrechte Rauchsäule aus einer einzigen Fläche, die
+// der Kamera folgt. Das wandernde Rauschen (texturen/feuer/rauschen.png) steigt nach oben, die Säule wird mit der Höhe breiter, franst aus und
+// löst sich auf; der Wind (globale Uniforms wetter_wind, wind_richtung) biegt sie. Am Fuß leuchtet sie vom Feuer orange, weiter oben ist sie grau
+// und folgt dem Umgebungslicht („umgebung“: 0 Nacht … 1 Tag; Feuer.cs setzt es). Nachts wird sie nicht schwarz, sondern bleibt ein mattes,
+// kühles Grau wie Rauch im Mondlicht (sonst verschwände der Kaminrauch nachts ganz). Ein Material je Feuerart, Startwert je Säule als
+// Instanz-Uniform `phase`, wie stark sie qualmt als `staerke` (Kamin an oder aus). Mehrere Flächen mit verschiedenem Startwert ergeben eine
+// dichtere Säule.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled;
 
@@ -29,7 +31,10 @@ uniform float glut = 0.5;
 uniform vec3 glut_farbe : source_color = vec3(1.0, 0.45, 0.1);
 // Wie hoch das Feuer den Fuß der Säule anleuchtet, in Anteilen ihrer Höhe (Feuer.cs: etwa 1,5 m)
 uniform float glut_zone = 0.3;
+// Nachts: so hell bleibt der Rauch im Mondlicht (Grau ohne Ruß; Ruß macht ihn auch nachts dunkler)
+uniform vec3 mond_farbe : source_color = vec3(0.30, 0.33, 0.40);
 instance uniform float phase = 0.0;
+instance uniform float staerke = 1.0;
 
 varying float neigung;
 varying flat uint saat;
@@ -74,12 +79,13 @@ void fragment() {
 	vec3 hell = vec3(0.70, 0.70, 0.72);
 	vec3 dunkel = vec3(0.02, 0.02, 0.022);
 	vec3 grau = mix(hell, dunkel, russ) * (0.75 + 0.5 * n2);
-	// Nachts ist der Rauch kaum zu sehen und dunkel; ein Rest bleibt, damit man die Säule im Feuerschein erkennt
-	grau *= 0.07 + 0.93 * umgebung;
+	// Nachts dunkler und kühler, aber nie schwarz: matt im Mondlicht, Ruß bleibt auch nachts dunkler
+	vec3 nacht = mond_farbe * mix(1.0, 0.25, russ) * (0.75 + 0.5 * n2);
+	grau = mix(nacht, grau, umgebung);
 	// Am Fuß vom Feuer angeleuchtet
 	float anteil = glut * (1.0 - smoothstep(0.0, glut_zone, h)) * (1.0 - 0.6 * umgebung);
 	vec3 farbe = mix(grau, glut_farbe, anteil * 0.8);
 
 	ALBEDO = farbe;
-	ALPHA = clamp(deckung * dichte, 0.0, 0.95);
+	ALPHA = clamp(deckung * dichte * staerke, 0.0, 0.95);
 }

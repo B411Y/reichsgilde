@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://scripts/Feuer.cs" id="1_feuer"]
 
-[node name="FeuerPartikel" type="Node3D"]
+[node name="Feuer" type="Node3D"]
 script = ExtResource("1_feuer")
 Vorgabe = 1
-Technik = 1

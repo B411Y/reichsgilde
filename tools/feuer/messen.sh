@@ -1,17 +1,18 @@
 #!/bin/bash
-# Messung der Bildrate in der Feuer-Testszene (Phase 1, docs/feuer/phase1.md): startet das Spiel mit --feuertest=1 auf einem virtuellen
+# Messung der Bildrate in der Feuer-Testszene (docs/feuer/phase1.md, phase2.md): startet das Spiel mit --feuertest=1 auf einem virtuellen
 # Bildschirm (Xvfb) mit Vulkan auf der Grafikkarte, wartet, bis die Szene läuft, und mittelt die Zeilen „[feuer] fps=…“ des Protokolls.
 #
 # Aufruf:  WORKTREE=<projektordner> [DISPLAY_NR=77] [TREIBER=nvidia|vulkan|opengl3] [SEKUNDEN=20] [VORLAUF=4] \
 #          tools/feuer/messen.sh <name> <ausgabeordner> -- <godot-optionen>
-# Beispiel: DISPLAY_NR=77 tools/feuer/messen.sh stadt-A /tmp/m -- --feuertest=1 --feuersicht=stadt --feuerart=A --bildrate=0 --vsync=Aus
+# Beispiel: DISPLAY_NR=77 tools/feuer/messen.sh fackeln /tmp/m -- --feuertest=1 --feuerfackeln=50 --feuerzyklus=6 --bildrate=0 --vsync=Aus
 #
 # Die Ausgabe: eine Kopfzeile (Name und Last, loadavg 1 Minute, vor und nach der Messung), dann je Zustand eine Zeile: mittlere Bildrate (kleinste,
 # größte), die Zeit des Zeichners auf der Grafikkarte (ms je Bild ohne das Anzeigen im Fenster: Mittel, Median und unteres Zehntel – andere Prozesse
 # auf derselben Grafikkarte machen die Zeit nur länger, das untere Zehntel kommt der ungestörten Zeit am nächsten), im Hauptprozessor und die
-# Zeichenaufrufe. Ohne --feuerzyklus gibt es einen Zustand „-“. Mit --feuerzyklus=<s> wechselt die Szene selbst durch ohne Feuer, A, B (im Fackelraster
-# mit 0, 12 und allen Lichtern): SEKUNDEN = Zahl der Zustände · s · Durchläufe. Die Rechnerlast beeinflusst die Zahlen stark; im Zyklus treffen sie alle Zustände gleich.
-# Die ersten VORLAUF Sekunden der Szene zählen nicht (Shader und Partikel wärmen sich auf).
+# Zeichenaufrufe. Ohne --feuerzyklus gibt es einen Zustand „-“. Mit --feuerzyklus=<s> wechselt die Szene selbst durch ohne Feuer und mit Feuer (im
+# Fackelraster mit 0, 12 und allen Lichtern): SEKUNDEN = Zahl der Zustände · s · Durchläufe. Die Rechnerlast beeinflusst die Zahlen stark; im Zyklus
+# treffen sie alle Zustände gleich.
+# Die ersten VORLAUF Sekunden der Szene zählen nicht (die Shader wärmen sich auf).
 NAME=$1; OUT=$2; shift 3
 X=~/werkzeuge/xvfb
 WORKTREE=${WORKTREE:-$(cd "$(dirname "$0")/../.." && pwd)}

@@ -1,13 +1,11 @@
-// Flamme aus der Blender-Feuersimulation (Phase 1b „Feuer und Flammen“, Feuer.cs): ein Flipbook (texturen/feuer/flamme_ruhig.png oder
-// flamme_wild.png, 16 × 8 Bilder einer gebackenen Mantaflow-Simulation, erzeugt von tools/feuer/flammen_sim.py). Die Farbe ist vormultipliziert
-// (RGB = Leuchten, A = Deckung): darum blend_premul_alpha – wo die Flamme nur leuchtet, addiert sie Licht, wo sie dicht ist, deckt sie.
+// Flamme aus der Blender-Feuersimulation (Feuer.cs; seit Phase 2 die einzige Flamme, für alle Feuer und Grafikstufen): ein Flipbook
+// (texturen/feuer/flamme_ruhig.png oder flamme_wild.png, 16 × 8 Bilder einer gebackenen Mantaflow-Simulation, erzeugt von
+// tools/feuer/flammen_sim.py). Die Farbe ist vormultipliziert (RGB = Leuchten, A = Deckung): darum blend_premul_alpha – wo die Flamme nur
+// leuchtet, addiert sie Licht, wo sie dicht ist, deckt sie.
 //
-// Zwei Betriebsarten:
-//  * Fläche (Technik A, Fassung „Simulation“): je Zunge eine Fläche, die der Kamera folgt. Das Bild wählt der Shader aus der gemeinsamen Uhr
-//    (zeit · bildrate) und dem Startwert der Zunge; zwei aufeinanderfolgende Bilder werden überblendet, ein leichtes Wabern aus dem Rauschen
-//    verdeckt das Überblenden. Funken wie in flamme.gdshader. So billig wie die Rauschen-Flamme: eine Fläche, ein Zeichenaufruf je Zunge.
-//  * Partikel (Technik B): dieselbe Rechnung je Teilchen eines GPUParticles3D; Startbild und Spiegelung aus INSTANCE_CUSTOM.z (Zufall je
-//    Teilchen), Ein- und Ausblenden über die Farbe der Teilchen (COLOR, vom Farbverlauf des Partikelsystems).
+// Je Zunge eine Fläche, die der Kamera folgt. Das Bild wählt der Shader aus der gemeinsamen Uhr (zeit · bildrate) und dem Startwert der Zunge;
+// zwei aufeinanderfolgende Bilder werden überblendet, ein leichtes Wabern aus dem Rauschen verdeckt das Überblenden. Dazu auf Wunsch Funken:
+// kleine glühende Punkte, die steigen, seitlich abtreiben und verlöschen. Eine Fläche, ein Zeichenaufruf je Zunge, kein Partikelsystem.
 //
 // Die Fläche ist so groß wie ein Bild des Flipbooks; Feuer.cs rechnet die Größe aus den Kennwerten der Simulation (flamme_<variante>.json:
 // Höhe und Breite der Flamme im Bild, Lage des Fußes).
@@ -28,9 +26,7 @@ uniform float bilder = 128.0;
 uniform float bildrate = 30.0;
 // Bildpunkte eines Bildes (für den Rand, damit kein Nachbarbild durchscheint)
 uniform vec2 bild_pixel = vec2(128.0, 256.0);
-// true = Teilchen eines GPUParticles3D (Technik B), false = eine Fläche je Zunge (Technik A)
-uniform bool partikel = false;
-// Nur Fläche: 2 = ganz zur Kamera, 1 = senkrecht zur Kamera, 0 = fest
+// 2 = ganz zur Kamera, 1 = senkrecht zur Kamera, 0 = fest
 uniform int billboard = 2;
 // HDR-Helligkeit (über 1 erfasst der Bloom den Kern) und wie stark die Flamme deckt
 uniform float helligkeit = 1.8;
@@ -45,7 +41,7 @@ uniform float wind_neigung = 0.12;
 uniform float flamme_hoehe = 0.6;
 uniform float flamme_breite = 0.5;
 uniform float fuss = 0.06;
-// Funken (nur Fläche): Zahl (höchstens 12), Steighöhe in Flammenhöhen, Größe in Metern; groesse_m = Breite und Höhe der Flamme in Metern
+// Funken: Zahl (höchstens 12), Steighöhe in Flammenhöhen, Größe in Metern; groesse_m = Breite und Höhe der Flamme in Metern
 uniform int funken = 0;
 uniform float funken_hoehe = 2.5;
 uniform float funken_groesse = 0.012;
@@ -58,32 +54,20 @@ varying float neigung;
 varying flat uint saat;
 
 void vertex() {
-	if (partikel) {
-		// Wie das Billboard der Teilchen im StandardMaterial3D: zur Kamera gedreht, die Größe des Teilchens bleibt
-		mat4 welt = mat4(normalize(INV_VIEW_MATRIX[0]), normalize(INV_VIEW_MATRIX[1]), normalize(INV_VIEW_MATRIX[2]), MODEL_MATRIX[3]);
-		welt = welt * mat4(vec4(length(MODEL_MATRIX[0].xyz), 0.0, 0.0, 0.0), vec4(0.0, length(MODEL_MATRIX[1].xyz), 0.0, 0.0),
-			vec4(0.0, 0.0, length(MODEL_MATRIX[2].xyz), 0.0), vec4(0.0, 0.0, 0.0, 1.0));
-		MODELVIEW_MATRIX = VIEW_MATRIX * welt;
-		versatz = INSTANCE_CUSTOM.z;
-		spiegeln = step(0.5, fract(INSTANCE_CUSTOM.z * 13.7));
-		saat = uint(INSTANCE_CUSTOM.z * 65535.0) + 7u;
+	saat = uint(phase * 65535.0) + 7u;
+	versatz = f_hash(uvec4(saat, 23u, 0u, 0u));
+	spiegeln = step(0.5, f_hash(uvec4(saat, 29u, 0u, 0u)));
+	if (billboard == 2) {
+		float sx = length(MODEL_MATRIX[0].xyz);
+		float sy = length(MODEL_MATRIX[1].xyz);
+		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * sx, INV_VIEW_MATRIX[1] * sy, INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
+		neigung = dot(normalize(wind_richtung + vec2(0.0001)), INV_VIEW_MATRIX[0].xz) * wetter_wind * wind_neigung;
+	} else if (billboard == 1) {
+		float sx = length(MODEL_MATRIX[0].xyz);
+		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * sx, MODEL_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 		neigung = dot(normalize(wind_richtung + vec2(0.0001)), INV_VIEW_MATRIX[0].xz) * wetter_wind * wind_neigung;
 	} else {
-		saat = uint(phase * 65535.0) + 7u;
-		versatz = f_hash(uvec4(saat, 23u, 0u, 0u));
-		spiegeln = step(0.5, f_hash(uvec4(saat, 29u, 0u, 0u)));
-		if (billboard == 2) {
-			float sx = length(MODEL_MATRIX[0].xyz);
-			float sy = length(MODEL_MATRIX[1].xyz);
-			MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * sx, INV_VIEW_MATRIX[1] * sy, INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
-			neigung = dot(normalize(wind_richtung + vec2(0.0001)), INV_VIEW_MATRIX[0].xz) * wetter_wind * wind_neigung;
-		} else if (billboard == 1) {
-			float sx = length(MODEL_MATRIX[0].xyz);
-			MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * sx, MODEL_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
-			neigung = dot(normalize(wind_richtung + vec2(0.0001)), INV_VIEW_MATRIX[0].xz) * wetter_wind * wind_neigung;
-		} else {
-			neigung = dot(normalize(wind_richtung + vec2(0.0001)), normalize(MODEL_MATRIX[0].xyz).xz) * wetter_wind * wind_neigung;
-		}
+		neigung = dot(normalize(wind_richtung + vec2(0.0001)), normalize(MODEL_MATRIX[0].xyz).xz) * wetter_wind * wind_neigung;
 	}
 }
 
@@ -113,12 +97,9 @@ void fragment() {
 
 	vec3 rgb = c.rgb * toenung * helligkeit;
 	float a = clamp(c.a * deckung, 0.0, 1.0);
-	// Teilchen blenden über ihre Farbe ein und aus (vormultipliziert: Leuchten und Deckung zugleich)
-	rgb *= COLOR.rgb * COLOR.a;
-	a *= COLOR.a;
 
-	if (!partikel) {
-		// Funken (wie flamme.gdshader): in Flammeneinheiten – x in halben Flammenbreiten, y in Flammenhöhen über dem Fuß
+	{
+		// Funken: in Flammeneinheiten – x in halben Flammenbreiten, y in Flammenhöhen über dem Fuß
 		float fx = (UV.x - 0.5) * 2.0 / flamme_breite;
 		float fh = (h - fuss) / flamme_hoehe;
 		for (int i = 0; i < funken; i++) {

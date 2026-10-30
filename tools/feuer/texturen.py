@@ -1,17 +1,13 @@
-"""Texturen für Feuer und Flammen (Phase 1, Testszene) – alles prozedural erzeugt, mit festem Startwert, keine fremden Bilder.
+"""Textur für Feuer und Flammen – prozedural erzeugt, mit festem Startwert, keine fremden Bilder.
 
     python tools/feuer/texturen.py        (braucht nur numpy; z. B. mit dem Python von Blender)
 
 Schreibt nach game/assets/texturen/feuer/:
-    rauch_flipbook.png    4 × 4 Bilder zu je 128 × 128 Pixeln (512 × 512): eine weiche, wirbelnde Rauchwolke (grau, Alpha = Dichte). Für B.
-    funke.png             32 × 32: ein glühender Punkt (Funke, Glutstück). Für B.
-    rauschen.png          128 × 128, kachelbar: R, G, B drei verschiedene Rauschmuster, A = 255. Für die Shader-Flamme (A) und den Rauch.
+    rauschen.png          128 × 128, kachelbar: R, G, B drei verschiedene Rauschmuster, A = 255. Für das Wabern der Flamme, den Rauch und die Glut.
 
-Die Bilder des Rauchs laufen im Takt: Das Rauschen steigt von Bild zu Bild um ganze Gitterperioden nach oben, darum schließt sich
-die Schleife ohne Sprung. Die Farbe wird als „gerade“ Farbe mit Alpha abgelegt (nicht vormultipliziert), auch am Rand.
-
-Die Flammen-Flipbooks (flamme_ruhig.png, flamme_wild.png) kommen seit Phase 1b aus einer Blender-Feuersimulation: tools/feuer/flammen_sim.py.
-Das frühere gerechnete Flammen-Flipbook (flamme_flipbook.png) ist entfallen (Nutzer 29.10.2026: wirkte nicht echt).
+Die Flammen-Flipbooks (flamme_ruhig.png, flamme_wild.png) kommen aus einer Blender-Feuersimulation: tools/feuer/flammen_sim.py.
+Entfallen sind das gerechnete Flammen-Flipbook (flamme_flipbook.png, Phase 1b) und mit der Partikel-Technik B das Rauch-Flipbook
+(rauch_flipbook.png) und der Funke (funke.png): Seit Phase 2 (Nutzer 30.10.2026) zeichnen alle Feuer Flamme, Funken und Rauch mit Shadern.
 """
 import os
 import struct
@@ -62,49 +58,9 @@ def fbm(X, Y, zx, zy, oktaven, saat, ring_x=True):
     return summe / gesamt
 
 
-def stufe(a, b, x):
-    return glatt(np.clip((x - a) / (b - a), 0, 1))
-
-
 # ═════════════════════════════════════════════════════════════════════════════
-#  Rauch, Funke, Rauschen
+#  Rauschen
 # ═════════════════════════════════════════════════════════════════════════════
-
-def rauchbild(t, g=128, saat=SAAT + 50):
-    """Eine weiche, wirbelnde Wolke (grau, Alpha = Dichte), Schleife in t."""
-    v, u = np.mgrid[0:g, 0:g]
-    x = (u + 0.5) / g * 2 - 1
-    y = (v + 0.5) / g * 2 - 1
-    r = np.sqrt(x * x + y * y)
-    X = (x + 1) / 2
-    Y = (y + 1) / 2
-    n1 = fbm(X, Y - t * 1.0, 3, 3, 4, saat)
-    n2 = fbm(X + 0.37, Y * 1.0 - t * 2.0 + 0.5, 4, 4, 3, saat + 7)
-    wolke = 1 - r / (1.0 + 0.10 * (n1 - 0.5))
-    dichte = np.clip(wolke * 1.5 - 0.55 * (1 - n1) - 0.25 * (1 - n2) + 0.3, 0, 1)
-    dichte = stufe(0.0, 0.9, dichte) * np.clip(1 - stufe(0.78, 1.0, r), 0, 1)
-    grau = 0.46 + 0.34 * n2 - 0.10 * (1 - dichte)
-    rgb = np.dstack([grau * 1.00, grau * 0.99, grau * 0.97])
-    return np.dstack([rgb, dichte * 0.85])
-
-
-def rauch_blatt(spalten=4, zeilen=4, g=128):
-    n = spalten * zeilen
-    blatt = np.zeros((zeilen * g, spalten * g, 4))
-    for k in range(n):
-        z, s = divmod(k, spalten)
-        blatt[z * g:(z + 1) * g, s * g:(s + 1) * g] = rauchbild(k / n, g)
-    return blatt
-
-
-def funke(g=32):
-    v, u = np.mgrid[0:g, 0:g]
-    r = np.sqrt(((u + 0.5) / g * 2 - 1) ** 2 + ((v + 0.5) / g * 2 - 1) ** 2)
-    kern = np.exp(-(r * 2.6) ** 2)
-    rand = np.exp(-(r * 1.5) ** 2)
-    rgb = np.dstack([np.ones_like(r), 0.45 + 0.5 * kern, 0.10 + 0.6 * kern ** 2])
-    return np.dstack([rgb, np.clip(0.75 * rand + 0.6 * kern, 0, 1)])
-
 
 def rauschen(g=128, saat=SAAT + 90):
     v, u = np.mgrid[0:g, 0:g]
@@ -144,8 +100,7 @@ def png(pfad, bild):
 
 def main():
     os.makedirs(ZIEL, exist_ok=True)
-    for name, bild in (("rauch_flipbook.png", rauch_blatt()),
-                       ("funke.png", funke()), ("rauschen.png", rauschen())):
+    for name, bild in (("rauschen.png", rauschen()),):
         pfad = os.path.join(ZIEL, name)
         png(pfad, bild)
         print("geschrieben:", os.path.normpath(pfad), f"({os.path.getsize(pfad) // 1024} KB)")
