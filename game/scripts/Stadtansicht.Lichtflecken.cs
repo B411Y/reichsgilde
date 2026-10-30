@@ -6,9 +6,10 @@ namespace Reichsgilde;
 /// Lichtflecken (PR #218, Teil der <c>partial class Stadtansicht</c>): Jede brennende Fackel, Laterne und jeder Feuerkorb leuchtet immer, auch wo
 /// kein echtes Licht mehr steht. Echte <see cref="OmniLight3D"/> gibt es nur für die nächsten Lichter vor der Kamera (Stadtansicht.Nachtlichter.cs,
 /// Anzahl nach der Grafikstufe); alle übrigen bekommen hier einen <b>Heiligenschein</b> um die Flamme und einen <b>Lichtfleck auf dem Boden</b>
-/// (<c>lichtfleck.gdshader</c>, je ein Vielfach-Zeichenaufruf, additiv, ohne Beleuchtung – also ohne Dauerkosten je Licht). Wo ein echtes Licht steht,
-/// blendet der Bodenfleck weich aus (kein doppeltes Licht), der Heiligenschein bleibt. Weiter herausgezoomt wachsen beide mit, damit sie im Bild
-/// gleich groß bleiben.
+/// (<c>lichtfleck.gdshader</c>, je ein Vielfach-Zeichenaufruf, ohne Beleuchtung – also ohne Dauerkosten je Licht). Seit Phase 2 „Feuer und Flammen“ ist
+/// der Fleck ein Ersatzlicht: eine Kugel um die Flamme, in der der Shader Boden und Mauern nach dem Abstand aufhellt (aus der Tiefe der Szene), statt
+/// einer flachen Scheibe, die an Stufen und Sockeln hart abbrach. Wo ein echtes Licht steht, blendet er ganz aus (kein doppeltes Licht), der
+/// Heiligenschein wird schwächer. Beide flackern im Takt der Flamme. Weiter herausgezoomt wachsen beide mit, damit sie im Bild gleich groß bleiben.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -24,8 +25,7 @@ public partial class Stadtansicht
         {
             var stoff = new ShaderMaterial { Shader = shader, RenderPriority = 2 };
             stoff.SetShaderParameter("boden", boden);
-            var netz = new QuadMesh { Size = Vector2.One, Material = stoff };
-            if (boden) netz.Orientation = PlaneMesh.OrientationEnum.Y; // liegt waagerecht
+            var netz = new QuadMesh { Size = Vector2.One, Material = stoff }; // beide zur Kamera gedreht (im Shader)
             viele = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = netz, InstanceCount = FleckeMaximal, VisibleInstanceCount = 0 };
             var knoten = new MultiMeshInstance3D
             {
@@ -53,7 +53,6 @@ public partial class Stadtansicht
         var zoom = _kamera.Size;
         var reichweite = Mathf.Max(30f, zoom * 1.6f);
         var mass = Mathf.Max(1f, zoom / 45f); // herausgezoomt wachsen die Flecken mit
-        var zeit = Time.GetTicksMsec() / 1000.0;
         var n = 0;
         foreach (var q in _lichtquellen)
         {
@@ -63,20 +62,19 @@ public partial class Stadtansicht
             if (new Vector2(ort.X - fokus.X, ort.Z - fokus.Z).Length() > reichweite) continue;
             var (farbe, _, licht) = PunktLicht(q.Art);
             var tag = q.Art == Lichtart.EwigesLicht ? Mathf.Max(_lampenAn, 0.22f) : _lampenAn;
-            var t = zeit * (q.Art == Lichtart.Feuerkorb || q.Art == Lichtart.Fackel ? 1.6 : 1.0) + q.Phase * 7;
-            var flackern = (float)(1 + 0.12 * (0.55 * Math.Sin(t * 9.1) + 0.3 * Math.Sin(t * 23.7 + 1.3) + 0.15 * Math.Sin(t * 41.0 + 2.1)));
+            var flackern = Flackern(q); // im Takt der Flamme, wie das echte Licht (Stadtansicht.Nachtlichter.cs)
             var stand = 0f; // wie voll ein echtes Licht an dieser Stelle schon steht
             foreach (var p in _lichtPool)
                 if (p.Quelle == q) { stand = p.Stand; break; }
 
-            var grund = new Vector3(ort.X, FussHoehe(ort.X, ort.Z) + 0.07f, ort.Z);
-            var durchmesser = licht * 0.4f * Mathf.Pow(mass, 0.6f);
-            var boden = new Transform3D(Basis.FromScale(new Vector3(durchmesser, 1, durchmesser)), grund);
-            _fleckBodenViele!.SetInstanceTransform(n, boden);
-            _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 1.0f * tag * flackern * (1 - 0.85f * stand)));
+            // Ersatzlicht: eine Kugel um die Flamme (Durchmesser), der Shader hellt alles darin nach dem Abstand auf; wo ein echtes Licht steht, ganz aus
+            var durchmesser = licht * 0.8f * Mathf.Pow(mass, 0.6f);
+            _fleckBodenViele!.SetInstanceTransform(n, new Transform3D(Basis.FromScale(Vector3.One * durchmesser), ort));
+            _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 1.0f * tag * flackern * (1f - stand)));
+            // Heiligenschein: die echte Flamme leuchtet selbst (Bloom), der Hof ist nur noch ein Hauch, unter einem echten Licht schwächer
             var schein = (q.Art == Lichtart.Feuerkorb ? 1.0f : q.Art == Lichtart.EwigesLicht ? 0.4f : 0.6f) * Mathf.Pow(mass, 0.8f);
             _fleckScheinViele!.SetInstanceTransform(n, new Transform3D(Basis.FromScale(Vector3.One * schein), ort));
-            _fleckScheinViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 0.45f * tag * flackern));
+            _fleckScheinViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, (q.Flamme is null ? 0.45f : 0.25f) * tag * flackern * (1f - 0.5f * stand)));
             n++;
         }
         _fleckBodenViele!.VisibleInstanceCount = n;
