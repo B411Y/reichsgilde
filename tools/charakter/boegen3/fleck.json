@@ -1,0 +1,18 @@
+{
+ "name": "fleck",
+ "titel": "Phase 3: dunkler Fleck vor dem Ohr – Ursache",
+ "zelle": [420, 420],
+ "alle": {"kopf": "kopf2.glb", "ansicht": "kopf", "winkel": 55, "alter": 35, "geschlecht": "m"},
+ "spalten": [
+  {"titel": "wie Phase 2"},
+  {"titel": "ohne Hautmasken", "stoff": {"haut": {"masken": false}}},
+  {"titel": "ohne SSAO", "umgebung": {"ssao_enabled": false}},
+  {"titel": "SSAO 2 cm", "umgebung": {"ssao_radius": 0.02}},
+  {"titel": "ohne Poren", "stoff": {"haut": {"poren_staerke": 0.0}}}
+ ],
+ "zeilen": [
+  {"titel": "¾ 55°"},
+  {"titel": "Seite 80°", "winkel": 80},
+  {"titel": "Seite -60°", "winkel": -60}
+ ]
+}

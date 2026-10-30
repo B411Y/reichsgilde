@@ -1,5 +1,7 @@
-# Versuch Charakter Phase 2: Basiskopf mit Reglern für alle Gene, Alter, Geschlecht und Mimik (Testszene, kein
-# Spielcode). Die .glb liegen in --glb=<ordner> (Standard ~/werkzeuge/charakter/glb2, nicht im Repository).
+# Versuch Charakter Phase 2/3: Basiskopf mit Reglern für alle Gene, Alter, Geschlecht und Mimik (Testszene, kein
+# Spielcode). Die .glb liegen in --glb=<ordner> (Standard ~/werkzeuge/charakter/glb3, nicht im Repository).
+# Bogenzellen kennen zusätzlich (Phase 3): "stoff": {"haut": {param: wert}}, "umgebung": {…}, "schluessel": {…},
+# "vorher": true (Stoffe der Phase 2 am Phase-3-Kopf), "ultra": true (Haut mit Bildschirm-SSS).
 #   tools/charakter/schau.sh <bilder> 1600x1000                          Regler (zum Ausprobieren mit Bildschirm)
 #   tools/charakter/schau.sh <bilder> <BxH> --bogen=<a.json>,<b.json> [--regler_bild] [--messen] --ende
 # bogen:  Zeilen × Spalten aus einer JSON-Beschreibung; jede Zelle = Kopf + Alter + Geschlecht + Gene + Mimik +
@@ -13,8 +15,8 @@ extends Control
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
 const Buehne := preload("res://versuch/charakter/charakter_buehne.gd")
 
-var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb2")
-var bilder := OS.get_environment("HOME").path_join("werkzeuge/charakter/bilder/phase2")
+var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb3")
+var bilder := OS.get_environment("HOME").path_join("werkzeuge/charakter/bilder/phase3")
 var args := {}
 var _buehnen := {}
 
@@ -34,7 +36,7 @@ func _ready() -> void:
 	hg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(hg)
 	if not DirAccess.dir_exists_absolute(glb_ordner):
-		_meldung("Ordner mit den Köpfen fehlt: %s\nDie .glb entstehen lokal mit tools/charakter/kopf2.sh aus ICT- und MakeHuman-Daten,\ndie nicht im Repository liegen (siehe docs/charakter/phase2.md)." % glb_ordner)
+		_meldung("Ordner mit den Köpfen fehlt: %s\nDie .glb entstehen lokal mit tools/charakter/kopf3.sh aus ICT- und MakeHuman-Daten,\ndie nicht im Repository liegen (siehe docs/charakter/phase3.md)." % glb_ordner)
 		return
 	var etwas := false
 	if args.has("bogen"):
@@ -52,10 +54,13 @@ func _ready() -> void:
 		return
 	get_tree().quit()
 
+static func _label() -> Label:
+	return Label.new()
+
 func _meldung(text: String) -> void:
 	push_error(text)
 	print("MELDUNG ", text)
-	var l := Label.new()
+	var l := _label()
 	l.text = text
 	l.position = Vector2(30, 30)
 	l.add_theme_font_size_override("font_size", 22)
@@ -136,7 +141,13 @@ func _bogen(datei: String) -> void:
 				reihe.append([null, b.kopf.fehler])
 				continue
 			zelle_setzen(b.kopf, z)
+			if b.kopf.phase3:
+				b.kopf.vorher_setzen(bool(z.get("vorher", false)))
+				b.kopf.ultra_setzen(bool(z.get("ultra", false)))
 			b.kopf.teile_ausblenden(z.get("ausblenden", []))
+			b.kopf.stoff_parameter(z.get("stoff", {}))
+			b.umgebung_setzen(z.get("umgebung", {}))
+			b.licht_setzen(z.get("schluessel", {}))
 			b.ansicht(z.get("ansicht", "portraet"), float(z.get("winkel", 0.0)), float(z.get("hoehe", 3.0)),
 				float(z.get("spanne_m", 0.0)), float(z.get("ziel_m", 0.0)))
 			await _warte(4)
@@ -160,20 +171,20 @@ func _bogen(datei: String) -> void:
 	tafel.add_child(hg)
 	var rand := 150
 	var kopfzeile := 34
-	var titel := Label.new()
+	var titel := _label()
 	titel.text = plan.get("titel", name)
 	titel.position = Vector2(12, 6)
 	titel.add_theme_font_size_override("font_size", 20)
 	tafel.add_child(titel)
 	for si in spalten.size():
-		var l := Label.new()
+		var l := _label()
 		l.text = spalten[si].get("titel", "")
 		l.position = Vector2(rand + si * (zelle.x + 6) + 6, kopfzeile)
 		l.add_theme_font_size_override("font_size", 18)
 		tafel.add_child(l)
 	for zi in fotos.size():
 		var y: int = kopfzeile + 30 + zi * (zelle.y + 26)
-		var ln := Label.new()
+		var ln := _label()
 		ln.text = zeilen[zi].get("titel", "")
 		ln.position = Vector2(8, y + zelle.y * 0.45)
 		ln.size = Vector2(rand - 12, 60)
@@ -188,7 +199,7 @@ func _bogen(datei: String) -> void:
 				tr.texture = ImageTexture.create_from_image(eintrag[0])
 				tr.position = Vector2(x, y)
 				tafel.add_child(tr)
-			var lz := Label.new()
+			var lz := _label()
 			lz.text = eintrag[1]
 			lz.position = Vector2(x + 4, y + zelle.y + (0 if eintrag[0] != null else -zelle.y * 0.5))
 			lz.size = Vector2(zelle.x - 8, 24)
@@ -230,7 +241,7 @@ func _regler(nur_bild: bool) -> void:
 	add_child(c)
 	_buehne_r = Buehne.new(Vector2i(fs.x - breite_rechts, fs.y))
 	c.add_child(_buehne_r)
-	var datei := _datei(args.get("kopf", "kopf2.glb"))
+	var datei := _datei(args.get("kopf", "kopf3.glb"))
 	if not _buehne_r.kopf_laden(datei):
 		_meldung(_buehne_r.kopf.fehler)
 		return
@@ -242,7 +253,7 @@ func _regler(nur_bild: bool) -> void:
 	var liste := VBoxContainer.new()
 	liste.custom_minimum_size = Vector2(breite_rechts - 24, 0)
 	rolle.add_child(liste)
-	_ueberschrift(liste, "Basiskopf Phase 2 – %s" % datei.get_file())
+	_ueberschrift(liste, "Basiskopf Phase 3 – %s" % datei.get_file())
 	var zeile := HBoxContainer.new()
 	liste.add_child(zeile)
 	_mann_r = OptionButton.new()
@@ -320,7 +331,7 @@ func _mimik_index(name: String) -> int:
 	return 0
 
 func _ueberschrift(liste: VBoxContainer, text: String) -> void:
-	var l := Label.new()
+	var l := _label()
 	l.text = text
 	l.add_theme_font_size_override("font_size", 17)
 	l.add_theme_color_override("font_color", Color(0.95, 0.85, 0.6))
@@ -329,7 +340,7 @@ func _ueberschrift(liste: VBoxContainer, text: String) -> void:
 func _regler_zeile(liste: VBoxContainer, text: String, von: float, bis: float, wert: float, schritt: float) -> HSlider:
 	var z := HBoxContainer.new()
 	liste.add_child(z)
-	var l := Label.new()
+	var l := _label()
 	l.text = text
 	l.custom_minimum_size = Vector2(200, 0)
 	l.clip_text = true
@@ -343,7 +354,7 @@ func _regler_zeile(liste: VBoxContainer, text: String, von: float, bis: float, w
 	r.custom_minimum_size = Vector2(170, 18)
 	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	z.add_child(r)
-	var w := Label.new()
+	var w := _label()
 	w.custom_minimum_size = Vector2(40, 0)
 	w.add_theme_font_size_override("font_size", 13)
 	z.add_child(w)
@@ -379,13 +390,16 @@ func _messen() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	var laeufe := [
 		{"name": "leer", "kopf": "keiner"},
-		{"name": "still", "kopf": "kopf2.glb", "bewegt": "keine"},
-		{"name": "mimik", "kopf": "kopf2.glb", "bewegt": "arkit"},
-		{"name": "alle", "kopf": "kopf2.glb", "bewegt": "alle"},
-		{"name": "alle_ohne_normalen", "kopf": "kopf2_ohne.glb", "bewegt": "alle"},
-		{"name": "alle_mit_normalen", "kopf": "kopf2_mn.glb", "bewegt": "alle"},
-		{"name": "x8_still", "kopf": "kopf2.glb", "bewegt": "keine", "anzahl": 8},
-		{"name": "x8_mimik", "kopf": "kopf2.glb", "bewegt": "arkit", "anzahl": 8},
+		{"name": "still", "kopf": "kopf3.glb", "bewegt": "keine"},
+		{"name": "still_vorher", "kopf": "kopf3.glb", "bewegt": "keine", "vorher": true},
+		{"name": "still_ultra", "kopf": "kopf3.glb", "bewegt": "keine", "ultra": true},
+		{"name": "still_phase2", "kopf": OS.get_environment("HOME").path_join("werkzeuge/charakter/glb2/kopf2.glb"), "bewegt": "keine"},
+		{"name": "mimik", "kopf": "kopf3.glb", "bewegt": "arkit"},
+		{"name": "alle", "kopf": "kopf3.glb", "bewegt": "alle"},
+		{"name": "alle_ohne_normalen", "kopf": "kopf3_ohne.glb", "bewegt": "alle"},
+		{"name": "alle_mit_normalen", "kopf": "kopf3_mn.glb", "bewegt": "alle"},
+		{"name": "x8_still", "kopf": "kopf3.glb", "bewegt": "keine", "anzahl": 8},
+		{"name": "x8_mimik", "kopf": "kopf3.glb", "bewegt": "arkit", "anzahl": 8},
 	]
 	for l in laeufe:
 		if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
@@ -393,7 +407,7 @@ func _messen() -> void:
 		await _ein_lauf(l)
 
 func _ein_lauf(l: Dictionary) -> void:
-	var datei := _datei(l.get("kopf", "kopf2.glb"))
+	var datei := _datei(l.get("kopf", "kopf3.glb"))
 	var anzahl: int = l.get("anzahl", 1)
 	var gr0 := Vector2i(1280, 720)
 	var spalten := 1 if anzahl == 1 else 4
@@ -424,6 +438,9 @@ func _ein_lauf(l: Dictionary) -> void:
 			return
 		laden_ms += b.kopf.ladezeit_ms
 		zelle_setzen(b.kopf, {"alter": 35, "geschlecht": "m"})
+		if b.kopf.phase3:
+			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
+			b.kopf.ultra_setzen(bool(l.get("ultra", false)))
 		b.ansicht("portraet", 20.0)
 	var namen: Array = []
 	if liste[0].kopf != null:
@@ -460,6 +477,8 @@ func _ein_lauf(l: Dictionary) -> void:
 		"vram_mb": snappedf((RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) - leer) / 1048576.0, 0.1),
 		"vram_puffer_mb": snappedf((RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_BUFFER_MEM_USED) - leer_puf) / 1048576.0, 0.1),
 		"laden_ms": snappedf(laden_ms / anzahl, 0.1),
+		"bilder_ms": snappedf(liste[0].kopf.bilder_ms, 0.1) if liste[0].kopf else 0.0,
+		"textur_mb": snappedf(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED) / 1048576.0, 0.1),
 		"aufloesung": "%dx%d" % [gr0.x, gr0.y],
 		"last": snappedf(float(FileAccess.get_file_as_string("/proc/loadavg").split(" ")[0]), 0.1),
 	}

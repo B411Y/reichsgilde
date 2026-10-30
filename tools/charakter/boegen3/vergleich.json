@@ -1,0 +1,51 @@
+{
+ "name": "vergleich",
+ "titel": "Phase 2 (oben) gegen Phase 3 (unten)",
+ "zelle": [
+  400,
+  460
+ ],
+ "alle": {
+  "winkel": 20
+ },
+ "spalten": [
+  {
+   "titel": "Mann 35",
+   "alter": 35,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Frau 20",
+   "alter": 20,
+   "geschlecht": "w"
+  },
+  {
+   "titel": "Mann 70",
+   "alter": 70,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "Frau 50, ¾",
+   "alter": 50,
+   "geschlecht": "w",
+   "winkel": 35
+  },
+  {
+   "titel": "Mann 35, Augen",
+   "alter": 35,
+   "geschlecht": "m",
+   "ansicht": "augen",
+   "winkel": 12
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Phase 2",
+   "kopf": "/home/claude/werkzeuge/charakter/glb2/kopf2.glb"
+  },
+  {
+   "titel": "Phase 3",
+   "kopf": "kopf3.glb"
+  }
+ ]
+}

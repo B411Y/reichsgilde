@@ -1,0 +1,64 @@
+{
+ "name": "alter_mann",
+ "titel": "Phase 3: Mann 5–70 Jahre, Mensch-Mittel",
+ "zelle": [
+  360,
+  420
+ ],
+ "alle": {
+  "kopf": "kopf3.glb",
+  "geschlecht": "m",
+  "winkel": 20
+ },
+ "spalten": [
+  {
+   "titel": "5 J.",
+   "alter": 5
+  },
+  {
+   "titel": "20 J.",
+   "alter": 20
+  },
+  {
+   "titel": "35 J.",
+   "alter": 35
+  },
+  {
+   "titel": "50 J.",
+   "alter": 50
+  },
+  {
+   "titel": "70 J.",
+   "alter": 70
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "neutral"
+  },
+  {
+   "titel": "Lächeln",
+   "mimik": {
+    "mouthSmileLeft": 0.7,
+    "mouthSmileRight": 0.7,
+    "cheekSquintLeft": 0.4,
+    "cheekSquintRight": 0.4
+   }
+  },
+  {
+   "titel": "Stirn hoch",
+   "mimik": {
+    "browInnerUp": 0.9,
+    "browOuterUpLeft": 0.6,
+    "browOuterUpRight": 0.6
+   }
+  },
+  {
+   "titel": "Blinzeln halb",
+   "mimik": {
+    "eyeBlinkLeft": 0.55,
+    "eyeBlinkRight": 0.55
+   }
+  }
+ ]
+}

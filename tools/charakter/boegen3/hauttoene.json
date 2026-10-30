@@ -1,0 +1,96 @@
+{
+ "name": "hauttoene",
+ "titel": "Phase 3: drei Hauttöne (Gene), Mann und Frau",
+ "zelle": [
+  360,
+  420
+ ],
+ "alle": {
+  "kopf": "kopf3.glb",
+  "winkel": 20
+ },
+ "spalten": [
+  {
+   "titel": "hell, Mann 35",
+   "gene": {
+    "haut_helligkeit": 215,
+    "haut_ton": 95,
+    "haar_helligkeit": 150,
+    "augen_helligkeit": 190,
+    "augen_ton": 200
+   },
+   "alter": 35,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "mittel, Mann 35",
+   "gene": {
+    "haut_helligkeit": 150,
+    "haut_ton": 120,
+    "haar_helligkeit": 55,
+    "augen_helligkeit": 110,
+    "augen_ton": 120
+   },
+   "alter": 35,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "dunkel, Mann 35",
+   "gene": {
+    "haut_helligkeit": 22,
+    "haut_ton": 110,
+    "haar_helligkeit": 10,
+    "augen_helligkeit": 25,
+    "augen_ton": 40
+   },
+   "alter": 35,
+   "geschlecht": "m"
+  },
+  {
+   "titel": "hell, Frau 50",
+   "gene": {
+    "haut_helligkeit": 215,
+    "haut_ton": 95,
+    "haar_helligkeit": 150,
+    "augen_helligkeit": 190,
+    "augen_ton": 200
+   },
+   "alter": 50,
+   "geschlecht": "w"
+  },
+  {
+   "titel": "mittel, Frau 50",
+   "gene": {
+    "haut_helligkeit": 150,
+    "haut_ton": 120,
+    "haar_helligkeit": 55,
+    "augen_helligkeit": 110,
+    "augen_ton": 120
+   },
+   "alter": 50,
+   "geschlecht": "w"
+  },
+  {
+   "titel": "dunkel, Frau 50",
+   "gene": {
+    "haut_helligkeit": 22,
+    "haut_ton": 110,
+    "haar_helligkeit": 10,
+    "augen_helligkeit": 25,
+    "augen_ton": 40
+   },
+   "alter": 50,
+   "geschlecht": "w"
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Porträt"
+  },
+  {
+   "titel": "Augen",
+   "ansicht": "augen",
+   "winkel": 10
+  }
+ ]
+}

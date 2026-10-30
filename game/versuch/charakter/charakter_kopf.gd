@@ -1,7 +1,11 @@
-# Versuch Charakter Phase 2: Basiskopf (Büste) aus einer .glb zur Laufzeit laden und über Gene, Alter, Geschlecht
-# und Mimik steuern. Die .glb und ihre Beschreibung (<name>.json) entstehen mit tools/charakter/kopf2.sh aus ICT- und
-# MakeHuman-Daten und liegen außerhalb des Repositorys (~/werkzeuge/charakter/glb2); fehlt die Datei, steht der
+# Versuch Charakter Phase 2/3: Basiskopf (Büste) aus einer .glb zur Laufzeit laden und über Gene, Alter, Geschlecht
+# und Mimik steuern. Die .glb und ihre Beschreibung (<name>.json) entstehen mit tools/charakter/kopf3.sh aus ICT- und
+# MakeHuman-Daten und liegen außerhalb des Repositorys (~/werkzeuge/charakter/glb3); fehlt die Datei, steht der
 # Grund in `fehler`.
+#
+# Phase 3: Liegt neben der .glb der Ordner kopf3_tex (gebackene Haut, Haar- und Augenbilder), bekommt der Kopf die
+# Stoffe der Phase 3 (haut3, augen3, hornhaut, lidschatten, haar3); sonst die der Phase 2. `vorher_setzen(true)`
+# schaltet einen Phase-3-Kopf zum Vergleich auf die Stoffe der Phase 2 (ohne Bilder).
 #
 # Formen der .glb: makro_<g>_<alter> (Alter × Geschlecht), makro_<g>_<alter>_<kraft|gewicht>_<minus|plus>,
 # gen_<kennung>_<minus|plus> (Gestalt-Gene) und die ARKit-Mimik. Die Gewichte rechnet _anwenden() wie
@@ -14,6 +18,20 @@ const AUGEN := preload("res://versuch/charakter/augen.gdshader")
 const MUND := preload("res://versuch/charakter/mund.gdshader")
 const ZAEHNE := preload("res://versuch/charakter/zaehne.gdshader")
 const HAAR := preload("res://versuch/charakter/haar.gdshader")
+const HAUT3 := preload("res://versuch/charakter/haut3.gdshader")
+const HAUT3_ULTRA := preload("res://versuch/charakter/haut3_ultra.gdshader")
+const AUGEN3 := preload("res://versuch/charakter/augen3.gdshader")
+const HORNHAUT := preload("res://versuch/charakter/hornhaut.gdshader")
+const LIDSCHATTEN := preload("res://versuch/charakter/lidschatten.gdshader")
+const HAAR3 := preload("res://versuch/charakter/haar3.gdshader")
+const BILDER := ["haut_farbe", "haut_normal", "haut_masken", "haut_falten", "brauen", "wimpern", "iris_muster", "lederhaut"]
+# Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
+const FALTEN_ALTER := {
+	"stirn": [[25, 0.0], [38, 0.15], [50, 0.5], [62, 0.95], [75, 1.3]],
+	"augen": [[28, 0.0], [38, 0.2], [50, 0.55], [62, 0.95], [75, 1.25]],
+	"mund": [[20, 0.0], [32, 0.18], [45, 0.45], [60, 0.8], [75, 1.0]],
+	"hals": [[35, 0.0], [50, 0.3], [62, 0.65], [75, 1.0]],
+}
 const ERBGUT := "res://daten/erbgut.json"
 
 var pfad := ""
@@ -29,7 +47,15 @@ var oben := 0.93
 var haut_stoffe: Array[ShaderMaterial] = []
 var haar_stoffe: Array[ShaderMaterial] = []
 var augen_stoffe: Array[ShaderMaterial] = []
-
+var wimpern_stoffe: Array[ShaderMaterial] = []
+var haut2_stoffe: Array[ShaderMaterial] = []     # Phase-2-Haut eines Phase-3-Kopfs (Vergleich)
+var bilder := {}            # Phase 3: Name -> Texture2D (aus <glb-Ordner>/kopf3_tex)
+var phase3 := false
+var ultra := false          # Haut mit Bildschirm-SSS (nur Ultra)
+var vorher := false         # Phase-3-Kopf mit den Stoffen der Phase 2
+var bilder_ms := 0.0
+var _stoffe3 := {}          # "<id>_<fläche>" -> [Stoff Phase 3, Stoff Phase 2]
+static var _bild_speicher := {}
 # Zustand
 var gene := {}              # Kennung -> sichtbarer Wert 0..255
 var alter := 35.0
@@ -63,12 +89,51 @@ func laden(datei: String) -> bool:
 	ladezeit_ms = (Time.get_ticks_usec() - t) / 1000.0
 	add_child(szene)
 	_sammeln(szene)
+	_bilder_laden(datei)
 	var tk := Time.get_ticks_usec()
 	_stoffe_setzen()
 	komprimier_ms = (Time.get_ticks_usec() - tk) / 1000.0
 	gene = mittelwerte("Mensch")
 	_anwenden()
 	return true
+
+# Kopf aus einem schon geladenen Kopf kopieren: Netze (mit den Formen) werden geteilt, Stoffe und Formgewichte sind
+# je Kopf eigen. Für die Galerie (viele Köpfe, ein Netz im Speicher).
+func kopieren_von(quelle) -> void:
+	pfad = quelle.pfad
+	info = quelle.info
+	bilder = quelle.bilder
+	phase3 = quelle.phase3
+	ultra = quelle.ultra
+	for k in quelle.get_children():
+		var neu: Node = k.duplicate()
+		add_child(neu)
+		_sammeln(neu)
+	_stoffe_setzen()
+	gene = mittelwerte("Mensch")
+	_anwenden()
+
+func _bilder_laden(datei: String) -> void:
+	var name := datei.get_file().get_basename().trim_suffix("_mn").trim_suffix("_ohne")
+	var ordner := datei.get_base_dir().path_join(name + "_tex")
+	if not DirAccess.dir_exists_absolute(ordner):
+		return
+	var t := Time.get_ticks_usec()
+	for b in BILDER:
+		var f := ordner.path_join(b + ".png")
+		if _bild_speicher.has(f):
+			bilder[b] = _bild_speicher[f]
+			continue
+		var img := Image.load_from_file(f)
+		if img == null:
+			push_error("Bild fehlt: " + f)
+			return
+		img.generate_mipmaps()
+		var tex := ImageTexture.create_from_image(img)
+		_bild_speicher[f] = tex
+		bilder[b] = tex
+	phase3 = true
+	bilder_ms = (Time.get_ticks_usec() - t) / 1000.0
 
 func _sammeln(n: Node) -> void:
 	if n is MeshInstance3D:
@@ -220,16 +285,35 @@ func _merkpunkte(w: Dictionary) -> void:
 	oben = (aus.get("scheitel", Vector3(0, oben, 0)) as Vector3).y
 
 # ---------------------------------------------------------------- Farben aus den Farb-Genen
+# Hautfarbe (sRGB) aus „Hautfarbe“: dunkel – mittel – hell (die gebackene Haut trägt nur die Abweichung davon)
+static func hautfarbe(h: float) -> Color:
+	if h < 0.5:
+		return Color(0.2, 0.125, 0.09).lerp(Color(0.55, 0.37, 0.27), h / 0.5)
+	return Color(0.55, 0.37, 0.27).lerp(Color(0.84, 0.66, 0.56), (h - 0.5) / 0.5)
+
+# Gewicht einer Alterskurve [[jahre, wert], …] (stückweise linear, außen festgehalten)
+static func kurve_im_alter(kurve: Array, jahre: float) -> float:
+	if jahre <= float(kurve[0][0]):
+		return float(kurve[0][1])
+	for i in kurve.size() - 1:
+		var a: Array = kurve[i]
+		var b: Array = kurve[i + 1]
+		if jahre <= float(b[0]):
+			return lerpf(float(a[1]), float(b[1]), (jahre - float(a[0])) / (float(b[0]) - float(a[0])))
+	return float(kurve[-1][1])
+
+var werte3 := {}            # zuletzt gesetzte Phase-3-Werte (zum Prüfen und für die Anzeige)
+
 func _farben() -> void:
 	var h := float(gene.get("haut_helligkeit", 185.0)) / 255.0
 	var ton := float(gene.get("haut_ton", 105.0)) / 255.0
-	var grund := Color(0.27, 0.16, 0.10).lerp(Color(0.84, 0.64, 0.53), h)
+	var grund := hautfarbe(h) if phase3 else Color(0.27, 0.16, 0.10).lerp(Color(0.84, 0.64, 0.53), h)
 	var toenung := Vector3.ONE
 	if ton < 0.5:
 		toenung = Vector3(1.07, 0.96, 0.95).lerp(Vector3.ONE, ton / 0.5)
 	else:
 		toenung = Vector3.ONE.lerp(Vector3(0.78, 0.95, 0.74), (ton - 0.5) / 0.5)
-	for m in haut_stoffe:
+	for m in haut_stoffe + haut2_stoffe:
 		m.set_shader_parameter("grundfarbe", Vector3(grund.r, grund.g, grund.b))
 		m.set_shader_parameter("toenung", toenung)
 	var hh := float(gene.get("haar_helligkeit", 100.0)) / 255.0
@@ -238,17 +322,70 @@ func _farben() -> void:
 	haar = haar.lerp(Color(0.5, 0.2, 0.07).lerp(Color(0.85, 0.45, 0.2), hh), rot * 0.8)
 	# Ergrauen: ab 20 + Gen/255·50 Jahren, über 25 Jahre fast ganz grau
 	var grau_ab := 20.0 + float(gene.get("ergrauen", 128.0)) / 255.0 * 50.0
-	haar = haar.lerp(Color(0.72, 0.71, 0.69), clampf((alter - grau_ab) / 25.0, 0.0, 0.85))
-	for m in haar_stoffe:
-		m.set_shader_parameter("farbe", Vector3(haar.r, haar.g, haar.b))
+	var grau := clampf((alter - grau_ab) / 25.0, 0.0, 0.85)
+	var mann := geschlecht >= 0.5
+	if phase3:
+		# Brauen: Dichte aus dem Bartwuchs (Männer „bartwuchs“, Frauen dazu „bartwuchs_frau“), Kinder lichter,
+		# alte Männer buschiger; Frauen schmaler. Graue Haare einzeln (Salz und Pfeffer).
+		var bw := float(gene.get("bartwuchs", 130.0)) / 255.0
+		var bwf := float(gene.get("bartwuchs_frau", 0.0)) / 255.0
+		var dichte := lerpf(0.5 + 0.3 * bw + 0.2 * bwf, 0.62 + 0.38 * bw, geschlecht)
+		dichte *= lerpf(0.65, 1.0, clampf((alter - 3.0) / 12.0, 0.0, 1.0))
+		if mann:
+			dichte += 0.12 * clampf((alter - 55.0) / 15.0, 0.0, 1.0)
+		var breite := lerpf(0.72, 1.0, geschlecht) * lerpf(0.85, 1.0, clampf((alter - 3.0) / 12.0, 0.0, 1.0))
+		for m in haar_stoffe:
+			m.set_shader_parameter("farbe", Vector3(haar.r, haar.g, haar.b))
+			m.set_shader_parameter("grau", grau)
+			m.set_shader_parameter("dichte", clampf(dichte, 0.0, 1.0))
+			m.set_shader_parameter("breite", breite)
+		var wimper := haar.darkened(0.7)
+		for m in wimpern_stoffe:
+			m.set_shader_parameter("farbe", Vector3(wimper.r, wimper.g, wimper.b))
+			m.set_shader_parameter("grau", grau * 0.5)
+			m.set_shader_parameter("dichte", lerpf(1.0, 0.88, geschlecht))
+		# Falten aus dem Alter; helle Haut faltet etwas früher, Leibesfülle glättet die Stirn
+		var fett := float(gene.get("gewicht", 128.0)) / 255.0
+		var faktor := 0.9 + 0.25 * (h - 0.5) * 2.0 * 0.5
+		# Mimik vertieft die Falten (Ausdrucksfalten): Brauen heben -> Stirn, Lächeln/Zusammenkneifen -> Augen und
+		# Mund; bei Jungen schwächer
+		var mf := clampf((alter - 12.0) / 20.0, 0.25, 1.0) * mimikfaktor
+		var m_stirn := maxf(float(mimik.get("browInnerUp", 0.0)), maxf(float(mimik.get("browOuterUpLeft", 0.0)), float(mimik.get("browOuterUpRight", 0.0))))
+		m_stirn = maxf(m_stirn, 0.6 * maxf(float(mimik.get("browDownLeft", 0.0)), float(mimik.get("browDownRight", 0.0))))
+		var m_auge := maxf(maxf(float(mimik.get("cheekSquintLeft", 0.0)), float(mimik.get("cheekSquintRight", 0.0))),
+			maxf(float(mimik.get("eyeSquintLeft", 0.0)), float(mimik.get("eyeSquintRight", 0.0))))
+		var m_mund := maxf(float(mimik.get("mouthSmileLeft", 0.0)), float(mimik.get("mouthSmileRight", 0.0)))
+		var f := Vector4(kurve_im_alter(FALTEN_ALTER["stirn"], alter) * (1.15 - 0.3 * fett),
+			kurve_im_alter(FALTEN_ALTER["augen"], alter), kurve_im_alter(FALTEN_ALTER["mund"], alter) * (0.85 + 0.3 * fett),
+			kurve_im_alter(FALTEN_ALTER["hals"], alter)) * faktor * (1.0 if mann else 0.85)
+		f += Vector4(0.7 * m_stirn, 0.6 * m_auge, 0.5 * m_mund, 0.0) * mf
+		# Bartschatten: Männer ab 15 nach „bartwuchs“, Frauen nach „bartwuchs_frau“; heller Bart zeigt sich kaum
+		var bart_gen := bw if mann else bwf
+		var bart := clampf((alter - 15.0) / 8.0, 0.0, 1.0) * pow(bart_gen, 0.7) * 0.8 * (1.0 - 0.75 * hh)
+		for m in haut_stoffe:
+			m.set_shader_parameter("falten", f)
+			m.set_shader_parameter("bart", bart)
+			m.set_shader_parameter("brauen_dichte", clampf(dichte, 0.0, 1.0))
+			m.set_shader_parameter("haar_farbe", Vector3(haar.r, haar.g, haar.b))
+		werte3 = {"falten": f, "bart": bart, "brauen_dichte": dichte, "brauen_breite": breite, "grau": grau,
+			"grundfarbe": grund}
+	else:
+		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
+		for m in haar_stoffe:
+			m.set_shader_parameter("farbe", Vector3(haar.r, haar.g, haar.b))
+	# Augen: außen aus Helligkeit und Ton (dunkelbraun -> bernstein/grün/blau), innerer Kranz bernstein bei braunen
+	# und grünen Augen, schwach bei blauen
 	var ah := float(gene.get("augen_helligkeit", 130.0)) / 255.0
 	var at := float(gene.get("augen_ton", 135.0)) / 255.0
 	var hell := Color(0.6, 0.42, 0.14).lerp(Color(0.36, 0.46, 0.25), clampf(at / 0.5, 0.0, 1.0))
 	if at > 0.5:
 		hell = Color(0.36, 0.46, 0.25).lerp(Color(0.38, 0.52, 0.72), (at - 0.5) / 0.5)
 	var iris := Color(0.16, 0.08, 0.035).lerp(hell, ah)
+	var kranz := Color(0.5, 0.32, 0.1).lerp(Color(0.62, 0.45, 0.16), ah)
 	for m in augen_stoffe:
 		m.set_shader_parameter("iris_farbe", Vector3(iris.r, iris.g, iris.b))
+		m.set_shader_parameter("kranz_farbe", Vector3(kranz.r, kranz.g, kranz.b))
+		m.set_shader_parameter("kranz", clampf(1.0 - at * 0.9, 0.1, 1.0) * lerpf(0.4, 1.0, ah))
 
 # ---------------------------------------------------------------- Stoffe
 # Teilart nach dem Stoffnamen der .glb
@@ -261,7 +398,8 @@ static func teil_art(stoffname: String) -> String:
 		"Augen_Lederhaut": return "lederhaut"
 		"Augen_Iris": return "iris"
 		"Traene": return "traene"
-		"Lidschatten": return "aus"
+		"Hornhaut": return "hornhaut"
+		"Lidschatten": return "lidschatten"
 		"Zaehne": return "zaehne"
 		"Zahnfleisch": return "zahnfleisch"
 		"Brauen", "Wimpern": return "haar"
@@ -281,6 +419,26 @@ func teile_ausblenden(arten: Array) -> void:
 			elif not art in arten and _versteckt.has(schl):
 				mi.set_surface_override_material(s, _versteckt[schl])
 				_versteckt.erase(schl)
+
+# Stoffparameter aus einem Bogen: {"haut": {"masken": false}, "augen": {…}}; vor jeder Zelle gelten wieder die
+# Grundwerte (gemerkt beim ersten Setzen)
+var _stoff_grund := {}
+func stoff_parameter(werte: Dictionary) -> void:
+	var gruppen := {"haut": haut_stoffe, "haar": haar_stoffe, "augen": augen_stoffe}
+	for schl in _stoff_grund:
+		var teile: PackedStringArray = schl.split("|")
+		for m in gruppen[teile[0]]:
+			m.set_shader_parameter(teile[1], _stoff_grund[schl])
+	for g in werte:
+		if not gruppen.has(g):
+			print("WARNUNG Stoffgruppe ", g, " unbekannt")
+			continue
+		for p in werte[g]:
+			var schl := "%s|%s" % [g, p]
+			for m in gruppen[g]:
+				if not _stoff_grund.has(schl):
+					_stoff_grund[schl] = m.get_shader_parameter(p)
+				m.set_shader_parameter(p, werte[g][p])
 
 static func _leer() -> StandardMaterial3D:
 	var leer := StandardMaterial3D.new()
@@ -310,11 +468,87 @@ static func poren() -> NoiseTexture2D:
 func _stoffe_setzen() -> void:
 	for mi in netze:
 		for s in mi.mesh.get_surface_count():
-			var alt := mi.get_active_material(s)
+			var alt := mi.mesh.surface_get_material(s)
 			var name := String(alt.resource_name) if alt else ""
-			var neu := _stoff(alt as BaseMaterial3D, teil_art(name), mi, s)
+			var art := teil_art(name)
+			var neu2 := _stoff(alt as BaseMaterial3D, art, mi, s)
+			var neu: Material = neu2
+			if phase3:
+				var neu3 := _stoff3(art, mi, s)
+				if neu3:
+					neu = neu3
+				_stoffe3["%d_%d" % [mi.get_instance_id(), s]] = [neu, neu2]
 			if neu:
 				mi.set_surface_override_material(s, neu)
+
+# Phase-3-Kopf zum Vergleich mit den Stoffen der Phase 2 (ohne Bilder) zeigen; Brauen und Wimpern bleiben
+func vorher_setzen(an: bool) -> void:
+	vorher = an
+	for mi in netze:
+		for s in mi.mesh.get_surface_count():
+			var paar: Array = _stoffe3.get("%d_%d" % [mi.get_instance_id(), s], [])
+			if paar.is_empty():
+				continue
+			var art := teil_art(String(mi.mesh.surface_get_material(s).resource_name))
+			var m: Material = paar[0]
+			if an and art in ["hornhaut", "lidschatten"]:
+				m = _leer()
+			elif an and art != "haar" and paar[1] != null:
+				m = paar[1]
+			mi.set_surface_override_material(s, m)
+
+# Haut mit oder ohne Bildschirm-SSS (Ultra); Parameter bleiben
+func ultra_setzen(an: bool) -> void:
+	ultra = an
+	for m in haut_stoffe:
+		if m.shader == HAUT3 or m.shader == HAUT3_ULTRA:
+			m.shader = HAUT3_ULTRA if an else HAUT3
+
+func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
+	match art:
+		"haut":
+			var m := ShaderMaterial.new()
+			m.shader = HAUT3_ULTRA if ultra else HAUT3
+			m.set_shader_parameter("farbe_tex", bilder["haut_farbe"])
+			m.set_shader_parameter("normal_tex", bilder["haut_normal"])
+			m.set_shader_parameter("masken_tex", bilder["haut_masken"])
+			m.set_shader_parameter("falten_tex", bilder["haut_falten"])
+			m.set_shader_parameter("poren", poren())
+			m.set_shader_parameter("poren_dichte", meter_je_uv(mi.mesh, s) / 0.045)
+			haut_stoffe.append(m)
+			return m
+		"lederhaut", "iris":
+			var m := ShaderMaterial.new()
+			m.shader = AUGEN3
+			m.set_shader_parameter("iris_teil", art == "iris")
+			# gemalte Pupille knapp größer als die Öffnung im Netz (Beschreibung der .glb)
+			m.set_shader_parameter("pupille", float(info.get("pupillenoeffnung", 0.31)) + 0.03)
+			m.set_shader_parameter("iris_bild", bilder["iris_muster"])
+			m.set_shader_parameter("lederhaut_bild", bilder["lederhaut"])
+			augen_stoffe.append(m)
+			return m
+		"hornhaut", "traene":
+			var m := ShaderMaterial.new()
+			m.shader = HORNHAUT
+			if art == "traene":
+				m.set_shader_parameter("rauheit", 0.08)
+				m.set_shader_parameter("staerke", 0.7)
+			return m
+		"lidschatten":
+			var m := ShaderMaterial.new()
+			m.shader = LIDSCHATTEN
+			return m
+		"haar":
+			var m := ShaderMaterial.new()
+			m.shader = HAAR3
+			var wimper := String(mi.mesh.surface_get_material(s).resource_name) == "Wimpern"
+			m.set_shader_parameter("bild", bilder["wimpern" if wimper else "brauen"])
+			if wimper:
+				wimpern_stoffe.append(m)
+			else:
+				haar_stoffe.append(m)
+			return m
+	return null
 
 func _stoff(std: BaseMaterial3D, art: String, mi: MeshInstance3D, s: int) -> Material:
 	match art:
@@ -324,7 +558,10 @@ func _stoff(std: BaseMaterial3D, art: String, mi: MeshInstance3D, s: int) -> Mat
 			m.set_shader_parameter("hat_farbe", false)
 			m.set_shader_parameter("poren", poren())
 			m.set_shader_parameter("poren_dichte", meter_je_uv(mi.mesh, s) / 0.045)
-			haut_stoffe.append(m)
+			if phase3:
+				haut2_stoffe.append(m)
+			else:
+				haut_stoffe.append(m)
 			return m
 		"mund":
 			var m := ShaderMaterial.new()
@@ -359,6 +596,8 @@ func _stoff(std: BaseMaterial3D, art: String, mi: MeshInstance3D, s: int) -> Mat
 			m.shader = HAAR
 			if std and std.albedo_texture:
 				m.set_shader_parameter("bild", std.albedo_texture)
+			elif phase3:
+				return null           # Phase-3-Karten haben kein MakeHuman-Bild
 			haar_stoffe.append(m)
 			return m
 		"kleid", "kragen":
@@ -367,7 +606,7 @@ func _stoff(std: BaseMaterial3D, art: String, mi: MeshInstance3D, s: int) -> Mat
 			m.albedo_color = Color(0.56, 0.5, 0.4) if art == "kleid" else Color(0.5, 0.44, 0.35)
 			m.roughness = 0.92
 			return m
-		"aus":
+		"aus", "lidschatten", "hornhaut":
 			return _leer()
 	return null
 

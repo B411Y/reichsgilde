@@ -1,0 +1,42 @@
+{
+ "name": "fleck_p3",
+ "titel": "Fleck vor dem Ohr: Phase 2 gegen Phase 3",
+ "zelle": [
+  420,
+  420
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 80,
+  "alter": 35,
+  "geschlecht": "m"
+ },
+ "spalten": [
+  {
+   "titel": "Phase 2",
+   "kopf": "/home/claude/werkzeuge/charakter/glb2/kopf2.glb"
+  },
+  {
+   "titel": "Phase 3",
+   "kopf": "kopf3.glb"
+  },
+  {
+   "titel": "Phase 3, ohne Schutz",
+   "kopf": "kopf3.glb",
+   "stoff": {
+    "haut": {
+     "streu_schattenfrei": 0.0
+    }
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Seite 80°"
+  },
+  {
+   "titel": "¾ 55°",
+   "winkel": 55
+  }
+ ]
+}

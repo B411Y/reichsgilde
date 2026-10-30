@@ -1,0 +1,55 @@
+{
+ "name": "nah",
+ "titel": "Phase 3: nah – Augen, Mund, Haut, Falten",
+ "zelle": [
+  440,
+  330
+ ],
+ "alle": {
+  "kopf": "kopf3.glb",
+  "geschlecht": "m"
+ },
+ "spalten": [
+  {
+   "titel": "20 J.",
+   "alter": 20
+  },
+  {
+   "titel": "35 J.",
+   "alter": 35
+  },
+  {
+   "titel": "50 J.",
+   "alter": 50
+  },
+  {
+   "titel": "70 J.",
+   "alter": 70
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Augen",
+   "ansicht": "augen",
+   "winkel": 12
+  },
+  {
+   "titel": "Augen ¾",
+   "ansicht": "augen",
+   "winkel": 40
+  },
+  {
+   "titel": "Mund",
+   "ansicht": "mund",
+   "winkel": 15
+  },
+  {
+   "titel": "Stirn",
+   "ansicht": "augen",
+   "winkel": 5,
+   "hoehe": 12.0,
+   "spanne_m": 0.09,
+   "ziel_m": 0.04
+  }
+ ]
+}

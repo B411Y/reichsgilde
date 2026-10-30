@@ -1,4 +1,4 @@
-# Versuch Charakter (Phase 0, in Phase 2 unverändert übernommen): Bühne für einen Kopf – eigenes SubViewport mit eigener Welt, Licht wie ein gemaltes
+# Versuch Charakter (Phase 0, Phase 3: Belichtung 1,0 statt 1,15, Schlüssellicht 2,3 statt 2,6): Bühne für einen Kopf – eigenes SubViewport mit eigener Welt, Licht wie ein gemaltes
 # Porträt (warmes Schlüssellicht links oben, kühles schwaches Fülllicht rechts, warmes Gegenlicht hinten rechts),
 # AgX, gleiche Kamera für alle Köpfe. Licht und Kamera stammen aus dem eigenen Porträt-Versuch (hg_fenster.gd).
 extends SubViewport
@@ -26,13 +26,13 @@ func _init(groesse := Vector2i(640, 640)) -> void:
 	umgebung.ssao_radius = 0.05
 	umgebung.ssao_intensity = 1.4
 	umgebung.tonemap_mode = Environment.TONE_MAPPER_AGX
-	umgebung.tonemap_exposure = 1.15
+	umgebung.tonemap_exposure = 1.0          # Phase 3: 1,15 -> 1,0 (Haut war überbelichtet)
 	var we := WorldEnvironment.new()
 	we.environment = umgebung
 	add_child(we)
 	schluessel = DirectionalLight3D.new()
 	schluessel.light_color = Color(1.0, 0.9, 0.78)
-	schluessel.light_energy = 2.6
+	schluessel.light_energy = 2.3
 	schluessel.shadow_enabled = true
 	schluessel.shadow_blur = 1.2
 	schluessel.shadow_normal_bias = 1.0
@@ -102,6 +102,33 @@ func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m :
 	var pos := dreh + Vector3(sin(w) * cos(h), sin(h), cos(w) * cos(h)) * abstand
 	var blick := dreh + (ziel - dreh).rotated(Vector3.UP, w)
 	kamera.transform = Transform3D(Basis.looking_at(blick - pos), pos)
+
+# Einstellungen der Umgebung aus einem Bogen ({"ssao_radius": 0.02, "ssao_enabled": false, …}); Unbekanntes wird
+# gemeldet. Vor jeder Zelle gelten wieder die Grundwerte der Bühne.
+var _umgebung_grund := {}
+func umgebung_setzen(werte: Dictionary) -> void:
+	for k in _umgebung_grund:
+		umgebung.set(k, _umgebung_grund[k])
+	for k in werte:
+		if not k in umgebung:
+			print("WARNUNG Umgebung kennt ", k, " nicht")
+			continue
+		if not _umgebung_grund.has(k):
+			_umgebung_grund[k] = umgebung.get(k)
+		umgebung.set(k, werte[k])
+
+# Schlüssellicht aus einem Bogen ({"shadow_enabled": false, "light_energy": 2.0}), wie umgebung_setzen
+var _licht_grund := {}
+func licht_setzen(werte: Dictionary) -> void:
+	for k in _licht_grund:
+		schluessel.set(k, _licht_grund[k])
+	for k in werte:
+		if not k in schluessel:
+			print("WARNUNG Schlüssellicht kennt ", k, " nicht")
+			continue
+		if not _licht_grund.has(k):
+			_licht_grund[k] = schluessel.get(k)
+		schluessel.set(k, werte[k])
 
 func foto() -> Image:
 	return get_texture().get_image()
