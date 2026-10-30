@@ -40,6 +40,7 @@ uniform float streu_schattenfrei = 1.0;      // 1 = Streulicht jenseits des Scha
 uniform float flaum = 0.16;                  // Randlicht
 uniform float durchlicht = 0.35;             // Ohren und Nase im Gegenlicht
 uniform float sss_staerke = 0.25;            // nur ULTRA
+uniform float unruhe = 0.0;                  // Phase 5: ungleichmäßiger Hautton der Erwachsenen (gegen „Porzellan“)
 // Phase 4: Haut unter Haar und Bart (tools/charakter/kopf4_haar.py, Spiel-UV 1024²). Die Kopfhaut unter dichtem Haar
 // nimmt die Haarfarbe an (Schatten und Haaransatz: kein heller Schimmer durch das Haar, kein Helmrand); wo eine
 // Glatze ist (Rang < kahl), bleibt Haut.
@@ -70,6 +71,9 @@ void fragment() {
 	// Farbe: Ton aus den Genen × Hautbild, Rötung, Bart, Braue, Furchen
 	vec3 c = grundfarbe * toenung * f.rgb * 2.0;
 	c *= mix(vec3(1.0), roetung_farbe, clamp(m.r * roetung, 0.0, 1.0));
+	// Phase 5: Unruhe im Hautton (grob und fein, aus der Porenkachel; nach Rot und Gelb verschoben, nicht nur heller)
+	float fl = (texture(poren, UV * 3.1).x - 0.5) * 1.4 + (texture(poren, UV * 11.7 + 0.37).y - 0.5) * 0.8;
+	c *= vec3(1.0) + unruhe * fl * vec3(0.8, 1.05, 1.3);
 	c = mix(c, c * bart_farbe, clamp(m.a * bart, 0.0, 1.0));
 	c = mix(c, haar_farbe * 0.8, clamp(f.a * brauen_dichte * 0.55, 0.0, 0.7));
 	c *= 1.0 - falten_dunkel * clamp(-h0, 0.0, 1.0);
@@ -78,7 +82,7 @@ void fragment() {
 	float unter = dot(texture(kopfhaut_tex, UV), kopfhaut_kanal);
 	unter *= smoothstep(kahl - 0.05, kahl + 0.05, texture(rang_tex, UV).a) * (1.0 - 0.5 * duenn_haut);
 	float unter_bart = clamp(dot(texture(bart_tex, UV), bart_kanal), 0.0, 1.0);
-	float haarig = clamp(max(unter, unter_bart * 0.85), 0.0, 1.0);
+	float haarig = clamp(max(unter, unter_bart), 0.0, 1.0);
 	c = mix(c, haar_unter * mix(0.55, 0.85, haarig), haarig * kopfhaut_dunkel);
 	ALBEDO = c;
 	// Normale: gebacken (Mittel) + Falten + feine Kachel (Poren), im Tangentenraum zusammen

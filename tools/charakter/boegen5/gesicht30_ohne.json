@@ -1,0 +1,15 @@
+{
+ "name": "gesicht30_ohne",
+ "titel": "Mann und Frau 30 Jahre ohne Haar: vorn, ¾, Profil",
+ "zelle": [420, 480],
+ "alle": {"kopf": "standard", "alter": 30, "haar": {"modus": "aus"}},
+ "spalten": [
+  {"titel": "vorn", "winkel": 0},
+  {"titel": "¾", "winkel": 35},
+  {"titel": "Profil", "winkel": 88}
+ ],
+ "zeilen": [
+  {"titel": "Mann 30", "geschlecht": "m"},
+  {"titel": "Frau 30", "geschlecht": "w"}
+ ]
+}

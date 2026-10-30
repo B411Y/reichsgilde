@@ -1,0 +1,90 @@
+{
+ "name": "baerte",
+ "titel": "Phase 5: Bärte mit TressFX (Mann 40, kurzes Haar)",
+ "zelle": [
+  380,
+  440
+ ],
+ "alle": {
+  "kopf": "standard",
+  "alter": 40,
+  "geschlecht": "m",
+  "gene": {
+   "bartwuchs": 200
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "¾, Mund offen",
+   "winkel": 30,
+   "mimik": {
+    "jawOpen": 0.5
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "rasiert",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   }
+  },
+  {
+   "titel": "schnurrbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "schnurrbart"
+    }
+   }
+  },
+  {
+   "titel": "kinnbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "kinnbart"
+    }
+   }
+  },
+  {
+   "titel": "vollbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "vollbart"
+    }
+   }
+  },
+  {
+   "titel": "langbart",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": "langbart"
+    }
+   }
+  }
+ ]
+}

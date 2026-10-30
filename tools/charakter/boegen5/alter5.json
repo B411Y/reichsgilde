@@ -1,0 +1,17 @@
+{
+ "name": "alter5",
+ "titel": "Altersverlauf 5, 20, 35, 50, 70 Jahre (ohne Haar, ¾)",
+ "zelle": [340, 400],
+ "alle": {"kopf": "standard", "winkel": 25, "haar": {"modus": "aus"}},
+ "spalten": [
+  {"titel": "5 J.", "alter": 5},
+  {"titel": "20 J.", "alter": 20},
+  {"titel": "35 J.", "alter": 35},
+  {"titel": "50 J.", "alter": 50},
+  {"titel": "70 J.", "alter": 70}
+ ],
+ "zeilen": [
+  {"titel": "Mann", "geschlecht": "m"},
+  {"titel": "Frau", "geschlecht": "w"}
+ ]
+}

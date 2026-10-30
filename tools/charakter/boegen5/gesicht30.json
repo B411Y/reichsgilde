@@ -1,0 +1,16 @@
+{
+ "name": "gesicht30",
+ "titel": "Mann und Frau 30 Jahre: vorn, ¾, Profil (Haar TressFX, Mann kurz und rasiert)",
+ "zelle": [420, 480],
+ "alle": {"kopf": "standard", "alter": 30},
+ "spalten": [
+  {"titel": "vorn", "winkel": 0},
+  {"titel": "¾", "winkel": 35},
+  {"titel": "Profil", "winkel": 88},
+  {"titel": "ohne Haar ¾", "winkel": 35, "haar": {"modus": "aus"}}
+ ],
+ "zeilen": [
+  {"titel": "Mann 30", "geschlecht": "m", "gene": {"frisur": 20, "bartform": 10}, "haar": {"modus": "tressfx"}, "warten": 45},
+  {"titel": "Frau 30", "geschlecht": "w", "gene": {"frisur": 20}, "haar": {"modus": "tressfx"}, "warten": 45}
+ ]
+}

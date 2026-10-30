@@ -30,6 +30,7 @@ const LIDSCHATTEN := preload("res://versuch/charakter/lidschatten.gdshader")
 const HAAR3 := preload("res://versuch/charakter/haar3.gdshader")
 const HAAR4 := preload("res://versuch/charakter/charakter_haar.gd")
 const BILDER := ["haut_farbe", "haut_normal", "haut_masken", "haut_falten", "brauen", "wimpern", "iris_muster", "lederhaut"]
+const BILDER_WAHL := ["brauen_w"]      # Phase 5, fehlt in älteren Ordnern (dann gilt „brauen“)
 # Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
 const FALTEN_ALTER := {
 	"stirn": [[25, 0.0], [38, 0.15], [50, 0.5], [62, 0.95], [75, 1.3]],
@@ -38,6 +39,10 @@ const FALTEN_ALTER := {
 	"hals": [[35, 0.0], [50, 0.3], [62, 0.65], [75, 1.0]],
 }
 const ERBGUT := "res://daten/erbgut.json"
+# Phase 5: Altersformen (tools/charakter/kopf2_regler.json „alter_formen“). Das ICT-Durchschnittsgesicht wirkte mit den
+# MakeHuman-Makros allein wie ein Kind; „alter_reife_<g>“ macht es erwachsen, „alter_greis“ lässt es im Alter erschlaffen.
+const REIFE_ALTER := {"m": [[11, 0.0], [15, 0.3], [19, 0.75], [24, 1.0]], "w": [[10, 0.0], [14, 0.35], [18, 0.8], [21, 1.0]]}
+const GREIS_ALTER := [[40, 0.0], [55, 0.3], [68, 0.7], [78, 1.0], [90, 1.15]]
 
 var pfad := ""
 var netze: Array[MeshInstance3D] = []
@@ -77,6 +82,7 @@ var mimik := {}             # ARKit-Name -> Gewicht
 var mimik_mit_alter := true
 var mimikfaktor := 1.0
 var gewichte := {}          # zuletzt gesetzte Formgewichte (zum Prüfen)
+var zusatz_formen := {}     # Formname -> Gewicht obendrauf (Bögen, Probeformen „probe_*“)
 static var _poren: NoiseTexture2D
 static var _erbgut := {}
 
@@ -137,8 +143,10 @@ func _bilder_laden(datei: String) -> void:
 	if not DirAccess.dir_exists_absolute(ordner):
 		return
 	var t := Time.get_ticks_usec()
-	for b in BILDER:
+	for b in BILDER + BILDER_WAHL:
 		var f := ordner.path_join(b + ".png")
+		if b in BILDER_WAHL and not FileAccess.file_exists(f):
+			continue
 		if _bild_speicher.has(f):
 			bilder[b] = _bild_speicher[f]
 			continue
@@ -274,8 +282,22 @@ func _anwenden() -> void:
 			w[fo["plus"]] = maxf(x, 0.0) * mimikfaktor
 		else:
 			w[fo["plus"]] = v / 255.0 * mimikfaktor
+	# Phase 5: erwachsen und greis (nur, wenn die .glb die Formen hat)
+	if formen.has("alter_reife_m"):
+		w["alter_reife_m"] = kurve_im_alter(REIFE_ALTER["m"], alter) * geschlecht
+		w["alter_reife_w"] = kurve_im_alter(REIFE_ALTER["w"], alter) * (1.0 - geschlecht)
+		w["alter_greis"] = kurve_im_alter(GREIS_ALTER, alter)
+		# Ruhelage der Oberlider: Erwachsene decken den oberen Irisrand 1–2 mm ab (kein „Puppenblick“), im Alter mehr
+		var lid: float = 0.1 * kurve_im_alter(REIFE_ALTER["m" if geschlecht >= 0.5 else "w"], alter) + 0.06 * w["alter_greis"]
+		for n in ["eyeBlinkLeft", "eyeBlinkRight"]:
+			w[n] = float(w.get(n, 0.0)) + lid
 	for k in mimik:
 		w[k] = float(w.get(k, 0.0)) + float(mimik[k]) * mimikfaktor
+	for n in ["eyeBlinkLeft", "eyeBlinkRight"]:
+		if w.has(n):
+			w[n] = minf(float(w[n]), 1.0)
+	for k in zusatz_formen:
+		w[k] = float(w.get(k, 0.0)) + float(zusatz_formen[k])
 	gewichte = w
 	for name in formen:
 		form(name, float(w.get(name, 0.0)))
@@ -345,15 +367,22 @@ func _farben() -> void:
 	if phase3:
 		# Brauen: Dichte aus dem Bartwuchs (Männer „bartwuchs“, Frauen dazu „bartwuchs_frau“), Kinder lichter,
 		# alte Männer buschiger; Frauen schmaler. Graue Haare einzeln (Salz und Pfeffer).
+		# Phase 5: Frauen haben ein eigenes Brauenbild (schmaler, Bogen, dünnes Ende) und volle Dichte – vorher schnitten
+		# Dichte 0,65 und Breite 0,72 die Brauen fast weg. Brauen sind dunkler als das Haupthaar, bei hellem Haar mehr.
 		var bw := float(gene.get("bartwuchs", 130.0)) / 255.0
 		var bwf := float(gene.get("bartwuchs_frau", 0.0)) / 255.0
-		var dichte := lerpf(0.5 + 0.3 * bw + 0.2 * bwf, 0.62 + 0.38 * bw, geschlecht)
+		var dichte := lerpf(0.8 + 0.12 * bw + 0.08 * bwf, 0.7 + 0.3 * bw, geschlecht)
 		dichte *= lerpf(0.65, 1.0, clampf((alter - 3.0) / 12.0, 0.0, 1.0))
 		if mann:
 			dichte += 0.12 * clampf((alter - 55.0) / 15.0, 0.0, 1.0)
-		var breite := lerpf(0.72, 1.0, geschlecht) * lerpf(0.85, 1.0, clampf((alter - 3.0) / 12.0, 0.0, 1.0))
+		var breite := lerpf(0.85, 1.0, clampf((alter - 3.0) / 12.0, 0.0, 1.0))
+		var braue := haar.lerp(haar * 0.42, 0.35 + 0.35 * hh)
+		var brauen_bild: Texture2D = bilder.get("brauen_w", bilder["brauen"]) if not mann else bilder["brauen"]
+		if not bilder.has("brauen_w"):
+			breite *= lerpf(0.72, 1.0, geschlecht)
 		for m in haar_stoffe:
-			m.set_shader_parameter("farbe", Vector3(haar.r, haar.g, haar.b))
+			m.set_shader_parameter("bild", brauen_bild)
+			m.set_shader_parameter("farbe", Vector3(braue.r, braue.g, braue.b))
 			m.set_shader_parameter("grau", grau)
 			m.set_shader_parameter("dichte", clampf(dichte, 0.0, 1.0))
 			m.set_shader_parameter("breite", breite)
@@ -362,7 +391,7 @@ func _farben() -> void:
 			m.set_shader_parameter("schwelle", 0.35)
 			m.set_shader_parameter("farbe", Vector3(wimper.r, wimper.g, wimper.b))
 			m.set_shader_parameter("grau", grau * 0.5)
-			m.set_shader_parameter("dichte", lerpf(1.0, 0.88, geschlecht))
+			m.set_shader_parameter("dichte", lerpf(1.0, 0.8, geschlecht))
 		# Falten aus dem Alter; helle Haut faltet etwas früher, Leibesfülle glättet die Stirn
 		var fett := float(gene.get("gewicht", 128.0)) / 255.0
 		var faktor := 0.9 + 0.25 * (h - 0.5) * 2.0 * 0.5
@@ -381,7 +410,16 @@ func _farben() -> void:
 		# Bartschatten: Männer ab 15 nach „bartwuchs“, Frauen nach „bartwuchs_frau“; heller Bart zeigt sich kaum
 		var bart_gen := bw if mann else bwf
 		var bart := clampf((alter - 15.0) / 8.0, 0.0, 1.0) * pow(bart_gen, 0.7) * 0.8 * (1.0 - 0.75 * hh)
+		# Phase 5: Haut der Erwachsenen weniger „Porzellan“: Rötung der Wangen (Kindchenschema) zurück, Poren deutlicher,
+		# Männer mit kräftigerem Bartschatten; im Alter wieder etwas Rötung (Äderchen)
+		var reif := kurve_im_alter(REIFE_ALTER["m" if mann else "w"], alter)
+		var greis := kurve_im_alter(GREIS_ALTER, alter)
+		bart = clampf(bart * lerpf(1.0, 1.45, reif), 0.0, 0.85) if mann else bart
 		for m in haut_stoffe:
+			m.set_shader_parameter("roetung", lerpf(0.34, 0.2 if mann else 0.25, reif) + 0.06 * greis)
+			m.set_shader_parameter("poren_staerke", lerpf(0.32, 0.62 if mann else 0.5, reif) + 0.08 * greis)
+			m.set_shader_parameter("glanz", lerpf(0.34, 0.3, reif))
+			m.set_shader_parameter("unruhe", lerpf(0.03, 0.11 if mann else 0.075, reif) + 0.05 * greis)
 			m.set_shader_parameter("falten", f)
 			m.set_shader_parameter("bart", bart)
 			m.set_shader_parameter("brauen_dichte", clampf(dichte, 0.0, 1.0))
@@ -449,6 +487,7 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 		hw["bart"] = ""
 	hw["farbe"] = farbe
 	hw["grau"] = grau
+	hw["kopfmitte"] = Vector3(0.0, augen_mitte.y + 0.01, augen_mitte.z - 0.08)
 	haar_werte = hw
 	haar_knoten.karten_schatten = haar_schatten
 	haar_knoten.stile_setzen([hw["frisur"], hw["bart"]])
@@ -456,26 +495,33 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 	# Haut unter Haar und Bart
 	var ue := HAAR4.uebersicht(o)
 	var karten: Dictionary = ue.get("kopfhaut", {})
+	# Phase 5: je Bild vier Stile; Bärte in bart*.png, der Rang (Glatze) im Kanal A des Bildes mit „rang“
 	var kopfhaut_tex: Texture2D = null
+	var bart_tex: Texture2D = null
+	var rang_tex: Texture2D = null
 	var kanal := Vector4.ZERO
 	var bart_kanal := Vector4.ZERO
 	for datei in karten:
 		var liste: Array = karten[datei]
+		var ist_bart := String(datei).begins_with("bart")
+		if liste.has("rang"):
+			rang_tex = HAAR4.bild(o.path_join(datei))
 		var i := liste.find(hw["frisur"])
-		if i >= 0 and datei != "bart.png":
+		if i >= 0 and not ist_bart and hw["frisur"] != "":
 			kopfhaut_tex = HAAR4.bild(o.path_join(datei))
 			kanal[i] = 1.0
 		i = liste.find(hw["bart"])
-		if i >= 0 and datei == "bart.png":
+		if i >= 0 and ist_bart and hw["bart"] != "":
+			bart_tex = HAAR4.bild(o.path_join(datei))
 			bart_kanal[i] = clampf(float(hw["bart_dichte"]) * (0.5 + 0.5 * float(hw["bart_laenge"])), 0.0, 1.0)
 	var unter := farbe.lerp(Color(0.78, 0.77, 0.75), grau)
 	for m in haut_stoffe:
 		m.set_shader_parameter("kopfhaut_tex", kopfhaut_tex)
 		m.set_shader_parameter("kopfhaut_kanal", kanal)
-		m.set_shader_parameter("rang_tex", HAAR4.bild(o.path_join("kopfhaut.png")))
+		m.set_shader_parameter("rang_tex", rang_tex)
 		m.set_shader_parameter("kahl", float(hw["kahl"]))
 		m.set_shader_parameter("duenn_haut", float(hw["duenn"]))
-		m.set_shader_parameter("bart_tex", HAAR4.bild(o.path_join("bart.png")))
+		m.set_shader_parameter("bart_tex", bart_tex)
 		m.set_shader_parameter("bart_kanal", bart_kanal)
 		m.set_shader_parameter("haar_unter", Vector3(unter.r, unter.g, unter.b))
 

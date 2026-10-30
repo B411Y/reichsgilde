@@ -1,0 +1,61 @@
+{
+ "name": "brauen_frau",
+ "titel": "Phase 5: Brauen der Frauen (nah)",
+ "zelle": [
+  520,
+  340
+ ],
+ "alle": {
+  "kopf": "standard",
+  "geschlecht": "w",
+  "ansicht": "augen",
+  "haar": {
+   "modus": "aus"
+  }
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "25 J., braun",
+   "alter": 25,
+   "gene": {
+    "haar_helligkeit": 70
+   }
+  },
+  {
+   "titel": "30 J., mittel",
+   "alter": 30
+  },
+  {
+   "titel": "30 J., blond",
+   "alter": 30,
+   "gene": {
+    "haar_helligkeit": 210
+   }
+  },
+  {
+   "titel": "40 J., rot",
+   "alter": 40,
+   "gene": {
+    "haar_helligkeit": 130,
+    "haar_rot": 220
+   }
+  },
+  {
+   "titel": "65 J., ergraut",
+   "alter": 65,
+   "gene": {
+    "ergrauen": 80
+   }
+  }
+ ]
+}

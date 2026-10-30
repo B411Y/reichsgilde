@@ -1,0 +1,18 @@
+{
+ "name": "augen_nah",
+ "titel": "Augen nah: Wimpern und Brauen (Mann 30, Frau 30)",
+ "zelle": [520, 380],
+ "alle": {"kopf": "standard", "alter": 30, "ansicht": "augen", "haar": {"modus": "aus"}},
+ "spalten": [
+  {"titel": "vorn", "winkel": 0},
+  {"titel": "¾", "winkel": 40},
+  {"titel": "Profil", "winkel": 80},
+  {"titel": "halb zu", "winkel": 20, "mimik": {"eyeBlinkLeft": 0.5, "eyeBlinkRight": 0.5}},
+  {"titel": "zu", "winkel": 20, "mimik": {"eyeBlinkLeft": 1.0, "eyeBlinkRight": 1.0}}
+ ],
+ "zeilen": [
+  {"titel": "Mann 30", "geschlecht": "m"},
+  {"titel": "Frau 30", "geschlecht": "w"},
+  {"titel": "Frau 30 blond", "geschlecht": "w", "gene": {"haar_helligkeit": 200}}
+ ]
+}

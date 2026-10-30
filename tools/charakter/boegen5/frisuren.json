@@ -1,0 +1,102 @@
+{
+ "name": "frisuren",
+ "titel": "Phase 5: Frisuren mit TressFX (30 Jahre)",
+ "zelle": [
+  380,
+  440
+ ],
+ "alle": {
+  "kopf": "standard",
+  "alter": 30,
+  "haar": {
+   "modus": "tressfx"
+  },
+  "warten": 45
+ },
+ "spalten": [
+  {
+   "titel": "vorn",
+   "winkel": 0
+  },
+  {
+   "titel": "¾",
+   "winkel": 35
+  },
+  {
+   "titel": "Profil",
+   "winkel": 88
+  },
+  {
+   "titel": "hinten",
+   "winkel": 160
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "mann_kurz",
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_kurz",
+     "bart": ""
+    }
+   }
+  },
+  {
+   "titel": "mann_pagen",
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_pagen",
+     "bart": ""
+    }
+   }
+  },
+  {
+   "titel": "mann_zurueck",
+   "geschlecht": "m",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "mann_zurueck",
+     "bart": ""
+    }
+   }
+  },
+  {
+   "titel": "frau_knoten",
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "frau_knoten",
+     "bart": ""
+    }
+   }
+  },
+  {
+   "titel": "frau_offen",
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "frau_offen",
+     "bart": ""
+    }
+   }
+  },
+  {
+   "titel": "frau_zoepfe",
+   "geschlecht": "w",
+   "haar": {
+    "modus": "tressfx",
+    "vorgabe": {
+     "frisur": "frau_zoepfe",
+     "bart": ""
+    }
+   }
+  }
+ ]
+}

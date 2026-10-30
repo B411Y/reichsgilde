@@ -73,7 +73,11 @@ func _meldung(text: String) -> void:
 
 func _datei(name: String) -> String:
 	if name == "standard":
-		name = "kopf4.glb" if FileAccess.file_exists(glb_ordner.path_join("kopf4.glb")) else "kopf3.glb"
+		name = "kopf3.glb"
+		for n in ["kopf5.glb", "kopf4.glb"]:
+			if FileAccess.file_exists(glb_ordner.path_join(n)):
+				name = n
+				break
 	if name.begins_with("~/"):
 		return OS.get_environment("HOME").path_join(name.substr(2))
 	return name if name.begins_with("/") else glb_ordner.path_join(name)
@@ -107,6 +111,7 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	gene.merge(z.get("gene", {}), true)
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
+	k.zusatz_formen = z.get("formen", {})
 	var hv: Dictionary = z.get("haar", {})
 	k.haar_vorgabe = hv.get("vorgabe", {})
 	k.haar_ruhe = bool(hv.get("ruhe", false))
@@ -146,6 +151,12 @@ func _bogen(datei: String) -> void:
 			for quelle in [ueberall, zeilen[zi], spalten[si]]:
 				mim.merge(quelle.get("mimik", {}), true)
 			z["mimik"] = mim
+			# Zusatzformen ebenso (Zeile: Grundmischung, Spalte: eine Probe dazu)
+			var fo: Dictionary = {}
+			for quelle in [ueberall, zeilen[zi], spalten[si]] + ([einzeln[si]] if si < einzeln.size() else []):
+				for n in quelle.get("formen", {}):
+					fo[n] = float(fo.get(n, 0.0)) + float(quelle["formen"][n])
+			z["formen"] = fo
 			if z.get("kopf") == null:
 				reihe.append([null, z.get("titel", "")])
 				continue
@@ -246,6 +257,7 @@ var _wert_texte := {}
 var _ansicht_schl := ""
 var _haar_wahl: OptionButton
 var _frisur_wahl: OptionButton
+var _struktur_r: Range
 var _bart_wahl: OptionButton
 
 func _regler(nur_bild: bool) -> void:
@@ -338,6 +350,8 @@ func _regler(nur_bild: bool) -> void:
 			_bart_wahl.add_item(n)
 		_bart_wahl.item_selected.connect(func(_i): _aendern())
 		liste.add_child(_bart_wahl)
+		# Phase 5: Haarstruktur (vorläufig, bis kern das Gen „haarstruktur“ in erbgut.json hat)
+		_struktur_r = _regler_zeile(liste, "Haarstruktur (glatt – wellig – lockig, TressFX)", 0, 255, 60, 1)
 	var arten := {"Makro": "Körper (Makros)", "Merkmal": "Gestalt", "Farbe": "Farben", "Zubehoer": "Zubehör (kommt mit Haar und Bart)"}
 	var info_gene: Dictionary = _kopf.info.get("gene", {})
 	for art in arten:
@@ -434,6 +448,8 @@ func _aendern() -> void:
 			v["bart"] = ""
 		elif _bart_wahl.selected > 1:
 			v["bart"] = _bart_wahl.get_item_text(_bart_wahl.selected)
+		if _struktur_r:
+			v["struktur"] = _struktur_r.value / 255.0
 		_kopf.haar_vorgabe = v
 	_kopf.aussehen_setzen(gene, _alter_r.value, 1.0 if _mann_r.selected == 0 else 0.0)
 	# Mit freier Kamera nur neu hinstellen, wenn Ansicht oder Drehung geändert wurden
