@@ -26,6 +26,12 @@ Darum sind die Partikel-Technik B (Flamme, Funken, Rauch), die Fassung „Rausch
 
 Die echten Lichter (Hoch 12, Mittel 6, Niedrig keines, wie bisher) flackern jetzt **im Takt der Flamme**: Ihre Stärke folgt der Helligkeit des Bildes, das die Flamme gerade zeigt – derselbe Wert wie in der Testszene. Der Gebäudebrand hat ein eigenes, großes Licht (auch auf Niedrig).
 
+### Nach deinem ersten Blick (30.10.2026)
+
+- **Rauch an Mauern:** Der Rauch der Feuerkörbe (Torburgen, Schilderhäuschen, Wachturm) steigt an einer Wand daneben hoch und biegt sich nur vom Wind weg oder an der Wand entlang, nie in sie hinein. Das Spiel sucht die Wand beim Aufbau einmal aus den Dreiecken des Modells (in der Stadt gibt es keine Kollisionsformen). Wo Rauch eine Fläche berührt (Wand, Dach), blendet er weich aus statt mit harter Kante.
+- **Kaminrauch:** nur noch ein Hauch – bei Tag etwa ein Drittel der bisherigen Deckkraft, nachts die Hälfte.
+- **Gebäudebrand neu denken (nur notiert, keine Priorität):** Flammen sollen aus den Fenstern lodern statt als Fläche davor zu stehen, und auf dem Dach aus dem Dach kommen statt darum herum zu schweben. Dafür die Stellen neu bestimmen und gegebenenfalls eigene Flammen-Simulationen für Fenster- und Dachbrand. Steht unter „Offen“ in `docs/bereiche/darstellung.md`.
+
 ## So probierst du es aus (Windows, Godot-Editor)
 
 **Vorbereitung** wie in Phase 1: Godot schließen, in GitHub Desktop den Branch `phase5/feuer-darstellung` wählen, „Fetch origin“ und „Pull origin“, Godot öffnen, Hammer-Symbol (bauen). Dann **Debuggen → Run-Instanzen anpassen…** und die Zeile unten ins Feld **„Main-Run Argumente“** eintragen – immer mit dem einzelnen ` -- ` davor –, **OK**, **F5**. Danach das Feld wieder leeren.
@@ -105,8 +111,8 @@ Kein Teil hebt sich aus dem Rauschen: „alles“ liegt einmal bei 58, einmal be
 | Datei | Inhalt |
 |---|---|
 | `game/scripts/Feuer.cs`, `FeuerArt.cs` | das Feuer in der einen Fassung: Flamme aus dem Flipbook, Rauch, Glut, Licht; `Lichtwert()` für Lichter, die andere stellen (Pool), `RauchStaerke` (Kamin an/aus), `FlammeAn` (Schwelen), `UhrStellen` (gemeinsame Uhr, auch ohne Licht) |
-| `game/scripts/Stadtansicht.Feuer.cs` | Schornsteine finden, Kaminrauch nach Tageszeit und Arbeit, Gebäudebrand, Kerzen und Esse in den Räumen |
+| `game/scripts/Stadtansicht.Feuer.cs` | Schornsteine finden, Wand neben einem Feuer finden (`WandSuchen`), Kaminrauch nach Tageszeit und Arbeit, Gebäudebrand, Kerzen und Esse in den Räumen |
 | `game/scripts/Stadtansicht.Nachtlichter.cs` | Flammen an Fackeln, Laternen, Feuerkörben; das Flackern der echten Lichter nach der Flamme |
 | `game/scripts/Stadtansicht.Lichtflecken.cs`, `game/assets/shader/lichtfleck.gdshader` | das Ersatzlicht ohne Rand |
-| `game/assets/shader/flamme_sim.gdshader`, `rauch.gdshader`, `glut.gdshader`, `laternenglas.gdshader` | Flamme, Rauch (mit Nachtfarbe und Stärke je Säule), Glut, durchscheinende Laternenscheibe |
+| `game/assets/shader/flamme_sim.gdshader`, `rauch.gdshader`, `glut.gdshader`, `laternenglas.gdshader` | Flamme, Rauch (mit Nachtfarbe, Stärke je Säule, Deckkraft Tag/Nacht, an der Wand, weiche Kante), Glut, durchscheinende Laternenscheibe |
 | `game/scripts/Feuertest.cs` | die Testszene |
