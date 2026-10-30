@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// Fenster „Einstellungen“ mit vier Reitern (Umbau 29.10.2026, vorher sieben):
 /// <b>Grafik</b> – oben die Voreinstellung (Niedrig bis Ultra, automatische Wahl, Vollbild), darunter in den Gruppen <i>Leistung</i> (Bildrate, VSync, FSR 2.2),
 /// <i>Bild</i> (Kantenglättung, Schatten) und <i>Stimmung</i> (Bloom) die sechs Hauptregler; der Knopf <i>Erweitert</i> klappt den Rest auf (Dynamische Auflösung,
-/// Detailstufe, Boden, Gras, Umgebungsverdeckung, indirektes Licht, Unschärfe, Wolken, Dunst, Wetter, Farbstimmung und unter Windows die Grafikschnittstelle,
+/// Detailstufe, Boden, Gras, Umgebungsverdeckung, indirektes Licht, globale Beleuchtung (SDFGI), Unschärfe, Wolken, Dunst, Wetter, Farbstimmung und unter Windows die Grafikschnittstelle,
 /// siehe <see cref="Grafikschnittstelle"/>); der Zustand wird in <c>user://einstellungen.cfg</c> (Abschnitt „oberflaeche“) gemerkt.
 /// <b>Ton</b> (Lautstärke je Bus, Stumm, Ansagen, Ton im Hintergrund stumm; siehe <see cref="KlangDienst"/>), <b>Spiel</b> (Ratssitzung zeigen) und
 /// <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Fahnen bewegen, Tooltips festheften).
@@ -45,6 +45,24 @@ public sealed class EinstellungenAnzeige
         (Umgebungsverdeckung.Mittel, "Mittel (empfohlen)", "Wie Niedrig, mit mehr Proben: gleichmäßiger, weniger Körnung."),
         (Umgebungsverdeckung.Hoch, "Hoch", "Volle Auflösung und viele Proben: feinste Fugen. Kostet deutlich mehr Grafikleistung."),
     };
+
+    /// <summary>
+    /// Anzeigename und Erklärung je Stufe der globalen Beleuchtung (SDFGI) – in der Reihenfolge der Auswahlliste. Ehrlich zu den Kosten und zu dem,
+    /// was es in der Stadt bringt (Werte und Messung: Stadtansicht.GlobaleBeleuchtung.cs, docs/bereiche/darstellung.md).
+    /// </summary>
+    private static readonly (GlobaleBeleuchtung Stufe, string Name, string Erklaerung)[] GiStufen =
+    {
+        (GlobaleBeleuchtung.Aus, "Aus (empfohlen)", "Kein SDFGI: gleichmäßiges Umgebungslicht, klare Schatten. Kostet nichts."),
+        (GlobaleBeleuchtung.Niedrig, "Niedrig", "Wenige Strahlen auf halber Auflösung, das Licht wird langsam nachgeführt. In der Stadt hellt es die Schatten auf, in den Räumen grobe Zellen."),
+        (GlobaleBeleuchtung.Mittel, "Mittel", "Doppelt so viele Strahlen, das Licht folgt schneller; in den Räumen feinere Zellen."),
+        (GlobaleBeleuchtung.Hoch, "Hoch", "Volle Auflösung und viele Strahlen; in den Räumen die feinsten Zellen und Godots Verfahren gegen Lichtlecks. Nur für starke Grafikkarten."),
+    };
+
+    /// <summary>Vorwort des Tooltips der globalen Beleuchtung (dazu, wenn es fehlt, der Grund).</summary>
+    private const string GiVorwort =
+        "Versuch: Licht kommt von Wänden, Boden und Himmel zurück, auch von Dingen außerhalb des Bildes – Schatten werden heller, enge Gassen dunkler, " +
+        "Räume bekommen Licht nur noch von Fenstern, Glut und Lampen. Kostet viel Grafikleistung. In der Stadt wirkt es nur grob, weil die Kamera weit über der Stadt steht; " +
+        "was gebaut oder abgerissen wird und Fensterlicht kommen erst nach, wenn man die Kamera verschiebt. Kurz nach dem Umschalten flackert das Licht, bis es sich gesetzt hat.";
 
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
     private static readonly (Voreinstellung Stufe, string Erklaerung)[] Voreinstellungen =
@@ -191,6 +209,7 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton _schatten;
     private readonly OptionButton _verdeckung;
     private readonly CheckButton _indirekt;
+    private readonly OptionButton _gi;
     // Grafik: Stimmung
     private readonly CheckButton _bloom;
     private readonly HSlider _bloomRegler;
@@ -404,6 +423,15 @@ public sealed class EinstellungenAnzeige
                                  Fenster.IndirektesLichtSetzen(an);
                                  Auffrischen();
                              }, teuer: true);
+        zeile = Zeile(e, "Globale Beleuchtung (SDFGI)", () => Liste(Fenster.GlobaleBeleuchtungMoeglich ? GiVorwort
+                                                                        : GiVorwort + "\n\nMit dieser Grafikschnittstelle nicht verfügbar (nur Vulkan und DirectX 12).",
+                                                                    GiStufen.Select(g => (g.Name, g.Erklaerung)),
+                                                                    IndexVon(GiStufen, g => g.Stufe == Fenster.AktuelleGlobaleBeleuchtung)));
+        _gi = Auswahl(zeile, GiStufen.Select(g => g.Name), nummer =>
+        {
+            Fenster.GlobaleBeleuchtungSetzen(GiStufen[nummer].Stufe);
+            Auffrischen();
+        }, nummer => GiStufen[nummer].Stufe != GlobaleBeleuchtung.Aus);
 
         Abschnitt(e, "Stimmung (erweitert)");
         (_bloomRegler, _bloomWert, _) = Regler(e, "Bloom: Stärke", 0, 100, 5, " %", wert => Fenster.BloomSetzen(Fenster.BloomAn, wert),
@@ -649,6 +677,8 @@ public sealed class EinstellungenAnzeige
         _schatten.Select(Array.FindIndex(Schattenstufen, x => x.Stufe == Fenster.AktuelleSchattenqualitaet));
         _verdeckung.Select(Array.FindIndex(Verdeckungsstufen, v => v.Stufe == Fenster.AktuelleUmgebungsverdeckung));
         _indirekt.SetPressedNoSignal(Fenster.IndirektesLichtAn);
+        _gi.Select(Array.FindIndex(GiStufen, g => g.Stufe == Fenster.AktuelleGlobaleBeleuchtung));
+        _gi.Disabled = !Fenster.GlobaleBeleuchtungMoeglich; // unter opengl3 (Kompatibilität) gibt es kein SDFGI; die Wahl bleibt gespeichert
 
         _bloom.SetPressedNoSignal(Fenster.BloomAn);
         WertSetzen(_bloomRegler, _bloomWert, Fenster.BloomStaerke, " %");

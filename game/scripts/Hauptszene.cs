@@ -74,6 +74,7 @@ namespace Reichsgilde;
 ///   --bloomstaerke=<0–100> Stärke des Bloom in Prozent, nur für diesen Start
 ///   --ssao=<Stufe>     Umgebungsverdeckung nur für diesen Start (Aus, Niedrig, Mittel, Hoch)
 ///   --ssil=<An|Aus>    indirektes Licht (SSIL) nur für diesen Start
+///   --sdfgi=<0–3>      globale Beleuchtung (SDFGI) nur für diesen Start (0 Aus, 1 Niedrig, 2 Mittel, 3 Hoch; auch die Namen)
 ///   --fsr=<An|Aus>     FSR 2.2 (Hochskalierung) nur für diesen Start
 ///   --renderaufloesung=<25–100> Renderauflösung in Prozent bei FSR, nur für diesen Start
 ///   --voreinstellung=<Stufe> alle Grafikregler einer Voreinstellung (Niedrig, Mittel, Hoch, Ultra), nur für diesen Start; einzelne Optionen danach überschreiben sie
