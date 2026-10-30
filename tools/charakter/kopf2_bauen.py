@@ -501,6 +501,15 @@ for kennung, eintrag in regler.items():
             d[:, 1] = vz * maske * eintrag[richt][schl] / 1000.0
             formen_mpfb[f"gen_{kennung}_{richt}"] = d
             gen_formen.setdefault(kennung, {})[richt] = f"gen_{kennung}_{richt}"
+# Phase 5: Altersformen (Reife des erwachsenen Gesichts, Greis) aus kopf2_regler.json „alter_formen“ und, zum
+# Ausprobieren, Probeformen „probe_<name>“ aus einer JSON-Datei (Option proben=<datei>, {name: {ziel: gewicht}})
+alter_formen = json.load(open(os.path.join(HIER, "kopf2_regler.json"), encoding="utf-8")).get("alter_formen", {})
+for name, teile in alter_formen.items():
+    if not name.startswith("_"):
+        formen_mpfb[name] = ziel_versatz(teile["ziele"])
+if "proben" in OPTIONEN:
+    for name, teile in json.load(open(OPTIONEN["proben"], encoding="utf-8")).items():
+        formen_mpfb["probe_" + name] = ziel_versatz(teile)
 zeit(f"Formen aus MPFB gesamt: {len(formen_mpfb)}")
 
 
@@ -587,7 +596,20 @@ flaeche_S = kw.Flaeche(S[:N_HAUT], haut_tri)
 S_haut_nrm = kw.ecken_normalen(S[:N_HAUT], haut_tri)
 merk68 = S[ict["merkpunkte68"]]
 b_e, b_fl, b_uv, b_lage, b_seite = kh.brauen(merk68, flaeche_S)
-w_e, w_fl, w_uv, w_oben, w_seite = kh.wimpern({s_: S[lidnaht[s_]] for s_ in ("l", "r")}, augen)
+# Phase 5: Wurzeln der Wimpern an der vorderen Lidkante = wo die ICT-Wimpernstreifen die Haut berühren
+gesicht_idx = teil("gesicht")
+_kd_gesicht = KDTree(len(gesicht_idx))
+for i_, j_ in enumerate(gesicht_idx):
+    _kd_gesicht.insert(S[j_], i_)
+_kd_gesicht.balance()
+wimper_wurzeln = {}
+for s_ in ("l", "r"):
+    q_ = S[teil("wimpern_" + s_)]
+    d_ = np.array([_kd_gesicht.find(p_)[2] for p_ in q_])
+    wimper_wurzeln[s_] = np.unique(np.round(q_[d_ < 0.0003], 6), axis=0)
+bericht["wimpern_wurzeln"] = {s_: int(len(v_)) for s_, v_ in wimper_wurzeln.items()}
+w_e, w_fl, w_uv, w_oben, w_seite, w_wurzel = kh.wimpern(wimper_wurzeln, {s_: S[lidnaht[s_]] for s_ in ("l", "r")}, augen,
+                                                        flaeche_S)
 st_braue = stoff("Brauen", (0.1, 0.07, 0.05, 1))
 st_wimper = stoff("Wimpern", (0.05, 0.04, 0.03, 1))
 haar_ecken = np.vstack([b_e, w_e]).tolist()
@@ -643,9 +665,12 @@ gesicht_bereich = np.arange(T["mundhoehle"][0])
 nb_braue = kw.k_naechste(S[gesicht_bereich], np.array(haar_ecken)[haar_art == "brauen"], k=4)
 nb_wimper = {}
 haar_pos = np.array(haar_ecken)
+haar_wurzel = np.vstack([np.zeros((len(b_e), 3)), w_wurzel])     # Phase 5: Wurzel je Wimperecke
 for s in ("l", "r"):
     sel = np.where((haar_art == "wimpern") & ((haar_pos[:, 0] > 0) == (s == "l")))[0]
-    nb_wimper[s] = (sel, kw.k_naechste(S[lidnaht[s]], haar_pos[sel], k=2))
+    # an die Haut der Lidkante an der eigenen Wurzel gebunden (nicht an die nächste Haut der Ecke: die Spitze einer
+    # 10 mm langen Wimper läge sonst näher am Lid darüber)
+    nb_wimper[s] = (sel, kw.k_naechste(S[gesicht_idx], haar_wurzel[sel], k=3))
 nb_kragen = kw.k_naechste(H_ecken, kr_ecken, k=4)
 
 
@@ -726,22 +751,35 @@ def haare_und_kragen(dh, voll, mimik=False):
     for s in ("l", "r"):
         sel, nb = nb_wimper[s]
         if not mimik:
-            dhaar[sel] = knn(voll[lidnaht[s]], nb)
+            dhaar[sel] = knn(voll[gesicht_idx], nb)
             continue
         # Mimik (Blinzeln): Die Wimper dreht mit dem Lidrand um die Augenmitte (der Lidrand gleitet über den
         # Augapfel), statt nur verschoben zu werden – sonst stehen die Wimpern beim geschlossenen Auge nach oben
         c = augen[s][0]
-        wurzel = knn(S[lidnaht[s]], nb)
-        neu = wurzel + knn(voll[lidnaht[s]], nb)
+        wurzel = haar_wurzel[sel]
+        neu = wurzel + knn(voll[gesicht_idx], nb)
         r = drehung_zwischen(wurzel - c, neu - c)
         v = haar_pos[sel]
         dhaar[sel] = neu + np.einsum("nij,nj->ni", r, v - wurzel) - v
     return dhaar, knn(dh, nb_kragen)
 
 
+# Phase 5: Adamsapfel für „alter_reife_m“ (eigen; das MakeHuman-Netz ist am Hals zu grob dafür): Buckel 3 mm nach vorn,
+# 5,2 cm unter dem Kinn auf der Mittellinie, quer 8 mm, längs 11 mm (Gauß), nur auf der Vorderseite des Halses
+kinn_p = S[ict["merkpunkte68"][8]]
+_hals_vorn = np.where((np.abs(H_ecken[:, 0]) < 0.006) & (np.abs(H_ecken[:, 2] - (kinn_p[2] - 0.052)) < 0.004))[0]
+adams_p = H_ecken[_hals_vorn[np.argmin(H_ecken[_hals_vorn, 1])]]
+_rel = H_ecken - adams_p
+adams_buckel = np.zeros_like(H_ecken)
+adams_buckel[:, 1] = -0.003 * np.exp(-0.5 * ((_rel[:, 0] / 0.008) ** 2 + (_rel[:, 2] / 0.011) ** 2)) * (_rel[:, 1] < 0.012)
+bericht["adamsapfel_mm"] = [round(float(v) * 1000, 1) for v in adams_p]
+
 alle_formen = {}                   # Name -> {objektname: versatz}
 for name, d in formen_mpfb.items():
     dh, voll = formen_aus_mpfb(d, name)
+    if name == "alter_reife_m":
+        dh = dh + adams_buckel
+        voll[:N_HAUT] += adams_buckel[:N_HAUT]
     dhaar, dkr = haare_und_kragen(dh, voll)
     alle_formen[name] = {"Haut": dh, "Augen": voll[augen_idx], "Zaehne": voll[zahn_idx], "Haare": dhaar, "Kragen": dkr}
 zeit("MPFB-Formen übertragen")
@@ -995,7 +1033,7 @@ merk_idx = {"augen": np.concatenate([teil("auge_l"), teil("auge_r")]), "mund": l
 merkpunkte = {k: godot(S[v].mean(0)) for k, v in merk_idx.items()}
 merk_formen = {}
 for name, d in alle_formen.items():
-    if not (name.startswith("makro_") or name.startswith("gen_kopf") or name.startswith("gen_gesicht")):
+    if not (name.startswith(("makro_", "gen_kopf", "gen_gesicht", "alter_", "probe_"))):
         continue
     voll = np.zeros_like(S)
     voll[:N_HAUT] = d["Haut"][:N_HAUT]
@@ -1066,6 +1104,7 @@ beiwerk = {
     "basis": "makro_m_jung (Mann, 25 Jahre, Kraft und Gewicht mittel) ist das Grundnetz",
     "mimikmass": mimikmass,
     "gene": {k: {"art": v["art"], "formen": gen_formen.get(k, {}), "wirkung": v.get("wirkung", "")} for k, v in regler.items()},
+    "alter_formen": {k: {kk: vv for kk, vv in v.items() if kk != "ziele"} for k, v in alter_formen.items() if not k.startswith("_")},
     "arkit": sorted(ict["formen"]),
     "merkpunkte": merkpunkte, "merkpunkt_formen": merk_formen,
     "pupillenoeffnung": beiwerk_pupille,

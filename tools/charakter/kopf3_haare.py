@@ -5,10 +5,13 @@ Statt der MakeHuman-Karten (Streifen mit grobem Alpha) eigene Karten, deren Bild
 - Brauen: zwei Lagen je Seite entlang der ICT-Merkpunkte 17–21 bzw. 22–26 (oberer Brauenrand), auf die Haut gelegt
   (0,35 mm und 0,9 mm darüber). UV: u = innen (0) → außen (1), v = unten (0) → oben (1); untere Lage im Bild
   v 0..0,5, obere Lage v 0,5..1.
-- Wimpern (Phase 4): am Oberlid drei Lagen geschwungener Streifen (Hauptlage, lange lockere Lage mit stärkerem
-  Schwung, kurze Fülllage an der Wurzel), am Unterlid eine; jede Lage hat im Bild ein eigenes Band (WIMPER_BAENDER):
-  UV u = innen → außen, v = Wurzel → Spitze im Band (Band 0 Unterlid, 1–3 Oberlid). Die Lagen folgen beim Blinzeln
-  dem Lidrand wie bisher (kopf2_bauen.py dreht jede Wimperecke mit dem Lid um die Augenmitte).
+- Wimpern (Phase 5): Sie wachsen aus der **vorderen Lidkante** (nicht aus dem Lid darüber): Die Wurzellinie ist die
+  der ICT-Wimpern (dort, wo deren Streifen die Haut berühren); in Phase 4 lag sie an der Naht Gesicht/Augenhöhle, also
+  an der hinteren Lidkante, und die Wimpern stachen 2–3 mm über dem Lidrand aus der Haut. Oben drei unregelmäßige
+  Reihen (vorn lang, dahinter kürzer, je 0,3 mm tiefer in der Lidkante), unten eine lichte Reihe; Länge oben 6–11 mm
+  (nach außen länger), unten 3–6 mm. Jede Reihe hat im Bild ein eigenes Band (WIMPER_BAENDER): UV u = innen → außen,
+  v = Wurzel → Spitze im Band (Band 0 Unterlid, 1–3 Oberlid vorn → hinten). Die Wimpern folgen beim Blinzeln dem
+  Lidrand (kopf2_bauen.py dreht jede Wimper um die Augenmitte, gebunden an die Haut an ihrer Wurzel).
 Achsen wie im Bau: Blender (z oben, Gesicht nach -y, +x = linke Seite der Figur), Meter.
 """
 import numpy as np
@@ -17,13 +20,20 @@ import numpy as np
 BRAUE_HOEHE = (0.0165, 0.0115)
 BRAUE_V_MERK = 0.80
 BRAUE_LAGEN = (0.00035, 0.0009)
-# Wimpern: Länge (m) innen/Mitte/außen
-WIMPER_OBEN = (0.0058, 0.0088, 0.0082)
-WIMPER_UNTEN = (0.0026, 0.0042, 0.0043)
-# Lagen: (Oberlid?, Band im Bild, Längenfaktor, Schwung nach oben, Wurzel nach hinten (m), seitliche Neigung)
-WIMPER_LAGEN = ((0, 0, 1.0, 1.0, 0.0, 1.0), (1, 1, 1.0, 1.0, 0.0, 1.0), (1, 2, 1.12, 1.3, 0.00022, 1.3),
-                (1, 3, 0.62, 0.75, -0.00018, 0.7))
+# Wimpern (Phase 5): Länge der Karte (m) entlang des Lids (0 = innen, 1 = außen); das Bild (kopf3_haartexturen.py)
+# zeichnet die einzelnen Wimpern relativ dazu (mit Streuung kürzer)
+WIMPER_OBEN = ((0.0, 0.15, 0.5, 0.8, 1.0), (0.0055, 0.0075, 0.0098, 0.0108, 0.0085))
+WIMPER_UNTEN = ((0.0, 0.3, 0.7, 1.0), (0.003, 0.0046, 0.006, 0.0052))
+# Reihen: (Oberlid?, Band im Bild, Längenfaktor, Biegung nach oben/unten, Tiefe in der Lidkante (m), Neigung nach außen)
+WIMPER_LAGEN = ((0, 0, 1.0, 0.8, 0.0001, 0.8), (1, 1, 1.0, 1.0, 0.0, 1.0), (1, 2, 0.84, 0.9, 0.0003, 0.85),
+                (1, 3, 0.62, 0.75, 0.0006, 0.6))
 WIMPER_BAENDER = 4
+
+
+def wimper_laenge(t, oben):
+    """Kartenlänge (m) an der Stelle t (0 innen, 1 außen) – auch für das Bild."""
+    st, la = WIMPER_OBEN if oben else WIMPER_UNTEN
+    return np.interp(t, st, la)
 
 
 def catmull_rom(p, n):
@@ -131,43 +141,63 @@ def _glatte_folge(p, n):
     return q
 
 
-def wimpern(lidnaht_punkte, augen, n=22, nv=5):
-    """lidnaht_punkte: {"l"/"r": Punkte der Lidnaht}; augen: {"l"/"r": (Mitte, Halbmesser)}.
-    Gibt (ecken, flächen, uv je Schleife, oben je Ecke 1/0, seite je Ecke als "l"/"r") zurück."""
-    ecken, flaechen, uvs, oben_je, seite = [], [], [], [], []
+def wimpern(wurzel_punkte, lidnaht_punkte, augen, flaeche_haut, n=26, nv=6):
+    """wurzel_punkte: {"l"/"r": Punkte der vorderen Lidkante (Wurzeln der ICT-Wimpern)}; lidnaht_punkte: {"l"/"r":
+    Naht Gesicht/Augenhöhle (hintere Lidkante)}; augen: {"l"/"r": (Mitte, Halbmesser)}; flaeche_haut: kw.Flaeche des
+    Gesichts. Gibt (ecken, flächen, uv je Schleife, oben je Ecke 1/0, seite je Ecke als "l"/"r", wurzel je Ecke) zurück.
+    Achsen wie im Bau (z oben, Gesicht nach -y)."""
+    ecken, flaechen, uvs, oben_je, seite, wurzel_je = [], [], [], [], [], []
     vorn = np.array([0.0, -1.0, 0.0])
     for s in ("l", "r"):
         mitte, halb = augen[s]
-        oben, unten = lidkante_ordnen(lidnaht_punkte[s], mitte)
-        for ist_oben, band, l_f, schwung, zurueck, neigung in WIMPER_LAGEN:
-            folge, laengen = (oben, WIMPER_OBEN) if ist_oben else (unten, WIMPER_UNTEN)
+        oben, unten = lidkante_ordnen(wurzel_punkte[s], mitte)
+        naht = np.asarray(lidnaht_punkte[s])
+        for ist_oben, band, l_f, biegung, tiefe, neigung in WIMPER_LAGEN:
+            folge = oben if ist_oben else unten
             if len(folge) < 4:
                 continue
             k = _glatte_folge(folge, n)
+            # Lidwinkel freilassen (dort wachsen kaum Wimpern; die Karte endet knapp davor)
+            k = _glatte_folge(k[1:-1], n) if len(k) > 6 else k
             t = np.linspace(0, 1, len(k))
             tang = np.gradient(k, axis=0)
             tang /= np.linalg.norm(tang, axis=1, keepdims=True)
-            radial = k - mitte
+            # Reihen hinter der ersten liegen tiefer in der Lidkante (zur hinteren Kante, der Naht, hin)
+            zur_naht = naht[np.argmin(np.linalg.norm(k[:, None] - naht[None], axis=2), axis=1)] - k
+            zur_naht /= np.maximum(np.linalg.norm(zur_naht, axis=1, keepdims=True), 1e-9)
+            wurzel = k + zur_naht * tiefe
+            auf, nrm, _, _ = flaeche_haut.naechste(wurzel, 0.004)
+            nrm = np.where(((wurzel - mitte) * nrm).sum(1, keepdims=True) < 0, -nrm, nrm)
+            wurzel = auf - nrm * 0.0001                  # 0,1 mm in die Haut: keine Lücke an der Wurzel
+            radial = wurzel - mitte
             radial -= np.outer(radial @ vorn, vorn)
             radial /= np.linalg.norm(radial, axis=1, keepdims=True)
-            # Wurzel 0,5 mm vor der Lidnaht, auf der Außenkante des Lids (Lagen leicht versetzt)
-            wurzel = k + vorn * (0.0005 - zurueck) + radial * 0.0003
-            L = np.interp(t, [0.0, 0.55, 1.0], laengen) * l_f
-            seitlich = tang * ((0.04 + 0.12 * t) * neigung)[:, None]      # nach außen geneigt, außen stärker
+            L = wimper_laenge(t, ist_oben) * l_f
+            # nach außen geneigt, außen stärker; innen leicht zur Nase
+            seitlich = tang * ((-0.12 + 0.5 * t ** 1.3) * neigung)[:, None]
             o = len(ecken)
             pkt = []
             for i in range(len(k)):
                 if ist_oben:
-                    # erst nach vorn und leicht abwärts aus der Lidkante, dann nach oben gebogen (von vorn sieht man
-                    # die Wimper ab der Lidkante); „schwung“ biegt die Spitze weiter hinauf
-                    p1 = wurzel[i] + L[i] * 0.5 * (0.92 * vorn - 0.12 * radial[i]) + L[i] * 0.3 * seitlich[i]
-                    p2 = wurzel[i] + L[i] * ((0.62 - 0.12 * (schwung - 1)) * vorn + 0.62 * schwung * radial[i]) + L[i] * seitlich[i]
+                    # aus der Lidkante zuerst nach vorn und eine Spur abwärts, dann nach oben gebogen
+                    p1 = wurzel[i] + L[i] * 0.4 * (0.96 * vorn - 0.16 * radial[i])
+                    p2 = wurzel[i] + L[i] * (0.72 * vorn + 0.18 * biegung * radial[i]) + 0.5 * L[i] * seitlich[i]
+                    p3 = wurzel[i] + L[i] * ((0.66 - 0.1 * biegung) * vorn + 0.66 * biegung * radial[i]) + L[i] * seitlich[i]
                 else:
-                    p1 = wurzel[i] + L[i] * 0.5 * (0.85 * vorn + 0.35 * radial[i]) + L[i] * 0.3 * seitlich[i]
-                    p2 = wurzel[i] + L[i] * (0.55 * vorn + 0.8 * radial[i]) + L[i] * seitlich[i]
+                    # unten: nach vorn, dann abwärts (radial zeigt am Unterlid nach unten)
+                    p1 = wurzel[i] + L[i] * 0.4 * (0.95 * vorn + 0.1 * radial[i])
+                    p2 = wurzel[i] + L[i] * (0.72 * vorn + 0.3 * biegung * radial[i]) + 0.5 * L[i] * seitlich[i]
+                    p3 = wurzel[i] + L[i] * (0.6 * vorn + 0.7 * biegung * radial[i]) + L[i] * seitlich[i]
+                kurve = np.array([(1 - v) ** 3 * wurzel[i] + 3 * (1 - v) ** 2 * v * p1 + 3 * (1 - v) * v ** 2 * p2 + v ** 3 * p3
+                                  for v in np.linspace(0, 1, 24)])
+                # auf die Länge L bringen (Bogenlänge), dann nv Stützen gleichmäßig
+                bogen = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(kurve, axis=0), axis=1))])
+                kurve = wurzel[i] + (kurve - wurzel[i]) * (L[i] / bogen[-1])
+                bogen *= L[i] / bogen[-1]
                 for j in range(nv):
-                    v = j / (nv - 1)
-                    pkt.append((1 - v) ** 2 * wurzel[i] + 2 * (1 - v) * v * p1 + v ** 2 * p2)
+                    ziel = L[i] * j / (nv - 1)
+                    pkt.append([np.interp(ziel, bogen, kurve[:, a]) for a in range(3)])
+                wurzel_je.extend([wurzel[i]] * nv)
             pkt = np.array(pkt)
             fl = _gitter_flaechen(len(k), nv, o)
             # Vorderseite zeigt zur Kamera (nach vorn)
@@ -179,4 +209,4 @@ def wimpern(lidnaht_punkte, augen, n=22, nv=5):
             flaechen.extend(fl)
             oben_je.extend([ist_oben] * len(pkt))
             seite.extend([s] * len(pkt))
-    return np.array(ecken), flaechen, uvs, np.array(oben_je), np.array(seite)
+    return np.array(ecken), flaechen, uvs, np.array(oben_je), np.array(seite), np.array(wurzel_je)

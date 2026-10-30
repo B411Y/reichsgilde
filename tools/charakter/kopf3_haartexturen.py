@@ -2,8 +2,8 @@
 OpenImageIO, läuft mit Blenders Python: kopf3.sh ruft es auf).
 
 Aufruf:  <blender-python> -I kopf3_haartexturen.py <ausgabeordner>
-Ergebnis: brauen.png (1024 × 512), wimpern.png (1024 × 1024, vier Bänder: Unterlid, Oberlid Haupt-, lange und
-Fülllage; Phase 4), RGBA, linear:
+Ergebnis: brauen.png (1024 × 512), wimpern.png (1024 × 1024, vier Bänder: Unterlid, Oberlid in drei Reihen;
+Phase 5), RGBA, linear:
   R = Zufallswert des Haars (der Shader zeigt nur Haare mit R < Dichte),
   G = Abstand der Wurzel von der Mittellinie der Braue (0 Mitte, 1 Rand; der Shader schneidet nach „Breite“),
   B = Lage entlang des Haars (0 Wurzel, 1 Spitze), A = Deckung.
@@ -30,12 +30,23 @@ def braue_hoehe_mm(u):
     return BRAUE_HOEHE_MM[0] + (BRAUE_HOEHE_MM[1] - BRAUE_HOEHE_MM[0]) * np.asarray(u)
 
 
-def braue_kanten_mm(u):
-    """Oberkante und Unterkante der Braue (mm über der Unterkante der Karte) an der Stelle u."""
+FRAU = False                          # Phase 5: brauen_w.png – schmaler, mit Bogen, dünnes Ende
+
+
+def braue_kanten_mm(u, frau=None):
+    """Oberkante und Unterkante der Braue (mm über der Unterkante der Karte) an der Stelle u. Frauen (Phase 5, nach
+    Fotos): Kopf 7 mm, Körper 5–6 mm, das Ende läuft auf 1 mm aus; der Bogen hebt die Braue bei etwa 60 % um 1,3 mm
+    (Oberkante) bzw. 2 mm (Unterkante). Männer: Kopf bis 9 mm, gerader, das Ende kräftiger."""
+    frau = FRAU if frau is None else frau
     u = np.asarray(u, dtype=np.float64)
     h = braue_hoehe_mm(u)
     oben = BRAUE_V_MERK * h + 0.4 - 0.9 * np.clip((u - 0.75) / 0.25, 0, 1) ** 1.5
-    dicke = np.interp(u, [0.0, 0.05, 0.2, 0.6, 0.85, 1.0], [5.0, 8.6, 8.0, 6.2, 3.8, 1.6])
+    if frau:
+        bogen = np.exp(-((u - 0.6) / 0.22) ** 2)
+        oben = oben + 1.3 * bogen - 0.8 * np.clip((u - 0.8) / 0.2, 0, 1)
+        dicke = np.interp(u, [0.0, 0.05, 0.2, 0.55, 0.8, 1.0], [4.2, 7.0, 6.4, 5.0, 3.0, 1.0])
+        return oben, oben - dicke
+    dicke = np.interp(u, [0.0, 0.05, 0.2, 0.6, 0.85, 1.0], [5.5, 9.2, 8.6, 6.8, 4.4, 2.0])
     return oben, oben - dicke
 
 
@@ -48,7 +59,8 @@ def brauen_form(u, v):
     rand = np.abs(y - mitte) / np.maximum(halb, 0.3)
     innen = np.clip((1.25 - rand) / 0.5, 0, 1) ** 1.5
     laengs = np.clip((u - 0.015) / 0.05, 0, 1) * np.clip((0.995 - u) / 0.04, 0, 1)
-    return innen * laengs * (1.0 - 0.35 * np.clip((u - 0.7) / 0.3, 0, 1)), np.clip(rand, 0, 1)
+    # zur Mitte (Kopf und Körper) dichter, zum Ende lichter (Fotos)
+    return innen * laengs * (1.0 - 0.4 * np.clip((u - 0.65) / 0.35, 0, 1)), np.clip(rand, 0, 1)
 
 
 class Bild:
@@ -131,10 +143,13 @@ def _wolke(rng, n=6):
     return f
 
 
-def brauen(pfad, rng):
+def brauen(pfad, rng, frau=False):
+    """Phase 5: dichter und kräftiger als Phase 4 (Frauen hatten „fast keine Brauen“); Frauen eigenes Bild (Form oben)."""
+    global FRAU
+    FRAU = frau
     bild = Bild()
     wolke = _wolke(rng)
-    for lage, anzahl in ((0, 820), (1, 230)):
+    for lage, anzahl in ((0, 880), (1, 260)) if not frau else ((0, 720), (1, 170)):
         haare = []
         while len(haare) < anzahl:
             u, v = rng.random(), rng.random() * 1.12 - 0.06
@@ -156,10 +171,11 @@ def brauen(pfad, rng):
             y = v * h_mm
             oben, unten = braue_kanten_mm(u)
             obenteil = (y - (oben + unten) / 2) / max((oben - unten) / 2, 0.3)
-            # Wuchsrichtung (Grad, 0 = nach außen, 90 = nach oben): innen steil, im Bogen flach, außen leicht abwärts;
-            # die oberen Haare liegen flacher als die unteren (Fischgrät)
-            steil = np.interp(u, [0.0, 0.1, 0.3, 0.7, 1.0], [70, 58, 26, 14, -10])
-            w = math.radians(steil - 20 * max(obenteil, 0) * min(u / 0.3, 1) + rng.normal(0, 8))
+            # Wuchsrichtung (Grad, 0 = nach außen, 90 = nach oben): innen steil aufwärts, im Körper laufen untere
+            # (aufwärts) und obere Haare (abwärts) zur Mittellinie zusammen (Fischgrät), das Ende liegt flach abwärts
+            steil = np.interp(u, [0.0, 0.1, 0.3, 0.7, 1.0], [75, 60, 24, 10, -12])
+            fisch = np.interp(u, [0.0, 0.12, 0.3, 0.8, 1.0], [0.0, 10.0, 22.0, 18.0, 6.0])
+            w = math.radians(steil - fisch * obenteil + rng.normal(0, 7))
             laenge = np.interp(u, [0, 0.15, 0.6, 1], [3.6, 5.0, 6.0, 4.6]) * rng.uniform(0.75, 1.15)
             if lage == 1:
                 laenge *= 1.1
@@ -183,57 +199,59 @@ def brauen(pfad, rng):
                 continue
             pkt, uu, vv = pkt[:bis], uu[:bis], vv[:bis]
             px = np.stack([uu * B, _zeile(vv, lage)], 1)
-            dicke_mm = rng.uniform(0.045, 0.08)
+            dicke_mm = rng.uniform(0.055, 0.095) if not frau else rng.uniform(0.045, 0.075)
             breite = np.linspace(1.0, 0.25, k)[:bis] ** 0.8 * dicke_mm / (BRAUE_LAENGE_MM / B)
-            bild.haar(px, breite, r, rand, deckung=rng.uniform(0.55, 0.95))
+            bild.haar(px, breite, r, rand, deckung=rng.uniform(0.62, 0.98))
     bild.speichern(pfad)
     return bild
 
 
 def wimpern(pfad, rng):
-    """Vier Bänder (je 1024 × 256): 0 Unterlid, 1 Oberlid Hauptlage, 2 Oberlid lang und locker, 3 Oberlid kurz (Fülle).
-    Wimpern in Büscheln (Spitzen laufen zusammen), an der Wurzel kräftig, zur Spitze fein, leicht geschwungen."""
+    """Vier Bänder (je 1024 × 256): 0 Unterlid, 1–3 Oberlid in drei Reihen (vorn lang, dahinter kürzer und lichter);
+    Phase 5. Wimpern einzeln und in kleinen Büscheln (Spitzen laufen zusammen), an der Wurzel kräftig und dicht, zur
+    Spitze fein; die Länge je Wimper streut unter der Kartenlänge (kopf3_haare.wimper_laenge), ein paar kurze dazwischen."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import kopf3_haare as kh
     BH = 1024
     bild = Bild(B, BH)
-    # (Band, Anzahl, Länge mm innen/Mitte/außen, Karte mm, Dicke mm, Büschel, Schwung)
-    baender = ((0, 52, (2.0, 3.8, 4.0), (2.6, 4.2, 4.3), 0.05, (1, 2), 0.3),
-               (1, 165, (5.4, 8.4, 7.6), (5.8, 8.8, 8.2), 0.105, (2, 3), 0.6),
-               (2, 70, (6.0, 9.4, 8.8), (6.5, 9.9, 9.2), 0.085, (1, 3), 0.9),
-               (3, 120, (2.6, 4.4, 4.0), (5.8, 8.8, 8.2), 0.07, (1, 2), 0.3))
-    for band, anzahl, laenge_mm, karte_mm, dicke, (b_min, b_max), schwung in baender:
-        lid_mm = 30.0 if band else 28.0
+    # (Band, Oberlid?, Anzahl, Längenfaktor der Karte, Dicke an der Wurzel mm, Büschel, Schwung)
+    baender = ((0, False, 55, 1.0, 0.075, (1, 2), 0.3),
+               (1, True, 120, 1.0, 0.115, (1, 3), 0.6),
+               (2, True, 70, 0.84, 0.1, (1, 2), 0.5),
+               (3, True, 45, 0.62, 0.085, (1, 2), 0.3))
+    for band, oben, anzahl, l_f, dicke, (b_min, b_max), schwung in baender:
+        lid_mm = 30.0 if oben else 27.0
         haare = []
-        buschel = 0
         while len(haare) < anzahl:
-            um = rng.uniform(0.04, 0.99)
-            if band == 0:
-                dichte = np.interp(um, [0.04, 0.3, 0.6, 0.95, 0.99], [0.15, 0.4, 0.9, 1.0, 0.5])
+            um = rng.uniform(0.0, 1.0)
+            if oben:
+                dichte = np.interp(um, [0.0, 0.12, 0.4, 0.85, 1.0], [0.25, 0.75, 1.0, 1.0, 0.55])
             else:
-                dichte = np.interp(um, [0.04, 0.2, 0.5, 0.9, 0.99], [0.3, 0.85, 1.0, 0.95, 0.5])
+                dichte = np.interp(um, [0.0, 0.3, 0.6, 0.95, 1.0], [0.1, 0.35, 0.9, 1.0, 0.5])
             if rng.random() > dichte:
                 continue
             n = int(rng.integers(b_min, b_max + 1))
-            spitze_du = rng.normal(0.02 + 0.07 * um, 0.02)
-            zusammen = rng.uniform(0.5, 0.9)              # Spitzen laufen im Büschel zusammen
-            for j in range(n):
-                haare.append((um + rng.normal(0, 0.007), spitze_du, rng.random(), um, zusammen))
-            buschel += 1
+            spitze_du = rng.normal(0.015 + 0.05 * um, 0.015)
+            zusammen = rng.uniform(0.4, 0.85)             # Spitzen laufen im Büschel zusammen
+            for j_ in range(n):
+                haare.append((um + rng.normal(0, 0.006), spitze_du, rng.random(), um, zusammen))
         haare.sort(key=lambda h: -h[2])
         for u, spitze_du, r, um, zusammen in haare:
-            u = float(np.clip(u, 0.01, 0.995))
-            karte = float(np.interp(u, [0, 0.55, 1], karte_mm))
-            lang = float(np.interp(u, [0, 0.55, 1], laenge_mm)) * rng.uniform(0.72, 1.06)
-            s_ende = min(lang / karte, 0.985)
-            k = 10
-            s = np.linspace(0.02, s_ende, k)
-            f = (s / max(s_ende, 1e-3))
-            # Wurzel am eigenen Ort, Spitze zum Büschel hin; leichter S-Schwung quer
-            uu = u * (1 - zusammen * f ** 1.5) + um * zusammen * f ** 1.5
-            uu = uu + spitze_du * f ** 1.4 * (lang / lid_mm) * 3.0 + schwung * 0.004 * np.sin(np.pi * f) * rng.normal(0, 1)
-            vb = (band + np.clip(s * 0.995, 0, 0.995)) / 4.0
+            u = float(np.clip(u, 0.005, 0.995))
+            # Länge relativ zur Karte: meist 75–100 %, jede sechste kurz (nachwachsend)
+            anteil = rng.uniform(0.75, 1.0) if rng.random() > 0.16 else rng.uniform(0.35, 0.65)
+            s_ende = min(anteil, 0.985)
+            k = 12
+            s_ = np.linspace(0.0, s_ende, k)
+            f = s_ / max(s_ende, 1e-3)
+            lang_mm = float(kh.wimper_laenge(u, oben)) * 1000 * l_f * s_ende
+            uu = u * (1 - zusammen * f ** 1.6) + um * zusammen * f ** 1.6
+            uu = uu + spitze_du * f ** 1.4 * (lang_mm / lid_mm) * 2.5 + schwung * 0.003 * np.sin(np.pi * f) * rng.normal(0, 1)
+            vb = (band + np.clip(s_ * 0.995, 0, 0.995)) / 4.0
             px = np.stack([np.clip(uu, 0, 1) * B, (1.0 - vb) * BH], 1)
-            breite = np.linspace(1.0, 0.12, k) ** 0.7 * dicke * rng.uniform(0.75, 1.2) / (lid_mm / B)
-            bild.haar(px, breite, r, 0.0, deckung=rng.uniform(0.9, 1.0))
+            # kräftige Wurzel, fein auslaufende Spitze
+            breite = (1.0 - 0.85 * f ** 1.2) * dicke * rng.uniform(0.8, 1.2) / (lid_mm / B)
+            bild.haar(px, breite, r, 0.0, deckung=rng.uniform(0.92, 1.0))
     bild.speichern(pfad)
     return bild
 
@@ -243,5 +261,6 @@ if __name__ == "__main__":
     os.makedirs(aus, exist_ok=True)
     rng = np.random.default_rng(1480)
     brauen(os.path.join(aus, "brauen.png"), rng)
+    brauen(os.path.join(aus, "brauen_w.png"), rng, frau=True)
     wimpern(os.path.join(aus, "wimpern.png"), rng)
     print("FERTIG Haarbilder", aus)
