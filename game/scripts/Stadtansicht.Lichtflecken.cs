@@ -68,7 +68,7 @@ public partial class Stadtansicht
                 if (p.Quelle == q) { stand = p.Stand; break; }
 
             // Ersatzlicht: eine Kugel um die Flamme (Durchmesser), der Shader hellt alles darin nach dem Abstand auf; wo ein echtes Licht steht, ganz aus
-            var durchmesser = licht * 0.8f * Mathf.Pow(mass, 0.6f);
+            var durchmesser = licht * 0.6f * Mathf.Pow(mass, 0.6f);
             _fleckBodenViele!.SetInstanceTransform(n, new Transform3D(Basis.FromScale(Vector3.One * durchmesser), ort));
             _fleckBodenViele.SetInstanceColor(n, new Color(farbe.R, farbe.G, farbe.B, 1.0f * tag * flackern * (1f - stand)));
             // Heiligenschein: die echte Flamme leuchtet selbst (Bloom), der Hof ist nur noch ein Hauch, unter einem echten Licht schwächer

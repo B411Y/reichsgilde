@@ -54,8 +54,8 @@ void fragment() {
 		float s = a * a / (1.0 + 6.0 * r * r) * zuwendung * (1.0 + 0.45 * wetter_naesse);
 		// Sättigende Mischung (vormultipliziert): Szene · (1 − deck) + Licht. Viele Scheine übereinander nähern sich einer Obergrenze in
 		// Lichtfarbe (höchstens warm-hell, nie weiß), und die Oberfläche darunter bleibt erkennbar.
-		ALBEDO = COLOR.rgb * COLOR.a * s * 0.16;
-		ALPHA = 0.18 * s * COLOR.a;
+		ALBEDO = COLOR.rgb * vec3(1.0, 0.85, 0.7) * COLOR.a * s * 0.08;
+		ALPHA = 0.12 * s * COLOR.a;
 	} else {
 		float r = length(UV - 0.5) * 2.0;
 		if (r >= 1.0) discard;
