@@ -74,7 +74,7 @@ Startoptionen (nach `--`):
 - `--bloom=<An|Aus>` und `--bloomstaerke=<0–100>` (Bloom, nur für diesen Start)
 - `--ssao=<Aus|Niedrig|Mittel|Hoch>` (Umgebungsverdeckung)
 - `--ssil=<An|Aus>` (indirektes Licht)
-- `--sdfgi=<0–3>` (globale Beleuchtung SDFGI: 0 Aus, 1 Niedrig, 2 Mittel, 3 Hoch, auch die Namen; nur für diesen Start, unter `opengl3` ohne Wirkung)
+- `--sdfgi=<0–3>` (globale Beleuchtung SDFGI: 0 Aus, 1 Niedrig, 2 Mittel, 3 Hoch, auch die Namen; nur für diesen Start, unter `opengl3` ohne Wirkung). Wo sie gilt, sagen die Unterschalter `--sdfgi-innen=<0|1>` (Räume, Standard 1) und `--sdfgi-aussen=<0|1>` (Stadt, experimentell, Standard 0), ebenso nur für diesen Start; `--sdfgi=2` allein wirkt also nur in den Räumen, für die Stadt `--sdfgi=2 --sdfgi-aussen=1`
 - `--fsr=<An|Aus>` (FSR 2.2) und `--renderaufloesung=<25–100>` (Renderauflösung bei FSR in Prozent), alle nur für diesen Start, dazu (ebenso nur für diesen Start) `--voreinstellung=<Niedrig|Mittel|Hoch|Ultra>` (alle Grafikregler einer Stufe, einzelne Optionen danach überschreiben sie)
 - `--bildrate=<Zahl, 0 = unbegrenzt>`
 - `--vsync=<Aus|An|Adaptiv>`
@@ -113,6 +113,7 @@ Startoptionen (nach `--`):
 - `--schnittstellezeigen=1` (zeigt die Zeile „Grafikschnittstelle“ in Grafik → Erweitert auch außerhalb von Windows, zum Ansehen und für Klicktests; geprüft wird sonst nur unter Windows)
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
+- `--givergleich=<Stufen>` (Räume mit und ohne globale Beleuchtung: mit `--innen=…` nach 10 s jeden Raum der Raumleiste reihum in den Stufen, z. B. `0,2` = Aus und Mittel, `1` heißt dasselbe, zwei Runden; je Raum und Stufe warten, bis das Bild flüssig läuft und das Licht sich gesetzt hat, 2,5 s GPU-Zeit messen (Median), Bildschirmfoto speichern und `[givergleich] … Helligkeit …` ins Protokoll – mittlere Leuchtdichte der sRGB-Werte 0–255, dunkelstes und hellstes Zehntel, Verhältnis Rot zu Blau –, am Ende je Raum `[givergleich] Ergebnis …` mit Abweichung in Prozent, dann beenden. Die Spielzeit steht dabei still (Glut und Figuren bleiben, wie sie sind). Ohne `--innen` misst er den Blick der Stadt (dann mit `--sdfgi-aussen=1`). Dazu `--givergleich-ordner=<Ordner>` (Bilder, je Raum auch `<raum>_paar.png` nebeneinander; Standard `user://givergleich`) und `--givergleich-auch=wohnhaus,rathaus` (danach auch das eigene Wohnhaus und das Rathaus). Tag: `--startstunde=10 --lichtuhr=12`, Nacht: `--startstunde=21 --lichtuhr=22`; mit `--beruf=<Beruf> --ui=0 --voreinstellung=Hoch --vsync=Aus --bildrate=0`; `Stadtansicht.GlobaleBeleuchtung.Vergleich.cs`)
 - `--wasservergleich=1` (Kosten des Wassers: nach 10 s reihum ohne Wasser und in den vier Wasserstufen, je 4 s, drei Runden im selben Prozess; Median der GPU- und Bildzeit je Zustand als `[wassermessung] …` ins Protokoll, dann beenden; mit `--karte`, `--blick`, `--voreinstellung`, `--vsync=Aus`; `docs/wasser/phase3.md`)
 
 ## Feuer und Flammen

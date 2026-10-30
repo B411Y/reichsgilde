@@ -979,6 +979,7 @@ public partial class Stadtansicht : Node3D
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
+        GiVergleichSchritt(delta); // nur mit --givergleich: Räume mit und ohne SDFGI (Stadtansicht.GlobaleBeleuchtung.Vergleich.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Eis auf dem Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
