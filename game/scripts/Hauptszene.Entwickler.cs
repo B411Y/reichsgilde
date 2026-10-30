@@ -20,8 +20,8 @@ public partial class Hauptszene
     {
         if (!Entwickler.Aktiv || _spieler is null) return;
         _entwickler = new EntwicklerAnzeige();
+        _entwickler.Verbinden(_simulation, _spieler, _stadt, TempoSetzen); // vor dem Einhängen: AddChild ruft schon _Ready (Aufbau der Reiter)
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_entwickler);
-        _entwickler.Verbinden(_simulation, _spieler, _stadt, TempoSetzen);
         if (!optionen.TryGetValue("entwicklerfenster", out var wahl) || wahl == "0") return;
         _entwickler.Oeffnen(int.TryParse(wahl, out var reiter) && reiter > 1 ? reiter - 1 : -1);
     }

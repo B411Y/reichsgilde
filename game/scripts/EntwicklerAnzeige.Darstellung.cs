@@ -59,7 +59,8 @@ public sealed partial class EntwicklerAnzeige
         z = Zeile(s, "Dunst und Nebel", "Morgendunst und Bodennebel der Stadt (Hoch mit Lichtbahnen). Der Nebel des Wetters (Wetter „Nebel“) bleibt davon unberührt.");
         _dunst = Auswahl(z, new[] { "Aus", "Niedrig", "Hoch" }, (int)Fenster.AktuellerDunst, i => Fenster.DunstSetzen((Morgendunst)i, speichern: false));
         z = Zeile(s, "Nachtnebel", "Nebel auch bei Nacht (wie --nachtnebel=…). An (neu): Nach Einbruch der Dunkelheit wächst der Nebel einer ruhigen Nacht weiter, so dunkel wie eine unbeleuchtete Wand, mit Lichthof um Laternen und Feuer. Aus (alt, Lösung A vom 29.10.2026): nachts klare Luft, der Nebel kommt erst mit der Morgendämmerung. Zum Vergleich des hellen Saums am Fuß von Häusern und Mauern.");
-        _nachtnebel = Auswahl(z, new[] { "Aus (alt, Lösung A)", "An (neu)" }, _stadt.Nachtnebel ? 1 : 0, i => { _stadt.Nachtnebel = i == 1; Melden(i == 1 ? "Nachtnebel an." : "Nachtnebel aus (Lösung A)."); });
+        // Noch ohne Wahl: Der Aufbau liest die Stadt nicht, ihren Stand setzt DarstellungAuffrischen (beim Öffnen und zweimal je Sekunde).
+        _nachtnebel = Auswahl(z, new[] { "Aus (alt, Lösung A)", "An (neu)" }, -1, i => { _stadt.Nachtnebel = i == 1; Melden(i == 1 ? "Nachtnebel an." : "Nachtnebel aus (Lösung A)."); });
         z = Zeile(s, "Morgennebel", "Wie dicht der Nebel dieses Spieltags wird (wie --morgennebel=…). Automatisch: gewürfelt nach Jahreszeit (Herbst am häufigsten) und nur nach einer klaren, ruhigen Nacht; Wind und Regen lösen ihn auf. Am dichtesten um den Sonnenaufgang, danach in 1¾ bis 3 Stunden aufgelöst.");
         _morgennebel = Auswahl(z, Nebelstufen.Select(n => n.Name).ToArray(), 0, i => { _stadt.MorgennebelVorgabe = Nebelstufen[i].Staerke; Melden($"Morgennebel: {Nebelstufen[i].Name}."); });
         _nebelHeute = Hauptmenue.Text(z, "", 13, Grau);
@@ -103,9 +104,13 @@ public sealed partial class EntwicklerAnzeige
         return knopf;
     }
 
-    /// <summary>Gleicht die Schalter dieses Reiters mit dem tatsächlichen Stand ab (Wetter und Jahreszeit, Dunst, Unschärfe; auch wenn sie anderswo geändert wurden).</summary>
+    /// <summary>
+    /// Gleicht die Schalter dieses Reiters mit dem tatsächlichen Stand ab (Wetter und Jahreszeit, Dunst, Nebel, Unschärfe, Hilfsanzeigen; auch wenn
+    /// sie anderswo geändert wurden), beim Öffnen und zweimal je Sekunde. Nur wenn der Reiter fertig gebaut ist.
+    /// </summary>
     private void DarstellungAuffrischen()
     {
+        if (!_darstellungFertig || _stadt is null) return;
         foreach (var (lage, knopf) in _wetterKnoepfe) knopf.SetPressedNoSignal(lage == _stadt.WetterErzwungen);
         foreach (var (zeit, knopf) in _zeitKnoepfe) knopf.SetPressedNoSignal(zeit == _stadt.JahreszeitErzwungen);
         if (_dunst.Selected != (int)Fenster.AktuellerDunst) _dunst.Select((int)Fenster.AktuellerDunst);
@@ -117,7 +122,6 @@ public sealed partial class EntwicklerAnzeige
         _nebelHeute.Text = $"heute {heute:0.00} ({grund})";
         if (_wegenetz.ButtonPressed != _stadt.WegenetzSichtbar) _wegenetz.SetPressedNoSignal(_stadt.WegenetzSichtbar);
         if (_bauzonen.ButtonPressed != _stadt.BauzonenHilfe) _bauzonen.SetPressedNoSignal(_stadt.BauzonenHilfe);
-        if (_reiter.CurrentTab == _messwerteNummer) MesswerteAuffrischen();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -155,14 +159,14 @@ public sealed partial class EntwicklerAnzeige
 
     private void KiAuffrischen()
     {
-        if (_sim?.Wirtschaft is not { } w) return;
+        if (!_messwerteFertig || _sim?.Wirtschaft is not { } w) return;
         var einblicke = KiEinblick.Alle(w);
         _ki.Text = einblicke.Count == 0 ? "In dieser Partie gibt es keine KI-Häuser." : string.Join("\n\n", einblicke.Select(e => string.Join("\n", e.Zeilen)));
     }
 
     private void MesswerteAuffrischen()
     {
-        if (_sim is null) return;
+        if (!_messwerteFertig || _sim is null) return;
         _seitLichter += 0.5;
         if (_seitLichter >= 2) // der ganze Szenenbaum: nur alle zwei Sekunden
         {
