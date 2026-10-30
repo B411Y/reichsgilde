@@ -839,6 +839,35 @@ for s in ("l", "r"):
         d = p - iris.mean(axis=0)
         return np.linalg.norm(d - np.outer(d @ achse, achse), axis=1)
     vorn_i = ((iris - mitte_) @ achse) > 0
+    # Phase 3: Die ICT-Iris hat die Pupille als Öffnung (Tunnel nach hinten), nicht ganz auf der Achse. Mitte und Größe
+    # der Öffnung per Strahl von vorn: Wo der erste Treffer eine hintere Fläche ist, liegt die Öffnung.
+    from mathutils.bvhtree import BVHTree as _Bvh
+    from mathutils import Vector as _V
+    fl_iris = [f for f in fl_alle if hi_s <= f[0] < hi_i]
+    bvh_i = _Bvh.FromPolygons([_V(p_) for p_ in S[hi_s:hi_i]], [[i_ - hi_s for i_ in f] for f in fl_iris])
+    vorn_f = [all(vorn_i[i_ - hi_s] for i_ in f) for f in fl_iris]
+    ea = np.cross(achse, [0.0, 0.0, 1.0])
+    ea /= np.linalg.norm(ea)
+    eb = np.cross(achse, ea)
+    zelle_ = R_IRIS / 40.0
+    loch = []
+    for gx in np.arange(-R_IRIS, R_IRIS, zelle_):
+        for gy in np.arange(-R_IRIS, R_IRIS, zelle_):
+            if gx * gx + gy * gy > R_IRIS * R_IRIS:
+                continue
+            q_ = iris.mean(axis=0) + ea * gx + eb * gy + achse * 0.03
+            treffer = bvh_i.ray_cast(_V(q_), _V(-achse), 0.06)
+            if treffer[0] is not None and not vorn_f[treffer[2]]:
+                loch.append(iris.mean(axis=0) + ea * gx + eb * gy)
+    loch_mitte = np.mean(loch, axis=0) if loch else iris.mean(axis=0)
+    loch_r = math.sqrt(len(loch) * zelle_ * zelle_ / math.pi)
+    bericht.setdefault("pupillenoeffnung", {})[s] = {"versatz_mm": round(float(np.linalg.norm(loch_mitte - iris.mean(axis=0))) * 1000, 2),
+                                                     "halbmesser_limbus": round(loch_r / R_IRIS, 3)}
+    beiwerk_pupille = round(loch_r / R_IRIS, 3)
+
+    def radial(p, achse=achse, mitte=loch_mitte):
+        d = p - mitte
+        return np.linalg.norm(d - np.outer(d @ achse, achse), axis=1)
     k_iris = np.array([pos_in_aug[i] for i in range(hi_s, hi_i)])
     afarbe[k_iris, 0] = np.where(vorn_i, np.clip(radial(iris) / (2.0 * R_IRIS), 0.0, 1.0), 1.0)
     e1 = np.cross(achse, [0.0, 0.0, 1.0])
@@ -861,8 +890,11 @@ for s in ("l", "r"):
     e2v = np.cross(e1v, achse)
     e2v *= np.sign(e2v[2])
     dreh = 0.0 if s == "l" else math.radians(140)
+    # Mitte der ebenen Abbildung: Mitte der Pupillenöffnung (vordere Iris-Ecken nahe der Achse); die ICT-Pupille sitzt
+    # nicht genau auf der Achse Lederhaut -> Iris, sonst liegen gemalte Pupille und Öffnung versetzt
+    mitte_pupille = loch_mitte
     for bereich, mass in (((lo_s, hi_s), r_auge), ((hi_s, hi_i), R_IRIS)):
-        d = S[bereich[0]:bereich[1]] - iris.mean(axis=0)
+        d = S[bereich[0]:bereich[1]] - mitte_pupille
         x_, y_ = d @ e1v, d @ e2v
         x_, y_ = x_ * math.cos(dreh) - y_ * math.sin(dreh), x_ * math.sin(dreh) + y_ * math.cos(dreh)
         for k_, i_ in enumerate(range(*bereich)):
@@ -877,7 +909,7 @@ for s in ("l", "r"):
     kd.balance()
     d_ = np.array([kd.find(S[i])[2] for i in idx_])
     oben_ = S[idx_, 2] > augen[s][0][2]
-    a_ = (1.0 - kw.glatt_stufe(d_, 0.0004, 0.0035)) * np.where(oben_, 1.0, 0.65)
+    a_ = (1.0 - kw.glatt_stufe(d_, 0.0004, 0.005)) * np.where(oben_, 1.0, 0.7)
     afarbe[[pos_in_aug[int(i)] for i in idx_], 0] = a_
 af.data.foreach_set("color", afarbe.ravel())
 uvl_aug = aug_me.uv_layers.active
@@ -1036,6 +1068,7 @@ beiwerk = {
     "gene": {k: {"art": v["art"], "formen": gen_formen.get(k, {}), "wirkung": v.get("wirkung", "")} for k, v in regler.items()},
     "arkit": sorted(ict["formen"]),
     "merkpunkte": merkpunkte, "merkpunkt_formen": merk_formen,
+    "pupillenoeffnung": beiwerk_pupille,
     "seiten": seitenlage,
     "formen_je_objekt": formen_je_objekt,
     "bericht": bericht,

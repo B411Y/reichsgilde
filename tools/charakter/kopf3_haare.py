@@ -16,8 +16,8 @@ BRAUE_HOEHE = (0.0165, 0.0115)
 BRAUE_V_MERK = 0.80
 BRAUE_LAGEN = (0.00035, 0.0009)
 # Wimpern: Länge (m) innen/Mitte/außen
-WIMPER_OBEN = (0.0062, 0.0098, 0.0090)
-WIMPER_UNTEN = (0.0028, 0.0045, 0.0046)
+WIMPER_OBEN = (0.0058, 0.0088, 0.0082)
+WIMPER_UNTEN = (0.0026, 0.0042, 0.0043)
 
 
 def catmull_rom(p, n):
@@ -146,13 +146,15 @@ def wimpern(lidnaht_punkte, augen, n=22, nv=5):
             # Wurzel 0,5 mm vor der Lidnaht, auf der Außenkante des Lids
             wurzel = k + vorn * 0.0005 + radial * 0.0003
             L = np.interp(t, [0.0, 0.55, 1.0], laengen)
-            seitlich = tang * (0.1 + 0.25 * t)[:, None]       # nach außen geneigt, außen stärker
+            seitlich = tang * (0.04 + 0.12 * t)[:, None]      # nach außen geneigt, außen stärker
             o = len(ecken)
             pkt = []
             for i in range(len(k)):
                 if ist_oben:
-                    p1 = wurzel[i] + L[i] * 0.5 * (0.92 * vorn + 0.22 * radial[i]) + L[i] * 0.3 * seitlich[i]
-                    p2 = wurzel[i] + L[i] * (0.42 * vorn + 0.88 * radial[i]) + L[i] * seitlich[i]
+                    # erst nach vorn und leicht abwärts aus der Lidkante, dann nach oben gebogen (von vorn sieht man
+                    # die Wimper ab der Lidkante)
+                    p1 = wurzel[i] + L[i] * 0.5 * (0.92 * vorn - 0.12 * radial[i]) + L[i] * 0.3 * seitlich[i]
+                    p2 = wurzel[i] + L[i] * (0.62 * vorn + 0.62 * radial[i]) + L[i] * seitlich[i]
                 else:
                     p1 = wurzel[i] + L[i] * 0.5 * (0.85 * vorn + 0.35 * radial[i]) + L[i] * 0.3 * seitlich[i]
                     p2 = wurzel[i] + L[i] * (0.55 * vorn + 0.8 * radial[i]) + L[i] * seitlich[i]
