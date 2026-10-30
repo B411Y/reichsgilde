@@ -83,6 +83,10 @@ var mimik_mit_alter := true
 var mimikfaktor := 1.0
 var gewichte := {}          # zuletzt gesetzte Formgewichte (zum Prüfen)
 var zusatz_formen := {}     # Formname -> Gewicht obendrauf (Bögen, Probeformen „probe_*“)
+# Phase 6: Stand-Schalter. 5 = genau wie Phase 5 (glb5, haut3, augen3, Farbübergabe und Genrechnung der Phase 5),
+# 6 = der neue Weg (ab S2). Bis S2 gibt es nur den Weg der Phase 5; der Schalter wird schon durchgereicht und in jede
+# Begleitdatei der Bögen geschrieben, damit Vorher-Bilder und gepaarte Messungen im selben Prozess laufen.
+var stand := 5
 static var _poren: NoiseTexture2D
 static var _erbgut := {}
 
@@ -122,6 +126,7 @@ func laden(datei: String) -> bool:
 func kopieren_von(quelle) -> void:
 	pfad = quelle.pfad
 	info = quelle.info
+	stand = quelle.stand
 	bilder = quelle.bilder
 	phase3 = quelle.phase3
 	ultra = quelle.ultra
@@ -177,6 +182,15 @@ func form(name: String, wert: float) -> void:
 	for e in formen.get(name, []):
 		(e[0] as MeshInstance3D).set_blend_shape_value(e[1], wert)
 
+# Phase 6: die Formgewichte, wie sie wirklich in der Szene stehen (aus den Netzen zurückgelesen, je Form das erste Netz,
+# das sie hat) – für den Gewichteausdruck und die Begleitdateien der Bögen; Python misst damit genau, was Godot zeigt.
+func szene_gewichte() -> Dictionary:
+	var aus := {}
+	for name in formen:
+		var e: Array = formen[name][0]
+		aus[name] = (e[0] as MeshInstance3D).get_blend_shape_value(e[1])
+	return aus
+
 # ---------------------------------------------------------------- Erbgut
 static func erbgut() -> Dictionary:
 	if _erbgut.is_empty():
@@ -190,6 +204,52 @@ static func mittelwerte(volk: String) -> Dictionary:
 	for k in erbgut():
 		aus[k] = float(erbgut()[k]["voelker"][volk]["mittel"])
 	return aus
+
+# Phase 6: Würfeln und Vererben über den echten Kern (ErbgutBruecke.cs, Erbgut.Wuerfeln/Vererben). Die Darstellung
+# bekommt die sichtbaren Allele so, wie der Kern sie hält („bartwuchs“ und „bartwuchs_frau“ getrennt – die
+# Frauenregel wendet _farben() selbst an, wie bisher). familie: {"<saat>": [vater_saat, mutter_saat]} – wer dort
+# steht, wird vererbt (Eltern rekursiv), alle anderen gewürfelt. arten: nur Gene dieser Arten (leer = alle).
+const BRUECKE := "res://versuch/charakter/ErbgutBruecke.cs"
+static var _bruecke: Object = null
+static var _bruecke_vorlage := ""
+static func bruecke(vorlage := "") -> Object:
+	if _bruecke == null and ResourceLoader.exists(BRUECKE):
+		var s: Script = load(BRUECKE)
+		if s and s.can_instantiate():
+			_bruecke = s.new()
+	if _bruecke and vorlage != _bruecke_vorlage:
+		var f: String = _bruecke.call("VorlageLaden", vorlage)
+		if f != "":
+			push_error("Erbgut-Vorlage %s: %s" % [vorlage, f])
+		_bruecke_vorlage = vorlage
+	return _bruecke
+
+static func erbgut_griff(saat: int, volk: String, familie: Dictionary, vorlage := "", _tiefe := 0) -> int:
+	var b := bruecke(vorlage)
+	if b == null:
+		return 0
+	var eltern: Array = familie.get(str(saat), [])
+	if eltern.size() == 2 and _tiefe < 8:
+		var v := erbgut_griff(int(eltern[0]), volk, familie, vorlage, _tiefe + 1)
+		var m := erbgut_griff(int(eltern[1]), volk, familie, vorlage, _tiefe + 1)
+		return b.call("Vererben", saat, v, m, volk)
+	return b.call("Wuerfeln", saat, volk)
+
+static func gene_aus_saat(saat: int, volk := "Mensch", familie := {}, arten: Array = [], vorlage := "") -> Dictionary:
+	var g := erbgut_griff(saat, volk, familie, vorlage)
+	if g == 0:
+		push_error("ErbgutBruecke.cs fehlt oder lässt sich nicht laden")
+		return {}
+	var werte: Dictionary = bruecke(vorlage).call("SichtbareWerte", g, "m")
+	var aus := {}
+	for k in werte:
+		if arten.is_empty() or (erbgut().has(k) and String(erbgut()[k]["art"]) in arten):
+			aus[k] = float(werte[k])
+	return aus
+
+static func erbgut_text(saat: int, volk := "Mensch", familie := {}, vorlage := "") -> String:
+	var g := erbgut_griff(saat, volk, familie, vorlage)
+	return String(bruecke(vorlage).call("AlsText", g)) if g != 0 else ""
 
 # Sichtbarer Wert nach dem Alter verschoben (erbgut.json „alter“: Stützstellen in Menschenjahren)
 static func wert_im_alter(kennung: String, wert: float, jahre: float) -> float:

@@ -7,6 +7,10 @@
 # Tasten: L Licht (Tag/Innen) · V vorher/nachher (Stoffe der Phase 2) · U Ultra (Bildschirm-SSS) · M Mimik ·
 #         T Haar: Karten / TressFX · N Haar an/aus · F Frisur für alle (aus den Genen, dann jede) · B Bart ebenso ·
 #         F1 Hilfe · 1–6 springt zu einer Reihe
+# Phase 6 (S0): Z würfelt alle 30 Köpfe neu über den echten Kern (ErbgutBruecke.cs, Erbgut.Wuerfeln; Runde n nimmt die
+#         Startwerte 20000 + 100·(n − 1) + 1 … + 30), G schaltet die Gestalt-Gene an und aus (aus = Mensch-Mittel wie
+#         Phase 5, Farben und Zubehör bleiben gewürfelt). Runde 0 ist die Aufstellung der Phase 5 (Hauttöne, Mittelwerte).
+#         Startoption --saat_runde=<n> für die Fotos.
 # Kamera: freie Kamera (game/scripts/FreieKamera.cs: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift
 # schneller, Mausrad Tempo, H Hilfe); fehlt sie, eine feste Kamera mit Sprüngen (1–6).
 extends Node3D
@@ -55,6 +59,8 @@ var struktur_nr := 0            # Phase 5: 0 = aus den Genen, 1 glatt, 2 wellig,
 const STRUKTUR := [["aus den Genen", -1.0], ["glatt", 0.0], ["wellig", 0.5], ["lockig", 1.0]]
 var _frisuren := {"m": [], "w": []}
 var _baerte: Array = []
+var saat_runde := 0             # Phase 6: 0 = Aufstellung der Phase 5, ab 1 über den Kern gewürfelt (Taste Z)
+var gestalt_an := true          # Phase 6: Gestalt-Gene aus der Saat (Taste G)
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -65,6 +71,7 @@ func _ready() -> void:
 			args[a.substr(2)] = "1"
 	glb_ordner = args.get("glb", glb_ordner)
 	bilder = args.get("bilder", bilder)
+	saat_runde = int(args.get("saat_runde", "0"))
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 	_buehne()
 	if not DirAccess.dir_exists_absolute(glb_ordner):
@@ -88,13 +95,7 @@ func _ready() -> void:
 				var k := Kopf.new()
 				add_child(k)
 				k.kopieren_von(basis)
-				var gene := Kopf.mittelwerte("Mensch")
-				gene.merge(TOENE[ti]["gene"], true)
-				# Phase 4: Frisur, Bart, Glatze je Kopf verschieden (Gene 0..255)
-				gene["frisur"] = [20, 110, 200][(ai + ti) % 3]
-				gene["bartform"] = [70, 230, 120, 180, 20][(ai + 2 * ti) % 5]
-				gene["bartwuchs"] = [120, 175, 210][ti]
-				gene["glatze"] = [40, 150, 215][(ti + ai) % 3]
+				var gene := _gene_fuer(koepfe.size(), ti, ai)
 				k.haar_ruhe = true
 				if k.haar_knoten and haar_modus != "karten":
 					k.haar_modus_setzen(haar_modus)
@@ -124,6 +125,11 @@ func _ready() -> void:
 	print("GALERIE Kamera: ", "frei (FreieKamera.cs)" if freie else "fest (FreieKamera.cs fehlt)")
 	_hilfe()
 	_licht_setzen(true)
+	if saat_runde > 0:
+		_neu_wuerfeln()
+	if args.has("ende") and not args.has("fotos"):
+		get_tree().quit()
+		return
 	if args.has("fotos"):
 		if freie:
 			kamera.set("HilfeSichtbar", false)
@@ -139,6 +145,37 @@ func _meldung(text: String) -> void:
 	if args.has("ende"):
 		await get_tree().create_timer(2.0).timeout
 		get_tree().quit(1)
+
+# Gene eines Kopfs (Nummer 0..29): Runde 0 wie Phase 5 (Hautton der Reihe, sonst Mittelwerte), ab Runde 1 über den Kern
+func _gene_fuer(nr: int, ti: int, ai: int) -> Dictionary:
+	var gene := Kopf.mittelwerte("Mensch")
+	if saat_runde == 0:
+		gene.merge(TOENE[ti]["gene"], true)
+		# Phase 4: Frisur, Bart, Glatze je Kopf verschieden (Gene 0..255)
+		gene["frisur"] = [20, 110, 200][(ai + ti) % 3]
+		gene["bartform"] = [70, 230, 120, 180, 20][(ai + 2 * ti) % 5]
+		gene["bartwuchs"] = [120, 175, 210][ti]
+		gene["glatze"] = [40, 150, 215][(ti + ai) % 3]
+		return gene
+	var arten := ["Makro", "Merkmal", "Farbe", "Zubehoer"] if gestalt_an else ["Makro", "Farbe", "Zubehoer"]
+	gene.merge(Kopf.gene_aus_saat(saat_fuer(nr), "Mensch", {}, arten), true)
+	return gene
+
+func saat_fuer(nr: int) -> int:
+	return 20000 + 100 * (saat_runde - 1) + nr + 1
+
+# Phase 6: alle Köpfe neu (Taste Z / G); meldet, wie viele verschiedene Gensätze es gibt
+func _neu_wuerfeln() -> void:
+	var t := Time.get_ticks_usec()
+	var saetze := {}
+	for i in koepfe.size():
+		var e: Array = koepfe[i]
+		var k: Kopf = e[0]
+		var gene := _gene_fuer(i, e[1], ALTER.find(e[3]))
+		k.aussehen_setzen(gene, e[3], 1.0 if e[2] else 0.0)
+		saetze[JSON.stringify(gene)] = true
+	print("GALERIE Runde %d (Gestalt %s): %d verschiedene Gensätze, %.0f ms" % [saat_runde, "an" if gestalt_an else "aus",
+		saetze.size(), (Time.get_ticks_usec() - t) / 1000.0])
 
 # ---------------------------------------------------------------- Bühne: Boden, Sockel, Licht
 func _buehne() -> void:
@@ -276,6 +313,7 @@ func _hilfe_text() -> void:
 	hilfe.text = "Charakter Phase 5 – Galerie (Reihen von vorn: hell Mann, hell Frau, mittel Mann, mittel Frau, dunkel Mann, dunkel Frau; 5/20/35/50/70 Jahre)\n" \
 		+ kam + "\nL Licht: %s · V %s · U Ultra-SSS: %s · M Mimik %d · F1 Hilfe aus" % [
 			"Tag" if ist_tag else "Innen", "vorher (Phase 2)" if vorher else "nachher (Phase 3)", "an" if ultra else "aus", mimik_nr] \
+		+ "\nZ neu würfeln (Runde %d, über den Kern) · G Gestalt-Gene %s" % [saat_runde, "an" if gestalt_an else "aus"] \
 		+ "\nT Haar: %s · N Haar %s · F/Umschalt+F Frisur: %s · B/Umschalt+B Bart: %s · K Haarstruktur: %s" % [
 			"TressFX" if haar_modus == "tressfx" else "Haarkarten", "an" if haar_an else "aus",
 			"aus den Genen" if frisur_nr == 0 else "Nr. %d" % frisur_nr, "aus den Genen" if bart_nr == 0 else _bart_name(),
@@ -316,6 +354,13 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_K:
 			struktur_nr = (struktur_nr + 1) % STRUKTUR.size()
 			_haar_setzen()
+		KEY_Z:
+			saat_runde += 1
+			_neu_wuerfeln()
+		KEY_G:
+			gestalt_an = not gestalt_an
+			if saat_runde > 0:
+				_neu_wuerfeln()
 		KEY_F1:
 			hilfe.visible = not hilfe.visible
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
