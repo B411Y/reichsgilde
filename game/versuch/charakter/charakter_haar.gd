@@ -322,7 +322,7 @@ func _tfx_schreiben() -> void:
 # Ausschlag, Wellenlänge, Schraubenanteil, Faktor für die Punktzahl. Bärte kräuseln enger und flacher.
 func _struktur(bart: bool) -> Dictionary:
 	var g := clampf(float(werte.get("struktur", 0.0)), 0.0, 1.0)
-	var hoehe := lerpf(0.0, 0.0035, _glatt(g, 0.08, 0.5)) + lerpf(0.0, 0.0022, _glatt(g, 0.6, 1.0))
+	var hoehe := lerpf(0.0, 0.006, _glatt(g, 0.08, 0.5)) + lerpf(0.0, 0.0012, _glatt(g, 0.6, 1.0))
 	var wl := lerpf(0.065, 0.02, _glatt(g, 0.35, 1.0))
 	var locke := _glatt(g, 0.55, 0.95)
 	if bart:

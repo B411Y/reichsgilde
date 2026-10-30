@@ -73,17 +73,17 @@
         "head/head-fat-decr": 0.5
     }},
     "alter_reife_w": {"wirkung": "Frau erwachsen: etwas längeres und deutlicheres Kinn, Wangenknochen, weniger Wangenfett, längere gerade Nase, kleinere Augen mit Lidfalte", "ziele": {
-        "chin/chin-height-incr": 0.35,
+        "chin/chin-height-incr": 0.45,
         "chin/chin-prominent-incr": 0.45,
-        "nose/nose-scale-vert-incr": 0.5,
+        "nose/nose-scale-vert-incr": 0.6,
         "nose/nose-point-down": 0.3,
         "nose/nose-greek-incr": 0.3,
-        "cheek/l-cheek-volume-decr": 0.6,
-        "cheek/r-cheek-volume-decr": 0.6,
+        "cheek/l-cheek-volume-decr": 0.7,
+        "cheek/r-cheek-volume-decr": 0.7,
         "cheek/l-cheek-bones-incr": 0.7,
         "cheek/r-cheek-bones-incr": 0.7,
-        "eyes/l-eye-scale-decr": 0.25,
-        "eyes/r-eye-scale-decr": 0.25,
+        "eyes/l-eye-scale-decr": 0.4,
+        "eyes/r-eye-scale-decr": 0.4,
         "eyes/l-eye-eyefold-down": 0.3,
         "eyes/r-eye-eyefold-down": 0.3,
         "head/head-fat-decr": 0.4,
@@ -91,7 +91,10 @@
         "chin/chin-bones-decr": 0.25,
         "chin/chin-width-decr": 0.3,
         "nose/nose-scale-horiz-decr": 0.2,
-        "head/head-oval": 0.3
+        "head/head-oval": 0.3,
+        "mouth/mouth-upperlip-volume-decr": 0.25,
+        "mouth/mouth-lowerlip-volume-decr": 0.15,
+        "mouth/mouth-scale-horiz-incr": 0.25
     }},
     "alter_greis": {"wirkung": "Erschlaffen im Alter (beide Geschlechter): MakeHuman „head-age“, hängende Wangen, Tränensäcke, Mundwinkel und Lachfalten, schwere Lider, dünnere Lippen, längere Nase, größere Ohren, eingefallene Schläfen, leichtes Doppelkinn", "ziele": {
         "head/head-age-incr": 1.0,
