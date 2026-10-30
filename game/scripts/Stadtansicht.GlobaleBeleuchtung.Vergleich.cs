@@ -167,8 +167,8 @@ public partial class Stadtansicht
                 if (werte.Count == 0) continue;
                 var hell = werte.Average(e => e.Hell);
                 var gpu = Median(werte.Select(e => e.Gpu).ToList());
-                var anteil = hellAus > 0 && stufe != GlobaleBeleuchtung.Aus ? $" ({(hell / hellAus - 1) * 100:+0;-0} %)" : "";
-                var mehr = stufe != GlobaleBeleuchtung.Aus && aus.Count > 0 ? $" ({gpu - gpuAus:+0.0;-0.0})" : "";
+                var anteil = hellAus > 0 && stufe != GlobaleBeleuchtung.Aus ? $" ({(hell / hellAus - 1) * 100:+0;-0;0} %)" : "";
+                var mehr = stufe != GlobaleBeleuchtung.Aus && aus.Count > 0 ? $" ({gpu - gpuAus:+0.0;-0.0;0.0})" : "";
                 teile.Add($"{stufe} {hell:0.0}{anteil}, Rot/Blau {werte.Average(e => e.RotZuBlau):0.00}, GPU {gpu:0.0} ms{mehr}");
             }
             GD.Print(string.Create(CultureInfo.InvariantCulture, $"[givergleich] Ergebnis {raum.Key.Gebaeude?.Name ?? "Stadt"} / {raum.Key.Name}: {string.Join(" | ", teile)}"));
