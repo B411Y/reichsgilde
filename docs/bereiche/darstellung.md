@@ -311,6 +311,16 @@ Messwerte (T400, Vulkan, 1600 × 900, Köln, `--blick=0,0,<Zoom> --messung=30 --
 
 Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig Zoom 25); die Köln-Startstadt ist fast leer (etwa 270 Zeichenaufrufe) und CPU-gebunden, die Messung sagt über eine volle Stadt wenig.
 
+### Aufbau hinter dem Ladebildschirm (PR #261)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Abschnitte | `Verbinden` verbindet nur noch; `Aufbauen()` (Partie) und `EntwurfZeigenSchritte` (Werkstatt) sind Iteratoren, die vor jedem Abschnitt einen `Ladeschritt` liefern; `KarteAufbauen`/`EntwurfZeigen` laufen weiter in einem Zug (Hauptmenü). `Ruhen(true)`: kein `_Process`, keine Eingabe bis zum Ende. `OhneHintergrund`: keine Greybox, wenn gleich eine Partie oder die Werkstatt folgt (ihre Karte kommt erst nach dem ersten Bild) oder das Menü übersprungen wird. | 29.10.2026 |
+| Wohnhäuser | `WohnhaeuserPruefen` und `GrundstueckeAktualisieren` am Ende von `Aufbauen` statt im ersten `Aktualisieren`: Das erste sichtbare Bild hat alle Häuser. | 29.10.2026 |
+| Zeichnen während des Aufbaus | `Viewport.Disable3D` während der Abschnitte, erst `ErsteBilderAbwarten` zeichnet die fertige Stadt (Gras, Büschel, Wegeschicht, Licht der Stunde, Shader). Gemessen brachte es kaum etwas (der Mehraufwand lag nicht am Zeichnen, sondern daran, dass ohne die Menü-Greybox Modelle und Code kalt sind), schadet aber nicht. | 29.10.2026 |
+| Shader vorwärmen | `WetterProbe`: hinter dem Ladebild je zwei Bilder Regen und Schnee (sofort, ganz), dann zurück zum Wetter davor ohne die Nässe der Probe; nicht in Niedrig, abschaltbar mit `--vorwaermen=0`. Ergebnis (Hoch, Dunst Niedrig, `--wetterspaeter=regen@14`, RTX 4080, je 2 Läufe): vorher und ohne Vorwärmen 1 Ruckler 134–149 ms und eine neue Oberflächen- plus eine Spezialisierungs-Pipeline; mit Vorwärmen 0 Ruckler, 0 neue Pipelines, 1-%-Tief 31–36 → 48–56 Bilder/s (Vulkan und D3D12). Anders als die Versuche in PR #258 wird hier das ganze Wetter gezeigt, nicht nur die Partikel. Auf der T400 nicht geprüft. | 29.10.2026 |
+| Hintergrund-Thread | Übernommen: `wirtschaft.json` liest `Datenvorrat` im Hintergrund, solange das Menü steht (0,3 s → 0,03 s in der Hauptszene). Nicht übernommen: Spielstand (0,6 s, liefe allein, ohne etwas zu überlappen), Wegeschicht, Gras und Büschel (schon `Parallel.For`, und die Wegeschicht hängt an Wegen und Anschlüssen der Betriebe; ein Überlappen mit Natur und Feldern wäre nicht ohne Risiko). | 29.10.2026 |
+| Ladezeiten | Median aus 3, Köln, RTX 4080, Vulkan / D3D12, über das Hauptmenü (`--menuhintergrund=1`), Klick bis zur fertigen Stadt: neue Partie 5,0 → 5,4 s / 5,6 → 5,8 s, Spielstand 5,2 → 5,7 / 5,7 → 5,9, Werkstatt 5,0 → 5,2 / 5,3 → 5,4, zweiter Start 4,8 → 5,2 / 5,1 → 5,4. Vorher waren davon 1,1–2,3 s eingefrorene, unvollständige Spielbilder, jetzt 0. Mit Startoptionen ohne Menü-Greybox: Programmstart bis Szenenwechsel 5,4 → 2,7 s / 7,0 → 3,1 s, ab Programmstart insgesamt 10,4 → 9,7 s / 12,5 → 11,9 s. Logs `C:\Reichsgilde_Austausch\aussenstelle\ladebild\messung-*`. | 29.10.2026 |
 ### Sonnenzeiten nach Köln (PR #260)
 
 | Thema | Entscheidung | Datum |
