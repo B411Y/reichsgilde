@@ -3,7 +3,8 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Globale Beleuchtung mit SDFGI (Versuch vom 30.10.2026, Einstellung „Globale Beleuchtung (SDFGI)“) – ein Teil der <c>partial class Stadtansicht</c>.
+/// Globale Beleuchtung mit SDFGI (Einstellung „Globale Beleuchtung (SDFGI)“ mit den Unterschaltern „Innenräume“ und „Außenansicht – experimentell“,
+/// Entscheidung des Nutzers 30.10.2026: Standard Aus, zum Ausprobieren; Innenräume an, Außenansicht aus) – ein Teil der <c>partial class Stadtansicht</c>.
 ///
 /// <para><b>Was SDFGI tut:</b> Godot legt um die Kamera Würfel aus Zellen („Kaskaden“, je 128 Zellen breit, jede doppelt so grob wie die vorige),
 /// trägt die Geometrie darin als Abstandsfeld ein und schickt von Sonden Strahlen hindurch. So kommt Licht von Wänden, Boden und Himmel zurück,
@@ -17,7 +18,8 @@ namespace Reichsgilde;
 /// schon für Zoom 25 (140 m) braucht es mindestens 2,2 m je Zelle. Licht in einzelnen Gassen kann SDFGI so nicht zeigen, nur großflächig.</para>
 ///
 /// <para><b>Raumansicht:</b> Die Raumkamera steht nah im Raum (perspektivisch), dort passen feine Kaskaden ab 0,1 m. Der Raum hat seine eigene
-/// Umgebung mit eigenen Kaskaden; beim Wechsel zwischen Stadt und Raum legt Godot das Feld neu an (ein paar Bilder, bis es sich gesetzt hat).</para>
+/// Umgebung mit eigenen Kaskaden; beim Wechsel zwischen Stadt und Raum legt Godot das Feld neu an (ein paar Bilder, bis es sich gesetzt hat).
+/// Die Räume sind für ein gleichmäßiges Grundlicht gebaut, das SDFGI wegnimmt; wie es zurückkommt, steht unten unter „Räume mit SDFGI“.</para>
 ///
 /// <para><b>Was nicht nachkommt:</b> Godot trägt die Geometrie nur ein, wenn eine Kaskade neu angelegt wird oder beim Verschieben der Kamera ein
 /// neuer Streifen dazukommt. Was danach gebaut, abgerissen oder bewegt wird, und Leuchten (Fensterlicht, Glut), die sich ändern, kommen erst
@@ -41,13 +43,18 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Kaskaden der Raumansicht je Stufe: Die Kamera steht nah, die Wände sind 0,2–0,5 m dick. Niedrig 0,4 m (zwei Kaskaden, bis ±51 m),
-    /// Mittel 0,2 m (drei, bis ±51 m), Hoch 0,1 m (vier, bis ±51 m) mit Verdeckung gegen Lichtlecks. Zellhöhe 75 % (Godots Grundwert).
+    /// Mittel 0,2 m (drei, bis ±51 m), Hoch 0,1 m (vier, bis ±51 m) mit Verdeckung gegen Lichtlecks.
+    /// <para><b>Volle Zellhöhe (100 %), nicht Godots Grundwert 75 %:</b> Godot prüft für jede Kaskade, ob ein Punkt- oder Spotlicht hineinreicht, und vergleicht dafür
+    /// den Würfel der Kaskade in gestauchten Höhen (mal 1,5 bei 75 %) mit dem Umriss des Lichts in Metern (gi.cpp, <c>cascade_aabb.intersects(light_aabb)</c>
+    /// ohne Rückrechnung). Nahe der Höhe 0 fällt das kaum auf; unsere Räume liegen aber 200 m unter der Stadt (<see cref="RaumTiefe"/>): Der Würfel stand dort
+    /// rund 100 m tiefer als das Licht, und kein einziges Licht des Raums kam in SDFGI an (Glut, Laterne, Fenster – im Versuch vom 30.10.2026 änderte darum
+    /// ein stärkeres Fensterlicht nichts). Mit 100 % rechnet Godot nicht um, und die Lichter wirken.</para>
     /// </summary>
     internal static SdfgiKaskaden RaumKaskaden(GlobaleBeleuchtung stufe) => stufe switch
     {
-        GlobaleBeleuchtung.Niedrig => new(2, 0.4f, Godot.Environment.SdfgiyScale.Scale75Percent, false),
-        GlobaleBeleuchtung.Mittel => new(3, 0.2f, Godot.Environment.SdfgiyScale.Scale75Percent, false),
-        _ => new(4, 0.1f, Godot.Environment.SdfgiyScale.Scale75Percent, true),
+        GlobaleBeleuchtung.Niedrig => new(2, 0.4f, Godot.Environment.SdfgiyScale.Scale100Percent, false),
+        GlobaleBeleuchtung.Mittel => new(3, 0.2f, Godot.Environment.SdfgiyScale.Scale100Percent, false),
+        _ => new(4, 0.1f, Godot.Environment.SdfgiyScale.Scale100Percent, true),
     };
 
     /// <summary>
@@ -70,13 +77,10 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wie hell das Licht der Raumansicht zurückkommt. Der Raum liest keinen Himmel (sein Hintergrund ist fast schwarz, Godot rät bei Innenräumen ab):
-    /// Ohne Umgebungslicht bliebe nur, was Fenster, Glut und Lampen zurückwerfen – dafür kräftiger als Godots Grundwert 1. Es reicht trotzdem nicht:
-    /// Die Schmiede wird am Tag mit glühender Esse von 75 auf 31 von 255 (Mittel, Energie 1,6) dunkler, ohne Glut auf 18 (Energie 3). Ein höheres Fensterlicht nur für SDFGI
-    /// (<c>LightIndirectEnergy</c> 6 an den Fenster-Spotlichtern) änderte nichts Messbares und ist wieder heraus. Die Räume sind für Umgebungslicht
-    /// gebaut; für SDFGI bräuchten sie eigene Lichter.
+    /// Wie hell das Licht der Raumansicht zurückkommt und wie viel davon bei jedem weiteren Abprallen bleibt: Godots Grundwerte (1 und 0,5). Die Helligkeit
+    /// der Räume stellen die Lichter ein (unten), nicht diese Zahlen. Der Raum liest keinen Himmel (sein Hintergrund ist fast schwarz, Godot rät bei Innenräumen ab).
     /// </summary>
-    private const float RaumGiEnergie = 3f;
+    private const float RaumGiEnergie = 1f, RaumGiRueckwurf = 0.5f;
 
     /// <summary>
     /// Anteil des Himmels im Licht der Stadt, gemessen am Umgebungslicht ohne SDFGI (1 = gleich hell auf einer offenen Fläche). Godot liest die
@@ -91,7 +95,7 @@ public partial class Stadtansicht
     internal static void GlobaleBeleuchtungAnwenden(Godot.Environment umgebung, bool raum)
     {
         var stufe = Fenster.AktuelleGlobaleBeleuchtung;
-        var an = stufe != GlobaleBeleuchtung.Aus && Fenster.GlobaleBeleuchtungMoeglich;
+        var an = Fenster.GlobaleBeleuchtungWirkt(raum); // Stufe, Forward+ und der Unterschalter „Innenräume“ bzw. „Außenansicht“
         umgebung.SdfgiEnabled = an;
         if (!an) return;
         var k = raum ? RaumKaskaden(stufe) : StadtKaskaden(stufe);
@@ -102,7 +106,153 @@ public partial class Stadtansicht
         umgebung.SdfgiYScale = k.Hoehe;
         umgebung.SdfgiUseOcclusion = k.GegenLecks;
         umgebung.SdfgiReadSkyLight = !raum;
-        if (raum) umgebung.SdfgiEnergy = RaumGiEnergie;
+        if (raum)
+        {
+            umgebung.SdfgiEnergy = RaumGiEnergie;
+            umgebung.SdfgiBounceFeedback = RaumGiRueckwurf;
+        }
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Räume mit SDFGI: Grundlicht anteilig, Fülllicht, Zwillinge der Raumlichter
+    // ═════════════════════════════════════════════════════════════════════════
+    //
+    // SDFGI ersetzt das Grundlicht der Räume (Umgebungslicht, warm, nach der Tageszeit) ganz. Ohne Ersatz wurde die Schmiede von 82 auf 17 von 255 dunkel
+    // (mittlere Bildhelligkeit, Mittel, Tag). Ziel (Auftrag 30.10.2026): je Raum −15 % bis +10 % der Helligkeit ohne SDFGI, das Licht sichtbar weicher.
+    // Die Räume bekommen darum, nur solange SDFGI in der Raumansicht wirkt, vier Dinge:
+    //  1. Grundlicht anteilig (RaumGrundlichtAnteil): sechs gerichtete Lichter ohne Schatten (aus allen sechs Achsenrichtungen der Welt) mit zusammen etwa
+    //     zwei Dritteln des Grundlichts. Das ist der feste Anteil, gleichmäßig wie das Umgebungslicht; er hält auch Räume aus dunklem Holz hell genug
+    //     (Dachboden: das zurückgeworfene Licht allein ist dort schwach). Sie gehen nicht in SDFGI ein (LightIndirectEnergy 0).
+    //  2. Fülllicht (RaumFuellAnteil): ein unsichtbares Punktlicht vor der Raumkamera, das nichts direkt beleuchtet (LightCullMask 0) und nur in SDFGI eingeht:
+    //     Es hellt Wände, Boden und Decke auf, und was sie zurückwerfen, ist das weiche Licht mit dunkleren Ecken und Nischen.
+    //  3. Zwillinge der Raumlichter (GiZwillingAnlegen): Die Fensterlichter der Modelle sitzen in der Wand, Glut und Laterne in ihrem Körper – SDFGI fände
+    //     den Weg zu ihnen verdeckt. Ein Zwilling davor (Fenster, 0,6 m, weiter und breiter), darüber (Glut) oder darunter (Laterne) bringt ihr Licht hinein;
+    //     das Tageslicht der Fenster stark (FensterGi), die Glut gedämpft (GlutGi), damit die Esse den Raum nicht rot färbt, aber warm bleibt.
+    //  4. Leuchtende Flächen (Glut, Fensterscheiben) trägt Godot nur beim Anlegen des Feldes ein: Der Raum legt es neu an, wenn die Glut an- oder ausgeht und
+    //     wenn sich das Tageslicht merklich geändert hat (GiRaumNeuAnlegen).
+    // Messung und Bilder: docs/bereiche/darstellung.md („Globale Beleuchtung SDFGI: Innenräume und Außenansicht“), Startoption --givergleich.
+
+    /// <summary>
+    /// Anteil des Grundlichts, den die sechs gerichteten Lichter tragen, je Licht (1 = so stark wie das Umgebungslicht ohne SDFGI). Eine Fläche bekommt je
+    /// nach Ausrichtung 1- bis 1,7-mal so viel, im Mittel 1,5-mal: 0,65 ergibt etwa zwei Drittel bis gut das ganze Grundlicht. Abgestimmt mit
+    /// <c>--givergleich</c> in allen Räumen bei Tag und Nacht (Versuche: 0,45 ließ den Dachboden der Schmiede nachts 27 % dunkler, 0,6 noch 16 %).
+    /// </summary>
+    private const float RaumGrundlichtAnteil = 0.65f;
+
+    /// <summary>
+    /// Stärke des Fülllichts nach dem Grundlicht (Energie = Anteil × <see cref="RaumGrundlicht"/>): Es leuchtet ohne Abfall bis <see cref="FuellWeite"/> Meter.
+    /// Mehr macht helle Räume (Putz) heller, kaum dunkle (Holz) – darum trägt das Grundlicht den festen Teil und das Fülllicht nur den Rest.
+    /// </summary>
+    private const float RaumFuellAnteil = 1.5f, FuellWeite = 20f;
+
+    /// <summary>So weit vor der Raumkamera steht das Fülllicht: Die Kamera steht in Modellräumen dicht an der Vorderwand, das Licht muss im freien Raum stehen.</summary>
+    private const float FuellVersatz = 1f;
+
+    /// <summary>Anteil von Fenster, Glut und Laterne an SDFGI (<c>LightIndirectEnergy</c> ihrer Zwillinge; 1 = so stark wie ihr Licht im Raum).</summary>
+    internal const float FensterGi = 6f, GlutGi = 0.6f, LampeGi = 1f;
+
+    /// <summary>Zwilling eines Fensters: so weit vor der Scheibe, so weit reichend und so breit (Grad) wie ein Lichtkegel durchs Fenster; Glut und Laterne: so weit darüber bzw. darunter.</summary>
+    private const float FensterGiVersatz = 0.6f, FensterGiWeite = 9f, FensterGiWinkel = 75f, GlutGiVersatz = 0.35f;
+
+    /// <summary>Unsichtbares Fülllicht an der Raumkamera: Es beleuchtet nichts direkt (<c>LightCullMask</c> 0), geht aber in SDFGI ein.</summary>
+    private OmniLight3D? _giFuelllicht;
+
+    /// <summary>Die sechs gerichteten Lichter des anteiligen Grundlichts (nur direkt, ohne Schatten).</summary>
+    private readonly List<DirectionalLight3D> _giGrundlichter = new();
+
+    /// <summary>Einmal mit der Raumkamera (<see cref="RaumKameraAufbauen"/>): das Fülllicht an ihr, das Grundlicht fest in der Welt; beide nur mit SDFGI im Raum an.</summary>
+    private void GiRaumlichtAufbauen()
+    {
+        _giFuelllicht = new OmniLight3D
+        {
+            Name = "GiFuelllicht", LightCullMask = 0, ShadowEnabled = false, LightSpecular = 0, Visible = false,
+            OmniRange = FuellWeite, OmniAttenuation = 0, LightColor = RaumGrundlichtFarbe,
+            Position = new Vector3(0, 0, -FuellVersatz), // vor der Kamera im Raum, nicht in der Wand, an der sie steht
+        };
+        _raumKamera.AddChild(_giFuelllicht);
+        foreach (var richtung in new[] { Vector3.Down, Vector3.Up, Vector3.Left, Vector3.Right, Vector3.Forward, Vector3.Back })
+        {
+            var licht = new DirectionalLight3D
+            {
+                Name = "GiGrundlicht", ShadowEnabled = false, LightSpecular = 0, LightIndirectEnergy = 0, Visible = false, LightColor = RaumGrundlichtFarbe,
+                SkyMode = DirectionalLight3D.SkyModeEnum.LightOnly,
+                Basis = Basis.LookingAt(richtung, Mathf.Abs(richtung.Y) > 0.5f ? Vector3.Forward : Vector3.Up), // leuchtet entlang −Z, also in diese Richtung
+            };
+            AddChild(licht); // fest in der Welt: Boden, Decke und Wände bekommen in jedem Blick gleich viel (an der Kamera wurde es mit ihrer Neigung heller)
+            _giGrundlichter.Add(licht);
+        }
+    }
+
+    /// <summary>
+    /// Jedes Bild aus <see cref="RaumlichtSetzen"/>: Fülllicht und Grundlicht nur in der Raumansicht mit SDFGI, Stärke nach der Tageszeit wie das Grundlicht;
+    /// die Zwillinge der Raumlichter gehen mit der Einstellung an und aus. Hat sich das Tageslicht seit dem Anlegen merklich geändert, wird das Feld neu angelegt.
+    /// </summary>
+    private void GiRaumlichtNachfuehren(float hell)
+    {
+        if (_giFuelllicht is null) return;
+        if (_raumUmgebung.SdfgiEnabled != _giZwillingeAn)
+        {
+            _giZwillingeAn = _raumUmgebung.SdfgiEnabled;
+            foreach (var zwilling in _giZwillinge) zwilling.Visible = _giZwillingeAn;
+        }
+        var an = _raum is not null && _raumUmgebung.SdfgiEnabled;
+        if (_giFuelllicht.Visible != an)
+        {
+            _giFuelllicht.Visible = an;
+            foreach (var licht in _giGrundlichter) licht.Visible = an;
+        }
+        if (!an) return;
+        if (Mathf.Abs(hell - _giRaumHellBeimAnlegen) > GiRaumHellSchritt) GiRaumNeuAnlegen(); // die Scheiben leuchten anders als beim Anlegen
+        var grund = RaumGrundlicht(hell);
+        if (Mathf.Abs(RaumFuellAnteil * grund - _giFuelllicht.LightEnergy) < 0.005f) return;
+        _giFuelllicht.LightEnergy = RaumFuellAnteil * grund;
+        foreach (var licht in _giGrundlichter) licht.LightEnergy = RaumGrundlichtAnteil * grund;
+    }
+
+    /// <summary>Meta-Schlüssel der Lichter, die nur in SDFGI eingehen: <see cref="EbeneSetzen"/> lässt ihre <c>LightCullMask</c> auf 0.</summary>
+    private const string NurGiMeta = "nur_gi";
+
+    /// <summary>Glut und Laterne: Versatz des Zwillings in Weltrichtung (senkrecht, egal wie der Anker im Modell gedreht ist).</summary>
+    private const string GiVersatzMeta = "gi_versatz";
+
+    /// <summary>Alle Zwillinge der Raumlichter (nur für SDFGI), damit sie mit der Einstellung an- und ausgehen.</summary>
+    private readonly List<Light3D> _giZwillinge = new();
+    private bool _giZwillingeAn;
+
+    /// <summary>
+    /// Die Lichter der Raummodelle (<c>Licht_&lt;n&gt;</c>) sitzen in der Wand (Fenster), in der Glut oder in der Laterne. SDFGI prüft für jede Zelle, ob
+    /// der Weg zum Licht frei ist, und fände ihn dort verdeckt. Ein Zwilling ein Stück daneben im freien Raum bringt ihr Licht in die globale Beleuchtung:
+    /// vor dem Fenster (gleich ausgerichtet, aber weiter und breiter), über der Glut, unter der Laterne. Er beleuchtet nichts direkt (<c>LightCullMask</c> 0);
+    /// das Licht selbst geht dafür nicht in SDFGI ein (<c>LightIndirectEnergy</c> 0, Stadtansicht.Innenmodell.cs).
+    /// </summary>
+    private void GiZwillingAnlegen(Light3D licht, LichtArt art)
+    {
+        Light3D zwilling = art == LichtArt.Fenster
+            ? new SpotLight3D { SpotRange = FensterGiWeite, SpotAngle = FensterGiWinkel, Position = new Vector3(0, 0, -FensterGiVersatz) }
+            : new OmniLight3D { OmniRange = ((OmniLight3D)licht).OmniRange, OmniAttenuation = ((OmniLight3D)licht).OmniAttenuation };
+        zwilling.Name = "GiZwilling";
+        zwilling.LightCullMask = 0;
+        zwilling.ShadowEnabled = false;
+        zwilling.LightSpecular = 0;
+        zwilling.LightColor = licht.LightColor;
+        zwilling.LightIndirectEnergy = art switch { LichtArt.Glut => GlutGi, LichtArt.Lampe => LampeGi, _ => FensterGi };
+        zwilling.Visible = _giZwillingeAn;
+        zwilling.SetMeta(NurGiMeta, true);
+        if (art != LichtArt.Fenster) zwilling.SetMeta(GiVersatzMeta, new Vector3(0, art == LichtArt.Glut ? GlutGiVersatz : -GlutGiVersatz, 0));
+        licht.AddChild(zwilling);
+        _giZwillinge.Add(zwilling);
+    }
+
+    /// <summary>Der Zwilling leuchtet so stark wie sein Licht (Tageszeit, Arbeit); sein Anteil an SDFGI steht in <c>LightIndirectEnergy</c>.</summary>
+    private static void GiZwillingNachfuehren(Light3D licht)
+    {
+        foreach (var kind in licht.GetChildren())
+        {
+            if (kind is not Light3D zwilling || !zwilling.HasMeta(NurGiMeta)) continue;
+            zwilling.LightEnergy = licht.LightEnergy;
+            if (zwilling.HasMeta(GiVersatzMeta) && zwilling.IsInsideTree())
+                zwilling.GlobalPosition = licht.GlobalPosition + zwilling.GetMeta(GiVersatzMeta).AsVector3();
+        }
     }
 
     /// <summary>
@@ -144,6 +294,26 @@ public partial class Stadtansicht
         _raumUmgebung.SetMeta(GiFolgeSchluessel, _giFolge);
         if (Fenster.AktuelleGlobaleBeleuchtung == GlobaleBeleuchtung.Aus) return;
         GlobaleBeleuchtungAnwenden(_umgebung.Environment, raum: false);
+        GlobaleBeleuchtungAnwenden(_raumUmgebung, raum: true);
+    }
+
+    /// <summary>Die Tageshelligkeit, mit der das Feld des Raums zuletzt angelegt wurde (−1: noch keins).</summary>
+    private float _giRaumHellBeimAnlegen = -1;
+
+    /// <summary>Ab diesem Unterschied der Tageshelligkeit (0 Nacht … 1 Tag) legt der Raum sein Feld neu an: Das Leuchten der Fensterscheiben hat sich dann sichtbar geändert.</summary>
+    private const float GiRaumHellSchritt = 0.25f;
+
+    /// <summary>
+    /// Nur das Feld der Raumansicht neu anlegen (wie <see cref="GlobaleBeleuchtungNeuAnlegen"/>): Godot trägt leuchtende Flächen nur beim Anlegen ein. Gerufen,
+    /// wenn die Glut des gezeigten Hauses an- oder ausgeht und wenn sich das Tageslicht seit dem letzten Anlegen merklich geändert hat (Fensterscheiben);
+    /// sonst stünde nachts noch das Tageslicht der Scheiben im Raum oder die Glut glühte im Licht nach, wenn die Arbeit ruht. Kurzes Flackern, wie beim Betreten.
+    /// </summary>
+    private void GiRaumNeuAnlegen()
+    {
+        _giRaumHellBeimAnlegen = _raumHell;
+        if (!_raumUmgebung.SdfgiEnabled) return;
+        _giFolge++;
+        _raumUmgebung.SetMeta(GiFolgeSchluessel, _giFolge);
         GlobaleBeleuchtungAnwenden(_raumUmgebung, raum: true);
     }
 
