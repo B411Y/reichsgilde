@@ -87,6 +87,7 @@ Startoptionen (nach `--`):
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
+- `--lichtuhr=<Stunde>` (Licht, Himmel, Fenster und Nachtlichter zeigen diese feste Uhrzeit, mit Bruchteil: `3.5` = 3:30 Uhr, auch vor 4 Uhr; nur Darstellung, die Spielzeit läuft weiter; mit `--jahreszeit` wählt man die Sonnenzeiten)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
 - `--wetterspaeter=<lage>@<Sekunden>` (das Wetter schlägt nach so vielen Sekunden plötzlich um, z. B. `regen@14`; für Messungen des ersten Regens: ohne `--wetter` ändert es sich erst dann, sonst gilt `--wetter` bis dahin)
 - `--pflasterrelief=0` (Pflaster ohne Tiefe: schaltet die Parallax im Pflaster für diesen Start aus, nur in der Bodenqualität Hoch wirksam; für Vergleiche und Messungen)

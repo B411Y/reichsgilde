@@ -738,7 +738,7 @@ public partial class Stadtansicht : Node3D
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
         FensterNachtSetzen(zeit.VergangeneMinuten); // jede Nacht andere Fenster hell (Stadtansicht.Modelle.cs)
         WetterAktualisieren(zeit.VergangeneMinuten + bruchteil, zeit.Jahreszeit, delta); // vor dem Licht: Wolken dämpfen es (Stadtansicht.Wetter.cs)
-        LichtNachUhrzeit(zeit.UhrzeitInMinuten + (float)bruchteil, delta, GezeigteJahreszeit(zeit.Jahreszeit)); // Stadtansicht.Licht.cs
+        LichtNachUhrzeit(_lichtUhrVorgabe is { } lichtUhr ? lichtUhr * 60f : zeit.UhrzeitInMinuten + (float)bruchteil, delta, GezeigteJahreszeit(zeit.Jahreszeit)); // Stadtansicht.Licht.cs
         NachtlichterAktualisieren(delta); // Stadtansicht.Nachtlichter.cs
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
         JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
