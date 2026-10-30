@@ -87,6 +87,19 @@ Gemessen mit `--karte=koeln --startstunde=19 --lichtuhr=22 --voreinstellung=Hoch
 - **Echte Lichter:** unverändert (Pool Hoch 12); die Flammen haben kein eigenes Licht, nur der Gebäudebrand.
 - Zum Nachmessen lassen sich die Teile über Umgebungsvariablen weglassen: `RG_OHNEFLAMMEN=1` (Flammen der Nachtlichter), `RG_OHNERAUCH=1` (Kaminrauch), `RG_OHNEFLECKEN=1` (Ersatzlicht und Heiligenschein).
 
+**Was kostet welcher Teil?** Dieselbe Stelle (Mitte, Zoom 70), derselbe Stand, je ein Teil über eine Umgebungsvariable weggelassen:
+
+| Lauf | Last (`uptime`) | Bilder/s | GPU-Zeit Mittel (ms) | kleinste Sekunde (ms) | Zeichenaufrufe |
+|---|---|---|---|---|---|
+| alles (1) | 11,0 | 8,6 | 58,5 | 39,6 | 1781 |
+| ohne Ersatzlicht (1) | 11,9 | 12,3 | 36,0 | 34,9 | 1819 |
+| ohne Kaminrauch | 9,7 | 9,9 | 46,0 | 34,9 | 1883 |
+| ohne Nachtflammen | 10,7 | 13,1 | 35,5 | 34,5 | 1757 |
+| ohne Ersatzlicht (2) | 9,3 | 11,4 | 50,3 | 35,3 | 1841 |
+| alles (2) | 6,8 | 12,8 | 36,1 | 35,2 | 1871 |
+
+Kein Teil hebt sich aus dem Rauschen: „alles“ liegt einmal bei 58, einmal bei 36 ms, „ohne Ersatzlicht“ einmal bei 36, einmal bei 50 ms; die kleinste Sekunde ist in allen Läufen 34–40 ms. Flammen, Rauch und Ersatzlicht kosten auf der T400 also deutlich weniger als die Schwankung durch fremde Last; messbar sind nur die Zeichenaufrufe (+100 bis +150). Auf einem ungestörten Rechner nachmessen (Werte oben mit `RG_OHNE…`).
+
 ## Wie es gebaut ist
 
 | Datei | Inhalt |
