@@ -827,7 +827,11 @@ class KurzerVollbart(k4.Vollbart):
         # (Unterseite des Kiefers), das wirkte in der ¾-Ansicht wie ein langer Bart
         q = np.atleast_2d(q)
         f = self.flaechen(q)
-        linie = glatt(q[:, 2] - (self.m68[8, 2] - 0.006 * self.M), 0.0, 0.004 * self.M)
+        # nur über der Kieferlinie (Merkpunkte 0–16): die Unterseite des Kiefers und die Kehle liegen unter ihr – dort
+        # wachsende Haare hingen in der Seitenansicht wie ein Vorhang vor dem Hals
+        kiefer = self.m68[0:17]
+        naechst = kiefer[np.argmin(np.linalg.norm(q[:, None] - kiefer[None], axis=2), axis=1)]
+        linie = glatt(q[:, 2] - (naechst[:, 2] - 0.005 * self.M), 0.0, 0.004 * self.M)
         return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"] * linie, f["wange"] * linie]), 0, 1)
 
     def kamm(self, q, n, s, w):
