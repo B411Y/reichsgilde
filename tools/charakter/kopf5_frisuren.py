@@ -144,10 +144,10 @@ class Haarrolle(Stil):
     frei_faellt = 0.6
 
     def dichte(self, q):
-        return self.h.kopfhaut(q, ohr_frei=(0.016, 0.024))
+        return self.h.kopfhaut(q, ohr_frei=(0.012, 0.018))
 
     def kamm(self, q, n, s, w):
-        return _norm(_scheitel(self.h, q, w, self.M) + UNTEN * 0.5)
+        return _norm(_scheitel(self.h, q, w, self.M) + UNTEN * 0.8)
 
     def schwere(self, s, w):
         return 0.6 * glatt(s, 0.02, 0.06)
@@ -157,8 +157,9 @@ class Haarrolle(Stil):
 
     def ende(self, q, s, w):
         h, M = self.h, self.M
-        z = _schnitt(h, q, [(0, h.brauen_oben + 0.02 * M), (35, h.auge_z + 0.015 * M), (70, h.ohr_z - 0.012 * M),
-                            (120, h.ohr_z - 0.016 * M), (180, h.ohr_z - 0.022 * M)])
+        # Nutzer 30.10.: das Ohr liegt hinter bzw. in der Rolle (Kante auf Höhe des Ohrläppchens)
+        z = _schnitt(h, q, [(0, h.brauen_oben + 0.02 * M), (35, h.auge_z + 0.01 * M), (60, h.ohr_z - 0.024 * M),
+                            (120, h.ohr_z - 0.03 * M), (180, h.ohr_z - 0.034 * M)])
         return q[2] < z
 
     def nach(self, pkt, w, rng):
@@ -168,7 +169,7 @@ class Haarrolle(Stil):
         t = _norm(Vector(pkt[-1] - pkt[-3]))
         raus = Vector((p_e[0], p_e[1] - h.kopfmitte[1], 0.0))
         raus = _norm(raus - t * raus.dot(t))
-        R = rng.uniform(0.010, 0.013) * M
+        R = rng.uniform(0.012, 0.016) * M
         bogen = rng.uniform(1.25, 1.55) * math.pi
         neu = [Vector(p_e) + (t * math.sin(f) + raus * (1.0 - math.cos(f))) * R for f in np.linspace(0, bogen, 18)[1:]]
         return np.vstack([pkt, np.array([tuple(v) for v in neu])])
@@ -293,8 +294,9 @@ def _locken(pkt, h, rng, hoehe, wl):
 
 
 class Tonsur(Stil):
-    """m08: Mönchstonsur (Corona) – Scheitel kahl rasiert, nur ein Haarkranz von etwa 3 cm rund um den Kopf, kurz und
-    gerade geschnitten (vorn über der Stirn, über den Ohren, hinten)."""
+    """m08: Mönchstonsur (Corona) – auf dem Scheitel eine runde kahle Stelle (Ø etwa 9 cm, etwas hinter der Mitte), der
+    breite Kranz darum kurz (2–3 cm) vom Scheitel weg gekämmt und gerade geschnitten, Ohren frei. Nutzer 30.10.: die
+    kahle Stelle der Vorlage war übertrieben groß, der Kranz zu schmal."""
     name, geschlecht, anzahl, punkte = "tonsur", "m", 4200, 8
     schritt, volumen, volumen_weg, hub, steif = 0.002, (0.001, 0.004), 0.01, 0.25, 0.4
     wellen, klumpen = (0.0008, 0.02), (10, 0.25)
@@ -302,14 +304,20 @@ class Tonsur(Stil):
     def dichte(self, q):
         h, M = self.h, self.M
         q = np.atleast_2d(q)
-        r = h.richtung(q)
-        oben = np.interp(r, [0, 40, 70, 100, 180], [h.haaransatz_z(0.0) + 0.036 * M, h.haaransatz_z(40.0) + 0.034 * M,
-                                                   h.auge_z + 0.05 * M, h.ohr_z + 0.055 * M, h.ohr_z + 0.05 * M])
-        kranz = glatt(oben - q[:, 2], -0.003 * M, 0.003 * M)
-        return h.kopfhaut(q, ohr_frei=(0.024, 0.034)) * kranz
+        kahl = glatt(np.linalg.norm(q - self.mitte, axis=1), 0.043 * M, 0.049 * M)
+        return h.kopfhaut(q, ohr_frei=(0.024, 0.034)) * kahl
+
+    @property
+    def mitte(self):
+        if not hasattr(self, "_mitte"):
+            h = self.h
+            l, _, _, _ = h.naechste(np.array([0.0, h.scheitel[1] + 0.025 * self.M, h.scheitel[2] + 0.02 * self.M]))
+            self._mitte = np.asarray(l)
+        return self._mitte
 
     def kamm(self, q, n, s, w):
-        return _vom_wirbel(self.h, q, vorn=0.2, unten=1.0)
+        weg = _norm(Vector(np.asarray(q) - self.mitte))
+        return _norm(weg + UNTEN * 0.8)
 
     def schwere(self, s, w):
         return 0.4
@@ -319,8 +327,8 @@ class Tonsur(Stil):
 
     def ende(self, q, s, w):
         h, M = self.h, self.M
-        z = _schnitt(h, q, [(0, h.brauen_oben + 0.022 * M), (60, h.auge_z + 0.014 * M), (90, h.ohr_z + 0.01 * M),
-                            (180, h.ohr_z + 0.005 * M)])
+        z = _schnitt(h, q, [(0, h.brauen_oben + 0.024 * M), (60, h.auge_z + 0.016 * M), (90, h.ohr_z + 0.016 * M),
+                            (180, h.ohr_z - 0.01 * M)])
         return q[2] < z
 
 
@@ -360,7 +368,8 @@ class Kranz(Stil):
 
     def dichte(self, q):
         h = self.h
-        return h.kopfhaut(q, ohr_frei=(0.016, 0.024)) * glatt(h.rang(q), 0.58, 0.8)
+        # Nutzer 30.10.: die Glatze hält sich in Grenzen (Platte und Geheimratsecken, kein kahler Oberkopf bis zum Ohr)
+        return h.kopfhaut(q, ohr_frei=(0.016, 0.024)) * glatt(h.rang(q), 0.42, 0.6)
 
     def kamm(self, q, n, s, w):
         sx = 1.0 if w[0] >= 0 else -1.0
@@ -391,16 +400,18 @@ class _Hochgesteckt(k4.FrauScheitel):
         raise NotImplementedError
 
     def kamm(self, q, n, s, w):
+        # Nutzer 30.10.: nichts hängt herab – die Strähnen biegen früh zum Anker (vorher erst nach 2–9 cm)
         a = self.anker_fuer(w)
         zum = _norm(a - q)
-        k = 1.0 if w[2] < a[2] + 0.01 * self.M else glatt(s, 0.02, 0.09)
+        k = 1.0 if w[2] < a[2] + 0.01 * self.M else glatt(s, 0.005, 0.04)
         return _norm(self.scheitel(q, w) * (1 - k) + zum * (2.0 * k))
 
     def schwere(self, s, w):
-        return 0.15
+        return 0.0
 
     def laenge(self, w, n):
-        return 0.4
+        # höchstens 1,8 × der Abstand zum Anker, damit keine Strähne am Anker vorbei weiterläuft und herabhängt
+        return min(0.4, 1.8 * float(np.linalg.norm(np.asarray(self.anker_fuer(w)) - w)) + 0.03 * self.M)
 
     def ende(self, q, s, w):
         return (q - self.anker_fuer(w)).length < self.ende_abstand * self.M
@@ -513,6 +524,13 @@ class Zopfschlaufen(_Hochgesteckt):
             self.anker[s] = Vector(_auf_haut(h, h.ohr[s] + np.array([-sx * 0.004, -0.018, 0.035]) * M, M, 0.012))
 
     def anker_fuer(self, w):
+        # Hinterkopf (hinter den Ohren) zum Nackenknoten, sonst zur Schläfe (Anfang des Zopfs)
+        if w[1] > self.h.ohr["l"][1] + 0.01 * self.M:
+            if not hasattr(self, "_nacken"):
+                h, M = self.h, self.M
+                l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.11 * M, h.ohr_z - 0.04 * M]))
+                self._nacken = Vector(l) + Vector(n) * 0.012 * M
+            return self._nacken
         return self.anker["l" if w[0] >= 0 else "r"]
 
     def zusatz(self, rng, faktor):
@@ -540,25 +558,122 @@ class Nackenknoten(k4.FrauKnoten):
         return knoten_straehnen(self, rng, anzahl=int(700 * faktor)), "knoten"
 
 
+def polster_straehnen(mitte, achse, aussen, R, H, rng, anzahl=700, punkte=32, windungen=(1.5, 2.6)):
+    """Haarpolster: Strähnen als Schrauben um eine Achse in einem Ellipsoid (Halbmesser R quer, H/2 längs), außen
+    etwas abgeflacht zur Haut hin (aussen = Richtung weg vom Kopf). Für die Seitenpolster unter der Crespine."""
+    a = np.asarray(achse, dtype=np.float64)
+    a /= np.linalg.norm(a)
+    e1 = np.asarray(aussen, dtype=np.float64)
+    e1 = e1 - a * (e1 @ a)
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(a, e1)
+    st = []
+    for _ in range(anzahl):
+        rho = math.sqrt(rng.uniform(0.25, 1.0))
+        z0, z1 = sorted(rng.uniform(-1, 1, 2))
+        if z1 - z0 < 0.5:
+            z1 = min(1.0, z0 + 0.5)
+        phi0 = rng.random() * 2 * np.pi
+        w = rng.uniform(*windungen) * (1 if rng.random() < 0.5 else -1)
+        t = np.linspace(0, 1, punkte * 3)
+        z = z0 + (z1 - z0) * t
+        phi = phi0 + 2 * np.pi * w * t
+        r = R * rho * np.sqrt(np.clip(1 - z ** 2, 0.02, 1))
+        # zur Haut hin (cos phi < 0) flacher
+        r_e1 = r * np.where(np.cos(phi) < 0, 0.55, 1.0)
+        pts = (np.asarray(mitte)[None] + np.outer(z * H / 2, a) + np.outer(r_e1 * np.cos(phi), e1)
+               + np.outer(r * np.sin(phi), e2))
+        st.append(umtasten(pts, punkte))
+    return np.array(st)
+
+
+def netz_auf_polster(mitte, achse, aussen, R, H, maschen=1.0, punkte=32, abstand=1.06):
+    """Crespine: Netz aus zwei Scharen von Schraubenlinien (Rautenmaschen) über ein Haarpolster; dazu die
+    Kreuzungspunkte (für die Perlen)."""
+    a = np.asarray(achse, dtype=np.float64)
+    a /= np.linalg.norm(a)
+    e1 = np.asarray(aussen, dtype=np.float64)
+    e1 = e1 - a * (e1 @ a)
+    e1 /= np.linalg.norm(e1)
+    e2 = np.cross(a, e1)
+
+    def punkt(z, phi):
+        r = R * abstand * math.sqrt(max(1 - z * z, 0.02)) * (0.55 if math.cos(phi) < 0 else 1.0)
+        return np.asarray(mitte) + a * z * H / 2 + e1 * r * math.cos(phi) + e2 * R * abstand * math.sqrt(max(1 - z * z, 0.02)) * math.sin(phi)
+
+    umfang = 2 * np.pi * R
+    n = max(8, int(umfang / (0.011 * maschen)))
+    steig = 2 * np.pi * 0.85                     # Windung je Höhe: Rauten etwa 1 cm
+    linien, kreuz = [], []
+    for vz in (1, -1):
+        for k in range(n):
+            phi0 = 2 * np.pi * k / n
+            z = np.linspace(-0.92, 0.92, punkte)
+            linien.append(np.array([punkt(zz, phi0 + vz * steig * (zz + 0.92) / 2) for zz in z]))
+    for k in range(n):
+        for m in range(1, 6):
+            zz = -0.92 + 1.84 * m / 6
+            kreuz.append(punkt(zz, 2 * np.pi * k / n + (2 * np.pi / n) * 0.5 * (m % 2)))
+    return np.array(linien), np.array(kreuz)
+
+
+def perlen(punkte_, rng, r=0.0016, punkte=8):
+    """Perlen als kleine geschlossene Schlaufen (drei je Kreuzung, gegeneinander gedreht)."""
+    st = []
+    for p in punkte_:
+        for _ in range(3):
+            a = rng.normal(size=3)
+            a /= np.linalg.norm(a)
+            b = np.cross(a, rng.normal(size=3))
+            b /= np.linalg.norm(b)
+            t = np.linspace(0, 2 * np.pi, punkte)
+            st.append(p + np.outer(np.cos(t), a) * r + np.outer(np.sin(t), b) * r)
+    return np.array(st)
+
+
 class Haarnetz(_Hochgesteckt):
-    """f08: Haarnetz – Mittelscheitel, oben glatt; alles Haar in einem großen runden Knoten am Hinterkopf. Das Netz
-    (Crespine) ist Kopfputz und kommt mit den Kopfbedeckungen."""
+    """f08: Crespine (um 1380–1420) – Mittelscheitel, oben glatt; das Haar ist an jeder Seite über Schläfe und Ohr zu
+    einem Polster gelegt, jedes Polster in einem Netz aus Goldschnur mit Perlen an den Kreuzungen; ein schmales goldenes
+    Band (Fillet) läuft über den Scheitel von Polster zu Polster. Quellen in docs/charakter/phase5.md. Nutzer 30.10.:
+    nicht ein Knoten am Hinterkopf, kein loses Haar."""
     name, anzahl, punkte = "haarnetz", 4600, 16
     ende_abstand = 0.03
 
     def __init__(self, h, rng):
         super().__init__(h, rng)
         M = self.M
-        l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.12 * M, h.ohr_z + 0.012 * M]))
-        self.anker = Vector(l) + Vector(n) * 0.022 * M
-        self.anker_n = np.array([0.0, 0.94, 0.34])
+        self.polster = {}
+        for s, sx in (("l", 1.0), ("r", -1.0)):
+            o = h.ohr[s]
+            mitte = o + np.array([sx * 0.024, -0.008, 0.012]) * M
+            self.polster[s] = (mitte, np.array([sx * 0.15, -0.25, 1.0]), np.array([sx, 0.0, 0.0]), 0.027 * M, 0.085 * M)
+        self.anker = {s: Vector(self.polster[s][0]) for s in ("l", "r")}
 
     def anker_fuer(self, w):
-        return self.anker
+        return self.anker["l" if w[0] >= 0 else "r"]
 
     def zusatz(self, rng, faktor):
-        o = _Objekt(self.anker, self.anker_n, self.M * 1.6)          # großer runder Knoten (Crespine)
-        return knoten_straehnen(o, rng, anzahl=int(1300 * faktor)), "knoten"
+        h, M = self.h, self.M
+        haar, netz, kreuz = [], [], []
+        for s in ("l", "r"):
+            mitte, achse, aussen, R, H = self.polster[s]
+            haar.append(polster_straehnen(mitte, achse, aussen, R, H, rng, anzahl=int(800 * faktor)))
+            li, kr = netz_auf_polster(mitte, achse, aussen, R, H)
+            netz.append(li)
+            kreuz.append(kr)
+        # Fillet: Band aus acht Goldschnüren über den Scheitel, von Polster zu Polster
+        a, b = self.polster["l"][0], self.polster["r"][0]
+        top = np.array([0.0, h.scheitel[1] + 0.028 * M, h.scheitel[2]])
+        band = []
+        for k in range(8):
+            versatz = (k - 3.5) / 3.5 * 0.0045 * M
+            stuetz = [a + np.array([0, versatz, 0.04 * M]), np.array([0.06 * M, top[1] + versatz, top[2] - 0.025 * M]),
+                      top + np.array([0, versatz, 0]), np.array([-0.06 * M, top[1] + versatz, top[2] - 0.025 * M]),
+                      b + np.array([0, versatz, 0.04 * M])]
+            band.append(umtasten(bahn_auf_kopf(h, stuetz, M, abstand=0.0035, n=120, glaetten=3), 32))
+        netz = np.concatenate(netz + [np.array(band)])
+        return [("zusatz", np.concatenate(haar), "knoten"), ("netz", netz, "netz"),
+                ("perlen", perlen(np.concatenate(kreuz), rng, r=0.0016 * M), "perlen")]
 
 
 class HoheStirn(_Hochgesteckt):
@@ -644,7 +759,7 @@ class Stoppeln(k4.Bart):
 
 class Gabelbart(k4.Langbart):
     """b05: Gabelbart – Vollbart etwa 10 cm, unter dem Kinn gescheitelt, zwei Spitzen; Schnurrbart geht in den Bart."""
-    name, anzahl, punkte = "gabelbart", 5200, 16
+    name, anzahl, punkte = "gabelbart", 5200, 32
     klumpen = (10, 0.15)
 
     def kamm(self, q, n, s, w):
@@ -652,7 +767,7 @@ class Gabelbart(k4.Langbart):
             return k4.Schnurrbart.kamm(self, q, n, s, w)
         M = self.M
         sx = 1.0 if w[0] >= 0 else -1.0
-        spitze = Vector((sx * 0.032 * M, self.m68[8, 1] - 0.018 * M, self.m68[8, 2] - 0.1 * M))
+        spitze = Vector((sx * 0.034 * M, self.m68[8, 1] - 0.02 * M, self.m68[8, 2] - 0.15 * M))   # Nutzer: länger
         k = glatt(s, 0.005, 0.025)
         # Mitte: Scheitel unter dem Kinn (die Strähnen jeder Seite laufen zu ihrer Spitze, nicht zur Mitte)
         return _norm(UNTEN * (1 - k) * 0.6 + Vector((sx * 0.4, -0.1, 0)) * (1 - k) + _norm(spitze - q) * 3.0 * k)
@@ -662,7 +777,7 @@ class Gabelbart(k4.Langbart):
         if z == "schnurr":
             return k4.Schnurrbart.laenge(self, w, n) * 1.2
         unten = glatt(self.lippe_unten - w[2], 0.0, 0.04 * self.M)
-        L = {"kinn": 0.1, "wange": 0.02 + 0.075 * unten ** 1.5, "hals": 0.07}[z]
+        L = {"kinn": 0.155, "wange": 0.02 + 0.12 * unten ** 1.5, "hals": 0.11}[z]
         return L * self.rng.uniform(0.85, 1.1) * self.M
 
 
@@ -691,9 +806,9 @@ class KurzerVollbart(k4.Vollbart):
     volumen = (0.0008, 0.004)
 
     def dichte(self, q):
-        # Hals unter dem Kinn gestutzt (sonst hängt der kurze Bart wie ein Vorhang unter den Kiefer)
+        # Hals rasiert, saubere Linie unter dem Kiefer (sonst hängt der kurze Bart wie ein Vorhang unter den Kiefer)
         f = self.flaechen(q)
-        return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"], f["wange"], f["hals"] * 0.25]), 0, 1)
+        return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"], f["wange"]]), 0, 1)
 
     def kamm(self, q, n, s, w):
         if self.zone(w) == "hals":

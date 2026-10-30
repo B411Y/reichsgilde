@@ -146,8 +146,10 @@ func stile_setzen(neue: Array) -> void:
 		if name == "" or not ue.get("stile", {}).has(name):
 			continue
 		for teil in ue["stile"][name]["teile"]:
-			var datei := ordner.path_join(name + ("_zusatz" if teil["name"] == "zusatz" else ""))
-			var art: String = ue["stile"][name]["art"] if teil["name"] == "haupt" else "zusatz"
+			# Teile: haupt (Frisur bzw. Bart), zusatz (Zöpfe, Knoten, Polster), Phase 5: netz und perlen (Crespine)
+			var tn: String = teil["name"]
+			var datei := ordner.path_join(name + ("" if tn == "haupt" else "_" + tn))
+			var art: String = ue["stile"][name]["art"] if tn == "haupt" else ("zusatz" if tn == "zusatz" else tn)
 			_teile.append({"datei": datei, "art": art, "name": name})
 	_aufbauen()
 
@@ -252,10 +254,33 @@ func _tfx_anlegen(t: Dictionary) -> void:
 	add_child(haar)
 	haar.set("material", s)
 	# Formbindung: die gekämmte Ruheform soll halten; Bart und Zöpfe fast starr
-	var steif: bool = bart or t["art"] == "zusatz"
+	var steif: bool = bart or t["art"] in ["zusatz", "netz", "perlen"]
+	if t["art"] == "netz":
+		# Goldschnur der Crespine: metallisch glänzend, nicht ergrauend
+		s.set_shader_parameter("fiber_radius", 0.00028)
+		s.set_shader_parameter("fiber_ratio", 1.0)
+		s.set_shader_parameter("tip_fade", 0.0)
+		s.set_shader_parameter("root_shadow", 0.0)
+		s.set_shader_parameter("color_variation", 0.15)
+		s.set_shader_parameter("k_diffuse", 0.3)
+		s.set_shader_parameter("k_spec1", 0.5)
+		s.set_shader_parameter("spec_exp1", 30.0)
+		s.set_shader_parameter("innen_dunkel", 0.9)
+		s.set_shader_parameter("spitze_hell", 1.0)
+	elif t["art"] == "perlen":
+		s.set_shader_parameter("fiber_radius", 0.0011)
+		s.set_shader_parameter("fiber_ratio", 1.0)
+		s.set_shader_parameter("tip_fade", 0.0)
+		s.set_shader_parameter("root_shadow", 0.0)
+		s.set_shader_parameter("color_variation", 0.1)
+		s.set_shader_parameter("k_diffuse", 0.35)
+		s.set_shader_parameter("k_spec1", 0.35)
+		s.set_shader_parameter("innen_dunkel", 1.0)
+		s.set_shader_parameter("spitze_hell", 1.0)
 	var stoppeln := String(t["datei"]).get_file() == "stoppeln"
-	haar.set("num_follow_hairs", 1 if stoppeln else ((2 if tfx_sparsam else 3) if not bart else (2 if tfx_sparsam else 3)))
-	haar.set("follow_radius", 0.004 if not bart else 0.003)
+	var schmuck: bool = t["art"] in ["netz", "perlen"]
+	haar.set("num_follow_hairs", 1 if schmuck or stoppeln else ((2 if tfx_sparsam else 3) if not bart else (2 if tfx_sparsam else 3)))
+	haar.set("follow_radius", 0.0002 if schmuck else (0.004 if not bart else 0.003))
 	haar.set("tip_separation", 0.3 if not bart else 0.15)
 	haar.set("global_stiffness", 1.0 if steif else 0.85)
 	haar.set("global_range", 1.0)
@@ -292,7 +317,7 @@ func _tfx_schreiben() -> void:
 		# Phase 5: Haarstruktur (glatt – wellig – lockig) auf die Strähnen legen; Locken brauchen mehr Punkte
 		var r := rechner()
 		var st_w := _struktur(t["art"] == "bart")
-		if r and float(st_w["hoehe"]) > 0.0002:
+		if r and float(st_w["hoehe"]) > 0.0002 and not t["art"] in ["netz", "perlen"]:
 			var phase := PackedFloat32Array()
 			phase.resize(S)
 			for i in S:
@@ -419,10 +444,12 @@ func _parameter() -> void:
 		for s in [t.get("stoff_karte"), t.get("stoff_tfx")]:
 			if s == null:
 				continue
-			s.set_shader_parameter("farbe", Vector3(farbe.r, farbe.g, farbe.b))
-			s.set_shader_parameter("grau", float(werte.get("grau", 0.0)))
-			s.set_shader_parameter("kahl", 0.0 if bart or t["art"] == "zusatz" else float(werte.get("kahl", 0.0)))
-			s.set_shader_parameter("duenn", float(werte.get("duenn", 0.0)) * (0.5 if bart else 1.0))
+			var schmuck: bool = t["art"] in ["netz", "perlen"]
+			var f := Color(0.8, 0.6, 0.26) if t["art"] == "netz" else (Color(0.9, 0.88, 0.82) if t["art"] == "perlen" else farbe)
+			s.set_shader_parameter("farbe", Vector3(f.r, f.g, f.b))
+			s.set_shader_parameter("grau", 0.0 if schmuck else float(werte.get("grau", 0.0)))
+			s.set_shader_parameter("kahl", 0.0 if bart or t["art"] in ["zusatz", "netz", "perlen"] else float(werte.get("kahl", 0.0)))
+			s.set_shader_parameter("duenn", 0.0 if schmuck else float(werte.get("duenn", 0.0)) * (0.5 if bart else 1.0))
 			s.set_shader_parameter("laenge", float(werte.get("bart_laenge", 1.0)) if bart else 1.0)
 			s.set_shader_parameter("dichte", float(werte.get("bart_dichte", 1.0)) if bart else 1.0)
 			if s == t.get("stoff_tfx"):

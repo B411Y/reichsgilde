@@ -217,22 +217,24 @@ for Klasse in alle_stile:
     bloecke_schreiben(os.path.join(AUS, name), {"name": name, "art": stil.teil, "geschlecht": stil.geschlecht,
                                                 "teil": "haupt", **zahlen}, felder)
     # Zusatzteile: Knoten bzw. Zöpfe (Phase 5: jeder Stil mit Methode zusatz(); Phase 4 nach dem Namen)
-    z, z_art = None, "knoten"
+    zusaetze = []                # [(Teilname, Strähnen, Art)]; Art zopf/knoten (Karten) bzw. netz/perlen (nur TressFX)
     if hasattr(stil, "zusatz"):
-        z, z_art = stil.zusatz(rng, FAKTOR)
+        z = stil.zusatz(rng, FAKTOR)
+        zusaetze = z if isinstance(z, list) else [("zusatz", z[0], z[1])]
     elif name == "frau_knoten":
-        z = kf4.knoten_straehnen(stil, rng, anzahl=int(700 * FAKTOR))
+        zusaetze = [("zusatz", kf4.knoten_straehnen(stil, rng, anzahl=int(700 * FAKTOR)), "knoten")]
     elif name == "frau_zoepfe":
-        z, z_art = np.concatenate([kf4.zopf_straehnen(h, kf4.zopf_bahn(h, stil.anker[s], s, h.k.mass), rng, h.k.mass,
-                                                      anzahl=int(360 * FAKTOR)) for s in ("l", "r")]), "zopf"
-    if z is not None:
+        zusaetze = [("zusatz", np.concatenate([kf4.zopf_straehnen(h, kf4.zopf_bahn(h, stil.anker[s], s, h.k.mass), rng, h.k.mass,
+                                                                  anzahl=int(360 * FAKTOR)) for s in ("l", "r")]), "zopf")]
+    for teilname, z, z_art in zusaetze:
         zw = z[:, 0]
         zb = np.arange(len(z)) // 6
-        felder, zahlen = teil_daten(h, z, zw, zb, None if "ohne_karten" in OPT else (KARTEN_ZOPF if z_art == "zopf" else KARTEN_KNOTEN),
-                                    rang=False)
-        bloecke_schreiben(os.path.join(AUS, name + "_zusatz"), {"name": name, "art": "zusatz", "geschlecht": stil.geschlecht,
-                                                                "teil": "zusatz", **zahlen}, felder)
-        teile.append({"name": "zusatz", **zahlen})
+        ka = None if "ohne_karten" in OPT or z_art in ("netz", "perlen") else (KARTEN_ZOPF if z_art == "zopf" else KARTEN_KNOTEN)
+        felder, zahlen = teil_daten(h, z, zw, zb, ka, rang=False)
+        art_teil = "zusatz" if teilname == "zusatz" else teilname
+        bloecke_schreiben(os.path.join(AUS, name + "_" + teilname), {"name": name, "art": art_teil, "geschlecht": stil.geschlecht,
+                                                                     "teil": teilname, **zahlen}, felder)
+        teile.append({"name": teilname, **zahlen})
         vorschau_teile[name].append(z)
     uebersicht[name] = {"art": stil.teil, "geschlecht": stil.geschlecht, "teile": teile}
     zeit(f"{name}: {teile}")

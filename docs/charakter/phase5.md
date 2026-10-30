@@ -151,6 +151,20 @@ berühren die Haut genau an der vorderen Kante (19 Wurzeln je Lid). Diese Linie 
   Detailstufe), ohne zeichnet es nur ein Viertel der Strähnen; TressFX läuft nur mit Forward+/Mobile (der Puffer der
   Instanz-Uniforms aus #263 ist dort kein Problem). Ausnahme zur Regel aus #263, nur hier.
 
+### Korrekturen des Nutzers an den Vorlagen (30.10.)
+
+Die Vorlagen sind freigegeben; diese Korrekturen sind direkt im Nachbau umgesetzt (die Bilder bleiben):
+
+| Stil | Korrektur | Umsetzung |
+|---|---|---|
+| m08 Tonsur | kahle Stelle zu groß, Kranz zu schmal; Corona wie bei Mönchen um 1400 | runde kahle Stelle Ø 9 cm auf dem Scheitel (Mindestmaß war die Größe einer Hostie), breiter Kranz bis zum natürlichen Haaransatz |
+| m10 Halbglatze | Glatze hält sich in Grenzen, ¾-Ansicht wirkte komisch | Platte und Geheimratsecken statt kahlem Oberkopf (Schwelle im Rang 0,42–0,6 statt 0,58–0,8), weicherer Rand |
+| m03 Haarrolle | das Ohr darf man nicht sehen | Kante auf Höhe des Ohrläppchens, Haar wächst bis ans Ohr, Rolle größer (Halbmesser 1,2–1,6 cm) |
+| f04, f05, f06, f08 | maßgeblich ¾- und Rückansicht: nichts hängt herab | hochgesteckte Strähnen biegen nach 0,5–4 cm zum Anker (vorher 2–9 cm), ohne Schwere, Länge höchstens 1,8 × der Abstand zum Anker; Zopfschlaufen: Hinterkopf zum Nackenknoten, vorn zu den Schläfen |
+| f08 Crespine | Netz und Frisur sahen damals anders aus | nach Quellen neu: Seitenpolster über Schläfe und Ohr statt Knoten am Hinterkopf, Goldnetz mit Perlen, Fillet (siehe Quellen) |
+| b05 Gabelbart | Spitzen länger | Spitzen bis 15 cm unter das Kinn |
+| b08 Schnurrbart | ¾-Ansicht nicht ganz richtig, hinnehmbar | unverändert |
+
 ### Zehn Frisuren je Geschlecht und zehn Bärte (`kopf5_frisuren.py`)
 
 Vorbild: Porträt-Vorlagen der Bild-KI (`~/werkzeuge/charakter/vorlagen-haar/<nr>_<name>/vorn.png` und `liste.md`, lokal,
@@ -163,14 +177,14 @@ neu ist eine Nachbearbeitung je Strähne (`nach`: Haarrolle, Locken), Zöpfe ent
 |---|---|---|
 | m01 | Topfschnitt (`topfschnitt`) | vom Wirbel strahlenförmig, scharfe waagrechte Kante 2–3 cm über den Ohrspitzen, kurze Fransen auf der oberen Stirn; darunter (Schläfen, Seiten, Hinterkopf, Nacken) rasiert, Ohren frei |
 | m02 | Pagenkopf (`mann_pagen`) | wie m01, Fransen bis an die Brauen, seitlich bis zum Kiefer, hinten Nacken; Enden laufen ein |
-| m03 | Haarrolle (`haarrolle`) | Mittelscheitel, oben anliegend, ohrlang; jedes Ende ¾ Kreis (Halbmesser 1,0–1,3 cm) nach außen zur Rolle eingedreht |
+| m03 | Haarrolle (`haarrolle`) | Mittelscheitel, oben anliegend, bis zum Ohrläppchen; jedes Ende ¾ Kreis (Halbmesser 1,2–1,6 cm) nach außen zur Rolle eingedreht; das Ohr liegt hinter bzw. in der Rolle |
 | m04 | schulterlang (`schulterlang`) | Mittelscheitel, leicht gewellt, bis auf die Schultern |
 | m05 | kurz geschoren (`mann_kurz`) | etwa 5 mm (4–9 mm), 8 000 Strähnen zu 4 Punkten, Ohren frei |
 | m06 | Stirnfransen (`stirnfransen`) | 4–6 cm, etwas zerzaust, Fransen nach vorn in die Stirn |
 | m07 | Krauskopf (`krauskopf`) | kinnlang (12 cm), viel Volumen (Lagen 0,8–3,8 cm), Korkenzieherlocken Ø etwa 1 cm (Wellenlänge 2,2 cm) |
-| m08 | Tonsur (`tonsur`) | waagrechter Kranz von etwa 3,5 cm über Stirn, Ohren und Hinterkopf, 2–3 cm lang, gerade geschnitten; Scheitel kahl |
+| m08 | Tonsur (`tonsur`) | Corona: runde kahle Stelle Ø etwa 9 cm auf dem Scheitel (etwas hinter der Mitte), der breite Kranz darum 2–3 cm, vom Scheitel weg gekämmt, gerade geschnitten, Ohren frei |
 | m09 | zerzaust (`zerzaust`) | halblang bis Kinn und Nacken, gestuft, kraus, Fransen |
-| m10 | Halbglatze mit Kranz (`kranz`) | Platte und Stirn kahl (Rang < 0,62), hufeisenförmiger Kranz an Seiten und hinten, glatt bis Kinnhöhe |
+| m10 | Halbglatze mit Kranz (`kranz`) | Platte und Geheimratsecken kahl (Rang < 0,42–0,6, in Grenzen), Kranz an Seiten und hinten, glatt bis Kinnhöhe |
 | f01 | zwei Zöpfe (`frau_zoepfe`) | wie Phase 4, Zöpfe 44 cm vor den Schultern bis zur Taille |
 | f02 | ein Zopf (`ein_zopf`) | glatt nach hinten zum Nacken, ein Zopf 46 cm über den Rücken |
 | f03 | offen (`frau_offen`) | wie Phase 4 |
@@ -178,14 +192,14 @@ neu ist eine Nachbearbeitung je Strähne (`nach`: Haarrolle, Locken), Zöpfe ent
 | f05 | Schnecken (`schnecken`) | glatt zu den Ohren; je Seite eine flache Spirale (etwa 8–9 cm) über dem Ohr |
 | f06 | Zopfschlaufen (`zopfschlaufen`) | je Seite ein Zopf von der Schläfe vor dem Ohr bis Kieferhöhe, dann nach hinten zu einem flachen Knoten im Nacken |
 | f07 | Nackenknoten (`frau_knoten`) | wie Phase 4 |
-| f08 | Haarnetz (`haarnetz`) | alles Haar in einem großen Knoten am Hinterkopf; das Netz ist Kopfputz (später) |
+| f08 | Crespine (`haarnetz`) | Mittelscheitel; das Haar an jeder Seite über Schläfe und Ohr zu einem Polster (Ø 5,4 cm, 8,5 cm hoch) gelegt; darüber ein Rautennetz aus Goldschnur (Maschen etwa 1 cm) mit Perlen an den Kreuzungen; ein schmales Goldband (Fillet) über den Scheitel. Netz und Perlen sind eigene TressFX-Teile (`haarnetz_netz`, `haarnetz_perlen`) mit fester Farbe |
 | f09 | hohe Stirn (`hohe_stirn`) | Haaransatz vorn 3,5 cm höher (ausgezupft), ohne Scheitel straff zurück zu einem Knoten am oberen Hinterkopf |
 | f10 | krause Locken (`krause_locken`) | lang bis unter die Schultern, Volumen, Schraubenlocken (Wellenlänge 4,5 cm, 64 Punkte je Strähne) |
 | b01 | rasiert | keine Strähnen (Bartschatten der Haut) |
 | b02 | Stoppeln (`stoppeln`) | 9 000 Strähnen, 2–3 mm (kürzere verwirft das Kämmen), wo ein Vollbart wächst; feine Fasern (0,11 mm), ein Folgehaar |
 | b03 | kurzer Vollbart (`vollbart`) | etwa 1 cm (Kinn 1,3 cm), dicht, Schnurrbart verbunden |
 | b04 | langer Vollbart (`langbart`) | bis zur Brust (Kinn 25 cm), voller Schnurrbart, gerade, leicht wellig, unten schmaler; 32 Punkte je Strähne |
-| b05 | Gabelbart (`gabelbart`) | 10 cm, unter dem Kinn gescheitelt, zwei Spitzen 6 cm auseinander |
+| b05 | Gabelbart (`gabelbart`) | unter dem Kinn gescheitelt, zwei Spitzen 7 cm auseinander, bis 15 cm unter das Kinn; 32 Punkte je Strähne |
 | b06 | Kinnbart (`spitzbart`) | nur am Kinn, schmal, 3,5–5 cm, spitz |
 | b07 | Schnurr- und Kinnbart (`kinnbart`) | schmaler Schnurrbart über der Lippe, kleines Büschel unter der Unterlippe |
 | b08 | Schnurrbart (`schnurrbart`) | lang, die Enden hängen an den Mundwinkeln bis unter das Kinn |
@@ -270,8 +284,20 @@ Keine SCRIPT- oder SHADER-ERROR in den Endläufen (nur die bekannten Meldungen v
 | MakeHuman-Formziele über MPFB 2.0.18 (head-age, chin, cheek, nose, eyes, eyebrows, forehead, mouth, neck, ears) | CC0 1.0 | Altersformen (gemischt, `kopf2_regler.json`) |
 | ICT-FaceKit Light (Wimpernstreifen, nur deren Wurzellinie) | MIT | Lage der Wimpernwurzeln |
 | TressFX for Godot 0.3.0 (Addon), Shader-Abwandlung | MIT | wie Phase 4 |
-| Porträt-Vorlagen der Bild-KI (lokal, `~/werkzeuge/charakter/vorlagen-haar/`) | nur angesehen | Vorbild der Frisuren und Bärte, nichts übernommen |
+| Porträt-Vorlagen der Bild-KI (lokal, `~/werkzeuge/charakter/vorlagen-haar/`, `liste.md` mit Quellen) | nur angesehen | Vorbild der Frisuren und Bärte, nichts übernommen |
 | eigene Rechenregeln (Formen, Wimpern, Brauen, Kämmen, Haarstruktur, Shader) | Code MIT; Bilder und Haardaten „Alle Rechte vorbehalten“ | – |
+
+**Quellen zu den Korrekturen** (nur gelesen):
+
+- Crespine/Caul: Wikipedia „Caul (headgear)“ (https://en.wikipedia.org/wiki/Caul_(headgear): Netz aus Gold-, Silber- oder
+  Seidenschnur, Steine an den Kreuzungen, mit Reif oder Fillet gehalten); Fashion-Era „Medieval headdress“
+  (https://fashion-era.com/hats-hair/medieval-headdress: unter Heinrich IV. die seitlichen Haarpolster in Netzbeuteln aus
+  Goldfaden mit Perlen oder Steinen an den Kreuzungen); wehd.com „Crepine“ (https://wehd.com/21/Crepine.html: Haar in
+  zwei halbkugeligen Hüllen zu beiden Seiten des Kopfs unter einem Netz aus Gold- oder Silberschnur mit Perlen);
+  bloshka.info „Crespine“ (https://bloshka.info/2020/09/26/crespine/: Haar in zwei Partien an den Seiten, schmales
+  Fillet); Ruth Johnston, „13th to 15th centuries: ladies’ hair and hats“ (https://blog.ruthjohnston.com/?p=317).
+- Tonsur: Wikipedia „Tonsure“ (https://en.wikipedia.org/wiki/Tonsure: Corona = kahle Stelle am Scheitel mit Haarkranz;
+  nicht kleiner als eine Hostie, Größe schwankte).
 
 Kein HG-Material, keine neuen Fremddaten. **Asset-Protokoll:** nichts Neues unter `game/assets/` (Kopf, Bilder und
 Haardaten liegen lokal in `~/werkzeuge/charakter/glb5`); Vorschläge für den Import wie [Phase 4](phase4.md), dazu je
