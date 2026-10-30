@@ -20,8 +20,8 @@ public partial class Stadtansicht
 {
     private CameraAttributesPractical _tiltShift = null!;
     private Decal _wolken = null!;
-    private FogVolume _dunstVolumen = null!;
-    private FogMaterial _dunstStoff = null!;
+    private FogVolume? _dunstVolumen;
+    private FogMaterial? _dunstStoff;
     private Vector2 _wolkenVersatz;
     private (float Zoom, Miniaturunschaerfe Stufe)? _tiltShiftFuer;
 
@@ -212,8 +212,22 @@ public partial class Stadtansicht
 
     private float _dunstAnteil = -1;
 
+    /// <summary>
+    /// Kann dieser Renderer Volumennebel? Unter OpenGL (Kompatibilitäts-Renderer, etwa im Klicktest mit <c>--rendering-driver opengl3</c>) gibt es weder
+    /// <see cref="FogVolume"/> noch volumetrischen Nebel; schon ein <see cref="FogMaterial"/> meldet „shader type fog not supported in OpenGL renderer“.
+    /// Dann wird kein Volumen angelegt, und der Morgendunst Hoch wirkt wie Niedrig (Höhennebel und Bodennebel, <see cref="DunstWirksam"/>).
+    /// </summary>
+    private static bool VolumennebelMoeglich => _volumennebelMoeglich ??= !RenderingServer.GetCurrentRenderingDriverName().StartsWith("opengl");
+
+    private static bool? _volumennebelMoeglich;
+
+    /// <summary>Die Stufe des Morgendunsts, wie sie wirkt: Hoch ohne Volumennebel (OpenGL) wie Niedrig.</summary>
+    private static Morgendunst DunstWirksam =>
+        Fenster.AktuellerDunst == Morgendunst.Hoch && !VolumennebelMoeglich ? Morgendunst.Niedrig : Fenster.AktuellerDunst;
+
     private void DunstEinrichten()
     {
+        if (!VolumennebelMoeglich) return; // OpenGL: kein Volumen, kein FogMaterial (siehe VolumennebelMoeglich)
         _dunstStoff = new FogMaterial { Density = 0, HeightFalloff = DunstAbfall, EdgeFade = 0.1f, Albedo = DunstFarbe };
         _stadtDunstStoff = new FogMaterial { Density = 0, HeightFalloff = DunstAbfall, EdgeFade = 0.15f, Albedo = DunstFarbe };
         _dunstVolumen = new FogVolume
@@ -227,7 +241,7 @@ public partial class Stadtansicht
         AddChild(_dunstVolumen);
     }
 
-    private FogMaterial _stadtDunstStoff = null!;
+    private FogMaterial? _stadtDunstStoff;
     private readonly List<FogVolume> _stadtDunst = new();
 
     /// <summary>
@@ -236,7 +250,7 @@ public partial class Stadtansicht
     /// </summary>
     private void StadtDunstAnlegen()
     {
-        if (_stadtDunst.Count == _mauerFlaechen.Count) return;
+        if (_stadtDunstStoff is null || _stadtDunst.Count == _mauerFlaechen.Count) return;
         foreach (var alt in _stadtDunst) alt.QueueFree();
         _stadtDunst.Clear();
         foreach (var flaeche in _mauerFlaechen)
@@ -251,7 +265,7 @@ public partial class Stadtansicht
                 Size = new Vector3(rahmen.Size.X + 6, 60, rahmen.Size.Y + 6),
                 Position = new Vector3(mitte.X, 0, mitte.Y),
                 Material = _stadtDunstStoff,
-                Visible = _dunstVolumen.Visible,
+                Visible = _dunstVolumen?.Visible ?? false,
             };
             AddChild(volumen);
             _stadtDunst.Add(volumen);
@@ -276,7 +290,7 @@ public partial class Stadtansicht
 
     private void DunstAnwenden()
     {
-        var stufe = Fenster.AktuellerDunst;
+        var stufe = DunstWirksam;
         var umgebung = _umgebung.Environment;
         umgebung.VolumetricFogEnabled = stufe == Morgendunst.Hoch;
         umgebung.VolumetricFogDensity = 0;   // keine Luft zwischen Kamera und Stadt – nur das Volumen am Boden
@@ -290,7 +304,7 @@ public partial class Stadtansicht
         umgebung.FogDensity = 0;             // nur nach Höhe, nicht nach Abstand (die Kamera ist orthografisch)
         umgebung.FogHeight = DunstHoehe;
         umgebung.FogSkyAffect = 0;
-        _dunstVolumen.Visible = stufe == Morgendunst.Hoch;
+        if (_dunstVolumen is not null) _dunstVolumen.Visible = stufe == Morgendunst.Hoch;
         foreach (var v in _stadtDunst) v.Visible = stufe == Morgendunst.Hoch;
         _raumUmgebung.VolumetricFogEnabled = stufe == Morgendunst.Hoch;
         _raumUmgebung.VolumetricFogDensity = RaumDunstDichte;
@@ -327,9 +341,9 @@ public partial class Stadtansicht
         _dunstAnteil = anteil;
         _dunstDunkel = dunkel;
         var umgebung = _umgebung.Environment;
-        _dunstVolumen.Position = new Vector3(_kameraDrehung.Position.X, 0, _kameraDrehung.Position.Z);
-        _dunstStoff.Density = DunstDichte * anteil;
-        _stadtDunstStoff.Density = -DunstDichte * anteil * (1 - DunstStadtAnteil);
+        if (_dunstVolumen is not null) _dunstVolumen.Position = new Vector3(_kameraDrehung.Position.X, 0, _kameraDrehung.Position.Z);
+        if (_dunstStoff is not null) _dunstStoff.Density = DunstDichte * anteil;
+        if (_stadtDunstStoff is not null) _stadtDunstStoff.Density = -DunstDichte * anteil * (1 - DunstStadtAnteil);
         // Der einfache Nebel leuchtet nicht selbst und wird nicht beleuchtet: Er bekommt die Farbe, die ein weißes Tuch in diesem
         // Licht hätte – Umgebungslicht und etwas Sonne (morgens rosig und gedämpft, mittags hell). Nachts so dunkel wie eine unbeleuchtete
         // Wand (NebelNachtfarbe, Stadtansicht.Bodennebel.cs): Die alte Farbe war fünf- bis zehnmal so hell, der helle Saum am Fuß der Mauern.

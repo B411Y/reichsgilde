@@ -360,7 +360,7 @@ public partial class Stadtansicht
     {
         var umgebung = _umgebung.Environment;
         var nebel = _raum is null ? Mathf.Max(_wetter.Nebel, 0.12f * _wetter.Regen + 0.15f * _wetter.Schnee) : 0f;
-        var dunst = Fenster.AktuellerDunst == Morgendunst.Niedrig;
+        var dunst = DunstWirksam == Morgendunst.Niedrig; // Höhennebel des Morgendunsts (Hoch ohne Volumennebel unter OpenGL ebenso, Stadtansicht.Grafik.cs)
         var an = dunst || nebel > 0.01f;
         if (umgebung.FogEnabled != an) umgebung.FogEnabled = an;
         var dichte = WetterNebelDichte * nebel;
