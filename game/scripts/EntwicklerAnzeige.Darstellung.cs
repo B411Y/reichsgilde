@@ -22,6 +22,7 @@ public sealed partial class EntwicklerAnzeige
     private RichTextLabel _ki = null!;
     private double _seitLichter = 10;
     private int _lichter;
+    private int _messwerteNummer = -1;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Reiter: Wetter und Darstellung
@@ -101,7 +102,7 @@ public sealed partial class EntwicklerAnzeige
         if (_unschaerfe.Selected != (int)Fenster.AktuelleUnschaerfe) _unschaerfe.Select((int)Fenster.AktuelleUnschaerfe);
         if (_wegenetz.ButtonPressed != _stadt.WegenetzSichtbar) _wegenetz.SetPressedNoSignal(_stadt.WegenetzSichtbar);
         if (_bauzonen.ButtonPressed != _stadt.BauzonenHilfe) _bauzonen.SetPressedNoSignal(_stadt.BauzonenHilfe);
-        if (_reiter.CurrentTab == _reiter.GetTabCount() - 1) MesswerteAuffrischen();
+        if (_reiter.CurrentTab == _messwerteNummer) MesswerteAuffrischen();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -111,6 +112,7 @@ public sealed partial class EntwicklerAnzeige
     private void MesswerteReiter()
     {
         var s = NeuerReiter("Messwerte");
+        _messwerteNummer = _reiter.GetTabCount() - 1;
         _werte = Hauptmenue.Text(s, "", 14, umbruchBreite: Breite - 60);
         var z = Zeile(s, "Prüfsumme", "Eine Kurzform (8 Zeichen) des SHA-256 über den Spielstand, ohne Speicherzeit, Titel, Tempo, Spielerkonto und Warteschlange. Zwei Rechner im Gleichschritt müssen sie gleich haben. Nur auf Knopfdruck, sie rechnet den ganzen Spielstand durch.");
         Knopf(z, "Prüfsumme berechnen", () =>
@@ -132,7 +134,7 @@ public sealed partial class EntwicklerAnzeige
         s.AddChild(_ki);
         _reiter.TabChanged += tab =>
         {
-            if (tab == _reiter.GetTabCount() - 1) { _seitLichter = 10; MesswerteAuffrischen(); KiAuffrischen(); }
+            if (tab == _messwerteNummer) { _seitLichter = 10; MesswerteAuffrischen(); KiAuffrischen(); }
         };
     }
 
