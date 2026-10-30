@@ -87,6 +87,11 @@ public sealed class Schollensimulation
     /// <summary>Untertauchen an der Staukante an (Faktor auf die Chance).</summary>
     public static float TauchFaktor = 1f;
 
+    /// <summary>Strömung an Brücken (Bögen, Kopf, Kehrwasser) und Nachgeben eines Pfeilers unter Dauerlast (Sekunden: zufällig von … bis).</summary>
+    public static bool BrueckenFeld = true;
+    public static float FeldTeilen = 0.1f, FeldWirbel = 0.12f, FeldBogen = 0.15f;
+    public static float LastVon = 20f, LastBis = 40f;
+
     private const float StossFenster = 160f, Zelle = 3f, UferAbstand = 0.8f, Rand = 0.12f;
     private const int Ecken = 24;
     public const int SaatZahl = 2048;
@@ -138,7 +143,7 @@ public sealed class Schollensimulation
     // je Platz (Stammschollen 0 … n−1, dahinter der Vorrat für Bruchstücke)
     private readonly int[] _stamm;                 // Stammscholle (für Saat, Dicke, Schwelle …); −1 = frei
     private readonly float[] _s, _q, _vs, _vq, _w, _om, _sAlt, _qAlt, _wAlt;
-    private readonly float[] _r0, _rg, _rs, _r, _dk, _mTau, _mAbrieb, _invM, _invI, _drag, _dragLin, _drehK;
+    private readonly float[] _r0, _rGleich, _rg, _rs, _r, _dk, _mTau, _mAbrieb, _invM, _invI, _drag, _dragLin, _drehK;
     private readonly FormWerte[] _form;
     private readonly float[] _sekA, _sekB;         // Ausschnitt um den Netz-Ursprung (Winkel im Netz); −1 = ganz
     private readonly byte[] _gen;
@@ -252,7 +257,7 @@ public sealed class Schollensimulation
         var p0 = _plaetze;
         _stamm = new int[p0];
         (_s, _q, _vs, _vq, _w, _om, _sAlt, _qAlt, _wAlt) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
-        (_r0, _rg, _rs, _r, _dk, _mTau, _mAbrieb) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
+        (_r0, _rGleich, _rg, _rs, _r, _dk, _mTau, _mAbrieb) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
         (_invM, _invI, _drag, _dragLin, _drehK) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
         _form = new FormWerte[p0];
         (_sekA, _sekB, _gen) = (new float[p0], new float[p0], new byte[p0]);
@@ -315,13 +320,13 @@ public sealed class Schollensimulation
             _brueckePfeiler[b] = gruppen[b].ToArray();
         }
         (_pfLast, _pfSchwelle, _pfKraft, _pfMaxKraft, _pfMaxScholle) = (new float[feste.Count], new float[feste.Count], new float[feste.Count], new float[feste.Count], new int[feste.Count]);
-        for (var k = 0; k < feste.Count; k++) _pfSchwelle[k] = 20f + 20f * Zufall();
+        for (var k = 0; k < feste.Count; k++) _pfSchwelle[k] = LastVon + (LastBis - LastVon) * Zufall();
 
         if (messung)
         {
             var daten = new Schollenmessung.Daten
             {
-                Plaetze = _plaetze, S = ZS, Q = ZQ, Vs = _vs, Vq = _vq, Om = _om, R0 = _r0, R = ZR, Zustand = Zustand, Ereignis = Ereignis,
+                Plaetze = _plaetze, S = ZS, Q = ZQ, Vs = _vs, Vq = _vq, Om = _om, R0 = _rGleich, R = ZR, Zustand = Zustand, Ereignis = Ereignis,
                 KreisS = _wx, KreisQ = _wy, KreisR = _wr, KreisSchritt = 2, Laenge = _laenge,
             };
             var pf = new List<(float, float, float)>();
@@ -660,7 +665,7 @@ public sealed class Schollensimulation
         var f = _formen[sch.Saat];
         _form[i] = f;
         (_sekA[i], _sekB[i], _gen[i]) = (-1f, -1f, 0);
-        _r0[i] = sch.Halbmesser;
+        (_r0[i], _rGleich[i]) = (sch.Halbmesser, sch.Halbmesser);
         (_rg[i], _rs[i], _mTau[i], _mAbrieb[i]) = (0f, 1f, 0f, 0f);
         _w[i] = winkel;
         var (sin, cos) = MathF.SinCos(winkel);
@@ -682,7 +687,7 @@ public sealed class Schollensimulation
     {
         // im Eisgang: Halbmesser × 1 → 0,5 von Tauwetter 0,3 bis 1, kleine schneller (unter etwa 0,3 m vergehen sie)
         var f = 1f - 0.5f * Mathf.SmoothStep(0.3f, 1f, tauen);
-        var r0 = _r0[i];
+        var r0 = _rGleich[i]; // ein Bruchstück schmilzt wie eine gleich große Scholle
         return Mathf.Max(r0 * f - 0.4f * (1f - f), 0f) / Mathf.Max(r0, 0.01f);
     }
 
@@ -1227,7 +1232,7 @@ public sealed class Schollensimulation
         var us = _tempo * Profil(q, halb);
         var uq = 0.06f * (Rauschen(t * 0.05f + sch.Saat * 0.37f) - 0.5f) * 2f;
         var omZiel = sch.Dreh + 0.5f * _tempo * q / (halb * halb);
-        if (s > _brueckeVon - 20f && s < _brueckeBis + 20f) BrueckenStroemung(i, t, s, q, ref us, ref uq, ref omZiel);
+        if (BrueckenFeld && s > _brueckeVon - 20f && s < _brueckeBis + 20f) BrueckenStroemung(i, t, s, q, ref us, ref uq, ref omZiel);
         var dicht = _kontaktZahl[i] >= 3;
         if (dicht) us *= 0.92f; // im dichten Eis langsamer, dazu ist der Formwiderstand abgeschirmt (unten)
         var (dvs, dvq) = (us - _vs[i], uq - _vq[i]);
@@ -1266,14 +1271,14 @@ public sealed class Schollensimulation
             var seite = q >= o.Quer ? 1f : -1f;
             var breit = o.Form == Hindernisform.Eisbrecher ? 1f : o.HalbQuer;
             // Durchfluss in den Bögen: die Pfeiler versperren gut ein Fünftel der Breite
-            if (abst > breit) us *= 1f + 0.25f * (1f - Mathf.SmoothStep(4f, 8f, MathF.Abs(ds)));
+            if (abst > breit) us *= 1f + FeldBogen * (1f - Mathf.SmoothStep(4f, 8f, MathF.Abs(ds)));
             // vor dem Kopf: die Strömung teilt sich, mit unruhigen Wirbeln (keine Scholle balanciert auf der Spitze)
             if (ds > -14f && ds < -2f && abst < 4f)
             {
                 var nah = (1f - abst / 4f) * Mathf.SmoothStep(-14f, -5f, ds);
-                uq += seite * 0.22f * nah;
+                uq += seite * FeldTeilen * nah;
                 us *= 1f - 0.25f * nah;
-                uq += 0.2f * (Rauschen(t * 0.4f + _schollen[_stamm[i]].Saat * 0.71f) - 0.5f) * 2f * nah;
+                uq += FeldWirbel * (Rauschen(t * 0.4f + _schollen[_stamm[i]].Saat * 0.71f) - 0.5f) * 2f * nah;
             }
             // Lee: Kehrwasser über gut sieben Pfeilerbreiten, langsam drehend
             if (ds > 3f && ds < 18f && abst < 2.6f)
@@ -1710,7 +1715,7 @@ public sealed class Schollensimulation
             if (_pfLast[h] <= _pfSchwelle[h] || _pfMaxScholle[h] < 0) continue;
             var i = _pfMaxScholle[h];
             _pfLast[h] = 0;
-            _pfSchwelle[h] = 20f + 20f * Zufall();
+            _pfSchwelle[h] = LastVon + (LastBis - LastVon) * Zufall();
             if (Messung is not null) Messung.Notventil++;
             if (_gen[i] == 0 && _r[i] > 1f && _form[i].Laenge * _r[i] >= 2f && _freiZahl >= 2 && _tauchen[i] == 0)
             {
@@ -1752,7 +1757,7 @@ public sealed class Schollensimulation
                 }
                 continue;
             }
-            if (_tauchen[i] == 0 && _r[i] < 0.15f && _rg[i] > 0.95f && _rs[i] < 0.999f && _tauen > 0.3f) (_tauchen[i], _tauchZeit[i]) = (4, 0f);
+            if (_tauchen[i] == 0 && _rGleich[i] * _rs[i] < 0.15f && _rg[i] > 0.95f && _rs[i] < 0.999f && _tauen > 0.3f) (_tauchen[i], _tauchZeit[i]) = (4, 0f);
         }
         if (Messung is not null)
         {
@@ -1853,7 +1858,7 @@ public sealed class Schollensimulation
         }
         var (vs, vq, om) = (_vs[i], _vq[i], _om[i]);
         var (sAlt, qAlt) = (_s[i], _q[i]);
-        var (aAlt, r0Alt) = (f0.A, _r0[i]);
+        var (aAlt, r0Alt, gleichAlt) = (f0.A, _r0[i], _rGleich[i]);
         Span<int> plaetze = stackalloc int[3];
         for (var p = 0; p < stuecke; p++)
         {
@@ -1884,7 +1889,9 @@ public sealed class Schollensimulation
             _sperre[platz] = 10f;
             _duldung[platz] = 0.25f;
             _ohneWarm[platz] = true;
-            _r0[platz] = r0Alt * MathF.Sqrt(MathF.Max(f.A, 0.01f) / MathF.Max(aAlt, 0.01f));
+            // das Netz behält den Halbmesser der Scholle (das Stück ist ein Ausschnitt davon); gleich großer Kreis für Messung und Schmelzen
+            _r0[platz] = r0Alt;
+            _rGleich[platz] = gleichAlt * MathF.Sqrt(MathF.Max(f.A, 0.01f) / MathF.Max(aAlt, 0.01f));
             Ereignis[platz] |= Schollenmessung.EreignisBruch;
         }
         _bruchKonto -= 1f;
@@ -2009,7 +2016,7 @@ public sealed class Schollensimulation
     public int Saat(int i) => _stamm[i] < 0 ? 0 : _schollen[_stamm[i]].Saat;
     public float SektorA(int i) => _sekA[i];
     public float SektorB(int i) => _sekB[i];
-    public float Ausgangshalbmesser(int i) => _stamm[i] < 0 ? 0 : _schollen[_stamm[i]].Halbmesser;
+    public float Ausgangshalbmesser(int i) => _stamm[i] < 0 ? 0 : _rGleich[i];
 
     /// <summary>
     /// Umriss eines Platzes in Laufachsen, wie er gezeichnet wird (Bruchstück: Ursprung, Strahl, Umriss, Strahl) – für die Prüfhilfe
