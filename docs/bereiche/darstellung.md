@@ -150,10 +150,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Personal und Talentbaum (PR #224): Neue Arbeitskräfte Vorarbeiter, Knecht/Altknecht/Großknecht (Altknecht ist der frühere Bergmann), Taschendieb/Dieb/Meisterdieb, Rekrut/Gefreiter/Feldwebel – die Figuren in `Stadtansicht.Innen*.cs` färben noch nach „Lehrling“/„Geselle“; besser nach `Personalwesen.Stufe(kraft)` (1 = Anfänger) und mit `Arbeiter.Volk`/`Aussehen`. Neue Einrichtung ohne Knoten `Einrichtung_<Kennung>` im Raummodell: Schleifstein, Drechselbank, Steinsaege, Athanor, Enfleurage, Gewoelbekeller, Skriptorium, Ladentheke, Lehrlingsstube (Wohnhaus: Vorratskammer, Kueche, Hauswappen, Stube, Bibliothek, Riegel, Hund).
 - (von kern) Erbgut und 2D-Porträt: Haar- und Augenfarbe stehen doppelt (`Person.Aussehen` und die Farb-Gene im `Person.Erbgut`) und können sich widersprechen. Empfehlung: im PR, der den 3D-Kopf zeigt, Haar und Augen des Porträts aus den Farb-Genen ableiten (je Volk ein Punkt pro Palettenfarbe in `erbgut.json`, die nächste gewinnt; die Wahl auf der Startseite setzt dann die Farb-Gene; der Kern streicht dafür die Farben in `Aussehenspalette.Vererben`). Das Gesicht 0–4 bleibt Bildnummer.
 - (von kern) Erbgut für Arbeiter und Ratsherren: Sie sind keine Personen und haben keins. Empfehlung: `Erbgut.Wuerfeln(Erbgutvorlage.Standard, startwert, volk)` mit einem festen Startwert aus Betrieb und Nummer bzw. dem Namen des Ratsherrn – nichts im Spielstand. Werte immer mit `SichtbarerWert(gen, geschlecht)` lesen (Bart der Frauen).
-- Charakter Phase 2 (Basiskopf): Haut hat noch keine Textur (Grundfarbe aus den Farb-Genen, Masken, Poren); Faltenkarten für das Alter, Haut je Volk und das Backen zwischen ICT- und MPFB-Topologie folgen (Phase 3). Frauen wirken ohne Haar knabenhaft. Ork und Oger erst in Phase 5.
-- Charakter Phase 2: Dunkler runder Fleck vor dem Ohr im Godot-Bild, in der Blender-Vorschau ohne Delle – vermutlich ein SSAO-Hof des Ohrs (Bühne: Radius 5 cm). Mit SSAO-Radius 2 cm prüfen.
-- Charakter Phase 2: Brauen wirken mit Alphaschwelle 0,12 als Streifen, mit 0,35 zu licht; 0,2 bis 0,25 versuchen. Wimpern unten wirken wie Punkte.
-- Charakter Phase 2: Die GPU-Zeiten der Messung (Lauf 2) sind nicht belastbar (sinken von Lauf zu Lauf, Fenster 2000 × 2300); in Ruhe und mit 1280 × 720 wiederholen.
+- Charakter: Frauen wirken ohne Haar knabenhaft; Haar und Bart (Gene „frisur“, „bartform“, „bartwuchs“, „glatze“) sind der nächste große Schritt (Vorschlag Phase 4 in `docs/charakter/phase3.md`). Ork und Oger (Form und Haut) erst in Phase 5.
+- Charakter Phase 3: Das MakeHuman-Hautbild ist für das Gesicht klein (etwa 300 × 350 Bildpunkte) und bleibt gebacken weich; ein eigenes, hoch aufgelöstes Hautbild (CC0-Scan oder gemalt) wäre der nächste Qualitätsschritt. Lippenrot folgt den Merkpunkten nur grob; Altersflecken und Erschlaffung fehlen.
+- Charakter Phase 3: Kopf und Bilder liegen weiter nur lokal (`~/werkzeuge/charakter/glb3`); Import ins Repository (komprimiert, mit Protokollzeilen und `HERKUNFT.md`, Vorschlag in phase3.md) nach Freigabe des Nutzers.
+- Charakter Phase 3: Die Falten hängen an Alterskurven in der Darstellung; ein Gen „faltenneigung“ (oder Alterskurven je Gegend) in `erbgut.json` wäre Sache von kern (Vorschlag in phase3.md).
 
 ## Entscheidungen
 
@@ -305,6 +305,19 @@ Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig
 | Augen, Zähne, Zunge | Augäpfel folgen Verschiebung und Maßstab des MPFB-Hilfsauges, Zähne und Zahnfleisch je Kiefer einer affinen Abbildung der MPFB-Hilfszähne; Augen- und Mundhöhle gehen von der Naht zum Teil über; der Lidrand wird im Mittel an den Augapfel angeglichen (bis 2,9 mm bei den Makros). | 29.10.2026 |
 | Normalen der Formen | Nur die Mimik behält Normalen (Wangen blähen, Lächeln, Kiefer zeigen sonst kein Licht und keinen Schatten), Alter und Gene nicht (sehen gleich aus). Datei 30,8 MB statt 49,4 (alle) bzw. 15,1 (keine); `glb_formnormalen.py` entfernt sie nach dem Export. | 29.10.2026 |
 | Dunkle Mundhöhle | Tiefe hinter den Lippen als Eckfarbe (Mundhöhle Blau, Zähne Rot), eigene Shader `mund.gdshader` und `zaehne.gdshader` dunkeln Farbe, Glanz und Umgebungslicht ab. | 29.10.2026 |
+### Charakter Phase 3: Aussehen (Branch phase5/charakter-werkzeug, noch ohne PR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Hautbild | MakeHuman „young_caucasian_female“ (CC0) auf die ICT-UV gebacken (2048²), durch die mittlere Hautfarbe geteilt; der Ton kommt aus den Genen (Shader-Parameter). Kopfhaut (Stoppeln) und gemalte Augen am Lidrand ersetzt. Ein Bild für Mann und Frau (die Frauenhaut hat keinen Bartschatten; der kommt als Maske nach „bartwuchs“). | 30.10.2026 |
+| Hautshader | `haut3`: Wrap je Farbkanal mit geglätteter Normale, zwei Glanzkeulen, Randlicht, Durchlicht an Ohren und Nase, Rötung, Verdeckung; Bildschirm-SSS nur in `haut3_ultra` (+1,4 ms). Kosten Phase 3 gegen Phase 2: +0,95 ms je Porträt (T400, 1280 × 720). | 30.10.2026 |
+| Fleck vor dem Ohr | Ursache: Schatten des Schlüssellichts × Wrap-Licht (die Schattenkarte verdeckt die abgewandte Rundung stellenweise). Für Richtungslicht gilt im Streulichtbereich jenseits des Schattenrands kein Schatten der eigenen Rundung (außer in Höhlen); `streu_schattenfrei` = 0 schaltet das ab. | 30.10.2026 |
+| Falten | Höhen in vier Kanälen (Stirn, Augen, Mund, Hals/Lippen), je Gegend über eine Alterskurve (Jahre → Gewicht) und durch Mimik vertieft (Brauen heben, Lächeln, Zusammenkneifen); Normale aus drei Abtastungen im Shader. | 30.10.2026 |
+| Brauen und Wimpern | Eigene Karten (Brauen aus den ICT-Merkpunkten, zwei Lagen; Wimpernstreifen an Ober- und Unterlid) statt MakeHuman-Karten; Bilder Haar für Haar. Dichte aus „bartwuchs“ (Frauen dazu „bartwuchs_frau“), Frauen schmaler, Ergrauen je Haar. Eigene Wahl, kein eigenes Gen für die Brauen. | 30.10.2026 |
+| Augen | Irismuster von RoboPoets digital_human (Kunst CC0), nach den Genen gefärbt (außen + innerer Kranz); Pupille mittig zur Öffnung im ICT-Netz (per Strahl gefunden, 1,6 mm neben der Achse), Rückseite schwarz; Hornhaut als eigene additive Glanzfläche; Lidschatten-Netz als Multiplikation. | 30.10.2026 |
+| Galerie | `charakter_galerie.tscn`: 30 Köpfe mit einem geteilten Netz (112,6 MB Puffer statt 30 × 66 MB), Tag/Innen (L), vorher/nachher (V), Ultra (U), Mimik (M); startet mit der freien Kamera (`FreieKamera.cs` unverändert vom Branch `phase5/wasser-darstellung`), die Regler-Szene ebenso. | 30.10.2026 |
+| Porträtbühne | Belichtung 1,0 statt 1,15, Schlüssellicht 2,3 statt 2,6 – die Haut war überbelichtet (auch in Phase 2 „zu hell“). | 30.10.2026 |
+
 ### Aufbau hinter dem Ladebildschirm (PR #261)
 
 | Thema | Entscheidung | Datum |

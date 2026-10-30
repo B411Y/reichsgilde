@@ -5,7 +5,8 @@
 #   … --fotos [--ende]       feste Ansichten als Bilder (Tag und Innen, nah und weit) und Messung, dann Ende
 # Tasten: L Licht (Tag/Innen) · V vorher/nachher (Stoffe der Phase 2) · U Ultra (Bildschirm-SSS) · M Mimik ·
 #         F1 Hilfe · 1–6 springt zu einer Reihe
-# Kamera: freie Kamera (game/scripts/FreieKamera.cs), sobald es sie gibt; sonst eine feste Kamera mit Sprüngen (1–6).
+# Kamera: freie Kamera (game/scripts/FreieKamera.cs: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift
+# schneller, Mausrad Tempo, H Hilfe); fehlt sie, eine feste Kamera mit Sprüngen (1–6).
 extends Node3D
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -25,7 +26,9 @@ const MIMIK := [
 	{"jawOpen": 0.35, "eyeBlinkLeft": 0.5, "eyeBlinkRight": 0.5},
 ]
 const ABSTAND_X := 0.62
-const ABSTAND_Z := 0.95
+const ABSTAND_Z := 0.9
+const STUFE := 0.26                  # jede Reihe höher (Tribüne), damit man alle sieht
+const BODEN := 0.6
 
 var args := {}
 var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb3")
@@ -41,6 +44,7 @@ var vorher := false
 var ultra := false
 var mimik_nr := 0
 var freie := false
+var _reihe_y := {}
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -70,24 +74,29 @@ func _ready() -> void:
 				gene.merge(TOENE[ti]["gene"], true)
 				k.aussehen_setzen(gene, ALTER[ai], 1.0 if g == 0 else 0.0)
 				var reihe := ti * 2 + g
-				k.position = Vector3((ai - 2) * ABSTAND_X, reihe * 0.14 - k.augen_mitte.y + 1.6, -reihe * ABSTAND_Z - k.augen_mitte.z)
+				k.position = Vector3((ai - 2) * ABSTAND_X, reihe * STUFE - k.augen_mitte.y + 1.6, -reihe * ABSTAND_Z - k.augen_mitte.z)
+				_reihe_y[reihe] = 1.6 + reihe * STUFE
 				koepfe.append([k, ti, g == 0, ALTER[ai]])
-				# Sockel unter der Büste (bis zum Boden)
-				var oben_y: float = k.position.y + k.augen_mitte.y - 0.3
+				# Sockel unter der Büste (bis zum Boden): Unterkante der Büste aus Augenhöhe und Scheitel geschätzt
+				var s_kopf: float = k.oben - k.augen_mitte.y
+				var oben_y: float = k.position.y + k.augen_mitte.y - 3.1 * s_kopf
 				var sockel := MeshInstance3D.new()
 				var bm := BoxMesh.new()
-				bm.size = Vector3(0.36, oben_y - 0.9, 0.3)
+				bm.size = Vector3(0.3, oben_y - BODEN, 0.22)
 				sockel.mesh = bm
 				sockel.material_override = _sockel_stoff()
-				sockel.position = Vector3(k.position.x, 0.9 + (oben_y - 0.9) / 2.0, k.position.z + k.augen_mitte.z - 0.06)
+				sockel.position = Vector3(k.position.x, BODEN + (oben_y - BODEN) / 2.0, k.position.z + k.augen_mitte.z - 0.75 * s_kopf)
 				add_child(sockel)
 	basis.queue_free()
 	print("GALERIE %d Köpfe, Laden %.0f ms, Kopieren %.0f ms, Bilder %.0f ms" % [koepfe.size(), basis.ladezeit_ms,
 		(Time.get_ticks_usec() - t) / 1000.0, basis.bilder_ms])
 	_kamera()
+	print("GALERIE Kamera: ", "frei (FreieKamera.cs)" if freie else "fest (FreieKamera.cs fehlt)")
 	_hilfe()
 	_licht_setzen(true)
 	if args.has("fotos"):
+		if freie:
+			kamera.set("HilfeSichtbar", false)
 		await _fotos()
 		get_tree().quit()
 
@@ -119,7 +128,7 @@ func _buehne() -> void:
 	bs.albedo_color = Color(0.32, 0.26, 0.2)
 	bs.roughness = 0.9
 	boden.material_override = bs
-	boden.position = Vector3(0, 0.9, -2.5)
+	boden.position = Vector3(0, BODEN, -2.5)
 	add_child(boden)
 	# Tageslicht: Sonne schräg von vorn links, Himmel als Umgebung
 	tag = Node3D.new()
@@ -195,10 +204,17 @@ func _kamera() -> void:
 			kamera = k
 			freie = true
 	add_child(kamera)
-	_blick(Vector3(0.0, 2.25, 3.2), Vector3(0.0, 1.85, -2.0))
+	kamera.make_current()
+	kamera.fov = 40.0
+	if freie:
+		kamera.set("Tempo", 1.5)          # Köpfe stehen 0,6 m auseinander (Vorgabe der Kamera: 12 m/s)
+	_blick(Vector3(0.0, 2.6, 3.0), Vector3(0.0, 2.05, -2.2))
 
 func _blick(pos: Vector3, ziel: Vector3) -> void:
-	kamera.global_transform = Transform3D(Basis.looking_at(ziel - pos), pos)
+	if freie:
+		kamera.call("Blicken", pos, ziel)
+	else:
+		kamera.global_transform = Transform3D(Basis.looking_at(ziel - pos), pos)
 
 # Nah an einen Kopf (Ton, Mann, Alter), leicht von der Seite
 func _nah(ti: int, mann: bool, jahre: int, winkel := 25.0, abstand := 0.55) -> void:
@@ -225,7 +241,7 @@ func _hilfe() -> void:
 func _hilfe_text() -> void:
 	if hilfe == null:
 		return
-	var kam := "Kamera: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift schneller, Mausrad Tempo" if freie \
+	var kam := "Kamera: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift schneller, Mausrad Tempo, H Hilfe der Kamera" if freie \
 		else "Kamera: 1–6 springt zu einer Reihe (freie Kamera fehlt noch: game/scripts/FreieKamera.cs)"
 	hilfe.text = "Charakter Phase 3 – Galerie (Reihen von vorn: hell Mann, hell Frau, mittel Mann, mittel Frau, dunkel Mann, dunkel Frau; 5/20/35/50/70 Jahre)\n" \
 		+ kam + "\nL Licht: %s · V %s · U Ultra-SSS: %s · M Mimik %d · F1 Hilfe aus" % [
@@ -273,7 +289,7 @@ func _fotos() -> void:
 	hilfe.visible = false
 	await _warte(10)
 	var ansichten := [
-		["weit", func(): _blick(Vector3(0.0, 2.25, 3.2), Vector3(0.0, 1.85, -2.0))],
+		["weit", func(): _blick(Vector3(0.0, 2.6, 3.0), Vector3(0.0, 2.05, -2.2))],
 		["vorn_hell", func(): _blick(Vector3(0.0, 1.75, 1.45), Vector3(0.0, 1.62, 0.0))],
 		["nah_m70_hell", func(): _nah(0, true, 70)],
 		["nah_w20_hell", func(): _nah(0, false, 20, -20.0)],
@@ -297,7 +313,7 @@ func _fotos() -> void:
 	# Messung: GPU-Zeit des ganzen Bilds (30 Köpfe), Tag, still; dann mit Ultra-SSS
 	if args.has("messen"):
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
-		_blick(Vector3(0.0, 2.25, 3.2), Vector3(0.0, 1.85, -2.0))
+		_blick(Vector3(0.0, 2.6, 3.0), Vector3(0.0, 2.05, -2.2))
 		RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
 		for lauf in [["tag_30", false, true], ["tag_30_ultra", true, true], ["innen_30", false, false]]:
 			for e in koepfe:

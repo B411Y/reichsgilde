@@ -34,8 +34,8 @@ uniform float bart = 0.0;                    // Bartschatten (Stoppeln unter der
 uniform vec3 bart_farbe = vec3(0.72, 0.74, 0.8);
 uniform float brauen_dichte = 0.0;           // Brauenschatten auf der Haut
 uniform vec3 haar_farbe : source_color = vec3(0.12, 0.08, 0.05);
-uniform float streu = 0.5;                   // Wrap-Breite für Rot (Grün, Blau schmaler)
-uniform vec3 streu_anteil = vec3(1.0, 0.42, 0.28);
+uniform float streu = 0.4;                   // Wrap-Breite für Rot (Grün, Blau schmaler)
+uniform vec3 streu_anteil = vec3(1.0, 0.5, 0.36);
 uniform float streu_schattenfrei = 1.0;      // 1 = Streulicht jenseits des Schattenrands ohne Schatten der eigenen Rundung
 uniform float flaum = 0.16;                  // Randlicht
 uniform float durchlicht = 0.35;             // Ohren und Nase im Gegenlicht

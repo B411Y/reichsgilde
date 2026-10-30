@@ -327,10 +327,26 @@ kopfmitte = np.array([0.0, (AUGE["l"][1] + AUGE["r"][1]) / 2 + 0.085 * MASS, AUG
 rel = POS - kopfmitte
 richtung = np.degrees(np.arctan2(np.abs(rel[:, 0]), -rel[:, 1]))          # 0 vorn, 90 seitlich, 180 hinten
 stirn_oben = M68[[19, 24], 2].mean() + 0.052 * MASS
-ansatz = np.interp(richtung, [0, 30, 55, 75, 95, 125, 155, 180],
-                   [stirn_oben, stirn_oben - 0.005 * MASS, AUGE_Z + 0.034 * MASS, AUGE_Z + 0.026 * MASS, AUGE_Z + 0.02 * MASS,
-                    AUGE_Z - 0.012 * MASS, ohr_z - 0.04 * MASS, ohr_z - 0.055 * MASS])
+ansatz = np.interp(richtung, [0, 30, 55, 75, 95, 115, 135, 155, 180],
+                   [stirn_oben, stirn_oben - 0.005 * MASS, AUGE_Z + 0.028 * MASS, AUGE_Z + 0.018 * MASS, AUGE_Z + 0.012 * MASS,
+                    AUGE_Z - 0.01 * MASS, ohr_z - 0.03 * MASS, ohr_z - 0.05 * MASS, ohr_z - 0.06 * MASS])
 KOPFHAUT = glatt(Z - ansatz, -0.006, 0.008) * (~IST_BUESTE) * (~IST_MUND)
+# das Ohr selbst nicht (Mitte des Ohrs: äußerste Punkte in Augen- bis Mundhöhe)
+STOPPEL = np.zeros(N)
+mittel0 = np.median(ALB[(~IST_MUND) & (~IST_BUESTE) & (VORN > 0.5) & (np.abs(X) < 0.04 * MASS) & (Z > M68[8, 2])
+                        & (Z < M68[[19, 24], 2].mean()) & (lid_d > 0.006) & (LIPPENROT < 0.01)], axis=0)
+for sx_ in (1.0, -1.0):
+    seite_ = (~IST_BUESTE) & (SX == sx_) & (Z < AUGE_Z + 0.01) & (Z > LIPPE[:, 2].mean())
+    ohr_m = POS[seite_ & (np.abs(X) > np.max(np.abs(X[seite_])) - 0.012 * MASS)].mean(0)
+    ohr_d = np.linalg.norm(POS - ohr_m, axis=1)
+    KOPFHAUT *= glatt(ohr_d, 0.022 * MASS, 0.032 * MASS)
+    # Stoppeln hinter dem Ohr und am Nacken (dunkler als die mittlere Haut): nach der Farbe durch die Haut der
+    # Umgebung ersetzen; das Ohr selbst (vor seiner Wurzel) bleibt; alle Grenzen weich
+    hinter = (SX == sx_) * glatt(richtung, 65, 85) * glatt(Z - (ohr_z - 0.075 * MASS), 0.0, 0.015 * MASS) \
+        * (~IST_BUESTE) * (~IST_MUND) * np.maximum(glatt(Y - ohr_m[1], 0.004 * MASS, 0.012 * MASS),
+                                                   glatt(ohr_d, 0.03 * MASS, 0.04 * MASS))
+    dunkler = glatt(mittel0.mean() * 0.97 - ALB.mean(1), 0.0, 0.06)
+    STOPPEL = np.maximum(STOPPEL, hinter * dunkler)
 # Gesichtshaut als Bezug: Wangen, Stirn, Kinn ohne Lippen, Augen, Kopfhaut
 bezug = (~IST_MUND) & (~IST_BUESTE) & (~IST_AUGENHOEHLE) & (KOPFHAUT < 0.01) & (lid_d > 0.006) & (LIPPENROT < 0.01) \
     & (VORN > 0.4) & (np.abs(X) < 0.05 * MASS) & (Z > M68[8, 2]) & (Z < stirn_oben)
@@ -374,6 +390,14 @@ ALB = ALB * (1 - lidrand[:, None]) + umgebung * np.array([0.96, 0.9, 0.9]) * lid
 flecken = 1.0 + 0.03 * np.sin(POS @ np.array([310.0, 170, 240])) * np.sin(POS @ np.array([-150.0, 260, 90]))
 kopf_farbe = MITTEL * np.array([1.0, 0.985, 0.98]) * flecken[:, None]
 ALB = ALB * (1 - KOPFHAUT[:, None]) + kopf_farbe * KOPFHAUT[:, None]
+# Stoppeln hinter den Ohren (unter dem Haaransatz): Haut der Umgebung (geglättet, nur stoppelfreie Punkte unter dem
+# Haaransatz); wo es in der Nähe keine gibt, die Kopfhautfarbe
+STOPPEL *= 1 - KOPFHAUT
+frei_ = ((STOPPEL < 0.05) & (KOPFHAUT < 0.05) & ~IST_MUND & ~IST_BUESTE).astype(np.float32)
+haut_umgebung = glatt_bild(ALB, frei_, 24.0)
+abdeckung = glatt_bild(frei_[:, None], np.ones(N, np.float32), 24.0)[:, 0]
+haut_umgebung = np.where((abdeckung > 0.05)[:, None], haut_umgebung, kopf_farbe)
+ALB = ALB * (1 - STOPPEL[:, None]) + np.clip(haut_umgebung, 0, 1) * STOPPEL[:, None]
 # Augenhöhlen (Innenseite der Lider): Bindehaut
 ALB[IST_AUGENHOEHLE] = MITTEL * np.array([1.05, 0.62, 0.6])
 ALB[IST_MUND] = MITTEL * np.array([0.9, 0.45, 0.45])

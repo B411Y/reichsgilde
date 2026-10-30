@@ -230,6 +230,7 @@ var _mimik_alter: CheckBox
 var _ansicht_wahl: OptionButton
 var _winkel_r: HSlider
 var _wert_texte := {}
+var _ansicht_schl := ""
 
 func _regler(nur_bild: bool) -> void:
 	var fs := Vector2i(get_viewport().get_visible_rect().size)
@@ -241,6 +242,8 @@ func _regler(nur_bild: bool) -> void:
 	add_child(c)
 	_buehne_r = Buehne.new(Vector2i(fs.x - breite_rechts, fs.y))
 	c.add_child(_buehne_r)
+	if not nur_bild:
+		print("REGLER Kamera: ", "frei" if _buehne_r.freie_kamera_einsetzen() else "fest (FreieKamera.cs fehlt)")
 	var datei := _datei(args.get("kopf", "kopf3.glb"))
 	if not _buehne_r.kopf_laden(datei):
 		_meldung(_buehne_r.kopf.fehler)
@@ -383,7 +386,11 @@ func _aendern() -> void:
 	_kopf.mimik_mit_alter = _mimik_alter.button_pressed
 	_kopf.mimik = mim
 	_kopf.aussehen_setzen(gene, _alter_r.value, 1.0 if _mann_r.selected == 0 else 0.0)
-	_buehne_r.ansicht(_ansicht_wahl.get_item_text(_ansicht_wahl.selected), _winkel_r.value)
+	# Mit freier Kamera nur neu hinstellen, wenn Ansicht oder Drehung geändert wurden
+	var schl := "%s|%s" % [_ansicht_wahl.selected, _winkel_r.value]
+	if not _buehne_r.freie or schl != _ansicht_schl:
+		_ansicht_schl = schl
+		_buehne_r.ansicht(_ansicht_wahl.get_item_text(_ansicht_wahl.selected), _winkel_r.value)
 
 # ---------------------------------------------------------------- Messen
 func _messen() -> void:

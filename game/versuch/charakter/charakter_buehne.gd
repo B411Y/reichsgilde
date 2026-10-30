@@ -55,6 +55,28 @@ func _init(groesse := Vector2i(640, 640)) -> void:
 	kamera.near = 0.02
 	add_child(kamera)
 
+# Phase 3: freie Kamera (game/scripts/FreieKamera.cs) statt der festen, für die Regler-Ansicht (jede Testszene startet
+# mit freier Kamera); ansicht() stellt sie dann nur neu hin. Gibt false zurück, wenn es die Kamera nicht gibt.
+const FREIE_KAMERA := "res://scripts/FreieKamera.cs"
+var freie := false
+func freie_kamera_einsetzen() -> bool:
+	if not ResourceLoader.exists(FREIE_KAMERA):
+		return false
+	var skript: Script = load(FREIE_KAMERA)
+	var k: Node = skript.new() if skript and skript.can_instantiate() else null
+	if not k is Camera3D:
+		return false
+	var alt := kamera
+	k.fov = alt.fov
+	k.near = alt.near
+	add_child(k)
+	k.make_current()
+	k.set("Tempo", 0.5)
+	kamera = k
+	alt.queue_free()
+	freie = true
+	return true
+
 # Licht von pos auf die Kopfmitte richten (geht auch, bevor die Bühne im Baum hängt)
 static func _richten(n: Node3D, pos: Vector3, ziel := Vector3(0, 1.6, 0)) -> void:
 	n.transform = Transform3D(Basis.looking_at(ziel - pos), pos)
@@ -101,7 +123,10 @@ func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m :
 	var h := deg_to_rad(hoehe)
 	var pos := dreh + Vector3(sin(w) * cos(h), sin(h), cos(w) * cos(h)) * abstand
 	var blick := dreh + (ziel - dreh).rotated(Vector3.UP, w)
-	kamera.transform = Transform3D(Basis.looking_at(blick - pos), pos)
+	if freie:
+		kamera.call("Blicken", pos, blick)
+	else:
+		kamera.transform = Transform3D(Basis.looking_at(blick - pos), pos)
 
 # Einstellungen der Umgebung aus einem Bogen ({"ssao_radius": 0.02, "ssao_enabled": false, …}); Unbekanntes wird
 # gemeldet. Vor jeder Zelle gelten wieder die Grundwerte der Bühne.
