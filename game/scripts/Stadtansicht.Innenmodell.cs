@@ -266,6 +266,8 @@ public partial class Stadtansicht
         public string EinrichtungStand { get; set; } = "";
         public string ArbeiterStand { get; set; } = "";
         public bool Glueht { get; set; }
+        /// <summary>Echte Flammen im Raum (Kerzen, Esse; Stadtansicht.Feuer.cs): sie brennen, wenn die Glut glüht.</summary>
+        public List<Feuer> Flammen { get; } = new();
         public Color Hausfarbe { get; set; }
         public float Hell { get; set; } = -1;
         public string WerkstueckStand { get; set; } = "";
@@ -356,8 +358,9 @@ public partial class Stadtansicht
         md.Schreiberplaetze.Sort((x, y) => x.Gruppe != y.Gruppe ? string.CompareOrdinal(x.Gruppe, y.Gruppe) : x.Reihe.CompareTo(y.Reihe));
         md.Kundenplaetze.Sort((x, y) => x.Art != y.Art ? x.Art.CompareTo(y.Art) : x.Reihe.CompareTo(y.Reihe));
         DampfAnlegen(wurzel, md);
+        InnenFlammenAnlegen(md, wurzel, datei, dauerfeuer); // Kerzen und Esse mit echter Flamme (Stadtansicht.Feuer.cs)
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
-        RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke und Dampf
+        RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke, Dampf und Flammen
 
         // Räume in der Reihenfolge der Raumleiste (Mitte, Maße und Wände stehen im Modell). Ein Raum mit „stufe“ (Sägehalle, Bauhütte, Laden, Laborturm, Duftpavillon) steht erst ab dieser Stufe in der Leiste.
         foreach (var (kennung, schluessel, name, vorgabe) in ModellRaeume(stil)) // die Vorgabe gilt, wenn die „extras“ fehlen
@@ -787,6 +790,7 @@ public partial class Stadtansicht
         {
             md.Glueht = arbeitet;
             foreach (var stoff in md.Glut) stoff.EmissionEnergyMultiplier = arbeitet ? md.GlutAn : 0f;
+            foreach (var flamme in md.Flammen) flamme.Visible = arbeitet; // Kerzen und Esse brennen mit der Glut
             md.Hell = -1;
         }
         if (Mathf.Abs(_raumHell - md.Hell) > 0.01f)

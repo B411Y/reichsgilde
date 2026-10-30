@@ -90,7 +90,8 @@ public partial class Stadtansicht
     {
         var k = g.Besitzer;
         var bau = g.Arbeit is null && k is { } b && b.WohnhausFertigAb is { } f && f > minute;
-        var brand = g.Arbeit is null && k is { } b2 && b2.WohnhausInstandBis is { } i && i > minute;
+        // Brand: erst brennt es (Flammen, dann Schwelen; Stadtansicht.Feuer.cs), danach steht bis zur Instandsetzung das Gerüst
+        var brand = g.Arbeit is null && k is { } b2 && WohnhausBrandStart(b2, w, minute) is { } start ? (BrandLaeuft(start, minute) ? "brennt" : "instand") : "-";
         var stufe = g.Arbeit is not null ? BaustufeVon(g, w, minute) : -1;
         return $"{g.Art}|{g.Zustand}|{g.Arbeit}|{g.Stufe}|{k?.Inhaber}|{k?.IstBankrott}|{k?.IstErloschen}|{bau}|{brand}|{stufe}|{g.Betriebsart}";
     }
@@ -104,9 +105,12 @@ public partial class Stadtansicht
             {
                 var leer = !k.IstAktiv;
                 var bau = k.WohnhausFertigAb is { } f && f > minute;
-                var brand = k.WohnhausInstandBis is { } i && i > minute;
-                return SpielhausModell(Mitte3(gr), DrehungY(gr), (float)gr.Breite, (float)gr.Tiefe, HausFront(gr), g.Stufe, bau, brand, leer,
-                    leer ? null : Besitzerfarbe(k), WohnhausKennung(k), k.Inhaber, leer ? $"Leerstand, {(k.IstBankrott ? "bankrott" : "erloschen")}" : null);
+                var brandStart = WohnhausBrandStart(k, w, minute);
+                long? brennt = brandStart is { } start && BrandLaeuft(start, minute) ? start : null;
+                if (k == _spielerKonto && !leer && _brandVorgabe.Remove("haus")) // --brand=haus: das eigene Wohnhaus brennt, nur in der Darstellung
+                    brennt = minute;
+                return SpielhausModell(Mitte3(gr), DrehungY(gr), (float)gr.Breite, (float)gr.Tiefe, HausFront(gr), g.Stufe, bau, brandStart is not null || brennt is not null, leer,
+                    leer ? null : Besitzerfarbe(k), WohnhausKennung(k), k.Inhaber, leer ? $"Leerstand, {(k.IstBankrott ? "bankrott" : "erloschen")}" : null, brennt: brennt);
             }
             case Bauzustand.Baustelle:
                 return BaustellenModell(g, w, minute);

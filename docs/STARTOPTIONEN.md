@@ -106,6 +106,25 @@ Startoptionen (nach `--`):
 - `--automatisch=1` (Voreinstellung messen und wählen wie beim ersten Start; ohne Startoptionen und ohne `einstellungen.cfg` geschieht das im Hauptmenü von selbst)
 - `--messung=<Sekunden>` (nach 8 s Vorlauf Bilder/s, 1-%-Tief, Bild- und GPU-Zeit ins Protokoll, dazu Ruckler (Bilder über dem Dreifachen der mittleren Bildzeit) mit Zeitpunkt und die neuen Pipelines im Messfenster, dann beenden; für Vergleiche mit `--blick`, `--startstunde` und `--vsync=Aus`)
 
+## Feuer und Flammen
+
+Im Spiel (Phase 2, nur Darstellung):
+
+- `--brand=werkstatt|haus|<Betriebsname>` (ein Gebäude brennt gleich beim Start, **nur in der Darstellung**, der Kern merkt nichts: `werkstatt` (oder `1`) die eigene Werkstatt, `haus` das eigene Wohnhaus, sonst der Betrieb mit diesem Namen; Flammen aus Dach und Fenstern für 120 Spielminuten, danach schwelt es 180 Minuten; am besten mit `--startstunde=21` und `--blick`. Ein echtes Feuer des Kerns lösen im Entwicklerfenster die Knöpfe „Feuer im Betrieb“ und „Hausbrand“ aus, `--entwickler=1 --entwicklerfenster=2`)
+
+Die Testszene `scenes/Feuertest.tscn` (`Feuertest.cs`) zeigt die sieben Feuerarten nebeneinander (von links 1 Kerze, 2 Fackel, 3 Laterne, 4 Feuerkorb, 5 Esse, 6 Kamin, 7 Gebäudebrand), jede so, wie das Spiel sie auf allen Grafikstufen zeichnet (seit Phase 2: Flamme aus der Simulation, Rauch und Funken im Shader). Das Hauptmenü startet sie von selbst, sobald `--feuertest` angegeben ist; die Anleitung für den Editor steht in `docs/feuer/phase2.md`. Als Ausnahme gelten `--feuertest` und alle Optionen, die mit `--feuer` beginnen, auch **vor** dem einzelnen `--` (`Feuertest.Startargumente`): Godot reicht Argumente davor nur als eigene weiter, und ohne `--` kam bisher stumm das Hauptmenü. Alle übrigen Optionen, auch `--bildrate` und `--vsync`, wirken nur hinter `--`. Alle Optionen gelten nur für diesen Start. Für Messungen `--bildrate=0 --vsync=Aus` dazugeben (Bildrate und Bildzeit stehen jede Sekunde im Protokoll, Zeilen mit `[feuer]`).
+
+- `--feuertest=1` (die Testszene statt des Spiels starten)
+- `--feuersicht=nah|stadt|fern` (wo die freie Kamera beginnt: `nah` = leicht von oben, ganz nah an der Feuerart; `stadt` = 40° von oben, Ausschnitt wie der nächste Zoom der Stadt, 25 m hoch; `fern` = wie der weiteste Zoom, 95 m, alle Feuerarten; Standard `nah`)
+- `--feuerpaar=<1–7>` (welche Feuerart `nah` und `stadt` zeigen, Standard 2 = Fackel)
+- `--feuertag=1` (Tageslicht; ohne die Option ist es Nacht)
+- `--feuerzeigen=0` (nur die Aufbauten, ohne Feuer, für den Vergleich der Bildrate; Taste `T`)
+- `--feuerlicht=0|1` (die Lichter der Feuer aus oder an)
+- `--feuerfackeln=<n>` (Messung: statt der Feuerarten `n` Fackeln im Raster, 10 je Reihe; Standardsicht `stadt`) und `--feuerlichter=<m>` (nur die ersten `m` Fackeln leuchten mit einem echten Licht)
+- `--feuerzyklus=<Sekunden>` (Messzyklus: die Szene wechselt von selbst zwischen ohne und mit Feuer, im Fackelraster durch ohne Feuer und Feuer mit 0, 12 und allen Lichtern, jeden Zustand so viele Sekunden lang; der Zustand steht in jeder Protokollzeile `[feuer] … zustand=…`; `tools/feuer/messen.sh` fasst ihn zusammen)
+- Entfallen mit Phase 2 (es gibt nur noch eine Fassung): `--feuerart`, `--feuerstufe`, `--feuerfassung`
+- Tasten in der Testszene: `1`–`7` oder Pfeile links/rechts (Feuerart), `V` (Sicht), `N` (Nacht/Tag), `T` (Feuer an/aus), `L` (Lichter), `B` (Beschriftung), `Esc` (Ende); freie Kamera: rechte Maustaste halten (umsehen), `W` `A` `S` `D` `Q` `E` (fahren), `Shift` (schneller), Mausrad (Tempo), `H` (ihre Hilfe)
+
 ## Kartenwerkstatt
 
 Zur Kartenwerkstatt (Level-Editor): `--kartenwerkstatt=<kennung|neu|datei.json>` (öffnet sie direkt: eine Karte aus `game/karten/` wie `greybox`, `koeln`, `probestadt`, `datei.json` aus `user://karten/`), dazu in dieser Reihenfolge:

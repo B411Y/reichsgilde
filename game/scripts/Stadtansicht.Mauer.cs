@@ -44,6 +44,24 @@ public partial class Stadtansicht
         return _mauerteile[datei] = new Mauerteile(stueck, turm, eck, tor, anker, feuer);
     }
 
+    private readonly Dictionary<string, Vector3[]> _torfeuerWaende = new();
+
+    /// <summary>
+    /// Je Feuerkorb der Torburg die Wand daneben (Turm, Torbogen) im Raum seiner Flamme, damit der Rauch an ihr hochsteigt statt durch sie hindurch
+    /// (<see cref="WandFuerLicht"/>); gerechnet mit dem Netz „Tor“, einmal je Baukasten.
+    /// </summary>
+    private Vector3[] TorfeuerWaende(string datei, Mauerteile teile)
+    {
+        if (_torfeuerWaende.TryGetValue(datei, out var bekannt)) return bekannt;
+        LichterLaden();
+        var netze = new[] { (teile.Tor, Transform3D.Identity) };
+        var waende = _lichtNetze.TryGetValue(Lichtart.Feuerkorb, out var korb)
+            ? teile.Feuer.Select(f => WandFuerLicht(Lichtart.Feuerkorb, f * korb.Lage, netze)).ToArray()
+            : new Vector3[teile.Feuer.Length];
+        GD.Print($"[feuer] Torfeuer {datei}: {waende.Count(w => w != Vector3.Zero)} von {waende.Length} an einer Wand");
+        return _torfeuerWaende[datei] = waende;
+    }
+
     /// <summary>
     /// Zeichnet den Plan einer Mauer aus dem Baukasten <paramref name="datei"/> (<c>stadtmauer.glb</c>) unter <paramref name="eltern"/>. Im Spiel
     /// (<paramref name="spiel"/>) bekommt jede Torburg ihren Anker „Tor:&lt;Name&gt;“, eine Klickfläche und ein Schild; die Werkstatt zeichnet
@@ -53,16 +71,21 @@ public partial class Stadtansicht
     {
         if (MauerteileVon(datei) is not { } teile) return;
         var feuerlagen = new List<Transform3D>();
+        var feuerwaende = new List<Vector3>();
         foreach (var tor in plan.Tore)
         {
             var lage = new Transform3D(MauerBasis(tor.Lage), MauerOrt(tor.Lage));
-            if (spiel) feuerlagen.AddRange(teile.Feuer.Select(f => lage * f));
+            if (spiel)
+            {
+                feuerlagen.AddRange(teile.Feuer.Select(f => lage * f));
+                feuerwaende.AddRange(TorfeuerWaende(datei, teile));
+            }
             var knoten = new MeshInstance3D { Name = tor.Name, Mesh = teile.Tor, Transform = lage, Layers = 1 | TorErdeEbene };
             eltern.AddChild(knoten);
             TorErdeMerken(knoten); // Erde im Torweg, wenn ein Erdweg hindurchführt (Stadtansicht.Torerde.cs)
             if (spiel) TorEinrichten(tor.Name, knoten, lage, teile.TorAnker);
         }
-        if (spiel) FeuerkoerbeVielfach(feuerlagen, eltern); // Nachtlichter: ein Feuerkorb links und rechts jeder Durchfahrt
+        if (spiel) FeuerkoerbeVielfach(feuerlagen, eltern, feuerwaende); // Nachtlichter: ein Feuerkorb links und rechts jeder Durchfahrt
         Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerStueckBasis(s), MauerOrt(s))), eltern);
         Vielfach("Mauertuerme", teile.Turm, plan.Tuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
         Vielfach("Eckturme", teile.Eckturm, plan.Ecktuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
