@@ -155,6 +155,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Feuer) Der Gebäudebrand sitzt als ein Feuer über der Mitte des Dachs (große Werkstätten: nicht über dem ganzen Dach) plus bis zu drei Fensterbrände; ein Brand, der sich über das Dach ausbreitet, oder rußgeschwärzte Fenster wären der nächste Schritt.
 - (Feuer) Kerzen brennen nur in den Raummodellen (Kerze mit „Glut“-Kegel); Wohnstube, Kontor, Dom und Rathaus aus Grundkörpern und der Ratssaal haben keine. Die Glut-Kegel der Modelle stehen unter der echten Flamme weiter da (klein, kaum zu sehen).
 - (Feuer) Der Schein um die Flammen (`lichtfleck.gdshader`) liest die Tiefe der Szene: Wasser und andere durchsichtige Flächen stehen nicht darin, der Schein fällt auf den Grund darunter.
+- (Feuer) Esse: Sie sollte eher glühen als lodern (Rückmeldung zur Abnahme von Phase 2, 30.10.2026); heute brennen über der Glut niedrige Flammen mit Funken (Raumansicht der Schmiede).
+- (Feuer) `--freiekamera=1` ist in `FreieKamera.cs` als Startoption der Stadt erwähnt, aber nur die Testszene (`--feuertest=1`) hat die freie Kamera; in der Stadt wirkt die Option nicht.
 - (Feuer) Gebäudebrand neu denken (Nutzer 30.10.2026, keine Priorität, nur festgehalten): Die Flammen sollen aus den Fenstern lodern statt als aufgelegte Fläche davor zu stehen, und auf dem Dach aus dem Dach kommen statt darum herum zu schweben. Dafür die Stellen neu bestimmen (Fensteröffnungen, Dachflächen; heute `BrandFenster` und ein Feuer über der Dachmitte) und gegebenenfalls eigene Flammen-Flipbooks für Fenster- und Dachbrand simulieren (`tools/feuer/flammen_sim.py`).
 
 ## Entscheidungen
