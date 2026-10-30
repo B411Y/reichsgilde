@@ -374,6 +374,7 @@ public partial class Stadtansicht : Node3D
             Position = new Vector3(0, 0, KameraAbstand), // Near und Far folgen dem Zoom (SchattenNachfuehren)
         };
         neigung.AddChild(_kamera);
+        Feuer.AusblendenZuschlag = KameraAbstand; // die Fernausblendung der Feuerlichter misst von der Kamera, die 150 m vor dem Blickpunkt steht (Feuer.cs)
         RaumKameraAufbauen(); // wohin die Kamera beim Start blickt, sagt die Karte (KameraAusKarte)
     }
 
@@ -723,6 +724,7 @@ public partial class Stadtansicht : Node3D
     /// <summary>Jedes Bild: Licht nach Uhrzeit, Esse, Karren.</summary>
     public void Aktualisieren(double delta)
     {
+        Feuer.UhrStellen(delta); // die gemeinsame Uhr aller Flammen und des Rauchs (Feuer.cs), auch wenn kein Feuer ein eigenes Licht hat
         if (_simulation is null) return;
         var uhr = Ladezeit.Uhr(); // --ladezeit=1: was die ersten Bilder kosten (Ladezeit.cs)
         WohnhaeuserPruefen(); // einmal, sobald der Kern die Wohnhäuser vergeben hat
@@ -762,6 +764,7 @@ public partial class Stadtansicht : Node3D
                 GlutSetzen(modell, glueht);
             }
             if (ansicht.Modell is { } haus) FenstergruppeSetzen(haus, FenstergruppeVon(betrieb, w)); // Stadtansicht.Modelle.cs, nur beim Wechsel
+            WerkstattBrandPruefen(betrieb, ansicht, zeit.VergangeneMinuten); // ein Feuer im Betrieb (Stadtansicht.Feuer.cs)
             if (ansicht == _innen)
                 InnenAktualisieren(ansicht, zeit, hierArbeitszeit, arbeitet, delta);
 
@@ -778,6 +781,7 @@ public partial class Stadtansicht : Node3D
                 ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         NachtwaechterAktualisieren(w, zeit, bruchteil, delta); // Wachleute auf Streife (Stadtansicht.Nachtlichter.cs)
+        FeuerAktualisieren(w, zeit, bruchteil, delta); // Kaminrauch und brennende Häuser (Stadtansicht.Feuer.cs)
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
