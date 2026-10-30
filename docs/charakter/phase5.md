@@ -231,6 +231,12 @@ Die zehn Stile (zweiter Lauf, weniger Last: leere Bühne 2,2 ms, Kopf ohne Haar 
 | Krauskopf + wilder Vollbart | 57,8 | 1,8 Mio. | 390 ms |
 | Frau, krause Locken | 71,4 | 2,0 Mio. | 395 ms |
 | Pagenkopf + Vollbart, Haarstruktur lockig (viermal so viele Punkte) | 66,8 | 4,0 Mio. | 770 ms |
+| Frau, Crespine (Polster, Goldnetz, Perlen, Fillet; Endstand) | 27,2 | 1,1 Mio. | 210 ms |
+| Pagenkopf + kurzer Vollbart (Endstand, Bart 1 cm) | 33,6 | 1,0 Mio. | 265 ms |
+| kurz geschoren + Stoppeln (Endstand) | 18,7 | 0,39 Mio. | 115 ms |
+
+Galerie mit den 30 Stilen aus den Genen (1600 × 900, Endstand; die Karte war mit einem anderen Lauf geteilt): ohne Haar
+27–43 ms, TressFX in Ruhe 91 ms bei 2,1 GB Grafikspeicher.
 
 - Mehr kosten vor allem die dichteren Bärte (Vollbart 6 000 Strähnen × 4) und die Haarstruktur (feinere Abtastung bei
   Locken). Für ein großes Porträt ab Grafikstufe Hoch bleibt TressFX tragbar (Porträtfenster kleiner als 1280 × 720);
@@ -242,8 +248,10 @@ Die zehn Stile (zweiter Lauf, weniger Last: leere Bühne 2,2 ms, Kopf ohne Haar 
 ## Prüfung (T400, Vulkan über die NVIDIA-ICD, `schau.sh`, Anzeige :98)
 
 Bilder (nicht im Repository): Scratchpad `…/scratchpad/charakter5/` – `vorher/` (Stand Phase 4, dieselben Bögen),
-`ende/` (Endstand), `gesicht30_vorher_nachher.png`, `wimpern_brauen_vorher_nachher.png`, `proben/` (Probeformen und
-Mischungen), `messung1/`, `messung2/`, `galerie/`, `vergleich_m/w/b.png` (Vorlage | TressFX vorn | ¾).
+`ende/` (Gesichter, Brauen, Wimpern, Altersverlauf), `ende3/` (zehn Frisuren je Geschlecht nach den Korrekturen),
+`ende5/` (Bärte, Porträt, Haarstruktur, Diagnose kurzer Vollbart), `gesicht30_vorher_nachher.png`,
+`wimpern_brauen_vorher_nachher.png`, `proben/` (Probeformen und Mischungen), `messung1–3/`, `galerie/`, `galerie2/`,
+`vergleich_m/w/b.png` (Vorlage | TressFX vorn | ¾).
 
 | Bogen | Bewertung |
 |---|---|
@@ -268,12 +276,16 @@ Keine SCRIPT- oder SHADER-ERROR in den Endläufen (nur die bekannten Meldungen v
   aufaddieren. Die Kurven stehen in der Darstellung, nicht im Erbgut.
 - **Wimpern:** Karten (keine Einzelhaare); im Profil schmal, die unteren etwas zu regelmäßig.
 - **Haar:** Strähnen ohne Kollider und fast starr (wie Phase 4); Zöpfe, Knoten und Schnecken sind Strähnen um eine
-  Bahn bzw. Spirale (kein echtes Flechtmuster aus der Nähe); das Haarnetz (f08) fehlt (Kopfputz, später); Zopfschlaufen
-  (f06) sind die Schlaufen-Fassung der Vorlage, keine steifen Säulen; Halbglatze mit sichtbarem Rand oben.
+  Bahn bzw. Spirale (kein echtes Flechtmuster aus der Nähe); die Perlen der Crespine sind kleine Strähnenschlaufen
+  (keine Kugeln), das Netz liegt nur über den Polstern; Zopfschlaufen (f06) sind die Schlaufen-Fassung der Vorlage,
+  keine steifen Säulen; Halbglatze mit sichtbarem Rand oben; Tonsur von vorn auf Augenhöhe kaum zu sehen (wie bei der
+  Vorlage); b08 Schnurrbart in der ¾-Ansicht wie vom Nutzer hingenommen.
+- **Gesicht neben den Fotos der Vorlagen** (`vergleich_m.png`): die Männer wirken noch weicher und voller im
+  Untergesicht als die schmalen, wettergegerbten Gesichter der Vorlagen, die Haut heller.
 - **Haarstruktur „lockig“** wirkt kraus statt in Korkenzieher-Büscheln und vervierfacht die Punkte (teuer).
 - **Kosten:** TressFX 30–70 ms je großem Porträt auf der T400 bei 1280 × 720 (Locken am teuersten), Galerie 105 ms;
   nur für ein großes Porträt ab Grafikstufe Hoch geeignet.
-- **Daten:** 570 MB Haardaten für 29 Stile, davon 457 MB Haarkarten, die nur noch Rückfall sind (`ohne_karten=1`
+- **Daten:** etwa 570 MB Haardaten für 29 Stile, davon gut 450 MB Haarkarten, die nur noch Rückfall sind (`ohne_karten=1`
   baut ohne). Vor einem Import kürzen (Stützpunkte nur mit wirksamen Formen, float16).
 - **Messwerte** auf der geteilten T400 schwanken (leere Bühne 2,2–3,1 ms).
 
