@@ -17,9 +17,13 @@ namespace Reichsgilde;
 /// <item><b>Nachtwächter</b>: Die Wachleute auf Streife (<see cref="Wachwesen.AnwesenheitJetzt"/>, nur gelesen) gehen eine feste Runde durch das
 /// Gassennetz – vom Wachhaus über den Markt zum Tor und zurück – und tragen nachts eine Handlaterne.</item>
 /// <item><b>Passanten</b> tragen im Dunkeln eine Handlaterne, jeder dritte eine Fackel (<see cref="PassantLichtStellen"/>).</item>
-/// <item><b>Leuchten</b>: <c>nachtlicht.gdshader</c> mit der Flacker-Technik des Fensterlichts (<c>licht_flackern.gdshaderinc</c>). Echte
+/// <item><b>Flammen</b> (Phase 2 „Feuer und Flammen“, Nutzer 30.10.2026): Fackeln und Feuerkörbe brennen mit der echten Flamme (<see cref="Feuer"/>,
+/// Flipbook der Simulation; das modellierte Flammenstück der Datei entfällt), in Hand- und Wandlaternen brennt ein Flämmchen hinter einer
+/// durchscheinenden Scheibe (<c>laternenglas.gdshader</c>). Die Flammen haben kein eigenes Licht.</item>
+/// <item><b>Leuchten</b>: Glut und Laternenscheibe mit der Flacker-Technik des Fensterlichts (<c>licht_flackern.gdshaderinc</c>). Echte
 /// <see cref="OmniLight3D"/> gibt es nur für die nächsten Lichter vor der Kamera (ohne Schatten; Zahl nach der Schattenqualität: Hoch 12,
-/// Mittel 6, Niedrig keine); alle übrigen leuchten über ihre Emission, einen Heiligenschein und einen Lichtfleck am Boden (Stadtansicht.Lichtflecken.cs).</item>
+/// Mittel 6, Niedrig keine), ihr Flackern folgt dem Bild der Flamme (<see cref="Feuer.Lichtwert"/>); alle übrigen leuchten über ihre Flamme, einen
+/// Heiligenschein und einen Lichtfleck am Boden (Stadtansicht.Lichtflecken.cs).</item>
 /// </list>
 /// Wann Lichter brennen, sagt der gemeinsame Dämmerungswert der Lichtstimmung (<see cref="_daemmerung"/>, Stadtansicht.Licht.cs): Er folgt der Jahreszeit.
 /// </summary>
@@ -47,6 +51,38 @@ public partial class Stadtansicht
         _ => new Vector3(0, 0.7f, 0),
     };
 
+    /// <summary>
+    /// Wo die echte Flamme steht (Fuß der Flamme, im Koordinatensystem des Teils) und welche Feuerart sie ist; null beim Ewigen Licht (rotes Glas, keine
+    /// sichtbare Flamme). Fackel und Feuerkorb: auf dem Pech bzw. der Kohle (dort begann das modellierte Flammenstück), Laternen: mitten im Glas.
+    /// </summary>
+    private static (Vector3 Fuss, FeuerVorgabe Vorgabe, float Groesse)? FlammenFuss(Lichtart art) => art switch
+    {
+        Lichtart.Fackel => (new Vector3(0, 0.5f, 0), FeuerVorgabe.Fackel, 0.85f),
+        Lichtart.Feuerkorb => (new Vector3(0, 2.04f, 0), FeuerVorgabe.Feuerkorb, 0.85f),
+        Lichtart.Handlaterne => (new Vector3(0, -0.25f, 0), FeuerVorgabe.Laterne, 0.9f),
+        Lichtart.Wandlaterne => (new Vector3(0, -0.55f, -0.58f), FeuerVorgabe.Laterne, 1.3f),
+        _ => null,
+    };
+
+    /// <summary>Wie stark das echte Licht einer Art mit der Flamme flackert (die Werte der Feuerarten, wie in der Testszene).</summary>
+    private static float LichtFlackernVon(Lichtart art) => art switch
+    {
+        Lichtart.Fackel => FeuerArt.Neu(FeuerVorgabe.Fackel).LichtFlackern,
+        Lichtart.Feuerkorb => FeuerArt.Neu(FeuerVorgabe.Feuerkorb).LichtFlackern,
+        Lichtart.EwigesLicht => 0.08f,
+        _ => FeuerArt.Neu(FeuerVorgabe.Laterne).LichtFlackern,
+    };
+
+    /// <summary>Die Fackel in der Hand: wie die Fackel der Feuerarten, aber ohne Rauchsäule (sie zöge sonst starr mit der Figur mit).</summary>
+    private static FeuerArt? _handfackel;
+    private static FeuerArt Handfackel()
+    {
+        if (_handfackel is not null) return _handfackel;
+        _handfackel = (FeuerArt)FeuerArt.Neu(FeuerVorgabe.Fackel).Duplicate();
+        _handfackel.RauchMenge = 0f;
+        return _handfackel;
+    }
+
     /// <summary>Echtes Licht je Art: Farbe, Stärke und Reichweite (Meter).</summary>
     private static (Color Farbe, float Staerke, float Reichweite) PunktLicht(Lichtart art) => art switch
     {
@@ -58,8 +94,11 @@ public partial class Stadtansicht
     };
 
     private readonly Dictionary<Lichtart, (Mesh Netz, Transform3D Lage)> _lichtNetze = new();
-    private ShaderMaterial? _flammenStoff, _laternenStoff, _ewigesStoff;
-    private static Shader? _nachtlichtShader;
+    private ShaderMaterial? _laternenStoff, _ewigesStoff;
+    private static Shader? _nachtlichtShader, _laternenglasShader;
+    /// <summary>Die Flammen der festen Lichter (Feuerkörbe, Wandlaternen, Torfeuer): sichtbar, solange die Lichter brennen.</summary>
+    private readonly List<Feuer> _festeFlammen = new();
+    private bool _festeFlammenAn; // aus, bis die Nachtlichter das erste Mal gestellt werden (Hauptmenü und Kartenwerkstatt: nie)
     private bool _lichterGeladen;
 
     /// <summary>0 = Lichter aus (Tag), 1 = alle brennen; dazwischen die Dämmerung. Der gestellte Wert wird nur bei merklicher Änderung weitergegeben.</summary>
@@ -69,7 +108,10 @@ public partial class Stadtansicht
     //  Teile und Materialien
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Lädt <c>lichter.glb</c> einmal: je Teil eine Kopie des Netzes, deren Flammen und Laternenscheiben das Nachtlicht-Material tragen.</summary>
+    /// <summary>
+    /// Lädt <c>lichter.glb</c> einmal: je Teil eine Kopie des Netzes, deren Laternenscheiben das Nachtlicht-Material tragen (Hand- und Wandlaterne
+    /// durchscheinend, damit man die Flamme dahinter sieht). Das modellierte Flammenstück („Flamme“) fällt weg: Dort brennt die echte Flamme.
+    /// </summary>
     private void LichterLaden()
     {
         if (_lichterGeladen) return;
@@ -77,16 +119,19 @@ public partial class Stadtansicht
         if (Modell(LichterDatei)?.Instantiate<Node3D>() is not { } kasten) return;
         foreach (var (name, art) in LichterTeile)
         {
-            if (kasten.FindChild(name, true, false) is not MeshInstance3D teil || teil.Mesh is not { } original) continue;
-            var netz = (ArrayMesh)original.Duplicate();
-            for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            if (kasten.FindChild(name, true, false) is not MeshInstance3D teil || teil.Mesh is not ArrayMesh original) continue;
+            var netz = new ArrayMesh();
+            for (var i = 0; i < original.GetSurfaceCount(); i++)
             {
-                if (netz.SurfaceGetMaterial(i) is not BaseMaterial3D stoff) continue;
-                switch (stoff.ResourceName)
+                var stoff = original.SurfaceGetMaterial(i) as BaseMaterial3D;
+                if (stoff?.ResourceName == "Flamme") continue; // die echte Flamme brennt an seiner Stelle
+                netz.AddSurfaceFromArrays(original.SurfaceGetPrimitiveType(i), original.SurfaceGetArrays(i));
+                var neu = netz.GetSurfaceCount() - 1;
+                netz.SurfaceSetMaterial(neu, stoff);
+                switch (stoff?.ResourceName)
                 {
-                    case "Flamme": netz.SurfaceSetMaterial(i, _flammenStoff ??= NachtlichtStoff("Flamme", stoff)); break;
                     case "Laternenlicht":
-                        netz.SurfaceSetMaterial(i, art == Lichtart.EwigesLicht ? _ewigesStoff ??= NachtlichtStoff("Ewig", stoff) : _laternenStoff ??= NachtlichtStoff("Laternenlicht", stoff));
+                        netz.SurfaceSetMaterial(neu, art == Lichtart.EwigesLicht ? _ewigesStoff ??= NachtlichtStoff("Ewig", stoff) : _laternenStoff ??= NachtlichtStoff("Laternenlicht", stoff));
                         break;
                     case "Farben": FarbenEinrichten(stoff); break;
                 }
@@ -97,18 +142,19 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Das Material einer Lichtart für die ganze Stadt: die Farbe der Datei bei Tag, nachts Emission in der Farbe des Lichts. Offenes Feuer
-    /// (Flamme) etwas stärker, rötlicher und unruhiger als das Licht hinter dem Horn einer Laterne (etwa 1.800–2.000 K); das Ewige Licht rot und ruhig.
+    /// Das Material einer Laternenscheibe für die ganze Stadt: die Farbe der Datei bei Tag, nachts Emission in der Farbe des Lichts (etwa
+    /// 1.800–2.000 K); das Ewige Licht rot und ruhig. Offenes Feuer (Fackel, Feuerkorb) ist seit Phase 2 die echte Flamme (<see cref="Feuer"/>).
     /// </summary>
     private ShaderMaterial NachtlichtStoff(string art, BaseMaterial3D vorlage)
     {
         _nachtlichtShader ??= GD.Load<Shader>(NachtlichtShaderPfad);
-        var stoff = new ShaderMaterial { Shader = _nachtlichtShader, ResourceName = vorlage.ResourceName };
+        _laternenglasShader ??= GD.Load<Shader>("res://assets/shader/laternenglas.gdshader");
+        // Hand- und Wandlaterne: durchscheinendes Horn, dahinter die echte Flamme; das Ewige Licht bleibt rotes, dichtes Glas
+        var stoff = new ShaderMaterial { Shader = art == "Laternenlicht" ? _laternenglasShader : _nachtlichtShader, ResourceName = vorlage.ResourceName };
         stoff.SetShaderParameter("farbe", vorlage.AlbedoColor);
         stoff.SetShaderParameter("rauheit", vorlage.Roughness);
         var (farbe, staerke, flackern, tempo) = art switch
         {
-            "Flamme" => (new Color(1f, 0.42f, 0.1f), 4.2f, 0.55f, 1.5f),
             "Ewig" => (new Color(1f, 0.07f, 0.04f), 2.6f, 0.16f, 0.6f),
             _ => (new Color(1f, 0.52f, 0.16f), 3.0f, 0.32f, 1.0f),
         };
@@ -116,7 +162,7 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("staerke", staerke);
         stoff.SetShaderParameter("flackern", flackern);
         stoff.SetShaderParameter("tempo", tempo);
-        stoff.SetShaderParameter("kalt", art == "Flamme" ? 0.3f : 1f);
+        stoff.SetShaderParameter("kalt", 1f);
         return stoff;
     }
 
@@ -125,21 +171,39 @@ public partial class Stadtansicht
     {
         if (Mathf.Abs(_lampenAn - _lampenGestellt) < 0.004f && (_lampenAn > 0) == (_lampenGestellt > 0)) return;
         _lampenGestellt = _lampenAn;
-        _flammenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _laternenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _ewigesStoff?.SetShaderParameter("helligkeit", Mathf.Max(_lampenAn, 0.22f));
     }
 
-    /// <summary>Ein Licht aus dem Baukasten als eigener Knoten; <paramref name="nummer"/> gibt ihm seinen eigenen Takt.</summary>
-    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer)
+    /// <summary>
+    /// Ein Licht aus dem Baukasten als eigener Knoten, mit seiner echten Flamme als Kind (<see cref="FlammeAnhaengen"/>); <paramref name="nummer"/> gibt
+    /// ihm seinen eigenen Takt. <paramref name="inHand"/>: Die Fackel brennt ohne Rauchsäule.
+    /// </summary>
+    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool inHand = false)
     {
         LichterLaden();
         if (!_lichtNetze.TryGetValue(art, out var teil)) return null;
         var knoten = new MeshInstance3D { Name = art.ToString(), Mesh = teil.Netz, Transform = teil.Lage, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         knoten.SetInstanceShaderParameter("phase", (Streuung(nummer, 207) & 0xFFFF) / 65535f);
+        FlammeAnhaengen(knoten, art, nummer, inHand);
         LichterStoffStellen();
         return knoten;
     }
+
+    /// <summary>Hängt die echte Flamme einer Lichtart an den Knoten (im Raum des Teils aus <c>lichter.glb</c>); ohne eigenes Licht, das stellt der Pool.</summary>
+    private Feuer? FlammeAnhaengen(Node3D knoten, Lichtart art, int nummer, bool inHand = false)
+    {
+        if (FlammenFuss(art) is not { } f) return null;
+        var flamme = Feuer.Neu(f.Vorgabe, false, (Streuung(nummer, 2071) & 0xFFFF) / 65535f, f.Groesse);
+        if (inHand && art == Lichtart.Fackel) flamme.Art = Handfackel();
+        flamme.Name = "Flamme";
+        flamme.Position = f.Fuss;
+        knoten.AddChild(flamme);
+        return flamme;
+    }
+
+    /// <summary>Die Flamme, die <see cref="FlammeAnhaengen"/> an einen Lichtknoten gehängt hat (null beim Ewigen Licht).</summary>
+    private static Feuer? FlammeVon(Node knoten) => knoten.GetNodeOrNull<Feuer>("Flamme");
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Feste Lichter
@@ -152,12 +216,41 @@ public partial class Stadtansicht
         public required Vector3 Versatz { get; init; }
         public required Lichtart Art { get; init; }
         public float Phase { get; init; }
+        /// <summary>Die echte Flamme dieses Lichts: Ihr Bild bestimmt, wie das echte Licht und der Lichtfleck flackern.</summary>
+        public Feuer? Flamme { get; init; }
     }
 
     private readonly List<Lichtquelle> _lichtquellen = new();
 
-    private void LichtquelleMerken(Node3D knoten, Lichtart art) =>
-        _lichtquellen.Add(new Lichtquelle { Knoten = knoten, Versatz = FlammenOrt(art), Art = art, Phase = _lichtquellen.Count * 1.7f });
+    private void LichtquelleMerken(Node3D knoten, Lichtart art, Feuer? flamme = null) =>
+        _lichtquellen.Add(new Lichtquelle { Knoten = knoten, Versatz = FlammenOrt(art), Art = art, Phase = _lichtquellen.Count * 1.7f, Flamme = flamme });
+
+    /// <summary>
+    /// Wie hell ein Licht gerade flackert (um 1): nach dem Bild seiner Flamme (<see cref="Feuer.Lichtwert"/>, dieselbe Rechnung wie das Licht in der
+    /// Testszene), beim Ewigen Licht nach dem ruhigen Flackern der Lichter (<see cref="Feuer.Flackerwert"/>).
+    /// </summary>
+    private static float Flackern(Lichtquelle q)
+    {
+        var wert = q.Flamme is { } f && IsInstanceValid(f) ? f.Lichtwert() : Feuer.Flackerwert((float)Feuer.Zeit * 0.6f, (uint)(q.Phase * 997f) + 3u);
+        return 1f + (wert - 0.5f) * 2.4f * LichtFlackernVon(q.Art);
+    }
+
+    /// <summary>Flammen der festen Lichter nur, solange die Lichter brennen (bei Tag steht der Feuerkorb kalt, die Laterne ist aus).</summary>
+    private void FesteFlammenStellen()
+    {
+        var an = _lampenAn > TragenAb;
+        if (an == _festeFlammenAn) return;
+        _festeFlammenAn = an;
+        _festeFlammen.RemoveAll(f => !IsInstanceValid(f));
+        foreach (var f in _festeFlammen) f.Visible = an;
+    }
+
+    private void FesteFlammeMerken(Feuer? flamme)
+    {
+        if (flamme is null) return;
+        flamme.Visible = _festeFlammenAn;
+        _festeFlammen.Add(flamme);
+    }
 
     /// <summary>
     /// Hängt die Lichter an die Anker eines eben eingesetzten Modells: <c>Anker_Feuer_&lt;n&gt;</c> einen Feuerkorb, <c>Anker_Laterne</c> eine
@@ -174,7 +267,9 @@ public partial class Stadtansicht
                     : (Lichtart?)null;
             if (art is not { } a || LichtKnoten(a, _lichtquellen.Count) is not { } licht) continue;
             anker.AddChild(licht);
-            LichtquelleMerken(licht, a);
+            var flamme = FlammeVon(licht);
+            FesteFlammeMerken(flamme);
+            LichtquelleMerken(licht, a, flamme);
         }
     }
 
@@ -188,9 +283,11 @@ public partial class Stadtansicht
         eltern.AddChild(new MultiMeshInstance3D { Name = "Torfeuer", Multimesh = vielfach, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         foreach (var lage in lagen)
         {
-            var marke = new Node3D { Name = "Feuerstelle", Transform = lage };
+            var marke = new Node3D { Name = "Feuerstelle", Transform = lage * teil.Lage };
             eltern.AddChild(marke);
-            LichtquelleMerken(marke, Lichtart.Feuerkorb);
+            var flamme = FlammeAnhaengen(marke, Lichtart.Feuerkorb, _lichtquellen.Count);
+            FesteFlammeMerken(flamme);
+            LichtquelleMerken(marke, Lichtart.Feuerkorb, flamme);
         }
         LichterStoffStellen();
     }
@@ -223,14 +320,14 @@ public partial class Stadtansicht
     {
         var skelett = figur.Modell.FindChild("Skelett", true, false) as Skeleton3D
                       ?? figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
-        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer) is not { } lampe) return null;
+        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer, inHand: true) is not { } lampe) return null;
         var anhang = new BoneAttachment3D { Name = "Licht", Visible = false };
         skelett.AddChild(anhang);
         anhang.BoneName = "Unterarm_R";
         var halter = new Node3D { Position = new Vector3(0, HandAbstand(volk), 0), Basis = new Basis(Vector3.Right, Mathf.Pi) };
         anhang.AddChild(halter);
         halter.AddChild(lampe);
-        _lichtquellen.Add(new Lichtquelle { Knoten = lampe, Versatz = FlammenOrt(art), Art = art, Phase = nummer * 0.37f });
+        _lichtquellen.Add(new Lichtquelle { Knoten = lampe, Versatz = FlammenOrt(art), Art = art, Phase = nummer * 0.37f, Flamme = FlammeVon(lampe) });
         return new Traglicht { Anhang = anhang };
     }
 
@@ -474,7 +571,6 @@ public partial class Stadtansicht
             frei.Ziel = 1;
         }
 
-        var zeit = Time.GetTicksMsec() / 1000.0;
         for (var i = 0; i < _lichtPool.Count; i++)
         {
             var p = _lichtPool[i];
@@ -488,12 +584,10 @@ public partial class Stadtansicht
                 continue;
             }
             var (farbe, staerke, reichweite2) = PunktLicht(p.Quelle.Art);
-            var t = zeit * (p.Quelle.Art == Lichtart.Feuerkorb || p.Quelle.Art == Lichtart.Fackel ? 1.6 : 1.0) + p.Quelle.Phase * 7;
-            var flackern = 1 + 0.12 * (0.55 * Math.Sin(t * 9.1) + 0.3 * Math.Sin(t * 23.7 + 1.3) + 0.15 * Math.Sin(t * 41.0 + 2.1));
             var tag = p.Quelle.Art == Lichtart.EwigesLicht ? Mathf.Max(_lampenAn, 0.22f) : _lampenAn;
             p.Licht.GlobalPosition = p.Quelle.Knoten.GlobalTransform * p.Quelle.Versatz;
             p.Licht.LightColor = farbe;
-            p.Licht.LightEnergy = staerke * p.Stand * tag * (float)flackern;
+            p.Licht.LightEnergy = staerke * p.Stand * tag * Flackern(p.Quelle); // im Takt der Flamme (Bild des Flipbooks)
             p.Licht.OmniRange = reichweite2;
             if (!p.Licht.Visible) p.Licht.Visible = true;
         }
@@ -507,7 +601,9 @@ public partial class Stadtansicht
     private void NachtlichterAktualisieren(double delta)
     {
         _lampenAn = _daemmerung; // der gemeinsame Dämmerungswert aus Stadtansicht.Licht.cs: keine eigenen Zeiten
+        Feuer.Umgebung = Mathf.Clamp(1f - _daemmerung, 0f, 1f); // der Rauch wird nachts dunkler (Feuer.cs)
         if (_lichterGeladen) LichterStoffStellen();
+        FesteFlammenStellen();
         LichterPoolStellen(delta);
         if (_fleckBoden is null) FleckenEinrichten();
         LichtfleckenStellen(); // Stadtansicht.Lichtflecken.cs: jede Flamme leuchtet, auch ohne echtes Licht
