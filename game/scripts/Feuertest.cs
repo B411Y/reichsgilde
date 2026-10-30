@@ -13,7 +13,9 @@ namespace Reichsgilde;
 /// <c>--feuerart=A|B|keins|beide</c>, <c>--feuerstufe=vergleich|niedrig|mittel|hoch</c>, <c>--feuerfassung=sim|rauschen</c>,
 /// <c>--feuerlicht=0|1</c>, <c>--feuerfackeln=&lt;n&gt;</c> (Messung: n Fackeln im Raster, mit <c>--feuerlichter=&lt;m&gt;</c> echten Lichtern).
 /// Tasten: 1–7 oder Pfeile = Paar, V = Sicht, N = Tag/Nacht, G = Ansicht (Vergleich, Niedrig, Mittel, Hoch), F = Fassung von A, T = A/B/beide/keins,
-/// L = Lichter, H = Beschriftung, rechte Maustaste ziehen = drehen, Rad = nähern, Esc = Ende. Im Protokoll steht jede Sekunde die Bildrate.
+/// L = Lichter, B = Beschriftung, Esc = Ende. Im Protokoll steht jede Sekunde die Bildrate.
+/// Die Kamera ist eine <see cref="FreieKamera"/> (Nutzer 30.10.2026: jede Testszene startet mit ihr): rechte Maustaste halten = umsehen,
+/// W/A/S/D/Q/E = fahren, Shift = schneller, Mausrad = Tempo, H = ihre Hilfe. 1–7, Pfeile und V setzen sie auf die Ansicht des Paars bzw. der Sicht.
 /// </summary>
 public partial class Feuertest : Node
 {
@@ -73,7 +75,8 @@ public partial class Feuertest : Node
     private int _zyklusNr;
     private double _zyklusSekunden, _zyklusZeit;
     private string _zustand = "-";
-    private float _gierung, _neigung = 10f, _nahFaktor = 1f, _zoomFaktor = 1f;
+    /// <summary>Neigung (Grad) des Blicks in der Sicht „nah“ und in den Sichten „Stadt“/„fern“ (wie die Stadtkamera des Spiels).</summary>
+    private const float NahNeigung = 10f, StadtNeigung = 40f;
 
     private readonly List<Feuer> _feuer = new();
     private readonly List<Node3D> _wurzelA = new(), _wurzelB = new();   // je Paar eine Wurzel links (A) und rechts (B)
@@ -82,8 +85,7 @@ public partial class Feuertest : Node
 
     private WorldEnvironment _umgebung = null!;
     private DirectionalLight3D _sonne = null!;
-    private Camera3D _kamera = null!;
-    private Node3D _kameraDrehung = null!, _kameraNeigung = null!;
+    private FreieKamera _kamera = null!;
     private Label _anzeige = null!, _hilfe = null!;
 
     private double _messZeit, _messCpu, _messGpu;
@@ -495,47 +497,51 @@ public partial class Feuertest : Node
 
     private void KameraBauen()
     {
-        _kameraDrehung = new Node3D { Name = "Kameradrehung" };
-        AddChild(_kameraDrehung);
-        _kameraNeigung = new Node3D { Name = "Kameraneigung" };
-        _kameraDrehung.AddChild(_kameraNeigung);
-        _kamera = new Camera3D { Name = "Kamera", Current = true };
-        _kameraNeigung.AddChild(_kamera);
+        // Ort und Ziel setzt gleich SichtSetzen; der Boden liegt bei y = 0, die Kamera bleibt darüber
+        _kamera = FreieKamera.Einhaengen(this, new Vector3(0, 2, 10), Vector3.Zero);
+        _kamera.Bodenhoehe = (_, _) => 0f;
+        _kamera.MindestHoehe = 0.15f;
     }
 
+    /// <summary>
+    /// Setzt die freie Kamera auf die Ansicht der gewählten Sicht (Sprung, danach fliegt man frei weiter). Die Kamera bleibt perspektivisch (Fov 60):
+    /// „nah“ blickt wie die Raumansicht des Spiels (dort Fov 50) leicht von oben auf das Paar, der Abstand ist so umgerechnet, dass das Paar gleich groß
+    /// erscheint; „Stadt“ und „fern“ blicken 40° von oben wie die Stadtkamera, aus dem Abstand, in dem das Bild so hoch ist wie deren Orthobild
+    /// (Größe 25 bzw. 95 m).
+    /// </summary>
     private void SichtSetzen()
     {
         var paar = _fackeln > 0 ? null : Paare[_paar];
         var zMitte = _zPaar.Length == 0 ? 0f : (_fackeln > 0 ? 0f : _zPaar[_paar]);
+        var halbFov = Mathf.DegToRad(_kamera.Fov * 0.5f);
+        Vector3 ziel;
+        float abstand, neigung;
         switch (_sicht)
         {
             case Sicht.Nah:
-                // Wie die Raumansicht des Spiels: Perspektive, Fov 50, ganz nah am Feuer
-                _kamera.Projection = Camera3D.ProjectionType.Perspective;
-                _kamera.Fov = 50;
-                _kamera.Near = 0.03f;
-                _kamera.Far = 400f;
-                _kameraDrehung.Position = new Vector3(0, paar?.NahHoehe ?? 1.5f, zMitte);
-                _kamera.Position = new Vector3(0, 0, (paar?.NahAbstand ?? 12f) * _nahFaktor);
-                _kameraNeigung.RotationDegrees = new Vector3(-_neigung, 0, 0);
-                Feuer.AusblendenZuschlag = 0f;
+                ziel = new Vector3(0, paar?.NahHoehe ?? 1.5f, zMitte);
+                abstand = (paar?.NahAbstand ?? 12f) * Mathf.Tan(Mathf.DegToRad(25f)) / Mathf.Tan(halbFov);
+                neigung = NahNeigung;
                 break;
-            case Sicht.Stadt:
-            case Sicht.Fern:
-                // Wie die Stadtkamera: Orthokamera 40° von oben, 150 m Abstand, Größe 25 (nächster Zoom) bzw. 95 (weitester)
-                _kamera.Projection = Camera3D.ProjectionType.Orthogonal;
-                _kamera.Size = (_sicht == Sicht.Stadt ? 25f : 95f) * _zoomFaktor;
-                _kamera.Near = 1f;
-                _kamera.Far = 400f;
+            default:
                 var mitte = _sicht == Sicht.Fern && _fackeln == 0 ? (_zPaar.Length > 0 ? _zPaar[^1] * 0.5f : 0f) : zMitte;
-                _kameraDrehung.Position = new Vector3(0, 0, mitte);
-                _kamera.Position = new Vector3(0, 0, 150f);
-                _kameraNeigung.RotationDegrees = new Vector3(-40f, 0, 0);
-                Feuer.AusblendenZuschlag = 150f;
+                ziel = new Vector3(0, 0, mitte);
+                abstand = (_sicht == Sicht.Stadt ? 25f : 95f) * 0.5f / Mathf.Tan(halbFov);
+                neigung = StadtNeigung;
                 break;
         }
-        _kameraDrehung.RotationDegrees = new Vector3(0, _gierung, 0);
+        // Der Blick geht nach Norden (−z): die Kamera steht südlich (+z) des Ziels und um die Neigung erhöht
+        var n = Mathf.DegToRad(neigung);
+        _kamera.Blicken(ziel + new Vector3(0, Mathf.Sin(n), Mathf.Cos(n)) * abstand, ziel);
+        // Die Lichter blenden nach dem echten Abstand zur Kamera aus (der Zuschlag ist für die Orthokamera des Spiels in 150 m Abstand)
+        Feuer.AusblendenZuschlag = 0f;
         foreach (var f in _feuer) f.AusblendenNeu();
+        SichtbarkeitSetzen();
+    }
+
+    /// <summary>Paare und Beschriftungen nach Sicht und Ansicht zeigen, ohne die Kamera zu bewegen.</summary>
+    private void SichtbarkeitSetzen()
+    {
         PaareSichtbar();
         BeschriftungSetzen();
     }
@@ -592,7 +598,7 @@ public partial class Feuertest : Node
             ebene.AddChild(l);
         }
         _hilfe.Text = "1–7 / Pfeile: Paar   V: Sicht (nah, Stadt, fern)   N: Nacht/Tag   G: Ansicht (Vergleich, Niedrig, Mittel, Hoch)   F: Fassung von A (Simulation/Rauschen)\n" +
-                      "T: A / B / beide / keins   L: Lichter   H: Beschriftung   Rechte Maustaste ziehen: drehen   Mausrad: nähern   Esc: Ende";
+                      "T: A / B / beide / keins   L: Lichter   B: Beschriftung   Esc: Ende   (1–7 und V setzen die freie Kamera auf die Ansicht)";
         AnzeigeAktualisieren(0);
     }
 
@@ -617,13 +623,13 @@ public partial class Feuertest : Node
                     case >= Key.Key1 and <= Key.Key7: PaarWaehlen((int)k.Keycode - (int)Key.Key1); break;
                     case Key.Right: PaarWaehlen((_paar + 1) % Paare.Length); break;
                     case Key.Left: PaarWaehlen((_paar + Paare.Length - 1) % Paare.Length); break;
-                    case Key.V: _sicht = (Sicht)(((int)_sicht + 1) % 3); _zoomFaktor = 1f; SichtSetzen(); break;
+                    case Key.V: _sicht = (Sicht)(((int)_sicht + 1) % 3); SichtSetzen(); AnzeigeAktualisieren(0); break;
                     case Key.N: _tag = !_tag; TagNachtSetzen(); break;
                     case Key.T: _zeigen = (Zeigen)(((int)_zeigen + 1) % 4); ZeigenSetzen(); break;
                     case Key.G when _fackeln == 0:
                         _ansicht = (Ansicht)(((int)_ansicht + 1) % 4);
                         FeuerNeuBauen();
-                        SichtSetzen();
+                        SichtbarkeitSetzen();   // die freie Kamera bleibt, wo sie ist
                         AnzeigeAktualisieren(0);
                         break;
                     case Key.F when _fackeln == 0:
@@ -635,36 +641,18 @@ public partial class Feuertest : Node
                         _licht = !_licht;
                         foreach (var f in _feuer) f.LichtSetzen(_licht);
                         break;
-                    case Key.H: _beschriftung = !_beschriftung; ZeigenSetzen(); break;
+                    case Key.B: _beschriftung = !_beschriftung; ZeigenSetzen(); break;   // H gehört der freien Kamera (ihre Hilfe)
                     case Key.Escape: GetTree().Quit(); break;
                 }
                 break;
-            case InputEventMouseMotion { ButtonMask: MouseButtonMask.Right } bewegung:
-                _gierung -= bewegung.Relative.X * 0.3f;
-                _neigung = Mathf.Clamp(_neigung + bewegung.Relative.Y * 0.2f, -5f, 80f);
-                SichtSetzen();
-                break;
-            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp }:
-                Naehern(0.88f);
-                break;
-            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown }:
-                Naehern(1.14f);
-                break;
+            // Rechte Maustaste und Mausrad gehören der freien Kamera (umsehen, Tempo)
         }
-    }
-
-    private void Naehern(float faktor)
-    {
-        if (_sicht == Sicht.Nah) _nahFaktor = Mathf.Clamp(_nahFaktor * faktor, 0.2f, 5f);
-        else _zoomFaktor = Mathf.Clamp(_zoomFaktor * faktor, 0.2f, 3f);
-        SichtSetzen();
     }
 
     private void PaarWaehlen(int i)
     {
         if (_fackeln > 0) return;
         _paar = Math.Clamp(i, 0, Paare.Length - 1);
-        _nahFaktor = 1f;
         SichtSetzen();
         AnzeigeAktualisieren(0);
     }
