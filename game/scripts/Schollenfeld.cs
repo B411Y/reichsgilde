@@ -79,6 +79,16 @@ public sealed class Schollenfeld
     private readonly float _halbMax, _rStossMax;
     private uint _zufall;
 
+    private static readonly StringName ParamEisFest = "eis_fest", ParamEisTauen = "eis_tauen";
+
+    /// <summary>Messung des Verhaltens (nur mit <c>--schollenmessung=1</c>, sonst null): <see cref="MessungAn"/> vor dem Bau setzen.</summary>
+    public Schollenmessung? Messung { get; }
+    public static bool MessungAn;
+    private readonly Schollenmessung.Daten? _messDaten;
+
+    /// <summary>Name des Laufs (für das Protokoll).</summary>
+    public string Name { get; }
+
     /// <summary>Der Knoten mit den Schollen-Netzen (in die Szene hängen).</summary>
     public Node3D Knoten { get; }
 
@@ -111,6 +121,7 @@ public sealed class Schollenfeld
         Func<Vector2, float, bool>? festFrei = null)
     {
         _lauf = lauf;
+        Name = name;
         _laenge = lauf.Length - 1;
         _tempo = Mathf.Max(tempo, 0.05f) * 0.9f;
         _randeis = randeis;
@@ -157,6 +168,19 @@ public sealed class Schollenfeld
         }
 
         if (stufe > Wasserstufe.Niedrig) FesteBauen(saat, festFrei);
+
+        if (MessungAn)
+        {
+            _messDaten = new Schollenmessung.Daten
+            {
+                Plaetze = n, S = _s, Q = _q, Vs = _vs, Vq = _vq, Om = _om, R0 = new float[n], Zustand = new byte[n], Ereignis = new byte[n],
+                KreisS = _s, KreisQ = _q, KreisR = _rStoss, KreisSchritt = 1, Laenge = _laenge,
+            };
+            for (var i = 0; i < n; i++) _messDaten.R0[i] = _schollen[i].Halbmesser;
+            var pf = new List<(float, float, float)>();
+            foreach (var h in _festeHindernisse) pf.Add((h.Quer, h.Stelle, h.HalbQuer));
+            Messung = new Schollenmessung(_messDaten, pf, s => Platz(s, 1f));
+        }
     }
 
     private (MultiMeshInstance3D, float[]) Teil(string name, ArrayMesh netz)
@@ -481,16 +505,35 @@ public sealed class Schollenfeld
     /// </summary>
     public void Bild(double delta, Camera3D? kamera, float eis, float schollenAn, List<Hindernis> beweglich, float tauen = 0f)
     {
+        if (Messung is null)
+        {
+            BildRechnen(delta, kamera, eis, schollenAn, beweglich, tauen);
+            return;
+        }
+        var bytes = GC.GetAllocatedBytesForCurrentThread();
+        Array.Clear(_messDaten!.Ereignis);
+        BildRechnen(delta, kamera, eis, schollenAn, beweglich, tauen);
+        bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+        if (!Knoten.Visible || Gezeichnet == 0 && Aktiv == 0) return;
+        for (var i = 0; i < _schollen.Length; i++)
+            _messDaten.Zustand[i] = _rStoss[i] <= 0 ? Schollenmessung.Aus : _weg[i] ? Schollenmessung.Draussen : Schollenmessung.ImFenster;
+        Messung.Bild(delta, _sKameraZuletzt, Beruehrungen, SimulationMs, bytes);
+    }
+
+    private float _sKameraZuletzt;
+
+    private void BildRechnen(double delta, Camera3D? kamera, float eis, float schollenAn, List<Hindernis> beweglich, float tauen)
+    {
         _zeit += delta;
         if (MathF.Abs(eis - _eisFestZuletzt) > 0.0005f)
         {
             _eisFestZuletzt = eis;
-            Stoff.SetShaderParameter("eis_fest", eis);
+            Stoff.SetShaderParameter(ParamEisFest, eis);
         }
         if (MathF.Abs(tauen - _tauenZuletzt) > 0.0005f)
         {
             _tauenZuletzt = tauen;
-            Stoff.SetShaderParameter("eis_tauen", tauen);
+            Stoff.SetShaderParameter(ParamEisTauen, tauen);
         }
         var dichte = schollenAn * Mathf.SmoothStep(0.15f, 0.85f, eis) * Mathf.Lerp(0.75f, 1f, Mathf.SmoothStep(0f, 0.3f, tauen))
                      * (1f - Mathf.SmoothStep(0.65f, 1f, tauen));
@@ -516,15 +559,15 @@ public sealed class Schollenfeld
         (Pruefungen, Beruehrungen, Teilschritte, StoesseMs) = (0, 0, schritte, 0);
         var augeXz = new Vector2(kamera.GlobalPosition.X, kamera.GlobalPosition.Z);
         var sKamera = InLaufachsen(augeXz, ref _kameraTipp).Stelle;
+        _sKameraZuletzt = sKamera;
         // Das Randeis bricht im Eisgang weg: Die Schollen bekommen nach und nach die ganze Breite
         var eisRand = eis * (1f - Mathf.SmoothStep(0.15f, 0.85f, tauen));
         for (var k = 0; k < schritte; k++) Schritt(dt, dichte, eisRand, beweglich, sKamera);
         SimulationMs = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 
-        var ebenen = kamera.GetFrustum();
+        // Sichtkegel ohne Speicheranforderung (GetFrustum legt jedes Bild ein neues Feld an): Ebenen der Projektion, in die Welt gedreht
         Span<Plane> plan = stackalloc Plane[6];
-        var zahlEbenen = Math.Min(ebenen.Count, 6);
-        for (var i = 0; i < zahlEbenen; i++) plan[i] = ebenen[i];
+        var zahlEbenen = Sichtkegel(kamera, plan);
         var auge = kamera.GlobalPosition;
         var (nahZahl, fernZahl) = (0, 0);
 
@@ -567,6 +610,30 @@ public sealed class Schollenfeld
         Schreiben(_nah, _pufferNah, nahZahl);
         Schreiben(_fern, _pufferFern, fernZahl);
         Gezeichnet = nahZahl + fernZahl;
+    }
+
+    private static bool _kegelGeprueft;
+
+    /// <summary>
+    /// Die sechs Ebenen des Sichtkegels in der Welt (Normalen nach außen, wie <see cref="Camera3D.GetFrustum"/>), ohne Speicheranforderung. Beim
+    /// ersten Aufruf einmal gegen GetFrustum geprüft (Protokoll, wenn sie abweichen).
+    /// </summary>
+    public static int Sichtkegel(Camera3D kamera, Span<Plane> plan)
+    {
+        var proj = kamera.GetCameraProjection();
+        var lage = kamera.GetCameraTransform();
+        for (var i = 0; i < 6; i++) plan[i] = lage * proj.GetProjectionPlane((Projection.Planes)i);
+        if (!_kegelGeprueft)
+        {
+            _kegelGeprueft = true;
+            var echt = kamera.GetFrustum();
+            var abweichung = 0f;
+            for (var i = 0; i < Math.Min(echt.Count, 6); i++)
+                abweichung = Mathf.Max(abweichung, (echt[i].Normal - plan[i].Normal).Length() + Mathf.Abs(echt[i].D - plan[i].D) / Mathf.Max(1f, Mathf.Abs(echt[i].D)));
+            if (abweichung > 1e-3f) GD.PushWarning($"[wasser] Sichtkegel der Schollen weicht von GetFrustum ab ({abweichung:0.0000})");
+            else GD.Print($"[wasser] Sichtkegel der Schollen gleich GetFrustum (Abweichung {abweichung:0.000000})");
+        }
+        return 6;
     }
 
     /// <summary>
@@ -782,6 +849,7 @@ public sealed class Schollenfeld
         _s[i] += nS * tief;
         _q[i] += nQ * tief;
         var vn = _vs[i] * nS + _vq[i] * nQ;
+        if (_messDaten is not null && vn < -0.2f && (!pfeiler || _pfeilerSchritt[i] < _schritt - 1)) _messDaten.Ereignis[i] |= Schollenmessung.EreignisAufprall;
         if (vn < 0)
         {
             // in die Wand hinein: umkehren, kaum federnd; längs der Wand nur leichte Reibung (sonst klebte sie am Pfeiler)

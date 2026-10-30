@@ -27,7 +27,10 @@ public partial class Stadtansicht
     /// <summary>Halbe Ausdehnung des Prahms der Fähre (quer zum Fluss, also entlang der Fährlinie, und längs) und eines Kahns am Kai.</summary>
     private const float PrahmQuer = 6.2f, PrahmLaengs = 2.6f, KahnQuer = 2.2f, KahnLaengs = 7f;
 
-    /// <summary>Startoption <c>--schollenmessung=1</c>: alle 10 s Rechenzeit der Simulation und Zahl der Schollen ins Protokoll.</summary>
+    /// <summary>
+    /// Startoption <c>--schollenmessung=1</c>: alle 10 s Rechenzeit der Simulation und Zahl der Schollen ins Protokoll, dazu das Verhalten
+    /// (<see cref="Schollenmessung"/>: Drehen, Sprünge, Stau, Speicher je Bild).
+    /// </summary>
     private static readonly bool SchollenMessung = OS.GetCmdlineUserArgs().Contains("--schollenmessung=1");
 
     private double _schollenMessZeit, _schollenMessSumme;
@@ -72,6 +75,8 @@ public partial class Stadtansicht
             feld.Bild(delta, kamera, Wasserarten.EisFortschritt(art, _wasserWinter), art.Schollen, _schollenBeweglich, _wasserTauen);
         }
         if (!SchollenMessung) return;
+        foreach (var (feld, _) in _schollenFelder)
+            if (feld.Messung?.Zeile() is { } verhalten) GD.Print(verhalten + $" ({feld.Name})");
         foreach (var (feld, _) in _schollenFelder) _schollenMessSumme += feld.SimulationMs;
         _schollenMessBilder++;
         _schollenMessZeit += delta;
@@ -96,6 +101,7 @@ public partial class Stadtansicht
             if (abstand < punkte[(int)Mathf.Clamp(stelle, 0, punkte.Length - 1)].Halb + 4f)
                 hindernisse.Add(new(quer, stelle, halbQuer, halbLaengs));
         }
+        Schollenfeld.MessungAn = SchollenMessung;
         var feld = new Schollenfeld(punkte, (float)lauf.Stroemung, art.EisReichweite, (int)(saat * 100), _wasserStufe, hindernisse, lauf.Name,
             FesteSchollenFrei(lauf));
         Wasserarten.WellenSetzen(feld.Stoff, art, Vector2.Up, lauf: true, fliesst: true, Wasserarten.NetzAbstand(_wasserStufe), saat);
