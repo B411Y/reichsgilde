@@ -54,11 +54,11 @@ public sealed class Schollensimulation
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Fester Schritt der Simulation (s) und höchstens so viele je Bild (darunter läuft sie langsamer als die Uhr).</summary>
-    public const float H = 1f / 20f;
+    public const float H = 1f / 15f;
     public const int MaxSchritte = 3;
 
     /// <summary>Weichheit der Kontakte: Frequenz (Hz) und Dämpfung (Box2D: contactHertz, contactDampingRatio).</summary>
-    public static float KontaktHz = 10f, Daempfung = 10f;
+    public static float KontaktHz = 10f, Daempfung = 5f;
 
     /// <summary>Höchstes Ausschiebetempo (m/s): Eis gegen Eis, an Hindernissen, an der Eiskante.</summary>
     public static float SchubEis = 0.3f, SchubHindernis = 0.5f, SchubKante = 0.5f;
@@ -93,6 +93,12 @@ public sealed class Schollensimulation
     public static float LastVon = 20f, LastBis = 40f;
 
     private const float StossFenster = 160f, Zelle = 3f, UferAbstand = 0.8f, Rand = 0.12f;
+
+    /// <summary>
+    /// Kontakte neu suchen spätestens nach so viel Simulationszeit (s); dazwischen gilt die Liste weiter (Warmstart von selbst). Der Vorlauf jedes
+    /// Kontakts reicht für <see cref="SuchVorlauf"/> s beim Tempo, mit dem sich die beiden nähern.
+    /// </summary>
+    private const float SuchAbstand = 0.15f, SuchVorlauf = 0.2f;
     private const int Ecken = 24;
     public const int SaatZahl = 2048;
     private const float Tau = Mathf.Tau;
@@ -175,7 +181,8 @@ public sealed class Schollensimulation
     public readonly float[] ZS, ZQ, ZW, ZR, ZDicke, ZM, ZKipp, ZSenk;
 
     // Gitter
-    private readonly int[] _kopf, _naechster, _fenster;
+    private readonly int[] _kopf, _naechster, _fenster, _sortiert, _zelleVon, _pI;  // Gitter: Anfang je Zelle, Zähler, sortierte Plätze
+    private readonly float[] _pS, _pQ, _pH, _pVs, _pVq;
     private readonly int _zellenS, _zellenQ;
     private int _fensterZahl;
     private float _huelleMax;
@@ -208,6 +215,7 @@ public sealed class Schollensimulation
     private readonly float[] _brueckeS;
     private readonly int[][] _brueckePfeiler;
     private readonly float[] _pfLast, _pfSchwelle, _pfKraft, _pfMaxKraft;
+    private readonly float _hindernisVon = float.MaxValue, _hindernisBis = float.MinValue; // Stellen der festen Hindernisse
     private readonly int[] _pfMaxScholle;
     private List<Hindernis> _beweglich = new();
 
@@ -215,8 +223,13 @@ public sealed class Schollensimulation
     public float SBlick { get; private set; }
 
     private float _fensterVon, _fensterBis, _brueckeVon = 1, _brueckeBis = 0;
-    private float _dichte, _eisRand, _tauen, _bruchKonto = 3f;
+    private float _dichte, _eisRand, _tauen, _bruchKonto = 3f, _seitSuche = 1f;
+    private bool _suchen = true; // Liste der Kontakte gilt nicht mehr (neu im Fenster, Bruch, Tauchen, Platz frei oder neu belegt)
     private bool _erstesBild = true;
+    private int _treibenRunde, _bildNr, _pendelnBild = -1, _suchNr;
+    private readonly int[] _inListe; // Nummer der Suche, in der die Scholle zuletzt einen Kontakt bekam
+    private readonly float[] _pendeln;
+    private readonly float _drehSperreK = MathF.Exp(-H / DrehSperreTau);
 
     /// <summary>Für die Messung (null ohne <c>--schollenmessung</c>).</summary>
     public Schollenmessung? Messung { get; }
@@ -272,12 +285,14 @@ public sealed class Schollensimulation
         (ZS, ZQ, ZW, ZR, ZDicke, ZM, ZKipp, ZSenk) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0],
             new float[p0], new float[p0]);
         _frei = new int[p0];
-        (_neu, _huelle, _taucher) = (new bool[p0], new float[p0], new int[p0]);
-        _naechster = new int[p0];
+        (_neu, _huelle, _taucher, _pendeln, _inListe) = (new bool[p0], new float[p0], new int[p0], new float[p0], new int[p0]);
+        (_sortiert, _zelleVon, _pI) = (new int[p0], new int[p0], new int[p0]);
+        (_pS, _pQ, _pH, _pVs, _pVq) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
         _fenster = new int[p0];
         _zellenS = (int)MathF.Ceiling(_laenge / Zelle) + 1;
         _zellenQ = (int)MathF.Ceiling(2f * _halbMax / Zelle) + 1;
-        _kopf = new int[_zellenS * _zellenQ];
+        _kopf = new int[_zellenS * _zellenQ + 2];
+        _naechster = new int[_zellenS * _zellenQ + 2];
         _kMax = p0 * 8;
         (_kNeu, _kAlt) = (new Kontaktfeld(_kMax, p0), new Kontaktfeld(_kMax, p0));
         float[] F() => new float[_kMax];
@@ -320,6 +335,11 @@ public sealed class Schollensimulation
             _brueckePfeiler[b] = gruppen[b].ToArray();
         }
         (_pfLast, _pfSchwelle, _pfKraft, _pfMaxKraft, _pfMaxScholle) = (new float[feste.Count], new float[feste.Count], new float[feste.Count], new float[feste.Count], new int[feste.Count]);
+        foreach (var h in feste)
+        {
+            var weit = MathF.Max(MathF.Max(h.HalbLaengs, h.HalbQuer), 4.6f);
+            (_hindernisVon, _hindernisBis) = (MathF.Min(_hindernisVon, h.Stelle - weit), MathF.Max(_hindernisBis, h.Stelle + weit));
+        }
         for (var k = 0; k < feste.Count; k++) _pfSchwelle[k] = LastVon + (LastBis - LastVon) * Zufall();
 
         if (messung)
@@ -701,11 +721,13 @@ public sealed class Schollensimulation
         _rs[i] = Mathf.Max(SchmelzZiel(i, _tauen), 0.05f);
         _mTau[i] = Mathf.SmoothStep(0.45f, 0.85f, _tauen);
         Ereignis[i] |= Schollenmessung.EreignisVersetzt;
+        if (Zustand[i] == Schollenmessung.ImFenster) _suchen = true;
         if (Messung is not null) Messung.Nachschub++;
     }
 
     private void Freigeben(int i)
     {
+        if (Zustand[i] == Schollenmessung.ImFenster) _suchen = true; // der Platz kann gleich neu belegt werden
         _stamm[i] = -1;
         Zustand[i] = Schollenmessung.Aus;
         _tauchen[i] = 0;
@@ -726,6 +748,7 @@ public sealed class Schollensimulation
     {
         var start = System.Diagnostics.Stopwatch.GetTimestamp();
         _zeit += delta;
+        _bildNr++;
         (_dichte, _eisRand, _tauen, _beweglich) = (dichte, eisRand, tauen, beweglich);
         Array.Clear(Ereignis);
         _sammler += (float)Math.Min(delta, 0.25);
@@ -739,15 +762,18 @@ public sealed class Schollensimulation
         Teilschritte = schritte;
         var dt = schritte * H;
         SBlick = sBlick;
-        GroesseNachfuehren(dt);
-        FensterSetzen(sBlick);
+        PlaetzeNachfuehren(dt, sBlick);
         SucheMs = LoesenMs = 0;
         if (schritte > 0)
         {
-            Treiben(dt);
             var t0 = System.Diagnostics.Stopwatch.GetTimestamp();
-            Suchen(dt);
-            FrischeTrennen();
+            if (_suchen || _seitSuche + dt > SuchAbstand + 1e-4f)
+            {
+                Suchen();
+                FrischeTrennen();
+                (_seitSuche, _suchen) = (0f, false);
+            }
+            _seitSuche += dt;
             SucheMs = System.Diagnostics.Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
             t0 = System.Diagnostics.Stopwatch.GetTimestamp();
             for (var x = 0; x < _fensterZahl; x++)
@@ -759,21 +785,34 @@ public sealed class Schollensimulation
             LoesenMs = System.Diagnostics.Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
             NachDenSchritten(dt);
         }
-        Zeichenlage();
+        Abschluss(schritte > 0);
         _erstesBild = false;
         SimulationMs = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
     }
 
     /// <summary>
-    /// Halbmesser, Dicke, Schmelzgrad, Masse und Zug je Platz nachführen – nur, wo sich etwas ändert: Wachsen (Dichte, Enden des Laufs) gedrosselt
-    /// auf 0,12 m/s und nicht, solange die Scholle eine Nachbarin durchdringt; Schrumpfen 0,15 m/s; Schmelzen im Eisgang 4 mm/s; Schmelzgrad 1 %/s.
+    /// Je Platz einmal im Bild: Halbmesser, Dicke, Schmelzgrad, Masse und Zug nachführen – nur, wo sich etwas ändert: Wachsen (Dichte, Enden des
+    /// Laufs) gedrosselt auf 0,12 m/s und nicht, solange die Scholle eine Nachbarin durchdringt; Schrumpfen 0,15 m/s; Schmelzen im Eisgang 4 mm/s;
+    /// Schmelzgrad 1 %/s. Dann das Stoßfenster (±160 m um den Blickpunkt, eine Brücke näher als 220 m von 60 m stromauf bis 10 m stromab), wer neu
+    /// hineinkommt, und die Listen der Schollen im Fenster und der tauchenden.
     /// </summary>
-    private void GroesseNachfuehren(float dt)
+    private void PlaetzeNachfuehren(float dt, float sBlick)
     {
         var mZiel = Mathf.SmoothStep(0.45f, 0.85f, _tauen);
         var schmelzen = _tauen > 0.3f;
         var ende0 = 14f;
         var ende1 = _laenge - 14f;
+        (_brueckeVon, _brueckeBis) = (1f, 0f);
+        var beste = float.MaxValue;
+        for (var b = 0; b < _brueckeS.Length; b++)
+        {
+            var a = MathF.Abs(_brueckeS[b] - sBlick);
+            if (a < 220f && a < beste) (beste, _brueckeVon, _brueckeBis) = (a, _brueckeS[b] - 60f, _brueckeS[b] + 10f);
+        }
+        var aktiv = 0;
+        (_fensterZahl, _taucherZahl) = (0, 0);
+        _treibenRunde = (_treibenRunde + 1) & 3;
+        var k4 = 1f - MathF.Exp(-4f * dt / 5f);
         for (var i = 0; i < _plaetze; i++)
         {
             var stamm = _stamm[i];
@@ -813,58 +852,37 @@ public sealed class Schollensimulation
                 if (_sperre[i] > 0) _sperre[i] -= dt;
                 if (_duldung[i] > 0) _duldung[i] = MathF.Max(0f, _duldung[i] - 0.15f * dt);
             }
-            if (!neu) continue;
-            _neu[i] = false;
-            var m = MathF.Max(_mTau[i], _mAbrieb[i]);
-            _dk[i] = _schollen[stamm].Dicke * (1f - 0.5f * m);
-            var r = r0 * _rg[i] * _rs[i];
-            _r[i] = r;
-            ref readonly var f = ref _form[i];
-            var masse = MathF.Max(917f * f.A * r * r * MathF.Max(_dk[i], 0.02f), 1e-3f);
-            _invM[i] = 1f / masse;
-            _invI[i] = 1f / (masse * f.J * r * r + 1e-4f);
-            // Zug: Form (senkrechte Fläche 2 r × Tiefgang) und Reibung (Fläche), quadratisch; dazu ein kleiner linearer Anteil
-            var rd = r * MathF.Sqrt(f.A / MathF.PI);
-            _drag[i] = MathF.PI * 1000f * (ZugForm * 2f * rd * 0.9f * _dk[i] + ZugFlaeche * rd * rd) * _invM[i];
-            _dragLin[i] = 1f / (ZugLinear + ZugLinearJeM * rd);
-            _drehK[i] = 1f - MathF.Exp(-H / (DrehTau + DrehTauJeM * rd));
-        }
-    }
-
-    private bool Stoesst(int i) => Zustand[i] == Schollenmessung.ImFenster && _tauchen[i] == 0 && _r[i] > 0.05f;
-
-    /// <summary>
-    /// Stoßfenster (±160 m um den Blickpunkt, eine Brücke näher als 220 m von 60 m stromauf bis 10 m stromab) und wer neu hineinkommt; Listen der
-    /// Schollen, die stoßen, und der tauchenden.
-    /// </summary>
-    private void FensterSetzen(float sBlick)
-    {
-        (_brueckeVon, _brueckeBis) = (1f, 0f);
-        var beste = float.MaxValue;
-        for (var b = 0; b < _brueckeS.Length; b++)
-        {
-            var a = MathF.Abs(_brueckeS[b] - sBlick);
-            if (a < 220f && a < beste) (beste, _brueckeVon, _brueckeBis) = (a, _brueckeS[b] - 60f, _brueckeS[b] + 10f);
-        }
-        var aktiv = 0;
-        (_fensterZahl, _taucherZahl) = (0, 0);
-        for (var i = 0; i < _plaetze; i++)
-        {
-            var stamm = _stamm[i];
-            if (stamm < 0) continue;
-            if (_rg[i] <= 0.001f && _schollen[stamm].Schwelle >= _dichte)
+            if (neu)
+            {
+                _neu[i] = false;
+                var m = MathF.Max(_mTau[i], _mAbrieb[i]);
+                _dk[i] = _schollen[stamm].Dicke * (1f - 0.5f * m);
+                var r = r0 * _rg[i] * _rs[i];
+                _r[i] = r;
+                ref readonly var f = ref _form[i];
+                var masse = MathF.Max(917f * f.A * r * r * MathF.Max(_dk[i], 0.02f), 1e-3f);
+                _invM[i] = 1f / masse;
+                _invI[i] = 1f / (masse * f.J * r * r + 1e-4f);
+                // Zug: Form (senkrechte Fläche 2 r × Tiefgang) und Reibung (Fläche), quadratisch; dazu ein kleiner linearer Anteil
+                var rd = r * MathF.Sqrt(f.A / MathF.PI);
+                _drag[i] = MathF.PI * 1000f * (ZugForm * 2f * rd * 0.9f * _dk[i] + ZugFlaeche * rd * rd) * _invM[i];
+                _dragLin[i] = 1f / (ZugLinear + ZugLinearJeM * rd);
+                _drehK[i] = 1f - MathF.Exp(-H / (DrehTau + DrehTauJeM * rd));
+            }
+            // Stoßfenster
+            if (_rg[i] <= 0.001f && schwelle >= _dichte)
             {
                 if (i >= _n) Freigeben(i);
                 else if (Zustand[i] != Schollenmessung.Aus) Zustand[i] = Schollenmessung.Aus;
                 continue;
             }
             aktiv++;
-            var s = _s[i];
             var ab = MathF.Abs(s - sBlick);
             ab = MathF.Min(ab, _laenge - ab);
             var drin = ab < StossFenster || (s > _brueckeVon && s < _brueckeBis);
             if (drin && Zustand[i] != Schollenmessung.ImFenster)
             {
+                // neu im Fenster (am Rand, wo niemand hinsieht): Kontakte mit der nächsten Suche, bis dahin trennt FrischeTrennen nichts
                 _frisch[i] = true;
                 _ohneWarm[i] = true;
                 Ereignis[i] |= Schollenmessung.EreignisVersetzt;
@@ -877,30 +895,31 @@ public sealed class Schollensimulation
                 Ereignis[i] |= Schollenmessung.EreignisTauchen;
             }
             else if (drin) _fenster[_fensterZahl++] = i;
+            else if (dt > 0) Treiben(i, dt, k4);
         }
         Aktiv = aktiv;
     }
 
+    private bool Stoesst(int i) => Zustand[i] == Schollenmessung.ImFenster && _tauchen[i] == 0 && _r[i] > 0.05f;
+
     /// <summary>
-    /// Außerhalb des Fensters: nur treiben, einmal je Bild – zum Tempo der Strömung (5 s), Drehung zur eigenen; an
-    /// Pfeilern seitlich vorbei. Gezeichnet ohne Mitteln.
+    /// Außerhalb des Fensters: nur treiben, einmal je Bild – zum Tempo der Strömung (5 s; nachgeführt jedes vierte Bild reihum), Drehung zur
+    /// eigenen; an Pfeilern seitlich vorbei. Gezeichnet ohne Mitteln.
     /// </summary>
-    private void Treiben(float dt)
+    private void Treiben(int i, float dt, float k4)
     {
-        var k = 1f - MathF.Exp(-dt / 5f);
-        for (var i = 0; i < _plaetze; i++)
+        if ((i & 3) == _treibenRunde)
         {
-            if (_stamm[i] < 0 || Zustand[i] != Schollenmessung.Draussen || _tauchen[i] != 0) continue;
             var us = _tempo * Profil(_q[i], HalbAn(_s[i]));
-            _vs[i] += (us - _vs[i]) * k;
-            _vq[i] -= _vq[i] * k;
-            _om[i] += (_schollen[_stamm[i]].Dreh - _om[i]) * k;
-            _s[i] += _vs[i] * dt;
-            _q[i] += _vq[i] * dt;
-            _w[i] += _om[i] * dt;
-            DraussenPfeiler(i);
-            (_sAlt[i], _qAlt[i], _wAlt[i]) = (_s[i], _q[i], _w[i]);
+            _vs[i] += (us - _vs[i]) * k4;
+            _vq[i] -= _vq[i] * k4;
+            _om[i] += (_schollen[_stamm[i]].Dreh - _om[i]) * k4;
         }
+        _s[i] += _vs[i] * dt;
+        _q[i] += _vq[i] * dt;
+        _w[i] += _om[i] * dt;
+        if (_s[i] > _hindernisVon - 6f && _s[i] < _hindernisBis + 6f) DraussenPfeiler(i);
+        (_sAlt[i], _qAlt[i], _wAlt[i]) = (_s[i], _q[i], _w[i]);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -936,16 +955,20 @@ public sealed class Schollensimulation
     private const float GrossAb = 2f;
 
     /// <summary>
-    /// Kontakte einmal je Bild suchen (Vorlauf: Rand + Weg im Bild), im Gitter von stromab nach stromauf; je Scholle zuerst Hindernisse und Eiskante,
-    /// dann die Nachbarn (kleine untereinander nur im nahen Umkreis, große suchen weiter). Die Stöße des letzten Bildes gehen über einen Schlüssel an
-    /// dieselben Kontakte (Warmstart).
+    /// Kontakte suchen (spätestens alle <see cref="SuchAbstand"/> s): Die Schollen im Fenster werden nach Zellen sortiert in dichte Felder gelegt
+    /// (Zählsortierung, gut für den Speicher), dann je Zelle von stromab nach stromauf: je Scholle zuerst Hindernisse und Eiskante, dann die Nachbarn
+    /// (kleine untereinander nur im nahen Umkreis, große suchen weiter). Vorlauf je Paar nach dem Tempo, mit dem sie sich nähern. Die Stöße der
+    /// letzten Liste gehen über einen Schlüssel an dieselben Kontakte (Warmstart).
     /// </summary>
-    private void Suchen(float dt)
+    private void Suchen()
     {
+        _suchNr++;
         (_kAlt, _kNeu) = (_kNeu, _kAlt);
         _huelleMax = 0;
+        // 1. Zellen der Schollen, die stoßen; Bereich der belegten Zeilen
         var csMin = int.MaxValue;
         var csMax = -1;
+        var zahl = 0;
         for (var x = 0; x < _fensterZahl; x++)
         {
             var i = _fenster[x];
@@ -960,90 +983,106 @@ public sealed class Schollensimulation
             _huelle[i] = h;
             _huelleMax = MathF.Max(_huelleMax, h);
             var z = Zellindex(_s[i], _q[i]);
+            _zelleVon[zahl] = z;
+            _sortiert[zahl++] = i;
             var cs = z / _zellenQ;
-            if (cs < csMin)
-            {
-                for (var c = Math.Max(cs, 0) * _zellenQ; c < (csMin == int.MaxValue ? cs + 1 : csMin) * _zellenQ; c++) _kopf[c] = -1;
-                csMin = cs;
-            }
-            if (cs > csMax)
-            {
-                for (var c = Math.Max(csMax + 1, csMin) * _zellenQ; c < (cs + 1) * _zellenQ; c++) _kopf[c] = -1;
-                csMax = cs;
-            }
-            _naechster[i] = _kopf[z];
-            _kopf[z] = i;
+            (csMin, csMax) = (Math.Min(csMin, cs), Math.Max(csMax, cs));
         }
-        var vorlauf = Rand + 1.2f * dt;
         _kZahl = 0;
+        if (zahl == 0) return;
+        // 2. Zählsortierung nach Zelle: Anfang jeder Zelle in _kopf (Zellen der belegten Zeilen), Daten dicht in _p*
+        var c0 = csMin * _zellenQ;
+        var c1 = (csMax + 1) * _zellenQ;
+        Array.Clear(_kopf, c0, c1 - c0 + 1);
+        for (var k = 0; k < zahl; k++) _kopf[_zelleVon[k] + 1]++;
+        for (var c = c0 + 1; c <= c1; c++) _kopf[c] += _kopf[c - 1];
+        for (var k = 0; k < zahl; k++)
+        {
+            var i = _sortiert[k];
+            var ziel = _naechster[_zelleVon[k]]++ + _kopf[_zelleVon[k]];
+            (_pI[ziel], _pS[ziel], _pQ[ziel], _pH[ziel], _pVs[ziel], _pVq[ziel]) = (i, _s[i], _q[i], _huelle[i], _vs[i], _vq[i]);
+        }
+        for (var k = 0; k < zahl; k++) _naechster[_zelleVon[k]] = 0; // Zähler der Zellen wieder auf 0
+        // 3. Kontakte; Vorlauf: fest (Rand, Drehung) plus der Weg, den sich zwei bis zur nächsten Suche nähern können (Tempounterschied × Zeit)
+        const float vorlaufFest = Rand + 0.03f;
+        var vorlaufMax = vorlaufFest + 2.5f * SuchVorlauf;
         var ueberlauf = 0L;
         var platzRand = _randeis * _eisRand * 1.5f + UferAbstand;
-        var reichKlein = GrossAb + vorlauf;
-        var reichGross = _huelleMax + vorlauf;
+        var reichKlein = GrossAb + vorlaufMax;
+        var reichGross = _huelleMax + vorlaufMax;
         for (var cs = csMax; cs >= csMin; cs--)
-            for (var cq = 0; cq < _zellenQ; cq++)
-                for (var i = _kopf[cs * _zellenQ + cq]; i >= 0; i = _naechster[i])
+            for (var p = _kopf[cs * _zellenQ]; p < _kopf[(cs + 1) * _zellenQ]; p++)
+            {
+                var i = _pI[p];
+                _kNeu.Ab[i] = _kZahl;
+                var (si, qi, hi, vsi, vqi) = (_pS[p], _pQ[p], _pH[p], _pVs[p], _pVq[p]);
+                var grossI = hi > GrossAb;
+                var nki = _form[i].Nk;
+                var vorlauf = vorlaufFest + MathF.Sqrt(vsi * vsi + vqi * vqi) * SuchVorlauf;
+                // feste Hindernisse (nur in ihrer Nähe)
+                var festeZahl = si > _hindernisVon - hi - vorlauf && si < _hindernisBis + hi + vorlauf ? _feste.Count : 0;
+                for (var h = 0; h < festeZahl; h++)
                 {
-                    _kNeu.Ab[i] = _kZahl;
-                    var hi = _huelle[i];
-                    var grossI = hi > GrossAb;
-                    var (si, qi) = (_s[i], _q[i]);
-                    var nki = _form[i].Nk;
-                    // feste Hindernisse
-                    for (var h = 0; h < _feste.Count; h++)
+                    var o = _feste[h];
+                    var weit = o.Form == Hindernisform.Eisbrecher ? 4.6f : MathF.Max(o.HalbLaengs, o.HalbQuer);
+                    if (MathF.Abs(si - o.Stelle) > weit + hi + vorlauf || MathF.Abs(qi - o.Quer) > weit + hi + vorlauf) continue;
+                    for (var a = 0; a < nki; a++)
                     {
-                        var o = _feste[h];
-                        var weit = o.Form == Hindernisform.Eisbrecher ? 4.6f : MathF.Max(o.HalbLaengs, o.HalbQuer);
-                        if (MathF.Abs(si - o.Stelle) > weit + hi + vorlauf || MathF.Abs(qi - o.Quer) > weit + hi + vorlauf) continue;
-                        for (var a = 0; a < nki; a++)
-                        {
-                            var sep = o.Form == Hindernisform.Eisbrecher ? PfeilerAbstand(2 * i + a, o) : KapselAbstand(2 * i + a, o);
-                            if (sep < vorlauf && !Neu(i, -1, o.Form == Hindernisform.Eisbrecher ? ArtPfeiler : ArtKapsel, (byte)a, 0, (short)h)) ueberlauf++;
-                        }
+                        var sep = o.Form == Hindernisform.Eisbrecher ? PfeilerAbstand(2 * i + a, o) : KapselAbstand(2 * i + a, o);
+                        if (sep < vorlauf && !Neu(i, -1, o.Form == Hindernisform.Eisbrecher ? ArtPfeiler : ArtKapsel, (byte)a, 0, (short)h)) ueberlauf++;
                     }
-                    for (var h = 0; h < _beweglich.Count; h++)
-                    {
-                        var o = _beweglich[h];
-                        var weit = MathF.Max(o.HalbLaengs, o.HalbQuer);
-                        if (MathF.Abs(si - o.Stelle) > weit + hi + vorlauf + 1f || MathF.Abs(qi - o.Quer) > weit + hi + vorlauf + 1f) continue;
-                        for (var a = 0; a < nki; a++)
-                            if (KapselAbstand(2 * i + a, o) < vorlauf + 0.5f && !Neu(i, -1, ArtBewegt, (byte)a, 0, (short)h)) ueberlauf++;
-                    }
-                    // Eiskante
-                    var platz = HalbAn(si) - platzRand;
+                }
+                for (var h = 0; h < _beweglich.Count; h++)
+                {
+                    var o = _beweglich[h];
+                    var weit = MathF.Max(o.HalbLaengs, o.HalbQuer);
+                    var vorB = vorlaufFest + (MathF.Sqrt((vsi - o.VStelle) * (vsi - o.VStelle) + (vqi - o.VQuer) * (vqi - o.VQuer)) + 0.5f) * SuchVorlauf;
+                    if (MathF.Abs(si - o.Stelle) > weit + hi + vorB || MathF.Abs(qi - o.Quer) > weit + hi + vorB) continue;
+                    for (var a = 0; a < nki; a++)
+                        if (KapselAbstand(2 * i + a, o) < vorB && !Neu(i, -1, ArtBewegt, (byte)a, 0, (short)h)) ueberlauf++;
+                }
+                // Eiskante (nur nah am Rand)
+                var platz = HalbAn(si) - platzRand;
+                if (MathF.Abs(qi) + hi > platz - vorlauf)
                     for (var a = 0; a < nki; a++)
                     {
                         var k = 2 * i + a;
                         if (_wy[k] + 0.85f * _wr[k] > platz - vorlauf && !Neu(i, -1, ArtKante, (byte)a, 0, 1)) ueberlauf++;
                         if (-_wy[k] + 0.85f * _wr[k] > platz - vorlauf && !Neu(i, -1, ArtKante, (byte)a, 0, -1)) ueberlauf++;
                     }
-                    // Nachbarn: Hülle, dann Kreispaare. Klein–klein findet die kleinere Nummer im nahen Umkreis; Paare mit einer großen findet die große
-                    // (groß–groß die kleinere Nummer)
-                    var reich = hi + (grossI ? reichGross : reichKlein);
-                    var (s0, s1) = (Math.Max((int)((si - reich) / Zelle), csMin), Math.Min((int)((si + reich) / Zelle), csMax));
-                    var (q0, q1) = (Math.Max((int)((qi + _halbMax - reich) / Zelle), 0), Math.Min((int)((qi + _halbMax + reich) / Zelle), _zellenQ - 1));
-                    for (var zs = s0; zs <= s1; zs++)
-                        for (var zq = q0; zq <= q1; zq++)
-                            for (var j = _kopf[zs * _zellenQ + zq]; j >= 0; j = _naechster[j])
+                // Nachbarn: Hülle, dann Kreispaare. Klein–klein findet die kleinere Nummer im nahen Umkreis; Paare mit einer großen findet die große
+                // (groß–groß die kleinere Nummer)
+                var reich = hi + (grossI ? reichGross : reichKlein);
+                var (s0, s1) = (Math.Max((int)((si - reich) / Zelle), csMin), Math.Min((int)((si + reich) / Zelle), csMax));
+                var (q0, q1) = (Math.Max((int)((qi + _halbMax - reich) / Zelle), 0), Math.Min((int)((qi + _halbMax + reich) / Zelle), _zellenQ - 1));
+                for (var zs = s0; zs <= s1; zs++)
+                {
+                    var (von, bis) = (_kopf[zs * _zellenQ + q0], _kopf[zs * _zellenQ + q1 + 1]);
+                    for (var pj = von; pj < bis; pj++)
+                    {
+                        var j = _pI[pj];
+                        if (j == i) continue;
+                        var hj = _pH[pj];
+                        var grossJ = hj > GrossAb;
+                        if (grossI ? grossJ && j < i : grossJ || j < i) continue;
+                        var (ds, dq) = (_pS[pj] - si, _pQ[pj] - qi);
+                        var (dvs, dvq) = (_pVs[pj] - vsi, _pVq[pj] - vqi);
+                        var vorP = vorlaufFest + MathF.Sqrt(dvs * dvs + dvq * dvq) * SuchVorlauf;
+                        var hm = hi + hj + vorP;
+                        if (ds * ds + dq * dq >= hm * hm) continue;
+                        var nkj = _form[j].Nk;
+                        for (var a = 0; a < nki; a++)
+                            for (var b = 0; b < nkj; b++)
                             {
-                                if (j == i) continue;
-                                var grossJ = _huelle[j] > GrossAb;
-                                if (grossI ? grossJ && j < i : grossJ || j < i) continue;
-                                var (ds, dq) = (_s[j] - si, _q[j] - qi);
-                                var hm = hi + _huelle[j] + vorlauf;
-                                if (ds * ds + dq * dq >= hm * hm) continue;
-                                var nkj = _form[j].Nk;
-                                for (var a = 0; a < nki; a++)
-                                    for (var b = 0; b < nkj; b++)
-                                    {
-                                        var (ia, jb) = (2 * i + a, 2 * j + b);
-                                        var (ex, ey) = (_wx[jb] - _wx[ia], _wy[jb] - _wy[ia]);
-                                        var m = _wr[ia] + _wr[jb] + vorlauf;
-                                        if (ex * ex + ey * ey < m * m && !Neu(i, j, ArtPaar, (byte)a, (byte)b, 0)) ueberlauf++;
-                                    }
+                                var (ia, jb) = (2 * i + a, 2 * j + b);
+                                var (ex, ey) = (_wx[jb] - _wx[ia], _wy[jb] - _wy[ia]);
+                                var m = _wr[ia] + _wr[jb] + vorP;
+                                if (ex * ex + ey * ey < m * m && !Neu(i, j, ArtPaar, (byte)a, (byte)b, 0)) ueberlauf++;
                             }
-                    _kNeu.Zahl[i] = _kZahl - _kNeu.Ab[i];
+                    }
                 }
+                _kNeu.Zahl[i] = _kZahl - _kNeu.Ab[i];
+            }
         if (Messung is not null) Messung.KontaktUeberlauf += ueberlauf;
         // nach dieser Suche gelten die Kontakte frischer Schollen wieder für den Warmstart
         for (var x = 0; x < _fensterZahl; x++) _ohneWarm[_fenster[x]] = false;
@@ -1053,6 +1092,8 @@ public sealed class Schollensimulation
     private bool Neu(int a, int b, byte art, byte ka, byte kb, short index)
     {
         if (_kZahl >= _kMax) return false;
+        _inListe[a] = _suchNr;
+        if (b >= 0) _inListe[b] = _suchNr;
         var c = _kZahl++;
         var k = _kNeu;
         (k.A[c], k.B[c], k.Art[c], k.KA[c], k.KB[c], k.Index[c]) = (a, b, art, ka, kb, index);
@@ -1185,6 +1226,16 @@ public sealed class Schollensimulation
     private void Schritt(bool letzter)
     {
         var t = (float)_zeit;
+        if (_pendelnBild != _bildNr)
+        {
+            // leichtes Pendeln quer (Wirbel), je Scholle anders; ändert sich langsam: einmal je Bild
+            _pendelnBild = _bildNr;
+            for (var x = 0; x < _fensterZahl; x++)
+            {
+                var i = _fenster[x];
+                _pendeln[i] = 0.06f * (Rauschen(t * 0.05f + _schollen[_stamm[i]].Saat * 0.37f) - 0.5f) * 2f;
+            }
+        }
         // 1. Wasser zieht, Lage vor dem Schritt merken
         for (var x = 0; x < _fensterZahl; x++)
         {
@@ -1196,17 +1247,30 @@ public sealed class Schollensimulation
         Vorbereiten();
         if (Warmstart) Warmstarten();
         Loesen(true);
-        // 4. Lage fortschreiben
+        // 4. Lage fortschreiben; davor Drehgrenze (frei 0,08, mit Hindernis 0,25 rad/s, über 1 m geteilt durch den Halbmesser) und Fehler abfangen,
+        // danach die Zähler für die Nachsorge leeren
+        var oben = 0;
         for (var x = 0; x < _fensterZahl; x++)
         {
             var i = _fenster[x];
+            var grenze = (_anHindernis[i] ? DrehGrenzeHindernis : DrehGrenzeFrei) * MathF.Min(1f, 1f / MathF.Max(_r[i], 0.01f));
+            if (MathF.Abs(_om[i]) > grenze)
+            {
+                _om[i] = MathF.Sign(_om[i]) * grenze;
+                oben++;
+            }
+            if (!float.IsFinite(_vs[i]) || !float.IsFinite(_vq[i]) || !float.IsFinite(_om[i]))
+                (_vs[i], _vq[i], _om[i]) = (_tempo, 0f, 0f);
             var (ds, dq, dw) = (_vs[i] * H, _vq[i] * H, _om[i] * H);
             _s[i] += ds;
             _q[i] += dq;
             _w[i] += dw;
             (_schiebS[i], _schiebQ[i], _schiebW[i]) = (ds, dq, dw);
-            Kreise(i);
+            if (_inListe[i] == _suchNr) Kreise(i); // Kreise nur für Schollen mit Kontakten (die übrigen bei der nächsten Suche)
+            (_kontaktZahl[i], _belastet[i], _anHindernis[i], _tiefe[i]) = (0, 0, false, 0f);
+            if (letzter) (_druck[i], _druckMax[i]) = (0f, 0f);
         }
+        if (letzter) _oben = oben;
         for (var x = 0; x < _taucherZahl; x++)
         {
             var i = _taucher[x];
@@ -1230,7 +1294,7 @@ public sealed class Schollensimulation
         var (s, q) = (_s[i], _q[i]);
         var halb = MathF.Max(HalbAn(s), 1f);
         var us = _tempo * Profil(q, halb);
-        var uq = 0.06f * (Rauschen(t * 0.05f + sch.Saat * 0.37f) - 0.5f) * 2f;
+        var uq = _pendeln[i];
         var omZiel = sch.Dreh + 0.5f * _tempo * q / (halb * halb);
         if (BrueckenFeld && s > _brueckeVon - 20f && s < _brueckeBis + 20f) BrueckenStroemung(i, t, s, q, ref us, ref uq, ref omZiel);
         var dicht = _kontaktZahl[i] >= 3;
@@ -1242,7 +1306,7 @@ public sealed class Schollensimulation
         _vs[i] += dvs * k;
         _vq[i] += dvq * k;
         _om[i] += (omZiel - _om[i]) * _drehK[i];
-        if (_belastet[i] >= 2) _om[i] *= MathF.Exp(-H / DrehSperreTau);
+        if (_belastet[i] >= 2) _om[i] *= _drehSperreK;
         // Grenze des Tempounterschieds (Fehler liefen sonst über die Kontakte durch den Stau)
         if (dv > 2.5f)
         {
@@ -1314,6 +1378,13 @@ public sealed class Schollensimulation
             var a = k.A[c];
             var ia = 2 * a + k.KA[c];
             _cVn0[c] = 0;
+            if (!Stoesst(a) || (k.Art[c] == ArtPaar && !Stoesst(k.B[c])) || (k.Art[c] == ArtBewegt && k.Index[c] >= _beweglich.Count))
+            {
+                // gilt nicht mehr (zwischen zwei Suchen getaucht, gegangen, Hindernis fort): ohne Wirkung
+                (_cMn[c], _cMt[c], _cMr[c], _cIma[c], _cIia[c], _cImb[c], _cIib[c], _cS0[c]) = (0f, 0f, 0f, 0f, 0f, 0f, 0f, 1f);
+                (k.Ln[c], k.Lt[c], k.Lr[c], _cRoll[c], _cTol[c]) = (0f, 0f, 0f, 0f, 0f);
+                continue;
+            }
             var (cs, cq, ra) = (_wx[ia], _wy[ia], _wr[ia]);
             float ns, nq, s0, ps, pq;
             float vbs = 0, vbq = 0, imb = 0, iib = 0, rbs = 0, rbq = 0;
@@ -1517,12 +1588,6 @@ public sealed class Schollensimulation
     private void Nachsorge(bool letzter)
     {
         var k = _kNeu;
-        for (var x = 0; x < _fensterZahl; x++)
-        {
-            var i = _fenster[x];
-            (_kontaktZahl[i], _belastet[i], _anHindernis[i], _tiefe[i]) = (0, 0, false, 0f);
-            if (letzter) (_druck[i], _druckMax[i]) = (0f, 0f);
-        }
         if (letzter)
         {
             Array.Clear(_pfKraft);
@@ -1598,25 +1663,6 @@ public sealed class Schollensimulation
             }
             k.Beruehrt[c] = 1;
         }
-        // Drehgrenze (frei 0,08, mit Hindernis 0,25 rad/s; über 1 m geteilt durch den Halbmesser) und Fehler abfangen
-        var oben = 0;
-        for (var x = 0; x < _fensterZahl; x++)
-        {
-            var i = _fenster[x];
-            var grenze = (_anHindernis[i] ? DrehGrenzeHindernis : DrehGrenzeFrei) * MathF.Min(1f, 1f / MathF.Max(_r[i], 0.01f));
-            if (MathF.Abs(_om[i]) > grenze)
-            {
-                _om[i] = MathF.Sign(_om[i]) * grenze;
-                oben++;
-            }
-            if (!float.IsFinite(_vs[i]) || !float.IsFinite(_vq[i]) || !float.IsFinite(_om[i]) || !float.IsFinite(_s[i]) || !float.IsFinite(_q[i]) || !float.IsFinite(_w[i]))
-            {
-                (_s[i], _q[i], _w[i]) = (float.IsFinite(_sAlt[i]) ? _sAlt[i] : 1f, float.IsFinite(_qAlt[i]) ? _qAlt[i] : 0f, 0f);
-                (_vs[i], _vq[i], _om[i]) = (_tempo, 0f, 0f);
-                Kreise(i);
-            }
-        }
-        if (letzter) _oben = oben;
     }
 
     private int _oben;
@@ -1736,29 +1782,6 @@ public sealed class Schollensimulation
             if (_aufprallV[i] > 0 || _druck[i] > 0) BruchPruefen(i, dt);
             else if (_stossV[i] > 0.3f) TauchenPruefen(i);
         }
-        for (var i = 0; i < _plaetze; i++)
-        {
-            if (_stamm[i] < 0 || Zustand[i] == Schollenmessung.Aus) continue;
-            // Ende des Laufs: Bruchstücke frei, Stammschollen oben neu
-            if (_s[i] >= _laenge || _s[i] < 0f)
-            {
-                if (i >= _n) Freigeben(i);
-                else Nachschub(i);
-                continue;
-            }
-            // vergangen (zu klein geschmolzen): bündig abgesunken
-            if (_tauchen[i] == 4)
-            {
-                if (_tauchZeit[i] >= 6f)
-                {
-                    if (Messung is not null) Messung.Vergangen++;
-                    if (i >= _n) Freigeben(i);
-                    else Nachschub(i);
-                }
-                continue;
-            }
-            if (_tauchen[i] == 0 && _rGleich[i] * _rs[i] < 0.15f && _rg[i] > 0.95f && _rs[i] < 0.999f && _tauen > 0.3f) (_tauchen[i], _tauchZeit[i]) = (4, 0f);
-        }
         if (Messung is not null)
         {
             Messung.FreieVorrat = _freiZahl;
@@ -1790,14 +1813,26 @@ public sealed class Schollensimulation
     /// Bruch an einem Hindernis (Pfeiler, Joch, Prahm, Kahn), mit einer Chance: (a) Aufprall ab 0,6 m/s (im Eisgang 0,4), mittig 40 %, sonst 15 %,
     /// nur bei Schollen länger als 18 × Dicke (dicke, kurze spalten nicht); (b) Druck: Rate 0,5/s × (Kraft / Grenze − 1). Beides mal der Größe und
     /// mal (1 + 0,6 · Schmelzgrad), Aufprall gedeckelt bei 60 bzw. 20 %. Nur Stammschollen (keine zweite Generation), mindestens 2 m lang, 10 s Sperre
-    /// je Stück, höchstens 3 Brüche je Sekunde.
+    /// je Stück, höchstens 3 Brüche je Sekunde. Wer nicht brechen kann (Bruchstück, kürzer als 2 m), wird unter hohem Druck (über dem 1,5-Fachen der
+    /// Grenze) mit derselben Rate am Pfeiler unter das Eis gedrückt.
     /// </summary>
     private void BruchPruefen(int i, float dt)
     {
-        if (_gen[i] != 0 || _sperre[i] > 0 || _bruchKonto < 1f || _freiZahl < 2) return;
         var r = _r[i];
         var laenge = _form[i].Laenge * r;
-        if (laenge < 2f) return;
+        if (_gen[i] != 0 || laenge < 2f || _freiZahl < 2)
+        {
+            // kann nicht (mehr) brechen – ein Bruchstück, eine kleine Scholle: unter hohem Druck wird sie am Pfeiler unter das Eis gedrückt
+            if (_druck[i] <= 0 || _sperre[i] > 0) return;
+            var grenze = BruchSigma * _dk[i] * 2f * MathF.Max(_rGleich[i] * _rs[i], 0.3f);
+            var rateT = BruchRate * MathF.Max(0f, _druck[i] / grenze - 1.5f);
+            if (rateT <= 0 || Zufall() > 1f - MathF.Exp(-rateT * dt)) return;
+            (_tauchen[i], _tauchZeit[i]) = (1, 0f);
+            Ereignis[i] |= Schollenmessung.EreignisTauchen;
+            if (Messung is not null) Messung.Taucher++;
+            return;
+        }
+        if (_sperre[i] > 0 || _bruchKonto < 1f) return;
         var m = MathF.Max(_mTau[i], _mAbrieb[i]);
         var morsch = 1f + 0.6f * m;
         float chance = 0;
@@ -1827,6 +1862,7 @@ public sealed class Schollensimulation
     /// </summary>
     private void Brechen(int i)
     {
+        _suchen = true;
         var saat = _schollen[_stamm[i]].Saat;
         var r = _r[i];
         var (sin, cos) = MathF.SinCos(_w[i]);
@@ -1954,13 +1990,18 @@ public sealed class Schollensimulation
     //  Gezeichnete Lage
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Zwischen dem letzten und dem jetzigen Schritt gemittelt (Schwerpunkt, Winkel); Kippen und Absinken beim Tauchen und Vergehen.</summary>
-    private void Zeichenlage()
+    /// <summary>
+    /// Am Ende des Bildes je Platz: nach den Schritten das Ende des Laufs (Bruchstücke frei, Stammschollen oben neu) und zu klein Geschmolzenes
+    /// (sinkt bündig ab, vergeht); dann die gezeichnete Lage, zwischen dem letzten und dem jetzigen Schritt gemittelt (Schwerpunkt, Winkel), mit
+    /// Kippen und Absinken beim Tauchen und Vergehen.
+    /// </summary>
+    private void Abschluss(bool nachSchritten)
     {
         var alpha = _sammler / H;
         for (var i = 0; i < _plaetze; i++)
         {
             if (_stamm[i] < 0 || Zustand[i] == Schollenmessung.Aus) continue;
+            if (nachSchritten && Ende(i)) continue;
             var (s, sAlt) = (_s[i], _sAlt[i]);
             (ZS[i], ZQ[i], ZW[i]) = MathF.Abs(s - sAlt) > 5f ? (s, _q[i], _w[i])
                 : (sAlt + (s - sAlt) * alpha, _qAlt[i] + (_q[i] - _qAlt[i]) * alpha, _wAlt[i] + (_w[i] - _wAlt[i]) * alpha);
@@ -1997,6 +2038,37 @@ public sealed class Schollensimulation
         }
     }
 
+    /// <summary>Ende des Laufs und Vergehen; liefert true, wenn der Platz jetzt frei ist (nicht mehr zeichnen).</summary>
+    private bool Ende(int i)
+    {
+        // Ende des Laufs: Bruchstücke frei, Stammschollen oben neu
+        if (_s[i] >= _laenge || _s[i] < 0f)
+        {
+            if (i >= _n)
+            {
+                Freigeben(i);
+                return true;
+            }
+            Nachschub(i);
+            return false;
+        }
+        // vergangen (zu klein geschmolzen): bündig abgesunken
+        if (_tauchen[i] == 4)
+        {
+            if (_tauchZeit[i] < 6f) return false;
+            if (Messung is not null) Messung.Vergangen++;
+            if (i >= _n)
+            {
+                Freigeben(i);
+                return true;
+            }
+            Nachschub(i);
+            return false;
+        }
+        if (_tauchen[i] == 0 && _rGleich[i] * _rs[i] < 0.15f && _rg[i] > 0.95f && _rs[i] < 0.999f && _tauen > 0.3f) (_tauchen[i], _tauchZeit[i]) = (4, 0f);
+        return false;
+    }
+
     /// <summary>Ursprung des Netzes (Laufachsen) eines Platzes in der gezeichneten Lage: Schwerpunkt minus dem Versatz des Schwerpunkts im Netz.</summary>
     public (float S, float Q) Ursprung(int i)
     {
@@ -2008,6 +2080,12 @@ public sealed class Schollensimulation
 
     /// <summary>Schollen, deren Drehung im letzten Bild an der Obergrenze lag (Messung).</summary>
     public int Obergrenze => _oben;
+
+    /// <summary>Stoßkreise aller Schollen im Fenster auf die jetzige Lage (nur für die Messung: im Schritt rechnet die Simulation sie nur für Schollen mit Kontakten).</summary>
+    public void KreiseFuerMessung()
+    {
+        for (var x = 0; x < _fensterZahl; x++) Kreise(_fenster[x]);
+    }
 
     /// <summary>Tempo eines Platzes (Laufachsen, m/s) und Drehtempo (rad/s).</summary>
     public (float S, float Q, float Om) Tempo(int i) => (_vs[i], _vq[i], _om[i]);

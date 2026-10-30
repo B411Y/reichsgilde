@@ -300,7 +300,9 @@ public sealed class Schollenfeld
         var bytes = GC.GetAllocatedBytesForCurrentThread();
         var lief = BildRechnen(delta, kamera, eis, schollenAn, beweglich, tauen);
         bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
-        if (lief) Messung.Bild(delta, _sim.SBlick, _sim.Kontakte, _sim.SimulationMs, bytes, _sim.Obergrenze);
+        if (!lief) return;
+        _sim.KreiseFuerMessung();
+        Messung.Bild(delta, _sim.SBlick, _sim.Kontakte, _sim.SimulationMs, bytes, _sim.Obergrenze);
     }
 
     private bool BildRechnen(double delta, Camera3D? kamera, float eis, float schollenAn, List<Schollensimulation.Hindernis> beweglich, float tauen)
