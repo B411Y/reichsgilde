@@ -794,7 +794,16 @@
    "dreiviertel": {
     "bild": "dreiviertel.png",
     "winkel": -35,
-    "punkte": {}
+    "punkte": {
+     "ps_r": [
+      543.1,
+      379.4
+     ],
+     "ps_l": [
+      711.4,
+      380.7
+     ]
+    }
    }
   },
   "a_m70": {
@@ -902,7 +911,16 @@
    "dreiviertel": {
     "bild": "dreiviertel.png",
     "winkel": -35,
-    "punkte": {}
+    "punkte": {
+     "ps_r": [
+      579.2,
+      398.4
+     ],
+     "ps_l": [
+      730.2,
+      395.8
+     ]
+    }
    }
   },
   "a_w70": {
@@ -1010,7 +1028,16 @@
    "dreiviertel": {
     "bild": "dreiviertel.png",
     "winkel": -35,
-    "punkte": {}
+    "punkte": {
+     "ps_r": [
+      602.7,
+      391.6
+     ],
+     "ps_l": [
+      713.0,
+      384.6
+     ]
+    }
    }
   },
   "h_m35_hell": {
@@ -1118,7 +1145,16 @@
    "dreiviertel": {
     "bild": "dreiviertel.png",
     "winkel": -35,
-    "punkte": {}
+    "punkte": {
+     "ps_r": [
+      579.5,
+      381.8
+     ],
+     "ps_l": [
+      722.0,
+      378.3
+     ]
+    }
    }
   },
   "h_m35_dunkel": {
@@ -1226,7 +1262,16 @@
    "dreiviertel": {
     "bild": "dreiviertel.png",
     "winkel": -35,
-    "punkte": {}
+    "punkte": {
+     "ps_r": [
+      577.6,
+      389.2
+     ],
+     "ps_l": [
+      732.0,
+      382.7
+     ]
+    }
    }
   },
   "a_m20": {
@@ -1760,6 +1805,549 @@
      "go_l": [
       657.0,
       580.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -35,
+    "punkte": {}
+   }
+  },
+  "d_bauer45": {
+   "titel": "d_bauer45 (Bauer 45, S1)",
+   "geschlecht": "m",
+   "alter": 45,
+   "gruppe": "Draußen",
+   "frisur": "mann_kurz",
+   "bart": "",
+   "ordner": "~/werkzeuge/charakter/vorlagen-gesicht6/d_bauer45",
+   "satz": "phase6-s1",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      394.1,
+      411.9
+     ],
+     "ps_l": [
+      608.1,
+      412.4
+     ],
+     "br_r": [
+      394.0,
+      381.0
+     ],
+     "br_l": [
+      608.0,
+      381.0
+     ],
+     "en_r": [
+      436.0,
+      414.0
+     ],
+     "en_l": [
+      563.0,
+      414.0
+     ],
+     "ex_r": [
+      358.0,
+      411.0
+     ],
+     "ex_l": [
+      635.0,
+      409.0
+     ],
+     "prn": [
+      501.0,
+      545.0
+     ],
+     "sn": [
+      501.0,
+      570.0
+     ],
+     "al_r": [
+      430.0,
+      560.0
+     ],
+     "al_l": [
+      568.0,
+      560.0
+     ],
+     "ch_r": [
+      410.0,
+      655.0
+     ],
+     "ch_l": [
+      594.0,
+      655.0
+     ],
+     "ls": [
+      501.0,
+      640.0
+     ],
+     "sto": [
+      501.0,
+      655.0
+     ],
+     "li": [
+      501.0,
+      673.0
+     ],
+     "me": [
+      501.0,
+      829.0
+     ],
+     "zy_r": [
+      284.0,
+      470.0
+     ],
+     "zy_l": [
+      718.0,
+      470.0
+     ],
+     "go_r": [
+      305.0,
+      680.0
+     ],
+     "go_l": [
+      697.0,
+      680.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -35,
+    "punkte": {}
+   },
+   "wetter": 1
+  },
+  "d_fischer55": {
+   "titel": "d_fischer55 (Fischer 55, S1)",
+   "geschlecht": "m",
+   "alter": 55,
+   "gruppe": "Draußen",
+   "frisur": "mann_kurz",
+   "bart": "",
+   "ordner": "~/werkzeuge/charakter/vorlagen-gesicht6/d_fischer55",
+   "satz": "phase6-s1",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      387.9,
+      408.1
+     ],
+     "ps_l": [
+      605.7,
+      404.7
+     ],
+     "br_r": [
+      388.0,
+      374.0
+     ],
+     "br_l": [
+      603.0,
+      372.0
+     ],
+     "en_r": [
+      436.0,
+      412.0
+     ],
+     "en_l": [
+      556.0,
+      410.0
+     ],
+     "ex_r": [
+      352.0,
+      410.0
+     ],
+     "ex_l": [
+      641.0,
+      406.0
+     ],
+     "prn": [
+      496.0,
+      545.0
+     ],
+     "sn": [
+      496.0,
+      573.0
+     ],
+     "al_r": [
+      420.0,
+      560.0
+     ],
+     "al_l": [
+      556.0,
+      560.0
+     ],
+     "ch_r": [
+      412.0,
+      645.0
+     ],
+     "ch_l": [
+      590.0,
+      643.0
+     ],
+     "ls": [
+      496.0,
+      631.0
+     ],
+     "sto": [
+      496.0,
+      645.0
+     ],
+     "li": [
+      496.0,
+      668.0
+     ],
+     "me": [
+      496.0,
+      796.0
+     ],
+     "zy_r": [
+      280.0,
+      470.0
+     ],
+     "zy_l": [
+      711.0,
+      470.0
+     ],
+     "go_r": [
+      317.0,
+      680.0
+     ],
+     "go_l": [
+      674.0,
+      680.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -35,
+    "punkte": {}
+   },
+   "wetter": 1
+  },
+  "d_baeuerin45": {
+   "titel": "d_baeuerin45 (Bäuerin 45, S1)",
+   "geschlecht": "w",
+   "alter": 45,
+   "gruppe": "Draußen",
+   "frisur": "frau_knoten",
+   "bart": "",
+   "ordner": "~/werkzeuge/charakter/vorlagen-gesicht6/d_baeuerin45",
+   "satz": "phase6-s1",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      424.0,
+      376.0
+     ],
+     "ps_l": [
+      602.6,
+      378.3
+     ],
+     "br_r": [
+      424.0,
+      356.0
+     ],
+     "br_l": [
+      602.0,
+      356.0
+     ],
+     "en_r": [
+      450.0,
+      378.0
+     ],
+     "en_l": [
+      555.0,
+      378.0
+     ],
+     "ex_r": [
+      372.0,
+      375.0
+     ],
+     "ex_l": [
+      639.0,
+      372.0
+     ],
+     "prn": [
+      513.0,
+      485.0
+     ],
+     "sn": [
+      513.0,
+      509.0
+     ],
+     "al_r": [
+      455.0,
+      500.0
+     ],
+     "al_l": [
+      545.0,
+      500.0
+     ],
+     "ch_r": [
+      452.0,
+      568.0
+     ],
+     "ch_l": [
+      570.0,
+      566.0
+     ],
+     "ls": [
+      513.0,
+      558.0
+     ],
+     "sto": [
+      513.0,
+      568.0
+     ],
+     "li": [
+      513.0,
+      586.0
+     ],
+     "me": [
+      513.0,
+      711.0
+     ],
+     "zy_r": [
+      324.0,
+      450.0
+     ],
+     "zy_l": [
+      702.0,
+      450.0
+     ],
+     "go_r": [
+      340.0,
+      600.0
+     ],
+     "go_l": [
+      686.0,
+      600.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -35,
+    "punkte": {}
+   },
+   "wetter": 1
+  },
+  "i_schreiber45": {
+   "titel": "i_schreiber45 (Schreiber 45, S1)",
+   "geschlecht": "m",
+   "alter": 45,
+   "gruppe": "Drinnen",
+   "frisur": "mann_kurz",
+   "bart": "",
+   "ordner": "~/werkzeuge/charakter/vorlagen-gesicht6/i_schreiber45",
+   "satz": "phase6-s1",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      399.8,
+      395.4
+     ],
+     "ps_l": [
+      596.2,
+      393.1
+     ],
+     "br_r": [
+      400.0,
+      370.0
+     ],
+     "br_l": [
+      596.0,
+      368.0
+     ],
+     "en_r": [
+      434.0,
+      398.0
+     ],
+     "en_l": [
+      562.0,
+      396.0
+     ],
+     "ex_r": [
+      359.0,
+      396.0
+     ],
+     "ex_l": [
+      637.0,
+      393.0
+     ],
+     "prn": [
+      498.0,
+      515.0
+     ],
+     "sn": [
+      498.0,
+      542.0
+     ],
+     "al_r": [
+      445.0,
+      535.0
+     ],
+     "al_l": [
+      552.0,
+      535.0
+     ],
+     "ch_r": [
+      425.0,
+      612.0
+     ],
+     "ch_l": [
+      572.0,
+      612.0
+     ],
+     "ls": [
+      498.0,
+      602.0
+     ],
+     "sto": [
+      498.0,
+      612.0
+     ],
+     "li": [
+      498.0,
+      630.0
+     ],
+     "me": [
+      498.0,
+      769.0
+     ],
+     "zy_r": [
+      301.0,
+      470.0
+     ],
+     "zy_l": [
+      695.0,
+      470.0
+     ],
+     "go_r": [
+      322.0,
+      660.0
+     ],
+     "go_l": [
+      674.0,
+      660.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -35,
+    "punkte": {}
+   }
+  },
+  "i_patrizier50": {
+   "titel": "i_patrizier50 (Patrizier 50, S1)",
+   "geschlecht": "m",
+   "alter": 50,
+   "gruppe": "Drinnen",
+   "frisur": "mann_kurz",
+   "bart": "",
+   "ordner": "~/werkzeuge/charakter/vorlagen-gesicht6/i_patrizier50",
+   "satz": "phase6-s1",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      414.3,
+      370.1
+     ],
+     "ps_l": [
+      594.3,
+      366.4
+     ],
+     "br_r": [
+      414.0,
+      333.0
+     ],
+     "br_l": [
+      594.0,
+      331.0
+     ],
+     "en_r": [
+      466.0,
+      375.0
+     ],
+     "en_l": [
+      543.0,
+      372.0
+     ],
+     "ex_r": [
+      373.0,
+      372.0
+     ],
+     "ex_l": [
+      645.0,
+      368.0
+     ],
+     "prn": [
+      504.0,
+      480.0
+     ],
+     "sn": [
+      504.0,
+      507.0
+     ],
+     "al_r": [
+      453.0,
+      495.0
+     ],
+     "al_l": [
+      556.0,
+      495.0
+     ],
+     "ch_r": [
+      440.0,
+      572.0
+     ],
+     "ch_l": [
+      570.0,
+      571.0
+     ],
+     "ls": [
+      504.0,
+      562.0
+     ],
+     "sto": [
+      504.0,
+      572.0
+     ],
+     "li": [
+      504.0,
+      592.0
+     ],
+     "me": [
+      504.0,
+      699.0
+     ],
+     "zy_r": [
+      301.0,
+      450.0
+     ],
+     "zy_l": [
+      708.0,
+      450.0
+     ],
+     "go_r": [
+      330.0,
+      610.0
+     ],
+     "go_l": [
+      679.0,
+      610.0
      ]
     }
    },

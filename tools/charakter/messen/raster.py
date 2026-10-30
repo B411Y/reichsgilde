@@ -44,12 +44,16 @@ def raster(bild, x0, y0, x1, y1, skala=1.5, punkte=None):
     aus[rand:, rand:rand + w] = img
     for v in range((x0 // 10 + 1) * 10, x1, 10):
         px = rand + int(round((v - x0) * skala))
+        if px >= aus.shape[1]:
+            continue
         stark = v % 50 == 0
         aus[rand:, px] = aus[rand:, px] * (0.35 if stark else 0.75) + (np.array([1, 0.9, 0]) if stark else np.array([0.6, 0.6, 0.6])) * (0.65 if stark else 0.25)
         if stark:
             zahl(aus, px - 6, 3, str(v), (1, 0.9, 0))
     for v in range((y0 // 10 + 1) * 10, y1, 10):
         py = rand + int(round((v - y0) * skala))
+        if py >= aus.shape[0]:
+            continue
         stark = v % 50 == 0
         aus[py, rand:] = aus[py, rand:] * (0.35 if stark else 0.75) + (np.array([0, 0.9, 1]) if stark else np.array([0.6, 0.6, 0.6])) * (0.65 if stark else 0.25)
         if stark:

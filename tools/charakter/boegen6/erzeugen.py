@@ -138,7 +138,13 @@ for vid, v in vorlagen.items():
         if "ps_r" not in p:
             return {"kopf": None, "titel": "(keine Merkpunkte)"}
         return {"vorlage": {"bild": os.path.join(ordner, v[art]["bild"]), "pupillen": [p["ps_r"], p["ps_l"]]}}
-    w34 = v.get("dreiviertel", {}).get("winkel", -35)     # die Vorlagen sind meist nach rechts gedreht (K2 gespiegelt)
+    # Drehung der ¾-Vorlage: aus dem verkürzten Pupillenabstand (cos θ = IPD ¾ / IPD vorn), sonst wie eingetragen; die
+    # Vorlagen sind meist nach rechts gedreht (K2 gespiegelt, negativer Winkel)
+    w34 = v.get("dreiviertel", {}).get("winkel", -35)
+    if "ps_r" in drei and "ps_r" in vorn:
+        import math
+        c = min(1.0, math.dist(drei["ps_r"], drei["ps_l"]) / math.dist(vorn["ps_r"], vorn["ps_l"]))
+        w34 = -5 * round(math.degrees(math.acos(c)) / 5)
     zellen = [dict(zelle("K1"), **vorlage("vorn", vorn)), dict(zelle("K1"), stand=5), dict(zelle("K1"), stand=6),
               dict(zelle("K2"), winkel=w34, **vorlage("dreiviertel", drei)), dict(zelle("K2"), winkel=w34, stand=6)]
     basis["zellen"] = zellen
