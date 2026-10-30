@@ -15,6 +15,7 @@ namespace Reichsgilde;
 /// (Eisfortschritt; sonst im Winter 1, sonst 0), <c>--wasserteile=-brechung,-tiefe,-kaustik,-schaum,-eis,-wind,-ringe</c> (Teile abschalten, zur
 /// Messung), <c>--wasserstufe=niedrig|mittel|hoch|ultra</c> (Shader der Grafikstufe), <c>--wasservorwaermen=1</c> (<see cref="Wasserarten.Vorwaermen"/>
 /// prüfen, Zeit im Log) und <c>--wasserende=&lt;Sekunden&gt;</c> (nach der Zeit Mittelwert ins Log und beenden). Im Log steht jede Sekunde die Bildrate.
+/// Die Kamera ist eine <see cref="FreieKamera"/>: Sie beginnt in der Ansicht von <c>--wassersicht</c>, danach frei fliegen (rechte Maustaste, W/A/S/D, Q/E).
 /// </summary>
 public partial class Wassertest : Node3D
 {
@@ -193,6 +194,7 @@ public partial class Wassertest : Node3D
             _ when art == Wasserarten.Bach => Wasserarten.Fuer(art, 4f, 0),
             _ when art == Wasserarten.Teich => Wasserarten.Fuer(art, 0, MathF.PI * 144f),
             _ when art == Wasserarten.See => Wasserarten.Fuer(art, 0, MathF.PI * 784f),
+            _ when art == Wasserarten.Hafenbecken => Wasserarten.Fuer(art, 0, 36f * 28f), // das Becken der Testszene ist groß: ganz zufrieren lassen
             _ => art,
         };
         Wasserarten.Anwenden(m, gewaesser, richtung, winter, uferImNetz: true);
@@ -244,7 +246,7 @@ public partial class Wassertest : Node3D
                 float px = x * 0.5f - 30f, pz = z * 0.5f - 30f;
                 var i = z * (n + 1) + x;
                 ecken[i] = new Vector3(px, 0, pz);
-                farben[i] = new Color(Mathf.Clamp(Gelaende(art, px, pz).Ufer / 32f, 0f, 1f), 0, 1, 1); // Uferabstand, offen, Schaumanteil, Deckkraft
+                farben[i] = new Color(Mathf.Clamp(Gelaende(art, px, pz).Ufer / 32f, 0f, 1f), Wasserarten.EisKanal(0f), 1, 1); // Uferabstand, Eiskanal (wie die Art), Schaumanteil, Deckkraft
             }
         var idx = new List<int>(n * n * 6);
         for (var z = 0; z < n; z++)
@@ -395,10 +397,11 @@ public partial class Wassertest : Node3D
         _messfolge[_messNr].Setzen();
     }
 
+    /// <summary>
+    /// Die Kamera: eine <see cref="FreieKamera"/> (frei fliegen, Nutzer 30.10.2026), die in der Ansicht von <c>--wassersicht</c> beginnt.
+    /// </summary>
     private void Kamera(string sicht, bool alle, float s, bool kueste)
     {
-        var kamera = new Camera3D { Fov = 55, Far = 600 };
-        AddChild(kamera);
         var (pos, ziel) = alle
             ? sicht switch
             {
@@ -416,8 +419,9 @@ public partial class Wassertest : Node3D
                 _ => (new Vector3(12, 9, 22) * s, new Vector3(0, -0.5f, 0)),
             };
         if (kueste && !alle) { pos += new Vector3(0, 0, -12 * s); ziel += new Vector3(0, 0, -12); }
-        kamera.Position = pos;
-        kamera.LookAt(ziel, sicht == "oben" ? Vector3.Forward : Vector3.Up);
+        var kamera = FreieKamera.Einhaengen(this, pos, ziel);
+        kamera.Fov = 55;
+        kamera.Tempo = alle ? 20f : 6f * s;
     }
 
     public override void _Process(double delta)

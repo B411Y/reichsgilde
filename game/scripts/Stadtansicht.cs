@@ -375,6 +375,7 @@ public partial class Stadtansicht : Node3D
         };
         neigung.AddChild(_kamera);
         RaumKameraAufbauen(); // wohin die Kamera beim Start blickt, sagt die Karte (KameraAusKarte)
+        FreieKameraEinrichten(); // --freiekamera=1: frei fliegen statt der Spielkamera (Stadtansicht.FreieKamera.cs)
     }
 
     private static float AbstandZurStrecke(Vector3 p, Vector3 a, Vector3 b)
@@ -966,6 +967,7 @@ public partial class Stadtansicht : Node3D
 
     public override void _Process(double delta)
     {
+        var frei = FreieKameraBild(); // --freiekamera=1: die Spielkamera folgt der freien (Stadtansicht.FreieKamera.cs)
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
@@ -992,7 +994,7 @@ public partial class Stadtansicht : Node3D
         // Sanft auf die Zieldrehung zudrehen (Q/E)
         var aktuell = _kameraDrehung.RotationDegrees.Y;
         _kameraDrehung.RotationDegrees = new Vector3(0, Mathf.LerpAngle(Mathf.DegToRad(aktuell), Mathf.DegToRad(_zielDrehung), (float)Math.Min(1, delta * 8)) * 180 / Mathf.Pi, 0);
-        KameraGrenzenAnwenden(delta); // zurückfedern, Zoom begrenzen (Stadtansicht.Rand.cs)
+        if (!frei) KameraGrenzenAnwenden(delta); // zurückfedern, Zoom begrenzen (Stadtansicht.Rand.cs)
         KameraHoeheNachfuehren(delta); // mit dem Gelände steigen und fallen (Stadtansicht.Gelaende.cs)
         if (_innen is { Raumansicht: false }) Aufschneiden(_innen);
         if (_raum is not null)
@@ -1001,8 +1003,8 @@ public partial class Stadtansicht : Node3D
             return; // feste Ansicht: im Raum wird nicht verschoben
         }
 
-        // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld und nicht mit Strg (Strg+S speichert in der Kartenwerkstatt)
-        if (GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
+        // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld, nicht mit Strg (Strg+S speichert in der Kartenwerkstatt) und nicht mit freier Kamera
+        if (frei || GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
         var richtung = Vector2.Zero;
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) richtung.Y -= 1;
         if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) richtung.Y += 1;
@@ -1042,6 +1044,10 @@ public partial class Stadtansicht : Node3D
             RaumEingabe(eingabe);
             return;
         }
+        // Mausrad, rechte Maustaste und Q/E gehören der freien Kamera, wenn sie aktiv ist (Stadtansicht.FreieKamera.cs)
+        if (FreiAktiv && eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown or MouseButton.Right }
+                or InputEventKey { Keycode: Key.Q or Key.E })
+            return;
         if (BauEingabe(eingabe) || WerkstattEingabe(eingabe)) // Baumodus: R dreht, Klick setzt (Stadtansicht.Bauen.cs); Kartenwerkstatt (Stadtansicht.Kartenwerkstatt.cs)
         {
             GetViewport().SetInputAsHandled();
@@ -1113,7 +1119,7 @@ public partial class Stadtansicht : Node3D
     private string? KennungBei(Vector2 bildschirm)
     {
         if (PassantBei(bildschirm) is { } einwohner) return einwohner; // Figuren vor Gebäuden (Stadtansicht.Passanten.cs)
-        var kamera = _raum is not null ? _raumKamera : _kamera;
+        var kamera = _raum is not null ? _raumKamera : StadtKamera;
         var von = kamera.ProjectRayOrigin(bildschirm);
         var bis = von + kamera.ProjectRayNormal(bildschirm) * 500;
         var treffer = GetWorld3D().DirectSpaceState.IntersectRay(PhysicsRayQueryParameters3D.Create(von, bis));
