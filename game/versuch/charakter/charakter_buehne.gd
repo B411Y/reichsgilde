@@ -1,14 +1,36 @@
 # Versuch Charakter (Phase 0, Phase 3: Belichtung 1,0 statt 1,15, Schlüssellicht 2,3 statt 2,6): Bühne für einen Kopf – eigenes SubViewport mit eigener Welt, Licht wie ein gemaltes
 # Porträt (warmes Schlüssellicht links oben, kühles schwaches Fülllicht rechts, warmes Gegenlicht hinten rechts),
 # AgX, gleiche Kamera für alle Köpfe. Licht und Kamera stammen aus dem eigenen Porträt-Versuch (hg_fenster.gd).
+#
+# Phase 6 (S0, Prüfstand): Lichtarten (licht_art_setzen): „spiel“ (L-S, bis S3 genau das Licht der Phase 5),
+# „vorlage“ (L-V, wie die Fotovorlagen, für alle Messwerte) und „innen“ (L-I); Anzeige „albedo“ (unbeleuchtet,
+# linear); ansicht() mit ziel_x (Nahaufnahmen) und orthografischer Kamera; Schlüssellicht drehbar (Streiflicht);
+# Prüfkörper (Graukarte, Hautfeld, Farbtest, Prüfkugel); Kamera- und Kopfdaten für die Begleitdateien der Bögen.
 extends SubViewport
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
+const FARBTEST := preload("res://versuch/charakter/farbtest.gdshader")
+const HAUT3 := preload("res://versuch/charakter/haut3.gdshader")
 
 var kopf: Kopf
 var kamera: Camera3D
 var umgebung: Environment
 var schluessel: DirectionalLight3D
+var fuell: DirectionalLight3D
+var gegen: DirectionalLight3D
+var licht_art := "spiel"
+var anzeige := "normal"
+var pruefkoerper := ""
+var _pruef: Node3D = null
+
+# L-V „vorlage“ (Prüfplan 5.2): weiches Schlüssellicht 45° links oben (3° Winkelgröße), Aufhellung 1 : 3 von rechts,
+# kein Gegenlicht, Grund 18 % grau, neutrale Umgebung, AgX. Die Belichtung ist so geeicht, dass die Graukarte (18 %,
+# zur Kamera) sRGB 118 ± 4 ergibt (Prüfkörper „graukarte“, Bogen P10).
+const VORLAGE_SCHLUESSEL := 3.0          # Energie (Lux-Einheit von Godot)
+const VORLAGE_FUELL := 1.0               # 1 : 3
+const VORLAGE_UMGEBUNG := 0.12
+const VORLAGE_BELICHTUNG := 0.435        # geeicht in S0: Graukarte sRGB 118 (Reihe 0,40 … 0,70, docs/charakter/phase6.md)
+const VORLAGE_GRUND := 0.18              # Grund: 18 % Reflexion unter demselben Licht (linear, vor der Belichtung)
 
 func _init(groesse := Vector2i(640, 640)) -> void:
 	size = groesse
@@ -40,12 +62,12 @@ func _init(groesse := Vector2i(640, 640)) -> void:
 	schluessel.directional_shadow_max_distance = 2.0
 	add_child(schluessel)
 	_richten(schluessel, Vector3(-1.6, 2.6, 1.6))
-	var fuell := DirectionalLight3D.new()
+	fuell = DirectionalLight3D.new()
 	fuell.light_color = Color(0.85, 0.9, 1.0)
 	fuell.light_energy = 0.45
 	add_child(fuell)
 	_richten(fuell, Vector3(2.0, 1.7, 1.4))
-	var gegen := DirectionalLight3D.new()
+	gegen = DirectionalLight3D.new()
 	gegen.light_color = Color(1.0, 0.82, 0.6)
 	gegen.light_energy = 1.6
 	add_child(gegen)
@@ -54,6 +76,112 @@ func _init(groesse := Vector2i(640, 640)) -> void:
 	kamera.fov = 20.0
 	kamera.near = 0.02
 	add_child(kamera)
+	_grund_merken()
+
+# ---------------------------------------------------------------- Lichtarten (Phase 6)
+# Grundwerte (Phase 5) einmal merken, damit jede Lichtart von demselben Stand ausgeht
+var _grund := {}
+func _grund_merken() -> void:
+	for n in [schluessel, fuell, gegen]:
+		_grund[n] = [n.light_color, n.light_energy, n.transform, n.visible, n.light_angular_distance, n.shadow_blur]
+	_grund[umgebung] = [umgebung.background_color, umgebung.ambient_light_color, umgebung.ambient_light_energy,
+		umgebung.tonemap_exposure, umgebung.ssao_enabled, umgebung.tonemap_mode]
+
+func _grund_setzen() -> void:
+	for n in [schluessel, fuell, gegen]:
+		var g: Array = _grund[n]
+		n.light_color = g[0]
+		n.light_energy = g[1]
+		n.transform = g[2]
+		n.visible = g[3]
+		n.light_angular_distance = g[4]
+		n.shadow_blur = g[5]
+	var u: Array = _grund[umgebung]
+	umgebung.background_color = u[0]
+	umgebung.ambient_light_color = u[1]
+	umgebung.ambient_light_energy = u[2]
+	umgebung.tonemap_exposure = u[3]
+	umgebung.ssao_enabled = u[4]
+	umgebung.tonemap_mode = u[5]
+	debug_draw = Viewport.DEBUG_DRAW_DISABLED
+	if _innen:
+		_innen.visible = false
+
+# Licht aus Richtung (Grad): azimut 0 = von vorn, −90 = von links im Bild (−x), +90 = von rechts; hoehe über dem Horizont
+static func licht_richten(n: DirectionalLight3D, azimut: float, hoehe: float) -> void:
+	var a := deg_to_rad(azimut)
+	var h := deg_to_rad(hoehe)
+	var von := Vector3(sin(a) * cos(h), sin(h), cos(a) * cos(h))
+	n.transform = Transform3D(Basis.looking_at(-von, Vector3.UP if absf(von.y) < 0.99 else Vector3.FORWARD), Vector3.ZERO)
+
+var _innen: Node3D = null
+func licht_art_setzen(art: String) -> void:
+	licht_art = art
+	_grund_setzen()
+	match art:
+		"spiel", "":
+			pass                                   # L-S: bis S3 das Porträtlicht der Phase 5
+		"vorlage":
+			schluessel.light_color = Color(1, 1, 1)
+			schluessel.light_energy = VORLAGE_SCHLUESSEL
+			schluessel.light_angular_distance = 3.0
+			schluessel.shadow_blur = 1.0
+			licht_richten(schluessel, -45.0, 45.0)
+			fuell.light_color = Color(1, 1, 1)
+			fuell.light_energy = VORLAGE_FUELL
+			licht_richten(fuell, 50.0, 10.0)
+			gegen.visible = false
+			umgebung.ambient_light_color = Color(1, 1, 1)
+			umgebung.ambient_light_energy = VORLAGE_UMGEBUNG
+			umgebung.tonemap_exposure = VORLAGE_BELICHTUNG
+			# Grund: wie eine 18-%-Fläche unter Schlüssel- und Fülllicht (Lambert, zur Kamera) – im Bild so hell wie die Graukarte
+			var e := (VORLAGE_SCHLUESSEL * cos(deg_to_rad(45.0)) * cos(deg_to_rad(45.0)) + VORLAGE_FUELL * cos(deg_to_rad(50.0)) * cos(deg_to_rad(10.0))) + VORLAGE_UMGEBUNG
+			umgebung.background_color = Color(VORLAGE_GRUND * e, VORLAGE_GRUND * e, VORLAGE_GRUND * e).linear_to_srgb()
+		"innen":
+			# L-I (vorläufig bis S3): Herdfeuer links vorn, Kerze rechts, kaum Umgebungslicht
+			schluessel.visible = false
+			fuell.visible = false
+			gegen.visible = false
+			if _innen == null:
+				_innen = Node3D.new()
+				add_child(_innen)
+				for l in [[Vector3(-0.75, 0.95, 0.75), Color(1.0, 0.58, 0.28), 2.4, 4.0], [Vector3(0.8, 1.15, 0.35), Color(1.0, 0.7, 0.42), 0.7, 3.0]]:
+					var o := OmniLight3D.new()
+					o.position = l[0]
+					o.light_color = l[1]
+					o.light_energy = l[2]
+					o.omni_range = l[3]
+					o.shadow_enabled = true
+					o.shadow_normal_bias = 1.5
+					_innen.add_child(o)
+				positional_shadow_atlas_size = 2048
+			_innen.visible = true
+			umgebung.background_color = Color(0.03, 0.02, 0.015)
+			umgebung.ambient_light_color = Color(0.5, 0.38, 0.28)
+			umgebung.ambient_light_energy = 0.12
+			umgebung.tonemap_exposure = 1.25
+		_:
+			print("WARNUNG Lichtart ", art, " unbekannt")
+	if anzeige == "albedo":
+		anzeige_setzen("albedo")
+
+# Anzeige „albedo“: unbeleuchtet (Godot: DEBUG_DRAW_UNSHADED), linear abgebildet (kein AgX, Belichtung 1, keine
+# Verdeckung), Grund 18 % grau – das Bild zeigt sRGB(ALBEDO).
+func anzeige_setzen(art: String) -> void:
+	anzeige = art
+	if art == "albedo":
+		debug_draw = Viewport.DEBUG_DRAW_UNSHADED
+		umgebung.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+		umgebung.tonemap_exposure = 1.0
+		umgebung.ssao_enabled = false
+		umgebung.background_color = Color(0.18, 0.18, 0.18).linear_to_srgb()
+	else:
+		anzeige = "normal"
+		licht_art_setzen(licht_art)
+
+# Schlüssellicht aus einer Richtung (Bogen „schluessel_richtung“: [azimut, hoehe], Streiflicht N5)
+func schluessel_richtung(azimut: float, hoehe: float) -> void:
+	licht_richten(schluessel, azimut, hoehe)
 
 # Phase 3: freie Kamera (game/scripts/FreieKamera.cs) statt der festen, für die Regler-Ansicht (jede Testszene startet
 # mit freier Kamera); ansicht() stellt sie dann nur neu hin. Gibt false zurück, wenn es die Kamera nicht gibt.
@@ -88,11 +216,12 @@ func kopf_laden(datei: String) -> bool:
 
 # Ansichten: portraet (Kopf, Kragen, Schulteransatz), buste, kopf, augen, mund; winkel = Grad nach rechts gedreht (¾-Ansicht etwa 35)
 # spanne_m > 0: feste Bildhöhe in Metern (gleiche Kamera für Köpfe verschiedener Größe), ziel_m = Bildmitte über den Augen
-func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m := 0.0) -> void:
-	if kopf == null:
-		return
-	var e := kopf.augen_mitte
-	var s := maxf(kopf.oben - e.y, 0.05)          # Augen bis Scheitel, Erwachsener etwa 0,12 m
+# Phase 6: ziel_x = Bildmitte seitlich (Meter, +x = linke Gesichtshälfte der Figur, im Bild von vorn rechts);
+# ortho = orthografische Kamera mit derselben Bildhöhe (Vergleich Bild gegen Netz)
+func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m := 0.0, ziel_x := 0.0, ortho := false) -> void:
+	var e := kopf.augen_mitte if kopf else Vector3(0, 0.82, 0.13)
+	var ob: float = kopf.oben if kopf else 0.93
+	var s := maxf(ob - e.y, 0.05)          # Augen bis Scheitel, Erwachsener etwa 0,12 m
 	var ziel := Vector3(0.0, e.y, e.z)
 	var spanne := 1.0
 	match art:
@@ -109,13 +238,15 @@ func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m :
 		"augen":
 			spanne = 0.85 * s
 		"mund":
-			ziel = Vector3(0.0, kopf.mund_mitte.y + 0.01 * s, kopf.mund_mitte.z)
+			if kopf:
+				ziel = Vector3(0.0, kopf.mund_mitte.y + 0.01 * s, kopf.mund_mitte.z)
 			spanne = 0.85 * s
 	if spanne_m > 0.0:
 		spanne = spanne_m
 		ziel.y = e.y + ziel_m
+	ziel.x = ziel_x
 	# Drehpunkt in Kopfmitte (hinter den Augen), damit das Gesicht in der ¾-Ansicht in der Mitte bleibt
-	var dreh := Vector3(0.0, ziel.y, e.z - 0.75 * s)
+	var dreh := Vector3(ziel.x, ziel.y, e.z - 0.75 * s)
 	if art in ["augen", "mund"]:
 		dreh = Vector3(ziel.x, ziel.y, ziel.z - 0.35 * s)   # nah: um den Mund bzw. die Augen drehen
 	var abstand := (ziel.z - dreh.z) + spanne * 0.5 / tan(deg_to_rad(kamera.fov * 0.5))
@@ -123,6 +254,12 @@ func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m :
 	var h := deg_to_rad(hoehe)
 	var pos := dreh + Vector3(sin(w) * cos(h), sin(h), cos(w) * cos(h)) * abstand
 	var blick := dreh + (ziel - dreh).rotated(Vector3.UP, w)
+	if ortho:
+		kamera.projection = Camera3D.PROJECTION_ORTHOGONAL
+		kamera.size = spanne
+		kamera.far = 10.0
+	else:
+		kamera.projection = Camera3D.PROJECTION_PERSPECTIVE
 	if freie:
 		kamera.call("Blicken", pos, blick)
 	else:
@@ -157,3 +294,130 @@ func licht_setzen(werte: Dictionary) -> void:
 
 func foto() -> Image:
 	return get_texture().get_image()
+
+# ---------------------------------------------------------------- Prüfkörper (Phase 6, Bogen P10)
+# art: "graukarte" | "hautfeld" | "farbtest" | "kugel" | "alle" | "" (keine). Der Kopf wird dabei ausgeblendet.
+# Graukarte: 18 % Reflexion (linear), matt. Hautfeld: Hauttyp III nach PhysicallyBased (CC0), linear 0,623/0,433/0,343.
+# Farbtest: links Shader-Uniform `vec3 farbe : source_color` mit Vector3(0,5), Mitte derselbe mit Color(0,5),
+# rechts StandardMaterial3D mit Color(0,5) – alle unbeleuchtet. Godot rechnet nur den Color von sRGB nach linear um
+# (Phase-5-Fehler der Farbübergabe): erwartet linear 0,5 / 0,214 / 0,214.
+# Kugel: links haut3 ohne Wrap (streu 0, kein Flaum), Mitte haut3 wie im Spiel, rechts StandardMaterial3D (gleiche
+# Albedo, Rauheit 0,56, specular 0,42); neutrale Bilder (farbe 0,5, keine Masken).
+func pruefkoerper_setzen(art: String) -> void:
+	pruefkoerper = art
+	if _pruef:
+		_pruef.queue_free()
+		_pruef = null
+	if kopf:
+		kopf.visible = art == ""
+	if art == "":
+		return
+	_pruef = Node3D.new()
+	add_child(_pruef)
+	var e := kopf.augen_mitte if kopf else Vector3(0, 0.82, 0.13)
+	var mitte := Vector3(0.0, e.y - 0.02, e.z)
+	match art:
+		"graukarte":
+			_pruef.add_child(_flaeche(mitte, 0.14, _matt(Color(0.18, 0.18, 0.18))))
+		"hautfeld":
+			_pruef.add_child(_flaeche(mitte, 0.14, _matt(Color(0.623, 0.433, 0.343))))
+		"farbtest":
+			_farbtest(mitte, 0.07)
+		"kugel":
+			_kugeln(mitte, 0.036)
+		"alle":
+			_pruef.add_child(_flaeche(mitte + Vector3(-0.07, 0.07, 0), 0.12, _matt(Color(0.18, 0.18, 0.18))))
+			_pruef.add_child(_flaeche(mitte + Vector3(0.07, 0.07, 0), 0.12, _matt(Color(0.623, 0.433, 0.343))))
+			_farbtest(mitte + Vector3(0, -0.035, 0), 0.045)
+			_kugeln(mitte + Vector3(0, -0.11, 0), 0.03)
+		_:
+			print("WARNUNG Prüfkörper ", art, " unbekannt")
+
+static func _matt(linear: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = linear.linear_to_srgb()     # StandardMaterial3D erwartet sRGB
+	m.roughness = 1.0
+	m.metallic_specular = 0.0
+	return m
+
+static func _flaeche(pos: Vector3, groesse: float, stoff: Material) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	var q := QuadMesh.new()
+	q.size = Vector2(groesse, groesse)
+	mi.mesh = q
+	mi.material_override = stoff
+	mi.position = pos
+	return mi
+
+func _farbtest(mitte: Vector3, b: float) -> void:
+	var a := ShaderMaterial.new()
+	a.shader = FARBTEST
+	a.set_shader_parameter("farbe", Vector3(0.5, 0.5, 0.5))
+	var c := ShaderMaterial.new()
+	c.shader = FARBTEST
+	c.set_shader_parameter("farbe", Color(0.5, 0.5, 0.5))
+	var s := StandardMaterial3D.new()
+	s.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	s.albedo_color = Color(0.5, 0.5, 0.5)
+	var i := 0
+	for m in [a, c, s]:
+		_pruef.add_child(_flaeche(mitte + Vector3((i - 1) * b * 1.05, 0, 0), b, m))
+		i += 1
+
+static var _neutral := {}
+static func _neutral_bild(farbe: Color) -> ImageTexture:
+	var schl := farbe.to_html()
+	if not _neutral.has(schl):
+		var img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+		img.fill(farbe)
+		_neutral[schl] = ImageTexture.create_from_image(img)
+	return _neutral[schl]
+
+func _kugeln(mitte: Vector3, r: float) -> void:
+	var grund: Color = Kopf.hautfarbe(185.0 / 255.0)
+	var i := 0
+	for wrap in [0.0, 0.4, -1.0]:
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = r
+		sm.height = 2.0 * r
+		sm.radial_segments = 96
+		sm.rings = 48
+		mi.mesh = sm
+		if wrap >= 0.0:
+			var m := ShaderMaterial.new()
+			m.shader = HAUT3
+			m.set_shader_parameter("farbe_tex", _neutral_bild(Color(0.5, 0.5, 0.5, 0.0)))
+			m.set_shader_parameter("normal_tex", _neutral_bild(Color(0.5, 0.5, 0.0, 1.0)))
+			m.set_shader_parameter("grundfarbe", Vector3(grund.r, grund.g, grund.b))    # Weg der Phase 5 (Stand 5)
+			m.set_shader_parameter("streu", wrap)
+			m.set_shader_parameter("flaum", 0.0 if wrap == 0.0 else 0.16)
+			mi.material_override = m
+		else:
+			var s := StandardMaterial3D.new()
+			s.albedo_color = grund
+			s.roughness = 0.56
+			s.metallic_specular = 0.42
+			mi.material_override = s
+		mi.position = mitte + Vector3((i - 1) * r * 2.3, 0, 0)
+		_pruef.add_child(mi)
+		i += 1
+
+# ---------------------------------------------------------------- Begleitdaten (Phase 6)
+# Kamera und Kopf für eine Begleitdatei: Python (tools/charakter/messen) projiziert damit die Merkpunkte ins Bild.
+static func transform_liste(t: Transform3D) -> Array:
+	return [t.basis.x.x, t.basis.x.y, t.basis.x.z, t.basis.y.x, t.basis.y.y, t.basis.y.z,
+		t.basis.z.x, t.basis.z.y, t.basis.z.z, t.origin.x, t.origin.y, t.origin.z]
+
+func kamera_daten() -> Dictionary:
+	return {
+		"transform": transform_liste(kamera.global_transform),
+		"projektion": "ortho" if kamera.projection == Camera3D.PROJECTION_ORTHOGONAL else "perspektive",
+		"fov": kamera.fov, "size": kamera.size, "keep_aspect": kamera.keep_aspect,
+		"near": kamera.near, "far": kamera.far,
+		"bild": [size.x, size.y],
+		"kopf_transform": transform_liste(kopf.global_transform) if kopf else [],
+		"lichtart": licht_art, "anzeige": anzeige, "pruefkoerper": pruefkoerper,
+		"belichtung": umgebung.tonemap_exposure,
+		"schluessel_von": [schluessel.global_transform.basis.z.x, schluessel.global_transform.basis.z.y, schluessel.global_transform.basis.z.z],
+	}

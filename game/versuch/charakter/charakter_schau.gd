@@ -12,6 +12,15 @@
 # regler_bild: die Reglerseite mit einem Beispiel als Bild (regler.png)
 # messen: in diesem Prozess nacheinander leere Bühne, Kopf still, Mimik bewegt, alle Formen bewegt, mit/ohne Normalen
 #         der Formen, 8 Köpfe; je Lauf GPU-Zeit, Dreiecke, Zeichenaufrufe, Speicher, Ladezeit (messung.jsonl)
+#         Phase 6: --wiederholungen=3 (je Lauf mehrmals im selben Prozess), --stand=5|6, --commit=<hash> (ins Protokoll)
+# Phase 6 (S0) – Bogenzellen kennen zusätzlich: "stand": 5|6, "saat": Startwert (Erbgut über den Kern gewürfelt,
+#   ErbgutBruecke.cs), "familie": {"<saat>": [vater_saat, mutter_saat]} (vererbt), "saat_arten": ["Merkmal", …] (nur
+#   diese Gene aus der Saat), "vorlage": Erbgut-Vorschlagsdatei, "licht": "spiel"|"vorlage"|"innen", "anzeige":
+#   "albedo", "ziel_x", "kamera": "ortho", "schluessel_richtung": [azimut, hoehe], "pruefkoerper": "graukarte"|
+#   "hautfeld"|"farbtest"|"kugel"|"alle". Jede Zelle schreibt neben ihr Bild eine Begleitdatei <zz_ss>.json (Kamera,
+#   Kopf, Gene, Formgewichte aus der Szene) für tools/charakter/messen.
+#   … --gewichte=<personen.json> --aus=<gewichte.json> --ende   (auch --headless) Formgewichte je Person ausschreiben
+#   … --bruecke_pruefen [--aus=<datei.json>] --ende             Abnahme der Erbgut-Brücke (S0)
 extends Control
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -37,10 +46,16 @@ func _ready() -> void:
 	hg.color = Color(0.11, 0.1, 0.09)
 	hg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(hg)
-	if not DirAccess.dir_exists_absolute(glb_ordner):
+	if not DirAccess.dir_exists_absolute(glb_ordner) and not args.has("bruecke_pruefen"):
 		_meldung("Ordner mit den Köpfen fehlt: %s\nDie .glb entstehen lokal mit tools/charakter/kopf3.sh aus ICT- und MakeHuman-Daten,\ndie nicht im Repository liegen (siehe docs/charakter/phase3.md)." % glb_ordner)
 		return
 	var etwas := false
+	if args.has("gewichte"):
+		await _gewichte_ausschreiben()
+		etwas = true
+	if args.has("bruecke_pruefen"):
+		_bruecke_pruefen()
+		etwas = true
 	if args.has("bogen"):
 		for datei in String(args["bogen"]).split(","):
 			await _bogen(datei)
@@ -105,10 +120,14 @@ static func _mann(wert) -> float:
 		return 0.0 if wert == "w" else 1.0
 	return float(wert)
 
-# Eine Zelle auf einen Kopf anwenden (Volk-Mittel, dann Gene, Alter, Geschlecht, Mimik)
+# Eine Zelle auf einen Kopf anwenden (Volk-Mittel, dann Saat/Familie über den Kern, dann Gene, Alter, Geschlecht, Mimik)
 static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
-	var gene := Kopf.mittelwerte(z.get("volk", "Mensch"))
+	var volk: String = z.get("volk", "Mensch")
+	var gene := Kopf.mittelwerte(volk)
+	if z.has("saat"):
+		gene.merge(Kopf.gene_aus_saat(int(z["saat"]), volk, z.get("familie", {}), z.get("saat_arten", []), z.get("vorlage", "")), true)
 	gene.merge(z.get("gene", {}), true)
+	k.stand = int(z.get("stand", 5))
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
 	k.zusatz_formen = z.get("formen", {})
@@ -157,6 +176,9 @@ func _bogen(datei: String) -> void:
 				for n in quelle.get("formen", {}):
 					fo[n] = float(fo.get(n, 0.0)) + float(quelle["formen"][n])
 			z["formen"] = fo
+			# Phase 6: --stand=<n> gilt für alle Zellen ohne eigenen Stand
+			if args.has("stand") and not z.has("stand"):
+				z["stand"] = int(args["stand"])
 			if z.get("kopf") == null:
 				reihe.append([null, z.get("titel", "")])
 				continue
@@ -170,15 +192,28 @@ func _bogen(datei: String) -> void:
 				b.kopf.ultra_setzen(bool(z.get("ultra", false)))
 			b.kopf.teile_ausblenden(z.get("ausblenden", []))
 			b.kopf.stoff_parameter(z.get("stoff", {}))
+			# Phase 6: erst alte Einzelwerte zurück, dann Lichtart und Anzeige, dann die Einzelwerte der Zelle
+			b.umgebung_setzen({})
+			b.licht_setzen({})
+			b.licht_art_setzen(String(z.get("licht", "spiel")))
+			b.anzeige_setzen(String(z.get("anzeige", "normal")))
+			var sr: Array = z.get("schluessel_richtung", [])
+			if sr.size() == 2:
+				b.schluessel_richtung(float(sr[0]), float(sr[1]))
+			b.pruefkoerper_setzen(String(z.get("pruefkoerper", "")))
 			b.umgebung_setzen(z.get("umgebung", {}))
 			b.licht_setzen(z.get("schluessel", {}))
 			b.ansicht(z.get("ansicht", "portraet"), float(z.get("winkel", 0.0)), float(z.get("hoehe", 3.0)),
-				float(z.get("spanne_m", 0.0)), float(z.get("ziel_m", 0.0)))
+				float(z.get("spanne_m", 0.0)), float(z.get("ziel_m", 0.0)), float(z.get("ziel_x", 0.0)),
+				String(z.get("kamera", "")) == "ortho")
 			await _warte(int(z.get("warten", 4)))
 			var bild := b.foto()
+			if z.has("vorlage"):
+				bild = _vorlage_bild(b, z["vorlage"], zelle, bool(z.get("geschlecht", "m") == "w"))
 			if bild == null or bild.is_empty():
 				bild = Image.create(zelle.x, zelle.y, false, Image.FORMAT_RGB8)
 			bild.save_png(bilder.path_join(name).path_join("%02d_%02d.png" % [zi, si]))
+			_begleitdatei(b, z, bilder.path_join(name).path_join("%02d_%02d.json" % [zi, si]))
 			reihe.append([bild, z.get("titel", "")])
 		fotos.append(reihe)
 	for b in _buehnen.values():
@@ -241,6 +276,138 @@ func _bogen(datei: String) -> void:
 		print("WARNUNG Fenster kleiner als der Bogen ", fenster, " < ", ges)
 	tafel.queue_free()
 	await _warte(2)
+
+# Phase 6 (Bogen P3): Fotovorlage statt Render, auf den Pupillenabstand des Kopfs dieser Zelle skaliert und an
+# dessen Pupillen gelegt (gleiche Kamera wie die Nachbarzelle). v = {"bild": Pfad, "pupillen": [[x, y], [x, y]]
+# (links und rechts im Bild), "ipd_mm": Pupillenabstand des Kopfs (Mittelgesicht: Mann 61,7, Frau 60,8)}.
+func _vorlage_bild(b: Buehne, v: Dictionary, zelle: Vector2i, frau: bool) -> Image:
+	var pfad := String(v.get("bild", ""))
+	if pfad.begins_with("~/"):
+		pfad = OS.get_environment("HOME").path_join(pfad.substr(2))
+	var img := Image.load_from_file(pfad)
+	if img == null:
+		print("WARNUNG Vorlage fehlt: ", pfad)
+		return null
+	img.convert(Image.FORMAT_RGB8)
+	var pu: Array = v.get("pupillen", [])
+	if pu.size() != 2:
+		return null
+	var q_l := Vector2(pu[0][0], pu[0][1])
+	var q_r := Vector2(pu[1][0], pu[1][1])
+	var halb := float(v.get("ipd_mm", 60.8 if frau else 61.7)) / 2000.0
+	var t := b.kopf.global_transform
+	var z_l := b.kamera.unproject_position(t * (b.kopf.augen_mitte - Vector3(halb, 0, 0)))
+	var z_r := b.kamera.unproject_position(t * (b.kopf.augen_mitte + Vector3(halb, 0, 0)))
+	if z_l.x > z_r.x:
+		var tmp := z_l
+		z_l = z_r
+		z_r = tmp
+	var s := z_l.distance_to(z_r) / maxf(q_l.distance_to(q_r), 1.0)
+	var neu := img.duplicate()
+	neu.resize(maxi(1, int(round(img.get_width() * s))), maxi(1, int(round(img.get_height() * s))), Image.INTERPOLATE_LANCZOS)
+	var aus := Image.create(zelle.x, zelle.y, false, Image.FORMAT_RGB8)
+	aus.fill(Color(0.45, 0.45, 0.45))
+	var versatz := (z_l + z_r) * 0.5 - (q_l + q_r) * 0.5 * s
+	var ziel := Vector2i(int(round(versatz.x)), int(round(versatz.y)))
+	var quelle := Vector2i(maxi(0, -ziel.x), maxi(0, -ziel.y))
+	var nach := Vector2i(maxi(0, ziel.x), maxi(0, ziel.y))
+	var gr := Vector2i(mini(neu.get_width() - quelle.x, zelle.x - nach.x), mini(neu.get_height() - quelle.y, zelle.y - nach.y))
+	if gr.x > 0 and gr.y > 0:
+		aus.blit_rect(neu, Rect2i(quelle, gr), nach)
+	return aus
+
+# ---------------------------------------------------------------- Begleitdateien und Gewichte (Phase 6)
+static func _json_wert(v):
+	if v is Vector3:
+		return [v.x, v.y, v.z]
+	if v is Vector4:
+		return [v.x, v.y, v.z, v.w]
+	if v is Color:
+		return [v.r, v.g, v.b, v.a]
+	if v is Dictionary:
+		var d := {}
+		for k in v:
+			d[str(k)] = _json_wert(v[k])
+		return d
+	if v is Array:
+		return v.map(func(x): return _json_wert(x))
+	return v
+
+static func kopf_daten(k: Kopf) -> Dictionary:
+	return {
+		"glb": k.pfad, "stand": k.stand, "alter": k.alter, "geschlecht": k.geschlecht, "gene": k.gene.duplicate(),
+		"mimik": k.mimik.duplicate(), "mimikfaktor": k.mimikfaktor, "gewichte": k.gewichte.duplicate(),
+		"szene": k.szene_gewichte(), "augen_mitte": k.augen_mitte, "mund_mitte": k.mund_mitte, "oben": k.oben,
+		"werte3": k.werte3.duplicate(), "haar_modus": k.haar_modus,
+	}
+
+func _begleitdatei(b: Buehne, z: Dictionary, datei: String) -> void:
+	var d := b.kamera_daten()
+	d["zelle"] = z
+	if b.kopf:
+		d["kopf"] = kopf_daten(b.kopf)
+		if z.has("saat"):
+			d["erbgut"] = Kopf.erbgut_text(int(z["saat"]), z.get("volk", "Mensch"), z.get("familie", {}), z.get("vorlage", ""))
+	var f := FileAccess.open(datei, FileAccess.WRITE)
+	f.store_string(JSON.stringify(_json_wert(d), " ", false))
+	f.close()
+
+# --gewichte=<personen.json> --aus=<gewichte.json>: je Person (Schlüssel wie eine Bogenzelle: gene, saat, familie,
+# alter, geschlecht, volk, mimik, formen, stand) die Formgewichte, die _anwenden() rechnet, und die Werte aus der Szene.
+# Läuft auch ohne Grafikkarte (--headless). Python misst genau diese Gewichte (kein Nachbau von _anwenden()).
+func _gewichte_ausschreiben() -> void:
+	var text := FileAccess.get_file_as_string(args["gewichte"])
+	var eingabe = JSON.parse_string(text) if text != "" else null
+	if eingabe == null:
+		_meldung("Personendatei fehlt oder ist kein JSON: " + String(args["gewichte"]))
+		return
+	var liste: Array = eingabe if eingabe is Array else eingabe.get("personen", [])
+	var kopfdatei := _datei(eingabe.get("kopf", "standard") if eingabe is Dictionary else "standard")
+	var k := Kopf.new()
+	k.haar_modus = "aus"
+	add_child(k)
+	if not k.laden(kopfdatei):
+		_meldung(k.fehler)
+		return
+	var t := Time.get_ticks_usec()
+	var aus := []
+	for p in liste:
+		var z: Dictionary = p.duplicate(true)
+		if not z.has("haar"):
+			z["haar"] = {"modus": "aus"}
+		zelle_setzen(k, z)
+		var e := kopf_daten(k)
+		e["name"] = z.get("name", "")
+		if z.has("saat"):
+			e["saat"] = int(z["saat"])
+			e["erbgut"] = Kopf.erbgut_text(int(z["saat"]), z.get("volk", "Mensch"), z.get("familie", {}), z.get("vorlage", ""))
+		aus.append(e)
+	var ziel := String(args.get("aus", bilder.path_join("gewichte.json")))
+	var f := FileAccess.open(ziel, FileAccess.WRITE)
+	f.store_string(JSON.stringify(_json_wert({"kopf": kopfdatei, "personen": aus}), " ", false))
+	f.close()
+	print("GEWICHTE %d Personen in %.0f ms -> %s" % [aus.size(), (Time.get_ticks_usec() - t) / 1000.0, ziel])
+	k.queue_free()
+
+# --bruecke_pruefen: Abnahme S0 der Erbgut-Brücke (gleiche Bytes, bestehende Gene mit/ohne Vorschlag gleich)
+func _bruecke_pruefen() -> void:
+	var b := Kopf.bruecke()
+	if b == null:
+		_meldung("ErbgutBruecke.cs lässt sich nicht laden (C#-Assembly gebaut?)")
+		return
+	var t := Time.get_ticks_usec()
+	var erg: Dictionary = b.call("Pruefen", int(args.get("von", "10001")), int(args.get("anzahl", "1000")), String(args.get("vorlage", "")))
+	erg["ms"] = (Time.get_ticks_usec() - t) / 1000.0
+	# 30 Gensätze wie die Galerie mit Taste Z: alle verschieden?
+	var texte := {}
+	for i in 30:
+		texte[Kopf.erbgut_text(20001 + i)] = true
+	erg["galerie_30_verschieden"] = texte.size()
+	print("BRUECKE ", JSON.stringify(erg))
+	if args.has("aus"):
+		var f := FileAccess.open(String(args["aus"]), FileAccess.WRITE)
+		f.store_string(JSON.stringify(erg, " ", false))
+		f.close()
 
 # ---------------------------------------------------------------- Regler
 var _kopf: Kopf
@@ -494,10 +661,12 @@ func _messen() -> void:
 		{"name": "x8_still", "kopf": "kopf3.glb", "bewegt": "keine", "anzahl": 8},
 		{"name": "x8_mimik", "kopf": "kopf3.glb", "bewegt": "arkit", "anzahl": 8},
 	]
-	for l in laeufe:
-		if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
-			continue
-		await _ein_lauf(l)
+	for wdh in int(args.get("wiederholungen", "1")):
+		for l in laeufe:
+			if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
+				continue
+			l["wiederholung"] = wdh
+			await _ein_lauf(l)
 
 func _ein_lauf(l: Dictionary) -> void:
 	var datei := _datei(l.get("kopf", "kopf3.glb"))
@@ -530,7 +699,8 @@ func _ein_lauf(l: Dictionary) -> void:
 			behaelter.queue_free()
 			return
 		laden_ms += b.kopf.ladezeit_ms
-		zelle_setzen(b.kopf, {"alter": 35, "geschlecht": l.get("geschlecht", "m"), "haar": l.get("haar", {"modus": "aus"})})
+		zelle_setzen(b.kopf, {"alter": 35, "geschlecht": l.get("geschlecht", "m"), "haar": l.get("haar", {"modus": "aus"}),
+			"stand": int(l.get("stand", args.get("stand", "5")))})
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
 			b.kopf.ultra_setzen(bool(l.get("ultra", false)))
@@ -576,6 +746,8 @@ func _ein_lauf(l: Dictionary) -> void:
 		"textur_mb": snappedf(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED) / 1048576.0, 0.1),
 		"aufloesung": "%dx%d" % [gr0.x, gr0.y],
 		"last": snappedf(float(FileAccess.get_file_as_string("/proc/loadavg").split(" ")[0]), 0.1),
+		"stand": int(l.get("stand", args.get("stand", "5"))), "wiederholung": int(l.get("wiederholung", 0)),
+		"commit": String(args.get("commit", "")), "zeit": Time.get_datetime_string_from_system(),
 	}
 	print("MESSUNG ", JSON.stringify(erg))
 	var f := FileAccess.open(bilder.path_join("messung.jsonl"), FileAccess.READ_WRITE if FileAccess.file_exists(bilder.path_join("messung.jsonl")) else FileAccess.WRITE)
