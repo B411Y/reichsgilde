@@ -612,7 +612,9 @@ public partial class Stadtansicht
         {
             LichtArt.Glut => new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = 5f, LightEnergy = 0.3f },
             LichtArt.Lampe => new OmniLight3D { LightColor = new Color(1f, 0.82f, 0.55f), OmniRange = 6f, LightEnergy = 0.5f },
-            _ => new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 4.5f, SpotAngle = 50f, LightEnergy = 0f },
+            // Fensterlicht: Mit SDFGI ersetzt das zurückgeworfene Licht das Umgebungslicht des Raums; das Tageslicht der Fenster wirft darum
+            // kräftiger zurück (wirkt nur auf SDFGI, Stadtansicht.GlobaleBeleuchtung.cs)
+            _ => new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 4.5f, SpotAngle = 50f, LightEnergy = 0f, LightIndirectEnergy = FensterGiVerstaerkung },
         };
         anker.AddChild(licht);
         md.Lichter.Add((licht, art, ExtraZahl(anker, "stufe", 1)));

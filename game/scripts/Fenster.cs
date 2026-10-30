@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Anzeige-Einstellungen: Fenster oder Vollbild (auch F11, überall), die Kantenglättung, die Schattenqualität, der Bloom,
-/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL) und die Hochskalierung mit FSR 2.2;
+/// die Umgebungsverdeckung (SSAO), das indirekte Licht (SSIL), die globale Beleuchtung (SDFGI) und die Hochskalierung mit FSR 2.2;
 /// dazu (Fenster.Grafik.cs) Voreinstellungen, Bildrate, VSync, dynamische Auflösung, Detailstufe, Stimmung und Barrierefreiheit.
 /// Geändert werden sie im Fenster „Einstellungen“ (<see cref="EinstellungenAnzeige"/>), gespeichert in
 /// <c>user://einstellungen.cfg</c> und beim Start wieder angewendet.
@@ -83,6 +83,9 @@ public partial class Fenster : Node
         var verdeckung = geladen ? einstellungen.GetValue("anzeige", "ssao", "").AsString() : "";
         UmgebungsverdeckungSetzen(Enum.TryParse<Umgebungsverdeckung>(verdeckung, out var v) ? v : StandardUmgebungsverdeckung, speichern: false);
         IndirektesLichtSetzen(geladen && einstellungen.GetValue("anzeige", "ssil", false).AsBool(), speichern: false);
+        // Ohne den Schlüssel (Dateien vor dem Versuch SDFGI, 30.10.2026): aus.
+        var gi = geladen ? einstellungen.GetValue("anzeige", "sdfgi", "").AsString() : "";
+        GlobaleBeleuchtungSetzen(Enum.TryParse<GlobaleBeleuchtung>(gi, out var g) ? g : GlobaleBeleuchtung.Aus, speichern: false);
         FsrSetzen(geladen && einstellungen.GetValue("anzeige", "fsr", false).AsBool(),
                   geladen ? einstellungen.GetValue("anzeige", "renderaufloesung", StandardRenderaufloesung).AsInt32() : StandardRenderaufloesung,
                   speichern: false);
@@ -203,7 +206,7 @@ public partial class Fenster : Node
 
     public static bool IndirektesLichtAn { get; private set; }
 
-    /// <summary>Wird ausgelöst, wenn Umgebungsverdeckung oder indirektes Licht wechseln: Die Stadtansicht stellt ihre Umgebungen sofort um.</summary>
+    /// <summary>Wird ausgelöst, wenn Umgebungsverdeckung, indirektes Licht oder globale Beleuchtung wechseln: Die Stadtansicht stellt ihre Umgebungen sofort um.</summary>
     public static event Action? VerdeckungGeaendert;
 
     /// <summary>
@@ -225,6 +228,25 @@ public partial class Fenster : Node
         VerdeckungGueteSetzen();
         VerdeckungGeaendert?.Invoke();
         if (speichern) Speichern("ssil", an);
+    }
+
+    /// <summary>Stufe der globalen Beleuchtung (SDFGI); ohne gespeicherte Wahl aus (Werte und Gründe: Stadtansicht.GlobaleBeleuchtung.cs).</summary>
+    public static GlobaleBeleuchtung AktuelleGlobaleBeleuchtung { get; private set; } = GlobaleBeleuchtung.Aus;
+
+    /// <summary>SDFGI gibt es nur im Renderer Forward+ (Vulkan, DirectX 12), nicht unter <c>opengl3</c> (Kompatibilität) und nicht im Renderer Mobile.</summary>
+    public static bool GlobaleBeleuchtungMoeglich => RenderingServer.GetCurrentRenderingMethod() == "forward_plus";
+
+    /// <summary>
+    /// Stellt die globale Beleuchtung (SDFGI: Licht, das von Wänden, Boden und Himmel zurückstrahlt, auch außerhalb des Bildes) ein. Strahlenzahl,
+    /// halbe Auflösung und wie oft das Licht nachgeführt wird, gelten für alle Umgebungen und werden hier am RenderingServer gesetzt; Kaskaden und
+    /// Zellgröße stellt die Stadtansicht je Umgebung ein (<see cref="VerdeckungGeaendert"/>). Wirkt ohne Neustart; unter <c>opengl3</c> bleibt es aus.
+    /// </summary>
+    public static void GlobaleBeleuchtungSetzen(GlobaleBeleuchtung stufe, bool speichern = true)
+    {
+        AktuelleGlobaleBeleuchtung = stufe;
+        Stadtansicht.GlobaleBeleuchtungGueteSetzen(stufe);
+        VerdeckungGeaendert?.Invoke();
+        if (speichern) Speichern("sdfgi", stufe.ToString());
     }
 
     private static void VerdeckungGueteSetzen()
@@ -393,6 +415,9 @@ public enum Kantenglaettung { Aus, Fxaa, Smaa, Taa, Msaa2, Msaa4, Msaa8 }
 
 /// <summary>Stufen der Umgebungsverdeckung (SSAO; Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.Licht.cs).</summary>
 public enum Umgebungsverdeckung { Aus, Niedrig, Mittel, Hoch }
+
+/// <summary>Stufen der globalen Beleuchtung (SDFGI; Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.GlobaleBeleuchtung.cs).</summary>
+public enum GlobaleBeleuchtung { Aus, Niedrig, Mittel, Hoch }
 
 /// <summary>Stufen der Schattenqualität (Beschreibung: <see cref="EinstellungenAnzeige"/>, Werte: Stadtansicht.Licht.cs).</summary>
 public enum Schattenqualitaet { Niedrig, Mittel, Hoch }
