@@ -357,11 +357,12 @@ void fragment() {
 		float eis_hier = eis_art * (1.0 - offen);
 		vec2 eis_p = welt_xz; // wo die Muster des Eises liegen (Schollen: mit der Strömung)
 		float matsch = 0.0;
-		if (eis_hier > 0.001) {
-			float abstand = ufer;
-			if (ufer_im_netz < 0.5) {
-				abstand = dist * 2.0; // ohne Uferwerte grob aus der Tiefe geschätzt
-			}
+		float abstand = ufer;
+		if (ufer_im_netz < 0.5) {
+			abstand = dist * 2.0; // ohne Uferwerte grob aus der Tiefe geschätzt
+		}
+		// Weiter draußen als Eis, Randrauschen und Grieseis reichen können: nichts rechnen (spart im offenen Fluss das Rauschen)
+		if (eis_hier > 0.001 && abstand < eis_hier * reichweite + min(reichweite, 12.0) * 0.25 + 1.8) {
 			float rand_n = w_fbm(welt_xz * 0.8);
 			// Großflächig unregelmäßiger Rand (bis ±¼ der Reichweite, höchstens ±3 m): sonst folgte die offene Stelle eines Teiches genau dem Umriss
 			float rand_gross = (w_fbm(welt_xz * 0.09 + 5.0) - 0.5) * min(reichweite, 12.0) * 0.5 * smoothstep(0.0, 0.3, eis_hier);
@@ -372,22 +373,28 @@ void fragment() {
 		}
 		float scholle_rand = 0.0;
 		float auf_scholle = 0.0;
-		if (schollen > 0.001 && eis > 0.15) {
+		if (schollen > 0.001 && eis > 0.15 && eismaske < 0.999 && ufer > 0.05) { // im festen Randeis und am Bandrand keine Schollen rechnen
 			// Schollen: Zellen (3–8 m) in den Laufachsen, die mit der Strömung wandern; in einem Teil der Zellen eine unregelmäßige Scholle. Die Dichte
 			// schwankt großflächig (Schollen treiben in Feldern), dazu eine zweite Lage kleiner Brocken.
 			vec2 sp = lauf_uv - stroemung * TIME * 0.9;
-			float dichte = schollen * smoothstep(0.15, 0.85, eis) * 0.4;
+			// Felder dichter Schollen und fast freie Strecken (großflächiges Rauschen, etwa 40 m; einmal je Bildpunkt, nicht je Zelle)
+			float feld = smoothstep(0.3, 0.72, w_fbm(sp * 0.025 + 3.7));
+			float dichte = schollen * smoothstep(0.15, 0.85, eis) * 0.4 * mix(0.08, 2.3, feld);
+			float zerfranst = (w_rausch(sp * 1.6) - 0.5) * 0.12; // unregelmäßiger Rand, mit der Scholle treibend
 			float scholle = 0.0;
-			for (int lage = 0; lage < 2; lage++) {
+#ifdef MIT_BRECHUNG
+			int lagen = 2; // Hoch und Ultra: dazu die Lage kleiner Brocken
+#else
+			int lagen = 1; // Niedrig und Mittel: nur die großen Schollen (spart die Hälfte)
+#endif
+			for (int lage = 0; lage < lagen; lage++) {
 				float zelle_m = lage == 0 ? 3.0 + eis_reichweite : 1.2 + eis_reichweite * 0.3;
 				vec2 q = sp / zelle_m + float(lage) * 19.7;
 				vec2 zelle = floor(q);
 				for (int j = -1; j <= 1; j++) {
 					for (int i = -1; i <= 1; i++) {
 						vec2 z = zelle + vec2(float(i), float(j));
-						// Felder dichter Schollen und fast freie Strecken (großflächiges Rauschen, in Weltmetern etwa 40 m)
-						float feld = smoothstep(0.3, 0.72, w_fbm(z * zelle_m * 0.025 + 3.7));
-						if (w_hash(z + vec2(31.0, 17.0)) >= dichte * mix(0.08, 2.3, feld) * (lage == 0 ? 1.0 : 0.45)) {
+						if (w_hash(z + vec2(31.0, 17.0)) >= dichte * (lage == 0 ? 1.0 : 0.45)) {
 							continue;
 						}
 						vec2 h = w_hash2(z);
@@ -396,7 +403,7 @@ void fragment() {
 						v = vec2(cos(winkel) * v.x - sin(winkel) * v.y, sin(winkel) * v.x + cos(winkel) * v.y);
 						v.x *= 1.0 + 0.8 * h.x; // länglich
 						float d = mix(length(v), max(abs(v.x), abs(v.y)) * 1.15, 0.5); // eckig gebrochen
-						d += (w_rausch(sp * 1.6 + h * 40.0) - 0.5) * 0.12;
+						d += zerfranst;
 						float r = 0.08 + 0.3 * pow(w_hash(z + vec2(13.0, 3.0)), 1.5); // viele kleine, wenige große
 						float m = 1.0 - smoothstep(r - 0.035, r, d);
 						if (m > scholle) {
