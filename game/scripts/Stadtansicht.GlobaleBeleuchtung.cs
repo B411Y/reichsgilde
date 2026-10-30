@@ -71,15 +71,12 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wie hell das Licht der Raumansicht zurückkommt. Der Raum liest keinen Himmel (sein Hintergrund ist fast schwarz, Godot rät bei Innenräumen ab):
-    /// Ohne Umgebungslicht bliebe nur, was Fenster, Glut und Lampen zurückwerfen – dafür etwas kräftiger als Godots Grundwert 1.
+    /// Ohne Umgebungslicht bliebe nur, was Fenster, Glut und Lampen zurückwerfen – dafür kräftiger als Godots Grundwert 1. Es reicht trotzdem nicht:
+    /// Die Schmiede wird am Tag mit glühender Esse von 75 auf 31 von 255 (Mittel, Energie 1,6) dunkler, ohne Glut auf 18 (Energie 3). Ein höheres Fensterlicht nur für SDFGI
+    /// (<c>LightIndirectEnergy</c> 6 an den Fenster-Spotlichtern) änderte nichts Messbares und ist wieder heraus. Die Räume sind für Umgebungslicht
+    /// gebaut; für SDFGI bräuchten sie eigene Lichter.
     /// </summary>
     private const float RaumGiEnergie = 3f;
-
-    /// <summary>
-    /// Wie stark das Tageslicht der Fenster (<c>SpotLight3D</c> der Modellräume) in SDFGI zurückkommt (<see cref="Light3D.LightIndirectEnergy"/>, wirkt nur
-    /// auf SDFGI). Ohne SDFGI füllt das Umgebungslicht den Raum am Tag; mit SDFGI muss das Fenster es tun.
-    /// </summary>
-    internal const float FensterGiVerstaerkung = 6f;
 
     /// <summary>
     /// Anteil des Himmels im Licht der Stadt, gemessen am Umgebungslicht ohne SDFGI (1 = gleich hell auf einer offenen Fläche). Godot liest die

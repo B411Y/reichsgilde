@@ -54,7 +54,7 @@ public partial class Fenster
         AktuelleKantenglaettung, AktuelleSchattenqualitaet, AktuelleUmgebungsverdeckung, IndirektesLichtAn, BloomAn,
         FsrAn, Renderaufloesung, NaturDichte, PassantenMenge, AktuelleFeinheiten,
         AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet, AktuellerGrasteppich, AktuelleWettereffekte,
-        AktuelleGlobaleBeleuchtung);
+        GlobaleBeleuchtungMoeglich ? AktuelleGlobaleBeleuchtung : GlobaleBeleuchtung.Aus); // ohne Forward+ wirkt SDFGI nicht, die Stufe zeigt dann nicht „Eigene“
 
     /// <summary>
     /// Welche Voreinstellung die Regler gerade zeigen – „Eigene“, sobald einer abweicht. Gerechnet statt gespeichert: Stellt der
