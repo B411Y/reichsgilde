@@ -286,6 +286,7 @@ def karte_speichern(pfad, G, J, I, kanaele, unschaerfe=1):
         gueltig = gueltig | (zahl[..., 0] > 0)
     for _ in range(unschaerfe):
         feld = (feld * 4 + np.roll(feld, 1, 0) + np.roll(feld, -1, 0) + np.roll(feld, 1, 1) + np.roll(feld, -1, 1)) / 8
+    feld = np.ascontiguousarray(feld[::-1])          # wie kopf3_backen.py: Zeile 0 = oben (v = 1)
     spec = oiio.ImageSpec(G, G, 4, oiio.FLOAT)
     spec.attribute("oiio:UnassociatedAlpha", 1)
     buf = oiio.ImageBuf(spec)
