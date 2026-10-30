@@ -1,0 +1,183 @@
+{
+ "kopf": "standard",
+ "beschreibung": "Charakter Phase 6, S0: Personen für den Gewichteausdruck (Mittelgesicht 20–70 Jahre, 20 Zufallspersonen über ErbgutBruecke).",
+ "personen": [
+  {
+   "name": "mittel_m20",
+   "geschlecht": "m",
+   "alter": 20
+  },
+  {
+   "name": "mittel_m30",
+   "geschlecht": "m",
+   "alter": 30
+  },
+  {
+   "name": "mittel_m35",
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "mittel_m50",
+   "geschlecht": "m",
+   "alter": 50
+  },
+  {
+   "name": "mittel_m70",
+   "geschlecht": "m",
+   "alter": 70
+  },
+  {
+   "name": "mittel_w20",
+   "geschlecht": "w",
+   "alter": 20
+  },
+  {
+   "name": "mittel_w30",
+   "geschlecht": "w",
+   "alter": 30
+  },
+  {
+   "name": "mittel_w35",
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "mittel_w50",
+   "geschlecht": "w",
+   "alter": 50
+  },
+  {
+   "name": "mittel_w70",
+   "geschlecht": "w",
+   "alter": 70
+  },
+  {
+   "name": "grundnetz",
+   "geschlecht": "m",
+   "alter": 25,
+   "formen": {},
+   "nur_grundnetz": true
+  },
+  {
+   "name": "zufall_m6001",
+   "saat": 6001,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6101",
+   "saat": 6101,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6002",
+   "saat": 6002,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6102",
+   "saat": 6102,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6003",
+   "saat": 6003,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6103",
+   "saat": 6103,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6004",
+   "saat": 6004,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6104",
+   "saat": 6104,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6005",
+   "saat": 6005,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6105",
+   "saat": 6105,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6006",
+   "saat": 6006,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6106",
+   "saat": 6106,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6007",
+   "saat": 6007,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6107",
+   "saat": 6107,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6008",
+   "saat": 6008,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6108",
+   "saat": 6108,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6009",
+   "saat": 6009,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6109",
+   "saat": 6109,
+   "geschlecht": "w",
+   "alter": 35
+  },
+  {
+   "name": "zufall_m6010",
+   "saat": 6010,
+   "geschlecht": "m",
+   "alter": 35
+  },
+  {
+   "name": "zufall_w6110",
+   "saat": 6110,
+   "geschlecht": "w",
+   "alter": 35
+  }
+ ]
+}

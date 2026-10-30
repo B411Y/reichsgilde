@@ -1,0 +1,693 @@
+{
+ "beschreibung": "Merkpunkte der Fotovorlagen (Charakter Phase 6, S0/S1), von Hand am Koordinatenraster gesetzt (messen/raster.py, Genauigkeit etwa ±3–5 Bildpunkte bei 1024²); Pupillen danach automatisch auf den Schwerpunkt der dunkelsten Pupillenpunkte nachgeschärft (bild_werte.pupille_finden), sn und sto mit dem dunkelsten Streifen der Mittellinie gegengeprüft. Bilder liegen nur lokal (~/werkzeuge/charakter/…), nie im Repository.",
+ "koordinaten": "Bildpunkte im Originalbild, x nach rechts, y nach unten; _r = rechte Seite der Figur (im Bild links), _l = linke Seite.",
+ "regeln": {
+  "ps": "Pupillenmitte",
+  "br": "Unterkante der Braue senkrecht über der Pupille",
+  "en/ex": "innerer/äußerer Lidwinkel",
+  "prn": "Nasenspitze (Mitte des Glanzes der Spitze)",
+  "sn": "Unterkante des Nasenstegs an der Oberlippe (Mittellinie)",
+  "al": "Außenkante des Nasenflügels",
+  "ch": "Mundwinkel",
+  "ls": "Oberkante Lippenrot in der Mitte",
+  "sto": "Lippenschluss (dunkelste Linie) in der Mitte",
+  "li": "Unterkante Lippenrot in der Mitte",
+  "me": "Unterkante des Kinns (Übergang zum Schatten unter dem Kinn)",
+  "zy": "Gesichtsumriss auf Jochbeinhöhe am Ohransatz (ohne Ohr)",
+  "go": "Kieferwinkel am Umriss"
+ },
+ "vorlagen": {
+  "m01_topfschnitt": {
+   "titel": "m01 (Mann ~35, Topfschnitt)",
+   "geschlecht": "m",
+   "alter": 35,
+   "frisur": "topfschnitt",
+   "bart": "",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      397.3,
+      414.4
+     ],
+     "ps_l": [
+      590.8,
+      413.7
+     ],
+     "br_r": [
+      397.0,
+      388.0
+     ],
+     "br_l": [
+      591.0,
+      387.0
+     ],
+     "en_r": [
+      438.0,
+      421.0
+     ],
+     "en_l": [
+      540.0,
+      420.0
+     ],
+     "ex_r": [
+      358.0,
+      421.0
+     ],
+     "ex_l": [
+      626.0,
+      418.0
+     ],
+     "prn": [
+      503.0,
+      536.0
+     ],
+     "sn": [
+      503.0,
+      568.0
+     ],
+     "al_r": [
+      456.0,
+      551.0
+     ],
+     "al_l": [
+      550.0,
+      551.0
+     ],
+     "ch_r": [
+      413.0,
+      638.0
+     ],
+     "ch_l": [
+      578.0,
+      638.0
+     ],
+     "ls": [
+      503.0,
+      620.0
+     ],
+     "sto": [
+      503.0,
+      637.0
+     ],
+     "li": [
+      503.0,
+      663.0
+     ],
+     "me": [
+      503.0,
+      778.0
+     ],
+     "zy_r": [
+      308.0,
+      483.0
+     ],
+     "zy_l": [
+      700.0,
+      483.0
+     ],
+     "go_r": [
+      323.0,
+      638.0
+     ],
+     "go_l": [
+      688.0,
+      638.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -45,
+    "punkte": {
+     "ps_r": [
+      591.0,
+      401.0
+     ],
+     "ps_l": [
+      714.0,
+      400.0
+     ]
+    }
+   },
+   "ordner": "~/werkzeuge/charakter/vorlagen-haar/m01_topfschnitt",
+   "satz": "phase5-haar"
+  },
+  "m05_kurz_geschoren": {
+   "titel": "m05 (Mann ~35, kurz geschoren)",
+   "geschlecht": "m",
+   "alter": 35,
+   "frisur": "mann_kurz",
+   "bart": "",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      397.3,
+      405.9
+     ],
+     "ps_l": [
+      588.8,
+      403.3
+     ],
+     "br_r": [
+      397.0,
+      378.0
+     ],
+     "br_l": [
+      589.0,
+      376.0
+     ],
+     "en_r": [
+      447.0,
+      410.0
+     ],
+     "en_l": [
+      548.0,
+      409.0
+     ],
+     "ex_r": [
+      363.0,
+      408.0
+     ],
+     "ex_l": [
+      634.0,
+      405.0
+     ],
+     "prn": [
+      497.0,
+      530.0
+     ],
+     "sn": [
+      497.0,
+      558.0
+     ],
+     "al_r": [
+      440.0,
+      545.0
+     ],
+     "al_l": [
+      545.0,
+      545.0
+     ],
+     "ch_r": [
+      433.0,
+      630.0
+     ],
+     "ch_l": [
+      566.0,
+      628.0
+     ],
+     "ls": [
+      497.0,
+      615.0
+     ],
+     "sto": [
+      497.0,
+      627.0
+     ],
+     "li": [
+      497.0,
+      647.0
+     ],
+     "me": [
+      497.0,
+      775.0
+     ],
+     "zy_r": [
+      300.0,
+      480.0
+     ],
+     "zy_l": [
+      693.0,
+      480.0
+     ],
+     "go_r": [
+      315.0,
+      628.0
+     ],
+     "go_l": [
+      688.0,
+      622.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -45,
+    "punkte": {
+     "ps_r": [
+      580.0,
+      375.0
+     ],
+     "ps_l": [
+      712.0,
+      372.0
+     ]
+    }
+   },
+   "ordner": "~/werkzeuge/charakter/vorlagen-haar/m05_kurz_geschoren",
+   "satz": "phase5-haar"
+  },
+  "b01_rasiert": {
+   "titel": "b01 (Mann ~45, rasiert)",
+   "geschlecht": "m",
+   "alter": 45,
+   "frisur": "mann_kurz",
+   "bart": "",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      397.3,
+      407.1
+     ],
+     "ps_l": [
+      585.9,
+      405.6
+     ],
+     "br_r": [
+      394.0,
+      378.0
+     ],
+     "br_l": [
+      584.0,
+      377.0
+     ],
+     "en_r": [
+      434.0,
+      411.0
+     ],
+     "en_l": [
+      534.0,
+      411.0
+     ],
+     "ex_r": [
+      352.0,
+      410.0
+     ],
+     "ex_l": [
+      630.0,
+      408.0
+     ],
+     "prn": [
+      492.0,
+      523.0
+     ],
+     "sn": [
+      492.0,
+      555.0
+     ],
+     "al_r": [
+      442.0,
+      538.0
+     ],
+     "al_l": [
+      540.0,
+      538.0
+     ],
+     "ch_r": [
+      417.0,
+      623.0
+     ],
+     "ch_l": [
+      572.0,
+      623.0
+     ],
+     "ls": [
+      492.0,
+      613.0
+     ],
+     "sto": [
+      492.0,
+      627.0
+     ],
+     "li": [
+      492.0,
+      643.0
+     ],
+     "me": [
+      492.0,
+      760.0
+     ],
+     "zy_r": [
+      300.0,
+      468.0
+     ],
+     "zy_l": [
+      692.0,
+      468.0
+     ],
+     "go_r": [
+      307.0,
+      628.0
+     ],
+     "go_l": [
+      682.0,
+      628.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": 45,
+    "hinweis": "nach links gedreht, zweite Pupille verdeckt – nicht im ¾-Vergleich",
+    "punkte": {}
+   },
+   "ordner": "~/werkzeuge/charakter/vorlagen-haar/b01_rasiert",
+   "satz": "phase5-haar"
+  },
+  "f02_ein_zopf": {
+   "titel": "f02 (Frau ~30, ein Zopf)",
+   "geschlecht": "w",
+   "alter": 30,
+   "frisur": "ein_zopf",
+   "bart": "",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      436.1,
+      327.4
+     ],
+     "ps_l": [
+      580.2,
+      325.4
+     ],
+     "br_r": [
+      434.0,
+      305.0
+     ],
+     "br_l": [
+      580.0,
+      305.0
+     ],
+     "en_r": [
+      468.0,
+      332.0
+     ],
+     "en_l": [
+      548.0,
+      332.0
+     ],
+     "ex_r": [
+      398.0,
+      331.0
+     ],
+     "ex_l": [
+      614.0,
+      331.0
+     ],
+     "prn": [
+      505.0,
+      413.0
+     ],
+     "sn": [
+      505.0,
+      439.0
+     ],
+     "al_r": [
+      473.0,
+      425.0
+     ],
+     "al_l": [
+      541.0,
+      425.0
+     ],
+     "ch_r": [
+      453.0,
+      490.0
+     ],
+     "ch_l": [
+      560.0,
+      490.0
+     ],
+     "ls": [
+      505.0,
+      477.0
+     ],
+     "sto": [
+      505.0,
+      489.0
+     ],
+     "li": [
+      505.0,
+      511.0
+     ],
+     "me": [
+      505.0,
+      580.0
+     ],
+     "zy_r": [
+      353.0,
+      388.0
+     ],
+     "zy_l": [
+      646.0,
+      388.0
+     ],
+     "go_r": [
+      383.0,
+      498.0
+     ],
+     "go_l": [
+      620.0,
+      498.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -75,
+    "hinweis": "fast Profil, nur ein Auge – nicht im ¾-Vergleich",
+    "punkte": {}
+   },
+   "ordner": "~/werkzeuge/charakter/vorlagen-haar/f02_ein_zopf",
+   "satz": "phase5-haar"
+  },
+  "f07_nackenknoten": {
+   "titel": "f07 (Frau ~30, Nackenknoten)",
+   "geschlecht": "w",
+   "alter": 30,
+   "frisur": "frau_knoten",
+   "bart": "",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      414.7,
+      379.8
+     ],
+     "ps_l": [
+      584.1,
+      374.7
+     ],
+     "br_r": [
+      413.0,
+      355.0
+     ],
+     "br_l": [
+      584.0,
+      353.0
+     ],
+     "en_r": [
+      452.0,
+      382.0
+     ],
+     "en_l": [
+      548.0,
+      381.0
+     ],
+     "ex_r": [
+      374.0,
+      381.0
+     ],
+     "ex_l": [
+      620.0,
+      379.0
+     ],
+     "prn": [
+      502.0,
+      473.0
+     ],
+     "sn": [
+      502.0,
+      505.0
+     ],
+     "al_r": [
+      462.0,
+      486.0
+     ],
+     "al_l": [
+      545.0,
+      486.0
+     ],
+     "ch_r": [
+      437.0,
+      563.0
+     ],
+     "ch_l": [
+      567.0,
+      562.0
+     ],
+     "ls": [
+      502.0,
+      550.0
+     ],
+     "sto": [
+      502.0,
+      564.0
+     ],
+     "li": [
+      502.0,
+      586.0
+     ],
+     "me": [
+      502.0,
+      683.0
+     ],
+     "zy_r": [
+      322.0,
+      453.0
+     ],
+     "zy_l": [
+      684.0,
+      453.0
+     ],
+     "go_r": [
+      340.0,
+      578.0
+     ],
+     "go_l": [
+      662.0,
+      578.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": -45,
+    "punkte": {
+     "ps_r": [
+      605.0,
+      378.0
+     ],
+     "ps_l": [
+      716.0,
+      377.0
+     ]
+    }
+   },
+   "ordner": "~/werkzeuge/charakter/vorlagen-haar/f07_nackenknoten",
+   "satz": "phase5-haar"
+  },
+  "f09_hohe_stirn": {
+   "titel": "f09 (Frau ~30, hohe Stirn)",
+   "geschlecht": "w",
+   "alter": 30,
+   "frisur": "hohe_stirn",
+   "bart": "",
+   "vorn": {
+    "bild": "vorn.png",
+    "punkte": {
+     "ps_r": [
+      413.9,
+      379.3
+     ],
+     "ps_l": [
+      584.2,
+      373.8
+     ],
+     "br_r": [
+      412.0,
+      355.0
+     ],
+     "br_l": [
+      584.0,
+      353.0
+     ],
+     "en_r": [
+      453.0,
+      384.0
+     ],
+     "en_l": [
+      548.0,
+      383.0
+     ],
+     "ex_r": [
+      376.0,
+      382.0
+     ],
+     "ex_l": [
+      621.0,
+      380.0
+     ],
+     "prn": [
+      503.0,
+      473.0
+     ],
+     "sn": [
+      503.0,
+      505.0
+     ],
+     "al_r": [
+      463.0,
+      486.0
+     ],
+     "al_l": [
+      543.0,
+      486.0
+     ],
+     "ch_r": [
+      436.0,
+      562.0
+     ],
+     "ch_l": [
+      569.0,
+      561.0
+     ],
+     "ls": [
+      503.0,
+      548.0
+     ],
+     "sto": [
+      503.0,
+      564.0
+     ],
+     "li": [
+      503.0,
+      583.0
+     ],
+     "me": [
+      503.0,
+      678.0
+     ],
+     "zy_r": [
+      321.0,
+      453.0
+     ],
+     "zy_l": [
+      671.0,
+      453.0
+     ],
+     "go_r": [
+      341.0,
+      578.0
+     ],
+     "go_l": [
+      656.0,
+      578.0
+     ]
+    }
+   },
+   "dreiviertel": {
+    "bild": "dreiviertel.png",
+    "winkel": 45,
+    "hinweis": "nach links gedreht, zweite Pupille verdeckt – nicht im ¾-Vergleich",
+    "punkte": {}
+   },
+   "ordner": "~/werkzeuge/charakter/vorlagen-haar/f09_hohe_stirn",
+   "satz": "phase5-haar"
+  }
+ }
+}
