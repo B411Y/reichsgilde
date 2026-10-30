@@ -268,7 +268,7 @@ vec3 muendung_fahne(vec2 lauf, float ufer_m, float zeit) {
 		float laengs = smoothstep(0.0, m.w * 0.9, t) * exp(-max(t, 0.0) / 60.0);
 		float drin = (1.0 - smoothstep(-breite * 0.45, breite * 0.12, kante)) * laengs;
 		float streifen = w_rausch(sp * vec2(1.3, 0.16) + float(i) * 7.7);
-		r.x = max(r.x, drin * (0.6 + 0.4 * streifen));
+		r.x = max(r.x, drin * (0.35 + 0.65 * streifen));
 		// Schaum nur als dünne, abreißende Streifen an der Mischkante
 		r.y = max(r.y, (1.0 - smoothstep(0.0, 0.16 + breite * 0.025, abs(kante))) * smoothstep(0.55, 0.85, streifen) * laengs * 0.8);
 		r.z = max(r.z, smoothstep(-m.w - 7.0, -m.w - 1.5, ds) * (1.0 - smoothstep(18.0, 40.0, ds)) * (1.0 - smoothstep(breite + 1.0, breite + 6.0, ufer_m)));
@@ -365,8 +365,9 @@ void fragment() {
 	vec3 fahne = vec3(0.0);
 	if (muendung_zahl > 0 && lauf_netz > 0.5) {
 		fahne = muendung_fahne(lauf_uv, ufer, TIME);
-		vec3 trueb = mix(muendung_farbe, vec3(dot(muendung_farbe, vec3(0.3, 0.5, 0.2))) * vec3(0.8, 0.9, 1.0), winter_ton * 0.6);
-		color = mix(color, trueb * mix(0.75, 1.0, depth_blend), fahne.x * 0.85);
+		fahne.x *= 1.0 - 0.75 * winter_ton; // im Winter führt der Bach wenig und kaltes, klares Wasser: der Streifen ist kaum zu sehen
+		vec3 trueb = mix(muendung_farbe, vec3(dot(muendung_farbe, vec3(0.3, 0.5, 0.2))) * vec3(0.75, 0.85, 0.95) * 0.7, winter_ton * 0.7);
+		color = mix(color, trueb * mix(0.7, 1.0, depth_blend), fahne.x * 0.6);
 	}
 
 	float specular = 0.2 + depth_blend_pow * 0.4;
@@ -431,9 +432,16 @@ void fragment() {
 			eis_zellen(p, zelle_m, c1, c2, grenze);
 			// Wie weit das Eis über die Mitte einer Platte hinausreicht (> 0: Platte gehört zum Eis); je Platte etwas anders
 			float anlauf = smoothstep(0.0, 0.3, eis_hier);
-			float w1 = eis_hier * reichweite + ((w_fbm(c1 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c1 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
+			// Löcher wirken je Platte (an ihrer Mitte): Der Rand eines Loches bricht wie die übrige Eiskante
+			float eis_c1 = eis_hier;
+			float eis_c2 = eis_hier;
+			if (loch_zahl > 0) {
+				eis_c1 = eis_art * (1.0 - max(offen, loch_offen(c1)));
+				eis_c2 = eis_art * (1.0 - max(offen, loch_offen(c2)));
+			}
+			float w1 = eis_c1 * reichweite + ((w_fbm(c1 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c1 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
 				- (abstand + dot(c1 - p, grad));
-			float w2 = eis_hier * reichweite + ((w_fbm(c2 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c2 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
+			float w2 = eis_c2 * reichweite + ((w_fbm(c2 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c2 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
 				- (abstand + dot(c2 - p, grad));
 			float aa = bildpunkt_m * 1.2 + 0.01;
 			float kante_aussen = 99.0;  // Abstand (m) vor der nächsten Platte (offenes Wasser)
@@ -562,7 +570,7 @@ void fragment() {
 	// Klares Eis spiegelt den Himmel wie Wasser, weißes und Schnee kaum
 	EMISSION = wetter_himmel * (fresnel * himmel_staerke + himmel_spiegel) * (1.0 - schaum) * (1.0 - eismaske * 0.6) * (1.0 - fahne.x * 0.45);
 	// Trübes Wasser streut das Himmelslicht zurück (Eigenfarbe), auch dort, wo die Spiegelung überwiegt
-	EMISSION += muendung_farbe * wetter_himmel * fahne.x * 0.35 * (1.0 - eismaske);
+	EMISSION += muendung_farbe * wetter_himmel * fahne.x * 0.22 * (1.0 - eismaske) * (1.0 - 0.6 * winter_ton);
 	NORMAL_MAP = normalmap;
 	NORMAL_MAP_DEPTH = normal_tiefe * (1.0 + sturm * 0.6);
 }

@@ -489,7 +489,7 @@ public partial class Stadtansicht
         {
             if (lauf is not null && m.Bach == lauf) Loch(m.Ort, Mathf.Max(1f, m.Halb), Vector2.Right, 0);
             else if (lauf is not null && m.Ziel == lauf && LaufStelle(lauf, m.Ort) is { } st)
-                Loch(m.Ort, m.Halb + 1.2f, st.Richtung, 6f + 6f * m.Halb);
+                Loch(m.Ort, m.Halb + 0.6f, st.Richtung, 6f + 3f * m.Halb);
             else if (see is not null && m.ZielSee == see) Loch(m.Ort, m.Halb + 1f, Vector2.Right, 0);
         }
         if (lauf is not null)
@@ -498,8 +498,8 @@ public partial class Stadtansicht
         while (orte.Count < LoecherJeStoff) { orte.Add(new Color(0, 0, 0, 1)); formen.Add(new Color(1, 0, 0, 0)); }
         stoff.SetShaderParameter("loch_zahl", orte.Count(o => o.B > 0));
         GD.Print($"[wasser] {lauf?.Name ?? see?.Name}: {orte.Count(o => o.B > 0)} Löcher im Eis ({string.Join(", ", orte.Where(o => o.B > 0).Select(o => $"{o.R:0},{o.G:0} r {o.B:0.0}"))})");
-        stoff.SetShaderParameter("loch_ort", orte.ToArray());
-        stoff.SetShaderParameter("loch_form", formen.ToArray());
+        stoff.SetShaderParameter("loch_ort", Vierer(orte));
+        stoff.SetShaderParameter("loch_form", Vierer(formen));
     }
 
     /// <summary>
@@ -517,8 +517,11 @@ public partial class Stadtansicht
         while (werte.Count < MuendungenJeStoff) werte.Add(new Color(0, 0, 0, 0));
         stoff.SetShaderParameter("muendung_zahl", zahl);
         if (zahl > 0) GD.Print($"[wasser] {lauf.Name}: {zahl} Mündungen ({string.Join(", ", werte.Take(zahl).Select(w => $"quer {w.R:0.0}, Stelle {w.G:0}, Bach {w.A:0.0} m"))})");
-        stoff.SetShaderParameter("muendung", werte.ToArray());
+        stoff.SetShaderParameter("muendung", Vierer(werte));
     }
+
+    /// <summary>Ein Feld von vec4 für den Shader als Zahlenreihe (je vier Werte; ein Farbfeld nimmt Godot für vec4-Felder nicht an).</summary>
+    private static float[] Vierer(List<Color> werte) => werte.SelectMany(c => new[] { c.R, c.G, c.B, c.A }).ToArray();
 
     /// <summary>
     /// Wo ein Ort in den Laufachsen eines Laufs liegt (wie das Netz sie trägt, <see cref="FlussNetze"/>): quer (m, zur Seite von quer = (−z, x) der
