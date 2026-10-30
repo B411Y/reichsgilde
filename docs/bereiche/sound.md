@@ -60,7 +60,7 @@ Plan (Schritte in dieser Reihenfolge):
 |---|---|---|
 | Echtzeit-Sprach-NPCs | **Vorerst nicht** (Nutzerentscheidung): Stimmen bleiben vorproduziert wie die Ansagen des Haushofmeisters. Laufende Kosten je Spieler (Cloud etwa 2–7 ct je Gesprächsminute), Online-Pflicht, Lockstep-Mehrspieler und Solo-Betrieb passen nicht zum Einmalkauf; lokal erst ab 12 GB Grafikspeicher. Nur als Hintergrund festgehalten mit Architektur, Kosten, Risiken und einem Versuch in drei Stufen: `docs/ton/sprach-npcs.md` (vor einer neuen Entscheidung die Preise der Anbieter prüfen) | 30.10.2026 |
 
-### Aufnahmen des Haushofmeisters (PR #PRNR)
+### Aufnahmen des Haushofmeisters (PR #267)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
