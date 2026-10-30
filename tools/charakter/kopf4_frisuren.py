@@ -382,9 +382,10 @@ class FrauScheitel(Stil):
         return self.h.kopfhaut(q, tiefer=0.002 * self.M, ohr_frei=(0.018, 0.028))
 
     def scheitel(self, q, w):
+        # Phase 5: hinter dem Wirbel ohne Seitenzug (sonst läuft der Scheitel als heller Strich bis in den Nacken)
         sx = 1.0 if w[0] >= 0 else -1.0
         hinten = glatt(w[1] - self.h.kopfmitte[1], 0.0, 0.05 * self.M)
-        return Vector((sx * (1.0 - 0.7 * hinten), 0.35 + 0.4 * hinten, -0.35 - 0.4 * hinten))
+        return Vector((sx * (1.0 - hinten), 0.35 + 0.4 * hinten, -0.35 - 0.4 * hinten))
 
 
 class FrauKnoten(FrauScheitel):

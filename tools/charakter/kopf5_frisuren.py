@@ -43,7 +43,7 @@ def _scheitel(h, q, w, M):
     """Mittelscheitel: zur Seite und über die Ohren nach hinten (wie die Frauenfrisuren der Phase 4)."""
     sx = 1.0 if w[0] >= 0 else -1.0
     hinten = glatt(w[1] - h.kopfmitte[1], 0.0, 0.05 * M)
-    return Vector((sx * (1.0 - 0.7 * hinten), 0.35 + 0.4 * hinten, -0.35 - 0.4 * hinten))
+    return Vector((sx * (1.0 - hinten), 0.35 + 0.4 * hinten, -0.35 - 0.4 * hinten))
 
 
 def bahn_auf_kopf(h, stuetz, M, abstand=0.012, n=200, glaetten=6):
@@ -203,7 +203,7 @@ class Schulterlang(Stil):
 class Geschoren(Stil):
     """m05: kurz geschoren – rundum mit der Schere auf etwa 5 mm (etwas ungleich), Kopfform sichtbar, Ohren frei."""
     name, geschlecht, anzahl, punkte = "mann_kurz", "m", 8000, 4
-    schritt, volumen, volumen_weg, hub, steif = 0.001, (0.0004, 0.0015), 0.003, 0.45, 0.5
+    schritt, volumen, volumen_weg, hub, steif = 0.001, (0.0003, 0.001), 0.003, 0.15, 0.6
     wellen, klumpen = (0.0006, 0.02), (8, 0.15)
 
     def dichte(self, q):
@@ -354,13 +354,13 @@ class Zerzaust(Stil):
 class Kranz(Stil):
     """m10: Halbglatze mit Kranz – Platte kahl, an den Seiten und hinten glatt bis auf die Schultern."""
     name, geschlecht, anzahl, punkte = "kranz", "m", 3800, 32
-    schritt, volumen, volumen_weg, hub, steif = 0.005, (0.0015, 0.008), 0.05, 0.25, 0.3
+    schritt, volumen, volumen_weg, hub, steif = 0.005, (0.001, 0.005), 0.05, 0.15, 0.3
     wellen, klumpen = (0.003, 0.06), (12, 0.45)
     einwaerts = 0.3
 
     def dichte(self, q):
         h = self.h
-        return h.kopfhaut(q, ohr_frei=(0.016, 0.024)) * glatt(h.rang(q), 0.62, 0.72)
+        return h.kopfhaut(q, ohr_frei=(0.016, 0.024)) * glatt(h.rang(q), 0.58, 0.8)
 
     def kamm(self, q, n, s, w):
         sx = 1.0 if w[0] >= 0 else -1.0
@@ -638,7 +638,8 @@ class Stoppeln(k4.Bart):
         return 0.1
 
     def laenge(self, w, n):
-        return 0.0018 * self.rng.uniform(0.7, 1.25) * self.M
+        # kaemmen() verwirft Strähnen unter 2 mm: Stoppeln 2,1–3 mm (die Vorlage nennt 1–2 mm; sichtbar ist kaum ein Unterschied)
+        return 0.0024 * self.rng.uniform(0.88, 1.25) * self.M
 
 
 class Gabelbart(k4.Langbart):
@@ -689,11 +690,21 @@ class KurzerVollbart(k4.Vollbart):
     name, anzahl, punkte = "vollbart", 6500, 8
     volumen = (0.0008, 0.004)
 
+    def dichte(self, q):
+        # Hals unter dem Kinn gestutzt (sonst hängt der kurze Bart wie ein Vorhang unter den Kiefer)
+        f = self.flaechen(q)
+        return np.clip(np.maximum.reduce([f["schnurr"], f["kinn"], f["wange"], f["hals"] * 0.25]), 0, 1)
+
+    def kamm(self, q, n, s, w):
+        if self.zone(w) == "hals":
+            return _norm(UNTEN * 0.3 + VORN * 0.6)        # am Hals anliegend nach vorn zum Kinn
+        return k4.Vollbart.kamm(self, q, n, s, w)
+
     def laenge(self, w, n):
         z = self.zone(w)
         if z == "schnurr":
             return 0.01 * self.rng.uniform(0.85, 1.1) * self.M
-        L = {"kinn": 0.013, "wange": 0.009, "hals": 0.01}[z]
+        L = {"kinn": 0.013, "wange": 0.009, "hals": 0.006}[z]
         return L * self.rng.uniform(0.85, 1.1) * self.M
 
 
