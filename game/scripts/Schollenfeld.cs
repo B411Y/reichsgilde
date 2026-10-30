@@ -70,6 +70,7 @@ public sealed class Schollenfeld
     // Druck am Pfeiler: wie lange eine Scholle schon vorn am Pfeiler drückt (s); ist er zu groß, schiebt sie sich für kurze Zeit über bzw. unter die
     // Nachbarn (ohne Stöße mit ihnen) – so löst sich ein Stau, statt dass sich eine Eisbrücke bildet
     private readonly float[] _druck, _ueber;
+    private readonly bool[] _kette; // hängt nur, weil sie auf eine am Pfeiler hängende aufgefahren ist (gibt das nicht weiter)
     private readonly int[] _pfeilerSchritt; // Teilschritt, in dem die Scholle zuletzt einen Pfeiler berührte (erster Stoß = nicht im vorigen)
     private readonly bool[] _weg;           // außerhalb des Fensters um die Kamera: treibt nur, ohne Stöße
     private int _schritt, _kameraTipp = -1;
@@ -135,6 +136,7 @@ public sealed class Schollenfeld
         _halbHier = new float[n];
         _pfeilerSchritt = new int[n];
         (_druck, _ueber) = (new float[n], new float[n]);
+        _kette = new bool[n];
         _weg = new bool[n];
         _naechster = new int[n];
         foreach (var p in _lauf) _halbMax = Mathf.Max(_halbMax, p.Halb);
@@ -665,8 +667,9 @@ public sealed class Schollenfeld
                         _om[i] += tang * 0.25f / Mathf.Max(ri, 0.2f) * dt * 4f;
                         _om[j] += tang * 0.25f / Mathf.Max(rj, 0.2f) * dt * 4f;
                         // Wer an einer hängenden auffährt, bremst mit (Stau)
-                        if (_haft[i] > 0 && dS < 0 && _haft[j] <= 0) _haft[j] = Mathf.Min(_haft[i], 1f);
-                        if (_haft[j] > 0 && dS > 0 && _haft[i] <= 0) _haft[i] = Mathf.Min(_haft[j], 1f);
+                        // (nur eine Reihe: wer selbst nur auffuhr, gibt das nicht weiter – sonst stand das ganze Feld dahinter)
+                        if (_haft[i] > 0 && !_kette[i] && dS < 0 && _haft[j] <= 0) (_haft[j], _kette[j]) = (Mathf.Min(_haft[i], 1f), true);
+                        if (_haft[j] > 0 && !_kette[j] && dS > 0 && _haft[i] <= 0) (_haft[i], _kette[i]) = (Mathf.Min(_haft[j], 1f), true);
                     }
         }
 
@@ -782,6 +785,7 @@ public sealed class Schollenfeld
             {
                 _zufall = _zufall * 1664525u + 1013904223u;
                 _haft[i] = 1f + 3f * ((_zufall >> 8) * (1f / 16777216f));
+                _kette[i] = false;
                 // zur Seite, auf der sie schon etwas liegt, einen kleinen Schub für das spätere Vorbeigleiten
                 _vq[i] += (MathF.Abs(dQ) > 0.05f ? MathF.Sign(dQ) : ((_zufall & 1) == 0 ? 1f : -1f)) * 0.12f;
             }
