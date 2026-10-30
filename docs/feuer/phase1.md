@@ -2,6 +2,49 @@
 
 **Stand:** Branch `phase5/feuer-darstellung` (kein PR), Phase 1b seit dem Abend des 29.10.2026 (Abschnitt [Phase 1b](#phase-1b-deine-wahl-und-neue-flammen-aus-einer-simulation)). **Auftrag des Nutzers (29.10.2026):** Echte, lodernde Flammen überall, wo man sich Feuer vorstellen kann – Fackeln, Laternen, Feuerkörbe, Esse und Herd, Kamine mit Rauch aus den Schornsteinen, Kerzen in Innenräumen, brennende Gebäude – mit flackerndem Licht. Der Nutzer will **beide** Techniken sehen und selbst entscheiden. Diese Phase baut deshalb nur eine **Testszene**; im Spiel brennt noch nichts davon.
 
+## So startest du die Testszene (Windows, Godot-Editor)
+
+Kurz: Branch holen, Godot öffnen und bauen, dann **`Feuertest.tscn` öffnen und F6** – oder `-- --feuertest=1` eintragen und **F5**.
+
+**Schritt 1 – Branch holen (GitHub Desktop)**
+
+1. **Godot vorher schließen.** Sonst behält der Editor die Projekteinstellungen des alten Branches im Speicher und kann sie beim nächsten Speichern über die neuen schreiben.
+2. In GitHub Desktop oben auf **„Current Branch“** klicken und `phase5/feuer-darstellung` wählen. Fragt GitHub Desktop, was mit geänderten Dateien passieren soll (etwa `game/project.godot`, weil dort alte Startargumente stehen), nimm **„Leave my changes on …“** – die Argumente trägst du unten neu ein.
+3. Oben auf **„Fetch origin“** klicken, und wenn danach **„Pull origin“** erscheint, auch darauf. Im Reiter **„History“** muss der Eintrag „Feuer: --feuertest auch ohne „--“ davor erkennen“ (30.10.2026) zu sehen sein.
+
+**Schritt 2 – Öffnen und bauen**
+
+1. Godot 4.7.2 (.NET) starten und das Projekt öffnen (Ordner `game`). Beim ersten Öffnen importiert Godot ein paar Sekunden lang neue Bilder; den Balken abwarten.
+2. Oben rechts auf das **Hammer-Symbol** klicken (Projekt bauen). Unten im Reiter **MSBuild** darf kein roter Fehler stehen; sonst den Fehlertext an Claude geben.
+
+**Schritt 3, Weg A – am einfachsten: die Szene direkt starten (F6)**
+
+1. Links unten im **Dateisystem** den Ordner `scenes` aufklappen und **`Feuertest.tscn`** doppelklicken (die Szene öffnet sich in einem eigenen Reiter).
+2. **F6** drücken („aktuelle Szene starten“). Keine Argumente nötig.
+
+**Schritt 3, Weg B – über das Startargument (F5, wie sonst das Spiel)**
+
+1. Menü **Debuggen → Run-Instanzen anpassen…**
+2. Ganz oben links ins Feld **„Main-Run Argumente“** genau diese Zeile eintragen (zwei Teile, ein Leerzeichen dazwischen):
+
+   ```
+   -- --feuertest=1
+   ```
+
+   Der einzelne `--` vorn trennt Godots eigene Argumente von denen des Spiels. Den Haken **„Mehrere Instanzen aktivieren“** nicht setzen.
+3. **OK**, dann **F5**. Das Spiel überspringt das Hauptmenü und öffnet sofort die Testszene.
+4. **Nach dem Test das Feld wieder leeren**, sonst startet F5 jedes Mal die Testszene. Solange etwas darin steht, zeigt GitHub Desktop `game/project.godot` als geändert (Zeile `run/main_run_args=…`): nicht committen.
+
+Dasselbe Feld gibt es auch unter **Projekt → Projekteinstellungen**, aber nur, wenn oben rechts der Schalter **„Erweiterte Einstellungen“** an ist: dann **Editor → Ausführen → „Laufzeitargumente für Main“**. Ohne den Schalter fehlt es dort.
+
+**Woran du siehst, dass es geklappt hat:** Oben links steht „Feuertest – Vergleich: links A (Shader-Flamme …) rechts B (Partikel-Flamme)“, davor zwei Fackeln an einer Wand bei Nacht; im Reiter **Ausgabe** unten steht eine Zeile `[feuer] start …`. Kommt stattdessen das Hauptmenü, ist das Argument nicht angekommen (falsches Feld, Feld leer, „Mehrere Instanzen“ an) – dann Weg A nehmen.
+
+**Gut zu wissen**
+
+- Seit dem 30.10.2026 erkennt das Spiel `--feuertest=1` und die anderen Schalter, die mit `--feuer` beginnen, auch **ohne** den `--` davor (vorher kam dann stumm das Hauptmenü – vermutlich der Grund, warum es am 29.10. nicht ging). Alle anderen Spieloptionen, etwa `--bildrate=0 --vsync=Aus` für die Messung, gelten nur hinter dem `--`; darum die Zeile am besten immer mit `-- ` beginnen.
+- **Vulkan** nimmt das Spiel unter Windows inzwischen von selbst (seit PR #258); `--rendering-driver vulkan` ist nicht mehr nötig. Nur wer in den Einstellungen (Grafik → Erweitert) DirectX 12 gewählt hat, schreibt es vorn dazu: `--rendering-driver vulkan -- --feuertest=1`.
+- Weitere Argumente kommen in dieselbe Zeile hinter `--feuertest=1`, mit Leerzeichen getrennt, z. B. `-- --feuertest=1 --feuerpaar=7 --feuertag=1` (Liste unten unter [Weitere Startargumente](#weitere-startargumente-zum-eintragen-in-dasselbe-feld-nach---feuertest1)).
+
 ## Die zwei Techniken
 
 | | **A – Shader-Flamme** | **B – Partikel-Flamme** |
@@ -70,18 +113,9 @@ Die Texturen entstehen **ohne fremde Bilder** aus Skripten mit festem Startwert:
 - **Gebäudebrand:** B ist jetzt ein großes, lohendes Feuer mit hohen Flammensäulen, Funken und dunklem Rauch; A (Simulation) zeigt einzelne Flammen auf dem Dach (wirkt eher wie mehrere Brandherde). A Rauschen auf Niedrig: Stichflammen gut zu sehen (in zwei von sechs Fotos schießt eine Zunge hoch), aber das Ganze ist sehr hell (viele additive Flächen) und eher „Kerzenreihe plus Feuerbett“.
 - **Kerze, Laterne, Esse:** unverändert die Rauschen-Flamme (in beiden Fassungen); B bekommt das ruhige Flipbook.
 
-## So testest du auf deinem Windows-PC im Godot-Editor
+## Bedienen und weitere Startargumente
 
-1. **Branch holen.** Im Ordner des Projekts: `git fetch origin`, dann `git switch phase5/feuer-darstellung` (oder in GitHub Desktop den Branch `phase5/feuer-darstellung` auswählen und „Fetch origin“ drücken).
-2. **Projekt in Godot öffnen** (die Version 4.7.2 mit .NET wie sonst) und **bauen**: oben rechts auf den **Hammer** klicken. Der Build muss ohne Fehler durchlaufen. Beim ersten Öffnen importiert Godot ein paar Sekunden lang die neuen Texturen.
-3. **Startargumente setzen:** *Projekt → Projekteinstellungen → Editor → Ausführen* (englisch *Editor → Run*), das Feld **„Laufzeitargumente für Main“** (*Main Run Args*). Dort eintragen (eine Zeile):
-
-   ```
-   --rendering-driver vulkan -- --feuertest=1
-   ```
-
-   Das `--rendering-driver vulkan` sorgt dafür, dass Godot unter Windows wirklich Vulkan nimmt (die Testszene ist darauf abgestimmt). Alles hinter dem einzelnen `--` sind Spielargumente.
-4. **F5** drücken. Das Hauptmenü erkennt die Option und springt sofort in die Testszene. (Wer lieber `scenes/Feuertest.tscn` öffnet und **F6** drückt, kommt ohne Umweg hin; die Argumente gelten auch dort.)
+Wie du die Testszene startest, steht oben unter [So startest du die Testszene](#so-startest-du-die-testszene-windows-godot-editor).
 
 ### Bedienung in der Testszene
 
