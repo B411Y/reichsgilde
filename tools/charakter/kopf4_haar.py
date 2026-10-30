@@ -5,6 +5,8 @@ Aufruf:  tools/charakter/blender.sh -b --factory-startup -P tools/charakter/kopf
            [backdaten=<npz>] [kopf=kopf4_mn.glb] [nur=mann_kurz,vollbart] [faktor=1.0] [vorschau=<ordner>]
          [nur_karten=1]   Karten (und Kopfhautkarten) aus den gespeicherten Strähnen neu bauen, ohne neu zu kämmen
          [nur_kopfhaut=1] nur die Kopfhautkarten neu (aus den gespeicherten Wurzeln)
+         [ohne_karten=1]  Phase 5: nur Leitsträhnen für TressFX, keine Haarkarten (Rückfall fehlt dann für diese Stile)
+         [stile=4]        die Stile der Phase 4 (kopf4_frisuren.py) statt der zehn je Geschlecht (kopf5_frisuren.py)
          (oder tools/charakter/kopf4.sh)
 
 Ergebnis in <glb-ordner>/haar4/ (nicht im Repository):
@@ -183,6 +185,8 @@ for Klasse in alle_stile:
     stil = Klasse(h, rng)
     stil.anzahl = int(stil.anzahl * FAKTOR)
     art = KARTEN_BART if stil.teil == "bart" else (KARTEN_KURZ if name == "mann_kurz" else KARTEN_HAAR)
+    if "ohne_karten" in OPT:      # Phase 5: nur Strähnen für TressFX (Karten sind 80 % der Daten und der Bauzeit)
+        art = None
     if "nur_karten" in OPT or "nur_kopfhaut" in OPT:
         teile = []
         vorschau_teile[name] = []
@@ -224,7 +228,8 @@ for Klasse in alle_stile:
     if z is not None:
         zw = z[:, 0]
         zb = np.arange(len(z)) // 6
-        felder, zahlen = teil_daten(h, z, zw, zb, KARTEN_ZOPF if z_art == "zopf" else KARTEN_KNOTEN, rang=False)
+        felder, zahlen = teil_daten(h, z, zw, zb, None if "ohne_karten" in OPT else (KARTEN_ZOPF if z_art == "zopf" else KARTEN_KNOTEN),
+                                    rang=False)
         bloecke_schreiben(os.path.join(AUS, name + "_zusatz"), {"name": name, "art": "zusatz", "geschlecht": stil.geschlecht,
                                                                 "teil": "zusatz", **zahlen}, felder)
         teile.append({"name": "zusatz", **zahlen})

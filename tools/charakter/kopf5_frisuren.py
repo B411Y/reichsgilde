@@ -81,20 +81,25 @@ class _Objekt:
 
 # ================================================================= Männer
 class Topfschnitt(Stil):
-    """m01: Topfschnitt – vom Wirbel rundum gekämmt, Stirnfransen gerade über den Brauen, Ohren halb bedeckt, hinten in
-    derselben Höhe gerade abgeschnitten."""
+    """m01: Topfschnitt (1420–1460) – vom Wirbel strahlenförmig gekämmt, oben 4–6 cm; scharfe waagrechte Kante rundum
+    2–3 cm über den Ohrspitzen, kurze gerade Fransen auf der oberen Stirn; unter der Kante (Schläfen, Seiten, Hinterkopf,
+    Nacken) glatt rasiert, Ohren frei."""
     name, geschlecht, anzahl, punkte = "topfschnitt", "m", 5000, 16
     schritt, volumen, volumen_weg, hub, steif = 0.003, (0.0012, 0.006), 0.03, 0.25, 0.32
     einwaerts = 0.5
     wellen, klumpen = (0.0012, 0.04), (14, 0.3)
 
-    def dichte(self, q):
-        # Nacken unter der Schnittlinie ausrasiert (sonst stehen dort Stoppeln)
-        q = np.atleast_2d(q)
+    def kante(self, r):
         h, M = self.h, self.M
-        hinten = glatt(h.richtung(q), 100, 140)
-        frei = glatt(q[:, 2] - (h.ohr_z - 0.022 * M), 0.0, 0.006 * M)
-        return self.h.kopfhaut(q, ohr_frei=(0.018, 0.026)) * (1 - hinten * (1 - frei))
+        return np.interp(r, [0, 30, 55, 80, 180], [h.brauen_oben + 0.028 * M, h.brauen_oben + 0.026 * M, h.auge_z + 0.04 * M,
+                                                   h.auge_z + 0.045 * M, h.auge_z + 0.045 * M])
+
+    def dichte(self, q):
+        # unter der Kante glatt rasiert (nur die Fransen vorn reichen darüber hinaus)
+        q = np.atleast_2d(q)
+        r = self.h.richtung(q)
+        frei = glatt(q[:, 2] - (self.kante(r) - 0.004 * self.M), 0.0, 0.004 * self.M)
+        return self.h.kopfhaut(q, ohr_frei=(0.026, 0.036)) * np.where(r < 30, 1.0, frei)
 
     def kamm(self, q, n, s, w):
         return _vom_wirbel(self.h, q, vorn=0.35, unten=0.55)
@@ -106,10 +111,8 @@ class Topfschnitt(Stil):
         return 0.2
 
     def ende(self, q, s, w):
-        h, M = self.h, self.M
-        z = _schnitt(h, q, [(0, h.brauen_oben + 0.011 * M), (30, h.brauen_oben + 0.009 * M), (55, h.auge_z + 0.01 * M),
-                            (80, h.ohr_z + 0.004 * M), (120, h.ohr_z), (180, h.ohr_z - 0.012 * M)])
-        return q[2] < z + _streu(w) * 0.003 * M
+        r = float(self.h.richtung(np.asarray(q))[0])
+        return q[2] < float(self.kante(r)) + _streu(w) * 0.002 * self.M
 
 
 class Pagenkopf(Topfschnitt):
@@ -198,9 +201,9 @@ class Schulterlang(Stil):
 
 
 class Geschoren(Stil):
-    """m05: kurz geschoren (1,5–2 cm), vom Wirbel aus, Ohren frei."""
-    name, geschlecht, anzahl, punkte = "mann_kurz", "m", 6500, 8
-    schritt, volumen, volumen_weg, hub, steif = 0.002, (0.0008, 0.003), 0.008, 0.3, 0.45
+    """m05: kurz geschoren – rundum mit der Schere auf etwa 5 mm (etwas ungleich), Kopfform sichtbar, Ohren frei."""
+    name, geschlecht, anzahl, punkte = "mann_kurz", "m", 8000, 4
+    schritt, volumen, volumen_weg, hub, steif = 0.001, (0.0004, 0.0015), 0.003, 0.45, 0.5
     wellen, klumpen = (0.0006, 0.02), (8, 0.15)
 
     def dichte(self, q):
@@ -214,7 +217,7 @@ class Geschoren(Stil):
 
     def laenge(self, w, n):
         oben = glatt(w[2] - (self.h.auge_z + 0.05 * self.M), 0, 0.04 * self.M)
-        return (0.013 + 0.007 * oben) * self.rng.uniform(0.85, 1.1) * self.M
+        return (0.005 + 0.002 * oben) * self.rng.uniform(0.75, 1.2) * self.M
 
 
 class Stirnfransen(Stil):
@@ -258,7 +261,7 @@ class Krauskopf(Stil):
         return 0.3 * glatt(s, 0.03, 0.08)
 
     def laenge(self, w, n):
-        return 0.085 * self.rng.uniform(0.75, 1.15) * self.M
+        return 0.12 * self.rng.uniform(0.8, 1.15) * self.M
 
     def ende(self, q, s, w):
         h, M = self.h, self.M
@@ -371,9 +374,8 @@ class Kranz(Stil):
 
     def ende(self, q, s, w):
         h, M = self.h, self.M
-        schulter = (h.schulter["l"][2] + h.schulter["r"][2]) / 2
-        z = _schnitt(h, q, [(0, schulter + 0.05 * M), (90, schulter + 0.03 * M), (180, schulter + 0.02 * M)])
-        return q[2] < z + _streu(w, 1, 2) * 0.03 * M
+        z = _schnitt(h, q, [(0, h.kinn[2] + 0.01 * M), (90, h.kinn[2] - 0.005 * M), (180, h.kinn[2] - 0.02 * M)])
+        return q[2] < z + _streu(w, 1, 2) * 0.015 * M
 
 
 # ================================================================= Frauen
@@ -406,7 +408,7 @@ class _Hochgesteckt(k4.FrauScheitel):
 
 class Zoepfe(k4.FrauZoepfe):
     """f01: zwei Zöpfe vor den Schultern (wie Phase 4, die Zöpfe länger)."""
-    zopf_laenge = 0.34
+    zopf_laenge = 0.44
 
     def zusatz(self, rng, faktor):
         h = self.h
@@ -430,8 +432,8 @@ class EinZopf(_Hochgesteckt):
     def zusatz(self, rng, faktor):
         h, M = self.h, self.M
         a = np.array(self.anker)
-        stuetz = [a, a + np.array([0, 0.012, -0.05]) * M, a + np.array([0, 0.02, -0.14]) * M,
-                  a + np.array([0, 0.03, -0.26]) * M, a + np.array([0, 0.035, -0.36]) * M]
+        stuetz = [a, a + np.array([0, 0.012, -0.05]) * M, a + np.array([0, 0.02, -0.16]) * M,
+                  a + np.array([0, 0.03, -0.32]) * M, a + np.array([0, 0.035, -0.46]) * M]
         bahn = bahn_auf_kopf(h, stuetz, M, abstand=0.016, glaetten=4)
         return zopf_straehnen(h, bahn, rng, M, anzahl=int(520 * faktor), dicke=0.013), "zopf"
 
@@ -493,14 +495,14 @@ class Schnecken(_Hochgesteckt):
     def zusatz(self, rng, faktor):
         teile = []
         for s in ("l", "r"):
-            o = _Objekt(self.anker[s], self.anker_n[s], self.M * 1.25)   # Schnecke etwa 7 cm, deckt das Ohr
+            o = _Objekt(self.anker[s], self.anker_n[s], self.M * 1.55)   # Schnecke etwa 8–9 cm, deckt das Ohr
             teile.append(knoten_straehnen(o, rng, anzahl=int(600 * faktor)))
         return np.concatenate(teile), "knoten"
 
 
 class Zopfschlaufen(_Hochgesteckt):
-    """f06: Zopfschlaufen (14. Jh.) – Mittelscheitel, oben glatt; an jeder Seite ein dicker Zopf von der Schläfe vor
-    dem Ohr bis zum Kiefer und hinter dem Ohr wieder hinauf (eine Schlaufe um das Ohr)."""
+    """f06: Zopfschlaufen (14. Jh.) – Mittelscheitel, oben glatt; je Seite ein dicker Zopf von der Schläfe vor dem Ohr
+    bis zur Kieferhöhe, dann nach hinten zum Nacken, dort zu einem flachen Knoten gesteckt; nichts hängt herab."""
     name, anzahl, punkte = "zopfschlaufen", 4600, 16
 
     def __init__(self, h, rng):
@@ -518,11 +520,16 @@ class Zopfschlaufen(_Hochgesteckt):
         teile = []
         for s, sx in (("l", 1.0), ("r", -1.0)):
             o = h.ohr[s]
+            nacken = np.array([sx * 0.012 * M, h.kopfmitte[1] + 0.1 * M, h.ohr_z - 0.04 * M])
             stuetz = [np.array(self.anker[s]), o + np.array([sx * 0.012, -0.02, 0.0]) * M,
-                      o + np.array([sx * 0.014, -0.012, -0.035]) * M, o + np.array([sx * 0.014, 0.012, -0.045]) * M,
-                      o + np.array([sx * 0.012, 0.025, -0.01]) * M, o + np.array([sx * 0.006, 0.02, 0.035]) * M]
+                      o + np.array([sx * 0.012, -0.012, -0.04]) * M, o + np.array([sx * 0.006, 0.03, -0.052]) * M,
+                      nacken + np.array([sx * 0.03, -0.02, 0.0]) * M, nacken]
             bahn = bahn_auf_kopf(h, stuetz, M, abstand=0.013, glaetten=3)
             teile.append(zopf_straehnen(h, bahn, rng, M, anzahl=int(360 * faktor), dicke=0.014, schwanz=0.004))
+        # flacher Knoten im Nacken, wo die Zöpfe enden (64 Punkte wie die Zöpfe)
+        l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.11 * M, h.ohr_z - 0.04 * M]))
+        o = _Objekt(Vector(l) + Vector(n) * 0.01 * M, n, M * 0.9)
+        teile.append(knoten_straehnen(o, rng, anzahl=int(300 * faktor), punkte=64))
         return np.concatenate(teile), "zopf"
 
 
@@ -564,15 +571,15 @@ class HoheStirn(_Hochgesteckt):
     def __init__(self, h, rng):
         super().__init__(h, rng)
         M = self.M
-        l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.12 * M, h.ohr_z + 0.01 * M]))
+        l, n, _, _ = h.naechste(np.array([0.0, h.kopfmitte[1] + 0.1 * M, h.ohr_z + 0.05 * M]))
         self.anker = Vector(l) + Vector(n) * 0.012 * M
-        self.anker_n = np.array([0.0, 0.9, 0.44])
+        self.anker_n = np.array([0.0, 0.7, 0.71])
 
     def dichte(self, q):
         # Haaransatz vorn 2,5 cm höher (ausgezupft), an den Schläfen weniger
         q = np.atleast_2d(q)
         r = self.h.richtung(q)
-        hoeher = np.interp(r, [0, 40, 80, 180], [0.025, 0.018, 0.004, 0.0]) * self.M
+        hoeher = np.interp(r, [0, 40, 80, 180], [0.035, 0.026, 0.006, 0.0]) * self.M
         return self.h.kopfhaut(q - np.stack([np.zeros(len(q)), np.zeros(len(q)), hoeher], 1), tiefer=0.002 * self.M,
                                ohr_frei=(0.018, 0.028))
 
@@ -631,7 +638,7 @@ class Stoppeln(k4.Bart):
         return 0.1
 
     def laenge(self, w, n):
-        return 0.003 * self.rng.uniform(0.65, 1.2) * self.M
+        return 0.0018 * self.rng.uniform(0.7, 1.25) * self.M
 
 
 class Gabelbart(k4.Langbart):
@@ -674,7 +681,7 @@ class Spitzbart(k4.Bart):
         return 0.5
 
     def laenge(self, w, n):
-        return (0.022 + 0.012 * glatt(self.mundbreite - abs(w[0]), 0, self.mundbreite)) * self.rng.uniform(0.85, 1.1) * self.M
+        return (0.035 + 0.018 * glatt(self.mundbreite - abs(w[0]), 0, self.mundbreite)) * self.rng.uniform(0.85, 1.1) * self.M
 
 
 class KurzerVollbart(k4.Vollbart):
@@ -685,8 +692,8 @@ class KurzerVollbart(k4.Vollbart):
     def laenge(self, w, n):
         z = self.zone(w)
         if z == "schnurr":
-            return 0.013 * self.rng.uniform(0.85, 1.1) * self.M
-        L = {"kinn": 0.022, "wange": 0.015, "hals": 0.016}[z]
+            return 0.01 * self.rng.uniform(0.85, 1.1) * self.M
+        L = {"kinn": 0.013, "wange": 0.009, "hals": 0.01}[z]
         return L * self.rng.uniform(0.85, 1.1) * self.M
 
 
@@ -739,6 +746,28 @@ class LangerSchnurrbart(k4.Schnurrbart):
         return (0.014 + 0.065 * aussen ** 2) * self.rng.uniform(0.85, 1.1) * self.M
 
 
+class LangerVollbart(k4.Langbart):
+    """b04: langer Vollbart bis zur Brust (etwa 25 cm), voller Schnurrbart, hängt gerade, leicht wellig, unten schmaler."""
+    name, anzahl, punkte = "langbart", 5600, 32
+    wellen = (0.003, 0.05)
+
+    def kamm(self, q, n, s, w):
+        if self.zone(w) == "schnurr":
+            return k4.Schnurrbart.kamm(self, q, n, s, w)
+        M = self.M
+        spitze = Vector((0.0, self.m68[8, 1] - 0.03 * M, self.m68[8, 2] - 0.26 * M))
+        k = glatt(s, 0.02, 0.08)
+        return _norm(UNTEN * (1 - k) + Vector((-w[0] * 6.0, -0.15, 0)) * 0.3 * (1 - k) + _norm(spitze - q) * 1.2 * k)
+
+    def laenge(self, w, n):
+        z = self.zone(w)
+        if z == "schnurr":
+            return k4.Schnurrbart.laenge(self, w, n) * 1.3
+        unten = glatt(self.lippe_unten - w[2], 0.0, 0.04 * self.M)
+        L = {"kinn": 0.25, "wange": 0.04 + 0.19 * unten ** 1.5, "hals": 0.18}[z]
+        return L * self.rng.uniform(0.85, 1.1) * self.M
+
+
 class Backenbart(k4.Bart):
     """b09: Backenbart (Kinnbart-Kranz) – kurz (etwa 2 cm) entlang des Kieferrands von Ohr zu Ohr und unter dem Kinn;
     Oberlippe und obere Wangen rasiert."""
@@ -775,7 +804,7 @@ class Wildbart(k4.Vollbart):
         if z == "schnurr":
             return k4.Schnurrbart.laenge(self, w, n) * 1.4
         unten = glatt(self.lippe_unten - w[2], 0.0, 0.04 * self.M)
-        L = {"kinn": 0.085, "wange": 0.03 + 0.05 * unten, "hals": 0.06}[z]
+        L = {"kinn": 0.12, "wange": 0.04 + 0.07 * unten, "hals": 0.08}[z]
         return L * self.rng.uniform(0.7, 1.15) * self.M
 
 
@@ -784,5 +813,5 @@ FRISUREN = {"m": [Topfschnitt, Pagenkopf, Haarrolle, Schulterlang, Geschoren, St
             "w": [Zoepfe, EinZopf, Offen, Flechtkranz, Schnecken, Zopfschlaufen, Nackenknoten, Haarnetz, HoheStirn,
                   KrauseLocken]}
 # Bart 0 (rasiert) hat keine Strähnen; die Liste beginnt mit b02
-BAERTE = [Stoppeln, KurzerVollbart, k4.Langbart, Gabelbart, Spitzbart, SchnurrKinnbart, LangerSchnurrbart, Backenbart,
+BAERTE = [Stoppeln, KurzerVollbart, LangerVollbart, Gabelbart, Spitzbart, SchnurrKinnbart, LangerSchnurrbart, Backenbart,
           Wildbart]

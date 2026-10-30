@@ -371,7 +371,7 @@ func _farben() -> void:
 		# Dichte 0,65 und Breite 0,72 die Brauen fast weg. Brauen sind dunkler als das Haupthaar, bei hellem Haar mehr.
 		var bw := float(gene.get("bartwuchs", 130.0)) / 255.0
 		var bwf := float(gene.get("bartwuchs_frau", 0.0)) / 255.0
-		var dichte := lerpf(0.8 + 0.12 * bw + 0.08 * bwf, 0.7 + 0.3 * bw, geschlecht)
+		var dichte := lerpf(0.7 + 0.12 * bw + 0.08 * bwf, 0.7 + 0.3 * bw, geschlecht)
 		dichte *= lerpf(0.65, 1.0, clampf((alter - 3.0) / 12.0, 0.0, 1.0))
 		if mann:
 			dichte += 0.12 * clampf((alter - 55.0) / 15.0, 0.0, 1.0)
