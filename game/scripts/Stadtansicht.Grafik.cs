@@ -188,11 +188,11 @@ public partial class Stadtansicht
     /// <summary>
     /// Dichte des volumetrischen Dunstes am Boden (voller Anteil) und wie schnell er nach oben dünner wird: Abfall 0,7 je Meter heißt
     /// in 3 m Höhe noch 12 %, in 5 m 3 % – der Dunst liegt flach über Feldern und Gassen, Dächer und Mauerkronen stehen darüber.
-    /// Halb so dicht wie bis Oktober 2026 (0,16): Die sichtbaren Nebelbänke macht der Bodennebel (Stadtansicht.Bodennebel.cs), der Dunst ist
-    /// der Schleier darüber, in dem die Sonne ihre Lichtbahnen zieht. Seine Höhe misst Godot ab y = 0, nicht ab dem Boden – zu dicht gab er
-    /// über tief liegendem Wasser eine gleichmäßig graue Fläche.
+    /// Knapp ein Drittel von früher (0,16 bis Oktober 2026): Die sichtbaren Nebelbänke macht der Bodennebel (Stadtansicht.Bodennebel.cs), der Dunst
+    /// ist der Schleier darüber, in dem die Sonne ihre Lichtbahnen zieht. Seine Höhe misst Godot ab y = 0, nicht ab dem Boden – zu dicht gab er
+    /// über tief liegendem Wasser eine gleichmäßig graue Fläche (mit 0,08 lag über dem Rhein noch ein grauer Schleier über den Fetzen).
     /// </summary>
-    private const float DunstDichte = 0.08f, DunstAbfall = 0.7f;
+    private const float DunstDichte = 0.05f, DunstAbfall = 0.7f;
 
     /// <summary>Innerhalb der Stadtmauer nimmt ein zweites Volumen mit negativer Dichte so viel weg, dass nur ein leichter Schleier bleibt.</summary>
     private const float DunstStadtAnteil = 0.35f;
@@ -273,7 +273,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wie dicht der Dunst gerade ist (1 = voller Anteil). Er folgt dem Bodennebel (Stadtansicht.Bodennebel.cs): an einem Nebelmorgen bis 0,7, an
+    /// Wie dicht der Dunst gerade ist (1 = voller Anteil). Er folgt dem Bodennebel (Stadtansicht.Bodennebel.cs): an einem Nebelmorgen bis 0,5, an
     /// einem ruhigen Morgen ohne Nebel ein leichter Dunst (bis 0,25 nach dem Verlauf des Nebels: vor und um Sonnenaufgang, danach aufgelöst), bei
     /// Tag ein Hauch (damit die Sonne Lichtbahnen hat), bei Wetter „Nebel“ 0,45. Nachts nur mit <see cref="Nachtnebel"/>; seine Farbe ist dann dunkel
     /// (<see cref="DunstNachUhrzeit"/>). Früher lag jeden Morgen voller Dunst, unabhängig vom Wetter.
@@ -285,7 +285,7 @@ public partial class Stadtansicht
         var (verlauf, _) = NebelVerlauf(stunde, jahreszeit, Nachtnebel);
         var (nebelLand, _) = NebelStaerkeJetzt();
         var hauch = 0.05f * (1f - NebelDunkel());
-        return Mathf.Max(Mathf.Max(hauch, 0.25f * verlauf * NebelWetterRuhe()), Mathf.Max(0.7f * nebelLand, 0.45f * _wetter.Nebel));
+        return Mathf.Max(Mathf.Max(hauch, 0.25f * verlauf * NebelWetterRuhe()), Mathf.Max(0.5f * nebelLand, 0.45f * _wetter.Nebel));
     }
 
     private void DunstAnwenden()
