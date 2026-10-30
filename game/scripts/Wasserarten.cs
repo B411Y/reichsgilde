@@ -53,7 +53,7 @@ public static class Wasserarten
     /// Furt: Randeis vom Ufer her bis zu diesem Anteil der halben Breite (mindestens 0,3 m, höchstens 3 m), die Mitte bleibt offen – über der
     /// flachen Furt läuft das Wasser schnell.
     /// </summary>
-    public const float FurtRandAnteil = 0.35f, FurtRandMin = 0.3f, FurtRandMax = 3f;
+    public const float FurtRandAnteil = 0.45f, FurtRandMin = 0.3f, FurtRandMax = 3f;
 
     // Eis (Nutzer 30.10.2026): Stilles Wasser friert zuerst und ganz zu (Teich, Hafenbecken, Graben), ein Bach später und ganz (offen bleiben nur
     // Mündung und schnelle Stellen), eine Furt nur am Rand, ein breiter Fluss bekommt spät Randeis und treibende Schollen, nie eine Decke.
