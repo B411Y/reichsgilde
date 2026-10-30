@@ -2,9 +2,12 @@
 // der Kamera folgt. Das wandernde Rauschen (texturen/feuer/rauschen.png) steigt nach oben, die Säule wird mit der Höhe breiter, franst aus und
 // löst sich auf; der Wind (globale Uniforms wetter_wind, wind_richtung) biegt sie. Am Fuß leuchtet sie vom Feuer orange, weiter oben ist sie grau
 // und folgt dem Umgebungslicht („umgebung“: 0 Nacht … 1 Tag; Feuer.cs setzt es). Nachts wird sie nicht schwarz, sondern bleibt ein mattes,
-// kühles Grau wie Rauch im Mondlicht (sonst verschwände der Kaminrauch nachts ganz). Ein Material je Feuerart, Startwert je Säule als
-// Instanz-Uniform `phase`, wie stark sie qualmt als `staerke` (Kamin an oder aus). Mehrere Flächen mit verschiedenem Startwert ergeben eine
+// kühles Grau wie Rauch im Mondlicht (sonst verschwände der Kaminrauch nachts ganz). Ein Material je Feuerart, Startwert je Säule aus ihrer
+// Lage, wie stark sie qualmt (`staerke`, Kamin an oder aus) in der Tiefe der flachen Fläche – keine Instanz-Uniforms. Mehrere Flächen mit verschiedenem Startwert ergeben eine
 // dichtere Säule.
+// An einer Wand (`an_wand`, Feuer.Wand): Die X-Achse der Fläche in der Welt zeigt von der Wand weg (Feuer.cs dreht sie so). Die Fläche kippt
+// oben nicht in die Wand (sonst neigt sich die zur Kamera gedrehte Säule in die Mauer hinein) – so steigt der Rauch an der Wand hoch –, und der
+// Wind biegt die Säule nur von der Wand weg oder an ihr entlang. Wo der Rauch eine Fläche der Szene berührt, blendet er weich aus (Tiefe der Szene).
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled;
 
@@ -33,6 +36,14 @@ uniform vec3 glut_farbe : source_color = vec3(1.0, 0.45, 0.1);
 uniform float glut_zone = 0.3;
 // Nachts: so hell bleibt der Rauch im Mondlicht (Grau ohne Ruß; Ruß macht ihn auch nachts dunkler)
 uniform vec3 mond_farbe : source_color = vec3(0.30, 0.33, 0.40);
+// Deckkraft bei Tag und bei Nacht (Faktor; Kamin: nur ein Hauch), dazwischen nach „umgebung“
+uniform float deckung_tag = 1.0;
+uniform float deckung_nacht = 1.0;
+// Rauch an einer Wand (siehe oben)
+uniform bool an_wand = false;
+// Über so viele Meter blendet der Rauch vor einer Fläche der Szene aus (weiche Kante statt Schnittlinie)
+uniform float weich = 0.6;
+uniform sampler2D tiefe : hint_depth_texture, repeat_disable, filter_nearest;
 
 varying float neigung;
 varying float staerke;
@@ -58,6 +69,22 @@ void vertex() {
 	}
 	// Auch bei Windstille steigt der Rauch nicht ganz gerade
 	neigung = lage * (0.15 + 1.4 * wetter_wind);
+	if (an_wand && billboard != 0) {
+		vec2 weg = normalize(MODEL_MATRIX[0].xz + vec2(1e-6));
+		vec3 rechts = INV_VIEW_MATRIX[0].xyz * length(MODEL_MATRIX[0].xyz);
+		vec3 oben = billboard == 2 ? INV_VIEW_MATRIX[1].xyz * length(MODEL_MATRIX[1].xyz) : vec3(0.0, length(MODEL_MATRIX[1].xyz), 0.0);
+		// Die zur Kamera gedrehte Fläche kippt oben nach hinten; zeigt das in die Wand, steigt sie stattdessen senkrecht hoch (nur auf die Wand
+		// projiziert neigte sie sich seitlich). Die Seiten bleiben, wo sie sind: Was seitlich in einer Wand steckt, verdeckt die Wand selbst,
+		// die Kante blendet weich aus.
+		float kipp = -dot(normalize(oben.xz + vec2(1e-6)), weg);
+		oben.xz *= 1.0 - smoothstep(0.0, 0.35, kipp);
+		VERTEX = MODEL_MATRIX[3].xyz + rechts * VERTEX.x + oben * VERTEX.y;
+		MODELVIEW_MATRIX = VIEW_MATRIX;
+		// Wind: den Anteil auf die Wand zu weglassen
+		vec2 w = normalize(wind_richtung + vec2(0.0001));
+		w -= weg * min(dot(w, weg), 0.0);
+		neigung = dot(w, INV_VIEW_MATRIX[0].xz) * (0.15 + 1.4 * wetter_wind);
+	}
 }
 
 void fragment() {
@@ -89,5 +116,15 @@ void fragment() {
 	vec3 farbe = mix(grau, glut_farbe, anteil * 0.8);
 
 	ALBEDO = farbe;
-	ALPHA = clamp(deckung * dichte * staerke, 0.0, 0.95);
+	// Weiche Kante, wo der Rauch eine Fläche der Szene schneidet (Wand, Dach): Abstand zur Szene dahinter in Blickrichtung
+	float tief = texture(tiefe, SCREEN_UV).x;
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	vec4 sicht = INV_PROJECTION_MATRIX * vec4(vec3(SCREEN_UV, tief) * 2.0 - 1.0, 1.0);
+#else
+	vec4 sicht = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, tief, 1.0);
+#endif
+	float vorn = VERTEX.z - sicht.z / sicht.w;
+	float kante = clamp(vorn / weich, 0.0, 1.0);
+
+	ALPHA = clamp(deckung * dichte * staerke * mix(deckung_nacht, deckung_tag, umgebung) * kante, 0.0, 0.95);
 }

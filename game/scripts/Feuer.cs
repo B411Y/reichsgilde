@@ -36,6 +36,12 @@ public partial class Feuer : Node3D
     [Export] public float Phase { get; set; } = -1f;
     /// <summary>Größe der Flamme gegenüber der Art (1 = wie in <see cref="FeuerArt.Hoehe"/>); nur beim Bau gelesen.</summary>
     [Export] public float Groesse { get; set; } = 1f;
+    /// <summary>
+    /// Eine Wand gleich neben dem Feuer: ihre waagerechte Normale (von der Wand weg) im Raum dieses Knotens, <see cref="Vector3.Zero"/> = keine.
+    /// Der Rauch steigt dann an der Wand hoch und biegt sich nur vom Wind weg, nie in die Wand (<c>rauch.gdshader</c>, <c>an_wand</c>). Nur beim Bau
+    /// gelesen; wer die Wand sucht (Stadtansicht.Feuer.cs, <c>WandSuchen</c>), setzt sie vor dem Einhängen.
+    /// </summary>
+    public Vector3 Wand { get; set; }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Gemeinsame Uhr und Umgebung (gilt für alle Feuer)
@@ -259,7 +265,7 @@ public partial class Feuer : Node3D
     private static Texture2D Rauschen => _rauschen ??= GD.Load<Texture2D>("res://assets/texturen/feuer/rauschen.png");
 
     private static readonly Dictionary<(FeuerArt, FeuerAusrichtung), ShaderMaterial> _flammenMaterialien = new();
-    private static readonly Dictionary<(FeuerArt, FeuerAusrichtung), ShaderMaterial> _rauchMaterialien = new();
+    private static readonly Dictionary<(FeuerArt, FeuerAusrichtung, bool), ShaderMaterial> _rauchMaterialien = new();
     private static readonly Dictionary<FeuerArt, ShaderMaterial> _glutMaterialien = new();
 
     private static int AusrichtungsWert(FeuerAusrichtung a) => a switch { FeuerAusrichtung.Voll => 2, FeuerAusrichtung.Hochachse => 1, _ => 0 };
@@ -342,9 +348,10 @@ public partial class Feuer : Node3D
         }
     }
 
-    private static ShaderMaterial RauchMaterial(FeuerArt art, FeuerAusrichtung ausrichtung)
+    /// <summary>Das Material des Rauchs, je Art, Ausrichtung und „an einer Wand“ einmal (die Richtung der Wand reist in der Drehung der Fläche).</summary>
+    private static ShaderMaterial RauchMaterial(FeuerArt art, FeuerAusrichtung ausrichtung, bool anWand)
     {
-        if (_rauchMaterialien.TryGetValue((art, ausrichtung), out var vorhanden)) return vorhanden;
+        if (_rauchMaterialien.TryGetValue((art, ausrichtung, anWand), out var vorhanden)) return vorhanden;
         var m = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/rauch.gdshader") };
         m.SetShaderParameter("rausch", Rauschen);
         m.SetShaderParameter("billboard", AusrichtungsWert(ausrichtung));
@@ -353,10 +360,13 @@ public partial class Feuer : Node3D
         m.SetShaderParameter("russ", art.RauchRuss);
         m.SetShaderParameter("glut", art.RauchGlut);
         m.SetShaderParameter("glut_zone", Mathf.Clamp(1.6f / Mathf.Max(art.RauchHoehe, 0.1f), 0.05f, 0.35f));
+        m.SetShaderParameter("deckung_tag", art.RauchDeckungTag);
+        m.SetShaderParameter("deckung_nacht", art.RauchDeckungNacht);
+        m.SetShaderParameter("an_wand", anWand);
         m.SetShaderParameter("umgebung", Umgebung);
         _zeitMaterialien.Add(m);
         _umgebungMaterialien.Add(m);
-        return _rauchMaterialien[(art, ausrichtung)] = m;
+        return _rauchMaterialien[(art, ausrichtung, anWand)] = m;
     }
 
     private static Vector3 ZungenLage(int i, int n, float radius)
@@ -397,14 +407,23 @@ public partial class Feuer : Node3D
     /// <summary>Der Rauch als Säule aus Flächen mit <c>rauch.gdshader</c>.</summary>
     private void RauchBauen(FeuerArt art, RandomNumberGenerator zufall)
     {
-        var material = RauchMaterial(art, Ausrichtung);
+        var wand = new Vector3(Wand.X, 0f, Wand.Z);
+        var anWand = wand.LengthSquared() > 1e-6f && Ausrichtung != FeuerAusrichtung.Gekreuzt;
+        var material = RauchMaterial(art, Ausrichtung, anWand);
         var fuss = art.Form switch { FeuerForm.Flamme => art.Hoehe * Groesse * 0.6f, FeuerForm.Glut => 0.2f, _ => 0f };
+        // An der Wand: Die Fläche wird so um die Hochachse gedreht, dass ihre X-Achse von der Wand weg zeigt – der Shader liest die Richtung daraus
+        // (bei „Voll“ und „Hochachse“ hat die Drehung sonst keine Wirkung). Kein Instanz-Uniform.
+        var drehung = anWand ? Mathf.Atan2(-wand.Z, wand.X) : 0f;
         for (var k = 0; k < Math.Max(art.RauchSchichten, 1); k++)
         {
             var seite = k == 0 ? 0f : (k % 2 == 0 ? 1f : -1f) * 0.12f * art.RauchBreite * k;
             var schicht = Mathf.Lerp(1f, 0.72f, k / (float)Math.Max(art.RauchSchichten, 1));
-            var lage = new Vector3(seite, fuss, 0f);
-            _rauch.AddRange(FlaechenSetzen(material, lage, new Vector3(art.RauchBreite * schicht, art.RauchHoehe * (0.8f + 0.2f * schicht), 1f), k == 0 ? Phase : zufall.Randf(), _rauchStaerke));
+            // an der Wand liegen die weiteren Schichten entlang der Wand, nicht auf sie zu
+            var lage = anWand ? new Vector3(-wand.Z, 0f, wand.X).Normalized() * seite + new Vector3(0f, fuss, 0f) : new Vector3(seite, fuss, 0f);
+            var flaechen = FlaechenSetzen(material, lage, new Vector3(art.RauchBreite * schicht, art.RauchHoehe * (0.8f + 0.2f * schicht), 1f), k == 0 ? Phase : zufall.Randf(), _rauchStaerke);
+            if (anWand)
+                foreach (var f in flaechen) f.Rotation = new Vector3(0f, drehung, 0f);
+            _rauch.AddRange(flaechen);
         }
     }
 

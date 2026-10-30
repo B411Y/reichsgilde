@@ -64,6 +64,9 @@ public partial class FeuerArt : Resource
     [Export(PropertyHint.Range, "0,1")] public float RauchGlut { get; set; } = 0.5f;
     /// <summary>So viele Flächen mit verschiedenem Startwert ergeben eine dichtere Säule.</summary>
     [Export] public int RauchSchichten { get; set; } = 1;
+    /// <summary>Deckkraft der Säule bei Tag und bei Nacht (Faktor, 1 = wie <see cref="RauchMenge"/> sagt); dazwischen nach der Umgebung.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float RauchDeckungTag { get; set; } = 1f;
+    [Export(PropertyHint.Range, "0,1")] public float RauchDeckungNacht { get; set; } = 1f;
 
     /// <summary>Energie des OmniLight bei mittlerer Helligkeit; 0 = kein Licht (Kamin).</summary>
     [ExportGroup("Licht")]
@@ -129,11 +132,13 @@ public partial class FeuerArt : Resource
             LichtEnergie = 3.2f, LichtReichweite = 7.5f, LichtFlackern = 0.22f, LichtFarbeKalt = new Color(1.0f, 0.38f, 0.1f), LichtFarbeHeiss = new Color(1.0f, 0.6f, 0.25f),
             LichtAusblendenAb = 40f,
         },
-        // Kamin: nur Rauch (das Feuer brennt im Haus), kein Licht; heller als der Rauch eines Brandes
+        // Kamin: nur Rauch (das Feuer brennt im Haus), kein Licht; heller als der Rauch eines Brandes. Nur ein Hauch (Nutzer 30.10.2026):
+        // bei Tag kaum zu sehen, nachts dezent
         FeuerVorgabe.Kamin => new FeuerArt
         {
             Bezeichnung = "Kamin", Form = FeuerForm.NurRauch, Zungen = 0,
             RauchMenge = 0.55f, RauchHoehe = 6f, RauchBreite = 1.8f, RauchRuss = 0.3f, RauchGlut = 0f, RauchSchichten = 2,
+            RauchDeckungTag = 0.3f, RauchDeckungNacht = 0.5f,
             LichtEnergie = 0f,
         },
         // Gebäudebrand: das wilde Flipbook (Stichflammen) aus dem Dach, viele Funken, dicker schwarzer Rauch, großes Licht

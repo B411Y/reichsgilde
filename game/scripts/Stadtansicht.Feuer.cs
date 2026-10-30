@@ -225,6 +225,123 @@ public partial class Stadtansicht
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Wand neben einem Feuer (Rauch steigt an ihr hoch)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Die Dreiecke eines Netzes (je drei Ecken, im Raum des Netzes), einmal je Netz gelesen.</summary>
+    private static readonly Dictionary<Mesh, Vector3[]> _wandDreiecke = new();
+
+    /// <summary>So weit (Meter, waagerecht) sucht <see cref="WandSuchen"/> nach einer Wand.</summary>
+    private const float WandReichweite = 2.5f;
+
+    /// <summary>
+    /// Sucht die nächste Wand neben einem Feuer, nur beim Aufbau: Von <paramref name="ort"/> (Fuß der Flamme) gehen in vier Höhen bis
+    /// <paramref name="hoehe"/> je 16 waagerechte Strahlen bis <see cref="WandReichweite"/>; getroffen werden nur steile Dreiecke (Wände, keine Böden,
+    /// Dächer oder Simse) der <paramref name="netze"/> (Netz und seine Lage im selben Raum wie <paramref name="ort"/>). Ergebnis: das Mittel der
+    /// waagerechten Normalen aller getroffenen Wände (zum Feuer hin, nähere stärker gewichtet); null, wenn keine nah genug ist. Es gibt in der Stadt keine Kollisionsformen,
+    /// darum rechnet es mit den Dreiecken der Modelle selbst (wie <see cref="SchornsteineSuchen"/>).
+    /// </summary>
+    private static Vector3? WandSuchen(IEnumerable<(Mesh Netz, Transform3D Lage)> netze, Vector3 ort, float hoehe)
+    {
+        const int Richtungen = 16;
+        const int Hoehen = 4;
+        // je Strahl der nächste Treffer: Abstand und waagerechte Normale (zum Feuer hin)
+        var abstand = new float[Richtungen * Hoehen];
+        var normale = new Vector3[Richtungen * Hoehen];
+        Array.Fill(abstand, WandReichweite);
+        foreach (var (netz, lage) in netze)
+        {
+            if (!_wandDreiecke.TryGetValue(netz, out var ecken)) _wandDreiecke[netz] = ecken = netz.GetFaces();
+            for (var i = 0; i + 2 < ecken.Length; i += 3)
+            {
+                var a = lage * ecken[i];
+                var b = lage * ecken[i + 1];
+                var c = lage * ecken[i + 2];
+                // grob: nur Dreiecke im Kasten um die Säule
+                if (Mathf.Max(a.X, Mathf.Max(b.X, c.X)) < ort.X - WandReichweite || Mathf.Min(a.X, Mathf.Min(b.X, c.X)) > ort.X + WandReichweite
+                    || Mathf.Max(a.Z, Mathf.Max(b.Z, c.Z)) < ort.Z - WandReichweite || Mathf.Min(a.Z, Mathf.Min(b.Z, c.Z)) > ort.Z + WandReichweite
+                    || Mathf.Max(a.Y, Mathf.Max(b.Y, c.Y)) < ort.Y || Mathf.Min(a.Y, Mathf.Min(b.Y, c.Y)) > ort.Y + hoehe) continue;
+                var n = (b - a).Cross(c - a);
+                if (n.LengthSquared() < 1e-10f) continue;
+                n = n.Normalized();
+                if (Mathf.Abs(n.Y) > 0.6f) continue;
+                for (var h = 0; h < Hoehen; h++)
+                {
+                    var start = new Vector3(ort.X, ort.Y + hoehe * (0.1f + 0.85f * h / (Hoehen - 1)), ort.Z);
+                    for (var k = 0; k < Richtungen; k++)
+                    {
+                        var winkel = k * Mathf.Tau / Richtungen;
+                        var richtung = new Vector3(Mathf.Cos(winkel), 0f, Mathf.Sin(winkel));
+                        var t = StrahlDreieck(start, richtung, a, b, c);
+                        var s = h * Richtungen + k;
+                        if (t <= 0f || t >= abstand[s]) continue;
+                        abstand[s] = t;
+                        var w = new Vector3(n.X, 0f, n.Z);
+                        if (w.Dot(richtung) > 0f) w = -w; // zum Feuer hin
+                        normale[s] = w.Normalized();
+                    }
+                }
+            }
+        }
+        // Mittel der Treffer, die näheren stärker: In einer Ecke (Torbogen und Fassade) zeigt es schräg aus der Ecke heraus
+        var summe = Vector3.Zero;
+        for (var s = 0; s < abstand.Length; s++)
+            if (abstand[s] < WandReichweite) summe += normale[s] * (1f - abstand[s] / WandReichweite);
+        return summe.LengthSquared() > 1e-6f ? summe.Normalized() : null;
+    }
+
+    /// <summary>Abstand entlang des Strahls bis zum Dreieck (beidseitig, Möller-Trumbore); 0, wenn er es nicht trifft.</summary>
+    private static float StrahlDreieck(Vector3 start, Vector3 richtung, Vector3 a, Vector3 b, Vector3 c)
+    {
+        var e1 = b - a;
+        var e2 = c - a;
+        var p = richtung.Cross(e2);
+        var det = e1.Dot(p);
+        if (Mathf.Abs(det) < 1e-8f) return 0f;
+        var inv = 1f / det;
+        var s = start - a;
+        var u = s.Dot(p) * inv;
+        if (u < 0f || u > 1f) return 0f;
+        var q = s.Cross(e1);
+        var v = richtung.Dot(q) * inv;
+        if (v < 0f || u + v > 1f) return 0f;
+        var t = e2.Dot(q) * inv;
+        return t > 1e-4f ? t : 0f;
+    }
+
+    /// <summary>
+    /// Die Netze eines Modells für <see cref="WandSuchen"/>, im Raum des Modells: nur sichtbare Teile (die gewählte Stufe und Variante), ohne
+    /// Gerüst, Fahne und Wappen und ohne alles, was schon an einem Anker hängt (Lichter, Flammen).
+    /// </summary>
+    private static List<(Mesh Netz, Transform3D Lage)> WandNetze(Node3D modell)
+    {
+        var liste = new List<(Mesh, Transform3D)>();
+        foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (teil.Mesh is null || Nebenteil(teil.Name.ToString())) continue;
+            var zeigen = true;
+            for (Node? n = teil; n is not null && n != modell && zeigen; n = n.GetParent())
+                zeigen = (n is not Node3D k || k.Visible) && !n.Name.ToString().StartsWith("Anker_");
+            if (zeigen) liste.Add((teil.Mesh, LageUnter(modell, teil)));
+        }
+        return liste;
+    }
+
+    /// <summary>
+    /// Die Wand neben der Flamme eines Lichts, als Normale im Raum der Flamme (<see cref="Feuer.Wand"/>); <paramref name="lichtLage"/> ist die Lage des
+    /// Lichtknotens im Raum der <paramref name="netze"/>. Nur für Lichter mit Rauch (Feuerkorb), sonst <see cref="Vector3.Zero"/>.
+    /// </summary>
+    private static Vector3 WandFuerLicht(Lichtart art, Transform3D lichtLage, IEnumerable<(Mesh Netz, Transform3D Lage)> netze)
+    {
+        if (FlammenFuss(art) is not { } f || FeuerArt.Neu(f.Vorgabe) is not { RauchMenge: > 0f } feuerart) return Vector3.Zero;
+        var hoehe = feuerart.Hoehe * f.Groesse * 0.6f + feuerart.RauchHoehe;
+        if (WandSuchen(netze, lichtLage * f.Fuss, hoehe) is not { } normale) return Vector3.Zero;
+        var lokal = lichtLage.Basis.Inverse() * normale;
+        lokal.Y = 0f;
+        return lokal.LengthSquared() > 1e-8f ? lokal.Normalized() : Vector3.Zero;
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Kaminrauch
     // ═════════════════════════════════════════════════════════════════════════
 

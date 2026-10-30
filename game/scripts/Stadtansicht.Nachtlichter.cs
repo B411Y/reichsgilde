@@ -201,7 +201,7 @@ public partial class Stadtansicht
     /// ein Licht, das sich bewegt (<paramref name="wandert"/>, in der Hand), bekommt nach <paramref name="nummer"/> eine Material-Variante mit
     /// festem Takt, und seine Fackel brennt ohne Rauchsäule.
     /// </summary>
-    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool wandert = false)
+    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool wandert = false, Vector3 wand = default)
     {
         LichterLaden();
         if (!_lichtNetze.TryGetValue(art, out var teil)) return null;
@@ -210,16 +210,20 @@ public partial class Stadtansicht
             for (var i = 0; i < teil.Netz.GetSurfaceCount(); i++)
                 if (teil.Netz.SurfaceGetMaterial(i) is ShaderMaterial nachtlicht)
                     knoten.SetSurfaceOverrideMaterial(i, TaktStoff(nachtlicht, nummer));
-        FlammeAnhaengen(knoten, art, nummer, wandert);
+        FlammeAnhaengen(knoten, art, nummer, wandert, wand);
         LichterStoffStellen();
         return knoten;
     }
 
-    /// <summary>Hängt die echte Flamme einer Lichtart an den Knoten (im Raum des Teils aus <c>lichter.glb</c>); ohne eigenes Licht, das stellt der Pool.</summary>
-    private Feuer? FlammeAnhaengen(Node3D knoten, Lichtart art, int nummer, bool wandert = false)
+    /// <summary>
+    /// Hängt die echte Flamme einer Lichtart an den Knoten (im Raum des Teils aus <c>lichter.glb</c>); ohne eigenes Licht, das stellt der Pool.
+    /// <paramref name="wand"/>: eine Wand daneben (<see cref="Feuer.Wand"/>, aus <see cref="WandFuerLicht"/>), an der der Rauch hochsteigt.
+    /// </summary>
+    private Feuer? FlammeAnhaengen(Node3D knoten, Lichtart art, int nummer, bool wandert = false, Vector3 wand = default)
     {
         if (FlammenFuss(art) is not { } f || OS.GetEnvironment("RG_OHNEFLAMMEN") != "") return null; // RG_OHNEFLAMMEN: nur für Messungen
         var flamme = Feuer.Neu(f.Vorgabe, false, (Streuung(nummer, 2071) & 0xFFFF) / 65535f, f.Groesse);
+        flamme.Wand = wand;
         if (wandert && art == Lichtart.Fackel) flamme.Art = Handfackel();
         flamme.Name = "Flamme";
         flamme.Position = f.Fuss;
@@ -283,6 +287,7 @@ public partial class Stadtansicht
     /// </summary>
     private void NachtlichterAnbringen(Node3D modell)
     {
+        List<(Mesh, Transform3D)>? netze = null;
         foreach (var anker in modell.FindChildren("Anker_*", nameof(Node3D), true, false).OfType<Node3D>())
         {
             var name = anker.Name.ToString();
@@ -290,7 +295,16 @@ public partial class Stadtansicht
                     : name == "Anker_Laterne" ? Lichtart.Wandlaterne
                     : name == "Anker_EwigesLicht" ? Lichtart.EwigesLicht
                     : (Lichtart?)null;
-            if (art is not { } a || LichtKnoten(a, _lichtquellen.Count) is not { } licht) continue; // flackert im Takt seiner Lage
+            if (art is not { } a) continue;
+            // Rauch des Feuerkorbs: an einer Wand daneben hochsteigen lassen (nur beim Aufbau gerechnet)
+            var wand = Vector3.Zero;
+            if (a == Lichtart.Feuerkorb)
+            {
+                LichterLaden();
+                if (_lichtNetze.TryGetValue(a, out var teil))
+                    wand = WandFuerLicht(a, LageUnter(modell, anker) * teil.Lage, netze ??= WandNetze(modell));
+            }
+            if (LichtKnoten(a, _lichtquellen.Count, wand: wand) is not { } licht) continue; // flackert im Takt seiner Lage
             anker.AddChild(licht);
             var flamme = FlammeVon(licht);
             FesteFlammeMerken(flamme);
@@ -299,18 +313,19 @@ public partial class Stadtansicht
     }
 
     /// <summary>Viele Feuerkörbe in einem Zeichenaufruf je Material (die Torburgen einer Mauer); je Korb eine leere Marke für das echte Licht.</summary>
-    private void FeuerkoerbeVielfach(IReadOnlyList<Transform3D> lagen, Node3D eltern)
+    /// <remarks><paramref name="waende"/>: je Korb die Wand daneben im Raum seiner Flamme (<see cref="WandFuerLicht"/>) oder Null.</remarks>
+    private void FeuerkoerbeVielfach(IReadOnlyList<Transform3D> lagen, Node3D eltern, IReadOnlyList<Vector3>? waende = null)
     {
         LichterLaden();
         if (lagen.Count == 0 || !_lichtNetze.TryGetValue(Lichtart.Feuerkorb, out var teil)) return;
         var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = teil.Netz, InstanceCount = lagen.Count };
         for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i] * teil.Lage);
         eltern.AddChild(new MultiMeshInstance3D { Name = "Torfeuer", Multimesh = vielfach, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
-        foreach (var lage in lagen)
+        for (var i = 0; i < lagen.Count; i++)
         {
-            var marke = new Node3D { Name = "Feuerstelle", Transform = lage * teil.Lage };
+            var marke = new Node3D { Name = "Feuerstelle", Transform = lagen[i] * teil.Lage };
             eltern.AddChild(marke);
-            var flamme = FlammeAnhaengen(marke, Lichtart.Feuerkorb, _lichtquellen.Count);
+            var flamme = FlammeAnhaengen(marke, Lichtart.Feuerkorb, _lichtquellen.Count, wand: waende is not null && i < waende.Count ? waende[i] : Vector3.Zero);
             FesteFlammeMerken(flamme);
             LichtquelleMerken(marke, Lichtart.Feuerkorb, flamme);
         }
