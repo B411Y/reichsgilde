@@ -63,9 +63,6 @@ public partial class Stadtansicht
     /// <summary>Die Nebelneigung des laufenden Spieltags (0–1) und woher sie kommt – für das Entwicklerfenster.</summary>
     public (float Staerke, string Grund) MorgennebelHeute => NebelTagMitGrund(_letzteLichtJahreszeit ?? Jahreszeit.Fruehling);
 
-    /// <summary>Die Stärke gerade jetzt (Land, Wasser; 0–1, ohne Grafikstufe) – auch für den Dunst (Stadtansicht.Grafik.cs).</summary>
-    private (float Land, float Wasser) _nebelJetzt;
-
     private (int Jahr, int Startwert, Wetterlage? Vorgabe, Jahreszeit Zeit, float Wert, string Grund)? _nebelTagFuer;
 
     /// <summary>
@@ -181,8 +178,7 @@ public partial class Stadtansicht
     private void BodennebelNachfuehren()
     {
         var stufe = Fenster.AktuellerDunst;
-        _nebelJetzt = _raum is not null || _entwurf is not null || _grenzen is null ? (0f, 0f) : NebelStaerkeJetzt();
-        var (land, wasser) = stufe == Morgendunst.Aus ? (0f, 0f) : _nebelJetzt;
+        var (land, wasser) = stufe == Morgendunst.Aus || _raum is not null || _entwurf is not null || _grenzen is null ? (0f, 0f) : NebelStaerkeJetzt();
         if (Mathf.Max(land, wasser) < 0.01f)
         {
             if (_nebelKnoten is { Visible: true }) _nebelKnoten.Visible = false;
@@ -255,8 +251,9 @@ public partial class Stadtansicht
                 land[k] *= stadt[k] * rand;
                 nass[k] = Mathf.Clamp(nass[k] * 1.15f, 0f, 1f) * stadt[k] * rand;
             }
-        // Bei Hoch zwei Schichten: die untere ist meist über die Tiefe ausgeblendet (zu nah am Boden), zusammen etwa so dicht wie eine
-        var schichten = hoch ? new[] { (NebelHoeheUnten, 0f, 0.6f), (NebelHoeheOben, 1f, 0.85f) } : new[] { (NebelHoeheUnten + 0.4f, 0f, 1f) };
+        // Bei Hoch zwei Schichten mit verschiedenem Muster: zusammen decken sie mehr Fläche, darum jede etwas dünner (die untere ist zudem meist
+        // über die Tiefe ausgeblendet, zu nah am Boden); dazu kommt bei Hoch der Volumennebel
+        var schichten = hoch ? new[] { (NebelHoeheUnten, 0f, 0.5f), (NebelHoeheOben, 1f, 0.75f) } : new[] { (NebelHoeheUnten + 0.4f, 0f, 1f) };
         foreach (var (hoehe, versatz, deckkraft) in schichten)
         {
             var ecken = new List<Vector3>();
