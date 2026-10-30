@@ -68,7 +68,7 @@ public sealed class EinstellungenAnzeige
     private const string GiInnenTipp =
         "Globale Beleuchtung in den Räumen (Werkstätten, Wohnhaus, Rathaus): Das Licht von Fenstern, Glut und Lampen fällt auf Wände und Boden zurück, " +
         "Ecken und Nischen werden weicher und dunkler, die Glut färbt den Raum warm. Die Räume bleiben etwa so hell wie ohne. " +
-        "Kostet in den Räumen deutlich Grafikleistung (auf einer schwachen Karte rund 40 % mehr Zeit je Bild bei Mittel). Standard: an.";
+        "Kostet in den Räumen viel Grafikleistung (auf einer schwachen Karte bei Mittel gut 70 % mehr Zeit je Bild). Standard: an.";
 
     /// <summary>Tooltip des Unterschalters „Außenansicht“ (mit dem Hinweis „experimentell“) der globalen Beleuchtung.</summary>
     private const string GiAussenTipp =
