@@ -54,6 +54,7 @@ public partial class Stadtansicht
     private Image? _tropfBild;
     private ImageTexture? _tropfTextur;
     private int _tropfPruefsumme;
+    private readonly List<(Vector2 A, Vector2 B, float Kleiner)> _tropfKanten = new();
     private Vector4 _tropfFeld = new(0, 0, 0, -1); // (Ecke x, Ecke z, 1 / Seitenlänge, Stärke), zuletzt an die Shader gegeben
 
     /// <summary>Merkt die Traufkanten der Dächer eines eben eingesetzten Modells.</summary>
@@ -273,20 +274,20 @@ public partial class Stadtansicht
     /// Nasse Tropfkante: schreibt das Bild um den Blickpunkt neu – je Bildpunkt der Abstand zur nächsten Traufkante im Grundriss (0–<see cref="TropfWeit"/> m
     /// auf 0–255, weiter weg 255). Es zählt der kleinste Abstand, nicht die Summe: Wo zwei Kanten nahe beieinanderliegen (Hausecken, Nachbarhäuser), wird
     /// der Boden nicht nässer als nass. Die Ecke des Bilds rastet auf ganze Bildpunkte ein, damit dieselbe Stelle beim Verschieben denselben Wert bekommt
-    /// (kein Flimmern). Hochgeladen wird nur, was sich geändert hat (Prüfsumme). Das Bild deckt die ganze Ansicht (die Kamera blickt diagonal: rund 2,7 ×
-    /// Zoom), auf 16 m gerundet, 48–160 m – je Bildpunkt 9–31 cm.
+    /// (kein Flimmern). Gezeichnet und hochgeladen wird nur, wenn sich etwas geändert hat (Prüfsumme über die Kanten im Bild); steht der Blick, kostet es
+    /// nur das Umrechnen der Kanten. Das Bild deckt die ganze Ansicht (die Kamera blickt diagonal: rund 2,7 × Zoom), auf 16 m gerundet, 48–160 m – je
+    /// Bildpunkt 9–31 cm.
     /// </summary>
     private void TropfkanteZeichnen(Vector3 fokus)
     {
         var seite = Mathf.Clamp(Mathf.Ceil((2.7f * _kamera.Size + 8f) / 16f) * 16f, 48f, 160f);
         var texel = seite / TropfBild;
         var ecke = new Vector2(Mathf.Floor((fokus.X - seite / 2) / texel) * texel, Mathf.Floor((fokus.Z - seite / 2) / texel) * texel);
-        _tropfDaten ??= new byte[TropfBild * TropfBild];
-        Array.Fill(_tropfDaten, (byte)255);
+        // erst die Kanten im Bild sammeln (Grundriss) und ihre Prüfsumme bilden: Hat sich nichts geändert (Blick steht), bleibt das Bild, wie es ist
+        _tropfKanten.Clear();
         var pruef = new HashCode();
         pruef.Add(seite);
         pruef.Add(ecke);
-        var gezeichnet = 0;
         foreach (var (modell, _, kanten) in _traufModelle)
         {
             if (!modell.IsVisibleInTree()) continue;
@@ -297,18 +298,22 @@ public partial class Stadtansicht
             {
                 var wa = lage * a;
                 var wb = lage * b;
-                if (KanteZeichnen(new Vector2(wa.X, wa.Z), new Vector2(wb.X, wb.Z), a == b ? TropfGiebelKleiner : 0f, ecke, texel))
-                {
-                    gezeichnet++;
-                    pruef.Add(wa);
-                    pruef.Add(wb);
-                }
+                var pa = new Vector2(wa.X, wa.Z);
+                var pb = new Vector2(wb.X, wb.Z);
+                var weit = TropfWeit + 0.1f;
+                if (Mathf.Max(pa.X, pb.X) < ecke.X - weit || Mathf.Min(pa.X, pb.X) > ecke.X + seite + weit
+                    || Mathf.Max(pa.Y, pb.Y) < ecke.Y - weit || Mathf.Min(pa.Y, pb.Y) > ecke.Y + seite + weit) continue;
+                _tropfKanten.Add((pa, pb, a == b ? TropfGiebelKleiner : 0f));
+                pruef.Add(pa);
+                pruef.Add(pb);
             }
         }
-        var summe = gezeichnet == 0 ? 0 : pruef.ToHashCode() | 1; // 0 heißt: keine Kante im Bild
-        var feld = new Vector4(ecke.X, ecke.Y, 1f / seite, _tropfFeld.W);
+        var summe = _tropfKanten.Count == 0 ? 0 : pruef.ToHashCode() | 1; // 0 heißt: keine Kante im Bild
         if (summe != _tropfPruefsumme && summe != 0)
         {
+            _tropfDaten ??= new byte[TropfBild * TropfBild];
+            Array.Fill(_tropfDaten, (byte)255);
+            foreach (var (a, b, kleiner) in _tropfKanten) KanteZeichnen(a, b, kleiner, ecke, texel);
             if (_tropfBild is null)
             {
                 _tropfBild = Image.CreateFromData(TropfBild, TropfBild, false, Image.Format.R8, _tropfDaten);
@@ -322,11 +327,11 @@ public partial class Stadtansicht
             }
         }
         _tropfPruefsumme = summe;
-        TropfFeldSetzen(feld);
+        TropfFeldSetzen(new Vector4(ecke.X, ecke.Y, 1f / seite, _tropfFeld.W));
     }
 
     /// <summary>Eine Traufkante (Grundriss a–b, Welt-x/z) ins Bild: Abstand jedes nahen Bildpunkts zur Strecke plus <paramref name="kleiner"/>, der kleinere Wert gewinnt.</summary>
-    private bool KanteZeichnen(Vector2 a, Vector2 b, float kleiner, Vector2 ecke, float texel)
+    private void KanteZeichnen(Vector2 a, Vector2 b, float kleiner, Vector2 ecke, float texel)
     {
         var daten = _tropfDaten!;
         var weit = TropfWeit - kleiner;
@@ -334,7 +339,7 @@ public partial class Stadtansicht
         var i1 = Mathf.Min(TropfBild - 1, Mathf.CeilToInt((Mathf.Max(a.X, b.X) + weit - ecke.X) / texel));
         var j0 = Mathf.Max(0, Mathf.FloorToInt((Mathf.Min(a.Y, b.Y) - weit - ecke.Y) / texel));
         var j1 = Mathf.Min(TropfBild - 1, Mathf.CeilToInt((Mathf.Max(a.Y, b.Y) + weit - ecke.Y) / texel));
-        if (i0 > i1 || j0 > j1) return false;
+        if (i0 > i1 || j0 > j1) return;
         var ab = b - a;
         var l2 = ab.LengthSquared();
         for (var j = j0; j <= j1; j++)
@@ -351,7 +356,6 @@ public partial class Stadtansicht
                 if (wert < daten[stelle]) daten[stelle] = wert;
             }
         }
-        return true;
     }
 
     /// <summary>Lage und Stärke der nassen Tropfkante an die Shader (globales <c>traufe_feld</c>), nur wenn sie sich geändert haben.</summary>
