@@ -62,7 +62,8 @@ public sealed class EinstellungenAnzeige
     private const string GiVorwort =
         "Versuch: Licht kommt von Wänden, Boden und Himmel zurück, auch von Dingen außerhalb des Bildes – Schatten werden heller, enge Gassen dunkler, " +
         "Räume bekommen Licht nur noch von Fenstern, Glut und Lampen. Kostet viel Grafikleistung. In der Stadt wirkt es nur grob, weil die Kamera weit über der Stadt steht; " +
-        "was gebaut oder abgerissen wird und Fensterlicht kommen erst nach, wenn man die Kamera verschiebt. Kurz nach dem Umschalten flackert das Licht, bis es sich gesetzt hat.";
+        "Wohnhäuser, Baustellen und Fensterlicht kommen erst nach, wenn man die Kamera ein Stück verschiebt. Nach dem Umschalten, beim Wechsel zwischen Stadt und Raum " +
+        "und wenn eine Werkstatt dazukommt oder geht, flackert das Licht kurz, bis es sich gesetzt hat.";
 
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
     private static readonly (Voreinstellung Stufe, string Erklaerung)[] Voreinstellungen =
