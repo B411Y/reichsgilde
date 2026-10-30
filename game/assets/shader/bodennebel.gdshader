@@ -73,7 +73,12 @@ void fragment() {
 
 	// Tiefe der Szene hinter dem Netz: wo Wand oder Boden nahe liegen, weich ausblenden
 	float tief = texture(tiefe, SCREEN_UV).x;
-	vec4 sicht = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, tief, 1.0);
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	vec3 ndc = vec3(SCREEN_UV, tief) * 2.0 - 1.0; // OpenGL: die Tiefe 0 … 1 steht für −1 … 1 (sonst blendete der Nebel überall aus)
+#else
+	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, tief);
+#endif
+	vec4 sicht = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
 	float dahinter = (-sicht.z / sicht.w) - (-VERTEX.z);
 	dichte *= smoothstep(0.0, 1.5, dahinter);
 
