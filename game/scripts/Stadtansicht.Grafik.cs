@@ -255,7 +255,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wie dicht der Dunst um diese Uhrzeit ist (1 = voller Morgendunst): von 5 bis 6:20 Uhr am dichtesten, gegen 8 Uhr fast
+    /// Wie dicht der Dunst zu dieser Stunde des Bezugstags (Stadtansicht.Licht.cs, folgt den Sonnenzeiten der Jahreszeit) ist (1 = voller Morgendunst): von 5 bis 6:20 Uhr am dichtesten, gegen 8 Uhr fast
     /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht, nach 21 Uhr keiner. Der Spieltag beginnt um 4 Uhr mitten im dichten Dunst
     /// (das Jahr springt von 23 auf 4 Uhr).
     /// </summary>
@@ -316,7 +316,7 @@ public partial class Stadtansicht
         LichtbahnenImRaum();
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         StadtDunstAnlegen();
-        var stunde = _letzteLichtUhrzeit >= 0 ? _letzteLichtUhrzeit / 60f : 12f; // im Hauptmenü (ohne Uhr): Mittag
+        var stunde = _letzteLichtUhrzeit >= 0 ? _bezugStunde : 12f; // Uhrzeit auf dem Bezugstag, folgt den Sonnenzeiten der Jahreszeit (Stadtansicht.Licht.cs); im Hauptmenü (ohne Uhr): Mittag
         var anteil = Mathf.Max(DunstUm(stunde), 0.45f * _wetter.Nebel); // bei Nebel (Stadtansicht.Wetter.cs) liegt er etwas dichter (dazu Bodennebel und Entfernungsnebel)
         if (Mathf.Abs(anteil - _dunstAnteil) < 0.005f) return;
         _dunstAnteil = anteil;

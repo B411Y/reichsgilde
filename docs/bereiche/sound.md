@@ -54,3 +54,8 @@ Plan (Schritte in dieser Reihenfolge):
 | Prüfung | `--ansagetest=<liste|alle|dateien>[:herrin]` löst Ansagen aus und schreibt die `ANSAGE …`-Zeilen ins Log. Im Entwicklerfenster gibt es keine Schaltfläche (das gehört in `EntwicklerAnzeige`, Bereich Oberfläche); die dortigen Knöpfe Tod, Krankheit, Geburt, Heirat, Diebstahl, Feuer und Hausbrand lösen die echten Meldungen aus und damit die Ansagen | 29.10.2026 |
 
 **Zum Ausprobieren (Nutzer):** Solange keine Aufnahmen da sind: Spiel mit `--ansageplatzhalter=1` starten, F12 (Entwicklerfenster), Reiter Familie: „Sterben lassen“ bei einem Angehörigen, „Sohn“, „Heiraten“, dann „Feuer im Betrieb“ und „Hausbrand“. Pro Ereignis klingt eine Glocke, nie öfter als alle 20 Sekunden; bei dichter Folge entfällt Unwichtiges (siehe Log). Der Schalter steht unter Einstellungen, Ton, „Ansagen des Haushofmeisters“.
+### Echtzeit-Sprach-NPCs (PR #263)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Echtzeit-Sprach-NPCs | **Vorerst nicht** (Nutzerentscheidung): Stimmen bleiben vorproduziert wie die Ansagen des Haushofmeisters. Laufende Kosten je Spieler (Cloud etwa 2–7 ct je Gesprächsminute), Online-Pflicht, Lockstep-Mehrspieler und Solo-Betrieb passen nicht zum Einmalkauf; lokal erst ab 12 GB Grafikspeicher. Nur als Hintergrund festgehalten mit Architektur, Kosten, Risiken und einem Versuch in drei Stufen: `docs/ton/sprach-npcs.md` (vor einer neuen Entscheidung die Preise der Anbieter prüfen) | 30.10.2026 |

@@ -33,17 +33,39 @@ public partial class Fenster : Node
     /// </summary>
     public override void _ExitTree()
     {
+        _sigterm?.Dispose();
+        _sigterm = null;
+        Grafikschnittstelle.Beenden();
         Oberflaechenstil.Freigeben();
         Schriften.Freigeben();
         GC.Collect();
         GC.WaitForPendingFinalizers();
     }
 
+    /// <summary>
+    /// SIGTERM (Linux, macOS: <c>kill</c>, der Klicktest, das Abmelden des Systems) beendet das Spiel über die Hauptschleife. Ohne das
+    /// beendet die .NET-Laufzeit den Prozess aus ihrem Signal-Faden mit <c>exit()</c>, während Godot noch zeichnet und Shader speichert:
+    /// Die statischen Objekte werden unter den laufenden Fäden abgebaut, und das Spiel stürzt beim Beenden ab (Signal 11).
+    /// </summary>
+    private static System.Runtime.InteropServices.PosixSignalRegistration? _sigterm;
+
+    private void SigtermAbfangen()
+    {
+        if (OperatingSystem.IsWindows() || _sigterm is not null) return;
+        _sigterm = System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGTERM, zusammenhang =>
+        {
+            zusammenhang.Cancel = true; // nicht sofort beenden; Godot tut es im nächsten Bild selbst
+            Callable.From(() => GetTree().Quit()).CallDeferred();
+        });
+    }
+
     public override void _Ready()
     {
         _instanz = this;
+        SigtermAbfangen();
         Schriften.Einrichten(GetTree());
         Oberflaechenstil.Einrichten();
+        Grafikschnittstelle.Starten(this);
         KlangOberflaeche.Einrichten(GetTree());
         var einstellungen = new ConfigFile();
         var geladen = einstellungen.Load(Datei) == Error.Ok;

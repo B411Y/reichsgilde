@@ -22,7 +22,7 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 | Nr. | Was | Wozu |
 |---|---|---|
 | **1** | **Dein Haus** (Kopfzeile) | Wappen, Geld, Stand und Aktionspunkte (AP, hier 4 von 12). Darunter steht, wohin die Kamera blickt. Ein Klick öffnet das **Wohnhaus** mit Stand, Familie, Handwerk, Geld und Hinterzimmer. |
-| **2** | **Zeitstrahl** | Jahreszeit, Jahr, Uhrzeit und Tageszeit, dazu das Wetter mit Aussicht. Das Band darunter zeigt den Spieltag von 4 bis 23 Uhr (Zunftglocke, Hoher Mittag, Vesper, Nacht); die Sonne wandert darauf, nachts der Mond. |
+| **2** | **Zeitstrahl** | Jahreszeit, Jahr, Uhrzeit und Tageszeit, dazu das Wetter mit Aussicht. Das Band darunter zeigt den Spieltag von 4 bis 23 Uhr (Zunftglocke, Hoher Mittag, Vesper, Nacht); die Sonne wandert darauf, nachts der Mond. Wann das Band dunkel wird und der Mond erscheint, richtet sich nach den Sonnenzeiten der Jahreszeit (Tabelle im Kapitel „Stadt und Ansicht“, der Tooltip nennt sie). |
 | **3** | **Pause und Tempo** | Pause (Leertaste) und Tempo 1×, 2×, 4× und 8× (Tasten **1** bis **4**). |
 | **4** | **Betriebsleiste** | Ein Knopf je eigenem Betrieb mit seinem Zustand („läuft“, „steht“, „Karren unterwegs“). Ein **Klick** fährt hin und zeigt die Kurzübersicht, ein **Doppelklick** geht hinein. Bei vielen Betrieben rollt die Leiste. |
 | **5** | **Knöpfe rechts** | **Hafen** (nur auf Karten mit Schiffshandel), **+ Bauen**, **Rat**, **Bericht**, **Lexikon** und **Menü**. |
@@ -182,14 +182,14 @@ Die Buchstaben-Kürzel wirken nur im laufenden Spiel und nicht zusammen mit **St
 
 ## Entwicklerfenster
 
-Wer am Spiel arbeitet oder etwas ausprobieren will, setzt im Hauptmenü unten rechts den Haken **Entwickler-Optionen**. Dann öffnet **F12** (oder der Knopf **Entwickler** in der Betriebsleiste) ein Fenster mit fünf Reitern: **Haus und Zeit** (Gulden, Aktionspunkte, Stand, Ansehen, Meinung, Vorspulen und Tempo bis 64×), **Familie und Ereignisse** (Geburt, Heirat, Krankheit, Tod, Charakterzüge, Diebstahl, Feuer), **Wirtschaft** (Waren und Zutaten im Lager), **Wetter und Darstellung** (Wetter, Jahreszeit, Blitz, Dunst, Unschärfe, Wegenetz, Bauzonen) und **Messwerte** (Bildrate, Zeichenaufrufe, Speicher, Prüfsumme, Einblick in die KI-Häuser). Ohne den Haken gibt es weder das Fenster noch die Taste.
+Wer am Spiel arbeitet oder etwas ausprobieren will, setzt im Hauptmenü unten rechts den Haken **Entwickler-Optionen**. Dann öffnet **F12** (oder der Knopf **Entwickler** in der Betriebsleiste) ein Fenster mit sechs Reitern: **Haus und Zeit** (Gulden, Aktionspunkte, Stand, Ansehen, Meinung, Vorspulen und Tempo bis 64×), **Familie und Ereignisse** (Geburt, Heirat, Krankheit, Tod, Charakterzüge, Diebstahl, Feuer), **Wirtschaft** (Waren und Zutaten im Lager), **Wetter und Darstellung** (Wetter, Jahreszeit, Blitz, Dunst, Unschärfe, Wegenetz, Bauzonen) **Messwerte** (Bildrate, Zeichenaufrufe, Speicher, Prüfsumme, Einblick in die KI-Häuser) und **Klänge** (jeder Klang des Spiels per Knopf zum Anhören, mit Lautstärke, Stumm und Pegel je Bus). Ohne den Haken gibt es weder das Fenster noch die Taste.
 
 > [!NOTE]
 > Der erste Eingriff, der wirkt, kennzeichnet die Partie für immer: In der Ladeliste steht „[Entwicklerhilfe]“, und der Jahresbericht sagt es. Wetter und Darstellung zählen nicht dazu: Sie ändern nur das Bild.
 
 ## Einstellungen
 
-Das Spielmenü (**Esc** oder Knopf **Menü**) und das Hauptmenü führen zu den **Einstellungen** mit sechs Reitern – Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit und Spiel – und einer kurzen Erklärung zu jedem Regler. Die Wahl wirkt sofort und wird gespeichert; alles Weitere steht im Kapitel [Einstellungen](einstellungen.md).
+Das Spielmenü (**Esc** oder Knopf **Menü**) und das Hauptmenü führen zu den **Einstellungen** mit vier Reitern – Grafik, Ton, Spiel und Barrierefreiheit –, deren Reglern ein Tooltip erklärt, was sie tun. Die Wahl wirkt sofort und wird gespeichert; alles Weitere steht im Kapitel [Einstellungen](einstellungen.md).
 
 Das Spielfenster darfst du frei ziehen: Ein größeres Fenster zeigt mehr Stadt.
 

@@ -1,0 +1,25 @@
+{
+  "_hinweis": "Tipps des Ladebildschirms (Ladebildschirm.cs), je ein Satz aus dem Spielbuch docs/spielbuch/. Neue Tipps nur, wenn sie dort so stehen.",
+  "tipps": [
+    "Drück vor einer größeren Entscheidung die Leertaste: Die Zeit hält an, und du kannst in Ruhe lesen und rechnen.",
+    "Mit dem Mausrad zoomst du; die Stadt verschiebst du mit gedrückt gehaltener rechter Maustaste, mit W A S D oder den Pfeiltasten.",
+    "Esc geht immer einen Schritt zurück; ist nichts mehr offen, öffnet es das Spielmenü mit Speichern, Laden und Einstellungen.",
+    "Mit M öffnest du den Marktplatz, mit L das Lexikon, mit H das Hinterzimmer und mit F das Familienbuch.",
+    "Ein Klick auf den Knopf einer Werkstatt in der Betriebsleiste fährt die Kamera hin; ein Doppelklick führt dich hinein.",
+    "Warnungen mit ✗ oder ⚠ bleiben stehen, bis du sie anklickst; alle anderen Meldungen verblassen nach 20 Sekunden.",
+    "Gearbeitet wird von 8 bis 20 Uhr, im Wirtshaus bis 22 Uhr; um 23 Uhr kommt die Jahresrechnung.",
+    "Nach jedem Jahresbericht speichert das Spiel automatisch; ein geladener Spielstand läuft genau so weiter, wie er gespeichert wurde.",
+    "Banden versuchen es nachts um 20, 21, 22 und 23 Uhr; ein Wächter je Betrieb halbiert die Chance der Diebe.",
+    "Ein Hauswächter für 150 Gulden im Jahr halbiert die Chance der Banden auf dein Wohnhaus und sieht öfter, wer es war.",
+    "Deine Stimme im Rat legst du vorab fest; bis zur Ratssitzung am Jahresende kannst du sie ändern, ohne Aktionspunkte.",
+    "Ab 10.000 Gulden kannst du im Rathaus das Bürgerrecht erwerben; Bürger wird aber nur, wer im Bürgerhaus wohnt.",
+    "Eine Bekehrungspredigt kostet 1 AP und gilt einmal im Jahr; sie bringt der eigenen Gemeinde +4 Prozentpunkte.",
+    "In der Brautschau gewinnt niemand mehr als 20 Zuneigung im Jahr; wirb standesgemäß und mit etwas Geduld.",
+    "Einen Karren verkaufst du nur, solange er am Betrieb steht; er bringt die Hälfte seines Kaufpreises.",
+    "Ab 20 Uhr sind die Stadttore zu, um 5 Uhr gehen sie wieder auf; ein Karren ohne Nachtfahrt wartet bis zum Morgen vor dem Tor.",
+    "Der Markt hat von 8 bis 20 Uhr offen; ist dein Karren unterwegs, wartet der Handelsauftrag, bis er zurück ist.",
+    "Im Marktfenster heißt ein grünes ▲ über dem Grundpreis, ein rotes ▼ darunter; die gelbe Zahl im Icon ist dein Lagerbestand.",
+    "Das Wetter ändert nichts an Wirtschaft oder Einwohnern. Das Symbol oben links zeigt es, der Tooltip nennt die Aussicht.",
+    "Gebaut wird nur in den Bauzonen und auf Bauplätzen, mit der Vorderseite an einer Straße; grün heißt: hier darf gebaut werden."
+  ]
+}

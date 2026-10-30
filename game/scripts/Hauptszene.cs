@@ -20,6 +20,7 @@ namespace Reichsgilde;
 ///
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
+///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
@@ -83,7 +84,7 @@ namespace Reichsgilde;
 ///   --tonemapping=<Bisher|Agx>, --helligkeit=, --kontrast=, --saettigung=<Prozent> Farbstimmung, --schaerfe=<0–100> Nachschärfen, --fahnen=<An|Aus>
 ///   --uigroesse=<75–200> Größe der Oberfläche in Prozent, --farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>
 ///   (alle Grafikoptionen gelten nur für diesen Start und ändern die gespeicherte Wahl nicht)
-///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel)
+///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Grafik, GrafikErweitert, Ton, Spiel, Barrierefreiheit)
 ///   --automatisch=1    die Voreinstellung wie beim ersten Start automatisch wählen (misst ein paar Sekunden, speichert das Ergebnis)
 ///   --messung=<Sekunden> nach 8 Sekunden Vorlauf so lange Bildzeiten messen, je Sekunde und am Ende ins Protokoll schreiben, dann beenden
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
@@ -248,6 +249,7 @@ public partial class Hauptszene : Node
         Tooltips.VerweiseErgaenzen = (text, eigene) => Lexikon.VerweiseEinsetzen(text, eigene); // auch normale Tooltips verlinken Lexikon-Begriffe
         LeerstandKnoepfeBauen();
 
+        Ladezeit.Marke("Oberfläche: Tafeln bauen");
         RatssitzungBauen(); // die Tafel der sichtbaren Ratssitzung (Hauptszene.Ratssitzung.cs) – vor der Partie, die sich mit ihr verbindet
         var optionen = Startoptionen();
         if (optionen.GetValueOrDefault("lexikon-pruefen") == "1")
@@ -255,7 +257,68 @@ public partial class Hauptszene : Node
             GetTree().Quit(Lexikon.PruefenUndMelden() ? 0 : 1); // nur die Datei prüfen (Test), kein Spiel
             return;
         }
+        PartieAufbauen(optionen);
+    }
+
+    /// <summary>
+    /// Baut die Partie hinter dem Ladebildschirm auf, ein Abschnitt je Bild: Kern (Daten, Karte, Partie), die Stadt (<see cref="Stadtansicht.Aufbauen"/>),
+    /// die Startoptionen (<see cref="PartieStarten"/>) und die ersten Bilder (<see cref="ErsteBilderAbwarten"/>). Bis der Ladebildschirm geht,
+    /// laufen weder Zeit noch Eingabe. Die Anteile des Balkens folgen der Messung mit <c>--ladezeit=1</c> (Köln, 29.10.2026).
+    /// </summary>
+    private async void PartieAufbauen(Dictionary<string, string> optionen)
+    {
+        _stadt.OhneHintergrund = true;
+        SetProcess(false);
+        SetProcessUnhandledInput(false);
+        var lade = Ladebildschirm.Zeigen(GetTree(), Stadtkarten.StartKennung); // vom Hauptmenü schon offen; sonst (Startoptionen, Test) hier
+        lade.Fortschritt(0.07f, "Die Chronik wird aufgeschlagen …");
+        GetViewport().Disable3D = true; // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
+        await Ladebildschirm.Bild(GetTree());
         _simulation = SimulationAufbauen(optionen);
+        await lade.Durchlaufen(_stadt.Aufbauen(), 0.16f, 0.71f);
+        lade.Fortschritt(0.71f, "Die Zunftglocke wird geläutet …");
+        await Ladebildschirm.Bild(GetTree());
+        PartieStarten(optionen);
+        await ErsteBilderAbwarten(lade, 0.75f);
+        SetProcess(true);
+        SetProcessUnhandledInput(true);
+        _stadt.Ruhen(false);
+        Ladezeit.Marke("Ladebild weg");
+        lade.Schliessen();
+        Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
+    }
+
+    /// <summary>
+    /// Die ersten Bilder noch hinter dem Ladebildschirm: Die Stadt rechnet Gras, Büschel und Wegeschicht und stellt das Licht der Stunde ein,
+    /// der Grafiktreiber übersetzt die Shader, und Regen und Schnee werden je ein paar Bilder lang gezeigt (Shader vorwärmen,
+    /// <see cref="Stadtansicht.WetterProbe"/>). Die Zeit der Partie steht dabei. Fertig, wenn drei Bilder in Folge kurz sind (höchstens 5 s).
+    /// </summary>
+    private async Task ErsteBilderAbwarten(Ladebildschirm lade, float von)
+    {
+        GetViewport().Disable3D = false;
+        _stadt.SetProcess(true); // rechnen ja, Eingabe erst ohne Ladebildschirm
+        var anfang = Time.GetTicksMsec();
+        var vorher = anfang;
+        var ruhig = 0;
+        Wetterlage?[] proben = Fenster.AktuelleWettereffekte == Wettereffekte.Niedrig || OS.GetCmdlineUserArgs().Contains("--vorwaermen=0")
+            ? Array.Empty<Wetterlage?>() : new Wetterlage?[] { null, Wetterlage.Regen, Wetterlage.Regen, Wetterlage.Schnee, Wetterlage.Schnee, null };
+        for (var bild = 0; bild < 300; bild++)
+        {
+            lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 8f), bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
+            if (bild >= 1 && bild - 1 < proben.Length) _stadt.WetterProbe(proben[bild - 1]);
+            _stadt.Aktualisieren(GetProcessDeltaTime());
+            await Ladebildschirm.Bild(GetTree());
+            var jetzt = Time.GetTicksMsec();
+            ruhig = bild > proben.Length && jetzt - vorher < 50 ? ruhig + 1 : 0;
+            vorher = jetzt;
+            if (ruhig >= 3 || jetzt - anfang > 5000) break;
+        }
+        _stadt.WetterProbe(null);
+    }
+
+    /// <summary>Was nach dem Aufbau der Stadt kommt: Spielmenü, Ereignisse der Partie, Tempo und die Startoptionen, die eine fertige Stadt brauchen.</summary>
+    private void PartieStarten(Dictionary<string, string> optionen)
+    {
         EntwicklerSperreSetzen(); // Hauptszene.Entwickler.cs
         SpielmenueBauen();
         _ratKnopf.Pressed += RatOeffnen;
@@ -456,6 +519,8 @@ public partial class Hauptszene : Node
             _stadt.WetterVorgeben(optionen.TryGetValue("wetter", out var wetterName) && Enum.TryParse<Wetterlage>(wetterName, true, out var lage) ? lage : null,
                                   optionen.TryGetValue("jahreszeit", out var jahreszeitName) && Enum.TryParse<Jahreszeit>(jahreszeitName, true, out var jz) ? jz : null,
                                   optionen.GetValueOrDefault("blitz") == "1");
+        if (optionen.TryGetValue("lichtuhr", out var lichtUhr) && float.TryParse(lichtUhr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lichtStunde))
+            _stadt.LichtUhrVorgeben(lichtStunde); // --lichtuhr=3.5: Licht und Himmel zeigen 3:30 Uhr (Stadtansicht.Licht.cs)
         if (optionen.TryGetValue("wetterspaeter", out var spaeter) && spaeter.Split('@') is [var spaeterLage, var spaeterSekunden]
             && Enum.TryParse<Wetterlage>(spaeterLage, true, out var spaeterWetter) && double.TryParse(spaeterSekunden, System.Globalization.CultureInfo.InvariantCulture, out var sek))
             _stadt.WetterVorgebenNach(spaeterWetter, sek); // --wetterspaeter=regen@20: Wetter schlägt nach 20 s um (Stadtansicht.Wetter.cs)
@@ -840,6 +905,7 @@ public partial class Hauptszene : Node
             try
             {
                 var (geladen, spielerKonto) = Spielstaende.Laden(ladePfad);
+                Ladezeit.Marke("Kern: Spielstand lesen");
                 if (spielerKonto is not null && geladen.Wirtschaft is not null)
                 {
                     SimulationVerbinden(geladen, spielerKonto);
@@ -857,6 +923,7 @@ public partial class Hauptszene : Node
 
         // 2. Neue Partie – mit den Einstellungen aus dem Menü oder (Startoptionen/Test) den Standardwerten.
         var daten = WirtschaftsdatenLaden();
+        Ladezeit.Marke("Kern: wirtschaft.json lesen");
         if (daten is null)
             return new Simulation(); // ohne Daten läuft nur die Uhr
 
@@ -969,15 +1036,11 @@ public partial class Hauptszene : Node
     /// <summary>Liest game/daten/wirtschaft.json. Bei Fehlern: Meldung ins Protokoll und null.</summary>
     private Wirtschaftsdaten? WirtschaftsdatenLaden()
     {
-        try
-        {
-            // Godot.FileAccess liest auch aus dem exportierten Spiel (res:// = Projektordner).
-            var json = Godot.FileAccess.GetFileAsString(WirtschaftsdatenPfad);
-            if (!string.IsNullOrEmpty(json))
-                return Wirtschaftsdaten.AusJson(json);
-            Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
-        }
-        catch (WirtschaftsdatenFehler fehler)
+        // Godot.FileAccess liest auch aus dem exportierten Spiel (res:// = Projektordner); meist schon im Hintergrund gelesen (Datenvorrat.cs).
+        var (daten, fehler, leer) = Datenvorrat.Holen();
+        if (daten is not null) return daten;
+        if (leer) Protokollieren($"Fehler: {WirtschaftsdatenPfad} wurde nicht gefunden.");
+        else if (fehler is not null)
         {
             Protokollieren(fehler.Message);
             GD.PushError(fehler.Message);
@@ -1035,6 +1098,7 @@ public partial class Hauptszene : Node
         _bauFrage.Verbinden(simulation, spieler);
         _bau.Verbinden(simulation, spieler, _stadt);
         _wegTafel.Verbinden(simulation, spieler, _stadt);
+        Ladezeit.Marke("Kern: Partie aufstellen, Oberfläche verbinden");
         // Die Stadtansicht zeichnet die Karte der Partie, stellt jeden Betrieb an seinen Platz und zeigt die freien Plätze.
         _stadt.Verbinden(simulation, spieler);
         w.BetriebErworben += betrieb =>
@@ -1099,7 +1163,9 @@ public partial class Hauptszene : Node
         _hafenTafel.Aktualisieren(delta);
         _stadt.Auswahl = _auswahl.Visible || _wohnhaus.Visible ? _auswahlKennung // Name des ausgewählten Gebäudes bleibt sichtbar
             : _hafenTafel.Visible ? (_hafenTafel.GewaehltesSchiff is { } schiff ? "schiff:" + schiff : Stadtansicht.HafenKennung(_hafenTafel.Hafen)) : null;
+        var uhr = Ladezeit.Uhr();
         _stadt.Aktualisieren(delta);
+        Ladezeit.Dazu("im Bild: Stadtansicht.Aktualisieren gesamt", uhr);
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
