@@ -21,6 +21,8 @@ namespace Reichsgilde;
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
+///   --nachtnebel=aus   Nebel in der Nacht aus (wie Lösung A vom 29.10.2026; Standard an) – nur Darstellung (Stadtansicht.Bodennebel.cs)
+///   --morgennebel=1    Nebel des Spieltags fest vorgeben (0–1, sonst gewürfelt nach Jahreszeit und Nacht) – nur Darstellung
 ///   --tempo=8          Anfangstempo
 ///   --auswahl=Dom      Gebäude vorauswählen (Kennung wie beim Anklicken)
 ///   --drehung=1        Kamera um 1–3 Vierteldrehungen gedreht starten (0 = Blick nach Nordosten)
@@ -527,6 +529,9 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("pflasterrelief", out var relief)) _stadt.PflasterReliefVorgeben(relief != "0"); // Parallax im Pflaster (Stadtansicht.Pflasterrelief.cs)
         if (optionen.TryGetValue("kischmied", out var kiSchmied)) _stadt.KiSchmiedVorgeben(kiSchmied); // aus|wenige|alle (Stadtansicht.KiFiguren.cs)
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
+        if (optionen.TryGetValue("nachtnebel", out var nachtnebel)) _stadt.Nachtnebel = nachtnebel is not ("aus" or "0"); // Nebel bei Nacht (Stadtansicht.Bodennebel.cs)
+        if (optionen.TryGetValue("morgennebel", out var morgennebel) && float.TryParse(morgennebel, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var nebelTag))
+            _stadt.MorgennebelVorgabe = Mathf.Clamp(nebelTag, 0f, 1f); // --morgennebel=1: Nebel des Tages fest statt gewürfelt
         if (optionen.TryGetValue("ui", out var ui) && ui == "0")
             GetNode<CanvasLayer>("Oberflaeche").Visible = false; // freie Sicht auf die Stadt für Bildschirmfotos
         if (optionen.TryGetValue("kartenbild", out var kartenbild)) KartenbildAufnehmen(kartenbild);

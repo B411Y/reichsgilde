@@ -88,6 +88,8 @@ Startoptionen (nach `--`):
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee; der Kalender bleibt)
 - `--lichtuhr=<Stunde>` (Licht, Himmel, Fenster und Nachtlichter zeigen diese feste Uhrzeit, mit Bruchteil: `3.5` = 3:30 Uhr, auch vor 4 Uhr; nur Darstellung, die Spielzeit läuft weiter; mit `--jahreszeit` wählt man die Sonnenzeiten)
+- `--nachtnebel=<an|aus>` (Nebel bei Nacht, nur für diesen Start; Standard `an`: Nach Einbruch der Dunkelheit wächst der Nebel einer ruhigen Nacht weiter, so dunkel wie eine unbeleuchtete Wand, mit Lichthof um Laternen und Feuer; `aus` = Lösung A vom 29.10.2026, nachts klare Luft, der Nebel kommt erst mit der Morgendämmerung. Dasselbe im Entwicklerfenster, Reiter „Wetter und Darstellung“. Zum Vergleich: `--lichtuhr=23` oder `--lichtuhr=3` mit `--morgennebel=1`)
+- `--morgennebel=<0–1>` (Nebel des Spieltags fest vorgeben statt gewürfelt: `1` = dichtester Nebelmorgen, `0` = keiner; nur Darstellung, nur für diesen Start; die Uhrzeit, der Wind und Regen wirken weiter. Für Bilder mit `--wetter=klar --lichtuhr=6.67`)
 - `--blitz=1` (mit `--wetter=gewitter`: ein Blitz bleibt auf voller Helligkeit stehen, für Bildschirmfotos)
 - `--wetterspaeter=<lage>@<Sekunden>` (das Wetter schlägt nach so vielen Sekunden plötzlich um, z. B. `regen@14`; für Messungen des ersten Regens: ohne `--wetter` ändert es sich erst dann, sonst gilt `--wetter` bis dahin)
 - `--pflasterrelief=0` (Pflaster ohne Tiefe: schaltet die Parallax im Pflaster für diesen Start aus, nur in der Bodenqualität Hoch wirksam; für Vergleiche und Messungen)
