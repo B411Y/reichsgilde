@@ -108,6 +108,7 @@ static func aus_genen(o: String, gene: Dictionary, jahre: float, mann: bool) -> 
 	if mann:
 		kahl = clampf((jahre - (22.0 + (1.0 - g) * 40.0)) / 25.0, 0.0, 1.0) * (0.25 + 0.72 * g)
 	return {"frisur": fr[fi], "bart": bart,
+		"struktur": float(gene.get("haarstruktur", 60.0)) / 255.0,
 		"kahl": kahl,
 		"duenn": clampf((jahre - 45.0) / 30.0, 0.0, 1.0) * (0.3 + (0.15 * g if mann else 0.0)),
 		"bart_laenge": lerpf(0.35, 1.0, clampf((bw - 60.0) / 100.0, 0.0, 1.0)) * lerpf(0.3, 1.0, reife),
@@ -236,16 +237,18 @@ func _tfx_anlegen(t: Dictionary) -> void:
 	s.shader = STRAEHNE
 	var bart: bool = t["art"] == "bart"
 	if bart:
-		s.set_shader_parameter("fiber_radius", 0.00028)
-		s.set_shader_parameter("fiber_ratio", 0.35)
-		s.set_shader_parameter("tip_fade", 0.5)
+		# Phase 5: Bart kräftiger und deckender (war fleckig und durchscheinend)
+		s.set_shader_parameter("fiber_radius", 0.00034)
+		s.set_shader_parameter("fiber_ratio", 0.4)
+		s.set_shader_parameter("tip_fade", 0.3)
 		s.set_shader_parameter("root_shadow", 0.35)
+		s.set_shader_parameter("innen_dunkel", 0.45)
 	add_child(haar)
 	haar.set("material", s)
 	# Formbindung: die gekämmte Ruheform soll halten; Bart und Zöpfe fast starr
 	var steif: bool = bart or t["art"] == "zusatz"
-	haar.set("num_follow_hairs", (2 if tfx_sparsam else 3) if not bart else (1 if tfx_sparsam else 2))
-	haar.set("follow_radius", 0.004 if not bart else 0.0025)
+	haar.set("num_follow_hairs", (2 if tfx_sparsam else 3) if not bart else (2 if tfx_sparsam else 3))
+	haar.set("follow_radius", 0.004 if not bart else 0.003)
 	haar.set("tip_separation", 0.3 if not bart else 0.15)
 	haar.set("global_stiffness", 1.0 if steif else 0.85)
 	haar.set("global_range", 1.0)
@@ -265,7 +268,7 @@ func _tfx_anlegen(t: Dictionary) -> void:
 	t["stoff_tfx"] = s
 
 func _tfx_schreiben() -> void:
-	var stand := str(_gewichte.hash()) + "_" + str(stile)
+	var stand := str(_gewichte.hash()) + "_" + str(stile) + "_" + str(werte.get("struktur", 0.0))
 	if stand == _tfx_stand:
 		return
 	_tfx_stand = stand
@@ -279,10 +282,23 @@ func _tfx_schreiben() -> void:
 		var P := int(d["kopf"]["punkte"])
 		var pos := _verformen(d["straehnen_pos"], d["straehnen_idx"], d["straehnen_gew"], P)
 		var info: PackedFloat32Array = d["straehnen_info"]
+		# Phase 5: Haarstruktur (glatt – wellig – lockig) auf die Strähnen legen; Locken brauchen mehr Punkte
+		var r := rechner()
+		var st_w := _struktur(t["art"] == "bart")
+		if r and float(st_w["hoehe"]) > 0.0002:
+			var phase := PackedFloat32Array()
+			phase.resize(S)
+			for i in S:
+				phase[i] = info[4 * i + 2]
+			var neuP := mini(64, P * int(st_w["mal"]))
+			pos = r.call("Struktur", pos, S, P, neuP, float(st_w["hoehe"]), float(st_w["wl"]), float(st_w["locke"]), phase,
+				werte.get("kopfmitte", Vector3(0, 0.82, 0.04)))
+			P = neuP
+		# Strähnen-UV: x = Zufall (64 Stufen) + Lage über der Haut (Nachkomma, Phase 5), y = Rang (Glatze)
 		var uv := PackedFloat32Array()
 		uv.resize(S * 2)
 		for i in S:
-			uv[2 * i] = info[4 * i]
+			uv[2 * i] = (floorf(info[4 * i] * 63.0) + clampf(info[4 * i + 3], 0.0, 0.99)) / 64.0
 			uv[2 * i + 1] = info[4 * i + 1]
 		var pfad := "user://charakter4/k%d_%s.tfx" % [_id, t["datei"].get_file()]
 		var f := FileAccess.open(pfad, FileAccess.WRITE)
@@ -301,6 +317,18 @@ func _tfx_schreiben() -> void:
 		if tfx_ruhe:
 			_einfrieren(haar)
 	zeiten["tfx_schreiben"] = (Time.get_ticks_usec() - t0) / 1000.0
+
+# Haarstruktur aus werte["struktur"] (0 glatt, 0,5 wellig, 1 lockig; vorläufig aus dem Gen-Vorschlag „haarstruktur“):
+# Ausschlag, Wellenlänge, Schraubenanteil, Faktor für die Punktzahl. Bärte kräuseln enger und flacher.
+func _struktur(bart: bool) -> Dictionary:
+	var g := clampf(float(werte.get("struktur", 0.0)), 0.0, 1.0)
+	var hoehe := lerpf(0.0, 0.0035, _glatt(g, 0.08, 0.5)) + lerpf(0.0, 0.0022, _glatt(g, 0.6, 1.0))
+	var wl := lerpf(0.065, 0.02, _glatt(g, 0.35, 1.0))
+	var locke := _glatt(g, 0.55, 0.95)
+	if bart:
+		hoehe *= 0.55
+		wl *= 0.55
+	return {"hoehe": hoehe, "wl": wl, "locke": locke, "mal": 1 if g < 0.3 else (2 if g < 0.7 else 4)}
 
 func _einfrieren(haar: Node3D) -> void:
 	# Ohne Simulation zeichnet das Addon nichts: kurz simulieren, dann über die Simulationsweite anhalten
@@ -390,6 +418,9 @@ func _parameter() -> void:
 			s.set_shader_parameter("duenn", float(werte.get("duenn", 0.0)) * (0.5 if bart else 1.0))
 			s.set_shader_parameter("laenge", float(werte.get("bart_laenge", 1.0)) if bart else 1.0)
 			s.set_shader_parameter("dichte", float(werte.get("bart_dichte", 1.0)) if bart else 1.0)
+			if s == t.get("stoff_tfx"):
+				var km: Vector3 = werte.get("kopfmitte", Vector3(0, 0.82, 0.04))
+				s.set_shader_parameter("kopf_mitte", global_transform * km if is_inside_tree() else km)
 
 func dreiecke() -> int:
 	var n := 0

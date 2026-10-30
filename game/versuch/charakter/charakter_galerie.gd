@@ -51,6 +51,8 @@ var haar_modus := "karten"
 var haar_an := true
 var frisur_nr := 0             # 0 = aus den Genen, sonst 1.. = Stil
 var bart_nr := 0
+var struktur_nr := 0            # Phase 5: 0 = aus den Genen, 1 glatt, 2 wellig, 3 lockig
+const STRUKTUR := [["aus den Genen", -1.0], ["glatt", 0.0], ["wellig", 0.5], ["lockig", 1.0]]
 var _frisuren := {"m": [], "w": []}
 var _baerte: Array = []
 
@@ -267,12 +269,13 @@ func _hilfe_text() -> void:
 		return
 	var kam := "Kamera: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift schneller, Mausrad Tempo, H Hilfe der Kamera" if freie \
 		else "Kamera: 1–6 springt zu einer Reihe (freie Kamera fehlt noch: game/scripts/FreieKamera.cs)"
-	hilfe.text = "Charakter Phase 4 – Galerie (Reihen von vorn: hell Mann, hell Frau, mittel Mann, mittel Frau, dunkel Mann, dunkel Frau; 5/20/35/50/70 Jahre)\n" \
+	hilfe.text = "Charakter Phase 5 – Galerie (Reihen von vorn: hell Mann, hell Frau, mittel Mann, mittel Frau, dunkel Mann, dunkel Frau; 5/20/35/50/70 Jahre)\n" \
 		+ kam + "\nL Licht: %s · V %s · U Ultra-SSS: %s · M Mimik %d · F1 Hilfe aus" % [
 			"Tag" if ist_tag else "Innen", "vorher (Phase 2)" if vorher else "nachher (Phase 3)", "an" if ultra else "aus", mimik_nr] \
-		+ "\nT Haar: %s · N Haar %s · F Frisur: %s · B Bart: %s" % [
+		+ "\nT Haar: %s · N Haar %s · F/Umschalt+F Frisur: %s · B/Umschalt+B Bart: %s · K Haarstruktur: %s" % [
 			"TressFX" if haar_modus == "tressfx" else "Haarkarten", "an" if haar_an else "aus",
-			"aus den Genen" if frisur_nr == 0 else "Nr. %d" % frisur_nr, "aus den Genen" if bart_nr == 0 else _bart_name()]
+			"aus den Genen" if frisur_nr == 0 else "Nr. %d" % frisur_nr, "aus den Genen" if bart_nr == 0 else _bart_name(),
+			STRUKTUR[struktur_nr][0]]
 
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey and ev.pressed and not ev.echo):
@@ -299,10 +302,15 @@ func _unhandled_input(ev: InputEvent) -> void:
 			haar_an = not haar_an
 			_haar_setzen()
 		KEY_F:
-			frisur_nr = (frisur_nr + 1) % (_frisuren["m"].size() + 1)
+			var n_f: int = maxi(_frisuren["m"].size(), _frisuren["w"].size()) + 1
+			frisur_nr = (frisur_nr + (n_f - 1 if ev.shift_pressed else 1)) % n_f
 			_haar_setzen()
 		KEY_B:
-			bart_nr = (bart_nr + 1) % (_baerte.size() + 2)
+			var n_b: int = _baerte.size() + 2
+			bart_nr = (bart_nr + (n_b - 1 if ev.shift_pressed else 1)) % n_b
+			_haar_setzen()
+		KEY_K:
+			struktur_nr = (struktur_nr + 1) % STRUKTUR.size()
 			_haar_setzen()
 		KEY_F1:
 			hilfe.visible = not hilfe.visible
@@ -328,6 +336,8 @@ func _haar_setzen() -> void:
 			v["frisur"] = liste[(frisur_nr - 1) % liste.size()]
 		if bart_nr > 0:
 			v["bart"] = "" if bart_nr == 1 else _baerte[bart_nr - 2]
+		if struktur_nr > 0:
+			v["struktur"] = STRUKTUR[struktur_nr][1]
 		k.haar_vorgabe = v
 		k.haar_modus_setzen(haar_modus if haar_an else "aus")
 	print("GALERIE Haar %s %s: %.0f ms" % [haar_modus, "an" if haar_an else "aus", (Time.get_ticks_usec() - t) / 1000.0])

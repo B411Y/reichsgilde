@@ -138,6 +138,7 @@ def kaemmen(stil, wurzel, normal, rng):
     n = Vector(normal)
     L = stil.laenge(wurzel, normal)
     lage = rng.uniform(*stil.volumen)
+    stil.letzte_lage = (lage - stil.volumen[0]) / max(stil.volumen[1] - stil.volumen[0], 1e-9)
     if L < 0.002:
         return None
     p = w + n * 0.0004
@@ -257,19 +258,25 @@ def nach_aussen(st, h, mindest=0.0008, ab=2):
 
 
 def erzeugen(stil, rng, log=print):
-    """Alle Strähnen eines Stils: (Strähnen (S,P,3), Wurzeln, Normalen)."""
+    """Alle Strähnen eines Stils: (Strähnen (S,P,3), Wurzeln, Normalen, Büschel, Lage 0..1 je Strähne). Die Lage (Phase 5)
+    sagt, wie hoch die Strähne über der Haut liegt (0 innen, 1 außen); der Shader verschattet innere Strähnen."""
     w, n, dq = wurzeln(stil.h, stil.dichte, stil.anzahl, rng)
-    st, ww, nn = [], [], []
+    st, ww, nn, lg = [], [], [], []
     for i in range(len(w)):
         pkt = kaemmen(stil, w[i], n[i], rng)
         if pkt is None or len(pkt) < 3:
             continue
+        if hasattr(stil, "nach"):                  # Phase 5: Nachbearbeitung je Strähne (z. B. Haarrolle)
+            pkt = stil.nach(pkt, w[i], rng)
+            if pkt is None or len(pkt) < 3:
+                continue
         u = umtasten(pkt, stil.punkte)
         if u is None:
             continue
         st.append(u)
         ww.append(w[i])
         nn.append(n[i])
+        lg.append(stil.letzte_lage)
     st = np.array(st)
     ww = np.array(ww)
     st, buschel = wellen_und_klumpen(st, ww, stil, rng)
@@ -277,7 +284,7 @@ def erzeugen(stil, rng, log=print):
     laenge = np.linalg.norm(np.diff(st, axis=1), axis=2).sum(1)
     log(f"Stil {stil.name}: {len(st)} Strähnen × {stil.punkte} Punkte, Länge Mittel {laenge.mean() * 100:.1f} cm, "
         f"max {laenge.max() * 100:.1f} cm")
-    return st, ww, np.array(nn), buschel
+    return st, ww, np.array(nn), buschel, np.array(lg)
 
 
 # ================================================================= Frisuren der Männer
@@ -307,10 +314,11 @@ class MannKurz(Stil):
 
 class MannPagen(Stil):
     """Pagenkopf: Mittelscheitel, Haar fällt seitlich über die Ohren bis zum Kiefer, Stirnhaar zur Seite."""
-    name, geschlecht, anzahl, punkte = "mann_pagen", "m", 4200, 16
-    schritt, volumen, volumen_weg, hub, steif = 0.004, (0.0015, 0.009), 0.05, 0.35, 0.3
-    einwaerts = 0.55
-    wellen, klumpen = (0.0025, 0.05), (12, 0.4)
+    name, geschlecht, anzahl, punkte = "mann_pagen", "m", 4600, 16
+    # Phase 5: weniger glockig – flachere Lagen, die freien Enden laufen stärker zu Hals und Kiefer ein
+    schritt, volumen, volumen_weg, hub, steif = 0.004, (0.0012, 0.0055), 0.05, 0.25, 0.3
+    einwaerts = 1.1
+    wellen, klumpen = (0.002, 0.05), (12, 0.4)
 
     def kamm(self, q, n, s, w):
         sx = 1.0 if w[0] >= 0 else -1.0
@@ -320,7 +328,7 @@ class MannPagen(Stil):
         return _norm(c)
 
     def schwere(self, s, w):
-        return 0.9 * glatt(s, 0.02, 0.08)
+        return 0.9 * glatt(s, 0.015, 0.06)
 
     def laenge(self, w, n):
         return 0.3
@@ -627,7 +635,7 @@ class Bart(Stil):
 
 
 class Schnurrbart(Bart):
-    name, anzahl = "schnurrbart", 900
+    name, anzahl = "schnurrbart", 1400
 
     def dichte(self, q):
         return self.flaechen(q)["schnurr"]
@@ -647,7 +655,7 @@ class Schnurrbart(Bart):
 
 class Kinnbart(Bart):
     """Schnurrbart und Spitzbart am Kinn (Spitzen laufen unter dem Kinn zusammen)."""
-    name, anzahl = "kinnbart", 1700
+    name, anzahl = "kinnbart", 2700
 
     def dichte(self, q):
         f = self.flaechen(q)
@@ -670,7 +678,7 @@ class Kinnbart(Bart):
 
 class Vollbart(Bart):
     """Gestutzter Vollbart: Wangen, Kiefer, Kinn, Oberlippe, unter dem Kinn."""
-    name, anzahl = "vollbart", 3600
+    name, anzahl = "vollbart", 6000
     volumen = (0.001, 0.006)
 
     def dichte(self, q):
@@ -697,7 +705,7 @@ class Vollbart(Bart):
 
 class Langbart(Vollbart):
     """Langer Vollbart: am Kinn und Kiefer lang, läuft vor der Brust spitz zu."""
-    name, anzahl, punkte = "langbart", 3600, 16
+    name, anzahl, punkte = "langbart", 5600, 16
     schritt, volumen = 0.003, (0.002, 0.012)
     klumpen = (10, 0.4)
 

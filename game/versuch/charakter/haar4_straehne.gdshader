@@ -4,6 +4,10 @@
 // addons/tressfx/LICENSE.md). Die Uniforms positions, strand_uvs, verts_per_strand, lod_* setzt TressFXHair.
 // Eigene Ergänzungen (MIT): Farbe aus den Genen, Ergrauen je Haar (Salz und Pfeffer), Glatze nach Rang
 // (strand_uvs.y, aus tools/charakter/kopf4_haar.py), Ausdünnen im Alter, Bartlänge (Strähne endet früher).
+// Phase 5: Tiefe im Haar – innere Strähnen (Lage über der Haut, Nachkomma von strand_uvs.x × 64) dunkler; Schatten im
+// Haar weich (Licht streut durch die Haare), sonst zeichnet der Schatten des Kopfs harte Flecken in den Bart.
+// „instance uniform lod_bucket“ bleibt: das Addon setzt es je Teilnetz (vier Netze, auch ohne Detailstufe); ohne
+// zeichnet es nur ein Viertel der Strähnen. TressFX läuft nur in Forward+/Mobile, wo es den Puffer nicht sprengt.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled, depth_prepass_alpha;
 
@@ -36,6 +40,10 @@ uniform float root_shadow : hint_range(0.0, 1.0) = 0.45;
 uniform float color_variation : hint_range(0.0, 1.0) = 0.45;
 uniform float tip_fade : hint_range(0.0, 1.0) = 0.35;
 uniform float spitze_hell = 1.25;
+uniform float innen_dunkel : hint_range(0.0, 1.0) = 0.5;   // Licht auf den innersten Strähnen (Lage 0)
+uniform float schatten_rest : hint_range(0.0, 1.0) = 0.35; // Licht im Schatten (Streuung durchs Haar)
+uniform vec3 kopf_mitte = vec3(0.0, 0.82, 0.04);             // Welt; für die weiche Licht-Schatten-Grenze um den Kopf
+uniform float schatten_karte : hint_range(0.0, 1.0) = 0.3;  // Anteil der Schattenkarte (Rest: weiche Grenze)
 
 varying vec3 v_tangent;
 varying vec3 v_color;
@@ -45,6 +53,8 @@ varying float v_half_width;
 varying float v_expanded;
 varying float v_weg;
 varying float v_ende;
+varying float v_lage;
+varying vec3 v_aus;
 
 vec3 unpack_tangent(float p) {
 	float x = floor(p / 4096.0);
@@ -71,7 +81,9 @@ void vertex() {
 
 	v_t = float(gi % verts_per_strand) / float(verts_per_strand - 1);
 	int wu = textureSize(strand_uvs, 0).x;
-	vec2 suv = texelFetch(strand_uvs, ivec2(strand % wu, strand / wu), 0).xy;   // x = Zufall, y = Rang
+	vec2 suv = texelFetch(strand_uvs, ivec2(strand % wu, strand / wu), 0).xy;   // x = Zufall + Lage/64, y = Rang
+	v_lage = fract(suv.x * 64.0);
+	suv.x = floor(suv.x * 64.0) / 64.0;
 	float h1 = hash1(float(strand));
 	float h2 = hash1(float(strand) * 7.31 + 1.7);
 	float h3 = hash1(float(strand) * 3.17 + 5.3);
@@ -96,6 +108,7 @@ void vertex() {
 	VERTEX = p + right * side * v_expanded * px;
 	NORMAL = normalize(cross(right, t));
 	v_tangent = (VIEW_MATRIX * vec4(t, 0.0)).xyz;
+	v_aus = (VIEW_MATRIX * vec4(p - kopf_mitte, 0.0)).xyz;
 
 	vec3 c = farbe * (1.0 + color_variation * (h1 - 0.5) * 1.2);
 	c *= mix(vec3(1.0), vec3(1.0 + (h3 - 0.5) * 0.25, 1.0, 1.0 - (h3 - 0.5) * 0.25), color_variation);
@@ -113,7 +126,7 @@ void fragment() {
 	ALPHA = clamp((v_expanded - dist) / max(expand_pixels, 1e-3), 0.0, 1.0);
 	float ende = min(1.0, v_ende);
 	ALPHA *= smoothstep(ende, ende - tip_fade * ende, v_t);
-	AO = mix(1.0 - root_shadow * (1.0 - 0.6 * grau), 1.0, v_t);
+	AO = mix(1.0 - root_shadow * (1.0 - 0.6 * grau), 1.0, v_t) * mix(innen_dunkel, 1.0, v_lage);
 	AO_LIGHT_AFFECT = 1.0;
 }
 
@@ -132,7 +145,15 @@ void light() {
 	float cos_tip = cos_trl * cos(-3.0 * a) - sin_trl * sin(-3.0 * a);
 	float sin_tip = sqrt(max(0.0, 1.0 - cos_tip * cos_tip));
 	float spec_tip = max(0.0, cos_tip * cos_te + sin_tip * sin_te);
-	vec3 light_col = LIGHT_COLOR * ATTENUATION / PI;
-	DIFFUSE_LIGHT += (k_diffuse * sin_tl + k_spec2 * pow(spec_tip, spec_exp2)) * light_col;
-	SPECULAR_LIGHT += k_spec1 * pow(spec_root, spec_exp1) * light_col;
+	float tiefe = mix(innen_dunkel, 1.0, v_lage);
+	// Richtungslicht: die Schattenkarte zeichnet die Rundung des Kopfs als harte Kante ins Haar; das Haar streut das
+	// Licht, darum zählt vor allem eine weiche Grenze aus der Lage um die Kopfmitte
+	float sch = ATTENUATION;
+	if (LIGHT_IS_DIRECTIONAL) {
+		float rund = smoothstep(-0.35, 0.3, dot(normalize(v_aus), LIGHT));
+		sch = mix(rund, min(rund, ATTENUATION), schatten_karte);
+	}
+	vec3 light_col = LIGHT_COLOR * mix(schatten_rest, 1.0, sch) / PI;
+	DIFFUSE_LIGHT += (k_diffuse * sin_tl + k_spec2 * pow(spec_tip, spec_exp2)) * light_col * tiefe;
+	SPECULAR_LIGHT += k_spec1 * pow(spec_root, spec_exp1) * light_col * sch * tiefe;
 }

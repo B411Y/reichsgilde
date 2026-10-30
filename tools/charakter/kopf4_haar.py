@@ -24,7 +24,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import kopf4_daten as kd  # noqa: E402
-import kopf4_frisuren as kf  # noqa: E402
+import kopf4_frisuren as kf4  # noqa: E402
 import kopf4_karten as kk  # noqa: E402
 
 t0 = time.time()
@@ -36,6 +36,11 @@ GLB = os.path.join(ORDNER, OPT.get("kopf", "kopf4_mn.glb"))
 NUR = set(OPT["nur"].split(",")) if "nur" in OPT else None
 FAKTOR = float(OPT.get("faktor", "1.0"))
 AUS = os.path.join(ORDNER, "haar4")
+# Phase 5: zehn Frisuren je Geschlecht und zehn Bärte (kopf5_frisuren.py); stile=4 baut die drei bzw. vier der Phase 4
+if OPT.get("stile", "5") == "5":
+    import kopf5_frisuren as kf  # noqa: E402
+else:
+    kf = kf4
 os.makedirs(AUS, exist_ok=True)
 rng = np.random.default_rng(1480)
 
@@ -82,6 +87,9 @@ zeit(f"Stützpunkte: {len(stuetz)}, Formen mit Wirkung {len(namen)}")
 
 HUELLEN = {}
 GEWICHTE = {"m": {}, "w": {"makro_w_jung": 1.0}}
+# Phase 5: auf dem erwachsenen Kopf kämmen (Reifeform voll), wenn die .glb sie hat
+if "alter_reife_m" in kopf.namen:
+    GEWICHTE = {"m": {"alter_reife_m": 1.0}, "w": {"makro_w_jung": 1.0, "alter_reife_w": 1.0}}
 
 
 def huelle(g):
@@ -132,14 +140,15 @@ def karten_neu(h, felder, st, karten_art):
     return felder, {"straehnen": int(S), "punkte": int(P), "karten_ecken": int(len(kpos)), "karten_dreiecke": int(len(I) // 3)}
 
 
-def teil_daten(h, st, wurzeln_, buschel, karten_art, rang=True):
+def teil_daten(h, st, wurzeln_, buschel, karten_art, rang=True, lage=None):
     S, P, _ = st.shape
     pos, idx, gew = zur_grundlage(h, st.reshape(-1, 3))
     zufall = rng.random(S)
     rauschen = rng.normal(0, 0.04, S)
     rg = h.rang(wurzeln_, rauschen) if rang else np.ones(S)
     bz = rng.random(buschel.max() + 1)[buschel] if len(buschel) else np.zeros(S)
-    info = np.stack([zufall, rg, bz, np.zeros(S)], 1)
+    # Phase 5: info[3] = Lage über der Haut (0 innen, 1 außen); Zusatzteile (Knoten, Zöpfe) in der Mitte
+    info = np.stack([zufall, rg, bz, np.full(S, 0.5) if lage is None else np.clip(lage, 0, 1)], 1)
     felder = {"straehnen_pos": pos.reshape(S, P, 3), "straehnen_idx": idx.reshape(S, P, 4),
               "straehnen_gew": gew.reshape(S, P, 4), "straehnen_info": info}
     if karten_art is not None:
@@ -177,7 +186,8 @@ for Klasse in alle_stile:
     if "nur_karten" in OPT or "nur_kopfhaut" in OPT:
         teile = []
         vorschau_teile[name] = []
-        for teil, endung, ka in (("haupt", "", art), ("zusatz", "_zusatz", KARTEN_ZOPF if name == "frau_zoepfe" else KARTEN_KNOTEN)):
+        zopf = name in ("frau_zoepfe", "ein_zopf", "flechtkranz", "zopfschlaufen")
+        for teil, endung, ka in (("haupt", "", art), ("zusatz", "_zusatz", KARTEN_ZOPF if zopf else KARTEN_KNOTEN)):
             pf = os.path.join(AUS, name + endung)
             if not os.path.exists(pf + ".bin"):
                 continue
@@ -195,25 +205,26 @@ for Klasse in alle_stile:
             uebersicht[name] = {"art": stil.teil, "geschlecht": stil.geschlecht, "teile": teile}
             zeit(f"{name}: Karten neu {teile}")
         continue
-    st, ww, nn, buschel = kf.erzeugen(stil, rng, log=lambda t: zeit(t))
+    st, ww, nn, buschel, lagen = kf4.erzeugen(stil, rng, log=lambda t: zeit(t))
     wurzeln_je_stil[name] = (Klasse.geschlecht, ww)
-    felder, zahlen = teil_daten(h, st, ww, buschel, art, rang=stil.teil != "bart")
+    felder, zahlen = teil_daten(h, st, ww, buschel, art, rang=stil.teil != "bart", lage=lagen)
     teile = [{"name": "haupt", **zahlen}]
     vorschau_teile[name] = [st]
     bloecke_schreiben(os.path.join(AUS, name), {"name": name, "art": stil.teil, "geschlecht": stil.geschlecht,
                                                 "teil": "haupt", **zahlen}, felder)
-    # Zusatzteile: Knoten bzw. Zöpfe
-    if name == "frau_knoten":
-        z = kf.knoten_straehnen(stil, rng, anzahl=int(700 * FAKTOR))
+    # Zusatzteile: Knoten bzw. Zöpfe (Phase 5: jeder Stil mit Methode zusatz(); Phase 4 nach dem Namen)
+    z, z_art = None, "knoten"
+    if hasattr(stil, "zusatz"):
+        z, z_art = stil.zusatz(rng, FAKTOR)
+    elif name == "frau_knoten":
+        z = kf4.knoten_straehnen(stil, rng, anzahl=int(700 * FAKTOR))
     elif name == "frau_zoepfe":
-        z = np.concatenate([kf.zopf_straehnen(h, kf.zopf_bahn(h, stil.anker[s], s, h.k.mass), rng, h.k.mass,
-                                              anzahl=int(360 * FAKTOR)) for s in ("l", "r")])
-    else:
-        z = None
+        z, z_art = np.concatenate([kf4.zopf_straehnen(h, kf4.zopf_bahn(h, stil.anker[s], s, h.k.mass), rng, h.k.mass,
+                                                      anzahl=int(360 * FAKTOR)) for s in ("l", "r")]), "zopf"
     if z is not None:
         zw = z[:, 0]
         zb = np.arange(len(z)) // 6
-        felder, zahlen = teil_daten(h, z, zw, zb, KARTEN_ZOPF if name == "frau_zoepfe" else KARTEN_KNOTEN, rang=False)
+        felder, zahlen = teil_daten(h, z, zw, zb, KARTEN_ZOPF if z_art == "zopf" else KARTEN_KNOTEN, rang=False)
         bloecke_schreiben(os.path.join(AUS, name + "_zusatz"), {"name": name, "art": "zusatz", "geschlecht": stil.geschlecht,
                                                                 "teil": "zusatz", **zahlen}, felder)
         teile.append({"name": "zusatz", **zahlen})
@@ -227,11 +238,25 @@ pfad_ue = os.path.join(AUS, "haar4.json")
 if os.path.exists(pfad_ue):
     alt = json.load(open(pfad_ue, encoding="utf-8")).get("stile", {})
 alt.update(uebersicht)
-json.dump({"stile": alt, "frisuren": {"m": [k.name for k in kf.FRISUREN["m"]], "w": [k.name for k in kf.FRISUREN["w"]]},
-           "baerte": [k.name for k in kf.BAERTE], "stuetzen": int(len(stuetz)),
-           "kopfhaut": {"kopfhaut.png": ["mann_kurz", "mann_pagen", "mann_zurueck", "rang"],
-                        "kopfhaut_w.png": ["frau_knoten", "frau_offen", "frau_zoepfe", ""],
-                        "bart.png": ["schnurrbart", "kinnbart", "vollbart", "langbart"]}},
+def kopfhaut_dateien():
+    """Kopfhautkarten: je Bild vier Stile (RGBA); „rang“ (Glatze) steht in rang.png im Kanal A. Phase 4 behält ihre
+    Dateinamen (kopfhaut.png mit Rang, kopfhaut_w.png, bart.png)."""
+    if kf is kf4:
+        return {"kopfhaut.png": ["mann_kurz", "mann_pagen", "mann_zurueck", "rang"],
+                "kopfhaut_w.png": ["frau_knoten", "frau_offen", "frau_zoepfe", ""],
+                "bart.png": ["schnurrbart", "kinnbart", "vollbart", "langbart"]}
+    aus = {}
+    for vorsilbe, namen in (("kopfhaut_m", [k.name for k in kf.FRISUREN["m"]]), ("kopfhaut_w", [k.name for k in kf.FRISUREN["w"]]),
+                            ("bart", [k.name for k in kf.BAERTE])):
+        for i in range(0, len(namen), 4):
+            aus[f"{vorsilbe}{i // 4}.png"] = (namen[i:i + 4] + ["", "", ""])[:4]
+    aus["rang.png"] = ["", "", "", "rang"]
+    return aus
+
+
+json.dump({"stile": {k: v for k, v in alt.items() if k in {c.name for g in ("m", "w") for c in kf.FRISUREN[g]} | {c.name for c in kf.BAERTE}},
+           "frisuren": {"m": [k.name for k in kf.FRISUREN["m"]], "w": [k.name for k in kf.FRISUREN["w"]]},
+           "baerte": [k.name for k in kf.BAERTE], "stuetzen": int(len(stuetz)), "kopfhaut": kopfhaut_dateien()},
           open(pfad_ue, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 # ================================================================= 3. Kartenbild
@@ -267,12 +292,9 @@ if "ohne_bilder" not in OPT:
         hm = huelle("m")
         sel = np.nonzero(kopfteil)[0]
         rang[sel] = hm.rang(je_bp(hm.p)[sel])
-        stile_m = [k.name for k in kf.FRISUREN["m"]]
-        stile_w = [k.name for k in kf.FRISUREN["w"]]
-        baerte = [k.name for k in kf.BAERTE]
-        kk.karte_speichern(os.path.join(AUS, "kopfhaut.png"), G, J, I, [kanaele.get(n) for n in stile_m] + [rang])
-        kk.karte_speichern(os.path.join(AUS, "kopfhaut_w.png"), G, J, I, [kanaele.get(n) for n in stile_w] + [None])
-        kk.karte_speichern(os.path.join(AUS, "bart.png"), G, J, I, [kanaele.get(n) for n in baerte])
+        kanaele["rang"] = rang
+        for datei, namen in kopfhaut_dateien().items():
+            kk.karte_speichern(os.path.join(AUS, datei), G, J, I, [kanaele.get(n) if n else None for n in namen])
         zeit("Kopfhautkarten")
 
 # ================================================================= 5. Vorschau (Workbench)
