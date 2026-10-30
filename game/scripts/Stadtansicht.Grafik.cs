@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
 
@@ -185,10 +186,13 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Dichte des volumetrischen Dunstes am Boden (morgens, voll) und wie schnell er nach oben dünner wird: Abfall 0,7 je Meter heißt
+    /// Dichte des volumetrischen Dunstes am Boden (voller Anteil) und wie schnell er nach oben dünner wird: Abfall 0,7 je Meter heißt
     /// in 3 m Höhe noch 12 %, in 5 m 3 % – der Dunst liegt flach über Feldern und Gassen, Dächer und Mauerkronen stehen darüber.
+    /// Halb so dicht wie bis Oktober 2026 (0,16): Die sichtbaren Nebelbänke macht der Bodennebel (Stadtansicht.Bodennebel.cs), der Dunst ist
+    /// der Schleier darüber, in dem die Sonne ihre Lichtbahnen zieht. Seine Höhe misst Godot ab y = 0, nicht ab dem Boden – zu dicht gab er
+    /// über tief liegendem Wasser eine gleichmäßig graue Fläche.
     /// </summary>
-    private const float DunstDichte = 0.16f, DunstAbfall = 0.7f;
+    private const float DunstDichte = 0.08f, DunstAbfall = 0.7f;
 
     /// <summary>Innerhalb der Stadtmauer nimmt ein zweites Volumen mit negativer Dichte so viel weg, dass nur ein leichter Schleier bleibt.</summary>
     private const float DunstStadtAnteil = 0.35f;
@@ -255,18 +259,19 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wie dicht der Dunst zu dieser Stunde des Bezugstags (Stadtansicht.Licht.cs, folgt den Sonnenzeiten der Jahreszeit) ist (1 = voller Morgendunst): von 5 bis 6:20 Uhr am dichtesten, gegen 8 Uhr fast
-    /// aufgelöst; am Tag ein Hauch (damit die Sonne Lichtbahnen hat), ab 18 Uhr wieder leicht, nach 21 Uhr keiner. Der Spieltag beginnt um 4 Uhr mitten im dichten Dunst
-    /// (das Jahr springt von 23 auf 4 Uhr).
+    /// Wie dicht der Dunst gerade ist (1 = voller Anteil). Er folgt dem Bodennebel (Stadtansicht.Bodennebel.cs): an einem Nebelmorgen bis 0,7, an
+    /// einem ruhigen Morgen ohne Nebel ein leichter Dunst (bis 0,25 nach dem Verlauf des Nebels: vor und um Sonnenaufgang, danach aufgelöst), bei
+    /// Tag ein Hauch (damit die Sonne Lichtbahnen hat), bei Wetter „Nebel“ 0,45. Nachts nur mit <see cref="Nachtnebel"/>; seine Farbe ist dann dunkel
+    /// (<see cref="DunstNachUhrzeit"/>). Früher lag jeden Morgen voller Dunst, unabhängig vom Wetter.
     /// </summary>
-    private static float DunstUm(float stunde)
+    private float DunstAnteilJetzt()
     {
-        var morgen = 1 - Mathf.SmoothStep(6.3f, 8.3f, stunde);
-        var abend = 0.3f * Mathf.SmoothStep(18f, 20.5f, stunde);
-        // Nachts klare Luft (PR #237): Der Dunst leuchtet in Umgebungslicht-Farbe und ist heller als dunkle Wände und Boden – ein heller Saum am Fuß
-        // von Häusern und Mauern. Ab etwa 21 Uhr klingt er auf null aus; die Dämmerung kommt mit dem Spieltagsbeginn um 4 Uhr wieder.
-        var nacht = 1 - Mathf.SmoothStep(20.8f, 21.6f, stunde);
-        return Mathf.Max(Mathf.Max(morgen, abend), 0.05f) * nacht;
+        var jahreszeit = _letzteLichtJahreszeit ?? Jahreszeit.Fruehling;
+        var stunde = _letzteLichtUhrzeit >= 0 ? _letzteLichtUhrzeit / 60f : 12f; // im Hauptmenü (ohne Uhr): Mittag
+        var (verlauf, _) = NebelVerlauf(stunde, jahreszeit, Nachtnebel);
+        var (nebelLand, _) = NebelStaerkeJetzt();
+        var hauch = 0.05f * (1f - NebelDunkel());
+        return Mathf.Max(Mathf.Max(hauch, 0.25f * verlauf * NebelWetterRuhe()), Mathf.Max(0.7f * nebelLand, 0.45f * _wetter.Nebel));
     }
 
     private void DunstAnwenden()
@@ -316,21 +321,29 @@ public partial class Stadtansicht
         LichtbahnenImRaum();
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         StadtDunstAnlegen();
-        var stunde = _letzteLichtUhrzeit >= 0 ? _bezugStunde : 12f; // Uhrzeit auf dem Bezugstag, folgt den Sonnenzeiten der Jahreszeit (Stadtansicht.Licht.cs); im Hauptmenü (ohne Uhr): Mittag
-        var anteil = Mathf.Max(DunstUm(stunde), 0.45f * _wetter.Nebel); // bei Nebel (Stadtansicht.Wetter.cs) liegt er etwas dichter (dazu Bodennebel und Entfernungsnebel)
-        if (Mathf.Abs(anteil - _dunstAnteil) < 0.005f) return;
+        var anteil = DunstAnteilJetzt(); // folgt dem Bodennebel und dem Wetter (dazu Entfernungsnebel bei Wetter „Nebel“)
+        var dunkel = NebelDunkel();
+        if (Mathf.Abs(anteil - _dunstAnteil) < 0.005f && Mathf.Abs(dunkel - _dunstDunkel) < 0.01f) return;
         _dunstAnteil = anteil;
+        _dunstDunkel = dunkel;
         var umgebung = _umgebung.Environment;
         _dunstVolumen.Position = new Vector3(_kameraDrehung.Position.X, 0, _kameraDrehung.Position.Z);
         _dunstStoff.Density = DunstDichte * anteil;
         _stadtDunstStoff.Density = -DunstDichte * anteil * (1 - DunstStadtAnteil);
         // Der einfache Nebel leuchtet nicht selbst und wird nicht beleuchtet: Er bekommt die Farbe, die ein weißes Tuch in diesem
-        // Licht hätte – Umgebungslicht und etwas Sonne (morgens rosig und gedämpft, mittags hell, nachts dunkelblau).
+        // Licht hätte – Umgebungslicht und etwas Sonne (morgens rosig und gedämpft, mittags hell). Nachts so dunkel wie eine unbeleuchtete
+        // Wand (NebelNachtfarbe, Stadtansicht.Bodennebel.cs): Die alte Farbe war fünf- bis zehnmal so hell, der helle Saum am Fuß der Mauern.
         var licht = umgebung.AmbientLightColor * umgebung.AmbientLightEnergy + _sonne.LightColor * _sonne.LightEnergy * 0.35f;
-        umgebung.FogLightColor = new Color(licht.R, licht.G, licht.B);
+        umgebung.FogLightColor = new Color(licht.R, licht.G, licht.B).Lerp(NebelNachtfarbe(), dunkel);
         umgebung.FogHeightDensity = DunstHoehenDichte * anteil;
-        umgebung.FogSunScatter = 0.15f;
+        umgebung.FogSunScatter = 0.15f * (1f - dunkel); // nachts wäre die „Sonne“ der Mond
+        // Volumetrisch (Hoch): Godot beleuchtet den Nebel selbst – nachts weniger Umgebungslicht und Mond im Nebel, damit er nicht heller wird
+        // als die Wände dahinter; Laternen und Feuer behalten ihren Lichthof.
+        umgebung.VolumetricFogAmbientInject = Mathf.Lerp(0.5f, 0.25f, dunkel);
+        _sonne.LightVolumetricFogEnergy = Mathf.Lerp(1f, 0.25f, dunkel);
     }
+
+    private float _dunstDunkel = -1;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Farbstimmung
