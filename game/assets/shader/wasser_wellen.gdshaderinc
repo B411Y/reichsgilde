@@ -6,9 +6,16 @@
 // wasser_realistisch.gdshaderinc. Neu: Flüsse rechnen in ihren Laufachsen (quer, Stelle), die Wellen folgen den Kurven; ein Startwert je
 // Gewässer (aus der Karte) verteilt Abschnitte mit größeren, kleineren, schnelleren und langsameren Wellen; der Wind hebt die Wellen
 // (wind_hoehe: Fluss ruhig 5–10 cm, im Sturm bis etwa 30 cm).
+//
+// Phase 3d (Nutzer 30.10.2026: beim Wetterwechsel sprang die Wellenstruktur um): Die Richtung eines Wellenzuges ist fest. Vorher lenkte der Wind
+// die Richtung; weil die Phase k · (d · Ort − c · t) mit Orten bis über 1 km rechnet, verschob schon eine kleine Drehung das ganze Muster auf
+// einen Schlag. Jetzt ändert der Wind nur die Stärke (Höhe) der Züge – mehr für die, die mit dem Wind laufen –, und er wirkt geglättet:
+// wellen_seegang folgt dem Wetter langsam (Seegang baut sich in etwa 40 s auf und in 80 s ab, Stadtansicht.Wetter.cs). Kräusel, Regenringe und
+// Schaum folgen weiter wetter_wind (schnell).
 
 // Globale Werte des Spiels (project.godot, [shader_globals]); die Stadtansicht setzt sie je Bild
 global uniform float wetter_wind;      // Windstärke 0–1 (0,25 leichter Wind, 1 Sturm)
+global uniform float wellen_seegang;   // Windstärke für die Wellen 0–1, geglättet (träge): der Seegang folgt dem Wetter langsam
 global uniform vec2 wind_richtung;     // Weltrichtung des Windes (x, z)
 
 uniform float wellen_staerke = 1.0;    // Faktor auf die Steilheit der drei Wellen (0 = glatt)
@@ -56,7 +63,7 @@ void wellen_wind(out float sturm, out vec2 wind) {
 	sturm = 0.0;
 	wind = vec2(0.0);
 #ifdef MIT_WIND
-	sturm = wind_anteil * wetter_wind;
+	sturm = wind_anteil * wellen_seegang;
 	wind = normalize(wind_richtung + vec2(0.0001)) * sturm * 0.7;
 #endif
 }
@@ -65,7 +72,7 @@ void wellen_wind(out float sturm, out vec2 wind) {
 float wellen_windfaktor(float sturm) {
 	float f = 1.0 + sturm * 0.6;
 #ifdef MIT_WIND
-	f *= 1.0 + wind_hoehe * smoothstep(0.25, 1.0, wetter_wind);
+	f *= 1.0 + wind_hoehe * smoothstep(0.25, 1.0, wellen_seegang);
 #endif
 	return f;
 }
@@ -90,7 +97,12 @@ vec4 wave(vec4 parameter, vec2 position, float time, float staerke, float laenge
 	}
 	float k = 2.0 * 3.14159265359 / wave_length;
 	float c = sqrt(9.8 / k);
-	vec2 d = normalize(parameter.xy + wind);
+	// Feste Richtung (die Phase springt sonst beim Wetterwechsel); der Wind hebt die Züge, die mit ihm laufen, und dämpft die gegen ihn
+	vec2 d = normalize(parameter.xy);
+	float wind_st = length(wind);
+	if (wind_st > 0.0001) {
+		wave_steepness *= 1.0 + 0.9 * wind_st * dot(d, wind / wind_st);
+	}
 	float f = k * (dot(d, position) - c * time);
 	float a = wave_steepness / k;
 	tangent += normalize(vec3(1.0 - d.x * d.x * (wave_steepness * sin(f)), d.x * (wave_steepness * cos(f)), -d.x * d.y * (wave_steepness * sin(f))));

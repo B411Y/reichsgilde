@@ -104,6 +104,7 @@ public partial class Wassertest : Node3D
         var w = Wetterwerte.Von(lage);
         var wind = new Vector2(0.8f, 0.6f).Normalized();
         RenderingServer.GlobalShaderParameterSet("wetter_wind", w.Wind);
+        RenderingServer.GlobalShaderParameterSet("wellen_seegang", w.Wind); // Testszene: Seegang sofort (im Spiel träge, Stadtansicht.Wetter.cs)
         RenderingServer.GlobalShaderParameterSet("wind_richtung", wind);
         RenderingServer.GlobalShaderParameterSet("wetter_regen", w.Regen);
         RenderingServer.GlobalShaderParameterSet("wetter_schnee", schnee);

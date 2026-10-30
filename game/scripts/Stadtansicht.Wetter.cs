@@ -29,6 +29,17 @@ public partial class Stadtansicht
     private const float WetterNachfuehrSekunden = 1.2f;
 
     /// <summary>
+    /// Seegang (Wasser Phase 3d, Nutzer 30.10.2026): So träge folgen die Wellen dem Wind (Zeitkonstante in Sekunden Echtzeit bei Tempo 1; bei
+    /// höherem Tempo geteilt durch dessen Wurzel). Aufbau etwa 40 s, Abklingen doppelt so lang; Regen, Schaum und Farbe folgen schneller.
+    /// </summary>
+    private const float SeegangAufbauSekunden = 40f, SeegangAbklingSekunden = 80f;
+
+    private float _seegang;
+    private bool _seegangGesetzt;
+    private double _seegangMeldung;
+    private float _seegangZielZuletzt = -1;
+
+    /// <summary>
     /// Dichte des Entfernungsnebels bei vollem Nebel: Die Kamera steht 150 m vor der Stadt; bei 0,0016 verblasst die Stadt nur um ein Viertel,
     /// die Ferne (250 m) um ein Drittel – alles bleibt erkennbar, Boden und Gebäude gleich (Godots Nebel wirkt auf jedes Material).
     /// </summary>
@@ -231,7 +242,7 @@ public partial class Stadtansicht
         foreach (var (name, wert) in new (string, Variant)[]
                  {
                      ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_rinn", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
-                     ("wetter_wind", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)),
+                     ("wetter_wind", 0.25f), ("wellen_seegang", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)),
                      ("wind_staerke", Fenster.FahnenBewegen ? 0.5f : 0f), // der Grundwert der Fahnen (Fenster.Grafik.cs)
                  })
             RenderingServer.GlobalShaderParameterSet(name, wert);
@@ -274,11 +285,41 @@ public partial class Stadtansicht
         _schneeDecke = Mathf.Lerp(_schneeDecke, deckeZiel, t);
         _jahreszeitAnteile = _jahreszeitAnteile.Lerp(anteileZiel, t);
 
+        SeegangNachfuehren(ziel.Wind, delta);
         BlitzNachfuehren((float)delta);
         WetterGlobaleSetzen();
         PartikelNachfuehren();
         TraufenStellen(delta); // Stadtansicht.Traufen.cs
         PflasterReliefStellen(); // Stadtansicht.Pflasterrelief.cs
+    }
+
+    /// <summary>
+    /// Der Seegang folgt dem Wind des Wetters träge (<see cref="SeegangAufbauSekunden"/>): Ein Sturm baut die Wellen über Sekunden auf, statt sie
+    /// umspringen zu lassen; beim ersten Bild steht er sofort. Im Übergang alle 5 s eine Zeile ins Protokoll (für Messungen des Wetterwechsels).
+    /// </summary>
+    private void SeegangNachfuehren(float windZiel, double delta)
+    {
+        if (!_seegangGesetzt)
+        {
+            _seegang = _seegangZielZuletzt = windZiel;
+            _seegangGesetzt = true;
+            return;
+        }
+        if (Mathf.Abs(windZiel - _seegangZielZuletzt) > 0.05f)
+        {
+            GD.Print($"[wetter] {Time.GetTicksMsec() / 1000.0:0.0} s: Wind springt {_seegangZielZuletzt:0.00} → {windZiel:0.00}, Seegang folgt träge");
+            _seegangZielZuletzt = windZiel;
+            _seegangMeldung = 5.0;
+        }
+        var tempo = Mathf.Max(1f, (float)(_simulation?.Takt.Tempo ?? 1.0));
+        var tau = (windZiel > _seegang ? SeegangAufbauSekunden : SeegangAbklingSekunden) / Mathf.Sqrt(tempo);
+        _seegang = Mathf.Lerp(_seegang, windZiel, 1f - Mathf.Exp(-(float)delta / tau));
+        _seegangMeldung += delta;
+        if (Mathf.Abs(_seegang - windZiel) > 0.01f && _seegangMeldung >= 5.0)
+        {
+            _seegangMeldung = 0;
+            GD.Print($"[wetter] {Time.GetTicksMsec() / 1000.0:0.0} s: Seegang {_seegang:0.000} (Wind {windZiel:0.00}, gezeigter Wind {_wetter.Wind:0.00})");
+        }
     }
 
     private void WetterGlobal(string name, float wert, float schwelle = 0.002f)
@@ -302,6 +343,7 @@ public partial class Stadtansicht
         WetterGlobal("wetter_dach", _schneeDecke);
         WetterGlobal("wetter_flaechen", draussen ? 1 : 0);
         WetterGlobal("wetter_wind", _wetter.Wind);
+        WetterGlobal("wellen_seegang", _seegang, 0.0005f);
         // Fahnen: 0,2 + 1,2 · Wind ergibt bei leichtem Wind (0,25) den Grundwert 0,5; mehr als 1,1 ließe sie zu wild schlagen
         WetterGlobal("wind_staerke", Fenster.FahnenBewegen ? Mathf.Min(0.2f + 1.2f * _wetter.Wind, 1.1f) : 0f);
         var himmel = _umgebung.Environment.BackgroundColor.SrgbToLinear();
