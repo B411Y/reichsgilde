@@ -81,7 +81,10 @@ public partial class Stadtansicht
             for (var i = 0; i <= nx; i++)
             {
                 var (x, z) = ((float)(rahmen.X0 + i * dx), (float)(rahmen.Z0 + j * dz));
-                neigung[j * (nx + 1) + i] = NebelNeigung(x, z, mauern, wasser, out boden[j * (nx + 1) + i]);
+                // Zum Rand des Netzes (40 m über das Spielfeld hinaus) weich auslaufen: sonst endete der Nebel dort mit gerader Kante
+                // (sichtbar mit der freien Kamera von oben, Stadtansicht.FreieKamera.cs)
+                var randAbstand = (float)Math.Min(Math.Min(x - rahmen.X0, rahmen.X1 - x), Math.Min(z - rahmen.Z0, rahmen.Z1 - z));
+                neigung[j * (nx + 1) + i] = NebelNeigung(x, z, mauern, wasser, out boden[j * (nx + 1) + i]) * Mathf.SmoothStep(0f, 30f, randAbstand);
             }
         var schichten = hoch ? new[] { (NebelHoeheUnten, 0f), (NebelHoeheOben, 1f) } : new[] { (NebelHoeheUnten + 0.4f, 0f) };
         foreach (var (hoehe, versatz) in schichten)

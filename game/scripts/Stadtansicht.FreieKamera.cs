@@ -31,6 +31,9 @@ public partial class Stadtansicht
     private FreieKamera? _freieKamera;
     private bool _freiGemeldet;
 
+    /// <summary>Hat <c>--freiekamera-start</c> den Startblick festgelegt (dann übernimmt die freie Kamera nie den Blick der Spielkamera)?</summary>
+    private bool _freiStartFest;
+
     /// <summary>Startoption <c>--freiekamera=1</c>.</summary>
     private static bool FreieKameraGewuenscht => Wasserarten.Startoption("freiekamera") is "1" or "an" or "ja";
 
@@ -47,7 +50,11 @@ public partial class Stadtansicht
         _freieKamera = new FreieKamera { HilfeTaste = Key.F2, Bodenhoehe = (x, z) => BodenHoehe(x, z) };
         AddChild(_freieKamera);
         _freieKamera.MakeCurrent();
-        if (StartPose() is var (ort, ziel)) _freieKamera.Blicken(ort, ziel);
+        if (StartPose() is var (ort, ziel))
+        {
+            _freieKamera.Blicken(ort, ziel);
+            _freiStartFest = true;
+        }
         else FreiVonSpielkamera();
         GD.Print("[freiekamera] aktiv (F2: Hilfe aus)");
     }
@@ -78,7 +85,7 @@ public partial class Stadtansicht
     private bool FreieKameraBild()
     {
         if (!FreiAktiv || _freieKamera is not { } frei) return false;
-        if (!frei.Gesteuert && StartPose() is null) FreiVonSpielkamera();
+        if (!frei.Gesteuert && !_freiStartFest) FreiVonSpielkamera();
         else SpielkameraFolgt(frei);
         if (!_freiGemeldet && _gelaende is not null && Engine.GetProcessFrames() % 120 == 0)
         {
