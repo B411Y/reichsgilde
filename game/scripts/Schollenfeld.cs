@@ -41,7 +41,7 @@ public sealed class Schollenfeld
     private const float UferAbstand = 0.8f;
 
     /// <summary>Stoßhalbmesser einer Scholle als Anteil ihres Halbmessers (der Umriss ist ein Vieleck, meist innerhalb des Halbmessers).</summary>
-    private const float StossAnteil = 0.82f;
+    private const float StossAnteil = 0.78f;
 
     /// <summary>Gitter für die Nachbarsuche (m).</summary>
     private const float Zelle = 2f;
@@ -67,6 +67,9 @@ public sealed class Schollenfeld
 
     // Zustand der treibenden Schollen in Laufachsen: Stelle, quer, Tempo längs und quer (m/s), Gier und Drehtempo, Haftzeit an einem Pfeiler (s)
     private readonly float[] _s, _q, _vs, _vq, _gier, _om, _haft, _rStoss, _halbHier;
+    // Druck am Pfeiler: wie lange eine Scholle schon vorn am Pfeiler drückt (s); ist er zu groß, schiebt sie sich für kurze Zeit über bzw. unter die
+    // Nachbarn (ohne Stöße mit ihnen) – so löst sich ein Stau, statt dass sich eine Eisbrücke bildet
+    private readonly float[] _druck, _ueber;
     private readonly int[] _pfeilerSchritt; // Teilschritt, in dem die Scholle zuletzt einen Pfeiler berührte (erster Stoß = nicht im vorigen)
     private readonly bool[] _weg;           // außerhalb des Fensters um die Kamera: treibt nur, ohne Stöße
     private int _schritt, _kameraTipp = -1;
@@ -131,6 +134,7 @@ public sealed class Schollenfeld
         (_s, _q, _vs, _vq, _gier, _om, _haft, _rStoss) = (new float[n], new float[n], new float[n], new float[n], new float[n], new float[n], new float[n], new float[n]);
         _halbHier = new float[n];
         _pfeilerSchritt = new int[n];
+        (_druck, _ueber) = (new float[n], new float[n]);
         _weg = new bool[n];
         _naechster = new int[n];
         foreach (var p in _lauf) _halbMax = Mathf.Max(_halbMax, p.Halb);
@@ -600,6 +604,7 @@ public sealed class Schollenfeld
             // leichtes Pendeln quer (Wirbel), je Scholle anders
             var zielQ = 0.06f * (Rauschen(t * 0.05f + sch.Saat * 0.37f) - 0.5f) * 2f;
             var tau = 1.2f + 0.7f * sch.Halbmesser;
+            if (_ueber[i] > 0) _ueber[i] -= dt;
             if (_haft[i] > 0)
             {
                 _haft[i] -= dt;
@@ -619,7 +624,7 @@ public sealed class Schollenfeld
         for (var i = 0; i < n; i++)
         {
             var ri = _rStoss[i];
-            if (ri <= 0 || _weg[i]) continue;
+            if (ri <= 0 || _weg[i] || _ueber[i] > 0) continue;
             var reichweite = ri + _rStossMax;
             var (s0, s1) = ((int)((_s[i] - reichweite) / Zelle), (int)((_s[i] + reichweite) / Zelle));
             var (q0, q1) = ((int)((_q[i] + _halbMax - reichweite) / Zelle), (int)((_q[i] + _halbMax + reichweite) / Zelle));
@@ -629,7 +634,7 @@ public sealed class Schollenfeld
                 for (var cq = q0; cq <= q1; cq++)
                     for (var j = _kopf[cs * _zellenQ + cq]; j >= 0; j = _naechster[j])
                     {
-                        if (j <= i) continue;
+                        if (j <= i || _ueber[j] > 0) continue;
                         pruef++;
                         var dS = _s[j] - _s[i];
                         if (MathF.Abs(dS) > halbeLaenge) continue;
@@ -660,8 +665,8 @@ public sealed class Schollenfeld
                         _om[i] += tang * 0.25f / Mathf.Max(ri, 0.2f) * dt * 4f;
                         _om[j] += tang * 0.25f / Mathf.Max(rj, 0.2f) * dt * 4f;
                         // Wer an einer hängenden auffährt, bremst mit (Stau)
-                        if (_haft[i] > 0 && dS < 0 && _haft[j] <= 0) _haft[j] = Mathf.Min(_haft[i], 1.5f);
-                        if (_haft[j] > 0 && dS > 0 && _haft[i] <= 0) _haft[i] = Mathf.Min(_haft[j], 1.5f);
+                        if (_haft[i] > 0 && dS < 0 && _haft[j] <= 0) _haft[j] = Mathf.Min(_haft[i], 1f);
+                        if (_haft[j] > 0 && dS > 0 && _haft[i] <= 0) _haft[i] = Mathf.Min(_haft[j], 1f);
                     }
         }
 
@@ -776,12 +781,23 @@ public sealed class Schollenfeld
             if (pfeiler && _pfeilerSchritt[i] < _schritt - 1 && nS < -0.55f && _haft[i] <= 0)
             {
                 _zufall = _zufall * 1664525u + 1013904223u;
-                _haft[i] = 1f + 5f * ((_zufall >> 8) * (1f / 16777216f));
+                _haft[i] = 1f + 3f * ((_zufall >> 8) * (1f / 16777216f));
                 // zur Seite, auf der sie schon etwas liegt, einen kleinen Schub für das spätere Vorbeigleiten
                 _vq[i] += (MathF.Abs(dQ) > 0.05f ? MathF.Sign(dQ) : ((_zufall & 1) == 0 ? 1f : -1f)) * 0.12f;
             }
         }
-        if (pfeiler) _pfeilerSchritt[i] = _schritt;
+        if (pfeiler)
+        {
+            if (_pfeilerSchritt[i] < _schritt - 1) _druck[i] = 0; // neu am Pfeiler
+            _pfeilerSchritt[i] = _schritt;
+            // Drückt sie lange vorn gegen den Pfeiler (eingekeilt zwischen Nachbarn), schiebt sie sich 2,5 s über bzw. unter sie und gleitet seitlich weg
+            if (nS < -0.3f && _haft[i] <= 0 && (_druck[i] += dt) > 4f)
+            {
+                _druck[i] = 0;
+                _ueber[i] = 2.5f;
+                _vq[i] += (MathF.Abs(dQ) > 0.02f ? MathF.Sign(dQ) : 1f) * 0.6f;
+            }
+        }
         // Vorn am Pfeilerkopf, nicht (mehr) festgehalten: zur Seite abgleiten, auf der sie liegt (sonst balancierte sie auf der Spitze)
         if (pfeiler && nS < -0.3f && _haft[i] <= 0)
             _vq[i] += (MathF.Abs(dQ) > 0.02f ? MathF.Sign(dQ) : (_schollen[i].Saat % 2 < 1 ? 1f : -1f)) * 0.9f * dt;
