@@ -84,7 +84,7 @@ namespace Reichsgilde;
 ///   --tonemapping=<Bisher|Agx>, --helligkeit=, --kontrast=, --saettigung=<Prozent> Farbstimmung, --schaerfe=<0–100> Nachschärfen, --fahnen=<An|Aus>
 ///   --uigroesse=<75–200> Größe der Oberfläche in Prozent, --farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>
 ///   (alle Grafikoptionen gelten nur für diesen Start und ändern die gespeicherte Wahl nicht)
-///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Voreinstellung, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel)
+///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Grafik, GrafikErweitert, Ton, Spiel, Barrierefreiheit)
 ///   --automatisch=1    die Voreinstellung wie beim ersten Start automatisch wählen (misst ein paar Sekunden, speichert das Ergebnis)
 ///   --messung=<Sekunden> nach 8 Sekunden Vorlauf so lange Bildzeiten messen, je Sekunde und am Ende ins Protokoll schreiben, dann beenden
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
