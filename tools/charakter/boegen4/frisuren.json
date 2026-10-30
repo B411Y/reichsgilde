@@ -1,0 +1,363 @@
+{
+ "name": "frisuren",
+ "titel": "Phase 4: Frisuren (30 Jahre) – Haarkarten und TressFX",
+ "zelle": [
+  360,
+  420
+ ],
+ "alle": {
+  "kopf": "kopf4.glb",
+  "alter": 30,
+  "gene": {
+   "bartwuchs": 40,
+   "glatze": 0
+  }
+ },
+ "spalten": [
+  {
+   "titel": "Karten vorn",
+   "winkel": 0,
+   "haar": {
+    "modus": "karten"
+   }
+  },
+  {
+   "titel": "Karten ¾",
+   "winkel": 40,
+   "haar": {
+    "modus": "karten"
+   }
+  },
+  {
+   "titel": "Karten hinten",
+   "winkel": 150,
+   "haar": {
+    "modus": "karten"
+   }
+  },
+  {
+   "titel": "TressFX vorn",
+   "winkel": 0,
+   "haar": {
+    "modus": "tressfx"
+   },
+   "warten": 45
+  },
+  {
+   "titel": "TressFX ¾",
+   "winkel": 40,
+   "haar": {
+    "modus": "tressfx"
+   },
+   "warten": 45
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "mann_kurz",
+   "geschlecht": "m",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "mann_pagen",
+   "geschlecht": "m",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_pagen",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "mann_zurueck",
+   "geschlecht": "m",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_zurueck",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_zurueck",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_zurueck",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_zurueck",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_zurueck",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "frau_knoten",
+   "geschlecht": "w",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_knoten",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "frau_offen",
+   "geschlecht": "w",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_offen",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "frau_zoepfe",
+   "geschlecht": "w",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_zoepfe",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_zoepfe",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "frau_zoepfe",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_zoepfe",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "frau_zoepfe",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

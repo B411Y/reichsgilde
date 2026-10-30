@@ -2,6 +2,8 @@
 # Spielcode). Die .glb liegen in --glb=<ordner> (Standard ~/werkzeuge/charakter/glb3, nicht im Repository).
 # Bogenzellen kennen zusätzlich (Phase 3): "stoff": {"haut": {param: wert}}, "umgebung": {…}, "schluessel": {…},
 # "vorher": true (Stoffe der Phase 2 am Phase-3-Kopf), "ultra": true (Haut mit Bildschirm-SSS).
+# Phase 4: "haar": {"modus": "karten"|"tressfx"|"aus", "vorgabe": {"frisur": Stil, "bart": Stil}, "ruhe": true},
+# "warten": Bilder bis zum Foto (TressFX braucht etwa 40, bis die Strähnen liegen).
 #   tools/charakter/schau.sh <bilder> 1600x1000                          Regler (zum Ausprobieren mit Bildschirm)
 #   tools/charakter/schau.sh <bilder> <BxH> --bogen=<a.json>,<b.json> [--regler_bild] [--messen] --ende
 # bogen:  Zeilen × Spalten aus einer JSON-Beschreibung; jede Zelle = Kopf + Alter + Geschlecht + Gene + Mimik +
@@ -70,6 +72,10 @@ func _meldung(text: String) -> void:
 		get_tree().quit(1)
 
 func _datei(name: String) -> String:
+	if name == "standard":
+		name = "kopf4.glb" if FileAccess.file_exists(glb_ordner.path_join("kopf4.glb")) else "kopf3.glb"
+	if name.begins_with("~/"):
+		return OS.get_environment("HOME").path_join(name.substr(2))
 	return name if name.begins_with("/") else glb_ordner.path_join(name)
 
 func _buehne(kopf: String, groesse: Vector2i) -> Buehne:
@@ -101,6 +107,11 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	gene.merge(z.get("gene", {}), true)
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
+	var hv: Dictionary = z.get("haar", {})
+	k.haar_vorgabe = hv.get("vorgabe", {})
+	k.haar_ruhe = bool(hv.get("ruhe", false))
+	if k.haar_knoten and String(hv.get("modus", "karten")) != k.haar_modus:
+		k.haar_modus_setzen(String(hv.get("modus", "karten")))
 	k.aussehen_setzen(gene, float(z.get("alter", 35.0)), _mann(z.get("geschlecht", "m")))
 
 # ---------------------------------------------------------------- Bogen
@@ -150,7 +161,7 @@ func _bogen(datei: String) -> void:
 			b.licht_setzen(z.get("schluessel", {}))
 			b.ansicht(z.get("ansicht", "portraet"), float(z.get("winkel", 0.0)), float(z.get("hoehe", 3.0)),
 				float(z.get("spanne_m", 0.0)), float(z.get("ziel_m", 0.0)))
-			await _warte(4)
+			await _warte(int(z.get("warten", 4)))
 			var bild := b.foto()
 			if bild == null or bild.is_empty():
 				bild = Image.create(zelle.x, zelle.y, false, Image.FORMAT_RGB8)
@@ -231,6 +242,9 @@ var _ansicht_wahl: OptionButton
 var _winkel_r: HSlider
 var _wert_texte := {}
 var _ansicht_schl := ""
+var _haar_wahl: OptionButton
+var _frisur_wahl: OptionButton
+var _bart_wahl: OptionButton
 
 func _regler(nur_bild: bool) -> void:
 	var fs := Vector2i(get_viewport().get_visible_rect().size)
@@ -244,7 +258,7 @@ func _regler(nur_bild: bool) -> void:
 	c.add_child(_buehne_r)
 	if not nur_bild:
 		print("REGLER Kamera: ", "frei" if _buehne_r.freie_kamera_einsetzen() else "fest (FreieKamera.cs fehlt)")
-	var datei := _datei(args.get("kopf", "kopf3.glb"))
+	var datei := _datei(args.get("kopf", "standard"))
 	if not _buehne_r.kopf_laden(datei):
 		_meldung(_buehne_r.kopf.fehler)
 		return
@@ -256,7 +270,7 @@ func _regler(nur_bild: bool) -> void:
 	var liste := VBoxContainer.new()
 	liste.custom_minimum_size = Vector2(breite_rechts - 24, 0)
 	rolle.add_child(liste)
-	_ueberschrift(liste, "Basiskopf Phase 3 – %s" % datei.get_file())
+	_ueberschrift(liste, "Basiskopf Phase 4 – %s" % datei.get_file())
 	var zeile := HBoxContainer.new()
 	liste.add_child(zeile)
 	_mann_r = OptionButton.new()
@@ -297,6 +311,31 @@ func _regler(nur_bild: bool) -> void:
 	_ansicht_wahl.item_selected.connect(func(_i): _aendern())
 	liste.add_child(_ansicht_wahl)
 	_winkel_r = _regler_zeile(liste, "Drehung (Grad)", -90, 90, 20, 1)
+	if _kopf.haar_knoten:
+		_ueberschrift(liste, "Haar und Bart (Phase 4)")
+		var hz := HBoxContainer.new()
+		liste.add_child(hz)
+		_haar_wahl = OptionButton.new()
+		for t in ["Haarkarten", "TressFX", "ohne Haar"]:
+			_haar_wahl.add_item(t)
+		_haar_wahl.item_selected.connect(func(i):
+			_kopf.haar_modus_setzen(["karten", "tressfx", "aus"][i]))
+		hz.add_child(_haar_wahl)
+		var ue: Dictionary = _kopf.haar_knoten.uebersicht(_kopf.haar_knoten.ordner)
+		_frisur_wahl = OptionButton.new()
+		_frisur_wahl.add_item("Frisur aus den Genen")
+		for g in ["m", "w"]:
+			for n in ue.get("frisuren", {}).get(g, []):
+				_frisur_wahl.add_item(n)
+		_frisur_wahl.item_selected.connect(func(_i): _aendern())
+		hz.add_child(_frisur_wahl)
+		_bart_wahl = OptionButton.new()
+		_bart_wahl.add_item("Bart aus den Genen")
+		_bart_wahl.add_item("rasiert")
+		for n in ue.get("baerte", []):
+			_bart_wahl.add_item(n)
+		_bart_wahl.item_selected.connect(func(_i): _aendern())
+		liste.add_child(_bart_wahl)
 	var arten := {"Makro": "Körper (Makros)", "Merkmal": "Gestalt", "Farbe": "Farben", "Zubehoer": "Zubehör (kommt mit Haar und Bart)"}
 	var info_gene: Dictionary = _kopf.info.get("gene", {})
 	for art in arten:
@@ -385,6 +424,15 @@ func _aendern() -> void:
 		mim[n] = _mimik_wert.value
 	_kopf.mimik_mit_alter = _mimik_alter.button_pressed
 	_kopf.mimik = mim
+	if _frisur_wahl:
+		var v := {}
+		if _frisur_wahl.selected > 0:
+			v["frisur"] = _frisur_wahl.get_item_text(_frisur_wahl.selected)
+		if _bart_wahl.selected == 1:
+			v["bart"] = ""
+		elif _bart_wahl.selected > 1:
+			v["bart"] = _bart_wahl.get_item_text(_bart_wahl.selected)
+		_kopf.haar_vorgabe = v
 	_kopf.aussehen_setzen(gene, _alter_r.value, 1.0 if _mann_r.selected == 0 else 0.0)
 	# Mit freier Kamera nur neu hinstellen, wenn Ansicht oder Drehung geändert wurden
 	var schl := "%s|%s" % [_ansicht_wahl.selected, _winkel_r.value]
@@ -395,8 +443,19 @@ func _aendern() -> void:
 # ---------------------------------------------------------------- Messen
 func _messen() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	var kd := "standard"
+	var vk := {"frisur": "mann_pagen", "bart": "vollbart"}
 	var laeufe := [
 		{"name": "leer", "kopf": "keiner"},
+		{"name": "ohne_haar", "kopf": kd, "bewegt": "keine", "haar": {"modus": "aus"}},
+		{"name": "haar_karten", "kopf": kd, "bewegt": "keine", "haar": {"modus": "karten", "vorgabe": vk}},
+		{"name": "haar_tressfx", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": vk}},
+		{"name": "haar_tressfx_ruhe", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": vk, "ruhe": true}},
+		{"name": "haar_karten_frau_offen", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "karten", "vorgabe": {"frisur": "frau_offen"}}},
+		{"name": "haar_tressfx_frau_offen", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "frau_offen"}}},
+		{"name": "x8_ohne_haar", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "aus"}},
+		{"name": "x8_karten", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "karten", "vorgabe": vk}},
+		{"name": "x8_tressfx_ruhe", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "tressfx", "vorgabe": vk, "ruhe": true}},
 		{"name": "still", "kopf": "kopf3.glb", "bewegt": "keine"},
 		{"name": "still_vorher", "kopf": "kopf3.glb", "bewegt": "keine", "vorher": true},
 		{"name": "still_ultra", "kopf": "kopf3.glb", "bewegt": "keine", "ultra": true},
@@ -444,7 +503,7 @@ func _ein_lauf(l: Dictionary) -> void:
 			behaelter.queue_free()
 			return
 		laden_ms += b.kopf.ladezeit_ms
-		zelle_setzen(b.kopf, {"alter": 35, "geschlecht": "m"})
+		zelle_setzen(b.kopf, {"alter": 35, "geschlecht": l.get("geschlecht", "m"), "haar": l.get("haar", {"modus": "aus"})})
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
 			b.kopf.ultra_setzen(bool(l.get("ultra", false)))
@@ -479,6 +538,8 @@ func _ein_lauf(l: Dictionary) -> void:
 		"fps": snappedf(n_bilder / maxf(t_mess, 1e-6), 0.1),
 		"gpu_ms": snappedf(gpu / maxf(n_bilder, 1), 0.01),
 		"dreiecke_kopf": liste[0].kopf.dreiecke() if liste[0].kopf else 0,
+		"dreiecke_haar": liste[0].kopf.haar_knoten.dreiecke() if liste[0].kopf and liste[0].kopf.haar_knoten else 0,
+		"haar_ms": liste[0].kopf.haar_knoten.zeiten if liste[0].kopf and liste[0].kopf.haar_knoten else {},
 		"dreiecke_bild": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 		"zeichenaufrufe": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 		"vram_mb": snappedf((RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) - leer) / 1048576.0, 0.1),

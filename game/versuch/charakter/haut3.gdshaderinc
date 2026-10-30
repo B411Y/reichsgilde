@@ -40,6 +40,18 @@ uniform float streu_schattenfrei = 1.0;      // 1 = Streulicht jenseits des Scha
 uniform float flaum = 0.16;                  // Randlicht
 uniform float durchlicht = 0.35;             // Ohren und Nase im Gegenlicht
 uniform float sss_staerke = 0.25;            // nur ULTRA
+// Phase 4: Haut unter Haar und Bart (tools/charakter/kopf4_haar.py, Spiel-UV 1024²). Die Kopfhaut unter dichtem Haar
+// nimmt die Haarfarbe an (Schatten und Haaransatz: kein heller Schimmer durch das Haar, kein Helmrand); wo eine
+// Glatze ist (Rang < kahl), bleibt Haut.
+uniform sampler2D kopfhaut_tex : hint_default_black, filter_linear_mipmap, repeat_disable;   // Dichte je Frisur (Kanal)
+uniform sampler2D rang_tex : hint_default_white, filter_linear_mipmap, repeat_disable;       // A = Rang beim Ausfallen
+uniform vec4 kopfhaut_kanal = vec4(0.0);
+uniform float kahl = 0.0;
+uniform float duenn_haut = 0.0;
+uniform sampler2D bart_tex : hint_default_black, filter_linear_mipmap, repeat_disable;       // Dichte je Bartform
+uniform vec4 bart_kanal = vec4(0.0);
+uniform vec3 haar_unter : source_color = vec3(0.1, 0.07, 0.05);
+uniform float kopfhaut_dunkel = 0.8;
 
 varying vec3 n_diffus;
 varying float duenn;
@@ -62,6 +74,12 @@ void fragment() {
 	c = mix(c, haar_farbe * 0.8, clamp(f.a * brauen_dichte * 0.55, 0.0, 0.7));
 	c *= 1.0 - falten_dunkel * clamp(-h0, 0.0, 1.0);
 	c *= 1.0 - hoehlen * 0.5 * m.b;
+	// Phase 4: unter Haar und Bart
+	float unter = dot(texture(kopfhaut_tex, UV), kopfhaut_kanal);
+	unter *= smoothstep(kahl - 0.05, kahl + 0.05, texture(rang_tex, UV).a) * (1.0 - 0.5 * duenn_haut);
+	float unter_bart = clamp(dot(texture(bart_tex, UV), bart_kanal), 0.0, 1.0);
+	float haarig = clamp(max(unter, unter_bart * 0.85), 0.0, 1.0);
+	c = mix(c, haar_unter * mix(0.55, 0.85, haarig), haarig * kopfhaut_dunkel);
 	ALBEDO = c;
 	// Normale: gebacken (Mittel) + Falten + feine Kachel (Poren), im Tangentenraum zusammen
 	vec2 meso = (nt.xy * 2.0 - 1.0) * normal_staerke;
@@ -78,8 +96,8 @@ void fragment() {
 	hoehle_v = m.b;
 	float pore = clamp(length(mikro) * 2.0, 0.0, 1.0);
 	float rand = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-	ROUGHNESS = clamp(mix(rauheit, rauheit_glanz, m.g) + 0.1 * pore + 0.12 * rand + 0.15 * clamp(-h0, 0.0, 1.0), 0.18, 1.0);
-	SPECULAR = glanz * (1.0 - 0.7 * hoehlen * m.b) * (1.0 - 0.5 * clamp(-h0, 0.0, 1.0));
+	ROUGHNESS = clamp(mix(rauheit, rauheit_glanz, m.g) + 0.1 * pore + 0.12 * rand + 0.15 * clamp(-h0, 0.0, 1.0) + 0.3 * haarig, 0.18, 1.0);
+	SPECULAR = glanz * (1.0 - 0.7 * hoehlen * m.b) * (1.0 - 0.5 * clamp(-h0, 0.0, 1.0)) * (1.0 - 0.7 * haarig);
 	AO = 1.0 - hoehlen * m.b * 0.8;
 	AO_LIGHT_AFFECT = 0.3;
 #ifdef ULTRA

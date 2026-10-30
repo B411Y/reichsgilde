@@ -1,0 +1,259 @@
+{
+ "name": "baerte",
+ "titel": "Phase 4: Bärte (Mann 40, kurzes Haar) – Haarkarten und TressFX",
+ "zelle": [
+  360,
+  420
+ ],
+ "alle": {
+  "kopf": "kopf4.glb",
+  "alter": 40,
+  "geschlecht": "m",
+  "gene": {
+   "bartwuchs": 200,
+   "glatze": 0,
+   "haar_helligkeit": 70
+  }
+ },
+ "spalten": [
+  {
+   "titel": "Karten vorn",
+   "winkel": 0,
+   "haar": {
+    "modus": "karten"
+   }
+  },
+  {
+   "titel": "Karten ¾",
+   "winkel": 40,
+   "haar": {
+    "modus": "karten"
+   }
+  },
+  {
+   "titel": "Karten, Mund offen",
+   "winkel": 25,
+   "haar": {
+    "modus": "karten"
+   },
+   "mimik": {
+    "jawOpen": 0.5
+   }
+  },
+  {
+   "titel": "TressFX ¾",
+   "winkel": 40,
+   "haar": {
+    "modus": "tressfx"
+   },
+   "warten": 45
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "rasiert (Stoppeln)",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "schnurrbart",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "schnurrbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "schnurrbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "schnurrbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "schnurrbart"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "kinnbart",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "kinnbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "kinnbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "kinnbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "kinnbart"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "vollbart",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "vollbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "vollbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "vollbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "vollbart"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "langbart",
+   "zellen": [
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "langbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "langbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "karten",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "langbart"
+      }
+     }
+    },
+    {
+     "haar": {
+      "modus": "tressfx",
+      "vorgabe": {
+       "frisur": "mann_kurz",
+       "bart": "langbart"
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

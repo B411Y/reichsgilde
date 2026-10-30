@@ -1,0 +1,79 @@
+{
+ "name": "alter",
+ "titel": "Phase 4: Alter – grau, lichter, Glatze (Haarkarten)",
+ "zelle": [
+  340,
+  400
+ ],
+ "alle": {
+  "kopf": "kopf4.glb",
+  "haar": {
+   "modus": "karten"
+  },
+  "winkel": 25
+ },
+ "spalten": [
+  {
+   "titel": "5 J.",
+   "alter": 5
+  },
+  {
+   "titel": "20 J.",
+   "alter": 20
+  },
+  {
+   "titel": "35 J.",
+   "alter": 35
+  },
+  {
+   "titel": "50 J.",
+   "alter": 50
+  },
+  {
+   "titel": "62 J.",
+   "alter": 62
+  },
+  {
+   "titel": "75 J.",
+   "alter": 75
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Mann, Glatze 40",
+   "geschlecht": "m",
+   "gene": {
+    "glatze": 40,
+    "bartwuchs": 180,
+    "bartform": 180,
+    "frisur": 120
+   }
+  },
+  {
+   "titel": "Mann, Glatze 210",
+   "geschlecht": "m",
+   "gene": {
+    "glatze": 210,
+    "bartwuchs": 180,
+    "bartform": 230,
+    "frisur": 220
+   }
+  },
+  {
+   "titel": "Frau",
+   "geschlecht": "w",
+   "gene": {
+    "frisur": 20
+   }
+  },
+  {
+   "titel": "Frau, blond",
+   "geschlecht": "w",
+   "gene": {
+    "frisur": 130,
+    "haar_helligkeit": 200,
+    "haut_helligkeit": 220
+   }
+  }
+ ]
+}

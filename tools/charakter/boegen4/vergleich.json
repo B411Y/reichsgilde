@@ -1,0 +1,83 @@
+{
+ "name": "vergleich",
+ "titel": "Phase 3 (oben) gegen Phase 4 mit Haar (Mitte: Karten, unten: TressFX)",
+ "zelle": [
+  380,
+  440
+ ],
+ "alle": {
+  "winkel": 25
+ },
+ "spalten": [
+  {
+   "titel": "Frau 20",
+   "alter": 20,
+   "geschlecht": "w",
+   "gene": {
+    "frisur": 20
+   }
+  },
+  {
+   "titel": "Mann 35",
+   "alter": 35,
+   "geschlecht": "m",
+   "gene": {
+    "frisur": 120,
+    "bartform": 180,
+    "bartwuchs": 170
+   }
+  },
+  {
+   "titel": "Frau 50",
+   "alter": 50,
+   "geschlecht": "w",
+   "gene": {
+    "frisur": 130
+   },
+   "winkel": 35
+  },
+  {
+   "titel": "Mann 70",
+   "alter": 70,
+   "geschlecht": "m",
+   "gene": {
+    "frisur": 220,
+    "bartform": 230,
+    "bartwuchs": 200,
+    "glatze": 150
+   }
+  },
+  {
+   "titel": "Mann 8",
+   "alter": 8,
+   "geschlecht": "m",
+   "gene": {
+    "frisur": 120
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Phase 3",
+   "kopf": "~/werkzeuge/charakter/glb3/kopf3.glb",
+   "haar": {
+    "modus": "aus"
+   }
+  },
+  {
+   "titel": "Phase 4 Karten",
+   "kopf": "kopf4.glb",
+   "haar": {
+    "modus": "karten"
+   }
+  },
+  {
+   "titel": "Phase 4 TressFX",
+   "kopf": "kopf4.glb",
+   "haar": {
+    "modus": "tressfx"
+   },
+   "warten": 45
+  }
+ ]
+}

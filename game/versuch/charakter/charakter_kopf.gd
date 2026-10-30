@@ -7,6 +7,10 @@
 # Stoffe der Phase 3 (haut3, augen3, hornhaut, lidschatten, haar3); sonst die der Phase 2. `vorher_setzen(true)`
 # schaltet einen Phase-3-Kopf zum Vergleich auf die Stoffe der Phase 2 (ohne Bilder).
 #
+# Phase 4: Liegt neben der .glb der Ordner haar4 (tools/charakter/kopf4_haar.py), bekommt der Kopf Haupthaar und Bart
+# (charakter_haar.gd): Frisur und Bart aus den Genen (oder `haar_vorgabe`), als Haarkarten oder TressFX
+# (`haar_modus_setzen`), die Haut darunter über die Kopfhautkarten.
+#
 # Formen der .glb: makro_<g>_<alter> (Alter × Geschlecht), makro_<g>_<alter>_<kraft|gewicht>_<minus|plus>,
 # gen_<kennung>_<minus|plus> (Gestalt-Gene) und die ARKit-Mimik. Die Gewichte rechnet _anwenden() wie
 # MakeHuman: Alter und Geschlecht bilinear zwischen den Stützen, Kraft und Gewicht je Alter dazu.
@@ -24,6 +28,7 @@ const AUGEN3 := preload("res://versuch/charakter/augen3.gdshader")
 const HORNHAUT := preload("res://versuch/charakter/hornhaut.gdshader")
 const LIDSCHATTEN := preload("res://versuch/charakter/lidschatten.gdshader")
 const HAAR3 := preload("res://versuch/charakter/haar3.gdshader")
+const HAAR4 := preload("res://versuch/charakter/charakter_haar.gd")
 const BILDER := ["haut_farbe", "haut_normal", "haut_masken", "haut_falten", "brauen", "wimpern", "iris_muster", "lederhaut"]
 # Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
 const FALTEN_ALTER := {
@@ -55,6 +60,12 @@ var ultra := false          # Haut mit Bildschirm-SSS (nur Ultra)
 var vorher := false         # Phase-3-Kopf mit den Stoffen der Phase 2
 var bilder_ms := 0.0
 var _stoffe3 := {}          # "<id>_<fläche>" -> [Stoff Phase 3, Stoff Phase 2]
+# Phase 4: Haar und Bart
+var haar_knoten: Node3D = null  # charakter_haar.gd, wenn <glb-Ordner>/haar4 da ist
+var haar_modus := "karten"  # karten | tressfx | aus
+var haar_vorgabe := {}      # {"frisur": Stil, "bart": Stil} statt der Gene ("" = keins)
+var haar_werte := {}        # zuletzt gesetzte Werte (Frisur, Bart, Glatze, …)
+var haar_ruhe := false      # TressFX nach kurzer Simulation einfrieren (Galerie)
 static var _bild_speicher := {}
 # Zustand
 var gene := {}              # Kennung -> sichtbarer Wert 0..255
@@ -93,6 +104,7 @@ func laden(datei: String) -> bool:
 	var tk := Time.get_ticks_usec()
 	_stoffe_setzen()
 	komprimier_ms = (Time.get_ticks_usec() - tk) / 1000.0
+	_haar_einrichten()
 	gene = mittelwerte("Mensch")
 	_anwenden()
 	return true
@@ -106,10 +118,14 @@ func kopieren_von(quelle) -> void:
 	phase3 = quelle.phase3
 	ultra = quelle.ultra
 	for k in quelle.get_children():
+		if k == quelle.haar_knoten:
+			continue
 		var neu: Node = k.duplicate()
 		add_child(neu)
 		_sammeln(neu)
 	_stoffe_setzen()
+	haar_modus = quelle.haar_modus
+	_haar_einrichten()
 	gene = mittelwerte("Mensch")
 	_anwenden()
 
@@ -341,6 +357,7 @@ func _farben() -> void:
 			m.set_shader_parameter("breite", breite)
 		var wimper := haar.darkened(0.7)
 		for m in wimpern_stoffe:
+			m.set_shader_parameter("schwelle", 0.35)
 			m.set_shader_parameter("farbe", Vector3(wimper.r, wimper.g, wimper.b))
 			m.set_shader_parameter("grau", grau * 0.5)
 			m.set_shader_parameter("dichte", lerpf(1.0, 0.88, geschlecht))
@@ -369,6 +386,7 @@ func _farben() -> void:
 			m.set_shader_parameter("haar_farbe", Vector3(haar.r, haar.g, haar.b))
 		werte3 = {"falten": f, "bart": bart, "brauen_dichte": dichte, "brauen_breite": breite, "grau": grau,
 			"grundfarbe": grund}
+		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
 		for m in haar_stoffe:
@@ -386,6 +404,75 @@ func _farben() -> void:
 		m.set_shader_parameter("iris_farbe", Vector3(iris.r, iris.g, iris.b))
 		m.set_shader_parameter("kranz_farbe", Vector3(kranz.r, kranz.g, kranz.b))
 		m.set_shader_parameter("kranz", clampf(1.0 - at * 0.9, 0.1, 1.0) * lerpf(0.4, 1.0, ah))
+
+# ---------------------------------------------------------------- Haar und Bart (Phase 4)
+func _haar_einrichten() -> void:
+	var o := pfad.get_base_dir().path_join("haar4")
+	if not phase3 or not FileAccess.file_exists(o.path_join("stuetzen.json")):
+		return
+	haar_knoten = HAAR4.new()
+	haar_knoten.name = "Haar"
+	add_child(haar_knoten)
+	if not haar_knoten.einrichten(o):
+		haar_knoten.queue_free()
+		haar_knoten = null
+		return
+	haar_knoten.tfx_ruhe = haar_ruhe
+	haar_knoten.tfx_sparsam = haar_ruhe
+	haar_knoten.modus = haar_modus if haar_modus != "tressfx" or HAAR4.tressfx_da() else "karten"
+
+func haar_modus_setzen(m: String) -> void:
+	haar_modus = m
+	if haar_knoten:
+		haar_knoten.tfx_ruhe = haar_ruhe
+		haar_knoten.tfx_sparsam = haar_ruhe
+		haar_knoten.modus_setzen(m if m != "aus" else "karten")
+		haar_knoten.visible = m != "aus"
+		_farben()
+
+func _haar_aktualisieren(farbe: Color, grau: float) -> void:
+	if haar_knoten == null:
+		return
+	var o: String = haar_knoten.ordner
+	var mann := geschlecht >= 0.5
+	var hw := HAAR4.aus_genen(o, gene, alter, mann)
+	if hw.is_empty():
+		return
+	for k in haar_vorgabe:
+		hw[k] = haar_vorgabe[k]
+	if haar_modus == "aus":
+		hw["frisur"] = ""
+		hw["bart"] = ""
+	hw["farbe"] = farbe
+	hw["grau"] = grau
+	haar_werte = hw
+	haar_knoten.stile_setzen([hw["frisur"], hw["bart"]])
+	haar_knoten.aktualisieren(gewichte, hw)
+	# Haut unter Haar und Bart
+	var ue := HAAR4.uebersicht(o)
+	var karten: Dictionary = ue.get("kopfhaut", {})
+	var kopfhaut_tex: Texture2D = null
+	var kanal := Vector4.ZERO
+	var bart_kanal := Vector4.ZERO
+	for datei in karten:
+		var liste: Array = karten[datei]
+		var i := liste.find(hw["frisur"])
+		if i >= 0 and datei != "bart.png":
+			kopfhaut_tex = HAAR4.bild(o.path_join(datei))
+			kanal[i] = 1.0
+		i = liste.find(hw["bart"])
+		if i >= 0 and datei == "bart.png":
+			bart_kanal[i] = clampf(float(hw["bart_dichte"]) * (0.5 + 0.5 * float(hw["bart_laenge"])), 0.0, 1.0)
+	var unter := farbe.lerp(Color(0.78, 0.77, 0.75), grau)
+	for m in haut_stoffe:
+		m.set_shader_parameter("kopfhaut_tex", kopfhaut_tex)
+		m.set_shader_parameter("kopfhaut_kanal", kanal)
+		m.set_shader_parameter("rang_tex", HAAR4.bild(o.path_join("kopfhaut.png")))
+		m.set_shader_parameter("kahl", float(hw["kahl"]))
+		m.set_shader_parameter("duenn_haut", float(hw["duenn"]))
+		m.set_shader_parameter("bart_tex", HAAR4.bild(o.path_join("bart.png")))
+		m.set_shader_parameter("bart_kanal", bart_kanal)
+		m.set_shader_parameter("haar_unter", Vector3(unter.r, unter.g, unter.b))
 
 # ---------------------------------------------------------------- Stoffe
 # Teilart nach dem Stoffnamen der .glb

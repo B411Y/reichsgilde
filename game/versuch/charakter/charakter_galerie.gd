@@ -1,9 +1,11 @@
-# Versuch Charakter Phase 3: Galerie – viele Köpfe nebeneinander (Testszene, kein Spielcode).
+# Versuch Charakter Phase 3/4: Galerie – viele Köpfe nebeneinander (Testszene, kein Spielcode).
+# Phase 4: mit Haar und Bart (charakter_haar.gd); Frisur, Bart und Glatze aus den Genen, je Kopf verschieden.
 # Drei Hauttöne (hell, mittel, dunkel) × Mann/Frau × 5, 20, 35, 50, 70 Jahre = 30 Köpfe, die sich ein Netz teilen
 # (die .glb wird einmal geladen). Tag- und Innenlicht umschaltbar.
 #   tools/charakter/schau.sh <bilder> 1600x900 (SZENE=charakter_galerie.tscn)    zum Ausprobieren
 #   … --fotos [--ende]       feste Ansichten als Bilder (Tag und Innen, nah und weit) und Messung, dann Ende
 # Tasten: L Licht (Tag/Innen) · V vorher/nachher (Stoffe der Phase 2) · U Ultra (Bildschirm-SSS) · M Mimik ·
+#         T Haar: Karten / TressFX · N Haar an/aus · F Frisur für alle (aus den Genen, dann jede) · B Bart ebenso ·
 #         F1 Hilfe · 1–6 springt zu einer Reihe
 # Kamera: freie Kamera (game/scripts/FreieKamera.cs: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift
 # schneller, Mausrad Tempo, H Hilfe); fehlt sie, eine feste Kamera mit Sprüngen (1–6).
@@ -31,8 +33,8 @@ const STUFE := 0.26                  # jede Reihe höher (Tribüne), damit man a
 const BODEN := 0.6
 
 var args := {}
-var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb3")
-var bilder := OS.get_environment("HOME").path_join("werkzeuge/charakter/bilder/phase3")
+var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb4")
+var bilder := OS.get_environment("HOME").path_join("werkzeuge/charakter/bilder/phase4")
 var koepfe: Array = []            # [Kopf, ton, mann, alter]
 var umgebung: Environment
 var tag: Node3D
@@ -45,6 +47,12 @@ var ultra := false
 var mimik_nr := 0
 var freie := false
 var _reihe_y := {}
+var haar_modus := "karten"
+var haar_an := true
+var frisur_nr := 0             # 0 = aus den Genen, sonst 1.. = Stil
+var bart_nr := 0
+var _frisuren := {"m": [], "w": []}
+var _baerte: Array = []
 
 func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
@@ -57,7 +65,11 @@ func _ready() -> void:
 	bilder = args.get("bilder", bilder)
 	get_viewport().msaa_3d = Viewport.MSAA_4X
 	_buehne()
-	var datei := glb_ordner.path_join(args.get("kopf", "kopf3.glb"))
+	if not DirAccess.dir_exists_absolute(glb_ordner):
+		glb_ordner = glb_ordner.get_base_dir().path_join("glb3")
+	var standard := "kopf4.glb" if FileAccess.file_exists(glb_ordner.path_join("kopf4.glb")) else "kopf3.glb"
+	var datei := glb_ordner.path_join(args.get("kopf", standard))
+	haar_modus = args.get("haar", "karten")
 	var basis := Kopf.new()
 	add_child(basis)
 	if not basis.laden(datei):
@@ -72,6 +84,14 @@ func _ready() -> void:
 				k.kopieren_von(basis)
 				var gene := Kopf.mittelwerte("Mensch")
 				gene.merge(TOENE[ti]["gene"], true)
+				# Phase 4: Frisur, Bart, Glatze je Kopf verschieden (Gene 0..255)
+				gene["frisur"] = [20, 110, 200][(ai + ti) % 3]
+				gene["bartform"] = [70, 230, 120, 180, 20][(ai + 2 * ti) % 5]
+				gene["bartwuchs"] = [120, 175, 210][ti]
+				gene["glatze"] = [40, 150, 215][(ti + ai) % 3]
+				k.haar_ruhe = true
+				if k.haar_knoten and haar_modus != "karten":
+					k.haar_modus_setzen(haar_modus)
 				k.aussehen_setzen(gene, ALTER[ai], 1.0 if g == 0 else 0.0)
 				var reihe := ti * 2 + g
 				k.position = Vector3((ai - 2) * ABSTAND_X, reihe * STUFE - k.augen_mitte.y + 1.6, -reihe * ABSTAND_Z - k.augen_mitte.z)
@@ -87,6 +107,10 @@ func _ready() -> void:
 				sockel.material_override = _sockel_stoff()
 				sockel.position = Vector3(k.position.x, BODEN + (oben_y - BODEN) / 2.0, k.position.z + k.augen_mitte.z - 0.75 * s_kopf)
 				add_child(sockel)
+	if basis.haar_knoten:
+		var ue: Dictionary = basis.haar_knoten.uebersicht(basis.haar_knoten.ordner)
+		_frisuren = ue.get("frisuren", _frisuren)
+		_baerte = ue.get("baerte", [])
 	basis.queue_free()
 	print("GALERIE %d Köpfe, Laden %.0f ms, Kopieren %.0f ms, Bilder %.0f ms" % [koepfe.size(), basis.ladezeit_ms,
 		(Time.get_ticks_usec() - t) / 1000.0, basis.bilder_ms])
@@ -243,9 +267,12 @@ func _hilfe_text() -> void:
 		return
 	var kam := "Kamera: rechte Maustaste halten = umsehen, WASD, Q/E runter/hoch, Shift schneller, Mausrad Tempo, H Hilfe der Kamera" if freie \
 		else "Kamera: 1–6 springt zu einer Reihe (freie Kamera fehlt noch: game/scripts/FreieKamera.cs)"
-	hilfe.text = "Charakter Phase 3 – Galerie (Reihen von vorn: hell Mann, hell Frau, mittel Mann, mittel Frau, dunkel Mann, dunkel Frau; 5/20/35/50/70 Jahre)\n" \
+	hilfe.text = "Charakter Phase 4 – Galerie (Reihen von vorn: hell Mann, hell Frau, mittel Mann, mittel Frau, dunkel Mann, dunkel Frau; 5/20/35/50/70 Jahre)\n" \
 		+ kam + "\nL Licht: %s · V %s · U Ultra-SSS: %s · M Mimik %d · F1 Hilfe aus" % [
-			"Tag" if ist_tag else "Innen", "vorher (Phase 2)" if vorher else "nachher (Phase 3)", "an" if ultra else "aus", mimik_nr]
+			"Tag" if ist_tag else "Innen", "vorher (Phase 2)" if vorher else "nachher (Phase 3)", "an" if ultra else "aus", mimik_nr] \
+		+ "\nT Haar: %s · N Haar %s · F Frisur: %s · B Bart: %s" % [
+			"TressFX" if haar_modus == "tressfx" else "Haarkarten", "an" if haar_an else "aus",
+			"aus den Genen" if frisur_nr == 0 else "Nr. %d" % frisur_nr, "aus den Genen" if bart_nr == 0 else _bart_name()]
 
 func _unhandled_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey and ev.pressed and not ev.echo):
@@ -265,6 +292,18 @@ func _unhandled_input(ev: InputEvent) -> void:
 			mimik_nr = (mimik_nr + 1) % MIMIK.size()
 			for e in koepfe:
 				e[0].mimik_setzen(MIMIK[mimik_nr])
+		KEY_T:
+			haar_modus = "karten" if haar_modus == "tressfx" else "tressfx"
+			_haar_setzen()
+		KEY_N:
+			haar_an = not haar_an
+			_haar_setzen()
+		KEY_F:
+			frisur_nr = (frisur_nr + 1) % (_frisuren["m"].size() + 1)
+			_haar_setzen()
+		KEY_B:
+			bart_nr = (bart_nr + 1) % (_baerte.size() + 2)
+			_haar_setzen()
 		KEY_F1:
 			hilfe.visible = not hilfe.visible
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
@@ -272,6 +311,26 @@ func _unhandled_input(ev: InputEvent) -> void:
 				var reihe: int = ev.keycode - KEY_1
 				_nah(reihe / 2, reihe % 2 == 0, 35, 15.0, 1.6)
 	_hilfe_text()
+
+func _bart_name() -> String:
+	if bart_nr == 0:
+		return ""
+	return "rasiert" if bart_nr == 1 else _baerte[bart_nr - 2]
+
+# Haar aller Köpfe nach den Schaltern (Art, an/aus, Frisur und Bart für alle)
+func _haar_setzen() -> void:
+	var t := Time.get_ticks_usec()
+	for e in koepfe:
+		var k: Kopf = e[0]
+		var v := {}
+		if frisur_nr > 0:
+			var liste: Array = _frisuren["m" if e[2] else "w"]
+			v["frisur"] = liste[(frisur_nr - 1) % liste.size()]
+		if bart_nr > 0:
+			v["bart"] = "" if bart_nr == 1 else _baerte[bart_nr - 2]
+		k.haar_vorgabe = v
+		k.haar_modus_setzen(haar_modus if haar_an else "aus")
+	print("GALERIE Haar %s %s: %.0f ms" % [haar_modus, "an" if haar_an else "aus", (Time.get_ticks_usec() - t) / 1000.0])
 
 # ---------------------------------------------------------------- Fotos und Messung (--fotos)
 func _warte(n: int) -> void:
@@ -303,6 +362,22 @@ func _fotos() -> void:
 		for a in ansichten:
 			a[1].call()
 			await _foto("galerie_%s_%s" % ["tag" if licht else "innen", a[0]])
+	# Phase 4: ohne Haar / Karten / TressFX nah (Tag)
+	_licht_setzen(true)
+	var nahe := [["m70_hell", func(): _nah(0, true, 70)], ["w20_hell", func(): _nah(0, false, 20, -20.0)],
+		["m35_mittel", func(): _nah(1, true, 35, 30.0)], ["w50_dunkel", func(): _nah(2, false, 50, -25.0)],
+		["weit", func(): _blick(Vector3(0.0, 2.6, 3.0), Vector3(0.0, 2.05, -2.2))]]
+	for stand in [["ohne", "karten", false], ["karten", "karten", true], ["tressfx", "tressfx", true]]:
+		haar_modus = stand[1]
+		haar_an = stand[2]
+		_haar_setzen()
+		await _warte(50 if stand[1] == "tressfx" else 4)
+		for a in nahe:
+			a[1].call()
+			await _foto("haar_%s_%s" % [stand[0], a[0]])
+	haar_modus = "karten"
+	haar_an = true
+	_haar_setzen()
 	# vorher/nachher nah (Tag)
 	_licht_setzen(true)
 	for v in [true, false]:
@@ -315,10 +390,14 @@ func _fotos() -> void:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		_blick(Vector3(0.0, 2.6, 3.0), Vector3(0.0, 2.05, -2.2))
 		RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
-		for lauf in [["tag_30", false, true], ["tag_30_ultra", true, true], ["innen_30", false, false]]:
+		for lauf in [["tag_30_ohne_haar", false, true, "aus"], ["tag_30", false, true, "karten"], ["tag_30_ultra", true, true, "karten"],
+				["innen_30", false, false, "karten"], ["tag_30_tressfx_ruhe", false, true, "tressfx"]]:
 			for e in koepfe:
 				e[0].ultra_setzen(lauf[1])
 			_licht_setzen(lauf[2])
+			haar_an = lauf[3] != "aus"
+			haar_modus = lauf[3] if lauf[3] != "aus" else "karten"
+			_haar_setzen()
 			await _warte(60)
 			var gpu := 0.0
 			var n := 0

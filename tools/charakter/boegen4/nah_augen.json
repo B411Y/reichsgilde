@@ -1,0 +1,74 @@
+{
+ "name": "nah_augen",
+ "titel": "Brauen und Wimpern: Phase 3 (links) gegen Phase 4 (rechts)",
+ "zelle": [
+  440,
+  330
+ ],
+ "alle": {
+  "ansicht": "augen",
+  "haar": {
+   "modus": "aus"
+  }
+ },
+ "spalten": [
+  {
+   "titel": "Phase 3",
+   "kopf": "~/werkzeuge/charakter/glb3/kopf3.glb"
+  },
+  {
+   "titel": "Phase 4",
+   "kopf": "kopf4.glb"
+  },
+  {
+   "titel": "Phase 3, ¾",
+   "kopf": "~/werkzeuge/charakter/glb3/kopf3.glb",
+   "winkel": 40
+  },
+  {
+   "titel": "Phase 4, ¾",
+   "kopf": "kopf4.glb",
+   "winkel": 40
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Mann 35",
+   "geschlecht": "m",
+   "alter": 35,
+   "winkel": 12
+  },
+  {
+   "titel": "Frau 20",
+   "geschlecht": "w",
+   "alter": 20,
+   "winkel": 12
+  },
+  {
+   "titel": "Mann 70",
+   "geschlecht": "m",
+   "alter": 70,
+   "winkel": 12
+  },
+  {
+   "titel": "Frau 35, dunkel",
+   "geschlecht": "w",
+   "alter": 35,
+   "winkel": 12,
+   "gene": {
+    "haut_helligkeit": 40,
+    "haar_helligkeit": 15
+   }
+  },
+  {
+   "titel": "halb geschlossen",
+   "geschlecht": "w",
+   "alter": 30,
+   "winkel": 12,
+   "mimik": {
+    "eyeBlinkLeft": 0.55,
+    "eyeBlinkRight": 0.55
+   }
+  }
+ ]
+}
