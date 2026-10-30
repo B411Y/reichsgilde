@@ -121,16 +121,26 @@ Wie du die Testszene startest, steht oben unter [So startest du die Testszene](#
 
 | Taste | Wirkung |
 |---|---|
-| `1` … `7` oder Pfeil links/rechts | Paar wählen: 1 Kerze, 2 Fackel, 3 Laterne, 4 Feuerkorb, 5 Esse, 6 Kamin, 7 Gebäudebrand |
-| `V` | Sicht wechseln: **nah** (Perspektive wie die Raumansicht), **Stadt** (Orthokamera wie der nächste Zoom des Spiels), **fern** (wie der weiteste Zoom, alle Paare) |
+| `1` … `7` oder Pfeil links/rechts | Paar wählen und die Kamera davor setzen: 1 Kerze, 2 Fackel, 3 Laterne, 4 Feuerkorb, 5 Esse, 6 Kamin, 7 Gebäudebrand |
+| `V` | Sicht wechseln und die Kamera dorthin setzen: **nah** (leicht von oben, nah am Paar, wie die Raumansicht), **Stadt** (40° von oben, so viel im Bild wie der nächste Zoom des Spiels), **fern** (wie der weiteste Zoom, alle Paare) |
 | `N` | Nacht und Tag wechseln (Nacht ist der Start) |
 | `G` | Ansicht: Vergleich (A links, B rechts), Niedrig, Mittel, Hoch (jede Feuerart einmal, wie die Grafikstufe sie zeichnet) |
 | `F` | Fassung von A: Simulation (Flipbook) oder Rauschen (die Flamme aus Phase 1) |
 | `T` | Technik zeigen: beide, nur A, nur B, keine (nur die Aufbauten, für den Vergleich der Bildrate) |
 | `L` | die Lichter der Feuer aus und an |
-| `H` | Beschriftung aus und an |
-| rechte Maustaste ziehen / Mausrad | drehen / nähern |
+| `B` | Beschriftung aus und an (früher `H`) |
 | `Esc` | Ende |
+
+**Freie Kamera:** Die Szene startet mit der freien Kamera (wie jede Testszene): Du fliegst von der Startansicht aus frei durch die Szene. `1`–`7`, die Pfeile und `V` setzen sie zurück auf die Ansicht des Paars bzw. der Sicht; `G` lässt sie stehen. Sie ist immer perspektivisch (Fov 60); „Stadt“ und „fern“ sind darum keine Orthokamera mehr wie im Spiel, sondern zeigen aus 40° denselben Ausschnitt. Die Messwerte unten stammen noch von der Orthokamera.
+
+| Taste / Maus | Wirkung (freie Kamera) |
+|---|---|
+| rechte Maustaste halten | umsehen |
+| `W` `A` `S` `D` | vor, links, zurück, rechts (in Blickrichtung) |
+| `Q` / `E` | senkrecht runter / hoch |
+| `Shift` | viermal so schnell |
+| Mausrad | Grundtempo (0,5–400 m/s) |
+| `H` | Hilfe der freien Kamera (oben rechts) aus und an |
 
 **Im Vergleich steht links A (Shader), rechts B (Partikel)**, jede Feuerart als Paar nebeneinander; in den Ansichten der Grafikstufe jede Feuerart einmal. Oben links stehen Sicht, Paar, Tageszeit und die **Bilder pro Sekunde**; im Ausgabefenster des Editors schreibt die Szene jede Sekunde eine Zeile `[feuer] fps=…` mit Bildrate, Bildzeit und Zahl der Zeichenaufrufe.
 
