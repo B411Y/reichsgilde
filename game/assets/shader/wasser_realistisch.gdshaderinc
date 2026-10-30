@@ -14,7 +14,8 @@
 // ihn hat), Wellen und Normalen folgen dem Weltwind (Wellen in wasser_wellen.gdshaderinc, gemeinsam mit den Eisschollen), Regenringe, Eis
 // (Winterfortschritt, vom Ufer her wachsend, als Mosaik gebrochener Platten mit feinen Rissen, klarem und weißem Eis, Kante mit Dicke, Grieseis
 // davor, zum Ufer weich auslaufend; Löcher an Mündungen und schnellen Stellen; offenes Wasser im Winter kälter und dunkler; die treibenden
-// Schollen sind eigene Körper, eis_scholle.gdshaderinc), Bachwasser, das an einer Mündung als trüber Streifen in den Fluss zieht, Kaustik und Tiefe
+// Schollen sind eigene Körper, eis_scholle.gdshaderinc; die Oberseite des Eises ist für beide dieselbe, eis_material.gdshaderinc; festes Eis
+// ist starr, die Wellen setzen erst vor seiner Kante ein), Bachwasser, das an einer Mündung als trüber Streifen in den Fluss zieht, Kaustik und Tiefe
 // aus der Welt statt aus einer Projektionsmatrix, alle Werte je Gewässerart über Uniforms (Wasserarten.cs). Die fünf Bilder (Normalkarten,
 // Strömungskarte, Schaum, Kaustik) sind austauschbar: nur die Sampler-Uniforms belegen.
 //
@@ -37,8 +38,12 @@ uniform sampler2D DEPTH_TEXTURE : hint_depth_texture, filter_linear_mipmap;
 uniform sampler2D SCREEN_TEXTURE : hint_screen_texture, filter_linear_mipmap;
 #endif
 
-// Wellen, Rauschen und die globalen Windwerte (wetter_wind, wind_richtung): gemeinsam mit den Eisschollen
+// Wellen, Rauschen und die globalen Windwerte (wetter_wind, wellen_seegang, wind_richtung): gemeinsam mit den Eisschollen
 #include "res://assets/shader/wasser_wellen.gdshaderinc"
+#ifdef MIT_EIS
+// Die Oberseite des Eises: dasselbe Material wie die Schollen (Uniforms eis_hell, eis_dunkel, eis_stirn, eis_schlamm, eis_klar, eis_relief)
+#include "res://assets/shader/eis_material.gdshaderinc"
+#endif
 
 // Globale Werte des Spiels (project.godot, [shader_globals]); die Stadtansicht setzt sie je Bild
 global uniform float wetter_regen;     // Regen gerade jetzt 0–1 (nur in den Wettereffekten Hoch > 0)
@@ -86,8 +91,6 @@ uniform float kaustik_skala = 0.3;     // je Meter
 uniform float eis = 0.0;               // Eisfortschritt der Art 0–1 (Wasserarten.EisFortschritt: stilles Wasser früher als ein Bach)
 uniform float eis_reichweite = 0.0;    // Meter vom Ufer, die das Eis bei eis = 1 erreicht (0 = friert nie)
 uniform float ufer_im_netz = 0.0;      // 1 = COLOR trägt die Netzwerte (siehe oben); 0 = aus der Tiefe geschätzt
-uniform vec3 eis_hell : source_color = vec3(0.82, 0.90, 0.93);
-uniform vec3 eis_dunkel : source_color = vec3(0.45, 0.60, 0.68);
 uniform float winter_ton = 0.0;        // Winterfortschritt 0–1 (für alle Arten): offenes Wasser kälter, dunkler, schwächere Lichtnetze
 uniform float eis_still = 0.0;         // Eisfortschritt stillen Wassers (Hafenbecken) für Ecken mit „still“ (vor einer Kaimauer)
 uniform float still_reichweite = 4.5;  // seine Reichweite in m
@@ -118,86 +121,6 @@ varying float wellen_y;    // Höhe der Welle an dieser Ecke
 varying vec3 vertex_normal;
 varying vec3 vertex_binormal;
 varying vec3 vertex_tangent;
-
-void vertex() {
-	vec4 vertex = vec4(VERTEX, 1.0);
-	vec3 wp = (MODEL_MATRIX * vertex).xyz;
-	welt_xz = wp.xz;
-	if (ufer_im_netz > 0.5) {
-		ufer = COLOR.r * 32.0;
-		offen = clamp(1.0 - 2.0 * COLOR.g, 0.0, 1.0);
-		still = clamp(2.0 * COLOR.g - 1.0, 0.0, 1.0);
-		schaum_anteil = COLOR.b;
-		deckkraft = COLOR.a;
-	} else {
-		ufer = 1000.0;
-		offen = 0.0;
-		still = 0.0;
-		schaum_anteil = 1.0;
-		deckkraft = 1.0;
-	}
-	if (lauf_netz > 0.5) {
-		lauf_uv = UV;
-		float tempo = length(UV2);
-		lauf_dir = tempo > 0.0001 ? UV2 / tempo : vec2(0.0, 1.0);
-		strom_welt = UV2;
-	} else {
-		lauf_uv = wp.xz;
-		lauf_dir = vec2(0.0, 1.0);
-		strom_welt = stroemung;
-	}
-
-	float sturm;
-	vec2 wind;
-	wellen_wind(sturm, wind);
-	float staerke = wellen_staerke * wellen_windfaktor(sturm);
-#ifdef MIT_EIS
-	// Unter dem Eis liegt das Wasser still; zur Kante hin (über 2 m) schaukeln die Platten mit
-	staerke *= 1.0 - clamp((mix(eis, eis_still, still) * (1.0 - offen) * mix(eis_reichweite, still_reichweite, still) * 0.8 - ufer) / 2.0, 0.0, 1.0);
-#endif
-
-	if (netz_halb.x > 0.0) { // am Rand des Testfeldes abklingen
-		vec2 innen = netz_halb - abs(VERTEX.xz);
-		staerke *= smoothstep(0.0, rand_breite, min(innen.x, innen.y));
-	}
-
-	// Flüsse rechnen in Laufachsen (die Wellen folgen den Kurven), alles andere in Weltachsen
-	vec3 tang;
-	vec3 bin;
-	vec3 normale;
-	vec3 versatz = wellen_welt(wp.xz, lauf_uv, lauf_dir, staerke, wind, tang, bin, normale);
-	vertex.xyz += versatz;
-	wellen_y = versatz.y;
-	welt_y = wp.y + versatz.y;
-
-	vertex_tangent = tang;
-	vertex_binormal = bin;
-	TANGENT = tang;
-	BINORMAL = bin;
-	vertex_normal = normale;
-	NORMAL = vertex_normal;
-	UV = (lauf_netz > 0.5 ? lauf_uv : vertex.xz) * sampler_scale;
-	VERTEX = vertex.xyz;
-}
-
-#ifdef MIT_RINGE
-// Regenringe: zwei Lagen Zellen, in jeder wächst je Zelle ein Ring und verklingt; Wirkung nur auf die Normale
-vec2 ringe(vec2 p, float t) {
-	vec2 summe = vec2(0.0);
-	for (int l = 0; l < 2; l++) {
-		vec2 q = p * (1.3 + float(l) * 0.9) + float(l) * 17.3;
-		vec2 zelle = floor(q);
-		vec2 lokal = fract(q) - 0.5;
-		vec2 h = w_hash2(zelle);
-		float alter = fract(t * (0.8 + 0.3 * h.x) + h.y);
-		vec2 v = lokal - (h - 0.5) * 0.4;
-		float d = length(v);
-		float ring = exp(-pow((d - alter * 0.5) * 22.0, 2.0)) * (1.0 - alter);
-		summe += normalize(v + vec2(0.0001)) * ring;
-	}
-	return summe;
-}
-#endif
 
 #ifdef MIT_EIS
 // Wie weit das Eis hier wegen eines Loches zurückbleibt (1 = offen): Kapseln aus loch_ort/loch_form, der Rand weich und unregelmäßig
@@ -249,6 +172,100 @@ void eis_zellen(vec2 p, float z, out vec2 c1, out vec2 c2, out float grenze) {
 	grenze = (f2 - f1) / (2.0 * max(length(m2 - m1), 1e-4)) * z;
 }
 #endif
+
+void vertex() {
+	vec4 vertex = vec4(VERTEX, 1.0);
+	vec3 wp = (MODEL_MATRIX * vertex).xyz;
+	welt_xz = wp.xz;
+	if (ufer_im_netz > 0.5) {
+		ufer = COLOR.r * 32.0;
+		offen = clamp(1.0 - 2.0 * COLOR.g, 0.0, 1.0);
+		still = clamp(2.0 * COLOR.g - 1.0, 0.0, 1.0);
+		schaum_anteil = COLOR.b;
+		deckkraft = COLOR.a;
+	} else {
+		ufer = 1000.0;
+		offen = 0.0;
+		still = 0.0;
+		schaum_anteil = 1.0;
+		deckkraft = 1.0;
+	}
+	if (lauf_netz > 0.5) {
+		lauf_uv = UV;
+		float tempo = length(UV2);
+		lauf_dir = tempo > 0.0001 ? UV2 / tempo : vec2(0.0, 1.0);
+		strom_welt = UV2;
+	} else {
+		lauf_uv = wp.xz;
+		lauf_dir = vec2(0.0, 1.0);
+		strom_welt = stroemung;
+	}
+
+	float sturm;
+	vec2 wind;
+	wellen_wind(sturm, wind);
+	float staerke = wellen_staerke * wellen_windfaktor(sturm);
+#ifdef MIT_EIS
+	// Festes Eis ist starr und angefroren (Nutzer 30.10.2026: es bewegte sich „wie ein Schwamm“): unter dem Eis keine Wellen, auch nicht unter den
+	// Platten, die über die glatte Kante hinausragen (bis knapp die halbe Plattengröße); erst davor setzen sie über 2,5 m ein. Dieselbe Kante
+	// wie im Bildpunkt-Teil (Reichweite, großflächige Buchten, Löcher), nur ohne die Platten.
+	float eis_v = mix(eis, eis_still, still) * (1.0 - offen);
+	float reich_v = mix(eis_reichweite, still_reichweite, still);
+	if (eis_v > 0.001 && reich_v > 0.01) {
+		if (loch_zahl > 0) {
+			eis_v *= 1.0 - loch_offen(wp.xz);
+		}
+		float unruhe_v = min(reich_v, 12.0) * 0.42 * rand_unruhe;
+		float zelle_v = clamp(reich_v * 0.75, 1.3, 3.6);
+		float vor_kante = ufer - (eis_v * reich_v + (w_fbm(wp.xz * 0.045 + 17.0) - 0.5) * 2.0 * unruhe_v * smoothstep(0.0, 0.3, eis_v));
+		float ab = (zelle_v * 0.45 + 0.2) * smoothstep(0.0, 0.15, eis_v);
+		staerke *= smoothstep(ab, ab + 2.5, vor_kante);
+	}
+#endif
+
+	if (netz_halb.x > 0.0) { // am Rand des Testfeldes abklingen
+		vec2 innen = netz_halb - abs(VERTEX.xz);
+		staerke *= smoothstep(0.0, rand_breite, min(innen.x, innen.y));
+	}
+
+	// Flüsse rechnen in Laufachsen (die Wellen folgen den Kurven), alles andere in Weltachsen
+	vec3 tang;
+	vec3 bin;
+	vec3 normale;
+	vec3 versatz = wellen_welt(wp.xz, lauf_uv, lauf_dir, staerke, wind, tang, bin, normale);
+	vertex.xyz += versatz;
+	wellen_y = versatz.y;
+	welt_y = wp.y + versatz.y;
+
+	vertex_tangent = tang;
+	vertex_binormal = bin;
+	TANGENT = tang;
+	BINORMAL = bin;
+	vertex_normal = normale;
+	NORMAL = vertex_normal;
+	UV = (lauf_netz > 0.5 ? lauf_uv : vertex.xz) * sampler_scale;
+	VERTEX = vertex.xyz;
+}
+
+#ifdef MIT_RINGE
+// Regenringe: zwei Lagen Zellen, in jeder wächst je Zelle ein Ring und verklingt; Wirkung nur auf die Normale
+vec2 ringe(vec2 p, float t) {
+	vec2 summe = vec2(0.0);
+	for (int l = 0; l < 2; l++) {
+		vec2 q = p * (1.3 + float(l) * 0.9) + float(l) * 17.3;
+		vec2 zelle = floor(q);
+		vec2 lokal = fract(q) - 0.5;
+		vec2 h = w_hash2(zelle);
+		float alter = fract(t * (0.8 + 0.3 * h.x) + h.y);
+		vec2 v = lokal - (h - 0.5) * 0.4;
+		float d = length(v);
+		float ring = exp(-pow((d - alter * 0.5) * 22.0, 2.0)) * (1.0 - alter);
+		summe += normalize(v + vec2(0.0001)) * ring;
+	}
+	return summe;
+}
+#endif
+
 
 // Mündungen in diesen Fluss (Laufachsen): x = wie viel Bachwasser hier ist (trüber Streifen), y = dünne Schaumstreifen an der Mischkante,
 // z = Nähe zur Mündung (dort kein Uferschaum: das Ufer ist offen, der Grund flach)
@@ -309,7 +326,7 @@ void fragment() {
 
 	float sturm = 0.0;
 #ifdef MIT_WIND
-	sturm = wind_anteil * wetter_wind;
+	sturm = wind_anteil * wellen_seegang; // Kräusel so träge wie der Seegang (sonst sprang ihre Stärke beim Wetterwechsel)
 #endif
 #ifdef MIT_RINGE
 	if (wetter_regen > 0.02) {
@@ -400,10 +417,12 @@ void fragment() {
 	vec3 schaum_farbe = vec3(0.9, 0.93, 0.92);
 #endif
 
-	// ── Eis: ein Mosaik gebrochener Platten, vom Ufer her wachsend; klares und weißes Eis, feine Risse, Schnee; die Kante hat Dicke,
-	//    davor Grieseis; zum Ufer hin läuft es weich auf den Grund aus ──
+	// ── Eis: vom Ufer her wachsend, die Kante gebrochen entlang eines Mosaiks von Platten (beim Randeis bis innen als feine Fugen, bei einer
+	//    Decke nur an der Kante); Oberseite aus dem gemeinsamen Eismaterial; die Kante hat Dicke, davor Grieseis; zum Ufer weich auf den Grund ──
 	float eismaske = 0.0;
 	float eis_alpha = 0.0;   // Deckkraft des Eises (ohne Bildschirmtextur): am Ufer dünner
+	vec3 eis_leuchten = vec3(0.0); // Himmel im Eis und Licht aus seinem Inneren (eis_himmel)
+	vec3 eis_durch = vec3(0.0);    // Licht, das durch das Eis scheint
 #ifdef MIT_EIS
 	float eis_art = mix(eis, eis_still, still);
 	float reichweite = mix(eis_reichweite, still_reichweite, still);
@@ -445,21 +464,25 @@ void fragment() {
 				- (abstand + dot(c2 - p, grad));
 			float aa = bildpunkt_m * 1.2 + 0.01;
 			float kante_aussen = 99.0;  // Abstand (m) vor der nächsten Platte (offenes Wasser)
-			float rand_hell = 0.0;      // Bruchkante der Platte (hell)
+			float kante_innen = 99.0;   // Abstand (m) hinter der Bruchkante (auf dem Eis): nasser Rand, Lippe
 			float riss_platte = 0.0;    // Fuge zwischen zwei Platten
+			bool decke = rand_unruhe < 0.99; // ganz zufrierendes Wasser (Bach, Teich, Hafenbecken): eine zusammenhängende Decke
 			if (w1 > 0.0 && w2 > 0.0) {
 				eismaske = 1.0;
-				// Nahe der Kante gehen manche Fugen auf (bis 9 cm, offenes Wasser darin), weiter innen sind sie feine Risse
-				float spalt = mix(0.004, 0.09, (1.0 - smoothstep(0.0, zelle_m * 0.35, min(w1, w2))) * step(0.55, w_hash(c1 + c2 + vec2(9.0, 4.0))));
-				float fuge = 1.0 - smoothstep(spalt, spalt + aa, grenze);
-				float offen_fuge = smoothstep(0.03, 0.09, spalt);
-				eismaske = 1.0 - fuge * offen_fuge;
-				// ganz zufrierendes Wasser (rand_unruhe < 1) ist eine zusammenhängende Decke: dort nur wenige, schwache Fugen
-				riss_platte = fuge * (1.0 - offen_fuge) * step(mix(0.75, 0.3, rand_unruhe), w_hash(c1 + c2 + vec2(3.0, 1.0))) * mix(0.5, 1.0, rand_unruhe);
-				kante_aussen = fuge * offen_fuge > 0.5 ? max(spalt - grenze, 0.0) : 99.0;
+				// Randeis: Nahe der Kante gehen manche Fugen auf (bis 9 cm, offenes Wasser darin), weiter innen sind sie feine Risse, nur nah.
+				// Eine Decke hat keine Fugen (aus der Höhe sah man sonst das Mosaik der Platten)
+				if (!decke) {
+					float spalt = mix(0.004, 0.09, (1.0 - smoothstep(0.0, zelle_m * 0.35, min(w1, w2))) * step(0.55, w_hash(c1 + c2 + vec2(9.0, 4.0))));
+					float fuge = 1.0 - smoothstep(spalt, spalt + aa, grenze);
+					float offen_fuge = smoothstep(0.03, 0.09, spalt);
+					eismaske = 1.0 - fuge * offen_fuge;
+					riss_platte = fuge * (1.0 - offen_fuge) * step(0.6, w_hash(c1 + c2 + vec2(3.0, 1.0))) * 0.6;
+					kante_aussen = fuge * offen_fuge > 0.5 ? max(spalt - grenze, 0.0) : 99.0;
+					kante_innen = fuge * offen_fuge > 0.5 ? 99.0 : max(grenze - spalt, 0.0) + (1.0 - offen_fuge) * 99.0;
+				}
 			} else if (w1 > 0.0) {
 				eismaske = smoothstep(-aa * 0.5, aa * 0.5, grenze);
-				rand_hell = (1.0 - smoothstep(0.0, 0.05 + aa, grenze)) * (1.0 - smoothstep(0.015, 0.05, bildpunkt_m));
+				kante_innen = grenze;
 			} else if (w2 > 0.0) {
 				eismaske = 1.0 - smoothstep(-aa * 0.5, aa * 0.5, grenze);
 				kante_aussen = grenze;
@@ -472,48 +495,43 @@ void fragment() {
 			matsch *= smoothstep(0.25, 0.6, w_fbm(tp * 0.9 + 4.0)) * (1.0 - eismaske);
 			matsch = max(matsch, (1.0 - smoothstep(0.0, 0.6, kante_aussen)) * 0.7 * (1.0 - eismaske));
 			if (matsch > 0.001) {
-				float flocke = smoothstep(0.6, 0.85, w_rausch(tp * 3.1));
-				color = mix(color, mix(eis_dunkel * 0.75, eis_hell * 0.8, flocke * 0.6), matsch * 0.45);
+				// Treibende Flocken (wie auf den Fotos: weiße Punkte auf dunklem Wasser), dazwischen grauer Brei
+				float flocke = smoothstep(0.62, 0.86, w_rausch(tp * 3.1)) + smoothstep(0.8, 0.95, w_rausch(tp * 7.3 + 2.0)) * 0.6;
+				color = mix(color, mix(eis_dunkel * 0.75, eis_hell * 0.85, clamp(flocke, 0.0, 1.0)), matsch * 0.5);
 				roughness = mix(roughness, 0.6, matsch * 0.6);
 				normalmap = mix(normalmap, vec3(0.5, 0.5, 1.0), matsch * 0.55);
 				schaum *= 1.0 - matsch;
 			}
-			// Unter Wasser vor der Kante: die Stirn der Platte (blaugrün), direkt an der Kante ein dunkler Schattenstrich
+			// Unter Wasser vor der Kante: die Stirn der Platte (blaugrün, sie leuchtet wie die Stirn der Schollen), direkt an der Kante ein dunkler
+			// Schattenstrich
 			if (kante_aussen < 0.3) {
 				float stirn = 1.0 - smoothstep(0.0, 0.22, kante_aussen);
-				color = mix(color, vec3(0.17, 0.3, 0.32) * mix(0.6, 1.0, depth_blend), stirn * 0.3);
+				color = mix(color, eis_stirn * 0.75 * mix(0.6, 1.0, depth_blend), stirn * 0.4);
 				color *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, 0.03 + aa, kante_aussen));
 			}
 
 			if (eismaske > 0.001) {
-				// Klares (schwarzes) Eis neben weißem: flächig wechselnd, je Platte etwas anders, zur Kante hin mehr klares (junges) Eis
-				float aussen = clamp((abstand + dot(c1 - p, grad)) / max(eis_hier * reichweite, 0.5), 0.0, 1.0);
-				float klar = smoothstep(0.4, 0.72, w_fbm(welt_xz * 0.09 + 21.0) + (w_hash(c1 * 1.7) - 0.5) * 0.12 * rand_unruhe + (aussen - 0.45) * 0.4);
-				float wolke = w_fbm(welt_xz * 0.35 + 11.0);
-				vec3 weiss = mix(eis_dunkel, eis_hell, wolke);
-				// Klares Eis zeigt das dunkle Wasser darunter, leicht milchig, mit weißen Luftblasen (nur nah: aus der Ferne flimmerten sie)
-				vec3 klarfarbe = color * 0.5 + eis_dunkel * 0.3 + vec3(0.0, 0.015, 0.02);
-				float blasen = smoothstep(0.86, 0.96, w_rausch(welt_xz * 16.0 + 3.0)) * (1.0 - smoothstep(0.004, 0.012, bildpunkt_m));
-				klarfarbe = mix(klarfarbe, eis_hell * 0.85, blasen * 0.4);
-				vec3 eisfarbe = mix(weiss, klarfarbe, klar * 0.85);
-				// Feine Risse aus Rauschen (Null-Linien, etwa einen Bildpunkt breit, nur stückweise), aus der Ferne ausgeblendet
-				float n1 = w_fbm(welt_xz * 0.8 + 2.0) - 0.5;
-				float r1 = (1.0 - smoothstep(0.0, bildpunkt_m * 1.6 + 0.004, abs(n1))) * smoothstep(0.42, 0.62, w_rausch(welt_xz * 0.35 + 8.0));
-				float n2 = w_rausch(welt_xz * 2.7 + 5.0) - 0.5;
-				float r2 = (1.0 - smoothstep(0.0, bildpunkt_m * 4.0 + 0.006, abs(n2))) * smoothstep(0.55, 0.75, w_rausch(welt_xz * 0.9 + 1.0));
-				float riss = max(r1 * (1.0 - smoothstep(0.03, 0.09, bildpunkt_m)), r2 * 0.6 * (1.0 - smoothstep(0.012, 0.035, bildpunkt_m)));
-				riss = max(riss, riss_platte * (1.0 - smoothstep(0.04, 0.12, bildpunkt_m)));
-				// Im klaren Eis sind Risse weiß (Bruchflächen), im weißen Eis grau (Wasser zieht ein)
-				eisfarbe = mix(eisfarbe, mix(eis_dunkel * 0.72, eis_hell * 1.05, klar), riss * 0.5);
-				// Bruchkante der Platte: ein heller Streifen (die Stirn fängt das Licht)
-				eisfarbe = mix(eisfarbe, eis_hell * 1.05, rand_hell * 0.35);
-				// Schnee: mehr auf altem Eis am Ufer, wenig auf klarem
-				float schnee_auf = clamp(wetter_schnee * 1.15 * smoothstep(0.25, 0.7, w_fbm(welt_xz * 0.5 + 3.0) + (0.5 - aussen) * 0.3) * (1.0 - 0.7 * klar), 0.0, 1.0);
-				eisfarbe = mix(eisfarbe, vec3(0.93, 0.95, 0.97), schnee_auf);
+				// Die Oberseite: dasselbe Material wie die Schollen (eis_material.gdshaderinc). Zur Kante hin mehr klares (junges) Eis, am Ufer mehr
+				// Schnee; der Anteil wechselt stetig über die Fläche (nicht je Platte)
+				float aussen = clamp(abstand / max(eis_hier * reichweite, 0.5), 0.0, 1.0);
+				Eisoberseite e = eis_oberseite(welt_xz, (aussen - 0.55) * (decke ? 0.4 : 0.8), wetter_schnee * mix(1.15, 0.9, aussen), color, bildpunkt_m);
+				vec3 eisfarbe = e.farbe;
+				// Fugen des Randeises: nur nah, dünn
+				eisfarbe = mix(eisfarbe, mix(eis_dunkel * 0.75, eis_hell * 1.05, e.klar), riss_platte * 0.5 * (1.0 - smoothstep(0.03, 0.1, bildpunkt_m)));
+				// Die Bruchkante hat Dicke wie die Schollen: an der Kante die gerundete, nasse, blaugrün glänzende Stirn, dahinter ein nasser,
+				// dunkler Rand (Wasser schwappt über), dann trockenes Eis
+				float lippe = 1.0 - smoothstep(0.0, 0.06 + aa, kante_innen);
+				float nass = 1.0 - smoothstep(0.04, 0.3 + aa, kante_innen);
+				eisfarbe = mix(eisfarbe, eisfarbe * 0.55 + eis_stirn * 0.12, nass * 0.8 * (1.0 - e.schnee * 0.5));
+				eisfarbe = mix(eisfarbe, eis_stirn * 0.85 + eis_hell * 0.2, lippe * 0.7);
+				float rau_eis = mix(e.rau, 0.08, max(nass, lippe));
 				// Zum Ufer weich auf den Grund auslaufen: Wo das Wasser nur noch wenige Zentimeter tief ist, liegt dünnes, klares Eis auf dem Grund
 				// (er scheint durch, mit Reif), und die Grenze zum Ufer folgt dem Rauschen statt einer geraden Linie
 				float n_ufer = w_fbm(welt_xz * 0.45 + 31.0);
 				float ufer_aus = smoothstep(0.02, 0.3, lot_tiefe + (n_ufer - 0.5) * 0.36);
+				// nur nahe am Ufer: weiter draußen liegt das Eis auf dem Wasser, auch wo es flach ist (im Bach sonst dunkle Flecken mitten im Eis)
+				float saum_m = max(ufer_saum, 0.3);
+				ufer_aus = max(ufer_aus, smoothstep(saum_m * 1.5, saum_m * 3.0, abstand));
 				// Das Netz endet am Ufer (Uferabstand 0) mit einer geraden Linie: Das Eis hört davor unregelmäßig auf (0–1,8 m), dahinter liegt der Grund
 				if (ufer_saum > 0.01) {
 					float saum_zitter = (w_rausch(welt_xz * 2.1) - 0.5) * min(ufer_saum, 0.6) * 0.6;
@@ -526,11 +544,15 @@ void fragment() {
 				eisfarbe = mix(auf_grund, eisfarbe, ufer_aus);
 				color = mix(color, eisfarbe, eismaske * 0.97);
 				schaum *= 1.0 - eismaske;
-				float glatt = klar * (1.0 - schnee_auf);
-				roughness = mix(roughness, mix(mix(0.55, 0.06, glatt), 0.85, schnee_auf), eismaske);
-				specular = mix(specular, mix(0.3, 0.6, glatt) * (1.0 - schnee_auf * 0.8), eismaske);
-				normalmap = mix(normalmap, vec3(0.5, 0.5, 1.0), eismaske * mix(0.85, 0.97, glatt));
+				roughness = mix(roughness, mix(0.3, rau_eis, ufer_aus), eismaske);
+				specular = mix(specular, mix(e.spec, 0.6, max(nass, lippe)), eismaske);
+				// Relief des Eises statt der Kräusel (Neigung in Weltachsen x, z wie die Normalkarten des Flusses nach dem Drehen)
+				vec2 neig = clamp(e.neigung * ufer_aus, vec2(-0.85), vec2(0.85));
+				normalmap = mix(normalmap, vec3(neig * 0.5 + 0.5, 1.0), eismaske);
 				eis_alpha = eismaske * mix(0.35, 1.0, ufer_aus);
+				float fr = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 4.0);
+				eis_leuchten = eis_himmel(e, fr, wetter_himmel) + eis_stirn * wetter_himmel * 0.3 * lippe;
+				eis_durch = e.durch * ufer_aus;
 			}
 		}
 	}
@@ -564,13 +586,17 @@ void fragment() {
 
 	ALBEDO = color;
 	ALPHA = clamp(alpha, 0.0, 1.0);
-	METALLIC = 0.1 * (1.0 - schaum);
+	METALLIC = 0.1 * (1.0 - schaum) * (1.0 - eismaske);
 	ROUGHNESS = roughness;
 	SPECULAR = specular;
-	// Klares Eis spiegelt den Himmel wie Wasser, weißes und Schnee kaum
-	EMISSION = wetter_himmel * (fresnel * himmel_staerke + himmel_spiegel) * (1.0 - schaum) * (1.0 - eismaske * 0.6) * (1.0 - fahne.x * 0.45);
+	EMISSION = wetter_himmel * (fresnel * himmel_staerke + himmel_spiegel) * (1.0 - schaum) * (1.0 - fahne.x * 0.45);
 	// Trübes Wasser streut das Himmelslicht zurück (Eigenfarbe), auch dort, wo die Spiegelung überwiegt
-	EMISSION += muendung_farbe * wetter_himmel * fahne.x * 0.22 * (1.0 - eismaske) * (1.0 - 0.6 * winter_ton);
+	EMISSION += muendung_farbe * wetter_himmel * fahne.x * 0.22 * (1.0 - 0.6 * winter_ton);
+	// Eis spiegelt und leuchtet wie die Schollen (eis_material.gdshaderinc)
+	EMISSION = mix(EMISSION, eis_leuchten, eismaske);
 	NORMAL_MAP = normalmap;
-	NORMAL_MAP_DEPTH = normal_tiefe * (1.0 + sturm * 0.6);
+	NORMAL_MAP_DEPTH = mix(normal_tiefe * (1.0 + sturm * 0.6), 1.0, eismaske);
+#ifdef MIT_EIS
+	BACKLIGHT = eis_durch * eismaske;
+#endif
 }

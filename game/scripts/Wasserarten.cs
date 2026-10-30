@@ -185,6 +185,23 @@ public static class Wasserarten
     // ── Bilder des Wassers: an einer Stelle, damit andere Texturen (Blender) ohne Eingriff am Shader eingesetzt werden können ──
     private const string BilderOrdner = "res://assets/texturen/realistisches_wasser/";
     public const string NormalA = BilderOrdner + "wasser_normal_a.png";
+
+    /// <summary>Relief des Eises (Normalkarte, ambientCG „Snow 014“, CC0; Phase 3d): gemeinsam für das Eis auf dem Wasser und die Schollen.</summary>
+    public const string EisRelief = "res://assets/texturen/eis/eis_relief_normal.jpg";
+
+    /// <summary>
+    /// Anteil klaren (schwarzen) Eises je Art (Uniform <c>eis_klar</c> des gemeinsamen Eismaterials): Stilles Wasser friert klar (Teich, Hafenbecken,
+    /// See), ein Bach etwas, ein Fluss kaum – sein Eis ist gefrorener Eisbrei (Fotos von Rhein und Elbe, Phase 3d).
+    /// </summary>
+    public static float EisKlar(Wasserart art) =>
+        art.Name == Teich.Name || art.Name == Hafenbecken.Name ? 0.5f : art.Name == See.Name ? 0.45f : art.Name == Bach.Name || art.Name == Furt.Name ? 0.32f : 0.12f;
+
+    /// <summary>Das gemeinsame Eismaterial auf einem Stoff der Schollen: Relief und Anteil klaren Eises wie das Eis der Art auf dem Wasser.</summary>
+    public static void EisStoffSetzen(ShaderMaterial m, Wasserart art)
+    {
+        m.SetShaderParameter("eis_relief", GD.Load<Texture2D>(EisRelief));
+        m.SetShaderParameter("eis_klar", EisKlar(art));
+    }
     public const string NormalB = BilderOrdner + "wasser_normal_b.png";
     public const string Stroemungskarte = BilderOrdner + "wasser_stroemung.png";
     public const string Schaumbild = BilderOrdner + "wasser_schaum.png";
@@ -198,6 +215,7 @@ public static class Wasserarten
     /// <summary>Belegt die fünf Bilder (Normalkarten, Strömungskarte, Schaum, Kaustik) eines Wassermaterials.</summary>
     public static void BilderSetzen(ShaderMaterial m)
     {
+        m.SetShaderParameter("eis_relief", GD.Load<Texture2D>(EisRelief));
         m.SetShaderParameter("normalmap_a_sampler", GD.Load<Texture2D>(NormalA));
         m.SetShaderParameter("normalmap_b_sampler", GD.Load<Texture2D>(NormalB));
         m.SetShaderParameter("uv_sampler", GD.Load<Texture2D>(Stroemungskarte));
@@ -248,6 +266,7 @@ public static class Wasserarten
         m.SetShaderParameter("winter_ton", WinterTon(winter));
         m.SetShaderParameter("eis_still", EisFortschritt(Hafenbecken, winter));
         m.SetShaderParameter("rand_unruhe", art.Eis == Eisregel.Voll ? 0.5f : 1f);
+        m.SetShaderParameter("eis_klar", EisKlar(art));
         // Wo das Eis vor dem Ufer unregelmäßig aufhört (dort liegt der Grund, keine gerade Naht): am Fluss und See bis 1,3 m, am Bach und Teich
         // nach der Größe, am Hafenbecken nicht (das Eis friert an die Kaimauer)
         m.SetShaderParameter("ufer_saum", art.Name == Hafenbecken.Name ? 0f : art.Eis == Eisregel.Voll ? Mathf.Clamp(art.EisReichweite * 0.15f, 0.25f, 1f) : 1.3f);
@@ -403,6 +422,7 @@ public static class Wasserarten
             {
                 Shader = GD.Load<Shader>(stufe >= Wasserstufe.Hoch ? "res://assets/shader/eis_scholle.gdshader" : "res://assets/shader/eis_scholle_einfach.gdshader"),
             };
+            EisStoffSetzen(schollen, Fluss);
             var mm = new MultiMesh
             {
                 TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, UseCustomData = true,
