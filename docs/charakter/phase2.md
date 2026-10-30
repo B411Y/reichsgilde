@@ -3,6 +3,10 @@
 Stand 29.10.2026, Branch `phase5/charakter-werkzeug` (von `main` abb93ba6), Mitglied darstellung. Kein Spielcode,
 kein PR. Grundlage: [Phase 0](phase0.md) und die Entscheidungen des Nutzers danach:
 
+> In [Phase 3](phase3.md) heißt `kopf2.sh` jetzt `kopf3.sh` (Ausgabe `~/werkzeuge/charakter/glb3`); der Bau
+> `kopf2_bauen.py` ist derselbe, die MakeHuman-Karten für Brauen und Wimpern sind durch eigene ersetzt. Die Bögen
+> dieser Phase (`boegen2/`) laufen weiter mit `GLB=~/werkzeuge/charakter/glb2` (dort liegt der Stand der Phase 2).
+
 1. **Mischung mit ICT-Gesicht:** Mund, Zähne, Zunge, Augen und Mimik (ARKit-Formen) vom ICT-FaceKit (MIT);
    Büste, Alter (5–70), Geschlecht und Formregler von MakeHuman/MPFB (Assets CC0), per Skript auf das ICT-Gesicht
    übertragen. Der MPFB-Code (GPL) läuft nur lokal als Werkzeug, nichts davon liegt im Repository.

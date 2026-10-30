@@ -5,7 +5,7 @@ Aufruf:  tools/charakter/blender.sh -b -P tools/charakter/kopf2_bauen.py -- <aus
 
 Gesicht, Mund, Zähne, Zunge, Augen und Mimik (53 ARKit-Formen, 2 Pupillenformen) kommen vom ICT-FaceKit (MIT);
 Büste, Alter, Geschlecht, Kraft, Gewicht und Formregler von MakeHuman (Assets CC0), ausgeführt über MPFB 2 (GPL,
-nur als Werkzeug in Blender). Brauen und Wimpern sind MakeHuman-Karten (eyebrow001, eyelashes01, CC0).
+nur als Werkzeug in Blender). Brauen und Wimpern sind eigene Karten (Phase 3, kopf3_haare.py).
 Ablauf und Gründe: docs/charakter/phase2.md. Ergebnis: <ausgabe>.glb und <ausgabe>.json (Regler, Makros, Maße).
 
 Achsen hier: Blender (z oben, Gesicht nach -y, +x = linke Seite der Figur), Meter.
@@ -25,12 +25,14 @@ import kopf_gemeinsam as kg  # noqa: E402
 import kopf2_passung as kp  # noqa: E402
 import kopf2_quellen as kq  # noqa: E402
 import kopf2_werkzeug as kw  # noqa: E402
+import kopf3_haare as kh  # noqa: E402
 
 HIER = os.path.dirname(os.path.abspath(__file__))
 arg = kg.argumente()
 AUSGABE = os.path.abspath(arg[0] if arg else os.path.expanduser("~/werkzeuge/charakter/glb/kopf2.glb"))
 OPTIONEN = dict(a.split("=", 1) for a in arg[1:])
 MORPH_NORMALEN = OPTIONEN.get("morph_normalen", "0") == "1"
+BACKDATEN = OPTIONEN.get("backdaten")                   # Phase 3: Daten für kopf3_backen.py (npz)
 GLAETTEN = int(OPTIONEN.get("glaetten", "12"))         # Glättungsschritte der übertragenen MPFB-Formen
 t0 = time.time()
 bericht = {"ausgabe": os.path.basename(AUSGABE), "morph_normalen": MORPH_NORMALEN}
@@ -571,73 +573,29 @@ st_haut, st_mund, st_kleid = stoff("Haut", (0.78, 0.6, 0.5, 1)), stoff("Mund", (
 for s_ in (st_haut, st_mund, st_kleid):
     me.materials.append(s_)
 st_leder, st_iris, st_traene, st_lid = stoff("Augen_Lederhaut"), stoff("Augen_Iris"), stoff("Traene"), stoff("Lidschatten")
+st_horn = stoff("Hornhaut")             # Phase 3: Hornhaut als eigene Fläche (Glanz), wird unten zugeteilt
 augen_obj, augen_idx = teilnetz("Augen", [T["auge_l"], T["auge_r"], T["traene_l"], T["traene_r"], T["lidschatten_l"], T["lidschatten_r"]],
                                 lambda s_: {"M_ScleraLeft": 0, "M_ScleraRight": 0, "M_IrisLeft": 1, "M_IrisRight": 1,
-                                            "M_LacrimalFluid": 2}.get(s_, 3), [st_leder, st_iris, st_traene, st_lid])
+                                            "M_LacrimalFluid": 2}.get(s_, 3), [st_leder, st_iris, st_traene, st_lid, st_horn])
 st_zahn, st_zfl = stoff("Zaehne", (0.85, 0.82, 0.75, 1)), stoff("Zahnfleisch", (0.6, 0.25, 0.25, 1))
 zahn_obj, zahn_idx = teilnetz("Zaehne", [T["zahnfleisch"], T["zaehne"]], lambda s_: 0 if s_ == "M_Teeth" else 1, [st_zahn, st_zfl])
 
-# Brauen und Wimpern: MakeHuman-Karten am MPFB-Menschen, auf die ICT-Haut umgesetzt
-zub = mp.zubehoer(BASIS, [("eyebrows", "eyebrow001"), ("eyelashes", "eyelashes01")])
-bericht["mpfb_mensch_versatz_mm"] = round(float(np.abs(zub["_mensch"][:len(P)] - P).max() * 1000), 3)
+# Brauen und Wimpern (Phase 3): eigene Karten, das Bild entsteht Haar für Haar (kopf3_haare.py,
+# kopf3_haartexturen.py); die MakeHuman-Karten der Phase 2 entfallen
 haut_tri = kw.dreiecke([f for f in fl_haut if max(f) < T["mundhoehle"][0]])
-flaeche_F = kw.Flaeche(F[:N_HAUT], haut_tri)
+flaeche_S = kw.Flaeche(S[:N_HAUT], haut_tri)
 S_haut_nrm = kw.ecken_normalen(S[:N_HAUT], haut_tri)
-
-
-def auf_ict(punkte):
-    """MPFB-Punkt -> gleicher Ort auf der ICT-Haut (über die angepasste Kopie) mit gleicher Höhe über der Haut."""
-    idx, gew, hoehe, _ = flaeche_F.binden(punkte, 0.05)
-    lage_ = (S[idx] * gew[..., None]).sum(1)
-    nrm = (S_haut_nrm[idx] * gew[..., None]).sum(1)
-    nrm /= np.maximum(np.linalg.norm(nrm, axis=1), 1e-9)[:, None]
-    return lage_ + nrm * hoehe[:, None]
-
-
-def lidrand_polylinie(s):
-    """Lidnaht des ICT-Gesichts als Punkte (im Raum der Büste)."""
-    return S[lidnaht[s]]
-
-
-haar_ecken, haar_flaechen, haar_stoff, haar_uv, haar_art = [], [], [], [], []
-st_braue = stoff("Brauen", bild=zub["eyebrow001"][3])
-st_wimper = stoff("Wimpern", bild=zub["eyelashes01"][3])
-for k_, (datei, st_nr) in enumerate((("eyebrow001", 0), ("eyelashes01", 1))):
-    e, fl, uvs, _ = zub[datei]
-    neu = auf_ict(e)
-    if datei == "eyelashes01":
-        # Jeden Wimpernstreifen so verschieben, dass seine Wurzel auf der Lidnaht des ICT-Gesichts sitzt
-        kanten_, grad_ = kw.kanten(fl, len(e))
-        teilstueck = -np.ones(len(e), dtype=np.int64)
-        nr = 0
-        for s0 in range(len(e)):
-            if teilstueck[s0] >= 0:
-                continue
-            stapel = [s0]
-            while stapel:
-                x = stapel.pop()
-                if teilstueck[x] >= 0:
-                    continue
-                teilstueck[x] = nr
-                stapel.extend(kanten_[kanten_[:, 0] == x, 1].tolist())
-            nr += 1
-        bericht["wimpernstreifen"] = int(nr)
-        for t_ in range(nr):
-            sel = np.where(teilstueck == t_)[0]
-            seite = "l" if neu[sel, 0].mean() > 0 else "r"
-            rand = lidrand_polylinie(seite)
-            d = np.linalg.norm(neu[sel][:, None] - rand[None], axis=2)
-            naechst = d.argmin(1)
-            dist = d.min(1)
-            wurzel = dist <= np.percentile(dist, 30)
-            korr = (rand[naechst[wurzel]] - neu[sel][wurzel]).mean(0)
-            neu[sel] += korr
-    o = len(haar_ecken)
-    haar_ecken.extend(neu.tolist())
-    haar_flaechen.extend([[i + o for i in f] for f in fl])
-    haar_stoff.extend([st_nr] * len(fl))
-    haar_uv.extend([u for f_uv in uvs for u in f_uv])
-    haar_art.extend([datei] * len(e))
+merk68 = S[ict["merkpunkte68"]]
+b_e, b_fl, b_uv, b_lage, b_seite = kh.brauen(merk68, flaeche_S)
+w_e, w_fl, w_uv, w_oben, w_seite = kh.wimpern({s_: S[lidnaht[s_]] for s_ in ("l", "r")}, augen)
+st_braue = stoff("Brauen", (0.1, 0.07, 0.05, 1))
+st_wimper = stoff("Wimpern", (0.05, 0.04, 0.03, 1))
+haar_ecken = np.vstack([b_e, w_e]).tolist()
+haar_flaechen = [list(f) for f in b_fl] + [[i + len(b_e) for i in f] for f in w_fl]
+haar_stoff = [0] * len(b_fl) + [1] * len(w_fl)
+haar_uv = [u for f_uv in b_uv for u in f_uv] + [u for f_uv in w_uv for u in f_uv]
+haar_art = ["brauen"] * len(b_e) + ["wimpern"] * len(w_e)
+bericht["haarkarten"] = {"brauen_ecken": int(len(b_e)), "wimpern_ecken": int(len(w_e))}
 haare_obj = neues_netz("Haare", np.array(haar_ecken), haar_flaechen, haar_stoff, [st_braue, st_wimper], haar_uv)
 haar_art = np.array(haar_art)
 zeit(f"Teile: Augen {len(augen_idx)}, Zähne {len(zahn_idx)}, Haare {len(haar_ecken)} Ecken")
@@ -682,11 +640,11 @@ lid_teile = np.concatenate([teil("traene_l"), teil("traene_r"), teil("lidschatte
 haut_und_hoehle = np.concatenate([np.arange(T["mundhoehle"][0]), ah["l"], ah["r"]])
 nb_lid = kw.k_naechste(S[haut_und_hoehle], S[lid_teile], k=4)
 gesicht_bereich = np.arange(T["mundhoehle"][0])
-nb_braue = kw.k_naechste(S[gesicht_bereich], np.array(haar_ecken)[haar_art == "eyebrow001"], k=4)
+nb_braue = kw.k_naechste(S[gesicht_bereich], np.array(haar_ecken)[haar_art == "brauen"], k=4)
 nb_wimper = {}
 haar_pos = np.array(haar_ecken)
 for s in ("l", "r"):
-    sel = np.where((haar_art == "eyelashes01") & ((haar_pos[:, 0] > 0) == (s == "l")))[0]
+    sel = np.where((haar_art == "wimpern") & ((haar_pos[:, 0] > 0) == (s == "l")))[0]
     nb_wimper[s] = (sel, kw.k_naechste(S[lidnaht[s]], haar_pos[sel], k=2))
 nb_kragen = kw.k_naechste(H_ecken, kr_ecken, k=4)
 
@@ -764,7 +722,7 @@ def drehung_zwischen(a, b):
 
 def haare_und_kragen(dh, voll, mimik=False):
     dhaar = np.zeros_like(haar_pos)
-    dhaar[haar_art == "eyebrow001"] = knn(voll[gesicht_bereich], nb_braue)
+    dhaar[haar_art == "brauen"] = knn(voll[gesicht_bereich], nb_braue)
     for s in ("l", "r"):
         sel, nb = nb_wimper[s]
         if not mimik:
@@ -868,6 +826,7 @@ aug_me.color_attributes.active_color = af
 afarbe = np.zeros((len(augen_idx), 4), dtype=np.float32)
 afarbe[:, 3] = 1.0
 pos_in_aug = {int(i): k for k, i in enumerate(augen_idx)}
+augen_uv_neu = {}
 for s in ("l", "r"):
     lo_s, hi_s = kq.ICT_LEDERHAUT[s]
     hi_i = kq.ICT_IRIS[s][1]
@@ -893,8 +852,89 @@ for s in ("l", "r"):
     vorn = ((sk - mitte_) @ achse) > 0
     k_sk = np.array([pos_in_aug[i] for i in range(lo_s, hi_s)])
     afarbe[k_sk, 0] = np.where(vorn & (radial(sk) < R_IRIS * 1.08), 1.0, 0.0)
+    # Phase 3: ebene Abbildung entlang der Blickachse als UV (Iris: Limbus = Rand des Bildes, Lederhaut: Augapfel =
+    # Rand des Bildes); oben im Bild = oben am Auge. Das rechte Auge ist um 140° gedreht, damit die Iris nicht
+    # spiegelgleich aussieht.
+    _, r_auge = kw.kugel(sk)
+    e1v = np.cross(achse, [0.0, 0.0, 1.0])
+    e1v /= np.linalg.norm(e1v)
+    e2v = np.cross(e1v, achse)
+    e2v *= np.sign(e2v[2])
+    dreh = 0.0 if s == "l" else math.radians(140)
+    for bereich, mass in (((lo_s, hi_s), r_auge), ((hi_s, hi_i), R_IRIS)):
+        d = S[bereich[0]:bereich[1]] - iris.mean(axis=0)
+        x_, y_ = d @ e1v, d @ e2v
+        x_, y_ = x_ * math.cos(dreh) - y_ * math.sin(dreh), x_ * math.sin(dreh) + y_ * math.cos(dreh)
+        for k_, i_ in enumerate(range(*bereich)):
+            augen_uv_neu[pos_in_aug[i_]] = (0.5 + 0.5 * x_[k_] / mass, 0.5 + 0.5 * y_[k_] / mass)
+    bericht.setdefault("auge_mm", {})[s] = {"augapfel_halbmesser": round(r_auge * 1000, 2), "iris_halbmesser": round(R_IRIS * 1000, 2)}
+# Lidschatten-Netz (ICT „EyeOcclusion“): R = Dunkelheit nach der Nähe zur Lidnaht, oben kräftiger
+for s in ("l", "r"):
+    idx_ = teil("lidschatten_" + s)
+    kd = KDTree(len(lidnaht[s]))
+    for i, j in enumerate(lidnaht[s]):
+        kd.insert(S[j], i)
+    kd.balance()
+    d_ = np.array([kd.find(S[i])[2] for i in idx_])
+    oben_ = S[idx_, 2] > augen[s][0][2]
+    a_ = (1.0 - kw.glatt_stufe(d_, 0.0004, 0.0035)) * np.where(oben_, 1.0, 0.65)
+    afarbe[[pos_in_aug[int(i)] for i in idx_], 0] = a_
 af.data.foreach_set("color", afarbe.ravel())
+uvl_aug = aug_me.uv_layers.active
+uv_alt = np.empty(len(aug_me.loops) * 2)
+uvl_aug.data.foreach_get("uv", uv_alt)
+uv_alt = uv_alt.reshape(-1, 2)
+for li, lp in enumerate(aug_me.loops):
+    if lp.vertex_index in augen_uv_neu:
+        uv_alt[li] = augen_uv_neu[lp.vertex_index]
+uvl_aug.data.foreach_set("uv", uv_alt.ravel())
+# Hornhaut: Flächen der äußeren Kugel, deren Ecken alle im Hornhautbereich liegen (R = 1), bekommen den Stoff 4
+mi_aug = np.empty(len(aug_me.polygons), dtype=np.int64)
+aug_me.polygons.foreach_get("material_index", mi_aug)
+for k_, p_ in enumerate(aug_me.polygons):
+    if mi_aug[k_] == 0 and all(afarbe[v_, 0] > 0.99 for v_ in p_.vertices):
+        mi_aug[k_] = 4
+aug_me.polygons.foreach_set("material_index", mi_aug)
+bericht["hornhaut_flaechen"] = int((mi_aug == 4).sum())
 zeit("Eckfarben gesetzt")
+
+# ================================================================= 9b. Daten für das Backen der Haut (Phase 3)
+if BACKDATEN:
+    # Hautnetz als Dreiecke mit Spiel-UV je Ecke, Stoff je Dreieck
+    uv_spiel = np.empty(len(me.loops) * 2)
+    me.uv_layers["UVMap"].data.foreach_get("uv", uv_spiel)
+    uv_spiel = uv_spiel.reshape(-1, 2)
+    h_tri, h_tri_uv, h_tri_stoff = [], [], []
+    for p_ in me.polygons:
+        vs, ls = list(p_.vertices), list(p_.loop_indices)
+        for k in range(1, len(vs) - 1):
+            h_tri.append((vs[0], vs[k], vs[k + 1]))
+            h_tri_uv.append((uv_spiel[ls[0]], uv_spiel[ls[k]], uv_spiel[ls[k + 1]]))
+            h_tri_stoff.append(stoff_idx[p_.index])
+    # MakeHuman-UV je Dreieck der MPFB-Haut (gleiche Fächerteilung wie kw.dreiecke(mp.koerper_flaechen))
+    mh_uv_lage = mp.roh.data.uv_layers.active
+    koerper = set(mp.gruppen["body"].tolist())
+    mh_tri_uv = []
+    for p_ in mp.roh.data.polygons:
+        vs = list(p_.vertices)
+        if not all(i in koerper for i in vs):
+            continue
+        ls = list(p_.loop_indices)
+        for k in range(1, len(vs) - 1):
+            mh_tri_uv.append([tuple(mh_uv_lage.data[ls[j]].uv) for j in (0, k, k + 1)])
+    mh_tri = kw.dreiecke(mp.koerper_flaechen)
+    assert len(mh_tri) == len(mh_tri_uv), "MakeHuman-UV passt nicht zu den Dreiecken"
+    maske_h = np.empty(len(H_ecken) * 4, dtype=np.float32)
+    me.color_attributes["Hautmaske"].data.foreach_get("color", maske_h)
+    np.savez_compressed(
+        BACKDATEN, h_ecken=H_ecken, h_tri=np.array(h_tri), h_tri_uv=np.array(h_tri_uv), h_tri_stoff=np.array(h_tri_stoff),
+        herkunft=herkunft_pos, mpfb=P, mh_tri=mh_tri, mh_tri_uv=np.array(mh_tri_uv), maske=maske_h.reshape(-1, 4),
+        n_haut=N_HAUT, mundhoehle=np.array(T["mundhoehle"]), augenhoehlen=np.array([T["augenhoehle_l"], T["augenhoehle_r"]]),
+        merk68=merk68, auge_l=np.append(augen["l"][0], augen["l"][1]), auge_r=np.append(augen["r"][0], augen["r"][1]),
+        lidnaht_l=S[lidnaht["l"]], lidnaht_r=S[lidnaht["r"]], lippennaht=S[lippennaht], halsschleife=S[hals],
+        hals_achse=hals_achse, kragen_mitte=kragen_mitte, brauen_ecken=b_e, brauen_flaechen=np.array(b_fl),
+        brauen_uv=np.array(b_uv), brauen_lage=b_lage)
+    zeit("Backdaten " + BACKDATEN)
 
 # ================================================================= 10. Formschlüssel und Export
 objekte = {"Haut": haut, "Augen": augen_obj, "Zaehne": zahn_obj, "Haare": haare_obj, "Kragen": kragen_obj}
