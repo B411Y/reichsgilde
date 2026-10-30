@@ -9,8 +9,8 @@ namespace Reichsgilde;
 /// Feuer in der Stadt (Phase 2 „Feuer und Flammen“, Teil der <c>partial class Stadtansicht</c>). Alle Flammen und aller Rauch sind <see cref="Feuer"/>-Knoten
 /// in der einen Fassung, die der Nutzer gewählt hat (Flipbook der Simulation, Rauch im Shader, für alle Grafikstufen gleich):
 /// <list type="bullet">
-/// <item><b>Kaminrauch</b>: Die Modelle haben keine Anker für Schornsteine; das Spiel findet sie selbst (<see cref="SchornsteineSuchen"/>: eine kleine,
-/// waagerechte Fläche hoch oben, über der nichts liegt und um die herum das Dach tiefer liegt) – einmal je Modelldatei. Wohnhäuser heizen und kochen
+/// <item><b>Kaminrauch</b>: Die Modelle haben (noch) keine Anker für Schornsteine; das Spiel findet sie selbst (<see cref="SchornsteineSuchen"/>: ein
+/// gemauerter Schaft mit quadratischem Kopf auf dem Dach, über dem nichts liegt) – einmal je Modelldatei. Knoten „Anker_Schornstein…“ im Modell gehen vor. Wohnhäuser heizen und kochen
 /// nach Tageszeit und Jahreszeit (<see cref="WohnhausHeizt"/>), Werkstätten rauchen, solange gearbeitet wird. Der Rauch blendet weich ein und aus.</item>
 /// <item><b>Gebäudebrand</b>: Meldet der Kern ein Feuer – in einer Werkstatt steigen die Reparaturminuten (<see cref="Betrieb.SabotageMinuten"/>), am
 /// Wohnhaus eines Spielhauses steht <see cref="Konto.WohnhausInstandBis"/> –, brennt das Gebäude sichtbar: große Flammen aus dem Dach (mit Licht),
@@ -91,17 +91,35 @@ public partial class Stadtansicht
         public Vector3 A, B, C;
         public float MinX, MaxX, MinZ, MaxZ;
         public int Teil;
+        public string Stoff = "";
+        public bool Steil;
+        public Vector3 N;
     }
 
     /// <summary>
-    /// Sucht die Schornsteine eines Modells (einmal je Datei, das Ergebnis gilt für jede Kopie): Kandidaten sind waagerechte, nach oben zeigende
-    /// Flächen höher als 3 m, die zusammen höchstens 1,3 m breit und etwa quadratisch sind (Kopf eines Schornsteins, Rand einer Esse; nicht die
-    /// Mauerkrone eines Treppengiebels). Ein Kandidat zählt, wenn über
-    /// seiner Mitte nichts liegt und ringsum (0,6 m neben seinem Rand) alles mindestens 0,3 m tiefer liegt – so fallen Firste, Simse, Fensterbänke
-    /// und Gauben heraus. Dicht beieinander liegende Funde gelten als einer.
+    /// Sucht die Schornsteine eines Modells (einmal je Datei, das Ergebnis gilt für jede Kopie). Ein Schornstein ist ein gemauerter Schaft mit
+    /// waagerechtem Kopf; alles muss zutreffen (Regen 4, nachdem eine Sandsteinkugel auf der Giebelspitze des Ratsherrenhauses rauchte):
+    /// <list type="bullet">
+    /// <item><b>Kopf</b>: zusammenhängende, nach oben zeigende Flächen gleicher Höhe, höher als 3 m, je Seite <see cref="KopfMin"/>–1,3 m und etwa
+    /// quadratisch (höchstens 1,5 : 1). Kugeln, Knäufe und Zierspitzen sind kleiner, die Mauerkrone eines Treppengiebels ist länglich.</item>
+    /// <item><b>Schaft</b>: unter dem Kopf, innerhalb seines Grundrisses, reichen auf allen vier Seiten steile Flächen ohne Lücke mindestens
+    /// <see cref="SchaftMin"/> hinab (ein Schornstein steht 0,6–1 m über dem First und steckt im Dach; Fensterbänke, Simse, Gesimse und die Stufen
+    /// eines Treppengiebels haben keinen solchen Schaft).</item>
+    /// <item><b>Frei</b>: Über der Mitte liegt nichts außer einer flachen Haube (bis <see cref="HaubeMax"/> darüber), und ringsum (0,6 m neben dem Rand, acht Richtungen) liegt in mindestens sechs Richtungen alles
+    /// 0,3 m tiefer – ein höherer Dachteil oder Flügel daneben darf sein (der Küchenschornstein des Wirts steht neben dem Seitenflügel).</item>
+    /// <item><b>Auf dem Dach</b>: In mindestens sechs der acht Richtungen liegt darunter Dach (nicht nichts). Am Giebelende, wo außen nichts mehr
+    /// liegt, sitzt Zier, kein Schornstein. Ausnahme: ein freistehender Schlot, dessen Schaft bis fast zum Boden reicht (Athanor des Alchimisten).</item>
+    /// </list>
+    /// Dicht beieinander liegende Funde (Rand und Glut einer Esse) gelten als einer – aber nur in Teilen, die zusammen zu sehen sind: Die Esse der Stufe 2
+    /// und die der Stufe 3 an derselben Stelle bleiben beide, ebenso die Schornsteine der drei Varianten eines Einwohnerhauses (vorher behielt die
+    /// Suche nur den höchsten, und Häuser einer anderen Stufe oder Variante rauchten nicht). Hat ein Modell Knoten „Anker_Schornstein…“, gelten nur sie.
+    /// Mit der Umgebungsvariable <c>RG_SCHORNSTEINE=1</c> schreibt die Suche jeden Kandidaten mit Maßen und Urteil ins Protokoll.
     /// </summary>
     private static List<(string Teil, Vector3 Lage)> SchornsteineSuchen(Node3D modell)
     {
+        var anker = modell.FindChildren("Anker_Schornstein*", nameof(Node3D), true, false).OfType<Node3D>().ToList();
+        if (anker.Count > 0) return anker.Select(a => (modell.GetPathTo(a).ToString(), Vector3.Zero)).ToList();
+
         var teile = modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()
                           .Where(t => t.Mesh is not null && !Nebenteil(t.Name.ToString())).ToList();
         var namen = teile.Select(t => t.Name.ToString()).ToArray();
@@ -118,9 +136,10 @@ public partial class Stadtansicht
                 var ecken = felder[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var normalen = felder[(int)Mesh.ArrayType.Normal].VariantType == Variant.Type.Nil ? null : felder[(int)Mesh.ArrayType.Normal].AsVector3Array();
                 var index = felder[(int)Mesh.ArrayType.Index].VariantType == Variant.Type.Nil ? Enumerable.Range(0, ecken.Length).ToArray() : felder[(int)Mesh.ArrayType.Index].AsInt32Array();
+                var stoffName = netz.SurfaceGetMaterial(f)?.ResourceName ?? "";
                 for (var i = 0; i + 2 < index.Length; i += 3)
                 {
-                    var d = new Flaechenstueck { A = lage * ecken[index[i]], B = lage * ecken[index[i + 1]], C = lage * ecken[index[i + 2]], Teil = ti };
+                    var d = new Flaechenstueck { A = lage * ecken[index[i]], B = lage * ecken[index[i + 1]], C = lage * ecken[index[i + 2]], Teil = ti, Stoff = stoffName };
                     d.MinX = Mathf.Min(d.A.X, Mathf.Min(d.B.X, d.C.X));
                     d.MaxX = Mathf.Max(d.A.X, Mathf.Max(d.B.X, d.C.X));
                     d.MinZ = Mathf.Min(d.A.Z, Mathf.Min(d.B.Z, d.C.Z));
@@ -136,6 +155,8 @@ public partial class Stadtansicht
                         if (n.Dot(ecke) < 0) n = -n;
                     }
                     else n = n.Abs();
+                    d.Steil = Mathf.Abs(n.Y) < 0.3f;
+                    d.N = n;
                     if (n.Y > 0.95f && d.A.Y > 3f) oben.Add((d, laenge * 0.5f));
                 }
             }
@@ -178,6 +199,35 @@ public partial class Stadtansicht
             return hoch;
         }
 
+        // Wie weit der Schaft unter einem Kopf (Grundriss min–max, Höhe y) hinabreicht: je Seite (±x, ±z) die steilen Flächen im Grundriss (±12 cm),
+        // die nach dieser Seite schauen, von oben nach unten ohne Lücke (mehr als 5 cm) aneinandergereiht; es zählt die kürzeste Seite. Ein Schornstein
+        // ist auf allen vier Seiten gemauert; eine Stufe eines Treppengiebels hat unter der Abdeckplatte nur die Stirn der Mauer.
+        float Schaft(Vector2 min, Vector2 max, float y, int teil)
+        {
+            var kuerzeste = float.MaxValue;
+            foreach (var seite in new[] { Vector3.Right, Vector3.Left, Vector3.Back, Vector3.Forward })
+            {
+                var stuecke = new List<(float Unten, float Oben)>();
+                foreach (var d in alle)
+                {
+                    if (!d.Steil || d.N.Dot(seite) < 0.7f || d.MinX < min.X - 0.12f || d.MaxX > max.X + 0.12f || d.MinZ < min.Y - 0.12f || d.MaxZ > max.Y + 0.12f) continue;
+                    if (Ausschliessend(namen[d.Teil], namen[teil])) continue;
+                    var o = Mathf.Max(d.A.Y, Mathf.Max(d.B.Y, d.C.Y));
+                    if (o <= y + 0.05f) stuecke.Add((Mathf.Min(d.A.Y, Mathf.Min(d.B.Y, d.C.Y)), o));
+                }
+                stuecke.Sort((a, b) => b.Oben.CompareTo(a.Oben));
+                var unten = y;
+                foreach (var (u, o) in stuecke)
+                {
+                    if (o < unten - 0.05f) break;
+                    unten = Mathf.Min(unten, u);
+                }
+                kuerzeste = Mathf.Min(kuerzeste, y - unten);
+            }
+            return kuerzeste;
+        }
+
+        var protokoll = OS.GetEnvironment("RG_SCHORNSTEINE") != "";
         var funde = new List<(Vector3 Lage, int Teil)>();
         foreach (var g in Enumerable.Range(0, oben.Count).GroupBy(Finden))
         {
@@ -196,33 +246,58 @@ public partial class Stadtansicht
                 teil = d.Teil;
             }
             var ausdehnung = max - min;
-            // Ein Schornsteinkopf ist etwa quadratisch; der oberste Block eines Treppengiebels ist eine Mauerkrone (1 × 0,6 m)
             if (ausdehnung.X > 1.3f || ausdehnung.Y > 1.3f || flaeche < 0.06f) continue;
-            if (Mathf.Max(ausdehnung.X, ausdehnung.Y) > 1.5f * Mathf.Min(ausdehnung.X, ausdehnung.Y)) continue;
             var mitte = (min + max) * 0.5f;
-            if (Hoechster(mitte.X, mitte.Y, teil) > y + 0.05f) continue;   // etwas liegt darüber
-            var r = Mathf.Max(ausdehnung.X, ausdehnung.Y) * 0.5f + 0.6f;
-            var frei = true;
-            for (var k = 0; k < 8 && frei; k++)
+            string? grund = null;
+            var schaft = 0f;
+            var kopf = y;
+            int tiefer = 0, dach = 0;
+            if (Mathf.Min(ausdehnung.X, ausdehnung.Y) < KopfMin) grund = "Kopf zu klein (Kugel, Knauf, Zierspitze)";
+            else if (Mathf.Max(ausdehnung.X, ausdehnung.Y) > 1.5f * Mathf.Min(ausdehnung.X, ausdehnung.Y)) grund = "Kopf länglich (Mauerkrone)";
+            else if (Hoechster(mitte.X, mitte.Y, teil) is var darueber && darueber > y + HaubeMax) grund = "etwas liegt darüber";
+            else
             {
-                var w = k * Mathf.Tau / 8;
-                var hoch = Hoechster(mitte.X + Mathf.Cos(w) * r, mitte.Y + Mathf.Sin(w) * r, teil);
-                frei = hoch < y - 0.3f;
+                if (darueber > y + 0.05f) kopf = darueber; // Haube über dem Kopf (Laborschlot des Alchimisten): der Rauch quillt über ihr hervor
+                schaft = Schaft(min, max, y, teil);
+                var r = Mathf.Max(ausdehnung.X, ausdehnung.Y) * 0.5f + 0.6f;
+                for (var k = 0; k < 8; k++)
+                {
+                    var w = k * Mathf.Tau / 8;
+                    var hoch = Hoechster(mitte.X + Mathf.Cos(w) * r, mitte.Y + Mathf.Sin(w) * r, teil);
+                    if (hoch < y - 0.3f) tiefer++;
+                    if (hoch > float.NegativeInfinity && hoch < y - 0.3f) dach++;
+                }
+                var freistehend = y - schaft < 1f; // Schaft bis fast zum Boden
+                if (schaft < SchaftMin) grund = "kein Schaft";
+                else if (tiefer < 6) grund = "ringsum nicht frei";
+                else if (dach < 6 && !freistehend) grund = "nicht auf dem Dach (Giebelende)";
             }
-            if (frei) funde.Add((new Vector3(mitte.X, y + 0.03f, mitte.Y), teil));
+            if (protokoll)
+                GD.Print($"[schornstein] {modell.Name} {namen[teil]} bei ({mitte.X:0.00}, {y:0.00}, {mitte.Y:0.00}): Kopf {ausdehnung.X:0.00} × {ausdehnung.Y:0.00} m, "
+                         + $"Schaft {schaft:0.00} m, frei {tiefer}/8, Dach {dach}/8 – {grund ?? "Schornstein"}");
+            if (grund is null) funde.Add((new Vector3(mitte.X, kopf + 0.03f, mitte.Y), teil));
         }
-        // Dicht beieinander (Rand einer Esse in vier Stücken): einer genügt, der höchste
+        // Dicht beieinander (Rand einer Esse in vier Stücken, Glut darin): einer genügt, der höchste – nur unter Teilen, die zusammen zu sehen sind
         funde.Sort((a, b) => b.Lage.Y.CompareTo(a.Lage.Y));
         var ergebnis = new List<(string, Vector3)>();
-        var genommen = new List<Vector3>();
+        var genommen = new List<(Vector3 Lage, int Teil)>();
         foreach (var (lage, teil) in funde)
         {
-            if (genommen.Any(g => new Vector2(g.X - lage.X, g.Z - lage.Z).Length() < 1.6f)) continue;
-            genommen.Add(lage);
+            if (genommen.Any(g => !Ausschliessend(namen[g.Teil], namen[teil]) && new Vector2(g.Lage.X - lage.X, g.Lage.Z - lage.Z).Length() < 1.6f)) continue;
+            genommen.Add((lage, teil));
             ergebnis.Add((modell.GetPathTo(teile[teil]).ToString(), LageUnter(modell, teile[teil]).AffineInverse() * lage));
         }
         return ergebnis;
     }
+
+    /// <summary>Kleinste Seite (m) eines Schornsteinkopfs; die Sandsteinkugeln am Giebel sind 0,37 m breit, der kleinste Schlot (Gießerei) 0,5 m.</summary>
+    private const float KopfMin = 0.45f;
+
+    /// <summary>So hoch (m) über dem Kopf darf eine Haube liegen (Laborschlot des Alchimisten: Pfosten und Schieferhaube 0,7 m); höher ist es ein Turm oder Dach.</summary>
+    private const float HaubeMax = 0.8f;
+
+    /// <summary>So weit (m) muss der Schaft unter dem Kopf mindestens ohne Lücke hinabreichen.</summary>
+    private const float SchaftMin = 0.8f;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Wand neben einem Feuer (Rauch steigt an ihr hoch)
