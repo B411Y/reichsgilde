@@ -43,7 +43,7 @@ def skalieren(a, faktor):
 
 
 def linear(s):
-    s = np.asarray(s, dtype=np.float64)
+    s = np.clip(np.asarray(s, dtype=np.float64), 0.0, None)     # Lanczos kann leicht unter 0 schwingen
     return np.where(s <= 0.04045, s / 12.92, ((s + 0.055) / 1.055) ** 2.4)
 
 

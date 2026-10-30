@@ -254,6 +254,11 @@ func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m :
 	var h := deg_to_rad(hoehe)
 	var pos := dreh + Vector3(sin(w) * cos(h), sin(h), cos(w) * cos(h)) * abstand
 	var blick := dreh + (ziel - dreh).rotated(Vector3.UP, w)
+	if ziel_x != 0.0:
+		# Phase 6, Nahaufnahme eines festen Punkts (Wange, N1/N5): die Kamera blickt aus der Richtung (winkel, hoehe)
+		# genau auf ziel; der Punkt dreht nicht wie das Gesicht um die Kopfmitte mit
+		pos = ziel + Vector3(sin(w) * cos(h), sin(h), cos(w) * cos(h)) * (spanne * 0.5 / tan(deg_to_rad(kamera.fov * 0.5)))
+		blick = ziel
 	if ortho:
 		kamera.projection = Camera3D.PROJECTION_ORTHOGONAL
 		kamera.size = spanne

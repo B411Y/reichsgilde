@@ -23,7 +23,9 @@ Grundlage sind die Merkpunkte aus merkpunkte.py (ein Satz für alles). Höhen un
   nasenvorsprung      z(prn) − z(sn)
   nasenbreite, mundbreite   al–al, ch–ch
   augapfel_ipd        Augapfel (Lederhaut, Ausdehnung in x) / IPD – Iris : IPD misst bild_werte im Bild
-  kieferknick         größter Normalenknick der Kieferkante auf 5 mm (Schnitte x = ±0,7·x(go), Normalen neu aus dem Netz)
+  kieferknick         größter Normalenknick der Kieferkante auf 5 mm (Schnitte x = ±0,7·x(go)) mit den Normalen, die Godot
+                      zeigt (Grundnetz + Normalen der Formen, soweit die .glb sie hat); kieferknick_form: mit Normalen
+                      aus der verformten Form (die geometrische Kante)
   kinn_hals_winkel    Winkel me–C–N: C tiefster Punkt des Profils unter dem Kinn, N 20 mm tiefer am Hals
   kinn_kragen         me über der Oberkante des Kragens (vorn, Mitte)
   spiegel_rms         Spiegelabstand: RMS |P(i) − gespiegelt P(Partner)| über die Gesichtsecken vor der Ohrwurzel
@@ -142,7 +144,8 @@ class Netzmesser:
         A = self.glb.teile("Augen")[0].lage(gewichte) * 1000.0
         d = [np.ptp(A[A[:, 0] < 0][:, 0]), np.ptp(A[A[:, 0] > 0][:, 0])]
         m["augapfel_ipd"] = float(np.mean(d)) / m["ipd"]
-        m["kieferknick"] = self._kieferknick(gewichte, H, P)
+        m["kieferknick"] = self._kieferknick(gewichte, H, P, gerendert=True)
+        m["kieferknick_form"] = self._kieferknick(gewichte, H, P, gerendert=False)
         m["kinn_hals_winkel"] = self._kinn_hals(P)
         m["kinn_kragen"] = self._kinn_kragen(gewichte, P)
         m["spiegel_rms"] = self._spiegel(H, z_ohr)
@@ -177,8 +180,10 @@ class Netzmesser:
             werte.append(z_linie - hs[2])
         return float(np.mean(werte))
 
-    def _kieferknick(self, gewichte, H, P):
-        N = self.netz.haut.flaechennormalen(H)
+    def _kieferknick(self, gewichte, H, P, gerendert=True):
+        # gerendert: Normalen wie Godot sie zeigt (Grundnetz + Normalen-Versatz der Formen, die NORMAL haben);
+        # sonst aus der verformten Form neu gerechnet (geometrische Kante)
+        N = self.netz.haut.normale(gewichte) if gerendert else self.netz.haut.flaechennormalen(H)
         best = 0.0
         for s in ("r", "l"):
             x0 = 0.7 * P[f"go_{s}"][0]

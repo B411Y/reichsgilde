@@ -279,7 +279,7 @@ func _bogen(datei: String) -> void:
 
 # Phase 6 (Bogen P3): Fotovorlage statt Render, auf den Pupillenabstand des Kopfs dieser Zelle skaliert und an
 # dessen Pupillen gelegt (gleiche Kamera wie die Nachbarzelle). v = {"bild": Pfad, "pupillen": [[x, y], [x, y]]
-# (links und rechts im Bild), "ipd_mm": Pupillenabstand des Kopfs (Mittelgesicht: Mann 61,7, Frau 60,8)}.
+# (links und rechts im Bild), "ipd_mm": Pupillenabstand des Kopfs (Mittelgesicht: Mann 63,6, Frau 62,6)}.
 func _vorlage_bild(b: Buehne, v: Dictionary, zelle: Vector2i, frau: bool) -> Image:
 	var pfad := String(v.get("bild", ""))
 	if pfad.begins_with("~/"):
@@ -294,10 +294,12 @@ func _vorlage_bild(b: Buehne, v: Dictionary, zelle: Vector2i, frau: bool) -> Ima
 		return null
 	var q_l := Vector2(pu[0][0], pu[0][1])
 	var q_r := Vector2(pu[1][0], pu[1][1])
-	var halb := float(v.get("ipd_mm", 60.8 if frau else 61.7)) / 2000.0
+	# Pupillen des Kopfs: Mitte der Pupillenöffnung (tools/charakter/messen/merkpunkte.py), am Mittelgesicht 10 mm vor
+	# und 0,5 mm unter der Augenmitte, Abstand Mann 63,6 mm, Frau 62,6 mm
+	var halb := float(v.get("ipd_mm", 62.6 if frau else 63.6)) / 2000.0
 	var t := b.kopf.global_transform
-	var z_l := b.kamera.unproject_position(t * (b.kopf.augen_mitte - Vector3(halb, 0, 0)))
-	var z_r := b.kamera.unproject_position(t * (b.kopf.augen_mitte + Vector3(halb, 0, 0)))
+	var z_l := b.kamera.unproject_position(t * (b.kopf.augen_mitte + Vector3(-halb, -0.0005, 0.010)))
+	var z_r := b.kamera.unproject_position(t * (b.kopf.augen_mitte + Vector3(halb, -0.0005, 0.010)))
 	if z_l.x > z_r.x:
 		var tmp := z_l
 		z_l = z_r

@@ -101,7 +101,7 @@ def netzmasse(gew_datei, glb_pfad):
         if wer in erg:
             m = erg[wer]
             zeile("Netz (Mittelgesicht)", wer, " · ".join(f"{k} {f(m[k])}" for k in ("zy", "n_me", "gesichtsindex", "kinnmitte_zy",
-                  "mund_zy", "mundlage", "braue_pupille", "wangenwoelbung", "augentiefe", "kieferknick", "kinn_hals_winkel")),
+                  "mund_zy", "mundlage", "braue_pupille", "wangenwoelbung", "augentiefe", "kieferknick", "kieferknick_form", "kinn_hals_winkel")),
                   "S4-Ziele", "Stand", "")
     # S4-Ziele (Mann/Frau 35)
     ziele = [("gesichtsindex", "m35", 0.85, 0.90), ("gesichtsindex", "w35", 0.84, 0.90), ("kinnmitte_zy", "m35", 0.69, 0.76),
@@ -333,6 +333,25 @@ def bild_gegen_netz(mappe, nm):
               "Erklärung", "Stand", "Raumabstand n–me gegen Höhe: " + f(100 * (1 - (P['n'][1] - P['me'][1]) / np.linalg.norm(P['n'] - P['me'])), 1) + " %")
 
 
+# ------------------------------------------------------------------ 6b. Fotovorlagen (Merkpunkte von Hand)
+def vorlagen():
+    p = os.path.join(HIER, "vorlagen_merkpunkte.json")
+    if not os.path.exists(p):
+        return
+    for vid, v in json.load(open(p, encoding="utf-8"))["vorlagen"].items():
+        q = v.get("vorn", {}).get("punkte", {})
+        if not all(k in q for k in ("ps_r", "ps_l", "sn", "sto", "me", "zy_r", "zy_l", "br_r", "br_l")):
+            continue
+        ipd = math.dist(q["ps_r"], q["ps_l"])
+        py = 0.5 * (q["ps_r"][1] + q["ps_l"][1])
+        zy = abs(q["zy_l"][0] - q["zy_r"][0])
+        werte = {"mundlage": (q["sto"][1] - q["sn"][1]) / (q["me"][1] - q["sn"][1]), "zy_ipd": zy / ipd,
+                 "ps_me_zy": (q["me"][1] - py) / zy, "braue_ipd": (py - 0.5 * (q["br_r"][1] + q["br_l"][1])) / ipd,
+                 "sn_sto_ipd": (q["sto"][1] - q["sn"][1]) / ipd}
+        zeile("Vorlagen (Merkpunkte)", f"{vid} ({v.get('alter', '?')}, {v.get('geschlecht', '?')})",
+              " · ".join(f"{k} {f(x, 3)}" for k, x in werte.items()), "Maßstab", "Stand", v.get("satz", ""))
+
+
 # ------------------------------------------------------------------ 7. Brücke, Manifest, M2
 def bruecke(mappe):
     p = os.path.join(mappe, "bruecke_pruefen.json")
@@ -392,6 +411,7 @@ def main():
     bildwerte(mappe, nm, opt.get("alt5"))
     kalibrierung(mappe)
     bild_gegen_netz(mappe, nm)
+    vorlagen()
     bruecke(mappe)
     manifest()
     m2(mappe)

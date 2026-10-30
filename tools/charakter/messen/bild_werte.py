@@ -169,3 +169,4 @@ def autokorrelation(feld, dx, dy):
     a = f[max(0, dy):f.shape[0] + min(0, dy), max(0, dx):f.shape[1] + min(0, dx)]
     b = f[max(0, -dy):f.shape[0] + min(0, -dy), max(0, -dx):f.shape[1] + min(0, -dx)]
     return float((a * b).mean() / max(f.var(), 1e-12))
+
