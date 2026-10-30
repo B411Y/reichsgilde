@@ -542,7 +542,7 @@ void fragment() {
 				float reif = smoothstep(0.55, 0.8, w_fbm(welt_xz * 4.0 + 6.0));
 				// Der Grund im Flachen ist Schlamm und Kies (der Boden zeichnet dort noch die Wiese): entsättigt, bräunlich, mit Reif
 				vec3 matschgrund = mix(grund_farbe, vec3(dot(grund_farbe, vec3(0.3, 0.5, 0.2))) * vec3(1.0, 0.93, 0.82), 0.7) * 0.9;
-				vec3 auf_grund = mix(matschgrund, eis_hell * 0.9, reif * 0.25 + wetter_schnee * 0.3);
+				vec3 auf_grund = mix(matschgrund, eis_hell * 0.9, clamp(reif * 0.25 + wetter_schnee * 0.6, 0.0, 1.0)); // bei Schnee kaum ein Sandstreifen
 				eisfarbe = mix(auf_grund, eisfarbe, ufer_aus);
 				color = mix(color, eisfarbe, eismaske * 0.97);
 				schaum *= 1.0 - eismaske;
