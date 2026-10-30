@@ -48,7 +48,10 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     /// <summary>Ist das Fenster zu sehen? (Die Tafel kann nach dem Ziehen außerhalb dieses Containers hängen und allein versteckt werden.)</summary>
     public bool Offen => Visible && Tafel.Visible;
 
-    /// <summary>Verbindet das Fenster mit der Partie. <paramref name="tempo"/> stellt die Spielgeschwindigkeit (wie die Zifferntasten).</summary>
+    /// <summary>
+    /// Verbindet das Fenster mit der Partie. <paramref name="tempo"/> stellt die Spielgeschwindigkeit (wie die Zifferntasten).
+    /// Vor dem Einhängen in den Baum aufrufen (Hauptszene.Entwickler.cs): <see cref="_Ready"/> baut die Reiter schon während <c>AddChild</c>.
+    /// </summary>
     public void Verbinden(Simulation simulation, Konto spieler, Stadtansicht stadt, Action<double> tempo)
     {
         _sim = simulation;
@@ -103,6 +106,7 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         Tafel.Show(); // nach dem Ziehen hängt die Tafel in der Fensterebene, nicht mehr in diesem Container
         if (reiter >= 0 && reiter < _reiter.GetTabCount()) _reiter.CurrentTab = reiter;
         Auffrischen(true);
+        DarstellungAuffrischen(); // die Schalter gleich auf dem Stand der Stadt, nicht erst nach einer halben Sekunde
     }
 
     public void Schliessen()
