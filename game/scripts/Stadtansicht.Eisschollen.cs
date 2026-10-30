@@ -69,7 +69,7 @@ public partial class Stadtansicht
                     var (quer, stelle, abstand) = feld.InLaufachsen(new Vector2(p.X, p.Z), ref tipp);
                     if (abstand < 200f) _schollenBeweglich.Add(new(quer, stelle, KahnQuer, KahnLaengs));
                 }
-            feld.Bild(delta, kamera, Wasserarten.EisFortschritt(art, _wasserWinter), art.Schollen, _schollenBeweglich);
+            feld.Bild(delta, kamera, Wasserarten.EisFortschritt(art, _wasserWinter), art.Schollen, _schollenBeweglich, _wasserTauen);
         }
         if (!SchollenMessung) return;
         foreach (var (feld, _) in _schollenFelder) _schollenMessSumme += feld.SimulationMs;

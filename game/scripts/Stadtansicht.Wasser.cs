@@ -81,10 +81,23 @@ public partial class Stadtansicht
     /// <summary>So viele Löcher bzw. Mündungen nimmt der Shader je Gewässer (<c>loch_ort[8]</c>, <c>muendung[4]</c>).</summary>
     private const int LoecherJeStoff = 8, MuendungenJeStoff = 4;
 
-    /// <summary>Startoption <c>--winter=0..1</c>: Eis so weit gewachsen, unabhängig von der Uhr (für Bildschirmfotos).</summary>
+    /// <summary>
+    /// Startoption <c>--winter=0..1</c>: Eis so weit gewachsen, unabhängig von der Uhr (für Bildschirmfotos). Eis gibt es nur im Winter: Über 0 zeigt
+    /// die Ansicht ohne <c>--jahreszeit</c> den Winter (<see cref="GezeigteJahreszeit"/>); mit einer anderen vorgegebenen Jahreszeit bleibt das Wasser offen.
+    /// </summary>
     private static readonly float? WinterVorgabe =
         float.TryParse(Wasserarten.Startoption("winter"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var w)
             ? Mathf.Clamp(w, 0f, 1f) : null;
+
+    /// <summary>Startoption <c>--tauwetter=0..1</c>: Eisgang so weit (siehe <see cref="Wasserarten.Tauwetter"/>); ohne <c>--winter</c> mit vollem Eis.</summary>
+    private static readonly float? TauwetterVorgabe =
+        float.TryParse(Wasserarten.Startoption("tauwetter"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var tw)
+            ? Mathf.Clamp(tw, 0f, 1f) : null;
+
+    /// <summary>Ob die Startoptionen den Winter zeigen sollen (<c>--winter</c> über 0 oder <c>--tauwetter</c>), wenn keine Jahreszeit vorgegeben ist.</summary>
+    private static bool WinterAusStartoption => WinterVorgabe > 0f || TauwetterVorgabe is not null;
+
+    private float _wasserTauen;
 
     /// <summary>Das Wasser, das die Ansicht zeichnet: im Spiel das der Karte, in der Werkstatt das des Entwurfs (folgt jeder Änderung von selbst).</summary>
     private Wasserform? GewaesserForm => _gelaende?.Wasser;
@@ -121,7 +134,9 @@ public partial class Stadtansicht
         _wasserStufe = _wasserStufeMessung ?? Wasserarten.StufeAusGrafik();
         var shader = Wasserarten.ShaderFuer(_wasserStufe);
         var abstand = Wasserarten.NetzAbstand(_wasserStufe);
-        _wasserWinter = WinterJetzt();
+        (_wasserWinter, _wasserTauen) = WinterJetzt();
+        GD.Print($"[wasser] Eis beim Aufbau: Winter {_wasserWinter:0.000}, Tauwetter {_wasserTauen:0.000} " +
+                 $"(gezeigt {GezeigteJahreszeit(_simulation?.Zeit.Jahreszeit ?? Jahreszeit.Fruehling)}, Uhr {_simulation?.Zeit.Jahreszeit.ToString() ?? "keine Partie"})");
         var arten = form.Laeufe.ToDictionary(l => l, l => Wasserarten.AusKarte(l.Art, l.Punkte.Count > 0 ? l.Punkte.Max(p => p.Breite) : 0, 0, l.Stroemung));
         _muendungen = Muendungen(form);
         _wasserLoecher = _muendungen.Select(m => new OffeneStelle(m.Ort, m.Ort, Mathf.Max(1f, m.Halb), Offenart.Loch, "Mündung " + m.Bach.Name)).ToList();
@@ -175,7 +190,7 @@ public partial class Stadtansicht
     {
         var stoff = new ShaderMaterial { Shader = shader, ResourceName = "Wasser_" + art.Name, RenderPriority = reihenfolge };
         Wasserarten.BilderSetzen(stoff);
-        Wasserarten.Anwenden(stoff, art, richtung, _wasserWinter, uferImNetz: true, lauf, tempo, abstand, saat);
+        Wasserarten.Anwenden(stoff, art, richtung, _wasserWinter, uferImNetz: true, lauf, tempo, abstand, saat, _wasserTauen);
         stoff.SetShaderParameter("himmel_grund", WasserHimmelGrund);
         stoff.SetShaderParameter("sampler_scale", new Vector2(WasserBildMassstab, WasserBildMassstab));
         _wasserStoffe.Add((stoff, art));
@@ -200,36 +215,50 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Der Winterfortschritt jetzt: aus Jahreszeit und Fortschritt im Spieljahr (Kern: <see cref="Spielzeit.Jahreszeit"/>, <see cref="Spielzeit.MinuteImTag"/>
-    /// mit der angebrochenen Minute), siehe <see cref="Wasserarten.Winterfortschritt"/>. Ist die Jahreszeit vorgegeben (<c>--jahreszeit</c>, Entwicklerfenster)
-    /// und weicht von der Uhr ab, steht das Eis im Winter voll, sonst gar nicht; <c>--winter</c> setzt den Wert fest.
+    /// Winterfortschritt und Tauwetter jetzt: aus Jahreszeit und Fortschritt im Spieljahr (Kern: <see cref="Spielzeit.Jahreszeit"/>,
+    /// <see cref="Spielzeit.MinuteImTag"/> mit der angebrochenen Minute), siehe <see cref="Wasserarten.Winterfortschritt"/> und
+    /// <see cref="Wasserarten.Tauwetter"/>. Eis gibt es nur, wenn die Ansicht den Winter zeigt. Ist die Jahreszeit vorgegeben (<c>--jahreszeit</c>,
+    /// Entwicklerfenster) und weicht von der Uhr ab, steht das Eis im Winter voll (ohne Eisgang), sonst gar nicht; <c>--winter</c> und
+    /// <c>--tauwetter</c> setzen die Werte fest (nur im gezeigten Winter).
     /// </summary>
-    private float WinterJetzt()
+    private (float Winter, float Tauen) WinterJetzt()
     {
-        if (WinterVorgabe is { } vorgabe) return vorgabe;
-        if (_simulation is null) return _jahreszeitVorgabe == Jahreszeit.Winter ? 1f : 0f;
+        var uhr = _simulation?.Zeit.Jahreszeit;
+        var gezeigt = GezeigteJahreszeit(uhr ?? Jahreszeit.Fruehling);
+        if (gezeigt != Jahreszeit.Winter) return (0f, 0f);
+        if (WinterVorgabe is not null || TauwetterVorgabe is not null) return (WinterVorgabe ?? 1f, TauwetterVorgabe ?? 0f);
+        if (_simulation is null || uhr != Jahreszeit.Winter) return (1f, 0f);
         var zeit = _simulation.Zeit;
-        var gezeigt = GezeigteJahreszeit(zeit.Jahreszeit);
-        if (gezeigt != zeit.Jahreszeit) return gezeigt == Jahreszeit.Winter ? 1f : 0f;
         var anteil = (zeit.MinuteImTag + _simulation.Takt.AngebrocheneMinute) / Spielzeit.MinutenProTag;
-        return Wasserarten.Winterfortschritt(zeit.Jahreszeit, anteil);
+        return (Wasserarten.Winterfortschritt(zeit.Jahreszeit, anteil), Wasserarten.Tauwetter(zeit.Jahreszeit, anteil));
     }
+
+    private double _eisMeldung = -1;
 
     /// <summary>
     /// Jedes Bild (aus <see cref="WasserBild"/>): das Eis aller Gewässer auf den Winterfortschritt, je Art nach <see cref="Wasserarten.EisFortschritt"/>,
-    /// und die Wintertönung des offenen Wassers (nur bei Änderung).
+    /// Eisgang (<c>eis_tauen</c>) und die Wintertönung des offenen Wassers (nur bei Änderung). Im Übergang alle 20 s eine Zeile ins Protokoll.
     /// </summary>
     private void WasserWinterNachfuehren()
     {
         if (_wasserStoffe.Count == 0) return;
-        var winter = WinterJetzt();
-        if (Mathf.Abs(winter - _wasserWinter) < 0.002f) return;
-        _wasserWinter = winter;
+        var (winter, tauen) = WinterJetzt();
+        if (Mathf.Abs(winter - _wasserWinter) < 0.002f && Mathf.Abs(tauen - _wasserTauen) < 0.002f) return;
+        var sprung = Mathf.Abs(winter - _wasserWinter) > 0.2f || Mathf.Abs(tauen - _wasserTauen) > 0.2f;
+        (_wasserWinter, _wasserTauen) = (winter, tauen);
         foreach (var (stoff, art) in _wasserStoffe)
         {
             stoff.SetShaderParameter("eis", Wasserarten.EisFortschritt(art, winter));
             stoff.SetShaderParameter("eis_still", Wasserarten.EisFortschritt(Wasserarten.Hafenbecken, winter));
-            stoff.SetShaderParameter("winter_ton", Wasserarten.WinterTon(winter));
+            stoff.SetShaderParameter("winter_ton", Wasserarten.WinterTon(winter, tauen));
+            stoff.SetShaderParameter("eis_tauen", tauen);
+        }
+        var jetzt = Time.GetTicksMsec() / 1000.0;
+        if (sprung || jetzt - _eisMeldung >= 20)
+        {
+            _eisMeldung = jetzt;
+            GD.Print($"[wasser] Eis: Winter {winter:0.000}, Tauwetter {tauen:0.000} ({GezeigteJahreszeit(_simulation?.Zeit.Jahreszeit ?? Jahreszeit.Fruehling)}" +
+                     (_simulation is { } sim ? $", {sim.Zeit.Jahreszeit} {sim.Zeit.MinuteImTag / (double)Spielzeit.MinutenProTag:0.000} des Jahres" : "") + ")");
         }
     }
 

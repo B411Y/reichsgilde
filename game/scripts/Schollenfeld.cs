@@ -63,7 +63,7 @@ public sealed class Schollenfeld
     private readonly float[] _pufferNah, _pufferFern;
     private readonly int _platz;
     private double _zeit;
-    private float _eisFestZuletzt = -1;
+    private float _eisFestZuletzt = -1, _tauenZuletzt = -1;
 
     // Zustand der treibenden Schollen in Laufachsen: Stelle, quer, Tempo längs und quer (m/s), Gier und Drehtempo, Haftzeit an einem Pfeiler (s)
     private readonly float[] _s, _q, _vs, _vq, _gier, _om, _haft, _rStoss, _halbHier;
@@ -476,8 +476,10 @@ public sealed class Schollenfeld
     /// Schiebt die Schollen weiter (Simulation in Teilschritten zu höchstens 1/30 s) und schreibt die sichtbaren in die beiden Netze.
     /// <paramref name="eis"/> ist der Eisfortschritt der Art (0–1): Dichte, Breite des Randeises und die festen Schollen; <paramref name="schollenAn"/>
     /// 0 = keine treibenden Schollen (dann kostet es nichts). <paramref name="beweglich"/>: Hindernisse, die sich bewegen (Prahm, Kähne), in Laufachsen.
+    /// <paramref name="tauen"/>: Eisgang am Winterende (<see cref="Wasserarten.Tauwetter"/>): Das Randeis bricht auf (die festen Schollen vergehen
+    /// nach und nach, im Shader), es treiben erst mehr Schollen (von drei Vierteln auf alle), dann schmelzen sie (kleiner, weniger); bei 1 ist nichts mehr da.
     /// </summary>
-    public void Bild(double delta, Camera3D? kamera, float eis, float schollenAn, List<Hindernis> beweglich)
+    public void Bild(double delta, Camera3D? kamera, float eis, float schollenAn, List<Hindernis> beweglich, float tauen = 0f)
     {
         _zeit += delta;
         if (MathF.Abs(eis - _eisFestZuletzt) > 0.0005f)
@@ -485,8 +487,15 @@ public sealed class Schollenfeld
             _eisFestZuletzt = eis;
             Stoff.SetShaderParameter("eis_fest", eis);
         }
-        var dichte = schollenAn * Mathf.SmoothStep(0.15f, 0.85f, eis);
-        var festeSichtbar = Feste > 0 && eis > 0.001f;
+        if (MathF.Abs(tauen - _tauenZuletzt) > 0.0005f)
+        {
+            _tauenZuletzt = tauen;
+            Stoff.SetShaderParameter("eis_tauen", tauen);
+        }
+        var dichte = schollenAn * Mathf.SmoothStep(0.15f, 0.85f, eis) * Mathf.Lerp(0.75f, 1f, Mathf.SmoothStep(0f, 0.3f, tauen))
+                     * (1f - Mathf.SmoothStep(0.65f, 1f, tauen));
+        var schmelzen = 1f - 0.35f * Mathf.SmoothStep(0.5f, 1f, tauen);
+        var festeSichtbar = Feste > 0 && eis > 0.001f && tauen < 0.999f;
         if ((dichte <= 0.001f && !festeSichtbar) || kamera is null || !GodotObject.IsInstanceValid(kamera))
         {
             if (Knoten.Visible) Knoten.Visible = false;
@@ -507,7 +516,9 @@ public sealed class Schollenfeld
         (Pruefungen, Beruehrungen, Teilschritte, StoesseMs) = (0, 0, schritte, 0);
         var augeXz = new Vector2(kamera.GlobalPosition.X, kamera.GlobalPosition.Z);
         var sKamera = InLaufachsen(augeXz, ref _kameraTipp).Stelle;
-        for (var k = 0; k < schritte; k++) Schritt(dt, dichte, eis, beweglich, sKamera);
+        // Das Randeis bricht im Eisgang weg: Die Schollen bekommen nach und nach die ganze Breite
+        var eisRand = eis * (1f - Mathf.SmoothStep(0.15f, 0.85f, tauen));
+        for (var k = 0; k < schritte; k++) Schritt(dt, dichte, eisRand, beweglich, sKamera);
         SimulationMs = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
 
         var ebenen = kamera.GetFrustum();
@@ -524,7 +535,7 @@ public sealed class Schollenfeld
             var s = _s[i];
             var wachsen = Mathf.SmoothStep(sch.Schwelle, sch.Schwelle + 0.08f, dichte);
             var ende = Mathf.SmoothStep(0f, 14f, s) * Mathf.SmoothStep(_laenge, _laenge - 14f, s);
-            var r = sch.Halbmesser * wachsen * ende;
+            var r = sch.Halbmesser * wachsen * ende * schmelzen;
             if (r < 0.06f) continue;
             var p = Punkt(s);
             var querW = new Vector2(-p.Richtung.Y, p.Richtung.X);

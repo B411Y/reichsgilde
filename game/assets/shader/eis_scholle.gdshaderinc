@@ -81,6 +81,12 @@ void vertex() {
 	float fest = COLOR.a;
 	// Feste Scholle im Randeis: wächst auf, wenn das Eis sie erreicht (vorher ein Punkt ohne Fläche)
 	float da = fest > 0.0 ? smoothstep(fest, fest + 0.05, eis_fest) : 1.0;
+	// Eisgang: Das Randeis bricht auf, die festen Schollen vergehen eine nach der anderen (bei Tauwetter 0,9 alle)
+	if (fest > 0.0) {
+		float weg = smoothstep(0.1, 0.9, eis_tauen) * 1.06;
+		float h = w_hash(vec2(saat, 101.0));
+		da *= 1.0 - smoothstep(h * 0.94, h * 0.94 + 0.06, weg);
+	}
 	fest_v = fest > 0.0 ? 1.0 : 0.0;
 	mat3 m = mat3(MODEL_MATRIX);
 	float halbmesser = max(length(m[0]), 0.01);

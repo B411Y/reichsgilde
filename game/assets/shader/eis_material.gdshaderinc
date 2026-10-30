@@ -17,6 +17,7 @@ uniform float eis_klar = 0.25;         // Anteil klaren (schwarzen) Eises: Fluss
 uniform sampler2D eis_relief : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable; // Normalkarte des Reliefs
 uniform float eis_relief_skala = 0.55; // Wiederholungen der Normalkarte je Meter
 uniform float eis_relief_staerke = 0.8;
+uniform float eis_tauen = 0.0;        // Eisgang am Winterende 0–1 (Wasserarten.Tauwetter): das Eis wird morsch, grau und nass, Platten und Schollen vergehen
 
 struct Eisoberseite {
 	vec3 farbe;
@@ -64,11 +65,16 @@ Eisoberseite eis_oberseite(vec2 p, float klar_zusatz, float schnee_menge, vec3 d
 	vec2 rel = (texture(eis_relief, q1).xy * 2.0 - 1.0) + (texture(eis_relief, q2).xy * 2.0 - 1.0) * 0.8;
 	e.neigung = rel * eis_relief_staerke * mix(1.0, 0.2, e.klar);
 	// Schnee: in Fahnen, mehr auf weißem, kaum auf klarem Eis
-	e.schnee = clamp(schnee_menge * smoothstep(0.3, 0.6, w_fbm(p * 0.5 + 9.0) * 0.7 + gross * 0.3 + 0.1 - 0.35 * e.klar), 0.0, 1.0);
+	e.schnee = clamp(schnee_menge * (1.0 - smoothstep(0.1, 0.7, eis_tauen)) * smoothstep(0.3, 0.6, w_fbm(p * 0.5 + 9.0) * 0.7 + gross * 0.3 + 0.1 - 0.35 * e.klar), 0.0, 1.0);
 	e.farbe = mix(e.farbe, vec3(0.93, 0.95, 0.97), e.schnee);
 	e.neigung *= 1.0 - 0.35 * e.schnee;
 	e.rau = mix(mix(0.62, 0.1, e.klar), 0.85, e.schnee);
 	e.spec = mix(0.4, 0.55, e.klar) * (1.0 - 0.5 * e.schnee);
+	// Tauwetter: morsches Eis, grau und nass (Wasser steht darauf), der Schnee darauf geht weg
+	float morsch = smoothstep(0.0, 0.6, eis_tauen);
+	e.farbe = mix(e.farbe, e.farbe * 0.68 + eis_stirn * 0.07, morsch * 0.75);
+	e.rau = mix(e.rau, 0.18, morsch * 0.7);
+	e.spec = mix(e.spec, 0.55, morsch * 0.6);
 	e.durch = eis_stirn * 0.3 * (1.0 - e.schnee);
 	return e;
 }

@@ -134,7 +134,8 @@ public static class Wasserarten
     /// </summary>
     /// <summary>Wintertönung des offenen Wassers (kälter, dunkler, schwächere Lichtnetze): voll schon ab 0,4 des Winterfortschritts – kalt ist das Wasser,
     /// bevor es friert.</summary>
-    public static float WinterTon(float winter) => Mathf.Clamp(winter * 2.5f, 0f, 1f);
+    public static float WinterTon(float winter, float tauen = 0f) =>
+        Mathf.Clamp(winter * 2.5f, 0f, 1f) * (1f - Mathf.SmoothStep(0.5f, 1f, tauen)); // im Eisgang wird das Wasser wieder wärmer, am Winterende wie im Frühling
 
     public static float EisFortschritt(Wasserart art, float winter) =>
         art.Eis == Eisregel.Nie ? 0f : Mathf.Clamp((winter - art.EisAb) / Mathf.Max(art.EisBis - art.EisAb, 0.01f), 0f, 1f);
@@ -160,27 +161,29 @@ public static class Wasserarten
 
     /// <summary>
     /// Winterfortschritt 0–1 aus Jahreszeit und Fortschritt im Spieljahr (0–1; ein Spieljahr ist eine Jahreszeit, 1140 Ticks, im Kern
-    /// <c>Spielzeit.TagesFortschritt</c>): Im <b>Winter</b> wächst das Eis über die ersten drei Fünftel des Jahres von 0 auf 1, erst schnell, dann
-    /// langsamer (wie Eis dicker wird), und hält bis zum Jahresende; im <b>Frühling</b> taut es im ersten Drittel (bis 0,3) von 1 auf 0. Sommer
-    /// und Herbst 0. An den Jahreswechseln springt nichts (Herbstende 0 = Winterbeginn 0, Winterende 1 = Frühlingsbeginn 1).
+    /// <c>Spielzeit.TagesFortschritt</c>): Eis gibt es **nur im Winter** (Nutzer 30.10.2026). Es wächst über die ersten 55 % des Winters von 0 auf 1,
+    /// erst schnell, dann langsamer (wie Eis dicker wird), und steht dann bis zum Ende; im letzten Stück bricht es im Eisgang auf
+    /// (<see cref="Tauwetter"/>). Frühling, Sommer und Herbst 0. An den Jahreswechseln springt nichts: Herbstende 0 = Winterbeginn 0, am Winterende
+    /// ist das Eis im Eisgang ganz vergangen (Tauwetter 1), der Frühling beginnt ohne Eis.
     /// </summary>
     public static float Winterfortschritt(Jahreszeit jahreszeit, double jahresanteil)
     {
-        var f = (float)Math.Clamp(jahresanteil, 0, 1);
-        switch (jahreszeit)
-        {
-            case Jahreszeit.Winter:
-                var t = Mathf.Clamp(f / WinterWachsen, 0f, 1f);
-                return 1f - (1f - t) * (1f - t);
-            case Jahreszeit.Fruehling:
-                return 1f - Mathf.SmoothStep(0f, FruehlingTauen, f);
-            default:
-                return 0f;
-        }
+        if (jahreszeit != Jahreszeit.Winter) return 0f;
+        var t = Mathf.Clamp((float)Math.Clamp(jahresanteil, 0, 1) / WinterWachsen, 0f, 1f);
+        return 1f - (1f - t) * (1f - t);
     }
 
-    /// <summary>Bis zu diesem Anteil des Winters wächst das Eis; bis zu diesem Anteil des Frühlings taut es.</summary>
-    public const float WinterWachsen = 0.6f, FruehlingTauen = 0.3f;
+    /// <summary>
+    /// Tauwetter 0–1 (Eisgang) im letzten Stück des Winters, von <see cref="TauAb"/> bis <see cref="TauBis"/> des Jahres: Die Decken von Bach,
+    /// Teich und Hafenbecken brechen in Platten auf, die nach und nach vergehen; auf dem Fluss treiben erst mehr Schollen, dann schmelzen sie; der
+    /// Schnee schmilzt mit (Stadtansicht.Wetter.cs). Ab <see cref="TauBis"/> ist kein Eis mehr zu sehen – spätestens am ersten Frühlingstag. Wie in
+    /// der Geschichte: Eisgang auf dem Rhein lag meist im Januar und Februar, nicht im Frühling. Außerhalb des Winters 0 (dort gibt es kein Eis).
+    /// </summary>
+    public static float Tauwetter(Jahreszeit jahreszeit, double jahresanteil) =>
+        jahreszeit == Jahreszeit.Winter ? Mathf.SmoothStep(TauAb, TauBis, (float)Math.Clamp(jahresanteil, 0, 1)) : 0f;
+
+    /// <summary>Bis zu diesem Anteil des Winters wächst das Eis; von <see cref="TauAb"/> bis <see cref="TauBis"/> geht es im Eisgang.</summary>
+    public const float WinterWachsen = 0.55f, TauAb = 0.72f, TauBis = 0.96f;
 
     // ── Bilder des Wassers: an einer Stelle, damit andere Texturen (Blender) ohne Eingriff am Shader eingesetzt werden können ──
     private const string BilderOrdner = "res://assets/texturen/realistisches_wasser/";
@@ -244,7 +247,7 @@ public static class Wasserarten
     /// das Tempo der Art (aus der Karte). <paramref name="netzAbstand"/>: Abstand der Netzecken in m (0 = fein genug für alle Wellen).
     /// </summary>
     public static void Anwenden(ShaderMaterial m, Wasserart art, Vector2 richtung, float winter, bool uferImNetz, bool lauf = false, float? tempo = null,
-        float netzAbstand = 0f, float saat = 0f)
+        float netzAbstand = 0f, float saat = 0f, float tauen = 0f)
     {
         var r = richtung.LengthSquared() > 0.0001f ? richtung.Normalized() : new Vector2(1, 0.4f).Normalized();
         var fliesst = (tempo ?? art.Stroemung) > 0;
@@ -263,8 +266,9 @@ public static class Wasserarten
         m.SetShaderParameter("kaustik_staerke", art.Kaustik);
         m.SetShaderParameter("eis_reichweite", art.Eis == Eisregel.Nie ? 0f : art.EisReichweite);
         m.SetShaderParameter("eis", EisFortschritt(art, winter));
-        m.SetShaderParameter("winter_ton", WinterTon(winter));
+        m.SetShaderParameter("winter_ton", WinterTon(winter, tauen));
         m.SetShaderParameter("eis_still", EisFortschritt(Hafenbecken, winter));
+        m.SetShaderParameter("eis_tauen", tauen);
         m.SetShaderParameter("rand_unruhe", art.Eis == Eisregel.Voll ? 0.5f : 1f);
         m.SetShaderParameter("eis_klar", EisKlar(art));
         // Wo das Eis vor dem Ufer unregelmäßig aufhört (dort liegt der Grund, keine gerade Naht): am Fluss und See bis 1,3 m, am Bach und Teich

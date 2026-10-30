@@ -219,7 +219,8 @@ void vertex() {
 		float zelle_v = clamp(reich_v * 0.75, 1.3, 3.6);
 		float vor_kante = ufer - (eis_v * reich_v * (rand_unruhe < 0.99 ? 1.3 : 1.0) + (w_fbm(wp.xz * 0.045 + 17.0) - 0.5) * 2.0 * unruhe_v * smoothstep(0.0, 0.3, eis_v));
 		float ab = (zelle_v * 0.45 + 0.2) * smoothstep(0.0, 0.15, eis_v);
-		staerke *= smoothstep(ab, ab + 2.5, vor_kante);
+		// Im Eisgang brechen die Platten auf und vergehen: die Wellen kommen zurück
+		staerke *= mix(smoothstep(ab, ab + 2.5, vor_kante), 1.0, smoothstep(0.55, 1.0, eis_tauen));
 	}
 #endif
 
@@ -465,6 +466,16 @@ void fragment() {
 				- (abstand + dot(c1 - p, grad));
 			float w2 = eis_c2 * reich_w + ((w_fbm(c2 * 0.045 + 17.0) - 0.5) * 2.0 * unruhe + (w_hash(c2 * 3.1 + 7.0) - 0.5) * zelle_m * 0.9 * rand_unruhe) * anlauf
 				- (abstand + dot(c2 - p, grad));
+			// Eisgang: Platten vergehen eine nach der anderen (bei Tauwetter 0,9 alle)
+			if (eis_tauen > 0.001) {
+				float weg = smoothstep(0.1, 0.9, eis_tauen) * 1.06;
+				if (w_hash(c1 * 3.7 + 13.0) < weg) {
+					w1 = -1.0;
+				}
+				if (w_hash(c2 * 3.7 + 13.0) < weg) {
+					w2 = -1.0;
+				}
+			}
 			float aa = bildpunkt_m * 1.2 + 0.01;
 			float kante_aussen = 99.0;  // Abstand (m) vor der nächsten Platte (offenes Wasser)
 			float kante_innen = 99.0;   // Abstand (m) hinter der Bruchkante (auf dem Eis): nasser Rand, Lippe
@@ -472,13 +483,15 @@ void fragment() {
 			if (w1 > 0.0 && w2 > 0.0) {
 				eismaske = 1.0;
 				// Randeis: Nahe der Kante gehen manche Fugen auf (bis 9 cm, offenes Wasser darin), weiter innen sind sie feine Risse, nur nah.
-				// Eine Decke hat keine Fugen (aus der Höhe sah man sonst das Mosaik der Platten)
-				if (!decke) {
-					float spalt = mix(0.004, 0.09, (1.0 - smoothstep(0.0, zelle_m * 0.35, min(w1, w2))) * step(0.55, w_hash(c1 + c2 + vec2(9.0, 4.0))));
+				// Eine Decke hat keine Fugen (aus der Höhe sah man sonst das Mosaik der Platten) – bis sie im Eisgang aufbricht: dann gehen alle
+				// Fugen auf, bis gut ein Zehntel der Plattengröße
+				float spalt = decke ? 0.0 : mix(0.004, 0.09, (1.0 - smoothstep(0.0, zelle_m * 0.35, min(w1, w2))) * step(0.55, w_hash(c1 + c2 + vec2(9.0, 4.0))));
+				spalt = max(spalt, smoothstep(0.0, 0.5, eis_tauen) * zelle_m * 0.12 * (0.6 + 0.8 * w_hash(c1 + c2 + vec2(5.0, 2.0))));
+				if (spalt > 0.0) {
 					float fuge = 1.0 - smoothstep(spalt, spalt + aa, grenze);
 					float offen_fuge = smoothstep(0.03, 0.09, spalt);
 					eismaske = 1.0 - fuge * offen_fuge;
-					riss_platte = fuge * (1.0 - offen_fuge) * step(0.6, w_hash(c1 + c2 + vec2(3.0, 1.0))) * 0.6;
+					riss_platte = decke ? 0.0 : fuge * (1.0 - offen_fuge) * step(0.6, w_hash(c1 + c2 + vec2(3.0, 1.0))) * 0.6;
 					kante_aussen = fuge * offen_fuge > 0.5 ? max(spalt - grenze, 0.0) : 99.0;
 					kante_innen = fuge * offen_fuge > 0.5 ? 99.0 : max(grenze - spalt, 0.0) + (1.0 - offen_fuge) * 99.0;
 				}
@@ -496,6 +509,7 @@ void fragment() {
 			vec2 tp = lauf_uv - stroemung * TIME * 0.6;
 			matsch *= smoothstep(0.25, 0.6, w_fbm(tp * 0.9 + 4.0)) * (1.0 - eismaske);
 			matsch = max(matsch, (1.0 - smoothstep(0.0, 0.6, kante_aussen)) * 0.7 * (1.0 - eismaske));
+			matsch *= 1.0 - smoothstep(0.7, 1.0, eis_tauen); // am Ende des Eisgangs ist auch der Brei geschmolzen
 			if (matsch > 0.001) {
 				// Treibende Flocken (wie auf den Fotos: weiße Punkte auf dunklem Wasser), dazwischen grauer Brei
 				float flocke = smoothstep(0.62, 0.86, w_rausch(tp * 3.1)) + smoothstep(0.8, 0.95, w_rausch(tp * 7.3 + 2.0)) * 0.6;

@@ -143,7 +143,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Die Jahreszeit, die die Stadt zeigt: die der Uhr oder die der Startoption.</summary>
-    private Jahreszeit GezeigteJahreszeit(Jahreszeit uhr) => _jahreszeitVorgabe ?? uhr;
+    private Jahreszeit GezeigteJahreszeit(Jahreszeit uhr) => _jahreszeitVorgabe ?? (WinterAusStartoption ? Jahreszeit.Winter : uhr); // --winter > 0 zeigt den Winter (Stadtansicht.Wasser.cs)
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Aufbau
@@ -267,9 +267,12 @@ public partial class Stadtansicht
             _naesseMinute = (long)minute;
             _naesseZiel = ablauf.Naesse(minute);
         }
-        // Schneedecke: im Winter immer, bei Schneefall dichter; schneit es (Vorgabe) außerhalb des Winters, bleibt er auch liegen
+        // Schneedecke: im Winter immer, bei Schneefall dichter; im Eisgang am Winterende schmilzt sie mit dem Eis (Wasser Phase 3d, Nutzer
+        // 30.10.2026: im Frühling kein Schnee mehr); schneit es (Vorgabe) außerhalb des Winters, bleibt er auch liegen
         var winter = GezeigteJahreszeit(jahreszeit) == Jahreszeit.Winter;
-        var deckeZiel = Mathf.Max(winter ? 0.62f + 0.45f * ziel.Schnee : 0f, ziel.Schnee * 0.9f);
+        var tauen = winter ? WinterJetzt().Tauen : 0f;
+        var deckeZiel = Mathf.Max(winter ? (0.62f + 0.45f * ziel.Schnee) * (1f - Mathf.SmoothStep(0.15f, 0.9f, tauen)) : 0f,
+            ziel.Schnee * 0.9f * (1f - Mathf.SmoothStep(0.6f, 1f, tauen)));
         var anteileZiel = GezeigteJahreszeit(jahreszeit) switch
         {
             Jahreszeit.Fruehling => new Vector4(1, 0, 0, 0),
