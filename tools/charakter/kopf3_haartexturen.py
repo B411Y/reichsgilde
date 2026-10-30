@@ -196,10 +196,10 @@ def wimpern(pfad, rng):
     BH = 1024
     bild = Bild(B, BH)
     # (Band, Anzahl, Länge mm innen/Mitte/außen, Karte mm, Dicke mm, Büschel, Schwung)
-    baender = ((0, 46, (2.0, 3.8, 4.0), (2.6, 4.2, 4.3), 0.045, (1, 2), 0.3),
-               (1, 120, (5.4, 8.4, 7.6), (5.8, 8.8, 8.2), 0.09, (2, 4), 0.6),
-               (2, 46, (6.0, 9.4, 8.8), (6.5, 9.9, 9.2), 0.075, (1, 3), 0.9),
-               (3, 90, (2.6, 4.4, 4.0), (5.8, 8.8, 8.2), 0.06, (1, 2), 0.3))
+    baender = ((0, 52, (2.0, 3.8, 4.0), (2.6, 4.2, 4.3), 0.05, (1, 2), 0.3),
+               (1, 165, (5.4, 8.4, 7.6), (5.8, 8.8, 8.2), 0.105, (2, 3), 0.6),
+               (2, 70, (6.0, 9.4, 8.8), (6.5, 9.9, 9.2), 0.085, (1, 3), 0.9),
+               (3, 120, (2.6, 4.4, 4.0), (5.8, 8.8, 8.2), 0.07, (1, 2), 0.3))
     for band, anzahl, laenge_mm, karte_mm, dicke, (b_min, b_max), schwung in baender:
         lid_mm = 30.0 if band else 28.0
         haare = []
@@ -233,7 +233,7 @@ def wimpern(pfad, rng):
             vb = (band + np.clip(s * 0.995, 0, 0.995)) / 4.0
             px = np.stack([np.clip(uu, 0, 1) * B, (1.0 - vb) * BH], 1)
             breite = np.linspace(1.0, 0.12, k) ** 0.7 * dicke * rng.uniform(0.75, 1.2) / (lid_mm / B)
-            bild.haar(px, breite, r, 0.0, deckung=rng.uniform(0.8, 1.0))
+            bild.haar(px, breite, r, 0.0, deckung=rng.uniform(0.9, 1.0))
     bild.speichern(pfad)
     return bild
 
