@@ -238,3 +238,104 @@ Alle selbst angesehen (T400, Vulkan, 1600 × 900, freie Kamera). Vorher (ad72bb8
 - **Bach-Eis:** Aus der Höhe sieht man die Plattengrenzen der Decke noch als feines Mosaik.
 - **Wellenhöhe** ist aus den Parametern gerechnet (Steilheit, Länge, Netz), nicht im Bild gemessen. Aus der Spielhöhe sind 6–10 cm kaum zu sehen; im Sturm deutlich.
 - **Klicktest:** Der Rechner war stark belastet (Last bis 14, eine fremde Godot-Sitzung auf der Grafikkarte); mehrere Läufe brauchten über 85 s zum Laden und wurden mit längerer Wartezeit wiederholt.
+
+## Phase 3d: ein Eismaterial, feste Schollen im Randeis, Stöße, starres Eis, träger Seegang (30.10.2026)
+
+Nach dem Test von 3c (Nutzer: „etwas besser, aber die Schwächen müssen weg“): Das Randeis sah nicht aus wie die Schollen, der zugefrorene Bach und die Mündung gefielen nicht (von oben ein Mosaik aus Platten), die Schollen stießen nicht an Pfeiler und aneinander. Dazu: Randeis und Bach-Eis bewegten sich mit den Wellen „wie ein Schwamm“, und beim Wetterwechsel sprang die Struktur der Wellen um.
+
+### Recherche (30.10.2026)
+
+**Fotos von Flusseis** (Wikimedia Commons, nur angesehen, nichts übernommen; Lizenz der Fotos zur Nachprüfung):
+
+| Foto | Lizenz | Was es zeigt |
+|---|---|---|
+| Dömitz, Elbe, Eisgang (5.2.2012) | CC BY-SA 3.0 | dichtes Treibeis aus Pfannkuchen und Brocken, weiß, buckelig, mit aufgeworfenen Rändern; dunkle Rinnen dazwischen |
+| Eisgang auf der Elbe (30.1.2010) | CC0 | Schollen 20–40 cm dick, schräg aufeinandergeschoben; am Ufer ein Wall aus Brocken mit Schnee; Bruchflächen grau, durchscheinend, mit Schmutz |
+| Treibeis an der Behelfsbrücke Mainz–Rhein (3.1.1947, Landesarchiv BW) | CC BY 4.0 | runde Schollen mit hellem Wulst auf schwarzem Wasser, an den Pfeilern gesammelt; am Ufer ein Band aus Brocken |
+| Eisablagerungen an der Mosel (2.2.1954, Landesarchiv BW), von oben | CC BY 4.0 | Randeis als **durchgehendes, helles Band** an beiden Ufern, in der Mitte ein Mosaik dicht treibender Schollen, dazwischen eine dunkle offene Rinne |
+| Eisgang auf der Elbe (5.3.2018) | CC BY-SA 4.0 | feines Treibeis in Streifen, grau-weiß; Fahrrinne eines Schiffes |
+| Hudson River with ice floes | CC BY 4.0 | Schollen in Streifen entlang der Strömung, am Ufer dichter |
+| Ice floes in River Dee (geograph 1640266) | CC BY-SA 2.0 | Randeis von oben: weiß, Kante glatt gerundet, davor ein Streifen dünnes, graues Eis; Grieseis als weiße Flocken auf dunklem Wasser |
+| Small Ice Floes, Afon Tywi (geograph 1661607) | CC BY-SA 2.0 | graue, fast untergetauchte Breischollen; dünnes Randeis kaum sichtbar, nur seine Kante |
+| Ice formations at Zdobnice–Říčka confluence | CC BY-SA 4.0 | Mündung zweier Bäche: dickes Ufereis mit gerundeter, überhängender Kante (10–40 cm), darunter Eiszapfen, schwarzes offenes Wasser |
+| Regensburg, Eisgang der Donau vor der Steinernen Brücke (1893) | gemeinfrei | Eisstoß stromauf einer Steinbrücke: 30–50 cm dicke Blöcke, schräg gestellt und übereinandergeschoben, verschneit |
+| Pancake ice on the Allagash River, Maine | gemeinfrei | Pfannkucheneis am Ufer: runde Scheiben mit hellem, aufgeworfenem Rand, dicht an dicht, davor schwarzes Wasser mit Flocken |
+| A strip of ice cover near the shore of the pond | CC BY-SA 4.0 | junges Ufereis aus der Nähe: dunkel, mit Nadeln und gefrorenen Breiklumpen |
+| Bronte Creek in Ice | CC BY 2.0 | zugefrorene Fläche mit Schneefahnen und grauen, nassen Streifen – kein Plattenmuster |
+
+**Was Flusseis echt macht** (für unsere Bilder): (1) Flusseis ist fast immer **weiß bis grau und matt** – gefrorener Eisbrei; klares, schwarzes Eis nur, wo das Wasser still war, mit weißen Rissen und Blasen. (2) **Schnee** liegt auf fast allem alten Eis, in Fahnen; nasse Stellen grau. (3) **Kanten** sind dick (10–40 cm), gerundet, oben hell, darunter blaugrau durchscheinend, direkt davor dunkles Wasser im Schatten. (4) **Treibeis** sind Pfannkuchen mit aufgeworfenem Rand und buckelige Brocken, viele kleine, wenige große, in Streifen entlang der Strömung, am Ufer dichter. (5) **Grieseis** sind weiße Flocken und grauer Brei auf dem dunklen Wasser. (6) Das **Wasser** im Winter ist sehr dunkel und spiegelt – großer Kontrast zum Eis. (7) An **Brückenpfeilern** sammeln sich Schollen stromauf (Eisstoß), schieben sich übereinander und gleiten dann vorbei; stromab ist es ruhiger. Am Ufer frieren Pfannkuchen zu einem dichten Feld zusammen – das Vorbild für die festen Schollen im Randeis. (8) **Von oben** ist Randeis ein durchgehendes helles Band, kein Mosaik; die Kante ist großflächig glatt, im Kleinen gebrochen. (9) **Zugefrorene Bäche:** zusammenhängende Decke, meist verschneit, an offenen Stellen dicke, gerundete Kanten. (10) **Mündung:** offenes Wasser, wo der Bach einströmt, rundum Ufereis, Brei treibt hinaus.
+
+**Freie Texturen und Shader** (nur Lizenzen, die ein verkauftes Spiel erlauben):
+
+| Quelle | Lizenz | Ergebnis |
+|---|---|---|
+| ambientCG „Snow 014“ (gefrorener, buckeliger Schnee/Eis) | CC0 | **übernommen:** die Normalkarte (1K, OpenGL) als Relief des Eises, `game/assets/texturen/eis/eis_relief_normal.jpg` (Protokoll, `HERKUNFT.md`); die Farbkarte nicht (grüne Blätter darin) |
+| ambientCG Ice001–Ice004 (gerissenes Seeeis, grün) | CC0 | nicht übernommen: stilisierte Zellen – brächten das Plattenmosaik zurück, das weg sollte |
+| ambientCG Snow005, Snow006; Poly Haven snow_01 bis snow_05, snow_field_aerial | CC0 | nicht nötig: Schnee rechnet der Shader, das Relief kommt aus Snow 014 |
+| godotshaders.com „Spatial Ice Shader“ (Bildschirmtextur-Brechung, Fresnel) | CC0 | nicht übernommen: Brechung durch die Schollen bleibt aus (Begründung Phase 3c), Fresnel ist schon da |
+| godotshaders.com „Ice Covering“ (2D-Überlagerung), „Frostbite“ (Nachbearbeitung) | MIT bzw. CC0 | passen nicht (Bildschirmeffekte) |
+| GitHub/Asset Library: WaterBox, FloatableBody (Auftrieb für RigidBody) | MIT | nicht übernommen: keine Physik-Engine für Hunderte Schollen (Empfehlung Teamleiter) – eigene 2D-Simulation |
+| Dragonforge „Godot 3D Ice Material Shaders“ (itch.io) | CC0, kostenpflichtig | nicht gekauft |
+
+### Umsetzung
+
+| Wunsch | Umsetzung | Dateien |
+|---|---|---|
+| **Ein Eismaterial** für Randeis, Bach, Teich, Hafenbecken und Schollen | `eis_material.gdshaderinc`: eine Funktion `eis_oberseite(Ort, Zusatz klar, Schnee, darunter, Bildpunktgröße)` für jede Eisoberseite – weiß bis grau und matt (gefrorener Brei, großflächig 3 und 15 m wechselnd, keine Platten), Schwebstoff-Schlieren, wenig klares Eis (je Art `eis_klar`: Fluss 0,12, Bach 0,32, See 0,45, Teich und Hafenbecken 0,5; zur Kante hin mehr), Blasen und Reif nur nah, feine Risse vor allem im klaren Eis, **Relief** aus der Normalkarte (zwei gedrehte Lagen), Schnee in Fahnen, Himmelsspiegelung und Leuchten aus dem Eis (`eis_himmel`). Dieselben Farben (`eis_hell`, `eis_dunkel`, `eis_stirn`, `eis_schlamm`) für Wasser-Shader und Schollen. Schnee auf den Schollen nur, wo Schnee liegt (vorher hatten sie ohne Schneedecke eigenen Schnee und sahen anders aus als das Eis daneben) | `eis_material.gdshaderinc`, `wasser_realistisch.gdshaderinc`, `eis_scholle.gdshaderinc`, `Wasserarten.EisKlar`, `EisStoffSetzen` |
+| **Randeis mit Dicke** wie die Schollen | **Feste Schollen im Randeis:** dieselben Körper wie die treibenden, im Band vom Ufer bis zur weitesten Eiskante festgefroren (Rhein 2.900, Halbmesser 0,45–1,75 m, dicker, mit mehr Schnee; kleine Überlappung, keine Durchdringung). So sieht Randeis großer Flüsse auf den Fotos aus: angefrorenes Treibeis und Brei. Jede hat eine Schwelle: Sie wächst auf, sobald die Kante des Shaders (Reichweite · Eis + dieselben Buchten, das Rauschen `w_fbm` ist in C# nachgebaut) knapp über ihre Mitte reicht – sie wächst mit dem Winter mit, die CPU schreibt sie nur einmal (Uniform `eis_fest`). Keine festen Schollen in der Fährrinne, an Furten, in der Rinne stromab einer Mündung, am Kai und an Pfeilern. Gezeichnet in Stücken zu 32 m (nah 16 Ecken, ab 60 m 10), in Niedrig keine. Zwischen ihnen liegt das flache Eis des Wasser-Shaders aus demselben Material; seine Bruchkante hat jetzt wie die Schollen eine blaugrün glänzende Lippe und einen nassen, dunklen Rand | `Schollenfeld.FesteBauen`, `Stadtansicht.Eisschollen.FesteSchollenFrei`, `eis_scholle.gdshaderinc` |
+| **Kein Plattenmosaik** von oben | Eine Decke (Bach, Teich, Hafenbecken) hat keine Fugen mehr; die Platten bestimmen nur noch, wie die Kante bricht (an Löchern, Furten, beim Zufrieren). Klar/weiß wechselt stetig über die Fläche statt je Platte. Im Bach lag mitten im Eis dunkler Grund, wo das Wasser flach ist: Das Auslaufen auf den Grund gilt jetzt nur in Ufernähe | `wasser_realistisch.gdshaderinc` |
+| **Festes Eis starr** („wie ein Schwamm“) | Unter festem Eis keine Wellen mehr, auch nicht unter den Platten, die über die glatte Kante hinausragen; die Wellen setzen erst vor der Kante über 2,5 m ein (dieselbe Kante wie im Bildpunkt-Teil, mit Buchten und Löchern). Vorher klangen die Wellen unter dem Eis nur in Ufernähe ab (am Rhein schaukelten die äußeren 3 m des Randeises voll mit, in der Bachmitte noch über 80 %), und das Muster des Eises lag fest in der Welt, während die Ecken mit der Welle hin- und herwanderten – das sah aus wie ein Schwamm. Unter dem Eis bleiben auch keine Kräusel mehr (dort liegt das Relief des Eises). Treibende Schollen bleiben starre Körper, die als Ganzes schaukeln; feste Schollen bewegen sich gar nicht | `wasser_realistisch.gdshaderinc` (`vertex`), `eis_scholle.gdshaderinc` |
+| **Mündung** | Folgt aus den Punkten oben: Das Bach-Eis ist eine glatte, verschneite Decke bis zum Loch an der Mündung, dessen Rand wie jede Kante bricht; im Rhein schließt die offene Rinne stromab an, rechts und links Randeis mit festen Schollen (keine in der Rinne) | wie oben |
+| **Stöße** an Pfeilern, Prahm, Kähnen und untereinander | Eigene 2D-Simulation in `Schollenfeld` (keine Physik-Engine): Jede Scholle ist ein Kreis (78 % ihres Halbmessers: der Umriss ist ein Vieleck, meist innerhalb des Halbmessers) in den Laufachsen. Die Strömung zieht sie (Profil quer: Mitte 1,12 ×, am Ufer langsamer; Zeitkonstante 1,2 s + 0,7 s je m Halbmesser), dazu ein leichtes Pendeln quer. **Untereinander:** Nachbarn über ein Gitter zu 2 m (Felder, einmal angelegt, ohne Speicheranforderung je Bild), Überlappung zu 80 % nach Masse auseinander, unelastischer Stoß (Eis federt kaum), Reibung längs der Berührung dreht beide. **Pfeiler** (Kapsel entlang der längeren Seite), Prahm und Kähne: herausschieben, Tempo in die Wand umkehren (15 %), längs der Wand leichte Reibung und Drehung. Trifft eine Scholle einen Pfeiler von vorn, hängt sie 1–4 s fest; wer auf sie auffährt, bremst mit (bis 1 s, nur die erste Reihe; die übrigen stauen sich nur durch die Stöße) – **ein kurzer Stau**, danach gleiten sie seitlich am Pfeilerkopf vorbei. Ist eine zwischen Pfeiler und Nachbarn eingekeilt und drückt länger als 4 s, schiebt sie sich 2,5 s über bzw. unter die Nachbarn (ohne Stöße mit ihnen) und gleitet seitlich weg – so löst sich der Stau, statt dass sich eine Eisbrücke bildet. Am Randeis prallen sie ab. In Teilschritten zu höchstens 1/30 s (höchstens zwei je Bild); Stöße nur im Fenster ±160 m um die Kamera, weiter weg treiben sie nur (gleich schnell, sie laufen nicht ineinander). Abbrechende Stücke vom Randeis: nicht gebaut (siehe offen) | `Schollenfeld.Schritt`, `HindernisPruefen`, `Abprallen` |
+| **Wetterwechsel ohne Umspringen** | Ursache: Der Wind lenkte die **Richtung** der Wellenzüge; die Phase k · (d · Ort − c · t) rechnet mit Orten bis über 1 km, schon eine kleine Drehung verschob das ganze Muster auf einen Schlag. Jetzt sind die Richtungen fest, der Wind ändert nur die **Höhe** der Züge (mit dem Wind laufende bis +90 % × Windanteil). Und der Seegang ist **träge:** die neue globale Uniform `wellen_seegang` folgt dem Wind des Wetters mit Zeitkonstante 40 s beim Aufbau und 80 s beim Abklingen (bei höherem Spieltempo geteilt durch dessen Wurzel); Wellenhöhe und Kräusel lesen sie, Regenringe, Schaum und Farbe folgen weiter schnell `wetter_wind`. Testszene: sofort | `wasser_wellen.gdshaderinc`, `Stadtansicht.Wetter.cs` (`SeegangNachfuehren`), `project.godot` (`wellen_seegang`), `Wassertest.cs` |
+
+### Kosten (T400, gegen 80db99b2)
+
+Gemessen wie in 3c (`--wasservergleich=1` im selben Prozess, Testszene `--wassermessung=winter`), beide Stände nacheinander am selben Nachmittag. Der Rechner war wieder belastet (Last 5–19, bis zu zwei fremde Godot-Sitzungen auf derselben Grafikkarte): Die drei Runden der Köln-Messung lagen bis 40 ms auseinander, diese Werte sind **nicht verwertbar** (Wasser in Stufe Hoch vorher +18,6, nachher +6,9 ms, jeweils die beste Runde – das ist Rauschen, kein Gewinn). Verwertbar sind die Testszene und die Rechenzeit der Schollen auf dem Prozessor:
+
+| Messung | vorher (80db99b2) | nachher (Phase 3d) |
+|---|---|---|
+| Testszene, Fluss über das ganze Bild, Eis gegen ohne Eis (Bildzeit, beste Runde / Median) | +1,5 / +4,8 ms | +5,1 / +3,7 ms |
+| Schollen-Simulation auf dem Prozessor, Köln, Rhein mit Fähre (4.722 treibende, 3.909 feste; `--schollenmessung=1`, Mittel über 10 s) | – (nur Verschieben, unter 0,5 ms) | 1,4–2,2 ms je Bild, davon Stöße 0,4–1,1 ms (2 Teilschritte, 3.500–11.600 Paarprüfungen) |
+| dasselbe nah an den Brückenpfeilern, Stau (`pfeiler_1.0`) | – | 2,0–3,0 ms je Bild (bis 1.000 Berührungen) |
+
+Das Eis kostet auf der Grafikkarte etwa so viel wie vorher (im Rauschen, ±2 ms): Das gemeinsame Material liest zwei Bildzugriffe mehr (Relief), dafür fallen in einer Decke die Fugen weg, und die festen Schollen sind fertige Netze (nah 16 Ecken je Ring, ab 60 m 10), die die CPU nur einmal schreibt. Neu ist die **Simulation**: etwa 2 ms je Bild auf diesem geteilten Rechner (optimiert gebaut wie ein exportiertes Spiel; der Debug-Bau, wie ihn der Godot-Editor startet, brauchte mit ±220 m 5–11 ms); auf einem Spiele-PC weniger. Sie läuft nur im Winter, wenn Schollen da sind, ohne Speicheranforderung je Bild; die Stöße nur ±160 m um die Kamera (die erste Fassung mit bis zu vier Teilschritten und ohne Fenster brauchte über 40 ms).
+
+### Bilder
+
+Alle selbst angesehen (T400, Vulkan, 1600 × 900, freie Kamera, Stufe Hoch wenn nicht anders genannt). Vorher (80db99b2): `/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/wasser3d/vorher/<name>/<bild>.png`, nachher: `…/wasser3d/nachher/<name>/<bild>.png`; zu den übrigen Ansichten liegen die Vorher-Bilder von 3c unter `…/wasser3c/nachher/` (nicht im Repository). Bei Bildfolgen nennt `zeiten.txt` die Sekunden seit dem Start.
+
+| Bild | Zu sehen |
+|---|---|
+| `nah_1.0_regen`, `nah_1.0_schnee` | Randeis nah: festgefrorene Schollen im selben Material wie die treibenden, dazwischen flaches Eis; ohne Schnee grau-weiß und nass, mit Schnee weiß (vorher: flaches Plattenmosaik, anders als die Schollen) |
+| `ufer_0.6` | Randeis bei 0,6: ein schmales Band, die festen Schollen wachsen mit der Eiskante |
+| `pfeiler_1.0` (a–h, je 1–12 s Abstand), `pfeiler_spiel_1.0` (a–d) | Schollen an den Pfeilern der Steinbrücke, nah und aus Spielhöhe: Stoß, kurzes Hängen am Pfeilerkopf, Stau dahinter, Vorbeigleiten; stromauf der Brücke dicht gepackt (wie ein Eisstoß), stromab lockerer. Vorher (a–h): Die Schollen wichen weit vorher seitlich aus und überschnitten sich |
+| `bachoben_1.0`, `bachoben_1.0_regen` | Duffesbach komplett vereist von oben: eine Decke ohne Plattenmosaik (vorher: Mosaik mit Fugen, mit Schnee dunkle offene Platten) |
+| `muendungoben_1.0_regen`, `muendung_spiel_0.6`, `muendung_spiel_1.0` | Mündung: Bach-Decke bis zum Loch, Rinne im Rhein stromab, Randeis aus festen Schollen links und rechts |
+| `schollen_1.0_regen`, `ueberblick_1.0` | Treibeis bodennah bei Regen und Übersicht mit Brücke |
+| `niedrig_1.0`, `mittel_1.0` | Stufen: Niedrig ohne feste Schollen (nur das flache Eis), Mittel mit |
+| `wetter` (a–j) | Wetterwechsel klar → Sturm (bei 92,8 s): Licht, Wolken und Regen springen, die Wellen wachsen über die nächsten zwei Minuten (Protokoll `[wetter] … Seegang` 0,25 → 0,55 nach 22 s → 0,80 nach 62 s → 0,91 nach 117 s). Vorher (a–j) wechselten Höhe und Muster im selben Augenblick |
+
+### Testanleitung (Windows)
+
+Wie oben bauen (`dotnet build Reichsgilde.sln`), dann aus der Eingabeaufforderung (`godot` = Pfad zu `Godot_v4.7.2-stable_mono_win64.exe`), immer mit `--karte=koeln --startstunde=11 --freiekamera=1`.
+
+**Wo der Brückenpfeiler-Stoß zu sehen ist:** Die Steinbrücke quert den Rhein bei z ≈ 8; ihre sechs Pfeiler stehen bei x = 66, 76, 85, 95, 104 und 114. Der Rhein fließt nach Norden (z wird kleiner): Die Schollen kommen von Süden (größeres z) und stoßen an die Südseite der Pfeiler.
+
+1. **Pfeiler, nah:** `… --jahreszeit=winter --winter=1.0 --wetter=klar --freiekamera-start=89,7,27:87,0,11` (über dem Wasser südlich der Brücke, Blick stromab auf die Pfeiler bei x = 85 und 95). Bei Tempo 1× ein, zwei Minuten zusehen. Erwartet: Schollen stoßen an den Pfeilerkopf, bleiben 1–4 s hängen, die folgenden fahren auf und stauen sich, dann gleitet die vordere seitlich vorbei und dreht sich dabei; untereinander schieben sie sich weg, keine läuft durch eine andere; in der Mitte treiben sie schneller als am Ufer. **Aus Spielhöhe:** `--freiekamera-start=96,40,62:90,0,12`.
+2. **Randeis nah:** `… --winter=1.0 --wetter=regen --freiekamera-start=57,2,92:61.5,-0.5,88` (ohne Schneedecke) und dasselbe mit `--jahreszeit=winter --wetter=klar` (mit Schnee). Erwartet: Das Randeis besteht aus festgefrorenen Schollen derselben Art wie die treibenden (Dicke, gebrochener Umriss, blaugrüne Stirn), dazwischen flaches Eis im selben Material; ohne Schnee grau-weiß, mit Schnee weiß; die Kante ist gebrochen und hat Dicke.
+3. **Starres Eis:** Schritt 2 mit `--wetter=sturm`: Randeis und feste Schollen bewegen sich nicht, nur das offene Wasser davor und die treibenden Schollen (als Ganzes). Ebenso der zugefrorene Duffesbach (Schritt 4).
+4. **Bach komplett vereist, von oben:** `… --jahreszeit=winter --winter=1.0 --wetter=klar --freiekamera-start=-130,40,150:-125,0,128`, ohne Schnee `--winter=1.0 --wetter=regen`. Erwartet: eine zusammenhängende Decke (weiß bzw. grau-weiß), kein Mosaik aus Platten, keine dunklen Flecken mitten im Bach.
+5. **Mündung:** von oben `… --winter=1.0 --wetter=regen --freiekamera-start=58,16,130:61,0,123`, aus Spielhöhe `… --jahreszeit=winter --winter=0.6` bzw. `1.0 --wetter=klar --freiekamera-start=40,32,150:66,0,112`. Erwartet: Bach-Decke bis zum offenen Loch an der Mündung, dessen Rand wie jede Eiskante bricht; im Rhein schließt die offene Rinne stromab an, links und rechts Randeis mit festen Schollen.
+6. **Wetterwechsel:** `… --winter=0 --wetter=klar --wetterspaeter=sturm@30 --freiekamera-start=60,6,40:85,0,20`. Nach 30 s schlägt das Wetter zum Sturm um: Wolken, Licht und Schaum sofort, die Wellen bauen sich über etwa eine Minute auf, ohne dass das Muster springt (vorher sprang es im selben Augenblick um). Das Protokoll schreibt alle 5 s `[wetter] … Seegang …`. Oder im Entwicklerfenster (F12) das Wetter umschalten, auch zurück (Abklingen etwa doppelt so lang).
+7. **Grafikstufen:** `--wasserstufe=niedrig` (keine festen Schollen, nur große treibende) und `mittel` mit Schritt 2.
+8. **Zurückmelden:** (a) Sieht das Randeis jetzt aus wie die Schollen? (b) Bach von oben und Mündung? (c) Stoß und Stau an den Pfeilern: zu lang, zu kurz, zu selten? (d) Fühlt sich der Seegang beim Wetterwechsel richtig an (Aufbau, Abklingen)? (e) Ruckeln bei vielen Schollen?
+
+### Was offen bleibt
+
+- **Kein Abbrechen vom Randeis:** Stücke, die vom Randeis abbrechen und treiben, sind nicht gebaut (das Randeis ist fest, die Schwellen wachsen nur). Es wäre ein Übergang einer festen Scholle in die Simulation – machbar, aber mit eigenem Puffer.
+- **Stau nur in der Ebene:** Die Schollen schieben sich an Pfeilern nicht sichtbar übereinander (Aufpressungen wie auf den Fotos von Regensburg); eingekeilte gleiten 2,5 s durch ihre Nachbarn hindurch, das sieht man nah als kurze Überschneidung.
+- **Simulation nur um die Kamera:** Stöße rechnet sie ±160 m um die Kamera; fährt die Kamera schnell den Fluss entlang, holen die Schollen dort ihre Stöße erst nach, dabei können sich ein, zwei Bilder lang welche überschneiden. Rechenzeit (T400-Rechner, belastet): siehe Kosten.
+- **Feste Schollen nur an Flüssen:** Bach, Teich und Hafenbecken haben eine flache Decke (aus demselben Material, aber ohne Körper an der Kante); an einer Furt und an der Mündung des Baches sieht man die Kante deshalb noch flach.
+- **Spiegelung:** Die festen Schollen spiegeln sich nicht im Wasser (keine Bildschirmspiegelung), ebenso die treibenden.
+- **Wellenstruktur beim Wetterwechsel** ist an den Werten im Protokoll und an den Bildfolgen geprüft, nicht an einem Video; ein Ruck einzelner Bilder ließe sich nur im laufenden Spiel sehen.
