@@ -165,9 +165,20 @@ public partial class Stadtansicht
     /// </summary>
     public void EntwurfZeigen(Kartenentwurf entwurf)
     {
-        if (_karteGebaut) return;
+        foreach (var _ in EntwurfZeigenSchritte(entwurf)) { }
+    }
+
+    /// <summary>
+    /// <see cref="EntwurfZeigen"/> in Abschnitten für den Ladebildschirm (<see cref="Ladeschritt"/>, Anteil 0–1, nach der Messung mit
+    /// <c>--ladezeit=1</c>, Köln 29.10.2026); gerechnet wird beim nächsten Weiterzählen.
+    /// </summary>
+    public IEnumerable<Ladeschritt> EntwurfZeigenSchritte(Kartenentwurf entwurf)
+    {
+        if (_karteGebaut) yield break;
         _karteGebaut = true;
         _entwurf = entwurf;
+        Ladezeit.Marke("vor dem Kartenaufbau");
+        yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = entwurf.Gelaendeform; // folgt jeder Änderung des Entwurfs von selbst
         _karte = HintergrundVon(entwurf);
         if (_karte is { } karte)
@@ -182,17 +193,31 @@ public partial class Stadtansicht
             KameraAusKarte(karte);
         }
         else BodenBauen(entwurf.Kartengrenzen); // Boden, Dunst und Kartenrand (Stadtansicht.Rand.cs)
+        Ladezeit.Marke("Werkstatt-Szene: Boden und Gelände");
+        yield return new Ladeschritt(0.27f, "Häuser werden aufgestellt …");
 
         entwurf.Fangpunkte = Halteplaetze; // Karrenplätze und Gatter aus den Modellen (Stadtansicht.Kartenwerkstatt.Wege.cs)
         _stueckeKnoten = new Node3D { Name = "Stuecke" };
         AddChild(_stueckeKnoten);
         foreach (var g in entwurf.Gebaeude) StueckBauen(g);
+        Ladezeit.Marke("Werkstatt-Szene: Stücke (Gebäude)");
+        yield return new Ladeschritt(0.72f, "Wege werden gepflastert …");
         WegeAufbauen();      // Stadtansicht.Kartenwerkstatt.Wege.cs
+        Ladezeit.Marke("Werkstatt-Szene: Wege");
+        yield return new Ladeschritt(0.73f, "Wald und Felder werden abgesteckt …");
         FlaechenAufbauen();  // Stadtansicht.Kartenwerkstatt.Flaechen.cs
+        Ladezeit.Marke("Werkstatt-Szene: Flächen");
+        yield return new Ladeschritt(0.97f, "Bäume werden gepflanzt …");
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        Ladezeit.Marke("Werkstatt-Szene: Natur");
         BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
+        Ladezeit.Marke("Werkstatt-Szene: Bodendeko");
+        yield return new Ladeschritt(0.975f, "Die Stadtmauer wird hochgezogen …");
         MauernAufbauen();    // Stadtansicht.Kartenwerkstatt.Mauern.cs
+        Ladezeit.Marke("Werkstatt-Szene: Mauern");
+        yield return new Ladeschritt(0.98f, "Der Fluss wird eingelassen …");
         WasserAufbauen();    // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        Ladezeit.Marke("Werkstatt-Szene: Wasser");
         _wsFehlerNeu = true;
         entwurf.Geaendert += EntwurfGeaendert;
         LichtNachUhrzeit(12 * 60, 100); // heller Mittag, sofort ohne Überblenden
