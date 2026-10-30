@@ -60,7 +60,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Grenze | `Viewport.GetMousePosition` liest die echte Maus: Hover, Tooltips und die Lage der Auswahltafel folgen ihr; Klicks und Tasten wirken über das Ereignis | 29.10.2026 |
 | Argumente | `lauf.ps1` hat keinen `param`-Block, weil Windows PowerShell 5.1 bei `-File` ein `--` und `--karte=…` sonst als Parameter abweist | 29.10.2026 |
 
-### Absturz beim Beenden im Klicktest (PR #NUMMER)
+### Absturz beim Beenden im Klicktest (PR #263)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

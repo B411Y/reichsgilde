@@ -331,7 +331,7 @@ Belastbar sind nur die Läufe mit zwei fast gleichen Werten (z. B. Hoch, Niedrig
 | Zeitstrahl | `Zeitstrahl.cs` (Oberfläche, kleine Änderung des Teamleiters) dunkelt das Band nach den Sonnenzeiten der Jahreszeit ab (Dämmerung als weicher Übergang, die vier Phasen und ihre Namen bleiben) und zeigt die Sonne zwischen Aufgang und Untergang, sonst den Mond; der Tooltip nennt die Zeiten. Die Jahreszeit kommt von `--jahreszeit`, sonst vom Kalender. | 29.10.2026 |
 | Startoption | Neu: `--lichtuhr=<Stunde>` hält Licht, Himmel und Fenster auf einer festen Uhrzeit (auch `3.5` = 3:30 Uhr, vor dem Spielbeginn); nur für Bildschirmfotos. | 29.10.2026 |
 
-### Keine Instanz-Uniforms mehr (PR #NUMMER)
+### Keine Instanz-Uniforms mehr (PR #263)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
