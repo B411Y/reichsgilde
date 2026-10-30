@@ -11,9 +11,11 @@ public enum FeuerAusrichtung { Voll, Hochachse, Gekreuzt }
 /// <list type="bullet">
 /// <item><b>Flamme</b>: je Zunge eine Fläche, die der Kamera folgt, mit dem Flipbook der Blender-Simulation (<c>flamme_sim.gdshader</c>,
 /// <c>texturen/feuer/flamme_ruhig.png</c> bzw. <c>flamme_wild.png</c>); das Bild wählt der Shader aus der gemeinsamen Uhr <see cref="Zeit"/>, die
-/// Funken rechnet er mit. Ein Material je Art, der Startwert je Zunge als Instanz-Uniform: Alle Fackeln teilen sich ein Material. Kein Partikelsystem.</item>
+/// Funken rechnet er mit. Ein Material je Art (alle Fackeln teilen sich eines); der Startwert je Zunge steckt in der Tiefe der flachen Fläche
+/// (<see cref="FlaechenSetzen"/>), kein Instanz-Uniform. Kein Partikelsystem.</item>
 /// <item><b>Rauch</b>: eine Säule aus Flächen mit <c>rauch.gdshader</c> (unbeleuchtet; nachts dunkler, aber nie ganz schwarz, <see cref="Umgebung"/>).
-/// Wie stark sie qualmt, stellt <see cref="RauchStaerke"/> (Kamin: Feuer im Haus an oder aus).</item>
+/// Wie stark sie qualmt, stellt <see cref="RauchStaerke"/> (Kamin: Feuer im Haus an oder aus; ebenfalls über die Tiefe der Fläche), der Startwert
+/// kommt aus der Lage in der Welt.</item>
 /// <item><b>Glut</b> (Esse): ein flaches Glutbett mit <c>glut.gdshader</c> unter den Flammen.</item>
 /// <item><b>Licht</b> (nur mit <see cref="MitLicht"/>): ein <see cref="OmniLight3D"/> ohne Schatten; Energie und Farbe folgen der Helligkeit der Bilder,
 /// die die Zungen gerade zeigen (<c>helligkeit</c> in der <c>.json</c> des Flipbooks), mit Fernausblendung (DistanceFade). Wer das Licht selbst
@@ -226,7 +228,7 @@ public partial class Feuer : Node3D
             _rauchStaerke = Mathf.Clamp(value, 0f, 1f);
             foreach (var m in _rauch)
             {
-                m.SetInstanceShaderParameter("staerke", _rauchStaerke);
+                m.Scale = new Vector3(m.Scale.X, m.Scale.Y, m.Scale.X * (1f + _rauchStaerke)); // die Stärke steckt in der Tiefe der Fläche (FlaechenSetzen)
                 m.Visible = _rauchStaerke > 0.005f;
             }
         }
@@ -384,10 +386,11 @@ public partial class Feuer : Node3D
         for (var i = 0; i < Math.Max(art.Zungen, 1); i++)
         {
             var (lage, groesse, phase) = Zunge(art, i, zufall);
+            phase = Stufig(phase);
             _saaten.Add(Saat(phase));
             var (breite, hoehe) = kenn.Flaeche(art, groesse);
             // Der Fuß der Flamme liegt im Bild etwas über dem unteren Rand: die Fläche um so viel tiefer setzen
-            _flammen.AddRange(FlaechenSetzen(material, lage - new Vector3(0, kenn.Fuss * hoehe, 0), new Vector3(breite, hoehe, 1f), phase));
+            _flammen.AddRange(FlaechenSetzen(material, lage - new Vector3(0, kenn.Fuss * hoehe, 0), new Vector3(breite, hoehe, 1f), phase, phase));
         }
     }
 
@@ -401,12 +404,20 @@ public partial class Feuer : Node3D
             var seite = k == 0 ? 0f : (k % 2 == 0 ? 1f : -1f) * 0.12f * art.RauchBreite * k;
             var schicht = Mathf.Lerp(1f, 0.72f, k / (float)Math.Max(art.RauchSchichten, 1));
             var lage = new Vector3(seite, fuss, 0f);
-            _rauch.AddRange(FlaechenSetzen(material, lage, new Vector3(art.RauchBreite * schicht, art.RauchHoehe * (0.8f + 0.2f * schicht), 1f), k == 0 ? Phase : zufall.Randf()));
+            _rauch.AddRange(FlaechenSetzen(material, lage, new Vector3(art.RauchBreite * schicht, art.RauchHoehe * (0.8f + 0.2f * schicht), 1f), k == 0 ? Phase : zufall.Randf(), _rauchStaerke));
         }
     }
 
-    /// <summary>Eine Fläche (oder bei „gekreuzt“ zwei) mit dem Material und dem Startwert dieser Zunge.</summary>
-    private List<MeshInstance3D> FlaechenSetzen(ShaderMaterial material, Vector3 lage, Vector3 groesse, float phase)
+    /// <summary>Der Startwert einer Zunge auf 256 Stufen (Mitte der Stufe): So liest der Shader aus der Tiefe der Fläche genau denselben Wert wie <see cref="Lichtwert"/>.</summary>
+    private static float Stufig(float phase) => (Mathf.Floor(Mathf.Clamp(phase, 0f, 0.9999f) * 256f) + 0.5f) / 256f;
+
+    /// <summary>
+    /// Eine Fläche (oder bei „gekreuzt“ zwei) mit dem Material. <paramref name="kennwert"/> (0–1) reist ohne Instanz-Uniform zum Shader: Die Fläche ist
+    /// flach, ihre Tiefe (Skalierung in Z) ändert nichts am Bild; sie ist <c>Breite · (1 + kennwert)</c>, der Shader liest das Verhältnis Tiefe / Breite
+    /// (so stört auch die Größe einer Figur, die die Fackel trägt, nicht). Bei der Flamme ist es der Startwert der Zunge, beim Rauch die Stärke.
+    /// Instanz-Uniforms belegen je Fläche Platz im knappen Puffer der Grafikkarte (unter opengl3 tausende Fehlermeldungen, PR #263).
+    /// </summary>
+    private List<MeshInstance3D> FlaechenSetzen(ShaderMaterial material, Vector3 lage, Vector3 groesse, float phase, float kennwert)
     {
         var flaechen = Ausrichtung == FeuerAusrichtung.Gekreuzt ? 2 : 1;
         var neu = new List<MeshInstance3D>(flaechen);
@@ -417,13 +428,12 @@ public partial class Feuer : Node3D
                 Mesh = Flaeche,
                 MaterialOverride = material,
                 Position = lage,
-                Scale = groesse,
+                Scale = new Vector3(groesse.X, groesse.Y, groesse.X * (1f + kennwert)),
                 RotationDegrees = new Vector3(0, f * 90f + phase * 40f, 0),
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
                 // Die Flamme darf nie weggeschnitten werden, solange ihr Fuß sichtbar ist
                 ExtraCullMargin = 2f,
             };
-            m.SetInstanceShaderParameter("phase", phase);
             AddChild(m);
             neu.Add(m);
         }
@@ -449,8 +459,7 @@ public partial class Feuer : Node3D
             Position = new Vector3(0, 0.012f, 0),
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
-        scheibe.SetInstanceShaderParameter("phase", Phase);
-        AddChild(scheibe);
+        AddChild(scheibe); // der Startwert des Glutbetts kommt im Shader aus seiner Lage in der Welt
         _flammen.Add(scheibe);
     }
 }

@@ -12,12 +12,11 @@ uniform float helligkeit = 1.8;
 uniform float flackern = 0.3;
 // Anteil der Fläche, der glüht (0–1)
 uniform float glimmen = 0.75;
-instance uniform float phase = 0.0;
 
 varying flat uint saat;
 
 void vertex() {
-	saat = uint(phase * 65535.0) + 9u;
+	saat = f_hash_u(uvec4(uvec3(ivec3(round(MODEL_MATRIX[3].xyz * 100.0))), 9u));   // Startwert aus der Lage (kein Instanz-Uniform)
 }
 
 void fragment() {

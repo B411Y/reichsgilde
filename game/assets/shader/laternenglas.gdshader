@@ -19,7 +19,9 @@ uniform float tempo = 1.0;
 // Deckung der Scheibe bei Tag und nachts (dann sieht man die Flamme dahinter)
 uniform float deckung_tag = 0.85;
 uniform float deckung_nacht = 0.55;
-instance uniform float phase = -1.0;
+// Startwert des Flackerns (0–1); ohne (−1) aus der Lage des Lichts in der Welt. Kein Instanz-Uniform (knapper Puffer der Grafikkarte, PR #263):
+// Lichter in der Hand bekommen dort eine von wenigen Varianten des Materials mit festem Startwert.
+uniform float phase = -1.0;
 
 const float UNRUHE_FAKTOR = 1.55;
 

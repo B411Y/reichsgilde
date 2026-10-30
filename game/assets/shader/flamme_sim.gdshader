@@ -6,6 +6,7 @@
 // Je Zunge eine Fläche, die der Kamera folgt. Das Bild wählt der Shader aus der gemeinsamen Uhr (zeit · bildrate) und dem Startwert der Zunge;
 // zwei aufeinanderfolgende Bilder werden überblendet, ein leichtes Wabern aus dem Rauschen verdeckt das Überblenden. Dazu auf Wunsch Funken:
 // kleine glühende Punkte, die steigen, seitlich abtreiben und verlöschen. Eine Fläche, ein Zeichenaufruf je Zunge, kein Partikelsystem.
+// Der Startwert je Zunge steckt in der Tiefe (Skalierung in Z) der flachen Fläche, nicht in einem Instanz-Uniform.
 //
 // Die Fläche ist so groß wie ein Bild des Flipbooks; Feuer.cs rechnet die Größe aus den Kennwerten der Simulation (flamme_<variante>.json:
 // Höhe und Breite der Flamme im Bild, Lage des Fußes).
@@ -46,7 +47,6 @@ uniform int funken = 0;
 uniform float funken_hoehe = 2.5;
 uniform float funken_groesse = 0.012;
 uniform vec2 groesse_m = vec2(0.2, 0.42);
-instance uniform float phase = 0.0;
 
 varying float versatz;
 varying float spiegeln;
@@ -54,6 +54,10 @@ varying float neigung;
 varying flat uint saat;
 
 void vertex() {
+	// Startwert der Zunge: steckt in der Tiefe der flachen Fläche (Skalierung Z / X − 1, 256 Stufen; Feuer.FlaechenSetzen). Kein Instanz-Uniform:
+	// das belegte je Fläche Platz im knappen Puffer der Grafikkarte
+	float tiefe = length(MODEL_MATRIX[2].xyz) / max(length(MODEL_MATRIX[0].xyz), 1e-6) - 1.0;
+	float phase = (floor(clamp(tiefe, 0.0, 0.9999) * 256.0) + 0.5) / 256.0;
 	saat = uint(phase * 65535.0) + 7u;
 	versatz = f_hash(uvec4(saat, 23u, 0u, 0u));
 	spiegeln = step(0.5, f_hash(uvec4(saat, 29u, 0u, 0u)));

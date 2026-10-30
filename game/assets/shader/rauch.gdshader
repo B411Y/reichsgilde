@@ -33,14 +33,16 @@ uniform vec3 glut_farbe : source_color = vec3(1.0, 0.45, 0.1);
 uniform float glut_zone = 0.3;
 // Nachts: so hell bleibt der Rauch im Mondlicht (Grau ohne Ruß; Ruß macht ihn auch nachts dunkler)
 uniform vec3 mond_farbe : source_color = vec3(0.30, 0.33, 0.40);
-instance uniform float phase = 0.0;
-instance uniform float staerke = 1.0;
 
 varying float neigung;
+varying float staerke;
 varying flat uint saat;
 
 void vertex() {
-	saat = uint(phase * 65535.0) + 3u;
+	// Ohne Instanz-Uniform (sie belegten je Fläche Platz im knappen Puffer der Grafikkarte): die Stärke steckt in der Tiefe der flachen Fläche
+	// (Skalierung Z / X − 1, Feuer.RauchStaerke), der Startwert kommt aus der Lage in der Welt (Rauch steht still)
+	staerke = clamp(length(MODEL_MATRIX[2].xyz) / max(length(MODEL_MATRIX[0].xyz), 1e-6) - 1.0, 0.0, 1.0);
+	saat = f_hash_u(uvec4(uvec3(ivec3(round(MODEL_MATRIX[3].xyz * 100.0))), 3u));
 	float lage = 0.0;
 	if (billboard == 2) {
 		float sx = length(MODEL_MATRIX[0].xyz);

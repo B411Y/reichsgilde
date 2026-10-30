@@ -94,7 +94,7 @@ public partial class Stadtansicht
     };
 
     private readonly Dictionary<Lichtart, (Mesh Netz, Transform3D Lage)> _lichtNetze = new();
-    private ShaderMaterial? _laternenStoff, _ewigesStoff;
+    private ShaderMaterial? _flammenStoff, _laternenStoff, _ewigesStoff;
     private static Shader? _nachtlichtShader, _laternenglasShader;
     /// <summary>Die Flammen der festen Lichter (Feuerkörbe, Wandlaternen, Torfeuer): sichtbar, solange die Lichter brennen.</summary>
     private readonly List<Feuer> _festeFlammen = new();
@@ -171,31 +171,32 @@ public partial class Stadtansicht
     {
         if (Mathf.Abs(_lampenAn - _lampenGestellt) < 0.004f && (_lampenAn > 0) == (_lampenGestellt > 0)) return;
         _lampenGestellt = _lampenAn;
+        _flammenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _laternenStoff?.SetShaderParameter("helligkeit", _lampenAn);
         _ewigesStoff?.SetShaderParameter("helligkeit", Mathf.Max(_lampenAn, 0.22f));
     }
 
     /// <summary>
     /// Ein Licht aus dem Baukasten als eigener Knoten, mit seiner echten Flamme als Kind (<see cref="FlammeAnhaengen"/>); <paramref name="nummer"/> gibt
-    /// ihm seinen eigenen Takt. <paramref name="inHand"/>: Die Fackel brennt ohne Rauchsäule.
+    /// ihm seinen eigenen Takt. <paramref name="wandert"/> (in der Hand): Die Fackel brennt ohne Rauchsäule.
     /// </summary>
-    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool inHand = false)
+    private MeshInstance3D? LichtKnoten(Lichtart art, int nummer, bool wandert = false)
     {
         LichterLaden();
         if (!_lichtNetze.TryGetValue(art, out var teil)) return null;
         var knoten = new MeshInstance3D { Name = art.ToString(), Mesh = teil.Netz, Transform = teil.Lage, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
         knoten.SetInstanceShaderParameter("phase", (Streuung(nummer, 207) & 0xFFFF) / 65535f);
-        FlammeAnhaengen(knoten, art, nummer, inHand);
+        FlammeAnhaengen(knoten, art, nummer, wandert);
         LichterStoffStellen();
         return knoten;
     }
 
     /// <summary>Hängt die echte Flamme einer Lichtart an den Knoten (im Raum des Teils aus <c>lichter.glb</c>); ohne eigenes Licht, das stellt der Pool.</summary>
-    private Feuer? FlammeAnhaengen(Node3D knoten, Lichtart art, int nummer, bool inHand = false)
+    private Feuer? FlammeAnhaengen(Node3D knoten, Lichtart art, int nummer, bool wandert = false)
     {
         if (FlammenFuss(art) is not { } f || OS.GetEnvironment("RG_OHNEFLAMMEN") != "") return null; // RG_OHNEFLAMMEN: nur für Messungen
         var flamme = Feuer.Neu(f.Vorgabe, false, (Streuung(nummer, 2071) & 0xFFFF) / 65535f, f.Groesse);
-        if (inHand && art == Lichtart.Fackel) flamme.Art = Handfackel();
+        if (wandert && art == Lichtart.Fackel) flamme.Art = Handfackel();
         flamme.Name = "Flamme";
         flamme.Position = f.Fuss;
         knoten.AddChild(flamme);
@@ -320,7 +321,7 @@ public partial class Stadtansicht
     {
         var skelett = figur.Modell.FindChild("Skelett", true, false) as Skeleton3D
                       ?? figur.Modell.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().FirstOrDefault();
-        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer, inHand: true) is not { } lampe) return null;
+        if (skelett is null || skelett.FindBone("Unterarm_R") < 0 || LichtKnoten(art, nummer, wandert: true) is not { } lampe) return null;
         var anhang = new BoneAttachment3D { Name = "Licht", Visible = false };
         skelett.AddChild(anhang);
         anhang.BoneName = "Unterarm_R";
