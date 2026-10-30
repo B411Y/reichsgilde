@@ -110,6 +110,8 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	var hv: Dictionary = z.get("haar", {})
 	k.haar_vorgabe = hv.get("vorgabe", {})
 	k.haar_ruhe = bool(hv.get("ruhe", false))
+	k.haar_sparsam = bool(hv.get("sparsam", false))
+	k.haar_schatten = bool(hv.get("schatten", true))
 	if k.haar_knoten and String(hv.get("modus", "karten")) != k.haar_modus:
 		k.haar_modus_setzen(String(hv.get("modus", "karten")))
 	k.aussehen_setzen(gene, float(z.get("alter", 35.0)), _mann(z.get("geschlecht", "m")))
@@ -453,6 +455,9 @@ func _messen() -> void:
 		{"name": "haar_tressfx_ruhe", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": vk, "ruhe": true}},
 		{"name": "haar_karten_frau_offen", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "karten", "vorgabe": {"frisur": "frau_offen"}}},
 		{"name": "haar_tressfx_frau_offen", "kopf": kd, "bewegt": "keine", "geschlecht": "w", "haar": {"modus": "tressfx", "vorgabe": {"frisur": "frau_offen"}}},
+		{"name": "haar_karten_ohne_schatten", "kopf": kd, "bewegt": "keine", "haar": {"modus": "karten", "vorgabe": vk, "schatten": false}},
+		{"name": "haar_tressfx_sparsam", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": vk, "sparsam": true}},
+		{"name": "x8_karten_ohne_schatten", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "karten", "vorgabe": vk, "schatten": false}},
 		{"name": "x8_ohne_haar", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "aus"}},
 		{"name": "x8_karten", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "karten", "vorgabe": vk}},
 		{"name": "x8_tressfx_ruhe", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "tressfx", "vorgabe": vk, "ruhe": true}},

@@ -32,7 +32,8 @@ var stile: Array = []            # [Frisur, Bart] (leerer Name = keins)
 var modus := "karten"            # karten | tressfx | aus
 var werte := {}
 var tfx_ruhe := false            # TressFX nach kurzer Simulation einfrieren (viele Köpfe)
-var tfx_sparsam := false         # weniger Folgehaare (viele Köpfe)
+var tfx_sparsam := false         # weniger Folgehaare, Detailstufe nach Abstand (viele Köpfe, kleine Porträts)
+var karten_schatten := true      # Karten werfen Schatten (die Schattenkarte zeichnet alle Karten noch einmal)
 var verschiebung := PackedFloat32Array()
 var zeiten := {}                 # ms: mischen, tfx_schreiben
 var _stuetz_bild: Image
@@ -171,7 +172,7 @@ func _aufbauen() -> void:
 			mi.material_override = s
 			# Die Lage ändert der Shader: großzügiger Rahmen gegen Wegschneiden
 			mi.custom_aabb = AABB(Vector3(-0.4, 0.2, -0.4), Vector3(0.8, 1.0, 0.8))
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if karten_schatten else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(mi)
 			t["karte"] = mi
 			t["stoff_karte"] = s
@@ -377,6 +378,8 @@ func aktualisieren(gewichte: Dictionary, neue_werte: Dictionary) -> void:
 func _parameter() -> void:
 	var farbe: Color = werte.get("farbe", Color(0.25, 0.16, 0.09))
 	for t in _teile:
+		if t.get("karte"):
+			t["karte"].cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if karten_schatten else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var bart: bool = t["art"] == "bart"
 		for s in [t.get("stoff_karte"), t.get("stoff_tfx")]:
 			if s == null:

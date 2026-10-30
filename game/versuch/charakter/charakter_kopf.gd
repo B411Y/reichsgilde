@@ -66,6 +66,8 @@ var haar_modus := "karten"  # karten | tressfx | aus
 var haar_vorgabe := {}      # {"frisur": Stil, "bart": Stil} statt der Gene ("" = keins)
 var haar_werte := {}        # zuletzt gesetzte Werte (Frisur, Bart, Glatze, …)
 var haar_ruhe := false      # TressFX nach kurzer Simulation einfrieren (Galerie)
+var haar_sparsam := false   # TressFX mit weniger Folgehaaren und Detailstufe (kleine Porträts); in Ruhe immer
+var haar_schatten := true   # Haarkarten werfen Schatten
 static var _bild_speicher := {}
 # Zustand
 var gene := {}              # Kennung -> sichtbarer Wert 0..255
@@ -418,14 +420,16 @@ func _haar_einrichten() -> void:
 		haar_knoten = null
 		return
 	haar_knoten.tfx_ruhe = haar_ruhe
-	haar_knoten.tfx_sparsam = haar_ruhe
+	haar_knoten.tfx_sparsam = haar_ruhe or haar_sparsam
+	haar_knoten.karten_schatten = haar_schatten
 	haar_knoten.modus = haar_modus if haar_modus != "tressfx" or HAAR4.tressfx_da() else "karten"
 
 func haar_modus_setzen(m: String) -> void:
 	haar_modus = m
 	if haar_knoten:
 		haar_knoten.tfx_ruhe = haar_ruhe
-		haar_knoten.tfx_sparsam = haar_ruhe
+		haar_knoten.tfx_sparsam = haar_ruhe or haar_sparsam
+		haar_knoten.karten_schatten = haar_schatten
 		haar_knoten.modus_setzen(m if m != "aus" else "karten")
 		haar_knoten.visible = m != "aus"
 		_farben()
@@ -446,6 +450,7 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 	hw["farbe"] = farbe
 	hw["grau"] = grau
 	haar_werte = hw
+	haar_knoten.karten_schatten = haar_schatten
 	haar_knoten.stile_setzen([hw["frisur"], hw["bart"]])
 	haar_knoten.aktualisieren(gewichte, hw)
 	# Haut unter Haar und Bart

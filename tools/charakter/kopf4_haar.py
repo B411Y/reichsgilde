@@ -4,6 +4,7 @@ Quelle, dazu Kartenbild und Kopfhautkarten (eigener Code, MIT).
 Aufruf:  tools/charakter/blender.sh -b --factory-startup -P tools/charakter/kopf4_haar.py -- <glb-ordner> \
            [backdaten=<npz>] [kopf=kopf4_mn.glb] [nur=mann_kurz,vollbart] [faktor=1.0] [vorschau=<ordner>]
          [nur_karten=1]   Karten (und Kopfhautkarten) aus den gespeicherten Strähnen neu bauen, ohne neu zu kämmen
+         [nur_kopfhaut=1] nur die Kopfhautkarten neu (aus den gespeicherten Wurzeln)
          (oder tools/charakter/kopf4.sh)
 
 Ergebnis in <glb-ordner>/haar4/ (nicht im Repository):
@@ -173,7 +174,7 @@ for Klasse in alle_stile:
     stil = Klasse(h, rng)
     stil.anzahl = int(stil.anzahl * FAKTOR)
     art = KARTEN_BART if stil.teil == "bart" else (KARTEN_KURZ if name == "mann_kurz" else KARTEN_HAAR)
-    if "nur_karten" in OPT:
+    if "nur_karten" in OPT or "nur_kopfhaut" in OPT:
         teile = []
         vorschau_teile[name] = []
         for teil, endung, ka in (("haupt", "", art), ("zusatz", "_zusatz", KARTEN_ZOPF if name == "frau_zoepfe" else KARTEN_KNOTEN)):
@@ -183,13 +184,16 @@ for Klasse in alle_stile:
             felder, st = aus_bin(h, pf)
             if teil == "haupt":
                 wurzeln_je_stil[name] = (Klasse.geschlecht, st[:, 0].copy())
+            if "nur_kopfhaut" in OPT:
+                continue
             felder, zahlen = karten_neu(h, felder, st, ka)
             bloecke_schreiben(pf, {"name": name, "art": stil.teil if teil == "haupt" else "zusatz", "geschlecht": stil.geschlecht,
                                    "teil": teil, **zahlen}, felder)
             teile.append({"name": teil, **zahlen})
             vorschau_teile[name].append(st)
-        uebersicht[name] = {"art": stil.teil, "geschlecht": stil.geschlecht, "teile": teile}
-        zeit(f"{name}: Karten neu {teile}")
+        if teile:
+            uebersicht[name] = {"art": stil.teil, "geschlecht": stil.geschlecht, "teile": teile}
+            zeit(f"{name}: Karten neu {teile}")
         continue
     st, ww, nn, buschel = kf.erzeugen(stil, rng, log=lambda t: zeit(t))
     wurzeln_je_stil[name] = (Klasse.geschlecht, ww)
@@ -255,7 +259,9 @@ if "ohne_bilder" not in OPT:
                     continue
                 sel = np.nonzero(kopfteil)[0]
                 d = np.zeros(len(pb))
-                d[sel] = kk.dichte_karte(pb[sel], ww, 0.0022 * kopf.mass, 0.0032 * kopf.mass)
+                # Breite 3,5 mm: deckt auch den Scheitel und die Lücken zwischen den Karten (die Haut darunter wird
+                # haarfarben), ohne den Haaransatz hart zu machen
+                d[sel] = kk.dichte_karte(pb[sel], ww, 0.0035 * kopf.mass, 0.0032 * kopf.mass)
                 kanaele[name] = d
         rang = np.ones(len(T_))
         hm = huelle("m")
