@@ -2,7 +2,7 @@
 
 Woher jede Grafik, jedes Modell, jede Textur, jeder Shader, jede Schrift und jeder Klang des Spiels stammt, steht in **`protokoll.csv`** (Entscheidung des Nutzers, 29.10.2026). Daraus entsteht die Liste der KI-Inhalte für Steam (`steam-ki-inhalte.md`). Die Prompts der Bild-KIs liegen in `prompts/`.
 
-**Regel:** Kein Asset ohne Protokolleintrag im selben PR. Wer eine Datei unter `game/assets/` (oder eine KI-Quelle unter `tools/icons/quellen/`, `tools/portraets/quellen/`) anlegt, ändert oder löscht, passt im selben PR die Zeile an (mindestens `anzahl`) und führt das Prüfskript aus.
+**Regel:** Kein Asset ohne Protokolleintrag im selben PR. Wer eine Datei unter `game/assets/` (oder eine KI-Quelle unter `tools/icons/quellen/`, `tools/portraets/quellen/`, `tools/ton/quellen/`) anlegt, ändert oder löscht, passt im selben PR die Zeile an (mindestens `anzahl`) und führt das Prüfskript aus.
 
 ```bash
 python3 tools/assets/protokoll_pruefen.py                 # prüfen (läuft auch in der CI, Job „Build & Tests (ubuntu-latest)“)
@@ -36,7 +36,7 @@ UTF-8, Komma als Trenner, erste Zeile ist der Kopf. Enthält ein Feld ein Komma,
 
 ## Was das Prüfskript prüft
 
-- Jede Datei unter `game/assets/`, `tools/icons/quellen/` und `tools/portraets/quellen/` ist erfasst (ausgenommen `.import`, `.uid`, `.gitkeep`, `HERKUNFT.md`). Gezählt werden Dateien, die Git kennt, auch neue, noch nicht hinzugefügte (ohne die in `.gitignore`).
+- Jede Datei unter `game/assets/`, `tools/icons/quellen/`, `tools/portraets/quellen/` und `tools/ton/quellen/` ist erfasst (ausgenommen `.import`, `.uid`, `.gitkeep`, `HERKUNFT.md`). Gezählt werden Dateien, die Git kennt, auch neue, noch nicht hinzugefügte (ohne die in `.gitignore`).
 - Jedes Muster trifft mindestens eine Datei, `anzahl` stimmt.
 - Die Zeilen stehen nach `pfad_muster` sortiert (Zeichenvergleich); neue Zeilen an der alphabetisch passenden Stelle einfügen, nicht ans Ende. Das Skript nennt, wo eine Zeile hingehört.
 - Pflichtfelder sind gefüllt und haben gültige Werte; Verweise auf `docs/assets/prompts/…` zeigen auf vorhandene Dateien.

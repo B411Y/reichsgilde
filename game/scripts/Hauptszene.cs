@@ -612,6 +612,9 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
         if (optionen.TryGetValue("klangtest", out var klangtest) && klangtest == "1") KlangOberflaeche.Testen(this); // spielt alle Oberflächenklänge, Ergebnis im Log
+        if (optionen.TryGetValue("ansageplatzhalter", out var platzhalter) && platzhalter == "1") KlangAnsagen.Platzhalter = true; // Glockenton statt fehlender Aufnahme
+        if (optionen.TryGetValue("ansagetest", out var ansagetest) && _simulation.Wirtschaft is { } ansageWirtschaft && _spieler is not null)
+            KlangAnsagen.Testen(this, ansagetest, KlangAnsagenErkennung.Herrin(ansageWirtschaft, _spieler)); // löst Ansagen aus, Ergebnis im Log
         Fenster.StartoptionenAnwenden(optionen); // Grafik nur für diesen Start: --kanten, --voreinstellung, --dunst … (Fenster.Grafik.cs)
         // Erst nach den Grafikoptionen: Das Fenster zeigt beim Öffnen die dann gültigen Werte.
         if (optionen.TryGetValue("einstellungen", out var einstellungen) && einstellungen == "1")
@@ -1073,6 +1076,7 @@ public partial class Hauptszene : Node
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
         w.Meldung += meldung => Protokollieren(SchiffsMeldung(meldung)); // Überfälle auf eigene Schiffe als Warnung (Hauptszene.Hafen.cs)
+        AnsagenVerbinden(simulation, w, spieler);
         // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
         foreach (var rivale in w.Rivalen)
             foreach (var zug in rivale.Entscheidungen.Reverse())

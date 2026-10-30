@@ -40,9 +40,9 @@ ARTEN = {"Bild", "Modell", "Textur", "Shader", "Schrift", "Audio", "Text"}
 HERKUENFTE = {"KI", "Nutzer", "gemischt", "Fremdpaket", "eigenes Skript", "unbekannt"}
 KI_HERKUENFTE = {"KI", "gemischt"}
 
-# Hier muss jede Datei einen Eintrag haben. Die KI-Quellen unter tools/ stehen im Repository und unter CC BY 4.0,
+# Hier muss jede Datei einen Eintrag haben. Die KI-Quellen unter tools/ (Bilder, Stimmvorlage) stehen im Repository,
 # auch wenn das Spiel sie nicht ausliefert.
-PRUEFORDNER = ("game/assets/", "tools/icons/quellen/", "tools/portraets/quellen/")
+PRUEFORDNER = ("game/assets/", "tools/icons/quellen/", "tools/portraets/quellen/", "tools/ton/quellen/")
 # Stichtag der Lizenzänderung (Entscheidung 29.10.2026, LICENSE-INHALTE.md): Inhalte mit späterem Datum stehen unter
 # „Alle Rechte vorbehalten“, nicht unter CC BY. Merge von PR #240 am 29.10.2026 (Format "JJJJ-MM-TT", None = Prüfung aus).
 # Das Datum selbst gilt noch als vor dem Stichtag; geprüft werden Zeilen ab dem 30.10.2026.
