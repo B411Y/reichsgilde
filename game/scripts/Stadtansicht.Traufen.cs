@@ -408,7 +408,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Eine Traufkante (Grundriss a–b, Welt-x/z) ins Bild: Abstand jedes nahen Bildpunkts zur Strecke plus <paramref name="kleiner"/>, der kleinere Wert
-    /// gewinnt (R); mit ihm die Höhe der Traufe (G, <paramref name="hoehe"/> 0 = keine: Tropfstellen am Giebel).
+    /// gewinnt (R); mit ihm die Höhe der Traufe (G, <paramref name="hoehe"/> 0 = keine: Tropfstellen am Giebel), aber nur, wo das Lot auf die Kante fällt.
     /// </summary>
     private void KanteZeichnen(Vector2 a, Vector2 b, float kleiner, byte hoehe, Vector2 ecke, float texel)
     {
@@ -427,14 +427,17 @@ public partial class Stadtansicht
             for (var i = i0; i <= i1; i++)
             {
                 var p = new Vector2(ecke.X + (i + 0.5f) * texel, z);
-                var t = l2 > 1e-6f ? Mathf.Clamp((p - a).Dot(ab) / l2, 0f, 1f) : 0f;
+                var roh = l2 > 1e-6f ? (p - a).Dot(ab) / l2 : 0f;
+                var t = Mathf.Clamp(roh, 0f, 1f);
                 var d = (p - (a + ab * t)).Length() + kleiner;
                 if (d >= TropfWeit) continue;
                 var wert = (byte)Mathf.RoundToInt(d / TropfWeit * 255f);
                 var stelle = (j * TropfBild + i) * 4;
                 if (wert >= daten[stelle]) continue;
                 daten[stelle] = wert;
-                if (hoehe > 0) daten[stelle + 1] = hoehe;
+                // Die Höhe gehört immer zur nächsten Kante: nur eine Traufe, deren Lot auf die Kante fällt (hinter ihrem Ende, an der Giebelwand quer dazu,
+                // liegt keine Wand unter ihr); liegt eine Tropfstelle am Giebel oder das Ende einer Kante näher, gibt es hier keinen Schutz (0)
+                daten[stelle + 1] = hoehe > 0 && roh >= 0f && roh <= 1f ? hoehe : (byte)0;
             }
         }
     }

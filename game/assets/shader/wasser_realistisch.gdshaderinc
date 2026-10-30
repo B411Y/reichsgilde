@@ -1,6 +1,6 @@
 // Realistisches Wasser (docs/wasser/phase2.md, phase3.md): der gemeinsame Code aller Grafikstufen. Die Stufen sind eigene Shader, die nur
 // MIT_…-Schalter setzen und diese Datei einbinden: wasser_realistisch.gdshader (Hoch und Ultra, alles), wasser_mittel.gdshader (ohne
-// Brechung und Regenringe), wasser_niedrig.gdshader (ohne Brechung, Tiefentextur, Kaustik, Regenringe und mit nur einer Normalkarte).
+// Brechung), wasser_niedrig.gdshader (ohne Brechung, Tiefentextur, Kaustik, Regenringe und mit nur einer Normalkarte).
 // Wasserarten.cs wählt den Shader.
 //
 // Abgeleitet vom „Realistic Water Shader“ von UnionBytes / Achim Menzel (AiYori), Godot-4-Fassung realistisches_wasser/Water_Original.gdshader
@@ -47,6 +47,7 @@ uniform sampler2D SCREEN_TEXTURE : hint_screen_texture, filter_linear_mipmap;
 
 // Globale Werte des Spiels (project.godot, [shader_globals]); die Stadtansicht setzt sie je Bild
 global uniform float wetter_regen;     // Regen gerade jetzt 0–1 (nur in den Wettereffekten Hoch > 0)
+global uniform float wetter_ringe;     // Dichte der Regentropfen 0–1 (Hoch wie der Regen, Mittel 55 %, Niedrig 0; wetter.gdshaderinc, regentropfen)
 global uniform float wetter_schnee;    // Schneedecke 0–1
 global uniform vec3 wetter_himmel;     // Himmelsfarbe (linear): das Wasser spiegelt sie
 
@@ -260,7 +261,8 @@ vec2 ringe(vec2 p, float t) {
 		float alter = fract(t * (0.8 + 0.3 * h.x) + h.y);
 		vec2 v = lokal - (h - 0.5) * 0.4;
 		float d = length(v);
-		float ring = exp(-pow((d - alter * 0.5) * 22.0, 2.0)) * (1.0 - alter);
+		float x = (d - alter * 0.5) * 22.0;
+		float ring = exp(-x * x) * (1.0 - alter);
 		summe += normalize(v + vec2(0.0001)) * ring;
 	}
 	return summe;
@@ -330,8 +332,8 @@ void fragment() {
 	sturm = wind_anteil * wellen_seegang; // Kräusel so träge wie der Seegang (sonst sprang ihre Stärke beim Wetterwechsel)
 #endif
 #ifdef MIT_RINGE
-	if (wetter_regen > 0.02) {
-		normalmap.xy += ringe(welt_xz, TIME) * 0.38 * wetter_regen;
+	if (wetter_ringe > 0.02) { // wie die Tropfen am Boden: auch in Wettereffekte Mittel (dort schwächer), nicht in Niedrig
+		normalmap.xy += ringe(welt_xz, TIME) * 0.38 * wetter_ringe;
 	}
 #endif
 

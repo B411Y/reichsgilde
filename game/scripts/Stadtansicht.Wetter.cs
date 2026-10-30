@@ -278,6 +278,7 @@ public partial class Stadtansicht
         _wetterSofort = false;
         _wetter = Wetterwerte.Mischen(_wetter, ziel, t);
         _naesse = Mathf.Lerp(_naesse, _naesseZiel, t);
+        if (_naesseZiel <= 0f && _naesse < 0.002f) _naesse = 0f; // ganz trocken statt eines Rests, der nie ankommt
         _schneeDecke = Mathf.Lerp(_schneeDecke, deckeZiel, t);
         _jahreszeitAnteile = _jahreszeitAnteile.Lerp(anteileZiel, t);
 
@@ -320,7 +321,9 @@ public partial class Stadtansicht
 
     private void WetterGlobal(string name, float wert, float schwelle = 0.002f)
     {
-        if (_wetterGlobal.TryGetValue(name, out var alt) && Mathf.Abs(alt.AsSingle() - wert) < schwelle) return;
+        // Nur merkliche Änderungen senden – aber 0 immer: Sonst bliebe nach dem Abtrocknen ein Rest unter der Schwelle stehen, und alles, was „nass“
+        // nur bei mehr als 0 abschaltet, bliebe nass (Regen 4: Rinnen und Fugen der Dächer)
+        if (_wetterGlobal.TryGetValue(name, out var alt) && Mathf.Abs(alt.AsSingle() - wert) < schwelle && (wert != 0f || alt.AsSingle() == 0f)) return;
         _wetterGlobal[name] = wert;
         RenderingServer.GlobalShaderParameterSet(name, wert);
     }

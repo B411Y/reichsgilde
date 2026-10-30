@@ -105,10 +105,12 @@ global uniform vec3 boden_blick;
 
 varying vec2 welt;
 varying vec3 welt_n;
+varying float land;
 
 void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	welt_n = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
+	land = COLOR.r; // Eckenfarbe der Geländekacheln: 1 an Land, 0 unter dem Spiegel von Fluss und See (Stadtansicht.Gelaende.cs); ohne Eckenfarbe 1
 }
 
 // Eine abgetastete Textur: Farbe (rgb) und Höhe (a), Normale in Weltrichtung (ohne Normalen: die des Geländes) und Rauheit
@@ -816,7 +818,7 @@ void fragment() {
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen), Tropfkante und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE, TIME, traufe);
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE, TIME, traufe, clamp(land, 0.0, 1.0));
 	ALBEDO = farbe;
 	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);

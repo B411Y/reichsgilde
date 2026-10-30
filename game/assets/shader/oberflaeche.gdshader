@@ -227,7 +227,7 @@ void fragment() {
 		// steilen Turmhelm als Dach (nach der Neigung allein wäre sie eine Wand)
 		float dachstoff = (sb >= 0 && sb < BIB_MAX) ? (bib_projektion[sb] == 2 ? 1.0 : (bib_projektion[sb] == 1 ? 0.5 : 0.0)) : 0.0;
 		wetter_flaeche(grund, rau, wnorm_neu, gl, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, dachstoff,
-				tiefe, ort.y * smass, TIME);
+				tiefe, ort.y * smass, TIME, bib_stufe >= 1);
 		EMISSION += gl;
 		if (wnorm_neu != wnorm) NORMAL = normalize(mat3(VIEW_MATRIX) * wnorm_neu);   // Regentropfen auf flachen Flächen
 	}
