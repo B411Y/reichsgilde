@@ -43,8 +43,10 @@ SPRECHTEXT = WURZEL / "tools" / "ton" / "ansagen_sprechtext.json"
 REFERENZ = WURZEL / "tools" / "ton" / "quellen" / "haushofmeister_probe2.wav"
 ZIEL_SR = 48000
 
-# Wörter, die Whisper anders schreibt, als sie gesprochen gleich klingen
-GLEICHWERTIG = {"medikus": "medicus"}
+# Wörter, die Whisper anders schreibt, als sie gesprochen gleich klingen („darnieder“ ist die alte Form von
+# „danieder“; Whisper schreibt immer die heutige, auch getrennt)
+GLEICHWERTIG = {"medikus": "medicus", "danieder": "darnieder"}
+ZUSAMMEN = {"da nieder": "danieder"}
 
 
 # ---------------------------------------------------------------- Nachbearbeitung (wie in der gewählten Probe)
@@ -122,7 +124,10 @@ def als_ogg(wav, ogg, ffmpeg, qualitaet):
 
 def woerter(t):
     t = t.lower().replace("-", " ").replace("–", " ")
-    w = re.sub(r"[^a-zäöüß ]", " ", t).split()
+    t = " ".join(re.sub(r"[^a-zäöüß ]", " ", t).split())
+    for alt, neu in ZUSAMMEN.items():
+        t = re.sub(rf"\b{alt}\b", neu, t)
+    w = t.split()
     return [GLEICHWERTIG.get(x, x) for x in w]
 
 

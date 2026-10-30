@@ -39,8 +39,20 @@ Bei wichtigen Ereignissen **deines Hauses** spricht ein alter, ruhiger Haushofme
 
 Jedes Ereignis hat drei Sätze, jeder in der Fassung Herr und Herrin (120 Aufnahmen). Die ganze Liste steht in `game/daten/ansagen.json`.
 
+## Die Stimme
+
+Alle 120 Aufnahmen spricht dieselbe **KI-Stimme**: ein warmer, tiefer Bariton um die 60, ruhig und förmlich. Sie ist mit Qwen3-TTS auf dem Grafik-PC entstanden, als Klon einer einzigen Vorlage (`tools/ton/quellen/haushofmeister_probe2.wav`, ebenfalls KI, keine echte Person). Die Stimmung jedes Satzes – getragen bei Tod, drängend bei Feuer, freudig bei Hochzeit, sachlich bei Rat und Lager – kommt nur aus den Satzzeichen des Sprechtexts (`tools/ton/ansagen_sprechtext.json`: „…“, „!“, „–“); die Wörter sind dieselben wie in der Satzliste. Danach ist jede Aufnahme um **15 %** schneller gestellt (ffmpeg `atempo`, die Tonhöhe bleibt), auf −18 LUFS angeglichen und hat 0,2 s Stille an den Rändern. Von je drei Versuchen nahm das Skript den, den Whisper fehlerfrei versteht und der der Vorlage am ähnlichsten klingt.
+
+**Einen Satz neu erzeugen** (gefällt einer nicht): Der Sprachdienst muss auf dem Grafik-PC laufen. Dann
+
+```bash
+<python mit den Prüfpaketen> tools/ton/ansagen_erzeugen.py --dienst http://<grafik-pc>:<port> --ffmpeg <pfad> --nur feuer_2,feuer_2_herrin --neu
+```
+
+`--nur` nimmt die Dateinamen ohne `.ogg`, `--neu` verwirft die alten Versuche. Soll er anders klingen, zuerst die Satzzeichen in `ansagen_sprechtext.json` ändern. Ohne `--nur` erzeugt das Skript alle fehlenden; `--durchhoeren alle.ogg` setzt alle Aufnahmen mit 0,8 s Pause hintereinander. Danach `python3 tools/ton/ansagen_liste.py --pruefen` und `--fehlende`, die Protokollzeile bleibt (gleiche Zahl), im Commit nennen, welche Sätze neu sind. Einzelheiten: `docs/assets/prompts/haushofmeister.md`.
+
 ## Ausprobieren
 
-`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen. Solange noch keine Aufnahmen da sind, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
+`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
 
 [Zurück zum Inhaltsverzeichnis](README.md)

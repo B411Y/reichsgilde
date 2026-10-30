@@ -5,7 +5,6 @@ Geräusche, Musik, Stimmen, Audio-Busse. Neue Einträge unten anhängen, keine N
 ## Offen
 
 Plan (Schritte in dieser Reihenfolge):
-- Schritt 3: Ansagen des Haushofmeisters – Einbau fertig, es fehlen die Aufnahmen: Der Teamleiter erzeugt sie nach `python3 tools/ton/ansagen_liste.py` (120 Zeilen) auf dem Grafik-PC und legt sie nach `game/assets/audio/stimmen/haushofmeister/`; dazu Protokollzeilen in `docs/assets/protokoll.csv` und `HERKUNFT.md` des Ordners (Ton, Modell, Stimmvorlage)
 - Schritt 4: Umgebung nach Zoom und Tageszeit (Schleifen mit Überblendung)
 - Schritt 5: Wetter und Jahreszeiten
 - Schritt 6: Glocken, Geräusche an Orten (Werkstätten, Markt, Hafen) und Innenräume
@@ -54,8 +53,21 @@ Plan (Schritte in dieser Reihenfolge):
 | Prüfung | `--ansagetest=<liste|alle|dateien>[:herrin]` löst Ansagen aus und schreibt die `ANSAGE …`-Zeilen ins Log. Im Entwicklerfenster gibt es keine Schaltfläche (das gehört in `EntwicklerAnzeige`, Bereich Oberfläche); die dortigen Knöpfe Tod, Krankheit, Geburt, Heirat, Diebstahl, Feuer und Hausbrand lösen die echten Meldungen aus und damit die Ansagen | 29.10.2026 |
 
 **Zum Ausprobieren (Nutzer):** Solange keine Aufnahmen da sind: Spiel mit `--ansageplatzhalter=1` starten, F12 (Entwicklerfenster), Reiter Familie: „Sterben lassen“ bei einem Angehörigen, „Sohn“, „Heiraten“, dann „Feuer im Betrieb“ und „Hausbrand“. Pro Ereignis klingt eine Glocke, nie öfter als alle 20 Sekunden; bei dichter Folge entfällt Unwichtiges (siehe Log). Der Schalter steht unter Einstellungen, Ton, „Ansagen des Haushofmeisters“.
+
 ### Echtzeit-Sprach-NPCs (PR #263)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Echtzeit-Sprach-NPCs | **Vorerst nicht** (Nutzerentscheidung): Stimmen bleiben vorproduziert wie die Ansagen des Haushofmeisters. Laufende Kosten je Spieler (Cloud etwa 2–7 ct je Gesprächsminute), Online-Pflicht, Lockstep-Mehrspieler und Solo-Betrieb passen nicht zum Einmalkauf; lokal erst ab 12 GB Grafikspeicher. Nur als Hintergrund festgehalten mit Architektur, Kosten, Risiken und einem Versuch in drei Stufen: `docs/ton/sprach-npcs.md` (vor einer neuen Entscheidung die Preise der Anbieter prüfen) | 30.10.2026 |
+
+### Aufnahmen des Haushofmeisters (PR #PRNR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stimme | KI-Stimme statt eigener Aufnahme (Nutzer): reiner **Klon** mit Qwen3-TTS, Vorlage `haushofmeister_probe2.wav` (eigene KI-Stimme, keine echte Person) mit ihrem Text als `ref_text`. Keine Stimmbeschreibung (VoiceDesign) und kein Seed-VC: beides klang in der Probe nach Nachhall bzw. Roboter | 30.10.2026 |
+| Betonung | nur über Satzzeichen im Sprechtext (`tools/ton/ansagen_sprechtext.json`, Fassung „B-zeichen“ der Probe): „…“ getragen (Tod, Krankheit, Pest, Anklage, Schulden, Wahl verloren, Kasse), „!“ freudig (Wahl gewonnen, Stand, Meister, Geburt, Hochzeit), „–“ und „!!“ drängend (Feuer, Überfall, Einbruch), sachlich mit Komma (Rat, Lager, Jahresende). Die Wörter bleiben die der Satzliste; das Skript prüft das | 30.10.2026 |
+| Tempo | ×1,15 für alle mit ffmpeg `atempo` (WSOLA), nicht rubberband; danach mono, 48 kHz, −18 LUFS, 0,2 s Stille | 30.10.2026 |
+| Auswahl | je Satz 3 Takes, bei Fehlschlag bis zu 3 weitere; gültig nur mit Whisper-WER 0 (turbo), ohne Übersteuerung, ohne Pause über 1,2 s und mit plausibler Länge; davon die höchste ECAPA-Ähnlichkeit zur Vorlage. Whisper schreibt „darnieder“ (Krankheit 2) immer als „danieder“ oder „da nieder“; das zählt als gleich (`GLEICHWERTIG` im Skript), sonst wäre der Satz nie bestanden. Ergebnis: alle 120 im ersten Anlauf (3 Takes), WER 0, Ähnlichkeit 0,62–0,83 (Mittel 0,75) | 30.10.2026 |
+| Format | OGG Vorbis Qualität 5, mono, 48 kHz; die WAVs liegen nur auf dem Entwicklungsrechner (`~/werkzeuge/stimme/haushofmeister_wav/`) | 30.10.2026 |
+| Vorlage im Repository | `tools/ton/quellen/haushofmeister_probe2.wav` mit eigener Protokollzeile (Prüfordner `tools/ton/quellen/` im Protokollskript ergänzt): ohne sie ließe sich kein einzelner Satz mit derselben Stimme nachträglich neu erzeugen. Wird nicht ausgeliefert (liegt außerhalb von `game/`) | 30.10.2026 |
+| Nachbessern | Gefällt ein Satz nicht, nur diesen neu erzeugen: `tools/ton/ansagen_erzeugen.py --nur <name> --neu` (Spielbuch „Ton und Ansagen“) | 30.10.2026 |
