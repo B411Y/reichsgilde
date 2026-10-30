@@ -1,5 +1,7 @@
 # Feuer und Flammen – Phase 1 und 1b: zwei Techniken zum Vergleich
 
+> **Abgelöst durch [Phase 2](phase2.md) (30.10.2026):** Der Nutzer hat gewählt – überall Technik A in der Fassung „Simulation“, Rauch als Shader, keine Grafikstufen. Technik B, die Fassung „Rauschen“, die Tasten `G`, `F` und die Startargumente `--feuerart`, `--feuerstufe`, `--feuerfassung` gibt es nicht mehr; diese Seite bleibt als Geschichte und für die Messwerte stehen.
+
 **Stand:** Branch `phase5/feuer-darstellung` (kein PR), Phase 1b seit dem Abend des 29.10.2026 (Abschnitt [Phase 1b](#phase-1b-deine-wahl-und-neue-flammen-aus-einer-simulation)). **Auftrag des Nutzers (29.10.2026):** Echte, lodernde Flammen überall, wo man sich Feuer vorstellen kann – Fackeln, Laternen, Feuerkörbe, Esse und Herd, Kamine mit Rauch aus den Schornsteinen, Kerzen in Innenräumen, brennende Gebäude – mit flackerndem Licht. Der Nutzer will **beide** Techniken sehen und selbst entscheiden. Diese Phase baut deshalb nur eine **Testszene**; im Spiel brennt noch nichts davon.
 
 ## So startest du die Testszene (Windows, Godot-Editor)
