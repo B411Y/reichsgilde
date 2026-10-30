@@ -114,6 +114,7 @@ void fragment() {
 		else if (v_zone == 5) grund = kopfbedeckung.rgb;
 	}
 	float rau = rauheit;   // Rauheit nach Bibliothek bzw. Modell; das Wetter (Nässe) ändert sie danach
+	float tiefe = 0.5;     // Tiefe der Textur der Bibliothek (0 oben … 1 Fuge, Rinne); das Wetter hält dort das Wasser länger
 	int b = (art_aus_uv && v_bib >= 0) ? v_bib : bib;
 	if (b >= 0 && b < BIB_MAX && bib_stufe > 0) {
 		bool normalen = bib_stufe >= 2;
@@ -154,6 +155,7 @@ void fragment() {
 			reihe = sin(d * 157.0 + 1.3 * sin(d * 59.0));
 		}
 		vec4 fh = textureGrad(bib_farbe, vec3(uv, float(b)), uv_dx, uv_dy);
+		tiefe = 1.0 - fh.a;
 		vec4 nr = normalen ? textureGrad(bib_nr, vec3(uv, float(b)), uv_dx, uv_dy) : vec4(0.5, 0.5, 0.0, 1.0);
 		vec2 t = nr.rg * 2.0 - 1.0;
 		vec3 neigung = u * t.x + v * (t.y + kippen);     // Neigung der Fläche (Objektkoordinaten) aus der Normalen der Textur
@@ -224,8 +226,10 @@ void fragment() {
 		// Dachdeckung (Projektion „reihen“: Ziegel, Schiefer, Schindeln) = 1, „dach“ (Stroh, Kupfer) = 0,5, sonst 0: Der Wetter-Shader zählt eine Deckung auch am
 		// steilen Turmhelm als Dach (nach der Neigung allein wäre sie eine Wand)
 		float dachstoff = (sb >= 0 && sb < BIB_MAX) ? (bib_projektion[sb] == 2 ? 1.0 : (bib_projektion[sb] == 1 ? 0.5 : 0.0)) : 0.0;
-		wetter_flaeche(grund, rau, wnorm_neu, gl, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, dachstoff, TIME);
+		wetter_flaeche(grund, rau, wnorm_neu, gl, wnorm, normalize(mat3(MODEL_MATRIX) * ort_n), welt, vec2(dot(ort, su), dot(ort, sv)) * smass, sreihe, dachstoff,
+				tiefe, ort.y * smass, TIME);
 		EMISSION += gl;
+		if (wnorm_neu != wnorm) NORMAL = normalize(mat3(VIEW_MATRIX) * wnorm_neu);   // Regentropfen auf flachen Flächen
 	}
 	ALBEDO = grund;
 	ROUGHNESS = rau;

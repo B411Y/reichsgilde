@@ -50,8 +50,6 @@ public partial class Stadtansicht
     private GpuParticles3D _regen = null!, _schnee = null!;
     private ParticleProcessMaterial _regenStoff = null!, _schneeStoff = null!;
     private ShaderMaterial _regenFarbe = null!; // regen.gdshader: Striche in Fallrichtung
-    private GpuParticles3D _regenRinge = null!; // Ringe und Spritzer am Boden (regenring.gdshader)
-    private ParticleProcessMaterial _ringStoff = null!;
     private ShaderMaterial _schneeFarbe = null!; // schnee.gdshader: weiche Flocken, die pendeln und sich drehen
     private DirectionalLight3D _blitzLicht = null!;
     private float _blitzZeit = -1, _naechsterBlitz = 3;
@@ -98,6 +96,14 @@ public partial class Stadtansicht
         GetTree().CreateTimer(sekunden).Timeout += () => WetterVorgeben(lage, _jahreszeitVorgabe, _blitzHalten);
 
     private bool _wetterSofort;
+
+    /// <summary>
+    /// Startoption <c>--naesse=0.6</c> (nur Darstellung, für Bildschirmfotos): Die Nässe von Boden, Dächern und Wänden steht fest auf diesem Wert, egal
+    /// welches Wetter ist – so lässt sich „Sonne nach dem Regen“ (fleckig abtrocknende Dächer) mit <c>--wetter=klar</c> zeigen.
+    /// </summary>
+    private readonly float? _naesseVorgabe = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--naesse=")) is { } n
+        && float.TryParse(n["--naesse=".Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var w)
+        ? Mathf.Clamp(w, 0f, 1f) : null;
 
     /// <summary>
     /// Shader vorwärmen hinter dem Ladebildschirm (Hauptszene.ErsteBilderAbwarten): <paramref name="probe"/> zeigt diese Wetterlage sofort und ganz,
@@ -165,22 +171,8 @@ public partial class Stadtansicht
         };
         AddChild(_regen);
 
-        // Ringe und Spritzer: kurzlebige Ringe auf dem Boden, die sich weiten und ausblassen (regenring.gdshader)
-        _ringStoff = new ParticleProcessMaterial
-        {
-            EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
-            EmissionBoxExtents = new Vector3(10, 0.01f, 10),
-            Gravity = Vector3.Zero,
-            ScaleMin = RingGroesse,
-            ScaleMax = RingGroesse * 2f,
-        };
-        var ringNetz = new QuadMesh { Size = Vector2.One, Orientation = PlaneMesh.OrientationEnum.Y, Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/regenring.gdshader") } };
-        _regenRinge = new GpuParticles3D
-        {
-            Name = "Regenringe", Amount = 1000, Lifetime = 0.55, Preprocess = 0.55, LocalCoords = false, Emitting = false, Visible = false,
-            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, ProcessMaterial = _ringStoff, DrawPass1 = ringNetz,
-        };
-        AddChild(_regenRinge);
+        // Ringe der Regentropfen am Boden zeichnen Boden und Modelle selbst (regentropfen in wetter.gdshaderinc, Dichte über wetter_ringe): Die Ringe als
+        // Partikel lagen auf einer Ebene in Höhe der Bildmitte und verschwanden, wo das Gelände höher lag, hinter einer geraden Linie (Regen 4).
 
         // Schnee: weiche, runde Flocken, die im Fallen pendeln (schnee.gdshader)
         _schneeFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/schnee.gdshader") };
@@ -230,7 +222,7 @@ public partial class Stadtansicht
     {
         foreach (var (name, wert) in new (string, Variant)[]
                  {
-                     ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_rinn", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
+                     ("wetter_naesse", 0f), ("wetter_regen", 0f), ("wetter_ringe", 0f), ("wetter_rinn", 0f), ("wetter_schnee", 0f), ("wetter_dach", 0f), ("wetter_flaechen", 1f),
                      ("wetter_wind", 0.25f), ("jahreszeit_anteile", new Vector4(0, 1, 0, 0)), ("traufe_feld", Vector4.Zero),
                      ("wind_staerke", Fenster.FahnenBewegen ? 0.5f : 0f), // der Grundwert der Fahnen (Fenster.Grafik.cs)
                  })
@@ -250,7 +242,8 @@ public partial class Stadtansicht
         var ablauf = WetterablaufDerPartie();
         var ziel = _wetterVorgabe is { } vorgabe ? Wetterwerte.Von(vorgabe) : ablauf?.Werte(minute) ?? Wetterwerte.Von(Wetterlage.Klar);
         // Nässe: aus dem Regen der letzten Stunden (einmal je Spielminute gerechnet); mit Vorgabe so nass, wie es nach Stunden dieses Wetters wäre
-        if (_wetterVorgabe is not null) _naesseZiel = Mathf.Min(1, ziel.Regen * 1.6f);
+        if (_naesseVorgabe is { } feste) _naesseZiel = feste;
+        else if (_wetterVorgabe is not null) _naesseZiel = Mathf.Min(1, ziel.Regen * 1.6f);
         else if ((long)minute != _naesseMinute && ablauf is not null)
         {
             _naesseMinute = (long)minute;
@@ -295,6 +288,8 @@ public partial class Stadtansicht
         // Nässe und Pfützen ab Mittel; Schnee liegt in jeder Stufe (er gehört zur Jahreszeit)
         WetterGlobal("wetter_naesse", stufe == Wettereffekte.Niedrig ? 0 : _naesse);
         WetterGlobal("wetter_regen", stufe == Wettereffekte.Hoch ? _wetter.Regen : 0);
+        // Regentropfen auf Boden und flachen Flächen (wetter.gdshaderinc, regentropfen): Hoch so dicht wie der Regen, Mittel gut die Hälfte, Niedrig keine
+        WetterGlobal("wetter_ringe", !draussen ? 0 : stufe switch { Wettereffekte.Hoch => _wetter.Regen, Wettereffekte.Mittel => 0.55f * _wetter.Regen, _ => 0 });
         // Rinnsale auf Dächern und Wänden: ab Mittel; bei Regen stark, danach laufen sie mit dem Abtrocknen (Nässe) langsam aus
         var rinn = Mathf.SmoothStep(0.3f, 0.9f, _naesse) * Mathf.Clamp(0.15f + 1.1f * _wetter.Regen, 0, 1);
         WetterGlobal("wetter_rinn", stufe == Wettereffekte.Niedrig || Mathf.IsZeroApprox(_naesse) ? 0 : rinn * (stufe == Wettereffekte.Hoch ? 1f : 0.6f));
@@ -456,15 +451,6 @@ public partial class Stadtansicht
         _ => (14000, 6000),
     };
 
-    /// <summary>Kleinster Durchmesser (Meter) eines Regenrings am Boden, der größte ist doppelt so groß: feste Größe in der Welt bei jedem Zoom.</summary>
-    private const float RingGroesse = 0.26f;
-
-    /// <summary>Zoom, ab dem die Regenringe auszublenden beginnen, und der Zoom, bei dem sie ganz weg sind (sonst wären es Bildpunkte, die flimmern).</summary>
-    private const float RingBlassAb = 60f, RingBlassBis = 115f;
-
-    /// <summary>Wie viele Ringe und Spritzer am Boden höchstens zugleich zu sehen sind (Niedrig: keine).</summary>
-    private static int RingeZahl(Wettereffekte stufe) => stufe switch { Wettereffekte.Niedrig => 0, Wettereffekte.Mittel => 1200, _ => 3200 };
-
     /// <summary>
     /// Regen und Schnee fallen in einem Kasten um den Blickpunkt, der mit der Kamera dreht. Kasten, Größe und Fallgeschwindigkeit wachsen mit dem
     /// Zoom (Maßstab k = Zoom / 95): So sind Tropfen und Flocken bei jedem Zoom etwa gleich groß und gleich schnell im Bild, und gleich viele.
@@ -478,13 +464,11 @@ public partial class Stadtansicht
             var (regen, schnee) = PartikelZahl(stufe);
             _regen.Amount = regen;
             _schnee.Amount = schnee;
-            _regenRinge.Amount = Mathf.Max(1, RingeZahl(stufe));
             _schneeStoff.TurbulenceEnabled = stufe == Wettereffekte.Hoch; // Flocken wirbeln im Wind
         }
         var draussen = _raum is null;
         PartikelSchalten(_regen, draussen ? _wetter.Regen : 0);
         PartikelSchalten(_schnee, draussen ? _wetter.Schnee : 0);
-        PartikelSchalten(_regenRinge, draussen && RingeZahl(stufe) > 0 ? _wetter.Regen : 0);
         if (!_regen.Visible && !_schnee.Visible) return;
 
         var k = _kamera.Size / BezugsZoom;
@@ -510,21 +494,6 @@ public partial class Stadtansicht
             teil.VisibilityAabb = new Aabb(new Vector3(-breite, -hoehe, -tiefe - 2 * vor), new Vector3(2 * breite, 2 * hoehe, 2 * (tiefe + 2 * vor)));
         }
         PartikelFarbe();
-        if (_regenRinge.Visible) // Ringe: auf dem Boden im Bild, mit dem Kasten mitgedreht
-        {
-            var boden = BlickpunktAmBoden();
-            _regenRinge.GlobalPosition = new Vector3(boden.X, BodenHoehe(boden.X, boden.Z) + 0.06f, boden.Z);
-            _regenRinge.Rotation = new Vector3(0, drehung, 0);
-            if (neu)
-            {
-                // Die Ringe behalten ihre Größe in der Welt (0,26–0,52 m, so groß wie bisher im nahen Zoom) und blenden beim Herauszoomen aus, statt mitzuwachsen
-                _ringStoff.EmissionBoxExtents = new Vector3(_kamera.Size * seiten * 0.55f, 0.01f, tiefe * 0.8f);
-                _ringStoff.ScaleMin = RingGroesse;
-                _ringStoff.ScaleMax = RingGroesse * 2f;
-                _regenRinge.VisibilityAabb = new Aabb(new Vector3(-breite, -2, -tiefe), new Vector3(2 * breite, 4, 2 * tiefe));
-                if (_regenRinge.DrawPass1?.SurfaceGetMaterial(0) is ShaderMaterial ringe) ringe.SetShaderParameter("weit", 1f - Mathf.SmoothStep(RingBlassAb, RingBlassBis, _kamera.Size));
-            }
-        }
         if (!neu) return;
 
         // Wind treibt Regen und Schnee schräg; Größe und Geschwindigkeit mit dem Zoom
@@ -560,7 +529,6 @@ public partial class Stadtansicht
         if (Mathf.Abs(hell - _partikelHell) < 0.01f) return;
         _partikelHell = hell;
         _regenFarbe.SetShaderParameter("farbe", new Color(0.78f * hell, 0.82f * hell, 0.9f * hell, 1f));
-        if (_regenRinge.ProcessMaterial is not null && _regenRinge.DrawPass1?.SurfaceGetMaterial(0) is ShaderMaterial ring) ring.SetShaderParameter("farbe", new Color(0.8f * hell, 0.85f * hell, 0.95f * hell, 1f));
         _schneeFarbe.SetShaderParameter("farbe", new Color(0.95f * hell, 0.96f * hell, hell, 0.9f));
     }
 
