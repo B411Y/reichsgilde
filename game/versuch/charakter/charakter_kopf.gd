@@ -855,12 +855,13 @@ func _farben() -> void:
 		if a_an:
 			# Weg A: Brauen nur wenig dunkler als das Haar (weniger Kontrast), etwas lichter und weicher an den Rändern
 			braue = haar.lerp(haar * 0.8, 0.2 + 0.2 * hh)
-			dichte *= 0.85
+			if mann:
+				dichte *= 0.85        # Frauenbrauen sind schon schmal und licht (sonst fast unsichtbar, Zufallsbogen)
 		for m in haar_stoffe:
 			m.set_shader_parameter("bild", brauen_bild)
 			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
 			m.set_shader_parameter("ebene", ebene)
-			m.set_shader_parameter("deckung", 0.68 if a_an else 1.0)
+			m.set_shader_parameter("deckung", (0.68 if mann else 0.88) if a_an else 1.0)
 			m.set_shader_parameter("schwelle", 0.2 if a_an else 0.3)
 			m.set_shader_parameter("dunkel", 0.78 if a_an else 0.6)
 			farbe_setzen(m, "farbe", braue, st)
