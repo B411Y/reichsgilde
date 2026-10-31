@@ -719,7 +719,7 @@ public sealed class Einwohnerschaft
 
     private bool IstDienst(Einwohner e) => Daten.Rollen.TryGetValue(e.Rolle, out var r) && r.Dienst;
 
-    /// <summary>Ein Weg beginnt kurz nach der vollen Stunde und dauert je nach Ziel: in der Stadt ~10 Minuten, zum Tor 15, ins Umland 30.</summary>
+    /// <summary>Ein Weg beginnt kurz nach der vollen Stunde (0–<c>wege.verzoegerung</c> Minuten) und dauert je nach Ziel: in der Stadt <c>stadt</c> ± <c>streuung</c>, zum Tor <c>tor</c>, ins Umland <c>umland</c> (heute 30 ± 10, 40, 50 Minuten).</summary>
     private Weg NeuerWeg(Aufenthalt von, Aufenthalt nach, long stunde)
     {
         var w = Daten.Wege;
