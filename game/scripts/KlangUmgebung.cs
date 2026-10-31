@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Godot;
 using Reichsgilde.Core.Zeit;
 using M = Reichsgilde.KlangUmgebungModell;
@@ -5,8 +6,9 @@ using M = Reichsgilde.KlangUmgebungModell;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die <b>Umgebungsklänge der Stadt</b> (Ton Schritt 4): neun Schleifen (Stadtleben, Abend, Vögel, Nacht, Wind) und Einzelrufe (Hahn, Hund,
-/// Kauz, Amsel, Pferd, Geflügel, Passanten, fernes Handwerk). Nur in der Partie (Kind der <c>Hauptszene</c>, auch in der Probepartie), nicht im
+/// Die <b>Umgebungsklänge der Stadt</b> (Ton Schritt 4): Schleifen (Stadtleben, Abend, Vögel, Nacht, Wind, Laub, Grillen, Frösche, Fluss, Regen,
+/// Schankstube) und Einzelrufe (Hahn, Hund, Kauz, Amsel, Pferd, Geflügel, Passanten, fernes Handwerk, Krähen, Gesprächsfetzen an Gruppen, Horn
+/// der Streife, Donner), dazu die Glocken vom Dom. Nur in der Partie (Kind der <c>Hauptszene</c>, auch in der Probepartie), nicht im
 /// Hauptmenü und nicht in der Kartenwerkstatt. Was wann wie laut klingt, rechnet <see cref="KlangUmgebungModell"/>; dieser Knoten lädt die Dateien
 /// (im Hintergrund, schon während des Ladebildschirms), spielt ab und stellt die Busse:
 ///   • Schleifen über <see cref="KlangDienst.SchleifeStarten"/> ohne Einblenden, an zufälliger Stelle; die Pegel setzt er jedes Bild
@@ -34,6 +36,18 @@ public partial class KlangUmgebung : Node
     public Func<KlangStadtlebenModell.Momentbild, bool>? LebenQuelle;
     /// <summary>Nur für die Hörprobe: Uhr (Stunde) und Zoom der Stadtansicht vorgeben.</summary>
     public Action<float>? UhrVorgeben, ZoomVorgeben;
+    /// <summary>Nur für die Hörprobe: Wetterlage (0 klar, 1 Regen, 2 Gewitter, 3 Schnee), Jahreszeit und Blickpunkt der Kamera vorgeben.</summary>
+    public Action<int, Jahreszeit>? WetterVorgeben;
+    public Action<float, float>? FokusVorgeben;
+    /// <summary>
+    /// Die Umgebung um den Blickpunkt (Stadt gegen Natur, <see cref="KlangUmweltModell"/>) für den Umkreis des Zooms; null ohne Karte. Wird auch in
+    /// der Hörprobe mit der echten Karte benutzt, damit der Weg von der Stadt ins Land echt klingt.
+    /// </summary>
+    public Func<float, KlangUmweltModell.Lage?>? UmweltQuelle;
+    /// <summary>Der Blickpunkt der Kamera am Boden (Meter), für die Hörprobe.</summary>
+    public Func<(float X, float Z)>? FokusQuelle;
+    /// <summary>Zeit seit dem letzten Blitz (Sekunden; negativ = gerade keiner): Die steigende Flanke löst den Donner aus.</summary>
+    public Func<float>? BlitzQuelle;
 
     private readonly M.Zustand _zustand = new();
     private readonly KlangStadtlebenModell.Momentbild _momentbild = new();
@@ -45,12 +59,15 @@ public partial class KlangUmgebung : Node
     private readonly double[] _stummSeit = new double[M.Schichten.Length];
     private readonly bool[] _angehalten = new bool[M.Schichten.Length];
     private readonly List<M.Ruf> _neueRufe = new();
-    private AudioStreamPlayer _rufNah = null!, _rufFern = null!;
-    private AudioEffectPanner? _panNah, _panFern, _panSchenke;
-    private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt;
-    private int _busDraussen = -1, _busStadt = -1, _busSchenke = -1;
+    private readonly M.GlockenPlaner _glocken = new((int)((Time.GetTicksUsec() >> 3) & 0x7fffffff));
+    private readonly List<M.Glocke> _neueGlocken = new();
+    private AudioStreamPlayer _rufNah = null!, _rufFern = null!, _rufGespraech = null!, _glockenSpieler = null!;
+    private AudioEffectPanner? _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke;
+    private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke;
+    private int _busDraussen = -1, _busStadt = -1, _busSchenke = -1, _busInnen = -1;
     private float _draussenDb = float.NaN, _draussenTp = float.NaN, _stadtDb = float.NaN, _stadtTp = float.NaN;
-    private float _schenkeDb = float.NaN, _schenkeSeite = float.NaN;
+    private float _schenkeDb = float.NaN, _schenkeSeite = float.NaN, _schenkeTp = float.NaN, _innenDb = float.NaN;
+    private float _blitzVorher = -1;
     private bool _laeuft, _beendet;
     private int _logStufe;
     private bool _fahrt;
@@ -67,10 +84,16 @@ public partial class KlangUmgebung : Node
 
     public static string SchichtPfad(string name) => Ordner + "schichten/" + name + ".ogg";
     public static string RufPfad(string datei) => Ordner + "rufe/" + datei + ".ogg";
+    public static string GlockenPfad(string datei) => Ordner + "glocken/" + datei + ".ogg";
 
-    /// <summary>Alle Ruf-Dateien je Art (nah und fern) als Namen ohne Endung.</summary>
+    /// <summary>Alle Ruf-Dateien je Art (nah und fern) als Namen ohne Endung; bei den Gesprächen die Liste aus <c>game/daten/gespraeche.json</c>.</summary>
     public static IEnumerable<string> RufDateien(M.Rufart r)
     {
+        if (r.Bedarf == M.RufBedarf.Gruppe)
+        {
+            foreach (var d in M.GespraechsDateien()) yield return d;
+            yield break;
+        }
         for (var v = 1; v <= r.Varianten; v++) yield return $"{r.Datei}_{v}";
         if (r.FernDatei is not null)
             for (var v = 1; v <= r.FernVarianten; v++) yield return $"{r.FernDatei}_{v}";
@@ -97,14 +120,21 @@ public partial class KlangUmgebung : Node
                 KlangDienst.StummSetzen(i, false, speichern: false);
             }
         }
+        GespraecheLaden(); // die austauschbare Liste der Gesprächsfetzen, vor dem Anfordern der Dateien
         // Alle Dateien im Hintergrund laden (ResourceLoader-Faden): während des Ladebildschirms, nie erst beim Rufen
         foreach (var s in M.Schichten) Anfordern(s.Name, SchichtPfad(s.Name));
         foreach (var r in M.Rufarten)
             foreach (var d in RufDateien(r)) Anfordern(d, RufPfad(d));
+        foreach (var g in M.Glockenarten)
+            for (var v = 1; v <= g.Varianten; v++) Anfordern($"{g.Datei}_{v}", GlockenPfad($"{g.Datei}_{v}"));
         _rufNah = new AudioStreamPlayer { Name = "RufNah", Bus = KlangDienst.BusUmgebungRufNah };
         _rufFern = new AudioStreamPlayer { Name = "RufFern", Bus = KlangDienst.BusUmgebungRufFern };
+        _rufGespraech = new AudioStreamPlayer { Name = "RufGespraech", Bus = KlangDienst.BusUmgebungGespraech };
+        _glockenSpieler = new AudioStreamPlayer { Name = "Glocke", Bus = KlangDienst.BusUmgebungGlocke };
         AddChild(_rufNah);
         AddChild(_rufFern);
+        AddChild(_rufGespraech);
+        AddChild(_glockenSpieler);
         _busDraussen = AudioServer.GetBusIndex(KlangDienst.BusUmgebungDraussen);
         _busStadt = AudioServer.GetBusIndex(KlangDienst.BusUmgebungStadt);
         _tiefpassDraussen = _busDraussen >= 0 ? AudioServer.GetBusEffect(_busDraussen, 0) as AudioEffectLowPassFilter : null;
@@ -115,8 +145,44 @@ public partial class KlangUmgebung : Node
         _panFern = fern >= 0 ? AudioServer.GetBusEffect(fern, 0) as AudioEffectPanner : null;
         _busSchenke = AudioServer.GetBusIndex(KlangDienst.BusUmgebungSchenke);
         _panSchenke = _busSchenke >= 0 ? AudioServer.GetBusEffect(_busSchenke, 0) as AudioEffectPanner : null;
+        _tiefpassSchenke = _busSchenke >= 0 ? AudioServer.GetBusEffect(_busSchenke, 1) as AudioEffectLowPassFilter : null;
+        var gesp = AudioServer.GetBusIndex(KlangDienst.BusUmgebungGespraech);
+        var glocke = AudioServer.GetBusIndex(KlangDienst.BusUmgebungGlocke);
+        _panGespraech = gesp >= 0 ? AudioServer.GetBusEffect(gesp, 0) as AudioEffectPanner : null;
+        _tiefpassGespraech = gesp >= 0 ? AudioServer.GetBusEffect(gesp, 1) as AudioEffectLowPassFilter : null;
+        _panGlocke = glocke >= 0 ? AudioServer.GetBusEffect(glocke, 0) as AudioEffectPanner : null;
+        _tiefpassGlocke = glocke >= 0 ? AudioServer.GetBusEffect(glocke, 1) as AudioEffectLowPassFilter : null;
+        _busInnen = AudioServer.GetBusIndex(KlangDienst.BusUmgebungInnen);
         _planer.Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0;
         if (_fahrt) _planer = new M.RufPlaner(4711) { Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0 };
+    }
+
+    /// <summary>
+    /// Liest die Liste der Gesprächsfetzen aus <c>res://daten/gespraeche.json</c> (Anlass → Dateien unter <c>rufe/</c>, ohne Endung). Die Datei
+    /// ersetzt die Voreinstellung des Modells; Einträge ohne Aufnahme werden übersprungen. So lassen sich die freien Aufnahmen später durch Gespräche der
+    /// Stimm-KI ersetzen, ohne den Code anzufassen.
+    /// </summary>
+    private static void GespraecheLaden()
+    {
+        const string pfad = "res://daten/gespraeche.json";
+        if (!Godot.FileAccess.FileExists(pfad)) return;
+        try
+        {
+            using var f = Godot.FileAccess.Open(pfad, Godot.FileAccess.ModeFlags.Read);
+            using var doc = JsonDocument.Parse(f.GetAsText());
+            if (!doc.RootElement.TryGetProperty("anlaesse", out var anlaesse)) return;
+            var neu = new Dictionary<string, string[]>();
+            foreach (var a in anlaesse.EnumerateObject())
+            {
+                var liste = a.Value.EnumerateArray().Select(x => x.GetString() ?? "").Where(x => x != "" && ResourceLoader.Exists(RufPfad(x))).ToArray();
+                if (liste.Length > 0) neu[a.Name] = liste;
+            }
+            if (neu.Count > 0) M.Gespraeche = neu;
+        }
+        catch (Exception e)
+        {
+            GD.PushWarning($"KlangUmgebung: {pfad} nicht lesbar ({e.Message}) – es gilt die Voreinstellung.");
+        }
     }
 
     private void Anfordern(string name, string pfad)
@@ -138,6 +204,8 @@ public partial class KlangUmgebung : Node
         foreach (var s in M.Schichten) KlangDienst.SchleifeStoppen(Praefix + s.Name, sekunden);
         _rufNah.Stop();
         _rufFern.Stop();
+        _rufGespraech.Stop();
+        _glockenSpieler.Stop();
         _laeuft = false;
         if (_logStufe >= 2) GD.Print($"UMGEBUNG Ende: alle Schleifen blenden in {sekunden:0.0} s aus");
     }
@@ -173,6 +241,16 @@ public partial class KlangUmgebung : Node
         _neueRufe.Clear();
         if (!_fahrt || _fahrtZeit >= FahrtZufallAb) _planer.Schritt(eingaben, aus, delta, _neueRufe);
         foreach (var ruf in _neueRufe) Abspielen(ruf);
+        // Ein Blitz (steigende Flanke der Blitzzeit) → der Donner folgt mit der Verzögerung des Schalls
+        if (BlitzQuelle?.Invoke() is { } blitz)
+        {
+            if (blitz >= 0 && _blitzVorher < 0 && !eingaben.Hintergrund) _planer.BlitzMelden();
+            _blitzVorher = blitz;
+        }
+        // Glocken vom Dom: zu den Zeiten der Regeln (Arbeitsbeginn, Messe, Feierabend, Schankschluss)
+        _neueGlocken.Clear();
+        if (!_fahrt || _fahrtZeit >= FahrtZufallAb) _glocken.Schritt(eingaben, aus, _neueGlocken);
+        foreach (var g in _neueGlocken) GlockeSpielen(g);
         if (_logStufe >= 2 && _zeit >= _logUhr)
         {
             _logUhr = Math.Floor(_zeit) + 1;
@@ -195,6 +273,7 @@ public partial class KlangUmgebung : Node
     {
         M.Bus.Stadt => KlangDienst.BusUmgebungStadt,
         M.Bus.Schenke => KlangDienst.BusUmgebungSchenke,
+        M.Bus.Innen => KlangDienst.BusUmgebungInnen,
         _ => KlangDienst.BusUmgebungDraussen,
     };
 
@@ -226,6 +305,10 @@ public partial class KlangUmgebung : Node
             _panSchenke.Pan = _schenkeSeite = aus.SchenkeSeite;
         if (_busSchenke >= 0 && (float.IsNaN(_schenkeDb) || Math.Abs(aus.SchenkeDb - _schenkeDb) > 0.05f))
             AudioServer.SetBusVolumeDb(_busSchenke, _schenkeDb = aus.SchenkeDb);
+        if (_tiefpassSchenke is not null && (float.IsNaN(_schenkeTp) || Math.Abs(aus.SchenkeTiefpass / _schenkeTp - 1) > 0.02f))
+            _tiefpassSchenke.CutoffHz = _schenkeTp = aus.SchenkeTiefpass;
+        if (_busInnen >= 0 && (float.IsNaN(_innenDb) || Math.Abs(aus.InnenDb - _innenDb) > 0.05f))
+            AudioServer.SetBusVolumeDb(_busInnen, _innenDb = aus.InnenDb);
         if (_tiefpassDraussen is not null && (float.IsNaN(_draussenTp) || Math.Abs(aus.DraussenTiefpass / _draussenTp - 1) > 0.01f))
             _tiefpassDraussen.CutoffHz = _draussenTp = aus.DraussenTiefpass;
         if (_tiefpassStadt is not null && (float.IsNaN(_stadtTp) || Math.Abs(aus.StadtTiefpass / _stadtTp - 1) > 0.01f))
@@ -235,17 +318,18 @@ public partial class KlangUmgebung : Node
     private void Abspielen(M.Ruf ruf)
     {
         if (!_toene.TryGetValue(ruf.Datei, out var ton)) return;
-        var spieler = ruf.Fern ? _rufFern : _rufNah;
-        var panner = ruf.Fern ? _panFern : _panNah;
+        var spieler = ruf.Bahn switch { 2 => _rufGespraech, 1 => _rufFern, _ => _rufNah };
+        var panner = ruf.Bahn switch { 2 => _panGespraech, 1 => _panFern, _ => _panNah };
         if (panner is not null) panner.Pan = ruf.Seite;
+        if (ruf.Bahn == 2 && _tiefpassGespraech is not null && ruf.Tiefpass > 0) _tiefpassGespraech.CutoffHz = ruf.Tiefpass; // dumpfer mit dem Abstand der Gruppe
         spieler.Stream = ton;
         spieler.VolumeDb = M.AbspielDb(ruf); // mit Ausgleich für den Panner (sonst ist ein Ruf am Rand bis zu 5 dB lauter)
         spieler.PitchScale = ruf.Tonhoehe;
         spieler.Play();
         var art = M.Rufarten[ruf.Art];
-        LetzterRuf = $"{art.Name}: {ruf.Datei}, {(ruf.Fern ? "fern" : "nah")}, Seite {ruf.Seite:+0.00;-0.00}, {ruf.Db:0.0} dB (bei {_zeit:0} s)";
+        LetzterRuf = $"{art.Name}: {ruf.Datei}, {(ruf.Bahn == 2 ? "Gespräch" : ruf.Fern ? "fern" : "nah")}, Seite {ruf.Seite:+0.00;-0.00}, {ruf.Db:0.0} dB (bei {_zeit:0} s)";
         if (_logStufe >= 2)
-            GD.Print($"UMGEBUNG RUF t={_zeit:0.00} art={art.Name} datei={ruf.Datei} {(ruf.Fern ? "fern" : "nah")} seite={ruf.Seite:0.00} db={ruf.Db:0.0} spieler={M.AbspielDb(ruf):0.0} " +
+            GD.Print($"UMGEBUNG RUF t={_zeit:0.00} art={art.Name} datei={ruf.Datei} {(ruf.Bahn == 2 ? "gespraech" : ruf.Fern ? "fern" : "nah")} seite={ruf.Seite:0.00} db={ruf.Db:0.0} spieler={M.AbspielDb(ruf):0.0} " +
                      $"tonhoehe={ruf.Tonhoehe:0.000} laenge={ton.GetLength():0.00} uhr={UhrText(LetzteEingaben.UhrMinute)} b={LetzteEingaben.Bezug:0.00} S={LetzteEingaben.Zoom:0} pause={(LetzteEingaben.Pausiert ? 1 : 0)}");
     }
 
@@ -257,10 +341,30 @@ public partial class KlangUmgebung : Node
         Abspielen(_planer.Erzwingen(art, fern, LetzteEingaben.Zoom));
     }
 
+    /// <summary>Ein Läuten spielen: Seite des Doms, Pegel und Tiefpass nach dem Abstand (das Modell hat sie gerechnet).</summary>
+    private void GlockeSpielen(M.Glocke g)
+    {
+        if (!_toene.TryGetValue(g.Datei, out var ton)) return;
+        if (_panGlocke is not null) _panGlocke.Pan = g.Seite;
+        if (_tiefpassGlocke is not null) _tiefpassGlocke.CutoffHz = g.Tiefpass;
+        _glockenSpieler.Stream = ton;
+        _glockenSpieler.VolumeDb = g.Db;
+        _glockenSpieler.PitchScale = g.Tonhoehe;
+        _glockenSpieler.Play();
+        var art = M.Glockenarten[g.Art];
+        LetzterRuf = $"Glocke {art.Name}: {g.Datei}, Seite {g.Seite:+0.00;-0.00}, {g.Db:0.0} dB, {g.Tiefpass:0} Hz (bei {_zeit:0} s)";
+        if (_logStufe >= 2)
+            GD.Print($"UMGEBUNG GLOCKE t={_zeit:0.00} art={art.Name} datei={g.Datei} seite={g.Seite:0.00} spieler={g.Db:0.0} tiefpass={g.Tiefpass:0} tonhoehe={g.Tonhoehe:0.000} laenge={ton.GetLength():0.00} uhr={UhrText(LetzteEingaben.UhrMinute)}");
+    }
+
+    /// <summary>Ein Läuten dieser Art jetzt (Entwicklerreiter): am Ort des Doms, wie die Lage gerade ist.</summary>
+    public void JetztLaeuten(int art) => GlockeSpielen(_glocken.Erzwingen(art, LetzteEingaben.Lage));
+
     /// <summary>Die Menschen der Stadt als Log-Text (auch für den Entwicklerreiter): Zahlen im Umkreis und die Pegel 0–1.</summary>
     public static string LebenText(KlangStadtlebenModell.Lage l) => l.Gemessen
-        ? $"leben[leute={l.LeuteImUmkreis} markt={l.MarktleuteImUmkreis} gaeste={l.GaesteImUmkreis} arbeiter={l.ArbeiterImUmkreis} geher={l.GeherImUmkreis} | " +
-          $"menge={l.Menge:0.00} markt={l.Markt:0.00} schenke={l.Schenke:0.00}@{l.SchenkeSeite:+0.00;-0.00} werk={l.Werkstatt:0.00} geher={l.Geher:0.00}]"
+        ? $"leben[leute={l.LeuteImUmkreis} markt={l.MarktleuteImUmkreis} gaeste={l.GaesteImUmkreis} arbeiter={l.ArbeiterImUmkreis} geher={l.GeherImUmkreis} gruppen={l.GruppenImUmkreis} wachen={l.WachOrte.Count} | " +
+          $"menge={l.Menge:0.00} markt={l.Markt:0.00} schenke={l.Schenke:0.00}@{l.SchenkeSeite:+0.00;-0.00} nah={l.SchenkeNah:0.00} werk={l.Werkstatt:0.00} geher={l.Geher:0.00} gespraech={l.Gespraech:0.00} wache={l.Wache:0.00}] " +
+          $"umwelt[stadt={l.Umwelt.Stadt:0.00} baum={l.Umwelt.Baum:0.00} feld={l.Umwelt.Feld:0.00} wasser={l.Umwelt.Wasser:0.00}] dom[{(l.HatDom ? $"{l.DomAbstand:0} m @{l.DomSeite:+0.00;-0.00}" : "–")}]"
         : "leben[ungemessen]";
 
     private static string UhrText(float minute) => $"{(int)(minute / 60):00}:{(int)(minute % 60):00}";
@@ -268,6 +372,7 @@ public partial class KlangUmgebung : Node
     private string LogZeile(in M.Eingaben e, M.Ausgabe a) =>
         $"UMGEBUNG t={_zeit:0} uhr={UhrText(e.UhrMinute)} b={e.Bezug:0.00} jz={e.Jahreszeit} S={e.Zoom:0} Smax={e.ZoomGroesst:0} N={a.Naehe:0.00} H={a.Hoehe:0.00} " +
         $"innen={e.Innen} pause={(e.Pausiert ? 1 : 0)} tps={e.TicksProSekunde:0.0} sprung={(a.Sprungblende ? 1 : 0)} " +
+        $"wetter[regen={e.Himmel.Regen:0.00} schnee={e.Himmel.Schnee:0.00} wind={e.Himmel.Wind:0.00} blitze={e.Himmel.Blitze:0.00}] " +
         $"stadt={a.StadtDb:0.0}dB/{a.StadtTiefpass:0}Hz draussen={a.DraussenDb:0.0}dB/{a.DraussenTiefpass:0}Hz schleifen={KlangDienst.SchleifenAnzahl.Benannt} " +
         LebenText(e.Lage) + " | " +
         string.Join(" ", M.Schichten.Select((s, i) => $"{s.Name}={(a.Db[i] <= M.AusDb ? "aus" : a.Db[i].ToString("0.0"))}{(_angehalten[i] ? "(angehalten)" : "")}"));
@@ -275,21 +380,46 @@ public partial class KlangUmgebung : Node
     // ── Hörprobe (--umgebungfahrt=1) ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Die feste Fahrt der Hörprobe: (Sekunde, Uhr in Stunden, Zoom; −1 = Höchstzoom der Karte). Dazwischen linear. Die Menschen liefert
-    /// <see cref="KlangStadtlebenModell.Szenario"/> aus der Uhr (leere Straßen am frühen Morgen, volle am Mittag, Schänke am Abend, leer in der
-    /// Nacht); dieselben Kurven wie im Spiel, nur Uhr, Zoom und Menschen sind vorgegeben (Frühling). Am Ende Mittag am Startzoom und Pause.
+    /// Ein Haltepunkt der Hörprobe. Uhr (Stunden), Zoom und Blickpunkt (Meter) gleiten linear bis zum nächsten Punkt; Wetter (0 klar, 1 Regen, 2 Gewitter,
+    /// 3 Schnee), Jahreszeit (0 Frühling … 3 Winter) und Innen (1 = in der Schankstube) gelten ab dem Punkt bis zum nächsten.
     /// </summary>
-    public static readonly (float T, float Stunde, float Zoom)[] FahrtPunkte =
+    public readonly record struct FahrtPunkt(float T, float Stunde, float Zoom, float X, float Z, int Wetter = 0, int Jahreszeit = 0, int Innen = 0);
+
+    /// <summary>
+    /// Die feste Fahrt der Hörprobe 3 auf der Karte <c>greybox</c> (Markt im Ursprung, Dom bei (−20|−11), Fluss im Süden, Wald im Südosten): Die Menschen liefert
+    /// <see cref="KlangStadtlebenModell.Szenario"/> aus der Uhr, Wetter und Jahreszeit kommen aus der echten Stadtansicht, die Umgebung (Stadt gegen
+    /// Natur) aus der echten Karte – dieselben Kurven wie im Spiel, nur Uhr, Zoom, Blickpunkt, Wetter und Menschen sind vorgegeben.
+    /// </summary>
+    public static readonly FahrtPunkt[] FahrtPunkte =
     {
-        (0, 5.0f, 40), (20, 6.4f, 40),            // früher Morgen: leere Straßen, Vogelchor, Hahn – kein Gemurmel
-        (45, 8.4f, 40),                           // 6:30–9 Uhr die Straßen füllen sich, 8 Uhr öffnet der Markt, Hämmern beginnt
-        (70, 12f, 40),                            // Markttreiben bis Mittag
-        (85, 12.5f, 95), (100, 17.5f, 95),        // herauszoomen auf den Startzoom, Nachmittag: Straßen voll, dann Abendrot
-        (110, 19f, 60), (140, 22f, 60),           // Abend: die Straßen leeren sich, die Schänke füllt sich und schließt um 22 Uhr
-        (170, 23f, 60),                           // Nacht: still
-        (170.01f, 12f, 95), (230, 12f, 95), (260, 12f, 95), // Sprung auf Mittag am Startzoom (Sprungblende), 60 s Stadtleben, 30 s Pause
+        // 1. Früher Morgen am Markt: leere Straßen, Vogelchor, Hahn; Straßen füllen sich; 8 Uhr Morgenglocke zum Arbeitsbeginn (bei etwa 23 s)
+        new(0, 6.4f, 40, 0, 0), new(16, 7.7f, 40, 0, 0), new(32, 8.4f, 40, 0, 0),
+        // 2. Markttreiben, Gesprächsfetzen an den Gruppen (Zoom 30), um 10 Uhr die Messglocke (bei etwa 75 s)
+        new(46, 9.0f, 30, -5, 0), new(80, 10.6f, 30, 5, 0), new(100, 11.6f, 40, 10, 0),
+        // 3. Von der Stadt aufs Land: Wiese, Wald, Fluss (Mittag): das Stadtleben verklingt, Laub, Plätschern
+        new(116, 12.0f, 40, 10, 0), new(134, 12.4f, 40, 150, 10), new(146, 12.8f, 40, 190, 60), new(160, 13.2f, 40, 120, 150), new(176, 14.0f, 40, 120, 150),
+        // 4. Frühlingsabend am Fluss: Frösche, Abendgesang (Sprung der Uhr, 3 s Blende)
+        new(176.01f, 19.2f, 40, 120, 150), new(196, 19.9f, 40, 120, 150),
+        // 5. Sommernacht auf der Wiese: Grillen
+        new(196.01f, 21.2f, 40, 175, 10, 0, 1), new(214, 21.8f, 40, 175, 10, 0, 1),
+        // 6. Winterlicher Vormittag, Schneefall auf dem Feld: Schneestille, Krähen
+        new(214.01f, 10.8f, 40, 175, 10, 3, 3), new(238, 11.4f, 40, 175, 10, 3, 3),
+        // 7. Frühlingsabend in der Stadt: die Straßen leeren sich, 20 Uhr Abendglocke (bei etwa 258 s), die Gespräche werden leiser
+        new(238.01f, 18.8f, 40, 0, 0), new(262, 20.2f, 40, 0, 0),
+        // 8. Zur Schänke (links im Bild) und ganz heran: durch die Tür gedämpft, dann hell und laut
+        new(276, 20.5f, 40, -12, 6), new(290, 20.8f, 25, -24, 10),
+        // 9. In der Schankstube: laut und lebendig (Innenansicht)
+        new(290.01f, 20.9f, 25, -24, 10, 0, 0, 1), new(316, 21.5f, 25, -24, 10, 0, 0, 1),
+        // 10. Wieder draußen: 22 Uhr Schankschluss und Feuerglocke (bei etwa 330 s), die Gäste gehen, die Gasse wird still
+        new(316.01f, 21.6f, 30, -24, 10), new(338, 22.4f, 30, -10, 8),
+        // 11. Nacht: Nachtwächter mit Laterne und Horn, sonst Stille
+        new(338.01f, 22.5f, 40, 0, 10), new(372, 23.0f, 40, 30, 12),
+        // 12. Regentag in der Stadt: Regen auf Pflaster und Dächern, die Stadt dumpf (Sprung auf den Frühlingsnachmittag)
+        new(372.01f, 14.0f, 30, 0, 0, 1), new(400, 14.6f, 30, 0, 0, 1),
+        // 13. Sommergewitter: Blitz und Donner
+        new(400.01f, 15.0f, 40, 0, 0, 2, 1), new(432, 15.4f, 40, 0, 0, 2, 1),
     };
-    public const float FahrtZufallAb = 0f, FahrtPauseAb = 230f, FahrtEnde = 260f;
+    public const float FahrtZufallAb = 0f, FahrtPauseAb = 1e9f, FahrtEnde = 432f;
 
     /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern); alle übrigen plant der Planer mit festem Zufall aus den Menschen des Szenarios.</summary>
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
@@ -299,9 +429,15 @@ public partial class KlangUmgebung : Node
 
     private bool FahrtMomentbild(in M.Eingaben e)
     {
-        KlangStadtlebenModell.Szenario.Fuellen(_momentbild, e.UhrMinute / 60f, e.Innen == M.Innenart.Draussen ? e.Zoom : 60f);
+        var f = FokusQuelle?.Invoke() ?? (0f, 0f);
+        var zoom = e.Innen == M.Innenart.Draussen ? e.Zoom : 60f;
+        KlangStadtlebenModell.Szenario.Fuellen(_momentbild, e.UhrMinute / 60f, zoom, f.X, f.Z);
+        _momentbild.Umwelt = UmweltQuelle?.Invoke(zoom);
+        if (e.Innen == M.Innenart.Schankstube) _momentbild.InnenGaeste = Math.Max(KlangStadtlebenModell.Szenario.Zaehlen(e.UhrMinute / 60f).Gaeste, 5);
         return true;
     }
+
+    private int _fahrtPunkt = -1;
 
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {
@@ -315,19 +451,26 @@ public partial class KlangUmgebung : Node
         var t = (float)_fahrtZeit;
         var k = 0;
         while (k < FahrtPunkte.Length - 2 && FahrtPunkte[k + 1].T <= t) k++;
-        var (t0, u0, z0) = FahrtPunkte[k];
-        var (t1, u1, z1) = FahrtPunkte[k + 1];
-        var f = Math.Clamp((t - t0) / Math.Max(t1 - t0, 0.001f), 0f, 1f);
-        float Zoom(float z) => z < 0 ? e.ZoomGroesst : z;
-        var stunde = u0 + (u1 - u0) * f;
-        var zoom = Zoom(z0) + (Zoom(z1) - Zoom(z0)) * f;
+        var p0 = FahrtPunkte[k];
+        var p1 = FahrtPunkte[k + 1];
+        var f = Math.Clamp((t - p0.T) / Math.Max(p1.T - p0.T, 0.001f), 0f, 1f);
+        if (k != _fahrtPunkt)
+        {
+            _fahrtPunkt = k;
+            WetterVorgeben?.Invoke(p0.Wetter, (Jahreszeit)p0.Jahreszeit); // Wetter und Jahreszeit der Stadtansicht gelten ab hier (sofort)
+            GD.Print($"UMGEBUNG Fahrt Abschnitt {k} bei {t:0} s: Wetter {p0.Wetter}, Jahreszeit {p0.Jahreszeit}, Innen {p0.Innen}");
+        }
+        float L(float a, float b) => a + (b - a) * f;
+        var stunde = L(p0.Stunde, p1.Stunde);
+        var zoom = L(p0.Zoom, p1.Zoom);
         UhrVorgeben?.Invoke(stunde);
         ZoomVorgeben?.Invoke(zoom);
+        FokusVorgeben?.Invoke(L(p0.X, p1.X), L(p0.Z, p1.Z));
         while (_fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
         {
             var (_, art, fern) = FahrtRufe[_fahrtRuf++];
             Abspielen(_planer.Erzwingen(Array.FindIndex(M.Rufarten, r => r.Name == art), fern, e.Zoom));
         }
-        return e with { UhrMinute = stunde * 60f, Zoom = zoom, Pausiert = t >= FahrtPauseAb, Jahreszeit = Jahreszeit.Fruehling };
+        return e with { UhrMinute = stunde * 60f, Zoom = zoom, Pausiert = t >= FahrtPauseAb, Innen = p0.Innen == 1 ? M.Innenart.Schankstube : M.Innenart.Draussen };
     }
 }

@@ -104,8 +104,8 @@ public sealed partial class EntwicklerAnzeige
     private void UmgebungAbschnitt(VBoxContainer s, HashSet<string> bekannt)
     {
         s.AddChild(new HSeparator());
-        Hauptmenue.Text(s, "Umgebung (Bus Umgebung, Unterbusse UmgebungStadt/Draussen/Schenke/RufNah/RufFern)", 18, Gold);
-        Hauptmenue.Text(s, "Schleifen nach den Menschen im Umkreis der Kamera (Straße, Markt, Schänke, Werkstatt), Bezugsstunde (Licht) und Zoom, gedämpft in Räumen, im Dom und in der Pause; dazu Einzelrufe mit Mindestabstand. "
+        Hauptmenue.Text(s, "Umgebung (Bus Umgebung, Unterbusse UmgebungStadt/Draussen/Schenke/Innen/Gespraech/Glocke/RufNah/RufFern)", 18, Gold);
+        Hauptmenue.Text(s, "Schleifen nach den Menschen im Umkreis der Kamera (Straße, Markt, Schänke, Werkstatt), der Umgebung (Stadt gegen Wald, Feld, Wasser), dem Wetter, Bezugsstunde (Licht) und Zoom, gedämpft in Räumen, im Dom und in der Pause; dazu Einzelrufe mit Mindestabstand und die Glocken vom Dom. "
                            + "„▶“ spielt die Datei allein auf Bus Umgebung (ohne die Dämpfung der Unterbusse).", 13, Grau, umbruchBreite: Breite - 60);
         _umgebungKopf = Hauptmenue.Text(s, "", 13, Gold, umbruchBreite: Breite - 60);
         for (var i = 0; i < KlangUmgebungModell.Schichten.Length; i++)
@@ -113,7 +113,7 @@ public sealed partial class EntwicklerAnzeige
             var schicht = KlangUmgebungModell.Schichten[i];
             var pfad = KlangUmgebung.SchichtPfad(schicht.Name);
             bekannt.Add(pfad);
-            var reihe = Zeile(s, schicht.Name, $"{schicht.Zweck}. Datei {pfad}, Grundpegel {schicht.GrundDb:0} dB, Bus {(schicht.Bus switch { KlangUmgebungModell.Bus.Stadt => "UmgebungStadt", KlangUmgebungModell.Bus.Schenke => "UmgebungSchenke", _ => "UmgebungDraussen" })}.");
+            var reihe = Zeile(s, schicht.Name, $"{schicht.Zweck}. Datei {pfad}, Grundpegel {schicht.GrundDb:0} dB, Bus {(schicht.Bus switch { KlangUmgebungModell.Bus.Stadt => "UmgebungStadt", KlangUmgebungModell.Bus.Schenke => "UmgebungSchenke", KlangUmgebungModell.Bus.Innen => "UmgebungInnen", _ => "UmgebungDraussen" })}.");
             var name = schicht.Name;
             StillerKnopf(reihe, "▶", () => Vorhoeren(Laden(pfad), KlangDienst.BusUmgebung, schicht.GrundDb, 1, name + ".ogg"), pfad);
             var pegel = new ProgressBar
@@ -150,6 +150,28 @@ public sealed partial class EntwicklerAnzeige
             }
             _rufZeilen.Add((i, wert));
         }
+        for (var i = 0; i < KlangUmgebungModell.Glockenarten.Length; i++)
+        {
+            var art = KlangUmgebungModell.Glockenarten[i];
+            var nummer = i;
+            var reihe = Zeile(s, "Glocke " + art.Name, $"{art.Zweck}. Zeit aus den Regeln des Spiels (Glockenplan), vom Dom aus: Seite, Pegel und Tiefpass nach dem Abstand zum Blickpunkt.");
+            StillerKnopf(reihe, "jetzt läuten", () =>
+            {
+                if (KlangUmgebung.Aktiv is { Laeuft: true } u) { u.JetztLaeuten(nummer); Melden("Glocke: " + u.LetzterRuf); }
+                else Melden("Die Umgebung läuft nicht (nur in der Partie).", false);
+            });
+            var fluss = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            fluss.AddThemeConstantOverride("h_separation", 4);
+            reihe.AddChild(fluss);
+            Hauptmenue.Text(fluss, art.Zweck, 13, Grau).CustomMinimumSize = new Vector2(260, 0);
+            for (var v = 1; v <= art.Varianten; v++)
+            {
+                var datei = $"{art.Datei}_{v}";
+                var pfad = KlangUmgebung.GlockenPfad(datei);
+                bekannt.Add(pfad);
+                StillerKnopf(fluss, datei, () => Vorhoeren(Laden(pfad), KlangDienst.BusUmgebung, KlangUmgebungModell.GlockenDb, 1, datei + ".ogg"), pfad);
+            }
+        }
     }
 
     /// <summary>Die Werte des Abschnitts Umgebung (nur bei Änderung neu geschrieben).</summary>
@@ -167,7 +189,7 @@ public sealed partial class EntwicklerAnzeige
         var kopf = $"Uhr {(int)(e.UhrMinute / 60):00}:{(int)(e.UhrMinute % 60):00} · Bezugsstunde {e.Bezug:0.0} · {e.Jahreszeit} · Zoom {e.Zoom:0} (höchstens {e.ZoomGroesst:0}): "
                    + $"Nähe {a.Naehe:0.00}, Höhe {a.Hoehe:0.00} · {e.Innen}{(e.Pausiert ? " · Pause" : "")} · {e.TicksProSekunde:0.0} Spielminuten/s"
                    + $"{(a.Sprungblende ? " · SPRUNGBLENDE" : "")}\nStadt {a.StadtDb:0.0} dB, Tiefpass {a.StadtTiefpass:0} Hz · Draußen {a.DraussenDb:0.0} dB, Tiefpass {a.DraussenTiefpass:0} Hz"
-                   + $" · Wetter-Faktoren {string.Join("/", KlangUmgebungModell.WetterFaktor.Select(f => f.ToString("0.#")))} · letzter Ruf: {u.LetzterRuf}"
+                   + $" · Wetter Regen {e.Himmel.Regen:0.00}, Schnee {e.Himmel.Schnee:0.00}, Wind {e.Himmel.Wind:0.00}, Blitze {e.Himmel.Blitze:0.00} · letzter Ruf: {u.LetzterRuf}"
                    + $"\nMenschen im Umkreis (Stadtleben, Gemurmel, Schenke, Hämmern, Schritte hängen daran): {KlangUmgebung.LebenText(e.Lage)}";
         if (_umgebungKopf.Text != kopf) _umgebungKopf.Text = kopf;
         foreach (var (i, wert, pegel) in _umgebungZeilen)

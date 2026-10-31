@@ -17,8 +17,14 @@ public partial class Hauptszene
         _umgebung = new KlangUmgebung { Name = "KlangUmgebung" };
         _umgebung.Quelle = () => _umgebungBereit && _simulation is { } s
             ? new KlangUmgebungModell.Eingaben(_stadt.KlangUhrMinute, _stadt.KlangBezugStunde, _stadt.KlangJahreszeit, _stadt.KlangZoom,
-                _stadt.KlangZoomGroesst, _stadt.KlangInnenart, s.Takt.IstPausiert, s.Takt.TicksProSekunde, KlangDienst.HintergrundIstStumm)
+                _stadt.KlangZoomGroesst, _stadt.KlangInnenart, s.Takt.IstPausiert, s.Takt.TicksProSekunde, KlangDienst.HintergrundIstStumm,
+                Wetter: _stadt.KlangWetter, Glocken: _stadt.KlangGlockenplan)
             : null;
+        _umgebung.BlitzQuelle = () => _stadt.KlangBlitzZeit; // der Donner folgt dem Blitz
+        _umgebung.UmweltQuelle = zoom => _stadt.KlangUmwelt(zoom);
+        _umgebung.FokusQuelle = () => _stadt.KlangFokus;
+        _umgebung.FokusVorgeben = (x, z) => _stadt.KlangFokusVorgeben(new Godot.Vector3(x, 0, z));
+        _umgebung.WetterVorgeben = (nummer, jahreszeit) => _stadt.WetterVorgeben(nummer switch { 1 => Wetterlage.Regen, 2 => Wetterlage.Gewitter, 3 => Wetterlage.Schnee, 4 => Wetterlage.Sturm, _ => Wetterlage.Klar }, jahreszeit, false);
         _umgebung.LebenQuelle = m => _umgebungBereit && _stadt.KlangMomentbild(m); // wer draußen geht, wer auf dem Markt ist, Gäste, Werkstätten
         _umgebung.UhrVorgeben = stunde => _stadt.LichtUhrVorgeben(stunde); // nur die Hörprobe --umgebungfahrt=1
         _umgebung.ZoomVorgeben = groesse => _stadt.KlangZoomVorgeben(groesse);

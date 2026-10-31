@@ -34,6 +34,27 @@ resource_name = "Tiefpass"
 cutoff_hz = 20500.0
 db = 1
 
+[sub_resource type="AudioEffectPanner" id="Panner_gespraech"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_gespraech"]
+resource_name = "Tiefpass"
+cutoff_hz = 7000.0
+db = 1
+
+[sub_resource type="AudioEffectPanner" id="Panner_glocke"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_glocke"]
+resource_name = "Tiefpass"
+cutoff_hz = 16000.0
+db = 1
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_innen"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 1
+
 [resource]
 bus/1/name = &"Musik"
 bus/1/solo = false
@@ -111,3 +132,31 @@ bus/10/effect/0/effect = SubResource("Panner_schenke")
 bus/10/effect/0/enabled = true
 bus/10/effect/1/effect = SubResource("Tiefpass_schenke")
 bus/10/effect/1/enabled = true
+bus/11/name = &"UmgebungGespraech"
+bus/11/solo = false
+bus/11/mute = false
+bus/11/bypass_fx = false
+bus/11/volume_db = 0.0
+bus/11/send = &"UmgebungStadt"
+bus/11/effect/0/effect = SubResource("Panner_gespraech")
+bus/11/effect/0/enabled = true
+bus/11/effect/1/effect = SubResource("Tiefpass_gespraech")
+bus/11/effect/1/enabled = true
+bus/12/name = &"UmgebungGlocke"
+bus/12/solo = false
+bus/12/mute = false
+bus/12/bypass_fx = false
+bus/12/volume_db = 0.0
+bus/12/send = &"UmgebungDraussen"
+bus/12/effect/0/effect = SubResource("Panner_glocke")
+bus/12/effect/0/enabled = true
+bus/12/effect/1/effect = SubResource("Tiefpass_glocke")
+bus/12/effect/1/enabled = true
+bus/13/name = &"UmgebungInnen"
+bus/13/solo = false
+bus/13/mute = false
+bus/13/bypass_fx = false
+bus/13/volume_db = 0.0
+bus/13/send = &"Umgebung"
+bus/13/effect/0/effect = SubResource("Tiefpass_innen")
+bus/13/effect/0/enabled = true

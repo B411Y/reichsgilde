@@ -1,5 +1,6 @@
 using Godot;
 using Reichsgilde.Core.Buerger;
+using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
@@ -31,10 +32,55 @@ public partial class Stadtansicht
     /// den Bildern des Übergangs, bevor der Raum gesetzt ist.
     /// </summary>
     public KlangUmgebungModell.Innenart KlangInnenart =>
-        _raum is not null ? KlangUmgebungModell.Innenart.Raum
+        _raum is not null ? (_innen is BetriebsAnsicht { Stil: Werkstil.Schaenke } ? KlangUmgebungModell.Innenart.Schankstube : KlangUmgebungModell.Innenart.Raum)
         : _innen is null ? KlangUmgebungModell.Innenart.Draussen
         : _innen.Kennung == "Dom" ? KlangUmgebungModell.Innenart.InnenLeicht
         : KlangUmgebungModell.Innenart.Raum;
+
+    /// <summary>Das Wetter für den Ton: die gezeigten Werte (in Echtzeit nachgeführt), also auch Regen und Blitze, wie sie im Bild zu sehen sind.</summary>
+    public KlangUmgebungModell.KlangWetter KlangWetter => new(_wetter.Regen, _wetter.Schnee, _wetter.Wind, _wetter.Blitze, _wetter.Nebel);
+
+    /// <summary>Zeit seit dem Beginn des laufenden Blitzes in Sekunden, −1 solange keiner blitzt (steigende Flanke = neuer Blitz → Donner).</summary>
+    public float KlangBlitzZeit => _blitzZeit;
+
+    /// <summary>
+    /// Wann die Glocken läuten, aus den Regeln des Kerns: Arbeitsbeginn (<see cref="Stadtwirtschaft.Arbeitsbeginn"/>, 8 Uhr), Messe (Stunde des Kirchenwesens),
+    /// Feierabend (Arbeitsbeginn + Arbeitsminuten) und Schankschluss (Arbeitsende der Wirtshäuser, sonst Arbeitsbeginn + 14 Stunden).
+    /// </summary>
+    public KlangUmgebungModell.Glockenplan KlangGlockenplan
+    {
+        get
+        {
+            if (_simulation?.Wirtschaft is not { } w) return KlangUmgebungModell.Glockenplan.Standard;
+            var schluss = w.Betriebe.Where(b => b.IstSchaenke && b.InDerStadt).Select(b => b.Arbeitsende).DefaultIfEmpty(Stadtwirtschaft.Arbeitsbeginn + 840).Max();
+            return new KlangUmgebungModell.Glockenplan(Stadtwirtschaft.Arbeitsbeginn, w.Kirchenwesen.IstAktiv ? w.Kirchenwesen.Daten.MesseUm * 60 : -1,
+                Stadtwirtschaft.Arbeitsbeginn + w.Daten.Allgemein.Arbeitsminuten, schluss);
+        }
+    }
+
+    /// <summary>Der Blickpunkt der Kamera am Boden (Meter): mit freier Kamera deren Ort, sonst der Drehpunkt.</summary>
+    public (float X, float Z) KlangFokus
+    {
+        get
+        {
+            var f = FreiAktiv ? StadtKamera.GlobalPosition : _kameraDrehung.GlobalPosition;
+            return (f.X, f.Z);
+        }
+    }
+
+    private KlangUmweltModell.Raster? _klangRaster;
+
+    /// <summary>
+    /// Die Umgebung um den Blickpunkt (Stadt gegen Wald, Feld, Wasser; <see cref="KlangUmweltModell"/>) im Umkreis des Zooms; null ohne Karte.
+    /// Das Raster entsteht aus der Karte bei der ersten Abfrage (wenige Millisekunden).
+    /// </summary>
+    public KlangUmweltModell.Lage? KlangUmwelt(float zoom)
+    {
+        if (_karte is null) return null;
+        _klangRaster ??= KlangUmweltModell.Raster.Von(_karte);
+        var f = KlangFokus;
+        return _klangRaster.Probe(f.X, f.Z, KlangStadtlebenModell.Umkreis(zoom));
+    }
 
     /// <summary>Nur für die Hörprobe: Zoom fest vorgeben (wie das Mausrad, in den Grenzen der Karte).</summary>
     public void KlangZoomVorgeben(float groesse) => _kamera.Size = Mathf.Clamp(groesse, KameraMinZoom, KameraGroessterZoom());
@@ -61,6 +107,7 @@ public partial class Stadtansicht
         var fokus = FreiAktiv ? kamera.GlobalPosition : _kameraDrehung.GlobalPosition;
         m.FokusX = fokus.X;
         m.FokusZ = fokus.Z;
+        m.Umwelt = KlangUmwelt(KlangZoom);
         var breite = Math.Max(GetViewport().GetVisibleRect().Size.X, 1f);
         float Seite(Vector3 ort) => _raum is not null ? 0f : kamera.UnprojectPosition(ort).X / breite * 2f - 1f;
 
@@ -83,6 +130,23 @@ public partial class Stadtansicht
             foreach (var (betrieb, anzahl) in KlangStadtlebenKern.OffeneSchaenken(w, _simulation.Zeit.UhrzeitInMinuten))
                 if (_betriebe.TryGetValue(betrieb, out var ansicht))
                     m.Schenken.Add(new KlangStadtlebenModell.Quelle(ansicht.Mitte.X, ansicht.Mitte.Z, Seite(ansicht.Mitte), anzahl));
+        }
+
+        // Der Dom (die Glocken läuten von dort) und die Streifen mit der Laterne (das Horn kommt von dort)
+        if (_sonderbauten.TryGetValue("Dom", out var dom))
+            m.Dom = new KlangStadtlebenModell.Quelle(dom.Mitte.X, dom.Mitte.Z, Seite(dom.Mitte));
+        foreach (var gang in _wachgaenge.Values)
+            if (gang.Sichtbar)
+            {
+                var ort = gang.Knoten.GlobalPosition;
+                m.Wachen.Add(new KlangStadtlebenModell.Quelle(ort.X, ort.Z, Seite(ort), 1, true));
+            }
+        // In der Schankstube: die Gäste dieses Wirtshauses (nicht die Ferne mehrerer Schänken)
+        if (_raum is not null && _innen is BetriebsAnsicht { Stil: Werkstil.Schaenke } wirt)
+        {
+            m.InnenGaeste = 0;
+            foreach (var (betrieb, anzahl) in KlangStadtlebenKern.OffeneSchaenken(w, _simulation.Zeit.UhrzeitInMinuten))
+                if (_betriebe.TryGetValue(betrieb, out var ansicht) && ReferenceEquals(ansicht, wirt)) m.InnenGaeste = anzahl;
         }
 
         m.MarktOffen = w.IstArbeitszeit(_simulation.Zeit);
