@@ -13,6 +13,7 @@
 # messen: in diesem Prozess nacheinander leere Bühne, Kopf still, Mimik bewegt, alle Formen bewegt, mit/ohne Normalen
 #         der Formen, 8 Köpfe; je Lauf GPU-Zeit, Dreiecke, Zeichenaufrufe, Speicher, Ladezeit (messung.jsonl)
 #         Phase 6: --wiederholungen=3 (je Lauf mehrmals im selben Prozess), --stand=5|6, --commit=<hash> (ins Protokoll)
+#         Halt B2: --varianten=name:glb-ordner:weg_a:malfilter,… (gepaart wie --staende, Stand 6), --stufe=ultra
 # Phase 6 (S0) – Bogenzellen kennen zusätzlich: "stand": 5|6, "saat": Startwert (Erbgut über den Kern gewürfelt,
 #   ErbgutBruecke.cs), "familie": {"<saat>": [vater_saat, mutter_saat]} (vererbt), "saat_arten": ["Merkmal", …] (nur
 #   diese Gene aus der Saat), "vorlage": Erbgut-Vorschlagsdatei, "licht": "spiel"|"vorlage"|"innen", "anzeige":
@@ -28,6 +29,10 @@
 #   "fuell": {…} wie "schluessel" für das Fülllicht.
 #   … --gewichte=<personen.json> --aus=<gewichte.json> --ende   (auch --headless) Formgewichte je Person ausschreiben
 #   … --bruecke_pruefen [--aus=<datei.json>] --ende             Abnahme der Erbgut-Brücke (S0)
+# Halt B2 (Probekopf): Zellen kennen "weg_a": true (Aussehen Weg A, charakter_kopf.gd), "licht_breit": false (altes
+#   Short-Lighting bei ¾-Ansichten; Standard ist das Schlüssellicht auf der kameranahen Seite), "malfilter": true oder
+#   {"radius": 3, "mischung": 0.85, "tusche": 0.3} (Kuwahara und leichte Tusche, nur Porträt). Ein Kopf mit eigener
+#   regeln6.json im .glb-Ordner rechnet seine Gene nach dieser (Probeköpfe nebeneinander).
 extends Control
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -185,6 +190,7 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	k.iris_vorgabe = int(z.get("iris_muster", -1))
 	k.gene = {}                                    # jede Zelle setzt alle Gene neu (nichts von der vorigen Person)
 	k.stand_setzen(int(z.get("stand", 5)))
+	k.weg_a_setzen(bool(z.get("weg_a", false)))       # Halt B2: Aussehen Weg A
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
 	k.zusatz_formen = z.get("formen", {})
@@ -280,6 +286,10 @@ func _bogen(datei: String) -> void:
 			b.umgebung_setzen(z.get("umgebung", {}))
 			b.licht_setzen(z.get("schluessel", {}))
 			b.fuell_setzen(z.get("fuell", {}))
+			# Halt B2: Schlüssellicht auf der breiten Seite (Standard an), Malfilter nur auf Wunsch
+			b.schluessel_breit = bool(z.get("licht_breit", true))
+			var mf = z.get("malfilter", false)
+			b.malfilter_setzen(mf is Dictionary or bool(mf), mf if mf is Dictionary else {})
 			b.ansicht(z.get("ansicht", "portraet"), float(z.get("winkel", 0.0)), float(z.get("hoehe", 3.0)),
 				float(z.get("spanne_m", 0.0)), float(z.get("ziel_m", 0.0)), float(z.get("ziel_x", 0.0)),
 				String(z.get("kamera", "")) == "ortho")
@@ -758,6 +768,17 @@ func _messen() -> void:
 	var staende: Array = []
 	for t in String(args.get("staende", args.get("stand", "5"))).split(","):
 		staende.append(int(t))
+	# Halt B2: gepaarte Varianten statt Stände (--varianten=name:glb-ordner:weg_a:malfilter,…; Stand 6), z. B.
+	# haltb:~/werkzeuge/charakter/glb6:0:0,b2a:~/werkzeuge/charakter/glb6b2:1:0
+	if args.has("varianten"):
+		staende.clear()
+		for v in String(args["varianten"]).split(","):
+			var t := v.split(":")
+			var o := t[1] if t.size() > 1 else glb_ordner
+			if o.begins_with("~/"):
+				o = OS.get_environment("HOME").path_join(o.substr(2))
+			staende.append({"variante": t[0], "glb": o, "weg_a": t.size() > 2 and t[2] == "1",
+				"malfilter": t.size() > 3 and t[3] == "1"})
 	for wdh in int(args.get("wiederholungen", "1")):
 		for l in laeufe:
 			if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
@@ -768,12 +789,21 @@ func _messen() -> void:
 			for st in folge:
 				var lauf: Dictionary = l.duplicate(true)
 				lauf["wiederholung"] = wdh
-				lauf["stand"] = st
+				if st is Dictionary:
+					lauf.merge(st, true)
+					lauf["stand"] = 6
+				else:
+					lauf["stand"] = st
 				await _ein_lauf(lauf)
 
 func _ein_lauf(l: Dictionary) -> void:
 	var st := int(l.get("stand", args.get("stand", "5")))
+	var ordner_vorher := glb_ordner
+	if l.has("glb"):
+		glb_ordner = String(l["glb"])         # Halt B2: Variante mit eigenem Kopf-Ordner
 	var datei := _datei(l.get("kopf", "kopf3.glb"), st)
+	glb_ordner = ordner_vorher
+	var ultra_stufe := String(args.get("stufe", "hoch")) == "ultra"
 	var anzahl: int = l.get("anzahl", 1)
 	var gr0 := Vector2i(1280, 720)
 	var spalten := 1 if anzahl == 1 else 4
@@ -810,11 +840,14 @@ func _ein_lauf(l: Dictionary) -> void:
 			"stand": int(l.get("stand", args.get("stand", "5")))}
 		if l.has("saat"):
 			mz["saat"] = int(l["saat"]) + i      # Etappe B: Zufallsperson (Gene, Züge, Asymmetrie gesetzt)
+		mz["weg_a"] = bool(l.get("weg_a", false))
 		zelle_setzen(b.kopf, mz)
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
-			b.kopf.ultra_setzen(bool(l.get("ultra", false)))
+			b.kopf.ultra_setzen(bool(l.get("ultra", false)) or ultra_stufe)
+		b.stufe = "ultra" if ultra_stufe else "hoch"
 		b.licht_art_setzen(String(args.get("licht", "spiel")))
+		b.malfilter_setzen(bool(l.get("malfilter", false)))
 		b.ansicht("portraet", 20.0)
 	var namen: Array = []
 	if liste[0].kopf != null:
@@ -858,6 +891,7 @@ func _ein_lauf(l: Dictionary) -> void:
 		"aufloesung": "%dx%d" % [gr0.x, gr0.y],
 		"last": _last(), "gpu_fremd": _gpu_fremd(),
 		"stand": st, "wiederholung": int(l.get("wiederholung", 0)), "licht": String(args.get("licht", "spiel")),
+		"variante": String(l.get("variante", "")), "stufe": "ultra" if ultra_stufe else "hoch",
 		"commit": String(args.get("commit", "")), "zeit": Time.get_datetime_string_from_system(),
 	}
 	print("MESSUNG ", JSON.stringify(erg))

@@ -19,12 +19,20 @@
 # es kostete +0,5 ms ohne Haar, +1,5 ms mit TressFX); Niedrig und Mittel bekommen eine feste Umgebungsfarbe, aus dem
 # HDRI gemittelt. L-V „vorlage“: die Aufhellung 1 : 3 ist jetzt ein Lichtverhältnis (Teamleiter): auf der Schattenwange
 # kommt ⅓ der Beleuchtung der Lichtwange an (Lambert, Wangen ±40° zur Blickachse); Belichtung neu an der Graukarte.
+#
+# Halt B2 (Probekopf, 31.10.2026): Schlüssellicht auf der breiten Seite („Broad Lighting“). Die Lichter stehen fest in
+# der Welt und die Kamera kreist (ansicht, winkel); bei winkel > 0 lag das Schlüssellicht (von −x) damit auf der
+# kamerafernen Wange („Short Lighting“, macht schmale Gesichter noch schmaler – Diagnose). Mit schluessel_breit (Standard
+# an, Bogenschlüssel „licht_breit“) spiegelt ansicht() Schlüssel-, Füll- und Gegenlicht an der Mittelebene, sobald die
+# Kamera auf der +x-Seite steht. Von vorn (|winkel| ≤ 1°) bleibt alles wie bisher. Malfilter (Kuwahara und leichte Tusche,
+# nur Porträt, malfilter_setzen) als Schalter.
 extends SubViewport
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
 const FARBTEST := preload("res://versuch/charakter/farbtest.gdshader")
 const HAUT3 := preload("res://versuch/charakter/haut3.gdshader")
 const HAUT6 := preload("res://versuch/charakter/haut6.gdshader")
+const MALFILTER := preload("res://versuch/charakter/malfilter.gdshader")
 const HDRI := "~/werkzeuge/charakter/hdri/studio_small_09_1k.hdr"
 # S3: Porträtlicht Stand 6 (L-S)
 const SPIEL6_BELICHTUNG := 0.8
@@ -50,6 +58,8 @@ var anzeige := "normal"
 var pruefkoerper := ""
 var _pruef: Node3D = null
 var stufe := "hoch"         # Grafikstufe der Bühne (niedrig | mittel | hoch | ultra); Bogenschlüssel „stufe“
+var schluessel_breit := true   # Halt B2: Schlüssellicht auf der kameranahen (breiten) Seite
+var _gespiegelt := false
 
 # L-V „vorlage“ (Prüfplan 5.2): weiches Schlüssellicht 45° links oben (Schattenweichzeichnung 2,0; bis Etappe A
 # Winkelgröße 3°, die ein Punktraster in die Schatten streute), Aufhellung 1 : 3 von rechts,
@@ -179,6 +189,7 @@ func _grund_setzen() -> void:
 	debug_draw = Viewport.DEBUG_DRAW_DISABLED
 	if _innen:
 		_innen.visible = false
+	_gespiegelt = false
 
 # Licht aus Richtung (Grad): azimut 0 = von vorn, −90 = von links im Bild (−x), +90 = von rechts; hoehe über dem Horizont
 static func licht_richten(n: DirectionalLight3D, azimut: float, hoehe: float) -> void:
@@ -429,6 +440,20 @@ func ansicht(art: String, winkel := 0.0, hoehe := 3.0, spanne_m := 0.0, ziel_m :
 		kamera.call("Blicken", pos, blick)
 	else:
 		kamera.transform = Transform3D(Basis.looking_at(blick - pos), pos)
+	licht_seite(winkel)
+
+# Halt B2: Lichter an der Mittelebene (x = 0) spiegeln, wenn die Kamera auf der +x-Seite steht (Broad Lighting).
+# Spiegeln heißt Basis M·B·M mit M = diag(−1, 1, 1) (bleibt eine Drehung) und Ort x → −x; die Innenlichter (L-I)
+# bleiben, sie gehören zum Raum.
+func licht_seite(winkel: float) -> void:
+	var soll := schluessel_breit and winkel > 1.0
+	if soll == _gespiegelt:
+		return
+	var m := Basis(Vector3(-1, 0, 0), Vector3(0, 1, 0), Vector3(0, 0, 1))
+	for n in [schluessel, fuell, gegen]:
+		var t: Transform3D = n.transform
+		n.transform = Transform3D(m * t.basis * m, Vector3(-t.origin.x, t.origin.y, t.origin.z))
+	_gespiegelt = soll
 
 # Einstellungen der Umgebung aus einem Bogen ({"ssao_radius": 0.02, "ssao_enabled": false, …}); Unbekanntes wird
 # gemeldet. Vor jeder Zelle gelten wieder die Grundwerte der Bühne.
@@ -469,6 +494,31 @@ func fuell_setzen(werte: Dictionary) -> void:
 		if not _fuell_grund.has(k):
 			_fuell_grund[k] = fuell.get(k)
 		fuell.set(k, werte[k])
+
+# Halt B2: Malfilter (Kuwahara + leichte Tusche) als Bildebene über dem 3D-Bild, nur für das Porträt
+var _malfilter: CanvasLayer = null
+func malfilter_setzen(an: bool, werte := {}) -> void:
+	if not an:
+		if _malfilter:
+			_malfilter.visible = false
+		return
+	if _malfilter == null:
+		_malfilter = CanvasLayer.new()
+		var r := ColorRect.new()
+		r.name = "Malfilter"
+		var m := ShaderMaterial.new()
+		m.shader = MALFILTER
+		r.material = m
+		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_malfilter.add_child(r)
+		add_child(_malfilter)
+	var rect := _malfilter.get_node("Malfilter") as ColorRect
+	rect.position = Vector2.ZERO
+	rect.size = Vector2(size)
+	for k in ["radius", "mischung", "tusche"]:
+		var grund = {"radius": 3, "mischung": 0.85, "tusche": 0.3}[k]
+		(rect.material as ShaderMaterial).set_shader_parameter(k, werte.get(k, grund))
+	_malfilter.visible = true
 
 func foto() -> Image:
 	return get_texture().get_image()
@@ -647,6 +697,6 @@ func kamera_daten() -> Dictionary:
 		"bild": [size.x, size.y],
 		"kopf_transform": transform_liste(kopf.global_transform) if kopf else [],
 		"lichtart": licht_art, "anzeige": anzeige, "pruefkoerper": pruefkoerper,
-		"belichtung": umgebung.tonemap_exposure,
+		"belichtung": umgebung.tonemap_exposure, "licht_gespiegelt": _gespiegelt, "malfilter": _malfilter != null and _malfilter.visible,
 		"schluessel_von": [schluessel.global_transform.basis.z.x, schluessel.global_transform.basis.z.y, schluessel.global_transform.basis.z.z],
 	}
