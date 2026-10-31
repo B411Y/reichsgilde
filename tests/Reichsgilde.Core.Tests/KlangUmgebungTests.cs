@@ -43,7 +43,7 @@ static class KlangUmgebungTests
             Pruefe.Gleich(false, KlangUmgebungModell.Selbsttest(log.Add, kaputt: true));
         }),
 
-        ("Menschen: leere Straße = Stille (Gemurmel 0, Schenke 0, Stadtleben nur der Grund)", () =>
+        ("Menschen: leere Straße = Stille (Schenke 0, Stadtleben nur der Grund)", () =>
         {
             var z = new KlangStadtlebenModell.Zustand();
             var l = z.Schritt(new KlangStadtlebenModell.Momentbild { MarktOffen = true }, 40, 1);
@@ -52,8 +52,6 @@ static class KlangUmgebungTests
             Pruefe.Gleich(0f, l.Schenke);
             Pruefe.Gleich(0f, l.Werkstatt);
             var tag = KlangUmgebungModell.Schichten.ToList().FindIndex(s => s.Name == "stadt_tag");
-            var gem = KlangUmgebungModell.Schichten.ToList().FindIndex(s => s.Name == "stadt_gemurmel");
-            Pruefe.Wahr(KlangUmgebungModell.Gewicht(gem, 12, 12, 1, 0, l) == 0f, "Gemurmel auf leerer Straße");
             Pruefe.Wahr(KlangUmgebungModell.Gewicht(tag, 12, 12, 1, 0, l) <= KlangUmgebungModell.StadtGrund + 1e-6f, "Stadtleben auf leerer Straße über dem Grund");
         }),
 

@@ -11,14 +11,18 @@ Aufruf (Python mit numpy, scipy, soxr, soundfile, pyloudnorm; ffmpeg mit libvorb
 Ablauf je Datei (Reihenfolge wichtig, damit die Schleifennaht nicht knackt):
   1. ganze Quelle lesen, auf 48 kHz umrechnen (soxr, sehr hohe Qualität) – die ganze Datei, nicht nur den Ausschnitt;
   2. Filter (Hochpass 2. Ordnung, Tiefpass 4. Ordnung, Butterworth, vorwärts) über die ganze Datei, also mit Vorlauf vor dem Ausschnitt;
+  2.0 optional („entrauschen“: dB) stationäres Grundrauschen der ganzen Quelle absenken, vor allen Filtern;
   2a. Kerbfilter („kerben“: [[Hz, Q], …], z. B. gegen ein stehendes Netzbrummen) und Absenkungen („absenken“: [[von, bis, dB], …]
       in Sekunden der Quelle, Rampen 0,1 s, z. B. für eine herausstehende Stimme);
   3. Ausschnitt von–bis – oder „folge“: [[von, bis], …], mehrere Stücke der Quelle hintereinander, jeweils mit gleicher Leistung
      über „uebergang“ Sekunden ineinander geblendet (eine längere Schleife aus einer kurzen Quelle, ohne festen Takt);
   4. Schichten: Naht mit gleicher Leistung – das Ende (Länge „blende“) wird mit Kosinus aus- und auf den Anfang mit Sinus eingeblendet,
      die Datei ist danach um die Blende kürzer und läuft ohne Sprung von hinten nach vorn. Rufe: mono, Ränder ein- und ausgeblendet;
+  3a. Glocken („muster“): aus einem Schlag einer Aufnahme („schlag“: [von, bis]) wird ein Läuten gesetzt – „schlaege“: [[Sekunde, dB, Tonhöhe], …]
+     legen den Schlag mit seinem Ausklang an die Stelle (Tonhöhe 1,0 = Original, 1,26 = große Terz höher, eine kleinere Glocke), „dauer“ Gesamtlänge;
   5. eine lineare Verstärkung auf die Ziellautheit (pyloudnorm, ITU-R BS.1770), kein dynamisches loudnorm; danach Spitze (4-fach
-     überabgetastet) prüfen und wenn nötig leiser machen;
+     überabgetastet) prüfen und wenn nötig leiser machen („ziel_lufs“ und „spitze“ je Eintrag ändern die Vorgaben der Liste; „begrenzer“: dBFS –
+     bei einzelnen lauten Spitzen über dieser Schwelle weich zusammenpressen, damit die Lautheit trotz der Spitzenvorgabe erreicht wird);
   6. OGG Vorbis Qualität 4 mit ffmpeg (bitexact: ein zweiter Lauf erzeugt byte-gleiche Dateien).
 """
 import argparse
@@ -149,7 +153,27 @@ def quelle_lesen(pfad, sha_soll):
     return x
 
 
+def entrauschen(x, db, n=1024, hop=256):
+    """Stationäres Grundrauschen der ganzen Quelle um höchstens db dB absenken (spektrale Subtraktion): Das Rauschen je Frequenzbereich ist das 20. Perzentil
+    des Betrags über die Zeit, abgezogen wird das Doppelte davon; Boden der Verstärkung 10^(-db/20), in Zeit und Frequenz geglättet (wenig „Zwitschern“)."""
+    from scipy.signal import stft, istft
+    from scipy.ndimage import uniform_filter
+    boden = 10 ** (-db / 20)
+    y = np.zeros_like(x)
+    for k in range(x.shape[1]):
+        f, t, Z = stft(x[:, k], fs=FS, nperseg=n, noverlap=n - hop)
+        betrag = np.abs(Z)
+        rausch = np.percentile(betrag, 20, axis=1, keepdims=True)
+        g = np.clip(1.0 - 2.0 * rausch / (betrag + 1e-12), boden, 1.0)
+        g = uniform_filter(g, size=(3, 5))
+        _, rein = istft(Z * g, fs=FS, nperseg=n, noverlap=n - hop)
+        y[:, k] = rein[:len(x)] if len(rein) >= len(x) else np.pad(rein, (0, len(x) - len(rein)))
+    return y
+
+
 def filtern(x, eintrag):
+    if eintrag.get("entrauschen"):
+        x = entrauschen(x, eintrag["entrauschen"])
     if eintrag.get("hp"):
         x = sosfilt(butter(2, eintrag["hp"], "highpass", fs=FS, output="sos"), x, axis=0)
     if eintrag.get("tp"):
@@ -203,10 +227,28 @@ def echte_spitze_db(y):
     return 20 * np.log10(np.max(np.abs(ueber)) + 1e-12)
 
 
-def angleichen(y, ziel_lufs, spitze_max):
+def weich_begrenzen(y, schwelle_db):
+    """Spitzen über der Schwelle (dBFS) weich zusammenpressen (tanh bis 0 dBFS); darunter bleibt alles unverändert."""
+    t = 10 ** (schwelle_db / 20)
+    a = np.abs(y)
+    ueber = a > t
+    z = y.copy()
+    z[ueber] = np.sign(y[ueber]) * (t + (1 - t) * np.tanh((a[ueber] - t) / (1 - t)))
+    return z
+
+
+def angleichen(y, ziel_lufs, spitze_max, begrenzer=None):
     meter = pyln.Meter(FS)
     lufs = meter.integrated_loudness(y)
     y = y * 10 ** ((ziel_lufs - lufs) / 20)
+    if begrenzer is not None:
+        # Aufnahmen mit einzelnen lauten Spitzen (Tropfen auf Laub): erst weich begrenzen, dann die Lautheit nachregeln, bis sie stimmt
+        g = 1.0
+        for _ in range(8):
+            z = weich_begrenzen(y * g, begrenzer)
+            z = z * 10 ** (min(0.0, spitze_max - echte_spitze_db(z)) / 20)
+            g *= 10 ** ((ziel_lufs - meter.integrated_loudness(z)) / 20)
+        y = weich_begrenzen(y * g, begrenzer)
     spitze = echte_spitze_db(y)
     if spitze > spitze_max:
         y = y * 10 ** ((spitze_max - spitze) / 20)
@@ -222,9 +264,34 @@ def ogg_schreiben(y, ziel, ffmpeg):
         subprocess.run(befehl, check=True)
 
 
+def laeuten(x, mu):
+    """Ein Läuten aus Schlägen einer Glocke: Schlag samt Ausklang ausschneiden, an den Zeiten mit Pegel und Tonhöhe übereinanderlegen (mono)."""
+    m = x.mean(axis=1)
+    von, bis = mu["schlag"]
+    schlag = m[int(round(von * FS)):int(round(bis * FS))].copy()
+    a = int(0.004 * FS)
+    schlag[:a] *= np.linspace(0, 1, a)                               # der Anschlag der Aufnahme beginnt vor dem Schnitt: sanft einblenden
+    b = int(0.8 * FS)
+    schlag[-b:] *= np.cos(np.linspace(0, np.pi / 2, b)) ** 2         # und den Ausklang am Ende ausblenden
+    n = int(round(mu["dauer"] * FS))
+    y = np.zeros(n + len(schlag) + FS)
+    for zeit, db, hoehe in mu["schlaege"]:
+        z = schlag if abs(hoehe - 1.0) < 1e-9 else soxr.resample(schlag, FS * hoehe, FS, quality="VHQ")  # schneller abgespielt = höher
+        i = int(round(zeit * FS))
+        y[i:i + len(z)] += z * 10 ** (db / 20)
+    y = y[:n]
+    f = int(min(mu.get("ausblenden", 2.0), mu["dauer"] / 2) * FS)
+    y[-f:] *= np.cos(np.linspace(0, np.pi / 2, f)) ** 2
+    return y[:, None]
+
+
 def bauen(eintrag, liste, quellordner):
     if "synth" in eintrag:
         y = wind(eintrag["synth"], eintrag["saat"], eintrag["dauer"])
+    elif "muster" in eintrag:
+        q = liste["quellen"][eintrag["quelle"]]
+        x = filtern(quelle_lesen(Path(quellordner) / f"{eintrag['quelle']}.ogg", q["sha256"]), eintrag)
+        y = laeuten(x, eintrag["muster"])
     else:
         q = liste["quellen"][eintrag["quelle"]]
         x = filtern(quelle_lesen(Path(quellordner) / f"{eintrag['quelle']}.ogg", q["sha256"]), eintrag)
@@ -237,8 +304,8 @@ def bauen(eintrag, liste, quellordner):
         else:
             y = raender(y.mean(axis=1, keepdims=True), eintrag.get("ein", 0.02), eintrag.get("aus", 0.15))
     if eintrag["art"] == "schicht":
-        return angleichen(y, liste["ziel_lufs_schicht"], liste["spitze_schicht_dbtp"])
-    return angleichen(y, liste["ziel_lufs_ruf"], liste["spitze_ruf_dbtp"])
+        return angleichen(y, eintrag.get("ziel_lufs", liste["ziel_lufs_schicht"]), eintrag.get("spitze", liste["spitze_schicht_dbtp"]), eintrag.get("begrenzer"))
+    return angleichen(y, eintrag.get("ziel_lufs", liste["ziel_lufs_ruf"]), eintrag.get("spitze", liste["spitze_ruf_dbtp"]), eintrag.get("begrenzer"))
 
 
 def main():
@@ -254,7 +321,7 @@ def main():
     for eintrag in liste["dateien"]:
         if nur and eintrag["name"] not in nur:
             continue
-        unter = "schichten" if eintrag["art"] == "schicht" else "rufe"
+        unter = eintrag.get("ordner", "schichten" if eintrag["art"] == "schicht" else "rufe")   # „ordner“: z. B. glocken oder rufe/gespraeche/gasse
         ziel = Path(a.aus) / unter / f"{eintrag['name']}.ogg"
         ziel.parent.mkdir(parents=True, exist_ok=True)
         y, lufs, spitze = bauen(eintrag, liste, a.quellen)

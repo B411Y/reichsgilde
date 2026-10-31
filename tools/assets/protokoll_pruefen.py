@@ -13,7 +13,7 @@ Geprüft wird:
   - Pflichtfelder sind nicht leer („unbekannt“ ist erlaubt), Art, Herkunft, Datum und „spieler_sieht“ haben gültige Werte.
   - Die Zeilen stehen nach Muster (erste Spalte) sortiert; neue Zeilen an die alphabetisch passende Stelle, nicht ans Ende.
   - Verweise auf Prompt-Dateien (docs/assets/prompts/…) zeigen auf vorhandene Dateien.
-  - Zeilen mit „datum“ nach dem Stichtag (Konstante STICHTAG, None = aus) tragen kein „CC BY“ als Lizenz.
+  - Zeilen mit „datum“ nach dem Stichtag (Konstante STICHTAG, None = aus) tragen kein „CC BY“ als Lizenz (Ausnahme: Herkunft „Fremdpaket“, Fremdmaterial behält seine Lizenz).
   - Die Steam-Liste entspricht dem Protokoll (sonst mit --steam-liste neu schreiben).
 
 Muster (relativ zum Repository): * = beliebig viele Zeichen ohne „/“, ** = beliebig viele Ordner, ? = ein Zeichen,
@@ -166,9 +166,9 @@ def felder_pruefen(zeile, fehler):
     if zeile["datum"] and zeile["datum"] != "unbekannt" and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", zeile["datum"]):
         fehler.append(f"{ort}: Datum als JJJJ-MM-TT oder „unbekannt“, steht dort: {zeile['datum']}")
     if STICHTAG and re.fullmatch(r"\d{4}-\d{2}-\d{2}", zeile["datum"]) and zeile["datum"] > STICHTAG \
-            and "CC BY" in zeile["lizenz_ergebnis"]:
+            and "CC BY" in zeile["lizenz_ergebnis"] and zeile["herkunft"] != "Fremdpaket":
         fehler.append(f"{ort}: Datum {zeile['datum']} liegt nach dem Stichtag {STICHTAG}; neue Inhalte tragen "
-                      "„Alle Rechte vorbehalten“ statt CC BY (Fremdmaterial: seine eigene Lizenz)")
+                      "„Alle Rechte vorbehalten“ statt CC BY (Fremdmaterial, Herkunft „Fremdpaket“, behält seine eigene Lizenz)")
     nb = zeile["nachbearbeitung"]
     if nb and not (nb.startswith("nein") or nb.startswith("ja:") or nb.startswith("unbekannt")):
         fehler.append(f"{ort}: „nachbearbeitung“ beginnt mit „nein“, „ja: <Umfang>“ oder „unbekannt“")
@@ -294,7 +294,7 @@ def selbsttest():
         zeile = {s: "x" for s in SPALTEN}
         zeile.update(_nummer=2, pfad_muster="a", anzahl="1", art="Bild", herkunft="Nutzer", spieler_sieht="ja",
                      nachbearbeitung="nein", prompt_oder_quelle="x")
-        faelle = [  # (Stichtag, Datum, Lizenz, erwartet Fehler)
+        faelle = [  # (Stichtag, Datum, Lizenz, erwartet Fehler, Herkunft; ohne Angabe „Nutzer“)
             (None, "2030-01-01", "CC BY 4.0", False),
             ("2026-11-01", "2026-10-31", "CC BY 4.0", False),
             ("2026-11-01", "2026-11-01", "CC BY 4.0", False),
@@ -302,11 +302,13 @@ def selbsttest():
             ("2026-11-01", "2026-11-02", "Alle Rechte vorbehalten", False),
             ("2026-11-01", "2026-11-02", "CC0 1.0", False),
             ("2026-11-01", "unbekannt", "CC BY 4.0", False),
+            ("2026-11-02", "2026-11-02", "CC BY 4.0", False, "Fremdpaket"),   # Fremdmaterial behält seine Lizenz (Namensnennung in HERKUNFT.md)
         ]
         ok = True
-        for stichtag, datum, lizenz, soll in faelle:
+        for fall in faelle:
+            stichtag, datum, lizenz, soll = fall[:4]
             STICHTAG = stichtag
-            zeile.update(datum=datum, lizenz_ergebnis=lizenz)
+            zeile.update(datum=datum, lizenz_ergebnis=lizenz, herkunft=fall[4] if len(fall) > 4 else "Nutzer")
             fehler = []
             felder_pruefen(zeile, fehler)
             ist = any("Stichtag" in f for f in fehler)

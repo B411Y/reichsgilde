@@ -76,8 +76,7 @@ public static class KlangUmgebungModell
 
     public static readonly Schicht[] Schichten =
     {
-        new("stadt_tag", "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei Fes, autofreie Altstadt); 8–20 Uhr, so voll wie die Straßen im Umkreis", -6f, Bus.Stadt),
-        new("stadt_gemurmel", "Gemurmel vieler Leute: Menschen im Umkreis der Kamera und Markttreiben, nur nah (Halle von oben, gedämpft)", -16f, Bus.Stadt),
+        new("stadt_tag", "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei Fes, autofreie Altstadt); 8–20 Uhr, so voll wie Straßen und Markt im Umkreis, nur in der Stadt", -6f, Bus.Stadt),
         new("stadt_abend", "Gedämpftes Gemurmel wie aus Schenken: nur aus geöffneten Schänken (8–22 Uhr) mit Gästen, am Ort des Wirtshauses", -13f, Bus.Schenke),
         new("morgen_voegel", "Vogelchor im Morgengrauen (Dämmerung bis 1,5 h nach Aufgang)", -13f, Bus.Draussen),
         new("tag_spatzen", "Spatzen am Tag, leise, nah deutlicher", -20f, Bus.Draussen),
@@ -194,9 +193,7 @@ public static class KlangUmgebungModell
         var schank = u.Innen == Innenart.Schankstube;
         float w = Schichten[i].Name switch
         {
-            "stadt_tag" => StadtTag(stunde, b) * (l.Gemessen ? StadtGrund + (1f - StadtGrund) * l.Menge : 1f) * sf * (1f - 0.5f * Glatt(0.05f, 0.6f, regen)),
-            "stadt_gemurmel" => (l.Gemessen ? n * (1f - (1f - l.Menge) * (1f - l.Markt)) : Trapez(stunde, 7.0f, 8.5f, 19.0f, 20.5f) * n)
-                                * NachtStille(stunde) * Glatt(0.05f, 0.4f, um.Stadt),
+            "stadt_tag" => StadtTag(stunde, b) * (l.Gemessen ? StadtGrund + (1f - StadtGrund) * Math.Max(l.Menge, l.Markt) : 1f) * sf * (1f - 0.5f * Glatt(0.05f, 0.6f, regen)),
             "stadt_abend" => schank ? 0f : l.Gemessen ? l.Schenke : StadtAbend(stunde) * (0.25f + 0.75f * Glatt(0.1f, 0.45f, n)),
             "morgen_voegel" => Trapez(b, 5.0f, 5.6f, 7.0f, 8.5f) * (1f - 0.6f * h) * trocken,
             "tag_spatzen" => Trapez(b, 6.5f, 7.5f, 18.0f, 19.0f) * (0.3f + 0.7f * n) * (1f - 0.6f * h) * (0.3f + 0.7f * sf) * trocken,
@@ -423,7 +420,7 @@ public static class KlangUmgebungModell
     public static Dictionary<string, string[]> Gespraeche { get; set; } = new()
     {
         ["gasse"] = Enumerable.Range(1, 8).Select(i => $"gespraeche/gasse/gasse_{i}").ToArray(),
-        ["markt"] = Enumerable.Range(1, 8).Select(i => $"gespraeche/markt/markt_{i}").ToArray(),
+        ["markt"] = Enumerable.Range(1, 6).Select(i => $"gespraeche/markt/markt_{i}").ToArray(),
     };
 
     /// <summary>Alle Dateien der Gesprächsliste (Namen unter <c>rufe/</c>, ohne Endung).</summary>
@@ -835,7 +832,6 @@ public static class KlangUmgebungModell
         Pruefe(Nacht(22f) >= 0.95f && Nacht(5f) >= 0.95f, "Nacht bei b = 22 und b = 5 nicht voll");
         Pruefe(Gewicht(Index("morgen_voegel"), 5.9f, 6f, 1, 0) >= 0.8f, "Morgenchor bei b = 6 unter 0,8");
         Pruefe(Gewicht(Index("stadt_tag"), 12f, 12f, 1, 0) >= 0.9f, "Stadtleben um 12 Uhr unter 0,9");
-        Pruefe(Gewicht(Index("stadt_gemurmel"), 12f, 12f, Naehe(95), Hoehe(95, 140)) >= 0.35f, "Gemurmel am Startzoom 95 mittags unter 0,35");
         Pruefe(Gewicht(Index("wind_leicht"), 12f, 12f, Naehe(140), Hoehe(140, 140)) >= 0.9f, "Wind leicht am Höchstzoom unter 0,9");
         Pruefe(Gewicht(Index("wind_leicht"), 12f, 12f, Naehe(110), Hoehe(110, 110)) >= 0.9f, "Wind leicht am Höchstzoom einer kleinen Karte (110) unter 0,9");
         foreach (var s in new[] { 25f, 45f, 75f, 95f, 100f })
@@ -1031,12 +1027,12 @@ public static class KlangUmgebungModell
         // a. Leere Straße: kein Gemurmel, kein Schenkengemurmel, Stadtleben nur noch der Grund
         var leer = Lage(new KlangStadtlebenModell.Momentbild { MarktOffen = true }, 40);
         pruefe(leer.Menge == 0f && leer.Markt == 0f && leer.Schenke == 0f && leer.Werkstatt == 0f && leer.Geher == 0f, "Leere Stadt: ein Pegel über 0");
-        pruefe(G("stadt_gemurmel", 12f, leer) == 0f && G("stadt_abend", 12f, leer) == 0f, "Leere Stadt: Gemurmel oder Schenke");
+        pruefe(G("stadt_abend", 12f, leer) == 0f, "Leere Stadt: Schenkengemurmel");
         pruefe(G("stadt_tag", 12f, leer) <= StadtGrund + 1e-6f, "Leere Stadt: Stadtleben über dem Grund");
         // b. Volle Straße am Mittag: Stadtleben und Gemurmel da, Sättigung
         var voll = Lage(Szene(12f, 40), 40);
         pruefe(voll.Menge >= 0.8f && voll.Markt >= 0.6f, $"Mittag voll: Menge {voll.Menge:0.00}, Markt {voll.Markt:0.00} zu niedrig");
-        pruefe(G("stadt_gemurmel", 12f, voll) >= 0.6f && G("stadt_tag", 12f, voll) >= 0.8f, "Mittag voll: Gemurmel oder Stadtleben zu leise");
+        pruefe(G("stadt_tag", 12f, voll) >= 0.8f, "Mittag voll: Stadtleben zu leise");
         {
             var m = new KlangStadtlebenModell.Momentbild();
             for (var i = 0; i < 300; i++) m.Leute.Add(new KlangStadtlebenModell.Quelle(i % 30, i / 30, 0, 1, true));
@@ -1184,8 +1180,7 @@ public static class KlangUmgebungModell
 
         // a. Umland: kein Stadtleben, kein Gemurmel – auch wenn die Menschen der Stadt in Hörweite wären
         pruefe(G("stadt_tag", 12f, wiese, klar, leben: voll) <= 0.02f, "Wiese: Stadtleben noch da");
-        pruefe(G("stadt_gemurmel", 12f, wiese, klar, leben: voll) <= 0.02f, "Wiese: Gemurmel noch da");
-        pruefe(G("stadt_tag", 12f, stadt, klar, leben: voll) >= 0.9f && G("stadt_gemurmel", 12f, stadt, klar, leben: voll) >= 0.6f, "Stadtmitte: Stadtleben oder Gemurmel fehlt");
+        pruefe(G("stadt_tag", 12f, stadt, klar, leben: voll) >= 0.9f, "Stadtmitte: Stadtleben fehlt");
         // b. Wald: Laub; im Winter kahl, mit Wind stärker; Grillen nur im Sommer abends; Frösche nur im Frühling am Wasser
         pruefe(G("natur_laub", 12f, wald, klar) >= 0.3f && G("natur_laub", 12f, stadt, klar) <= 0.01f, "Laub nur im Wald");
         pruefe(G("natur_laub", 12f, wald, klar, Jahreszeit.Winter) < G("natur_laub", 12f, wald, klar, Jahreszeit.Sommer) * 0.5f, "Laub im Winter nicht leiser");
@@ -1218,13 +1213,13 @@ public static class KlangUmgebungModell
             pruefe(schnee.DraussenDb <= trocken.DraussenDb - 2f && schnee.DraussenTiefpass <= 12000f, $"Schneestille fehlt: {schnee.DraussenDb:0.0} dB / {schnee.DraussenTiefpass:0} Hz");
             log($"UMGEBUNGTEST Wetter: Regen Stadt {nass.StadtDb:0.0} dB / {nass.StadtTiefpass:0} Hz, Schnee {schnee.DraussenDb:0.0} dB / {schnee.DraussenTiefpass:0} Hz (klar: {trocken.StadtDb:0.0} / {trocken.DraussenDb:0.0})");
         }
-        // e. Nachtruhe: nach 22 Uhr bleibt vom Gemurmel nur ein Zehntel, selbst bei voller Straße (Tore zu, Gassen leer)
+        // e. Nachtruhe: Die Gesprächsfetzen und das Gemurmel der Straße lassen nach 20:30 nach, nach 22 Uhr bleibt ein Zehntel (Tore zu, Gassen leer)
         {
-            var a = G("stadt_gemurmel", 19f, stadt, klar, leben: voll);
-            var b = G("stadt_gemurmel", 21.25f, stadt, klar, leben: voll);
-            var c = G("stadt_gemurmel", 22.5f, stadt, klar, leben: voll);
-            log($"UMGEBUNGTEST Nacht: Gemurmel bei voller Straße 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}");
-            pruefe(a >= 0.6f && b < a && NachtStille(23f) <= 0.11f && NachtStille(20f) == 1f && c <= 0.11f, $"Nachtstille: 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}");
+            var gp = Rufarten[Array.FindIndex(Rufarten, r => r.Name == "Gespraech")];
+            float F(float h) => gp.Fenster(h, BezugFruehling(h), StadtTag(h, BezugFruehling(h)));
+            float a = F(19f), b = F(21.25f), c = F(22.5f), d = F(23f);
+            log($"UMGEBUNGTEST Nacht: Gesprächsfenster 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
+            pruefe(a >= 0.9f && b < a * 0.5f && c <= 0.06f && d <= 0.06f && NachtStille(23f) <= 0.11f && NachtStille(20f) == 1f, $"Nachtstille: 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
         }
         // f. Schankstube: nur in ihr, laut nach den Gästen; draußen verstummt die Schänke dabei (sie ist im Raum ohnehin dumpf)
         {

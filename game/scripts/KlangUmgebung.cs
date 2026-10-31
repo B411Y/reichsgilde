@@ -394,7 +394,7 @@ public partial class KlangUmgebung : Node
     {
         // 1. Früher Morgen am Markt: leere Straßen, Vogelchor, Hahn; Straßen füllen sich; 8 Uhr Morgenglocke zum Arbeitsbeginn (bei etwa 23 s)
         new(0, 6.4f, 40, 0, 0), new(16, 7.7f, 40, 0, 0), new(32, 8.4f, 40, 0, 0),
-        // 2. Markttreiben, Gesprächsfetzen an den Gruppen (Zoom 30), um 10 Uhr die Messglocke (bei etwa 75 s)
+        // 2. Markttreiben, Gesprächsfetzen an den Gruppen (Zoom 30), um 10 Uhr die Messglocke (bei etwa 67 s)
         new(46, 9.0f, 30, -5, 0), new(80, 10.6f, 30, 5, 0), new(100, 11.6f, 40, 10, 0),
         // 3. Von der Stadt aufs Land: Wiese, Wald, Fluss (Mittag): das Stadtleben verklingt, Laub, Plätschern
         new(116, 12.0f, 40, 10, 0), new(134, 12.4f, 40, 150, 10), new(146, 12.8f, 40, 190, 60), new(160, 13.2f, 40, 120, 150), new(176, 14.0f, 40, 120, 150),
@@ -404,13 +404,13 @@ public partial class KlangUmgebung : Node
         new(196.01f, 21.2f, 40, 175, 10, 0, 1), new(214, 21.8f, 40, 175, 10, 0, 1),
         // 6. Winterlicher Vormittag, Schneefall auf dem Feld: Schneestille, Krähen
         new(214.01f, 10.8f, 40, 175, 10, 3, 3), new(238, 11.4f, 40, 175, 10, 3, 3),
-        // 7. Frühlingsabend in der Stadt: die Straßen leeren sich, 20 Uhr Abendglocke (bei etwa 258 s), die Gespräche werden leiser
+        // 7. Frühlingsabend in der Stadt: die Straßen leeren sich, 20 Uhr Abendglocke (bei etwa 259 s), die Gespräche werden leiser
         new(238.01f, 18.8f, 40, 0, 0), new(262, 20.2f, 40, 0, 0),
         // 8. Zur Schänke (links im Bild) und ganz heran: durch die Tür gedämpft, dann hell und laut
         new(276, 20.5f, 40, -12, 6), new(290, 20.8f, 25, -24, 10),
         // 9. In der Schankstube: laut und lebendig (Innenansicht)
         new(290.01f, 20.9f, 25, -24, 10, 0, 0, 1), new(316, 21.5f, 25, -24, 10, 0, 0, 1),
-        // 10. Wieder draußen: 22 Uhr Schankschluss und Feuerglocke (bei etwa 330 s), die Gäste gehen, die Gasse wird still
+        // 10. Wieder draußen: 22 Uhr Schankschluss und Feuerglocke (bei etwa 327 s), die Gäste gehen, die Gasse wird still
         new(316.01f, 21.6f, 30, -24, 10), new(338, 22.4f, 30, -10, 8),
         // 11. Nacht: Nachtwächter mit Laterne und Horn, sonst Stille
         new(338.01f, 22.5f, 40, 0, 10), new(372, 23.0f, 40, 30, 12),
