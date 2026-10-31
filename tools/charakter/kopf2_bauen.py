@@ -317,9 +317,30 @@ def isolinie(ecken, flaechen, wert, stufe=0.0):
     return max(ketten, key=len)
 
 
+# Halt B2 (Option ausschnitt=<mm>): Kragenlinie vorn tiefer (offener Ausschnitt), damit das Kinn nicht auf dem Kragen
+# sitzt (Abnahme: Kinn ≥ 30 mm über der Kragenoberkante; Stehkragen der Phase 5: 9,5 mm). Senkung längs der Halsachse
+# D · max(0, cos φ)³, φ = Winkel um die Halsachse ab vorn (e2_ zeigt nach vorn, −y); das Band ist vorn um
+# AUSSCHNITT_BAND niedriger. Ohne Option (0) genau wie bisher.
+AUSSCHNITT = float(OPTIONEN.get("ausschnitt", "0")) / 1000.0
+AUSSCHNITT_BAND = float(OPTIONEN.get("ausschnitt_band", "0.5"))
+
+
+def vorn_anteil(p_):
+    """max(0, cos φ)³ um die Halsachse (1 = vorn Mitte, 0 = Seite und hinten)."""
+    r_ = np.asarray(p_) - kragen_mitte
+    r_ = r_ - np.outer(r_ @ hals_achse, hals_achse) if r_.ndim == 2 else r_ - (r_ @ hals_achse) * hals_achse
+    c_ = (r_ @ e2_) / np.maximum(np.linalg.norm(r_, axis=-1), 1e-9)
+    return np.clip(c_, 0.0, 1.0) ** 3
+
+
+def kragen_wert(p_):
+    """Höhe über der Kragenlinie (Meter längs der Halsachse; < 0 = Kleidung)."""
+    return (np.asarray(p_) - kragen_mitte) @ hals_achse + AUSSCHNITT * vorn_anteil(p_)
+
+
 nah_fl = [list(p_.vertices) for p_ in me.polygons if not all(mundh[0] <= i < mundh[1] for i in p_.vertices)
-          and np.linalg.norm(H_ecken[list(p_.vertices)] - kragen_mitte, axis=1).max() < 0.13]
-kragen_linie = isolinie(H_ecken, nah_fl, (H_ecken - kragen_mitte) @ hals_achse)
+          and np.linalg.norm(H_ecken[list(p_.vertices)] - kragen_mitte, axis=1).max() < 0.13 + AUSSCHNITT]
+kragen_linie = isolinie(H_ecken, nah_fl, kragen_wert(H_ecken))
 # gleichmäßig neu verteilen (etwa alle 6 mm)
 seg = np.linalg.norm(np.roll(kragen_linie, -1, 0) - kragen_linie, axis=1)
 umfang = np.concatenate([[0], np.cumsum(seg)])
@@ -330,8 +351,11 @@ kragen_linie = np.stack([np.interp(ziele, umfang, geschl[:, a_]) for a_ in range
 
 
 def ausserhalb_kragen(p_):
-    """True, wo Kleidung ist: unter der Kragenebene."""
-    return (np.asarray(p_) - kragen_mitte) @ hals_achse < 0
+    """True, wo Kleidung ist: unter der Kragenlinie (mit Ausschnitt)."""
+    return kragen_wert(p_) < 0
+
+
+bericht["ausschnitt_mm"] = round(AUSSCHNITT * 1000, 1)
 
 
 bericht["kragen_umfang_cm"] = round(float(umfang[-1] * 100), 1)
@@ -641,8 +665,9 @@ zeit(f"Teile: Augen {len(augen_idx)}, Zähne {len(zahn_idx)}, Haare {len(haar_ec
 # sich oben an den Hals
 flaeche_H = kw.Flaeche(H_ecken, kw.dreiecke([list(p_.vertices) for p_ in me.polygons if stoff_idx[p_.index] != 1]))
 ringe = []
+band_faktor = 1.0 - AUSSCHNITT_BAND * vorn_anteil(kragen_linie) if AUSSCHNITT > 0 else np.ones(len(kragen_linie))
 for hoch, aus_mm in ((0.0, 0.002), (0.012, 0.0055), (0.024, 0.0065), (0.026, 0.004), (0.022, 0.0015)):
-    q = kragen_linie + hals_achse * hoch
+    q = kragen_linie + np.outer(hoch * band_faktor, hals_achse)
     lage_, nrm, _, _ = flaeche_H.naechste(q, 0.05)
     radial = (lage_ - hals_fuss) - np.outer((lage_ - hals_fuss) @ hals_achse, hals_achse)
     nrm = np.where((nrm * radial).sum(1, keepdims=True) < 0, -nrm, nrm)   # nach außen
@@ -798,6 +823,26 @@ if OPTIONEN.get("eigen") == "1":
     eigen_haut["eigen_adamsapfel"] = adams_buckel.copy()
     bericht["eigen_formen"] = eigen_bericht
     zeit("Eigene Formen: " + json.dumps(eigen_bericht, ensure_ascii=False))
+# Halt B2, Weg B (Option vorbilder=<a.npz>,<b.npz>): Formen aus eingepassten Kopfscans (vorbild_einpassen.py) als
+# „vorbild_<name>“. Die Datei trägt die Ecken von Haut/0 der .glb (Godot-Achsen: x, y oben, z vorn; Meter) und ihren
+# Versatz; je Hautecke die gleich liegende Ecke (≤ 0,2 mm), sonst 0. Brauen, Wimpern, Lider und Kragen folgen wie bei
+# den eigenen Formen; Augapfel und Zähne bleiben fest.
+if OPTIONEN.get("vorbilder"):
+    vb_bericht = {}
+    for vb_pfad in OPTIONEN["vorbilder"].split(","):
+        vb = np.load(vb_pfad)
+        bg, vg = vb["basis"].astype(np.float64), vb["versatz"].astype(np.float64)
+        b_bl = np.stack([bg[:, 0], -bg[:, 2], bg[:, 1]], 1)
+        v_bl = np.stack([vg[:, 0], -vg[:, 2], vg[:, 1]], 1)
+        vb_idx, _ = kw.k_naechste(b_bl, H_ecken[:N_HAUT], k=1)
+        abst_ = np.linalg.norm(b_bl[vb_idx[:, 0]] - H_ecken[:N_HAUT], axis=1)
+        dh = np.zeros_like(H_ecken)
+        dh[:N_HAUT] = np.where(abst_[:, None] < 2e-4, v_bl[vb_idx[:, 0]], 0.0)
+        vb_name = "vorbild_" + str(vb["name"])
+        eigen_haut[vb_name] = dh
+        vb_bericht[vb_name] = {"ecken_getroffen": int((abst_ < 2e-4).sum()), "max_mm": round(float(np.abs(dh).max() * 1000), 2)}
+    bericht["vorbilder"] = vb_bericht
+    zeit("Vorbilder: " + json.dumps(vb_bericht, ensure_ascii=False))
 
 alle_formen = {}                   # Name -> {objektname: versatz}
 for name, d in formen_mpfb.items():
@@ -1084,7 +1129,7 @@ merk_idx = {"augen": np.concatenate([teil("auge_l"), teil("auge_r")]), "mund": l
 merkpunkte = {k: godot(S[v].mean(0)) for k, v in merk_idx.items()}
 merk_formen = {}
 for name, d in alle_formen.items():
-    if not (name.startswith(("makro_", "gen_", "alter_", "probe_", "eigen_", "ictid_", "herkunft_"))):
+    if not (name.startswith(("makro_", "gen_", "alter_", "probe_", "eigen_", "ictid_", "herkunft_", "vorbild_"))):
         continue
     voll = np.zeros_like(S)
     voll[:N_HAUT] = d["Haut"][:N_HAUT]

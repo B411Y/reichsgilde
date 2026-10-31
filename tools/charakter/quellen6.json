@@ -97,6 +97,33 @@
    "sha256": "e7cfda5f4e98e623db12b8bfd0184e048488e4855d9c83e2751fb44a32e80c45",
    "lizenz": "CC0 1.0 (Poly Haven, Autor Sergej Majboroda)",
    "genutzt": "Umgebungslicht und Spiegelung der Porträtbühne L-S (Stand 6); der sichtbare Hintergrund bleibt flach"
+  },
+  {
+   "name": "Vorbildkopf Lee Perry-Smith „Infinite“ (Halt B2, Weg B)",
+   "art": "datei",
+   "ort": "~/werkzeuge/charakter/vorbilder/lps/LeePerrySmith.glb",
+   "sha256": "402b8a8ac9f03232e6d64b5962929703a069daf99d3c49ac8eb0e48bedc9c576",
+   "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/LeePerrySmith/LeePerrySmith.glb",
+   "lizenz": "CC BY 3.0 – „Infinite, 3D Head Scan by Lee Perry-Smith is licensed under a Creative Commons Attribution 3.0 Unported License. Based on a work at www.triplegangers.com.“ (Namensnennung mitliefern)",
+   "genutzt": "Formvorbild Mann (vorbild_einpassen.py -> Form vorbild_lps)"
+  },
+  {
+   "name": "Vorbildkopf Helen Keller, Lebendmaske 1916 (Ruotolo), NPG.75.16 (Halt B2, Weg B)",
+   "art": "datei",
+   "ort": "~/werkzeuge/charakter/vorbilder/keller/HK_NPG_75_16-150k-4096.glb",
+   "sha256": "8d925bf1a3841e98951833ec2d9245598260179d38900cf7bdfd94fc614cdb54",
+   "url": "https://3d.si.edu/object/3d/helen-adams-keller:d8c64ccc-4ebc-11ea-b77f-2e728ce88125",
+   "lizenz": "CC0 1.0 (Smithsonian Open Access, Datensatz edanmdm:npg_NPG.75.16: „Restrictions & Rights = CC0“)",
+   "genutzt": "Formvorbild Frau (Form vorbild_keller)"
+  },
+  {
+   "name": "Vorbildkopf Felix Mendelssohn, Lebendmaske, Univ. Edinburgh (Halt B2, Weg B)",
+   "art": "datei",
+   "ort": "~/werkzeuge/charakter/vorbilder/mendelssohn/felix_mendelssohn_life_mask.glb",
+   "sha256": "d64e10029a1458f414f048069ca1b2c0313bacf44bb3dd8ed75841159efb15ba",
+   "url": "https://zenodo.org/records/10229825",
+   "lizenz": "CC BY 4.0 – Namensnennung „The University of Edinburgh Open.Ed, Modell Connor Wimblett“",
+   "genutzt": "Formvorbild Mann, Versuch (Form vorbild_mendelssohn)"
   }
  ]
 }
