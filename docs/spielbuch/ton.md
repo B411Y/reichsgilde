@@ -53,18 +53,25 @@ Alle 120 Aufnahmen spricht dieselbe **KI-Stimme**: ein warmer, tiefer Bariton um
 
 ## Die Geräusche der Stadt
 
-In der Partie hört man die Stadt: tagsüber Arbeit, Wasser und ferne Stimmen, am Morgen Vogelchor und Hähne, abends gedämpftes Gemurmel wie aus Schenken, nachts fast Stille mit einem Kauz und einem fernen Hund. Im Hauptmenü und in der Kartenwerkstatt bleibt es still (die Probepartie hat die Geräusche). Die Lautstärke hat der Regler **Umgebung**.
+In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**. Auf leeren Straßen ist es still: Vögel, ein wenig Wind, ein Hauch Wasser, sonst nichts. Füllen sich die Gassen, steigt das Stadtleben und das Gemurmel; auf dem Markt murmelt es mehr, aus der Schänke dringt es dumpf aus ihrer Richtung, in der Schmiede wird gehämmert, solange gearbeitet wird. Im Hauptmenü und in der Kartenwerkstatt bleibt es still (die Probepartie hat die Geräusche). Die Lautstärke hat der Regler **Umgebung**.
 
-| Wann | Was man hört |
+| Was in der Stadt geschieht | Was man hört |
 |---|---|
-| Morgengrauen (ab der Dämmerung bis 1,5 Stunden nach Sonnenaufgang) | Vogelchor, Hähne; die Stadt erwacht leise (vereinzelte Schritte) |
-| Arbeitszeit (voll 08:30–19:00 Uhr) | Stadtleben, nah Gemurmel, Leute gehen vorbei, Spatzen, ab und zu Pferd, Gänse oder Hühner, fernes Hämmern aus einer Schmiede |
+| Niemand draußen (Nacht, früher Morgen) | nur Vögel, Wind, Nachtgrund; kein Gemurmel, keine Schritte |
+| Menschen auf Gasse und Markt im Umkreis der Kamera | Stadtleben (Wasser, Arbeit, ferne Stimmen) und Gemurmel, je mehr Leute, desto voller – bis eine volle Straße erreicht ist |
+| Jemand geht im Umkreis | Schritte, am Ort dieser Figur im Bild; je mehr gehen, desto öfter |
+| Markt offen (8–20 Uhr) mit Kunden und Verkäufern | Gemurmel des Markttreibens (voller als das der Gasse) |
+| Schänke offen (8–22 Uhr) mit Gästen | gedämpftes Gemurmel wie aus Schenken, aus der Richtung des Wirtshauses im Bild; nach Schankschluss still |
+| Schmiede oder Steinmetzhütte arbeitet (8–20 Uhr, Arbeiter da, kein Stillstand) | fernes Hämmern aus der Richtung des Betriebs |
+| Morgengrauen bis 1,5 Stunden nach Sonnenaufgang | Vogelchor, Hähne |
 | Abendrot bis dunkel | Abendgesang der Vögel, Amselstrophen |
-| Abend (20–22 Uhr, Wirtshaus) | gedämpftes Gemurmel, seltener Schritte, ab und zu ein ferner Hund |
 | Nacht | stiller Grund, Waldkauz (erst wenn die Stadt ruhig ist), ferne Hunde |
 
+- **Wer zählt:** alle Figuren draußen auf Gassen, am Tor und auf dem Markt im Umkreis der Kamera – auch hinter Häusern, nicht nur die im Bild. Wer in einem Haus, in der Kirche oder im Umland ist, murmelt nicht. Der Umkreis wächst mit dem Zoom (nah etwa 40 m, Startzoom etwa 90 m, ganz oben etwa 120 m); wer nah ist, zählt ganz, am Rand immer weniger. Die Einstellung „Menge der Passanten“ gilt auch hier: Wer nicht gezeigt wird, ist nicht zu hören.
+- **Weich:** Die Pegel steigen mit etwa 3 Sekunden und fallen mit etwa 6 Sekunden Zeitkonstante, nie sprunghaft. Wenige Leute (einer) murmeln nicht; viele sind nicht lauter als eine volle Straße.
+- **Tageszeit:** Das Stadtleben folgt der echten Uhr (8–20 Uhr), der Rest den Menschen: Wenn schon um 6 Uhr alle zur Messe gehen, hört man es.
 - **Die Vögel folgen der Sonne**, die Stadt der Uhr: Im Winter ist es um 8 Uhr noch dunkel, aber die Stadt arbeitet schon; im Sommer singt der Morgenchor schon um 4 Uhr. Im Herbst und Winter singen die Vögel kaum.
-- **Zoom:** Nah hört man das Gemurmel und die Schritte, am üblichen Blick (Startzoom) weniger davon. Weit herausgezoomt wird die Stadt leiser und dumpfer, und der Wind kommt; ganz oben weht er kräftiger.
+- **Zoom:** Nah hört man das Gemurmel und die Schritte, am üblichen Blick (Startzoom) weniger davon (das Gemurmel ist eine Aufnahme „von oben“ und nur nah voll). Weit herausgezoomt wird die Stadt leiser und dumpfer, und der Wind kommt; ganz oben weht er kräftiger.
 - **Innen:** In einem Raum hört man draußen nur noch dumpf und leise, im Dom etwas gedämpft.
 - **Pause:** Die Geräusche laufen leiser weiter (−8 dB), die Tageszeit steht, Rufe kommen seltener.
 - **Spieltempo:** Die Geräusche folgen der Spielzeit, auch bei 32x, aber ohne Sprünge. Springt die Uhr (Jahreswechsel, Laden), blenden sie in 3 Sekunden über. Hahn, Hund und Kauz rufen nach echter Zeit mit Mindestabstand, bei hohem Tempo also nicht öfter.
@@ -74,6 +81,6 @@ Alle Klänge sind CC0-Aufnahmen von freesound.org (Nummern, Urheber und Bearbeit
 
 ## Ausprobieren
 
-`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Die Geräusche der Stadt: Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Umgebung** (was gerade wie laut läuft, jede Datei zum Vorhören, „jetzt rufen“); `--umgebungtest=2` schreibt die Pegel jede Sekunde ins Log, `--umgebungfahrt=1` spielt eine feste Hörprobe ab (Morgen nah, herauszoomen, Mittag, Abend, Nacht, dann Mittag am Startzoom und Pause) und beendet das Spiel. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
+`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Die Geräusche der Stadt: Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Umgebung** (was gerade wie laut läuft, jede Datei zum Vorhören, „jetzt rufen“); `--umgebungtest=2` schreibt die Pegel jede Sekunde ins Log, `--umgebungfahrt=1` spielt eine feste Hörprobe ab (früher Morgen mit leeren Straßen, die Straßen füllen sich, Markt, Mittag am Startzoom, Abend mit Schänke, Nacht, dann Mittag am Startzoom und Pause; die Menschen kommen dabei aus einem erfundenen Tagesablauf, damit leere und volle Straßen vergleichbar sind) und beendet das Spiel. Im Entwicklerfenster steht unter „Umgebung“ eine Zeile mit den Menschen im Umkreis und den Pegeln. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
 
 [Zurück zum Inhaltsverzeichnis](README.md)
