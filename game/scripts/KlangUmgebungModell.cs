@@ -298,6 +298,24 @@ public static class KlangUmgebungModell
     public readonly record struct Ruf(int Art, string Datei, bool Fern, float Seite, float Db, float Tonhoehe);
 
     /// <summary>
+    /// Lautstärke des Rufspielers (dB) für diesen Ruf. Godots AudioEffectPanner hebt die eine Seite ohne Ausgleich an: Ein Mono-Ruf
+    /// (beide Kanäle gleich, Pegel s) kommt bei der Seite p &gt; 0 als L = (1 − p)·s und R = (1 + p)·s heraus, bei p = 0,8 also 5 dB
+    /// lauter als in der Mitte. Der Ausgleich −20·log10(1 + |p|) hält die lautere Seite auf dem Pegel der Mitte; so gilt die Pegeltabelle
+    /// (NahDb/FernDb) für jede Seite, und keine Seite geht über die Spitze der Datei. Ein Ruf am Rand klingt dadurch insgesamt etwa
+    /// 3 dB leiser als einer in der Mitte (wie ein lineares Panorama am Mischpult).
+    /// </summary>
+    public static float AbspielDb(in Ruf ruf) => Math.Min(ruf.Db, 0f) - 20f * MathF.Log10(1f + Math.Min(Math.Abs(ruf.Seite), 1f));
+
+    /// <summary>Pegel der lauteren Seite nach Godots Panner (dB) für einen Mono-Ruf mit Spielerlautstärke <paramref name="db"/> – für die Selbstprüfung nachgerechnet.</summary>
+    public static float PannerSpitzeDb(float seite, float db)
+    {
+        var p = Math.Clamp(seite, -1f, 1f);
+        float lv = Math.Clamp(1f - p, 0f, 1f), rv = Math.Clamp(1f + p, 0f, 1f);
+        float l = lv + (1f - rv), r = rv + (1f - lv); // L = l·lvol + r·(1 − rvol), R = r·rvol + l·(1 − lvol) mit l = r = 1
+        return db + 20f * MathF.Log10(Math.Max(l, r));
+    }
+
+    /// <summary>
     /// Plant die Einzelrufe: je Art ein Rückwärtszähler (Sekunden), der je Sekunde Echtzeit um Fenstergewicht × (Pause ? 1/3 : 1) sinkt – so
     /// gelten Mindestabstand und Mittel in Echtzeit, auch bei 32x (kein Dauerkrähen). Höchstens ein Ruf je Platz (nah, fern) gleichzeitig,
     /// zwischen zwei Rufen mindestens <see cref="GlobalAbstand"/> s. Im Hintergrund und während einer Sprungblende steht alles; ein fälliger,
@@ -472,6 +490,14 @@ public static class KlangUmgebungModell
         Pruefe(Math.Abs(dom.DraussenDb - DomDb) < 0.5f && dom.DraussenTiefpass <= 1600f, $"Dom: {dom.DraussenDb:0.0} dB, {dom.DraussenTiefpass:0} Hz");
         var pause = Lauf(tag with { Pausiert = true }, 8);
         Pruefe(Math.Abs(pause.DraussenDb - PauseDb) <= 0.5f, $"Pause senkt um {pause.DraussenDb:0.0} dB statt {PauseDb}");
+
+        // Panner: die lautere Seite bleibt für jede Seite auf dem Pegel der Mitte (Godot hebt sie sonst um bis zu 6 dB an)
+        foreach (var seite in new[] { -1f, -0.8f, -0.5f, -0.2f, 0f, 0.3f, 0.5f, 0.8f, 1f })
+        {
+            var spitze = PannerSpitzeDb(seite, AbspielDb(new Ruf(0, "", false, seite, -6f, 1f)));
+            Pruefe(Math.Abs(spitze + 6f) <= 0.01f, $"Panner Seite {seite:0.0}: lautere Seite {spitze:0.00} dB statt −6 dB");
+        }
+        Pruefe(PannerSpitzeDb(0.8f, -6f) > -1.0f, "Nachrechnung des Panners stimmt nicht (ohne Ausgleich müsste Seite 0,8 etwa −0,9 dB ergeben)");
         foreach (var (name, e) in new[]
                  {
                      ("Tag nah", tag with { Zoom = 25 }), ("Tag Startzoom", tag), ("Tag oben", tag with { Zoom = 140 }),
@@ -565,6 +591,8 @@ public static class KlangUmgebungModell
                     Pruefe(RufPlaner.FensterGewicht(r.Art, e, a) > RufSchwelle, $"{lage}: {art.Name} außerhalb seines Fensters (Uhr {uhr / 60:0.0})");
                     Pruefe(zoom < art.Bis, $"{lage}: {art.Name} über seiner Zoomgrenze");
                     Pruefe(!hintergrund, $"{lage}: Ruf im Hintergrund");
+                    var spitze = PannerSpitzeDb(r.Seite, AbspielDb(r));
+                    Pruefe(spitze <= Math.Min(r.Db, 0f) + 0.01f, $"{lage}: {art.Name} auf Seite {r.Seite:0.00} nach dem Panner {spitze:0.0} dB statt höchstens {Math.Min(r.Db, 0f):0.0} dB");
                     letzte[r.Art] = t;
                     letzterIrgendein = t;
                 }

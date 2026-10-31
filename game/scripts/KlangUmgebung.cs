@@ -215,13 +215,13 @@ public partial class KlangUmgebung : Node
         var panner = ruf.Fern ? _panFern : _panNah;
         if (panner is not null) panner.Pan = ruf.Seite;
         spieler.Stream = ton;
-        spieler.VolumeDb = Math.Min(ruf.Db, 0f);
+        spieler.VolumeDb = M.AbspielDb(ruf); // mit Ausgleich für den Panner (sonst ist ein Ruf am Rand bis zu 5 dB lauter)
         spieler.PitchScale = ruf.Tonhoehe;
         spieler.Play();
         var art = M.Rufarten[ruf.Art];
         LetzterRuf = $"{art.Name}: {ruf.Datei}, {(ruf.Fern ? "fern" : "nah")}, Seite {ruf.Seite:+0.00;-0.00}, {ruf.Db:0.0} dB (bei {_zeit:0} s)";
         if (_logStufe >= 2)
-            GD.Print($"UMGEBUNG RUF t={_zeit:0.00} art={art.Name} datei={ruf.Datei} {(ruf.Fern ? "fern" : "nah")} seite={ruf.Seite:0.00} db={ruf.Db:0.0} " +
+            GD.Print($"UMGEBUNG RUF t={_zeit:0.00} art={art.Name} datei={ruf.Datei} {(ruf.Fern ? "fern" : "nah")} seite={ruf.Seite:0.00} db={ruf.Db:0.0} spieler={M.AbspielDb(ruf):0.0} " +
                      $"tonhoehe={ruf.Tonhoehe:0.000} laenge={ton.GetLength():0.00} uhr={UhrText(LetzteEingaben.UhrMinute)} b={LetzteEingaben.Bezug:0.00} S={LetzteEingaben.Zoom:0} pause={(LetzteEingaben.Pausiert ? 1 : 0)}");
     }
 
