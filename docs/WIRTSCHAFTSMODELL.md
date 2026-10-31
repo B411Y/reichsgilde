@@ -112,7 +112,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Kriegskarren | 3 × 25 | 900 | – |
 
 - Ladeflächen sind frei belegbar (ein Ochsenkarren kann 40 Eisen laden).
-- Fahrzeit vom Betrieb zum Markt: **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
+- Fahrzeit vom Betrieb zum Markt: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
 - Lager je Betrieb: 40 Stück je Ware.
 - **Verwalter-Regel:** Der Karren fährt los, wenn eines davon zutrifft:
   - Er kann mindestens drei Viertel einer Ladung mitnehmen.
@@ -1692,3 +1692,55 @@ Der Gardist (Mensch) verliert 7,5 % durch seinen kleineren Bonus (+5 → +2 %), 
 | Geldleiher | +27,6 → +21,1 % | −2,2 → −2,0 % | +18,6 → +17,5 % |
 
 Mittel über alle zehn Berufe gegen Menschen: Zwerg +7,8 → +9,1 %, Elb −3,3 → −1,6 %, Halbling +0,6 → +1,1 %. Halbling-Dieb und die Halbling- und Zwerg-Geldleiher bleiben vorn; beim Halbling-Geldleiher (ohne Bonus) und dem größten Teil des Halbling-Diebs wirkt etwas anderes als der Bonus (Familie, Talente, Meinungen; offen in kern.md).
+
+## Fahrzeit nach Weglänge (Branch phase5/gehtempo)
+
+Entscheidung des Nutzers (31.10.2026): Der Kern rechnet die Karren-Fahrzeit nach Weglänge und Karrenart, mit Steigung und Belag – Kern und Bild sollen übereinstimmen, die Ware kommt, wenn der Karren sichtbar ankommt. Vorher: fest 30 bzw. 120 Minuten, in Köln fuhr der Karren sichtbar 4- bis 15-mal so lange.
+
+**Regel (Datenversion 65):** `logistik.karren.<Art>.tempo` (Meter je Sekunde bei Tempo 1: Handkarren 1,0, Ochsenkarren 0,8, Kriegskarren 1,3), `logistik.weglaenge` (mindestMinuten 10, hoechstMinuten 360), `wegebau.ausbauHoechstens` 1,15. Fahrzeit = Σ Länge × Zeitfaktor ÷ (Tempo × 900/1140 m je Spielminute) + Furt (5) und Fähre (30), auf ganze Minuten, zwischen 10 und 360. Zeitfaktor = Steigung (ab 6 % je Prozentpunkt 5 % länger, höchstens ×3) × Belag (Bezugstempo ÷ Tempo des Stücks, nie unter 1 ÷ 1,15: Pflaster ×0,87 statt ×0,85, Kies ×0,89, Trampelpfad ×1,21). Die Umrechnung nimmt die Standard-Rundendauer (15 Minuten), nicht die eingestellte. Ohne Karte, Platz oder Weg die feste Zeit; Daten ohne `weglaenge` (alle Spielstände bis Datenversion 64 bringen ihre Daten mit) fahren genau wie vorher. Mindestdauer: Anspannen und Einreihen, wirkt erst unter 8 m Weg. Höchstdauer: Ein Karren soll an einem Arbeitstag (8–20 Uhr) wenigstens einmal hin und zurück kommen; darüber fährt er im Bild schneller. Die KI rechnet die Ersparnis eines Wegausbaus mit denselben Zeiten (an der Höchstdauer spart ein Ausbau nichts).
+
+**Fahrzeiten** (`messen karren`, Start „Schwer“ mit allen KI-Häusern; eben, Minuten je Weg):
+
+| Karte, Arbeitsort | Betriebe | Länge Ø (min–max) | fest | Handkarren | Ochsenkarren | Kriegskarren | an der Höchstdauer |
+|---|---|---|---|---|---|---|---|
+| Greybox, Werkstatt | 4 | 39 m (22–89) | 30 | 50 (28–113) | 62 | 38 | 0 von 24 Fahrten |
+| Greybox, Umland | 3 | 116 m (98–136) | 120 | 147 | 184 (155–216) | 113 | 0 von 18 |
+| Köln, Werkstatt | 8 | 178 m (80–292) | 30 | 225 (102–360) | 281 | 173 | 10 von 48 |
+| Köln, Umland | 7 | 411 m (369–450) | 120 | 521 → 360 | 651 → 360 | 401 → 360 | 40 von 42 |
+
+Die alten festen Zeiten entsprechen einem Weg von etwa 24 m (Handkarren, 30 Minuten) bzw. 76 m (Ochse, 120 Minuten). In der Greybox liegen drei der vier Werkstätten so nah (22–24 m), in Köln keine.
+
+**Messung:** vorher main `24963d29` (dazu nur der Test-Schalter `--rotationen`), nachher dieser Branch `9c2bdd85`. Greybox `messen bericht 20 20 --teile=1,3,5 --fairness=greybox --rotationen=1` (260 Partien), Köln `messen bericht 20 10 --teile=3 --fairness=koeln --rotationen=1` (10 Partien; der Wohnhausplatz wirkt nicht, eine Rotation genügt) → `docs/messungen/balancing-2026-10-31-fahrzeit-{vorher,nachher}-{greybox,koeln}.json`. Keine Partie mit Fehler.
+
+**Greybox:** Die Berufe mit einem Betrieb (Werkstatt am Weinmarkt, 24 m, 31 statt 30 Minuten) bleiben im Band ±15 % (Mittel des Zuwachses 28.838 → 29.551); der Steinmetz gewinnt (30.565 → 34.955), weil der Steinmetz der KI schwächer wird. Wer expandiert, verliert: KI-Häuser nach 20 Jahren 79.030 → 62.312 (−21 %), Bezugsspieler mit KI-Strategie 68.066 → 52.239 (KI ÷ Bezug bleibt 1,08), „Schwer“ 119.993 → 90.802. Die Lage entscheidet: Eisenbart (Werkstatt 22 m, Grube 98 m) 86.944 → 85.035, Eichwald (22 m, Holzschlag 115 m) 64.773 → 54.457, **Kieselbach (Maurerei 89 m, Steinbruch 136 m) 85.373 → 47.446 (−44 %)**.
+
+**Köln kippt:** Ein Karren schafft dort ein bis zwei Fahrten im Spieljahr; die fernen Werkstätten stehen im ersten Jahr zu 95 % still (der Verwalter fährt zuerst Zutaten holen und ist zehn Stunden unterwegs), danach 15–70 % (`messen karren koeln --jahre=3`).
+
+| Haus (20 Jahre) | Volk, Beruf | vorher | nachher | Variante Höchstdauer 60 |
+|---|---|---|---|---|
+| Spieler (ein Betrieb, 228 m) | Mensch Schmied | 31.199 | 6.939 | 28.323 |
+| Overstolz (233 m) | Zwerg Schmied | 89.862 | 6.634 | 55.057 |
+| Hardevust (131 m) | Elb Tischler | 57.095 | 9.228 | 44.440 |
+| Lyskirchen (80 m) | Halbling Steinmetz | 78.875 | 39.939 | 56.858 |
+| Gryn (107 m) | Mensch Alchimist | 83.008 | 28.072 | 61.757 |
+| Scherfgin (121 m) | Mensch Schmied | 60.903 | 25.172 | 42.035 |
+| Mommersloch (229 m) | Halbling Wirt | 80.951 | 3.517 | 48.338 |
+| Kleingedank (292 m) | Mensch Tischler | 64.430 | 3.106 (1 bankrott) | 41.824 |
+
+Der Spieler erreicht in Köln den Bürger nach Ø 16,5 statt 10,0 Jahren (0 von 10 im Ziel 8–12).
+
+**Stellschrauben, als Datenvarianten gemessen** (Köln wie oben, Greybox `--teile=3`, je 10 Startwerte; Reinvermögen nach 20 Jahren, Spieler / KI-Häuser im Mittel):
+
+| Variante | Köln Spieler / KI-Häuser | Köln Bürger (Ø Jahr) | Greybox Spieler / KI-Häuser | schnellster Karren im Bild (Köln) |
+|---|---|---|---|---|
+| vorher (feste Zeit) | 31.199 / 73.589 | 10,0 | 34.779 / 79.030 (20 Startwerte) | bis über 12 m/s |
+| **gebaut: Höchstdauer 360** | 6.939 / 16.524 (1 bankrott) | 16,5 | 34.825 / 62.312 (20 Startwerte) | 1,6 m/s (Ochse Umland, gekappt) |
+| Höchstdauer 120 | 13.557 / 27.057 | 14,7 | 36.514 / 66.871 | 4,8 m/s |
+| Höchstdauer 60 (Umland schneller als früher) | 28.323 / 50.044 | 11,7 | 37.811 / 75.438 | 9,5 m/s |
+| je Arbeitsort höchstens doppelte feste Zeit (Werkstatt 60, Umland 240; Versuch im Code, nicht gebaut) | 22.613 / 42.329 | 12,6 | 34.970 / 66.840 | 6,2 m/s (Werkstatt 292 m) |
+| Ladung ×3 (alle Karren) | 5.342 / 18.959 (1 bankrott) | 18,5 | 35.322 / 61.424 | 1,6 m/s |
+| Tempo ×4 (entspricht 60 Minuten je Runde) | 22.083 / 57.088 | 12,0 | 42.786 / 91.014 | 5,2 m/s (oder 1,3 m/s bei 60 Minuten je Runde) |
+
+Die Greybox-Zeilen der Varianten haben 10 Startwerte, vorher und nachher 20; Messdateien der Varianten nicht im Repository (Versuche).
+
+Mehr Ladung hilft nicht: Es fehlt nicht Laderaum, sondern die Werkstatt wartet stundenlang auf Zutaten, die erst mit dem Karren kommen. Ein Ausgleich in den Wirtschaftswerten (Ladung, Karrenpreise) kann die sieben- bis zwölffache Fahrzeit in Köln nicht auffangen; das ist eine Designfrage (Höchstdauer, Lage der Plätze bzw. weitere Märkte in Köln, Rundendauer) und liegt beim Teamleiter. Bis dahin bleiben die Werte wie gebaut (Höchstdauer 360). **Empfehlung des Kerns:** die Höchstdauer je Arbeitsort an die alte feste Zeit binden (höchstens doppelt so lang: Werkstatt 60, Umland 240 Minuten; kleine Kern-Änderung) und Köln im Leveldesign kürzere Wege geben (Plätze näher am Markt oder weitere Märkte) – dann greift die Grenze selten, und die Karren fahren fast überall in ihrem Tempo.
