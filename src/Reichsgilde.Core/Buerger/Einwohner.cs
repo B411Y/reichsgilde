@@ -64,15 +64,21 @@ public sealed class Einwohner
     /// <summary>Wo er sich gerade aufhält bzw. wohin er unterwegs ist – alles in einem Wert.</summary>
     public Aufenthalt Aufenthalt => new(Ort, Betrieb, Haus, Stelle);
 
-    /// <summary>Wo er zu dieser Minute ist – null, solange er unterwegs ist. Vor dem Abmarsch: noch am alten Ort.</summary>
-    public Aufenthalt? Wo(long minute) =>
-        Weg is not { } w || minute >= w.Ankunft ? Aufenthalt : minute < w.Abmarsch ? w.Von : null;
+    /// <summary>
+    /// Wo er zu dieser Minute ist – null, solange er unterwegs ist. Vor dem Abmarsch: noch am alten Ort.
+    /// <paramref name="vergangeneMinuten"/> = <see cref="Zeit.Spielzeit.VergangeneMinuten"/> (Minuten seit Spielbeginn), <b>nicht</b> die Uhrzeit:
+    /// Mit <see cref="Zeit.Spielzeit.UhrzeitInMinuten"/> läge die Minute ab dem zweiten Tag immer vor dem Abmarsch, und es käme der Startort
+    /// des letzten Weges heraus. Wer zählen will, nimmt <see cref="Einwohnerschaft.Am"/>, <see cref="Einwohnerschaft.Im"/> oder
+    /// <see cref="Einwohnerschaft.ImHaus"/> – die rechnen mit der Uhr der Partie.
+    /// </summary>
+    public Aufenthalt? Wo(long vergangeneMinuten) =>
+        Weg is not { } w || vergangeneMinuten >= w.Ankunft ? Aufenthalt : vergangeneMinuten < w.Abmarsch ? w.Von : null;
 
-    /// <summary>Ist er gerade unterwegs? (<paramref name="minute"/> = <see cref="Zeit.Spielzeit.VergangeneMinuten"/>)</summary>
-    public bool IstUnterwegs(long minute) => Weg is { } w && minute >= w.Abmarsch && minute < w.Ankunft;
+    /// <summary>Ist er gerade unterwegs? (<paramref name="vergangeneMinuten"/> = <see cref="Zeit.Spielzeit.VergangeneMinuten"/>, nicht die Uhrzeit)</summary>
+    public bool IstUnterwegs(long vergangeneMinuten) => Weg is { } w && vergangeneMinuten >= w.Abmarsch && vergangeneMinuten < w.Ankunft;
 
-    /// <summary>Ist er am Ziel (nicht mehr unterwegs)? Vor dem Abmarsch steht er noch am alten Ort.</summary>
-    public bool IstAngekommen(long minute) => Weg is not { } w || minute >= w.Ankunft;
+    /// <summary>Ist er am Ziel (nicht mehr unterwegs)? Vor dem Abmarsch steht er noch am alten Ort. (<paramref name="vergangeneMinuten"/> wie bei <see cref="Wo"/>)</summary>
+    public bool IstAngekommen(long vergangeneMinuten) => Weg is not { } w || vergangeneMinuten >= w.Ankunft;
 
     internal Einwohner(int nummer, Herkunft herkunft, string quelle, string vorname, string familienname, Volk volk,
                        Geschlecht geschlecht, int geburtsjahr, Konfession glaube, string rolle)
