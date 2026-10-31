@@ -248,7 +248,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Kartenskript | `gelaende` und `textur` kennen `--ziel`, `--stufe`, `--boeschung`, `--ausgleich`, `--steigung=<ab>-<bis>`, `--bodenfilter=<textur>[:<rand>]` (kleine Änderung in `tools/Kartenbau/Program.cs`, Bereich Leveldesign). | 31.10. |
 | Prüfung | Unabhängiger Prüfer: keine hohen oder mittleren Befunde; alte Striche (alle fünf Pinsel, Rampe, Texturen, Radierer, Rückgängig) gegen den Kern auf main Byte für Byte gleich, 360 Zufallsstriche ohne Fehler. Als feste Absicherung prüft `PinselSollwertTests` die SHA-256 einer Strichfolge mit den alten Pinseln gegen den auf main 2c5275c8 gerechneten Wert. | 31.10. |
 
-### Höhenkarten einlesen und ausgeben (PR #…)
+### Höhenkarten einlesen und ausgeben (PR #280)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
