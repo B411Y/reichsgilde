@@ -455,7 +455,7 @@ static class WasserTests
             Pruefe.Wahr(netz.Fahrt(O(-130, 60), O(-130, 200)).Any(x => x.Art == Fahrbahn.Faehre), "über die Fähre nach Süden");
         }),
 
-        ("Köln (Stadtskript): der Rhein fließt nach Norden bis zur Kante, die Rheinbrücke ist eine Steinbrücke, die Fähre Mülheim verbindet beide Ufer, der Duffesbach quert in Furt und Holzbrücke", () =>
+        ("Köln (Stadtskript): der Rhein fließt nach Norden bis zur Kante, die Rheinbrücke ist eine Steinbrücke, die Fähre Mülheim verbindet beide Ufer, der Duffesbach (seit 31.10.2026 Graben vor der Südmauer) quert in Furt und Holzbrücke", () =>
         {
             var e = Kartenentwurf.AusJson(Text("koeln"), Katalog.Value);
             var rhein = e.Wasserform.Laeufe.Single(l => l.Name == "Rhein");
@@ -469,7 +469,7 @@ static class WasserTests
             Pruefe.Wahr(Math.Abs(rhein.Punkte[0].Ort.Z - g.Z1) < 1 && Math.Abs(rhein.Punkte[^1].Ort.Z - g.Z0) < 1, "der Rhein läuft von Außenkante zu Außenkante");
             Pruefe.Wahr(rhein.Punkte.All(p => p.Breite is >= 60 and <= 100), "60 bis 100 m breit");
             var bach = e.Wasserplan.Querungen.Where(q => q.GewaesserName == "Duffesbach").ToList();
-            Pruefe.Wahr(bach.Any(q => q.Art == Uebergangsart.Furt) && bach.Any(q => q.Art == Uebergangsart.Holzbruecke && q.WegName == "Severinstraße"), $"Furten und eine Holzbrücke am Duffesbach: {string.Join(", ", bach.Select(q => q.WegName + " " + q.Art))}");
+            Pruefe.Wahr(bach.Any(q => q.Art == Uebergangsart.Furt) && bach.Any(q => q.Art == Uebergangsart.Holzbruecke && q.WegName == "Bonner Straße"), $"Furten und eine Holzbrücke am Duffesbach: {string.Join(", ", bach.Select(q => q.WegName + " " + q.Art))}");
         }),
     };
 }

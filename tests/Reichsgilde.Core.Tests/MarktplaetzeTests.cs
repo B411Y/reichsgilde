@@ -20,6 +20,12 @@ static class MarktplaetzeTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
     /// <summary>
+    /// Köln (31.10.2026): Rheingasse und die Deutzer Straßen führen durch die Mitten der Plätze und brauchen keine Linie; Kunibertswall und
+    /// Kartäuserwall berühren Alter Markt und Heumarkt an ihrem Ende an der Rheingasse (die Linie fällt mit der Rheingasse zusammen).
+    /// </summary>
+    const int MarktlinienKoeln = 2;
+
+    /// <summary>
     /// Kleine Karte: Weststraße endet am Westrand eines Marktplatzes (24 × 24 um 0 | 0), die Oststraße beginnt auf dem Platz (12 | 4) und führt
     /// nach Osten, eine Gasse (keine Karrenstraße) endet am Nordrand. Ohne Marktplatz wären die beiden Straßen nicht verbunden.
     /// </summary>
@@ -142,11 +148,16 @@ static class MarktplaetzeTests
                 Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
         }),
 
-        ("Köln: Heumarkt, Alter Markt und Neumarkt; jede Startwerkstatt fährt zu ihrem Platz an der Ecke – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
+        ("Köln: Heumarkt und Alter Markt an den Enden der Mauer, Neumarkt in Deutz; jede Startwerkstatt fährt zu ihrem Platz – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
         {
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             Pruefe.Gleich("Heumarkt, Alter Markt, Neumarkt", string.Join(", ", karte.Marktplaetze.Select(m => m.Name)));
-            Pruefe.Gleich(3, Karrennetz.Marktlinien(karte).Count); // Schildergasse, Severinstraße und Brückenstraße enden am Heumarkt
+            // Lage (Entscheidung des Nutzers 31.10.2026): der Heumarkt hinter dem Bayentor, der Alter Markt hinter dem Kunibertstor (beide innen am
+            // Rhein, an der Rheingasse), der Neumarkt in Deutz – rechts des Rheins, innerhalb der Deutzer Mauer
+            var (heu, alt, neu) = (karte.Marktplaetze[0].Punkt, karte.Marktplaetze[1].Punkt, karte.Marktplaetze[2].Punkt);
+            Pruefe.Wahr(heu[1] > 100 && alt[1] < -100 && Math.Abs(heu[0] - 37) < 1 && Math.Abs(alt[0] - 37) < 1, $"Heumarkt {heu[0]} | {heu[1]}, Alter Markt {alt[0]} | {alt[1]}");
+            Pruefe.Wahr(neu[0] > 130 && Math.Abs(neu[1]) < 40, $"Neumarkt {neu[0]} | {neu[1]}");
+            Pruefe.Gleich(MarktlinienKoeln, Karrennetz.Marktlinien(karte).Count);
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie(Rivalen: 7), karte: karte);
             var w = sim.Wirtschaft!;
@@ -158,8 +169,23 @@ static class MarktplaetzeTests
                 Pruefe.Wahr(laengen[i] is >= 19.5 and <= 24.5, $"{werkstaetten[i].Name}: {laengen[i]:0.0} m zum {w.MarktplatzVon(werkstaetten[i])!.Name}");
             Pruefe.Wahr(laengen.Max() - laengen.Min() <= 4.5, $"Werkstattwege {laengen.Min():0.0}–{laengen.Max():0.0} m");
             var jePlatz = werkstaetten.GroupBy(b => w.MarktplatzVon(b)!.Name).ToDictionary(g => g.Key, g => g.Count());
-            Pruefe.Gleich((1, 3, 4), (jePlatz["Heumarkt"], jePlatz["Alter Markt"], jePlatz["Neumarkt"]));
+            Pruefe.Gleich((3, 2, 3), (jePlatz["Heumarkt"], jePlatz["Alter Markt"], jePlatz["Neumarkt"]));
             Pruefe.Gleich("Heumarkt", w.MarktplatzVon(w.Betriebe.Single(b => b.Konto == w.Konten[0]))!.Name); // der Spieler
+            // Deutz: Werkstätten und Umlandbetriebe rechts des Rheins (x > 100) fahren zum Neumarkt, die links des Rheins zu einem Platz links –
+            // keiner über den Rhein (Rheinbrücke oder Fähre): Jeder Punkt des Weges bleibt auf seiner Seite (das linke Ufer liegt bei x = 60, das
+            // rechte bei x ≥ 120); über den Duffesbach darf ein Karren (Holzbrücke an der Bonner Straße)
+            var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }).ToList();
+            foreach (var b in mitWeg)
+            {
+                var verlauf = w.Karrenverlauf(b)!;
+                var rechts = verlauf[0].X > 100;
+                Pruefe.Gleich(rechts, w.MarktplatzVon(b)!.Name == "Neumarkt", $"{b.Name}: {w.MarktplatzVon(b)!.Name}");
+                Pruefe.Wahr(verlauf.All(p => rechts ? p.X > 100 : p.X < 62) && w.Fahrten(b)!.Value.Hin.All(s => s.Art != Fahrbahn.Faehre), $"{b.Name}: über den Rhein");
+            }
+            Pruefe.Wahr(mitWeg.Count(b => w.MarktplatzVon(b)!.Name == "Neumarkt") >= 3 + 5, "drei Werkstätten und mindestens fünf Umlandbetriebe in Deutz");
+            // Umland: keine Fahrt an der Höchstdauer (Ochsenkarren; bis zum 31.10.2026 lagen 26 von 42 Fahrten dort)
+            foreach (var b in mitWeg.Where(b => !b.InDerStadt))
+                Pruefe.Wahr(w.Fahrzeit(b, "Ochsenkarren", true) < w.Daten.Logistik.Weglaenge!.HoechstMinuten, $"{b.Name}: {w.Fahrzeit(b, "Ochsenkarren", true)} Minuten");
         }),
 
         ("Mehrere Marktplätze: Ein alter Spielstand (Greybox, Herbst 1406) lädt mit seiner Karte – ein Marktplatz, jeder Betrieb mit Weg fährt dorthin", () =>
@@ -203,7 +229,7 @@ static class MarktplaetzeTests
         {
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!;
             var gebaeude = json["gebaeude"]!.AsArray();
-            foreach (var g in gebaeude.Where(g => (string?)g!["kennung"] is "AlterMarkt" or "Neumarkt").ToList()) gebaeude.Remove(g);
+            foreach (var g in gebaeude.Where(g => (string?)g!["kennung"] is "MarktNord" or "MarktDeutz").ToList()) gebaeude.Remove(g); // bleibt der Heumarkt
             var karte = Stadtkarte.AusJson(json.ToJsonString(), Katalog.Value);
             Pruefe.Gleich(1, karte.Marktplaetze.Count);
             var ohneLinien = Karrennetz.Von(karte, marktlinien: false).Groesse;

@@ -101,8 +101,8 @@ static class BauenTests
             Pruefe.Gleich(32, k.Wege.Count); // Stadtskript Köln (PR #213): 14 Haupt-, 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(52, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) liegen die Startgrundstücke 36 statt 28 m vom Platz: 51 → 52
-            Pruefe.Gleich(11, k.Bauzonen.Count(z => z.Art == Lage.Kern));
+            Pruefe.Gleich(51, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51
+            Pruefe.Gleich(12, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist jetzt Bauland: 11 → 12
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
@@ -117,7 +117,7 @@ static class BauenTests
             Pruefe.Gleich("Haus Overstolz", k.Startbelegung.Haeuser[0].Name);
             Pruefe.Gleich("S1_Wohnhaus", k.Startbelegung.Spieler.Wohnhaus);
 
-            var s1 = k.GebaeudeMit("S2_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, gedreht zur Hohen Straße (seit den drei Märkten S2; S1 steht schräg an der Severinstraße)
+            var s1 = k.GebaeudeMit("S2_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, an der Rheingasse vor dem Heumarkt (seit 31.10.2026)
             Pruefe.Wahr(s1 is { Breite: 16, Tiefe: 14 }, "Werkstattplatz 16 × 14 m");
             Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche 16 × 14 wie im Kapazitätswerkzeug");
 
