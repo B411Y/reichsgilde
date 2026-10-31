@@ -732,6 +732,8 @@ public sealed class Schollensimulation
         (_sAlt[i], _qAlt[i], _wAlt[i]) = (_s[i], _q[i], _w[i]);
         (_sperre[i], _duldung[i], _tauchen[i], _tauchZeit[i]) = (0f, 0f, 0, 0f);
         _dk[i] = sch.Dicke;
+        // was vom letzten Umlauf übrig ist (Durchdringung hielte das Wachsen sonst draußen auf, wo sie niemand neu misst)
+        (_tiefe[i], _druck[i], _kontaktZahl[i], _belastet[i], _anHindernis[i]) = (0f, 0f, 0, 0, false);
         _neu[i] = true;
         _frisch[i] = frisch;
         _ohneWarm[i] = true;
@@ -942,7 +944,8 @@ public sealed class Schollensimulation
                     // Grundrate plus die Verschiebung des Ziels durch die Dichte seit dem letzten Mal
                     var mit = MathF.Abs(wachsen - Wachsen(schwelle, dichteAlt)) * r0;
                     var d = (ziel - _rg[i]) * r0;
-                    d = d > 0 ? (_tiefe[i] > 0.02f ? 0f : MathF.Min(d, 0.12f * dtG + mit)) : MathF.Max(d, -0.15f * dtG - mit);
+                    d = d > 0 ? (_tiefe[i] > 0.02f && Zustand[i] == Schollenmessung.ImFenster ? 0f : MathF.Min(d, 0.12f * dtG + mit))
+                        : MathF.Max(d, -0.15f * dtG - mit);
                     var rg = Mathf.Clamp(_rg[i] + d / MathF.Max(r0, 0.01f), 0f, 1f);
                     if (MathF.Abs(rg - ziel) < 1e-4f) rg = ziel;
                     if (rg != _rg[i]) (_rg[i], neu) = (rg, true);

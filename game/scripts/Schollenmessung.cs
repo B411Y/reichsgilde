@@ -219,7 +219,7 @@ public sealed class Schollenmessung
             if (zone != 0)
             {
                 var omGrad = MathF.Abs(d.Om[i]) * (180f / MathF.PI);
-                if (d.R0[i] >= 1.5f)
+                if (d.R0[i] >= 1.5f && (d.R.Length == 0 || d.R[i] >= 1.5f)) // groß: auch jetzt (eine aufwachsende ist noch klein)
                 {
                     (zone == 1 ? _drehBruecke : _drehFrei).Dazu(omGrad);
                     if (zone == 1)
