@@ -168,7 +168,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Wasser (Phase 3): Schmale Bäche (unter dem 2-m-Raster) liegen als Band knapp über dem gezeichneten Boden, ohne sichtbares Bett und ohne Böschung – im Sommer ein durchsichtig blauer Streifen auf der Wiese. Besser wäre ein eingeschnittenes Bett im Boden (Gelände, Kern) oder eine Uferkante als Modell
 - Wasser (Phase 3d): Vom Randeis brechen keine Stücke ab, die dann treiben; Schollen schieben sich am Pfeiler nicht übereinander (nur Stau in der Ebene). Ein Bach liegt an der Mündung höher als der Fluss (Kern: Duffesbach 0,55 m); die Darstellung lässt seine Fläche auf den Fluss hinabfallen, ein eingeschnittenes Bett bis zum Fluss wäre Sache des Kerns
 - SDFGI, Räume ab Stufe 2 und 3 (Sägehalle, Bauhütte, Laden, Laborturm, Duftpavillon, Saal, Skriptorium, Schatzkammer, Schlafboden, Gildenhalle, Übungshalle, Hauptmannsstube, Kontor und Empfang der Geldleihe, Tresorturm) und der Ratssaal der Ratssitzung sind nicht einzeln gemessen (der Klicktest kommt ohne Meistergrade nur an Stufe 1); sie nutzen dieselben Lichter. Mit einem Spielstand der Stufe 3 und `--givergleich` nachholen
-- SDFGI, Leistung: Die sechs gerichteten Lichter des anteiligen Grundlichts kosten im Durchgang der undurchsichtigen Flächen spürbar (Profil der Schmiede: 3,9 → 7,3 ms mit SDFGI, ein Teil davon ist SDFGI selbst). Soll SDFGI mehr als ein Versuch werden: weniger Richtungen (vier statt sechs) oder ein anderer Weg für den festen Anteil des Grundlichts prüfen und nachmessen
 - SDFGI, Godot: Punkt- und Spotlichter kommen bei einer Zellhöhe unter 100 % in Kaskaden weit unter oder über der Höhe 0 nicht an (`gi.cpp`, `pre_process_gi`: `cascade_aabb` in gestauchten Höhen gegen `light_aabb` in Metern). Die Räume umgehen es mit 100 %; als Fehler bei Godot melden wäre Sache des Nutzers (Konto)
 
 ## Entscheidungen
@@ -341,43 +340,75 @@ In der Stadt kosten Niedrig und Mittel rund 8 %, Hoch rund 17 % GPU-Zeit (der Un
 | Neu anlegen | Leuchtende Flächen (Glut, Fensterscheiben) trägt Godot nur beim Anlegen des Feldes ein. `GiRaumNeuAnlegen` legt das Feld des Raums neu an, wenn die Glut des gezeigten Hauses an- oder ausgeht und wenn sich die Tageshelligkeit seit dem Anlegen um mehr als 0,25 geändert hat; beim Betreten legt Godot es ohnehin neu an. Kurzes Flackern wie beim Betreten. | 30.10.2026 |
 | Messwerkzeug | `--givergleich=0,2` (`Stadtansicht.GlobaleBeleuchtung.Vergleich.cs`, nach dem Muster von `--wasservergleich`): je Raum der Raumleiste Aus und Mittel im Wechsel, zwei Runden, Spielzeit angehalten; wartet, bis das Bild flüssig läuft und das Licht sich gesetzt hat (mit SDFGI 4 s, ohne 1,5 s), misst 4 s GPU-Zeit (Median), speichert Bild und Bildpaar und schreibt die mittlere Helligkeit (Leuchtdichte nach Rec. 709 auf sRGB 0–255, wie das Skript des Versuchs), dunkelstes/hellstes Zehntel und Rot zu Blau ins Log. `--givergleich-auch=wohnhaus,rathaus` nimmt Wohnhaus und Rathaus dazu. Ein Lauf je Beruf deckt alle Räume der Stufe 1 ab. | 30.10.2026 |
 
-Messung (T400, Vulkan, 1600 × 900, Greybox, Voreinstellung Hoch, Wetter klar, je Beruf ein Lauf `--beruf=<Beruf> --innen=1 --givergleich=1 --ui=0`, dazu `--givergleich-auch=wohnhaus,rathaus`; Tag `--startstunde=10 --lichtuhr=12`, Nacht `--startstunde=21 --lichtuhr=22`; Spielzeit angehalten). Helligkeit: Mittel der Leuchtdichte auf sRGB 0–255 über das ganze Bild, „mit“ = SDFGI Mittel mit Innenräumen an. GPU-Zeit: kleinster Wert aus zwei Runden zu je 4 s; andere Agenten nutzten die Grafikkarte zeitweise mit, einzelne Werte sind darum zu hoch (belastbarer die Läufe ohne Umschalten darunter). Alle Räume der Stufe 1. Bilder je Raum: `<raum>_paar.png` (links ohne, rechts mit SDFGI) im Scratchpad unter `sdfgi2/tag/<Beruf>/` und `sdfgi2/nacht/<Beruf>/`.
+Die Messung dieses Abschnitts (sechs Grundlichter, Mittel auf halber Auflösung) ist durch „Prüfung“ unten abgelöst; die Bilder liegen weiter im Scratchpad unter `sdfgi2/tag/` und `sdfgi2/nacht/`.
+
+### Globale Beleuchtung SDFGI: Prüfung (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Befunde | Zwei unabhängige Prüfer bestätigten vier Fehler: (1) Treppenkanten an Lichtkanten bei Mittel, (2) helle Säume an jeder Fuge und facettierte Figuren durch die sechs Grundlichter, (3) Niedrig und Hoch nie gemessen, (4) die Liste der Zwillinge behielt freigegebene Lichter (ObjectDisposedException nach Verkauf oder Bankrott). | 31.10.2026 |
+| Halbe Auflösung nur bei Niedrig | Godot rechnet das indirekte Licht bei `GISetUseHalfResolution` in einem halb so großen Puffer und liest ihn beim Zeichnen nur bilinear (`scene_forward_clustered.glsl`, ohne Rücksicht auf Kanten): An Fensterlaibung, Wandecke und Pfosten entstanden Stufen von 2 Pixeln. Mittel rechnet jetzt auf voller Auflösung, die Kanten sind glatt wie ohne SDFGI; Niedrig bleibt halb, sein Tooltip nennt die treppigen Kanten. | 31.10.2026 |
+| Grundlicht über eine Reflexionssonde | Die sechs gerichteten Lichter gaben einer Fläche \|nx\| + \|ny\| + \|nz\| (Schrägen der Normal-Maps bis 73 % mehr): helle Säume auf beiden Seiten jeder Fuge. Ersatz ohne Richtung: Godot mischt das Umgebungslicht einer Reflexionssonde **nach** SDFGI ein (Umgebungslicht · (1 − a) + Sondenfarbe · a, 4.7.2). Eine Sonde mit Umgebungsmodus Farbe = Grundlicht, Kasten 26 × 20 × 26 km mit 10 km Überblendung, so gelegen, dass die Räume bei a = 0,75 liegen (`RaumGrundlichtAnteil`); SDFGI bekommt Energie 1 / (1 − 0,75) = 4, sein Beitrag bleibt gleich. Stärke 0,0001 statt 0, damit Godot auch das Glanzlicht von SDFGI mit a herunternimmt (sonst glänzte Metall viermal so stark); `CullMask` 0 (sie nimmt nichts auf), `ReflectionMask` alle Bits (Räume bis Ebene 22). Sichtbar nur in der Raumansicht mit SDFGI. Der feste Anteil wirkt jetzt wie Umgebungslicht, also auch mit SSAO. Nebenbei billiger: Durchgang der undurchsichtigen Flächen ohne sechs Lichter. 0,7 ließ die Räume 1–2 Punkte dunkler als die sechs Lichter (Kerker −10 %), darum 0,75. | 31.10.2026 |
+| Sondenatlas | Godot legt beim ersten Aufnehmen einer Sonde den Atlas für alle Plätze an: mit den Grundwerten 64 Plätze zu 256 Pixeln, rund 400 MB Grafikspeicher. In `project.godot` jetzt `reflection_size` 64 und `reflection_count` 1; das Spiel hat keine andere Reflexionssonde. Wer später echte Sonden einsetzt, muss beides wieder hochsetzen. | 31.10.2026 |
+| Zwillinge verkaufter Betriebe | `KnotenEntfernen` ruft `GiZwillingeVergessen` (wie bei den Beschriftungen), dazu entfernt der Raumwechsel ungültige Einträge vor der Schleife. Klicktest (T400, Greybox, `--beruf=Schmied --verkaufen=2 --vermoegen=30000 --innen=Rathaus --sdfgi=2 --startstunde=4`, Gießerei verkauft, dann Gerichtssaal und Kerker gewählt): vorher zwei `ObjectDisposedException` (`SpotLight3D`, `GiRaumlichtNachfuehren`), nachher keine. | 31.10.2026 |
+| Messung aller Stufen | Alle 30 Raumansichten der Stufe 1 bei Tag und Nacht mit Mittel, dazu Schmiede, Wohnhaus und Rathaus in Niedrig, Mittel und Hoch (`--givergleich=0,1,2,3`): alle zwischen −11 % und +10 %. Niedrig auf Lecks an Wandfüßen und Dachkanten angesehen (Dachboden der Schmiede vergrößert): keine Lecks, die Unterseite des Dachs etwas dunkler als bei Hoch. | 31.10.2026 |
+
+Messung (T400, Vulkan, 1600 × 900, Greybox, Voreinstellung Hoch, Wetter klar, Spielzeit angehalten; je Beruf ein Lauf `--beruf=<Beruf> --innen=1 --givergleich=0,2 --ui=0`, Schmied mit `--givergleich-auch=wohnhaus,rathaus --givergleich=0,1,2,3`, das Rathaus bei Tag mit `--innen=Rathaus`; Tag `--startstunde=10 --lichtuhr=12`, Nacht `--startstunde=21 --lichtuhr=22`). Helligkeit: Mittel der Leuchtdichte auf sRGB 0–255 über das ganze Bild, Mittel aus zwei Runden; „mit“ = SDFGI Mittel. GPU-Zeit: kleinster Wert aus zwei Runden zu je 4 s; andere Agenten nutzten die Grafikkarte zeitweise mit (nachts besonders), einzelne Werte sind zu hoch. Bilder: Scratchpad `sdfgi2/final/tag/<Beruf>/` und `sdfgi2/final/nacht/<Beruf>/` (`<raum>_paar.png`), Vergrößerungen alt/neu in `sdfgi2/final/zoom/`.
 
 | Gebäude / Raum | Tag ohne | Tag mit | Abw. | Nacht ohne | Nacht mit | Abw. | GPU Tag ohne → mit (ms) | GPU Nacht ohne → mit (ms) |
 |---|---|---|---|---|---|---|---|---|
-| Schmied / Werkstatt | 81,7 | 85,7 | +5 % | 45,2 | 43,6 | -4 % | 10,1 → 17,5 | 10,8 → 16,8 |
-| Schmied / Lager | 60,7 | 55,1 | -9 % | 33,7 | 29,4 | -13 % | 9,1 → 16,1 | 8,9 → 15,8 |
-| Tischler / Werkstatt | 77,9 | 79,8 | +2 % | 41,5 | 38,2 | -8 % | 9,8 → 17,2 | 9,7 → 16,9 |
-| Tischler / Lager | 56,2 | 52,3 | -7 % | 30,1 | 26,8 | -11 % | 9,5 → 16,4 | 9,5 → 16,3 |
-| Steinmetz / Werkstatt | 92,8 | 101,1 | +9 % | 52,3 | 51,3 | -2 % | 17,2 → 27,8 | 11,4 → 31,2 |
-| Steinmetz / Lager | 65,7 | 63,7 | -3 % | 36,6 | 33,8 | -8 % | 17,1 → 27,5 | 16,3 → 29,6 |
-| Alchimist / Laboratorium | 90,3 | 93,2 | +3 % | 47,0 | 44,0 | -6 % | 18,7 → 30,5 | 17,3 → 32,4 |
-| Alchimist / Lager | 66,0 | 62,2 | -6 % | 36,6 | 32,8 | -11 % | 16,5 → 28,5 | 16,4 → 28,2 |
-| Parfumeur / Siedestube | 79,2 | 80,8 | +2 % | 39,6 | 36,5 | -8 % | 10,4 → 17,9 | 10,2 → 17,5 |
-| Parfumeur / Lager | 56,4 | 53,8 | -5 % | 30,0 | 26,9 | -10 % | 9,6 → 16,5 | 9,5 → 16,4 |
-| Wirt / Schankstube | 82,9 | 79,2 | -4 % | 68,1 | 66,5 | -2 % | 11,1 → 18,1 | 11,1 → 18,3 |
-| Wirt / Küche | 85,9 | 86,0 | +0 % | 73,6 | 73,5 | +0 % | 10,9 → 17,8 | 10,8 → 18,1 |
-| Wirt / Fasskeller | 89,2 | 91,3 | +2 % | 84,7 | 87,2 | +3 % | 10,0 → 16,7 | 9,9 → 16,6 |
-| Prediger / Kirchenschiff | 100,9 | 109,5 | +8 % | 54,7 | 53,9 | -1 % | 21,2 → 34,7 | 19,6 → 31,0 |
-| Prediger / Sakristei | 113,7 | 117,4 | +3 % | 58,7 | 56,7 | -3 % | 17,8 → 30,0 | 13,4 → 30,5 |
-| Prediger / Krypta | 99,8 | 106,2 | +6 % | 50,4 | 51,5 | +2 % | 19,6 → 30,2 | 17,5 → 28,9 |
-| Dieb / Diebesstube | 73,6 | 71,1 | -3 % | 65,4 | 64,4 | -2 % | 11,6 → 19,1 | 18,6 → 32,9 |
-| Dieb / Beutekeller | 94,2 | 96,0 | +2 % | 90,9 | 94,8 | +4 % | 9,7 → 16,5 | 15,9 → 30,1 |
-| Gardist / Wachstube | 77,8 | 73,9 | -5 % | 38,8 | 34,8 | -10 % | 11,4 → 19,1 | 11,4 → 19,1 |
-| Gardist / Waffenkammer | 73,7 | 74,3 | +1 % | 36,3 | 34,8 | -4 % | 9,6 → 16,4 | 11,7 → 28,7 |
-| Gardist / Arrestzelle | 70,1 | 68,8 | -2 % | 38,6 | 36,4 | -6 % | 9,2 → 16,0 | 11,2 → 30,8 |
-| Geldleiher / Wechselstube | 107,7 | 107,7 | +0 % | 52,7 | 49,2 | -7 % | 16,0 → 31,9 | 18,8 → 32,6 |
-| Geldleiher / Tresorgewölbe | 73,5 | 80,1 | +9 % | 36,4 | 37,5 | +3 % | 10,5 → 27,5 | 14,8 → 29,1 |
-| Geldleiher / Pfandkammer | 135,1 | 139,7 | +3 % | 66,2 | 64,9 | -2 % | 10,1 → 30,0 | 12,6 → 25,1 |
-| Wohnhaus / Wohnstube | 56,2 | 51,6 | -8 % | 39,3 | 36,9 | -6 % | 7,7 → 13,0 | 7,7 → 13,0 |
-| Wohnhaus / Kontor | 73,5 | 68,8 | -6 % | 51,4 | 49,0 | -5 % | 8,7 → 19,4 | 7,6 → 13,0 |
-| Rathaus / Ratssaal | 86,0 | 80,4 | -7 % | 57,3 | 54,8 | -4 % | 8,9 → 14,8 | 7,9 → 13,5 |
-| Rathaus / Gerichtssaal | 87,3 | 81,3 | -7 % | 58,2 | 55,4 | -5 % | 8,9 → 20,2 | 7,8 → 13,5 |
-| Rathaus / Amtsstube | 74,8 | 69,0 | -8 % | 50,5 | 47,5 | -6 % | 8,6 → 19,8 | 7,5 → 13,0 |
-| Rathaus / Kerker | 49,8 | 45,9 | -8 % | 35,2 | 33,2 | -6 % | 9,5 → 21,9 | 7,5 → 12,9 |
+| Alchimist / Laboratorium | 90,3 | 93,8 | +4 % | 47,0 | 44,8 | -5 % | 9,9 → 16,7 | 10,0 → 16,6 |
+| Alchimist / Lager | 66,0 | 63,8 | -3 % | 36,6 | 33,8 | -8 % | 8,9 → 15,1 | 10,8 → 22,8 |
+| Dieb / Diebesstube | 73,6 | 71,5 | -3 % | 65,4 | 64,5 | -1 % | 12,3 → 18,1 | 18,4 → 30,6 |
+| Dieb / Beutekeller | 94,2 | 93,5 | -1 % | 90,9 | 93,9 | +3 % | 11,1 → 15,6 | 10,9 → 28,1 |
+| Gardist / Wachstube | 77,8 | 74,4 | -4 % | 38,8 | 35,2 | -9 % | 12,7 → 27,7 | 11,4 → 18,5 |
+| Gardist / Waffenkammer | 73,7 | 73,0 | -1 % | 36,3 | 33,8 | -7 % | 10,0 → 15,9 | 10,2 → 16,1 |
+| Gardist / Arrestzelle | 70,1 | 66,5 | -5 % | 38,6 | 34,9 | -10 % | 11,2 → 15,3 | 9,9 → 16,4 |
+| Geldleiher / Wechselstube | 107,7 | 109,2 | +1 % | 52,7 | 51,0 | -3 % | 12,7 → 18,2 | 11,4 → 19,2 |
+| Geldleiher / Tresorgewölbe | 73,5 | 78,1 | +6 % | 36,4 | 36,2 | -0 % | 11,4 → 15,4 | 13,2 → 26,2 |
+| Geldleiher / Pfandkammer | 135,1 | 139,7 | +3 % | 66,2 | 65,1 | -2 % | 11,4 → 14,7 | 10,8 → 22,5 |
+| Parfumeur / Siedestube | 79,1 | 81,0 | +2 % | 39,6 | 37,0 | -7 % | 10,1 → 16,9 | 16,1 → 29,4 |
+| Parfumeur / Lager | 56,4 | 54,5 | -3 % | 30,0 | 27,2 | -9 % | 11,3 → 15,6 | 15,9 → 22,7 |
+| Prediger / Kirchenschiff | 100,9 | 109,3 | +8 % | 54,7 | 54,8 | +0 % | 11,4 → 18,5 | 10,9 → 19,2 |
+| Prediger / Sakristei | 113,7 | 118,0 | +4 % | 58,7 | 57,9 | -1 % | 11,6 → 15,6 | 9,5 → 16,4 |
+| Prediger / Krypta | 99,8 | 103,9 | +4 % | 50,4 | 49,4 | -2 % | 11,2 → 16,5 | 10,3 → 17,2 |
+| Rathaus / Ratssaal | 85,9 | 83,3 | -3 % | 57,3 | 56,8 | -1 % | 8,1 → 14,0 | 7,8 → 13,4 |
+| Rathaus / Gerichtssaal | 87,2 | 84,2 | -3 % | 58,2 | 57,3 | -2 % | 7,9 → 13,9 | 7,8 → 13,3 |
+| Rathaus / Amtsstube | 74,7 | 71,4 | -4 % | 50,5 | 49,1 | -3 % | 7,7 → 13,4 | 8,3 → 19,3 |
+| Rathaus / Kerker | 49,7 | 45,8 | -8 % | 35,2 | 33,2 | -6 % | 7,7 → 13,4 | 8,5 → 13,0 |
+| Schmied / Werkstatt | 81,7 | 86,2 | +5 % | 45,2 | 44,3 | -2 % | 11,0 → 16,9 | 9,2 → 15,8 |
+| Schmied / Lager | 60,7 | 56,5 | -7 % | 33,7 | 30,1 | -11 % | 12,5 → 15,3 | 9,4 → 14,9 |
+| Wohnhaus / Wohnstube | 56,2 | 52,9 | -6 % | 39,3 | 37,7 | -4 % | 11,7 → 12,9 | 7,6 → 12,9 |
+| Wohnhaus / Kontor | 73,5 | 70,9 | -4 % | 51,4 | 50,4 | -2 % | 11,4 → 13,1 | 7,5 → 12,8 |
+| Steinmetz / Werkstatt | 92,8 | 101,9 | +10 % | 52,3 | 52,6 | +1 % | 11,5 → 15,3 | 16,2 → 28,4 |
+| Steinmetz / Lager | 65,7 | 64,7 | -2 % | 36,6 | 34,5 | -6 % | 10,9 → 15,0 | 9,2 → 15,8 |
+| Tischler / Werkstatt | 77,9 | 80,4 | +3 % | 41,5 | 39,2 | -5 % | 9,5 → 16,1 | 9,7 → 16,5 |
+| Tischler / Lager | 56,2 | 53,3 | -5 % | 30,1 | 27,2 | -9 % | 11,1 → 15,4 | 9,5 → 16,3 |
+| Wirt / Schankstube | 82,9 | 80,5 | -3 % | 68,1 | 67,2 | -1 % | 11,7 → 17,1 | 11,7 → 18,8 |
+| Wirt / Küche | 85,8 | 85,8 | -0 % | 73,6 | 73,5 | -0 % | 13,3 → 16,8 | 11,5 → 17,8 |
+| Wirt / Fasskeller | 89,2 | 89,0 | -0 % | 84,7 | 86,3 | +2 % | 10,8 → 23,4 | 10,2 → 17,4 |
 
-Alle 30 Raumansichten der Stufe 1 liegen bei Tag und Nacht (60 Messungen) zwischen −13 % und +9 % der Helligkeit ohne SDFGI. Am dunkelsten ist nachts das Lager unter dem Dach der Schmiede (−13 %: dunkles Holz wirft wenig zurück, nachts fehlt das Fensterlicht), am hellsten sind bei Tag Räume mit vielen Fenstern (Werkstatt des Steinmetzen +9 %, Kirchenschiff +8 %). Bei Tag wird das Bild in Räumen mit Fenstern etwas kühler (Tageslicht statt des warmen Grundlichts), nachts eine Spur wärmer (Rot zu Blau +4 bis +9 %). Rotstich der Esse: Rot zu Blau der Schmiede bei Tag mit glühender Esse ohne SDFGI 2,12, mit 1,99 – kein Rotstich mehr (im Versuch tauchte die Esse den Raum in rotes Licht).
+Alle Stufen (Schmiede, Wohnhaus, Rathaus; GPU-Zeiten des Rathauses bei Tag aus einem Lauf ohne fremde Last):
 
-GPU-Zeit (T400, 1600 × 900, Mittel): in den Räumen aus Grundkörpern rund +5,5 ms (Wohnhaus und Rathaus nachts 7,5–7,9 → 12,9–13,5 ms), in den Raummodellen +6,5 bis +7,5 ms; im Median über alle Räume 10,1 → 19,1 ms bei Tag, gut 70 % mehr Zeit je Bild. Ein Profil der Schmiede (`--gpu-profile`, `--messung=10`) zeigte 13,4 → 17,6 ms: Am meisten wächst der Durchgang der undurchsichtigen Flächen (3,9 → 7,3 ms, dazu tragen die sechs gerichteten Lichter des Grundlichts bei), SDFGI selbst kostet rund 3 ms (GI mit Tiefen-Vordurchgang 3,8 statt 1,3 ms, Sonden 0,5 ms, GI 0,4 ms). Getrennte Läufe mit `--messung=12` je Stufe waren wegen fremder Last auf der Grafikkarte nicht verwertbar (gleiche Stufe 13 und 27 ms).
+| Raum | Zeit | Aus | Niedrig | Mittel | Hoch | GPU Aus / Niedrig / Mittel / Hoch (ms) |
+|---|---|---|---|---|---|---|
+| Rathaus / Ratssaal | Tag | 85,9 | 83,5 (-3 %) | 83,3 (-3 %) | 83,7 (-3 %) | 8,1 / 10,6 / 14,0 / 19,5 |
+| Rathaus / Ratssaal | Nacht | 57,3 | 56,9 (-1 %) | 56,8 (-1 %) | 57,1 (-0 %) | 7,8 / 10,3 / 13,4 / 18,8 |
+| Rathaus / Gerichtssaal | Tag | 87,2 | 84,3 (-3 %) | 84,2 (-3 %) | 85,1 (-2 %) | 7,9 / 10,6 / 13,9 / 19,4 |
+| Rathaus / Gerichtssaal | Nacht | 58,2 | 57,4 (-1 %) | 57,3 (-2 %) | 58,0 (-0 %) | 7,8 / 10,2 / 13,3 / 18,6 |
+| Rathaus / Amtsstube | Tag | 74,7 | 71,2 (-5 %) | 71,4 (-4 %) | 71,9 (-4 %) | 7,7 / 10,2 / 13,4 / 19,3 |
+| Rathaus / Amtsstube | Nacht | 50,5 | 49,2 (-3 %) | 49,1 (-3 %) | 49,8 (-1 %) | 8,3 / 10,9 / 19,3 / 24,8 |
+| Rathaus / Kerker | Tag | 49,7 | 45,3 (-9 %) | 45,8 (-8 %) | 45,9 (-8 %) | 7,7 / 10,2 / 13,4 / 19,4 |
+| Rathaus / Kerker | Nacht | 35,2 | 32,9 (-7 %) | 33,2 (-6 %) | 33,3 (-5 %) | 8,5 / 10,3 / 13,0 / 19,5 |
+| Schmied / Werkstatt | Tag | 81,7 | 87,7 (+7 %) | 86,2 (+5 %) | 88,2 (+8 %) | 11,0 / 13,8 / 16,9 / 23,2 |
+| Schmied / Werkstatt | Nacht | 45,2 | 44,6 (-1 %) | 44,3 (-2 %) | 45,2 (-0 %) | 9,2 / 12,7 / 15,8 / 21,9 |
+| Schmied / Lager | Tag | 60,7 | 56,9 (-6 %) | 56,5 (-7 %) | 58,1 (-4 %) | 12,5 / 13,9 / 15,3 / 20,9 |
+| Schmied / Lager | Nacht | 33,7 | 30,1 (-11 %) | 30,1 (-11 %) | 30,9 (-8 %) | 9,4 / 11,8 / 14,9 / 20,8 |
+| Wohnhaus / Wohnstube | Tag | 56,2 | 52,8 (-6 %) | 52,9 (-6 %) | 53,1 (-6 %) | 11,7 / 11,4 / 12,9 / 17,8 |
+| Wohnhaus / Wohnstube | Nacht | 39,3 | 37,7 (-4 %) | 37,7 (-4 %) | 38,0 (-3 %) | 7,6 / 9,9 / 12,9 / 17,7 |
+| Wohnhaus / Kontor | Tag | 73,5 | 70,0 (-5 %) | 70,9 (-4 %) | 71,5 (-3 %) | 11,4 / 10,4 / 13,1 / 17,9 |
+| Wohnhaus / Kontor | Nacht | 51,4 | 49,8 (-3 %) | 50,4 (-2 %) | 50,9 (-1 %) | 7,5 / 9,8 / 12,8 / 18,3 |
 
-Stadt (Greybox, Blick beim Start, `--givergleich=0,2` ohne `--innen`): Mit „Außenansicht“ aus sind Aus und Mittel gleich (88,2 und 88,2; GPU 32,5 und 32,3 ms) – SDFGI wirkt dort nicht; mit „Außenansicht“ an 88,2 → 85,3 (−3 %), Rot zu Blau 1,48 → 1,29 (kühlere Schatten), GPU +2,6 ms (+8 %, wie im Versuch). Klicktest Oberfläche und Umschalten ohne Neustart: `docs/bereiche/oberflaeche.md`.
+Alle 60 Messungen mit Mittel liegen zwischen −11 % (Lager der Schmiede nachts) und +10 % (Werkstatt des Steinmetzen am Tag, viele Fenster); Niedrig und Hoch weichen höchstens 2 Punkte von Mittel ab. Helle Säume (Anteil der Pixel, die mehr als 6 Stufen heller sind als ihre 13-px-Umgebung, Maß der Prüfer; Aus / Mittel vorher / Mittel jetzt): Arrestzelle Bankfront 5,3 / 11,5 / 5,2 %, Kerkerwand 9,5 / 13,3 / 9,7 %, Tresorgewölbe 5,5 / 13,1 / 10,6 % (dort bleibt eine Lichtkante oben an den Steinen vom Fenster, keine Säume ringsum), Kirchenschiff 12,8 / 15,6 / 15,1 %. GPU-Zeit bei Tag im Median über alle Räume 11,2 → 15,6 ms (rund 40 %, vorher 70 %); im Rathaus ohne fremde Last 7,9 → Niedrig 10,5, Mittel 13,7, Hoch 19,5 ms (+30 %, +75 %, +145 %).
+
+Stadt mit „Außenansicht“ (Greybox, Blick beim Start, `--givergleich=0,1,2,3 --sdfgi-aussen=1`, eine Runde, der Lauf brach in der zweiten ab): Helligkeit 88,2 → 85,4 / 85,2 / 85,3 (−3 %), Rot zu Blau 1,48 → 1,29; GPU 31,6 → 33,8 / 36,3 / 36,7 ms (+7 %, +15 %, +16 %; Mittel rechnet jetzt auf voller Auflösung). Mit „Außenansicht“ aus wirkt SDFGI in der Stadt nicht (Messung vom 30.10.2026: Helligkeit 88,2 und 88,2, GPU 32,5 und 32,3 ms). Klicktest Oberfläche und Umschalten ohne Neustart: `docs/bereiche/oberflaeche.md`.
