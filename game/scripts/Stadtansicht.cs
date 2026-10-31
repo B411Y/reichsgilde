@@ -662,11 +662,12 @@ public partial class Stadtansicht : Node3D
         _leereHaeuser[frei.Name] = (p.Mitte, gruppe, modell?.Wurzel ?? gruppe);
     }
 
-    /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen, die sonst ins Leere zeigen.</summary>
+    /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen und SDFGI-Zwillinge, die sonst ins Leere zeigen.</summary>
     private void KnotenEntfernen(Node3D knoten)
     {
         _beschriftungen.RemoveAll(label => label == knoten || knoten.IsAncestorOf(label));
         _kulisseAusgeblendet.RemoveAll(teil => teil == knoten || knoten.IsAncestorOf(teil));
+        GiZwillingeVergessen(knoten); // die Lichter des Innenraums nur für SDFGI (Stadtansicht.GlobaleBeleuchtung.cs)
         knoten.QueueFree();
     }
 
