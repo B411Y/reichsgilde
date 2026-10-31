@@ -42,7 +42,8 @@ var anzeige := "normal"
 var pruefkoerper := ""
 var _pruef: Node3D = null
 
-# L-V „vorlage“ (Prüfplan 5.2): weiches Schlüssellicht 45° links oben (3° Winkelgröße), Aufhellung 1 : 3 von rechts,
+# L-V „vorlage“ (Prüfplan 5.2): weiches Schlüssellicht 45° links oben (Schattenweichzeichnung 2,0; bis Etappe A
+# Winkelgröße 3°, die ein Punktraster in die Schatten streute), Aufhellung 1 : 3 von rechts,
 # kein Gegenlicht, Grund 18 % grau, neutrale Umgebung, AgX. Die Belichtung ist so geeicht, dass die Graukarte (18 %,
 # zur Kamera) sRGB 118 ± 4 ergibt (Prüfkörper „graukarte“, Bogen P10).
 const VORLAGE_SCHLUESSEL := 3.0          # Energie (Lux-Einheit von Godot)
@@ -186,8 +187,11 @@ func licht_art_setzen(art: String) -> void:
 		"vorlage":
 			schluessel.light_color = Color(1, 1, 1)
 			schluessel.light_energy = VORLAGE_SCHLUESSEL
-			schluessel.light_angular_distance = 3.0
-			schluessel.shadow_blur = 1.0
+			# Prüferbefund Etappe A: die Winkelgröße 3° (weiche Schatten über PCSS) streute ein Punktraster in alle
+			# Schattenflächen (Schattenwange, Augenhöhle, Ohr, Kiefer, Kragen) und verfälschte Schatten-, Augen- und
+			# Feinstrukturwerte. Weich wie L-S über die Schattenweichzeichnung, ohne Winkelgröße.
+			schluessel.light_angular_distance = 0.0
+			schluessel.shadow_blur = 2.0
 			licht_richten(schluessel, -45.0, 45.0)
 			fuell.light_color = Color(1, 1, 1)
 			fuell.light_energy = VORLAGE_FUELL
