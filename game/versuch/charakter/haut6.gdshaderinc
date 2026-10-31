@@ -91,7 +91,7 @@ uniform float ruecken_matt = 0.7;
 uniform float stoppeln = 0.7;                          // Bartstoppeln (nur mit Bartschatten „bart“)
 uniform float stoppel_dichte = 2.4;                    // × poren_dichte
 uniform float poren_ao = 0.1;
-uniform float brauen_weich = 0.45;                     // Brauenschatten auf der Haut (Phase 5: 0,55, hart)
+uniform float brauen_weich = 0.3;                      // Brauenschatten auf der Haut (Phase 5: 0,55, hart)
 uniform float streu_poren = 0.5;                       // Grün und Blau: Anteil der Porennormale im Streulicht
 varying vec3 n_diffus_gb;
 #endif
@@ -165,7 +165,8 @@ void fragment() {
 	vec3 n_glatt = normalize(vec3(meso * 0.5 + fal * 0.6, 1.0));
 	n_diffus = normalize(TANGENT * n_glatt.x + BINORMAL * n_glatt.y + NORMAL * n_glatt.z);
 #ifdef WEG_A
-	vec3 n_gb = normalize(vec3(meso * 0.75 + fal * 0.8 + mikro * streu_poren, 1.0));
+	// gleiche Mittelform wie Rot (sonst färbt eine Kante der gebackenen Normale an der Kachelgrenze), nur die Poren dazu
+	vec3 n_gb = normalize(vec3(meso * 0.5 + fal * 0.6 + mikro * streu_poren, 1.0));
 	n_diffus_gb = normalize(TANGENT * n_gb.x + BINORMAL * n_gb.y + NORMAL * n_gb.z);
 #endif
 	duenn = clamp(m.r * 1.2 - 0.25, 0.0, 1.0) * (1.0 - m.b);
@@ -176,8 +177,9 @@ void fragment() {
 	spec_v = glanz * (1.0 - 0.7 * hoehlen * m.b) * (1.0 - 0.5 * clamp(-h0, 0.0, 1.0)) * (1.0 - 0.7 * haarig);
 #ifdef WEG_A
 	// feuchter Lidrand und Karunkel: glatt und glänzend; Nasenrücken: matter
-	ROUGHNESS = clamp(mix(ROUGHNESS, 0.13, clamp(zo.b * feucht, 0.0, 1.0)) + 0.2 * zo.a * ruecken_matt, 0.10, 1.0);
-	spec_v *= (1.0 + 1.6 * zo.b * feucht) * (1.0 - 0.5 * zo.a * ruecken_matt);
+	float nass = smoothstep(0.45, 0.95, zo.b) * feucht;    // nur der schmale Saum, nicht die Umgebung
+	ROUGHNESS = clamp(mix(ROUGHNESS, 0.16, nass) + 0.2 * zo.a * ruecken_matt, 0.10, 1.0);
+	spec_v *= (1.0 + 0.8 * nass) * (1.0 - 0.5 * zo.a * ruecken_matt);
 #endif
 	SPECULAR = 0.42 * spec_v;                // Godot: F0 = 0,16 · SPECULAR² = 0,028 (Umgebungslicht)
 	AO = 1.0 - hoehlen * m.b * 0.8;

@@ -13,8 +13,9 @@ Ablauf
     10 mm oder bei Normalen > 70° auseinander), dann  min Σ w_i |S_i + D_i − c_i|² + α Σ_Kanten |D_i − D_j|² + β Merkpunkte,
     α (Steifigkeit) fällt von 60 auf 1. Die Augenregion (Lidring ± 7 mm) hat keinen Datenterm: Abgüsse haben
     geschlossene Augen, dort füllt die Glättung aus der Umgebung.
- 4. Versatz D = Einpassung − B2-Mittelgesicht, leicht geglättet (I + 2 L), ausgeblendet am Rand des Gesichts (vor den Ohren, über der Stirn, unter
-    dem Kinn) und an den Lidern (Lidring ± 5 → 11 mm; Augapfel und Lidrand bleiben zusammen).
+ 4. Versatz D = Einpassung − B2-Mittelgesicht, leicht geglättet (I + 2 L), ohne Restbewegung des ganzen Gesichts
+    (Ähnlichkeitsabbildung herausgerechnet), ausgeblendet am Rand des Gesichts (vor den Ohren, über der Stirn, unter
+    dem Kinn) und an den Lidern (Lidring ± 5 → 15 mm; Augapfel und Lidrand bleiben zusammen).
 
 Ausgabe <aus>/vorbild_<name>.npz: basis (Ecken von Haut/0 der .glb, Meter, Godot-Achsen), versatz (Meter), name;
 Bericht <aus>/vorbild_<name>.json (Restabstand, RMS des Versatzes, Merkpunkte). Der Probebau nimmt die Datei mit
@@ -164,7 +165,7 @@ def main():
     nase_abst = np.minimum.reduce([np.linalg.norm(S - P[k], axis=1) for k in ("al_r", "al_l", "sn")])
     unten = N_S[:, 1] < -0.35
     daten_auge = daten_auge * np.where(unten & (nase_abst < 9.0), 0.0, 1.0) * glatt(nase_abst, 2.0, 5.0)
-    lid_aus = glatt(auge_abst, 5.0, 11.0)
+    lid_aus = glatt(auge_abst, 5.0, 15.0)
     frei = np.nonzero(rand > 0.01)[0]
     # Scan auf den Gesichtsbereich beschneiden (schneller, keine Fremdteile wie Sockel oder Tuch)
     lo, hi = S[frei].min(0) - 15, S[frei].max(0) + 15
@@ -197,7 +198,8 @@ def main():
     idx_lm = {k: int(np.argmin(np.linalg.norm(S - P[k], axis=1))) for k in namen}
     D = np.zeros_like(S)
     rest = {}
-    for runde, (alpha, beta) in enumerate([(60, 8), (25, 4), (10, 2), (4, 1), (2, 0.5), (1, 0.2)]):
+    # Merkpunkte nur am Anfang (sie ziehen je eine einzelne Ecke und machen sonst Buckel, z. B. am Nasenflügel)
+    for runde, (alpha, beta) in enumerate([(60, 8), (25, 3), (10, 0.5), (4, 0), (2, 0), (1, 0)]):
         X = S + D
         c, dist, tid = trimesh.proximity.closest_point(scan, X[frei])
         nscan = scan.face_normals[tid]
@@ -230,11 +232,22 @@ def main():
     # leicht glätten (nur die große Form; kleine Buckel aus Scanfehlern weg): (I + 2 L) D_glatt = D
     loese_g = factorized((sparse.identity(n) + 2.0 * L).tocsc())
     D = np.stack([loese_g(D[:, k]) for k in range(3)], 1)
+    # Restbewegung des ganzen Gesichts herausrechnen (Ähnlichkeitsabbildung über das Gesicht ohne Augen): ungenaue
+    # Merkpunkte ließen sonst das Gesicht als Ganzes vor- oder zurückwandern, nur die ausgeblendete Lidregion nicht
+    # („Brillenringe“). Übrig bleibt die Form; Größe und Lage regeln die Gene.
+    gew_r = rand * daten_auge
+    sel_r = gew_r > 0.3
+    s_r, R_r, t_r = umeyama(S[sel_r], (S + D)[sel_r], gew_r[sel_r])
+    D = ((R_r.T @ ((S + D) - t_r).T).T / s_r) - S
+    rest_bewegung = {"massstab": round(float(s_r), 4), "drehung_grad": round(float(np.degrees(np.arccos(np.clip((np.trace(R_r) - 1) / 2, -1, 1)))), 2),
+                     "verschiebung_mm": [round(float(x), 2) for x in t_r]}
+    print(name, "Restbewegung herausgerechnet", rest_bewegung)
     versatz = D * (rand * lid_aus)[:, None]
     gesicht = rand > 0.5
     rms = float(np.sqrt((versatz[gesicht] ** 2).sum(1).mean()))
     bericht = {"name": name, "geschlecht": g, "quelle": vb.get("quelle"), "lizenz": vb.get("lizenz"),
-               "massstab": float(s_), "rest_umeyama_mm": rest_umeyama, "rest_nach_icp_mm": rest_icp, "runden": rest, "rms_versatz_mm": round(rms, 2),
+               "massstab": float(s_), "rest_umeyama_mm": rest_umeyama, "rest_nach_icp_mm": rest_icp, "runden": rest,
+               "restbewegung": rest_bewegung, "rms_versatz_mm": round(rms, 2),
                "max_versatz_mm": round(float(np.linalg.norm(versatz, axis=1).max()), 2),
                "merkpunkte_px": px}
     print(name, "RMS Versatz", round(rms, 2), "mm, max", bericht["max_versatz_mm"], "mm, Rest", rest["ende"])

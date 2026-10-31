@@ -47,13 +47,14 @@ def zonen_ecken(H, N, P):
     """Werte je Ecke (n × 4)."""
     z = np.zeros((len(H), 4))
     vorn = np.clip((N[:, 2] + 0.2) / 0.5, 0.0, 1.0)
+    vorn_streng = np.clip((N[:, 2] - 0.1) / 0.4, 0.0, 1.0)    # Nase: nicht in die Nasenlöcher (die zeigen nach unten)
     for s, sg in (("r", -1.0), ("l", 1.0)):
         ex, en, ch, al = P[f"ex_{s}"], P[f"en_{s}"], P[f"ch_{s}"], P[f"al_{s}"]
         # Wange (Jochbeinbogen bis unter das Auge, etwas nach außen)
         c = ex + 0.45 * (ch - ex) + np.array([sg * 9.0, 2.0, 0.0])
         z[:, 0] += 0.85 * gauss(H, c, (15.0, 11.0, 14.0)) * vorn
         # Nasenflügel
-        z[:, 0] += 0.55 * gauss(H, al, (4.5, 4.0, 5.0))
+        z[:, 0] += 0.35 * gauss(H, al, (4.5, 4.0, 5.0)) * vorn_streng
         # unter dem Auge: Mitte des Unterlids 6 mm tiefer, zum inneren Winkel stärker
         lid_u = 0.5 * (P["lm40" if s == "r" else "lm47"] + P["lm41" if s == "r" else "lm46"])
         z[:, 1] += 0.8 * gauss(H, lid_u + np.array([0.0, -6.0, -1.0]), (10.0, 4.5, 6.0)) * vorn
@@ -68,15 +69,15 @@ def zonen_ecken(H, N, P):
         # Lidrand: unten stark (Tränensaum), oben schwächer
         ring = [36, 41, 40, 39] if s == "r" else [45, 46, 47, 42]
         oben = [36, 37, 38, 39] if s == "r" else [45, 44, 43, 42]
-        z[:, 2] += 1.0 * np.exp(-0.5 * (abstand_linie(H, np.array([P[f"lm{i}"] for i in ring])) / 0.9) ** 2)
-        z[:, 2] += 0.5 * np.exp(-0.5 * (abstand_linie(H, np.array([P[f"lm{i}"] for i in oben])) / 0.8) ** 2)
+        z[:, 2] += 1.0 * np.exp(-0.5 * (abstand_linie(H, np.array([P[f"lm{i}"] for i in ring])) / 0.7) ** 2)
+        z[:, 2] += 0.4 * np.exp(-0.5 * (abstand_linie(H, np.array([P[f"lm{i}"] for i in oben])) / 0.6) ** 2)
         # Ohr: alles seitlich der Tragion (Ohrmuschel), in Ohrhöhe
         t = P[f"t_{s}"]
         ohr = np.clip((H[:, 0] * sg - (abs(t[0]) - 4.0)) / 6.0, 0.0, 1.0) \
             * np.clip(1.0 - np.abs(H[:, 1] - (t[1] + 5.0)) / 38.0, 0.0, 1.0) * (np.abs(H[:, 2] - t[2]) < 30)
         z[:, 0] += 0.7 * ohr
     # Nasenspitze, Kinn
-    z[:, 0] += 0.75 * gauss(H, P["prn"] + np.array([0.0, -2.0, 0.0]), (7.0, 6.0, 6.0))
+    z[:, 0] += 0.55 * gauss(H, P["prn"] + np.array([0.0, 1.0, 0.0]), (7.0, 6.0, 6.0)) * vorn_streng
     z[:, 0] += 0.35 * gauss(H, P["pg"], (10.0, 8.0, 10.0)) * vorn
     # Nasenrücken: von der Nasenwurzel bis kurz vor die Spitze, schmal
     n, prn = P["n"], P["prn"]
