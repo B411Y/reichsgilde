@@ -23,6 +23,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von kern) Erbgut (Charakter-Editor, Phase 1): Knopf „Erbgut neu würfeln“ im Entwicklerfenster bei der Person (wie „Geben“/„Entfernen“ beim Zug) – der Befehl `EntwicklerErbgut(Person)` steht im Kern bereit.
 - DirectX 12 im Export: Godot legt `D3D12Core.dll` und `d3d12SDKLayers.dll` nur bei, wenn `application/export_d3d12` der Windows-Vorgabe auf „Yes“ steht oder `project.godot` selbst DirectX 12 nennt (Quelltext 4.5; für 4.7.2 nicht einzeln geprüft). Empfehlung: `application/export_d3d12=1` in `game/export_presets.cfg` (geschützte Datei, der Nutzer entscheidet).
 - Kartenwerkstatt mit `--werkstatt-ausprobieren=<Beruf>`: Die Probepartie startet, während `Kartenwerkstatt._Ready` noch in `ErsteBilderAbwarten` wartet; danach greift es auf die schon freigegebene Werkstatt zu (`ObjectDisposedException` bei `GetTree()`, Kartenwerkstatt.cs:192, einmal im Log). Nur über die Startoption, die Probepartie läuft trotzdem. Vorschlag: nach `StartoptionenAusfuehren` abbrechen, wenn die Werkstatt nicht mehr im Baum ist.
+- (von Kern) Mehrere Marktplätze je Stadt (Köln: Heumarkt, Alter Markt, Neumarkt; Branch phase5/gehtempo): Ein Stadtmarkt mit gemeinsamen Preisen – das Marktfenster gilt für alle Plätze. Karrentafel und Handel von Hand könnten nennen, zu welchem Platz ein Karren fährt (`Stadtwirtschaft.MarktplatzVon(betrieb)?.Name`); die Ankunft (`AnkunftAmMarkt(karren)`) rechnet schon mit dem Weg dorthin.
 
 ## Entscheidungen
 
