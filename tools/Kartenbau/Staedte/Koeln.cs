@@ -22,8 +22,8 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //      Westen (Hohe Straße/Weyerstraße/Bayenstraße) – Namen wie in Köln, die Lage so, dass die Karrenwege kurz sind. Rathaus, Groß St. Martin,
 //      St. Gereon, St. Severin, St. Aposteln, St. Kunibert, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen
 //      kölschen.
-//    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Ecken der Marktplätze, je 28 m vom nächsten (der Werkstattweg zum
-//      Platz 21–22 m wie die alte feste Fahrzeit von 30 Minuten), Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
+//    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) nahe den Ecken der Marktplätze, je 36 m vom nächsten (der Werkstattweg vom
+//      Halteplatz bis zum Halt am Pflaster 20–24 m, der Spieler 30 Minuten wie die alte feste Fahrzeit), Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
 //      Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen, Vorkommen.
 //    • Gelände: Terrasse der Altstadt mit Hochufer zum Rhein, sanft ansteigend nach Westen (Ville), Bergisches Land im Osten.
 //    • Rand (300 m): Kölner Bucht (Felder), Ville und Königsforst (Wald), im Dunst.
@@ -43,7 +43,7 @@ public sealed partial class Koeln : Stadtskript
     private const double Ufer = 60;     // das linke Rheinufer (Wasserlinie) bei x = 60
     private const double RheinX = 37;   // Rheingasse
     private const double HoheX = -34;   // Hohe Straße
-    private const double ZielAbstand = 28;   // so weit vom nächsten Marktplatz liegen die Startgrundstücke (±10 %; bis 31.10.2026 96 m vom Heumarkt)
+    private const double ZielAbstand = 36;   // so weit vom nächsten Marktplatz liegen die Startgrundstücke (±10 %; bis 31.10.2026 96 m vom Heumarkt, dann 28 – seit Kern und Bild dieselbe Strecke rechnen, 36)
 
     // Die drei Marktplätze (31.10.2026): der Heumarkt im Ursprung, der Alter Markt an der Kreuzung von Rheingasse und Bayenstraße am Rhein, der
     // Neumarkt an der Kreuzung von Hoher Straße, Weyerstraße und Bayenstraße im Westen – je Ecke einer Kreuzung passt ein Startgrundstück.
