@@ -415,7 +415,7 @@ public partial class Stadtansicht
         var tempo = strecke / (minuten * Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute);
         var kern = _wirtschaft?.Fahrzeit(karren, true) ?? 0;
         GD.Print($"[karren] Fahrt gesehen: {a.Betrieb.Name} {karren.Typ} {karren.Name} -> {a.Markt?.Name ?? "Ursprung"}: {strecke:0.0} m in {minuten:0.0} Spielminuten = {tempo:0.00} m/s bei Tempo 1 " +
-                 $"(Tempo der Art {karren.Daten.Tempo:0.0} m/s), Kern-Fahrzeit {kern} min, Unterschied {minuten - kern:+0.0;-0.0} min");
+                 $"(Tempo der Art {karren.Daten.Tempo:0.0} m/s), Kern-Fahrzeit {kern} min, Unterschied {minuten - kern:+0.0;-0.0;0.0} min");
     }
 
     private readonly HashSet<(Betrieb, string)> _karrenfahrtenGemeldet = new();
@@ -437,7 +437,7 @@ public partial class Stadtansicht
         var woher = ansicht.WegVomKern ? "Weg des Kerns" : "Gassennetz, Kern bis zur Platzmitte";
         var anker = ansicht.WegVomKern && KarrenAnker(betrieb.Name) is { } a ? $", Anker im Modell {new Vector2(a.X - ansicht.WegZumMarkt[0].X, a.Z - ansicht.WegZumMarkt[0].Z).Length():0.00} m vom Start" : "";
         GD.Print($"[karren] Profil: {betrieb.Name} {karren.Typ} -> {ansicht.Markt?.Name ?? "Ursprung"}: Weg im Bild {laenge:0.0} m bis zum Halt (Kern {kernLaenge:0.0} m, {woher}{anker}), " +
-                 $"im festen Tempo {hin.Dauer:0.0} min, Kern-Fahrzeit {kern} min, Ankunft {hin.Dauer - kern:+0.0;-0.0} min ({(hin.Dauer - kern) / Math.Max(kern, 1) * 100:+0;-0} %)");
+                 $"im festen Tempo {hin.Dauer:0.0} min, Kern-Fahrzeit {kern} min, Ankunft {hin.Dauer - kern:+0.0;-0.0;0.0} min ({(hin.Dauer - kern) / Math.Max(kern, 1) * 100:+0;-0;0} %)");
     }
 
     /// <summary>
