@@ -461,7 +461,7 @@ def m2_gepaart(mappe):
         g = grenzen.get(name)
         med = float(np.median(ds))
         ziel = f"Δ ≤ +{f(g, 1)} ms" if g is not None else "–"
-        if name == "ohne_haar" and licht == "spiel":
+        if name == "ohne_haar" and licht in ("spiel", "spiel6_weich"):
             ziel = "Δ ≤ +0,3 ms (S2) bzw. +0,5 ms mit weichen Schatten (S3)"
             g = 0.5
         # Plan 5.6: gewertet nur mit protokollierter Last und freier Karte (keine fremden GPU-Prozesse); die Streuung der

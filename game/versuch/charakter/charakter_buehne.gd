@@ -152,7 +152,7 @@ func licht_art_setzen(art: String) -> void:
 	match art:
 		"spiel5":
 			pass                                   # L-S der Phase 5 (Stand 5)
-		"spiel6", "spiel6_weich":
+		"spiel6", "spiel6_weich", "spiel6_b12", "spiel6_ohne_himmel":
 			# S3: Porträtlicht Stand 6. Weiche Schatten über die Schattenweichzeichnung (2,0); die Winkelgröße 3°
 			# („spiel6_weich“) ließ im Versuch den Schlagschatten von Kopf und Kinn auf dem Kragen ganz verschwinden
 			umgebung.tonemap_exposure = SPIEL6_BELICHTUNG
@@ -162,9 +162,11 @@ func licht_art_setzen(art: String) -> void:
 			if art == "spiel6_weich":
 				schluessel.light_angular_distance = SPIEL6_WINKEL
 				schluessel.shadow_blur = 1.0
+			elif art == "spiel6_b12":
+				schluessel.shadow_blur = 1.2          # Messung: Weichzeichnung wie Phase 5 (Kosten von 2,0 mit TressFX)
 			else:
 				schluessel.shadow_blur = 2.0
-			var himmel := _himmel()
+			var himmel := _himmel() if art != "spiel6_ohne_himmel" else null   # Messung: Kosten des HDRI
 			if himmel:
 				umgebung.sky = himmel
 				umgebung.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
