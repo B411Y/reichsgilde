@@ -142,7 +142,7 @@ static class MarktplaetzeTests
                 Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
         }),
 
-        ("Köln: Heumarkt, Alter Markt und Neumarkt; jede Startwerkstatt fährt zu ihrem Platz an der Ecke – Werkstattwege 13–16 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
+        ("Köln: Heumarkt, Alter Markt und Neumarkt; jede Startwerkstatt fährt zu ihrem Platz an der Ecke – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
         {
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             Pruefe.Gleich("Heumarkt, Alter Markt, Neumarkt", string.Join(", ", karte.Marktplaetze.Select(m => m.Name)));
@@ -155,8 +155,8 @@ static class MarktplaetzeTests
             // vom Halteplatz am Modell (er liegt je Beruf links oder rechts vom Tor) über den Hof zur Ecke und bis zum Halt vor dem Pflaster
             var laengen = werkstaetten.Select(b => w.Fahrten(b)!.Value.Hin.Sum(s => s.Laenge)).ToList();
             for (var i = 0; i < werkstaetten.Count; i++)
-                Pruefe.Wahr(laengen[i] is >= 12.5 and <= 16.5, $"{werkstaetten[i].Name}: {laengen[i]:0.0} m zum {w.MarktplatzVon(werkstaetten[i])!.Name}");
-            Pruefe.Wahr(laengen.Max() - laengen.Min() <= 3, $"Werkstattwege {laengen.Min():0.0}–{laengen.Max():0.0} m");
+                Pruefe.Wahr(laengen[i] is >= 19.5 and <= 24.5, $"{werkstaetten[i].Name}: {laengen[i]:0.0} m zum {w.MarktplatzVon(werkstaetten[i])!.Name}");
+            Pruefe.Wahr(laengen.Max() - laengen.Min() <= 4.5, $"Werkstattwege {laengen.Min():0.0}–{laengen.Max():0.0} m");
             var jePlatz = werkstaetten.GroupBy(b => w.MarktplatzVon(b)!.Name).ToDictionary(g => g.Key, g => g.Count());
             Pruefe.Gleich((1, 3, 4), (jePlatz["Heumarkt"], jePlatz["Alter Markt"], jePlatz["Neumarkt"]));
             Pruefe.Gleich("Heumarkt", w.MarktplatzVon(w.Betriebe.Single(b => b.Konto == w.Konten[0]))!.Name); // der Spieler

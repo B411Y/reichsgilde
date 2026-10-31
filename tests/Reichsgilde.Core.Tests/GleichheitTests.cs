@@ -39,7 +39,8 @@ static class GleichheitTests
     {
         new(1400, Schwierigkeit.Normal, KiCharakter.Ausgewogen, "Schmied"),
         new(4711, Schwierigkeit.Schwer, KiCharakter.Wagemutig, "Tischler"),
-        new(2026, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
+        // bis zur gemeinsamen Strecke von Kern und Bild (31.10.2026) 2026 – dort stirbt seither das Oberhaupt des Menschen im Jahr 1 ohne Erben, das Skript hätte nichts abzugeben
+        new(2027, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
     };
 
     /// <summary>
