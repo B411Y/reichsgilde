@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Buerger;
 using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
@@ -37,4 +38,71 @@ public partial class Stadtansicht
 
     /// <summary>Nur für die Hörprobe: Zoom fest vorgeben (wie das Mausrad, in den Grenzen der Karte).</summary>
     public void KlangZoomVorgeben(float groesse) => _kamera.Size = Mathf.Clamp(groesse, KameraMinZoom, KameraGroessterZoom());
+
+    // ── Die Menschen der Stadt (KlangStadtlebenModell) ─────────────────────────────────────────────────────────────
+
+    private double _klangMomentZeit = double.NegativeInfinity;
+
+    /// <summary>
+    /// Füllt das Momentbild der Menschen für die Umgebungsklänge – gelesen wird nur, was die Ansicht ohnehin kennt: die sichtbaren Passanten
+    /// draußen (Gasse, Markt, Tor – nicht Umland, nicht Dom), die Verkäufer bei offenem Markt, die Gäste in den geöffneten Schänken des Kerns
+    /// (<c>Einwohnerschaft.Am</c>) und die Betriebe, die gerade arbeiten (Schmied, Steinmetz; Arbeitszeit, Arbeiter da, kein Stillstand, kein Umbau,
+    /// keine Sabotage). Ort in Metern, Seite im Bild aus der Kamera. Höchstens zehnmal je Sekunde neu (die Zeitkonstanten der Pegel sind Sekunden);
+    /// dazwischen bleibt das Bild stehen. Gibt false zurück, solange es keine Partie mit Einwohnern gibt.
+    /// </summary>
+    public bool KlangMomentbild(KlangStadtlebenModell.Momentbild m)
+    {
+        if (_simulation?.Wirtschaft is not { } w) return false;
+        var jetzt = Time.GetTicksMsec() / 1000.0;
+        if (jetzt - _klangMomentZeit < 0.1) return true;
+        _klangMomentZeit = jetzt;
+        m.Leeren();
+        var kamera = StadtKamera;
+        var fokus = FreiAktiv ? kamera.GlobalPosition : _kameraDrehung.GlobalPosition;
+        m.FokusX = fokus.X;
+        m.FokusZ = fokus.Z;
+        var breite = Math.Max(GetViewport().GetVisibleRect().Size.X, 1f);
+        float Seite(Vector3 ort) => _raum is not null ? 0f : kamera.UnprojectPosition(ort).X / breite * 2f - 1f;
+
+        if (w.Einwohnerschaft is { IstAktiv: true } ew)
+        {
+            foreach (var e in ew.Einwohner)
+            {
+                if (!_passanten.TryGetValue(e.Nummer, out var p) || !p.Knoten.Visible || _imDom.Contains(e.Nummer)) continue;
+                var ort = p.Knoten.GlobalPosition;
+                var geht = p.Stand is null && p.LaufEnde > p.LaufStart;
+                // Wo er ist: unterwegs von oder ins Umland zählt nicht (Felder murmeln nicht), auf dem Platz zählt er als Marktbesucher
+                var stand = p.Stand?.Ort;
+                if (geht && e.Weg is { } weg && (weg.Von.Ort == Stadtort.Umland || weg.Nach.Ort == Stadtort.Umland)) continue;
+                if (stand?.Ort == Stadtort.Umland) continue;
+                var q = new KlangStadtlebenModell.Quelle(ort.X, ort.Z, Seite(ort), 1, geht);
+                if (stand?.Ort == Stadtort.Markt) m.Marktleute.Add(q);
+                else m.Leute.Add(q);
+            }
+            // Gäste: nur geöffnete Schänken des Kerns (Wirtshaus 8–22 Uhr) mit Einwohnern darin
+            foreach (var (betrieb, anzahl) in KlangStadtlebenKern.OffeneSchaenken(w, _simulation.Zeit.UhrzeitInMinuten))
+                if (_betriebe.TryGetValue(betrieb, out var ansicht))
+                    m.Schenken.Add(new KlangStadtlebenModell.Quelle(ansicht.Mitte.X, ansicht.Mitte.Z, Seite(ansicht.Mitte), anzahl));
+        }
+
+        m.MarktOffen = w.IstArbeitszeit(_simulation.Zeit);
+        if (m.MarktOffen)
+            foreach (var stand in _marktstaende)
+                if (stand.Gezeigt is not null && stand.VerkaeuferKnoten is { } v)
+                {
+                    var ort = v.GlobalPosition;
+                    m.Marktleute.Add(new KlangStadtlebenModell.Quelle(ort.X, ort.Z, Seite(ort)));
+                }
+
+        foreach (var (betrieb, arbeiter) in KlangStadtlebenKern.ArbeitendeWerkstaetten(w, _simulation.Zeit.UhrzeitInMinuten))
+            if (_betriebe.TryGetValue(betrieb, out var ansicht))
+                m.Werkstaetten.Add(new KlangStadtlebenModell.Quelle(ansicht.Mitte.X, ansicht.Mitte.Z, Seite(ansicht.Mitte), arbeiter));
+        return true;
+    }
+
+    /// <summary>Nur für die Hörprobe auf der Spielkarte: den Blickpunkt der Kamera setzen (am Boden).</summary>
+    public void KlangFokusVorgeben(Vector3 ort) => _kameraDrehung.Position = new Vector3(ort.X, 0, ort.Z);
+
+    /// <summary>Mitte des Marktplatzes (Hörprobe, Log).</summary>
+    public Vector3 KlangMarktMitte => _markt;
 }

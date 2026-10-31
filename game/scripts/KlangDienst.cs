@@ -24,7 +24,7 @@ public partial class KlangDienst : Node
 
     /// <summary>
     /// Unterbusse der Umgebung (Ton Schritt 4, <see cref="KlangUmgebung"/>). Godot erlaubt Sends nur an Busse mit kleinerer Nummer, darum diese
-    /// Reihenfolge im Layout: UmgebungDraussen (6) → Umgebung, UmgebungStadt (7), UmgebungRufNah (8) und UmgebungRufFern (9) → UmgebungDraussen.
+    /// Reihenfolge im Layout: UmgebungDraussen (6) → Umgebung, UmgebungStadt (7), UmgebungRufNah (8) und UmgebungRufFern (9) → UmgebungDraussen, UmgebungSchenke (10) → UmgebungStadt.
     /// Draußen trägt die Dämpfung in Räumen, im Dom und in der Pause (Pegel und Tiefpass), Stadt die Ferne beim Herauszoomen, die Rufbusse
     /// Seite (Panner) und Tiefpass des einzelnen Rufs. Der Bus Umgebung selbst bleibt ohne Effekt (dort hängt Schritt 7 das Ducking an);
     /// spätere Innengeräusche (Schritt 6) laufen direkt auf Umgebung, also ungedämpft.
@@ -33,6 +33,8 @@ public partial class KlangDienst : Node
     public const string BusUmgebungStadt = "UmgebungStadt";
     public const string BusUmgebungRufNah = "UmgebungRufNah";
     public const string BusUmgebungRufFern = "UmgebungRufFern";
+    /// <summary>Schenkengemurmel mit eigenem Panner (die Seite des Wirtshauses im Bild), gesendet an UmgebungStadt (Ferne beim Herauszoomen).</summary>
+    public const string BusUmgebungSchenke = "UmgebungSchenke";
 
     /// <summary>Die Unterbusse mit ihrem Ziel und den Effekten, die <see cref="BusseTesten"/> erwartet (Effekt 0 Tiefpass; Rufbusse: 0 Panner, 1 Tiefpass).</summary>
     public static readonly (string Bus, string Ziel, bool MitPanner)[] Unterbusse =
@@ -41,6 +43,7 @@ public partial class KlangDienst : Node
         (BusUmgebungStadt, BusUmgebungDraussen, false),
         (BusUmgebungRufNah, BusUmgebungDraussen, true),
         (BusUmgebungRufFern, BusUmgebungDraussen, true),
+        (BusUmgebungSchenke, BusUmgebungStadt, true),
     };
 
     /// <summary>Die Regler der Einstellungen in ihrer Reihenfolge: Bus, Anzeigename, Schlüssel in der Datei.</summary>

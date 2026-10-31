@@ -27,10 +27,17 @@ public partial class KlangUmgebung : Node
 
     /// <summary>Liefert die Eingaben dieses Bildes oder null, solange die Partie noch nicht bereit ist (Ladebildschirm).</summary>
     public Func<M.Eingaben?>? Quelle;
+    /// <summary>
+    /// Füllt das Momentbild der Menschen in der Stadt (Stadtansicht.Klang.cs); gibt false zurück, wenn es keines gibt (dann gilt „alles voll“ wie
+    /// früher). <see cref="KlangStadtlebenModell"/> rechnet daraus mit dem Zoom die Pegel und Orte.
+    /// </summary>
+    public Func<KlangStadtlebenModell.Momentbild, bool>? LebenQuelle;
     /// <summary>Nur für die Hörprobe: Uhr (Stunde) und Zoom der Stadtansicht vorgeben.</summary>
     public Action<float>? UhrVorgeben, ZoomVorgeben;
 
     private readonly M.Zustand _zustand = new();
+    private readonly KlangStadtlebenModell.Momentbild _momentbild = new();
+    private readonly KlangStadtlebenModell.Zustand _leben = new();
     private M.RufPlaner _planer = new((int)(Time.GetTicksUsec() & 0x7fffffff)); // eigener Zufall, nie der der Simulation (Lockstep)
     private readonly Dictionary<string, AudioStream> _toene = new();
     private readonly List<(string Name, string Pfad)> _ausstehend = new();
@@ -39,10 +46,11 @@ public partial class KlangUmgebung : Node
     private readonly bool[] _angehalten = new bool[M.Schichten.Length];
     private readonly List<M.Ruf> _neueRufe = new();
     private AudioStreamPlayer _rufNah = null!, _rufFern = null!;
-    private AudioEffectPanner? _panNah, _panFern;
+    private AudioEffectPanner? _panNah, _panFern, _panSchenke;
     private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt;
-    private int _busDraussen = -1, _busStadt = -1;
+    private int _busDraussen = -1, _busStadt = -1, _busSchenke = -1;
     private float _draussenDb = float.NaN, _draussenTp = float.NaN, _stadtDb = float.NaN, _stadtTp = float.NaN;
+    private float _schenkeDb = float.NaN, _schenkeSeite = float.NaN;
     private bool _laeuft, _beendet;
     private int _logStufe;
     private bool _fahrt;
@@ -105,6 +113,8 @@ public partial class KlangUmgebung : Node
         var fern = AudioServer.GetBusIndex(KlangDienst.BusUmgebungRufFern);
         _panNah = nah >= 0 ? AudioServer.GetBusEffect(nah, 0) as AudioEffectPanner : null;
         _panFern = fern >= 0 ? AudioServer.GetBusEffect(fern, 0) as AudioEffectPanner : null;
+        _busSchenke = AudioServer.GetBusIndex(KlangDienst.BusUmgebungSchenke);
+        _panSchenke = _busSchenke >= 0 ? AudioServer.GetBusEffect(_busSchenke, 0) as AudioEffectPanner : null;
         _planer.Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0;
         if (_fahrt) _planer = new M.RufPlaner(4711) { Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0 };
     }
@@ -154,6 +164,9 @@ public partial class KlangUmgebung : Node
         if (!_laeuft) Starten();
         _zeit += delta;
         if (_fahrt) eingaben = FahrtSchritt(eingaben, delta);
+        // Die Menschen der Stadt: Momentbild → Lage (weich geglättet). Ohne Quelle gilt „alles voll“ (Probepartie ohne Stadtansicht)
+        if (_fahrt ? FahrtMomentbild(eingaben) : LebenQuelle?.Invoke(_momentbild) == true)
+            eingaben = eingaben with { Leben = _leben.Schritt(_momentbild, eingaben.Innen == M.Innenart.Draussen ? eingaben.Zoom : 60f, delta) };
         LetzteEingaben = eingaben;
         var aus = _zustand.Schritt(eingaben, delta);
         Anwenden(aus, delta);
@@ -172,11 +185,18 @@ public partial class KlangUmgebung : Node
         _laeuft = true;
         foreach (var s in M.Schichten)
             if (_toene.TryGetValue(s.Name, out var ton))
-                KlangDienst.SchleifeStarten(Praefix + s.Name, ton, s.Bus == M.Bus.Stadt ? KlangDienst.BusUmgebungStadt : KlangDienst.BusUmgebungDraussen,
+                KlangDienst.SchleifeStarten(Praefix + s.Name, ton, BusName(s.Bus),
                                             einblendSekunden: 0, db: KlangDienst.MindestDb, zufallsStart: !_fahrt);
         GD.Print($"UMGEBUNG Start: {M.Schichten.Count(s => _toene.ContainsKey(s.Name))} Schleifen, {_toene.Count - M.Schichten.Length} Rufdateien geladen" +
                  (KlangDienst.BusseTesten() ? ", Unterbusse in Ordnung" : ", Unterbusse FEHLERHAFT (siehe Warnung)"));
     }
+
+    private static string BusName(M.Bus bus) => bus switch
+    {
+        M.Bus.Stadt => KlangDienst.BusUmgebungStadt,
+        M.Bus.Schenke => KlangDienst.BusUmgebungSchenke,
+        _ => KlangDienst.BusUmgebungDraussen,
+    };
 
     private void Anwenden(M.Ausgabe aus, double delta)
     {
@@ -202,6 +222,10 @@ public partial class KlangUmgebung : Node
             AudioServer.SetBusVolumeDb(_busDraussen, _draussenDb = aus.DraussenDb);
         if (_busStadt >= 0 && (float.IsNaN(_stadtDb) || Math.Abs(aus.StadtDb - _stadtDb) > 0.05f))
             AudioServer.SetBusVolumeDb(_busStadt, _stadtDb = aus.StadtDb);
+        if (_panSchenke is not null && (float.IsNaN(_schenkeSeite) || Math.Abs(aus.SchenkeSeite - _schenkeSeite) > 0.005f))
+            _panSchenke.Pan = _schenkeSeite = aus.SchenkeSeite;
+        if (_busSchenke >= 0 && (float.IsNaN(_schenkeDb) || Math.Abs(aus.SchenkeDb - _schenkeDb) > 0.05f))
+            AudioServer.SetBusVolumeDb(_busSchenke, _schenkeDb = aus.SchenkeDb);
         if (_tiefpassDraussen is not null && (float.IsNaN(_draussenTp) || Math.Abs(aus.DraussenTiefpass / _draussenTp - 1) > 0.01f))
             _tiefpassDraussen.CutoffHz = _draussenTp = aus.DraussenTiefpass;
         if (_tiefpassStadt is not null && (float.IsNaN(_stadtTp) || Math.Abs(aus.StadtTiefpass / _stadtTp - 1) > 0.01f))
@@ -233,36 +257,51 @@ public partial class KlangUmgebung : Node
         Abspielen(_planer.Erzwingen(art, fern, LetzteEingaben.Zoom));
     }
 
+    /// <summary>Die Menschen der Stadt als Log-Text (auch für den Entwicklerreiter): Zahlen im Umkreis und die Pegel 0–1.</summary>
+    public static string LebenText(KlangStadtlebenModell.Lage l) => l.Gemessen
+        ? $"leben[leute={l.LeuteImUmkreis} markt={l.MarktleuteImUmkreis} gaeste={l.GaesteImUmkreis} arbeiter={l.ArbeiterImUmkreis} geher={l.GeherImUmkreis} | " +
+          $"menge={l.Menge:0.00} markt={l.Markt:0.00} schenke={l.Schenke:0.00}@{l.SchenkeSeite:+0.00;-0.00} werk={l.Werkstatt:0.00} geher={l.Geher:0.00}]"
+        : "leben[ungemessen]";
+
     private static string UhrText(float minute) => $"{(int)(minute / 60):00}:{(int)(minute % 60):00}";
 
     private string LogZeile(in M.Eingaben e, M.Ausgabe a) =>
         $"UMGEBUNG t={_zeit:0} uhr={UhrText(e.UhrMinute)} b={e.Bezug:0.00} jz={e.Jahreszeit} S={e.Zoom:0} Smax={e.ZoomGroesst:0} N={a.Naehe:0.00} H={a.Hoehe:0.00} " +
         $"innen={e.Innen} pause={(e.Pausiert ? 1 : 0)} tps={e.TicksProSekunde:0.0} sprung={(a.Sprungblende ? 1 : 0)} " +
-        $"stadt={a.StadtDb:0.0}dB/{a.StadtTiefpass:0}Hz draussen={a.DraussenDb:0.0}dB/{a.DraussenTiefpass:0}Hz schleifen={KlangDienst.SchleifenAnzahl.Benannt} | " +
+        $"stadt={a.StadtDb:0.0}dB/{a.StadtTiefpass:0}Hz draussen={a.DraussenDb:0.0}dB/{a.DraussenTiefpass:0}Hz schleifen={KlangDienst.SchleifenAnzahl.Benannt} " +
+        LebenText(e.Lage) + " | " +
         string.Join(" ", M.Schichten.Select((s, i) => $"{s.Name}={(a.Db[i] <= M.AusDb ? "aus" : a.Db[i].ToString("0.0"))}{(_angehalten[i] ? "(angehalten)" : "")}"));
 
     // ── Hörprobe (--umgebungfahrt=1) ────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Die feste Fahrt der Hörprobe: (Sekunde, Uhr in Stunden, Zoom; −1 = Höchstzoom der Karte). Dazwischen linear. Danach mittags am Startzoom
-    /// mit zufälligen Rufen (fester Zufall), dann Pause. Dieselben Kurven wie im Spiel, nur Uhr und Zoom sind vorgegeben (Frühling).
+    /// Die feste Fahrt der Hörprobe: (Sekunde, Uhr in Stunden, Zoom; −1 = Höchstzoom der Karte). Dazwischen linear. Die Menschen liefert
+    /// <see cref="KlangStadtlebenModell.Szenario"/> aus der Uhr (leere Straßen am frühen Morgen, volle am Mittag, Schänke am Abend, leer in der
+    /// Nacht); dieselben Kurven wie im Spiel, nur Uhr, Zoom und Menschen sind vorgegeben (Frühling). Am Ende Mittag am Startzoom und Pause.
     /// </summary>
     public static readonly (float T, float Stunde, float Zoom)[] FahrtPunkte =
     {
-        (0, 5.75f, 30), (14, 6.25f, 30),          // Morgen nah: Vogelchor, Hahn, die Stadt erwacht
-        (28, 7.5f, -1), (40, 12f, -1),            // herauszoomen bis ganz oben: Wind leicht und mittel, die Stadt fern und dumpf
-        (50, 12.5f, 45), (54, 17.6f, 45),         // herein, Mittag nah: Stadtleben, Gemurmel; dann Abendrot (Abendgesang)
-        (62, 20.6f, 60), (74, 22f, 60), (84, 22.8f, 60), // Abend: Schenkengemurmel, Amsel, Hund; Nacht: Kauz, ferner Hund
-        (84.01f, 12f, 95), (234, 12f, 95), (324, 12f, 95), // Sprung auf Mittag am Startzoom (Sprungblende), 150 s Stadtleben, dann 90 s Pause
+        (0, 5.0f, 40), (20, 6.4f, 40),            // früher Morgen: leere Straßen, Vogelchor, Hahn – kein Gemurmel
+        (45, 8.4f, 40),                           // 6:30–9 Uhr die Straßen füllen sich, 8 Uhr öffnet der Markt, Hämmern beginnt
+        (70, 12f, 40),                            // Markttreiben bis Mittag
+        (85, 12.5f, 95), (100, 17.5f, 95),        // herauszoomen auf den Startzoom, Nachmittag: Straßen voll, dann Abendrot
+        (110, 19f, 60), (140, 22f, 60),           // Abend: die Straßen leeren sich, die Schänke füllt sich und schließt um 22 Uhr
+        (170, 23f, 60),                           // Nacht: still
+        (170.01f, 12f, 95), (230, 12f, 95), (260, 12f, 95), // Sprung auf Mittag am Startzoom (Sprungblende), 60 s Stadtleben, 30 s Pause
     };
-    public const float FahrtZufallAb = 84f, FahrtPauseAb = 234f, FahrtEnde = 324f;
+    public const float FahrtZufallAb = 0f, FahrtPauseAb = 230f, FahrtEnde = 260f;
 
-    /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern).</summary>
+    /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern); alle übrigen plant der Planer mit festem Zufall aus den Menschen des Szenarios.</summary>
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
     {
-        (3, "Hahn", false), (8, "Passant", false), (11, "Hahn", false), (45, "Handwerk", true), (51, "Passant", false), (52.5f, "Gefluegel", false),
-        (57, "Amsel", false), (60, "Hund", true), (66, "Passant", false), (71, "Kauz", false), (78, "Hund", true), (81, "Kauz", false),
+        (3, "Hahn", false), (11, "Hahn", false),
     };
+
+    private bool FahrtMomentbild(in M.Eingaben e)
+    {
+        KlangStadtlebenModell.Szenario.Fuellen(_momentbild, e.UhrMinute / 60f, e.Innen == M.Innenart.Draussen ? e.Zoom : 60f);
+        return true;
+    }
 
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {

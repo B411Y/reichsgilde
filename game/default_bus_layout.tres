@@ -26,6 +26,14 @@ resource_name = "Tiefpass"
 cutoff_hz = 2500.0
 db = 1
 
+[sub_resource type="AudioEffectPanner" id="Panner_schenke"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_schenke"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 1
+
 [resource]
 bus/1/name = &"Musik"
 bus/1/solo = false
@@ -93,3 +101,13 @@ bus/9/effect/0/effect = SubResource("Panner_fern")
 bus/9/effect/0/enabled = true
 bus/9/effect/1/effect = SubResource("Tiefpass_fern")
 bus/9/effect/1/enabled = true
+bus/10/name = &"UmgebungSchenke"
+bus/10/solo = false
+bus/10/mute = false
+bus/10/bypass_fx = false
+bus/10/volume_db = 0.0
+bus/10/send = &"UmgebungStadt"
+bus/10/effect/0/effect = SubResource("Panner_schenke")
+bus/10/effect/0/enabled = true
+bus/10/effect/1/effect = SubResource("Tiefpass_schenke")
+bus/10/effect/1/enabled = true
