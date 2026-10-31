@@ -112,7 +112,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Kriegskarren | 3 × 25 | 900 | – |
 
 - Ladeflächen sind frei belegbar (ein Ochsenkarren kann 40 Eisen laden).
-- Fahrzeit vom Betrieb zum Markt: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
+- Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
 - Lager je Betrieb: 40 Stück je Ware.
 - **Verwalter-Regel:** Der Karren fährt los, wenn eines davon zutrifft:
   - Er kann mindestens drei Viertel einer Ladung mitnehmen.
@@ -1743,4 +1743,37 @@ Der Spieler erreicht in Köln den Bürger nach Ø 16,5 statt 10,0 Jahren (0 von 
 
 Die Greybox-Zeilen der Varianten haben 10 Startwerte, vorher und nachher 20; Messdateien der Varianten nicht im Repository (Versuche).
 
-Mehr Ladung hilft nicht: Es fehlt nicht Laderaum, sondern die Werkstatt wartet stundenlang auf Zutaten, die erst mit dem Karren kommen. Ein Ausgleich in den Wirtschaftswerten (Ladung, Karrenpreise) kann die sieben- bis zwölffache Fahrzeit in Köln nicht auffangen; das ist eine Designfrage (Höchstdauer, Lage der Plätze bzw. weitere Märkte in Köln, Rundendauer) und liegt beim Teamleiter. Bis dahin bleiben die Werte wie gebaut (Höchstdauer 360). **Empfehlung des Kerns:** die Höchstdauer je Arbeitsort an die alte feste Zeit binden (höchstens doppelt so lang: Werkstatt 60, Umland 240 Minuten; kleine Kern-Änderung) und Köln im Leveldesign kürzere Wege geben (Plätze näher am Markt oder weitere Märkte) – dann greift die Grenze selten, und die Karren fahren fast überall in ihrem Tempo.
+Mehr Ladung hilft nicht: Es fehlt nicht Laderaum, sondern die Werkstatt wartet stundenlang auf Zutaten, die erst mit dem Karren kommen. Ein Ausgleich in den Wirtschaftswerten (Ladung, Karrenpreise) kann die sieben- bis zwölffache Fahrzeit in Köln nicht auffangen; das ist eine Designfrage (Höchstdauer, Lage der Plätze bzw. weitere Märkte in Köln, Rundendauer) und liegt beim Teamleiter. Bis dahin bleiben die Werte wie gebaut (Höchstdauer 360). **Empfehlung des Kerns:** die Höchstdauer je Arbeitsort an die alte feste Zeit binden (höchstens doppelt so lang: Werkstatt 60, Umland 240 Minuten; kleine Kern-Änderung) und Köln im Leveldesign kürzere Wege geben (Plätze näher am Markt oder weitere Märkte) – dann greift die Grenze selten, und die Karren fahren fast überall in ihrem Tempo. **Entschieden (Nutzer, 31.10.2026):** mehrere Märkte in Köln, keine feste Deckelung – siehe „Mehrere Marktplätze“.
+
+## Mehrere Marktplätze (Branch phase5/gehtempo)
+
+Entscheidung des Nutzers (31.10.2026): Köln bekommt mehrere Märkte – **Alter Markt, Heumarkt, Neumarkt**, Namen wie in Köln, die Lage so, dass die Wirtschaft passt. Ziel: Reinvermögen nach 20 Jahren in Köln wieder etwa wie vorher (Spieler rund 30.000, KI-Häuser im früheren Rahmen, kein Bankrott). Die feste Deckelung der Fahrzeit (Werkstatt 60 / Umland 240) ist nicht gewählt.
+
+**Regel (Kern, keine neue Datenversion):** Eine Stadt hat einen Markt mit mehreren Plätzen – gemeinsame Preise, gemeinsamer Bestand. Ein Karren fährt zum nächsten Platz (kürzester Weg über die Karrenstraßen, nach den Kosten der Wegwahl; bei Gleichstand der erste der Karte). Ein Marktplatz ist eine Kreuzung: Karrenstraßen, die ihn berühren, sind über das Pflaster mit seiner Mitte verbunden (ab Datenversion 65; alte Spielstände rechnen auf ihrem alten Netz). Greybox, Probestadt und Messstadt rechnen wie vorher (die Greybox-Messung unten ist auf die Gulden gleich).
+
+**Wo die Plätze stehen:** Eine Suche über alle Stellen an Karrenstraßen (je Stelle ein Probe-Grundstück und sein Karrenweg zum nächsten Platz) zeigte: Werkstattwege um 24 m (= die alte feste Zeit von 30 Minuten für den Handkarren) gibt es nur an den Ecken von Kreuzungen, eine je Ecke. Darum Heumarkt (0 | 0, Severinstraße, Brückenstraße und Schildergasse enden an ihm), **Alter Markt** (37 | 57) am Rhein (Rheingasse/Bayenstraße), **Neumarkt** (−34 | 57) im Westen (Hohe Straße/Weyerstraße/Bayenstraße); die acht Startgrundstücke an den Ecken, die Werkstatt zum Platz hin (Spieler am Heumarkt, vier KI-Häuser am Neumarkt, drei am Alter Markt). Mit dem einen Heumarkt waren drei Plätze bestenfalls bei Werkstatt Ø 76 Minuten gewesen, wenn die Startgrundstücke bleiben (gesucht über 240 Stellen).
+
+**Fahrzeiten** (`messen karren koeln`, Handkarren eben):
+
+| Köln | Werkstatt: Weg Ø (min–max) | Handkarren | an der Höchstdauer | Umland: Weg Ø (min–max) | an der Höchstdauer |
+|---|---|---|---|---|---|
+| ein Markt (Branch 42f4197c) | 178 m (80–292) | 225 min | 10 von 48 Fahrten | 411 m (369–450) | 40 von 42 |
+| drei Marktplätze | 22 m (21–22) | 27 min | 0 von 48 | 327 m (286–369) | 28 von 42 |
+
+**Wie stark der Werkstattweg wirkt** (Versuch im Code, nicht gebaut: Köln mit einem Markt, Werkstattfahrten auf höchstens n Minuten gekappt, Umland 360; 10 Startwerte, 20 Jahre): Werkstatt 30 → Spieler 31.693, KI-Häuser Ø 53.068; 45 → 26.846 / 43.018; 60 → 24.613 / 36.289. Das Spielerziel braucht also die alte Werkstattzeit; das Umland drückt vor allem die KI-Häuser (sie haben ein Umland).
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler). Alle drei Spalten gegen denselben main 6ab07bdf (eingemergt; origin/main stand während der Messung bei c393d5a0, nur Ton dazu): **vorher** = main 6ab07bdf (feste Fahrzeit; main kennt `--rotationen` nicht, darum alle 8 bzw. 4 Rotationen – der Wohnhausplatz wirkt nicht; die Mittel sind auf die Gulden gleich mit `balancing-2026-10-31-fahrzeit-vorher-*.json` auf 24963d29), **Branch** = 42f4197c mit main 6ab07bdf (b37d4b6c, nur zum Messen), **nachher** = dieser Branch (Köln 41ccad30, Greybox f56b6f5f; dazwischen nichts, was mit Datenversion 65 anders rechnet) → `docs/messungen/balancing-2026-10-31-maerkte-{branch,nachher}-{koeln,greybox}.json`.
+
+| Karte | | vorher (fest) | Branch (ein Markt) | nachher (drei Plätze) |
+|---|---|---|---|---|
+| Köln (10 Startwerte; vorher 80 Partien) | Spieler | 31.199 | 7.170 | **33.919** |
+| | KI-Häuser Ø (kleinstes Haus) | 73.589 (57.095) | 16.832 (2.665) | **57.238** (39.124) |
+| | Bankrott | 0 | 1 | **0** |
+| | Spieler Bürger: Ø Jahr (im Ziel 8–12) | 10,0 (56 von 80) | 18,3 (0 von 10) | **10,0 (10 von 10)** |
+| Greybox (20 Startwerte; vorher 80 Partien) | Spieler | 34.779 | 34.588 | 34.588 |
+| | KI-Häuser Ø | 79.030 | 61.624 | 61.624 |
+| | Bankrott | 0 | 0 | 0 |
+
+Köln je Haus (vorher / Branch / nachher): Overstolz (Zwerg Schmied) 89.862 / 6.378 / 71.421, Hardevust (Elb Tischler) 57.095 / 10.117 / 51.862, Lyskirchen (Halbling Steinmetz) 78.875 / 39.549 / 54.019, Gryn (Mensch Alchimist) 83.008 / 30.074 / 74.930, Scherfgin (Mensch Schmied) 60.903 / 26.062 / 39.124, Mommersloch (Halbling Wirt) 80.951 / 2.980 / 58.244, Kleingedank (Mensch Tischler) 64.430 / 2.665 (ein Bankrott) / 51.063.
+
+**Befund:** Das Ziel des Spielers ist erreicht (33.919, +9 % gegen vorher – der Weg zum Heumarkt dauert 27 statt 30 Minuten), kein Bankrott, Bürger nach Ø 10,0 Jahren. Die KI-Häuser liegen bei 57.238 (−22 % gegen vorher) – so viel, wie die Fahrzeit nach Weglänge auch in der Greybox kostet (79.030 → 61.624, −22 %). Der Grund ist das Umland: Die Umlandbetriebe liegen draußen an den Landstraßen, 286–369 m vom nächsten Platz, und bleiben fast alle an der Höchstdauer (ein Ochsenkarren schafft in 360 Minuten 227 m); Marktplätze in der Stadt helfen dort nicht. Sollen die KI-Häuser in Köln näher an vorher, wären die Hebel Umlandbetriebe näher an den Toren (Leveldesign) oder eine eigene Grenze fürs Umland (nicht gewählt) – beides Entscheidungen für Teamleiter und Nutzer.
