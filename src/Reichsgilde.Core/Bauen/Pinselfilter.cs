@@ -10,7 +10,7 @@ namespace Reichsgilde.Core.Bauen;
 //    • eine bestimmte Bodentextur liegt: Mit Rand 0 % muss sie mindestens die Hälfte des Bodenpunkts decken, mit 100 % genügt ein Hauch davon.
 //  Gemessen wird am Stand vor dem Strich (der Strich ändert nicht, wo er wirken darf) und am gespeicherten Raster ohne das Bett der Wege – wie die
 //  Hangsperre. Die Steigung eines Höhenpunkts kommt aus seinen vier Nachbarn (Mittendifferenz über 4 m), zwischen den Höhenpunkten bilinear.
-//  Die Idee folgt dem Steigungsfilter von Terrain3D (MIT, src/terrain_3d_data.cpp, is_in_slope, Commit cdcd382c); gerechnet wird hier eigenständig
+//  Die Idee folgt dem Steigungsfilter von Terrain3D (MIT, src/terrain_3d_data.cpp:829-851 „is_in_slope“, Commit cdcd382c); gerechnet wird hier eigenständig
 //  in Prozent statt Grad, ohne Winkelfunktionen – nur + − × ÷ und Wurzel, auf jedem Rechner gleich.
 // ═════════════════════════════════════════════════════════════════════════════
 
