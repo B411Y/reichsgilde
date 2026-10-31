@@ -359,6 +359,7 @@ public partial class Stadtansicht
         md.Kundenplaetze.Sort((x, y) => x.Art != y.Art ? x.Art.CompareTo(y.Art) : x.Reihe.CompareTo(y.Reihe));
         DampfAnlegen(wurzel, md);
         InnenFlammenAnlegen(md, wurzel, datei, dauerfeuer); // Kerzen und Esse mit echter Flamme (Stadtansicht.Feuer.cs)
+        GiFensterGewichten(md.Lichter.Where(l => l.Art == LichtArt.Fenster).Select(l => l.Licht)); // viele Fenster in einem Raum: jedes trägt weniger zu SDFGI bei (Stadtansicht.GlobaleBeleuchtung.cs)
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke, Dampf und Flammen
 
@@ -614,7 +615,9 @@ public partial class Stadtansicht
             LichtArt.Lampe => new OmniLight3D { LightColor = new Color(1f, 0.82f, 0.55f), OmniRange = 6f, LightEnergy = 0.5f },
             _ => new SpotLight3D { LightColor = new Color(0.86f, 0.90f, 1f), SpotRange = 4.5f, SpotAngle = 50f, LightEnergy = 0f },
         };
+        licht.LightIndirectEnergy = 0; // in SDFGI geht sein Zwilling ein (das Licht selbst sitzt in Wand, Glut oder Laterne; Stadtansicht.GlobaleBeleuchtung.cs)
         anker.AddChild(licht);
+        GiZwillingAnlegen(licht, art);
         md.Lichter.Add((licht, art, ExtraZahl(anker, "stufe", 1)));
     }
 
@@ -684,7 +687,7 @@ public partial class Stadtansicht
 
     private static void EbeneSetzen(Node knoten, uint ebene)
     {
-        if (knoten is Light3D licht) licht.LightCullMask = ebene;
+        if (knoten is Light3D licht) { if (!licht.HasMeta(NurGiMeta)) licht.LightCullMask = ebene; } // Lichter nur für SDFGI beleuchten keine Ebene (Stadtansicht.GlobaleBeleuchtung.cs)
         else if (knoten is VisualInstance3D sichtbar) sichtbar.Layers = ebene;
         foreach (var kind in knoten.GetChildren()) EbeneSetzen(kind, ebene);
     }
@@ -792,6 +795,7 @@ public partial class Stadtansicht
             foreach (var stoff in md.Glut) stoff.EmissionEnergyMultiplier = arbeitet ? md.GlutAn : 0f;
             foreach (var flamme in md.Flammen) flamme.Visible = arbeitet; // Kerzen und Esse brennen mit der Glut
             md.Hell = -1;
+            if (md.Glut.Count > 0) GiRaumNeuAnlegen(); // SDFGI trägt die leuchtende Glut nur beim Anlegen ein (Stadtansicht.GlobaleBeleuchtung.cs)
         }
         if (Mathf.Abs(_raumHell - md.Hell) > 0.01f)
         {
@@ -806,6 +810,7 @@ public partial class Stadtansicht
                     LichtArt.Lampe => arbeitet ? 0.55f + 0.5f * (1f - _raumHell) : 0.05f, // brennt wie die Laternenscheibe (Material „Glut“) nur bei der Arbeit, nachts heller
                     _ => 0.05f + 0.8f * _raumHell,
                 };
+                GiZwillingNachfuehren(licht); // der Zwilling für SDFGI leuchtet mit (Stadtansicht.GlobaleBeleuchtung.cs)
             }
         }
 

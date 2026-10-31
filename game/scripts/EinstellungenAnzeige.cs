@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// Fenster „Einstellungen“ mit vier Reitern (Umbau 29.10.2026, vorher sieben):
 /// <b>Grafik</b> – oben die Voreinstellung (Niedrig bis Ultra, automatische Wahl, Vollbild), darunter in den Gruppen <i>Leistung</i> (Bildrate, VSync, FSR 2.2),
 /// <i>Bild</i> (Kantenglättung, Schatten) und <i>Stimmung</i> (Bloom) die sechs Hauptregler; der Knopf <i>Erweitert</i> klappt den Rest auf (Dynamische Auflösung,
-/// Detailstufe, Boden, Gras, Umgebungsverdeckung, indirektes Licht, Unschärfe, Wolken, Dunst, Wetter, Farbstimmung und unter Windows die Grafikschnittstelle,
+/// Detailstufe, Boden, Gras, Umgebungsverdeckung, indirektes Licht, globale Beleuchtung (SDFGI, mit den Unterschaltern Innenräume und Außenansicht), Unschärfe, Wolken, Dunst, Wetter, Farbstimmung und unter Windows die Grafikschnittstelle,
 /// siehe <see cref="Grafikschnittstelle"/>); der Zustand wird in <c>user://einstellungen.cfg</c> (Abschnitt „oberflaeche“) gemerkt.
 /// <b>Ton</b> (Lautstärke je Bus, Stumm, Ansagen, Ton im Hintergrund stumm; siehe <see cref="KlangDienst"/>), <b>Spiel</b> (Ratssitzung zeigen) und
 /// <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Fahnen bewegen, Tooltips festheften).
@@ -45,6 +45,39 @@ public sealed class EinstellungenAnzeige
         (Umgebungsverdeckung.Mittel, "Mittel (empfohlen)", "Wie Niedrig, mit mehr Proben: gleichmäßiger, weniger Körnung."),
         (Umgebungsverdeckung.Hoch, "Hoch", "Volle Auflösung und viele Proben: feinste Fugen. Kostet deutlich mehr Grafikleistung."),
     };
+
+    /// <summary>
+    /// Anzeigename und Erklärung je Stufe der globalen Beleuchtung (SDFGI) – in der Reihenfolge der Auswahlliste. Ehrlich zu den Kosten
+    /// (Werte und Messung: Stadtansicht.GlobaleBeleuchtung.cs, docs/bereiche/darstellung.md). Standard Aus, in keiner Voreinstellung an (Entscheidung des Nutzers 30.10.2026).
+    /// </summary>
+    private static readonly (GlobaleBeleuchtung Stufe, string Name, string Erklaerung)[] GiStufen =
+    {
+        (GlobaleBeleuchtung.Aus, "Aus (empfohlen)", "Kein SDFGI: gleichmäßiges Grundlicht wie immer. Kostet nichts."),
+        (GlobaleBeleuchtung.Niedrig, "Niedrig", "Wenige Strahlen auf halber Auflösung, das Licht wird langsam nachgeführt; in den Räumen grobe Zellen (40 cm), das Licht wirkt fleckig. " +
+            "Wo das Licht an einer Kante wechselt (Fensterlaibung, Wandecke), werden die Kanten leicht treppig."),
+        (GlobaleBeleuchtung.Mittel, "Mittel", "Doppelt so viele Strahlen auf voller Auflösung (glatte Kanten), das Licht folgt schneller; in den Räumen Zellen von 20 cm."),
+        (GlobaleBeleuchtung.Hoch, "Hoch", "Viermal so viele Strahlen wie Niedrig; in den Räumen die feinsten Zellen (10 cm) und Godots Verfahren gegen Lichtlecks. Nur für starke Grafikkarten."),
+    };
+
+    /// <summary>Vorwort des Tooltips der globalen Beleuchtung (dazu, wenn es fehlt, der Grund).</summary>
+    private const string GiVorwort =
+        "Zum Ausprobieren: Licht strahlt von Wänden, Boden und Gegenständen zurück, auch von Dingen außerhalb des Bildes. Das Licht von Fenstern, Glut und Lampen " +
+        "fällt weich auf Wände und Boden, Ecken und Winkel werden dunkler. Kostet viel Grafikleistung. Wo es gilt, stellen die zwei Schalter darunter ein: " +
+        "in den Räumen (Standard) und, experimentell, in der Stadt. Nach dem Umschalten und beim Wechsel zwischen Stadt und Raum flackert das Licht kurz, bis es sich gesetzt hat.";
+
+    /// <summary>Tooltip des Unterschalters „Innenräume“ der globalen Beleuchtung.</summary>
+    private const string GiInnenTipp =
+        "Globale Beleuchtung in den Räumen (Werkstätten, Wohnhaus, Rathaus): Das Licht von Fenstern, Glut und Lampen fällt auf Wände und Boden zurück, " +
+        "Ecken und Nischen werden weicher und dunkler, die Glut färbt den Raum warm. Die Räume bleiben in jeder Stufe etwa so hell wie ohne. " +
+        "Kostet in den Räumen viel Grafikleistung: auf einer schwachen Karte bei Niedrig rund 30 %, bei Mittel rund 40 % (in den schlichten Räumen von Wohnhaus und Rathaus bis 75 %), " +
+        "bei Hoch mehr als doppelt so viel Zeit je Bild. Standard: an.";
+
+    /// <summary>Tooltip des Unterschalters „Außenansicht“ (mit dem Hinweis „experimentell“) der globalen Beleuchtung.</summary>
+    private const string GiAussenTipp =
+        "Experimentell: globale Beleuchtung auch in der Stadt. Weil die Kamera weit über der Stadt steht, rechnet SDFGI dort nur in groben Feldern von 5 m: " +
+        "Man sieht kaum einen Unterschied, die Schatten werden etwas kühler, auf großen Erdflächen erscheinen weiche Flecken. Kostet trotzdem Grafikleistung " +
+        "(auf einer schwachen Karte bei Niedrig rund 7 %, bei Mittel und Hoch rund 15 % mehr Zeit je Bild). Neue Häuser, Baustellen und das Fensterlicht am Abend kommen erst nach, " +
+        "wenn man die Kamera ein Stück verschiebt. Standard: aus.";
 
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
     private static readonly (Voreinstellung Stufe, string Erklaerung)[] Voreinstellungen =
@@ -191,6 +224,9 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton _schatten;
     private readonly OptionButton _verdeckung;
     private readonly CheckButton _indirekt;
+    private readonly OptionButton _gi;
+    /// <summary>Unterschalter der globalen Beleuchtung: Innenräume und Außenansicht (nur sichtbar, wenn die Stufe nicht Aus ist).</summary>
+    private readonly CheckButton _giInnen, _giAussen;
     // Grafik: Stimmung
     private readonly CheckButton _bloom;
     private readonly HSlider _bloomRegler;
@@ -404,6 +440,29 @@ public sealed class EinstellungenAnzeige
                                  Fenster.IndirektesLichtSetzen(an);
                                  Auffrischen();
                              }, teuer: true);
+        zeile = Zeile(e, "Globale Beleuchtung (SDFGI)", () => Liste(Fenster.GlobaleBeleuchtungMoeglich ? GiVorwort
+                                                                        : GiVorwort + "\n\nMit dieser Grafikschnittstelle nicht verfügbar (nur Vulkan und DirectX 12).",
+                                                                    GiStufen.Select(g => (g.Name, g.Erklaerung)),
+                                                                    IndexVon(GiStufen, g => g.Stufe == Fenster.AktuelleGlobaleBeleuchtung)));
+        _gi = Auswahl(zeile, GiStufen.Select(g => g.Name), nummer =>
+        {
+            Fenster.GlobaleBeleuchtungSetzen(GiStufen[nummer].Stufe);
+            Auffrischen();
+        }, nummer => GiStufen[nummer].Stufe != GlobaleBeleuchtung.Aus);
+        // Die zwei Unterschalter (Entscheidung des Nutzers 30.10.2026), eingerückt unter der Auswahl; sichtbar, sobald die Stufe nicht Aus ist
+        _giInnen = Schalter(e, "Innenräume", () => GiInnenTipp, an =>
+        {
+            Fenster.GlobaleBeleuchtungInnenSetzen(an);
+            Auffrischen();
+        }, einzug: Einzug);
+        _giAussen = Schalter(e, "Außenansicht", () => GiAussenTipp, an =>
+        {
+            Fenster.GlobaleBeleuchtungAussenSetzen(an);
+            Auffrischen();
+        }, teuer: true, einzug: Einzug);
+        // Der Hinweis „experimentell“ steht hinter dem Schalter, nicht in der Beschriftung: sie passte eingerückt nicht in die Spalte, der Schalter rückte heraus
+        var experimentell = Hauptmenue.Text((Container)_giAussen.GetParent(), "– experimentell", 13, Grau);
+        experimentell.VerticalAlignment = VerticalAlignment.Center;
 
         Abschnitt(e, "Stimmung (erweitert)");
         (_bloomRegler, _bloomWert, _) = Regler(e, "Bloom: Stärke", 0, 100, 5, " %", wert => Fenster.BloomSetzen(Fenster.BloomAn, wert),
@@ -649,6 +708,15 @@ public sealed class EinstellungenAnzeige
         _schatten.Select(Array.FindIndex(Schattenstufen, x => x.Stufe == Fenster.AktuelleSchattenqualitaet));
         _verdeckung.Select(Array.FindIndex(Verdeckungsstufen, v => v.Stufe == Fenster.AktuelleUmgebungsverdeckung));
         _indirekt.SetPressedNoSignal(Fenster.IndirektesLichtAn);
+        _gi.Select(Array.FindIndex(GiStufen, g => g.Stufe == Fenster.AktuelleGlobaleBeleuchtung));
+        _gi.Disabled = !Fenster.GlobaleBeleuchtungMoeglich; // unter opengl3 (Kompatibilität) gibt es kein SDFGI; die Wahl bleibt gespeichert
+        var giGewaehlt = Fenster.AktuelleGlobaleBeleuchtung != GlobaleBeleuchtung.Aus;
+        foreach (var (schalter, an) in new[] { (_giInnen, Fenster.GlobaleBeleuchtungInnen), (_giAussen, Fenster.GlobaleBeleuchtungAussen) })
+        {
+            schalter.SetPressedNoSignal(an);
+            schalter.Disabled = !Fenster.GlobaleBeleuchtungMoeglich;
+            ((Control)schalter.GetParent()).Visible = giGewaehlt; // die ganze Zeile
+        }
 
         _bloom.SetPressedNoSignal(Fenster.BloomAn);
         WertSetzen(_bloomRegler, _bloomWert, Fenster.BloomStaerke, " %");
@@ -734,13 +802,13 @@ public sealed class EinstellungenAnzeige
     /// <summary>
     /// Ein Schalter mit Beschriftung links; ein Klick auf die Beschriftung schaltet auch. <paramref name="teuer"/> hängt das Flammenzeichen an.
     /// </summary>
-    private CheckButton Schalter(Container eltern, string beschriftung, Func<string> tipp, Action<bool> geaendert, bool teuer = false)
+    private CheckButton Schalter(Container eltern, string beschriftung, Func<string> tipp, Action<bool> geaendert, bool teuer = false, int einzug = 0)
     {
-        var zeile = Zeile(eltern, beschriftung, tipp);
+        var zeile = Zeile(eltern, beschriftung, tipp, einzug: einzug);
         var schalter = new CheckButton { FocusMode = Control.FocusModeEnum.None, SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         schalter.Toggled += an => geaendert(an);
         zeile.AddChild(schalter);
-        if (zeile.GetChild(0) is Label name)
+        if (zeile.GetChildren().OfType<Label>().FirstOrDefault() is { } name)
             name.GuiInput += ereignis =>
             {
                 if (ereignis is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) schalter.ButtonPressed = !schalter.ButtonPressed;
@@ -781,14 +849,21 @@ public sealed class EinstellungenAnzeige
         return auswahl;
     }
 
-    /// <summary>Eine Zeile mit Beschriftung links; das Feld kommt danach dazu. Der Tooltip hängt an allen Teilen der Zeile.</summary>
-    private HBoxContainer Zeile(Container eltern, string beschriftung, Func<string> tipp, int breite = 200)
+    /// <summary>So weit (Pixel) rücken Unterschalter unter ihrer Zeile ein (Innenräume und Außenansicht unter der globalen Beleuchtung).</summary>
+    private const int Einzug = 18;
+
+    /// <summary>
+    /// Eine Zeile mit Beschriftung links; das Feld kommt danach dazu. Der Tooltip hängt an allen Teilen der Zeile. <paramref name="einzug"/> rückt die
+    /// Beschriftung ein (Unterschalter), das Feld bleibt in der Spalte der anderen.
+    /// </summary>
+    private HBoxContainer Zeile(Container eltern, string beschriftung, Func<string> tipp, int breite = 200, int einzug = 0)
     {
         var zeile = new HBoxContainer();
         zeile.AddThemeConstantOverride("separation", 10);
         eltern.AddChild(zeile);
+        if (einzug > 0) zeile.AddChild(new Control { CustomMinimumSize = new Vector2(einzug - 10, 0), MouseFilter = Control.MouseFilterEnum.Ignore }); // der Abstand der Zeile kommt dazu
         var name = Hauptmenue.Text(zeile, beschriftung, 15);
-        name.CustomMinimumSize = new Vector2(breite, 0);
+        name.CustomMinimumSize = new Vector2(breite - einzug, 0);
         _tipps.Add((zeile, tipp));
         return zeile;
     }
