@@ -270,7 +270,61 @@ erzeugt.append(schreiben("p10_kalibrier", {
     "spalten": [{"titel": "Graukarte", "pruefkoerper": "graukarte"}, {"titel": "Hautfeld III", "pruefkoerper": "hautfeld"},
                 {"titel": "Farbtest (Albedo)", "pruefkoerper": "farbtest", "anzeige": "albedo"},
                 {"titel": "Kugeln L-V", "pruefkoerper": "kugel"}, {"titel": "Kugeln L-S", "pruefkoerper": "kugel", "licht": "spiel"}],
-    "zeilen": [{"titel": "Stand 5", "stand": 5}]}))
+    "zeilen": [{"titel": "Stand 5", "stand": 5}, {"titel": "Stand 6", "stand": 6}]}))
+# S2: Prüfkugeln (Lichtart „kugeltest“: nur das Schlüssellicht, linear, schwarzer Grund, orthografische Kamera – alle
+# drei Kugeln sehen genau dieselbe Blickrichtung). Spalten: Winkel zwischen Licht und Blick 0/30/60/80/150°; je Zelle
+# links haut6 (Wrap 0, eine Keule), Mitte StandardMaterial3D, rechts haut3 (Phase 5). Zeile Glanz: Albedo 0 (Energie 8,
+# damit die Glanzspitze gut über dem 8-Bit-Raster liegt); Streulicht: Glanz 0; Streiflicht: Glanz mit Energie 1 (ohne
+# Übersteuerung), gewertet als Summe über die Kugel bei 150° (Licht von hinten seitlich, Fresnel am Rand).
+erzeugt.append(schreiben("p10b_kugeln", {
+    "titel": "P10b Prüfkugeln: haut6 (Wrap 0, eine Keule) | StandardMaterial3D | haut3 – Glanz (Albedo 0) und Streulicht (Glanz 0), linear",
+    "pruefplan": "P10", "ab": "A", "zelle": ZELLE["K1"],
+    "alle": dict(zelle("K1"), kopf="standard", licht="kugeltest", stand=6, kamera="ortho"),
+    "spalten": [{"titel": f"Licht {w}° zur Blickachse", "schluessel_richtung": [-w, 0]} for w in (0, 30, 60, 80, 150)],
+    "zeilen": [{"titel": "Glanz", "pruefkoerper": "kugel6_glanz", "schluessel": {"light_energy": 8.0}},
+               {"titel": "Streulicht", "pruefkoerper": "kugel6_streu", "schluessel": {"light_energy": 1.0}},
+               {"titel": "Streiflicht (Glanz, Energie 1)", "pruefkoerper": "kugel6_glanz", "schluessel": {"light_energy": 1.0}}]}))
+# S2: Formnormalen A/B ohne Neubau (kopf5.glb ohne, kopf5_mn.glb mit Normalen aller Formen), Stand 5. Bogen a: Mann 30
+# unter L-V vorn (Messung Kiefer und Kinn gegen die obere Wange); Bogen b: Grat- und Dellenprüfung über alle Alter samt
+# Säugling, Kind und Büstennaht (Streiflicht).
+erzeugt.append(schreiben("s2_ab_mann30", {
+    "titel": "S2 A/B Formnormalen: Mann 30, L-V – K1 ohne | K1 mit | K2 ohne | K2 mit (kopf5.glb | kopf5_mn.glb)",
+    "pruefplan": "S2", "ab": "A", "zelle": ZELLE["K1"], "alle": {"licht": "vorlage", "stand": 5, "alter": 30, "geschlecht": "m",
+                                                                  "haar": {"modus": "aus"}},
+    "spalten": [dict(zelle("K1"), titel="K1 ohne", kopf="kopf5.glb"), dict(zelle("K1"), titel="K1 mit", kopf="kopf5_mn.glb"),
+                dict(zelle("K2"), titel="K2 ohne", kopf="kopf5.glb"), dict(zelle("K2"), titel="K2 mit", kopf="kopf5_mn.glb")],
+    "zeilen": [{"titel": "Mann 30"}]}))
+PERS_AB = [("Säugling 1", {"alter": 1, "geschlecht": "m"}, True), ("Kind 5", {"alter": 5, "geschlecht": "w"}, True)] + \
+    [(f"{'Mann' if g == 'm' else 'Frau'} {a}", {"alter": a, "geschlecht": g}, False) for g in ("m", "w") for a in (20, 35, 70)]
+erzeugt.append(schreiben("s2_ab_formen", {
+    "titel": "S2 A/B Formnormalen über alle Alter: K2 ohne | K2 mit | Büste ohne | Büste mit (Streiflicht, L-V, Stand 5)",
+    "pruefplan": "S2", "ab": "A", "zelle": [600, 720], "alle": {"licht": "vorlage", "stand": 5, "haar": {"modus": "aus"}},
+    "spalten": [dict(zelle("K2_kind"), titel="K2 ohne", kopf="kopf5.glb", schluessel_richtung=[-100, 20]),
+                dict(zelle("K2_kind"), titel="K2 mit", kopf="kopf5_mn.glb", schluessel_richtung=[-100, 20]),
+                {"titel": "Büste ohne", "kopf": "kopf5.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0, "schluessel_richtung": [-100, 20]},
+                {"titel": "Büste mit", "kopf": "kopf5_mn.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0, "schluessel_richtung": [-100, 20]}],
+    "zeilen": [dict(p, titel=t) for t, p, _ in PERS_AB]}))
+# S2: dünne Formdaten – kopf6.glb (dünn) gegen dieselben Formen dicht gespeichert (arbeit/phase6/probe/dicht/kopf6.glb,
+# gleiche Normalen), Stand 6; die Bilder müssen gleich sein (mittlere Abweichung ≤ 1/255)
+DICHT = "~/werkzeuge/charakter/arbeit/phase6/probe/dicht/kopf6.glb"
+erzeugt.append(schreiben("s2_duenn", {
+    "titel": "S2 Dünne Formdaten: kopf6.glb dünn | dieselben Formen dicht (Stand 6)", "pruefplan": "S2", "ab": "A",
+    "zelle": ZELLE["K1"], "alle": {"stand": 6, "haar": {"modus": "aus"}},
+    "spalten": [{"titel": "dünn (kopf6.glb)", "kopf": "kopf6.glb"}, {"titel": "dicht", "kopf": DICHT}],
+    "zeilen": [dict(zelle("K1"), titel="Mann 30, K1, L-V", alter=30, geschlecht="m", licht="vorlage"),
+               dict(zelle("K2"), titel="Frau 30, K2, L-S", alter=30, geschlecht="w", licht="spiel"),
+               dict(zelle("N4"), titel="Mann 35 Mimik, N4", alter=35, geschlecht="m", licht="vorlage",
+                    mimik={"jawOpen": 0.5, "mouthSmileLeft": 0.6, "mouthSmileRight": 0.6}),
+               dict(zelle("K2_kind"), titel="Säugling 1, K2", alter=1, geschlecht="m", licht="vorlage")]}))
+# S2: Ultra (Bildschirm-SSS) ohne grauen Saum – Stand 5 (haut3_ultra, Allzweck-Kern) gegen Stand 6 (haut6_ultra, Hautkern)
+erzeugt.append(schreiben("s2_ultra", {
+    "titel": "S2 Ultra: Stand 5 Hoch | Stand 5 Ultra | Stand 6 Hoch | Stand 6 Ultra – K4 und N1 (Wange nah), L-S, ohne Haar",
+    "pruefplan": "S2", "ab": "A", "zelle": ZELLE["K4"], "alle": {"kopf": "standard", "licht": "spiel", "alter": 35,
+                                                                  "haar": {"modus": "aus"}},
+    "spalten": [{"titel": "Stand 5 Hoch", "stand": 5}, {"titel": "Stand 5 Ultra", "stand": 5, "ultra": True},
+                {"titel": "Stand 6 Hoch", "stand": 6}, {"titel": "Stand 6 Ultra", "stand": 6, "ultra": True}],
+    "zeilen": [dict(zelle("K4"), titel="Mann 35 K4", geschlecht="m"), dict(zelle("K4"), titel="Frau 35 K4", geschlecht="w"),
+               dict(zelle("N1"), titel="Mann 35 N1", geschlecht="m")]}))
 
 # ------------------------------------------------------------------ P11 farbtafel
 zeilen = []

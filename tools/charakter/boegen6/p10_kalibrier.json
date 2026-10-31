@@ -43,6 +43,10 @@
   {
    "titel": "Stand 5",
    "stand": 5
+  },
+  {
+   "titel": "Stand 6",
+   "stand": 6
   }
  ],
  "name": "p10_kalibrier"

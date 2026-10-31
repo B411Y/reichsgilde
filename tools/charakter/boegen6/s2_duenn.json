@@ -1,0 +1,75 @@
+{
+ "titel": "S2 Dünne Formdaten: kopf6.glb dünn | dieselben Formen dicht (Stand 6)",
+ "pruefplan": "S2",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "stand": 6,
+  "haar": {
+   "modus": "aus"
+  }
+ },
+ "spalten": [
+  {
+   "titel": "dünn (kopf6.glb)",
+   "kopf": "kopf6.glb"
+  },
+  {
+   "titel": "dicht",
+   "kopf": "~/werkzeuge/charakter/arbeit/phase6/probe/dicht/kopf6.glb"
+  }
+ ],
+ "zeilen": [
+  {
+   "ansicht": "kopf",
+   "winkel": 0,
+   "hoehe": 0,
+   "spanne_m": 0.34,
+   "ziel_m": -0.02,
+   "titel": "Mann 30, K1, L-V",
+   "alter": 30,
+   "geschlecht": "m",
+   "licht": "vorlage"
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": 35,
+   "hoehe": 0,
+   "spanne_m": 0.34,
+   "ziel_m": -0.02,
+   "titel": "Frau 30, K2, L-S",
+   "alter": 30,
+   "geschlecht": "w",
+   "licht": "spiel"
+  },
+  {
+   "ansicht": "mund",
+   "winkel": 15,
+   "hoehe": 0,
+   "spanne_m": 0.09,
+   "ziel_m": -0.07,
+   "titel": "Mann 35 Mimik, N4",
+   "alter": 35,
+   "geschlecht": "m",
+   "licht": "vorlage",
+   "mimik": {
+    "jawOpen": 0.5,
+    "mouthSmileLeft": 0.6,
+    "mouthSmileRight": 0.6
+   }
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": 35,
+   "hoehe": 0,
+   "titel": "Säugling 1, K2",
+   "alter": 1,
+   "geschlecht": "m",
+   "licht": "vorlage"
+  }
+ ],
+ "name": "s2_duenn"
+}

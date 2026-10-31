@@ -5,7 +5,11 @@ Läuft ohne Godot und ohne Blender (nur Blenders Python für numpy und OpenImage
 
     BPY=~/werkzeuge/blender/blender-5.2.2-linux-x64/5.2/python/bin/python3.13
     $BPY -I tools/charakter/messen/pruefen6.py --mappe=<Prüfmappe> [--gewichte=<gewichte.json>] [--glb=<kopf.glb>]
-         [--alt5=<Bilder der Phase 5, gesicht30>] [--aus=<Ordner>]
+         [--alt5=<Bilder der Phase 5, gesicht30>] [--a0=<Prüfmappe A0 = Stand 5>] [--aus=<Ordner>]
+
+Ab S2/S3 (Prüfmappe A1, Stand 6): Prüfkugeln (p10b_kugeln), Formnormalen A/B (s2_ab_mann30), dünne Formdaten
+(duenn_vergleich.json, s2_duenn), Farbtest über die Hilfsfunktion, Iris und Lederhaut, Wange (Chroma, a*), Licht :
+Schatten und R/G unter L-V und L-S, M2 gepaart (messung.jsonl mit Stand 5 und 6).
 
 Die Prüfmappe enthält die gerenderten Bögen (je Bogen ein Ordner mit zz_ss.png und zz_ss.json), bruecke_pruefen.json,
 gewichte*.json (Gewichteausdruck) und messung.jsonl (M2). Fehlt etwas, steht die Zeile auf „offen“.
@@ -242,6 +246,188 @@ def kalibrierung(mappe):
               "0,5 · 0,214 · 0,214", "OK" if ok else "ABWEICHUNG", "Godot rechnet nur den Color von sRGB nach linear um")
 
 
+# ------------------------------------------------------------------ 5b. S2/S3 (Stand 6)
+def _kugel_masken(zz_json, form, n=3, abstand=2.3, r=0.036):
+    """Scheiben der drei Prüfkugeln (Bühne: _kugeln6, Mitte = Augenmitte − 2 cm, Abstand 2,3 r) im Bild."""
+    d = json.load(open(zz_json, encoding="utf-8"))
+    k = Kamera(d)
+    am = d["kopf"]["augen_mitte"]
+    h, w = form
+    yy, xx = np.mgrid[0:h, 0:w]
+    aus = []
+    for i in range(n):
+        m = np.array([(i - 1) * r * abstand, am[1] - 0.02, am[2]]) * 1000
+        q, _ = k.projizieren(np.array([m, m + [r * 1000, 0, 0]]))
+        rp = abs(q[1, 0] - q[0, 0])
+        aus.append(np.hypot(xx + 0.5 - q[0, 0], yy + 0.5 - q[0, 1]) <= 0.9 * rp)
+    return aus
+
+
+def kugeln(mappe):
+    o = os.path.join(mappe, "p10b_kugeln")
+    if not os.path.exists(os.path.join(o, "00_00.png")):
+        zeile("S2 Prüfkugel", "Glanz und Streulicht (p10b_kugeln)", "–", "–", "offen")
+        return
+    winkel = (0, 30, 60, 80, 150)
+    glanz, streu, streif = {}, {}, {}
+    for si, wk in enumerate(winkel):
+        for zi, ziel in ((0, glanz), (1, streu), (2, streif)):
+            p = os.path.join(o, f"{zi:02d}_{si:02d}.png")
+            if not os.path.exists(p):
+                continue
+            lin = B.linear(B.lesen(p)).mean(axis=2)
+            m = _kugel_masken(p[:-4] + ".json", lin.shape)
+            if zi == 0:
+                ziel[wk] = [float(np.sort(lin[mm])[-25:].mean()) for mm in m]   # Glanzspitze: Mittel der 25 hellsten
+            elif zi == 1:
+                ziel[wk] = [float(lin[mm].mean()) for mm in m]
+            else:
+                ziel[wk] = [float(lin[mm].sum()) for mm in m]                    # Glanz über die ganze Kugel
+    for wk in winkel[:4]:
+        if wk not in glanz:
+            continue
+        h6, st, h3 = glanz[wk]
+        q = h6 / max(st, 1e-6)
+        tol = 0.10 if wk <= 60 else 0.20
+        zeile("S2 Prüfkugel", f"Glanzspitze haut6 : StandardMaterial3D bei {wk}° (Wrap 0, eine Keule)",
+              f"{f(q, 3)} ({f(h6, 3)} / {f(st, 3)})", f"1 ± {int(tol * 100)} %", "OK" if abs(q - 1) <= tol else "ABWEICHUNG")
+    for wk in (80, 150):
+        if wk in streif:
+            h6, st, h3 = streif[wk]
+            q = h6 / max(h3, 1e-6)
+            zeile("S2 Prüfkugel", f"Streiflichtglanz {wk}° (Summe über die Kugel) haut6 : haut3 (Phase 5); Standard : haut3",
+                  f"{f(q, 2)}; {f(st / max(h3, 1e-6), 2)}", "≥ 2,5 (gewertet bei 150°)" if wk == 150 else "Stand",
+                  ("OK" if q >= 2.5 else "ABWEICHUNG") if wk == 150 else "Stand")
+    for wk in winkel[:4]:
+        if wk not in streu:
+            continue
+        h6, st, _ = streu[wk]
+        q = h6 / max(st, 1e-6)
+        zeile("S2 Prüfkugel", f"Streulicht haut6 : Lambert (StandardMaterial3D) bei {wk}°", f"{f(q, 3)} ({f(h6, 3)} / {f(st, 3)})",
+              "1 ± 3 %", "OK" if abs(q - 1) <= 0.03 else "ABWEICHUNG")
+
+
+def formnormalen_ab(mappe, nm):
+    o = os.path.join(mappe, "s2_ab_mann30")
+    if not os.path.exists(os.path.join(o, "00_01.png")):
+        zeile("S2 Formnormalen", "A/B Mann 30 (s2_ab_mann30)", "–", "–", "offen")
+        return
+    wv = {}
+    for zz, art in (("00_00", "ohne"), ("00_01", "mit")):
+        pl, pr = pupillen(os.path.join(o, zz + ".json"), nm)
+        w = BW.werte_vorn(B.lesen(os.path.join(o, zz + ".png")), pl, pr)
+        wl = w["zonen"]["wange_licht"]["Y"]
+        wv[art] = {"kiefer": w["zonen"]["kiefer_licht"]["Y"] / wl, "kinn": w["zonen"]["kinn"]["Y"] / wl}
+    for teil in ("kiefer", "kinn"):
+        d = (wv["ohne"][teil] - wv["mit"][teil]) * 100
+        zeile("S2 Formnormalen", f"A/B Mann 30, L-V: {teil.capitalize()} gegen obere Wange (Y), ohne → mit Normalen",
+              f"{f(wv['ohne'][teil] * 100, 1)} % → {f(wv['mit'][teil] * 100, 1)} % (−{f(d, 1)} Pp.)", "≥ 8 Prozentpunkte dunkler",
+              "OK" if d >= 8 else "ABWEICHUNG")
+
+
+def duenn(mappe):
+    p = os.path.join(mappe, "duenn_vergleich.json")
+    if os.path.exists(p):
+        d = json.load(open(p, encoding="utf-8"))
+        zeile("S2 dünne Formdaten", "Normalen und Lagen dicht gegen dünn (größte Abweichung)",
+              f"Normale {d['normale_max']:.1e}, Lage {d['lage_max']:.1e} m ({d['normalen_formen']} Formen mit Normalen, {d['duenne_accessoren']} dünne Accessoren)",
+              "Normalen < 1e-3", "OK" if d["normale_max"] < 1e-3 else "ABWEICHUNG")
+        if "kopf5_mn_mb" in d:
+            zeile("S2 dünne Formdaten", "Größe kopf6.glb gegen kopf5_mn.glb", f"{f(d['groesse_mb'][1], 1)} MB / {f(d['kopf5_mn_mb'], 1)} MB",
+                  "nicht größer", "OK" if d["groesse_mb"][1] <= d["kopf5_mn_mb"] else "ABWEICHUNG")
+    o = os.path.join(mappe, "s2_duenn")
+    if os.path.exists(os.path.join(o, "00_01.png")):
+        werte = []
+        for zi in range(4):
+            a, b = os.path.join(o, f"{zi:02d}_00.png"), os.path.join(o, f"{zi:02d}_01.png")
+            if os.path.exists(a) and os.path.exists(b):
+                werte.append(BW.bildunterschied(B.lesen(a), B.lesen(b))["mittel"])
+        zeile("S2 dünne Formdaten", "Bild dünn gegen dicht (s2_duenn, gleiche Normalen)", " / ".join(f(x) for x in werte) + " /255",
+              "mittlere Abweichung ≤ 1/255", "OK" if werte and max(werte) <= 1.0 else "ABWEICHUNG")
+
+
+def _lstern(Y):
+    t = Y ** (1 / 3) if Y > 0.008856 else 7.787 * Y + 16 / 116
+    return 116 * t - 16
+
+
+def stand6_bild(mappe, nm, a0):
+    """Abnahme S2/S3 an P1 (K1, Mann H2 35, L-V und L-S) und am Farbtest (P10, Zeile Stand 6)."""
+    w = {}
+    for licht in ("lv", "ls"):
+        for mappe_x, wer in ((mappe, "A1"), (a0, "A0")):
+            o = os.path.join(mappe_x or "", f"p01_alter_ton_k1_{licht}")
+            p = os.path.join(o, "01_01.png")
+            if not mappe_x or not os.path.exists(p):
+                continue
+            pl, pr = pupillen(p[:-4] + ".json", nm)
+            w[(wer, licht)] = BW.werte_vorn(B.lesen(p), pl, pr)
+    if ("A1", "lv") in w:
+        x = w[("A1", "lv")]
+        z, zs = x["zonen"]["wange_licht"], x["zonen"]["wange_schatten"]
+        zeile("S2 Farbe", "Wange Mann 35 (H2), L-V: Chroma · a*", f"{f(z['C'], 1)} · {f(z['a'], 1)}", "C ≥ 14 (Phase 5: 11) · a* ≥ 8 (4,7)",
+              "OK" if z["C"] >= 14 and z["a"] >= 8 else "ABWEICHUNG")
+        iris = np.mean([x["augen"][s]["iris_Y"] for s in ("links", "rechts")])
+        leder = np.mean([x["augen"][s]["lederhaut_Y"] for s in ("links", "rechts")])
+        if ("A0", "lv") in w:
+            i5 = np.mean([w[("A0", "lv")]["augen"][s]["iris_Y"] for s in ("links", "rechts")])
+            zeile("S2 Augen", "Iris-Leuchtdichte Mann 35, L-V: Stand 6 : Stand 5", f"{f(iris, 3)} / {f(i5, 3)} = {f(iris / i5, 2)}",
+                  "≤ ⅓", "OK" if iris / i5 <= 1 / 3 else "ABWEICHUNG")
+        dl = _lstern(leder) - z["L"]
+        zeile("S2 Augen", "Lederhaut gegen beleuchtete Wange (L*), L-V", f"{f(_lstern(leder), 1)} − {f(z['L'], 1)} = {f(dl, 1)}",
+              "≤ +5 L*", "OK" if dl <= 5 else "ABWEICHUNG")
+        zeile("S3 Licht", "L-V: Licht : Schatten der Wangen (linear) · R/G licht · R/G Schatten",
+              f"{f(x['licht_schatten'])} · {f(z['RG'])} · {f(zs['RG'])}", "2,0–4,0 · ≥ 1,25 · ≥ 1,30",
+              "OK" if 2.0 <= x["licht_schatten"] <= 4.0 and z["RG"] >= 1.25 and zs["RG"] >= 1.30 else "ABWEICHUNG")
+        if ("A1", "ls") in w:
+            y = w[("A1", "ls")]
+            yl, ys = y["zonen"]["wange_licht"], y["zonen"]["wange_schatten"]
+            q = [y["licht_schatten"] / x["licht_schatten"], yl["RG"] / z["RG"], ys["RG"] / zs["RG"]]
+            zeile("S3 Licht", "L-S: Licht : Schatten · R/G licht · R/G Schatten (Verhältnis zu L-V)",
+                  f"{f(y['licht_schatten'])} · {f(yl['RG'])} · {f(ys['RG'])} ({' / '.join(f(v) for v in q)})", "je ±20 % von L-V",
+                  "OK" if all(0.8 <= v <= 1.2 for v in q) else "ABWEICHUNG")
+            zeile("S3 Licht", "L-S: Wange L*/a*/b*/C (Mann 35, H2)", f"{f(yl['L'], 1)}/{f(yl['a'], 1)}/{f(yl['b'], 1)}/{f(yl['C'], 1)}",
+                  "Chroma ≥ 17 sonst E5 (AgX-Feinwerte/LUT)", "OK" if yl["C"] >= 17 else "Stand (E5)")
+    # Farbtest über die Hilfsfunktion (P10, Zeile Stand 6, Spalte 2): Mitte gegen StandardMaterial3D in 8 Bit
+    p = os.path.join(mappe, "p10_kalibrier", "01_02.png")
+    if os.path.exists(p):
+        a = B.lesen(p)
+        k = Kamera(json.load(open(p[:-4] + ".json", encoding="utf-8")))
+        am = json.load(open(p[:-4] + ".json", encoding="utf-8"))["kopf"]["augen_mitte"]
+        v = []
+        for dx in (0.0, 0.0735):
+            q, _ = k.projizieren(np.array([[dx * 1000, (am[1] - 0.02) * 1000, am[2] * 1000]]))
+            x0, y0 = int(q[0, 0]), int(q[0, 1])
+            v.append(a[y0 - 8:y0 + 8, x0 - 8:x0 + 8].reshape(-1, 3).mean(axis=0) * 255)
+        d = float(np.abs(v[0] - v[1]).max())
+        zeile("S2 Farbe", "Farbtest: Hilfsfunktion (Stand 6) gegen StandardMaterial3D, sRGB", f"{f(float(v[0].mean()), 1)} / {f(float(v[1].mean()), 1)} (Δ {f(d, 1)})",
+              "±2/255", "OK" if d <= 2 else "ABWEICHUNG")
+
+
+def m2_gepaart(mappe):
+    p = os.path.join(mappe, "messung.jsonl")
+    if not os.path.exists(p):
+        return
+    paar = {}
+    for z in open(p, encoding="utf-8"):
+        d = json.loads(z)
+        paar.setdefault((d["name"], d.get("licht", "spiel"), d.get("wiederholung", 0)), {})[d.get("stand", 5)] = d["gpu_ms"]
+    je = {}
+    for (name, licht, wdh), st in paar.items():
+        if 5 in st and 6 in st:
+            je.setdefault((name, licht), []).append(st[6] - st[5])
+    grenzen = {"ohne_haar": 0.3, "haar_tressfx_ruhe": 1.2, "x8_ohne_haar": 3.0, "leer": None}
+    for (name, licht), ds in sorted(je.items()):
+        g = grenzen.get(name)
+        med = float(np.median(ds))
+        ziel = f"Δ ≤ +{f(g, 1)} ms" if g is not None else "–"
+        if name == "ohne_haar" and licht == "spiel":
+            ziel = "Δ ≤ +0,3 ms (S2) bzw. +0,5 ms mit weichen Schatten (S3)"
+            g = 0.5
+        zeile("Leistung M2 gepaart", f"{name}, Licht {licht}: Stand 6 − Stand 5 (Median aus {len(ds)})", f"{'+' if med >= 0 else ''}{f(med)} ms ({', '.join(f(x) for x in ds)})",
+              ziel, ("OK" if med <= g else "ABWEICHUNG") if g is not None else "Stand")
+
+
 # ------------------------------------------------------------------ 6. Bild gegen Netz (M0)
 def profil_punkte(ys, zs, P):
     """Punkte eines Profilumrisses (Höhe y, Vorsprung z in mm; Bild oder Netz) mit denselben Regeln; die Suchfenster
@@ -437,6 +623,11 @@ def main():
     bruecke(mappe)
     manifest()
     m2(mappe)
+    kugeln(mappe)
+    formnormalen_ab(mappe, nm)
+    duenn(mappe)
+    stand6_bild(mappe, nm, os.path.expanduser(opt["a0"]) if "a0" in opt else None)
+    m2_gepaart(mappe)
     try:
         commit = subprocess.run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip()
     except OSError:

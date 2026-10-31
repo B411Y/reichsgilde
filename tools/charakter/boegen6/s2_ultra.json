@@ -1,0 +1,68 @@
+{
+ "titel": "S2 Ultra: Stand 5 Hoch | Stand 5 Ultra | Stand 6 Hoch | Stand 6 Ultra – K4 und N1 (Wange nah), L-S, ohne Haar",
+ "pruefplan": "S2",
+ "ab": "A",
+ "zelle": [
+  760,
+  860
+ ],
+ "alle": {
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "haar": {
+   "modus": "aus"
+  }
+ },
+ "spalten": [
+  {
+   "titel": "Stand 5 Hoch",
+   "stand": 5
+  },
+  {
+   "titel": "Stand 5 Ultra",
+   "stand": 5,
+   "ultra": true
+  },
+  {
+   "titel": "Stand 6 Hoch",
+   "stand": 6
+  },
+  {
+   "titel": "Stand 6 Ultra",
+   "stand": 6,
+   "ultra": true
+  }
+ ],
+ "zeilen": [
+  {
+   "ansicht": "kopf",
+   "winkel": 25,
+   "hoehe": 3,
+   "spanne_m": 0.34,
+   "ziel_m": -0.03,
+   "titel": "Mann 35 K4",
+   "geschlecht": "m"
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": 25,
+   "hoehe": 3,
+   "spanne_m": 0.34,
+   "ziel_m": -0.03,
+   "titel": "Frau 35 K4",
+   "geschlecht": "w"
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": -30,
+   "hoehe": 0,
+   "spanne_m": 0.07,
+   "ziel_m": -0.035,
+   "ziel_x": -0.035,
+   "titel": "Mann 35 N1",
+   "geschlecht": "m"
+  }
+ ],
+ "name": "s2_ultra"
+}

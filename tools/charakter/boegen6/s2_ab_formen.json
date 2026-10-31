@@ -1,0 +1,105 @@
+{
+ "titel": "S2 A/B Formnormalen über alle Alter: K2 ohne | K2 mit | Büste ohne | Büste mit (Streiflicht, L-V, Stand 5)",
+ "pruefplan": "S2",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "licht": "vorlage",
+  "stand": 5,
+  "haar": {
+   "modus": "aus"
+  }
+ },
+ "spalten": [
+  {
+   "ansicht": "kopf",
+   "winkel": 35,
+   "hoehe": 0,
+   "titel": "K2 ohne",
+   "kopf": "kopf5.glb",
+   "schluessel_richtung": [
+    -100,
+    20
+   ]
+  },
+  {
+   "ansicht": "kopf",
+   "winkel": 35,
+   "hoehe": 0,
+   "titel": "K2 mit",
+   "kopf": "kopf5_mn.glb",
+   "schluessel_richtung": [
+    -100,
+    20
+   ]
+  },
+  {
+   "titel": "Büste ohne",
+   "kopf": "kopf5.glb",
+   "ansicht": "buste",
+   "winkel": 35,
+   "hoehe": 0,
+   "schluessel_richtung": [
+    -100,
+    20
+   ]
+  },
+  {
+   "titel": "Büste mit",
+   "kopf": "kopf5_mn.glb",
+   "ansicht": "buste",
+   "winkel": 35,
+   "hoehe": 0,
+   "schluessel_richtung": [
+    -100,
+    20
+   ]
+  }
+ ],
+ "zeilen": [
+  {
+   "alter": 1,
+   "geschlecht": "m",
+   "titel": "Säugling 1"
+  },
+  {
+   "alter": 5,
+   "geschlecht": "w",
+   "titel": "Kind 5"
+  },
+  {
+   "alter": 20,
+   "geschlecht": "m",
+   "titel": "Mann 20"
+  },
+  {
+   "alter": 35,
+   "geschlecht": "m",
+   "titel": "Mann 35"
+  },
+  {
+   "alter": 70,
+   "geschlecht": "m",
+   "titel": "Mann 70"
+  },
+  {
+   "alter": 20,
+   "geschlecht": "w",
+   "titel": "Frau 20"
+  },
+  {
+   "alter": 35,
+   "geschlecht": "w",
+   "titel": "Frau 35"
+  },
+  {
+   "alter": 70,
+   "geschlecht": "w",
+   "titel": "Frau 70"
+  }
+ ],
+ "name": "s2_ab_formen"
+}

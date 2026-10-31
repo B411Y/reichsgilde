@@ -1,0 +1,81 @@
+{
+ "titel": "P10b Prüfkugeln: haut6 (Wrap 0, eine Keule) | StandardMaterial3D | haut3 – Glanz (Albedo 0) und Streulicht (Glanz 0), linear",
+ "pruefplan": "P10",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "kugeltest",
+  "stand": 6,
+  "kamera": "ortho"
+ },
+ "spalten": [
+  {
+   "titel": "Licht 0° zur Blickachse",
+   "schluessel_richtung": [
+    0,
+    0
+   ]
+  },
+  {
+   "titel": "Licht 30° zur Blickachse",
+   "schluessel_richtung": [
+    -30,
+    0
+   ]
+  },
+  {
+   "titel": "Licht 60° zur Blickachse",
+   "schluessel_richtung": [
+    -60,
+    0
+   ]
+  },
+  {
+   "titel": "Licht 80° zur Blickachse",
+   "schluessel_richtung": [
+    -80,
+    0
+   ]
+  },
+  {
+   "titel": "Licht 150° zur Blickachse",
+   "schluessel_richtung": [
+    -150,
+    0
+   ]
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Glanz",
+   "pruefkoerper": "kugel6_glanz",
+   "schluessel": {
+    "light_energy": 8.0
+   }
+  },
+  {
+   "titel": "Streulicht",
+   "pruefkoerper": "kugel6_streu",
+   "schluessel": {
+    "light_energy": 1.0
+   }
+  },
+  {
+   "titel": "Streiflicht (Glanz, Energie 1)",
+   "pruefkoerper": "kugel6_glanz",
+   "schluessel": {
+    "light_energy": 1.0
+   }
+  }
+ ],
+ "name": "p10b_kugeln"
+}
