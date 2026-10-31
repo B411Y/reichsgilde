@@ -374,6 +374,15 @@ public sealed class Karrennetz
         return best.Kante < 0 ? null : (best.Kante, best.T);
     }
 
+    /// <summary>Wie weit ein Ort vom nächsten Weg der Karte im Netz liegt (keine Fähre, keine Linie über einen Platz) – null bei einem leeren Netz.</summary>
+    public double? AbstandZumWeg(Kartenort p)
+    {
+        if (Anhaengen(p, nurAnschluss: true) is not { } a) return null;
+        var k = _kanten[a.Kante];
+        var (x, z) = (_knoten[k.A].X + (_knoten[k.B].X - _knoten[k.A].X) * a.T, _knoten[k.A].Z + (_knoten[k.B].Z - _knoten[k.A].Z) * a.T);
+        return p.Abstand(new Kartenort(x, z));
+    }
+
     /// <summary>
     /// Die Fahrt über das Netz von <paramref name="von"/> nach <paramref name="nach"/>: der kürzeste Weg zwischen den Stellen, an denen
     /// die beiden Orte am Netz hängen, als Stücke mit Länge und Anstieg in Fahrtrichtung. Leer, wenn das Netz leer ist oder die beiden

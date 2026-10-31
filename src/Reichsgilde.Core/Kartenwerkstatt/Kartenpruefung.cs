@@ -653,8 +653,9 @@ public static class Kartenpruefung
         }
 
         /// <summary>
-        /// Jeder Marktplatz wird von einer Karrenstraße berührt (Hinweis, seit den mehreren Marktplätzen am 31.10.2026): Sonst hängt der Kern ihn an die
-        /// nächste Straße, und das Stück dorthin zählt für die Fahrzeit nicht (<c>Karrennetz.Marktlinien</c>, <c>Karrennetz.Fahrt</c>).
+        /// Jeder Marktplatz wird von einer Karrenstraße berührt (Hinweis, seit den mehreren Marktplätzen am 31.10.2026): Sonst kommen die Karren nur
+        /// über eine Gasse oder einen Fußweg hin, die ihn berühren (ab Datenversion 65, teurer für die Wahl des Weges), oder der Kern hängt den Platz an
+        /// den nächsten Weg, und das Stück von dort zählt für die Fahrzeit nicht (<c>Karrennetz.Marktlinien</c>, <c>Karrennetz.Fahrt</c>).
         /// </summary>
         private void Marktplaetze()
         {
@@ -665,7 +666,7 @@ public static class Kartenpruefung
                 var beruehrt = _wege.Any(w => Kartenweg.TraegtKarren(w.Weg.Klasse) && w.Linie.Length >= 2
                                               && Kartengeometrie.AbstandVielecke(ecken, w.Linie, false) <= Karrennetz.Fang);
                 if (!beruehrt)
-                    Hinweis("markt", $"{Wer(g)}: Keine Karrenstraße berührt den Marktplatz – die Karren fahren zur nächsten Straße, das letzte Stück zählt nicht.", g.Punkt, g.Kennung);
+                    Hinweis("markt", $"{Wer(g)}: Keine Karrenstraße berührt den Marktplatz – die Karren kommen nur über Gassen oder Fußwege hin oder halten an der nächsten Straße (das letzte Stück zählt nicht).", g.Punkt, g.Kennung);
             }
         }
 

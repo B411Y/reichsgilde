@@ -52,6 +52,14 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public Karrennetz? Karrennetz => Karte is { } k ? _karrennetz ??= Karrennetz.Von(k, marktlinien: NachWeglaengeGerechnet, alleWege: NachWeglaengeGerechnet) : null;
 
+    /// <summary>
+    /// Die Werte für Furten und Fähren (<c>logistik.wasser</c>), wenn auf der Karte etwas Karren aufhalten kann – sonst null (Furten und Fähren kosten
+    /// dann nichts, wie bis Schritt 5c). Bis Datenversion 64 eine Furt an einer Karrenstraße oder eine Fähre (<see cref="Wasserplan.HaeltAuf"/>), mit
+    /// dem Netz aller Wege auch eine Furt an einer Gasse, einem Fußweg oder Leinpfad (Befund der Prüfung). Die Darstellung nimmt dieselben Werte.
+    /// </summary>
+    public WasserDaten? Wasserhalt => Daten.Logistik.Wasser is { } w && Karte is { } k
+        && (k.Wasserplan.HaeltAuf || (NachWeglaengeGerechnet && k.Wasserplan.Querungen.Any(q => q.Art == Uebergangsart.Furt))) ? w : null;
+
     /// <summary>Rechnet der Kern die Fahrzeit nach Weglänge (Abschnitt <c>logistik.weglaenge</c>, Datenversion 65)? Dann auch auf derselben Strecke wie das Bild.</summary>
     private bool NachWeglaengeGerechnet => Daten.Logistik.Weglaenge is not null;
 
@@ -72,7 +80,7 @@ public sealed partial class Stadtwirtschaft
         if (Karte is not { } karte) return basis;
         var art = NachWeglaenge(karrenTyp);
         var steigung = karte.Gelaendeform.HatHoehen ? Daten.Logistik.Steigung : null;
-        var wasser = Daten.Logistik.Wasser is { } w && karte.Wasserplan.HaeltAuf ? w : null;
+        var wasser = Wasserhalt;
         var belag = Wegebau.IstAktiv ? Wegebau : null;
         if (art is null && steigung is null && wasser is null && belag is null) return basis;
         if (!_fahrzeiten.TryGetValue(betrieb, out var jeArt))
@@ -118,7 +126,7 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public double Fahrminuten(IReadOnlyList<Fahrtstueck> fahrt, double meterJeMinute)
     {
-        var wasser = Daten.Logistik.Wasser is { } w && Karte?.Wasserplan.HaeltAuf == true ? w : null;
+        var wasser = Wasserhalt;
         return fahrt.Sum(s => s.Laenge * Zeitfaktor(s)) / Math.Max(meterJeMinute, 1e-9) + (wasser?.Aufschlag(fahrt) ?? 0);
     }
 
@@ -160,7 +168,8 @@ public sealed partial class Stadtwirtschaft
     private static int Minuten(double x) => Math.Max(1, (int)Math.Round(x, MidpointRounding.AwayFromZero));
 
     /// <summary>
-    /// Die Fahrt eines Betriebs zum Markt und zurück über die Karrenstraßen (Stücke mit Länge und Anstieg) – null, wenn der Betrieb (noch)
+    /// Die Fahrt eines Betriebs zum Markt und zurück (Stücke mit Länge und Anstieg; ab Datenversion 65 die Strecke, die das Bild fährt, siehe
+    /// <see cref="Karrenweg"/>, vorher über die Karrenstraßen vom Platz zur Mitte des Marktplatzes) – null, wenn der Betrieb (noch)
     /// keinen Platz in der Karte hat. Leere Fahrten: kein Weg (dann gilt die feste Fahrzeit). Einmal gerechnet je Betrieb (der Platz eines
     /// Betriebs ändert sich nicht).
     /// Hat die Stadt mehrere Marktplätze (<see cref="Stadtkarte.Marktplaetze"/>), fährt der Karren zum nächsten: dem mit dem kürzesten Hinweg nach
@@ -220,6 +229,10 @@ public sealed partial class Stadtwirtschaft
         var maerkte = karte.Marktplaetze;
         (Netzfahrt Fahrt, Kartengebaeude? Markt, double Kosten) best = (Netzfahrt.Leer, null, double.MaxValue);
         if (maerkte.Count == 0) best = (Zum(default), null, 0);
+        // Wie im Bild (AnWegAnschliessen): Liegt der Hof näher am Pflaster eines Platzes als am nächsten Weg, führt der Zubringer gerade zur Mitte des
+        // nächsten Platzes und endet an dessen Halt – der Karren fährt dorthin, nicht erst zum Weg und außen herum (Befund der Prüfung).
+        if (Karrenweg.UeberDasPflaster(anker, hof, maerkte, netz.AbstandZumWeg(hof), karte.Gelaendeform) is var (gerade, nah))
+            return (gerade.Stuecke, Karrenweg.Umgekehrt(gerade.Stuecke), nah, gerade.Punkte);
         foreach (var m in maerkte)
         {
             var fahrt = Karrenweg.BisZumHalt(Zum(Mitte(m)), Karrenweg.Halt(m));

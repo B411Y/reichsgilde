@@ -15,7 +15,10 @@ namespace Reichsgilde.Core.Bauen;
 //    3. Gerade zum nächsten Weg der Karte (der Zubringer, wie ihn die Darstellung als Hofweg zeichnet) – jeder Klasse, auch Gasse und Fußweg.
 //    4. Über das Netz aller Wege (Karrennetz, Gassen und Fußwege teurer) zur Mitte des Marktplatzes …
 //    5. … und dort abgeschnitten, wo der Karren den Halt erreicht: 3,5 m vor dem Pflaster (die Zugtiere stehen am Rand), gemessen wie im Bild
-//       in den Achsen des Platzes (ein Quadrat mit der halben kürzeren Seite des Platzes plus 3,5 m).
+//       in den Achsen des Platzes (ein Quadrat mit der halben kürzeren Seite des Platzes plus 3,5 m). Steht der Karren am Halteplatz schon
+//       darin (ein Betrieb am Platz), hält er sofort: ein Stück der Länge 0, die Mindestdauer.
+//    Liegt der Hof näher am Pflaster eines Platzes als am nächsten Weg, führt der Zubringer wie im Bild gerade zur Mitte dieses Platzes
+//    (Stadtwirtschaft.StreckeWieImBild; die Darstellung hängt einen solchen Hof über das Pflaster an, AnWegAnschliessen).
 //
 //  Zurück fährt der Karren denselben Weg rückwärts. Die Stücke 1 bis 3 gehören zu keinem Weg der Karte (Belag wie der Bezug, kein Verkehr
 //  für den Wegebau, kein Ausbau).
@@ -79,6 +82,19 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
         return (mitte, markt.Drehung, halb + HaltVorPflaster);
     }
 
+    /// <summary>
+    /// Wie weit ein Punkt vom Pflaster eines Marktplatzes liegt (0 darauf; in den Achsen des Platzes, Quadrat mit der halben kürzeren Seite) –
+    /// wie <c>MarktplatzAnsicht.Abstand</c> der Darstellung.
+    /// </summary>
+    public static double Pflasterabstand(Kartenort p, Kartengebaeude markt)
+    {
+        var halt = Halt(markt);
+        var halb = halt.Halb - HaltVorPflaster;
+        var l = Kartengeometrie.Dreh(p.X - halt.Mitte.X, p.Z - halt.Mitte.Z, -halt.DrehungGrad);
+        var (dx, dz) = (Math.Max(0, Math.Abs(l.X) - halb), Math.Max(0, Math.Abs(l.Z) - halb));
+        return Math.Sqrt(dx * dx + dz * dz);
+    }
+
     /// <summary>Wie weit ein Punkt in den Achsen des Platzes von seiner Mitte liegt (der größere der beiden Abstände, Meter).</summary>
     public static double Randabstand(Kartenort p, (Kartenort Mitte, double DrehungGrad, double Halb) halt)
     {
@@ -88,12 +104,14 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
 
     /// <summary>
     /// Die Fahrt bis zum Halt: abgeschnitten, wo sie zum ersten Mal das Quadrat des Halts betritt (das Stück dort anteilig, Länge und Anstieg).
-    /// Beginnt sie schon darin (ein Betrieb am Platz) oder betritt sie es nie, bleibt sie, wie sie ist.
+    /// Beginnt sie schon darin (ein Betrieb am Platz), hält der Karren sofort: ein Stück der Länge 0 (die Mindestdauer) – sonst fuhre er von dort
+    /// erst zum nächsten Weg und außen herum bis zur Platzmitte (Befund der Prüfung). Betritt sie es nie, bleibt sie, wie sie ist. Ohne Fahrt: leer.
     /// </summary>
     public static Netzfahrt BisZumHalt(Netzfahrt fahrt, (Kartenort Mitte, double DrehungGrad, double Halb) halt)
     {
         var p = fahrt.Punkte;
-        if (p.Count < 2 || Randabstand(p[0], halt) < halt.Halb) return fahrt;
+        if (p.Count < 2) return fahrt;
+        if (Randabstand(p[0], halt) < halt.Halb) return new Netzfahrt(new[] { new Fahrtstueck(0, 0) }, new[] { p[0], p[0] });
         for (var i = 0; i + 1 < p.Count; i++)
         {
             if (Randabstand(p[i + 1], halt) >= halt.Halb) continue;
@@ -119,25 +137,54 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
     }
 
     /// <summary>
+    /// Wie im Bild (<c>AnWegAnschliessen</c>): Liegt der Hof näher am Pflaster eines Platzes als am nächsten Weg (<paramref name="abstandZumWeg"/>, null:
+    /// kein Weg), fährt der Karren gerade dorthin – vom Halteplatz über den Hof zur Mitte des nächsten Platzes (bei gleichem Abstand der erste der
+    /// Karte), bis zu dessen Halt. Null, wenn ein Weg näher (oder gleich nah) liegt oder kein Platz eine Größe hat.
+    /// </summary>
+    public static (Netzfahrt Fahrt, Kartengebaeude Markt)? UeberDasPflaster(Kartenort anker, Kartenort hof, IReadOnlyList<Kartengebaeude> maerkte,
+        double? abstandZumWeg, Gelaendeform gelaende)
+    {
+        Kartengebaeude? nah = null;
+        var abstand = double.MaxValue;
+        foreach (var m in maerkte)
+        {
+            if (m.Baustein?.Groesse is not { Length: 2 }) continue;
+            var a = Pflasterabstand(hof, m);
+            if (a < abstand) (nah, abstand) = (m, a);
+        }
+        if (nah is null || abstand >= (abstandZumWeg ?? double.MaxValue)) return null;
+        var fahrt = BisZumHalt(Gerade(new[] { anker, hof, new Kartenort(nah.Punkt[0], nah.Punkt[1]) }, gelaende), Halt(nah));
+        return fahrt.Stuecke.Count > 0 ? (fahrt, nah) : null;
+    }
+
+    /// <summary>
     /// Die Fahrt über das Netz mit den Stücken davor: vom Anker zum Hof und vom Hof gerade zum Anschluss am Netz (dem ersten Punkt der Fahrt).
     /// Anstieg nach dem Boden (<see cref="Gelaendeform.Hoehe"/>); die Stücke gehören zu keinem Weg der Karte. Ohne Fahrt: leer.
     /// </summary>
     public static Netzfahrt MitZubringer(Netzfahrt fahrt, Kartenort anker, Kartenort hof, Gelaendeform gelaende)
     {
         if (fahrt.Stuecke.Count == 0) return Netzfahrt.Leer;
+        var zubringer = Gerade(new[] { anker, hof, fahrt.Punkte[0] }, gelaende);
+        return new Netzfahrt(zubringer.Stuecke.Concat(fahrt.Stuecke).ToList(), zubringer.Punkte.Concat(fahrt.Punkte.Skip(1)).ToList());
+    }
+
+    /// <summary>
+    /// Gerade Stücke von Punkt zu Punkt, die zu keinem Weg der Karte gehören (Zubringer); Anstieg nach dem Boden. Punkte, die auf dem vorigen liegen,
+    /// fallen weg; der erste bleibt immer (auch wenn kein Stück entsteht).
+    /// </summary>
+    public static Netzfahrt Gerade(IReadOnlyList<Kartenort> punkte, Gelaendeform gelaende)
+    {
         var stuecke = new List<Fahrtstueck>();
-        var punkte = new List<Kartenort> { anker };
-        foreach (var bis in new[] { hof, fahrt.Punkte[0] })
+        var liste = new List<Kartenort> { punkte[0] };
+        foreach (var bis in punkte.Skip(1))
         {
-            var von = punkte[^1];
+            var von = liste[^1];
             var laenge = von.Abstand(bis);
             if (laenge <= 1e-9) continue;
             stuecke.Add(new Fahrtstueck(laenge, gelaende.Hoehe(bis.X, bis.Z) - gelaende.Hoehe(von.X, von.Z)));
-            punkte.Add(bis);
+            liste.Add(bis);
         }
-        stuecke.AddRange(fahrt.Stuecke);
-        punkte.AddRange(fahrt.Punkte.Skip(1));
-        return new Netzfahrt(stuecke, punkte);
+        return new Netzfahrt(stuecke, liste);
     }
 
     /// <summary>Dieselbe Fahrt rückwärts: die Stücke in umgekehrter Folge, jeder Anstieg mit umgekehrtem Vorzeichen.</summary>
