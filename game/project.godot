@@ -56,6 +56,10 @@ wetter_regen={
 "type": "float",
 "value": 0.0
 }
+wetter_ringe={
+"type": "float",
+"value": 0.0
+}
 wetter_rinn={
 "type": "float",
 "value": 0.0
@@ -103,6 +107,10 @@ traufe_feld={
 traufe_maske={
 "type": "sampler2D",
 "value": ""
+}
+traufe_basis={
+"type": "float",
+"value": 0.0
 }
 
 [rendering]

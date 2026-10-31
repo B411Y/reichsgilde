@@ -107,6 +107,7 @@ public partial class Wassertest : Node3D
         RenderingServer.GlobalShaderParameterSet("wellen_seegang", w.Wind); // Testszene: Seegang sofort (im Spiel träge, Stadtansicht.Wetter.cs)
         RenderingServer.GlobalShaderParameterSet("wind_richtung", wind);
         RenderingServer.GlobalShaderParameterSet("wetter_regen", w.Regen);
+        RenderingServer.GlobalShaderParameterSet("wetter_ringe", w.Regen); // die Regenringe des Wassers lesen seit Regen 4 die Dichte der Tropfen
         RenderingServer.GlobalShaderParameterSet("wetter_schnee", schnee);
         var himmel = new Color(0.47f, 0.60f, 0.72f).Lerp(new Color(0.34f, 0.36f, 0.39f), w.Wolken);
         RenderingServer.GlobalShaderParameterSet("wetter_himmel", new Vector3(himmel.R, himmel.G, himmel.B));

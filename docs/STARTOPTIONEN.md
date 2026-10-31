@@ -90,6 +90,7 @@ Startoptionen (nach `--`):
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
 - `--wasserstufe=<niedrig|mittel|hoch|ultra>` (Grafikstufe des Wassers statt der aus der Voreinstellung, nur für diesen Start; `docs/wasser/phase3.md`)
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)
+- `--naesse=<0–1>` (Nässe von Boden, Dächern und Wänden fest auf diesem Wert, egal welches Wetter, nur Darstellung; z. B. `--wetter=klar --naesse=0.9` für Sonne nach dem Regen, `0.5` für fleckig abtrocknende Dächer)
 - `--jahreszeit=<fruehling|sommer|herbst|winter>` (Jahreszeit der Darstellung: Wiese, Laub, Äcker, Schnee, Eis; der Kalender bleibt; weicht sie von der Uhr ab, steht das Eis im Winter voll)
 - `--winter=<0..1>` (Winterfortschritt des Eises, unabhängig von der Uhr; 1 = tiefster Winter; nur Darstellung, z. B. `--jahreszeit=winter --winter=0.4`). Eis gibt es nur im Winter: über 0 zeigt die Ansicht ohne `--jahreszeit` den Winter (mit Schnee); mit einer anderen `--jahreszeit` bleibt das Wasser offen. Teiche, Hafenbecken und Gräben sind ab 0,5 ganz zu, Bäche wachsen von 0,15 bis 1 zu, Flüsse bekommen ab 0,3 Randeis und Schollen (`docs/wasser/phase3.md`)
 - `--tauwetter=<0..1>` (Eisgang am Winterende, unabhängig von der Uhr: 0 = noch keiner, 0,5 = Decken aufgebrochen, viele Schollen, 1 = alles geschmolzen, auch der Schnee; zeigt den Winter, ohne `--winter` mit vollem Eis; `docs/wasser/phase3.md`, Phase 3e)

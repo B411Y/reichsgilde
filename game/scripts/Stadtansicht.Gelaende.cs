@@ -379,19 +379,46 @@ public partial class Stadtansicht
                 int v00 = c * m + a, v10 = v00 + 1, v01 = v00 + m, v11 = v01 + 1;
                 indizes.AddRange(new[] { v00, v10, v11, v00, v11, v01 }); // Diagonale von links oben nach rechts unten (wie BodenHoehe)
             }
-        if (GelaendeGrob) SchuerzenAnlegen(ecken, normalen, indizes, m);
+        var land = LandAnteile(ecken, x0, z0, (float)kachel);
+        if (GelaendeGrob) SchuerzenAnlegen(ecken, normalen, indizes, m, land);
         arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
         arrays[(int)Mesh.ArrayType.Normal] = normalen.ToArray();
+        if (land is not null) arrays[(int)Mesh.ArrayType.Color] = land.ToArray();
         arrays[(int)Mesh.ArrayType.Index] = indizes.ToArray();
         netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
         return (netz, false);
     }
 
     /// <summary>
+    /// Land oder Wasser je Ecke einer Kachel als Eckenfarbe (Rot): 1 an Land, 0 ab 15 cm unter dem Spiegel eines Flusses, Sees oder Hafenbeckens
+    /// (dazwischen weich). Der Boden-Shader zeichnet dort keine Regentropfen: Das Bett scheint durch das Wasser, und die Wasserfläche hat ihre eigenen
+    /// Ringe (Regen 4, sonst doppelt am Ufer). Null, wenn die Kachel kein Gewässer berührt (der Shader nimmt dann 1).
+    /// </summary>
+    private List<Color>? LandAnteile(List<Vector3> ecken, float x0, float z0, float seite)
+    {
+        if (_gelaende?.Wasser is not { } wasser) return null;
+        bool Beruehrt(Kartenrechteck b) => b.X1 >= x0 - 1 && b.X0 <= x0 + seite + 1 && b.Z1 >= z0 - 1 && b.Z0 <= z0 + seite + 1;
+        var becken = wasser.Becken.Where(b => Beruehrt(b.Bereich)).ToList();
+        if (!wasser.Laeufe.Any(l => Beruehrt(l.Bereich)) && !wasser.Seen.Any(s => Beruehrt(s.Bereich)) && becken.Count == 0) return null;
+        var farben = new List<Color>(ecken.Count);
+        var unter = false;
+        foreach (var e in ecken)
+        {
+            double? spiegel = wasser.An(e.X, e.Z)?.Spiegel;
+            foreach (var b in becken)
+                if (b.Enthaelt(new Kartenort(e.X, e.Z))) spiegel = Math.Max(spiegel ?? double.MinValue, b.Spiegel);
+            var anteil = spiegel is { } sp ? Mathf.Clamp(1f - ((float)sp - e.Y) / 0.15f, 0f, 1f) : 1f;
+            unter |= anteil < 1f;
+            farben.Add(new Color(anteil, 1f, 1f));
+        }
+        return unter ? farben : null;
+    }
+
+    /// <summary>
     /// Schürzen: ein Streifen von 3 m nach unten an jeder Kante der Kachel, in beiden Richtungen sichtbar. Wo ein feines Netz an ein grobes grenzt,
     /// fallen die Kanten nicht aufeinander – die Schürze deckt den Riss.
     /// </summary>
-    private static void SchuerzenAnlegen(List<Vector3> ecken, List<Vector3> normalen, List<int> indizes, int m)
+    private static void SchuerzenAnlegen(List<Vector3> ecken, List<Vector3> normalen, List<int> indizes, int m, List<Color>? farben = null)
     {
         const float tiefe = 3f;
         var kanten = new List<int[]>();
@@ -406,12 +433,14 @@ public partial class Stadtansicht
             {
                 ecken.Add(ecken[v]);
                 normalen.Add(normalen[v]);
+                farben?.Add(farben[v]);
             }
             var unten = ecken.Count;
             foreach (var v in kante)
             {
                 ecken.Add(ecken[v] + new Vector3(0, -tiefe, 0));
                 normalen.Add(normalen[v]);
+                farben?.Add(farben[v]);
             }
             for (var k = 0; k + 1 < kante.Length; k++)
             {
