@@ -50,7 +50,7 @@ Die echten Lichter (Hoch 12, Mittel 6, Niedrig keines, wie bisher) flackern jetz
 | Kerzen in der Wachstube | `-- --beruf=Gardist --startstunde=21 --innen=1` |
 | Die Testszene mit allen sieben Feuerarten | `-- --feuertest=1` (oder `Feuertest.tscn` öffnen und **F6**) |
 
-Die eigene Werkstatt in Köln steht an der Hohen Straße im Norden; ohne `--blick` fährst du mit der Kamera hin (oder `--blick=-24,-92,35` dazuschreiben).
+Die eigene Werkstatt in Köln steht am Heumarkt an der Severinstraße (seit den drei Marktplätzen, 31.10.2026; vorher an der Hohen Straße im Norden); ohne `--blick` fährst du mit der Kamera hin (oder `--blick=9,22,35` dazuschreiben).
 
 ### Die Testszene
 
