@@ -7,7 +7,10 @@ namespace Reichsgilde;
 ///   • <b>Busse</b>: je Regler-Bus aus <see cref="KlangDienst.Regelbusse"/> Prozent, dB, stumm und ein Pegel, der jedes Bild nachläuft.
 ///   • <b>Oberflächenklänge</b>: je <see cref="KlangOberflaeche.Ereignis"/> ein Knopf für den Klang wie im Spiel (Zufallswahl mit Tonhöhe und
 ///     Lautstärke der Tabelle) und je Variante ein Knopf für die einzelne Datei.
-///   • <b>Weitere Dateien</b>: was sonst unter <c>res://assets/audio/</c> liegt (später Umgebung, Musik, Ansagen des Haushofmeisters), mit dem Bus
+///   • <b>Umgebung</b> (Ton Schritt 4, <see cref="KlangUmgebung"/>): Eingaben (Uhr, Bezugsstunde, Zoom, Innenansicht, Pause), je Schicht Zweck,
+///     Ziel- und Ist-Pegel mit Balken und ein Knopf zum Vorhören der Datei, je Rufart Fenster, Zeit bis zum nächsten Ruf, die Varianten und
+///     „jetzt rufen“. Aufgefrischt nur bei Änderung (Texte auf 0,1 dB gerundet).
+///   • <b>Weitere Dateien</b>: was sonst unter <c>res://assets/audio/</c> liegt (später Musik, Ansagen des Haushofmeisters), mit dem Bus
 ///     nach dem Ordner. So taucht jeder neue Klang hier auf, ohne dass dieser Reiter angefasst werden muss.
 /// Es spielt immer nur ein Klang zur Zeit (ein eigener Spieler, auch in der Spielpause); die Knöpfe selbst klicken nicht (Hinweis <c>klang</c> = „still“).
 /// </summary>
@@ -19,6 +22,9 @@ public sealed partial class EntwicklerAnzeige
     private AudioStreamPlayer _vorhoerer = null!;
     private readonly List<(int Bus, Label Wert, ProgressBar Pegel)> _busZeilen = new();
     private int _klaengeNummer = -1;
+    private Label? _umgebungKopf;
+    private readonly List<(int Schicht, Label Wert, ProgressBar Pegel)> _umgebungZeilen = new();
+    private readonly List<(int Art, Label Wert)> _rufZeilen = new();
 
     private void KlaengeReiter()
     {
@@ -72,11 +78,13 @@ public sealed partial class EntwicklerAnzeige
             }
         }
 
+        UmgebungAbschnitt(s, bekannt);
+
         s.AddChild(new HSeparator());
         Hauptmenue.Text(s, "Weitere Dateien unter assets/audio/", 18, Gold);
         var weitere = AudioDateien(AudioOrdner).Where(p => !bekannt.Contains(p)).ToList();
         if (weitere.Count == 0)
-            Hauptmenue.Text(s, "Keine – Umgebung, Musik und die Ansagen des Haushofmeisters gibt es noch nicht. Neue Dateien erscheinen hier von selbst.", 14, Grau, umbruchBreite: Breite - 60);
+            Hauptmenue.Text(s, "Keine weiteren – Oberflächenklänge und Umgebung stehen oben. Neue Dateien (Musik, Ansagen) erscheinen hier von selbst.", 14, Grau, umbruchBreite: Breite - 60);
         foreach (var gruppe in weitere.GroupBy(p => p[AudioOrdner.Length..p.LastIndexOf('/')]))
         {
             var bus = BusFuerOrdner(gruppe.Key);
@@ -89,6 +97,113 @@ public sealed partial class EntwicklerAnzeige
                 var name = pfad[(pfad.LastIndexOf('/') + 1)..];
                 StillerKnopf(fluss, name, () => Vorhoeren(Laden(pfad), bus, 0, 1, name), $"{pfad} · Bus {bus}");
             }
+        }
+    }
+
+    /// <summary>Abschnitt „Umgebung“: Schichten und Rufarten aus <see cref="KlangUmgebungModell"/>, die Werte kommen in <see cref="KlaengeAuffrischen"/>.</summary>
+    private void UmgebungAbschnitt(VBoxContainer s, HashSet<string> bekannt)
+    {
+        s.AddChild(new HSeparator());
+        Hauptmenue.Text(s, "Umgebung (Bus Umgebung, Unterbusse UmgebungStadt/Draussen/Schenke/Innen/Gespraech/Glocke/RufNah/RufFern)", 18, Gold);
+        Hauptmenue.Text(s, "Schleifen nach den Menschen im Umkreis der Kamera (Straße, Markt, Schänke, Werkstatt), der Umgebung (Stadt gegen Wald, Feld, Wasser), dem Wetter, Bezugsstunde (Licht) und Zoom, gedämpft in Räumen, im Dom und in der Pause; dazu Einzelrufe mit Mindestabstand und die Glocken vom Dom. "
+                           + "„▶“ spielt die Datei allein auf Bus Umgebung (ohne die Dämpfung der Unterbusse).", 13, Grau, umbruchBreite: Breite - 60);
+        _umgebungKopf = Hauptmenue.Text(s, "", 13, Gold, umbruchBreite: Breite - 60);
+        for (var i = 0; i < KlangUmgebungModell.Schichten.Length; i++)
+        {
+            var schicht = KlangUmgebungModell.Schichten[i];
+            var pfad = KlangUmgebung.SchichtPfad(schicht.Name);
+            bekannt.Add(pfad);
+            var reihe = Zeile(s, schicht.Name, $"{schicht.Zweck}. Datei {pfad}, Grundpegel {schicht.GrundDb:0} dB, Bus {(schicht.Bus switch { KlangUmgebungModell.Bus.Stadt => "UmgebungStadt", KlangUmgebungModell.Bus.Schenke => "UmgebungSchenke", KlangUmgebungModell.Bus.Innen => "UmgebungInnen", _ => "UmgebungDraussen" })}.");
+            var name = schicht.Name;
+            StillerKnopf(reihe, "▶", () => Vorhoeren(Laden(pfad), KlangDienst.BusUmgebung, schicht.GrundDb, 1, name + ".ogg"), pfad);
+            var pegel = new ProgressBar
+            {
+                MinValue = -60, MaxValue = 0, Value = -60, ShowPercentage = false, CustomMinimumSize = new Vector2(160, 14),
+                SizeFlagsVertical = SizeFlags.ShrinkCenter, TooltipText = "Ist-Pegel der Schleife (−60 bis 0 dB, vor den Unterbussen).",
+            };
+            pegel.AddThemeStyleboxOverride("fill", new StyleBoxFlat { BgColor = Gruen });
+            reihe.AddChild(pegel);
+            var wert = Hauptmenue.Text(reihe, schicht.Zweck, 13, Grau);
+            wert.CustomMinimumSize = new Vector2(420, 0);
+            _umgebungZeilen.Add((i, wert, pegel));
+        }
+        for (var i = 0; i < KlangUmgebungModell.Rufarten.Length; i++)
+        {
+            var art = KlangUmgebungModell.Rufarten[i];
+            var nummer = i;
+            var reihe = Zeile(s, "Ruf " + art.Name, $"{art.Zweck}. Mindestens {art.Mindest:0} s Abstand, im Mittel {art.Mittel:0} s (bei vollem Fenster), nah {art.NahDb:0} dB, fern {art.FernDb:0} dB, nur fern ab Zoom {art.FernAb:0}, bis Zoom {art.Bis:0}.");
+            StillerKnopf(reihe, "jetzt rufen", () =>
+            {
+                if (KlangUmgebung.Aktiv is { Laeuft: true } u) { u.JetztRufen(nummer); Melden("Ruf: " + u.LetzterRuf); }
+                else Melden("Die Umgebung läuft nicht (nur in der Partie).", false);
+            });
+            var fluss = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            fluss.AddThemeConstantOverride("h_separation", 4);
+            reihe.AddChild(fluss);
+            var wert = Hauptmenue.Text(fluss, art.Zweck, 13, Grau);
+            wert.CustomMinimumSize = new Vector2(260, 0);
+            foreach (var datei in KlangUmgebung.RufDateien(art))
+            {
+                var pfad = KlangUmgebung.RufPfad(datei);
+                bekannt.Add(pfad);
+                StillerKnopf(fluss, datei, () => Vorhoeren(Laden(pfad), KlangDienst.BusUmgebung, art.NahDb, 1, datei + ".ogg"), pfad);
+            }
+            _rufZeilen.Add((i, wert));
+        }
+        for (var i = 0; i < KlangUmgebungModell.Glockenarten.Length; i++)
+        {
+            var art = KlangUmgebungModell.Glockenarten[i];
+            var nummer = i;
+            var reihe = Zeile(s, "Glocke " + art.Name, $"{art.Zweck}. Zeit aus den Regeln des Spiels (Glockenplan), vom Dom aus: Seite, Pegel und Tiefpass nach dem Abstand zum Blickpunkt.");
+            StillerKnopf(reihe, "jetzt läuten", () =>
+            {
+                if (KlangUmgebung.Aktiv is { Laeuft: true } u) { u.JetztLaeuten(nummer); Melden("Glocke: " + u.LetzterRuf); }
+                else Melden("Die Umgebung läuft nicht (nur in der Partie).", false);
+            });
+            var fluss = new HFlowContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            fluss.AddThemeConstantOverride("h_separation", 4);
+            reihe.AddChild(fluss);
+            Hauptmenue.Text(fluss, art.Zweck, 13, Grau).CustomMinimumSize = new Vector2(260, 0);
+            for (var v = 1; v <= art.Varianten; v++)
+            {
+                var datei = $"{art.Datei}_{v}";
+                var pfad = KlangUmgebung.GlockenPfad(datei);
+                bekannt.Add(pfad);
+                StillerKnopf(fluss, datei, () => Vorhoeren(Laden(pfad), KlangDienst.BusUmgebung, KlangUmgebungModell.GlockenDb, 1, datei + ".ogg"), pfad);
+            }
+        }
+    }
+
+    /// <summary>Die Werte des Abschnitts Umgebung (nur bei Änderung neu geschrieben).</summary>
+    private void UmgebungAuffrischen()
+    {
+        if (_umgebungKopf is null) return;
+        if (KlangUmgebung.Aktiv is not { Laeuft: true } u)
+        {
+            const string aus = "Die Umgebung läuft nicht (nur in der Partie, nicht im Hauptmenü und nicht in der Kartenwerkstatt).";
+            if (_umgebungKopf.Text != aus) _umgebungKopf.Text = aus;
+            return;
+        }
+        var e = u.LetzteEingaben;
+        var a = u.Letzte;
+        var kopf = $"Uhr {(int)(e.UhrMinute / 60):00}:{(int)(e.UhrMinute % 60):00} · Bezugsstunde {e.Bezug:0.0} · {e.Jahreszeit} · Zoom {e.Zoom:0} (höchstens {e.ZoomGroesst:0}): "
+                   + $"Nähe {a.Naehe:0.00}, Höhe {a.Hoehe:0.00} · {e.Innen}{(e.Pausiert ? " · Pause" : "")} · {e.TicksProSekunde:0.0} Spielminuten/s"
+                   + $"{(a.Sprungblende ? " · SPRUNGBLENDE" : "")}\nStadt {a.StadtDb:0.0} dB, Tiefpass {a.StadtTiefpass:0} Hz · Draußen {a.DraussenDb:0.0} dB, Tiefpass {a.DraussenTiefpass:0} Hz"
+                   + $" · Wetter Regen {e.Himmel.Regen:0.00}, Schnee {e.Himmel.Schnee:0.00}, Wind {e.Himmel.Wind:0.00}, Blitze {e.Himmel.Blitze:0.00} · letzter Ruf: {u.LetzterRuf}"
+                   + $"\nMenschen im Umkreis (Stadtleben, Gemurmel, Schenke, Hämmern, Schritte hängen daran): {KlangUmgebung.LebenText(e.Lage)}";
+        if (_umgebungKopf.Text != kopf) _umgebungKopf.Text = kopf;
+        foreach (var (i, wert, pegel) in _umgebungZeilen)
+        {
+            var ziel = a.Ziel[i] > 0 ? KlangUmgebungModell.Schichten[i].GrundDb + 20 * MathF.Log10(a.Ziel[i]) : KlangUmgebungModell.AusDb;
+            var text = $"Ziel {(ziel <= KlangUmgebungModell.StummDb ? "aus" : $"{ziel:0.0} dB")} · ist {(a.Db[i] <= KlangUmgebungModell.AusDb ? "aus" : $"{a.Db[i]:0.0} dB")} · Gewicht {a.Amplitude[i] * a.Amplitude[i]:0.00}";
+            if (wert.Text != text) wert.Text = text;
+            pegel.Value = Math.Clamp(a.Db[i], -60, 0);
+        }
+        foreach (var (i, wert) in _rufZeilen)
+        {
+            var g = KlangUmgebungModell.RufPlaner.FensterGewicht(i, e, a);
+            var text = g > KlangUmgebungModell.RufSchwelle ? $"Fenster {g:0.00} · nächster in etwa {u.Planer.Rest(i) / g:0} s" : "außerhalb des Fensters oder der Zoomgrenze";
+            if (wert.Text != text) wert.Text = text;
         }
     }
 
@@ -146,6 +261,7 @@ public sealed partial class EntwicklerAnzeige
     private void KlaengeAuffrischen()
     {
         if (!_klaengeFertig || _reiter.CurrentTab != _klaengeNummer) return;
+        UmgebungAuffrischen();
         foreach (var (nummer, wert, pegel) in _busZeilen)
         {
             var index = AudioServer.GetBusIndex(KlangDienst.Regelbusse[nummer].Bus);

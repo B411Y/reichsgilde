@@ -1,0 +1,1383 @@
+{
+ "_hinweis": "Schnittliste der Umgebungsklänge (Ton Schritt 4). Gebaut mit tools/ton/umgebung_bauen.py. Quellen: freesound.org, nur CC0, HQ-Vorschauen (OGG); Originale können später getauscht werden (gleiche Nummer, SHA-256 der Vorschau hier).",
+ "ziel_lufs_schicht": -26.0,
+ "ziel_lufs_ruf": -20.0,
+ "spitze_schicht_dbtp": -3.0,
+ "spitze_ruf_dbtp": -1.0,
+ "quellen": {
+  "469700": {
+   "urheber": "florianreichelt",
+   "titel": "Ambience Sound of the Chouara Tannery in Fez, Morocco",
+   "seite": "https://freesound.org/people/florianreichelt/sounds/469700/",
+   "vorschau": "https://cdn.freesound.org/previews/469/469700_6253486-hq.ogg",
+   "sha256": "0c8723ee5413cf492b2950bf78e1bb3e1eb207dd866e157a65be83ce560cf270",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "719572": {
+   "urheber": "hadescolossus",
+   "titel": "CROWD FOOTSTEP",
+   "seite": "https://freesound.org/people/hadescolossus/sounds/719572/",
+   "vorschau": "https://cdn.freesound.org/previews/719/719572_8385093-hq.ogg",
+   "sha256": "f9417da9807049d722edde8c96ce2704089bdd4245c98dd46349c65e4c488e8d",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "137836": {
+   "urheber": "thefilmbakery",
+   "titel": "Blacksmith Workshop.WAV",
+   "seite": "https://freesound.org/people/thefilmbakery/sounds/137836/",
+   "vorschau": "https://cdn.freesound.org/previews/137/137836_977564-hq.ogg",
+   "sha256": "59da72624c011df1895768e5ec63f6cf42c6ad31f2374443258b7368b6f4503f",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "173159": {
+   "urheber": "AlecCorday",
+   "titel": "Paso Fino Horse",
+   "seite": "https://freesound.org/people/AlecCorday/sounds/173159/",
+   "vorschau": "https://cdn.freesound.org/previews/173/173159_1591616-hq.ogg",
+   "sha256": "a63618b798b572686273a16164bb7d968e971fae85ee46029b25a367b227bbbd",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "149192": {
+   "urheber": "videog",
+   "titel": "geese honking",
+   "seite": "https://freesound.org/people/videog/sounds/149192/",
+   "vorschau": "https://cdn.freesound.org/previews/149/149192_2688492-hq.ogg",
+   "sha256": "a8e9955aaa4ecbcb26c90496d46cc3daf0480285717907d3c18280c25355ccc6",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "316921": {
+   "urheber": "Rudmer_Rotteveel",
+   "titel": "Chicken Alarm Call full with Occasional bird sound",
+   "seite": "https://freesound.org/people/Rudmer_Rotteveel/sounds/316921/",
+   "vorschau": "https://cdn.freesound.org/previews/316/316921_4921277-hq.ogg",
+   "sha256": "2946a0261cd98b21339380d58417ce77f903be61128ff3411fde316c49fdbb28",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "187199": {
+   "urheber": "pushkin",
+   "titel": "walla 01",
+   "seite": "https://freesound.org/people/pushkin/sounds/187199/",
+   "vorschau": "https://cdn.freesound.org/previews/187/187199_336074-hq.ogg",
+   "sha256": "543235e369c3f3658e968f3615084177bd201e95fe8551ab88cbecf053638f47",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "166421": {
+   "urheber": "felix.blume",
+   "titel": "Some dogs barking a village in Anatolia (Turkey)",
+   "seite": "https://freesound.org/people/felix.blume/sounds/166421/",
+   "vorschau": "https://cdn.freesound.org/previews/166/166421_1661766-hq.ogg",
+   "sha256": "b9b0767239600f01797a422055b26f58f55b1fed179821d8fbcb635fa61d7f29",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "212454": {
+   "urheber": "unfa",
+   "titel": "Barking",
+   "seite": "https://freesound.org/people/unfa/sounds/212454/",
+   "vorschau": "https://cdn.freesound.org/previews/212/212454_1038806-hq.ogg",
+   "sha256": "7fbca7ad13c985cfe7c261f744631876cf8e0997a079d1fdf789047c3930b4f3",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "594343": {
+   "urheber": "GH0STY_XD",
+   "titel": "Dog barking and growling.wav",
+   "seite": "https://freesound.org/people/GH0STY_XD/sounds/594343/",
+   "vorschau": "https://cdn.freesound.org/previews/594/594343_12596088-hq.ogg",
+   "sha256": "bff05710ddf484d7f4dc2e397da5f560f9c5b1b82155f673602f9f07d94458c0",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "573080": {
+   "urheber": "squashy555",
+   "titel": "Dawn Chorus Birdsong",
+   "seite": "https://freesound.org/people/squashy555/sounds/573080/",
+   "vorschau": "https://cdn.freesound.org/previews/573/573080_1149179-hq.ogg",
+   "sha256": "3239fd174f196593541403e2dd235dddac9dc9c456595b73e4deb86c14c4a9ff",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "266601": {
+   "urheber": "otad",
+   "titel": "Sparrows.WAV",
+   "seite": "https://freesound.org/people/otad/sounds/266601/",
+   "vorschau": "https://cdn.freesound.org/previews/266/266601_2151664-hq.ogg",
+   "sha256": "c84f32775361efec23cfea992d2745aa191f5e5c8a793918d6bb1b12594a2564",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "240587": {
+   "urheber": "blaukreuz",
+   "titel": "Freyburg Forest Evening R",
+   "seite": "https://freesound.org/people/blaukreuz/sounds/240587/",
+   "vorschau": "https://cdn.freesound.org/previews/240/240587_623488-hq.ogg",
+   "sha256": "7afdd4a718c473d91b17aafa6eb37f84a1da5f3bad6d6dcd6744eada78ac0a83",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "116791": {
+   "urheber": "nigelcoop",
+   "titel": "Blackbird 252",
+   "seite": "https://freesound.org/people/nigelcoop/sounds/116791/",
+   "vorschau": "https://cdn.freesound.org/previews/116/116791_1088850-hq.ogg",
+   "sha256": "8eed9fb602ea6bdaebb35fbc396d3c30ce40735060cd9454fe24945ab6b5779e",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "705299": {
+   "urheber": "felix.blume",
+   "titel": "Dogs barking far with echo in a small village at night",
+   "seite": "https://freesound.org/people/felix.blume/sounds/705299/",
+   "vorschau": "https://cdn.freesound.org/previews/705/705299_1661766-hq.ogg",
+   "sha256": "c67a5101c312f0ee5f0f73412acc36ec107e4abf384bba182cc1556622964c73",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "429706": {
+   "urheber": "IchBinChrist",
+   "titel": "Cockcrow - Hahnenschrei",
+   "seite": "https://freesound.org/people/IchBinChrist/sounds/429706/",
+   "vorschau": "https://cdn.freesound.org/previews/429/429706_3216899-hq.ogg",
+   "sha256": "2d718821eb8d6b341a42ee63dd9c716b40fc280f9d089d7f9760e25ea2be9798",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "233167": {
+   "urheber": "JarredGibb",
+   "titel": "Rooster - Crow 3 - 96kHz",
+   "seite": "https://freesound.org/people/JarredGibb/sounds/233167/",
+   "vorschau": "https://cdn.freesound.org/previews/233/233167_4056007-hq.ogg",
+   "sha256": "6aea501b36f9933a17a129120675f9c7e202baa218322cd72030d073b48ffc57",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "383930": {
+   "urheber": "Navadaux",
+   "titel": "Rooster crowing",
+   "seite": "https://freesound.org/people/Navadaux/sounds/383930/",
+   "vorschau": "https://cdn.freesound.org/previews/383/383930_5576856-hq.ogg",
+   "sha256": "9e73d7f49a6188d6863cc431773477cce3be8840ebbf66d5ded6622b9eb64f71",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "367964": {
+   "urheber": "BlueDelta",
+   "titel": "TAWNY OWL in calm Environment",
+   "seite": "https://freesound.org/people/BlueDelta/sounds/367964/",
+   "vorschau": "https://cdn.freesound.org/previews/367/367964_1790434-hq.ogg",
+   "sha256": "dccc47ea2740c14f48912bf576ca02dd6983ee9c98a9dad22a8766941bca0ad5",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "135193": {
+   "urheber": "felix.blume",
+   "titel": "Wind blowing in the bush on the top of Kitt Peak mountain",
+   "seite": "https://freesound.org/people/felix.blume/sounds/135193/",
+   "vorschau": "https://cdn.freesound.org/previews/135/135193_1661766-hq.ogg",
+   "sha256": "9baa931f58e0ebf8cf1613377739bf13c260c4f7927a1ecc35da95dd3b0c6a1a",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "196125": {
+   "urheber": "Yuval",
+   "titel": "distant thunders meadow",
+   "seite": "https://freesound.org/people/Yuval/sounds/196125/",
+   "vorschau": "https://cdn.freesound.org/previews/196/196125_770707-hq.ogg",
+   "sha256": "c8281cfea53e228ec6456a784f6bef1817a8b8d62bd2f2a2afc93628e7e3bf6d",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "613548": {
+   "urheber": "Kristoffer_Andersson",
+   "titel": "Kristoffer_Andersson_Amb_City_Forest_Leaves_Wind_ST_ECM680S.wav",
+   "seite": "https://freesound.org/people/Kristoffer_Andersson/sounds/613548/",
+   "vorschau": "https://cdn.freesound.org/previews/613/613548_8407191-hq.ogg",
+   "sha256": "8ebafdb525785f5be666fbe3fa875796693cc5af986ffd0ea837c27f3c7c137d",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "446019": {
+   "urheber": "BurghRecords",
+   "titel": "Gentle Stream Natural Stream Sound",
+   "seite": "https://freesound.org/people/BurghRecords/sounds/446019/",
+   "vorschau": "https://cdn.freesound.org/previews/446/446019_7241289-hq.ogg",
+   "sha256": "f534a3bb1dd414dcd7bb8be8f6ae13a99614201021143dce3ad85245b47fe90d",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "627785": {
+   "urheber": "poots",
+   "titel": "Frog sounds in a pond with bird song.wav",
+   "seite": "https://freesound.org/people/poots/sounds/627785/",
+   "vorschau": "https://cdn.freesound.org/previews/627/627785_1038119-hq.ogg",
+   "sha256": "fd46ca28c64a017cef36946f6e64dbde47a69f5cd8a2d64e8f9d73939c3fa945",
+   "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "836064": {
+   "urheber": "newlocknew",
+   "titel": "RAINVege_Summer Rain.Garden.Under The Apple Tree.Drops On Leaves,Grass,Metal Roof,Barbeque 1_EM",
+   "seite": "https://freesound.org/people/newlocknew/sounds/836064/",
+   "vorschau": "https://cdn.freesound.org/previews/836/836064_5828667-hq.ogg",
+   "sha256": "3d301297098d394ecb4c051f0cc8c09f0b04bb4adf08d0d3b0505f7c299a8c82",
+   "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "213329": {
+   "urheber": "LolitaPerdurabo",
+   "titel": "Rain-On-The-Roof.wav",
+   "seite": "https://freesound.org/people/LolitaPerdurabo/sounds/213329/",
+   "vorschau": "https://cdn.freesound.org/previews/213/213329_1854719-hq.ogg",
+   "sha256": "1737d6de2d68d2266fd72fce15ba71dd9917ecde80e742517ab12ac9dd8b7dc2",
+   "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "184627": {
+   "urheber": "Erbsland-Music",
+   "titel": "Heavy Rain in the Night on Roof and Window",
+   "seite": "https://freesound.org/people/Erbsland-Music/sounds/184627/",
+   "vorschau": "https://cdn.freesound.org/previews/184/184627_522747-hq.ogg",
+   "sha256": "01fb068d9899bee8f7f38956c9185c8fca0d781d05c7c884aae36711f2464981",
+   "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "326313": {
+   "urheber": "ivolipa",
+   "titel": "Tavern_Ambience_Inside_Laughter.WAV",
+   "seite": "https://freesound.org/people/ivolipa/sounds/326313/",
+   "vorschau": "https://cdn.freesound.org/previews/326/326313_3474310-hq.ogg",
+   "sha256": "dfb2a98232563b28c8fe77a1afd87d0e9c43d336f45dc5ced4201f26cf16ecc2",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "437345": {
+   "urheber": "giddster",
+   "titel": "Crows Cawing",
+   "seite": "https://freesound.org/people/giddster/sounds/437345/",
+   "vorschau": "https://cdn.freesound.org/previews/437/437345_1738686-hq.ogg",
+   "sha256": "4365726bd1e0f1cc579bc702238bbe52df32476c13fce84b639bf0b1be45121b",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "823212": {
+   "urheber": "sounds_from_palestine",
+   "titel": "Late Night Street Ambience Conversations and City Atmosphere (in Arabic)",
+   "seite": "https://freesound.org/people/sounds_from_palestine/sounds/823212/",
+   "vorschau": "https://cdn.freesound.org/previews/823/823212_17247322-hq.ogg",
+   "sha256": "4d5f2239fc462d1569db645c10a3c42363bf07b173d597ce457f85ea21938791",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "832832": {
+   "urheber": "sounds_from_palestine",
+   "titel": "Family Astronomy Night in Ramallah – Saturn and Moon Observation at Qattan Foundation (Field Recording)",
+   "seite": "https://freesound.org/people/sounds_from_palestine/sounds/832832/",
+   "vorschau": "https://cdn.freesound.org/previews/832/832832_17247322-hq.ogg",
+   "sha256": "975e0e2165332ad420b62e0edfe82ba10e93915962146b142a234e57e3225b99",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "203598": {
+   "urheber": "raoul_slayer",
+   "titel": "CricketsandTawnyOwl",
+   "seite": "https://freesound.org/people/raoul_slayer/sounds/203598/",
+   "vorschau": "https://cdn.freesound.org/previews/203/203598_548893-hq.ogg",
+   "sha256": "587baf79c58be6fe875710ffebe2ed02ef207eb43795de6932799f2330a165f8",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "166067": {
+   "urheber": "juskiddink",
+   "titel": "Tuohitorvi.wav",
+   "seite": "https://freesound.org/people/juskiddink/sounds/166067/",
+   "vorschau": "https://cdn.freesound.org/previews/166/166067_649468-hq.ogg",
+   "sha256": "36581867e3ed8a3ac65bf98ea6fc9567d498ae115a95fa5862cf9e7bf5cdc9fd",
+   "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "511546": {
+   "urheber": "polymorpheva",
+   "titel": "Kölner Dom (Cologne Cathedral) bells",
+   "seite": "https://freesound.org/people/polymorpheva/sounds/511546/",
+   "vorschau": "https://cdn.freesound.org/previews/511/511546_1171107-hq.ogg",
+   "sha256": "98ad2e5ca6484dd1fa71bed56e42277251ffa05184376360e208774561874c61",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "243614": {
+   "urheber": "foad",
+   "titel": "Thunderstorm lightning strike",
+   "seite": "https://freesound.org/people/foad/sounds/243614/",
+   "vorschau": "https://cdn.freesound.org/previews/243/243614_260969-hq.ogg",
+   "sha256": "a3bcc4c1980108db7ffcd81957b18d863da908ffc6c8c424fd99e4dd7088191a",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "844420": {
+   "urheber": "TSP-Talk",
+   "titel": "Extreme Thunder Impact - Munich Trudering (Raw Excerpt from Field Recording) - 250702_001",
+   "seite": "https://freesound.org/people/TSP-Talk/sounds/844420/",
+   "vorschau": "https://cdn.freesound.org/previews/844/844420_14079354-hq.ogg",
+   "sha256": "ecfbd0afd70af939d934be4ebb9de732e171082b85233751361f07b076668c23",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "434074": {
+   "urheber": "felix.blume",
+   "titel": "Churchbells recorded from the top of the Cathedral at noon in Fribourg",
+   "seite": "https://freesound.org/people/felix.blume/sounds/434074/",
+   "vorschau": "https://cdn.freesound.org/previews/434/434074_1661766-hq.ogg",
+   "sha256": "07983d7aa8b5612d11d0812c906d313a48760a02e21a50250d31602597d2486b",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "204899": {
+   "urheber": "klankbeeld",
+   "titel": "church bell 10 o clock EQ Yuval.wav",
+   "seite": "https://freesound.org/people/klankbeeld/sounds/204899/",
+   "vorschau": "https://cdn.freesound.org/previews/204/204899_1648170-hq.ogg",
+   "sha256": "d074f8a26a3940fc1aab82dc7f7592c72e24990c5482dc8536e15a2026c89833",
+   "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  }
+ },
+ "dateien": [
+  {
+   "name": "stadt_tag",
+   "art": "schicht",
+   "quelle": "469700",
+   "folge": [[1.0, 59.0], [33.0, 47.5], [5.0, 19.5], [46.5, 61.0], [19.0, 33.5], [27.0, 41.5], [39.0, 53.5]],
+   "uebergang": 1.5,
+   "hp": 80,
+   "absenken": [[14.4, 15.1, -7.0], [25.7, 26.2, -7.0]],
+   "blende": 3.0,
+   "zweck": "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei in der autofreien Altstadt von Fes); 133 s aus sieben Stücken der 61-s-Quelle, damit kein 53-s-Takt hörbar ist, zwei herausstehende Stimmen 7 dB leiser"
+  },
+  {
+   "name": "morgen_voegel",
+   "art": "schicht",
+   "quelle": "573080",
+   "von": 20.0,
+   "bis": 120.0,
+   "blende": 3.0,
+   "zweck": "Vogelchor im Morgengrauen"
+  },
+  {
+   "name": "tag_spatzen",
+   "art": "schicht",
+   "quelle": "266601",
+   "von": 0.5,
+   "bis": 60.5,
+   "hp": 250,
+   "blende": 3.0,
+   "zweck": "Spatzen am Tag (Stadtvögel), leise"
+  },
+  {
+   "name": "abend_voegel",
+   "art": "schicht",
+   "quelle": "240587",
+   "von": 1.0,
+   "bis": 87.0,
+   "hp": 200,
+   "blende": 3.0,
+   "zweck": "Abendgesang (Wald bei Freyburg/Unstrut)"
+  },
+  {
+   "name": "stadt_abend",
+   "art": "schicht",
+   "quelle": "187199",
+   "von": 30.0,
+   "bis": 135.0,
+   "tp": 1000,
+   "blende": 4.0,
+   "zweck": "Gedämpftes Gemurmel am Abend, wie aus Schenken hinter Wänden"
+  },
+  {
+   "name": "wind_mittel",
+   "art": "schicht",
+   "quelle": "135193",
+   "von": 2.0,
+   "bis": 77.0,
+   "hp": 120,
+   "blende": 4.0,
+   "zweck": "Kräftigerer Wind, nur ganz weit herausgezoomt (ohne die Pfeifbö bei 79,5 s)"
+  },
+  {
+   "name": "nacht",
+   "art": "schicht",
+   "synth": "nacht",
+   "saat": 11,
+   "dauer": 61.0,
+   "zweck": "Stiller Nachtgrund: sehr ferner, dunkler Wind (eigene Synthese)"
+  },
+  {
+   "name": "wind_leicht",
+   "art": "schicht",
+   "synth": "leicht_boeig",
+   "saat": 23,
+   "dauer": 67.0,
+   "zweck": "Leichter Wind in der Höhe mit unregelmäßigen Böen (eigene Synthese)"
+  },
+  {
+   "name": "hahn_1",
+   "art": "ruf",
+   "quelle": "429706",
+   "von": 4.3,
+   "bis": 7.4
+  },
+  {
+   "name": "hahn_2",
+   "art": "ruf",
+   "quelle": "233167",
+   "von": 0.4,
+   "bis": 2.4
+  },
+  {
+   "name": "hahn_3",
+   "art": "ruf",
+   "quelle": "383930",
+   "von": 0.0,
+   "bis": 2.0
+  },
+  {
+   "name": "hund_1",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 54.3,
+   "bis": 56.2,
+   "hp": 150
+  },
+  {
+   "name": "hund_2",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 66.1,
+   "bis": 68.8,
+   "hp": 150
+  },
+  {
+   "name": "hund_3",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 70.9,
+   "bis": 71.7,
+   "hp": 150
+  },
+  {
+   "name": "hund_4",
+   "art": "ruf",
+   "quelle": "212454",
+   "von": 0.6,
+   "bis": 1.3,
+   "hp": 150
+  },
+  {
+   "name": "hund_5",
+   "art": "ruf",
+   "quelle": "594343",
+   "von": 0.7,
+   "bis": 2.0,
+   "hp": 150
+  },
+  {
+   "name": "hund_fern_1",
+   "art": "ruf",
+   "quelle": "705299",
+   "von": 13.2,
+   "bis": 15.9,
+   "hp": 250
+  },
+  {
+   "name": "hund_fern_2",
+   "art": "ruf",
+   "quelle": "705299",
+   "von": 35.6,
+   "bis": 37.4,
+   "hp": 250
+  },
+  {
+   "name": "hund_fern_3",
+   "art": "ruf",
+   "quelle": "705299",
+   "von": 76.0,
+   "bis": 78.1,
+   "hp": 250
+  },
+  {
+   "name": "hund_fern_4",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 34.0,
+   "bis": 38.8,
+   "hp": 250
+  },
+  {
+   "name": "kauz_1",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 6.0,
+   "bis": 9.1,
+   "hp": 300
+  },
+  {
+   "name": "kauz_2",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 64.7,
+   "bis": 67.8,
+   "hp": 300
+  },
+  {
+   "name": "kauz_3",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 98.2,
+   "bis": 101.1,
+   "hp": 300
+  },
+  {
+   "name": "kauz_4",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 123.2,
+   "bis": 126.4,
+   "hp": 300
+  },
+  {
+   "name": "kauz_5",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 20.4,
+   "bis": 22.2,
+   "hp": 300
+  },
+  {
+   "name": "amsel_1",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 9.6,
+   "bis": 12.2,
+   "hp": 600
+  },
+  {
+   "name": "amsel_2",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 26.5,
+   "bis": 28.7,
+   "hp": 600
+  },
+  {
+   "name": "amsel_3",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 51.4,
+   "bis": 53.5,
+   "hp": 600
+  },
+  {
+   "name": "amsel_4",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 82.0,
+   "bis": 83.9,
+   "hp": 600
+  },
+  {
+   "name": "amsel_5",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 92.2,
+   "bis": 95.4,
+   "hp": 600
+  },
+  {
+   "name": "pferd_1",
+   "art": "ruf",
+   "quelle": "173159",
+   "von": 1.0,
+   "bis": 4.5,
+   "hp": 120,
+   "ein": 0.3,
+   "aus": 0.6
+  },
+  {
+   "name": "pferd_2",
+   "art": "ruf",
+   "quelle": "173159",
+   "von": 5.0,
+   "bis": 8.5,
+   "hp": 120,
+   "ein": 0.3,
+   "aus": 0.6
+  },
+  {
+   "name": "pferd_3",
+   "art": "ruf",
+   "quelle": "173159",
+   "von": 10.0,
+   "bis": 13.5,
+   "hp": 120,
+   "ein": 0.3,
+   "aus": 0.6
+  },
+  {
+   "name": "gefluegel_1",
+   "art": "ruf",
+   "quelle": "149192",
+   "von": 0.0,
+   "bis": 1.7,
+   "hp": 150
+  },
+  {
+   "name": "gefluegel_2",
+   "art": "ruf",
+   "quelle": "149192",
+   "von": 5.3,
+   "bis": 6.9,
+   "hp": 150
+  },
+  {
+   "name": "gefluegel_3",
+   "art": "ruf",
+   "quelle": "316921",
+   "von": 0.4,
+   "bis": 1.6,
+   "hp": 200
+  },
+  {
+   "name": "gefluegel_4",
+   "art": "ruf",
+   "quelle": "316921",
+   "von": 18.4,
+   "bis": 19.9,
+   "hp": 200
+  },
+  {
+   "name": "passant_1",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 5.0,
+   "bis": 8.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_2",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 14.0,
+   "bis": 17.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_3",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 26.0,
+   "bis": 29.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_4",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 37.0,
+   "bis": 40.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_5",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 47.0,
+   "bis": 50.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "handwerk_1",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 13.1,
+   "bis": 18.7,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "handwerk_2",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 20.6,
+   "bis": 22.4,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "handwerk_3",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 4.6,
+   "bis": 6.4,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "handwerk_4",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 72.7,
+   "bis": 73.7,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "natur_laub",
+   "art": "schicht",
+   "quelle": "613548",
+   "von": 40.0,
+   "bis": 115.0,
+   "hp": 150,
+   "tp": 6000,
+   "blende": 4.0,
+   "zweck": "Laubrauschen und Wind in den Bäumen (Wald bei Stockholm im Sturm, ruhiger Teil), Wald und Gehölz; im Winter kahl"
+  },
+  {
+   "name": "natur_grillen",
+   "art": "schicht",
+   "quelle": "203598",
+   "folge": [[8.0, 28.0], [40.0, 58.0], [68.0, 88.0], [98.0, 138.0]],
+   "uebergang": 1.5,
+   "hp": 800,
+   "blende": 3.0,
+   "zweck": "Grillen und Heuschrecken auf der Wiese (Sommernacht, die Waldkauz-Rufe herausgeschnitten)"
+  },
+  {
+   "name": "natur_froesche",
+   "art": "schicht",
+   "quelle": "627785",
+   "von": 60.0,
+   "bis": 135.0,
+   "hp": 300,
+   "blende": 4.0,
+   "zweck": "Frösche am Teich (Wales, März, mit Vogelgesang), nur am Wasser im Frühling"
+  },
+  {
+   "name": "natur_fluss",
+   "art": "schicht",
+   "quelle": "446019",
+   "von": 2.0,
+   "bis": 62.0,
+   "hp": 100,
+   "blende": 4.0,
+   "zweck": "Plätschern eines sanften Bachs (Schottland), nur am Wasser"
+  },
+  {
+   "name": "regen_leicht",
+   "art": "schicht",
+   "quelle": "836064",
+   "von": 60.0,
+   "bis": 150.0,
+   "hp": 100,
+   "blende": 4.0,
+   "zweck": "Leichter Regen auf Laub und Gras (Garten unter einem Apfelbaum)",
+   "begrenzer": -9.0
+  },
+  {
+   "name": "regen_stark",
+   "art": "schicht",
+   "quelle": "184627",
+   "von": 5.0,
+   "bis": 135.0,
+   "hp": 150,
+   "blende": 4.0,
+   "zweck": "Starker Regen, Guss auf Dach und Fenster (Nacht)",
+   "begrenzer": -9.0
+  },
+  {
+   "name": "regen_dach",
+   "art": "schicht",
+   "quelle": "213329",
+   "von": 60.0,
+   "bis": 125.0,
+   "hp": 200,
+   "tp": 9000,
+   "blende": 4.0,
+   "zweck": "Regen auf einem Dach mit Wind, nah in der Stadt (herangezoomt)"
+  },
+  {
+   "name": "schenke_innen",
+   "art": "schicht",
+   "quelle": "326313",
+   "von": 0.5,
+   "bis": 37.0,
+   "hp": 100,
+   "blende": 3.0,
+   "zweck": "Schankstube von innen (Wirtshaus in Istrien: Stimmen, Lachen, Geschirr; Sprache nicht verständlich)"
+  },
+  {
+   "name": "kraehe_1",
+   "art": "ruf",
+   "quelle": "437345",
+   "von": 0.9,
+   "bis": 2.7,
+   "hp": 400,
+   "ein": 0.05,
+   "aus": 0.3
+  },
+  {
+   "name": "kraehe_2",
+   "art": "ruf",
+   "quelle": "437345",
+   "von": 5.9,
+   "bis": 7.7,
+   "hp": 400,
+   "ein": 0.05,
+   "aus": 0.3
+  },
+  {
+   "name": "kraehe_3",
+   "art": "ruf",
+   "quelle": "437345",
+   "von": 8.9,
+   "bis": 10.7,
+   "hp": 400,
+   "ein": 0.05,
+   "aus": 0.3
+  },
+  {
+   "name": "kraehe_4",
+   "art": "ruf",
+   "quelle": "437345",
+   "von": 14.9,
+   "bis": 17.0,
+   "hp": 400,
+   "ein": 0.05,
+   "aus": 0.3
+  },
+  {
+   "name": "kraehe_5",
+   "art": "ruf",
+   "quelle": "437345",
+   "von": 23.4,
+   "bis": 25.9,
+   "hp": 400,
+   "ein": 0.05,
+   "aus": 0.3
+  },
+  {
+   "name": "horn_1",
+   "art": "ruf",
+   "quelle": "166067",
+   "von": 0.0,
+   "bis": 3.3,
+   "hp": 150,
+   "ein": 0.06,
+   "aus": 0.5
+  },
+  {
+   "name": "horn_2",
+   "art": "ruf",
+   "quelle": "166067",
+   "von": 4.45,
+   "bis": 8.5,
+   "hp": 150,
+   "ein": 0.06,
+   "aus": 0.5
+  },
+  {
+   "name": "gasse_1",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "823212",
+   "von": 13.2,
+   "bis": 15.7,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_2",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "823212",
+   "von": 15.7,
+   "bis": 18.2,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_3",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "823212",
+   "von": 18.2,
+   "bis": 20.8,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_4",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "823212",
+   "von": 20.7,
+   "bis": 23.2,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_5",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "823212",
+   "von": 23.2,
+   "bis": 25.7,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_6",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "823212",
+   "von": 25.7,
+   "bis": 28.1,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_7",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "832832",
+   "von": 105.0,
+   "bis": 108.0,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "gasse_8",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/gasse",
+   "quelle": "832832",
+   "von": 113.5,
+   "bis": 116.5,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 5500
+  },
+  {
+   "name": "markt_1",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/markt",
+   "quelle": "823212",
+   "von": 36.5,
+   "bis": 39.5,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 6500
+  },
+  {
+   "name": "markt_2",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/markt",
+   "quelle": "823212",
+   "von": 40.5,
+   "bis": 43.5,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 6500
+  },
+  {
+   "name": "markt_3",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/markt",
+   "quelle": "823212",
+   "von": 50.5,
+   "bis": 53.5,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 6500
+  },
+  {
+   "name": "markt_4",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/markt",
+   "quelle": "823212",
+   "von": 86.5,
+   "bis": 89.5,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 6500
+  },
+  {
+   "name": "markt_5",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/markt",
+   "quelle": "823212",
+   "von": 116.0,
+   "bis": 119.0,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 6500
+  },
+  {
+   "name": "markt_6",
+   "art": "ruf",
+   "ordner": "rufe/gespraeche/markt",
+   "quelle": "823212",
+   "von": 122.0,
+   "bis": 125.0,
+   "entrauschen": 12,
+   "hp": 180,
+   "ein": 0.12,
+   "aus": 0.25,
+   "tp": 6500
+  },
+  {
+   "name": "glocke_morgen_1",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 8.0,
+   "bis": 38.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 4.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Morgen: Geläut des Kölner Doms, 30 s"
+  },
+  {
+   "name": "glocke_morgen_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 60.0,
+   "bis": 90.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 4.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Morgen: Geläut des Kölner Doms, 30 s (andere Stelle)"
+  },
+  {
+   "name": "glocke_messe_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 84.0,
+   "bis": 120.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 5.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Messe: Geläut des Kölner Doms, 36 s"
+  },
+  {
+   "name": "glocke_abend_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 36.0,
+   "bis": 66.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 8.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Abend: Geläut des Kölner Doms, langsam ausklingend, 30 s"
+  },
+  {
+   "name": "donner_fern_1",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 120.5,
+   "bis": 132.5,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "donner_fern_2",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 220.5,
+   "bis": 232.5,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "donner_fern_3",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 351.0,
+   "bis": 363.0,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "donner_fern_4",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 470.0,
+   "bis": 482.0,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "glocke_messe_1",
+   "quelle": "434074",
+   "von": 88.0,
+   "bis": 128.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 5.0,
+   "zweck": "Messe: Geläut vom Dach der Kathedrale Fribourg (Schweiz), viele Glocken, 40 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "glocke_abend_1",
+   "mix": [
+    {
+     "quelle": "204899",
+     "von": 0.0,
+     "bis": 34.0,
+     "hp": 45,
+     "ein": 0.3,
+     "aus": 6.0,
+     "versatz": 0.0,
+     "db": 0.0
+    },
+    {
+     "quelle": "434074",
+     "von": 78.0,
+     "bis": 104.0,
+     "hp": 45,
+     "ein": 12.0,
+     "aus": 8.0,
+     "versatz": 14.0,
+     "db": -5.0
+    }
+   ],
+   "zweck": "Abend: die große Glocke (Noteman, Niederlande) allein, ab 14 s kommt das Geläut von Fribourg dazu, ausklingend, 40 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "glocke_feuer_1",
+   "quelle": "204899",
+   "von": 0.0,
+   "bis": 24.0,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 3.5,
+   "zweck": "Feuer: die große Glocke (Noteman, Niederlande) allein, langsame schwere Schläge, 24 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "glocke_feuer_2",
+   "quelle": "204899",
+   "von": 17.8,
+   "bis": 41.8,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 3.5,
+   "zweck": "Feuer: wie 1, andere Stelle, 24 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "einschlag_1",
+   "art": "ruf",
+   "quelle": "243614",
+   "von": 6.5,
+   "bis": 24.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -14.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.01,
+   "aus": 3.5,
+   "zweck": "Einschlag: direkter Blitzschlag in ein Gebäude, brachialer Knall mit langem Rollen (foad, Stockholm), -14 LUFS, Spitze -0,5 dBTP"
+  },
+  {
+   "name": "einschlag_2",
+   "art": "ruf",
+   "quelle": "243614",
+   "von": 6.5,
+   "bis": 40.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -14.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.01,
+   "aus": 5.0,
+   "zweck": "Einschlag: direkter Blitzschlag in ein Gebäude, brachialer Knall mit langem Rollen (foad, Stockholm), -14 LUFS, Spitze -0,5 dBTP"
+  },
+  {
+   "name": "donner_1",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 6.5,
+   "bis": 20.5,
+   "hp": 30,
+   "tp": 6000,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -17.0,
+   "spitze": -2.5,
+   "begrenzer": -10.0,
+   "ein": 0.02,
+   "aus": 3.5
+  },
+  {
+   "name": "donner_2",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 199.5,
+   "bis": 213.5,
+   "hp": 30,
+   "tp": 6000,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -17.0,
+   "spitze": -2.5,
+   "begrenzer": -10.0,
+   "ein": 0.02,
+   "aus": 3.5
+  },
+  {
+   "name": "donner_3",
+   "art": "ruf",
+   "quelle": "844420",
+   "von": 2.3,
+   "bis": 20.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -17.0,
+   "spitze": -2.5,
+   "begrenzer": -10.0,
+   "ein": 0.01,
+   "aus": 4.0
+  },
+  {
+   "name": "donner_4",
+   "art": "ruf",
+   "quelle": "844420",
+   "von": 2.3,
+   "bis": 34.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -17.0,
+   "spitze": -2.5,
+   "begrenzer": -10.0,
+   "ein": 0.01,
+   "aus": 5.0
+  }
+ ]
+}

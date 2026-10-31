@@ -150,6 +150,19 @@ public sealed class Wetterablauf
     }
 
     /// <summary>
+    /// Wie weit ein Gewitter ist (0 = beginnt, 0,5 = Mitte, 1 = zu Ende), wenn zur Spielzeit <paramref name="minute"/> gerade ein Gewitter-Abschnitt läuft; sonst −1.
+    /// Nur gelesen (Ton und Blitzabstand: Das Gewitter zieht heran und weiter, siehe <c>KlangUmgebungModell.BlitzAbstandWuerfeln</c>).
+    /// </summary>
+    public float GewitterFortschritt(double minute)
+    {
+        var (abschnitte, i, imTag) = Stelle((long)minute);
+        if (abschnitte[i].Lage != Wetterlage.Gewitter) return -1f;
+        var ende = i + 1 < abschnitte.Length ? abschnitte[i + 1].Beginn : Spielzeit.MinutenProTag;
+        var laenge = Math.Max(1, ende - abschnitte[i].Beginn);
+        return Math.Clamp((float)((imTag + (minute - Math.Floor(minute)) - abschnitte[i].Beginn) / laenge), 0f, 1f);
+    }
+
+    /// <summary>
     /// Wie nass der Boden ist (0 … 1): Regen der letzten zwei Stunden, der jüngste zählt am meisten (alle 10 Minuten eine Probe). Nach dem
     /// Regen trocknet es so in etwa einer Stunde ab, und der Boden wird erst nach und nach nass.
     /// </summary>

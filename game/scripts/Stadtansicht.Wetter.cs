@@ -64,6 +64,17 @@ public partial class Stadtansicht
     private ShaderMaterial _schneeFarbe = null!; // schnee.gdshader: weiche Flocken, die pendeln und sich drehen
     private DirectionalLight3D _blitzLicht = null!;
     private float _blitzZeit = -1, _naechsterBlitz = 3;
+
+    /// <summary>
+    /// Abstand des laufenden (oder letzten) Blitzes in Kilometern und seine Helligkeit (0–1). EIN Wurf je Blitz (<see cref="KlangUmgebungModell.BlitzAbstandWuerfeln"/>):
+    /// Die Helligkeit (<see cref="KlangUmgebungModell.BlitzHelligkeit"/>) skaliert Himmel, Umgebungslicht und Blitzlicht, der Ton liest denselben Abstand
+    /// (<see cref="KlangBlitzAbstandKm"/>) für Verzögerung (343 m/s), Pegel und Klang des Donners – Bild und Ton stimmen so überein.
+    /// </summary>
+    private float _blitzAbstandKm = 1f, _blitzStaerke = 1f;
+    private float? _gewitterVorgabe;
+
+    /// <summary>Gesetzt, wenn der laufende Blitz ein direkter Einschlag ist (<see cref="BlitzEinschlag"/>): Abstand zum Blickpunkt in km und Seite im Bild (−1…+1); beim nächsten normalen Blitz wieder null.</summary>
+    private (float Km, float Seite)? _einschlag;
     private float _blitz;
     private readonly Random _blitzZufall = new();
     private int _blitzPulse;
@@ -442,7 +453,10 @@ public partial class Stadtansicht
             if (_blitzZeit < 0 && _wetter.Blitze > 0.3f && (_naechsterBlitz -= delta) <= 0)
             {
                 _blitzZeit = 0;
-                _naechsterBlitz = (3f + 9f * (float)_blitzZufall.NextDouble()) / _wetter.Blitze;
+                var fortschritt = KlangGewitterFortschritt;
+                _naechsterBlitz = (3f + 9f * (float)_blitzZufall.NextDouble()) / _wetter.Blitze * (fortschritt < 0 ? 1f : 1f + 1.2f * Mathf.Abs(2f * fortschritt - 1f)); // über der Stadt dicht, am Rand seltener
+                _einschlag = null;
+                BlitzAbstandWuerfeln(fortschritt);
                 BlitzRichtung();
                 _blitzPulse = 2 + _blitzZufall.Next(3);
                 _blitzAbstand = 0.3f / _blitzPulse * (0.8f + 0.4f * (float)_blitzZufall.NextDouble());
@@ -456,9 +470,9 @@ public partial class Stadtansicht
                 {
                     // je Pulse die ersten 40 % hell, den Rest ein schwacher Schein
                     var im = (b % _blitzAbstand) / _blitzAbstand;
-                    _blitz = im < 0.4f ? (b < _blitzAbstand ? 1f : 0.75f + 0.25f * Mathf.Cos(b * 40f)) : 0.15f;
+                    _blitz = _blitzStaerke * (im < 0.4f ? (b < _blitzAbstand ? 1f : 0.75f + 0.25f * Mathf.Cos(b * 40f)) : 0.15f);
                 }
-                else _blitz = Mathf.Max(0, 0.6f * (1 - (b - ende) / 0.35f));
+                else _blitz = _blitzStaerke * Mathf.Max(0, 0.6f * (1 - (b - ende) / 0.35f));
                 if (b > ende + 0.35f) { _blitzZeit = -1; _blitz = 0; }
             }
             else _blitz = 0;
@@ -477,6 +491,14 @@ public partial class Stadtansicht
             _blitzLicht.ShadowBlur = _sonne.ShadowBlur;
         }
         _blitzLicht.LightEnergy = (schatten ? 2.4f : 1.5f) * _blitz;
+    }
+
+    /// <summary>Würfelt den Abstand des neuen Blitzes (eine gemeinsame Quelle für Bild und Ton) und setzt seine Helligkeit.</summary>
+    private void BlitzAbstandWuerfeln(float fortschritt)
+    {
+        var km = KlangUmgebungModell.BlitzAbstandWuerfeln(_blitzZufall, fortschritt);
+        _blitzAbstandKm = (float)km;
+        _blitzStaerke = KlangUmgebungModell.BlitzHelligkeit(km);
     }
 
     /// <summary>Neue Richtung für den nächsten Blitz: Himmelsrichtung 0–360°, Steilheit 35–70° über dem Horizont.</summary>

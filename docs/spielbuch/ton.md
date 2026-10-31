@@ -1,6 +1,6 @@
 # Ton und Ansagen
 
-Lautstärken, Stumm und die Klänge der Oberfläche stehen bei den [Einstellungen](einstellungen.md) (Reiter Ton). Hier: die **Ansagen des Haushofmeisters**.
+Lautstärken, Stumm und die Klänge der Oberfläche stehen bei den [Einstellungen](einstellungen.md) (Reiter Ton). Hier: die **Ansagen des Haushofmeisters** und die **Geräusche der Stadt**.
 
 ## Der Haushofmeister
 
@@ -51,9 +51,48 @@ Alle 120 Aufnahmen spricht dieselbe **KI-Stimme**: ein warmer, tiefer Bariton um
 
 `--nur` nimmt die Dateinamen ohne `.ogg`, `--neu` verwirft die alten Versuche. Soll er anders klingen, zuerst die Satzzeichen in `ansagen_sprechtext.json` ändern. Ohne `--nur` erzeugt das Skript alle fehlenden; `--durchhoeren alle.ogg` setzt alle Aufnahmen mit 0,8 s Pause hintereinander. Danach `python3 tools/ton/ansagen_liste.py --pruefen` und `--fehlende`, die Protokollzeile bleibt (gleiche Zahl), im Commit nennen, welche Sätze neu sind. Einzelheiten: `docs/assets/prompts/haushofmeister.md`.
 
+## Die Geräusche der Stadt
+
+In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, und das Land, **wo das Land ist**. Auf leeren Straßen ist es still: Vögel, ein wenig Wind, ein Hauch Wasser, sonst nichts. Füllen sich die Gassen, steigt das Stadtleben; an Gruppen, die beieinanderstehen, hört man kurze **Gesprächsfetzen** (Lachen, Feilschen, unverständlich), am Markt mehr; aus der Schänke dringt es dumpf aus ihrer Richtung, in der Schmiede wird gehämmert, solange gearbeitet wird. Draußen auf Wiese und im Wald verstummt die Stadt, dafür rauscht das Laub, es zirpt, quakt und plätschert – je nach Ort und Jahreszeit. Im Hauptmenü und in der Kartenwerkstatt bleibt es still (die Probepartie hat die Geräusche). Die Lautstärke hat der Regler **Umgebung**.
+
+| Was geschieht | Was man hört |
+|---|---|
+| Niemand draußen (Nacht, früher Morgen) | nur Vögel, Wind, Nachtgrund; keine Gespräche, keine Schritte |
+| Menschen auf Gasse und Markt im Umkreis der Kamera | Stadtleben (Wasser, Arbeit, ferne Stimmen), je mehr Leute, desto voller |
+| Zwei oder drei Leute stehen beieinander (Kunde am Stand, Plauder an der Ecke) | Gesprächsfetzen am Ort der Gruppe, leise, mit Abstand und Zufall; am Markt zum Feilschen, sonst in der Gasse |
+| Jemand geht im Umkreis | Schritte, am Ort dieser Figur im Bild; je mehr gehen, desto öfter |
+| Schänke offen (8–22 Uhr) mit Gästen | von draußen gedämpft wie durch die Tür; dicht davor und herangezoomt heller und lauter; **in der Schankstube selbst** (Innenansicht) laut und lebendig, nach der Zahl der Gäste |
+| Schmiede oder Steinmetzhütte arbeitet (8–20 Uhr) | fernes Hämmern aus der Richtung des Betriebs |
+| Fokus auf Wiese, Feld, Wald | Stadt verklingt; Vögel, Grillen (Sommer, abends), Krähen (Winter, Herbst), Laubrauschen im Wald, im Wind stärker |
+| am Wasser (Fluss, Bach, Teich) | Plätschern; im Frühling abends und nachts Frösche |
+| Regen | Regen auf Boden und Laub (leicht oder Guss), nah an der Stadt Tropfen auf den Dächern; Vögel schweigen, die Stadt wird dumpf und leiser |
+| Gewitter | Der Donner folgt jedem Blitz mit der Verzögerung des Schalls (etwa 3 Sekunden je Kilometer): nah ein scharfer Knall mit langem Rollen, sehr laut; je weiter weg, desto später, leiser und dumpfer (nur tiefes Grollen); ab etwa 18 km nur noch Wetterleuchten ohne Donner. Der Blitz ist im Bild umso heller, je näher er einschlägt. Normale Blitze schlagen nie näher als etwa einen Kilometer ein (kräftiger, aber nicht brachialer Donner). Das Gewitter zieht heran (Regen und Böen nehmen zu, die Blitze rücken näher), geht über die Stadt und zieht weiter |
+| Direkter Blitzeinschlag in ein Gebäude (später mit Brand; jetzt nur über das Entwicklerfenster oder `--einschlag=<Sekunden>`) | hellster Blitz und ein brachialer Knall fast ohne Verzögerung, deutlich lauter als jeder normale Donner |
+| Schnee | **Schneestille**: alles leiser und dumpfer, Vögel kaum |
+| Wind (Wetter) | Flaute still, Sturm laut, auch nah |
+| Arbeitsbeginn 8 Uhr | **Morgenglocke** (Geläut mehrerer großer Glocken) vom Dom |
+| Messe (Stunde des Kirchenwesens, 10 Uhr) | **Messglocke**, Geläut |
+| Arbeitsende 20 Uhr | **Abendglocke**, die große Glocke allein, dann weitere (Feierabend) |
+| Schankschluss 22 Uhr | **Feuerglocke**, die große Glocke allein, langsam und schwer (Sperrstunde: Feuer abdecken, Gassen räumen) |
+| Nacht, eine Streife mit Laterne ist unterwegs | ab und zu das **Horn des Nachtwächters** an der Streife |
+
+- **Wer zählt:** alle Figuren draußen auf Gassen, am Tor und auf dem Markt im Umkreis der Kamera – auch hinter Häusern, nicht nur die im Bild. Wer in einem Haus, in der Kirche oder im Umland ist, zählt nicht. Der Umkreis wächst mit dem Zoom (nah etwa 40 m, Startzoom etwa 90 m, ganz oben etwa 120 m); wer nah ist, zählt ganz, am Rand immer weniger. Die Einstellung „Menge der Passanten“ gilt auch hier: Wer nicht gezeigt wird, ist nicht zu hören. Gesprächsfetzen tragen weniger weit (Zoom 40 etwa 26 m).
+- **Stadt oder Land:** Um den Blickpunkt der Kamera wird gemessen, wie viel Stadt (Häuser, Gassen, Mauer) gegen Natur (Wald, Felder, Wiese, Wasser) liegt. Das Stadtleben folgt dem Stadtanteil; Grillen, Krähen, Laub, Frösche und Bach folgen dem, was um die Kamera wächst und fließt.
+- **Weich:** Die Pegel steigen mit etwa 3 Sekunden und fallen mit etwa 6 Sekunden Zeitkonstante, nie sprunghaft; ein Wechsel von der Stadt aufs Land dauert etwa 3 Sekunden.
+- **Abend und Nacht:** Der Klang folgt den Menschen: Nach dem Feierabend (20 Uhr) endet das Stadtleben, die Schänke klingt bis zum Schankschluss um 22 Uhr (Feuerglocke), die Gespräche nehmen nach 22 Uhr stark ab. Wie viele Leute noch auf den Gassen sind, bestimmt die Bürger-KI: Um 21 Uhr gehen noch viele zur oder von der Schänke, bis etwa 22:45 sind fast alle daheim – dann bleiben nur Wind, Vögel, ferne Tiere und der Nachtwächter.
+- **Die Vögel folgen der Sonne**, die Stadt der Uhr: Im Winter ist es um 8 Uhr noch dunkel, aber die Stadt arbeitet schon; im Sommer singt der Morgenchor schon um 4 Uhr. Im Herbst und Winter singen die Vögel kaum; Grillen nur im Sommer, Frösche nur im Frühling.
+- **Zoom:** Nah hört man die Gespräche und die Schritte, am üblichen Blick (Startzoom) weniger davon. Weit herausgezoomt wird die Stadt leiser und dumpfer, und der Wind kommt; die Glocken hört man auch dann.
+- **Innen:** In einem Raum hört man draußen nur noch dumpf und leise, im Dom etwas gedämpft; **die Schankstube** klingt laut und lebendig (Stimmen, Lachen, Krüge) und nicht gedämpft wie ein Raum.
+- **Pause:** Die Geräusche laufen leiser weiter (−8 dB), die Tageszeit steht, Rufe kommen seltener.
+- **Spieltempo:** Die Geräusche folgen der Spielzeit, auch bei 32x, aber ohne Sprünge. Springt die Uhr (Jahreswechsel, Laden), blenden sie in 3 Sekunden über, und keine Glocke läutet. Hahn, Hund, Kauz, Gespräche und Horn kommen nach echter Zeit mit Mindestabstand, bei hohem Tempo also nicht öfter.
+- **Gespräche austauschbar:** Welche Aufnahmen als Gesprächsfetzen klingen, steht in `game/daten/gespraeche.json` (Anlass → Dateien). Später können hier Gesprächsrunden der Stimm-KI stehen, ohne den Code anzufassen.
+- Hat das Fenster den Fokus verloren und ist „Ton im Hintergrund stumm“ an, ist alles still, und es kommen keine Rufe.
+
+Die Klänge sind Aufnahmen von freesound.org (CC0, und für Frösche, Regen und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
+
 ## Ausprobieren
 
-`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
+`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Die Geräusche der Stadt: Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Umgebung** (was gerade wie laut läuft, jede Datei zum Vorhören, „jetzt rufen“); `--umgebungtest=2` schreibt die Pegel jede Sekunde ins Log, `--umgebungfahrt=1 --karte=greybox` spielt eine feste Hörprobe von 7 Minuten ab (früher Morgen mit Morgenglocke, Markttreiben mit Gesprächsfetzen und Messglocke, der Weg von der Stadt aufs Land und zum Fluss, Frühlingsabend mit Fröschen, Sommernacht mit Grillen, Winter mit Schnee und Krähen, Abend mit Abendglocke, die Schänke von außen, nah und von innen, Schankschluss mit Feuerglocke, Nacht mit Nachtwächter, Regen und Gewitter; die Menschen kommen dabei aus einem erfundenen Tagesablauf, Wetter und Karte sind echt) und beendet das Spiel. Im Entwicklerfenster steht unter „Umgebung“ eine Zeile mit den Menschen im Umkreis und den Pegeln. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
 
 ## Gespräche der Passanten (geplant)
 

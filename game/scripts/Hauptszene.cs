@@ -276,6 +276,7 @@ public partial class Hauptszene : Node
         SetProcess(false);
         SetProcessUnhandledInput(false);
         var lade = Ladebildschirm.Zeigen(GetTree(), Stadtkarten.StartKennung); // vom Hauptmenü schon offen; sonst (Startoptionen, Test) hier
+        UmgebungAnlegen(); // Umgebungsklänge: laden jetzt im Hintergrund, spielen ab dem Ende des Ladebildschirms (Hauptszene.Umgebung.cs)
         lade.Fortschritt(0.07f, "Die Chronik wird aufgeschlagen …");
         GetViewport().Disable3D = true; // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
@@ -290,6 +291,8 @@ public partial class Hauptszene : Node
         _stadt.Ruhen(false);
         Ladezeit.Marke("Ladebild weg");
         lade.Schliessen();
+        _umgebungBereit = true;
+        if (_einschlagNach is { } einschlagSekunden) GetTree().CreateTimer(einschlagSekunden).Timeout += () => _stadt.BlitzEinschlag(_stadt.KlangMarktMitte + new Godot.Vector3(8, 0, 6));
         Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
     }
 
@@ -529,6 +532,9 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("wetterspaeter", out var spaeter) && spaeter.Split('@') is [var spaeterLage, var spaeterSekunden]
             && Enum.TryParse<Wetterlage>(spaeterLage, true, out var spaeterWetter) && double.TryParse(spaeterSekunden, System.Globalization.CultureInfo.InvariantCulture, out var sek))
             _stadt.WetterVorgebenNach(spaeterWetter, sek); // --wetterspaeter=regen@20: Wetter schlägt nach 20 s um (Stadtansicht.Wetter.cs)
+        // --einschlag=<Sekunden>: so viele Sekunden nach dem Ladebildschirm schlägt ein Blitz direkt am Marktplatz ein (Ton und Blitzlicht; Stadtansicht.Entwickler.cs)
+        if (optionen.TryGetValue("einschlag", out var einschlagSek) && double.TryParse(einschlagSek, System.Globalization.CultureInfo.InvariantCulture, out var einschlagNach))
+            _einschlagNach = einschlagNach;
         if (optionen.TryGetValue("pflasterrelief", out var relief)) _stadt.PflasterReliefVorgeben(relief != "0"); // Parallax im Pflaster (Stadtansicht.Pflasterrelief.cs)
         if (optionen.TryGetValue("kischmied", out var kiSchmied)) _stadt.KiSchmiedVorgeben(kiSchmied); // aus|wenige|alle (Stadtansicht.KiFiguren.cs)
         if (optionen.GetValueOrDefault("messe") == "1") _stadt.MesseVorgeben(); // Kirchenfenster wie zur Messe, nur Darstellung (Stadtansicht.Modelle.cs)
@@ -987,7 +993,7 @@ public partial class Hauptszene : Node
         Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
         Hauptmenue.Knopf(_menueKnoepfe, "Hilfe (F1)", HilfeOeffnen);
         ProbeKnopfBauen(); // „Zurück zur Kartenwerkstatt“ in einer Probepartie (Hauptszene.Probepartie.cs)
-        Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
+        Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => { UmgebungAusblenden(); GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"); });
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
 
         _menueListe = new SpielstandListe { Visible = false };
@@ -998,6 +1004,7 @@ public partial class Hauptszene : Node
             {
                 Spielstaende.Laden(pfad); // vorab prüfen
                 Partiewahl.LadenWaehlen(pfad);
+                UmgebungAusblenden();
                 GetTree().ChangeSceneToFile("res://scenes/Hauptszene.tscn"); // Szene neu aufbauen
             }
             catch (SpielstandFehler fehler)
