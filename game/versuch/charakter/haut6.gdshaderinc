@@ -145,7 +145,7 @@ const vec3 K_HB = vec3(0.037, 1.0, 0.795);   // Hämoglobin
 const vec3 K_RING = vec3(0.2, 0.26, 0.34);   // Augenringe: dunkler, bräunlich (Runde 2: nicht violett)
 const vec3 K_GELB = vec3(0.0, 0.06, 0.3);    // Gelbstich
 const vec3 K_SPROSS = vec3(0.45, 0.7, 1.0);  // Sommersprossen (hellbraun)
-const vec3 K_ALT = vec3(0.7, 0.8, 0.95);     // Altersflecken (graubraun, weniger orange)
+const vec3 K_ALT = vec3(0.8, 0.9, 1.05);     // Altersflecken (graubraun, kaum orange)
 #endif
 varying vec3 n_diffus;
 varying float duenn;
@@ -208,11 +208,19 @@ void fragment() {
 	float altfl = fl3.a * step(fract(fl3.b + 0.43), c_altersflecken * zc.g * haeufung * 1.6)
 		+ 0.7 * fl2.a * step(fract(fl2.b + 0.71), c_altersflecken * 0.6 * zc.g * haeufung);
 	c *= exp(-(eu * K_EU + hb * K_HB + zc.b * c_ringe * K_RING + (zc.g * c_gelb + c_gelb_alle) * K_GELB
-		+ spross * c_spross_staerke * K_SPROSS + altfl * 0.6 * K_ALT));
+		+ spross * c_spross_staerke * K_SPROSS + altfl * 0.45 * K_ALT));
 	// Bart: kühler Schatten der Haare unter der Haut, dazu Stoppeln (Striche der Porenkachel)
 	c *= mix(vec3(1.0), c_bart_farbe, clamp(zc.a * c_bart, 0.0, 1.0));
-	// Runde 2: zweite, gröbere Stoppellage (im Porträt sichtbar, Prüfer: „kein Bartschatten“)
-	c = mix(c, haar_farbe * 0.6, clamp((pt.a + 0.6 * pt2.a) * zc.a * c_stoppeln, 0.0, 0.9));
+	// Stoppeln: feine Striche und eine gröbere Lage; Runde 3 (Prüfer: „Dreitagebart nur ein Hauch“): zusätzlich mit
+	// Mip-Versatz 1,5 abgetastet und geschwellt – die Striche werden im Porträt zu sichtbaren Punkten
+#ifdef EINFACH
+	float stoppel = 0.0;
+#else
+	float stoppel = max(smoothstep(0.03, 0.2, texture(c_poren, UV * c_poren_dichte + c_versatz, 1.5).a),
+		0.7 * smoothstep(0.03, 0.2, texture(c_poren, mat2(vec2(0.6, -0.8), vec2(0.8, 0.6)) * UV * (c_poren_dichte * 0.37) + c_versatz.yx * 3.1, 1.0).a));
+	stoppel = max(stoppel, pt.a + 0.6 * pt2.a);
+#endif
+	c = mix(c, haar_farbe * 0.55, clamp(stoppel * zc.a * c_stoppeln, 0.0, 0.85));
 	// Brauenschatten weich (wie Weg A)
 	float braue_a = textureLod(farbe_tex, UV, 2.5).a;
 	c = mix(c, haar_farbe * 0.8, clamp(braue_a * brauen_dichte * brauen_weich, 0.0, 0.5));
@@ -222,6 +230,9 @@ void fragment() {
 	c *= 1.0 - c_hoehle_albedo * (pt.b + 0.5 * c_uneben * pt2.b) * gl.g;
 	c *= 1.0 - hoehlen * 0.5 * m.b;
 	c *= 1.0 - c_loch * gl.b;
+	// Lippenrot (Glanzkarte A ≈ 0,3): weniger lachsfarben (Runde 3)
+	float lippe = smoothstep(0.12, 0.26, gl.a) * (1.0 - smoothstep(0.36, 0.44, gl.a));
+	c = mix(c, vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))) * vec3(1.12, 0.94, 0.9), 0.3 * lippe);
 	float unter = dot(texture(kopfhaut_tex, UV), kopfhaut_kanal);
 	unter *= smoothstep(kahl - 0.05, kahl + 0.05, texture(rang_tex, UV).a) * (1.0 - 0.5 * duenn_haut);
 	float unter_bart = clamp(dot(texture(bart_tex, UV), bart_kanal), 0.0, 1.0);
@@ -336,7 +347,7 @@ void light() {
 		// Flächenlicht (Godot 4.7): Godot rechnet die Fläche (LTC); hier nur Streulicht und Glanzmaske (Beispiel der Doku)
 #ifdef WEG_C
 		// Etappe C: auch das Flächenlicht erreicht das Nasenloch innen nicht (sonst glüht es orange)
-		DIFFUSE_LIGHT += LIGHT_AREA_DIFFUSE_MULTIPLIER * ATTENUATION * LIGHT_COLOR * (1.0 - 0.85 * smoothstep(0.15, 0.85, hoehle_v));
+		DIFFUSE_LIGHT += LIGHT_AREA_DIFFUSE_MULTIPLIER * ATTENUATION * LIGHT_COLOR * (1.0 - 0.75 * smoothstep(0.15, 0.85, hoehle_v));
 #else
 		DIFFUSE_LIGHT += LIGHT_AREA_DIFFUSE_MULTIPLIER * ATTENUATION * LIGHT_COLOR;
 #endif
@@ -382,7 +393,7 @@ void light() {
 		diff += vec3(1.0, 0.35, 0.22) * hinten * duenn * durchlicht;
 #ifdef WEG_C
 		// Nasenloch, Gehörgang: kein direktes Licht, auch kein Randlicht (die Innenwände sieht man streifend)
-		diff *= 1.0 - 0.85 * smoothstep(0.15, 0.85, hoehle_v);
+		diff *= 1.0 - 0.75 * smoothstep(0.15, 0.85, hoehle_v);
 #endif
 		DIFFUSE_LIGHT += diff * LIGHT_COLOR / PI;   // Lambert: LIGHT_COLOR enthält π
 		// Glanz: zwei GGX-Keulen (Rauheit r und 0,55 r) wie Godot, Schlick-Fresnel mit F0 0,028 bis 1, ohne / PI

@@ -360,8 +360,9 @@ def zonen_und_glanz(X, N, P, masken_b):
     # ---- Hämoglobin
     hb = 0.8 * wange + 0.45 * innenwange + 0.45 * nasenspitze * vorn_streng + 0.25 * nase * vorn_streng
     for s in ("r", "l"):
-        hb += 0.35 * gauss(X, P[f"al_{s}"] + [0, 0, -1.0], (5.0, 4.5, 5.0)) * vorn_streng
-    hb += 0.75 * ohr + 0.3 * kinn + 0.9 * karunkel + 0.22 * lid + 0.12 * stirn * (r3 > 0.5) + 0.5 * feucht
+        hb += 0.25 * gauss(X, P[f"al_{s}"] + [0, 0, -1.0], (5.0, 4.5, 5.0)) * vorn_streng
+    # Runde 3 (Prüfer: Lidränder und Ohren „glühen orange“): Lid, Lidrand und Ohr schwächer
+    hb += 0.45 * ohr + 0.3 * kinn + 0.9 * karunkel + 0.12 * lid + 0.12 * stirn * (r3 > 0.5) + 0.15 * feucht
     hb += 0.15 * gauss(X, P["g"], (10.0, 8.0, 10.0))
     Z[:, 0] = hb * unruhig
     # ---- Sonne und Gelbton
@@ -428,7 +429,8 @@ def zonen_und_glanz(X, N, P, masken_b):
     hoehle = ohr * (1.0 - nase_feld) * glatt(masken_b, 0.35, 0.9) * 0.8     # sonst nur Ohrmuschel und Gehörgang
     hoehle = np.maximum(hoehle, loch * (0.8 + 0.2 * glatt(masken_b, 0.1, 0.5)))
     G[:, 2] = np.clip(hoehle, 0, 1)
-    G[:, 3] = np.clip(np.maximum(feucht, karunkel), 0, 1)
+    # A: Feuchte (Lidrand, Karunkel ≥ 0,45) und Lippenrot als 0,3 (der Shader trennt beides; feucht wirkt erst ab 0,45)
+    G[:, 3] = np.clip(np.maximum(np.maximum(feucht, karunkel), 0.3 * lippen * (feucht < 0.2)), 0, 1)
     Z[:, 0] = np.clip(Z[:, 0], 0, 1)
     Z[:, 1] = np.clip(Z[:, 1], 0, 1)
     Z[:, 2] = np.clip(Z[:, 2], 0, 1)
@@ -543,7 +545,7 @@ def relief_bauen(X, N, P, fl, samen):
         sp = 0.95
         phase = (xy[:, 0] + 1.6 * (w - 0.5)) / sp
         rille = np.clip(1.0 - np.abs(phase - np.round(phase)) * 2.0, 0, 1) ** 5
-        R.h[idx, 2] += -0.05 * rille * glatt(rand, 0.2, 1.4) * (0.6 + 0.8 * rauschen(X[idx], 2.0, samen + 8))
+        R.h[idx, 2] += -0.11 * rille * glatt(rand, 0.2, 1.4) * (0.6 + 0.8 * rauschen(X[idx], 2.0, samen + 8))
     # ---- A: Mund und Hals
     for s, sg in (("r", -1.0), ("l", 1.0)):
         ch, al = P[f"ch_{s}"], P[f"al_{s}"]

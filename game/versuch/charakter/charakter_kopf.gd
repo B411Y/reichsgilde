@@ -948,16 +948,18 @@ func _farben() -> void:
 				Vector4(0.7 * m_stirn, 0.6 * m_auge, 0.3 * m_mund, 0.3 * m_mund) * mf, grund)
 		for m in wimpern_stoffe:
 			# Etappe C: Unterlid-Wimpern licht, dünn, Wurzel weich; alle Wimpern etwas weniger schwarz und deckend
-			m.set_shader_parameter("unten_deckung", 0.35 if c_an else 1.0)
+			m.set_shader_parameter("unten_deckung", 0.3 if c_an else 1.0)
 			m.set_shader_parameter("unten_wurzel", 1.0 if c_an else 0.0)
-			m.set_shader_parameter("unten_hell", 0.35 if c_an else 0.0)
+			m.set_shader_parameter("unten_hell", 0.45 if c_an else 0.0)
 			farbe_setzen(m, "haut_ton", grund, st)
-			m.set_shader_parameter("dunkel", 0.8 if c_an else 0.6)
-			m.set_shader_parameter("deckung", 0.85 if c_an else 1.0)
+			m.set_shader_parameter("dunkel", 0.85 if c_an else 0.6)
+			m.set_shader_parameter("deckung", 0.7 if c_an else 1.0)
 			if c_an:
-				# Runde 2 (Prüfer: Wimpern zu dunkel und zu dicht): lichter und etwa ein Viertel weniger Haare
-				farbe_setzen(m, "farbe", haar.darkened(0.45), st)
+				# Runde 2/3 (Prüfer: Wimpern schwarz, hart, zu dicht): lichter, durchscheinender, ein Viertel weniger Haare;
+				# graue Wimpern ergrauen fast wie die Brauen
+				farbe_setzen(m, "farbe", haar.darkened(0.4).lerp(grund, 0.15), st)
 				m.set_shader_parameter("dichte", 0.72 if mann else 0.78)
+				m.set_shader_parameter("grau", grau * 0.8)
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
@@ -1044,14 +1046,14 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_hb", 0.2 * roet * (1.12 if mann else 1.0) + 0.05 * greis + 0.08 * w)
 		m.set_shader_parameter("c_sonne", 0.06 + 0.04 * reif + 0.2 * w)
 		m.set_shader_parameter("c_braeune", 0.15 * w)
-		m.set_shader_parameter("c_ringe", (0.35 + 0.15 * ring_a) * (1.0 if mann else 1.1))
+		m.set_shader_parameter("c_ringe", (0.35 + 0.15 * ring_a) * (1.0 if mann else 1.35))
 		m.set_shader_parameter("c_bart", bart_c)
 		m.set_shader_parameter("c_bart_farbe", bart_farbe)
 		m.set_shader_parameter("c_stoppeln", (0.9 * clampf(bart / 0.5, 0.0, 1.0) * (1.0 - 0.6 * hh)) if mann else 0.0)
 		m.set_shader_parameter("c_unruhe_eu", (0.08 + 0.04 * reif + 0.04 * greis + 0.04 * w) * (1.0 if mann else 0.9))
 		m.set_shader_parameter("c_unruhe_hb", (0.08 + 0.03 * reif + 0.05 * greis) * (1.0 if mann else 0.9))
 		m.set_shader_parameter("c_sommersprossen", spross)
-		m.set_shader_parameter("c_altersflecken", clampf((a_h - 45.0) / 30.0, 0.0, 1.0) * 0.22)
+		m.set_shader_parameter("c_altersflecken", clampf((a_h - 45.0) / 30.0, 0.0, 1.0) * 0.18)
 		m.set_shader_parameter("c_rau", 0.03 * greis + 0.05 * w + (0.02 if mann else 0.0))
 		m.set_shader_parameter("c_poren_staerke", (lerpf(0.35, 0.75 if mann else 0.62, reif) + 0.1 * greis + 0.1 * w) * (1.0 if mann else 0.9))
 		# feste Abstimmung (jede Zelle setzt sie neu; „haut_werte“ eines Bogens bleibt sonst am Stoff hängen)
@@ -1060,7 +1062,7 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_furche_dunkel", 0.08 + 0.12 * clampf((a_h - 30.0) / 35.0, 0.0, 1.0))
 		m.set_shader_parameter("c_hoehle_albedo", 0.35)
 		m.set_shader_parameter("c_uneben", 0.5)
-		m.set_shader_parameter("c_loch", 0.55)
+		m.set_shader_parameter("c_loch", 0.45)
 		m.set_shader_parameter("c_gelb_alle", 0.18 + 0.1 * w)
 		m.set_shader_parameter("c_lippen_weich", 0.6)
 		m.set_shader_parameter("c_zeige", 0)
