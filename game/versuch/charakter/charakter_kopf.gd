@@ -103,9 +103,11 @@ var zahnfleisch_stoffe: Array[ShaderMaterial] = []
 const REGELN6 := "res://versuch/charakter/regeln6.json"
 const VORSCHLAG := "res://versuch/charakter/erbgut_vorschlag.json"
 static var _regeln6 := {}
+static var zuege_aus := false   # Prüfung „nur Gene“ (Schau: --ohne_zuege)
 static var _erbgut6 := {}
 var volk := "Mensch"
 var aussehen_samen := 0         # 0 = keiner (Mittelgesicht: keine Asymmetrie)
+var iris_vorgabe := -1          # Bogenschlüssel „iris_muster“ (0–5), sonst Wahl nach Augenfarbe und Samen
 var gene_z := {}                # zuletzt gerechnete σ-Werte nach der Karikaturbremse (zum Prüfen)
 var karikatur := {}             # K vorher/nachher, Kappungen (zum Prüfen)
 static var _poren: NoiseTexture2D
@@ -184,6 +186,43 @@ func _shader_waehlen() -> void:
 # Phase 6 (S2): eine Farbe an ein Farb-Uniform (source_color) übergeben. Stand 6 übergibt Color (sRGB, Godot rechnet
 # nach linear um, wie bei StandardMaterial3D); Stand 5 wie Phase 5 als Vector3 (ohne Umrechnung – der Fehler der
 # Phase 5, für den Vergleich erhalten). Faktoren wie „toenung“ bleiben Vector3.
+# Etappe B (S7): Brauenformen (brauen6_m_0–5, brauen6_w_0–5 -> Ebenen 0–11) und Irismuster (iris6_0–5) als Bildarray
+func _bildarrays_laden(ordner: String) -> void:
+	for art in [["brauen6", ["brauen6_m_0", "brauen6_m_1", "brauen6_m_2", "brauen6_m_3", "brauen6_m_4", "brauen6_m_5",
+			"brauen6_w_0", "brauen6_w_1", "brauen6_w_2", "brauen6_w_3", "brauen6_w_4", "brauen6_w_5"]],
+			["iris6", ["iris6_0", "iris6_1", "iris6_2", "iris6_3", "iris6_4", "iris6_5"]]]:
+		var schl: String = ordner.path_join(art[0])
+		if _bild_speicher.has(schl):
+			bilder[art[0]] = _bild_speicher[schl]
+			continue
+		var liste: Array[Image] = []
+		for n in art[1]:
+			var f := ordner.path_join(n + ".png")
+			if not FileAccess.file_exists(f):
+				liste.clear()
+				break
+			var img := Image.load_from_file(f)
+			img.generate_mipmaps()
+			liste.append(img)
+		if liste.is_empty():
+			continue
+		var arr := Texture2DArray.new()
+		arr.create_from_images(liste)
+		_bild_speicher[schl] = arr
+		bilder[art[0]] = arr
+
+# Brauenform aus „brauen_form“: Quantil der Glockenkurve des Gens -> 6 gleich häufige Formen
+static func brauen_ebene(wert: float) -> int:
+	var z := (wert - 128.0) / 70.0
+	var phi := 0.5 * (1.0 + _erf(z / sqrt(2.0)))
+	return clampi(int(floor(phi * 6.0)), 0, 5)
+
+static func _erf(x: float) -> float:
+	# Abramowitz–Stegun 7.1.26 (Fehler < 1,5e-7)
+	var t := 1.0 / (1.0 + 0.3275911 * absf(x))
+	var y := 1.0 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * exp(-x * x)
+	return y if x >= 0.0 else -y
+
 static func farbe_setzen(m: ShaderMaterial, name: String, c: Color, st: int) -> void:
 	if st >= 6:
 		m.set_shader_parameter(name, c)
@@ -200,6 +239,7 @@ func _bilder_laden(datei: String) -> void:
 	if not DirAccess.dir_exists_absolute(ordner):
 		return
 	var t := Time.get_ticks_usec()
+	_bildarrays_laden(ordner)
 	for b in BILDER + BILDER_WAHL:
 		var f := ordner.path_join(b + ".png")
 		if b in BILDER_WAHL and not FileAccess.file_exists(f):
@@ -481,7 +521,7 @@ func _anwenden6(w: Dictionary) -> void:
 		var v := wert_im_alter6(k, float(gene.get(k, _mittel6(k))), alter)
 		z[k] = _sigma(k, v, volk) if neu else (v - 128.0) / 127.0
 	var zuege: Dictionary = R.get("zuege", {}).get("gene", {})
-	if neu and R["schalter"].get("zuege", false):
+	if neu and R["schalter"].get("zuege", false) and not zuege_aus:
 		for k in zuege:
 			z[k] = (float(gene.get(k, 128.0)) - float(R["zuege"]["mitte"])) / float(R["zuege"]["streuung"])
 	karikatur = {}
@@ -521,7 +561,7 @@ func _anwenden6(w: Dictionary) -> void:
 	for k in gene_w:
 		w[k] = gene_w[k]
 	# Gesichtszüge (nur Menschen; bei Kindern × Reife)
-	if neu and R["schalter"].get("zuege", false):
+	if neu and R["schalter"].get("zuege", false) and not zuege_aus:
 		for k in zuege:
 			w[zuege[k]] = float(z.get(k, 0.0)) * float(R["zuege"]["faktor"]) * ru * mimikfaktor
 	# Asymmetrie aus dem Personen-Samen (nicht erblich): Gewicht ~ N(0, Streuung); Grenzen je Merkmal, sonst kleiner
@@ -563,6 +603,14 @@ func _anwenden6(w: Dictionary) -> void:
 	_merkpunkte(w)
 	_farben()
 
+# Mittelwerte aller Gene der Vorschlagsdatei (Etappe B), für Zellen ohne Saat
+static func mittelwerte6(v: String) -> Dictionary:
+	var aus := {}
+	for k in erbgut6():
+		var g: Dictionary = erbgut6()[k]
+		aus[k] = float(g["voelker"].get(v, g["voelker"]["Mensch"])["mittel"])
+	return aus
+
 static func _mittel6(k: String) -> float:
 	var g: Dictionary = erbgut6().get(k, {})
 	return float(g["voelker"]["Mensch"]["mittel"]) if not g.is_empty() else 128.0
@@ -584,7 +632,7 @@ static func wert_im_alter6(kennung: String, wert: float, jahre: float) -> float:
 	return clampf(wert + v, 0.0, 255.0)
 
 # Karikaturbremse (Plan S5.5): K = √(Mittel z²); K > K_max -> alle z gemeinsam kleiner; höchstens zwei Merkmale über
-# |z| 2 (die übrigen auf 2); 0,05 < K < K_min -> die stärksten Abweichungen auf |z| 1,2 (das Mittelgesicht bleibt).
+# |z| 2 (die übrigen auf 2); 0,05 < K < K_min -> die stärksten Abweichungen auf |z| 1,2 (nur mit Personen-Samen).
 func _karikatur_bremse(z: Dictionary, k: Dictionary) -> void:
 	if z.is_empty():
 		return
@@ -602,7 +650,8 @@ func _karikatur_bremse(z: Dictionary, k: Dictionary) -> void:
 	for i in namen.size():
 		if i >= int(k["hoechstens_ueber"]) and absf(float(z[namen[i]])) > grenze:
 			z[namen[i]] = signf(float(z[namen[i]])) * grenze
-	if K > 0.05 and K < float(k["K_min"]):
+	# Anheben nur bei Personen mit Samen (gewürfelt); das Mittelgesicht bleibt Mittel, auch mit den Altersverschiebungen
+	if aussehen_samen != 0 and K > 0.05 and K < float(k["K_min"]):
 		for i in mini(int(k["anheben_anzahl"]), namen.size()):
 			var v := float(z[namen[i]])
 			if absf(v) < float(k["z_anheben"]):
@@ -762,8 +811,19 @@ func _farben() -> void:
 		var brauen_bild: Texture2D = bilder.get("brauen_w", bilder["brauen"]) if not mann else bilder["brauen"]
 		if not bilder.has("brauen_w"):
 			breite *= lerpf(0.72, 1.0, geschlecht)
+		var ebene := -1.0
+		if st >= 6 and bilder.has("brauen6") and formen.has("alter_reife_m_oben"):
+			# Etappe B (S7): Form aus „brauen_form“, Dichte und Breite aus „brauen_dichte“ (Vorschlagsgene)
+			ebene = float(brauen_ebene(float(gene.get("brauen_form", 128.0))) + (0 if mann else 6))
+			var bd := clampf((float(gene.get("brauen_dichte", 128.0)) - 40.0) / 180.0, 0.0, 1.0)
+			dichte *= lerpf(0.72, 1.15, bd)
+			breite *= lerpf(0.88, 1.08, bd)
+			if not bilder.has("brauen_w"):
+				breite /= lerpf(0.72, 1.0, geschlecht)
 		for m in haar_stoffe:
 			m.set_shader_parameter("bild", brauen_bild)
+			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
+			m.set_shader_parameter("ebene", ebene)
 			farbe_setzen(m, "farbe", braue, st)
 			m.set_shader_parameter("grau", grau)
 			m.set_shader_parameter("dichte", clampf(dichte, 0.0, 1.0))
@@ -808,7 +868,7 @@ func _farben() -> void:
 			m.set_shader_parameter("brauen_dichte", clampf(dichte, 0.0, 1.0))
 			farbe_setzen(m, "haar_farbe", haar, st)
 		werte3 = {"falten": f, "bart": bart, "brauen_dichte": dichte, "brauen_breite": breite, "grau": grau,
-			"grundfarbe": grund}
+			"grundfarbe": grund, "brauen_ebene": ebene}
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
@@ -830,7 +890,24 @@ func _farben() -> void:
 			hell6 = IRIS6_GRUEN.lerp(IRIS6_BLAU, (at - 0.5) / 0.5)
 		iris = linear(IRIS6_DUNKEL.lerp(hell6, ah))
 		kranz = linear((KRANZ6[0] as Color).lerp(KRANZ6[1], ah))
+	# Etappe B (S7): Irismuster nach Augenfarbe und Personen-Samen, Drehung je Person (ohne Samen: Grundmuster)
+	var iris_ebene := -1.0
+	var iris_dreh := 0.0
+	if st >= 6 and bilder.has("iris6") and formen.has("alter_reife_m_oben"):
+		var wahl: Array = [0, 1, 3, 5] if ah < 0.35 else ([0, 2, 3, 4] if at > 0.6 else [1, 2, 4, 5])
+		iris_ebene = 0.0
+		if iris_vorgabe >= 0:
+			iris_ebene = float(clampi(iris_vorgabe, 0, 5))
+		elif aussehen_samen != 0:
+			var rng := RandomNumberGenerator.new()
+			rng.seed = hash("iris:%d" % aussehen_samen)
+			iris_ebene = float(wahl[rng.randi_range(0, wahl.size() - 1)])
+			iris_dreh = rng.randf_range(0.0, TAU)
+	werte3["iris_ebene"] = iris_ebene
 	for m in augen_stoffe:
+		m.set_shader_parameter("iris_bilder6", bilder.get("iris6"))
+		m.set_shader_parameter("iris_ebene", iris_ebene)
+		m.set_shader_parameter("iris_drehung", iris_dreh)
 		farbe_setzen(m, "iris_farbe", iris, st)
 		farbe_setzen(m, "kranz_farbe", kranz, st)
 		if st >= 6:

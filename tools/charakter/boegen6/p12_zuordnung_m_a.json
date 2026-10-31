@@ -1,0 +1,142 @@
+{
+ "titel": "P12 Zuordnung Männer – Blatt A vorn (K1)",
+ "pruefplan": "P12",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "m",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "mann_kurz",
+    "bart": ""
+   }
+  },
+  "gene": {
+   "bartwuchs": 130,
+   "haut_helligkeit": 185,
+   "haut_ton": 105,
+   "haar_helligkeit": 60,
+   "haar_rot": 40
+  },
+  "warten": 45,
+  "saat_arten": [
+   "Merkmal"
+  ]
+ },
+ "spalten": [
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "A1",
+     "saat": 7001
+    },
+    {
+     "titel": "A2",
+     "saat": 7002
+    },
+    {
+     "titel": "A3",
+     "saat": 7003
+    },
+    {
+     "titel": "A4",
+     "saat": 7004
+    },
+    {
+     "titel": "A5",
+     "saat": 7005
+    },
+    {
+     "titel": "A6",
+     "saat": 7006
+    },
+    {
+     "titel": "A7",
+     "saat": 7007
+    },
+    {
+     "titel": "A8",
+     "saat": 7008
+    }
+   ]
+  },
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "A9",
+     "saat": 7009
+    },
+    {
+     "titel": "A10",
+     "saat": 7010
+    },
+    {
+     "titel": "A11",
+     "saat": 7011
+    },
+    {
+     "titel": "A12",
+     "saat": 7012
+    },
+    {
+     "titel": "A13",
+     "saat": 7013
+    },
+    {
+     "titel": "A14",
+     "saat": 7014
+    },
+    {
+     "titel": "A15",
+     "saat": 7015
+    },
+    {
+     "titel": "A16",
+     "saat": 7016
+    }
+   ]
+  }
+ ],
+ "name": "p12_zuordnung_m_a"
+}

@@ -47,6 +47,7 @@ func _ready() -> void:
 		elif a.begins_with("--"):
 			args[a.substr(2)] = "1"
 	glb_ordner = args.get("glb", glb_ordner)
+	Kopf.zuege_aus = args.has("ohne_zuege")
 	glb5_ordner = args.get("glb5", glb5_ordner)
 	bilder = args.get("bilder", bilder)
 	DirAccess.make_dir_recursive_absolute(bilder)
@@ -163,6 +164,8 @@ static func _mann(wert) -> float:
 static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	var volk: String = z.get("volk", "Mensch")
 	var gene := Kopf.mittelwerte(volk)
+	if int(z.get("stand", 5)) >= 6:
+		gene.merge(Kopf.mittelwerte6(volk), false)    # Etappe B: auch die Vorschlagsgene (sonst bleiben Werte der Vorzelle)
 	var ev := erbgut_vorlage(z)
 	if z.has("saat"):
 		gene.merge(Kopf.gene_aus_saat(int(z["saat"]), volk, z.get("familie", {}), z.get("saat_arten", []), ev), true)
@@ -179,6 +182,8 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 		k.aussehen_samen = int(z.get("samen", 0))
 	gene.merge(z.get("gene", {}), true)
 	k.volk = volk
+	k.iris_vorgabe = int(z.get("iris_muster", -1))
+	k.gene = {}                                    # jede Zelle setzt alle Gene neu (nichts von der vorigen Person)
 	k.stand_setzen(int(z.get("stand", 5)))
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
@@ -299,27 +304,31 @@ func _bogen(datei: String) -> void:
 	hg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tafel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tafel.add_child(hg)
-	var rand := 150
-	var kopfzeile := 34
+	# Etappe B: „schrift“ vergrößert alle Beschriftungen (Halt-Mappen für Laien), „rand“ die Breite der Zeilennamen
+	var sf := float(plan.get("schrift", 1.0))
+	var rand := int(plan.get("rand", 150))
+	var kopfzeile := int(34 * sf)
+	var spaltenkopf := int(30 * sf)
+	var unter := int(26 * sf)
 	var titel := _label()
 	titel.text = plan.get("titel", name)
 	titel.position = Vector2(12, 6)
-	titel.add_theme_font_size_override("font_size", 20)
+	titel.add_theme_font_size_override("font_size", int(20 * sf))
 	tafel.add_child(titel)
 	for si in spalten.size():
 		var l := _label()
 		l.text = spalten[si].get("titel", "")
 		l.position = Vector2(rand + si * (zelle.x + 6) + 6, kopfzeile)
-		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_font_size_override("font_size", int(18 * sf))
 		tafel.add_child(l)
 	for zi in fotos.size():
-		var y: int = kopfzeile + 30 + zi * (zelle.y + 26)
+		var y: int = kopfzeile + spaltenkopf + zi * (zelle.y + unter)
 		var ln := _label()
 		ln.text = zeilen[zi].get("titel", "")
-		ln.position = Vector2(8, y + zelle.y * 0.45)
-		ln.size = Vector2(rand - 12, 60)
+		ln.position = Vector2(8, y + zelle.y * 0.4)
+		ln.size = Vector2(rand - 12, 60 * sf)
 		ln.autowrap_mode = TextServer.AUTOWRAP_WORD
-		ln.add_theme_font_size_override("font_size", 16)
+		ln.add_theme_font_size_override("font_size", int(16 * sf))
 		tafel.add_child(ln)
 		for si in fotos[zi].size():
 			var eintrag: Array = fotos[zi][si]
@@ -332,12 +341,12 @@ func _bogen(datei: String) -> void:
 			var lz := _label()
 			lz.text = eintrag[1]
 			lz.position = Vector2(x + 4, y + zelle.y + (0 if eintrag[0] != null else -zelle.y * 0.5))
-			lz.size = Vector2(zelle.x - 8, 24)
+			lz.size = Vector2(zelle.x - 8, 24 * sf)
 			lz.autowrap_mode = TextServer.AUTOWRAP_WORD if eintrag[0] == null else TextServer.AUTOWRAP_OFF
-			lz.add_theme_font_size_override("font_size", 14)
+			lz.add_theme_font_size_override("font_size", int(14 * sf))
 			tafel.add_child(lz)
 	await _warte(3)
-	var ges := Vector2i(rand + spalten.size() * (zelle.x + 6), kopfzeile + 30 + fotos.size() * (zelle.y + 26))
+	var ges := Vector2i(rand + spalten.size() * (zelle.x + 6), kopfzeile + spaltenkopf + fotos.size() * (zelle.y + unter))
 	var bild := get_viewport().get_texture().get_image()
 	bild = bild.get_region(Rect2i(Vector2i.ZERO, ges.min(bild.get_size())))
 	bild.save_png(bilder.path_join(name + ".png"))
@@ -727,6 +736,10 @@ func _messen() -> void:
 		{"name": "haar_tressfx_sparsam", "kopf": kd, "bewegt": "keine", "haar": {"modus": "tressfx", "vorgabe": vk, "sparsam": true}},
 		{"name": "x8_karten_ohne_schatten", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "karten", "vorgabe": vk, "schatten": false}},
 		{"name": "x8_ohne_haar", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "aus"}},
+		# Etappe B: Zufallspersonen (alle Gen-, Zug- und Asymmetrieformen mit Gewicht ≠ 0)
+		{"name": "ohne_haar_zufall", "kopf": kd, "bewegt": "keine", "saat": 6001, "haar": {"modus": "aus"}},
+		{"name": "haar_tressfx_ruhe_zufall", "kopf": kd, "bewegt": "keine", "saat": 6001, "haar": {"modus": "tressfx", "vorgabe": vk, "ruhe": true}},
+		{"name": "x8_ohne_haar_zufall", "kopf": kd, "bewegt": "keine", "anzahl": 8, "saat": 6001, "haar": {"modus": "aus"}},
 		{"name": "x8_karten", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "karten", "vorgabe": vk}},
 		{"name": "x8_tressfx_ruhe", "kopf": kd, "bewegt": "keine", "anzahl": 8, "haar": {"modus": "tressfx", "vorgabe": vk, "ruhe": true}},
 		{"name": "still", "kopf": "kopf3.glb", "bewegt": "keine"},
@@ -792,8 +805,11 @@ func _ein_lauf(l: Dictionary) -> void:
 			behaelter.queue_free()
 			return
 		laden_ms += b.kopf.ladezeit_ms
-		zelle_setzen(b.kopf, {"alter": 35, "geschlecht": l.get("geschlecht", "m"), "haar": l.get("haar", {"modus": "aus"}),
-			"stand": int(l.get("stand", args.get("stand", "5")))})
+		var mz := {"alter": 35, "geschlecht": l.get("geschlecht", "m"), "haar": l.get("haar", {"modus": "aus"}),
+			"stand": int(l.get("stand", args.get("stand", "5")))}
+		if l.has("saat"):
+			mz["saat"] = int(l["saat"]) + i      # Etappe B: Zufallsperson (Gene, Züge, Asymmetrie gesetzt)
+		zelle_setzen(b.kopf, mz)
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
 			b.kopf.ultra_setzen(bool(l.get("ultra", false)))

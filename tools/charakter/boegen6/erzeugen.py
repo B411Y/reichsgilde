@@ -372,27 +372,64 @@ erzeugt.append(schreiben("p11_farbtafel_augen", {
     "alle": dict(zelle("N2"), kopf="standard", licht="spiel", alter=35, geschlecht="m", haar={"modus": "aus"}),
     "spalten": [{"titel": f"helligkeit {ah}"} for ah in (25, 75, 130, 180, 230)], "zeilen": zeilen}))
 
-# ------------------------------------------------------------------ P12 zuordnung (ab B; Mischung und Schlüssel in S7)
-erzeugt.append(schreiben("p12_zuordnung", {
-    "titel": "P12 Zuordnung (Gerüst; Blatt A vorn K1, Blatt B gemischt ¾ K2, K5; P12b andere Frisur und L-I – Mischung und Schlüssel in S7)",
-    "pruefplan": "P12", "ab": "B", "zelle": ZELLE["K1"],
-    "alle": dict(zelle("K1"), kopf="standard", licht="spiel", alter=35, geschlecht="m", haar=HAAR_M, warten=WARTEN_TFX),
-    "spalten": [{"titel": f"A{i + 1}", "saat": 6001 + i} for i in range(8)],
-    "zeilen": [{"titel": "A1–A8"}, {"titel": "A9–A16", "zellen": [{"titel": f"A{i + 9}", "saat": 6009 + i} for i in range(8)]}]}))
+# ------------------------------------------------------------------ P12 zuordnung (ab B; Etappe B: Blindtest)
+# Strenger als im Plan: nur Gestalt-Gene, Züge und Brauen aus der Saat (Haut, Haar- und Augenfarbe fest H2), damit die
+# Zuordnung an der Gesichtsform hängt. Blatt A vorn (K1, groß), Blatt B ¾ gemischt (K2), Blatt C Stammbaumgröße ¾
+# gemischt (K5, 128 × 160), Blatt D 10 Personen mit anderer Frisur und Innenlicht (L-I, K2) gemischt. Der Schlüssel
+# (~/werkzeuge/charakter/bilder/phase6/B/schluessel_p12.json, nicht im Repository) entsteht hier mit festem Startwert; sein SHA-256 steht im Bericht, bevor jemand urteilt.
+import hashlib  # noqa: E402
+import random  # noqa: E402
+schluessel = {"beschreibung": "P12 Zuordnung: je Blatt Ziffer -> Person (Blatt A Ziffer)", "geschlechter": {}}
+for g, saaten in (("m", list(range(7001, 7017))), ("w", list(range(7101, 7117)))):
+    person = dict(mann() if g == "m" else frau())
+    person["gene"] = dict(person.get("gene", {}), **HAUT["H2"])
+    person["saat_arten"] = ["Merkmal"]
+    zz = random.Random(1212 + (0 if g == "m" else 1))
+    reihen = {}
+    for blatt, kam, extra in (("A", "K1", {}), ("B", "K2", {}), ("C", "K5", {}), ("D", "K2", {"licht": "innen"})):
+        auswahl = saaten if blatt != "D" else saaten[:10]
+        ordnung = list(range(len(auswahl)))
+        if blatt != "A":
+            zz.shuffle(ordnung)
+        zellen = []
+        for i, j in enumerate(ordnung):
+            z = {"titel": f"{blatt}{i + 1}", "saat": auswahl[j]}
+            if blatt == "D":
+                z["haar"] = {"modus": "tressfx", "ruhe": True, "vorgabe": {"frisur": "topfschnitt" if g == "m" else "ein_zopf", "bart": ""}}
+            zellen.append(z)
+        reihen[blatt] = {f"{blatt}{i + 1}": f"A{saaten.index(auswahl[j]) + 1}" for i, j in enumerate(ordnung)}
+        halb = (len(zellen) + 1) // 2
+        erzeugt.append(schreiben(f"p12_zuordnung_{g}_{blatt.lower()}", {
+            "titel": f"P12 Zuordnung {'Männer' if g == 'm' else 'Frauen'} – Blatt {blatt} "
+                     + {"A": "vorn (K1)", "B": "¾ gemischt (K2)", "C": "Stammbaumgröße ¾ gemischt (K5)",
+                        "D": "andere Frisur, Innenlicht, gemischt (K2)"}[blatt],
+            "pruefplan": "P12", "ab": "B", "zelle": ZELLE[kam],
+            "alle": dict(dict(zelle(kam), kopf="standard", licht="spiel", alter=35, **person), **extra),
+            "spalten": [{"titel": ""}] * halb,
+            "zeilen": [{"titel": "", "zellen": zellen[:halb]}, {"titel": "", "zellen": zellen[halb:]}]}))
+    schluessel["geschlechter"][g] = {"saaten_A": saaten, **reihen}
+roh = json.dumps(schluessel, sort_keys=True, ensure_ascii=False, indent=1).encode("utf-8")
+_mappe = os.path.expanduser("~/werkzeuge/charakter/bilder/phase6/B")      # nicht ins Repository (Blindtest)
+os.makedirs(_mappe, exist_ok=True)
+with open(os.path.join(_mappe, "schluessel_p12.json"), "wb") as f:
+    f.write(roh)
+print("P12-Schlüssel SHA-256", hashlib.sha256(roh).hexdigest())
 
-# ------------------------------------------------------------------ P13 zuege_2s (ab B; Züge in S6)
-erzeugt.append(schreiben("p13_zuege_2s", {
-    "titel": "P13 Gesichtszüge ±2σ (Gerüst; die Züge zug_01 … entstehen in S6)", "pruefplan": "P13", "ab": "B",
-    "zelle": ZELLE["K1"], "alle": dict(zelle("K1"), kopf="standard", licht="vorlage", alter=30, haar={"modus": "aus"}),
-    "spalten": [{"titel": "−2σ", "zuege": {"zug_01": -2}}, {"titel": "Mittel"}, {"titel": "+2σ", "zuege": {"zug_01": 2}}],
-    "zeilen": [{"titel": "Mann 30", "geschlecht": "m"}, {"titel": "Frau 30", "geschlecht": "w"}]}))
+# ------------------------------------------------------------------ P13 zuege_2s (ab B): jeder Zug bei −2σ und +2σ
+# Gewicht = (Wert − 128) / 32 × 0,7, also ±2σ = ±1,4 (Zusatzform); Mittelgesicht 30 Jahre, ohne Haar, L-V
+for g in ("m", "w"):
+    zeilen = [{"titel": f"zug_{k:02d}", "zellen": [
+        {"formen": {f"zug_{k:02d}": -1.4}, "winkel": 0}, {"winkel": 0}, {"formen": {f"zug_{k:02d}": 1.4}, "winkel": 0},
+        {"formen": {f"zug_{k:02d}": -1.4}, "winkel": 35}, {"formen": {f"zug_{k:02d}": 1.4}, "winkel": 35}]} for k in range(1, 11)]
+    erzeugt.append(schreiben(f"p13_zuege_2s_{g}", {
+        "titel": f"P13 Gesichtszüge ±2σ – {'Mann' if g == 'm' else 'Frau'} 30, L-V, ohne Haar", "pruefplan": "P13", "ab": "B",
+        "zelle": [360, 430], "alle": dict(zelle("K1"), kopf="standard", licht="vorlage", alter=30, geschlecht=g, haar={"modus": "aus"}),
+        "spalten": [{"titel": "−2σ vorn"}, {"titel": "Mittel vorn"}, {"titel": "+2σ vorn"}, {"titel": "−2σ ¾"}, {"titel": "+2σ ¾"}],
+        "zeilen": zeilen}))
 
-# ------------------------------------------------------------------ P14 extreme (ab B; Auswahl in S5)
-erzeugt.append(schreiben("p14_extreme", {
-    "titel": "P14 Extreme (Gerüst; die 20 extremsten nach K und 10 zufällige aus 10001–11000 wählt S5)",
-    "pruefplan": "P14", "ab": "B", "zelle": ZELLE["K1"], "alle": dict(zelle("K1"), kopf="standard", licht="spiel", alter=35, geschlecht="m", haar=HAAR_M, warten=WARTEN_TFX),
-    "spalten": [{"titel": str(s), "saat": s} for s in range(10001, 10011)], "zeilen": [{"titel": "K1"}]}))
-# (P14: „alle“ setzt nur Frisur und Bart fest; Gene kommen aus der Saat)
+# ------------------------------------------------------------------ P14 extreme (ab B): Auswahl aus der 1000er-Prüfung
+# Die Saaten schreibt tools/charakter/messen/stichprobe6.py (extreme_20, zufall_10); Bogen p14_extreme_<g> erzeugt
+# boegen6/p14_aus_stichprobe.py.
 
 # ------------------------------------------------------------------ P15 referenz_stil (ab C)
 erzeugt.append(schreiben("p15_referenz_stil", {

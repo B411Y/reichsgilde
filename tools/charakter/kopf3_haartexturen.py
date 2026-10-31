@@ -12,6 +12,10 @@ Wimpern u = innen → außen, v Wurzel → Spitze je Band (v = (Band + v) / 4). 
 Phase 4: Brauen dünner und lichter (Haut scheint durch), unregelmäßige Dichte (Büschel, Lücken), einzelne
 abstehende Haare am Rand; Wimpern in Büscheln, an der Wurzel kräftig, zur Spitze fein, geschwungen.
 Keine Fremddaten: alles entsteht aus Zufallszahlen mit festem Startwert.
+
+Phase 6 (Etappe B, S7): sechs Brauenformen je Geschlecht als brauen6_<m|w>_<0..5>.png (Formvorbild: MakeHuman
+eyebrow001–012, CC0, nur angesehen): 0 gerade, 1 Bogen, 2 Knick, 3 kräftiger Kopf, 4 dünn auslaufend, 5 buschig. Die
+Darstellung legt sie als Texture2DArray an und wählt die Form aus dem Gen „brauen_form“.
 """
 import math
 import os
@@ -31,6 +35,8 @@ def braue_hoehe_mm(u):
 
 
 FRAU = False                          # Phase 5: brauen_w.png – schmaler, mit Bogen, dünnes Ende
+FORM = -1                             # Phase 6: Brauenform 0–5 (−1 = Form der Phase 5)
+FORMEN6 = ["gerade", "Bogen", "Knick", "kräftiger Kopf", "dünn auslaufend", "buschig"]
 
 
 def braue_kanten_mm(u, frau=None):
@@ -40,6 +46,8 @@ def braue_kanten_mm(u, frau=None):
     frau = FRAU if frau is None else frau
     u = np.asarray(u, dtype=np.float64)
     h = braue_hoehe_mm(u)
+    if FORM >= 0:
+        return braue_kanten6(u, h, frau)
     oben = BRAUE_V_MERK * h + 0.4 - 0.9 * np.clip((u - 0.75) / 0.25, 0, 1) ** 1.5
     if frau:
         bogen = np.exp(-((u - 0.6) / 0.22) ** 2)
@@ -47,6 +55,36 @@ def braue_kanten_mm(u, frau=None):
         dicke = np.interp(u, [0.0, 0.05, 0.2, 0.55, 0.8, 1.0], [4.2, 7.0, 6.4, 5.0, 3.0, 1.0])
         return oben, oben - dicke
     dicke = np.interp(u, [0.0, 0.05, 0.2, 0.6, 0.85, 1.0], [5.5, 9.2, 8.6, 6.8, 4.4, 2.0])
+    return oben, oben - dicke
+
+
+def braue_kanten6(u, h, frau):
+    """Phase 6: Ober- und Unterkante der sechs Brauenformen (mm über der Unterkante der Karte). Frauen schmaler (× 0,75)
+    und mit etwas mehr Bogen. Die Unterkante liegt bei allen Formen innen gleich (die Lage der Braue steuert das Gen
+    „brauen_stand“ über die Form der Haut)."""
+    grund = BRAUE_V_MERK * h + 0.4
+    f = 0.75 if frau else 1.0
+    bogen_w = 0.5 if frau else 0.0
+    if FORM == 0:      # gerade: kaum Bogen, gleichmäßig
+        oben = grund - 0.5 * np.clip((u - 0.8) / 0.2, 0, 1) + bogen_w * np.exp(-((u - 0.6) / 0.25) ** 2)
+        dicke = np.interp(u, [0.0, 0.05, 0.3, 0.8, 1.0], [5.0, 7.0, 6.6, 5.2, 2.6])
+    elif FORM == 1:    # Bogen: weich gewölbt, höchste Stelle bei 55 %
+        oben = grund + (2.0 + bogen_w) * np.exp(-((u - 0.55) / 0.3) ** 2) - 1.2 * np.clip((u - 0.8) / 0.2, 0, 1)
+        dicke = np.interp(u, [0.0, 0.05, 0.3, 0.7, 1.0], [4.6, 6.6, 6.0, 4.4, 1.6])
+    elif FORM == 2:    # Knick: gerader Anstieg bis 65 %, dann abfallend (Winkel)
+        spitze = np.where(u < 0.65, u / 0.65, 1.0 - (u - 0.65) / 0.35 * 1.4)
+        oben = grund - 0.6 + (2.6 + bogen_w) * np.clip(spitze, -0.4, 1.0)
+        dicke = np.interp(u, [0.0, 0.05, 0.4, 0.7, 1.0], [5.0, 7.0, 6.2, 4.6, 1.8])
+    elif FORM == 3:    # kräftiger Kopf: breiter Kopf, schnell schmaler werdend
+        oben = grund + 0.6 - 0.9 * np.clip((u - 0.7) / 0.3, 0, 1) + bogen_w * np.exp(-((u - 0.5) / 0.25) ** 2)
+        dicke = np.interp(u, [0.0, 0.04, 0.2, 0.5, 0.8, 1.0], [8.0, 11.0, 9.6, 6.0, 3.4, 1.6])
+    elif FORM == 4:    # dünn auslaufend: schmal, langes feines Ende
+        oben = grund - 0.3 + (1.0 + bogen_w) * np.exp(-((u - 0.5) / 0.3) ** 2) - 1.0 * np.clip((u - 0.7) / 0.3, 0, 1)
+        dicke = np.interp(u, [0.0, 0.05, 0.25, 0.55, 0.8, 1.0], [3.6, 5.0, 4.4, 3.0, 1.6, 0.8])
+    else:              # buschig: breit überall, unregelmäßiger Rand
+        oben = grund + 0.9 + bogen_w * np.exp(-((u - 0.55) / 0.3) ** 2) - 0.6 * np.clip((u - 0.85) / 0.15, 0, 1)
+        dicke = np.interp(u, [0.0, 0.05, 0.3, 0.8, 1.0], [7.2, 9.6, 9.2, 7.0, 4.0])
+    dicke = dicke * f
     return oben, oben - dicke
 
 
@@ -149,7 +187,8 @@ def brauen(pfad, rng, frau=False):
     FRAU = frau
     bild = Bild()
     wolke = _wolke(rng)
-    for lage, anzahl in ((0, 880), (1, 260)) if not frau else ((0, 720), (1, 170)):
+    mehr = {5: 1.45, 3: 1.25, 4: 0.7}.get(FORM, 1.0)
+    for lage, anzahl in ((0, int(880 * mehr)), (1, int(260 * mehr))) if not frau else ((0, int(720 * mehr)), (1, int(170 * mehr))):
         haare = []
         while len(haare) < anzahl:
             u, v = rng.random(), rng.random() * 1.12 - 0.06
@@ -176,7 +215,7 @@ def brauen(pfad, rng, frau=False):
             steil = np.interp(u, [0.0, 0.1, 0.3, 0.7, 1.0], [75, 60, 24, 10, -12])
             fisch = np.interp(u, [0.0, 0.12, 0.3, 0.8, 1.0], [0.0, 10.0, 22.0, 18.0, 6.0])
             w = math.radians(steil - fisch * obenteil + rng.normal(0, 7))
-            laenge = np.interp(u, [0, 0.15, 0.6, 1], [3.6, 5.0, 6.0, 4.6]) * rng.uniform(0.75, 1.15)
+            laenge = np.interp(u, [0, 0.15, 0.6, 1], [3.6, 5.0, 6.0, 4.6]) * rng.uniform(0.75, 1.15) * (1.3 if FORM == 5 else 1.0)
             if lage == 1:
                 laenge *= 1.1
             krumm = rng.normal(-0.03, 0.025)               # Biegung je mm (legt sich an)
@@ -263,4 +302,11 @@ if __name__ == "__main__":
     brauen(os.path.join(aus, "brauen.png"), rng)
     brauen(os.path.join(aus, "brauen_w.png"), rng, frau=True)
     wimpern(os.path.join(aus, "wimpern.png"), rng)
+    # Phase 6: sechs Brauenformen je Geschlecht (eigener Startwert, damit die Bilder der Phase 5 gleich bleiben)
+    rng6 = np.random.default_rng(1506)
+    for wer in ("m", "w"):
+        for f in range(6):
+            FORM = f
+            brauen(os.path.join(aus, f"brauen6_{wer}_{f}.png"), rng6, frau=(wer == "w"))
+    FORM = -1
     print("FERTIG Haarbilder", aus)

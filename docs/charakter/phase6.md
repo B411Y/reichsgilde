@@ -5,7 +5,8 @@ Grundlage: [Phase 5](phase5.md). Plan: vom Nutzer am 30.10.2026 freigegeben (E1�
 A–D mit Halt. Dieser Bericht wächst mit den Schritten; hier stehen bisher **S0** (Messbasis, Prüfstand, Würfeln über
 den Kern), **S1** (Vergleichsvorlagen der lokalen Bild-KI), **S2** (Grundfehler) und **S3** (Porträtlicht). Damit ist
 Etappe A fertig; die Befunde der Prüfer sind im Abschnitt **Nachtrag nach der Prüfung** behoben bzw. berichtigt, es
-folgt Halt A.
+folgte Halt A. Danach **Etappe B** (S4–S7: Grundgesichter nach Maß, Gene eichen, Gesichtszüge und Asymmetrie,
+Wiedererkennungsmerkmale) bis Halt B, Abschnitt **Etappe B** unten.
 
 ## S0 Messbasis, Prüfstand, Würfeln über den Kern
 
@@ -471,3 +472,140 @@ GLB=~/werkzeuge/charakter/glb6 GPU_ANDERE=0 tools/charakter/schau.sh <ordner> 12
 $BPY -I tools/charakter/messen/pruefen6.py --mappe=~/werkzeuge/charakter/bilder/phase6/A2 \
    --glb=~/werkzeuge/charakter/glb6/kopf6.glb --a0=~/werkzeuge/charakter/bilder/phase6/A0b
 ```
+
+## Etappe B: Form und Vielfalt (S4–S7)
+
+Stand nach den Entscheidungen von Halt A (31.10.2026): neue, dunklere Haar-, Brauen- und Augenfarben bleiben (E4 a);
+Sättigung 1,25 nur auf der Porträtbühne, die Spielwelt bleibt (E5); Fotovorlagen freigegeben (Schreiber 45,
+Kaufmannsfrau 45 und Bäuerin ¾ erzeugt der Teamleiter neu); Studio-HDRI nur auf Hoch und Ultra; das Fülllicht von L-V
+als Lichtverhältnis neu geeicht. Prüfmappe **B** unter `~/werkzeuge/charakter/bilder/phase6/B/`.
+
+### Halt-A-Nachträge an der Bühne
+
+- **Sättigung** (`charakter_buehne.gd`): „spiel6“ setzt `adjustment_saturation` 1,25. Wange Mann 35 (H2) unter L-S:
+  Chroma 14,8 → **18,7** (Ziel ≥ 17), R/G 1,19 / 1,28.
+- **HDRI nur Hoch/Ultra**: Bogenschlüssel `stufe` (Standard „hoch“, mit `ultra` „ultra“); Niedrig und Mittel bekommen
+  eine feste Umgebungsfarbe = Mittel des HDRI × 0,2 und keine Spiegelung des Himmels. Mittel gegen Hoch: Chroma 19,0
+  gegen 18,7, Licht : Schatten 1,41 gegen 1,40 – kaum sichtbar verschieden.
+- **L-V als Lichtverhältnis 1 : 3**: Fülllicht so, dass auf einer Wange 40° zur Schattenseite ⅓ der Beleuchtung der
+  Lichtwange ankommt (Lambert, Schlüssellicht 45°/45°, Fülllicht 50°/10°): **0,453** statt 1,0; Belichtung aus der
+  Graukarte nachgeführt (0,435 · E_alt / E_neu = **0,514**): Graukarte wieder sRGB **118,0**. Licht : Schatten der
+  Wange (Mann 35, linear aus dem Bild) **1,15 → 1,32** – das Ziel 2–4 bleibt unerreichbar, weil AgX die
+  Helligkeitsunterschiede staucht (Beleuchtung 3 : 1 ergibt im Bild 1,32 : 1). Lichtart „vorlage_a“ = L-V der
+  Etappe A zum Vergleich.
+
+### Bauweg: Probebau und Mischung
+
+Statt einer Reifeform, die bei jeder Korrektur neu gebaut werden muss, legt **ein Probebau** (`kopf6.sh proben`,
+`~/werkzeuge/charakter/glb6p/kopf6p.glb`, 71 s CPU) jedes Kandidatenziel als eigene Form an:
+
+- 180 MakeHuman-Probeformen (`kopf6_proben.json`, l-/r-Paare zusammen, CC0), darunter alle Ziele der Reifeformen der
+  Phase 5 und 46 asym-Ziele;
+- die eigenen Formen direkt auf dem ICT-Netz (`kopf6_eigen.py`, Option `eigen=1`): Kieferkante (3,5 mm), Unterwange
+  (4 mm), Jochbein (1,5 mm), Lidfalte Mann/Frau (Rinne 1,25 mm, 7,5/9,5 mm über dem Lidrand; Lidrand 0,0 mm bewegt),
+  Tränenrinne (0,75 mm), Kopfnicker (1,5 mm, Warzenfortsatz → Brustbein), Kieferwinkel (4 mm seitlich), Nasenhöcker
+  (2 mm), dazu der Adamsapfel der Phase 5 als eigene Form. Augapfel und Zähne bleiben fest, Lidteile, Brauen, Wimpern
+  und Kragen folgen der Haut;
+- ICT-Identitäten 000–015, 020, 025, 028, 033 (`ict_ident=`, wie die Mimik übertragen, am Hals zur Büstennaht
+  ausgeblendet) und die Herkunftsachsen african/asian der MakeHuman-Makros (`herkunft=1`).
+
+Formen sind lineare Versätze, also ist jede Mischform genau eine Summe von Probeformen: `formen_mischen.py` (neu,
+numpy) schreibt die Formen des fertigen Kopfs nach `kopf6_rezept.json` (Lage und Normale linear gemischt, wie Godot
+gleichzeitig gesetzte Formen mischt) und entfernt die Probeformen. Geprüft: die in ihre Ziele zerlegte Reifeform der
+Phase 5 misst wie die ganze Form (Abweichung ≤ 0,01 mm in allen Maßen). `kopf6.sh` baut damit in zwei Schritten
+(Probebau, Mischung), `kopf6.sh mischen` mischt ohne Blender neu. `kopf2_regler.json` bleibt unverändert (Phase 5
+nachbaubar).
+
+**Hinweis Kopfgröße:** `kopf6.glb` 40,9 MB (Etappe A 26,8 MB): 74 neue bzw. neu gemischte Formen, davon 40 neu
+(Reife oben/unten, Mitte, 6 neue Gestalt-Gene, Gesichtsfülle, 10 Züge, 10 Asymmetrieformen).
+
+### S4 Grundgesichter nach Maß
+
+- **Ausgleichsrechnung** `formen_ausgleich.py` (numpy in Blenders Python): Grundgewichte (Makro, Ruhelage des Lids) aus
+  dem Gewichteausdruck der Testszene, Gen-Gewichte null (Nullpunkt Mensch-Mittel ab S5), Mitte mit 35 Jahren 0,55. Die
+  Reifeform der Phase 5 wird in ihre Ziele zerlegt; gesucht sind Zusatzgewichte je Probeform unter Grenzen. Gelöst mit
+  Gauß-Newton (Ableitung je Probeform, begrenzte kleinste Quadrate mit projiziertem Gradienten, Schrittweitensuche)
+  und einer Feinsuche je Variable auf den echten Kosten, weil die Maße Knicke haben (vorderste/seitlichste Ecken).
+  Gegenpaare (incr/decr) sind eine Variable mit Vorzeichen; Reifeziele kippen nur, wo es begründet ist (Nase kürzer bis
+  NIOSH, Kinnhöhe, Jochbein/Unterkiefer der Frau, Mundbreite). Obergrenzen gegen Übertreibung: Lippen dünner höchstens
+  0,6 (Frau 0,4), Lidfalte 0,8, Jochbein 1,5 mm. Nebenbedingungen: Pupillenabstand fest (Toleranz 0,12 mm),
+  Augapfel : IPD (±0,4 %), Nasenlänge und Mundbreite an die NIOSH-Mittel gebunden. Frau schmaler: `head-scale-horiz-decr`
+  nur gekoppelt mit `eye-trans-out` (IPD bleibt).
+- **Ergebnis** `kopf6_rezept_s4.json`: `alter_reife_<g>_oben` (Augen, Brauen, Stirn, Nase) und `alter_reife_<g>_unten`
+  (Wangen, Kiefer, Kinn, Mund, Hals; mit Kieferkante, Unterwange, Jochbein, Kopfnicker, Adamsapfel beim Mann) sowie
+  `alter_mitte_<g>` (25 → 45 Jahre: Wangenfett −, Tränenrinne, Nasolabialfalte, Lippen dünner, Nase +1,2 mm und Mund
+  +1,5 mm breiter). Alterskurven in `regeln6.json`: Reife oben bis 24, unten bis 25 (Mann) bzw. 24 (Frau), Mitte 23 → 45,
+  Greis ab 45.
+- **Verworfen**: `forehead-nubian` als Hebel für den Nasenwurzelwinkel der Frau hob den ganzen Scheitel um 20 mm
+  (Kegelschädel im ersten Blickbogen) und ist kein Kandidat mehr.
+- **Messweg geändert (Begründung):** Die Wangenwölbung der Bestandsaufnahme (vorderste Ecke bei |x| 36–44 mm in einem
+  3-mm-Streifen) sprang am schmaleren Untergesicht bei Lippenänderungen um 0,09 von −0,4 auf 11 mm; neu ist sie das
+  gewichtete Mittel der vorderen Haut um |x| = 0,28 · zy (`wangenwoelbung`; die alte steht als `wangenwoelbung_s0`).
+  Bezug Phase 5 in der neuen Definition: Mann 35 +2,0, Frau 35 +4,4 mm. Die Ohrwurzel für „vor dem Ohr“ ist jetzt die
+  vordere der beiden Seiten (bei schiefen Köpfen schlug die Suche einseitig 10–15 mm zu weit vorn an und die Breite in
+  Mundhöhe brach ein); der Nasenflügel liegt höchstens 8 mm vom ICT-Merkpunkt 31/35 (sonst fand die Suche bei schmalen
+  Gesichtern eine Wangenecke). Symmetrische Mittelgesichter messen unverändert.
+
+### S5 Gene eichen, Karikaturbremse
+
+- **Regeln als Daten** `game/versuch/charakter/regeln6.json` (erzeugt von `kopf6_eichen.py`): je Gen Formen, Stärke je
+  Geschlecht und Richtung (Formgewicht je σ), Maß, Ziel und erreichte Wirkung, Reifeteil; Alterskurven; Schalter
+  (`neue_rechnung_voelker` = Mensch, andere Völker rechnen wie Phase 5 bis Phase 7); Karikaturbremse; Budget je
+  MakeHuman-Ziel [−1; 1,2] mit Zielmatrix (Form → Ziel); Züge; Asymmetrie.
+- **Rechnung** (`charakter_kopf.gd`, `_anwenden6`, nur Stand 6 und nur wenn die .glb die neuen Formen hat): Gewicht =
+  |Wert − Mittel| / Streuung × Stärke(Geschlecht, Richtung) × Reife (Kiefer, Kinn: unten; Brauenwulst, Höcker,
+  Augentiefe: oben) × Gesichtsgröße. Gene mit Streuung 0 tragen nichts bei; `ohren_spitze` bleibt absolut (Wert/255).
+  Leibesfülle ins Gesicht: neue Form `gen_gesicht_fett` aus dem Gen `gewicht` (0,45 je σ).
+- **Neu zusammengesetzt** wie im Plan (S5, Tabelle); dazu zwei eigene Formen: `kiefer_breite` mit dem Kieferwinkel
+  (MakeHuman bewegt den Kieferwinkel nur senkrecht oder mit starken Nebenwirkungen; `chin-width` wirkt nur aufs Kinn),
+  `nase_hoecker` mit dem eigenen Höcker (das MakeHuman-Ziel bewegt höchstens 0,5 mm).
+- **Eichung** am Mensch-Mittel 35 je Geschlecht und Richtung: +1σ = 0,75 × natürliche Streuung des Maßes (NIOSH; ohne
+  NIOSH-Wert ICT × 0,7 bzw. Recherche), Frauen bei Brauenwulst, Kiefer und Kinn × 0,65, Höcker × 0,8, Lippen × 1,1.
+  Stärke höchstens 0,6 je σ (bei 2σ = 1,2 = Budgetgrenze). Maße, die an „vordersten Ecken“ springen, misst die Eichung
+  an festen Ecken (Jochbeinbreite, Wangenfülle, Oberlid, Kinnbreite) bzw. an ICT-Merkpunkten (Lippenrot 51/57/62/66).
+- **Karikaturbremse** (nur Darstellung): K = √(Mittel z²) über Gestalt-Gene und Züge; K > 1,35 → alle z gemeinsam
+  kleiner; höchstens zwei Merkmale über |z| 2; 0,05 < K < 0,75 → die zwei stärksten auf |z| 1,2. Danach das Budget je
+  MakeHuman-Ziel (gekürzt werden nur Gen-Anteile).
+
+### S6 Gesichtszüge, Asymmetrie, Personen-Samen
+
+- **Züge**: Kandidaten ICT `identity000–015` ohne 009 (rein antisymmetrisch). Bereinigt per kleinster Quadrate gegen
+  die Geschlechtsachse (Frau 25 − Mann 25 aus Makro und Reife) und vier Herkunftsachsen (MakeHuman african/asian, Mann
+  und Frau), Skalarprodukt über die Gesichtsecken (vor der Ohrwurzel, über dem Kinn); |cos| danach 0,000. Vorfilter
+  |cos| > 0,3 vorher: 000, 003, 004 entfallen. Durchdringung bei ±2σ (Gewicht ±1,4) gegen das Grundgesicht: das Lidmaß
+  ist schon am Grundgesicht negativ (Phase 5: Mann −1,45, Frau −0,86 mm; es erfasst Ecken der Lidhöhle) und das alte
+  Lippe–Zahn-Maß sprang (Minimum über 1-mm-Säulen); gewertet wird deshalb die Verschlechterung (Lid und robustes
+  Lippe–Zahn-Maß `lippe_zahn_p5`) mit Grenze 0,6 mm. Gewählt (vorläufig, Nutzer an Halt B): **10 Züge** aus ICT 002,
+  005, 006, 007, 008, 011, 012, 013, 014, 015 (001 und 010 fallen nach der letzten S4-Rechnung durch die Durchdringungsprüfung). Basis eingefroren: `tools/charakter/zuege_basis_v1.json` (Rezept je Zug),
+  SHA-256 in `regeln6.json`; die Felder liegen lokal als `zuege_basis_v1.npz`. Gewicht = (Wert − 128)/32 × 0,7 × Reife.
+- **Asymmetrie**: je Merkmal die stärkste MakeHuman-asym-Form als (links − rechts)/2 – Kinn seitlich `asym-jaw-3`,
+  Nasenspitze `asym-nose-1`, Augenhöhe `asym-eye-2`, Braue `asym-brown-1`, Mundwinkel `asym-cheek-2` (die Ohr-Formen
+  wirken nicht: 0,01 mm) – dazu die antisymmetrischen ICT-Komponenten 009, 020, 025, 028, 033. Gewicht ~ N(0, Streuung)
+  aus dem Personen-Samen, Streuung so, dass der Spiegelabstand im Median 0,72 mm beträgt; Grenzen je Merkmal
+  (Kinn 2, Nasenspitze 1,5, Augenhöhe 1, Brauen 2, Mundwinkel 1,5, Ohr 3 mm) über lineare Merkpunkt-Versätze, sonst
+  wird alles gemeinsam verkleinert (27 % der Personen).
+- **Personen-Samen**: im Versuch aus dem Bogen-Startwert (Zweck „aussehen“); Rückfall `ErbgutBruecke.AussehenSamen`:
+  FNV-1a (64 Bit) über sichtbares und verdecktes Allel der 40 Gene der Version 1 in fester Reihenfolge.
+  **Vorschlag an kern** (öffentliche Abfrage, ersetzt den Rückfall): in `Familienbuch.Erbgut.cs`
+  `public int AussehenStartwert(int nummer) => Zugwuerfel.Mischen(_aussehenZufall.Startwert, nummer, ZweckAussehen);`
+  mit `private const int ZweckAussehen = 9;` und einem Test (gleiche Partie und Nummer → gleicher Wert; neue Gene ändern
+  ihn nicht).
+
+### S7 Wiedererkennungsmerkmale
+
+- **Vorschlagsdatei** `game/versuch/charakter/erbgut_vorschlag.json`: vollständige Kopie von `erbgut.json` (Version 1)
+  plus Schub 1 (10 Gene wie im Plan, Nicht-Menschen wie Menschen) und `zug_01–12` (Mensch 16/128/240, Streuung 32,
+  Mutation 6; andere Völker Streuung 0), Korrelationen nur in neue Gene (7). `brauen_form` „gleich verteilt“: Streuung
+  70 (der Kern würfelt eine Glockenkurve); die Darstellung nimmt das Quantil, damit alle sechs Formen gleich häufig sind.
+- **Formen der neuen Gestalt-Gene** wie im Plan, geeicht wie S5 (Brauenstand, Lidspalte, Schlupflid, Nasenspitze,
+  Mundwinkel, Kinnbreite); Lidspalte setzt zusätzlich die Ruhelage des Lids (−0,025 je σ).
+- **Brauen**: sechs Formen je Geschlecht (gerade, Bogen, Knick, kräftiger Kopf, dünn auslaufend, buschig) in
+  `kopf3_haartexturen.py` (`brauen6_<g>_<k>.png`, eigener Startwert, die Bilder der Phase 5 bleiben bitgleich); der Kopf
+  legt sie als `Texture2DArray` an (`haar3.gdshader`: `bilder6`, `ebene`; Ebene < 0 = wie Phase 5). Dichte und Breite
+  aus `brauen_dichte`. **Zusammengewachsen** (`brauen_form` ≥ 248) ist nicht gebaut: die Brauenkarten enden vor der
+  Nasenwurzel, es braucht eine eigene Karte (offen).
+- **Iris**: Die sechs RoboPoets-Farbbilder sind dieselbe Struktur in sechs Farben (Korrelation 0,98–1,0). Statt ihrer
+  sechs eigene Muster (`kopf6_iris.py`, aus der CC0-Fasermaske): Grundmuster, Krypten, Furchen, Strahlen, Flecken, breiter
+  Kranz; `augen6.gdshader` mit `iris_bilder6`, `iris_ebene`, `iris_drehung`. Wahl nach Augenfarbe (dunkel / blau-grau /
+  grün-hasel je vier Muster) und Personen-Samen, Drehung je Person.
+

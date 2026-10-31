@@ -1,0 +1,188 @@
+{
+ "titel": "P12 Zuordnung Frauen – Blatt D andere Frisur, Innenlicht, gemischt (K2)",
+ "pruefplan": "P12",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 35,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "innen",
+  "alter": 35,
+  "geschlecht": "w",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "frau_knoten",
+    "bart": ""
+   }
+  },
+  "warten": 45,
+  "gene": {
+   "haut_helligkeit": 185,
+   "haut_ton": 105,
+   "haar_helligkeit": 60,
+   "haar_rot": 40
+  },
+  "saat_arten": [
+   "Merkmal"
+  ]
+ },
+ "spalten": [
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "D1",
+     "saat": 7104,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D2",
+     "saat": 7106,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D3",
+     "saat": 7101,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D4",
+     "saat": 7103,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D5",
+     "saat": 7102,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  },
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "D6",
+     "saat": 7107,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D7",
+     "saat": 7109,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D8",
+     "saat": 7108,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D9",
+     "saat": 7105,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    },
+    {
+     "titel": "D10",
+     "saat": 7110,
+     "haar": {
+      "modus": "tressfx",
+      "ruhe": true,
+      "vorgabe": {
+       "frisur": "ein_zopf",
+       "bart": ""
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "name": "p12_zuordnung_w_d"
+}

@@ -92,6 +92,10 @@ GEWICHTE = {"m": {}, "w": {"makro_w_jung": 1.0}}
 # Phase 5: auf dem erwachsenen Kopf kämmen (Reifeform voll), wenn die .glb sie hat
 if "alter_reife_m" in kopf.namen:
     GEWICHTE = {"m": {"alter_reife_m": 1.0}, "w": {"makro_w_jung": 1.0, "alter_reife_w": 1.0}}
+# Phase 6 (Etappe B): Reife oben/unten und Mitte mit 35 Jahren (regeln6.json: Mitte 0,55)
+if "alter_reife_m_oben" in kopf.namen:
+    GEWICHTE = {"m": {"alter_reife_m_oben": 1.0, "alter_reife_m_unten": 1.0, "alter_mitte_m": 0.55},
+                "w": {"makro_w_jung": 1.0, "alter_reife_w_oben": 1.0, "alter_reife_w_unten": 1.0, "alter_mitte_w": 0.55}}
 
 
 def huelle(g):

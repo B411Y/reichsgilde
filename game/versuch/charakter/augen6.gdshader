@@ -12,6 +12,10 @@ render_mode cull_disabled;   // Teile der ICT-Iris (Pupillenmulde) zeigen nach i
 uniform sampler2D iris_bild : hint_default_white, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform sampler2D lederhaut_bild : hint_default_white, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform bool iris_teil = false;
+// Etappe B (S7): sechs Irismuster als Bildarray (tools/charakter/kopf6_iris.py), Drehung je Person; ebene < 0 = iris_bild
+uniform sampler2DArray iris_bilder6 : hint_default_white, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform float iris_ebene = -1.0;
+uniform float iris_drehung = 0.0;
 uniform vec3 sklera : source_color = vec3(0.78, 0.73, 0.68);      // nicht reinweiß, warm (setzt charakter_kopf.gd)
 uniform float adern = 0.35;
 uniform vec3 iris_farbe : source_color = vec3(0.36, 0.22, 0.11);  // außen (aus den Genen)
@@ -34,8 +38,10 @@ void fragment() {
 		// Fasern an der Pupille festhalten: Bildhalbmesser so umrechnen, dass die Pupillenkante passt
 		float rb = mix(PUPILLE_BILD, 1.0, clamp((r - pupille) / (1.0 - pupille), 0.0, 1.0));
 		float lp = length(p);
-		vec2 uvb = 0.5 + 0.5 * (lp > 1e-4 ? p / lp * rb : vec2(0.0));
-		vec4 t = texture(iris_bild, uvb);
+		vec2 q = lp > 1e-4 ? p / lp * rb : vec2(0.0);
+		q = vec2(cos(iris_drehung) * q.x - sin(iris_drehung) * q.y, sin(iris_drehung) * q.x + cos(iris_drehung) * q.y);
+		vec2 uvb = 0.5 + 0.5 * q;
+		vec4 t = iris_ebene >= 0.0 ? texture(iris_bilder6, vec3(uvb, iris_ebene)) : texture(iris_bild, uvb);
 		c = iris_farbe * (0.3 + 1.0 * t.r);
 		float innen = 1.0 - smoothstep(0.35, 0.75, (r - pupille) / (1.0 - pupille));
 		c = mix(c, kranz_farbe * (0.45 + 0.9 * t.r), clamp(t.g * kranz * innen * 1.4, 0.0, 1.0));

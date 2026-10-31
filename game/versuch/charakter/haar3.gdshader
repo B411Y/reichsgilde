@@ -15,10 +15,13 @@ uniform float dichte = 1.0;         // Haare mit Zufallswert < dichte bleiben
 uniform float breite = 1.0;         // nur Brauen: Haare mit Wurzelabstand < breite bleiben
 uniform float schwelle = 0.3;       // Phase 4: tiefer (feinere, lichtere Haare; Kanten über Alpha-to-Coverage)
 uniform float dunkel = 0.6;         // Haare verschatten sich gegenseitig
+// Phase 6 (S7): Brauenformen als Bildarray; ebene < 0 = „bild“ wie Phase 3–5
+uniform sampler2DArray bilder6 : hint_default_transparent, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform float ebene = -1.0;
 
 void fragment() {
-	vec4 t = texture(bild, UV);
-	vec2 px = UV * vec2(textureSize(bild, 0));
+	vec4 t = ebene >= 0.0 ? texture(bilder6, vec3(UV, ebene)) : texture(bild, UV);
+	vec2 px = UV * (ebene >= 0.0 ? vec2(textureSize(bilder6, 0).xy) : vec2(textureSize(bild, 0)));
 	float lod = max(0.0, 0.5 * log2(max(dot(dFdx(px), dFdx(px)), dot(dFdy(px), dFdy(px)))));
 	float a = clamp(t.a * (1.0 + 0.45 * lod), 0.0, 1.0);
 	a *= 1.0 - smoothstep(dichte - 0.03, dichte, t.r);

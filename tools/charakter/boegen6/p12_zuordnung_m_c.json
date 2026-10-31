@@ -1,0 +1,143 @@
+{
+ "titel": "P12 Zuordnung Männer – Blatt C Stammbaumgröße ¾ gemischt (K5)",
+ "pruefplan": "P12",
+ "ab": "B",
+ "zelle": [
+  128,
+  160
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 35,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "stufe": "niedrig",
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "m",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "mann_kurz",
+    "bart": ""
+   }
+  },
+  "gene": {
+   "bartwuchs": 130,
+   "haut_helligkeit": 185,
+   "haut_ton": 105,
+   "haar_helligkeit": 60,
+   "haar_rot": 40
+  },
+  "warten": 45,
+  "saat_arten": [
+   "Merkmal"
+  ]
+ },
+ "spalten": [
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "C1",
+     "saat": 7016
+    },
+    {
+     "titel": "C2",
+     "saat": 7006
+    },
+    {
+     "titel": "C3",
+     "saat": 7005
+    },
+    {
+     "titel": "C4",
+     "saat": 7004
+    },
+    {
+     "titel": "C5",
+     "saat": 7008
+    },
+    {
+     "titel": "C6",
+     "saat": 7013
+    },
+    {
+     "titel": "C7",
+     "saat": 7003
+    },
+    {
+     "titel": "C8",
+     "saat": 7001
+    }
+   ]
+  },
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "C9",
+     "saat": 7015
+    },
+    {
+     "titel": "C10",
+     "saat": 7002
+    },
+    {
+     "titel": "C11",
+     "saat": 7010
+    },
+    {
+     "titel": "C12",
+     "saat": 7011
+    },
+    {
+     "titel": "C13",
+     "saat": 7009
+    },
+    {
+     "titel": "C14",
+     "saat": 7014
+    },
+    {
+     "titel": "C15",
+     "saat": 7007
+    },
+    {
+     "titel": "C16",
+     "saat": 7012
+    }
+   ]
+  }
+ ],
+ "name": "p12_zuordnung_m_c"
+}

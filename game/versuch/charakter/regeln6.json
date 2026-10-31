@@ -395,21 +395,21 @@
    "mass": "nasenbreite",
    "staerke": {
     "m": {
-     "plus": 0.3098,
-     "minus": 0.3707
+     "plus": 0.4137,
+     "minus": 0.3363
     },
     "w": {
-     "plus": 0.2814,
+     "plus": 0.2965,
      "minus": 0.359
     }
    },
    "wirkung_mm_je_1": {
     "m": {
-     "plus": 7.747,
-     "minus": -6.473
+     "plus": 5.802,
+     "minus": -7.137
     },
     "w": {
-     "plus": 7.73,
+     "plus": 7.336,
      "minus": -6.059
     }
    },

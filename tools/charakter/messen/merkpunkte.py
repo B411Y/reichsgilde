@@ -24,7 +24,8 @@ Mittellinie: Ecken mit |x| < 1,5 mm, je 0,5 mm Höhe die vorderste, obere Hülle
   zy_r, zy_l   Zygion: größte Breite vor dem Ohr, Höhe n − 45 … n − 10 mm, nur Ecken mindestens 15 mm vor der Ohrwurzel
                (z > z(t) + 15 mm; dort liegt der Jochbogen, weiter hinten wird der Schädel zum Ohr hin breiter)
   go_r, go_l   Gonion: Kieferwinkel der ICT-Kontur = lm3 / lm13
-  al_r, al_l   Alare: seitlichste Ecke des Nasenflügels, Höhe sn − 2 … prn + 5 mm, z ≥ z(sn) − 8 mm, |x| < 25 mm
+  al_r, al_l   Alare: seitlichste Ecke des Nasenflügels, Höhe sn − 2 … prn + 5 mm, z ≥ z(sn) − 8 mm, |x| < 25 mm,
+               höchstens 8 mm vom ICT-Merkpunkt 31 bzw. 35 (Etappe B)
   ch_r, ch_l   Cheilion (Mundwinkel) = lm48 / lm54
   t_r, t_l     Tragion (vereinfacht: Ohrwurzel vorn): Höhe ps − 12 mm; Kopfbreite je 2 mm Tiefe von vorn nach hinten,
                das Ohr beginnt, wo sie die Breite 6 mm weiter vorn um ≥ 3 mm übersteigt – t liegt davor
@@ -136,8 +137,10 @@ class Kopfnetz:
         # Nasenflügel
         sn, prn = P["sn"], P["prn"]
         sel = (H[:, 1] >= sn[1] - 2) & (H[:, 1] <= prn[1] + 5) & (H[:, 2] >= sn[2] - 8) & (np.abs(H[:, 0]) < 25)
-        for s, vz in (("r", -1), ("l", 1)):
-            q = H[sel & (vz * H[:, 0] > 0)]
+        for s, vz, lm in (("r", -1, "lm31"), ("l", 1, "lm35")):
+            # Etappe B: nur Ecken höchstens 8 mm vom ICT-Merkpunkt des Nasenflügels (lm31/lm35); sonst fand die Suche bei
+            # schmalen Gesichtern eine Wangenecke bei |x| ≈ 25 mm (Nasenbreite 46–50 statt ≈ 35 mm)
+            q = H[sel & (vz * H[:, 0] > 0) & (np.linalg.norm(H - P[lm], axis=1) <= 8.0)]
             P[f"al_{s}"] = q[np.argmax(np.abs(q[:, 0]))]
         # Braue über der Pupille (Unterkante der Brauenkarte)
         B = self.brauen.lage(gewichte) * 1000.0

@@ -1,0 +1,141 @@
+{
+ "titel": "P12 Zuordnung Frauen – Blatt A vorn (K1)",
+ "pruefplan": "P12",
+ "ab": "B",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "w",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "frau_knoten",
+    "bart": ""
+   }
+  },
+  "warten": 45,
+  "gene": {
+   "haut_helligkeit": 185,
+   "haut_ton": 105,
+   "haar_helligkeit": 60,
+   "haar_rot": 40
+  },
+  "saat_arten": [
+   "Merkmal"
+  ]
+ },
+ "spalten": [
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "A1",
+     "saat": 7101
+    },
+    {
+     "titel": "A2",
+     "saat": 7102
+    },
+    {
+     "titel": "A3",
+     "saat": 7103
+    },
+    {
+     "titel": "A4",
+     "saat": 7104
+    },
+    {
+     "titel": "A5",
+     "saat": 7105
+    },
+    {
+     "titel": "A6",
+     "saat": 7106
+    },
+    {
+     "titel": "A7",
+     "saat": 7107
+    },
+    {
+     "titel": "A8",
+     "saat": 7108
+    }
+   ]
+  },
+  {
+   "titel": "",
+   "zellen": [
+    {
+     "titel": "A9",
+     "saat": 7109
+    },
+    {
+     "titel": "A10",
+     "saat": 7110
+    },
+    {
+     "titel": "A11",
+     "saat": 7111
+    },
+    {
+     "titel": "A12",
+     "saat": 7112
+    },
+    {
+     "titel": "A13",
+     "saat": 7113
+    },
+    {
+     "titel": "A14",
+     "saat": 7114
+    },
+    {
+     "titel": "A15",
+     "saat": 7115
+    },
+    {
+     "titel": "A16",
+     "saat": 7116
+    }
+   ]
+  }
+ ],
+ "name": "p12_zuordnung_w_a"
+}
