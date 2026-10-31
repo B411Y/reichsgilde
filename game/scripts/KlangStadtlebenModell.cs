@@ -41,6 +41,14 @@ public static class KlangStadtlebenModell
         public readonly List<Quelle> Schenken = new();
         /// <summary>Betriebe, die gerade laut arbeiten (Hämmern; Anzahl = Arbeiter).</summary>
         public readonly List<Quelle> Werkstaetten = new();
+        /// <summary>Wachleute auf Streife, die gerade zu sehen sind (Nachtwächter: Horn und Glöckchen kommen von hier).</summary>
+        public readonly List<Quelle> Wachen = new();
+        /// <summary>Ort des Doms (oder der Hauptkirche), von dem die Glocken läuten; null, wenn die Karte keinen hat.</summary>
+        public Quelle? Dom;
+        /// <summary>Gäste in der Schankstube, in der man gerade ist (Innenansicht des Wirtshauses); −1 = nicht in einer Schankstube.</summary>
+        public int InnenGaeste = -1;
+        /// <summary>Die Umgebung um den Blickpunkt (Stadt gegen Natur, <see cref="KlangUmweltModell"/>), roh für den Umkreis dieses Bildes; null ohne Karte.</summary>
+        public KlangUmweltModell.Lage? Umwelt;
 
         public void Leeren()
         {
@@ -48,6 +56,10 @@ public static class KlangStadtlebenModell
             Marktleute.Clear();
             Schenken.Clear();
             Werkstaetten.Clear();
+            Wachen.Clear();
+            Dom = null;
+            InnenGaeste = -1;
+            Umwelt = null;
             MarktOffen = false;
         }
     }
@@ -79,6 +91,26 @@ public static class KlangStadtlebenModell
         /// <summary>Umkreise dieses Bildes (Meter), für die Abstufung der Rufe nach Entfernung.</summary>
         public float GeherUmkreis = 60f, WerkUmkreis = 130f;
 
+        /// <summary>Wie viele Gesprächsgruppen in Hörweite stehen (0–1, geglättet) → Häufigkeit der Gesprächsfetzen.</summary>
+        public float Gespraech;
+        /// <summary>Gesprächsgruppen im Umkreis (neu in jedem Bild): Ort, Abstand zum Blickpunkt, ob am Markt, Köpfe.</summary>
+        public readonly List<(Quelle Q, float Abstand, bool Markt, int Koepfe)> GruppenOrte = new();
+        public float GruppenUmkreis = 40f;
+        public int GruppenImUmkreis;
+        /// <summary>Wachleute auf Streife in Hörweite des Horns (0–1, geglättet) und ihre Orte (neu in jedem Bild).</summary>
+        public float Wache;
+        public readonly List<(Quelle Q, float Abstand)> WachOrte = new();
+        public float WachUmkreis = 120f;
+        /// <summary>Der Dom: Seite im Bild (−1…+1) und Abstand zum Blickpunkt in Metern; <see cref="HatDom"/> false = unbekannt.</summary>
+        public bool HatDom;
+        public float DomSeite, DomAbstand = 60f;
+        /// <summary>Die Umgebung (Stadt gegen Natur, Baum, Feld, Wasser), geglättet; ohne Karte <see cref="KlangUmweltModell.Lage.Stadtmitte"/>.</summary>
+        public KlangUmweltModell.Lage Umwelt = KlangUmweltModell.Lage.Stadtmitte;
+        /// <summary>Nähe zur lautesten Schänke (0–1): dicht davor und herangezoomt klingt sie hell und laut, wie durch die offene Tür.</summary>
+        public float SchenkeNah;
+        /// <summary>Gäste in der lautesten geöffneten Schänke, ohne Rücksicht auf die Entfernung (0–1): So voll klingt es in der Schankstube selbst.</summary>
+        public float SchenkeInnen;
+
         /// <summary>Keine Messung: alles voll, wie vor der Nachbesserung. Gemeinsam benutzt, nicht verändern.</summary>
         public static readonly Lage Voll = new() { Gemessen = false, Menge = 1f, Markt = 1f, Schenke = 1f, Werkstatt = 1f, Geher = 1f };
     }
@@ -89,6 +121,12 @@ public static class KlangStadtlebenModell
     public static float SchenkenUmkreis(float zoom) => 15f + 0.5f * zoom;
     public static float WerkUmkreis(float zoom) => 60f + 1.2f * zoom;
     public static float GeherUmkreis(float zoom) => 15f + 0.45f * zoom;
+    /// <summary>Gesprächsfetzen tragen nicht weit: Zoom 40 → 26 m, Startzoom 95 → 45 m.</summary>
+    public static float GespraechUmkreis(float zoom) => 12f + 0.35f * zoom;
+    /// <summary>Das Horn des Nachtwächters trägt weit: Zoom 95 → 135 m.</summary>
+    public static float WachUmkreis(float zoom) => 40f + 1.0f * zoom;
+    /// <summary>Wie nah zwei Menschen beieinander stehen, damit sie als Gruppe gelten (Meter).</summary>
+    public const float GruppenAbstand = 3.5f;
 
     /// <summary>Gewicht eines Menschen im Abstand d (Meter) bei Umkreis r: 1 bis 30 % des Umkreises, dann Smoothstep auf 0 am Rand.</summary>
     public static float Nahe(float d, float r) => 1f - KlangUmgebungModell.Glatt(0.3f * r, r, d);
@@ -102,12 +140,15 @@ public static class KlangStadtlebenModell
     public const float SchenkeFrei = 0.5f, SchenkeK = 3.0f;  // 2 Gäste → 0,39, 5 → 0,78
     public const float WerkK = 2.0f;                         // 1 Arbeiter 0,39, 2 → 0,63, 4 → 0,86
     public const float GeherK = 3.0f;                        // 1 Gänger 0,28, 3 → 0,63
+    public const float GespraechK = 2.0f;                    // 1 Gruppe in Hörweite 0,39, 2 → 0,63
+    public const float WachK = 1.0f;                         // 1 Streife 0,63
 
     /// <summary>Anstieg und Abfall der Pegel: Zeitkonstanten in Sekunden Echtzeit.</summary>
-    public const float AnstiegSekunden = 3f, AbfallSekunden = 6f, SeiteSekunden = 1.5f;
+    public const float AnstiegSekunden = 3f, AbfallSekunden = 6f, SeiteSekunden = 1.5f, UmweltSekunden = 3f;
 
     /// <summary>Die ungeglätteten Zielwerte eines Bildes (Pegel 0–1, Seite −1…+1).</summary>
-    public readonly record struct Ziele(float Menge, float Markt, float Schenke, float Seite, float Werkstatt, float Geher);
+    public readonly record struct Ziele(float Menge, float Markt, float Schenke, float Seite, float Werkstatt, float Geher, float Gespraech = 0f,
+                                        float Wache = 0f, float SchenkeNah = 0f, float SchenkeInnen = 0f);
 
     /// <summary>Die Zielwerte (ungeglättet) aus einem Momentbild und dem Zoom; füllt auch die Zahlen und Orte in <paramref name="l"/>.</summary>
     public static Ziele Berechnen(Momentbild m, float zoom, Lage l)
@@ -117,6 +158,8 @@ public static class KlangStadtlebenModell
         l.WerkUmkreis = rw;
         l.GeherOrte.Clear();
         l.WerkOrte.Clear();
+        l.GruppenOrte.Clear();
+        l.WachOrte.Clear();
         float Abstand(in Quelle q) => MathF.Sqrt((q.X - m.FokusX) * (q.X - m.FokusX) + (q.Z - m.FokusZ) * (q.Z - m.FokusZ));
 
         float g = 0, gm = 0, gg = 0;
@@ -182,7 +225,96 @@ public static class KlangStadtlebenModell
             l.WerkOrte.Add((q, d));
         }
         l.ArbeiterImUmkreis = arbeiter;
-        return new Ziele(menge, markt, best, seite, Saettigung(werkSumme, 0f, WerkK), gehGewicht);
+
+        // Wie nah ist die lauteste Schänke (nur wenn man sie hört): dicht davor und herangezoomt → hell und laut
+        float schenkeNah = 0, schenkeInnen = 0;
+        foreach (var q in m.Schenken)
+        {
+            schenkeInnen = Math.Max(schenkeInnen, Saettigung(q.Anzahl, SchenkeFrei, SchenkeK));
+            var wq = Saettigung(q.Anzahl, SchenkeFrei, SchenkeK) * (1f - KlangUmgebungModell.Glatt(8f, 30f, Abstand(q))) * (1f - KlangUmgebungModell.Glatt(35f, 70f, zoom));
+            schenkeNah = Math.Max(schenkeNah, wq);
+        }
+
+        if (m.InnenGaeste >= 0) schenkeInnen = Saettigung(m.InnenGaeste, SchenkeFrei, SchenkeK); // in der Schankstube selbst zählen nur ihre Gäste
+
+        // Gesprächsgruppen: zwei oder mehr Menschen dicht beieinander, von denen mindestens einer nicht geht (Kunde am Stand, Plauder an der Ecke)
+        var gruppen = Gruppen(m, zoom, l);
+
+        // Wachleute auf Streife in Hörweite des Horns
+        var rwa = WachUmkreis(zoom);
+        l.WachUmkreis = rwa;
+        float wachSumme = 0;
+        foreach (var q in m.Wachen)
+        {
+            var d = Abstand(q);
+            if (d >= rwa) continue;
+            wachSumme += Nahe(d, rwa);
+            l.WachOrte.Add((q, d));
+        }
+
+        // Der Dom: Seite im Bild und Abstand zum Blickpunkt (für die Glocken)
+        if (m.Dom is { } dom)
+        {
+            l.HatDom = true;
+            l.DomSeite = dom.Seite;
+            l.DomAbstand = Abstand(dom);
+        }
+        else l.HatDom = false;
+        return new Ziele(menge, markt, best, seite, Saettigung(werkSumme, 0f, WerkK), gehGewicht, gruppen, Saettigung(wachSumme, 0f, WachK), schenkeNah, schenkeInnen);
+    }
+
+    /// <summary>
+    /// Findet die Gesprächsgruppen im Umkreis (<see cref="GespraechUmkreis"/>) und füllt <see cref="Lage.GruppenOrte"/>. Gruppe = ein Mensch mit
+    /// mindestens einem Nachbarn im Abstand von <see cref="GruppenAbstand"/>; wenn alle gehen, ist es kein Gespräch, sondern ein Spaziergang.
+    /// Jeder Mensch gehört höchstens einer Gruppe an (Nachbarn des ersten, der noch frei ist). Gibt das Gewicht 0–1 zurück.
+    /// </summary>
+    private static float Gruppen(Momentbild m, float zoom, Lage l)
+    {
+        var r = GespraechUmkreis(zoom);
+        l.GruppenUmkreis = r;
+        l.GruppenImUmkreis = 0;
+        var alle = new List<(Quelle Q, bool Markt, float Abstand)>();
+        foreach (var q in m.Leute)
+        {
+            var d = MathF.Sqrt((q.X - m.FokusX) * (q.X - m.FokusX) + (q.Z - m.FokusZ) * (q.Z - m.FokusZ));
+            if (d < r + 4f) alle.Add((q, false, d));
+        }
+        foreach (var q in m.Marktleute)
+        {
+            var d = MathF.Sqrt((q.X - m.FokusX) * (q.X - m.FokusX) + (q.Z - m.FokusZ) * (q.Z - m.FokusZ));
+            if (d < r + 4f) alle.Add((q, true, d));
+        }
+        var vergeben = new bool[alle.Count];
+        float summe = 0;
+        for (var i = 0; i < alle.Count; i++)
+        {
+            if (vergeben[i]) continue;
+            float sx = alle[i].Q.X, sz = alle[i].Q.Z;
+            var koepfe = 1;
+            var markt = alle[i].Markt ? 1 : 0;
+            var steht = !alle[i].Q.Geht;
+            for (var j = i + 1; j < alle.Count; j++)
+            {
+                if (vergeben[j]) continue;
+                float dx = alle[j].Q.X - alle[i].Q.X, dz = alle[j].Q.Z - alle[i].Q.Z;
+                if (dx * dx + dz * dz > GruppenAbstand * GruppenAbstand) continue;
+                vergeben[j] = true;
+                sx += alle[j].Q.X;
+                sz += alle[j].Q.Z;
+                koepfe++;
+                if (alle[j].Markt) markt++;
+                if (!alle[j].Q.Geht) steht = true;
+            }
+            vergeben[i] = true;
+            if (koepfe < 2 || !steht) continue;
+            var mitte = new Quelle(sx / koepfe, sz / koepfe, alle[i].Q.Seite, koepfe, false);
+            var d = MathF.Sqrt((mitte.X - m.FokusX) * (mitte.X - m.FokusX) + (mitte.Z - m.FokusZ) * (mitte.Z - m.FokusZ));
+            if (d >= r) continue;
+            l.GruppenImUmkreis++;
+            summe += Nahe(d, r);
+            l.GruppenOrte.Add((mitte, d, markt * 2 > koepfe, koepfe));
+        }
+        return Saettigung(summe, 0f, GespraechK);
     }
 
     /// <summary>
@@ -203,6 +335,8 @@ public static class KlangStadtlebenModell
             {
                 _gestartet = true;
                 (l.Menge, l.Markt, l.Schenke, l.SchenkeSeite, l.Werkstatt, l.Geher) = (z.Menge, z.Markt, z.Schenke, z.Seite, z.Werkstatt, z.Geher);
+                (l.Gespraech, l.Wache, l.SchenkeNah, l.SchenkeInnen) = (z.Gespraech, z.Wache, z.SchenkeNah, z.SchenkeInnen);
+                l.Umwelt = m.Umwelt ?? KlangUmweltModell.Lage.Stadtmitte;
                 return l;
             }
             l.Menge = Folge(l.Menge, z.Menge, dt);
@@ -210,6 +344,18 @@ public static class KlangStadtlebenModell
             l.Schenke = Folge(l.Schenke, z.Schenke, dt);
             l.Werkstatt = Folge(l.Werkstatt, z.Werkstatt, dt);
             l.Geher = Folge(l.Geher, z.Geher, dt);
+            l.Gespraech = Folge(l.Gespraech, z.Gespraech, dt);
+            l.Wache = Folge(l.Wache, z.Wache, dt);
+            l.SchenkeNah = Folge(l.SchenkeNah, z.SchenkeNah, dt);
+            l.SchenkeInnen = Folge(l.SchenkeInnen, z.SchenkeInnen, dt);
+            // Die Umgebung wechselt langsam (Zeitkonstante 3 s in beide Richtungen): Vom Markt aufs Feld wird es weich anders
+            if (m.Umwelt is { } u)
+            {
+                var k = 1f - MathF.Exp(-dt / UmweltSekunden);
+                var a = l.Umwelt;
+                l.Umwelt = new KlangUmweltModell.Lage(a.Stadt + (u.Stadt - a.Stadt) * k, a.Baum + (u.Baum - a.Baum) * k, a.Feld + (u.Feld - a.Feld) * k, a.Wasser + (u.Wasser - a.Wasser) * k);
+            }
+            else l.Umwelt = KlangUmweltModell.Lage.Stadtmitte;
             // Seite nur nachführen, solange man die Schänke hört (sonst wandert der Klang beim Ausblenden)
             if (z.Schenke > 0.01f) l.SchenkeSeite += (z.Seite - l.SchenkeSeite) * (1f - MathF.Exp(-dt / SeiteSekunden));
             return l;
@@ -243,31 +389,52 @@ public static class KlangStadtlebenModell
             return ((int)MathF.Round(leute), (int)MathF.Round(markt), (int)MathF.Round(gaeste), offen ? 3 : 0, offen);
         }
 
-        /// <summary>Füllt das Momentbild für diese Uhr; Blickpunkt (0, 0), die Seite folgt aus x und dem Zoom (16:9).</summary>
-        public static void Fuellen(Momentbild m, float stunde, float zoom)
+        /// <summary>Wo der Dom im Szenario steht (wie in der Karte <c>greybox</c>), von dort läuten die Glocken der Hörprobe.</summary>
+        public static readonly (float X, float Z) DomOrt = (-20f, -11f);
+
+        /// <summary>
+        /// Füllt das Momentbild für diese Uhr; Blickpunkt (<paramref name="fokusX"/>, <paramref name="fokusZ"/>, ohne Angabe der Ursprung = Markt), die Seite folgt
+        /// aus dem Abstand zum Blickpunkt und dem Zoom (16:9). Die Menschen stehen fest um den Ursprung: Wer den Blickpunkt aus der Stadt schiebt,
+        /// lässt sie hinter sich (der Abstand wächst). Von den Stehenden hat jeder einen Nachbarn dicht daneben (ein Gespräch); nachts geht eine Streife.
+        /// </summary>
+        public static void Fuellen(Momentbild m, float stunde, float zoom, float fokusX = 0f, float fokusZ = 0f)
         {
             m.Leeren();
-            m.FokusX = m.FokusZ = 0;
+            m.FokusX = fokusX;
+            m.FokusZ = fokusZ;
             var (leute, markt, gaeste, arbeiter, offen) = Zaehlen(stunde);
             m.MarktOffen = offen;
             var halbe = Math.Max(zoom * 0.5f * 16f / 9f, 1f);
-            float S(float x) => x / halbe;
+            float S(float x) => (x - fokusX) / halbe;
             for (var i = 0; i < leute; i++)
             {
                 var winkel = i * 2.399963f;
                 var d = 8f + i * 37 % 70;
                 float x = MathF.Cos(winkel) * d, z = MathF.Sin(winkel) * d;
-                m.Leute.Add(new Quelle(x, z, S(x), 1, i % 3 != 0));
+                var geht = i % 3 != 0;
+                m.Leute.Add(new Quelle(x, z, S(x), 1, geht));
+                if (!geht) m.Leute.Add(new Quelle(x + 1.4f, z + 0.8f, S(x + 1.4f), 1, false)); // der Gesprächspartner
             }
             for (var i = 0; i < markt; i++)
             {
                 var winkel = i * 2.399963f;
                 var d = 3f + i * 5 % 14;
                 float x = -30f + MathF.Cos(winkel) * d, z = -12f + MathF.Sin(winkel) * d;
-                m.Marktleute.Add(new Quelle(x, z, S(x), 1, i % 4 == 0));
+                var geht = i % 4 == 0;
+                m.Marktleute.Add(new Quelle(x, z, S(x), 1, geht));
+                if (i % 4 == 2) m.Marktleute.Add(new Quelle(x + 1.2f, z + 1f, S(x + 1.2f), 1, false)); // Kunde und Verkäufer am Stand
             }
             if (gaeste > 0) m.Schenken.Add(new Quelle(-24f, 10f, S(-24f), gaeste));
             if (arbeiter > 0) m.Werkstaetten.Add(new Quelle(75f, -45f, S(75f), arbeiter));
+            m.Dom = new Quelle(DomOrt.X, DomOrt.Z, S(DomOrt.X));
+            if (stunde >= 21.3f || stunde < 5.5f)
+            {
+                // Streife: pendelt auf der Gasse zwischen Markt und Tor (rund 160 m Weg, rund 2 Minuten Spielzeit je Strecke)
+                var f = (stunde * 60f / 7f) % 2f;
+                var t = f < 1f ? f : 2f - f;
+                float x = -10f + 80f * t, z = 14f - 6f * t;
+                m.Wachen.Add(new Quelle(x, z, S(x), 1, true));
+            }
         }
     }
 }

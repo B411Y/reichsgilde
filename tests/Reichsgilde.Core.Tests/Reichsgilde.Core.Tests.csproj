@@ -22,5 +22,6 @@
     <Compile Include="..\..\game\scripts\KlangUmgebungModell.cs" Link="Umgebung\KlangUmgebungModell.cs" />
     <Compile Include="..\..\game\scripts\KlangStadtlebenModell.cs" Link="Umgebung\KlangStadtlebenModell.cs" />
     <Compile Include="..\..\game\scripts\KlangStadtlebenKern.cs" Link="Umgebung\KlangStadtlebenKern.cs" />
+    <Compile Include="..\..\game\scripts\KlangUmweltModell.cs" Link="Umgebung\KlangUmweltModell.cs" />
   </ItemGroup>
 </Project>
