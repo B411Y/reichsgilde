@@ -4,7 +4,8 @@ Stand 31.10.2026, Branch `phase5/charakter-werkzeug`, Mitglied darstellung. Kein
 Grundlage: [Phase 5](phase5.md). Plan: vom Nutzer am 30.10.2026 freigegeben (E1–E17 wie empfohlen), vier Etappen
 A–D mit Halt. Dieser Bericht wächst mit den Schritten; hier stehen bisher **S0** (Messbasis, Prüfstand, Würfeln über
 den Kern), **S1** (Vergleichsvorlagen der lokalen Bild-KI), **S2** (Grundfehler) und **S3** (Porträtlicht). Damit ist
-Etappe A fertig; es folgt Halt A.
+Etappe A fertig; die Befunde der Prüfer sind im Abschnitt **Nachtrag nach der Prüfung** behoben bzw. berichtigt, es
+folgt Halt A.
 
 ## S0 Messbasis, Prüfstand, Würfeln über den Kern
 
@@ -264,10 +265,10 @@ S2/S3-Bögen), Vergleichsblatt `vergleich_a0_a1.png` (A0 | A1 | Fotovorlage).
   Wimpern, Haar, Haarkarte, Iris, Kranz, Lederhaut, `haar_unter`, Zahnfleisch, TressFX samt Goldnetz und Perlen);
   statische Prüfung: 0 Stellen mit `Vector3` an einem Farb-Uniform. Farbtest über die Hilfsfunktion = `StandardMaterial3D`
   (127,0 / 127,0). Haar, Brauen und Bart sind jetzt so dunkel wie im Code gemeint (E4 an Halt A, Farbtafeln P11).
-- **Augen:** Iris-Leuchtdichte Mann 35 unter L-V 0,046 statt 0,170 (0,27 ×, Ziel ≤ ⅓); Lederhaut 40 L* unter der
+- **Augen** (Lederhaut berichtigt im Nachtrag)**:** Iris-Leuchtdichte Mann 35 unter L-V 0,046 statt 0,170 (0,27 ×, Ziel ≤ ⅓); Lederhaut 40 L* unter der
   beleuchteten Wange (Ziel ≤ +5).
 - **Glanz wie Godot:** Prüfkugel (Wrap 0, eine Keule) gegen `StandardMaterial3D` bei 0/30/60/80°: 0,99 / 1,00 / 1,00 /
-  1,01; Streulicht gegen Lambert 0,995–1,000; Streiflicht (150°, Summe über die Kugel) 9,7 × Phase 5.
+  1,01; Streulicht gegen Lambert 0,995–1,000; Streiflicht (150°, Summe über die Kugel) 9,7 × Phase 5 – berichtigt im Nachtrag: gewertet wird 80° (1,32, nicht erreicht).
 - **Formnormalen** für Gen-, Alters- und alle neuen Formen, dünn gespeichert: `kopf6.glb` 26,8 MB (kopf5_mn 53,6 MB,
   kopf5 33,2 MB); dicht gegen dünn: Normalen und Lagen ≤ 1,0e-4, Bild ≤ 0,03/255. `makro_` bleibt **ohne** Normalen
   (A/B: Säugling und Kind bekommen sonst Brustwarzen-Buckel der Erwachsenenform, Bogen `s2_ab_formen`).
@@ -359,22 +360,22 @@ S2/S3-Bögen), Vergleichsblatt `vergleich_a0_a1.png` (A0 | A1 | Fotovorlage).
 | Farbtest: Hilfsfunktion = StandardMaterial3D ±2/255 | 127,0 / 127,0 | `A1/p10_kalibrier/01_02.png` |
 | kein `Vector3` an einem Farb-Uniform | 0 Stellen | `A1/pruefen6.md` |
 | Iris ≤ ⅓ von Phase 5 (L-V) | 0,046 / 0,170 = 0,27 | `p01_alter_ton_k1_lv` |
-| Lederhaut ≤ +5 L* gegen die Wange (L-V) | −39,7 | ebenda |
+| Lederhaut ≤ +5 L* gegen die Wange (L-V) | −39,7 – **Messweg falsch, berichtigt im Nachtrag** | ebenda |
 | Wange Mann (L-V): Chroma ≥ 14, a* ≥ 8 | **8,4 / 4,9 – nicht erreicht** (E5) | ebenda, `s3_e5_agx` |
 | Prüfkugel Streulicht = Lambert ±3 % | 0,995 … 1,000 | `p10b_kugeln` |
 | Glanzspitze = StandardMaterial3D ±10 % (0–60°), ±20 % (80°) | 0,987 / 0,996 / 1,000 / 1,009 | ebenda |
-| Streiflichtglanz ≥ 2,5 × Phase 5 | 9,7 (150°) | ebenda |
-| A/B Kiefer und Kinn ≥ 8 Pp. dunkler | **+5,5 Pp. heller – nicht erreicht** (S4) | `s2_ab_mann30` |
+| Streiflichtglanz ≥ 2,5 × Phase 5 | 9,7 (150°) – **Umdeutung, berichtigt im Nachtrag: 80° 1,32, nicht erreicht** | ebenda |
+| A/B Kiefer und Kinn ≥ 8 Pp. dunkler | **+5,5 Pp. heller – nicht erreicht** (S4; gemessen an kopf5/haut3, am ausgelieferten kopf6 im Nachtrag) | `s2_ab_mann30` |
 | P7 ohne Dellen und Grate; Entscheidung `makro_` | Gen- und Altersnormalen sauber; `makro_` ohne Normalen | `s2_ab_formen`, `p07_*` |
 | kopf6.glb ≤ kopf5_mn.glb | 26,8 / 53,6 MB | `duenn_vergleich.json` |
 | Bild dünn = dicht ≤ 1/255, Normalen < 1e-3 | ≤ 0,03/255; 1,0e-4 | `s2_duenn`, `duenn_vergleich.json` |
 | Ultra ohne grauen SSS-Saum | kein Saum sichtbar (Stand 6 Ultra, K4 und N1) | `s2_ultra` |
 | keine SCRIPT- oder SHADER-ERROR | keine in allen A1-Läufen | `A1/logs/` |
-| M2 gepaart Hoch ohne Haar Δ ≤ +0,3 ms (S2) | +0,07 ms (Licht spiel5, Median aus 3: −0,47 / +0,43 / +0,07) | `A1/messung.jsonl` (Licht spiel5) |
+| M2 gepaart Hoch ohne Haar Δ ≤ +0,3 ms (S2) | **nicht belastbar (Nachtrag)** – +0,07 ms (Licht spiel5, Median aus 3: −0,47 / +0,43 / +0,07) | `A1/messung.jsonl` (Licht spiel5) |
 | L-V: Licht : Schatten 2–4, R/G ≥ 1,25 / 1,30 | **1,15; 1,11 / 1,14 – nicht erreicht** (Fülllicht L-V, AgX) | `p01_alter_ton_k1_lv`, `s3_probe_ls` |
 | L-S: dieselben Verhältnisse ±20 % | 1,40 (+22 %), R/G 1,13 / 1,21 (+2 / +6 %) | `p01_alter_ton_k1_ls` |
 | kein Fleck vor dem Ohr (¾, L-S) | keiner | `p01_alter_ton_k2_ls` |
-| M2 Hoch Δ ≤ +0,5 ms (mit weichen Schatten) | ohne Haar −0,96 ms (spiel), +0,22 ms mit Winkelgröße 3° (spiel6_weich); **TressFX in Ruhe +2,92 ms unter spiel – nicht belastbar** (unter spiel5 −0,07, unter spiel6_weich +0,17; T400 geteilt, siehe unten) | `A1/messung.jsonl` |
+| M2 Hoch Δ ≤ +0,5 ms (mit weichen Schatten) | **offen (Nachtrag)** – ohne Haar −0,96 ms (spiel), +0,22 ms mit Winkelgröße 3° (spiel6_weich); **TressFX in Ruhe +2,92 ms unter spiel – nicht belastbar** (unter spiel5 −0,07, unter spiel6_weich +0,17; T400 geteilt, siehe unten) | `A1/messung.jsonl` |
 | Prüfmappe A mit P1, P3, P7, P10, P11, M1, M2 | vollständig | `A1/` |
 
 - **M2 (Hoch, 1280 × 720, gepaart Stand 5/6 im selben Prozess, je 3 Wiederholungen):** Die T400 war nicht frei
@@ -404,4 +405,69 @@ GLB=~/werkzeuge/charakter/glb6 tools/charakter/schau.sh <ordner> 2200x3100 --bog
 # Prüfung
 $BPY -I tools/charakter/messen/pruefen6.py --mappe=~/werkzeuge/charakter/bilder/phase6/A1 \
    --glb=~/werkzeuge/charakter/glb6/kopf6.glb --a0=~/werkzeuge/charakter/bilder/phase6/A0
+```
+
+## Nachtrag nach der Prüfung von Etappe A
+
+Unabhängige Prüfer haben Prüfmappe A1 nachgerechnet; elf Befunde wurden bestätigt. Prüfmappe **A2** (Stand 6 nach den
+Befunden) und **A0b** (Stand 5 unter dem neuen Messlicht, Bögen P1 K1/K2 L-V und P10) liegen unter
+`~/werkzeuge/charakter/bilder/phase6/`. Für Halt A gibt es eine kurze Mappe mit Vergleichsblatt, Farbtafeln, Bühnenlicht
+und `halt_a.md` (außerhalb des Repositorys).
+
+### Befunde und was geschah
+
+| Befund | Ursache | Behoben bzw. berichtigt |
+|---|---|---|
+| Punktraster in allen Schatten unter L-V (Schattenwange, Augenhöhle, Ohr, Kragen), auch um die Augen | Winkelgröße 3° des Schlüssellichts (weiche Schatten über PCSS) streute einzelne dunkle Punkte | L-V weich über die Schattenweichzeichnung 2,0 wie L-S, ohne Winkelgröße; A0 (als A0b) und A1 (als A2) neu gerendert, Raster verschwunden (`halt_a/3_buehnenlicht.png`); Graukarte weiter 118,0 |
+| Lederhaut-Messung traf zur Hälfte Schwarz, Kriterium bestand schon mit Stand 5 | Feld 0,13–0,20·IPD lag auf Lidwinkel und Wimpern, Mittelwert | Feld 0,085–0,15·IPD (zwischen Irisrand und Lidwinkel), 80. Perzentil, Anteil schwarzer Punkte ausgewiesen. Neu: Stand 6 −10,3 L*, Stand 5 −8,9 L* gegen die Wange (L-S: −7 bzw. −5). Beide erfüllen „≤ +5“; das Kriterium trennt unter dem Messlicht nicht – die Annahme der Bestandsaufnahme (Lederhaut heller als Haut) galt nur unter dem alten Licht. Stand 6 senkt die Lederhaut um 6–9 L* |
+| Streiflicht nachträglich bei 150° gewertet | – | gewertet wird 80° (N5): **1,32 × Phase 5, Ziel 2,5 nicht erreicht**. Mit F0 0,028 und Godots GGX (Glanzspitze 0,99–1,01 × `StandardMaterial3D`) ist das Ziel nicht erreichbar, weil haut3 seine Spitze mit einer schmalen zweiten Keule überzeichnete; erneut in S8 (Doppelglanz, Feuchte) |
+| haut6 am Rand 1,7 × so hell wie Godot (150°) | Messfehler: Maske nur 0,9 Kugelradien (der Randglanz liegt außerhalb) und Bild bei Energie 1 übersteuert (Spitze 1,0) | ganze Kugel, Streiflichtzeile mit Energie 0,3 (Spitze 0,54): haut6 : Standard **1,16** (±20 %), als Zusatz geführt |
+| Last immer 0,0, M2 trotz geteilter Karte „erfüllt“ | `get_file_as_string("/proc/loadavg")` liefert leer | Last zeilenweise gelesen, fremde GPU-Prozesse (nvidia-smi) je Messung; `schau.sh --messen` mit `GPU_ANDERE=0` bricht ab, wenn die Karte nicht frei wird; `pruefen6` wertet nur belastbare Läufe (Karte frei, Last protokolliert, Streuung unter der Grenze). Neu gemessen bei freier T400, siehe unten |
+| M2 S3 trotz +2,9 ms „erfüllt“ | – | bei freier Karte bestätigt: **Abweichung**, Ursache gemessen (unten) |
+| Haut fahl, Erklärung „AgX“ unvollständig | Der Wrap je Farbkanal (n·l + w)/(1 + w)² nahm dem Rot im vollen Licht bis zu 17 % (Wange R/G Albedo 1,22 → beleuchtet 1,11) | Wrap im vollen Licht farbneutral: (n·l + w)/(1 + w) je Kanal geteilt durch (1 + w) der Helligkeit, Farbtrennung des Wraps 0,3 (`wrap_neutral`, `streu_farbe`). Wange Mann 35 (H2) L-V Chroma 8,4 → **10,2**, a* 4,9 → 6,3; L-S 13,0 → **14,8**. Kosten gemessen: Glanz 0 +0,4 C, Fülllicht 0 −0,2 C, Lambert statt Wrap +1,1 C; der Rest ist AgX (Hautfeld Typ III: Albedo C 15,7 → 9,3) |
+| Oberlid orange | Derselbe Wrap: am Schattenrand (Oberlid unter der Braue, n·l ≈ 0) bekam Rot das 1,5-Fache von Grün; Brauenschatten, Rötung und Lidschatten-Netz sind es nicht (je ausgeblendet: keine Änderung) | mit der Farbtrennung 0,3 Oberlid L-V Chroma 24,0 → **19,6** (Wange 10,2, also 1,9-fach statt 2,9-fach). Ziel ≤ 1,5-fach **nicht ganz erreicht**: die Albedo der Lidzone ist selbst satter (C 22,5 gegen Wange 18,1), und AgX entsättigt die helle Wange stärker als das dunkle Lid; Farbton des Lids in S9 (Pigmentzonen) bzw. S12 (Augenhöhle) |
+| A/B Formnormalen und Gratbogen nicht am ausgelieferten Kopf | Bögen nutzten kopf5/kopf5_mn mit haut3 | `kopf6_ohne.glb` (alle Formnormalen entfernt, nur lokal) gegen `kopf6.glb`, Stand 6: Kiefer **+6,6**, Kinn **+6,5** Pp. heller statt ≥ 8 dunkler – **nicht erreicht** (S4, Kieferkante). Neuer Bogen `p07b_grat_naht6`: keine Grate, Büstennaht mit/ohne Normalen im Mittel 0,03–0,7/255 (Säugling, Kind ohne Brustbuckel, weil `makro_` ohne Normalen bleibt) |
+| S1: Außen- und Innenarbeiter 45 gleich alt und gleich gebräunt; Bäuerin ¾ blass | Prompts des Schreibers und der Kaufmannsfrau zu schwach | ComfyUI ist gestoppt (nur der Teamleiter startet es). Neue Prompts liegen bereit (`vorlagen-gesicht6/_werkzeug/personen6.py`, `NACHTRAG`, Eintrag in `liste.md`); bis zur Neuerzeugung gelten Schreiber 45, Kaufmannsfrau 45 und Bäuerin ¾ nicht als Maßstab für Wetterhaut (P6). Empfehlung an Halt A |
+
+### M2 bei freier T400
+
+Gepaart im selben Prozess, je 3 Wiederholungen, keine fremden GPU-Prozesse, Last 1,4–4,9 (nur der erste Lauf unter
+„spiel“ hatte kurz einen fremden Prozess und wurde wiederholt):
+
+| Licht | ohne Haar Δ | TressFX in Ruhe Δ | Aussage |
+|---|---|---|---|
+| spiel5 (beide Stände Licht Phase 5) | +0,15 ms | +0,12 ms | Kosten von haut6/augen6 (S2), Grenze 0,3 ms erfüllt |
+| spiel (Stand 5 Licht Phase 5, Stand 6 Licht S3) | **+0,75 ms** | **+2,80 ms** | Shader + neues Porträtlicht, Grenzen 0,5 / 1,2 ms **überschritten** |
+| spiel6_b12 (beide Stände Licht S3, Weichzeichnung 1,2) | +0,19 ms | +0,13 ms | Weichzeichnung 2,0 gegen 1,2 kostet nichts Messbares |
+| spiel6_ohne_himmel (beide Licht S3 ohne HDRI) | +0,17 ms | +0,10 ms | Stand 6 absolut 6,36 / 28,2 ms statt 6,84 / 29,7 ms mit HDRI |
+
+Ursache der Überschreitung ist das **Studio-HDRI** als Umgebungslicht und Spiegelung (≈ +0,5 ms ohne Haar, ≈ +1,5 ms
+mit TressFX), nicht die Schattenweichzeichnung. Ohne HDRI liegt das neue Porträtlicht bei +0,23 ms (ohne Haar) bzw.
++0,7 ms (TressFX) gegen Phase 5. Entscheidung an den Teamleiter (Empfehlung: HDRI nur für Spiegelung oder als feste
+Umgebungsfarbe aus dem HDRI gemittelt, in S14 messen). Die frühere Aussage „spiel6_weich +0,2 ms“ verglich nur die
+Shader (Stand 5 bekam dort dasselbe Licht).
+
+### Weiter offen nach dem Nachtrag
+
+- Licht : Schatten unter L-V 1,15 (Ziel 2–4): unverändert; die Neueichung des Fülllichts ist die offene Designfrage an
+  den Teamleiter (Bericht S2/S3).
+- Wange L-V Chroma 10,2 (Ziel 14): mit E5 Sättigung 1,5 unter L-V 15,7; unter L-S erreicht schon Sättigung 1,25
+  Chroma 18,7 (Ziel 17). E5 an Halt A.
+- Streiflicht 80° 1,32 (Ziel 2,5): S8. A/B Kiefer und Kinn: S4. Oberlid-Farbton: S9/S12.
+
+### Testanleitung Nachtrag
+
+```bash
+# A2 und A0b rendern (Vulkan, T400; Stand 5 unter dem neuen L-V nur P1 L-V und P10)
+GLB=~/werkzeuge/charakter/glb6 tools/charakter/schau.sh <ordner> 4200x4700 --stand=5 \
+   --bogen=tools/charakter/boegen6/p01_alter_ton_k1_lv.json,tools/charakter/boegen6/p10_kalibrier.json --ende
+# kopf6 ohne Formnormalen für den A/B-Vergleich (nur lokal)
+python3 -I tools/charakter/glb_formnormalen.py ~/werkzeuge/charakter/glb6/kopf6_mn.glb ~/werkzeuge/charakter/glb6/kopf6_ohne.glb \
+   ohne_vorsilben=makro_,gen_,alter_ duenn=1
+# M2 nur bei freier Karte (bricht sonst mit Rückgabe 4 ab); Licht spiel6_ohne_himmel und spiel6_b12 zum Eingrenzen
+GLB=~/werkzeuge/charakter/glb6 GPU_ANDERE=0 tools/charakter/schau.sh <ordner> 1280x720 --messen --staende=5,6 \
+   --wiederholungen=3 --nur=ohne_haar,haar_tressfx_ruhe --licht=spiel6_ohne_himmel --ende
+# Prüfung
+$BPY -I tools/charakter/messen/pruefen6.py --mappe=~/werkzeuge/charakter/bilder/phase6/A2 \
+   --glb=~/werkzeuge/charakter/glb6/kopf6.glb --a0=~/werkzeuge/charakter/bilder/phase6/A0b
 ```
