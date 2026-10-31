@@ -1,0 +1,3013 @@
+{
+ "version": 1,
+ "beschreibung": "Charakter Phase 6 (Etappe B, Versuch): Vorschlag an kern – vollständige Kopie von game/daten/erbgut.json (Version 1, unverändert) plus Schub 1 (10 neue Gene, Plan S7) und die Gesichtszüge zug_01–zug_12 (Plan S6); Korrelationen nur in neue Gene. Wird nur im Versuch über Erbgutvorlage.AusJson geladen (ErbgutBruecke.cs), nicht vom Spiel. Die Gen-Vorlage des Erbguts (Phase 1 des Charakter-Editors). Jede Person trägt je Gen zwei Allele (0–255); eines ist sichtbar. Alle Völker teilen dieselbe Skala (0 = sehr wenig, 255 = sehr viel); Mann und Frau teilen die Werte (eigene Formen gibt ihnen die Darstellung); beiFrauen = bei Frauen zeigt sich statt dieses Gens ein anderes (der Bart). Je Volk: min/max = Grenzen, die immer halten; mittel und streuung = Glockenkurve, gewürfelt höchstens ±2 Streuungen vom Mittel (die Korrelationen können einen Wert darüber hinaus schieben, aber nie über min/max). dominanz = Chance in Prozent, dass das höhere Allel sichtbar wird (50 = Zufall). mutation = höchstens so viel weicht ein vererbtes Allel ab. alter = Verschiebung des sichtbaren Werts nach Menschenjahren (für die Darstellung). Erklärung: docs/spielbuch/erbgut.md",
+ "gene": [
+  {
+   "kennung": "groesse",
+   "name": "Körpergröße",
+   "art": "Makro",
+   "beschreibung": "0 = sehr klein, 255 = riesig – über alle Völker hinweg.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 85,
+     "mittel": 120,
+     "max": 155,
+     "streuung": 14
+    },
+    "Zwerg": {
+     "min": 20,
+     "mittel": 45,
+     "max": 70,
+     "streuung": 10
+    },
+    "Elb": {
+     "min": 135,
+     "mittel": 165,
+     "max": 195,
+     "streuung": 12
+    },
+    "Halbling": {
+     "min": 5,
+     "mittel": 25,
+     "max": 45,
+     "streuung": 8
+    },
+    "Ork": {
+     "min": 115,
+     "mittel": 150,
+     "max": 185,
+     "streuung": 14
+    },
+    "Oger": {
+     "min": 200,
+     "mittel": 225,
+     "max": 250,
+     "streuung": 10
+    }
+   }
+  },
+  {
+   "kennung": "gewicht",
+   "name": "Leibesfülle",
+   "art": "Makro",
+   "beschreibung": "0 = hager, 255 = beleibt.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 45,
+     "mittel": 115,
+     "max": 185,
+     "streuung": 28
+    },
+    "Zwerg": {
+     "min": 95,
+     "mittel": 150,
+     "max": 205,
+     "streuung": 22
+    },
+    "Elb": {
+     "min": 32,
+     "mittel": 70,
+     "max": 108,
+     "streuung": 15
+    },
+    "Halbling": {
+     "min": 98,
+     "mittel": 160,
+     "max": 222,
+     "streuung": 25
+    },
+    "Ork": {
+     "min": 90,
+     "mittel": 140,
+     "max": 190,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 130,
+     "mittel": 185,
+     "max": 240,
+     "streuung": 22
+    }
+   }
+  },
+  {
+   "kennung": "kraft",
+   "name": "Muskelkraft",
+   "art": "Makro",
+   "beschreibung": "0 = schmächtig, 255 = mächtige Muskeln.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 58,
+     "mittel": 120,
+     "max": 182,
+     "streuung": 25
+    },
+    "Zwerg": {
+     "min": 125,
+     "mittel": 175,
+     "max": 225,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 57,
+     "mittel": 95,
+     "max": 133,
+     "streuung": 15
+    },
+    "Halbling": {
+     "min": 40,
+     "mittel": 85,
+     "max": 130,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 135,
+     "mittel": 185,
+     "max": 235,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 165,
+     "mittel": 210,
+     "max": 255,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "schultern",
+   "name": "Schulterbreite",
+   "art": "Makro",
+   "beschreibung": "0 = schmal, 255 = breit.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 135,
+     "mittel": 180,
+     "max": 225,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 60,
+     "mittel": 95,
+     "max": 130,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 70,
+     "mittel": 110,
+     "max": 150,
+     "streuung": 16
+    },
+    "Ork": {
+     "min": 130,
+     "mittel": 175,
+     "max": 220,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 165,
+     "mittel": 205,
+     "max": 245,
+     "streuung": 16
+    }
+   }
+  },
+  {
+   "kennung": "kopf",
+   "name": "Kopfgröße",
+   "art": "Makro",
+   "beschreibung": "Im Verhältnis zum Körper: 0 = klein, 255 = groß.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 88,
+     "mittel": 128,
+     "max": 168,
+     "streuung": 16
+    },
+    "Zwerg": {
+     "min": 130,
+     "mittel": 165,
+     "max": 200,
+     "streuung": 14
+    },
+    "Elb": {
+     "min": 90,
+     "mittel": 115,
+     "max": 140,
+     "streuung": 10
+    },
+    "Halbling": {
+     "min": 130,
+     "mittel": 160,
+     "max": 190,
+     "streuung": 12
+    },
+    "Ork": {
+     "min": 95,
+     "mittel": 130,
+     "max": 165,
+     "streuung": 14
+    },
+    "Oger": {
+     "min": 60,
+     "mittel": 95,
+     "max": 130,
+     "streuung": 14
+    }
+   }
+  },
+  {
+   "kennung": "beine",
+   "name": "Beinlänge",
+   "art": "Makro",
+   "beschreibung": "Im Verhältnis zum Körper: 0 = kurz, 255 = lang.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 88,
+     "mittel": 128,
+     "max": 168,
+     "streuung": 16
+    },
+    "Zwerg": {
+     "min": 40,
+     "mittel": 70,
+     "max": 100,
+     "streuung": 12
+    },
+    "Elb": {
+     "min": 135,
+     "mittel": 165,
+     "max": 195,
+     "streuung": 12
+    },
+    "Halbling": {
+     "min": 60,
+     "mittel": 90,
+     "max": 120,
+     "streuung": 12
+    },
+    "Ork": {
+     "min": 80,
+     "mittel": 115,
+     "max": 150,
+     "streuung": 14
+    },
+    "Oger": {
+     "min": 70,
+     "mittel": 110,
+     "max": 150,
+     "streuung": 16
+    }
+   }
+  },
+  {
+   "kennung": "gesicht_laenge",
+   "name": "Gesichtslänge",
+   "art": "Merkmal",
+   "beschreibung": "0 = kurz und rund, 255 = lang.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 73,
+     "mittel": 128,
+     "max": 183,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 65,
+     "mittel": 110,
+     "max": 155,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 125,
+     "mittel": 165,
+     "max": 205,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 55,
+     "mittel": 95,
+     "max": 135,
+     "streuung": 16
+    },
+    "Ork": {
+     "min": 90,
+     "mittel": 135,
+     "max": 180,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 90,
+     "mittel": 140,
+     "max": 190,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "gesicht_breite",
+   "name": "Gesichtsbreite",
+   "art": "Merkmal",
+   "beschreibung": "0 = schmal, 255 = breit.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 73,
+     "mittel": 128,
+     "max": 183,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 125,
+     "mittel": 170,
+     "max": 215,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 60,
+     "mittel": 95,
+     "max": 130,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 115,
+     "mittel": 160,
+     "max": 205,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 120,
+     "mittel": 165,
+     "max": 210,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 150,
+     "mittel": 195,
+     "max": 240,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "stirn_hoehe",
+   "name": "Stirnhöhe",
+   "art": "Merkmal",
+   "beschreibung": "0 = niedrig, 255 = hoch.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 68,
+     "mittel": 128,
+     "max": 188,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 60,
+     "mittel": 110,
+     "max": 160,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 120,
+     "mittel": 165,
+     "max": 210,
+     "streuung": 18
+    },
+    "Halbling": {
+     "min": 75,
+     "mittel": 125,
+     "max": 175,
+     "streuung": 20
+    },
+    "Ork": {
+     "min": 30,
+     "mittel": 75,
+     "max": 120,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 15,
+     "mittel": 60,
+     "max": 105,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "stirn_neigung",
+   "name": "Fliehende Stirn",
+   "art": "Merkmal",
+   "beschreibung": "0 = steil, 255 = stark fliehend.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 50,
+     "mittel": 110,
+     "max": 170,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 70,
+     "mittel": 120,
+     "max": 170,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 45,
+     "mittel": 85,
+     "max": 125,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 55,
+     "mittel": 100,
+     "max": 145,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 120,
+     "mittel": 170,
+     "max": 220,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 140,
+     "mittel": 185,
+     "max": 230,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "brauenwulst",
+   "name": "Brauenwulst",
+   "art": "Merkmal",
+   "beschreibung": "0 = glatt, 255 = mächtiger Wulst.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 45,
+     "mittel": 105,
+     "max": 165,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 125,
+     "mittel": 175,
+     "max": 225,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 25,
+     "mittel": 60,
+     "max": 95,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 40,
+     "mittel": 85,
+     "max": 130,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 155,
+     "mittel": 200,
+     "max": 245,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 170,
+     "mittel": 210,
+     "max": 250,
+     "streuung": 16
+    }
+   }
+  },
+  {
+   "kennung": "augen_abstand",
+   "name": "Augenabstand",
+   "art": "Merkmal",
+   "beschreibung": "0 = eng, 255 = weit.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 73,
+     "mittel": 128,
+     "max": 183,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 75,
+     "mittel": 120,
+     "max": 165,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 95,
+     "mittel": 135,
+     "max": 175,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 95,
+     "mittel": 140,
+     "max": 185,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 65,
+     "mittel": 110,
+     "max": 155,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 65,
+     "mittel": 115,
+     "max": 165,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "augen_groesse",
+   "name": "Augengröße",
+   "art": "Merkmal",
+   "beschreibung": "0 = klein, 255 = groß.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 78,
+     "mittel": 128,
+     "max": 178,
+     "streuung": 20
+    },
+    "Zwerg": {
+     "min": 65,
+     "mittel": 105,
+     "max": 145,
+     "streuung": 16
+    },
+    "Elb": {
+     "min": 135,
+     "mittel": 175,
+     "max": 215,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 125,
+     "mittel": 165,
+     "max": 205,
+     "streuung": 16
+    },
+    "Ork": {
+     "min": 45,
+     "mittel": 85,
+     "max": 125,
+     "streuung": 16
+    },
+    "Oger": {
+     "min": 30,
+     "mittel": 70,
+     "max": 110,
+     "streuung": 16
+    }
+   }
+  },
+  {
+   "kennung": "augen_neigung",
+   "name": "Schräge Augen",
+   "art": "Merkmal",
+   "beschreibung": "0 = nach außen hängend, 128 = gerade, 255 = nach außen steigend.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 65,
+     "mittel": 120,
+     "max": 175,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 65,
+     "mittel": 110,
+     "max": 155,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 140,
+     "mittel": 180,
+     "max": 220,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 80,
+     "mittel": 125,
+     "max": 170,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 100,
+     "mittel": 150,
+     "max": 200,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 65,
+     "mittel": 110,
+     "max": 155,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "augen_tiefe",
+   "name": "Tiefliegende Augen",
+   "art": "Merkmal",
+   "beschreibung": "0 = vorstehend, 255 = tief in den Höhlen.",
+   "dominanz": 50,
+   "mutation": 3,
+   "alter": [
+    {
+     "jahre": 30,
+     "verschiebung": 0
+    },
+    {
+     "jahre": 80,
+     "verschiebung": 15
+    }
+   ],
+   "voelker": {
+    "Mensch": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 125,
+     "mittel": 170,
+     "max": 215,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 55,
+     "mittel": 95,
+     "max": 135,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 55,
+     "mittel": 100,
+     "max": 145,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 140,
+     "mittel": 185,
+     "max": 230,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 150,
+     "mittel": 190,
+     "max": 230,
+     "streuung": 16
+    }
+   }
+  },
+  {
+   "kennung": "nase_laenge",
+   "name": "Nasenlänge",
+   "art": "Merkmal",
+   "beschreibung": "0 = kurz, 255 = lang. Die Nase wächst im Alter.",
+   "dominanz": 50,
+   "mutation": 3,
+   "alter": [
+    {
+     "jahre": 20,
+     "verschiebung": 0
+    },
+    {
+     "jahre": 80,
+     "verschiebung": 18
+    }
+   ],
+   "voelker": {
+    "Mensch": {
+     "min": 68,
+     "mittel": 128,
+     "max": 188,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 115,
+     "mittel": 165,
+     "max": 215,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 100,
+     "mittel": 140,
+     "max": 180,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 60,
+     "mittel": 105,
+     "max": 150,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 35,
+     "mittel": 80,
+     "max": 125,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 60,
+     "mittel": 110,
+     "max": 160,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "nase_breite",
+   "name": "Nasenbreite",
+   "art": "Merkmal",
+   "beschreibung": "0 = schmal, 255 = breit.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 65,
+     "mittel": 125,
+     "max": 185,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 125,
+     "mittel": 175,
+     "max": 225,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 50,
+     "mittel": 85,
+     "max": 120,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 95,
+     "mittel": 140,
+     "max": 185,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 155,
+     "mittel": 200,
+     "max": 245,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 160,
+     "mittel": 205,
+     "max": 250,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "nase_hoecker",
+   "name": "Nasenhöcker",
+   "art": "Merkmal",
+   "beschreibung": "0 = gerade oder eingesattelt, 255 = kräftiger Höcker. Der Höcker setzt sich eher durch.",
+   "dominanz": 65,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 35,
+     "mittel": 110,
+     "max": 185,
+     "streuung": 30
+    },
+    "Zwerg": {
+     "min": 85,
+     "mittel": 150,
+     "max": 215,
+     "streuung": 26
+    },
+    "Elb": {
+     "min": 45,
+     "mittel": 100,
+     "max": 155,
+     "streuung": 22
+    },
+    "Halbling": {
+     "min": 40,
+     "mittel": 90,
+     "max": 140,
+     "streuung": 20
+    },
+    "Ork": {
+     "min": 20,
+     "mittel": 70,
+     "max": 120,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 30,
+     "mittel": 90,
+     "max": 150,
+     "streuung": 24
+    }
+   }
+  },
+  {
+   "kennung": "wangenknochen",
+   "name": "Wangenknochen",
+   "art": "Merkmal",
+   "beschreibung": "0 = flach, 255 = hoch und betont.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 65,
+     "mittel": 125,
+     "max": 185,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 90,
+     "mittel": 140,
+     "max": 190,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 145,
+     "mittel": 185,
+     "max": 225,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 55,
+     "mittel": 100,
+     "max": 145,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 115,
+     "mittel": 160,
+     "max": 205,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 100,
+     "mittel": 150,
+     "max": 200,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "wangen_fuelle",
+   "name": "Volle Wangen",
+   "art": "Merkmal",
+   "beschreibung": "0 = eingefallen, 255 = pausbäckig. Im Alter fallen die Wangen ein.",
+   "dominanz": 50,
+   "mutation": 3,
+   "alter": [
+    {
+     "jahre": 30,
+     "verschiebung": 0
+    },
+    {
+     "jahre": 80,
+     "verschiebung": -20
+    }
+   ],
+   "voelker": {
+    "Mensch": {
+     "min": 55,
+     "mittel": 120,
+     "max": 185,
+     "streuung": 26
+    },
+    "Zwerg": {
+     "min": 80,
+     "mittel": 130,
+     "max": 180,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 30,
+     "mittel": 70,
+     "max": 110,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 140,
+     "mittel": 185,
+     "max": 230,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 60,
+     "mittel": 110,
+     "max": 160,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 95,
+     "mittel": 150,
+     "max": 205,
+     "streuung": 22
+    }
+   }
+  },
+  {
+   "kennung": "mund_breite",
+   "name": "Mundbreite",
+   "art": "Merkmal",
+   "beschreibung": "0 = klein, 255 = breit.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 73,
+     "mittel": 128,
+     "max": 183,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 85,
+     "mittel": 130,
+     "max": 175,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 80,
+     "mittel": 115,
+     "max": 150,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 100,
+     "mittel": 145,
+     "max": 190,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 130,
+     "mittel": 175,
+     "max": 220,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 150,
+     "mittel": 195,
+     "max": 240,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "lippen",
+   "name": "Lippenfülle",
+   "art": "Merkmal",
+   "beschreibung": "0 = schmal, 255 = voll. Im Alter werden die Lippen schmaler.",
+   "dominanz": 50,
+   "mutation": 3,
+   "alter": [
+    {
+     "jahre": 25,
+     "verschiebung": 0
+    },
+    {
+     "jahre": 80,
+     "verschiebung": -25
+    }
+   ],
+   "voelker": {
+    "Mensch": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 60,
+     "mittel": 105,
+     "max": 150,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 75,
+     "mittel": 115,
+     "max": 155,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 95,
+     "mittel": 140,
+     "max": 185,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 45,
+     "mittel": 95,
+     "max": 145,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 80,
+     "mittel": 130,
+     "max": 180,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "kiefer_breite",
+   "name": "Kieferbreite",
+   "art": "Merkmal",
+   "beschreibung": "0 = schmal, 255 = breit und kantig.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 65,
+     "mittel": 125,
+     "max": 185,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 135,
+     "mittel": 180,
+     "max": 225,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 50,
+     "mittel": 85,
+     "max": 120,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 85,
+     "mittel": 130,
+     "max": 175,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 165,
+     "mittel": 205,
+     "max": 245,
+     "streuung": 16
+    },
+    "Oger": {
+     "min": 185,
+     "mittel": 220,
+     "max": 255,
+     "streuung": 14
+    }
+   }
+  },
+  {
+   "kennung": "kiefer_vorstand",
+   "name": "Vorstehender Unterkiefer",
+   "art": "Merkmal",
+   "beschreibung": "0 = zurückweichend, 255 = weit vorstehend (Orks).",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 60,
+     "mittel": 110,
+     "max": 160,
+     "streuung": 20
+    },
+    "Zwerg": {
+     "min": 70,
+     "mittel": 115,
+     "max": 160,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 65,
+     "mittel": 100,
+     "max": 135,
+     "streuung": 14
+    },
+    "Halbling": {
+     "min": 65,
+     "mittel": 105,
+     "max": 145,
+     "streuung": 16
+    },
+    "Ork": {
+     "min": 155,
+     "mittel": 200,
+     "max": 245,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 135,
+     "mittel": 185,
+     "max": 235,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "kinn",
+   "name": "Kinn",
+   "art": "Merkmal",
+   "beschreibung": "0 = klein und fliehend, 255 = groß und vorstehend.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 65,
+     "mittel": 125,
+     "max": 185,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 115,
+     "mittel": 165,
+     "max": 215,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 70,
+     "mittel": 110,
+     "max": 150,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 50,
+     "mittel": 95,
+     "max": 140,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 140,
+     "mittel": 185,
+     "max": 230,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 150,
+     "mittel": 195,
+     "max": 240,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "hauer",
+   "name": "Hauer",
+   "art": "Merkmal",
+   "beschreibung": "Eckzähne aus dem Unterkiefer: 0 = keine, 255 = mächtige Hauer. Nur Orks und Oger.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 90,
+     "mittel": 165,
+     "max": 240,
+     "streuung": 30
+    },
+    "Oger": {
+     "min": 55,
+     "mittel": 130,
+     "max": 205,
+     "streuung": 30
+    }
+   }
+  },
+  {
+   "kennung": "ohren_groesse",
+   "name": "Ohrengröße",
+   "art": "Merkmal",
+   "beschreibung": "0 = klein, 255 = groß. Die Ohren wachsen im Alter.",
+   "dominanz": 50,
+   "mutation": 3,
+   "alter": [
+    {
+     "jahre": 30,
+     "verschiebung": 0
+    },
+    {
+     "jahre": 80,
+     "verschiebung": 18
+    }
+   ],
+   "voelker": {
+    "Mensch": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 70,
+     "mittel": 120,
+     "max": 170,
+     "streuung": 20
+    },
+    "Elb": {
+     "min": 135,
+     "mittel": 175,
+     "max": 215,
+     "streuung": 16
+    },
+    "Halbling": {
+     "min": 115,
+     "mittel": 160,
+     "max": 205,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 100,
+     "mittel": 150,
+     "max": 200,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 115,
+     "mittel": 165,
+     "max": 215,
+     "streuung": 20
+    }
+   }
+  },
+  {
+   "kennung": "ohren_spitze",
+   "name": "Spitze Ohren",
+   "art": "Merkmal",
+   "beschreibung": "0 = rund, 255 = lang und spitz (Elben).",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 15,
+     "max": 35,
+     "streuung": 8
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 20,
+     "max": 40,
+     "streuung": 8
+    },
+    "Elb": {
+     "min": 200,
+     "mittel": 225,
+     "max": 250,
+     "streuung": 10
+    },
+    "Halbling": {
+     "min": 60,
+     "mittel": 95,
+     "max": 130,
+     "streuung": 14
+    },
+    "Ork": {
+     "min": 120,
+     "mittel": 165,
+     "max": 210,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 25,
+     "mittel": 70,
+     "max": 115,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "haut_helligkeit",
+   "name": "Hautfarbe",
+   "art": "Farbe",
+   "beschreibung": "0 = dunkel, 255 = hell.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 123,
+     "mittel": 185,
+     "max": 247,
+     "streuung": 25
+    },
+    "Zwerg": {
+     "min": 110,
+     "mittel": 165,
+     "max": 220,
+     "streuung": 22
+    },
+    "Elb": {
+     "min": 190,
+     "mittel": 220,
+     "max": 250,
+     "streuung": 12
+    },
+    "Halbling": {
+     "min": 130,
+     "mittel": 180,
+     "max": 230,
+     "streuung": 20
+    },
+    "Ork": {
+     "min": 45,
+     "mittel": 95,
+     "max": 145,
+     "streuung": 20
+    },
+    "Oger": {
+     "min": 65,
+     "mittel": 120,
+     "max": 175,
+     "streuung": 22
+    }
+   }
+  },
+  {
+   "kennung": "haut_ton",
+   "name": "Hautton",
+   "art": "Farbe",
+   "beschreibung": "0 = rosig und warm, 128 = neutral, 255 = grünlich (Orks) oder grau (Oger).",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 60,
+     "mittel": 105,
+     "max": 150,
+     "streuung": 18
+    },
+    "Zwerg": {
+     "min": 55,
+     "mittel": 95,
+     "max": 135,
+     "streuung": 16
+    },
+    "Elb": {
+     "min": 90,
+     "mittel": 120,
+     "max": 150,
+     "streuung": 12
+    },
+    "Halbling": {
+     "min": 55,
+     "mittel": 95,
+     "max": 135,
+     "streuung": 16
+    },
+    "Ork": {
+     "min": 180,
+     "mittel": 215,
+     "max": 250,
+     "streuung": 14
+    },
+    "Oger": {
+     "min": 130,
+     "mittel": 170,
+     "max": 210,
+     "streuung": 16
+    }
+   }
+  },
+  {
+   "kennung": "haar_helligkeit",
+   "name": "Haarfarbe",
+   "art": "Farbe",
+   "beschreibung": "0 = schwarz, 255 = weißblond. Dunkles Haar setzt sich durch.",
+   "dominanz": 25,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 100,
+     "max": 225,
+     "streuung": 50
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 75,
+     "max": 175,
+     "streuung": 40
+    },
+    "Elb": {
+     "min": 160,
+     "mittel": 215,
+     "max": 255,
+     "streuung": 22
+    },
+    "Halbling": {
+     "min": 30,
+     "mittel": 105,
+     "max": 180,
+     "streuung": 30
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 25,
+     "max": 63,
+     "streuung": 15
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 45,
+     "max": 100,
+     "streuung": 22
+    }
+   }
+  },
+  {
+   "kennung": "haar_rot",
+   "name": "Rotes Haar",
+   "art": "Farbe",
+   "beschreibung": "0 = aschig, 255 = kupferrot. Rot ist rezessiv.",
+   "dominanz": 30,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 70,
+     "max": 170,
+     "streuung": 40
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 95,
+     "max": 207,
+     "streuung": 45
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 40,
+     "max": 90,
+     "streuung": 20
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 100,
+     "max": 200,
+     "streuung": 40
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 20,
+     "max": 50,
+     "streuung": 12
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 35,
+     "max": 80,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "augen_helligkeit",
+   "name": "Augenfarbe",
+   "art": "Farbe",
+   "beschreibung": "0 = dunkelbraun, 255 = hellblau oder grau. Dunkle Augen setzen sich durch.",
+   "dominanz": 25,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 5,
+     "mittel": 130,
+     "max": 255,
+     "streuung": 50
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 95,
+     "max": 195,
+     "streuung": 40
+    },
+    "Elb": {
+     "min": 110,
+     "mittel": 185,
+     "max": 255,
+     "streuung": 30
+    },
+    "Halbling": {
+     "min": 10,
+     "mittel": 110,
+     "max": 210,
+     "streuung": 40
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 70,
+     "max": 145,
+     "streuung": 30
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 60,
+     "max": 122,
+     "streuung": 25
+    }
+   }
+  },
+  {
+   "kennung": "augen_ton",
+   "name": "Augenfarbton",
+   "art": "Farbe",
+   "beschreibung": "0 = bernstein und braun, 128 = grün, 255 = blau bis violett.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 23,
+     "mittel": 135,
+     "max": 247,
+     "streuung": 45
+    },
+    "Zwerg": {
+     "min": 20,
+     "mittel": 120,
+     "max": 220,
+     "streuung": 40
+    },
+    "Elb": {
+     "min": 102,
+     "mittel": 190,
+     "max": 255,
+     "streuung": 35
+    },
+    "Halbling": {
+     "min": 25,
+     "mittel": 125,
+     "max": 225,
+     "streuung": 40
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 40,
+     "max": 102,
+     "streuung": 25
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 60,
+     "max": 122,
+     "streuung": 25
+    }
+   }
+  },
+  {
+   "kennung": "frisur",
+   "name": "Frisur",
+   "art": "Zubehoer",
+   "beschreibung": "Welche Frisur die Darstellung wählt (Wert × Anzahl der Frisuren ÷ 256, je Geschlecht).",
+   "dominanz": 50,
+   "mutation": 0,
+   "verteilung": "Gleich",
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "bartform",
+   "name": "Bartform",
+   "art": "Zubehoer",
+   "beschreibung": "Welcher Bart (Wert × Anzahl der Bärte ÷ 256), wenn einer wächst.",
+   "dominanz": 50,
+   "mutation": 0,
+   "verteilung": "Gleich",
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "bartwuchs",
+   "name": "Bartwuchs",
+   "art": "Zubehoer",
+   "beschreibung": "Bei Männern: 0 = bartlos, um 90 = kurz, ab etwa 160 Vollbart, 255 = Vollbart von Jugend an (Zwerge). Bei Frauen zeigt sich stattdessen „bartwuchs_frau“.",
+   "dominanz": 50,
+   "mutation": 3,
+   "beiFrauen": "bartwuchs_frau",
+   "voelker": {
+    "Mensch": {
+     "min": 30,
+     "mittel": 130,
+     "max": 230,
+     "streuung": 40
+    },
+    "Zwerg": {
+     "min": 182,
+     "mittel": 220,
+     "max": 255,
+     "streuung": 15
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 10,
+     "max": 25,
+     "streuung": 6
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 35,
+     "max": 73,
+     "streuung": 15
+    },
+    "Ork": {
+     "min": 5,
+     "mittel": 80,
+     "max": 155,
+     "streuung": 30
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 60,
+     "max": 135,
+     "streuung": 30
+    }
+   }
+  },
+  {
+   "kennung": "bartwuchs_frau",
+   "name": "Bartwuchs der Frauen",
+   "art": "Zubehoer",
+   "beschreibung": "Dieselbe Skala wie „bartwuchs“, sichtbar nur bei Frauen (Männer tragen und vererben es, man sieht es nur nicht). Nur Zwerginnen haben einen Bart: meist leicht, kurz oder geflochten (um 90), selten voll (ab etwa 160).",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 90,
+     "max": 190,
+     "streuung": 40
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 0,
+     "max": 0,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "glatze",
+   "name": "Neigung zur Glatze",
+   "art": "Zubehoer",
+   "beschreibung": "0 = volles Haar bis ins Alter, 255 = früh kahl.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 90,
+     "max": 202,
+     "streuung": 45
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 70,
+     "max": 158,
+     "streuung": 35
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 10,
+     "max": 25,
+     "streuung": 6
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 40,
+     "max": 90,
+     "streuung": 20
+    },
+    "Ork": {
+     "min": 30,
+     "mittel": 130,
+     "max": 230,
+     "streuung": 40
+    },
+    "Oger": {
+     "min": 70,
+     "mittel": 170,
+     "max": 255,
+     "streuung": 40
+    }
+   }
+  },
+  {
+   "kennung": "ergrauen",
+   "name": "Ergrauen",
+   "art": "Zubehoer",
+   "beschreibung": "0 = früh grau, 255 = spät oder nie.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 40,
+     "mittel": 128,
+     "max": 216,
+     "streuung": 35
+    },
+    "Zwerg": {
+     "min": 45,
+     "mittel": 120,
+     "max": 195,
+     "streuung": 30
+    },
+    "Elb": {
+     "min": 200,
+     "mittel": 230,
+     "max": 255,
+     "streuung": 12
+    },
+    "Halbling": {
+     "min": 65,
+     "mittel": 140,
+     "max": 215,
+     "streuung": 30
+    },
+    "Ork": {
+     "min": 35,
+     "mittel": 110,
+     "max": 185,
+     "streuung": 30
+    },
+    "Oger": {
+     "min": 25,
+     "mittel": 100,
+     "max": 175,
+     "streuung": 30
+    }
+   }
+  },
+  {
+   "kennung": "brauen_dichte",
+   "name": "Brauendichte",
+   "art": "Merkmal",
+   "beschreibung": "0 = dünne, spärliche Brauen, 255 = sehr dichte Brauen.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 40,
+     "mittel": 128,
+     "max": 220,
+     "streuung": 35
+    },
+    "Zwerg": {
+     "min": 40,
+     "mittel": 128,
+     "max": 220,
+     "streuung": 35
+    },
+    "Elb": {
+     "min": 40,
+     "mittel": 128,
+     "max": 220,
+     "streuung": 35
+    },
+    "Halbling": {
+     "min": 40,
+     "mittel": 128,
+     "max": 220,
+     "streuung": 35
+    },
+    "Ork": {
+     "min": 40,
+     "mittel": 128,
+     "max": 220,
+     "streuung": 35
+    },
+    "Oger": {
+     "min": 40,
+     "mittel": 128,
+     "max": 220,
+     "streuung": 35
+    }
+   }
+  },
+  {
+   "kennung": "brauen_form",
+   "name": "Brauenform",
+   "art": "Merkmal",
+   "beschreibung": "Wählt die Form der Braue (gerade, Bogen, Knick, kräftiger Kopf, dünn auslaufend, buschig); ab 248 zusammengewachsen. Breit gestreut (fast gleich verteilt).",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 70
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 70
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 70
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 70
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 70
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 70
+    }
+   }
+  },
+  {
+   "kennung": "brauen_stand",
+   "name": "Brauenstand",
+   "art": "Merkmal",
+   "beschreibung": "0 = tief liegende Brauen, 255 = hoch stehende Brauen.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 70,
+     "mittel": 128,
+     "max": 186,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 70,
+     "mittel": 128,
+     "max": 186,
+     "streuung": 22
+    },
+    "Elb": {
+     "min": 70,
+     "mittel": 128,
+     "max": 186,
+     "streuung": 22
+    },
+    "Halbling": {
+     "min": 70,
+     "mittel": 128,
+     "max": 186,
+     "streuung": 22
+    },
+    "Ork": {
+     "min": 70,
+     "mittel": 128,
+     "max": 186,
+     "streuung": 22
+    },
+    "Oger": {
+     "min": 70,
+     "mittel": 128,
+     "max": 186,
+     "streuung": 22
+    }
+   }
+  },
+  {
+   "kennung": "lidspalte",
+   "name": "Lidspalte",
+   "art": "Merkmal",
+   "beschreibung": "0 = schmale Augenöffnung, 255 = weit offene Augen.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Elb": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Halbling": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Ork": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    },
+    "Oger": {
+     "min": 60,
+     "mittel": 120,
+     "max": 180,
+     "streuung": 24
+    }
+   }
+  },
+  {
+   "kennung": "schlupflid",
+   "name": "Schlupflid",
+   "art": "Merkmal",
+   "beschreibung": "0 = freies Oberlid, 255 = stark überhängende Lidfalte; nimmt im Alter zu.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 20,
+     "mittel": 90,
+     "max": 200,
+     "streuung": 35
+    },
+    "Zwerg": {
+     "min": 20,
+     "mittel": 90,
+     "max": 200,
+     "streuung": 35
+    },
+    "Elb": {
+     "min": 20,
+     "mittel": 90,
+     "max": 200,
+     "streuung": 35
+    },
+    "Halbling": {
+     "min": 20,
+     "mittel": 90,
+     "max": 200,
+     "streuung": 35
+    },
+    "Ork": {
+     "min": 20,
+     "mittel": 90,
+     "max": 200,
+     "streuung": 35
+    },
+    "Oger": {
+     "min": 20,
+     "mittel": 90,
+     "max": 200,
+     "streuung": 35
+    }
+   },
+   "alter": [
+    {
+     "jahre": 35,
+     "verschiebung": 0
+    },
+    {
+     "jahre": 75,
+     "verschiebung": 40
+    }
+   ]
+  },
+  {
+   "kennung": "nasenspitze",
+   "name": "Nasenspitze",
+   "art": "Merkmal",
+   "beschreibung": "0 = hängende Nasenspitze, 255 = Stupsnase.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 60,
+     "mittel": 125,
+     "max": 190,
+     "streuung": 24
+    },
+    "Zwerg": {
+     "min": 60,
+     "mittel": 125,
+     "max": 190,
+     "streuung": 24
+    },
+    "Elb": {
+     "min": 60,
+     "mittel": 125,
+     "max": 190,
+     "streuung": 24
+    },
+    "Halbling": {
+     "min": 60,
+     "mittel": 125,
+     "max": 190,
+     "streuung": 24
+    },
+    "Ork": {
+     "min": 60,
+     "mittel": 125,
+     "max": 190,
+     "streuung": 24
+    },
+    "Oger": {
+     "min": 60,
+     "mittel": 125,
+     "max": 190,
+     "streuung": 24
+    }
+   }
+  },
+  {
+   "kennung": "mundwinkel",
+   "name": "Mundwinkel",
+   "art": "Merkmal",
+   "beschreibung": "0 = herabhängende Mundwinkel, 255 = nach oben zeigende Mundwinkel.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 80,
+     "mittel": 122,
+     "max": 170,
+     "streuung": 18
+    },
+    "Zwerg": {
+     "min": 80,
+     "mittel": 122,
+     "max": 170,
+     "streuung": 18
+    },
+    "Elb": {
+     "min": 80,
+     "mittel": 122,
+     "max": 170,
+     "streuung": 18
+    },
+    "Halbling": {
+     "min": 80,
+     "mittel": 122,
+     "max": 170,
+     "streuung": 18
+    },
+    "Ork": {
+     "min": 80,
+     "mittel": 122,
+     "max": 170,
+     "streuung": 18
+    },
+    "Oger": {
+     "min": 80,
+     "mittel": 122,
+     "max": 170,
+     "streuung": 18
+    }
+   }
+  },
+  {
+   "kennung": "kinn_breite",
+   "name": "Kinnbreite",
+   "art": "Merkmal",
+   "beschreibung": "0 = spitzes, schmales Kinn, 255 = breites, eckiges Kinn.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Zwerg": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Elb": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Halbling": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Ork": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    },
+    "Oger": {
+     "min": 70,
+     "mittel": 125,
+     "max": 180,
+     "streuung": 22
+    }
+   }
+  },
+  {
+   "kennung": "sommersprossen",
+   "name": "Sommersprossen",
+   "art": "Farbe",
+   "beschreibung": "0 = keine Sommersprossen, 255 = sehr viele.",
+   "dominanz": 60,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 70,
+     "max": 255,
+     "streuung": 55
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 70,
+     "max": 255,
+     "streuung": 55
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 70,
+     "max": 255,
+     "streuung": 55
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 70,
+     "max": 255,
+     "streuung": 55
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 70,
+     "max": 255,
+     "streuung": 55
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 70,
+     "max": 255,
+     "streuung": 55
+    }
+   }
+  },
+  {
+   "kennung": "hautroetung",
+   "name": "Hautrötung",
+   "art": "Farbe",
+   "beschreibung": "0 = blasse Wangen, 255 = stark gerötete Wangen und Nase.",
+   "dominanz": 50,
+   "mutation": 3,
+   "voelker": {
+    "Mensch": {
+     "min": 30,
+     "mittel": 110,
+     "max": 200,
+     "streuung": 35
+    },
+    "Zwerg": {
+     "min": 30,
+     "mittel": 110,
+     "max": 200,
+     "streuung": 35
+    },
+    "Elb": {
+     "min": 30,
+     "mittel": 110,
+     "max": 200,
+     "streuung": 35
+    },
+    "Halbling": {
+     "min": 30,
+     "mittel": 110,
+     "max": 200,
+     "streuung": 35
+    },
+    "Ork": {
+     "min": 30,
+     "mittel": 110,
+     "max": 200,
+     "streuung": 35
+    },
+    "Oger": {
+     "min": 30,
+     "mittel": 110,
+     "max": 200,
+     "streuung": 35
+    }
+   }
+  },
+  {
+   "kennung": "zug_01",
+   "name": "Gesichtszug 1",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 1. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_02",
+   "name": "Gesichtszug 2",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 2. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_03",
+   "name": "Gesichtszug 3",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 3. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_04",
+   "name": "Gesichtszug 4",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 4. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_05",
+   "name": "Gesichtszug 5",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 5. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_06",
+   "name": "Gesichtszug 6",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 6. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_07",
+   "name": "Gesichtszug 7",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 7. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_08",
+   "name": "Gesichtszug 8",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 8. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_09",
+   "name": "Gesichtszug 9",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 9. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_10",
+   "name": "Gesichtszug 10",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 10. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_11",
+   "name": "Gesichtszug 11",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 11. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "zug_12",
+   "name": "Gesichtszug 12",
+   "art": "Merkmal",
+   "beschreibung": "Familienähnlichkeit (ohne Namen): Gewicht der 12. Gesichtsform aus den ICT-Scans (bereinigt um Geschlecht und Herkunft). Nur Menschen.",
+   "dominanz": 50,
+   "mutation": 6,
+   "voelker": {
+    "Mensch": {
+     "min": 16,
+     "mittel": 128,
+     "max": 240,
+     "streuung": 32
+    },
+    "Zwerg": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 128,
+     "mittel": 128,
+     "max": 128,
+     "streuung": 0
+    }
+   }
+  }
+ ],
+ "korrelationen": [
+  {
+   "von": "kraft",
+   "zu": "schultern",
+   "staerke": 50,
+   "grund": "Wer kräftig ist, hat meist breite Schultern."
+  },
+  {
+   "von": "groesse",
+   "zu": "beine",
+   "staerke": 30,
+   "grund": "Große Leute haben eher lange Beine."
+  },
+  {
+   "von": "gewicht",
+   "zu": "wangen_fuelle",
+   "staerke": 50,
+   "grund": "Beleibte haben vollere Wangen."
+  },
+  {
+   "von": "gewicht",
+   "zu": "gesicht_breite",
+   "staerke": 25,
+   "grund": "… und ein breiteres Gesicht."
+  },
+  {
+   "von": "kiefer_breite",
+   "zu": "kinn",
+   "staerke": 40,
+   "grund": "Ein breiter Kiefer trägt ein großes Kinn."
+  },
+  {
+   "von": "brauenwulst",
+   "zu": "augen_tiefe",
+   "staerke": 40,
+   "grund": "Unter einem Wulst liegen die Augen tiefer."
+  },
+  {
+   "von": "haut_helligkeit",
+   "zu": "haar_helligkeit",
+   "staerke": 20,
+   "grund": "Helle Haut, eher helles Haar."
+  },
+  {
+   "von": "haar_helligkeit",
+   "zu": "augen_helligkeit",
+   "staerke": 30,
+   "grund": "Helles Haar, eher helle Augen."
+  },
+  {
+   "von": "bartwuchs",
+   "zu": "brauen_dichte",
+   "staerke": 40,
+   "grund": "Wer viel Bart hat, hat meist dichte Brauen."
+  },
+  {
+   "von": "kiefer_breite",
+   "zu": "kinn_breite",
+   "staerke": 40,
+   "grund": "Ein breiter Kiefer trägt ein breites Kinn."
+  },
+  {
+   "von": "brauenwulst",
+   "zu": "lidspalte",
+   "staerke": -25,
+   "grund": "Unter einem kräftigen Brauenwulst liegen die Augen enger."
+  },
+  {
+   "von": "nase_hoecker",
+   "zu": "nasenspitze",
+   "staerke": 30,
+   "grund": "Höckernasen haben oft eine gehobene Spitze."
+  },
+  {
+   "von": "haar_rot",
+   "zu": "sommersprossen",
+   "staerke": 50,
+   "grund": "Rothaarige haben oft Sommersprossen."
+  },
+  {
+   "von": "haut_helligkeit",
+   "zu": "sommersprossen",
+   "staerke": 30,
+   "grund": "Helle Haut zeigt eher Sommersprossen."
+  },
+  {
+   "von": "haut_helligkeit",
+   "zu": "hautroetung",
+   "staerke": 30,
+   "grund": "Helle Haut rötet sich eher."
+  }
+ ]
+}

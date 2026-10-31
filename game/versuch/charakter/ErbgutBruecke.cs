@@ -92,6 +92,68 @@ public partial class ErbgutBruecke : RefCounted
 
 	public void Vergessen() => _griffe.Clear();
 
+	// Etappe B (S6): feste, sortierte Liste der 40 Gene aus erbgut.json Version 1 – neue Gene ändern den Samen nie
+	private static readonly string[] SamenGene = { "augen_abstand", "augen_groesse", "augen_helligkeit", "augen_neigung", "augen_tiefe", "augen_ton", "bartform", "bartwuchs", "bartwuchs_frau", "beine", "brauenwulst", "ergrauen", "frisur", "gesicht_breite", "gesicht_laenge", "gewicht", "glatze", "groesse", "haar_helligkeit", "haar_rot", "hauer", "haut_helligkeit", "haut_ton", "kiefer_breite", "kiefer_vorstand", "kinn", "kopf", "kraft", "lippen", "mund_breite", "nase_breite", "nase_hoecker", "nase_laenge", "ohren_groesse", "ohren_spitze", "schultern", "stirn_hoehe", "stirn_neigung", "wangen_fuelle", "wangenknochen" };
+
+	/// <summary>
+	/// Personen-Samen des Aussehens (Asymmetrie, später Muttermale und Kachelversatz; nicht erblich): FNV-1a (64 Bit) über
+	/// sichtbares und verdecktes Allel der 40 Gene der Version 1 in fester Reihenfolge. Rückfall, solange der Kern keine
+	/// öffentliche Abfrage aus ErbgutStartwert mit eigenem Zweck anbietet (Vorschlag an kern). Nie Erbgut.AlsText()
+	/// (ändert sich mit jedem neuen Gen) und nie die Personennummer allein.
+	/// </summary>
+	public long AussehenSamen(int griff) => Samen(_griffe[griff].Erbgut);
+
+	private static long Samen(Erbgut e)
+	{
+		unchecked
+		{
+			var h = 14695981039346656037UL;
+			foreach (var g in SamenGene)
+			{
+				foreach (var b in new[] { (byte)e.SichtbarerWert(g), (byte)e.VerdeckterWert(g) })
+				{
+					h ^= b;
+					h *= 1099511628211UL;
+				}
+			}
+			return (long)(h & 0x7FFFFFFFFFFFFFFFUL);
+		}
+	}
+
+	/// <summary>Abnahme S6/S7: Der Samen bleibt für <paramref name="anzahl"/> Startwerte (Würfeln und Vererben) gleich, wenn die
+	/// Vorlage um ein Probe-Gen (bzw. um die Gene der Vorschlagsdatei) erweitert wird.</summary>
+	public Godot.Collections.Dictionary SamenPruefen(int von, int anzahl, string vorschlag = "")
+	{
+		var std = Erbgutvorlage.Standard;
+		var probe = Erbgutvorlage.AusJson(Probevorlage());
+		Erbgutvorlage? vor = null;
+		if (!string.IsNullOrEmpty(vorschlag))
+			vor = Erbgutvorlage.AusDatei(Pfad(vorschlag));
+		int ungleichProbe = 0, ungleichVorschlag = 0, gleicheSamen = 0;
+		var gesehen = new HashSet<long>();
+		for (var s = von; s < von + anzahl; s++)
+		{
+			var a = Erbgut.Wuerfeln(std, s, Volk.Mensch);
+			var am = Erbgut.Wuerfeln(std, s + 500000, Volk.Mensch);
+			var ak = Erbgut.Vererben(std, s + 1000000, Volk.Mensch, a, am);
+			if (!gesehen.Add(Samen(a))) gleicheSamen++;
+			var b = Erbgut.Wuerfeln(probe, s, Volk.Mensch);
+			var bk = Erbgut.Vererben(probe, s + 1000000, Volk.Mensch, b, Erbgut.Wuerfeln(probe, s + 500000, Volk.Mensch));
+			if (Samen(a) != Samen(b) || Samen(ak) != Samen(bk)) ungleichProbe++;
+			if (vor is not null)
+			{
+				var c = Erbgut.Wuerfeln(vor, s, Volk.Mensch);
+				var ck = Erbgut.Vererben(vor, s + 1000000, Volk.Mensch, c, Erbgut.Wuerfeln(vor, s + 500000, Volk.Mensch));
+				if (Samen(a) != Samen(c) || Samen(ak) != Samen(ck)) ungleichVorschlag++;
+			}
+		}
+		return new Godot.Collections.Dictionary
+		{
+			["anzahl"] = anzahl, ["samen_ungleich_probe"] = ungleichProbe, ["samen_ungleich_vorschlag"] = vor is null ? -1 : ungleichVorschlag,
+			["gene_vorschlag"] = vor?.Gene.Count ?? 0, ["doppelte_samen"] = gleicheSamen,
+		};
+	}
+
 	/// <summary>
 	/// Abnahme S0 (Charakter Phase 6): Für <paramref name="anzahl"/> Startwerte ab <paramref name="von"/> und alle Völker
 	///   (1) ergibt derselbe Startwert zweimal dieselben Bytes (Würfeln und Vererben),

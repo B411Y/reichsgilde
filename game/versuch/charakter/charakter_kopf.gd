@@ -94,6 +94,20 @@ var zusatz_formen := {}     # Formname -> Gewicht obendrauf (Bögen, Probeformen
 # Vorher-Bilder und gepaarte Messungen im selben Prozess laufen.
 var stand := 5
 var zahnfleisch_stoffe: Array[ShaderMaterial] = []
+
+# Phase 6, Etappe B (S4–S7): neue Formen und Genrechnung, wenn die .glb sie hat (kopf6 nach formen_mischen.py) und der
+# Kopf auf Stand 6 steht. Regeldaten in regeln6.json (tools/charakter/kopf6_eichen.py): Reife oben/unten, Mitte
+# (25 → 45 Jahre), Greis ab 45; Gestalt-Gene mit Nullpunkt Mensch-Mittel (Gewicht = (Wert − Mittel) / Streuung ×
+# Stärke je Geschlecht und Richtung × Reife), Karikaturbremse (nur Darstellung, das Erbgut bleibt), Budget je
+# MakeHuman-Ziel, Gesichtszüge zug_01–12 ((Wert − 128) / 32 × 0,7) und Asymmetrie aus dem Personen-Samen.
+const REGELN6 := "res://versuch/charakter/regeln6.json"
+const VORSCHLAG := "res://versuch/charakter/erbgut_vorschlag.json"
+static var _regeln6 := {}
+static var _erbgut6 := {}
+var volk := "Mensch"
+var aussehen_samen := 0         # 0 = keiner (Mittelgesicht: keine Asymmetrie)
+var gene_z := {}                # zuletzt gerechnete σ-Werte nach der Karikaturbremse (zum Prüfen)
+var karikatur := {}             # K vorher/nachher, Kappungen (zum Prüfen)
 static var _poren: NoiseTexture2D
 static var _erbgut := {}
 
@@ -285,6 +299,20 @@ static func gene_aus_saat(saat: int, volk := "Mensch", familie := {}, arten: Arr
 			aus[k] = float(werte[k])
 	return aus
 
+# Etappe B (S7, Familienbogen): Gestalt-Gene (Art „Merkmal“, auch Züge) als Mittel beider Allele
+static func gene_allelmittel_aus_saat(saat: int, volk := "Mensch", familie := {}, vorlage := "") -> Dictionary:
+	var g := erbgut_griff(saat, volk, familie, vorlage)
+	if g == 0:
+		return {}
+	var sw: Dictionary = bruecke(vorlage).call("SichtbareWerte", g, "m")
+	var vw: Dictionary = bruecke(vorlage).call("VerdeckteWerte", g)
+	var aus := {}
+	for k in sw:
+		var e: Dictionary = erbgut6().get(k, {})
+		if String(e.get("art", "")) == "Merkmal":
+			aus[k] = 0.5 * (float(sw[k]) + float(vw.get(k, sw[k])))
+	return aus
+
 static func erbgut_text(saat: int, volk := "Mensch", familie := {}, vorlage := "") -> String:
 	var g := erbgut_griff(saat, volk, familie, vorlage)
 	return String(bruecke(vorlage).call("AlsText", g)) if g != 0 else ""
@@ -367,6 +395,9 @@ func _anwenden() -> void:
 				w[name] = float(w.get(name, 0.0)) + f * absf(v - 0.5) / 0.5
 	if not mimik_mit_alter:
 		mimikfaktor = 1.0
+	if stand >= 6 and formen.has("alter_reife_m_oben"):
+		_anwenden6(w)
+		return
 	# Gestalt-Gene: 128 = keine Form; nur „plus“ (spitze Ohren): Wert / 255
 	var gene_info: Dictionary = info.get("gene", {})
 	for k in gene_info:
@@ -401,6 +432,224 @@ func _anwenden() -> void:
 		form(name, float(w.get(name, 0.0)))
 	_merkpunkte(w)
 	_farben()
+
+# ---------------------------------------------------------------- Stand 6 (Etappe B)
+static func regeln6() -> Dictionary:
+	if _regeln6.is_empty() and FileAccess.file_exists(REGELN6):
+		_regeln6 = JSON.parse_string(FileAccess.get_file_as_string(REGELN6))
+	return _regeln6
+
+# Genvorlage mit den Vorschlagsgenen (Mittel und Streuung der neuen Gene); die bestehenden Gene sind darin unverändert
+static func erbgut6() -> Dictionary:
+	if _erbgut6.is_empty():
+		var pfad := VORSCHLAG if FileAccess.file_exists(VORSCHLAG) else ERBGUT
+		var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(pfad))
+		for g in d["gene"]:
+			_erbgut6[g["kennung"]] = g
+	return _erbgut6
+
+static func _sigma(kennung: String, wert: float, v: String) -> float:
+	var g: Dictionary = erbgut6().get(kennung, {})
+	if g.is_empty():
+		return 0.0
+	var e: Dictionary = g["voelker"].get(v, g["voelker"]["Mensch"])
+	var s := float(e["streuung"])
+	return (wert - float(e["mittel"])) / s if s > 0.0 else 0.0
+
+func _anwenden6(w: Dictionary) -> void:
+	var R := regeln6()
+	var ku: Dictionary = R["alterskurven"]
+	var mann := geschlecht
+	var ro := kurve_im_alter(ku["reife_oben_m"], alter) * mann + kurve_im_alter(ku["reife_oben_w"], alter) * (1.0 - mann)
+	var ru := kurve_im_alter(ku["reife_unten_m"], alter) * mann + kurve_im_alter(ku["reife_unten_w"], alter) * (1.0 - mann)
+	w["alter_reife_m_oben"] = kurve_im_alter(ku["reife_oben_m"], alter) * mann
+	w["alter_reife_m_unten"] = kurve_im_alter(ku["reife_unten_m"], alter) * mann
+	w["alter_reife_w_oben"] = kurve_im_alter(ku["reife_oben_w"], alter) * (1.0 - mann)
+	w["alter_reife_w_unten"] = kurve_im_alter(ku["reife_unten_w"], alter) * (1.0 - mann)
+	var mitte := kurve_im_alter(ku["mitte"], alter)
+	w["alter_mitte_m"] = mitte * mann
+	w["alter_mitte_w"] = mitte * (1.0 - mann)
+	w["alter_greis"] = kurve_im_alter(ku["greis"], alter)
+	var neu: bool = volk in R["schalter"]["neue_rechnung_voelker"]
+	var reg_gene: Dictionary = R["gene"]
+	# σ-Werte der Gestalt-Gene (und der Züge) – Grundlage für Karikaturbremse und Gewichte
+	var z := {}
+	for k in reg_gene:
+		var e: Dictionary = reg_gene[k]
+		if e.get("absolut", false) or e.has("aus_gen"):
+			continue
+		var v := wert_im_alter6(k, float(gene.get(k, _mittel6(k))), alter)
+		z[k] = _sigma(k, v, volk) if neu else (v - 128.0) / 127.0
+	var zuege: Dictionary = R.get("zuege", {}).get("gene", {})
+	if neu and R["schalter"].get("zuege", false):
+		for k in zuege:
+			z[k] = (float(gene.get(k, 128.0)) - float(R["zuege"]["mitte"])) / float(R["zuege"]["streuung"])
+	karikatur = {}
+	if neu and R["schalter"].get("karikaturbremse", false):
+		_karikatur_bremse(z, R["karikatur"])
+	gene_z = z
+	# Gewichte der Gestalt-Gene
+	var gene_w := {}
+	for k in reg_gene:
+		var e: Dictionary = reg_gene[k]
+		var fo: Dictionary = e["formen"]
+		if e.get("absolut", false):
+			gene_w[fo["plus"]] = float(gene.get(k, _mittel6(k))) / 255.0 * mimikfaktor
+			continue
+		var zk := 0.0
+		if e.has("aus_gen"):
+			zk = _sigma(e["aus_gen"], float(gene.get(e["aus_gen"], _mittel6(e["aus_gen"]))), volk) if neu else 0.0
+		else:
+			zk = float(z.get(k, 0.0))
+		if not neu:
+			# andere Völker: Rechnung der Phase 5 bis Phase 7 (128 = keine Form, ± 127)
+			gene_w[fo["minus"]] = maxf(-zk, 0.0) * mimikfaktor
+			gene_w[fo["plus"]] = maxf(zk, 0.0) * mimikfaktor
+			continue
+		var st: Dictionary = e["staerke"]
+		var richt := "plus" if zk >= 0.0 else "minus"
+		var s := float(st["m"][richt]) * mann + float(st["w"][richt]) * (1.0 - mann)
+		var reife := 1.0
+		if e.get("reife", "") == "oben":
+			reife = ro
+		elif e.get("reife", "") == "unten":
+			reife = ru
+		gene_w[fo[richt]] = absf(zk) * s * reife * mimikfaktor
+		gene_w[fo["minus" if richt == "plus" else "plus"]] = 0.0
+	if neu and R["schalter"].get("budget", false):
+		_budget(w, gene_w, R)
+	for k in gene_w:
+		w[k] = gene_w[k]
+	# Gesichtszüge (nur Menschen; bei Kindern × Reife)
+	if neu and R["schalter"].get("zuege", false):
+		for k in zuege:
+			w[zuege[k]] = float(z.get(k, 0.0)) * float(R["zuege"]["faktor"]) * ru * mimikfaktor
+	# Asymmetrie aus dem Personen-Samen (nicht erblich): Gewicht ~ N(0, Streuung); Grenzen je Merkmal, sonst kleiner
+	if neu and R["schalter"].get("asymmetrie", false) and aussehen_samen != 0:
+		var a: Dictionary = R["asymmetrie"]
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash("asymmetrie:%d" % aussehen_samen)
+		var gw := {}
+		var d := []
+		d.resize(a["merkmale"].size())
+		d.fill(0.0)
+		for n in a["formen"]:
+			var f: Dictionary = a["formen"][n]
+			gw[n] = rng.randfn(0.0, 1.0) * float(f["streuung"])
+			for j in d.size():
+				d[j] = float(d[j]) + gw[n] * float(f["merkmale_mm_je_1"][j])
+		var faktor := 1.0
+		for j in d.size():
+			if absf(d[j]) > 1e-9:
+				faktor = minf(faktor, float(a["grenzen_mm"][j]) / absf(d[j]))
+		karikatur["asymmetrie_faktor"] = faktor
+		for n in gw:
+			w[n] = gw[n] * faktor * mimikfaktor
+	# Ruhelage der Oberlider wie Phase 5, dazu die Lidspalte
+	var lr: Dictionary = R["lid_ruhe"]
+	var lid: float = float(lr["reife"]) * ro + float(lr["greis"]) * w["alter_greis"] + float(lr["lidspalte_je_sigma"]) * float(z.get("lidspalte", 0.0))
+	for n in ["eyeBlinkLeft", "eyeBlinkRight"]:
+		w[n] = float(w.get(n, 0.0)) + maxf(lid, 0.0)
+	for k in mimik:
+		w[k] = float(w.get(k, 0.0)) + float(mimik[k]) * mimikfaktor
+	for n in ["eyeBlinkLeft", "eyeBlinkRight"]:
+		if w.has(n):
+			w[n] = minf(float(w[n]), 1.0)
+	for k in zusatz_formen:
+		w[k] = float(w.get(k, 0.0)) + float(zusatz_formen[k])
+	gewichte = w
+	for name in formen:
+		form(name, float(w.get(name, 0.0)))
+	_merkpunkte(w)
+	_farben()
+
+static func _mittel6(k: String) -> float:
+	var g: Dictionary = erbgut6().get(k, {})
+	return float(g["voelker"]["Mensch"]["mittel"]) if not g.is_empty() else 128.0
+
+# Altersverschiebung (erbgut_vorschlag.json „alter“), wie wert_im_alter, aber auch für neue Gene
+static func wert_im_alter6(kennung: String, wert: float, jahre: float) -> float:
+	var g: Dictionary = erbgut6().get(kennung, {})
+	var stuetzen: Array = g.get("alter", [])
+	if stuetzen.is_empty():
+		return wert
+	var v := float(stuetzen[0]["verschiebung"])
+	for i in stuetzen.size():
+		var st: Dictionary = stuetzen[i]
+		if jahre >= float(st["jahre"]):
+			v = float(st["verschiebung"])
+			if i + 1 < stuetzen.size():
+				var n: Dictionary = stuetzen[i + 1]
+				v = lerpf(float(st["verschiebung"]), float(n["verschiebung"]), clampf((jahre - float(st["jahre"])) / (float(n["jahre"]) - float(st["jahre"])), 0.0, 1.0))
+	return clampf(wert + v, 0.0, 255.0)
+
+# Karikaturbremse (Plan S5.5): K = √(Mittel z²); K > K_max -> alle z gemeinsam kleiner; höchstens zwei Merkmale über
+# |z| 2 (die übrigen auf 2); 0,05 < K < K_min -> die stärksten Abweichungen auf |z| 1,2 (das Mittelgesicht bleibt).
+func _karikatur_bremse(z: Dictionary, k: Dictionary) -> void:
+	if z.is_empty():
+		return
+	var summe := 0.0
+	for n in z:
+		summe += float(z[n]) * float(z[n])
+	var K := sqrt(summe / z.size())
+	karikatur["K_vorher"] = K
+	if K > float(k["K_max"]):
+		for n in z:
+			z[n] = float(z[n]) * float(k["K_max"]) / K
+	var namen := z.keys()
+	namen.sort_custom(func(a, b): return absf(float(z[a])) > absf(float(z[b])))
+	var grenze := float(k["z_grenze"])
+	for i in namen.size():
+		if i >= int(k["hoechstens_ueber"]) and absf(float(z[namen[i]])) > grenze:
+			z[namen[i]] = signf(float(z[namen[i]])) * grenze
+	if K > 0.05 and K < float(k["K_min"]):
+		for i in mini(int(k["anheben_anzahl"]), namen.size()):
+			var v := float(z[namen[i]])
+			if absf(v) < float(k["z_anheben"]):
+				z[namen[i]] = signf(v) * float(k["z_anheben"])
+	summe = 0.0
+	for n in z:
+		summe += float(z[n]) * float(z[n])
+	karikatur["K_nachher"] = sqrt(summe / z.size())
+
+# Budget je MakeHuman-Ziel (Plan S5.5): Summe aus Alters- und Genformen in [unten; oben]; gekürzt werden nur Gen-Anteile
+func _budget(w: Dictionary, gene_w: Dictionary, R: Dictionary) -> void:
+	var zm: Dictionary = R["zielmatrix"]
+	var alt_teil := {}
+	var gen_teil := {}
+	for f in w:
+		if zm.has(f) and String(f).begins_with("alter_"):
+			for t in zm[f]:
+				alt_teil[t] = float(alt_teil.get(t, 0.0)) + float(w[f]) * float(zm[f][t])
+	for f in gene_w:
+		if zm.has(f) and float(gene_w[f]) != 0.0:
+			for t in zm[f]:
+				gen_teil[t] = float(gen_teil.get(t, 0.0)) + float(gene_w[f]) * float(zm[f][t])
+	var faktor_t := {}
+	var unten := float(R["budget"]["unten"])
+	var oben := float(R["budget"]["oben"])
+	for t in gen_teil:
+		var a := float(alt_teil.get(t, 0.0))
+		var g := float(gen_teil[t])
+		var ges := a + g
+		if ges > oben and g > 0.0:
+			faktor_t[t] = clampf((oben - a) / g, 0.0, 1.0)
+		elif ges < unten and g < 0.0:
+			faktor_t[t] = clampf((unten - a) / g, 0.0, 1.0)
+	if faktor_t.is_empty():
+		return
+	var gekuerzt := {}
+	for f in gene_w:
+		if not zm.has(f):
+			continue
+		var fa := 1.0
+		for t in zm[f]:
+			if faktor_t.has(t) and float(zm[f][t]) * float(gene_w[f]) * float(gen_teil[t]) > 0.0:
+				fa = minf(fa, float(faktor_t[t]))
+		if fa < 1.0:
+			gene_w[f] = float(gene_w[f]) * fa
+			gekuerzt[f] = fa
+	karikatur["budget_gekuerzt"] = gekuerzt
 
 # Lage von Augen, Mund, Scheitel aus der Beschreibung (Grundlage + Versatz je Form) für die Kamera
 func _merkpunkte(w: Dictionary) -> void:

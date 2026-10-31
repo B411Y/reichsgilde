@@ -163,9 +163,22 @@ static func _mann(wert) -> float:
 static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	var volk: String = z.get("volk", "Mensch")
 	var gene := Kopf.mittelwerte(volk)
+	var ev := erbgut_vorlage(z)
 	if z.has("saat"):
-		gene.merge(Kopf.gene_aus_saat(int(z["saat"]), volk, z.get("familie", {}), z.get("saat_arten", []), z.get("vorlage", "")), true)
+		gene.merge(Kopf.gene_aus_saat(int(z["saat"]), volk, z.get("familie", {}), z.get("saat_arten", []), ev), true)
+		# Etappe B (S7, Familienbogen P5): „allelregel“: „mittel“ = Gestalt-Gene und Züge als Mittel beider Allele
+		if String(z.get("allelregel", "sichtbar")) == "mittel":
+			var mi := Kopf.gene_allelmittel_aus_saat(int(z["saat"]), volk, z.get("familie", {}), ev)
+			var arten: Array = z.get("saat_arten", [])
+			for kk in mi:
+				if arten.is_empty() or "Merkmal" in arten:
+					gene[kk] = mi[kk]
+		# Personen-Samen des Aussehens: im Versuch aus dem Bogen-Startwert mit eigenem Zweck (Plan S6.6)
+		k.aussehen_samen = hash("aussehen:%d" % int(z["saat"]))
+	else:
+		k.aussehen_samen = int(z.get("samen", 0))
 	gene.merge(z.get("gene", {}), true)
+	k.volk = volk
 	k.stand_setzen(int(z.get("stand", 5)))
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
@@ -178,6 +191,15 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	if k.haar_knoten and String(hv.get("modus", "karten")) != k.haar_modus:
 		k.haar_modus_setzen(String(hv.get("modus", "karten")))
 	k.aussehen_setzen(gene, float(z.get("alter", 35.0)), _mann(z.get("geschlecht", "m")))
+
+# Erbgut-Vorlage einer Zelle: „erbgut_vorlage“, sonst „vorlage“, wenn es eine .json ist (S0; „vorlage“ ohne .json ist eine
+# Fotovorlage in P3), sonst ab Stand 6 der Vorschlag mit den neuen Genen (S7), sonst Erbgutvorlage.Standard
+static func erbgut_vorlage(z: Dictionary) -> String:
+	if z.has("erbgut_vorlage"):
+		return String(z["erbgut_vorlage"])
+	if String(z.get("vorlage", "")).ends_with(".json"):
+		return String(z["vorlage"])
+	return Kopf.VORSCHLAG if int(z.get("stand", 5)) >= 6 else ""
 
 # ---------------------------------------------------------------- Bogen
 func _bogen(datei: String) -> void:
@@ -257,7 +279,7 @@ func _bogen(datei: String) -> void:
 				String(z.get("kamera", "")) == "ortho")
 			await _warte(int(z.get("warten", 4)))
 			var bild := b.foto()
-			if z.has("vorlage"):
+			if z.has("vorlage") and not String(z["vorlage"]).ends_with(".json"):
 				bild = _vorlage_bild(b, z["vorlage"], zelle, bool(z.get("geschlecht", "m") == "w"))
 			if bild == null or bild.is_empty():
 				bild = Image.create(zelle.x, zelle.y, false, Image.FORMAT_RGB8)
@@ -389,7 +411,8 @@ static func kopf_daten(k: Kopf) -> Dictionary:
 		"glb": k.pfad, "stand": k.stand, "alter": k.alter, "geschlecht": k.geschlecht, "gene": k.gene.duplicate(),
 		"mimik": k.mimik.duplicate(), "mimikfaktor": k.mimikfaktor, "gewichte": k.gewichte.duplicate(),
 		"szene": k.szene_gewichte(), "augen_mitte": k.augen_mitte, "mund_mitte": k.mund_mitte, "oben": k.oben,
-		"werte3": k.werte3.duplicate(), "haar_modus": k.haar_modus,
+		"werte3": k.werte3.duplicate(), "haar_modus": k.haar_modus, "volk": k.volk, "aussehen_samen": k.aussehen_samen,
+		"gene_z": k.gene_z.duplicate(), "karikatur": k.karikatur.duplicate(),
 	}
 
 func _begleitdatei(b: Buehne, z: Dictionary, datei: String) -> void:
@@ -398,7 +421,7 @@ func _begleitdatei(b: Buehne, z: Dictionary, datei: String) -> void:
 	if b.kopf:
 		d["kopf"] = kopf_daten(b.kopf)
 		if z.has("saat"):
-			d["erbgut"] = Kopf.erbgut_text(int(z["saat"]), z.get("volk", "Mensch"), z.get("familie", {}), z.get("vorlage", ""))
+			d["erbgut"] = Kopf.erbgut_text(int(z["saat"]), z.get("volk", "Mensch"), z.get("familie", {}), erbgut_vorlage(z))
 	var f := FileAccess.open(datei, FileAccess.WRITE)
 	f.store_string(JSON.stringify(_json_wert(d), " ", false))
 	f.close()
@@ -426,12 +449,14 @@ func _gewichte_ausschreiben() -> void:
 		var z: Dictionary = p.duplicate(true)
 		if not z.has("haar"):
 			z["haar"] = {"modus": "aus"}
+		if args.has("stand") and not z.has("stand"):
+			z["stand"] = int(args["stand"])
 		zelle_setzen(k, z)
 		var e := kopf_daten(k)
 		e["name"] = z.get("name", "")
 		if z.has("saat"):
 			e["saat"] = int(z["saat"])
-			e["erbgut"] = Kopf.erbgut_text(int(z["saat"]), z.get("volk", "Mensch"), z.get("familie", {}), z.get("vorlage", ""))
+			e["erbgut"] = Kopf.erbgut_text(int(z["saat"]), z.get("volk", "Mensch"), z.get("familie", {}), erbgut_vorlage(z))
 		aus.append(e)
 	var ziel := String(args.get("aus", bilder.path_join("gewichte.json")))
 	var f := FileAccess.open(ziel, FileAccess.WRITE)
@@ -454,6 +479,9 @@ func _bruecke_pruefen() -> void:
 	for i in 30:
 		texte[Kopf.erbgut_text(20001 + i)] = true
 	erg["galerie_30_verschieden"] = texte.size()
+	# Etappe B (S6/S7): der Personen-Samen bleibt mit Probe-Gen und mit der Vorschlagsdatei gleich
+	erg["samen"] = b.call("SamenPruefen", int(args.get("von", "10001")), int(args.get("anzahl", "1000")), Kopf.VORSCHLAG)
+	erg["vorschlag_gegen_standard"] = b.call("Pruefen", int(args.get("von", "10001")), int(args.get("anzahl", "1000")), Kopf.VORSCHLAG)
 	print("BRUECKE ", JSON.stringify(erg))
 	if args.has("aus"):
 		var f := FileAccess.open(String(args["aus"]), FileAccess.WRITE)

@@ -1,0 +1,1643 @@
+{
+ "version": 1,
+ "beschreibung": "Charakter Phase 6 (Etappe B): Regeldaten der Darstellung für Menschen – Genrechnung mit Nullpunkt Mensch-Mittel (Gewicht = (Wert − Mittel) / Streuung × Stärke je Geschlecht und Richtung × Reife), Karikaturbremse, Budget je MakeHuman-Ziel, Alterskurven, Gesichtszüge und Asymmetrie. Erzeugt von tools/charakter/kopf6_eichen.py.",
+ "schalter": {
+  "neue_rechnung_voelker": [
+   "Mensch"
+  ],
+  "karikaturbremse": true,
+  "budget": true,
+  "zuege": true,
+  "asymmetrie": true
+ },
+ "alterskurven": {
+  "reife_oben_m": [
+   [
+    11,
+    0.0
+   ],
+   [
+    15,
+    0.3
+   ],
+   [
+    19,
+    0.7
+   ],
+   [
+    24,
+    1.0
+   ]
+  ],
+  "reife_unten_m": [
+   [
+    12,
+    0.0
+   ],
+   [
+    16,
+    0.25
+   ],
+   [
+    20,
+    0.55
+   ],
+   [
+    25,
+    1.0
+   ]
+  ],
+  "reife_oben_w": [
+   [
+    10,
+    0.0
+   ],
+   [
+    14,
+    0.35
+   ],
+   [
+    18,
+    0.7
+   ],
+   [
+    24,
+    1.0
+   ]
+  ],
+  "reife_unten_w": [
+   [
+    10,
+    0.0
+   ],
+   [
+    14,
+    0.3
+   ],
+   [
+    18,
+    0.65
+   ],
+   [
+    24,
+    1.0
+   ]
+  ],
+  "mitte": [
+   [
+    23,
+    0.0
+   ],
+   [
+    35,
+    0.55
+   ],
+   [
+    45,
+    1.0
+   ]
+  ],
+  "greis": [
+   [
+    45,
+    0.0
+   ],
+   [
+    55,
+    0.25
+   ],
+   [
+    68,
+    0.65
+   ],
+   [
+    78,
+    1.0
+   ],
+   [
+    90,
+    1.15
+   ]
+  ]
+ },
+ "lid_ruhe": {
+  "reife": 0.1,
+  "greis": 0.06,
+  "lidspalte_je_sigma": -0.025
+ },
+ "karikatur": {
+  "K_max": 1.35,
+  "K_min": 0.75,
+  "z_grenze": 2.0,
+  "hoechstens_ueber": 2,
+  "z_anheben": 1.2,
+  "anheben_anzahl": 2
+ },
+ "budget": {
+  "unten": -1.0,
+  "oben": 1.2
+ },
+ "gene": {
+  "gesicht_laenge": {
+   "formen": {
+    "plus": "gen_gesicht_laenge_plus",
+    "minus": "gen_gesicht_laenge_minus"
+   },
+   "mass": "se_me",
+   "staerke": {
+    "m": {
+     "plus": 0.3714,
+     "minus": 0.4731
+    },
+    "w": {
+     "plus": 0.2912,
+     "minus": 0.3974
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 13.935,
+     "minus": -10.938
+    },
+    "w": {
+     "plus": 14.94,
+     "minus": -10.947
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 5.175,
+     "minus": 5.175
+    },
+    "w": {
+     "plus": 4.351,
+     "minus": 4.35
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 5.175,
+    "w": 4.35
+   }
+  },
+  "gesicht_breite": {
+   "formen": {
+    "plus": "gen_gesicht_breite_plus",
+    "minus": "gen_gesicht_breite_minus"
+   },
+   "mass": "zy",
+   "staerke": {
+    "m": {
+     "plus": 0.6,
+     "minus": 0.3709
+    },
+    "w": {
+     "plus": 0.2631,
+     "minus": 0.345
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 7.941,
+     "minus": -13.55
+    },
+    "w": {
+     "plus": 17.671,
+     "minus": -13.477
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 4.765,
+     "minus": 5.026
+    },
+    "w": {
+     "plus": 4.649,
+     "minus": 4.65
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 5.025,
+    "w": 4.65
+   }
+  },
+  "kiefer_breite": {
+   "formen": {
+    "plus": "gen_kiefer_breite_plus",
+    "minus": "gen_kiefer_breite_minus"
+   },
+   "mass": "unterkiefer",
+   "staerke": {
+    "m": {
+     "plus": 0.3871,
+     "minus": 0.4342
+    },
+    "w": {
+     "plus": 0.2516,
+     "minus": 0.2822
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 10.333,
+     "minus": -9.213
+    },
+    "w": {
+     "plus": 10.333,
+     "minus": -9.213
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 4.0,
+     "minus": 4.0
+    },
+    "w": {
+     "plus": 2.6,
+     "minus": 2.6
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 4.0,
+    "w": 2.6
+   },
+   "reife": "unten"
+  },
+  "kiefer_vorstand": {
+   "formen": {
+    "plus": "gen_kiefer_vorstand_plus",
+    "minus": "gen_kiefer_vorstand_minus"
+   },
+   "mass": "pg_z",
+   "staerke": {
+    "m": {
+     "plus": 0.2423,
+     "minus": 0.2421
+    },
+    "w": {
+     "plus": 0.1574,
+     "minus": 0.1572
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 7.017,
+     "minus": -7.022
+    },
+    "w": {
+     "plus": 7.022,
+     "minus": -7.029
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.7,
+     "minus": 1.7
+    },
+    "w": {
+     "plus": 1.105,
+     "minus": 1.105
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.7,
+    "w": 1.105
+   },
+   "reife": "unten"
+  },
+  "kinn": {
+   "formen": {
+    "plus": "gen_kinn_plus",
+    "minus": "gen_kinn_minus"
+   },
+   "mass": "kinnvorsprung",
+   "staerke": {
+    "m": {
+     "plus": 0.41,
+     "minus": 0.4682
+    },
+    "w": {
+     "plus": 0.2361,
+     "minus": 0.4247
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 6.018,
+     "minus": -5.27
+    },
+    "w": {
+     "plus": 6.794,
+     "minus": -3.776
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 2.468,
+     "minus": 2.467
+    },
+    "w": {
+     "plus": 1.604,
+     "minus": 1.604
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 2.467,
+    "w": 1.604
+   },
+   "reife": "unten"
+  },
+  "nase_laenge": {
+   "formen": {
+    "plus": "gen_nase_laenge_plus",
+    "minus": "gen_nase_laenge_minus"
+   },
+   "mass": "n_sn",
+   "staerke": {
+    "m": {
+     "plus": 0.6,
+     "minus": 0.5898
+    },
+    "w": {
+     "plus": 0.5497,
+     "minus": 0.5323
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 5.048,
+     "minus": -5.213
+    },
+    "w": {
+     "plus": 5.048,
+     "minus": -5.213
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 3.029,
+     "minus": 3.075
+    },
+    "w": {
+     "plus": 2.775,
+     "minus": 2.775
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 3.075,
+    "w": 2.775
+   }
+  },
+  "nase_breite": {
+   "formen": {
+    "plus": "gen_nase_breite_plus",
+    "minus": "gen_nase_breite_minus"
+   },
+   "mass": "nasenbreite",
+   "staerke": {
+    "m": {
+     "plus": 0.3098,
+     "minus": 0.3707
+    },
+    "w": {
+     "plus": 0.2814,
+     "minus": 0.359
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 7.747,
+     "minus": -6.473
+    },
+    "w": {
+     "plus": 7.73,
+     "minus": -6.059
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 2.4,
+     "minus": 2.4
+    },
+    "w": {
+     "plus": 2.175,
+     "minus": 2.175
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 2.4,
+    "w": 2.175
+   }
+  },
+  "nase_hoecker": {
+   "formen": {
+    "plus": "gen_nase_hoecker_plus",
+    "minus": "gen_nase_hoecker_minus"
+   },
+   "mass": "hoecker",
+   "staerke": {
+    "m": {
+     "plus": 0.6,
+     "minus": 0.6
+    },
+    "w": {
+     "plus": 0.6,
+     "minus": 0.6
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 1.992,
+     "minus": -0.631
+    },
+    "w": {
+     "plus": 0.576,
+     "minus": 0.329
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.195,
+     "minus": 0.379
+    },
+    "w": {
+     "plus": 0.346,
+     "minus": 0.197
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.3,
+    "w": 1.04
+   },
+   "reife": "oben"
+  },
+  "mund_breite": {
+   "formen": {
+    "plus": "gen_mund_breite_plus",
+    "minus": "gen_mund_breite_minus"
+   },
+   "mass": "mundbreite",
+   "staerke": {
+    "m": {
+     "plus": 0.3912,
+     "minus": 0.302
+    },
+    "w": {
+     "plus": 0.3423,
+     "minus": 0.2643
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 7.669,
+     "minus": -9.934
+    },
+    "w": {
+     "plus": 7.669,
+     "minus": -9.934
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 3.0,
+     "minus": 3.0
+    },
+    "w": {
+     "plus": 2.625,
+     "minus": 2.625
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 3.0,
+    "w": 2.625
+   }
+  },
+  "lippen": {
+   "formen": {
+    "plus": "gen_lippen_plus",
+    "minus": "gen_lippen_minus"
+   },
+   "mass": "lippenrot",
+   "staerke": {
+    "m": {
+     "plus": 0.2945,
+     "minus": 0.4636
+    },
+    "w": {
+     "plus": 0.3239,
+     "minus": 0.51
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 4.245,
+     "minus": -2.696
+    },
+    "w": {
+     "plus": 4.245,
+     "minus": -2.696
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.25,
+     "minus": 1.25
+    },
+    "w": {
+     "plus": 1.375,
+     "minus": 1.375
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.25,
+    "w": 1.375
+   }
+  },
+  "augen_abstand": {
+   "formen": {
+    "plus": "gen_augen_abstand_plus",
+    "minus": "gen_augen_abstand_minus"
+   },
+   "mass": "ipd",
+   "staerke": {
+    "m": {
+     "plus": 0.2935,
+     "minus": 0.3971
+    },
+    "w": {
+     "plus": 0.2772,
+     "minus": 0.375
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 9.2,
+     "minus": -6.8
+    },
+    "w": {
+     "plus": 9.2,
+     "minus": -6.8
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 2.7,
+     "minus": 2.7
+    },
+    "w": {
+     "plus": 2.55,
+     "minus": 2.55
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 2.7,
+    "w": 2.55
+   }
+  },
+  "augen_groesse": {
+   "formen": {
+    "plus": "gen_augen_groesse_plus",
+    "minus": "gen_augen_groesse_minus"
+   },
+   "mass": "lidspalte_breite",
+   "staerke": {
+    "m": {
+     "plus": 0.2881,
+     "minus": 0.2371
+    },
+    "w": {
+     "plus": 0.2883,
+     "minus": 0.2509
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 3.645,
+     "minus": -4.428
+    },
+    "w": {
+     "plus": 3.642,
+     "minus": -4.186
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.05,
+     "minus": 1.05
+    },
+    "w": {
+     "plus": 1.05,
+     "minus": 1.05
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.05,
+    "w": 1.05
+   }
+  },
+  "augen_neigung": {
+   "formen": {
+    "plus": "gen_augen_neigung_plus",
+    "minus": "gen_augen_neigung_minus"
+   },
+   "mass": "aussenwinkel",
+   "staerke": {
+    "m": {
+     "plus": 0.4706,
+     "minus": 0.393
+    },
+    "w": {
+     "plus": 0.4706,
+     "minus": 0.393
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 1.275,
+     "minus": -1.527
+    },
+    "w": {
+     "plus": 1.275,
+     "minus": -1.527
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 0.6,
+     "minus": 0.6
+    },
+    "w": {
+     "plus": 0.6,
+     "minus": 0.6
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 0.6,
+    "w": 0.6
+   }
+  },
+  "augen_tiefe": {
+   "formen": {
+    "plus": "gen_augen_tiefe_plus",
+    "minus": "gen_augen_tiefe_minus"
+   },
+   "mass": "augentiefe",
+   "staerke": {
+    "m": {
+     "plus": 0.325,
+     "minus": 0.325
+    },
+    "w": {
+     "plus": 0.325,
+     "minus": 0.325
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 4.0,
+     "minus": -4.0
+    },
+    "w": {
+     "plus": 4.0,
+     "minus": -4.0
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.3,
+     "minus": 1.3
+    },
+    "w": {
+     "plus": 1.3,
+     "minus": 1.3
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.3,
+    "w": 1.3
+   },
+   "reife": "oben"
+  },
+  "brauenwulst": {
+   "formen": {
+    "plus": "gen_brauenwulst_plus",
+    "minus": "gen_brauenwulst_minus"
+   },
+   "mass": "braue_vor_lid",
+   "staerke": {
+    "m": {
+     "plus": 0.1288,
+     "minus": 0.5217
+    },
+    "w": {
+     "plus": 0.1051,
+     "minus": 0.4136
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 13.203,
+     "minus": -3.258
+    },
+    "w": {
+     "plus": 10.514,
+     "minus": -2.672
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.701,
+     "minus": 1.7
+    },
+    "w": {
+     "plus": 1.105,
+     "minus": 1.105
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.7,
+    "w": 1.105
+   },
+   "reife": "oben"
+  },
+  "wangenknochen": {
+   "formen": {
+    "plus": "gen_wangenknochen_plus",
+    "minus": "gen_wangenknochen_minus"
+   },
+   "mass": "jochbein_breite",
+   "staerke": {
+    "m": {
+     "plus": 0.6,
+     "minus": 0.6
+    },
+    "w": {
+     "plus": 0.4815,
+     "minus": 0.6
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 3.645,
+     "minus": -1.849
+    },
+    "w": {
+     "plus": 5.192,
+     "minus": -2.294
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 2.187,
+     "minus": 1.109
+    },
+    "w": {
+     "plus": 2.5,
+     "minus": 1.376
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 2.5,
+    "w": 2.5
+   }
+  },
+  "wangen_fuelle": {
+   "formen": {
+    "plus": "gen_wangen_fuelle_plus",
+    "minus": "gen_wangen_fuelle_minus"
+   },
+   "mass": "wange_vor",
+   "staerke": {
+    "m": {
+     "plus": 0.2467,
+     "minus": 0.5983
+    },
+    "w": {
+     "plus": 0.2553,
+     "minus": 0.5788
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 6.891,
+     "minus": -2.841
+    },
+    "w": {
+     "plus": 6.659,
+     "minus": -2.937
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.7,
+     "minus": 1.7
+    },
+    "w": {
+     "plus": 1.7,
+     "minus": 1.7
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.7,
+    "w": 1.7
+   }
+  },
+  "brauen_stand": {
+   "formen": {
+    "plus": "gen_brauen_stand_plus",
+    "minus": "gen_brauen_stand_minus"
+   },
+   "mass": "braue_pupille",
+   "staerke": {
+    "m": {
+     "plus": 0.4743,
+     "minus": 0.1961
+    },
+    "w": {
+     "plus": 0.4914,
+     "minus": 0.2135
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 2.103,
+     "minus": -5.086
+    },
+    "w": {
+     "plus": 2.03,
+     "minus": -4.672
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 0.998,
+     "minus": 0.997
+    },
+    "w": {
+     "plus": 0.997,
+     "minus": 0.998
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 0.997,
+    "w": 0.997
+   }
+  },
+  "lidspalte": {
+   "formen": {
+    "plus": "gen_lidspalte_plus",
+    "minus": "gen_lidspalte_minus"
+   },
+   "mass": "lidspalte_hoehe",
+   "staerke": {
+    "m": {
+     "plus": 0.1518,
+     "minus": 0.2606
+    },
+    "w": {
+     "plus": 0.1518,
+     "minus": 0.2606
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 4.151,
+     "minus": -2.417
+    },
+    "w": {
+     "plus": 4.151,
+     "minus": -2.417
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 0.63,
+     "minus": 0.63
+    },
+    "w": {
+     "plus": 0.63,
+     "minus": 0.63
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 0.63,
+    "w": 0.63
+   }
+  },
+  "schlupflid": {
+   "formen": {
+    "plus": "gen_schlupflid_plus",
+    "minus": "gen_schlupflid_minus"
+   },
+   "mass": "oberlid_senkung",
+   "staerke": {
+    "m": {
+     "plus": 0.6,
+     "minus": 0.6
+    },
+    "w": {
+     "plus": 0.6,
+     "minus": 0.6
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 0.773,
+     "minus": -0.608
+    },
+    "w": {
+     "plus": 0.871,
+     "minus": -0.692
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 0.464,
+     "minus": 0.365
+    },
+    "w": {
+     "plus": 0.522,
+     "minus": 0.415
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 0.8,
+    "w": 0.8
+   }
+  },
+  "nasenspitze": {
+   "formen": {
+    "plus": "gen_nasenspitze_plus",
+    "minus": "gen_nasenspitze_minus"
+   },
+   "mass": "nasenspitze",
+   "staerke": {
+    "m": {
+     "plus": 0.5331,
+     "minus": 0.1978
+    },
+    "w": {
+     "plus": 0.5331,
+     "minus": 0.1733
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 2.626,
+     "minus": -7.08
+    },
+    "w": {
+     "plus": 2.626,
+     "minus": -8.08
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 1.4,
+     "minus": 1.4
+    },
+    "w": {
+     "plus": 1.4,
+     "minus": 1.4
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 1.4,
+    "w": 1.4
+   }
+  },
+  "mundwinkel": {
+   "formen": {
+    "plus": "gen_mundwinkel_plus",
+    "minus": "gen_mundwinkel_minus"
+   },
+   "mass": "mundwinkel",
+   "staerke": {
+    "m": {
+     "plus": 0.1882,
+     "minus": 0.2329
+    },
+    "w": {
+     "plus": 0.1882,
+     "minus": 0.2329
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 4.782,
+     "minus": -3.864
+    },
+    "w": {
+     "plus": 4.782,
+     "minus": -3.864
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 0.9,
+     "minus": 0.9
+    },
+    "w": {
+     "plus": 0.9,
+     "minus": 0.9
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 0.9,
+    "w": 0.9
+   }
+  },
+  "kinn_breite": {
+   "formen": {
+    "plus": "gen_kinn_breite_plus",
+    "minus": "gen_kinn_breite_minus"
+   },
+   "mass": "kinn_breite",
+   "staerke": {
+    "m": {
+     "plus": 0.2678,
+     "minus": 0.5414
+    },
+    "w": {
+     "plus": 0.1585,
+     "minus": 0.3923
+    }
+   },
+   "wirkung_mm_je_1": {
+    "m": {
+     "plus": 11.204,
+     "minus": -5.541
+    },
+    "w": {
+     "plus": 15.145,
+     "minus": -6.118
+    }
+   },
+   "erreicht_mm_je_sigma": {
+    "m": {
+     "plus": 3.0,
+     "minus": 3.0
+    },
+    "w": {
+     "plus": 2.4,
+     "minus": 2.4
+    }
+   },
+   "ziel_mm_je_sigma": {
+    "m": 3.0,
+    "w": 2.4
+   },
+   "reife": "unten"
+  },
+  "ohren_groesse": {
+   "formen": {
+    "plus": "gen_ohren_groesse_plus",
+    "minus": "gen_ohren_groesse_minus"
+   },
+   "staerke": {
+    "m": {
+     "plus": 0.3465,
+     "minus": 0.3465
+    },
+    "w": {
+     "plus": 0.3465,
+     "minus": 0.3465
+    }
+   },
+   "mass": "–",
+   "faktor_gegen_phase5": 2.0
+  },
+  "stirn_hoehe": {
+   "formen": {
+    "plus": "gen_stirn_hoehe_plus",
+    "minus": "gen_stirn_hoehe_minus"
+   },
+   "staerke": {
+    "m": {
+     "plus": 0.189,
+     "minus": 0.189
+    },
+    "w": {
+     "plus": 0.189,
+     "minus": 0.189
+    }
+   },
+   "mass": "–",
+   "faktor_gegen_phase5": 1.0
+  },
+  "stirn_neigung": {
+   "formen": {
+    "plus": "gen_stirn_neigung_plus",
+    "minus": "gen_stirn_neigung_minus"
+   },
+   "staerke": {
+    "m": {
+     "plus": 0.189,
+     "minus": 0.189
+    },
+    "w": {
+     "plus": 0.189,
+     "minus": 0.189
+    }
+   },
+   "mass": "–",
+   "faktor_gegen_phase5": 1.0
+  },
+  "kopf": {
+   "formen": {
+    "plus": "gen_kopf_plus",
+    "minus": "gen_kopf_minus"
+   },
+   "staerke": {
+    "m": {
+     "plus": 0.126,
+     "minus": 0.126
+    },
+    "w": {
+     "plus": 0.126,
+     "minus": 0.126
+    }
+   },
+   "mass": "–",
+   "faktor_gegen_phase5": 1.0
+  },
+  "schultern": {
+   "formen": {
+    "plus": "gen_schultern_plus",
+    "minus": "gen_schultern_minus"
+   },
+   "staerke": {
+    "m": {
+     "plus": 0.1732,
+     "minus": 0.1732
+    },
+    "w": {
+     "plus": 0.1732,
+     "minus": 0.1732
+    }
+   },
+   "mass": "–",
+   "faktor_gegen_phase5": 1.0
+  },
+  "gesicht_fett": {
+   "formen": {
+    "plus": "gen_gesicht_fett_plus",
+    "minus": "gen_gesicht_fett_minus"
+   },
+   "aus_gen": "gewicht",
+   "staerke": {
+    "m": {
+     "plus": 0.45,
+     "minus": 0.45
+    },
+    "w": {
+     "plus": 0.45,
+     "minus": 0.45
+    }
+   },
+   "mass": "–"
+  },
+  "ohren_spitze": {
+   "formen": {
+    "plus": "gen_ohren_spitze_plus"
+   },
+   "absolut": true
+  }
+ },
+ "zuege": {
+  "gene": {
+   "zug_01": "zug_01",
+   "zug_02": "zug_02",
+   "zug_03": "zug_03",
+   "zug_04": "zug_04",
+   "zug_05": "zug_05",
+   "zug_06": "zug_06",
+   "zug_07": "zug_07",
+   "zug_08": "zug_08",
+   "zug_09": "zug_09",
+   "zug_10": "zug_10"
+  },
+  "faktor": 0.7,
+  "mitte": 128,
+  "streuung": 32,
+  "basis": "tools/charakter/zuege_basis_v1.json",
+  "basis_sha256": "d54592875bea8d90b05d6e27d55e81e14d490574b9e1860dbeba0178a3dc4041"
+ },
+ "asymmetrie": {
+  "formen": {
+   "asym_01": {
+    "aus": "mh_jaw3",
+    "streuung": 0.1164,
+    "merkmale_mm_je_1": [
+     8.175,
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "spiegel_rms_je_1": 2.2022
+   },
+   "asym_02": {
+    "aus": "mh_nose1",
+    "streuung": 0.338,
+    "merkmale_mm_je_1": [
+     0.0,
+     2.9748,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    "spiegel_rms_je_1": 0.7581
+   },
+   "asym_03": {
+    "aus": "mh_eye2",
+    "streuung": 0.0853,
+    "merkmale_mm_je_1": [
+     0.0,
+     0.0,
+     -6.0,
+     -4.4188,
+     0.0,
+     -0.0374
+    ],
+    "spiegel_rms_je_1": 3.0052
+   },
+   "asym_04": {
+    "aus": "mh_brown1",
+    "streuung": 0.1674,
+    "merkmale_mm_je_1": [
+     0.0,
+     0.0,
+     0.0,
+     -2.8816,
+     0.0,
+     0.0
+    ],
+    "spiegel_rms_je_1": 1.5312
+   },
+   "asym_05": {
+    "aus": "mh_cheek2",
+    "streuung": 0.1598,
+    "merkmale_mm_je_1": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     2.8849,
+     0.0
+    ],
+    "spiegel_rms_je_1": 1.6032
+   },
+   "asym_06": {
+    "aus": "ict_009",
+    "streuung": 0.4312,
+    "merkmale_mm_je_1": [
+     0.166,
+     0.0482,
+     -0.0794,
+     -0.1629,
+     -0.0018,
+     0.6083
+    ],
+    "spiegel_rms_je_1": 0.5943
+   },
+   "asym_07": {
+    "aus": "ict_020",
+    "streuung": 0.4689,
+    "merkmale_mm_je_1": [
+     0.6007,
+     0.0763,
+     0.0232,
+     -0.0323,
+     0.2422,
+     -0.1396
+    ],
+    "spiegel_rms_je_1": 0.5465
+   },
+   "asym_08": {
+    "aus": "ict_025",
+    "streuung": 1.0664,
+    "merkmale_mm_je_1": [
+     0.0146,
+     -0.1303,
+     0.0717,
+     0.1271,
+     0.1494,
+     0.2305
+    ],
+    "spiegel_rms_je_1": 0.2403
+   },
+   "asym_09": {
+    "aus": "ict_028",
+    "streuung": 0.8497,
+    "merkmale_mm_je_1": [
+     -0.2545,
+     -0.0504,
+     -0.1402,
+     -0.1184,
+     -0.4545,
+     -0.0226
+    ],
+    "spiegel_rms_je_1": 0.3016
+   },
+   "asym_10": {
+    "aus": "ict_033",
+    "streuung": 0.7433,
+    "merkmale_mm_je_1": [
+     -0.3547,
+     -0.2645,
+     0.0632,
+     0.1131,
+     -0.3177,
+     0.1853
+    ],
+    "spiegel_rms_je_1": 0.3448
+   }
+  },
+  "merkmale": [
+   "kinn_seitlich",
+   "nasenspitze_seitlich",
+   "augenhoehe",
+   "brauen",
+   "mundwinkel",
+   "ohrhoehe"
+  ],
+  "grenzen_mm": [
+   2.0,
+   1.5,
+   1.0,
+   2.0,
+   1.5,
+   3.0
+  ],
+  "ziel_rms_mm": [
+   0.5,
+   1.0
+  ],
+  "probe_120": {
+   "spiegel_rms_median": 0.721,
+   "p10": 0.539,
+   "p90": 0.958,
+   "anteil_verkleinert": 0.267
+  }
+ },
+ "zielmatrix": {
+  "alter_mitte_m": {
+   "cheek/cheek-volume-decr": 0.35,
+   "mouth/mouth-laugh-lines-in": 0.5,
+   "mouth/mouth-upperlip-volume-decr": 0.3,
+   "mouth/mouth-lowerlip-volume-decr": 0.2,
+   "nose/nose-scale-horiz-incr": 0.198,
+   "mouth/mouth-scale-horiz-incr": 0.196
+  },
+  "alter_mitte_w": {
+   "cheek/cheek-volume-decr": 0.4,
+   "mouth/mouth-laugh-lines-in": 0.5,
+   "mouth/mouth-upperlip-volume-decr": 0.3,
+   "mouth/mouth-lowerlip-volume-decr": 0.2,
+   "nose/nose-scale-horiz-incr": 0.198,
+   "mouth/mouth-scale-horiz-incr": 0.196
+  },
+  "alter_reife_m_oben": {
+   "nose/nose-scale-vert-decr": 0.6339,
+   "nose/nose-trans-forward": 0.8,
+   "nose/nose-volume-incr": 0.1166,
+   "nose/nose-point-down": 0.2467,
+   "eyebrows/eyebrows-trans-forward": 0.8594,
+   "eyebrows/eyebrows-trans-down": 0.8298,
+   "eyes/eye-scale-decr": 0.4338,
+   "eyes/eye-eyefold-down": 0.6133,
+   "forehead/forehead-trans-backward": 0.3247
+  },
+  "alter_reife_m_unten": {
+   "chin/chin-height-incr": 0.4148,
+   "chin/chin-jaw-drop-incr": 0.8,
+   "chin/chin-bones-incr": 0.768,
+   "chin/chin-prominent-incr": 0.4316,
+   "cheek/cheek-volume-decr": 1.2,
+   "cheek/cheek-bones-incr": 0.4953,
+   "mouth/mouth-upperlip-volume-decr": 0.6,
+   "mouth/mouth-lowerlip-volume-decr": 0.6,
+   "head/head-fat-decr": 1.0,
+   "cheek/cheek-inner-incr": 0.0035,
+   "chin/chin-width-incr": 0.0523,
+   "neck/neck-double-decr": 0.625,
+   "mouth/mouth-scale-horiz-incr": 0.5605
+  },
+  "alter_reife_w_oben": {
+   "nose/nose-scale-vert-decr": 0.5792,
+   "nose/nose-point-down": 0.65,
+   "nose/nose-greek-incr": 0.2458,
+   "eyes/eye-scale-decr": 1.0,
+   "eyes/eye-eyefold-down": 0.8,
+   "eyebrows/eyebrows-trans-forward": 0.4629,
+   "nose/nose-scale-horiz-decr": 0.225,
+   "eyebrows/eyebrows-trans-down": 0.4,
+   "eyes/eye-trans-in": 0.0485
+  },
+  "alter_reife_w_unten": {
+   "chin/chin-height-incr": 0.4222,
+   "chin/chin-prominent-incr": 0.671,
+   "cheek/cheek-volume-decr": 1.2,
+   "cheek/cheek-bones-decr": 0.125,
+   "head/head-fat-decr": 1.0,
+   "chin/chin-bones-incr": 0.8217,
+   "chin/chin-width-decr": 1.2,
+   "mouth/mouth-upperlip-volume-decr": 0.4,
+   "mouth/mouth-lowerlip-volume-decr": 0.4,
+   "mouth/mouth-scale-horiz-incr": 1.0392,
+   "head/head-scale-horiz-decr": 0.1427,
+   "eyes/eye-trans-out": 0.1891,
+   "cheek/cheek-inner-incr": 0.875,
+   "mouth/mouth-trans-down": 0.275,
+   "head/head-invertedtriangular": 0.2523,
+   "chin/chin-jaw-drop-decr": 1.0,
+   "neck/neck-double-decr": 0.35
+  },
+  "gen_gesicht_laenge_plus": {
+   "chin/chin-height-incr": 0.5,
+   "nose/nose-scale-vert-incr": 0.25,
+   "head/head-scale-vert-incr": 0.25
+  },
+  "gen_gesicht_laenge_minus": {
+   "chin/chin-height-decr": 0.5,
+   "nose/nose-scale-vert-decr": 0.25,
+   "head/head-scale-vert-decr": 0.25
+  },
+  "gen_gesicht_breite_plus": {
+   "head/head-scale-horiz-incr": 0.5,
+   "cheek/cheek-bones-incr": 0.4
+  },
+  "gen_gesicht_breite_minus": {
+   "head/head-scale-horiz-decr": 0.5,
+   "cheek/cheek-bones-decr": 0.4
+  },
+  "gen_kiefer_breite_plus": {
+   "head/head-square": 0.3,
+   "chin/chin-width-incr": 0.3
+  },
+  "gen_kiefer_breite_minus": {
+   "head/head-invertedtriangular": 0.3,
+   "chin/chin-width-decr": 0.3
+  },
+  "gen_kiefer_vorstand_plus": {
+   "chin/chin-prognathism-incr": 1.0
+  },
+  "gen_kiefer_vorstand_minus": {
+   "chin/chin-prognathism-decr": 1.0
+  },
+  "gen_kinn_plus": {
+   "chin/chin-prominent-incr": 1.0
+  },
+  "gen_kinn_minus": {
+   "chin/chin-prominent-decr": 1.0
+  },
+  "gen_nase_laenge_plus": {
+   "nose/nose-scale-vert-incr": 1.2,
+   "nose/nose-point-down": 0.3
+  },
+  "gen_nase_laenge_minus": {
+   "nose/nose-scale-vert-decr": 1.2,
+   "nose/nose-point-up": 0.3
+  },
+  "gen_nase_breite_plus": {
+   "nose/nose-scale-horiz-incr": 0.6,
+   "nose/nose-flaring-incr": 0.5,
+   "nose/nose-nostrils-width-incr": 0.3
+  },
+  "gen_nase_breite_minus": {
+   "nose/nose-scale-horiz-decr": 0.6,
+   "nose/nose-flaring-decr": 0.5,
+   "nose/nose-nostrils-width-decr": 0.3
+  },
+  "gen_nase_hoecker_plus": {
+   "nose/nose-hump-incr": 0.3,
+   "nose/nose-curve-convex": 0.3
+  },
+  "gen_nase_hoecker_minus": {
+   "nose/nose-curve-concave": 1.0,
+   "nose/nose-hump-decr": 0.5
+  },
+  "gen_mund_breite_plus": {
+   "mouth/mouth-scale-horiz-incr": 1.0
+  },
+  "gen_mund_breite_minus": {
+   "mouth/mouth-scale-horiz-decr": 1.0
+  },
+  "gen_lippen_plus": {
+   "mouth/mouth-upperlip-height-incr": 0.6,
+   "mouth/mouth-upperlip-volume-incr": 0.6,
+   "mouth/mouth-lowerlip-height-incr": 0.6,
+   "mouth/mouth-lowerlip-volume-incr": 0.6
+  },
+  "gen_lippen_minus": {
+   "mouth/mouth-upperlip-height-decr": 0.6,
+   "mouth/mouth-upperlip-volume-decr": 0.6,
+   "mouth/mouth-lowerlip-height-decr": 0.6,
+   "mouth/mouth-lowerlip-volume-decr": 0.6
+  },
+  "gen_augen_abstand_plus": {
+   "eyes/eye-trans-out": 1.0
+  },
+  "gen_augen_abstand_minus": {
+   "eyes/eye-trans-in": 1.0
+  },
+  "gen_augen_groesse_plus": {
+   "eyes/eye-scale-incr": 1.0
+  },
+  "gen_augen_groesse_minus": {
+   "eyes/eye-scale-decr": 1.0
+  },
+  "gen_augen_neigung_plus": {
+   "eyes/eye-corner1-up": 1.0,
+   "eyes/eye-eyefold-angle-up": 0.3
+  },
+  "gen_augen_neigung_minus": {
+   "eyes/eye-corner1-down": 1.0,
+   "eyes/eye-eyefold-angle-down": 0.3
+  },
+  "gen_brauenwulst_plus": {
+   "eyebrows/eyebrows-trans-forward": 1.0
+  },
+  "gen_brauenwulst_minus": {
+   "eyebrows/eyebrows-trans-backward": 1.0
+  },
+  "gen_wangenknochen_plus": {
+   "cheek/cheek-bones-incr": 1.0,
+   "cheek/cheek-inner-decr": 0.3
+  },
+  "gen_wangenknochen_minus": {
+   "cheek/cheek-bones-decr": 1.0,
+   "cheek/cheek-inner-incr": 0.3
+  },
+  "gen_wangen_fuelle_plus": {
+   "cheek/cheek-volume-incr": 1.0,
+   "cheek/cheek-inner-incr": 0.5
+  },
+  "gen_wangen_fuelle_minus": {
+   "cheek/cheek-volume-decr": 1.0,
+   "cheek/cheek-inner-decr": 0.5
+  },
+  "gen_brauen_stand_plus": {
+   "eyebrows/eyebrows-trans-up": 1.0,
+   "eyebrows/eyebrows-angle-up": 0.3
+  },
+  "gen_brauen_stand_minus": {
+   "eyebrows/eyebrows-trans-down": 1.0,
+   "eyebrows/eyebrows-angle-down": 0.3
+  },
+  "gen_lidspalte_plus": {
+   "eyes/eye-height1-incr": 0.5,
+   "eyes/eye-height2-incr": 1.0,
+   "eyes/eye-height3-incr": 0.5
+  },
+  "gen_lidspalte_minus": {
+   "eyes/eye-height1-decr": 0.5,
+   "eyes/eye-height2-decr": 1.0,
+   "eyes/eye-height3-decr": 0.5
+  },
+  "gen_schlupflid_plus": {
+   "eyes/eye-eyefold-down": 0.6,
+   "eyes/eye-eyefold-convex": 0.4
+  },
+  "gen_schlupflid_minus": {
+   "eyes/eye-eyefold-up": 0.6,
+   "eyes/eye-eyefold-concave": 0.4
+  },
+  "gen_nasenspitze_plus": {
+   "nose/nose-point-up": 1.0,
+   "nose/nose-septumangle-decr": 0.5
+  },
+  "gen_nasenspitze_minus": {
+   "nose/nose-point-down": 1.0,
+   "nose/nose-septumangle-incr": 0.5
+  },
+  "gen_mundwinkel_plus": {
+   "mouth/mouth-angles-up": 1.0
+  },
+  "gen_mundwinkel_minus": {
+   "mouth/mouth-angles-down": 1.0
+  },
+  "gen_kinn_breite_plus": {
+   "chin/chin-width-incr": 1.0,
+   "chin/chin-triangle": -0.4
+  },
+  "gen_kinn_breite_minus": {
+   "chin/chin-width-decr": 1.0,
+   "chin/chin-triangle": 0.4
+  },
+  "gen_gesicht_fett_plus": {
+   "head/head-fat-incr": 0.5,
+   "cheek/cheek-volume-incr": 0.4,
+   "neck/neck-double-incr": 0.4,
+   "neck/measure-neck-circ-incr": 0.3
+  },
+  "gen_gesicht_fett_minus": {
+   "head/head-fat-decr": 0.6,
+   "cheek/cheek-volume-decr": 0.4,
+   "forehead/forehead-temple-decr": 0.4,
+   "cheek/cheek-inner-decr": 0.3
+  }
+ }
+}
