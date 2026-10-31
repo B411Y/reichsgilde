@@ -34,6 +34,7 @@ var werte := {}
 var tfx_ruhe := false            # TressFX nach kurzer Simulation einfrieren (viele Köpfe)
 var tfx_sparsam := false         # weniger Folgehaare, Detailstufe nach Abstand (viele Köpfe, kleine Porträts)
 var karten_schatten := true      # Karten werfen Schatten (die Schattenkarte zeichnet alle Karten noch einmal)
+var stand := 5                   # Phase 6: 5 = Farbe als Vector3 wie Phase 5, 6 = als Color (Godot rechnet sRGB nach linear um)
 var verschiebung := PackedFloat32Array()
 var zeiten := {}                 # ms: mischen, tfx_schreiben
 var _stuetz_bild: Image
@@ -300,10 +301,10 @@ func _tfx_anlegen(t: Dictionary) -> void:
 	t["stoff_tfx"] = s
 
 func _tfx_schreiben() -> void:
-	var stand := str(_gewichte.hash()) + "_" + str(stile) + "_" + str(werte.get("struktur", 0.0))
-	if stand == _tfx_stand:
+	var kennung := str(_gewichte.hash()) + "_" + str(stile) + "_" + str(werte.get("struktur", 0.0))
+	if kennung == _tfx_stand:
 		return
-	_tfx_stand = stand
+	_tfx_stand = kennung
 	var t0 := Time.get_ticks_usec()
 	DirAccess.make_dir_recursive_absolute("user://charakter4")
 	for t in _teile:
@@ -367,9 +368,14 @@ func _einfrieren(haar: Node3D) -> void:
 	haar.set("simulation_distance", 100.0)
 	var tm := get_tree().create_timer(0.8) if is_inside_tree() else null
 	if tm:
-		tm.timeout.connect(func():
-			if is_instance_valid(haar):
-				haar.set("simulation_distance", 0.01))
+		# Phase 6: gebundene Methode statt Lambda – ein Lambda, dessen erfasstes Haar vorher freigegeben wurde, meldete
+		# „Lambda capture at index 0 was freed“; die Verbindung zu einer Methode löst Godot beim Freigeben selbst
+		tm.timeout.connect(_anhalten.bind(weakref(haar)))
+
+func _anhalten(ref: WeakRef) -> void:
+	var haar: Node3D = ref.get_ref()
+	if haar and is_instance_valid(haar):
+		haar.set("simulation_distance", 0.01)
 
 func _verformen(basis: PackedFloat32Array, idx: PackedInt32Array, gew: PackedFloat32Array, P: int) -> PackedFloat32Array:
 	var r := rechner()
@@ -446,7 +452,11 @@ func _parameter() -> void:
 				continue
 			var schmuck: bool = t["art"] in ["netz", "perlen"]
 			var f := Color(0.8, 0.6, 0.26) if t["art"] == "netz" else (Color(0.9, 0.88, 0.82) if t["art"] == "perlen" else farbe)
-			s.set_shader_parameter("farbe", Vector3(f.r, f.g, f.b))
+			# Phase 6 (S2): Stand 6 übergibt Color (auch Goldnetz und Perlen), Stand 5 wie Phase 5 als Vector3
+			if stand >= 6:
+				s.set_shader_parameter("farbe", f)
+			else:
+				s.set_shader_parameter("farbe", Vector3(f.r, f.g, f.b))   # stand5: Weg der Phase 5
 			s.set_shader_parameter("grau", 0.0 if schmuck else float(werte.get("grau", 0.0)))
 			s.set_shader_parameter("kahl", 0.0 if bart or t["art"] in ["zusatz", "netz", "perlen"] else float(werte.get("kahl", 0.0)))
 			s.set_shader_parameter("duenn", 0.0 if schmuck else float(werte.get("duenn", 0.0)) * (0.5 if bart else 1.0))

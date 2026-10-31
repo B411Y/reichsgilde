@@ -29,6 +29,10 @@ const HORNHAUT := preload("res://versuch/charakter/hornhaut.gdshader")
 const LIDSCHATTEN := preload("res://versuch/charakter/lidschatten.gdshader")
 const HAAR3 := preload("res://versuch/charakter/haar3.gdshader")
 const HAAR4 := preload("res://versuch/charakter/charakter_haar.gd")
+# Phase 6 (Stand 6): Haut und Augen mit behobenen Grundfehlern (S2) und Porträtlicht (S3); haut3/augen3 bleiben für Stand 5
+const HAUT6 := preload("res://versuch/charakter/haut6.gdshader")
+const HAUT6_ULTRA := preload("res://versuch/charakter/haut6_ultra.gdshader")
+const AUGEN6 := preload("res://versuch/charakter/augen6.gdshader")
 const BILDER := ["haut_farbe", "haut_normal", "haut_masken", "haut_falten", "brauen", "wimpern", "iris_muster", "lederhaut"]
 const BILDER_WAHL := ["brauen_w"]      # Phase 5, fehlt in älteren Ordnern (dann gilt „brauen“)
 # Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
@@ -84,9 +88,12 @@ var mimikfaktor := 1.0
 var gewichte := {}          # zuletzt gesetzte Formgewichte (zum Prüfen)
 var zusatz_formen := {}     # Formname -> Gewicht obendrauf (Bögen, Probeformen „probe_*“)
 # Phase 6: Stand-Schalter. 5 = genau wie Phase 5 (glb5, haut3, augen3, Farbübergabe und Genrechnung der Phase 5),
-# 6 = der neue Weg (ab S2). Bis S2 gibt es nur den Weg der Phase 5; der Schalter wird schon durchgereicht und in jede
-# Begleitdatei der Bögen geschrieben, damit Vorher-Bilder und gepaarte Messungen im selben Prozess laufen.
+# 6 = der neue Weg: S2 Farben als Color (Godot rechnet sRGB nach linear um), vorläufige Paletten (Haut linear nach
+# PhysicallyBased, Iris, Lederhaut, Zahnfleisch), haut6/augen6; die .glb wählt die Schau (Stand 6: glb6/kopf6.glb).
+# stand_setzen() schaltet einen geladenen Kopf um (Stoffe tauschen den Shader, die Parameter bleiben), damit
+# Vorher-Bilder und gepaarte Messungen im selben Prozess laufen.
 var stand := 5
+var zahnfleisch_stoffe: Array[ShaderMaterial] = []
 static var _poren: NoiseTexture2D
 static var _erbgut := {}
 
@@ -141,6 +148,37 @@ func kopieren_von(quelle) -> void:
 	_haar_einrichten()
 	gene = mittelwerte("Mensch")
 	_anwenden()
+
+# Phase 6: Stand umschalten (5 = Phase 5, 6 = neuer Weg); die Farben setzt das nächste _anwenden()/_farben()
+func stand_setzen(n: int) -> void:
+	if n == stand:
+		return
+	stand = n
+	_shader_waehlen()
+	if haar_knoten:
+		haar_knoten.stand = stand
+	_farben()
+
+func _shader_waehlen() -> void:
+	for m in haut_stoffe:
+		if m.shader in [HAUT3, HAUT3_ULTRA, HAUT6, HAUT6_ULTRA]:
+			m.shader = (HAUT6_ULTRA if ultra else HAUT6) if stand >= 6 else (HAUT3_ULTRA if ultra else HAUT3)
+	for m in augen_stoffe:
+		if m.shader in [AUGEN3, AUGEN6]:
+			m.shader = AUGEN6 if stand >= 6 else AUGEN3
+
+# Phase 6 (S2): eine Farbe an ein Farb-Uniform (source_color) übergeben. Stand 6 übergibt Color (sRGB, Godot rechnet
+# nach linear um, wie bei StandardMaterial3D); Stand 5 wie Phase 5 als Vector3 (ohne Umrechnung – der Fehler der
+# Phase 5, für den Vergleich erhalten). Faktoren wie „toenung“ bleiben Vector3.
+static func farbe_setzen(m: ShaderMaterial, name: String, c: Color, st: int) -> void:
+	if st >= 6:
+		m.set_shader_parameter(name, c)
+	else:
+		m.set_shader_parameter(name, Vector3(c.r, c.g, c.b))   # stand5: Weg der Phase 5
+
+# Lineare Farbe (Albedo) so als Color übergeben, dass sie nach Godots Umrechnung genau linear ankommt
+static func linear(c: Color) -> Color:
+	return c.linear_to_srgb()
 
 func _bilder_laden(datei: String) -> void:
 	var name := datei.get_file().get_basename().trim_suffix("_mn").trim_suffix("_ohne")
@@ -391,6 +429,38 @@ static func hautfarbe(h: float) -> Color:
 		return Color(0.2, 0.125, 0.09).lerp(Color(0.55, 0.37, 0.27), h / 0.5)
 	return Color(0.55, 0.37, 0.27).lerp(Color(0.84, 0.66, 0.56), (h - 0.5) / 0.5)
 
+# Phase 6 (S2, vorläufig bis S9): Hautfarbe linear (Albedo) aus „Hautfarbe“, Anker nach PhysicallyBased (CC0, Haut
+# I–VI linear): Gen 235 ≈ Typ I–II, 185 ≈ II–III, 135 ≈ III–IV; darunter IV, V, VI, darüber I. Linear zwischen den
+# Ankern (im linearen Raum).
+const HAUT6_ANKER := [
+	[0.0, Color(0.09, 0.05, 0.02)],         # VI
+	[60.0, Color(0.283, 0.148, 0.079)],     # V
+	[100.0, Color(0.436, 0.227, 0.131)],    # IV
+	[135.0, Color(0.5295, 0.33, 0.237)],    # III–IV
+	[185.0, Color(0.711, 0.459, 0.345)],    # II–III
+	[235.0, Color(0.823, 0.5615, 0.4495)],  # I–II
+	[255.0, Color(0.847, 0.638, 0.552)],    # I
+]
+static func hautfarbe6(gen: float) -> Color:
+	if gen <= HAUT6_ANKER[0][0]:
+		return HAUT6_ANKER[0][1]
+	for i in HAUT6_ANKER.size() - 1:
+		var a: Array = HAUT6_ANKER[i]
+		var b: Array = HAUT6_ANKER[i + 1]
+		if gen <= float(b[0]):
+			return (a[1] as Color).lerp(b[1], (gen - float(a[0])) / (float(b[0]) - float(a[0])))
+	return HAUT6_ANKER[-1][1]
+
+# Phase 6 (S2, vorläufig bis S7): Augen linear. Dunkelbraun – (Bernstein – Hasel/Grün – Blau) nach „Augenhelligkeit“
+# und „Augenton“; echte Iris ist dunkel (Bildleuchtdichte der Vorlagen 0,02–0,06, Phase 5 0,30–0,37).
+const IRIS6_DUNKEL := Color(0.030, 0.014, 0.006)
+const IRIS6_BERNSTEIN := Color(0.17, 0.085, 0.022)
+const IRIS6_GRUEN := Color(0.075, 0.095, 0.035)
+const IRIS6_BLAU := Color(0.075, 0.12, 0.20)
+const KRANZ6 := [Color(0.13, 0.065, 0.016), Color(0.22, 0.12, 0.03)]
+const SKLERA6 := Color(0.50, 0.44, 0.38)        # warm, dunkler als die beleuchtete Haut daneben (Vorlagen)
+const ZAHNFLEISCH6 := Color(0.46, 0.13, 0.12)
+
 # Gewicht einer Alterskurve [[jahre, wert], …] (stückweise linear, außen festgehalten)
 static func kurve_im_alter(kurve: Array, jahre: float) -> float:
 	if jahre <= float(kurve[0][0]):
@@ -407,14 +477,17 @@ var werte3 := {}            # zuletzt gesetzte Phase-3-Werte (zum Prüfen und f�
 func _farben() -> void:
 	var h := float(gene.get("haut_helligkeit", 185.0)) / 255.0
 	var ton := float(gene.get("haut_ton", 105.0)) / 255.0
+	var st := stand if phase3 else 5
 	var grund := hautfarbe(h) if phase3 else Color(0.27, 0.16, 0.10).lerp(Color(0.84, 0.64, 0.53), h)
+	if st >= 6:
+		grund = linear(hautfarbe6(h * 255.0))
 	var toenung := Vector3.ONE
 	if ton < 0.5:
 		toenung = Vector3(1.07, 0.96, 0.95).lerp(Vector3.ONE, ton / 0.5)
 	else:
 		toenung = Vector3.ONE.lerp(Vector3(0.78, 0.95, 0.74), (ton - 0.5) / 0.5)
 	for m in haut_stoffe + haut2_stoffe:
-		m.set_shader_parameter("grundfarbe", Vector3(grund.r, grund.g, grund.b))
+		farbe_setzen(m, "grundfarbe", grund, st if m in haut_stoffe else 5)
 		m.set_shader_parameter("toenung", toenung)
 	var hh := float(gene.get("haar_helligkeit", 100.0)) / 255.0
 	var rot := float(gene.get("haar_rot", 70.0)) / 255.0
@@ -442,14 +515,14 @@ func _farben() -> void:
 			breite *= lerpf(0.72, 1.0, geschlecht)
 		for m in haar_stoffe:
 			m.set_shader_parameter("bild", brauen_bild)
-			m.set_shader_parameter("farbe", Vector3(braue.r, braue.g, braue.b))
+			farbe_setzen(m, "farbe", braue, st)
 			m.set_shader_parameter("grau", grau)
 			m.set_shader_parameter("dichte", clampf(dichte, 0.0, 1.0))
 			m.set_shader_parameter("breite", breite)
 		var wimper := haar.darkened(0.7)
 		for m in wimpern_stoffe:
 			m.set_shader_parameter("schwelle", 0.35)
-			m.set_shader_parameter("farbe", Vector3(wimper.r, wimper.g, wimper.b))
+			farbe_setzen(m, "farbe", wimper, st)
 			m.set_shader_parameter("grau", grau * 0.5)
 			m.set_shader_parameter("dichte", lerpf(1.0, 0.8, geschlecht))
 		# Falten aus dem Alter; helle Haut faltet etwas früher, Leibesfülle glättet die Stirn
@@ -478,19 +551,20 @@ func _farben() -> void:
 		for m in haut_stoffe:
 			m.set_shader_parameter("roetung", lerpf(0.34, 0.2 if mann else 0.25, reif) + 0.06 * greis)
 			m.set_shader_parameter("poren_staerke", lerpf(0.32, 0.62 if mann else 0.5, reif) + 0.08 * greis)
-			m.set_shader_parameter("glanz", lerpf(0.34, 0.3, reif))
+			# Stand 6: „glanz“ ist ein Faktor auf F0 0,028 (haut6), Stand 5 der Spiegelanteil der Phase 5
+			m.set_shader_parameter("glanz", 1.0 if st >= 6 else lerpf(0.34, 0.3, reif))
 			m.set_shader_parameter("unruhe", lerpf(0.03, 0.11 if mann else 0.075, reif) + 0.05 * greis)
 			m.set_shader_parameter("falten", f)
 			m.set_shader_parameter("bart", bart)
 			m.set_shader_parameter("brauen_dichte", clampf(dichte, 0.0, 1.0))
-			m.set_shader_parameter("haar_farbe", Vector3(haar.r, haar.g, haar.b))
+			farbe_setzen(m, "haar_farbe", haar, st)
 		werte3 = {"falten": f, "bart": bart, "brauen_dichte": dichte, "brauen_breite": breite, "grau": grau,
 			"grundfarbe": grund}
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
 		for m in haar_stoffe:
-			m.set_shader_parameter("farbe", Vector3(haar.r, haar.g, haar.b))
+			farbe_setzen(m, "farbe", haar, st)
 	# Augen: außen aus Helligkeit und Ton (dunkelbraun -> bernstein/grün/blau), innerer Kranz bernstein bei braunen
 	# und grünen Augen, schwach bei blauen
 	var ah := float(gene.get("augen_helligkeit", 130.0)) / 255.0
@@ -500,10 +574,21 @@ func _farben() -> void:
 		hell = Color(0.36, 0.46, 0.25).lerp(Color(0.38, 0.52, 0.72), (at - 0.5) / 0.5)
 	var iris := Color(0.16, 0.08, 0.035).lerp(hell, ah)
 	var kranz := Color(0.5, 0.32, 0.1).lerp(Color(0.62, 0.45, 0.16), ah)
+	if st >= 6:
+		# lineare Palette (S2), als Color übergeben
+		var hell6 := IRIS6_BERNSTEIN.lerp(IRIS6_GRUEN, clampf(at / 0.5, 0.0, 1.0))
+		if at > 0.5:
+			hell6 = IRIS6_GRUEN.lerp(IRIS6_BLAU, (at - 0.5) / 0.5)
+		iris = linear(IRIS6_DUNKEL.lerp(hell6, ah))
+		kranz = linear((KRANZ6[0] as Color).lerp(KRANZ6[1], ah))
 	for m in augen_stoffe:
-		m.set_shader_parameter("iris_farbe", Vector3(iris.r, iris.g, iris.b))
-		m.set_shader_parameter("kranz_farbe", Vector3(kranz.r, kranz.g, kranz.b))
+		farbe_setzen(m, "iris_farbe", iris, st)
+		farbe_setzen(m, "kranz_farbe", kranz, st)
+		if st >= 6:
+			farbe_setzen(m, "sklera", linear(SKLERA6), st)
 		m.set_shader_parameter("kranz", clampf(1.0 - at * 0.9, 0.1, 1.0) * lerpf(0.4, 1.0, ah))
+	for m in zahnfleisch_stoffe:
+		farbe_setzen(m, "farbe", linear(ZAHNFLEISCH6) if st >= 6 else Color(0.62, 0.27, 0.26), st)
 
 # ---------------------------------------------------------------- Haar und Bart (Phase 4)
 func _haar_einrichten() -> void:
@@ -520,6 +605,7 @@ func _haar_einrichten() -> void:
 	haar_knoten.tfx_ruhe = haar_ruhe
 	haar_knoten.tfx_sparsam = haar_ruhe or haar_sparsam
 	haar_knoten.karten_schatten = haar_schatten
+	haar_knoten.stand = stand
 	haar_knoten.modus = haar_modus if haar_modus != "tressfx" or HAAR4.tressfx_da() else "karten"
 
 func haar_modus_setzen(m: String) -> void:
@@ -583,7 +669,7 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 		m.set_shader_parameter("duenn_haut", float(hw["duenn"]))
 		m.set_shader_parameter("bart_tex", bart_tex)
 		m.set_shader_parameter("bart_kanal", bart_kanal)
-		m.set_shader_parameter("haar_unter", Vector3(unter.r, unter.g, unter.b))
+		farbe_setzen(m, "haar_unter", unter, stand)
 
 # ---------------------------------------------------------------- Stoffe
 # Teilart nach dem Stoffnamen der .glb
@@ -698,15 +784,13 @@ func vorher_setzen(an: bool) -> void:
 # Haut mit oder ohne Bildschirm-SSS (Ultra); Parameter bleiben
 func ultra_setzen(an: bool) -> void:
 	ultra = an
-	for m in haut_stoffe:
-		if m.shader == HAUT3 or m.shader == HAUT3_ULTRA:
-			m.shader = HAUT3_ULTRA if an else HAUT3
+	_shader_waehlen()
 
 func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
 	match art:
 		"haut":
 			var m := ShaderMaterial.new()
-			m.shader = HAUT3_ULTRA if ultra else HAUT3
+			m.shader = (HAUT6_ULTRA if ultra else HAUT6) if stand >= 6 else (HAUT3_ULTRA if ultra else HAUT3)
 			m.set_shader_parameter("farbe_tex", bilder["haut_farbe"])
 			m.set_shader_parameter("normal_tex", bilder["haut_normal"])
 			m.set_shader_parameter("masken_tex", bilder["haut_masken"])
@@ -717,7 +801,7 @@ func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
 			return m
 		"lederhaut", "iris":
 			var m := ShaderMaterial.new()
-			m.shader = AUGEN3
+			m.shader = AUGEN6 if stand >= 6 else AUGEN3
 			m.set_shader_parameter("iris_teil", art == "iris")
 			# gemalte Pupille knapp größer als die Öffnung im Netz (Beschreibung der .glb)
 			m.set_shader_parameter("pupille", float(info.get("pupillenoeffnung", 0.31)) + 0.03)
@@ -769,7 +853,8 @@ func _stoff(std: BaseMaterial3D, art: String, mi: MeshInstance3D, s: int) -> Mat
 			var m := ShaderMaterial.new()
 			m.shader = ZAEHNE
 			if art == "zahnfleisch":
-				m.set_shader_parameter("farbe", Vector3(0.62, 0.27, 0.26))
+				farbe_setzen(m, "farbe", Color(0.62, 0.27, 0.26), 5)   # Farbe setzt _farben() je Stand
+				zahnfleisch_stoffe.append(m)
 				m.set_shader_parameter("rauheit", 0.35)
 				m.set_shader_parameter("glanz", 0.4)
 				m.set_shader_parameter("anfang", 0.15)
