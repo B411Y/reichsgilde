@@ -91,7 +91,7 @@ public static class KlangUmgebungModell
         new("regen_leicht", "Leichter Regen auf Boden und Laub (nach der Regenstärke)", -10f, Bus.Draussen),
         new("regen_stark", "Starker Regen, Guss (ab etwa halber bis voller Regenstärke)", -8f, Bus.Draussen),
         new("regen_dach", "Tropfen auf Dächern, nah in der Stadt (herangezoomt)", -14f, Bus.Draussen),
-        new("schenke_innen", "Schankstube von innen: Stimmen, Lachen, Krüge – laut und lebendig, nach der Zahl der Gäste (nur in der Innenansicht des Wirtshauses)", -6f, Bus.Innen),
+        new("schenke_innen", "Schankstube von innen: Stimmen, Lachen, Krüge – laut und lebendig, nach der Zahl der Gäste (nur in der Innenansicht des Wirtshauses)", -3f, Bus.Innen),
     };
 
     /// <summary>Die Summe aller Schichten (Leistung, relativ zum Dateipegel −26 LUFS) bleibt darunter: −4 dB = −30 LUFS vor dem Regler.</summary>
