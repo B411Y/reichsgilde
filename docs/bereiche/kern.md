@@ -13,7 +13,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Offen
 
 - (5) Bauen im Umland (Höfe und Gärten an Vorkommen) und in Köln (die Kölner Karte hat noch keine Wohnhausplätze); Verfall von Leerstand und Sanierungskosten nach Zustand (LEVELDESIGN §3) – Rest aus „Bauzonen, Bauplätze und Sanierung von Leerstand“ nach PR #103
-- (3) Fahrzeit aus der Weglänge (Wegegraph), sobald es die erste Kartendatei gibt (`docs/LEVELDESIGN.md`)
 - (6) Multiplayer, Zuschauer-Modus
 - (Nutzer) Pausenregeln im Multiplayer
 - (–) Sporadisches Leck beim Beenden im Rauchtest finden: „10 ObjectDB instances leaked“ und „10 RID allocations of type DummyTexture leaked“, im zweiten Start (mit Tafeln), nur auf GitHub, lokal nicht nachzustellen. Der Rauchtest wiederholt solche Funde seit PR #83; die Warnung „1. Versuch“ im Lauf zeigt, wie oft es vorkommt. Befund vom 16.10.: Vor dem Merge von PR #77 kein Fall in 40 Läufen, danach etwa jeder dritte Lauf, auch zweimal hintereinander im selben Lauf. In Schleifen im selben Job (Branch `experiment/leck`, mit und ohne Hinterzimmer, mit Menü-Start davor, mit und ohne `tee`) dagegen 0 von 152 Starts, und mit `--verbose` nie – es hängt am Zeitablauf

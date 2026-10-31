@@ -1,0 +1,4786 @@
+{
+  "bericht": "Balancing-Messung 6",
+  "datum": "2026-10-31",
+  "mainCommit": "24963d29",
+  "commit": "24963d29",
+  "datenversion": 64,
+  "aufruf": "messen bericht 20 20 --teile=1,3,5 --fairness=greybox --rotationen=1 --parallel=4 --datei=/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/gehtempo/vorher-greybox.json",
+  "parameter": {
+    "jahre": 20,
+    "startwerte": 20,
+    "zufallsstartwerte": "101, 202 … 2020 (s × 101)",
+    "stichjahre": [
+      5,
+      10,
+      20
+    ],
+    "karte": "greybox",
+    "fairnesskarten": [
+      "greybox"
+    ],
+    "teile": [
+      1,
+      3,
+      5
+    ],
+    "band": "±15 % um das Mittel",
+    "startvermoegen": 4000,
+    "ohneAbschnitt": null
+  },
+  "partien": 260,
+  "partienMitFehler": 0,
+  "berufe": {
+    "erklaerung": "Statisch: Kalkulation.ErwarteterJahresgewinn eines neuen Betriebs, voll mit Gesellen besetzt, bestes Produkt bzw. Beute, Sold, Zins und Wechsel, zu Startpreisen (erste Minute der Partie auf der Karte des Berichts); dazu für Prediger und Wirt Kollekte bzw. Ausschank (Schätzung). Abstand zum Mittel der zehn Berufe derselben Stufe. Simuliert: Der Spieler (Mensch) beginnt mit der Werkstatt seines Berufs und wird von der KI geführt wie ein KI-Haus (Profil ausgewogen), aber mit genau einem Betrieb (MaxBetriebe 0): Personal, Ware, Meisterprüfung, Ausbau und Einrichtung nach den Regeln der KI (Ausbau, sobald Meistergrad und Rechnung es erlauben; Einrichtung zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht, PR #177), keine Expansion. Gegen die drei KI-Häuser der Karte. „Zuwachs“ = Reinvermögen − Startvermögen; Abstand zum Mittel der zehn Berufe. Der Dieb nutzt unter der ausgewogenen KI nur die Taschendiebe (Einbruch und Schutzgeld nur wagemutig) – deshalb eine zweite Zeile, die nicht ins Mittel zählt. Menschen haben +5 % als Tischler und Gardist. „jeJahrImMittel“: Betriebsgewinn und was außerhalb der Betriebe dazukam (Amtseinkommen im Rat) oder abging (Familie, Geschenke, Gericht, Gaunerei, Investitionen wie Ausbau und Wohnhaus, Standesgebühren) – Mittel je Jahr über die ganze Partie.",
+    "statisch": [
+      {
+        "beruf": "Schmied",
+        "stufe": 1,
+        "betrieb": "Gießerei",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Silberring",
+        "wertJeArbeitsminute": 1.658,
+        "kalkulation": 1868,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 1868,
+        "abstandProzent": -1.4,
+        "imBand": true
+      },
+      {
+        "beruf": "Schmied",
+        "stufe": 2,
+        "betrieb": "Schmiede",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Silberkette",
+        "wertJeArbeitsminute": 1.81,
+        "kalkulation": 3129,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 3129,
+        "abstandProzent": -5.3,
+        "imBand": true
+      },
+      {
+        "beruf": "Schmied",
+        "stufe": 3,
+        "betrieb": "Goldschmiede",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Goldkette",
+        "wertJeArbeitsminute": 2.211,
+        "kalkulation": 5308,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 5308,
+        "abstandProzent": -0.8,
+        "imBand": true
+      },
+      {
+        "beruf": "Tischler",
+        "stufe": 1,
+        "betrieb": "Tischlerei",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Truhe",
+        "wertJeArbeitsminute": 1.664,
+        "kalkulation": 1876,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 1876,
+        "abstandProzent": -1,
+        "imBand": true
+      },
+      {
+        "beruf": "Tischler",
+        "stufe": 2,
+        "betrieb": "Drechslerei",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Truhe",
+        "wertJeArbeitsminute": 1.664,
+        "kalkulation": 2814,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 2814,
+        "abstandProzent": -14.8,
+        "imBand": true
+      },
+      {
+        "beruf": "Tischler",
+        "stufe": 3,
+        "betrieb": "Sägewerk",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Prunktruhe",
+        "wertJeArbeitsminute": 1.986,
+        "kalkulation": 4661,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 4661,
+        "abstandProzent": -12.9,
+        "imBand": true
+      },
+      {
+        "beruf": "Steinmetz",
+        "stufe": 1,
+        "betrieb": "Maurerei",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Grabstein",
+        "wertJeArbeitsminute": 1.635,
+        "kalkulation": 1835,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 1835,
+        "abstandProzent": -3.2,
+        "imBand": true
+      },
+      {
+        "beruf": "Steinmetz",
+        "stufe": 2,
+        "betrieb": "Steinschneiderei",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Taufbecken",
+        "wertJeArbeitsminute": 1.826,
+        "kalkulation": 3165,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 3165,
+        "abstandProzent": -4.2,
+        "imBand": true
+      },
+      {
+        "beruf": "Steinmetz",
+        "stufe": 3,
+        "betrieb": "Steinmetzhütte",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Grabmal",
+        "wertJeArbeitsminute": 2.168,
+        "kalkulation": 5185,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 5185,
+        "abstandProzent": -3.1,
+        "imBand": true
+      },
+      {
+        "beruf": "Alchimist",
+        "stufe": 1,
+        "betrieb": "Tinkturei",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Heilsalbe",
+        "wertJeArbeitsminute": 1.686,
+        "kalkulation": 1907,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 1907,
+        "abstandProzent": 0.7,
+        "imBand": true
+      },
+      {
+        "beruf": "Alchimist",
+        "stufe": 2,
+        "betrieb": "Kräuterladen",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Gegengift",
+        "wertJeArbeitsminute": 1.949,
+        "kalkulation": 3430,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 3430,
+        "abstandProzent": 3.8,
+        "imBand": true
+      },
+      {
+        "beruf": "Alchimist",
+        "stufe": 3,
+        "betrieb": "Alchimistenstube",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Theriak",
+        "wertJeArbeitsminute": 2.197,
+        "kalkulation": 5268,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 5268,
+        "abstandProzent": -1.5,
+        "imBand": true
+      },
+      {
+        "beruf": "Wirt",
+        "stufe": 1,
+        "betrieb": "Schänke",
+        "plaetze": 2,
+        "arbeitsminuten": 840,
+        "fixkosten": 80,
+        "quelle": "Körnermahlzeit",
+        "wertJeArbeitsminute": 1.347,
+        "kalkulation": 1669,
+        "zusatz": 30,
+        "zusatzArt": "Ausschank: erwartete Gäste × (Ausschankpreis − Marktpreis) für Körnermahlzeit (die einzige Schänke, nach Steuer)",
+        "gesamt": 1699,
+        "abstandProzent": -10.3,
+        "imBand": true
+      },
+      {
+        "beruf": "Wirt",
+        "stufe": 2,
+        "betrieb": "Wirtshaus",
+        "plaetze": 3,
+        "arbeitsminuten": 840,
+        "fixkosten": 120,
+        "quelle": "Körnermahlzeit",
+        "wertJeArbeitsminute": 1.347,
+        "kalkulation": 2503,
+        "zusatz": 30,
+        "zusatzArt": "Ausschank: erwartete Gäste × (Ausschankpreis − Marktpreis) für Körnermahlzeit (die einzige Schänke, nach Steuer)",
+        "gesamt": 2534,
+        "abstandProzent": -23.3,
+        "imBand": false
+      },
+      {
+        "beruf": "Wirt",
+        "stufe": 3,
+        "betrieb": "Gasthaus",
+        "plaetze": 4,
+        "arbeitsminuten": 840,
+        "fixkosten": 180,
+        "quelle": "Festbier",
+        "wertJeArbeitsminute": 1.459,
+        "kalkulation": 3695,
+        "zusatz": 119,
+        "zusatzArt": "Ausschank: erwartete Gäste × (Ausschankpreis − Marktpreis) für Festbier (die einzige Schänke, nach Steuer)",
+        "gesamt": 3814,
+        "abstandProzent": -28.7,
+        "imBand": false
+      },
+      {
+        "beruf": "Prediger",
+        "stufe": 1,
+        "betrieb": "Kirche",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Kerze",
+        "wertJeArbeitsminute": 1.16,
+        "kalkulation": 1150,
+        "zusatz": 418,
+        "zusatzArt": "Kollekte der Messe (die einzige Kirche der Stadt, nach Steuer)",
+        "gesamt": 1568,
+        "abstandProzent": -17.2,
+        "imBand": false
+      },
+      {
+        "beruf": "Prediger",
+        "stufe": 2,
+        "betrieb": "Dom",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Psalter",
+        "wertJeArbeitsminute": 1.572,
+        "kalkulation": 2615,
+        "zusatz": 418,
+        "zusatzArt": "Kollekte der Messe (die einzige Kirche der Stadt, nach Steuer)",
+        "gesamt": 3033,
+        "abstandProzent": -8.2,
+        "imBand": true
+      },
+      {
+        "beruf": "Prediger",
+        "stufe": 3,
+        "betrieb": "Kathedrale",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Reliquiar",
+        "wertJeArbeitsminute": 1.944,
+        "kalkulation": 4539,
+        "zusatz": 418,
+        "zusatzArt": "Kollekte der Messe (die einzige Kirche der Stadt, nach Steuer)",
+        "gesamt": 4957,
+        "abstandProzent": -7.3,
+        "imBand": true
+      },
+      {
+        "beruf": "Dieb",
+        "stufe": 1,
+        "betrieb": "Schmugglerloch",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Beute der Taschendiebe",
+        "wertJeArbeitsminute": 1.16,
+        "kalkulation": 2381,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 2381,
+        "abstandProzent": 25.6,
+        "imBand": false
+      },
+      {
+        "beruf": "Dieb",
+        "stufe": 2,
+        "betrieb": "Unterschlupf",
+        "plaetze": 6,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Beute der Taschendiebe",
+        "wertJeArbeitsminute": 1.392,
+        "kalkulation": 4573,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 4573,
+        "abstandProzent": 38.4,
+        "imBand": false
+      },
+      {
+        "beruf": "Dieb",
+        "stufe": 3,
+        "betrieb": "Diebesgilde",
+        "plaetze": 8,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Beute der Taschendiebe",
+        "wertJeArbeitsminute": 1.624,
+        "kalkulation": 7414,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 7414,
+        "abstandProzent": 38.6,
+        "imBand": false
+      },
+      {
+        "beruf": "Parfumeur",
+        "stufe": 1,
+        "betrieb": "Siederei",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Blume der Zwietracht",
+        "wertJeArbeitsminute": 1.867,
+        "kalkulation": 2169,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 2169,
+        "abstandProzent": 14.5,
+        "imBand": true
+      },
+      {
+        "beruf": "Parfumeur",
+        "stufe": 2,
+        "betrieb": "Duftwerkstatt",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Fechterduft",
+        "wertJeArbeitsminute": 2.075,
+        "kalkulation": 3702,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 3702,
+        "abstandProzent": 12,
+        "imBand": true
+      },
+      {
+        "beruf": "Parfumeur",
+        "stufe": 3,
+        "betrieb": "Parfumerie",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Heiligenduft",
+        "wertJeArbeitsminute": 2.439,
+        "kalkulation": 5964,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 5964,
+        "abstandProzent": 11.5,
+        "imBand": true
+      },
+      {
+        "beruf": "Geldleiher",
+        "stufe": 1,
+        "betrieb": "Wechselstube",
+        "plaetze": 2,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Stadtzinsen und Wechsel (volle Kasse)",
+        "wertJeArbeitsminute": 1.849,
+        "kalkulation": 2143,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 2143,
+        "abstandProzent": 13.1,
+        "imBand": true
+      },
+      {
+        "beruf": "Geldleiher",
+        "stufe": 2,
+        "betrieb": "Geldleihe",
+        "plaetze": 3,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Stadtzinsen und Wechsel (volle Kasse)",
+        "wertJeArbeitsminute": 2.232,
+        "kalkulation": 4041,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 4041,
+        "abstandProzent": 22.3,
+        "imBand": false
+      },
+      {
+        "beruf": "Geldleiher",
+        "stufe": 3,
+        "betrieb": "Bankhaus",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Stadtzinsen und Wechsel (volle Kasse)",
+        "wertJeArbeitsminute": 2.615,
+        "kalkulation": 6471,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 6471,
+        "abstandProzent": 20.9,
+        "imBand": false
+      },
+      {
+        "beruf": "Gardist",
+        "stufe": 1,
+        "betrieb": "Wachhaus",
+        "plaetze": 4,
+        "arbeitsminuten": 720,
+        "fixkosten": 80,
+        "quelle": "Sold der Stadt",
+        "wertJeArbeitsminute": 0.855,
+        "kalkulation": 1502,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 1502,
+        "abstandProzent": -20.7,
+        "imBand": false
+      },
+      {
+        "beruf": "Gardist",
+        "stufe": 2,
+        "betrieb": "Stadtwache",
+        "plaetze": 6,
+        "arbeitsminuten": 720,
+        "fixkosten": 120,
+        "quelle": "Sold der Stadt",
+        "wertJeArbeitsminute": 0.941,
+        "kalkulation": 2623,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 2623,
+        "abstandProzent": -20.6,
+        "imBand": false
+      },
+      {
+        "beruf": "Gardist",
+        "stufe": 3,
+        "betrieb": "Garnison",
+        "plaetze": 8,
+        "arbeitsminuten": 720,
+        "fixkosten": 180,
+        "quelle": "Sold der Stadt",
+        "wertJeArbeitsminute": 1.112,
+        "kalkulation": 4462,
+        "zusatz": 0,
+        "zusatzArt": null,
+        "gesamt": 4462,
+        "abstandProzent": -16.6,
+        "imBand": false
+      }
+    ],
+    "statischMittelJeStufe": {
+      "1": 1895,
+      "2": 3304,
+      "3": 5350
+    },
+    "simuliert": [
+      {
+        "beruf": "Schmied",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 5324,
+              "streuung": 779,
+              "fehlerMittel": 174,
+              "min": 3987,
+              "q10": 4568,
+              "q25": 4880,
+              "median": 5041,
+              "q75": 5897,
+              "q90": 6199,
+              "max": 6937
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1452,
+              "streuung": 495,
+              "fehlerMittel": 111,
+              "min": 604,
+              "q10": 867,
+              "q25": 1202,
+              "median": 1362,
+              "q75": 1770,
+              "q90": 1907,
+              "max": 2757
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6050,
+              "streuung": 909,
+              "fehlerMittel": 117,
+              "min": 3737,
+              "q10": 4914,
+              "q25": 5501,
+              "median": 6143,
+              "q75": 6544,
+              "q90": 7071,
+              "max": 8430
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -34.6,
+            "abstandGewinnProzent": 7.7,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 10058,
+              "streuung": 2737,
+              "fehlerMittel": 612,
+              "min": 2703,
+              "q10": 5742,
+              "q25": 9995,
+              "median": 10965,
+              "q75": 11826,
+              "q90": 12099,
+              "max": 12831
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1784,
+              "streuung": 2498,
+              "fehlerMittel": 559,
+              "min": -5558,
+              "q10": 813,
+              "q25": 1898,
+              "median": 2322,
+              "q75": 2848,
+              "q90": 3129,
+              "max": 4783
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 9860,
+              "streuung": 4017,
+              "fehlerMittel": 519,
+              "min": 3470,
+              "q10": 5472,
+              "q25": 6744,
+              "median": 9145,
+              "q75": 11628,
+              "q90": 15952,
+              "max": 23311
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -15.4,
+            "abstandGewinnProzent": -11.8,
+            "imBand": false
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 34779,
+              "streuung": 5336,
+              "fehlerMittel": 1193,
+              "min": 25852,
+              "q10": 28386,
+              "q25": 30762,
+              "median": 34635,
+              "q75": 37449,
+              "q90": 42130,
+              "max": 45442
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4883,
+              "streuung": 3904,
+              "fehlerMittel": 873,
+              "min": -5795,
+              "q10": 1011,
+              "q25": 3031,
+              "median": 5327,
+              "q75": 7523,
+              "q90": 8879,
+              "max": 11466
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 79030,
+              "streuung": 21376,
+              "fehlerMittel": 2760,
+              "min": 22397,
+              "q10": 54927,
+              "q25": 68053,
+              "median": 75226,
+              "q75": 90440,
+              "q90": 110890,
+              "max": 133799
+            },
+            "sonder": {
+              "Arbeiter": 3,
+              "Leistung": 3
+            },
+            "abstandZuwachsProzent": 6.7,
+            "abstandGewinnProzent": 5.1,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2663,
+          "amtseinkommen": 57,
+          "familie": -406,
+          "geschenke": -57,
+          "gericht": -165,
+          "gaunerei": 25,
+          "investitionen": -761,
+          "standesgebuehren": -175,
+          "zinsen": -0,
+          "davonSteuer": -293,
+          "davonSpitzel": -93,
+          "schiffeAmEnde": 0.85
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 10.2,
+          "streuung": 1.5,
+          "fehlerMittel": 0.3,
+          "min": 9,
+          "q10": 9,
+          "q25": 9,
+          "median": 10,
+          "q75": 10,
+          "q90": 11,
+          "max": 16
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 9,
+          "streuung": 0.8,
+          "fehlerMittel": 0.2,
+          "min": 8,
+          "q10": 8,
+          "q25": 8.8,
+          "median": 9,
+          "q75": 9,
+          "q90": 10,
+          "max": 11
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 12.6,
+          "streuung": 0.5,
+          "fehlerMittel": 0.1,
+          "min": 12,
+          "q10": 12,
+          "q25": 12,
+          "median": 13,
+          "q75": 13,
+          "q90": 13,
+          "max": 13
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 19,
+        "buergerVor8": 0
+      },
+      {
+        "beruf": "Tischler",
+        "volk": "Mensch",
+        "volksbonusProzent": 5,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 5663,
+              "streuung": 579,
+              "fehlerMittel": 129,
+              "min": 4010,
+              "q10": 5071,
+              "q25": 5388,
+              "median": 5719,
+              "q75": 5964,
+              "q90": 6176,
+              "max": 6848
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1391,
+              "streuung": 395,
+              "fehlerMittel": 88,
+              "min": 240,
+              "q10": 988,
+              "q25": 1198,
+              "median": 1468,
+              "q75": 1641,
+              "q90": 1822,
+              "max": 1841
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6143,
+              "streuung": 1103,
+              "fehlerMittel": 142,
+              "min": 1349,
+              "q10": 4914,
+              "q25": 5540,
+              "median": 6317,
+              "q75": 6975,
+              "q90": 7305,
+              "max": 7803
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -17.9,
+            "abstandGewinnProzent": 3.2,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 10020,
+              "streuung": 2412,
+              "fehlerMittel": 539,
+              "min": 2778,
+              "q10": 7273,
+              "q25": 9799,
+              "median": 10322,
+              "q75": 11604,
+              "q90": 11845,
+              "max": 12813
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1166,
+              "streuung": 3402,
+              "fehlerMittel": 761,
+              "min": -5491,
+              "q10": -2777,
+              "q25": 633,
+              "median": 1369,
+              "q75": 1896,
+              "q90": 3133,
+              "max": 10772
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 9411,
+              "streuung": 4581,
+              "fehlerMittel": 591,
+              "min": 246,
+              "q10": 4256,
+              "q25": 5723,
+              "median": 8884,
+              "q75": 12168,
+              "q90": 15856,
+              "max": 21031
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -15.9,
+            "abstandGewinnProzent": -42.4,
+            "imBand": false
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 33111,
+              "streuung": 7313,
+              "fehlerMittel": 1635,
+              "min": 20432,
+              "q10": 22827,
+              "q25": 29333,
+              "median": 33527,
+              "q75": 38626,
+              "q90": 42249,
+              "max": 43763
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4688,
+              "streuung": 3070,
+              "fehlerMittel": 687,
+              "min": -1861,
+              "q10": 2135,
+              "q25": 3434,
+              "median": 5082,
+              "q75": 5720,
+              "q90": 6906,
+              "max": 13203
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 77043,
+              "streuung": 26276,
+              "fehlerMittel": 3392,
+              "min": 16654,
+              "q10": 44116,
+              "q25": 56529,
+              "median": 80879,
+              "q75": 96429,
+              "q90": 106983,
+              "max": 130966
+            },
+            "sonder": {
+              "Arbeiter": 3,
+              "Leistung": 3
+            },
+            "abstandZuwachsProzent": 0.9,
+            "abstandGewinnProzent": 0.9,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2527,
+          "amtseinkommen": 62,
+          "familie": -400,
+          "geschenke": -52,
+          "gericht": -199,
+          "gaunerei": 30,
+          "investitionen": -637,
+          "standesgebuehren": -175,
+          "zinsen": -0,
+          "davonSteuer": -294,
+          "davonSpitzel": -95,
+          "schiffeAmEnde": 0.45
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 9.7,
+          "streuung": 0.8,
+          "fehlerMittel": 0.2,
+          "min": 9,
+          "q10": 9,
+          "q25": 9,
+          "median": 9,
+          "q75": 10,
+          "q90": 11,
+          "max": 11
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 8.9,
+          "streuung": 0.9,
+          "fehlerMittel": 0.2,
+          "min": 7,
+          "q10": 8,
+          "q25": 8,
+          "median": 9,
+          "q75": 9,
+          "q90": 10,
+          "max": 11
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 12.4,
+          "streuung": 0.6,
+          "fehlerMittel": 0.1,
+          "min": 12,
+          "q10": 12,
+          "q25": 12,
+          "median": 12,
+          "q75": 13,
+          "q90": 13,
+          "max": 14
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 20,
+        "buergerVor8": 0
+      },
+      {
+        "beruf": "Steinmetz",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 4540,
+              "streuung": 1185,
+              "fehlerMittel": 265,
+              "min": 2268,
+              "q10": 3260,
+              "q25": 3734,
+              "median": 4530,
+              "q75": 5663,
+              "q90": 5934,
+              "max": 6445
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 797,
+              "streuung": 672,
+              "fehlerMittel": 150,
+              "min": -434,
+              "q10": 65,
+              "q25": 421,
+              "median": 777,
+              "q75": 1172,
+              "q90": 1670,
+              "max": 2004
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 5770,
+              "streuung": 1105,
+              "fehlerMittel": 143,
+              "min": 1458,
+              "q10": 4542,
+              "q25": 5402,
+              "median": 5771,
+              "q75": 6357,
+              "q90": 7215,
+              "max": 7642
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -73.3,
+            "abstandGewinnProzent": -40.9,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 8557,
+              "streuung": 1992,
+              "fehlerMittel": 445,
+              "min": 3306,
+              "q10": 6517,
+              "q25": 8065,
+              "median": 9188,
+              "q75": 9710,
+              "q90": 10235,
+              "max": 10862
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1604,
+              "streuung": 1055,
+              "fehlerMittel": 236,
+              "min": 63,
+              "q10": 314,
+              "q25": 891,
+              "median": 1571,
+              "q75": 2197,
+              "q90": 2554,
+              "max": 4532
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 8310,
+              "streuung": 4146,
+              "fehlerMittel": 535,
+              "min": 106,
+              "q10": 3287,
+              "q25": 6251,
+              "median": 8173,
+              "q75": 9796,
+              "q90": 14654,
+              "max": 22622
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -36.4,
+            "abstandGewinnProzent": -20.7,
+            "imBand": false
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 30565,
+              "streuung": 6898,
+              "fehlerMittel": 1542,
+              "min": 17234,
+              "q10": 21672,
+              "q25": 25338,
+              "median": 31872,
+              "q75": 36607,
+              "q90": 38046,
+              "max": 43837
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4454,
+              "streuung": 3836,
+              "fehlerMittel": 858,
+              "min": -2160,
+              "q10": 385,
+              "q25": 1960,
+              "median": 4950,
+              "q75": 6364,
+              "q90": 7409,
+              "max": 15045
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 68800,
+              "streuung": 25920,
+              "fehlerMittel": 3346,
+              "min": 25466,
+              "q10": 41851,
+              "q25": 48398,
+              "median": 61720,
+              "q75": 87790,
+              "q90": 108733,
+              "max": 119516
+            },
+            "sonder": {
+              "Arbeiter": 3,
+              "Leistung": 3
+            },
+            "abstandZuwachsProzent": -7.9,
+            "abstandGewinnProzent": -4.2,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2403,
+          "amtseinkommen": 56,
+          "familie": -389,
+          "geschenke": -42,
+          "gericht": -167,
+          "gaunerei": 28,
+          "investitionen": -704,
+          "standesgebuehren": -175,
+          "zinsen": -0,
+          "davonSteuer": -309,
+          "davonSpitzel": -90,
+          "schiffeAmEnde": 0.75
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 11.5,
+          "streuung": 1.4,
+          "fehlerMittel": 0.3,
+          "min": 9,
+          "q10": 10,
+          "q25": 11,
+          "median": 11,
+          "q75": 12,
+          "q90": 13.1,
+          "max": 15
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 10.2,
+          "streuung": 0.8,
+          "fehlerMittel": 0.2,
+          "min": 9,
+          "q10": 9,
+          "q25": 10,
+          "median": 10,
+          "q75": 10,
+          "q90": 11.1,
+          "max": 12
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 13.2,
+          "streuung": 0.5,
+          "fehlerMittel": 0.1,
+          "min": 12,
+          "q10": 13,
+          "q25": 13,
+          "median": 13,
+          "q75": 13,
+          "q90": 14,
+          "max": 14
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 16,
+        "buergerVor8": 0
+      },
+      {
+        "beruf": "Alchimist",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 6096,
+              "streuung": 763,
+              "fehlerMittel": 171,
+              "min": 4160,
+              "q10": 5305,
+              "q25": 5823,
+              "median": 6067,
+              "q75": 6626,
+              "q90": 7012,
+              "max": 7424
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1258,
+              "streuung": 336,
+              "fehlerMittel": 75,
+              "min": 540,
+              "q10": 856,
+              "q25": 1125,
+              "median": 1273,
+              "q75": 1421,
+              "q90": 1623,
+              "max": 2034
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6421,
+              "streuung": 1034,
+              "fehlerMittel": 134,
+              "min": 3641,
+              "q10": 5165,
+              "q25": 5720,
+              "median": 6486,
+              "q75": 7279,
+              "q90": 7594,
+              "max": 8124
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": 3.5,
+            "abstandGewinnProzent": -6.7,
+            "imBand": true
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 11044,
+              "streuung": 2170,
+              "fehlerMittel": 485,
+              "min": 5757,
+              "q10": 8636,
+              "q25": 9928,
+              "median": 11232,
+              "q75": 12069,
+              "q90": 14204,
+              "max": 14820
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 2745,
+              "streuung": 3043,
+              "fehlerMittel": 680,
+              "min": -2111,
+              "q10": 1138,
+              "q25": 1425,
+              "median": 1755,
+              "q75": 2011,
+              "q90": 7429,
+              "max": 10046
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 10041,
+              "streuung": 5026,
+              "fehlerMittel": 649,
+              "min": 2272,
+              "q10": 3912,
+              "q25": 6321,
+              "median": 9480,
+              "q75": 13413,
+              "q90": 16533,
+              "max": 23060
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -1.6,
+            "abstandGewinnProzent": 35.7,
+            "imBand": true
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 32633,
+              "streuung": 6512,
+              "fehlerMittel": 1456,
+              "min": 22024,
+              "q10": 24796,
+              "q25": 28129,
+              "median": 31394,
+              "q75": 37706,
+              "q90": 41791,
+              "max": 43570
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 6214,
+              "streuung": 2629,
+              "fehlerMittel": 588,
+              "min": 3182,
+              "q10": 3851,
+              "q25": 4745,
+              "median": 5442,
+              "q75": 6778,
+              "q90": 10244,
+              "max": 12412
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 77533,
+              "streuung": 24237,
+              "fehlerMittel": 3129,
+              "min": 9128,
+              "q10": 47904,
+              "q25": 59190,
+              "median": 80517,
+              "q75": 95604,
+              "q90": 104344,
+              "max": 121297
+            },
+            "sonder": {
+              "Arbeiter": 3,
+              "Leistung": 3
+            },
+            "abstandZuwachsProzent": -0.7,
+            "abstandGewinnProzent": 33.7,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2528,
+          "amtseinkommen": 71,
+          "familie": -397,
+          "geschenke": -47,
+          "gericht": -188,
+          "gaunerei": 18,
+          "investitionen": -704,
+          "standesgebuehren": -190,
+          "zinsen": -0,
+          "davonSteuer": -248,
+          "davonSpitzel": -98,
+          "schiffeAmEnde": 0.6
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 10.3,
+          "streuung": 2.5,
+          "fehlerMittel": 0.6,
+          "min": 8,
+          "q10": 8,
+          "q25": 9,
+          "median": 9.5,
+          "q75": 10,
+          "q90": 14,
+          "max": 18
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 9,
+          "streuung": 1.2,
+          "fehlerMittel": 0.3,
+          "min": 7,
+          "q10": 8,
+          "q25": 8,
+          "median": 9,
+          "q75": 10,
+          "q90": 10.1,
+          "max": 12
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 12.6,
+          "streuung": 0.5,
+          "fehlerMittel": 0.1,
+          "min": 12,
+          "q10": 12,
+          "q25": 12,
+          "median": 13,
+          "q75": 13,
+          "q90": 13,
+          "max": 13
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 17,
+        "buergerVor8": 0
+      },
+      {
+        "beruf": "Wirt",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 6521,
+              "streuung": 883,
+              "fehlerMittel": 198,
+              "min": 4654,
+              "q10": 5619,
+              "q25": 6034,
+              "median": 6639,
+              "q75": 7086,
+              "q90": 7624,
+              "max": 7875
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1691,
+              "streuung": 376,
+              "fehlerMittel": 84,
+              "min": 736,
+              "q10": 1213,
+              "q25": 1639,
+              "median": 1731,
+              "q75": 1967,
+              "q90": 2035,
+              "max": 2123
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6145,
+              "streuung": 899,
+              "fehlerMittel": 116,
+              "min": 3031,
+              "q10": 5070,
+              "q25": 5713,
+              "median": 6174,
+              "q75": 6816,
+              "q90": 7201,
+              "max": 7951
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Ausschank": 3933.9,
+              "Gaeste": 57,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": 24.4,
+            "abstandGewinnProzent": 25.5,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 10301,
+              "streuung": 2744,
+              "fehlerMittel": 614,
+              "min": 4191,
+              "q10": 6535,
+              "q25": 9101,
+              "median": 10801,
+              "q75": 11636,
+              "q90": 12059,
+              "max": 16942
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 2120,
+              "streuung": 3134,
+              "fehlerMittel": 701,
+              "min": -5931,
+              "q10": 180,
+              "q25": 1468,
+              "median": 1771,
+              "q75": 2320,
+              "q90": 5200,
+              "max": 9133
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 10457,
+              "streuung": 4468,
+              "fehlerMittel": 577,
+              "min": 408,
+              "q10": 4680,
+              "q25": 7849,
+              "median": 10570,
+              "q75": 13633,
+              "q90": 16305,
+              "max": 19524
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Ausschank": 4810.2,
+              "Gaeste": 58.9,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -12,
+            "abstandGewinnProzent": 4.8,
+            "imBand": true
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 34755,
+              "streuung": 13996,
+              "fehlerMittel": 3130,
+              "min": -4011,
+              "q10": 24736,
+              "q25": 30277,
+              "median": 33539,
+              "q75": 39633,
+              "q90": 49336,
+              "max": 67353
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 3916,
+              "streuung": 5409,
+              "fehlerMittel": 1210,
+              "min": -7170,
+              "q10": -1899,
+              "q25": 2346,
+              "median": 4550,
+              "q75": 5920,
+              "q90": 6617,
+              "max": 19987
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1.9,
+              "streuung": 0.45,
+              "fehlerMittel": 0.1,
+              "min": 0,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 79176,
+              "streuung": 20577,
+              "fehlerMittel": 2656,
+              "min": 43882,
+              "q10": 50115,
+              "q25": 59469,
+              "median": 82933,
+              "q75": 95694,
+              "q90": 102123,
+              "max": 124331
+            },
+            "sonder": {
+              "Arbeiter": 2.9,
+              "Ausschank": 9190.8,
+              "Gaeste": 68.5,
+              "Leistung": 2.8
+            },
+            "abstandZuwachsProzent": 6.6,
+            "abstandGewinnProzent": -15.7,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2610,
+          "amtseinkommen": 83,
+          "familie": -391,
+          "geschenke": -55,
+          "gericht": -164,
+          "gaunerei": 18,
+          "investitionen": -731,
+          "standesgebuehren": -214,
+          "zinsen": -0,
+          "davonSteuer": -330,
+          "davonSpitzel": -89,
+          "schiffeAmEnde": 0.5
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 10,
+          "streuung": 2,
+          "fehlerMittel": 0.4,
+          "min": 8,
+          "q10": 8,
+          "q25": 9,
+          "median": 9,
+          "q75": 10.3,
+          "q90": 11.3,
+          "max": 16
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 8.5,
+          "streuung": 1.3,
+          "fehlerMittel": 0.3,
+          "min": 7,
+          "q10": 7.9,
+          "q25": 8,
+          "median": 8,
+          "q75": 9,
+          "q90": 9.1,
+          "max": 13
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 11.5,
+          "streuung": 0.5,
+          "fehlerMittel": 0.1,
+          "min": 11,
+          "q10": 11,
+          "q25": 11,
+          "median": 11,
+          "q75": 12,
+          "q90": 12,
+          "max": 12
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 1,
+        "buergerIn8bis12": 18,
+        "buergerVor8": 0
+      },
+      {
+        "beruf": "Prediger",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 5781,
+              "streuung": 916,
+              "fehlerMittel": 205,
+              "min": 4071,
+              "q10": 4378,
+              "q25": 5361,
+              "median": 5822,
+              "q75": 6525,
+              "q90": 6780,
+              "max": 7204
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1458,
+              "streuung": 633,
+              "fehlerMittel": 141,
+              "min": 314,
+              "q10": 523,
+              "q25": 1038,
+              "median": 1676,
+              "q75": 1999,
+              "q90": 2067,
+              "max": 2499
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6130,
+              "streuung": 1581,
+              "fehlerMittel": 204,
+              "min": 109,
+              "q10": 4615,
+              "q25": 5391,
+              "median": 6402,
+              "q75": 7125,
+              "q90": 7678,
+              "max": 8694
+            },
+            "sonder": {
+              "Ablassgeld": 261.3,
+              "Arbeiter": 2,
+              "Kollekte": 352.1,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -12.1,
+            "abstandGewinnProzent": 8.2,
+            "imBand": true
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 11153,
+              "streuung": 3067,
+              "fehlerMittel": 686,
+              "min": 4242,
+              "q10": 7292,
+              "q25": 8952,
+              "median": 11675,
+              "q75": 13482,
+              "q90": 14244,
+              "max": 15603
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1745,
+              "streuung": 2223,
+              "fehlerMittel": 497,
+              "min": -3431,
+              "q10": 468,
+              "q25": 1383,
+              "median": 1684,
+              "q75": 2310,
+              "q90": 2779,
+              "max": 8631
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 9985,
+              "streuung": 4017,
+              "fehlerMittel": 519,
+              "min": 1979,
+              "q10": 4676,
+              "q25": 7012,
+              "median": 9290,
+              "q75": 13156,
+              "q90": 15661,
+              "max": 18155
+            },
+            "sonder": {
+              "Ablassgeld": 464.7,
+              "Arbeiter": 2,
+              "Kollekte": 381.1,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": -0.1,
+            "abstandGewinnProzent": -13.7,
+            "imBand": true
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 30722,
+              "streuung": 9645,
+              "fehlerMittel": 2157,
+              "min": 14798,
+              "q10": 22600,
+              "q25": 26854,
+              "median": 29699,
+              "q75": 33438,
+              "q90": 37504,
+              "max": 59991
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4942,
+              "streuung": 3099,
+              "fehlerMittel": 693,
+              "min": 1241,
+              "q10": 1830,
+              "q25": 2357,
+              "median": 4278,
+              "q75": 6377,
+              "q90": 9135,
+              "max": 11643
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 76971,
+              "streuung": 19605,
+              "fehlerMittel": 2531,
+              "min": 34033,
+              "q10": 50119,
+              "q25": 63858,
+              "median": 76549,
+              "q75": 89376,
+              "q90": 104305,
+              "max": 114616
+            },
+            "sonder": {
+              "Ablassgeld": 270.3,
+              "Arbeiter": 3,
+              "Kollekte": 348.1,
+              "Leistung": 3
+            },
+            "abstandZuwachsProzent": -7.3,
+            "abstandGewinnProzent": 6.3,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2464,
+          "amtseinkommen": 75,
+          "familie": -373,
+          "geschenke": -53,
+          "gericht": -247,
+          "gaunerei": 49,
+          "investitionen": -725,
+          "standesgebuehren": -205,
+          "zinsen": -0,
+          "davonSteuer": -328,
+          "davonSpitzel": -94,
+          "schiffeAmEnde": 0.65
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 10,
+          "streuung": 1.6,
+          "fehlerMittel": 0.4,
+          "min": 8,
+          "q10": 8,
+          "q25": 9,
+          "median": 10,
+          "q75": 11,
+          "q90": 11.1,
+          "max": 15
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 8.5,
+          "streuung": 1.2,
+          "fehlerMittel": 0.3,
+          "min": 7,
+          "q10": 7,
+          "q25": 7.8,
+          "median": 8.5,
+          "q75": 9,
+          "q90": 10.1,
+          "max": 11
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 12.3,
+          "streuung": 0.5,
+          "fehlerMittel": 0.1,
+          "min": 12,
+          "q10": 12,
+          "q25": 12,
+          "median": 12,
+          "q75": 13,
+          "q90": 13,
+          "max": 13
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 19,
+        "buergerVor8": 0
+      },
+      {
+        "beruf": "Dieb",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 8081,
+              "streuung": 1993,
+              "fehlerMittel": 446,
+              "min": 501,
+              "q10": 6753,
+              "q25": 7971,
+              "median": 8771,
+              "q75": 8995,
+              "q90": 9272,
+              "max": 9388
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1814,
+              "streuung": 1258,
+              "fehlerMittel": 281,
+              "min": -3497,
+              "q10": 1935,
+              "q25": 2058,
+              "median": 2105,
+              "q75": 2148,
+              "q90": 2219,
+              "max": 2262
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 0.95,
+              "streuung": 0.22,
+              "fehlerMittel": 0.05,
+              "min": 0,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6616,
+              "streuung": 1181,
+              "fehlerMittel": 152,
+              "min": 3809,
+              "q10": 4891,
+              "q25": 5684,
+              "median": 6814,
+              "q75": 7521,
+              "q90": 7944,
+              "max": 9101
+            },
+            "sonder": {
+              "Arbeiter": 3.8,
+              "Beute": 3135.6,
+              "Faenge": 0.5,
+              "Leistung": 3.5
+            },
+            "abstandZuwachsProzent": 101.4,
+            "abstandGewinnProzent": 34.6,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 13519,
+              "streuung": 3991,
+              "fehlerMittel": 892,
+              "min": 2036,
+              "q10": 10665,
+              "q25": 11554,
+              "median": 13987,
+              "q75": 16104,
+              "q90": 17614,
+              "max": 20166
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 2474,
+              "streuung": 2815,
+              "fehlerMittel": 629,
+              "min": -971,
+              "q10": 1430,
+              "q25": 1920,
+              "median": 2028,
+              "q75": 2113,
+              "q90": 2405,
+              "max": 13581
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 0.95,
+              "streuung": 0.22,
+              "fehlerMittel": 0.05,
+              "min": 0,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 13052,
+              "streuung": 4933,
+              "fehlerMittel": 637,
+              "min": 2152,
+              "q10": 5881,
+              "q25": 9107,
+              "median": 13732,
+              "q75": 17246,
+              "q90": 18775,
+              "max": 21936
+            },
+            "sonder": {
+              "Arbeiter": 3.8,
+              "Beute": 2923.2,
+              "Faenge": 0.5,
+              "Leistung": 3.5
+            },
+            "abstandZuwachsProzent": 32.9,
+            "abstandGewinnProzent": 22.3,
+            "imBand": false
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 29722,
+              "streuung": 10910,
+              "fehlerMittel": 2440,
+              "min": 7517,
+              "q10": 18938,
+              "q25": 22909,
+              "median": 31054,
+              "q75": 35362,
+              "q90": 39002,
+              "max": 50617
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4729,
+              "streuung": 4240,
+              "fehlerMittel": 948,
+              "min": -3721,
+              "q10": -161,
+              "q25": 4075,
+              "median": 4276,
+              "q75": 5619,
+              "q90": 7575,
+              "max": 17686
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1.9,
+              "streuung": 0.45,
+              "fehlerMittel": 0.1,
+              "min": 0,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 91826,
+              "streuung": 24460,
+              "fehlerMittel": 3158,
+              "min": 34631,
+              "q10": 64140,
+              "q25": 74182,
+              "median": 90491,
+              "q75": 112055,
+              "q90": 121526,
+              "max": 149701
+            },
+            "sonder": {
+              "Arbeiter": 5.7,
+              "Beute": 5482.2,
+              "Faenge": 1.2,
+              "Leistung": 5.4
+            },
+            "abstandZuwachsProzent": -10.8,
+            "abstandGewinnProzent": 1.8,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2539,
+          "amtseinkommen": 43,
+          "familie": -385,
+          "geschenke": -54,
+          "gericht": -455,
+          "gaunerei": 18,
+          "investitionen": -564,
+          "standesgebuehren": -166,
+          "zinsen": -0,
+          "davonSteuer": -34,
+          "davonSpitzel": -97,
+          "schiffeAmEnde": 0.6
+        },
+        "jahreBisBuerger": {
+          "n": 19,
+          "mittel": 7.7,
+          "streuung": 2.4,
+          "fehlerMittel": 0.6,
+          "min": 6,
+          "q10": 6,
+          "q25": 7,
+          "median": 7,
+          "q75": 8,
+          "q90": 9,
+          "max": 17
+        },
+        "buergerErreicht": 19,
+        "jahreBisStandBuerger": {
+          "n": 19,
+          "mittel": 5.8,
+          "streuung": 0.9,
+          "fehlerMittel": 0.2,
+          "min": 5,
+          "q10": 5,
+          "q25": 5,
+          "median": 6,
+          "q75": 6,
+          "q90": 6.4,
+          "max": 8
+        },
+        "jahrStufe2": {
+          "n": 19,
+          "mittel": 13,
+          "streuung": 0,
+          "fehlerMittel": 0,
+          "min": 13,
+          "q10": 13,
+          "q25": 13,
+          "median": 13,
+          "q75": 13,
+          "q90": 13,
+          "max": 13
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 5,
+        "buergerVor8": 13
+      },
+      {
+        "beruf": "Parfumeur",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 5082,
+              "streuung": 1020,
+              "fehlerMittel": 228,
+              "min": 3203,
+              "q10": 3776,
+              "q25": 4355,
+              "median": 5277,
+              "q75": 5559,
+              "q90": 6430,
+              "max": 6960
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 487,
+              "streuung": 1024,
+              "fehlerMittel": 229,
+              "min": -1000,
+              "q10": -759,
+              "q25": -469,
+              "median": 757,
+              "q75": 1290,
+              "q90": 1589,
+              "max": 2425
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6276,
+              "streuung": 826,
+              "fehlerMittel": 107,
+              "min": 3641,
+              "q10": 5266,
+              "q25": 5653,
+              "median": 6424,
+              "q75": 6894,
+              "q90": 7246,
+              "max": 7700
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 1.9
+            },
+            "abstandZuwachsProzent": -46.6,
+            "abstandGewinnProzent": -63.9,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 11688,
+              "streuung": 3828,
+              "fehlerMittel": 856,
+              "min": 4675,
+              "q10": 5754,
+              "q25": 10608,
+              "median": 12476,
+              "q75": 13646,
+              "q90": 14538,
+              "max": 20562
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 2429,
+              "streuung": 3174,
+              "fehlerMittel": 710,
+              "min": -3963,
+              "q10": -747,
+              "q25": 1782,
+              "median": 2308,
+              "q75": 2797,
+              "q90": 4563,
+              "max": 10650
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 10163,
+              "streuung": 3884,
+              "fehlerMittel": 501,
+              "min": 3276,
+              "q10": 4799,
+              "q25": 7682,
+              "median": 9461,
+              "q75": 13191,
+              "q90": 15823,
+              "max": 18849
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Leistung": 2
+            },
+            "abstandZuwachsProzent": 7.4,
+            "abstandGewinnProzent": 20.1,
+            "imBand": true
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 34616,
+              "streuung": 11339,
+              "fehlerMittel": 2536,
+              "min": 18774,
+              "q10": 25177,
+              "q25": 29119,
+              "median": 33894,
+              "q75": 36651,
+              "q90": 41701,
+              "max": 74724
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4705,
+              "streuung": 3743,
+              "fehlerMittel": 837,
+              "min": -4808,
+              "q10": 171,
+              "q25": 2923,
+              "median": 5978,
+              "q75": 7357,
+              "q90": 8008,
+              "max": 8928
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 77533,
+              "streuung": 24888,
+              "fehlerMittel": 3213,
+              "min": 36486,
+              "q10": 42013,
+              "q25": 56443,
+              "median": 80052,
+              "q75": 95462,
+              "q90": 112358,
+              "max": 128877
+            },
+            "sonder": {
+              "Arbeiter": 3,
+              "Leistung": 3
+            },
+            "abstandZuwachsProzent": 6.2,
+            "abstandGewinnProzent": 1.2,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2634,
+          "amtseinkommen": 88,
+          "familie": -390,
+          "geschenke": -44,
+          "gericht": -186,
+          "gaunerei": 9,
+          "investitionen": -710,
+          "standesgebuehren": -205,
+          "zinsen": -0,
+          "davonSteuer": -313,
+          "davonSpitzel": -97,
+          "schiffeAmEnde": 0.65
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 9.6,
+          "streuung": 2,
+          "fehlerMittel": 0.5,
+          "min": 7,
+          "q10": 8,
+          "q25": 8,
+          "median": 9,
+          "q75": 10,
+          "q90": 12.2,
+          "max": 15
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 8.4,
+          "streuung": 1.1,
+          "fehlerMittel": 0.3,
+          "min": 7,
+          "q10": 7,
+          "q25": 7.8,
+          "median": 8,
+          "q75": 9,
+          "q90": 10,
+          "max": 11
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 13.2,
+          "streuung": 0.5,
+          "fehlerMittel": 0.1,
+          "min": 12,
+          "q10": 13,
+          "q25": 13,
+          "median": 13,
+          "q75": 13.3,
+          "q90": 14,
+          "max": 14
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 17,
+        "buergerVor8": 1
+      },
+      {
+        "beruf": "Geldleiher",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 6686,
+              "streuung": 1192,
+              "fehlerMittel": 266,
+              "min": 4298,
+              "q10": 5070,
+              "q25": 5699,
+              "median": 6826,
+              "q75": 7605,
+              "q90": 7893,
+              "max": 8850
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1570,
+              "streuung": 278,
+              "fehlerMittel": 62,
+              "min": 1092,
+              "q10": 1202,
+              "q25": 1399,
+              "median": 1651,
+              "q75": 1726,
+              "q90": 1779,
+              "max": 2291
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6617,
+              "streuung": 787,
+              "fehlerMittel": 102,
+              "min": 4301,
+              "q10": 5544,
+              "q25": 6100,
+              "median": 6691,
+              "q75": 7178,
+              "q90": 7588,
+              "max": 7895
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Ausfall": 52.6,
+              "Hauszinsen": 0,
+              "Kasse": 2838.9,
+              "Leistung": 1.9,
+              "Stadtzinsen": 321.9,
+              "Wechsel": 2330
+            },
+            "abstandZuwachsProzent": 32.6,
+            "abstandGewinnProzent": 16.5,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 13897,
+              "streuung": 1782,
+              "fehlerMittel": 399,
+              "min": 10858,
+              "q10": 11670,
+              "q25": 12929,
+              "median": 13526,
+              "q75": 14875,
+              "q90": 15694,
+              "max": 18610
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1789,
+              "streuung": 268,
+              "fehlerMittel": 60,
+              "min": 1222,
+              "q10": 1539,
+              "q25": 1720,
+              "median": 1749,
+              "q75": 1776,
+              "q90": 2196,
+              "max": 2319
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 8423,
+              "streuung": 3917,
+              "fehlerMittel": 506,
+              "min": 1218,
+              "q10": 2976,
+              "q25": 5647,
+              "median": 8094,
+              "q75": 10697,
+              "q90": 14375,
+              "max": 17677
+            },
+            "sonder": {
+              "Arbeiter": 2,
+              "Ausfall": 40,
+              "Hauszinsen": 0,
+              "Kasse": 3959.7,
+              "Leistung": 2,
+              "Stadtzinsen": 478.8,
+              "Wechsel": 2668.9
+            },
+            "abstandZuwachsProzent": 38.2,
+            "abstandGewinnProzent": -11.6,
+            "imBand": false
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 33642,
+              "streuung": 5191,
+              "fehlerMittel": 1161,
+              "min": 23779,
+              "q10": 28500,
+              "q25": 30585,
+              "median": 32987,
+              "q75": 35540,
+              "q90": 39027,
+              "max": 46355
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 4518,
+              "streuung": 3789,
+              "fehlerMittel": 847,
+              "min": -1760,
+              "q10": 472,
+              "q25": 4165,
+              "median": 4701,
+              "q75": 4807,
+              "q90": 5179,
+              "max": 17979
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 80616,
+              "streuung": 19335,
+              "fehlerMittel": 2496,
+              "min": 26087,
+              "q10": 59778,
+              "q25": 65329,
+              "median": 81884,
+              "q75": 96268,
+              "q90": 104099,
+              "max": 118376
+            },
+            "sonder": {
+              "Arbeiter": 3,
+              "Ausfall": 82.5,
+              "Hauszinsen": 0,
+              "Kasse": 8167.1,
+              "Leistung": 3,
+              "Stadtzinsen": 988.1,
+              "Wechsel": 4976.2
+            },
+            "abstandZuwachsProzent": 2.8,
+            "abstandGewinnProzent": -2.8,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2379,
+          "amtseinkommen": 102,
+          "familie": -380,
+          "geschenke": -32,
+          "gericht": -165,
+          "gaunerei": 34,
+          "investitionen": -598,
+          "standesgebuehren": -175,
+          "zinsen": -0,
+          "davonSteuer": -156,
+          "davonSpitzel": -89,
+          "schiffeAmEnde": 0.45
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 8.2,
+          "streuung": 1,
+          "fehlerMittel": 0.2,
+          "min": 6,
+          "q10": 7,
+          "q25": 7.8,
+          "median": 8,
+          "q75": 9,
+          "q90": 9,
+          "max": 10
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 7.1,
+          "streuung": 1,
+          "fehlerMittel": 0.2,
+          "min": 5,
+          "q10": 6,
+          "q25": 6.8,
+          "median": 7,
+          "q75": 8,
+          "q90": 8.1,
+          "max": 9
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 13.7,
+          "streuung": 0.6,
+          "fehlerMittel": 0.1,
+          "min": 13,
+          "q10": 13,
+          "q25": 13,
+          "median": 14,
+          "q75": 14,
+          "q90": 14,
+          "max": 15
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 15,
+        "buergerVor8": 5
+      },
+      {
+        "beruf": "Gardist",
+        "volk": "Mensch",
+        "volksbonusProzent": 2,
+        "fuehrung": "KI (Ausgewogen), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 6485,
+              "streuung": 545,
+              "fehlerMittel": 122,
+              "min": 5572,
+              "q10": 5893,
+              "q25": 6109,
+              "median": 6400,
+              "q75": 6988,
+              "q90": 7059,
+              "max": 7624
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1561,
+              "streuung": 221,
+              "fehlerMittel": 50,
+              "min": 1490,
+              "q10": 1490,
+              "q25": 1490,
+              "median": 1490,
+              "q75": 1490,
+              "q90": 1551,
+              "max": 2299
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6623,
+              "streuung": 1105,
+              "fehlerMittel": 143,
+              "min": 2935,
+              "q10": 5088,
+              "q25": 6141,
+              "median": 6885,
+              "q75": 7441,
+              "q90": 7777,
+              "max": 8430
+            },
+            "sonder": {
+              "Arbeiter": 4,
+              "Geleitgeld": 0,
+              "Kopfgeld": 71.2,
+              "Leistung": 4,
+              "Razzien": 0.9,
+              "Sold": 2643.8
+            },
+            "abstandZuwachsProzent": 22.7,
+            "abstandGewinnProzent": 15.8,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 11371,
+              "streuung": 2710,
+              "fehlerMittel": 606,
+              "min": 3778,
+              "q10": 8569,
+              "q25": 10132,
+              "median": 11746,
+              "q75": 12664,
+              "q90": 14344,
+              "max": 15748
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 2373,
+              "streuung": 2367,
+              "fehlerMittel": 529,
+              "min": -4807,
+              "q10": 1487,
+              "q25": 1984,
+              "median": 2264,
+              "q75": 2778,
+              "q90": 4965,
+              "max": 7515
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 10162,
+              "streuung": 4742,
+              "fehlerMittel": 612,
+              "min": 788,
+              "q10": 4206,
+              "q25": 6328,
+              "median": 10173,
+              "q75": 14241,
+              "q90": 16093,
+              "max": 18977
+            },
+            "sonder": {
+              "Arbeiter": 4,
+              "Geleitgeld": 378,
+              "Kopfgeld": 26.7,
+              "Leistung": 4.6,
+              "Razzien": 1,
+              "Sold": 3040.4
+            },
+            "abstandZuwachsProzent": 2.9,
+            "abstandGewinnProzent": 17.3,
+            "imBand": true
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 33839,
+              "streuung": 6591,
+              "fehlerMittel": 1474,
+              "min": 23496,
+              "q10": 27393,
+              "q25": 29972,
+              "median": 33758,
+              "q75": 36543,
+              "q90": 40643,
+              "max": 49055
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 3424,
+              "streuung": 4168,
+              "fehlerMittel": 932,
+              "min": -4595,
+              "q10": -2578,
+              "q25": 3314,
+              "median": 3686,
+              "q75": 4088,
+              "q90": 6508,
+              "max": 14901
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 83048,
+              "streuung": 21106,
+              "fehlerMittel": 2725,
+              "min": 43418,
+              "q10": 55849,
+              "q25": 63824,
+              "median": 86916,
+              "q75": 99669,
+              "q90": 109985,
+              "max": 122635
+            },
+            "sonder": {
+              "Arbeiter": 6,
+              "Geleitgeld": 480,
+              "Kopfgeld": 0,
+              "Leistung": 6.7,
+              "Razzien": 1.7,
+              "Sold": 4834.4
+            },
+            "abstandZuwachsProzent": 3.5,
+            "abstandGewinnProzent": -26.3,
+            "imBand": true
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 2305,
+          "amtseinkommen": 80,
+          "familie": -363,
+          "geschenke": -7,
+          "gericht": -115,
+          "gaunerei": 12,
+          "investitionen": -594,
+          "standesgebuehren": -175,
+          "zinsen": -0,
+          "davonSteuer": -166,
+          "davonSpitzel": -59,
+          "schiffeAmEnde": 0.45
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 9.7,
+          "streuung": 1.6,
+          "fehlerMittel": 0.4,
+          "min": 7,
+          "q10": 8,
+          "q25": 9,
+          "median": 9.5,
+          "q75": 10.3,
+          "q90": 11.1,
+          "max": 14
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 8.3,
+          "streuung": 1.1,
+          "fehlerMittel": 0.2,
+          "min": 7,
+          "q10": 7,
+          "q25": 7.8,
+          "median": 8,
+          "q75": 9,
+          "q90": 10,
+          "max": 10
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 12,
+          "streuung": 0,
+          "fehlerMittel": 0,
+          "min": 12,
+          "q10": 12,
+          "q25": 12,
+          "median": 12,
+          "q75": 12,
+          "q90": 12,
+          "max": 12
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 18,
+        "buergerVor8": 1
+      },
+      {
+        "beruf": "Dieb (wagemutig geführt)",
+        "volk": "Mensch",
+        "volksbonusProzent": 0,
+        "fuehrung": "KI (Wagemutig), genau ein Betrieb",
+        "n": 20,
+        "jahre": {
+          "5": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 6360,
+              "streuung": 2693,
+              "fehlerMittel": 602,
+              "min": 286,
+              "q10": 1923,
+              "q25": 5150,
+              "median": 6965,
+              "q75": 8470,
+              "q90": 9039,
+              "max": 9895
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 2706,
+              "streuung": 3880,
+              "fehlerMittel": 867,
+              "min": -4360,
+              "q10": -1866,
+              "q25": 107,
+              "median": 2254,
+              "q75": 5760,
+              "q90": 8231,
+              "max": 9072
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 6244,
+              "streuung": 1310,
+              "fehlerMittel": 169,
+              "min": 3329,
+              "q10": 4312,
+              "q25": 5729,
+              "median": 6345,
+              "q75": 7139,
+              "q90": 7756,
+              "max": 8795
+            },
+            "sonder": {
+              "Arbeiter": 4,
+              "Beute": 3112.7,
+              "Faenge": 0.6,
+              "Leistung": 3.7
+            },
+            "abstandZuwachsProzent": 16.5,
+            "abstandGewinnProzent": 100.8,
+            "imBand": false
+          },
+          "10": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 9157,
+              "streuung": 4326,
+              "fehlerMittel": 967,
+              "min": 1848,
+              "q10": 2926,
+              "q25": 5166,
+              "median": 9959,
+              "q75": 11247,
+              "q90": 13935,
+              "max": 17096
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 1696,
+              "streuung": 3873,
+              "fehlerMittel": 866,
+              "min": -4937,
+              "q10": -2463,
+              "q25": -1256,
+              "median": 2108,
+              "q75": 3637,
+              "q90": 7242,
+              "max": 9172
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 1,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 1,
+              "q10": 1,
+              "q25": 1,
+              "median": 1,
+              "q75": 1,
+              "q90": 1,
+              "max": 1
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 10688,
+              "streuung": 3677,
+              "fehlerMittel": 475,
+              "min": 4354,
+              "q10": 6640,
+              "q25": 7664,
+              "median": 10078,
+              "q75": 13703,
+              "q90": 15178,
+              "max": 20412
+            },
+            "sonder": {
+              "Arbeiter": 4,
+              "Beute": 3132.6,
+              "Faenge": 0.3,
+              "Leistung": 3.7
+            },
+            "abstandZuwachsProzent": -28,
+            "abstandGewinnProzent": -16.2,
+            "imBand": false
+          },
+          "20": {
+            "reinvermoegen": {
+              "n": 20,
+              "mittel": 27883,
+              "streuung": 10406,
+              "fehlerMittel": 2327,
+              "min": 17742,
+              "q10": 18591,
+              "q25": 20742,
+              "median": 24052,
+              "q75": 32275,
+              "q90": 40512,
+              "max": 54966
+            },
+            "gewinn": {
+              "n": 20,
+              "mittel": 5007,
+              "streuung": 3207,
+              "fehlerMittel": 717,
+              "min": -2514,
+              "q10": 677,
+              "q25": 3892,
+              "median": 5733,
+              "q75": 6844,
+              "q90": 7695,
+              "max": 11081
+            },
+            "stufe": {
+              "n": 20,
+              "mittel": 2,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 2,
+              "q10": 2,
+              "q25": 2,
+              "median": 2,
+              "q75": 2,
+              "q90": 2,
+              "max": 2
+            },
+            "kiHaeuserReinvermoegen": {
+              "n": 60,
+              "mittel": 78441,
+              "streuung": 21342,
+              "fehlerMittel": 2755,
+              "min": 30259,
+              "q10": 48110,
+              "q25": 64571,
+              "median": 80920,
+              "q75": 91593,
+              "q90": 103339,
+              "max": 128926
+            },
+            "sonder": {
+              "Arbeiter": 6,
+              "Beute": 5844.8,
+              "Faenge": 1.1,
+              "Leistung": 5.7
+            },
+            "abstandZuwachsProzent": -17.2,
+            "abstandGewinnProzent": 7.7,
+            "imBand": false
+          }
+        },
+        "jeJahrImMittel": {
+          "gewinn": 3096,
+          "amtseinkommen": 14,
+          "familie": -372,
+          "geschenke": -10,
+          "gericht": -961,
+          "gaunerei": -45,
+          "investitionen": -733,
+          "standesgebuehren": -220,
+          "zinsen": -0,
+          "davonSteuer": -133,
+          "davonSpitzel": -44,
+          "schiffeAmEnde": 0.9
+        },
+        "jahreBisBuerger": {
+          "n": 20,
+          "mittel": 10,
+          "streuung": 3.9,
+          "fehlerMittel": 0.9,
+          "min": 6,
+          "q10": 6,
+          "q25": 7,
+          "median": 8.5,
+          "q75": 11.8,
+          "q90": 17,
+          "max": 17
+        },
+        "buergerErreicht": 20,
+        "jahreBisStandBuerger": {
+          "n": 20,
+          "mittel": 5.6,
+          "streuung": 0.8,
+          "fehlerMittel": 0.2,
+          "min": 4,
+          "q10": 5,
+          "q25": 5,
+          "median": 6,
+          "q75": 6,
+          "q90": 6.1,
+          "max": 7
+        },
+        "jahrStufe2": {
+          "n": 20,
+          "mittel": 13.2,
+          "streuung": 0.4,
+          "fehlerMittel": 0.1,
+          "min": 13,
+          "q10": 13,
+          "q25": 13,
+          "median": 13,
+          "q75": 13,
+          "q90": 14,
+          "max": 14
+        },
+        "jahrStufe3": {
+          "n": 0
+        },
+        "bankrott": 0,
+        "buergerIn8bis12": 9,
+        "buergerVor8": 6
+      }
+    ],
+    "simuliertMittel": {
+      "5": {
+        "zuwachs": 2026,
+        "gewinn": 1348
+      },
+      "10": {
+        "zuwachs": 7161,
+        "gewinn": 2023
+      },
+      "20": {
+        "zuwachs": 28838,
+        "gewinn": 4647
+      }
+    }
+  },
+  "startfairness": {
+    "erklaerung": "Greybox und Probestadt (mit --fairness=… auch Köln) mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. Startfairness: Die Wohnhausplätze von Spieler und KI-Häusern rotieren (Rotation r: der i-te wohnt, wo vorher der (i + r)-te wohnte), jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt im Kern nicht (Fahrzeit nach Stadt/Umland, nicht nach Weglänge; Bürger kaufen am Markt). „gegenHausmittelProzent“: Vermögen auf diesem Platz gegen das Mittel desselben Hauses über alle Plätze – trennt Platz und Haus. Start: Startgeld, Betriebe, Arbeiter und erwarteter Jahresgewinn (Kalkulation, mit Völkerbonus) zu Beginn. Jahre bis Bürger: erstes Jahr mit Reinvermögen ≥ 10.000 (Ziel Z2: 8–12).",
+    "karten": [
+      {
+        "karte": "greybox",
+        "rotationen": 1,
+        "n": 20,
+        "start": [
+          {
+            "haus": "Spieler",
+            "volk": "Mensch",
+            "beruf": "Schmied",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1868
+          },
+          {
+            "haus": "Haus Eisenbart",
+            "volk": "Zwerg",
+            "beruf": "Schmied",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1987
+          },
+          {
+            "haus": "Haus Eichwald",
+            "volk": "Elb",
+            "beruf": "Tischler",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1876
+          },
+          {
+            "haus": "Haus Kieselbach",
+            "volk": "Halbling",
+            "beruf": "Steinmetz",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1835
+          }
+        ],
+        "jeHaus": [
+          {
+            "haus": "Spieler (ein Betrieb, KI geführt)",
+            "volk": "Mensch",
+            "beruf": "Schmied",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 5324,
+                "streuung": 779,
+                "fehlerMittel": 174,
+                "min": 3987,
+                "q10": 4568,
+                "q25": 4880,
+                "median": 5041,
+                "q75": 5897,
+                "q90": 6199,
+                "max": 6937
+              },
+              "10": {
+                "n": 20,
+                "mittel": 10058,
+                "streuung": 2737,
+                "fehlerMittel": 612,
+                "min": 2703,
+                "q10": 5742,
+                "q25": 9995,
+                "median": 10965,
+                "q75": 11826,
+                "q90": 12099,
+                "max": 12831
+              },
+              "20": {
+                "n": 20,
+                "mittel": 34779,
+                "streuung": 5336,
+                "fehlerMittel": 1193,
+                "min": 25852,
+                "q10": 28386,
+                "q25": 30762,
+                "median": 34635,
+                "q75": 37449,
+                "q90": 42130,
+                "max": 45442
+              }
+            },
+            "standAmEnde": {
+              "Patrizier": 20
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 2663,
+              "amtseinkommen": 57,
+              "familie": -406,
+              "geschenke": -57,
+              "gericht": -165,
+              "gaunerei": 25,
+              "investitionen": -761,
+              "standesgebuehren": -175,
+              "zinsen": -0,
+              "davonSteuer": -293,
+              "davonSpitzel": -93,
+              "schiffeAmEnde": 0.85
+            }
+          },
+          {
+            "haus": "Haus Eisenbart",
+            "volk": "Zwerg",
+            "beruf": "Schmied",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 6057,
+                "streuung": 1177,
+                "fehlerMittel": 263,
+                "min": 3737,
+                "q10": 4714,
+                "q25": 5427,
+                "median": 6197,
+                "q75": 6506,
+                "q90": 7706,
+                "max": 8430
+              },
+              "10": {
+                "n": 20,
+                "mittel": 11196,
+                "streuung": 3969,
+                "fehlerMittel": 888,
+                "min": 5477,
+                "q10": 6056,
+                "q25": 8400,
+                "median": 10087,
+                "q75": 15304,
+                "q90": 16556,
+                "max": 17056
+              },
+              "20": {
+                "n": 20,
+                "mittel": 86944,
+                "streuung": 19866,
+                "fehlerMittel": 4442,
+                "min": 61412,
+                "q10": 62847,
+                "q25": 69558,
+                "median": 87632,
+                "q75": 107691,
+                "q90": 113581,
+                "max": 117177
+              }
+            },
+            "standAmEnde": {
+              "Edler": 18,
+              "Freiherr": 2
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 6141,
+              "amtseinkommen": 113,
+              "familie": -364,
+              "geschenke": -13,
+              "gericht": -112,
+              "gaunerei": 15,
+              "investitionen": -2407,
+              "standesgebuehren": -535,
+              "zinsen": -0,
+              "davonSteuer": -577,
+              "davonSpitzel": -67,
+              "schiffeAmEnde": 0.75
+            }
+          },
+          {
+            "haus": "Haus Eichwald",
+            "volk": "Elb",
+            "beruf": "Tischler",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 6070,
+                "streuung": 779,
+                "fehlerMittel": 174,
+                "min": 4804,
+                "q10": 5158,
+                "q25": 5525,
+                "median": 6113,
+                "q75": 6498,
+                "q90": 7071,
+                "max": 7701
+              },
+              "10": {
+                "n": 20,
+                "mittel": 7234,
+                "streuung": 2683,
+                "fehlerMittel": 600,
+                "min": 3470,
+                "q10": 4506,
+                "q25": 5254,
+                "median": 6324,
+                "q75": 9140,
+                "q90": 11111,
+                "max": 12706
+              },
+              "20": {
+                "n": 20,
+                "mittel": 64773,
+                "streuung": 19213,
+                "fehlerMittel": 4296,
+                "min": 22397,
+                "q10": 42711,
+                "q25": 53725,
+                "median": 68099,
+                "q75": 75752,
+                "q90": 86186,
+                "max": 104269
+              }
+            },
+            "standAmEnde": {
+              "Patrizier": 4,
+              "Edler": 16
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 5234,
+              "amtseinkommen": 116,
+              "familie": -409,
+              "geschenke": -20,
+              "gericht": -141,
+              "gaunerei": 17,
+              "investitionen": -2154,
+              "standesgebuehren": -415,
+              "zinsen": -0,
+              "davonSteuer": -510,
+              "davonSpitzel": -80,
+              "schiffeAmEnde": 0.8
+            }
+          },
+          {
+            "haus": "Haus Kieselbach",
+            "volk": "Halbling",
+            "beruf": "Steinmetz",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 6022,
+                "streuung": 756,
+                "fehlerMittel": 169,
+                "min": 4521,
+                "q10": 5098,
+                "q25": 5435,
+                "median": 6131,
+                "q75": 6544,
+                "q90": 6936,
+                "max": 7280
+              },
+              "10": {
+                "n": 20,
+                "mittel": 11150,
+                "streuung": 4034,
+                "fehlerMittel": 902,
+                "min": 6580,
+                "q10": 7442,
+                "q25": 8838,
+                "median": 10447,
+                "q75": 12337,
+                "q90": 15681,
+                "max": 23311
+              },
+              "20": {
+                "n": 20,
+                "mittel": 85373,
+                "streuung": 18246,
+                "fehlerMittel": 4080,
+                "min": 58391,
+                "q10": 68068,
+                "q25": 73684,
+                "median": 78375,
+                "q75": 94287,
+                "q90": 108074,
+                "max": 133799
+              }
+            },
+            "standAmEnde": {
+              "Edler": 17,
+              "Freiherr": 3
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 6307,
+              "amtseinkommen": 114,
+              "familie": -368,
+              "geschenke": -20,
+              "gericht": -94,
+              "gaunerei": 3,
+              "investitionen": -2555,
+              "standesgebuehren": -565,
+              "zinsen": -0,
+              "davonSteuer": -570,
+              "davonSpitzel": -73,
+              "schiffeAmEnde": 0.7
+            }
+          }
+        ],
+        "jeWohnhausplatz": [
+          {
+            "wohnhausplatz": "Wohnhaus1",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 5324,
+                  "streuung": 779,
+                  "fehlerMittel": 174,
+                  "min": 3987,
+                  "q10": 4568,
+                  "q25": 4880,
+                  "median": 5041,
+                  "q75": 5897,
+                  "q90": 6199,
+                  "max": 6937
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 14.6,
+                  "fehlerMittel": 3.3,
+                  "min": -25.1,
+                  "q10": -14.2,
+                  "q25": -8.4,
+                  "median": -5.3,
+                  "q75": 10.8,
+                  "q90": 16.4,
+                  "max": 30.3
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 10058,
+                  "streuung": 2737,
+                  "fehlerMittel": 612,
+                  "min": 2703,
+                  "q10": 5742,
+                  "q25": 9995,
+                  "median": 10965,
+                  "q75": 11826,
+                  "q90": 12099,
+                  "max": 12831
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 27.2,
+                  "fehlerMittel": 6.1,
+                  "min": -73.1,
+                  "q10": -42.9,
+                  "q25": -0.6,
+                  "median": 9,
+                  "q75": 17.6,
+                  "q90": 20.3,
+                  "max": 27.6
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 34779,
+                  "streuung": 5336,
+                  "fehlerMittel": 1193,
+                  "min": 25852,
+                  "q10": 28386,
+                  "q25": 30762,
+                  "median": 34635,
+                  "q75": 37449,
+                  "q90": 42130,
+                  "max": 45442
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 15.3,
+                  "fehlerMittel": 3.4,
+                  "min": -25.7,
+                  "q10": -18.4,
+                  "q25": -11.6,
+                  "median": -0.4,
+                  "q75": 7.7,
+                  "q90": 21.1,
+                  "max": 30.7
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 20,
+                "mittel": 5324,
+                "streuung": 779,
+                "fehlerMittel": 174,
+                "min": 3987,
+                "q10": 4568,
+                "q25": 4880,
+                "median": 5041,
+                "q75": 5897,
+                "q90": 6199,
+                "max": 6937
+              },
+              "10": {
+                "n": 20,
+                "mittel": 10058,
+                "streuung": 2737,
+                "fehlerMittel": 612,
+                "min": 2703,
+                "q10": 5742,
+                "q25": 9995,
+                "median": 10965,
+                "q75": 11826,
+                "q90": 12099,
+                "max": 12831
+              },
+              "20": {
+                "n": 20,
+                "mittel": 34779,
+                "streuung": 5336,
+                "fehlerMittel": 1193,
+                "min": 25852,
+                "q10": 28386,
+                "q25": 30762,
+                "median": 34635,
+                "q75": 37449,
+                "q90": 42130,
+                "max": 45442
+              }
+            }
+          },
+          {
+            "wohnhausplatz": "Wohnhaus2",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 6057,
+                  "streuung": 1177,
+                  "fehlerMittel": 263,
+                  "min": 3737,
+                  "q10": 4714,
+                  "q25": 5427,
+                  "median": 6197,
+                  "q75": 6506,
+                  "q90": 7706,
+                  "max": 8430
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 19.4,
+                  "fehlerMittel": 4.3,
+                  "min": -38.3,
+                  "q10": -22.2,
+                  "q25": -10.4,
+                  "median": 2.3,
+                  "q75": 7.4,
+                  "q90": 27.2,
+                  "max": 39.2
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 11196,
+                  "streuung": 3969,
+                  "fehlerMittel": 888,
+                  "min": 5477,
+                  "q10": 6056,
+                  "q25": 8400,
+                  "median": 10087,
+                  "q75": 15304,
+                  "q90": 16556,
+                  "max": 17056
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 35.5,
+                  "fehlerMittel": 7.9,
+                  "min": -51.1,
+                  "q10": -45.9,
+                  "q25": -25,
+                  "median": -9.9,
+                  "q75": 36.7,
+                  "q90": 47.9,
+                  "max": 52.3
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 86944,
+                  "streuung": 19866,
+                  "fehlerMittel": 4442,
+                  "min": 61412,
+                  "q10": 62847,
+                  "q25": 69558,
+                  "median": 87632,
+                  "q75": 107691,
+                  "q90": 113581,
+                  "max": 117177
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 22.8,
+                  "fehlerMittel": 5.1,
+                  "min": -29.4,
+                  "q10": -27.7,
+                  "q25": -20,
+                  "median": 0.8,
+                  "q75": 23.9,
+                  "q90": 30.6,
+                  "max": 34.8
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 0
+              },
+              "10": {
+                "n": 0
+              },
+              "20": {
+                "n": 0
+              }
+            }
+          },
+          {
+            "wohnhausplatz": "Wohnhaus3",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 6070,
+                  "streuung": 779,
+                  "fehlerMittel": 174,
+                  "min": 4804,
+                  "q10": 5158,
+                  "q25": 5525,
+                  "median": 6113,
+                  "q75": 6498,
+                  "q90": 7071,
+                  "max": 7701
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 12.8,
+                  "fehlerMittel": 2.9,
+                  "min": -20.9,
+                  "q10": -15,
+                  "q25": -9,
+                  "median": 0.7,
+                  "q75": 7,
+                  "q90": 16.5,
+                  "max": 26.9
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 7234,
+                  "streuung": 2683,
+                  "fehlerMittel": 600,
+                  "min": 3470,
+                  "q10": 4506,
+                  "q25": 5254,
+                  "median": 6324,
+                  "q75": 9140,
+                  "q90": 11111,
+                  "max": 12706
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 37.1,
+                  "fehlerMittel": 8.3,
+                  "min": -52,
+                  "q10": -37.7,
+                  "q25": -27.4,
+                  "median": -12.6,
+                  "q75": 26.4,
+                  "q90": 53.6,
+                  "max": 75.6
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 64773,
+                  "streuung": 19213,
+                  "fehlerMittel": 4296,
+                  "min": 22397,
+                  "q10": 42711,
+                  "q25": 53725,
+                  "median": 68099,
+                  "q75": 75752,
+                  "q90": 86186,
+                  "max": 104269
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 29.7,
+                  "fehlerMittel": 6.6,
+                  "min": -65.4,
+                  "q10": -34.1,
+                  "q25": -17.1,
+                  "median": 5.1,
+                  "q75": 17,
+                  "q90": 33.1,
+                  "max": 61
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 0
+              },
+              "10": {
+                "n": 0
+              },
+              "20": {
+                "n": 0
+              }
+            }
+          },
+          {
+            "wohnhausplatz": "Wohnhaus4",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 6022,
+                  "streuung": 756,
+                  "fehlerMittel": 169,
+                  "min": 4521,
+                  "q10": 5098,
+                  "q25": 5435,
+                  "median": 6131,
+                  "q75": 6544,
+                  "q90": 6936,
+                  "max": 7280
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 12.6,
+                  "fehlerMittel": 2.8,
+                  "min": -24.9,
+                  "q10": -15.3,
+                  "q25": -9.7,
+                  "median": 1.8,
+                  "q75": 8.7,
+                  "q90": 15.2,
+                  "max": 20.9
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 11150,
+                  "streuung": 4034,
+                  "fehlerMittel": 902,
+                  "min": 6580,
+                  "q10": 7442,
+                  "q25": 8838,
+                  "median": 10447,
+                  "q75": 12337,
+                  "q90": 15681,
+                  "max": 23311
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 36.2,
+                  "fehlerMittel": 8.1,
+                  "min": -41,
+                  "q10": -33.3,
+                  "q25": -20.7,
+                  "median": -6.3,
+                  "q75": 10.6,
+                  "q90": 40.6,
+                  "max": 109.1
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 85373,
+                  "streuung": 18246,
+                  "fehlerMittel": 4080,
+                  "min": 58391,
+                  "q10": 68068,
+                  "q25": 73684,
+                  "median": 78375,
+                  "q75": 94287,
+                  "q90": 108074,
+                  "max": 133799
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 21.4,
+                  "fehlerMittel": 4.8,
+                  "min": -31.6,
+                  "q10": -20.3,
+                  "q25": -13.7,
+                  "median": -8.2,
+                  "q75": 10.4,
+                  "q90": 26.6,
+                  "max": 56.7
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 0
+              },
+              "10": {
+                "n": 0
+              },
+              "20": {
+                "n": 0
+              }
+            }
+          }
+        ],
+        "spielerJahreBisBuerger": {
+          "n": 20,
+          "mittel": 10.2,
+          "streuung": 1.5,
+          "fehlerMittel": 0.3,
+          "min": 9,
+          "q10": 9,
+          "q25": 9,
+          "median": 10,
+          "q75": 10,
+          "q90": 11,
+          "max": 16
+        },
+        "spielerBuergerErreicht": 20,
+        "spielerBuergerIn8bis12": 19
+      }
+    ]
+  },
+  "kiStaerke": {
+    "erklaerung": "Der Spieler (Schmied, Mensch) wird von der KI mit demselben Profil wie die KI-Häuser geführt („Bezugsspieler“: gleiche Strategie, Einrichtung wie die KI, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Schwierigkeit „Normal“: Alle beginnen gleich mit einer Werkstatt und zwei Gesellen (PR #177); unter „schwer“ derselbe Vergleich, wenn die KI-Häuser mit Werkstatt und Umlandbetrieb (5 Arbeiter) beginnen. Verhältnis = Reinvermögen eines KI-Hauses ÷ Reinvermögen des Bezugsspielers derselben Partie; davongezogen > 2, abgeschlagen < 0,5. Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI zahlt keine Prämien und nimmt keine Kredite; Einrichtung kauft sie zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht (PR #177).",
+    "n": 20,
+    "bezug": {
+      "5": {
+        "n": 20,
+        "mittel": 5324,
+        "streuung": 779,
+        "fehlerMittel": 174,
+        "min": 3987,
+        "q10": 4568,
+        "q25": 4880,
+        "median": 5041,
+        "q75": 5897,
+        "q90": 6199,
+        "max": 6937
+      },
+      "10": {
+        "n": 20,
+        "mittel": 6882,
+        "streuung": 2581,
+        "fehlerMittel": 577,
+        "min": 1194,
+        "q10": 2756,
+        "q25": 6095,
+        "median": 7420,
+        "q75": 8172,
+        "q90": 9599,
+        "max": 11195
+      },
+      "20": {
+        "n": 20,
+        "mittel": 68066,
+        "streuung": 13687,
+        "fehlerMittel": 3060,
+        "min": 27173,
+        "q10": 55418,
+        "q25": 64974,
+        "median": 70770,
+        "q75": 77456,
+        "q90": 82785,
+        "max": 83258
+      }
+    },
+    "bezugStandAmEnde": {
+      "Patrizier": 1,
+      "Edler": 19
+    },
+    "bezugRang": {
+      "n": 20,
+      "mittel": 2.95,
+      "streuung": 0.89,
+      "fehlerMittel": 0.2,
+      "min": 1,
+      "q10": 2,
+      "q25": 2,
+      "median": 3,
+      "q75": 4,
+      "q90": 4,
+      "max": 4
+    },
+    "bezugBetriebe": {
+      "5": {
+        "n": 20,
+        "mittel": 1,
+        "streuung": 0,
+        "fehlerMittel": 0,
+        "min": 1,
+        "q10": 1,
+        "q25": 1,
+        "median": 1,
+        "q75": 1,
+        "q90": 1,
+        "max": 1
+      },
+      "10": {
+        "n": 20,
+        "mittel": 2.55,
+        "streuung": 0.6,
+        "fehlerMittel": 0.14,
+        "min": 1,
+        "q10": 2,
+        "q25": 2,
+        "median": 3,
+        "q75": 3,
+        "q90": 3,
+        "max": 3
+      },
+      "20": {
+        "n": 20,
+        "mittel": 4.95,
+        "streuung": 0.22,
+        "fehlerMittel": 0.05,
+        "min": 4,
+        "q10": 5,
+        "q25": 5,
+        "median": 5,
+        "q75": 5,
+        "q90": 5,
+        "max": 5
+      }
+    },
+    "kiBetriebe": {
+      "5": {
+        "n": 60,
+        "mittel": 1,
+        "streuung": 0,
+        "fehlerMittel": 0,
+        "min": 1,
+        "q10": 1,
+        "q25": 1,
+        "median": 1,
+        "q75": 1,
+        "q90": 1,
+        "max": 1
+      },
+      "10": {
+        "n": 60,
+        "mittel": 2.9,
+        "streuung": 0.6,
+        "fehlerMittel": 0.08,
+        "min": 1,
+        "q10": 2,
+        "q25": 3,
+        "median": 3,
+        "q75": 3,
+        "q90": 3,
+        "max": 5
+      },
+      "20": {
+        "n": 60,
+        "mittel": 4.98,
+        "streuung": 0.13,
+        "fehlerMittel": 0.02,
+        "min": 4,
+        "q10": 5,
+        "q25": 5,
+        "median": 5,
+        "q75": 5,
+        "q90": 5,
+        "max": 5
+      }
+    },
+    "bezugJeJahrImMittel": {
+      "gewinn": 5622,
+      "amtseinkommen": 90,
+      "familie": -415,
+      "geschenke": -19,
+      "gericht": -114,
+      "gaunerei": 6,
+      "investitionen": -2409,
+      "standesgebuehren": -460,
+      "zinsen": -0,
+      "davonSteuer": -494,
+      "davonSpitzel": -81,
+      "schiffeAmEnde": 0.65
+    },
+    "kiJeJahrImMittel": {
+      "gewinn": 5951,
+      "amtseinkommen": 116,
+      "familie": -380,
+      "geschenke": -23,
+      "gericht": -118,
+      "gaunerei": 15,
+      "investitionen": -2445,
+      "standesgebuehren": -495,
+      "zinsen": -0,
+      "davonSteuer": -525,
+      "davonSpitzel": -71,
+      "schiffeAmEnde": 0.7
+    },
+    "kiHaeuser": {
+      "5": {
+        "n": 60,
+        "mittel": 6050,
+        "streuung": 909,
+        "fehlerMittel": 117,
+        "min": 3737,
+        "q10": 4914,
+        "q25": 5501,
+        "median": 6143,
+        "q75": 6544,
+        "q90": 7071,
+        "max": 8430
+      },
+      "10": {
+        "n": 60,
+        "mittel": 9687,
+        "streuung": 4527,
+        "fehlerMittel": 584,
+        "min": -0,
+        "q10": 4449,
+        "q25": 6581,
+        "median": 9340,
+        "q75": 11952,
+        "q90": 15011,
+        "max": 25886
+      },
+      "20": {
+        "n": 60,
+        "mittel": 78461,
+        "streuung": 21892,
+        "fehlerMittel": 2826,
+        "min": 26597,
+        "q10": 58159,
+        "q25": 68278,
+        "median": 75462,
+        "q75": 91563,
+        "q90": 102504,
+        "max": 152274
+      }
+    },
+    "jeHaus": [
+      {
+        "haus": "Haus Eisenbart",
+        "volk": "Zwerg",
+        "beruf": "Schmied",
+        "jahre": {
+          "5": {
+            "n": 20,
+            "mittel": 6057,
+            "streuung": 1177,
+            "fehlerMittel": 263,
+            "min": 3737,
+            "q10": 4714,
+            "q25": 5427,
+            "median": 6197,
+            "q75": 6506,
+            "q90": 7706,
+            "max": 8430
+          },
+          "10": {
+            "n": 20,
+            "mittel": 10830,
+            "streuung": 4302,
+            "fehlerMittel": 962,
+            "min": 3323,
+            "q10": 5632,
+            "q25": 8551,
+            "median": 10038,
+            "q75": 14816,
+            "q90": 15442,
+            "max": 18511
+          },
+          "20": {
+            "n": 20,
+            "mittel": 86760,
+            "streuung": 18161,
+            "fehlerMittel": 4061,
+            "min": 59611,
+            "q10": 69452,
+            "q25": 74114,
+            "median": 84622,
+            "q75": 98684,
+            "q90": 113062,
+            "max": 124144
+          }
+        },
+        "standAmEnde": {
+          "Edler": 18,
+          "Freiherr": 2
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 6256,
+          "amtseinkommen": 144,
+          "familie": -361,
+          "geschenke": -19,
+          "gericht": -89,
+          "gaunerei": 18,
+          "investitionen": -2655,
+          "standesgebuehren": -535,
+          "zinsen": -0,
+          "davonSteuer": -539,
+          "davonSpitzel": -57,
+          "schiffeAmEnde": 0.75
+        }
+      },
+      {
+        "haus": "Haus Eichwald",
+        "volk": "Elb",
+        "beruf": "Tischler",
+        "jahre": {
+          "5": {
+            "n": 20,
+            "mittel": 6070,
+            "streuung": 779,
+            "fehlerMittel": 174,
+            "min": 4804,
+            "q10": 5158,
+            "q25": 5525,
+            "median": 6113,
+            "q75": 6498,
+            "q90": 7071,
+            "max": 7701
+          },
+          "10": {
+            "n": 20,
+            "mittel": 6956,
+            "streuung": 3194,
+            "fehlerMittel": 714,
+            "min": -0,
+            "q10": 3615,
+            "q25": 4724,
+            "median": 7121,
+            "q75": 8795,
+            "q90": 11074,
+            "max": 13398
+          },
+          "20": {
+            "n": 20,
+            "mittel": 63364,
+            "streuung": 18752,
+            "fehlerMittel": 4193,
+            "min": 26597,
+            "q10": 39127,
+            "q25": 51109,
+            "median": 67949,
+            "q75": 72737,
+            "q90": 84989,
+            "max": 102402
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 4,
+          "Edler": 16
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5257,
+          "amtseinkommen": 83,
+          "familie": -409,
+          "geschenke": -22,
+          "gericht": -141,
+          "gaunerei": -8,
+          "investitionen": -2121,
+          "standesgebuehren": -415,
+          "zinsen": -0,
+          "davonSteuer": -486,
+          "davonSpitzel": -80,
+          "schiffeAmEnde": 0.7
+        }
+      },
+      {
+        "haus": "Haus Kieselbach",
+        "volk": "Halbling",
+        "beruf": "Steinmetz",
+        "jahre": {
+          "5": {
+            "n": 20,
+            "mittel": 6022,
+            "streuung": 756,
+            "fehlerMittel": 169,
+            "min": 4521,
+            "q10": 5098,
+            "q25": 5435,
+            "median": 6131,
+            "q75": 6544,
+            "q90": 6936,
+            "max": 7280
+          },
+          "10": {
+            "n": 20,
+            "mittel": 11274,
+            "streuung": 4803,
+            "fehlerMittel": 1074,
+            "min": 4490,
+            "q10": 6596,
+            "q25": 8253,
+            "median": 10450,
+            "q75": 12433,
+            "q90": 16625,
+            "max": 25886
+          },
+          "20": {
+            "n": 20,
+            "mittel": 85260,
+            "streuung": 21112,
+            "fehlerMittel": 4721,
+            "min": 59970,
+            "q10": 61384,
+            "q25": 74256,
+            "median": 80286,
+            "q75": 92886,
+            "q90": 100862,
+            "max": 152274
+          }
+        },
+        "standAmEnde": {
+          "Edler": 18,
+          "Freiherr": 2
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 6339,
+          "amtseinkommen": 120,
+          "familie": -369,
+          "geschenke": -27,
+          "gericht": -123,
+          "gaunerei": 36,
+          "investitionen": -2559,
+          "standesgebuehren": -535,
+          "zinsen": -0,
+          "davonSteuer": -550,
+          "davonSpitzel": -74,
+          "schiffeAmEnde": 0.65
+        }
+      }
+    ],
+    "verhaeltnisKiZuBezug": {
+      "5": {
+        "n": 60,
+        "mittel": 1.16,
+        "streuung": 0.24,
+        "fehlerMittel": 0.03,
+        "min": 0.65,
+        "q10": 0.83,
+        "q25": 0.98,
+        "median": 1.14,
+        "q75": 1.3,
+        "q90": 1.47,
+        "max": 1.67
+      },
+      "10": {
+        "n": 60,
+        "mittel": 1.97,
+        "streuung": 1.93,
+        "fehlerMittel": 0.25,
+        "min": -0,
+        "q10": 0.53,
+        "q25": 0.92,
+        "median": 1.35,
+        "q75": 2.11,
+        "q90": 5.6,
+        "max": 9.79
+      },
+      "20": {
+        "n": 60,
+        "mittel": 1.24,
+        "streuung": 0.6,
+        "fehlerMittel": 0.08,
+        "min": 0.32,
+        "q10": 0.75,
+        "q25": 0.93,
+        "median": 1.08,
+        "q75": 1.43,
+        "q90": 1.74,
+        "max": 3.81
+      }
+    },
+    "davongezogen": {
+      "schwelle": 2,
+      "anzahl": 3,
+      "von": 60
+    },
+    "abgeschlagen": {
+      "schwelle": 0.5,
+      "anzahl": 1,
+      "von": 60
+    },
+    "kiBankrott": 0,
+    "kiErloschen": 0,
+    "kiStandAmEnde": {
+      "Patrizier": 4,
+      "Edler": 52,
+      "Freiherr": 4
+    },
+    "spielerMitEinemBetrieb": {
+      "5": {
+        "n": 20,
+        "mittel": 5324,
+        "streuung": 779,
+        "fehlerMittel": 174,
+        "min": 3987,
+        "q10": 4568,
+        "q25": 4880,
+        "median": 5041,
+        "q75": 5897,
+        "q90": 6199,
+        "max": 6937
+      },
+      "10": {
+        "n": 20,
+        "mittel": 10058,
+        "streuung": 2737,
+        "fehlerMittel": 612,
+        "min": 2703,
+        "q10": 5742,
+        "q25": 9995,
+        "median": 10965,
+        "q75": 11826,
+        "q90": 12099,
+        "max": 12831
+      },
+      "20": {
+        "n": 20,
+        "mittel": 34779,
+        "streuung": 5336,
+        "fehlerMittel": 1193,
+        "min": 25852,
+        "q10": 28386,
+        "q25": 30762,
+        "median": 34635,
+        "q75": 37449,
+        "q90": 42130,
+        "max": 45442
+      }
+    },
+    "schwer": {
+      "n": 20,
+      "bezug": {
+        "5": {
+          "n": 20,
+          "mittel": 6347,
+          "streuung": 970,
+          "fehlerMittel": 217,
+          "min": 4250,
+          "q10": 5429,
+          "q25": 5730,
+          "median": 6349,
+          "q75": 6858,
+          "q90": 7252,
+          "max": 8555
+        },
+        "10": {
+          "n": 20,
+          "mittel": 4459,
+          "streuung": 1535,
+          "fehlerMittel": 343,
+          "min": 2113,
+          "q10": 3153,
+          "q25": 3418,
+          "median": 4320,
+          "q75": 4813,
+          "q90": 6388,
+          "max": 8853
+        },
+        "20": {
+          "n": 20,
+          "mittel": 68162,
+          "streuung": 8145,
+          "fehlerMittel": 1821,
+          "min": 56600,
+          "q10": 58613,
+          "q25": 61995,
+          "median": 66921,
+          "q75": 71926,
+          "q90": 78622,
+          "max": 85689
+        }
+      },
+      "kiHaeuser": {
+        "5": {
+          "n": 60,
+          "mittel": 7135,
+          "streuung": 1805,
+          "fehlerMittel": 233,
+          "min": 3589,
+          "q10": 4640,
+          "q25": 5913,
+          "median": 7102,
+          "q75": 8314,
+          "q90": 9315,
+          "max": 11555
+        },
+        "10": {
+          "n": 60,
+          "mittel": 25347,
+          "streuung": 8562,
+          "fehlerMittel": 1105,
+          "min": 11945,
+          "q10": 15523,
+          "q25": 18653,
+          "median": 24959,
+          "q75": 30273,
+          "q90": 34602,
+          "max": 47703
+        },
+        "20": {
+          "n": 60,
+          "mittel": 119993,
+          "streuung": 20652,
+          "fehlerMittel": 2666,
+          "min": 65413,
+          "q10": 97597,
+          "q25": 105477,
+          "median": 120405,
+          "q75": 132595,
+          "q90": 148628,
+          "max": 175308
+        }
+      },
+      "verhaeltnisKiZuBezug": {
+        "5": {
+          "n": 60,
+          "mittel": 1.16,
+          "streuung": 0.37,
+          "fehlerMittel": 0.05,
+          "min": 0.52,
+          "q10": 0.67,
+          "q25": 0.87,
+          "median": 1.17,
+          "q75": 1.41,
+          "q90": 1.63,
+          "max": 2.07
+        },
+        "10": {
+          "n": 60,
+          "mittel": 6.19,
+          "streuung": 2.57,
+          "fehlerMittel": 0.33,
+          "min": 1.6,
+          "q10": 3.52,
+          "q25": 4.65,
+          "median": 5.49,
+          "q75": 7.57,
+          "q90": 9.75,
+          "max": 12.92
+        },
+        "20": {
+          "n": 60,
+          "mittel": 1.79,
+          "streuung": 0.38,
+          "fehlerMittel": 0.05,
+          "min": 0.92,
+          "q10": 1.28,
+          "q25": 1.56,
+          "median": 1.81,
+          "q75": 1.98,
+          "q90": 2.16,
+          "max": 3.1
+        }
+      },
+      "davongezogen": {
+        "schwelle": 2,
+        "anzahl": 14,
+        "von": 60
+      },
+      "kiBankrott": 0,
+      "kiErloschen": 0
+    }
+  },
+  "befunde": [
+    "Berufe statisch, Stufe 1 (Mittel 1.895 Gulden im Jahr): außerhalb ±15 %: Prediger −17 %, Dieb +26 %, Gardist −21 %.",
+    "Berufe statisch, Stufe 2 (Mittel 3.304 Gulden im Jahr): außerhalb ±15 %: Wirt −23 %, Dieb +38 %, Geldleiher +22 %, Gardist −21 %.",
+    "Berufe statisch, Stufe 3 (Mittel 5.350 Gulden im Jahr): außerhalb ±15 %: Wirt −29 %, Dieb +39 %, Geldleiher +21 %, Gardist −17 %.",
+    "Z2 (Bürger mit einem Betrieb in 8–12 Jahren), Dieb: Ø Jahr 7,7, erreicht 19/20, davon im Ziel 5.",
+    "Jahre bis Bürger (Reinvermögen 10.000) je Beruf, Ø (im Ziel 8–12 von n): Schmied 10,2 (19/20), Tischler 9,7 (20/20), Steinmetz 11,5 (16/20), Alchimist 10,3 (17/20), Wirt 10,0 (18/20), Prediger 10,0 (19/20), Dieb 7,7 (5/20), Parfumeur 9,6 (17/20), Geldleiher 8,2 (15/20), Gardist 9,7 (18/20), Dieb (wagemutig geführt) 10,0 (9/20).",
+    "Berufe simuliert (ein Betrieb, 20 Jahre, Vermögenszuwachs gegen das Mittel 28.838): alle im Band ±15 %.",
+    "Startfairness greybox: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … 0 % (gegen das Mittel desselben Hauses, 1 Rotationen × 20 Startwerte); der Spieler mit einem Betrieb hat 34.779 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 79.030 (−56 %). Bürger (Reinvermögen 10.000): Ø Jahr 10,2, im Ziel 8–12 Jahre 19/20.",
+    "KI-Stärke (greybox, 20 Jahre): Bezugsspieler mit der Strategie der KI 68.066 Gulden, KI-Häuser Ø 78.461 (Verhältnis KI ÷ Bezug Median 1,08); davongezogen (> 2×) 3/60, abgeschlagen (< ½) 1/60, bankrott 0, erloschen 0; gegen den Spieler mit einem Betrieb sind die KI-Häuser 2,3× so reich.",
+    "KI-Stärke bei „Schwer“ (KI-Häuser mit Werkstatt und Umland): Bezug 68.162, KI-Häuser Ø 119.993 (Verhältnis Median 1,81; davongezogen 14/60)."
+  ],
+  "laufzeitSekunden": 410
+}
