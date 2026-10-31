@@ -249,7 +249,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Absicherung | `Bauen` baut jeden Reiter für sich: Wirft der Aufbau, steht die Ausnahme einmal im Log, die übrigen Reiter, ✕ und Verstecken laufen weiter. Aufgefrischt werden nur fertig gebaute Reiter (ein Kennzeichen je Reiter); die Messwerte frischt `_Process` selbst auf. | 30.10.2026 |
 | Klicktest | Vulkan (T400), `--entwickler=1`, je mit F12: Stadt (alle sechs Reiter, Nachtnebel zeigt „An (neu)“), Raumansicht `--innen=1` (Wetter Regen mit Meldung, Messwerte) und Probepartie der Kartenwerkstatt (Wetter und Darstellung). Fenster beim Start zu, keine Ausnahme des Fensters im Log; auf `main` im selben Ablauf 94 (eine im Aufbau, 93 beim Auffrischen). Gegenprobe mit einem absichtlich eingebauten Fehler im Aufbau: eine Meldung im Log, Fenster beim Start zu, die anderen Reiter und „+1.000“ gehen. | 30.10.2026 |
 
-### Kartenwerkstatt: Pinsel-Paket 1 (PR #…)
+### Kartenwerkstatt: Pinsel-Paket 1 (PR #279)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

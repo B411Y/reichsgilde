@@ -231,7 +231,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Abfragen | `Person.Erbgut` → `Erbgut.SichtbarerWert(kennung)` bzw. `(GenVorlage)` (0–255), `VerdeckterWert`, `WertImAlter(kennung, menschenjahre)`, `Hat`, `AlsText`; `Familienbuch.Erbgutvorlage` → `Gene`, `Gen(kennung)`, `GeneDerArt`, `GenVorlage.Grenzen(volk)`, `Alterskurve`. Entwicklerbefehl `EntwicklerErbgut(Person)` (neu würfeln; den Knopf im Entwicklerfenster führt `oberflaeche.md` unter „Offen“). | 29.10.2026 |
 | Tests | `ErbgutTests` (13): Vorlage gültig und eingebettet gleich der Datei, Fehlermeldungen (auch unbekannte Felder und `beiFrauen`), Kind mit nur einem Elternteil (Grenzen, gleiche Bytes, `KindAufnehmen`), Bart der Zwerginnen, gleiche Eltern + Startwert = gleiche Bytes (auch ganze Partien), Volksgrenzen (6 × 1000 und Kinder aller Völkerpaare), Verteilung (Mittel, Streuung 0,88 × bei ±2σ, nichts außerhalb, Korrelation; dazu je Volk und Gen der echten Vorlage), Dominanz, Großeltern (30 % blonde Enkel dunkelhaariger Eltern), Erben im Spiel + Speichern/Laden + Prüfsumme, alter Spielstand, unbekannte und fehlende Gene, Entwicklerbefehl. | 29.10.2026 |
 
-### Pinsel-Paket 1: Filter, Mulden/Spitzen, Zielhöhe, Terrassen (PR #…)
+### Pinsel-Paket 1: Filter, Mulden/Spitzen, Zielhöhe, Terrassen (PR #279)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
