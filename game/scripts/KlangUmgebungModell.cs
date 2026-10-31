@@ -200,7 +200,7 @@ public static class KlangUmgebungModell
             "natur_grillen" => Math.Max(AbendNacht(b), 0.12f) * um.Natur * trocken * (0.5f + 0.5f * n) * (1f - 0.7f * h),
             "natur_froesche" => um.Wasser * (0.35f + 0.65f * AbendNacht(b)) * (1f - 0.7f * um.Stadt) * (0.4f + 0.6f * n) * (1f - 0.7f * h) * (1f - 0.6f * Glatt(0.1f, 0.7f, wt.Schnee)),
             "natur_fluss" => um.Wasser * (0.3f + 0.7f * n) * (1f - 0.5f * h) * (1f - 0.4f * um.Stadt),
-            "regen_leicht" => Glatt(0.03f, 0.4f, regen) * (1f - 0.85f * Glatt(0.55f, 0.95f, regen)) * (1f - 0.4f * h),
+            "regen_leicht" => Glatt(0.03f, 0.55f, regen) * (1f - 0.85f * Glatt(0.55f, 0.95f, regen)) * (1f - 0.4f * h), // wächst mit der Regenstärke bis 0,55, dann übernimmt der Guss
             "regen_stark" => Glatt(0.45f, 0.95f, regen) * (1f - 0.4f * h),
             // Dächer nur nahe an Häusern: erst bei spürbarem Stadtanteil im Umkreis (Wiese und Wald: nichts), dann nach der Nähe der Kamera
             "regen_dach" => Glatt(0.05f, 0.5f, regen) * Glatt(0.15f, 0.65f, um.Stadt) * (0.25f + 0.75f * n),
@@ -982,7 +982,7 @@ public static class KlangUmgebungModell
         }
 
         // Regen im Freien ist die Hauptschicht: klar über der Stadt-Grundschicht (Regen 0,5 mindestens 3 dB), starker Regen dominiert (mindestens 9 dB)
-        foreach (var (name, regenWert, mindestens) in new[] { ("Regen 0,5", 0.5f, 3.0), ("Regen 0,75", 0.75f, 6.0), ("Guss 1,0", 1f, 9.0) })
+        foreach (var (name, regenWert, mindestens) in new[] { ("Regen 0,5", 0.5f, 6.0), ("Regen 0,75", 0.75f, 9.0), ("Guss 1,0", 1f, 10.0) })
         {
             var a = Lauf(tag with { Wetter = new KlangWetter(regenWert, 0f, 0.3f, 0f, 0.1f) }, 5);
             double regenP = 0, restP = 0;
@@ -993,6 +993,7 @@ public static class KlangUmgebungModell
                 if (Schichten[i].Name.StartsWith("regen_")) regenP += p; else restP += p;
             }
             var abstand = 10 * Math.Log10(Math.Max(regenP, 1e-12) / Math.Max(restP, 1e-12));
+            log($"UMGEBUNGTEST Regen-Abstand {name}: Regenschichten {abstand:0.0} dB über dem Rest der Umgebung (Startzoom, Stadtmitte)");
             Pruefe(abstand >= mindestens, $"{name}: der Regen liegt nur {abstand:0.0} dB über dem Rest der Umgebung (erwartet ≥ {mindestens:0} dB)");
         }
 
