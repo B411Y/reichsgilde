@@ -15,7 +15,11 @@ namespace Reichsgilde;
 /// Blickpunkt ein Bild mit dem Abstand jedes Punkts zur nächsten Traufkante (Grundriss der Kanten); <c>boden.gdshaderinc</c> liest es (globales
 /// <c>traufe_maske</c>, Lage und Stärke in <c>traufe_feld</c>) und macht daraus in <c>wetter.gdshaderinc</c> einen unregelmäßigen nassen Streifen mit kleinen
 /// Pfützen und feinen Ringen. Es zählt der kleinste Abstand, nicht die Summe: Nichts wird nässer als nass. Am Boden selbst bleiben nur kleine Spritzer
-/// (<c>regenring.gdshader</c> mit <c>traufe = true</c>).</item>
+/// (<c>regenring.gdshader</c>).</item>
+/// <item><b>Schutz der Wände</b> (Regen 4): Dasselbe Bild trägt in G die Höhe der nächsten Traufe und in B und A die Unterkanten der Fenster davor
+/// (unterste und nächste Reihe, aus den Fensterscheiben der Modelle). Der Shader der Modelle (<c>wand_schutz</c> in wetter.gdshaderinc) hält die Wand
+/// darunter trockener: unter der Traufe je nach Wind bis 1,8 m, unter jeder Fensterbank 0,2–0,7 m. Höhen in Stufen zu <see cref="TropfStufe"/> über
+/// <see cref="_tropfBasis"/> (globales <c>traufe_basis</c>).</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -28,17 +32,27 @@ public partial class Stadtansicht
     /// <summary>Ab diesem Zoom blassen Tropfen, Einschläge und nasse Tropfkante aus, bei <see cref="TraufenMaxZoom"/> sind sie ganz weg (kein Aufpoppen).</summary>
     private const float TraufenBlassAb = 33f;
 
-    /// <summary>Seitenlänge des Bilds der Tropfkante in Bildpunkten (R8, 256 KB); es deckt je nach Zoom 48–160 m um den Blickpunkt.</summary>
+    /// <summary>Seitenlänge des Bilds der Tropfkante in Bildpunkten (RGBA8, 1 MB); es deckt je nach Zoom 48–160 m um den Blickpunkt. Muss zu <c>TRAUFE_BILD</c> in wetter.gdshaderinc passen.</summary>
     private const int TropfBild = 512;
 
     /// <summary>Abstand zur Traufkante (m), ab dem der Boden nicht mehr nass ist (Wert 255 im Bild); muss zu <c>TRAUFE_WEIT</c> in wetter.gdshaderinc passen.</summary>
     private const float TropfWeit = 1.2f;
+
+    /// <summary>Meter je Stufe der Höhen im Bild (G, B, A); muss zu <c>TRAUFE_STUFE</c> in wetter.gdshaderinc passen. 255 Stufen reichen 38 m über die Basis.</summary>
+    private const float TropfStufe = 0.15f;
 
     /// <summary>Tropfstellen am Giebel tropfen weniger als die Traufe: Ihr Fleck am Boden ist um so viel (m) kleiner.</summary>
     private const float TropfGiebelKleiner = 0.25f;
 
     private readonly List<(Node3D Modell, Vector3[] Punkte, (Vector3 A, Vector3 B)[] Kanten)> _traufModelle = new();
     private readonly Dictionary<Mesh, (Vector3[] Punkte, (Vector3 A, Vector3 B)[] Kanten)> _traufPunkte = new();
+
+    /// <summary>Eine Fensterscheibe im Raum des Modells: Mitte der Unterkante, Richtung nach außen (waagerecht) und halbe Breite (m).</summary>
+    private readonly record struct Fensterscheibe(MeshInstance3D Teil, Vector3 Fuss, Vector3 Aussen, float Halb);
+    private readonly List<(Node3D Modell, Fensterscheibe[] Scheiben)> _fensterModelle = new();
+    private readonly Dictionary<(Mesh, int), Bauteil[]> _scheibenJeNetz = new();
+    private readonly List<(Vector2 Fuss, Vector2 Aussen, float Halb, float Hoehe)> _tropfFenster = new();
+    private float _tropfBasis = float.NaN; // Höhe (m), ab der die Höhen im Bild zählen (zuletzt an die Shader gegeben)
     private GpuParticles3D? _traufTropfen;
     private ParticleProcessMaterial? _traufStoff;
     private ShaderMaterial? _traufFarbe; // traufe.gdshader: einzelne dicke Tropfen, immer senkrecht
@@ -54,12 +68,33 @@ public partial class Stadtansicht
     private Image? _tropfBild;
     private ImageTexture? _tropfTextur;
     private int _tropfPruefsumme;
-    private readonly List<(Vector2 A, Vector2 B, float Kleiner)> _tropfKanten = new();
+    private readonly List<(Vector2 A, Vector2 B, float Kleiner, float Hoehe)> _tropfKanten = new();
     private Vector4 _tropfFeld = new(0, 0, 0, -1); // (Ecke x, Ecke z, 1 / Seitenlänge, Stärke), zuletzt an die Shader gegeben
 
-    /// <summary>Merkt die Traufkanten der Dächer eines eben eingesetzten Modells.</summary>
-    private void TraufenMelden(Node3D modell)
+    /// <summary>Merkt die Traufkanten der Dächer und die Fensterscheiben (<paramref name="fenster"/>: Teil und Fläche mit dem Material „Fenster“) eines eben eingesetzten Modells.</summary>
+    private void TraufenMelden(Node3D modell, List<(MeshInstance3D Teil, int Flaeche)> fenster)
     {
+        var scheiben = new List<Fensterscheibe>();
+        foreach (var (teil, flaeche) in fenster)
+        {
+            if (teil.Mesh is not { } netz) continue;
+            if (!_scheibenJeNetz.TryGetValue((netz, flaeche), out var teile))
+                _scheibenJeNetz[(netz, flaeche)] = teile = Bauteile(netz, flaeche, Transform3D.Identity).Where(b => b.Groesse.Y > 0.3f && Mathf.Abs(b.Normale.Y) < 0.5f).ToArray();
+            var lage = Transform3D.Identity;
+            for (Node? k = teil; k is Node3D knoten && k != modell; k = k.GetParent()) lage = knoten.Transform * lage;
+            foreach (var b in teile)
+            {
+                var aussen = lage.Basis * new Vector3(b.Normale.X, 0, b.Normale.Z);
+                if (aussen.LengthSquared() < 0.1f) continue;
+                aussen = aussen.Normalized();
+                var quer = new Vector3(-aussen.Z, 0, aussen.X);
+                var groesse = lage.Basis * b.Groesse;
+                scheiben.Add(new Fensterscheibe(teil, lage * new Vector3(b.Mitte.X, b.Min.Y, b.Mitte.Z), aussen, (Mathf.Abs(groesse.X * quer.X) + Mathf.Abs(groesse.Z * quer.Z)) * 0.5f));
+            }
+        }
+        if (_fensterModelle.Count > 300) _fensterModelle.RemoveAll(m => !IsInstanceValid(m.Modell));
+        if (scheiben.Count > 0) _fensterModelle.Add((modell, scheiben.ToArray()));
+
         var alle = new List<Vector3>();
         var alleKanten = new List<(Vector3 A, Vector3 B)>();
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
@@ -170,14 +205,13 @@ public partial class Stadtansicht
         };
         AddChild(_traufTropfen);
 
-        // Am Boden unter der Traufe: kleine Spritzer (regenring.gdshader, traufe = true) dort, wo die Tropfen landen; kurzlebige Partikel auf denselben
+        // Am Boden unter der Traufe: kleine Spritzer (regenring.gdshader) dort, wo die Tropfen landen; kurzlebige Partikel auf denselben
         // Stellen, am Boden statt am Dach. Die nasse Tropfkante selbst ist Nässe des Bodens (TropfkanteZeichnen, boden.gdshaderinc), kein Partikel.
         _traufRingStoff = new ParticleProcessMaterial
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Points, Gravity = Vector3.Zero, ScaleMin = 0.45f, ScaleMax = 0.8f,
         };
         _traufRingFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/regenring.gdshader") };
-        _traufRingFarbe.SetShaderParameter("traufe", true);
         _traufRinge = new GpuParticles3D
         {
             Name = "Traufspritzer", Amount = 160, Lifetime = 0.4, LocalCoords = false, Emitting = false, Visible = false,
@@ -271,29 +305,33 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Nasse Tropfkante: schreibt das Bild um den Blickpunkt neu – je Bildpunkt der Abstand zur nächsten Traufkante im Grundriss (0–<see cref="TropfWeit"/> m
-    /// auf 0–255, weiter weg 255). Es zählt der kleinste Abstand, nicht die Summe: Wo zwei Kanten nahe beieinanderliegen (Hausecken, Nachbarhäuser), wird
-    /// der Boden nicht nässer als nass. Die Ecke des Bilds rastet auf ganze Bildpunkte ein, damit dieselbe Stelle beim Verschieben denselben Wert bekommt
-    /// (kein Flimmern). Gezeichnet und hochgeladen wird nur, wenn sich etwas geändert hat (Prüfsumme über die Kanten im Bild); steht der Blick, kostet es
-    /// nur das Umrechnen der Kanten. Das Bild deckt die ganze Ansicht (die Kamera blickt diagonal: rund 2,7 × Zoom), auf 16 m gerundet, 48–160 m – je
-    /// Bildpunkt 9–31 cm.
+    /// Nasse Tropfkante und Schutz der Wände: schreibt das Bild um den Blickpunkt neu – je Bildpunkt in R der Abstand zur nächsten Traufkante im
+    /// Grundriss (0–<see cref="TropfWeit"/> m auf 0–255, weiter weg 255) und in G deren Höhe, in B und A die Unterkanten der Fenster davor. Es zählt der
+    /// kleinste Abstand, nicht die Summe: Wo zwei Kanten nahe beieinanderliegen (Hausecken, Nachbarhäuser), wird der Boden nicht nässer als nass. Die Ecke
+    /// des Bilds rastet auf ganze Bildpunkte ein, damit dieselbe Stelle beim Verschieben denselben Wert bekommt (kein Flimmern). Gezeichnet und
+    /// hochgeladen wird nur, wenn sich etwas geändert hat (Prüfsumme über Kanten und Fenster im Bild); steht der Blick, kostet es nur das Umrechnen. Das
+    /// Bild deckt die ganze Ansicht (die Kamera blickt diagonal: rund 2,7 × Zoom), auf 16 m gerundet, 48–160 m – je Bildpunkt 9–31 cm.
     /// </summary>
     private void TropfkanteZeichnen(Vector3 fokus)
     {
         var seite = Mathf.Clamp(Mathf.Ceil((2.7f * _kamera.Size + 8f) / 16f) * 16f, 48f, 160f);
         var texel = seite / TropfBild;
         var ecke = new Vector2(Mathf.Floor((fokus.X - seite / 2) / texel) * texel, Mathf.Floor((fokus.Z - seite / 2) / texel) * texel);
-        // erst die Kanten im Bild sammeln (Grundriss) und ihre Prüfsumme bilden: Hat sich nichts geändert (Blick steht), bleibt das Bild, wie es ist
+        // Höhen zählen ab 8 m unter dem Boden am Blickpunkt (auf ganze 4 m gerundet, damit sie beim Verschieben selten springen)
+        var basis = Mathf.Floor((BodenHoehe(fokus.X, fokus.Z) - 8f) / 4f) * 4f;
+        // erst die Kanten und Fenster im Bild sammeln (Grundriss) und ihre Prüfsumme bilden: Hat sich nichts geändert (Blick steht), bleibt das Bild, wie es ist
         _tropfKanten.Clear();
+        _tropfFenster.Clear();
         var pruef = new HashCode();
         pruef.Add(seite);
         pruef.Add(ecke);
+        pruef.Add(basis);
+        bool Draussen(Vector3 o) => o.X < ecke.X - 40 || o.X > ecke.X + seite + 40 || o.Z < ecke.Y - 40 || o.Z > ecke.Y + seite + 40;
         foreach (var (modell, _, kanten) in _traufModelle)
         {
             if (!modell.IsVisibleInTree()) continue;
             var lage = modell.GlobalTransform;
-            var o = lage.Origin; // grob: Modelle weit außerhalb des Bilds gar nicht erst umrechnen
-            if (o.X < ecke.X - 40 || o.X > ecke.X + seite + 40 || o.Z < ecke.Y - 40 || o.Z > ecke.Y + seite + 40) continue;
+            if (Draussen(lage.Origin)) continue; // grob: Modelle weit außerhalb des Bilds gar nicht erst umrechnen
             foreach (var (a, b) in kanten)
             {
                 var wa = lage * a;
@@ -303,35 +341,76 @@ public partial class Stadtansicht
                 var weit = TropfWeit + 0.1f;
                 if (Mathf.Max(pa.X, pb.X) < ecke.X - weit || Mathf.Min(pa.X, pb.X) > ecke.X + seite + weit
                     || Mathf.Max(pa.Y, pb.Y) < ecke.Y - weit || Mathf.Min(pa.Y, pb.Y) > ecke.Y + seite + weit) continue;
-                _tropfKanten.Add((pa, pb, a == b ? TropfGiebelKleiner : 0f));
+                _tropfKanten.Add((pa, pb, a == b ? TropfGiebelKleiner : 0f, Mathf.Min(wa.Y, wb.Y)));
                 pruef.Add(pa);
                 pruef.Add(pb);
+            }
+        }
+        _fensterModelle.RemoveAll(m => !IsInstanceValid(m.Modell));
+        foreach (var (modell, scheiben) in _fensterModelle)
+        {
+            if (!modell.IsVisibleInTree()) continue;
+            var lage = modell.GlobalTransform;
+            if (Draussen(lage.Origin)) continue;
+            foreach (var sch in scheiben)
+            {
+                if (!sch.Teil.IsVisibleInTree()) continue; // andere Stufe oder Variante
+                var fuss = lage * sch.Fuss;
+                var aussen = (lage.Basis * sch.Aussen) with { Y = 0 };
+                if (aussen.LengthSquared() < 1e-4f) continue;
+                aussen = aussen.Normalized();
+                var f = new Vector2(fuss.X, fuss.Z);
+                if (f.X < ecke.X - 2 || f.X > ecke.X + seite + 2 || f.Y < ecke.Y - 2 || f.Y > ecke.Y + seite + 2) continue;
+                _tropfFenster.Add((f, new Vector2(aussen.X, aussen.Z), sch.Halb, fuss.Y));
+                pruef.Add(f);
+                pruef.Add(fuss.Y);
             }
         }
         var summe = _tropfKanten.Count == 0 ? 0 : pruef.ToHashCode() | 1; // 0 heißt: keine Kante im Bild
         if (summe != _tropfPruefsumme && summe != 0)
         {
-            _tropfDaten ??= new byte[TropfBild * TropfBild];
-            Array.Fill(_tropfDaten, (byte)255);
-            foreach (var (a, b, kleiner) in _tropfKanten) KanteZeichnen(a, b, kleiner, ecke, texel);
+            _tropfDaten ??= new byte[TropfBild * TropfBild * 4];
+            for (var i = 0; i < _tropfDaten.Length; i += 4)
+            {
+                _tropfDaten[i] = 255;
+                _tropfDaten[i + 1] = _tropfDaten[i + 2] = _tropfDaten[i + 3] = 0;
+            }
+            // erst die Traufen (Abstand und Höhe), dann die Tropfstellen am Giebel (nur Abstand), dann die Fenster
+            foreach (var (a, b, kleiner, hoehe) in _tropfKanten)
+                if (a != b) KanteZeichnen(a, b, kleiner, HoehenStufe(hoehe, basis), ecke, texel);
+            foreach (var (a, b, kleiner, _) in _tropfKanten)
+                if (a == b) KanteZeichnen(a, b, kleiner, 0, ecke, texel);
+            foreach (var (fuss, aussen, halb, hoehe) in _tropfFenster) FensterZeichnen(fuss, aussen, halb, HoehenStufe(hoehe, basis), ecke, texel);
+            if (OS.GetEnvironment("RG_TRAUFE") != "") GD.Print($"[traufe] Bild neu: {_tropfKanten.Count} Kanten, {_tropfFenster.Count} Fenster, Basis {basis} m, Seite {seite} m");
             if (_tropfBild is null)
             {
-                _tropfBild = Image.CreateFromData(TropfBild, TropfBild, false, Image.Format.R8, _tropfDaten);
+                _tropfBild = Image.CreateFromData(TropfBild, TropfBild, false, Image.Format.Rgba8, _tropfDaten);
                 _tropfTextur = ImageTexture.CreateFromImage(_tropfBild);
                 RenderingServer.GlobalShaderParameterSet("traufe_maske", _tropfTextur);
             }
             else
             {
-                _tropfBild.SetData(TropfBild, TropfBild, false, Image.Format.R8, _tropfDaten);
+                _tropfBild.SetData(TropfBild, TropfBild, false, Image.Format.Rgba8, _tropfDaten);
                 _tropfTextur!.Update(_tropfBild);
+            }
+            if (basis != _tropfBasis)
+            {
+                _tropfBasis = basis;
+                RenderingServer.GlobalShaderParameterSet("traufe_basis", basis);
             }
         }
         _tropfPruefsumme = summe;
         TropfFeldSetzen(new Vector4(ecke.X, ecke.Y, 1f / seite, _tropfFeld.W));
     }
 
-    /// <summary>Eine Traufkante (Grundriss a–b, Welt-x/z) ins Bild: Abstand jedes nahen Bildpunkts zur Strecke plus <paramref name="kleiner"/>, der kleinere Wert gewinnt.</summary>
-    private void KanteZeichnen(Vector2 a, Vector2 b, float kleiner, Vector2 ecke, float texel)
+    /// <summary>Eine Höhe (m) als Stufe im Bild: 1–255 zu <see cref="TropfStufe"/> über <paramref name="basis"/> (0 heißt „keine“).</summary>
+    private static byte HoehenStufe(float hoehe, float basis) => (byte)Mathf.Clamp(Mathf.RoundToInt((hoehe - basis) / TropfStufe) + 1, 1, 255);
+
+    /// <summary>
+    /// Eine Traufkante (Grundriss a–b, Welt-x/z) ins Bild: Abstand jedes nahen Bildpunkts zur Strecke plus <paramref name="kleiner"/>, der kleinere Wert
+    /// gewinnt (R); mit ihm die Höhe der Traufe (G, <paramref name="hoehe"/> 0 = keine: Tropfstellen am Giebel), aber nur, wo das Lot auf die Kante fällt.
+    /// </summary>
+    private void KanteZeichnen(Vector2 a, Vector2 b, float kleiner, byte hoehe, Vector2 ecke, float texel)
     {
         var daten = _tropfDaten!;
         var weit = TropfWeit - kleiner;
@@ -348,14 +427,49 @@ public partial class Stadtansicht
             for (var i = i0; i <= i1; i++)
             {
                 var p = new Vector2(ecke.X + (i + 0.5f) * texel, z);
-                var t = l2 > 1e-6f ? Mathf.Clamp((p - a).Dot(ab) / l2, 0f, 1f) : 0f;
+                var roh = l2 > 1e-6f ? (p - a).Dot(ab) / l2 : 0f;
+                var t = Mathf.Clamp(roh, 0f, 1f);
                 var d = (p - (a + ab * t)).Length() + kleiner;
                 if (d >= TropfWeit) continue;
                 var wert = (byte)Mathf.RoundToInt(d / TropfWeit * 255f);
-                var stelle = j * TropfBild + i;
-                if (wert < daten[stelle]) daten[stelle] = wert;
+                var stelle = (j * TropfBild + i) * 4;
+                if (wert >= daten[stelle]) continue;
+                daten[stelle] = wert;
+                // Die Höhe gehört immer zur nächsten Kante: nur eine Traufe, deren Lot auf die Kante fällt (hinter ihrem Ende, an der Giebelwand quer dazu,
+                // liegt keine Wand unter ihr); liegt eine Tropfstelle am Giebel oder das Ende einer Kante näher, gibt es hier keinen Schutz (0)
+                daten[stelle + 1] = hoehe > 0 && roh >= 0f && roh <= 1f ? hoehe : (byte)0;
             }
         }
+    }
+
+    /// <summary>
+    /// Ein Fenster ins Bild: vor der Fensterscheibe (bis 0,45 m nach außen, 0,2 m in die Laibung, so breit wie die Fensterscheibe und 5 cm mehr) ihre Unterkante als Höhe
+    /// in B und A – B die unterste Reihe, A die nächste darüber (Unterkanten bis 0,6 m auseinander zählen als eine Reihe).
+    /// </summary>
+    private void FensterZeichnen(Vector2 fuss, Vector2 aussen, float halb, byte hoehe, Vector2 ecke, float texel)
+    {
+        var daten = _tropfDaten!;
+        var quer = new Vector2(-aussen.Y, aussen.X);
+        var r = halb + 0.5f;
+        var i0 = Mathf.Max(0, Mathf.FloorToInt((fuss.X - r - ecke.X) / texel));
+        var i1 = Mathf.Min(TropfBild - 1, Mathf.CeilToInt((fuss.X + r - ecke.X) / texel));
+        var j0 = Mathf.Max(0, Mathf.FloorToInt((fuss.Y - r - ecke.Y) / texel));
+        var j1 = Mathf.Min(TropfBild - 1, Mathf.CeilToInt((fuss.Y + r - ecke.Y) / texel));
+        for (var j = j0; j <= j1; j++)
+            for (var i = i0; i <= i1; i++)
+            {
+                var d = new Vector2(ecke.X + (i + 0.5f) * texel, ecke.Y + (j + 0.5f) * texel) - fuss;
+                var vor = d.Dot(aussen);
+                if (vor < -0.2f || vor > 0.45f || Mathf.Abs(d.Dot(quer)) > halb + 0.05f) continue;
+                var stelle = (j * TropfBild + i) * 4;
+                ref var unten = ref daten[stelle + 2];
+                ref var naechste = ref daten[stelle + 3];
+                if (unten == 0) unten = hoehe;
+                else if (Math.Abs(hoehe - unten) <= 4) unten = Math.Min(unten, hoehe);
+                else if (hoehe < unten) { naechste = unten; unten = hoehe; }
+                else if (naechste == 0 || hoehe < naechste - 4) naechste = hoehe;
+                else if (Math.Abs(hoehe - naechste) <= 4) naechste = Math.Min(naechste, hoehe);
+            }
     }
 
     /// <summary>Lage und Stärke der nassen Tropfkante an die Shader (globales <c>traufe_feld</c>), nur wenn sie sich geändert haben.</summary>

@@ -101,16 +101,16 @@ global uniform float boden_pom;
 global uniform vec3 boden_blick;
 
 // Nasse Tropfkante unter den Traufen (Stadtansicht.Traufen.cs, wetter.gdshaderinc: traufe_nass): ein Bild um den Blickpunkt mit dem Abstand jedes Punkts
-// zur nächsten Traufkante (0–1 = 0–TRAUFE_WEIT m); traufe_feld = (Ecke x, Ecke z, 1 / Seitenlänge in m, Stärke 0–1; 0 = keine Tropfkante).
-global uniform vec4 traufe_feld;
-global uniform sampler2D traufe_maske : filter_linear, repeat_disable;
+// zur nächsten Traufkante im Rot (0–1 = 0–TRAUFE_WEIT m); traufe_feld und traufe_maske stehen in wetter.gdshaderinc (die Wände lesen dasselbe Bild).
 
 varying vec2 welt;
 varying vec3 welt_n;
+varying float land;
 
 void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	welt_n = (MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz;
+	land = COLOR.r; // Eckenfarbe der Geländekacheln: 1 an Land, 0 unter dem Spiegel von Fluss und See (Stadtansicht.Gelaende.cs); ohne Eckenfarbe 1
 }
 
 // Eine abgetastete Textur: Farbe (rgb) und Höhe (a), Normale in Weltrichtung (ohne Normalen: die des Geländes) und Rauheit
@@ -818,7 +818,7 @@ void fragment() {
 	}
 	// Wetter: Nässe, Pfützen (in Hoch mit Regenringen), Tropfkante und Schnee (wetter.gdshaderinc)
 	vec3 leuchten = vec3(0.0);
-	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE >= 2, TIME, traufe);
+	wetter_boden(farbe, rau, nw, leuchten, welt, n, auf_weg, stadtgrund, 1.0 - fh.a, wiese, BODEN_STUFE, TIME, traufe, clamp(land, 0.0, 1.0));
 	ALBEDO = farbe;
 	EMISSION = leuchten;
 	ROUGHNESS = clamp(rau, 0.0, 1.0);

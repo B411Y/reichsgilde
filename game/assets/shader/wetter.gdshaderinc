@@ -18,11 +18,24 @@ global uniform float wetter_wind;
 global uniform vec2 wind_richtung;
 // Farbe des Himmels (linear): Pfützen spiegeln ihn
 global uniform vec3 wetter_himmel;
+// Regentropfen auf nassem Boden und auf flachen Flächen der Modelle (regentropfen), 0–1: Dichte; Hoch = Regen, Mittel weniger, Niedrig 0 (Regen 4: ersetzt
+// die Ringe als Partikel)
+global uniform float wetter_ringe;
+// Bild um den Blickpunkt (Stadtansicht.Traufen.cs), solange es von den Dächern tropft: R Abstand zur nächsten Traufkante (0–1 = 0–TRAUFE_WEIT m, für die
+// nasse Tropfkante am Boden), G Höhe dieser Traufe, B und A die Unterkanten der Fenster davor (unterste und nächste Reihe) – für den Schutz der Wände unter
+// Vorsprüngen (wand_schutz). Höhen in Stufen zu TRAUFE_STUFE Metern über traufe_basis, 0 = keine. traufe_feld = (Ecke x, Ecke z, 1 / Seitenlänge in m,
+// Stärke 0–1; 0 = kein Bild).
+global uniform vec4 traufe_feld;
+global uniform sampler2D traufe_maske : filter_linear, repeat_disable;
+global uniform float traufe_basis;
+const float TRAUFE_STUFE = 0.15;
+const float TRAUFE_BILD = 512.0;   // Seitenlänge des Bilds in Bildpunkten (TropfBild in Stadtansicht.Traufen.cs)
 // Anteile der Jahreszeiten (Frühling, Sommer, Herbst, Winter), zusammen 1: beim Jahreswechsel gleitet die Farbe in Echtzeit über
 global uniform vec4 jahreszeit_anteile;
 
-// Wie glatt ein nasses Dach höchstens wird (Rauheit): darunter spiegelt eine einzelne Facette der Dachfläche den Himmel oder das Licht von Sonne und Mond
-const float DACH_GLATT = 0.5;
+// Wie glatt die Kuppen eines nassen Dachs höchstens werden (Rauheit, Regen 3): darunter spiegelt eine einzelne Facette der flach geschatteten Dächer
+// (Kegel, Turmhelme) den Himmel oder das Licht von Sonne und Mond. Glatter werden nur Rinnen, Fugen und die Schlieren des laufenden Wassers.
+const float DACH_GLATT = 0.55;
 
 // Eigene Namen (w_…): acker.gdshader und boden_gemein.gdshaderinc haben ihr eigenes hash/rausch.
 float w_hash(vec2 p) {
@@ -69,23 +82,50 @@ vec2 pfuetze(vec2 wp, float tiefe, float stadt, float naesse) {
 	return vec2(smoothstep(schwelle, schwelle + 0.07, m), smoothstep(schwelle - 0.3, schwelle, m));
 }
 
-// Ringe der Regentropfen in einer Pfütze: Neigung der Wasserfläche (x, z) – zwei Gitter zu 0,7 m, je Zelle ein Tropfen mit eigenem Takt. Die Ringe haben
-// ihre Größe in der Welt; wo ein Bildpunkt mehr als etwa ein Zehntel der Zelle deckt (px = Meter je Bildpunkt, weit herausgezoomt), würden sie zu
-// flimmerndem Rauschen und blenden darum aus.
-vec2 regenringe(vec2 p, float zeit, float px) {
-	vec2 neig = vec2(0.0);
+// Regentropfen auf nassem Boden, in Pfützen und auf flachen Flächen der Modelle (Regen 4: ersetzt die Ringe als Partikel, die an einer Ebene in Höhe der
+// Bildmitte lagen – wo das Gelände höher stieg, verschwanden sie hinter einer geraden Linie, die beim Verschieben mitsprang). Zwei Gitter (0,45 m
+// und 0,39 m, um 45° gedreht), je mit gut der halben Dichte: In jeder Zelle fällt im eigenen Takt (0,8–1,25 s) ein Tropfen, aber nur in einem Teil
+// der Takte; in den übrigen bricht die Rechnung gleich ab (meist fällt so nur in einer der beiden Zellen etwas, und Mittel mit weniger Dichte rechnet
+// auch weniger). Die Mitte wird je Takt neu gewürfelt, irgendwo in 0,05–0,95 der Zelle, und der Ring wächst nur bis zum Zellrand (höchstens 0,15 m
+// Halbmesser): So entsteht kein Raster und keine Stelle, an der es immer wieder tropft (mit fester Mitte im mittleren Drittel einer Zelle lagen
+// die Ringe auf einem sichtbaren Gitter), und die Größen streuen. Ein kurzer
+// Spritzer, dann ein flacher Ring – außen ein Wellenkamm, innen dicht dahinter eine Rinne. Feste Größe in der Welt; die Linie ist nie schmaler als
+// gut ein Bildpunkt (breiter = etwas schwächer), und weiter weg (px ab 0,08, ganz weg bei 0,2; px aus fwidth, rund das Doppelte der Meter je
+// Bildpunkt: Zoom 25 etwa 0,05, Zoom 60 etwa 0,12) werden die Tropfen weich schwächer – der Übergang folgt dem Abstand im Bild, ohne Kante.
+// Gibt (Neigung x, Neigung z, Zeichnung) zurück: Zeichnung > 0 heller Kamm, < 0 dunkle Rinne. px vor jeder Verzweigung berechnet.
+vec3 regentropfen(vec2 p, float zeit, float px, float dichte) {
+	float sicht = 1.0 - smoothstep(0.08, 0.2, px);
+	if (sicht <= 0.0 || dichte <= 0.001) return vec3(0.0);
+	float breite = max(0.016, 0.8 * px);
+	float staerke = sicht * clamp(sqrt(0.02 / breite), 0.65, 1.0);
+	vec3 summe = vec3(0.0);
 	for (int k = 0; k < 2; k++) {
-		vec2 q = p / 0.7 + float(k) * vec2(0.37, 0.61);
+		// Zwei Gitter, das zweite um 45° gedreht und 0,39 m groß, je mit gut der halben Dichte: Ihre Zellen fallen nie zusammen, so bleibt kein Raster
+		float zelle_m = k == 0 ? 0.45 : 0.39;
+		vec2 q = (k == 0 ? p : vec2(p.x + p.y, p.y - p.x) * 0.70711 + 3.7) / zelle_m;
 		vec2 zelle = floor(q);
-		float z = w_hash(zelle + float(k) * 17.0);
-		vec2 mitte = zelle + 0.2 + 0.6 * vec2(z, w_hash(zelle + 31.0));
-		float t = fract(zeit * 0.9 + z);
-		vec2 d = q - mitte;
+		float z = w_hash(zelle + float(k) * 19.0);
+		float lauf = zeit * (0.8 + 0.5 * fract(z * 7.31)) + z;
+		float takt = floor(lauf);
+		float h = w_hash(zelle + vec2(takt * 3.1, 17.0 + float(k) * 23.0));
+		if (h > dichte * 0.55) continue;                          // in diesem Takt fällt hier kein Tropfen
+		float h2 = w_hash(zelle + vec2(takt * 7.7 + 41.0, takt * 1.3 + 5.0 + float(k) * 11.0));
+		vec2 lage = 0.05 + 0.9 * vec2(h2, fract(h2 * 61.3 + h * 17.9));
+		float rand = min(min(lage.x, 1.0 - lage.x), min(lage.y, 1.0 - lage.y)) * zelle_m;
+		float rmax = min(0.15, rand) * (0.75 + 0.25 * fract(h * 41.7));
+		float t = fract(lauf);
+		vec2 dq = (q - zelle - lage) * zelle_m;                     // Meter, im Gitter gedreht
+		vec2 d = k == 0 ? dq : vec2(dq.x - dq.y, dq.x + dq.y) * 0.70711;
 		float r = length(d);
-		float welle = sin((r - t * 0.6) * 38.0) * (1.0 - t) * smoothstep(0.0, 0.05, r) * (1.0 - smoothstep(t * 0.6, t * 0.6 + 0.12, r));
-		neig += d / max(r, 0.001) * welle;
+		float ka = (r - 0.012 - max(rmax - 0.012, 0.0) * sqrt(t)) / breite;
+		float ri = ka + 1.7;
+		float kamm = exp(-ka * ka);
+		float rinne = exp(-ri * ri);
+		float alt = staerke * (1.0 - t) * (1.0 - t);
+		float spritz = staerke * (1.0 - smoothstep(0.0, 0.025 + breite, r)) * (1.0 - smoothstep(0.0, 0.1, t));
+		summe += vec3(d / max(r, 0.001) * (kamm - rinne) * alt, (kamm * 0.8 - rinne * 0.6) * alt + spritz * 0.7);
 	}
-	return neig * 0.35 * wetter_regen * (1.0 - smoothstep(0.07, 0.16, px / 0.7));
+	return summe;
 }
 
 // Nasse Tropfkante unter den Traufen (Stadtansicht.Traufen.cs): Abstand am Boden (m), ab dem nichts mehr nass ist (Wert 1 im Bild traufe_maske, das
@@ -103,8 +143,8 @@ float traufe_nass(vec2 wp, vec2 traufe) {
 }
 
 // Ringe der Tropfen von der Traufe in den kleinen Pfützen der Tropfkante: dichter und schneller als die des Regens (Gitter 0,4 m, rund 1,3 Tropfen
-// je Sekunde und Zelle), feine, flache Wellen, die schnell vergehen. Gibt die Neigung der Wasserfläche (x, z) zurück; weit herausgezoomt aus (px wie bei
-// regenringe).
+// je Sekunde und Zelle), feine, flache Wellen, die schnell vergehen. Gibt die Neigung der Wasserfläche (x, z) zurück; weit herausgezoomt aus (px = Meter
+// je Bildpunkt).
 vec2 tropfringe(vec2 p, float zeit, float px) {
 	vec2 neig = vec2(0.0);
 	for (int k = 0; k < 2; k++) {
@@ -127,8 +167,9 @@ vec2 tropfringe(vec2 p, float zeit, float px) {
 // Stärke) für die nasse Tropfkante (traufe_nass), ohne Traufe (9, 0).
 // Die Nässe an einem Ort ist die größere aus Wetter und Tropfkante (max, nicht Summe): An der Traufe ist der Boden so nass, wie er bei Regen
 // höchstens wird, dazu durchnässt (satt): dunkler und gesättigter, matt glänzend, mit kleinen Pfützen in Fugen und Mulden – mit fester Obergrenze, nie schwarz.
-void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuchten, vec2 wp, vec3 n, float aufweg, float stadt, float tiefe, float wiese, bool ringe, float zeit, vec2 traufe) {
+void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuchten, vec2 wp, vec3 n, float aufweg, float stadt, float tiefe, float wiese, int stufe, float zeit, vec2 traufe, float land) {
 	float px = max(fwidth(wp.x), fwidth(wp.y));   // Meter je Bildpunkt, vor jeder Verzweigung (Ableitungen brauchen alle Nachbarpunkte)
+	bool ringe = stufe >= 2;
 	float tk = traufe_nass(wp, traufe);
 	float naesse = max(wetter_naesse, tk);
 	if (naesse > 0.001) {
@@ -167,6 +208,20 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 		float feucht = pf.y * (1.0 - p);
 		bf *= 1.0 - 0.2 * feucht;
 		rau = mix(rau, min(rau, 0.3), feucht * 0.55);
+		// Regentropfen (Boden Mittel und Hoch): überall auf dem nassen Boden, nicht nur in Pfützen. Außerhalb der Pfützen liegt nur ein dünner Film – dort
+		// sind die Ringe schwach, im Gras fast nichts; der Kamm hellt in der Farbe des Bodens auf (kein reines Weiß), die Rinne dunkelt ab. Nicht unter
+		// Wasser (land, Bett von Fluss und See: die Wasserfläche hat ihre eigenen Ringe) und nicht auf Schnee.
+		vec3 tr = vec3(0.0);
+		if (stufe >= 1 && wetter_ringe > 0.001 && land > 0.01) {
+			tr = regentropfen(wp, zeit, px, wetter_ringe) * smoothstep(0.85, 0.95, n.y) * land;
+			if (wetter_schnee > 0.001) tr *= 1.0 - schnee_decke(wp, n.y);
+			float film = (0.45 + 0.35 * stadt + 0.2 * aufweg) * (1.0 - 0.8 * wiese) * (1.0 - p) * min(naesse * 1.5, 1.0);
+			float l = max(dot(bf, vec3(0.3, 0.59, 0.11)), 0.02);
+			vec3 eigen = clamp(bf / l, vec3(0.0), vec3(2.0));
+			bf *= 1.0 - 0.4 * max(-tr.z, 0.0) * film;
+			leuchten += mix(wetter_himmel, wetter_himmel * eigen, 0.5) * 0.35 * max(tr.z, 0.0) * film;
+			nw = normalize(nw + vec3(tr.x, 0.0, tr.y) * 0.5 * film);
+		}
 		if (p > 0.0) {
 			// Wasserfarbe: die Farbe des Untergrunds scheint durch, etwas dunkler, mit leichter Spiegelung des Himmels; in der Tropfkante (seichtes
 			// Wasser über nasser Erde) gedämpfter und in der Farbe des Bodens
@@ -175,15 +230,17 @@ void wetter_boden(inout vec3 bf, inout float rau, inout vec3 nw, inout vec3 leuc
 			rau = mix(rau, 0.04, p);
 			// Himmelsschein: leicht; in der Tropfkante gedämpft und zum Boden getönt (seichtes Wasser über Erde); Tropfenringe als Hell-dunkel-Zeichnung
 			vec3 schein = wetter_himmel * mix(vec3(0.08), ton * 0.1, ta);
+			// In der Pfütze dieselben Tropfen wie auf dem Boden daneben, nur deutlicher (stehendes Wasser), mit der Pfütze gewichtet (am Rand weich, nicht
+			// doppelt): Boden Mittel als Hell-dunkel-Zeichnung, Hoch dazu als Neigung im Licht und mit den feinen Ringen der Traufe
+			bf *= 1.0 - 0.35 * max(-tr.z, 0.0) * p;
+			schein += wetter_himmel * 0.25 * max(tr.z, 0.0);
 			vec3 glatt = n;
 			if (ringe) {
-				vec2 r0 = regenringe(wp, zeit, px);
 				vec2 rt = tropfringe(wp, zeit, px) * clamp(traufe.y, 0.0, 1.0) * step(0.001, tw);
-				float zeichn = clamp(length(r0) * 2.2, 0.0, 1.0);
 				float zt = clamp(length(rt) * 2.2, 0.0, 1.0);
-				bf *= (1.0 - 0.4 * zeichn) * (1.0 - 0.15 * zt);
-				schein += wetter_himmel * (0.2 * zeichn + ton * 0.12 * zt);
-				vec2 r = r0 + rt;
+				bf *= 1.0 - 0.15 * zt * p;
+				schein += wetter_himmel * ton * 0.12 * zt;
+				vec2 r = tr.xy * 0.6 + rt;
 				glatt = normalize(n + vec3(r.x, 0.0, r.y));
 			}
 			nw = normalize(mix(nw, glatt, p));
@@ -215,81 +272,192 @@ float wetter_dachanteil(vec3 wg, float dachstoff) {
 	return schraeg * (1.0 - smoothstep(dachstoff > 0.25 ? 0.93 : 0.86, dachstoff > 0.25 ? 0.99 : 0.97, neig));
 }
 
-// Wasser auf Dächern und an Wänden (oberflaeche.gdshader, PR „Regen 3“). Ein nasses Dach ist vor allem dunkler und glatter; fließendes Wasser sieht man
-// kaum. Darum keine hellen Streifen mehr (sie sahen aus wie Würmchen), sondern ein dünner Wasserfilm: ein Hauch dunkler und – das ist alles,
-// was man davon sieht – sehr breite, weiche Bänder im Glanz, die langsam bergab ziehen (nur die Rauheit und ein paar Prozent Helligkeit ändern sich,
-// nichts leuchtet). Die Tropfen sieht man an der Traufe (Stadtansicht.Traufen.cs). An Wänden bleiben die dunklen Laufspuren, die unter Simsen und
-// Fenstern (alle ~2,2 m, rund einen Meter über dem Geschoss) beginnen.
-// c = Farbe, rau = Rauheit, gl = Leuchten, wg = glatte Weltnormale, wp = Ort in der Welt, dachstoff siehe wetter_dachanteil, zeit = Sekunden.
-void wetter_rinnsale(inout vec3 c, inout float rau, inout vec3 gl, vec3 wg, vec3 wp, float dachstoff, float zeit) {
-	// Gefälle und Querrichtung aus der Weltnormalen der Fläche, nicht aus Ableitungen: Die Reihen der Dächer sind leicht gekippte Sägezähne,
-	// und was aus Ableitungen jeder Reihe käme, zerfiele in Dreiecke an den Reihenkanten.
-	float neig = sqrt(max(1.0 - wg.y * wg.y, 0.0));
-	float dachst = wetter_dachanteil(wg, dachstoff);
-	float wandst = dachstoff > 0.75 ? 0.0 : smoothstep(0.86, 0.97, neig);
-	if (dachst * wetter_rinn < 0.01 && wandst * wetter_rinn < 0.01) return;
-	vec3 quer = normalize(vec3(-wg.z, 0.0, wg.x) + vec3(0.0001, 0.0, 0.0));
-	if (dachst > 0.01) {
-		float film = dachst * wetter_rinn;
-		float strecke = -wp.y / clamp(neig, 0.3, 1.0);          // Meter bergab entlang der Fläche
-		float q = dot(wp, quer);
-		float zug = zeit * 0.25;
-		float band = w_rausch(vec2(q * 0.8, strecke * 0.22 - zug)) * 0.65 + w_rausch(vec2(q * 1.9 + 7.0, strecke * 0.5 - zug * 1.7)) * 0.35 - 0.5;
-		float weit = 1.0 - smoothstep(0.15, 0.45, fwidth(strecke * 0.5));   // aus der Ferne ausblenden
-		c *= 1.0 - 0.06 * film + 0.12 * band * film * weit;
-		rau = clamp(rau + 0.14 * band * film * weit, 0.04, 1.0);
+// Schutz einer Wand unter Vorsprüngen, 0 (offen) bis 1 (geschützt), aus dem Bild der Tropfkante (nur nahe der Kamera, solange es tropft; sonst 0).
+// wp = Ort, aus = waagerechte Richtung aus der Wand heraus. Gelesen wird der Bildpunkt 12 cm vor der Wand (ohne Filter: Höhen dürfen sich nicht
+// mischen). Der Regen fällt schräg (waagerecht 0,6 · Wind² je Meter Fall, Stadtansicht.Wetter.cs; mindestens 0,12 für Böen und Spritzer): Unter einem
+// Vorsprung mit Überstand ü bleibt die Wand bis etwa ü / Schräge darunter trocken, nach unten weich auslaufend.
+//   Traufe (G): Überstand = Abstand zur Tropflinie (R) + 0,12 m, geschützt höchstens 1,8 m tief; bei Sturm nur ein schmaler Streifen.
+//   Fensterbänke (B, A): die unterste Reihe und die nächste, darüber im selben Abstand weiter bis unter die Traufe; Überstand rund 12 cm, also
+//   0,2–0,7 m trockener Streifen unter jedem Fenster, zu 80 %.
+float wand_schutz(vec3 wp, vec2 aus) {
+	if (traufe_feld.w <= 0.001) return 0.0;
+	vec2 tu = (wp.xz + aus * 0.12 - traufe_feld.xy) * traufe_feld.z;
+	if (tu.x < 0.0 || tu.y < 0.0 || tu.x >= 1.0 || tu.y >= 1.0) return 0.0;
+	vec4 m = texelFetch(traufe_maske, ivec2(tu * TRAUFE_BILD), 0);
+	float schraeg = max(0.6 * wetter_wind * wetter_wind, 0.12);
+	float schutz = 0.0;
+	float traufe = 1e6;
+	if (m.g > 0.002) {
+		traufe = traufe_basis + (m.g * 255.0 - 1.0) * TRAUFE_STUFE;
+		// Nur wenn die Wand zur Traufe schaut: Vor der Wand muss die Traufkante nach außen näher kommen (Abstand aus dem gefilterten Bild 2 cm und
+		// 20 cm vor der Wand; an einer Giebelwand quer zur Traufe bleibt er gleich – dort schützt diese Traufe nicht), und draußen muss noch dieselbe
+		// Traufe die nächste sein. Zum Rand des Bereichs (1,2 m) weich aus, statt hart abzubrechen.
+		vec2 tw0 = (wp.xz + aus * 0.02 - traufe_feld.xy) * traufe_feld.z;
+		vec2 tw1 = clamp((wp.xz + aus * 0.2 - traufe_feld.xy) * traufe_feld.z, vec2(0.0), vec2(0.9999));
+		float naeher = (textureLod(traufe_maske, tw0, 0.0).r - textureLod(traufe_maske, tw1, 0.0).r) * TRAUFE_WEIT;
+		float zur = smoothstep(0.03, 0.09, naeher) * (1.0 - smoothstep(0.55, 0.9, m.r)) * step(0.002, texelFetch(traufe_maske, ivec2(tw1 * TRAUFE_BILD), 0).g);
+		float tief = clamp((m.r * TRAUFE_WEIT + 0.12) / schraeg, 0.4, 1.8);
+		float unter = traufe - wp.y;
+		schutz = zur * step(-0.1, unter) * (1.0 - smoothstep(tief * 0.35, tief, unter));
 	}
-	if (wandst > 0.01) {
-		// senkrechte Laufspuren: Spalten ~0,7 m, jede beginnt unter einem Sims (alle 2,2 m, 1 m über dem Geschossboden) und läuft 0,5–1,6 m
-		float spalte = dot(wp, quer) / 0.7;
-		float ci = floor(spalte);
-		float cf = fract(spalte) - 0.5;
-		float hh = wp.y;
-		float geschoss = floor(hh / 2.2);
-		float t = hh - geschoss * 2.2;                      // Meter über dem Geschossboden, 0–2,2
-		float h1 = w_hash(vec2(ci, geschoss + 3.0)), h2 = w_hash(vec2(ci + 7.0, geschoss));
-		float vorhanden = step(h1, 0.36 + 0.4 * wetter_rinn);
-		float oben = 1.0 + 0.3 * h2;                         // Beginn unter dem Sims
-		float lauf = 0.8 + 1.2 * h2;
-		float seg = smoothstep(oben - lauf, oben - lauf + 0.35, t) * (1.0 - smoothstep(oben - 0.08, oben, t));
-		float spur = 1.0 - smoothstep(0.12, 0.32, abs(cf + 0.12 * sin(hh * 4.0 + ci)));
-		float spurwand = seg * spur * vorhanden * wandst * (1.0 - smoothstep(0.35, 0.9, fwidth(spalte)));
-		// Laufspuren an Wänden: Mauer und Fachwerk werden dort dunkler (Wasser auf Stein ist dunkel), mit kaum Glanz – anders als auf Dächern
-		float sw = spurwand * wetter_rinn;
-		c *= 1.0 - 0.45 * sw;
-		gl += wetter_himmel * 0.12 * sw;                    // nur tagsüber ein Hauch Schimmer: nachts bliebe aus einem festen Grundwert ein heller Fleck auf dunkler Wand
-		rau = mix(rau, max(rau * 0.7, 0.45), sw);
+	if (m.b > 0.002) {
+		float h0 = traufe_basis + (m.b * 255.0 - 1.0) * TRAUFE_STUFE;
+		float h1 = m.a > 0.002 ? traufe_basis + (m.a * 255.0 - 1.0) * TRAUFE_STUFE : 1e6;
+		float reihenabstand = max(h1 - h0, 1.5);
+		float unter = 1e6;
+		for (int i = 0; i < 4; i++) {
+			float hb = i == 0 ? h0 : h1 + float(i - 1) * reihenabstand;
+			if (i >= 2 && hb > traufe - 0.6) break;               // weiter oben nur bis unter die Traufe (darüber gibt es keine Fenster)
+			float u = hb - wp.y;
+			if (u > -0.03 && u < unter) unter = u;
+		}
+		float tief = clamp(0.12 / schraeg, 0.2, 0.7);
+		schutz = max(schutz, 0.8 * (1.0 - smoothstep(tief * 0.3, tief, unter)));
 	}
+	return schutz * clamp(traufe_feld.w * 2.0, 0.0, 1.0);
 }
 
-// Wetter auf den Modellen (oberflaeche.gdshader): Schnee auf allem, was nach oben zeigt (Dächer, Mauerkronen, Brunnen …), Nässe dunkler und
-// glänzender. wn = Normale in der Welt, wp = Ort in der Welt. dach = der Ort in der Ebene der Fläche (Meter: x waagerecht, y die Fläche hinauf,
-// wie die Projektion „reihen“ der Material-Bibliothek), reihe = Höhe einer Ziegelreihe (Meter).
+// Nasse Wand (Regen 4, ersetzt die festen Laufspuren im Geschossraster): Mauer, Putz und Fachwerk werden dunkler und etwas satter, fleckig (große und
+// kleine Flecken, unten in der Spritzzone über dem Boden nässer, die Fugen der Bibliothek länger nass); die Wetterseite (gegen den Wind) wird nässer als
+// der Windschatten, unter Traufe und Fensterbänken bleibt es trockener (wand_schutz). Beim Abtrocknen bleiben die Flecken zuletzt. Bei Regen (nur Hoch)
+// dazu kleine Wasserflecken der auftreffenden Tropfen, die erscheinen und einziehen, und einzelne Rinnsale: ein dunkler, schmaler, leicht schlängelnder
+// Lauf (mindestens 4 cm breit), dessen Kopf (ein kleiner Glanz) mit 0,5–1 m/s hinabläuft und eine nasse Spur hinterlässt, die nach oben hin auslaufend
+// einzieht; je Spalte (38 cm) alle 4–9 s ein Lauf, aber nur in einem Teil der Spalten (mit dem Regen und auf der Wetterseite mehr), jeder 1,3–2,6 m
+// lang. Aus der Ferne (px aus fwidth 0,05–0,1, etwa Zoom 25–50) blenden Flecken und Rinnsale weich aus. gewicht = Wandanteil der Fläche, hoehe = Höhe
+// über dem Fuß des Modells (m), tiefe = Tiefe der Textur (0–1, 0,5 ohne Bibliothek), px = Größe eines Bildpunkts (fwidth des Orts).
+void wetter_wand(inout vec3 c, inout float rau, inout vec3 gl, vec3 wg, vec3 wp, float hoehe, float tiefe, float gewicht, float zeit, float px) {
+	vec2 aus = normalize(wg.xz + vec2(1e-5, 0.0));
+	vec3 quer = vec3(-aus.y, 0.0, aus.x);
+	float schutz = wand_schutz(wp, aus);
+	float luv = clamp(dot(aus, -normalize(wind_richtung + vec2(1e-4, 0.0))) * 0.5 + 0.5, 0.0, 1.0);
+	float aussen = mix(1.0, 0.45 + 0.55 * luv, clamp(wetter_wind * 1.3, 0.0, 1.0)) * (1.0 - 0.85 * schutz);
+	vec2 wand = vec2(dot(wp, quer), wp.y);
+	float f = smoothstep(0.32, 0.68, w_rausch(wand * vec2(0.9, 0.6) + 3.1) * 0.6 + w_rausch(wand * 3.1 + 7.3) * 0.4);
+	float sockel = 1.0 - smoothstep(0.25, 0.9, hoehe);
+	float w = wetter_naesse * aussen * (0.45 + 0.6 * f) + 0.3 * sockel * wetter_naesse + 0.25 * (tiefe - 0.5) * wetter_naesse;
+	w = clamp(w, 0.0, 1.0) * gewicht;
+	float l = dot(c, vec3(0.3, 0.59, 0.11));
+	c = max(mix(vec3(l), c, 1.0 + 0.1 * w), vec3(0.0));
+	c *= 1.0 - 0.52 * w;
+	rau = mix(rau, rau * 0.65, w);
+	gl += wetter_himmel * 0.012 * w;
+	if (wetter_regen < 0.01) return;
+	// Flecken nur, solange sie mindestens etwa zwei Bildpunkte groß sind; die Rinnsale werden weiter weg breiter statt zu verschwinden (px aus fwidth
+	// ist an schräg gesehenen Wänden rund 0,0024 · Zoom: Flecken bis Zoom ≈ 30, Rinnsale weich schwächer ab Zoom ≈ 50, weg bei ≈ 125)
+	float sicht = (1.0 - smoothstep(0.12, 0.3, px)) * gewicht * (1.0 - schutz) * wetter_regen;
+	if (sicht <= 0.001) return;
+	float fleckensicht = 1.0 - smoothstep(0.05, 0.09, px);
+	// Kleine Wasserflecken der Tropfen: Zellen zu 14 cm, je Zelle im eigenen Takt (1,8–4,2 s) ein Fleck von 2,5–4,5 cm, der schnell kommt und langsam einzieht
+	vec2 sz = wand / 0.14;
+	vec2 zi = floor(sz);
+	float hz = w_hash(zi + 3.7);
+	float takt = 1.8 + 2.4 * w_hash(zi + 9.1);
+	float lauf = zeit / takt + hz;
+	float an = step(w_hash(zi + vec2(floor(lauf) * 1.7, 4.4)), (0.2 + 0.4 * luv) * aussen);
+	float r = length(sz - zi - 0.25 - 0.5 * vec2(hz, w_hash(zi + 5.5))) * 0.14;
+	float gr = 0.025 + 0.02 * w_hash(zi + 8.8);
+	float fleck = an * (1.0 - smoothstep(gr * 0.6, gr, r)) * smoothstep(0.0, 0.05, fract(lauf)) * (1.0 - fract(lauf));
+	c *= 1.0 - 0.3 * fleck * sicht * fleckensicht;
+	// Rinnsale: Spalten zu 38 cm, Abschnitte zu 2,6 m (je Spalte versetzt); s = Meter unter dem oberen Ende des Abschnitts
+	float spalte = wand.x / 0.38;
+	float ci = floor(spalte);
+	float h1 = w_hash(vec2(ci, 3.0));
+	float h2 = w_hash(vec2(ci, 11.0));
+	float h3 = w_hash(vec2(ci, 23.0));
+	float yy = wp.y + h1 * 2.6;
+	float si = floor(yy / 2.6);
+	float s = (si + 1.0) * 2.6 - yy;
+	float periode = 4.0 + 5.0 * h2;
+	float rl = zeit / periode + h3 + si * 0.37;
+	float rein = step(w_hash(vec2(ci + floor(rl) * 7.0, si + 2.0)), (0.25 + 0.45 * wetter_regen) * (0.4 + 0.6 * luv));
+	float tempo = 0.5 + 0.5 * h1;
+	float kopf = fract(rl) * periode * tempo;
+	float laenge = 2.6 * (0.5 + 0.5 * h2);
+	float x = (fract(spalte) - 0.5 + 0.3 * (h3 - 0.5)) * 0.38 + 0.02 * sin(wp.y * 3.7 + ci * 2.3) + 0.008 * sin(wp.y * 11.0 + ci);
+	float breite = max(0.04, 1.1 * px);
+	float linie = exp(-(x * x) / (breite * breite)) * max(sqrt(0.04 / breite), 0.75);
+	float hinter = min(kopf, laenge) - s;
+	float spur = step(0.0, hinter) * step(s, laenge) * exp(-max(kopf - s, 0.0) / (tempo * 3.5));
+	float perle = step(kopf, laenge) * exp(-(hinter * hinter) / 0.004);
+	float rinn = rein * linie * sicht;
+	c *= 1.0 - 0.65 * rinn * spur;
+	rau = mix(rau, 0.3, rinn * spur * 0.6);
+	gl += wetter_himmel * 0.15 * rinn * perle;
+}
+
+// Nasses Dach (Regen 4, nach Fotos nasser Ziegel- und Schieferdächer): Die Deckung wird deutlich dunkler und satter; das Wasser sammelt sich in den
+// Rinnen und Fugen der Deckung (tiefe Stellen der Textur der Bibliothek, tiefe) und an der Unterkante jeder Reihe (reihe_film), dort ist es dunkler und
+// glatt. Die Kuppen bleiben matt (ein dünner Film ist kein Spiegel; vorher war das ganze Dach gleichmäßig glänzend, in der Sonne „eine glänzende
+// Schicht“). Bei Regen läuft ein dünner Film als schmale, lange Schlieren in der Falllinie bergab (gut 0,6 m/s): Nur dort und in den Rinnen glänzt es,
+// darum ist die Spiegelung streifig statt flächig. Nach dem Regen trocknet das Dach fleckig ab: erst die Kuppen und einzelne Flächen, zuletzt Rinnen und
+// Fugen. dach = Ort in der Dachebene (m, y die Fläche hinauf), gewicht = Dachanteil, stark = 0,75–1 nach Neigung.
+void wetter_dach_nass(inout vec3 c, inout float rau, inout vec3 gl, vec2 dach, float tiefe, float reihe_film, float gewicht, float stark, float neig, float zeit, float px) {
+	float kanal = smoothstep(0.5, 0.8, tiefe);
+	float ft = w_rausch(dach * vec2(0.35, 0.5) + 2.0) * 0.65 + w_rausch(dach * 1.3 + 9.0) * 0.35;
+	float schwelle = ft * 0.8 + 0.12 - 0.35 * kanal - 0.2 * reihe_film;
+	// Ganz trocken ist ganz trocken: Rinnen und Fugen (Schwelle unter 0,12) blieben sonst bei der kleinsten Restnässe dunkel und glatt
+	float nl = smoothstep(schwelle - 0.12, schwelle + 0.12, wetter_naesse * 1.15) * gewicht * smoothstep(0.0, 0.1, wetter_naesse);
+	float l = dot(c, vec3(0.3, 0.59, 0.11));
+	c = max(mix(vec3(l), c, 1.0 + 0.15 * nl), vec3(0.0));
+	c *= 1.0 - (0.44 + 0.25 * kanal + 0.12 * reihe_film) * nl * stark;
+	rau = mix(rau, min(rau, max(rau * 0.85, DACH_GLATT)), nl);
+	float strom = 0.0;
+	if (wetter_rinn > 0.01) {
+		float sl = w_rausch(vec2(dach.x * 6.0, dach.y * 0.7 + zeit * 0.45)) * 0.7 + w_rausch(vec2(dach.x * 13.0 + 3.0, dach.y * 1.6 + zeit * 1.0)) * 0.3;
+		strom = smoothstep(0.5, 0.78, sl) * clamp(wetter_rinn * 1.2, 0.0, 1.0) * (1.0 - smoothstep(0.06, 0.12, px));
+	}
+	float nasskanal = clamp(kanal * (0.45 + 0.55 * strom) + 0.4 * strom + 0.5 * reihe_film, 0.0, 1.0) * nl;
+	// Rinnen und Schlieren werden glatt – an steilen Helmen nicht unter DACH_GLATT: Ihre flach geschatteten Facetten leuchteten sonst einzeln im
+	// Sonnenlicht auf, mit wandernden hellen Streifen wie Wellblech; dort zeigen sich die Schlieren nur in Farbe und Schimmer
+	float glatt = mix(0.22, DACH_GLATT, smoothstep(0.8, 0.92, neig));
+	rau = mix(rau, min(rau, max(glatt, rau * 0.35)), nasskanal);
+	// Schlieren: ein Hauch Schimmer des Himmels, zur Farbe der Deckung getönt (kein helles Blau)
+	vec3 ton = clamp(c / max(dot(c, vec3(0.3, 0.59, 0.11)), 0.02), vec3(0.0), vec3(2.0));
+	c *= 1.0 - 0.06 * strom * nl;
+	gl += mix(wetter_himmel, wetter_himmel * ton, 0.5) * (0.01 + 0.025 * nasskanal + 0.045 * strom) * nl;
+}
+
+// Wetter auf den Modellen (oberflaeche.gdshader): Schnee auf allem, was nach oben zeigt (Dächer, Mauerkronen, Brunnen …), Nässe auf Dächern
+// (wetter_dach_nass), Wänden (wetter_wand) und dem Übrigen (Mauerkronen, Treppen, flache Teile: dunkler und glatter, mit Regentropfen auf flachen
+// Flächen wie am Boden). wn = Normale in der Welt (mit Struktur), wg = glatte Weltnormale, wp = Ort in der Welt. dach = der Ort in der Ebene der Fläche
+// (Meter: x waagerecht, y die Fläche hinauf, wie die Projektion „reihen“ der Material-Bibliothek), reihe = Höhe einer Ziegelreihe (Meter), tiefe = Tiefe
+// der Textur der Bibliothek (0 oben … 1 tief, 0,5 ohne Bibliothek), hoehe = Höhe über dem Fuß des Modells (m), ringe = Regentropfen zeichnen (Boden
+// Mittel und Hoch, wie der Boden daneben). nw gibt die geneigte Normale zurück.
 // Schnee liegt in der Dachebene und nicht in der Welt-x/z-Ebene (dort würde er an Schrägen gestreckt): Aus der Nähe in Reihen gegliedert – die
 // Flecken laufen mit den Reihen, in jeder Reihenkante liegt er dichter –, mit wachsendem Abstand (fwidth der Reihen) wird das Muster weich zu einer
 // ruhigen Decke gemittelt. Auf flachen Flächen (Mauerkronen) gibt es keine Reihen, dort gilt dasselbe Fleckenmuster ohne Kanten.
-void wetter_flaeche(inout vec3 c, inout float rau, inout vec3 nw, inout vec3 gl, vec3 wn, vec3 wg, vec3 wp, vec2 dach, float reihe, float dachstoff, float zeit) {
+void wetter_flaeche(inout vec3 c, inout float rau, inout vec3 nw, inout vec3 gl, vec3 wn, vec3 wg, vec3 wp, vec2 dach, float reihe, float dachstoff, float tiefe, float hoehe, float zeit, bool ringe) {
 	if (wetter_flaechen < 0.5) return;
+	float px = max(max(fwidth(wp.x), fwidth(wp.y)), fwidth(wp.z));   // Meter je Bildpunkt, vor jeder Verzweigung
+	float pv = dach.y / max(reihe, 0.05);
+	float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));                // 1 nah genug für Reihen, 0 zu weit
 	if (wetter_naesse > 0.001) {
-		// Nässe: Dächer und Wände dunkler und glänzender (Wände fast so stark wie Dächer: Mauern und Fachwerk werden bei Regen sichtbar nass),
-		// dazu ein leichter, vom Blickwinkel unabhängiger Schimmer (gl); die Reihen der Deckung halten das Wasser unten in jeder Reihe
 		float oben = clamp(wn.y, 0.0, 1.0);
 		float stark = 0.75 + 0.25 * oben;
-		float pv = dach.y / max(reihe, 0.05);
-		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));
-		float film = (1.0 - smoothstep(0.0, 0.5, fract(pv))) * fein * smoothstep(0.1, 0.8, oben) * (1.0 - smoothstep(0.9, 0.98, oben));
-		c *= 1.0 - (0.36 * stark + 0.2 * film) * wetter_naesse;
-		// Rauheit: Wände und Kronen werden glatter (halbiert). Dächer nur bis zu einer Grenze und nie rauer als trocken: ein dünner Wasserfilm ist
-		// kein Spiegel. Die Dächer der Modelle sind flach geschattete Facetten (Kegel, Turmhelme, Pultdächer): Mit niedriger Rauheit glänzt je nach Blickwinkel
-		// genau eine Fläche hell, das Licht der Sonne oder des Mondes liegt im Spiegelwinkel nur auf ihr.
+		float neig = sqrt(max(1.0 - wg.y * wg.y, 0.0));
 		float dachst = wetter_dachanteil(wg, dachstoff);
-		rau = mix(rau, mix(rau * 0.5, min(rau, max(rau * 0.8, DACH_GLATT)), dachst), wetter_naesse * stark);
-		gl += wetter_himmel * 0.02 * wetter_naesse * stark;
+		float wandst = dachstoff > 0.75 ? 0.0 : smoothstep(0.86, 0.97, neig);
+		float sonst = max(1.0 - dachst - wandst, 0.0);
+		if (dachst > 0.001) {
+			// Die Reihen der Deckung halten das Wasser unten in jeder Reihe
+			float film = (1.0 - smoothstep(0.0, 0.5, fract(pv))) * fein * smoothstep(0.1, 0.8, oben) * (1.0 - smoothstep(0.9, 0.98, oben));
+			wetter_dach_nass(c, rau, gl, dach, tiefe, film, dachst, stark, neig, zeit, px);
+		}
+		if (wandst > 0.001) wetter_wand(c, rau, gl, wg, wp, hoehe, tiefe, wandst, zeit, px);
+		if (sonst > 0.001) {
+			c *= 1.0 - 0.36 * stark * wetter_naesse * sonst;
+			rau = mix(rau, rau * 0.5, wetter_naesse * stark * sonst);
+			gl += wetter_himmel * 0.02 * wetter_naesse * stark * sonst;
+			if (ringe && wetter_ringe > 0.001 && wg.y > 0.9) {   // wie am Boden erst ab Boden Mittel
+				vec3 tr = regentropfen(wp.xz, zeit, px, wetter_ringe) * smoothstep(0.9, 0.97, wg.y) * sonst * min(wetter_naesse * 1.5, 1.0) * (1.0 - smoothstep(0.1, 0.4, wetter_dach));
+				vec3 eigen = clamp(c / max(dot(c, vec3(0.3, 0.59, 0.11)), 0.02), vec3(0.0), vec3(2.0));
+				c *= 1.0 - 0.4 * max(-tr.z, 0.0);
+				gl += mix(wetter_himmel, wetter_himmel * eigen, 0.5) * 0.35 * max(tr.z, 0.0);
+				nw = normalize(nw + vec3(tr.x, 0.0, tr.y) * 0.4);
+			}
+		}
 	}
-	if (wetter_rinn > 0.01) wetter_rinnsale(c, rau, gl, wg, wp, dachstoff, zeit);
 	if (wetter_dach > 0.001) {
-		float pv = dach.y / reihe;
-		float fein = 1.0 - smoothstep(0.05, 0.28, fwidth(pv));   // 1 nah genug für Reihen, 0 zu weit
 		float fr = fract(pv);
 		float flach = smoothstep(0.9, 0.98, wn.y);               // Mauerkronen, Plätze: keine Reihen
 		float kante = mix(1.0 - smoothstep(0.0, 0.4, fr), 0.35, flach);   // unten in jeder Reihe, wo sie unter der nächsten liegt
