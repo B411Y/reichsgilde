@@ -54,6 +54,8 @@ uniform float brauen_dichte = 0.0;           // Brauenschatten auf der Haut
 uniform vec3 haar_farbe : source_color = vec3(0.12, 0.08, 0.05);
 uniform float streu = 0.4;                   // Wrap-Breite für Rot (Grün, Blau schmaler)
 uniform vec3 streu_anteil = vec3(1.0, 0.5, 0.36);
+uniform float wrap_neutral = 1.0;            // Etappe-A-Nachtrag: 1 = im vollen Licht farbneutral (siehe light())
+uniform float streu_farbe = 0.3;             // Etappe-A-Nachtrag: Anteil der Farbtrennung des Wraps (0 = grauer Wrap, 1 = volle)
 uniform float streu_schattenfrei = 0.3;      // 1 = Streulicht jenseits des Schattenrands ohne Schatten der eigenen Rundung
 uniform float flaum = 0.05;                  // Randlicht (S8: als Glanz)
 uniform float durchlicht = 0.35;             // Ohren und Nase im Gegenlicht
@@ -154,7 +156,16 @@ void light() {
 		w *= 0.35;                           // die Streuung macht unter Ultra Godots SSS (Hautkern)
 #endif
 		// S3: energieerhaltend (McAuley 2011, wie Godots DIFFUSE_LAMBERT_WRAP)
-		vec3 wrap = clamp((vec3(ndl_d) + w) / ((1.0 + w) * (1.0 + w)), 0.0, 1.0);
+		vec3 wrap_e = clamp((vec3(ndl_d) + w) / ((1.0 + w) * (1.0 + w)), 0.0, 1.0);
+		// Etappe-A-Nachtrag (Prüferbefund „Haut fahl“, „Oberlid orange“): je Kanal (n·l + w)/(1 + w)² nahm dem Rot im
+		// vollen Licht bis zu 17 % (Wange R/G 1,22 -> 1,11) und gab es am Schattenrand im Übermaß zurück (Oberlid C 24).
+		// Neutral: (n·l + w)/(1 + w) je Kanal, geteilt durch (1 + w) der Helligkeit – im vollen Licht alle Kanäle gleich,
+		// die Energie bleibt in der Helligkeit erhalten
+		float w_hell = dot(w, vec3(0.2126, 0.7152, 0.0722));
+		vec3 wrap_n = clamp((vec3(ndl_d) + w) / ((1.0 + w) * (1.0 + w_hell)), 0.0, 1.0);
+		vec3 wrap = mix(wrap_e, wrap_n, wrap_neutral);
+		float wrap_grau = clamp((ndl_d + w_hell) / ((1.0 + w_hell) * (1.0 + w_hell)), 0.0, 1.0);
+		wrap = vec3(wrap_grau) + streu_farbe * (wrap - vec3(dot(wrap, vec3(0.2126, 0.7152, 0.0722))));
 		float schatten = ATTENUATION;
 		if (LIGHT_IS_DIRECTIONAL) {
 			float frei = streu_schattenfrei * (1.0 - hoehle_v);

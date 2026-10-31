@@ -722,7 +722,10 @@ func stoff_parameter(werte: Dictionary) -> void:
 			for m in gruppen[g]:
 				if not _stoff_grund.has(schl):
 					_stoff_grund[schl] = m.get_shader_parameter(p)
-				m.set_shader_parameter(p, werte[g][p])
+				var v = werte[g][p]
+				if v is Array and v.size() == 3:            # JSON-Liste -> vec3 (Faktoren wie streu_anteil)
+					v = Vector3(v[0], v[1], v[2])
+				m.set_shader_parameter(p, v)
 
 static func _leer() -> StandardMaterial3D:
 	var leer := StandardMaterial3D.new()
