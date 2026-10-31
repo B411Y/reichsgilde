@@ -460,7 +460,7 @@ public partial class Hauptszene : Node
             _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
-            if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
+            if (Stadtansicht.IstMarktplatz(kennung)) MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
         };
         _stadt.InnenansichtGewechselt += kennung =>
         {
@@ -1472,7 +1472,7 @@ public partial class Hauptszene : Node
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch
         {
-            "Marktplatz" => $"Marktplatz\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster.",
+            var markt when Stadtansicht.IstMarktplatz(markt) => $"{Stadtansicht.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
             "Rathaus" => RathausText(w),
             "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
                      + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",

@@ -184,7 +184,7 @@ public partial class Stadtansicht
         {
             // vor dem Losgehen an der alten Stelle, sonst an der eigenen (nach dem Laden ohne Weg erst jetzt belegt)
             var stelle = losgegangen ? p.Marktstelle : p.AlteMarktstelle;
-            if (stelle < 0 && losgegangen) stelle = p.Marktstelle = MarktstelleBelegen(e.Nummer, weg?.Ankunft ?? 0);
+            if (stelle < 0 && losgegangen) stelle = p.Marktstelle = MarktstelleBelegen(e.Nummer, weg?.Ankunft ?? 0, MarktFuer(e));
             if (p.Stand == stand && !AufDemRundgang(stelle)) return;
             p.Stand = stand;
             _imDom.Remove(e.Nummer);
@@ -222,7 +222,7 @@ public partial class Stadtansicht
         var s = _marktstellen[stelle];
         var (ort, blick) = MarktstelleLage(stelle, minuteGenau);
         // Auf der Bank: die Hüfte auf Sitzhöhe – kleine Völker sitzen höher und lassen die Beine baumeln
-        if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(_marktY, s.Ort.Y - (figur.Kniehoehe - 0.02f));
+        if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(s.Platz?.Hoehe ?? _marktY, s.Ort.Y - (figur.Kniehoehe - 0.02f));
         p.Knoten.Position = ort;
         p.Knoten.Rotation = new Vector3(0, blick, 0);
         var takt = s.Rundgang >= 0 ? SchlenderTempo * (float)_simulation!.Takt.Tempo / (GehenTempo * figur.Beinfaktor) : 1;
@@ -353,8 +353,20 @@ public partial class Stadtansicht
     //  Orte und Strecken
     // ═════════════════════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// Auf welchen Marktplatz der Einwohner geht: bei mehreren Plätzen (Köln) auf den, der der Tür seines Hauses am nächsten liegt; ohne Haustür
+    /// fest nach der Nummer. Null ohne Marktplatz.
+    /// </summary>
+    private MarktplatzAnsicht? MarktFuer(Einwohner e)
+    {
+        if (_maerkte.Count <= 1) return _maerkte.FirstOrDefault();
+        if (!_haustueren.TryGetValue(e.Haus, out var tuer)) return _maerkte[(int)(Streuung(e.Nummer, 7) % (uint)_maerkte.Count)];
+        var heim = _netz.Knoten[tuer];
+        return _maerkte.OrderBy(m => m.Mitte.DistanceTo(heim)).First();
+    }
+
     /// <summary>Der Knoten im Gassennetz, an dem ein Aufenthalt beginnt oder endet (Haustür, Hof der Schänke, Domtür …).</summary>
-    private int Anlaufknoten(Aufenthalt a)
+    private int Anlaufknoten(Aufenthalt a, Einwohner e)
     {
         Vector3 punkt = a.Ort switch
         {
@@ -364,6 +376,7 @@ public partial class Stadtansicht
             Stadtort.Rathaus => _rathausTuer ?? _markt,
             Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort,
             Stadtort.Umland when a.Stelle is { } s && _umlandstellen.TryGetValue(s, out var u) => Punkt3(u.Punkt),
+            Stadtort.Markt => MarktFuer(e)?.Mitte ?? _markt,
             _ => _markt,
         };
         return _netz.KnotenBei(punkt);
@@ -405,7 +418,7 @@ public partial class Stadtansicht
     /// </summary>
     private List<(int Knoten, float Reststueck)> Anlaeufe(Aufenthalt a, Einwohner e, long zeitpunkt)
     {
-        if (a.Ort != Stadtort.Gasse || GassenLage(e, zeitpunkt) is not { } lage) return new() { (Anlaufknoten(a), 0f) };
+        if (a.Ort != Stadtort.Gasse || GassenLage(e, zeitpunkt) is not { } lage) return new() { (Anlaufknoten(a, e), 0f) };
         return new()
         {
             (_netz.KnotenBei(lage.Von), lage.Punkt.DistanceTo(lage.Von)),
@@ -421,9 +434,9 @@ public partial class Stadtansicht
     {
         MarktstelleRaeumen(p.AlteMarktstelle, e.Nummer);
         p.AlteMarktstelle = -1;
-        if (weg.Von.Ort == Stadtort.Markt) p.AlteMarktstelle = p.Marktstelle >= 0 ? p.Marktstelle : MarktstelleBelegen(e.Nummer, weg.Abmarsch);
+        if (weg.Von.Ort == Stadtort.Markt) p.AlteMarktstelle = p.Marktstelle >= 0 ? p.Marktstelle : MarktstelleBelegen(e.Nummer, weg.Abmarsch, MarktFuer(e));
         else MarktstelleRaeumen(p.Marktstelle, e.Nummer);
-        p.Marktstelle = weg.Nach.Ort == Stadtort.Markt ? MarktstelleBelegen(e.Nummer, weg.Ankunft) : -1;
+        p.Marktstelle = weg.Nach.Ort == Stadtort.Markt ? MarktstelleBelegen(e.Nummer, weg.Ankunft, MarktFuer(e)) : -1;
 
         return PfadBauen(weg, e, p, weg.Abmarsch, weg.Ankunft);
     }
@@ -482,7 +495,7 @@ public partial class Stadtansicht
         return AufFuss(a.Ort switch
         {
             // Markt (nur, wenn alle Stellen besetzt sind): zwischen den Ständen (Marktplatz 24 × 24 m), nicht in Brunnen, Kreuz, Bank oder Stand
-            Stadtort.Markt => FreierPunktAufDemMarkt(zahl),
+            Stadtort.Markt => FreierPunktAufDemMarkt(zahl, MarktFuer(e)),
             // Tor: vor dem ersten Tor der Karte (Greybox: Osttor) neben der Straße
             Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort + _tore[0].Aussen * (3 + Teil(0) * 4)
                                                  + _tore[0].Aussen.Cross(Vector3.Up) * ((Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
@@ -548,13 +561,14 @@ public partial class Stadtansicht
     private string StellenArt(string stelle) => _umlandstellen.TryGetValue(stelle, out var g) ? g.Baustein?.Knoten ?? stelle : stelle;
 
     /// <summary>Ein Punkt zwischen den Ständen, an dem nichts steht: bis zu acht feste Versuche aus der Zahl, sonst der erste.</summary>
-    private Vector3 FreierPunktAufDemMarkt(uint zahl)
+    private Vector3 FreierPunktAufDemMarkt(uint zahl, MarktplatzAnsicht? platz)
     {
+        var (mitte, halb) = platz is null ? (_markt, _marktHalb) : (platz.Mitte, platz.Halb);
         Vector3 erster = default;
         for (var versuch = 0; versuch < 8; versuch++)
         {
             var z = versuch == 0 ? zahl : Streuung((int)zahl, 900 + versuch);
-            var punkt = RingUmMitte(_markt, 3f, _marktHalb - 1.5f, (z & 0xFFFF) / 65535f, ((z >> 16) & 0xFFFF) / 65535f);
+            var punkt = RingUmMitte(mitte, 3f, halb - 1.5f, (z & 0xFFFF) / 65535f, ((z >> 16) & 0xFFFF) / 65535f);
             if (versuch == 0) erster = punkt;
             if (!_marktHindernisse.Any(h => new Vector2(punkt.X - h.Mitte.X, punkt.Z - h.Mitte.Z).Length() < h.Radius + Wegrand)) return punkt;
         }
