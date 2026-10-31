@@ -516,7 +516,9 @@ public partial class Kartenwerkstatt : Node
             angaben.TryGetValue("stufe", out var stufe) ? int.Parse(stufe) : 5);
         var bericht = _entwurf.HoehenkarteEinlesen(werte, lage);
         Melden($"Höhenkarte eingelesen: {breite} × {tiefe} Pixel, {bericht.Abgedeckt} Rasterpunkte abgedeckt, {bericht.Geaendert} geändert"
-            + (bericht.Warnung is { } warnung ? " – " + warnung : ""), fehler: bericht.Abgeschnitten);
+            + (bericht.Warnung is { } warnung ? " – " + warnung : "")
+            + " · nur zum Ausprobieren: ohne Herkunft – für eine Spielkarte über das Kartenskript einlesen (hoehenkarte-einlesen, Quelle, Lizenz, Abruf)",
+            fehler: bericht.Abgeschnitten);
     }
 
     /// <summary>
