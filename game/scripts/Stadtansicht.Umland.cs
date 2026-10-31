@@ -91,13 +91,16 @@ public partial class Stadtansicht
 
         var hof = lage * anker;
         var markt = MarktFuer(betrieb);
+        var netzweg = MarktWeg(hof, KarrenwegBreite, markt);
+        var kernweg = KernWeg(betrieb); // vom Halteplatz bis zum Halt am Platz, wie der Kern die Fahrzeit rechnet
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p.Mitte,
             Hof = hof,
             Markt = markt,
-            WegZumMarkt = MarktWeg(hof, KarrenwegBreite, markt),
+            WegZumMarkt = kernweg ?? netzweg,
+            WegVomKern = kernweg is not null,
             Modell = modell,
             Schild = schild,
             KarrenReihe = lage.Basis.Orthonormalized() * new Vector3(anker.X <= 0 ? 4 : -4, 0, 0),

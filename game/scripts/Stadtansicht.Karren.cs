@@ -166,18 +166,22 @@ public partial class Stadtansicht
         FigurImBildBewegen(fahrer, karren.Wurzel.Position, sekunden);
     }
 
-    /// <summary>Wie weit (Chebyshev-Abstand von der Platzmitte, Meter) die Karren am Markt halten: Das Pflaster reicht bis 12 m, die Tiere stehen am Rand.</summary>
-    private static float KarrenHaltAmMarkt(MarktplatzAnsicht platz) => platz.Halb + 3.5f;
+    /// <summary>
+    /// Wie weit (Chebyshev-Abstand von der Platzmitte, Meter) die Karren am Markt halten: Das Pflaster reicht bis 12 m, die Tiere stehen am Rand
+    /// (<see cref="Reichsgilde.Core.Bauen.Karrenweg.HaltVorPflaster"/> davor, wie im Kern). Nur noch für den Weg aus dem Gassennetz (alte Daten).
+    /// </summary>
+    private static float KarrenHaltAmMarkt(MarktplatzAnsicht platz) => platz.Halb + (float)Reichsgilde.Core.Bauen.Karrenweg.HaltVorPflaster;
 
     private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Vector3[], Vector3[]> _karrenWege = new();
 
     /// <summary>
-    /// Der Weg des Karrens zum Markt seines Betriebs, gekürzt auf den Halt am Rand des Pflasters (<see cref="KarrenWegBisPlatzrand"/>); je Weg nur einmal gerechnet.
-    /// <see cref="BetriebsAnsicht.WegZumMarkt"/> reicht bis zur Platzmitte (das Gassennetz kennt den Brunnen als Knoten); gezeigt wird nur bis zum Halt.
+    /// Der Weg des Karrens zum Markt seines Betriebs. Der Weg des Kerns (<see cref="BetriebsAnsicht.WegVomKern"/>) endet schon am Halt und bleibt, wie er ist.
+    /// Der Weg aus dem Gassennetz (alte Daten) reicht bis zur Platzmitte (das Gassennetz kennt den Brunnen als Knoten) und wird auf den Halt am Rand des
+    /// Pflasters gekürzt (<see cref="KarrenWegBisPlatzrand"/>); je Weg nur einmal gerechnet.
     /// </summary>
     private Vector3[] KarrenWeg(BetriebsAnsicht ansicht)
     {
-        if (ansicht.Markt is not { } platz) return ansicht.WegZumMarkt;
+        if (ansicht.WegVomKern || ansicht.Markt is not { } platz) return ansicht.WegZumMarkt;
         if (!_karrenWege.TryGetValue(ansicht.WegZumMarkt, out var weg))
             _karrenWege.Add(ansicht.WegZumMarkt, weg = KarrenWegBisPlatzrand(ansicht.WegZumMarkt, platz, KarrenHaltAmMarkt(platz)));
         return weg;
@@ -278,8 +282,8 @@ public partial class Stadtansicht
         var spaet = laenge > 0 ? (ansicht.Betrieb.Karren.Count - 1 - nummer) * KarrenAbstand / laenge : 0f;
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
         // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Ochse 0,8, Hand 1,0, Pferd 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
-        // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo, aber über seine Karrenstraßen bis zur Platzmitte und ohne
-        // das Stück vom Hof zur Straße; das Bild fährt vom Hof bis zum Halt am Pflasterrand. Wer früher da ist, wartet am Markt, bis der Kern
+        // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo und auf demselben Weg (Halteplatz, Hof, Zubringer, Wege,
+        // Halt vor dem Pflaster), bis auf die Rundung auf ganze Minuten kommen beide zugleich an. Wer früher da ist, wartet am Markt, bis der Kern
         // verkauft; wer später kommt, kehrt dort sofort um (Karrenzug). Wo keiner hinsieht, gilt der Kern (Abgleichen).
         var (hin, zurueck) = ZugProfileVon(ansicht.Betrieb, karren, ansicht);
         var zug = gezeigt.Zug;
@@ -417,11 +421,12 @@ public partial class Stadtansicht
     private readonly HashSet<(Betrieb, string)> _karrenfahrtenGemeldet = new();
 
     /// <summary>
-    /// Einmal je Betrieb und Karrenart eine Messzeile <c>[karren] Profil …</c>: der gezeigte Weg (vom Hof bis zum Halt am Pflasterrand) und der Weg des
-    /// Kerns (Karrenstraßen vom Platz des Betriebs bis zur Platzmitte), die Fahrzeit des Kerns und die, die der Karren im festen Tempo seiner Art (mit
-    /// Steigung, Belag, Furt und Fähre) für den gezeigten Weg braucht – dazu, um wie viel er früher (−) oder später (+) am Halt ist als der Kern am Markt.
-    /// Die Längen unterscheiden sich um das Stück vom Hof zur Straße (der Kern zählt es nicht) und um das Stück vom Pflasterrand zur Platzmitte (das
-    /// Bild fährt es nicht); die Höchstdauer des Kerns (<c>logistik.weglaenge</c>) kappt lange Fahrten.
+    /// Einmal je Betrieb und Karrenart eine Messzeile <c>[karren] Profil …</c>: der gezeigte Weg (vom Halteplatz bis zum Halt am Pflasterrand) und der Weg
+    /// des Kerns, die Fahrzeit des Kerns und die, die der Karren im festen Tempo seiner Art (mit Steigung, Belag, Furt und Fähre) für den gezeigten Weg
+    /// braucht – dazu, um wie viel er früher (−) oder später (+) am Halt ist als der Kern. Mit Datenversion 65 fährt das Bild den Weg des Kerns
+    /// (<see cref="BetriebsAnsicht.WegVomKern"/>): Die Längen sind gleich, die Zeiten bis auf die Rundung des Kerns auf ganze Minuten; dazu, wie weit der
+    /// „Anker_Karren“ des Modells vom Anfang des Kernwegs liegt (der Katalog muss ihn kennen, <c>karrenAnker</c>). Die Höchstdauer des Kerns
+    /// (<c>logistik.weglaenge</c>) kappt lange Fahrten.
     /// </summary>
     private void KarrenfahrtMelden(Betrieb betrieb, Karren karren, BetriebsAnsicht ansicht, float laenge,
         (IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> Hin, IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> Zurueck)? fahrten, Stadtwirtschaft w, Fahrprofil hin)
@@ -429,7 +434,9 @@ public partial class Stadtansicht
         if (!_karrenfahrtenGemeldet.Add((betrieb, karren.Typ)) || fahrten is null) return;
         var kern = w.Fahrzeit(karren, true);
         var kernLaenge = fahrten.Value.Hin.Sum(s => s.Laenge);
-        GD.Print($"[karren] Profil: {betrieb.Name} {karren.Typ} -> {ansicht.Markt?.Name ?? "Ursprung"}: Weg im Bild {laenge:0} m bis zum Halt (Kern {kernLaenge:0} m bis zur Platzmitte), " +
+        var woher = ansicht.WegVomKern ? "Weg des Kerns" : "Gassennetz, Kern bis zur Platzmitte";
+        var anker = ansicht.WegVomKern && KarrenAnker(betrieb.Name) is { } a ? $", Anker im Modell {new Vector2(a.X - ansicht.WegZumMarkt[0].X, a.Z - ansicht.WegZumMarkt[0].Z).Length():0.00} m vom Start" : "";
+        GD.Print($"[karren] Profil: {betrieb.Name} {karren.Typ} -> {ansicht.Markt?.Name ?? "Ursprung"}: Weg im Bild {laenge:0.0} m bis zum Halt (Kern {kernLaenge:0.0} m, {woher}{anker}), " +
                  $"im festen Tempo {hin.Dauer:0.0} min, Kern-Fahrzeit {kern} min, Ankunft {hin.Dauer - kern:+0.0;-0.0} min ({(hin.Dauer - kern) / Math.Max(kern, 1) * 100:+0;-0} %)");
     }
 
