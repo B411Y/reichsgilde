@@ -62,7 +62,22 @@ def vorderste_z(H, dreiecke, x0, y0):
     return float(z[innen].max())
 
 
-def profil_masse(nm, w, P=None):
+_BEZUG = {}
+
+
+def bezug_z(nm, w, P):
+    """Tiefenbezug: Tragion-Mitte des nackten Scanmittels, mitgeführt über die Augäpfel (in allen Formen fest). Die
+    Tragion selbst ist als Bezug zu wacklig: Bei der B2-Frau lenkte die vollere Wange vor dem Ohr die Suche um 10,7 mm
+    nach vorn ab, alle Tiefen schienen dann 12 mm kleiner."""
+    augen = nm.glb.teile("Augen")[0]
+    z_aug = float(augen.lage(w)[:, 2].mean() * 1000.0)
+    if id(nm) not in _BEZUG:
+        P0 = nm.netz.punkte({})
+        _BEZUG[id(nm)] = float(augen.lage({})[:, 2].mean() * 1000.0) - float(0.5 * (P0["t_r"][2] + P0["t_l"][2]))
+    return z_aug - _BEZUG[id(nm)]
+
+
+def profil_masse(nm, w, P=None, bezug="tragion"):
     """Profil- und Schrägmaße (mm, Grad), Tiefen z ab der Mitte der Tragion-Punkte (Ohr), + = vorn:
     t_<p>     Tiefe von Glabella, Nasion, Nasenspitze, Subnasale, Ober-/Unterlippe, Pogonion, Menton
     uw30/40/50  vorderste Haut der Unterwange in Höhe der Mundwinkel bei |x| = 30/40/50 mm (Schrägansicht)
@@ -70,10 +85,13 @@ def profil_masse(nm, w, P=None):
     ul_snpg, ll_snpg  Ober-/Unterlippe vor der Linie Subnasale–Pogonion; ul_e, ll_e vor der E-Linie (Nasenspitze–Pogonion)
     konvex    Profilwinkel g–sn–pg (180 = gerade, kleiner = konvexer)
     lid_b, lid_h  Lidspalte: Breite en–ex (Raum) und Höhe (ICT-Lidpunkte 37/38–40/41), Mittel beider Augen
-    schlaefe  Kopfbreite 10 mm über der Braue vor dem Ohr"""
+    schlaefe  Kopfbreite 10 mm über der Braue vor dem Ohr
+    bezug="augen": Tiefen gegen die Tragion des Scanmittels, mitgeführt über die (festen) Augäpfel – robust für die Abnahme"""
     P = P or nm.netz.punkte(w)
     H = P["_haut"]
     t = 0.5 * (P["t_r"] + P["t_l"])
+    if bezug == "augen":                # Abnahme ab B2 (Ausgleichsrechnung Lauf 3 noch mit Tragion)
+        t = np.array([t[0], t[1], bezug_z(nm, w, P)])
     m = {}
     y_u = 0.5 * (P["ch_r"][1] + P["ch_l"][1])
     y_w = 0.5 * (P["ps_r"][1] + P["sn"][1])
