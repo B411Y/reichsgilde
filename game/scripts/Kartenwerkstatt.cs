@@ -491,7 +491,8 @@ public partial class Kartenwerkstatt : Node
         return optionen;
     }
 
-    private static double Zahl(string text) => double.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
+    /// <summary>Eine Zahl der Startoptionen (Punkt als Dezimaltrenner; das Minuszeichen „−“ gilt wie „-“).</summary>
+    private static double Zahl(string text) => double.Parse(text.Replace('−', '-'), System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Liest eine Höhenkarte aus der Startoption <c>--werkstatt-hoehenkarte</c> ein und meldet den Bericht (oder den Fehler) unten.</summary>
     private void HoehenkarteAusStartoption(string eintrag)
