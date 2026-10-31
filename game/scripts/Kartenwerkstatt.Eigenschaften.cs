@@ -643,11 +643,12 @@ public partial class Kartenwerkstatt
             f => f with { SteigungAb = Kartenpruefung.HangFehler * 100, SteigungBis = null });
         var raster = ZweiSpalten();
         const double ohneGrenze = 100;
-        Label? schmal = null; // Hinweis, wenn der Bereich zu schmal ist (unten, nach dem Raster)
+        Label? schmal = null, wirkt = null; // Hinweise unten: Bereich zu schmal, wo der Pinsel wirkt – folgen jedem Regler
         void Setzen(Pinselfilter neu)
         {
             setzen(neu);
             if (schmal is not null) SchmalZeigen(schmal, neu);
+            if (wirkt is not null) wirkt.Text = WirktText(neu);
         }
         Zeile(raster, "Steigung ab", Schieber(0, ohneGrenze, 1, filter.SteigungAb, a => $"{a:0} %", a => Setzen(holen() with { SteigungAb = a }),
             "Unter dieser Steigung wirkt der Pinsel nicht (100 % = 45°); innen an der Grenze läuft er über 2 Prozentpunkte weich aus"));
@@ -669,9 +670,11 @@ public partial class Kartenwerkstatt
                 "0 %: nur wo die Textur mindestens die Hälfte deckt; 100 %: auch wo nur ein Hauch davon liegt"));
         schmal = Hauptmenue.Text(_eigenschaften, "", 12, Rot, umbruchBreite: Rechtsbreite - 30);
         SchmalZeigen(schmal, filter);
-        Hauptmenue.Text(_eigenschaften, filter.IstLeer ? "Der Pinsel wirkt überall in seinem Kreis." : "Der Pinsel wirkt nur, wo der Filter passt – das Schild an der Maus zeigt es.",
-            12, Grau, umbruchBreite: Rechtsbreite - 30);
+        wirkt = Hauptmenue.Text(_eigenschaften, WirktText(filter), 12, Grau, umbruchBreite: Rechtsbreite - 30);
     }
+
+    private static string WirktText(Pinselfilter filter) => filter.Begrenzt().IstLeer
+        ? "Der Pinsel wirkt überall in seinem Kreis." : "Der Pinsel wirkt nur, wo der Filter passt – das Schild an der Maus zeigt es.";
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Boden: Texturpinsel und Radierer
