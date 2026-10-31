@@ -288,7 +288,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Leistung | Gleich oder billiger: 320 große durchsichtige Flecken (1,4–2,2 m) fallen weg, die Spritzer sind kleiner und weniger; der Boden tastet ein Bild mehr ab (nur solange es tropft, sonst überspringt ein einheitlicher Zweig alles), Rauschen und Ringe rechnet er nur in der Kante. Das Bild entsteht auf dem Prozessor nur, wenn sich die Kanten im Bild ändern (Prüfsumme, geprüft alle 0,5 s oder nach 4 m), sonst nur das Umrechnen der Kanten. Messung (T400, Köln, Stapelhaus Zoom 25, Regen, Hoch, `--messung=12`, je zwei Läufe abwechselnd): GPU vorher 46,7 und 30,0 ms, nachher 31,9 und 50,4 ms – auf der geteilten Karte springt die GPU-Zeit zwischen zwei Lagen (fremde Last), ein Unterschied durch die Tropfkante ist darin nicht messbar; Oberflächen-Pipelines 156 statt 157 (ein Shader weniger). | 30.10.2026 |
 | Klicktest | Vulkan (T400), Köln bei Regen und Sturm, 9 Uhr und Dämmerung (19:24): Fachwerkhäuser an der Stadtmauer bei Severinstor (Zoom 30 und 25, wie Bild 77 des Nutzers) und das Stapelhaus am Rhein (Scheune auf Lehm und Sand, wie Bild 75), Zoom 25–30. Vorher schwarze Scheiben mit weißen Ringen, nachher ein dunkler nasser Streifen entlang der Traufe mit kleinen Pfützen. `--freiekamera` ist noch nicht auf `main` (liegt in `phase5/wasser-darstellung`), darum die Nahbilder als vergrößerte Ausschnitte bei Zoom 25. | 30.10.2026 |
 
-### Treibende Schollen 2: ruhiger Stau, Bruch, Schmelzen (PR folgt, Branch phase5/schollen-2)
+### Treibende Schollen 2: ruhiger Stau, Bruch, Schmelzen (PR #272)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
