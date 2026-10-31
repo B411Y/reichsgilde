@@ -19,6 +19,13 @@
 #   "albedo", "ziel_x", "kamera": "ortho", "schluessel_richtung": [azimut, hoehe], "pruefkoerper": "graukarte"|
 #   "hautfeld"|"farbtest"|"kugel"|"alle". Jede Zelle schreibt neben ihr Bild eine Begleitdatei <zz_ss>.json (Kamera,
 #   Kopf, Gene, Formgewichte aus der Szene) für tools/charakter/messen.
+# Phase 6 (S2/S3): "kopf": "standard" wählt je Stand – Stand 6 kopf6.glb (im --glb-Ordner, gewöhnlich glb6), Stand 5
+#   kopf5.glb (im --glb-Ordner, sonst in --glb5=<ordner>, Standard ~/werkzeuge/charakter/glb5); ein Kopfname, der im
+#   --glb-Ordner fehlt, wird ebenso in glb5 gesucht. Prüfkörper zusätzlich "kugel6_glanz"|"kugel6_streu", Licht
+#   "spiel5"|"spiel6"|"spiel6_hart"|"kugeltest" ("spiel" = nach dem Stand des Kopfs).
+#   --messen --staende=5,6: jeden Lauf je Wiederholung für beide Stände nacheinander im selben Prozess (gepaart);
+#   --licht=<art> für die Messläufe (Standard "spiel"). Zelle "bild": <png> zeigt ein fertiges Bild (Vergleichsblatt);
+#   "fuell": {…} wie "schluessel" für das Fülllicht.
 #   … --gewichte=<personen.json> --aus=<gewichte.json> --ende   (auch --headless) Formgewichte je Person ausschreiben
 #   … --bruecke_pruefen [--aus=<datei.json>] --ende             Abnahme der Erbgut-Brücke (S0)
 extends Control
@@ -27,6 +34,7 @@ const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
 const Buehne := preload("res://versuch/charakter/charakter_buehne.gd")
 
 var glb_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb3")
+var glb5_ordner := OS.get_environment("HOME").path_join("werkzeuge/charakter/glb5")
 var bilder := OS.get_environment("HOME").path_join("werkzeuge/charakter/bilder/phase3")
 var args := {}
 var _buehnen := {}
@@ -39,6 +47,7 @@ func _ready() -> void:
 		elif a.begins_with("--"):
 			args[a.substr(2)] = "1"
 	glb_ordner = args.get("glb", glb_ordner)
+	glb5_ordner = args.get("glb5", glb5_ordner)
 	bilder = args.get("bilder", bilder)
 	DirAccess.make_dir_recursive_absolute(bilder)
 	get_tree().root.content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
@@ -86,24 +95,31 @@ func _meldung(text: String) -> void:
 		await get_tree().create_timer(2.0).timeout
 		get_tree().quit(1)
 
-func _datei(name: String) -> String:
+func _datei(name: String, st := 5) -> String:
 	if name == "standard":
 		name = "kopf3.glb"
-		for n in ["kopf5.glb", "kopf4.glb"]:
-			if FileAccess.file_exists(glb_ordner.path_join(n)):
+		var wahl := ["kopf6.glb"] if st >= 6 else ["kopf5.glb", "kopf4.glb"]
+		for n in wahl:
+			if FileAccess.file_exists(glb_ordner.path_join(n)) or FileAccess.file_exists(glb5_ordner.path_join(n)):
 				name = n
 				break
 	if name.begins_with("~/"):
 		return OS.get_environment("HOME").path_join(name.substr(2))
-	return name if name.begins_with("/") else glb_ordner.path_join(name)
+	if name.begins_with("/"):
+		return name
+	# Phase 6: was im --glb-Ordner fehlt (glb6 hat nur kopf6), kommt aus glb5
+	if not FileAccess.file_exists(glb_ordner.path_join(name)) and FileAccess.file_exists(glb5_ordner.path_join(name)):
+		return glb5_ordner.path_join(name)
+	return glb_ordner.path_join(name)
 
-func _buehne(kopf: String, groesse: Vector2i) -> Buehne:
-	var schl := "%s|%s" % [kopf, groesse]
+func _buehne(kopf: String, groesse: Vector2i, st := 5) -> Buehne:
+	var datei := _datei(kopf, st)
+	var schl := "%s|%s" % [datei, groesse]
 	if _buehnen.has(schl):
 		return _buehnen[schl]
 	var b := Buehne.new(groesse)
 	add_child(b)
-	b.kopf_laden(_datei(kopf))
+	b.kopf_laden(datei, st)
 	_buehnen[schl] = b
 	return b
 
@@ -127,7 +143,7 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	if z.has("saat"):
 		gene.merge(Kopf.gene_aus_saat(int(z["saat"]), volk, z.get("familie", {}), z.get("saat_arten", []), z.get("vorlage", "")), true)
 	gene.merge(z.get("gene", {}), true)
-	k.stand = int(z.get("stand", 5))
+	k.stand_setzen(int(z.get("stand", 5)))
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
 	k.zusatz_formen = z.get("formen", {})
@@ -179,10 +195,17 @@ func _bogen(datei: String) -> void:
 			# Phase 6: --stand=<n> gilt für alle Zellen ohne eigenen Stand
 			if args.has("stand") and not z.has("stand"):
 				z["stand"] = int(args["stand"])
+			# Phase 6: fertiges Bild statt Render (Vergleichsblatt A0 | A1 | Fotovorlage, tools/charakter/messen/vergleichsblatt.py)
+			if z.has("bild"):
+				var fertig := Image.load_from_file(String(z["bild"]))
+				if fertig and fertig.get_size() != zelle:
+					fertig.resize(zelle.x, zelle.y, Image.INTERPOLATE_LANCZOS)
+				reihe.append([fertig, z.get("titel", "")])
+				continue
 			if z.get("kopf") == null:
 				reihe.append([null, z.get("titel", "")])
 				continue
-			var b := _buehne(z["kopf"], zelle)
+			var b := _buehne(z["kopf"], zelle, int(z.get("stand", 5)))
 			if b.kopf.fehler != "":
 				reihe.append([null, b.kopf.fehler])
 				continue
@@ -203,6 +226,7 @@ func _bogen(datei: String) -> void:
 			b.pruefkoerper_setzen(String(z.get("pruefkoerper", "")))
 			b.umgebung_setzen(z.get("umgebung", {}))
 			b.licht_setzen(z.get("schluessel", {}))
+			b.fuell_setzen(z.get("fuell", {}))
 			b.ansicht(z.get("ansicht", "portraet"), float(z.get("winkel", 0.0)), float(z.get("hoehe", 3.0)),
 				float(z.get("spanne_m", 0.0)), float(z.get("ziel_m", 0.0)), float(z.get("ziel_x", 0.0)),
 				String(z.get("kamera", "")) == "ortho")
@@ -364,7 +388,7 @@ func _gewichte_ausschreiben() -> void:
 		_meldung("Personendatei fehlt oder ist kein JSON: " + String(args["gewichte"]))
 		return
 	var liste: Array = eingabe if eingabe is Array else eingabe.get("personen", [])
-	var kopfdatei := _datei(eingabe.get("kopf", "standard") if eingabe is Dictionary else "standard")
+	var kopfdatei := _datei(eingabe.get("kopf", "standard") if eingabe is Dictionary else "standard", int(args.get("stand", "5")))
 	var k := Kopf.new()
 	k.haar_modus = "aus"
 	add_child(k)
@@ -441,8 +465,8 @@ func _regler(nur_bild: bool) -> void:
 	c.add_child(_buehne_r)
 	if not nur_bild:
 		print("REGLER Kamera: ", "frei" if _buehne_r.freie_kamera_einsetzen() else "fest (FreieKamera.cs fehlt)")
-	var datei := _datei(args.get("kopf", "standard"))
-	if not _buehne_r.kopf_laden(datei):
+	var datei := _datei(args.get("kopf", "standard"), int(args.get("stand", "5")))
+	if not _buehne_r.kopf_laden(datei, int(args.get("stand", "5"))):
 		_meldung(_buehne_r.kopf.fehler)
 		return
 	_kopf = _buehne_r.kopf
@@ -663,15 +687,26 @@ func _messen() -> void:
 		{"name": "x8_still", "kopf": "kopf3.glb", "bewegt": "keine", "anzahl": 8},
 		{"name": "x8_mimik", "kopf": "kopf3.glb", "bewegt": "arkit", "anzahl": 8},
 	]
+	# Phase 6: gepaart – je Wiederholung jeden Lauf für jeden Stand nacheinander (Reihenfolge je Wiederholung gewechselt)
+	var staende: Array = []
+	for t in String(args.get("staende", args.get("stand", "5"))).split(","):
+		staende.append(int(t))
 	for wdh in int(args.get("wiederholungen", "1")):
 		for l in laeufe:
 			if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
 				continue
-			l["wiederholung"] = wdh
-			await _ein_lauf(l)
+			var folge := staende.duplicate()
+			if wdh % 2 == 1:
+				folge.reverse()
+			for st in folge:
+				var lauf: Dictionary = l.duplicate(true)
+				lauf["wiederholung"] = wdh
+				lauf["stand"] = st
+				await _ein_lauf(lauf)
 
 func _ein_lauf(l: Dictionary) -> void:
-	var datei := _datei(l.get("kopf", "kopf3.glb"))
+	var st := int(l.get("stand", args.get("stand", "5")))
+	var datei := _datei(l.get("kopf", "kopf3.glb"), st)
 	var anzahl: int = l.get("anzahl", 1)
 	var gr0 := Vector2i(1280, 720)
 	var spalten := 1 if anzahl == 1 else 4
@@ -695,8 +730,11 @@ func _ein_lauf(l: Dictionary) -> void:
 		RenderingServer.viewport_set_measure_render_time(b.get_viewport_rid(), true)
 		liste.append(b)
 		if l["kopf"] == "keiner":
+			# leere Bühne: Licht des Stands (ohne Kopf richtet sich „spiel“ nicht nach ihm)
+			var la := String(args.get("licht", "spiel"))
+			b.licht_art_setzen(("spiel6" if st >= 6 else "spiel5") if la == "spiel" else la)
 			continue
-		if not b.kopf_laden(datei):
+		if not b.kopf_laden(datei, st):
 			_meldung(b.kopf.fehler)
 			behaelter.queue_free()
 			return
@@ -706,6 +744,7 @@ func _ein_lauf(l: Dictionary) -> void:
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
 			b.kopf.ultra_setzen(bool(l.get("ultra", false)))
+		b.licht_art_setzen(String(args.get("licht", "spiel")))
 		b.ansicht("portraet", 20.0)
 	var namen: Array = []
 	if liste[0].kopf != null:
@@ -748,7 +787,7 @@ func _ein_lauf(l: Dictionary) -> void:
 		"textur_mb": snappedf(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED) / 1048576.0, 0.1),
 		"aufloesung": "%dx%d" % [gr0.x, gr0.y],
 		"last": snappedf(float(FileAccess.get_file_as_string("/proc/loadavg").split(" ")[0]), 0.1),
-		"stand": int(l.get("stand", args.get("stand", "5"))), "wiederholung": int(l.get("wiederholung", 0)),
+		"stand": st, "wiederholung": int(l.get("wiederholung", 0)), "licht": String(args.get("licht", "spiel")),
 		"commit": String(args.get("commit", "")), "zeit": Time.get_datetime_string_from_system(),
 	}
 	print("MESSUNG ", JSON.stringify(erg))

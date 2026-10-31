@@ -6,11 +6,27 @@
 # „vorlage“ (L-V, wie die Fotovorlagen, für alle Messwerte) und „innen“ (L-I); Anzeige „albedo“ (unbeleuchtet,
 # linear); ansicht() mit ziel_x (Nahaufnahmen) und orthografischer Kamera; Schlüssellicht drehbar (Streiflicht);
 # Prüfkörper (Graukarte, Hautfeld, Farbtest, Prüfkugel); Kamera- und Kopfdaten für die Begleitdateien der Bögen.
+#
+# Phase 6 (S3, Porträtlicht): „spiel“ richtet sich nach dem Stand des Kopfs – Stand 5 das Licht der Phase 5 („spiel5“),
+# Stand 6 das kalibrierte Porträtlicht („spiel6“): Belichtung 0,8, Fülllicht 0,25, Gegenlicht 0,8, Schlüssellicht
+# ≈ 49° aus der Achse, weiche Schatten über die Winkelgröße, Umgebungslicht und Spiegelung aus dem Studio-HDRI
+# (Poly Haven „Studio Small 09“, CC0, ~/werkzeuge/charakter/hdri, nicht im Repository; fehlt es, wie Phase 5); der
+# sichtbare Hintergrund bleibt flach. „spiel6_hart“: dasselbe mit Schattenweichzeichnung statt Winkelgröße (Messung).
+# „kugeltest“: nur das Schlüssellicht, kein Umgebungslicht, linear abgebildet (Prüfkugeln, S2).
 extends SubViewport
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
 const FARBTEST := preload("res://versuch/charakter/farbtest.gdshader")
 const HAUT3 := preload("res://versuch/charakter/haut3.gdshader")
+const HAUT6 := preload("res://versuch/charakter/haut6.gdshader")
+const HDRI := "~/werkzeuge/charakter/hdri/studio_small_09_1k.hdr"
+# S3: Porträtlicht Stand 6 (L-S)
+const SPIEL6_BELICHTUNG := 0.8
+const SPIEL6_SCHLUESSEL := 2.3
+const SPIEL6_FUELL := 0.25
+const SPIEL6_GEGEN := 0.8
+const SPIEL6_UMGEBUNG := 0.35            # Energie des HDRI-Umgebungslichts
+const SPIEL6_WINKEL := 3.0               # Winkelgröße des Schlüssellichts (weiche Schatten), Grad
 
 var kopf: Kopf
 var kamera: Camera3D
@@ -83,9 +99,11 @@ func _init(groesse := Vector2i(640, 640)) -> void:
 var _grund := {}
 func _grund_merken() -> void:
 	for n in [schluessel, fuell, gegen]:
-		_grund[n] = [n.light_color, n.light_energy, n.transform, n.visible, n.light_angular_distance, n.shadow_blur]
+		_grund[n] = [n.light_color, n.light_energy, n.transform, n.visible, n.light_angular_distance, n.shadow_blur,
+			n.shadow_enabled]
 	_grund[umgebung] = [umgebung.background_color, umgebung.ambient_light_color, umgebung.ambient_light_energy,
-		umgebung.tonemap_exposure, umgebung.ssao_enabled, umgebung.tonemap_mode]
+		umgebung.tonemap_exposure, umgebung.ssao_enabled, umgebung.tonemap_mode, umgebung.ambient_light_source,
+		umgebung.reflected_light_source, umgebung.sky]
 
 func _grund_setzen() -> void:
 	for n in [schluessel, fuell, gegen]:
@@ -96,6 +114,7 @@ func _grund_setzen() -> void:
 		n.visible = g[3]
 		n.light_angular_distance = g[4]
 		n.shadow_blur = g[5]
+		n.shadow_enabled = g[6]
 	var u: Array = _grund[umgebung]
 	umgebung.background_color = u[0]
 	umgebung.ambient_light_color = u[1]
@@ -103,6 +122,9 @@ func _grund_setzen() -> void:
 	umgebung.tonemap_exposure = u[3]
 	umgebung.ssao_enabled = u[4]
 	umgebung.tonemap_mode = u[5]
+	umgebung.ambient_light_source = u[6]
+	umgebung.reflected_light_source = u[7]
+	umgebung.sky = u[8]
 	debug_draw = Viewport.DEBUG_DRAW_DISABLED
 	if _innen:
 		_innen.visible = false
@@ -118,9 +140,45 @@ var _innen: Node3D = null
 func licht_art_setzen(art: String) -> void:
 	licht_art = art
 	_grund_setzen()
+	_fuell_grund.clear()          # die Lichtart setzt das Fülllicht ganz neu
+	if art in ["spiel", ""]:
+		art = "spiel6" if kopf and kopf.stand >= 6 else "spiel5"
+	if art == "innen" and kopf and kopf.stand >= 6:
+		art = "innen6"
 	match art:
-		"spiel", "":
-			pass                                   # L-S: bis S3 das Porträtlicht der Phase 5
+		"spiel5":
+			pass                                   # L-S der Phase 5 (Stand 5)
+		"spiel6", "spiel6_hart":
+			# S3: Porträtlicht Stand 6
+			umgebung.tonemap_exposure = SPIEL6_BELICHTUNG
+			schluessel.light_energy = SPIEL6_SCHLUESSEL
+			fuell.light_energy = SPIEL6_FUELL
+			gegen.light_energy = SPIEL6_GEGEN
+			if art == "spiel6":
+				schluessel.light_angular_distance = SPIEL6_WINKEL
+				schluessel.shadow_blur = 1.0
+			else:
+				schluessel.shadow_blur = 2.0
+			var himmel := _himmel()
+			if himmel:
+				umgebung.sky = himmel
+				umgebung.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+				umgebung.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+				umgebung.ambient_light_energy = SPIEL6_UMGEBUNG
+		"kugeltest":
+			# S2: Prüfkugeln – nur das Schlüssellicht (weiß, hart), kein Umgebungslicht, linear, Grund schwarz
+			schluessel.light_color = Color(1, 1, 1)
+			schluessel.light_energy = 1.0
+			schluessel.light_angular_distance = 0.0
+			schluessel.shadow_enabled = false
+			fuell.visible = false
+			gegen.visible = false
+			umgebung.ambient_light_energy = 0.0
+			umgebung.ambient_light_color = Color(0, 0, 0)
+			umgebung.background_color = Color(0, 0, 0)
+			umgebung.ssao_enabled = false
+			umgebung.tonemap_mode = Environment.TONE_MAPPER_LINEAR
+			umgebung.tonemap_exposure = 1.0
 		"vorlage":
 			schluessel.light_color = Color(1, 1, 1)
 			schluessel.light_energy = VORLAGE_SCHLUESSEL
@@ -137,8 +195,8 @@ func licht_art_setzen(art: String) -> void:
 			# Grund: wie eine 18-%-Fläche unter Schlüssel- und Fülllicht (Lambert, zur Kamera) – im Bild so hell wie die Graukarte
 			var e := (VORLAGE_SCHLUESSEL * cos(deg_to_rad(45.0)) * cos(deg_to_rad(45.0)) + VORLAGE_FUELL * cos(deg_to_rad(50.0)) * cos(deg_to_rad(10.0))) + VORLAGE_UMGEBUNG
 			umgebung.background_color = Color(VORLAGE_GRUND * e, VORLAGE_GRUND * e, VORLAGE_GRUND * e).linear_to_srgb()
-		"innen":
-			# L-I (vorläufig bis S3): Herdfeuer links vorn, Kerze rechts, kaum Umgebungslicht
+		"innen", "innen6":
+			# L-I: Herdfeuer links vorn, Kerze rechts, kaum Umgebungslicht (Stand 6: Belichtung 1,0 statt 1,25)
 			schluessel.visible = false
 			fuell.visible = false
 			gegen.visible = false
@@ -159,11 +217,33 @@ func licht_art_setzen(art: String) -> void:
 			umgebung.background_color = Color(0.03, 0.02, 0.015)
 			umgebung.ambient_light_color = Color(0.5, 0.38, 0.28)
 			umgebung.ambient_light_energy = 0.12
-			umgebung.tonemap_exposure = 1.25
+			umgebung.tonemap_exposure = 1.25 if art == "innen" else 1.0
 		_:
 			print("WARNUNG Lichtart ", art, " unbekannt")
 	if anzeige == "albedo":
 		anzeige_setzen("albedo")
+
+# S3: Studio-HDRI als Himmel (nur für Umgebungslicht und Spiegelung; der Hintergrund bleibt die flache Farbe)
+static var _himmel_speicher: Sky = null
+static var _himmel_geprueft := false
+static func _himmel() -> Sky:
+	if _himmel_geprueft:
+		return _himmel_speicher
+	_himmel_geprueft = true
+	var p := OS.get_environment("HOME").path_join(HDRI.substr(2))
+	if not FileAccess.file_exists(p):
+		print("WARNUNG Studio-HDRI fehlt: ", p, " (Umgebung wie Phase 5)")
+		return null
+	var img := Image.load_from_file(p)
+	if img == null or img.is_empty():
+		print("WARNUNG Studio-HDRI lässt sich nicht laden: ", p)
+		return null
+	var mat := PanoramaSkyMaterial.new()
+	mat.panorama = ImageTexture.create_from_image(img)
+	_himmel_speicher = Sky.new()
+	_himmel_speicher.sky_material = mat
+	_himmel_speicher.radiance_size = Sky.RADIANCE_SIZE_128
+	return _himmel_speicher
 
 # Anzeige „albedo“: unbeleuchtet (Godot: DEBUG_DRAW_UNSHADED), linear abgebildet (kein AgX, Belichtung 1, keine
 # Verdeckung), Grund 18 % grau – das Bild zeigt sRGB(ALBEDO).
@@ -209,8 +289,9 @@ func freie_kamera_einsetzen() -> bool:
 static func _richten(n: Node3D, pos: Vector3, ziel := Vector3(0, 1.6, 0)) -> void:
 	n.transform = Transform3D(Basis.looking_at(ziel - pos), pos)
 
-func kopf_laden(datei: String) -> bool:
+func kopf_laden(datei: String, st := 5) -> bool:
 	kopf = Kopf.new()
+	kopf.stand = st
 	add_child(kopf)
 	return kopf.laden(datei)
 
@@ -297,6 +378,19 @@ func licht_setzen(werte: Dictionary) -> void:
 			_licht_grund[k] = schluessel.get(k)
 		schluessel.set(k, werte[k])
 
+# Phase 6 (S3): Fülllicht aus einem Bogen ({"light_energy": 0.0}), wie licht_setzen
+var _fuell_grund := {}
+func fuell_setzen(werte: Dictionary) -> void:
+	for k in _fuell_grund:
+		fuell.set(k, _fuell_grund[k])
+	for k in werte:
+		if not k in fuell:
+			print("WARNUNG Fülllicht kennt ", k, " nicht")
+			continue
+		if not _fuell_grund.has(k):
+			_fuell_grund[k] = fuell.get(k)
+		fuell.set(k, werte[k])
+
 func foto() -> Image:
 	return get_texture().get_image()
 
@@ -330,6 +424,8 @@ func pruefkoerper_setzen(art: String) -> void:
 			_farbtest(mitte, 0.07)
 		"kugel":
 			_kugeln(mitte, 0.036)
+		"kugel6_glanz", "kugel6_streu":
+			_kugeln6(mitte, 0.036, art == "kugel6_glanz")
 		"alle":
 			_pruef.add_child(_flaeche(mitte + Vector3(-0.07, 0.07, 0), 0.12, _matt(Color(0.18, 0.18, 0.18))))
 			_pruef.add_child(_flaeche(mitte + Vector3(0.07, 0.07, 0), 0.12, _matt(Color(0.623, 0.433, 0.343))))
@@ -357,10 +453,10 @@ static func _flaeche(pos: Vector3, groesse: float, stoff: Material) -> MeshInsta
 func _farbtest(mitte: Vector3, b: float) -> void:
 	var a := ShaderMaterial.new()
 	a.shader = FARBTEST
-	a.set_shader_parameter("farbe", Vector3(0.5, 0.5, 0.5))
+	a.set_shader_parameter("farbe", Vector3(0.5, 0.5, 0.5))   # stand5: absichtlich (Farbtest: Weg der Phase 5)
 	var c := ShaderMaterial.new()
 	c.shader = FARBTEST
-	c.set_shader_parameter("farbe", Color(0.5, 0.5, 0.5))
+	Kopf.farbe_setzen(c, "farbe", Color(0.5, 0.5, 0.5), 6)    # S2: Weg über die Hilfsfunktion (Stand 6)
 	var s := StandardMaterial3D.new()
 	s.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	s.albedo_color = Color(0.5, 0.5, 0.5)
@@ -379,7 +475,9 @@ static func _neutral_bild(farbe: Color) -> ImageTexture:
 	return _neutral[schl]
 
 func _kugeln(mitte: Vector3, r: float) -> void:
-	var grund: Color = Kopf.hautfarbe(185.0 / 255.0)
+	# Phase 6: mit einem Kopf in Stand 6 haut6 und die lineare Palette (Color), sonst wie Phase 5
+	var st: int = kopf.stand if kopf else 5
+	var grund: Color = Kopf.hautfarbe(185.0 / 255.0) if st < 6 else Kopf.linear(Kopf.hautfarbe6(185.0))
 	var i := 0
 	for wrap in [0.0, 0.4, -1.0]:
 		var mi := MeshInstance3D.new()
@@ -391,12 +489,13 @@ func _kugeln(mitte: Vector3, r: float) -> void:
 		mi.mesh = sm
 		if wrap >= 0.0:
 			var m := ShaderMaterial.new()
-			m.shader = HAUT3
+			m.shader = HAUT6 if st >= 6 else HAUT3
 			m.set_shader_parameter("farbe_tex", _neutral_bild(Color(0.5, 0.5, 0.5, 0.0)))
 			m.set_shader_parameter("normal_tex", _neutral_bild(Color(0.5, 0.5, 0.0, 1.0)))
-			m.set_shader_parameter("grundfarbe", Vector3(grund.r, grund.g, grund.b))    # Weg der Phase 5 (Stand 5)
+			Kopf.farbe_setzen(m, "grundfarbe", grund, st)    # Stand 5: Weg der Phase 5 (Vector3)
 			m.set_shader_parameter("streu", wrap)
-			m.set_shader_parameter("flaum", 0.0 if wrap == 0.0 else 0.16)
+			if st < 6 or wrap == 0.0:
+				m.set_shader_parameter("flaum", 0.0 if wrap == 0.0 else 0.16)
 			mi.material_override = m
 		else:
 			var s := StandardMaterial3D.new()
@@ -404,6 +503,52 @@ func _kugeln(mitte: Vector3, r: float) -> void:
 			s.roughness = 0.56
 			s.metallic_specular = 0.42
 			mi.material_override = s
+		mi.position = mitte + Vector3((i - 1) * r * 2.3, 0, 0)
+		_pruef.add_child(mi)
+		i += 1
+
+# S2: Prüfkugeln für den Glanz und das Streulicht (Prüfkörper „kugel6_glanz“/„kugel6_streu“, Lichtart „kugeltest“):
+# links haut6 (Wrap 0, eine Keule, kein Flaum, Glanzmaske 1), Mitte StandardMaterial3D (Lambert, Rauheit 0,56,
+# specular 0,42 = F0 0,028), rechts haut3 (Wrap 0, kein Flaum) als Phase 5. glanz = true: Albedo 0 (nur Glanz);
+# false: Glanz 0 (nur Streulicht; haut3 behält seinen Glanz, er ist dort nicht abschaltbar).
+func _kugeln6(mitte: Vector3, r: float, glanz: bool) -> void:
+	var grund_lin := Kopf.hautfarbe6(185.0)          # linear (Albedo), für alle drei gleich
+	var grund := Kopf.linear(grund_lin)
+	var schwarz := Color(0, 0, 0)
+	var i := 0
+	for art in ["haut6", "standard", "haut3"]:
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = r
+		sm.height = 2.0 * r
+		sm.radial_segments = 128
+		sm.rings = 64
+		mi.mesh = sm
+		if art == "standard":
+			var s := StandardMaterial3D.new()
+			s.albedo_color = schwarz if glanz else grund
+			s.roughness = 0.56
+			s.metallic_specular = 0.42 if glanz else 0.0
+			s.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT
+			mi.material_override = s
+		else:
+			var m := ShaderMaterial.new()
+			m.shader = HAUT6 if art == "haut6" else HAUT3
+			m.set_shader_parameter("farbe_tex", _neutral_bild(Color(0.5, 0.5, 0.5, 0.0)))
+			m.set_shader_parameter("normal_tex", _neutral_bild(Color(0.5, 0.5, 0.0, 1.0)))
+			if art == "haut6":
+				Kopf.farbe_setzen(m, "grundfarbe", schwarz if glanz else grund, 6)
+			else:
+				Kopf.farbe_setzen(m, "grundfarbe", schwarz if glanz else grund_lin, 5)   # Vector3 = linear
+			m.set_shader_parameter("streu", 0.0)
+			m.set_shader_parameter("flaum", 0.0)
+			m.set_shader_parameter("unruhe", 0.0)
+			if art == "haut6":
+				m.set_shader_parameter("keule2", 0.0)
+				m.set_shader_parameter("glanz", 1.0 if glanz else 0.0)
+			else:
+				m.set_shader_parameter("glanz", 0.34)
+			mi.material_override = m
 		mi.position = mitte + Vector3((i - 1) * r * 2.3, 0, 0)
 		_pruef.add_child(mi)
 		i += 1
