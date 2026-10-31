@@ -53,9 +53,10 @@ public sealed class EinstellungenAnzeige
     private static readonly (GlobaleBeleuchtung Stufe, string Name, string Erklaerung)[] GiStufen =
     {
         (GlobaleBeleuchtung.Aus, "Aus (empfohlen)", "Kein SDFGI: gleichmäßiges Grundlicht wie immer. Kostet nichts."),
-        (GlobaleBeleuchtung.Niedrig, "Niedrig", "Wenige Strahlen auf halber Auflösung, das Licht wird langsam nachgeführt; in den Räumen grobe Zellen (40 cm), das Licht wirkt fleckig."),
-        (GlobaleBeleuchtung.Mittel, "Mittel", "Doppelt so viele Strahlen, das Licht folgt schneller; in den Räumen Zellen von 20 cm."),
-        (GlobaleBeleuchtung.Hoch, "Hoch", "Volle Auflösung und viele Strahlen; in den Räumen die feinsten Zellen (10 cm) und Godots Verfahren gegen Lichtlecks. Nur für starke Grafikkarten."),
+        (GlobaleBeleuchtung.Niedrig, "Niedrig", "Wenige Strahlen auf halber Auflösung, das Licht wird langsam nachgeführt; in den Räumen grobe Zellen (40 cm), das Licht wirkt fleckig. " +
+            "Wo das Licht an einer Kante wechselt (Fensterlaibung, Wandecke), werden die Kanten leicht treppig."),
+        (GlobaleBeleuchtung.Mittel, "Mittel", "Doppelt so viele Strahlen auf voller Auflösung (glatte Kanten), das Licht folgt schneller; in den Räumen Zellen von 20 cm."),
+        (GlobaleBeleuchtung.Hoch, "Hoch", "Viermal so viele Strahlen wie Niedrig; in den Räumen die feinsten Zellen (10 cm) und Godots Verfahren gegen Lichtlecks. Nur für starke Grafikkarten."),
     };
 
     /// <summary>Vorwort des Tooltips der globalen Beleuchtung (dazu, wenn es fehlt, der Grund).</summary>
@@ -67,14 +68,15 @@ public sealed class EinstellungenAnzeige
     /// <summary>Tooltip des Unterschalters „Innenräume“ der globalen Beleuchtung.</summary>
     private const string GiInnenTipp =
         "Globale Beleuchtung in den Räumen (Werkstätten, Wohnhaus, Rathaus): Das Licht von Fenstern, Glut und Lampen fällt auf Wände und Boden zurück, " +
-        "Ecken und Nischen werden weicher und dunkler, die Glut färbt den Raum warm. Die Räume bleiben etwa so hell wie ohne. " +
-        "Kostet in den Räumen viel Grafikleistung (auf einer schwachen Karte bei Mittel gut 70 % mehr Zeit je Bild). Standard: an.";
+        "Ecken und Nischen werden weicher und dunkler, die Glut färbt den Raum warm. Die Räume bleiben in jeder Stufe etwa so hell wie ohne. " +
+        "Kostet in den Räumen viel Grafikleistung: auf einer schwachen Karte bei Niedrig rund 30 %, bei Mittel rund 40 % (in den schlichten Räumen von Wohnhaus und Rathaus bis 75 %), " +
+        "bei Hoch mehr als doppelt so viel Zeit je Bild. Standard: an.";
 
     /// <summary>Tooltip des Unterschalters „Außenansicht“ (mit dem Hinweis „experimentell“) der globalen Beleuchtung.</summary>
     private const string GiAussenTipp =
         "Experimentell: globale Beleuchtung auch in der Stadt. Weil die Kamera weit über der Stadt steht, rechnet SDFGI dort nur in groben Feldern von 5 m: " +
         "Man sieht kaum einen Unterschied, die Schatten werden etwas kühler, auf großen Erdflächen erscheinen weiche Flecken. Kostet trotzdem Grafikleistung " +
-        "(auf einer schwachen Karte rund 8 %, bei Hoch 17 % mehr Zeit je Bild). Neue Häuser, Baustellen und das Fensterlicht am Abend kommen erst nach, " +
+        "(auf einer schwachen Karte bei Niedrig rund 7 %, bei Mittel und Hoch rund 15 % mehr Zeit je Bild). Neue Häuser, Baustellen und das Fensterlicht am Abend kommen erst nach, " +
         "wenn man die Kamera ein Stück verschiebt. Standard: aus.";
 
     /// <summary>Die Voreinstellungen mit Erklärung (Werte: <see cref="Fenster.StufeVon"/>).</summary>
