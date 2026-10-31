@@ -16,7 +16,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Die KI setzt fast jedes Jahr einen Spitzel (300 Gulden) auf das stärkste andere Haus an, auch mit nur einem Betrieb: Beim Messspieler des Balancing-Berichts ≈ 210 im Jahr, rund ein Zehntel des Gewinns (PR #177, WIRTSCHAFTSMODELL „Balancing-Messung 2“). Vorschlag: an Gewinn oder Rang koppeln.
 - (von Kern) Abfrage für den Kauf von Einrichtung (PR #177): `Werkstattwesen.ErwarteterMehrgewinnJeJahr(Betrieb, kennung)` und `Amortisationsjahre(…)`; Eisentür und Löschfass bringen nur etwas nach Raub bzw. Brand im Vorjahr (`Betriebsrechnung.Raub`, `Brandschaden`). Seit PR #177 holt ein Einbruch beim Geldleiher Geld aus der Kasse – `Unterwelt.ErwarteterGewinn` und `Diebeswesen.ErwarteterEinbruch` rechnen es schon mit.
 - (von Kern) Teure Ware im Lager schützen (PR #232): Seit der Giftdolch einen Dolch des Schmieds braucht (≈ 170 Gulden je Stück), räumen die Diebe der KI-Häuser das Lager einer Siederei nachts aus (Startwert 202: fünf Einbrüche in zwei Nächten, 42 Dolche ≈ 8.800 Gulden, danach Bankrott). Die KI sollte Eisentür und Wächter nach dem Lagerwert kaufen bzw. einstellen, nicht erst nach einem Angriff (gilt auch für Gold, Goldketten, Prunkwaren).
-- Mittagsandrang in der Schänke (PR #NNN): Um 12 Uhr, der ersten Stunde mit Einkehren, gehen fast alle Einwohner zugleich hin (bis 107 von 123 in der einen Schänke), abends um 21:45 bis 84. Eine Kapazität für Einwohner gibt es nicht. Designfrage beim Teamleiter, Empfehlung: Sitzplätze je Schänke nach Stufe im Abschnitt `buerger` (im Verhältnis von `anziehungJeStufe`, etwa 20/30/40); wer keinen Platz bekommt, nimmt die nächstbeste Handlung (mittags Arbeit, abends daheim); ohne Eintrag unbegrenzt wie heute. Vorher messen, wie sich die Gäste auf mehrere Schänken verteilen. Nur den Mittag zu dämpfen, verschiebt den Andrang auf 18 Uhr.
+- Mittagsandrang in der Schänke (PR #274): Um 12 Uhr, der ersten Stunde mit Einkehren, gehen fast alle Einwohner zugleich hin (bis 107 von 123 in der einen Schänke), abends um 21:45 bis 84. Eine Kapazität für Einwohner gibt es nicht. Designfrage beim Teamleiter, Empfehlung: Sitzplätze je Schänke nach Stufe im Abschnitt `buerger` (im Verhältnis von `anziehungJeStufe`, etwa 20/30/40); wer keinen Platz bekommt, nimmt die nächstbeste Handlung (mittags Arbeit, abends daheim); ohne Eintrag unbegrenzt wie heute. Vorher messen, wie sich die Gäste auf mehrere Schänken verteilen. Nur den Mittag zu dämpfen, verschiebt den Andrang auf 18 Uhr.
 
 ## Entscheidungen
 
@@ -65,7 +65,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Brautschau | Die KI rechnet mit `GuldenJeZuneigung(konto, kandidat)` – ein Kandidat, der ihr Oberhaupt mag, ist billiger. | 28.10.2026 |
 | Messung | `messen bericht 20 30` auf main `391874f5` + `13531d4d`: Geschenke der KI je Jahr (Messspieler, ein Betrieb) −25 … −92 → −14 … −55, KI ÷ Bezug (Median) 1,01 → 1,11, „Schwer“ 1,79 → 1,78, Diebstahl 0,80 → 0,81, Einbruch 0,69 → 0,66, Sabotage 0,01 → 0,02 je Jahr, Karren in Not 7 → 8; verheiratet nach 3 Jahren 88/90 wie main. In 3 Startwerten × 12 Jahren hinterlassen KI-Häuser 88 Gründe aus Aktivitäten bei Ratsherren (Test `KiMeinungTests`). Einzelheiten in WIRTSCHAFTSMODELL, „Meinungen und Aktivitäten (PR #231)“. | 28.10.2026 |
 
-### Schankschluss (PR #NNN)
+### Schankschluss (PR #274)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -229,9 +229,9 @@ Gemessen auf main `821bc97` + Funktions-Branch `phase5/balancing-1` mit Kern Sch
 
 Gemessen auf main `391874f5` (bis `b9825f32` nur Infra) + `13531d4d`, `messen bericht 20 30` gegen main (Werte von main gleich `balancing-2026-10-28-charakterzuege.json`) → `docs/messungen/balancing-2026-10-28-meinungen.json`: KI ÷ Bezugsspieler mit der Strategie der KI (Median) 1,01 → 1,11, davongezogen 3 → 3 von 90, abgeschlagen 1 → 1; „Schwer“ 1,79 → 1,78; Geschenke der KI-geführten Messspieler je Jahr −25 … −92 → −14 … −55 (Aktivitäten statt Geschenke, Abnahme je weiterem Geschenk), Familienkosten +6 … +29 (Aktivitäten); Diebstahl 0,80 → 0,81, Einbruch 0,69 → 0,66, Sabotage 0,01 → 0,02 je Jahr; Spitzel 91 → 92, Gericht 231 → 216 je Jahr; Karren in Not 7 → 8. Sonde (30 Partien): KI-Häuser verheiratet nach 3 Jahren 88/90 wie main, nach 6 Jahren 90/90 (main 89/90).
 
-### Schankschluss (PR #NNN)
+### Schankschluss (PR #274)
 
-Gemessen auf main `24963d29` + PR #NNN, Wirt-Partie (Spieler Wirt, eine Schänke, 123 Einwohner), Startwerte 1400 und 99, Tage 2–4, alle 5 Minuten mit `Wo(VergangeneMinuten)` gezählt; Ø je Viertelstunde, in Klammern der Höchstwert. Vorher und nachher zeichengleich (die Änderung prüft nur Daten); „Sonde“ = dieselbe Zählung mit der Uhrzeit wie in der Ton-Messung:
+Gemessen auf main `24963d29` + PR #274, Wirt-Partie (Spieler Wirt, eine Schänke, 123 Einwohner), Startwerte 1400 und 99, Tage 2–4, alle 5 Minuten mit `Wo(VergangeneMinuten)` gezählt; Ø je Viertelstunde, in Klammern der Höchstwert. Vorher und nachher zeichengleich (die Änderung prüft nur Daten); „Sonde“ = dieselbe Zählung mit der Uhrzeit wie in der Ton-Messung:
 
 | Uhr | Schänke 1400 | daheim 1400 | unterwegs 1400 | Schänke 99 | daheim 99 | unterwegs 99 | Sonde Schänke 1400 / 99 |
 |---|---|---|---|---|---|---|---|
