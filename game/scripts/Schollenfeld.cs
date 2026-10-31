@@ -5,79 +5,60 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Eisschollen auf einem Fluss als Körper (realistisches Wasser, Phase 3c/3d, <c>docs/wasser/phase3.md</c>): Jede Scholle ist eine Kopie derselben
-/// runden Scheibe (<see cref="ScheibenNetz"/>) in einem <see cref="MultiMesh"/>; ihre gebrochene Form, die Dicke, das Schaukeln auf den Wellen und
-/// die Oberseite (gemeinsames Eismaterial) rechnet <c>eis_scholle.gdshaderinc</c>. Zwei Sorten:
+/// Eisschollen auf einem Fluss als Körper (realistisches Wasser, Phase 3c/3d und Schollen 2, <c>docs/wasser/phase3.md</c>): Jede Scholle ist eine
+/// Kopie derselben runden Scheibe (<see cref="ScheibenNetz"/>) in einem <see cref="MultiMesh"/>; ihre gebrochene Form, die Dicke, das Schaukeln auf
+/// den Wellen und die Oberseite (gemeinsames Eismaterial) rechnet <c>eis_scholle.gdshaderinc</c>. Zwei Sorten:
 /// <list type="bullet">
-/// <item><b>Treibende Schollen</b> (<see cref="Bild"/>): eine eigene, leichte 2D-Simulation in den Laufachsen (Stelle, quer) – keine Physik-Engine.
-/// Jede Scholle ist ein Kreis; die Strömung zieht sie (in der Mitte schneller als am Rand), sie stoßen aneinander (Abstoßen statt Durchdringen, ein
-/// Stoß bremst und dreht), prallen an Brückenpfeilern, dem Prahm der Fähre und den Kähnen ab und gleiten vorbei; trifft eine einen Pfeiler von
-/// vorn, bleibt sie ein paar Sekunden hängen, die folgenden stauen sich dahinter, dann löst sich der Stau. Nachbarn findet ein Gitter (2 m) ohne
-/// Speicheranforderung je Bild. Reine Darstellung: nicht im Kern, nicht deterministisch.</item>
+/// <item><b>Treibende Schollen:</b> Ihre Bewegung rechnet <see cref="Schollensimulation"/> (eigene 2D-Simulation in den Laufachsen, weiche Kontakte,
+/// Bruch, Untertauchen, Schmelzen); diese Klasse setzt das Stoßfenster an den Blickpunkt und zeichnet die sichtbaren (<see cref="Bild"/>), Bruchstücke
+/// als Ausschnitt derselben Scheibe, schmelzende runder und tiefer. Reine Darstellung: nicht im Kern, nicht deterministisch.</item>
 /// <item><b>Feste Schollen</b> im Randeis (<see cref="FesteBauen"/>): festgefrorene Schollen am Ufer, so wie das Randeis großer Flüsse aus
-/// angefrorenem Treibeis und Eisbrei besteht. Sie geben der Eiskante Dicke und dieselbe Anmutung wie die treibenden; zwischen ihnen liegt das flache
-/// Eis des Wasser-Shaders (dasselbe Material). Jede hat eine Schwelle: Sie wächst auf, sobald die Eiskante des Shaders sie erreicht (Uniform
-/// <c>eis_fest</c>), die CPU schreibt sie nur einmal; gezeichnet in Stücken zu 32 m (Godot lässt Stücke außerhalb des Bildes weg), nah fein, fern grob.</item>
+/// angefrorenem Treibeis und Eisbrei besteht. Jede hat eine Schwelle: Sie wächst auf, sobald die Eiskante des Shaders sie erreicht (Uniform
+/// <c>eis_fest</c>), die CPU schreibt sie nur einmal; gezeichnet in Stücken zu 32 m, nah fein, fern grob.</item>
 /// </list>
+/// Je Kopie (20 Zahlen): Lage (Drehung um die Hochachse, beim Tauchen gekippt, gleichmäßig auf den Halbmesser skaliert), COLOR = (Saat der Form,
+/// Dicke, Ausschnitt-Ende β + 8 oder 0 = ganz, −Schmelzgrad; feste: Schnee und Schwelle > 0 in b und a), CUSTOM = (quer, Stelle, Winkel der
+/// Fließrichtung, Ausschnitt-Anfang α + 8 oder 0) – keine instance uniforms.
 /// Die Wellen müssen dieselben sein wie auf der Wasserfläche: <see cref="Wasserarten.WellenSetzen"/> belegt den Stoff der Schollen wie den des Flusses.
 /// </summary>
 public sealed class Schollenfeld
 {
-    /// <summary>Ein Punkt der Mittellinie (je Meter): Ort, Höhe des Spiegels, halbe Breite, Fließrichtung (Einheitsvektor).</summary>
-    public readonly record struct Laufpunkt(Vector2 Ort, float Spiegel, float Halb, Vector2 Richtung);
-
-    /// <summary>Ein Hindernis in Laufachsen: quer (m), Stelle (m) und seine halbe Ausdehnung quer und längs. Schollen prallen daran ab.</summary>
-    public readonly record struct Hindernis(float Quer, float Stelle, float HalbQuer, float HalbLaengs);
-
-    private struct Scholle
-    {
-        public float S0, Anteil, Halbmesser, Dicke, Gier, Dreh, Schwelle, Saat, Schnee;
-    }
-
     /// <summary>Bis zu diesem Abstand (m) zeichnet die feine Scheibe, dahinter die grobe.</summary>
     private const float NahBis = 70f;
-
-    /// <summary>So weit (m) hält eine Scholle mindestens vom Ufer bzw. von der Kante des Randeises (beim vollen Randeis um die Hälfte breiter: die Kante ist unregelmäßig).</summary>
-    private const float UferAbstand = 0.8f;
-
-    /// <summary>Stoßhalbmesser einer Scholle als Anteil ihres Halbmessers (der Umriss ist ein Vieleck, meist innerhalb des Halbmessers).</summary>
-    private const float StossAnteil = 0.78f;
-
-    /// <summary>Gitter für die Nachbarsuche (m).</summary>
-    private const float Zelle = 2f;
-
-    /// <summary>
-    /// Nur in diesem Fenster (m entlang des Laufs) um die Kamera stoßen die Schollen; weiter weg treiben sie nur (dort sieht man sie kaum, und sie
-    /// treiben gleich schnell, laufen also nicht ineinander). Spart den größten Teil der Rechenzeit.
-    /// </summary>
-    private const float StossFenster = 160f;
 
     /// <summary>Stücke der festen Schollen entlang des Laufs (m) und bis zu welchem Abstand (m) sie fein gezeichnet werden.</summary>
     private const float FestStueck = 32f, FestNahBis = 60f;
 
-    private readonly Laufpunkt[] _lauf;
-    private readonly float _laenge, _tempo, _randeis;
-    private readonly Scholle[] _schollen;
-    private readonly List<Hindernis> _festeHindernisse;
+    /// <summary>Versatz eines Ausschnittwinkels in COLOR.b und CUSTOM.w (0 = ganze Scholle, α = 0 bleibt gültig).</summary>
+    public const float SektorVersatz = 8f;
+
+    private readonly Schollensimulation _sim;
+    private readonly Schollensimulation.Laufpunkt[] _lauf;
+    private readonly float _laenge, _randeis;
+    private readonly List<Schollensimulation.Hindernis> _festeHindernisse;
     private readonly MultiMeshInstance3D _nah, _fern;
     private readonly float[] _pufferNah, _pufferFern;
     private readonly int _platz;
-    private double _zeit;
     private float _eisFestZuletzt = -1, _tauenZuletzt = -1;
+    private int _kameraTipp = -1, _blickTipp = -1;
+    private bool _zurueckgesetzt;
 
-    // Zustand der treibenden Schollen in Laufachsen: Stelle, quer, Tempo längs und quer (m/s), Gier und Drehtempo, Haftzeit an einem Pfeiler (s)
-    private readonly float[] _s, _q, _vs, _vq, _gier, _om, _haft, _rStoss, _halbHier;
-    // Druck am Pfeiler: wie lange eine Scholle schon vorn am Pfeiler drückt (s); ist er zu groß, schiebt sie sich für kurze Zeit über bzw. unter die
-    // Nachbarn (ohne Stöße mit ihnen) – so löst sich ein Stau, statt dass sich eine Eisbrücke bildet
-    private readonly float[] _druck, _ueber;
-    private readonly bool[] _kette; // hängt nur, weil sie auf eine am Pfeiler hängende aufgefahren ist (gibt das nicht weiter)
-    private readonly int[] _pfeilerSchritt; // Teilschritt, in dem die Scholle zuletzt einen Pfeiler berührte (erster Stoß = nicht im vorigen)
-    private readonly bool[] _weg;           // außerhalb des Fensters um die Kamera: treibt nur, ohne Stöße
-    private int _schritt, _kameraTipp = -1;
-    private readonly int[] _kopf, _naechster;
-    private readonly int _zellenS, _zellenQ;
-    private readonly float _halbMax, _rStossMax;
-    private uint _zufall;
+    /// <summary>Blickpunkt auf dem Wasser höchstens so weit vor der Kamera (m, entlang des Blicks).</summary>
+    private const float BlickWeit = 150f;
+
+    private static readonly StringName ParamEisFest = "eis_fest", ParamEisTauen = "eis_tauen";
+
+    /// <summary>Startoption <c>--schollenmessung=1</c> (vor dem Bau setzen): Messung des Verhaltens (<see cref="Schollenmessung"/>).</summary>
+    public static bool MessungAn;
+
+    /// <summary>Startoption <c>--schollenumriss=1</c> (vor dem Bau setzen): Umrisse und Stoßkreise der C#-Rechnung als Linien über den Schollen.</summary>
+    public static bool UmrissAn;
+
+    /// <summary>Messung des Verhaltens (null ohne <c>--schollenmessung=1</c>).</summary>
+    public Schollenmessung? Messung => _sim.Messung;
+
+    /// <summary>Name des Laufs (für das Protokoll).</summary>
+    public string Name { get; }
 
     /// <summary>Der Knoten mit den Schollen-Netzen (in die Szene hängen).</summary>
     public Node3D Knoten { get; }
@@ -86,19 +67,24 @@ public sealed class Schollenfeld
     public ShaderMaterial Stoff { get; }
 
     /// <summary>Wie viele treibende Schollen es gibt, wie viele im letzten Bild gezeichnet wurden und wie viele feste im Randeis liegen.</summary>
-    public int Anzahl => _schollen.Length;
+    public int Anzahl => _sim.Anzahl;
     public int Gezeichnet { get; private set; }
     public int Feste { get; private set; }
 
-    /// <summary>Rechenzeit der Simulation im letzten Bild (ms) und wie viele Schollen dabei aktiv waren (für die Messung).</summary>
-    public double SimulationMs { get; private set; }
-    public int Aktiv { get; private set; }
+    /// <summary>Rechenzeit der Simulation im letzten Bild (ms), aktive Schollen, Kontakte, Schritte, Suche und Lösen (für die Messung).</summary>
+    public double SimulationMs => _sim.SimulationMs;
+    public int Aktiv => _sim.Aktiv;
+    public int Kontakte => _sim.Kontakte;
+    public int Teilschritte => _sim.Teilschritte;
+    public double SucheMs => _sim.SucheMs;
+    public double LoesenMs => _sim.LoesenMs;
+    public int ImFenster => _sim.ImFenster;
 
-    /// <summary>Zähler für die Messung (letztes Bild): Paarprüfungen, Berührungen, Teilschritte, Zeit der Stöße (ms).</summary>
-    public long Pruefungen { get; private set; }
-    public int Beruehrungen { get; private set; }
-    public int Teilschritte { get; private set; }
-    public double StoesseMs { get; private set; }
+    /// <summary>Protokoll je Bruch (Startoption <c>--schollenbruch</c>).</summary>
+    public Action<string>? BruchProtokoll { set => _sim.BruchProtokoll = value; }
+
+    /// <summary>Zeit für das Schreiben der Kopien im letzten Bild (ms).</summary>
+    public double ZeichnenMs { get; private set; }
 
     /// <param name="lauf">Die Mittellinie je Meter (Index = Stelle in m), mindestens zwei Punkte.</param>
     /// <param name="tempo">Strömung des Flusses (m/s); die Schollen treiben mit 0,9 davon.</param>
@@ -107,17 +93,19 @@ public sealed class Schollenfeld
     /// <param name="stufe">Grafikstufe: Niedrig nur große Schollen (einfacher Shader) und keine festen, Mittel ohne die kleinsten, Hoch/Ultra alle (mit Luftblasen).</param>
     /// <param name="hindernisse">Feste Hindernisse (Brückenpfeiler) in Laufachsen.</param>
     /// <param name="festFrei">Ob an einem Weltort mit Halbmesser eine feste Scholle liegen darf (Rinnen, Löcher, Kai); null = überall.</param>
-    public Schollenfeld(Laufpunkt[] lauf, float tempo, float randeis, int saat, Wasserstufe stufe, List<Hindernis> hindernisse, string name,
-        Func<Vector2, float, bool>? festFrei = null)
+    public Schollenfeld(Schollensimulation.Laufpunkt[] lauf, float tempo, float randeis, int saat, Wasserstufe stufe, List<Schollensimulation.Hindernis> hindernisse,
+        string name, Func<Vector2, float, bool>? festFrei = null)
     {
         _lauf = lauf;
+        Name = name;
         _laenge = lauf.Length - 1;
-        _tempo = Mathf.Max(tempo, 0.05f) * 0.9f;
         _randeis = randeis;
         _festeHindernisse = hindernisse;
-        _schollen = Verteilen(saat, stufe);
-        _platz = Math.Min(_schollen.Length, stufe >= Wasserstufe.Hoch ? 2400 : 1600);
-        _zufall = (uint)saat * 2654435761u + 1u;
+        var uhr = System.Diagnostics.Stopwatch.StartNew();
+        var kleinste = stufe switch { Wasserstufe.Niedrig => 0.75f, Wasserstufe.Mittel => 0.45f, _ => 0.25f };
+        _sim = new Schollensimulation(lauf, tempo, randeis, saat, kleinste, hindernisse, MessungAn);
+        var bauMs = uhr.Elapsed.TotalMilliseconds;
+        _platz = Math.Min(_sim.Plaetze, stufe >= Wasserstufe.Hoch ? 2400 : 1600);
 
         Stoff = new ShaderMaterial
         {
@@ -129,34 +117,9 @@ public sealed class Schollenfeld
         (_nah, _pufferNah) = Teil("Nah", ScheibenNetz(24, fein: true));
         (_fern, _pufferFern) = Teil("Fern", ScheibenNetz(10, fein: false));
         Knoten.Visible = false;
-
-        // Zustand und Gitter der Simulation (einmal angelegt, jedes Bild wiederverwendet)
-        var n = _schollen.Length;
-        (_s, _q, _vs, _vq, _gier, _om, _haft, _rStoss) = (new float[n], new float[n], new float[n], new float[n], new float[n], new float[n], new float[n], new float[n]);
-        _halbHier = new float[n];
-        _pfeilerSchritt = new int[n];
-        (_druck, _ueber) = (new float[n], new float[n]);
-        _kette = new bool[n];
-        _weg = new bool[n];
-        _naechster = new int[n];
-        foreach (var p in _lauf) _halbMax = Mathf.Max(_halbMax, p.Halb);
-        _zellenS = (int)MathF.Ceiling(_laenge / Zelle) + 1;
-        _zellenQ = (int)MathF.Ceiling(2f * _halbMax / Zelle) + 1;
-        _kopf = new int[_zellenS * _zellenQ];
-        for (var i = 0; i < n; i++)
-        {
-            var sch = _schollen[i];
-            _s[i] = sch.S0;
-            _q[i] = sch.Anteil * (Platz(sch.S0, 1f) - sch.Halbmesser);
-            _vs[i] = _tempo * Profil(_q[i], Punkt(sch.S0).Halb);
-            _gier[i] = sch.Gier;
-            _om[i] = sch.Dreh;
-            _halbHier[i] = Punkt(sch.S0).Halb;
-            _pfeilerSchritt[i] = -10;
-            _rStossMax = Mathf.Max(_rStossMax, sch.Halbmesser * StossAnteil);
-        }
-
         if (stufe > Wasserstufe.Niedrig) FesteBauen(saat, festFrei);
+        if (UmrissAn) UmrissAnlegen();
+        GD.Print($"[wasser] Schollen {name}: Simulation und Formen ({Schollensimulation.SaatZahl} Saaten) in {bauMs:0} ms, {_sim.Plaetze - _sim.Anzahl} Plätze Vorrat für Bruchstücke");
     }
 
     private (MultiMeshInstance3D, float[]) Teil(string name, ArrayMesh netz)
@@ -191,163 +154,15 @@ public sealed class Schollenfeld
         return (min, max);
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Verteilung
-    // ═════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Setzt die Schollen von groß nach klein an zufällige Stellen (Stelle, quer), ohne dass sie sich berühren; in den Feldern fast jede, auf den
-    /// freien Strecken nur wenige und keine großen. Quer gilt der Platz beim vollen Randeis (bei weniger Eis rücken sie im selben Verhältnis
-    /// auseinander). Das ist der Anfang; danach treiben sie frei (<see cref="Bild"/>).
-    /// </summary>
-    private Scholle[] Verteilen(int saat, Wasserstufe stufe)
-    {
-        var rnd = new Random(saat);
-        var liste = new List<Scholle>();
-        var raster = new Dictionary<(int, int), List<int>>();
-        const float rasterM = 4f;
-        var groessteHalb = 0f;
-        foreach (var p in _lauf) groessteHalb = Mathf.Max(groessteHalb, p.Halb);
-        var versuche = (int)(_laenge * groessteHalb * 2f * 0.4f);
-        var kleinste = stufe switch { Wasserstufe.Niedrig => 0.75f, Wasserstufe.Mittel => 0.45f, _ => 0.25f };
-        for (var k = 0; k < versuche; k++)
-        {
-            // von groß nach klein: viele kleine, wenige große (Halbmesser 0,25–3,25 m)
-            var halb = 0.25f + 3f * MathF.Pow(1f - (float)k / versuche, 2.4f);
-            if (halb < kleinste) break;
-            var s = (float)rnd.NextDouble() * _laenge;
-            var feld = Feld(s, saat);
-            var annahme = Mathf.Lerp(0.05f, 1f, feld) * (halb > 1.4f ? feld : 1f);
-            var wurf = (float)rnd.NextDouble();
-            var anteilWurf = (float)rnd.NextDouble() * 2f - 1f;
-            if (wurf > annahme) continue;
-            var platz = Platz(s, 1f);
-            if (platz < halb + 0.3f) continue;
-            var quer = anteilWurf * (platz - halb);
-            // keine Berührung mit den schon gesetzten (Lücke 0,25 m)
-            var (rs, rq) = ((int)MathF.Floor(s / rasterM), (int)MathF.Floor(quer / rasterM));
-            var frei = true;
-            for (var i = -2; i <= 2 && frei; i++)
-                for (var j = -2; j <= 2 && frei; j++)
-                    if (raster.TryGetValue((rs + i, rq + j), out var nachbarn))
-                        foreach (var n in nachbarn)
-                        {
-                            var o = liste[n];
-                            var oq = o.Anteil * (Platz(o.S0, 1f) - o.Halbmesser);
-                            var (ds, dq) = (o.S0 - s, oq - quer);
-                            if (ds * ds + dq * dq < (o.Halbmesser + halb + 0.25f) * (o.Halbmesser + halb + 0.25f)) { frei = false; break; }
-                        }
-            if (!frei) continue;
-            if (!raster.TryGetValue((rs, rq), out var zelle)) raster[(rs, rq)] = zelle = new List<int>();
-            zelle.Add(liste.Count);
-            liste.Add(new Scholle
-            {
-                S0 = s, Anteil = anteilWurf, Halbmesser = halb,
-                Dicke = Mathf.Clamp(0.08f + 0.05f * halb + 0.1f * (float)rnd.NextDouble(), 0.08f, 0.32f),
-                Gier = (float)rnd.NextDouble() * Mathf.Tau, Dreh = ((float)rnd.NextDouble() - 0.5f) * 0.06f / (0.5f + halb),
-                Schwelle = (float)rnd.NextDouble(), Saat = rnd.Next(0, 9973), Schnee = (float)rnd.NextDouble() * 0.35f,
-            });
-        }
-        return liste.ToArray();
-    }
-
-    /// <summary>Felder dichter Schollen entlang des Laufs (0 = fast frei, 1 = dicht), glattes Rauschen mit etwa 50 m Abstand.</summary>
-    private static float Feld(float s, int saat)
-    {
-        var x = s * 0.02f + saat % 1000 * 0.137f;
-        var n = Rauschen(x) * 0.65f + Rauschen(x * 2.3f + 5.1f) * 0.35f;
-        return Mathf.SmoothStep(0.3f, 0.68f, n);
-    }
-
-    private static float Rauschen(float x)
-    {
-        var i = MathF.Floor(x);
-        var f = x - i;
-        f = f * f * (3 - 2 * f);
-        return Mathf.Lerp(Hash((int)i), Hash((int)i + 1), f);
-    }
-
-    private static float Hash(int i)
-    {
-        var n = (uint)i * 1597334673u;
-        n = (n ^ (n >> 15)) * 2246822519u;
-        n ^= n >> 13;
-        return (n & 0xFFFFFF) / 16777216f;
-    }
-
-    /// <summary>Platz quer von der Mitte (m) an der Stelle beim Eis <paramref name="eis"/>: halbe Breite minus Randeis (mit Zugabe) und Abstand.</summary>
-    private float Platz(float s, float eis)
-    {
-        var p = Punkt(s);
-        return p.Halb - _randeis * eis * 1.5f - UferAbstand;
-    }
-
-    /// <summary>Strömungsprofil quer: in der Mitte etwas schneller als die mittlere Strömung, zum Ufer hin langsamer.</summary>
-    private static float Profil(float quer, float halb)
-    {
-        var a = quer / Mathf.Max(halb, 1f);
-        return 1.12f - 0.5f * a * a;
-    }
-
-    private Laufpunkt Punkt(float s)
-    {
-        var i = Math.Clamp((int)s, 0, _lauf.Length - 2);
-        var t = Mathf.Clamp(s - i, 0f, 1f);
-        var (a, b) = (_lauf[i], _lauf[i + 1]);
-        return new Laufpunkt(a.Ort.Lerp(b.Ort, t), Mathf.Lerp(a.Spiegel, b.Spiegel, t), Mathf.Lerp(a.Halb, b.Halb, t), a.Richtung.Lerp(b.Richtung, t).Normalized());
-    }
-
     /// <summary>
     /// Der nächste Punkt der Mittellinie zu einem Weltort: (quer, Stelle) in Laufachsen und der Abstand (für Hindernisse). <paramref name="tipp"/> ist
     /// der Index vom letzten Mal (−1: ganz suchen).
     /// </summary>
-    public (float Quer, float Stelle, float Abstand) InLaufachsen(Vector2 ort, ref int tipp)
-    {
-        var (von, bis) = tipp < 0 ? (0, _lauf.Length - 1) : (Math.Max(0, tipp - 40), Math.Min(_lauf.Length - 1, tipp + 40));
-        var beste = von;
-        var besteD = float.MaxValue;
-        for (var i = von; i <= bis; i++)
-        {
-            var d = _lauf[i].Ort.DistanceSquaredTo(ort);
-            if (d < besteD) (besteD, beste) = (d, i);
-        }
-        tipp = beste;
-        var p = _lauf[beste];
-        var quer = new Vector2(-p.Richtung.Y, p.Richtung.X);
-        var rel = ort - p.Ort;
-        return (rel.Dot(quer), beste + rel.Dot(p.Richtung), MathF.Sqrt(besteD));
-    }
+    public (float Quer, float Stelle, float Abstand) InLaufachsen(Vector2 ort, ref int tipp) => _sim.InLaufachsen(ort, ref tipp);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Feste Schollen im Randeis
     // ═════════════════════════════════════════════════════════════════════════
-
-    // Dasselbe Rauschen wie w_hash/w_rausch/w_fbm in wasser_wellen.gdshaderinc (Ganzzahl-Hash): Die Kante des Randeises im Shader und die Schwellen
-    // der festen Schollen folgen denselben Buchten und Zungen.
-    private static float WHash(float x, float y)
-    {
-        unchecked
-        {
-            var qx = (uint)(int)MathF.Floor(x) * 1597334673u;
-            var qy = (uint)(int)MathF.Floor(y) * 3812015801u;
-            var n = (qx ^ qy) * 1597334673u;
-            return (n >> 8) * (1f / 16777216f);
-        }
-    }
-
-    private static float WRausch(float x, float y)
-    {
-        var (ix, iy) = (MathF.Floor(x), MathF.Floor(y));
-        var (fx, fy) = (x - ix, y - iy);
-        fx = fx * fx * (3 - 2 * fx);
-        fy = fy * fy * (3 - 2 * fy);
-        var a = Mathf.Lerp(WHash(ix, iy), WHash(ix + 1, iy), fx);
-        var b = Mathf.Lerp(WHash(ix, iy + 1), WHash(ix + 1, iy + 1), fx);
-        return Mathf.Lerp(a, b, fy);
-    }
-
-    private static float WFbm(float x, float y) =>
-        WRausch(x, y) * 0.55f + WRausch(x * 2.13f + 7.1f, y * 2.13f + 7.1f) * 0.3f + WRausch(x * 4.7f + 3.3f, y * 4.7f + 3.3f) * 0.15f;
 
     /// <summary>
     /// Legt die festen Schollen im Randeis beider Ufer: zufällig im Band vom Ufer bis zur weitesten Eiskante, ohne sich zu durchdringen (kleine
@@ -372,14 +187,14 @@ public sealed class Schollenfeld
             var s = 3f + (float)rnd.NextDouble() * (_laenge - 6f);
             var seite = rnd.NextDouble() < 0.5 ? -1f : 1f;
             var d = 0.3f + (float)rnd.NextDouble() * band; // Abstand der Mitte vom Ufer
-            var p = Punkt(s);
+            var p = _sim.Punkt(s);
             if (d > p.Halb * 0.45f) continue; // schmaler Fluss: nicht über die Mitte hinaus
             var q = seite * (p.Halb - d);
             var querW = new Vector2(-p.Richtung.Y, p.Richtung.X);
             var ort = p.Ort + querW * q;
             // Schwelle: die Kante des Shaders bei Eis e liegt bei e · Reichweite + Buchten · Anlauf(e); die Scholle erscheint, wenn sie 35 % ihres
             // Halbmessers vor der Mitte steht
-            var bucht = (WFbm(ort.X * 0.045f + 17f, ort.Y * 0.045f + 17f) - 0.5f) * 2f * unruhe;
+            var bucht = (Schollensimulation.WFbm(ort.X * 0.045f + 17f, ort.Y * 0.045f + 17f) - 0.5f) * 2f * unruhe;
             var noetig = d - 0.35f * r;
             float Kante(float e) => e * _randeis + bucht * Mathf.SmoothStep(0f, 0.3f, e);
             if (Kante(1f) < noetig) continue;
@@ -434,7 +249,7 @@ public sealed class Schollenfeld
             for (var n = 0; n < teil.Count; n++)
             {
                 var (s, q, r, schwelle) = liste[teil[n]];
-                var p = Punkt(s);
+                var p = _sim.Punkt(s);
                 var querW = new Vector2(-p.Richtung.Y, p.Richtung.X);
                 var ort2 = p.Ort + querW * q;
                 var gier = (float)rnd.NextDouble() * Mathf.Tau;
@@ -443,10 +258,10 @@ public sealed class Schollenfeld
                 puffer[o + 0] = cos * r; puffer[o + 1] = 0; puffer[o + 2] = sin * r; puffer[o + 3] = ort2.X;
                 puffer[o + 4] = 0; puffer[o + 5] = r; puffer[o + 6] = 0; puffer[o + 7] = p.Spiegel;
                 puffer[o + 8] = -sin * r; puffer[o + 9] = 0; puffer[o + 10] = cos * r; puffer[o + 11] = ort2.Y;
-                // COLOR: Form, Dicke (am Ufer dicker), Schnee (mehr: altes Eis), Schwelle; CUSTOM wie bei den treibenden (nicht gebraucht)
+                // COLOR: Form, Dicke (am Ufer dicker), Schnee (mehr: altes Eis), Schwelle; CUSTOM wie bei den treibenden (ganze Scholle, kein Ausschnitt)
                 puffer[o + 12] = rnd.Next(0, 9973); puffer[o + 13] = 0.14f + 0.14f * (float)rnd.NextDouble();
                 puffer[o + 14] = 0.25f + 0.45f * (float)rnd.NextDouble(); puffer[o + 15] = schwelle;
-                puffer[o + 16] = q; puffer[o + 17] = s; puffer[o + 18] = p.Richtung.X; puffer[o + 19] = p.Richtung.Y;
+                puffer[o + 16] = q; puffer[o + 17] = s; puffer[o + 18] = MathF.Atan2(p.Richtung.Y, p.Richtung.X); puffer[o + 19] = 0;
             }
             var (min, max) = Rahmen((int)(k * FestStueck) - 2, (int)((k + 1) * FestStueck) + 2, 1.2f);
             foreach (var (netz, nah) in new[] { (fein, true), (grob, false) })
@@ -469,354 +284,203 @@ public sealed class Schollenfeld
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Jedes Bild: treiben, stoßen, zeichnen
+    //  Jedes Bild: Simulation, dann zeichnen
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Schiebt die Schollen weiter (Simulation in Teilschritten zu höchstens 1/30 s) und schreibt die sichtbaren in die beiden Netze.
-    /// <paramref name="eis"/> ist der Eisfortschritt der Art (0–1): Dichte, Breite des Randeises und die festen Schollen; <paramref name="schollenAn"/>
-    /// 0 = keine treibenden Schollen (dann kostet es nichts). <paramref name="beweglich"/>: Hindernisse, die sich bewegen (Prahm, Kähne), in Laufachsen.
-    /// <paramref name="tauen"/>: Eisgang am Winterende (<see cref="Wasserarten.Tauwetter"/>): Das Randeis bricht auf (die festen Schollen vergehen
-    /// nach und nach, im Shader), es treiben erst mehr Schollen (von drei Vierteln auf alle), dann schmelzen sie (kleiner, weniger); bei 1 ist nichts mehr da.
+    /// Schiebt die Schollen weiter (<see cref="Schollensimulation.Bild"/>, Stoßfenster am Blickpunkt der Kamera auf dem Wasser) und schreibt die
+    /// sichtbaren in die beiden Netze. <paramref name="eis"/> ist der Eisfortschritt der Art (0–1): Dichte, Breite des Randeises und die festen
+    /// Schollen; <paramref name="schollenAn"/> 0 = keine treibenden Schollen (dann kostet es nichts). <paramref name="beweglich"/>: Hindernisse, die
+    /// sich bewegen (Prahm, Kähne), in Laufachsen mit ihrem Tempo. <paramref name="tauen"/>: Eisgang am Winterende (<see cref="Wasserarten.Tauwetter"/>):
+    /// Das Randeis bricht auf, es treiben erst mehr Schollen, dann schmelzen sie (kleiner, dünner, grau), bei 1 ist nichts mehr da.
     /// </summary>
-    public void Bild(double delta, Camera3D? kamera, float eis, float schollenAn, List<Hindernis> beweglich, float tauen = 0f)
+    public void Bild(double delta, Camera3D? kamera, float eis, float schollenAn, List<Schollensimulation.Hindernis> beweglich, float tauen = 0f)
     {
-        _zeit += delta;
+        if (Messung is null)
+        {
+            BildRechnen(delta, kamera, eis, schollenAn, beweglich, tauen);
+            return;
+        }
+        var bytes = GC.GetAllocatedBytesForCurrentThread();
+        var lief = BildRechnen(delta, kamera, eis, schollenAn, beweglich, tauen);
+        bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+        if (!lief) return;
+        _sim.KreiseFuerMessung();
+        Messung.Bild(delta, _sim.SBlick, _sim.Kontakte, _sim.SimulationMs, bytes, _sim.Obergrenze);
+    }
+
+    private bool BildRechnen(double delta, Camera3D? kamera, float eis, float schollenAn, List<Schollensimulation.Hindernis> beweglich, float tauen)
+    {
         if (MathF.Abs(eis - _eisFestZuletzt) > 0.0005f)
         {
             _eisFestZuletzt = eis;
-            Stoff.SetShaderParameter("eis_fest", eis);
+            Stoff.SetShaderParameter(ParamEisFest, eis);
         }
         if (MathF.Abs(tauen - _tauenZuletzt) > 0.0005f)
         {
             _tauenZuletzt = tauen;
-            Stoff.SetShaderParameter("eis_tauen", tauen);
+            Stoff.SetShaderParameter(ParamEisTauen, tauen);
         }
         var dichte = schollenAn * Mathf.SmoothStep(0.15f, 0.85f, eis) * Mathf.Lerp(0.75f, 1f, Mathf.SmoothStep(0f, 0.3f, tauen))
                      * (1f - Mathf.SmoothStep(0.65f, 1f, tauen));
-        var schmelzen = 1f - 0.35f * Mathf.SmoothStep(0.5f, 1f, tauen);
         var festeSichtbar = Feste > 0 && eis > 0.001f && tauen < 0.999f;
-        if ((dichte <= 0.001f && !festeSichtbar) || kamera is null || !GodotObject.IsInstanceValid(kamera))
+        // Ohne Dichte treiben die letzten Schollen weiter, bis sie vergangen sind (sonst verschwänden sie bei hohem Spieltempo auf einen Schlag);
+        // erst dann ist das Feld leer und die Simulation beginnt für den nächsten Winter von vorn
+        var leer = dichte <= 0.001f && _sim.Aktiv == 0;
+        if (leer && !_zurueckgesetzt)
+        {
+            _sim.Zuruecksetzen();
+            _zurueckgesetzt = true;
+        }
+        if (!leer) _zurueckgesetzt = false;
+        if ((leer && !festeSichtbar) || kamera is null || !GodotObject.IsInstanceValid(kamera))
         {
             if (Knoten.Visible) Knoten.Visible = false;
-            return;
+            return false;
         }
         if (!Knoten.Visible) Knoten.Visible = true;
-        if (dichte <= 0.001f)
+        if (leer)
         {
             Schreiben(_nah, _pufferNah, 0);
             Schreiben(_fern, _pufferFern, 0);
             Gezeichnet = 0;
-            return;
+            return false;
         }
 
-        var start = System.Diagnostics.Stopwatch.GetTimestamp();
-        var schritte = Math.Clamp((int)MathF.Ceiling((float)delta * 30f), 1, 2);
-        var dt = Mathf.Min((float)delta, 0.1f) / schritte;
-        (Pruefungen, Beruehrungen, Teilschritte, StoesseMs) = (0, 0, schritte, 0);
-        var augeXz = new Vector2(kamera.GlobalPosition.X, kamera.GlobalPosition.Z);
-        var sKamera = InLaufachsen(augeXz, ref _kameraTipp).Stelle;
+        // Das Stoßfenster folgt dem Blickpunkt auf dem Wasser (aus Spielhöhe liegt der sichtbare Fluss oft 50–150 m vor der Kamera), höchstens
+        // 150 m entfernt (flacher Blick: der Punkt 150 m voraus); dazu ein kleineres Fenster um die Kamera für das Wasser direkt unter ihr
+        var lage = kamera.GetCameraTransform();
+        var auge = lage.Origin;
+        var sKamera = _sim.InLaufachsen(new Vector2(auge.X, auge.Z), ref _kameraTipp).Stelle;
+        var sBlick = sKamera;
+        var vorn = -lage.Basis.Z;
+        var spiegel = _sim.Punkt(sKamera).Spiegel;
+        var t = vorn.Y < -0.05f ? MathF.Min((spiegel - auge.Y) / vorn.Y, BlickWeit) : BlickWeit;
+        if (t > 0f)
+        {
+            var treffer = auge + vorn * t;
+            sBlick = _sim.InLaufachsen(new Vector2(treffer.X, treffer.Z), ref _blickTipp).Stelle;
+        }
         // Das Randeis bricht im Eisgang weg: Die Schollen bekommen nach und nach die ganze Breite
         var eisRand = eis * (1f - Mathf.SmoothStep(0.15f, 0.85f, tauen));
-        for (var k = 0; k < schritte; k++) Schritt(dt, dichte, eisRand, beweglich, sKamera);
-        SimulationMs = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        _sim.Bild(delta, Mathf.Clamp(sKamera, 0f, _laenge), Mathf.Clamp(sBlick, 0f, _laenge), dichte, eisRand, tauen, beweglich);
 
-        var ebenen = kamera.GetFrustum();
+        var start = System.Diagnostics.Stopwatch.GetTimestamp();
+        // Sichtkegel ohne Speicheranforderung (GetFrustum legt jedes Bild ein neues Feld an): Ebenen der Projektion, in die Welt gedreht
         Span<Plane> plan = stackalloc Plane[6];
-        var zahlEbenen = Math.Min(ebenen.Count, 6);
-        for (var i = 0; i < zahlEbenen; i++) plan[i] = ebenen[i];
-        var auge = kamera.GlobalPosition;
+        var zahlEbenen = Sichtkegel(kamera, plan);
         var (nahZahl, fernZahl) = (0, 0);
-
-        for (var i = 0; i < _schollen.Length; i++)
+        var sim = _sim;
+        // Stück des Laufs im Sichtkegel (alle 4 m geprüft, mit der halben Breite und Rand): Schollen außerhalb fallen mit einem Vergleich weg
+        var (sVon, sBis) = (float.MaxValue, float.MinValue);
+        for (var sk = 0f; sk <= _laenge; sk += 4f)
         {
-            ref var sch = ref _schollen[i];
-            if (sch.Schwelle >= dichte) continue;
-            var s = _s[i];
-            var wachsen = Mathf.SmoothStep(sch.Schwelle, sch.Schwelle + 0.08f, dichte);
-            var ende = Mathf.SmoothStep(0f, 14f, s) * Mathf.SmoothStep(_laenge, _laenge - 14f, s);
-            var r = sch.Halbmesser * wachsen * ende * schmelzen;
-            if (r < 0.06f) continue;
-            var p = Punkt(s);
+            var pk = sim.Punkt(sk);
+            var mk = new Vector3(pk.Ort.X, pk.Spiegel, pk.Ort.Y);
+            var weit = pk.Halb + 8f;
+            var innen = true;
+            for (var e = 0; e < zahlEbenen && innen; e++) innen = plan[e].DistanceTo(mk) <= weit;
+            if (innen) (sVon, sBis) = (MathF.Min(sVon, sk - 6f), MathF.Max(sBis, sk + 6f));
+        }
+        for (var i = 0; i < sim.Plaetze; i++)
+        {
+            if (sim.Zustand[i] == Schollenmessung.Aus) continue;
+            var zs = sim.ZS[i];
+            if (zs < sVon || zs > sBis) continue;
+            var r = sim.ZR[i];
+            var senk = sim.ZSenk[i];
+            if (r < 0.06f || senk > 5f) continue;
+            // grobe Lage (Schwerpunkt) für die Sichtprüfung
+            var p = sim.Punkt(zs);
             var querW = new Vector2(-p.Richtung.Y, p.Richtung.X);
-            var ort2 = p.Ort + querW * _q[i];
-            var ort = new Vector3(ort2.X, p.Spiegel, ort2.Y);
-
-            // im Bild? (Kugel um die Scholle gegen den Sichtkegel)
+            var mitte2 = p.Ort + querW * sim.ZQ[i];
+            var mitte = new Vector3(mitte2.X, p.Spiegel, mitte2.Y);
             var drin = true;
             for (var e = 0; e < zahlEbenen; e++)
-                if (plan[e].DistanceTo(ort) > r + 0.5f) { drin = false; break; }
+                if (plan[e].DistanceTo(mitte) > r * 1.3f + 0.5f) { drin = false; break; }
             if (!drin) continue;
-            var weite = auge.DistanceTo(ort);
+            var weite = auge.DistanceTo(mitte);
             // sehr kleine Schollen nur nah, kleine nur mittelweit (sie wären weniger als ein paar Bildpunkte)
-            if ((weite > 140f && sch.Halbmesser < 0.55f) || (weite > 300f && sch.Halbmesser < 1.2f)) continue;
+            var r0 = sim.Ausgangshalbmesser(i);
+            if ((weite > 140f && r0 < 0.55f) || (weite > 300f && r0 < 1.2f)) continue;
             var nah = weite < NahBis;
             if (nah ? nahZahl >= _platz : fernZahl >= _platz) continue;
             var puffer = nah ? _pufferNah : _pufferFern;
             var o = (nah ? nahZahl++ : fernZahl++) * 20;
 
-            var (sin, cos) = MathF.SinCos(_gier[i]);
-            // Lage: Drehung um die Hochachse, gleichmäßig auf den Halbmesser skaliert (Zeilen der Basis, dann der Ort)
-            puffer[o + 0] = cos * r; puffer[o + 1] = 0; puffer[o + 2] = sin * r; puffer[o + 3] = ort.X;
-            puffer[o + 4] = 0; puffer[o + 5] = r; puffer[o + 6] = 0; puffer[o + 7] = ort.Y;
-            puffer[o + 8] = -sin * r; puffer[o + 9] = 0; puffer[o + 10] = cos * r; puffer[o + 11] = ort.Z;
-            // COLOR: Form, Dicke, Schnee, 0 = treibt; CUSTOM: Laufachsen und Fließrichtung für die Wellen
-            puffer[o + 12] = sch.Saat; puffer[o + 13] = sch.Dicke * Mathf.Lerp(0.6f, 1f, wachsen); puffer[o + 14] = sch.Schnee; puffer[o + 15] = 0;
-            puffer[o + 16] = _q[i]; puffer[o + 17] = s; puffer[o + 18] = p.Richtung.X; puffer[o + 19] = p.Richtung.Y;
+            // Ursprung des Netzes (neben dem Schwerpunkt, höchstens gut einen Halbmesser entfernt: Richtung und Spiegel vom Schwerpunkt) und
+            // Gier: Winkel in Laufachsen → Welt (g = −Winkel − ψ)
+            var (os, oq) = sim.Ursprung(i);
+            var po = p;
+            var querO = querW;
+            var ort2 = p.Ort + p.Richtung * (os - zs) + querO * oq;
+            var psi = MathF.Atan2(po.Richtung.Y, po.Richtung.X);
+            var saat = sim.Saat(i);
+            // kleiner fester Höhenversatz je Saat: übereinander geschobene Schollen flimmern nicht (Tiefenkampf)
+            var hub = Schollensimulation.WHash(saat, 13f) * 0.008f;
+            var (sin, cos) = MathF.SinCos(-sim.ZW[i] - psi);
+            var kipp = sim.ZKipp[i];
+            if (kipp == 0f)
+            {
+                // Lage: Drehung um die Hochachse, gleichmäßig auf den Halbmesser skaliert (Zeilen der Basis, dann der Ort)
+                puffer[o + 0] = cos * r; puffer[o + 1] = 0; puffer[o + 2] = sin * r;
+                puffer[o + 4] = 0; puffer[o + 5] = r; puffer[o + 6] = 0;
+                puffer[o + 8] = -sin * r; puffer[o + 9] = 0; puffer[o + 10] = cos * r;
+            }
+            else
+            {
+                // Tauchen (um die Querachse, Vorderkante stromab nach unten) oder aufgeschoben (Kante zur unteren Scholle hin angehoben): gekippt
+                // um die waagrechte Achse quer zur Richtung des Kippens, Basis = Kippen · Gier · r
+                var (kws, kwc) = MathF.SinCos(sim.ZKippW[i]);
+                var (ax, az) = (querO.X * kwc - po.Richtung.X * kws, querO.Y * kwc - po.Richtung.Y * kws);
+                var (ks, kc) = MathF.SinCos(kipp);
+                var k1 = 1f - kc;
+                // Rodrigues mit Achse (ax, 0, az): Zeilen der Kippmatrix
+                var (a00, a01, a02) = (1f - k1 * az * az, -ks * az, k1 * ax * az);
+                var (a10, a11, a12) = (ks * az, 1f - k1 * (ax * ax + az * az), -ks * ax);
+                var (a20, a21, a22) = (k1 * ax * az, ks * ax, 1f - k1 * ax * ax);
+                // Gier: Zeilen (cos, 0, sin), (0, 1, 0), (−sin, 0, cos)
+                puffer[o + 0] = (a00 * cos - a02 * sin) * r; puffer[o + 1] = a01 * r; puffer[o + 2] = (a00 * sin + a02 * cos) * r;
+                puffer[o + 4] = (a10 * cos - a12 * sin) * r; puffer[o + 5] = a11 * r; puffer[o + 6] = (a10 * sin + a12 * cos) * r;
+                puffer[o + 8] = (a20 * cos - a22 * sin) * r; puffer[o + 9] = a21 * r; puffer[o + 10] = (a20 * sin + a22 * cos) * r;
+            }
+            puffer[o + 3] = ort2.X; puffer[o + 7] = po.Spiegel + hub - senk; puffer[o + 11] = ort2.Y;
+            // COLOR: Form, Dicke, Ende des Ausschnitts (0 = ganz), −Schmelzgrad (treibend); CUSTOM: Laufachsen des Schwerpunkts, Winkel der
+            // Fließrichtung, Anfang des Ausschnitts
+            var sekA = sim.SektorA(i);
+            puffer[o + 12] = saat; puffer[o + 13] = sim.ZDicke[i]; puffer[o + 14] = sekA < 0 ? 0f : sim.SektorB(i) + SektorVersatz; puffer[o + 15] = -sim.ZM[i];
+            puffer[o + 16] = sim.ZQ[i]; puffer[o + 17] = sim.ZS[i]; puffer[o + 18] = psi; puffer[o + 19] = sekA < 0 ? 0f : sekA + SektorVersatz;
         }
         Schreiben(_nah, _pufferNah, nahZahl);
         Schreiben(_fern, _pufferFern, fernZahl);
         Gezeichnet = nahZahl + fernZahl;
-    }
-
-    /// <summary>
-    /// Ein Schritt der Simulation (Laufachsen: s längs, stromab positiv; q quer):
-    /// 1. Gitter der aktiven Schollen füllen; 2. Strömung zieht (Zeitkonstante je nach Größe), am Pfeiler hängende bremsen; 3. Stöße untereinander
-    /// (Lage auseinanderschieben nach Masse, Tempo unelastisch ausgleichen, Reibung dreht); 4. Hindernisse (Pfeiler als Kapsel, Prahm und Kähne):
-    /// herausschieben, abprallen, entlanggleiten, beim ersten Stoß von vorn an einen Pfeiler einige Sekunden hängen bleiben; 5. bewegen, am Ufer bzw.
-    /// Randeis abprallen, am Ende des Laufs wieder oben einsetzen.
-    /// </summary>
-    private void Schritt(float dt, float dichte, float eis, List<Hindernis> beweglich, float sKamera)
-    {
-        var n = _schollen.Length;
-        var randeis = _randeis * eis * 1.5f + UferAbstand;
-        var halbeLaenge = _laenge / 2f;
-        _schritt++;
-        Array.Fill(_kopf, -1);
-        var aktiv = 0;
-        for (var i = 0; i < n; i++)
-        {
-            ref readonly var sch = ref _schollen[i];
-            if (sch.Schwelle >= dichte) { _rStoss[i] = 0; continue; }
-            _rStoss[i] = sch.Halbmesser * StossAnteil * Mathf.SmoothStep(sch.Schwelle, sch.Schwelle + 0.08f, dichte);
-            aktiv++;
-            // Weit weg von der Kamera: nur treiben (gleich schnell wie zuletzt), keine Stöße
-            var abK = MathF.Abs(_s[i] - sKamera);
-            _weg[i] = MathF.Min(abK, _laenge - abK) > StossFenster;
-            if (_weg[i])
-            {
-                _s[i] += _vs[i] * dt;
-                if (_s[i] >= _laenge) _s[i] -= _laenge;
-                else if (_s[i] < 0) _s[i] += _laenge;
-                _gier[i] += _om[i] * dt;
-                continue;
-            }
-            var zelle = Zellindex(_s[i], _q[i]);
-            _naechster[i] = _kopf[zelle];
-            _kopf[zelle] = i;
-        }
-        Aktiv = aktiv;
-
-        // 2. Strömung
-        var t = (float)_zeit;
-        for (var i = 0; i < n; i++)
-        {
-            if (_rStoss[i] <= 0 || _weg[i]) continue;
-            ref readonly var sch = ref _schollen[i];
-            var zielS = _tempo * Profil(_q[i], _halbHier[i]);
-            // leichtes Pendeln quer (Wirbel), je Scholle anders
-            var zielQ = 0.06f * (Rauschen(t * 0.05f + sch.Saat * 0.37f) - 0.5f) * 2f;
-            var tau = 1.2f + 0.7f * sch.Halbmesser;
-            if (_ueber[i] > 0) _ueber[i] -= dt;
-            if (_haft[i] > 0)
-            {
-                _haft[i] -= dt;
-                zielS = 0;
-                tau = 0.4f;
-            }
-            var k = Mathf.Min(dt / tau, 1f);
-            _vs[i] += (zielS - _vs[i]) * k;
-            _vq[i] += (zielQ - _vq[i]) * k;
-            _om[i] += (sch.Dreh - _om[i]) * Mathf.Min(dt / 5f, 1f);
-        }
-
-        // 3. Stöße untereinander
-        var stossStart = System.Diagnostics.Stopwatch.GetTimestamp();
-        long pruef = 0;
-        var beruehrt0 = 0;
-        for (var i = 0; i < n; i++)
-        {
-            var ri = _rStoss[i];
-            if (ri <= 0 || _weg[i] || _ueber[i] > 0) continue;
-            var reichweite = ri + _rStossMax;
-            var (s0, s1) = ((int)((_s[i] - reichweite) / Zelle), (int)((_s[i] + reichweite) / Zelle));
-            var (q0, q1) = ((int)((_q[i] + _halbMax - reichweite) / Zelle), (int)((_q[i] + _halbMax + reichweite) / Zelle));
-            s0 = Math.Max(s0, 0); s1 = Math.Min(s1, _zellenS - 1);
-            q0 = Math.Max(q0, 0); q1 = Math.Min(q1, _zellenQ - 1);
-            for (var cs = s0; cs <= s1; cs++)
-                for (var cq = q0; cq <= q1; cq++)
-                    for (var j = _kopf[cs * _zellenQ + cq]; j >= 0; j = _naechster[j])
-                    {
-                        if (j <= i || _ueber[j] > 0) continue;
-                        pruef++;
-                        var dS = _s[j] - _s[i];
-                        if (MathF.Abs(dS) > halbeLaenge) continue;
-                        var dQ = _q[j] - _q[i];
-                        var rj = _rStoss[j];
-                        var min = ri + rj;
-                        var d2 = dS * dS + dQ * dQ;
-                        if (d2 >= min * min || d2 < 1e-8f) continue;
-                        var d = MathF.Sqrt(d2);
-                        beruehrt0++;
-                        var (nS, nQ) = (dS / d, dQ / d);
-                        var tief = min - d;
-                        var (mi, mj) = (ri * ri, rj * rj);
-                        var summe = mi + mj;
-                        // Lage: 80 % der Überlappung, die leichtere weicht mehr
-                        var korr = tief * 0.8f;
-                        _s[i] -= nS * korr * mj / summe; _q[i] -= nQ * korr * mj / summe;
-                        _s[j] += nS * korr * mi / summe; _q[j] += nQ * korr * mi / summe;
-                        // Tempo: unelastischer Stoß (Eis federt kaum), Reibung längs der Berührung dreht beide
-                        var rel = (_vs[j] - _vs[i]) * nS + (_vq[j] - _vq[i]) * nQ;
-                        if (rel < 0)
-                        {
-                            var stoss = -1.15f * rel / (1f / mi + 1f / mj);
-                            _vs[i] -= stoss / mi * nS; _vq[i] -= stoss / mi * nQ;
-                            _vs[j] += stoss / mj * nS; _vq[j] += stoss / mj * nQ;
-                        }
-                        var tang = (_vs[j] - _vs[i]) * -nQ + (_vq[j] - _vq[i]) * nS;
-                        _om[i] += tang * 0.25f / Mathf.Max(ri, 0.2f) * dt * 4f;
-                        _om[j] += tang * 0.25f / Mathf.Max(rj, 0.2f) * dt * 4f;
-                        // Wer an einer hängenden auffährt, bremst mit (Stau)
-                        // (nur eine Reihe: wer selbst nur auffuhr, gibt das nicht weiter – sonst stand das ganze Feld dahinter)
-                        if (_haft[i] > 0 && !_kette[i] && dS < 0 && _haft[j] <= 0) (_haft[j], _kette[j]) = (Mathf.Min(_haft[i], 1f), true);
-                        if (_haft[j] > 0 && !_kette[j] && dS > 0 && _haft[i] <= 0) (_haft[i], _kette[i]) = (Mathf.Min(_haft[j], 1f), true);
-                    }
-        }
-
-        Pruefungen += pruef;
-        Beruehrungen += beruehrt0;
-        StoesseMs += System.Diagnostics.Stopwatch.GetElapsedTime(stossStart).TotalMilliseconds;
-
-        // 4. Hindernisse: nur die Schollen in den Zellen um jedes Hindernis
-        foreach (var h in _festeHindernisse) HindernisPruefen(h, pfeiler: true, halbeLaenge, dt);
-        foreach (var h in beweglich) HindernisPruefen(h, pfeiler: false, halbeLaenge, dt);
-
-        // 5. Bewegen, Ufer, Ende
-        for (var i = 0; i < n; i++)
-        {
-            var ri = _rStoss[i];
-            if (ri <= 0 || _weg[i]) continue;
-            _s[i] += _vs[i] * dt;
-            _q[i] += _vq[i] * dt;
-            _gier[i] += _om[i] * dt;
-            if (_s[i] >= _laenge) _s[i] -= _laenge;
-            else if (_s[i] < 0) _s[i] += _laenge;
-            _halbHier[i] = HalbAn(_s[i]);
-            var platz = _halbHier[i] - randeis - ri * 0.7f;
-            if (platz < 0) platz = 0;
-            if (MathF.Abs(_q[i]) > platz)
-            {
-                var seite = MathF.Sign(_q[i]);
-                _q[i] = seite * platz;
-                if (_vq[i] * seite > 0) _vq[i] *= -0.3f; // an der Eiskante abprallen
-                _vs[i] *= 0.98f;
-            }
-        }
-    }
-
-    /// <summary>Halbe Breite an der Stelle (nur sie, ohne Ort und Richtung: billiger als <see cref="Punkt"/>).</summary>
-    private float HalbAn(float s)
-    {
-        var i = Math.Clamp((int)s, 0, _lauf.Length - 2);
-        var t = Mathf.Clamp(s - i, 0f, 1f);
-        return _lauf[i].Halb + (_lauf[i + 1].Halb - _lauf[i].Halb) * t;
-    }
-
-    /// <summary>Die Schollen in den Zellen um ein Hindernis (über das Gitter, auch über das Ende des Laufs hinweg) gegen das Hindernis prüfen.</summary>
-    private void HindernisPruefen(Hindernis h, bool pfeiler, float halbeLaenge, float dt)
-    {
-        var rS = h.HalbLaengs + _rStossMax + 1f;
-        var rQ = h.HalbQuer + _rStossMax + 1f;
-        var q0 = Math.Max((int)((h.Quer - rQ + _halbMax) / Zelle), 0);
-        var q1 = Math.Min((int)((h.Quer + rQ + _halbMax) / Zelle), _zellenQ - 1);
-        var s0 = (int)MathF.Floor((h.Stelle - rS) / Zelle);
-        var s1 = (int)MathF.Floor((h.Stelle + rS) / Zelle);
-        for (var cs = s0; cs <= s1; cs++)
-        {
-            var c = ((cs % _zellenS) + _zellenS) % _zellenS;
-            for (var cq = q0; cq <= q1; cq++)
-                for (var j = _kopf[c * _zellenQ + cq]; j >= 0; j = _naechster[j])
-                    Abprallen(j, _rStoss[j], h, pfeiler, halbeLaenge, dt);
-        }
-    }
-
-    private int Zellindex(float s, float q)
-    {
-        var cs = Math.Clamp((int)(s / Zelle), 0, _zellenS - 1);
-        var cq = Math.Clamp((int)((q + _halbMax) / Zelle), 0, _zellenQ - 1);
-        return cs * _zellenQ + cq;
-    }
-
-    /// <summary>
-    /// Stoß einer Scholle (Kreis, Stoßhalbmesser <paramref name="ri"/>) gegen ein Hindernis als Kapsel entlang seiner längeren Seite: herausschieben,
-    /// das Tempo in die Wand hinein umkehren (wenig federnd), längs der Wand etwas bremsen und drehen. Ein Pfeiler, den sie von vorn (stromauf) trifft,
-    /// hält sie beim ersten Stoß 1–6 s fest; danach schiebt die Strömung sie seitlich am Pfeilerkopf vorbei. Liefert, ob sie das Hindernis berührt.
-    /// </summary>
-    private bool Abprallen(int i, float ri, Hindernis h, bool pfeiler, float halbeLaenge, float dt)
-    {
-        var dS = _s[i] - h.Stelle;
-        if (dS > halbeLaenge) dS -= _laenge;
-        else if (dS < -halbeLaenge) dS += _laenge;
-        var dQ = _q[i] - h.Quer;
-        if (MathF.Abs(dS) > h.HalbLaengs + ri + 1f || MathF.Abs(dQ) > h.HalbQuer + ri + 1f) return false;
-        // Kapsel: Strecke entlang der längeren Seite, Halbmesser = kürzere halbe Seite
-        float rh, cS = 0, cQ = 0;
-        if (h.HalbLaengs >= h.HalbQuer)
-        {
-            rh = h.HalbQuer;
-            cS = Mathf.Clamp(dS, -(h.HalbLaengs - rh), h.HalbLaengs - rh);
-        }
-        else
-        {
-            rh = h.HalbLaengs;
-            cQ = Mathf.Clamp(dQ, -(h.HalbQuer - rh), h.HalbQuer - rh);
-        }
-        var (aS, aQ) = (dS - cS, dQ - cQ);
-        var d = MathF.Sqrt(aS * aS + aQ * aQ);
-        var tief = ri + rh - d;
-        if (tief <= 0) return false;
-        float nS, nQ;
-        if (d > 1e-4f) (nS, nQ) = (aS / d, aQ / d);
-        else (nS, nQ) = (-1f, 0f);
-        _s[i] += nS * tief;
-        _q[i] += nQ * tief;
-        var vn = _vs[i] * nS + _vq[i] * nQ;
-        if (vn < 0)
-        {
-            // in die Wand hinein: umkehren, kaum federnd; längs der Wand nur leichte Reibung (sonst klebte sie am Pfeiler)
-            var vt = _vs[i] * -nQ + _vq[i] * nS;
-            vt *= 1f - Mathf.Min(0.8f * dt, 0.5f);
-            vn *= -0.15f;
-            _vs[i] = vn * nS - vt * nQ;
-            _vq[i] = vn * nQ + vt * nS;
-            _om[i] += vt * 0.9f / Mathf.Max(ri, 0.2f) * dt; // Reibung an der Wand dreht
-            // Von vorn gegen den Pfeiler: kurz hängen bleiben (Stau), dann gleitet sie seitlich vorbei
-            if (pfeiler && _pfeilerSchritt[i] < _schritt - 1 && nS < -0.55f && _haft[i] <= 0)
-            {
-                _zufall = _zufall * 1664525u + 1013904223u;
-                _haft[i] = 1f + 3f * ((_zufall >> 8) * (1f / 16777216f));
-                _kette[i] = false;
-                // zur Seite, auf der sie schon etwas liegt, einen kleinen Schub für das spätere Vorbeigleiten
-                _vq[i] += (MathF.Abs(dQ) > 0.05f ? MathF.Sign(dQ) : ((_zufall & 1) == 0 ? 1f : -1f)) * 0.12f;
-            }
-        }
-        if (pfeiler)
-        {
-            if (_pfeilerSchritt[i] < _schritt - 1) _druck[i] = 0; // neu am Pfeiler
-            _pfeilerSchritt[i] = _schritt;
-            // Drückt sie lange vorn gegen den Pfeiler (eingekeilt zwischen Nachbarn), schiebt sie sich 2,5 s über bzw. unter sie und gleitet seitlich weg
-            if (nS < -0.3f && _haft[i] <= 0 && (_druck[i] += dt) > 4f)
-            {
-                _druck[i] = 0;
-                _ueber[i] = 2.5f;
-                _vq[i] += (MathF.Abs(dQ) > 0.02f ? MathF.Sign(dQ) : 1f) * 0.6f;
-            }
-        }
-        // Vorn am Pfeilerkopf, nicht (mehr) festgehalten: zur Seite abgleiten, auf der sie liegt (sonst balancierte sie auf der Spitze)
-        if (pfeiler && nS < -0.3f && _haft[i] <= 0)
-            _vq[i] += (MathF.Abs(dQ) > 0.02f ? MathF.Sign(dQ) : (_schollen[i].Saat % 2 < 1 ? 1f : -1f)) * 0.9f * dt;
+        ZeichnenMs = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+        if (_umriss is not null) UmrissZeichnen(auge);
         return true;
+    }
+
+    private static bool _kegelGeprueft;
+
+    /// <summary>
+    /// Die sechs Ebenen des Sichtkegels in der Welt (Normalen nach außen, wie <see cref="Camera3D.GetFrustum"/>), ohne Speicheranforderung. Beim
+    /// ersten Aufruf einmal gegen GetFrustum geprüft (Protokoll).
+    /// </summary>
+    public static int Sichtkegel(Camera3D kamera, Span<Plane> plan)
+    {
+        var proj = kamera.GetCameraProjection();
+        var lage = kamera.GetCameraTransform();
+        for (var i = 0; i < 6; i++) plan[i] = lage * proj.GetProjectionPlane((Projection.Planes)i);
+        if (!_kegelGeprueft)
+        {
+            _kegelGeprueft = true;
+            var echt = kamera.GetFrustum();
+            var abweichung = 0f;
+            for (var i = 0; i < Math.Min(echt.Count, 6); i++)
+                abweichung = Mathf.Max(abweichung, (echt[i].Normal - plan[i].Normal).Length() + Mathf.Abs(echt[i].D - plan[i].D) / Mathf.Max(1f, Mathf.Abs(echt[i].D)));
+            if (abweichung > 1e-3f) GD.PushWarning($"[wasser] Sichtkegel der Schollen weicht von GetFrustum ab ({abweichung:0.0000})");
+            else GD.Print($"[wasser] Sichtkegel der Schollen gleich GetFrustum (Abweichung {abweichung:0.000000})");
+        }
+        return 6;
     }
 
     private static void Schreiben(MultiMeshInstance3D knoten, float[] puffer, int zahl)
@@ -827,13 +491,83 @@ public sealed class Schollenfeld
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Prüfhilfe: Umrisse und Stoßkreise (--schollenumriss=1)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private ImmediateMesh? _umriss;
+
+    private void UmrissAnlegen()
+    {
+        _umriss = new ImmediateMesh();
+        var stoff = new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, VertexColorUseAsAlbedo = true, NoDepthTest = true,
+        };
+        Knoten.AddChild(new MeshInstance3D { Name = "Umrisse", Mesh = _umriss, MaterialOverride = stoff, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+    }
+
+    /// <summary>Gelb der Umriss aus C# (wie gezeichnet), rot die Stoßkreise – für Schollen bis 60 m von der Kamera (nur zur Prüfung, legt Speicher an).</summary>
+    private void UmrissZeichnen(Vector3 auge)
+    {
+        var m = _umriss!;
+        m.ClearSurfaces();
+        Span<float> ps = stackalloc float[32], pq = stackalloc float[32];
+        var begonnen = false;
+        var gelb = new Color(1f, 0.9f, 0.1f);
+        var rot = new Color(1f, 0.2f, 0.1f);
+        for (var i = 0; i < _sim.Plaetze; i++)
+        {
+            if (_sim.Zustand[i] != Schollenmessung.ImFenster || _sim.ZR[i] < 0.06f || _sim.ZSenk[i] > 0.01f) continue;
+            var p = _sim.Punkt(_sim.ZS[i]);
+            var w2 = p.Ort + new Vector2(-p.Richtung.Y, p.Richtung.X) * _sim.ZQ[i];
+            if (auge.DistanceTo(new Vector3(w2.X, p.Spiegel, w2.Y)) > 60f) continue;
+            if (!begonnen)
+            {
+                m.SurfaceBegin(Mesh.PrimitiveType.Lines);
+                begonnen = true;
+            }
+            var n = _sim.UmrissInLauf(i, ps, pq);
+            var hoehe = p.Spiegel + 0.08f;
+            for (var k = 0; k < n; k++)
+            {
+                var k2 = (k + 1) % n;
+                m.SurfaceSetColor(gelb);
+                m.SurfaceAddVertex(Welt(ps[k], pq[k], hoehe));
+                m.SurfaceSetColor(gelb);
+                m.SurfaceAddVertex(Welt(ps[k2], pq[k2], hoehe));
+            }
+            for (var k = 0; k < 2; k++)
+            {
+                var (ks, kq, kr) = _sim.Kreis(i, k);
+                if (kr <= 0) continue;
+                for (var a = 0; a < 16; a++)
+                {
+                    var (w0, w1) = (a * Mathf.Tau / 16, (a + 1) * Mathf.Tau / 16);
+                    m.SurfaceSetColor(rot);
+                    m.SurfaceAddVertex(Welt(ks + kr * MathF.Cos(w0), kq + kr * MathF.Sin(w0), hoehe));
+                    m.SurfaceSetColor(rot);
+                    m.SurfaceAddVertex(Welt(ks + kr * MathF.Cos(w1), kq + kr * MathF.Sin(w1), hoehe));
+                }
+            }
+        }
+        if (begonnen) m.SurfaceEnd();
+    }
+
+    private Vector3 Welt(float s, float q, float hoehe)
+    {
+        var p = _sim.Punkt(s);
+        var w = p.Ort + new Vector2(-p.Richtung.Y, p.Richtung.X) * q;
+        return new Vector3(w.X, hoehe, w.Y);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Netz der Scheibe
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
     /// Die runde Scheibe, aus der der Shader jede Scholle formt: Ringe um die Mitte mit UV.x = Halbmesser (0–1), UV.y = Höhe in Dicken (0 oben,
-    /// −1 unten), UV2.x = Rolle (0 Oberseite, dazwischen die gerundete Kante, 1 Seite). <paramref name="teile"/> Ecken je Ring; grob: weniger Ringe.
-    /// Ohne Boden (er liegt unter Wasser und zeigt nach unten).
+    /// −1 unten), UV2.x = Rolle (0 Oberseite, dazwischen die gerundete Kante, 1 Seite, 2 Boden), UV2.y = Zahl der Ecken je Ring (für den Schnitt
+    /// eines Bruchstücks im Shader). <paramref name="teile"/> Ecken je Ring; grob: weniger Ringe. Mit Boden (beim Tauchen und Kippen sieht man ihn).
     /// </summary>
     public static ArrayMesh ScheibenNetz(int teile, bool fein)
     {
@@ -843,18 +577,23 @@ public sealed class Schollenfeld
             : new[] { (0.85f, 0f, 0f), (1f, -0.15f, 0.7f), (0.96f, -1f, 1f) };
         var ecken = new List<Vector3> { Vector3.Zero };
         var uv = new List<Vector2> { Vector2.Zero };
-        var uv2 = new List<Vector2> { Vector2.Zero };
+        var uv2 = new List<Vector2> { new(0f, teile) };
         foreach (var (halb, hoehe, rolle) in ringe)
             for (var k = 0; k < teile; k++)
             {
                 var w = Mathf.Tau * k / teile;
                 ecken.Add(new Vector3(MathF.Cos(w), 0, MathF.Sin(w)));
                 uv.Add(new Vector2(halb, hoehe));
-                uv2.Add(new Vector2(rolle, 0));
+                uv2.Add(new Vector2(rolle, teile));
             }
+        // Mitte des Bodens
+        var boden = ecken.Count;
+        ecken.Add(Vector3.Zero);
+        uv.Add(new Vector2(0f, -1f));
+        uv2.Add(new Vector2(2f, teile));
         var idx = new List<int>();
         // Fächer um die Mitte, dann Bänder zwischen den Ringen; von oben bzw. außen gesehen im Uhrzeigersinn (Godots Vorderseite, wie
-        // DreieckNachOben in Stadtansicht.Wasser.cs)
+        // DreieckNachOben in Stadtansicht.Wasser.cs); der Boden von unten gesehen
         for (var k = 0; k < teile; k++)
             idx.AddRange(new[] { 0, 1 + k, 1 + (k + 1) % teile });
         for (var r = 0; r + 1 < ringe.Length; r++)
@@ -863,6 +602,9 @@ public sealed class Schollenfeld
                 int a = 1 + r * teile + k, b = 1 + r * teile + (k + 1) % teile, c = a + teile, d = b + teile;
                 idx.AddRange(new[] { a, c, b, b, c, d });
             }
+        var letzter = 1 + (ringe.Length - 1) * teile;
+        for (var k = 0; k < teile; k++)
+            idx.AddRange(new[] { boden, letzter + (k + 1) % teile, letzter + k });
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
