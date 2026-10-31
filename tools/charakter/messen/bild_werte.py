@@ -13,9 +13,10 @@ vorlagen_merkpunkte.json). pl = Pupille links im Bild (rechte Gesichtshälfte de
 Werte je Zone: CIELAB (D65) aus dem Mittel der sRGB-Werte, Chroma, ITA = atan2(L* − 50, b*), Leuchtdichte Y (linear),
 R/G und G/B (sRGB, 8 bit). Feinstruktur: Bild auf IPD 89 Bildpunkte skaliert, Hochpass L* − Gauß(L*, 1,5) – Streuung
 im Feld; Fleckenband: Gauß(L*, 1) − Gauß(L*, 6). Augen: Iris = Ring 0,03–0,08·IPD um die Pupille (Mittel der Leuchtdichte Y);
-Lederhaut = Felder 0,12–0,21·IPD seitlich der Pupille (Höhe ±0,03·IPD), 80. Perzentil von Y (Prüferbefund Etappe A:
-das alte Feld ±0,02·IPD mit dem Mittel traf zur Hälfte Wimpern, Lidrand und das Punktraster der Schatten, Stand 5
-und 6 waren damit nicht zu unterscheiden); dazu der Anteil fast schwarzer Punkte (Y < 0,02) im Feld.
+Lederhaut = Felder 0,085–0,15·IPD seitlich der Pupille (zwischen Irisrand und Lidwinkel, Höhe ±0,025·IPD),
+80. Perzentil von Y (Prüferbefund Etappe A: das alte Feld 0,13–0,20·IPD mit dem Mittel lag zum großen Teil auf
+Lidwinkel, Wimpern und dem Punktraster der Schatten, Stand 5 und 6 waren damit nicht zu unterscheiden); dazu der
+Anteil fast schwarzer Punkte (Y < 0,02) im Feld.
 """
 import math
 
@@ -80,7 +81,7 @@ def augen(img, pl, pr):
         r = np.hypot(xx + 0.5 - p[0], yy + 0.5 - p[1])
         iris = (r >= 0.03 * ipd) & (r <= 0.08 * ipd)
         dx = (xx + 0.5 - p[0]) * seite
-        leder = (np.abs(yy + 0.5 - p[1]) <= 0.03 * ipd) & (np.abs(xx + 0.5 - p[0]) >= 0.12 * ipd) & (np.abs(xx + 0.5 - p[0]) <= 0.21 * ipd)
+        leder = (np.abs(yy + 0.5 - p[1]) <= 0.025 * ipd) & (np.abs(xx + 0.5 - p[0]) >= 0.085 * ipd) & (np.abs(xx + 0.5 - p[0]) <= 0.15 * ipd)
         aus[name] = {"iris_Y": float(Y[iris].mean()) if iris.any() else None,
                      "lederhaut_Y": float(np.percentile(Y[leder], 80)) if leder.any() else None,
                      "lederhaut_dunkel": float((Y[leder] < 0.02).mean()) if leder.any() else None}

@@ -389,13 +389,17 @@ def stand6_bild(mappe, nm, a0):
                   "≤ ⅓", "OK" if iris / i5 <= 1 / 3 else "ABWEICHUNG")
         dl = _lstern(leder) - z["L"]
         dunkel = np.mean([x["augen"][s].get("lederhaut_dunkel", 0) for s in ("links", "rechts")])
-        vorher = ""
+        vorher, dl5 = "", None
         if ("A0", "lv") in w:
             x5 = w[("A0", "lv")]
             l5 = np.mean([x5["augen"][s]["lederhaut_Y"] for s in ("links", "rechts")])
-            vorher = f"; Stand 5: {f(_lstern(l5), 1)} − {f(x5['zonen']['wange_licht']['L'], 1)} = {f(_lstern(l5) - x5['zonen']['wange_licht']['L'], 1)}"
+            dl5 = _lstern(l5) - x5["zonen"]["wange_licht"]["L"]
+            vorher = f"; Stand 5: {f(_lstern(l5), 1)} − {f(x5['zonen']['wange_licht']['L'], 1)} = {f(dl5, 1)}"
+        st = "OK" if dl <= 5 else "ABWEICHUNG"
+        if st == "OK" and dl5 is not None and dl5 <= 5:
+            st = "OK (Stand 5 erfüllt es auch – das Kriterium trennt unter L-V nicht)"
         zeile("S2 Augen", "Lederhaut (80. Perzentil) gegen beleuchtete Wange (L*), L-V",
-              f"{f(_lstern(leder), 1)} − {f(z['L'], 1)} = {f(dl, 1)}{vorher}", "≤ +5 L*", "OK" if dl <= 5 else "ABWEICHUNG",
+              f"{f(_lstern(leder), 1)} − {f(z['L'], 1)} = {f(dl, 1)}{vorher}", "≤ +5 L*", st,
               f"Anteil fast schwarzer Punkte im Feld {f(dunkel * 100, 0)} %")
         zeile("S3 Licht", "L-V: Licht : Schatten der Wangen (linear) · R/G licht · R/G Schatten",
               f"{f(x['licht_schatten'])} · {f(z['RG'])} · {f(zs['RG'])}", "2,0–4,0 · ≥ 1,25 · ≥ 1,30",
