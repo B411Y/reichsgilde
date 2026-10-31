@@ -29,6 +29,7 @@ Plan (Schritte in dieser Reihenfolge):
 - (Umgebung) Donner: Der Tiefpass sitzt am Bus (ein Wert für alle gleichzeitig klingenden Schläge, der zuletzt gesetzte gilt); mit dichten Blitzen über der Stadt klingt der ferne Donner dann kurz heller.
 
 - **Blitzeinschlag → Gebäudebrand** (Spielmechanik, nicht Ton): `Stadtansicht.BlitzEinschlag(Vector3 ort)` ist die Andockstelle (hellster Blitz aus der Richtung des Orts, brachiale Einschlag-Aufnahme ohne Verzögerung, Abstand aus dem Ort); die Mechanik „Einschlag setzt ein Haus in Brand“ kommt später (Kern, siehe `docs/bereiche/kern.md`).
+- (Gespräche) Gesprächsrunden von Passanten im Stil von Gothic 1 (kurz, derb, direkt), lageabhängig: Stil- und Bauleitfaden steht in `docs/ton/gespraeche-stil.md` (Stilregeln, Aufbau, Bedingungen mit Fundstellen im Kern, Wiederholungsregeln, Datenformat als Block `runden` in `game/daten/gespraeche.json`, Stimm-KI-Hinweise, 30 eigene Beispielzeilen). Offen: Nutzerurteil zu den Fragen im Abschnitt 10 des Leitfadens (Verständlichkeit, Umfang, Derbheit), dann Umsetzung in Schritten: Lagebild und Auswahl (Test), Stimmen-Vorlagen, 40 Runden erzeugen, Untertitel. Vom Teamleiter zu beauftragen: Rollen je Gruppe aus der Stadtansicht (darstellung), Schalter und Untertitel (oberflaeche).
 
 ## Entscheidungen
 
