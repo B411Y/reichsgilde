@@ -1,10 +1,10 @@
 {
   "bericht": "Balancing-Messung 6",
   "datum": "2026-10-31",
-  "mainCommit": "c393d5a0",
-  "commit": "4a8883ed",
+  "mainCommit": "2c5275c8",
+  "commit": "c10fc194",
   "datenversion": 65,
-  "aufruf": "messen bericht 20 20 --teile=3 --fairness=greybox --rotationen=1",
+  "aufruf": "messen bericht 20 20 --teile=3 --fairness=greybox --rotationen=1 --datei=docs/messungen/balancing-2026-10-31-strecke-greybox.json",
   "parameter": {
     "jahre": 20,
     "startwerte": 20,
@@ -133,7 +133,7 @@
               "gaunerei": 30,
               "investitionen": -729,
               "standesgebuehren": -175,
-              "zinsen": 0,
+              "zinsen": -0,
               "davonSteuer": -277,
               "davonSpitzel": -91,
               "schiffeAmEnde": 0.6
@@ -200,7 +200,7 @@
               "gaunerei": 9,
               "investitionen": -2461,
               "standesgebuehren": -535,
-              "zinsen": 0,
+              "zinsen": -0,
               "davonSteuer": -602,
               "davonSpitzel": -62,
               "schiffeAmEnde": 0.75
@@ -267,7 +267,7 @@
               "gaunerei": 34,
               "investitionen": -2053,
               "standesgebuehren": -370,
-              "zinsen": 0,
+              "zinsen": -0,
               "davonSteuer": -503,
               "davonSpitzel": -87,
               "schiffeAmEnde": 0.75
@@ -335,7 +335,7 @@
               "gaunerei": 9,
               "investitionen": -2410,
               "standesgebuehren": -520,
-              "zinsen": 0,
+              "zinsen": -0,
               "davonSteuer": -538,
               "davonSpitzel": -76,
               "schiffeAmEnde": 0.6
@@ -522,7 +522,7 @@
                 },
                 "gegenHausmittelProzent": {
                   "n": 20,
-                  "mittel": 0,
+                  "mittel": -0,
                   "streuung": 42.7,
                   "fehlerMittel": 9.5,
                   "min": -68.3,
@@ -550,7 +550,7 @@
                 },
                 "gegenHausmittelProzent": {
                   "n": 20,
-                  "mittel": 0,
+                  "mittel": -0,
                   "streuung": 18.7,
                   "fehlerMittel": 4.2,
                   "min": -38.7,
@@ -595,7 +595,7 @@
                 },
                 "gegenHausmittelProzent": {
                   "n": 20,
-                  "mittel": 0,
+                  "mittel": -0,
                   "streuung": 13.6,
                   "fehlerMittel": 3,
                   "min": -30.2,
@@ -623,7 +623,7 @@
                 },
                 "gegenHausmittelProzent": {
                   "n": 20,
-                  "mittel": 0,
+                  "mittel": -0,
                   "streuung": 41.5,
                   "fehlerMittel": 9.3,
                   "min": -71,
@@ -752,7 +752,7 @@
                 },
                 "gegenHausmittelProzent": {
                   "n": 20,
-                  "mittel": 0,
+                  "mittel": -0,
                   "streuung": 32.7,
                   "fehlerMittel": 7.3,
                   "min": -38.9,
@@ -799,5 +799,5 @@
   "befunde": [
     "Startfairness greybox: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … 0 % (gegen das Mittel desselben Hauses, 1 Rotationen × 20 Startwerte); der Spieler mit einem Betrieb hat 35.151 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 72.543 (−52 %). Bürger (Reinvermögen 10.000): Ø Jahr 9,5, im Ziel 8–12 Jahre 20/20."
   ],
-  "laufzeitSekunden": 30
+  "laufzeitSekunden": 29
 }
