@@ -17,9 +17,10 @@ namespace Reichsgilde.Core.Bauen;
 //      darunter): Jeder Punkt geht auf die nächste Stufe; die „Böschung“ (0 … 1) ist der Anteil jeder Stufe, über den es weich hinaufgeht
 //      (0 = senkrechte Kante, 1 = sanfte Wellen). „Stärke“ (0 … 1) wie beim Ebnen.
 //    Ebnen, Rauschen und Terrassen wirken in einem Strich nur einmal je Punkt (mit dem stärksten Tupfer, der ihn traf), vom Stand vor dem Strich.
-//    • „Nur Mulden“ beim Heben: hebt nur, was tiefer liegt als die Mitte des Tupfers (höchstens bis dorthin plus den Hub) – füllt Hangfuß und
-//      Senken, ohne Kuppen zu heben. „Nur Spitzen“ beim Senken: kappt nur, was höher liegt (Grat für einen Bauplatz). Nach Terrain3D (MIT),
-//      src/terrain_3d_editor.cpp:244-262 („Lift troughs“, „Flatten peaks“), Commit cdcd382c.
+//    • „Nur Mulden“ beim Heben: hebt jeden Punkt um den Hub, aber höchstens bis zur Höhe der Tupfermitte plus Hub – was darüber liegt (Kuppen),
+//      bleibt; Hangfuß und Senken füllen sich. Ist alles eben, hebt er wie gewohnt. „Nur Spitzen“ beim Senken umgekehrt: höchstens bis Mitte
+//      minus Hub, was darunter liegt (Mulden), bleibt – ein Grat wird zum Bauplatz. Nach Terrain3D (MIT), src/terrain_3d_editor.cpp:244-262
+//      („Lift troughs“, „Flatten peaks“), Commit cdcd382c.
 //    • Filter (Pinselfilter): nur bei einer Steigung oder auf einer Bodentextur – gemessen am Stand vor dem Strich.
 //  Die Rampe legt zwischen zwei Punkten ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt, mit weichen
 //  Seiten. Alles bleibt in −20 … +60 m und in der Karte (Spielfeld und Rand); Höhen werden auf ganze Zentimeter gerundet.

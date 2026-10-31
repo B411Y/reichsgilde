@@ -278,7 +278,7 @@ Eine Kachel packt so: (1) jeden Punkt aus seinen Nachbarn vorhersagen (links + o
 
 | Pinsel | Stärke | Wirkung |
 |---|---|---|
-| Heben, Senken | Meter je Tupfer (Vorgabe 0,25) | höher bzw. tiefer; mehrmals drüberstreichen wirkt weiter. **Nur Mulden** (Heben) bzw. **nur Spitzen** (Senken, `NurAusgleich`): hebt nur, was tiefer liegt als die Mitte des Tupfers, höchstens bis Mitte + Hub (bzw. kappt nur, was höher liegt, höchstens bis Mitte − Hub) – nach Terrain3D „Lift troughs / Flatten peaks“ |
+| Heben, Senken | Meter je Tupfer (Vorgabe 0,25) | höher bzw. tiefer; mehrmals drüberstreichen wirkt weiter. **Nur Mulden** (Heben) bzw. **nur Spitzen** (Senken, `NurAusgleich`): hebt jeden Punkt um den Hub, aber höchstens bis zur Höhe der Tupfermitte + Hub – was darüber liegt, bleibt (bzw. senkt höchstens bis Mitte − Hub, was darunter liegt, bleibt); ist alles eben, wirkt er wie Heben bzw. Senken – nach Terrain3D „Lift troughs / Flatten peaks“ |
 | Glätten | Anteil 0–1 | zieht jeden Punkt zum Mittel seiner 5 × 5 Nachbarn (8 × 8 m) |
 | Ebnen | Anteil 0–1 (1 = ganz eben) | auf die Höhe unter dem ersten Punkt des Strichs – oder auf eine eingegebene **Zielhöhe** (`Zielhoehe`, auf cm, −20 … +60 m; die **Pipette** nimmt die Höhe des Rasters an einem Ort auf: `Gelaendepinsel.Pipette`) |
 | Rauschen | Meter (Höhe der Buckel) | natürliche Unebenheit aus `Startwert`, Buckel von etwa `Massstab` Metern (drei Lagen Wertrauschen); wirkt wie Ebnen nur einmal je Punkt und Strich |
