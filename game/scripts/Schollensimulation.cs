@@ -106,6 +106,9 @@ public sealed class Schollensimulation
     /// </summary>
     public static float FeldLuecke = 0.2f;
 
+    /// <summary>Aufschieben zeichnen und kleine Schollen unterdrücken (für den Nachbau abschaltbar).</summary>
+    public static bool AufschiebenAn = true;
+
     private const float StossFenster = 160f, KameraFenster = 60f, Zelle = 3f, UferAbstand = 0.8f, Rand = 0.12f;
 
     /// <summary>
@@ -248,7 +251,11 @@ public sealed class Schollensimulation
     private readonly int[] _inListe; // Nummer der Suche, in der die Scholle zuletzt einen Kontakt bekam
     private readonly float[] _pendeln;
     // Aufschieben (gezeichnet): Kippen als Vektor in Laufachsen und Anheben, geglättet und Ziel; Zeit, die eine kleine Scholle in eine große gedrückt wird
-    private readonly float[] _aufS, _aufQ, _aufH, _zielS, _zielQ, _zielH, _gedrueckt;
+    private readonly float[] _aufS, _aufQ, _aufH, _zielS, _zielQ, _zielH, _gedrueckt, _auSin, _auCos, _auOs, _auOq;
+    private readonly int[] _aufBild, _aufListe; // Bild, in dem die Scholle zuletzt einen nahen Kontakt hatte; Liste der berührten oder gekippten
+    private readonly bool[] _inAuf;
+    private int _aufZahl;
+    private float _aufDt;
     // reihum nachführen (vier Gruppen nach Platz & 3): Zeit seit dem letzten Mal und die Ziele von damals
     private readonly float[] _rundeDt = new float[4], _rundeDichte = new float[4], _rundeFTau = new float[4], _rundeMZiel = new float[4];
     private readonly float _drehSperreK = MathF.Exp(-H / DrehSperreTau);
@@ -266,6 +273,7 @@ public sealed class Schollensimulation
     public double SimulationMs { get; private set; }
     public double SucheMs { get; private set; }
     public double LoesenMs { get; private set; }
+    public double AufschiebenMs { get; private set; }
 
     /// <summary>Protokoll je Bruch (nur mit <c>--schollenbruch</c>): Zeit, Ort und Stücke.</summary>
     public Action<string>? BruchProtokoll;
@@ -307,6 +315,8 @@ public sealed class Schollensimulation
         (ZS, ZQ, ZW, ZR, ZDicke, ZM, ZKipp, ZKippW, ZSenk) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0],
             new float[p0], new float[p0], new float[p0]);
         (_aufS, _aufQ, _aufH, _zielS, _zielQ, _zielH, _gedrueckt) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
+        (_auSin, _auCos, _auOs, _auOq) = (new float[p0], new float[p0], new float[p0], new float[p0]);
+        (_aufBild, _aufListe, _inAuf) = (new int[p0], new int[p0], new bool[p0]);
         _frei = new int[p0];
         (_neu, _huelle, _taucher, _pendeln, _inListe) = (new bool[p0], new float[p0], new int[p0], new float[p0], new int[p0]);
         (_sortiert, _zelleVon, _pI) = (new int[p0], new int[p0], new int[p0]);
@@ -769,7 +779,12 @@ public sealed class Schollensimulation
             Einsetzen(i, i, sch.S0, sch.Anteil * (Platz(sch.S0, 1f) - sch.Halbmesser), sch.Winkel, frisch: true);
         }
         Array.Clear(_pfLast);
-        (_kZahl, _fensterZahl, _taucherZahl, _sammler, _suchen, _erstesBild) = (0, 0, 0, 0f, true, true);
+        Array.Clear(_inAuf);
+        Array.Clear(_aufS);
+        Array.Clear(_aufQ);
+        Array.Clear(_aufH);
+        Array.Clear(_gedrueckt);
+        (_kZahl, _fensterZahl, _taucherZahl, _aufZahl, _sammler, _suchen, _erstesBild) = (0, 0, 0, 0, 0f, true, true);
         Aktiv = 0;
     }
 
@@ -814,7 +829,7 @@ public sealed class Schollensimulation
         var dt = schritte * H;
         SBlick = sBlick;
         PlaetzeNachfuehren(dt, sKamera, sBlick);
-        SucheMs = LoesenMs = 0;
+        SucheMs = LoesenMs = AufschiebenMs = 0;
         if (schritte > 0)
         {
             for (var x = 0; x < _fensterZahl; x++)
@@ -839,7 +854,9 @@ public sealed class Schollensimulation
                 LoesenMs += System.Diagnostics.Stopwatch.GetElapsedTime(t1).TotalMilliseconds;
             }
             NachDenSchritten(dt);
-            Aufschieben(dt);
+            var tA = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (AufschiebenAn) Aufschieben(dt);
+            AufschiebenMs = System.Diagnostics.Stopwatch.GetElapsedTime(tA).TotalMilliseconds;
         }
         Abschluss(schritte > 0);
         _erstesBild = false;
@@ -2105,22 +2122,24 @@ public sealed class Schollensimulation
     /// Nach den Schritten, über die Paare der Kontaktliste: Wo sich die Umrisse zweier Schollen überdecken (die Stoßkreise decken den zackigen Umriss
     /// nicht ganz), liegt die dünnere sichtbar auf der anderen – ihre Kante dort angehoben um die Dicke der unteren, schräg (höchstens 7°), wie
     /// aufgeschobene Platten (<c>docs/wasser/phase3.md</c>). Gemessen wird die Überdeckung auf der Linie zwischen den Ursprüngen der Netze (Umriss
-    /// je Richtung aus der Tabelle), bei Bruchstücken über die Stoßkreise. Gezeichnet geglättet (0,25 s). Eine kleine Scholle (unter 0,6 m und
+    /// je Richtung aus der Tabelle), bei Bruchstücken über die Stoßkreise; die Paare in jedem zweiten Bild, gezeichnet geglättet (0,25 s). Eine kleine Scholle (unter 0,6 m und
     /// unter 0,4 der anderen), die länger als eine halbe Sekunde tief in einer großen steckt, wird unter sie gedrückt (taucht ab).
     /// </summary>
     private void Aufschieben(float dt)
     {
-        for (var x = 0; x < _fensterZahl; x++)
-        {
-            var i = _fenster[x];
-            (_zielS[i], _zielQ[i], _zielH[i]) = (0f, 0f, 0f);
-        }
+        // die Paare nur in jedem zweiten Bild (mit der Zeit beider), geglättet wird jedes Bild
+        _aufDt += dt;
+        var rechnen = (_bildNr & 1) == 0;
+        var dtP = _aufDt;
+        if (rechnen) _aufDt = 0f;
         var k = _kNeu;
-        for (var c = 0; c < _kZahl; c++)
+        for (var c = 0; c < (rechnen ? _kZahl : 0); c++)
         {
-            if (k.Art[c] != ArtPaar || _cS0[c] > 0.15f) continue;
+            if (k.Art[c] != ArtPaar || _cS0[c] > 0.08f) continue;
             var (a, b) = (k.A[c], k.B[c]);
             if (!Stoesst(a) || !Stoesst(b)) continue;
+            AufMerken(a);
+            AufMerken(b);
             var (ra, rb) = (_r[a], _r[b]);
             // kleine in große gedrückt (Stoßkreise tief ineinander)
             var tief = -_cS0[c];
@@ -2128,7 +2147,7 @@ public sealed class Schollensimulation
             {
                 var (klein, gross) = ra < rb ? (a, b) : (b, a);
                 var kreis = MathF.Min(_wr[2 * a + k.KA[c]], _wr[2 * b + k.KB[c]]);
-                if (_r[klein] < 0.6f && _r[klein] < 0.4f * _r[gross] && tief > 0.6f * kreis) _gedrueckt[klein] += 2f * dt;
+                if (_r[klein] < 0.6f && _r[klein] < 0.4f * _r[gross] && tief > 0.6f * kreis) _gedrueckt[klein] += 2f * dtP;
             }
             // Überdeckung der Umrisse
             float ov, ns, nq;
@@ -2138,19 +2157,18 @@ public sealed class Schollensimulation
             }
             else
             {
-                var (oas, oaq) = UrsprungJetzt(a);
-                var (obs, obq) = UrsprungJetzt(b);
-                var (ds, dq) = (obs - oas, obq - oaq);
+                var (ds, dq) = (_auOs[b] - _auOs[a], _auOq[b] - _auOq[a]);
                 var d = MathF.Sqrt(ds * ds + dq * dq);
                 if (d < 1e-3f) continue;
                 (ns, nq) = (ds / d, dq / d);
-                var th = MathF.Atan2(dq, ds);
-                ov = RandRadius(a, th - _w[a]) * ra + RandRadius(b, th + MathF.PI - _w[b]) * rb - d;
+                // Richtung zur anderen im Netz jeder Scholle (zurückgedreht um ihren Winkel)
+                var ra0 = RandRadius(a, ns * _auCos[a] + nq * _auSin[a], -ns * _auSin[a] + nq * _auCos[a]);
+                var rb0 = RandRadius(b, -ns * _auCos[b] - nq * _auSin[b], ns * _auSin[b] - nq * _auCos[b]);
+                ov = ra0 * ra + rb0 * rb - d;
             }
             if (ov <= 0.02f) continue;
-            // oben liegt die dünnere (bei gleicher Dicke fest nach der Saat), ihre Kante zur unteren hin hebt sich
-            var obenA = MathF.Abs(_dk[a] - _dk[b]) > 0.05f * MathF.Max(_dk[a], _dk[b]) ? _dk[a] < _dk[b]
-                : WHash(_schollen[_stamm[a]].Saat, 29f) < WHash(_schollen[_stamm[b]].Saat, 29f);
+            // oben liegt die dünnere (bei gleicher Dicke fest nach dem Stamm), ihre Kante zur unteren hin hebt sich
+            var obenA = MathF.Abs(_dk[a] - _dk[b]) > 0.05f * MathF.Max(_dk[a], _dk[b]) ? _dk[a] < _dk[b] : _stamm[a] < _stamm[b];
             var (o, u) = obenA ? (a, b) : (b, a);
             if (!obenA) (ns, nq) = (-ns, -nq);
             var kante = Mathf.Clamp(ov / 0.25f, 0f, 1f) * (_dk[u] + 0.02f);
@@ -2159,47 +2177,77 @@ public sealed class Schollensimulation
             _zielQ[o] += kipp * nq;
             _zielH[o] = MathF.Max(_zielH[o], 0.5f * kante);
         }
+        // geglättet nachführen, nur Schollen der Liste (dieses Bild berührt oder noch gekippt); wer wieder flach liegt, fällt heraus
         var g = 1f - MathF.Exp(-dt / 0.25f);
-        for (var x = 0; x < _fensterZahl; x++)
+        for (var x = 0; x < _aufZahl; x++)
         {
-            var i = _fenster[x];
-            var (zs, zq) = (_zielS[i], _zielQ[i]);
+            var i = _aufListe[x];
+            var dieses = _aufBild[i] >= _bildNr - 1 && Zustand[i] == Schollenmessung.ImFenster && _tauchen[i] == 0;
+            var (zs, zq, zh) = dieses ? (_zielS[i], _zielQ[i], _zielH[i]) : (0f, 0f, 0f);
             var l = MathF.Sqrt(zs * zs + zq * zq);
             if (l > 0.12f) (zs, zq) = (zs * 0.12f / l, zq * 0.12f / l);
             _aufS[i] += (zs - _aufS[i]) * g;
             _aufQ[i] += (zq - _aufQ[i]) * g;
-            _aufH[i] += (_zielH[i] - _aufH[i]) * g;
-            if (_gedrueckt[i] <= 0f) continue;
-            _gedrueckt[i] = MathF.Max(0f, _gedrueckt[i] - dt);
-            if (_gedrueckt[i] > 0.5f && _tauchen[i] == 0)
+            _aufH[i] += (zh - _aufH[i]) * g;
+            if (_gedrueckt[i] > 0f)
             {
-                (_tauchen[i], _tauchZeit[i], _gedrueckt[i]) = (1, 0f, 0f);
-                Ereignis[i] |= Schollenmessung.EreignisTauchen;
-                _suchen = true;
-                if (Messung is not null) Messung.Taucher++;
+                _gedrueckt[i] = MathF.Max(0f, _gedrueckt[i] - dt);
+                if (_gedrueckt[i] > 0.5f && _tauchen[i] == 0 && dieses)
+                {
+                    (_tauchen[i], _tauchZeit[i], _gedrueckt[i]) = (1, 0f, 0f);
+                    Ereignis[i] |= Schollenmessung.EreignisTauchen;
+                    _suchen = true;
+                    if (Messung is not null) Messung.Taucher++;
+                }
+            }
+            if (!dieses && _gedrueckt[i] <= 0f && MathF.Abs(_aufS[i]) + MathF.Abs(_aufQ[i]) < 0.002f && _aufH[i] < 0.002f)
+            {
+                // flach: aus der Liste (Platz mit dem letzten tauschen)
+                (_aufS[i], _aufQ[i], _aufH[i], _inAuf[i]) = (0f, 0f, 0f, false);
+                _aufListe[x--] = _aufListe[--_aufZahl];
             }
         }
     }
 
-    /// <summary>Ursprung des Netzes in Laufachsen in der jetzigen (gerechneten) Lage.</summary>
-    private (float S, float Q) UrsprungJetzt(int i)
+    /// <summary>Beim ersten nahen Kontakt im Bild: Ziel leeren, Drehung und Ursprung des Netzes merken, in die Liste.</summary>
+    private void AufMerken(int i)
     {
+        if (_aufBild[i] == _bildNr) return;
+        _aufBild[i] = _bildNr;
+        (_zielS[i], _zielQ[i], _zielH[i]) = (0f, 0f, 0f);
         var (sin, cos) = MathF.SinCos(_w[i]);
         ref readonly var f = ref _form[i];
         var r = _r[i];
-        return (_s[i] - (f.Cx * cos - f.Cy * sin) * r, _q[i] - (f.Cx * sin + f.Cy * cos) * r);
+        (_auSin[i], _auCos[i]) = (sin, cos);
+        (_auOs[i], _auOq[i]) = (_s[i] - (f.Cx * cos - f.Cy * sin) * r, _q[i] - (f.Cx * sin + f.Cy * cos) * r);
+        if (_inAuf[i]) return;
+        _inAuf[i] = true;
+        _aufListe[_aufZahl++] = i;
     }
 
-    /// <summary>Abstand des Umrisses vom Ursprung des Netzes in Richtung <paramref name="winkel"/> (im Netz, Einheit Halbmesser; aus der Tabelle).</summary>
-    private float RandRadius(int i, float winkel)
+    /// <summary>Abstand des Umrisses vom Ursprung des Netzes in Richtung (dx, dy) (im Netz, Einheitsvektor; Einheit Halbmesser; aus der Tabelle).</summary>
+    private float RandRadius(int i, float dx, float dy)
     {
         var saat = _schollen[_stamm[i]].Saat;
-        var x = Winkel(winkel) * (Ecken / Tau);
+        var x = WinkelSchnell(dy, dx) * (Ecken / Tau);
+        if (x < 0f) x += Ecken;
         var k0 = (int)x;
         var t = x - k0;
-        k0 %= Ecken;
+        if (k0 >= Ecken) k0 -= Ecken;
         var k1 = (k0 + 1) % Ecken;
         return _umR[saat * Ecken + k0] + (_umR[saat * Ecken + k1] - _umR[saat * Ecken + k0]) * t;
+    }
+
+    /// <summary>Schneller Winkel (atan2, Fehler unter 0,01 rad; reicht für die Tabelle mit 15° je Ecke).</summary>
+    private static float WinkelSchnell(float y, float x)
+    {
+        var (ax, ay) = (MathF.Abs(x), MathF.Abs(y));
+        var a = MathF.Min(ax, ay) / MathF.Max(MathF.Max(ax, ay), 1e-12f);
+        var s = a * a;
+        var r = ((-0.0464964749f * s + 0.15931422f) * s - 0.327622764f) * s * a + a;
+        if (ay > ax) r = 1.57079637f - r;
+        if (x < 0) r = 3.14159274f - r;
+        return y < 0 ? -r : r;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
