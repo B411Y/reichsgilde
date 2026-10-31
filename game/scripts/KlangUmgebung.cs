@@ -425,6 +425,8 @@ public partial class KlangUmgebung : Node
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
     {
         (3, "Hahn", false), (11, "Hahn", false),
+        (222, "Kraehe", false), (229, "Kraehe", true),        // im Winter, damit sie in der Probe vorkommen (der Planer ruft sie im Winter etwa alle 45 s)
+        (347, "Nachtwaechter", true), (365, "Nachtwaechter", false), // das Horn der Streife, ebenso (sonst im Mittel alle 150 s)
     };
 
     private bool FahrtMomentbild(in M.Eingaben e)

@@ -157,8 +157,8 @@ public static class KlangUmgebungModell
         _ => 1f,
     };
 
-    /// <summary>Vögel, Insekten und Tiere schweigen bei Regen und Schnee: 1 bei trockenem Wetter, bei vollem Regen etwa 0,15.</summary>
-    public static float Trocken(KlangWetter w) => (1f - 0.85f * Glatt(0.05f, 0.6f, w.Regen)) * (1f - 0.6f * Glatt(0.1f, 0.7f, w.Schnee));
+    /// <summary>Vögel, Insekten und Tiere schweigen bei Regen (bei vollem Regen etwa 0,15) und sind bei Schnee ein Stück stiller (0,7): 1 bei trockenem Wetter.</summary>
+    public static float Trocken(KlangWetter w) => (1f - 0.85f * Glatt(0.05f, 0.6f, w.Regen)) * (1f - 0.3f * Glatt(0.1f, 0.7f, w.Schnee));
 
     /// <summary>Wie sehr Wind in der Höhe und im Laub zu hören ist: bei Flaute (0,05) ein Viertel, bei Windstärke 0,3 voll.</summary>
     public static float WindLeicht(float wind) => 0.25f + 0.75f * Glatt(0.02f, 0.28f, wind);
