@@ -85,10 +85,19 @@ static class BuergerSchankschlussTests
             }
         }),
 
-        ("Bürger-KI: Datenprüfung – Einkehren nicht über den Schankschluss hinaus (handlungen.Einkehren.bis ≤ 22)", () =>
+        ("Bürger-KI: Datenprüfung – Einkehren nicht über den Schankschluss hinaus (handlungen.Einkehren.bis ≤ 22), Arbeit in der Schänke ebenso", () =>
         {
             Pruefe.WirftMitMeldung(() => Abgewandelt(j => j["buerger"]!["handlungen"]!["Einkehren"]!["bis"] = Gastwirtschaft.SchliesstUm + 1), "Schankschluss");
             Abgewandelt(j => j["buerger"]!["handlungen"]!["Einkehren"]!["bis"] = Gastwirtschaft.SchliesstUm - 1); // früher heimgehen ist erlaubt
+            // Eine Rolle, die in der Schänke arbeitet, darf dort nicht über den Schankschluss hinaus arbeiten …
+            Pruefe.WirftMitMeldung(() => Abgewandelt(j =>
+            {
+                j["buerger"]!["rollen"]!["Tagelöhner"]!["arbeitsort"] = "Schaenke";
+                j["buerger"]!["handlungen"]!["Arbeiten"]!["bis"] = Gastwirtschaft.SchliesstUm + 1;
+            }), "„Tagelöhner“ in der Schänke");
+            Abgewandelt(j => j["buerger"]!["rollen"]!["Tagelöhner"]!["arbeitsort"] = "Schaenke"); // bis 20 Uhr ist erlaubt
+            // … ohne eine solche Rolle darf Arbeiten bis zum Tagesende gehen (keine neue Regel für die übrigen Arbeitsorte).
+            Abgewandelt(j => j["buerger"]!["handlungen"]!["Arbeiten"]!["bis"] = Gastwirtschaft.SchliesstUm + 1);
         }),
     };
 }
