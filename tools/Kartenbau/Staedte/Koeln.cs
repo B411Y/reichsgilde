@@ -19,13 +19,13 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Deutz am rechten Ufer mit kleiner Mauer (Nord-, Ost- und Südtor), Deutzer Freiheit, Vorstadt.
 //    • Stadtmauer: Halbkreis (Mitte 24 | 0, Radius 150 m) zum Rhein hin offen, Tore Eigelstein, Ehren, Hahnen, Weyer, Severin und die
 //      Ufertore Kunibert und Bayen; innen die Wallstraßen.
-//    • Märkte (Entscheidung des Nutzers 31.10.2026, ein Stadtmarkt mit drei Plätzen): zwei innerhalb der Mauer an ihren Enden am Rhein – der
-//      Alter Markt im Norden hinter dem Kunibertstor, der Heumarkt im Süden hinter dem Bayentor –, der Neumarkt in Deutz an der Kreuzung von
-//      Deutzer Freiheit und Kirchstraße. Namen wie in Köln (nur in `Maerkte` gepflegt). Rathaus, Groß St. Martin, St. Gereon, St. Severin,
+//    • Märkte (Entscheidung des Nutzers 31.10.2026, ein Stadtmarkt mit drei Plätzen): zwei innerhalb der Mauer an ihren Enden am Rhein – im
+//      Norden hinter dem Kunibertstor, im Süden hinter dem Bayentor –, der dritte in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße.
+//      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus, Groß St. Martin, St. Gereon, St. Severin,
 //      St. Aposteln, St. Kunibert, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
 //    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Straßen, die auf die Marktplätze führen, je 36 m vom nächsten (der
 //      Werkstattweg vom Halteplatz bis zum Halt am Pflaster 20–24 m, der Spieler 30 Minuten wie die alte feste Fahrzeit): der Spieler und zwei
-//      KI-Häuser am Heumarkt, zwei am Alter Markt, drei in Deutz. Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
+//      KI-Häuser am Südplatz, zwei am Nordplatz, drei in Deutz. Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
 //      Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen (die der KI-Häuser an den Straßen nahe den Märkten), Vorkommen.
 //    • Gelände: Terrasse der Altstadt mit Hochufer zum Rhein, sanft ansteigend nach Westen (Ville), Bergisches Land im Osten.
 //    • Rand (300 m): Kölner Bucht (Felder), Ville und Königsforst (Wald), im Dunst.
@@ -52,7 +52,8 @@ public sealed partial class Koeln : Stadtskript
 
     // Die drei Marktplätze (Entscheidung des Nutzers 31.10.2026): zwei an den Enden des Mauerhalbkreises, wo er auf den Rhein trifft (innen, die
     // Rheingasse läuft über den Platz, die Wallstraße berührt ihn), der dritte in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße.
-    // Die Namen stehen nur hier – sollen sie die Plätze tauschen, genügt es, Name und Dativ zu tauschen (die Kennung bleibt bei der Lage).
+    // Die Namen stehen nur hier – sollen sie die Plätze tauschen, genügt es im Skript, Name und Dativ zu tauschen (die Kennung bleibt bei der
+    // Lage; dazu die eine Zeile mit den Namen in MarktplaetzeTests und die Doku, die die Plätze beschreibt).
     // Reihenfolge = Reihenfolge in der Karte: Der erste ist der Platz des Spielers (im Bild „der Markt“, bei Gleichstand der Wege der erste).
     private static readonly Marktort MarktSued = new("Heumarkt", "am Heumarkt", "MarktSued", P(RheinX, R - 25));
     private static readonly Marktort MarktNord = new("Alter Markt", "am Alten Markt", "MarktNord", P(RheinX, -(R - 25)));
@@ -92,7 +93,9 @@ public sealed partial class Koeln : Stadtskript
         Natur();
         Boden();
         Start();
-        E.KameraStartSetzen(P(-6, -22), 130);
+        // Der Blick beim Start: zwischen dem Grundstück des Spielers und seinem Platz (bis 31.10.2026 auf die Altstadtmitte bei −6 | −22)
+        var spielerPlatz = Maerkte.MinBy(m => m.Ort.Abstand(_startMitten[0]))!.Ort;
+        E.KameraStartSetzen(P(Math.Round((_startMitten[0].X + spielerPlatz.X) / 2), Math.Round((_startMitten[0].Z + spielerPlatz.Z) / 2)), 130);
         E.RandVorschlagen(1, ersetzen: false);
     }
 
@@ -135,7 +138,7 @@ public sealed partial class Koeln : Stadtskript
         E.FlussStroemungSetzen(fluss, 1.2);
 
         // Duffesbach: kommt von Westen und läuft als Graben 15 m vor der Südmauer (Radius 165 um die Mitte des Halbkreises) zum Rhein, hinter
-        // dem Bayentor in den Strom (bis 31.10.2026 quer durch die Südstadt; dort liegt jetzt der Heumarkt). An der Bonner Straße vor dem
+        // dem Bayentor in den Strom (bis 31.10.2026 quer durch die Südstadt; dort liegt jetzt der Südplatz). An der Bonner Straße vor dem
         // Severinstor eine Holzbrücke, am Leinpfad eine Furt.
         var bach = E.FlussAnlegen(new[]
         {
@@ -267,13 +270,13 @@ public sealed partial class Koeln : Stadtskript
         Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser (Kran und Zollstelle südlich des Hafens, bis 31.10.2026 nördlich –
-        // dort liegt jetzt ein Startgrundstück am Alter Markt), das Stapelhaus am Ufer
+        // dort liegt jetzt ein Startgrundstück am Nordplatz), das Stapelhaus am Ufer
         Haus("hafenplatz", "Rheinhafen", 51, -60, 270, "Rheinhafen");
         Haus("hafenkran", "Rheinkran", 54, -44, 270, "Rheinkran");
         Haus("zollstelle", "Zollstelle", 54, -30, 270, "Zollstelle");
         Haus("lagerschuppen", "Stapelhaus", 50, 28, 270, "Stapelhaus");
 
-        // Leerstände und Ruinen: Hausnamen aus der Stadt (die Ruine in Deutz seit dem Neumarkt im Südosten statt am Platz)
+        // Leerstände und Ruinen: Hausnamen aus der Stadt (die Ruine in Deutz seit dem Deutzer Platz im Südosten statt an seiner Stelle)
         Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90, "L1");
         Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90, "L2");
         Haus("leerstand", "Haus zum schwarzen Raben (Ruine)", 196, 27, 180, "L3");

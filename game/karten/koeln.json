@@ -1011,7 +1011,7 @@
    }
   ]
  },
- "kamera": {"punkt": [-6, -22], "zoom": 130, "drehung": 0},
+ "kamera": {"punkt": [32, 106], "zoom": 130, "drehung": 0},
  "vorkommen": [
   {"kennung": "Hz1", "betrieb": "Holzschlag", "punkt": [-364.45, -108.95]},
   {"kennung": "Hz2", "betrieb": "Holzschlag", "punkt": [207.4, 179.65]},

@@ -26,7 +26,7 @@ public sealed partial class Koeln
     /// Die Umlandbetriebe: Baustein, Straße, Meter entlang der Straße, Seite (links in Laufrichtung) und – für eine Liegenschaft aus
     /// <c>wirtschaft.json</c> – ihr Name; ohne Namen gehört der Betrieb dem nächsten KI-Haus der passenden Art. Seit die Märkte am Rhein und in
     /// Deutz liegen (31.10.2026), stehen die Betriebe der KI-Häuser an Straßen, die nahe an einem Platz aus der Stadt führen (Bonner Straße, Mülheimer
-    /// Weg, Siegburger Straße), jeder etwa gleich weit vom nächsten Platz: Karrenweg 150–200 m, der Ochsenkarren 240–320 Minuten, unter der
+    /// Weg, Siegburger Straße), jeder etwa gleich weit vom nächsten Platz: Karrenweg 150–193 m, der Ochsenkarren 238–306 Minuten, unter der
     /// Höchstdauer (vorher an Aachener, Venloer, Luxemburger Straße und weiter draußen, 280–340 m, 26 von 42 Fahrten an der Höchstdauer; von dort
     /// wären es zu den neuen Plätzen über die Wallstraßen 300–420 m). Die Liegenschaften zum Kauf bleiben, wo sie waren.
     /// </summary>
@@ -159,7 +159,7 @@ public sealed partial class Koeln
     {
         E.SpielerWohnhausSetzen("S1_Wohnhaus");
         E.SpielerFarbeSetzen("#336bb8");
-        // Der Name der Werkstatt nach dem Platz, an dem sie liegt („Gießerei am Heumarkt“)
+        // Der Name der Werkstatt nach dem Platz, an dem sie liegt (mit seinem Dativ aus Maerkte: „Gießerei am …“)
         var platz = Maerkte.MinBy(m => m.Ort.Abstand(_startMitten[0]))!;
         E.SpielerStartplatzSetzen("S1_Werkstatt", null, "{art} " + platz.Dativ);
 
