@@ -606,14 +606,16 @@ public sealed partial class KiRivale
     }
 
     /// <summary>
-    /// Die neue Werkstatt bauen: an der gültigen Stelle, die dem Marktplatz (Ursprung der Karte) am nächsten liegt –
+    /// Die neue Werkstatt bauen: an der gültigen Stelle, die dem nächsten Marktplatz am nächsten liegt (Luftlinie; mehrere Märkte je Stadt seit
+    /// 31.10.2026, Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher) –
     /// bei Gleichstand die erste in der festen Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
     /// </summary>
     private void WerkstattBauen(Angebot angebot, double gewinn)
     {
         _bauorteGefragt = true;
+        var karte = _w.Karte;
         var ort = _w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
-            .OrderBy(o => o.X * o.X + o.Z * o.Z)
+            .OrderBy(o => karte?.MarktAbstandQuadrat(o.X, o.Z) ?? o.X * o.X + o.Z * o.Z)
             .FirstOrDefault();
         if (ort is null)
         {
