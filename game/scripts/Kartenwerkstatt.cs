@@ -493,6 +493,32 @@ public partial class Kartenwerkstatt : Node
 
     private static double Zahl(string text) => double.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>Liest eine Höhenkarte aus der Startoption <c>--werkstatt-hoehenkarte</c> ein und meldet den Bericht (oder den Fehler) unten.</summary>
+    private void HoehenkarteAusStartoption(string eintrag)
+    {
+        var teile = eintrag.Split(',');
+        var angaben = teile.Skip(1).Select(t => t.Split('=', 2)).Where(kv => kv.Length == 2).ToDictionary(kv => kv[0], kv => kv[1]);
+        int Cm(string name, double vorgabe = double.NaN)
+        {
+            var meter = angaben.TryGetValue(name, out var text) ? Zahl(text) : !double.IsNaN(vorgabe) ? vorgabe : throw new ArgumentException($"--werkstatt-hoehenkarte: „{name}=“ fehlt.");
+            return (int)Math.Round(meter * 100, MidpointRounding.AwayFromZero);
+        }
+        var bytes = Godot.FileAccess.GetFileAsBytes(teile[0]);
+        if (bytes.Length == 0)
+        {
+            Melden($"Höhenkarte {teile[0]} nicht lesbar ({Godot.FileAccess.GetOpenError()}).", fehler: true);
+            return;
+        }
+        var ursprung = (angaben.GetValueOrDefault("ursprung") ?? throw new ArgumentException("--werkstatt-hoehenkarte: „ursprung=x:z“ fehlt.")).Split(':');
+        var (werte, breite, tiefe) = Hoehenkarte.Lesen(bytes, angaben.TryGetValue("breite", out var b) ? int.Parse(b) : 0, angaben.GetValueOrDefault("bytefolge") == "be");
+        var lage = new Hoehenkartenlage(breite, tiefe, Cm("pixel"), (int)Math.Round(Zahl(ursprung[0]) * 100, MidpointRounding.AwayFromZero),
+            (int)Math.Round(Zahl(ursprung[1]) * 100, MidpointRounding.AwayFromZero), Cm("unten"), Cm("oben"), Cm("versatz", 0),
+            angaben.TryGetValue("stufe", out var stufe) ? int.Parse(stufe) : 5);
+        var bericht = _entwurf.HoehenkarteEinlesen(werte, lage);
+        Melden($"Höhenkarte eingelesen: {breite} × {tiefe} Pixel, {bericht.Abgedeckt} Rasterpunkte abgedeckt, {bericht.Geaendert} geändert"
+            + (bericht.Warnung is { } warnung ? " – " + warnung : ""), fehler: bericht.Abgeschnitten);
+    }
+
     /// <summary>
     /// Die Angaben des Pinsel-Pakets 1 in den Startoptionen („ziel=3.5“, „stufe=2“, „boeschung=0.3“, „ausgleich=1“, „steigung=15-40“ oder „steigung=-8“,
     /// „bodenfilter=sand:0.5“); andere Angaben (kante, deko, dichte) übergeht sie.
@@ -696,6 +722,9 @@ public partial class Kartenwerkstatt : Node
                 _stadt.PinselRadius = Zahl(t[0]);
                 _stadt.WerkstattRadieren(Liste("-," + t[1]).Punkte);
             }
+            // --werkstatt-hoehenkarte=<pfad>,pixel=<m>,ursprung=<x>:<z>,unten=<m>,oben=<m>[,breite=<px>][,versatz=<m>][,stufe=<cm>][,bytefolge=be]:
+            // eine Höhenkarte (r16/raw) einlesen – ein Schritt mit Rückgängig, der Bericht steht unten (Kartenskript: hoehenkarte-einlesen)
+            if (o.TryGetValue("werkstatt-hoehenkarte", out var hoehenkarte)) HoehenkarteAusStartoption(hoehenkarte);
             // --werkstatt-filter=<gelaende|boden>:<angaben>: der Filter in der Tafel (wie unten steigung=…,bodenfilter=…; leer: aus)
             if (o.TryGetValue("werkstatt-filter", out var filterOption))
                 foreach (var eintrag in filterOption.Split('|', StringSplitOptions.RemoveEmptyEntries))

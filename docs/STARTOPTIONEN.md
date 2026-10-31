@@ -182,6 +182,7 @@ Gelände (Schritt 5b):
 
 - `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,<x1>,<z1>;…[,<angabe>=<wert>…]` (mehrere mit `|`; `<pinsel>` ist heben, senken, glaetten, ebnen, rauschen oder terrassen, hinten mit `:kante[:startwert[:massstab]]`; Stärke bei Heben, Senken und Rauschen in Metern je Tupfer, bei Glätten, Ebnen und Terrassen 0–1; ein Schritt der Geschichte je Strich). Angaben des Pinsel-Pakets 1: `ziel=<m>` (Ebnen: Zielhöhe statt der Höhe unter dem ersten Punkt; Terrassen: Bezugshöhe), `stufe=<m>` und `boeschung=<0–1>` (Terrassen), `ausgleich=1` (Heben nur Mulden, Senken nur Spitzen), `steigung=<ab>-<bis>` (Prozent, eine Seite darf fehlen: `15-`, `-8`), `bodenfilter=<textur>[:<rand 0–1>]`
 - `--werkstatt-filter=<gelaende|boden>:<angaben>` (der Filter in der Tafel, Angaben `steigung=…` und `bodenfilter=…` wie oben, mit Komma getrennt; mehrere mit `|`; ohne Angaben: aus)
+- `--werkstatt-hoehenkarte=<pfad>,pixel=<m>,ursprung=<x>:<z>,unten=<m>,oben=<m>[,breite=<px>][,versatz=<m>][,stufe=<cm>][,bytefolge=be]` (eine Höhenkarte r16/raw einlesen, vor den Pinselstrichen; ein Schritt mit Rückgängig, der Bericht und eine Warnung beim Abschneiden stehen unten; wie `hoehenkarte-einlesen` im Kartenskript, aber ohne Eintrag der Herkunft – nur zum Ausprobieren)
 - `--werkstatt-rampe=<x1>,<z1>;<x2>,<z2>,<breite>` (mehrere mit `|`)
 
 Bodentexturen (Schritt 5e):
