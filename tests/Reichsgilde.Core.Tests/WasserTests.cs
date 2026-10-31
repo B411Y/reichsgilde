@@ -303,22 +303,25 @@ static class WasserTests
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var w = sim.Wirtschaft!;
             var west = w.Betriebe.Single(b => b.Konto == spieler);
-            var basis = Daten.Value.Logistik.FahrzeitAb(west.Ort);
+            var karren = west.Karren[0];
             var (hin, zurueck) = w.Fahrten(west)!.Value;
             Pruefe.Wahr(hin.Any(x => x.Art == Fahrbahn.Furt) && zurueck.Any(x => x.Art == Fahrbahn.Furt), "Furt hin und zurück");
-            Pruefe.Gleich((basis + 5, basis + 5), (w.Fahrzeit(west, true), w.Fahrzeit(west, false)));
+            // Länge ÷ Tempo (die Werkstatt liegt flach auf Fahrweg) und 5 Minuten für die Furt
+            int Fahrt(IReadOnlyList<Fahrtstueck> f, int aufschlag) => (int)Math.Round(f.Sum(x => x.Laenge) / karren.Daten.MeterJeMinute + aufschlag, MidpointRounding.AwayFromZero);
+            Pruefe.Gleich((Fahrt(hin, 5), Fahrt(zurueck, 5)), (w.Fahrzeit(karren, true), w.Fahrzeit(karren, false)));
             // tief genug für eine Brücke: kein Aufschlag
             var b = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             var fluss = b.FlussAnlegen(new[] { O(-20, -8), O(-20, 8) }, "bach", 3);
             b.FlussTiefeSetzen(fluss, -1, 1);
             var (simB, spielerB) = b.Ausprobieren(Daten.Value, "Schmied");
             var westB = simB.Wirtschaft!.Betriebe.Single(x => x.Konto == spielerB);
-            Pruefe.Wahr(simB.Wirtschaft.Fahrten(westB)!.Value.Hin.Any(x => x.Art == Fahrbahn.Bruecke), "über die Brücke");
-            Pruefe.Gleich((basis, basis), (simB.Wirtschaft.Fahrzeit(westB, true), simB.Wirtschaft.Fahrzeit(westB, false)));
+            var (hinB, zurueckB) = simB.Wirtschaft.Fahrten(westB)!.Value;
+            Pruefe.Wahr(hinB.Any(x => x.Art == Fahrbahn.Bruecke), "über die Brücke");
+            Pruefe.Gleich((Fahrt(hinB, 0), Fahrt(zurueckB, 0)), (simB.Wirtschaft.Fahrzeit(westB.Karren[0], true), simB.Wirtschaft.Fahrzeit(westB.Karren[0], false)));
             // nach dem Laden dieselbe Zeit
             var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var west2 = geladen.Wirtschaft!.Betriebe.Single(x => x.Name == west.Name);
-            Pruefe.Gleich(basis + 5, geladen.Wirtschaft.Fahrzeit(west2, true));
+            Pruefe.Gleich(Fahrt(hin, 5), geladen.Wirtschaft.Fahrzeit(west2.Karren[0], true));
             // Messstadt: kein Wasser, nichts hält auf
             var mess = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
             Pruefe.Wahr(mess.Gelaendeform.IstFlach && mess.Gelaendeform.Wasser.IstLeer && !mess.Wasserplan.HaeltAuf && mess.Wasserplan.Querungen.Count == 0, "messstadt");

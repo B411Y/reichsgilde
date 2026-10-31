@@ -12,8 +12,9 @@ namespace Reichsgilde.Core.Bauen;
 //  • Jeder Weg der Karte ist in Stücke zu 5 m geteilt (wegebau.stueck). Jedes Stück hat eine Stufe (Trampelpfad, Fahrweg, Kies,
 //    Pflaster), dazu Austritt (Trampelpfad, Fahrweg: 0 … 1) bzw. Zustand (Kies, Pflaster: 1 = neu). Den Start liest der Kern aus der
 //    Karte (Feld „belag“ der Wege, sonst die Vorgabe der Klasse: Karrenstraßen Fahrweg, Gassen und Fußwege Trampelpfad).
-//  • Tempo: Karren fahren je Stufe verschieden schnell (wegebau.tempo, Pflaster 1). Die feste Fahrzeit gilt für den Bezug (Fahrweg):
-//    ein Stück dauert Bezugstempo ÷ Tempo so lang (Stadtwirtschaft.Fahrzeit) – Greybox und Köln spielen am Start genau wie vorher.
+//  • Tempo: Karren fahren je Stufe verschieden schnell (wegebau.tempo, Pflaster 1). Das Tempo der Karrenart gilt für den Bezug (Fahrweg):
+//    ein Stück dauert Bezugstempo ÷ Tempo so lang (Stadtwirtschaft.Fahrzeit), ein Ausbau macht höchstens 15 % schneller
+//    (wegebau.ausbauHoechstens, ab Datenversion 65).
 //  • Verkehr (zum Jahreswechsel, ohne Zufall): Jede Karrenfahrt eines Betriebs zählt auf jedem Stück seiner Strecke zum Markt; dazu
 //    Grundverkehr je Wegklasse und Fußverkehr aus den Gebäuden in der Nähe. Viel Verkehr tritt einen Trampelpfad zum Fahrweg aus, ohne
 //    Verkehr verwildert ein Fahrweg wieder. Kies und Pflaster verfallen leicht und fallen unter einer Schwelle eine Stufe zurück.
@@ -177,12 +178,13 @@ public sealed class Wegebau
 
     /// <summary>
     /// Wie viel mal so lang ein Stück einer Fahrt dauert als auf dem Bezugsbelag (<see cref="WegebauDaten.Bezug"/>): Bezugstempo ÷ Tempo des
-    /// Stücks. 1 auf Brücken, in Furten, auf Fähren und ohne Belag im Spiel.
+    /// Stücks, ein Ausbau höchstens <see cref="WegebauDaten.AusbauHoechstens"/> mal so schnell (<see cref="WegebauDaten.Zeitfaktor"/>). 1 auf
+    /// Brücken, in Furten, auf Fähren und ohne Belag im Spiel.
     /// </summary>
     public double Faktor(Fahrtstueck s)
     {
         if (s.Art != Fahrbahn.Strasse || StueckZahl(s.Weg) == 0) return 1;
-        return Daten!.TempoVon(Daten.Bezug) / Tempo(Wege[s.Weg], StueckBei(s.Weg, s.Stelle));
+        return Daten!.Zeitfaktor(Tempo(Wege[s.Weg], StueckBei(s.Weg, s.Stelle)));
     }
 
     /// <summary>
@@ -433,7 +435,7 @@ public sealed class Wegebau
         var d = Daten!;
         var z = Wege[weg];
         var steigung = _w.Karte!.Gelaendeform.HatHoehen ? _w.Daten.Logistik.Steigung : null;
-        var neu = d.TempoVon(d.Bezug) / d.TempoVon(stufe);
+        var neu = d.Zeitfaktor(d.TempoVon(stufe));
         var summe = 0.0;
         foreach (var b in _w.Betriebe.Where(b => b.Konto == konto))
         {
@@ -450,7 +452,7 @@ public sealed class Wegebau
                     if (i < vonStueck || i > bisStueck || z.Stufe[i] > stufe) continue;
                     gespart += s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * Math.Max(0, Faktor(s) - neu);
                 }
-                return _w.Daten.Logistik.FahrzeitAb(b.Ort) * gespart / laenge;
+                return gespart * _w.MinutenJeMeter(b, laenge);
             }
             summe += anzahl * (Ersparnis(hin) + Ersparnis(zurueck)) / 2;
         }

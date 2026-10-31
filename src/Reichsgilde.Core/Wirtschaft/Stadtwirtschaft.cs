@@ -198,8 +198,8 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Was ein Einkauf von Hand jetzt kosten würde (jedes Stück hebt den Preis).</summary>
     public double HandKaufpreis(Konto konto, string ware, int stueck, double anteil = 1) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto), anteil: anteil);
 
-    /// <summary>Wann käme ein Karren dieses Betriebs am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht)</summary>
-    public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Fahrzeit(betrieb, zumMarkt: true);
+    /// <summary>Wann käme dieser Karren am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht; die Fahrzeit hängt an seiner Art)</summary>
+    public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + Fahrzeit(karren, zumMarkt: true);
 
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
@@ -242,7 +242,7 @@ public sealed partial class Stadtwirtschaft
             if (danach > betrieb.LagerKapazitaetJeWare)
                 return $"Das Lager fasst nur {betrieb.LagerKapazitaetJeWare} {ware} – danach wären es {danach}.";
         }
-        var ankunft = AnkunftAmMarkt(betrieb);
+        var ankunft = AnkunftAmMarkt(karren);
         if (!vormerken && (ankunft < h.MarktVon * 60 || ankunft > h.MarktBis * 60))
             return $"Der Markt hat von {h.MarktVon} bis {h.MarktBis} Uhr offen – der Karren käme um {ankunft / 60:00}:{ankunft % 60:00} an.";
         var kosten = kaufen.Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
@@ -261,7 +261,7 @@ public sealed partial class Stadtwirtschaft
         if (unterwegs)
         {
             var zurueck = karren.Zustand == KarrenZustand.ZumBetrieb ? karren.Ankunft
-                : karren.Ankunft + Fahrzeit(betrieb, zumMarkt: false);
+                : karren.Ankunft + Fahrzeit(karren, zumMarkt: false);
             var um = Uhr.UhrzeitInMinuten + (int)(zurueck - Uhr.VergangeneMinuten);
             karren.Vormerkung = new Vormerkung(new Dictionary<string, int>(befehl.Verkauf), new Dictionary<string, int>(befehl.Kauf));
             return Befehlsergebnis.Ok($"{karren.Name} ist unterwegs – der Auftrag ist vorgemerkt und startet, sobald er zurück ist (etwa {um / 60:00}:{um % 60:00}).");

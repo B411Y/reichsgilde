@@ -16,7 +16,47 @@ public sealed class KarrenDaten
     /// <summary>Kaufpreis in Gulden.</summary>
     public double Preis { get; init; }
 
+    /// <summary>
+    /// Wie schnell der Karren fährt: Meter je echter Sekunde bei Tempo 1 und Standard-Rundendauer (ab Datenversion 65, Nutzer 31.10.2026) –
+    /// so schnell, wie man ihn im Bild fahren sieht (Ochse 0,8, Handkarren 1,0, Pferd 1,3). Gilt auf ebenem Fahrweg (dem Bezugsbelag).
+    /// 0: nicht angegeben (alte Daten).
+    /// </summary>
+    public double Tempo { get; init; }
+
+    /// <summary>Das <see cref="Tempo"/> in Metern je Spielminute (<see cref="Taktgeber.SekundenJeSpielminute"/>): ein Handkarren 0,79.</summary>
+    public double MeterJeMinute => Tempo * Taktgeber.SekundenJeSpielminute;
+
     public int Gesamtkapazitaet => Sorten * KapazitaetJeSorte;
+}
+
+/// <summary>
+/// Fahrzeit nach Weglänge (Abschnitt "logistik.weglaenge", ab Datenversion 65; Entscheidung des Nutzers vom 31.10.2026). Hat die Karte ein
+/// Karrennetz und der Betrieb einen Platz, fährt ein Karren seinen Weg zum Markt mit dem Tempo seiner Art (<see cref="KarrenDaten.Tempo"/>):
+/// Fahrzeit = Länge ÷ Tempo, jedes Stück mit seiner Steigung und seinem Belag, dazu Furten und Fähren – so lange, wie man ihn im Bild fahren
+/// sieht. Ohne Karte, ohne Platz oder ohne Weg gelten die festen Fahrzeiten (<see cref="LogistikDaten.Fahrzeiten"/>). Null: feste Fahrzeiten
+/// wie vor Datenversion 65.
+/// </summary>
+public sealed class WeglaengeDaten
+{
+    /// <summary>
+    /// So viele Spielminuten dauert jede Fahrt mindestens: Anspannen, vom Hof fahren, sich am Markt einreihen. Wirkt erst unter etwa 8 m Weg
+    /// (Handkarren) – vor allem für einen Betrieb direkt am Markt, der sonst im Minutentakt pendelte.
+    /// </summary>
+    public int MindestMinuten { get; init; } = 10;
+
+    /// <summary>
+    /// So viele Spielminuten dauert eine Fahrt höchstens, auch auf sehr langen Wegen (dann fährt der Karren im Bild schneller): Ein Karren soll
+    /// an einem Arbeitstag (8 bis 20 Uhr, 720 Minuten) wenigstens einmal hin und zurück kommen.
+    /// </summary>
+    public int HoechstMinuten { get; init; } = 360;
+
+    internal void Pruefen(List<string> f, IReadOnlyDictionary<string, KarrenDaten> karren)
+    {
+        if (MindestMinuten < 1) f.Add("logistik.weglaenge.mindestMinuten muss mindestens 1 sein.");
+        if (HoechstMinuten < MindestMinuten) f.Add("logistik.weglaenge.hoechstMinuten darf nicht kleiner als mindestMinuten sein.");
+        foreach (var (name, k) in karren)
+            if (k.Tempo is <= 0 or > 10) f.Add($"Karren {name}: tempo (Meter je Sekunde) muss über 0 und höchstens 10 sein, wenn logistik.weglaenge gilt.");
+    }
 }
 
 /// <summary>Eine Eskortenstufe (Abschnitt "logistik.eskorten").</summary>
@@ -94,8 +134,9 @@ public sealed class ToreDaten
 /// <summary>
 /// Wie Steigung die Karren bremst (Abschnitt "logistik.steigung", ab Datenversion 50; Kartenwerkstatt, Schritt 5b). Jedes Stück der Fahrt
 /// über die Karrenstraßen (<see cref="Bauen.Karrennetz"/>) dauert bergauf ab <see cref="AbProzent"/> Steigung länger: je Prozentpunkt darüber
-/// um <see cref="ZuschlagJeProzent"/>, höchstens das <see cref="HoechstensFaktor"/>-fache. Bergab und in der Ebene wie bisher. Die feste
-/// Fahrzeit des Arbeitsorts wird mit dem Mittel über die Strecke (nach Länge gewichtet) malgenommen – eine flache Karte bleibt genau, wie sie war.
+/// um <see cref="ZuschlagJeProzent"/>, höchstens das <see cref="HoechstensFaktor"/>-fache. Bergab und in der Ebene wie bisher. Nach Weglänge
+/// (ab Datenversion 65) dauert jedes Stück Länge ÷ Tempo × Faktor; mit den festen Fahrzeiten wird die Zeit mit dem Mittel über die Strecke
+/// (nach Länge gewichtet) malgenommen – eine flache Karte bleibt dort genau, wie sie war.
 /// </summary>
 public sealed class SteigungDaten
 {
@@ -175,7 +216,10 @@ public sealed class WasserDaten
 /// <summary>Alle Logistik-Stellschrauben (Abschnitt "logistik").</summary>
 public sealed class LogistikDaten
 {
-    /// <summary>Fahrzeit vom Betrieb zum Markt in Spielminuten, je Arbeitsort ("Werkstatt", "Umland").</summary>
+    /// <summary>
+    /// Fahrzeit vom Betrieb zum Markt in Spielminuten, je Arbeitsort ("Werkstatt", "Umland"). Seit Datenversion 65 nur noch der Ersatz, wenn
+    /// sich keine Weglänge rechnen lässt (keine Karte, kein Platz, kein Weg; <see cref="Weglaenge"/>).
+    /// </summary>
     public Dictionary<string, int> Fahrzeiten { get; init; } = new() { ["Werkstatt"] = 30, ["Umland"] = 120 };
 
     /// <summary>Wie viele Stück je Ware ein Betriebslager fasst.</summary>
@@ -221,6 +265,9 @@ public sealed class LogistikDaten
     /// <summary>Wie Furten und Fähren die Karren aufhalten (null: gar nicht, wie vor Datenversion 51).</summary>
     public WasserDaten? Wasser { get; init; }
 
+    /// <summary>Fahrzeit nach Weglänge und Karrenart (null: die festen <see cref="Fahrzeiten"/>, wie vor Datenversion 65).</summary>
+    public WeglaengeDaten? Weglaenge { get; init; }
+
     public int FahrzeitAb(Arbeitsort ort) => Fahrzeiten.GetValueOrDefault(ort.ToString(), 30);
 
     internal void Pruefen(List<string> f)
@@ -232,6 +279,7 @@ public sealed class LogistikDaten
         Tore?.Pruefen(f);
         Steigung?.Pruefen(f);
         Wasser?.Pruefen(f);
+        Weglaenge?.Pruefen(f, Karren);
         if (AbfahrtAbFuellgrad is <= 0 or > 1) f.Add("logistik.abfahrtAbFuellgrad muss zwischen 0 und 1 liegen.");
         if (MaxWartezeitMinuten <= 0) f.Add("logistik.maxWartezeitMinuten muss größer als 0 sein.");
         if (ZutatenVorratStunden <= 0) f.Add("logistik.zutatenVorratStunden muss größer als 0 sein.");

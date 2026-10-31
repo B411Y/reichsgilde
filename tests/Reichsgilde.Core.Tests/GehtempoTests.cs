@@ -78,17 +78,19 @@ static class GehtempoTests
             Pruefe.Ungefaehr(500 + 60 / 1.3, e, 1e-9);
         }),
 
-        ("Karrentempo: Ochse 0,8, Pferd 1,3, Handkarren 1,0 m/s; Ausbau höchstens 15 % schneller, schlechter Belag und Hang bremsen beliebig", () =>
+        ("Karrentempo: Ochse 0,8, Pferd 1,3, Handkarren 1,0 m/s aus dem Kern; Geschwindigkeit = 1 ÷ Zeitfaktor des Kerns (der Kern begrenzt den Ausbau auf 15 %)", () =>
         {
-            Pruefe.Gleich(0.8f, Karrentempo.Grund("Ochsenkarren"));
-            Pruefe.Gleich(1.3f, Karrentempo.Grund("Kriegskarren"));
-            Pruefe.Gleich(1.0f, Karrentempo.Grund("Handkarren"));
+            var karren = Daten.Value.Logistik.Karren;
+            Pruefe.Gleich(0.8, karren["Ochsenkarren"].Tempo);
+            Pruefe.Gleich(1.3, karren["Kriegskarren"].Tempo);
+            Pruefe.Gleich(1.0, karren["Handkarren"].Tempo);
             Pruefe.Gleich(1.0, Karrentempo.Geschwindigkeitsfaktor(1));
-            Pruefe.Ungefaehr(1.15, Karrentempo.Geschwindigkeitsfaktor(0.5), 1e-9);
-            Pruefe.Ungefaehr(1.15, Karrentempo.Geschwindigkeitsfaktor(0.8), 1e-9);
             Pruefe.Ungefaehr(1 / 0.9, Karrentempo.Geschwindigkeitsfaktor(0.9), 1e-9);
             Pruefe.Ungefaehr(0.5, Karrentempo.Geschwindigkeitsfaktor(2), 1e-9);
             Pruefe.Ungefaehr(1.0 / 3, Karrentempo.Geschwindigkeitsfaktor(3), 1e-9);
+            // der beste Belag (Pflaster) gibt im Kern den Zeitfaktor 1 ÷ 1,15 – schneller als 15 % wird kein Karren
+            var wb = Daten.Value.Wegebau!;
+            Pruefe.Ungefaehr(1.15, Karrentempo.Geschwindigkeitsfaktor(wb.Zeitfaktor(wb.TempoVon(Belagstufe.Pflaster))), 1e-9);
         }),
 
         ("Fahrprofil: Dauer = Länge ÷ Tempo; Weg und Zeit sind Umkehrungen; Fähre hält auf, Furt bremst", () =>
@@ -244,14 +246,14 @@ static class GehtempoTests
                 {
                     var fahrt = netz.Fahrt(new Kartenort(g.Punkt[0], g.Punkt[1]), markt);
                     var laenge = fahrt.Sum(s => s.Laenge);
-                    var stuecke = Karrentempo.Stuecke(fahrt, s => (Daten.Value.Logistik.Steigung?.Faktor(s.Steigung) ?? 1) * (w.Wegebau.IstAktiv ? w.Wegebau.Faktor(s) : 1), 5, 30);
+                    var stuecke = Karrentempo.Stuecke(fahrt, w.Zeitfaktor, 5, 30);
                     foreach (var typ in new[] { "Handkarren", "Ochsenkarren", "Kriegskarren" })
                     {
-                        var jeMinute = Karrentempo.Grund(typ) * 900.0 / 1140;
+                        var jeMinute = Daten.Value.Logistik.Karren[typ].Tempo * 900.0 / 1140;
                         var p = new Fahrprofil(stuecke, laenge, jeMinute);
-                        Pruefe.Wahr(p.Dauer >= laenge / (jeMinute * Karrentempo.AusbauHoechstens) - 1e-6, $"{kennung}/{typ}: Dauer {p.Dauer:0.0} min zu kurz");
+                        Pruefe.Wahr(p.Dauer >= laenge / (jeMinute * 1.15) - 1e-6, $"{kennung}/{typ}: Dauer {p.Dauer:0.0} min zu kurz");
                         for (var t = 0.0; t <= p.Dauer; t += p.Dauer / 50)
-                            Pruefe.Wahr(p.MeterJeMinute(t) <= jeMinute * Karrentempo.AusbauHoechstens + 1e-6, $"{kennung}/{typ}: {p.MeterJeMinute(t):0.00} m/min bei {t:0}");
+                            Pruefe.Wahr(p.MeterJeMinute(t) <= jeMinute * 1.15 + 1e-6, $"{kennung}/{typ}: {p.MeterJeMinute(t):0.00} m/min bei {t:0}");
                         gepruft++;
                     }
                 }

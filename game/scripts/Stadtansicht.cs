@@ -776,8 +776,8 @@ public partial class Stadtansicht : Node3D
 
             for (var i = 0; i < betrieb.Karren.Count; i++)
             {
-                // Hin- und Rückfahrt dauern auf Gelände verschieden lang (der Kern rechnet die Steigung ein, Stadtwirtschaft.Fahrzeit); in der Ebene gleich lang wie immer
-                var fahrzeit = w.Fahrzeit(betrieb, zumMarkt: betrieb.Karren[i].Zustand != KarrenZustand.ZumBetrieb);
+                // Die Fahrzeit des Kerns hängt an Weglänge und Karrenart, Hin- und Rückfahrt am Hang verschieden lang (Stadtwirtschaft.Fahrzeit)
+                var fahrzeit = w.Fahrzeit(betrieb.Karren[i], zumMarkt: betrieb.Karren[i].Zustand != KarrenZustand.ZumBetrieb);
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
             }
         }
