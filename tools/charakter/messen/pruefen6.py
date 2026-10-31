@@ -247,8 +247,9 @@ def kalibrierung(mappe):
 
 
 # ------------------------------------------------------------------ 5b. S2/S3 (Stand 6)
-def _kugel_masken(zz_json, form, n=3, abstand=2.3, r=0.036):
-    """Scheiben der drei Prüfkugeln (Bühne: _kugeln6, Mitte = Augenmitte − 2 cm, Abstand 2,3 r) im Bild."""
+def _kugel_masken(zz_json, form, n=3, abstand=2.3, r=0.036, anteil=0.9, zugabe=0.0):
+    """Scheiben der drei Prüfkugeln (Bühne: _kugeln6, Mitte = Augenmitte − 2 cm, Abstand 2,3 r) im Bild.
+    anteil = Radius der Scheibe in Kugelradien, zugabe = Bildpunkte dazu (Streiflicht: ganze Kugel samt Rand)."""
     d = json.load(open(zz_json, encoding="utf-8"))
     k = Kamera(d)
     am = d["kopf"]["augen_mitte"]
@@ -259,7 +260,7 @@ def _kugel_masken(zz_json, form, n=3, abstand=2.3, r=0.036):
         m = np.array([(i - 1) * r * abstand, am[1] - 0.02, am[2]]) * 1000
         q, _ = k.projizieren(np.array([m, m + [r * 1000, 0, 0]]))
         rp = abs(q[1, 0] - q[0, 0])
-        aus.append(np.hypot(xx + 0.5 - q[0, 0], yy + 0.5 - q[0, 1]) <= 0.9 * rp)
+        aus.append(np.hypot(xx + 0.5 - q[0, 0], yy + 0.5 - q[0, 1]) <= anteil * rp + zugabe)
     return aus
 
 
@@ -269,7 +270,7 @@ def kugeln(mappe):
         zeile("S2 Prüfkugel", "Glanz und Streulicht (p10b_kugeln)", "–", "–", "offen")
         return
     winkel = (0, 30, 60, 80, 150)
-    glanz, streu, streif = {}, {}, {}
+    glanz, streu, streif, spitze = {}, {}, {}, {}
     for si, wk in enumerate(winkel):
         for zi, ziel in ((0, glanz), (1, streu), (2, streif)):
             p = os.path.join(o, f"{zi:02d}_{si:02d}.png")
@@ -277,12 +278,16 @@ def kugeln(mappe):
                 continue
             lin = B.linear(B.lesen(p)).mean(axis=2)
             m = _kugel_masken(p[:-4] + ".json", lin.shape)
+            if zi == 2:
+                # Prüferbefund Etappe A: der Streiflichtglanz liegt fast ganz im äußeren Zehntel der Kugel – ganze Scheibe
+                m = _kugel_masken(p[:-4] + ".json", lin.shape, anteil=1.0, zugabe=2.0)
             if zi == 0:
                 ziel[wk] = [float(np.sort(lin[mm])[-25:].mean()) for mm in m]   # Glanzspitze: Mittel der 25 hellsten
             elif zi == 1:
                 ziel[wk] = [float(lin[mm].mean()) for mm in m]
             else:
                 ziel[wk] = [float(lin[mm].sum()) for mm in m]                    # Glanz über die ganze Kugel
+                spitze[wk] = max(float(lin[mm].max()) for mm in m)
     for wk in winkel[:4]:
         if wk not in glanz:
             continue
@@ -291,13 +296,22 @@ def kugeln(mappe):
         tol = 0.10 if wk <= 60 else 0.20
         zeile("S2 Prüfkugel", f"Glanzspitze haut6 : StandardMaterial3D bei {wk}° (Wrap 0, eine Keule)",
               f"{f(q, 3)} ({f(h6, 3)} / {f(st, 3)})", f"1 ± {int(tol * 100)} %", "OK" if abs(q - 1) <= tol else "ABWEICHUNG")
+    # Streiflicht laut Plan 5.1 = N5, Schlüssellicht 80° zur Blickachse: nur dort wird gewertet (Prüferbefund Etappe A:
+    # die Wertung bei 150° war eine Umdeutung nach dem Ergebnis). 150° (Gegenlicht seitlich) ist ein Zusatz und prüft,
+    # dass haut6 auch am Rand Godots GGX gleicht.
     for wk in (80, 150):
         if wk in streif:
             h6, st, h3 = streif[wk]
             q = h6 / max(h3, 1e-6)
-            zeile("S2 Prüfkugel", f"Streiflichtglanz {wk}° (Summe über die Kugel) haut6 : haut3 (Phase 5); Standard : haut3",
-                  f"{f(q, 2)}; {f(st / max(h3, 1e-6), 2)}", "≥ 2,5 (gewertet bei 150°)" if wk == 150 else "Stand",
-                  ("OK" if q >= 2.5 else "ABWEICHUNG") if wk == 150 else "Stand")
+            satt = spitze.get(wk, 0) >= 0.99
+            hinweis = "Bild übersteuert (Spitze ≥ 0,99): Summe nicht belastbar" if satt else f"hellster Punkt {f(spitze.get(wk, 0), 2)}"
+            if wk == 80:
+                zeile("S2 Prüfkugel", "Streiflichtglanz 80° (N5, Summe über die ganze Kugel) haut6 : haut3 (Phase 5); Standard : haut3",
+                      f"{f(q, 2)}; {f(st / max(h3, 1e-6), 2)}", "≥ 2,5", "offen" if satt else ("OK" if q >= 2.5 else "ABWEICHUNG"), hinweis)
+            else:
+                qs = h6 / max(st, 1e-6)
+                zeile("S2 Prüfkugel", "Zusatz 150° (Gegenlicht seitlich, Summe): haut6 : StandardMaterial3D; haut6 : haut3",
+                      f"{f(qs, 2)}; {f(q, 2)}", "haut6 = Standard ± 20 %", "offen" if satt else ("OK" if abs(qs - 1) <= 0.2 else "ABWEICHUNG"), hinweis)
     for wk in winkel[:4]:
         if wk not in streu:
             continue
@@ -374,8 +388,15 @@ def stand6_bild(mappe, nm, a0):
             zeile("S2 Augen", "Iris-Leuchtdichte Mann 35, L-V: Stand 6 : Stand 5", f"{f(iris, 3)} / {f(i5, 3)} = {f(iris / i5, 2)}",
                   "≤ ⅓", "OK" if iris / i5 <= 1 / 3 else "ABWEICHUNG")
         dl = _lstern(leder) - z["L"]
-        zeile("S2 Augen", "Lederhaut gegen beleuchtete Wange (L*), L-V", f"{f(_lstern(leder), 1)} − {f(z['L'], 1)} = {f(dl, 1)}",
-              "≤ +5 L*", "OK" if dl <= 5 else "ABWEICHUNG")
+        dunkel = np.mean([x["augen"][s].get("lederhaut_dunkel", 0) for s in ("links", "rechts")])
+        vorher = ""
+        if ("A0", "lv") in w:
+            x5 = w[("A0", "lv")]
+            l5 = np.mean([x5["augen"][s]["lederhaut_Y"] for s in ("links", "rechts")])
+            vorher = f"; Stand 5: {f(_lstern(l5), 1)} − {f(x5['zonen']['wange_licht']['L'], 1)} = {f(_lstern(l5) - x5['zonen']['wange_licht']['L'], 1)}"
+        zeile("S2 Augen", "Lederhaut (80. Perzentil) gegen beleuchtete Wange (L*), L-V",
+              f"{f(_lstern(leder), 1)} − {f(z['L'], 1)} = {f(dl, 1)}{vorher}", "≤ +5 L*", "OK" if dl <= 5 else "ABWEICHUNG",
+              f"Anteil fast schwarzer Punkte im Feld {f(dunkel * 100, 0)} %")
         zeile("S3 Licht", "L-V: Licht : Schatten der Wangen (linear) · R/G licht · R/G Schatten",
               f"{f(x['licht_schatten'])} · {f(z['RG'])} · {f(zs['RG'])}", "2,0–4,0 · ≥ 1,25 · ≥ 1,30",
               "OK" if 2.0 <= x["licht_schatten"] <= 4.0 and z["RG"] >= 1.25 and zs["RG"] >= 1.30 else "ABWEICHUNG")
@@ -422,10 +443,11 @@ def m2_gepaart(mappe):
     p = os.path.join(mappe, "messung.jsonl")
     if not os.path.exists(p):
         return
-    paar = {}
+    paar, bed = {}, {}
     for z in open(p, encoding="utf-8"):
         d = json.loads(z)
         paar.setdefault((d["name"], d.get("licht", "spiel"), d.get("wiederholung", 0)), {})[d.get("stand", 5)] = d["gpu_ms"]
+        bed.setdefault((d["name"], d.get("licht", "spiel")), []).append((d.get("last", 0) or 0, d.get("gpu_fremd", -1)))
     je = {}
     for (name, licht, wdh), st in paar.items():
         if 5 in st and 6 in st:
@@ -438,8 +460,24 @@ def m2_gepaart(mappe):
         if name == "ohne_haar" and licht == "spiel":
             ziel = "Δ ≤ +0,3 ms (S2) bzw. +0,5 ms mit weichen Schatten (S3)"
             g = 0.5
+        # Plan 5.6: gewertet nur mit protokollierter Last und freier Karte (keine fremden GPU-Prozesse); die Streuung der
+        # Paare muss unter der Grenze bleiben, sonst ist der Median nicht belastbar (Prüferbefund Etappe A)
+        b = bed.get((name, licht), [])
+        lasten = [x[0] for x in b]
+        fremd = [x[1] for x in b]
+        frei = bool(b) and all(l > 0 for l in lasten) and all(x == 0 for x in fremd)
+        streuung = (max(ds) - min(ds)) if len(ds) > 1 else 0.0
+        hinweis = f"Last {f(min(lasten), 1)}–{f(max(lasten), 1)}, fremde GPU-Prozesse {max(fremd) if fremd else '?'}, Spanne der Paare {f(streuung)} ms" if b else ""
+        if g is None:
+            st = "Stand"
+        elif not frei:
+            st = "offen (nicht belastbar: Karte nicht frei oder Last nicht protokolliert)"
+        elif streuung > g and med <= g:
+            st = "offen (Streuung der Paare über der Grenze)"
+        else:
+            st = "OK" if med <= g else "ABWEICHUNG"
         zeile("Leistung M2 gepaart", f"{name}, Licht {licht}: Stand 6 − Stand 5 (Median aus {len(ds)})", f"{'+' if med >= 0 else ''}{f(med)} ms ({', '.join(f(x) for x in ds)})",
-              ziel, ("OK" if med <= g else "ABWEICHUNG") if g is not None else "Stand")
+              ziel, st, hinweis)
 
 
 # ------------------------------------------------------------------ 6. Bild gegen Netz (M0)
