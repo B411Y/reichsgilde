@@ -6,9 +6,12 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// <summary>
 /// Fahrzeit der Karren nach Weglänge und Karrenart (Abschnitt <c>logistik.weglaenge</c>, Datenversion 65; Entscheidung des Nutzers vom 31.10.2026).
 ///
-///   • Hat die Karte Karrenstraßen, sucht der Kern einmal je Betrieb den kürzesten Weg über sie vom Platz des Betriebs zum Markt
-///     (<see cref="Karrennetz"/>, Hin- und Rückweg als Stücke mit Länge, Anstieg, Fahrbahn und Belag). Hat die Stadt mehrere Marktplätze
-///     (ein Stadtmarkt mit gemeinsamen Preisen und gemeinsamem Bestand), fährt der Karren zum nächsten (<see cref="MarktplatzVon"/>).
+///   • Hat die Karte Wege, sucht der Kern einmal je Betrieb den Weg der Karren zum Markt (<see cref="Karrennetz"/>, Hin- und Rückweg als Stücke
+///     mit Länge, Anstieg, Fahrbahn und Belag). Mit Datenversion 65 ist das dieselbe Strecke, die das Bild fährt (<see cref="Karrenweg"/>,
+///     <see cref="Karrenverlauf"/>): vom Halteplatz am Modell über den Hof und den Zubringer zum nächsten Weg, über alle Wege (Gassen und Fußwege
+///     teurer) bis zum Halt 3,5 m vor dem Pflaster, zurück denselben Weg. Vorher (alte Daten) vom nächsten Punkt einer Karrenstraße zur Mitte des
+///     Platzes, nur über Karrenstraßen. Hat die Stadt mehrere Marktplätze (ein Stadtmarkt mit gemeinsamen Preisen und gemeinsamem Bestand), fährt
+///     der Karren zum nächsten (<see cref="MarktplatzVon"/>).
 ///   • Ein Karren fährt so schnell wie seine Art (<see cref="KarrenDaten.Tempo"/>: Ochse 0,8, Handkarren 1,0, Pferd 1,3 Meter je Sekunde bei
 ///     Tempo 1, umgerechnet in Meter je Spielminute über <see cref="Zeit.Taktgeber.SekundenJeSpielminute"/>) – genau so schnell, wie man ihn
 ///     im Bild fahren sieht. Jedes Stück dauert Länge ÷ Tempo × <see cref="Zeitfaktor"/>:
@@ -31,19 +34,26 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Gerechnete Fahrzeiten je Betrieb und Karrenart (hin, zurück).</summary>
     private readonly Dictionary<Betrieb, Dictionary<string, (int Hin, int Zurueck)>> _fahrzeiten = new(ReferenceEqualityComparer.Instance);
 
-    /// <summary>Strecke je Betrieb (hin, zurück) und der Marktplatz, zu dem sie führt (null: die Karte hat keinen, dann der Ursprung).</summary>
-    private readonly Dictionary<Betrieb, (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt)> _strecken =
+    /// <summary>
+    /// Strecke je Betrieb (hin, zurück), der Marktplatz, zu dem sie führt (null: die Karte hat keinen, dann der Ursprung), und ihr Verlauf (nur mit
+    /// Datenversion 65 und einem Weg, sonst null).
+    /// </summary>
+    private readonly Dictionary<Betrieb, (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt, IReadOnlyList<Kartenort>? Punkte)> _strecken =
         new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Der Belag hat sich geändert: Die Fahrzeiten werden beim nächsten Mal neu gerechnet (die Strecken bleiben).</summary>
     internal void FahrzeitenVeraltet() => _fahrzeiten.Clear();
 
     /// <summary>
-    /// Das Netz der Karrenstraßen der Karte (null ohne Karte) – einmal gebaut, die Karte einer Partie ändert sich nicht. Marktplätze sind Kreuzungen
-    /// (<see cref="Karrennetz.Marktlinien"/>) nur mit der Fahrzeit nach Weglänge (<c>logistik.weglaenge</c>, Datenversion 65): Ein alter Spielstand
-    /// bringt seine alten Daten mit und fährt auf dem Netz, mit dem er gespeichert wurde.
+    /// Das Netz der Wege der Karte, auf denen Karren fahren (null ohne Karte) – einmal gebaut, die Karte einer Partie ändert sich nicht. Mit der
+    /// Fahrzeit nach Weglänge (<c>logistik.weglaenge</c>, Datenversion 65) sind Marktplätze Kreuzungen (<see cref="Karrennetz.Marktlinien"/>) und
+    /// Gassen, Fußwege und Leinpfade gehören dazu (teurer für die Wahl des Weges, <see cref="Karrennetz.Wegkosten"/>); vorher nur die Karrenstraßen.
+    /// Ein alter Spielstand bringt seine alten Daten mit und fährt auf dem Netz, mit dem er gespeichert wurde.
     /// </summary>
-    public Karrennetz? Karrennetz => Karte is { } k ? _karrennetz ??= Karrennetz.Von(k, marktlinien: Daten.Logistik.Weglaenge is not null) : null;
+    public Karrennetz? Karrennetz => Karte is { } k ? _karrennetz ??= Karrennetz.Von(k, marktlinien: NachWeglaengeGerechnet, alleWege: NachWeglaengeGerechnet) : null;
+
+    /// <summary>Rechnet der Kern die Fahrzeit nach Weglänge (Abschnitt <c>logistik.weglaenge</c>, Datenversion 65)? Dann auch auf derselben Strecke wie das Bild.</summary>
+    private bool NachWeglaengeGerechnet => Daten.Logistik.Weglaenge is not null;
 
     /// <summary>Die Daten dieser Karrenart, wenn der Kern ihre Fahrzeit nach der Weglänge rechnet (Abschnitt <c>logistik.weglaenge</c> und ein Tempo).</summary>
     private KarrenDaten? NachWeglaenge(string karrenTyp) =>
@@ -159,7 +169,15 @@ public sealed partial class Stadtwirtschaft
     /// Ohne Marktplatz in der Karte gilt der Ursprung (wie bis Oktober 2026).
     /// </summary>
     public (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)? Fahrten(Betrieb betrieb) =>
-        Strecke(betrieb) is var (hin, zurueck, _) ? (hin, zurueck) : null;
+        Strecke(betrieb) is var (hin, zurueck, _, _) ? (hin, zurueck) : null;
+
+    /// <summary>
+    /// Wo die Karren dieses Betriebs fahren (Datenversion 65, <see cref="Karrenweg"/>): die Punkte vom Halteplatz am Modell über Hof, Zubringer
+    /// und Wege bis zum Halt am Marktplatz (Stück i der Hinfahrt <see cref="Fahrten"/> führt von Punkt i nach Punkt i + 1; zurück dieselben
+    /// rückwärts). Für die Darstellung: Sie fährt den Karren hier, so stimmen Strecke und Fahrzeit mit dem Kern überein. Null ohne Weg (feste
+    /// Fahrzeit) und mit alten Daten (dann sucht die Darstellung den Weg selbst).
+    /// </summary>
+    public IReadOnlyList<Kartenort>? Karrenverlauf(Betrieb betrieb) => Strecke(betrieb)?.Punkte;
 
     /// <summary>
     /// Der Marktplatz, zu dem die Karren dieses Betriebs fahren (siehe <see cref="Fahrten"/>) – null ohne Karte, ohne Platz des Betriebs oder ohne
@@ -168,13 +186,14 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public Kartengebaeude? MarktplatzVon(Betrieb betrieb) => Strecke(betrieb)?.Markt;
 
-    private (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt)? Strecke(Betrieb betrieb)
+    private (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt, IReadOnlyList<Kartenort>? Punkte)? Strecke(Betrieb betrieb)
     {
         if (_strecken.TryGetValue(betrieb, out var bekannt)) return bekannt;
         if (Karte is not { } karte || Karrennetz is not { } netz || Bauen.PlatzVon(betrieb.Name) is not { } platz) return null;
+        if (NachWeglaengeGerechnet) return _strecken[betrieb] = StreckeWieImBild(betrieb, platz, karte, netz);
         var ort = new Kartenort(platz.Punkt.X, platz.Punkt.Z);
         var maerkte = karte.Marktplaetze;
-        if (maerkte.Count == 0) return _strecken[betrieb] = (netz.Fahrt(ort, default), netz.Fahrt(default, ort), null);
+        if (maerkte.Count == 0) return _strecken[betrieb] = (netz.Fahrt(ort, default), netz.Fahrt(default, ort), null, null);
         (IReadOnlyList<Fahrtstueck> Hin, Kartengebaeude? Markt, double Kosten) best = (Array.Empty<Fahrtstueck>(), null, double.MaxValue);
         foreach (var m in maerkte)
         {
@@ -183,8 +202,31 @@ public sealed partial class Stadtwirtschaft
         }
         // Kein Platz erreichbar: wie bisher die (leeren) Fahrten zum ersten – es gilt die feste Fahrzeit.
         var markt = best.Markt ?? maerkte[0];
-        return _strecken[betrieb] = (best.Markt is null ? netz.Fahrt(ort, Mitte(markt)) : best.Hin, netz.Fahrt(Mitte(markt), ort), markt);
+        return _strecken[betrieb] = (best.Markt is null ? netz.Fahrt(ort, Mitte(markt)) : best.Hin, netz.Fahrt(Mitte(markt), ort), markt, null);
+    }
 
-        static Kartenort Mitte(Kartengebaeude g) => new(g.Punkt[0], g.Punkt[1]);
+    private static Kartenort Mitte(Kartengebaeude g) => new(g.Punkt[0], g.Punkt[1]);
+
+    /// <summary>
+    /// Die Strecke ab Datenversion 65 (<see cref="Karrenweg"/>): vom Halteplatz über Hof und Zubringer und das Netz aller Wege bis zum Halt am
+    /// Marktplatz, zurück dieselbe rückwärts. Unter mehreren Plätzen der mit den kleinsten Kosten der Wegwahl bis zum Halt (bei Gleichstand der
+    /// erste der Karte); ist keiner erreichbar, der erste ohne Stücke (feste Fahrzeit). Ohne Marktplatz in der Karte zum Ursprung, ohne Halt.
+    /// </summary>
+    private (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt, IReadOnlyList<Kartenort>? Punkte) StreckeWieImBild(
+        Betrieb betrieb, Betriebsplatz platz, Stadtkarte karte, Karrennetz netz)
+    {
+        var (anker, hof) = Karrenweg.Start(platz, betrieb, karte.Katalog);
+        Netzfahrt Zum(Kartenort ziel) => Karrenweg.MitZubringer(netz.FahrtMitVerlauf(hof, ziel), anker, hof, karte.Gelaendeform);
+        var maerkte = karte.Marktplaetze;
+        (Netzfahrt Fahrt, Kartengebaeude? Markt, double Kosten) best = (Netzfahrt.Leer, null, double.MaxValue);
+        if (maerkte.Count == 0) best = (Zum(default), null, 0);
+        foreach (var m in maerkte)
+        {
+            var fahrt = Karrenweg.BisZumHalt(Zum(Mitte(m)), Karrenweg.Halt(m));
+            // (gleich weit bis auf die Rundung: der erste – der Halt wird durch Halbieren gefunden, das soll den Gleichstand nicht entscheiden)
+            if (fahrt.Stuecke.Count > 0 && Karrennetz.Kosten(fahrt.Stuecke) is var kosten && kosten < best.Kosten - 1e-9) best = (fahrt, m, kosten);
+        }
+        if (best.Fahrt.Stuecke.Count == 0) return (Array.Empty<Fahrtstueck>(), Array.Empty<Fahrtstueck>(), maerkte.Count > 0 ? maerkte[0] : null, null);
+        return (best.Fahrt.Stuecke, Karrenweg.Umgekehrt(best.Fahrt.Stuecke), best.Markt, best.Fahrt.Punkte);
     }
 }
