@@ -47,6 +47,7 @@ public sealed partial class EntwicklerAnzeige
 
         z = Zeile(s, "Blitz", "Löst einen Blitz aus, auch bei schönem Wetter. Das Licht des Blitzes gibt es in den Wettereffekten Mittel und Hoch, nicht im Innenraum.");
         Knopf(z, "Blitz auslösen", () => { _stadt.BlitzAusloesen(); Melden("Blitz."); });
+        Knopf(z, "Blitzeinschlag am Markt", () => { _stadt.BlitzEinschlag(_stadt.KlangMarktMitte + new Vector3(8, 0, 6)); Melden("Direkter Einschlag am Marktplatz (Ton: brachialer Knall; die Brandwirkung kommt später)."); }, "Ein direkter Blitzeinschlag nahe dem Marktplatz: hellster Blitz, brachiale Einschlag-Aufnahme fast ohne Verzögerung. Normale Gewitter schlagen nie so nah ein.");
 
         z = Zeile(s, "Jahreszeit", "Die Jahreszeit der Ansicht: Wiese, Laub, Äcker, Schnee. Der Kalender und die Simulation bleiben, wie sie sind.");
         var reihe2 = new HBoxContainer();

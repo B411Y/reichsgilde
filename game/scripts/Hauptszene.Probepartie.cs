@@ -44,7 +44,7 @@ public partial class Hauptszene
     private void ProbeKnopfBauen()
     {
         if (!_probepartie) return;
-        var knopf = Hauptmenue.Knopf(_menueKnoepfe, "Zurück zur Kartenwerkstatt", () => Kartenwerkstatt.ZurueckAusDerProbe(GetTree()));
+        var knopf = Hauptmenue.Knopf(_menueKnoepfe, "Zurück zur Kartenwerkstatt", () => { UmgebungAusblenden(); Kartenwerkstatt.ZurueckAusDerProbe(GetTree()); });
         knopf.TooltipText = "Die Probepartie endet; die Karte ist in der Werkstatt, wie sie war – mit Rückgängig und Kamera.";
     }
 }

@@ -49,6 +49,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Darstellung) Spielt jemand mit einer anderen Rundendauer als 15 Minuten, fahren die Karren im Bild entsprechend schneller oder langsamer als 1 m/s (der Kern rechnet fest mit 15 Minuten, damit die Wirtschaft nicht von der Einstellung abhängt).
 - Ein Betrieb, dessen Platz am selben Knoten des Karrennetzes hängt wie der Markt, bekommt die feste Fahrzeit statt der Mindestdauer (`Karrennetz.Fahrt` gibt dann wie ohne Verbindung keine Stücke zurück). Auf Greybox, Köln und Probestadt kommt das nicht vor.
 - (Balancing, Teamleiter) Köln mit drei Marktplätzen: Spieler 33.919 (Ziel erreicht), KI-Häuser nach 20 Jahren Ø 57.238 statt 73.589 (−22 %, wie die Greybox mit der Fahrzeit nach Weglänge: 79.030 → 61.624). Grund ist das Umland (286–369 m vom nächsten Platz, 28 von 42 Fahrten an der Höchstdauer 360). Hebel, falls die KI höher soll: Umlandbetriebe näher an die Tore (leveldesign) oder eine Grenze nur fürs Umland (nicht gewählt). WIRTSCHAFTSMODELL, „Mehrere Marktplätze“.
+- (von sound) Blitzeinschlag → Gebäudebrand: Die Andockstelle `Stadtansicht.BlitzEinschlag(Vector3 ort)` gibt es (Blitz, brachialer Knall); ein direkter Einschlag in ein Gebäude in oder um die Stadt soll später das Haus in Brand setzen. Die Spielmechanik (wann schlägt es ein, wo, Brand, Schaden) fehlt im Kern; Auslöser zum Ausprobieren: Entwicklerfenster „Blitzeinschlag am Markt“ oder `--einschlag=<Sekunden>`.
 
 ## Entscheidungen
 

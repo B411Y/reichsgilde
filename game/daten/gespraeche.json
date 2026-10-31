@@ -1,0 +1,23 @@
+{
+  "hinweis": "Gesprächsfetzen der Umgebung (Ton): je Anlass die Aufnahmen unter game/assets/audio/umgebung/rufe/ (Pfad ohne Endung .ogg). Diese Liste ersetzt beim Start die Voreinstellung im Code; Einträge ohne Aufnahme werden übersprungen, ein Anlass braucht mindestens eine. Anlässe: markt (Gruppe steht am Markt: feilschen, plaudern) und gasse (sonst). Später können hier die Gesprächsrunden der Stimm-KI stehen: Aufnahmen in einen neuen Ordner legen, hier eintragen, den Code nicht anfassen. Die Aufnahmen sind kurz (2 bis 4 s), mono, etwa -20 LUFS, Sprache nicht verständlich.",
+  "anlaesse": {
+    "gasse": [
+      "gespraeche/gasse/gasse_1",
+      "gespraeche/gasse/gasse_2",
+      "gespraeche/gasse/gasse_3",
+      "gespraeche/gasse/gasse_4",
+      "gespraeche/gasse/gasse_5",
+      "gespraeche/gasse/gasse_6",
+      "gespraeche/gasse/gasse_7",
+      "gespraeche/gasse/gasse_8"
+    ],
+    "markt": [
+      "gespraeche/markt/markt_1",
+      "gespraeche/markt/markt_2",
+      "gespraeche/markt/markt_3",
+      "gespraeche/markt/markt_4",
+      "gespraeche/markt/markt_5",
+      "gespraeche/markt/markt_6"
+    ]
+  }
+}
