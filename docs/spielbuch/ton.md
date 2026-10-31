@@ -65,7 +65,7 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 | Schmiede oder Steinmetzhütte arbeitet (8–20 Uhr) | fernes Hämmern aus der Richtung des Betriebs |
 | Fokus auf Wiese, Feld, Wald | Stadt verklingt; Vögel, Grillen (Sommer, abends), Krähen (Winter, Herbst), Laubrauschen im Wald, im Wind stärker |
 | am Wasser (Fluss, Bach, Teich) | Plätschern; im Frühling abends und nachts Frösche |
-| Regen | Regen auf Boden und Laub (leicht oder Guss), nah an der Stadt Tropfen auf den Dächern; Vögel schweigen, die Stadt wird dumpf und leiser |
+| Regen | Regen im Freien auf Gras, Erde und Pflaster (leicht oder Guss, stärker mit der Regenstärke) als Hauptgeräusch; ganz nah an Häusern kommen Regen auf Ziegeldächern und das Tropfen aus den Dachrinnen dazu; Vögel schweigen, die Stadt wird dumpf und leiser |
 | Gewitter | Der Donner folgt jedem Blitz mit der Verzögerung des Schalls (etwa 3 Sekunden je Kilometer): nah ein scharfer Knall mit langem Rollen, sehr laut; je weiter weg, desto später, leiser und dumpfer (nur tiefes Grollen); ab etwa 18 km nur noch Wetterleuchten ohne Donner. Der Blitz ist im Bild umso heller, je näher er einschlägt. Normale Blitze schlagen nie näher als etwa einen Kilometer ein (kräftiger, aber nicht brachialer Donner). Das Gewitter zieht heran (Regen und Böen nehmen zu, die Blitze rücken näher), geht über die Stadt und zieht weiter |
 | Direkter Blitzeinschlag in ein Gebäude (später mit Brand; jetzt nur über das Entwicklerfenster oder `--einschlag=<Sekunden>`) | hellster Blitz und ein brachialer Knall fast ohne Verzögerung, deutlich lauter als jeder normale Donner |
 | Schnee | **Schneestille**: alles leiser und dumpfer, Vögel kaum |
@@ -88,7 +88,7 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 - **Gespräche austauschbar:** Welche Aufnahmen als Gesprächsfetzen klingen, steht in `game/daten/gespraeche.json` (Anlass → Dateien). Später können hier Gesprächsrunden der Stimm-KI stehen, ohne den Code anzufassen.
 - Hat das Fenster den Fokus verloren und ist „Ton im Hintergrund stumm“ an, ist alles still, und es kommen keine Rufe.
 
-Die Klänge sind Aufnahmen von freesound.org (CC0, und für Frösche, Regen und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
+Die Klänge sind Aufnahmen von freesound.org (CC0, und für Glocke, Frösche und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
 
 ## Ausprobieren
 

@@ -221,33 +221,6 @@
    "lizenz": "CC BY 4.0",
    "lizenz_geprueft": "2026-10-31"
   },
-  "836064": {
-   "urheber": "newlocknew",
-   "titel": "RAINVege_Summer Rain.Garden.Under The Apple Tree.Drops On Leaves,Grass,Metal Roof,Barbeque 1_EM",
-   "seite": "https://freesound.org/people/newlocknew/sounds/836064/",
-   "vorschau": "https://cdn.freesound.org/previews/836/836064_5828667-hq.ogg",
-   "sha256": "3d301297098d394ecb4c051f0cc8c09f0b04bb4adf08d0d3b0505f7c299a8c82",
-   "lizenz": "CC BY 4.0",
-   "lizenz_geprueft": "2026-10-31"
-  },
-  "213329": {
-   "urheber": "LolitaPerdurabo",
-   "titel": "Rain-On-The-Roof.wav",
-   "seite": "https://freesound.org/people/LolitaPerdurabo/sounds/213329/",
-   "vorschau": "https://cdn.freesound.org/previews/213/213329_1854719-hq.ogg",
-   "sha256": "1737d6de2d68d2266fd72fce15ba71dd9917ecde80e742517ab12ac9dd8b7dc2",
-   "lizenz": "CC BY 4.0",
-   "lizenz_geprueft": "2026-10-31"
-  },
-  "184627": {
-   "urheber": "Erbsland-Music",
-   "titel": "Heavy Rain in the Night on Roof and Window",
-   "seite": "https://freesound.org/people/Erbsland-Music/sounds/184627/",
-   "vorschau": "https://cdn.freesound.org/previews/184/184627_522747-hq.ogg",
-   "sha256": "01fb068d9899bee8f7f38956c9185c8fca0d781d05c7c884aae36711f2464981",
-   "lizenz": "CC BY 4.0",
-   "lizenz_geprueft": "2026-10-31"
-  },
   "326313": {
    "urheber": "ivolipa",
    "titel": "Tavern_Ambience_Inside_Laughter.WAV",
@@ -346,6 +319,51 @@
    "sha256": "d074f8a26a3940fc1aab82dc7f7592c72e24990c5482dc8536e15a2026c89833",
    "lizenz": "CC BY 4.0",
    "lizenz_geprueft": "2026-10-31"
+  },
+  "399277": {
+   "urheber": "Mjeno",
+   "titel": "Rain in garden",
+   "seite": "https://freesound.org/people/Mjeno/sounds/399277/",
+   "vorschau": "https://cdn.freesound.org/previews/399/399277_3958938-hq.ogg",
+   "sha256": "b6a2fd12fb6693913a1d2ff089bfcee047eb02d36d23b13ec932c11ee54e3be8",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "405630": {
+   "urheber": "Anthousai",
+   "titel": "2017 september - rain - the end of a rainstorm.wav",
+   "seite": "https://freesound.org/people/Anthousai/sounds/405630/",
+   "vorschau": "https://cdn.freesound.org/previews/405/405630_5923045-hq.ogg",
+   "sha256": "f8bb63d16dfb2b539e057df4899a32ecb8f1975ba3bcca97b09fc4b1112c71e3",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "466241": {
+   "urheber": "richwise",
+   "titel": "Soft rain on a tile roof",
+   "seite": "https://freesound.org/people/richwise/sounds/466241/",
+   "vorschau": "https://cdn.freesound.org/previews/466/466241_1481531-hq.ogg",
+   "sha256": "ebca2fe8b072087173333058971bb3f01ffba7430c69455a3ea5fa0e06358f2d",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "622847": {
+   "urheber": "ankealtd",
+   "titel": "sn_heavy-rain-and-eaves-drip_1",
+   "seite": "https://freesound.org/people/ankealtd/sounds/622847/",
+   "vorschau": "https://cdn.freesound.org/previews/622/622847_2253220-hq.ogg",
+   "sha256": "afd3fc059899ee91fb2543bee39e4fbd2b1113fa89559207d1b2d5bf0da3654e",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "812615": {
+   "urheber": "Alex_hears_things",
+   "titel": "Heavy Rain Downpour",
+   "seite": "https://freesound.org/people/Alex_hears_things/sounds/812615/",
+   "vorschau": "https://cdn.freesound.org/previews/812/812615_2309965-hq.ogg",
+   "sha256": "396f9819337d99a637d7e0793e109afc1026ab2d4e158495f5e6e34b4cf7f250",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
   }
  },
  "dateien": [
@@ -353,10 +371,50 @@
    "name": "stadt_tag",
    "art": "schicht",
    "quelle": "469700",
-   "folge": [[1.0, 59.0], [33.0, 47.5], [5.0, 19.5], [46.5, 61.0], [19.0, 33.5], [27.0, 41.5], [39.0, 53.5]],
+   "folge": [
+    [
+     1.0,
+     59.0
+    ],
+    [
+     33.0,
+     47.5
+    ],
+    [
+     5.0,
+     19.5
+    ],
+    [
+     46.5,
+     61.0
+    ],
+    [
+     19.0,
+     33.5
+    ],
+    [
+     27.0,
+     41.5
+    ],
+    [
+     39.0,
+     53.5
+    ]
+   ],
    "uebergang": 1.5,
    "hp": 80,
-   "absenken": [[14.4, 15.1, -7.0], [25.7, 26.2, -7.0]],
+   "absenken": [
+    [
+     14.4,
+     15.1,
+     -7.0
+    ],
+    [
+     25.7,
+     26.2,
+     -7.0
+    ]
+   ],
    "blende": 3.0,
    "zweck": "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei in der autofreien Altstadt von Fes); 133 s aus sieben Stücken der 61-s-Quelle, damit kein 53-s-Takt hörbar ist, zwei herausstehende Stimmen 7 dB leiser"
   },
@@ -770,7 +828,24 @@
    "name": "natur_grillen",
    "art": "schicht",
    "quelle": "203598",
-   "folge": [[8.0, 28.0], [40.0, 58.0], [68.0, 88.0], [98.0, 138.0]],
+   "folge": [
+    [
+     8.0,
+     28.0
+    ],
+    [
+     40.0,
+     58.0
+    ],
+    [
+     68.0,
+     88.0
+    ],
+    [
+     98.0,
+     138.0
+    ]
+   ],
    "uebergang": 1.5,
    "hp": 800,
    "blende": 3.0,
@@ -799,35 +874,64 @@
   {
    "name": "regen_leicht",
    "art": "schicht",
-   "quelle": "836064",
-   "von": 60.0,
-   "bis": 150.0,
-   "hp": 100,
+   "quelle": "399277",
+   "von": 2.0,
+   "bis": 58.0,
+   "hp": 120,
    "blende": 4.0,
-   "zweck": "Leichter Regen auf Laub und Gras (Garten unter einem Apfelbaum)",
-   "begrenzer": -9.0
+   "zweck": "Regen draußen im Garten: Tropfen auf Gras und Erde (Hauptschicht bei Regen)"
   },
   {
    "name": "regen_stark",
    "art": "schicht",
-   "quelle": "184627",
-   "von": 5.0,
-   "bis": 135.0,
-   "hp": 150,
+   "mix": [
+    {
+     "quelle": "405630",
+     "von": 14.0,
+     "bis": 58.0,
+     "hp": 150,
+     "tp": 10000,
+     "ein": 0.0,
+     "aus": 0.0,
+     "versatz": 0.0,
+     "db": -2.0
+    },
+    {
+     "quelle": "812615",
+     "von": 0.5,
+     "bis": 44.5,
+     "hp": 100,
+     "tp": 7000,
+     "ein": 0.0,
+     "aus": 0.0,
+     "versatz": 0.0,
+     "db": 0.0
+    }
+   ],
    "blende": 4.0,
-   "zweck": "Starker Regen, Guss auf Dach und Fenster (Nacht)",
+   "zweck": "Starker Regen im Freien: Guss auf Laub, Gras und Boden (Oregon) mit Körper von Backsteinboden und Tropfen (Brisbane); Hauptschicht bei starkem Regen",
    "begrenzer": -9.0
   },
   {
    "name": "regen_dach",
    "art": "schicht",
-   "quelle": "213329",
-   "von": 60.0,
-   "bis": 125.0,
-   "hp": 200,
-   "tp": 9000,
+   "quelle": "466241",
+   "von": 100.0,
+   "bis": 190.0,
+   "hp": 180,
+   "tp": 8000,
    "blende": 4.0,
-   "zweck": "Regen auf einem Dach mit Wind, nah in der Stadt (herangezoomt)"
+   "zweck": "Regen auf einem Ziegeldach (vom Dachboden aufgenommen), nur nahe an Häusern"
+  },
+  {
+   "name": "regen_traufe",
+   "art": "schicht",
+   "quelle": "622847",
+   "von": 0.3,
+   "bis": 19.7,
+   "hp": 400,
+   "blende": 3.0,
+   "zweck": "Wasser tropft und läuft aus der Dachrinne: nur ganz nah an Häusern bei Regen"
   },
   {
    "name": "schenke_innen",
