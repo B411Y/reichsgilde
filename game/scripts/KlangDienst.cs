@@ -169,26 +169,14 @@ public partial class KlangDienst : Node
             var index = AudioServer.GetBusIndex(bus);
             var fehler = index < 0 ? "fehlt"
                 : AudioServer.GetBusSend(index) != ziel ? $"sendet an „{AudioServer.GetBusSend(index)}“ statt „{ziel}“"
-                : panner && !EffektIst<AudioEffectPanner>(index, 0) ? "hat keinen Panner als Effekt 0"
-                : !EffektIst<AudioEffectLowPassFilter>(index, panner ? 1 : 0) ? "hat keinen Tiefpass"
+                : panner && AudioServer.GetBusEffect(index, 0) is not AudioEffectPanner ? "hat keinen Panner als Effekt 0"
+                : AudioServer.GetBusEffect(index, panner ? 1 : 0) is not AudioEffectLowPassFilter ? "hat keinen Tiefpass"
                 : null;
             if (fehler is null) continue;
             GD.PushWarning($"KlangDienst: Unterbus „{bus}“ {fehler} (default_bus_layout.tres) – die Umgebung klingt dann nicht wie geplant.");
             gut = false;
         }
         return gut;
-    }
-
-    /// <summary>
-    /// Hat der Bus an dieser Stelle einen Effekt dieser Art? Die C#-Hülle des Effekts wird sofort freigegeben: Im exportierten Spiel läuft beim Beenden keine
-    /// Speicherbereinigung, übrig gebliebene Hüllen melden sonst „resources still in use at exit“ (Rauchtest der CI).
-    /// </summary>
-    private static bool EffektIst<T>(int bus, int stelle) where T : AudioEffect
-    {
-        var effekt = AudioServer.GetBusEffect(bus, stelle);
-        var ja = effekt is T;
-        effekt?.Dispose();
-        return ja;
     }
 
     /// <summary>Ist das Fenster im Hintergrund und darum der Ton stumm („Ton im Hintergrund stumm“)? Die Umgebung hält dann ihre Rufe an.</summary>
@@ -259,6 +247,14 @@ public partial class KlangDienst : Node
             schleife.Spieler.Stream = null;
         }
         _schleifen.Clear();
+        // Alle übrigen Spieler anhalten und dem Audio-Faden einen Augenblick lassen: Godot räumt gestoppte Wiedergaben erst im Mischer ab (nach einem kurzen
+        // Ausblenden). Endet das Programm davor, bleiben die Klänge „in Benutzung“ (Rauchtest der CI: leaked at exit).
+        foreach (var spieler in GetChildren().OfType<AudioStreamPlayer>())
+        {
+            spieler.Stop();
+            spieler.Stream = null;
+        }
+        OS.DelayMsec(150);
     }
 
     // ── Fokus ───────────────────────────────────────────────────────────────
