@@ -370,12 +370,20 @@ S2/S3-Bögen), Vergleichsblatt `vergleich_a0_a1.png` (A0 | A1 | Fotovorlage).
 | Bild dünn = dicht ≤ 1/255, Normalen < 1e-3 | ≤ 0,03/255; 1,0e-4 | `s2_duenn`, `duenn_vergleich.json` |
 | Ultra ohne grauen SSS-Saum | kein Saum sichtbar (Stand 6 Ultra, K4 und N1) | `s2_ultra` |
 | keine SCRIPT- oder SHADER-ERROR | keine in allen A1-Läufen | `A1/logs/` |
-| M2 gepaart Hoch ohne Haar Δ ≤ +0,3 ms (S2) | M2_S2 | `A1/messung.jsonl` (Licht spiel5) |
+| M2 gepaart Hoch ohne Haar Δ ≤ +0,3 ms (S2) | +0,07 ms (Licht spiel5, Median aus 3: −0,47 / +0,43 / +0,07) | `A1/messung.jsonl` (Licht spiel5) |
 | L-V: Licht : Schatten 2–4, R/G ≥ 1,25 / 1,30 | **1,15; 1,11 / 1,14 – nicht erreicht** (Fülllicht L-V, AgX) | `p01_alter_ton_k1_lv`, `s3_probe_ls` |
 | L-S: dieselben Verhältnisse ±20 % | 1,40 (+22 %), R/G 1,13 / 1,21 (+2 / +6 %) | `p01_alter_ton_k1_ls` |
 | kein Fleck vor dem Ohr (¾, L-S) | keiner | `p01_alter_ton_k2_ls` |
-| M2 Hoch Δ ≤ +0,5 ms (mit weichen Schatten) | M2_S3 | `A1/messung.jsonl` |
+| M2 Hoch Δ ≤ +0,5 ms (mit weichen Schatten) | ohne Haar −0,96 ms (spiel), +0,22 ms mit Winkelgröße 3° (spiel6_weich); **TressFX in Ruhe +2,92 ms unter spiel – nicht belastbar** (unter spiel5 −0,07, unter spiel6_weich +0,17; T400 geteilt, siehe unten) | `A1/messung.jsonl` |
 | Prüfmappe A mit P1, P3, P7, P10, P11, M1, M2 | vollständig | `A1/` |
+
+- **M2 (Hoch, 1280 × 720, gepaart Stand 5/6 im selben Prozess, je 3 Wiederholungen):** Die T400 war nicht frei
+  (`GPU_ANDERE=0` nach 15 min Wartezeit nicht erreicht, zeitweise zwei fremde Vulkan-Prozesse; einzelne Läufe mit
+  300 ms für TressFX). S2 allein (beide Stände unter dem Licht der Phase 5) kostet nichts Messbares, das Licht der S3
+  mit Winkelgröße +0,2 ms. Der Ausreißer +2,9 ms für TressFX unter „spiel“ (Schattenweichzeichnung) steht gegen +0,2 ms
+  derselben Haare unter „spiel6_weich“; er wird bei freier Karte wiederholt (offen).
+- **Vergleichsblatt** `A1/vergleich_a0_a1.png`: Mann und Frau 35 (hell, H1, Vorlagen `h_m35_hell`, `h_w35_hell`) und
+  70 (mittel, H2, `a_m70`, `a_w70`), P1 K1 unter L-V – die Vorlagen mit 35 Jahren gibt es nur hell und dunkler.
 
 ### Testanleitung S2/S3
 
