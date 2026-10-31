@@ -1159,7 +1159,7 @@ public partial class Stadtansicht
                 else return false;
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } klick:
-                LinksDruecken(klick.Position, klick.DoubleClick);
+                LinksDruecken(klick.Position, klick.DoubleClick, klick.CtrlPressed);
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
                 ZiehenBeenden();
@@ -1185,11 +1185,12 @@ public partial class Stadtansicht
         return false;
     }
 
-    /// <summary>Linke Maustaste: was sie tut, sagt das Werkzeug.</summary>
-    private void LinksDruecken(Vector2 maus, bool doppelklick)
+    /// <summary>Linke Maustaste: was sie tut, sagt das Werkzeug (Gelände- und Bodenpinsel: mit Strg die Pipette).</summary>
+    private void LinksDruecken(Vector2 maus, bool doppelklick, bool strg = false)
     {
         if (_entwurf is null) return;
         var boden = BodenpunktBei(maus);
+        if (Kartenwerkzeug is Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Boden && PipetteKlick(boden, strg)) return; // Stadtansicht.Kartenwerkstatt.Gelaende.cs
         switch (Kartenwerkzeug)
         {
             case Werkstattwerkzeug.Baustein when WerkstattBaustein is { } katalog:
