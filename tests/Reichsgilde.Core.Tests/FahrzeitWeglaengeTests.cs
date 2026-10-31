@@ -44,7 +44,8 @@ static class FahrzeitWeglaengeTests
         var v = l.Karren[typ].Tempo * MeterJeMinuteBei1;
         var steigung = w.Karte!.Gelaendeform.HatHoehen ? l.Steigung : null;
         var minuten = fahrt.Sum(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * (w.Wegebau.IstAktiv ? w.Wegebau.Faktor(s) : 1)) / v;
-        if (w.Karte.Wasserplan.HaeltAuf && l.Wasser is { } wasser) minuten += wasser.Aufschlag(fahrt);
+        // Furten und Fähren: mit Datenversion 65 hält auch eine Furt an einer Gasse oder einem Fußweg auf (Netz aller Wege)
+        if ((w.Karte.Wasserplan.HaeltAuf || w.Karte.Wasserplan.Querungen.Any(q => q.Art == Uebergangsart.Furt)) && l.Wasser is { } wasser) minuten += wasser.Aufschlag(fahrt);
         var gerundet = Math.Max(1, (int)Math.Round(minuten, MidpointRounding.AwayFromZero));
         return Math.Clamp(gerundet, l.Weglaenge!.MindestMinuten, l.Weglaenge.HoechstMinuten);
     }

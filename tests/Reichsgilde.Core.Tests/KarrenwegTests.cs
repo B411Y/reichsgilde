@@ -203,6 +203,28 @@ static class KarrenwegTests
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
             json["logistik"]!.AsObject().Remove("weglaenge");
             var alt = Wirtschaftsdaten.AusJson(json.ToJsonString());
+            // Werte des Codes vor der gemeinsamen Strecke (Stand 1f0e80ad, dieselben Daten ohne weglaenge; an den Karrenstraßen beider Karten hat sich
+            // nichts geändert): Länge hin und zurück bitgenau, Fahrzeit Handkarren hin und Ochsenkarren zurück
+            var alterCode = new (string Karte, string Betrieb, double Hin, double Zurueck, int Hand, int Ochse)[]
+            {
+                ("greybox", "Gießerei Eisenbart", 22, 22, 30, 30), ("greybox", "Gießerei am Weinmarkt", 24.416407864998735, 24.41640786499874, 30, 30),
+                ("greybox", "Grube Eisenbart", 98.08644811766285, 98.08644811766275, 120, 120), ("greybox", "Holzschlag Eichwald", 114.74983589514886, 114.74983589514898, 120, 120),
+                ("greybox", "Maurerei Kieselbach", 89, 89, 30, 30), ("greybox", "Steinbruch Kieselbach", 136.4186281064889, 136.4186281064889, 120, 120),
+                ("greybox", "Tischlerei Eichwald", 22, 22, 30, 30), ("probestadt", "Gießerei Brendel", 32, 32, 30, 30),
+                ("probestadt", "Gießerei am Werkstattplatz", 30, 30, 30, 30), ("probestadt", "Tischlerei Ahlbeck", 32, 32, 30, 30),
+            };
+            foreach (var kennung in new[] { "greybox", "probestadt" })
+            {
+                var w = Partie(kennung, alt);
+                var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }).OrderBy(b => b.Name, StringComparer.Ordinal).ToList();
+                var erwartet = alterCode.Where(x => x.Karte == kennung).ToList();
+                Pruefe.Gleich(string.Join(", ", erwartet.Select(x => x.Betrieb)), string.Join(", ", mitWeg.Select(b => b.Name)), kennung);
+                foreach (var (b, x) in mitWeg.Zip(erwartet))
+                {
+                    var (hin, zurueck) = w.Fahrten(b)!.Value;
+                    Pruefe.Gleich((x.Hin, x.Zurueck, x.Hand, x.Ochse), (hin.Sum(s => s.Laenge), zurueck.Sum(s => s.Laenge), w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
+                }
+            }
             foreach (var kennung in Karten)
             {
                 var w = Partie(kennung, alt);
@@ -221,6 +243,113 @@ static class KarrenwegTests
                     Pruefe.Gleich(null, w.Karrenverlauf(b), $"{kennung}/{b.Name}: mit alten Daten sucht die Darstellung den Weg selbst");
                 }
             }
+        }),
+
+        ("Karrenweg: Randfälle – Start im Haltquadrat hält sofort (Länge 0), Quadrat nie betreten bleibt, Rand genau auf einem Punkt, Zubringer mit Anker am Hof", () =>
+        {
+            var halt = (Mitte: new Kartenort(0, 0), DrehungGrad: 0.0, Halb: 15.5);
+            Netzfahrt Fahrt(params (double X, double Z)[] p) => new(
+                p.Zip(p.Skip(1)).Select(x => new Fahrtstueck(new Kartenort(x.First.X, x.First.Z).Abstand(new Kartenort(x.Second.X, x.Second.Z)), 1)).ToList(),
+                p.Select(x => new Kartenort(x.X, x.Z)).ToList());
+            // Start im Quadrat (ein Betrieb am Platz): sofort am Halt – ein Stück der Länge 0, kein Umweg zur Mitte
+            var drin = Karrenweg.BisZumHalt(Fahrt((14, 0), (14, 30), (0, 30), (0, 0)), halt);
+            Pruefe.Gleich(1, drin.Stuecke.Count);
+            Pruefe.Gleich((0.0, 0.0), (drin.Stuecke[0].Laenge, drin.Stuecke[0].Anstieg));
+            Pruefe.Gleich(2, drin.Punkte.Count);
+            Pruefe.Wahr(drin.Punkte.All(p => p == new Kartenort(14, 0)), "am Start");
+            // nie im Quadrat: bleibt
+            var aussen = Fahrt((-40, 20), (40, 20));
+            Pruefe.Wahr(ReferenceEquals(aussen, Karrenweg.BisZumHalt(aussen, halt)), "unverändert");
+            // der Rand genau auf einem Punkt: das Stück dahinter fällt weg, die Fahrt endet dort
+            var rand = Karrenweg.BisZumHalt(Fahrt((0, 40), (0, 15.5), (0, 0)), halt);
+            Pruefe.Gleich(1, rand.Stuecke.Count);
+            Pruefe.Gleich(24.5, rand.Stuecke[0].Laenge);
+            Pruefe.Gleich(new Kartenort(0, 15.5), rand.Punkte[^1]);
+            // anteilig: Länge und Anstieg im selben Verhältnis
+            var teil = Karrenweg.BisZumHalt(Fahrt((0, 40), (0, 0)), halt);
+            Pruefe.Ungefaehr(24.5, teil.Stuecke.Single().Laenge, 1e-9);
+            Pruefe.Ungefaehr(24.5 / 40, teil.Stuecke.Single().Anstieg, 1e-9);
+            Pruefe.Ungefaehr(15.5, Karrenweg.Randabstand(teil.Punkte[^1], halt), 1e-9);
+            // ein gedrehter Platz: das Quadrat dreht mit
+            var gedreht = (Mitte: new Kartenort(0, 0), DrehungGrad: 45.0, Halb: 15.5);
+            Pruefe.Ungefaehr(15.5 * Math.Sqrt(2), Karrenweg.BisZumHalt(Fahrt((40, 0), (0, 0)), gedreht).Punkte[^1].X, 1e-6);
+            // Zubringer: Anker am Hof – nur das Stück vom Hof zum Weg; Hof auf dem Weg – nur Anker → Hof; ohne Fahrt leer
+            var flach = Stadtkarte.AusDatei(Datenpfad.Karte("probestadt")).Gelaendeform;
+            var netz = Fahrt((0, 0), (10, 0));
+            var z1 = Karrenweg.MitZubringer(netz, new Kartenort(0, 5), new Kartenort(0, 5), flach);
+            Pruefe.Gleich((2, 3), (z1.Stuecke.Count, z1.Punkte.Count));
+            Pruefe.Gleich(5.0, z1.Stuecke[0].Laenge);
+            Pruefe.Gleich(-1, z1.Stuecke[0].Weg);
+            var z2 = Karrenweg.MitZubringer(netz, new Kartenort(-4, 0), new Kartenort(0, 0), flach);
+            Pruefe.Gleich((2, 3), (z2.Stuecke.Count, z2.Punkte.Count));
+            Pruefe.Gleich(0, Karrenweg.MitZubringer(Netzfahrt.Leer, new Kartenort(0, 5), new Kartenort(0, 5), flach).Stuecke.Count);
+            // dieselbe Fahrt rückwärts
+            var rueck = Karrenweg.Umgekehrt(new[] { new Fahrtstueck(3, 1), new Fahrtstueck(4, -2, Fahrbahn.Furt) });
+            Pruefe.Gleich((4.0, 2.0, Fahrbahn.Furt, 3.0, -1.0), (rueck[0].Laenge, rueck[0].Anstieg, rueck[0].Art, rueck[1].Laenge, rueck[1].Anstieg));
+        }),
+
+        ("Karrenweg: Halteplatz und Hof wie im Bild – Drehung, Maßstab und Versatz (Umland: Modell mit Versatz und Maßstab; Werkstatt: Modell ohne Maßstab, Hof mit)", () =>
+        {
+            // ein Umlandbaustein mit Versatz und eigenem Anker, vor die Grube in den Katalog gesetzt
+            const string grube = "{\"kennung\": \"grube\", \"art\": \"umlandbetrieb\",";
+            const string test = "{\"kennung\": \"testgrube\", \"art\": \"umlandbetrieb\", \"name\": \"Testgrube\", \"modell\": \"umland/grube\", " +
+                                "\"betriebsart\": \"Mine\", \"groesse\": [16, 14], \"versatz\": [1, 2], \"karrenAnker\": [3, 4]},\n    ";
+            var katalog = Gebaeudekatalog.AusJson(File.ReadAllText(Path.Combine(Spielordner, "daten", "katalog.json")).Replace(grube, test + grube));
+            Pruefe.Wahr(katalog.Finde("testgrube") is not null, "Testbaustein im Katalog");
+            var karte = Stadtkarte.AusJson("""
+                { "format": 2, "kennung": "lage", "stadt": "Lage", "raster": 2.0, "wege": [ { "name": "Weg", "klasse": "land", "linie": [[-100, 60], [100, 60]] } ],
+                  "gebaeude": [ { "kennung": "U", "katalog": "testgrube", "name": "U", "betrieb": "Testgrube U", "punkt": [10, 20], "drehung": 30, "massstab": 1.5 },
+                                { "kennung": "W", "katalog": "werkstattplatz", "name": "W", "punkt": [-20, 5], "drehung": 250, "massstab": 1.5 } ] }
+                """, katalog);
+            // unabhängig wie Godot gerechnet: Basis(Vector3.Up, θ) * (x, 0, z) = (x cos θ + z sin θ, −x sin θ + z cos θ)
+            static (double X, double Z) Dreh(double x, double z, double grad)
+            {
+                var t = grad * Math.PI / 180;
+                return (x * Math.Cos(t) + z * Math.Sin(t), -x * Math.Sin(t) + z * Math.Cos(t));
+            }
+            var w = Partie("greybox");
+            var umland = w.Betriebe.First(b => !b.InDerStadt && b.Art == Betriebsart.Mine);
+            var werkstatt = w.Betriebe.First(b => b.InDerStadt && b.Artdaten.Beruf == "Schmied");
+            // Umland: Ursprung = Punkt + Dreh(Versatz · m), Anker = Ursprung + Dreh(Anker · m) (ModellLage · Anker_Karren); Hof = Anker
+            var (anker, hof) = Karrenweg.Start(new Betriebsplatz(umland.Name, karte.GebaeudeMit("U")!, null), umland, karte.Katalog);
+            var (vx, vz) = Dreh(1 * 1.5, 2 * 1.5, 30);
+            var (ax, az) = Dreh(3 * 1.5, 4 * 1.5, 30);
+            Pruefe.Ungefaehr(10 + vx + ax, anker.X, 1e-9);
+            Pruefe.Ungefaehr(20 + vz + az, anker.Z, 1e-9);
+            Pruefe.Gleich(anker, hof);
+            // Werkstatt: das Modell des Berufs ungedreht in der Mitte, ohne Maßstab (WerkstattBauen); der Hof 0,5 m vor der Vorderkante der Fläche mit Maßstab (Platz.Hof)
+            (anker, hof) = Karrenweg.Start(new Betriebsplatz(werkstatt.Name, karte.GebaeudeMit("W")!, null), werkstatt, karte.Katalog);
+            var schmied = katalog.Werkstatt("Schmied")!.KarrenAnker!;
+            (ax, az) = Dreh(schmied[0], schmied[1], 250);
+            var (hx, hz) = Dreh(0, 14 * 1.5 / 2 - 0.5, 250);
+            Pruefe.Ungefaehr(-20 + ax, anker.X, 1e-9);
+            Pruefe.Ungefaehr(5 + az, anker.Z, 1e-9);
+            Pruefe.Ungefaehr(-20 + hx, hof.X, 1e-9);
+            Pruefe.Ungefaehr(5 + hz, hof.Z, 1e-9);
+        }),
+
+        ("Karrenweg: Liegt der Hof näher am Pflaster als am nächsten Weg, fährt der Karren wie im Bild gerade zum Platz und hält davor", () =>
+        {
+            var karte = Stadtkarte.AusJson("""
+                { "format": 2, "kennung": "platz", "stadt": "Platz", "raster": 2.0,
+                  "wege": [ { "name": "Nordstraße", "klasse": "haupt", "linie": [[-100, 40], [100, 40]] } ],
+                  "gebaeude": [ { "kennung": "Markt", "katalog": "markt", "name": "Markt", "punkt": [0, 0] } ] }
+                """, Katalog.Value);
+            var netz = Karrennetz.Von(karte, alleWege: true);
+            Pruefe.Ungefaehr(20, netz.AbstandZumWeg(new Kartenort(0, 20))!.Value, 1e-9);
+            Pruefe.Ungefaehr(8, Karrenweg.Pflasterabstand(new Kartenort(0, 20), karte.Marktplaetze[0]), 1e-9);
+            Pruefe.Ungefaehr(Math.Sqrt(3 * 3 + 4 * 4), Karrenweg.Pflasterabstand(new Kartenort(15, 16), karte.Marktplaetze[0]), 1e-9); // an der Ecke
+            // Hof (0 | 20): 8 m zum Pflaster, 20 m zur Straße – über das Pflaster, vom Anker (5 | 20) über den Hof bis zum Halt bei z = 15,5
+            var nah = Karrenweg.UeberDasPflaster(new Kartenort(5, 20), new Kartenort(0, 20), karte.Marktplaetze, netz.AbstandZumWeg(new Kartenort(0, 20)), karte.Gelaendeform);
+            Pruefe.Wahr(nah is not null, "über das Pflaster");
+            Pruefe.Wahr(ReferenceEquals(nah!.Value.Markt, karte.Marktplaetze[0]), "zum Markt");
+            Pruefe.Ungefaehr(5 + 4.5, nah.Value.Fahrt.Stuecke.Sum(x => x.Laenge), 1e-6);
+            Pruefe.Ungefaehr(15.5, nah.Value.Fahrt.Punkte[^1].Z, 1e-6);
+            // Hof (0 | 30): 18 m zum Pflaster, 10 m zur Straße – über die Straße wie sonst
+            Pruefe.Gleich(null, Karrenweg.UeberDasPflaster(new Kartenort(5, 30), new Kartenort(0, 30), karte.Marktplaetze, netz.AbstandZumWeg(new Kartenort(0, 30)), karte.Gelaendeform));
+            // der Halteplatz schon vor dem Pflaster: sofort am Halt (Mindestdauer)
+            var amPlatz = Karrenweg.UeberDasPflaster(new Kartenort(0, 14), new Kartenort(0, 18), karte.Marktplaetze, 22, karte.Gelaendeform);
+            Pruefe.Gleich(0.0, amPlatz!.Value.Fahrt.Stuecke.Sum(x => x.Laenge));
         }),
     };
 }
