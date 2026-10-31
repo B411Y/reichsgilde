@@ -142,7 +142,12 @@ def main():
     bild = malen(haut.uv, haut.dreiecke, werte, g)
     os.makedirs(aus, exist_ok=True)
     pfad = os.path.join(aus, "haut_zonen.png")
-    buf = oiio.ImageBuf(oiio.ImageSpec(g, g, 4, oiio.FLOAT))
+    # Kanal 4 ist ein Datenkanal (Nasenrücken), kein Alpha: sonst teilt OpenImageIO beim PNG-Schreiben RGB durch A
+    # (vormultipliziert -> nicht vormultipliziert), und wo A klein ist, sättigen die Zonen auf 1
+    spec = oiio.ImageSpec(g, g, 4, oiio.FLOAT)
+    spec.alpha_channel = -1
+    spec.attribute("oiio:UnassociatedAlpha", 1)
+    buf = oiio.ImageBuf(spec)
     buf.set_pixels(oiio.ROI(0, g, 0, g, 0, 1, 0, 4), np.ascontiguousarray(bild.astype(np.float32)))
     buf.write(pfad, "uint8")
     print("ZONEN", pfad, {k: round(float(werte[:, i].max()), 2) for i, k in enumerate("RGBA")},
