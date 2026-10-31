@@ -834,7 +834,7 @@ Halt B (`kopf6_rezept_s4.json`, `kopf6_rezept.json`, `regeln6.json`, `zuege_basi
   --zuege_aus=`); Populationsfaktoren und eingefrorene Züge unverändert.
 - **Kragen** (`kopf2_bauen.py` Option `ausschnitt=<mm>`, `ausschnitt_band=0,5`): Kragenlinie vorn tiefer
   (D · max(0, cos φ)³ um die Halsachse), das Band vorn halb so hoch; die Flächen darüber werden Haut (der Atlas hat dort
-  gebackene Brusthaut, kein neues Backen). Ohne Option wie bisher.
+  gebackene Brusthaut, kein neues Backen). Ohne Option wie bisher; der Probekopf nutzt 30 mm.
 - **Licht** (`charakter_buehne.gd`): Schlüssellicht auf der breiten Seite – `ansicht()` spiegelt Schlüssel-, Füll- und
   Gegenlicht an der Mittelebene, sobald die Kamera auf der +x-Seite steht (Bogenschlüssel `licht_breit`, Standard an).
   Bei `winkel` < 0 (wie die Fotovorlagen) lag das Schlüssellicht schon kameranah.
@@ -862,9 +862,82 @@ Halt B (`kopf6_rezept_s4.json`, `kopf6_rezept.json`, `regeln6.json`, `zuege_basi
 | Vorbild | Lizenz, Namensnennung | genutzt |
 |---|---|---|
 | Lee Perry-Smith „Infinite“ (Infinite Realities), Netz aus three.js | CC BY 3.0, „Infinite, 3D Head Scan by Lee Perry-Smith“ | Mann |
-| Helen Keller, Lebendmaske 1916 (Ruotolo), NPG.75.16, Smithsonian | CC0 | Frau |
-| Felix Mendelssohn, Lebendmaske, Univ. Edinburgh Open.Ed (Modell Connor Wimblett) | CC BY 4.0 | Mann (Versuch) |
+| Helen Keller, Lebendmaske 1916 (Ruotolo), NPG.75.16, Smithsonian | CC0 | Frau (Einpassung fehlerhaft, Tafel mit 0,5) |
+| Felix Mendelssohn, Lebendmaske, Univ. Edinburgh Open.Ed (Modell Connor Wimblett) | CC BY 4.0 | Versuch, nicht eingebaut |
 | nicht genutzt: Luise von Preußen (CC BY 4.0; Tuch verdeckt eine Gesichtshälfte), Anne Sullivan Macy (CC0 laut Smithsonian-Konto, nicht am Datensatz bestätigt), Lincoln 1860 (CC0) | | |
 
 Die Scans liegen nur lokal (`~/werkzeuge/charakter/vorbilder/`, in `quellen6.json` mit Prüfsumme); im Repository nur
 Code. Abgüsse haben geschlossene Augen – die Augenregion trägt deshalb keine Scanform.
+
+### Prüfung Halt B2
+
+**Profil- und Schrägmaße** (Mittelgesicht 35, Gewichte aus Godot, Tiefen gegen die Tragion des Scanmittels über die
+festen Augäpfel – die Tragion selbst sprang bei der vollen B2-Wange der Frau um 10,7 mm; mm, Profilwinkel in Grad).
+„Makro“ = Bezug der Ausgleichsrechnung, B = mit `vorbild_lps` 0,8 bzw. `vorbild_keller` 0,8:
+
+| Maß | Scan | Mann Makro | heute | **B2** | B2+B | Frau Makro | heute | **B2** | B2+B | Ziel B2 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Wangenwölbung | 7,1 | 7,1 | −1,4 | **5,3** ✓ | 6,8 | 7,4 | −1,1 | **5,5** ✓ | 6,1 | +3…+6 |
+| Unterwange x40 | 82,6 | 82,2 | 67,0 | **80,9** ✓ | 84,2 | 88,0 | 67,6 | **85,5** ✓ | 84,6 | ≥ Makro − 3 |
+| Unterwange x50 | 69,2 | 69,1 | 51,1 | **67,9** ✓ | 69,8 | 77,4 | 50,6 | **71,7** ✗ (−5,7) | 75,5 | ≥ Makro − 3 |
+| Augentiefe | 3,6 | 3,5 | 9,6 | **7,6** ✓ | 6,7 | 6,1 | 6,8 | **7,0** ✓ | 1,9 | ≤ Phase 5 + 2 |
+| Glabella (t_g) | 102,8 | 102,9 | 111,1 | **105,3** ✓ | 106,6 | 106,2 | 106,8 | **107,1** ✓ | 96,7 | Makro + 2…5 / 0…3 |
+| Nasenspitze (t_prn) | 122,1 | 122,0 | 127,8 | **123,3** ✓ | 122,9 | 123,5 | 122,1 | **123,8** ✓ | 120,7 | Makro + 0,5…3,5 / 0…2,5 |
+| Oberlippe vor Sn–Pg | 4,5 | 4,2 | 0,2 | **2,1** ✓ | 1,7 | 4,6 | 2,3 | **2,6** ✓ | 1,8 | 2–4 / 2,5–4,5 |
+| Unterlippe vor Sn–Pg | 4,0 | 3,8 | −1,8 | **0,7** ✗ | 0,4 | 3,9 | 0,2 | **1,1** ✗ | 1,7 | 1,5–3,5 / 2–4 |
+| Profilwinkel g–sn–pg | 167,3 | 167,2 | 170,8 | **171,7** ✗ knapp | 172,5 | 163,8 | 174,9 | **173,1** ✗ | 163,4 | 166–171 |
+| Lidspalte Breite | 25,9 | 25,6 | 23,7 | **26,7** ✓ | 26,7 | 24,9 | 19,9 | **25,3** ✓ | 25,3 | ≥ Makro − 0,6 |
+| Lidspalte Höhe | 7,9 | 7,0 | 6,0 | **6,5** ✓ | 6,5 | 8,1 | 6,4 | **7,5** ✓ knapp | 7,5 | ≥ Makro − 0,6 |
+| Unterkiefer go–go | 126,6 | 126,6 | 113,3 | **125,4** ✓ | 123,6 | 123,2 | 104,7 | **116,8** | 126,3 | Mann ≤ Makro + 1; Frau 0,88–0,92 × Mann |
+| Kinn über Kragen | – | – | 9,5 | **42,8** ✓ | 44,3 | – | 6,3 | **27,8** ✗ knapp | 28,8 | ≥ 30 |
+
+Die Ausgleichsrechnung (Lauf 3, `ausgleich_b2.json`) zeigt am Probebau dieselben Richtungen; die Unterwange x50 der
+Frau und die Unterlippen bleiben knapp, weil Kinn vorschieben (`pg_hinter_li` ≤ 4) und Lippen vor Sn–Pg gegeneinander
+arbeiten. Kragen mit `ausschnitt=30`: die cos³-Senkung wirkt am Rand des Messfensters (|x| ≤ 20 mm) schwächer.
+
+**Blindtest** (ein unabhängiger Prüfer, nur die drei Tafeln mit Fotovorlage und fünf gemischten Spalten A–E,
+Schlüssel vorher versiegelt, SHA-256 `2b7fb8a41732510a04007d39cf0a725c607719a932f12968217070359cacf929`;
+Note 1–10 „wirkt lebendig und glaubwürdig“):
+
+| | heute | B2-Form | B2 + A | B2 + A + B | Malfilter |
+|---|---|---|---|---|---|
+| Mann 35 | **5,5** | 5 | 5 | 4 | 3 |
+| Frau 35 | 4 („deutlich hager“) | **5,5** | 5 | 4,5 | 3 |
+| Mann 70 | **5,5** | 5 | 4,5 | 4 | 3 |
+
+- B2 nimmt der Frau das Hagere; bei den Männern wirkt dem Prüfer die kantigere Form von heute erwachsener, B2 „zu jung
+  und zu voll“. Weg A bringt blind nichts (0 bis −0,5), Weg B −1, der Malfilter −2 (Kuwahara-„Mosaik“ auf der Haut).
+- Puppenursachen in **allen** Spalten (Prüfer): glatte, gleichmäßig rosa Haut ohne Poren, Fältchen, Sommersprossen und
+  echten Bartschatten; schwarze, stachelige Oberwimpern und eine Strichlinie am Unterlid; harter Glanzstreifen auf dem
+  Nasenrücken und ein heller senkrechter Streifen unter dem Auge im Profil; blaugrauer Glanzfleck vorn an der Braue im
+  Profil; orange leuchtende Nasenlöcher; schwebende Haarsträhnen vor dem Ohr (Frisur „frau_knoten“); orangefarbene
+  Bänder an Schläfe und Stirn (Kopfhaut unter dem Haar, Männer).
+- Weg B der Frau: Kellers Abguss ließ sich nicht sauber einpassen (Ringe um die Lidöffnung, Kante an der Stirn; nach
+  der Ausrichtung blieben 20 mm Restbewegung – die Merkpunkte am geschlossenen Auge passen nicht zur Fläche). Lee
+  Perry-Smith ist sauber (Restabstand 0,4 mm, RMS des Versatzes 2,4 mm), macht den Kopf aber nicht lebendiger.
+- Nach dem Blindtest behoben (nur Code, Tafel 4 zeigt noch den Fehler): Weg A machte Frauenbrauen mit dünner Form fast
+  unsichtbar.
+
+**Kosten** (T400 ohne fremde GPU-Prozesse, 1280 × 720, Porträt 20°, Stand 6, gepaart im selben Prozess:
+`--varianten=haltb:glb6:0:0,b2a:glb6b2:1:0,b2am:glb6b2:1:1`, Median aus 3 Wiederholungen, Commit ce45ce4e; Daten
+`b2/m2_hoch`, `b2/m2_ultra` im Scratchpad des Teamleiters):
+
+| Lauf | Hoch: Halt B → B2 + A | + Malfilter | Ultra: Halt B → B2 + A | + Malfilter | Grafikspeicher |
+|---|---|---|---|---|---|
+| ohne Haar, Mittelgesicht | 6,51 → 6,89 ms (**+0,35**) | +3,38 | 8,07 → 8,38 ms (**+0,31**) | +3,41 | +1 MB (Zonen), Malfilter +6 MB |
+| ohne Haar, Zufallsperson | 6,66 → 7,07 ms (**+0,40**) | +3,52 | 8,19 → 8,56 ms (**+0,37**) | +3,45 | wie oben |
+| TressFX in Ruhe | 30,38 → 30,25 ms (+0,06, Rauschen) | +3,40 | 31,53 → 31,62 ms (−0,07) | +3,23 | wie oben |
+
+Der Malfilter rechnet bildschirmfüllend (73 Bildzugriffe je Bildpunkt); im kleinen Porträtfenster wäre er billiger,
+hat aber im Blindtest die schlechteste Note.
+
+### Offen nach Halt B2
+
+- Nutzerentscheidung „Puppe ja/nein“ (Mappe `b2.md`); bei „weiter“: Männer wieder etwas kantiger (Blindtest),
+  Unterlippe vor Sn–Pg, Unterwange x50 der Frau, Kinn über Kragen der Frau (27,8 mm).
+- Puppenursachen aus dem Blindtest (alle Spalten, unabhängig von B2): Haut (Etappe C), Wimpern (Dichte, Unterlid-Linie),
+  Glanzstreifen Nasenrücken und unter dem Auge, Brauenglanz im Profil, Nasenlöcher, Strähnen vor dem Ohr, Kopfhautbänder.
+- Weg B nur mit sauberen Scans mit offenen Augen sinnvoll (Abgüsse haben geschlossene Lider); Keller ausgeschieden,
+  Mendelssohn (Restabstand 1,6 mm, Haarsträhnen auf der Stirn) nicht eingebaut.
+- Der Malfilter in dieser Form (Kuwahara 4 Sektoren) taugt nicht; ein Ölbild-Eindruck bräuchte einen anisotropen
+  Filter oder gemalte Haut statt eines Nachfilters.
