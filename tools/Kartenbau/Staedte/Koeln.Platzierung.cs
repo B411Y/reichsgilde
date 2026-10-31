@@ -71,27 +71,34 @@ public sealed partial class Koeln
 
     private readonly List<Kartenort> _startMitten = new();
 
+    /// <summary>Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (Heumarkt, Alter Markt, Neumarkt; wie die Kartenprüfung).</summary>
+    private double ZumMarkt(Kartenort p) =>
+        E.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog).Select(g => p.Abstand(g.Punkt)).DefaultIfEmpty(p.Abstand(P(0, 0))).Min();
+
     /// <summary>
     /// Ein Startgrundstück (24 × 14 m: Werkstattplatz 16 × 14 und Wohnhausplatz 8 × 10, vorn bündig) an einer Straße, mit der Vorderseite zur
     /// Straße. Gesucht wird um <paramref name="sHint"/> (Meter entlang der Straße) die freie Stelle, deren Mitte dem Abstand
-    /// <see cref="ZielAbstand"/> zum Markt am nächsten liegt.
+    /// <see cref="ZielAbstand"/> zum nächsten Marktplatz am nächsten liegt (höchstens <paramref name="fenster"/> Meter von dort). Die Werkstatt liegt auf der Seite des Grundstücks, die näher am
+    /// Marktplatz ist (seit den drei Märkten, 31.10.2026: Die Karren fahren vom Werkstatthof los, ihr Weg soll kurz sein).
     /// </summary>
-    private void Startgrundstueck(int n, string strasse, bool links, double sHint)
+    private void Startgrundstueck(int n, string strasse, bool links, double sHint, double fenster = 12)
     {
         var weg = _strassen[strasse];
         var linie = weg.Verlauf;
         var halb = weg.BreiteWirksam / 2;
         (double Wert, double S, Kartenort W, Kartenort H, double D, double Abstand)? beste = null;
-        for (var s = sHint - 45; s <= sHint + 45; s += 0.5)
+        for (var s = sHint - fenster; s <= sHint + fenster; s += 0.5)
         {
             if (Auf(linie, s) is not var (p, tx, tz)) continue;
             var (nx, nz) = links ? (tz, -tx) : (-tz, tx);
             var vorn = P(p.X + nx * (halb + 1), p.Z + nz * (halb + 1));
             var d = Math.Round(Math.Atan2(-nx, -nz) * 180 / Math.PI * 10) / 10;
-            var (w, h) = (Kartengeometrie.Dreh(-4, -7, d), Kartengeometrie.Dreh(8.1, -5, d));
-            var (wm, hm) = (P(vorn.X + w.X, vorn.Z + w.Z), P(vorn.X + h.X, vorn.Z + h.Z));
+            // die Werkstatt links oder rechts vom Wohnhaus: die Lage, in der sie dem Marktplatz näher ist
+            var (wm, hm) = new[] { 1, -1 }.Select(seite => (Kartengeometrie.Dreh(-4 * seite, -7, d), Kartengeometrie.Dreh(8.1 * seite, -5, d)))
+                .Select(x => (W: P(vorn.X + x.Item1.X, vorn.Z + x.Item1.Z), H: P(vorn.X + x.Item2.X, vorn.Z + x.Item2.Z)))
+                .OrderBy(x => ZumMarkt(x.W)).First();
             var mitte = P((wm.X + hm.X) / 2, (wm.Z + hm.Z) / 2);
-            var abstand = mitte.Abstand(P(0, 0));
+            var abstand = ZumMarkt(mitte);
             var wert = Math.Abs(abstand - ZielAbstand) + 0.04 * Math.Abs(s - sHint);
             if (beste is { } b && wert >= b.Wert) continue;
             if (!Frei(Rechteck(wm, 16, 14, d)) || !Frei(Rechteck(hm, 8, 10, d))) continue;
@@ -106,19 +113,20 @@ public sealed partial class Koeln
         E.Umbenennen($"S{n}_Wohnhaus", $"Wohnhaus {strasse}");
         E.LageSetzen($"S{n}_Wohnhaus", Lage.Mauerring);
         _startMitten.Add(P((t.W.X + t.H.X) / 2, (t.W.Z + t.H.Z) / 2));
-        Console.WriteLine($"   S{n}: {strasse} bei {t.S:0.#} m, {t.Abstand:0.#} m vom Markt");
+        Console.WriteLine($"   S{n}: {strasse} bei {t.S:0.#} m, {t.Abstand:0.#} m vom Markt, Werkstatt bei {t.W}");
     }
 
     private void Startgrundstuecke()
     {
-        Startgrundstueck(1, "Hohe Straße", links: true, sHint: 36);        // Nord, östlich der Hohen Straße
-        Startgrundstueck(2, "Rheingasse", links: false, sHint: 62);        // Nordost, westlich der Rheingasse
-        Startgrundstueck(3, "Rheingasse", links: false, sHint: 242);       // Südost
-        Startgrundstueck(4, "Severinstraße", links: true, sHint: 95);      // Süd
-        Startgrundstueck(5, "Hohe Straße", links: false, sHint: 215);      // Südsüdwest, westlich der Hohen Straße
-        Startgrundstueck(6, "Weyerstraße", links: true, sHint: 40);        // Südwest
-        Startgrundstueck(7, "Hahnenstraße", links: false, sHint: 48);      // West
-        Startgrundstueck(8, "Ehrenstraße", links: true, sHint: 50);        // Nordwest
+        // Je Marktplatz Grundstücke an den Straßen, die auf ihn führen (Werkstatt zum Platz hin), je Ecke einer Kreuzung höchstens eins
+        Startgrundstueck(1, "Severinstraße", links: false, sHint: 119);   // Heumarkt, östlich der Severinstraße (der Spieler)
+        Startgrundstueck(2, "Hohe Straße", links: true, sHint: 156);      // Neumarkt, Nordost
+        Startgrundstueck(3, "Hohe Straße", links: false, sHint: 156);     // Neumarkt, Nordwest
+        Startgrundstueck(4, "Hohe Straße", links: true, sHint: 210);      // Neumarkt, Südost
+        Startgrundstueck(5, "Hohe Straße", links: false, sHint: 210);     // Neumarkt, Südwest
+        Startgrundstueck(6, "Rheingasse", links: false, sHint: 181);      // Alter Markt, Nordwest
+        Startgrundstueck(7, "Rheingasse", links: false, sHint: 233);      // Alter Markt, Südwest
+        Startgrundstueck(8, "Rheingasse", links: true, sHint: 233);       // Alter Markt, Südost (zum Rhein)
     }
 
     // ── Reihen von Häusern an einer Straße ───────────────────────────────────

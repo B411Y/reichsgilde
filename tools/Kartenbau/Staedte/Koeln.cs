@@ -18,10 +18,13 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Deutz am rechten Ufer mit kleiner Mauer (Nord-, Ost- und Südtor), Deutzer Freiheit, Vorstadt.
 //    • Stadtmauer: Halbkreis (Mitte 24 | 0, Radius 150 m) zum Rhein hin offen, Tore Eigelstein, Ehren, Hahnen, Weyer, Severin und die
 //      Ufertore Kunibert und Bayen; innen die Wallstraßen.
-//    • Markt: Heumarkt (Ursprung); Rathaus, Groß St. Martin, St. Gereon, St. Severin, St. Aposteln, St. Kunibert,
-//      Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
-//    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) rund um den Markt, Einwohnerplätze, Bauzonen aus dem Raster (alles, was
-//      frei ist, siehe Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen, Vorkommen.
+//    • Märkte (31.10.2026, ein Stadtmarkt mit drei Plätzen): Heumarkt (Ursprung), Alter Markt am Rhein (Rheingasse/Bayenstraße), Neumarkt im
+//      Westen (Hohe Straße/Weyerstraße/Bayenstraße) – Namen wie in Köln, die Lage so, dass die Karrenwege kurz sind. Rathaus, Groß St. Martin,
+//      St. Gereon, St. Severin, St. Aposteln, St. Kunibert, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen
+//      kölschen.
+//    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Ecken der Marktplätze, je 28 m vom nächsten (der Werkstattweg zum
+//      Platz 21–22 m wie die alte feste Fahrzeit von 30 Minuten), Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
+//      Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen, Vorkommen.
 //    • Gelände: Terrasse der Altstadt mit Hochufer zum Rhein, sanft ansteigend nach Westen (Ville), Bergisches Land im Osten.
 //    • Rand (300 m): Kölner Bucht (Felder), Ville und Königsforst (Wald), im Dunst.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -30,7 +33,7 @@ public sealed partial class Koeln : Stadtskript
 {
     public override string Kennung => "koeln";
     public override string Stadt => "Köln";
-    public override string Beschreibung => "Köln: Rhein, Mauerhalbkreis mit Toren, Märkte, Dom-Baustelle, Hafen, Deutz, Gelände, 8 Startgrundstücke, 8 Häuser";
+    public override string Beschreibung => "Köln: Rhein, Mauerhalbkreis mit Toren, drei Marktplätze, Dom-Baustelle, Hafen, Deutz, Gelände, 8 Startgrundstücke, 8 Häuser";
     public override (double Breite, double Tiefe) Groesse => (700, 450);
 
     // ── Maße ─────────────────────────────────────────────────────────────────
@@ -40,7 +43,12 @@ public sealed partial class Koeln : Stadtskript
     private const double Ufer = 60;     // das linke Rheinufer (Wasserlinie) bei x = 60
     private const double RheinX = 37;   // Rheingasse
     private const double HoheX = -34;   // Hohe Straße
-    private const double ZielAbstand = 96;   // so weit vom Markt liegen die Startgrundstücke (±10 %)
+    private const double ZielAbstand = 28;   // so weit vom nächsten Marktplatz liegen die Startgrundstücke (±10 %; bis 31.10.2026 96 m vom Heumarkt)
+
+    // Die drei Marktplätze (31.10.2026): der Heumarkt im Ursprung, der Alter Markt an der Kreuzung von Rheingasse und Bayenstraße am Rhein, der
+    // Neumarkt an der Kreuzung von Hoher Straße, Weyerstraße und Bayenstraße im Westen – je Ecke einer Kreuzung passt ein Startgrundstück.
+    private static readonly Kartenort AlterMarkt = P(37, 57);
+    private static readonly Kartenort Neumarkt = P(-34, 57);
 
     private readonly Dictionary<string, EntwurfWeg> _strassen = new();
     private EntwurfMauer _stadtmauer = null!, _deutzer = null!;
@@ -57,6 +65,7 @@ public sealed partial class Koeln : Stadtskript
         E.VorlageSetzen("Köln um 1400 (Dom als Baustelle), auf etwa ein Zehntel verkleinert; Lage der Wahrzeichen und Straßennamen nach der Stadt");
         E.FiktionHinzufuegen("Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).");
         E.FiktionHinzufuegen("Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.");
+        E.FiktionHinzufuegen("Alter Markt und Neumarkt liegen nicht an ihrer echten Stelle (der Alte Markt neben dem Heumarkt am Rathaus, der Neumarkt am Westende der Schildergasse): Die drei Plätze stehen dort, wo die Karren der Häuser kurze Wege haben.");
         E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier offen durch die Südstadt.");
         E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt.");
 
@@ -232,8 +241,10 @@ public sealed partial class Koeln : Stadtskript
 
     private void Wahrzeichen()
     {
-        // Es gibt nur einen Marktplatz (Entscheidung des Nutzers): den Heumarkt im Ursprung; Alter Markt und Neumarkt sind Bauland
+        // Drei Marktplätze, ein Stadtmarkt (Entscheidung des Nutzers vom 31.10.2026): Namen wie in Köln, die Lage so, dass die Wirtschaft passt
         Haus("markt", "Heumarkt", 0, 0, kennung: "Heumarkt");
+        Haus("markt", "Alter Markt", AlterMarkt.X, AlterMarkt.Z, kennung: "AlterMarkt");
+        Haus("markt", "Neumarkt", Neumarkt.X, Neumarkt.Z, kennung: "Neumarkt");
         MarktPflastern();
 
         Haus("rathaus", "Rathaus", -20, -44, 90, "Rathaus");

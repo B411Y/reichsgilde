@@ -10,6 +10,8 @@
  "mitte": [-50, 25],
  "gebaeude": [
   {"kennung": "Heumarkt", "katalog": "markt", "name": "Heumarkt", "punkt": [0, 0], "drehung": 0},
+  {"kennung": "AlterMarkt", "katalog": "markt", "name": "Alter Markt", "punkt": [37, 57], "drehung": 0},
+  {"kennung": "Neumarkt", "katalog": "markt", "name": "Neumarkt", "punkt": [-34, 57], "drehung": 0},
   {"kennung": "Rathaus", "katalog": "rathaus", "name": "Rathaus", "punkt": [-20, -44], "drehung": 90},
   {"kennung": "Martin", "katalog": "kirche", "name": "Groß St. Martin", "punkt": [26, -44], "drehung": 90},
   {"kennung": "Gereon", "katalog": "kirche", "name": "St. Gereon", "punkt": [-52, -86], "drehung": 90},
@@ -24,56 +26,55 @@
   {"kennung": "L1", "katalog": "leerstand", "name": "Haus zum güldenen Hammer (leer)", "punkt": [-64, 94], "drehung": 90},
   {"kennung": "L2", "katalog": "leerstand", "name": "Haus zum weißen Schwan (leer)", "punkt": [-100, -40], "drehung": 90},
   {"kennung": "L3", "katalog": "leerstand", "name": "Haus zum schwarzen Raben (Ruine)", "punkt": [150, 24], "drehung": 180},
-  {"kennung": "S1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hohe Straße", "punkt": [-23.5, -98.7], "drehung": 270},
-  {"kennung": "S1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hohe Straße", "punkt": [-25.5, -86.6], "drehung": 270, "lage": "mauerring"},
-  {"kennung": "S2_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [26.5, -86], "drehung": 90, "betrieb": "Gießerei Overstolz"},
-  {"kennung": "S2_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [28.5, -98.1], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "S3_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [26.5, 98], "drehung": 90, "betrieb": "Tischlerei Hardevust"},
-  {"kennung": "S3_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [28.5, 85.9], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "S4_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Severinstraße", "punkt": [-23.1, 89.65], "drehung": 81.7, "betrieb": "Maurerei Lyskirchen"},
-  {"kennung": "S4_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Severinstraße", "punkt": [-19.35, 77.95], "drehung": 81.7, "lage": "mauerring"},
-  {"kennung": "S5_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hohe Straße", "punkt": [-44.5, 91.8], "drehung": 90, "betrieb": "Tinkturei Gryn"},
-  {"kennung": "S5_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hohe Straße", "punkt": [-42.5, 79.7], "drehung": 90, "lage": "mauerring"},
-  {"kennung": "S6_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Weyerstraße", "punkt": [-84.3, 56.1], "drehung": 11.1, "betrieb": "Gießerei Scherfgin"},
-  {"kennung": "S6_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Weyerstraße", "punkt": [-72, 55.75], "drehung": 11.1, "lage": "mauerring"},
-  {"kennung": "S7_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hahnenstraße", "punkt": [-89.55, 4.35], "drehung": 194.9, "betrieb": "Schänke Mommersloch"},
-  {"kennung": "S7_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hahnenstraße", "punkt": [-101.75, 5.55], "drehung": 194.9, "lage": "mauerring"},
-  {"kennung": "S8_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Ehrenstraße", "punkt": [-79.9, -64.2], "drehung": 302.9, "betrieb": "Tischlerei Kleingedank"},
-  {"kennung": "S8_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Ehrenstraße", "punkt": [-75, -52.95], "drehung": 302.9, "lage": "mauerring"},
+  {"kennung": "S1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Severinstraße", "punkt": [9.4, 22.35], "drehung": 263.7},
+  {"kennung": "S1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Severinstraße", "punkt": [6.1, 34.15], "drehung": 263.7, "lage": "mauerring"},
+  {"kennung": "S2_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hohe Straße", "punkt": [-23.5, 35.3], "drehung": 270, "betrieb": "Gießerei Overstolz"},
+  {"kennung": "S2_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hohe Straße", "punkt": [-25.5, 23.2], "drehung": 270, "lage": "mauerring"},
+  {"kennung": "S3_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hohe Straße", "punkt": [-44.5, 35.3], "drehung": 90, "betrieb": "Tischlerei Hardevust"},
+  {"kennung": "S3_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hohe Straße", "punkt": [-42.5, 23.2], "drehung": 90, "lage": "mauerring"},
+  {"kennung": "S4_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hohe Straße", "punkt": [-23.5, 78.8], "drehung": 270, "betrieb": "Maurerei Lyskirchen"},
+  {"kennung": "S4_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hohe Straße", "punkt": [-25.5, 90.9], "drehung": 270, "lage": "mauerring"},
+  {"kennung": "S5_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Hohe Straße", "punkt": [-44.5, 78.8], "drehung": 90, "betrieb": "Tinkturei Gryn"},
+  {"kennung": "S5_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Hohe Straße", "punkt": [-42.5, 90.9], "drehung": 90, "lage": "mauerring"},
+  {"kennung": "S6_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [26.5, 35.5], "drehung": 90, "betrieb": "Gießerei Scherfgin"},
+  {"kennung": "S6_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [28.5, 23.4], "drehung": 90, "lage": "mauerring"},
+  {"kennung": "S7_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [26.5, 78.5], "drehung": 90, "betrieb": "Schänke Mommersloch"},
+  {"kennung": "S7_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [28.5, 90.6], "drehung": 90, "lage": "mauerring"},
+  {"kennung": "S8_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [47.5, 78.5], "drehung": 270, "betrieb": "Tischlerei Kleingedank"},
+  {"kennung": "S8_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [45.5, 90.6], "drehung": 270, "lage": "mauerring"},
   {"kennung": "Einwohnerplatz_am_Ring1", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring", "punkt": [-26.75, -76.3], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring2", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 2", "punkt": [-16.5, -76.3], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring3", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 3", "punkt": [-6.25, -76.3], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring4", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 4", "punkt": [-26.75, -63.7], "drehung": 180},
   {"kennung": "Einwohnerplatz_am_Ring5", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 5", "punkt": [-16.5, -63.7], "drehung": 180},
   {"kennung": "Einwohnerplatz_am_Ring6", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 6", "punkt": [-6.25, -63.7], "drehung": 180},
-  {"kennung": "Einwohnerplatz_am_Ring7", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 7", "punkt": [-62.75, -51.3], "drehung": 0},
-  {"kennung": "Einwohnerplatz_am_Ring8", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 8", "punkt": [-52.5, -51.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring7", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 7", "punkt": [-73.75, -51.3], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring8", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 8", "punkt": [-63.5, -51.3], "drehung": 0},
   {"kennung": "Einwohnerplatz_am_Ring9", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 9", "punkt": [-58.25, -38.7], "drehung": 180},
   {"kennung": "Einwohnerplatz_am_Ring10", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 10", "punkt": [-48, -38.7], "drehung": 180},
   {"kennung": "Einwohnerplatz_am_Ring11", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 11", "punkt": [-55.1, 7.15], "drehung": 279.5},
-  {"kennung": "Einwohnerplatz_am_Ring12", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 12", "punkt": [-53.4, 17.25], "drehung": 279.5},
-  {"kennung": "Einwohnerplatz_am_Ring13", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 13", "punkt": [-51.7, 27.4], "drehung": 279.5},
-  {"kennung": "Einwohnerplatz_am_Ring14", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 14", "punkt": [-67.5, 9.25], "drehung": 99.5},
-  {"kennung": "Einwohnerplatz_am_Ring15", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 15", "punkt": [-65.85, 19.35], "drehung": 99.5},
-  {"kennung": "Einwohnerplatz_am_Ring16", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 16", "punkt": [-64.15, 29.45], "drehung": 99.5},
-  {"kennung": "Einwohnerplatz_am_Ring17", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 17", "punkt": [29.75, -131.2], "drehung": 180},
-  {"kennung": "Einwohnerplatz_am_Ring18", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 18", "punkt": [-0.8, -128.75], "drehung": 188.9},
-  {"kennung": "Einwohnerplatz_am_Ring19", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 19", "punkt": [-11, -126.25], "drehung": 195},
-  {"kennung": "Einwohnerplatz_am_Ring20", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 20", "punkt": [-42.8, -112.85], "drehung": 213},
-  {"kennung": "Einwohnerplatz_am_Ring21", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 21", "punkt": [-51.4, -107.25], "drehung": 213},
-  {"kennung": "Einwohnerplatz_am_Ring22", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 22", "punkt": [-104.6, -25.75], "drehung": 261.1},
-  {"kennung": "Einwohnerplatz_am_Ring23", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 23", "punkt": [-106.15, -15.65], "drehung": 261.1},
-  {"kennung": "Einwohnerplatz_am_Ring24", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 24", "punkt": [-105.8, 17.9], "drehung": 278.9},
-  {"kennung": "Einwohnerplatz_am_Ring25", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 25", "punkt": [-104.1, 28.25], "drehung": 285},
-  {"kennung": "Einwohnerplatz_am_Ring26", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 26", "punkt": [-101.4, 38.15], "drehung": 285},
-  {"kennung": "Einwohnerplatz_am_Ring27", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 27", "punkt": [-83.4, 75.15], "drehung": 303},
-  {"kennung": "Einwohnerplatz_am_Ring28", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 28", "punkt": [-25.65, 121.25], "drehung": 338.9},
-  {"kennung": "Einwohnerplatz_am_Ring29", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 29", "punkt": [-10, 126.55], "drehung": 345},
-  {"kennung": "Einwohnerplatz_am_Ring30", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 30", "punkt": [0.25, 128.9], "drehung": 351.1},
-  {"kennung": "Einwohnerplatz_am_Ring31", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 31", "punkt": [10.4, 130.5], "drehung": 351.1},
-  {"kennung": "Buergerhaus_Kulisse1", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse)", "punkt": [-27, 49.45], "drehung": 0},
-  {"kennung": "Buergerhaus_Kulisse2", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 2", "punkt": [-17.5, 49.45], "drehung": 0},
-  {"kennung": "Buergerhaus_Kulisse3", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 3", "punkt": [2, 49.45], "drehung": 0},
+  {"kennung": "Einwohnerplatz_am_Ring12", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 12", "punkt": [-67.5, 9.25], "drehung": 99.5},
+  {"kennung": "Einwohnerplatz_am_Ring13", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 13", "punkt": [-65.85, 19.35], "drehung": 99.5},
+  {"kennung": "Einwohnerplatz_am_Ring14", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 14", "punkt": [-64.15, 29.45], "drehung": 99.5},
+  {"kennung": "Einwohnerplatz_am_Ring15", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 15", "punkt": [29.75, -131.2], "drehung": 180},
+  {"kennung": "Einwohnerplatz_am_Ring16", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 16", "punkt": [-0.8, -128.75], "drehung": 188.9},
+  {"kennung": "Einwohnerplatz_am_Ring17", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 17", "punkt": [-11, -126.25], "drehung": 195},
+  {"kennung": "Einwohnerplatz_am_Ring18", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 18", "punkt": [-42.8, -112.85], "drehung": 213},
+  {"kennung": "Einwohnerplatz_am_Ring19", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 19", "punkt": [-51.4, -107.25], "drehung": 213},
+  {"kennung": "Einwohnerplatz_am_Ring20", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 20", "punkt": [-104.6, -25.75], "drehung": 261.1},
+  {"kennung": "Einwohnerplatz_am_Ring21", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 21", "punkt": [-106.15, -15.65], "drehung": 261.1},
+  {"kennung": "Einwohnerplatz_am_Ring22", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 22", "punkt": [-106.85, 6.15], "drehung": 273},
+  {"kennung": "Einwohnerplatz_am_Ring23", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 23", "punkt": [-106, 16.65], "drehung": 278.9},
+  {"kennung": "Einwohnerplatz_am_Ring24", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 24", "punkt": [-104.4, 26.8], "drehung": 278.9},
+  {"kennung": "Einwohnerplatz_am_Ring25", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 25", "punkt": [-101.75, 36.95], "drehung": 285},
+  {"kennung": "Einwohnerplatz_am_Ring26", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 26", "punkt": [-83.4, 75.15], "drehung": 303},
+  {"kennung": "Einwohnerplatz_am_Ring27", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 27", "punkt": [-25.65, 121.25], "drehung": 338.9},
+  {"kennung": "Einwohnerplatz_am_Ring28", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 28", "punkt": [-10, 126.55], "drehung": 345},
+  {"kennung": "Einwohnerplatz_am_Ring29", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 29", "punkt": [0.25, 128.9], "drehung": 351.1},
+  {"kennung": "Einwohnerplatz_am_Ring30", "katalog": "einwohnerplatz_ring", "name": "Einwohnerplatz am Ring 30", "punkt": [10.4, 130.5], "drehung": 351.1},
+  {"kennung": "Buergerhaus_Kulisse1", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse)", "punkt": [-16.5, 49.45], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse2", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 2", "punkt": [2, 49.45], "drehung": 0},
+  {"kennung": "Buergerhaus_Kulisse3", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 3", "punkt": [11.5, 49.45], "drehung": 0},
   {"kennung": "Buergerhaus_Kulisse4", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 4", "punkt": [44.55, -46], "drehung": 270},
   {"kennung": "Buergerhaus_Kulisse5", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 5", "punkt": [44.55, -36.5], "drehung": 270},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [129.45, 1.45], "drehung": 2.6},
@@ -249,10 +250,7 @@
   {
    "kennung": "K1",
    "art": "kern",
-   "flaeche": [
-    [-64, -4], [-38, -4], [-38, 50], [-42, 50], [-42, 48], [-44, 48], [-44, 46], [-46, 46], [-46, 44], [-48, 44], [-48, 42], [-50, 42], [-50, 38], [-52, 38], [-52, 34], [-44, 34],
-    [-44, 24], [-46, 24], [-46, 12], [-48, 12], [-48, 0], [-62, 0], [-62, 2], [-64, 2]
-   ]
+   "flaeche": [[-64, -4], [-38, -4], [-38, 16], [-50, 16], [-50, 24], [-54, 24], [-54, 26], [-56, 26], [-56, 14], [-48, 14], [-48, 0], [-62, 0], [-62, 2], [-64, 2]]
   },
   {
    "kennung": "K2",
@@ -263,28 +261,32 @@
    "kennung": "K3",
    "art": "kern",
    "flaeche": [
-    [-52, -62], [-50, -62], [-50, -66], [-48, -66], [-48, -70], [-46, -70], [-46, -74], [-44, -74], [-44, -76], [-42, -76], [-42, -80], [-40, -80], [-40, -82], [-38, -82], [-38, -48],
-    [-46, -48], [-46, -58], [-52, -58]
+    [-54, -54], [-52, -54], [-52, -62], [-50, -62], [-50, -66], [-48, -66], [-48, -70], [-46, -70], [-46, -74], [-44, -74], [-44, -76], [-42, -76], [-42, -80], [-40, -80], [-40, -82],
+    [-38, -82], [-38, -48], [-54, -48]
    ]
   },
+  {"kennung": "K4", "art": "kern", "flaeche": [[-30, -90], [-26, -90], [-26, -92], [-22, -92], [-22, -94], [-18, -94], [-18, -96], [-10, -96], [-10, -98], [-4, -98], [-4, -84], [-30, -84]]},
   {
-   "kennung": "K4",
+   "kennung": "K5",
    "art": "kern",
    "flaeche": [
     [-30, -56], [-20, -56], [-20, -54], [-28, -54], [-28, -34], [-12, -34], [-12, -54], [-18, -54], [-18, -56], [-4, -56], [-4, -52], [6, -52], [6, -68], [34, -68], [34, -54],
     [16, -54], [16, -34], [34, -34], [34, -26], [-30, -26]
    ]
   },
-  {"kennung": "K5", "art": "kern", "flaeche": [[-30, -18], [34, -18], [34, 4], [14, 4], [14, -14], [-14, -14], [-14, -12], [-30, -12]]},
-  {"kennung": "K6", "art": "kern", "flaeche": [[-30, -4], [-14, -4], [-14, 14], [-4, 14], [-4, 20], [-6, 20], [-6, 34], [-8, 34], [-8, 42], [-30, 42]]},
-  {"kennung": "K7", "art": "kern", "flaeche": [[0, 36], [2, 36], [2, 22], [4, 22], [4, 14], [14, 14], [14, 12], [34, 12], [34, 54], [8, 54], [8, 42], [0, 42]]},
-  {"kennung": "K8", "art": "kern", "flaeche": [[6, -98], [10, -98], [10, -96], [16, -96], [16, -76], [34, -76], [34, -72], [6, -72]]},
-  {"kennung": "K9", "art": "kern", "flaeche": [[40, -30], [50, -30], [50, 4], [40, 4]]},
+  {"kennung": "K6", "art": "kern", "flaeche": [[-30, -18], [34, -18], [34, 4], [14, 4], [14, -14], [-14, -14], [-14, -12], [-30, -12]]},
   {
-   "kennung": "K10",
+   "kennung": "K7",
    "art": "kern",
-   "flaeche": [[40, 12], [50, 12], [50, 20], [42, 20], [42, 36], [50, 36], [50, 42], [48, 42], [48, 44], [46, 44], [46, 46], [44, 46], [44, 48], [42, 48], [42, 50], [40, 50]]
+   "flaeche": [[-30, -4], [-14, -4], [-14, 14], [-4, 14], [-4, 20], [-6, 20], [-6, 34], [-8, 34], [-8, 42], [-14, 42], [-14, 24], [-18, 24], [-18, 16], [-30, 16]]
   },
+  {
+   "kennung": "K8",
+   "art": "kern",
+   "flaeche": [[6, -98], [10, -98], [10, -96], [18, -96], [18, -94], [22, -94], [22, -92], [26, -92], [26, -90], [30, -90], [30, -88], [32, -88], [32, -86], [34, -86], [34, -72], [6, -72]]
+  },
+  {"kennung": "K9", "art": "kern", "flaeche": [[40, -30], [50, -30], [50, 4], [40, 4]]},
+  {"kennung": "K10", "art": "kern", "flaeche": [[40, 12], [50, 12], [50, 20], [42, 20], [42, 36], [50, 36], [50, 42], [40, 42]]},
   {
    "kennung": "M1",
    "art": "mauerring",
@@ -307,13 +309,13 @@
    "kennung": "M3",
    "art": "mauerring",
    "flaeche": [
-    [-102, 46], [-98, 46], [-98, 44], [-94, 44], [-94, 34], [-96, 34], [-96, 26], [-98, 26], [-98, 16], [-90, 16], [-90, 14], [-82, 14], [-82, 12], [-78, 12], [-78, 0], [-80, 0],
+    [-102, 44], [-96, 44], [-96, 42], [-94, 42], [-94, 34], [-96, 34], [-96, 28], [-98, 28], [-98, 16], [-100, 16], [-100, 0], [-94, 0], [-94, -2], [-86, -2], [-86, -4], [-80, -4],
     [-80, -12], [-90, -12], [-90, -10], [-96, -10], [-96, -8], [-100, -8], [-100, -16], [-98, -16], [-98, -30], [-90, -30], [-90, -50], [-88, -50], [-88, -48], [-86, -48], [-86, -44],
     [-84, -44], [-84, -40], [-82, -40], [-82, -24], [-78, -24], [-78, -22], [-76, -22], [-76, -16], [-68, -16], [-68, -24], [-62, -24], [-62, -32], [-56, -32], [-56, -30], [-58, -30],
     [-58, -24], [-60, -24], [-60, -20], [-62, -20], [-62, -12], [-64, -12], [-64, 2], [-74, 2], [-74, 4], [-76, 4], [-76, 8], [-74, 8], [-74, 20], [-76, 20], [-76, 22], [-82, 22],
     [-82, 24], [-80, 24], [-80, 32], [-78, 32], [-78, 34], [-70, 34], [-70, 38], [-64, 38], [-64, 36], [-60, 36], [-60, 42], [-58, 42], [-58, 48], [-56, 48], [-56, 54], [-54, 54],
-    [-54, 56], [-56, 56], [-56, 58], [-64, 58], [-64, 54], [-66, 54], [-66, 48], [-74, 48], [-74, 46], [-76, 46], [-76, 44], [-80, 44], [-80, 46], [-90, 46], [-90, 48], [-96, 48],
-    [-96, 58], [-98, 58], [-98, 54], [-100, 54], [-100, 48], [-102, 48]
+    [-54, 56], [-56, 56], [-56, 58], [-66, 58], [-66, 60], [-76, 60], [-76, 62], [-86, 62], [-86, 64], [-94, 64], [-94, 62], [-96, 62], [-96, 58], [-98, 58], [-98, 54], [-100, 54],
+    [-100, 48], [-102, 48]
    ]
   },
   {
@@ -344,12 +346,12 @@
    "kennung": "M6",
    "art": "mauerring",
    "flaeche": [
-    [-86, -78], [-84, -78], [-84, -80], [-82, -80], [-82, -84], [-80, -84], [-80, -86], [-78, -86], [-78, -88], [-76, -88], [-76, -90], [-74, -90], [-74, -92], [-72, -92], [-72, -94],
-    [-70, -94], [-70, -96], [-68, -96], [-68, -98], [-66, -98], [-66, -100], [-64, -100], [-64, -102], [-62, -102], [-62, -104], [-58, -104], [-58, -102], [-56, -102], [-56, -98],
-    [-50, -98], [-50, -100], [-48, -100], [-48, -102], [-44, -102], [-44, -104], [-42, -104], [-42, -106], [-38, -106], [-38, -82], [-40, -82], [-40, -80], [-42, -80], [-42, -96],
-    [-62, -96], [-62, -76], [-44, -76], [-44, -74], [-46, -74], [-46, -70], [-48, -70], [-48, -66], [-50, -66], [-50, -62], [-52, -62], [-52, -58], [-68, -58], [-68, -60], [-66, -60],
-    [-66, -64], [-68, -64], [-68, -66], [-70, -66], [-70, -70], [-72, -70], [-72, -72], [-74, -72], [-74, -76], [-76, -76], [-76, -78], [-82, -78], [-82, -76], [-84, -76], [-84, -74],
-    [-86, -74]
+    [-90, -72], [-88, -72], [-88, -74], [-86, -74], [-86, -78], [-84, -78], [-84, -80], [-82, -80], [-82, -84], [-80, -84], [-80, -86], [-78, -86], [-78, -88], [-76, -88], [-76, -90],
+    [-74, -90], [-74, -92], [-72, -92], [-72, -94], [-70, -94], [-70, -96], [-68, -96], [-68, -98], [-66, -98], [-66, -100], [-64, -100], [-64, -102], [-62, -102], [-62, -104],
+    [-58, -104], [-58, -102], [-56, -102], [-56, -98], [-50, -98], [-50, -100], [-48, -100], [-48, -102], [-44, -102], [-44, -104], [-42, -104], [-42, -106], [-38, -106], [-38, -82],
+    [-40, -82], [-40, -80], [-42, -80], [-42, -96], [-62, -96], [-62, -76], [-44, -76], [-44, -74], [-46, -74], [-46, -70], [-48, -70], [-48, -66], [-50, -66], [-50, -62], [-52, -62],
+    [-52, -54], [-54, -54], [-54, -48], [-56, -48], [-56, -58], [-80, -58], [-80, -54], [-82, -54], [-82, -58], [-84, -58], [-84, -60], [-86, -60], [-86, -64], [-88, -64], [-88, -68],
+    [-90, -68]
    ]
   },
   {
@@ -357,8 +359,7 @@
    "art": "mauerring",
    "flaeche": [
     [-82, 82], [-78, 82], [-78, 80], [-76, 80], [-76, 78], [-74, 78], [-74, 74], [-76, 74], [-76, 72], [-78, 72], [-78, 70], [-74, 70], [-74, 68], [-64, 68], [-64, 66], [-54, 66],
-    [-54, 64], [-42, 64], [-42, 62], [-38, 62], [-38, 72], [-50, 72], [-50, 80], [-54, 80], [-54, 84], [-74, 84], [-74, 90], [-76, 90], [-76, 88], [-78, 88], [-78, 86], [-80, 86],
-    [-80, 84], [-82, 84]
+    [-54, 64], [-48, 64], [-48, 68], [-54, 68], [-54, 84], [-74, 84], [-74, 90], [-76, 90], [-76, 88], [-78, 88], [-78, 86], [-80, 86], [-80, 84], [-82, 84]
    ]
   },
   {
@@ -370,18 +371,14 @@
     [-44, 128], [-48, 128], [-48, 126], [-50, 126], [-50, 124], [-54, 124], [-54, 122], [-56, 122], [-56, 120], [-60, 120], [-60, 118], [-62, 118], [-62, 116], [-64, 116]
    ]
   },
-  {
-   "kennung": "M9",
-   "art": "mauerring",
-   "flaeche": [
-    [-52, 38], [-50, 38], [-50, 42], [-48, 42], [-48, 44], [-46, 44], [-46, 46], [-44, 46], [-44, 48], [-42, 48], [-42, 50], [-38, 50], [-38, 54], [-46, 54], [-46, 56], [-48, 56],
-    [-48, 52], [-50, 52], [-50, 46], [-52, 46]
-   ]
-  },
+  {"kennung": "M9", "art": "mauerring", "flaeche": [[-54, 90], [-50, 90], [-50, 98], [-38, 98], [-38, 102], [-54, 102]]},
   {
    "kennung": "M10",
    "art": "mauerring",
-   "flaeche": [[-30, 60], [-20, 60], [-20, 62], [-12, 62], [-12, 64], [-14, 64], [-14, 72], [-18, 72], [-18, 70], [-26, 70], [-26, 74], [-28, 74], [-28, 78], [-30, 78]]
+   "flaeche": [
+    [-30, -110], [-14, -110], [-14, -102], [-2, -102], [-2, -100], [-4, -100], [-4, -98], [-10, -98], [-10, -96], [-18, -96], [-18, -94], [-22, -94], [-22, -92], [-26, -92],
+    [-26, -90], [-30, -90]
+   ]
   },
   {
    "kennung": "M11",
@@ -400,12 +397,19 @@
    "kennung": "M13",
    "art": "mauerring",
    "flaeche": [
-    [-8, 80], [-6, 80], [-6, 68], [-4, 68], [-4, 64], [12, 64], [12, 62], [20, 62], [20, 60], [34, 60], [34, 78], [22, 78], [22, 80], [20, 80], [20, 88], [16, 88], [16, 108],
-    [34, 108], [34, 114], [16, 114], [16, 112], [6, 112], [6, 110], [0, 110], [0, 108], [-8, 108], [-8, 106], [8, 106], [8, 86], [-8, 86]
+    [-8, 80], [-6, 80], [-6, 68], [-4, 68], [-4, 64], [12, 64], [12, 62], [20, 62], [20, 60], [22, 60], [22, 68], [16, 68], [16, 88], [18, 88], [18, 90], [20, 90], [20, 96],
+    [22, 96], [22, 98], [34, 98], [34, 114], [16, 114], [16, 112], [6, 112], [6, 110], [0, 110], [0, 108], [-8, 108], [-8, 106], [8, 106], [8, 86], [-8, 86]
    ]
   },
-  {"kennung": "M14", "art": "mauerring", "flaeche": [[18, 124], [22, 124], [22, 126], [34, 126], [34, 134], [18, 134]]},
-  {"kennung": "M15", "art": "mauerring", "flaeche": [[24, -124], [34, -124], [34, -106], [26, -106], [26, -122], [24, -122]]},
+  {
+   "kennung": "M14",
+   "art": "mauerring",
+   "flaeche": [
+    [6, -102], [26, -102], [26, -122], [24, -122], [24, -124], [34, -124], [34, -86], [32, -86], [32, -88], [30, -88], [30, -90], [26, -90], [26, -92], [22, -92], [22, -94],
+    [18, -94], [18, -96], [10, -96], [10, -98], [6, -98]
+   ]
+  },
+  {"kennung": "M15", "art": "mauerring", "flaeche": [[18, 124], [22, 124], [22, 126], [34, 126], [34, 134], [18, 134]]},
   {
    "kennung": "M16",
    "art": "mauerring",
@@ -414,7 +418,7 @@
     [42, -80], [40, -80]
    ]
   },
-  {"kennung": "M17", "art": "mauerring", "flaeche": [[40, 50], [42, 50], [42, 48], [44, 48], [44, 46], [46, 46], [46, 44], [48, 44], [48, 42], [50, 42], [50, 116], [40, 116]]},
+  {"kennung": "M17", "art": "mauerring", "flaeche": [[40, 98], [50, 98], [50, 116], [40, 116]]},
   {"kennung": "M18", "art": "mauerring", "flaeche": [[40, 128], [50, 128], [50, 146], [40, 146]]},
   {
    "kennung": "V1",
@@ -940,7 +944,7 @@
  ],
  "uebergaenge": [{"art": "faehre", "name": "Fähre Mülheim", "von": [51, -200], "bis": [146, -200]}],
  "start": {
-  "spieler": {"wohnhaus": "S1_Wohnhaus", "farbe": "#336bb8", "werkstatt": {"platz": "S1_Werkstatt", "name": "{art} an der Hohen Straße"}},
+  "spieler": {"wohnhaus": "S1_Wohnhaus", "farbe": "#336bb8", "werkstatt": {"platz": "S1_Werkstatt", "name": "{art} am Heumarkt"}},
   "haeuser": [
    {
     "name": "Haus Overstolz",
@@ -1022,6 +1026,7 @@
  "fiktion": [
   "Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).",
   "Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.",
+  "Alter Markt und Neumarkt liegen nicht an ihrer echten Stelle (der Alte Markt neben dem Heumarkt am Rathaus, der Neumarkt am Westende der Schildergasse): Die drei Plätze stehen dort, wo die Karren der Häuser kurze Wege haben.",
   "Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier offen durch die Südstadt.",
   "Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt."
  ],
@@ -1480,13 +1485,13 @@
     "fels": "7/7/7/7/7/7/7URCIRM+NYqIQAN3l+MU8MyEQhM3u9Pi5vDwyGYgAVV73V4sTy8MiGIgARV3vfE+Ki8MyIYiIAERV3u9HimMyoQiEQAiETebt+KCrIhEEzUSZEIzd7keJ0poZBF5cSioIjV1k+J0aEIgWZ4DqmARN1PidERAAVfgWGIAMzPiciAiARPgVCIBEBHicQAQACLgURAAIALicTMRBEbgVTMCJELidVMxEmxOAztRIkRm4nN3VRBI8GAF1zAmaITicbeVMSRmQ1UxJGqMLiibmVMQIiERAkaqyuKR8bmXMB4DIEiqzyLip/G7dVEBICZozPKOLJ8bmVMQAkaqzyri592VUxJGavDwjjA5mXESKKqk4zNTUAZGTv/uMgAB44qEQDN1PjX8KEQBVZux4z/kZgARd53V4y+GRCADN5nfFeMfxiIAATN3vdPjAA==",
     "deko": "7/7/7/7/7/7/7UIiIREeNUhkIAE1c+MSqEZCABNTeR4uSmiCIiERF3WT4sKohkQiEhEzV3keK6iGQiLgMRE1d54qaGZEIB4DIBM1V14phmRAARMAQiADNVfihERkIBNzEkhCATUzPicmQiADcRACKEABE1HiciQCARMeAyQiAQMR4nIAIAAR4FIgABAB4pHgQuBR4ELikRERIETgUzASIiLiczERFCZOAzUTIiJE4nFTMwFGZAA1UyBERi4nFVUTEiRCEzESQmZi4oV1UxECAhAQIkZobikZdVMR4FIkZoouKjl3NRHgMiZIik4sWXVTERIiRmim4uV3U14DZGiG4wF1UTAEJmguMxMxEiRC7/7kIB45ZEIANTHjX4FiABE1dR4z+iRAADFVlz4y+DQiARM1WXPjH8MAIAATNXeR4wA="
    },
-   {"i": -1, "j": 0, "pflaster": "4z+Ofv/v/v/j7/1+/+/+/+/+/+/+/+/+/+/+/+/+ig=="},
+   {"i": -1, "j": 0, "pflaster": "4z+Ofv/v/v/j7/1+/+/+/+/+/+/+/+3Pjn4X/9fv/v/v/v/pMA=="},
    {
     "i": 0,
     "j": 0,
     "sand": "40+n/tT6cP3k/T35X346VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0ASAA",
     "schlamm": "44+LX8QPtP+l46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBlAA==",
-    "pflaster": "+Ofgv/1+/+/+/+Mf/X4L+Ofv/v/v/v/v/v/v/v/v/v/v/v/rEA=="
+    "pflaster": "+Ofgv/1+/+/+/+Mf/X4L+Ofv/v/v/v/v/v/v/v/gr45+F//X7/7/7/7/6MA="
    },
    {
     "i": 3,
@@ -1500,11 +1505,13 @@
     "fels": "/pT6L2oJ8/8fk/lP1P1P8/svHjD+QxECJAFVmbXi/4NXUGhGAVWZfi/4GZECjGQDVVceLqngSoIhE1UeLiHgWEEhMT45IQIeOFEAICTi944EVzAgRkLi7zxgAFlzFEZoLi77KKYFeTAiiKji/5REIjMxJIisbi/7USIQACKIzMLi/5YTIAAkpszybjD5YxMiJIbM8q4x+VUwEkZszyrjL5NzMCSKzwbjPzdRBEimLjUREAQu/+/+/+/+/+/+/+/+/+/+/+dw",
     "deko": "/ML08GBb8/sf0fsvkv0feeMPogMAIgIxN1U+L/oTNQRGIAM1c+L/BzAASEIREzXi9jEAAiZAATEx41IiIQAx4vIeBSECEAIeLhLgQRABICAuLjTgQVMAJCTi+WIgEXMQIkRC4u92YgBzMAREZuL/8SQgMRAERGhOL/0hLgVCaIjjD5MRAgAERmik4w+TEQEiJGaKbjH9IREAJkaKbjL5FTAARGak4zsxMEJGbjYRAAIu/+/+/+/+/+/+/+/+/+/+/+dw"
    },
+   {"i": -1, "j": 1, "pflaster": "4R+Ofhf/1+/+Zf/X4X+Ofv/v/v/v/v/v/v/v/v/v/v/v/v/v/lM="},
    {
     "i": 0,
     "j": 1,
     "sand": "40+n/tT6cPn0+T37X146QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAhAA",
-    "schlamm": "44/rX+MP0/2146VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B4AA=="
+    "schlamm": "44/rX+MP0/2146VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B4AA==",
+    "pflaster": "4Y+Ofhf/1+/+Zf/X4X+Ofv/v/v/v/v/v/v/v/v/v/v/v/v/v/kw="
    },
    {
     "i": 0,

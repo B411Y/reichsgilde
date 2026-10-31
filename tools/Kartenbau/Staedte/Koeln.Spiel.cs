@@ -155,7 +155,7 @@ public sealed partial class Koeln
     {
         E.SpielerWohnhausSetzen("S1_Wohnhaus");
         E.SpielerFarbeSetzen("#336bb8");
-        E.SpielerStartplatzSetzen("S1_Werkstatt", null, "{art} an der Hohen Straße");
+        E.SpielerStartplatzSetzen("S1_Werkstatt", null, "{art} am Heumarkt");
 
         var frei = _umland.Where(g => g.Betrieb is null).ToList();
         for (var i = 0; i < KiHaeuser.Length; i++)

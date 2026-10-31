@@ -117,7 +117,7 @@ static class BauenTests
             Pruefe.Gleich("Haus Overstolz", k.Startbelegung.Haeuser[0].Name);
             Pruefe.Gleich("S1_Wohnhaus", k.Startbelegung.Spieler.Wohnhaus);
 
-            var s1 = k.GebaeudeMit("S1_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, gedreht zur Hohen Straße
+            var s1 = k.GebaeudeMit("S2_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, gedreht zur Hohen Straße (seit den drei Märkten S2; S1 steht schräg an der Severinstraße)
             Pruefe.Wahr(s1 is { Breite: 16, Tiefe: 14 }, "Werkstattplatz 16 × 14 m");
             Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche 16 × 14 wie im Kapazitätswerkzeug");
 
