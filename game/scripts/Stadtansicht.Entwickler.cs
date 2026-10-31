@@ -27,10 +27,12 @@ public partial class Stadtansicht
     /// <summary>Gibt die Jahreszeit der Ansicht vor (null: wieder die der Uhr); Wiese, Laub, Äcker und Schnee folgen im nächsten Bild.</summary>
     public void JahreszeitErzwingen(Jahreszeit? jahreszeit) => _jahreszeitVorgabe = jahreszeit;
 
-    /// <summary>Löst einen Blitz aus, auch bei schönem Wetter (Licht gibt es nur in den Wettereffekten Mittel und Hoch und nicht in den Innenräumen).</summary>
-    public void BlitzAusloesen()
+    /// <summary>Löst einen Blitz aus (mit dem Abstand in Kilometern oder gewürfelt), auch bei schönem Wetter (Licht gibt es nur in den Wettereffekten Mittel und Hoch und nicht in den Innenräumen).</summary>
+    public void BlitzAusloesen(float? km = null)
     {
         _blitzZeit = 0;
+        if (km is { } k) (_blitzAbstandKm, _blitzStaerke) = (k, KlangUmgebungModell.BlitzHelligkeit(k)); // Abstand vorgegeben (Hörprobe, Entwicklerbefehl)
+        else BlitzAbstandWuerfeln(KlangGewitterFortschritt);
         _blitzPulse = 2 + _blitzZufall.Next(3);
         _blitzAbstand = 0.3f / _blitzPulse * (0.8f + 0.4f * (float)_blitzZufall.NextDouble());
         BlitzRichtung();

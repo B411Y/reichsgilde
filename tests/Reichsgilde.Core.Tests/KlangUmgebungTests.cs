@@ -271,5 +271,25 @@ static class KlangUmgebungTests
             Pruefe.Gleich(Stadtwirtschaft.Arbeitsbeginn + 12 * 60, plan.Abend);
             Pruefe.Gleich(Stadtwirtschaft.Arbeitsbeginn + 14 * 60, plan.Feuer);
         }),
+        ("Blitz und Donner: EIN Abstand bestimmt Verzögerung (343 m/s), Pegel, Klang und Blitzhelligkeit – monoton; jenseits der Hörweite nur Wetterleuchten", () =>
+        {
+            double vorherVerzug = -1, vorherHell = 2;
+            float vorherDb = 1, vorherTp = 1e9f;
+            foreach (var km in new[] { 0.3, 0.5, 1.0, 2.0, 4.0, 8.0, 12.0, 16.0, 17.9 })
+            {
+                var verzug = KlangUmgebungModell.DonnerVerzoegerung(km);
+                Pruefe.Wahr(Math.Abs(verzug - km * 1000 / 343.0) < 1e-9, $"{km} km: Verzögerung {verzug}");
+                Pruefe.Wahr(verzug > vorherVerzug, $"{km} km: nicht später");
+                Pruefe.Wahr(KlangUmgebungModell.DonnerDb(km) <= vorherDb, $"{km} km: nicht leiser");
+                Pruefe.Wahr(KlangUmgebungModell.DonnerTiefpass(km) <= vorherTp, $"{km} km: nicht dumpfer");
+                Pruefe.Wahr(KlangUmgebungModell.BlitzHelligkeit(km) <= vorherHell, $"{km} km: nicht dunkler");
+                (vorherVerzug, vorherDb, vorherTp, vorherHell) = (verzug, KlangUmgebungModell.DonnerDb(km), KlangUmgebungModell.DonnerTiefpass(km), KlangUmgebungModell.BlitzHelligkeit(km));
+            }
+            Pruefe.Wahr(Math.Abs(KlangUmgebungModell.DonnerVerzoegerung(1.0) - 2.915) < 0.01, "etwa 3 s je km");
+            var p = new KlangUmgebungModell.RufPlaner(1);
+            Pruefe.Wahr(p.BlitzMelden(25) < 0 && p.DonnerAusstehend == 0, "Wetterleuchten hat einen Donner");
+            Pruefe.Wahr(p.BlitzMelden(5) > 0 && p.DonnerAusstehend == 1, "Blitz in 5 km ohne Donner");
+        }),
+
     };
 }

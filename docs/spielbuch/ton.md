@@ -66,7 +66,7 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 | Fokus auf Wiese, Feld, Wald | Stadt verklingt; Vögel, Grillen (Sommer, abends), Krähen (Winter, Herbst), Laubrauschen im Wald, im Wind stärker |
 | am Wasser (Fluss, Bach, Teich) | Plätschern; im Frühling abends und nachts Frösche |
 | Regen | Regen auf Boden und Laub (leicht oder Guss), nah an der Stadt Tropfen auf den Dächern; Vögel schweigen, die Stadt wird dumpf und leiser |
-| Gewitter | zu jedem Blitz folgt der Donner mit der Verzögerung des Schalls: gut die Hälfte nah (scharfer Knall, langes Rollen, sehr laut), der Rest fern (Grollen) |
+| Gewitter | Der Donner folgt jedem Blitz mit der Verzögerung des Schalls (etwa 3 Sekunden je Kilometer): nah ein scharfer Knall mit langem Rollen, sehr laut; je weiter weg, desto später, leiser und dumpfer (nur tiefes Grollen); ab etwa 18 km nur noch Wetterleuchten ohne Donner. Der Blitz ist im Bild umso heller, je näher er einschlägt. Das Gewitter zieht heran (Regen und Böen nehmen zu, die Blitze rücken näher), geht über die Stadt und zieht weiter |
 | Schnee | **Schneestille**: alles leiser und dumpfer, Vögel kaum |
 | Wind (Wetter) | Flaute still, Sturm laut, auch nah |
 | Arbeitsbeginn 8 Uhr | **Morgenglocke** (Geläut mehrerer großer Glocken) vom Dom |

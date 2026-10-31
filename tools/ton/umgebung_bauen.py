@@ -19,6 +19,7 @@ Ablauf je Datei (Reihenfolge wichtig, damit die Schleifennaht nicht knackt):
      über „uebergang“ Sekunden ineinander geblendet (eine längere Schleife aus einer kurzen Quelle, ohne festen Takt);
   4. Schichten: Naht mit gleicher Leistung – das Ende (Länge „blende“) wird mit Kosinus aus- und auf den Anfang mit Sinus eingeblendet,
      die Datei ist danach um die Blende kürzer und läuft ohne Sprung von hinten nach vorn. Rufe: mono, Ränder ein- und ausgeblendet;
+  3b. Mischungen („mix“): mehrere Ausschnitte mit Versatz, Pegel und Rändern übereinandergelegt (mono);
   3a. Glocken („muster“): aus einem Schlag einer Aufnahme („schlag“: [von, bis]) wird ein Läuten gesetzt – „schlaege“: [[Sekunde, dB, Tonhöhe], …]
      legen den Schlag mit seinem Ausklang an die Stelle (Tonhöhe 1,0 = Original, 1,26 = große Terz höher, eine kleinere Glocke), „dauer“ Gesamtlänge;
   5. eine lineare Verstärkung auf die Ziellautheit (pyloudnorm, ITU-R BS.1770), kein dynamisches loudnorm; danach Spitze (4-fach
@@ -293,6 +294,19 @@ def laeuten(x, mu):
 def bauen(eintrag, liste, quellordner):
     if "synth" in eintrag:
         y = wind(eintrag["synth"], eintrag["saat"], eintrag["dauer"])
+    elif "mix" in eintrag:
+        # mehrere Aufnahmen übereinandergelegt (z. B. eine große Glocke allein, dann kommt ein volles Geläut dazu): je Schicht Quelle, Ausschnitt, Filter,
+        # Versatz in der Datei (s), Pegel (dB) und Ränder; alles summiert, mono
+        teile = []
+        for l in eintrag["mix"]:
+            x = filtern(quelle_lesen(Path(quellordner) / f"{l['quelle']}.ogg", liste["quellen"][l["quelle"]]["sha256"]), l)
+            seg = x[int(round(l["von"] * FS)):int(round(l["bis"] * FS))].mean(axis=1, keepdims=True)
+            seg = raender(seg, l.get("ein", 0.3), l.get("aus", 3.0)) * 10 ** (l.get("db", 0.0) / 20)
+            teile.append((int(round(l.get("versatz", 0.0) * FS)), seg))
+        n = max(o + len(g) for o, g in teile)
+        y = np.zeros((n, 1))
+        for o, g in teile:
+            y[o:o + len(g)] += g
     elif "muster" in eintrag:
         q = liste["quellen"][eintrag["quelle"]]
         x = filtern(quelle_lesen(Path(quellordner) / f"{eintrag['quelle']}.ogg", q["sha256"]), eintrag)

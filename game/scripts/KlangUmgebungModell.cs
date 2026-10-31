@@ -443,10 +443,63 @@ public static class KlangUmgebungModell
     /// <summary>In der Pause rufen die Arten so viel seltener (und 8 dB leiser über den Bus).</summary>
     public const float PauseSeltener = 3f;
 
+    // ── Blitz und Donner: EIN Abstand je Blitz bestimmt alles ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Die Physik des Gewitters. Ein Blitz hat einen <b>Abstand in Kilometern</b>; daraus folgen Bild und Ton gemeinsam:
+    /// <list type="bullet">
+    /// <item><b>Verzögerung</b> = Abstand ÷ Schallgeschwindigkeit (343 m/s, also etwa 2,9 s je Kilometer: Sekunden bis zum Donner ÷ 3 = Kilometer).</item>
+    /// <item><b>Lautstärke</b>: bis 0,5 km voll, danach −6 dB je Verdopplung des Abstands; ab 14 km blendet der Donner aus, ab <see cref="HoerweiteKm"/> (18 km)
+    /// ist keiner mehr zu hören: Wetterleuchten (Blitz ohne Donner).</item>
+    /// <item><b>Klang</b>: Die Luft schluckt hohe Töne stärker als tiefe. Nah ein scharfer Knall mit Höhen und langem Rollen (Tiefpass 16 kHz), mit dem Abstand
+    /// wird es dumpfer (Tiefpass sinkt auf 350 Hz bei 15 km); ab <see cref="NaheGrenzeKm"/> (2,5 km) kommen die Grollen-Aufnahmen ohne Knall.</item>
+    /// <item><b>Helligkeit</b> des Blitzes in der Darstellung: 1 bis 0,3 km, dann 1 ÷ (1 + 0,3·(km − 0,3)), mindestens 0,12 (<see cref="BlitzHelligkeit"/>).</item>
+    /// </list>
+    /// Quellen: Schallgeschwindigkeit und Blitz-Donner-Regel (3 s je km) sowie die Hörweite „selten über 15 Meilen (24 km), typisch 10 Meilen (16 km)“ und das
+    /// Fehlen der hohen Töne in der Ferne nach dem Glossar der American Meteorological Society (Stichwort „thunder“, glossary.ametsoc.org/wiki/thunder);
+    /// „Wie Donner klingt“, Environment and Climate Change Canada (canada.ca, „How thunder sounds“).
+    /// </summary>
+    public const double Schallgeschwindigkeit = 343.0;
+    public const double HoerweiteKm = 18.0, NaheGrenzeKm = 2.5;
+
+    /// <summary>Sekunden vom Blitz bis zum Donner bei diesem Abstand.</summary>
+    public static double DonnerVerzoegerung(double km) => km * 1000.0 / Schallgeschwindigkeit;
+
+    /// <summary>Pegel des Donners in dB (0 = der nächste Schlag): −6 dB je Verdopplung ab 0,5 km, Ausblenden zwischen 14 und 18 km.</summary>
+    public static float DonnerDb(double km) =>
+        (km <= 0.5 ? 0f : -6f * MathF.Log2((float)(km / 0.5))) - 25f * Glatt(14f, (float)HoerweiteKm, (float)km);
+
+    /// <summary>Tiefpass des Donners in Hz: 16 kHz bei 0,3 km, logarithmisch auf 350 Hz bei 15 km (die Luft schluckt die Höhen).</summary>
+    public static float DonnerTiefpass(double km)
+    {
+        var t = Math.Clamp(Math.Log(Math.Max(km, 0.3) / 0.3) / Math.Log(15.0 / 0.3), 0.0, 1.0);
+        return (float)(16000.0 * Math.Pow(350.0 / 16000.0, t));
+    }
+
+    /// <summary>Helligkeit des Blitzes in der Darstellung (0–1) nach dem Abstand.</summary>
+    public static float BlitzHelligkeit(double km) => (float)Math.Clamp(1.0 / (1.0 + 0.3 * Math.Max(km - 0.3, 0.0)), 0.12, 1.0);
+
+    /// <summary>
+    /// Würfelt den Abstand eines Blitzes in Kilometern. Ohne <paramref name="fortschritt"/> (−1) bunt gemischt (etwa jeder fünfte nah, jeder zehnte jenseits der Hörweite);
+    /// mit dem Fortschritt des Gewitters (0 = Beginn, 0,5 = über der Stadt, 1 = Ende) zieht es heran und weiter: Mittel 0,4 km · 60^|2f − 1|, also 24 km am Rand und
+    /// 0,4 km in der Mitte, mit Streuung (Faktor e^N(0; 0,5)). Diese eine Zahl nehmen Bild (<see cref="BlitzHelligkeit"/>) und Ton.
+    /// </summary>
+    public static double BlitzAbstandWuerfeln(Random zufall, float fortschritt = -1f)
+    {
+        double mittel;
+        if (fortschritt < 0) mittel = 0.4 * Math.Pow(60.0, zufall.NextDouble());
+        else mittel = 0.4 * Math.Pow(60.0, Math.Pow(Math.Abs(2.0 * Math.Clamp(fortschritt, 0f, 1f) - 1.0), 1.1));
+        var u1 = 1.0 - zufall.NextDouble();
+        var u2 = zufall.NextDouble();
+        var gauss = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+        return Math.Clamp(mittel * Math.Exp(0.5 * gauss), 0.15, 40.0);
+    }
+
     /// <summary>Ein Ruf, den der Planer abspielen lässt.</summary>
     /// <param name="Spur">0 = nah, 1 = fern (Panner und Tiefpass der Rufbusse), 2 = Gespräch (eigener Bus mit Panner und Tiefpass).</param>
-    /// <param name="Tiefpass">Tiefpass des Busses für diesen Ruf in Hz (Spur 2, nach dem Abstand); 0 = unverändert.</param>
-    public readonly record struct Ruf(int Art, string Datei, bool Fern, float Seite, float Db, float Tonhoehe, int Spur = 0, float Tiefpass = 0f)
+    /// <param name="Tiefpass">Tiefpass des Busses für diesen Ruf in Hz (Gespräch nach dem Abstand der Gruppe, Donner nach dem Abstand des Blitzes); 0 = unverändert.</param>
+    /// <param name="Km">Beim Donner der Abstand des Blitzes in Kilometern (alles an ihm: Verzögerung, Pegel, Klang), sonst 0.</param>
+    public readonly record struct Ruf(int Art, string Datei, bool Fern, float Seite, float Db, float Tonhoehe, int Spur = 0, float Tiefpass = 0f, float Km = 0f)
     {
         public int Bahn => Spur != 0 ? Spur : Fern ? 1 : 0;
     }
@@ -503,21 +556,21 @@ public static class KlangUmgebungModell
 
         public double Jetzt => _jetzt;
 
-        /// <summary>Anteil der Blitze mit nahem Donner (Verzögerung unter 2 s).</summary>
-        public const double NahAnteil = 0.55;
-
         /// <summary>Wie viele Donner noch ausstehen (Test, Entwicklerreiter).</summary>
         public int DonnerAusstehend => _donner.Count;
 
         /// <summary>
-        /// Ein Blitz ist eingeschlagen: Der Donner folgt 0,5 bis 7 s später (Schall, 3 s ≈ 1 km). Mehr als drei auf einmal werden nicht gemerkt.
+        /// Ein Blitz ist eingeschlagen, <paramref name="km"/> weit weg: Der Donner folgt nach <see cref="DonnerVerzoegerung"/> (Schall, 343 m/s), mit dem Pegel und
+        /// Klang dieses Abstands; jenseits der <see cref="HoerweiteKm"/> kommt keiner (Wetterleuchten). Gibt die Verzögerung in Sekunden zurück (−1 = kein Donner).
+        /// Ohne Abstand würfelt <see cref="BlitzAbstandWuerfeln"/> (Entwicklerreiter, Tests).
         /// </summary>
-        public void BlitzMelden()
+        public double BlitzMelden(double km = -1)
         {
-            if (_donner.Count >= 3) return;
-            // gut die Hälfte schlägt nah ein (Verzögerung unter 2 s: scharfer Knall, langes Rollen), der Rest grollt fern
-            var verzug = _zufall.NextDouble() < NahAnteil ? 0.3 + 1.6 * _zufall.NextDouble() : 2.0 + 5.0 * _zufall.NextDouble();
-            _donner.Add((_jetzt + verzug, verzug, 0));
+            if (km < 0) km = BlitzAbstandWuerfeln(_zufall);
+            if (km > HoerweiteKm || _donner.Count >= 12) return -1;
+            var verzug = DonnerVerzoegerung(km);
+            _donner.Add((_jetzt + verzug, km, 0));
+            return verzug;
         }
 
         /// <summary>Fenstergewicht der Art bei diesen Eingaben, 0 außerhalb der Zoomgrenze.</summary>
@@ -598,10 +651,10 @@ public static class KlangUmgebungModell
         {
             for (var k = _donner.Count - 1; k >= 0; k--)
             {
-                var (faellig, verzug, _) = _donner[k];
+                var (faellig, km, _) = _donner[k];
                 if (_jetzt < faellig) continue;
                 _donner.RemoveAt(k);
-                neu.Add(Erzeugen(Array.FindIndex(Rufarten, a => a.Bedarf == RufBedarf.Donner), verzug >= 2.0, 60f, null, verzug));
+                neu.Add(Erzeugen(Array.FindIndex(Rufarten, a => a.Bedarf == RufBedarf.Donner), km >= NaheGrenzeKm, 60f, null, km));
             }
         }
 
@@ -655,7 +708,7 @@ public static class KlangUmgebungModell
             return new RufOrt(letzte.Seite, letzte.Abstand, umkreis, letzte.Markt);
         }
 
-        private Ruf Erzeugen(int art, bool fern, float zoom, RufOrt? ort, double donnerVerzug = 0)
+        private Ruf Erzeugen(int art, bool fern, float zoom, RufOrt? ort, double donnerKm = 0)
         {
             var r = Rufarten[art];
             if (r.Bedarf == RufBedarf.Gruppe) return GespraechErzeugen(art, ort);
@@ -673,14 +726,20 @@ public static class KlangUmgebungModell
             var db = (fern ? r.FernDb : r.NahDb - 6f * Glatt(40f, 100f, zoom)) + (float)(_zufall.NextDouble() * 6 - 3);
             // und mit dem Abstand der Figur zur Kamera: bis −8 dB am Rand des Umkreises
             if (ort is { } p) db -= 8f * Glatt(0.3f * p.Umkreis, p.Umkreis, p.Abstand);
-            if (r.Bedarf == RufBedarf.Donner) db -= 6f * Glatt(1f, 7f, (float)donnerVerzug); // ferner Donner ist leiser (Entfernung)
+            // Donner: Pegel nur nach dem Abstand des Blitzes (die Grollen-Aufnahmen sind 4 dB leiser abgemischt: ausgleichen), kaum Streuung
+            if (r.Bedarf == RufBedarf.Donner)
+            {
+                var km = donnerKm > 0 ? donnerKm : fern ? 6.0 : 0.6;
+                db = DonnerDb(km) + (fern ? 4f : 0f) + (float)(_zufall.NextDouble() * 2 - 1);
+            }
             var hoehe = 1f + (float)(_zufall.NextDouble() * 0.08 - 0.04);
             var ende = _jetzt + Laenge(name) / hoehe + 0.2;
             if (fern) _fernFrei = ende;
             else _nahFrei = ende;
             _seitLetztem = 0;
             _letzterRuf[art] = _jetzt;
-            return new Ruf(art, name, fern, seite, db, hoehe);
+            return new Ruf(art, name, fern, seite, db, hoehe, Tiefpass: r.Bedarf == RufBedarf.Donner ? DonnerTiefpass(donnerKm > 0 ? donnerKm : fern ? 6.0 : 0.6) : 0f,
+                           Km: (float)donnerKm);
         }
 
         /// <summary>
@@ -713,6 +772,22 @@ public static class KlangUmgebungModell
         }
 
         private double Exponentiell(double mittel) => -Math.Log(1 - _zufall.NextDouble()) * Math.Max(mittel, 0.1);
+    }
+
+    /// <summary>
+    /// Das Wetter des Tons während eines Gewitters (<paramref name="fortschritt"/> 0–1, −1 = keines): Zieht es heran, wird der Regen stärker (bei Beginn 55 % der Lage,
+    /// kurz vor dem nahen Donner ab 0,25 voll, danach bleibt er und lässt zum Ende wieder auf 55 % nach), und kurz davor (0,25–0,5) kommen Böen, kräftigeres
+    /// Pulsieren des Winds. Nur der Ton liest das Wetter, die Darstellung bleibt unberührt. <paramref name="sekunden"/> sind Echtzeitsekunden für die Böen.
+    /// </summary>
+    public static KlangWetter GewitterWetter(KlangWetter w, float fortschritt, double sekunden)
+    {
+        if (fortschritt < 0 || w.Blitze < 0.3f) return w;
+        var mitte = 1f - Math.Abs(2f * Math.Clamp(fortschritt, 0f, 1f) - 1f);       // 0 am Rand, 1 über der Stadt
+        var regen = w.Regen * (0.55f + 0.45f * Glatt(0.05f, 0.5f, mitte));
+        var vorboten = Glatt(0.45f, 0.75f, mitte) * (1f - Glatt(0.92f, 1f, mitte)) * (fortschritt < 0.5f ? 1f : 0.35f); // beim Heranziehen stark, danach noch Reste
+        var boe = 0.5f + 0.5f * MathF.Sin((float)(sekunden * 0.9)) * MathF.Sin((float)(sekunden * 0.37 + 1.3));        // 0–1, unregelmäßig
+        var wind = Math.Clamp(w.Wind + 0.25f * vorboten * boe, 0f, 1f);
+        return w with { Regen = regen, Wind = wind };
     }
 
     // ── Glocken ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -1336,53 +1411,69 @@ public static class KlangUmgebungModell
             pruefe(nacht is >= 3 and <= 40 && tag == 0 && leer == 0, $"Horn: nachts {nacht}, mittags {tag}, ohne Streife {leer}");
         }
 
-        // i. Donner: nach dem Blitz, mit Verzögerung 0,5–7 s, nie ohne Blitz, nicht im Hintergrund
+        // i. Donner physikalisch gekoppelt: EIN Abstand je Blitz bestimmt Verzögerung (343 m/s), Pegel, Klang (Tiefpass, Aufnahme) und Helligkeit; monoton
         {
             var art = Art("Donner");
             var z = new Zustand();
-            var p = new RufPlaner(9) { Laenge = _ => 6.0 };
             var e = new Eingaben(15 * 60, 15, Jahreszeit.Sommer, 60, 140, Innenart.Draussen, false, 1.27, Wetter: new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f));
-            var neu = new List<Ruf>();
             Ausgabe a = z.Aus;
-            for (var t = 0.0; t < 4; t += 1.0 / 30) { a = z.Schritt(e, 1.0 / 30); p.Schritt(e, a, 1.0 / 30, neu); }
-            pruefe(neu.All(r => r.Art != art), "Donner ohne Blitz");
-            var verzoegerungen = new List<double>();
-            for (var k = 0; k < 20; k++)
+            for (var t = 0.0; t < 4; t += 1.0 / 30) a = z.Schritt(e, 1.0 / 30);
+            var abstaende = new[] { 0.3, 0.6, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0, 16.0 };
+            var zeilen = new List<(double Km, double Verzug, float Db, float Tp, bool Fern, float Hell)>();
+            foreach (var km in abstaende)
             {
+                var p = new RufPlaner(9) { Laenge = _ => 6.0 };
+                var neu = new List<Ruf>();
+                var verzug = p.BlitzMelden(km);
+                pruefe(Math.Abs(verzug - km * 1000 / 343.0) < 1e-6, $"Verzögerung {km} km: {verzug} s statt Abstand ÷ 343 m/s");
                 var bei = p.Jetzt;
-                p.BlitzMelden();
-                for (var t = 0.0; t < 12; t += 1.0 / 30)
+                Ruf? ruf = null;
+                for (var t = 0.0; t < 70 && ruf is null; t += 1.0 / 30)
                 {
                     neu.Clear();
                     p.Schritt(e, a, 1.0 / 30, neu);
-                    var d = neu.FirstOrDefault(r => r.Art == art);
-                    if (d.Datei is not null) { verzoegerungen.Add(p.Jetzt - bei); pruefe(d.Datei.StartsWith(d.Fern ? "donner_fern_" : "donner_"), $"Donner-Datei {d.Datei} zu fern={d.Fern}"); break; }
+                    if (neu.Count(r => r.Art == art) is > 0) ruf = neu.First(r => r.Art == art);
                 }
-                for (var t = 0.0; t < 7; t += 1.0 / 30) { neu.Clear(); p.Schritt(e, a, 1.0 / 30, neu); } // der Donner ausgeklungen, der Platz frei
+                pruefe(ruf is not null, $"Donner bei {km} km kam nicht");
+                if (ruf is not { } d) continue;
+                pruefe(Math.Abs(p.Jetzt - bei - verzug) < 0.1, $"Donner bei {km} km nach {p.Jetzt - bei:0.00} s statt {verzug:0.00} s");
+                pruefe(d.Datei.StartsWith(km < NaheGrenzeKm ? "donner_" : "donner_fern_") && (km < NaheGrenzeKm ? !d.Datei.StartsWith("donner_fern") : true), $"Donner-Datei {d.Datei} bei {km} km");
+                zeilen.Add((km, verzug, d.Db, d.Tiefpass, d.Fern, BlitzHelligkeit(km)));
             }
-            log($"UMGEBUNGTEST Donner: {verzoegerungen.Count} von 20 Blitzen, Verzögerung {verzoegerungen.DefaultIfEmpty(0).Min():0.0}–{verzoegerungen.DefaultIfEmpty(0).Max():0.0} s");
-            pruefe(verzoegerungen.Count == 20 && verzoegerungen.Min() >= 0.25 && verzoegerungen.Max() <= 7.6, "Donner: Zahl oder Verzögerung falsch");
-            // gut die Hälfte nah (Verzögerung unter 2 s)
-            var p2 = new RufPlaner(21) { Laenge = _ => 0.5 };
-            var nahe = 0;
-            for (var k = 0; k < 400; k++)
+            log("UMGEBUNGTEST Donner: " + string.Join(" | ", zeilen.Select(r => $"{r.Km:0.0} km: {r.Verzug:0.0} s, {r.Db:0} dB, {r.Tp:0} Hz{(r.Fern ? " fern" : " nah")}, Blitz {r.Hell:0.00}")));
+            // monoton: je weiter, desto später, leiser, dumpfer und dunkler (Pegel mit Streuung ±1 dB: Stufen ab 1 dB Unterschied der Rechnung)
+            for (var i = 1; i < zeilen.Count; i++)
             {
-                var bei = p2.Jetzt;
-                p2.BlitzMelden();
-                var gefunden = false;
-                for (var t = 0.0; t < 8 && !gefunden; t += 1.0 / 30)
-                {
-                    neu.Clear();
-                    p2.Schritt(e, a, 1.0 / 30, neu);
-                    if (neu.FirstOrDefault(r => r.Art == art) is { Datei: not null } dd) { gefunden = true; if (!dd.Fern) nahe++; }
-                }
+                pruefe(zeilen[i].Verzug > zeilen[i - 1].Verzug && zeilen[i].Tp < zeilen[i - 1].Tp && zeilen[i].Hell < zeilen[i - 1].Hell, $"Kopplung nicht monoton bei {zeilen[i].Km} km");
+                pruefe(DonnerDb(zeilen[i].Km) <= DonnerDb(zeilen[i - 1].Km), $"Pegel steigt mit dem Abstand bei {zeilen[i].Km} km");
             }
-            log($"UMGEBUNGTEST Donner nah: {nahe} von 400 Blitzen");
-            pruefe(nahe is >= 190 and <= 250, $"Donner nah {nahe} von 400 (erwartet etwa 55 %)");
-            p.BlitzMelden();
-            neu.Clear();
-            p.Schritt(e with { Hintergrund = true }, a, 1.0, neu);
-            pruefe(p.DonnerAusstehend == 0, "Donner im Hintergrund nicht verworfen");
+            pruefe(DonnerDb(0.5) == 0f && Math.Abs(DonnerDb(1.0) + 6f) < 0.01f && Math.Abs(DonnerDb(4.0) + 18f) < 0.01f, "Pegel: −6 dB je Verdopplung ab 0,5 km");
+            pruefe(DonnerTiefpass(0.3) > 15000f && DonnerTiefpass(15) < 400f, "Tiefpass nah offen, fern dumpf");
+            pruefe(BlitzHelligkeit(0.3) == 1f && BlitzHelligkeit(100) >= 0.12f && BlitzHelligkeit(1) < 1f, "Blitzhelligkeit");
+            // jenseits der Hörweite: Wetterleuchten (Blitz ohne Donner)
+            var pw = new RufPlaner(10);
+            var nw = new List<Ruf>();
+            pruefe(pw.BlitzMelden(HoerweiteKm + 1) < 0 && pw.DonnerAusstehend == 0, "Donner jenseits der Hörweite");
+            for (var t = 0.0; t < 120; t += 1.0 / 10) { pw.Schritt(e, a, 0.1, nw); }
+            pruefe(nw.All(r => r.Art != art), "Wetterleuchten mit Donner");
+            // Würfeln: ohne Fortschritt bunt gemischt (etwa jeder fünfte unter 1,5 km), mit Fortschritt zieht das Gewitter heran und weiter
+            var zufall = new Random(5);
+            var bunt = Enumerable.Range(0, 2000).Select(_ => BlitzAbstandWuerfeln(zufall)).ToList();
+            var naheAnteil = bunt.Count(k => k < 1.5) / 2000.0;
+            var weitAnteil = bunt.Count(k => k > HoerweiteKm) / 2000.0;
+            log($"UMGEBUNGTEST Blitzabstand bunt: unter 1,5 km {naheAnteil:P0}, über {HoerweiteKm:0} km {weitAnteil:P0}");
+            pruefe(naheAnteil is > 0.15 and < 0.4 && weitAnteil is > 0.03 and < 0.3, $"Abstandsverteilung: nah {naheAnteil:P0}, weit {weitAnteil:P0}");
+            double Mittel(float f) => Enumerable.Range(0, 500).Select(_ => BlitzAbstandWuerfeln(zufall, f)).Average();
+            double m0 = Mittel(0f), m25 = Mittel(0.25f), m5 = Mittel(0.5f), m75 = Mittel(0.75f), m1 = Mittel(1f);
+            log($"UMGEBUNGTEST Gewitterzug: mittlerer Abstand bei 0 / 25 / 50 / 75 / 100 %: {m0:0.0} / {m25:0.0} / {m5:0.0} / {m75:0.0} / {m1:0.0} km");
+            pruefe(m0 > 12 && m5 < 1.0 && m1 > 12 && m25 < m0 && m25 > m5 && m75 < m1 && m75 > m5, "Das Gewitter zieht nicht heran und weiter");
+            // Vorboten: kurz vor dem nahen Donner Regen stärker und Böen
+            var vor = GewitterWetter(new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f), 0.38f, 12.0);
+            var anfang = GewitterWetter(new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f), 0.05f, 12.0);
+            var mitte = GewitterWetter(new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f), 0.5f, 12.0);
+            pruefe(anfang.Regen < vor.Regen && vor.Regen <= mitte.Regen + 1e-4f && anfang.Regen >= 0.3f, $"Regen steigt nicht zum Gewitter hin: {anfang.Regen:0.00} {vor.Regen:0.00} {mitte.Regen:0.00}");
+            var boeen = Enumerable.Range(0, 200).Select(k => GewitterWetter(new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f), 0.38f, k * 0.5).Wind).ToList();
+            pruefe(boeen.Max() - boeen.Min() > 0.15f && GewitterWetter(new KlangWetter(0f, 0f, 0.3f, 0f, 0f), -1f, 3.0).Wind == 0.3f, "Böen vor dem Gewitter fehlen");
         }
 
         // j. Glocken: genau zu den Zeiten der Regeln, einmal je Überschreitung, nicht bei Sprüngen, mit Dom-Lage

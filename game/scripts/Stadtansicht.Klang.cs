@@ -43,6 +43,20 @@ public partial class Stadtansicht
     /// <summary>Zeit seit dem Beginn des laufenden Blitzes in Sekunden, −1 solange keiner blitzt (steigende Flanke = neuer Blitz → Donner).</summary>
     public float KlangBlitzZeit => _blitzZeit;
 
+    /// <summary>Abstand des laufenden Blitzes in Kilometern: derselbe Wurf, der die Helligkeit im Bild bestimmt (Stadtansicht.Wetter.cs) – der Ton rechnet daraus den Donner.</summary>
+    public float KlangBlitzAbstandKm => _blitzAbstandKm;
+
+    /// <summary>
+    /// Wie weit das Gewitter ist (0 = beginnt, 0,5 = über der Stadt, 1 = zu Ende; −1 = kein Gewitter-Abschnitt). Aus dem Wetterablauf der Partie (nur gelesen); bei fest
+    /// vorgegebenem Wetter (<c>--wetter=gewitter</c>) −1 (die Blitze kommen bunt gemischt) oder der Wert der Hörprobe (<see cref="GewitterFortschrittVorgeben"/>).
+    /// </summary>
+    public float KlangGewitterFortschritt =>
+        _gewitterVorgabe ?? (_wetterVorgabe is not null ? -1f
+            : _simulation is null ? -1f : WetterablaufDerPartie()?.GewitterFortschritt(_simulation.Zeit.VergangeneMinuten + _simulation.Takt.AngebrocheneMinute) ?? -1f);
+
+    /// <summary>Nur für die Hörprobe: den Fortschritt des Gewitters vorgeben (null: wieder aus dem Wetter).</summary>
+    public void GewitterFortschrittVorgeben(float? fortschritt) => _gewitterVorgabe = fortschritt;
+
     /// <summary>
     /// Wann die Glocken läuten, aus den Regeln des Kerns: Arbeitsbeginn (<see cref="Stadtwirtschaft.Arbeitsbeginn"/>, 8 Uhr), Messe (Stunde des Kirchenwesens),
     /// Feierabend (Arbeitsbeginn + Arbeitsminuten) und Schankschluss (Arbeitsende der Wirtshäuser, sonst Arbeitsbeginn + 14 Stunden).

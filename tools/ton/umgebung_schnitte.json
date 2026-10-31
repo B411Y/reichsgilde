@@ -311,15 +311,6 @@
    "lizenz": "CC0 1.0",
    "lizenz_geprueft": "2026-10-31"
   },
-  "139103": {
-   "urheber": "Mxsmanic",
-   "titel": "Bells ringing at Notre-Dame Cathedral in Paris, France",
-   "seite": "https://freesound.org/people/Mxsmanic/sounds/139103/",
-   "vorschau": "https://cdn.freesound.org/previews/139/139103_630368-hq.ogg",
-   "sha256": "02cc1ad1b7b0e655a3c2b21cc76528568b105c7db49c32cba345f6641ad90c3b",
-   "lizenz": "CC0 1.0",
-   "lizenz_geprueft": "2026-10-31"
-  },
   "243614": {
    "urheber": "foad",
    "titel": "Thunderstorm lightning strike",
@@ -336,6 +327,24 @@
    "vorschau": "https://cdn.freesound.org/previews/844/844420_14079354-hq.ogg",
    "sha256": "ecfbd0afd70af939d934be4ebb9de732e171082b85233751361f07b076668c23",
    "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "434074": {
+   "urheber": "felix.blume",
+   "titel": "Churchbells recorded from the top of the Cathedral at noon in Fribourg",
+   "seite": "https://freesound.org/people/felix.blume/sounds/434074/",
+   "vorschau": "https://cdn.freesound.org/previews/434/434074_1661766-hq.ogg",
+   "sha256": "07983d7aa8b5612d11d0812c906d313a48760a02e21a50250d31602597d2486b",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "204899": {
+   "urheber": "klankbeeld",
+   "titel": "church bell 10 o clock EQ Yuval.wav",
+   "seite": "https://freesound.org/people/klankbeeld/sounds/204899/",
+   "vorschau": "https://cdn.freesound.org/previews/204/204899_1648170-hq.ogg",
+   "sha256": "d074f8a26a3940fc1aab82dc7f7592c72e24990c5482dc8536e15a2026c89833",
+   "lizenz": "CC BY 4.0",
    "lizenz_geprueft": "2026-10-31"
   }
  },
@@ -1113,21 +1122,6 @@
    "zweck": "Morgen: Geläut des Kölner Doms, 30 s (andere Stelle)"
   },
   {
-   "name": "glocke_messe_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "139103",
-   "von": 22.0,
-   "bis": 62.0,
-   "hp": 45,
-   "ein": 1.2,
-   "aus": 5.0,
-   "ziel_lufs": -17.0,
-   "spitze": -1.0,
-   "begrenzer": -8.0,
-   "zweck": "Messe: Notre-Dame, die große Glocke und weitere kommen dazu, 40 s"
-  },
-  {
    "name": "glocke_messe_2",
    "art": "ruf",
    "ordner": "glocken",
@@ -1143,21 +1137,6 @@
    "zweck": "Messe: Geläut des Kölner Doms, 36 s"
   },
   {
-   "name": "glocke_abend_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "139103",
-   "von": 0.0,
-   "bis": 34.0,
-   "hp": 45,
-   "ein": 0.3,
-   "aus": 6.0,
-   "ziel_lufs": -17.0,
-   "spitze": -1.0,
-   "begrenzer": -8.0,
-   "zweck": "Abend: Notre-Dame, die große Glocke (Emmanuel) allein, dann weitere, ausklingend, 34 s"
-  },
-  {
    "name": "glocke_abend_2",
    "art": "ruf",
    "ordner": "glocken",
@@ -1171,36 +1150,6 @@
    "spitze": -1.0,
    "begrenzer": -8.0,
    "zweck": "Abend: Geläut des Kölner Doms, langsam ausklingend, 30 s"
-  },
-  {
-   "name": "glocke_feuer_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "139103",
-   "von": 0.0,
-   "bis": 24.0,
-   "hp": 45,
-   "ein": 0.3,
-   "aus": 3.5,
-   "ziel_lufs": -17.0,
-   "spitze": -1.0,
-   "begrenzer": -8.0,
-   "zweck": "Feuer: die große Glocke (Emmanuel) allein, langsame schwere Schläge, 24 s"
-  },
-  {
-   "name": "glocke_feuer_2",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "139103",
-   "von": 3.0,
-   "bis": 27.0,
-   "hp": 45,
-   "ein": 0.3,
-   "aus": 3.5,
-   "ziel_lufs": -17.0,
-   "spitze": -1.0,
-   "begrenzer": -8.0,
-   "zweck": "Feuer: wie 1, eine andere Stelle, 24 s"
   },
   {
    "name": "donner_1",
@@ -1321,6 +1270,82 @@
    "begrenzer": -9.0,
    "ein": 0.5,
    "aus": 3.0
+  },
+  {
+   "name": "glocke_messe_1",
+   "quelle": "434074",
+   "von": 88.0,
+   "bis": 128.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 5.0,
+   "zweck": "Messe: Geläut vom Dach der Kathedrale Fribourg (Schweiz), viele Glocken, 40 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "glocke_abend_1",
+   "mix": [
+    {
+     "quelle": "204899",
+     "von": 0.0,
+     "bis": 34.0,
+     "hp": 45,
+     "ein": 0.3,
+     "aus": 6.0,
+     "versatz": 0.0,
+     "db": 0.0
+    },
+    {
+     "quelle": "434074",
+     "von": 78.0,
+     "bis": 104.0,
+     "hp": 45,
+     "ein": 12.0,
+     "aus": 8.0,
+     "versatz": 14.0,
+     "db": -5.0
+    }
+   ],
+   "zweck": "Abend: die große Glocke (Noteman, Niederlande) allein, ab 14 s kommt das Geläut von Fribourg dazu, ausklingend, 40 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "glocke_feuer_1",
+   "quelle": "204899",
+   "von": 0.0,
+   "bis": 24.0,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 3.5,
+   "zweck": "Feuer: die große Glocke (Noteman, Niederlande) allein, langsame schwere Schläge, 24 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
+  },
+  {
+   "name": "glocke_feuer_2",
+   "quelle": "204899",
+   "von": 17.8,
+   "bis": 41.8,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 3.5,
+   "zweck": "Feuer: wie 1, andere Stelle, 24 s",
+   "art": "ruf",
+   "ordner": "glocken",
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0
   }
  ]
 }

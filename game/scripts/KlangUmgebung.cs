@@ -48,6 +48,11 @@ public partial class KlangUmgebung : Node
     public Func<(float X, float Z)>? FokusQuelle;
     /// <summary>Zeit seit dem letzten Blitz (Sekunden; negativ = gerade keiner): Die steigende Flanke löst den Donner aus.</summary>
     public Func<float>? BlitzQuelle;
+    /// <summary>Abstand des laufenden Blitzes in Kilometern (derselbe Wurf wie die Helligkeit im Bild) und der Fortschritt des Gewitters (−1 = keines).</summary>
+    public Func<float>? BlitzAbstandQuelle, GewitterQuelle;
+    /// <summary>Nur für die Hörprobe: Fortschritt des Gewitters vorgeben (null = aus dem Wetter) und einen Blitz mit diesem Abstand (km) auslösen.</summary>
+    public Action<float?>? GewitterVorgeben;
+    public Action<float>? BlitzVorgeben;
 
     private readonly M.Zustand _zustand = new();
     private readonly KlangStadtlebenModell.Momentbild _momentbild = new();
@@ -63,14 +68,14 @@ public partial class KlangUmgebung : Node
     private readonly List<M.Glocke> _neueGlocken = new();
     private AudioStreamPlayer _rufNah = null!, _rufFern = null!, _rufGespraech = null!, _glockenSpieler = null!;
     private AudioEffectPanner? _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke, _panDonner;
-    private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke;
+    private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke, _tiefpassDonner;
     private int _busDraussen = -1, _busStadt = -1, _busSchenke = -1, _busInnen = -1;
     private float _draussenDb = float.NaN, _draussenTp = float.NaN, _stadtDb = float.NaN, _stadtTp = float.NaN;
     private float _schenkeDb = float.NaN, _schenkeSeite = float.NaN, _schenkeTp = float.NaN, _innenDb = float.NaN;
     private float _blitzVorher = -1;
     private bool _laeuft, _beendet;
     private int _logStufe;
-    private bool _fahrt, _kurzeFahrt;
+    private bool _fahrt, _kurzeFahrt, _gewitterFahrt;
     private double _zeit, _logUhr, _fahrtZeit;
     private int _fahrtRuf;
 
@@ -108,6 +113,7 @@ public partial class KlangUmgebung : Node
             if (arg == "--umgebungtest=2") _logStufe = 2;
             if (arg == "--umgebungfahrt=1") _fahrt = true;
             if (arg == "--umgebungfahrt=2") (_fahrt, _kurzeFahrt) = (true, true);
+            if (arg == "--umgebungfahrt=3") (_fahrt, _gewitterFahrt) = (true, true);
         }
         if (_fahrt)
         {
@@ -156,6 +162,7 @@ public partial class KlangUmgebung : Node
         _busInnen = AudioServer.GetBusIndex(KlangDienst.BusUmgebungInnen);
         var donner = AudioServer.GetBusIndex(KlangDienst.BusUmgebungDonner);
         _panDonner = donner >= 0 ? AudioServer.GetBusEffect(donner, 0) as AudioEffectPanner : null;
+        _tiefpassDonner = donner >= 0 ? AudioServer.GetBusEffect(donner, 1) as AudioEffectLowPassFilter : null;
         _planer.Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0;
         if (_fahrt) _planer = new M.RufPlaner(4711) { Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0 };
     }
@@ -235,6 +242,9 @@ public partial class KlangUmgebung : Node
         if (!_laeuft) Starten();
         _zeit += delta;
         if (_fahrt) eingaben = FahrtSchritt(eingaben, delta);
+        // Gewitter: zieht es heran, wird der Regen stärker und es kommen Böen (nur der Ton, Wetterdaten werden nur gelesen)
+        if (GewitterQuelle?.Invoke() is { } fortschritt and >= 0f)
+            eingaben = eingaben with { Wetter = M.GewitterWetter(eingaben.Himmel, fortschritt, _zeit) };
         // Die Menschen der Stadt: Momentbild → Lage (weich geglättet). Ohne Quelle gilt „alles voll“ (Probepartie ohne Stadtansicht)
         if (_fahrt ? FahrtMomentbild(eingaben) : LebenQuelle?.Invoke(_momentbild) == true)
             eingaben = eingaben with { Leben = _leben.Schritt(_momentbild, eingaben.Innen == M.Innenart.Draussen ? eingaben.Zoom : 60f, delta) };
@@ -247,7 +257,12 @@ public partial class KlangUmgebung : Node
         // Ein Blitz (steigende Flanke der Blitzzeit) → der Donner folgt mit der Verzögerung des Schalls
         if (BlitzQuelle?.Invoke() is { } blitz)
         {
-            if (blitz >= 0 && _blitzVorher < 0 && !eingaben.Hintergrund) _planer.BlitzMelden();
+            if (blitz >= 0 && _blitzVorher < 0 && !eingaben.Hintergrund)
+            {
+                var km = BlitzAbstandQuelle?.Invoke() ?? -1f;
+                var verzug = _planer.BlitzMelden(km);
+                if (_logStufe >= 2) GD.Print($"UMGEBUNG BLITZ t={_zeit:0.00} km={km:0.00} verzoegerung={(verzug < 0 ? "kein Donner (Wetterleuchten)" : verzug.ToString("0.0") + " s")} gewitter={(GewitterQuelle?.Invoke() ?? -1f):0.00}");
+            }
             _blitzVorher = blitz;
         }
         // Glocken vom Dom: zu den Zeiten der Regeln (Arbeitsbeginn, Messe, Feierabend, Schankschluss)
@@ -329,6 +344,7 @@ public partial class KlangUmgebung : Node
         {
             // Donner: ein eigener Spieler je Schlag, damit sich Grollen überlagern dürfen (Bus und Seite wie die Rufe)
             if (_panDonner is not null) _panDonner.Pan = ruf.Seite;
+            if (_tiefpassDonner is not null && ruf.Tiefpass > 0) _tiefpassDonner.CutoffHz = ruf.Tiefpass; // die Luft schluckt die Höhen: fern dumpf
             var d = new AudioStreamPlayer { Stream = ton, Bus = KlangDienst.BusUmgebungDonner, VolumeDb = M.AbspielDb(ruf), PitchScale = ruf.Tonhoehe };
             d.Finished += d.QueueFree;
             AddChild(d);
@@ -450,6 +466,20 @@ public partial class KlangUmgebung : Node
     };
     public const float FahrtEndeKurz = 192f;
 
+    /// <summary>
+    /// Die Hörprobe <c>--umgebungfahrt=3</c> (250 s, Glocken und Gewitter): Abendglocke um 20 Uhr (bei etwa 8 s), Messglocke um 10 Uhr (bei etwa 58 s), dann ein Gewitter, das
+    /// von 110 bis 220 s heranzieht, über die Stadt geht und weiterzieht (<see cref="GewitterVon"/>–<see cref="GewitterBis"/>: Fortschritt 0–1). Die Blitze fallen im
+    /// Abstand, den das Gewitter vorgibt (am Rand 25 km: Wetterleuchten ohne Donner, dazwischen mittel, in der Mitte nah); Regen und Böen steigen vor dem nahen Donner.
+    /// </summary>
+    public static readonly FahrtPunkt[] FahrtPunkteGewitter =
+    {
+        new(0, 19.8f, 40, 0, 0), new(16, 20.4f, 40, 0, 0), new(46, 21.0f, 40, 0, 0),
+        new(46.01f, 9.2f, 40, 0, 0), new(60, 10.2f, 40, 0, 0), new(100, 11.2f, 40, 0, 0),
+        new(100.01f, 14.4f, 40, 0, 0, 0, 1), new(110, 14.7f, 40, 0, 0, 0, 1),
+        new(110.01f, 15.0f, 40, 0, 0, 2, 1), new(250, 17.0f, 40, 0, 0, 2, 1),
+    };
+    public const float FahrtEndeGewitter = 250f, GewitterVon = 110f, GewitterBis = 230f;
+
     /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern); alle übrigen plant der Planer mit festem Zufall aus den Menschen des Szenarios.</summary>
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
     {
@@ -473,8 +503,8 @@ public partial class KlangUmgebung : Node
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {
         _fahrtZeit += delta;
-        var punkte = _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
-        if (_fahrtZeit >= (_kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
+        var punkte = _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
+        if (_fahrtZeit >= (_gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
         {
             GD.Print("UMGEBUNG Fahrt fertig");
             GetTree().Quit();
@@ -498,7 +528,8 @@ public partial class KlangUmgebung : Node
         UhrVorgeben?.Invoke(stunde);
         ZoomVorgeben?.Invoke(zoom);
         FokusVorgeben?.Invoke(L(p0.X, p1.X), L(p0.Z, p1.Z));
-        while (!_kurzeFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
+        if (_gewitterFahrt) GewitterVorgeben?.Invoke(t >= GewitterVon ? Math.Clamp((t - GewitterVon) / (GewitterBis - GewitterVon), 0f, 1f) : null);
+        while (!_kurzeFahrt && !_gewitterFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
         {
             var (_, art, fern) = FahrtRufe[_fahrtRuf++];
             Abspielen(_planer.Erzwingen(Array.FindIndex(M.Rufarten, r => r.Name == art), fern, e.Zoom));
