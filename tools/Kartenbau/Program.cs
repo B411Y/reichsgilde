@@ -25,9 +25,9 @@ namespace Reichsgilde.Kartenbau;
 //                                                   ein Strich mit dem Texturpinsel (wiese, erde, fels, kies, waldboden, sand, schlamm, moos, lehm, pflaster, mist)
 //    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
 //    dotnet run --project tools/Kartenbau -- hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m>
-//                                                   --quelle=<…> --lizenz=<…> [--abruf=<datum>] [--breite=<px>] [--versatz=<m>] [--stufe=<cm>] [--bytefolge=be]
+//                                                   --quelle=<…> --lizenz=<…> --abruf=<datum> [--breite=<px>] [--versatz=<m>] [--stufe=<cm>] [--bytefolge=be]
 //                                                   eine Höhenkarte (r16/raw) ins Raster einlesen, Herkunft nach tools/Kartenbau/Staedte/HOEHENDATEN.md
-//    dotnet run --project tools/Kartenbau -- hoehenkarte-ausgeben <karte> <datei.r16> [--unten=<m>] [--oben=<m>] [--bytefolge=be]
+//    dotnet run --project tools/Kartenbau -- hoehenkarte-ausgeben <karte> <datei.r16> [--unten=<m>] [--oben=<m>] [--bytefolge=be] [--ueberschreiben]
 //                                                   das Raster der Karte als Höhenkarte (2 m je Pixel) ausgeben
 //    dotnet run --project tools/Kartenbau -- fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=] [--breite=] [--tiefe=] [--stroemung=]
 //                                                   einen Fluss oder Bach in Fließrichtung anlegen
@@ -73,12 +73,14 @@ public static class Program
                     Befehle.Gelaende(ordner, ziel, pinsel, strich, Console.Out),
                 "textur" when ziel is not null && worte.Count == 4 && BodenpinselVon(worte[2], args) is { } bodenpinsel && Orte(worte[3]) is { Count: > 0 } bodenstrich =>
                     Befehle.Textur(ordner, ziel, bodenpinsel, bodenstrich, Console.Out),
+                "hoehenkarte-einlesen" or "hoehenkarte-ausgeben" when Unlesbar(args, befehl == "hoehenkarte-einlesen") is { } falsch => Falsch(falsch),
                 "hoehenkarte-einlesen" when ziel is not null && worte.Count == 3 =>
-                    Befehle.HoehenkarteEinlesen(ordner, ziel, worte[2], Wert(args, "--pixel"), Orte(Text(args, "--ursprung") ?? "") is { Count: 1 } u ? u[0] : null,
+                    Befehle.HoehenkarteEinlesen(ordner, ziel, worte[2], Wert(args, "--pixel"), Orte((Text(args, "--ursprung") ?? "").Replace('−', '-')) is { Count: 1 } u ? u[0] : null,
                         Wert(args, "--unten"), Wert(args, "--oben"), (int?)Wert(args, "--breite") ?? 0, Wert(args, "--versatz") ?? 0, (int?)Wert(args, "--stufe") ?? 5,
-                        Text(args, "--bytefolge") == "be", new Hoehendatenherkunft(Text(args, "--quelle"), Text(args, "--lizenz"), Text(args, "--abruf")), Console.Out),
+                        HohesZuerst(args), new Hoehendatenherkunft(Text(args, "--quelle"), Text(args, "--lizenz"), Text(args, "--abruf")), Console.Out),
                 "hoehenkarte-ausgeben" when ziel is not null && worte.Count == 3 =>
-                    Befehle.HoehenkarteAusgeben(ordner, ziel, worte[2], Wert(args, "--unten"), Wert(args, "--oben"), Text(args, "--bytefolge") == "be", Console.Out),
+                    Befehle.HoehenkarteAusgeben(ordner, ziel, worte[2], Wert(args, "--unten"), Wert(args, "--oben"), HohesZuerst(args), Console.Out,
+                        schalter.Contains("--ueberschreiben")),
                 "rampe" when ziel is not null && worte.Count == 5 && Orte(worte[2]) is { Count: 1 } von && Orte(worte[3]) is { Count: 1 } nach
                              && Zahlen(worte.Skip(4)) is { Count: 1 } breite =>
                     Befehle.Rampe(ordner, ziel, von[0], nach[0], breite[0], Wert(args, "--kante") ?? 4, Console.Out),
@@ -224,10 +226,39 @@ public static class Program
         };
     }
 
-    /// <summary>Der Wert eines Schalters „--name=zahl“ – oder null.</summary>
+    /// <summary>Der Wert eines Schalters „--name=zahl“ (Punkt als Dezimaltrenner, auch mit dem Minuszeichen „−“) – oder null.</summary>
     private static double? Wert(IEnumerable<string> args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a
-        && double.TryParse(a[(name.Length + 1)..], NumberStyles.Float, CultureInfo.InvariantCulture, out var x) ? x : null;
+        && double.TryParse(a[(name.Length + 1)..].Replace('−', '-'), NumberStyles.Float, CultureInfo.InvariantCulture, out var x) && double.IsFinite(x) ? x : null;
+
+    /// <summary>Höhenkarten: niedriges (le, Vorgabe) oder hohes (be) Byte zuerst.</summary>
+    private static bool HohesZuerst(IEnumerable<string> args) => Text(args, "--bytefolge")?.ToLowerInvariant() == "be";
+
+    /// <summary>
+    /// Die Schalter der Höhenkarten, die angegeben, aber nicht lesbar sind (Zahl mit Komma, Text, ganze Zahl erwartet, unbekannte Bytefolge) –
+    /// null, wenn alles lesbar ist. Eine stille Vorgabe statt der gemeinten Angabe (z. B. Versatz 0 statt −37 m) würde Köln 37 m zu hoch legen.
+    /// </summary>
+    public static string? Unlesbar(IEnumerable<string> args, bool einlesen)
+    {
+        var zahlen = einlesen ? new[] { "--pixel", "--unten", "--oben", "--versatz" } : new[] { "--unten", "--oben" };
+        foreach (var name in zahlen)
+            if (Text(args, name) is { } text && Wert(args, name) is null) return $"{name}={text} ist keine Zahl (Punkt als Dezimaltrenner, z. B. {name}=-37.5).";
+        if (einlesen)
+        {
+            foreach (var name in new[] { "--breite", "--stufe" })
+                if (Text(args, name) is { } text && (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var n) || n < 1))
+                    return $"{name}={text} ist keine ganze Zahl größer als 0.";
+            if (Text(args, "--ursprung") is { } u && Orte(u.Replace('−', '-')) is not { Count: 1 }) return $"--ursprung={u} ist kein Ort x,z.";
+        }
+        if (Text(args, "--bytefolge") is { } b && b.ToLowerInvariant() is not ("le" or "be")) return $"--bytefolge={b}: le (niedriges Byte zuerst) oder be.";
+        return null;
+    }
+
+    private static int Falsch(string text)
+    {
+        Console.Error.WriteLine(text);
+        return 2;
+    }
 
     private static int Hilfe()
     {
@@ -255,14 +286,16 @@ public static class Program
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]
                                                   ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
               hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m> --quelle=<…> --lizenz=<…>
-                       [--abruf=<datum>] [--breite=<px>] [--versatz=<m>] [--stufe=5] [--bytefolge=be]
+                       --abruf=<datum> [--breite=<px>] [--versatz=<m>] [--stufe=5] [--bytefolge=be]
                                                   eine Höhenkarte (r16/raw, 16 Bit je Pixel, ohne Breite quadratisch) einlesen: das erste Pixel
                                                   liegt am Ursprung, Wert 0 hat die Höhe „unten“, 65535 „oben“, dazu der Versatz; neu auf 2 m
                                                   abgetastet, auf die Stufe (cm) gerundet, auf −20 … +60 m begrenzt (mit Warnung); Quelle und
-                                                  Lizenz sind Pflicht und kommen nach tools/Kartenbau/Staedte/HOEHENDATEN.md
-              hoehenkarte-ausgeben <karte> <datei.r16> [--unten=<m>] [--oben=<m>] [--bytefolge=be]
+                                                  Lizenz und Abruf sind Pflicht und kommen nach tools/Kartenbau/Staedte/HOEHENDATEN.md;
+                                                  eine angegebene, aber unlesbare Angabe bricht ab (Rückgabe 2)
+              hoehenkarte-ausgeben <karte> <datei.r16> [--unten=<m>] [--oben=<m>] [--bytefolge=be] [--ueberschreiben]
                                                   das Raster der ganzen Karte als Höhenkarte (2 m je Pixel; ohne unten/oben die tiefste und
-                                                  höchste Höhe) – nennt die Angaben, mit denen sie wieder eingelesen wird
+                                                  höchste Höhe) – nennt die Angaben, mit denen sie wieder eingelesen wird; eine vorhandene
+                                                  Datei nur mit --ueberschreiben
               fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=…] [--breite=…] [--tiefe=…] [--stroemung=…]
                                                   einen Fluss (oder Bach) in Fließrichtung anlegen; Breite und Tiefe je Punkt oder für alle
               see <karte> <x,z;…> [--art=teich] [--name=…] [--wasserstand=…] [--tiefe=…]
@@ -469,7 +502,7 @@ public static class Befehle
         }
         if (herkunft.Fehlt is { } fehlt)
         {
-            aus.WriteLine($"Ohne Herkunft liest das Skript keine Höhenkarte ein: {fehlt} fehlt (z. B. --quelle=\"DGM1 NRW, Kachel …\" --lizenz=\"dl-de/zero-2.0\").");
+            aus.WriteLine($"Ohne Herkunft liest das Skript keine Höhenkarte ein: {fehlt} fehlt (z. B. --quelle=\"DGM1 NRW, Kachel …\" --lizenz=\"dl-de/zero-2.0\" --abruf=2026-11-01).");
             return 2;
         }
         var pfad = Path.GetFullPath(datei);
@@ -528,8 +561,15 @@ public static class Befehle
     /// <summary>
     /// <c>hoehenkarte-ausgeben</c>: schreibt das Raster der ganzen Karte als r16 (2 m je Pixel) und nennt die Angaben zum Wiedereinlesen.
     /// </summary>
-    public static int HoehenkarteAusgeben(Projektordner o, string karte, string datei, double? unten, double? oben, bool hohesZuerst, TextWriter aus)
+    public static int HoehenkarteAusgeben(Projektordner o, string karte, string datei, double? unten, double? oben, bool hohesZuerst, TextWriter aus,
+        bool ueberschreiben = false)
     {
+        var ziel = Path.GetFullPath(datei);
+        if (File.Exists(ziel) && !ueberschreiben)
+        {
+            aus.WriteLine($"{ziel} gibt es schon – nichts geschrieben. Mit --ueberschreiben ersetzt das Skript sie (z. B. eine frühere Ausgabe; eine Original-Höhenkarte nie).");
+            return 2;
+        }
         var (katalog, daten) = Laden(o);
         var e = Oeffnen(o, karte, katalog, daten);
         ushort[] werte;
@@ -552,7 +592,7 @@ public static class Befehle
                       $"erstes Pixel bei ({M(lage.UrsprungXCm)}, {M(lage.UrsprungZCm)}), Wert 0 = {M(lage.UntenCm)} m, 65535 = {M(lage.ObenCm)} m");
         if (begrenzt > 0) aus.WriteLine($"   Warnung: {Tausend(begrenzt)} Punkte liegen außerhalb von unten … oben und wurden begrenzt.");
         aus.WriteLine($"   Wieder einlesen: hoehenkarte-einlesen {e.Kennung} {datei} --breite={lage.Breite} --pixel=2 --ursprung={M(lage.UrsprungXCm)},{M(lage.UrsprungZCm)} " +
-                      $"--unten={M(lage.UntenCm)} --oben={M(lage.ObenCm)} --stufe=1{(hohesZuerst ? " --bytefolge=be" : "")} --quelle=… --lizenz=…");
+                      $"--unten={M(lage.UntenCm)} --oben={M(lage.ObenCm)} --stufe=1{(hohesZuerst ? " --bytefolge=be" : "")} --quelle=… --lizenz=… --abruf=…");
         return 0;
     }
 
@@ -739,11 +779,12 @@ public static class Befehle
     private static string Relativ(Projektordner o, string pfad) => Path.GetRelativePath(o.Wurzel, pfad).Replace('\\', '/');
 }
 
-/// <summary>Woher eine eingelesene Höhenkarte stammt: Quelle (Anbieter, Kachel, Adresse), Lizenz und Abrufdatum – Quelle und Lizenz sind Pflicht.</summary>
+/// <summary>Woher eine eingelesene Höhenkarte stammt: Quelle (Anbieter, Kachel, Adresse), Lizenz und Abrufdatum – alle drei sind Pflicht.</summary>
 public sealed record Hoehendatenherkunft(string? Quelle, string? Lizenz, string? Abruf = null)
 {
-    /// <summary>Was fehlt („--quelle“, „--lizenz“) – null: vollständig.</summary>
-    public string? Fehlt => string.IsNullOrWhiteSpace(Quelle) ? "--quelle" : string.IsNullOrWhiteSpace(Lizenz) ? "--lizenz" : null;
+    /// <summary>Was fehlt („--quelle“, „--lizenz“, „--abruf“) – null: vollständig (Regel A3: Quelle, Lizenz und Abrufdatum je Import).</summary>
+    public string? Fehlt => string.IsNullOrWhiteSpace(Quelle) ? "--quelle" : string.IsNullOrWhiteSpace(Lizenz) ? "--lizenz"
+        : string.IsNullOrWhiteSpace(Abruf) ? "--abruf" : null;
 
     /// <summary>Der Kopf der Datei tools/Kartenbau/Staedte/HOEHENDATEN.md.</summary>
     public const string Kopf = """
