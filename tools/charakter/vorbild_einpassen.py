@@ -15,9 +15,10 @@ Ablauf
     geschlossene Augen, dort füllt die Glättung aus der Umgebung.
  4. Versatz D = Einpassung − B2-Mittelgesicht, leicht geglättet (I + 2 L), ohne Restbewegung des ganzen Gesichts
     (Ähnlichkeitsabbildung herausgerechnet), ausgeblendet am Rand des Gesichts (vor den Ohren, über der Stirn, unter
-    dem Kinn) und an den Lidern (Lidring ± 5 → 15 mm; Augapfel und Lidrand bleiben zusammen).
+    dem Kinn). Lider und Augapfel folgen dem mittleren Versatz ihres Umfelds (Augapfel über augen_versatz im Probebau).
 
-Ausgabe <aus>/vorbild_<name>.npz: basis (Ecken von Haut/0 der .glb, Meter, Godot-Achsen), versatz (Meter), name;
+Ausgabe <aus>/vorbild_<name>.npz: basis (Ecken von Haut/0 der .glb, Meter, Godot-Achsen), versatz (Meter), name,
+augen_versatz (rechts −x, links +x);
 Bericht <aus>/vorbild_<name>.json (Restabstand, RMS des Versatzes, Merkpunkte). Der Probebau nimmt die Datei mit
 kopf2_bauen.py … vorbilder=<a.npz>,<b.npz> als eigene Form auf (Brauen, Wimpern, Lider, Kragen folgen der Haut).
 
@@ -153,19 +154,21 @@ def main():
     z_ohr = P["_z_ohr"]
     rand = glatt(S[:, 2], z_ohr + 4, z_ohr + 30) * glatt(S[:, 1], P["me"][1] - 18, P["me"][1] - 6) \
         * (1.0 - glatt(S[:, 1], P["g"][1] + 28, P["g"][1] + 42))
-    auge_abst = np.full(n, np.inf)
+    abst_je = {}
     for s in "rl":
+        a_ = np.full(n, np.inf)
         ring = np.array([P[f"lm{i}"] for i in AUGENRING[s]] + [P[f"lm{AUGENRING[s][0]}"]])
         for p0, p1 in zip(ring[:-1], ring[1:]):
             ab = p1 - p0
             tt = np.clip(((S - p0) @ ab) / (ab @ ab), 0, 1)
-            auge_abst = np.minimum(auge_abst, np.linalg.norm(S - (p0 + np.outer(tt, ab)), axis=1))
+            a_ = np.minimum(a_, np.linalg.norm(S - (p0 + np.outer(tt, ab)), axis=1))
+        abst_je[s] = a_
+    auge_abst = np.minimum(abst_je["r"], abst_je["l"])
     daten_auge = glatt(auge_abst, 7.0, 13.0)
     # Nasenlöcher: Scans haben dort Löcher oder Höhlen, der nächste Punkt springt hinein (Buckel am Nasenflügel)
     nase_abst = np.minimum.reduce([np.linalg.norm(S - P[k], axis=1) for k in ("al_r", "al_l", "sn")])
     unten = N_S[:, 1] < -0.35
-    daten_auge = daten_auge * np.where(unten & (nase_abst < 9.0), 0.0, 1.0) * glatt(nase_abst, 2.0, 5.0)
-    lid_aus = glatt(auge_abst, 5.0, 15.0)
+    daten_auge = daten_auge * np.where(unten & (nase_abst < 12.0), 0.0, 1.0) * glatt(nase_abst, 3.0, 8.0)
     frei = np.nonzero(rand > 0.01)[0]
     # Scan auf den Gesichtsbereich beschneiden (schneller, keine Fremdteile wie Sockel oder Tuch)
     lo, hi = S[frei].min(0) - 15, S[frei].max(0) + 15
@@ -230,7 +233,7 @@ def main():
     gut = (rand[frei] * daten_auge[frei] > 0.5)
     rest["ende"] = {"mittel_mm": round(float(dist[gut].mean()), 2), "p90_mm": round(float(np.percentile(dist[gut], 90)), 2)}
     # leicht glätten (nur die große Form; kleine Buckel aus Scanfehlern weg): (I + 2 L) D_glatt = D
-    loese_g = factorized((sparse.identity(n) + 2.0 * L).tocsc())
+    loese_g = factorized((sparse.identity(n) + 3.0 * L).tocsc())
     D = np.stack([loese_g(D[:, k]) for k in range(3)], 1)
     # Restbewegung des ganzen Gesichts herausrechnen (Ähnlichkeitsabbildung über das Gesicht ohne Augen): ungenaue
     # Merkpunkte ließen sonst das Gesicht als Ganzes vor- oder zurückwandern, nur die ausgeblendete Lidregion nicht
@@ -242,7 +245,17 @@ def main():
     rest_bewegung = {"massstab": round(float(s_r), 4), "drehung_grad": round(float(np.degrees(np.arccos(np.clip((np.trace(R_r) - 1) / 2, -1, 1)))), 2),
                      "verschiebung_mm": [round(float(x), 2) for x in t_r]}
     print(name, "Restbewegung herausgerechnet", rest_bewegung)
-    versatz = D * (rand * lid_aus)[:, None]
+    # Augen: Lider und Augapfel gehen gemeinsam mit dem mittleren Versatz ihres Umfelds (Ring 8–16 mm um den Lidrand);
+    # die Lider auf 0 auszublenden gab „Brillenringe“, wenn das Vorbild um die Augen voller ist. Der Probebau verschiebt
+    # den Augapfel um denselben Betrag (augen_versatz), Lidrand und Augapfel bleiben zusammen.
+    augen_t = {}
+    for s in "rl":
+        ring_ = (abst_je[s] > 8.0) & (abst_je[s] < 16.0) & (rand > 0.5)
+        augen_t[s] = D[ring_].mean(0) if ring_.any() else np.zeros(3)
+        w_ = glatt(abst_je[s], 5.0, 15.0)[:, None]
+        nah = (abst_je[s] <= abst_je["l" if s == "r" else "r"])[:, None]
+        D = np.where(nah, augen_t[s] * (1 - w_) + D * w_, D)
+    versatz = D * rand[:, None]
     gesicht = rand > 0.5
     rms = float(np.sqrt((versatz[gesicht] ** 2).sum(1).mean()))
     bericht = {"name": name, "geschlecht": g, "quelle": vb.get("quelle"), "lizenz": vb.get("lizenz"),
@@ -251,8 +264,11 @@ def main():
                "max_versatz_mm": round(float(np.linalg.norm(versatz, axis=1).max()), 2),
                "merkpunkte_px": px}
     print(name, "RMS Versatz", round(rms, 2), "mm, max", bericht["max_versatz_mm"], "mm, Rest", rest["ende"])
+    bericht["augen_versatz_mm"] = {s: [round(float(x), 2) for x in augen_t[s]] for s in "rl"}
+    # augen_versatz: Zeile 0 = rechtes Auge der Figur (−x), Zeile 1 = linkes (+x); Meter, Godot-Achsen
     np.savez_compressed(os.path.join(aus, f"vorbild_{name}.npz"), basis=haut.grund.astype(np.float32),
-                        versatz=(versatz / 1000.0).astype(np.float32), name=name)
+                        versatz=(versatz / 1000.0).astype(np.float32), name=name,
+                        augen_versatz=(np.array([augen_t["r"], augen_t["l"]]) / 1000.0).astype(np.float32))
     # Zur Sichtprüfung: Scan nach der Ausrichtung (mm) und das eingepasste Netz
     np.savez_compressed(os.path.join(aus, f"vorbild_{name}_pruef.npz"), scan_v=scan.vertices.astype(np.float32),
                         scan_f=scan.faces, netz=S.astype(np.float32), eingepasst=(S + versatz).astype(np.float32),

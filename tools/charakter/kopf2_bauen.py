@@ -827,6 +827,7 @@ if OPTIONEN.get("eigen") == "1":
 # „vorbild_<name>“. Die Datei trägt die Ecken von Haut/0 der .glb (Godot-Achsen: x, y oben, z vorn; Meter) und ihren
 # Versatz; je Hautecke die gleich liegende Ecke (≤ 0,2 mm), sonst 0. Brauen, Wimpern, Lider und Kragen folgen wie bei
 # den eigenen Formen; Augapfel und Zähne bleiben fest.
+vorbild_augen = {}                 # Halt B2: Augapfel folgt dem Vorbild (Versatz je Seite, Blender-Achsen)
 if OPTIONEN.get("vorbilder"):
     vb_bericht = {}
     for vb_pfad in OPTIONEN["vorbilder"].split(","):
@@ -840,6 +841,9 @@ if OPTIONEN.get("vorbilder"):
         dh[:N_HAUT] = np.where(abst_[:, None] < 2e-4, v_bl[vb_idx[:, 0]], 0.0)
         vb_name = "vorbild_" + str(vb["name"])
         eigen_haut[vb_name] = dh
+        if "augen_versatz" in vb:
+            av = vb["augen_versatz"].astype(np.float64)
+            vorbild_augen[vb_name] = np.stack([av[:, 0], -av[:, 2], av[:, 1]], 1)   # [rechts (−x), links (+x)]
         vb_bericht[vb_name] = {"ecken_getroffen": int((abst_ < 2e-4).sum()), "max_mm": round(float(np.abs(dh).max() * 1000), 2)}
     bericht["vorbilder"] = vb_bericht
     zeit("Vorbilder: " + json.dumps(vb_bericht, ensure_ascii=False))
@@ -880,6 +884,10 @@ for name, d in ict["formen"].items():
 for name, dh in eigen_haut.items():
     voll = np.zeros_like(S)
     voll[:N_HAUT] = dh[:N_HAUT]
+    if name in vorbild_augen:
+        for t_ in ("auge_l", "auge_r"):
+            ix_ = teil(t_)
+            voll[ix_] = vorbild_augen[name][0 if S[ix_, 0].mean() < 0 else 1]
     voll[lid_teile] = knn(voll[haut_und_hoehle], nb_lid)
     dhaar, dkr = haare_und_kragen(dh, voll)
     alle_formen[name] = {"Haut": dh, "Augen": voll[augen_idx], "Zaehne": voll[zahn_idx], "Haare": dhaar, "Kragen": dkr}
