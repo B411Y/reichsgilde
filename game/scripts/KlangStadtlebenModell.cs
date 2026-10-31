@@ -140,7 +140,7 @@ public static class KlangStadtlebenModell
     public const float SchenkeFrei = 0.5f, SchenkeK = 3.0f;  // 2 Gäste → 0,39, 5 → 0,78
     public const float WerkK = 2.0f;                         // 1 Arbeiter 0,39, 2 → 0,63, 4 → 0,86
     public const float GeherK = 3.0f;                        // 1 Gänger 0,28, 3 → 0,63
-    public const float GespraechK = 2.0f;                    // 1 Gruppe in Hörweite 0,39, 2 → 0,63
+    public const float GespraechK = 1.2f;                    // 1 Gruppe in Hörweite 0,57, 2 → 0,81
     public const float WachK = 1.0f;                         // 1 Streife 0,63
 
     /// <summary>Anstieg und Abfall der Pegel: Zeitkonstanten in Sekunden Echtzeit.</summary>
@@ -422,7 +422,7 @@ public static class KlangStadtlebenModell
                 float x = -30f + MathF.Cos(winkel) * d, z = -12f + MathF.Sin(winkel) * d;
                 var geht = i % 4 == 0;
                 m.Marktleute.Add(new Quelle(x, z, S(x), 1, geht));
-                if (i % 4 == 2) m.Marktleute.Add(new Quelle(x + 1.2f, z + 1f, S(x + 1.2f), 1, false)); // Kunde und Verkäufer am Stand
+                if (!geht) m.Marktleute.Add(new Quelle(x + 1.2f, z + 1f, S(x + 1.2f), 1, false)); // Kunde und Verkäufer am Stand
             }
             if (gaeste > 0) m.Schenken.Add(new Quelle(-24f, 10f, S(-24f), gaeste));
             if (arbeiter > 0) m.Werkstaetten.Add(new Quelle(75f, -45f, S(75f), arbeiter));

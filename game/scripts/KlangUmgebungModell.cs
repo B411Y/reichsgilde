@@ -404,7 +404,7 @@ public static class KlangUmgebungModell
             (h, b, tag) => Trapez(h, 7.75f, 8.25f, 19.75f, 20.25f), Bedarf: RufBedarf.Werkstatt),
         new("Kraehe", "Krähen auf Feld und Wald: im Winter und Herbst oft, im Sommer kaum; nur im Grünen", "kraehe", 5, 18, 45, -12, -16, 75, 150, false,
             (h, b, tag) => Trapez(b, 6.3f, 7.3f, 17.5f, 19.0f), Bedarf: RufBedarf.Natur),
-        new("Gespraech", "Gesprächsfetzen von zwei bis drei Leuten (Lachen, Feilschen, unverständlich) an einer Gruppe im Umkreis, tags und früh am Abend", "gespraech", 1, 5, 13, -17, -17, 0, 90, false,
+        new("Gespraech", "Gesprächsfetzen von zwei bis drei Leuten (Lachen, Feilschen, unverständlich) an einer Gruppe im Umkreis, tags und früh am Abend", "gespraech", 1, 4, 9, -17, -17, 0, 90, false,
             (h, b, tag) => Math.Max(tag, 0.6f * StadtAbend(h)) * NachtStille(h), Bedarf: RufBedarf.Gruppe),
         new("Nachtwaechter", "Horn der Streife mit der Laterne, nachts ab und zu (am Ort der Streife)", "horn", 2, 75, 150, -9, -13, 90, 170, false,
             (h, b, tag) => Math.Max(Glatt(20.8f, 21.8f, h), 1f - Glatt(5.0f, 5.8f, b)), Bedarf: RufBedarf.Wache),
