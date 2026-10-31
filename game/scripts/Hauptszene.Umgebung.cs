@@ -11,6 +11,8 @@ public partial class Hauptszene
 {
     private KlangUmgebung? _umgebung;
     private bool _umgebungBereit;
+    /// <summary>Startoption <c>--einschlag=&lt;Sekunden&gt;</c>: so lange nach dem Ladebildschirm schlägt ein Blitz am Marktplatz ein.</summary>
+    private double? _einschlagNach;
 
     private void UmgebungAnlegen()
     {
@@ -23,8 +25,10 @@ public partial class Hauptszene
         _umgebung.BlitzQuelle = () => _stadt.KlangBlitzZeit; // der Donner folgt dem Blitz
         _umgebung.BlitzAbstandQuelle = () => _stadt.KlangBlitzAbstandKm; // derselbe Wurf wie die Helligkeit im Bild
         _umgebung.GewitterQuelle = () => _stadt.KlangGewitterFortschritt;
+        _umgebung.EinschlagQuelle = () => _stadt.KlangBlitzEinschlag;
         _umgebung.GewitterVorgeben = f => _stadt.GewitterFortschrittVorgeben(f);
         _umgebung.BlitzVorgeben = km => _stadt.BlitzAusloesen(km);
+        _umgebung.EinschlagVorgeben = () => _stadt.BlitzEinschlag(_stadt.KlangMarktMitte + new Godot.Vector3(8, 0, 6));
         _umgebung.UmweltQuelle = zoom => _stadt.KlangUmwelt(zoom);
         _umgebung.FokusQuelle = () => _stadt.KlangFokus;
         _umgebung.FokusVorgeben = (x, z) => _stadt.KlangFokusVorgeben(new Godot.Vector3(x, 0, z));

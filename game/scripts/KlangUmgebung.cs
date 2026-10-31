@@ -50,9 +50,13 @@ public partial class KlangUmgebung : Node
     public Func<float>? BlitzQuelle;
     /// <summary>Abstand des laufenden Blitzes in Kilometern (derselbe Wurf wie die Helligkeit im Bild) und der Fortschritt des Gewitters (−1 = keines).</summary>
     public Func<float>? BlitzAbstandQuelle, GewitterQuelle;
+    /// <summary>Der laufende Blitz ist ein direkter Einschlag: Abstand (km) und Seite im Bild, sonst null.</summary>
+    public Func<(float Km, float Seite)?>? EinschlagQuelle;
     /// <summary>Nur für die Hörprobe: Fortschritt des Gewitters vorgeben (null = aus dem Wetter) und einen Blitz mit diesem Abstand (km) auslösen.</summary>
     public Action<float?>? GewitterVorgeben;
     public Action<float>? BlitzVorgeben;
+    /// <summary>Nur für die Hörprobe: einen direkten Blitzeinschlag am Marktplatz auslösen.</summary>
+    public Action? EinschlagVorgeben;
 
     private readonly M.Zustand _zustand = new();
     private readonly KlangStadtlebenModell.Momentbild _momentbild = new();
@@ -75,7 +79,7 @@ public partial class KlangUmgebung : Node
     private float _blitzVorher = -1;
     private bool _laeuft, _beendet;
     private int _logStufe;
-    private bool _fahrt, _kurzeFahrt, _gewitterFahrt;
+    private bool _fahrt, _kurzeFahrt, _gewitterFahrt, _einschlagFahrt, _einschlagGeschehen;
     private double _zeit, _logUhr, _fahrtZeit;
     private int _fahrtRuf;
 
@@ -114,6 +118,7 @@ public partial class KlangUmgebung : Node
             if (arg == "--umgebungfahrt=1") _fahrt = true;
             if (arg == "--umgebungfahrt=2") (_fahrt, _kurzeFahrt) = (true, true);
             if (arg == "--umgebungfahrt=3") (_fahrt, _gewitterFahrt) = (true, true);
+            if (arg == "--umgebungfahrt=4") (_fahrt, _einschlagFahrt) = (true, true);
         }
         if (_fahrt)
         {
@@ -260,8 +265,10 @@ public partial class KlangUmgebung : Node
             if (blitz >= 0 && _blitzVorher < 0 && !eingaben.Hintergrund)
             {
                 var km = BlitzAbstandQuelle?.Invoke() ?? -1f;
-                var verzug = _planer.BlitzMelden(km);
-                if (_logStufe >= 2) GD.Print($"UMGEBUNG BLITZ t={_zeit:0.00} km={km:0.00} verzoegerung={(verzug < 0 ? "kein Donner (Wetterleuchten)" : verzug.ToString("0.0") + " s")} gewitter={(GewitterQuelle?.Invoke() ?? -1f):0.00}");
+                var einschlag = EinschlagQuelle?.Invoke();
+                var verzug = einschlag is { } ein ? _planer.EinschlagMelden(ein.Km, ein.Seite) : _planer.BlitzMelden(km);
+                if (einschlag is { } e2) km = e2.Km;
+                if (_logStufe >= 2) GD.Print($"UMGEBUNG BLITZ t={_zeit:0.00} km={km:0.00} {(einschlag is not null ? "EINSCHLAG " : "")}verzoegerung={(verzug < 0 ? "kein Donner (Wetterleuchten)" : verzug.ToString("0.0") + " s")} gewitter={(GewitterQuelle?.Invoke() ?? -1f):0.00}");
             }
             _blitzVorher = blitz;
         }
@@ -480,6 +487,13 @@ public partial class KlangUmgebung : Node
     };
     public const float FahrtEndeGewitter = 250f, GewitterVon = 110f, GewitterBis = 230f;
 
+    /// <summary>
+    /// Der Schnipsel <c>--umgebungfahrt=4</c> (60 s): ein normales Gewitter über der Stadt (Blitze nie näher als 1 km, kräftiger, nicht brachialer Donner), bei 40 s ein direkter
+    /// Blitzeinschlag am Marktplatz (die brachiale Einschlag-Aufnahme).
+    /// </summary>
+    public static readonly FahrtPunkt[] FahrtPunkteEinschlag = { new(0, 15.0f, 40, 0, 0, 2, 1), new(60, 15.3f, 40, 0, 0, 2, 1) };
+    public const float FahrtEndeEinschlag = 60f, EinschlagBei = 40f;
+
     /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern); alle übrigen plant der Planer mit festem Zufall aus den Menschen des Szenarios.</summary>
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
     {
@@ -503,8 +517,8 @@ public partial class KlangUmgebung : Node
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {
         _fahrtZeit += delta;
-        var punkte = _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
-        if (_fahrtZeit >= (_gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
+        var punkte = _einschlagFahrt ? FahrtPunkteEinschlag : _gewitterFahrt ? FahrtPunkteGewitter : _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
+        if (_fahrtZeit >= (_einschlagFahrt ? FahrtEndeEinschlag : _gewitterFahrt ? FahrtEndeGewitter : _kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
         {
             GD.Print("UMGEBUNG Fahrt fertig");
             GetTree().Quit();
@@ -528,8 +542,10 @@ public partial class KlangUmgebung : Node
         UhrVorgeben?.Invoke(stunde);
         ZoomVorgeben?.Invoke(zoom);
         FokusVorgeben?.Invoke(L(p0.X, p1.X), L(p0.Z, p1.Z));
+        if (_einschlagFahrt && !_einschlagGeschehen && t >= EinschlagBei) { _einschlagGeschehen = true; EinschlagVorgeben?.Invoke(); }
+        if (_einschlagFahrt) GewitterVorgeben?.Invoke(0.5f); // über der Stadt: die nächsten normalen Blitze (ab 1 km)
         if (_gewitterFahrt) GewitterVorgeben?.Invoke(t >= GewitterVon ? Math.Clamp((t - GewitterVon) / (GewitterBis - GewitterVon), 0f, 1f) : null);
-        while (!_kurzeFahrt && !_gewitterFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
+        while (!_kurzeFahrt && !_gewitterFahrt && !_einschlagFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
         {
             var (_, art, fern) = FahrtRufe[_fahrtRuf++];
             Abspielen(_planer.Erzwingen(Array.FindIndex(M.Rufarten, r => r.Name == art), fern, e.Zoom));

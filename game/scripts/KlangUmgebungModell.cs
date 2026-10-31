@@ -408,8 +408,10 @@ public static class KlangUmgebungModell
             (h, b, tag) => Math.Max(tag, 0.6f * StadtAbend(h)) * NachtStille(h), Bedarf: RufBedarf.Gruppe),
         new("Nachtwaechter", "Horn der Streife mit der Laterne, nachts ab und zu (am Ort der Streife)", "horn", 2, 75, 150, -9, -13, 90, 170, false,
             (h, b, tag) => Math.Max(Glatt(20.8f, 21.8f, h), 1f - Glatt(5.0f, 5.8f, b)), Bedarf: RufBedarf.Wache),
-        new("Donner", "Donner nach einem Blitz (Gewitter): nah ein Schlag, fern ein Grollen; die Verzögerung wie beim Schall", "donner", 4, 0, 0, 0, -3, 0, 100000, false,
+        new("Donner", "Donner nach einem Blitz (Gewitter): nah ein kräftiger Schlag, fern ein Grollen; die Verzögerung wie beim Schall (Abstand ÷ 343 m/s)", "donner", 4, 0, 0, 0, -3, 0, 100000, false,
             (h, b, tag) => 0f, FernDatei: "donner_fern", FernVarianten: 4, Bedarf: RufBedarf.Donner),
+        new("Einschlag", "Direkter Blitzeinschlag in ein Gebäude in oder um die Stadt: die brachialen Knall-Aufnahmen, ohne Verzögerung (Abstand aus dem Ort)", "einschlag", 2, 0, 0, 0, 0, 0, 100000, false,
+            (h, b, tag) => 0f, Bedarf: RufBedarf.Donner),
     };
 
     /// <summary>
@@ -462,6 +464,12 @@ public static class KlangUmgebungModell
     public const double Schallgeschwindigkeit = 343.0;
     public const double HoerweiteKm = 18.0, NaheGrenzeKm = 2.5;
 
+    /// <summary>
+    /// Ein normaler Blitz schlägt nie näher als so viele Kilometer ein (Pegel dann −6 dB, deutlich unter dem Einschlag): Die brachialen Knall-Aufnahmen sind dem
+    /// <b>direkten Einschlag</b> in ein Gebäude vorbehalten (<see cref="RufPlaner.EinschlagMelden"/>, später mit Brand), nicht dem normalen Gewitter (Nutzerurteil, Hörprobe 5).
+    /// </summary>
+    public const double NaechsterNormalerBlitzKm = 1.0;
+
     /// <summary>Sekunden vom Blitz bis zum Donner bei diesem Abstand.</summary>
     public static double DonnerVerzoegerung(double km) => km * 1000.0 / Schallgeschwindigkeit;
 
@@ -480,19 +488,19 @@ public static class KlangUmgebungModell
     public static float BlitzHelligkeit(double km) => (float)Math.Clamp(1.0 / (1.0 + 0.3 * Math.Max(km - 0.3, 0.0)), 0.12, 1.0);
 
     /// <summary>
-    /// Würfelt den Abstand eines Blitzes in Kilometern. Ohne <paramref name="fortschritt"/> (−1) bunt gemischt (etwa jeder fünfte nah, jeder zehnte jenseits der Hörweite);
-    /// mit dem Fortschritt des Gewitters (0 = Beginn, 0,5 = über der Stadt, 1 = Ende) zieht es heran und weiter: Mittel 0,4 km · 60^|2f − 1|, also 24 km am Rand und
-    /// 0,4 km in der Mitte, mit Streuung (Faktor e^N(0; 0,5)). Diese eine Zahl nehmen Bild (<see cref="BlitzHelligkeit"/>) und Ton.
+    /// Würfelt den Abstand eines Blitzes in Kilometern. Ohne <paramref name="fortschritt"/> (−1) bunt gemischt (Mittel 1 km · 24^u, also bis 24 km; etwa jeder vierte nah, jeder zehnte jenseits der Hörweite);
+    /// mit dem Fortschritt des Gewitters (0 = Beginn, 0,5 = über der Stadt, 1 = Ende) zieht es heran und weiter: Mittel 1,5 km · 16^|2f − 1|^1,1, also 24 km am Rand und
+    /// 1,5 km in der Mitte, mit Streuung (Faktor e^N(0; 0,5)), nie unter <see cref="NaechsterNormalerBlitzKm"/>. Diese eine Zahl nehmen Bild (<see cref="BlitzHelligkeit"/>) und Ton.
     /// </summary>
     public static double BlitzAbstandWuerfeln(Random zufall, float fortschritt = -1f)
     {
         double mittel;
-        if (fortschritt < 0) mittel = 0.4 * Math.Pow(60.0, zufall.NextDouble());
-        else mittel = 0.4 * Math.Pow(60.0, Math.Pow(Math.Abs(2.0 * Math.Clamp(fortschritt, 0f, 1f) - 1.0), 1.1));
+        if (fortschritt < 0) mittel = NaechsterNormalerBlitzKm * Math.Pow(24.0, zufall.NextDouble());
+        else mittel = 1.5 * Math.Pow(16.0, Math.Pow(Math.Abs(2.0 * Math.Clamp(fortschritt, 0f, 1f) - 1.0), 1.1));
         var u1 = 1.0 - zufall.NextDouble();
         var u2 = zufall.NextDouble();
         var gauss = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-        return Math.Clamp(mittel * Math.Exp(0.5 * gauss), 0.15, 40.0);
+        return Math.Clamp(mittel * Math.Exp(0.5 * gauss), NaechsterNormalerBlitzKm, 40.0);
     }
 
     /// <summary>Ein Ruf, den der Planer abspielen lässt.</summary>
@@ -540,7 +548,7 @@ public static class KlangUmgebungModell
         private readonly int[] _letzteVariante = Enumerable.Repeat(-1, Rufarten.Length).ToArray();
         private readonly double[] _letzterRuf = Enumerable.Repeat(-1e9, Rufarten.Length).ToArray();
         private readonly Dictionary<string, Queue<string>> _zuletzt = new();
-        private readonly List<(double Faellig, double Verzoegerung, int Versuche)> _donner = new();
+        private readonly List<(double Faellig, double Km, bool Einschlag, float Seite)> _donner = new();
 
         /// <summary>Länge einer Datei in Sekunden (der Knoten trägt die echten Längen ein; ohne Eintrag 3 s).</summary>
         public Func<string, double> Laenge = _ => 3.0;
@@ -567,9 +575,20 @@ public static class KlangUmgebungModell
         public double BlitzMelden(double km = -1)
         {
             if (km < 0) km = BlitzAbstandWuerfeln(_zufall);
-            if (km > HoerweiteKm || _donner.Count >= 12) return -1;
+            if (km > HoerweiteKm || _donner.Count >= 16) return -1;
             var verzug = DonnerVerzoegerung(km);
-            _donner.Add((_jetzt + verzug, km, 0));
+            _donner.Add((_jetzt + verzug, km, false, (float)(_zufall.NextDouble() * 2 - 1) * 0.6f));
+            return verzug;
+        }
+
+        /// <summary>
+        /// Direkter Blitzeinschlag <paramref name="km"/> vom Blickpunkt (aus dem Ort des Gebäudes: meist unter 0,3 km): die brachialen Knall-Aufnahmen (<c>einschlag_n</c>), Pegel nach dem Abstand
+        /// (voll bis 0,5 km), der Schall braucht nur die Zeit für den Abstand (bei 100 m 0,3 s). Gibt die Verzögerung in Sekunden zurück.
+        /// </summary>
+        public double EinschlagMelden(double km, float seite = 0f)
+        {
+            var verzug = DonnerVerzoegerung(Math.Max(km, 0.0));
+            _donner.Add((_jetzt + verzug, Math.Max(km, 0.05), true, seite));
             return verzug;
         }
 
@@ -651,10 +670,10 @@ public static class KlangUmgebungModell
         {
             for (var k = _donner.Count - 1; k >= 0; k--)
             {
-                var (faellig, km, _) = _donner[k];
+                var (faellig, km, einschlag, seite) = _donner[k];
                 if (_jetzt < faellig) continue;
                 _donner.RemoveAt(k);
-                neu.Add(Erzeugen(Array.FindIndex(Rufarten, a => a.Bedarf == RufBedarf.Donner), km >= NaheGrenzeKm, 60f, null, km));
+                neu.Add(Erzeugen(Array.FindIndex(Rufarten, a => a.Name == (einschlag ? "Einschlag" : "Donner")), !einschlag && km >= NaheGrenzeKm, 60f, new RufOrt(seite, 0f, 1f, false), km));
             }
         }
 
@@ -1459,14 +1478,27 @@ public static class KlangUmgebungModell
             // Würfeln: ohne Fortschritt bunt gemischt (etwa jeder fünfte unter 1,5 km), mit Fortschritt zieht das Gewitter heran und weiter
             var zufall = new Random(5);
             var bunt = Enumerable.Range(0, 2000).Select(_ => BlitzAbstandWuerfeln(zufall)).ToList();
-            var naheAnteil = bunt.Count(k => k < 1.5) / 2000.0;
+            var naheAnteil = bunt.Count(k => k < NaheGrenzeKm) / 2000.0;
             var weitAnteil = bunt.Count(k => k > HoerweiteKm) / 2000.0;
-            log($"UMGEBUNGTEST Blitzabstand bunt: unter 1,5 km {naheAnteil:P0}, über {HoerweiteKm:0} km {weitAnteil:P0}");
-            pruefe(naheAnteil is > 0.15 and < 0.4 && weitAnteil is > 0.03 and < 0.3, $"Abstandsverteilung: nah {naheAnteil:P0}, weit {weitAnteil:P0}");
+            log($"UMGEBUNGTEST Blitzabstand bunt: unter 2,5 km {naheAnteil:P0}, über {HoerweiteKm:0} km {weitAnteil:P0}");
+            pruefe(naheAnteil is > 0.1 and < 0.45 && weitAnteil is > 0.03 and < 0.3, $"Abstandsverteilung: nah {naheAnteil:P0}, weit {weitAnteil:P0}");
             double Mittel(float f) => Enumerable.Range(0, 500).Select(_ => BlitzAbstandWuerfeln(zufall, f)).Average();
             double m0 = Mittel(0f), m25 = Mittel(0.25f), m5 = Mittel(0.5f), m75 = Mittel(0.75f), m1 = Mittel(1f);
             log($"UMGEBUNGTEST Gewitterzug: mittlerer Abstand bei 0 / 25 / 50 / 75 / 100 %: {m0:0.0} / {m25:0.0} / {m5:0.0} / {m75:0.0} / {m1:0.0} km");
-            pruefe(m0 > 12 && m5 < 1.0 && m1 > 12 && m25 < m0 && m25 > m5 && m75 < m1 && m75 > m5, "Das Gewitter zieht nicht heran und weiter");
+            pruefe(m0 > 12 && m5 < 3.0 && m1 > 12 && m25 < m0 && m25 > m5 && m75 < m1 && m75 > m5, "Das Gewitter zieht nicht heran und weiter");
+            // Einschlag: nur der direkte Blitzeinschlag bekommt die brachialen Aufnahmen; normale Blitze schlagen nie näher als 1 km ein (mindestens 6 dB darunter)
+            pruefe(bunt.Min() >= NaechsterNormalerBlitzKm - 1e-9 && Enumerable.Range(0, 1000).All(_ => BlitzAbstandWuerfeln(zufall, 0.5f) >= NaechsterNormalerBlitzKm - 1e-9), "Ein normaler Blitz schlägt näher als 1 km ein");
+            {
+                var pe = new RufPlaner(33) { Laenge = _ => 4.0 };
+                var ne = new List<Ruf>();
+                var verz = pe.EinschlagMelden(0.1, -0.5f);
+                pruefe(Math.Abs(verz - 0.1 * 1000 / 343.0) < 1e-6, $"Einschlag: Verzögerung {verz:0.00} s");
+                for (var t = 0.0; t < 3 && !ne.Any(r => r.Art == Art("Einschlag")); t += 1.0 / 30) pe.Schritt(e, a, 1.0 / 30, ne);
+                var ein = ne.FirstOrDefault(r => r.Art == Art("Einschlag"));
+                pruefe(ein.Datei is not null && ein.Datei.StartsWith("einschlag_") && !ein.Fern, "Einschlag: keine Einschlag-Aufnahme");
+                pruefe(ein.Db >= -1.1f && DonnerDb(NaechsterNormalerBlitzKm) <= ein.Db - 5f && ein.Seite < 0, $"Einschlag {ein.Db:0.0} dB gegen normalen nahen Donner {DonnerDb(NaechsterNormalerBlitzKm):0.0} dB");
+                log($"UMGEBUNGTEST Einschlag: {ein.Datei} {ein.Db:0.0} dB nach {verz:0.00} s; nächster normaler Donner {DonnerDb(NaechsterNormalerBlitzKm):0} dB (Abstand ab {NaechsterNormalerBlitzKm:0} km)");
+            }
             // Vorboten: kurz vor dem nahen Donner Regen stärker und Böen
             var vor = GewitterWetter(new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f), 0.38f, 12.0);
             var anfang = GewitterWetter(new KlangWetter(1f, 0f, 0.75f, 1f, 0.05f), 0.05f, 12.0);

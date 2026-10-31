@@ -72,6 +72,9 @@ public partial class Stadtansicht
     /// </summary>
     private float _blitzAbstandKm = 1f, _blitzStaerke = 1f;
     private float? _gewitterVorgabe;
+
+    /// <summary>Gesetzt, wenn der laufende Blitz ein direkter Einschlag ist (<see cref="BlitzEinschlag"/>): Abstand zum Blickpunkt in km und Seite im Bild (−1…+1); beim nächsten normalen Blitz wieder null.</summary>
+    private (float Km, float Seite)? _einschlag;
     private float _blitz;
     private readonly Random _blitzZufall = new();
     private int _blitzPulse;
@@ -452,6 +455,7 @@ public partial class Stadtansicht
                 _blitzZeit = 0;
                 var fortschritt = KlangGewitterFortschritt;
                 _naechsterBlitz = (3f + 9f * (float)_blitzZufall.NextDouble()) / _wetter.Blitze * (fortschritt < 0 ? 1f : 1f + 1.2f * Mathf.Abs(2f * fortschritt - 1f)); // über der Stadt dicht, am Rand seltener
+                _einschlag = null;
                 BlitzAbstandWuerfeln(fortschritt);
                 BlitzRichtung();
                 _blitzPulse = 2 + _blitzZufall.Next(3);

@@ -54,6 +54,9 @@ public partial class Stadtansicht
         _gewitterVorgabe ?? (_wetterVorgabe is not null ? -1f
             : _simulation is null ? -1f : WetterablaufDerPartie()?.GewitterFortschritt(_simulation.Zeit.VergangeneMinuten + _simulation.Takt.AngebrocheneMinute) ?? -1f);
 
+    /// <summary>Ist der laufende Blitz ein direkter Einschlag (<see cref="BlitzEinschlag"/>)? Dann Abstand zum Blickpunkt in km und Seite im Bild, sonst null – der Ton spielt dann die Einschlag-Aufnahme statt des gewürfelten Donners.</summary>
+    public (float Km, float Seite)? KlangBlitzEinschlag => _einschlag;
+
     /// <summary>Nur für die Hörprobe: den Fortschritt des Gewitters vorgeben (null: wieder aus dem Wetter).</summary>
     public void GewitterFortschrittVorgeben(float? fortschritt) => _gewitterVorgabe = fortschritt;
 

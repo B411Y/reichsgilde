@@ -31,11 +31,33 @@ public partial class Stadtansicht
     public void BlitzAusloesen(float? km = null)
     {
         _blitzZeit = 0;
+        _einschlag = null;
         if (km is { } k) (_blitzAbstandKm, _blitzStaerke) = (k, KlangUmgebungModell.BlitzHelligkeit(k)); // Abstand vorgegeben (Hörprobe, Entwicklerbefehl)
         else BlitzAbstandWuerfeln(KlangGewitterFortschritt);
         _blitzPulse = 2 + _blitzZufall.Next(3);
         _blitzAbstand = 0.3f / _blitzPulse * (0.8f + 0.4f * (float)_blitzZufall.NextDouble());
         BlitzRichtung();
+    }
+
+    /// <summary>
+    /// <b>Direkter Blitzeinschlag</b> an einem Ort der Stadt (Andockstelle für die spätere Spielmechanik „Einschlag setzt ein Haus in Brand“, die nicht hier liegt): Der
+    /// Blitz ist am hellsten (Stärke 1, mehr Pulse), kommt aus der Richtung des Orts, und der Ton spielt die brachiale Einschlag-Aufnahme fast ohne Verzögerung
+    /// (Abstand aus dem Ort zum Blickpunkt, ÷ 343 m/s). Normale Blitze schlagen nie näher als 1 km ein und nie so laut. Der Ort in Metern der Stadt (y wird ignoriert).
+    /// </summary>
+    public void BlitzEinschlag(Vector3 ort)
+    {
+        var fokus = KlangFokus;
+        float dx = ort.X - fokus.X, dz = ort.Z - fokus.Z;
+        var breite = Math.Max(GetViewport().GetVisibleRect().Size.X, 1f);
+        var seite = _raum is not null ? 0f : StadtKamera.UnprojectPosition(ort).X / breite * 2f - 1f;
+        _blitzZeit = 0;
+        _blitzPulse = 4;
+        _blitzAbstand = 0.3f / _blitzPulse;
+        _blitzAbstandKm = MathF.Sqrt(dx * dx + dz * dz) / 1000f;
+        _blitzStaerke = 1f;
+        _einschlag = (_blitzAbstandKm, Mathf.Clamp(seite, -1f, 1f));
+        // das Licht kommt von der Seite des Einschlags: Himmelsrichtung vom Blickpunkt zum Ort, steil von oben
+        _blitzLicht.RotationDegrees = new Vector3(-62f, Mathf.RadToDeg(Mathf.Atan2(dx, dz)) + 180f, 0);
     }
 
     private Node3D? _wegenetzKnoten;
