@@ -29,21 +29,25 @@ namespace Reichsgilde;
 public static class KlangUmgebungModell
 {
     public enum Innenart { Draussen, InnenLeicht, Raum }
-    public enum Bus { Stadt, Draussen }
+    public enum Bus { Stadt, Draussen, Schenke }
 
     /// <summary>Was die Umgebung je Bild wissen muss. <see cref="UhrMinute"/> mit Bruchteil (gezeigte Uhr, auch <c>--lichtuhr</c>).</summary>
     public readonly record struct Eingaben(
         float UhrMinute, float Bezug, Jahreszeit Jahreszeit, float Zoom, float ZoomGroesst, Innenart Innen, bool Pausiert,
-        double TicksProSekunde, bool Hintergrund = false);
+        double TicksProSekunde, bool Hintergrund = false, KlangStadtlebenModell.Lage? Leben = null)
+    {
+        /// <summary>Die Menschen in der Stadt; ohne Messung (null) gilt „alles voll“ wie vor der Nachbesserung (Selbsttests).</summary>
+        public KlangStadtlebenModell.Lage Lage => Leben ?? KlangStadtlebenModell.Lage.Voll;
+    }
 
     /// <summary>Eine Schleife: Name = Datei <c>schichten/&lt;Name&gt;.ogg</c>, Grundpegel in dB (Dateien auf −26 LUFS), Bus, Zweck für den Entwicklerreiter.</summary>
     public sealed record Schicht(string Name, string Zweck, float GrundDb, Bus Bus);
 
     public static readonly Schicht[] Schichten =
     {
-        new("stadt_tag", "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei Fes, autofreie Altstadt); ab der Dämmerung schwach, 8–20 Uhr voll", -6f, Bus.Stadt),
-        new("stadt_gemurmel", "Gemurmel vieler Leute, nur nah (Halle von oben, gedämpft)", -16f, Bus.Stadt),
-        new("stadt_abend", "Gedämpftes Gemurmel am Abend wie aus Schenken, 20–22 Uhr (nah voll)", -13f, Bus.Stadt),
+        new("stadt_tag", "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei Fes, autofreie Altstadt); 8–20 Uhr, so voll wie die Straßen im Umkreis", -6f, Bus.Stadt),
+        new("stadt_gemurmel", "Gemurmel vieler Leute: Menschen im Umkreis der Kamera und Markttreiben, nur nah (Halle von oben, gedämpft)", -16f, Bus.Stadt),
+        new("stadt_abend", "Gedämpftes Gemurmel wie aus Schenken: nur aus geöffneten Schänken (8–22 Uhr) mit Gästen, am Ort des Wirtshauses", -13f, Bus.Schenke),
         new("morgen_voegel", "Vogelchor im Morgengrauen (Dämmerung bis 1,5 h nach Aufgang)", -13f, Bus.Draussen),
         new("tag_spatzen", "Spatzen am Tag, leise, nah deutlicher", -20f, Bus.Draussen),
         new("abend_voegel", "Abendgesang (Abendrot bis dunkel)", -15f, Bus.Draussen),
@@ -112,20 +116,31 @@ public static class KlangUmgebungModell
         _ => 1f,
     };
 
-    /// <summary>Das Zielgewicht (Leistung 0–1, ohne Jahreszeit und Wetter) jeder Schicht.</summary>
-    public static float Gewicht(int i, float stunde, float b, float n, float h) => Schichten[i].Name switch
+    /// <summary>
+    /// Das Zielgewicht (Leistung 0–1, ohne Jahreszeit und Wetter) jeder Schicht. <paramref name="leben"/> sind die Menschen der Stadt
+    /// (<see cref="KlangStadtlebenModell"/>): Mit Messung hängen Stadtleben, Gemurmel und Schenkengemurmel an ihnen und nicht an der Uhr –
+    /// leere Straßen sind still (Stadtleben nur noch <see cref="StadtGrund"/>), ohne Messung gelten die alten Uhrkurven.
+    /// </summary>
+    public static float Gewicht(int i, float stunde, float b, float n, float h, KlangStadtlebenModell.Lage? leben = null)
     {
-        "stadt_tag" => StadtTag(stunde, b),
-        "stadt_gemurmel" => Trapez(stunde, 7.0f, 8.5f, 19.0f, 20.5f) * n,
-        "stadt_abend" => StadtAbend(stunde) * (0.25f + 0.75f * Glatt(0.1f, 0.45f, n)),
-        "morgen_voegel" => Trapez(b, 5.0f, 5.6f, 7.0f, 8.5f) * (1f - 0.6f * h),
-        "tag_spatzen" => Trapez(b, 6.5f, 7.5f, 18.0f, 19.0f) * (0.3f + 0.7f * n) * (1f - 0.6f * h),
-        "abend_voegel" => Trapez(b, 17.5f, 18.3f, 19.8f, 21.0f) * (1f - 0.6f * h),
-        "nacht" => Nacht(b),
-        "wind_leicht" => (0.05f + 0.95f * h) * (1f - 0.2f * Nacht(b)),
-        "wind_mittel" => Glatt(0.55f, 1f, h),
-        _ => 0f,
-    };
+        var l = leben ?? KlangStadtlebenModell.Lage.Voll;
+        return Schichten[i].Name switch
+        {
+            "stadt_tag" => StadtTag(stunde, b) * (l.Gemessen ? StadtGrund + (1f - StadtGrund) * l.Menge : 1f),
+            "stadt_gemurmel" => l.Gemessen ? n * (1f - (1f - l.Menge) * (1f - l.Markt)) : Trapez(stunde, 7.0f, 8.5f, 19.0f, 20.5f) * n,
+            "stadt_abend" => l.Gemessen ? l.Schenke : StadtAbend(stunde) * (0.25f + 0.75f * Glatt(0.1f, 0.45f, n)),
+            "morgen_voegel" => Trapez(b, 5.0f, 5.6f, 7.0f, 8.5f) * (1f - 0.6f * h),
+            "tag_spatzen" => Trapez(b, 6.5f, 7.5f, 18.0f, 19.0f) * (0.3f + 0.7f * n) * (1f - 0.6f * h),
+            "abend_voegel" => Trapez(b, 17.5f, 18.3f, 19.8f, 21.0f) * (1f - 0.6f * h),
+            "nacht" => Nacht(b),
+            "wind_leicht" => (0.05f + 0.95f * h) * (1f - 0.2f * Nacht(b)),
+            "wind_mittel" => Glatt(0.55f, 1f, h),
+            _ => 0f,
+        };
+    }
+
+    /// <summary>Was vom Stadtleben (Wasser, Arbeit, ferne Stimmen) bleibt, wenn im Umkreis niemand zu sehen ist: Leistung 0,06 (−12 dB).</summary>
+    public const float StadtGrund = 0.06f;
 
     // ── Zustand und Schritt ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -136,6 +151,8 @@ public static class KlangUmgebungModell
         public readonly float[] Amplitude = new float[Schichten.Length]; // gezeigte Amplitude (geglättet)
         public readonly float[] Db = new float[Schichten.Length];
         public float StadtDb, StadtTiefpass = Offen, DraussenDb, DraussenTiefpass = Offen;
+        /// <summary>Schenkenbus: Seite (−1…+1) und Pegelausgleich des Panners in dB (−20·log10(1 + |Seite|), wie bei den Rufen).</summary>
+        public float SchenkeSeite, SchenkeDb;
         public float Naehe, Hoehe, StadtTagGewicht, NachtGewicht;
         public bool Sprungblende;
         public bool ErsterSprung;
@@ -202,13 +219,18 @@ public static class KlangUmgebungModell
             aus.DraussenDb = _innenDb + _pauseDb;
             aus.DraussenTiefpass = _innenTp;
 
+            // Die Schänke klingt aus ihrer Richtung: Seite des Wirtshauses im Bild, mit Ausgleich für Godots Panner
+            var leben = e.Lage;
+            aus.SchenkeSeite = leben.Gemessen ? Math.Clamp(leben.SchenkeSeite, -1f, 1f) * 0.8f : 0f;
+            aus.SchenkeDb = -20f * MathF.Log10(1f + MathF.Abs(aus.SchenkeSeite));
+
             // Ziele mit Jahreszeit und Wetter, dann der Deckel über die Summe (Leistung relativ zur Datei, Stadtbus mitgerechnet)
             var summe = 0.0;
             for (var i = 0; i < Schichten.Length; i++)
             {
-                var w = Gewicht(i, stunde, b, _n, _h) * JahreszeitFaktor(Schichten[i].Name, e.Jahreszeit) * WetterFaktor[i];
+                var w = Gewicht(i, stunde, b, _n, _h, leben) * JahreszeitFaktor(Schichten[i].Name, e.Jahreszeit) * WetterFaktor[i];
                 aus.Ziel[i] = MathF.Sqrt(Math.Clamp(w, 0f, 1f));
-                var busDb = Schichten[i].Bus == Bus.Stadt ? aus.StadtDb : 0f;
+                var busDb = Schichten[i].Bus switch { Bus.Stadt => aus.StadtDb, Bus.Schenke => aus.StadtDb + aus.SchenkeDb, _ => 0f };
                 summe += aus.Ziel[i] * aus.Ziel[i] * Math.Pow(10, (Schichten[i].GrundDb + busDb) / 10.0);
             }
             var deckel = Math.Pow(10, DeckelDb / 10.0);
@@ -264,7 +286,11 @@ public static class KlangUmgebungModell
     /// noch fern (leiser, Tiefpass 2,5 kHz), ab <see cref="Bis"/> gar nicht. <see cref="Fenster"/> gibt das Gewicht (0–1) nach Uhr und Bezugsstunde.
     /// </summary>
     public sealed record Rufart(string Name, string Zweck, string Datei, int Varianten, float Mindest, float Mittel, float NahDb, float FernDb,
-                                float FernAb, float Bis, bool NachtsFern, Func<float, float, float, float> Fenster, string? FernDatei = null, int FernVarianten = 0);
+                                float FernAb, float Bis, bool NachtsFern, Func<float, float, float, float> Fenster, string? FernDatei = null, int FernVarianten = 0,
+                                RufBedarf Bedarf = RufBedarf.Keiner);
+
+    /// <summary>Was in der Stadt da sein muss, damit eine Art ruft: nichts (Tiere, Vögel), ein gehender Mensch im Umkreis oder eine arbeitende Werkstatt in Hörweite.</summary>
+    public enum RufBedarf { Keiner, Geher, Werkstatt }
 
     /// <summary>Fenster: (Stunde, Bezugsstunde, Gewicht Stadtleben) → 0–1.</summary>
     public static readonly Rufart[] Rufarten =
@@ -281,10 +307,10 @@ public static class KlangUmgebungModell
             (h, b, tag) => Trapez(h, 7.5f, 8.0f, 19.5f, 20.0f)),
         new("Gefluegel", "Gänse und Hühner, 7–19 Uhr", "gefluegel", 4, 45, 150, -14, -20, 70, 100, false,
             (h, b, tag) => Trapez(h, 6.5f, 7.0f, 18.5f, 19.0f)),
-        new("Passant", "Ein paar Leute gehen vorbei (Schritte), nur nah", "passant", 5, 6, 15, -15, -15, 105, 105, false,
-            (h, b, tag) => Math.Clamp(tag + 0.3f * StadtAbend(h), 0f, 1f)),
-        new("Handwerk", "Fernes Hämmern aus einer Schmiede, Arbeitszeit 8–20 Uhr", "handwerk", 4, 20, 60, -12, -12, 0, 130, false,
-            (h, b, tag) => Trapez(h, 7.75f, 8.25f, 19.75f, 20.25f)),
+        new("Passant", "Schritte eines Menschen, der im Umkreis wirklich geht (am Ort dieser Figur); öfter, je mehr gehen", "passant", 5, 6, 15, -15, -15, 105, 105, false,
+            (h, b, tag) => Math.Clamp(tag + 0.3f * StadtAbend(h), 0f, 1f), Bedarf: RufBedarf.Geher),
+        new("Handwerk", "Fernes Hämmern aus einer Schmiede oder Steinmetzhütte, die gerade arbeitet (am Ort des Betriebs), 8–20 Uhr", "handwerk", 4, 20, 60, -12, -12, 0, 130, false,
+            (h, b, tag) => Trapez(h, 7.75f, 8.25f, 19.75f, 20.25f), Bedarf: RufBedarf.Werkstatt),
     };
 
     /// <summary>Unter diesem Fenstergewicht ruft eine Art nicht.</summary>
@@ -351,7 +377,10 @@ public static class KlangUmgebungModell
             var r = Rufarten[art];
             var zoom = e.Innen == Innenart.Draussen ? e.Zoom : 60f;
             if (zoom >= r.Bis) return 0f;
-            return Math.Clamp(r.Fenster(e.UhrMinute / 60f, Math.Clamp(e.Bezug, 5f, 22f), aus.StadtTagGewicht), 0f, 1f);
+            var fenster = Math.Clamp(r.Fenster(e.UhrMinute / 60f, Math.Clamp(e.Bezug, 5f, 22f), aus.StadtTagGewicht), 0f, 1f);
+            var lage = e.Lage;
+            if (!lage.Gemessen) return fenster;
+            return fenster * r.Bedarf switch { RufBedarf.Geher => lage.Geher, RufBedarf.Werkstatt => lage.Werkstatt, _ => 1f };
         }
 
         public void Schritt(in Eingaben e, Ausgabe aus, double delta, List<Ruf> neu)
@@ -378,20 +407,44 @@ public static class KlangUmgebungModell
                 var zoom = e.Innen == Innenart.Draussen ? e.Zoom : 60f;
                 var fern = r.FernAb <= 0 || zoom >= r.FernAb || (r.NachtsFern && aus.NachtGewicht > 0.5f) || (r.NachtsFern && aus.StadtTagGewicht < 0.5f);
                 var frei = fern ? _jetzt >= _fernFrei : _jetzt >= _nahFrei;
-                if (!frei || _seitLetztem < GlobalAbstand)
+                // Ruf an einer echten Figur oder einem echten Betrieb: gibt es gerade keine, wartet die Art kurz (das Fenster schließt sich ohnehin)
+                var ort = Ort(i, e.Lage);
+                if (!frei || _seitLetztem < GlobalAbstand || (e.Lage.Gemessen && r.Bedarf != RufBedarf.Keiner && ort is null))
                 {
                     _rest[i] = 2 + 6 * _zufall.NextDouble();
                     continue;
                 }
-                neu.Add(Erzeugen(i, fern, zoom));
+                neu.Add(Erzeugen(i, fern, zoom, ort));
                 _rest[i] = r.Mindest + Exponentiell(r.Mittel - r.Mindest);
             }
         }
 
         /// <summary>Einen Ruf dieser Art sofort (Entwicklerreiter, Hörprobe); hält die Abstände nicht ein.</summary>
-        public Ruf Erzwingen(int art, bool fern, float zoom = 45f) => Erzeugen(art, fern, zoom);
+        public Ruf Erzwingen(int art, bool fern, float zoom = 45f) => Erzeugen(art, fern, zoom, null);
 
-        private Ruf Erzeugen(int art, bool fern, float zoom)
+        /// <summary>
+        /// Der Ort eines Rufs: bei Schritten ein zufälliger Gänger im Umkreis, bei Hämmern eine arbeitende Werkstatt (zufällig, nähere öfter),
+        /// sonst oder ohne Messung null (dann wie früher eine Zufallsseite). Gibt Seite (−1…+1) und Abstand zum Blickpunkt in Metern.
+        /// </summary>
+        private (float Seite, float Abstand, float Umkreis)? Ort(int art, KlangStadtlebenModell.Lage lage)
+        {
+            if (!lage.Gemessen) return null;
+            var liste = Rufarten[art].Bedarf switch { RufBedarf.Geher => lage.GeherOrte, RufBedarf.Werkstatt => lage.WerkOrte, _ => null };
+            if (liste is null || liste.Count == 0) return null;
+            var umkreis = Rufarten[art].Bedarf == RufBedarf.Geher ? lage.GeherUmkreis : lage.WerkUmkreis;
+            var summe = 0.0;
+            foreach (var (_, d) in liste) summe += 0.2 + KlangStadtlebenModell.Nahe(d, umkreis);
+            var wurf = _zufall.NextDouble() * summe;
+            foreach (var (q, d) in liste)
+            {
+                wurf -= 0.2 + KlangStadtlebenModell.Nahe(d, umkreis);
+                if (wurf <= 0) return (q.Seite, d, umkreis);
+            }
+            var letzte = liste[^1];
+            return (letzte.Q.Seite, letzte.Abstand, umkreis);
+        }
+
+        private Ruf Erzeugen(int art, bool fern, float zoom, (float Seite, float Abstand, float Umkreis)? ort)
         {
             var r = Rufarten[art];
             var datei = fern && r.FernDatei is not null ? r.FernDatei : r.Datei;
@@ -400,9 +453,14 @@ public static class KlangUmgebungModell
             if (anzahl > 1 && v == _letzteVariante[art]) v = (v + 1 + _zufall.Next(anzahl - 1)) % anzahl; // nie zweimal dieselbe hintereinander
             _letzteVariante[art] = v;
             var name = $"{datei}_{v + 1}";
-            var seite = (float)(_zufall.NextDouble() * 2 - 1) * (fern ? 0.5f : 0.8f);
+            var grenze = fern ? 0.5f : 0.8f;
+            var zufallSeite = (float)(_zufall.NextDouble() * 2 - 1) * grenze;
+            // mit Ort: dort, wo die Figur im Bild ist (sanft zur Mitte gezogen, der Rand des Bildes wäre sonst ganz auf einer Seite)
+            var seite = ort is { } o ? Math.Clamp(o.Seite, -1f, 1f) * grenze : zufallSeite;
             // nahe Rufe werden zum Startzoom hin leiser (bis −6 dB bei S = 100): man ist weiter weg, aber die Gasse lebt noch
             var db = (fern ? r.FernDb : r.NahDb - 6f * Glatt(40f, 100f, zoom)) + (float)(_zufall.NextDouble() * 6 - 3);
+            // und mit dem Abstand der Figur zur Kamera: bis −8 dB am Rand des Umkreises
+            if (ort is { } p) db -= 8f * Glatt(0.3f * p.Umkreis, p.Umkreis, p.Abstand);
             var hoehe = 1f + (float)(_zufall.NextDouble() * 0.08 - 0.04);
             var ende = _jetzt + Laenge(name) / hoehe + 0.2;
             if (fern) _fernFrei = ende;
@@ -508,7 +566,7 @@ public static class KlangUmgebungModell
             var a = Lauf(e, 5);
             var summe = 0.0;
             for (var i = 0; i < Schichten.Length; i++)
-                if (a.Db[i] > AusDb) summe += Math.Pow(10, (a.Db[i] + (Schichten[i].Bus == Bus.Stadt ? a.StadtDb : 0)) / 10.0);
+                if (a.Db[i] > AusDb) summe += Math.Pow(10, (a.Db[i] + Schichten[i].Bus switch { Bus.Stadt => a.StadtDb, Bus.Schenke => a.StadtDb + a.SchenkeDb, _ => 0f }) / 10.0);
             var lufs = -26 + 10 * Math.Log10(Math.Max(summe, 1e-12)) + a.DraussenDb;
             log($"UMGEBUNGTEST Pegel {name}: etwa {lufs:0.0} LUFS vor dem Regler (bei 80 % {lufs - 1.9:0.0}) · " +
                 string.Join(" ", Schichten.Select((s, i) => a.Db[i] > AusDb ? $"{s.Name} {a.Db[i]:0.0}" : "").Where(t => t != "")));
@@ -603,9 +661,182 @@ public static class KlangUmgebungModell
         }
         log("UMGEBUNGTEST Rufe je Art: " + string.Join(", ", Rufarten.Select((r, i) => $"{r.Name} {anzahl[i]}")));
 
+        // 7. Die Menschen der Stadt (KlangStadtlebenModell): leere Straßen still, volle laut, weich, im Umkreis, Orte der Rufe
+        Lebenstest(log, Pruefe);
+
         foreach (var f in fehler.Distinct().Take(30)) log("UMGEBUNGTEST FEHLER: " + f);
         log(fehler.Count == 0 ? "UMGEBUNGTEST OK" : $"UMGEBUNGTEST FEHLER: {fehler.Count} Abweichungen");
         return fehler.Count == 0;
+    }
+
+    // ── Selbstprüfung der Menschen (Teil von --umgebungtest=1) ──────────────────────────────────────────────────
+
+    private static void Lebenstest(Action<string> log, Action<bool, string> pruefe)
+    {
+        int Index(string name) => Array.FindIndex(Schichten, s => s.Name == name);
+        var tag = new Eingaben(12 * 60, 12, Jahreszeit.Fruehling, 40, 140, Innenart.Draussen, false, 1.27);
+        KlangStadtlebenModell.Lage Lage(KlangStadtlebenModell.Momentbild m, float zoom, double sek = 20)
+        {
+            var z = new KlangStadtlebenModell.Zustand();
+            for (var t = 0.0; t < sek; t += 1.0 / 30) z.Schritt(m, zoom, 1.0 / 30);
+            return z.Lage;
+        }
+        KlangStadtlebenModell.Momentbild Szene(float stunde, float zoom)
+        {
+            var m = new KlangStadtlebenModell.Momentbild();
+            KlangStadtlebenModell.Szenario.Fuellen(m, stunde, zoom);
+            return m;
+        }
+        // Pegel (LUFS vor dem Regler) einer Lage zu einer Uhrzeit: Mischung aus Zoom 40
+        double Lufs(float stunde, KlangStadtlebenModell.Lage l, float zoom = 40)
+        {
+            var e = tag with { UhrMinute = stunde * 60, Bezug = BezugFruehling(stunde), Zoom = zoom, Leben = l };
+            var z = new Zustand();
+            Ausgabe a = z.Aus;
+            for (var t = 0.0; t < 8; t += 1.0 / 30) a = z.Schritt(e, 1.0 / 30);
+            var summe = 0.0;
+            for (var i = 0; i < Schichten.Length; i++)
+                if (a.Db[i] > AusDb) summe += Math.Pow(10, (a.Db[i] + Schichten[i].Bus switch { Bus.Stadt => a.StadtDb, Bus.Schenke => a.StadtDb + a.SchenkeDb, _ => 0f }) / 10.0);
+            return -26 + 10 * Math.Log10(Math.Max(summe, 1e-12));
+        }
+        float G(string name, float stunde, KlangStadtlebenModell.Lage l, float zoom = 40) =>
+            Gewicht(Index(name), stunde, BezugFruehling(stunde), Naehe(zoom), Hoehe(zoom, 140), l);
+
+        // a. Leere Straße: kein Gemurmel, kein Schenkengemurmel, Stadtleben nur noch der Grund
+        var leer = Lage(new KlangStadtlebenModell.Momentbild { MarktOffen = true }, 40);
+        pruefe(leer.Menge == 0f && leer.Markt == 0f && leer.Schenke == 0f && leer.Werkstatt == 0f && leer.Geher == 0f, "Leere Stadt: ein Pegel über 0");
+        pruefe(G("stadt_gemurmel", 12f, leer) == 0f && G("stadt_abend", 12f, leer) == 0f, "Leere Stadt: Gemurmel oder Schenke");
+        pruefe(G("stadt_tag", 12f, leer) <= StadtGrund + 1e-6f, "Leere Stadt: Stadtleben über dem Grund");
+        // b. Volle Straße am Mittag: Stadtleben und Gemurmel da, Sättigung
+        var voll = Lage(Szene(12f, 40), 40);
+        pruefe(voll.Menge >= 0.8f && voll.Markt >= 0.6f, $"Mittag voll: Menge {voll.Menge:0.00}, Markt {voll.Markt:0.00} zu niedrig");
+        pruefe(G("stadt_gemurmel", 12f, voll) >= 0.6f && G("stadt_tag", 12f, voll) >= 0.8f, "Mittag voll: Gemurmel oder Stadtleben zu leise");
+        {
+            var m = new KlangStadtlebenModell.Momentbild();
+            for (var i = 0; i < 300; i++) m.Leute.Add(new KlangStadtlebenModell.Quelle(i % 30, i / 30, 0, 1, true));
+            var viele = Lage(m, 40);
+            pruefe(viele.Menge is > 0.99f and <= 1f && viele.Geher is > 0.99f and <= 1f, $"Sättigung: 300 Leute Menge {viele.Menge:0.000}");
+            m.Leeren();
+            m.Leute.Add(new KlangStadtlebenModell.Quelle(5, 5));
+            pruefe(Lage(m, 40).Menge == 0f, "Ein einzelner Mensch murmelt");
+        }
+        log($"UMGEBUNGTEST Leben: leer Menge {leer.Menge:0.00}, Mittag voll Menge {voll.Menge:0.00} Markt {voll.Markt:0.00} (Leute {voll.LeuteImUmkreis}, Markt {voll.MarktleuteImUmkreis})");
+        // c. Lautstärke: leere gegen volle Straße zur selben Zeit (Mittag, Zoom 40 und Startzoom) mindestens 8 dB
+        foreach (var zoom in new[] { 40f, 95f })
+        {
+            var vollZ = Lage(Szene(12f, zoom), zoom);
+            var leerZ = Lage(new KlangStadtlebenModell.Momentbild { MarktOffen = true }, zoom);
+            double lv = Lufs(12f, vollZ, zoom), ll = Lufs(12f, leerZ, zoom);
+            log($"UMGEBUNGTEST Leben Pegel Mittag Zoom {zoom:0}: voll {lv:0.0} LUFS, leer {ll:0.0} LUFS (Unterschied {lv - ll:0.0} dB)");
+            pruefe(lv - ll >= 8.0, $"Mittag Zoom {zoom}: leer nur {lv - ll:0.0} dB leiser als voll (erwartet ≥ 8)");
+        }
+        // d. Umkreis hängt am Zoom: ein Mensch-Haufen in 80 m Abstand zählt bei Zoom 140 (Umkreis 123 m), nicht bei Zoom 25 (42 m)
+        {
+            var m = new KlangStadtlebenModell.Momentbild();
+            for (var i = 0; i < 20; i++) m.Leute.Add(new KlangStadtlebenModell.Quelle(80 + i % 5, i / 5, 0, 1, true));
+            float nah = Lage(m, 25).Menge, fern = Lage(m, 140).Menge;
+            pruefe(nah == 0f && fern > 0.3f, $"Umkreis: bei Zoom 25 {nah:0.00}, bei Zoom 140 {fern:0.00} (erwartet 0 und > 0,3)");
+            // hinter Häusern: die Rechnung kennt keine Sichtbarkeit, nur den Abstand (Seite außerhalb des Bildes ändert nichts)
+            m.Leeren();
+            for (var i = 0; i < 20; i++) m.Leute.Add(new KlangStadtlebenModell.Quelle(10 + i % 5, i / 5, 5f, 1, true));
+            pruefe(Lage(m, 40).Menge > 0.5f, "Leute außerhalb des Bildes (Seite 5) zählen nicht");
+        }
+        // e. Markt nur bei offenem Markt
+        {
+            var m = new KlangStadtlebenModell.Momentbild { MarktOffen = false };
+            for (var i = 0; i < 10; i++) m.Marktleute.Add(new KlangStadtlebenModell.Quelle(5 + i, 5));
+            var zu = Lage(m, 40);
+            m.MarktOffen = true;
+            var offen = Lage(m, 40);
+            pruefe(zu.Markt == 0f && offen.Markt > 0.7f, $"Markt zu {zu.Markt:0.00} / offen {offen.Markt:0.00}");
+        }
+        // f. Schänke: nur mit Gästen und in der Nähe, aus ihrer Richtung
+        {
+            var m = new KlangStadtlebenModell.Momentbild();
+            m.Schenken.Add(new KlangStadtlebenModell.Quelle(-8, 3, -0.7f, 6));
+            var da = Lage(m, 40);
+            pruefe(da.Schenke >= 0.7f && da.SchenkeSeite < -0.6f, $"Schänke mit 6 Gästen: Pegel {da.Schenke:0.00}, Seite {da.SchenkeSeite:0.00}");
+            m.Schenken.Clear();
+            m.Schenken.Add(new KlangStadtlebenModell.Quelle(-20, 5, -0.7f, 0));
+            pruefe(Lage(m, 40).Schenke == 0f, "Schänke ohne Gäste klingt");
+            m.Schenken.Clear();
+            m.Schenken.Add(new KlangStadtlebenModell.Quelle(200, 5, 1f, 8));
+            pruefe(Lage(m, 40).Schenke == 0f, "Schänke in 200 m Entfernung klingt bei Zoom 40");
+            var e = tag with { UhrMinute = 22 * 60 + 30, Bezug = 22, Leben = Lage(Szene(22.5f, 40), 40) };
+            var a = new Zustand().Schritt(e, 1.0 / 30);
+            pruefe(a.Db[Index("stadt_abend")] <= AusDb, "Nach Schankschluss (22 Uhr, keine Gäste) klingt die Schänke weiter");
+            // Seite und Bus: Ausgleich des Panners
+            var l2 = Lage(new KlangStadtlebenModell.Momentbild { Schenken = { new KlangStadtlebenModell.Quelle(-8, 3, -0.9f, 6) } }, 40);
+            var a2 = new Zustand().Schritt(tag with { UhrMinute = 20 * 60, Bezug = 19.5f, Leben = l2 }, 1.0 / 30);
+            pruefe(a2.SchenkeSeite < -0.6f && a2.SchenkeDb < -4f, $"Schenkenbus Seite {a2.SchenkeSeite:0.00}, Ausgleich {a2.SchenkeDb:0.0} dB");
+        }
+        // g. Weicher Anstieg und Abfall: kein Sprung im Pegel von einem Bild zum nächsten, 12 Minuten Szenario durchgehend
+        {
+            var z = new KlangStadtlebenModell.Zustand();
+            var m = new KlangStadtlebenModell.Momentbild();
+            float vorher = 0, groesst = 0;
+            var dt = 1.0 / 30;
+            var erstes = true;
+            for (var t = 0.0; t < 200; t += dt)
+            {
+                var stunde = 5f + (float)t / 200f * 18f; // 5 bis 23 Uhr in 200 s (Hörprobe: 18 Stunden in gut 3 Minuten)
+                KlangStadtlebenModell.Szenario.Fuellen(m, stunde, 40);
+                var l = z.Schritt(m, 40, dt);
+                if (!erstes) groesst = Math.Max(groesst, Math.Abs(l.Menge - vorher));
+                vorher = l.Menge;
+                erstes = false;
+            }
+            log($"UMGEBUNGTEST Leben: größte Änderung der Menge je Bild {groesst:0.0000} (erlaubt {1f - MathF.Exp(-(float)dt / KlangStadtlebenModell.AbfallSekunden):0.0000} bis {1f - MathF.Exp(-(float)dt / KlangStadtlebenModell.AnstiegSekunden):0.0000})");
+            pruefe(groesst <= 1f - MathF.Exp(-(float)dt / KlangStadtlebenModell.AnstiegSekunden) + 1e-4f, $"Menge springt: {groesst:0.0000} je Bild");
+        }
+        // h. Rufe: ohne Gänger keine Schritte, ohne arbeitende Werkstatt kein Hämmern; mit ihnen am Ort der Figur, Seite stimmt
+        {
+            var passant = Array.FindIndex(Rufarten, r => r.Name == "Passant");
+            var handwerk = Array.FindIndex(Rufarten, r => r.Name == "Handwerk");
+            (int Passanten, int Handwerk, List<Ruf> Rufe) Lauf30(KlangStadtlebenModell.Momentbild m, float stunde = 12f)
+            {
+                var z = new Zustand();
+                var lz = new KlangStadtlebenModell.Zustand();
+                var p = new RufPlaner(11);
+                var rufe = new List<Ruf>();
+                var alle = new List<Ruf>();
+                var dt = 1.0 / 30;
+                var e0 = tag with { UhrMinute = stunde * 60, Bezug = BezugFruehling(stunde), Zoom = 40, TicksProSekunde = 0, Pausiert = true };
+                for (var t = 0.0; t < 1800; t += dt)
+                {
+                    var lage = lz.Schritt(m, 40, dt);
+                    var e = e0 with { Leben = lage };
+                    var a = z.Schritt(e, dt);
+                    rufe.Clear();
+                    p.Schritt(e with { Pausiert = false }, a, dt, rufe);
+                    alle.AddRange(rufe);
+                }
+                return (alle.Count(r => r.Art == passant), alle.Count(r => r.Art == handwerk), alle);
+            }
+            var leerLauf = Lauf30(new KlangStadtlebenModell.Momentbild { MarktOffen = true });
+            pruefe(leerLauf.Passanten == 0 && leerLauf.Handwerk == 0, $"Leere Stadt: {leerLauf.Passanten} Schritte, {leerLauf.Handwerk} Hämmern in 30 min");
+            var einer = new KlangStadtlebenModell.Momentbild();
+            einer.Leute.Add(new KlangStadtlebenModell.Quelle(10, 5, -0.9f, 1, true));
+            einer.Leute.Add(new KlangStadtlebenModell.Quelle(12, 6, -0.9f, 1, true));
+            einer.Leute.Add(new KlangStadtlebenModell.Quelle(11, 7, -0.9f, 1, true));
+            einer.Werkstaetten.Add(new KlangStadtlebenModell.Quelle(60, -20, 0.8f, 2));
+            var mit = Lauf30(einer);
+            log($"UMGEBUNGTEST Leben Rufe in 30 min: leer {leerLauf.Passanten} Schritte / {leerLauf.Handwerk} Hämmern, mit drei Gängern und einer Werkstatt {mit.Passanten} / {mit.Handwerk}");
+            pruefe(mit.Passanten >= 20 && mit.Handwerk >= 8, $"Mit Gängern und Werkstatt: {mit.Passanten} Schritte, {mit.Handwerk} Hämmern (erwartet ≥ 20 und ≥ 8)");
+            foreach (var r in mit.Rufe)
+            {
+                if (r.Art == passant) pruefe(Math.Abs(r.Seite - (-0.72f)) < 1e-4f, $"Schritte nicht am Ort der Figur: Seite {r.Seite:0.00} statt −0,72");
+                if (r.Art == handwerk) pruefe(Math.Abs(r.Seite - 0.4f) < 1e-4f && r.Fern, $"Hämmern nicht am Ort der Werkstatt: Seite {r.Seite:0.00} statt 0,40, fern {r.Fern}");
+            }
+            // Gänger, die nicht gehen (Stehende), machen keine Schritte
+            var steher = new KlangStadtlebenModell.Momentbild();
+            for (var i = 0; i < 6; i++) steher.Leute.Add(new KlangStadtlebenModell.Quelle(10 + i, 5, 0, 1, false));
+            var stehLauf = Lauf30(steher);
+            pruefe(stehLauf.Passanten == 0, $"Stehende machen {stehLauf.Passanten} Schritte");
+            // Hämmern nur 8–20 Uhr (Fenster) auch mit Werkstatt in den Daten
+            var nachts = Lauf30(einer, 22f);
+            pruefe(nachts.Handwerk == 0, $"Hämmern um 22 Uhr: {nachts.Handwerk}");
+        }
     }
 
     /// <summary>Bezugsstunde im Frühling wie Stadtansicht.Licht.cs (für den Test; dort ist sie privat).</summary>
