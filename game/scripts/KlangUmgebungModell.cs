@@ -170,12 +170,6 @@ public static class KlangUmgebungModell
     public static float AbendNacht(float bezug) => Math.Max(Glatt(17.5f, 19.5f, bezug), 1f - Glatt(5.0f, 5.8f, bezug));
 
     /// <summary>
-    /// Nachtruhe der Stadt nach der Uhr: Ab 20:30 wird es still auf den Gassen, nach 22 Uhr (Wirtshausschluss, Feuerglocke) sind nur noch 10 %
-    /// der Gemurmel- und Gesprächsmenge übrig. Das Mittelalter kannte kein Nachtleben: Tore zu, Gassen leer, Wächter mit Laterne.
-    /// </summary>
-    public static float NachtStille(float stunde) => 1f - 0.9f * Glatt(20.5f, 22.0f, stunde);
-
-    /// <summary>
     /// Das Zielgewicht (Leistung 0–1, ohne Jahreszeit) jeder Schicht. <paramref name="leben"/> sind die Menschen der Stadt
     /// (<see cref="KlangStadtlebenModell"/>): Mit Messung hängen Stadtleben, Gemurmel und Schenkengemurmel an ihnen und nicht an der Uhr –
     /// leere Straßen sind still (Stadtleben nur noch <see cref="StadtGrund"/>), ohne Messung gelten die alten Uhrkurven.
@@ -405,7 +399,7 @@ public static class KlangUmgebungModell
         new("Kraehe", "Krähen auf Feld und Wald: im Winter und Herbst oft, im Sommer kaum; nur im Grünen", "kraehe", 5, 18, 45, -12, -16, 75, 150, false,
             (h, b, tag) => Trapez(b, 6.3f, 7.3f, 17.5f, 19.0f), Bedarf: RufBedarf.Natur),
         new("Gespraech", "Gesprächsfetzen von zwei bis drei Leuten (Lachen, Feilschen, unverständlich) an einer Gruppe im Umkreis, tags und früh am Abend", "gespraech", 1, 4, 9, -17, -17, 0, 90, false,
-            (h, b, tag) => Math.Max(tag, 0.6f * StadtAbend(h)) * NachtStille(h), Bedarf: RufBedarf.Gruppe),
+            (h, b, tag) => Math.Max(tag, 0.6f * StadtAbend(h)), Bedarf: RufBedarf.Gruppe),
         new("Nachtwaechter", "Horn der Streife mit der Laterne, nachts ab und zu (am Ort der Streife)", "horn", 2, 75, 150, -9, -13, 90, 170, false,
             (h, b, tag) => Math.Max(Glatt(20.8f, 21.8f, h), 1f - Glatt(5.0f, 5.8f, b)), Bedarf: RufBedarf.Wache),
         new("Donner", "Donner nach einem Blitz (Gewitter): nah ein kräftiger Schlag, fern ein Grollen; die Verzögerung wie beim Schall (Abstand ÷ 343 m/s)", "donner", 4, 0, 0, 0, -3, 0, 100000, false,
@@ -1305,13 +1299,14 @@ public static class KlangUmgebungModell
             pruefe(schnee.DraussenDb <= trocken.DraussenDb - 2f && schnee.DraussenTiefpass <= 12000f, $"Schneestille fehlt: {schnee.DraussenDb:0.0} dB / {schnee.DraussenTiefpass:0} Hz");
             log($"UMGEBUNGTEST Wetter: Regen Stadt {nass.StadtDb:0.0} dB / {nass.StadtTiefpass:0} Hz, Schnee {schnee.DraussenDb:0.0} dB / {schnee.DraussenTiefpass:0} Hz (klar: {trocken.StadtDb:0.0} / {trocken.DraussenDb:0.0})");
         }
-        // e. Nachtruhe: Die Gesprächsfetzen und das Gemurmel der Straße lassen nach 20:30 nach, nach 22 Uhr bleibt ein Zehntel (Tore zu, Gassen leer)
+        // e. Abend und Nacht: Es gibt keine feste „Nachtstille“; der Klang hängt an den gezählten Menschen (die Bürger-KI schickt sie bis etwa 22:45 heim, dann sind fast alle daheim).
+        //    Das Gesprächsfenster folgt nur den Regeln des Spiels: voll am Tag, 60 % am Abend bis zum Schankschluss um 22 Uhr, danach 9 %.
         {
             var gp = Rufarten[Array.FindIndex(Rufarten, r => r.Name == "Gespraech")];
             float F(float h) => gp.Fenster(h, BezugFruehling(h), StadtTag(h, BezugFruehling(h)));
             float a = F(19f), b = F(21.25f), c = F(22.5f), d = F(23f);
-            log($"UMGEBUNGTEST Nacht: Gesprächsfenster 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
-            pruefe(a >= 0.9f && b < a * 0.5f && c <= 0.06f && d <= 0.06f && NachtStille(23f) <= 0.11f && NachtStille(20f) == 1f, $"Nachtstille: 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
+            log($"UMGEBUNGTEST Abend: Gesprächsfenster 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
+            pruefe(a >= 0.9f && b is >= 0.5f and <= 0.65f && c < b && d <= 0.1f, $"Gesprächsfenster: 19:00 {a:0.00}, 21:15 {b:0.00}, 22:30 {c:0.00}, 23:00 {d:0.00}");
         }
         // f. Schankstube: nur in ihr, laut nach den Gästen; draußen verstummt die Schänke dabei (sie ist im Raum ohnehin dumpf)
         {
@@ -1389,8 +1384,8 @@ public static class KlangUmgebungModell
             var nacht = Lauf30(gasse, 23f).Count(r => r.Art == art);
             var abend = Lauf30(gasse, 21f).Count(r => r.Art == art);
             log($"UMGEBUNGTEST Gespräche in 30 min an einer Gasse: Mittag {Lauf30(gasse, 12f).Count(r => r.Art == art)}, 21 Uhr {abend}, 23 Uhr {nacht}");
-            pruefe(nacht == 0, $"Gespräche um 23 Uhr: {nacht}");
-            pruefe(abend < Lauf30(gasse, 12f).Count(r => r.Art == art) * 0.7, "Abends nicht ruhiger als mittags");
+            pruefe(nacht <= Lauf30(gasse, 12f).Count(r => r.Art == art) * 0.2, $"Gespräche um 23 Uhr: {nacht}");
+            pruefe(abend < Lauf30(gasse, 12f).Count(r => r.Art == art) * 0.8, "Abends nicht ruhiger als mittags");
             pruefe(Lauf30(new KlangStadtlebenModell.Momentbild(), 12f).Count(r => r.Art == art) == 0, "Gespräche ohne Menschen");
             // Austauschbar: andere Liste, andere Dateien
             var alt = Gespraeche;
