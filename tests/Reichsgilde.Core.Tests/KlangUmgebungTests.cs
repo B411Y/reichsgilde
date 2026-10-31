@@ -1,5 +1,6 @@
 using Reichsgilde;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
@@ -13,6 +14,19 @@ using Reichsgilde.Core.Wirtschaft;
 static class KlangUmgebungTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+
+    /// <summary>Sucht einen Ordner des Spiels (game/…), egal von wo aus die Tests gestartet werden.</summary>
+    static string Spielordner(params string[] teile)
+    {
+        var ordner = new DirectoryInfo(AppContext.BaseDirectory);
+        while (ordner is not null)
+        {
+            var pfad = Path.Combine(new[] { ordner.FullName, "game" }.Concat(teile).ToArray());
+            if (File.Exists(pfad) || Directory.Exists(pfad)) return pfad;
+            ordner = ordner.Parent;
+        }
+        throw new FileNotFoundException("game/" + string.Join("/", teile) + " wurde nicht gefunden.");
+    }
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
@@ -177,6 +191,87 @@ static class KlangUmgebungTests
             Console.WriteLine($"          Kern: hämmernde Werkstatt in {werkMinuten} von 2280 Minuten, Schänke mit Gästen in {schaenkeMinuten}, höchstens {gaesteMax} Gäste");
             Pruefe.Wahr(werkMinuten > 0, "In zwei Spieltagen hämmerte nie eine Werkstatt");
             Pruefe.Wahr(schaenkeMinuten > 0, "In zwei Spieltagen saß nie ein Gast in der offenen Schänke");
+        }),
+        ("Umgebung um den Blickpunkt: auf der Karte greybox ist der Markt Stadt, die Wiese Land, der Fluss Wasser, der Wald Baum", () =>
+        {
+            var karte = Stadtkarte.AusDatei(Spielordner("karten", "greybox.json"));
+            var r = KlangUmweltModell.Raster.Von(karte);
+            var markt = r.Probe(0, 0, 53);
+            var wiese = r.Probe(175, 10, 53);
+            var fluss = r.Probe(120, 150, 53);
+            var wald = r.Probe(200, 240, 53);
+            Pruefe.Wahr(markt.Stadt > 0.9f && markt.Baum < 0.1f && markt.Wasser == 0f, $"Markt: Stadt {markt.Stadt:0.00}, Baum {markt.Baum:0.00}, Wasser {markt.Wasser:0.00}");
+            Pruefe.Wahr(wiese.Stadt < 0.05f && wiese.Feld > 0.5f && wiese.Wasser == 0f, $"Wiese: Stadt {wiese.Stadt:0.00}, Feld {wiese.Feld:0.00}");
+            Pruefe.Wahr(fluss.Wasser > 0.8f && fluss.Stadt < 0.05f, $"Fluss: Wasser {fluss.Wasser:0.00}, Stadt {fluss.Stadt:0.00}");
+            Pruefe.Wahr(wald.Baum > 0.8f && wald.Stadt < 0.05f, $"Wald: Baum {wald.Baum:0.00}, Stadt {wald.Stadt:0.00}");
+            // der Weg vom Markt aufs Land: der Stadtanteil sinkt stetig, ohne Sprünge (Schritte von 5 m, Umkreis 53 m)
+            float vorher = markt.Stadt, groesst = 0f;
+            for (var x = 0f; x <= 175f; x += 5f)
+            {
+                var l = r.Probe(x, 5, 53).Stadt;
+                groesst = Math.Max(groesst, Math.Abs(l - vorher));
+                vorher = l;
+            }
+            Pruefe.Wahr(groesst < 0.25f, $"Der Stadtanteil springt um {groesst:0.00} je 5 m");
+            Pruefe.Wahr(vorher < 0.05f, "Am Ende des Wegs noch Stadt");
+        }),
+
+        ("Umgebung: alle Karten des Spiels lassen sich zum Raster bauen (Köln: Rhein, Wald, Stadt)", () =>
+        {
+            foreach (var name in new[] { "greybox", "koeln", "probestadt", "messstadt" })
+            {
+                var karte = Stadtkarte.AusDatei(Spielordner("karten", name + ".json"));
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var r = KlangUmweltModell.Raster.Von(karte);
+                Pruefe.Wahr(sw.ElapsedMilliseconds < 1500, $"{name}: Raster braucht {sw.ElapsedMilliseconds} ms");
+                var mitte = r.Probe(0, 0, 60);
+                Pruefe.Wahr(mitte.Stadt >= 0f && mitte.Stadt <= 1f && mitte.Baum is >= 0f and <= 1f, $"{name}: Werte außerhalb 0–1");
+            }
+            var koeln = KlangUmweltModell.Raster.Von(Stadtkarte.AusDatei(Spielordner("karten", "koeln.json")));
+            Pruefe.Wahr(koeln.Probe(-50, 25, 60).Stadt > 0.7f, "Köln: Mitte nicht Stadt");
+        }),
+
+        ("Gesprächsliste: game/daten/gespraeche.json verweist nur auf vorhandene Aufnahmen, je Anlass mindestens fünf, ohne Doppelte", () =>
+        {
+            var pfad = Spielordner("daten", "gespraeche.json");
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(pfad));
+            var anlaesse = doc.RootElement.GetProperty("anlaesse");
+            var rufe = Spielordner("assets", "audio", "umgebung", "rufe");
+            var zahl = 0;
+            foreach (var a in anlaesse.EnumerateObject())
+            {
+                var dateien = a.Value.EnumerateArray().Select(x => x.GetString()!).ToList();
+                Pruefe.Wahr(dateien.Count >= 5, $"Anlass {a.Name}: nur {dateien.Count} Aufnahmen");
+                Pruefe.Gleich(dateien.Count, dateien.Distinct().Count());
+                foreach (var d in dateien) Pruefe.Wahr(File.Exists(Path.Combine(rufe, d + ".ogg")), $"Gespräch {d}.ogg fehlt");
+                zahl++;
+            }
+            Pruefe.Wahr(anlaesse.TryGetProperty("markt", out _) && anlaesse.TryGetProperty("gasse", out _) && zahl >= 2, "Anlässe markt und gasse erwartet");
+        }),
+
+        ("Glocken und Rufe: jede Datei, die das Modell kennt (Schichten, Rufe, Glocken), liegt im Spielordner", () =>
+        {
+            var umgebung = Spielordner("assets", "audio", "umgebung");
+            var fehlend = new List<string>();
+            foreach (var s in KlangUmgebungModell.Schichten) if (!File.Exists(Path.Combine(umgebung, "schichten", s.Name + ".ogg"))) fehlend.Add("schichten/" + s.Name);
+            foreach (var r in KlangUmgebungModell.Rufarten)
+            {
+                if (r.Bedarf == KlangUmgebungModell.RufBedarf.Gruppe) continue; // die Gespräche stehen in der Liste (anderer Test)
+                for (var v = 1; v <= r.Varianten; v++) if (!File.Exists(Path.Combine(umgebung, "rufe", $"{r.Datei}_{v}.ogg"))) fehlend.Add($"rufe/{r.Datei}_{v}");
+                if (r.FernDatei is not null)
+                    for (var v = 1; v <= r.FernVarianten; v++) if (!File.Exists(Path.Combine(umgebung, "rufe", $"{r.FernDatei}_{v}.ogg"))) fehlend.Add($"rufe/{r.FernDatei}_{v}");
+            }
+            foreach (var g in KlangUmgebungModell.Glockenarten)
+                for (var v = 1; v <= g.Varianten; v++) if (!File.Exists(Path.Combine(umgebung, "glocken", $"{g.Datei}_{v}.ogg"))) fehlend.Add($"glocken/{g.Datei}_{v}");
+            Pruefe.Wahr(fehlend.Count == 0, "Fehlende Aufnahmen: " + string.Join(", ", fehlend));
+        }),
+
+        ("Glocken: Morgenglocke zum Arbeitsbeginn, Abendglocke zum Feierabend und Feuerglocke zum Schankschluss folgen den Konstanten des Kerns", () =>
+        {
+            var plan = KlangUmgebungModell.Glockenplan.Standard;
+            Pruefe.Gleich(Stadtwirtschaft.Arbeitsbeginn, plan.Morgen);
+            Pruefe.Gleich(Stadtwirtschaft.Arbeitsbeginn + 12 * 60, plan.Abend);
+            Pruefe.Gleich(Stadtwirtschaft.Arbeitsbeginn + 14 * 60, plan.Feuer);
         }),
     };
 }
