@@ -14,6 +14,8 @@
 #              liegen – sonst würden die Dateien der Phase 5 überschrieben. Vorher: kopf6.sh haar_kopieren
 #   haar_kopieren  die Verknüpfungen in glb6/haar4 durch eigene Kopien ersetzen (vor dem Neukämmen)
 # Umgebung: GLB (Ausgabe, Standard ~/werkzeuge/charakter/glb6), GLB5 (Haar-Quelle, Standard ~/werkzeuge/charakter/glb5),
+#           GLB_PROBE (Probebau, Standard ~/werkzeuge/charakter/glb6p), REZEPT (nur „mischen“; Standard kopf6_rezept.json),
+#           PROBEN_OPT (Halt B2: weitere Optionen für den Probebau, z. B. "ausschnitt=22 vorbilder=<npz>"),
 #           MAKRO_NORMALEN=1: auch makro_ (Alter × Geschlecht) behält die Normalen – nur nach sauberem A/B (S2, Bogen P7)
 HIER=$(cd "$(dirname "$0")" && pwd)
 AUS=${GLB:-$HOME/werkzeuge/charakter/glb6}
@@ -27,7 +29,7 @@ case "$MODUS" in ohne_haar|nur_kopf|nur_haar|kaemmen|haar_kopieren|proben|mische
 # Etappe B: nur neu mischen (ohne Blender) – nach einer neuen Ausgleichs- oder Eichrechnung
 if [ "$MODUS" = "mischen" ]; then
   PROBE=${GLB_PROBE:-$HOME/werkzeuge/charakter/glb6p}
-  "$BPY" -I "$HIER/formen_mischen.py" "$PROBE/kopf6p.glb" "$AUS/kopf6_mn.glb" "$HIER/kopf6_rezept.json" \
+  "$BPY" -I "$HIER/formen_mischen.py" "$PROBE/kopf6p.glb" "$AUS/kopf6_mn.glb" "${REZEPT:-$HIER/kopf6_rezept.json}" \
     beschreibung="$PROBE/kopf6p.json" aus_json="$AUS/kopf6_mn.json"
   nice -n 10 python3 -I "$HIER/glb_formnormalen.py" "$AUS/kopf6_mn.glb" "$AUS/kopf6.glb" ohne_vorsilben=makro_ duenn=1
   python3 -I -c 'import json, os, sys
@@ -48,7 +50,7 @@ if [ "$MODUS" = "proben" ]; then
   mkdir -p "$PROBE"
   python3 "$HIER/warte_last.py" 20 20 > /dev/null
   nice -n 10 "$HIER/blender.sh" -b -P "$HIER/kopf2_bauen.py" -- "$PROBE/kopf6p.glb" morph_normalen=1 \
-    proben="$HIER/kopf6_proben.json" eigen=1 ict_ident=0-15,20,25,28,33 herkunft=1 "$@" 2>&1 \
+    proben="$HIER/kopf6_proben.json" eigen=1 ict_ident=0-15,20,25,28,33 herkunft=1 $PROBEN_OPT "$@" 2>&1 \
     | grep -E "^FERTIG|^\[ |Traceback|Error|^PRUEFEN" | cut -c1-400
   ls -la "$PROBE"
   exit 0

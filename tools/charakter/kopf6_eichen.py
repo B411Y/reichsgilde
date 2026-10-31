@@ -17,6 +17,8 @@ Mitte aus dem S4-Rezept). Die Gewichte, mit denen Godot den Kopf zeigt, rechnet 
 die 1000er-Prüfung misst den Gewichteausdruck von Godot, nicht diese Rechnung.
 
 Aufruf: $BPY -I tools/charakter/kopf6_eichen.py --glb=<glb6p/kopf6p.glb> --gewichte=<gewichte.json> --aus=<ordner>
+Halt B2 (Probekopf): --rezept_s4=<rezept_s4_b2.json> --regeln_aus=<glb-ordner/regeln6.json> --rezept_aus=<rezept.json>
+--zuege_aus=<datei> schreiben neben die Probe-.glb statt über die Dateien des Repositorys (Standard wie bisher).
 """
 import hashlib
 import json
@@ -184,7 +186,10 @@ def main():
     messer = Messer(os.path.expanduser(opt["glb"]))
     gew = json.load(open(opt["gewichte"], encoding="utf-8"))
     pers = {p["name"]: p for p in gew["personen"]}
-    rezept_s4 = json.load(open(os.path.join(HIER, "kopf6_rezept_s4.json"), encoding="utf-8"))
+    rezept_s4 = json.load(open(opt.get("rezept_s4", os.path.join(HIER, "kopf6_rezept_s4.json")), encoding="utf-8"))
+    regeln_aus = opt.get("regeln_aus", os.path.join(HIER, "..", "..", "game", "versuch", "charakter", "regeln6.json"))
+    rezept_aus = opt.get("rezept_aus", os.path.join(HIER, "kopf6_rezept.json"))
+    zuege_aus = opt.get("zuege_aus", os.path.join(HIER, "zuege_basis_v1.json"))
     erbgut = {g["kennung"]: g for g in json.load(open(ERBGUT, encoding="utf-8"))["gene"]}
     bericht = {"glb": opt["glb"]}
     regeln_gene = {}
@@ -328,7 +333,7 @@ def main():
         basis_zuege["zuege"][zn] = {"aus": name, "rezept": rezept[zn]}
     roh = json.dumps(basis_zuege, sort_keys=True, ensure_ascii=False).encode("utf-8")
     basis_zuege_sha = hashlib.sha256(roh).hexdigest()
-    json.dump(basis_zuege, open(os.path.join(HIER, "zuege_basis_v1.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False, sort_keys=True)
+    json.dump(basis_zuege, open(zuege_aus, "w", encoding="utf-8"), indent=1, ensure_ascii=False, sort_keys=True)
     np.savez_compressed(os.path.join(aus, "zuege_basis_v1.npz"), **{zn: feld(z["rezept"]).astype(np.float32)
                                                                   for zn, z in basis_zuege["zuege"].items()})
     bericht["zuege"] = {"kandidaten": zug_bericht, "gewaehlt": list(basis_zuege["zuege"]), "sha256": basis_zuege_sha}
@@ -444,13 +449,12 @@ def main():
         "asymmetrie": asym_regeln,
         "zielmatrix": zielmatrix,
     }
-    json.dump(regeln, open(os.path.join(HIER, "..", "..", "game", "versuch", "charakter", "regeln6.json"), "w", encoding="utf-8"),
-              indent=1, ensure_ascii=False)
+    json.dump(regeln, open(regeln_aus, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     rezept_ganz = {"_beschreibung": "Rezept des fertigen Kopfs kopf6 (Etappe B): Formen als Mischung der Probeformen aus kopf6.sh proben "
                                     "(formen_mischen.py). Erzeugt von kopf6_eichen.py aus kopf6_rezept_s4.json (S4) und der Eichung (S5–S7).",
                    "formen": rezept,
                    "entfernen": ["probe_", "ictid_", "herkunft_", "eigen_", "alter_reife_m", "alter_reife_w"]}
-    json.dump(rezept_ganz, open(os.path.join(HIER, "kopf6_rezept.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+    json.dump(rezept_ganz, open(rezept_aus, "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     json.dump(rezept, open(os.path.join(aus, "rezept_s5.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     json.dump(regeln_gene, open(os.path.join(aus, "regeln_gene_s5.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
     json.dump(bericht, open(os.path.join(aus, "eichung_s5.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False, default=float)
