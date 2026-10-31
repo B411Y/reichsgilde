@@ -1,4 +1,30 @@
-[gd_resource type="AudioBusLayout" format=3]
+[gd_resource type="AudioBusLayout" format=3 uid="uid://ewxtu1tm8hi6"]
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_draussen"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 3
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_stadt"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 1
+
+[sub_resource type="AudioEffectPanner" id="Panner_nah"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_nah"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 1
+
+[sub_resource type="AudioEffectPanner" id="Panner_fern"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_fern"]
+resource_name = "Tiefpass"
+cutoff_hz = 2500.0
+db = 1
 
 [resource]
 bus/1/name = &"Musik"
@@ -31,3 +57,39 @@ bus/5/mute = false
 bus/5/bypass_fx = false
 bus/5/volume_db = 0.0
 bus/5/send = &"Master"
+bus/6/name = &"UmgebungDraussen"
+bus/6/solo = false
+bus/6/mute = false
+bus/6/bypass_fx = false
+bus/6/volume_db = 0.0
+bus/6/send = &"Umgebung"
+bus/6/effect/0/effect = SubResource("Tiefpass_draussen")
+bus/6/effect/0/enabled = true
+bus/7/name = &"UmgebungStadt"
+bus/7/solo = false
+bus/7/mute = false
+bus/7/bypass_fx = false
+bus/7/volume_db = 0.0
+bus/7/send = &"UmgebungDraussen"
+bus/7/effect/0/effect = SubResource("Tiefpass_stadt")
+bus/7/effect/0/enabled = true
+bus/8/name = &"UmgebungRufNah"
+bus/8/solo = false
+bus/8/mute = false
+bus/8/bypass_fx = false
+bus/8/volume_db = 0.0
+bus/8/send = &"UmgebungDraussen"
+bus/8/effect/0/effect = SubResource("Panner_nah")
+bus/8/effect/0/enabled = true
+bus/8/effect/1/effect = SubResource("Tiefpass_nah")
+bus/8/effect/1/enabled = true
+bus/9/name = &"UmgebungRufFern"
+bus/9/solo = false
+bus/9/mute = false
+bus/9/bypass_fx = false
+bus/9/volume_db = 0.0
+bus/9/send = &"UmgebungDraussen"
+bus/9/effect/0/effect = SubResource("Panner_fern")
+bus/9/effect/0/enabled = true
+bus/9/effect/1/effect = SubResource("Tiefpass_fern")
+bus/9/effect/1/enabled = true
