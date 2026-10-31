@@ -941,3 +941,121 @@ hat aber im Blindtest die schlechteste Note.
   Mendelssohn (Restabstand 1,6 mm, Haarsträhnen auf der Stirn) nicht eingebaut.
 - Der Malfilter in dieser Form (Kuwahara 4 Sektoren) taugt nicht; ein Ölbild-Eindruck bräuchte einen anisotropen
   Filter oder gemalte Haut statt eines Nachfilters.
+
+## Etappe C: Haut (Probekopf B2)
+
+Anlass: Der blinde Prüfer von Halt B2 sah in allen Spalten eine Puppe – glatte, gleichförmig rosa Haut ohne Poren,
+Falten und Bartschatten, schwarze Wimpernlinie am Unterlid, Glanzstreifen auf Nase und unter dem Auge, orange
+leuchtende Nasenlöcher. Diagnose U4: Der Hautshader `haut6` ist an sich in Ordnung, es fehlt der **Inhalt** (Albedo
+ohne Mittelfrequenzen, keine Farbzonen, keine Nasolabial- und Tränenrinne). Etappe C setzt deshalb gezielt dort an,
+statt S8–S11 vollständig abzuarbeiten. Alles läuft als Weg C neben Weg A (`weg_a` + `weg_c`), Stand 6 und Weg A bleiben
+unverändert.
+
+### Was gebaut ist
+
+- **Hautkarten** `tools/charakter/kopf6_hautc.py` (numpy und OpenImageIO in Blenders Python, ≈ 1 min CPU): aus dem
+  Grundnetz eine Lagekarte (3D-Lage und Normale je Bildpunkt), darauf alle Zonen und Falten in Millimetern an den
+  Merkpunkten; Ränder mit 3D-Rauschen unregelmäßig, links und rechts verschieden.
+  - `haut_c_zonen.png` (1024²): R Hämoglobin (Wangen, Nase, Ohren, Kinn, Lider, Lidrand, Karunkel), G Sonne/Gelbton
+    (Stirn, Schläfen, Nasenrücken, Jochbein, Ohrrand, Nacken, Scheitel – als Maximum, nicht als Summe), B Augenringe und
+    Venen, A Bartgebiet (unter der Linie Koteletten–Wange–Mundwinkel, Oberlippe nur bis zum Mundwinkel, ohne Lippenrot).
+  - `haut_c_glanz.png` (1024²): R Rauheit je Zone (0,25 + 0,4 R; Wange 0,49, Stirn 0,42, Nase 0,40, Spitze 0,37,
+    Lippen 0,33, Hals 0,56), G Porenstärke je Zone, B Höhle, A Feuchte (Lidrand, Karunkel).
+  - **Nasenloch innen** (Kanal B): eine Innenwand blickt zur Nasenlochachse; dunkel wird es erst 1–6 mm über der
+    Öffnungslinie, die vom Flügelansatz zur Spitze ansteigt. Die Unterseite des Flügelrands bleibt Haut (sonst schwarze
+    Ränder bei Stupsnasen und schräg); die gebackene Verdeckung `haut_masken.B` taugt hier nicht (an der Flügelrinne
+    ebenso hoch) und zählt nur noch am Ohr.
+  - `haut_c_relief.png` (2048²): Höhen in Bildpunkt-Einheiten, vier Alterskanäle mit eigenem Maßstab (`haut_c.json`):
+    R Stirn (vier Querfalten aus versetzten Stücken, Nebenfalten, Zornesfalten, Nasenwurzel), G Augen (Krähenfüße in
+    sechs Strahlen, Knitter am Unterlid), B Mittelform (Nasolabialfalte mit Wangenwulst, Nasenflügelrinne,
+    Tränenrinne, Unter- und Oberlidfalte, Kinnlippenfurche, Philtrum, Lippenrillen), A Mund und Hals
+    (Marionettenfalten, Fältchen der Ober- und Unterlippe, Wangenfalten, drei unterbrochene Halsringe). Linien liegen in
+    der Bildebene (xy) mit z als Tor – der 3D-Abstand zerfiel seitlich am Auge in Perlen.
+- **Detailkacheln** `tools/charakter/kopf6_kacheln.py` (prozedural, nahtlos, keine Fremddaten): `haut_c_poren.png`
+  (1024², 25 mm: Poren 0,25–0,5 mm, feine Poren, Hautfelderung, Mikrorauschen als Normale; Höhle; Bartstoppeln als
+  Striche 0,35–0,8 mm) und `haut_c_flecken.png` (512², 60 mm: Melanin- und Blutunruhe 2–18 mm, Rang und Form der
+  Flecken).
+- **Shader** `haut6.gdshaderinc`, Zweig `WEG_C` (`haut6c`, `haut6c_ultra`, `haut6c_einfach` für Niedrig/Mittel ohne
+  Kacheln): Farbe als Absorption, albedo = Grundton · Hautbild^1,15 · exp(−Σ Pigment · k) mit Melanin (Sonne, Bräune,
+  Unruhe in zwei Weiten, Sommersprossen, Altersflecken in zwei Größen gehäuft), Hämoglobin, Augenringe (bräunlich),
+  Gelbstich (Stirn und überall). Bartschatten kühl mit zwei Stoppellagen, zusätzlich mit Mip-Versatz 1,5 abgetastet und
+  geschwellt (die Striche werden im Porträt zu sichtbaren Punkten). Lippenrot über die Glanzkarte (A ≈ 0,3) weniger
+  lachsfarben. Relief × 3,2 nach Alter, Furchenschatten
+  vor allem aus den Alterskanälen. Poren in zwei Lagen (die Kachel ist auf 40 mm gestreckt, sonst lägen Poren im
+  Porträt unter einem Bildpunkt). Rauheit je Zone statt T-Zonen-Maske, Doppelglanz breiter (× 1,3 und × 0,75,
+  Mischung 0,85) – kein Glanzstreifen. Nasenloch und Gehörgang: kein direktes Licht, auch kein Rand- und Flächenlicht
+  (beides glühte vorher orange; das Randlicht wurde nach der Abdunklung addiert). Lippenkante weicher (Farbton aus
+  Mip 2, Helligkeit scharf). Prüfanzeige `c_zeige` (1 Höhle, 2 Glanz, 3 Zonen, 4 Furche, 5 Bart/Flecken).
+- **Wimpern** `haar3.gdshader`: Band des Unterlids (UV.y > 0,75) bei Weg C mit Deckung 0,3, Wurzel ausgeblendet und
+  heller (keine Naht am Lidrand); alle Wimpern durchscheinender (Deckung 0,7), lichter, etwa ein Viertel weniger Haare,
+  im Alter grau wie die Brauen.
+- **Werte je Person** `charakter_kopf.gd` `_haut_c_setzen()`: Relief nach `RELIEF_ALTER` (Augen ab 20, Stirn ab 25,
+  Mittelform schon in der Jugend schwach, Mund ab 35), Wetterhaut `wetter` 0–1 altert die Haut um bis zu 10 Jahre und
+  bräunt; Gene `hautroetung` und `sommersprossen` (steile Kurve: 110 ≈ 3 %, 150 ≈ 11 % der Flecken auf Nase und Wangen),
+  Bartschatten aus dem Bartwuchs (dunkles Haar ≈ 25 % dunkler). Alle Abstimmwerte setzt jede Zelle neu.
+- **Schau** `charakter_schau.gd`: Bogenschlüssel `weg_c`, `wetter`, `haut_werte` (Shaderwerte zum Abstimmen),
+  Messvarianten mit 5. Feld `weg_c`, `--stufe=mittel|niedrig` nimmt `haut6c_einfach`. `kopf6.sh haut_c` backt nur die
+  Haut neu; die volle Kette ruft beides nach den Haarbildern auf.
+
+### Prüfung Etappe C
+
+Bildtafel je Person (vorn, schräg, Profil): Fotovorlage | B2 (vorher, Weg A) | neue Haut | neue Haut nah. Blinder
+Prüfer (eigener Agent, nur die Bilder, A/B zufällig, Schlüssel vorher mit SHA-256 versiegelt): Fotovorlage, A, B und
+dieselben drei nah; Note 1–10 „wirkt neben dem Foto lebendig und glaubwürdig“. Ziel: neue Haut ≥ 2 Punkte über B2.
+Wetter im Bogen: Mann 35 0,25, Frau 35 0,1, Mann 70 0,55; Sommersprossen 110 / 150 / 90 (nach den Fotos).
+
+| Runde | Mann 35: B2 → neu | Frau 35: B2 → neu | Mann 70: B2 → neu | Commit |
+|---|---|---|---|---|
+| 1 | 3,5 → 5 (+1,5) | 3,5 → 4,5 (+1,0) | 2,5 → 5 (+2,5) | b96ec8d3 |
+| 2 | 3,5 → 5 (+1,5) | 3 → 5 (+2,0) | 2,5 → 5,5 (+3,0) | 71d21ec0 |
+| **3** | **3 → 5 (+2,0)** | **2,5 → 4,5 (+2,0)** | **2 → 4 (+2,0)** | 8590edb1 |
+
+Je Runde ein frischer Prüfer; Schlüssel und SHA-256 in der Mappe (`versiegelt.txt`). Die neue Haut gewinnt in jeder
+Runde bei jeder Person; im Endstand überall genau +2 – knapp erreicht. Absolut 4–5 von 10: Was der Prüfer im
+Endstand noch als Puppe sieht, steht unter „Offen“. Runde 2 antwortete auf Runde 1 (Nasenloch schwarz gestanzt, Fleck
+neben der Nase statt Bartschatten, Augenringe violett mit harter Kante, Falten aufgemalt, Flecken orange), Runde 3 auf
+Runde 2 (Dreitagebart nur ein Hauch, Wimpern schwarz und hart, Lidränder und Ohren glühen, Lippen lachsfarben).
+
+Kosten (T400, 1280 × 720, gepaart im selben Prozess, drei Wiederholungen, Median; Endstand 8590edb1):
+
+| Lauf | Hoch: B2 + A → neu | gegen Halt B | Mittel (ohne Kacheln): B2 + A → neu | Ultra: B2 + A → neu |
+|---|---|---|---|---|
+| ohne Haar, Mittelgesicht | 6,97 → 7,05 ms (**+0,07**) | +0,48 | 7,00 → 6,11 ms (−0,86) | 8,38 → 8,40 ms (−0,01) |
+| ohne Haar, Zufallsperson | 7,14 → 7,13 ms (−0,01) | +0,37 | 7,14 → 6,22 ms (−0,92) | 8,56 → 8,53 ms (+0,01) |
+| TressFX in Ruhe | 30,84 → 30,82 ms (+0,37 gepaart, fremde Last) | +0,10 | 30,86 → 30,20 ms (−0,66) | 32,10 → 32,05 ms (+0,03) |
+
+Runde 1 bei ganz freier Karte: ohne Haar +0,08, Zufall +0,08, TressFX +0,11 ms gegen B2 + A. Grafikspeicher: neue
+Karten und Kacheln 38,7 MB unkomprimiert mit Mipmaps (Relief 2048² allein 21,3 MB); in der Messung nicht getrennt
+sichtbar, weil alle Varianten im selben Prozess dieselben Bilder laden. „Mittel“ ist billiger, weil die einfache
+Fassung auch die alten Falten- und Rauschzugriffe nicht mehr braucht.
+
+### Selbst getroffene Entscheidungen (Etappe C)
+
+- Gezielt nach den Befunden statt S8–S11 vollständig (kein neues Hautlicht nach S8, keine MakeHuman-Systemhäute nach
+  S9, kein `haut_falten2` nach S11); die Pigmentvektoren des Plans S9 sind übernommen.
+- Stoppelbart als Standard erwachsener Männer (nach `bartwuchs`); tägliche Rasur ist im Spätmittelalter unüblich. Später
+  nach Stand und Beruf.
+- Poren gröber als echt (Kachel auf 40 mm gestreckt) – gemalt-realistisch statt unsichtbar.
+- Wetter und Sommersprossen der drei Prüfpersonen nach den Fotos gesetzt (Lebensspuren, nicht Form).
+
+### Offen nach Etappe C
+
+- Nasenloch innen: Farbe zwischen „schwarz gestanzt“ (Runde 1) und „glüht rötlich“ (Runde 3, Frau mit Stupsnase) –
+  innen dunkelbraun statt rot.
+- Falten lesen sich im weichen Porträtlicht eher als Farbe; Tränensäcke, Schlupflider und tiefe Stirnfurchen brauchen
+  Form (FaceBuilder-Vorbereitung läuft).
+- Stoppeln zu gleichförmig, harte Kante zur Wange im Profil; Bartschatten darunter kräftiger, Dichte auslaufen lassen.
+- Altersflecken auf der Glatze noch zu orange.
+- Augen glasig (Lederhaut zu rein, kein feuchter Unterlidrand) – S12.
+- Texturen komprimieren (38,7 MB → etwa 10 MB) vor einem Einbau ins Spiel; Ultra-Fassung `haut6c_ultra` nur gemessen,
+  nicht im Blindtest.
+
+### Testanleitung Etappe C
+
+1. Karten backen: `tools/charakter/kopf6.sh haut_c` (Standard `~/werkzeuge/charakter/glb6`; für den Probekopf
+   `GLB=~/werkzeuge/charakter/glb6b2`).
+2. Bogen mit `"weg_a": true, "weg_c": true, "wetter": 0.5` auf einer Zelle mit `"kopf": "~/werkzeuge/charakter/glb6b2/kopf6.glb"`
+   und `"stand": 6` rendern: `GLB=~/werkzeuge/charakter/glb6 ANZEIGE=:73 tools/charakter/schau.sh <ordner> 1280x720
+   --bogen=<bogen.json> --ende`.
+3. Prüfanzeige: `"haut_werte": {"c_zeige": 1}` (Höhle), 3 (Zonen), 4 (Furche); Abstimmen über `haut_werte`.
+4. Messung: `--varianten=b2a:~/werkzeuge/charakter/glb6b2:1:0:0,hc:~/werkzeuge/charakter/glb6b2:1:0:1 --stufe=hoch|mittel|ultra --messen`.

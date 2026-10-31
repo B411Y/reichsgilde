@@ -169,6 +169,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Wasser (Phase 3): Die Furt ist im Spiel Teil des Bach- bzw. Flussbandes (im Winter nur Randeis); die eigenen Werte der Art Furt (klarer, schwächere Lichtnetze) sind dort nicht eingebaut. Dafür bräuchte das Band einen weiteren Eckenwert oder ein eigenes Stück je Furt
 - Wasser (Phase 3): Schmale Bäche (unter dem 2-m-Raster) liegen als Band knapp über dem gezeichneten Boden, ohne sichtbares Bett und ohne Böschung – im Sommer ein durchsichtig blauer Streifen auf der Wiese. Besser wäre ein eingeschnittenes Bett im Boden (Gelände, Kern) oder eine Uferkante als Modell
 - Wasser (Phase 3d): Vom Randeis brechen keine Stücke ab, die dann treiben; Schollen schieben sich am Pfeiler nicht übereinander (nur Stau in der Ebene). Ein Bach liegt an der Mündung höher als der Fluss (Kern: Duffesbach 0,55 m); die Darstellung lässt seine Fläche auf den Fluss hinabfallen, ein eingeschnittenes Bett bis zum Fluss wäre Sache des Kerns
+- Charakter Etappe C (Haut, Branch phase5/charakter-werkzeug): Nasenloch innen dunkelbraun statt rot; Stoppeln mit auslaufender Dichte und kräftigerem Bartschatten; Altersflecken auf der Glatze weniger orange; tiefe Falten (Tränensäcke, Schlupflider) als Form; Haut-Texturen komprimieren (38,7 MB) vor einem Einbau ins Spiel (`docs/charakter/phase6.md`, Offen nach Etappe C)
 
 ## Entscheidungen
 
@@ -324,3 +325,18 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Augen | Irismuster von RoboPoets digital_human (Kunst CC0), nach den Genen gefärbt (außen + innerer Kranz); Pupille mittig zur Öffnung im ICT-Netz (per Strahl gefunden, 1,6 mm neben der Achse), Rückseite schwarz; Hornhaut als eigene additive Glanzfläche; Lidschatten-Netz als Multiplikation. | 30.10.2026 |
 | Galerie | `charakter_galerie.tscn`: 30 Köpfe mit einem geteilten Netz (112,6 MB Puffer statt 30 × 66 MB), Tag/Innen (L), vorher/nachher (V), Ultra (U), Mimik (M); startet mit der freien Kamera (`FreieKamera.cs` unverändert vom Branch `phase5/wasser-darstellung`), die Regler-Szene ebenso. | 30.10.2026 |
 | Porträtbühne | Belichtung 1,0 statt 1,15, Schlüssellicht 2,3 statt 2,6 – die Haut war überbelichtet (auch in Phase 2 „zu hell“). | 30.10.2026 |
+
+### Charakter Etappe C: Haut (Branch phase5/charakter-werkzeug, noch ohne PR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weg | Statt S8–S11 vollständig gezielt die Puppen-Befunde von Halt B2: Farbzonen und Unruhe im Albedo, Relief nach Alter, Poren, Rauheit je Zone, Nasenloch, Unterlid-Wimpern, Bartschatten. Weg C (`weg_c`) liegt neben Weg A; Stand 6 und Weg A unverändert. | 31.10.2026 |
+| Quellen | Alles prozedural aus Grundnetz und Merkpunkten (`kopf6_hautc.py`, `kopf6_kacheln.py`); keine Fremdtexturen, kein Scan als Detailquelle. Die Pigmentvektoren stammen aus dem Plan S9. | 31.10.2026 |
+| Farbe | Absorption statt Multiplikation: albedo = Grundton · Hautbild^1,15 · exp(−Σ Pigment · k). Zonen Hämoglobin, Sonne, Augenringe, Bart; Gelbstich überall gegen „rosa-pfirsich“. | 31.10.2026 |
+| Falten | Reliefkarte 2048² in vier Alterskanälen, × 3,2; Furchenschatten nur schwach (der Prüfer las starke Schatten als „aufgemalt“). Außenarbeit altert die Haut um bis zu 10 Jahre (`wetter`). | 31.10.2026 |
+| Poren | Kachel 25 mm auf 40 mm gestreckt plus grobe Lage (2,7 ×): echte Porengröße läge im Porträt unter einem Bildpunkt. | 31.10.2026 |
+| Glanz | Rauheit je Zone statt T-Zonen-Maske, Doppelglanz × 1,3 / × 0,75 (Mischung 0,85): kein Glanzstreifen auf Nase und unter dem Auge. | 31.10.2026 |
+| Nasenloch | Innenwand-Regel (Normale zur Nasenlochachse) mit Tiefe über der Öffnungslinie; kein direktes, Rand- oder Flächenlicht innen. Die gebackene Verdeckung zählt nur noch am Ohr. | 31.10.2026 |
+| Stoppeln | Erwachsene Männer zeigen nach `bartwuchs` einen Stoppelbart (Striche der Porenkachel, im Porträt mit Mip-Versatz sichtbar); eigene Wahl für das Spätmittelalter (tägliche Rasur unüblich), später nach Stand und Beruf. | 31.10.2026 |
+| Wimpern | Bei Weg C: Unterlid-Band mit Deckung 0,3 und weicher Wurzel, alle Wimpern durchscheinender (0,7), lichter, ein Viertel weniger Haare, im Alter grau. | 31.10.2026 |
+| Stufen | `haut6c_einfach` (Niedrig/Mittel) ohne Detailkacheln: Zonen und Relief bleiben. | 31.10.2026 |
