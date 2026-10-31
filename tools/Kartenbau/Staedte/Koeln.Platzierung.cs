@@ -71,18 +71,19 @@ public sealed partial class Koeln
 
     private readonly List<Kartenort> _startMitten = new();
 
-    /// <summary>Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (Heumarkt, Alter Markt, Neumarkt; wie die Kartenprüfung).</summary>
+    /// <summary>Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (<see cref="Maerkte"/>; wie die Kartenprüfung).</summary>
     private double ZumMarkt(Kartenort p) =>
         E.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog).Select(g => p.Abstand(g.Punkt)).DefaultIfEmpty(p.Abstand(P(0, 0))).Min();
 
     /// <summary>
     /// Ein Startgrundstück (24 × 14 m: Werkstattplatz 16 × 14 und Wohnhausplatz 8 × 10, vorn bündig) an einer Straße, mit der Vorderseite zur
     /// Straße. Gesucht wird um <paramref name="sHint"/> (Meter entlang der Straße) die freie Stelle, deren Mitte dem Abstand
-    /// <see cref="ZielAbstand"/> zum nächsten Marktplatz am nächsten liegt (höchstens <paramref name="fenster"/> Meter von dort). Die Werkstatt liegt auf der Seite des Grundstücks, die näher am
+    /// <paramref name="ziel"/> (ohne Angabe <see cref="ZielAbstand"/>) zum nächsten Marktplatz am nächsten liegt (höchstens <paramref name="fenster"/> Meter von dort). Die Werkstatt liegt auf der Seite des Grundstücks, die näher am
     /// Marktplatz ist (seit den drei Märkten, 31.10.2026: Die Karren fahren vom Werkstatthof los, ihr Weg soll kurz sein).
     /// </summary>
-    private void Startgrundstueck(int n, string strasse, bool links, double sHint, double fenster = 12)
+    private void Startgrundstueck(int n, string strasse, bool links, double sHint, double fenster = 12, double? ziel = null)
     {
+        var zielAbstand = ziel ?? ZielAbstand;
         var weg = _strassen[strasse];
         var linie = weg.Verlauf;
         var halb = weg.BreiteWirksam / 2;
@@ -99,7 +100,7 @@ public sealed partial class Koeln
                 .OrderBy(x => ZumMarkt(x.W)).First();
             var mitte = P((wm.X + hm.X) / 2, (wm.Z + hm.Z) / 2);
             var abstand = ZumMarkt(mitte);
-            var wert = Math.Abs(abstand - ZielAbstand) + 0.04 * Math.Abs(s - sHint);
+            var wert = Math.Abs(abstand - zielAbstand) + 0.04 * Math.Abs(s - sHint);
             if (beste is { } b && wert >= b.Wert) continue;
             if (!Frei(Rechteck(wm, 16, 14, d)) || !Frei(Rechteck(hm, 8, 10, d))) continue;
             beste = (wert, s, wm, hm, d, abstand);
@@ -118,15 +119,18 @@ public sealed partial class Koeln
 
     private void Startgrundstuecke()
     {
-        // Je Marktplatz Grundstücke an den Straßen, die auf ihn führen (Werkstatt zum Platz hin), je Ecke einer Kreuzung höchstens eins
-        Startgrundstueck(1, "Severinstraße", links: false, sHint: 119);   // Heumarkt, östlich der Severinstraße (der Spieler)
-        Startgrundstueck(2, "Hohe Straße", links: true, sHint: 156);      // Neumarkt, Nordost
-        Startgrundstueck(3, "Hohe Straße", links: false, sHint: 156);     // Neumarkt, Nordwest
-        Startgrundstueck(4, "Hohe Straße", links: true, sHint: 210);      // Neumarkt, Südost
-        Startgrundstueck(5, "Hohe Straße", links: false, sHint: 210);     // Neumarkt, Südwest
-        Startgrundstueck(6, "Rheingasse", links: false, sHint: 181);      // Alter Markt, Nordwest
-        Startgrundstueck(7, "Rheingasse", links: false, sHint: 233);      // Alter Markt, Südwest
-        Startgrundstueck(8, "Rheingasse", links: true, sHint: 233);       // Alter Markt, Südost (zum Rhein)
+        // Je Marktplatz Grundstücke an den Straßen, die auf ihn führen (Werkstatt zum Platz hin), je Straßenseite höchstens eins. Die Rheingasse
+        // beginnt am Kunibertstor (z = −150), Meter entlang = z + 150; die Kirchstraße in Deutz am Nordtor, die Deutzer Freiheit am Brückenkopf.
+        // Der Spieler 2 m weiter vom Platz (innerhalb der ±10 % der Prüfung): sein Werkstattweg 24 m, 30 Minuten wie die alte feste Fahrzeit (die
+        // Häuser der KI 20–24 m wie seit den drei Marktplätzen)
+        Startgrundstueck(1, "Rheingasse", links: false, sHint: 239, ziel: ZielAbstand + 2);   // Heumarkt, nördlich, zur Stadt hin (der Spieler)
+        Startgrundstueck(2, "Rheingasse", links: true, sHint: 241);           // Heumarkt, nördlich, zum Rhein
+        Startgrundstueck(3, "Kartäuserwall", links: true, sHint: 121);        // Heumarkt, westlich an der Wallstraße
+        Startgrundstueck(4, "Rheingasse", links: false, sHint: 59);           // Alter Markt, südlich, zur Stadt hin
+        Startgrundstueck(5, "Rheingasse", links: true, sHint: 59);            // Alter Markt, südlich, zum Rhein
+        Startgrundstueck(6, "Deutzer Kirchstraße", links: false, sHint: 19);  // Neumarkt, nördlich, westlich der Kirchstraße
+        Startgrundstueck(7, "Deutzer Kirchstraße", links: true, sHint: 19);   // Neumarkt, nördlich, östlich der Kirchstraße
+        Startgrundstueck(8, "Deutzer Freiheit", links: true, sHint: 12);      // Neumarkt, westlich, nördlich der Freiheit (zum Rhein)
     }
 
     // ── Reihen von Häusern an einer Straße ───────────────────────────────────
