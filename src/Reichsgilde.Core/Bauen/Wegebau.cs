@@ -228,7 +228,7 @@ public sealed class Wegebau
         if (!IstAktiv) return Array.Empty<Wegzustand>();
         var karte = _w.Karte!;
         var d = Daten!;
-        var maerkte = karte.Gebaeude.Where(g => g.Katalog == "markt").Select(g => new Kartenort(g.Punkt[0], g.Punkt[1])).ToList();
+        var maerkte = karte.Marktplaetze.Select(g => new Kartenort(g.Punkt[0], g.Punkt[1])).ToList(); // alle Marktplätze der Stadt
         var fussorte = karte.Gebaeude.Select(g => (Ort: new Kartenort(g.Punkt[0], g.Punkt[1]), Gewicht: d.Verkehr.FussGewicht.GetValueOrDefault(g.Art)))
             .Where(x => x.Gewicht > 0).ToList();
         var wege = new Wegzustand[karte.Wege.Count];

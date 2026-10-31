@@ -1,0 +1,157 @@
+using Reichsgilde.Core;
+using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Kartenwerkstatt;
+using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Speichern;
+using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Kartenbau.Staedte;
+
+/// <summary>
+/// Mehrere Marktplätze je Stadt (Entscheidung des Nutzers vom 31.10.2026, Köln: Heumarkt, Alter Markt, Neumarkt): EIN Stadtmarkt mit gemeinsamen
+/// Preisen und gemeinsamem Bestand; ein Karren fährt zum nächsten Platz (kürzester Weg über die Karrenstraßen, bei Gleichstand der erste der
+/// Karte); ein Marktplatz ist eine Kreuzung (Karrenstraßen, die seine Fläche berühren, sind über seine Mitte verbunden). Alte Karten mit einem
+/// Markt rechnen wie bisher, und ein Spielstand merkt sich nichts Neues (der Platz folgt aus Karte und Platz des Betriebs).
+/// </summary>
+static class MarktplaetzeTests
+{
+    static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
+    static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+
+    /// <summary>
+    /// Kleine Karte: Weststraße endet am Westrand eines Marktplatzes (24 × 24 um 0 | 0), die Oststraße beginnt auf dem Platz (12 | 4) und führt
+    /// nach Osten, eine Gasse (keine Karrenstraße) endet am Nordrand. Ohne Marktplatz wären die beiden Straßen nicht verbunden.
+    /// </summary>
+    static string KreuzungJson(bool mitMarkt = true) => $$"""
+    { "format": 2, "kennung": "kreuzung", "stadt": "Kreuzung", "raster": 2.0,
+      "wege": [
+        { "name": "Weststraße", "klasse": "haupt", "linie": [[-100, 0], [-12, 0]] },
+        { "name": "Oststraße", "klasse": "haupt", "linie": [[12, 4], [100, 4]] },
+        { "name": "Nordgasse", "klasse": "gasse", "linie": [[0, -12], [0, -60]] }
+      ],
+      "gebaeude": [ {{(mitMarkt ? """{ "kennung": "Markt", "katalog": "markt", "name": "Markt", "punkt": [0, 0] }""" : "")}} ]
+    }
+    """;
+
+    /// <summary>
+    /// Die Probestadt (Markt im Ursprung auf der Hauptstraße, Werkstätten bei (−30 | −10), (32 | −10) und (32 | 10)) mit weiteren Marktplätzen
+    /// auf der Hauptstraße: Partie mit beiden KI-Häusern.
+    /// </summary>
+    static (Simulation Sim, Konto Spieler, Stadtkarte Karte) Probestadt(params (string Name, double X)[] weitere)
+    {
+        var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+        foreach (var (name, x) in weitere)
+        {
+            var g = e.Setzen("markt", x, 0);
+            e.Umbenennen(g.Kennung, name);
+        }
+        var karte = e.ZuStadtkarte();
+        var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
+            new NeuePartie(Rivalen: 2), karte: karte);
+        return (sim, spieler, karte);
+    }
+
+    static Betrieb Werkstatt(Stadtwirtschaft w, string haus) => w.Betriebe.Single(b => b.Konto.Inhaber == haus && b.InDerStadt);
+
+    public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
+    {
+        ("Marktplätze: Greybox, Probestadt und Messstadt haben genau einen, und keine Karrenstraße braucht eine Linie über ihn – die Wege bleiben wie bisher", () =>
+        {
+            foreach (var kennung in new[] { "greybox", "probestadt", "messstadt" })
+            {
+                var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                Pruefe.Gleich(1, karte.Marktplaetze.Count, kennung);
+                Pruefe.Gleich(0, Karrennetz.Marktlinien(karte).Count, kennung);
+            }
+        }),
+
+        ("Marktplatz als Kreuzung: Karrenstraßen, die am Platz enden, sind über seine Mitte verbunden (eine Gasse nicht); der Markt hängt in der Mitte", () =>
+        {
+            var karte = Stadtkarte.AusJson(KreuzungJson(), Katalog.Value);
+            var linien = Karrennetz.Marktlinien(karte);
+            Pruefe.Gleich(2, linien.Count, "Weststraße und Oststraße, nicht die Gasse");
+            var netz = Karrennetz.Von(karte);
+            var quer = netz.Fahrt(new Kartenort(-100, 0), new Kartenort(100, 4));
+            Pruefe.Ungefaehr(88 + 12 + Math.Sqrt(12 * 12 + 4 * 4) + 88, quer.Sum(s => s.Laenge), 1e-9);
+            Pruefe.Ungefaehr(38 + 12, netz.Fahrt(new Kartenort(-50, 0), new Kartenort(0, 0)).Sum(s => s.Laenge), 1e-9); // bis zur Mitte des Platzes
+            Pruefe.Ungefaehr(Karrennetz.Kosten(quer), quer.Sum(s => s.Laenge), 1e-12); // ohne Wasser kostet eine Fahrt ihre Länge
+            // ohne Marktplatz sind die beiden Straßen nicht verbunden
+            var ohne = Karrennetz.Von(Stadtkarte.AusJson(KreuzungJson(mitMarkt: false), Katalog.Value));
+            Pruefe.Gleich(0, ohne.Fahrt(new Kartenort(-100, 0), new Kartenort(100, 4)).Count);
+        }),
+
+        ("Mehrere Marktplätze: Jeder Betrieb fährt zum nächsten (kürzester Weg), bei Gleichstand zum ersten der Karte; alle handeln an einem Markt", () =>
+        {
+            var (sim, _, karte) = Probestadt(("Westmarkt", -60), ("Ostmarkt", 60));
+            var w = sim.Wirtschaft!;
+            Pruefe.Gleich("Marktplatz, Westmarkt, Ostmarkt", string.Join(", ", karte.Marktplaetze.Select(m => m.Name)));
+            // Spieler (−30 | −10): 30 m zur Mitte und 30 m zum Westmarkt – Gleichstand, also der erste der Karte
+            var spieler = w.Betriebe.Single(b => b.Konto == w.Konten[0]);
+            Pruefe.Gleich("Marktplatz", w.MarktplatzVon(spieler)!.Name);
+            Pruefe.Ungefaehr(30, w.Fahrten(spieler)!.Value.Hin.Sum(s => s.Laenge), 1e-9);
+            // die Werkstätten bei x = 32: 28 m zum Ostmarkt statt 32 m zur Mitte – hin und zurück
+            foreach (var haus in new[] { "Haus Ahlbeck", "Haus Brendel" })
+            {
+                var b = Werkstatt(w, haus);
+                Pruefe.Gleich("Ostmarkt", w.MarktplatzVon(b)!.Name, haus);
+                var (hin, zurueck) = w.Fahrten(b)!.Value;
+                Pruefe.Ungefaehr(28, hin.Sum(s => s.Laenge), 1e-9);
+                Pruefe.Ungefaehr(28, zurueck.Sum(s => s.Laenge), 1e-9);
+                Pruefe.Gleich(FahrzeitWeglaengeTests.NachFormel(w, b, "Handkarren", true), w.Fahrzeit(b, "Handkarren", true), haus);
+            }
+            // Ein Stadtmarkt: Was ein Karren am Ostmarkt verkauft, liegt für alle im selben Bestand – die Wirtschaft hat genau einen Markt.
+            var markt = w.Markt;
+            for (var i = 0; i < 3 * Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag; i++) sim.Tick();
+            Pruefe.Wahr(ReferenceEquals(markt, w.Markt), "ein Markt für alle Plätze");
+            Pruefe.Wahr(w.Betriebe.Where(b => w.MarktplatzVon(b)?.Name == "Ostmarkt").SelectMany(b => b.Karren).Any(k => k.FahrtenVorjahr is not null || k.Zustand != KarrenZustand.AmBetrieb),
+                "die Karren am Ostmarkt fahren");
+        }),
+
+        ("Mehrere Marktplätze: nach Speichern und Laden dieselben Plätze, Wege und Fahrzeiten (der Spielstand braucht nichts Neues)", () =>
+        {
+            var (sim, spieler, _) = Probestadt(("Ostmarkt", 60));
+            var w = sim.Wirtschaft!;
+            var vorher = w.Betriebe.Where(b => w.Fahrten(b) is not null)
+                .ToDictionary(b => b.Name, b => (w.MarktplatzVon(b)!.Name, w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Ochsenkarren", false)));
+            Pruefe.Wahr(vorher.Values.Select(x => x.Item1).Distinct().Count() == 2, "beide Plätze werden angefahren");
+            var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
+            var w2 = geladen.Wirtschaft!;
+            Pruefe.Gleich(2, w2.Karte!.Marktplaetze.Count);
+            foreach (var b in w2.Betriebe.Where(b => vorher.ContainsKey(b.Name)))
+                Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
+        }),
+
+        ("Köln: Heumarkt, Alter Markt und Neumarkt; jede Startwerkstatt fährt zu ihrem Platz an der Ecke – Werkstattwege 20–25 m, für alle Häuser gleich", () =>
+        {
+            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            Pruefe.Gleich("Heumarkt, Alter Markt, Neumarkt", string.Join(", ", karte.Marktplaetze.Select(m => m.Name)));
+            Pruefe.Gleich(3, Karrennetz.Marktlinien(karte).Count); // Schildergasse, Severinstraße und Brückenstraße enden am Heumarkt
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
+                Daten.Value, new NeuePartie(Rivalen: 7), karte: karte);
+            var w = sim.Wirtschaft!;
+            var werkstaetten = w.Betriebe.Where(b => b.InDerStadt && w.Fahrten(b) is { Hin.Count: > 0 }).ToList();
+            Pruefe.Gleich(8, werkstaetten.Count);
+            foreach (var b in werkstaetten)
+            {
+                var laenge = w.Fahrten(b)!.Value.Hin.Sum(s => s.Laenge);
+                Pruefe.Wahr(laenge is >= 20 and <= 25, $"{b.Name}: {laenge:0.0} m zum {w.MarktplatzVon(b)!.Name}");
+            }
+            var jePlatz = werkstaetten.GroupBy(b => w.MarktplatzVon(b)!.Name).ToDictionary(g => g.Key, g => g.Count());
+            Pruefe.Gleich((1, 3, 4), (jePlatz["Heumarkt"], jePlatz["Alter Markt"], jePlatz["Neumarkt"]));
+            Pruefe.Gleich("Heumarkt", w.MarktplatzVon(w.Betriebe.Single(b => b.Konto == w.Konten[0]))!.Name); // der Spieler
+        }),
+
+        ("Mehrere Marktplätze: Abstand zum nächsten (Standortwahl der KI) – ein Markt im Ursprung genau x² + z², ohne Markt der Ursprung", () =>
+        {
+            var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+            foreach (var (x, z) in new[] { (3.0, 4.0), (-17.25, 31.5), (0.1, -0.3) })
+                Pruefe.Gleich(x * x + z * z, greybox.MarktAbstandQuadrat(x, z), $"{x} | {z}");
+            var (_, _, karte) = Probestadt(("Ostmarkt", 60));
+            Pruefe.Ungefaehr(100, karte.MarktAbstandQuadrat(50, 0), 1e-12); // 10 m zum Ostmarkt
+            Pruefe.Ungefaehr(400, karte.MarktAbstandQuadrat(-20, 0), 1e-12); // 20 m zur Mitte
+            var ohne = Stadtkarte.AusJson(KreuzungJson(mitMarkt: false), Katalog.Value);
+            Pruefe.Gleich(25.0, ohne.MarktAbstandQuadrat(3, 4));
+            Pruefe.Gleich(0, ohne.Marktplaetze.Count);
+        }),
+    };
+}

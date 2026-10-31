@@ -7,7 +7,8 @@ namespace Reichsgilde.Core.Wirtschaft;
 /// Fahrzeit der Karren nach Weglänge und Karrenart (Abschnitt <c>logistik.weglaenge</c>, Datenversion 65; Entscheidung des Nutzers vom 31.10.2026).
 ///
 ///   • Hat die Karte Karrenstraßen, sucht der Kern einmal je Betrieb den kürzesten Weg über sie vom Platz des Betriebs zum Markt
-///     (<see cref="Karrennetz"/>, Hin- und Rückweg als Stücke mit Länge, Anstieg, Fahrbahn und Belag).
+///     (<see cref="Karrennetz"/>, Hin- und Rückweg als Stücke mit Länge, Anstieg, Fahrbahn und Belag). Hat die Stadt mehrere Marktplätze
+///     (ein Stadtmarkt mit gemeinsamen Preisen und gemeinsamem Bestand), fährt der Karren zum nächsten (<see cref="MarktplatzVon"/>).
 ///   • Ein Karren fährt so schnell wie seine Art (<see cref="KarrenDaten.Tempo"/>: Ochse 0,8, Handkarren 1,0, Pferd 1,3 Meter je Sekunde bei
 ///     Tempo 1, umgerechnet in Meter je Spielminute über <see cref="Zeit.Taktgeber.SekundenJeSpielminute"/>) – genau so schnell, wie man ihn
 ///     im Bild fahren sieht. Jedes Stück dauert Länge ÷ Tempo × <see cref="Zeitfaktor"/>:
@@ -30,7 +31,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Gerechnete Fahrzeiten je Betrieb und Karrenart (hin, zurück).</summary>
     private readonly Dictionary<Betrieb, Dictionary<string, (int Hin, int Zurueck)>> _fahrzeiten = new(ReferenceEqualityComparer.Instance);
 
-    private readonly Dictionary<Betrieb, (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)> _strecken = new(ReferenceEqualityComparer.Instance);
+    /// <summary>Strecke je Betrieb (hin, zurück) und der Marktplatz, zu dem sie führt (null: die Karte hat keinen, dann der Ursprung).</summary>
+    private readonly Dictionary<Betrieb, (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt)> _strecken =
+        new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Der Belag hat sich geändert: Die Fahrzeiten werden beim nächsten Mal neu gerechnet (die Strecken bleiben).</summary>
     internal void FahrzeitenVeraltet() => _fahrzeiten.Clear();
@@ -146,13 +149,38 @@ public sealed partial class Stadtwirtschaft
     /// Die Fahrt eines Betriebs zum Markt und zurück über die Karrenstraßen (Stücke mit Länge und Anstieg) – null, wenn der Betrieb (noch)
     /// keinen Platz in der Karte hat. Leere Fahrten: kein Weg (dann gilt die feste Fahrzeit). Einmal gerechnet je Betrieb (der Platz eines
     /// Betriebs ändert sich nicht).
+    /// Hat die Stadt mehrere Marktplätze (<see cref="Stadtkarte.Marktplaetze"/>), fährt der Karren zum nächsten: dem mit dem kürzesten Hinweg nach
+    /// den Kosten der Wegwahl (<see cref="Karrennetz.Kosten"/>: Länge, Furt und Fähre teurer), bei Gleichstand dem ersten der Karte. Gewählt wird
+    /// wie der Weg nach der Strecke, nicht nach dem Belag – so bleibt der Platz eines Betriebs fest, auch wenn ein Weg ausgebaut wird.
+    /// Ohne Marktplatz in der Karte gilt der Ursprung (wie bis Oktober 2026).
     /// </summary>
-    public (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)? Fahrten(Betrieb betrieb)
+    public (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)? Fahrten(Betrieb betrieb) =>
+        Strecke(betrieb) is var (hin, zurueck, _) ? (hin, zurueck) : null;
+
+    /// <summary>
+    /// Der Marktplatz, zu dem die Karren dieses Betriebs fahren (siehe <see cref="Fahrten"/>) – null ohne Karte, ohne Platz des Betriebs oder ohne
+    /// Marktplatz in der Karte. Ist keiner über die Karrenstraßen erreichbar, der erste der Karte (die Fahrt dauert dann die feste Zeit). Für die
+    /// Darstellung (der Karren fährt im Bild dorthin) und die Oberfläche.
+    /// </summary>
+    public Kartengebaeude? MarktplatzVon(Betrieb betrieb) => Strecke(betrieb)?.Markt;
+
+    private (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt)? Strecke(Betrieb betrieb)
     {
         if (_strecken.TryGetValue(betrieb, out var bekannt)) return bekannt;
         if (Karte is not { } karte || Karrennetz is not { } netz || Bauen.PlatzVon(betrieb.Name) is not { } platz) return null;
-        var markt = karte.Gebaeude.FirstOrDefault(g => g.Katalog == "markt") is { } m ? new Kartenort(m.Punkt[0], m.Punkt[1]) : default;
         var ort = new Kartenort(platz.Punkt.X, platz.Punkt.Z);
-        return _strecken[betrieb] = (netz.Fahrt(ort, markt), netz.Fahrt(markt, ort));
+        var maerkte = karte.Marktplaetze;
+        if (maerkte.Count == 0) return _strecken[betrieb] = (netz.Fahrt(ort, default), netz.Fahrt(default, ort), null);
+        (IReadOnlyList<Fahrtstueck> Hin, Kartengebaeude? Markt, double Kosten) best = (Array.Empty<Fahrtstueck>(), null, double.MaxValue);
+        foreach (var m in maerkte)
+        {
+            var hin = netz.Fahrt(ort, Mitte(m));
+            if (hin.Count > 0 && Karrennetz.Kosten(hin) is var kosten && kosten < best.Kosten) best = (hin, m, kosten);
+        }
+        // Kein Platz erreichbar: wie bisher die (leeren) Fahrten zum ersten – es gilt die feste Fahrzeit.
+        var markt = best.Markt ?? maerkte[0];
+        return _strecken[betrieb] = (best.Markt is null ? netz.Fahrt(ort, Mitte(markt)) : best.Hin, netz.Fahrt(Mitte(markt), ort), markt);
+
+        static Kartenort Mitte(Kartengebaeude g) => new(g.Punkt[0], g.Punkt[1]);
     }
 }

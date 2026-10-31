@@ -23,6 +23,10 @@ namespace Reichsgilde.Core.Bauen;
 //
 //  Belag (Schritt 5d): Jedes Stück einer Fahrt weiß, auf welchem Weg der Karte und an welcher Stelle es liegt – die Logistik liest dort den
 //  Belag (Wegebau). Gewählt wird der Weg weiter nach der Länge: Der Belag ändert sich im Spiel, die Strecke eines Betriebs nicht.
+//
+//  Marktplätze (31.10.2026, mehrere Märkte je Stadt): Ein Marktplatz ist eine Kreuzung. Jede Karrenstraße, die seine Fläche berührt, ist über
+//  das Pflaster mit seiner Mitte verbunden (Marktlinien) – Straßen, die am Platzrand enden, sind so über den Platz verbunden. Auf Greybox,
+//  Probestadt und Messstadt ändert das nichts (dort führen die Straßen schon zur Mitte oder berühren den Platz nicht).
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Worauf ein Stück einer Fahrt liegt.</summary>
@@ -102,8 +106,62 @@ public sealed class Karrennetz
             linien.Add(new Netzlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), stellen.Count == 0 ? null : stellen, Weg: i));
         }
         linien.AddRange(plan.Faehren.Select(f => new Netzlinie(new[] { f.Von, f.Bis }, IstFaehre: true)));
+        linien.AddRange(Marktlinien(karte));
         return new Karrennetz(linien, karte.Gelaendeform);
     }
+
+    /// <summary>
+    /// Die Wege über das Pflaster der Marktplätze (31.10.2026): Ein Marktplatz ist eine Kreuzung. Je Marktplatz und Karrenstraße, die seine Fläche
+    /// berührt (ihr nächster Punkt zur Mitte liegt auf dem Platz oder höchstens <see cref="Fang"/> daneben), eine gerade Linie von diesem Punkt zur
+    /// Mitte – so sind die Straßen, die am Platzrand enden, über den Platz verbunden, und der Markt hängt in seiner Mitte. Führt eine Straße durch die
+    /// Mitte (Greybox), braucht sie keine. Ohne Größe des Bausteins (unbekannter Katalog) keine. Die Linien gehören zu keinem Weg der Karte (Belag
+    /// wie der Bezug, kein Ausbau).
+    /// </summary>
+    public static IReadOnlyList<Netzlinie> Marktlinien(Stadtkarte karte)
+    {
+        var liste = new List<Netzlinie>();
+        foreach (var m in karte.Marktplaetze)
+        {
+            var ecken = Kartengrenzen.GebaeudeEcken(m.Baustein, m.Punkt[0], m.Punkt[1], m.Drehung, m.Massstab);
+            if (ecken.Count == 0) continue;
+            var mitte = new Kartenort(m.Punkt[0], m.Punkt[1]);
+            foreach (var w in karte.Wege)
+            {
+                if (!w.IstKarrenstrasse || w.Linie.Count < 2) continue;
+                var p = NaechsterPunkt(w.Verlauf.Select(Kartenort.Aus).ToList(), mitte);
+                if (p.Abstand(mitte) <= 0.01 || Kartengeometrie.AbstandVielecke(ecken, new[] { p }) > Fang) continue;
+                liste.Add(new Netzlinie(new[] { p, mitte }));
+            }
+        }
+        return liste;
+
+        static Kartenort NaechsterPunkt(IReadOnlyList<Kartenort> linie, Kartenort p)
+        {
+            var (best, abstand) = (linie[0], double.MaxValue);
+            for (var i = 0; i + 1 < linie.Count; i++)
+            {
+                var (a, b) = (linie[i], linie[i + 1]);
+                var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+                var l2 = dx * dx + dz * dz;
+                var t = l2 <= 0 ? 0 : Math.Clamp(((p.X - a.X) * dx + (p.Z - a.Z) * dz) / l2, 0, 1);
+                var q = new Kartenort(a.X + dx * t, a.Z + dz * t);
+                if (q.Abstand(p) < abstand) (best, abstand) = (q, q.Abstand(p));
+            }
+            return best;
+        }
+    }
+
+    /// <summary>
+    /// Was eine Fahrt für die Wahl des Weges kostet (wie die Wegsuche): Straße und Brücke ihre Länge, eine Furt das <see cref="FurtKosten"/>-fache,
+    /// eine Fähre ihre Länge und <see cref="FaehreUmweg"/>. Damit wählt der Kern unter mehreren Marktplätzen den nächsten.
+    /// </summary>
+    public static double Kosten(IReadOnlyList<Fahrtstueck> fahrt) =>
+        fahrt.Sum(s => s.Art switch
+        {
+            Fahrbahn.Furt => s.Laenge * FurtKosten,
+            Fahrbahn.Faehre => s.Laenge + FaehreUmweg,
+            _ => s.Laenge,
+        });
 
     /// <param name="linien">Die Mittellinien der Karrenstraßen.</param>
     /// <param name="gelaende">Für die Höhen (Profil jeder Linie); flach: alle Anstiege 0.</param>

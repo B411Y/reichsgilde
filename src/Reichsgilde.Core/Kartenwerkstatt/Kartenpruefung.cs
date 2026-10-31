@@ -610,7 +610,17 @@ public static class Kartenpruefung
             };
         }
 
-        /// <summary>So viele Wohnhausplätze wie Häuser, die ersten vier gleich weit vom Markt (±10 %; greybox.py, Regel 4).</summary>
+        /// <summary>
+        /// Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (Luftlinie; ohne Marktplatz vom Ursprung, wo der Markt bis Oktober 2026
+        /// immer lag). Seit dem 31.10.2026 darf eine Stadt mehrere Marktplätze haben; „gleich weit vom Markt“ heißt dann: vom jeweils nächsten.
+        /// </summary>
+        private double ZumMarkt(Kartenort p)
+        {
+            var maerkte = _e.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog).Select(g => g.Punkt).ToList();
+            return maerkte.Count == 0 ? p.Abstand(new Kartenort(0, 0)) : maerkte.Min(m => p.Abstand(m));
+        }
+
+        /// <summary>So viele Wohnhausplätze wie Häuser, die ersten vier gleich weit vom (nächsten) Markt (±10 %; greybox.py, Regel 4).</summary>
         private void WohnhausplaetzeZaehlen()
         {
             var plaetze = _e.Gebaeude.Where(g => g.Art == Bausteinart.Wohnhausplatz).ToList();
@@ -618,13 +628,15 @@ public static class Kartenpruefung
                 Fehler("wohnhausplaetze", $"Die Karte hat {plaetze.Count} Wohnhausplätze statt {_r.Wohnhausplaetze}.", null);
             var vorn = plaetze.Take(4).ToList();
             if (vorn.Count == 0) return;
-            var markt = new Kartenort(0, 0);
-            var mittel = vorn.Average(g => g.Punkt.Abstand(markt));
-            foreach (var g in vorn.Where(g => Math.Abs(g.Punkt.Abstand(markt) - mittel) > 0.10 * mittel))
-                Fehler("wohnhausplaetze", $"{Wer(g)}: {M(g.Punkt.Abstand(markt))} m zum Markt, die ersten vier im Mittel {M(mittel)} m (±10 %).", g.Punkt, g.Kennung);
+            var mittel = vorn.Average(g => ZumMarkt(g.Punkt));
+            foreach (var g in vorn.Where(g => Math.Abs(ZumMarkt(g.Punkt) - mittel) > 0.10 * mittel))
+                Fehler("wohnhausplaetze", $"{Wer(g)}: {M(ZumMarkt(g.Punkt))} m zum Markt, die ersten vier im Mittel {M(mittel)} m (±10 %).", g.Punkt, g.Kennung);
         }
 
-        /// <summary>Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (±10 %; karte.py, Regel 5).</summary>
+        /// <summary>
+        /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (±10 %; karte.py, Regel 5) – mit mehreren
+        /// Marktplätzen jedes vom nächsten.
+        /// </summary>
         private void Startgrundstuecke()
         {
             var starts = _e.Gebaeude.Select(g => (g, m: Regex.Match(g.Kennung, @"^(S\d+)_(Werkstatt|Wohnhaus)$"))).Where(x => x.m.Success)
@@ -632,8 +644,7 @@ public static class Kartenpruefung
             if (starts.Count != _r.Startgrundstuecke)
                 Fehler("startgrundstuecke", $"Die Karte hat {starts.Count} Startgrundstücke statt {_r.Startgrundstuecke}.", null);
             if (starts.Count == 0) return;
-            var markt = new Kartenort(0, 0);
-            var abstand = starts.ToDictionary(s => s.Key, s => new Kartenort(s.Average(g => g.X), s.Average(g => g.Z)).Abstand(markt));
+            var abstand = starts.ToDictionary(s => s.Key, s => ZumMarkt(new Kartenort(s.Average(g => g.X), s.Average(g => g.Z))));
             var mittel = abstand.Values.Average();
             foreach (var s in starts.Where(s => Math.Abs(abstand[s.Key] - mittel) > 0.10 * mittel))
                 Fehler("startgrundstuecke", $"Startgrundstück {s.Key}: {M(abstand[s.Key])} m zum Markt, im Mittel {M(mittel)} m (±10 %).",
