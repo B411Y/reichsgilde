@@ -19,6 +19,12 @@ uniform float dunkel = 0.6;         // Haare verschatten sich gegenseitig
 uniform sampler2DArray bilder6 : hint_default_transparent, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform float ebene = -1.0;
 uniform float deckung = 1.0;        // Halt B2 (Weg A): Brauen weniger deckend (weiche Haargruppen statt Aufkleber)
+// Etappe C (nur Wimpern; Prüferbefund „Unterlid wie ein Strich“): Band 0 des Wimpernbilds (Unterlid, UV.y > 0,75)
+// lichter, dünner und heller, die Wurzeln laufen weich aus (keine dunkle Naht am Lidrand). Standard = Phase 5.
+uniform float unten_deckung = 1.0;
+uniform float unten_wurzel = 0.0;   // 0 = Wurzel voll, 1 = Wurzel ausgeblendet
+uniform float unten_hell = 0.0;     // Anteil Hautton
+uniform vec3 haut_ton : source_color = vec3(0.6, 0.45, 0.38);
 
 void fragment() {
 	vec4 t = ebene >= 0.0 ? texture(bilder6, vec3(UV, ebene)) : texture(bild, UV);
@@ -32,6 +38,9 @@ void fragment() {
 	vec3 c = farbe * (0.8 + 0.4 * zufall);
 	c = mix(c, farbe_grau * (0.85 + 0.3 * zufall), smoothstep(-0.04, 0.04, grau - fract(t.r * 2.37 + 0.11)));
 	c *= mix(0.85, 1.2, t.b);                    // Spitzen heller
+	float unten = step(0.75, UV.y) * step(ebene, -0.5);
+	a *= mix(1.0, unten_deckung * mix(1.0, smoothstep(0.0, 0.45, t.b), unten_wurzel), unten);
+	c = mix(c, mix(c, haut_ton * 0.55, unten_hell), unten);
 	ALBEDO = c * dunkel;
 	ALPHA = a * deckung;
 	ALPHA_SCISSOR_THRESHOLD = schwelle;
