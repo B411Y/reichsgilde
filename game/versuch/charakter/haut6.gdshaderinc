@@ -124,6 +124,8 @@ uniform float c_hb = 0.35;                   // Hämoglobin in den Zonen
 uniform float c_sonne = 0.2;                 // Melanin in den Sonnenzonen
 uniform float c_braeune = 0.0;               // Melanin überall (Wetterhaut)
 uniform float c_gelb = 0.4;                  // Gelbstich Stirn und Schläfe
+uniform float c_gelb_alle = 0.0;             // Gelbstich überall (Runde 2: Haut zu rosa-pfirsich gegen die Fotos)
+uniform float c_lippen_weich = 0.0;          // Farbkanten des Hautbilds (Lippenrand) weicher: Farbton aus gröberer Mip-Stufe
 uniform float c_ringe = 0.5;                 // Augenringe, Venen
 uniform float c_bart = 0.0;                  // Bartschatten (Fläche)
 uniform vec3 c_bart_farbe = vec3(0.72, 0.76, 0.82);
@@ -140,10 +142,10 @@ uniform float c_uneben = 0.35;               // grobe Lage der Porenkachel (× 2
 uniform int c_zeige = 0;                     // Prüfanzeige: 1 Höhle, 2 Glanzkarte, 3 Zonen, 4 Furche, 5 Bart/Sprossen
 const vec3 K_EU = vec3(0.405, 0.572, 1.0);   // Eumelanin (Plan S9)
 const vec3 K_HB = vec3(0.037, 1.0, 0.795);   // Hämoglobin
-const vec3 K_RING = vec3(0.22, 0.27, 0.22);  // Augenringe: dunkler, kaum violett
+const vec3 K_RING = vec3(0.2, 0.26, 0.34);   // Augenringe: dunkler, bräunlich (Runde 2: nicht violett)
 const vec3 K_GELB = vec3(0.0, 0.06, 0.3);    // Gelbstich
 const vec3 K_SPROSS = vec3(0.45, 0.7, 1.0);  // Sommersprossen (hellbraun)
-const vec3 K_ALT = vec3(0.6, 0.75, 0.95);    // Altersflecken (graubraun, weniger orange)
+const vec3 K_ALT = vec3(0.7, 0.8, 0.95);     // Altersflecken (graubraun, weniger orange)
 #endif
 varying vec3 n_diffus;
 varying float duenn;
@@ -171,11 +173,12 @@ void fragment() {
 	// Relief: Höhe und Gefälle in Bildpunkt-Einheiten (drei Abtastungen), Gewicht je Alterskanal
 	vec2 er = 1.0 / vec2(textureSize(c_relief, 0));
 	vec4 rw = relief_bp * relief_gewicht * relief_staerke;
+	vec4 rw_f = rw * vec4(1.0, 1.0, 0.35, 1.0);     // Furchenschatten vor allem aus den Alterskanälen
 	float h0 = dot(texture(c_relief, UV) * 2.0 - 1.0, rw);
 	float hu = dot(texture(c_relief, UV + vec2(er.x, 0.0)) * 2.0 - 1.0, rw);
 	float hv = dot(texture(c_relief, UV + vec2(0.0, er.y)) * 2.0 - 1.0, rw);
 	vec2 fal = vec2(-(hu - h0), hv - h0);
-	float furche = clamp(-h0 * c_bildpunkt_mm / 0.3, 0.0, 1.0);
+	float furche = clamp(-dot(texture(c_relief, UV) * 2.0 - 1.0, rw_f) * c_bildpunkt_mm / 0.3, 0.0, 1.0);
 #ifdef EINFACH
 	vec4 pt = vec4(0.5, 0.5, 0.0, 0.0);
 	vec4 pt2 = pt;
@@ -190,17 +193,26 @@ void fragment() {
 	vec4 fl3 = texture(c_flecken, UV * (c_flecken_dichte * 0.33) + c_versatz * 2.3 + 0.61);
 #endif
 	// Grundton × Hautbild mit verstärkter Mittelfrequenz
-	vec3 c = grundfarbe * toenung * pow(max(f.rgb * 2.0, vec3(0.0)), vec3(c_kontrast));
+	vec3 fb = max(f.rgb * 2.0, vec3(0.0));
+	// Farbkanten weicher (Lippenrand): Helligkeit scharf, Farbton aus Mip 2
+	vec3 fw = max(textureLod(farbe_tex, UV, 2.0).rgb * 2.0, vec3(1e-3));
+	float l_s = dot(fb, vec3(0.2126, 0.7152, 0.0722));
+	fb = mix(fb, fw * (l_s / max(dot(fw, vec3(0.2126, 0.7152, 0.0722)), 1e-3)), c_lippen_weich);
+	vec3 c = grundfarbe * toenung * pow(fb, vec3(c_kontrast));
 	// Pigmente als Absorption: Melanin (Sonne, Unruhe in zwei Weiten, Flecken), Hämoglobin, Augenringe, Gelbstich
 	float eu = c_braeune + zc.g * c_sonne + (fl1.r - 0.5) * 2.0 * c_unruhe_eu + (fl2.g - 0.5) * 1.6 * c_unruhe_eu;
 	float hb = zc.r * c_hb + (fl1.g - 0.5) * 2.0 * c_unruhe_hb + (fl2.r - 0.5) * 1.2 * c_unruhe_hb;
 	float spross = fl1.a * step(fl1.b, c_sommersprossen * smoothstep(0.05, 0.6, zc.g + 0.7 * zc.r));
-	float altfl = fl3.a * step(fract(fl3.b + 0.43), c_altersflecken * zc.g);
-	c *= exp(-(eu * K_EU + hb * K_HB + zc.b * c_ringe * K_RING + zc.g * c_gelb * K_GELB
+	// Altersflecken in zwei Größen, gehäuft wo die grobe Melanin-Unruhe hoch ist (nicht als gleichmäßiges Muster)
+	float haeufung = smoothstep(0.35, 0.7, fl2.g);
+	float altfl = fl3.a * step(fract(fl3.b + 0.43), c_altersflecken * zc.g * haeufung * 1.6)
+		+ 0.7 * fl2.a * step(fract(fl2.b + 0.71), c_altersflecken * 0.6 * zc.g * haeufung);
+	c *= exp(-(eu * K_EU + hb * K_HB + zc.b * c_ringe * K_RING + (zc.g * c_gelb + c_gelb_alle) * K_GELB
 		+ spross * c_spross_staerke * K_SPROSS + altfl * 0.6 * K_ALT));
 	// Bart: kühler Schatten der Haare unter der Haut, dazu Stoppeln (Striche der Porenkachel)
 	c *= mix(vec3(1.0), c_bart_farbe, clamp(zc.a * c_bart, 0.0, 1.0));
-	c = mix(c, haar_farbe * 0.6, clamp(pt.a * zc.a * c_stoppeln, 0.0, 0.9));
+	// Runde 2: zweite, gröbere Stoppellage (im Porträt sichtbar, Prüfer: „kein Bartschatten“)
+	c = mix(c, haar_farbe * 0.6, clamp((pt.a + 0.6 * pt2.a) * zc.a * c_stoppeln, 0.0, 0.9));
 	// Brauenschatten weich (wie Weg A)
 	float braue_a = textureLod(farbe_tex, UV, 2.5).a;
 	c = mix(c, haar_farbe * 0.8, clamp(braue_a * brauen_dichte * brauen_weich, 0.0, 0.5));
@@ -324,7 +336,7 @@ void light() {
 		// Flächenlicht (Godot 4.7): Godot rechnet die Fläche (LTC); hier nur Streulicht und Glanzmaske (Beispiel der Doku)
 #ifdef WEG_C
 		// Etappe C: auch das Flächenlicht erreicht das Nasenloch innen nicht (sonst glüht es orange)
-		DIFFUSE_LIGHT += LIGHT_AREA_DIFFUSE_MULTIPLIER * ATTENUATION * LIGHT_COLOR * (1.0 - 0.92 * smoothstep(0.2, 0.75, hoehle_v));
+		DIFFUSE_LIGHT += LIGHT_AREA_DIFFUSE_MULTIPLIER * ATTENUATION * LIGHT_COLOR * (1.0 - 0.85 * smoothstep(0.15, 0.85, hoehle_v));
 #else
 		DIFFUSE_LIGHT += LIGHT_AREA_DIFFUSE_MULTIPLIER * ATTENUATION * LIGHT_COLOR;
 #endif
@@ -370,7 +382,7 @@ void light() {
 		diff += vec3(1.0, 0.35, 0.22) * hinten * duenn * durchlicht;
 #ifdef WEG_C
 		// Nasenloch, Gehörgang: kein direktes Licht, auch kein Randlicht (die Innenwände sieht man streifend)
-		diff *= 1.0 - 0.92 * smoothstep(0.2, 0.75, hoehle_v);
+		diff *= 1.0 - 0.85 * smoothstep(0.15, 0.85, hoehle_v);
 #endif
 		DIFFUSE_LIGHT += diff * LIGHT_COLOR / PI;   // Lambert: LIGHT_COLOR enthält π
 		// Glanz: zwei GGX-Keulen (Rauheit r und 0,55 r) wie Godot, Schlick-Fresnel mit F0 0,028 bis 1, ohne / PI

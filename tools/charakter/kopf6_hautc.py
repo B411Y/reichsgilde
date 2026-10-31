@@ -338,12 +338,14 @@ def zonen_und_glanz(X, N, P, masken_b):
     ch_y = 0.5 * (P["ch_r"][1] + P["ch_l"][1])
     t_y = 0.5 * (P["t_r"][1] + P["t_l"][1])
     zy_x = 0.5 * (abs(P["zy_r"][0]) + abs(P["zy_l"][0]))
-    kx = [0.0, al_x * 0.5, al_x + 2.0, ch_x + 6.0, ch_x + 18.0, zy_x - 8.0, zy_x + 6.0]
-    ky = [P["sn"][1] - 1.5, P["sn"][1] - 2.5, P["al_r"][1] - 7.0, ch_y + 12.0, ch_y + 22.0, ps_y - 22.0, t_y + 14.0]
+    # Runde 2 (Prüfer: „grauer Fleck neben der Nase wie Schmutz“): Oberlippe nur bis zum Mundwinkel, seitlich der Nase
+    # kein Bart; die Grenze steigt erst außerhalb der Mundwinkel zur Wange an
+    kx = [0.0, al_x * 0.5, al_x + 1.0, ch_x + 2.0, ch_x + 10.0, ch_x + 22.0, zy_x - 8.0, zy_x + 6.0]
+    ky = [P["sn"][1] - 2.0, P["sn"][1] - 3.0, P["sn"][1] - 5.5, ch_y + 3.0, ch_y + 10.0, ch_y + 20.0, ps_y - 24.0, t_y + 12.0]
     grenze = np.interp(ax, kx, ky)
     # Seite hinter dem Jochbein: Koteletten bis zur Ohrwurzel
     vor_ohr = glatt(X[:, 2], t_z + 4.0, t_z + 12.0)
-    bart = glatt(X[:, 1], grenze + 3.0, grenze - 4.0) * vor_ohr
+    bart = glatt(X[:, 1], grenze + 4.0, grenze - 6.0) * vor_ohr
     # unten: Hals bis etwa 45 mm unter dem Kinn, hinten nicht in den Nacken
     bart *= glatt(X[:, 1], P["me"][1] - 55.0, P["me"][1] - 35.0)
     bart *= glatt(X[:, 2], t_z - 6.0, t_z + 6.0)
@@ -356,10 +358,10 @@ def zonen_und_glanz(X, N, P, masken_b):
     bart *= 0.75 + 0.5 * r2                       # fleckig dichter / lichter
     Z[:, 3] = np.clip(bart, 0, 1)
     # ---- Hämoglobin
-    hb = 0.8 * wange + 0.45 * innenwange + 0.65 * nasenspitze * vorn_streng + 0.35 * nase * vorn_streng
+    hb = 0.8 * wange + 0.45 * innenwange + 0.45 * nasenspitze * vorn_streng + 0.25 * nase * vorn_streng
     for s in ("r", "l"):
-        hb += 0.55 * gauss(X, P[f"al_{s}"] + [0, 0, -1.0], (5.0, 4.5, 5.0)) * vorn_streng
-    hb += 0.75 * ohr + 0.3 * kinn + 0.9 * karunkel + 0.22 * lid + 0.12 * stirn * (r3 > 0.5)
+        hb += 0.35 * gauss(X, P[f"al_{s}"] + [0, 0, -1.0], (5.0, 4.5, 5.0)) * vorn_streng
+    hb += 0.75 * ohr + 0.3 * kinn + 0.9 * karunkel + 0.22 * lid + 0.12 * stirn * (r3 > 0.5) + 0.5 * feucht
     hb += 0.15 * gauss(X, P["g"], (10.0, 8.0, 10.0))
     Z[:, 0] = hb * unruhig
     # ---- Sonne und Gelbton
@@ -371,7 +373,7 @@ def zonen_und_glanz(X, N, P, masken_b):
         jochbein = np.maximum(jochbein, gauss(X, P[f"ex_{s}"] + [sg * 4.0, -16.0, -2.0], (13.0, 8.0, 12.0)))
     ohrrand = ohr * glatt(np.abs(X[:, 0]), np.abs(P["t_r"][0]) + 6.0, np.abs(P["t_r"][0]) + 14.0)
     sonne = np.maximum.reduce([0.85 * stirn, 0.55 * schlaefe, 0.6 * nase * vorn, 0.5 * jochbein * vorn, 0.6 * ohrrand,
-                               0.6 * scheitel, 0.55 * nacken, 0.2 * kinn])
+                               0.35 * scheitel, 0.55 * nacken, 0.2 * kinn])
     Z[:, 1] = sonne * (0.7 + 0.6 * r3)
     # Mundpartie etwas dunkler (Augenringe-Kanal schwach)
     mund = gauss(X, P["sto"] + [0, 1.0, -2.0], (20.0, 13.0, 12.0)) * vorn * (1.0 - lippen)
@@ -420,7 +422,7 @@ def zonen_und_glanz(X, N, P, masken_b):
     # Tiefe über der Öffnung: die Unterkante der Nase steigt vom Flügelansatz zur Spitze an; die Unterseite des
     # Flügelrands (sichtbar bei Stupsnasen und schräg) bleibt Haut, dunkel wird es erst 1–4 mm darüber
     y_unten = np.interp(X[:, 2], [sn[2] - 12.0, prn[2] - 2.0], [sn[1] + 1.5, prn[1] - 3.0])
-    loch = feld * innen * glatt(X[:, 1] - y_unten, 1.0, 4.0)
+    loch = feld * innen * glatt(X[:, 1] - y_unten, 0.8, 6.0)
     nase_feld = glatt(ax, al_x + 4.0, al_x + 1.0) * glatt(np.abs(X[:, 1] - 0.5 * (sn[1] + prn[1])), 12.0, 8.0) \
         * glatt(X[:, 2], sn[2] - 14.0, sn[2] - 8.0)
     hoehle = ohr * (1.0 - nase_feld) * glatt(masken_b, 0.35, 0.9) * 0.8     # sonst nur Ohrmuschel und Gehörgang
@@ -443,7 +445,7 @@ def relief_bauen(X, N, P, fl, samen):
     # Stirnfalten: ungleiche Abstände, jede aus zwei bis drei versetzten Stücken (nicht als durchgehende Ringe),
     # dazwischen kurze Nebenfalten
     y = br_y + 10.0
-    for k, tiefe in enumerate((0.26, 0.32, 0.3, 0.26, 0.2)):
+    for k, tiefe in enumerate((0.26, 0.32, 0.3, 0.22)):
         y += rng.uniform(5.5, 9.0) if k else 0.0
         breite = 38.0 - 2.0 * k + rng.normal(0, 2.0)
         bogen = 3.0 + rng.normal(0, 1.0)
@@ -457,7 +459,7 @@ def relief_bauen(X, N, P, fl, samen):
                     wellig=0.5, unterbrochen=0.4, n=50)
     for k in range(7):
         x0 = rng.uniform(-30, 30)
-        y0 = br_y + rng.uniform(12.0, 42.0)
+        y0 = br_y + rng.uniform(12.0, 34.0)
         lg = rng.uniform(5.0, 12.0)
         R.linie(0, [[x0, y0, 0], [x0 + lg, y0 + rng.normal(0, 1.2), 0]], sigma=0.5, tiefe=0.1, enden=0.8, wellig=0.3,
                 n=16)
@@ -570,10 +572,12 @@ def relief_bauen(X, N, P, fl, samen):
             R.linie(3, [[x0, y0, 0], [x0 + sg * 3.0, y0 - 14.0, 0], [x0 + sg * 5.0, y0 - 26.0, 0]],
                     sigma=1.4, tiefe=0.13, enden=0.8, wellig=0.6, unterbrochen=0.5, n=40)
     me = P["me"]
-    for dy, tf in ((-28.0, 0.26), (-42.0, 0.2)):
-        y0 = me[1] + dy + rng.normal(0, 1.0)
-        R.linie(3, [[-45, y0 + 3, 0], [-22, y0 + 0.5, 0], [0, y0, 0], [22, y0 + 0.5, 0], [45, y0 + 3, 0]],
-                sigma=1.2, tiefe=tf, enden=0.5, wellig=0.6, unterbrochen=0.3, n=80)
+    for dy, tf in ((-27.0, 0.26), (-38.0, 0.2), (-47.0, 0.14)):
+        y0 = me[1] + dy + rng.normal(0, 1.5)
+        a, b = -rng.uniform(25, 46), rng.uniform(25, 46)
+        xs = np.linspace(a, b, 6)
+        R.linie(3, [[x, y0 + 3.0 * (x / 45.0) ** 2 + rng.normal(0, 0.8), 0] for x in xs], sigma=rng.uniform(1.0, 1.5),
+                tiefe=tf, enden=0.6, wellig=1.0, unterbrochen=0.5, n=80)
     return R.h
 
 

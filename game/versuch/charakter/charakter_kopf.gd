@@ -45,11 +45,12 @@ const BILDER_WAHL := ["brauen_w", "haut_zonen", "haut_c_zonen", "haut_c_glanz", 
 	"haut_c_flecken"]   # Phase 5 (sonst „brauen“); Halt B2: Zonenkarte für Weg A; Etappe C: Haut
 # Etappe C: Reliefgewicht je Kanal über das Alter (Stirn, Augen, Mittelform, Mund/Hals); Mittelform (Nasolabial-,
 # Tränen-, Lidrinne, Lippenrillen) gibt es schon in der Jugend schwach
-const RELIEF_STAERKE := 2.5     # Etappe C: Reliefkarte × 2,5 (bei 1 lasen sich Falten im Porträtlicht kaum)
+const RELIEF_STAERKE := 3.2     # Etappe C: Reliefkarte × 3,2 (bei 1 lasen sich Falten im Porträtlicht kaum; Runde 2: mehr Relief,
+                                # weniger aufgemalter Furchenschatten)
 const RELIEF_ALTER := {
 	"stirn": [[25, 0.0], [35, 0.15], [45, 0.4], [60, 0.8], [75, 1.1]],
-	"augen": [[22, 0.0], [32, 0.22], [45, 0.55], [60, 0.85], [72, 1.1]],
-	"mitte": [[10, 0.1], [25, 0.25], [35, 0.35], [50, 0.65], [70, 1.0]],
+	"augen": [[20, 0.0], [30, 0.3], [40, 0.5], [55, 0.8], [70, 1.1]],
+	"mitte": [[10, 0.1], [25, 0.3], [35, 0.42], [50, 0.65], [70, 1.0]],
 	"mund": [[35, 0.0], [48, 0.3], [62, 0.7], [75, 1.05]],
 }
 # Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
@@ -947,14 +948,16 @@ func _farben() -> void:
 				Vector4(0.7 * m_stirn, 0.6 * m_auge, 0.3 * m_mund, 0.3 * m_mund) * mf, grund)
 		for m in wimpern_stoffe:
 			# Etappe C: Unterlid-Wimpern licht, dünn, Wurzel weich; alle Wimpern etwas weniger schwarz und deckend
-			m.set_shader_parameter("unten_deckung", 0.45 if c_an else 1.0)
+			m.set_shader_parameter("unten_deckung", 0.35 if c_an else 1.0)
 			m.set_shader_parameter("unten_wurzel", 1.0 if c_an else 0.0)
 			m.set_shader_parameter("unten_hell", 0.35 if c_an else 0.0)
 			farbe_setzen(m, "haut_ton", grund, st)
-			m.set_shader_parameter("dunkel", 0.72 if c_an else 0.6)
+			m.set_shader_parameter("dunkel", 0.8 if c_an else 0.6)
 			m.set_shader_parameter("deckung", 0.85 if c_an else 1.0)
 			if c_an:
-				farbe_setzen(m, "farbe", haar.darkened(0.55), st)
+				# Runde 2 (Prüfer: Wimpern zu dunkel und zu dicht): lichter und etwa ein Viertel weniger Haare
+				farbe_setzen(m, "farbe", haar.darkened(0.45), st)
+				m.set_shader_parameter("dichte", 0.72 if mann else 0.78)
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
@@ -1034,11 +1037,11 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 	# Bartschatten (rasiert): Albedo im Bartgebiet bei mittlerem Bartwuchs und dunklem Haar ≈ 25 % dunkler, kühl (Plan S9:
 	# ΔL* −6 … −12); helles oder graues Haar zeigt sich kaum
 	var bart_c := clampf(bart * 1.35, 0.0, 0.95) if mann else clampf(bart * 0.6, 0.0, 0.3)
-	var bart_farbe := Vector3(0.64, 0.68, 0.75).lerp(Vector3(0.9, 0.9, 0.9), clampf(hh * 1.2, 0.0, 1.0))
+	var bart_farbe := Vector3(0.6, 0.64, 0.72).lerp(Vector3(0.9, 0.9, 0.9), clampf(hh * 1.2, 0.0, 1.0))
 	for m in haut_stoffe:
 		m.set_shader_parameter("relief_gewicht", rel)
 		m.set_shader_parameter("c_versatz", versatz)
-		m.set_shader_parameter("c_hb", 0.24 * roet * (1.12 if mann else 1.0) + 0.06 * greis + 0.1 * w)
+		m.set_shader_parameter("c_hb", 0.2 * roet * (1.12 if mann else 1.0) + 0.05 * greis + 0.08 * w)
 		m.set_shader_parameter("c_sonne", 0.06 + 0.04 * reif + 0.2 * w)
 		m.set_shader_parameter("c_braeune", 0.15 * w)
 		m.set_shader_parameter("c_ringe", (0.35 + 0.15 * ring_a) * (1.0 if mann else 1.1))
@@ -1048,16 +1051,18 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_unruhe_eu", (0.08 + 0.04 * reif + 0.04 * greis + 0.04 * w) * (1.0 if mann else 0.9))
 		m.set_shader_parameter("c_unruhe_hb", (0.08 + 0.03 * reif + 0.05 * greis) * (1.0 if mann else 0.9))
 		m.set_shader_parameter("c_sommersprossen", spross)
-		m.set_shader_parameter("c_altersflecken", clampf((a_h - 45.0) / 30.0, 0.0, 1.0) * 0.3)
+		m.set_shader_parameter("c_altersflecken", clampf((a_h - 45.0) / 30.0, 0.0, 1.0) * 0.22)
 		m.set_shader_parameter("c_rau", 0.03 * greis + 0.05 * w + (0.02 if mann else 0.0))
 		m.set_shader_parameter("c_poren_staerke", (lerpf(0.35, 0.75 if mann else 0.62, reif) + 0.1 * greis + 0.1 * w) * (1.0 if mann else 0.9))
 		# feste Abstimmung (jede Zelle setzt sie neu; „haut_werte“ eines Bogens bleibt sonst am Stoff hängen)
 		m.set_shader_parameter("relief_staerke", RELIEF_STAERKE)
 		m.set_shader_parameter("c_kontrast", 1.15)
-		m.set_shader_parameter("c_furche_dunkel", 0.12 + 0.2 * clampf((a_h - 30.0) / 35.0, 0.0, 1.0))
+		m.set_shader_parameter("c_furche_dunkel", 0.08 + 0.12 * clampf((a_h - 30.0) / 35.0, 0.0, 1.0))
 		m.set_shader_parameter("c_hoehle_albedo", 0.35)
 		m.set_shader_parameter("c_uneben", 0.5)
-		m.set_shader_parameter("c_loch", 0.7)
+		m.set_shader_parameter("c_loch", 0.55)
+		m.set_shader_parameter("c_gelb_alle", 0.18 + 0.1 * w)
+		m.set_shader_parameter("c_lippen_weich", 0.6)
 		m.set_shader_parameter("c_zeige", 0)
 		m.set_shader_parameter("c_spross_staerke", 0.6)
 		m.set_shader_parameter("c_gelb", 0.35 + 0.25 * greis)
