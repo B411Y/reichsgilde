@@ -41,6 +41,10 @@ public sealed class Schollenfeld
     private readonly int _platz;
     private float _eisFestZuletzt = -1, _tauenZuletzt = -1;
     private int _kameraTipp = -1, _blickTipp = -1;
+    private bool _zurueckgesetzt;
+
+    /// <summary>Blickpunkt auf dem Wasser höchstens so weit vor der Kamera (m, entlang des Blicks).</summary>
+    private const float BlickWeit = 150f;
 
     private static readonly StringName ParamEisFest = "eis_fest", ParamEisTauen = "eis_tauen";
 
@@ -320,13 +324,22 @@ public sealed class Schollenfeld
         var dichte = schollenAn * Mathf.SmoothStep(0.15f, 0.85f, eis) * Mathf.Lerp(0.75f, 1f, Mathf.SmoothStep(0f, 0.3f, tauen))
                      * (1f - Mathf.SmoothStep(0.65f, 1f, tauen));
         var festeSichtbar = Feste > 0 && eis > 0.001f && tauen < 0.999f;
-        if ((dichte <= 0.001f && !festeSichtbar) || kamera is null || !GodotObject.IsInstanceValid(kamera))
+        // Ohne Dichte treiben die letzten Schollen weiter, bis sie vergangen sind (sonst verschwänden sie bei hohem Spieltempo auf einen Schlag);
+        // erst dann ist das Feld leer und die Simulation beginnt für den nächsten Winter von vorn
+        var leer = dichte <= 0.001f && _sim.Aktiv == 0;
+        if (leer && !_zurueckgesetzt)
+        {
+            _sim.Zuruecksetzen();
+            _zurueckgesetzt = true;
+        }
+        if (!leer) _zurueckgesetzt = false;
+        if ((leer && !festeSichtbar) || kamera is null || !GodotObject.IsInstanceValid(kamera))
         {
             if (Knoten.Visible) Knoten.Visible = false;
             return false;
         }
         if (!Knoten.Visible) Knoten.Visible = true;
-        if (dichte <= 0.001f)
+        if (leer)
         {
             Schreiben(_nah, _pufferNah, 0);
             Schreiben(_fern, _pufferFern, 0);
@@ -334,25 +347,23 @@ public sealed class Schollenfeld
             return false;
         }
 
-        // Das Stoßfenster folgt dem Blickpunkt auf dem Wasser (aus Spielhöhe liegt der sichtbare Fluss oft 50–150 m vor der Kamera)
+        // Das Stoßfenster folgt dem Blickpunkt auf dem Wasser (aus Spielhöhe liegt der sichtbare Fluss oft 50–150 m vor der Kamera), höchstens
+        // 150 m entfernt (flacher Blick: der Punkt 150 m voraus); dazu ein kleineres Fenster um die Kamera für das Wasser direkt unter ihr
         var lage = kamera.GetCameraTransform();
         var auge = lage.Origin;
         var sKamera = _sim.InLaufachsen(new Vector2(auge.X, auge.Z), ref _kameraTipp).Stelle;
         var sBlick = sKamera;
         var vorn = -lage.Basis.Z;
-        if (vorn.Y < -0.05f)
+        var spiegel = _sim.Punkt(sKamera).Spiegel;
+        var t = vorn.Y < -0.05f ? MathF.Min((spiegel - auge.Y) / vorn.Y, BlickWeit) : BlickWeit;
+        if (t > 0f)
         {
-            var spiegel = _sim.Punkt(sKamera).Spiegel;
-            var t = (spiegel - auge.Y) / vorn.Y;
-            if (t > 0f && t < 400f)
-            {
-                var treffer = auge + vorn * t;
-                sBlick = _sim.InLaufachsen(new Vector2(treffer.X, treffer.Z), ref _blickTipp).Stelle;
-            }
+            var treffer = auge + vorn * t;
+            sBlick = _sim.InLaufachsen(new Vector2(treffer.X, treffer.Z), ref _blickTipp).Stelle;
         }
         // Das Randeis bricht im Eisgang weg: Die Schollen bekommen nach und nach die ganze Breite
         var eisRand = eis * (1f - Mathf.SmoothStep(0.15f, 0.85f, tauen));
-        _sim.Bild(delta, Mathf.Clamp(sBlick, 0f, _laenge), dichte, eisRand, tauen, beweglich);
+        _sim.Bild(delta, Mathf.Clamp(sKamera, 0f, _laenge), Mathf.Clamp(sBlick, 0f, _laenge), dichte, eisRand, tauen, beweglich);
 
         var start = System.Diagnostics.Stopwatch.GetTimestamp();
         // Sichtkegel ohne Speicheranforderung (GetFrustum legt jedes Bild ein neues Feld an): Ebenen der Projektion, in die Welt gedreht
@@ -404,8 +415,10 @@ public sealed class Schollenfeld
             }
             else
             {
-                // Tauchen: um die Querachse gekippt (Vorderkante stromab nach unten), Basis = Kippen · Gier · r
-                var (ax, az) = (querO.X, querO.Y);
+                // Tauchen (um die Querachse, Vorderkante stromab nach unten) oder aufgeschoben (Kante zur unteren Scholle hin angehoben): gekippt
+                // um die waagrechte Achse quer zur Richtung des Kippens, Basis = Kippen · Gier · r
+                var (kws, kwc) = MathF.SinCos(sim.ZKippW[i]);
+                var (ax, az) = (querO.X * kwc - po.Richtung.X * kws, querO.Y * kwc - po.Richtung.Y * kws);
                 var (ks, kc) = MathF.SinCos(kipp);
                 var k1 = 1f - kc;
                 // Rodrigues mit Achse (ax, 0, az): Zeilen der Kippmatrix

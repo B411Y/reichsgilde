@@ -345,7 +345,7 @@ public sealed class Schollenmessung
                     $"frei {P(_drehFrei)} °/s (n={_drehFrei.Zahl}); Dreher {(double)_dreher / Math.Max(_dreherProben, 1) * 100:0.0} %; " +
                     $"Sprünge >0,5/>1,5 m/s je 1000: {_spruenge05 * jeTausend:0.00}/{_spruenge15 * jeTausend:0.00}, max {_sprungHoechst:0.00} m/s " +
                     $"(ohne Aufprall {_ohneStoss05 * jeTausendOhne:0.00}/{_ohneStoss15 * jeTausendOhne:0.00}, max {_ohneStossHoechst:0.00}; n={_sprungProben}); " +
-                    $"Durchdringung P50/P99 {(_tiefe.Zahl == 0 ? "–" : $"{_tiefe.P(0.5):0.00}/{_tiefe.P(0.99):0.00}")} (n={_tiefe.Zahl}); " +
+                    $"Durchdringung P50/P99/max {(_tiefe.Zahl == 0 ? "–" : $"{_tiefe.P(0.5):0.00}/{_tiefe.P(0.99):0.00}/{_tiefe.Hoechst:0.00}")} (n={_tiefe.Zahl}); " +
                     $"stehend {(double)_stehendSumme / bilder:0.0}; Durchsatz {_durch / sek * 60:0}/min; " +
                     $"Stau {_stauEreignisse} gelöst, Dauer Ø {(_stauEreignisse > 0 ? _stauDauerSumme / _stauEreignisse : 0):0} s, max {_stauDauerHoechst:0} s (laufend max {_stauLaufendHoechst:0} s); " +
                     $"Brüche {Brueche} (an Hindernissen {BruecheHindernis}), vergangen {Vergangen}, Nachschub {Nachschub}, Taucher {Taucher}, Notventil {Notventil}, " +
