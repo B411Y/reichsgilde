@@ -24,6 +24,11 @@ namespace Reichsgilde.Kartenbau;
 //                                                   [--steigung=<ab>-<bis> --bodenfilter=<textur>[:<rand>]]
 //                                                   ein Strich mit dem Texturpinsel (wiese, erde, fels, kies, waldboden, sand, schlamm, moos, lehm, pflaster, mist)
 //    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
+//    dotnet run --project tools/Kartenbau -- hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m>
+//                                                   --quelle=<…> --lizenz=<…> [--abruf=<datum>] [--breite=<px>] [--versatz=<m>] [--stufe=<cm>] [--bytefolge=be]
+//                                                   eine Höhenkarte (r16/raw) ins Raster einlesen, Herkunft nach tools/Kartenbau/Staedte/HOEHENDATEN.md
+//    dotnet run --project tools/Kartenbau -- hoehenkarte-ausgeben <karte> <datei.r16> [--unten=<m>] [--oben=<m>] [--bytefolge=be]
+//                                                   das Raster der Karte als Höhenkarte (2 m je Pixel) ausgeben
 //    dotnet run --project tools/Kartenbau -- fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=] [--breite=] [--tiefe=] [--stroemung=]
 //                                                   einen Fluss oder Bach in Fließrichtung anlegen
 //    dotnet run --project tools/Kartenbau -- see <karte> <x,z;…> [--art=teich] [--name=] [--wasserstand=] [--tiefe=]   einen See oder Teich
@@ -68,6 +73,12 @@ public static class Program
                     Befehle.Gelaende(ordner, ziel, pinsel, strich, Console.Out),
                 "textur" when ziel is not null && worte.Count == 4 && BodenpinselVon(worte[2], args) is { } bodenpinsel && Orte(worte[3]) is { Count: > 0 } bodenstrich =>
                     Befehle.Textur(ordner, ziel, bodenpinsel, bodenstrich, Console.Out),
+                "hoehenkarte-einlesen" when ziel is not null && worte.Count == 3 =>
+                    Befehle.HoehenkarteEinlesen(ordner, ziel, worte[2], Wert(args, "--pixel"), Orte(Text(args, "--ursprung") ?? "") is { Count: 1 } u ? u[0] : null,
+                        Wert(args, "--unten"), Wert(args, "--oben"), (int?)Wert(args, "--breite") ?? 0, Wert(args, "--versatz") ?? 0, (int?)Wert(args, "--stufe") ?? 5,
+                        Text(args, "--bytefolge") == "be", new Hoehendatenherkunft(Text(args, "--quelle"), Text(args, "--lizenz"), Text(args, "--abruf")), Console.Out),
+                "hoehenkarte-ausgeben" when ziel is not null && worte.Count == 3 =>
+                    Befehle.HoehenkarteAusgeben(ordner, ziel, worte[2], Wert(args, "--unten"), Wert(args, "--oben"), Text(args, "--bytefolge") == "be", Console.Out),
                 "rampe" when ziel is not null && worte.Count == 5 && Orte(worte[2]) is { Count: 1 } von && Orte(worte[3]) is { Count: 1 } nach
                              && Zahlen(worte.Skip(4)) is { Count: 1 } breite =>
                     Befehle.Rampe(ordner, ziel, von[0], nach[0], breite[0], Wert(args, "--kante") ?? 4, Console.Out),
@@ -243,6 +254,15 @@ public static class Program
                                                   lehm, pflaster, mist (Stärke 0–1; Deko streuen mit Dichte 0–2) oder radierer (zurück zur Wiese)
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]
                                                   ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
+              hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m> --quelle=<…> --lizenz=<…>
+                       [--abruf=<datum>] [--breite=<px>] [--versatz=<m>] [--stufe=5] [--bytefolge=be]
+                                                  eine Höhenkarte (r16/raw, 16 Bit je Pixel, ohne Breite quadratisch) einlesen: das erste Pixel
+                                                  liegt am Ursprung, Wert 0 hat die Höhe „unten“, 65535 „oben“, dazu der Versatz; neu auf 2 m
+                                                  abgetastet, auf die Stufe (cm) gerundet, auf −20 … +60 m begrenzt (mit Warnung); Quelle und
+                                                  Lizenz sind Pflicht und kommen nach tools/Kartenbau/Staedte/HOEHENDATEN.md
+              hoehenkarte-ausgeben <karte> <datei.r16> [--unten=<m>] [--oben=<m>] [--bytefolge=be]
+                                                  das Raster der ganzen Karte als Höhenkarte (2 m je Pixel; ohne unten/oben die tiefste und
+                                                  höchste Höhe) – nennt die Angaben, mit denen sie wieder eingelesen wird
               fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=…] [--breite=…] [--tiefe=…] [--stroemung=…]
                                                   einen Fluss (oder Bach) in Fließrichtung anlegen; Breite und Tiefe je Punkt oder für alle
               see <karte> <x,z;…> [--art=teich] [--name=…] [--wasserstand=…] [--tiefe=…]
@@ -428,6 +448,114 @@ public static class Befehle
         return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 
+    /// <summary>Zentimeter aus Metern (gerundet halb weg von 0).</summary>
+    private static int Cm(double meter) => (int)Math.Round(meter * 100, MidpointRounding.AwayFromZero);
+
+    /// <summary>Wo das Kartenskript die Herkunft eingelesener Höhenkarten festhält.</summary>
+    public static string HoehendatenPfad(Projektordner o) => Path.Combine(o.Wurzel, "tools", "Kartenbau", "Staedte", "HOEHENDATEN.md");
+
+    /// <summary>
+    /// <c>hoehenkarte-einlesen</c>: liest eine r16/raw-Datei (<see cref="Hoehenkarte"/>) in die Karte ein, meldet Abdeckung, Abschneiden und die
+    /// Größe des Feldes <c>hoehen</c> vorher und nachher, schreibt die Karte – nur ohne Fehler – und hält die Herkunft fest. 2: falscher Aufruf
+    /// (fehlende Angabe, Herkunft oder unlesbare Datei).
+    /// </summary>
+    public static int HoehenkarteEinlesen(Projektordner o, string karte, string datei, double? pixel, Kartenort? ursprung, double? unten, double? oben,
+        int breite, double versatz, int stufe, bool hohesZuerst, Hoehendatenherkunft herkunft, TextWriter aus)
+    {
+        if (pixel is null || ursprung is null || unten is null || oben is null)
+        {
+            aus.WriteLine("hoehenkarte-einlesen braucht --pixel=<m>, --ursprung=<x,z>, --unten=<m> und --oben=<m> (Höhe der Werte 0 und 65535).");
+            return 2;
+        }
+        if (herkunft.Fehlt is { } fehlt)
+        {
+            aus.WriteLine($"Ohne Herkunft liest das Skript keine Höhenkarte ein: {fehlt} fehlt (z. B. --quelle=\"DGM1 NRW, Kachel …\" --lizenz=\"dl-de/zero-2.0\").");
+            return 2;
+        }
+        var pfad = Path.GetFullPath(datei);
+        if (!File.Exists(pfad)) throw new FileNotFoundException($"Die Höhenkarte {pfad} gibt es nicht.", pfad);
+        var bytes = File.ReadAllBytes(pfad);
+        ushort[] werte;
+        Hoehenkartenlage lage;
+        try
+        {
+            (werte, var b, var t) = Hoehenkarte.Lesen(bytes, breite, hohesZuerst);
+            lage = new Hoehenkartenlage(b, t, Cm(pixel.Value), Cm(ursprung.Value.X), Cm(ursprung.Value.Z), Cm(unten.Value), Cm(oben.Value), Cm(versatz), stufe);
+            if (lage.Fehler() is { Count: > 0 } fehler) throw new ArgumentException(string.Join(" ", fehler));
+        }
+        catch (ArgumentException ex)
+        {
+            aus.WriteLine($"{Path.GetFileName(pfad)}: {ex.Message}");
+            return 2;
+        }
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var kartenpfad = PfadVon(o, karte);
+        var (dateiVorher, hoehenVorher) = (new FileInfo(kartenpfad).Length, e.Hoehen.AlsJson(e.Kartengrenzen.Aussen)?.ToJsonString().Length ?? 0);
+        var bericht = e.HoehenkarteEinlesen(werte, lage);
+        aus.WriteLine($"{e.Kennung}: Höhenkarte {Path.GetFileName(pfad)} ({lage.Breite} × {lage.Tiefe} Pixel zu {Kartenschreiber.Zahl(lage.PixelCm / 100.0)} m, " +
+                      $"Ursprung {ursprung.Value}): {Tausend(bericht.Abgedeckt)} Rasterpunkte abgedeckt, {Tausend(bericht.Geaendert)} geändert");
+        if (bericht.Warnung is { } warnung) aus.WriteLine("   " + warnung);
+        if (bericht.Geaendert == 0)
+        {
+            aus.WriteLine($"{e.Kennung}: Die Höhenkarte ändert nichts (liegt sie außerhalb der Karte?) – nichts geschrieben.");
+            return 0;
+        }
+        var hoehen = e.Hoehen.AlsJson(e.Kartengrenzen.Aussen);
+        aus.WriteLine($"   hoehen: {hoehen?["kacheln"]?.AsArray().Count ?? 0} Kacheln, {Tausend(hoehen?.ToJsonString().Length ?? 0)} Zeichen (vorher {Tausend(hoehenVorher)})");
+        var ergebnis = Schreiben(e, kartenpfad, o.Vorschauen, true, aus, o);
+        if (ergebnis != 0) return ergebnis;
+        aus.WriteLine($"   Kartendatei: {Tausend(new FileInfo(kartenpfad).Length)} Bytes (vorher {Tausend(dateiVorher)})");
+        HerkunftEintragen(o, e.Kennung, pfad, bytes, lage, herkunft);
+        aus.WriteLine($"   Herkunft eingetragen: {Relativ(o, HoehendatenPfad(o))}");
+        return 0;
+    }
+
+    /// <summary>Hängt eine Zeile an tools/Kartenbau/Staedte/HOEHENDATEN.md (legt die Datei mit Kopf an, wenn es sie nicht gibt).</summary>
+    private static void HerkunftEintragen(Projektordner o, string kennung, string pfad, byte[] bytes, Hoehenkartenlage lage, Hoehendatenherkunft h)
+    {
+        var ziel = HoehendatenPfad(o);
+        Directory.CreateDirectory(Path.GetDirectoryName(ziel)!);
+        if (!File.Exists(ziel)) File.WriteAllText(ziel, Hoehendatenherkunft.Kopf);
+        static string Zelle(string? text) => (text ?? "unbekannt").Replace("|", "\\|").Replace("\n", " ");
+        static string M(int cm) => Kartenschreiber.Zahl(cm / 100.0);
+        var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant();
+        var angaben = $"{lage.Breite} × {lage.Tiefe} px zu {M(lage.PixelCm)} m, Ursprung ({M(lage.UrsprungXCm)}, {M(lage.UrsprungZCm)}), " +
+                      $"0 → {M(lage.UntenCm)} m, 65535 → {M(lage.ObenCm)} m, Versatz {M(lage.VersatzCm)} m, Stufe {lage.StufeCm} cm";
+        File.AppendAllText(ziel, $"| {DateTime.Today:yyyy-MM-dd} | {kennung} | {Zelle(Path.GetFileName(pfad))} | `{sha}` | {angaben} | {Zelle(h.Quelle)} | {Zelle(h.Lizenz)} | {Zelle(h.Abruf)} |\n");
+    }
+
+    /// <summary>
+    /// <c>hoehenkarte-ausgeben</c>: schreibt das Raster der ganzen Karte als r16 (2 m je Pixel) und nennt die Angaben zum Wiedereinlesen.
+    /// </summary>
+    public static int HoehenkarteAusgeben(Projektordner o, string karte, string datei, double? unten, double? oben, bool hohesZuerst, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        ushort[] werte;
+        Hoehenkartenlage lage;
+        int begrenzt;
+        try
+        {
+            (werte, lage, begrenzt) = e.HoehenkarteAusgeben(unten is { } u ? Cm(u) : null, oben is { } h ? Cm(h) : null);
+        }
+        catch (ArgumentException ex)
+        {
+            aus.WriteLine(ex.Message);
+            return 2;
+        }
+        var pfad = Path.GetFullPath(datei);
+        Directory.CreateDirectory(Path.GetDirectoryName(pfad)!);
+        File.WriteAllBytes(pfad, Hoehenkarte.Schreiben(werte, hohesZuerst));
+        static string M(int cm) => Kartenschreiber.Zahl(cm / 100.0);
+        aus.WriteLine($"{e.Kennung}: {pfad} geschrieben – {lage.Breite} × {lage.Tiefe} Pixel zu 2 m (r16, {(hohesZuerst ? "hohes" : "niedriges")} Byte zuerst), " +
+                      $"erstes Pixel bei ({M(lage.UrsprungXCm)}, {M(lage.UrsprungZCm)}), Wert 0 = {M(lage.UntenCm)} m, 65535 = {M(lage.ObenCm)} m");
+        if (begrenzt > 0) aus.WriteLine($"   Warnung: {Tausend(begrenzt)} Punkte liegen außerhalb von unten … oben und wurden begrenzt.");
+        aus.WriteLine($"   Wieder einlesen: hoehenkarte-einlesen {e.Kennung} {datei} --breite={lage.Breite} --pixel=2 --ursprung={M(lage.UrsprungXCm)},{M(lage.UrsprungZCm)} " +
+                      $"--unten={M(lage.UntenCm)} --oben={M(lage.ObenCm)} --stufe=1{(hohesZuerst ? " --bytefolge=be" : "")} --quelle=… --lizenz=…");
+        return 0;
+    }
+
     /// <summary><c>liste</c>: die Stadtskripte und Umbauten mit Kennung und Beschreibung.</summary>
     public static int Liste(TextWriter aus)
     {
@@ -609,4 +737,25 @@ public static class Befehle
     }
 
     private static string Relativ(Projektordner o, string pfad) => Path.GetRelativePath(o.Wurzel, pfad).Replace('\\', '/');
+}
+
+/// <summary>Woher eine eingelesene Höhenkarte stammt: Quelle (Anbieter, Kachel, Adresse), Lizenz und Abrufdatum – Quelle und Lizenz sind Pflicht.</summary>
+public sealed record Hoehendatenherkunft(string? Quelle, string? Lizenz, string? Abruf = null)
+{
+    /// <summary>Was fehlt („--quelle“, „--lizenz“) – null: vollständig.</summary>
+    public string? Fehlt => string.IsNullOrWhiteSpace(Quelle) ? "--quelle" : string.IsNullOrWhiteSpace(Lizenz) ? "--lizenz" : null;
+
+    /// <summary>Der Kopf der Datei tools/Kartenbau/Staedte/HOEHENDATEN.md.</summary>
+    public const string Kopf = """
+        # Höhendaten der Stadtskripte
+
+        Herkunft jeder Höhenkarte, die das Kartenskript eingelesen hat (`hoehenkarte-einlesen`, docs/LEVELDESIGN.md „Kartenskript“). Das Skript
+        hängt die Zeile selbst an, wenn es die Karte geschrieben hat; die Höhenkarte selbst liegt nicht im Repository (die SHA-256 sagt, welche
+        Datei es war). Freie Quellen: DGM NRW (dl-de/zero-2.0, ohne Pflichtvermerk); Copernicus DEM und SRTM mit Quellenvermerk; Gaea oder
+        World Machine nur mit geprüfter kommerzieller Lizenzstufe.
+
+        | Eingelesen | Karte | Datei | SHA-256 | Lage und Maßstab | Quelle | Lizenz | Abruf |
+        |---|---|---|---|---|---|---|---|
+
+        """;
 }
