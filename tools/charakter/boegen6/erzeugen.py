@@ -316,6 +316,18 @@ erzeugt.append(schreiben("s2_duenn", {
                dict(zelle("N4"), titel="Mann 35 Mimik, N4", alter=35, geschlecht="m", licht="vorlage",
                     mimik={"jawOpen": 0.5, "mouthSmileLeft": 0.6, "mouthSmileRight": 0.6}),
                dict(zelle("K2_kind"), titel="Säugling 1, K2", alter=1, geschlecht="m", licht="vorlage")]}))
+# S3/E5: Entscheidungshilfe für Halt A – Stand 6 unter AgX wie bisher und mit Sättigung (Environment.adjustment_*),
+# der einfachsten Form von „Sättigung bzw. LUT der Porträtbühne“; dazu AgX-Kontrast. Nur zum Vergleich, nicht Standard.
+erzeugt.append(schreiben("s3_e5_agx", {
+    "titel": "S3/E5 Entscheidungshilfe: AgX wie bisher | Sättigung 1,25 | Sättigung 1,5 | AgX-Kontrast 1,5 – Stand 6, Mann und Frau 35 (H2)",
+    "pruefplan": "S3", "ab": "A", "zelle": ZELLE["K1"], "alle": dict(zelle("K1"), kopf="standard", stand=6, alter=35,
+                                                                      haar={"modus": "aus"}, gene={"haut_helligkeit": 185, "haut_ton": 105}),
+    "spalten": [{"titel": "AgX wie bisher"},
+                {"titel": "Sättigung 1,25", "umgebung": {"adjustment_enabled": True, "adjustment_saturation": 1.25}},
+                {"titel": "Sättigung 1,5", "umgebung": {"adjustment_enabled": True, "adjustment_saturation": 1.5}},
+                {"titel": "AgX-Kontrast 1,5", "umgebung": {"tonemap_agx_contrast": 1.5}}],
+    "zeilen": [{"titel": "Mann 35, L-V", "geschlecht": "m", "licht": "vorlage"}, {"titel": "Frau 35, L-V", "geschlecht": "w", "licht": "vorlage"},
+               {"titel": "Mann 35, L-S", "geschlecht": "m", "licht": "spiel"}, {"titel": "Frau 35, L-S", "geschlecht": "w", "licht": "spiel"}]}))
 # S2: Ultra (Bildschirm-SSS) ohne grauen Saum – Stand 5 (haut3_ultra, Allzweck-Kern) gegen Stand 6 (haut6_ultra, Hautkern)
 erzeugt.append(schreiben("s2_ultra", {
     "titel": "S2 Ultra: Stand 5 Hoch | Stand 5 Ultra | Stand 6 Hoch | Stand 6 Ultra – K4 und N1 (Wange nah), L-S, ohne Haar",

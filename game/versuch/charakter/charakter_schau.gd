@@ -22,7 +22,7 @@
 # Phase 6 (S2/S3): "kopf": "standard" wählt je Stand – Stand 6 kopf6.glb (im --glb-Ordner, gewöhnlich glb6), Stand 5
 #   kopf5.glb (im --glb-Ordner, sonst in --glb5=<ordner>, Standard ~/werkzeuge/charakter/glb5); ein Kopfname, der im
 #   --glb-Ordner fehlt, wird ebenso in glb5 gesucht. Prüfkörper zusätzlich "kugel6_glanz"|"kugel6_streu", Licht
-#   "spiel5"|"spiel6"|"spiel6_hart"|"kugeltest" ("spiel" = nach dem Stand des Kopfs).
+#   "spiel5"|"spiel6"|"spiel6_weich"|"kugeltest" ("spiel" = nach dem Stand des Kopfs).
 #   --messen --staende=5,6: jeden Lauf je Wiederholung für beide Stände nacheinander im selben Prozess (gepaart);
 #   --licht=<art> für die Messläufe (Standard "spiel"). Zelle "bild": <png> zeigt ein fertiges Bild (Vergleichsblatt);
 #   "fuell": {…} wie "schluessel" für das Fülllicht.

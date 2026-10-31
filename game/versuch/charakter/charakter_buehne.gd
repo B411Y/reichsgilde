@@ -9,9 +9,9 @@
 #
 # Phase 6 (S3, Porträtlicht): „spiel“ richtet sich nach dem Stand des Kopfs – Stand 5 das Licht der Phase 5 („spiel5“),
 # Stand 6 das kalibrierte Porträtlicht („spiel6“): Belichtung 0,8, Fülllicht 0,25, Gegenlicht 0,8, Schlüssellicht
-# ≈ 49° aus der Achse, weiche Schatten über die Winkelgröße, Umgebungslicht und Spiegelung aus dem Studio-HDRI
+# ≈ 49° aus der Achse, weiche Schatten über die Schattenweichzeichnung, Umgebungslicht und Spiegelung aus dem Studio-HDRI
 # (Poly Haven „Studio Small 09“, CC0, ~/werkzeuge/charakter/hdri, nicht im Repository; fehlt es, wie Phase 5); der
-# sichtbare Hintergrund bleibt flach. „spiel6_hart“: dasselbe mit Schattenweichzeichnung statt Winkelgröße (Messung).
+# sichtbare Hintergrund bleibt flach. „spiel6_weich“: dasselbe mit Winkelgröße 3° statt Schattenweichzeichnung (Messung).
 # „kugeltest“: nur das Schlüssellicht, kein Umgebungslicht, linear abgebildet (Prüfkugeln, S2).
 extends SubViewport
 
@@ -25,8 +25,11 @@ const SPIEL6_BELICHTUNG := 0.8
 const SPIEL6_SCHLUESSEL := 2.3
 const SPIEL6_FUELL := 0.25
 const SPIEL6_GEGEN := 0.8
-const SPIEL6_UMGEBUNG := 0.35            # Energie des HDRI-Umgebungslichts
-const SPIEL6_WINKEL := 3.0               # Winkelgröße des Schlüssellichts (weiche Schatten), Grad
+# Stärke des HDRI (PanoramaSkyMaterial.energy_multiplier; mittlere Strahldichte des HDRI ≈ 0,87). Über die Stärke des
+# Himmels, nicht über ambient_light_energy: Godot backt den Himmel einmal, spätere Änderungen der Umgebungsenergie
+# wirkten im Versuch nicht (s3_probe_hdri: 0 und 3 ergaben dasselbe Bild).
+const SPIEL6_UMGEBUNG := 0.2
+const SPIEL6_WINKEL := 3.0               # Winkelgröße des Schlüssellichts („spiel6_weich“), Grad
 
 var kopf: Kopf
 var kamera: Camera3D
@@ -148,13 +151,14 @@ func licht_art_setzen(art: String) -> void:
 	match art:
 		"spiel5":
 			pass                                   # L-S der Phase 5 (Stand 5)
-		"spiel6", "spiel6_hart":
-			# S3: Porträtlicht Stand 6
+		"spiel6", "spiel6_weich":
+			# S3: Porträtlicht Stand 6. Weiche Schatten über die Schattenweichzeichnung (2,0); die Winkelgröße 3°
+			# („spiel6_weich“) ließ im Versuch den Schlagschatten von Kopf und Kinn auf dem Kragen ganz verschwinden
 			umgebung.tonemap_exposure = SPIEL6_BELICHTUNG
 			schluessel.light_energy = SPIEL6_SCHLUESSEL
 			fuell.light_energy = SPIEL6_FUELL
 			gegen.light_energy = SPIEL6_GEGEN
-			if art == "spiel6":
+			if art == "spiel6_weich":
 				schluessel.light_angular_distance = SPIEL6_WINKEL
 				schluessel.shadow_blur = 1.0
 			else:
@@ -164,7 +168,7 @@ func licht_art_setzen(art: String) -> void:
 				umgebung.sky = himmel
 				umgebung.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 				umgebung.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
-				umgebung.ambient_light_energy = SPIEL6_UMGEBUNG
+				umgebung.ambient_light_energy = 1.0
 		"kugeltest":
 			# S2: Prüfkugeln – nur das Schlüssellicht (weiß, hart), kein Umgebungslicht, linear, Grund schwarz
 			schluessel.light_color = Color(1, 1, 1)
@@ -240,6 +244,7 @@ static func _himmel() -> Sky:
 		return null
 	var mat := PanoramaSkyMaterial.new()
 	mat.panorama = ImageTexture.create_from_image(img)
+	mat.energy_multiplier = SPIEL6_UMGEBUNG
 	_himmel_speicher = Sky.new()
 	_himmel_speicher.sky_material = mat
 	_himmel_speicher.radiance_size = Sky.RADIANCE_SIZE_128

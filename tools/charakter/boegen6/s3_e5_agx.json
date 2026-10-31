@@ -1,0 +1,74 @@
+{
+ "titel": "S3/E5 Entscheidungshilfe: AgX wie bisher | Sättigung 1,25 | Sättigung 1,5 | AgX-Kontrast 1,5 – Stand 6, Mann und Frau 35 (H2)",
+ "pruefplan": "S3",
+ "ab": "A",
+ "zelle": [
+  600,
+  720
+ ],
+ "alle": {
+  "ansicht": "kopf",
+  "winkel": 0,
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "stand": 6,
+  "alter": 35,
+  "haar": {
+   "modus": "aus"
+  },
+  "gene": {
+   "haut_helligkeit": 185,
+   "haut_ton": 105
+  }
+ },
+ "spalten": [
+  {
+   "titel": "AgX wie bisher"
+  },
+  {
+   "titel": "Sättigung 1,25",
+   "umgebung": {
+    "adjustment_enabled": true,
+    "adjustment_saturation": 1.25
+   }
+  },
+  {
+   "titel": "Sättigung 1,5",
+   "umgebung": {
+    "adjustment_enabled": true,
+    "adjustment_saturation": 1.5
+   }
+  },
+  {
+   "titel": "AgX-Kontrast 1,5",
+   "umgebung": {
+    "tonemap_agx_contrast": 1.5
+   }
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "Mann 35, L-V",
+   "geschlecht": "m",
+   "licht": "vorlage"
+  },
+  {
+   "titel": "Frau 35, L-V",
+   "geschlecht": "w",
+   "licht": "vorlage"
+  },
+  {
+   "titel": "Mann 35, L-S",
+   "geschlecht": "m",
+   "licht": "spiel"
+  },
+  {
+   "titel": "Frau 35, L-S",
+   "geschlecht": "w",
+   "licht": "spiel"
+  }
+ ],
+ "name": "s3_e5_agx"
+}
