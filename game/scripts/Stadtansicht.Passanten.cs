@@ -40,7 +40,7 @@ public partial class Stadtansicht
 
         /// <summary>Wie weit (Meter) die Figur gerade zusätzlich an den Rand ausweicht, weil ein Karren naht (Schritt 5d).</summary>
         public float Ausweichen { get; set; }
-        /// <summary>Eigenes Gehtempo in Metern je echter Sekunde bei Tempo 1 (schlendern, normal, eilig).</summary>
+        /// <summary>Eigenes Gehtempo in Metern je echter Sekunde bei Tempo 1 (<see cref="Reichsgilde.Gehtempo"/>).</summary>
         public float Gehtempo { get; init; }
         /// <summary>Wann die Figur für den aktuellen Weg losgeht und ankommt (Spielminuten, mit Bruchteil).</summary>
         public double LaufStart { get; set; }
@@ -98,6 +98,9 @@ public partial class Stadtansicht
             var weg = e.Weg;
             if (weg is not null && !ReferenceEquals(p.FuerWeg, weg))
             {
+                // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
+                // sie nicht ab: Sie geht von der Stelle, an der sie ist, über die Gassen zum Anfang des neuen Weges (siehe Weitergehen).
+                var weiter = MitteDesWegesWennImBild(p, minuteGenau);
                 p.FuerWeg = weg;
                 p.Pfad = Strecke(weg, e, p);
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
@@ -108,7 +111,12 @@ public partial class Stadtansicht
                     p.Pfad = PfadBauen(weg, e, p, AufDemRundgang(p.AlteMarktstelle) ? p.LaufStart : weg.Abmarsch, AufDemRundgang(p.Marktstelle) ? p.LaufEnde : weg.Ankunft);
                     p.Laenge = Gassennetz.Laenge(p.Pfad);
                 }
+                if (weiter is { } stelle && p.Pfad.Length > 0) Weitergehen(p, weg, stelle, minuteGenau);
             }
+            // Ist der Kern längst fertig und sieht keiner hin (weder die Figur noch ihr Ziel), kommt sie unbemerkt an: nie sichtbar springen
+            if (weg is not null && p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0 && minuteGenau >= weg.Ankunft && minuteGenau < p.LaufEnde
+                && !ImBild(p.Knoten.Position) && !ImBild(p.Pfad[^1]))
+                p.LaufEnde = minuteGenau;
             var losgegangen = weg is null || minuteGenau >= p.LaufStart;
             if (losgegangen && p.AlteMarktstelle >= 0)
             {
@@ -273,32 +281,62 @@ public partial class Stadtansicht
         BewegungSetzen(figur, bewegung, tempo / (grund * bein));
     }
 
-    /// <summary>Höchstens so viel schneller als ihr eigenes Tempo geht eine Figur, wenn die Zeit knapp ist.</summary>
-    private const double Hoechstens = 2;
-
     /// <summary>
-    /// Plant den Gang einer Figur mit ihrem eigenen Tempo:
-    ///   • Reicht die Zeit zwischen Abmarsch und Ankunft (Kern), geht sie so spät los, dass sie genau zur Ankunft da ist.
-    ///   • Reicht sie nicht, geht sie beim Abmarsch los und beeilt sich – bis doppelt so schnell.
-    ///   • Reicht auch das nicht, kommt sie etwas später an, als der Kern sie zählt. Dafür bleibt sie glaubwürdig.
+    /// Plant den Gang einer Figur mit ihrem eigenen, festen Tempo (<see cref="Gehtempo.Planen"/>): pünktlich, wenn die Zeit reicht, sonst früher
+    /// los und höchstens 1,3-mal so schnell, und wenn auch das nicht reicht, kommt sie später an, als der Kern sie zählt.
     /// Die Geschwindigkeit gilt in echten Sekunden bei Tempo 1; bei höherem Spieltempo laufen alle entsprechend schneller.
     /// </summary>
     private void LaufPlanen(Passant p, Weg weg)
     {
         var sekundenJeMinute = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
-        var meterJeMinute = p.Gehtempo * sekundenJeMinute;
-        var gemuetlich = p.Laenge / meterJeMinute;        // Minuten im eigenen Tempo
-        var verfuegbar = (double)(weg.Ankunft - weg.Abmarsch);
-        if (gemuetlich <= verfuegbar)
+        (p.LaufStart, p.LaufEnde) = Gehtempo.Planen(p.Laenge, p.Gehtempo * sekundenJeMinute, weg.Abmarsch, weg.Ankunft);
+    }
+
+    /// <summary>
+    /// Wo die Figur auf ihrem alten Weg ist (die Mittellinie des Weges, ohne seitlichen Versatz), wenn sie gerade im Bild unterwegs ist und noch nicht
+    /// ankommt – sonst null. Nur dann muss ein neuer Weg an sie anschließen.
+    /// </summary>
+    private Vector3? MitteDesWegesWennImBild(Passant p, double minuteGenau)
+    {
+        if (p.Stand is not null || !p.Knoten.Visible || p.Pfad.Length == 0 || minuteGenau >= p.LaufEnde || minuteGenau < p.LaufStart) return null;
+        if (!ImBild(p.Knoten.Position)) return null;
+        var anteil = (float)Math.Clamp((minuteGenau - p.LaufStart) / (p.LaufEnde - p.LaufStart), 0, 1);
+        return Gassennetz.PunktAuf(p.Pfad, anteil);
+    }
+
+    /// <summary>
+    /// Der neue Weg beginnt für diese Figur dort, wo sie gerade geht: von <paramref name="stelle"/> über das Gassennetz (ohne neue Knoten) zum
+    /// bisherigen Anfang, dann der Weg. Sie geht sofort weiter, ohne Wartezeit, und holt auf (<see cref="Gehtempo.Weitergehen"/>).
+    /// </summary>
+    private void Weitergehen(Passant p, Weg weg, Vector3 stelle, double minuteGenau)
+    {
+        var anfang = p.Pfad[0];
+        var pfad = new List<Vector3> { stelle };
+        if (_netz.Knoten.Count > 0)
         {
-            p.LaufStart = weg.Ankunft - gemuetlich;
-            p.LaufEnde = weg.Ankunft;
+            var (a, b) = (NaechsterKnoten(stelle), NaechsterKnoten(anfang));
+            if (a != b)
+                foreach (var punkt in _netz.Pfad(a, b))
+                    if (pfad[^1].DistanceTo(punkt) > 0.05f) pfad.Add(punkt);
         }
-        else
+        foreach (var punkt in p.Pfad)
+            if (pfad[^1].DistanceTo(punkt) > 0.05f) pfad.Add(punkt);
+        p.Pfad = pfad.ToArray();
+        p.Laenge = Gassennetz.Laenge(p.Pfad);
+        var sekundenJeMinute = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
+        (p.LaufStart, p.LaufEnde) = Gehtempo.Weitergehen(p.Laenge, p.Gehtempo * sekundenJeMinute, minuteGenau, weg.Ankunft);
+    }
+
+    /// <summary>Der Knoten des Gassennetzes, der einem Punkt am nächsten liegt (ohne einen neuen anzulegen).</summary>
+    private int NaechsterKnoten(Vector3 punkt)
+    {
+        var (beste, abstand) = (0, float.MaxValue);
+        for (var i = 0; i < _netz.Knoten.Count; i++)
         {
-            p.LaufStart = weg.Abmarsch;
-            p.LaufEnde = weg.Abmarsch + Math.Max(verfuegbar, gemuetlich / Hoechstens);
+            var d = _netz.Knoten[i].DistanceSquaredTo(new Vector3(punkt.X, _netz.Knoten[i].Y, punkt.Z));
+            if (d < abstand) (beste, abstand) = (i, d);
         }
+        return beste;
     }
 
     private Node3D NeueEbene()
@@ -689,7 +727,7 @@ public partial class Stadtansicht
         {
             Knoten = knoten, Figur = FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer),
             Gebeugt = gebeugt, Traegt = tracht.Last is Last.Kiepe or Last.Buendel,
-            Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = Gehtempo(e),
+            Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = GehtempoVon(e, gebeugt, tracht.Last is Last.Kiepe or Last.Buendel),
         };
     }
 
@@ -797,20 +835,13 @@ public partial class Stadtansicht
     };
 
     /// <summary>
-    /// Gehtempo in Metern je echter Sekunde (bei Tempo 1): ein Viertel schlendert (1,5), gut die Hälfte geht normal (2,5),
-    /// ein Fünftel ist eilig (3,5) – je ±10 %, fest nach der Nummer. Boten eilen immer, Bettler, Witwen und Witwer schlendern.
+    /// Gehtempo in Metern je echter Sekunde (bei Tempo 1), fest nach der Nummer (<see cref="Gehtempo"/>): 1,3 m/s, ±10 % je Person; Alte (gebeugt),
+    /// Bettler und Witwer 1,0, Boten 1,8; wer eine Last trägt, ist etwas langsamer.
     /// </summary>
-    private static float Gehtempo(Einwohner e)
+    private static float GehtempoVon(Einwohner e, bool gebeugt, bool traegt)
     {
         var zahl = Streuung(e.Nummer, 977);
-        var wahl = (zahl & 0xFFFF) / 65535f;
-        var feinheit = 0.9f + ((zahl >> 16) & 0xFFFF) / 65535f * 0.2f;
-        var grund = e.Rolle switch
-        {
-            "Bote" => 3.5f,
-            "Bettler" or "Witwer" => 1.5f,
-            _ => wahl < 0.25f ? 1.5f : wahl < 0.8f ? 2.5f : 3.5f,
-        };
-        return grund * feinheit;
+        var feinheit = ((zahl >> 16) & 0xFFFF) / 65535f;
+        return Gehtempo.Mit(Gehtempo.Grund(e.Rolle, gebeugt, traegt), feinheit);
     }
 }

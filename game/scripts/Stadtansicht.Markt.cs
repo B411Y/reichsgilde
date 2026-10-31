@@ -51,7 +51,7 @@ public partial class Stadtansicht
     };
 
     /// <summary>So schnell schlendern die Leute den Rundgang entlang (Meter je echter Sekunde bei Tempo 1).</summary>
-    private const float SchlenderTempo = 1.1f;
+    private const float SchlenderTempo = Gehtempo.Schlendern;
 
     private readonly List<StandAnsicht> _marktstaende = new();
     private readonly List<Marktstelle> _marktstellen = new();

@@ -82,6 +82,7 @@ public partial class Stadtansicht
         if (!_belagVeraltet || _karte is not { } karte) return;
         _belagVeraltet = false;
         _fahrtprofile.Clear(); // das Tempo der Karren hängt am Belag
+        _zugprofile.Clear();
         for (var i = 0; i < karte.Wege.Count; i++)
         {
             var w = karte.Wege[i];
