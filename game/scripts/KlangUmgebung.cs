@@ -62,7 +62,7 @@ public partial class KlangUmgebung : Node
     private readonly M.GlockenPlaner _glocken = new((int)((Time.GetTicksUsec() >> 3) & 0x7fffffff));
     private readonly List<M.Glocke> _neueGlocken = new();
     private AudioStreamPlayer _rufNah = null!, _rufFern = null!, _rufGespraech = null!, _glockenSpieler = null!;
-    private AudioEffectPanner? _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke;
+    private AudioEffectPanner? _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke, _panDonner;
     private AudioEffectLowPassFilter? _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke;
     private int _busDraussen = -1, _busStadt = -1, _busSchenke = -1, _busInnen = -1;
     private float _draussenDb = float.NaN, _draussenTp = float.NaN, _stadtDb = float.NaN, _stadtTp = float.NaN;
@@ -70,7 +70,7 @@ public partial class KlangUmgebung : Node
     private float _blitzVorher = -1;
     private bool _laeuft, _beendet;
     private int _logStufe;
-    private bool _fahrt;
+    private bool _fahrt, _kurzeFahrt;
     private double _zeit, _logUhr, _fahrtZeit;
     private int _fahrtRuf;
 
@@ -107,6 +107,7 @@ public partial class KlangUmgebung : Node
         {
             if (arg == "--umgebungtest=2") _logStufe = 2;
             if (arg == "--umgebungfahrt=1") _fahrt = true;
+            if (arg == "--umgebungfahrt=2") (_fahrt, _kurzeFahrt) = (true, true);
         }
         if (_fahrt)
         {
@@ -153,6 +154,8 @@ public partial class KlangUmgebung : Node
         _panGlocke = glocke >= 0 ? AudioServer.GetBusEffect(glocke, 0) as AudioEffectPanner : null;
         _tiefpassGlocke = glocke >= 0 ? AudioServer.GetBusEffect(glocke, 1) as AudioEffectLowPassFilter : null;
         _busInnen = AudioServer.GetBusIndex(KlangDienst.BusUmgebungInnen);
+        var donner = AudioServer.GetBusIndex(KlangDienst.BusUmgebungDonner);
+        _panDonner = donner >= 0 ? AudioServer.GetBusEffect(donner, 0) as AudioEffectPanner : null;
         _planer.Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0;
         if (_fahrt) _planer = new M.RufPlaner(4711) { Laenge = name => _toene.TryGetValue(name, out var t) ? t.GetLength() : 3.0 };
     }
@@ -325,7 +328,8 @@ public partial class KlangUmgebung : Node
         if (M.Rufarten[ruf.Art].Bedarf == M.RufBedarf.Donner)
         {
             // Donner: ein eigener Spieler je Schlag, damit sich Grollen überlagern dürfen (Bus und Seite wie die Rufe)
-            var d = new AudioStreamPlayer { Stream = ton, Bus = ruf.Fern ? KlangDienst.BusUmgebungRufFern : KlangDienst.BusUmgebungRufNah, VolumeDb = M.AbspielDb(ruf), PitchScale = ruf.Tonhoehe };
+            if (_panDonner is not null) _panDonner.Pan = ruf.Seite;
+            var d = new AudioStreamPlayer { Stream = ton, Bus = KlangDienst.BusUmgebungDonner, VolumeDb = M.AbspielDb(ruf), PitchScale = ruf.Tonhoehe };
             d.Finished += d.QueueFree;
             AddChild(d);
             d.Play();
@@ -432,6 +436,20 @@ public partial class KlangUmgebung : Node
     };
     public const float FahrtZufallAb = 0f, FahrtPauseAb = 1e9f, FahrtEnde = 432f;
 
+    /// <summary>
+    /// Die kurze Hörprobe <c>--umgebungfahrt=2</c> (192 s, nur Glocken und Donner, je mit etwas Stadt davor): Morgenglocke um 8 Uhr (bei etwa 16 s), Abendglocke
+    /// um 20 Uhr (bei etwa 67 s), Feuerglocke um 22 Uhr (bei etwa 111 s), dann Gewitter in der Stadt (ab 146 s) mit nahem und fernem Donner.
+    /// </summary>
+    public static readonly FahrtPunkt[] FahrtPunkteKurz =
+    {
+        new(0, 7.4f, 40, 0, 0), new(14, 7.9f, 40, 0, 0), new(30, 8.5f, 40, 0, 0), new(48, 9.2f, 40, 0, 0),
+        new(48.01f, 19.0f, 40, 0, 0), new(64, 19.9f, 40, 0, 0), new(100, 21.0f, 40, 0, 0),
+        new(104.01f, 21.6f, 40, 0, 0), new(112, 22.05f, 40, 0, 0), new(134, 22.8f, 40, 0, 0),
+        new(136.01f, 14.6f, 40, 0, 0, 0, 1), new(146, 14.9f, 40, 0, 0, 0, 1),
+        new(146.01f, 15.0f, 40, 0, 0, 2, 1), new(192, 15.6f, 40, 0, 0, 2, 1),
+    };
+    public const float FahrtEndeKurz = 192f;
+
     /// <summary>Feste Rufe der Fahrt (Sekunde, Art, fern); alle übrigen plant der Planer mit festem Zufall aus den Menschen des Szenarios.</summary>
     public static readonly (float T, string Art, bool Fern)[] FahrtRufe =
     {
@@ -455,7 +473,8 @@ public partial class KlangUmgebung : Node
     private M.Eingaben FahrtSchritt(M.Eingaben e, double delta)
     {
         _fahrtZeit += delta;
-        if (_fahrtZeit >= FahrtEnde)
+        var punkte = _kurzeFahrt ? FahrtPunkteKurz : FahrtPunkte;
+        if (_fahrtZeit >= (_kurzeFahrt ? FahrtEndeKurz : FahrtEnde))
         {
             GD.Print("UMGEBUNG Fahrt fertig");
             GetTree().Quit();
@@ -463,9 +482,9 @@ public partial class KlangUmgebung : Node
         }
         var t = (float)_fahrtZeit;
         var k = 0;
-        while (k < FahrtPunkte.Length - 2 && FahrtPunkte[k + 1].T <= t) k++;
-        var p0 = FahrtPunkte[k];
-        var p1 = FahrtPunkte[k + 1];
+        while (k < punkte.Length - 2 && punkte[k + 1].T <= t) k++;
+        var p0 = punkte[k];
+        var p1 = punkte[k + 1];
         var f = Math.Clamp((t - p0.T) / Math.Max(p1.T - p0.T, 0.001f), 0f, 1f);
         if (k != _fahrtPunkt)
         {
@@ -479,7 +498,7 @@ public partial class KlangUmgebung : Node
         UhrVorgeben?.Invoke(stunde);
         ZoomVorgeben?.Invoke(zoom);
         FokusVorgeben?.Invoke(L(p0.X, p1.X), L(p0.Z, p1.Z));
-        while (_fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
+        while (!_kurzeFahrt && _fahrtRuf < FahrtRufe.Length && FahrtRufe[_fahrtRuf].T <= t)
         {
             var (_, art, fern) = FahrtRufe[_fahrtRuf++];
             Abspielen(_planer.Erzwingen(Array.FindIndex(M.Rufarten, r => r.Name == art), fern, e.Zoom));

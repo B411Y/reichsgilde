@@ -24,7 +24,7 @@ public partial class KlangDienst : Node
 
     /// <summary>
     /// Unterbusse der Umgebung (Ton Schritt 4, <see cref="KlangUmgebung"/>). Godot erlaubt Sends nur an Busse mit kleinerer Nummer, darum diese
-    /// Reihenfolge im Layout: UmgebungDraussen (6) → Umgebung, UmgebungStadt (7), UmgebungRufNah (8) und UmgebungRufFern (9) → UmgebungDraussen, UmgebungSchenke (10) und UmgebungGespraech (11) → UmgebungStadt, UmgebungGlocke (12) → UmgebungDraussen, UmgebungInnen (13) → Umgebung.
+    /// Reihenfolge im Layout: UmgebungDraussen (6) → Umgebung, UmgebungStadt (7), UmgebungRufNah (8) und UmgebungRufFern (9) → UmgebungDraussen, UmgebungSchenke (10) und UmgebungGespraech (11) → UmgebungStadt, UmgebungGlocke (12) → UmgebungDraussen, UmgebungInnen (13) → Umgebung, UmgebungDonner (14) → UmgebungDraussen.
     /// Draußen trägt die Dämpfung in Räumen, im Dom und in der Pause (Pegel und Tiefpass), Stadt die Ferne beim Herauszoomen, die Rufbusse
     /// Seite (Panner) und Tiefpass des einzelnen Rufs. Der Bus Umgebung selbst bleibt ohne Effekt (dort hängt Schritt 7 das Ducking an);
     /// spätere Innengeräusche (Schritt 6) laufen direkt auf Umgebung, also ungedämpft.
@@ -41,6 +41,8 @@ public partial class KlangDienst : Node
     public const string BusUmgebungGlocke = "UmgebungGlocke";
     /// <summary>Die Schankstube von innen: an der Umgebung vorbei (nicht wie ein Raum gedämpft), nur die Pause dämpft über den Pegel; ein Tiefpass als Effekt 0.</summary>
     public const string BusUmgebungInnen = "UmgebungInnen";
+    /// <summary>Der Donner: Panner (Seite), Tiefpass offen und ein Begrenzer bei −0,3 dB am Ende (so darf er bis knapp an 0 dBFS laut sein), gesendet an UmgebungDraussen (Räume dämpfen ihn), nicht durch den Stadtbus oder den Deckel der Schleifen.</summary>
+    public const string BusUmgebungDonner = "UmgebungDonner";
 
     /// <summary>Die Unterbusse mit ihrem Ziel und den Effekten, die <see cref="BusseTesten"/> erwartet (Effekt 0 Tiefpass; Rufbusse: 0 Panner, 1 Tiefpass).</summary>
     public static readonly (string Bus, string Ziel, bool MitPanner)[] Unterbusse =
@@ -53,6 +55,7 @@ public partial class KlangDienst : Node
         (BusUmgebungGespraech, BusUmgebungStadt, true),
         (BusUmgebungGlocke, BusUmgebungDraussen, true),
         (BusUmgebungInnen, BusUmgebung, false),
+        (BusUmgebungDonner, BusUmgebungDraussen, true),
     };
 
     /// <summary>Die Regler der Einstellungen in ihrer Reihenfolge: Bus, Anzeigename, Schlüssel in der Datei.</summary>

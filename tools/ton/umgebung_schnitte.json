@@ -185,15 +185,6 @@
    "lizenz": "CC0 1.0",
    "lizenz_geprueft": "2026-10-30"
   },
-  "204899": {
-   "urheber": "klankbeeld",
-   "titel": "church bell 10 o clock EQ Yuval.wav",
-   "seite": "https://freesound.org/people/klankbeeld/sounds/204899/",
-   "vorschau": "https://cdn.freesound.org/previews/204/204899_1648170-hq.ogg",
-   "sha256": "d074f8a26a3940fc1aab82dc7f7592c72e24990c5482dc8536e15a2026c89833",
-   "lizenz": "CC BY 4.0",
-   "lizenz_geprueft": "2026-10-31"
-  },
   "196125": {
    "urheber": "Yuval",
    "titel": "distant thunders meadow",
@@ -309,6 +300,42 @@
    "vorschau": "https://cdn.freesound.org/previews/166/166067_649468-hq.ogg",
    "sha256": "36581867e3ed8a3ac65bf98ea6fc9567d498ae115a95fa5862cf9e7bf5cdc9fd",
    "lizenz": "CC BY 4.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "511546": {
+   "urheber": "polymorpheva",
+   "titel": "Kölner Dom (Cologne Cathedral) bells",
+   "seite": "https://freesound.org/people/polymorpheva/sounds/511546/",
+   "vorschau": "https://cdn.freesound.org/previews/511/511546_1171107-hq.ogg",
+   "sha256": "98ad2e5ca6484dd1fa71bed56e42277251ffa05184376360e208774561874c61",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "139103": {
+   "urheber": "Mxsmanic",
+   "titel": "Bells ringing at Notre-Dame Cathedral in Paris, France",
+   "seite": "https://freesound.org/people/Mxsmanic/sounds/139103/",
+   "vorschau": "https://cdn.freesound.org/previews/139/139103_630368-hq.ogg",
+   "sha256": "02cc1ad1b7b0e655a3c2b21cc76528568b105c7db49c32cba345f6641ad90c3b",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "243614": {
+   "urheber": "foad",
+   "titel": "Thunderstorm lightning strike",
+   "seite": "https://freesound.org/people/foad/sounds/243614/",
+   "vorschau": "https://cdn.freesound.org/previews/243/243614_260969-hq.ogg",
+   "sha256": "a3bcc4c1980108db7ffcd81957b18d863da908ffc6c8c424fd99e4dd7088191a",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-31"
+  },
+  "844420": {
+   "urheber": "TSP-Talk",
+   "titel": "Extreme Thunder Impact - Munich Trudering (Raw Excerpt from Field Recording) - 250702_001",
+   "seite": "https://freesound.org/people/TSP-Talk/sounds/844420/",
+   "vorschau": "https://cdn.freesound.org/previews/844/844420_14079354-hq.ogg",
+   "sha256": "ecfbd0afd70af939d934be4ebb9de732e171082b85233751361f07b076668c23",
+   "lizenz": "CC0 1.0",
    "lizenz_geprueft": "2026-10-31"
   }
  },
@@ -874,198 +901,6 @@
    "aus": 0.5
   },
   {
-   "name": "donner_1",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 6.5,
-   "bis": 18.5,
-   "hp": 40,
-   "tp": 3000,
-   "ein": 0.05,
-   "aus": 2.5
-  },
-  {
-   "name": "donner_2",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 199.5,
-   "bis": 211.5,
-   "hp": 40,
-   "tp": 3000,
-   "ein": 0.05,
-   "aus": 2.5
-  },
-  {
-   "name": "donner_3",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 329.0,
-   "bis": 341.0,
-   "hp": 40,
-   "tp": 3000,
-   "ein": 0.05,
-   "aus": 2.5
-  },
-  {
-   "name": "donner_4",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 367.0,
-   "bis": 379.0,
-   "hp": 40,
-   "tp": 3000,
-   "ein": 0.05,
-   "aus": 2.5
-  },
-  {
-   "name": "donner_fern_1",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 120.5,
-   "bis": 132.5,
-   "hp": 35,
-   "tp": 600,
-   "ein": 0.5,
-   "aus": 3.0
-  },
-  {
-   "name": "donner_fern_2",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 220.5,
-   "bis": 232.5,
-   "hp": 35,
-   "tp": 600,
-   "ein": 0.5,
-   "aus": 3.0
-  },
-  {
-   "name": "donner_fern_3",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 351.0,
-   "bis": 363.0,
-   "hp": 35,
-   "tp": 600,
-   "ein": 0.5,
-   "aus": 3.0
-  },
-  {
-   "name": "donner_fern_4",
-   "art": "ruf",
-   "quelle": "196125",
-   "von": 470.0,
-   "bis": 482.0,
-   "hp": 35,
-   "tp": 600,
-   "ein": 0.5,
-   "aus": 3.0
-  },
-  {
-   "name": "glocke_morgen_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0.0, 1.0], [1.7, 0.0, 1.0], [3.4, 0.0, 1.0], [8.0, 0.0, 1.0], [9.7, 0.0, 1.0], [11.4, 0.0, 1.0], [16.0, 0.0, 1.0], [17.7, 0.0, 1.0], [19.4, 0.0, 1.0], [24.0, -2.0, 1.0], [25.4, -2.0, 1.0], [26.8, -2.0, 1.0], [28.2, -2.0, 1.0], [29.6, -2.0, 1.0], [31.0, -2.0, 1.0]],
-    "dauer": 40.0
-   },
-   "ziel_lufs": -22.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_morgen_2",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0, 1.19], [1.5, 0, 1.19], [3.0, 0, 1.19], [7.0, 0, 1.19], [8.5, 0, 1.19], [10.0, 0, 1.19], [14.0, 0, 1.19], [15.5, 0, 1.19], [17.0, 0, 1.19], [21.0, -2.0, 1.19], [22.2, -2.0, 1.19], [23.4, -2.0, 1.19], [24.6, -2.0, 1.19], [25.8, -2.0, 1.19], [27.0, -2.0, 1.19], [28.2, -2.0, 1.19], [29.4, -2.0, 1.19]],
-    "dauer": 36.0
-   },
-   "ziel_lufs": -22.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_messe_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0.0, 1.0], [2.4, 0.0, 1.0], [4.8, 0.0, 1.0], [7.2, 0.0, 1.0], [9.6, 0.0, 1.0], [12.0, 0.0, 1.0], [14.4, 0.0, 1.0], [16.8, 0.0, 1.0], [19.2, 0.0, 1.0], [21.6, 0.0, 1.0], [24.0, 0.0, 1.0], [26.4, 0.0, 1.0], [1.2, -3.0, 1.335], [3.6, -3.0, 1.335], [6.0, -3.0, 1.335], [8.4, -3.0, 1.335], [10.8, -3.0, 1.335], [13.2, -3.0, 1.335], [15.6, -3.0, 1.335], [18.0, -3.0, 1.335], [20.4, -3.0, 1.335], [22.8, -3.0, 1.335], [25.2, -3.0, 1.335], [27.6, -3.0, 1.335]],
-    "dauer": 34.0
-   },
-   "ziel_lufs": -22.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_messe_2",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0.0, 1.0], [2.1, 0.0, 1.0], [4.2, 0.0, 1.0], [6.3, 0.0, 1.0], [8.4, 0.0, 1.0], [10.5, 0.0, 1.0], [12.6, 0.0, 1.0], [14.7, 0.0, 1.0], [16.8, 0.0, 1.0], [18.9, 0.0, 1.0], [21.0, 0.0, 1.0], [23.1, 0.0, 1.0], [25.2, 0.0, 1.0], [27.3, 0.0, 1.0], [1.05, -3.0, 1.5], [3.15, -3.0, 1.5], [5.25, -3.0, 1.5], [7.35, -3.0, 1.5], [9.45, -3.0, 1.5], [11.55, -3.0, 1.5], [13.65, -3.0, 1.5], [15.75, -3.0, 1.5], [17.85, -3.0, 1.5], [19.95, -3.0, 1.5], [22.05, -3.0, 1.5], [24.15, -3.0, 1.5], [26.25, -3.0, 1.5], [28.35, -3.0, 1.5]],
-    "dauer": 34.0
-   },
-   "ziel_lufs": -22.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_abend_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0.0, 1.0], [4.0, 0.0, 1.0], [8.0, 0.0, 1.0], [12.0, 0.0, 1.0], [16.0, 0.0, 1.0], [20.0, 0.0, 1.0], [24.0, 0.0, 1.0]],
-    "dauer": 34.0
-   },
-   "ziel_lufs": -22.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_abend_2",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0, 1.19], [3.4, 0, 1.19], [6.8, 0, 1.19], [10.2, 0, 1.19], [13.6, 0, 1.19], [17.0, 0, 1.19], [20.4, 0, 1.19], [23.8, 0, 1.19]],
-    "dauer": 32.0
-   },
-   "ziel_lufs": -22.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_feuer_1",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0.0, 1.0], [5.9, 0.0, 1.0], [11.8, 0.0, 1.0], [17.7, 0.0, 1.0], [23.6, 0.0, 1.0], [29.5, 0.0, 1.0]],
-    "dauer": 40.0
-   },
-   "ziel_lufs": -21.0,
-   "spitze": -1.0
-  },
-  {
-   "name": "glocke_feuer_2",
-   "art": "ruf",
-   "ordner": "glocken",
-   "quelle": "204899",
-   "muster": {
-    "schlag": [6.45, 12.3],
-    "schlaege": [[0.0, 0, 0.94], [3.6, 0, 0.94], [7.2, 0, 0.94], [10.8, 0, 0.94], [14.4, 0, 0.94], [18.0, 0, 0.94], [21.6, 0, 0.94], [25.2, 0, 0.94], [28.8, 0, 0.94]],
-    "dauer": 40.0
-   },
-   "ziel_lufs": -21.0,
-   "spitze": -1.0
-  },
-  {
    "name": "gasse_1",
    "art": "ruf",
    "ordner": "rufe/gespraeche/gasse",
@@ -1246,6 +1081,246 @@
    "ein": 0.12,
    "aus": 0.25,
    "tp": 6500
+  },
+  {
+   "name": "glocke_morgen_1",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 8.0,
+   "bis": 38.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 4.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Morgen: Geläut des Kölner Doms, 30 s"
+  },
+  {
+   "name": "glocke_morgen_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 60.0,
+   "bis": 90.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 4.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Morgen: Geläut des Kölner Doms, 30 s (andere Stelle)"
+  },
+  {
+   "name": "glocke_messe_1",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "139103",
+   "von": 22.0,
+   "bis": 62.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 5.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Messe: Notre-Dame, die große Glocke und weitere kommen dazu, 40 s"
+  },
+  {
+   "name": "glocke_messe_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 84.0,
+   "bis": 120.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 5.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Messe: Geläut des Kölner Doms, 36 s"
+  },
+  {
+   "name": "glocke_abend_1",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "139103",
+   "von": 0.0,
+   "bis": 34.0,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 6.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Abend: Notre-Dame, die große Glocke (Emmanuel) allein, dann weitere, ausklingend, 34 s"
+  },
+  {
+   "name": "glocke_abend_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "511546",
+   "von": 36.0,
+   "bis": 66.0,
+   "hp": 45,
+   "ein": 1.2,
+   "aus": 8.0,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Abend: Geläut des Kölner Doms, langsam ausklingend, 30 s"
+  },
+  {
+   "name": "glocke_feuer_1",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "139103",
+   "von": 0.0,
+   "bis": 24.0,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 3.5,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Feuer: die große Glocke (Emmanuel) allein, langsame schwere Schläge, 24 s"
+  },
+  {
+   "name": "glocke_feuer_2",
+   "art": "ruf",
+   "ordner": "glocken",
+   "quelle": "139103",
+   "von": 3.0,
+   "bis": 27.0,
+   "hp": 45,
+   "ein": 0.3,
+   "aus": 3.5,
+   "ziel_lufs": -17.0,
+   "spitze": -1.0,
+   "begrenzer": -8.0,
+   "zweck": "Feuer: wie 1, eine andere Stelle, 24 s"
+  },
+  {
+   "name": "donner_1",
+   "art": "ruf",
+   "quelle": "243614",
+   "von": 6.5,
+   "bis": 24.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -14.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.01,
+   "aus": 3.5
+  },
+  {
+   "name": "donner_2",
+   "art": "ruf",
+   "quelle": "243614",
+   "von": 6.5,
+   "bis": 40.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -14.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.01,
+   "aus": 5.0
+  },
+  {
+   "name": "donner_3",
+   "art": "ruf",
+   "quelle": "844420",
+   "von": 2.3,
+   "bis": 20.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -14.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.01,
+   "aus": 4.0
+  },
+  {
+   "name": "donner_4",
+   "art": "ruf",
+   "quelle": "844420",
+   "von": 2.3,
+   "bis": 34.0,
+   "hp": 28,
+   "tp": 7000,
+   "tiefton_db": 7.0,
+   "ziel_lufs": -14.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.01,
+   "aus": 5.0
+  },
+  {
+   "name": "donner_fern_1",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 120.5,
+   "bis": 132.5,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "donner_fern_2",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 220.5,
+   "bis": 232.5,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "donner_fern_3",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 351.0,
+   "bis": 363.0,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
+  },
+  {
+   "name": "donner_fern_4",
+   "art": "ruf",
+   "quelle": "196125",
+   "von": 470.0,
+   "bis": 482.0,
+   "hp": 35,
+   "tp": 600,
+   "tiefton_db": 5.0,
+   "ziel_lufs": -18.0,
+   "spitze": -0.5,
+   "begrenzer": -9.0,
+   "ein": 0.5,
+   "aus": 3.0
   }
  ]
 }

@@ -3,11 +3,11 @@
 Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Klangseite und ist am 30./31.10.2026 geprüft; sie steht in der Tabelle:
 
 - **CC0 1.0** (Public Domain Dedication, https://creativecommons.org/publicdomain/zero/1.0/): keine Namensnennung nötig; wir nennen die Urheber trotzdem.
-- **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/): **Namensnennung verlangt, Bearbeitung erlaubt** (Schnitte, Filter, Pegel). Diese Quellen sind: klankbeeld (große Glocke, Glocken), poots (Frösche), newlocknew (leichter Regen), LolitaPerdurabo (Regen auf dem Dach), Erbsland-Music (starker Regen), juskiddink (Horn der Streife). Die Nennung steht in dieser Datei, im Protokoll (`docs/assets/protokoll.csv`, Spalte Bemerkung) und muss in einer späteren Liste der Mitwirkenden im Spiel (Danksagung) wiederkehren.
+- **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/): **Namensnennung verlangt, Bearbeitung erlaubt** (Schnitte, Filter, Pegel). Diese Quellen sind: poots (Frösche), newlocknew (leichter Regen), LolitaPerdurabo (Regen auf dem Dach), Erbsland-Music (starker Regen), juskiddink (Horn der Streife). Die Nennung steht in dieser Datei, im Protokoll (`docs/assets/protokoll.csv`, Spalte Bemerkung) und muss in einer späteren Liste der Mitwirkenden im Spiel (Danksagung) wiederkehren.
 - Nichts aus dem Spiel „Die Gilde“, keine craigsmith-Aufnahmen (unklare Rechtekette), nichts mit NC-Lizenz, kein Sonniss.
 
 - **Quelle ist die öffentliche HQ-Vorschau** (OGG Vorbis, etwa 192 kbit/s) der Klangseite, nicht das Original (das gibt es nur mit Anmeldung). Die SHA-256 der Vorschau steht unten und in `tools/ton/umgebung_schnitte.json`; mit derselben Nummer lässt sich später das Original einsetzen und neu bauen.
-- **Bearbeitung** für alle: `tools/ton/umgebung_bauen.py` – auf 48 kHz umgerechnet (soxr), gefiltert (Hochpass 2. Ordnung, Tiefpass 4. Ordnung, Butterworth), ausgeschnitten; Schichten mit Schleifennaht gleicher Leistung (Ende über den Anfang geblendet), Stereo, −26 LUFS; Rufe mono, Ränder ein- und ausgeblendet, −20 LUFS (Spitze höchstens −1 dBTP, darum sind Pferd, Passanten und Handwerk etwas leiser); OGG Vorbis Qualität 4. Jede Datei ist ein Ausschnitt, nicht die ganze Aufnahme. **Neu seit der Nachbesserung 31.10.2026:** die Gesprächsfetzen werden vorher entrauscht (stationäres Grundrauschen der Quelle um 12 dB abgesenkt, spektrale Subtraktion); die Glocken sind aus einzelnen Schlägen einer Aufnahme **zusammengesetzt** (Läutemuster mit Zeiten, Pegeln und Tonhöhen in der Schnittliste); der starke und der leichte Regen laufen durch einen weichen Begrenzer, damit einzelne Tropfenspitzen die Lautheit nicht begrenzen.
+- **Bearbeitung** für alle: `tools/ton/umgebung_bauen.py` – auf 48 kHz umgerechnet (soxr), gefiltert (Hochpass 2. Ordnung, Tiefpass 4. Ordnung, Butterworth), ausgeschnitten; Schichten mit Schleifennaht gleicher Leistung (Ende über den Anfang geblendet), Stereo, −26 LUFS; Rufe mono, Ränder ein- und ausgeblendet, −20 LUFS (Spitze höchstens −1 dBTP, darum sind Pferd, Passanten und Handwerk etwas leiser); OGG Vorbis Qualität 4. Jede Datei ist ein Ausschnitt, nicht die ganze Aufnahme. **Neu seit der Nachbesserung 31.10.2026:** die Gesprächsfetzen werden vorher entrauscht (stationäres Grundrauschen der Quelle um 12 dB abgesenkt, spektrale Subtraktion); die Glocken sind echte Geläute (Kölner Dom und Notre-Dame, CC0), nur ausgeschnitten, mit weichem Begrenzer, −17 LUFS; der Donner ist kräftig (−14 LUFS, Tiefbass unter 120 Hz angehoben, Begrenzer −9 dBFS); der starke und der leichte Regen laufen durch einen weichen Begrenzer, damit einzelne Tropfenspitzen die Lautheit nicht begrenzen.
 - **Eigene Synthese:** `schichten/nacht.ogg` und `schichten/wind_leicht.ogg` (gefiltertes Rauschen mit Böenkurve, Funktion `wind` im Bauskript, feste Saat), keine Fremdquelle.
 - **Gesprächsfetzen** (`rufe/gespraeche/`): kurze Ausschnitte arabischer Gespräche auf der Straße (Aufnahmen von sounds_from_palestine, CC0) – für deutsche Hörer unverständlich, Sprache am 31.10.2026 mit Whisper bestimmt (Arabisch, wo erkennbar); die Liste steht in `game/daten/gespraeche.json` und lässt sich später durch Aufnahmen der Stimm-KI ersetzen. Gehört wurden sie nicht, nur gemessen und im Spektrogramm angesehen.
 - Das frühere **Gemurmel** (`schichten/stadt_gemurmel.ogg`, Aufnahme 360699, Halle von oben) ist entfernt: Es hatte Hintergrundrauschen. Die Gesprächsfetzen ersetzen es.
@@ -19,6 +19,7 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | 116791 | Blackbird 252 | nigelcoop | CC0 1.0 | https://freesound.org/people/nigelcoop/sounds/116791/ | https://cdn.freesound.org/previews/116/116791_1088850-hq.ogg | `8eed9fb602ea6bdaebb35fbc396d3c30ce40735060cd9454fe24945ab6b5779e` |
 | 135193 | Wind blowing in the bush on the top of Kitt Peak mountain | felix.blume | CC0 1.0 | https://freesound.org/people/felix.blume/sounds/135193/ | https://cdn.freesound.org/previews/135/135193_1661766-hq.ogg | `9baa931f58e0ebf8cf1613377739bf13c260c4f7927a1ecc35da95dd3b0c6a1a` |
 | 137836 | Blacksmith Workshop.WAV | thefilmbakery | CC0 1.0 | https://freesound.org/people/thefilmbakery/sounds/137836/ | https://cdn.freesound.org/previews/137/137836_977564-hq.ogg | `59da72624c011df1895768e5ec63f6cf42c6ad31f2374443258b7368b6f4503f` |
+| 139103 | Bells ringing at Notre-Dame Cathedral in Paris, France | Mxsmanic | CC0 1.0 | https://freesound.org/people/Mxsmanic/sounds/139103/ | https://cdn.freesound.org/previews/139/139103_630368-hq.ogg | `02cc1ad1b7b0e655a3c2b21cc76528568b105c7db49c32cba345f6641ad90c3b` |
 | 149192 | geese honking | videog | CC0 1.0 | https://freesound.org/people/videog/sounds/149192/ | https://cdn.freesound.org/previews/149/149192_2688492-hq.ogg | `a8e9955aaa4ecbcb26c90496d46cc3daf0480285717907d3c18280c25355ccc6` |
 | 166067 | Tuohitorvi.wav | juskiddink | CC BY 4.0 | https://freesound.org/people/juskiddink/sounds/166067/ | https://cdn.freesound.org/previews/166/166067_649468-hq.ogg | `36581867e3ed8a3ac65bf98ea6fc9567d498ae115a95fa5862cf9e7bf5cdc9fd` |
 | 166421 | Some dogs barking a village in Anatolia (Turkey) | felix.blume | CC0 1.0 | https://freesound.org/people/felix.blume/sounds/166421/ | https://cdn.freesound.org/previews/166/166421_1661766-hq.ogg | `b9b0767239600f01797a422055b26f58f55b1fed179821d8fbcb635fa61d7f29` |
@@ -27,11 +28,11 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | 187199 | walla 01 | pushkin | CC0 1.0 | https://freesound.org/people/pushkin/sounds/187199/ | https://cdn.freesound.org/previews/187/187199_336074-hq.ogg | `543235e369c3f3658e968f3615084177bd201e95fe8551ab88cbecf053638f47` |
 | 196125 | distant thunders meadow | Yuval | CC0 1.0 | https://freesound.org/people/Yuval/sounds/196125/ | https://cdn.freesound.org/previews/196/196125_770707-hq.ogg | `c8281cfea53e228ec6456a784f6bef1817a8b8d62bd2f2a2afc93628e7e3bf6d` |
 | 203598 | CricketsandTawnyOwl | raoul_slayer | CC0 1.0 | https://freesound.org/people/raoul_slayer/sounds/203598/ | https://cdn.freesound.org/previews/203/203598_548893-hq.ogg | `587baf79c58be6fe875710ffebe2ed02ef207eb43795de6932799f2330a165f8` |
-| 204899 | church bell 10 o clock EQ Yuval.wav | klankbeeld | CC BY 4.0 | https://freesound.org/people/klankbeeld/sounds/204899/ | https://cdn.freesound.org/previews/204/204899_1648170-hq.ogg | `d074f8a26a3940fc1aab82dc7f7592c72e24990c5482dc8536e15a2026c89833` |
 | 212454 | Barking | unfa | CC0 1.0 | https://freesound.org/people/unfa/sounds/212454/ | https://cdn.freesound.org/previews/212/212454_1038806-hq.ogg | `7fbca7ad13c985cfe7c261f744631876cf8e0997a079d1fdf789047c3930b4f3` |
 | 213329 | Rain-On-The-Roof.wav | LolitaPerdurabo | CC BY 4.0 | https://freesound.org/people/LolitaPerdurabo/sounds/213329/ | https://cdn.freesound.org/previews/213/213329_1854719-hq.ogg | `1737d6de2d68d2266fd72fce15ba71dd9917ecde80e742517ab12ac9dd8b7dc2` |
 | 233167 | Rooster - Crow 3 - 96kHz | JarredGibb | CC0 1.0 | https://freesound.org/people/JarredGibb/sounds/233167/ | https://cdn.freesound.org/previews/233/233167_4056007-hq.ogg | `6aea501b36f9933a17a129120675f9c7e202baa218322cd72030d073b48ffc57` |
 | 240587 | Freyburg Forest Evening R | blaukreuz | CC0 1.0 | https://freesound.org/people/blaukreuz/sounds/240587/ | https://cdn.freesound.org/previews/240/240587_623488-hq.ogg | `7afdd4a718c473d91b17aafa6eb37f84a1da5f3bad6d6dcd6744eada78ac0a83` |
+| 243614 | Thunderstorm lightning strike | foad | CC0 1.0 | https://freesound.org/people/foad/sounds/243614/ | https://cdn.freesound.org/previews/243/243614_260969-hq.ogg | `a3bcc4c1980108db7ffcd81957b18d863da908ffc6c8c424fd99e4dd7088191a` |
 | 266601 | Sparrows.WAV | otad | CC0 1.0 | https://freesound.org/people/otad/sounds/266601/ | https://cdn.freesound.org/previews/266/266601_2151664-hq.ogg | `c84f32775361efec23cfea992d2745aa191f5e5c8a793918d6bb1b12594a2564` |
 | 316921 | Chicken Alarm Call full with Occasional bird sound | Rudmer_Rotteveel | CC0 1.0 | https://freesound.org/people/Rudmer_Rotteveel/sounds/316921/ | https://cdn.freesound.org/previews/316/316921_4921277-hq.ogg | `2946a0261cd98b21339380d58417ce77f903be61128ff3411fde316c49fdbb28` |
 | 326313 | Tavern_Ambience_Inside_Laughter.WAV | ivolipa | CC0 1.0 | https://freesound.org/people/ivolipa/sounds/326313/ | https://cdn.freesound.org/previews/326/326313_3474310-hq.ogg | `dfb2a98232563b28c8fe77a1afd87d0e9c43d336f45dc5ced4201f26cf16ecc2` |
@@ -41,6 +42,7 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | 437345 | Crows Cawing | giddster | CC0 1.0 | https://freesound.org/people/giddster/sounds/437345/ | https://cdn.freesound.org/previews/437/437345_1738686-hq.ogg | `4365726bd1e0f1cc579bc702238bbe52df32476c13fce84b639bf0b1be45121b` |
 | 446019 | Gentle Stream Natural Stream Sound | BurghRecords | CC0 1.0 | https://freesound.org/people/BurghRecords/sounds/446019/ | https://cdn.freesound.org/previews/446/446019_7241289-hq.ogg | `f534a3bb1dd414dcd7bb8be8f6ae13a99614201021143dce3ad85245b47fe90d` |
 | 469700 | Ambience Sound of the Chouara Tannery in Fez, Morocco | florianreichelt | CC0 1.0 | https://freesound.org/people/florianreichelt/sounds/469700/ | https://cdn.freesound.org/previews/469/469700_6253486-hq.ogg | `0c8723ee5413cf492b2950bf78e1bb3e1eb207dd866e157a65be83ce560cf270` |
+| 511546 | Kölner Dom (Cologne Cathedral) bells | polymorpheva | CC0 1.0 | https://freesound.org/people/polymorpheva/sounds/511546/ | https://cdn.freesound.org/previews/511/511546_1171107-hq.ogg | `98ad2e5ca6484dd1fa71bed56e42277251ffa05184376360e208774561874c61` |
 | 573080 | Dawn Chorus Birdsong | squashy555 | CC0 1.0 | https://freesound.org/people/squashy555/sounds/573080/ | https://cdn.freesound.org/previews/573/573080_1149179-hq.ogg | `3239fd174f196593541403e2dd235dddac9dc9c456595b73e4deb86c14c4a9ff` |
 | 594343 | Dog barking and growling.wav | GH0STY_XD | CC0 1.0 | https://freesound.org/people/GH0STY_XD/sounds/594343/ | https://cdn.freesound.org/previews/594/594343_12596088-hq.ogg | `bff05710ddf484d7f4dc2e397da5f560f9c5b1b82155f673602f9f07d94458c0` |
 | 613548 | Kristoffer_Andersson_Amb_City_Forest_Leaves_Wind_ST_ECM680S.wav | Kristoffer_Andersson | CC0 1.0 | https://freesound.org/people/Kristoffer_Andersson/sounds/613548/ | https://cdn.freesound.org/previews/613/613548_8407191-hq.ogg | `8ebafdb525785f5be666fbe3fa875796693cc5af986ffd0ea837c27f3c7c137d` |
@@ -50,6 +52,7 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | 823212 | Late Night Street Ambience Conversations and City Atmosphere (in Arabic) | sounds_from_palestine | CC0 1.0 | https://freesound.org/people/sounds_from_palestine/sounds/823212/ | https://cdn.freesound.org/previews/823/823212_17247322-hq.ogg | `4d5f2239fc462d1569db645c10a3c42363bf07b173d597ce457f85ea21938791` |
 | 832832 | Family Astronomy Night in Ramallah – Saturn and Moon Observation at Qattan Foundation (Field Recording) | sounds_from_palestine | CC0 1.0 | https://freesound.org/people/sounds_from_palestine/sounds/832832/ | https://cdn.freesound.org/previews/832/832832_17247322-hq.ogg | `975e0e2165332ad420b62e0edfe82ba10e93915962146b142a234e57e3225b99` |
 | 836064 | RAINVege_Summer Rain.Garden.Under The Apple Tree.Drops On Leaves,Grass,Metal Roof,Barbeque 1_EM | newlocknew | CC BY 4.0 | https://freesound.org/people/newlocknew/sounds/836064/ | https://cdn.freesound.org/previews/836/836064_5828667-hq.ogg | `3d301297098d394ecb4c051f0cc8c09f0b04bb4adf08d0d3b0505f7c299a8c82` |
+| 844420 | Extreme Thunder Impact - Munich Trudering (Raw Excerpt from Field Recording) - 250702_001 | TSP-Talk | CC0 1.0 | https://freesound.org/people/TSP-Talk/sounds/844420/ | https://cdn.freesound.org/previews/844/844420_14079354-hq.ogg | `ecfbd0afd70af939d934be4ebb9de732e171082b85233751361f07b076668c23` |
 
 ## Dateien
 
@@ -116,22 +119,6 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | rufe/kraehe_5.ogg | 437345 | 23.4–25.9 | Hochpass 400 Hz |  |
 | rufe/horn_1.ogg | 166067 | 0.0–3.3 | Hochpass 150 Hz |  |
 | rufe/horn_2.ogg | 166067 | 4.45–8.5 | Hochpass 150 Hz |  |
-| rufe/donner_1.ogg | 196125 | 6.5–18.5 | Hochpass 40 Hz, Tiefpass 3000 Hz |  |
-| rufe/donner_2.ogg | 196125 | 199.5–211.5 | Hochpass 40 Hz, Tiefpass 3000 Hz |  |
-| rufe/donner_3.ogg | 196125 | 329.0–341.0 | Hochpass 40 Hz, Tiefpass 3000 Hz |  |
-| rufe/donner_4.ogg | 196125 | 367.0–379.0 | Hochpass 40 Hz, Tiefpass 3000 Hz |  |
-| rufe/donner_fern_1.ogg | 196125 | 120.5–132.5 | Hochpass 35 Hz, Tiefpass 600 Hz |  |
-| rufe/donner_fern_2.ogg | 196125 | 220.5–232.5 | Hochpass 35 Hz, Tiefpass 600 Hz |  |
-| rufe/donner_fern_3.ogg | 196125 | 351.0–363.0 | Hochpass 35 Hz, Tiefpass 600 Hz |  |
-| rufe/donner_fern_4.ogg | 196125 | 470.0–482.0 | Hochpass 35 Hz, Tiefpass 600 Hz |  |
-| glocken/glocke_morgen_1.ogg | 204899 | Schlag 6.45–12.3, 15 Schläge gesetzt | – |  |
-| glocken/glocke_morgen_2.ogg | 204899 | Schlag 6.45–12.3, 17 Schläge gesetzt | – |  |
-| glocken/glocke_messe_1.ogg | 204899 | Schlag 6.45–12.3, 24 Schläge gesetzt | – |  |
-| glocken/glocke_messe_2.ogg | 204899 | Schlag 6.45–12.3, 28 Schläge gesetzt | – |  |
-| glocken/glocke_abend_1.ogg | 204899 | Schlag 6.45–12.3, 7 Schläge gesetzt | – |  |
-| glocken/glocke_abend_2.ogg | 204899 | Schlag 6.45–12.3, 8 Schläge gesetzt | – |  |
-| glocken/glocke_feuer_1.ogg | 204899 | Schlag 6.45–12.3, 6 Schläge gesetzt | – |  |
-| glocken/glocke_feuer_2.ogg | 204899 | Schlag 6.45–12.3, 9 Schläge gesetzt | – |  |
 | rufe/gespraeche/gasse/gasse_1.ogg | 823212 | 13.2–15.7 | Entrauschen 12 dB, Hochpass 180 Hz, Tiefpass 5500 Hz |  |
 | rufe/gespraeche/gasse/gasse_2.ogg | 823212 | 15.7–18.2 | Entrauschen 12 dB, Hochpass 180 Hz, Tiefpass 5500 Hz |  |
 | rufe/gespraeche/gasse/gasse_3.ogg | 823212 | 18.2–20.8 | Entrauschen 12 dB, Hochpass 180 Hz, Tiefpass 5500 Hz |  |
@@ -146,3 +133,19 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | rufe/gespraeche/markt/markt_4.ogg | 823212 | 86.5–89.5 | Entrauschen 12 dB, Hochpass 180 Hz, Tiefpass 6500 Hz |  |
 | rufe/gespraeche/markt/markt_5.ogg | 823212 | 116.0–119.0 | Entrauschen 12 dB, Hochpass 180 Hz, Tiefpass 6500 Hz |  |
 | rufe/gespraeche/markt/markt_6.ogg | 823212 | 122.0–125.0 | Entrauschen 12 dB, Hochpass 180 Hz, Tiefpass 6500 Hz |  |
+| glocken/glocke_morgen_1.ogg | 511546 | 8.0–38.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Morgen: Geläut des Kölner Doms, 30 s |
+| glocken/glocke_morgen_2.ogg | 511546 | 60.0–90.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Morgen: Geläut des Kölner Doms, 30 s (andere Stelle) |
+| glocken/glocke_messe_1.ogg | 139103 | 22.0–62.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Messe: Notre-Dame, die große Glocke und weitere kommen dazu, 40 s |
+| glocken/glocke_messe_2.ogg | 511546 | 84.0–120.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Messe: Geläut des Kölner Doms, 36 s |
+| glocken/glocke_abend_1.ogg | 139103 | 0.0–34.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Abend: Notre-Dame, die große Glocke (Emmanuel) allein, dann weitere, ausklingend, 34 s |
+| glocken/glocke_abend_2.ogg | 511546 | 36.0–66.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Abend: Geläut des Kölner Doms, langsam ausklingend, 30 s |
+| glocken/glocke_feuer_1.ogg | 139103 | 0.0–24.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Feuer: die große Glocke (Emmanuel) allein, langsame schwere Schläge, 24 s |
+| glocken/glocke_feuer_2.ogg | 139103 | 3.0–27.0 | Hochpass 45 Hz, weicher Begrenzer -8 dBFS | Feuer: wie 1, eine andere Stelle, 24 s |
+| rufe/donner_1.ogg | 243614 | 6.5–24.0 | Hochpass 28 Hz, Tiefpass 7000 Hz, Tiefbass unter 120 Hz +7 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_2.ogg | 243614 | 6.5–40.0 | Hochpass 28 Hz, Tiefpass 7000 Hz, Tiefbass unter 120 Hz +7 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_3.ogg | 844420 | 2.3–20.0 | Hochpass 28 Hz, Tiefpass 7000 Hz, Tiefbass unter 120 Hz +7 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_4.ogg | 844420 | 2.3–34.0 | Hochpass 28 Hz, Tiefpass 7000 Hz, Tiefbass unter 120 Hz +7 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_fern_1.ogg | 196125 | 120.5–132.5 | Hochpass 35 Hz, Tiefpass 600 Hz, Tiefbass unter 120 Hz +5 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_fern_2.ogg | 196125 | 220.5–232.5 | Hochpass 35 Hz, Tiefpass 600 Hz, Tiefbass unter 120 Hz +5 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_fern_3.ogg | 196125 | 351.0–363.0 | Hochpass 35 Hz, Tiefpass 600 Hz, Tiefbass unter 120 Hz +5 dB, weicher Begrenzer -9 dBFS | Donner |
+| rufe/donner_fern_4.ogg | 196125 | 470.0–482.0 | Hochpass 35 Hz, Tiefpass 600 Hz, Tiefbass unter 120 Hz +5 dB, weicher Begrenzer -9 dBFS | Donner |

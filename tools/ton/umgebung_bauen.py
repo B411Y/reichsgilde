@@ -12,6 +12,7 @@ Ablauf je Datei (Reihenfolge wichtig, damit die Schleifennaht nicht knackt):
   1. ganze Quelle lesen, auf 48 kHz umrechnen (soxr, sehr hohe Qualität) – die ganze Datei, nicht nur den Ausschnitt;
   2. Filter (Hochpass 2. Ordnung, Tiefpass 4. Ordnung, Butterworth, vorwärts) über die ganze Datei, also mit Vorlauf vor dem Ausschnitt;
   2.0 optional („entrauschen“: dB) stationäres Grundrauschen der ganzen Quelle absenken, vor allen Filtern;
+  2.1 optional („tiefton_db“) den Anteil unter 120 Hz um so viele dB anheben (kräftiger Donner);
   2a. Kerbfilter („kerben“: [[Hz, Q], …], z. B. gegen ein stehendes Netzbrummen) und Absenkungen („absenken“: [[von, bis, dB], …]
       in Sekunden der Quelle, Rampen 0,1 s, z. B. für eine herausstehende Stimme);
   3. Ausschnitt von–bis – oder „folge“: [[von, bis], …], mehrere Stücke der Quelle hintereinander, jeweils mit gleicher Leistung
@@ -178,6 +179,10 @@ def filtern(x, eintrag):
         x = sosfilt(butter(2, eintrag["hp"], "highpass", fs=FS, output="sos"), x, axis=0)
     if eintrag.get("tp"):
         x = sosfilt(butter(4, eintrag["tp"], "lowpass", fs=FS, output="sos"), x, axis=0)
+    if eintrag.get("tiefton_db"):
+        # kräftiger Tiefbass: den Anteil unter 120 Hz um so viele dB anheben (Donner)
+        tief = sosfilt(butter(2, 120, "lowpass", fs=FS, output="sos"), x, axis=0)
+        x = x + (10 ** (eintrag["tiefton_db"] / 20) - 1.0) * tief
     for hz, q in eintrag.get("kerben", []):
         x = sosfilt(tf2sos(*iirnotch(hz, q, fs=FS)), x, axis=0)
     if eintrag.get("absenken"):

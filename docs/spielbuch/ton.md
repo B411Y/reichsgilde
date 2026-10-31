@@ -66,13 +66,13 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 | Fokus auf Wiese, Feld, Wald | Stadt verklingt; Vögel, Grillen (Sommer, abends), Krähen (Winter, Herbst), Laubrauschen im Wald, im Wind stärker |
 | am Wasser (Fluss, Bach, Teich) | Plätschern; im Frühling abends und nachts Frösche |
 | Regen | Regen auf Boden und Laub (leicht oder Guss), nah an der Stadt Tropfen auf den Dächern; Vögel schweigen, die Stadt wird dumpf und leiser |
-| Gewitter | zu jedem Blitz folgt der Donner mit der Verzögerung des Schalls: nah ein Schlag, fern ein Grollen |
+| Gewitter | zu jedem Blitz folgt der Donner mit der Verzögerung des Schalls: gut die Hälfte nah (scharfer Knall, langes Rollen, sehr laut), der Rest fern (Grollen) |
 | Schnee | **Schneestille**: alles leiser und dumpfer, Vögel kaum |
 | Wind (Wetter) | Flaute still, Sturm laut, auch nah |
-| Arbeitsbeginn 8 Uhr | **Morgenglocke** (drei mal drei Schläge, dann Geläut) vom Dom |
+| Arbeitsbeginn 8 Uhr | **Morgenglocke** (Geläut mehrerer großer Glocken) vom Dom |
 | Messe (Stunde des Kirchenwesens, 10 Uhr) | **Messglocke**, Geläut |
-| Arbeitsende 20 Uhr | **Abendglocke**, langsame Schläge (Feierabend) |
-| Schankschluss 22 Uhr | **Feuerglocke**, tiefe Schläge (Sperrstunde: Feuer abdecken, Gassen räumen) |
+| Arbeitsende 20 Uhr | **Abendglocke**, die große Glocke allein, dann weitere (Feierabend) |
+| Schankschluss 22 Uhr | **Feuerglocke**, die große Glocke allein, langsam und schwer (Sperrstunde: Feuer abdecken, Gassen räumen) |
 | Nacht, eine Streife mit Laterne ist unterwegs | ab und zu das **Horn des Nachtwächters** an der Streife |
 
 - **Wer zählt:** alle Figuren draußen auf Gassen, am Tor und auf dem Markt im Umkreis der Kamera – auch hinter Häusern, nicht nur die im Bild. Wer in einem Haus, in der Kirche oder im Umland ist, zählt nicht. Der Umkreis wächst mit dem Zoom (nah etwa 40 m, Startzoom etwa 90 m, ganz oben etwa 120 m); wer nah ist, zählt ganz, am Rand immer weniger. Die Einstellung „Menge der Passanten“ gilt auch hier: Wer nicht gezeigt wird, ist nicht zu hören. Gesprächsfetzen tragen weniger weit (Zoom 40 etwa 26 m).
@@ -87,7 +87,7 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 - **Gespräche austauschbar:** Welche Aufnahmen als Gesprächsfetzen klingen, steht in `game/daten/gespraeche.json` (Anlass → Dateien). Später können hier Gesprächsrunden der Stimm-KI stehen, ohne den Code anzufassen.
 - Hat das Fenster den Fokus verloren und ist „Ton im Hintergrund stumm“ an, ist alles still, und es kommen keine Rufe.
 
-Die Klänge sind Aufnahmen von freesound.org (CC0, und für Glocken, Frösche, Regen und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
+Die Klänge sind Aufnahmen von freesound.org (CC0, und für Frösche, Regen und das Horn CC BY 4.0 mit Namensnennung; Nummern, Urheber, Lizenz und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
 
 ## Ausprobieren
 

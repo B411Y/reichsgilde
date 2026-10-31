@@ -408,7 +408,7 @@ public static class KlangUmgebungModell
             (h, b, tag) => Math.Max(tag, 0.6f * StadtAbend(h)) * NachtStille(h), Bedarf: RufBedarf.Gruppe),
         new("Nachtwaechter", "Horn der Streife mit der Laterne, nachts ab und zu (am Ort der Streife)", "horn", 2, 75, 150, -9, -13, 90, 170, false,
             (h, b, tag) => Math.Max(Glatt(20.8f, 21.8f, h), 1f - Glatt(5.0f, 5.8f, b)), Bedarf: RufBedarf.Wache),
-        new("Donner", "Donner nach einem Blitz (Gewitter): nah ein Schlag, fern ein Grollen; die Verzögerung wie beim Schall", "donner", 4, 0, 0, -3, -7, 0, 100000, false,
+        new("Donner", "Donner nach einem Blitz (Gewitter): nah ein Schlag, fern ein Grollen; die Verzögerung wie beim Schall", "donner", 4, 0, 0, 0, -3, 0, 100000, false,
             (h, b, tag) => 0f, FernDatei: "donner_fern", FernVarianten: 4, Bedarf: RufBedarf.Donner),
     };
 
@@ -503,6 +503,9 @@ public static class KlangUmgebungModell
 
         public double Jetzt => _jetzt;
 
+        /// <summary>Anteil der Blitze mit nahem Donner (Verzögerung unter 2 s).</summary>
+        public const double NahAnteil = 0.55;
+
         /// <summary>Wie viele Donner noch ausstehen (Test, Entwicklerreiter).</summary>
         public int DonnerAusstehend => _donner.Count;
 
@@ -512,7 +515,8 @@ public static class KlangUmgebungModell
         public void BlitzMelden()
         {
             if (_donner.Count >= 3) return;
-            var verzug = 0.5 + 6.5 * Math.Pow(_zufall.NextDouble(), 1.3);
+            // gut die Hälfte schlägt nah ein (Verzögerung unter 2 s: scharfer Knall, langes Rollen), der Rest grollt fern
+            var verzug = _zufall.NextDouble() < NahAnteil ? 0.3 + 1.6 * _zufall.NextDouble() : 2.0 + 5.0 * _zufall.NextDouble();
             _donner.Add((_jetzt + verzug, verzug, 0));
         }
 
@@ -725,10 +729,10 @@ public static class KlangUmgebungModell
 
     public static readonly Glockenart[] Glockenarten =
     {
-        new("Morgen", "Morgenglocke zum Arbeitsbeginn (Ruf zur Arbeit): drei mal drei Schläge, dann Geläut", "glocke_morgen", 2, p => p.Morgen),
-        new("Messe", "Messglocke zur Stunde der Messe (Geläut)", "glocke_messe", 2, p => p.Messe),
-        new("Abend", "Abendglocke zum Feierabend (Arbeitsende): langsame Schläge", "glocke_abend", 2, p => p.Abend),
-        new("Feuer", "Feuerglocke zum Schankschluss (Sperrstunde): Feuer abdecken, Gassen räumen; langsam, tief", "glocke_feuer", 2, p => p.Feuer),
+        new("Morgen", "Morgenglocke zum Arbeitsbeginn (Ruf zur Arbeit): Geläut mehrerer großer Glocken", "glocke_morgen", 2, p => p.Morgen),
+        new("Messe", "Messglocke zur Stunde der Messe (volles Geläut, viele Glocken)", "glocke_messe", 2, p => p.Messe),
+        new("Abend", "Abendglocke zum Feierabend (Arbeitsende): die große Glocke allein, dann weitere dazu, ausklingend", "glocke_abend", 2, p => p.Abend),
+        new("Feuer", "Feuerglocke zum Schankschluss (Sperrstunde): die große Glocke allein, langsam und schwer; Feuer abdecken, Gassen räumen", "glocke_feuer", 2, p => p.Feuer),
     };
 
     /// <summary>Ein Läuten, das der Planer abspielen lässt: Seite (Panner), Pegel am Spieler (mit Ausgleich), Tiefpass in Hz und Tonhöhe.</summary>
@@ -785,7 +789,7 @@ public static class KlangUmgebungModell
     }
 
     /// <summary>Pegel einer Glocke aus nächster Nähe (am Spieler vor dem Abstand); die Dateien liegen bei −20 LUFS.</summary>
-    public const float GlockenDb = -5f;
+    public const float GlockenDb = -3f;
 
     // ── Selbstprüfung (--umgebungtest=1) ────────────────────────────────────────────────────────────────────────
 
@@ -1357,7 +1361,24 @@ public static class KlangUmgebungModell
                 for (var t = 0.0; t < 7; t += 1.0 / 30) { neu.Clear(); p.Schritt(e, a, 1.0 / 30, neu); } // der Donner ausgeklungen, der Platz frei
             }
             log($"UMGEBUNGTEST Donner: {verzoegerungen.Count} von 20 Blitzen, Verzögerung {verzoegerungen.DefaultIfEmpty(0).Min():0.0}–{verzoegerungen.DefaultIfEmpty(0).Max():0.0} s");
-            pruefe(verzoegerungen.Count == 20 && verzoegerungen.Min() >= 0.45 && verzoegerungen.Max() <= 7.6, "Donner: Zahl oder Verzögerung falsch");
+            pruefe(verzoegerungen.Count == 20 && verzoegerungen.Min() >= 0.25 && verzoegerungen.Max() <= 7.6, "Donner: Zahl oder Verzögerung falsch");
+            // gut die Hälfte nah (Verzögerung unter 2 s)
+            var p2 = new RufPlaner(21) { Laenge = _ => 0.5 };
+            var nahe = 0;
+            for (var k = 0; k < 400; k++)
+            {
+                var bei = p2.Jetzt;
+                p2.BlitzMelden();
+                var gefunden = false;
+                for (var t = 0.0; t < 8 && !gefunden; t += 1.0 / 30)
+                {
+                    neu.Clear();
+                    p2.Schritt(e, a, 1.0 / 30, neu);
+                    if (neu.FirstOrDefault(r => r.Art == art) is { Datei: not null } dd) { gefunden = true; if (!dd.Fern) nahe++; }
+                }
+            }
+            log($"UMGEBUNGTEST Donner nah: {nahe} von 400 Blitzen");
+            pruefe(nahe is >= 190 and <= 250, $"Donner nah {nahe} von 400 (erwartet etwa 55 %)");
             p.BlitzMelden();
             neu.Clear();
             p.Schritt(e with { Hintergrund = true }, a, 1.0, neu);
