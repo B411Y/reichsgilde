@@ -38,6 +38,10 @@ public partial class Stadtansicht
         public (Fahrprofil Hin, Fahrprofil Zurueck)? ZugProfile { get; set; }
         /// <summary>Wie schnell der Karren im letzten Bild fuhr (Meter je echter Sekunde): treibt Räder und Schritte.</summary>
         public float Geschwindigkeit { get; set; }
+        /// <summary>Messung der sichtbaren Hinfahrt: Spielminute des Starts (−1 keine läuft, −2 ungültig: der Karren war aus dem Bild oder wurde abgeglichen) und die gezeigte Strecke in Metern.</summary>
+        public double HinStart { get; set; } = -1;
+        public float HinStrecke { get; set; }
+        public float HinLetzte { get; set; }
     }
 
     /// <summary>Was an einer Karrenart verschieden ist: das Modell, der Weg einer Schleife „Fahren“ und der Anker für den Menschen.</summary>
@@ -163,28 +167,32 @@ public partial class Stadtansicht
     }
 
     /// <summary>Wie weit (Chebyshev-Abstand von der Platzmitte, Meter) die Karren am Markt halten: Das Pflaster reicht bis 12 m, die Tiere stehen am Rand.</summary>
-    private float KarrenHaltAmMarkt => _marktHalb + 3.5f;
+    private static float KarrenHaltAmMarkt(MarktplatzAnsicht platz) => platz.Halb + 3.5f;
 
     private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Vector3[], Vector3[]> _karrenWege = new();
 
-    /// <summary>Der Weg des Karrens zum Markt, gekürzt auf den Rand des Platzes (<see cref="KarrenWegBisPlatzrand"/>); je Weg nur einmal gerechnet.</summary>
+    /// <summary>
+    /// Der Weg des Karrens zum Markt seines Betriebs, gekürzt auf den Halt am Rand des Pflasters (<see cref="KarrenWegBisPlatzrand"/>); je Weg nur einmal gerechnet.
+    /// <see cref="BetriebsAnsicht.WegZumMarkt"/> reicht bis zur Platzmitte (das Gassennetz kennt den Brunnen als Knoten); gezeigt wird nur bis zum Halt.
+    /// </summary>
     private Vector3[] KarrenWeg(BetriebsAnsicht ansicht)
     {
+        if (ansicht.Markt is not { } platz) return ansicht.WegZumMarkt;
         if (!_karrenWege.TryGetValue(ansicht.WegZumMarkt, out var weg))
-            _karrenWege.Add(ansicht.WegZumMarkt, weg = KarrenWegBisPlatzrand(ansicht.WegZumMarkt, KarrenHaltAmMarkt));
+            _karrenWege.Add(ansicht.WegZumMarkt, weg = KarrenWegBisPlatzrand(ansicht.WegZumMarkt, platz, KarrenHaltAmMarkt(platz)));
         return weg;
     }
 
     /// <summary>
     /// Der Weg endet in der Platzmitte (im Brunnen): Karren halten und wenden dort, wo ihre Zufahrtsgasse auf den Platz trifft. Schneidet den Weg
-    /// an dem Punkt ab, an dem er das Quadrat mit der halben Seite <paramref name="halb"/> um die Platzmitte betritt. Beginnt der Weg schon darin
-    /// (ein Betrieb am Markt) oder berührt er den Platz nicht, bleibt er, wie er ist.
+    /// an dem Punkt ab, an dem er das Quadrat mit der halben Seite <paramref name="halb"/> um die Mitte des Platzes <paramref name="platz"/> betritt. Beginnt der
+    /// Weg schon darin (ein Betrieb am Markt) oder berührt er den Platz nicht, bleibt er, wie er ist.
     /// </summary>
-    private Vector3[] KarrenWegBisPlatzrand(Vector3[] weg, float halb)
+    private static Vector3[] KarrenWegBisPlatzrand(Vector3[] weg, MarktplatzAnsicht platz, float halb)
     {
         float Rand(Vector3 p) // in Koordinaten des Platzes (er darf gedreht sein)
         {
-            var lokal = MarktLokal(p);
+            var lokal = platz.Lokal(p);
             return Math.Max(Math.Abs(lokal.X), Math.Abs(lokal.Z));
         }
         if (weg.Length < 2 || Rand(weg[0]) < halb) return weg;
@@ -262,15 +270,17 @@ public partial class Stadtansicht
         // Mehrere Karren eines Betriebs fahren hintereinander statt ineinander (mit den Tieren sind sie bis zu 6 m lang): Karren Nr. n
         // liegt immer n · KarrenAbstand weiter Richtung Markt als der erste. Am Halteplatz warten sie so in einer Reihe auf dem Weg,
         // und auf der Rückfahrt kommt der erste zuerst an.
+        // Der Weg führt zu dem Platz, zu dem der Betrieb gehört (wie im Kern), und endet am Halt am Rand seines Pflasters
         var weg = KarrenWeg(ansicht);
         var laenge = WegLaenge(weg);
         var versatz = laenge > 0 ? nummer * KarrenAbstand / laenge : 0f;
         // Am Markt halten die Karren ebenfalls in der Reihe: der letzte ganz vorn, die übrigen je einen Abstand dahinter
         var spaet = laenge > 0 ? (ansicht.Betrieb.Karren.Count - 1 - nummer) * KarrenAbstand / laenge : 0f;
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
-        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026), und der Kern rechnet seine Fahrzeit seit Datenversion 65 genauso (nach
-        // Weglänge): Die Profile dauern genau so lange wie die Fahrt im Kern, der Karren kommt an, wenn die Ware verkauft wird. Bleibt doch ein
-        // Rückstand (alte Daten, Laden mitten in der Fahrt), löst ihn der Karrenzug auf; der Kern gilt, wo keiner hinsieht.
+        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Ochse 0,8, Hand 1,0, Pferd 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
+        // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo, aber über seine Karrenstraßen bis zur Platzmitte und ohne
+        // das Stück vom Hof zur Straße; das Bild fährt vom Hof bis zum Halt am Pflasterrand. Wer früher da ist, wartet am Markt, bis der Kern
+        // verkauft; wer später kommt, kehrt dort sofort um (Karrenzug). Wo keiner hinsieht, gilt der Kern (Abgleichen).
         var (hin, zurueck) = ZugProfileVon(ansicht.Betrieb, karren, ansicht);
         var zug = gezeigt.Zug;
         if (gezeigt.ZugProfile is { } alt && !ReferenceEquals(alt.Hin, hin)) zug.Umstellen(alt.Hin, alt.Zurueck, hin, zurueck); // der Belag hat sich geändert
@@ -286,6 +296,8 @@ public partial class Stadtansicht
                 zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         }
         gezeigt.Geschwindigkeit = sim.Takt.IstPausiert ? 0 : (float)(zug.MeterJeMinute(hin, zurueck) * sim.Takt.TicksProSekunde);
+        // Am Halt (Ende der Fahrt, auch wenn der Karren hinter einem anderen wartet) rollt er nicht mehr
+        if (zug.Etappe is Etappe.Hin or Etappe.Zurueck && zug.Weg(hin, zurueck) + versatz > 1f - spaet) gezeigt.Geschwindigkeit = 0;
         Vector3 ziel;
         Vector3 blick;
         if (zug.Etappe == Etappe.Hof && ansicht.KarrenReihe is { } reihe)
@@ -324,6 +336,7 @@ public partial class Stadtansicht
         // Das Ziel wandert dank des Minuten-Bruchteils schon stetig. Das kurze Hinterhergleiten
         // fängt nur noch echte Sprünge ab (Abfahrt vom Hof, Ankunft, Tempowechsel).
         knoten.Position = knoten.Position.Lerp(ziel, (float)Math.Min(1, delta * 10));
+        KarrenMessen(gezeigt, karren, ansicht, zug.Etappe, zug.Etappe == Etappe.Hin && zug.Weg(hin, zurueck) + versatz > 1f - spaet, jetztGenau, Stelle((float)zug.Weg(hin, zurueck)) * laenge, knoten.Position, neu);
         var richtung = blick - knoten.Position;
         richtung.Y = 0;
         if (richtung.LengthSquared() > 0.01f)
@@ -360,6 +373,67 @@ public partial class Stadtansicht
     }
 
     /// <summary>
+    /// Messzeile der sichtbaren Hinfahrt (<c>[karren] …</c> im Log): Der Karren wird vom Abfahren bis zum Halt am Pflasterrand begleitet – gefahrene Strecke auf dem Weg (die Stelle, an der der Karren gezeigt wird; ohne die Rechtsspur),
+    /// Spielminuten und daraus das Tempo in Metern je Sekunde bei Tempo 1 (Spielminute = <see cref="Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute"/>
+    /// Sekunden), dazu die Kern-Fahrzeit. Nur Fahrten, die man von der Abfahrt an im Bild sah (nicht abgeglichen, nicht aus dem Bild).
+    /// </summary>
+    private void KarrenMessen(KarrenAnsicht k, Karren karren, BetriebsAnsicht a, Etappe etappe, bool amHalt, double jetzt, float meter, Vector3 ort, bool neu)
+    {
+        if (etappe != Etappe.Hin)
+        {
+            // Die Hinfahrt ist zu Ende (am Halt angekommen): messen, wenn sie von der Abfahrt an im Bild war
+            var gueltig = k.HinStart >= 0 && etappe == Etappe.Markt;
+            var (start, strecke) = (k.HinStart, k.HinStrecke);
+            k.HinStart = -1;
+            if (gueltig) KarrenfahrtGesehen(karren, a, strecke, jetzt - start);
+            return;
+        }
+        if (k.HinStart == -2) return;
+        if (!KarrenImBild(ToGlobal(ort)) && !amHalt) { k.HinStart = -2; return; }
+        if (k.HinStart == -1)
+        {
+            if (neu || amHalt) { k.HinStart = -2; return; }
+            (k.HinStart, k.HinStrecke, k.HinLetzte) = (jetzt, 0, meter);
+            return;
+        }
+        k.HinStrecke += Math.Abs(meter - k.HinLetzte);
+        k.HinLetzte = meter;
+        if (!amHalt) return;
+        var minuten = jetzt - k.HinStart;
+        var gezeigt = k.HinStrecke;
+        k.HinStart = -2;
+        KarrenfahrtGesehen(karren, a, gezeigt, minuten);
+    }
+
+    private void KarrenfahrtGesehen(Karren karren, BetriebsAnsicht a, float strecke, double minuten)
+    {
+        if (minuten <= 0) return;
+        var tempo = strecke / (minuten * Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute);
+        var kern = _wirtschaft?.Fahrzeit(karren, true) ?? 0;
+        GD.Print($"[karren] Fahrt gesehen: {a.Betrieb.Name} {karren.Typ} {karren.Name} -> {a.Markt?.Name ?? "Ursprung"}: {strecke:0.0} m in {minuten:0.0} Spielminuten = {tempo:0.00} m/s bei Tempo 1 " +
+                 $"(Tempo der Art {karren.Daten.Tempo:0.0} m/s), Kern-Fahrzeit {kern} min, Unterschied {minuten - kern:+0.0;-0.0} min");
+    }
+
+    private readonly HashSet<(Betrieb, string)> _karrenfahrtenGemeldet = new();
+
+    /// <summary>
+    /// Einmal je Betrieb und Karrenart eine Messzeile <c>[karren] Profil …</c>: der gezeigte Weg (vom Hof bis zum Halt am Pflasterrand) und der Weg des
+    /// Kerns (Karrenstraßen vom Platz des Betriebs bis zur Platzmitte), die Fahrzeit des Kerns und die, die der Karren im festen Tempo seiner Art (mit
+    /// Steigung, Belag, Furt und Fähre) für den gezeigten Weg braucht – dazu, um wie viel er früher (−) oder später (+) am Halt ist als der Kern am Markt.
+    /// Die Längen unterscheiden sich um das Stück vom Hof zur Straße (der Kern zählt es nicht) und um das Stück vom Pflasterrand zur Platzmitte (das
+    /// Bild fährt es nicht); die Höchstdauer des Kerns (<c>logistik.weglaenge</c>) kappt lange Fahrten.
+    /// </summary>
+    private void KarrenfahrtMelden(Betrieb betrieb, Karren karren, BetriebsAnsicht ansicht, float laenge,
+        (IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> Hin, IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> Zurueck)? fahrten, Stadtwirtschaft w, Fahrprofil hin)
+    {
+        if (!_karrenfahrtenGemeldet.Add((betrieb, karren.Typ)) || fahrten is null) return;
+        var kern = w.Fahrzeit(karren, true);
+        var kernLaenge = fahrten.Value.Hin.Sum(s => s.Laenge);
+        GD.Print($"[karren] Profil: {betrieb.Name} {karren.Typ} -> {ansicht.Markt?.Name ?? "Ursprung"}: Weg im Bild {laenge:0} m bis zum Halt (Kern {kernLaenge:0} m bis zur Platzmitte), " +
+                 $"im festen Tempo {hin.Dauer:0.0} min, Kern-Fahrzeit {kern} min, Ankunft {hin.Dauer - kern:+0.0;-0.0} min ({(hin.Dauer - kern) / Math.Max(kern, 1) * 100:+0;-0} %)");
+    }
+
+    /// <summary>
     /// Wo der Kern den Karren auf dem Weg hat (0 = Hof, 1 = Markt): aus der Zeit der Fahrt, über dieselben Profile wie der Zug (Steigung, Belag,
     /// Furten und Fähren). Nur der Abgleich braucht das (<see cref="Karrenzug.Abgleichen"/>); gezeigt wird der Karren an der Stelle seines Zuges.
     /// </summary>
@@ -377,20 +451,22 @@ public partial class Stadtansicht
     /// Das Tempo des Karrens auf der Karrenstraße, alles aus dem Kern: das Tempo seiner Art (<see cref="KarrenDaten.MeterJeMinute"/>, fest mit der
     /// Standard-Rundendauer wie im Kern) auf ebenem Fahrweg, je Stück geteilt durch den Zeitfaktor des Kerns (<c>Stadtwirtschaft.Zeitfaktor</c>:
     /// bergauf und auf schlechtem Belag langsamer, Ausbau höchstens 15 % schneller). Furten bremsen, Fähren halten auf. Die Länge ist die des
-    /// gezeigten Weges (bis zum Rand des Platzes); das Profil dauert genau die Fahrzeit des Kerns (<c>Stadtwirtschaft.Fahrzeit</c>).
+    /// gezeigten Weges (vom Hof bis zum Halt am Rand des Pflasters); das Profil wird nicht auf die Fahrzeit des Kerns gestreckt (Tempo bleibt fest),
+    /// die Abweichung zum Kern steht einmal je Betrieb im Log (<see cref="KarrenfahrtMelden"/>).
     /// </summary>
     private (Fahrprofil Hin, Fahrprofil Zurueck) ZugProfileVon(Betrieb betrieb, Karren karren, BetriebsAnsicht ansicht)
     {
         if (_zugprofile.TryGetValue((betrieb, karren.Typ), out var bekannt)) return bekannt;
-        var laenge = WegLaenge(KarrenWeg(ansicht));
+        var laenge = WegLaenge(KarrenWeg(ansicht)); // bis zum Halt am Pflasterrand
         var meterJeMinute = karren.Daten.MeterJeMinute > 0 ? karren.Daten.MeterJeMinute : Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute; // ohne Tempo: 1 m/s
         if (_wirtschaft is not { } w)
             return (new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute), new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute));
         var fahrten = w.Fahrten(betrieb);
         var wasser = w.Karte?.Wasserplan.HaeltAuf == true ? w.Daten.Logistik.Wasser : null;
-        Fahrprofil Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck>? fahrt, bool zumMarkt) =>
-            new(Karrentempo.Stuecke(fahrt, w.Zeitfaktor, wasser?.FurtMinuten ?? 0, wasser?.FaehreMinuten ?? 0), laenge, meterJeMinute, w.Fahrzeit(karren, zumMarkt));
-        var profile = (Profil(fahrten?.Hin, true), Profil(fahrten?.Zurueck, false));
+        Fahrprofil Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck>? fahrt) =>
+            new(Karrentempo.Stuecke(fahrt, w.Zeitfaktor, wasser?.FurtMinuten ?? 0, wasser?.FaehreMinuten ?? 0), laenge, meterJeMinute);
+        var profile = (Profil(fahrten?.Hin), Profil(fahrten?.Zurueck));
+        KarrenfahrtMelden(betrieb, karren, ansicht, laenge, fahrten, w, profile.Item1);
         if (fahrten is not null || w.Karte is null) _zugprofile[(betrieb, karren.Typ)] = profile; // ohne Platz noch nicht merken: er kann kommen
         return profile;
     }

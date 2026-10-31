@@ -90,12 +90,14 @@ public partial class Stadtansicht
         var schild = Beschriftung(betrieb.Name, p.Mitte + new Vector3(0, (float)(baustein?.SchildHoehe ?? 10.5), 0), 44, kennung: kennung);
 
         var hof = lage * anker;
+        var markt = MarktFuer(betrieb);
         return new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p.Mitte,
             Hof = hof,
-            WegZumMarkt = MarktWeg(hof, KarrenwegBreite),
+            Markt = markt,
+            WegZumMarkt = MarktWeg(hof, KarrenwegBreite, markt),
             Modell = modell,
             Schild = schild,
             KarrenReihe = lage.Basis.Orthonormalized() * new Vector3(anker.X <= 0 ? 4 : -4, 0, 0),

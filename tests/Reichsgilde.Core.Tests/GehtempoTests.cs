@@ -234,6 +234,54 @@ static class GehtempoTests
             Pruefe.Ungefaehr(0.5, z.Weg(neuHin, neuZurueck), 1e-9);
         }),
 
+        ("Fahrprofil ohne Kernzeit: fester Tempo auf ebenem Weg, kein Strecken – der Karren ist früher oder später da als der Kern und der Zug gleicht das aus", () =>
+        {
+            // Kern 27 min, Weg im Bild nur 15 m (Hof bis Pflasterrand): bei 0,79 m je Minute 19 min – früher da, wartet am Markt
+            var kurz = Eben(15, 0.79);
+            Pruefe.Ungefaehr(15 / 0.79, kurz.Dauer, 1e-9);
+            for (var t = 0.0; t < kurz.Dauer; t += kurz.Dauer / 20)
+                Pruefe.Ungefaehr(0.79, kurz.MeterJeMinute(t), 1e-9); // überall das feste Tempo
+            var zug = new Karrenzug();
+            zug.Weiter(0, KarrenZustand.ZumMarkt, kurz, kurz);
+            zug.Weiter(25, KarrenZustand.ZumMarkt, kurz, kurz);
+            Pruefe.Gleich(Etappe.Markt, zug.Etappe, "nach 25 Minuten am Markt, der Kern sagt noch „zum Markt“ (27 min)");
+            zug.Weiter(5, KarrenZustand.ZumMarkt, kurz, kurz);
+            Pruefe.Gleich(Etappe.Markt, zug.Etappe, "wartet auf den Kern");
+            // Weg im Bild 40 m = 51 min bei Kern 27: später da – der Kern hat schon verkauft, der Karren kehrt am Markt sofort um
+            var lang = Eben(40, 0.79);
+            var spaet = new Karrenzug();
+            spaet.Weiter(0, KarrenZustand.ZumMarkt, lang, lang);
+            spaet.Weiter(30, KarrenZustand.ZumMarkt, lang, lang);
+            Pruefe.Gleich(Etappe.Hin, spaet.Etappe);
+            spaet.Weiter(25, KarrenZustand.ZumBetrieb, lang, lang);
+            Pruefe.Wahr(spaet.Etappe == Etappe.Zurueck || spaet.Etappe == Etappe.Hof, $"kehrt sofort um, ist aber {spaet.Etappe}");
+        }),
+
+        ("Köln: Karren fahren zu verschiedenen Marktplätzen, jeder Betrieb zu einem Platz der Karte, mit der Fahrzeit des Kerns auf seinem Weg", () =>
+        {
+            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
+            var w = sim.Wirtschaft!;
+            Pruefe.Gleich(3, karte.Marktplaetze.Count, "Heumarkt, Alter Markt, Neumarkt");
+            var plaetze = new HashSet<string>();
+            foreach (var b in w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }))
+            {
+                var platz = w.MarktplatzVon(b);
+                Pruefe.Wahr(platz is not null && karte.Marktplaetze.Contains(platz), $"{b.Name}: kein Marktplatz der Karte");
+                plaetze.Add(platz!.Name);
+                foreach (var typ in Arten)
+                {
+                    var fahrt = w.Fahrten(b)!.Value.Hin;
+                    var jeMinute = w.Daten.Logistik.Karren[typ].MeterJeMinute;
+                    var frei = new Fahrprofil(Karrentempo.Stuecke(fahrt, w.Zeitfaktor, w.Daten.Logistik.Wasser!.FurtMinuten, w.Daten.Logistik.Wasser.FaehreMinuten), fahrt.Sum(s => s.Laenge), jeMinute);
+                    var grenzen = w.Daten.Logistik.Weglaenge!;
+                    if (frei.Dauer >= grenzen.MindestMinuten && frei.Dauer <= grenzen.HoechstMinuten)
+                        Pruefe.Wahr(Math.Abs(frei.Dauer - w.Fahrzeit(b, typ, true)) <= 0.5 + 1e-9, $"{b.Name}/{typ}: im festen Tempo {frei.Dauer:0.0} min, Kern {w.Fahrzeit(b, typ, true)} min");
+                }
+            }
+            Pruefe.Wahr(plaetze.Count >= 2, $"alle Karren zu einem Platz ({string.Join(", ", plaetze)})");
+        }),
+
         ("Karren auf Greybox und Köln: nie schneller als Grundtempo ×1,15, auch auf den Karrenstraßen der Karten", () =>
         {
             foreach (var kennung in new[] { "greybox", "koeln" })
