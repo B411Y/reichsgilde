@@ -8,7 +8,8 @@ public readonly record struct Ladeschritt(float Anteil, string Text);
 
 /// <summary>
 /// Der Ladebildschirm vor einer neuen Partie, einem geladenen Spielstand und der Kartenwerkstatt: oben ein wechselnder Tipp aus
-/// <c>res://daten/ladetipps.json</c>, in der Mitte ein großes Bild (Platzhalter: die Kartenvorschau der Stadt aus
+/// <c>res://daten/ladetipps.json</c>, in der Mitte ein quadratisches Holzschnitt-Bild in einer Tafel (Platzhalter: eines von acht Bildern aus
+/// <c>assets/oberflaeche/ladebilder/</c>, je Ladevorgang zufällig, nie zweimal dasselbe hintereinander; fehlen sie, die Kartenvorschau der Stadt aus
 /// <c>assets/oberflaeche/karten/</c>), darunter der Fortschritt als Pergamentstreifen (<see cref="Ladebalken"/>) mit dem Abschnitt, der gerade läuft.
 /// Er hängt an der Wurzel des Baums, nicht an einer Szene: Das Hauptmenü öffnet ihn, die Hauptszene bzw. Kartenwerkstatt baut sich dahinter
 /// Abschnitt für Abschnitt auf (<see cref="Durchlaufen"/>, ein Abschnitt je Bild, damit er nicht einfriert) und schließt ihn erst, wenn die Stadt
@@ -22,6 +23,14 @@ public partial class Ladebildschirm : CanvasLayer
 
     private const string TippDatei = "res://daten/ladetipps.json";
     private const double TippSekunden = 7;
+    private const string BilderOrdner = "res://assets/oberflaeche/ladebilder/";
+
+    /// <summary>Die Holzschnitt-Platzhalter (Dateinamen ohne Endung); Quelle und Prompts: <c>docs/assets/prompts/ladebilder.md</c>.</summary>
+    private static readonly string[] Bilder = { "schmied", "markt", "zimmerleute", "mahlzeit", "kaufmann", "stadtansicht", "ochsenkarren", "prediger" };
+
+    private static int _letztesBild = -1;
+
+    private static readonly Color HolzRahmen = new(0.34f, 0.22f, 0.12f);
 
     private TextureRect _bild = null!;
     private Label _tipp = null!;
@@ -77,21 +86,29 @@ public partial class Ladebildschirm : CanvasLayer
         _tipp.AddThemeColorOverride("font_color", Oberflaechenstil.Schrift);
         spalte.AddChild(_tipp);
 
-        // Das Bild in einem Holzschnitt-Rahmen: schwarzer Umriss, darin ein schmaler Pergamentrand
-        var rahmen = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        rahmen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        // Das Bild als Tafel: außen ein Holzrahmen mit schwarzem Umriss, darin ein Pergamentrand um den Holzschnitt (Blatt im Rahmen)
+        var holz = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter };
+        holz.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = HolzRahmen, BorderColor = Ladebalken.Tinte,
+            BorderWidthLeft = 3, BorderWidthTop = 3, BorderWidthRight = 3, BorderWidthBottom = 3,
+            ContentMarginLeft = 12, ContentMarginTop = 12, ContentMarginRight = 12, ContentMarginBottom = 12,
+        });
+        spalte.AddChild(holz);
+        var blatt = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        blatt.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = Ladebalken.Pergament, BorderColor = Ladebalken.Tinte,
-            BorderWidthLeft = 3, BorderWidthTop = 3, BorderWidthRight = 3, BorderWidthBottom = 3,
-            ContentMarginLeft = 7, ContentMarginTop = 7, ContentMarginRight = 7, ContentMarginBottom = 7,
+            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
+            ContentMarginLeft = 6, ContentMarginTop = 6, ContentMarginRight = 6, ContentMarginBottom = 6,
         });
-        spalte.AddChild(rahmen);
+        holz.AddChild(blatt);
         _bild = new TextureRect
         {
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCovered,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        rahmen.AddChild(_bild);
+        blatt.AddChild(_bild);
         _balken = new Ladebalken();
         spalte.AddChild(_balken);
         _spalte = spalte;
@@ -114,21 +131,34 @@ public partial class Ladebildschirm : CanvasLayer
         if (Aktuell == this) Aktuell = null;
     }
 
-    /// <summary>Bild und Balken folgen der Fenstergröße: das Bild 16 : 9, so breit es neben Tipp und Balken passt.</summary>
+    /// <summary>
+    /// Bild und Balken folgen der Fenstergröße: das Bild quadratisch (1 : 1, nie verzerrt), so groß es über Tipp und Balken passt;
+    /// Tipp und Balken sind breiter als das Bild (bis 72 % des Fensters, höchstens 760), damit sie nicht zusammengedrückt wirken.
+    /// </summary>
     private void Anpassen()
     {
         var flaeche = GetViewport().GetVisibleRect().Size;
-        var breite = Mathf.Min(flaeche.X * 0.72f, (flaeche.Y - 260) * 16 / 9);
-        breite = Mathf.Max(breite, 320);
-        _bild.CustomMinimumSize = new Vector2(breite, breite * 9 / 16);
-        _balken.CustomMinimumSize = new Vector2(breite + 20, 54);
-        _tipp.CustomMinimumSize = new Vector2(breite, 58);
+        var seite = Mathf.Clamp(Mathf.Min(flaeche.X * 0.72f, flaeche.Y - 300), 240, 760);
+        var breite = Mathf.Max(seite + 54, Mathf.Min(flaeche.X * 0.72f, 760));
+        _bild.CustomMinimumSize = new Vector2(seite, seite);
+        _balken.CustomMinimumSize = new Vector2(breite, 54);
+        _tipp.CustomMinimumSize = new Vector2(breite - 20, 58);
         _spalte.ResetSize();
     }
 
+    /// <summary>Wählt ein Holzschnitt-Bild zufällig, nie dasselbe wie beim vorigen Ladevorgang; fehlt es, die Kartenvorschau.</summary>
     private void BildSetzen(string? karte)
     {
-        var pfad = $"res://assets/oberflaeche/karten/{karte}.png";
+        var nummer = (int)(GD.Randi() % (uint)Bilder.Length);
+        if (nummer == _letztesBild) nummer = (nummer + 1 + (int)(GD.Randi() % (uint)(Bilder.Length - 1))) % Bilder.Length;
+        var pfad = $"{BilderOrdner}{Bilder[nummer]}.webp";
+        if (ResourceLoader.Exists(pfad))
+        {
+            _letztesBild = nummer;
+            _bild.Texture = ResourceLoader.Load<Texture2D>(pfad);
+            return;
+        }
+        pfad = $"res://assets/oberflaeche/karten/{karte}.png";
         if (karte is null || !ResourceLoader.Exists(pfad)) pfad = "res://assets/oberflaeche/karten/koeln.png";
         _bild.Texture = ResourceLoader.Exists(pfad) ? ResourceLoader.Load<Texture2D>(pfad) : null;
     }
