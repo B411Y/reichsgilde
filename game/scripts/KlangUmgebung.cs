@@ -241,6 +241,9 @@ public partial class KlangUmgebung : Node
     {
         foreach (var ton in _toene.Values) ton.Dispose();
         _toene.Clear();
+        // Ladeaufträge, die beim Beenden noch laufen, abwarten und das Ergebnis loslassen: Sonst bleiben die Klänge beim Abbau „in Benutzung“.
+        foreach (var (_, pfad) in _ausstehend)
+            ResourceLoader.LoadThreadedGet(pfad)?.Dispose();
         _ausstehend.Clear();
         foreach (var effekt in new AudioEffect?[] { _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke, _panDonner, _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke, _tiefpassDonner })
             effekt?.Dispose();
