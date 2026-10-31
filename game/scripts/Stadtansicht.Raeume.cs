@@ -65,24 +65,32 @@ public partial class Stadtansicht
             BackgroundMode = Godot.Environment.BGMode.Color,
             BackgroundColor = new Color(0.03f, 0.025f, 0.02f),
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
-            AmbientLightColor = new Color(0.92f, 0.82f, 0.66f),
+            AmbientLightColor = RaumGrundlichtFarbe,
             AmbientLightEnergy = 0.45f,
         };
         // Perspektive (Fluchtpunkte) statt der Schrägansicht der Stadt: Man steht im Raum.
         _raumKamera = new Camera3D { Name = "Raumkamera", Fov = 50, Near = 0.1f, Far = 120, Environment = _raumUmgebung, CullMask = uint.MaxValue }; // alle Ebenen: jeder Raum eines Modells hat seine eigene (bis Ebene 22)
         AddChild(_raumKamera);
+        GiRaumlichtAufbauen(); // mit SDFGI: Grundlicht anteilig und Fülllicht (Stadtansicht.GlobaleBeleuchtung.cs)
         _fensterglas = Material(new Color(0.2f, 0.22f, 0.26f));
         _fensterglas.EmissionEnabled = true;
         RaumOberflaecheAufbauen(); // Pfeile, Rahmen und Namensschild (Stadtansicht.Innenkamera.cs)
     }
 
+    /// <summary>Farbe des Grundlichts der Räume (Umgebungslicht, warm wie Kerzen- und Herdlicht).</summary>
+    private static readonly Color RaumGrundlichtFarbe = new(0.92f, 0.82f, 0.66f);
+
+    /// <summary>Stärke des Grundlichts der Räume nach der Tageszeit (<paramref name="hell"/> 0 = Nacht, 1 = Tag).</summary>
+    private static float RaumGrundlicht(float hell) => 0.2f + 0.35f * hell;
+
     /// <summary>Tag und Nacht im Raum: Umgebungslicht und Fenster folgen dem Himmel draußen (<paramref name="hell"/> 0 = Nacht, 1 = Tag).</summary>
     private void RaumlichtSetzen(Color himmel, float hell)
     {
         _raumHell = hell;
-        _raumUmgebung.AmbientLightEnergy = 0.2f + 0.35f * hell;
+        _raumUmgebung.AmbientLightEnergy = RaumGrundlicht(hell);
         _fensterglas.Emission = himmel;
         _fensterglas.EmissionEnergyMultiplier = 0.2f + 1.1f * hell;
+        GiRaumlichtNachfuehren(hell); // mit SDFGI: Grundlicht anteilig und Fülllicht (Stadtansicht.GlobaleBeleuchtung.cs)
     }
 
     private static IEnumerable<Raum> Zugaengliche(InnenAnsicht a) => a.Raeume.Where(r => r.Zugaenglich?.Invoke() ?? true);
@@ -94,7 +102,11 @@ public partial class Stadtansicht
         foreach (var klick in a.Raumklicks) klick.Disabled = !innen;
         _sonne.Visible = !innen;
         RaumOberflaecheUmschalten(innen);
-        if (innen) _raumKamera.MakeCurrent();
+        if (innen)
+        {
+            _raumKamera.MakeCurrent();
+            _giRaumHellBeimAnlegen = _raumHell; // Godot legt das Feld der Raumansicht beim Betreten ohnehin neu an (Stadtansicht.GlobaleBeleuchtung.cs)
+        }
         else
         {
             ((Camera3D?)_freieKamera ?? _kamera).MakeCurrent(); // zurück zur freien Kamera, wenn sie lief (Stadtansicht.FreieKamera.cs)

@@ -227,7 +227,7 @@ public partial class Stadtansicht
             for (var i = 0; i < q.Felder; i++)
             {
                 var mitte = a + d * (feld * (i + 0.5f));
-                if (i > 0) _wasserPfeiler.Add((a + d * (feld * i), 0.6f, 2.5f)); // Pfähle zwischen den Jochen: Eisschollen weichen aus
+                if (i > 0) _wasserPfeiler.Add((a + d * (feld * i), 0.6f, 2.5f, false)); // Pfähle zwischen den Jochen: Eisschollen weichen aus
                 WasserTeil(datei, "Holz_Joch", gruppe, BausteinLage(mitte, ufer, phi, streckung));
                 WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, ufer, phi, streckung));
                 WasserTeil(datei, "Holz_Gelaender", gruppe, BausteinLage(mitte, ufer, phi + Mathf.Pi, streckung));
@@ -249,7 +249,7 @@ public partial class Stadtansicht
                 if (i + 1 < q.Felder)
                 {
                     WasserTeil(datei, "Stein_Pfeiler", gruppe, BausteinLage(a + d * (i * (feld + 2f) + feld + 1f), ufer, phi)); // nie gedreht: Eisbrecher stromauf
-                    _wasserPfeiler.Add((a + d * (i * (feld + 2f) + feld + 1f), 1.4f, 4f)); // Eisschollen weichen dem Pfeiler aus
+                    _wasserPfeiler.Add((a + d * (i * (feld + 2f) + feld + 1f), 1.4f, 4f, true)); // Eisschollen stoßen an Pfeiler und Eisbrecher
                 }
             }
             FahrflaecheBruecke(a, d, weite, q, flach: 2, rampe: 8);

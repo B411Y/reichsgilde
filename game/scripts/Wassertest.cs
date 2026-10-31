@@ -38,7 +38,7 @@ public partial class Wassertest : Node3D
     private readonly List<(Schollenfeld Feld, Wasserart Art, float Winter)> _schollen = new();
     private bool _schollenAn = true;
     private Camera3D? _kamera;
-    private static readonly List<Schollenfeld.Hindernis> KeineHindernisse = new();
+    private static readonly List<Schollensimulation.Hindernis> KeineHindernisse = new();
 
     public override void _Ready()
     {
@@ -107,6 +107,7 @@ public partial class Wassertest : Node3D
         RenderingServer.GlobalShaderParameterSet("wellen_seegang", w.Wind); // Testszene: Seegang sofort (im Spiel träge, Stadtansicht.Wetter.cs)
         RenderingServer.GlobalShaderParameterSet("wind_richtung", wind);
         RenderingServer.GlobalShaderParameterSet("wetter_regen", w.Regen);
+        RenderingServer.GlobalShaderParameterSet("wetter_ringe", w.Regen); // die Regenringe des Wassers lesen seit Regen 4 die Dichte der Tropfen
         RenderingServer.GlobalShaderParameterSet("wetter_schnee", schnee);
         var himmel = new Color(0.47f, 0.60f, 0.72f).Lerp(new Color(0.34f, 0.36f, 0.39f), w.Wolken);
         RenderingServer.GlobalShaderParameterSet("wetter_himmel", new Vector3(himmel.R, himmel.G, himmel.B));
@@ -214,9 +215,9 @@ public partial class Wassertest : Node3D
     /// <summary>Eisschollen als Körper (Phase 3c) auf dem Fluss des Feldes: eine gerade Mittellinie längs z, 36 m breit, wie <see cref="Gelaende"/>.</summary>
     private void SchollenFeld(Wasserart art, Vector3 mitte, float winter)
     {
-        var lauf = new Schollenfeld.Laufpunkt[61];
+        var lauf = new Schollensimulation.Laufpunkt[61];
         for (var i = 0; i < lauf.Length; i++)
-            lauf[i] = new Schollenfeld.Laufpunkt(new Vector2(mitte.X, mitte.Z - 30f + i), 0f, 18f, Vector2.Up);
+            lauf[i] = new Schollensimulation.Laufpunkt(new Vector2(mitte.X, mitte.Z - 30f + i), 0f, 18f, Vector2.Up);
         var feld = new Schollenfeld(lauf, art.Stroemung, art.EisReichweite, 7, Wasserarten.StufeVorgabe ?? Wasserstufe.Hoch, new(), "Testfeld");
         Wasserarten.WellenSetzen(feld.Stoff, art, Vector2.Up, lauf: false, fliesst: true, 0f, 0f);
         AddChild(feld.Knoten);
