@@ -160,6 +160,12 @@ GESICHT_FETT = ({"probe_head_fat_incr": 0.5, "probe_cheek_volume_incr": 0.4, "pr
 
 
 STAERKE_MAX = 0.6          # Formgewicht je σ höchstens 0,6: bei 2σ 1,2 = Obergrenze des Budgets je MakeHuman-Ziel
+# Populationskorrektur (ein Durchgang an der 1000er-Prüfung „nur Gene“, Startwerte 10001–11000): Faktor = 0,75 / gemessener
+# Anteil der natürlichen Streuung, je Geschlecht (m, w). Am Mittelgesicht geeicht, streuen manche Maße in der Bevölkerung
+# anders (Budget kürzt Lippen und Kinn, andere Gene wirken mit). Unterkiefer bleibt: dort wirken Kopf- und Gesichtsbreite
+# mit (realistisch korreliert); er wird gegen ICT × 0,7 und gegen die Bigonialbreite mit Fett (σ ≈ 10 mm) berichtet.
+POP_FAKTOR = {"lippen": (1.5, 1.55), "kinn": (1.2, 1.45), "gesicht_breite": (0.83, 1.25), "mund_breite": (0.78, 1.2),
+              "nase_breite": (1.0, 0.77), "gesicht_laenge": (1.05, 1.15)}
 
 
 def ziel_mm(spez, g):
@@ -182,7 +188,11 @@ def main():
     erbgut = {g["kennung"]: g for g in json.load(open(ERBGUT, encoding="utf-8"))["gene"]}
     bericht = {"glb": opt["glb"]}
     regeln_gene = {}
-    rezept = {k: v for k, v in rezept_s4.items()}
+    rezept = {k: dict(v) for k, v in rezept_s4.items()}
+    # Lidfalte als eigene Form (der Kopf blendet sie beim Lidschluss aus), nicht in der Reifeform
+    for g in "mw":
+        if f"eigen_lidfalte_{g}" in rezept[f"alter_reife_{g}_oben"]:
+            rezept[f"lidfalte_{g}"] = {f"eigen_lidfalte_{g}": rezept[f"alter_reife_{g}_oben"].pop(f"eigen_lidfalte_{g}")}
 
     def grund(g):
         w = dict(pers[f"mittel_{g}35"]["szene"])
@@ -214,6 +224,11 @@ def main():
                 st[richt] = round(min(z / abs(d), STAERKE_MAX), 4) if abs(d) > 1e-6 else 0.0
                 e.setdefault("erreicht_mm_je_sigma", {}).setdefault(g, {})[richt] = round(st[richt] * abs(d), 3)
                 e["wirkung_mm_je_1"].setdefault(g, {})[richt] = round(d, 3)
+            if gen in POP_FAKTOR:
+                f = POP_FAKTOR[gen][0 if g == "m" else 1]
+                st = {r: round(min(v * f, STAERKE_MAX), 4) for r, v in st.items()}
+                e.setdefault("populationsfaktor", {})[g] = f
+                e["erreicht_mm_je_sigma"][g] = {r: round(st[r] * abs(e["wirkung_mm_je_1"][g][r]), 3) for r in st}
             e["staerke"][g] = st
             e.setdefault("ziel_mm_je_sigma", {})[g] = round(z, 3)
         if reife:
@@ -298,6 +313,12 @@ def main():
         print("Zug", name, json.dumps(e, ensure_ascii=False)[:220])
     zuege.sort(key=lambda t: -t[0])
     gewaehlt = zuege[:12]
+    # Eingefrorene Basis (Plan S6.3): gibt es zuege_basis_v1.json, gelten deren Rezepte; neu nur mit --zuege_neu=1 (als v2)
+    BASIS_DATEI = os.path.join(HIER, "zuege_basis_v1.json")
+    if os.path.exists(BASIS_DATEI) and opt.get("zuege_neu") != "1":
+        alt_basis = json.load(open(BASIS_DATEI, encoding="utf-8"))
+        gewaehlt = [(0.0, z["aus"], z["rezept"]) for zn, z in sorted(alt_basis["zuege"].items())]
+        bericht["zuege_eingefroren"] = True
     basis_zuege = {"version": 1, "quelle": "ICT-FaceKit identity000–015 (ohne 009), bereinigt um Geschlechtsachse (Frau 25 − Mann 25 aus "
                    "Makro und Reife) und Herkunftsachsen (MakeHuman african/asian, Mann und Frau), Skalarprodukt über die Gesichtsecken",
                    "zuege": {}}

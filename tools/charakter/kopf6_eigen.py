@@ -11,8 +11,9 @@ Formen (Stärke bei Gewicht 1; die Ausgleichsrechnung formen_ausgleich.py wählt
                       unter der Kante, aus bei 1,5 mm (die Kante selbst bleibt) und bei 30 mm; der Kieferwinkel bleibt Ecke
   eigen_unterwange    Unterwange bei |x| 40–55 mm, 55–85 mm unter n, 4 mm nach innen (weiche Ränder)
   eigen_jochbein      Jochbeinvorsprung 1,5 mm nach außen (unter dem äußeren Lidwinkel, |x| ≈ 46 mm)
-  eigen_lidfalte_m/_w Oberlidfalte als eine Rinne, 1,25 mm tief, 7,5 mm (Mann) bzw. 9,5 mm (Frau) über dem Lidrand,
-                      zu den Lidwinkeln flacher; Lidrand und Wimpernwurzeln bleiben (Maske 0 bis 2,5 mm vom Rand)
+  eigen_lidfalte_m/_w Oberlidfalte als eine weiche Rinne (σ 1,6 mm), 1,0 mm tief, 7,5 mm (Mann) bzw. 9,5 mm (Frau) über
+                      dem Lidrand, zu den Lidwinkeln flacher und auslaufend; Lidrand und Wimpernwurzeln bleiben (Maske 0
+                      bis 2,5 mm vom Rand). Der Kopf blendet sie beim Lidschluss aus (eigene Form „lidfalte_<g>“).
   eigen_traenenrinne  Tränenrinne vom inneren Lidwinkel schräg nach außen unten, 0,75 mm tief
   eigen_kopfnicker    Kopfnicker (Halsmuskel) vom Warzenfortsatz hinter dem Ohr zum Brustbein, Wulst 1,5 mm
   eigen_kieferwinkel  Kieferwinkel (um lm3/lm13) 4 mm zur Seite (S5: Gen kiefer_breite; mit negativem Gewicht schmaler)
@@ -132,10 +133,12 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001):
             drand, _ = _naechster(np.c_[xz[:, 0], np.zeros(len(V)), xz[:, 1]], np.c_[rl[:, 0], np.zeros(len(rl)), rl[:, 2]])
             nah_auge = np.linalg.norm(V - ps[s], axis=1) < 0.028
             vorn_auge = (V[:, 1] < ps[s][1]) & (Nv[:, 1] < -0.15)
-            enden = stufe(t[kf], 0.0, 0.08) * (1 - stufe(t[kf], 0.92, 1.0))
-            rinne = np.exp(-0.5 * (dfalte / (1.0 * mm)) ** 2) * enden
-            rinne *= stufe(drand, 0.0025, 0.004) * nah_auge * vorn_auge
-            dd += -Nv * (1.25 * mm * rinne)[:, None]
+            # Etappe B (Prüferbefund): breiter, flacher, weiche Enden – die schmale Rinne (σ 1 mm, 1,25 mm tief, kurze
+            # Enden) zeichnete sich beim geschlossenen Auge als harte Platte ab
+            enden = stufe(t[kf], 0.0, 0.25) * (1 - stufe(t[kf], 0.75, 1.0))
+            rinne = np.exp(-0.5 * (dfalte / (1.6 * mm)) ** 2) * enden
+            rinne *= stufe(drand, 0.0025, 0.005) * nah_auge * vorn_auge
+            dd += -Nv * (1.0 * mm * rinne)[:, None]
         ablegen(f"eigen_lidfalte_{wer}", dd)
         # Prüfung: Versatz am Lidrand (Ecken bis 1 mm vom Rand in der Vorderansicht)
         b = np.linalg.norm(aus[f"eigen_lidfalte_{wer}"][:n_haut], axis=1)

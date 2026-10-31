@@ -146,12 +146,12 @@
    "mass": "se_me",
    "staerke": {
     "m": {
-     "plus": 0.3714,
-     "minus": 0.4731
+     "plus": 0.39,
+     "minus": 0.4968
     },
     "w": {
-     "plus": 0.2912,
-     "minus": 0.3974
+     "plus": 0.3349,
+     "minus": 0.457
     }
    },
    "wirkung_mm_je_1": {
@@ -166,13 +166,17 @@
    },
    "erreicht_mm_je_sigma": {
     "m": {
-     "plus": 5.175,
-     "minus": 5.175
+     "plus": 5.435,
+     "minus": 5.434
     },
     "w": {
-     "plus": 4.351,
-     "minus": 4.35
+     "plus": 5.003,
+     "minus": 5.003
     }
+   },
+   "populationsfaktor": {
+    "m": 1.05,
+    "w": 1.15
    },
    "ziel_mm_je_sigma": {
     "m": 5.175,
@@ -187,12 +191,12 @@
    "mass": "zy",
    "staerke": {
     "m": {
-     "plus": 0.6,
-     "minus": 0.3709
+     "plus": 0.498,
+     "minus": 0.3078
     },
     "w": {
-     "plus": 0.2631,
-     "minus": 0.345
+     "plus": 0.3289,
+     "minus": 0.4312
     }
    },
    "wirkung_mm_je_1": {
@@ -207,13 +211,17 @@
    },
    "erreicht_mm_je_sigma": {
     "m": {
-     "plus": 4.765,
-     "minus": 5.026
+     "plus": 3.955,
+     "minus": 4.171
     },
     "w": {
-     "plus": 4.649,
-     "minus": 4.65
+     "plus": 5.812,
+     "minus": 5.811
     }
+   },
+   "populationsfaktor": {
+    "m": 0.83,
+    "w": 1.25
    },
    "ziel_mm_je_sigma": {
     "m": 5.025,
@@ -312,12 +320,12 @@
    "mass": "kinnvorsprung",
    "staerke": {
     "m": {
-     "plus": 0.41,
-     "minus": 0.4682
+     "plus": 0.492,
+     "minus": 0.5618
     },
     "w": {
-     "plus": 0.2361,
-     "minus": 0.4247
+     "plus": 0.3423,
+     "minus": 0.6
     }
    },
    "wirkung_mm_je_1": {
@@ -332,13 +340,17 @@
    },
    "erreicht_mm_je_sigma": {
     "m": {
-     "plus": 2.468,
-     "minus": 2.467
+     "plus": 2.961,
+     "minus": 2.961
     },
     "w": {
-     "plus": 1.604,
-     "minus": 1.604
+     "plus": 2.326,
+     "minus": 2.266
     }
+   },
+   "populationsfaktor": {
+    "m": 1.2,
+    "w": 1.45
    },
    "ziel_mm_je_sigma": {
     "m": 2.467,
@@ -399,8 +411,8 @@
      "minus": 0.3363
     },
     "w": {
-     "plus": 0.2965,
-     "minus": 0.359
+     "plus": 0.2283,
+     "minus": 0.2764
     }
    },
    "wirkung_mm_je_1": {
@@ -419,9 +431,13 @@
      "minus": 2.4
     },
     "w": {
-     "plus": 2.175,
-     "minus": 2.175
+     "plus": 1.675,
+     "minus": 1.675
     }
+   },
+   "populationsfaktor": {
+    "m": 1.0,
+    "w": 0.77
    },
    "ziel_mm_je_sigma": {
     "m": 2.4,
@@ -478,12 +494,12 @@
    "mass": "mundbreite",
    "staerke": {
     "m": {
-     "plus": 0.3912,
-     "minus": 0.302
+     "plus": 0.3051,
+     "minus": 0.2356
     },
     "w": {
-     "plus": 0.3423,
-     "minus": 0.2643
+     "plus": 0.4108,
+     "minus": 0.3172
     }
    },
    "wirkung_mm_je_1": {
@@ -498,13 +514,17 @@
    },
    "erreicht_mm_je_sigma": {
     "m": {
-     "plus": 3.0,
-     "minus": 3.0
+     "plus": 2.34,
+     "minus": 2.34
     },
     "w": {
-     "plus": 2.625,
-     "minus": 2.625
+     "plus": 3.15,
+     "minus": 3.151
     }
+   },
+   "populationsfaktor": {
+    "m": 0.78,
+    "w": 1.2
    },
    "ziel_mm_je_sigma": {
     "m": 3.0,
@@ -519,12 +539,12 @@
    "mass": "lippenrot",
    "staerke": {
     "m": {
-     "plus": 0.2945,
-     "minus": 0.4636
+     "plus": 0.4417,
+     "minus": 0.6
     },
     "w": {
-     "plus": 0.3239,
-     "minus": 0.51
+     "plus": 0.502,
+     "minus": 0.6
     }
    },
    "wirkung_mm_je_1": {
@@ -539,13 +559,17 @@
    },
    "erreicht_mm_je_sigma": {
     "m": {
-     "plus": 1.25,
-     "minus": 1.25
+     "plus": 1.875,
+     "minus": 1.618
     },
     "w": {
-     "plus": 1.375,
-     "minus": 1.375
+     "plus": 2.131,
+     "minus": 1.618
     }
+   },
+   "populationsfaktor": {
+    "m": 1.5,
+    "w": 1.55
    },
    "ziel_mm_je_sigma": {
     "m": 1.25,
@@ -945,8 +969,8 @@
      "minus": -0.608
     },
     "w": {
-     "plus": 0.871,
-     "minus": -0.692
+     "plus": 0.926,
+     "minus": -0.739
     }
    },
    "erreicht_mm_je_sigma": {
@@ -955,8 +979,8 @@
      "minus": 0.365
     },
     "w": {
-     "plus": 0.522,
-     "minus": 0.415
+     "plus": 0.556,
+     "minus": 0.444
     }
    },
    "ziel_mm_je_sigma": {
@@ -1270,7 +1294,7 @@
      0.0,
      0.0,
      0.0,
-     -2.8816,
+     -2.8849,
      0.0,
      0.0
     ],
@@ -1343,7 +1367,7 @@
    },
    "asym_10": {
     "aus": "ict_033",
-    "streuung": 0.7433,
+    "streuung": 0.7432,
     "merkmale_mm_je_1": [
      -0.3547,
      -0.2645,

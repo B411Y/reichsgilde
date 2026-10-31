@@ -1,0 +1,396 @@
+{
+ "titel": "P14 Extreme – Männer 35: 20 extremste nach K (Zeilen 1–4), 10 zufällige (5–6), L-S",
+ "pruefplan": "P14",
+ "ab": "B",
+ "zelle": [
+  300,
+  360
+ ],
+ "name": "p14_extreme_m",
+ "alle": {
+  "ansicht": "kopf",
+  "hoehe": 0,
+  "spanne_m": 0.34,
+  "ziel_m": -0.02,
+  "kopf": "standard",
+  "licht": "spiel",
+  "alter": 35,
+  "geschlecht": "m",
+  "haar": {
+   "modus": "tressfx",
+   "ruhe": true,
+   "vorgabe": {
+    "frisur": "mann_kurz",
+    "bart": ""
+   }
+  },
+  "warten": 45,
+  "gene": {
+   "bartwuchs": 130
+  }
+ },
+ "spalten": [
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  },
+  {
+   "titel": ""
+  }
+ ],
+ "zeilen": [
+  {
+   "titel": "extrem vorn",
+   "zellen": [
+    {
+     "titel": "10534",
+     "saat": 10534,
+     "winkel": 0
+    },
+    {
+     "titel": "10896",
+     "saat": 10896,
+     "winkel": 0
+    },
+    {
+     "titel": "10925",
+     "saat": 10925,
+     "winkel": 0
+    },
+    {
+     "titel": "10789",
+     "saat": 10789,
+     "winkel": 0
+    },
+    {
+     "titel": "10771",
+     "saat": 10771,
+     "winkel": 0
+    },
+    {
+     "titel": "10946",
+     "saat": 10946,
+     "winkel": 0
+    },
+    {
+     "titel": "10168",
+     "saat": 10168,
+     "winkel": 0
+    },
+    {
+     "titel": "10154",
+     "saat": 10154,
+     "winkel": 0
+    },
+    {
+     "titel": "10364",
+     "saat": 10364,
+     "winkel": 0
+    },
+    {
+     "titel": "10788",
+     "saat": 10788,
+     "winkel": 0
+    }
+   ]
+  },
+  {
+   "titel": "extrem ¾",
+   "zellen": [
+    {
+     "titel": "10534",
+     "saat": 10534,
+     "winkel": 35
+    },
+    {
+     "titel": "10896",
+     "saat": 10896,
+     "winkel": 35
+    },
+    {
+     "titel": "10925",
+     "saat": 10925,
+     "winkel": 35
+    },
+    {
+     "titel": "10789",
+     "saat": 10789,
+     "winkel": 35
+    },
+    {
+     "titel": "10771",
+     "saat": 10771,
+     "winkel": 35
+    },
+    {
+     "titel": "10946",
+     "saat": 10946,
+     "winkel": 35
+    },
+    {
+     "titel": "10168",
+     "saat": 10168,
+     "winkel": 35
+    },
+    {
+     "titel": "10154",
+     "saat": 10154,
+     "winkel": 35
+    },
+    {
+     "titel": "10364",
+     "saat": 10364,
+     "winkel": 35
+    },
+    {
+     "titel": "10788",
+     "saat": 10788,
+     "winkel": 35
+    }
+   ]
+  },
+  {
+   "titel": "extrem vorn",
+   "zellen": [
+    {
+     "titel": "10111",
+     "saat": 10111,
+     "winkel": 0
+    },
+    {
+     "titel": "10657",
+     "saat": 10657,
+     "winkel": 0
+    },
+    {
+     "titel": "10496",
+     "saat": 10496,
+     "winkel": 0
+    },
+    {
+     "titel": "10705",
+     "saat": 10705,
+     "winkel": 0
+    },
+    {
+     "titel": "10329",
+     "saat": 10329,
+     "winkel": 0
+    },
+    {
+     "titel": "10841",
+     "saat": 10841,
+     "winkel": 0
+    },
+    {
+     "titel": "10273",
+     "saat": 10273,
+     "winkel": 0
+    },
+    {
+     "titel": "10341",
+     "saat": 10341,
+     "winkel": 0
+    },
+    {
+     "titel": "10393",
+     "saat": 10393,
+     "winkel": 0
+    },
+    {
+     "titel": "10292",
+     "saat": 10292,
+     "winkel": 0
+    }
+   ]
+  },
+  {
+   "titel": "extrem ¾",
+   "zellen": [
+    {
+     "titel": "10111",
+     "saat": 10111,
+     "winkel": 35
+    },
+    {
+     "titel": "10657",
+     "saat": 10657,
+     "winkel": 35
+    },
+    {
+     "titel": "10496",
+     "saat": 10496,
+     "winkel": 35
+    },
+    {
+     "titel": "10705",
+     "saat": 10705,
+     "winkel": 35
+    },
+    {
+     "titel": "10329",
+     "saat": 10329,
+     "winkel": 35
+    },
+    {
+     "titel": "10841",
+     "saat": 10841,
+     "winkel": 35
+    },
+    {
+     "titel": "10273",
+     "saat": 10273,
+     "winkel": 35
+    },
+    {
+     "titel": "10341",
+     "saat": 10341,
+     "winkel": 35
+    },
+    {
+     "titel": "10393",
+     "saat": 10393,
+     "winkel": 35
+    },
+    {
+     "titel": "10292",
+     "saat": 10292,
+     "winkel": 35
+    }
+   ]
+  },
+  {
+   "titel": "zufällig vorn",
+   "zellen": [
+    {
+     "titel": "10348",
+     "saat": 10348,
+     "winkel": 0
+    },
+    {
+     "titel": "10649",
+     "saat": 10649,
+     "winkel": 0
+    },
+    {
+     "titel": "10642",
+     "saat": 10642,
+     "winkel": 0
+    },
+    {
+     "titel": "10338",
+     "saat": 10338,
+     "winkel": 0
+    },
+    {
+     "titel": "10359",
+     "saat": 10359,
+     "winkel": 0
+    },
+    {
+     "titel": "10859",
+     "saat": 10859,
+     "winkel": 0
+    },
+    {
+     "titel": "10700",
+     "saat": 10700,
+     "winkel": 0
+    },
+    {
+     "titel": "10149",
+     "saat": 10149,
+     "winkel": 0
+    },
+    {
+     "titel": "10089",
+     "saat": 10089,
+     "winkel": 0
+    },
+    {
+     "titel": "10825",
+     "saat": 10825,
+     "winkel": 0
+    }
+   ]
+  },
+  {
+   "titel": "zufällig ¾",
+   "zellen": [
+    {
+     "titel": "10348",
+     "saat": 10348,
+     "winkel": 35
+    },
+    {
+     "titel": "10649",
+     "saat": 10649,
+     "winkel": 35
+    },
+    {
+     "titel": "10642",
+     "saat": 10642,
+     "winkel": 35
+    },
+    {
+     "titel": "10338",
+     "saat": 10338,
+     "winkel": 35
+    },
+    {
+     "titel": "10359",
+     "saat": 10359,
+     "winkel": 35
+    },
+    {
+     "titel": "10859",
+     "saat": 10859,
+     "winkel": 35
+    },
+    {
+     "titel": "10700",
+     "saat": 10700,
+     "winkel": 35
+    },
+    {
+     "titel": "10149",
+     "saat": 10149,
+     "winkel": 35
+    },
+    {
+     "titel": "10089",
+     "saat": 10089,
+     "winkel": 35
+    },
+    {
+     "titel": "10825",
+     "saat": 10825,
+     "winkel": 35
+    }
+   ]
+  }
+ ]
+}

@@ -335,7 +335,8 @@ static func gene_aus_saat(saat: int, volk := "Mensch", familie := {}, arten: Arr
 	var werte: Dictionary = bruecke(vorlage).call("SichtbareWerte", g, "m")
 	var aus := {}
 	for k in werte:
-		if arten.is_empty() or (erbgut().has(k) and String(erbgut()[k]["art"]) in arten):
+		# Etappe B: Art aus der Vorschlagsdatei (enthält die neuen Gene; erbgut() kennt nur die 40 Gene der Version 1)
+		if arten.is_empty() or (erbgut6().has(k) and String(erbgut6()[k]["art"]) in arten):
 			aus[k] = float(werte[k])
 	return aus
 
@@ -595,6 +596,13 @@ func _anwenden6(w: Dictionary) -> void:
 	for n in ["eyeBlinkLeft", "eyeBlinkRight"]:
 		if w.has(n):
 			w[n] = minf(float(w[n]), 1.0)
+	# Lidfalte (eigene Form): voll mit der Reife oben, beim Lidschluss ausgeblendet (die Rinne läge sonst auf dem Lid)
+	if formen.has("lidfalte_m"):
+		var b := 0.5 * (float(w.get("eyeBlinkLeft", 0.0)) + float(w.get("eyeBlinkRight", 0.0)))
+		var ruhe := maxf(lid, 0.0)
+		var auf := 1.0 - clampf((b - ruhe) / maxf(1.0 - ruhe, 0.01), 0.0, 1.0)
+		w["lidfalte_m"] = kurve_im_alter(ku["reife_oben_m"], alter) * mann * auf * mimikfaktor
+		w["lidfalte_w"] = kurve_im_alter(ku["reife_oben_w"], alter) * (1.0 - mann) * auf * mimikfaktor
 	for k in zusatz_formen:
 		w[k] = float(w.get(k, 0.0)) + float(zusatz_formen[k])
 	gewichte = w

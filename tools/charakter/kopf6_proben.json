@@ -1,5 +1,5 @@
 {
- "_beschreibung": "Charakter Phase 6 (S4–S7): Probeformen für den Probebau (kopf6.sh proben) – je MakeHuman-Ziel (CC0) eine Form „probe_<name>“, links und rechts zusammen; die Ausgleichs- und Eichrechnung mischt daraus die Formen des fertigen Kopfs (kopf6_rezept.json, formen_mischen.py). Erzeugt mit tools/charakter/kopf6_proben.py.",
+ "_beschreibung": "Charakter Phase 6 (S4–S7): Probeformen für den Probebau (kopf6.sh proben) – je MakeHuman-Ziel (CC0) eine Form „probe_<name>“, links und rechts zusammen; die Ausgleichs- und Eichrechnung mischt daraus die Formen des fertigen Kopfs (kopf6_rezept.json, formen_mischen.py). Liste einmal per Skript aus den Zielnamen von MPFB 2.0.18 erzeugt und von Hand gepflegt (je Eintrag geprüft, dass das Ziel existiert).",
  "asym_brown1_l": {
   "asym/asym-brown-1-l": 1.0
  },

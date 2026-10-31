@@ -502,7 +502,8 @@ Statt einer Reifeform, die bei jeder Korrektur neu gebaut werden muss, legt **ei
 - 180 MakeHuman-Probeformen (`kopf6_proben.json`, l-/r-Paare zusammen, CC0), darunter alle Ziele der Reifeformen der
   Phase 5 und 46 asym-Ziele;
 - die eigenen Formen direkt auf dem ICT-Netz (`kopf6_eigen.py`, Option `eigen=1`): Kieferkante (3,5 mm), Unterwange
-  (4 mm), Jochbein (1,5 mm), Lidfalte Mann/Frau (Rinne 1,25 mm, 7,5/9,5 mm über dem Lidrand; Lidrand 0,0 mm bewegt),
+  (4 mm), Jochbein (1,5 mm), Lidfalte Mann/Frau (weiche Rinne σ 1,6 mm, 1,0 mm tief, 7,5/9,5 mm über dem Lidrand;
+  Lidrand 0,0 mm bewegt; eigene Form `lidfalte_<g>`, beim Lidschluss ausgeblendet – siehe Prüferbefund),
   Tränenrinne (0,75 mm), Kopfnicker (1,5 mm, Warzenfortsatz → Brustbein), Kieferwinkel (4 mm seitlich), Nasenhöcker
   (2 mm), dazu der Adamsapfel der Phase 5 als eigene Form. Augapfel und Zähne bleiben fest, Lidteile, Brauen, Wimpern
   und Kragen folgen der Haut;
@@ -608,4 +609,203 @@ nachbaubar).
   sechs eigene Muster (`kopf6_iris.py`, aus der CC0-Fasermaske): Grundmuster, Krypten, Furchen, Strahlen, Flecken, breiter
   Kranz; `augen6.gdshader` mit `iris_bilder6`, `iris_ebene`, `iris_drehung`. Wahl nach Augenfarbe (dunkel / blau-grau /
   grün-hasel je vier Muster) und Personen-Samen, Drehung je Person.
+
+### Prüfung Etappe B
+
+Prüfmappe **B** (`~/werkzeuge/charakter/bilder/phase6/B/`, Stand 6): P1 (K1/K2 × L-V/L-S), P3, P4 (a/b × K1/K2/K5),
+P5 (beide Allelregeln), P7, P7b, P8, P12 (Blindtest), P13, P14, M1, M2, `pruefen6.md`, Schlüsseldateien. Stand 5 zum
+Vergleich in A0/A0b; Halt-B-Mappe mit großen Vergleichsbildern außerhalb des Repositorys.
+
+**S4 – Netzmaße am Mittelgesicht 35** (Gewichte aus Godot, fertiger Kopf; Phase 5 in derselben Definition):
+
+| Maß | Mann Phase 5 → Etappe B | Ziel Mann | Frau Phase 5 → Etappe B | Ziel Frau |
+|---|---|---|---|---|
+| Gesichtsindex | 0,942 → **0,871** ✓ | 0,85–0,90 | 0,796 → **0,840** ✓ (Rand) | 0,84–0,90 |
+| zy (mm) / Sellion–Kinn | 142,8 / 134,5 → 142,5 / **124,2** ✓ | 138–147 / 119–127 | 148,0 / 117,8 → **138,7 / 116,5** ✓ | NIOSH ±1σ |
+| zy : IPD | 2,246 → 2,242 ✓ (±3 %) | ±3 % | 2,364 → 2,227 = **−5,8 %** ✗ knapp | −6 … −10 % |
+| Kinnmitte / zy | 0,805 → **0,748** ✓ | 0,69–0,76 | 0,625 → **0,693** ✓ | 0,66–0,72 |
+| Mundhöhe / zy | 0,910 → **0,876** ✓ | 0,84–0,89 | 0,818 → **0,847** ✓ | 0,84–0,90 |
+| Wangenwölbung (neue Def.) | +2,0 → **−1,4** ✓ | ≤ 0 | +4,4 → **−1,1** ✓ | ≤ +2 |
+| Mundlage sn–sto : sn–me | 0,220 → **0,309** ✗ knapp | 0,31–0,35 | 0,247 → **0,319** ✓ | 0,31–0,35 |
+| Braue über der Pupille (mm) | 12,5 → **10,5** ✓ | 9–12 | 16,4 → **14,1** ✗ knapp (nach dem Lidfalten-Umbau 14,13) | 12–14 |
+| Augentiefe gegen Phase 5 | **+1,82 mm** ✓ | +1,5–2 | **+0,10 mm** ✓ | ±0,5 |
+| Kieferknick (5 mm) | 32,9° → **40,5°** ✓ | ≥ 25° | 27,0° → 31,0° | – |
+| Kinn-Hals-Winkel | 116,2° → 116,3° ✓ | 105–125° | 109,7° → 106,9° ✓ | 105–125° |
+| Kinn über der Kragenoberkante | 11,6 → **9,5 mm** ✗ | ≥ 30 mm | – | – |
+| Nasenwurzelwinkel | – | – | 148,9° → **139,6°** ✓ | 134–142° |
+| Pogonion hinter der Unterlippe | – | – | 5,8 → **3,1 mm** ✓ | ≤ 4 mm |
+| Unterkiefer Frau / Mann | – | – | **0,924** ✗ knapp | 0,88–0,92 |
+| Pupillenabstand | 63,57 → 63,57 ✓ | ±0,5 mm | 62,62 → 62,29 ✓ | ±0,5 mm |
+| Augapfel : IPD | 0,456 → 0,456 ✓ | ±3 % | 0,462 → 0,452 (−2,2 %) ✓ | ±3 % |
+| Oberlidzone gegen Wange (L-V) | **−30,2 L*** ✓ | ≤ −18 | **−16,9 L*** ✗ knapp | ≤ −18 |
+
+- „Kinn über der Kragenoberkante ≥ 30 mm“ hängt am Stehkragen (Phase 5: 11,6 mm) und ist mit der Gesichtsform nicht
+  erreichbar; offen für die Kleidung.
+- Kind 5 und Säugling: Die neuen Altersformen wirken erst ab 10–12 Jahren (Gewicht 0). Gegen Phase 5 bewegen sich die
+  Ecken um höchstens 1,1 (Säugling) bzw. 1,4 mm (Kind 5), im Mittel 0,2 mm – Ursache ist der neue Nullpunkt der Gene
+  (S5): Phase 5 setzte beim Mittelgesicht kleine Gen-Gewichte ((Mittel − 128)/127). P7 ohne Dellen (Bild).
+- Lid–Augapfel: das Maß ist schon in Phase 5 negativ (Ecken der Lidhöhle); Mann −1,45 → −1,39, Frau −0,86 → −1,33 mm.
+  Im Bild (P7, Lidschluss, N2) keine Durchdringung sichtbar. Lippe–Zahn 5,6 / 6,2 mm (≥ 0,3) ✓.
+
+**S5 – Gene in der Bevölkerung** (1000 Personen je Geschlecht, Startwerte 10001–11000, über den Kern gewürfelt mit der
+Vorschlagsdatei; Gewichte aus Godot, gemessen mit `messen/stichprobe6.py`): Anteil an der natürlichen Streuung.
+
+| Maß (Bezug) | Mann nur Gene | Mann + Züge | Frau nur Gene | Frau + Züge |
+|---|---|---|---|---|
+| Gesichtslänge se–me (NIOSH 6,9 / 5,8) | **0,74** ✓ | 0,80 | **0,73** ✓ | 0,85 ✓ |
+| Gesichtsbreite zy (NIOSH 6,7 / 6,2) | **0,78** ✓ | 0,90 ✓ | **0,72** ✓ | 0,86 ✓ |
+| Unterkiefer go–go (ICT × 0,7 = 4,9; mit Fett ≈ 10) | 1,40 / 0,69 | 1,48 / 0,72 | 1,11 / 0,54 | 1,18 / 0,58 |
+| Mundbreite (NIOSH 4,0 / 3,5) | **0,81** ✓ | 0,83 | **0,75** ✓ | 0,78 |
+| Nasenlänge n–sn (NIOSH 4,1 / 3,7) | **0,71** ✓ | 0,74 | **0,71** ✓ | 0,77 |
+| Nasenbreite (3,2 / 2,9) | **0,81** ✓ | 0,83 | 0,97 ✗ | 1,07 ✓ |
+| Lippenrot (ICT × 0,7 = 2,5) | 0,61 ✗ knapp | 0,79 | 0,60 ✗ knapp | 0,76 |
+| Kinnvorsprung (ICT × 0,7 = 3,3) | **0,70** ✓ | 1,16 ✗ knapp | 0,63 ✗ knapp | 1,05 ✓ |
+
+- Ziel nur Gene 0,65–0,85 je Maß: Mann 6 von 7 (ohne Unterkiefer), Frau 4 von 7. Ziel Gene + Züge 0,85–1,15: Mann 1 von
+  7, Frau 4 von 7 – die Züge geben im Mittel +0,1 dazu, weniger als geplant (sie sind bereinigt und wirken vor allem auf
+  Formen, die diese 8 Maße kaum treffen). Der Unterkiefer streut stärker als ICT × 0,7, weil Kopf- und Gesichtsbreite
+  mitwirken; gegen die Bigonialbreite mit Fett (≈ 10 mm, Recherche) liegt er bei 0,54–0,72.
+- Mittel der Bevölkerung gegen das Mittelgesicht: alle Maße innerhalb ±0,3σ außer Unterkiefer (+0,70 / +0,56σ),
+  Gesichtsbreite Mann (+0,31σ) und Nasenbreite Frau (+0,42σ) – Ursache: das Budget kürzt nur in eine Richtung (dort, wo
+  die Reifeform dasselbe MakeHuman-Ziel schon nutzt).
+- **Populationskorrektur** (ein Durchgang, `POP_FAKTOR` in `kopf6_eichen.py`): Lippen × 1,5/1,55, Kinn × 1,2/1,45,
+  Gesichtsbreite × 0,83/1,25, Mund × 0,78/1,2, Nasenbreite Frau × 0,77, Gesichtslänge × 1,05/1,15. Folge: am
+  Mittelgesicht bewegt `lippen` +1σ das Lippenrot jetzt um 1,6–2,1 mm (Ziel 1,0–1,5 überschritten); in der Bevölkerung
+  kürzt das Budget das wieder auf 0,6 der natürlichen Streuung. `kiefer_breite` +1σ = **+4,0 mm** Unterkiefer (Frau
+  2,6) ✓.
+- **Karikatur**: K der Gene (nach der Bremse) p95 **1,03**, höchstens 1,14 ✓ (≤ 1,35); nie mehr als **zwei** Merkmale
+  über 2σ ✓; die Bremse greift bei keiner Person (der Kern würfelt höchstens ±2σ). Über die gemessenen Maße (12, σ-normiert)
+  p95 1,44 / 1,43; einzelne Köpfe haben 5–6 Maße über 2σ (Messwerte, nicht Gene: Unterkiefer, Kinn).
+- **Python = Godot**: `messen/regeln6_nachrechnen.py` rechnet die Gen- und Zuggewichte aus `regeln6.json` nach:
+  73 593 Gewichte, größte Abweichung 8·10⁻¹⁵ (4 797 vom Budget gekürzte Formgewichte nicht verglichen).
+- **Nicht erreicht**: Nasenhöcker +1σ = 1,2 / 0,4 mm (Mann plus/minus), Frau 0,35 / 0,2 mm (Ziel 1,3 / 1,04);
+  Schlupflid 0,36–0,52 statt 0,8 mm; Wangenknochen schmaler 1,1–1,4 statt 2,5 mm. Die MakeHuman-Ziele geben an diesen
+  Stellen nicht mehr her; eigene Formen wie beim Kiefer wären der nächste Schritt.
+
+**S6 – Züge, Asymmetrie, Samen**
+
+| Abnahme | Ergebnis |
+|---|---|
+| \|cos\| zur Geschlechtsachse < 0,1 je Zug | 0,000 (bereinigt; vorher 0,06–0,35) ✓ |
+| Spiegelabstand RMS 0,5–1,0 mm | Median **0,72** (Mann) / **0,65** (Frau) mm, 86 % / 83 % der Personen im Bereich ✓ (Phase 5: 0,02–0,03) |
+| R7-Grenzen bei 1000 Personen nie überschritten | ✓ per Bau (bei 28 % wird die Asymmetrie verkleinert) |
+| Sprung an der Halsnaht ≤ 0,1 mm | Züge am Hals zur Naht ausgeblendet (1 − w_hals), eigene Formen 0 an der Naht ✓ |
+| Probe-Gen ändert den Samen nicht (1000) | 0 Abweichungen mit Probe-Gen und mit der Vorschlagsdatei (62 Gene), 0 doppelte Samen ✓ |
+| Grafikspeicher neuer Formen ≤ +30 MB | Datei +14 MB (26,8 → 40,9 MB); Grafikspeicher in M2 |
+
+**S7 – Vorschlagsgene, Familie**
+
+| Abnahme | Ergebnis |
+|---|---|
+| Bestehende Gene mit Vorschlagsdatei = Standard (1000 × 6 Völker, Würfeln und Vererben) | 0 / 0 Abweichungen ✓ |
+| Neue Gestalt-Gene bewegen ihr Maß um 0,65–0,85 × Zielstreuung je σ | Brauenstand 1,0 mm, Lidspalte 0,63 mm, Nasenspitze 1,4 mm, Mundwinkel 0,9 mm, Kinnbreite 3,0 / 2,4 mm ✓; Schlupflid 0,36–0,52 mm ✗ |
+| Familie: Abstand Kind–Elternteil / Kind–Fremder | **sichtbares Allel 0,854** (Erwartung ≈ 0,87), **Mittel beider Allele 0,743** (≈ 0,71); Korrelation Elternmittel–Kind 0,35 / 0,64 (300 Familien je Regel, `messen/familie6.py`) |
+| Nachbarabstand (12 Maße, σ-normiert) Median ≥ 0,7, 5 % ≥ 0,4 | Median **0,50 / 0,48**, 5 % 0,37 / 0,34 ✗ (Phase 5 ≈ 0) |
+
+**Blindtest** (ein unabhängiger Prüfer, nur Bilder; Schlüssel vorher versiegelt: P12 SHA-256
+`e2eee27bbd3ff28b808e249deecd413f17357313070f892d3ef7421d8959cb92`, Alter
+`33206f02914ede0edd74272ec2c2461aac02d374715f103b9a7eb9287e371483`; Teamleiter und Nutzer an Halt B ausstehend):
+
+| Test | Ergebnis | Ziel |
+|---|---|---|
+| P12a Zuordnung vorn ↔ ¾ (nur Gesichtsform, Brauen, Züge; Farben fest) | **16/16** Männer, **16/16** Frauen – aber nur über Messungen am Bild (Lippen-, Brauen-, Kinnkanten); der erste Durchgang **mit dem Auge** traf nur **4/16** bzw. **3/16** | ≥ 13/16 |
+| P12a in Stammbaumgröße (K5) | 16/16 / 16/16 (über den Umriss gegen Blatt B) | ≥ 12/16 |
+| P12b andere Frisur, Innenlicht | 10/10 / 10/10 – **ungültig als Test**: Blatt D hat dieselbe Kamera wie B, der Umriss ist pixelgleich | ≥ 8/10 |
+| Altersschätzung (24 Köpfe aus P1) | **19/24** auf ±7 Jahre (79 %) | ≥ 80 % |
+| Mann 35 gegen Frau 35 | geschätzt im Mittel 28 / 29 Jahre (Abstand ≤ 3 ✓, aber unter 30) | ≤ 3 Jahre, beide 30–45 |
+| 20 gegen 35 | einzeln nicht sicher unterscheidbar (Schätzungen 19–32); nebeneinander ja | sicher |
+| Karikatur (P14, 20 extremste + 10 zufällige je Geschlecht) | keiner unmenschlich; grenzwertig 2 (Männer) und 3 (Frauen): sehr breiter Kiefer mit Hängebacken, langer vorstehender Unterkiefer, Kerbe unter der Unterlippe | keine Karikatur |
+| Züge ±2σ (P13) | keine Karikatur, Delle oder Durchdringung; am stärksten zug_01 (−2σ: rundes Gesicht, Stupsnase), kaum sichtbar zug_07, zug_08, zug_10 | – |
+
+- **Folgerung:** Für Menschen mit dem Auge sind die Gesichter bei gleicher Haut-, Haar- und Augenfarbe noch „wie
+  Geschwister“; die Wiedererkennung trägt im Spiel vor allem Farbe, Frisur und Bart. Der Test mit Teamleiter und
+  Nutzer an Halt B ist der eigentliche Prüfstein; Blatt D wird mit einem anderen Blickwinkel neu gebaut.
+- **Befund aus Etappe B, behoben:** Bei geschlossenen Augen zeichnete sich die neue Lidfalte (damals σ 1 mm, 1,25 mm tief,
+  in der Reifeform) als harte Platte auf dem Lid ab. Jetzt σ 1,6 mm, 1,0 mm tief, weiche Enden, eigene Form, die der Kopf
+  mit dem Lidschluss ausblendet (`lid/lidtest.png`: offen, halb, zu glatt). P7 und die Mappenbilder 1, 2, 6 sind danach
+  neu gerendert; die übrigen Bögen der Mappe B zeigen die Augen offen (dort ist die Änderung kaum sichtbar).
+- **Weitere Befunde des Prüfers** (nicht aus Etappe B, aber sichtbar): heller Glanzstreifen auf dem Nasenrücken
+  (Kunststoffwirkung; Etappe C, Glanz je Region), rotorange Nasenlöcher bei Frauen, heller Streifen über der Braue im
+  ¾-Blick, dünne abgerissene Brauen bei Frauen (Formen 4/„dünn auslaufend“ mit niedriger Dichte), Säugling/Kind schließen die Augen nicht ganz, Mundinneres rot und Zähne blockig,
+  Kinderkragen gezackt und vom Kinn durchdrungen; Frisuren: „kranz“ Seitenhaar schwebt als Platte, „zopfschlaufen“
+  Ohr durch die Schlaufe, „schnecken“ Kopf scheint durch, „haarnetz“ Band schwebt. Alles als offen notiert.
+
+**M2** (T400 ohne fremde GPU-Prozesse, Stufe Hoch, 1280 × 720, Stand 5 und 6 abwechselnd im selben Prozess, Median
+aus 3 gepaarten Differenzen; Code-Stand der Lidfalte vor dem Commit, `B/m2b/messung.jsonl`):
+
+| Lauf | Stand 5 → 6 (ms) | Δ Median | Grenze | Grafikspeicher 5 → 6 |
+|---|---|---|---|---|
+| Kopf ohne Haar (Mittelgesicht / Zufallsperson) | 6,12 → 6,64 / 6,72 | **+0,52 / +0,61** ✓ | ≤ +1,0 (Ziel +0,6) | 169 → 200 MB |
+| 8 Köpfe ohne Haar (Mittel / zufällig) | 19,0 → 20,8 / 20,9 | **+1,72 / +1,81** ✓ | ≤ +3 | 595 → 837 MB |
+| TressFX in Ruhe (Pagenkopf, Vollbart; Mittel / zufällig) | 27,1 → 30,2 / 30,9 | **+3,13 / +2,18** ✗ | ≤ +1,2 | 222 → 251 MB |
+
+- Der größte Teil der TressFX-Kosten stammt aus Etappe A (Studio-HDRI als Umgebungslicht, damals +2,80 ms; Entscheidung
+  des Teamleiters: HDRI nur Hoch/Ultra). Die Formen der Etappe B kosten ohne Haar 0,0–0,1 ms mehr als in Etappe A.
+- Grafikspeicher je Kopf +30 MB (Ziel neue Formen ≤ +30 MB). Im Versuch lädt jede Bühne ihre eigene .glb (8 Köpfe =
+  8 Kopien); das Spiel muss das Netz teilen, sonst wären es je weiterem Kopf +30 MB statt ≤ +2 MB.
+
+- **Brauen und Iris unter Zufallspersonen** (P4a, 32 Personen): alle **6** Brauenformen (je 2–7) und alle **6**
+  Irismuster (je 4–7) ✓ (Ziel ≥ 5 bzw. ≥ 4 unter 30).
+- **Haar neu gekämmt** (einmal, Ende Etappe B): `kopf6.sh haar_kopieren` (Verknüpfungen nach glb5 durch Kopien
+  ersetzt), dann `kopf6.sh kaemmen` (41,5 min CPU) auf Reife oben/unten und Mitte mit 35 Jahren (`kopf4_haar.py` kennt
+  die neuen Formnamen). glb5 unverändert (Prüfsumme). P8 zeigt die zehn Frisuren je Geschlecht.
+
+### Selbst getroffene Entscheidungen (Etappe B)
+
+- **Probebau + Mischung statt Neubau je Korrektur** (Begründung oben); `kopf2_regler.json` bleibt für Phase 5.
+- **Eigene Formen über den Plan hinaus**: Kieferwinkel und Nasenhöcker (MakeHuman gab für `kiefer_breite` und
+  `nase_hoecker` zu wenig her).
+- **Messwege geändert** (Wangenwölbung stetig, vordere Ohrwurzel, Nasenflügel an lm31/35, robustes Lippe–Zahn-Maß,
+  feste Ecken in der Eichung); die alten Maße bleiben daneben, wo sie Bezug zur Bestandsaufnahme sind.
+- **Durchdringung der Züge relativ** (höchstens 0,6 mm schlechter als das Grundgesicht), weil beide Maße schon am
+  Grundgesicht negativ bzw. sprunghaft sind; die Bildprüfung (P13, Prüfer) entscheidet mit.
+- **Populationskorrektur** der Genstärken (ein Durchgang) – im Plan stand nur die Eichung am Mittelgesicht.
+- **Iris**: eigene sechs Strukturen statt der strukturgleichen RoboPoets-Farbbilder.
+- **P12 strenger als im Plan**: nur Gestalt-Gene, Züge und Brauen aus der Saat, Haut-, Haar- und Augenfarbe fest.
+- **Karikaturbremse**: das Anheben bei K < 0,75 nur bei Personen mit Samen (sonst würde das Mittelgesicht ab 50 durch
+  die Altersverschiebungen der Gene verzerrt).
+- **Alterskurven** gestreckt (Reife bis 24/25, Mitte ab 23), damit 20 und 35 Jahre sich stärker unterscheiden.
+
+### Offen nach Etappe B
+
+- Nicht erreicht oder knapp: Mundlage Mann 0,309 (≥ 0,31), Braue Frau 14,1 (≤ 14), zy : IPD Frau −5,8 % (−6 … −10 %),
+  Unterkiefer Frau/Mann 0,924 (≤ 0,92), Oberlidzone Frau −16,9 L* (≤ −18), Kinn über dem Kragen 9,5 mm (≥ 30; Kragen),
+  Licht : Schatten unter L-V 1,47/1,82 (2–4; AgX), Nachbarabstand Median 0,50/0,48 (≥ 0,7), Streuung „Gene + Züge“
+  meist 0,74–0,85 statt 0,85–1,15, Höcker, Schlupflid und Wangenknochen schmaler zu schwach (eigene Formen nötig).
+- Die Form allein macht 20 und 35 Jahre nur wenig verschieden; den Rest soll die Haut bringen (Etappe C).
+- Zusammengewachsene Brauen (`brauen_form` ≥ 248) brauchen eine eigene Karte über der Nasenwurzel.
+- In der Brauen-Nahaufnahme liegt ein heller Streifen über den Augen (Brauenschatten-Maske der Haut aus Phase 3–5,
+  passt nicht mehr zu allen Brauenformen) – in S9 mit den Pigmentzonen.
+- Glättung je Ziel (12 → 6/4 für Lippen, Lider, Nasenspitze, Plan S4.3) nicht umgesetzt; der Gratbogen P7b zeigt
+  keine MPFB-Kanten.
+- **Kern-Bedarf** (über den Teamleiter, Bereich kern entscheidet): (1) öffentliche Abfrage für den Personen-Samen
+  `AussehenStartwert(int nummer)` (Signatur oben, S6); (2) Schub 1 der neuen Gene und die Züge als JSON-Ausschnitte aus
+  `game/versuch/charakter/erbgut_vorschlag.json` (nach den Entscheidungen E8–E10); (3) bei „Mittel beider Allele“ (E9)
+  die Beschreibung in `Erbgut.cs` und `kern.md` anpassen – die Darstellung liest dann auch `VerdeckterWert`.
+
+### Testanleitung Etappe B
+
+```bash
+BPY=~/werkzeuge/blender/blender-5.2.2-linux-x64/5.2/python/bin/python3.13
+G=~/werkzeuge/godot/Godot_v4.7.2-stable_mono_linux_x86_64/Godot_v4.7.2-stable_mono_linux.x86_64
+# Kopf: Probebau (71 s) und Mischung; nur neu mischen (ohne Blender); Haarstützen
+tools/charakter/kopf6.sh proben && tools/charakter/kopf6.sh mischen && tools/charakter/kopf6.sh nur_haar
+# Ausgleichsrechnung S4 und Eichung S5–S7 (schreiben kopf6_rezept_s4.json, kopf6_rezept.json, regeln6.json, zuege_basis_v1.json)
+$BPY -I tools/charakter/formen_ausgleich.py --glb=~/werkzeuge/charakter/glb6p/kopf6p.glb --gewichte=<gewichte.json> --aus=<ordner>
+$BPY -I tools/charakter/kopf6_eichen.py --glb=~/werkzeuge/charakter/glb6p/kopf6p.glb --gewichte=<gewichte.json> --aus=<ordner>
+# Brauen- und Irisbilder
+$BPY -I tools/charakter/kopf3_haartexturen.py ~/werkzeuge/charakter/glb6/kopf6_tex && $BPY -I tools/charakter/kopf6_iris.py ~/werkzeuge/charakter/glb6/kopf6_tex
+# Brücke: bestehende Gene mit Vorschlag gleich, Personen-Samen stabil (ohne Grafikkarte)
+$G --headless --path game res://versuch/charakter/charakter_schau.tscn -- --bruecke_pruefen --ende
+# 1000er-Prüfung (Gewichte headless, dann messen); --ohne_zuege = nur Gene
+$G --headless --path game res://versuch/charakter/charakter_schau.tscn -- --glb=$HOME/werkzeuge/charakter/glb6 --stand=6 \
+   --gewichte=<personen_1000.json> --aus=<gewichte_1000.json> --ende
+$BPY -I tools/charakter/messen/stichprobe6.py <gewichte_1000.json> ~/werkzeuge/charakter/glb6/kopf6.glb <stichprobe.json>
+python3 -I tools/charakter/messen/regeln6_nachrechnen.py <gewichte_1000.json>
+$BPY -I tools/charakter/messen/familie6.py ~/werkzeuge/charakter/glb6/kopf6.glb <gewichte_sichtbar.json> <gewichte_mittel.json>
+# Bögen (absolute Pfade: Godot arbeitet mit --path in game/), P14 aus der Stichprobe, Blindblatt Alter
+python3 tools/charakter/boegen6/erzeugen.py && python3 tools/charakter/boegen6/p14_aus_stichprobe.py <stichprobe.json>
+python3 tools/charakter/boegen6/blind_alter.py <prüfmappe>/p01_alter_ton_k1_ls <prüfmappe>
+GLB=~/werkzeuge/charakter/glb6 ZEIT=5400 tools/charakter/schau.sh <prüfmappe> 6200x5300 --stand=6 --bogen=$PWD/tools/charakter/boegen6/p12_zuordnung_m_a.json,… --ende
+```
 

@@ -202,8 +202,9 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 static func erbgut_vorlage(z: Dictionary) -> String:
 	if z.has("erbgut_vorlage"):
 		return String(z["erbgut_vorlage"])
-	if String(z.get("vorlage", "")).ends_with(".json"):
-		return String(z["vorlage"])
+	var v = z.get("vorlage", "")
+	if v is String and String(v).ends_with(".json"):
+		return String(v)
 	return Kopf.VORSCHLAG if int(z.get("stand", 5)) >= 6 else ""
 
 # ---------------------------------------------------------------- Bogen
@@ -284,7 +285,7 @@ func _bogen(datei: String) -> void:
 				String(z.get("kamera", "")) == "ortho")
 			await _warte(int(z.get("warten", 4)))
 			var bild := b.foto()
-			if z.has("vorlage") and not String(z["vorlage"]).ends_with(".json"):
+			if z.has("vorlage") and not (z.get("vorlage") is String and String(z.get("vorlage")).ends_with(".json")):
 				bild = _vorlage_bild(b, z["vorlage"], zelle, bool(z.get("geschlecht", "m") == "w"))
 			if bild == null or bild.is_empty():
 				bild = Image.create(zelle.x, zelle.y, false, Image.FORMAT_RGB8)
