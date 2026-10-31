@@ -63,6 +63,16 @@ static class MarktplaetzeTests
 
     static Betrieb Werkstatt(Stadtwirtschaft w, string haus) => w.Betriebe.Single(b => b.Konto.Inhaber == haus && b.InDerStadt);
 
+    /// <summary>
+    /// Der Zubringer einer Werkstatt der Probestadt (Datenversion 65, <see cref="Karrenweg"/>): vom Halteplatz am Modell zum Hof und vom Hof gerade auf die
+    /// Hauptstraße (sie liegt auf z = 0, die Höfe 3,5 m davor).
+    /// </summary>
+    static double Zubringer(Stadtwirtschaft w, Betrieb b)
+    {
+        var (anker, hof) = Karrenweg.Start(w.Bauen.PlatzVon(b.Name)!, b, w.Karte!.Katalog);
+        return anker.Abstand(hof) + Math.Abs(hof.Z);
+    }
+
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
         ("Marktplätze: Greybox, Probestadt und Messstadt haben genau einen, und keine Karrenstraße braucht eine Linie über ihn – die Wege bleiben wie bisher", () =>
@@ -95,18 +105,19 @@ static class MarktplaetzeTests
             var (sim, _, karte) = Probestadt(("Westmarkt", -60), ("Ostmarkt", 60));
             var w = sim.Wirtschaft!;
             Pruefe.Gleich("Marktplatz, Westmarkt, Ostmarkt", string.Join(", ", karte.Marktplaetze.Select(m => m.Name)));
-            // Spieler (−30 | −10): 30 m zur Mitte und 30 m zum Westmarkt – Gleichstand, also der erste der Karte
+            // Spieler (−30 | −10): vom Anschluss an der Hauptstraße (x = −30) 14,5 m bis zum Halt am Marktplatz (x = −15,5: 12 m Pflaster und 3,5 m davor)
+            // und 14,5 m bis zum Halt am Westmarkt (x = −44,5) – Gleichstand, also der erste der Karte
             var spieler = w.Betriebe.Single(b => b.Konto == w.Konten[0]);
             Pruefe.Gleich("Marktplatz", w.MarktplatzVon(spieler)!.Name);
-            Pruefe.Ungefaehr(30, w.Fahrten(spieler)!.Value.Hin.Sum(s => s.Laenge), 1e-9);
-            // die Werkstätten bei x = 32: 28 m zum Ostmarkt statt 32 m zur Mitte – hin und zurück
+            Pruefe.Ungefaehr(Zubringer(w, spieler) + 14.5, w.Fahrten(spieler)!.Value.Hin.Sum(s => s.Laenge), 1e-6);
+            // die Werkstätten bei x = 32: 12,5 m bis zum Halt am Ostmarkt (x = 44,5) statt 16,5 m bis zum Halt am Marktplatz – hin und zurück
             foreach (var haus in new[] { "Haus Ahlbeck", "Haus Brendel" })
             {
                 var b = Werkstatt(w, haus);
                 Pruefe.Gleich("Ostmarkt", w.MarktplatzVon(b)!.Name, haus);
                 var (hin, zurueck) = w.Fahrten(b)!.Value;
-                Pruefe.Ungefaehr(28, hin.Sum(s => s.Laenge), 1e-9);
-                Pruefe.Ungefaehr(28, zurueck.Sum(s => s.Laenge), 1e-9);
+                Pruefe.Ungefaehr(Zubringer(w, b) + 12.5, hin.Sum(s => s.Laenge), 1e-6);
+                Pruefe.Ungefaehr(Zubringer(w, b) + 12.5, zurueck.Sum(s => s.Laenge), 1e-6);
                 Pruefe.Gleich(FahrzeitWeglaengeTests.NachFormel(w, b, "Handkarren", true), w.Fahrzeit(b, "Handkarren", true), haus);
             }
             // Ein Stadtmarkt: Was die Karren am Ostmarkt verkaufen, steht im Angebot des einen Markts, an dem auch der Spieler (Marktplatz) handelt.
@@ -131,7 +142,7 @@ static class MarktplaetzeTests
                 Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
         }),
 
-        ("Köln: Heumarkt, Alter Markt und Neumarkt; jede Startwerkstatt fährt zu ihrem Platz an der Ecke – Werkstattwege 20–25 m, für alle Häuser gleich", () =>
+        ("Köln: Heumarkt, Alter Markt und Neumarkt; jede Startwerkstatt fährt zu ihrem Platz an der Ecke – Werkstattwege 13–16 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
         {
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             Pruefe.Gleich("Heumarkt, Alter Markt, Neumarkt", string.Join(", ", karte.Marktplaetze.Select(m => m.Name)));
@@ -141,11 +152,11 @@ static class MarktplaetzeTests
             var w = sim.Wirtschaft!;
             var werkstaetten = w.Betriebe.Where(b => b.InDerStadt && w.Fahrten(b) is { Hin.Count: > 0 }).ToList();
             Pruefe.Gleich(8, werkstaetten.Count);
-            foreach (var b in werkstaetten)
-            {
-                var laenge = w.Fahrten(b)!.Value.Hin.Sum(s => s.Laenge);
-                Pruefe.Wahr(laenge is >= 20 and <= 25, $"{b.Name}: {laenge:0.0} m zum {w.MarktplatzVon(b)!.Name}");
-            }
+            // vom Halteplatz am Modell (er liegt je Beruf links oder rechts vom Tor) über den Hof zur Ecke und bis zum Halt vor dem Pflaster
+            var laengen = werkstaetten.Select(b => w.Fahrten(b)!.Value.Hin.Sum(s => s.Laenge)).ToList();
+            for (var i = 0; i < werkstaetten.Count; i++)
+                Pruefe.Wahr(laengen[i] is >= 12.5 and <= 16.5, $"{werkstaetten[i].Name}: {laengen[i]:0.0} m zum {w.MarktplatzVon(werkstaetten[i])!.Name}");
+            Pruefe.Wahr(laengen.Max() - laengen.Min() <= 3, $"Werkstattwege {laengen.Min():0.0}–{laengen.Max():0.0} m");
             var jePlatz = werkstaetten.GroupBy(b => w.MarktplatzVon(b)!.Name).ToDictionary(g => g.Key, g => g.Count());
             Pruefe.Gleich((1, 3, 4), (jePlatz["Heumarkt"], jePlatz["Alter Markt"], jePlatz["Neumarkt"]));
             Pruefe.Gleich("Heumarkt", w.MarktplatzVon(w.Betriebe.Single(b => b.Konto == w.Konten[0]))!.Name); // der Spieler
@@ -172,11 +183,20 @@ static class MarktplaetzeTests
             {
                 new Fahrtstueck(10, 0, Fahrbahn.Furt), new Fahrtstueck(5, 0, Fahrbahn.Faehre), new Fahrtstueck(7, 0), new Fahrtstueck(0, 0, Fahrbahn.Bruecke),
             }), 1e-12);
+            // Gasse und Fußweg (Netz aller Wege, Datenversion 65): je Meter zwei- bzw. viermal so teuer, auch in einer Furt; die Fähre nicht
+            Pruefe.Ungefaehr(2 * 6 + 4 * 3 + 10 * 10 * 2 + (5 + 300), Karrennetz.Kosten(new[]
+            {
+                new Fahrtstueck(6, 0) { Kostenfaktor = Karrennetz.Wegkosten(Wegklasse.Gasse) }, new Fahrtstueck(3, 0) { Kostenfaktor = Karrennetz.Wegkosten(Wegklasse.Fussweg) },
+                new Fahrtstueck(10, 0, Fahrbahn.Furt) { Kostenfaktor = 2 }, new Fahrtstueck(5, 0, Fahrbahn.Faehre),
+            }), 1e-12);
+            Pruefe.Gleich((1.0, 1.0, 2.0, 4.0, 4.0), (Karrennetz.Wegkosten(Wegklasse.Haupt), Karrennetz.Wegkosten(Wegklasse.Feldweg), Karrennetz.Wegkosten(Wegklasse.Gasse),
+                Karrennetz.Wegkosten(Wegklasse.Fussweg), Karrennetz.Wegkosten(Wegklasse.Leinpfad)));
             var w = ProbestadtOhneMarkt().Wirtschaft!;
             Pruefe.Gleich(0, w.Karte!.Marktplaetze.Count);
             var spieler = w.Betriebe.Single(b => b.Konto == w.Konten[0]);
             Pruefe.Gleich(null, w.MarktplatzVon(spieler));
-            Pruefe.Ungefaehr(30, w.Fahrten(spieler)!.Value.Hin.Sum(s => s.Laenge), 1e-9); // zum Ursprung auf der Hauptstraße, wie bis Oktober 2026
+            // zum Ursprung auf der Hauptstraße, wie bis Oktober 2026 – ohne Platz kein Halt davor (mit dem Zubringer vom Halteplatz)
+            Pruefe.Ungefaehr(Zubringer(w, spieler) + 30, w.Fahrten(spieler)!.Value.Hin.Sum(s => s.Laenge), 1e-6);
         }),
 
         ("Marktplatz als Kreuzung nur mit der Fahrzeit nach Weglänge: Ein alter Kölner Stand (ein Markt, Daten vor Version 65) fährt auf seinem alten Netz", () =>

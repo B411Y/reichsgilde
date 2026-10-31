@@ -43,9 +43,12 @@ static class WegebauTests
     /// <summary>Die Fahrzeit eines Handkarrens nach der Formel (Länge × Belagfaktor ÷ Tempo, Datenversion 65; FahrzeitWeglaengeTests.NachFormel).</summary>
     static int Erwartet(Stadtwirtschaft w, Betrieb b, bool hin) => FahrzeitWeglaengeTests.NachFormel(w, b, Hand, hin);
 
-    /// <summary>Eine Fahrt über flache Stücke mit dem Belagfaktor <paramref name="faktor"/> mit dem Handkarren: Länge × Faktor ÷ Tempo, auf ganze Minuten.</summary>
+    /// <summary>
+    /// Eine Fahrt über flache Stücke mit dem Belagfaktor <paramref name="faktor"/> auf den Wegen der Karte mit dem Handkarren: Länge × Faktor ÷ Tempo,
+    /// auf ganze Minuten. Der Zubringer am Anfang (Halteplatz, Hof → nächster Weg; Datenversion 65) gehört zu keinem Weg und fährt wie der Bezug.
+    /// </summary>
     static int Flach(IReadOnlyList<Fahrtstueck> fahrt, double faktor) =>
-        (int)Math.Round(fahrt.Sum(s => s.Laenge) * faktor / (Daten.Value.Logistik.Karren[Hand].MeterJeMinute), MidpointRounding.AwayFromZero);
+        (int)Math.Round(fahrt.Sum(s => s.Laenge * (s.Weg >= 0 ? faktor : 1)) / (Daten.Value.Logistik.Karren[Hand].MeterJeMinute), MidpointRounding.AwayFromZero);
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
@@ -101,7 +104,10 @@ static class WegebauTests
             var (sim, _, werkstatt) = Partie();
             var w = sim.Wirtschaft!;
             Pruefe.Wahr(w.Wegebau.IstAktiv, "aktiv");
-            Pruefe.Wahr(w.Fahrten(werkstatt)!.Value.Hin.All(s => s.Art != Fahrbahn.Strasse || s.Weg >= 0), "jedes Straßenstück kennt seinen Weg");
+            // jedes Straßenstück kennt seinen Weg – bis auf den Zubringer am Anfang (vom Halteplatz über den Hof zum nächsten Weg, höchstens zwei Stücke)
+            var zubringer = w.Fahrten(werkstatt)!.Value.Hin.TakeWhile(s => s.Weg < 0).Count();
+            Pruefe.Wahr(zubringer is >= 1 and <= 2, $"Zubringer: {zubringer} Stücke");
+            Pruefe.Wahr(w.Fahrten(werkstatt)!.Value.Hin.Skip(zubringer).All(s => s.Art != Fahrbahn.Strasse || s.Weg >= 0), "jedes Straßenstück dahinter kennt seinen Weg");
             var (h0, z0) = w.Fahrten(werkstatt)!.Value;
             Pruefe.Gleich((Flach(h0, 1), Flach(z0, 1)), (w.Fahrzeit(werkstatt, Hand, true), w.Fahrzeit(werkstatt, Hand, false)), "Fahrweg = Bezug");
             Pruefe.Ungefaehr(1, w.Wegebau.Faktor(w.Fahrten(werkstatt)!.Value.Hin[0]), 0);
@@ -111,8 +117,9 @@ static class WegebauTests
             var (simP, _, wp) = Partie(e);
             var p = simP.Wirtschaft!;
             var hinP = p.Fahrten(wp)!.Value.Hin;
-            Pruefe.Wahr(hinP.Where(s => s.Art == Fahrbahn.Strasse).All(s => p.Karte!.Wege[s.Weg].Name == "Hauptstraße"), "nur über die Hauptstraße");
-            Pruefe.Ungefaehr(1 / 1.15, p.Wegebau.Faktor(hinP[0]), 1e-12);
+            Pruefe.Wahr(hinP.Where(s => s.Art == Fahrbahn.Strasse && s.Weg >= 0).All(s => p.Karte!.Wege[s.Weg].Name == "Hauptstraße"), "nur über die Hauptstraße");
+            Pruefe.Ungefaehr(1 / 1.15, p.Wegebau.Faktor(hinP.First(s => s.Weg >= 0)), 1e-12);
+            Pruefe.Ungefaehr(1, p.Wegebau.Faktor(hinP[0]), 0); // der Zubringer: kein Weg der Karte, kein Pflaster
             Pruefe.Gleich(Flach(hinP, 1 / 1.15), p.Fahrzeit(wp, Hand, true));
             Pruefe.Gleich(Erwartet(p, wp, false), p.Fahrzeit(wp, Hand, false));
             // Trampelpfad: 0,85 ÷ 0,7
