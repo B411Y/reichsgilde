@@ -132,6 +132,27 @@ public sealed partial class Kartenentwurf
         return Eintragen("Rampe angelegt", Gelaendepinsel.Rampe(_hoehen, von, nach, breite, kante, Kartengrenzen.Aussen));
     }
 
+    /// <summary>
+    /// Liest eine Höhenkarte ein (<see cref="Hoehenkarte"/>, Terrain3D-Übernahme Etappe 2): Rasterpunkte in der Karte unter dem Bild bekommen
+    /// ihre Höhe, alle anderen bleiben. Ein Schritt mit Rückgängig („Höhenkarte eingelesen“), wenn sich etwas ändert; der Bericht nennt, was
+    /// abgedeckt, geändert und abgeschnitten wurde.
+    /// </summary>
+    /// <exception cref="ArgumentException">Wenn die Lage nicht stimmt oder die Zahl der Werte nicht zu ihr passt.</exception>
+    public Hoehenkartenbericht HoehenkarteEinlesen(ushort[] werte, Hoehenkartenlage lage)
+    {
+        GelaendeStrichBeenden();
+        var bericht = Hoehenkarte.Einlesen(_hoehen, werte, lage, Kartengrenzen.Aussen, out var aenderung);
+        Eintragen("Höhenkarte eingelesen", aenderung);
+        return bericht;
+    }
+
+    /// <summary>
+    /// Das Raster der ganzen Karte (Spielfeld und Rand) als Höhenkarte, ein Pixel je Rasterpunkt (2 m); ohne Angabe von unten/oben (cm) die
+    /// tiefste und höchste Höhe. <c>Begrenzt</c> zählt Punkte außerhalb von unten … oben.
+    /// </summary>
+    public (ushort[] Werte, Hoehenkartenlage Lage, int Begrenzt) HoehenkarteAusgeben(int? untenCm = null, int? obenCm = null) =>
+        Hoehenkarte.Ausgeben(_hoehen, Kartengrenzen.Aussen, untenCm, obenCm);
+
     /// <summary>Eine Kachel, in der überall 0 steht (zum Vergleichen; nicht ändern).</summary>
     private static readonly short[] LeereKachel = new short[Hoehenraster.Kachel * Hoehenraster.Kachel];
 
