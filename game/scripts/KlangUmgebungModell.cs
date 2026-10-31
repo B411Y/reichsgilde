@@ -88,9 +88,10 @@ public static class KlangUmgebungModell
         new("natur_grillen", "Grillen und Heuschrecken auf der Wiese: im Sommer abends und nachts, am Tag kaum, nur im Grünen", -11f, Bus.Draussen),
         new("natur_froesche", "Frösche am Wasser: im Frühling abends und nachts, im Sommer kaum, nur nahe an Fluss, Bach oder Teich", -11f, Bus.Draussen),
         new("natur_fluss", "Plätschern von Fluss und Bach: nah am Wasser, weiter weg leise, in der Stadt gedämpft", -7f, Bus.Draussen),
-        new("regen_leicht", "Leichter Regen auf Boden und Laub (nach der Regenstärke)", -10f, Bus.Draussen),
-        new("regen_stark", "Starker Regen, Guss (ab etwa halber bis voller Regenstärke)", -8f, Bus.Draussen),
-        new("regen_dach", "Tropfen auf Dächern, nah in der Stadt (herangezoomt)", -14f, Bus.Draussen),
+        new("regen_leicht", "Regen im Freien auf Gras, Erde und Pflaster (Hauptschicht, nach der Regenstärke)", -4f, Bus.Draussen),
+        new("regen_stark", "Starker Regen im Freien, Guss (Hauptschicht ab etwa halber bis voller Regenstärke)", -3f, Bus.Draussen),
+        new("regen_dach", "Regen auf Ziegeldächern: nur nahe an Häusern, herangezoomt", -9f, Bus.Draussen),
+        new("regen_traufe", "Wasser tropft und läuft aus der Dachrinne: nur ganz nah an Häusern bei Regen", -10f, Bus.Draussen),
         new("schenke_innen", "Schankstube von innen: Stimmen, Lachen, Krüge – laut und lebendig, nach der Zahl der Gäste (nur in der Innenansicht des Wirtshauses)", -3f, Bus.Innen),
     };
 
@@ -201,7 +202,9 @@ public static class KlangUmgebungModell
             "natur_fluss" => um.Wasser * (0.3f + 0.7f * n) * (1f - 0.5f * h) * (1f - 0.4f * um.Stadt),
             "regen_leicht" => Glatt(0.03f, 0.4f, regen) * (1f - 0.85f * Glatt(0.55f, 0.95f, regen)) * (1f - 0.4f * h),
             "regen_stark" => Glatt(0.45f, 0.95f, regen) * (1f - 0.4f * h),
-            "regen_dach" => Glatt(0.05f, 0.5f, regen) * (0.25f + 0.75f * um.Stadt) * (0.2f + 0.8f * n),
+            // Dächer nur nahe an Häusern: erst bei spürbarem Stadtanteil im Umkreis (Wiese und Wald: nichts), dann nach der Nähe der Kamera
+            "regen_dach" => Glatt(0.05f, 0.5f, regen) * Glatt(0.15f, 0.65f, um.Stadt) * (0.25f + 0.75f * n),
+            "regen_traufe" => Glatt(0.1f, 0.6f, regen) * Glatt(0.3f, 0.8f, um.Stadt) * (0.05f + 0.95f * n * n),
             "schenke_innen" => schank ? (l.Gemessen ? l.SchenkeInnen : 0.6f) : 0f,
             _ => 0f,
         };
@@ -978,6 +981,21 @@ public static class KlangUmgebungModell
             Pruefe(lufs <= -26 + DeckelDb + 0.3, $"{name}: Summe {lufs:0.0} LUFS über dem Deckel");
         }
 
+        // Regen im Freien ist die Hauptschicht: klar über der Stadt-Grundschicht (Regen 0,5 mindestens 3 dB), starker Regen dominiert (mindestens 9 dB)
+        foreach (var (name, regenWert, mindestens) in new[] { ("Regen 0,5", 0.5f, 3.0), ("Regen 0,75", 0.75f, 6.0), ("Guss 1,0", 1f, 9.0) })
+        {
+            var a = Lauf(tag with { Wetter = new KlangWetter(regenWert, 0f, 0.3f, 0f, 0.1f) }, 5);
+            double regenP = 0, restP = 0;
+            for (var i = 0; i < Schichten.Length; i++)
+            {
+                if (a.Db[i] <= AusDb) continue;
+                var p = Math.Pow(10, (a.Db[i] + Schichten[i].Bus switch { Bus.Stadt => a.StadtDb, Bus.Schenke => a.StadtDb + a.SchenkeDb, _ => 0f }) / 10.0);
+                if (Schichten[i].Name.StartsWith("regen_")) regenP += p; else restP += p;
+            }
+            var abstand = 10 * Math.Log10(Math.Max(regenP, 1e-12) / Math.Max(restP, 1e-12));
+            Pruefe(abstand >= mindestens, $"{name}: der Regen liegt nur {abstand:0.0} dB über dem Rest der Umgebung (erwartet ≥ {mindestens:0} dB)");
+        }
+
         // 4. Abläufe bei hohem Tempo: kein Dauer-Sprung, kein Flackern, Klang folgt dem Licht
         foreach (var runde in new[] { 900.0, 60.0 })
             foreach (var fps in new[] { 2.0, 60.0 })
@@ -1283,6 +1301,12 @@ public static class KlangUmgebungModell
         pruefe(G("regen_leicht", 12f, stadt, new KlangWetter(0.2f, 0f, 0.3f, 0f, 0f)) >= 0.2f && G("regen_stark", 12f, stadt, new KlangWetter(0.2f, 0f, 0.3f, 0f, 0f)) == 0f, "Leichter Regen klingt falsch");
         pruefe(G("regen_stark", 12f, stadt, guss) >= 0.8f && G("regen_leicht", 12f, stadt, guss) < G("regen_stark", 12f, stadt, guss), "Guss: stark muss führen");
         pruefe(G("regen_dach", 12f, stadt, regen, zoom: 30) > G("regen_dach", 12f, wald, regen, zoom: 30) * 2f, "Dachregen in der Stadt nicht deutlicher als im Wald");
+        // Dächer und Traufen nur nahe an Häusern: auf der Wiese und im Wald nichts, an den Häusern bei Regen deutlich, weit oben leiser
+        pruefe(G("regen_dach", 12f, wiese, regen, zoom: 30) == 0f && G("regen_dach", 12f, wald, regen, zoom: 30) == 0f && G("regen_traufe", 12f, wiese, regen, zoom: 30) == 0f, "Dachregen auf Wiese oder im Wald");
+        pruefe(G("regen_dach", 12f, stadt, regen, zoom: 30) >= 0.4f && G("regen_traufe", 12f, stadt, regen, zoom: 30) >= 0.3f && G("regen_traufe", 12f, stadt, regen, zoom: 30) > G("regen_traufe", 12f, stadt, regen, zoom: 120) * 3f, "Dach und Traufe nahe an Häusern zu leise");
+        pruefe(G("regen_traufe", 12f, stadt, klar, zoom: 30) == 0f, "Traufe ohne Regen");
+        // Regen im Freien ist die Hauptschicht: schon bei mäßigem Regen deutlich, auch auf der Wiese und weit oben
+        pruefe(G("regen_leicht", 12f, wiese, new KlangWetter(0.3f, 0f, 0.2f, 0f, 0f), zoom: 120) >= 0.4f && G("regen_stark", 12f, wiese, guss, zoom: 120) >= 0.5f, "Regen im Freien auf der Wiese zu leise");
         pruefe(G("morgen_voegel", 6.4f, wald, regen) <= G("morgen_voegel", 6.4f, wald, klar) * 0.4f, "Vögel schweigen nicht bei Regen");
         // d. Wind nach Wetter: Flaute leise, Sturm laut auch nah
         pruefe(G("wind_leicht", 12f, stadt, new KlangWetter(0f, 0f, 0.05f, 0f, 1f), zoom: 40) < 0.15f, "Wind bei Flaute (Nebel) nicht leise");

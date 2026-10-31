@@ -307,6 +307,8 @@ def bauen(eintrag, liste, quellordner):
         y = np.zeros((n, 1))
         for o, g in teile:
             y[o:o + len(g)] += g
+        if eintrag["art"] == "schicht":
+            y = naht(y, eintrag["blende"])   # Schleifen aus einer Mischung bekommen ihre Naht wie die aus einer Quelle
     elif "muster" in eintrag:
         q = liste["quellen"][eintrag["quelle"]]
         x = filtern(quelle_lesen(Path(quellordner) / f"{eintrag['quelle']}.ogg", q["sha256"]), eintrag)
