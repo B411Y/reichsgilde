@@ -513,7 +513,9 @@ public partial class Kartenwerkstatt
             Zeile(raster, "Maßstab", Schieber(4, 100, 1, _stadt.GelaendeMassstab, Breite, m => _stadt.GelaendeMassstab = m, "Größe der Buckel in Metern"));
         }
         if (art is Pinselart.Heben or Pinselart.Senken)
-            _eigenschaften.AddChild(Haken(art == Pinselart.Heben ? "Nur Mulden heben" : "Nur Spitzen kappen", _stadt.GelaendeNurAusgleich, an => _stadt.GelaendeNurAusgleich = an,
+            _eigenschaften.AddChild(Haken(art == Pinselart.Heben ? "Nur Mulden heben" : "Nur Spitzen kappen",
+                art == Pinselart.Heben ? _stadt.GelaendeNurMulden : _stadt.GelaendeNurSpitzen,
+                an => { if (art == Pinselart.Heben) _stadt.GelaendeNurMulden = an; else _stadt.GelaendeNurSpitzen = an; },
                 art == Pinselart.Heben
                     ? "Hebt nur, was tiefer liegt als die Mitte des Pinsels (höchstens bis dorthin) – füllt Senken und Hangfuß, Kuppen bleiben"
                     : "Senkt nur, was höher liegt als die Mitte des Pinsels (höchstens bis dorthin) – kappt Grate für einen Bauplatz, Mulden bleiben"));
@@ -656,7 +658,16 @@ public partial class Kartenwerkstatt
         kopf.AddThemeConstantOverride("separation", 8);
         _eigenschaften.AddChild(kopf);
         kopf.AddChild(new TextureRect { Texture = Farbfeld(radierer ? new Color(0.33f, 0.40f, 0.24f) : _stadt.BodenFarbe(_stadt.BodenArt)), StretchMode = TextureRect.StretchModeEnum.KeepCentered, MouseFilter = Control.MouseFilterEnum.Ignore });
-        Hauptmenue.Text(kopf, radierer ? "Boden-Radierer" : _stadt.BodenName(_stadt.BodenArt), 17, Gold);
+        var name = Hauptmenue.Text(kopf, radierer ? "Boden-Radierer" : _stadt.BodenName(_stadt.BodenArt), 17, Gold);
+        name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var pipette = new Button
+        {
+            Text = "Pipette", ToggleMode = true, ButtonPressed = _stadt.PipetteBereit, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Der nächste Klick in die Karte nimmt die stärkste Bodenart dort als Textur des Pinsels, statt zu malen (oder gleich Strg+Klick)",
+        };
+        pipette.AddThemeFontSizeOverride("font_size", 13);
+        pipette.Toggled += an => _stadt.PipetteBereit = an;
+        kopf.AddChild(pipette);
         Hauptmenue.Text(_eigenschaften, "Pinsel", 15, Gold);
         var raster = new GridContainer { Columns = 2 };
         raster.AddThemeConstantOverride("h_separation", 10);
@@ -743,7 +754,9 @@ public partial class Kartenwerkstatt
         {
             if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }) vorher ??= regler.Value;
         };
-        regler.Ready += () => regler.GetTree().ProcessFrame += Abfragen;
+        // bei jedem Eintritt in den Baum an-, beim Verlassen abmelden: Die klappbaren Abschnitte (AbschnitteBilden) hängen die Regler um –
+        // „Ready“ käme danach nicht wieder, die Abfrage fehlte und das Abmelden beim Schließen ginge ins Leere
+        regler.TreeEntered += () => regler.GetTree().ProcessFrame += Abfragen;
         regler.TreeExiting += () => regler.GetTree().ProcessFrame -= Abfragen;
         void Abfragen()
         {
