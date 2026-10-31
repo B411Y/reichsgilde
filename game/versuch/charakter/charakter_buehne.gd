@@ -13,6 +13,12 @@
 # (Poly Haven „Studio Small 09“, CC0, ~/werkzeuge/charakter/hdri, nicht im Repository; fehlt es, wie Phase 5); der
 # sichtbare Hintergrund bleibt flach. „spiel6_weich“: dasselbe mit Winkelgröße 3° statt Schattenweichzeichnung (Messung).
 # „kugeltest“: nur das Schlüssellicht, kein Umgebungslicht, linear abgebildet (Prüfkugeln, S2).
+#
+# Phase 6 (Halt A, Entscheidungen 31.10.2026): „spiel6“ hebt die Sättigung auf 1,25 (nur diese Porträtbühne, die
+# Spielwelt bleibt unverändert; E5 des Nutzers). Das Studio-HDRI gilt nur auf den Stufen Hoch und Ultra (Teamleiter;
+# es kostete +0,5 ms ohne Haar, +1,5 ms mit TressFX); Niedrig und Mittel bekommen eine feste Umgebungsfarbe, aus dem
+# HDRI gemittelt. L-V „vorlage“: die Aufhellung 1 : 3 ist jetzt ein Lichtverhältnis (Teamleiter): auf der Schattenwange
+# kommt ⅓ der Beleuchtung der Lichtwange an (Lambert, Wangen ±40° zur Blickachse); Belichtung neu an der Graukarte.
 extends SubViewport
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -30,6 +36,8 @@ const SPIEL6_GEGEN := 0.8
 # wirkten im Versuch nicht (s3_probe_hdri: 0 und 3 ergaben dasselbe Bild).
 const SPIEL6_UMGEBUNG := 0.2
 const SPIEL6_WINKEL := 3.0               # Winkelgröße des Schlüssellichts („spiel6_weich“), Grad
+const SPIEL6_SAETTIGUNG := 1.25          # Halt A (E5): nur die Porträtbühne Stand 6
+const HDRI_STUFEN := ["hoch", "ultra"]   # Halt A (Teamleiter): Studio-HDRI nur auf Hoch und Ultra
 
 var kopf: Kopf
 var kamera: Camera3D
@@ -41,16 +49,53 @@ var licht_art := "spiel"
 var anzeige := "normal"
 var pruefkoerper := ""
 var _pruef: Node3D = null
+var stufe := "hoch"         # Grafikstufe der Bühne (niedrig | mittel | hoch | ultra); Bogenschlüssel „stufe“
 
 # L-V „vorlage“ (Prüfplan 5.2): weiches Schlüssellicht 45° links oben (Schattenweichzeichnung 2,0; bis Etappe A
 # Winkelgröße 3°, die ein Punktraster in die Schatten streute), Aufhellung 1 : 3 von rechts,
 # kein Gegenlicht, Grund 18 % grau, neutrale Umgebung, AgX. Die Belichtung ist so geeicht, dass die Graukarte (18 %,
 # zur Kamera) sRGB 118 ± 4 ergibt (Prüfkörper „graukarte“, Bogen P10).
 const VORLAGE_SCHLUESSEL := 3.0          # Energie (Lux-Einheit von Godot)
-const VORLAGE_FUELL := 1.0               # 1 : 3
 const VORLAGE_UMGEBUNG := 0.12
-const VORLAGE_BELICHTUNG := 0.435        # geeicht in S0: Graukarte sRGB 118 (Reihe 0,40 … 0,70, docs/charakter/phase6.md)
 const VORLAGE_GRUND := 0.18              # Grund: 18 % Reflexion unter demselben Licht (linear, vor der Belichtung)
+const VORLAGE_SCHL_RICHTUNG := [-45.0, 45.0]   # Azimut, Höhe (Grad)
+const VORLAGE_FUELL_RICHTUNG := [50.0, 10.0]
+const VORLAGE_VERHAELTNIS := 3.0         # Lichtverhältnis Lichtwange : Schattenwange (Beleuchtung, Lambert)
+const VORLAGE_WANGE_GRAD := 40.0         # Wangennormalen ±40° zur Blickachse (waagerecht)
+# Etappe A: Fülllicht 1,0 als Energieverhältnis 1 : 3 (Licht : Schatten der Wange nur 1,15), Belichtung 0,435 (S0).
+# Ab Etappe B (Halt A): Fülllicht aus dem Lichtverhältnis (vorlage_fuell(), ≈ 0,45), Belichtung so, dass die
+# Graukarte wieder sRGB 118 zeigt: AgX sieht nur Belichtung × Beleuchtung, also 0,435 × E_alt / E_neu der Graukarte.
+const VORLAGE_FUELL_ALT := 1.0
+const VORLAGE_BELICHTUNG_ALT := 0.435
+
+static func _richtung(azimut: float, hoehe: float) -> Vector3:
+	var a := deg_to_rad(azimut)
+	var h := deg_to_rad(hoehe)
+	return Vector3(sin(a) * cos(h), sin(h), cos(a) * cos(h))
+
+# Fülllicht für das Lichtverhältnis: Lichtwange (−x, zum Schlüssellicht) = K·(n·l) + F·(n·f) + U, Schattenwange (+x)
+# entsprechend; F so, dass Licht : Schatten = VORLAGE_VERHAELTNIS
+static func vorlage_fuell() -> float:
+	var l := _richtung(VORLAGE_SCHL_RICHTUNG[0], VORLAGE_SCHL_RICHTUNG[1])
+	var f := _richtung(VORLAGE_FUELL_RICHTUNG[0], VORLAGE_FUELL_RICHTUNG[1])
+	var w := deg_to_rad(VORLAGE_WANGE_GRAD)
+	var n_licht := Vector3(-sin(w), 0, cos(w))
+	var n_schatten := Vector3(sin(w), 0, cos(w))
+	var k_l := VORLAGE_SCHLUESSEL * maxf(n_licht.dot(l), 0.0)
+	var k_s := VORLAGE_SCHLUESSEL * maxf(n_schatten.dot(l), 0.0)
+	var f_l := maxf(n_licht.dot(f), 0.0)
+	var f_s := maxf(n_schatten.dot(f), 0.0)
+	# (k_l + F f_l + U) = V (k_s + F f_s + U)
+	return maxf((k_l + VORLAGE_UMGEBUNG - VORLAGE_VERHAELTNIS * (k_s + VORLAGE_UMGEBUNG)) / (VORLAGE_VERHAELTNIS * f_s - f_l), 0.0)
+
+# Beleuchtung der Graukarte (zur Kamera, Normale +z) durch Schlüssel-, Füll- und Umgebungslicht
+static func _vorlage_e(fuell_energie: float) -> float:
+	var l := _richtung(VORLAGE_SCHL_RICHTUNG[0], VORLAGE_SCHL_RICHTUNG[1])
+	var f := _richtung(VORLAGE_FUELL_RICHTUNG[0], VORLAGE_FUELL_RICHTUNG[1])
+	return VORLAGE_SCHLUESSEL * l.z + fuell_energie * f.z + VORLAGE_UMGEBUNG
+
+static func vorlage_belichtung() -> float:
+	return VORLAGE_BELICHTUNG_ALT * _vorlage_e(VORLAGE_FUELL_ALT) / _vorlage_e(vorlage_fuell())
 
 func _init(groesse := Vector2i(640, 640)) -> void:
 	size = groesse
@@ -107,7 +152,7 @@ func _grund_merken() -> void:
 			n.shadow_enabled]
 	_grund[umgebung] = [umgebung.background_color, umgebung.ambient_light_color, umgebung.ambient_light_energy,
 		umgebung.tonemap_exposure, umgebung.ssao_enabled, umgebung.tonemap_mode, umgebung.ambient_light_source,
-		umgebung.reflected_light_source, umgebung.sky]
+		umgebung.reflected_light_source, umgebung.sky, umgebung.adjustment_enabled, umgebung.adjustment_saturation]
 
 func _grund_setzen() -> void:
 	for n in [schluessel, fuell, gegen]:
@@ -129,6 +174,8 @@ func _grund_setzen() -> void:
 	umgebung.ambient_light_source = u[6]
 	umgebung.reflected_light_source = u[7]
 	umgebung.sky = u[8]
+	umgebung.adjustment_enabled = u[9]
+	umgebung.adjustment_saturation = u[10]
 	debug_draw = Viewport.DEBUG_DRAW_DISABLED
 	if _innen:
 		_innen.visible = false
@@ -166,12 +213,21 @@ func licht_art_setzen(art: String) -> void:
 				schluessel.shadow_blur = 1.2          # Messung: Weichzeichnung wie Phase 5 (Kosten von 2,0 mit TressFX)
 			else:
 				schluessel.shadow_blur = 2.0
+			# Halt A (E5): Sättigung 1,25 nur auf dieser Porträtbühne
+			umgebung.adjustment_enabled = true
+			umgebung.adjustment_saturation = SPIEL6_SAETTIGUNG
 			var himmel := _himmel() if art != "spiel6_ohne_himmel" else null   # Messung: Kosten des HDRI
-			if himmel:
+			if himmel and stufe in HDRI_STUFEN:
 				umgebung.sky = himmel
 				umgebung.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 				umgebung.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 				umgebung.ambient_light_energy = 1.0
+			elif himmel:
+				# Niedrig und Mittel: feste Umgebungsfarbe = Mittel des HDRI × Stärke (keine Spiegelung des Himmels)
+				umgebung.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+				umgebung.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+				umgebung.ambient_light_color = _himmel_mittel.linear_to_srgb()
+				umgebung.ambient_light_energy = SPIEL6_UMGEBUNG
 		"kugeltest":
 			# S2: Prüfkugeln – nur das Schlüssellicht (weiß, hart), kein Umgebungslicht, linear, Grund schwarz
 			schluessel.light_color = Color(1, 1, 1)
@@ -186,7 +242,8 @@ func licht_art_setzen(art: String) -> void:
 			umgebung.ssao_enabled = false
 			umgebung.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 			umgebung.tonemap_exposure = 1.0
-		"vorlage":
+		"vorlage", "vorlage_a":
+			# „vorlage_a“: L-V der Etappe A (Fülllicht 1,0, Belichtung 0,435) zum Vergleich
 			schluessel.light_color = Color(1, 1, 1)
 			schluessel.light_energy = VORLAGE_SCHLUESSEL
 			# Prüferbefund Etappe A: die Winkelgröße 3° (weiche Schatten über PCSS) streute ein Punktraster in alle
@@ -194,16 +251,17 @@ func licht_art_setzen(art: String) -> void:
 			# Feinstrukturwerte. Weich wie L-S über die Schattenweichzeichnung, ohne Winkelgröße.
 			schluessel.light_angular_distance = 0.0
 			schluessel.shadow_blur = 2.0
-			licht_richten(schluessel, -45.0, 45.0)
+			licht_richten(schluessel, VORLAGE_SCHL_RICHTUNG[0], VORLAGE_SCHL_RICHTUNG[1])
 			fuell.light_color = Color(1, 1, 1)
-			fuell.light_energy = VORLAGE_FUELL
-			licht_richten(fuell, 50.0, 10.0)
+			var fe := vorlage_fuell() if art == "vorlage" else VORLAGE_FUELL_ALT
+			fuell.light_energy = fe
+			licht_richten(fuell, VORLAGE_FUELL_RICHTUNG[0], VORLAGE_FUELL_RICHTUNG[1])
 			gegen.visible = false
 			umgebung.ambient_light_color = Color(1, 1, 1)
 			umgebung.ambient_light_energy = VORLAGE_UMGEBUNG
-			umgebung.tonemap_exposure = VORLAGE_BELICHTUNG
+			umgebung.tonemap_exposure = vorlage_belichtung() if art == "vorlage" else VORLAGE_BELICHTUNG_ALT
 			# Grund: wie eine 18-%-Fläche unter Schlüssel- und Fülllicht (Lambert, zur Kamera) – im Bild so hell wie die Graukarte
-			var e := (VORLAGE_SCHLUESSEL * cos(deg_to_rad(45.0)) * cos(deg_to_rad(45.0)) + VORLAGE_FUELL * cos(deg_to_rad(50.0)) * cos(deg_to_rad(10.0))) + VORLAGE_UMGEBUNG
+			var e := _vorlage_e(fe)
 			umgebung.background_color = Color(VORLAGE_GRUND * e, VORLAGE_GRUND * e, VORLAGE_GRUND * e).linear_to_srgb()
 		"innen", "innen6":
 			# L-I: Herdfeuer links vorn, Kerze rechts, kaum Umgebungslicht (Stand 6: Belichtung 1,0 statt 1,25)
@@ -236,6 +294,7 @@ func licht_art_setzen(art: String) -> void:
 # S3: Studio-HDRI als Himmel (nur für Umgebungslicht und Spiegelung; der Hintergrund bleibt die flache Farbe)
 static var _himmel_speicher: Sky = null
 static var _himmel_geprueft := false
+static var _himmel_mittel := Color(0.87, 0.87, 0.87)
 static func _himmel() -> Sky:
 	if _himmel_geprueft:
 		return _himmel_speicher
@@ -251,6 +310,15 @@ static func _himmel() -> Sky:
 	var mat := PanoramaSkyMaterial.new()
 	mat.panorama = ImageTexture.create_from_image(img)
 	mat.energy_multiplier = SPIEL6_UMGEBUNG
+	# Mittel des HDRI (linear) für Niedrig/Mittel: auf 16 × 8 verkleinern und mitteln
+	var klein := img.duplicate() as Image
+	klein.resize(16, 8, Image.INTERPOLATE_BILINEAR)
+	var summe := Color(0, 0, 0)
+	for y in 8:
+		for x in 16:
+			var c := klein.get_pixel(x, y)
+			summe = Color(summe.r + c.r, summe.g + c.g, summe.b + c.b)
+	_himmel_mittel = Color(summe.r / 128.0, summe.g / 128.0, summe.b / 128.0)
 	_himmel_speicher = Sky.new()
 	_himmel_speicher.sky_material = mat
 	_himmel_speicher.radiance_size = Sky.RADIANCE_SIZE_128

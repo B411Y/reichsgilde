@@ -241,6 +241,8 @@ func _bogen(datei: String) -> void:
 			# Phase 6: erst alte Einzelwerte zurück, dann Lichtart und Anzeige, dann die Einzelwerte der Zelle
 			b.umgebung_setzen({})
 			b.licht_setzen({})
+			# Halt A: Grafikstufe der Bühne (HDRI nur Hoch/Ultra)
+			b.stufe = String(z.get("stufe", "ultra" if bool(z.get("ultra", false)) else "hoch"))
 			b.licht_art_setzen(String(z.get("licht", "spiel")))
 			b.anzeige_setzen(String(z.get("anzeige", "normal")))
 			var sr: Array = z.get("schluessel_richtung", [])
