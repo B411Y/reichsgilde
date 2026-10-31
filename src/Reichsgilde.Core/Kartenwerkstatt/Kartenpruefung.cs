@@ -245,6 +245,7 @@ public static class Kartenpruefung
             if (_r.Stadtregeln) Probeplan();
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
             if (_r.Startgrundstuecke > 0) Startgrundstuecke();
+            Marktplaetze();
             Vorkommen();
             Mauern();
             Haefen();
@@ -649,6 +650,23 @@ public static class Kartenpruefung
             foreach (var s in starts.Where(s => Math.Abs(abstand[s.Key] - mittel) > 0.10 * mittel))
                 Fehler("startgrundstuecke", $"Startgrundstück {s.Key}: {M(abstand[s.Key])} m zum Markt, im Mittel {M(mittel)} m (±10 %).",
                     s.First().Punkt, s.Select(g => g.Kennung).ToArray());
+        }
+
+        /// <summary>
+        /// Jeder Marktplatz wird von einer Karrenstraße berührt (Hinweis, seit den mehreren Marktplätzen am 31.10.2026): Sonst hängt der Kern ihn an die
+        /// nächste Straße, und das Stück dorthin zählt für die Fahrzeit nicht (<c>Karrennetz.Marktlinien</c>, <c>Karrennetz.Fahrt</c>).
+        /// </summary>
+        private void Marktplaetze()
+        {
+            foreach (var g in _e.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog))
+            {
+                var ecken = g.Ecken();
+                if (ecken.Count == 0) continue;
+                var beruehrt = _wege.Any(w => Kartenweg.TraegtKarren(w.Weg.Klasse) && w.Linie.Length >= 2
+                                              && Kartengeometrie.AbstandVielecke(ecken, w.Linie, false) <= Karrennetz.Fang);
+                if (!beruehrt)
+                    Hinweis("markt", $"{Wer(g)}: Keine Karrenstraße berührt den Marktplatz – die Karren fahren zur nächsten Straße, das letzte Stück zählt nicht.", g.Punkt, g.Kennung);
+            }
         }
 
         /// <summary>Jedes Vorkommen liegt an einem Weg oder in der Fläche eines Umlandbetriebs (karte.py, Regel 6).</summary>

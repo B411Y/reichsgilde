@@ -9,8 +9,9 @@ using Reichsgilde.Kartenbau.Staedte;
 /// <summary>
 /// Mehrere Marktplätze je Stadt (Entscheidung des Nutzers vom 31.10.2026, Köln: Heumarkt, Alter Markt, Neumarkt): EIN Stadtmarkt mit gemeinsamen
 /// Preisen und gemeinsamem Bestand; ein Karren fährt zum nächsten Platz (kürzester Weg über die Karrenstraßen, bei Gleichstand der erste der
-/// Karte); ein Marktplatz ist eine Kreuzung (Karrenstraßen, die seine Fläche berühren, sind über seine Mitte verbunden). Alte Karten mit einem
-/// Markt rechnen wie bisher, und ein Spielstand merkt sich nichts Neues (der Platz folgt aus Karte und Platz des Betriebs).
+/// Karte); ein Marktplatz ist eine Kreuzung (Karrenstraßen, die seine Fläche berühren, sind über seine Mitte verbunden) – mit der Fahrzeit nach
+/// Weglänge (Datenversion 65). Greybox, Probestadt und Messstadt rechnen wie bisher, ein alter Spielstand mit alten Daten auf seinem alten Netz,
+/// und ein Spielstand merkt sich nichts Neues (der Platz folgt aus Karte und Platz des Betriebs).
 /// </summary>
 static class MarktplaetzeTests
 {
@@ -49,6 +50,15 @@ static class MarktplaetzeTests
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value,
             new NeuePartie(Rivalen: 2), karte: karte);
         return (sim, spieler, karte);
+    }
+
+    /// <summary>Die Probestadt ohne ihren Marktplatz (eine Karte ohne Markt: der Ursprung gilt).</summary>
+    static Simulation ProbestadtOhneMarkt()
+    {
+        var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+        e.Loeschen(e.Gebaeude.Single(g => g.Katalog == "markt").Kennung);
+        return Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 2),
+            karte: e.ZuStadtkarte()).Simulation;
     }
 
     static Betrieb Werkstatt(Stadtwirtschaft w, string haus) => w.Betriebe.Single(b => b.Konto.Inhaber == haus && b.InDerStadt);
@@ -99,12 +109,12 @@ static class MarktplaetzeTests
                 Pruefe.Ungefaehr(28, zurueck.Sum(s => s.Laenge), 1e-9);
                 Pruefe.Gleich(FahrzeitWeglaengeTests.NachFormel(w, b, "Handkarren", true), w.Fahrzeit(b, "Handkarren", true), haus);
             }
-            // Ein Stadtmarkt: Was ein Karren am Ostmarkt verkauft, liegt für alle im selben Bestand – die Wirtschaft hat genau einen Markt.
-            var markt = w.Markt;
-            for (var i = 0; i < 3 * Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag; i++) sim.Tick();
-            Pruefe.Wahr(ReferenceEquals(markt, w.Markt), "ein Markt für alle Plätze");
-            Pruefe.Wahr(w.Betriebe.Where(b => w.MarktplatzVon(b)?.Name == "Ostmarkt").SelectMany(b => b.Karren).Any(k => k.FahrtenVorjahr is not null || k.Zustand != KarrenZustand.AmBetrieb),
-                "die Karren am Ostmarkt fahren");
+            // Ein Stadtmarkt: Was die Karren am Ostmarkt verkaufen, steht im Angebot des einen Markts, an dem auch der Spieler (Marktplatz) handelt.
+            var ahlbeck = Werkstatt(w, "Haus Ahlbeck");
+            var vorher = w.Markt[ahlbeck.Produkt].SpielerAngebotImJahr;
+            for (var i = 0; i < 2 * Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag; i++) sim.Tick();
+            Pruefe.Wahr(ahlbeck.Karren.Any(k => k.FahrtenVorjahr > 0), "die Karren am Ostmarkt fahren");
+            Pruefe.Wahr(w.Markt[ahlbeck.Produkt].SpielerAngebotImJahr > vorher, $"{ahlbeck.Produkt} vom Ostmarkt im Angebot des Stadtmarkts");
         }),
 
         ("Mehrere Marktplätze: nach Speichern und Laden dieselben Plätze, Wege und Fahrzeiten (der Spielstand braucht nichts Neues)", () =>
@@ -139,6 +149,64 @@ static class MarktplaetzeTests
             var jePlatz = werkstaetten.GroupBy(b => w.MarktplatzVon(b)!.Name).ToDictionary(g => g.Key, g => g.Count());
             Pruefe.Gleich((1, 3, 4), (jePlatz["Heumarkt"], jePlatz["Alter Markt"], jePlatz["Neumarkt"]));
             Pruefe.Gleich("Heumarkt", w.MarktplatzVon(w.Betriebe.Single(b => b.Konto == w.Konten[0]))!.Name); // der Spieler
+        }),
+
+        ("Mehrere Marktplätze: Ein alter Spielstand (Greybox, Herbst 1406) lädt mit seiner Karte – ein Marktplatz, jeder Betrieb mit Weg fährt dorthin", () =>
+        {
+            var datei = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!,
+                "tests", "Reichsgilde.Core.Tests", "Spielstaende", "format2-greybox-herbst1406.json.gz");
+            using var gz = new System.IO.Compression.GZipStream(File.OpenRead(datei), System.IO.Compression.CompressionMode.Decompress);
+            var (sim, _) = Speicherung.Laden(new StreamReader(gz).ReadToEnd());
+            var w = sim.Wirtschaft!;
+            Pruefe.Gleich(1, w.Karte!.Marktplaetze.Count);
+            Pruefe.Gleich(0, Karrennetz.Marktlinien(w.Karte).Count);
+            var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }).ToList();
+            Pruefe.Wahr(mitWeg.Count >= 4, $"{mitWeg.Count} Betriebe mit Weg");
+            Pruefe.Wahr(mitWeg.All(b => ReferenceEquals(w.MarktplatzVon(b), w.Karte.Marktplaetze[0])), "alle zum einen Marktplatz");
+            for (var i = 0; i < 2 * Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag; i++) sim.Tick(); // läuft weiter
+        }),
+
+        ("Mehrere Marktplätze: Wahl nach den Kosten der Wegwahl – Furt zählt zehnfach, Fähre 300 m dazu; ohne Marktplatz gilt der Ursprung", () =>
+        {
+            Pruefe.Ungefaehr(10 * 10 + (5 + 300) + 7, Karrennetz.Kosten(new[]
+            {
+                new Fahrtstueck(10, 0, Fahrbahn.Furt), new Fahrtstueck(5, 0, Fahrbahn.Faehre), new Fahrtstueck(7, 0), new Fahrtstueck(0, 0, Fahrbahn.Bruecke),
+            }), 1e-12);
+            var w = ProbestadtOhneMarkt().Wirtschaft!;
+            Pruefe.Gleich(0, w.Karte!.Marktplaetze.Count);
+            var spieler = w.Betriebe.Single(b => b.Konto == w.Konten[0]);
+            Pruefe.Gleich(null, w.MarktplatzVon(spieler));
+            Pruefe.Ungefaehr(30, w.Fahrten(spieler)!.Value.Hin.Sum(s => s.Laenge), 1e-9); // zum Ursprung auf der Hauptstraße, wie bis Oktober 2026
+        }),
+
+        ("Marktplatz als Kreuzung nur mit der Fahrzeit nach Weglänge: Ein alter Kölner Stand (ein Markt, Daten vor Version 65) fährt auf seinem alten Netz", () =>
+        {
+            var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!;
+            var gebaeude = json["gebaeude"]!.AsArray();
+            foreach (var g in gebaeude.Where(g => (string?)g!["kennung"] is "AlterMarkt" or "Neumarkt").ToList()) gebaeude.Remove(g);
+            var karte = Stadtkarte.AusJson(json.ToJsonString(), Katalog.Value);
+            Pruefe.Gleich(1, karte.Marktplaetze.Count);
+            var ohneLinien = Karrennetz.Von(karte, marktlinien: false).Groesse;
+            Pruefe.Wahr(Karrennetz.Von(karte).Groesse != ohneLinien, "am Heumarkt gibt es Linien über den Platz");
+            var daten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
+            daten["logistik"]!.AsObject().Remove("weglaenge");
+            var alt = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Wirtschaftsdaten.AusJson(daten.ToJsonString()),
+                new NeuePartie(Rivalen: 7), karte: karte).Simulation.Wirtschaft!;
+            Pruefe.Gleich(ohneLinien, alt.Karrennetz!.Groesse);
+            var neu = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 7),
+                karte: Stadtkarte.AusJson(json.ToJsonString(), Katalog.Value)).Simulation.Wirtschaft!;
+            Pruefe.Wahr(neu.Karrennetz!.Groesse != ohneLinien, "mit Datenversion 65 ist der Heumarkt eine Kreuzung");
+        }),
+
+        ("Kartenprüfung: ein Marktplatz, den keine Karrenstraße berührt, gibt einen Hinweis „markt“; die Plätze der Karten nicht", () =>
+        {
+            foreach (var kennung in new[] { "greybox", "probestadt", "messstadt", "koeln" })
+                Pruefe.Wahr(!Kartenentwurf.AusJson(File.ReadAllText(Datenpfad.Karte(kennung)), Katalog.Value).Befunde.Any(b => b.Regel == "markt"), kennung);
+            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var abseits = e.Setzen("markt", -130, -30); // im Feld zwischen den Feldwegen, kein Weg berührt ihn
+            var befunde = e.Befunde.Where(b => b.Regel == "markt").ToList();
+            Pruefe.Gleich(1, befunde.Count);
+            Pruefe.Wahr(befunde[0].Schwere == Schwere.Hinweis && befunde[0].Gebaeude.Contains(abseits.Kennung), befunde[0].Text);
         }),
 
         ("Mehrere Marktplätze: Abstand zum nächsten (Standortwahl der KI) – ein Markt im Ursprung genau x² + z², ohne Markt der Ursprung", () =>

@@ -38,8 +38,12 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Der Belag hat sich geändert: Die Fahrzeiten werden beim nächsten Mal neu gerechnet (die Strecken bleiben).</summary>
     internal void FahrzeitenVeraltet() => _fahrzeiten.Clear();
 
-    /// <summary>Das Netz der Karrenstraßen der Karte (null ohne Karte) – einmal gebaut, die Karte einer Partie ändert sich nicht.</summary>
-    public Karrennetz? Karrennetz => Karte is { } k ? _karrennetz ??= Karrennetz.Von(k) : null;
+    /// <summary>
+    /// Das Netz der Karrenstraßen der Karte (null ohne Karte) – einmal gebaut, die Karte einer Partie ändert sich nicht. Marktplätze sind Kreuzungen
+    /// (<see cref="Karrennetz.Marktlinien"/>) nur mit der Fahrzeit nach Weglänge (<c>logistik.weglaenge</c>, Datenversion 65): Ein alter Spielstand
+    /// bringt seine alten Daten mit und fährt auf dem Netz, mit dem er gespeichert wurde.
+    /// </summary>
+    public Karrennetz? Karrennetz => Karte is { } k ? _karrennetz ??= Karrennetz.Von(k, marktlinien: Daten.Logistik.Weglaenge is not null) : null;
 
     /// <summary>Die Daten dieser Karrenart, wenn der Kern ihre Fahrzeit nach der Weglänge rechnet (Abschnitt <c>logistik.weglaenge</c> und ein Tempo).</summary>
     private KarrenDaten? NachWeglaenge(string karrenTyp) =>

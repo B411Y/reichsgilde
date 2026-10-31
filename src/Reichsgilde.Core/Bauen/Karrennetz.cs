@@ -26,7 +26,8 @@ namespace Reichsgilde.Core.Bauen;
 //
 //  Marktplätze (31.10.2026, mehrere Märkte je Stadt): Ein Marktplatz ist eine Kreuzung. Jede Karrenstraße, die seine Fläche berührt, ist über
 //  das Pflaster mit seiner Mitte verbunden (Marktlinien) – Straßen, die am Platzrand enden, sind so über den Platz verbunden. Auf Greybox,
-//  Probestadt und Messstadt ändert das nichts (dort führen die Straßen schon zur Mitte oder berühren den Platz nicht).
+//  Probestadt und Messstadt ändert das nichts (dort führen die Straßen schon zur Mitte oder berühren den Platz nicht); die Stadtwirtschaft
+//  nimmt die Linien nur mit Daten ab Version 65 (Fahrzeit nach Weglänge), alte Spielstände rechnen mit ihrem alten Netz.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Worauf ein Stück einer Fahrt liegt.</summary>
@@ -91,9 +92,11 @@ public sealed class Karrennetz
 
     /// <summary>
     /// Das Netz der Karrenstraßen einer Karte, mit den Höhenprofilen ihres Geländes und dem Wasser: Brücken und Furten aus dem
-    /// <see cref="Stadtkarte.Wasserplan"/>, Stücke im See gesperrt, die Fähren als Kanten.
+    /// <see cref="Stadtkarte.Wasserplan"/>, Stücke im See gesperrt, die Fähren als Kanten. Mit <paramref name="marktlinien"/> sind die Marktplätze
+    /// Kreuzungen (<see cref="Marktlinien"/>); die Stadtwirtschaft nimmt sie nur mit der Fahrzeit nach Weglänge (Datenversion 65) – ein alter
+    /// Spielstand mit seinen alten Daten behält das Netz, mit dem er gespeichert wurde.
     /// </summary>
-    public static Karrennetz Von(Stadtkarte karte)
+    public static Karrennetz Von(Stadtkarte karte, bool marktlinien = true)
     {
         var plan = karte.Wasserplan;
         var linien = new List<Netzlinie>();
@@ -106,7 +109,7 @@ public sealed class Karrennetz
             linien.Add(new Netzlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), stellen.Count == 0 ? null : stellen, Weg: i));
         }
         linien.AddRange(plan.Faehren.Select(f => new Netzlinie(new[] { f.Von, f.Bis }, IstFaehre: true)));
-        linien.AddRange(Marktlinien(karte));
+        if (marktlinien) linien.AddRange(Marktlinien(karte));
         return new Karrennetz(linien, karte.Gelaendeform);
     }
 
