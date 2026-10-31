@@ -1,6 +1,6 @@
 # Ton und Ansagen
 
-Lautstärken, Stumm und die Klänge der Oberfläche stehen bei den [Einstellungen](einstellungen.md) (Reiter Ton). Hier: die **Ansagen des Haushofmeisters**.
+Lautstärken, Stumm und die Klänge der Oberfläche stehen bei den [Einstellungen](einstellungen.md) (Reiter Ton). Hier: die **Ansagen des Haushofmeisters** und die **Geräusche der Stadt**.
 
 ## Der Haushofmeister
 
@@ -51,8 +51,29 @@ Alle 120 Aufnahmen spricht dieselbe **KI-Stimme**: ein warmer, tiefer Bariton um
 
 `--nur` nimmt die Dateinamen ohne `.ogg`, `--neu` verwirft die alten Versuche. Soll er anders klingen, zuerst die Satzzeichen in `ansagen_sprechtext.json` ändern. Ohne `--nur` erzeugt das Skript alle fehlenden; `--durchhoeren alle.ogg` setzt alle Aufnahmen mit 0,8 s Pause hintereinander. Danach `python3 tools/ton/ansagen_liste.py --pruefen` und `--fehlende`, die Protokollzeile bleibt (gleiche Zahl), im Commit nennen, welche Sätze neu sind. Einzelheiten: `docs/assets/prompts/haushofmeister.md`.
 
+## Die Geräusche der Stadt
+
+In der Partie hört man die Stadt: tagsüber Arbeit, Wasser und ferne Stimmen, am Morgen Vogelchor und Hähne, abends gedämpftes Gemurmel wie aus Schenken, nachts fast Stille mit einem Kauz und einem fernen Hund. Im Hauptmenü und in der Kartenwerkstatt bleibt es still (die Probepartie hat die Geräusche). Die Lautstärke hat der Regler **Umgebung**.
+
+| Wann | Was man hört |
+|---|---|
+| Morgengrauen (ab der Dämmerung bis 1,5 Stunden nach Sonnenaufgang) | Vogelchor, Hähne; die Stadt erwacht leise (vereinzelte Schritte) |
+| Arbeitszeit (voll 08:30–19:00 Uhr) | Stadtleben, nah Gemurmel, Leute gehen vorbei, Spatzen, ab und zu Pferd, Gänse oder Hühner, fernes Hämmern aus einer Schmiede |
+| Abendrot bis dunkel | Abendgesang der Vögel, Amselstrophen |
+| Abend (20–22 Uhr, Wirtshaus) | gedämpftes Gemurmel, seltener Schritte, ab und zu ein ferner Hund |
+| Nacht | stiller Grund, Waldkauz (erst wenn die Stadt ruhig ist), ferne Hunde |
+
+- **Die Vögel folgen der Sonne**, die Stadt der Uhr: Im Winter ist es um 8 Uhr noch dunkel, aber die Stadt arbeitet schon; im Sommer singt der Morgenchor schon um 4 Uhr. Im Herbst und Winter singen die Vögel kaum.
+- **Zoom:** Nah hört man das Gemurmel und die Schritte, am üblichen Blick (Startzoom) weniger davon. Weit herausgezoomt wird die Stadt leiser und dumpfer, und der Wind kommt; ganz oben weht er kräftiger.
+- **Innen:** In einem Raum hört man draußen nur noch dumpf und leise, im Dom etwas gedämpft.
+- **Pause:** Die Geräusche laufen leiser weiter (−8 dB), die Tageszeit steht, Rufe kommen seltener.
+- **Spieltempo:** Die Geräusche folgen der Spielzeit, auch bei 32x, aber ohne Sprünge. Springt die Uhr (Jahreswechsel, Laden), blenden sie in 3 Sekunden über. Hahn, Hund und Kauz rufen nach echter Zeit mit Mindestabstand, bei hohem Tempo also nicht öfter.
+- Hat das Fenster den Fokus verloren und ist „Ton im Hintergrund stumm“ an, ist alles still, und es kommen keine Rufe.
+
+Alle Klänge sind CC0-Aufnahmen von freesound.org (Nummern, Urheber und Bearbeitung in `game/assets/audio/umgebung/HERKUNFT.md`) oder eigene Synthese (Wind, Nacht). Neu bauen: `tools/ton/umgebung_bauen.py` (Schnittliste `tools/ton/umgebung_schnitte.json`).
+
 ## Ausprobieren
 
-`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
+`--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Die Geräusche der Stadt: Entwicklerfenster (F12), Reiter Klänge, Abschnitt **Umgebung** (was gerade wie laut läuft, jede Datei zum Vorhören, „jetzt rufen“); `--umgebungtest=2` schreibt die Pegel jede Sekunde ins Log, `--umgebungfahrt=1` spielt eine feste Hörprobe ab (Morgen nah, herauszoomen, Mittag, Abend, Nacht, dann Mittag am Startzoom und Pause) und beendet das Spiel. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
 
 [Zurück zum Inhaltsverzeichnis](README.md)
