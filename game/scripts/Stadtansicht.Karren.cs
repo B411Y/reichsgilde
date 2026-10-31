@@ -469,7 +469,7 @@ public partial class Stadtansicht
         if (_wirtschaft is not { } w)
             return (new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute), new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute));
         var fahrten = w.Fahrten(betrieb);
-        var wasser = w.Karte?.Wasserplan.HaeltAuf == true ? w.Daten.Logistik.Wasser : null;
+        var wasser = w.Wasserhalt; // wie der Kern: Furten (ab Datenversion 65 auf jedem Weg) und Fähren
         Fahrprofil Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck>? fahrt) =>
             new(Karrentempo.Stuecke(fahrt, w.Zeitfaktor, wasser?.FurtMinuten ?? 0, wasser?.FaehreMinuten ?? 0), laenge, meterJeMinute);
         var profile = (Profil(fahrten?.Hin), Profil(fahrten?.Zurueck));
