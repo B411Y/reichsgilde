@@ -21,7 +21,8 @@ namespace Reichsgilde.Core.Bauen;
 //    3. Auf −20 … +60 m begrenzen; was abgeschnitten wird, zählt der Bericht (tiefster und höchster Wert dazu) – das ist die Warnung.
 //  Punkte außerhalb des Bildes bleiben, wie sie sind; außerhalb der Karte (Spielfeld und Rand) wird nichts geschrieben. Das Einlesen ist ein
 //  Schritt mit Rückgängig (Kartenentwurf.HoehenkarteEinlesen).
-//  Alles ganzzahlig (long, für das Produkt Int128), gerundet halb weg von 0: dieselbe Datei gibt auf jedem Rechner dieselben Bytes.
+//  Alles ganzzahlig (long, für das Produkt Int128), Abtasten, Maßstab, Versatz und Stufe in einer einzigen Division, gerundet halb weg von 0:
+//  dieselbe Datei gibt auf jedem Rechner dieselben Bytes.
 //
 //  Ausgeben: das Raster der Karte als r16, ein Pixel je Rasterpunkt (2 m), Ursprung am ersten Punkt; „unten“ und „oben“ ohne Angabe die
 //  tiefste und höchste Höhe. Wieder eingelesen mit denselben Angaben und Stufe 1 cm ergibt das dieselben Höhen (die Spanne ist höchstens
@@ -42,6 +43,9 @@ public sealed record Hoehenkartenlage(int Breite, int Tiefe, int PixelCm, int Ur
     /// <summary>Größte Stufe der Quantisierung (cm).</summary>
     public const int MaxStufeCm = 100;
 
+    /// <summary>Größter Betrag von unten, oben und Versatz (cm, 10 km) – schützt die Rechnung vor unsinnigen Angaben.</summary>
+    public const int MaxBetragCm = 1_000_000;
+
     /// <summary>Was an den Angaben nicht stimmt (leer: in Ordnung).</summary>
     public IReadOnlyList<string> Fehler()
     {
@@ -50,6 +54,8 @@ public sealed record Hoehenkartenlage(int Breite, int Tiefe, int PixelCm, int Ur
         if (PixelCm is < MinPixelCm or > MaxPixelCm)
             fehler.Add($"Der Pixelabstand muss zwischen {Meter(MinPixelCm)} und {Meter(MaxPixelCm)} m liegen (ist {Meter(PixelCm)} m).");
         if (ObenCm <= UntenCm) fehler.Add("„oben“ (Höhe des Werts 65535) muss höher liegen als „unten“ (Höhe des Werts 0).");
+        if (Math.Abs((long)UntenCm) > MaxBetragCm || Math.Abs((long)ObenCm) > MaxBetragCm || Math.Abs((long)VersatzCm) > MaxBetragCm)
+            fehler.Add($"„unten“, „oben“ und der Versatz müssen zwischen −{MaxBetragCm / 100_000} und +{MaxBetragCm / 100_000} km liegen.");
         if (StufeCm is < 1 or > MaxStufeCm) fehler.Add($"Die Stufe muss zwischen 1 und {MaxStufeCm} cm liegen (ist {StufeCm} cm).");
         return fehler;
     }
@@ -179,9 +185,11 @@ public static class Hoehenkarte
                 summeWert += wx * wz * werte[(long)b * lage.Breite + a];
             }
         }
-        // unten + Mittel · (oben − unten) / 65535, in einer Division gerundet
-        var cm = lage.UntenCm + (int)RundDiv((Int128)summeWert * (lage.ObenCm - lage.UntenCm), (Int128)summeGewicht * Groesster) + lage.VersatzCm;
-        return lage.StufeCm <= 1 ? cm : (int)RundDiv(cm, lage.StufeCm) * lage.StufeCm;
+        // (unten + Versatz) + Mittel · (oben − unten) / 65535, auf die Stufe – alles in einer Division, also genau einmal halb weg von 0 gerundet
+        var nenner = (Int128)summeGewicht * Groesster;
+        var zaehler = ((Int128)lage.UntenCm + lage.VersatzCm) * nenner + (Int128)summeWert * ((long)lage.ObenCm - lage.UntenCm);
+        var stufe = Math.Max(1, lage.StufeCm);
+        return (int)(RundDiv(zaehler, nenner * stufe) * stufe);
     }
 
     // ── Ausgeben ─────────────────────────────────────────────────────────────
