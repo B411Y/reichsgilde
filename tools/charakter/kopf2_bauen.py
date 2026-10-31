@@ -454,7 +454,9 @@ def ziel_versatz(teile):
     return d
 
 
-regler = json.load(open(os.path.join(HIER, "kopf2_regler.json"), encoding="utf-8"))["gene"]
+# Phase 6: eigene Reglerdatei (regler=<datei>, Standard kopf2_regler.json – Phase 5 bleibt so nachbaubar)
+REGLER = OPTIONEN.get("regler", os.path.join(HIER, "kopf2_regler.json"))
+regler = json.load(open(REGLER, encoding="utf-8"))["gene"]
 formen_mpfb = {}                 # Name -> Versatz am MPFB-Netz
 ALTER = [("saeugling", 0.0), ("kind", 0.1875), ("jung", 0.5), ("alt", 1.0)]
 GESCHLECHT = [("w", 0.0), ("m", 1.0)]
@@ -503,13 +505,26 @@ for kennung, eintrag in regler.items():
             gen_formen.setdefault(kennung, {})[richt] = f"gen_{kennung}_{richt}"
 # Phase 5: Altersformen (Reife des erwachsenen Gesichts, Greis) aus kopf2_regler.json „alter_formen“ und, zum
 # Ausprobieren, Probeformen „probe_<name>“ aus einer JSON-Datei (Option proben=<datei>, {name: {ziel: gewicht}})
-alter_formen = json.load(open(os.path.join(HIER, "kopf2_regler.json"), encoding="utf-8")).get("alter_formen", {})
+alter_formen = json.load(open(REGLER, encoding="utf-8")).get("alter_formen", {})
+alter_eigen = {}                 # Phase 6: Altersform -> {eigene Form: Gewicht} (kopf6_eigen.py, nach der Übertragung)
 for name, teile in alter_formen.items():
     if not name.startswith("_"):
-        formen_mpfb[name] = ziel_versatz(teile["ziele"])
+        formen_mpfb[name] = ziel_versatz(teile.get("ziele", {}))
+        if teile.get("eigen"):
+            alter_eigen[name] = teile["eigen"]
+# Phase 6 (S6): Herkunftsachsen der MakeHuman-Makros (african, asian; Mann und Frau 25) – nur zum Bereinigen der
+# Gesichtszüge (herkunft=1), sie kommen nicht in den fertigen Kopf
+if OPTIONEN.get("herkunft") == "1":
+    for g, gw in GESCHLECHT:
+        mitte_h = makro_versatz(mp.makros(gender=gw, age=0.5))
+        for rasse in ("african", "asian"):
+            r_ = {"caucasian": 0.0, "african": 0.0, "asian": 0.0}
+            r_[rasse] = 1.0
+            formen_mpfb[f"herkunft_{rasse}_{g}"] = makro_versatz(mp.makros(gender=gw, age=0.5, race=r_)) - mitte_h
 if "proben" in OPTIONEN:
     for name, teile in json.load(open(OPTIONEN["proben"], encoding="utf-8")).items():
-        formen_mpfb["probe_" + name] = ziel_versatz(teile)
+        if not name.startswith("_"):
+            formen_mpfb["probe_" + name] = ziel_versatz(teile)
 zeit(f"Formen aus MPFB gesamt: {len(formen_mpfb)}")
 
 
@@ -774,12 +789,27 @@ adams_buckel = np.zeros_like(H_ecken)
 adams_buckel[:, 1] = -0.003 * np.exp(-0.5 * ((_rel[:, 0] / 0.008) ** 2 + (_rel[:, 2] / 0.011) ** 2)) * (_rel[:, 1] < 0.012)
 bericht["adamsapfel_mm"] = [round(float(v) * 1000, 1) for v in adams_p]
 
+# Phase 6 (S4): eigene Formen direkt auf dem ICT-Netz (kopf6_eigen.py), dazu der Adamsapfel als eigene Form
+eigen_haut = {}
+if OPTIONEN.get("eigen") == "1":
+    import kopf6_eigen as ke
+    eigen_haut, eigen_bericht = ke.formen(H_ecken, N_HAUT, H_flaechen, S[ict["merkpunkte68"]], augen,
+                                          np.arange(T["mundhoehle"][0], N_HAUT), abstand_hals)
+    eigen_haut["eigen_adamsapfel"] = adams_buckel.copy()
+    bericht["eigen_formen"] = eigen_bericht
+    zeit("Eigene Formen: " + json.dumps(eigen_bericht, ensure_ascii=False))
+
 alle_formen = {}                   # Name -> {objektname: versatz}
 for name, d in formen_mpfb.items():
     dh, voll = formen_aus_mpfb(d, name)
     if name == "alter_reife_m":
         dh = dh + adams_buckel
         voll[:N_HAUT] += adams_buckel[:N_HAUT]
+    if name in alter_eigen:
+        for en, ew in alter_eigen[name].items():
+            dh = dh + float(ew) * eigen_haut[en]
+            voll[:N_HAUT] += float(ew) * eigen_haut[en][:N_HAUT]
+        voll[lid_teile] = knn(voll[haut_und_hoehle], nb_lid)
     dhaar, dkr = haare_und_kragen(dh, voll)
     alle_formen[name] = {"Haut": dh, "Augen": voll[augen_idx], "Zaehne": voll[zahn_idx], "Haare": dhaar, "Kragen": dkr}
 zeit("MPFB-Formen übertragen")
@@ -801,6 +831,27 @@ for name, d in ict["formen"].items():
     dh, voll = formen_aus_ict(d)
     dhaar, dkr = haare_und_kragen(dh, voll, mimik=True)
     alle_formen[name] = {"Haut": dh, "Augen": voll[augen_idx], "Zaehne": voll[zahn_idx], "Haare": dhaar, "Kragen": dkr}
+# Phase 6 (S4): eigene Formen – Augen und Zähne fest, Lidteile, Brauen, Wimpern und Kragen folgen der Haut
+for name, dh in eigen_haut.items():
+    voll = np.zeros_like(S)
+    voll[:N_HAUT] = dh[:N_HAUT]
+    voll[lid_teile] = knn(voll[haut_und_hoehle], nb_lid)
+    dhaar, dkr = haare_und_kragen(dh, voll)
+    alle_formen[name] = {"Haut": dh, "Augen": voll[augen_idx], "Zaehne": voll[zahn_idx], "Haare": dhaar, "Kragen": dkr}
+# Phase 6 (S6): ICT-Identitätskomponenten (ict_ident=0-8,10-15,9,20 …) wie die Mimik übertragen, am Hals zur Büstennaht
+# ausgeblendet (1 − w_hals); Rohformen für die Gesichtszüge und die Asymmetrie, sie kommen nicht in den fertigen Kopf
+if OPTIONEN.get("ict_ident"):
+    nummern = []
+    for teil_ in OPTIONEN["ict_ident"].split(","):
+        a_, _, b_ = teil_.partition("-")
+        nummern += list(range(int(a_), int(b_ or a_) + 1))
+    for name, d in kq.ict_identitaeten(nummern).items():
+        dh, voll = formen_aus_ict(d)
+        aus_ = (1.0 - w_hals)[:, None]
+        dh[:N_HAUT] *= aus_
+        voll[:N_HAUT] *= aus_
+        dhaar, dkr = haare_und_kragen(dh, voll)
+        alle_formen[name] = {"Haut": dh, "Augen": voll[augen_idx], "Zaehne": voll[zahn_idx], "Haare": dhaar, "Kragen": dkr}
 zeit(f"Formen gesamt: {len(alle_formen)}")
 
 # Seitenprobe: „…Left“ bewegt Ecken mit +x (linke Seite der Figur)
@@ -1033,7 +1084,7 @@ merk_idx = {"augen": np.concatenate([teil("auge_l"), teil("auge_r")]), "mund": l
 merkpunkte = {k: godot(S[v].mean(0)) for k, v in merk_idx.items()}
 merk_formen = {}
 for name, d in alle_formen.items():
-    if not (name.startswith(("makro_", "gen_kopf", "gen_gesicht", "alter_", "probe_"))):
+    if not (name.startswith(("makro_", "gen_", "alter_", "probe_", "eigen_", "ictid_", "herkunft_"))):
         continue
     voll = np.zeros_like(S)
     voll[:N_HAUT] = d["Haut"][:N_HAUT]

@@ -58,6 +58,17 @@ def ict_laden():
             "merkpunkte68": np.array(ind["idx_to_landmark_verts"])}
 
 
+def ict_identitaeten(nummern):
+    """Phase 6 (S6): ICT-Identitätskomponenten identityNNN (je 1 σ der Scan-Population) als Versätze wie ict_laden."""
+    v = kw.obj_ecken(os.path.join(ICT, "generic_neutral_mesh.obj"), 0.01)
+    aus = {}
+    for k in nummern:
+        d = kw.obj_ecken(os.path.join(ICT, f"identity{k:03d}.obj"), 0.01) - v
+        d[np.linalg.norm(d, axis=1) < 2e-6] = 0.0
+        aus[f"ictid_{k:03d}"] = d
+    return aus
+
+
 def _holen(paket, name):
     for modul in list(sys.modules):
         if modul.endswith(paket):

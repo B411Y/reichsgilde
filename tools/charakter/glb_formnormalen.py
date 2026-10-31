@@ -116,6 +116,15 @@ def main():
                     entfernt += 1
     if optionen.get("duenn", "0") == "1":
         duenn_machen(gltf, binaer, float(optionen.get("grenze", "1e-4")))
+    gltf, neuer_puffer = packen(gltf, binaer)
+    schreiben(aus, gltf, neuer_puffer)
+    print(f"Normalen von {entfernt} Formen entfernt (Vorsilben {', '.join(vorsilben)}): "
+          f"{len(binaer) / 1e6:.1f} MB -> {len(neuer_puffer) / 1e6:.1f} MB")
+
+
+def packen(gltf, binaer):
+    """Nur noch benutzte Zugriffe und Pufferansichten behalten und den Puffer neu zusammensetzen (Phase 6: auch von
+    formen_mischen.py benutzt)."""
     # Noch benutzte Zugriffe und Pufferansichten sammeln
     benutzt_acc = set()
     for netz in gltf.get("meshes", []):
@@ -188,9 +197,7 @@ def main():
     gltf["accessors"] = liste_acc
     gltf["bufferViews"] = liste_bv
     gltf["buffers"] = [{"byteLength": len(neuer_puffer)}]
-    schreiben(aus, gltf, neuer_puffer)
-    print(f"Normalen von {entfernt} Formen entfernt (Vorsilben {', '.join(vorsilben)}): "
-          f"{len(binaer) / 1e6:.1f} MB -> {len(neuer_puffer) / 1e6:.1f} MB")
+    return gltf, neuer_puffer
 
 
 if __name__ == "__main__":

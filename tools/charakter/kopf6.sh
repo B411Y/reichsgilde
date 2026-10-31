@@ -1,5 +1,5 @@
 #!/bin/bash
-# Charakter Phase 6: Basiskopf wie Phase 5 bauen (Skriptkette kopf2_bauen.py, kopf3_backen.py, kopf3_haartexturen.py),
+# Charakter Phase 6 (Etappe B: Probebau + Mischung nach kopf6_rezept.json): Basiskopf wie Phase 5 bauen (Skriptkette kopf2_bauen.py, kopf3_backen.py, kopf3_haartexturen.py),
 # aber mit Formnormalen (S2): Gen-, Alters- und alle neuen Formen (eigen_, zug_, asym_) behalten ihre Normalen, Licht und
 # Schatten folgen also der Form. Lage und Normale der Formen stehen als dünne Accessoren in der Datei (nur bewegte Ecken),
 # damit kopf6.glb nicht größer wird als kopf5_mn.glb. Ausgabe nach ~/werkzeuge/charakter/glb6 (nicht im Repository);
@@ -22,7 +22,37 @@ ARBEIT=$HOME/werkzeuge/charakter/arbeit/phase6
 BPY=$HOME/werkzeuge/blender/blender-5.2.2-linux-x64/5.2/python/bin/python3.13
 mkdir -p "$AUS" "$ARBEIT" "$AUS/kopf6_tex"
 MODUS=$1
-case "$MODUS" in ohne_haar|nur_kopf|nur_haar|kaemmen|haar_kopieren) shift ;; *) MODUS="" ;; esac
+case "$MODUS" in ohne_haar|nur_kopf|nur_haar|kaemmen|haar_kopieren|proben|mischen) shift ;; *) MODUS="" ;; esac
+
+# Etappe B: nur neu mischen (ohne Blender) – nach einer neuen Ausgleichs- oder Eichrechnung
+if [ "$MODUS" = "mischen" ]; then
+  PROBE=${GLB_PROBE:-$HOME/werkzeuge/charakter/glb6p}
+  "$BPY" -I "$HIER/formen_mischen.py" "$PROBE/kopf6p.glb" "$AUS/kopf6_mn.glb" "$HIER/kopf6_rezept.json" \
+    beschreibung="$PROBE/kopf6p.json" aus_json="$AUS/kopf6_mn.json"
+  nice -n 10 python3 -I "$HIER/glb_formnormalen.py" "$AUS/kopf6_mn.glb" "$AUS/kopf6.glb" ohne_vorsilben=makro_ duenn=1
+  python3 -I -c 'import json, os, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+d["bericht"]["ausgabe"] = "kopf6.glb"
+d["bericht"]["morph_normalen"] = "ohne makro_"
+d["bericht"]["formdaten"] = "dünn (|Δ| > 1e-4)"
+d["bericht"]["glb_mb"] = round(os.path.getsize(sys.argv[2]) / 1e6, 2)
+json.dump(d, open(sys.argv[3], "w", encoding="utf-8"), indent=1, ensure_ascii=False)' "$AUS/kopf6_mn.json" "$AUS/kopf6.glb" "$AUS/kopf6.json"
+  exit 0
+fi
+
+# Etappe B (S4–S7): Probebau – alle Kandidatenformen in einer .glb (Ordner glb6p, nur zum Messen und Mischen):
+# MakeHuman-Probeziele (kopf6_proben.json), eigene ICT-Formen (kopf6_eigen.py), ICT-Identitäten (Kandidaten der Züge 0–15; die
+# 9 ist rein antisymmetrisch und gehört mit 20, 25, 28, 33 zur Asymmetrie) und Herkunftsachsen. Gene und Altersformen wie Phase 5.
+if [ "$MODUS" = "proben" ]; then
+  PROBE=${GLB_PROBE:-$HOME/werkzeuge/charakter/glb6p}
+  mkdir -p "$PROBE"
+  python3 "$HIER/warte_last.py" 20 20 > /dev/null
+  nice -n 10 "$HIER/blender.sh" -b -P "$HIER/kopf2_bauen.py" -- "$PROBE/kopf6p.glb" morph_normalen=1 \
+    proben="$HIER/kopf6_proben.json" eigen=1 ict_ident=0-15,20,25,28,33 herkunft=1 "$@" 2>&1 \
+    | grep -E "^FERTIG|^\[ |Traceback|Error|^PRUEFEN" | cut -c1-400
+  ls -la "$PROBE"
+  exit 0
+fi
 
 verknuepft() { find "$AUS/haar4" -maxdepth 1 -type l 2>/dev/null | head -1; }
 
@@ -39,8 +69,15 @@ fi
 
 python3 "$HIER/warte_last.py" 20 20 > /dev/null
 if [ "$MODUS" != "nur_haar" ] && [ "$MODUS" != "kaemmen" ]; then
-  nice -n 10 "$HIER/blender.sh" -b -P "$HIER/kopf2_bauen.py" -- "$AUS/kopf6_mn.glb" morph_normalen=1 \
+  # Etappe B: erst der Probebau (alle Kandidatenformen, glb6p), dann die Formen des fertigen Kopfs als Mischung nach
+  # kopf6_rezept.json (formen_mischen.py; erzeugt von formen_ausgleich.py und kopf6_eichen.py)
+  PROBE=${GLB_PROBE:-$HOME/werkzeuge/charakter/glb6p}
+  mkdir -p "$PROBE"
+  nice -n 10 "$HIER/blender.sh" -b -P "$HIER/kopf2_bauen.py" -- "$PROBE/kopf6p.glb" morph_normalen=1 \
+    proben="$HIER/kopf6_proben.json" eigen=1 ict_ident=0-15,20,25,28,33 herkunft=1 \
     backdaten="$ARBEIT/backdaten.npz" 2>&1 | grep -E "^FERTIG|^\[ |Traceback|Error|^PRUEFEN" | cut -c1-200
+  nice -n 10 "$BPY" -I "$HIER/formen_mischen.py" "$PROBE/kopf6p.glb" "$AUS/kopf6_mn.glb" "$HIER/kopf6_rezept.json" \
+    beschreibung="$PROBE/kopf6p.json" aus_json="$AUS/kopf6_mn.json"
   OHNE=makro_
   [ "${MAKRO_NORMALEN:-0}" = "1" ] && OHNE=
   nice -n 10 python3 -I "$HIER/glb_formnormalen.py" "$AUS/kopf6_mn.glb" "$AUS/kopf6.glb" ohne_vorsilben=$OHNE duenn=1

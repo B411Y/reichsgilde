@@ -1,0 +1,573 @@
+{
+ "_beschreibung": "Charakter Phase 6 (S4–S7): Probeformen für den Probebau (kopf6.sh proben) – je MakeHuman-Ziel (CC0) eine Form „probe_<name>“, links und rechts zusammen; die Ausgleichs- und Eichrechnung mischt daraus die Formen des fertigen Kopfs (kopf6_rezept.json, formen_mischen.py). Erzeugt mit tools/charakter/kopf6_proben.py.",
+ "asym_brown1_l": {
+  "asym/asym-brown-1-l": 1.0
+ },
+ "asym_brown1_r": {
+  "asym/asym-brown-1-r": 1.0
+ },
+ "asym_brown2_l": {
+  "asym/asym-brown-2-l": 1.0
+ },
+ "asym_brown2_r": {
+  "asym/asym-brown-2-r": 1.0
+ },
+ "asym_cheek1_l": {
+  "asym/asym-cheek-1-l": 1.0
+ },
+ "asym_cheek1_r": {
+  "asym/asym-cheek-1-r": 1.0
+ },
+ "asym_cheek2_l": {
+  "asym/asym-cheek-2-l": 1.0
+ },
+ "asym_cheek2_r": {
+  "asym/asym-cheek-2-r": 1.0
+ },
+ "asym_ear1_l": {
+  "asym/asym-ear-1-l": 1.0
+ },
+ "asym_ear1_r": {
+  "asym/asym-ear-1-r": 1.0
+ },
+ "asym_ear2_l": {
+  "asym/asym-ear-2-l": 1.0
+ },
+ "asym_ear2_r": {
+  "asym/asym-ear-2-r": 1.0
+ },
+ "asym_ear3_l": {
+  "asym/asym-ear-3-l": 1.0
+ },
+ "asym_ear3_r": {
+  "asym/asym-ear-3-r": 1.0
+ },
+ "asym_ear4_l": {
+  "asym/asym-ear-4-l": 1.0
+ },
+ "asym_ear4_r": {
+  "asym/asym-ear-4-r": 1.0
+ },
+ "asym_eye1_l": {
+  "asym/asym-eye-1-l": 1.0
+ },
+ "asym_eye1_r": {
+  "asym/asym-eye-1-r": 1.0
+ },
+ "asym_eye2_l": {
+  "asym/asym-eye-2-l": 1.0
+ },
+ "asym_eye2_r": {
+  "asym/asym-eye-2-r": 1.0
+ },
+ "asym_eye3_l": {
+  "asym/asym-eye-3-l": 1.0
+ },
+ "asym_eye3_r": {
+  "asym/asym-eye-3-r": 1.0
+ },
+ "asym_eye4_l": {
+  "asym/asym-eye-4-l": 1.0
+ },
+ "asym_eye4_r": {
+  "asym/asym-eye-4-r": 1.0
+ },
+ "asym_eye5_l": {
+  "asym/asym-eye-5-l": 1.0
+ },
+ "asym_eye5_r": {
+  "asym/asym-eye-5-r": 1.0
+ },
+ "asym_eye6_l": {
+  "asym/asym-eye-6-l": 1.0
+ },
+ "asym_eye6_r": {
+  "asym/asym-eye-6-r": 1.0
+ },
+ "asym_eye7_l": {
+  "asym/asym-eye-7-l": 1.0
+ },
+ "asym_eye7_r": {
+  "asym/asym-eye-7-r": 1.0
+ },
+ "asym_eye8_l": {
+  "asym/asym-eye-8-l": 1.0
+ },
+ "asym_eye8_r": {
+  "asym/asym-eye-8-r": 1.0
+ },
+ "asym_jaw1_l": {
+  "asym/asym-jaw-1-l": 1.0
+ },
+ "asym_jaw1_r": {
+  "asym/asym-jaw-1-r": 1.0
+ },
+ "asym_jaw2_l": {
+  "asym/asym-jaw-2-l": 1.0
+ },
+ "asym_jaw2_r": {
+  "asym/asym-jaw-2-r": 1.0
+ },
+ "asym_jaw3_l": {
+  "asym/asym-jaw-3-l": 1.0
+ },
+ "asym_jaw3_r": {
+  "asym/asym-jaw-3-r": 1.0
+ },
+ "asym_mouth1_l": {
+  "asym/asym-mouth-1-l": 1.0
+ },
+ "asym_mouth1_r": {
+  "asym/asym-mouth-1-r": 1.0
+ },
+ "asym_mouth2_l": {
+  "asym/asym-mouth-2-l": 1.0
+ },
+ "asym_mouth2_r": {
+  "asym/asym-mouth-2-r": 1.0
+ },
+ "asym_nose1_l": {
+  "asym/asym-nose-1-l": 1.0
+ },
+ "asym_nose1_r": {
+  "asym/asym-nose-1-r": 1.0
+ },
+ "asym_nose2_l": {
+  "asym/asym-nose-2-l": 1.0
+ },
+ "asym_nose2_r": {
+  "asym/asym-nose-2-r": 1.0
+ },
+ "asym_nose3_l": {
+  "asym/asym-nose-3-l": 1.0
+ },
+ "asym_nose3_r": {
+  "asym/asym-nose-3-r": 1.0
+ },
+ "asym_nose4_l": {
+  "asym/asym-nose-4-l": 1.0
+ },
+ "asym_nose4_r": {
+  "asym/asym-nose-4-r": 1.0
+ },
+ "cheek_bones_decr": {
+  "cheek/l-cheek-bones-decr": 1.0,
+  "cheek/r-cheek-bones-decr": 1.0
+ },
+ "cheek_bones_incr": {
+  "cheek/l-cheek-bones-incr": 1.0,
+  "cheek/r-cheek-bones-incr": 1.0
+ },
+ "cheek_inner_decr": {
+  "cheek/l-cheek-inner-decr": 1.0,
+  "cheek/r-cheek-inner-decr": 1.0
+ },
+ "cheek_inner_incr": {
+  "cheek/l-cheek-inner-incr": 1.0,
+  "cheek/r-cheek-inner-incr": 1.0
+ },
+ "cheek_trans_down": {
+  "cheek/l-cheek-trans-down": 1.0,
+  "cheek/r-cheek-trans-down": 1.0
+ },
+ "cheek_trans_up": {
+  "cheek/l-cheek-trans-up": 1.0,
+  "cheek/r-cheek-trans-up": 1.0
+ },
+ "cheek_volume_decr": {
+  "cheek/l-cheek-volume-decr": 1.0,
+  "cheek/r-cheek-volume-decr": 1.0
+ },
+ "cheek_volume_incr": {
+  "cheek/l-cheek-volume-incr": 1.0,
+  "cheek/r-cheek-volume-incr": 1.0
+ },
+ "chin_bones_decr": {
+  "chin/chin-bones-decr": 1.0
+ },
+ "chin_bones_incr": {
+  "chin/chin-bones-incr": 1.0
+ },
+ "chin_height_decr": {
+  "chin/chin-height-decr": 1.0
+ },
+ "chin_height_incr": {
+  "chin/chin-height-incr": 1.0
+ },
+ "chin_jaw_drop_decr": {
+  "chin/chin-jaw-drop-decr": 1.0
+ },
+ "chin_jaw_drop_incr": {
+  "chin/chin-jaw-drop-incr": 1.0
+ },
+ "chin_prognathism_decr": {
+  "chin/chin-prognathism-decr": 1.0
+ },
+ "chin_prognathism_incr": {
+  "chin/chin-prognathism-incr": 1.0
+ },
+ "chin_prominent_decr": {
+  "chin/chin-prominent-decr": 1.0
+ },
+ "chin_prominent_incr": {
+  "chin/chin-prominent-incr": 1.0
+ },
+ "chin_triangle": {
+  "chin/chin-triangle": 1.0
+ },
+ "chin_width_decr": {
+  "chin/chin-width-decr": 1.0
+ },
+ "chin_width_incr": {
+  "chin/chin-width-incr": 1.0
+ },
+ "eye_bag_decr": {
+  "eyes/l-eye-bag-decr": 1.0,
+  "eyes/r-eye-bag-decr": 1.0
+ },
+ "eye_bag_incr": {
+  "eyes/l-eye-bag-incr": 1.0,
+  "eyes/r-eye-bag-incr": 1.0
+ },
+ "eye_corner1_down": {
+  "eyes/l-eye-corner1-down": 1.0,
+  "eyes/r-eye-corner1-down": 1.0
+ },
+ "eye_corner1_up": {
+  "eyes/l-eye-corner1-up": 1.0,
+  "eyes/r-eye-corner1-up": 1.0
+ },
+ "eye_eyefold_angle_down": {
+  "eyes/l-eye-eyefold-angle-down": 1.0,
+  "eyes/r-eye-eyefold-angle-down": 1.0
+ },
+ "eye_eyefold_angle_up": {
+  "eyes/l-eye-eyefold-angle-up": 1.0,
+  "eyes/r-eye-eyefold-angle-up": 1.0
+ },
+ "eye_eyefold_concave": {
+  "eyes/l-eye-eyefold-concave": 1.0,
+  "eyes/r-eye-eyefold-concave": 1.0
+ },
+ "eye_eyefold_convex": {
+  "eyes/l-eye-eyefold-convex": 1.0,
+  "eyes/r-eye-eyefold-convex": 1.0
+ },
+ "eye_eyefold_down": {
+  "eyes/l-eye-eyefold-down": 1.0,
+  "eyes/r-eye-eyefold-down": 1.0
+ },
+ "eye_eyefold_up": {
+  "eyes/l-eye-eyefold-up": 1.0,
+  "eyes/r-eye-eyefold-up": 1.0
+ },
+ "eye_height1_decr": {
+  "eyes/l-eye-height1-decr": 1.0,
+  "eyes/r-eye-height1-decr": 1.0
+ },
+ "eye_height1_incr": {
+  "eyes/l-eye-height1-incr": 1.0,
+  "eyes/r-eye-height1-incr": 1.0
+ },
+ "eye_height2_decr": {
+  "eyes/l-eye-height2-decr": 1.0,
+  "eyes/r-eye-height2-decr": 1.0
+ },
+ "eye_height2_incr": {
+  "eyes/l-eye-height2-incr": 1.0,
+  "eyes/r-eye-height2-incr": 1.0
+ },
+ "eye_height3_decr": {
+  "eyes/l-eye-height3-decr": 1.0,
+  "eyes/r-eye-height3-decr": 1.0
+ },
+ "eye_height3_incr": {
+  "eyes/l-eye-height3-incr": 1.0,
+  "eyes/r-eye-height3-incr": 1.0
+ },
+ "eye_scale_decr": {
+  "eyes/l-eye-scale-decr": 1.0,
+  "eyes/r-eye-scale-decr": 1.0
+ },
+ "eye_scale_incr": {
+  "eyes/l-eye-scale-incr": 1.0,
+  "eyes/r-eye-scale-incr": 1.0
+ },
+ "eye_trans_down": {
+  "eyes/l-eye-trans-down": 1.0,
+  "eyes/r-eye-trans-down": 1.0
+ },
+ "eye_trans_in": {
+  "eyes/l-eye-trans-in": 1.0,
+  "eyes/r-eye-trans-in": 1.0
+ },
+ "eye_trans_out": {
+  "eyes/l-eye-trans-out": 1.0,
+  "eyes/r-eye-trans-out": 1.0
+ },
+ "eye_trans_up": {
+  "eyes/l-eye-trans-up": 1.0,
+  "eyes/r-eye-trans-up": 1.0
+ },
+ "eyebrows_angle_down": {
+  "eyebrows/eyebrows-angle-down": 1.0
+ },
+ "eyebrows_angle_up": {
+  "eyebrows/eyebrows-angle-up": 1.0
+ },
+ "eyebrows_trans_backward": {
+  "eyebrows/eyebrows-trans-backward": 1.0
+ },
+ "eyebrows_trans_down": {
+  "eyebrows/eyebrows-trans-down": 1.0
+ },
+ "eyebrows_trans_forward": {
+  "eyebrows/eyebrows-trans-forward": 1.0
+ },
+ "eyebrows_trans_up": {
+  "eyebrows/eyebrows-trans-up": 1.0
+ },
+ "forehead_nubian_decr": {
+  "forehead/forehead-nubian-decr": 1.0
+ },
+ "forehead_nubian_incr": {
+  "forehead/forehead-nubian-incr": 1.0
+ },
+ "forehead_scale_vert_decr": {
+  "forehead/forehead-scale-vert-decr": 1.0
+ },
+ "forehead_scale_vert_incr": {
+  "forehead/forehead-scale-vert-incr": 1.0
+ },
+ "forehead_temple_decr": {
+  "forehead/forehead-temple-decr": 1.0
+ },
+ "forehead_temple_incr": {
+  "forehead/forehead-temple-incr": 1.0
+ },
+ "forehead_trans_backward": {
+  "forehead/forehead-trans-backward": 1.0
+ },
+ "forehead_trans_forward": {
+  "forehead/forehead-trans-forward": 1.0
+ },
+ "head_age_decr": {
+  "head/head-age-decr": 1.0
+ },
+ "head_age_incr": {
+  "head/head-age-incr": 1.0
+ },
+ "head_diamond": {
+  "head/head-diamond": 1.0
+ },
+ "head_fat_decr": {
+  "head/head-fat-decr": 1.0
+ },
+ "head_fat_incr": {
+  "head/head-fat-incr": 1.0
+ },
+ "head_invertedtriangular": {
+  "head/head-invertedtriangular": 1.0
+ },
+ "head_oval": {
+  "head/head-oval": 1.0
+ },
+ "head_rectangular": {
+  "head/head-rectangular": 1.0
+ },
+ "head_round": {
+  "head/head-round": 1.0
+ },
+ "head_scale_depth_decr": {
+  "head/head-scale-depth-decr": 1.0
+ },
+ "head_scale_depth_incr": {
+  "head/head-scale-depth-incr": 1.0
+ },
+ "head_scale_horiz_decr": {
+  "head/head-scale-horiz-decr": 1.0
+ },
+ "head_scale_horiz_incr": {
+  "head/head-scale-horiz-incr": 1.0
+ },
+ "head_scale_vert_decr": {
+  "head/head-scale-vert-decr": 1.0
+ },
+ "head_scale_vert_incr": {
+  "head/head-scale-vert-incr": 1.0
+ },
+ "head_square": {
+  "head/head-square": 1.0
+ },
+ "head_triangular": {
+  "head/head-triangular": 1.0
+ },
+ "mouth_angles_down": {
+  "mouth/mouth-angles-down": 1.0
+ },
+ "mouth_angles_up": {
+  "mouth/mouth-angles-up": 1.0
+ },
+ "mouth_laugh_lines_in": {
+  "mouth/mouth-laugh-lines-in": 1.0
+ },
+ "mouth_laugh_lines_out": {
+  "mouth/mouth-laugh-lines-out": 1.0
+ },
+ "mouth_lowerlip_height_decr": {
+  "mouth/mouth-lowerlip-height-decr": 1.0
+ },
+ "mouth_lowerlip_height_incr": {
+  "mouth/mouth-lowerlip-height-incr": 1.0
+ },
+ "mouth_lowerlip_volume_decr": {
+  "mouth/mouth-lowerlip-volume-decr": 1.0
+ },
+ "mouth_lowerlip_volume_incr": {
+  "mouth/mouth-lowerlip-volume-incr": 1.0
+ },
+ "mouth_philtrum_volume_decr": {
+  "mouth/mouth-philtrum-volume-decr": 1.0
+ },
+ "mouth_philtrum_volume_incr": {
+  "mouth/mouth-philtrum-volume-incr": 1.0
+ },
+ "mouth_scale_depth_decr": {
+  "mouth/mouth-scale-depth-decr": 1.0
+ },
+ "mouth_scale_depth_incr": {
+  "mouth/mouth-scale-depth-incr": 1.0
+ },
+ "mouth_scale_horiz_decr": {
+  "mouth/mouth-scale-horiz-decr": 1.0
+ },
+ "mouth_scale_horiz_incr": {
+  "mouth/mouth-scale-horiz-incr": 1.0
+ },
+ "mouth_scale_vert_decr": {
+  "mouth/mouth-scale-vert-decr": 1.0
+ },
+ "mouth_scale_vert_incr": {
+  "mouth/mouth-scale-vert-incr": 1.0
+ },
+ "mouth_trans_backward": {
+  "mouth/mouth-trans-backward": 1.0
+ },
+ "mouth_trans_down": {
+  "mouth/mouth-trans-down": 1.0
+ },
+ "mouth_trans_forward": {
+  "mouth/mouth-trans-forward": 1.0
+ },
+ "mouth_trans_up": {
+  "mouth/mouth-trans-up": 1.0
+ },
+ "mouth_upperlip_height_decr": {
+  "mouth/mouth-upperlip-height-decr": 1.0
+ },
+ "mouth_upperlip_height_incr": {
+  "mouth/mouth-upperlip-height-incr": 1.0
+ },
+ "mouth_upperlip_volume_decr": {
+  "mouth/mouth-upperlip-volume-decr": 1.0
+ },
+ "mouth_upperlip_volume_incr": {
+  "mouth/mouth-upperlip-volume-incr": 1.0
+ },
+ "neck_circ_decr": {
+  "neck/measure-neck-circ-decr": 1.0
+ },
+ "neck_circ_incr": {
+  "neck/measure-neck-circ-incr": 1.0
+ },
+ "neck_double_decr": {
+  "neck/neck-double-decr": 1.0
+ },
+ "neck_double_incr": {
+  "neck/neck-double-incr": 1.0
+ },
+ "nose_curve_concave": {
+  "nose/nose-curve-concave": 1.0
+ },
+ "nose_curve_convex": {
+  "nose/nose-curve-convex": 1.0
+ },
+ "nose_flaring_decr": {
+  "nose/nose-flaring-decr": 1.0
+ },
+ "nose_flaring_incr": {
+  "nose/nose-flaring-incr": 1.0
+ },
+ "nose_greek_decr": {
+  "nose/nose-greek-decr": 1.0
+ },
+ "nose_greek_incr": {
+  "nose/nose-greek-incr": 1.0
+ },
+ "nose_hump_decr": {
+  "nose/nose-hump-decr": 1.0
+ },
+ "nose_hump_incr": {
+  "nose/nose-hump-incr": 1.0
+ },
+ "nose_nostrils_width_decr": {
+  "nose/nose-nostrils-width-decr": 1.0
+ },
+ "nose_nostrils_width_incr": {
+  "nose/nose-nostrils-width-incr": 1.0
+ },
+ "nose_point_down": {
+  "nose/nose-point-down": 1.0
+ },
+ "nose_point_up": {
+  "nose/nose-point-up": 1.0
+ },
+ "nose_point_width_decr": {
+  "nose/nose-point-width-decr": 1.0
+ },
+ "nose_point_width_incr": {
+  "nose/nose-point-width-incr": 1.0
+ },
+ "nose_scale_depth_decr": {
+  "nose/nose-scale-depth-decr": 1.0
+ },
+ "nose_scale_depth_incr": {
+  "nose/nose-scale-depth-incr": 1.0
+ },
+ "nose_scale_horiz_decr": {
+  "nose/nose-scale-horiz-decr": 1.0
+ },
+ "nose_scale_horiz_incr": {
+  "nose/nose-scale-horiz-incr": 1.0
+ },
+ "nose_scale_vert_decr": {
+  "nose/nose-scale-vert-decr": 1.0
+ },
+ "nose_scale_vert_incr": {
+  "nose/nose-scale-vert-incr": 1.0
+ },
+ "nose_septumangle_decr": {
+  "nose/nose-septumangle-decr": 1.0
+ },
+ "nose_septumangle_incr": {
+  "nose/nose-septumangle-incr": 1.0
+ },
+ "nose_trans_backward": {
+  "nose/nose-trans-backward": 1.0
+ },
+ "nose_trans_down": {
+  "nose/nose-trans-down": 1.0
+ },
+ "nose_trans_forward": {
+  "nose/nose-trans-forward": 1.0
+ },
+ "nose_trans_up": {
+  "nose/nose-trans-up": 1.0
+ },
+ "nose_volume_decr": {
+  "nose/nose-volume-decr": 1.0
+ },
+ "nose_volume_incr": {
+  "nose/nose-volume-incr": 1.0
+ }
+}

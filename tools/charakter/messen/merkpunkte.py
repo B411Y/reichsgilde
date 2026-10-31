@@ -125,7 +125,9 @@ class Kopfnetz:
         ps_z = 0.5 * (P["ps_r"][2] + P["ps_l"][2])
         for s, vz in (("r", -1), ("l", 1)):
             P[f"t_{s}"] = _tragion(H, ps_y - 12.0, ps_z, vz)
-        z_ohr = max(P["t_r"][2], P["t_l"][2]) + 15.0
+        # Etappe B: die vordere der beiden Ohrwurzeln (bei schiefen oder ungewöhnlichen Köpfen schlägt die Suche manchmal auf
+        # einer Seite 10–15 mm zu weit vorn an; mit max brach dann die Breite in Mundhöhe ein); symmetrisch unverändert
+        z_ohr = min(P["t_r"][2], P["t_l"][2]) + 15.0
         n_y = P["n"][1]
         sel = (H[:, 1] >= n_y - 45) & (H[:, 1] <= n_y - 10) & (H[:, 2] > z_ohr)
         for s, vz in (("r", -1), ("l", 1)):

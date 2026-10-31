@@ -1,0 +1,775 @@
+{
+ "_beschreibung": "Rezept des fertigen Kopfs kopf6 (Etappe B): Formen als Mischung der Probeformen aus kopf6.sh proben (formen_mischen.py). Erzeugt von kopf6_eichen.py aus kopf6_rezept_s4.json (S4) und der Eichung (S5–S7).",
+ "formen": {
+  "alter_mitte_m": {
+   "probe_cheek_volume_decr": 0.35,
+   "eigen_traenenrinne": 1.0,
+   "probe_mouth_laugh_lines_in": 0.5,
+   "probe_mouth_upperlip_volume_decr": 0.3,
+   "probe_mouth_lowerlip_volume_decr": 0.2,
+   "probe_nose_scale_horiz_incr": 0.198,
+   "probe_mouth_scale_horiz_incr": 0.196
+  },
+  "alter_mitte_w": {
+   "probe_cheek_volume_decr": 0.4,
+   "eigen_traenenrinne": 1.0,
+   "probe_mouth_laugh_lines_in": 0.5,
+   "probe_mouth_upperlip_volume_decr": 0.3,
+   "probe_mouth_lowerlip_volume_decr": 0.2,
+   "probe_nose_scale_horiz_incr": 0.198,
+   "probe_mouth_scale_horiz_incr": 0.196
+  },
+  "alter_reife_m_oben": {
+   "probe_nose_scale_vert_decr": 0.6339,
+   "probe_nose_trans_forward": 0.8,
+   "probe_nose_volume_incr": 0.1166,
+   "probe_nose_point_down": 0.2467,
+   "probe_eyebrows_trans_forward": 0.8594,
+   "probe_eyebrows_trans_down": 0.8298,
+   "probe_eye_scale_decr": 0.4338,
+   "probe_eye_eyefold_down": 0.6133,
+   "probe_forehead_trans_backward": 0.3247,
+   "gen_augen_tiefe_minus": 0.0665,
+   "eigen_lidfalte_m": 1.0
+  },
+  "alter_reife_m_unten": {
+   "probe_chin_height_incr": 0.4148,
+   "probe_chin_jaw_drop_incr": 0.8,
+   "probe_chin_bones_incr": 0.768,
+   "probe_chin_prominent_incr": 0.4316,
+   "probe_cheek_volume_decr": 1.2,
+   "probe_cheek_bones_incr": 0.4953,
+   "probe_mouth_upperlip_volume_decr": 0.6,
+   "probe_mouth_lowerlip_volume_decr": 0.6,
+   "probe_head_fat_decr": 1.0,
+   "eigen_adamsapfel": 1.0,
+   "eigen_kieferkante": 0.1323,
+   "eigen_jochbein": 0.0369,
+   "probe_cheek_inner_incr": 0.0035,
+   "probe_chin_width_incr": 0.0523,
+   "probe_neck_double_decr": 0.625,
+   "probe_mouth_scale_horiz_incr": 0.5605,
+   "eigen_kopfnicker": 1.0
+  },
+  "alter_reife_w_oben": {
+   "probe_nose_scale_vert_decr": 0.5792,
+   "probe_nose_point_down": 0.65,
+   "probe_nose_greek_incr": 0.2458,
+   "probe_eye_scale_decr": 1.0,
+   "probe_eye_eyefold_down": 0.8,
+   "probe_eyebrows_trans_forward": 0.4629,
+   "probe_nose_scale_horiz_decr": 0.225,
+   "probe_eyebrows_trans_down": 0.4,
+   "probe_eye_trans_in": 0.0485,
+   "gen_augen_tiefe_minus": 0.7925,
+   "eigen_lidfalte_w": 1.0
+  },
+  "alter_reife_w_unten": {
+   "probe_chin_height_incr": 0.4222,
+   "probe_chin_prominent_incr": 0.671,
+   "probe_cheek_volume_decr": 1.2,
+   "probe_cheek_bones_decr": 0.125,
+   "probe_head_fat_decr": 1.0,
+   "probe_chin_bones_incr": 0.8217,
+   "probe_chin_width_decr": 1.2,
+   "probe_mouth_upperlip_volume_decr": 0.4,
+   "probe_mouth_lowerlip_volume_decr": 0.4,
+   "probe_mouth_scale_horiz_incr": 1.0392,
+   "probe_head_scale_horiz_decr": 0.1427,
+   "probe_eye_trans_out": 0.1891,
+   "probe_cheek_inner_incr": 0.875,
+   "probe_mouth_trans_down": 0.275,
+   "probe_head_invertedtriangular": 0.2523,
+   "probe_chin_jaw_drop_decr": 1.0,
+   "probe_neck_double_decr": 0.35,
+   "eigen_kopfnicker": 0.5
+  },
+  "gen_gesicht_laenge_plus": {
+   "probe_chin_height_incr": 0.5,
+   "probe_nose_scale_vert_incr": 0.25,
+   "probe_head_scale_vert_incr": 0.25
+  },
+  "gen_gesicht_laenge_minus": {
+   "probe_chin_height_decr": 0.5,
+   "probe_nose_scale_vert_decr": 0.25,
+   "probe_head_scale_vert_decr": 0.25
+  },
+  "gen_gesicht_breite_plus": {
+   "probe_head_scale_horiz_incr": 0.5,
+   "probe_cheek_bones_incr": 0.4
+  },
+  "gen_gesicht_breite_minus": {
+   "probe_head_scale_horiz_decr": 0.5,
+   "probe_cheek_bones_decr": 0.4
+  },
+  "gen_kiefer_breite_plus": {
+   "eigen_kieferwinkel": 1.0,
+   "probe_head_square": 0.3,
+   "probe_chin_width_incr": 0.3
+  },
+  "gen_kiefer_breite_minus": {
+   "eigen_kieferwinkel": -1.0,
+   "probe_head_invertedtriangular": 0.3,
+   "probe_chin_width_decr": 0.3
+  },
+  "gen_kiefer_vorstand_plus": {
+   "probe_chin_prognathism_incr": 1.0
+  },
+  "gen_kiefer_vorstand_minus": {
+   "probe_chin_prognathism_decr": 1.0
+  },
+  "gen_kinn_plus": {
+   "probe_chin_prominent_incr": 1.0
+  },
+  "gen_kinn_minus": {
+   "probe_chin_prominent_decr": 1.0
+  },
+  "gen_nase_laenge_plus": {
+   "probe_nose_scale_vert_incr": 1.2,
+   "probe_nose_point_down": 0.3
+  },
+  "gen_nase_laenge_minus": {
+   "probe_nose_scale_vert_decr": 1.2,
+   "probe_nose_point_up": 0.3
+  },
+  "gen_nase_breite_plus": {
+   "probe_nose_scale_horiz_incr": 0.6,
+   "probe_nose_flaring_incr": 0.5,
+   "probe_nose_nostrils_width_incr": 0.3
+  },
+  "gen_nase_breite_minus": {
+   "probe_nose_scale_horiz_decr": 0.6,
+   "probe_nose_flaring_decr": 0.5,
+   "probe_nose_nostrils_width_decr": 0.3
+  },
+  "gen_nase_hoecker_plus": {
+   "eigen_hoecker": 2.0,
+   "probe_nose_hump_incr": 0.3,
+   "probe_nose_curve_convex": 0.3
+  },
+  "gen_nase_hoecker_minus": {
+   "eigen_hoecker": -0.6,
+   "probe_nose_curve_concave": 1.0,
+   "probe_nose_hump_decr": 0.5
+  },
+  "gen_mund_breite_plus": {
+   "probe_mouth_scale_horiz_incr": 1.0
+  },
+  "gen_mund_breite_minus": {
+   "probe_mouth_scale_horiz_decr": 1.0
+  },
+  "gen_lippen_plus": {
+   "probe_mouth_upperlip_height_incr": 0.6,
+   "probe_mouth_upperlip_volume_incr": 0.6,
+   "probe_mouth_lowerlip_height_incr": 0.6,
+   "probe_mouth_lowerlip_volume_incr": 0.6
+  },
+  "gen_lippen_minus": {
+   "probe_mouth_upperlip_height_decr": 0.6,
+   "probe_mouth_upperlip_volume_decr": 0.6,
+   "probe_mouth_lowerlip_height_decr": 0.6,
+   "probe_mouth_lowerlip_volume_decr": 0.6
+  },
+  "gen_augen_abstand_plus": {
+   "probe_eye_trans_out": 1.0
+  },
+  "gen_augen_abstand_minus": {
+   "probe_eye_trans_in": 1.0
+  },
+  "gen_augen_groesse_plus": {
+   "probe_eye_scale_incr": 1.0
+  },
+  "gen_augen_groesse_minus": {
+   "probe_eye_scale_decr": 1.0
+  },
+  "gen_augen_neigung_plus": {
+   "probe_eye_corner1_up": 1.0,
+   "probe_eye_eyefold_angle_up": 0.3
+  },
+  "gen_augen_neigung_minus": {
+   "probe_eye_corner1_down": 1.0,
+   "probe_eye_eyefold_angle_down": 0.3
+  },
+  "gen_augen_tiefe_plus": {
+   "gen_augen_tiefe_plus": 1.0
+  },
+  "gen_augen_tiefe_minus": {
+   "gen_augen_tiefe_minus": 1.0
+  },
+  "gen_brauenwulst_plus": {
+   "probe_eyebrows_trans_forward": 1.0
+  },
+  "gen_brauenwulst_minus": {
+   "probe_eyebrows_trans_backward": 1.0
+  },
+  "gen_wangenknochen_plus": {
+   "probe_cheek_bones_incr": 1.0,
+   "probe_cheek_inner_decr": 0.3
+  },
+  "gen_wangenknochen_minus": {
+   "probe_cheek_bones_decr": 1.0,
+   "probe_cheek_inner_incr": 0.3
+  },
+  "gen_wangen_fuelle_plus": {
+   "probe_cheek_volume_incr": 1.0,
+   "probe_cheek_inner_incr": 0.5
+  },
+  "gen_wangen_fuelle_minus": {
+   "probe_cheek_volume_decr": 1.0,
+   "probe_cheek_inner_decr": 0.5
+  },
+  "gen_brauen_stand_plus": {
+   "probe_eyebrows_trans_up": 1.0,
+   "probe_eyebrows_angle_up": 0.3
+  },
+  "gen_brauen_stand_minus": {
+   "probe_eyebrows_trans_down": 1.0,
+   "probe_eyebrows_angle_down": 0.3
+  },
+  "gen_lidspalte_plus": {
+   "probe_eye_height1_incr": 0.5,
+   "probe_eye_height2_incr": 1.0,
+   "probe_eye_height3_incr": 0.5
+  },
+  "gen_lidspalte_minus": {
+   "probe_eye_height1_decr": 0.5,
+   "probe_eye_height2_decr": 1.0,
+   "probe_eye_height3_decr": 0.5
+  },
+  "gen_schlupflid_plus": {
+   "probe_eye_eyefold_down": 0.6,
+   "probe_eye_eyefold_convex": 0.4
+  },
+  "gen_schlupflid_minus": {
+   "probe_eye_eyefold_up": 0.6,
+   "probe_eye_eyefold_concave": 0.4
+  },
+  "gen_nasenspitze_plus": {
+   "probe_nose_point_up": 1.0,
+   "probe_nose_septumangle_decr": 0.5
+  },
+  "gen_nasenspitze_minus": {
+   "probe_nose_point_down": 1.0,
+   "probe_nose_septumangle_incr": 0.5
+  },
+  "gen_mundwinkel_plus": {
+   "probe_mouth_angles_up": 1.0
+  },
+  "gen_mundwinkel_minus": {
+   "probe_mouth_angles_down": 1.0
+  },
+  "gen_kinn_breite_plus": {
+   "probe_chin_width_incr": 1.0,
+   "probe_chin_triangle": -0.4
+  },
+  "gen_kinn_breite_minus": {
+   "probe_chin_width_decr": 1.0,
+   "probe_chin_triangle": 0.4
+  },
+  "gen_gesicht_fett_plus": {
+   "probe_head_fat_incr": 0.5,
+   "probe_cheek_volume_incr": 0.4,
+   "probe_neck_double_incr": 0.4,
+   "probe_neck_circ_incr": 0.3
+  },
+  "gen_gesicht_fett_minus": {
+   "probe_head_fat_decr": 0.6,
+   "probe_cheek_volume_decr": 0.4,
+   "probe_forehead_temple_decr": 0.4,
+   "probe_cheek_inner_decr": 0.3
+  },
+  "zug_01": {
+   "ictid_002": 1.0,
+   "makro_w_jung": 0.022369,
+   "probe_nose_scale_vert_decr": -0.001224,
+   "probe_nose_point_down": 0.009022,
+   "probe_nose_greek_incr": 0.005498,
+   "probe_eye_scale_decr": 0.012665,
+   "probe_eye_eyefold_down": 0.004176,
+   "probe_eyebrows_trans_forward": -0.008869,
+   "probe_nose_scale_horiz_decr": 0.005033,
+   "probe_eyebrows_trans_down": -0.009614,
+   "probe_eye_trans_in": 0.001085,
+   "gen_augen_tiefe_minus": 0.01624,
+   "eigen_lidfalte_w": 0.022369,
+   "probe_chin_height_incr": 0.000166,
+   "probe_chin_prominent_incr": 0.005355,
+   "probe_cheek_bones_decr": 0.002796,
+   "probe_chin_bones_incr": 0.001201,
+   "probe_chin_width_decr": 0.026843,
+   "probe_mouth_upperlip_volume_decr": -0.004474,
+   "probe_mouth_lowerlip_volume_decr": -0.004474,
+   "probe_mouth_scale_horiz_incr": 0.010708,
+   "probe_head_scale_horiz_decr": 0.003192,
+   "probe_eye_trans_out": 0.00423,
+   "probe_cheek_inner_incr": 0.019495,
+   "probe_mouth_trans_down": 0.006152,
+   "probe_head_invertedtriangular": 0.005644,
+   "probe_chin_jaw_drop_decr": 0.022369,
+   "probe_neck_double_decr": -0.006152,
+   "eigen_kopfnicker": -0.011185,
+   "probe_nose_trans_forward": -0.017895,
+   "probe_nose_volume_incr": -0.002608,
+   "probe_forehead_trans_backward": -0.007263,
+   "eigen_lidfalte_m": -0.022369,
+   "probe_chin_jaw_drop_incr": -0.017895,
+   "probe_cheek_bones_incr": -0.01108,
+   "eigen_adamsapfel": -0.022369,
+   "eigen_kieferkante": -0.002959,
+   "eigen_jochbein": -0.000825,
+   "probe_chin_width_incr": -0.00117,
+   "herkunft_african_m": 0.197581,
+   "herkunft_asian_m": -0.04826,
+   "herkunft_african_w": 0.020461,
+   "herkunft_asian_w": 0.01165
+  },
+  "zug_02": {
+   "ictid_005": 1.0,
+   "makro_w_jung": 0.055349,
+   "probe_nose_scale_vert_decr": -0.003028,
+   "probe_nose_point_down": 0.022322,
+   "probe_nose_greek_incr": 0.013605,
+   "probe_eye_scale_decr": 0.031339,
+   "probe_eye_eyefold_down": 0.010334,
+   "probe_eyebrows_trans_forward": -0.021946,
+   "probe_nose_scale_horiz_decr": 0.012454,
+   "probe_eyebrows_trans_down": -0.023789,
+   "probe_eye_trans_in": 0.002684,
+   "gen_augen_tiefe_minus": 0.040183,
+   "eigen_lidfalte_w": 0.055349,
+   "probe_chin_height_incr": 0.00041,
+   "probe_chin_prominent_incr": 0.013251,
+   "probe_cheek_bones_decr": 0.006919,
+   "probe_chin_bones_incr": 0.002972,
+   "probe_chin_width_decr": 0.066419,
+   "probe_mouth_upperlip_volume_decr": -0.01107,
+   "probe_mouth_lowerlip_volume_decr": -0.01107,
+   "probe_mouth_scale_horiz_incr": 0.026496,
+   "probe_head_scale_horiz_decr": 0.007898,
+   "probe_eye_trans_out": 0.010467,
+   "probe_cheek_inner_incr": 0.048237,
+   "probe_mouth_trans_down": 0.015221,
+   "probe_head_invertedtriangular": 0.013965,
+   "probe_chin_jaw_drop_decr": 0.055349,
+   "probe_neck_double_decr": -0.015221,
+   "eigen_kopfnicker": -0.027675,
+   "probe_nose_trans_forward": -0.044279,
+   "probe_nose_volume_incr": -0.006454,
+   "probe_forehead_trans_backward": -0.017972,
+   "eigen_lidfalte_m": -0.055349,
+   "probe_chin_jaw_drop_incr": -0.044279,
+   "probe_cheek_bones_incr": -0.027414,
+   "eigen_adamsapfel": -0.055349,
+   "eigen_kieferkante": -0.007323,
+   "eigen_jochbein": -0.002042,
+   "probe_chin_width_incr": -0.002895,
+   "herkunft_african_m": 0.091536,
+   "herkunft_asian_m": -0.077086,
+   "herkunft_african_w": 0.018661,
+   "herkunft_asian_w": 0.051023
+  },
+  "zug_03": {
+   "ictid_006": 1.0,
+   "makro_w_jung": -0.012324,
+   "probe_nose_scale_vert_decr": 0.000674,
+   "probe_nose_point_down": -0.00497,
+   "probe_nose_greek_incr": -0.003029,
+   "probe_eye_scale_decr": -0.006978,
+   "probe_eye_eyefold_down": -0.002301,
+   "probe_eyebrows_trans_forward": 0.004886,
+   "probe_nose_scale_horiz_decr": -0.002773,
+   "probe_eyebrows_trans_down": 0.005297,
+   "probe_eye_trans_in": -0.000598,
+   "gen_augen_tiefe_minus": -0.008947,
+   "eigen_lidfalte_w": -0.012324,
+   "probe_chin_height_incr": -9.1e-05,
+   "probe_chin_prominent_incr": -0.00295,
+   "probe_cheek_bones_decr": -0.00154,
+   "probe_chin_bones_incr": -0.000662,
+   "probe_chin_width_decr": -0.014788,
+   "probe_mouth_upperlip_volume_decr": 0.002465,
+   "probe_mouth_lowerlip_volume_decr": 0.002465,
+   "probe_mouth_scale_horiz_incr": -0.005899,
+   "probe_head_scale_horiz_decr": -0.001759,
+   "probe_eye_trans_out": -0.00233,
+   "probe_cheek_inner_incr": -0.01074,
+   "probe_mouth_trans_down": -0.003389,
+   "probe_head_invertedtriangular": -0.003109,
+   "probe_chin_jaw_drop_decr": -0.012324,
+   "probe_neck_double_decr": 0.003389,
+   "eigen_kopfnicker": 0.006162,
+   "probe_nose_trans_forward": 0.009859,
+   "probe_nose_volume_incr": 0.001437,
+   "probe_forehead_trans_backward": 0.004001,
+   "eigen_lidfalte_m": 0.012324,
+   "probe_chin_jaw_drop_incr": 0.009859,
+   "probe_cheek_bones_incr": 0.006104,
+   "eigen_adamsapfel": 0.012324,
+   "eigen_kieferkante": 0.00163,
+   "eigen_jochbein": 0.000455,
+   "probe_chin_width_incr": 0.000645,
+   "herkunft_african_m": 0.040508,
+   "herkunft_asian_m": 0.023515,
+   "herkunft_african_w": 0.001905,
+   "herkunft_asian_w": -0.041904
+  },
+  "zug_04": {
+   "ictid_007": 1.0,
+   "makro_w_jung": 0.045881,
+   "probe_nose_scale_vert_decr": -0.00251,
+   "probe_nose_point_down": 0.018504,
+   "probe_nose_greek_incr": 0.011278,
+   "probe_eye_scale_decr": 0.025978,
+   "probe_eye_eyefold_down": 0.008566,
+   "probe_eyebrows_trans_forward": -0.018192,
+   "probe_nose_scale_horiz_decr": 0.010323,
+   "probe_eyebrows_trans_down": -0.01972,
+   "probe_eye_trans_in": 0.002225,
+   "gen_augen_tiefe_minus": 0.03331,
+   "eigen_lidfalte_w": 0.045881,
+   "probe_chin_height_incr": 0.00034,
+   "probe_chin_prominent_incr": 0.010984,
+   "probe_cheek_bones_decr": 0.005735,
+   "probe_chin_bones_incr": 0.002464,
+   "probe_chin_width_decr": 0.055057,
+   "probe_mouth_upperlip_volume_decr": -0.009176,
+   "probe_mouth_lowerlip_volume_decr": -0.009176,
+   "probe_mouth_scale_horiz_incr": 0.021963,
+   "probe_head_scale_horiz_decr": 0.006547,
+   "probe_eye_trans_out": 0.008676,
+   "probe_cheek_inner_incr": 0.039985,
+   "probe_mouth_trans_down": 0.012617,
+   "probe_head_invertedtriangular": 0.011576,
+   "probe_chin_jaw_drop_decr": 0.045881,
+   "probe_neck_double_decr": -0.012617,
+   "eigen_kopfnicker": -0.022941,
+   "probe_nose_trans_forward": -0.036705,
+   "probe_nose_volume_incr": -0.00535,
+   "probe_forehead_trans_backward": -0.014898,
+   "eigen_lidfalte_m": -0.045881,
+   "probe_chin_jaw_drop_incr": -0.036705,
+   "probe_cheek_bones_incr": -0.022725,
+   "eigen_adamsapfel": -0.045881,
+   "eigen_kieferkante": -0.00607,
+   "eigen_jochbein": -0.001693,
+   "probe_chin_width_incr": -0.0024,
+   "herkunft_african_m": -0.000207,
+   "herkunft_asian_m": -0.023074,
+   "herkunft_african_w": 0.028972,
+   "herkunft_asian_w": -0.02517
+  },
+  "zug_05": {
+   "ictid_008": 1.0,
+   "makro_w_jung": 0.012272,
+   "probe_nose_scale_vert_decr": -0.000671,
+   "probe_nose_point_down": 0.004949,
+   "probe_nose_greek_incr": 0.003017,
+   "probe_eye_scale_decr": 0.006949,
+   "probe_eye_eyefold_down": 0.002291,
+   "probe_eyebrows_trans_forward": -0.004866,
+   "probe_nose_scale_horiz_decr": 0.002761,
+   "probe_eyebrows_trans_down": -0.005275,
+   "probe_eye_trans_in": 0.000595,
+   "gen_augen_tiefe_minus": 0.00891,
+   "eigen_lidfalte_w": 0.012272,
+   "probe_chin_height_incr": 9.1e-05,
+   "probe_chin_prominent_incr": 0.002938,
+   "probe_cheek_bones_decr": 0.001534,
+   "probe_chin_bones_incr": 0.000659,
+   "probe_chin_width_decr": 0.014727,
+   "probe_mouth_upperlip_volume_decr": -0.002454,
+   "probe_mouth_lowerlip_volume_decr": -0.002454,
+   "probe_mouth_scale_horiz_incr": 0.005875,
+   "probe_head_scale_horiz_decr": 0.001751,
+   "probe_eye_trans_out": 0.002321,
+   "probe_cheek_inner_incr": 0.010695,
+   "probe_mouth_trans_down": 0.003375,
+   "probe_head_invertedtriangular": 0.003096,
+   "probe_chin_jaw_drop_decr": 0.012272,
+   "probe_neck_double_decr": -0.003375,
+   "eigen_kopfnicker": -0.006136,
+   "probe_nose_trans_forward": -0.009818,
+   "probe_nose_volume_incr": -0.001431,
+   "probe_forehead_trans_backward": -0.003985,
+   "eigen_lidfalte_m": -0.012272,
+   "probe_chin_jaw_drop_incr": -0.009818,
+   "probe_cheek_bones_incr": -0.006078,
+   "eigen_adamsapfel": -0.012272,
+   "eigen_kieferkante": -0.001624,
+   "eigen_jochbein": -0.000453,
+   "probe_chin_width_incr": -0.000642,
+   "herkunft_african_m": 0.000637,
+   "herkunft_asian_m": 0.016201,
+   "herkunft_african_w": 0.00693,
+   "herkunft_asian_w": -0.0439
+  },
+  "zug_06": {
+   "ictid_011": 1.0,
+   "makro_w_jung": 0.00246,
+   "probe_nose_scale_vert_decr": -0.000135,
+   "probe_nose_point_down": 0.000992,
+   "probe_nose_greek_incr": 0.000605,
+   "probe_eye_scale_decr": 0.001393,
+   "probe_eye_eyefold_down": 0.000459,
+   "probe_eyebrows_trans_forward": -0.000975,
+   "probe_nose_scale_horiz_decr": 0.000554,
+   "probe_eyebrows_trans_down": -0.001057,
+   "probe_eye_trans_in": 0.000119,
+   "gen_augen_tiefe_minus": 0.001786,
+   "eigen_lidfalte_w": 0.00246,
+   "probe_chin_height_incr": 1.8e-05,
+   "probe_chin_prominent_incr": 0.000589,
+   "probe_cheek_bones_decr": 0.000308,
+   "probe_chin_bones_incr": 0.000132,
+   "probe_chin_width_decr": 0.002952,
+   "probe_mouth_upperlip_volume_decr": -0.000492,
+   "probe_mouth_lowerlip_volume_decr": -0.000492,
+   "probe_mouth_scale_horiz_incr": 0.001178,
+   "probe_head_scale_horiz_decr": 0.000351,
+   "probe_eye_trans_out": 0.000465,
+   "probe_cheek_inner_incr": 0.002144,
+   "probe_mouth_trans_down": 0.000677,
+   "probe_head_invertedtriangular": 0.000621,
+   "probe_chin_jaw_drop_decr": 0.00246,
+   "probe_neck_double_decr": -0.000677,
+   "eigen_kopfnicker": -0.00123,
+   "probe_nose_trans_forward": -0.001968,
+   "probe_nose_volume_incr": -0.000287,
+   "probe_forehead_trans_backward": -0.000799,
+   "eigen_lidfalte_m": -0.00246,
+   "probe_chin_jaw_drop_incr": -0.001968,
+   "probe_cheek_bones_incr": -0.001218,
+   "eigen_adamsapfel": -0.00246,
+   "eigen_kieferkante": -0.000325,
+   "eigen_jochbein": -9.1e-05,
+   "probe_chin_width_incr": -0.000129,
+   "herkunft_african_m": -0.049175,
+   "herkunft_asian_m": 0.004349,
+   "herkunft_african_w": 0.010476,
+   "herkunft_asian_w": -0.031489
+  },
+  "zug_07": {
+   "ictid_012": 1.0,
+   "makro_w_jung": -0.007458,
+   "probe_nose_scale_vert_decr": 0.000408,
+   "probe_nose_point_down": -0.003008,
+   "probe_nose_greek_incr": -0.001833,
+   "probe_eye_scale_decr": -0.004223,
+   "probe_eye_eyefold_down": -0.001392,
+   "probe_eyebrows_trans_forward": 0.002957,
+   "probe_nose_scale_horiz_decr": -0.001678,
+   "probe_eyebrows_trans_down": 0.003205,
+   "probe_eye_trans_in": -0.000362,
+   "gen_augen_tiefe_minus": -0.005415,
+   "eigen_lidfalte_w": -0.007458,
+   "probe_chin_height_incr": -5.5e-05,
+   "probe_chin_prominent_incr": -0.001785,
+   "probe_cheek_bones_decr": -0.000932,
+   "probe_chin_bones_incr": -0.0004,
+   "probe_chin_width_decr": -0.00895,
+   "probe_mouth_upperlip_volume_decr": 0.001492,
+   "probe_mouth_lowerlip_volume_decr": 0.001492,
+   "probe_mouth_scale_horiz_incr": -0.00357,
+   "probe_head_scale_horiz_decr": -0.001064,
+   "probe_eye_trans_out": -0.00141,
+   "probe_cheek_inner_incr": -0.0065,
+   "probe_mouth_trans_down": -0.002051,
+   "probe_head_invertedtriangular": -0.001882,
+   "probe_chin_jaw_drop_decr": -0.007458,
+   "probe_neck_double_decr": 0.002051,
+   "eigen_kopfnicker": 0.003729,
+   "probe_nose_trans_forward": 0.005966,
+   "probe_nose_volume_incr": 0.00087,
+   "probe_forehead_trans_backward": 0.002422,
+   "eigen_lidfalte_m": 0.007458,
+   "probe_chin_jaw_drop_incr": 0.005966,
+   "probe_cheek_bones_incr": 0.003694,
+   "eigen_adamsapfel": 0.007458,
+   "eigen_kieferkante": 0.000987,
+   "eigen_jochbein": 0.000275,
+   "probe_chin_width_incr": 0.00039,
+   "herkunft_african_m": -0.029421,
+   "herkunft_asian_m": 0.018986,
+   "herkunft_african_w": 0.00264,
+   "herkunft_asian_w": -0.029854
+  },
+  "zug_08": {
+   "ictid_013": 1.0,
+   "makro_w_jung": -0.003947,
+   "probe_nose_scale_vert_decr": 0.000216,
+   "probe_nose_point_down": -0.001592,
+   "probe_nose_greek_incr": -0.00097,
+   "probe_eye_scale_decr": -0.002235,
+   "probe_eye_eyefold_down": -0.000737,
+   "probe_eyebrows_trans_forward": 0.001565,
+   "probe_nose_scale_horiz_decr": -0.000888,
+   "probe_eyebrows_trans_down": 0.001696,
+   "probe_eye_trans_in": -0.000191,
+   "gen_augen_tiefe_minus": -0.002865,
+   "eigen_lidfalte_w": -0.003947,
+   "probe_chin_height_incr": -2.9e-05,
+   "probe_chin_prominent_incr": -0.000945,
+   "probe_cheek_bones_decr": -0.000493,
+   "probe_chin_bones_incr": -0.000212,
+   "probe_chin_width_decr": -0.004736,
+   "probe_mouth_upperlip_volume_decr": 0.000789,
+   "probe_mouth_lowerlip_volume_decr": 0.000789,
+   "probe_mouth_scale_horiz_incr": -0.001889,
+   "probe_head_scale_horiz_decr": -0.000563,
+   "probe_eye_trans_out": -0.000746,
+   "probe_cheek_inner_incr": -0.00344,
+   "probe_mouth_trans_down": -0.001085,
+   "probe_head_invertedtriangular": -0.000996,
+   "probe_chin_jaw_drop_decr": -0.003947,
+   "probe_neck_double_decr": 0.001085,
+   "eigen_kopfnicker": 0.001973,
+   "probe_nose_trans_forward": 0.003157,
+   "probe_nose_volume_incr": 0.00046,
+   "probe_forehead_trans_backward": 0.001281,
+   "eigen_lidfalte_m": 0.003947,
+   "probe_chin_jaw_drop_incr": 0.003157,
+   "probe_cheek_bones_incr": 0.001955,
+   "eigen_adamsapfel": 0.003947,
+   "eigen_kieferkante": 0.000522,
+   "eigen_jochbein": 0.000146,
+   "probe_chin_width_incr": 0.000206,
+   "herkunft_african_m": -0.044307,
+   "herkunft_asian_m": 0.021713,
+   "herkunft_african_w": -0.012295,
+   "herkunft_asian_w": -0.013031
+  },
+  "zug_09": {
+   "ictid_014": 1.0,
+   "makro_w_jung": -0.009765,
+   "probe_nose_scale_vert_decr": 0.000534,
+   "probe_nose_point_down": -0.003938,
+   "probe_nose_greek_incr": -0.0024,
+   "probe_eye_scale_decr": -0.005529,
+   "probe_eye_eyefold_down": -0.001823,
+   "probe_eyebrows_trans_forward": 0.003872,
+   "probe_nose_scale_horiz_decr": -0.002197,
+   "probe_eyebrows_trans_down": 0.004197,
+   "probe_eye_trans_in": -0.000474,
+   "gen_augen_tiefe_minus": -0.007089,
+   "eigen_lidfalte_w": -0.009765,
+   "probe_chin_height_incr": -7.2e-05,
+   "probe_chin_prominent_incr": -0.002338,
+   "probe_cheek_bones_decr": -0.001221,
+   "probe_chin_bones_incr": -0.000524,
+   "probe_chin_width_decr": -0.011718,
+   "probe_mouth_upperlip_volume_decr": 0.001953,
+   "probe_mouth_lowerlip_volume_decr": 0.001953,
+   "probe_mouth_scale_horiz_incr": -0.004674,
+   "probe_head_scale_horiz_decr": -0.001393,
+   "probe_eye_trans_out": -0.001846,
+   "probe_cheek_inner_incr": -0.00851,
+   "probe_mouth_trans_down": -0.002685,
+   "probe_head_invertedtriangular": -0.002464,
+   "probe_chin_jaw_drop_decr": -0.009765,
+   "probe_neck_double_decr": 0.002685,
+   "eigen_kopfnicker": 0.004882,
+   "probe_nose_trans_forward": 0.007812,
+   "probe_nose_volume_incr": 0.001139,
+   "probe_forehead_trans_backward": 0.003171,
+   "eigen_lidfalte_m": 0.009765,
+   "probe_chin_jaw_drop_incr": 0.007812,
+   "probe_cheek_bones_incr": 0.004836,
+   "eigen_adamsapfel": 0.009765,
+   "eigen_kieferkante": 0.001292,
+   "eigen_jochbein": 0.00036,
+   "probe_chin_width_incr": 0.000511,
+   "herkunft_african_m": -0.037293,
+   "herkunft_asian_m": 0.024929,
+   "herkunft_african_w": -0.005098,
+   "herkunft_asian_w": -0.0319
+  },
+  "zug_10": {
+   "ictid_015": 1.0,
+   "makro_w_jung": 0.010821,
+   "probe_nose_scale_vert_decr": -0.000592,
+   "probe_nose_point_down": 0.004364,
+   "probe_nose_greek_incr": 0.00266,
+   "probe_eye_scale_decr": 0.006127,
+   "probe_eye_eyefold_down": 0.00202,
+   "probe_eyebrows_trans_forward": -0.004291,
+   "probe_nose_scale_horiz_decr": 0.002435,
+   "probe_eyebrows_trans_down": -0.004651,
+   "probe_eye_trans_in": 0.000525,
+   "gen_augen_tiefe_minus": 0.007856,
+   "eigen_lidfalte_w": 0.010821,
+   "probe_chin_height_incr": 8e-05,
+   "probe_chin_prominent_incr": 0.002591,
+   "probe_cheek_bones_decr": 0.001353,
+   "probe_chin_bones_incr": 0.000581,
+   "probe_chin_width_decr": 0.012986,
+   "probe_mouth_upperlip_volume_decr": -0.002164,
+   "probe_mouth_lowerlip_volume_decr": -0.002164,
+   "probe_mouth_scale_horiz_incr": 0.00518,
+   "probe_head_scale_horiz_decr": 0.001544,
+   "probe_eye_trans_out": 0.002046,
+   "probe_cheek_inner_incr": 0.009431,
+   "probe_mouth_trans_down": 0.002976,
+   "probe_head_invertedtriangular": 0.00273,
+   "probe_chin_jaw_drop_decr": 0.010821,
+   "probe_neck_double_decr": -0.002976,
+   "eigen_kopfnicker": -0.005411,
+   "probe_nose_trans_forward": -0.008657,
+   "probe_nose_volume_incr": -0.001262,
+   "probe_forehead_trans_backward": -0.003514,
+   "eigen_lidfalte_m": -0.010821,
+   "probe_chin_jaw_drop_incr": -0.008657,
+   "probe_cheek_bones_incr": -0.00536,
+   "eigen_adamsapfel": -0.010821,
+   "eigen_kieferkante": -0.001432,
+   "eigen_jochbein": -0.000399,
+   "probe_chin_width_incr": -0.000566,
+   "herkunft_african_m": -0.004998,
+   "herkunft_asian_m": -0.021035,
+   "herkunft_african_w": 0.008002,
+   "herkunft_asian_w": 0.015224
+  },
+  "asym_01": {
+   "probe_asym_jaw3_l": 0.5,
+   "probe_asym_jaw3_r": -0.5
+  },
+  "asym_02": {
+   "probe_asym_nose1_l": 0.5,
+   "probe_asym_nose1_r": -0.5
+  },
+  "asym_03": {
+   "probe_asym_eye2_l": 0.5,
+   "probe_asym_eye2_r": -0.5
+  },
+  "asym_04": {
+   "probe_asym_brown1_l": 0.5,
+   "probe_asym_brown1_r": -0.5
+  },
+  "asym_05": {
+   "probe_asym_cheek2_l": 0.5,
+   "probe_asym_cheek2_r": -0.5
+  },
+  "asym_06": {
+   "ictid_009": 1.0
+  },
+  "asym_07": {
+   "ictid_020": 1.0
+  },
+  "asym_08": {
+   "ictid_025": 1.0
+  },
+  "asym_09": {
+   "ictid_028": 1.0
+  },
+  "asym_10": {
+   "ictid_033": 1.0
+  }
+ },
+ "entfernen": [
+  "probe_",
+  "ictid_",
+  "herkunft_",
+  "eigen_",
+  "alter_reife_m",
+  "alter_reife_w"
+ ]
+}

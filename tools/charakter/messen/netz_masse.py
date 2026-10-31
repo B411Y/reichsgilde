@@ -106,7 +106,9 @@ class Netzmesser:
         return self._lidring
 
     # ------------------------------------------------------------------ Maße
-    def messen(self, gewichte, punkte=None):
+    def messen(self, gewichte, punkte=None, schnell=False):
+        """Alle Maße; schnell=True lässt die langsamen (Augapfel, Kieferknick, Kragen, Spiegel, Lid, Lippe–Zahn) weg
+        (Ausgleichs- und Eichrechnung, Etappe B)."""
         P = punkte or self.netz.punkte(gewichte)
         H = P["_haut"]
         z_ohr = P["_z_ohr"]
@@ -132,13 +134,21 @@ class Netzmesser:
                            ("sto_me", P["sto"][1], P["me"][1])):
             m[f"{name}_ipd"] = float(a - b) / m["ipd"]
         m["braue_pupille"] = float(0.5 * (P["br_r"][1] + P["br_l"][1]) - ps_y)
-        m["wangenwoelbung"] = self._wange(H, ps_y, P["lm08"][1])
+        m["wangenwoelbung"] = self._wange(H, ps_y, P["lm08"][1], m["zy"], self.netz.haut.flaechennormalen(H / 1000.0))
+        m["wangenwoelbung_s0"] = self._wange_alt(H, ps_y, P["lm08"][1])
         m["augentiefe"] = self._augentiefe(H, P)
         m["nasofrontalwinkel"] = _winkel(P["g"], P["n"], P["prn"])
         m["pg_hinter_li"] = float(P["li"][2] - P["pg"][2])
         m["nasenvorsprung"] = float(P["prn"][2] - P["sn"][2])
         m["nasenbreite"] = float(P["al_l"][0] - P["al_r"][0])
         m["mundbreite"] = float(P["ch_l"][0] - P["ch_r"][0])
+        m["kinn_hals_winkel"] = self._kinn_hals(P)
+        if schnell:
+            A = self.glb.teile("Augen")[0].lage(gewichte) * 1000.0
+            d = [np.ptp(A[A[:, 0] < 0][:, 0]), np.ptp(A[A[:, 0] > 0][:, 0])]
+            m["augapfel_ipd"] = float(np.mean(d)) / m["ipd"]
+            m["n_sn"] = m["n_me_y"] - m["sn_me"]
+            return m
         # Iris : IPD misst bild_werte (die Iris ist eine Grenze im Shader, keine Netzkante); am Netz zählt die Größe des
         # Augapfels (Ausdehnung der Lederhaut in x) gegen den IPD
         A = self.glb.teile("Augen")[0].lage(gewichte) * 1000.0
@@ -153,7 +163,27 @@ class Netzmesser:
         m["lippe_zahn"] = self._lippe_zahn(gewichte, H, P)
         return m
 
-    def _wange(self, H, y_auge, y_kinn):
+    def _wange(self, H, y_auge, y_kinn, zy=None, N=None):
+        """Pfeilhöhe der seitlichen Wange bei t = 0,5 gegen die Sehne t = 0,15 … 0,8 (t = 0 Pupillenhöhe, t = 1 lm08).
+        Etappe B (stetige Definition): je Höhe das gewichtete Mittel der Tiefe z der vorderen Haut um |x| = 0,28 · zy
+        (Gauß σ 2,5 mm in x und y, nur Flächen mit Normale nach vorn, beide Seiten gemittelt). Die Bestandsaufnahme nahm die
+        vorderste Ecke in einem 3-mm-Streifen bei |x| 36–44 mm; am schmaleren Untergesicht traf der die steile Seitenfläche
+        und sprang bei kleinen Formänderungen um 10–20 mm."""
+        if zy is None or N is None:
+            return self._wange_alt(H, y_auge, y_kinn)
+        x0 = 0.28 * zy
+        ts = np.array([0.15, 0.5, 0.8])
+        nach_vorn = np.clip((N[:, 2] - 0.2) / 0.3, 0.0, 1.0)
+        zs = []
+        for t in ts:
+            y = y_auge - t * (y_auge - y_kinn)
+            w = np.exp(-0.5 * (((np.abs(H[:, 0]) - x0) / 2.5) ** 2 + ((H[:, 1] - y) / 2.5) ** 2)) * nach_vorn * (H[:, 2] > 20)
+            zs.append(float((w * H[:, 2]).sum() / max(w.sum(), 1e-9)))
+        sehne = zs[0] + (zs[2] - zs[0]) * (ts[1] - ts[0]) / (ts[2] - ts[0])
+        return float(zs[1] - sehne)
+
+    def _wange_alt(self, H, y_auge, y_kinn):
+        """Messweg der Bestandsaufnahme (S0): vorderste Ecke bei |x| 36–44 mm in einem 3-mm-Streifen."""
         sel = (np.abs(np.abs(H[:, 0]) - 40.0) <= 4.0) & (H[:, 2] > 40)
         q = H[sel]
         ts = np.array([0.15, 0.5, 0.8])
@@ -161,8 +191,7 @@ class Netzmesser:
         for t in ts:
             y = y_auge - t * (y_auge - y_kinn)
             r = q[np.abs(q[:, 1] - y) < 1.5]
-            # beide Seiten getrennt, dann Mittel
-            z = [r[r[:, 0] < 0][:, 2].max(), r[r[:, 0] > 0][:, 2].max()]
+            z = [r[r[:, 0] * s > 0][:, 2].max() if (r[:, 0] * s > 0).any() else np.nan for s in (-1, 1)]
             zs.append(np.mean(z))
         sehne = zs[0] + (zs[2] - zs[0]) * (ts[1] - ts[0]) / (ts[2] - ts[0])
         return float(zs[1] - sehne)
@@ -250,6 +279,26 @@ class Netzmesser:
             if d[i] < 4.0:
                 best = min(best, float(np.dot(p - E[i], N[i])))
         return best
+
+    def lippe_zahn_p5(self, gewichte, P=None):
+        """Etappe B: robuster Abstand Zahnfront – Lippe (mm): je vorderster Zahnecke die nächste Lippenecke, Abstand entlang
+        deren Hautnormale (+ = Zahn hinter der Lippe), davon das 5. Perzentil. lippe_zahn (Minimum über 1-mm-Säulen) springt,
+        wenn sich die Säulen verschieben."""
+        P = P or self.netz.punkte(gewichte)
+        H = P["_haut"]
+        Z = self.zaehne.lage(gewichte) * 1000.0
+        sto = P["sto"]
+        z = Z[(np.abs(Z[:, 0]) < 15) & (np.abs(Z[:, 1] - sto[1]) < 10)]
+        sel = np.nonzero((np.abs(H[:, 0]) < 18) & (np.abs(H[:, 1] - sto[1]) < 12) & (H[:, 2] > sto[2] - 10))[0]
+        if not len(z) or not len(sel):
+            return float("nan")
+        N = self.netz.haut.flaechennormalen(H / 1000.0)[sel]
+        L = H[sel]
+        z = z[np.argsort(-z[:, 2])][:200]
+        d = np.linalg.norm(z[:, None, :] - L[None, :, :], axis=2)
+        k = d.argmin(1)
+        s = ((L[k] - z) * N[k]).sum(1)
+        return float(np.percentile(s, 5))
 
     def _lippe_zahn(self, gewichte, H, P):
         Z = self.zaehne.lage(gewichte) * 1000.0
