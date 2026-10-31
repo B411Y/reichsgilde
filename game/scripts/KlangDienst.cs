@@ -169,14 +169,26 @@ public partial class KlangDienst : Node
             var index = AudioServer.GetBusIndex(bus);
             var fehler = index < 0 ? "fehlt"
                 : AudioServer.GetBusSend(index) != ziel ? $"sendet an „{AudioServer.GetBusSend(index)}“ statt „{ziel}“"
-                : panner && AudioServer.GetBusEffect(index, 0) is not AudioEffectPanner ? "hat keinen Panner als Effekt 0"
-                : AudioServer.GetBusEffect(index, panner ? 1 : 0) is not AudioEffectLowPassFilter ? "hat keinen Tiefpass"
+                : panner && !EffektIst<AudioEffectPanner>(index, 0) ? "hat keinen Panner als Effekt 0"
+                : !EffektIst<AudioEffectLowPassFilter>(index, panner ? 1 : 0) ? "hat keinen Tiefpass"
                 : null;
             if (fehler is null) continue;
             GD.PushWarning($"KlangDienst: Unterbus „{bus}“ {fehler} (default_bus_layout.tres) – die Umgebung klingt dann nicht wie geplant.");
             gut = false;
         }
         return gut;
+    }
+
+    /// <summary>
+    /// Hat der Bus an dieser Stelle einen Effekt dieser Art? Die C#-Hülle des Effekts wird sofort freigegeben: Im exportierten Spiel läuft beim Beenden keine
+    /// Speicherbereinigung, übrig gebliebene Hüllen melden sonst „resources still in use at exit“ (Rauchtest der CI).
+    /// </summary>
+    private static bool EffektIst<T>(int bus, int stelle) where T : AudioEffect
+    {
+        var effekt = AudioServer.GetBusEffect(bus, stelle);
+        var ja = effekt is T;
+        effekt?.Dispose();
+        return ja;
     }
 
     /// <summary>Ist das Fenster im Hintergrund und darum der Ton stumm („Ton im Hintergrund stumm“)? Die Umgebung hält dann ihre Rufe an.</summary>
