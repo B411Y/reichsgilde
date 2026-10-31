@@ -155,12 +155,31 @@ static class FahrzeitWeglaengeTests
             Pruefe.Wahr(alt.Pruefen().Count == 0, "alte Daten gültig");
             var (simA, _, wa) = Partie(alt);
             foreach (var typ in Arten) Pruefe.Gleich((30, 30), (simA.Wirtschaft!.Fahrzeit(wa, typ, true), simA.Wirtschaft.Fahrzeit(wa, typ, false)), typ);
+            // alte Daten mit Pflaster auf der Hauptstraße: die feste Zeit mal dem Mittel der Belagfaktoren (0,85, ohne Ausbau-Grenze in alten Daten)
+            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            e.BelagSetzen(e.Wege.Single(x => x.Name == "Hauptstraße"), Belagstufe.Pflaster);
+            var ganzAlt = DatenMit(d => { d["logistik"]!.AsObject().Remove("weglaenge"); d["wegebau"]!.AsObject().Remove("ausbauHoechstens"); });
+            var (simP, spielerP) = e.Ausprobieren(ganzAlt, "Schmied");
+            var wp = simP.Wirtschaft!.Betriebe.Single(b => b.Konto == spielerP);
+            var hinP = simP.Wirtschaft.Fahrten(wp)!.Value.Hin;
+            Pruefe.Ungefaehr(0.85, simP.Wirtschaft.Wegebau.Faktor(hinP[0]), 1e-12);
+            var erwartet = (int)Math.Round(30 * hinP.Sum(s => s.Laenge * simP.Wirtschaft.Wegebau.Faktor(s)) / hinP.Sum(s => s.Laenge), MidpointRounding.AwayFromZero);
+            Pruefe.Wahr(erwartet < 30, $"Pflaster kürzer: {erwartet}");
+            foreach (var typ in Arten) Pruefe.Gleich(erwartet, simP.Wirtschaft.Fahrzeit(wp, typ, true), typ);
         }),
 
-        ("Fahrzeit nach Weglänge: Ein alter Spielstand (feste Fahrzeiten) lädt – Karren unterwegs kommen zur gespeicherten Zeit an, neue Fahrten dauern nach Weglänge", () =>
+        ("Fahrzeit: Ein alter Spielstand bringt seine Daten mit (ohne logistik.weglaenge) – er fährt weiter mit der festen Fahrzeit, Karren unterwegs kommen zur gespeicherten Zeit an", () =>
         {
             var (sim, _) = Speicherung.Laden(AlterStand.Value);
             var w = sim.Wirtschaft!;
+            Pruefe.Wahr(w.Daten.Logistik.Weglaenge is null && w.Daten.Version < 65, $"Daten des Spielstands (Version {w.Daten.Version})");
+            // die feste Zeit mit Steigung und Belag gemittelt, wie bis Datenversion 64 – für alle Karrenarten gleich
+            foreach (var b in w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }))
+            {
+                var hin = w.Fahrten(b)!.Value.Hin;
+                var alt = (int)Math.Round(w.Daten.Logistik.FahrzeitAb(b.Ort) * hin.Sum(s => s.Laenge * w.Zeitfaktor(s)) / hin.Sum(s => s.Laenge), MidpointRounding.AwayFromZero);
+                foreach (var typ in Arten) Pruefe.Gleich(Math.Max(1, alt), w.Fahrzeit(b, typ, true), $"{b.Name} {typ}");
+            }
             var alle = w.Betriebe.SelectMany(b => b.Karren).ToList();
             var unterwegs = alle.Where(k => k.Zustand != KarrenZustand.AmBetrieb).ToDictionary(k => k, k => (k.Zustand, k.Ankunft));
             Pruefe.Wahr(unterwegs.Count > 0, "im alten Stand sind Karren unterwegs");
@@ -180,7 +199,7 @@ static class FahrzeitWeglaengeTests
                     }
                     if (k.Zustand == KarrenZustand.ZumMarkt && k.TorWartenBis is null)
                     {
-                        Pruefe.Gleich(jetzt - 1 + w.Fahrzeit(k, zumMarkt: true), k.Ankunft, $"{k.Name}: neue Fahrt nach Weglänge");
+                        Pruefe.Gleich(jetzt - 1 + w.Fahrzeit(k, zumMarkt: true), k.Ankunft, $"{k.Name}: neue Fahrt mit der Zeit des Kerns");
                         neu++;
                     }
                     zustand[k] = k.Zustand;
@@ -213,13 +232,25 @@ static class FahrzeitWeglaengeTests
             Pruefe.Gleich(0, Daten.Value.Pruefen().Count);
         }),
 
-        ("Gesparte Minuten eines Ausbaus: je Meter 1 ÷ Tempo der eigenen Karren (nach Weglänge), sonst die feste Zeit auf die Strecke verteilt", () =>
+        ("Gesparte Minuten eines Ausbaus: Fahrzeit vorher minus nachher wie im Spiel (ganze Minuten, Höchstdauer); alte Daten: feste Zeit auf die Strecke verteilt", () =>
         {
             var (sim, _, werkstatt) = Partie();
             var w = sim.Wirtschaft!;
-            Pruefe.Ungefaehr(1 / MeterJeMinuteBei1, w.MinutenJeMeter(werkstatt, 123), 1e-12); // ein Handkarren
+            var hin = w.Fahrten(werkstatt)!.Value.Hin;
+            var laenge = hin.Sum(s => s.Laenge);
+            var v = MeterJeMinuteBei1; // ein Handkarren
+            int Gerundet(double m) => Math.Clamp((int)Math.Round(m, MidpointRounding.AwayFromZero), 10, 360);
+            Pruefe.Ungefaehr(0, w.GesparteMinuten(werkstatt, hin, 0), 1e-12);
+            Pruefe.Ungefaehr(w.Fahrzeit(werkstatt.Karren[0], true) - Gerundet((laenge - 10) / v), w.GesparteMinuten(werkstatt, hin, 10), 1e-12);
+            Pruefe.Wahr(w.GesparteMinuten(werkstatt, hin, 10) >= 12, "10 m Fahrweg weniger sparen mit dem Handkarren etwa 13 Minuten");
+            // an der Höchstdauer (hier 10 Minuten für jede Fahrt) spart ein Ausbau nichts
+            var (simH, _, wh) = Partie(DatenMit(d => d["logistik"]!["weglaenge"]!["hoechstMinuten"] = 10));
+            Pruefe.Gleich(10, simH.Wirtschaft!.Fahrzeit(wh.Karren[0], true));
+            Pruefe.Ungefaehr(0, simH.Wirtschaft.GesparteMinuten(wh, simH.Wirtschaft.Fahrten(wh)!.Value.Hin, 10), 1e-12);
+            // alte Daten: die feste Zeit auf die Länge verteilt
             var (simA, _, wa) = Partie(DatenMit(d => d["logistik"]!.AsObject().Remove("weglaenge")));
-            Pruefe.Ungefaehr(30.0 / 123, simA.Wirtschaft!.MinutenJeMeter(wa, 123), 1e-12);
+            var hinA = simA.Wirtschaft!.Fahrten(wa)!.Value.Hin;
+            Pruefe.Ungefaehr(30.0 * 10 / hinA.Sum(s => s.Laenge), simA.Wirtschaft.GesparteMinuten(wa, hinA, 10), 1e-12);
         }),
 
     };

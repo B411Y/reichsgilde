@@ -428,6 +428,8 @@ public sealed class Wegebau
     /// <summary>
     /// So viele Spielminuten im Jahr wären die Karren dieses Hauses schneller, wenn die Stücke <paramref name="vonStueck"/> bis
     /// <paramref name="bisStueck"/> des Weges <paramref name="stufe"/> hätten (neu) – mit den Fahrten des Vorjahres, hin und zurück gemittelt.
+    /// Nach Weglänge mit Mindest- und Höchstdauer (<see cref="Stadtwirtschaft.GesparteMinuten"/>): Auf einem Weg, der auch nach dem Ausbau an der
+    /// Höchstdauer liegt, spart er nichts.
     /// </summary>
     public double ErsparteMinutenJeJahr(Konto konto, int weg, int vonStueck, int bisStueck, Belagstufe stufe)
     {
@@ -452,7 +454,7 @@ public sealed class Wegebau
                     if (i < vonStueck || i > bisStueck || z.Stufe[i] > stufe) continue;
                     gespart += s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * Math.Max(0, Faktor(s) - neu);
                 }
-                return gespart * _w.MinutenJeMeter(b, laenge);
+                return _w.GesparteMinuten(b, fahrt, gespart);
             }
             summe += anzahl * (Ersparnis(hin) + Ersparnis(zurueck)) / 2;
         }

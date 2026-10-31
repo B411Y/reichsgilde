@@ -84,12 +84,13 @@ public sealed partial class Stadtwirtschaft
     }
 
     /// <summary>
-    /// Die Fahrzeit einer Fahrt nach Weglänge: <see cref="Fahrminuten"/> auf ganze Minuten, zwischen Mindest- und Höchstdauer. Ohne Weg (keine
-    /// Stücke oder Länge 0: Betrieb und Markt sind nicht verbunden) die feste Fahrzeit <paramref name="fest"/>.
+    /// Die Fahrzeit einer Fahrt nach Weglänge: <see cref="Fahrminuten"/> auf ganze Minuten, zwischen Mindest- und Höchstdauer (ein Stück der Länge 0:
+    /// Betrieb und Markt hängen an derselben Stelle des Netzes – die Mindestdauer). Ohne Stücke (Betrieb und Markt nicht verbunden, oder sie
+    /// hängen am selben Knoten, das unterscheidet <see cref="Karrennetz.Fahrt"/> nicht) die feste Fahrzeit <paramref name="fest"/>.
     /// </summary>
     private int NachLaenge(IReadOnlyList<Fahrtstueck> fahrt, KarrenDaten art, int fest)
     {
-        if (fahrt.Sum(s => s.Laenge) <= 0) return fest;
+        if (fahrt.Count == 0) return fest;
         var grenzen = Daten.Logistik.Weglaenge!;
         return Math.Clamp(Minuten(Fahrminuten(fahrt, art.MeterJeMinute)), grenzen.MindestMinuten, grenzen.HoechstMinuten);
     }
@@ -117,15 +118,26 @@ public sealed partial class Stadtwirtschaft
     }
 
     /// <summary>
-    /// Wie viele Spielminuten ein Meter ebener Fahrweg die Karren dieses Betriebs kostet (für die gesparten Minuten eines Ausbaus,
-    /// <see cref="Bauen.Wegebau.ErsparteMinutenJeJahr"/>): nach Weglänge 1 ÷ Tempo, gemittelt über seine Karren; sonst die feste Fahrzeit auf
-    /// die Länge der Strecke (<paramref name="laenge"/>, Meter) verteilt. Mindest- und Höchstdauer bleiben dabei außen vor.
+    /// Wie viele Spielminuten eine Fahrt der Karren dieses Betriebs kürzer würde, wenn sie <paramref name="gespartMeter"/> Meter ebenen Fahrweg
+    /// weniger dauerte (für einen Ausbau, <see cref="Bauen.Wegebau.ErsparteMinutenJeJahr"/>). Nach Weglänge: je Karren des Betriebs die Fahrzeit vorher
+    /// minus nachher, beide wie im Spiel auf ganze Minuten zwischen Mindest- und Höchstdauer (bleibt die Fahrt auch nach dem Ausbau an der
+    /// Höchstdauer, spart er nichts), gemittelt über die Karren. Sonst (alte Daten, kein Karren mit Tempo) die feste Fahrzeit auf die Länge der
+    /// Strecke verteilt, wie bis Datenversion 64.
     /// </summary>
-    internal double MinutenJeMeter(Betrieb betrieb, double laenge)
+    internal double GesparteMinuten(Betrieb betrieb, IReadOnlyList<Fahrtstueck> fahrt, double gespartMeter)
     {
         var arten = betrieb.Karren.Select(k => NachWeglaenge(k.Typ)).OfType<KarrenDaten>().ToList();
-        if (arten.Count > 0) return arten.Average(k => 1 / k.MeterJeMinute);
-        return laenge <= 0 ? 0 : Daten.Logistik.FahrzeitAb(betrieb.Ort) / laenge;
+        if (arten.Count > 0 && Daten.Logistik.Weglaenge is { } grenzen && fahrt.Count > 0)
+        {
+            int Begrenzt(double minuten) => Math.Clamp(Minuten(minuten), grenzen.MindestMinuten, grenzen.HoechstMinuten);
+            return arten.Average(k =>
+            {
+                var vorher = Fahrminuten(fahrt, k.MeterJeMinute);
+                return Begrenzt(vorher) - Begrenzt(vorher - gespartMeter / k.MeterJeMinute);
+            });
+        }
+        var laenge = fahrt.Sum(s => s.Laenge);
+        return laenge <= 0 ? 0 : gespartMeter * Daten.Logistik.FahrzeitAb(betrieb.Ort) / laenge;
     }
 
     private static int Minuten(double x) => Math.Max(1, (int)Math.Round(x, MidpointRounding.AwayFromZero));
