@@ -95,6 +95,29 @@ func _meldung(text: String) -> void:
 		await get_tree().create_timer(2.0).timeout
 		get_tree().quit(1)
 
+# Prüferbefund Etappe A: get_file_as_string() liefert für /proc-Dateien (Länge 0) einen leeren Text, die Last stand
+# deshalb immer auf 0,0. Zeilenweise lesen geht.
+static func _last() -> float:
+	var f := FileAccess.open("/proc/loadavg", FileAccess.READ)
+	if f == null:
+		return -1.0
+	var z := f.get_line()
+	f.close()
+	return snappedf(float(z.split(" ")[0]), 0.01) if z != "" else -1.0
+
+# Andere Prozesse auf der Grafikkarte (laut nvidia-smi, wie tools/charakter/warte_last.py), ohne diesen; −1 = unbekannt
+static func _gpu_fremd() -> int:
+	var aus := []
+	if OS.execute("nvidia-smi", [], aus) != 0 or aus.is_empty():
+		return -1
+	var eigen := str(OS.get_process_id())
+	var pids := {}
+	for z in String(aus[0]).split("\n"):
+		var t := z.split(" ", false)
+		if t.size() > 6 and t[0] == "|" and t[t.size() - 1] == "|" and t[t.size() - 2].ends_with("MiB") and t[4].is_valid_int() and t[4] != eigen:
+			pids[t[4]] = true
+	return pids.size()
+
 func _datei(name: String, st := 5) -> String:
 	if name == "standard":
 		name = "kopf3.glb"
@@ -786,7 +809,7 @@ func _ein_lauf(l: Dictionary) -> void:
 		"bilder_ms": snappedf(liste[0].kopf.bilder_ms, 0.1) if liste[0].kopf else 0.0,
 		"textur_mb": snappedf(RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TEXTURE_MEM_USED) / 1048576.0, 0.1),
 		"aufloesung": "%dx%d" % [gr0.x, gr0.y],
-		"last": snappedf(float(FileAccess.get_file_as_string("/proc/loadavg").split(" ")[0]), 0.1),
+		"last": _last(), "gpu_fremd": _gpu_fremd(),
 		"stand": st, "wiederholung": int(l.get("wiederholung", 0)), "licht": String(args.get("licht", "spiel")),
 		"commit": String(args.get("commit", "")), "zeit": Time.get_datetime_string_from_system(),
 	}

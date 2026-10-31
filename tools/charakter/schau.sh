@@ -17,7 +17,10 @@ mkdir -p /tmp/xkb "$B"; ln -sf $X/root/usr/bin/xkbcomp /tmp/xkb/xkbcomp
 B=$(cd "$B" && pwd)
 D=${ANZEIGE:-:97}
 # Last unter 12 und höchstens GPU_ANDERE andere Vulkan-Läufe auf der T400 (Standard 2), längstens 15 min warten
-python3 "$(dirname "$0")/warte_last.py" 12 15 "${GPU_ANDERE:-2}" > /dev/null
+# Messläufe (--messen) mit GPU_ANDERE=0 starten nur bei freier Karte (Plan 5.6), sonst Abbruch mit Rückgabe 4
+if ! python3 "$(dirname "$0")/warte_last.py" 12 ${WARTE_MIN:-15} "${GPU_ANDERE:-2}" > /dev/null; then
+  case " $* " in *" --messen"*) if [ "${GPU_ANDERE:-2}" = "0" ]; then echo "ABBRUCH: T400 nicht frei (GPU_ANDERE=0)"; exit 4; fi;; esac
+fi
 $X/Xvfb-gepatcht $D -screen 0 ${RES}x24 -xkbdir $X/root/usr/share/X11/xkb -nolisten tcp +extension GLX > "$B/xvfb.log" 2>&1 &
 XPID=$!
 sleep 2
