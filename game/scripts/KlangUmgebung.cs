@@ -322,10 +322,21 @@ public partial class KlangUmgebung : Node
         var panner = ruf.Bahn switch { 2 => _panGespraech, 1 => _panFern, _ => _panNah };
         if (panner is not null) panner.Pan = ruf.Seite;
         if (ruf.Bahn == 2 && _tiefpassGespraech is not null && ruf.Tiefpass > 0) _tiefpassGespraech.CutoffHz = ruf.Tiefpass; // dumpfer mit dem Abstand der Gruppe
-        spieler.Stream = ton;
-        spieler.VolumeDb = M.AbspielDb(ruf); // mit Ausgleich für den Panner (sonst ist ein Ruf am Rand bis zu 5 dB lauter)
-        spieler.PitchScale = ruf.Tonhoehe;
-        spieler.Play();
+        if (M.Rufarten[ruf.Art].Bedarf == M.RufBedarf.Donner)
+        {
+            // Donner: ein eigener Spieler je Schlag, damit sich Grollen überlagern dürfen (Bus und Seite wie die Rufe)
+            var d = new AudioStreamPlayer { Stream = ton, Bus = ruf.Fern ? KlangDienst.BusUmgebungRufFern : KlangDienst.BusUmgebungRufNah, VolumeDb = M.AbspielDb(ruf), PitchScale = ruf.Tonhoehe };
+            d.Finished += d.QueueFree;
+            AddChild(d);
+            d.Play();
+        }
+        else
+        {
+            spieler.Stream = ton;
+            spieler.VolumeDb = M.AbspielDb(ruf); // mit Ausgleich für den Panner (sonst ist ein Ruf am Rand bis zu 5 dB lauter)
+            spieler.PitchScale = ruf.Tonhoehe;
+            spieler.Play();
+        }
         var art = M.Rufarten[ruf.Art];
         LetzterRuf = $"{art.Name}: {ruf.Datei}, {(ruf.Bahn == 2 ? "Gespräch" : ruf.Fern ? "fern" : "nah")}, Seite {ruf.Seite:+0.00;-0.00}, {ruf.Db:0.0} dB (bei {_zeit:0} s)";
         if (_logStufe >= 2)

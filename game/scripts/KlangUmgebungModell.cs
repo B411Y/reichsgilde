@@ -84,10 +84,10 @@ public static class KlangUmgebungModell
         new("nacht", "Stiller Nachtgrund: sehr ferner, dunkler Wind (Synthese)", -17f, Bus.Draussen),
         new("wind_leicht", "Leichter Wind in der Höhe (Synthese), nah kaum, weit voll", -8f, Bus.Draussen),
         new("wind_mittel", "Kräftigerer Wind, nur ganz weit herausgezoomt (Kitt Peak)", -10f, Bus.Draussen),
-        new("natur_laub", "Laubrauschen und Wind in den Bäumen: im Wald und an Gehölzen, stärker mit dem Wind, im Winter kahl und leise", -10f, Bus.Draussen),
-        new("natur_grillen", "Grillen und Heuschrecken auf der Wiese: im Sommer abends und nachts, am Tag kaum, nur im Grünen", -14f, Bus.Draussen),
-        new("natur_froesche", "Frösche am Wasser: im Frühling abends und nachts, im Sommer kaum, nur nahe an Fluss, Bach oder Teich", -14f, Bus.Draussen),
-        new("natur_fluss", "Plätschern von Fluss und Bach: nah am Wasser, weiter weg leise, in der Stadt gedämpft", -10f, Bus.Draussen),
+        new("natur_laub", "Laubrauschen und Wind in den Bäumen: im Wald und an Gehölzen, stärker mit dem Wind, im Winter kahl und leise", -7f, Bus.Draussen),
+        new("natur_grillen", "Grillen und Heuschrecken auf der Wiese: im Sommer abends und nachts, am Tag kaum, nur im Grünen", -11f, Bus.Draussen),
+        new("natur_froesche", "Frösche am Wasser: im Frühling abends und nachts, im Sommer kaum, nur nahe an Fluss, Bach oder Teich", -11f, Bus.Draussen),
+        new("natur_fluss", "Plätschern von Fluss und Bach: nah am Wasser, weiter weg leise, in der Stadt gedämpft", -7f, Bus.Draussen),
         new("regen_leicht", "Leichter Regen auf Boden und Laub (nach der Regenstärke)", -10f, Bus.Draussen),
         new("regen_stark", "Starker Regen, Guss (ab etwa halber bis voller Regenstärke)", -8f, Bus.Draussen),
         new("regen_dach", "Tropfen auf Dächern, nah in der Stadt (herangezoomt)", -14f, Bus.Draussen),
@@ -483,7 +483,7 @@ public static class KlangUmgebungModell
         private readonly double[] _rest = new double[Rufarten.Length];
         private readonly bool[] _imFenster = new bool[Rufarten.Length];
         private double _seitLetztem = GlobalAbstand;
-        private double _nahFrei, _fernFrei, _gespraechFrei, _donnerFrei, _jetzt;
+        private double _nahFrei, _fernFrei, _gespraechFrei, _jetzt;
         private readonly int[] _letzteVariante = Enumerable.Repeat(-1, Rufarten.Length).ToArray();
         private readonly double[] _letzterRuf = Enumerable.Repeat(-1e9, Rufarten.Length).ToArray();
         private readonly Dictionary<string, Queue<string>> _zuletzt = new();
@@ -529,6 +529,8 @@ public static class KlangUmgebungModell
             var lage = e.Lage;
             // Krähen nur im Grünen: ihr Fenster hängt an der Natur um den Blickpunkt, nicht an Menschen
             if (r.Bedarf == RufBedarf.Natur) fenster *= Glatt(0.1f, 0.6f, lage.Umwelt.Natur);
+            // bei Regen steht man nicht beisammen: die Gespräche werden selten (bei vollem Regen auf 30 %)
+            if (r.Bedarf == RufBedarf.Gruppe) fenster *= 1f - 0.7f * Glatt(0.1f, 0.6f, e.Himmel.Regen);
             // Gespräche und Horn gibt es nur mit echten Menschen; ohne Messung (Selbsttests, Dienst ohne Partie) bleiben sie stumm
             if (!lage.Gemessen) return r.Bedarf is RufBedarf.Gruppe or RufBedarf.Wache ? 0f : fenster;
             return fenster * r.Bedarf switch
@@ -584,26 +586,18 @@ public static class KlangUmgebungModell
             }
         }
 
-        /// <summary>Lässt fällige Donner folgen; ist der Platz noch belegt (ein Donner rollt), wartet er höchstens dreimal 1,5 s.</summary>
+        /// <summary>
+        /// Lässt fällige Donner folgen. Jeder Donner bekommt einen eigenen Spieler (der Knoten legt ihn an), so rollen mehrere übereinander, wie bei einem
+        /// Gewitter mit dichten Blitzen; er unterbricht keinen anderen Ruf, aber die Rufplätze (nah, fern) sind danach für die Länge der Datei belegt.
+        /// </summary>
         private void DonnerSchritt(in Eingaben e, List<Ruf> neu)
         {
             for (var k = _donner.Count - 1; k >= 0; k--)
             {
-                var (faellig, verzug, versuche) = _donner[k];
+                var (faellig, verzug, _) = _donner[k];
                 if (_jetzt < faellig) continue;
-                var nah = verzug < 2.0;
-                // Der Donner geht vor: Er unterbricht einen Vogel- oder Hundeschrei, wartet nur auf einen anderen Donner, der noch rollt
-                var frei = _jetzt >= _donnerFrei;
-                if (!frei && versuche < 3)
-                {
-                    _donner[k] = (_jetzt + 1.5, verzug, versuche + 1);
-                    continue;
-                }
                 _donner.RemoveAt(k);
-                if (!frei) continue;
-                var ruf = Erzeugen(Array.FindIndex(Rufarten, a => a.Bedarf == RufBedarf.Donner), !nah, 60f, null, verzug);
-                _donnerFrei = nah ? _nahFrei : _fernFrei;
-                neu.Add(ruf);
+                neu.Add(Erzeugen(Array.FindIndex(Rufarten, a => a.Bedarf == RufBedarf.Donner), verzug >= 2.0, 60f, null, verzug));
             }
         }
 
