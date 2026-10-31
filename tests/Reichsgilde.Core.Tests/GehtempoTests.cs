@@ -6,12 +6,15 @@ using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
 /// Feste Geschwindigkeiten von Figuren und Karren (Darstellung, 31.10.2026; Modell in <c>game/scripts/Gehtempo.cs</c>, hier mitübersetzt):
-/// Passanten gehen 1,3 m/s (±10 %), Karren 0,8 bis 1,3 m/s, kommen aber, wenn der Kern weniger Zeit gibt, später an. Dazu die sichtbare Fahrt
-/// der Karren (<see cref="Karrenzug"/>), die den Rückstand auflöst, ohne am Kern etwas zu ändern.
+/// Passanten gehen 1,3 m/s (±10 %) und kommen, wenn der Kern weniger Zeit gibt, später an. Karren fahren 0,8 bis 1,3 m/s – seit Datenversion 65
+/// rechnet der Kern ihre Fahrzeit mit demselben Tempo (<c>FahrzeitWeglaengeTests</c>), und das Profil der Darstellung dauert genau die Kernzeit.
+/// Dazu die sichtbare Fahrt der Karren (<see cref="Karrenzug"/>), die einen Rückstand auflöst.
 /// </summary>
 static class GehtempoTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+
+    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Kriegskarren" };
 
     /// <summary>Ein ebener Weg von 100 m mit 1 m/s = 0,79 m je Spielminute (Rundendauer 15 min).</summary>
     static Fahrprofil Eben(double laenge = 100, double meterJeMinute = 1) =>
@@ -258,6 +261,43 @@ static class GehtempoTests
                     }
                 }
                 Pruefe.Wahr(gepruft >= 3, $"{kennung}: zu wenige Werkstattplätze geprüft ({gepruft})");
+            }
+        }),
+
+        ("Karren auf Greybox und Köln: Die Darstellung fährt im Tempo des Kerns und kommt genau mit dem Kern an (Fahrprofil mit der Kernzeit)", () =>
+        {
+            foreach (var kennung in new[] { "greybox", "koeln" })
+            {
+                var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(), karte: karte);
+                var w = sim.Wirtschaft!;
+                var gepruft = 0;
+                var grenzen = w.Daten.Logistik.Weglaenge!;
+                foreach (var b in w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }))
+                    foreach (var typ in Arten)
+                        foreach (var zumMarkt in new[] { true, false })
+                        {
+                            var fahrt = zumMarkt ? w.Fahrten(b)!.Value.Hin : w.Fahrten(b)!.Value.Zurueck;
+                            var laenge = fahrt.Sum(s => s.Laenge);
+                            var jeMinute = w.Daten.Logistik.Karren[typ].MeterJeMinute;
+                            var stuecke = Karrentempo.Stuecke(fahrt, w.Zeitfaktor, w.Daten.Logistik.Wasser!.FurtMinuten, w.Daten.Logistik.Wasser.FaehreMinuten);
+                            var kern = w.Fahrzeit(b, typ, zumMarkt);
+                            Pruefe.Gleich(FahrzeitWeglaengeTests.NachFormel(w, b, typ, zumMarkt), kern, $"{kennung}/{b.Name}/{typ}");
+                            // Auf dem Weg des Kerns fährt die Darstellung von sich aus so lange wie der Kern (bis auf die Rundung), außer an den Grenzen
+                            var frei = new Fahrprofil(stuecke, laenge, jeMinute);
+                            var begrenzt = frei.Dauer < grenzen.MindestMinuten || frei.Dauer > grenzen.HoechstMinuten;
+                            if (!begrenzt)
+                                Pruefe.Wahr(Math.Abs(frei.Dauer - kern) <= 0.5 + 1e-9, $"{kennung}/{b.Name}/{typ}: sichtbar {frei.Dauer:0.00}, Kern {kern}");
+                            // nie schneller als das Tempo der Art × 1,15 (Ausbau), wo die Grenzen nicht eingreifen
+                            for (var t = 0.0; !begrenzt && t <= frei.Dauer; t += frei.Dauer / 40)
+                                Pruefe.Wahr(frei.MeterJeMinute(t) <= jeMinute * 1.15 + 1e-6, $"{kennung}/{typ}: {frei.MeterJeMinute(t):0.00} m/min bei {t:0}");
+                            // Mit der Kernzeit (auch auf dem kürzeren Weg bis zum Rand des Platzes) dauert das Profil genau so lange wie die Fahrt im Kern
+                            var gezeigt = new Fahrprofil(stuecke, Math.Max(1, laenge - 10), jeMinute, kern);
+                            Pruefe.Ungefaehr(kern, gezeigt.Dauer, 1e-9);
+                            Pruefe.Ungefaehr(1, gezeigt.WegBei(kern), 1e-9);
+                            gepruft++;
+                        }
+                Pruefe.Wahr(gepruft >= 18, $"{kennung}: zu wenige Fahrten geprüft ({gepruft})");
             }
         }),
     };

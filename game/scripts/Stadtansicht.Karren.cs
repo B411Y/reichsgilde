@@ -220,92 +220,6 @@ public partial class Stadtansicht
         return punkt.X > -rand && punkt.Y > -rand && punkt.X < flaeche.X + rand && punkt.Y < flaeche.Y + rand;
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Steigung: bergauf langsamer
-    // ═════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Wie sich eine Fahrt auf ihre Zeit verteilt: Der Kern gibt die Stücke der Fahrt über die Karrenstraßen (Länge und Anstieg, <c>Stadtwirtschaft.Fahrten</c>) und
-    /// bremst jedes nach seiner Steigung (<c>SteigungDaten.Faktor</c>). Hier steht je Stück, wie viel der Zeit und wie viel des Weges bis zu seinem Ende vorbei
-    /// sind (je 0 … 1) – so lässt sich aus dem Anteil der Zeit der Anteil des Weges rechnen und umgekehrt, wie schnell der Karren dort ist.
-    /// </summary>
-    private sealed record Fahrtprofil(double[] Zeit, double[] Weg)
-    {
-        /// <summary>Wie weit (0 … 1) ist der Karren auf dem Weg, wenn dieser Anteil der Fahrzeit vorbei ist?</summary>
-        public float WegBei(double zeit)
-        {
-            var i = Stueck(zeit);
-            var t = (zeit - Zeit[i]) / Math.Max(1e-9, Zeit[i + 1] - Zeit[i]);
-            return (float)(Weg[i] + t * (Weg[i + 1] - Weg[i]));
-        }
-
-        /// <summary>Wie schnell (1 = so schnell wie im Durchschnitt der Fahrt) fährt er dort?</summary>
-        public float Tempo(double zeit)
-        {
-            var i = Stueck(zeit);
-            return (float)((Weg[i + 1] - Weg[i]) / Math.Max(1e-9, Zeit[i + 1] - Zeit[i]));
-        }
-
-        private int Stueck(double zeit)
-        {
-            zeit = Math.Clamp(zeit, 0, 1);
-            var i = Array.BinarySearch(Zeit, zeit);
-            if (i < 0) i = ~i - 1;
-            return Math.Clamp(i, 0, Zeit.Length - 2);
-        }
-    }
-
-    /// <summary>Hin- und Rückfahrt eines Betriebs (null: keine Steigung zu berücksichtigen – flache Karte, kein Abschnitt <c>steigung</c> oder keine Fahrt).</summary>
-    private readonly Dictionary<Betrieb, (Fahrtprofil Hin, Fahrtprofil Zurueck)?> _fahrtprofile = new(ReferenceEqualityComparer.Instance);
-
-    private (Fahrtprofil Hin, Fahrtprofil Zurueck)? FahrtprofileVon(Betrieb betrieb)
-    {
-        if (_fahrtprofile.TryGetValue(betrieb, out var bekannt)) return bekannt;
-        if (_wirtschaft is not { } wirtschaft) return null;
-        // Steigung bremst nur auf Karten mit Höhen; Furten und Fähren halten auf, wo es sie gibt (Schritt 5c, Abschnitt logistik.wasser);
-        // der Belag der Wege bremst oder beschleunigt jedes Stück (Schritt 5d, Wegebau.Faktor – wie der Kern die Fahrzeit rechnet)
-        var steigung = BodenBewegt && _gelaende is { HatHoehen: true } ? wirtschaft.Daten.Logistik.Steigung : null;
-        var wasser = wirtschaft.Karte?.Wasserplan.HaeltAuf == true ? wirtschaft.Daten.Logistik.Wasser : null;
-        var belag = wirtschaft.Wegebau.IstAktiv ? wirtschaft.Wegebau : null;
-        if (steigung is null && wasser is null && belag is null) return null;
-        if (wirtschaft.Fahrten(betrieb) is not var (hin, zurueck)) return null; // noch kein Platz: nicht merken
-        var basis = wirtschaft.Daten.Logistik.FahrzeitAb(betrieb.Ort);
-        Fahrtprofil? Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> fahrt)
-        {
-            var laenge = fahrt.Sum(s => s.Laenge);
-            if (fahrt.Count == 0 || laenge <= 0) return null;
-            // Zeit in Spielminuten, wie der Kern sie rechnet: die feste Fahrzeit auf die Stücke nach Länge und Bremse verteilt, dazu die Minuten
-            // einer Furt (verteilt auf ihr Stück: langsam durchs Wasser) und einer Fähre (ein Stillstand vor dem Stück: der Karren wartet am Ufer)
-            var gewicht = fahrt.Select(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * (belag?.Faktor(s) ?? 1)).ToList();
-            var summe = gewicht.Sum();
-            var (zeit, weg) = (new List<double> { 0 }, new List<double> { 0 });
-            var vorher = Reichsgilde.Core.Bauen.Fahrbahn.Strasse;
-            for (var i = 0; i < fahrt.Count; i++)
-            {
-                var art = fahrt[i].Art;
-                var wartet = 0.0;
-                var langsam = 0.0;
-                if (art != vorher && wasser is not null)
-                {
-                    if (art == Reichsgilde.Core.Bauen.Fahrbahn.Faehre) wartet = wasser.FaehreMinuten;
-                    else if (art == Reichsgilde.Core.Bauen.Fahrbahn.Furt) langsam = wasser.FurtMinuten;
-                }
-                vorher = art;
-                if (wartet > 0)
-                {
-                    zeit.Add(zeit[^1] + wartet);
-                    weg.Add(weg[^1]);
-                }
-                zeit.Add(zeit[^1] + basis * gewicht[i] / summe + langsam);
-                weg.Add(weg[^1] + fahrt[i].Laenge / laenge);
-            }
-            var (zeitSumme, wegSumme) = (zeit[^1], weg[^1]);
-            return new Fahrtprofil(zeit.Select(z => z / zeitSumme).ToArray(), weg.Select(w => w / wegSumme).ToArray());
-        }
-        var (h, z) = (Profil(hin), Profil(zurueck));
-        return _fahrtprofile[betrieb] = h is null || z is null ? null : (h, z);
-    }
-
     /// <summary>
     /// Wählt „Fahren“ oder „Stehen“ und treibt die Bewegung voran. Beim Fahren läuft die Schleife so schnell, dass die Räder auf dem Boden abrollen:
     /// <c>Geschwindigkeit / Weg</c> Schleifen je Sekunde.
@@ -354,13 +268,14 @@ public partial class Stadtansicht
         // Am Markt halten die Karren ebenfalls in der Reihe: der letzte ganz vorn, die übrigen je einen Abstand dahinter
         var spaet = laenge > 0 ? (ansicht.Betrieb.Karren.Count - 1 - nummer) * KarrenAbstand / laenge : 0f;
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
-        // Der Karren fährt mit fester Geschwindigkeit (Nutzer, 31.10.2026), nicht in der Fahrzeit des Kerns: Er braucht meist länger und kommt später
-        // an. Wie der Rückstand aufgelöst wird, steht bei Karrenzug; der Kern bleibt unverändert und gilt, wo keiner hinsieht.
+        // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026), und der Kern rechnet seine Fahrzeit seit Datenversion 65 genauso (nach
+        // Weglänge): Die Profile dauern genau so lange wie die Fahrt im Kern, der Karren kommt an, wenn die Ware verkauft wird. Bleibt doch ein
+        // Rückstand (alte Daten, Laden mitten in der Fahrt), löst ihn der Karrenzug auf; der Kern gilt, wo keiner hinsieht.
         var (hin, zurueck) = ZugProfileVon(ansicht.Betrieb, karren, ansicht);
         var zug = gezeigt.Zug;
         if (gezeigt.ZugProfile is { } alt && !ReferenceEquals(alt.Hin, hin)) zug.Umstellen(alt.Hin, alt.Zurueck, hin, zurueck); // der Belag hat sich geändert
         gezeigt.ZugProfile = (hin, zurueck);
-        var kernAnteil = KernAnteil(karren, ansicht, fahrzeit, jetztGenau);
+        var kernAnteil = KernAnteil(karren, hin, zurueck, fahrzeit, jetztGenau);
         var sim = _simulation!;
         if (neu) zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         else
@@ -445,42 +360,38 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Wo der Kern den Karren auf dem Weg hat (0 = Hof, 1 = Markt): aus der Zeit der Fahrt, mit Steigung, Belag und Furten. Nur der Abgleich
-    /// braucht das (Stadtansicht.Karren.cs, <see cref="Karrenzug.Abgleichen"/>); gezeigt wird der Karren an der Stelle seines Zuges.
+    /// Wo der Kern den Karren auf dem Weg hat (0 = Hof, 1 = Markt): aus der Zeit der Fahrt, über dieselben Profile wie der Zug (Steigung, Belag,
+    /// Furten und Fähren). Nur der Abgleich braucht das (<see cref="Karrenzug.Abgleichen"/>); gezeigt wird der Karren an der Stelle seines Zuges.
     /// </summary>
-    private double KernAnteil(Karren karren, BetriebsAnsicht ansicht, int fahrzeit, double jetztGenau)
+    private static double KernAnteil(Karren karren, Fahrprofil hin, Fahrprofil zurueck, int fahrzeit, double jetztGenau)
     {
         if (karren.Zustand == KarrenZustand.AmBetrieb) return 0;
-        var rest = Math.Clamp((karren.Ankunft - jetztGenau) / Math.Max(fahrzeit, 1), 0, 1);
-        if (FahrtprofileVon(ansicht.Betrieb) is var (h, z))
-            return karren.Zustand == KarrenZustand.ZumMarkt ? h.WegBei(1 - rest) : 1 - z.WegBei(1 - rest);
-        return karren.Zustand == KarrenZustand.ZumMarkt ? 1 - rest : rest;
+        var vorbei = 1 - Math.Clamp((karren.Ankunft - jetztGenau) / Math.Max(fahrzeit, 1), 0, 1); // Anteil der Fahrzeit, der vorbei ist
+        return karren.Zustand == KarrenZustand.ZumMarkt ? hin.WegBei(vorbei * hin.Dauer) : 1 - zurueck.WegBei(vorbei * zurueck.Dauer);
     }
 
-    /// <summary>Die Fahrten mit fester Geschwindigkeit (Hin- und Rückweg) je Betrieb und Karrenart; mit dem Belag neu gerechnet (<c>BelagBild</c>).</summary>
+    /// <summary>Die Fahrten (Hin- und Rückweg) je Betrieb und Karrenart; mit dem Belag neu gerechnet (<c>BelagBild</c>), wie der Kern die Fahrzeiten.</summary>
     private readonly Dictionary<(Betrieb, string), (Fahrprofil Hin, Fahrprofil Zurueck)> _zugprofile = new();
 
     /// <summary>
-    /// Das Tempo des Karrens auf der Karrenstraße: <see cref="Karrentempo.Grund"/> der Karrenart auf dem Bezugsbelag, bergauf und auf schlechtem Belag
-    /// langsamer (Zeitfaktoren des Kerns), auf gutem Belag höchstens <see cref="Karrentempo.AusbauHoechstens"/> schneller. Furten bremsen, Fähren halten auf
-    /// (wie im Kern). Die Länge ist die des gezeigten Weges; sie wird nach den Stücken des Kerns aufgeteilt.
+    /// Das Tempo des Karrens auf der Karrenstraße, alles aus dem Kern: das Tempo seiner Art (<see cref="KarrenDaten.MeterJeMinute"/>, fest mit der
+    /// Standard-Rundendauer wie im Kern) auf ebenem Fahrweg, je Stück geteilt durch den Zeitfaktor des Kerns (<c>Stadtwirtschaft.Zeitfaktor</c>:
+    /// bergauf und auf schlechtem Belag langsamer, Ausbau höchstens 15 % schneller). Furten bremsen, Fähren halten auf. Die Länge ist die des
+    /// gezeigten Weges (bis zum Rand des Platzes); das Profil dauert genau die Fahrzeit des Kerns (<c>Stadtwirtschaft.Fahrzeit</c>).
     /// </summary>
     private (Fahrprofil Hin, Fahrprofil Zurueck) ZugProfileVon(Betrieb betrieb, Karren karren, BetriebsAnsicht ansicht)
     {
         if (_zugprofile.TryGetValue((betrieb, karren.Typ), out var bekannt)) return bekannt;
         var laenge = WegLaenge(KarrenWeg(ansicht));
-        var sekundenJeMinute = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
-        var meterJeMinute = Karrentempo.Grund(karren.Typ) * sekundenJeMinute;
-        var fahrten = _wirtschaft?.Fahrten(betrieb);
-        var karte = _wirtschaft?.Karte;
-        var steigung = karte?.Gelaendeform.HatHoehen == true ? _wirtschaft!.Daten.Logistik.Steigung : null;
-        var wasser = karte?.Wasserplan.HaeltAuf == true ? _wirtschaft!.Daten.Logistik.Wasser : null;
-        var belag = _wirtschaft?.Wegebau.IstAktiv == true ? _wirtschaft.Wegebau : null;
-        double Zeitfaktor(Reichsgilde.Core.Bauen.Fahrtstueck s) => (steigung?.Faktor(s.Steigung) ?? 1) * (belag?.Faktor(s) ?? 1);
-        Fahrprofil Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck>? fahrt) =>
-            new(Karrentempo.Stuecke(fahrt, Zeitfaktor, wasser?.FurtMinuten ?? 0, wasser?.FaehreMinuten ?? 0), laenge, meterJeMinute);
-        var profile = (Profil(fahrten?.Hin), Profil(fahrten?.Zurueck));
-        if (fahrten is not null || karte is null) _zugprofile[(betrieb, karren.Typ)] = profile; // ohne Platz noch nicht merken: er kann kommen
+        var meterJeMinute = karren.Daten.MeterJeMinute > 0 ? karren.Daten.MeterJeMinute : Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute; // ohne Tempo: 1 m/s
+        if (_wirtschaft is not { } w)
+            return (new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute), new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute));
+        var fahrten = w.Fahrten(betrieb);
+        var wasser = w.Karte?.Wasserplan.HaeltAuf == true ? w.Daten.Logistik.Wasser : null;
+        Fahrprofil Profil(IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck>? fahrt, bool zumMarkt) =>
+            new(Karrentempo.Stuecke(fahrt, w.Zeitfaktor, wasser?.FurtMinuten ?? 0, wasser?.FaehreMinuten ?? 0), laenge, meterJeMinute, w.Fahrzeit(karren, zumMarkt));
+        var profile = (Profil(fahrten?.Hin, true), Profil(fahrten?.Zurueck, false));
+        if (fahrten is not null || w.Karte is null) _zugprofile[(betrieb, karren.Typ)] = profile; // ohne Platz noch nicht merken: er kann kommen
         return profile;
     }
 

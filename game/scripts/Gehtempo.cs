@@ -5,10 +5,11 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Wie schnell sich Figuren und Karren zeigen: feste Geschwindigkeiten in Metern je echter Sekunde bei Tempo 1 (Nutzer, 31.10.2026).
-/// Die Figuren und Karren der Stadtansicht sind nur Darstellung: Der Kern sagt, <i>wann</i> jemand losgeht und ankommt, die Darstellung
+/// Die Figuren der Stadtansicht sind nur Darstellung: Der Kern sagt, <i>wann</i> jemand losgeht und ankommt, die Darstellung
 /// geht in ihrem eigenen Tempo und kommt, wenn die Zeit knapp ist, eben später an. Bei höherem Spieltempo (2, 4, 8) laufen alle
-/// entsprechend schneller (die Umrechnung in Spielminuten steckt in <c>sekundenJeMinute</c>). Ohne Godot, damit ein Test die Datei
-/// mitübersetzen kann (<c>GehtempoTests</c>).
+/// entsprechend schneller (die Umrechnung in Spielminuten steckt in <c>sekundenJeMinute</c>). Karren fahren seit Datenversion 65 in der
+/// Fahrzeit des Kerns, der sie nach Weglänge und Karrenart rechnet (<see cref="Karrentempo"/>, <see cref="Fahrprofil"/>). Ohne Godot, damit
+/// ein Test die Datei mitübersetzen kann (<c>GehtempoTests</c>).
 /// </summary>
 public static class Gehtempo
 {
@@ -72,22 +73,15 @@ public static class Gehtempo
     }
 }
 
-/// <summary>Wie schnell Karren fahren und wie ihr Weg die Geschwindigkeit ändert.</summary>
+/// <summary>
+/// Wie ihr Weg die Geschwindigkeit der Karren ändert. Das Tempo der Karrenart (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s) und die Grenze für den
+/// Ausbau (höchstens 15 % schneller) stehen seit Datenversion 65 im Kern (<see cref="KarrenDaten.Tempo"/>, <c>wegebau.ausbauHoechstens</c>,
+/// <c>Stadtwirtschaft.Zeitfaktor</c>): Der Kern rechnet die Fahrzeit mit denselben Zahlen, nach denen der Karren hier fährt.
+/// </summary>
 public static class Karrentempo
 {
-    /// <summary>Ein Ochse schafft vor dem Karren etwa 0,8 m/s, ein Pferd 1,3 m/s, Menschen mit Last auf dem Handkarren etwa 1,0 m/s.</summary>
-    public static float Grund(string karrenTyp) => karrenTyp switch
-    {
-        "Ochsenkarren" => 0.8f,
-        "Kriegskarren" => 1.3f,
-        _ => 1.0f,
-    };
-
-    /// <summary>Ein guter Belag macht den Karren höchstens so viel (Anteil) schneller als auf dem Bezugsbelag; ein schlechter Belag oder Anstieg darf ihn beliebig bremsen.</summary>
-    public const double AusbauHoechstens = 1.15;
-
     /// <summary>Wie viel mal so schnell ein Stück gefahren wird, das der Kern <paramref name="zeitfaktor"/> mal so lang rechnet (Steigung mal Belag).</summary>
-    public static double Geschwindigkeitsfaktor(double zeitfaktor) => zeitfaktor <= 0 ? AusbauHoechstens : Math.Min(AusbauHoechstens, 1 / zeitfaktor);
+    public static double Geschwindigkeitsfaktor(double zeitfaktor) => zeitfaktor <= 0 ? 1 : 1 / zeitfaktor;
 
     /// <summary>Ein Stück der Fahrt: sein Anteil an der Länge, sein Geschwindigkeitsfaktor, die Minuten, die der Karren davor wartet (Fähre), und die Minuten mehr (Furt).</summary>
     public readonly record struct Stueck(double Anteil, double Faktor, double WartenMinuten = 0, double ZusatzMinuten = 0);
@@ -120,7 +114,9 @@ public static class Karrentempo
 
 /// <summary>
 /// Die Fahrt eines Karrens mit fester Geschwindigkeit, Stück für Stück: wann (Spielminuten seit der Abfahrt) er wie weit ist. Der Weg
-/// wird als Anteil (0 bis 1) der Länge geführt.
+/// wird als Anteil (0 bis 1) der Länge geführt. Mit <c>dauer</c> (der Fahrzeit des Kerns) wird das Profil auf genau diese Zeit gestreckt oder
+/// gestaucht: Der gezeigte Weg endet am Rand des Marktplatzes (der Kern rechnet bis zur Mitte), der Kern rundet auf ganze Minuten und kennt
+/// eine Mindest- und Höchstdauer – so kommt der Karren im Bild genau dann an, wenn der Kern die Ware verkauft.
 /// </summary>
 public sealed class Fahrprofil
 {
@@ -133,7 +129,8 @@ public sealed class Fahrprofil
     /// <param name="stuecke">Die Stücke der Fahrt (Anteile ergeben zusammen 1).</param>
     /// <param name="laenge">Die Länge des Weges in Metern.</param>
     /// <param name="meterJeMinute">Das Tempo auf dem Bezugsbelag in Metern je Spielminute.</param>
-    public Fahrprofil(IReadOnlyList<Karrentempo.Stueck> stuecke, double laenge, double meterJeMinute)
+    /// <param name="dauer">Die Fahrzeit des Kerns (Spielminuten); null oder höchstens 0: die Zeit, die sich aus Länge und Tempo ergibt.</param>
+    public Fahrprofil(IReadOnlyList<Karrentempo.Stueck> stuecke, double laenge, double meterJeMinute, double? dauer = null)
     {
         Laenge = laenge;
         var summe = stuecke.Sum(s => s.Anteil);
@@ -148,6 +145,11 @@ public sealed class Fahrprofil
             var anteil = s.Anteil / summe;
             zeit.Add(zeit[^1] + anteil * laenge / Math.Max(meterJeMinute * s.Faktor, 1e-9) + s.ZusatzMinuten);
             weg.Add(weg[^1] + anteil);
+        }
+        if (dauer is > 0 && zeit[^1] > 0)
+        {
+            var mal = dauer.Value / zeit[^1];
+            for (var i = 0; i < zeit.Count; i++) zeit[i] *= mal;
         }
         _zeit = zeit.ToArray();
         _weg = weg.ToArray();
@@ -202,8 +204,9 @@ public enum Etappe
 }
 
 /// <summary>
-/// Die sichtbare Fahrt eines Karrens. Der Kern entscheidet, wann ein Karren fährt, und rechnet die Fahrzeit in Spielminuten. Die Darstellung
-/// fährt aber mit fester Geschwindigkeit und braucht deshalb meist länger. So löst sie den Rückstand auf:
+/// Die sichtbare Fahrt eines Karrens. Der Kern entscheidet, wann ein Karren fährt, und rechnet die Fahrzeit in Spielminuten – seit Datenversion 65
+/// nach Weglänge und Karrenart, und die Profile der Darstellung haben genau diese Dauer (<see cref="Fahrprofil"/>). Ein Rückstand entsteht deshalb
+/// nur noch selten (alte Daten mit fester Fahrzeit, ein Spielstand, der mitten in der Fahrt geladen wird); so löst der Zug ihn auf:
 ///   • Jede Fahrt, die der Kern beginnt (Wechsel nach „zum Markt“), merkt sich der Zug als offen. Am Hof fährt er sie, sobald er da ist.
 ///     Fährt er noch, verfallen verpasste Fahrten nicht – aber es bleibt höchstens <b>eine</b> offen, die übrigen werden übersprungen.
 ///   • Am Markt wartet der Zug, solange der Kern ihn noch dort wähnt, und kehrt sofort um, wenn der Kern verkauft hat.
