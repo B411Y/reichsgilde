@@ -180,12 +180,13 @@ Brücken und Furten entstehen von selbst, wo ein Weg das Wasser quert.
 
 Gelände (Schritt 5b):
 
-- `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,<x1>,<z1>;…` (mehrere mit `|`; `<pinsel>` ist heben, senken, glaetten, ebnen oder rauschen, hinten mit `:kante[:startwert[:massstab]]`; Stärke bei Heben, Senken und Rauschen in Metern je Tupfer, bei Glätten und Ebnen 0–1; ein Schritt der Geschichte je Strich)
+- `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,<x1>,<z1>;…[,<angabe>=<wert>…]` (mehrere mit `|`; `<pinsel>` ist heben, senken, glaetten, ebnen, rauschen oder terrassen, hinten mit `:kante[:startwert[:massstab]]`; Stärke bei Heben, Senken und Rauschen in Metern je Tupfer, bei Glätten, Ebnen und Terrassen 0–1; ein Schritt der Geschichte je Strich). Angaben des Pinsel-Pakets 1: `ziel=<m>` (Ebnen: Zielhöhe statt der Höhe unter dem ersten Punkt; Terrassen: Bezugshöhe), `stufe=<m>` und `boeschung=<0–1>` (Terrassen), `ausgleich=1` (Heben nur Mulden, Senken nur Spitzen), `steigung=<ab>-<bis>` (Prozent, eine Seite darf fehlen: `15-`, `-8`), `bodenfilter=<textur>[:<rand 0–1>]`
+- `--werkstatt-filter=<gelaende|boden>:<angaben>` (der Filter in der Tafel, Angaben `steigung=…` und `bodenfilter=…` wie oben, mit Komma getrennt; mehrere mit `|`; ohne Angaben: aus)
 - `--werkstatt-rampe=<x1>,<z1>;<x2>,<z2>,<breite>` (mehrere mit `|`)
 
 Bodentexturen (Schritt 5e):
 
-- `--werkstatt-boden=<textur|radierer>,<radius>,<staerke>,<x1>,<z1>;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>]` (mehrere mit `|`; `<textur>` ist `wiese`, `erde`, `fels`, `kies`, `waldboden`, `sand`, `schlamm`, `moos`, `lehm`, `pflaster` oder `mist`; ein Strich = ein Schritt der Geschichte)
+- `--werkstatt-boden=<textur|radierer>,<radius>,<staerke>,<x1>,<z1>;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>][,steigung=<ab>-<bis>][,bodenfilter=<textur>[:<rand>]]` (mehrere mit `|`; `<textur>` ist `wiese`, `erde`, `fels`, `kies`, `waldboden`, `sand`, `schlamm`, `moos`, `lehm`, `pflaster` oder `mist`; ein Strich = ein Schritt der Geschichte; Filter wie bei `--werkstatt-gelaende`)
 
 Werkzeug dazu mit `--werkstatt-werkzeug=boden:<textur>` oder `boden:radierer` (Pinselkreis, Tafel).
 
@@ -205,7 +206,7 @@ Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 
 Nach dem Speichern und dem Umriss:
 
-- `--werkstatt-werkzeug=<weg[:art]|bauzone[:lage]|wald|streu|feldflaeche|aussparung|mauer|tor|pinsel|radierer|gelaende:<pinsel>|rampe|wasser:<fluss|bach|see|teich|faehre|hafen>|<katalog>>` (wie ein Klick im Katalog)
+- `--werkstatt-werkzeug=<weg[:art]|bauzone[:lage]|wald|streu|feldflaeche|aussparung|mauer|tor|pinsel|radierer|gelaende:<pinsel> (auch terrassen)|rampe|wasser:<fluss|bach|see|teich|faehre|hafen>|<katalog>>` (wie ein Klick im Katalog)
 - `--werkstatt-netz=1` (Gassennetz zeigen)
 - `--werkstatt-bildpunkte=<x>,<z>;…` schreibt nach 1,5 s ins Protokoll, wo diese Orte auf dem Bildschirm liegen (für Klicks mit `xdotool`)
 
