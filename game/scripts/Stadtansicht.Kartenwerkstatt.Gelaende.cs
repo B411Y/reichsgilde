@@ -58,8 +58,11 @@ public partial class Stadtansicht
     /// <summary>Der nächste Linksklick nimmt mit der Pipette auf, statt zu malen (Knopf „Pipette“ in der Tafel; Strg+Klick geht immer).</summary>
     public bool PipetteBereit { get; set; }
 
-    /// <summary>Die Pipette hat etwas aufgenommen (Zielhöhe oder Bodentextur) – die Tafel zeigt den neuen Wert.</summary>
-    public event Action? WerkstattPipetteGenommen;
+    /// <summary>
+    /// Die Pipette hat etwas aufgenommen (true: Zielhöhe oder Bodentextur – die Tafel zeigt den neuen Wert) oder ist ohne Treffer verfallen
+    /// (false: der Knopf springt heraus).
+    /// </summary>
+    public event Action<bool>? WerkstattPipetteGeaendert;
 
     /// <summary>Rampe: Breite des Bandes und Länge der weichen Seiten (Meter).</summary>
     public double RampeBreite { get; set; } = 6;
@@ -117,8 +120,13 @@ public partial class Stadtansicht
             (BodenArt, BodenRadierer) = (_entwurf.Boden.Anteile(q.X, q.Y)[0].Textur, false);
             WerkstattMeldung?.Invoke($"Pipette: {BodenName(BodenArt)} aufgenommen.", false);
         }
-        else return bereit; // der Knopf war gedrückt, aber hier gibt es nichts aufzunehmen (neben der Karte): der Klick malt trotzdem nicht
-        WerkstattPipetteGenommen?.Invoke();
+        else
+        {
+            // der Knopf war gedrückt, aber hier gibt es nichts aufzunehmen (neben dem Boden): der Klick malt nicht, die Pipette verfällt
+            if (bereit) WerkstattPipetteGeaendert?.Invoke(false);
+            return bereit;
+        }
+        WerkstattPipetteGeaendert?.Invoke(true);
         return true;
     }
 

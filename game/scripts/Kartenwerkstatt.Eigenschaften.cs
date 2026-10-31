@@ -517,13 +517,19 @@ public partial class Kartenwerkstatt
                 art == Pinselart.Heben ? _stadt.GelaendeNurMulden : _stadt.GelaendeNurSpitzen,
                 an => { if (art == Pinselart.Heben) _stadt.GelaendeNurMulden = an; else _stadt.GelaendeNurSpitzen = an; },
                 art == Pinselart.Heben
-                    ? "Hebt nur, was tiefer liegt als die Mitte des Pinsels (höchstens bis dorthin) – füllt Senken und Hangfuß, Kuppen bleiben"
-                    : "Senkt nur, was höher liegt als die Mitte des Pinsels (höchstens bis dorthin) – kappt Grate für einen Bauplatz, Mulden bleiben"));
+                    ? "Hebt höchstens bis zur Höhe der Pinselmitte plus Stärke: Was darüber liegt (Kuppen), bleibt, Senken und Hangfuß füllen sich. Ist alles eben, hebt er wie gewohnt"
+                    : "Senkt höchstens bis zur Höhe der Pinselmitte minus Stärke: Was darunter liegt (Mulden), bleibt, Grate werden gekappt. Ist alles eben, senkt er wie gewohnt"));
         if (art == Pinselart.Ebnen)
         {
-            _eigenschaften.AddChild(Haken("Feste Zielhöhe", _stadt.GelaendeZielFest, an => _stadt.GelaendeZielFest = an,
-                "Aus: Zielhöhe ist die Höhe unter dem ersten Klick. An: die Höhe darunter (eintippen oder mit der Pipette aufnehmen)"));
-            ZielhoeheZeile("Zielhöhe", "Auf diese Höhe zieht der Pinsel den Boden (−20 bis +60 m, auf Zentimeter)", ein: () => _stadt.GelaendeZielFest = true);
+            var fest = Haken("Feste Zielhöhe", _stadt.GelaendeZielFest, an => _stadt.GelaendeZielFest = an,
+                "Aus: Zielhöhe ist die Höhe unter dem ersten Klick. An: die Höhe darunter (eintippen oder mit der Pipette aufnehmen)");
+            _eigenschaften.AddChild(fest);
+            // eine eingetippte Höhe gilt sofort – der Haken zeigt es
+            ZielhoeheZeile("Zielhöhe", "Auf diese Höhe zieht der Pinsel den Boden (−20 bis +60 m, auf Zentimeter)", ein: () =>
+            {
+                _stadt.GelaendeZielFest = true;
+                fest.SetPressedNoSignal(true);
+            });
         }
         if (art == Pinselart.Terrassen)
         {
@@ -545,6 +551,20 @@ public partial class Kartenwerkstatt
         Hauptmenue.Text(_eigenschaften, text + "\nWege und Mauern ebnen den Boden unter sich quer ein; Gebäude stehen auf dem höchsten Punkt unter ihrer Fläche, darunter wächst ein Sockel aus Bruchstein.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
         FilterAbschnitt(() => _stadt.GelaendeFilter, f => _stadt.GelaendeFilter = f);
+    }
+
+    /// <summary>
+    /// Der Hinweis unter den Steigungsreglern: Innen an jeder Grenze läuft der Pinsel über 2 Prozentpunkte weich aus – ein Bereich schmaler als
+    /// 4 Punkte wirkt nirgends voll, „bis“ gleich „ab“ gar nicht.
+    /// </summary>
+    private static void SchmalZeigen(Label hinweis, Pinselfilter filter)
+    {
+        var f = filter.Begrenzt();
+        var breite = f.SteigungBis is { } bis ? bis - f.SteigungAb : double.PositiveInfinity;
+        hinweis.Text = breite <= 0 ? "„bis“ liegt nicht über „ab“ – so wirkt der Pinsel nirgends."
+            : breite < 2 * Pinselfilter.Uebergang ? $"Der Bereich ist schmaler als {2 * Pinselfilter.Uebergang:0} Prozentpunkte – der Pinsel wirkt nirgends mit voller Stärke."
+            : "";
+        hinweis.Visible = hinweis.Text.Length > 0;
     }
 
     /// <summary>Ein Raster mit zwei Spalten (Beschriftung, Feld) unten in der Tafel.</summary>
@@ -623,10 +643,16 @@ public partial class Kartenwerkstatt
             f => f with { SteigungAb = Kartenpruefung.HangFehler * 100, SteigungBis = null });
         var raster = ZweiSpalten();
         const double ohneGrenze = 100;
-        Zeile(raster, "Steigung ab", Schieber(0, ohneGrenze, 1, filter.SteigungAb, a => $"{a:0} %", a => setzen(holen() with { SteigungAb = a }),
+        Label? schmal = null; // Hinweis, wenn der Bereich zu schmal ist (unten, nach dem Raster)
+        void Setzen(Pinselfilter neu)
+        {
+            setzen(neu);
+            if (schmal is not null) SchmalZeigen(schmal, neu);
+        }
+        Zeile(raster, "Steigung ab", Schieber(0, ohneGrenze, 1, filter.SteigungAb, a => $"{a:0} %", a => Setzen(holen() with { SteigungAb = a }),
             "Unter dieser Steigung wirkt der Pinsel nicht (100 % = 45°); innen an der Grenze läuft er über 2 Prozentpunkte weich aus"));
         Zeile(raster, "Steigung bis", Schieber(0, ohneGrenze, 1, filter.SteigungBis ?? ohneGrenze, b => b >= ohneGrenze ? "ohne Grenze" : $"{b:0} %",
-            b => setzen(holen() with { SteigungBis = b >= ohneGrenze ? null : b }), "Über dieser Steigung wirkt der Pinsel nicht; ganz rechts: ohne Grenze"));
+            b => Setzen(holen() with { SteigungBis = b >= ohneGrenze ? null : b }), "Über dieser Steigung wirkt der Pinsel nicht; ganz rechts: ohne Grenze"));
         var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Nur auf dieser Bodentextur malen (gemessen am Boden vor dem Strich)" };
         wahl.AddItem("jeder Boden");
         var texturen = Enum.GetValues<Bodentextur>();
@@ -641,6 +667,8 @@ public partial class Kartenwerkstatt
         if (filter.Boden is not null)
             Zeile(raster, "Rand", Schieber(0, 1, 0.05, filter.BodenRand, r => $"{r * 100:0} %", r => setzen(holen() with { BodenRand = r }),
                 "0 %: nur wo die Textur mindestens die Hälfte deckt; 100 %: auch wo nur ein Hauch davon liegt"));
+        schmal = Hauptmenue.Text(_eigenschaften, "", 12, Rot, umbruchBreite: Rechtsbreite - 30);
+        SchmalZeigen(schmal, filter);
         Hauptmenue.Text(_eigenschaften, filter.IstLeer ? "Der Pinsel wirkt überall in seinem Kreis." : "Der Pinsel wirkt nur, wo der Filter passt – das Schild an der Maus zeigt es.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
     }

@@ -144,11 +144,12 @@ public partial class Kartenwerkstatt : Node
             if (_stadt.WerkstattGewaehlt is EntwurfFluss fluss && ReferenceEquals(_gezeigt, fluss) && !EingabeOffen()) TeilTafel(fluss); // Breite und Tiefe am gewählten Punkt
         };
         _stadt.WerkstattNaturGestreut += () => EigenschaftenZeigen(neu: false);
-        _stadt.WerkstattPipetteGenommen += () =>
+        _stadt.WerkstattPipetteGeaendert += genommen =>
         {
-            // die Bodenart-Pipette wählt die Textur wie ein Klick in der Palette (Knopf, Name in der Leiste); die Höhen-Pipette zeigt nur den Wert
+            // die Bodenart-Pipette wählt die Textur wie ein Klick in der Palette (Knopf, Name in der Leiste); die Höhen-Pipette zeigt nur den
+            // Wert; ohne Treffer springt der Knopf „Pipette“ heraus
             var textur = "boden:" + Bodenraster.Kennung(_stadt.BodenArt);
-            if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Boden && _katalogKnoepfe.ContainsKey(textur)) KatalogWaehlen(textur);
+            if (genommen && _stadt.Kartenwerkzeug == Werkstattwerkzeug.Boden && _katalogKnoepfe.ContainsKey(textur)) KatalogWaehlen(textur);
             else EigenschaftenZeigen(neu: true);
         };
         GetTree().AutoAcceptQuit = false; // das Schließen des Fensters fragt nach ungespeicherten Änderungen (_Notification)
