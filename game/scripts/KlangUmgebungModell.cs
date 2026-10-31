@@ -44,7 +44,7 @@ public static class KlangUmgebungModell
         new("stadt_tag", "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei Fes, autofreie Altstadt); ab der Dämmerung schwach, 8–20 Uhr voll", -6f, Bus.Stadt),
         new("stadt_gemurmel", "Gemurmel vieler Leute, nur nah (Halle von oben, gedämpft)", -16f, Bus.Stadt),
         new("stadt_abend", "Gedämpftes Gemurmel am Abend wie aus Schenken, 20–22 Uhr (nah voll)", -13f, Bus.Stadt),
-        new("morgen_voegel", "Vogelchor im Morgengrauen (Dämmerung bis 1,5 h nach Aufgang)", -12f, Bus.Draussen),
+        new("morgen_voegel", "Vogelchor im Morgengrauen (Dämmerung bis 1,5 h nach Aufgang)", -13f, Bus.Draussen),
         new("tag_spatzen", "Spatzen am Tag, leise, nah deutlicher", -20f, Bus.Draussen),
         new("abend_voegel", "Abendgesang (Abendrot bis dunkel)", -15f, Bus.Draussen),
         new("nacht", "Stiller Nachtgrund: sehr ferner, dunkler Wind (Synthese)", -17f, Bus.Draussen),
@@ -269,7 +269,7 @@ public static class KlangUmgebungModell
     /// <summary>Fenster: (Stunde, Bezugsstunde, Gewicht Stadtleben) → 0–1.</summary>
     public static readonly Rufart[] Rufarten =
     {
-        new("Hahn", "Hahnenschrei im Morgengrauen, tagsüber selten", "hahn", 3, 20, 45, -10, -18, 70, 120, false,
+        new("Hahn", "Hahnenschrei im Morgengrauen, tagsüber selten", "hahn", 3, 20, 45, -12, -18, 70, 120, false,
             (h, b, tag) => Math.Max(Trapez(b, 5.0f, 5.3f, 7.0f, 8.5f), 0.08f * Trapez(b, 7.0f, 8.5f, 17.5f, 18.5f))),
         new("Hund", "Bellen, am Tag selten und nah, abends und nachts nur fern", "hund", 5, 60, 150, -13, -20, 70, 120, true,
             (h, b, tag) => 0.6f + 0.4f * (1f - tag), "hund_fern", 4),
