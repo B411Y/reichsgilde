@@ -75,8 +75,9 @@ static partial class Balancingbericht
         {
             ["erklaerung"] = "Greybox und Probestadt (mit --fairness=… auch Köln) mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. " +
                              "Startfairness: Die Wohnhausplätze von Spieler und KI-Häusern rotieren (Rotation r: der i-te wohnt, wo vorher der (i + r)-te wohnte), " +
-                             "jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt im " +
-                             "Kern nicht (Fahrzeit nach Stadt/Umland, nicht nach Weglänge; Bürger kaufen am Markt). „gegenHausmittelProzent“: Vermögen auf diesem Platz " +
+                             "jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt seit " +
+                             "Datenversion 65 über die Fahrzeit der Karren (Weglänge zum Markt), ist aber an das Haus gebunden; der Wohnhausplatz wirkt im Kern nicht " +
+                             "(Bürger kaufen am Markt, --rotationen=1 genügt dann). „gegenHausmittelProzent“: Vermögen auf diesem Platz " +
                              "gegen das Mittel desselben Hauses über alle Plätze – trennt Platz und Haus. Start: Startgeld, Betriebe, Arbeiter und erwarteter " +
                              "Jahresgewinn (Kalkulation, mit Völkerbonus) zu Beginn. Jahre bis Bürger: erstes Jahr mit Reinvermögen ≥ 10.000 (Ziel Z2: 8–12).",
             ["karten"] = karten,
