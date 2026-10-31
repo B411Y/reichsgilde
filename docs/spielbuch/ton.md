@@ -55,4 +55,8 @@ Alle 120 Aufnahmen spricht dieselbe **KI-Stimme**: ein warmer, tiefer Bariton um
 
 `--ansagetest=tod_familie,feuer,krankheit` löst die Ansagen nacheinander aus (alle 0,5 s) und schreibt je Zeile ins Log, was daraus wurde (gespielt, wartet, verworfen, verfallen); `--ansagetest=alle` zeigt Vorrang und Pause an allen Ereignissen, `--ansagetest=dateien` zählt die Aufnahmen je Ereignis. Alle Aufnahmen einzeln anhören: Entwicklerfenster (F12), Reiter Klänge, unten die Dateien unter `stimmen/haushofmeister/`. Fehlt eine Aufnahme, spielt `--ansageplatzhalter=1` stattdessen einen Glockenton. Einzelheiten in [STARTOPTIONEN](../STARTOPTIONEN.md).
 
+## Gespräche der Passanten (geplant)
+
+Später sollen kleine Gesprächsrunden von zwei oder drei Passanten zu hören sein, mit der Stimm-KI gesprochen, kurz und derb und passend zur Lage in der Stadt (Preise, Wetter, Gerüchte, Steuer, Fest, Pest). Stil, Aufbau, Bedingungen und Technik stehen im Entwurf [Passanten-Gespräche – Stil und Bauleitfaden](../ton/gespraeche-stil.md); gebaut ist davon noch nichts.
+
 [Zurück zum Inhaltsverzeichnis](README.md)

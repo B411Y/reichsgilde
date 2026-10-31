@@ -12,6 +12,7 @@ Plan (Schritte in dieser Reihenfolge):
 - Schritt 8: Musik (ACE-Step-Test)
 - Quellen: freesound.org nur CC0, Kenney (CC0); Lücken mit Stable Audio Open (Grafik-PC, der Teamleiter erzeugt). Nicht: Sonniss (das Repository ist öffentlich, Rohdateien dürfen nicht weitergegeben werden), BBC-Sammlung, Modelle mit NC-Lizenz.
 - Ein Test der Umrechnung `KlangDienst.ProzentZuDb` fehlt, weil sie im Spielordner liegt und die Tests nur den Kern kennen; ginge mit einer Kopie im Kern oder einer Testszene.
+- (Gespräche) Gesprächsrunden von Passanten im Stil von Gothic 1 (kurz, derb, direkt), lageabhängig: Stil- und Bauleitfaden steht in `docs/ton/gespraeche-stil.md` (Stilregeln, Aufbau, Bedingungen mit Fundstellen im Kern, Wiederholungsregeln, Datenformat als Block `runden` in `game/daten/gespraeche.json`, Stimm-KI-Hinweise, 30 eigene Beispielzeilen). Offen: Nutzerurteil zu den Fragen im Abschnitt 10 des Leitfadens (Verständlichkeit, Umfang, Derbheit), dann Umsetzung in Schritten: Lagebild und Auswahl (Test), Stimmen-Vorlagen, 40 Runden erzeugen, Untertitel. Vom Teamleiter zu beauftragen: Rollen je Gruppe aus der Stadtansicht (darstellung), Schalter und Untertitel (oberflaeche).
 
 ## Entscheidungen
 
