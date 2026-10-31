@@ -13,6 +13,8 @@
 #   kaemmen    Haar neu kämmen (≈ 60 min CPU, Ende Etappe B); verweigert, solange in glb6/haar4 Verknüpfungen nach glb5
 #              liegen – sonst würden die Dateien der Phase 5 überschrieben. Vorher: kopf6.sh haar_kopieren
 #   haar_kopieren  die Verknüpfungen in glb6/haar4 durch eigene Kopien ersetzen (vor dem Neukämmen)
+#   haut_c     nur die Haut der Etappe C neu: Detailkacheln (kopf6_kacheln.py) und Zonen-, Glanz-, Reliefkarte
+#              (kopf6_hautc.py) in $AUS/kopf6_tex (≈ 1,5 min CPU); läuft sonst nach den Haarbildern mit
 # Umgebung: GLB (Ausgabe, Standard ~/werkzeuge/charakter/glb6), GLB5 (Haar-Quelle, Standard ~/werkzeuge/charakter/glb5),
 #           GLB_PROBE (Probebau, Standard ~/werkzeuge/charakter/glb6p), REZEPT (nur „mischen“; Standard kopf6_rezept.json),
 #           PROBEN_OPT (Halt B2: weitere Optionen für den Probebau, z. B. "ausschnitt=22 vorbilder=<npz>"),
@@ -24,7 +26,17 @@ ARBEIT=$HOME/werkzeuge/charakter/arbeit/phase6
 BPY=$HOME/werkzeuge/blender/blender-5.2.2-linux-x64/5.2/python/bin/python3.13
 mkdir -p "$AUS" "$ARBEIT" "$AUS/kopf6_tex"
 MODUS=$1
-case "$MODUS" in ohne_haar|nur_kopf|nur_haar|kaemmen|haar_kopieren|proben|mischen) shift ;; *) MODUS="" ;; esac
+case "$MODUS" in ohne_haar|nur_kopf|nur_haar|kaemmen|haar_kopieren|proben|mischen|haut_c) shift ;; *) MODUS="" ;; esac
+
+# Etappe C: Haut (Kacheln und Karten aus dem Grundnetz und den Merkpunkten; braucht kopf6.glb und haut_masken.png)
+haut_c() {
+  nice -n 10 "$BPY" -I "$HIER/kopf6_kacheln.py" "$AUS/kopf6_tex" 2>&1 | tail -1
+  nice -n 10 "$BPY" -I "$HIER/kopf6_hautc.py" "$AUS/kopf6.glb" "$AUS/kopf6_tex" 2>&1 | grep -E "RELIEF|FERTIG|Traceback|Error"
+}
+if [ "$MODUS" = "haut_c" ]; then
+  haut_c
+  exit 0
+fi
 
 # Etappe B: nur neu mischen (ohne Blender) – nach einer neuen Ausgleichs- oder Eichrechnung
 if [ "$MODUS" = "mischen" ]; then
@@ -94,6 +106,7 @@ json.dump(d, open(sys.argv[2], "w", encoding="utf-8"), indent=1, ensure_ascii=Fa
   [ "$MODUS" = "nur_kopf" ] || nice -n 10 "$HIER/blender.sh" -b --factory-startup -P "$HIER/kopf3_backen.py" -- "$ARBEIT/backdaten.npz" "$AUS/kopf6_tex" 2>&1 \
     | grep -E "^FERTIG|^\[ |Traceback|Error" | cut -c1-200
   nice -n 10 "$BPY" -I "$HIER/kopf3_haartexturen.py" "$AUS/kopf6_tex" 2>&1 | tail -3
+  [ "$MODUS" = "nur_kopf" ] || haut_c
 fi
 if [ "$MODUS" != "ohne_haar" ] && [ "$MODUS" != "nur_kopf" ]; then
   mkdir -p "$AUS/haar4"
