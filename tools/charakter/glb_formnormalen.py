@@ -5,9 +5,17 @@ Blenders glTF-Export kann Normalen nur für alle Formen oder für keine schreibe
 nur bei der Mimik (Wangen blähen, Lächeln, Kiefer: Licht und Schatten folgen der Form); die Alters- und Genformen
 sehen ohne sie gleich aus und machen die Datei doppelt so groß.
 
-Aufruf: python3 -I tools/charakter/glb_formnormalen.py <ein.glb> <aus.glb> [ohne_vorsilben=makro_,gen_]
+Phase 6 (S2): `duenn=1` schreibt die Versätze von Lage und Normale aller Formen als dünne Accessoren (glTF „sparse“):
+nur Ecken mit |Δ| > `grenze` (Standard 1e-4) stehen in der Datei, alle anderen sind 0. Ein Accessor wird nur dünn,
+wenn er dadurch kleiner wird (Formen, die fast alle Ecken bewegen – Alter, Geschlecht –, bleiben dicht). So behalten
+die Gen-, Alters- und neuen Formen ihre Normalen, ohne dass die Datei größer wird als mit dichten Daten.
+
+Aufruf: python3 -I tools/charakter/glb_formnormalen.py <ein.glb> <aus.glb> [ohne_vorsilben=makro_,gen_] [duenn=1]
+        [grenze=1e-4]   (ohne_vorsilben= leer: alle Normalen bleiben)
 Nur Standardbibliothek; liest die Formnamen aus mesh.extras.targetNames (so schreibt sie Blender).
 """
+import array
+import math
 import json
 import struct
 import sys
@@ -36,19 +44,78 @@ def schreiben(pfad, gltf, binaer):
         f.write(struct.pack("<I4s", len(binaer), b"BIN\x00") + binaer)
 
 
+def duenn_machen(gltf, binaer, grenze):
+    """Dichte Formziel-Accessoren (float VEC3, eng gepackt) in dünne umschreiben, wenn das Platz spart. Die neuen Daten
+    hängen hinten an `binaer` (Puffer 0); die Neuverpackung in main() übernimmt nur noch benutzte Ansichten."""
+    accs, ansichten = gltf["accessors"], gltf["bufferViews"]
+    erledigt, n_duenn, n_dicht, vorher, nachher = {}, 0, 0, 0, 0
+    for netz in gltf.get("meshes", []):
+        for prim in netz["primitives"]:
+            for ziel in prim.get("targets", []):
+                for art, ai in list(ziel.items()):
+                    if ai in erledigt:
+                        continue
+                    erledigt[ai] = True
+                    a = accs[ai]
+                    if "sparse" in a or "bufferView" not in a or a["componentType"] != 5126 or a["type"] != "VEC3":
+                        continue
+                    v = ansichten[a["bufferView"]]
+                    if v.get("byteStride", 12) != 12:
+                        continue
+                    start = v.get("byteOffset", 0) + a.get("byteOffset", 0)
+                    n = a["count"]
+                    werte = array.array("f")
+                    werte.frombytes(bytes(binaer[start:start + 12 * n]))
+                    if sys.byteorder != "little":
+                        werte.byteswap()
+                    nz = [i for i in range(n) if math.sqrt(werte[3 * i] ** 2 + werte[3 * i + 1] ** 2 + werte[3 * i + 2] ** 2) > grenze]
+                    ityp, ibytes = (5123, 2) if n < 65536 else (5125, 4)
+                    vorher += 12 * n
+                    if len(nz) * (12 + ibytes) >= 12 * n:
+                        n_dicht += 1
+                        nachher += 12 * n
+                        continue
+                    idx = array.array("H" if ibytes == 2 else "I", nz)
+                    wert = array.array("f", [werte[3 * i + k] for i in nz for k in range(3)])
+                    if sys.byteorder != "little":
+                        idx.byteswap()
+                        wert.byteswap()
+                    teile = []
+                    for roh in (idx.tobytes(), wert.tobytes()):
+                        binaer += b"\x00" * ((4 - len(binaer) % 4) % 4)
+                        ansichten.append({"buffer": 0, "byteOffset": len(binaer), "byteLength": len(roh)})
+                        binaer += roh
+                        teile.append(len(ansichten) - 1)
+                    neu = {"componentType": 5126, "count": n, "type": "VEC3"}
+                    if art == "POSITION" or "min" in a:
+                        # min/max gelten für die Werte nach dem Einsetzen (fehlende Ecken = 0)
+                        neu["min"] = [min([0.0] + [wert[3 * j + k] for j in range(len(nz))]) for k in range(3)]
+                        neu["max"] = [max([0.0] + [wert[3 * j + k] for j in range(len(nz))]) for k in range(3)]
+                    if nz:
+                        neu["sparse"] = {"count": len(nz), "indices": {"bufferView": teile[0], "componentType": ityp},
+                                         "values": {"bufferView": teile[1]}}
+                    accs[ai] = neu
+                    n_duenn += 1
+                    nachher += len(nz) * (12 + ibytes)
+    print(f"Dünn: {n_duenn} Accessoren dünn, {n_dicht} bleiben dicht (Grenze {grenze:g}): "
+          f"Formdaten {vorher / 1e6:.1f} MB -> {nachher / 1e6:.1f} MB")
+
+
 def main():
     ein, aus = sys.argv[1], sys.argv[2]
     optionen = dict(a.split("=", 1) for a in sys.argv[3:])
-    vorsilben = tuple(optionen.get("ohne_vorsilben", "makro_,gen_").split(","))
+    vorsilben = tuple(v for v in optionen.get("ohne_vorsilben", "makro_,gen_").split(",") if v)
     gltf, binaer = lesen(ein)
     entfernt = 0
     for netz in gltf.get("meshes", []):
         namen = netz.get("extras", {}).get("targetNames", [])
         for prim in netz["primitives"]:
             for i, ziel in enumerate(prim.get("targets", [])):
-                if i < len(namen) and namen[i].startswith(vorsilben) and "NORMAL" in ziel:
+                if vorsilben and i < len(namen) and namen[i].startswith(vorsilben) and "NORMAL" in ziel:
                     del ziel["NORMAL"]
                     entfernt += 1
+    if optionen.get("duenn", "0") == "1":
+        duenn_machen(gltf, binaer, float(optionen.get("grenze", "1e-4")))
     # Noch benutzte Zugriffe und Pufferansichten sammeln
     benutzt_acc = set()
     for netz in gltf.get("meshes", []):

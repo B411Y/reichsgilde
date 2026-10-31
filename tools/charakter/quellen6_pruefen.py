@@ -71,6 +71,11 @@ def main():
                 ok = e["erwartet"] in (aus.stdout + aus.stderr)
                 zeile = next((z for z in (aus.stdout + aus.stderr).splitlines() if e["erwartet"].split()[0] in z), "")
                 print(f"{'OK ' if ok else 'ABWEICHUNG'} {name}: {zeile.strip()[:60]}")
+            elif art == "datei":
+                p = pfad(e["ort"])
+                ist = sha256(p) if os.path.exists(p) else "fehlt"
+                ok = ist == e["sha256"]
+                print(f"{'OK ' if ok else 'ABWEICHUNG'} {name}: {ist[:12]}")
             else:
                 ok = True
                 print(f"-- {name}: {art} ({e.get('sha256', e.get('hinweis', ''))[:70]})")
