@@ -229,6 +229,23 @@ public partial class KlangUmgebung : Node
     {
         Ausblenden(0.8f); // die Schleifen hängen am KlangDienst (Autoload): die Blende läuft über den Szenenwechsel hinaus weiter
         if (Aktiv == this) Aktiv = null;
+        Freigeben();
+    }
+
+    /// <summary>
+    /// Gibt die verwalteten Verweise auf Godot-Ressourcen frei (geladene Klänge, Effekte der Busse): Im exportierten Spiel räumt beim Beenden niemand die C#-Hüllen
+    /// auf, und Godot meldet sonst „resources still in use at exit“ (der Rauchtest der CI wertet das als Fehler). Die Klänge, die noch ausblenden, gehören nativ
+    /// den Spielern des <see cref="KlangDienst"/> und bleiben davon unberührt.
+    /// </summary>
+    private void Freigeben()
+    {
+        foreach (var ton in _toene.Values) ton.Dispose();
+        _toene.Clear();
+        _ausstehend.Clear();
+        foreach (var effekt in new AudioEffect?[] { _panNah, _panFern, _panSchenke, _panGespraech, _panGlocke, _panDonner, _tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke, _tiefpassDonner })
+            effekt?.Dispose();
+        (_panNah, _panFern, _panSchenke, _panGespraech, _panGlocke, _panDonner) = (null, null, null, null, null, null);
+        (_tiefpassDraussen, _tiefpassStadt, _tiefpassSchenke, _tiefpassGespraech, _tiefpassGlocke, _tiefpassDonner) = (null, null, null, null, null, null);
     }
 
     public override void _Process(double delta)

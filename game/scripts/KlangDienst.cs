@@ -233,6 +233,22 @@ public partial class KlangDienst : Node
         datei.Save(Datei);
     }
 
+    /// <summary>
+    /// Beim Beenden die Hüllen der Schleifen (Spieler, Blenden) loslassen: Im exportierten Spiel meldet Godot sonst Lecks („leaked at exit“, „resources still in use“),
+    /// weil die C#-Verweise in <c>_schleifen</c> die Objekte beim Abbau noch festhalten.
+    /// </summary>
+    public override void _ExitTree()
+    {
+        foreach (var schleife in _schleifen.Values)
+        {
+            schleife.Tween?.Kill();
+            schleife.Tween?.Dispose();
+            schleife.Spieler.Stop();
+            schleife.Spieler.Stream = null;
+        }
+        _schleifen.Clear();
+    }
+
     // ── Fokus ───────────────────────────────────────────────────────────────
 
     public override void _Notification(int was)
