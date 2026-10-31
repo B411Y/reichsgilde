@@ -303,6 +303,13 @@ public sealed class BuergerDaten
             }
         if (Handlungen.TryGetValue(Handlung.Ruhen, out var ruhen) && (ruhen.Von != erste || ruhen.Bis != ende))
             f.Add($"{p}.handlungen.Ruhen muss den ganzen Tag möglich sein ({erste}–{ende}), sonst hätte jemand nichts zu tun.");
+        // Wirtshaus 8–22 Uhr: Wer nach dem Schankschluss noch einkehren dürfte, säße in einer geschlossenen Schänke.
+        if (Handlungen.TryGetValue(Handlung.Einkehren, out var einkehren) && einkehren.Bis > Wirtschaft.Gastwirtschaft.SchliesstUm)
+            f.Add($"{p}.handlungen.Einkehren.bis ({einkehren.Bis}) darf nicht nach dem Schankschluss liegen ({Wirtschaft.Gastwirtschaft.SchliesstUm} Uhr).");
+        // Ebenso, wer in der Schänke arbeitet (Rolle mit arbeitsort Schaenke): Arbeiten endet dann spätestens mit dem Schankschluss.
+        if (Handlungen.TryGetValue(Handlung.Arbeiten, out var arbeiten) && arbeiten.Bis > Wirtschaft.Gastwirtschaft.SchliesstUm
+            && Rollen.Where(r => r.Value.Arbeitsort == Stadtort.Schaenke).Select(r => r.Key).Order(StringComparer.Ordinal).FirstOrDefault() is { } schankrolle)
+            f.Add($"{p}.handlungen.Arbeiten.bis ({arbeiten.Bis}) darf nicht nach dem Schankschluss liegen ({Wirtschaft.Gastwirtschaft.SchliesstUm} Uhr), solange die Rolle „{schankrolle}“ in der Schänke arbeitet.");
         foreach (var (volk, g) in Gewichte)
             foreach (var (b, x) in g.Where(x => x.Value is < 0.5 or > 2))
                 f.Add($"{p}.gewichte.{volk}.{b}: Gewicht zwischen 0,5 und 2 (war {x}).");
