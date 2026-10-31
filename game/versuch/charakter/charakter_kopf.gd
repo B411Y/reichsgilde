@@ -33,8 +33,10 @@ const HAAR4 := preload("res://versuch/charakter/charakter_haar.gd")
 const HAUT6 := preload("res://versuch/charakter/haut6.gdshader")
 const HAUT6_ULTRA := preload("res://versuch/charakter/haut6_ultra.gdshader")
 const AUGEN6 := preload("res://versuch/charakter/augen6.gdshader")
+const HAUT6A := preload("res://versuch/charakter/haut6a.gdshader")
+const HAUT6A_ULTRA := preload("res://versuch/charakter/haut6a_ultra.gdshader")
 const BILDER := ["haut_farbe", "haut_normal", "haut_masken", "haut_falten", "brauen", "wimpern", "iris_muster", "lederhaut"]
-const BILDER_WAHL := ["brauen_w"]      # Phase 5, fehlt in älteren Ordnern (dann gilt „brauen“)
+const BILDER_WAHL := ["brauen_w", "haut_zonen"]   # Phase 5 (sonst „brauen“); Halt B2: Zonenkarte für Weg A
 # Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
 const FALTEN_ALTER := {
 	"stirn": [[25, 0.0], [38, 0.15], [50, 0.5], [62, 0.95], [75, 1.3]],
@@ -62,6 +64,7 @@ var haut_stoffe: Array[ShaderMaterial] = []
 var haar_stoffe: Array[ShaderMaterial] = []
 var augen_stoffe: Array[ShaderMaterial] = []
 var wimpern_stoffe: Array[ShaderMaterial] = []
+var lidschatten_stoffe: Array[ShaderMaterial] = []
 var haut2_stoffe: Array[ShaderMaterial] = []     # Phase-2-Haut eines Phase-3-Kopfs (Vergleich)
 var bilder := {}            # Phase 3: Name -> Texture2D (aus <glb-Ordner>/kopf3_tex)
 var phase3 := false
@@ -102,7 +105,12 @@ var zahnfleisch_stoffe: Array[ShaderMaterial] = []
 # MakeHuman-Ziel, Gesichtszüge zug_01–12 ((Wert − 128) / 32 × 0,7) und Asymmetrie aus dem Personen-Samen.
 const REGELN6 := "res://versuch/charakter/regeln6.json"
 const VORSCHLAG := "res://versuch/charakter/erbgut_vorschlag.json"
-static var _regeln6 := {}
+static var _regeln6 := {}          # je Pfad (Halt B2: ein Probekopf bringt seine regeln6.json im .glb-Ordner mit)
+var regeln_pfad := REGELN6
+# Halt B2, Weg A (Probekopf, Bogenschlüssel „weg_a“): Haut mit Zonen und Stoppeln (haut6a), weichere und weniger deckende
+# Brauen, Iris entsättigt mit hohler Normale und schmalerem Limbus, Lederhaut zu den Winkeln warm abgedunkelt, Lidschatten
+# etwas stärker. Nur Stand 6; ohne Zonenkarte (kopf6_tex/haut_zonen.png) bleibt die Haut wie Stand 6.
+var weg_a := false
 static var zuege_aus := false   # Prüfung „nur Gene“ (Schau: --ohne_zuege)
 static var _erbgut6 := {}
 var volk := "Mensch"
@@ -122,6 +130,9 @@ func laden(datei: String) -> bool:
 	var beschr := datei.get_basename() + ".json"
 	if FileAccess.file_exists(beschr):
 		info = JSON.parse_string(FileAccess.get_file_as_string(beschr))
+	# Halt B2: eigene Regeldaten neben der .glb (Probekopf mit eigener Eichung), sonst die des Repositorys
+	var eigene := datei.get_base_dir().path_join("regeln6.json")
+	regeln_pfad = eigene if FileAccess.file_exists(eigene) else REGELN6
 	var t := Time.get_ticks_usec()
 	var doc := GLTFDocument.new()
 	var st := GLTFState.new()
@@ -149,6 +160,7 @@ func laden(datei: String) -> bool:
 func kopieren_von(quelle) -> void:
 	pfad = quelle.pfad
 	info = quelle.info
+	regeln_pfad = quelle.regeln_pfad
 	stand = quelle.stand
 	bilder = quelle.bilder
 	phase3 = quelle.phase3
@@ -175,10 +187,21 @@ func stand_setzen(n: int) -> void:
 		haar_knoten.stand = stand
 	_farben()
 
+func _haut_shader() -> Shader:
+	if stand >= 6 and weg_a and bilder.has("haut_zonen"):
+		return HAUT6A_ULTRA if ultra else HAUT6A
+	return (HAUT6_ULTRA if ultra else HAUT6) if stand >= 6 else (HAUT3_ULTRA if ultra else HAUT3)
+
+func weg_a_setzen(an: bool) -> void:
+	if an == weg_a:
+		return
+	weg_a = an
+	_shader_waehlen()
+
 func _shader_waehlen() -> void:
 	for m in haut_stoffe:
-		if m.shader in [HAUT3, HAUT3_ULTRA, HAUT6, HAUT6_ULTRA]:
-			m.shader = (HAUT6_ULTRA if ultra else HAUT6) if stand >= 6 else (HAUT3_ULTRA if ultra else HAUT3)
+		if m.shader in [HAUT3, HAUT3_ULTRA, HAUT6, HAUT6_ULTRA, HAUT6A, HAUT6A_ULTRA]:
+			m.shader = _haut_shader()
 	for m in augen_stoffe:
 		if m.shader in [AUGEN3, AUGEN6]:
 			m.shader = AUGEN6 if stand >= 6 else AUGEN3
@@ -475,10 +498,10 @@ func _anwenden() -> void:
 	_farben()
 
 # ---------------------------------------------------------------- Stand 6 (Etappe B)
-static func regeln6() -> Dictionary:
-	if _regeln6.is_empty() and FileAccess.file_exists(REGELN6):
-		_regeln6 = JSON.parse_string(FileAccess.get_file_as_string(REGELN6))
-	return _regeln6
+static func regeln6(pfad := REGELN6) -> Dictionary:
+	if not _regeln6.has(pfad) and FileAccess.file_exists(pfad):
+		_regeln6[pfad] = JSON.parse_string(FileAccess.get_file_as_string(pfad))
+	return _regeln6.get(pfad, {})
 
 # Genvorlage mit den Vorschlagsgenen (Mittel und Streuung der neuen Gene); die bestehenden Gene sind darin unverändert
 static func erbgut6() -> Dictionary:
@@ -498,7 +521,7 @@ static func _sigma(kennung: String, wert: float, v: String) -> float:
 	return (wert - float(e["mittel"])) / s if s > 0.0 else 0.0
 
 func _anwenden6(w: Dictionary) -> void:
-	var R := regeln6()
+	var R := regeln6(regeln_pfad)
 	var ku: Dictionary = R["alterskurven"]
 	var mann := geschlecht
 	var ro := kurve_im_alter(ku["reife_oben_m"], alter) * mann + kurve_im_alter(ku["reife_oben_w"], alter) * (1.0 - mann)
@@ -828,10 +851,17 @@ func _farben() -> void:
 			breite *= lerpf(0.88, 1.08, bd)
 			if not bilder.has("brauen_w"):
 				breite /= lerpf(0.72, 1.0, geschlecht)
+		var a_an := st >= 6 and weg_a
+		if a_an:
+			# Weg A: Brauen nur wenig dunkler als das Haar (weniger Kontrast), etwas lichter und weicher an den Rändern
+			braue = haar.lerp(haar * 0.7, 0.25 + 0.2 * hh)
 		for m in haar_stoffe:
 			m.set_shader_parameter("bild", brauen_bild)
 			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
 			m.set_shader_parameter("ebene", ebene)
+			m.set_shader_parameter("deckung", 0.8 if a_an else 1.0)
+			m.set_shader_parameter("schwelle", 0.2 if a_an else 0.3)
+			m.set_shader_parameter("dunkel", 0.72 if a_an else 0.6)
 			farbe_setzen(m, "farbe", braue, st)
 			m.set_shader_parameter("grau", grau)
 			m.set_shader_parameter("dichte", clampf(dichte, 0.0, 1.0))
@@ -912,7 +942,18 @@ func _farben() -> void:
 			iris_ebene = float(wahl[rng.randi_range(0, wahl.size() - 1)])
 			iris_dreh = rng.randf_range(0.0, TAU)
 	werte3["iris_ebene"] = iris_ebene
+	var a_auge := st >= 6 and weg_a
+	if a_auge:
+		# Weg A: Iris entsättigt (Diagnose: zu grün und gesättigt), Kranz ebenso; Limbus schmaler, damit die Iris nicht kleiner wirkt
+		iris = _entsaettigt(iris, 0.4)
+		kranz = _entsaettigt(kranz, 0.3)
+	for m in lidschatten_stoffe:
+		m.set_shader_parameter("staerke", 0.9 if a_auge else 0.75)
 	for m in augen_stoffe:
+		m.set_shader_parameter("iris_hohl", 0.55 if a_auge else 0.0)
+		m.set_shader_parameter("rand_schatten", 0.8 if a_auge else 0.0)
+		m.set_shader_parameter("limbus", 0.6 if a_auge else 0.75)
+		m.set_shader_parameter("limbus_breite", 0.16 if a_auge else 0.25)
 		m.set_shader_parameter("iris_bilder6", bilder.get("iris6"))
 		m.set_shader_parameter("iris_ebene", iris_ebene)
 		m.set_shader_parameter("iris_drehung", iris_dreh)
@@ -923,6 +964,11 @@ func _farben() -> void:
 		m.set_shader_parameter("kranz", clampf(1.0 - at * 0.9, 0.1, 1.0) * lerpf(0.4, 1.0, ah))
 	for m in zahnfleisch_stoffe:
 		farbe_setzen(m, "farbe", linear(ZAHNFLEISCH6) if st >= 6 else Color(0.62, 0.27, 0.26), st)
+
+# Halt B2: Farbe zur Helligkeit hin entsättigen (lineare Farbe als Color wie in _farben)
+static func _entsaettigt(c: Color, anteil: float) -> Color:
+	var l := 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b
+	return Color(lerpf(c.r, l, anteil), lerpf(c.g, l, anteil), lerpf(c.b, l, anteil), c.a)
 
 # ---------------------------------------------------------------- Haar und Bart (Phase 4)
 func _haar_einrichten() -> void:
@@ -1127,8 +1173,10 @@ func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
 	match art:
 		"haut":
 			var m := ShaderMaterial.new()
-			m.shader = (HAUT6_ULTRA if ultra else HAUT6) if stand >= 6 else (HAUT3_ULTRA if ultra else HAUT3)
+			m.shader = _haut_shader()
 			m.set_shader_parameter("farbe_tex", bilder["haut_farbe"])
+			if bilder.has("haut_zonen"):
+				m.set_shader_parameter("zonen_tex", bilder["haut_zonen"])
 			m.set_shader_parameter("normal_tex", bilder["haut_normal"])
 			m.set_shader_parameter("masken_tex", bilder["haut_masken"])
 			m.set_shader_parameter("falten_tex", bilder["haut_falten"])
@@ -1156,6 +1204,7 @@ func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
 		"lidschatten":
 			var m := ShaderMaterial.new()
 			m.shader = LIDSCHATTEN
+			lidschatten_stoffe.append(m)
 			return m
 		"haar":
 			var m := ShaderMaterial.new()

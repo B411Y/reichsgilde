@@ -18,6 +18,7 @@ uniform float dunkel = 0.6;         // Haare verschatten sich gegenseitig
 // Phase 6 (S7): Brauenformen als Bildarray; ebene < 0 = „bild“ wie Phase 3–5
 uniform sampler2DArray bilder6 : hint_default_transparent, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform float ebene = -1.0;
+uniform float deckung = 1.0;        // Halt B2 (Weg A): Brauen weniger deckend (weiche Haargruppen statt Aufkleber)
 
 void fragment() {
 	vec4 t = ebene >= 0.0 ? texture(bilder6, vec3(UV, ebene)) : texture(bild, UV);
@@ -32,7 +33,7 @@ void fragment() {
 	c = mix(c, farbe_grau * (0.85 + 0.3 * zufall), smoothstep(-0.04, 0.04, grau - fract(t.r * 2.37 + 0.11)));
 	c *= mix(0.85, 1.2, t.b);                    // Spitzen heller
 	ALBEDO = c * dunkel;
-	ALPHA = a;
+	ALPHA = a * deckung;
 	ALPHA_SCISSOR_THRESHOLD = schwelle;
 	ALPHA_ANTIALIASING_EDGE = schwelle;
 	ALPHA_TEXTURE_COORDINATE = px;

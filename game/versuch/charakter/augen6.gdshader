@@ -6,8 +6,15 @@
 // UV der .glb (Phase 3): ebene Abbildung entlang der Blickachse; Iris: Limbus = Bildrand, Lederhaut: Augapfel = Bildrand.
 // Eckfarbe R (Phase 2): Iris 2·R = Abstand von der Achse (1 = Limbus); äußere Kugel R = 1 im Bereich der Hornhaut.
 // Den Glanz macht die Hornhaut darüber (hornhaut.gdshader); die Iris selbst ist matt.
+// Halt B2, Weg A (Schalter über die Werte, Standard = wie bisher): iris_hohl kippt die Normale der Iris zur Mitte (die Iris
+// liegt als Mulde hinter der Hornhaut; das Licht sammelt sich auf der dem Glanzpunkt gegenüberliegenden Seite – nach
+// MatMADNESS „HumanShaders“, MIT, eye_shader.gdshader); rand_schatten dunkelt die Lederhaut zu den Lidwinkeln warm ab
+// (nach RoboPoets „digital_human“, MIT, eye.gdshaderinc „eye_shadow“).
 shader_type spatial;
 render_mode cull_disabled;   // Teile der ICT-Iris (Pupillenmulde) zeigen nach innen
+uniform float iris_hohl = 0.0;
+uniform float rand_schatten = 0.0;
+uniform vec3 rand_farbe = vec3(0.72, 0.45, 0.38);
 
 uniform sampler2D iris_bild : hint_default_white, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform sampler2D lederhaut_bild : hint_default_white, filter_linear_mipmap_anisotropic, repeat_disable;
@@ -53,6 +60,20 @@ void fragment() {
 		c = mix(c, vec3(0.004), smoothstep(0.97, 0.995, COLOR.r));
 		ROUGHNESS = 0.45;
 		SPECULAR = 0.2;
+		if (iris_hohl > 0.0) {
+			// Tangentenrahmen aus den Bildschirmableitungen (das Augennetz hat keine Tangenten für die Iris-UV)
+			vec3 dp1 = dFdx(VERTEX);
+			vec3 dp2 = dFdy(VERTEX);
+			vec2 du1 = dFdx(UV);
+			vec2 du2 = dFdy(UV);
+			vec3 dp2s = cross(dp2, NORMAL);
+			vec3 dp1s = cross(NORMAL, dp1);
+			vec3 t_ = dp2s * du1.x + dp1s * du2.x;
+			vec3 b_ = dp2s * du1.y + dp1s * du2.y;
+			float im = inversesqrt(max(max(dot(t_, t_), dot(b_, b_)), 1e-20));
+			vec3 radial = (t_ * p.x + b_ * p.y) * im;
+			NORMAL = normalize(NORMAL - iris_hohl * radial);
+		}
 	} else {
 		vec3 t = texture(lederhaut_bild, UV).rgb;
 		float l = dot(t, vec3(0.333));
@@ -60,6 +81,7 @@ void fragment() {
 		c = sklera * ader;
 		// zum Rand hin rosiger und dunkler (Lidschatten, Verdeckung)
 		c = mix(c * vec3(0.92, 0.74, 0.7), c, smoothstep(0.15, 0.7, nv));
+		c *= mix(vec3(1.0), rand_farbe, smoothstep(0.55, 0.95, length(p)) * rand_schatten);
 		// Hornhautbereich der äußeren Kugel (Übergangsring): durchsichtig
 		ALPHA = 1.0 - smoothstep(0.4, 0.6, COLOR.r);
 		ALPHA_SCISSOR_THRESHOLD = 0.5;

@@ -10,6 +10,12 @@
 //      (LIGHT_IS_AREA, Godot 4.7) nach dem Beispiel der Doku.
 //   S3 Wrap energieerhaltend (n·l + w)/(1 + w)², Flaum 0,16 -> 0,05 (kommt in S8 als Glanz zurück), Streulicht
 //      jenseits des Schattenrands nur noch zu 30 % ohne Schatten der eigenen Rundung (streu_schattenfrei 1 -> 0,3).
+// Halt B2, Weg A (haut6a.gdshader, #define WEG_A; Diagnose „Puppe“: gleichförmiger Albedo, kein Bartschatten, Brauen
+//   wie Aufkleber, Glanz auf dem Nasenrücken): Zonenkarte zonen_tex (tools/charakter/kopf6_zonen.py; R Rötung von Wangen,
+//   Nase, Ohren, Kinn, G Schatten unter den Augen, B Feuchte am Lidrand und Karunkel, A Nasenrücken), Bartstoppeln als
+//   feine Punkte aus der Porenkachel, Brauenschatten auf der Haut weich (Mip-Stufe) und schwächer, Poren-AO auf dem
+//   Albedo, Streulicht je Kanal (Rot geglättet, Grün und Blau mit Poren: nach MatMADNESS „HumanShaders“, MIT,
+//   github.com/matmadness/HumanShaders, skin_shader.gdshader), Feuchte und Nasenrücken steuern Rauheit und Glanz.
 // Farben kommen als Color (sRGB, Godot rechnet nach linear um); Faktoren wie „toenung“ bleiben vec3.
 // Phase 3 (Herkunft): gebaut auf dem Vortest A2 der Phase 0 (haut.gdshader).
 // Bilder (tools/charakter/kopf3_backen.py, 2048², linear):
@@ -74,6 +80,21 @@ uniform vec4 bart_kanal = vec4(0.0);
 uniform vec3 haar_unter : source_color = vec3(0.1, 0.07, 0.05);
 uniform float kopfhaut_dunkel = 0.8;
 
+#ifdef WEG_A
+uniform sampler2D zonen_tex : hint_default_black, filter_linear_mipmap, repeat_disable;
+uniform float zonen_roetung = 0.5;
+uniform vec3 zonen_rot = vec3(1.0, 0.7, 0.66);         // Faktor auf den Hautton in den Rötungszonen
+uniform float augenschatten = 0.4;
+uniform vec3 augenschatten_farbe = vec3(0.8, 0.68, 0.7);
+uniform float feucht = 1.0;
+uniform float ruecken_matt = 0.7;
+uniform float stoppeln = 0.7;                          // Bartstoppeln (nur mit Bartschatten „bart“)
+uniform float stoppel_dichte = 2.4;                    // × poren_dichte
+uniform float poren_ao = 0.1;
+uniform float brauen_weich = 0.45;                     // Brauenschatten auf der Haut (Phase 5: 0,55, hart)
+uniform float streu_poren = 0.5;                       // Grün und Blau: Anteil der Porennormale im Streulicht
+varying vec3 n_diffus_gb;
+#endif
 varying vec3 n_diffus;
 varying float duenn;
 varying float hoehle_v;
@@ -107,7 +128,19 @@ void fragment() {
 	float fl = (texture(poren, UV * 3.1).x - 0.5) * 1.4 + (texture(poren, UV * 11.7 + 0.37).y - 0.5) * 0.8;
 	c *= vec3(1.0) + unruhe * fl * vec3(0.8, 1.05, 1.3);
 	c = mix(c, c * bart_farbe, clamp(m.a * bart, 0.0, 1.0));
+#ifdef WEG_A
+	vec4 zo = texture(zonen_tex, UV);
+	c *= mix(vec3(1.0), zonen_rot, clamp(zo.r * zonen_roetung, 0.0, 1.0));
+	c *= mix(vec3(1.0), augenschatten_farbe, clamp(zo.g * augenschatten, 0.0, 1.0));
+	// Bartstoppeln: einzelne dunkle Punkte (Haarschäfte unter der Haut) aus einer feinen Lage der Porenkachel
+	float stoppel = smoothstep(0.58, 0.78, texture(poren, UV * poren_dichte * stoppel_dichte + vec2(0.31, 0.77)).x);
+	c = mix(c, haar_farbe * 0.55, clamp(stoppel * m.a * bart * stoppeln, 0.0, 0.75));
+	// Brauenschatten weich (gröbere Mip-Stufe) und schwächer: keine Kante unter den Haarkarten
+	float braue_a = textureLod(farbe_tex, UV, 2.5).a;
+	c = mix(c, haar_farbe * 0.8, clamp(braue_a * brauen_dichte * brauen_weich, 0.0, 0.5));
+#else
 	c = mix(c, haar_farbe * 0.8, clamp(f.a * brauen_dichte * 0.55, 0.0, 0.7));
+#endif
 	c *= 1.0 - falten_dunkel * clamp(-h0, 0.0, 1.0);
 	c *= 1.0 - hoehlen * 0.5 * m.b;
 	// Phase 4: unter Haar und Bart
@@ -116,10 +149,13 @@ void fragment() {
 	float unter_bart = clamp(dot(texture(bart_tex, UV), bart_kanal), 0.0, 1.0);
 	float haarig = clamp(max(unter, unter_bart), 0.0, 1.0);
 	c = mix(c, haar_unter * mix(0.55, 0.85, haarig), haarig * kopfhaut_dunkel);
-	ALBEDO = c;
 	// Normale: gebacken (Mittel) + Falten + feine Kachel (Poren), im Tangentenraum zusammen
 	vec2 meso = (nt.xy * 2.0 - 1.0) * normal_staerke;
 	vec2 mikro = (texture(poren, UV * poren_dichte).xy * 2.0 - 1.0) * poren_staerke * (0.35 + nt.b);
+#ifdef WEG_A
+	c *= 1.0 - poren_ao * clamp(length(mikro) * 2.5 - 0.25, 0.0, 1.0);    // Porenböden etwas dunkler (gegen Porzellan)
+#endif
+	ALBEDO = c;
 	// Tangentenraum: +x = +u, +y = Bild oben = -v (Godot-UV)
 	vec2 fal = vec2(-(hu - h0), (hv - h0)) * falten_tiefe;
 	vec3 n = normalize(vec3(meso + mikro + fal, 1.0));
@@ -128,12 +164,21 @@ void fragment() {
 	// Streulicht mit geglätteter Normale (halb Geometrie, halb Falten, ohne Poren)
 	vec3 n_glatt = normalize(vec3(meso * 0.5 + fal * 0.6, 1.0));
 	n_diffus = normalize(TANGENT * n_glatt.x + BINORMAL * n_glatt.y + NORMAL * n_glatt.z);
+#ifdef WEG_A
+	vec3 n_gb = normalize(vec3(meso * 0.75 + fal * 0.8 + mikro * streu_poren, 1.0));
+	n_diffus_gb = normalize(TANGENT * n_gb.x + BINORMAL * n_gb.y + NORMAL * n_gb.z);
+#endif
 	duenn = clamp(m.r * 1.2 - 0.25, 0.0, 1.0) * (1.0 - m.b);
 	hoehle_v = m.b;
 	float pore = clamp(length(mikro) * 2.0, 0.0, 1.0);
 	float rand = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	ROUGHNESS = clamp(mix(rauheit, rauheit_glanz, m.g) + 0.1 * pore + 0.12 * rand + 0.15 * clamp(-h0, 0.0, 1.0) + 0.3 * haarig, 0.10, 1.0);
 	spec_v = glanz * (1.0 - 0.7 * hoehlen * m.b) * (1.0 - 0.5 * clamp(-h0, 0.0, 1.0)) * (1.0 - 0.7 * haarig);
+#ifdef WEG_A
+	// feuchter Lidrand und Karunkel: glatt und glänzend; Nasenrücken: matter
+	ROUGHNESS = clamp(mix(ROUGHNESS, 0.13, clamp(zo.b * feucht, 0.0, 1.0)) + 0.2 * zo.a * ruecken_matt, 0.10, 1.0);
+	spec_v *= (1.0 + 1.6 * zo.b * feucht) * (1.0 - 0.5 * zo.a * ruecken_matt);
+#endif
 	SPECULAR = 0.42 * spec_v;                // Godot: F0 = 0,16 · SPECULAR² = 0,028 (Umgebungslicht)
 	AO = 1.0 - hoehlen * m.b * 0.8;
 	AO_LIGHT_AFFECT = 0.3;
@@ -150,21 +195,28 @@ void light() {
 	} else {
 		float ndl = dot(NORMAL, LIGHT);
 		float ndl_d = dot(n_diffus, LIGHT);
+#ifdef WEG_A
+		float ndl_gb = dot(n_diffus_gb, LIGHT);   // Grün und Blau sehen die Poren (Rot streut weiter)
+#else
+		float ndl_gb = ndl_d;
+#endif
 		// in Höhlen (Nasenlöcher, Ohrmuschel, Mundwinkel) kaum Streulicht
 		vec3 w = streu * streu_anteil * (1.0 - 0.7 * hoehle_v);
 #ifdef ULTRA
 		w *= 0.35;                           // die Streuung macht unter Ultra Godots SSS (Hautkern)
 #endif
 		// S3: energieerhaltend (McAuley 2011, wie Godots DIFFUSE_LAMBERT_WRAP)
-		vec3 wrap_e = clamp((vec3(ndl_d) + w) / ((1.0 + w) * (1.0 + w)), 0.0, 1.0);
+		vec3 ndl3 = vec3(ndl_d, ndl_gb, ndl_gb);
+		vec3 wrap_e = clamp((ndl3 + w) / ((1.0 + w) * (1.0 + w)), 0.0, 1.0);
 		// Etappe-A-Nachtrag (Prüferbefund „Haut fahl“, „Oberlid orange“): je Kanal (n·l + w)/(1 + w)² nahm dem Rot im
 		// vollen Licht bis zu 17 % (Wange R/G 1,22 -> 1,11) und gab es am Schattenrand im Übermaß zurück (Oberlid C 24).
 		// Neutral: (n·l + w)/(1 + w) je Kanal, geteilt durch (1 + w) der Helligkeit – im vollen Licht alle Kanäle gleich,
 		// die Energie bleibt in der Helligkeit erhalten
 		float w_hell = dot(w, vec3(0.2126, 0.7152, 0.0722));
-		vec3 wrap_n = clamp((vec3(ndl_d) + w) / ((1.0 + w) * (1.0 + w_hell)), 0.0, 1.0);
+		vec3 wrap_n = clamp((ndl3 + w) / ((1.0 + w) * (1.0 + w_hell)), 0.0, 1.0);
 		vec3 wrap = mix(wrap_e, wrap_n, wrap_neutral);
-		float wrap_grau = clamp((ndl_d + w_hell) / ((1.0 + w_hell) * (1.0 + w_hell)), 0.0, 1.0);
+		float ndl_hell = dot(ndl3, vec3(0.2126, 0.7152, 0.0722));
+		float wrap_grau = clamp((ndl_hell + w_hell) / ((1.0 + w_hell) * (1.0 + w_hell)), 0.0, 1.0);
 		wrap = vec3(wrap_grau) + streu_farbe * (wrap - vec3(dot(wrap, vec3(0.2126, 0.7152, 0.0722))));
 		float schatten = ATTENUATION;
 		if (LIGHT_IS_DIRECTIONAL) {
