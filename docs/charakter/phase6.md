@@ -3,8 +3,8 @@
 Stand 31.10.2026, Branch `phase5/charakter-werkzeug`, Mitglied darstellung. Kein Spielcode, kein PR (Entscheidung E17).
 Grundlage: [Phase 5](phase5.md). Plan: vom Nutzer am 30.10.2026 freigegeben (E1–E17 wie empfohlen), vier Etappen
 A–D mit Halt. Dieser Bericht wächst mit den Schritten; hier stehen bisher **S0** (Messbasis, Prüfstand, Würfeln über
-den Kern) und **S1** (Vergleichsvorlagen der lokalen Bild-KI). Es folgen S2 (Grundfehler, Farbübergabe) und S3
-(Licht), dann Halt A.
+den Kern), **S1** (Vergleichsvorlagen der lokalen Bild-KI), **S2** (Grundfehler) und **S3** (Porträtlicht). Damit ist
+Etappe A fertig; es folgt Halt A.
 
 ## S0 Messbasis, Prüfstand, Würfeln über den Kern
 
@@ -250,3 +250,150 @@ Der Schlüssel der ersten, ganz blinden Runde (ohne Bildprüfsummen, mit den dre
 `852f1c5bc0956805793e707135e12e4f0cfe73b1b387d6940f46b83a4fc0453c`; Nummern und Sollalter sind gleich geblieben
 (fester Startwert). Für den Teamleiter: erst `blind_alter_s1.png` schätzen und die Zahlen festhalten, dann den
 Schlüssel öffnen.
+
+## S2 Grundfehler und S3 Porträtlicht
+
+Stand 6 ist ab jetzt ein eigener Weg neben Stand 5: `glb6/kopf6.glb`, `haut6`, `augen6`, Farben als `Color`, vorläufige
+Paletten, Porträtlicht L-S neu. Stand 5 bleibt Phase 5 genau (glb5, haut3, augen3, alte Übergabe, altes L-S). Prüfmappe
+**A1** = Stand 6 nach S3 unter `~/werkzeuge/charakter/bilder/phase6/A1/` (gleiche Kameras und Bögen wie A0, dazu die
+S2/S3-Bögen), Vergleichsblatt `vergleich_a0_a1.png` (A0 | A1 | Fotovorlage).
+
+### Ergebnis in Kürze
+
+- **Farben richtig umgerechnet.** Jede Farbe geht über `Kopf.farbe_setzen()` als `Color` an den Shader (Haut, Braue,
+  Wimpern, Haar, Haarkarte, Iris, Kranz, Lederhaut, `haar_unter`, Zahnfleisch, TressFX samt Goldnetz und Perlen);
+  statische Prüfung: 0 Stellen mit `Vector3` an einem Farb-Uniform. Farbtest über die Hilfsfunktion = `StandardMaterial3D`
+  (127,0 / 127,0). Haar, Brauen und Bart sind jetzt so dunkel wie im Code gemeint (E4 an Halt A, Farbtafeln P11).
+- **Augen:** Iris-Leuchtdichte Mann 35 unter L-V 0,046 statt 0,170 (0,27 ×, Ziel ≤ ⅓); Lederhaut 40 L* unter der
+  beleuchteten Wange (Ziel ≤ +5).
+- **Glanz wie Godot:** Prüfkugel (Wrap 0, eine Keule) gegen `StandardMaterial3D` bei 0/30/60/80°: 0,99 / 1,00 / 1,00 /
+  1,01; Streulicht gegen Lambert 0,995–1,000; Streiflicht (150°, Summe über die Kugel) 9,7 × Phase 5.
+- **Formnormalen** für Gen-, Alters- und alle neuen Formen, dünn gespeichert: `kopf6.glb` 26,8 MB (kopf5_mn 53,6 MB,
+  kopf5 33,2 MB); dicht gegen dünn: Normalen und Lagen ≤ 1,0e-4, Bild ≤ 0,03/255. `makro_` bleibt **ohne** Normalen
+  (A/B: Säugling und Kind bekommen sonst Brustwarzen-Buckel der Erwachsenenform, Bogen `s2_ab_formen`).
+- **Nicht erreicht (gelb, Zeitkasten nach Risiko 17):** Wange unter L-V Chroma 8,4 (Ziel 14), a* 4,9 (Ziel 8); Licht :
+  Schatten unter L-V 1,15 (Ziel 2–4), R/G 1,11/1,14 (Ziel 1,25/1,30); A/B Kiefer und Kinn mit Normalen 5,5 Prozentpunkte
+  **heller** statt ≥ 8 dunkler. Die Ursachen sind gemessen (siehe unten) und liegen nicht im Shader: das Fülllicht von
+  L-V, AgX und die Gesichtsform (S4). Chroma ist die Frage E5 an Halt A, das Fülllicht von L-V eine neue Designfrage.
+
+### Was gebaut ist
+
+- **Stand-Schalter** (`charakter_kopf.gd`): `stand_setzen(n)` tauscht an einem geladenen Kopf die Shader (haut3 ↔ haut6,
+  augen3 ↔ augen6, auch Ultra) und setzt die Farben neu; die Schau wählt mit `"kopf": "standard"` je Stand die Datei
+  (Stand 6 `kopf6.glb` im `--glb`-Ordner, Stand 5 `kopf5.glb`, notfalls aus `--glb5`, Standard `glb5`). Ein Bogen mit
+  Stand 5 und 6 läuft so in einem Prozess; die Galerie bleibt bei Stand 5.
+- **Farben** (S2.1): `farbe_setzen(stoff, name, color, stand)` – Stand 6 `Color`, Stand 5 `Vector3` wie Phase 5 (mit
+  `# stand5` markiert, die statische Prüfung zählt diese Zeilen nicht). `linear(c)` übergibt eine lineare Albedo so, dass
+  sie nach Godots Umrechnung genau linear ankommt. Faktoren wie `toenung` bleiben `Vector3`. Das Haarskript hat dazu
+  `stand`; der Timer, der TressFX einfriert, ruft jetzt eine gebundene Methode mit `weakref` statt eines Lambdas
+  (Meldung „Lambda capture at index 0 was freed“ in A1 nicht mehr aufgetreten).
+- **Vorläufige Paletten** (S2.2, endgültig in S9 bzw. S7): Hautfarbe linear nach PhysicallyBased (CC0, Haut I–VI):
+  Gen 235 ≈ I–II (0,823/0,562/0,450), 185 ≈ II–III (0,711/0,459/0,345), 135 ≈ III–IV (0,530/0,330/0,237), darunter IV,
+  V, VI; Iris linear (dunkelbraun 0,030/0,014/0,006 – Bernstein – Grün – Blau 0,075/0,12/0,20), Kranz, Lederhaut warm
+  linear 0,50/0,44/0,38 (vorher Standardwert des Shaders), breiterer Limbusring (`limbus` 0,75, `limbus_breite` 0,25),
+  Zahnfleisch linear 0,46/0,13/0,12. Haaranker bleiben als Zahlen und werden jetzt umgerechnet (dunkler).
+- **haut6** (`haut6.gdshaderinc`, `haut6.gdshader`, `haut6_ultra.gdshader`; haut3 unverändert): Glanz mit Godots
+  `D_GGX` und `V_GGX` (Smith, korreliert), Schlick-Fresnel mit F0 0,028 bis 1, ohne zweites `/ PI`, `SPECULAR_AMOUNT`
+  nur als Lichtfaktor; Glanzmaske (Höhlen × Falten × Haar) als `varying spec_v` auch im direkten Licht, `SPECULAR =
+  0,42 · spec_v`; `glanz` ist jetzt ein Faktor (Stand 6: 1), `keule2` der Anteil der schmalen Keule (0,18; Prüfkugel 0);
+  Untergrenze der Rauheit 0,10; Ultra mit `render_mode … sss_mode_skin` und Wrap × 0,35; Zweig `LIGHT_IS_AREA` nach der
+  4.7-Doku. S3: Wrap energieerhaltend (n·l + w)/(1 + w)², `flaum` 0,05, `streu_schattenfrei` 0,3.
+- **augen6** (Kopie von augen3): Lederhaut aus dem Skript, Limbusring einstellbar.
+- **kopf6.sh** (Kopie von kopf5.sh): Ausgabe `glb6`, Arbeitsordner `arbeit/phase6`; `glb_formnormalen.py … duenn=1`
+  entfernt die Normalen nur noch von `makro_` (mit `MAKRO_NORMALEN=1` auch dort nicht) und schreibt Lage und Normale aller
+  Formen als dünne Accessoren (|Δ| > 1e-4; ein Accessor wird nur dünn, wenn er dadurch kleiner wird). Haar: die
+  Strähnen (`<stil>.json/.bin`) und `haar_karten.png` aus `glb5/haar4` werden verknüpft, die Übersicht kopiert, Stützpunkte
+  und Kopfhautkarten mit `nur_kopfhaut=1` neu gerechnet; `kopf6.sh kaemmen` verweigert, solange Verknüpfungen bestehen
+  (geprüft: Rückgabe 2), `kopf6.sh haar_kopieren` ersetzt sie vorher durch Kopien. Bau 9,6 min (CPU). Die Formen von
+  kopf6_mn sind mit kopf5_mn identisch (Abweichung 0,0), die Stützpunkte und Kopfhautkarten auch.
+- **Porträtlicht L-S Stand 6** (`charakter_buehne.gd`, „spiel“ richtet sich nach dem Stand; „spiel5“, „spiel6“,
+  „spiel6_weich“ ausdrücklich): Belichtung 0,8, Schlüssellicht 2,3 (≈ 49° aus der Achse wie bisher), Fülllicht 0,45 →
+  0,25, Gegenlicht 1,6 → 0,8, Umgebungslicht und Spiegelung aus dem Studio-HDRI Poly Haven „Studio Small 09“ (CC0, 1k,
+  im Manifest mit SHA-256; `~/werkzeuge/charakter/hdri`, nicht im Repository), Stärke 0,2 über
+  `PanoramaSkyMaterial.energy_multiplier`, sichtbarer Hintergrund flach. Weiche Schatten über `shadow_blur` 2,0. L-I für
+  Stand 6 mit Belichtung 1,0 statt 1,25, sonst wie bisher.
+- **Prüfstand**: Prüfkörper `kugel6_glanz`/`kugel6_streu` (haut6 | StandardMaterial3D | haut3, orthografisch), Lichtart
+  `kugeltest`, Bogenschlüssel `fuell` (Fülllicht) und `bild` (fertiges Bild in einer Zelle), gepaarte Messung
+  `--messen --staende=5,6 [--licht=…]`; Bögen `p10b_kugeln`, `s2_ab_mann30`, `s2_ab_formen`, `s2_duenn`, `s2_ultra`,
+  `s3_e5_agx`, P10 mit Zeile Stand 6; `pruefen6.py` wertet sie aus (`--a0=` für die Iris gegen Stand 5);
+  `messen/duenn_vergleich.py`, `messen/vergleichsblatt.py`.
+
+### Selbst getroffene Entscheidungen
+
+- **`makro_` ohne Normalen**: Mit den Normalen der Alters-Geschlechts-Formen zeigen Säugling und Kind unter Streiflicht
+  Buckel der Erwachsenenbrust und ein Kind 5 Brustwarzen (Bogen `s2_ab_formen`, Spalte „Büste mit“, Bildunterschied
+  bis 74/255); Gesicht und Erwachsene sind unauffällig. Gen- und Altersformen (`gen_`, `alter_`) behalten die Normalen.
+- **Schattenweichzeichnung statt Winkelgröße**: Mit `light_angular_distance` 3° verschwand der Schlagschatten von Kopf und
+  Kinn auf dem Kragen fast ganz (Probe `s3_probe_ls2`); `shadow_blur` 2,0 behält ihn weich. Die Winkelgröße bleibt als
+  „spiel6_weich“ für die Messung.
+- **HDRI-Stärke über den Himmel**: `ambient_light_energy` 0, 0,35 und 3 ergaben bei Himmel als Quelle dasselbe Bild
+  (Probe `s3_probe_hdri`, Abweichung 0,0) – Godot backt den Himmel beim ersten Bild. Die Stärke steht deshalb im
+  `energy_multiplier` des Himmels (0,2), `ambient_light_energy` = 1.
+- **Prüfkugel**: orthografische Kamera (in der Perspektive sieht die linke Kugel 5° schräger als die mittlere, das
+  verfälschte den Streulichtvergleich um bis zu 15 %); „Streiflicht“ gewertet bei 150° zwischen Licht und Blick (Licht
+  von hinten seitlich, Fresnel am Rand) als Summe über die Kugel – bei 80° liegt der Glanzfleck bei L·H = cos 40°, dort
+  ist Fresnel noch nicht wirksam (1,28 ×), und die schmale Keule von haut3 übersteuert die Spitze.
+
+### Befunde zu den nicht erreichten Werten
+
+- **Licht : Schatten unter L-V (1,15)** hängt am Licht, nicht am Shader: haut6 mit Wrap 0,4 / 0,2 / 0 (Lambert) und ohne
+  Streulicht jenseits des Schattens ergibt 1,15 / 1,18 / 1,22 / 1,22; dasselbe ohne Fülllicht 2,22 (Probe
+  `s3_probe_ls`). Das Fülllicht von L-V (Energie 1 : 3, von rechts 50°/10°) trifft die abgewandte Wange fast senkrecht,
+  das Schlüssellicht (45° Höhe) beide Wangen ähnlich; dazu staucht AgX die Helligkeitsunterschiede. **Empfehlung an den
+  Teamleiter:** „Aufhellung 1 : 3“ als Lichtverhältnis (Schattenseite = ⅓ der Lichtseite) statt als Energieverhältnis
+  verstehen und L-V einmal neu eichen (Fülllicht ≈ 0,3, Schlüssellicht flacher, ≈ 30° Höhe), dann A0 unter dem neuen
+  L-V neu rendern. Ohne diese Entscheidung bleibt L-V wie in S0 geeicht.
+- **Chroma und R/G** hängen an AgX: das Hautfeld Typ III (Albedo C 15,7) erscheint unter L-V mit C 9,3; die Albedo der
+  Wange (Anzeige „albedo“) hat C 18,2 und R/G 1,22, beleuchtet C 8,4 und R/G 1,11. Unter L-S erreicht die Wange C 13,0;
+  mit Sättigung 1,25 C 16,4, mit 1,5 C 19,9, AgX-Kontrast 1,5 ändert nichts (Bogen `s3_e5_agx`). Das ist die
+  Entscheidung **E5** an Halt A.
+- **Formnormalen A/B (Mann 30, L-V)**: Kiefer und Kinn werden mit Normalen 5,5 Prozentpunkte heller statt dunkler. Die
+  Messfelder liegen auf den Flächen des Unterkiefers, die die Reifeform nach oben zum Schlüssellicht (45° Höhe) dreht;
+  sichtbar schärfer werden die Kieferkante und der Schatten darunter (`s2_ab_mann30`). Das Kriterium setzt ein
+  markanteres Untergesicht voraus und wird mit S4 (Kieferkante, Normalenknick) erneut geprüft.
+
+### Prüfung S2 und S3
+
+| Abnahme | Ergebnis | Beleg |
+|---|---|---|
+| Farbtest: Hilfsfunktion = StandardMaterial3D ±2/255 | 127,0 / 127,0 | `A1/p10_kalibrier/01_02.png` |
+| kein `Vector3` an einem Farb-Uniform | 0 Stellen | `A1/pruefen6.md` |
+| Iris ≤ ⅓ von Phase 5 (L-V) | 0,046 / 0,170 = 0,27 | `p01_alter_ton_k1_lv` |
+| Lederhaut ≤ +5 L* gegen die Wange (L-V) | −39,7 | ebenda |
+| Wange Mann (L-V): Chroma ≥ 14, a* ≥ 8 | **8,4 / 4,9 – nicht erreicht** (E5) | ebenda, `s3_e5_agx` |
+| Prüfkugel Streulicht = Lambert ±3 % | 0,995 … 1,000 | `p10b_kugeln` |
+| Glanzspitze = StandardMaterial3D ±10 % (0–60°), ±20 % (80°) | 0,987 / 0,996 / 1,000 / 1,009 | ebenda |
+| Streiflichtglanz ≥ 2,5 × Phase 5 | 9,7 (150°) | ebenda |
+| A/B Kiefer und Kinn ≥ 8 Pp. dunkler | **+5,5 Pp. heller – nicht erreicht** (S4) | `s2_ab_mann30` |
+| P7 ohne Dellen und Grate; Entscheidung `makro_` | Gen- und Altersnormalen sauber; `makro_` ohne Normalen | `s2_ab_formen`, `p07_*` |
+| kopf6.glb ≤ kopf5_mn.glb | 26,8 / 53,6 MB | `duenn_vergleich.json` |
+| Bild dünn = dicht ≤ 1/255, Normalen < 1e-3 | ≤ 0,03/255; 1,0e-4 | `s2_duenn`, `duenn_vergleich.json` |
+| Ultra ohne grauen SSS-Saum | kein Saum sichtbar (Stand 6 Ultra, K4 und N1) | `s2_ultra` |
+| keine SCRIPT- oder SHADER-ERROR | keine in allen A1-Läufen | `A1/logs/` |
+| M2 gepaart Hoch ohne Haar Δ ≤ +0,3 ms (S2) | M2_S2 | `A1/messung.jsonl` (Licht spiel5) |
+| L-V: Licht : Schatten 2–4, R/G ≥ 1,25 / 1,30 | **1,15; 1,11 / 1,14 – nicht erreicht** (Fülllicht L-V, AgX) | `p01_alter_ton_k1_lv`, `s3_probe_ls` |
+| L-S: dieselben Verhältnisse ±20 % | 1,40 (+22 %), R/G 1,13 / 1,21 (+2 / +6 %) | `p01_alter_ton_k1_ls` |
+| kein Fleck vor dem Ohr (¾, L-S) | keiner | `p01_alter_ton_k2_ls` |
+| M2 Hoch Δ ≤ +0,5 ms (mit weichen Schatten) | M2_S3 | `A1/messung.jsonl` |
+| Prüfmappe A mit P1, P3, P7, P10, P11, M1, M2 | vollständig | `A1/` |
+
+### Testanleitung S2/S3
+
+```bash
+# Kopf Stand 6 bauen (glb6, ≈ 10 min CPU; Haar aus glb5 verknüpft)
+tools/charakter/kopf6.sh
+# A1 rendern (Vulkan, T400): Stand 6 für alle Zellen ohne eigenen Stand
+GLB=~/werkzeuge/charakter/glb6 ANZEIGE=:98 tools/charakter/schau.sh <ordner> 4200x6100 --stand=6 \
+   --bogen=tools/charakter/boegen6/p10b_kugeln.json,tools/charakter/boegen6/s2_ab_formen.json --ende
+# gepaarte Messung Stand 5 gegen 6 (Licht nach Stand; spiel5 = nur S2; spiel6_weich = Winkelgröße 3°)
+GLB=~/werkzeuge/charakter/glb6 GPU_ANDERE=0 tools/charakter/schau.sh <ordner> 1280x720 --messen --staende=5,6 \
+   --wiederholungen=3 --nur=leer,ohne_haar,haar_tressfx_ruhe --licht=spiel --ende
+# dicht gegen dünn
+$BPY -I tools/charakter/messen/duenn_vergleich.py <dicht.glb> ~/werkzeuge/charakter/glb6/kopf6.glb
+# Vergleichsblatt A0 | A1 | Fotovorlage (Bogen mit fertigen Bildern, Beschriftung durch die Testszene)
+$BPY -I tools/charakter/messen/vergleichsblatt.py --a=<A0> --b=<A1> --aus=<ordner>/vergleich_a0_a1
+GLB=~/werkzeuge/charakter/glb6 tools/charakter/schau.sh <ordner> 2200x3100 --bogen=<ordner>/vergleich_a0_a1.json --ende
+# Prüfung
+$BPY -I tools/charakter/messen/pruefen6.py --mappe=~/werkzeuge/charakter/bilder/phase6/A1 \
+   --glb=~/werkzeuge/charakter/glb6/kopf6.glb --a0=~/werkzeuge/charakter/bilder/phase6/A0
+```

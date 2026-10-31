@@ -321,7 +321,7 @@ def formnormalen_ab(mappe, nm):
     for teil in ("kiefer", "kinn"):
         d = (wv["ohne"][teil] - wv["mit"][teil]) * 100
         zeile("S2 Formnormalen", f"A/B Mann 30, L-V: {teil.capitalize()} gegen obere Wange (Y), ohne → mit Normalen",
-              f"{f(wv['ohne'][teil] * 100, 1)} % → {f(wv['mit'][teil] * 100, 1)} % (−{f(d, 1)} Pp.)", "≥ 8 Prozentpunkte dunkler",
+              f"{f(wv['ohne'][teil] * 100, 1)} % → {f(wv['mit'][teil] * 100, 1)} % (Δ {'+' if d < 0 else '−'}{f(abs(d), 1)} Pp.)", "≥ 8 Prozentpunkte dunkler",
               "OK" if d >= 8 else "ABWEICHUNG")
 
 
@@ -388,6 +388,20 @@ def stand6_bild(mappe, nm, a0):
                   "OK" if all(0.8 <= v <= 1.2 for v in q) else "ABWEICHUNG")
             zeile("S3 Licht", "L-S: Wange L*/a*/b*/C (Mann 35, H2)", f"{f(yl['L'], 1)}/{f(yl['a'], 1)}/{f(yl['b'], 1)}/{f(yl['C'], 1)}",
                   "Chroma ≥ 17 sonst E5 (AgX-Feinwerte/LUT)", "OK" if yl["C"] >= 17 else "Stand (E5)")
+    # E5-Entscheidungshilfe (s3_e5_agx): Chroma der beleuchteten Wange je Variante (Mann 35, L-V und L-S)
+    o = os.path.join(mappe, "s3_e5_agx")
+    namen = ("AgX wie bisher", "Sättigung 1,25", "Sättigung 1,5", "AgX-Kontrast 1,5")
+    for zi, licht in ((0, "L-V"), (2, "L-S")):
+        werte = []
+        for si in range(4):
+            p = os.path.join(o, f"{zi:02d}_{si:02d}.png")
+            if not os.path.exists(p):
+                break
+            pl, pr = pupillen(p[:-4] + ".json", nm)
+            x = BW.werte_vorn(B.lesen(p), pl, pr)
+            werte.append(f"{namen[si]} C {f(x['zonen']['wange_licht']['C'], 1)}, L:S {f(x['licht_schatten'])}, R/G {f(x['zonen']['wange_licht']['RG'])}")
+        if werte:
+            zeile("S3 E5", f"Mann 35 (H2), {licht}: Wange je Variante (Entscheidungshilfe Halt A)", " · ".join(werte), "C ≥ 17 sonst E5", "Stand")
     # Farbtest über die Hilfsfunktion (P10, Zeile Stand 6, Spalte 2): Mitte gegen StandardMaterial3D in 8 Bit
     p = os.path.join(mappe, "p10_kalibrier", "01_02.png")
     if os.path.exists(p):
