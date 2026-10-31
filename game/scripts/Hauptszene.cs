@@ -273,6 +273,7 @@ public partial class Hauptszene : Node
         SetProcess(false);
         SetProcessUnhandledInput(false);
         var lade = Ladebildschirm.Zeigen(GetTree(), Stadtkarten.StartKennung); // vom Hauptmenü schon offen; sonst (Startoptionen, Test) hier
+        UmgebungAnlegen(); // Umgebungsklänge: laden jetzt im Hintergrund, spielen ab dem Ende des Ladebildschirms (Hauptszene.Umgebung.cs)
         lade.Fortschritt(0.07f, "Die Chronik wird aufgeschlagen …");
         GetViewport().Disable3D = true; // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
@@ -287,6 +288,7 @@ public partial class Hauptszene : Node
         _stadt.Ruhen(false);
         Ladezeit.Marke("Ladebild weg");
         lade.Schliessen();
+        _umgebungBereit = true;
         Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
     }
 
@@ -984,7 +986,7 @@ public partial class Hauptszene : Node
         Hauptmenue.Knopf(_menueKnoepfe, "Einstellungen", EinstellungenOeffnen);
         Hauptmenue.Knopf(_menueKnoepfe, "Hilfe (F1)", HilfeOeffnen);
         ProbeKnopfBauen(); // „Zurück zur Kartenwerkstatt“ in einer Probepartie (Hauptszene.Probepartie.cs)
-        Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"));
+        Hauptmenue.Knopf(_menueKnoepfe, "Zum Hauptmenü", () => { UmgebungAusblenden(); GetTree().ChangeSceneToFile("res://scenes/Hauptmenue.tscn"); });
         Hauptmenue.Knopf(_menueKnoepfe, "Spiel beenden", () => GetTree().Quit());
 
         _menueListe = new SpielstandListe { Visible = false };
@@ -995,6 +997,7 @@ public partial class Hauptszene : Node
             {
                 Spielstaende.Laden(pfad); // vorab prüfen
                 Partiewahl.LadenWaehlen(pfad);
+                UmgebungAusblenden();
                 GetTree().ChangeSceneToFile("res://scenes/Hauptszene.tscn"); // Szene neu aufbauen
             }
             catch (SpielstandFehler fehler)
