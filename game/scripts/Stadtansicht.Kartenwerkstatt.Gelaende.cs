@@ -48,8 +48,9 @@ public partial class Stadtansicht
     public double GelaendeStufenhoehe { get; set; } = 2;
     public double GelaendeBoeschung { get; set; } = 0.3;
 
-    /// <summary>Heben: nur Mulden; Senken: nur Spitzen (<see cref="Pinsel.NurAusgleich"/>).</summary>
-    public bool GelaendeNurAusgleich { get; set; }
+    /// <summary>Heben nur Mulden, Senken nur Spitzen (<see cref="Pinsel.NurAusgleich"/>) – je Pinsel ein eigener Haken.</summary>
+    public bool GelaendeNurMulden { get; set; }
+    public bool GelaendeNurSpitzen { get; set; }
 
     /// <summary>Wo der Geländepinsel wirkt (Steigung, Boden); <see cref="Pinselfilter.Keiner"/>: überall.</summary>
     public Pinselfilter GelaendeFilter { get; set; } = Pinselfilter.Keiner;
@@ -90,7 +91,7 @@ public partial class Stadtansicht
     public Pinsel GelaendePinsel => new(GelaendeArt, GelaendeRadius, GelaendeStaerke, GelaendeKante, GelaendeStartwert, GelaendeMassstab,
         Zielhoehe: GelaendeArt == Pinselart.Terrassen || (GelaendeArt == Pinselart.Ebnen && GelaendeZielFest) ? GelaendeZielhoehe : null,
         Stufenhoehe: GelaendeStufenhoehe, Boeschung: GelaendeBoeschung,
-        NurAusgleich: GelaendeNurAusgleich && GelaendeArt is Pinselart.Heben or Pinselart.Senken, Filter: GelaendeFilter);
+        NurAusgleich: GelaendeArt == Pinselart.Heben ? GelaendeNurMulden : GelaendeArt == Pinselart.Senken && GelaendeNurSpitzen, Filter: GelaendeFilter);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Pipette
@@ -184,6 +185,7 @@ public partial class Stadtansicht
     {
         GelaendeStrichAbbrechen();
         _wsRampeAnfang = null;
+        PipetteBereit = false; // jede Wahl eines Werkzeugs (auch Boden) hebt eine bereitgestellte Pipette auf
         PinselAus();
     }
 

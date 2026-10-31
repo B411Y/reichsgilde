@@ -144,7 +144,13 @@ public partial class Kartenwerkstatt : Node
             if (_stadt.WerkstattGewaehlt is EntwurfFluss fluss && ReferenceEquals(_gezeigt, fluss) && !EingabeOffen()) TeilTafel(fluss); // Breite und Tiefe am gewählten Punkt
         };
         _stadt.WerkstattNaturGestreut += () => EigenschaftenZeigen(neu: false);
-        _stadt.WerkstattPipetteGenommen += () => EigenschaftenZeigen(neu: true); // die Tafel zeigt die aufgenommene Zielhöhe bzw. Bodenart
+        _stadt.WerkstattPipetteGenommen += () =>
+        {
+            // die Bodenart-Pipette wählt die Textur wie ein Klick in der Palette (Knopf, Name in der Leiste); die Höhen-Pipette zeigt nur den Wert
+            var textur = "boden:" + Bodenraster.Kennung(_stadt.BodenArt);
+            if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Boden && _katalogKnoepfe.ContainsKey(textur)) KatalogWaehlen(textur);
+            else EigenschaftenZeigen(neu: true);
+        };
         GetTree().AutoAcceptQuit = false; // das Schließen des Fensters fragt nach ungespeicherten Änderungen (_Notification)
         if (zurueck is { } wieder)
         {
@@ -206,10 +212,11 @@ public partial class Kartenwerkstatt : Node
         var uhr = Ladezeit.Uhr();
         _stadt.WerkstattAktualisieren();
         Ladezeit.Dazu("im Bild: WerkstattAktualisieren", uhr);
-        var boden = _stadt.WerkstattBodenInfo();
-        var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden); // Höhe, Gefälle und Boden unter der Maus
-        if (_bodenInfo.Text != info) _bodenInfo.Text = info;
         PinselInfoZeigen(); // Kartenwerkstatt.Tafeln.cs: das Schild unter dem Pinsel
+        // Höhe, Gefälle und Boden unter der Maus – nicht doppelt, solange das Schild sie zeigt (dort die Steigung, wie der Filter sie misst)
+        var boden = _pinselInfo.Visible ? null : _stadt.WerkstattBodenInfo();
+        var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden);
+        if (_bodenInfo.Text != info) _bodenInfo.Text = info;
     }
 
     /// <summary>Die Szene geht (Hauptmenü, Öffnen, Ausprobieren): Der Entwurf kann sie überleben – also alle Ereignisse an ihn lösen.</summary>
