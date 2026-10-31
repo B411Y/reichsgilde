@@ -809,3 +809,62 @@ python3 tools/charakter/boegen6/blind_alter.py <prüfmappe>/p01_alter_ton_k1_ls 
 GLB=~/werkzeuge/charakter/glb6 ZEIT=5400 tools/charakter/schau.sh <prüfmappe> 6200x5300 --stand=6 --bogen=$PWD/tools/charakter/boegen6/p12_zuordnung_m_a.json,… --ende
 ```
 
+
+## Halt B2: Probekopf (Volumen statt Abmagerung, Breitlicht, Aussehen A, Vorbildköpfe B)
+
+Anlass (Nutzer 31.10.2026): Die Köpfe wirken wie „komische Puppen“, schräg „abgemagert“; diese Basis bekommt eine letzte
+Chance. Diagnose (Teamleiter): Die Basis (ICT-Scanmittel) ist normal; „abgemagert“ kam aus den eigenen S4-Zielen
+(Wangenwölbung ≤ 0, Unterwange 15–23 mm hinter dem Scanmittel, Lippen platt, Augen klein, Glabella und Nase vor) und
+dem Short-Lighting der Prüfbilder; „Puppe“ aus gleichförmigem Albedo, fehlendem Bartschatten, Brauen wie Aufkleber,
+zu grüner und gesättigter Iris, Kragen bis unters Kinn und Glanz auf dem Nasenrücken. Alles liegt neben Halt B: der
+Probekopf hat eigene Ordner (`~/werkzeuge/charakter/glb6p_b2`, `glb6b2` mit eigener `regeln6.json`), die Dateien des
+Halt B (`kopf6_rezept_s4.json`, `kopf6_rezept.json`, `regeln6.json`, `zuege_basis_v1.json`) bleiben unverändert.
+
+### Was gebaut ist
+
+- **Form B2** `formen_ausgleich_b2.py`: dieselbe Ausgleichsrechnung (Probebau, Gauß-Newton aus `formen_ausgleich.py`),
+  aber mit Volumen- und Profilzielen und Deckeln (Kopf der Datei). Neue Maße `profil_masse()`: Tiefen ab der
+  Tragion-Mitte (g, n, prn, sn, ls, li, pg, me), Unterwange x30/40/50 und Mittelwange x25/35 als **Schnitt der
+  Blickgeraden mit der vordersten Hautfläche** (die vorderste Ecke in einem 3-mm-Fenster war an der gröberen Wange
+  manchmal leer), Lippen gegen Sn–Pg und E-Linie, Profilwinkel g–sn–pg, Lidspalte (Breite en–ex, Höhe), Schläfe. Bezug
+  „Scanmittel“ = Makro-Grund je Geschlecht (beim Mann ≤ 0,6 mm vom nackten Scanmittel; bei der Frau ist das ganze
+  Gesicht 4–7 mm flacher). Mitte (25 → 45) mit Wangenfett 0,2 statt 0,35/0,4. **Profil- und Schrägmaße gehören ab B2 zur
+  Abnahme** (Tabelle unten).
+- **Eichung S5** wie Etappe B auf dem B2-Mittelgesicht (`kopf6_eichen.py --rezept_s4= --regeln_aus= --rezept_aus=
+  --zuege_aus=`); Populationsfaktoren und eingefrorene Züge unverändert.
+- **Kragen** (`kopf2_bauen.py` Option `ausschnitt=<mm>`, `ausschnitt_band=0,5`): Kragenlinie vorn tiefer
+  (D · max(0, cos φ)³ um die Halsachse), das Band vorn halb so hoch; die Flächen darüber werden Haut (der Atlas hat dort
+  gebackene Brusthaut, kein neues Backen). Ohne Option wie bisher.
+- **Licht** (`charakter_buehne.gd`): Schlüssellicht auf der breiten Seite – `ansicht()` spiegelt Schlüssel-, Füll- und
+  Gegenlicht an der Mittelebene, sobald die Kamera auf der +x-Seite steht (Bogenschlüssel `licht_breit`, Standard an).
+  Bei `winkel` < 0 (wie die Fotovorlagen) lag das Schlüssellicht schon kameranah.
+- **Weg A – Aussehen** (Bogenschlüssel `weg_a`, `charakter_kopf.gd`): Haut `haut6a.gdshader` (`#define WEG_A` in
+  `haut6.gdshaderinc`) mit Zonenkarte `haut_zonen.png` (`kopf6_zonen.py`: R Rötung Wangen/Nase/Ohren/Kinn, G Schatten
+  unter den Augen, B Feuchte am Lidrand und Karunkel, A Nasenrücken matter), Bartstoppeln als Punkte aus der
+  Porenkachel, Brauenschatten weich, Poren-AO, Streulicht je Kanal (Grün/Blau mit Poren); Brauen weniger deckend und
+  heller (`haar3.gdshader` `deckung`); Iris entsättigt, Limbus schmaler, hohle Irisnormale (`augen6.gdshader`
+  `iris_hohl`), Lederhaut zu den Winkeln warm abgedunkelt (`rand_schatten`), Lidschatten 0,9.
+  Vorbilder (Code-Ideen, nicht übernommen): MatMADNESS „HumanShaders“ (MIT, Commit 95a54cf; Wrap je Kanal, hohle
+  Irisnormale), RoboPoets „digital_human“ (MIT, Commit 9d28d0c; „eye_shadow“). Nicht genutzt: RoboPoets `pom()`
+  (Herkunft LearnOpenGL, CC BY-NC), Texturen und Emily-Scan aus HumanShaders (Lizenz unklar).
+- **Malfilter** (`malfilter.gdshader`, Bogenschlüssel `malfilter`): Kuwahara mit vier Sektoren (Halbmesser 3) und
+  leichte Tusche-Kante, nur auf der Porträtbühne.
+- **Weg B – Vorbildköpfe** (`vorbild_einpassen.py`, numpy/scipy/trimesh): Merkpunkte am Frontbild des Scans,
+  Umeyama-Ausrichtung (mit Maßstab), starre ICP-Verfeinerung (verworfen, wenn sie die Merkpunkte verschlechtert),
+  eigene nicht-starre Einpassung (nächster Scanpunkt + Membran-Glättung, sechs Runden mit fallender Steifigkeit,
+  Augenregion und Nasenlöcher ohne Datenterm), Versatz zum B2-Mittelgesicht leicht geglättet und an Lidern und
+  Gesichtsrand ausgeblendet. Der Probebau nimmt ihn mit `vorbilder=<npz>,…` als Form `vorbild_<name>` auf (Brauen,
+  Wimpern, Lider, Kragen folgen der Haut). Bogenschlüssel `formen: {"vorbild_lps": 0.8}`.
+- **Messung** `--varianten=name:glb-ordner:weg_a:malfilter,…` (gepaart wie `--staende`) und `--stufe=ultra`.
+
+### Vorbildköpfe (Lizenzen)
+
+| Vorbild | Lizenz, Namensnennung | genutzt |
+|---|---|---|
+| Lee Perry-Smith „Infinite“ (Infinite Realities), Netz aus three.js | CC BY 3.0, „Infinite, 3D Head Scan by Lee Perry-Smith“ | Mann |
+| Helen Keller, Lebendmaske 1916 (Ruotolo), NPG.75.16, Smithsonian | CC0 | Frau |
+| Felix Mendelssohn, Lebendmaske, Univ. Edinburgh Open.Ed (Modell Connor Wimblett) | CC BY 4.0 | Mann (Versuch) |
+| nicht genutzt: Luise von Preußen (CC BY 4.0; Tuch verdeckt eine Gesichtshälfte), Anne Sullivan Macy (CC0 laut Smithsonian-Konto, nicht am Datensatz bestätigt), Lincoln 1860 (CC0) | | |
+
+Die Scans liegen nur lokal (`~/werkzeuge/charakter/vorbilder/`, in `quellen6.json` mit Prüfsumme); im Repository nur
+Code. Abgüsse haben geschlossene Augen – die Augenregion trägt deshalb keine Scanform.
