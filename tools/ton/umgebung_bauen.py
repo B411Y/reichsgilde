@@ -11,7 +11,10 @@ Aufruf (Python mit numpy, scipy, soxr, soundfile, pyloudnorm; ffmpeg mit libvorb
 Ablauf je Datei (Reihenfolge wichtig, damit die Schleifennaht nicht knackt):
   1. ganze Quelle lesen, auf 48 kHz umrechnen (soxr, sehr hohe Qualität) – die ganze Datei, nicht nur den Ausschnitt;
   2. Filter (Hochpass 2. Ordnung, Tiefpass 4. Ordnung, Butterworth, vorwärts) über die ganze Datei, also mit Vorlauf vor dem Ausschnitt;
-  3. Ausschnitt von–bis;
+  2a. Kerbfilter („kerben“: [[Hz, Q], …], z. B. gegen ein stehendes Netzbrummen) und Absenkungen („absenken“: [[von, bis, dB], …]
+      in Sekunden der Quelle, Rampen 0,1 s, z. B. für eine herausstehende Stimme);
+  3. Ausschnitt von–bis – oder „folge“: [[von, bis], …], mehrere Stücke der Quelle hintereinander, jeweils mit gleicher Leistung
+     über „uebergang“ Sekunden ineinander geblendet (eine längere Schleife aus einer kurzen Quelle, ohne festen Takt);
   4. Schichten: Naht mit gleicher Leistung – das Ende (Länge „blende“) wird mit Kosinus aus- und auf den Anfang mit Sinus eingeblendet,
      die Datei ist danach um die Blende kürzer und läuft ohne Sprung von hinten nach vorn. Rufe: mono, Ränder ein- und ausgeblendet;
   5. eine lineare Verstärkung auf die Ziellautheit (pyloudnorm, ITU-R BS.1770), kein dynamisches loudnorm; danach Spitze (4-fach
@@ -31,7 +34,7 @@ import numpy as np
 import pyloudnorm as pyln
 import soundfile as sf
 import soxr
-from scipy.signal import butter, resample_poly, sosfilt
+from scipy.signal import butter, iirnotch, resample_poly, sosfilt, tf2sos
 
 WURZEL = Path(__file__).resolve().parents[2]
 LISTE = WURZEL / "tools" / "ton" / "umgebung_schnitte.json"
@@ -151,7 +154,29 @@ def filtern(x, eintrag):
         x = sosfilt(butter(2, eintrag["hp"], "highpass", fs=FS, output="sos"), x, axis=0)
     if eintrag.get("tp"):
         x = sosfilt(butter(4, eintrag["tp"], "lowpass", fs=FS, output="sos"), x, axis=0)
+    for hz, q in eintrag.get("kerben", []):
+        x = sosfilt(tf2sos(*iirnotch(hz, q, fs=FS)), x, axis=0)
+    if eintrag.get("absenken"):
+        g = np.ones(len(x))
+        t = np.arange(len(x)) / FS
+        for von, bis, db in eintrag["absenken"]:
+            # Trapez mit 0,1-s-Rampen: 0 außerhalb, 1 innerhalb; Verstärkung in dB darüber
+            k = np.clip(np.minimum(t - (von - 0.1), (bis + 0.1) - t) / 0.1, 0, 1)
+            g *= 10 ** (db * k / 20)
+        x = x * g[:, None]
     return x
+
+
+def folge(x, stuecke, uebergang):
+    """Stücke der Quelle hintereinander, je über „uebergang“ Sekunden mit gleicher Leistung ineinander geblendet."""
+    f = int(round(uebergang * FS))
+    t = (np.arange(f) + 0.5) / f
+    ein, aus = np.sin(t * np.pi / 2)[:, None], np.cos(t * np.pi / 2)[:, None]
+    y = x[int(round(stuecke[0][0] * FS)):int(round(stuecke[0][1] * FS))]
+    for von, bis in stuecke[1:]:
+        z = x[int(round(von * FS)):int(round(bis * FS))]
+        y = np.concatenate([y[:-f], y[-f:] * aus + z[:f] * ein, z[f:]])
+    return y
 
 
 def naht(y, blende):
@@ -203,7 +228,10 @@ def bauen(eintrag, liste, quellordner):
     else:
         q = liste["quellen"][eintrag["quelle"]]
         x = filtern(quelle_lesen(Path(quellordner) / f"{eintrag['quelle']}.ogg", q["sha256"]), eintrag)
-        y = x[int(round(eintrag["von"] * FS)):int(round(eintrag["bis"] * FS))]
+        if "folge" in eintrag:
+            y = folge(x, eintrag["folge"], eintrag["uebergang"])
+        else:
+            y = x[int(round(eintrag["von"] * FS)):int(round(eintrag["bis"] * FS))]
         if eintrag["art"] == "schicht":
             y = naht(y, eintrag["blende"])
         else:

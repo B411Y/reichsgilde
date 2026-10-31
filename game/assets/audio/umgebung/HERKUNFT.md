@@ -37,8 +37,8 @@ Alle Fremdaufnahmen stammen von **freesound.org** und stehen dort unter **CC0 1.
 
 | Datei | Quelle | Ausschnitt (s) | Filter | Zweck |
 |---|---|---|---|---|
-| schichten/stadt_tag.ogg | 469700 | 2.0–58.0 | Hochpass 80 Hz, Naht 3.0 s | Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei in der autofreien Altstadt von Fes) |
-| schichten/stadt_gemurmel.ogg | 360699 | 4.0–86.0 | Hochpass 100 Hz, Tiefpass 3000 Hz, Naht 3.0 s | Gemurmel vieler Leute, nur nah (Halle von oben, Tiefpass gegen den Hall) |
+| schichten/stadt_tag.ogg | 469700 | Folge 1.0–59.0, 33.0–47.5, 5.0–19.5, 46.5–61.0, 19.0–33.5, 27.0–41.5, 39.0–53.5 (Übergänge 1,5 s) | Hochpass 80 Hz, 14.4–15.1 s und 25.7–26.2 s der Quelle −7 dB (zwei herausstehende Stimmen), Naht 3.0 s | Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei in der autofreien Altstadt von Fes); 133 s aus der 61-s-Quelle, damit kein fester Takt hörbar ist |
+| schichten/stadt_gemurmel.ogg | 360699 | 4.0–86.0 | Hochpass 100 Hz, Tiefpass 3000 Hz, Kerbe 120 Hz (Q 8) gegen ein stehendes Brummen der Halle, Naht 3.0 s | Gemurmel vieler Leute, nur nah (Halle von oben, Tiefpass gegen den Hall) |
 | schichten/morgen_voegel.ogg | 573080 | 20.0–120.0 | Naht 3.0 s | Vogelchor im Morgengrauen |
 | schichten/tag_spatzen.ogg | 266601 | 0.5–60.5 | Hochpass 250 Hz, Naht 3.0 s | Spatzen am Tag (Stadtvögel), leise |
 | schichten/abend_voegel.ogg | 240587 | 1.0–87.0 | Hochpass 200 Hz, Naht 3.0 s | Abendgesang (Wald bei Freyburg/Unstrut) |
