@@ -1777,3 +1777,45 @@ Entscheidung des Nutzers (31.10.2026): Köln bekommt mehrere Märkte – **Alter
 Köln je Haus (vorher / Branch / nachher): Overstolz (Zwerg Schmied) 89.862 / 6.378 / 71.421, Hardevust (Elb Tischler) 57.095 / 10.117 / 51.862, Lyskirchen (Halbling Steinmetz) 78.875 / 39.549 / 54.019, Gryn (Mensch Alchimist) 83.008 / 30.074 / 74.930, Scherfgin (Mensch Schmied) 60.903 / 26.062 / 39.124, Mommersloch (Halbling Wirt) 80.951 / 2.980 / 58.244, Kleingedank (Mensch Tischler) 64.430 / 2.665 (ein Bankrott) / 51.063.
 
 **Befund:** Das Ziel des Spielers ist erreicht (33.919, +9 % gegen vorher – der Weg zum Heumarkt dauert 27 statt 30 Minuten), kein Bankrott, Bürger nach Ø 10,0 Jahren. Die KI-Häuser liegen bei 57.238 (−22 % gegen vorher) – so viel, wie die Fahrzeit nach Weglänge auch in der Greybox kostet (79.030 → 61.624, −22 %). Der Grund ist das Umland: Die Umlandbetriebe liegen draußen an den Landstraßen, 286–369 m vom nächsten Platz, und bleiben fast alle an der Höchstdauer (ein Ochsenkarren schafft in 360 Minuten 227 m); Marktplätze in der Stadt helfen dort nicht. Sollen die KI-Häuser in Köln näher an vorher, wären die Hebel Umlandbetriebe näher an den Toren (Leveldesign) oder eine eigene Grenze fürs Umland (nicht gewählt) – beides Entscheidungen für Teamleiter und Nutzer.
+
+## Eine Strecke für Kern und Bild (Branch phase5/gehtempo)
+
+Auftrag des Teamleiters (31.10.2026) nach dem Klicktest der Darstellung: Der Karren fährt im Bild im festen Tempo vom Hof über die Gassen bis zum Halt am Pflasterrand, der Kern rechnete vom nächsten Punkt einer Karrenstraße bis zur Platzmitte – in Köln war der Karren 26–34 % früher am Halt (Bild 14–16 m, Kern 21–22 m), am Weinmarkt der Greybox 105 % später (die Gasse führt um das Haus herum), Kieselbach 71 % früher. Ziel: dieselbe Strecke, Abweichung je Betrieb höchstens wenige Prozent, Spieler Köln weiter um 30.000, kein Bankrott.
+
+**Regel (Datenversion 65, keine neue Version – sie kam mit diesem Branch):** Die Strecke beginnt am Halteplatz des Modells (`karrenAnker` im Katalog = „Anker_Karren“ der glb), führt bei einer Werkstatt zum Hof (Mitte des Vorplatzes), von dort gerade zum nächsten Weg der Karte jeder Klasse (der Hofweg, den das Bild zeichnet) und über das Netz aller Wege bis zum Halt 3,5 m vor dem Pflaster; zurück derselbe Weg. Gassen kosten für die Wahl des Weges je Meter das Doppelte, Fußwege und Leinpfade das Vierfache – die Fahrzeit rechnet weiter nur Länge, Steigung und Belag (Gassen haben ab Werk einen langsameren Belag). Unter mehreren Plätzen der mit den kleinsten Kosten bis zum Halt. Die Darstellung fährt die Punkte des Kerns (`Stadtwirtschaft.Karrenverlauf`). Alte Daten rechnen wie vorher.
+
+**Karten nachjustiert** (die gemeinsame Strecke allein verschob die Wirtschaft deutlich: Köln Spieler 39.803, +17 %, weil die Werkstattwege auf 13–16 m schrumpften; Greybox Spieler 22.267, −36 %, weil der Weinmarkt-Karren jetzt 50 m um das Haus fährt):
+
+| Karte | Änderung | Werkstattwege vorher → nachher (Handkarren) |
+|---|---|---|
+| Greybox | neues **Weinmarktgässchen** (2,4 m) vom Hof nach Osten und zwischen Grundstück und Markt zur Westgasse | Weinmarkt 24 → 20 m (31 → 30 min; ohne Gässchen 50 m, 71 min), Eisenbart 22 → 18, Eichwald 22 → 11, Kieselbach 89 → 26 m (113 → 38 min) |
+| Köln | Stadtskript: Startgrundstücke 36 statt 28 m vom nächsten Platz (`ZielAbstand`); ein Kulissenhaus weniger, 52 statt 51 Bauzonen | 21–22 → 20–24 m (27–28 → 25–30 min, der Spieler 30 wie die alte feste Zeit) |
+
+**Fahrzeiten** (`messen karren`, Start „Schwer“, eben, Handkarren / Ochsenkarren):
+
+| Karte, Arbeitsort | Betriebe | Länge Ø (min–max) vorher → nachher | Handkarren Ø | an der Höchstdauer |
+|---|---|---|---|---|
+| Greybox, Werkstatt | 4 | 39 (22–89) → 19 m (11–26) | 50 → 24 min | 0 von 24 |
+| Greybox, Umland | 3 | 116 (98–136) → 100 m (83–121) | 147 → 127 min | 0 von 18 |
+| Köln, Werkstatt | 8 | 22 (21–22) → 22 m (20–24) | 27 → 27 min | 0 von 48 |
+| Köln, Umland | 7 | 327 (286–369) → 307 m (279–336) | 415 → 388 min | 28 → 26 von 42 |
+| Probestadt, Werkstatt | 3 | 31 (30–32) → 23 m (22–24) | 40 → 30 min | 0 von 18 |
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler): **vorher** = dieser Branch vor der Änderung (Köln 41ccad30, Greybox f56b6f5f, siehe „Mehrere Marktplätze“), **nachher** = 4a8883ed; beide auf main c393d5a0 (eingemergt; origin/main stand danach bei 2c5275c8, nur Ton) → `docs/messungen/balancing-2026-10-31-strecke-{koeln,greybox}.json`.
+
+| Karte | | vorher | nur gemeinsame Strecke | nachher (Karten nachjustiert) |
+|---|---|---|---|---|
+| Köln (10 Startwerte) | Spieler | 33.919 | 39.803 | **32.393** |
+| | KI-Häuser Ø (kleinstes) | 57.238 (39.124) | 59.826 (47.883) | **54.561** (41.245) |
+| | Bankrott | 0 | 0 | **0** |
+| | Spieler Bürger: Ø Jahr (im Ziel 8–12) | 10,0 (10 von 10) | 9,3 (10 von 10) | **10,4 (10 von 10)** |
+| Greybox (20 Startwerte) | Spieler | 34.588 | 22.267 | **35.151** |
+| | KI-Häuser Ø (kleinstes) | 61.624 (43.592) | 72.548 (60.694) | **72.543** (53.704) |
+| | Bankrott | 0 | 0 | **0** |
+| | Spieler Bürger: Ø Jahr (im Ziel 8–12) | 11,0 (16 von 20) | 12,2 (13 von 20) | **9,5 (20 von 20)** |
+
+Köln je Haus (vorher / nachher): Overstolz 71.421 / 69.761, Hardevust 51.862 / 41.245, Lyskirchen 54.019 / 56.134, Gryn 74.930 / 60.711, Scherfgin 39.124 / 52.577, Mommersloch 58.244 / 58.604, Kleingedank 51.063 / 42.898. Greybox: Eisenbart 85.002 / 89.008, Eichwald 56.277 / 53.704, Kieselbach 43.592 / 74.916.
+
+`messen 30 20 greybox` (Dynastie Eisenbart, 30 Jahre, 20 Startwerte), vorher 1f0e80ad / nachher 4a8883ed: Vermögen Ø 208.680 → 210.363, Eichwald 156.787 → 169.334, Kieselbach 115.258 → 194.002; bankrott 0 / 0. `messen 30 20` ohne Karte rechnet mit fester Fahrzeit (keine Strecke) und bleibt gleich.
+
+**Befund:** Kern und Bild fahren dieselbe Strecke (Abweichung nur die Rundung des Kerns auf ganze Minuten, Test `KarrenwegTests`). Mit den nachjustierten Karten bleibt der Spieler in beiden Städten im Ziel (Köln 32.393, −4,5 %; Greybox 35.151, +1,6 %), kein Bankrott, Bürger im Ziel. Die KI-Häuser der Greybox gewinnen 18 % – fast ganz Kieselbach (+72 %): Sein Karren fuhr im Kern bisher 89 m außen herum, im Bild schon immer 26 m über seine Gasse; jetzt rechnet der Kern, was man sieht. In Köln verlieren die KI-Häuser 5 % (Werkstattwege 25–30 statt 27–28 Minuten, die Umlandwege etwas kürzer).
