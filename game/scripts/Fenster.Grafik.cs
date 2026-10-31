@@ -22,7 +22,8 @@ public partial class Fenster
     public readonly record struct Grafikstufe(
         Kantenglaettung Kanten, Schattenqualitaet Schatten, Umgebungsverdeckung Verdeckung, bool Indirekt, bool Bloom,
         bool Fsr, int Renderaufloesung, int Natur, int Passanten, Feinheiten Feinheiten,
-        Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst, Bodenqualitaet Boden, Grasteppich Gras, Wettereffekte Wetter);
+        Miniaturunschaerfe Unschaerfe, bool Wolken, Morgendunst Dunst, Bodenqualitaet Boden, Grasteppich Gras, Wettereffekte Wetter,
+        GlobaleBeleuchtung Gi);
 
     /// <summary>
     /// Die vier Stufen. Hoch entspricht den Grundwerten vor PR #169 (SMAA, Schatten Hoch, Verdeckung Mittel, Bloom), dazu der
@@ -33,16 +34,16 @@ public partial class Fenster
         // Ohne FSR: Auf der T400 kostete FSR 2.2 mit 67 % in Niedrig mehr, als es sparte (GPU 10,3 gegen 8,7 ms je Bild).
         Voreinstellung.Niedrig => new(Kantenglaettung.Fxaa, Schattenqualitaet.Niedrig, Umgebungsverdeckung.Aus, false, false,
                                       false, StandardRenderaufloesung, 50, 50, Feinheiten.Nah, Miniaturunschaerfe.Aus, false, Morgendunst.Aus,
-                                      Bodenqualitaet.Niedrig, Grasteppich.Aus, Wettereffekte.Niedrig),
+                                      Bodenqualitaet.Niedrig, Grasteppich.Aus, Wettereffekte.Niedrig, GlobaleBeleuchtung.Aus),
         Voreinstellung.Mittel => new(Kantenglaettung.Smaa, Schattenqualitaet.Mittel, Umgebungsverdeckung.Niedrig, false, true,
                                      false, StandardRenderaufloesung, 75, 75, Feinheiten.Mittel, Miniaturunschaerfe.Aus, true, Morgendunst.Aus,
-                                     Bodenqualitaet.Mittel, Grasteppich.Aus, Wettereffekte.Mittel),
+                                     Bodenqualitaet.Mittel, Grasteppich.Aus, Wettereffekte.Mittel, GlobaleBeleuchtung.Aus),
         Voreinstellung.Ultra => new(Kantenglaettung.Msaa4, Schattenqualitaet.Hoch, Umgebungsverdeckung.Hoch, true, true,
                                     false, StandardRenderaufloesung, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Hoch,
-                                    Bodenqualitaet.Hoch, Grasteppich.SehrDicht, Wettereffekte.Hoch),
+                                    Bodenqualitaet.Hoch, Grasteppich.SehrDicht, Wettereffekte.Hoch, GlobaleBeleuchtung.Aus),
         _ => new(Kantenglaettung.Smaa, Schattenqualitaet.Hoch, Umgebungsverdeckung.Mittel, false, true,
                  false, StandardRenderaufloesung, 100, 100, Feinheiten.Weit, Miniaturunschaerfe.Leicht, true, Morgendunst.Niedrig,
-                 Bodenqualitaet.Hoch, Grasteppich.Dicht, Wettereffekte.Hoch),
+                 Bodenqualitaet.Hoch, Grasteppich.Dicht, Wettereffekte.Hoch, GlobaleBeleuchtung.Aus),
     };
 
     /// <summary>Ohne gespeicherte Einstellungen (und bis die automatische Wahl fertig ist): Hoch.</summary>
@@ -52,7 +53,8 @@ public partial class Fenster
     public static Grafikstufe AktuelleStufe => new(
         AktuelleKantenglaettung, AktuelleSchattenqualitaet, AktuelleUmgebungsverdeckung, IndirektesLichtAn, BloomAn,
         FsrAn, Renderaufloesung, NaturDichte, PassantenMenge, AktuelleFeinheiten,
-        AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet, AktuellerGrasteppich, AktuelleWettereffekte);
+        AktuelleUnschaerfe, WolkenschattenAn, AktuellerDunst, AktuelleBodenqualitaet, AktuellerGrasteppich, AktuelleWettereffekte,
+        GlobaleBeleuchtungMoeglich ? AktuelleGlobaleBeleuchtung : GlobaleBeleuchtung.Aus); // ohne Forward+ wirkt SDFGI nicht, die Stufe zeigt dann nicht „Eigene“
 
     /// <summary>
     /// Welche Voreinstellung die Regler gerade zeigen – „Eigene“, sobald einer abweicht. Gerechnet statt gespeichert: Stellt der
@@ -83,6 +85,7 @@ public partial class Fenster
         SchattenqualitaetSetzen(s.Schatten, speichern);
         UmgebungsverdeckungSetzen(s.Verdeckung, speichern);
         IndirektesLichtSetzen(s.Indirekt, speichern);
+        GlobaleBeleuchtungSetzen(s.Gi, speichern);
         BloomSetzen(s.Bloom, BloomStaerke, speichern);
         FsrSetzen(s.Fsr, s.Fsr ? s.Renderaufloesung : Renderaufloesung, speichern);
         NaturDichteSetzen(s.Natur, speichern);
@@ -683,6 +686,11 @@ public partial class Fenster
                         Zahl("bloomstaerke", out var bloomStaerke) ? bloomStaerke : BloomStaerke, speichern: false);
         if (Art<Umgebungsverdeckung>("ssao", out var ssao)) UmgebungsverdeckungSetzen(ssao, speichern: false);
         if (optionen.TryGetValue("ssil", out var ssil)) IndirektesLichtSetzen(An(ssil), speichern: false);
+        // --sdfgi=0..3 (Aus, Niedrig, Mittel, Hoch) oder der Name der Stufe; die Unterschalter mit --sdfgi-innen=0|1 und --sdfgi-aussen=0|1
+        if (optionen.TryGetValue("sdfgi-innen", out var giInnen)) GlobaleBeleuchtungInnenSetzen(An(giInnen), speichern: false);
+        if (optionen.TryGetValue("sdfgi-aussen", out var giAussen)) GlobaleBeleuchtungAussenSetzen(An(giAussen), speichern: false);
+        if (optionen.TryGetValue("sdfgi", out var sdfgi) && Enum.TryParse<GlobaleBeleuchtung>(sdfgi, true, out var gi) && Enum.IsDefined(gi))
+            GlobaleBeleuchtungSetzen(gi, speichern: false);
         if (optionen.ContainsKey("fsr") || optionen.ContainsKey("renderaufloesung")) // ebenso
             FsrSetzen(optionen.TryGetValue("fsr", out var fsr) ? An(fsr) : FsrAn,
                       Zahl("renderaufloesung", out var aufloesung) ? aufloesung : Renderaufloesung, speichern: false);

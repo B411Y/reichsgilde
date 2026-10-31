@@ -206,7 +206,11 @@ public partial class Stadtansicht
     private void FeuerAnlegen(InnenAnsicht a, Vector3 ort, StandardMaterial3D? glut, float lichtAn, float lichtAus = 0.2f,
         float glutAn = 1.6f, float glutAus = 0.25f, Func<bool>? an = null, float reichweite = 7, bool schatten = false)
     {
-        var licht = new OmniLight3D { LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = reichweite, LightEnergy = 0, ShadowEnabled = schatten, Position = a.Mitte + ort };
+        var licht = new OmniLight3D
+        {
+            LightColor = new Color(1f, 0.55f, 0.22f), OmniRange = reichweite, LightEnergy = 0, ShadowEnabled = schatten, Position = a.Mitte + ort,
+            LightIndirectEnergy = GlutGi, // gedämpft in der globalen Beleuchtung, sonst färbt die Glut den ganzen Raum rot (Stadtansicht.GlobaleBeleuchtung.cs)
+        };
         a.Innen!.AddChild(licht);
         a.Feuer.Add(new Feuerstelle(licht, glut, lichtAn, lichtAus, glutAn, glutAus, an));
     }

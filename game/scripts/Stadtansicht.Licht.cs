@@ -108,6 +108,7 @@ public partial class Stadtansicht
         _daemmerung = ziel.Fenster;
         FensterlichtSetzen(ziel.Fenster, uhrzeitInMinuten / 60f); // Stadtansicht.Modelle.cs – fasst die Materialien nur bei merklicher Änderung an
         RaumlichtSetzen(ziel.Himmel, ziel.Hell); // Stadtansicht.Raeume.cs
+        GlobaleBeleuchtungHelligkeit(); // SDFGI so hell wie das Umgebungslicht, das es ersetzt (Stadtansicht.GlobaleBeleuchtung.cs)
     }
 
     /// <summary>
@@ -358,7 +359,7 @@ public partial class Stadtansicht
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Umgebungsverdeckung (SSAO) und indirektes Licht (SSIL)
+    //  Umgebungsverdeckung (SSAO) und indirektes Licht (SSIL); globale Beleuchtung (SDFGI) in Stadtansicht.GlobaleBeleuchtung.cs
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Wie genau Godot SSAO und SSIL rechnet (<see cref="Fenster.UmgebungsverdeckungSetzen"/> reicht es an den RenderingServer).</summary>
@@ -395,7 +396,7 @@ public partial class Stadtansicht
     /// <summary>Reichweite (Meter) und Stärke des indirekten Lichts; es soll nur ein wenig Farbe von nahen Flächen zurückgeben, nichts verschmieren.</summary>
     private const float IndirektReichweite = 4f, IndirektStaerke = 2f;
 
-    /// <summary>Stellt SSAO und SSIL einer Umgebung (Stadt oder Raumansicht) nach der Einstellung ein.</summary>
+    /// <summary>Stellt SSAO, SSIL und SDFGI einer Umgebung (Stadt oder Raumansicht) nach der Einstellung ein.</summary>
     internal static void VerdeckungAnwenden(Godot.Environment umgebung, bool raum = false)
     {
         umgebung.SsaoEnabled = Fenster.AktuelleUmgebungsverdeckung != Umgebungsverdeckung.Aus;
@@ -406,6 +407,7 @@ public partial class Stadtansicht
         umgebung.SsilEnabled = Fenster.IndirektesLichtAn;
         umgebung.SsilRadius = IndirektReichweite;
         umgebung.SsilIntensity = IndirektStaerke;
+        GlobaleBeleuchtungAnwenden(umgebung, raum); // Stadtansicht.GlobaleBeleuchtung.cs
     }
 
     /// <summary>Stadt und Raumansicht übernehmen die Einstellung sofort, wenn sie sich ändert.</summary>

@@ -319,7 +319,8 @@ public partial class Stadtansicht : Node3D
         SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
         BloomNachfuehren();   // beide Umgebungen stehen jetzt (Stadtansicht.Licht.cs)
         Fenster.BloomGeaendert += BloomNachfuehren;
-        VerdeckungNachfuehren(); // Umgebungsverdeckung und indirektes Licht (Stadtansicht.Licht.cs)
+        VerdeckungNachfuehren(); // Umgebungsverdeckung, indirektes Licht und SDFGI (Stadtansicht.Licht.cs)
+        GlobaleBeleuchtungEinrichten(); // SDFGI: neues Feld, Partikel und Figuren tragen nicht bei (Stadtansicht.GlobaleBeleuchtung.cs)
         Fenster.VerdeckungGeaendert += VerdeckungNachfuehren;
         GrafikEinrichten(); // Unschärfe, Wolken, Dunst, Farbstimmung, Detailstufe (Stadtansicht.Grafik.cs)
         Ladezeit.Marke("Stadtansicht: Licht, Kamera, Grafik");
@@ -452,6 +453,7 @@ public partial class Stadtansicht : Node3D
         GrafikAufgeben();
         WetterAufgeben(); // die globalen Shader-Werte zurück auf Sommer und trocken (Stadtansicht.Wetter.cs)
         OberflaecheAufgeben();
+        GlobaleBeleuchtungAufgeben();
         if (_wirtschaft is not null)
         {
             _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
@@ -500,6 +502,7 @@ public partial class Stadtansicht : Node3D
             if (ansicht.WegZumMarkt[0].DistanceTo(halt) > 0.1f) ansicht.WegZumMarkt = ansicht.WegZumMarkt.Prepend(halt).ToArray();
         }
         _betriebe[betrieb] = ansicht;
+        GlobaleBeleuchtungNeuAnlegen(); // SDFGI sieht das neue Gebäude sonst erst, wenn die Kamera weiterwandert
     }
 
     /// <summary>Werkstil nach Beruf – eine ausgebaute Drechslerei bleibt eine Tischlerwerkstatt.</summary>
@@ -540,6 +543,7 @@ public partial class Stadtansicht : Node3D
         }
         KarrenOhneBetriebEntfernen(); // sie gehen mit dem Betrieb an den Käufer
         FreienPlatzZeigen(frei);
+        GlobaleBeleuchtungNeuAnlegen();
     }
 
     /// <summary>Karren, die zu keinem Betrieb mehr gehören: mit dem Betrieb verkauft oder einzeln verkauft (PR #205).</summary>
@@ -658,11 +662,12 @@ public partial class Stadtansicht : Node3D
         _leereHaeuser[frei.Name] = (p.Mitte, gruppe, modell?.Wurzel ?? gruppe);
     }
 
-    /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen, die sonst ins Leere zeigen.</summary>
+    /// <summary>Entfernt einen Knoten samt Kindern – und vergisst seine Beschriftungen und SDFGI-Zwillinge, die sonst ins Leere zeigen.</summary>
     private void KnotenEntfernen(Node3D knoten)
     {
         _beschriftungen.RemoveAll(label => label == knoten || knoten.IsAncestorOf(label));
         _kulisseAusgeblendet.RemoveAll(teil => teil == knoten || knoten.IsAncestorOf(teil));
+        GiZwillingeVergessen(knoten); // die Lichter des Innenraums nur für SDFGI (Stadtansicht.GlobaleBeleuchtung.cs)
         knoten.QueueFree();
     }
 
@@ -975,6 +980,7 @@ public partial class Stadtansicht : Node3D
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
         GrafikBild(delta);     // Unschärfe nach Zoom, Wolken, Dunst nach Uhrzeit (Stadtansicht.Grafik.cs)
+        GiVergleichSchritt(delta); // nur mit --givergleich: Räume mit und ohne SDFGI (Stadtansicht.GlobaleBeleuchtung.Vergleich.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Eis auf dem Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
