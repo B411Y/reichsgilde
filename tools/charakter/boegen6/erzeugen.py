@@ -239,6 +239,18 @@ erzeugt.append(schreiben("p07b_grat_naht", {
                 {"titel": "Büste mit", "kopf": "kopf5_mn.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0,
                  "schluessel_richtung": [-100, 20]}],
     "zeilen": zeilen}))
+# P7b für Stand 6 (Prüferbefund Etappe A: der Bogen oben zeigt nur glb5 mit haut3): kopf6_ohne.glb (alle Formnormalen
+# entfernt, glb_formnormalen.py ohne_vorsilben=makro_,gen_,alter_) gegen den ausgelieferten kopf6.glb, haut6
+erzeugt.append(schreiben("p07b_grat_naht6", {
+    "titel": "P7b Stand 6: Formnormalen aus | an (Streiflicht N5) · Büstennaht aus | an (K2, Büste) – kopf6_ohne | kopf6, haut6",
+    "pruefplan": "P7b", "ab": "A", "zelle": [600, 720], "alle": {"licht": "vorlage", "stand": 6},
+    "spalten": [dict(zelle("N5"), titel="N5 ohne Formnormalen", kopf="kopf6_ohne.glb"),
+                dict(zelle("N5"), titel="N5 mit Formnormalen", kopf="kopf6.glb"),
+                {"titel": "Büste ohne", "kopf": "kopf6_ohne.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0,
+                 "schluessel_richtung": [-100, 20]},
+                {"titel": "Büste mit", "kopf": "kopf6.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0,
+                 "schluessel_richtung": [-100, 20]}],
+    "zeilen": zeilen}))
 
 # ------------------------------------------------------------------ P8 frisuren10 (ab B)
 FRISUREN = {"m": ["topfschnitt", "mann_pagen", "haarrolle", "schulterlang", "mann_kurz", "stirnfransen", "krauskopf",
@@ -274,8 +286,9 @@ erzeugt.append(schreiben("p10_kalibrier", {
 # S2: Prüfkugeln (Lichtart „kugeltest“: nur das Schlüssellicht, linear, schwarzer Grund, orthografische Kamera – alle
 # drei Kugeln sehen genau dieselbe Blickrichtung). Spalten: Winkel zwischen Licht und Blick 0/30/60/80/150°; je Zelle
 # links haut6 (Wrap 0, eine Keule), Mitte StandardMaterial3D, rechts haut3 (Phase 5). Zeile Glanz: Albedo 0 (Energie 8,
-# damit die Glanzspitze gut über dem 8-Bit-Raster liegt); Streulicht: Glanz 0; Streiflicht: Glanz mit Energie 1 (ohne
-# Übersteuerung), gewertet als Summe über die Kugel bei 150° (Licht von hinten seitlich, Fresnel am Rand).
+# damit die Glanzspitze gut über dem 8-Bit-Raster liegt); Streulicht: Glanz 0; Streiflicht: Glanz mit Energie 0,3, als
+# Summe über die ganze Kugel. Gewertet wird 80° (N5 laut Plan 5.1); 150° (Licht von hinten seitlich) ist ein Zusatz.
+# Prüferbefund Etappe A: mit Energie 1 übersteuerte der Rand bei 150° (Spitze 1,0), die Summe war nicht belastbar.
 erzeugt.append(schreiben("p10b_kugeln", {
     "titel": "P10b Prüfkugeln: haut6 (Wrap 0, eine Keule) | StandardMaterial3D | haut3 – Glanz (Albedo 0) und Streulicht (Glanz 0), linear",
     "pruefplan": "P10", "ab": "A", "zelle": ZELLE["K1"],
@@ -283,26 +296,27 @@ erzeugt.append(schreiben("p10b_kugeln", {
     "spalten": [{"titel": f"Licht {w}° zur Blickachse", "schluessel_richtung": [-w, 0]} for w in (0, 30, 60, 80, 150)],
     "zeilen": [{"titel": "Glanz", "pruefkoerper": "kugel6_glanz", "schluessel": {"light_energy": 8.0}},
                {"titel": "Streulicht", "pruefkoerper": "kugel6_streu", "schluessel": {"light_energy": 1.0}},
-               {"titel": "Streiflicht (Glanz, Energie 1)", "pruefkoerper": "kugel6_glanz", "schluessel": {"light_energy": 1.0}}]}))
-# S2: Formnormalen A/B ohne Neubau (kopf5.glb ohne, kopf5_mn.glb mit Normalen aller Formen), Stand 5. Bogen a: Mann 30
-# unter L-V vorn (Messung Kiefer und Kinn gegen die obere Wange); Bogen b: Grat- und Dellenprüfung über alle Alter samt
-# Säugling, Kind und Büstennaht (Streiflicht).
+               {"titel": "Streiflicht (Glanz, Energie 0,3)", "pruefkoerper": "kugel6_glanz", "schluessel": {"light_energy": 0.3}}]}))
+# S2: Formnormalen A/B am ausgelieferten Kopf (Prüferbefund Etappe A; bis dahin kopf5.glb gegen kopf5_mn.glb mit haut3):
+# kopf6_ohne.glb (alle Formnormalen entfernt) gegen kopf6.glb (Normalen für gen_ und alter_, makro_ ohne), Stand 6.
+# Bogen a: Mann 30 unter L-V vorn (Messung Kiefer und Kinn gegen die obere Wange); Bogen b: Grat- und Dellenprüfung
+# über alle Alter samt Säugling, Kind und Büstennaht (Streiflicht).
 erzeugt.append(schreiben("s2_ab_mann30", {
-    "titel": "S2 A/B Formnormalen: Mann 30, L-V – K1 ohne | K1 mit | K2 ohne | K2 mit (kopf5.glb | kopf5_mn.glb)",
-    "pruefplan": "S2", "ab": "A", "zelle": ZELLE["K1"], "alle": {"licht": "vorlage", "stand": 5, "alter": 30, "geschlecht": "m",
+    "titel": "S2 A/B Formnormalen: Mann 30, L-V – K1 ohne | K1 mit | K2 ohne | K2 mit (kopf6_ohne.glb | kopf6.glb, haut6)",
+    "pruefplan": "S2", "ab": "A", "zelle": ZELLE["K1"], "alle": {"licht": "vorlage", "stand": 6, "alter": 30, "geschlecht": "m",
                                                                   "haar": {"modus": "aus"}},
-    "spalten": [dict(zelle("K1"), titel="K1 ohne", kopf="kopf5.glb"), dict(zelle("K1"), titel="K1 mit", kopf="kopf5_mn.glb"),
-                dict(zelle("K2"), titel="K2 ohne", kopf="kopf5.glb"), dict(zelle("K2"), titel="K2 mit", kopf="kopf5_mn.glb")],
+    "spalten": [dict(zelle("K1"), titel="K1 ohne", kopf="kopf6_ohne.glb"), dict(zelle("K1"), titel="K1 mit", kopf="kopf6.glb"),
+                dict(zelle("K2"), titel="K2 ohne", kopf="kopf6_ohne.glb"), dict(zelle("K2"), titel="K2 mit", kopf="kopf6.glb")],
     "zeilen": [{"titel": "Mann 30"}]}))
 PERS_AB = [("Säugling 1", {"alter": 1, "geschlecht": "m"}, True), ("Kind 5", {"alter": 5, "geschlecht": "w"}, True)] + \
     [(f"{'Mann' if g == 'm' else 'Frau'} {a}", {"alter": a, "geschlecht": g}, False) for g in ("m", "w") for a in (20, 35, 70)]
 erzeugt.append(schreiben("s2_ab_formen", {
-    "titel": "S2 A/B Formnormalen über alle Alter: K2 ohne | K2 mit | Büste ohne | Büste mit (Streiflicht, L-V, Stand 5)",
-    "pruefplan": "S2", "ab": "A", "zelle": [600, 720], "alle": {"licht": "vorlage", "stand": 5, "haar": {"modus": "aus"}},
-    "spalten": [dict(zelle("K2_kind"), titel="K2 ohne", kopf="kopf5.glb", schluessel_richtung=[-100, 20]),
-                dict(zelle("K2_kind"), titel="K2 mit", kopf="kopf5_mn.glb", schluessel_richtung=[-100, 20]),
-                {"titel": "Büste ohne", "kopf": "kopf5.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0, "schluessel_richtung": [-100, 20]},
-                {"titel": "Büste mit", "kopf": "kopf5_mn.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0, "schluessel_richtung": [-100, 20]}],
+    "titel": "S2 A/B Formnormalen über alle Alter: K2 ohne | K2 mit | Büste ohne | Büste mit (Streiflicht, L-V, Stand 6: kopf6_ohne | kopf6)",
+    "pruefplan": "S2", "ab": "A", "zelle": [600, 720], "alle": {"licht": "vorlage", "stand": 6, "haar": {"modus": "aus"}},
+    "spalten": [dict(zelle("K2_kind"), titel="K2 ohne", kopf="kopf6_ohne.glb", schluessel_richtung=[-100, 20]),
+                dict(zelle("K2_kind"), titel="K2 mit", kopf="kopf6.glb", schluessel_richtung=[-100, 20]),
+                {"titel": "Büste ohne", "kopf": "kopf6_ohne.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0, "schluessel_richtung": [-100, 20]},
+                {"titel": "Büste mit", "kopf": "kopf6.glb", "ansicht": "buste", "winkel": 35, "hoehe": 0, "schluessel_richtung": [-100, 20]}],
     "zeilen": [dict(p, titel=t) for t, p, _ in PERS_AB]}))
 # S2: dünne Formdaten – kopf6.glb (dünn) gegen dieselben Formen dicht gespeichert (arbeit/phase6/probe/dicht/kopf6.glb,
 # gleiche Normalen), Stand 6; die Bilder müssen gleich sein (mittlere Abweichung ≤ 1/255)

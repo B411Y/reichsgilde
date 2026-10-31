@@ -70,10 +70,10 @@
    }
   },
   {
-   "titel": "Streiflicht (Glanz, Energie 1)",
+   "titel": "Streiflicht (Glanz, Energie 0,3)",
    "pruefkoerper": "kugel6_glanz",
    "schluessel": {
-    "light_energy": 1.0
+    "light_energy": 0.3
    }
   }
  ],

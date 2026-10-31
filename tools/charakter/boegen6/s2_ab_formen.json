@@ -1,5 +1,5 @@
 {
- "titel": "S2 A/B Formnormalen über alle Alter: K2 ohne | K2 mit | Büste ohne | Büste mit (Streiflicht, L-V, Stand 5)",
+ "titel": "S2 A/B Formnormalen über alle Alter: K2 ohne | K2 mit | Büste ohne | Büste mit (Streiflicht, L-V, Stand 6: kopf6_ohne | kopf6)",
  "pruefplan": "S2",
  "ab": "A",
  "zelle": [
@@ -8,7 +8,7 @@
  ],
  "alle": {
   "licht": "vorlage",
-  "stand": 5,
+  "stand": 6,
   "haar": {
    "modus": "aus"
   }
@@ -19,7 +19,7 @@
    "winkel": 35,
    "hoehe": 0,
    "titel": "K2 ohne",
-   "kopf": "kopf5.glb",
+   "kopf": "kopf6_ohne.glb",
    "schluessel_richtung": [
     -100,
     20
@@ -30,7 +30,7 @@
    "winkel": 35,
    "hoehe": 0,
    "titel": "K2 mit",
-   "kopf": "kopf5_mn.glb",
+   "kopf": "kopf6.glb",
    "schluessel_richtung": [
     -100,
     20
@@ -38,7 +38,7 @@
   },
   {
    "titel": "Büste ohne",
-   "kopf": "kopf5.glb",
+   "kopf": "kopf6_ohne.glb",
    "ansicht": "buste",
    "winkel": 35,
    "hoehe": 0,
@@ -49,7 +49,7 @@
   },
   {
    "titel": "Büste mit",
-   "kopf": "kopf5_mn.glb",
+   "kopf": "kopf6.glb",
    "ansicht": "buste",
    "winkel": 35,
    "hoehe": 0,

@@ -1,5 +1,5 @@
 {
- "titel": "S2 A/B Formnormalen: Mann 30, L-V – K1 ohne | K1 mit | K2 ohne | K2 mit (kopf5.glb | kopf5_mn.glb)",
+ "titel": "S2 A/B Formnormalen: Mann 30, L-V – K1 ohne | K1 mit | K2 ohne | K2 mit (kopf6_ohne.glb | kopf6.glb, haut6)",
  "pruefplan": "S2",
  "ab": "A",
  "zelle": [
@@ -8,7 +8,7 @@
  ],
  "alle": {
   "licht": "vorlage",
-  "stand": 5,
+  "stand": 6,
   "alter": 30,
   "geschlecht": "m",
   "haar": {
@@ -23,7 +23,7 @@
    "spanne_m": 0.34,
    "ziel_m": -0.02,
    "titel": "K1 ohne",
-   "kopf": "kopf5.glb"
+   "kopf": "kopf6_ohne.glb"
   },
   {
    "ansicht": "kopf",
@@ -32,7 +32,7 @@
    "spanne_m": 0.34,
    "ziel_m": -0.02,
    "titel": "K1 mit",
-   "kopf": "kopf5_mn.glb"
+   "kopf": "kopf6.glb"
   },
   {
    "ansicht": "kopf",
@@ -41,7 +41,7 @@
    "spanne_m": 0.34,
    "ziel_m": -0.02,
    "titel": "K2 ohne",
-   "kopf": "kopf5.glb"
+   "kopf": "kopf6_ohne.glb"
   },
   {
    "ansicht": "kopf",
@@ -50,7 +50,7 @@
    "spanne_m": 0.34,
    "ziel_m": -0.02,
    "titel": "K2 mit",
-   "kopf": "kopf5_mn.glb"
+   "kopf": "kopf6.glb"
   }
  ],
  "zeilen": [
