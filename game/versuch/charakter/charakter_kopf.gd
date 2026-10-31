@@ -35,8 +35,23 @@ const HAUT6_ULTRA := preload("res://versuch/charakter/haut6_ultra.gdshader")
 const AUGEN6 := preload("res://versuch/charakter/augen6.gdshader")
 const HAUT6A := preload("res://versuch/charakter/haut6a.gdshader")
 const HAUT6A_ULTRA := preload("res://versuch/charakter/haut6a_ultra.gdshader")
+# Etappe C (Haut): eigene Zonen-, Glanz- und Reliefkarten (tools/charakter/kopf6_hautc.py) und Detailkacheln
+# (kopf6_kacheln.py) im Bildordner des Kopfs; Bogenschlüssel „weg_c“ (zusammen mit „weg_a“), „wetter“ 0–1
+const HAUT6C := preload("res://versuch/charakter/haut6c.gdshader")
+const HAUT6C_ULTRA := preload("res://versuch/charakter/haut6c_ultra.gdshader")
+const HAUT6C_EINFACH := preload("res://versuch/charakter/haut6c_einfach.gdshader")
 const BILDER := ["haut_farbe", "haut_normal", "haut_masken", "haut_falten", "brauen", "wimpern", "iris_muster", "lederhaut"]
-const BILDER_WAHL := ["brauen_w", "haut_zonen"]   # Phase 5 (sonst „brauen“); Halt B2: Zonenkarte für Weg A
+const BILDER_WAHL := ["brauen_w", "haut_zonen", "haut_c_zonen", "haut_c_glanz", "haut_c_relief", "haut_c_poren",
+	"haut_c_flecken"]   # Phase 5 (sonst „brauen“); Halt B2: Zonenkarte für Weg A; Etappe C: Haut
+# Etappe C: Reliefgewicht je Kanal über das Alter (Stirn, Augen, Mittelform, Mund/Hals); Mittelform (Nasolabial-,
+# Tränen-, Lidrinne, Lippenrillen) gibt es schon in der Jugend schwach
+const RELIEF_STAERKE := 2.5     # Etappe C: Reliefkarte × 2,5 (bei 1 lasen sich Falten im Porträtlicht kaum)
+const RELIEF_ALTER := {
+	"stirn": [[25, 0.0], [35, 0.15], [45, 0.4], [60, 0.8], [75, 1.1]],
+	"augen": [[22, 0.0], [32, 0.22], [45, 0.55], [60, 0.85], [72, 1.1]],
+	"mitte": [[10, 0.1], [25, 0.25], [35, 0.35], [50, 0.65], [70, 1.0]],
+	"mund": [[35, 0.0], [48, 0.3], [62, 0.7], [75, 1.05]],
+}
 # Falten je Gegend über das Alter (Menschenjahre -> Gewicht), wie die Alterskurven in erbgut.json
 const FALTEN_ALTER := {
 	"stirn": [[25, 0.0], [38, 0.15], [50, 0.5], [62, 0.95], [75, 1.3]],
@@ -111,6 +126,10 @@ var regeln_pfad := REGELN6
 # Brauen, Iris entsättigt mit hohler Normale und schmalerem Limbus, Lederhaut zu den Winkeln warm abgedunkelt, Lidschatten
 # etwas stärker. Nur Stand 6; ohne Zonenkarte (kopf6_tex/haut_zonen.png) bleibt die Haut wie Stand 6.
 var weg_a := false
+var weg_c := false              # Etappe C: Haut (nur mit weg_a, Stand 6 und den Bildern haut_c_*)
+var wetter := 0.0               # Etappe C: Wetterhaut 0–1 (Außenarbeit; später aus Beruf und Jahren im Kern)
+var haut_einfach := false       # Etappe C: Stufen Niedrig/Mittel ohne Detailkacheln
+var c_info := {}                # haut_c.json (Reliefmaßstab, Bildpunktgröße)
 static var zuege_aus := false   # Prüfung „nur Gene“ (Schau: --ohne_zuege)
 static var _erbgut6 := {}
 var volk := "Mensch"
@@ -163,6 +182,7 @@ func kopieren_von(quelle) -> void:
 	regeln_pfad = quelle.regeln_pfad
 	stand = quelle.stand
 	bilder = quelle.bilder
+	c_info = quelle.c_info
 	phase3 = quelle.phase3
 	ultra = quelle.ultra
 	for k in quelle.get_children():
@@ -188,6 +208,8 @@ func stand_setzen(n: int) -> void:
 	_farben()
 
 func _haut_shader() -> Shader:
+	if stand >= 6 and weg_c and bilder.has("haut_c_relief"):
+		return HAUT6C_ULTRA if ultra else (HAUT6C_EINFACH if haut_einfach else HAUT6C)
 	if stand >= 6 and weg_a and bilder.has("haut_zonen"):
 		return HAUT6A_ULTRA if ultra else HAUT6A
 	return (HAUT6_ULTRA if ultra else HAUT6) if stand >= 6 else (HAUT3_ULTRA if ultra else HAUT3)
@@ -198,9 +220,15 @@ func weg_a_setzen(an: bool) -> void:
 	weg_a = an
 	_shader_waehlen()
 
+func weg_c_setzen(an: bool) -> void:
+	if an == weg_c:
+		return
+	weg_c = an
+	_shader_waehlen()
+
 func _shader_waehlen() -> void:
 	for m in haut_stoffe:
-		if m.shader in [HAUT3, HAUT3_ULTRA, HAUT6, HAUT6_ULTRA, HAUT6A, HAUT6A_ULTRA]:
+		if m.shader in [HAUT3, HAUT3_ULTRA, HAUT6, HAUT6_ULTRA, HAUT6A, HAUT6A_ULTRA, HAUT6C, HAUT6C_ULTRA, HAUT6C_EINFACH]:
 			m.shader = _haut_shader()
 	for m in augen_stoffe:
 		if m.shader in [AUGEN3, AUGEN6]:
@@ -278,6 +306,9 @@ func _bilder_laden(datei: String) -> void:
 		var tex := ImageTexture.create_from_image(img)
 		_bild_speicher[f] = tex
 		bilder[b] = tex
+	var cj := ordner.path_join("haut_c.json")
+	if FileAccess.file_exists(cj):
+		c_info = JSON.parse_string(FileAccess.get_file_as_string(cj))
 	phase3 = true
 	bilder_ms = (Time.get_ticks_usec() - t) / 1000.0
 
@@ -909,6 +940,21 @@ func _farben() -> void:
 			farbe_setzen(m, "haar_farbe", haar, st)
 		werte3 = {"falten": f, "bart": bart, "brauen_dichte": dichte, "brauen_breite": breite, "grau": grau,
 			"grundfarbe": grund, "brauen_ebene": ebene}
+		# Etappe C: Haut aus Zonen, Relief und Kacheln (nur Weg A + C, Stand 6)
+		var c_an := st >= 6 and weg_a and weg_c and bilder.has("haut_c_relief")
+		if c_an:
+			_haut_c_setzen(mann, h, hh, bart, reif, greis, fett, faktor,
+				Vector4(0.7 * m_stirn, 0.6 * m_auge, 0.3 * m_mund, 0.3 * m_mund) * mf, grund)
+		for m in wimpern_stoffe:
+			# Etappe C: Unterlid-Wimpern licht, dünn, Wurzel weich; alle Wimpern etwas weniger schwarz und deckend
+			m.set_shader_parameter("unten_deckung", 0.45 if c_an else 1.0)
+			m.set_shader_parameter("unten_wurzel", 1.0 if c_an else 0.0)
+			m.set_shader_parameter("unten_hell", 0.35 if c_an else 0.0)
+			farbe_setzen(m, "haut_ton", grund, st)
+			m.set_shader_parameter("dunkel", 0.72 if c_an else 0.6)
+			m.set_shader_parameter("deckung", 0.85 if c_an else 1.0)
+			if c_an:
+				farbe_setzen(m, "farbe", haar.darkened(0.55), st)
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
@@ -966,6 +1012,56 @@ func _farben() -> void:
 		m.set_shader_parameter("kranz", clampf(1.0 - at * 0.9, 0.1, 1.0) * lerpf(0.4, 1.0, ah))
 	for m in zahnfleisch_stoffe:
 		farbe_setzen(m, "farbe", linear(ZAHNFLEISCH6) if st >= 6 else Color(0.62, 0.27, 0.26), st)
+
+# Etappe C: Hautwerte je Person. Alter der Haut: Außenarbeit (wetter) altert die Haut um bis zu 10 Jahre; Sonne bräunt
+# und rötet Stirn, Nase, Jochbein, Ohren und Nacken; Gene „hautroetung“ und „sommersprossen“ (Vorschlag S7).
+func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, greis: float, fett: float, faktor: float,
+		mimik4: Vector4, grund: Color) -> void:
+	var w := clampf(wetter, 0.0, 1.0)
+	var a_h := alter + 10.0 * w
+	var rel := Vector4(kurve_im_alter(RELIEF_ALTER["stirn"], a_h) * (1.15 - 0.3 * fett),
+		kurve_im_alter(RELIEF_ALTER["augen"], a_h), kurve_im_alter(RELIEF_ALTER["mitte"], a_h),
+		kurve_im_alter(RELIEF_ALTER["mund"], a_h) * (0.85 + 0.3 * fett))
+	rel = rel * faktor * (1.0 if mann else 0.95) * (1.0 + 0.25 * w) + mimik4
+	var roet := pow(clampf(float(gene.get("hautroetung", 128.0)) / 128.0, 0.2, 2.0), 0.7)
+	# Sommersprossen: steile Kurve (Gen 110 ≈ 3 %, 150 ≈ 11 %, 255 ≈ 60 % der Flecken auf Nase und Wangen)
+	var spross := clampf((float(gene.get("sommersprossen", 60.0)) - 60.0) / 195.0, 0.0, 1.0)
+	spross = pow(spross, 2.2) * 0.6 * lerpf(1.0, 0.85, reif)
+	var ring_a := clampf((a_h - 22.0) / 40.0, 0.0, 1.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("haut_c:%d" % aussehen_samen)
+	var versatz := Vector2(rng.randf(), rng.randf()) if aussehen_samen != 0 else Vector2(0.137, 0.731)
+	# Bartschatten (rasiert): Albedo im Bartgebiet bei mittlerem Bartwuchs und dunklem Haar ≈ 25 % dunkler, kühl (Plan S9:
+	# ΔL* −6 … −12); helles oder graues Haar zeigt sich kaum
+	var bart_c := clampf(bart * 1.35, 0.0, 0.95) if mann else clampf(bart * 0.6, 0.0, 0.3)
+	var bart_farbe := Vector3(0.64, 0.68, 0.75).lerp(Vector3(0.9, 0.9, 0.9), clampf(hh * 1.2, 0.0, 1.0))
+	for m in haut_stoffe:
+		m.set_shader_parameter("relief_gewicht", rel)
+		m.set_shader_parameter("c_versatz", versatz)
+		m.set_shader_parameter("c_hb", 0.24 * roet * (1.12 if mann else 1.0) + 0.06 * greis + 0.1 * w)
+		m.set_shader_parameter("c_sonne", 0.06 + 0.04 * reif + 0.2 * w)
+		m.set_shader_parameter("c_braeune", 0.15 * w)
+		m.set_shader_parameter("c_ringe", (0.35 + 0.15 * ring_a) * (1.0 if mann else 1.1))
+		m.set_shader_parameter("c_bart", bart_c)
+		m.set_shader_parameter("c_bart_farbe", bart_farbe)
+		m.set_shader_parameter("c_stoppeln", (0.9 * clampf(bart / 0.5, 0.0, 1.0) * (1.0 - 0.6 * hh)) if mann else 0.0)
+		m.set_shader_parameter("c_unruhe_eu", (0.08 + 0.04 * reif + 0.04 * greis + 0.04 * w) * (1.0 if mann else 0.9))
+		m.set_shader_parameter("c_unruhe_hb", (0.08 + 0.03 * reif + 0.05 * greis) * (1.0 if mann else 0.9))
+		m.set_shader_parameter("c_sommersprossen", spross)
+		m.set_shader_parameter("c_altersflecken", clampf((a_h - 45.0) / 30.0, 0.0, 1.0) * 0.3)
+		m.set_shader_parameter("c_rau", 0.03 * greis + 0.05 * w + (0.02 if mann else 0.0))
+		m.set_shader_parameter("c_poren_staerke", (lerpf(0.35, 0.75 if mann else 0.62, reif) + 0.1 * greis + 0.1 * w) * (1.0 if mann else 0.9))
+		# feste Abstimmung (jede Zelle setzt sie neu; „haut_werte“ eines Bogens bleibt sonst am Stoff hängen)
+		m.set_shader_parameter("relief_staerke", RELIEF_STAERKE)
+		m.set_shader_parameter("c_kontrast", 1.15)
+		m.set_shader_parameter("c_furche_dunkel", 0.12 + 0.2 * clampf((a_h - 30.0) / 35.0, 0.0, 1.0))
+		m.set_shader_parameter("c_hoehle_albedo", 0.35)
+		m.set_shader_parameter("c_uneben", 0.5)
+		m.set_shader_parameter("c_loch", 0.7)
+		m.set_shader_parameter("c_zeige", 0)
+		m.set_shader_parameter("c_spross_staerke", 0.6)
+		m.set_shader_parameter("c_gelb", 0.35 + 0.25 * greis)
+	werte3["haut_c"] = {"relief": rel, "wetter": w, "sommersprossen": spross, "bart": bart_c}
 
 # Halt B2: Farbe zur Helligkeit hin entsättigen (lineare Farbe als Color wie in _farben)
 static func _entsaettigt(c: Color, anteil: float) -> Color:
@@ -1179,6 +1275,18 @@ func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
 			m.set_shader_parameter("farbe_tex", bilder["haut_farbe"])
 			if bilder.has("haut_zonen"):
 				m.set_shader_parameter("zonen_tex", bilder["haut_zonen"])
+			if bilder.has("haut_c_relief"):
+				for b in ["zonen", "glanz", "relief", "poren", "flecken"]:
+					if bilder.has("haut_c_" + b):
+						m.set_shader_parameter("c_" + b, bilder["haut_c_" + b])
+				var bp: Array = c_info.get("relief_bp", [1.0, 1.0, 1.0, 1.0])
+				m.set_shader_parameter("relief_bp", Vector4(bp[0], bp[1], bp[2], bp[3]))
+				m.set_shader_parameter("c_bildpunkt_mm", float(c_info.get("mm_je_bildpunkt_median", 0.24)))
+				var muv := meter_je_uv(mi.mesh, s)
+				# Kachel 25 mm, hier auf 40 mm gestreckt: echte Poren lägen im Porträt unter einem Bildpunkt (gemalt-realistisch:
+				# etwas gröber, damit die Haut im Licht Struktur zeigt)
+				m.set_shader_parameter("c_poren_dichte", muv / 0.04)
+				m.set_shader_parameter("c_flecken_dichte", muv / 0.06)
 			m.set_shader_parameter("normal_tex", bilder["haut_normal"])
 			m.set_shader_parameter("masken_tex", bilder["haut_masken"])
 			m.set_shader_parameter("falten_tex", bilder["haut_falten"])

@@ -33,6 +33,9 @@
 #   Short-Lighting bei ¾-Ansichten; Standard ist das Schlüssellicht auf der kameranahen Seite), "malfilter": true oder
 #   {"radius": 3, "mischung": 0.85, "tusche": 0.3} (Kuwahara und leichte Tusche, nur Porträt). Ein Kopf mit eigener
 #   regeln6.json im .glb-Ordner rechnet seine Gene nach dieser (Probeköpfe nebeneinander).
+# Etappe C: "weg_c": true (Haut, zusammen mit "weg_a"), "wetter": 0–1 (Wetterhaut), "haut_werte": {Shaderwert: Wert}
+#   (Abstimmung; gilt bis zur nächsten Zelle, die den Wert neu setzt); --varianten=…:weg_c als 5. Feld,
+#   --stufe=mittel|niedrig nimmt die Haut ohne Detailkacheln.
 extends Control
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -191,6 +194,8 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	k.gene = {}                                    # jede Zelle setzt alle Gene neu (nichts von der vorigen Person)
 	k.stand_setzen(int(z.get("stand", 5)))
 	k.weg_a_setzen(bool(z.get("weg_a", false)))       # Halt B2: Aussehen Weg A
+	k.weg_c_setzen(bool(z.get("weg_c", false)))       # Etappe C: Haut
+	k.wetter = float(z.get("wetter", 0.0))
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
 	k.zusatz_formen = z.get("formen", {})
@@ -202,6 +207,15 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	if k.haar_knoten and String(hv.get("modus", "karten")) != k.haar_modus:
 		k.haar_modus_setzen(String(hv.get("modus", "karten")))
 	k.aussehen_setzen(gene, float(z.get("alter", 35.0)), _mann(z.get("geschlecht", "m")))
+	# Etappe C: Shaderwerte der Haut direkt setzen (Abstimmung im Bogen), z. B. "haut_werte": {"relief_staerke": 2.0};
+	# Listen werden zu Vektoren
+	var hw: Dictionary = z.get("haut_werte", {})
+	for p in hw:
+		var v = hw[p]
+		if v is Array:
+			v = Vector4(v[0], v[1], v[2], v[3]) if v.size() == 4 else (Vector3(v[0], v[1], v[2]) if v.size() == 3 else Vector2(v[0], v[1]))
+		for m in k.haut_stoffe:
+			m.set_shader_parameter(p, v)
 
 # Erbgut-Vorlage einer Zelle: „erbgut_vorlage“, sonst „vorlage“, wenn es eine .json ist (S0; „vorlage“ ohne .json ist eine
 # Fotovorlage in P3), sonst ab Stand 6 der Vorschlag mit den neuen Genen (S7), sonst Erbgutvorlage.Standard
@@ -778,7 +792,7 @@ func _messen() -> void:
 			if o.begins_with("~/"):
 				o = OS.get_environment("HOME").path_join(o.substr(2))
 			staende.append({"variante": t[0], "glb": o, "weg_a": t.size() > 2 and t[2] == "1",
-				"malfilter": t.size() > 3 and t[3] == "1"})
+				"malfilter": t.size() > 3 and t[3] == "1", "weg_c": t.size() > 4 and t[4] == "1"})
 	for wdh in int(args.get("wiederholungen", "1")):
 		for l in laeufe:
 			if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
@@ -841,9 +855,11 @@ func _ein_lauf(l: Dictionary) -> void:
 		if l.has("saat"):
 			mz["saat"] = int(l["saat"]) + i      # Etappe B: Zufallsperson (Gene, Züge, Asymmetrie gesetzt)
 		mz["weg_a"] = bool(l.get("weg_a", false))
+		mz["weg_c"] = bool(l.get("weg_c", false))
 		zelle_setzen(b.kopf, mz)
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
+			b.kopf.haut_einfach = String(args.get("stufe", "hoch")) in ["niedrig", "mittel"]
 			b.kopf.ultra_setzen(bool(l.get("ultra", false)) or ultra_stufe)
 		b.stufe = "ultra" if ultra_stufe else "hoch"
 		b.licht_art_setzen(String(args.get("licht", "spiel")))
