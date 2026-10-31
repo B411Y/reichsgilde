@@ -54,7 +54,7 @@ public partial class Stadtansicht
         return null;
     }
 
-    private double _schollenMessZeit, _schollenMessSumme;
+    private double _schollenMessZeit, _schollenMessSumme, _schollenZeichnenSumme;
     private int _schollenMessBilder;
 
     private void SchollenVergessen()
@@ -92,15 +92,16 @@ public partial class Stadtansicht
         if (!SchollenMessung) return;
         foreach (var (feld, _) in _schollenFelder)
             if (feld.Messung?.Zeile() is { } verhalten) GD.Print(verhalten + $" ({feld.Name})");
-        foreach (var (feld, _) in _schollenFelder) _schollenMessSumme += feld.SimulationMs;
+        foreach (var (feld, _) in _schollenFelder) (_schollenMessSumme, _schollenZeichnenSumme) = (_schollenMessSumme + feld.SimulationMs, _schollenZeichnenSumme + feld.ZeichnenMs);
         _schollenMessBilder++;
         _schollenMessZeit += delta;
         if (_schollenMessZeit < 10) return;
         var f0 = _schollenFelder[0].Feld;
         GD.Print($"[wasser] Schollen-Simulation: {_schollenMessSumme / Math.Max(_schollenMessBilder, 1):0.000} ms je Bild ({_schollenMessBilder} Bilder), " +
+                 $"Zeichnen Ø {_schollenZeichnenSumme / Math.Max(_schollenMessBilder, 1):0.000} ms, " +
                  $"{f0.Aktiv} aktiv, {f0.ImFenster} im Fenster, {f0.Gezeichnet} gezeichnet, {f0.Feste} fest; letztes Bild: {f0.Teilschritte} Schritte, " +
                  $"Suche {f0.SucheMs:0.00} ms, Lösen {f0.LoesenMs:0.00} ms, {f0.Kontakte} Kontakte, Zeichnen {f0.ZeichnenMs:0.00} ms");
-        (_schollenMessZeit, _schollenMessSumme, _schollenMessBilder) = (0, 0, 0);
+        (_schollenMessZeit, _schollenMessSumme, _schollenZeichnenSumme, _schollenMessBilder) = (0, 0, 0, 0);
     }
 
     /// <summary>

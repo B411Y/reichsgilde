@@ -255,6 +255,8 @@ public sealed class Schollensimulation
     private readonly int[] _aufBild, _aufListe; // Bild, in dem die Scholle zuletzt einen nahen Kontakt hatte; Liste der berührten oder gekippten
     private readonly bool[] _inAuf;
     private int _aufZahl;
+    private readonly int[] _neue; // Bruchstücke dieses Bildes (noch nicht in der Fensterliste)
+    private int _neueZahl;
     private float _aufDt;
     // reihum nachführen (vier Gruppen nach Platz & 3): Zeit seit dem letzten Mal und die Ziele von damals
     private readonly float[] _rundeDt = new float[4], _rundeDichte = new float[4], _rundeFTau = new float[4], _rundeMZiel = new float[4];
@@ -316,7 +318,7 @@ public sealed class Schollensimulation
             new float[p0], new float[p0], new float[p0]);
         (_aufS, _aufQ, _aufH, _zielS, _zielQ, _zielH, _gedrueckt) = (new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0], new float[p0]);
         (_auSin, _auCos, _auOs, _auOq) = (new float[p0], new float[p0], new float[p0], new float[p0]);
-        (_aufBild, _aufListe, _inAuf) = (new int[p0], new int[p0], new bool[p0]);
+        (_aufBild, _aufListe, _inAuf, _neue) = (new int[p0], new int[p0], new bool[p0], new int[p0]);
         _frei = new int[p0];
         (_neu, _huelle, _taucher, _pendeln, _inListe) = (new bool[p0], new float[p0], new int[p0], new float[p0], new int[p0]);
         (_sortiert, _zelleVon, _pI) = (new int[p0], new int[p0], new int[p0]);
@@ -889,6 +891,7 @@ public sealed class Schollensimulation
         (_fensterZahl, _taucherZahl) = (0, 0);
         _treibenRunde = (_treibenRunde + 1) & 3;
         var k4 = 1f - MathF.Exp(-4f * dt / 5f);
+        var alpha = _sammler / H;
         // Reihum: diese Gruppe holt die Zeit und die Verschiebung der Ziele seit ihrem letzten Mal nach
         var runde = _treibenRunde;
         for (var g = 0; g < 4; g++) _rundeDt[g] += dt;
@@ -956,6 +959,8 @@ public sealed class Schollensimulation
                         _rs[i] = Mathf.Clamp(_rs[i] + dr, 0f, 1f);
                         neu = true;
                     }
+                    // zu klein geschmolzen: sinkt bündig ab und vergeht (Ende)
+                    if (schmelzen && _tauchen[i] == 0 && _rGleich[i] * _rs[i] < 0.15f && _rg[i] > 0.95f && _rs[i] < 0.999f) (_tauchen[i], _tauchZeit[i]) = (4, 0f);
                 }
                 if ((mZiel > 0f || _mTau[i] > 0f) && _mTau[i] != mZiel)
                 {
@@ -975,6 +980,7 @@ public sealed class Schollensimulation
                 _dk[i] = _schollen[stamm].Dicke * (1f - 0.5f * m);
                 var r = r0 * _rg[i] * _rs[i];
                 _r[i] = r;
+                (ZR[i], ZDicke[i], ZM[i]) = (r, _dk[i], m);
                 ref readonly var f = ref _form[i];
                 var masse = MathF.Max(917f * f.A * r * r * MathF.Max(_dk[i], 0.02f), 1e-3f);
                 _invM[i] = 1f / masse;
@@ -1002,6 +1008,7 @@ public sealed class Schollensimulation
             {
                 // neu im Fenster (am Rand, wo niemand hinsieht): Kontakte mit der nächsten Suche, bis dahin trennt FrischeTrennen nichts
                 neuImFenster++;
+                (_sAlt[i], _qAlt[i], _wAlt[i]) = (_s[i] - _vs[i] * H, _q[i] - _vq[i] * H, _w[i] - _om[i] * H);
                 _frisch[i] = true;
                 _ohneWarm[i] = true;
                 Ereignis[i] |= Schollenmessung.EreignisVersetzt;
@@ -1014,7 +1021,7 @@ public sealed class Schollensimulation
                 Ereignis[i] |= Schollenmessung.EreignisTauchen;
             }
             else if (drin) _fenster[_fensterZahl++] = i;
-            else if (dt > 0) Treiben(i, dt, k4);
+            else Draussen(i, dt, k4, alpha);
         }
         Aktiv = aktiv;
         // Kamerasprung (viele neu im Fenster): gleich suchen und trennen – im selben Bild, in dem sich das ganze Bild ändert, sieht man es nicht
@@ -1029,23 +1036,40 @@ public sealed class Schollensimulation
 
     /// <summary>
     /// Außerhalb des Fensters: nur treiben, einmal je Bild über alle Schritte – zum Tempo der Strömung (5 s; nachgeführt jedes vierte Bild reihum),
-    /// Drehung zur eigenen; an Pfeilern seitlich vorbei. Die Lage vor dem letzten Schritt wird gemerkt, damit wie im Fenster zwischen den Schritten
-    /// gemittelt gezeichnet wird (sonst springen die Schollen bei hoher Bildrate nur in jedem vierten Bild weiter).
+    /// Drehung zur eigenen; an Pfeilern seitlich vorbei; am Ende des Laufs oben neu. Gleich gezeichnet, wie im Fenster zwischen dem letzten und dem
+    /// jetzigen Schritt gemittelt (aus dem Tempo; sonst sprängen die Schollen bei hoher Bildrate nur in jedem vierten Bild weiter). Größe, Dicke
+    /// und Schmelzgrad der Zeichnung schreibt das Nachführen, wenn sie sich ändern; so liest und schreibt dieser häufigste Weg wenig Felder.
     /// </summary>
-    private void Treiben(int i, float dt, float k4)
+    private void Draussen(int i, float dt, float k4, float alpha)
     {
-        if ((i & 3) == _treibenRunde)
+        var (s, q, w) = (_s[i], _q[i], _w[i]);
+        var (vs, vq, om) = (_vs[i], _vq[i], _om[i]);
+        if (dt > 0)
         {
-            var us = _tempo * Profil(_q[i], HalbAn(_s[i]));
-            _vs[i] += (us - _vs[i]) * k4;
-            _vq[i] -= _vq[i] * k4;
-            _om[i] += (_schollen[_stamm[i]].Dreh - _om[i]) * k4;
+            if ((i & 3) == _treibenRunde)
+            {
+                var us = _tempo * Profil(q, HalbAn(s));
+                vs += (us - vs) * k4;
+                vq -= vq * k4;
+                om += (_schollen[_stamm[i]].Dreh - om) * k4;
+                (_vs[i], _vq[i], _om[i]) = (vs, vq, om);
+            }
+            (s, q, w) = (s + vs * dt, q + vq * dt, w + om * dt);
+            (_s[i], _q[i], _w[i]) = (s, q, w);
+            if (s > _hindernisVon - 6f && s < _hindernisBis + 6f)
+            {
+                DraussenPfeiler(i);
+                q = _q[i];
+            }
+            if (s >= _laenge || s < 0f)
+            {
+                if (Ende(i)) return;
+                (s, q, w, vs, vq, om) = (_s[i], _q[i], _w[i], _vs[i], _vq[i], _om[i]);
+            }
         }
-        _s[i] += _vs[i] * dt;
-        _q[i] += _vq[i] * dt;
-        _w[i] += _om[i] * dt;
-        if (_s[i] > _hindernisVon - 6f && _s[i] < _hindernisBis + 6f) DraussenPfeiler(i);
-        (_sAlt[i], _qAlt[i], _wAlt[i]) = (_s[i] - _vs[i] * H, _q[i] - _vq[i] * H, _w[i] - _om[i] * H);
+        var zurueck = (1f - alpha) * H;
+        (ZS[i], ZQ[i], ZW[i]) = (s - vs * zurueck, q - vq * zurueck, w - om * zurueck);
+        if (ZKipp[i] != 0f) (ZKipp[i], ZKippW[i], ZSenk[i]) = (0f, 0f, 0f);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -2057,6 +2081,7 @@ public sealed class Schollensimulation
             _r0[platz] = r0Alt;
             _rGleich[platz] = gleichAlt * MathF.Sqrt(MathF.Max(f.A, 0.01f) / MathF.Max(aAlt, 0.01f));
             Ereignis[platz] |= Schollenmessung.EreignisBruch;
+            if (platz != i) _neue[_neueZahl++] = platz;
         }
         _bruchKonto -= 1f;
         if (Messung is not null)
@@ -2261,52 +2286,59 @@ public sealed class Schollensimulation
     /// </summary>
     private void Abschluss(bool nachSchritten)
     {
+        // die Schollen draußen hat schon PlaetzeNachfuehren gezeichnet (ein Durchgang weniger über alle Plätze)
         var alpha = _sammler / H;
-        for (var i = 0; i < _plaetze; i++)
+        for (var x = 0; x < _fensterZahl; x++) Lage(_fenster[x], nachSchritten, alpha);
+        for (var x = 0; x < _taucherZahl; x++) Lage(_taucher[x], nachSchritten, alpha);
+        for (var x = 0; x < _neueZahl; x++) Lage(_neue[x], nachSchritten, alpha);
+        _neueZahl = 0;
+    }
+
+    /// <summary>Gezeichnete Lage eines Platzes (vorher das Ende des Laufs und Vergehen, wenn Schritte liefen).</summary>
+    private void Lage(int i, bool nachSchritten, float alpha)
+    {
+        if (_stamm[i] < 0 || Zustand[i] == Schollenmessung.Aus) return;
+        if (nachSchritten && Ende(i)) return;
+        var (s, sAlt) = (_s[i], _sAlt[i]);
+        (ZS[i], ZQ[i], ZW[i]) = MathF.Abs(s - sAlt) > 5f ? (s, _q[i], _w[i])
+            : (sAlt + (s - sAlt) * alpha, _qAlt[i] + (_q[i] - _qAlt[i]) * alpha, _wAlt[i] + (_w[i] - _wAlt[i]) * alpha);
+        ZR[i] = _r[i];
+        ZDicke[i] = _dk[i];
+        ZM[i] = MathF.Max(_mTau[i], _mAbrieb[i]);
+        ZKippW[i] = 0f;
+        if (_tauchen[i] == 0)
         {
-            if (_stamm[i] < 0 || Zustand[i] == Schollenmessung.Aus) continue;
-            if (nachSchritten && Ende(i)) continue;
-            var (s, sAlt) = (_s[i], _sAlt[i]);
-            (ZS[i], ZQ[i], ZW[i]) = MathF.Abs(s - sAlt) > 5f ? (s, _q[i], _w[i])
-                : (sAlt + (s - sAlt) * alpha, _qAlt[i] + (_q[i] - _qAlt[i]) * alpha, _wAlt[i] + (_w[i] - _wAlt[i]) * alpha);
-            ZR[i] = _r[i];
-            ZDicke[i] = _dk[i];
-            ZM[i] = MathF.Max(_mTau[i], _mAbrieb[i]);
-            ZKippW[i] = 0f;
-            if (_tauchen[i] == 0)
-            {
-                // aufgeschoben (nur im Fenster, sonst klingt es ab)
-                if (Zustand[i] != Schollenmessung.ImFenster) (_aufS[i], _aufQ[i], _aufH[i]) = (0f, 0f, 0f);
-                var (ks, kq) = (_aufS[i], _aufQ[i]);
-                var kipp0 = MathF.Sqrt(ks * ks + kq * kq);
-                if (kipp0 < 0.002f) (ZKipp[i], ZSenk[i]) = (0f, 0f);
-                else (ZKipp[i], ZKippW[i], ZSenk[i]) = (kipp0, MathF.Atan2(kq, ks), -_aufH[i]);
-                continue;
-            }
-            (_aufS[i], _aufQ[i], _aufH[i]) = (0f, 0f, 0f);
-            float kipp = 0, senk = 0;
-            var tz = _tauchZeit[i] + alpha * H;
-            switch (_tauchen[i])
-            {
-                case 1:
-                    kipp = -Mathf.DegToRad(25f) * Mathf.SmoothStep(0f, 1.5f, tz);
-                    senk = (_dk[i] + 0.15f) * Mathf.SmoothStep(0.2f, 1.5f, tz);
-                    break;
-                case 2:
-                    senk = 9f; // unter Wasser, nicht gezeichnet
-                    break;
-                case 3:
-                    kipp = Mathf.DegToRad(8f) * (1f - Mathf.SmoothStep(0f, 1.2f, tz));
-                    senk = (_dk[i] + 0.15f) * (1f - Mathf.SmoothStep(0f, 1.2f, tz));
-                    break;
-                case 4:
-                    // vergeht: sinkt bündig ab und wird dabei kleiner
-                    senk = (0.2f * _dk[i] + 0.02f) * 4f * Mathf.SmoothStep(0f, 6f, tz);
-                    ZR[i] = _r[i] * (1f - 0.35f * Mathf.SmoothStep(0f, 6f, tz));
-                    break;
-            }
-            (ZKipp[i], ZSenk[i]) = (kipp, senk);
+            // aufgeschoben (nur im Fenster, sonst klingt es ab)
+            if (Zustand[i] != Schollenmessung.ImFenster) (_aufS[i], _aufQ[i], _aufH[i]) = (0f, 0f, 0f);
+            var (ks, kq) = (_aufS[i], _aufQ[i]);
+            var kipp0 = MathF.Sqrt(ks * ks + kq * kq);
+            if (kipp0 < 0.002f) (ZKipp[i], ZSenk[i]) = (0f, 0f);
+            else (ZKipp[i], ZKippW[i], ZSenk[i]) = (kipp0, MathF.Atan2(kq, ks), -_aufH[i]);
+            return;
         }
+        (_aufS[i], _aufQ[i], _aufH[i]) = (0f, 0f, 0f);
+        float kipp = 0, senk = 0;
+        var tz = _tauchZeit[i] + alpha * H;
+        switch (_tauchen[i])
+        {
+            case 1:
+                kipp = -Mathf.DegToRad(25f) * Mathf.SmoothStep(0f, 1.5f, tz);
+                senk = (_dk[i] + 0.15f) * Mathf.SmoothStep(0.2f, 1.5f, tz);
+                break;
+            case 2:
+                senk = 9f; // unter Wasser, nicht gezeichnet
+                break;
+            case 3:
+                kipp = Mathf.DegToRad(8f) * (1f - Mathf.SmoothStep(0f, 1.2f, tz));
+                senk = (_dk[i] + 0.15f) * (1f - Mathf.SmoothStep(0f, 1.2f, tz));
+                break;
+            case 4:
+                // vergeht: sinkt bündig ab und wird dabei kleiner
+                senk = (0.2f * _dk[i] + 0.02f) * 4f * Mathf.SmoothStep(0f, 6f, tz);
+                ZR[i] = _r[i] * (1f - 0.35f * Mathf.SmoothStep(0f, 6f, tz));
+                break;
+        }
+        (ZKipp[i], ZSenk[i]) = (kipp, senk);
     }
 
     /// <summary>Ende des Laufs und Vergehen; liefert true, wenn der Platz jetzt frei ist (nicht mehr zeichnen).</summary>
@@ -2342,7 +2374,6 @@ public sealed class Schollensimulation
             Nachschub(i);
             return false;
         }
-        if (_tauchen[i] == 0 && _rGleich[i] * _rs[i] < 0.15f && _rg[i] > 0.95f && _rs[i] < 0.999f && _tauen > 0.3f) (_tauchen[i], _tauchZeit[i]) = (4, 0f);
         return false;
     }
 

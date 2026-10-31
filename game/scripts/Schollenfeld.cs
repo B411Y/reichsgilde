@@ -371,14 +371,27 @@ public sealed class Schollenfeld
         var zahlEbenen = Sichtkegel(kamera, plan);
         var (nahZahl, fernZahl) = (0, 0);
         var sim = _sim;
+        // Stück des Laufs im Sichtkegel (alle 4 m geprüft, mit der halben Breite und Rand): Schollen außerhalb fallen mit einem Vergleich weg
+        var (sVon, sBis) = (float.MaxValue, float.MinValue);
+        for (var sk = 0f; sk <= _laenge; sk += 4f)
+        {
+            var pk = sim.Punkt(sk);
+            var mk = new Vector3(pk.Ort.X, pk.Spiegel, pk.Ort.Y);
+            var weit = pk.Halb + 8f;
+            var innen = true;
+            for (var e = 0; e < zahlEbenen && innen; e++) innen = plan[e].DistanceTo(mk) <= weit;
+            if (innen) (sVon, sBis) = (MathF.Min(sVon, sk - 6f), MathF.Max(sBis, sk + 6f));
+        }
         for (var i = 0; i < sim.Plaetze; i++)
         {
             if (sim.Zustand[i] == Schollenmessung.Aus) continue;
+            var zs = sim.ZS[i];
+            if (zs < sVon || zs > sBis) continue;
             var r = sim.ZR[i];
             var senk = sim.ZSenk[i];
             if (r < 0.06f || senk > 5f) continue;
             // grobe Lage (Schwerpunkt) für die Sichtprüfung
-            var p = sim.Punkt(sim.ZS[i]);
+            var p = sim.Punkt(zs);
             var querW = new Vector2(-p.Richtung.Y, p.Richtung.X);
             var mitte2 = p.Ort + querW * sim.ZQ[i];
             var mitte = new Vector3(mitte2.X, p.Spiegel, mitte2.Y);
@@ -395,11 +408,12 @@ public sealed class Schollenfeld
             var puffer = nah ? _pufferNah : _pufferFern;
             var o = (nah ? nahZahl++ : fernZahl++) * 20;
 
-            // Ursprung des Netzes (neben dem Schwerpunkt) und Gier: Winkel in Laufachsen → Welt (g = −Winkel − ψ)
+            // Ursprung des Netzes (neben dem Schwerpunkt, höchstens gut einen Halbmesser entfernt: Richtung und Spiegel vom Schwerpunkt) und
+            // Gier: Winkel in Laufachsen → Welt (g = −Winkel − ψ)
             var (os, oq) = sim.Ursprung(i);
-            var po = sim.Punkt(os);
-            var querO = new Vector2(-po.Richtung.Y, po.Richtung.X);
-            var ort2 = po.Ort + querO * oq;
+            var po = p;
+            var querO = querW;
+            var ort2 = p.Ort + p.Richtung * (os - zs) + querO * oq;
             var psi = MathF.Atan2(po.Richtung.Y, po.Richtung.X);
             var saat = sim.Saat(i);
             // kleiner fester Höhenversatz je Saat: übereinander geschobene Schollen flimmern nicht (Tiefenkampf)
