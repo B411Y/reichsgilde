@@ -166,7 +166,7 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Auslöser | Entwicklerfenster, Reiter Darstellung, „Blitzeinschlag am Markt“; Startoption `--einschlag=<Sekunden>` (nach dem Ladebildschirm, am Marktplatz); Hörprobe-Schnipsel `--umgebungfahrt=4` (60 s: normales Gewitter, bei 40 s ein Einschlag) | 31.10.2026 |
 | Prüfung | Selbsttest: normale Abstände nie unter 1 km (auch mit Fortschritt 0,5), Einschlag-Datei, Pegel mindestens 5 dB über dem nächsten normalen Donner, Verzögerung nach Abstand, Seite | 31.10.2026 |
 
-### Regen im Freien statt unter der Blechhütte (nach Nutzerurteil im Spiel, PR #…)
+### Regen im Freien statt unter der Blechhütte (nach Nutzerurteil im Spiel, PR #277)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
