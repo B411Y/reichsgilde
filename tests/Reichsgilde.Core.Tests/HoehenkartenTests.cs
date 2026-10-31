@@ -74,6 +74,24 @@ static class HoehenkartenTests
             Pruefe.WirftMitMeldung(() => e.HoehenkarteEinlesen(werte, lage with { ObenCm = -1000 }), "höher liegen");
             Pruefe.WirftMitMeldung(() => e.HoehenkarteEinlesen(werte, lage with { PixelCm = 5 }), "Pixelabstand");
             Pruefe.WirftMitMeldung(() => e.HoehenkarteEinlesen(werte, lage with { StufeCm = 0 }), "Stufe");
+            Pruefe.WirftMitMeldung(() => e.HoehenkarteEinlesen(werte, lage with { UntenCm = -2_000_000 }), "km");
+            Pruefe.WirftMitMeldung(() => e.HoehenkarteEinlesen(werte, lage with { VersatzCm = int.MinValue }), "km");
+        }),
+
+        ("Rundung: Maßstab, Versatz und Stufe in einer Division, genau einmal halb weg von 0 – auch unter 0", () =>
+        {
+            // 1 Wert = 1 cm ab −10 m; zwischen den Pixeln 0 und 1 genau −999,5 cm → −1000 (weg von 0)
+            var e = Leer();
+            e.HoehenkarteEinlesen(new ushort[] { 0, 1 }, new Hoehenkartenlage(2, 1, 400, 0, 0, -1000, 64535, 0, 1));
+            Pruefe.Gleich(-1000, Cm(e, 2, 0));
+            // 1 Wert = 1,2 cm, Mitte 0,6 cm, Stufe 2 cm: einmal gerundet 0 (zweimal gerundet wären es 1, dann 2)
+            var f = Leer();
+            f.HoehenkarteEinlesen(new ushort[] { 0, 1 }, new Hoehenkartenlage(2, 1, 400, 0, 0, 0, 78642, 0, 2));
+            Pruefe.Gleich(0, Cm(f, 2, 0));
+            // der Versatz wirkt vor der Stufe: 0,6 + 1 = 1,6 cm → Stufe 2 → 2
+            var g = Leer();
+            g.HoehenkarteEinlesen(new ushort[] { 0, 1 }, new Hoehenkartenlage(2, 1, 400, 0, 0, 0, 78642, 0, 2) with { VersatzCm = 1 });
+            Pruefe.Gleich(2, Cm(g, 2, 0), "1,6 cm auf Stufe 2");
         }),
 
         ("Neuabtastung auf 2 m: 1-m-Pixel im Zelt über 2 m gemittelt (eine Spitze wird zum Viertel), 4-m-Pixel bilinear, eine Rampe bleibt eine Rampe", () =>
@@ -188,6 +206,8 @@ static class HoehenkartenTests
                 var herkunft = new Hoehendatenherkunft("Testmuster (Kuppe, eigenes Skript)", "eigene Daten", "2026-10-31");
                 Pruefe.Gleich(2, Befehle.HoehenkarteEinlesen(o, "messstadt", bild, 2, O(-480, 280), 0, 20, 0, 0, 5, false, herkunft with { Lizenz = null }, aus));
                 Pruefe.Wahr(aus.ToString().Contains("--lizenz fehlt"), aus.ToString());
+                Pruefe.Gleich(2, Befehle.HoehenkarteEinlesen(o, "messstadt", bild, 2, O(-480, 280), 0, 20, 0, 0, 5, false, herkunft with { Abruf = " " }, aus));
+                Pruefe.Wahr(aus.ToString().Contains("--abruf fehlt"), aus.ToString());
                 Pruefe.Gleich(vorher, File.ReadAllText(o.Karte("messstadt")), "ohne Herkunft nichts geschrieben");
                 Pruefe.Wahr(!File.Exists(Befehle.HoehendatenPfad(o)), "keine Herkunft eingetragen");
                 aus = new StringWriter();
@@ -216,6 +236,19 @@ static class HoehenkartenTests
                 var (_, lage, _) = g.HoehenkarteAusgeben();
                 Pruefe.Gleich(2L * lage.Breite * lage.Tiefe, new FileInfo(ausgabe).Length);
                 Pruefe.Wahr(aus.ToString().Contains($"Wieder einlesen: hoehenkarte-einlesen messstadt {ausgabe} --breite={lage.Breite} --pixel=2"), aus.ToString());
+                // nie still über eine vorhandene Datei (es könnte die Original-Höhenkarte sein)
+                var original = File.ReadAllBytes(bild);
+                aus = new StringWriter();
+                Pruefe.Gleich(2, Befehle.HoehenkarteAusgeben(o, "messstadt", bild, null, null, false, aus), aus.ToString());
+                Pruefe.Wahr(aus.ToString().Contains("--ueberschreiben") && File.ReadAllBytes(bild).SequenceEqual(original), "unverändert");
+                Pruefe.Gleich(0, Befehle.HoehenkarteAusgeben(o, "messstadt", ausgabe, null, null, false, new StringWriter(), ueberschreiben: true));
+                // Schalter, die da, aber nicht lesbar sind, brechen ab statt still die Vorgabe zu nehmen (Versatz 0 legte Köln 37 m zu hoch)
+                foreach (var (falsch, name) in new[] { ("--versatz=-37,5", "--versatz"), ("--unten=NaN", "--unten"), ("--stufe=abc", "--stufe"),
+                             ("--breite=-3", "--breite"), ("--bytefolge=big", "--bytefolge"), ("--ursprung=1,2,3", "--ursprung"), ("--pixel=2m", "--pixel") })
+                    Pruefe.Wahr(Reichsgilde.Kartenbau.Program.Unlesbar(new[] { falsch }, einlesen: true)?.Contains(name) == true, falsch);
+                foreach (var gut in new[] { "--versatz=−37", "--versatz=-37.5", "--bytefolge=BE", "--ursprung=-480,280", "--stufe=5", "--unten=0" })
+                    Pruefe.Gleich(null, Reichsgilde.Kartenbau.Program.Unlesbar(new[] { gut }, einlesen: true), gut);
+                Pruefe.Wahr(Reichsgilde.Kartenbau.Program.Unlesbar(new[] { "--oben=hoch" }, einlesen: false) is not null, "ausgeben: --oben");
             }
             finally
             {
