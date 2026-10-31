@@ -1,0 +1,616 @@
+{
+ "_hinweis": "Schnittliste der Umgebungsklänge (Ton Schritt 4). Gebaut mit tools/ton/umgebung_bauen.py. Quellen: freesound.org, nur CC0, HQ-Vorschauen (OGG); Originale können später getauscht werden (gleiche Nummer, SHA-256 der Vorschau hier).",
+ "ziel_lufs_schicht": -26.0,
+ "ziel_lufs_ruf": -20.0,
+ "spitze_schicht_dbtp": -3.0,
+ "spitze_ruf_dbtp": -1.0,
+ "quellen": {
+  "469700": {
+   "urheber": "florianreichelt",
+   "titel": "Ambience Sound of the Chouara Tannery in Fez, Morocco",
+   "seite": "https://freesound.org/people/florianreichelt/sounds/469700/",
+   "vorschau": "https://cdn.freesound.org/previews/469/469700_6253486-hq.ogg",
+   "sha256": "0c8723ee5413cf492b2950bf78e1bb3e1eb207dd866e157a65be83ce560cf270",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "360699": {
+   "urheber": "eguobyte",
+   "titel": "Large_crowd_from_above_stereo.wav",
+   "seite": "https://freesound.org/people/eguobyte/sounds/360699/",
+   "vorschau": "https://cdn.freesound.org/previews/360/360699_3471835-hq.ogg",
+   "sha256": "8830f245ece851764cd54b66f6030acfb11225debde1a351d497274d8168ecce",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "719572": {
+   "urheber": "hadescolossus",
+   "titel": "CROWD FOOTSTEP",
+   "seite": "https://freesound.org/people/hadescolossus/sounds/719572/",
+   "vorschau": "https://cdn.freesound.org/previews/719/719572_8385093-hq.ogg",
+   "sha256": "f9417da9807049d722edde8c96ce2704089bdd4245c98dd46349c65e4c488e8d",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "137836": {
+   "urheber": "thefilmbakery",
+   "titel": "Blacksmith Workshop.WAV",
+   "seite": "https://freesound.org/people/thefilmbakery/sounds/137836/",
+   "vorschau": "https://cdn.freesound.org/previews/137/137836_977564-hq.ogg",
+   "sha256": "59da72624c011df1895768e5ec63f6cf42c6ad31f2374443258b7368b6f4503f",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "173159": {
+   "urheber": "AlecCorday",
+   "titel": "Paso Fino Horse",
+   "seite": "https://freesound.org/people/AlecCorday/sounds/173159/",
+   "vorschau": "https://cdn.freesound.org/previews/173/173159_1591616-hq.ogg",
+   "sha256": "a63618b798b572686273a16164bb7d968e971fae85ee46029b25a367b227bbbd",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "149192": {
+   "urheber": "videog",
+   "titel": "geese honking",
+   "seite": "https://freesound.org/people/videog/sounds/149192/",
+   "vorschau": "https://cdn.freesound.org/previews/149/149192_2688492-hq.ogg",
+   "sha256": "a8e9955aaa4ecbcb26c90496d46cc3daf0480285717907d3c18280c25355ccc6",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "316921": {
+   "urheber": "Rudmer_Rotteveel",
+   "titel": "Chicken Alarm Call full with Occasional bird sound",
+   "seite": "https://freesound.org/people/Rudmer_Rotteveel/sounds/316921/",
+   "vorschau": "https://cdn.freesound.org/previews/316/316921_4921277-hq.ogg",
+   "sha256": "2946a0261cd98b21339380d58417ce77f903be61128ff3411fde316c49fdbb28",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "187199": {
+   "urheber": "pushkin",
+   "titel": "walla 01",
+   "seite": "https://freesound.org/people/pushkin/sounds/187199/",
+   "vorschau": "https://cdn.freesound.org/previews/187/187199_336074-hq.ogg",
+   "sha256": "543235e369c3f3658e968f3615084177bd201e95fe8551ab88cbecf053638f47",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "166421": {
+   "urheber": "felix.blume",
+   "titel": "Some dogs barking a village in Anatolia (Turkey)",
+   "seite": "https://freesound.org/people/felix.blume/sounds/166421/",
+   "vorschau": "https://cdn.freesound.org/previews/166/166421_1661766-hq.ogg",
+   "sha256": "b9b0767239600f01797a422055b26f58f55b1fed179821d8fbcb635fa61d7f29",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "212454": {
+   "urheber": "unfa",
+   "titel": "Barking",
+   "seite": "https://freesound.org/people/unfa/sounds/212454/",
+   "vorschau": "https://cdn.freesound.org/previews/212/212454_1038806-hq.ogg",
+   "sha256": "7fbca7ad13c985cfe7c261f744631876cf8e0997a079d1fdf789047c3930b4f3",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "594343": {
+   "urheber": "GH0STY_XD",
+   "titel": "Dog barking and growling.wav",
+   "seite": "https://freesound.org/people/GH0STY_XD/sounds/594343/",
+   "vorschau": "https://cdn.freesound.org/previews/594/594343_12596088-hq.ogg",
+   "sha256": "bff05710ddf484d7f4dc2e397da5f560f9c5b1b82155f673602f9f07d94458c0",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "573080": {
+   "urheber": "squashy555",
+   "titel": "Dawn Chorus Birdsong",
+   "seite": "https://freesound.org/people/squashy555/sounds/573080/",
+   "vorschau": "https://cdn.freesound.org/previews/573/573080_1149179-hq.ogg",
+   "sha256": "3239fd174f196593541403e2dd235dddac9dc9c456595b73e4deb86c14c4a9ff",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "266601": {
+   "urheber": "otad",
+   "titel": "Sparrows.WAV",
+   "seite": "https://freesound.org/people/otad/sounds/266601/",
+   "vorschau": "https://cdn.freesound.org/previews/266/266601_2151664-hq.ogg",
+   "sha256": "c84f32775361efec23cfea992d2745aa191f5e5c8a793918d6bb1b12594a2564",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "240587": {
+   "urheber": "blaukreuz",
+   "titel": "Freyburg Forest Evening R",
+   "seite": "https://freesound.org/people/blaukreuz/sounds/240587/",
+   "vorschau": "https://cdn.freesound.org/previews/240/240587_623488-hq.ogg",
+   "sha256": "7afdd4a718c473d91b17aafa6eb37f84a1da5f3bad6d6dcd6744eada78ac0a83",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "116791": {
+   "urheber": "nigelcoop",
+   "titel": "Blackbird 252",
+   "seite": "https://freesound.org/people/nigelcoop/sounds/116791/",
+   "vorschau": "https://cdn.freesound.org/previews/116/116791_1088850-hq.ogg",
+   "sha256": "8eed9fb602ea6bdaebb35fbc396d3c30ce40735060cd9454fe24945ab6b5779e",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "705299": {
+   "urheber": "felix.blume",
+   "titel": "Dogs barking far with echo in a small village at night",
+   "seite": "https://freesound.org/people/felix.blume/sounds/705299/",
+   "vorschau": "https://cdn.freesound.org/previews/705/705299_1661766-hq.ogg",
+   "sha256": "c67a5101c312f0ee5f0f73412acc36ec107e4abf384bba182cc1556622964c73",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "429706": {
+   "urheber": "IchBinChrist",
+   "titel": "Cockcrow - Hahnenschrei",
+   "seite": "https://freesound.org/people/IchBinChrist/sounds/429706/",
+   "vorschau": "https://cdn.freesound.org/previews/429/429706_3216899-hq.ogg",
+   "sha256": "2d718821eb8d6b341a42ee63dd9c716b40fc280f9d089d7f9760e25ea2be9798",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "233167": {
+   "urheber": "JarredGibb",
+   "titel": "Rooster - Crow 3 - 96kHz",
+   "seite": "https://freesound.org/people/JarredGibb/sounds/233167/",
+   "vorschau": "https://cdn.freesound.org/previews/233/233167_4056007-hq.ogg",
+   "sha256": "6aea501b36f9933a17a129120675f9c7e202baa218322cd72030d073b48ffc57",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "383930": {
+   "urheber": "Navadaux",
+   "titel": "Rooster crowing",
+   "seite": "https://freesound.org/people/Navadaux/sounds/383930/",
+   "vorschau": "https://cdn.freesound.org/previews/383/383930_5576856-hq.ogg",
+   "sha256": "9e73d7f49a6188d6863cc431773477cce3be8840ebbf66d5ded6622b9eb64f71",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "367964": {
+   "urheber": "BlueDelta",
+   "titel": "TAWNY OWL in calm Environment",
+   "seite": "https://freesound.org/people/BlueDelta/sounds/367964/",
+   "vorschau": "https://cdn.freesound.org/previews/367/367964_1790434-hq.ogg",
+   "sha256": "dccc47ea2740c14f48912bf576ca02dd6983ee9c98a9dad22a8766941bca0ad5",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  },
+  "135193": {
+   "urheber": "felix.blume",
+   "titel": "Wind blowing in the bush on the top of Kitt Peak mountain",
+   "seite": "https://freesound.org/people/felix.blume/sounds/135193/",
+   "vorschau": "https://cdn.freesound.org/previews/135/135193_1661766-hq.ogg",
+   "sha256": "9baa931f58e0ebf8cf1613377739bf13c260c4f7927a1ecc35da95dd3b0c6a1a",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-10-30"
+  }
+ },
+ "dateien": [
+  {
+   "name": "stadt_tag",
+   "art": "schicht",
+   "quelle": "469700",
+   "von": 2.0,
+   "bis": 58.0,
+   "hp": 80,
+   "blende": 3.0,
+   "zweck": "Stadtleben am Tag: Arbeit, Wasser, ferne Stimmen (Gerberei in der autofreien Altstadt von Fes)"
+  },
+  {
+   "name": "stadt_gemurmel",
+   "art": "schicht",
+   "quelle": "360699",
+   "von": 4.0,
+   "bis": 86.0,
+   "hp": 100,
+   "tp": 3000,
+   "blende": 3.0,
+   "zweck": "Gemurmel vieler Leute, nur nah (Halle von oben, Tiefpass gegen den Hall)"
+  },
+  {
+   "name": "morgen_voegel",
+   "art": "schicht",
+   "quelle": "573080",
+   "von": 20.0,
+   "bis": 120.0,
+   "blende": 3.0,
+   "zweck": "Vogelchor im Morgengrauen"
+  },
+  {
+   "name": "tag_spatzen",
+   "art": "schicht",
+   "quelle": "266601",
+   "von": 0.5,
+   "bis": 60.5,
+   "hp": 250,
+   "blende": 3.0,
+   "zweck": "Spatzen am Tag (Stadtvögel), leise"
+  },
+  {
+   "name": "abend_voegel",
+   "art": "schicht",
+   "quelle": "240587",
+   "von": 1.0,
+   "bis": 87.0,
+   "hp": 200,
+   "blende": 3.0,
+   "zweck": "Abendgesang (Wald bei Freyburg/Unstrut)"
+  },
+  {
+   "name": "stadt_abend",
+   "art": "schicht",
+   "quelle": "187199",
+   "von": 30.0,
+   "bis": 135.0,
+   "tp": 1000,
+   "blende": 4.0,
+   "zweck": "Gedämpftes Gemurmel am Abend, wie aus Schenken hinter Wänden"
+  },
+  {
+   "name": "wind_mittel",
+   "art": "schicht",
+   "quelle": "135193",
+   "von": 2.0,
+   "bis": 77.0,
+   "hp": 120,
+   "blende": 4.0,
+   "zweck": "Kräftigerer Wind, nur ganz weit herausgezoomt (ohne die Pfeifbö bei 79,5 s)"
+  },
+  {
+   "name": "nacht",
+   "art": "schicht",
+   "synth": "nacht",
+   "saat": 11,
+   "dauer": 61.0,
+   "zweck": "Stiller Nachtgrund: sehr ferner, dunkler Wind (eigene Synthese)"
+  },
+  {
+   "name": "wind_leicht",
+   "art": "schicht",
+   "synth": "leicht_boeig",
+   "saat": 23,
+   "dauer": 67.0,
+   "zweck": "Leichter Wind in der Höhe mit unregelmäßigen Böen (eigene Synthese)"
+  },
+  {
+   "name": "hahn_1",
+   "art": "ruf",
+   "quelle": "429706",
+   "von": 4.3,
+   "bis": 7.4
+  },
+  {
+   "name": "hahn_2",
+   "art": "ruf",
+   "quelle": "233167",
+   "von": 0.4,
+   "bis": 2.4
+  },
+  {
+   "name": "hahn_3",
+   "art": "ruf",
+   "quelle": "383930",
+   "von": 0.0,
+   "bis": 2.0
+  },
+  {
+   "name": "hund_1",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 54.3,
+   "bis": 56.2,
+   "hp": 150
+  },
+  {
+   "name": "hund_2",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 66.1,
+   "bis": 68.8,
+   "hp": 150
+  },
+  {
+   "name": "hund_3",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 70.9,
+   "bis": 71.7,
+   "hp": 150
+  },
+  {
+   "name": "hund_4",
+   "art": "ruf",
+   "quelle": "212454",
+   "von": 0.6,
+   "bis": 1.3,
+   "hp": 150
+  },
+  {
+   "name": "hund_5",
+   "art": "ruf",
+   "quelle": "594343",
+   "von": 0.7,
+   "bis": 2.0,
+   "hp": 150
+  },
+  {
+   "name": "hund_fern_1",
+   "art": "ruf",
+   "quelle": "705299",
+   "von": 13.2,
+   "bis": 15.9,
+   "hp": 250
+  },
+  {
+   "name": "hund_fern_2",
+   "art": "ruf",
+   "quelle": "705299",
+   "von": 35.6,
+   "bis": 37.4,
+   "hp": 250
+  },
+  {
+   "name": "hund_fern_3",
+   "art": "ruf",
+   "quelle": "705299",
+   "von": 76.0,
+   "bis": 78.1,
+   "hp": 250
+  },
+  {
+   "name": "hund_fern_4",
+   "art": "ruf",
+   "quelle": "166421",
+   "von": 34.0,
+   "bis": 38.8,
+   "hp": 250
+  },
+  {
+   "name": "kauz_1",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 6.0,
+   "bis": 9.1,
+   "hp": 300
+  },
+  {
+   "name": "kauz_2",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 64.7,
+   "bis": 67.8,
+   "hp": 300
+  },
+  {
+   "name": "kauz_3",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 98.2,
+   "bis": 101.1,
+   "hp": 300
+  },
+  {
+   "name": "kauz_4",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 123.2,
+   "bis": 126.4,
+   "hp": 300
+  },
+  {
+   "name": "kauz_5",
+   "art": "ruf",
+   "quelle": "367964",
+   "von": 20.4,
+   "bis": 22.2,
+   "hp": 300
+  },
+  {
+   "name": "amsel_1",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 9.6,
+   "bis": 12.2,
+   "hp": 600
+  },
+  {
+   "name": "amsel_2",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 26.5,
+   "bis": 28.7,
+   "hp": 600
+  },
+  {
+   "name": "amsel_3",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 51.4,
+   "bis": 53.5,
+   "hp": 600
+  },
+  {
+   "name": "amsel_4",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 82.0,
+   "bis": 83.9,
+   "hp": 600
+  },
+  {
+   "name": "amsel_5",
+   "art": "ruf",
+   "quelle": "116791",
+   "von": 92.2,
+   "bis": 95.4,
+   "hp": 600
+  },
+  {
+   "name": "pferd_1",
+   "art": "ruf",
+   "quelle": "173159",
+   "von": 1.0,
+   "bis": 4.5,
+   "hp": 120,
+   "ein": 0.3,
+   "aus": 0.6
+  },
+  {
+   "name": "pferd_2",
+   "art": "ruf",
+   "quelle": "173159",
+   "von": 5.0,
+   "bis": 8.5,
+   "hp": 120,
+   "ein": 0.3,
+   "aus": 0.6
+  },
+  {
+   "name": "pferd_3",
+   "art": "ruf",
+   "quelle": "173159",
+   "von": 10.0,
+   "bis": 13.5,
+   "hp": 120,
+   "ein": 0.3,
+   "aus": 0.6
+  },
+  {
+   "name": "gefluegel_1",
+   "art": "ruf",
+   "quelle": "149192",
+   "von": 0.0,
+   "bis": 1.7,
+   "hp": 150
+  },
+  {
+   "name": "gefluegel_2",
+   "art": "ruf",
+   "quelle": "149192",
+   "von": 5.3,
+   "bis": 6.9,
+   "hp": 150
+  },
+  {
+   "name": "gefluegel_3",
+   "art": "ruf",
+   "quelle": "316921",
+   "von": 0.4,
+   "bis": 1.6,
+   "hp": 200
+  },
+  {
+   "name": "gefluegel_4",
+   "art": "ruf",
+   "quelle": "316921",
+   "von": 18.4,
+   "bis": 19.9,
+   "hp": 200
+  },
+  {
+   "name": "passant_1",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 5.0,
+   "bis": 8.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_2",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 14.0,
+   "bis": 17.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_3",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 26.0,
+   "bis": 29.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_4",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 37.0,
+   "bis": 40.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "passant_5",
+   "art": "ruf",
+   "quelle": "719572",
+   "von": 47.0,
+   "bis": 50.0,
+   "hp": 120,
+   "tp": 5000,
+   "ein": 0.4,
+   "aus": 0.8
+  },
+  {
+   "name": "handwerk_1",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 13.1,
+   "bis": 18.7,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "handwerk_2",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 20.6,
+   "bis": 22.4,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "handwerk_3",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 4.6,
+   "bis": 6.4,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  },
+  {
+   "name": "handwerk_4",
+   "art": "ruf",
+   "quelle": "137836",
+   "von": 72.7,
+   "bis": 73.7,
+   "hp": 150,
+   "tp": 4000,
+   "aus": 0.4
+  }
+ ]
+}
