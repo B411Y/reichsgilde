@@ -634,7 +634,12 @@ haut_tri = kw.dreiecke([f for f in fl_haut if max(f) < T["mundhoehle"][0]])
 flaeche_S = kw.Flaeche(S[:N_HAUT], haut_tri)
 S_haut_nrm = kw.ecken_normalen(S[:N_HAUT], haut_tri)
 merk68 = S[ict["merkpunkte68"]]
-b_e, b_fl, b_uv, b_lage, b_seite = kh.brauen(merk68, flaeche_S)
+# Etappe D (brauen_d=1): Karten näher an der Haut, nach oben hin abstehend (Lagen 0,3 und 0,7 mm, an der Oberkante +0,4
+# bzw. +1,1 mm) – die Haare werfen Schatten und zeigen im Profil einen weichen Rand
+if OPTIONEN.get("brauen_d") == "1":
+    b_e, b_fl, b_uv, b_lage, b_seite = kh.brauen(merk68, flaeche_S, lagen=(0.0003, 0.0007), neigung=(0.0004, 0.0011))
+else:
+    b_e, b_fl, b_uv, b_lage, b_seite = kh.brauen(merk68, flaeche_S)
 # Phase 5: Wurzeln der Wimpern an der vorderen Lidkante = wo die ICT-Wimpernstreifen die Haut berühren
 gesicht_idx = teil("gesicht")
 _kd_gesicht = KDTree(len(gesicht_idx))
@@ -814,12 +819,14 @@ adams_buckel = np.zeros_like(H_ecken)
 adams_buckel[:, 1] = -0.003 * np.exp(-0.5 * ((_rel[:, 0] / 0.008) ** 2 + (_rel[:, 2] / 0.011) ** 2)) * (_rel[:, 1] < 0.012)
 bericht["adamsapfel_mm"] = [round(float(v) * 1000, 1) for v in adams_p]
 
-# Phase 6 (S4): eigene Formen direkt auf dem ICT-Netz (kopf6_eigen.py), dazu der Adamsapfel als eigene Form
+# Phase 6 (S4): eigene Formen direkt auf dem ICT-Netz (kopf6_eigen.py), dazu der Adamsapfel als eigene Form;
+# Etappe D (eigen=2): dazu Augenhöhle, Deckfalte und Unterlid
 eigen_haut = {}
-if OPTIONEN.get("eigen") == "1":
+if OPTIONEN.get("eigen") in ("1", "2"):
     import kopf6_eigen as ke
     eigen_haut, eigen_bericht = ke.formen(H_ecken, N_HAUT, H_flaechen, S[ict["merkpunkte68"]], augen,
-                                          np.arange(T["mundhoehle"][0], N_HAUT), abstand_hals)
+                                          np.arange(T["mundhoehle"][0], N_HAUT), abstand_hals,
+                                          etappe_d=OPTIONEN.get("eigen") == "2")
     eigen_haut["eigen_adamsapfel"] = adams_buckel.copy()
     bericht["eigen_formen"] = eigen_bericht
     zeit("Eigene Formen: " + json.dumps(eigen_bericht, ensure_ascii=False))
@@ -1053,6 +1060,26 @@ for s in ("l", "r"):
     oben_ = S[idx_, 2] > augen[s][0][2]
     a_ = (1.0 - kw.glatt_stufe(d_, 0.0004, 0.005)) * np.where(oben_, 1.0, 0.7)
     afarbe[[pos_in_aug[int(i)] for i in idx_], 0] = a_
+    # Etappe D (lidschatten6.gdshader, Tränenfilm): G = Oberlid-Seite (1 näher am Oberlidrand, 0 am Unterlidrand, weich
+    # über 1,5 mm), B = Abstand zum sichtbaren Lidrand / 8 mm – der Rand aus den ICT-Merkpunkten 36–47 in der Vorderansicht
+    # (die Lidnaht liegt tief unter dem Lid und taugt dafür nicht); ältere Shader lesen nur R. Tränenfilm: R = Nähe zum
+    # inneren Lidwinkel (0..1 über 4 mm) – der Tränensee am Unterlid glänzt, oben und an der Karunkel kaum
+    L68_ = S[ict["merkpunkte68"]]
+    ob_, un_ = ([36, 37, 38, 39], [39, 40, 41, 36]) if s == "r" else ([42, 43, 44, 45], [45, 46, 47, 42])
+
+    def _rand_abst(q, ids):
+        pk = L68_[ids][:, [0, 2]]
+        t_ = np.linspace(0.0, 1.0, 25)
+        dicht = np.concatenate([a_ * (1 - t_[:, None]) + b_ * t_[:, None] for a_, b_ in zip(pk[:-1], pk[1:])])
+        return np.linalg.norm(q[:, None, [0, 2]] - dicht[None], axis=2).min(1)
+    for ix_ in (idx_, teil("traene_" + s)):
+        d_o, d_u = _rand_abst(S[ix_], ob_), _rand_abst(S[ix_], un_)
+        k_ = [pos_in_aug[int(i)] for i in ix_]
+        afarbe[k_, 1] = np.clip(0.5 + (d_u - d_o) / 0.0015, 0.0, 1.0)
+        afarbe[k_, 2] = np.clip(np.minimum(d_o, d_u) / 0.008, 0.0, 1.0)
+    idx_t = teil("traene_" + s)
+    innen_ = L68_[39 if s == "r" else 42]
+    afarbe[[pos_in_aug[int(i)] for i in idx_t], 0] = 1.0 - kw.glatt_stufe(np.linalg.norm(S[idx_t] - innen_, axis=1), 0.0, 0.004)
 af.data.foreach_set("color", afarbe.ravel())
 uvl_aug = aug_me.uv_layers.active
 uv_alt = np.empty(len(aug_me.loops) * 2)

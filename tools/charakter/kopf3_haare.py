@@ -72,9 +72,13 @@ def _ausrichten(ecken, flaechen, soll_normale):
     return aus
 
 
-def brauen(merk, flaeche_haut, nu=30, nv=6):
+def brauen(merk, flaeche_haut, nu=30, nv=6, lagen=None, neigung=(0.0, 0.0)):
     """merk: Merkpunkte (68,3) im Raum der Büste; flaeche_haut: kw.Flaeche der Gesichtshaut (Form des Spielkopfs).
+    lagen: Abstand der beiden Kartenlagen zur Haut (m, Standard BRAUE_LAGEN); neigung: je Lage zusätzlicher Abstand an
+    der Oberkante (m; Etappe D: die Haare stehen nach oben hin von der Haut ab, kein Aufkleber).
     Gibt (ecken, flächen, uv je Schleife, lage je Ecke 0/1, seite je Ecke) zurück."""
+    lagen = BRAUE_LAGEN if lagen is None else lagen
+    v_je_ecke = np.tile(np.linspace(0.0, 1.0, nv), nu)
     ecken, flaechen, uvs, lage, seite = [], [], [], [], []
     for sx, idx in ((1.0, [22, 23, 24, 25, 26]), (-1.0, [21, 20, 19, 18, 17])):
         p = merk[idx]
@@ -91,7 +95,7 @@ def brauen(merk, flaeche_haut, nu=30, nv=6):
         hoch /= np.linalg.norm(hoch, axis=1, keepdims=True)
         u = np.linspace(0, 1, nu)
         h = BRAUE_HOEHE[0] + (BRAUE_HOEHE[1] - BRAUE_HOEHE[0]) * u
-        for li, ueber in enumerate(BRAUE_LAGEN):
+        for li, ueber in enumerate(lagen):
             o = len(ecken)
             pkt = []
             for i in range(nu):
@@ -101,7 +105,7 @@ def brauen(merk, flaeche_haut, nu=30, nv=6):
             pkt = np.array(pkt)
             auf, n_, _, _ = flaeche_haut.naechste(pkt, 0.03)
             n_ = np.where((n_ * (pkt - flaeche_haut.p.mean(0))).sum(1, keepdims=True) < 0, -n_, n_)
-            pkt = auf + n_ * ueber
+            pkt = auf + n_ * (ueber + neigung[li] * v_je_ecke)[:, None]
             fl = _gitter_flaechen(nu, nv, o)
             alle = np.vstack([np.array(ecken).reshape(-1, 3), pkt]) if ecken else pkt
             nrm_alle = np.vstack([np.zeros((o, 3)), n_])

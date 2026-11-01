@@ -13,6 +13,11 @@ Phase 4: Brauen dünner und lichter (Haut scheint durch), unregelmäßige Dichte
 abstehende Haare am Rand; Wimpern in Büscheln, an der Wurzel kräftig, zur Spitze fein, geschwungen.
 Keine Fremddaten: alles entsteht aus Zufallszahlen mit festem Startwert.
 
+Etappe D (Aufruf mit weich=1: nur die sechs Brauenformen je Geschlecht; Prüferbefund „Brauen wie aufgeklebt“): weicher
+Rand (die Dichte läuft über das äußere Drittel der Halbbreite aus statt an einer Kante), am Rand dünnere und lichtere
+Haare, Flaum aus feinen hellen Härchen um die Braue, Spitzen dürfen bis 2 mm über die Oberkante, der Kopf (innen) lichter
+mit fast senkrechten Haaren.
+
 Phase 6 (Etappe B, S7): sechs Brauenformen je Geschlecht als brauen6_<m|w>_<0..5>.png (Formvorbild: MakeHuman
 eyebrow001–012, CC0, nur angesehen): 0 gerade, 1 Bogen, 2 Knick, 3 kräftiger Kopf, 4 dünn auslaufend, 5 buschig. Die
 Darstellung legt sie als Texture2DArray an und wählt die Form aus dem Gen „brauen_form“.
@@ -36,6 +41,7 @@ def braue_hoehe_mm(u):
 
 FRAU = False                          # Phase 5: brauen_w.png – schmaler, mit Bogen, dünnes Ende
 FORM = -1                             # Phase 6: Brauenform 0–5 (−1 = Form der Phase 5)
+WEICH = False                         # Etappe D: weicher Rand, Flaum (siehe oben)
 FORMEN6 = ["gerade", "Bogen", "Knick", "kräftiger Kopf", "dünn auslaufend", "buschig"]
 
 
@@ -97,6 +103,10 @@ def brauen_form(u, v):
     rand = np.abs(y - mitte) / np.maximum(halb, 0.3)
     innen = np.clip((1.25 - rand) / 0.5, 0, 1) ** 1.5
     laengs = np.clip((u - 0.015) / 0.05, 0, 1) * np.clip((0.995 - u) / 0.04, 0, 1)
+    if WEICH:
+        # Etappe D: Dichte läuft über das äußere Drittel aus, der Kopf beginnt licht
+        innen = np.clip((1.3 - rand) / 0.75, 0, 1) ** 1.8
+        laengs = np.clip((u - 0.01) / 0.12, 0, 1) ** 1.5 * np.clip((0.995 - u) / 0.08, 0, 1)
     # zur Mitte (Kopf und Körper) dichter, zum Ende lichter (Fotos)
     return innen * laengs * (1.0 - 0.4 * np.clip((u - 0.65) / 0.35, 0, 1)), np.clip(rand, 0, 1)
 
@@ -213,6 +223,8 @@ def brauen(pfad, rng, frau=False):
             # Wuchsrichtung (Grad, 0 = nach außen, 90 = nach oben): innen steil aufwärts, im Körper laufen untere
             # (aufwärts) und obere Haare (abwärts) zur Mittellinie zusammen (Fischgrät), das Ende liegt flach abwärts
             steil = np.interp(u, [0.0, 0.1, 0.3, 0.7, 1.0], [75, 60, 24, 10, -12])
+            if WEICH:
+                steil = np.interp(u, [0.0, 0.08, 0.18, 0.35, 0.7, 1.0], [86, 78, 50, 24, 8, -14])
             fisch = np.interp(u, [0.0, 0.12, 0.3, 0.8, 1.0], [0.0, 10.0, 22.0, 18.0, 6.0])
             w = math.radians(steil - fisch * obenteil + rng.normal(0, 7))
             laenge = np.interp(u, [0, 0.15, 0.6, 1], [3.6, 5.0, 6.0, 4.6]) * rng.uniform(0.75, 1.15) * (1.3 if FORM == 5 else 1.0)
@@ -232,17 +244,49 @@ def brauen(pfad, rng, frau=False):
             vv = pkt[:, 1] / braue_hoehe_mm(np.clip(uu, 0, 1))
             # Haare nicht über die Oberkante der Braue (+1 mm) hinaus und nie aus der Karte: dort abschneiden
             ob, _ = braue_kanten_mm(np.clip(uu, 0, 1))
-            gut = (uu > 0.002) & (uu < 0.998) & (vv > 0.005) & (vv < 0.99) & (pkt[:, 1] < ob + 1.0)
+            gut = (uu > 0.002) & (uu < 0.998) & (vv > 0.005) & (vv < 0.99) & (pkt[:, 1] < ob + (2.0 if WEICH else 1.0))
             bis = int(np.argmin(gut)) if not gut.all() else k
             if bis < 3:
                 continue
             pkt, uu, vv = pkt[:bis], uu[:bis], vv[:bis]
             px = np.stack([uu * B, _zeile(vv, lage)], 1)
             dicke_mm = rng.uniform(0.055, 0.095) if not frau else rng.uniform(0.045, 0.075)
+            deckung = rng.uniform(0.62, 0.98)
+            if WEICH:
+                # am Rand und am Kopf dünner und lichter
+                aussen = float(np.clip((rand - 0.55) / 0.6, 0, 1)) + 0.6 * float(np.clip((0.15 - u) / 0.15, 0, 1))
+                dicke_mm *= 1.0 - 0.45 * min(aussen, 1.0)
+                deckung = rng.uniform(0.5, 0.95) * (1.0 - 0.45 * min(aussen, 1.0))
             breite = np.linspace(1.0, 0.25, k)[:bis] ** 0.8 * dicke_mm / (BRAUE_LAENGE_MM / B)
-            bild.haar(px, breite, r, rand, deckung=rng.uniform(0.62, 0.98))
+            bild.haar(px, breite, r, rand, deckung=deckung)
+        if WEICH and lage == 0:
+            _flaum(bild, rng, frau)
     bild.speichern(pfad)
     return bild
+
+
+def _flaum(bild, rng, frau):
+    """Etappe D: feine, helle, kurze Härchen um die Braue (bis 3 mm außerhalb des Randes), sehr licht – der Übergang zur
+    Haut ist bei echten Brauen nie eine Kante. G = 0,8 (der Shader schneidet sie erst bei schmaler Braue)."""
+    n = 0
+    while n < (260 if frau else 340):
+        u, v = rng.random(), rng.random()
+        h_mm = float(braue_hoehe_mm(u))
+        y = v * h_mm
+        ob, un = braue_kanten_mm(u)
+        if not (un - 3.0 < y < ob + 2.5) or not (0.02 < u < 0.97):
+            continue
+        n += 1
+        w = math.radians(float(np.interp(u, [0, 0.15, 0.5, 1], [80, 45, 15, -10])) + rng.normal(0, 15))
+        laenge = rng.uniform(1.2, 2.8)
+        pkt = np.array([(u * BRAUE_LAENGE_MM + math.cos(w) * laenge * t, y + math.sin(w) * laenge * t) for t in np.linspace(0, 1, 5)])
+        uu = pkt[:, 0] / BRAUE_LAENGE_MM
+        vv = pkt[:, 1] / braue_hoehe_mm(np.clip(uu, 0, 1))
+        if not ((uu > 0.002) & (uu < 0.998) & (vv > 0.005) & (vv < 0.99)).all():
+            continue
+        px = np.stack([uu * B, _zeile(vv, 0)], 1)
+        breite = np.linspace(1.0, 0.3, 5) * rng.uniform(0.03, 0.045) / (BRAUE_LAENGE_MM / B)
+        bild.haar(px, breite, rng.random(), 0.8, deckung=rng.uniform(0.2, 0.42))
 
 
 def wimpern(pfad, rng):
@@ -298,6 +342,19 @@ def wimpern(pfad, rng):
 if __name__ == "__main__":
     aus = sys.argv[1] if len(sys.argv) > 1 else "."
     os.makedirs(aus, exist_ok=True)
+    if "weich=1" in sys.argv[2:]:
+        # Etappe D: nur die Brauenformen (eigener Ordner; Verknüpfungen nie überschreiben)
+        WEICH = True
+        rng6 = np.random.default_rng(1507)
+        for wer in ("m", "w"):
+            for f in range(6):
+                FORM = f
+                ziel = os.path.join(aus, f"brauen6_{wer}_{f}.png")
+                if os.path.islink(ziel):
+                    os.remove(ziel)
+                brauen(ziel, rng6, frau=(wer == "w"))
+        print("FERTIG Brauen (weich)", aus)
+        sys.exit(0)
     rng = np.random.default_rng(1480)
     brauen(os.path.join(aus, "brauen.png"), rng)
     brauen(os.path.join(aus, "brauen_w.png"), rng, frau=True)
