@@ -46,6 +46,7 @@ Startoptionen (nach `--`):
 - `--passantenprofil=1` (alle 10 s die Rechenzeit der Passanten je Abschnitt ins Protokoll: `[passantenprofil] ms je Bild: Wege planen, am Ort, Laufen, Licht, Pose, Ausweichen, Messung, Hervorheben`, dazu Zahl der Figuren, Laufenden und Sichtbaren)
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=5000`; die beiden kosten zusammen 1.300)
 - `--umland=1` (den günstigsten freien Umlandbetrieb erwerben – wenn nötig erst zum Bürger aufsteigen –, ihm einen Ochsenkarren dazukaufen und seine Kurzübersicht mit „…“ zeigen: Karren mit Eskorte, Nachtfahrt und „Verkaufen“; mit `--vermoegen=30000`)
+- `--karrenmessung=1` (Messzeilen der Karren ins Protokoll: einmal je Betrieb und Karrenart `[karren] Profil: … Weg im Bild … m bis zum Halt (Kern … m, …), im festen Tempo … min, Kern-Fahrzeit … min, Ankunft ±…` und je Hinfahrt, die man von der Abfahrt an sah, `[karren] Fahrt gesehen: … m in … Spielminuten = … m/s bei Tempo 1 …` – zum Prüfen von Bild gegen Kern; ohne die Option schreibt die Stadtansicht keine dieser Zeilen, `Stadtansicht.Karren.cs`)
 - `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
 - `--schiffsauftrag=vorschlag` (jedem eigenen Schiff am Kai den Vorschlag als Auftrag geben; `=<Ziel>`: den Vorschlag für diese ferne Stadt, z. B. `Eisenfurt`, Leerzeichen als `_`)
 - `--hafen=1` (Hafentafel des ersten Hafens rechts öffnen, ohne `--blick` fährt die Kamera hin; `=<Kennung>` eines Hafens der Karte, z. B. `Hafen1`; `=staedte`: Reiter „Ferne Städte“). Ein ausgewähltes Schiff: `--auswahl=schiff:<Name>`
@@ -60,6 +61,7 @@ Startoptionen (nach `--`):
 - `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`)
 - `--karte=<kennung>` (neue Partie auf einer anderen Karte aus `game/karten/`, z. B. `koeln`, nur für diesen Start; im Hauptmenü wählt man sie unter „Neue Partie“ → „Stadt wählen“)
 - `--stadtwahl=1` (Hauptmenü öffnet gleich die Seite „Stadt wählen“, für Bildschirmfotos)
+- `--danksagung=1` (Hauptmenü öffnet gleich die Danksagung; `=lizenzen`: gleich die Lizenztexte der Engine; für Bildschirmfotos)
 - `--entwickler=1|0` (Entwickler-Modus für diesen Start an oder aus, ohne die gemerkte Einstellung zu ändern; die Kartenwahl zeigt dann auch Test- und Messkarten)
 - `--entwicklerfenster=<1–6>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `6` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte, Klänge; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
@@ -183,12 +185,14 @@ Brücken und Furten entstehen von selbst, wo ein Weg das Wasser quert.
 
 Gelände (Schritt 5b):
 
-- `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,<x1>,<z1>;…` (mehrere mit `|`; `<pinsel>` ist heben, senken, glaetten, ebnen oder rauschen, hinten mit `:kante[:startwert[:massstab]]`; Stärke bei Heben, Senken und Rauschen in Metern je Tupfer, bei Glätten und Ebnen 0–1; ein Schritt der Geschichte je Strich)
+- `--werkstatt-gelaende=<pinsel>,<radius>,<staerke>,<x1>,<z1>;…[,<angabe>=<wert>…]` (mehrere mit `|`; `<pinsel>` ist heben, senken, glaetten, ebnen, rauschen oder terrassen, hinten mit `:kante[:startwert[:massstab]]`; Stärke bei Heben, Senken und Rauschen in Metern je Tupfer, bei Glätten, Ebnen und Terrassen 0–1; ein Schritt der Geschichte je Strich). Angaben des Pinsel-Pakets 1: `ziel=<m>` (Ebnen: Zielhöhe statt der Höhe unter dem ersten Punkt; Terrassen: Bezugshöhe), `stufe=<m>` und `boeschung=<0–1>` (Terrassen), `ausgleich=1` (Heben nur Mulden, Senken nur Spitzen), `steigung=<ab>-<bis>` (Prozent, eine Seite darf fehlen: `15-`, `-8`), `bodenfilter=<textur>[:<rand 0–1>]`
+- `--werkstatt-filter=<gelaende|boden>:<angaben>` (der Filter in der Tafel, Angaben `steigung=…` und `bodenfilter=…` wie oben, mit Komma getrennt; mehrere mit `|`; ohne Angaben: aus)
+- `--werkstatt-hoehenkarte=<pfad>,pixel=<m>,ursprung=<x>:<z>,unten=<m>,oben=<m>[,breite=<px>][,versatz=<m>][,stufe=<cm>][,bytefolge=be]` (eine Höhenkarte r16/raw einlesen, vor den Pinselstrichen; ein Schritt mit Rückgängig, der Bericht und eine Warnung beim Abschneiden stehen unten; wie `hoehenkarte-einlesen` im Kartenskript, aber ohne Eintrag der Herkunft – nur zum Ausprobieren)
 - `--werkstatt-rampe=<x1>,<z1>;<x2>,<z2>,<breite>` (mehrere mit `|`)
 
 Bodentexturen (Schritt 5e):
 
-- `--werkstatt-boden=<textur|radierer>,<radius>,<staerke>,<x1>,<z1>;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>]` (mehrere mit `|`; `<textur>` ist `wiese`, `erde`, `fels`, `kies`, `waldboden`, `sand`, `schlamm`, `moos`, `lehm`, `pflaster` oder `mist`; ein Strich = ein Schritt der Geschichte)
+- `--werkstatt-boden=<textur|radierer>,<radius>,<staerke>,<x1>,<z1>;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>][,steigung=<ab>-<bis>][,bodenfilter=<textur>[:<rand>]]` (mehrere mit `|`; `<textur>` ist `wiese`, `erde`, `fels`, `kies`, `waldboden`, `sand`, `schlamm`, `moos`, `lehm`, `pflaster` oder `mist`; ein Strich = ein Schritt der Geschichte; Filter wie bei `--werkstatt-gelaende`)
 
 Werkzeug dazu mit `--werkstatt-werkzeug=boden:<textur>` oder `boden:radierer` (Pinselkreis, Tafel).
 
@@ -208,7 +212,7 @@ Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 
 Nach dem Speichern und dem Umriss:
 
-- `--werkstatt-werkzeug=<weg[:art]|bauzone[:lage]|wald|streu|feldflaeche|aussparung|mauer|tor|pinsel|radierer|gelaende:<pinsel>|rampe|wasser:<fluss|bach|see|teich|faehre|hafen>|<katalog>>` (wie ein Klick im Katalog)
+- `--werkstatt-werkzeug=<weg[:art]|bauzone[:lage]|wald|streu|feldflaeche|aussparung|mauer|tor|pinsel|radierer|gelaende:<pinsel> (auch terrassen)|rampe|wasser:<fluss|bach|see|teich|faehre|hafen>|<katalog>>` (wie ein Klick im Katalog)
 - `--werkstatt-netz=1` (Gassennetz zeigen)
 - `--werkstatt-bildpunkte=<x>,<z>;…` schreibt nach 1,5 s ins Protokoll, wo diese Orte auf dem Bildschirm liegen (für Klicks mit `xdotool`)
 
@@ -221,6 +225,7 @@ Zum Bauen und Leerstand:
 - `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude; `--bauen=wege` öffnet das Baumenü im Wege-Modus: Wege leuchten, Klick auf einen Weg öffnet die Wegtafel)
 - `--bauort=<x>,<z>,<Drehung 0–3>` (der Umriss sitzt an dieser Stelle der Stadt in Metern, bis die Maus bewegt wird; Probestellen stehen unter `probeplan` in `greybox.json`)
 - `--bauklick=1` (dort die Rückfrage öffnen; `=2` gleich bauen)
+- `--fahrwegzeit=1` (Kosten des Fahrwegs im Baumodus ins Protokoll: `[fahrweg] … Wege bei x | z: Kern … ms, Bild … ms` bei jeder neuen Stelle des Umrisses, `[fahrweg] Ampeln: …` am Ende der Suche; mit `--bauen=werkstatt:<Art> --bauort=…`)
 - `--aufsteigen=1` (Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen, damit Werkstätten erlaubt sind; mit `--vermoegen=30000`)
 - `--spulen=<Ticks>` (so viele Spielminuten auf einen Schlag ablaufen lassen, `1200` = über die Bauzeit eines Spieljahres)
 - `--leerstand=kaufen|abreissen` (mit `--auswahl=wohnhaus:Haus_Eisenbart`, Leerzeichen als `_`: Rückfrage zum leeren Haus öffnen; mit `--bauklick=2` gleich ausführen)

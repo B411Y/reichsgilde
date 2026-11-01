@@ -18,7 +18,8 @@ namespace Reichsgilde.Core.Ki;
 /// <param name="Wechselschwelle">Um so viel (0,15 = 15 %) muss ein anderes Produkt besser sein, damit umgestellt wird.</param>
 /// <param name="MindestStundenJeProdukt">So lange bleibt die KI mindestens bei einem Produkt.</param>
 /// <param name="Vorsicht">1 = rechnet nüchtern; 2 = fürchtet Raubverluste doppelt so stark (nimmt eher Eskorte).</param>
-/// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht.</param>
+/// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht. An der Grenze tauscht sie (Fahrzeit nach Weglänge, stündlich, sobald
+/// der Karren am Hof steht) einen langsamen gegen einen schnelleren, wenn es sich bezahlt macht.</param>
 /// <param name="StillstandFuerKarrenkauf">Ab diesem Anteil Stillstand an der Arbeitszeit (0,2 = 20 %) kauft sie einen Karren.</param>
 /// <param name="MaxBetriebe">Mehr Betriebe erwirbt die KI nicht – sonst bliebe für Mitspieler nichts übrig.</param>
 /// <param name="MaxAmortisationJahre">Ein Kauf muss sich in so vielen Jahren aus dem erwarteten Gewinn bezahlt machen.</param>
@@ -52,12 +53,14 @@ public sealed record KiProfil(
 ///   jede volle Stunde   • Gießerei: das Produkt mit dem höchsten Gewinn je Arbeitsminute
 ///                       • Mine: Aufteilung der Förderung zwischen Eisen und Silber
 ///                       • freie Arbeitsplätze mit der ertragreichsten erlaubten Arbeitskraft besetzen
+///                       • an der Grenze von drei Karren einen langsamen gegen einen schnelleren tauschen (nach Weglänge, KiRivale.Karren.cs)
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
 ///                       • in der Not (gemahnt, Geld reicht nicht): einen Karren verkaufen, aber nie den letzten eines Betriebs
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
 ///                       • befördern, wenn sich der Brief bezahlt macht; Eigenschaft des Vorarbeiters nach Gewinn (KiRivale.Personal.cs)
 ///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
-///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand; einen verkaufen, der das ganze Jahr nicht fuhr
+///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand – nach Weglänge die Art, die auf seinem Weg nach dem Durchfluss am meisten
+///                         einbringt (KiRivale.Karren.cs); einen verkaufen, der das ganze Jahr nicht fuhr
 ///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück; dazu eins fürs Wohnhaus)
 ///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
@@ -203,6 +206,7 @@ public sealed partial class KiRivale
             if (betrieb.Belegt == 0) // die vergangene Stunde ohne jedes Personal – zählt gegen das Verlustjahr
                 _stundenOhnePersonal[betrieb.Name] = _stundenOhnePersonal.GetValueOrDefault(betrieb.Name) + 1;
             PersonalBesetzen(betrieb);
+            KarrenTauschen(betrieb); // an der Grenze nach Durchfluss (KiRivale.Karren.cs)
             EskorteWaehlen(betrieb);
         }
         SchiffeLosschicken(); // Schiffe am Kai bekommen einen Auftrag, wenn sich eine Fahrt lohnt – Betriebssache wie die Karren
@@ -606,17 +610,18 @@ public sealed partial class KiRivale
     }
 
     /// <summary>
-    /// Die neue Werkstatt bauen: an der gültigen Stelle, die dem nächsten Marktplatz am nächsten liegt (Luftlinie; mehrere Märkte je Stadt seit
-    /// 31.10.2026, Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher) –
-    /// bei Gleichstand die erste in der festen Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
+    /// Die neue Werkstatt bauen: die gültigen Stellen nach Luftlinie zum nächsten Marktplatz geordnet (mehrere Märkte je Stadt seit 31.10.2026,
+    /// Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher), bei Gleichstand in der festen
+    /// Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Mit der Fahrzeit nach Weglänge nimmt die KI unter den nächsten die mit dem kürzesten Karrenweg
+    /// (<see cref="Bauort"/>, KiRivale.Standort.cs), sonst die erste. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
     /// </summary>
     private void WerkstattBauen(Angebot angebot, double gewinn)
     {
         _bauorteGefragt = true;
         var karte = _w.Karte;
-        var ort = _w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
+        var (ort, minuten) = Bauort(_w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
             .OrderBy(o => karte?.MarktAbstandQuadrat(o.X, o.Z) ?? o.X * o.X + o.Z * o.Z)
-            .FirstOrDefault();
+            .ToList(), angebot.Art);
         if (ort is null)
         {
             _keinWerkstattplatzJahr = _w.Uhr.Jahr;
@@ -624,8 +629,9 @@ public sealed partial class KiRivale
         }
         var v = _w.Bauen.Vorschau(Konto, ort);
         var waehrung = _w.Daten.Allgemein.Waehrung;
+        var weg = minuten is { } m ? $"; der {_w.Daten.Art(angebot.Art).Startkarren} braucht {Zahlenformat.Ganz(m)} Minuten zum Markt" : "";
         Befehlen(ort, $"baut {v.Betrieb} neu ({Zahlenformat.Ganz(v.Kosten)} {waehrung}, fertig in {Jahre(v.BauzeitMinuten)}; " +
-                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr) – keine freie Werkstatt rechnet sich besser.");
+                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr{weg}) – keine freie Werkstatt rechnet sich besser.");
     }
 
     /// <summary>
@@ -1843,13 +1849,26 @@ public sealed partial class KiRivale
             .Select(k => k.Value.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
     }
 
+    /// <summary>
+    /// Zum Jahresende: Stand der Betrieb im Vorjahr zu oft still (<see cref="KiProfil.StillstandFuerKarrenkauf"/>), bekommt er einen Karren.
+    /// Rechnet der Kern seine Fahrzeit nach Weglänge (Datenversion 65), wählt die KI nach Durchfluss und tauscht an der Grenze
+    /// (<see cref="KarrenNachDurchfluss"/>, KiRivale.Karren.cs); sonst fahren alle Arten gleich lang, und es gilt die Regel unten.
+    /// </summary>
     private void KarrenNachkaufen(Betrieb betrieb)
     {
-        if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb || !BrauchtKarren(betrieb))
+        if (betrieb.Belegt == 0 || !BrauchtKarren(betrieb))
             return;
 
         var anteil = betrieb.StillstandMinutenVorjahr / (double)betrieb.Arbeitsminuten;
         if (anteil < Profil.StillstandFuerKarrenkauf)
+            return;
+        if (KarrenwahlNachDurchfluss(betrieb))
+        {
+            // Kaufen zum Jahresende; an der Grenze tauscht die KI stündlich, sobald der Karren am Hof steht (KarrenTauschen).
+            if (betrieb.Karren.Count < Profil.MaxKarrenJeBetrieb) KarrenNachDurchfluss(betrieb, anteil);
+            return;
+        }
+        if (betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb)
             return;
 
         // Kurze Stadtwege: kleiner, billiger Karren. Lange, gefährliche Umlandwege: viel Ladung je Fahrt.

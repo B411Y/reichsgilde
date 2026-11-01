@@ -7,7 +7,8 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>
 /// Feste Geschwindigkeiten von Figuren und Karren (Darstellung, 31.10.2026; Modell in <c>game/scripts/Gehtempo.cs</c>, hier mitübersetzt):
 /// Passanten gehen 1,3 m/s (±10 %) und kommen, wenn der Kern weniger Zeit gibt, später an. Karren fahren 0,8 bis 1,3 m/s – seit Datenversion 65
-/// rechnet der Kern ihre Fahrzeit mit demselben Tempo (<c>FahrzeitWeglaengeTests</c>), und das Profil der Darstellung dauert genau die Kernzeit.
+/// rechnet der Kern ihre Fahrzeit mit demselben Tempo (<c>FahrzeitWeglaengeTests</c>); das Profil der Darstellung wird nie gestreckt und dauert bei
+/// der Standard-Rundendauer bis auf die Rundung des Kerns die Kernzeit (Rundendauer und Höchstdauer: <c>GehtempoRegelTests</c>).
 /// Dazu die sichtbare Fahrt der Karren (<see cref="Karrenzug"/>), die einen Rückstand auflöst.
 /// </summary>
 static class GehtempoTests

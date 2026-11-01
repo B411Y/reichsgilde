@@ -74,6 +74,7 @@ public partial class Stadtansicht
     {
         _belagVeraltet = true;
         _wegeVeraltet = true; // das Leuchten des Wege-Modus zieht nach (Stadtansicht.Wegemodus.cs)
+        FahrwegBelagGeaendert(); // die Fahrzeiten des Fahrwegs im Baumodus ebenso (Stadtansicht.Fahrweg.cs)
     }
 
     /// <summary>Jedes Bild (aus <see cref="_Process"/>): ist der Belag veraltet, werden die Wege mit geänderten Stücken neu gezeichnet.</summary>

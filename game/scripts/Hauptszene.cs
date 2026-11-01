@@ -218,6 +218,11 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_bauFrage);
         _bau = new BauAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_bau); // rechts, anstelle des Kontors
+        var fahrweg = new FahrwegAnzeige(); // Schilder an den Märkten und Ampeln der Bauorte im Baumodus – unter allen Tafeln
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(fahrweg);
+        GetNode<CanvasLayer>("Oberflaeche").MoveChild(fahrweg, 0);
+        fahrweg.Verbinden(_stadt);
+        _bauFrage.Fahrweg = () => _stadt.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f ? (f, _stadt.FahrwegSchilder.Count) : null;
         _wegTafel = new WegAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
@@ -1472,7 +1477,7 @@ public partial class Hauptszene : Node
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch
         {
-            var markt when Stadtansicht.IstMarktplatz(markt) => $"{Stadtansicht.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
+            var markt when Stadtansicht.IstMarktplatz(markt) => $"{_stadt.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
             "Rathaus" => RathausText(w),
             "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
                      + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",

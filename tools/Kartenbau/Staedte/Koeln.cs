@@ -95,6 +95,7 @@ public sealed partial class Koeln : Stadtskript
         Arbeitsstellen();
         KreuzungenVerbinden();
         Bauzonen();
+        WerkstattbauplaetzeAnlegen();
         Natur();
         Boden();
         Start();
@@ -227,6 +228,9 @@ public sealed partial class Koeln : Stadtskript
         // Trankgasse und Krähenpforte bis 1.11.2026 9 m weiter nördlich (z = −70): Dort liegt jetzt das Startgrundstück an der Stadtseite des Alter Markts
         Weg(Wegklasse.Gasse, "Trankgasse", P(HoheX, -61), P(RheinX, -61));
         Weg(Wegklasse.Gasse, "Hammergasse", P(-80, -45), P(HoheX, -45));
+        // Unter Fettenhennen (Name einer Straße am echten Dom): eine Hauptstraße vom Alter Markt nach Westen in den Hof zwischen Dom und S4, an ihr
+        // ein Werkstatt-Bauplatz (seit 1.11.2026, Koeln.Bauplaetze.cs). Sie beginnt auf der Rheingasse im Platz, damit sie im Netz hängt.
+        Weg(Wegklasse.Haupt, "Unter Fettenhennen", P(RheinX, -101), P(24, -95), P(-3, -95));
 
         // Nebengassen mit erfundenen Namen (nur Fußgänger)
         Weg(Wegklasse.Gasse, "Engelspforte", P(HoheX, -112), P(-11, -112));
@@ -287,9 +291,9 @@ public sealed partial class Koeln : Stadtskript
         Haus("zollstelle", "Zollstelle", 54, -24, 270, "Zollstelle");
         Haus("lagerschuppen", "Stapelhaus", 50, 28, 270, "Stapelhaus");
 
-        // Leerstände und Ruinen: Hausnamen aus der Stadt (die Ruine in Deutz seit dem Deutzer Platz im Südosten statt an seiner Stelle)
+        // Leerstände und Ruinen: Hausnamen aus der Stadt (die Ruine von Deutz seit dem 1.11.2026 vor dem Südtor)
         Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90, "L1");
         Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90, "L2");
-        Haus("leerstand", "Haus zum schwarzen Raben (Ruine)", 196, 27, 180, "L3");
+        RuineVorDemSuedtor();   // bis 1.11.2026 bei 196 | 27 in Deutz, dort liegen jetzt Werkstatt-Bauplätze (Koeln.Bauplaetze.cs)
     }
 }

@@ -9,13 +9,15 @@ namespace Reichsgilde;
 /// Höhen in Stadtansicht.Gelaende.cs). Der Kern rechnet das Gelände (<see cref="Kartenentwurf.Gelaendeform"/>) und führt die Pinsel aus; hier steht, was
 /// die Werkstatt in der 3D-Welt daraus macht:
 /// <list type="bullet">
-/// <item><b>Pinsel</b> (<see cref="Werkstattwerkzeug.Gelaende"/>): Heben, Senken, Glätten, Ebnen, Rauschen. Mit gedrückter Maus malt der Strich; jede Mausbewegung
+/// <item><b>Pinsel</b> (<see cref="Werkstattwerkzeug.Gelaende"/>): Heben, Senken, Glätten, Ebnen, Rauschen, Terrassen. Mit gedrückter Maus malt der Strich; jede Mausbewegung
 /// gibt der Kern weiter (<see cref="Kartenentwurf.GelaendeStrichWeiter"/>), das Raster ändert sich sofort, und nur die Kacheln unter dem Pinsel werden neu
 /// gezeichnet. Loslassen beendet den Strich (ein Rückgängig-Schritt). Der Kreis an der Maus zeigt Radius und weiche Kante auf dem Gelände.</item>
 /// <item><b>Rampe</b> (<see cref="Werkstattwerkzeug.Rampe"/>): zwei Klicks – Anfang und Ende; dazwischen ein Band mit gleichmäßigem Gefälle.</item>
 /// <item><b>Folgen</b>: Was auf dem Gelände steht, folgt ihm – nach einem Strich werden die Gebäude, Wege, Mauern, Flächen, Pflanzen und die Natur im geänderten
 /// Rechteck neu gebaut (erst nach dem Strich, nicht bei jeder Mausbewegung); Wege und Mauern ändern ihr Bett im Gelände und damit die Kacheln unter ihnen.</item>
 /// <item><b>Höhenanzeige</b> (<see cref="WerkstattBodenInfo"/>): Höhe und Gefälle unter der Maus für die Leiste unten.</item>
+/// <item><b>Pinsel-Paket 1</b>: Filter nach Steigung und Boden (<see cref="GelaendeFilter"/>), nur Mulden / nur Spitzen, Zielhöhe mit <b>Pipette</b> (Strg+Klick oder
+/// Knopf „Pipette“, <see cref="PipetteBereit"/>), Terrassen und die <b>Anzeige unter dem Pinsel</b> (<see cref="WerkstattPinselInfo"/>).</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -36,6 +38,32 @@ public partial class Stadtansicht
     public int GelaendeStartwert { get; set; } = 1;
     public double GelaendeMassstab { get; set; } = 20;
 
+    /// <summary>Ebnen: auf <see cref="GelaendeZielhoehe"/> statt auf die Höhe unter dem ersten Klick? Terrassen nehmen die Zielhöhe immer als Bezugshöhe.</summary>
+    public bool GelaendeZielFest { get; set; }
+
+    /// <summary>Zielhöhe des Ebnens bzw. Bezugshöhe der Terrassen (Meter; die Pipette setzt sie).</summary>
+    public double GelaendeZielhoehe { get; set; }
+
+    /// <summary>Terrassen: Höhe einer Stufe (Meter) und Anteil der weichen Böschung (0 … 1).</summary>
+    public double GelaendeStufenhoehe { get; set; } = 2;
+    public double GelaendeBoeschung { get; set; } = 0.3;
+
+    /// <summary>Heben nur Mulden, Senken nur Spitzen (<see cref="Pinsel.NurAusgleich"/>) – je Pinsel ein eigener Haken.</summary>
+    public bool GelaendeNurMulden { get; set; }
+    public bool GelaendeNurSpitzen { get; set; }
+
+    /// <summary>Wo der Geländepinsel wirkt (Steigung, Boden); <see cref="Pinselfilter.Keiner"/>: überall.</summary>
+    public Pinselfilter GelaendeFilter { get; set; } = Pinselfilter.Keiner;
+
+    /// <summary>Der nächste Linksklick nimmt mit der Pipette auf, statt zu malen (Knopf „Pipette“ in der Tafel; Strg+Klick geht immer).</summary>
+    public bool PipetteBereit { get; set; }
+
+    /// <summary>
+    /// Die Pipette hat etwas aufgenommen (true: Zielhöhe oder Bodentextur – die Tafel zeigt den neuen Wert) oder ist ohne Treffer verfallen
+    /// (false: der Knopf springt heraus).
+    /// </summary>
+    public event Action<bool>? WerkstattPipetteGeaendert;
+
     /// <summary>Rampe: Breite des Bandes und Länge der weichen Seiten (Meter).</summary>
     public double RampeBreite { get; set; } = 6;
     public double RampeKante { get; set; } = 4;
@@ -52,14 +80,57 @@ public partial class Stadtansicht
     /// <summary>Wählt die Art des Pinsels (und stellt die Stärke auf ihre Vorgabe, wenn sich die Einheit ändert).</summary>
     public void GelaendeArtWaehlen(Pinselart art)
     {
-        var alteEinheitMeter = GelaendeArt is Pinselart.Heben or Pinselart.Senken or Pinselart.Rauschen;
-        var neueEinheitMeter = art is Pinselart.Heben or Pinselart.Senken or Pinselart.Rauschen;
+        var alteEinheitMeter = !new Pinsel(GelaendeArt).StaerkeAlsAnteil;
+        var neueEinheitMeter = !new Pinsel(art).StaerkeAlsAnteil;
+        if (art != GelaendeArt) PipetteBereit = false;
         GelaendeArt = art;
         if (alteEinheitMeter != neueEinheitMeter || art == Pinselart.Rauschen) GelaendeStaerke = StaerkeVorgabe(art);
     }
 
+    /// <summary>Braucht der gewählte Pinsel eine Zielhöhe (Ebnen mit fester Höhe, Terrassen) – dann nimmt die Pipette sie auf?</summary>
+    public bool GelaendeMitZielhoehe => GelaendeArt is Pinselart.Ebnen or Pinselart.Terrassen;
+
     /// <summary>Der Pinsel mit den gewählten Werten.</summary>
-    public Pinsel GelaendePinsel => new(GelaendeArt, GelaendeRadius, GelaendeStaerke, GelaendeKante, GelaendeStartwert, GelaendeMassstab);
+    public Pinsel GelaendePinsel => new(GelaendeArt, GelaendeRadius, GelaendeStaerke, GelaendeKante, GelaendeStartwert, GelaendeMassstab,
+        Zielhoehe: GelaendeArt == Pinselart.Terrassen || (GelaendeArt == Pinselart.Ebnen && GelaendeZielFest) ? GelaendeZielhoehe : null,
+        Stufenhoehe: GelaendeStufenhoehe, Boeschung: GelaendeBoeschung,
+        NurAusgleich: GelaendeArt == Pinselart.Heben ? GelaendeNurMulden : GelaendeArt == Pinselart.Senken && GelaendeNurSpitzen, Filter: GelaendeFilter);
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Pipette
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Ein Linksklick mit Strg (oder nach dem Knopf „Pipette“): Ebnen und Terrassen nehmen die Höhe des Rasters unter der Maus als Zielhöhe auf,
+    /// der Bodenpinsel die stärkste Textur dort. True: aufgenommen (der Klick malt nicht).
+    /// </summary>
+    private bool PipetteKlick(Vector2? boden, bool strg)
+    {
+        if (_entwurf is null || !(strg || PipetteBereit)) return false;
+        var bereit = PipetteBereit;
+        PipetteBereit = false;
+        if (Kartenwerkzeug == Werkstattwerkzeug.Gelaende && GelaendeMitZielhoehe && boden is { } p)
+        {
+            GelaendeZielhoehe = Gelaendepinsel.Pipette(_entwurf.Hoehen, new Kartenort(p.X, p.Y));
+            GelaendeZielFest = true;
+            WerkstattMeldung?.Invoke($"Pipette: Zielhöhe {Meter(GelaendeZielhoehe)} aufgenommen.", false);
+        }
+        else if (Kartenwerkzeug == Werkstattwerkzeug.Boden && boden is { } q)
+        {
+            (BodenArt, BodenRadierer) = (_entwurf.Boden.Anteile(q.X, q.Y)[0].Textur, false);
+            WerkstattMeldung?.Invoke($"Pipette: {BodenName(BodenArt)} aufgenommen.", false);
+        }
+        else
+        {
+            // der Knopf war gedrückt, aber hier gibt es nichts aufzunehmen (neben dem Boden): der Klick malt nicht, die Pipette verfällt
+            if (bereit) WerkstattPipetteGeaendert?.Invoke(false);
+            return bereit;
+        }
+        WerkstattPipetteGeaendert?.Invoke(true);
+        return true;
+    }
+
+    private static string Meter(double m) => $"{m.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("de-DE"))} m";
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Strich und Rampe
@@ -122,6 +193,7 @@ public partial class Stadtansicht
     {
         GelaendeStrichAbbrechen();
         _wsRampeAnfang = null;
+        PipetteBereit = false; // jede Wahl eines Werkzeugs (auch Boden) hebt eine bereitgestellte Pipette auf
         PinselAus();
     }
 
@@ -136,6 +208,7 @@ public partial class Stadtansicht
         Pinselart.Senken => new Color(0.45f, 0.72f, 1f),
         Pinselart.Glaetten => new Color(0.92f, 0.92f, 0.92f),
         Pinselart.Ebnen => new Color(0.65f, 0.95f, 0.45f),
+        Pinselart.Terrassen => new Color(0.95f, 0.85f, 0.45f),
         _ => new Color(0.85f, 0.55f, 0.95f),
     };
 
@@ -197,6 +270,38 @@ public partial class Stadtansicht
         var gefaelle = Math.Sqrt(sx * sx + sz * sz) * 100;
         var kultur = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
         return $"Höhe {hoehe.ToString("0.0", kultur)} m · Gefälle {gefaelle.ToString("0", kultur)} %" + (BodenTexturInfo(p) is { } boden ? " · " + boden : "");
+    }
+
+    /// <summary>
+    /// Die Anzeige unter dem Pinsel (Pinsel-Paket 1), nur mit Gelände- und Bodenpinsel: Höhe des Rasters (wie die Pipette sie nimmt) und Steigung
+    /// (wie der Filter sie misst), die Bodenarten mit Anteil und ob der Filter hier greift. Null: kein Pinsel, Maus über einer Tafel oder neben dem Boden.
+    /// </summary>
+    public string? WerkstattPinselInfo()
+    {
+        if (_entwurf is null || Kartenwerkzeug is not (Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Boden) || WerkstattGesperrt) return null;
+        if (GetViewport().GuiGetHoveredControl() is not null) return null;
+        if (_wsOrt is null && !GetViewport().GetVisibleRect().HasPoint(GetViewport().GetMousePosition())) return null;
+        if ((_wsOrt ?? BodenpunktBei(GetViewport().GetMousePosition())) is not { } p) return null;
+        var kultur = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+        var roh = Gelaendepinsel.Pipette(_entwurf.Hoehen, new Kartenort(p.X, p.Y));
+        var steigung = Pinselfilter.Steigung(_entwurf.Hoehen, p.X, p.Y);
+        var zeilen = new List<string>();
+        var bett = BodenHoehe(p.X, p.Y);
+        zeilen.Add($"Höhe {Meter(roh)} · Steigung {steigung.ToString("0", kultur)} %" + (Math.Abs(bett - roh) > 0.05 ? $" (Wegbett {bett.ToString("0.00", kultur)} m)" : ""));
+        var anteile = _entwurf.Boden.Anteile(p.X, p.Y);
+        zeilen.Add(string.Join(" · ", anteile.Take(3).Select(a => $"{BodenName(a.Textur)} {Math.Round(a.Anteil * 100.0 / 255, MidpointRounding.AwayFromZero)} %")));
+        if (Kartenwerkzeug == Werkstattwerkzeug.Gelaende && GelaendeArt == Pinselart.Terrassen)
+            zeilen.Add($"Stufe hier: {Meter(new Pinsel(Pinselart.Terrassen, Zielhoehe: GelaendeZielhoehe, Stufenhoehe: GelaendeStufenhoehe, Boeschung: GelaendeBoeschung).Begrenzt().Stufe(roh * 100) / 100)}");
+        var filter = Kartenwerkzeug == Werkstattwerkzeug.Gelaende ? GelaendeFilter : BodenFilter;
+        if (!filter.IstLeer)
+        {
+            var f = filter.Begrenzt();
+            var anteil = f.Boden is { } t ? anteile.FirstOrDefault(a => a.Textur == t).Anteil : 0;
+            var wirkt = f.BodenPasst(anteil) ? f.SteigungFaktor(steigung) : 0;
+            zeilen.Add(wirkt <= 0 ? "Filter: wirkt hier nicht" : $"Filter: wirkt hier {Math.Round(wirkt * 100, MidpointRounding.AwayFromZero)} %");
+        }
+        if (PipetteBereit) zeilen.Add(Kartenwerkzeug == Werkstattwerkzeug.Boden ? "Pipette: Klick nimmt die Bodenart" : "Pipette: Klick nimmt die Höhe");
+        return string.Join("\n", zeilen);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

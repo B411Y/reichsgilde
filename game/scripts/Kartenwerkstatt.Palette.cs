@@ -303,7 +303,13 @@ public partial class Kartenwerkstatt
             }
             knopf.Pressed += () =>
             {
-                if (knopf.ButtonPressed) Waehlen();
+                if (knopf.ButtonPressed)
+                {
+                    // nur ein Werkzeug ist gedrückt: der vorige Knopf (auch derselben Art, z. B. Heben → Senken) springt heraus
+                    foreach (var (anderer, _) in _katalogKnoepfe.Values)
+                        if (anderer != knopf) anderer.SetPressedNoSignal(false);
+                    Waehlen();
+                }
                 else _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
             };
             raster.AddChild(knopf);

@@ -162,6 +162,20 @@ public sealed class Bauzone
     /// <summary>Umriss als Vieleck, je Punkt [x, z] (auf dem 2-m-Raster).</summary>
     public List<double[]> Flaeche { get; init; } = new();
 
+    /// <summary>
+    /// Was hier nur gebaut werden darf: <see cref="NurWerkstatt"/> („werkstatt“) für einen Werkstatt-Bauplatz nahe einem Markt (seit 1.11.2026,
+    /// Köln) – dort lehnt das Bauwesen Wohnhäuser ab. Null (Vorgabe, alte Karten): alles, was die Lage erlaubt.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Nur { get; init; }
+
+    /// <summary>Der Wert von <see cref="Nur"/> für Werkstatt-Bauplätze.</summary>
+    public const string NurWerkstatt = "werkstatt";
+
+    /// <summary>Darf hier nur eine Werkstatt stehen?</summary>
+    [JsonIgnore]
+    public bool NurWerkstaetten => Nur == NurWerkstatt;
+
     /// <summary>Liegt der Punkt in der Zone?</summary>
     public bool Enthaelt(double x, double z) => Geometrie.ImVieleck(x, z, Flaeche);
 
@@ -738,6 +752,7 @@ public sealed class Stadtkarte
         {
             if (z.Flaeche.Count < 3) f.Add($"Bauzone {z.Kennung}: Die Fläche braucht mindestens drei Punkte.");
             if (!Linie(z.Flaeche)) f.Add($"Bauzone {z.Kennung}: Jeder Punkt hat genau zwei Zahlen [x, z].");
+            if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt) f.Add($"Bauzone {z.Kennung}: nur ist „{Bauzone.NurWerkstatt}“ oder fehlt (nicht „{nur}“).");
         }
 
         foreach (var g in Gebaeude)

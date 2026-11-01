@@ -49,6 +49,17 @@ Fehler meldet es deutsch mit Zeilennummer und endet mit Rückgabewert 1; dann sc
 
 Je Gruppe eine Datei in `prompts/`: Werkzeug, Vorlage, Ablauf und die Prompt-Texte. Keine Rechnerpfade, Adressen oder Zugangsdaten – Aufrufskripte außerhalb des Repositorys nur beschreiben.
 
+## Danksagung im Spiel
+
+Jedes Fremdmaterial mit Namensnennungspflicht (CC BY, MIT, OFL, Apache) muss in der Danksagung des Spiels stehen (Hauptmenü, Knopf „Danksagung“); CC0 wird freiwillig in Sammelzeilen genannt. Die Datei `game/daten/danksagung.json` wird gebaut, nicht von Hand geschrieben:
+
+```bash
+python3 tools/assets/danksagung_bauen.py             # neu schreiben
+python3 tools/assets/danksagung_bauen.py --pruefen   # prüfen (läuft in protokoll_pruefen.py, also in der CI)
+```
+
+**Ablauf bei neuem Fremdmaterial:** Zeile im Protokoll (Herkunft „Fremdpaket“, Lizenz, Bezugsquelle), dann den Eintrag in `tools/assets/danksagung_quelle.json` anlegen (Werk, Urheber, Adresse, Lizenz; Feld `deckt` nennt den Anfang des Protokoll-Musters) und die Datei neu bauen. Freesound-Aufnahmen stehen in der Tabelle von `game/assets/audio/umgebung/HERKUNFT.md` und kommen von selbst hinein. Das Prüfskript meldet jede Fremdpaket-Zeile ohne Eintrag und jede Namensnennung im Protokoll, die in der Tabelle fehlt.
+
 ## Verhältnis zu anderen Dateien
 
 - `HERKUNFT.md` neben Fremdpaketen und dem KI-Schmied (`game/assets/modelle/natur/`, `props/`, `figuren/ki/`) behalten die Lizenztexte und Einzelheiten der Werkzeuge; in Ordnern mit KI-Bildern verweist eine kurze `HERKUNFT.md` hierher.

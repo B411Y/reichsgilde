@@ -47,11 +47,12 @@ public sealed partial class Koeln
     }
 
     /// <summary>
-    /// Steht an dieser Stelle nichts im Weg? Abstand zu Gebäuden (<paramref name="abstand"/>), zu Wegen (halbe Breite + 0,3 m), zu Mauern (4 m)
-    /// und zum Wasser (3 m).
+    /// Steht an dieser Stelle nichts im Weg? Abstand zu Gebäuden (<paramref name="abstand"/>), zu Wegen (halbe Breite + 0,3 m), zu Mauern (4 m),
+    /// zum Wasser (3 m) und zu den Werkstatt-Bauplätzen (2 m).
     /// </summary>
     private bool Frei(IReadOnlyList<Kartenort> umriss, double abstand = 1.5, double wasserAbstand = 3)
     {
+        if (AmBauplatz(umriss)) return false;   // Werkstatt-Bauplätze nahe den Märkten bleiben frei (Koeln.Bauplaetze.cs)
         foreach (var g in E.Gebaeude)
         {
             var e = g.Ecken();
@@ -167,6 +168,9 @@ public sealed partial class Koeln
 
     // ── Einwohnerplätze ──────────────────────────────────────────────────────
 
+    /// <summary>So viele Einwohnerplätze hatte Deutz bis zu den Werkstatt-Bauplätzen (1.11.2026); was dort nicht mehr passt, steht vor den Toren.</summary>
+    private const int EinwohnerplaetzeDeutz = 8;
+
     private void Einwohnerplaetze()
     {
         // Das Spiel ordnet die Plätze nach ihrer Lage: Plätze innerhalb einer Mauer (die Altstadt und Deutz zählen beide) bekommen zuerst die
@@ -203,7 +207,13 @@ public sealed partial class Koeln
         n = 0;
         foreach (var (strasse, links) in new[] { ("Deutzer Freiheit", true), ("Deutzer Freiheit", false), ("Deutzer Kirchstraße", true), ("Deutzer Kirchstraße", false) })
             n += Reihe("einwohnerplatz_vorstadt", strasse, links, 0, 1000, luecke: 1.5, hoechstens: 3).Count;
-        Console.WriteLine($"   Einwohnerplätze in Deutz: {n}");
+        // Seit den Werkstatt-Bauplätzen am Neumarkt (1.11.2026) passen in Deutz weniger Plätze; die übrigen stehen vor den Deutzer Toren, damit
+        // es so viele bleiben wie vorher
+        var vorDenToren = 0;
+        foreach (var (strasse, links) in new[] { ("Siegburger Straße", false), ("Siegburger Straße", true), ("Bensberger Straße", true), ("Bensberger Straße", false) })
+            if (n + vorDenToren < EinwohnerplaetzeDeutz)
+                vorDenToren += Reihe("einwohnerplatz_vorstadt", strasse, links, 12, 80, luecke: 1.5, hoechstens: EinwohnerplaetzeDeutz - n - vorDenToren).Count;
+        Console.WriteLine($"   Einwohnerplätze in Deutz: {n}, vor den Deutzer Toren {vorDenToren}");
         n = 0;
         foreach (var strasse in new[] { "Aachener Straße", "Venloer Straße", "Neusser Straße", "Luxemburger Straße", "Bonner Straße" })
             foreach (var links in strasse == "Neusser Straße" ? new[] { true } : new[] { true, false })   // an der Neusser Straße endet das Spielfeld bald

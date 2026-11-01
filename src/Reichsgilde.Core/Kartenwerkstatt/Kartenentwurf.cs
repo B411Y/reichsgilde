@@ -392,6 +392,57 @@ public sealed partial class Kartenentwurf
 
     private (Schwere Schwere, Kapazitaet Ergebnis)? _kapazitaet;
 
+    /// <summary>
+    /// Die Karrenwege der Startbetriebe zum Markt (<see cref="Startwegpruefung"/>, für die Fairness der Startgrundstücke) – aus dem
+    /// Zwischenspeicher, bis sich ein Platz der Startbelegung, ein Marktplatz oder die Startbelegung ändert (dann die Wege: in Köln etwa ein
+    /// Zehntel bis ein Viertel der übrigen Prüfung) bzw. ein Weg, ein Gewässer oder eine Fähre (dann auch Karte und Karrennetz, in Köln etwa noch
+    /// einmal so lange wie die übrige Prüfung). Andere Gebäude und Geländestriche rechnen nichts neu (die Länge hängt nicht an der Höhe, nur die
+    /// Steigung, die hier nicht zählt). Ließ sich die Karte nicht laden, versucht es die nächste Änderung jeder Art wieder.
+    /// </summary>
+    public IReadOnlyList<Startweg> Startwegrechnung()
+    {
+        if (_startwege is { } bekannt) return bekannt;
+        var start = Start.AlsStartbelegung();
+        var kennungen = start.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Append(start.Spieler.Werkstatt.Platz).ToHashSet(StringComparer.Ordinal);
+        _startplaetze = (kennungen, kennungen.Select(GebaeudeMit).OfType<EntwurfGebaeude>().ToHashSet(ReferenceEqualityComparer.Instance));
+        return _startwege = Startwegpruefung.Rechnen(this);
+    }
+
+    private IReadOnlyList<Startweg>? _startwege;
+
+    /// <summary>Die Plätze der letzten Startweg-Rechnung (Kennungen und Gebäude): Nur ihre Änderung (oder die eines Marktplatzes) rechnet die Wege neu.</summary>
+    private (HashSet<string> Kennungen, HashSet<object> Gebaeude)? _startplaetze;
+
+    /// <summary>Karte und Karrennetz für die Startwege (null, wenn die Karte sich nicht laden lässt oder keinen Marktplatz hat).</summary>
+    internal (Stadtkarte Karte, Karrennetz Netz)? Startnetz()
+    {
+        if (_startnetzGerechnet) return _startnetz;
+        _startnetzGerechnet = true;
+        try
+        {
+            var karte = ZuStadtkarte();
+            _startnetz = karte.Marktplaetze.Count == 0 ? null : (karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true));
+        }
+        catch (Exception) { _startnetz = null; } // die Fehler der Karte melden die übrigen Regeln
+        return _startnetz;
+    }
+
+    private (Stadtkarte Karte, Karrennetz Netz)? _startnetz;
+    private bool _startnetzGerechnet;
+
+    /// <summary>Verwirft Startwege und Netz, soweit die Änderung sie betrifft (siehe <see cref="Startwegrechnung"/>).</summary>
+    private void StartwegeVormerken(Kartenaenderung a)
+    {
+        // Ohne Netz (die Karte ließ sich nicht laden oder hat keinen Marktplatz) kann jede Änderung das beheben – dann neu versuchen (Befund der Prüfung)
+        var netzWeg = _startnetzGerechnet && _startnetz is null
+                      || a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre
+                      || a.Objekt is EntwurfGebaeude { Katalog: Stadtkarte.MarktKatalog };
+        if (netzWeg) (_startnetz, _startnetzGerechnet) = (null, false); // das Netz hängt an Wegen, Wasser und Marktplätzen (Marktlinien, Halt)
+        if (netzWeg || a.Teil == Kartenteil.Start || _startplaetze is not { } plaetze
+            || a.Objekt is EntwurfGebaeude g && (plaetze.Kennungen.Contains(g.Kennung) || plaetze.Gebaeude.Contains(g)))
+            (_startwege, _startplaetze) = (null, null);
+    }
+
     /// <summary>Hat die Karte Fehler (Hinweise zählen nicht)?</summary>
     public bool HatFehler => Befunde.Any(b => b.Schwere == Schwere.Fehler);
 
@@ -786,6 +837,7 @@ public sealed partial class Kartenentwurf
     {
         _befunde = null;
         if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
+        StartwegeVormerken(a);
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
