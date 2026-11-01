@@ -17,9 +17,17 @@ beim Mann fast gleich dem nackten Scanmittel (≤ 0,6 mm), bei der Frau ist das 
 
 Profil- und Schrägmaße (Abnahme ab B2) stehen für Scanmittel, Makro-Grund, Halt B und B2 im Bericht (profil_masse).
 
+Etappe D (--etappe=d, Probebau mit eigen=2): dazu die Nase als Profil- und Volumenziel nach den Fotovorlagen (Mittel der
+26 Vorlagen, tools/charakter/messen/vorlagen_merkpunkte.json) und der Anthropometrie (Farkas: n–sn Mann 54,8, Frau 50,6 mm;
+Nasolabialwinkel Mann 90–100°, Frau 95–110°): Subnasale unter der Pupillenlinie (ps_sn_ipd), Nasenspitze (ps_prn_ipd),
+Nase–Kinn-Verhältnis, Nasenflügelbreite / IPD, Nasolabialwinkel; n_sn als Bereich statt NIOSH-Mittel. Die Augenpartie
+(eigen_augenhoehle, eigen_unterlid, eigen_deckfalte_<g>, mehr Tränenrinne) geht fest ein.
+
 Aufruf: $BPY -I tools/charakter/formen_ausgleich_b2.py --glb=<glb6p/kopf6p.glb> --gewichte=<gewichte.json> --aus=<ordner>
         [--rezept_haltb=<kopf6_rezept_s4.json>]   (Vergleich Halt B; Standard tools/charakter/kopf6_rezept_s4.json)
-Ergebnis: <aus>/rezept_s4_b2.json (gleicher Aufbau wie kopf6_rezept_s4.json) und <aus>/ausgleich_b2.json.
+        [--etappe=d [--basis=<ausgleich_b2.json>]]   (basis: alle Gewichte außer der Nase fest wie B2)
+Ergebnis: <aus>/rezept_s4_b2.json bzw. rezept_s4_d.json (gleicher Aufbau wie kopf6_rezept_s4.json) und
+<aus>/ausgleich_b2.json bzw. ausgleich_d.json.
 """
 import json
 import os
@@ -112,7 +120,34 @@ def profil_masse(nm, w, P=None, bezug="tragion"):
                                + (P["lm43"][1] + P["lm44"][1]) - (P["lm46"][1] + P["lm47"][1])))
     q = H[(np.abs(H[:, 1] - (P["br_r"][1] + 10)) < 1.0) & (H[:, 2] > t[2] + 15)]
     m["schlaefe"] = float(np.ptp(q[:, 0])) if len(q) else float("nan")
+    # Etappe D: Nase in der Vorderansicht (Höhen ab der Pupillenlinie / IPD, wie in den Fotovorlagen) und im Profil
+    ipd = float(P["ps_l"][0] - P["ps_r"][0])
+    ps_y = 0.5 * (P["ps_r"][1] + P["ps_l"][1])
+    m["ps_prn_ipd"] = float(ps_y - P["prn"][1]) / ipd
+    m["al_ipd"] = float(P["al_l"][0] - P["al_r"][0]) / ipd
+    m["nase_kinn"] = float(ps_y - P["sn"][1]) / float(ps_y - P["me"][1])
+    m["nasolabial"] = nasolabial(H, P)
     return m
+
+
+def nasolabial(H, P):
+    """Nasolabialwinkel (Grad): Tangente an die Unterseite des Nasenstegs (Mittelstreifen |x| < 1,2 mm, je 0,75 mm Tiefe
+    die unterste Hautecke zwischen sn und prn, Gerade durch sie) gegen die Oberlippe sn → ls."""
+    sn, prn, ls = P["sn"], P["prn"], P["ls"]
+    mitte = H[np.abs(H[:, 0]) < 1.2]
+    pkt = []
+    for z0 in np.arange(sn[2] + 1.0, prn[2] - 1.5, 0.75):
+        q = mitte[(np.abs(mitte[:, 2] - z0) < 0.5) & (mitte[:, 1] > sn[1] - 0.5) & (mitte[:, 1] < prn[1] + 2.0)]
+        if len(q):
+            pkt.append((z0, float(q[:, 1].min())))
+    if len(pkt) < 3:
+        return float("nan")
+    pkt = np.array(pkt)
+    k = np.polyfit(pkt[:, 0], pkt[:, 1], 1)[0]
+    d_c = np.array([k, 1.0]) / np.hypot(k, 1.0)                 # (y, z), nach vorn
+    d_l = np.array([ls[1] - sn[1], ls[2] - sn[2]])
+    d_l /= np.linalg.norm(d_l)
+    return float(np.degrees(np.arccos(np.clip(d_c @ d_l, -1.0, 1.0))))
 
 
 class MesserB2(Messer):
@@ -159,18 +194,32 @@ MITTE_WANGE = 0.2
 SCHLUESSEL = ("ipd", "augapfel_ipd", "zy", "n_me", "gesichtsindex", "kinnmitte_zy", "mund_zy", "mundlage", "braue_pupille",
               "wangenwoelbung", "augentiefe", "nasofrontalwinkel", "pg_hinter_li", "kinn_hals_winkel", "unterkiefer",
               "n_sn", "mundbreite", "nasenbreite", "uw30", "uw40", "uw50", "mw25", "mw35", "t_g", "t_n", "t_prn", "t_sn",
-              "t_ls", "t_li", "t_pg", "ul_snpg", "ll_snpg", "ul_e", "ll_e", "konvex", "lid_b", "lid_h", "schlaefe")
+              "t_ls", "t_li", "t_pg", "ul_snpg", "ll_snpg", "ul_e", "ll_e", "konvex", "lid_b", "lid_h", "schlaefe",
+              "ps_sn_ipd", "ps_prn_ipd", "nase_kinn", "al_ipd", "nasolabial", "nasofrontalwinkel")
+# Etappe D: Nase je Geschlecht (Bereiche; Toleranz). Fotovorlagen (Mittel m/w): ps_sn_ipd 0,769/0,752, ps_prn_ipd
+# 0,625/0,593, Nase–Kinn 0,409/0,424, al_ipd 0,542/0,500; die Frau bleibt unter dem Fotomittel, weil n–sn sonst über
+# Farkas + 1 σ wüchse (das Fotomittel verlangte bei ihr 6 mm mehr Nase)
+NASE_D = {"m": [("ps_sn_ipd", "bereich", 0.755, 0.80, 0.008), ("ps_prn_ipd", "min", 0.58, 0, 0.012),
+                ("nase_kinn", "bereich", 0.39, 0.43, 0.006), ("al_ipd", "bereich", 0.52, 0.56, 0.008),
+                ("nasolabial", "bereich", 90.0, 102.0, 2.0), ("n_sn", "bereich", 52.0, 56.5, 0.8)],
+          "w": [("ps_sn_ipd", "bereich", 0.66, 0.72, 0.008), ("ps_prn_ipd", "min", 0.52, 0, 0.012),
+                ("nase_kinn", "bereich", 0.37, 0.43, 0.006), ("al_ipd", "bereich", 0.48, 0.52, 0.008),
+                ("nasolabial", "bereich", 96.0, 108.0, 2.0), ("n_sn", "bereich", 48.5, 52.5, 0.8)]}
+NASE_D_FORMEN = ["probe_nose_trans_down", "probe_nose_septumangle_decr", "probe_nose_nostrils_width_decr",
+                 "probe_nose_flaring_decr", "probe_nose_point_width_decr", "probe_nose_scale_depth_incr"]
+AUGEN_D = {"eigen_augenhoehle": 1.0, "eigen_unterlid": 1.0, "eigen_traenenrinne": 0.6}
 
 
 def main():
     opt = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
+    etappe = opt.get("etappe", "b2")
     aus = opt.get("aus", ".")
     os.makedirs(aus, exist_ok=True)
     messer = MesserB2(os.path.expanduser(opt["glb"]))
     pers = {p["name"]: p for p in json.load(open(opt["gewichte"], encoding="utf-8"))["personen"]}
     regler = json.load(open(os.path.join(HIER, "kopf2_regler.json"), encoding="utf-8"))
     haltb = json.load(open(opt.get("rezept_haltb", os.path.join(HIER, "kopf6_rezept_s4.json")), encoding="utf-8"))
-    bericht = {"glb": opt["glb"], "gewichte": opt["gewichte"], "deckel": DECKEL, "mitte_wange": MITTE_WANGE}
+    bericht = {"glb": opt["glb"], "gewichte": opt["gewichte"], "deckel": DECKEL, "mitte_wange": MITTE_WANGE, "etappe": etappe}
     rezept = {}
 
     def grund_von(name):
@@ -271,6 +320,26 @@ def main():
                 o = min(o, DECKEL[f][g])
                 var[f] = (p, mi, float(np.clip(c0, u, o)), u, o)
         var["gen_augen_tiefe_plus"] = ({"gen_augen_tiefe_plus": 1.0}, {"gen_augen_tiefe_minus": 1.0}, 0.0, -1.0, 1.0)
+        if etappe == "d":
+            # Nase als Ziel (n_sn als Bereich statt NIOSH-Mittel), Augenpartie fest
+            ziele = [z for z in ziele if z[0] != "n_sn"] + NASE_D[g]
+            for f in NASE_D_FORMEN:
+                if f not in var and not any(gegenform(f) == k for k in var):
+                    var[f] = V(f, 0.0, -0.6 if gegenform(f) else 0.0, 0.8)
+            fest = dict(fest, **AUGEN_D, **{f"eigen_deckfalte_{g}": 1.0})
+            if opt.get("basis"):
+                # nur die Nase rechnet; alles andere bleibt wie in B2 (sonst wandert z. B. der Kiefer mit und der
+                # Vorher-Nachher-Vergleich misst nicht mehr nur Nase und Augen)
+                c_b2 = json.load(open(opt["basis"], encoding="utf-8"))["ergebnisse"][g]["c"]
+                for n in list(var):
+                    # frei bleiben die Nase und die Lage des Mundes (die längere Nase verkürzt sonst die Oberlippe:
+                    # sn–sto / sn–me der Frau fiel auf 0,26, Fotos 0,33)
+                    if n.startswith(("probe_nose_", "probe_mouth_trans_down", "probe_mouth_trans_up")) or n not in c_b2:
+                        continue
+                    ci = float(c_b2[n])
+                    for f, wf in (var[n][0] if ci >= 0 else var[n][1]).items():
+                        fest[f] = fest.get(f, 0.0) + abs(ci) * wf
+                    del var[n]
         prot = []
         c, m, w_end, gewaehlt = ausgleich(messer, grund, fest, var, ziele, runden=25, protokoll=prot)
         ober, unter = {}, {}
@@ -299,8 +368,8 @@ def main():
     print("%-15s" % "Maß", "".join("%10s" % z for z in vergleich))
     for k in SCHLUESSEL:
         print("%-15s" % k, "".join("%10.2f" % vergleich[z][k] for z in vergleich))
-    json.dump(rezept, open(os.path.join(aus, "rezept_s4_b2.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-    json.dump(bericht, open(os.path.join(aus, "ausgleich_b2.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False,
+    json.dump(rezept, open(os.path.join(aus, f"rezept_s4_{etappe}.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+    json.dump(bericht, open(os.path.join(aus, f"ausgleich_{etappe}.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False,
               default=float)
 
 

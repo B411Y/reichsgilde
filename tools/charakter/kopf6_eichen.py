@@ -194,10 +194,13 @@ def main():
     bericht = {"glb": opt["glb"]}
     regeln_gene = {}
     rezept = {k: dict(v) for k, v in rezept_s4.items()}
-    # Lidfalte als eigene Form (der Kopf blendet sie beim Lidschluss aus), nicht in der Reifeform
+    # Lidfalte als eigene Form (der Kopf blendet sie beim Lidschluss aus), nicht in der Reifeform; Etappe D: die Deckfalte
+    # darüber gehört dazu (sie läge bei geschlossenem Lid sonst als Wulst auf dem Lid)
     for g in "mw":
         if f"eigen_lidfalte_{g}" in rezept[f"alter_reife_{g}_oben"]:
             rezept[f"lidfalte_{g}"] = {f"eigen_lidfalte_{g}": rezept[f"alter_reife_{g}_oben"].pop(f"eigen_lidfalte_{g}")}
+            if f"eigen_deckfalte_{g}" in rezept[f"alter_reife_{g}_oben"]:
+                rezept[f"lidfalte_{g}"][f"eigen_deckfalte_{g}"] = rezept[f"alter_reife_{g}_oben"].pop(f"eigen_deckfalte_{g}")
 
     def grund(g):
         w = dict(pers[f"mittel_{g}35"]["szene"])

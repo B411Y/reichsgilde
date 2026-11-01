@@ -18,6 +18,16 @@ Formen (Stärke bei Gewicht 1; die Ausgleichsrechnung formen_ausgleich.py wählt
   eigen_kopfnicker    Kopfnicker (Halsmuskel) vom Warzenfortsatz hinter dem Ohr zum Brustbein, Wulst 1,5 mm
   eigen_kieferwinkel  Kieferwinkel (um lm3/lm13) 4 mm zur Seite (S5: Gen kiefer_breite; mit negativem Gewicht schmaler)
   eigen_hoecker       Höcker auf dem Nasenrücken (zwischen lm28 und lm29), 2 mm nach vorn (S5: Gen nase_hoecker)
+
+Etappe D (Augenpartie, nur mit etappe_d=True bzw. kopf2_bauen.py eigen=2; Halt B und B2 bauen ohne sie gleich):
+  eigen_augenhoehle   Augenhöhle tiefer: Rinne unter der Braue über der inneren Hälfte des Oberlids (oberer Sulcus,
+                      bis 1,8 mm) und eine Mulde am inneren Lidwinkel neben dem Nasenrücken (bis 1,0 mm); Lidrand und
+                      Braue bleiben (die gemittelten Scans glätten diese Höhlungen weg – Prüferbefund „Augenpartie flach“)
+  eigen_deckfalte_m/_w  Deckfalte über der Lidfalte: die Haut 0–4,5 mm über der Falte (7,5 bzw. 9,5 mm über dem Lidrand)
+                      sinkt 0,7 mm und tritt 0,5 mm vor, außen stärker (Schlupf zur Seite); mit der Lidfalte zusammen
+                      ausgeblendet, wenn das Lid schließt (kopf6_eichen.py legt sie in „lidfalte_<g>“)
+  eigen_unterlid      Unterlid: Lidwulst (Pars tarsalis) 0,45 mm vor, 2 mm unter dem Rand, darunter die Lid-Wangen-Furche
+                      0,35 mm tief bei 5,5 mm; zu den Lidwinkeln auslaufend, der Lidrand selbst bleibt
 """
 import numpy as np
 
@@ -65,11 +75,11 @@ def _naechster(p, linie):
     return d, k
 
 
-def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001):
+def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False):
     """Alle eigenen Formen. H: Hautecken (m), n_haut: Zahl der ICT-Hautecken (davor), flaechen: Hautflächen,
     L: 68 Merkpunkte (m), augen: {"l"/"r": (Mitte, Halbmesser)}, ausschluss: Ecken ohne Versatz (Mund- und
-    Augenhöhlen), hals_abstand: Abstand jeder ICT-Hautecke zur Halsnaht (m). Gibt {Name: Versatz (len(H), 3)} und
-    einen Prüfbericht zurück."""
+    Augenhöhlen), hals_abstand: Abstand jeder ICT-Hautecke zur Halsnaht (m), etappe_d: dazu die Formen der Augenpartie
+    (Etappe D). Gibt {Name: Versatz (len(H), 3)} und einen Prüfbericht zurück."""
     N = eckennormalen(H, flaechen)
     V = H[:n_haut]
     Nv = N[:n_haut]
@@ -217,4 +227,95 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001):
     quer = np.linalg.norm(rel - laengs[:, None] * achse, axis=1)
     w = np.exp(-0.5 * ((laengs / 0.006) ** 2 + (np.abs(V[:, 0]) / 0.0045) ** 2)) * (quer < 0.012) * stufe(Nv[:, 1], -0.2, -0.6)
     ablegen("eigen_hoecker", Nv * (2.0 * mm * w)[:, None])
+    if etappe_d:
+        augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     return aus, bericht
+
+
+def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm):
+    """Etappe D: Augenhöhle, Deckfalte und Unterlid (siehe Kopf der Datei). Lage in der Vorderansicht (x, z) gegen die
+    Lidränder der ICT-Merkpunkte; „seitlich“ 0 am inneren, 1 am äußeren Lidwinkel; ps = Augapfelmitten."""
+    xz = np.c_[V[:, 0], np.zeros(len(V)), V[:, 2]]
+    brauen = {"r": [17, 18, 19, 20, 21], "l": [22, 23, 24, 25, 26]}
+    innen_w = {"r": 39, "l": 42}
+    aussen_w = {"r": 36, "l": 45}
+
+    def seitlich(s):
+        a, b = abs(L[innen_w[s], 0]), abs(L[aussen_w[s], 0])
+        return np.clip((np.abs(V[:, 0]) - a) / (b - a), -0.5, 1.5) * (np.sign(V[:, 0]) == np.sign(ps[s][0]))
+
+    def rand_abstand(s):
+        rl, _ = _linie(np.vstack([L[ober[s]], L[unter_rand[s]][1:]]), 30)
+        d, _ = _naechster(xz, np.c_[rl[:, 0], np.zeros(len(rl)), rl[:, 2]])
+        return d
+
+    def kante_z(punkte, x):
+        o = np.argsort(punkte[:, 0])
+        return np.interp(x, punkte[o, 0], punkte[o, 2])
+
+    seite = {s: (np.sign(V[:, 0]) == np.sign(ps[s][0])) for s in ("r", "l")}
+    rand_d = {s: rand_abstand(s) for s in ("r", "l")}
+
+    # ---------------------------------------------------------------- Augenhöhle (oberer Sulcus, innerer Winkel)
+    dd = np.zeros_like(V)
+    for s in ("r", "l"):
+        sg = np.sign(ps[s][0])
+        lat = seitlich(s)
+        z_rand = kante_z(L[ober[s]], V[:, 0])                     # Oberlidrand über der Ecke
+        z_braue = kante_z(L[brauen[s]], V[:, 0]) - 0.003          # Unterseite der Braue (Merkpunkte liegen mittig)
+        dz = V[:, 2] - z_rand
+        hoehe = np.maximum(z_braue - z_rand, 0.006)
+        t = dz / hoehe                                           # 0 Lidrand, 1 Brauenunterseite
+        # Rinne über der Lidfalte, Mitte bei 55 % zur Braue, innen (lat 0–0,5) am tiefsten, außen flach
+        rinne = np.exp(-0.5 * ((t - 0.55) / 0.2) ** 2) * stufe(dz, 0.006, 0.009)
+        rinne *= stufe(lat, -0.35, -0.05) * (1 - stufe(lat, 0.55, 1.0))
+        nah = np.linalg.norm(V - ps[s], axis=1) < 0.03
+        vorn_auge = (V[:, 1] < ps[s][1]) & (Nv[:, 1] < -0.1)
+        w = 1.8 * mm * rinne * nah * vorn_auge * seite[s]
+        # Mulde am inneren Lidwinkel, 3 mm zur Nase und 1 mm über dem Winkel (nicht auf dem Lid)
+        en = L[innen_w[s]]
+        m = np.array([en[0] - sg * 0.003, en[2] + 0.001])
+        mulde = np.exp(-0.5 * (np.linalg.norm(V[:, [0, 2]] - m, axis=1) / 0.0035) ** 2)
+        mulde *= (V[:, 1] < ps[s][1]) * stufe(rand_d[s], 0.0012, 0.003) * (np.abs(V[:, 0]) > 0.004)
+        w = w + 1.0 * mm * mulde
+        dd += -Nv * w[:, None]
+    ablegen("eigen_augenhoehle", dd)
+
+    # ---------------------------------------------------------------- Deckfalte über der Lidfalte (wie eigen_lidfalte)
+    for wer, h in (("m", 7.5), ("w", 9.5)):
+        dd = np.zeros_like(V)
+        for s in ("r", "l"):
+            rand = L[ober[s]]
+            hub = np.array([0.45, 1.0, 1.0, 0.45]) * h * mm
+            falte = rand.copy()
+            falte[:, 2] += hub
+            ueber = V[:, 2] - kante_z(falte, V[:, 0])           # Abstand über der Falte (m)
+            band = np.exp(-0.5 * ((ueber - 1.6 * mm) / (1.3 * mm)) ** 2) * stufe(ueber, -0.4 * mm, 0.6 * mm)
+            lat = seitlich(s)
+            enden = stufe(lat, -0.1, 0.2) * (1 - stufe(lat, 0.9, 1.25)) * (0.65 + 0.55 * np.clip(lat, 0, 1))
+            nah = np.linalg.norm(V - ps[s], axis=1) < 0.028
+            vorn_auge = (V[:, 1] < ps[s][1]) & (Nv[:, 1] < -0.15)
+            w = band * enden * nah * vorn_auge * seite[s] * stufe(rand_d[s], 0.0025, 0.005)
+            dd += (Nv * 0.5 * mm + np.array([0.0, 0.0, -0.7 * mm])) * w[:, None]
+        ablegen(f"eigen_deckfalte_{wer}", dd)
+
+    # ---------------------------------------------------------------- Unterlid: Lidwulst und Lid-Wangen-Furche
+    dd = np.zeros_like(V)
+    for s in ("r", "l"):
+        tief = kante_z(L[unter_rand[s]], V[:, 0]) - V[:, 2]      # Abstand unter dem Unterlidrand (m)
+        lat = seitlich(s)
+        enden = stufe(lat, 0.0, 0.2) * (1 - stufe(lat, 0.8, 1.05))
+        wulst = 0.45 * mm * np.exp(-0.5 * ((tief - 2.0 * mm) / (1.0 * mm)) ** 2)
+        furche = -0.35 * mm * np.exp(-0.5 * ((tief - 5.5 * mm) / (1.3 * mm)) ** 2)
+        nah = np.linalg.norm(V - ps[s], axis=1) < 0.028
+        vorn_auge = (V[:, 1] < ps[s][1]) & (Nv[:, 1] < -0.1)
+        w = (wulst + furche) * enden * nah * vorn_auge * seite[s] * (tief > 0) * stufe(rand_d[s], 0.0006, 0.0014)
+        dd += Nv * w[:, None]
+    ablegen("eigen_unterlid", dd)
+    # Prüfung: Versatz am Lidrand (Ecken bis 1 mm vom Rand) – höchstens etwa 0,15 mm, sonst klafft das Lid vom Augapfel
+    rand = np.zeros(len(V), bool)
+    for s in ("r", "l"):
+        rand |= (rand_d[s] < 0.001) & (np.linalg.norm(V - ps[s], axis=1) < 0.028)
+    for name in ("eigen_augenhoehle", "eigen_deckfalte_m", "eigen_deckfalte_w", "eigen_unterlid"):
+        b = np.linalg.norm(aus[name][:n_haut], axis=1)
+        bericht[name]["lidrand_max_mm"] = round(float(b[rand].max() * 1000), 3)

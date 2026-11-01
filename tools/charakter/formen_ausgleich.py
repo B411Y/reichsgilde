@@ -32,7 +32,7 @@ from messen.netz_masse import Netzmesser  # noqa: E402
 
 PROBEN = json.load(open(os.path.join(HIER, "kopf6_proben.json"), encoding="utf-8"))
 OBEN_VORSILBEN = ("probe_eye_", "probe_eyebrows_", "probe_forehead_", "probe_nose_", "eigen_lidfalte", "gen_augen_tiefe",
-                  "gen_brauenwulst")
+                  "gen_brauenwulst", "eigen_augenhoehle", "eigen_deckfalte", "eigen_unterlid")   # letzte drei: Etappe D
 
 
 def ist_oben(name):
