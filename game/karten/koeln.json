@@ -163,11 +163,11 @@
   },
   {
    "name": "Deutzer Mauer",
-   "linie": [[130, -48], [212, -46], [214, 40], [130, 42]],
+   "linie": [[128.5, -48], [212, -46], [214, 40], [128.5, 42]],
    "geschlossen": false,
    "katalog": "stadtmauer",
    "tore": [
-    {"name": "Deutzer Nordtor", "punkt": [172, -47], "schliesstNachts": true},
+    {"name": "Deutzer Nordtor", "punkt": [172, -46.95], "schliesstNachts": true},
     {"name": "Deutzer Osttor", "punkt": [213, -3], "schliesstNachts": true},
     {"name": "Deutzer Südtor", "punkt": [172, 41], "schliesstNachts": true}
    ]

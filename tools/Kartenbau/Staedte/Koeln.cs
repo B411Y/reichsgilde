@@ -195,8 +195,10 @@ public sealed partial class Koeln : Stadtskript
         })
             E.TorSetzen(_stadtmauer, ort.X, ort.Z, name);
 
-        // Deutz: kleine Mauer um den Brückenkopf, zum Rhein hin offen
-        _deutzer = E.MauerAnlegen(new[] { P(130, -48), P(212, -46), P(214, 40), P(130, 42) }, geschlossen: false, name: "Deutzer Mauer");
+        // Deutz: kleine Mauer um den Brückenkopf, zum Rhein hin offen. Ihre Enden am Rhein seit 1.11.2026 bei x = 128,5 statt 130: Die Stadtansicht
+        // zählt zur Stadt, was innerhalb der (zum Rhein hin geschlossen gedachten) Linie liegt, und die Einwohnerplätze am Rhein an der Urbanusgasse
+        // (Koeln.Deutz.cs) haben ihre Mitte bei x = 129 – sonst bekämen sie als Vorstadt erst ganz zuletzt ein Haus.
+        _deutzer = E.MauerAnlegen(new[] { P(128.5, -48), P(212, -46), P(214, 40), P(128.5, 42) }, geschlossen: false, name: "Deutzer Mauer");
         E.TorSetzen(_deutzer, 172, -47, "Deutzer Nordtor");
         E.TorSetzen(_deutzer, 213, -3, "Deutzer Osttor");
         E.TorSetzen(_deutzer, 172, 41, "Deutzer Südtor");
