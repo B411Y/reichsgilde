@@ -19,10 +19,10 @@ public static class Fahrzeitstufen
     /// <summary>So viele Minuten (je zur Hälfte vor und nach einer Schwelle) gehen zwei Farben ineinander über.</summary>
     public const float Uebergang = 8;
 
-    // gedeckte, gemalte Farben (kein grelles Signal): Wiesengrün, Ocker, Ziegelrot
-    public static readonly Color Gruen = new(0.38f, 0.70f, 0.27f);
-    public static readonly Color Gelb = new(0.93f, 0.76f, 0.22f);
-    public static readonly Color Rot = new(0.84f, 0.25f, 0.17f);
+    // kräftige, satte Farben (Wunsch des Nutzers vom 01.11.2026: der Verlauf deutlicher, der Weg darunter noch erkennbar)
+    public static readonly Color Gruen = new(0.16f, 0.80f, 0.12f);
+    public static readonly Color Gelb = new(1.00f, 0.80f, 0.02f);
+    public static readonly Color Rot = new(0.95f, 0.10f, 0.06f);
 
     /// <summary>Die Farbe nach der aufgelaufenen Fahrzeit (Minuten), mit weichem Übergang an den Schwellen.</summary>
     public static Color Farbe(float minuten)
