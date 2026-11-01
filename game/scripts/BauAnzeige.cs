@@ -159,7 +159,9 @@ public partial class BauAnzeige : PanelContainer
         "Liste|" + Zahlenformat.Ganz(_spieler!.Vermoegen) + "|" + string.Join("|", Gebaeude(w).Select(x => x.Verboten + Zahlenformat.Ganz(x.Vorschau.Kosten)));
 
     private string PlatzwahlPlan(Stadtwirtschaft w, (string Name, Func<double, double, int, BauBefehl> Erzeuger, BauBefehl Beispiel) g) =>
-        $"Platz|{g.Name}|{_stadt!.BauGrund}|{_stadt.BauAuftrag is not null}|{_stadt.BauDrehung}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}";
+        $"Platz|{g.Name}|{_stadt!.BauGrund}|{_stadt.BauAuftrag is not null}|{_stadt.BauDrehung}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}|" +
+        (_stadt.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f ? $"{f.Hin}/{f.Zurueck}/{f.Markt}/{_stadt.FahrwegSchilder.Count}" : "") +
+        $"|{_stadt.FahrwegAmpeln.Count > 0}";
 
     /// <summary>Was gebaut werden kann: Wohnhaus-Stufen und Werkstätten der Stadt (Stufe 1), mit Vorschau und dem Grund, warum es nicht geht.</summary>
     private List<(string Gruppe, string Name, string Beruf, Func<double, double, int, BauBefehl> Erzeuger, Bauvorschau Vorschau, string? Verboten)> Gebaeude(Stadtwirtschaft w)
@@ -295,6 +297,7 @@ public partial class BauAnzeige : PanelContainer
             Hauptmenue.Text(_inhalt, "✗ " + grund, 15, Rot, umbruchBreite: Breite);
         else
             Hauptmenue.Text(_inhalt, "✔ Hier kann gebaut werden – Klick setzt das Gebäude.", 15, Gruen, umbruchBreite: Breite);
+        FahrwegZeigen(g.Beispiel);
         Hauptmenue.Text(_inhalt, "R dreht das Gebäude (Eingang zur Straße) · Q/E drehen die Kamera · Rechtsklick oder Esc: zurück zur Auswahl",
             13, Grau, umbruchBreite: Breite);
 
@@ -305,6 +308,31 @@ public partial class BauAnzeige : PanelContainer
         drehen.CustomMinimumSize = new Vector2(120, 36);
         var zurueck = Hauptmenue.Knopf(knoepfe, "Zurück", Zurueck);
         zurueck.CustomMinimumSize = new Vector2(120, 36);
+    }
+
+    /// <summary>
+    /// Bei einer Werkstatt: die Zeile „Fahrt zum Markt: … min“ (Farbe der Stufe, Tooltip mit Rückfahrt und schnellstem Karren) und eine kurze
+    /// Legende der Ampeln. Die Zahlen kommen aus dem Kern über die Stadtansicht (<see cref="Stadtansicht.FahrwegSchilder"/>).
+    /// </summary>
+    private void FahrwegZeigen(BauBefehl beispiel)
+    {
+        if (beispiel is not WerkstattBauen) return;
+        if (_stadt!.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f && _stadt.BauGrund is null && _stadt.BauAuftrag is not null)
+        {
+            var zeile = new HBoxContainer { TooltipText = FahrwegAnzeige.Tipp(f, _stadt.FahrwegSchilder.Count), MouseFilter = MouseFilterEnum.Stop };
+            zeile.AddThemeConstantOverride("separation", 8);
+            _inhalt.AddChild(zeile);
+            Hauptmenue.Text(zeile, "Fahrt zum Markt:", 15, Hell).MouseFilter = MouseFilterEnum.Pass;
+            Hauptmenue.Text(zeile, FahrwegAnzeige.Kurz(f), 15, Schriften.LesbareFarbe(Fahrzeitstufen.Stufe(f.Hin))).MouseFilter = MouseFilterEnum.Pass;
+        }
+        var legende = new HBoxContainer { TooltipText = "Die Marken auf den freien Bauorten zeigen, wie lange der Startkarren von dort zum nächsten Marktplatz fährt (hin).", MouseFilter = MouseFilterEnum.Stop };
+        legende.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(legende);
+        foreach (var (farbe, text) in new[] { (Fahrzeitstufen.Gruen, $"bis {Fahrzeitstufen.GruenBis} min"), (Fahrzeitstufen.Gelb, $"bis {Fahrzeitstufen.GelbBis} min"), (Fahrzeitstufen.Rot, "weiter") })
+        {
+            legende.AddChild(new ColorRect { Color = farbe, CustomMinimumSize = new Vector2(12, 12), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Pass });
+            Hauptmenue.Text(legende, text, 13, Grau).MouseFilter = MouseFilterEnum.Pass;
+        }
     }
 
     /// <summary>„4 Stunden", „1 Spieljahr", „2 Spieljahre" – ein Spieljahr hat 1.020 Spielminuten.</summary>
