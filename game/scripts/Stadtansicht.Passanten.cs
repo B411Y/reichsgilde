@@ -118,7 +118,7 @@ public partial class Stadtansicht
             }
             // Ist der Kern längst fertig und sieht keiner hin (weder die Figur noch ihr Ziel), kommt sie unbemerkt an: nie sichtbar springen
             if (weg is not null && p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0 && minuteGenau >= weg.Ankunft && minuteGenau < p.LaufEnde
-                && !ImBild(p.Knoten.Position) && !ImBild(p.Pfad[^1]))
+                && !ImBild(p.Knoten.Position) && !ImBild(AufFuss(p.Pfad[^1])))
                 p.LaufEnde = minuteGenau;
             var losgegangen = weg is null || minuteGenau >= p.LaufStart;
             if (losgegangen && p.AlteMarktstelle >= 0)
@@ -312,9 +312,10 @@ public partial class Stadtansicht
     private bool NeuerWegImBild(Passant p, double minuteGenau)
     {
         if (p.Pfad.Length == 0) return false;
-        if (ImBild(p.Pfad[0])) return true;
+        // auf dem Gelände, wo die Figur gezeichnet würde (die Punkte des Pfads liegen auf Höhe 0 – am Hochufer sonst am Bildrand falsch)
+        if (ImBild(AufFuss(p.Pfad[0]))) return true;
         var anteil = p.LaufEnde > p.LaufStart ? (float)Math.Clamp((minuteGenau - p.LaufStart) / (p.LaufEnde - p.LaufStart), 0, 1) : 1f;
-        return ImBild(Gassennetz.PunktAuf(p.Pfad, anteil));
+        return ImBild(AufFuss(Gassennetz.PunktAuf(p.Pfad, anteil)));
     }
 
     /// <summary>
