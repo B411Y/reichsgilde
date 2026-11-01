@@ -169,7 +169,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Wasser (Phase 3): Die Furt ist im Spiel Teil des Bach- bzw. Flussbandes (im Winter nur Randeis); die eigenen Werte der Art Furt (klarer, schwächere Lichtnetze) sind dort nicht eingebaut. Dafür bräuchte das Band einen weiteren Eckenwert oder ein eigenes Stück je Furt
 - Wasser (Phase 3): Schmale Bäche (unter dem 2-m-Raster) liegen als Band knapp über dem gezeichneten Boden, ohne sichtbares Bett und ohne Böschung – im Sommer ein durchsichtig blauer Streifen auf der Wiese. Besser wäre ein eingeschnittenes Bett im Boden (Gelände, Kern) oder eine Uferkante als Modell
 - Wasser (Phase 3d): Vom Randeis brechen keine Stücke ab, die dann treiben; Schollen schieben sich am Pfeiler nicht übereinander (nur Stau in der Ebene). Ein Bach liegt an der Mündung höher als der Fluss (Kern: Duffesbach 0,55 m); die Darstellung lässt seine Fläche auf den Fluss hinabfallen, ein eingeschnittenes Bett bis zum Fluss wäre Sache des Kerns
-- Charakter Etappe C (Haut, Branch phase5/charakter-werkzeug): Nasenloch innen dunkelbraun statt rot; Stoppeln mit auslaufender Dichte und kräftigerem Bartschatten; Altersflecken auf der Glatze weniger orange; tiefe Falten (Tränensäcke, Schlupflider) als Form; Haut-Texturen komprimieren (38,7 MB) vor einem Einbau ins Spiel (`docs/charakter/phase6.md`, Offen nach Etappe C)
+- Charakter Etappe C (Haut, Branch phase5/charakter-werkzeug): Nasenloch innen dunkelbraun statt rot; Stoppeln mit auslaufender Dichte und kräftigerem Bartschatten; Altersflecken auf der Glatze weniger orange; Tränensäcke als Form (Schlupflid und Unterlid kamen mit Etappe D); Haut-Texturen komprimieren (38,7 MB) vor einem Einbau ins Spiel (`docs/charakter/phase6.md`, Offen nach Etappe C)
+- Charakter Etappe D (Augen, Brauen, Nase): offen siehe `docs/charakter/phase6.md`, „Offen nach Etappe D“; Gen-Vorschläge `brauen_winkel` und `brauen_dunkel` gehen gebündelt über den Teamleiter an kern (Verschiedenheitsplan)
 
 ## Entscheidungen
 
@@ -340,3 +341,15 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Stoppeln | Erwachsene Männer zeigen nach `bartwuchs` einen Stoppelbart (Striche der Porenkachel, im Porträt mit Mip-Versatz sichtbar); eigene Wahl für das Spätmittelalter (tägliche Rasur unüblich), später nach Stand und Beruf. | 31.10.2026 |
 | Wimpern | Bei Weg C: Unterlid-Band mit Deckung 0,3 und weicher Wurzel, alle Wimpern durchscheinender (0,7), lichter, ein Viertel weniger Haare, im Alter grau. | 31.10.2026 |
 | Stufen | `haut6c_einfach` (Niedrig/Mittel) ohne Detailkacheln: Zonen und Relief bleiben. | 31.10.2026 |
+
+### Charakter Etappe D: Augen, Augenpartie, Brauen, Nase (Branch phase5/charakter-werkzeug, noch ohne PR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weg | Weg D (`weg_d`) neben A und C, nur nach den Puppen-Befunden der Blindtests (Augen glasig, Augenpartie flach, Brauen wie aufgeklebt, Nase zu kurz); Stand 6 und die Wege A, C unverändert. | 01.11.2026 |
+| Augenpartie | Als Form statt gemalt: eigene Formen Augenhöhle, Deckfalte (mit der Lidfalte beim Lidschluss aus), Unterlid; fest in der Reife oben. Deckfalte der Frau 0,4 (bei 1,0 las der Prüfer „aufgequollenes Lid mit Kante“). Oberlid in Ruhe 0,22 statt 0,1 (deckt den oberen Irisrand). | 01.11.2026 |
+| Nase | Ziel der Ausgleichsrechnung nach Fotovorlagen und Farkas, alle anderen B2-Gewichte fest (`--basis`); die Frau bleibt unter dem Fotomittel (n–sn ≤ Farkas + 1 σ). | 01.11.2026 |
+| Augen | Lederhaut matt und getönt, Saum am Limbus, Iris-Parallaxe, Lidschatten mit eigener Eckfarbe (Abstand zum sichtbaren Lidrand), Hornhaut nach dem Lidschatten und weiches Fenster-Glanzlicht unabhängig von den Lampen (eigene Wahl: ein Porträt ohne Glanzpunkt las der Prüfer als „leeren Blick“). | 01.11.2026 |
+| Brauen und Wimpern | Alpha-Mischung statt Alpha-Schere (`braue6`), weiche Bilder mit Flaum und Lücken, Karten abstehend; Brauen je Person über Stand, Dicke und (künftig) Winkel im Shader – Hebel 1 des Verschiedenheitsplans, ohne neue Bilder oder Formen. | 01.11.2026 |
+| Kosten | T400 Hoch gegen Halt B +0,41 (ohne Haar), +0,46 (Zufallsperson), +0,15 ms (TressFX); gegen Haut C ±0,0. Keine neuen Formen im Spiel (die Augenformen stecken in den Reifeformen). | 01.11.2026 |
+| Blindtest | Drei Runden, neu gegen Haut C im Mittel +0,75 / +1,0 / +0,25; Ziel +1,5 nicht erreicht. Stärkstes Restmerkmal ist die glatte Haut; dazu flaches Auge im Profil, teils schwere Oberlider, Nasenlöcher der Frau (`docs/charakter/phase6.md`, Prüfung Etappe D). | 01.11.2026 |

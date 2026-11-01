@@ -1059,3 +1059,131 @@ Fassung auch die alten Falten- und Rauschzugriffe nicht mehr braucht.
    --bogen=<bogen.json> --ende`.
 3. Prüfanzeige: `"haut_werte": {"c_zeige": 1}` (Höhle), 3 (Zonen), 4 (Furche); Abstimmen über `haut_werte`.
 4. Messung: `--varianten=b2a:~/werkzeuge/charakter/glb6b2:1:0:0,hc:~/werkzeuge/charakter/glb6b2:1:0:1 --stufe=hoch|mittel|ultra --messen`.
+
+## Etappe D: Augen, Augenpartie, Brauen, Nase (Probekopf B2 + Haut C)
+
+Anlass: Die blinden Prüfer von Haut C und vom FaceBuilder-Test sahen die Puppe vor allem an vier Stellen: Augen glasig,
+Augenpartie flach, Brauen wie aufgeklebt, Nase zu kurz. Etappe D liegt als Weg D (`weg_d`, nur mit `weg_a`) neben
+Weg A und C; Stand 6, Weg A und Weg C bleiben unverändert. Kopf: `~/werkzeuge/charakter/glb6d` (Probebau `glb6p_d2`).
+
+### Was gebaut ist
+
+- **Augenpartie als Form** (`kopf6_eigen.py`, nur mit `eigen=2`): `eigen_augenhoehle` (Rinne unter der Braue über der
+  inneren Lidhälfte bis 1,8 mm, Mulde am inneren Lidwinkel 1,0 mm), `eigen_deckfalte_m/_w` (Haut 0–4,5 mm über der
+  Lidfalte sinkt 0,7 mm und tritt 0,5 mm vor, außen stärker; liegt mit der Lidfalte in `lidfalte_<g>` und wird beim
+  Lidschluss ausgeblendet), `eigen_unterlid` (Lidwulst 0,45 mm, 2 mm unter dem Rand; Lid-Wangen-Furche 0,35 mm bei
+  5,5 mm). Der Lidrand bewegt sich höchstens 0,13 mm. Fest in der Reife oben: Augenhöhle 1,0, Unterlid 1,0, Tränenrinne
+  +0,6; Deckfalte Mann 1,0, Frau 0,4. Ruhelage des Oberlids `lid_ruhe.reife` 0,1 → 0,22 (im Bild lag der Rand bei 0,1
+  auf dem Limbus – Starrblick); steht nur in der `regeln6.json` des Probekopfs.
+- **Nase als Ziel der Ausgleichsrechnung** (`formen_ausgleich_b2.py --etappe=d --basis=<ausgleich_b2.json>`): nur die
+  Nasenformen und die Lage des Mundes rechnen, alles andere bleibt wie B2 (im ersten Lauf ohne `--basis` wanderten Kinn
+  und Kiefer mit). Neue Maße in `profil_masse`: `ps_prn_ipd` (Nasenspitze unter der Pupillenlinie / IPD), `al_ipd`,
+  `nase_kinn` (Subnasale / Menton ab der Pupillenlinie) und `nasolabial` (Tangente an den Nasensteg gegen sn → ls).
+  Ziele aus den 26 Fotovorlagen (Mittel Mann/Frau: Subnasale 0,769/0,752 IPD, Spitze 0,625/0,593, Nase–Kinn
+  0,409/0,424, Flügel 0,542/0,500) und Farkas (n–sn Mann 54,8 ± 3,3, Frau 50,6 ± 3,1 mm; Nasolabialwinkel Mann 90–100°,
+  Frau 95–110°). Die Frau bleibt unter dem Fotomittel, weil n–sn sonst über Farkas + 1 σ wüchse.
+- **Augen** (`augen6.gdshader`, Werte über `charakter_kopf.gd`): Lederhaut matter (SPECULAR 0,25, Rauheit 0,32), zu den
+  Winkeln getönt, außen am Limbus ein weicher Saum statt des hellen Rings, Iris mit Parallaxe (`iris_tiefe` 0,09),
+  dunklerer Limbus; Pupille nach dem Licht am Ort (`pupille_licht`, Bogenschlüssel, 0,26–0,46 des Irishalbmessers).
+- **Lidschatten** (`lidschatten6.gdshader`, beide Seiten sichtbar): Schatten des Oberlids (bis 3,2 mm unter dem
+  Lidrand) und Kontaktschatten an beiden Lidkanten, multipliziert. Das ICT-Lidschatten-Netz deckt die ganze Lidspalte;
+  mit `cull_back` (alter Shader) kam davon fast nichts an. Eckfarbe neu aus `kopf2_bauen.py`: G = Oberlid-Seite,
+  B = Abstand zum sichtbaren Lidrand (ICT-Merkpunkte 36–47) / 8 mm – der Abstand zur Lidnaht taugt nicht, sie liegt tief
+  unter dem Lid.
+- **Hornhaut und Tränenfilm** (`hornhaut.gdshader`): Hornhaut zeichnet nach dem Lidschatten (`render_priority`),
+  Rauheit 0,045, dazu ein weiches Fenster-Glanzlicht (Spiegelung einer Lichtfläche schräg über der Kamera, unabhängig
+  von den Lampen; Stärke mit `pupille_licht`) – der Glanzpunkt des Schlüssellichts lag unter dem tieferen Oberlid.
+  Tränenfilm: glänzt am Unterlid, oben und an der Karunkel kaum (Eckfarbe). Lidrand nasser (`feucht` 1,7).
+- **Brauen** (`braue6.gdshader`, gilt mit `weg_d` auch für die Wimpern): Alpha-Mischung statt Alpha-Schere – Haare
+  schmaler als ein Bildpunkt decken anteilig. Bilder `kopf3_haartexturen.py weich=1`: Rand läuft über das äußere Drittel
+  aus, Flaum, lichter Kopf mit fast senkrechten Haaren, Büschel und Lücken in zwei Weiten. Karten mit `brauen_d=1`
+  näher an der Haut und nach oben abstehend (0,3/0,7 mm, an der Oberkante +0,4/+1,1 mm). Farbe nah am Haar, je Haar
+  verschieden hell, ergrauen später als das Haupthaar (× 0,6) und grau-braun statt weiß; kein Hautglanz unter der Braue.
+  **Je Person** (Verschiedenheitsplan, Hebel 1): `braue6` verschiebt das Brauenbild in der Karte – Stand 1,5 mm je σ von
+  `brauen_stand` zusätzlich zur Hautform (zusammen ≈ 2,5 mm/σ), Dicke 0,7–1,4 aus `brauen_dichte`, Winkel aus einem
+  künftigen Gen `brauen_winkel` (Vorschlag an kern, heute 0). Mittelgesicht unverändert.
+- **Wimpern** (Runde 2): brauner, lichter, Dichte 0,55 (Mann) / 0,62 (Frau).
+- **Vierter FaceBuilder-Kopf** `h_w35_hell` (`fb_lauf.sh kopf h_w35_hell`, 4 von 4 Fotos ausgerichtet, RMS-Versatz
+  1,9 mm) als Form `vorbild_fb_h_w35_hell` im Probebau; Tafel „Frau 35 mit FaceBuilder-Form“.
+
+### Prüfung Etappe D
+
+Bildtafel je Person (vorn, schräg, Profil): Fotovorlage | vorher (Haut C) | neu | neu nah; Profilfoto an Scheitel und
+Nasenspitze ausgerichtet (Mann 70 von Hand). Vierte Tafel: Frau 35 mit der FaceBuilder-Form `h_w35_hell` („vorher“ ist
+dort Haut C ohne FB). Blinder Prüfer je Runde (frischer Agent, nur die Bilder, A/B zufällig, Schlüssel vorher mit
+SHA-256 versiegelt): Note 1–10 „wirkt neben dem Foto lebendig und glaubwürdig“. Ziel: neu ≥ 1,5 Punkte über vorher.
+
+| Runde | Mann 35 | Frau 35 | Mann 70 | Frau 35 + FB | Mittel | Commit |
+|---|---|---|---|---|---|---|
+| 1 | 4,5 → 4,5 (±0) | 3,5 → 4,5 (+1,0) | 3,0 → 4,0 (+1,0) | 3,5 → 4,5 (+1,0) | +0,75 | 83f49933 |
+| 2 | 3,5 → 4,5 (+1,0) | 4,0 → 5,0 (+1,0) | 4,0 → 5,0 (+1,0) | 4,0 → 5,0 (+1,0) | **+1,0** | 43b3741d |
+| 3 | 4,0 → 4,5 (+0,5) | 4,0 → 4,5 (+0,5) | 4,0 → 3,5 (−0,5) | 4,0 → 4,5 (+0,5) | +0,25 | 984bce96 |
+
+Das Ziel +1,5 ist **nicht erreicht**. Neu gewinnt in 11 von 12 Vergleichen; die Prüfer streuen von Runde zu Runde um
+etwa einen Punkt. Runde 1 → 2 antwortete auf: kein Glanzpunkt, Stachelwimpern, Frauen-Oberlid mit harter Kante,
+Brauen „nachgezogen“, Männernase im Profil kurz. Runde 2 → 3 auf: Augenweiß zu hell, Iris scharf, Drahtwimpern,
+Nasenloch rot ausgeleuchtet, violette Linie unter dem Unterlid. Was die Prüfer bei „neu“ übereinstimmend besser fanden:
+feine, helle Wimpern, weiche Brauen, längere Nase im Profil, schwerere Lider (Runde 2 „passt zum Alter“). Was bleibt
+(neu): Haut zu glatt und gleichförmig (stärkstes Merkmal aller drei Runden, nicht Teil dieser Etappe), Auge im Profil
+flach (keine sichtbare Hornhautwölbung), Oberlider wirken teils geschwollen und rötlich, beim Mann 70 „halb zu“
+(Runde 3), Nasenlöcher der Frau von vorn sichtbar, harte Kante an der Nasenflügelfurche (auch vorher).
+
+Lidschluss geprüft (`eyeBlink` 1,0, vorn und schräg): Lid schließt, die Deckfalte blendet aus, keine Wülste.
+
+Kosten (T400, 1280 × 720, gepaart im selben Prozess, drei Wiederholungen, Median; Commit 83f49933; Runde 2/3 ändern
+nur Werte und einen Abtastpunkt):
+
+| Lauf | Hoch: Halt B → D | D gegen Haut C | Ultra: Halt B → D | D gegen Haut C |
+|---|---|---|---|---|
+| ohne Haar, Mittelgesicht | 6,51 → 6,95 ms (**+0,41**) | −0,01 | 7,98 → 8,32 ms (+0,33) | +0,02 |
+| ohne Haar, Zufallsperson | 6,67 → 7,11 ms (**+0,46**) | ±0,00 | 8,13 → 8,52 ms (+0,39) | +0,04 |
+| TressFX in Ruhe | 30,41 → 30,34 ms (**+0,15** gepaart) | +0,08 | 30,75 → 30,83 ms (+0,06) | −0,06 |
+
+Budget +1,0 ms auf Hoch eingehalten. Grafikspeicher gleich (die weichen Brauenbilder ersetzen die alten).
+
+### Selbst getroffene Entscheidungen (Etappe D)
+
+- Augenformen fest in der Reife statt als Gene – die Variation je Person bringt der Verschiedenheitsplan (Hebel 3);
+  Deckfalte der Frau 0,4 nach Runde 1.
+- Nasen-Ausgleich mit allen übrigen B2-Gewichten fest (`--basis`), sonst misst der Vergleich Kiefer statt Nase.
+- Fenster-Glanzlicht auf der Hornhaut unabhängig von den Lampen der Szene (Stärke mit `pupille_licht`); ein
+  physikalischer Glanzpunkt lag unter dem tieferen Oberlid.
+- Wimpern bekommen mit Weg D denselben gemischten Shader wie die Brauen (nicht im Auftrag, aber vom Prüfer als
+  „Stachelkranz“ angemahnt).
+- Brauen je Person nur über vorhandene Gene (`brauen_stand`, `brauen_dichte`); `brauen_winkel` und `brauen_dunkel` sind
+  Vorschläge an kern (über den Teamleiter, gebündelt nach dem Verschiedenheitsplan). Der feste Brauenschatten auf der
+  Haut wurde nicht verstärkt (er wandert mit der UV-Verschiebung nicht mit).
+
+### Offen nach Etappe D
+
+- Haut: feine Falten unter dem Auge, Krähenfüße und Stirn als Relief statt Farbe; Ton weniger einheitlich
+  pfirsich-orange (alle drei Prüfer: stärkstes Puppenmerkmal, vor allem beim Mann 70).
+- Auge im Profil: Hornhaut wölbt sich kaum vor (ICT-Augapfel mit flacher Kuppe); eine echte Hornhautkuppe (≈ 2,5 mm vor
+  dem Limbus) bräuchte den Bau und eine Prüfung gegen das Oberlid.
+- Oberlid: Ruhelage 0,22 plus Greis 0,06 macht den Mann 70 schläfrig; Deckfalte und die rote Lidzone der Haut lesen
+  sich als „geschwollen“. Vorschlag: Ruhelage 0,18 und Greis 0,03, Lid-Rötung der Haut bei Weg D schwächer.
+- Nasenlöcher der Frau von vorn sichtbar; MakeHuman `nose-nostrils-angle-down` und `nose-base-down` liegen bereit, es fehlt
+  ein Maß für die Sichtbarkeit von vorn. Harte Kante an der Nasenflügelfurche (Relief der Haut C).
+- Profilfoto im Vergleich nur über Scheitel und Nasenspitze ausgerichtet (Mann 70 von Hand); FaceBuilder-Kamera nur für
+  die vier FB-Köpfe.
+- Verschiedenheit (Plan vom 01.11.2026): Augenformen als eigene, je Person regelbare Formen (Hebel 3), Gen-Vorschläge
+  `brauen_winkel`, `brauen_dunkel` an kern.
+
+### Testanleitung Etappe D
+
+1. FaceBuilder-Kopf (Test bis 15.11.): `~/werkzeuge/charakter/facebuilder/fb_lauf.sh kopf h_w35_hell`.
+2. Probebau: `GLB_PROBE=~/werkzeuge/charakter/glb6p_d2 PROBEN_OPT="ausschnitt=30 eigen=2 brauen_d=1
+   vorbilder=<arbeit/h_w35_hell/vorbild_fb_h_w35_hell.npz>" tools/charakter/kopf6.sh proben`.
+3. Nase: `$BPY -I tools/charakter/formen_ausgleich_b2.py --glb=<glb6p_d2/kopf6p.glb> --gewichte=<gewichte_s0_headless.json>
+   --aus=<ordner> --etappe=d --basis=<B2-Lauf 3/ausgleich_b2.json>` (≈ 4 min).
+4. Eichung wie B2 mit `--rezept_s4=<ordner>/rezept_s4_d.json --regeln_aus=~/werkzeuge/charakter/glb6d/regeln6.json
+   --rezept_aus=~/werkzeuge/charakter/glb6d/kopf6_rezept_d.json --zuege_aus=<zuege_basis_v1.json aus B2>`, dann in
+   `glb6d/regeln6.json` `lid_ruhe.reife` = 0,22; Mischen `GLB=~/werkzeuge/charakter/glb6d GLB_PROBE=…/glb6p_d2
+   REZEPT=…/kopf6_rezept_d.json tools/charakter/kopf6.sh mischen`.
+5. Bilder: `glb6d/kopf6_tex` wie `glb6b2/kopf6_tex` verknüpfen (ohne `brauen6_*`), dann `$BPY -I
+   tools/charakter/kopf3_haartexturen.py ~/werkzeuge/charakter/glb6d/kopf6_tex weich=1`; Haar `GLB=…/glb6d
+   GLB5=~/werkzeuge/charakter/glb6 tools/charakter/kopf6.sh nur_haar`.
+6. Bogen: Zelle mit `"kopf": "~/werkzeuge/charakter/glb6d/kopf6.glb", "stand": 6, "weg_a": true, "weg_c": true,
+   "weg_d": true` (optional `"pupille_licht": 0–1`); Mimik nur auf Zeilen- oder Spaltenebene (Zellen erben sie nicht).
+7. Messung: `--varianten=haltb:~/werkzeuge/charakter/glb6:0:0:0:0,hc:~/werkzeuge/charakter/glb6b2:1:0:1:0,
+   hd:~/werkzeuge/charakter/glb6d:1:0:1:1 --stufe=hoch|ultra --messen`.
