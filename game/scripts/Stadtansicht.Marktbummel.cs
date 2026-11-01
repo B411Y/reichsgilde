@@ -176,7 +176,8 @@ public partial class Stadtansicht
     /// </summary>
     private bool PlatzNachplanen(Passant p, double minuteGenau)
     {
-        if (!WegsucheFrei()) return false;
+        // wer schon geht und nur noch 15 m vor einem Platz ist, bekommt den Weg auf jeden Fall (sonst ginge sie die rohe Linie durch Stände)
+        if (!WegsucheFrei() && !(p.Stand is null && p.Knoten.Visible && _maerkte.Any(m => m.Halb > 0 && m.Abstand(p.Knoten.Position) < 15))) return false;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         var alt = p.Laenge;
         p.Pfad = UeberDenPlatz(p.Pfad, p.Nummer).ToArray();
@@ -185,7 +186,7 @@ public partial class Stadtansicht
         p.PlatzOffen = false;
         if (alt > 0.01f && p.LaufEnde > p.LaufStart)
             p.LaufEnde = p.LaufStart + (p.LaufEnde - p.LaufStart) * p.Laenge / alt; // gleiches Tempo; wer schon geht, bleibt an seiner Stelle
-        if (!SpurAlt && p.Pfad.Length > 0) MitteVon(p); // Bodenmeter gleich hier (zählt zur Wegsuche)
+        if (!SpurAlt && p.Pfad.Length > 0) MitteAnlegen(p); // Bodenmeter über die nächsten Bilder verteilt (BodenmeterFuellen)
         _wegsucheMs += uhr.Elapsed.TotalMilliseconds;
         return true;
     }
@@ -249,21 +250,28 @@ public partial class Stadtansicht
     /// <summary>Rechenzeit (ms) und Zahl der Wege über die freie Fläche seit der letzten Zeile im Protokoll.</summary>
     private double _flaechenZeit;
     private int _flaechenWege, _bummelVersuche, _bummelGaenge;
+    private readonly System.Diagnostics.Stopwatch _einzelUhr = new();
+    /// <summary>Der teuerste einzelne Weg über eine Fläche seit der letzten Zeile im Protokoll (ms).</summary>
+    private double _flaecheEinzelMax;
 
     private List<Vector3> FlaechenWeg(MarktplatzAnsicht platz, Marktflaeche f, Vector3 von, Vector3 bis, int nummer, int schluessel, List<Vector3> punkte)
     {
+        _einzelUhr.Restart();
         // Ein Sitz (Bank) liegt im Hindernis: Man steht nach vorn auf bzw. setzt sich von vorn, nie über die Lehne
         var (vorVon, vorBis) = (Vorpunkt(von), Vorpunkt(bis));
         var (a, b) = (vorVon ?? von, vorBis ?? bis);
         if (vorVon is { } v1) punkte.Add(v1);
         var seite = Marktbummel.Seite(nummer, schluessel, 0);
-        // gibt es mit vollem Abstand keinen Weg (Ende in einer engen Ecke), dann mit knapperem – nie gerade durch Stand oder Brunnen, wenn es anders geht
-        var weg = f.GefaechertGemerkt((a.X, a.Z), (b.X, b.Z), FlaecheFrei, seite) ?? f.Pfad((a.X, a.Z), (b.X, b.Z), 0.6f);
+        // war die Suche zu teuer, der einfache Weg nur um die festen Hindernisse; gibt es keinen (eingeschlossen), um die Kreise der Hindernisse wie vor v3 (unten)
+        var weg = f.GefaechertGemerkt((a.X, a.Z), (b.X, b.Z), FlaecheFrei, seite) ?? f.PfadEinfach((a.X, a.Z), (b.X, b.Z), FlaecheFrei) ?? f.PfadEinfach((a.X, a.Z), (b.X, b.Z), 0.6f);
         if (weg is not null)
         {
             for (var i = 1; i + 1 < weg.Count; i++) punkte.Add(new Vector3(weg[i].X, platz.Hoehe, weg[i].Z));
             f.Belegen(weg); // wer danach den Platz quert, nimmt einen freieren Streifen
         }
+        else punkte.AddRange(PlatzZwischenpunkte(a, b)); // keine Suche gelang (zu teuer oder eingeschlossen): um die Kreise der Hindernisse wie vor v3, nie gerade hindurch
+        var dauer = _einzelUhr.Elapsed.TotalMilliseconds;
+        _flaecheEinzelMax = Math.Max(_flaecheEinzelMax, dauer);
         if (vorBis is { } v2) punkte.Add(v2);
         return punkte;
     }
@@ -382,6 +390,13 @@ public partial class Stadtansicht
             summe += q.Knoten.Position;
         }
         return (anzahl, anzahl > 0 ? summe / anzahl : Vector3.Zero);
+    }
+
+    /// <summary>Steht außer ihr noch jemand in ihrer Gesprächsgruppe (an der Stelle, an der sie steht)?</summary>
+    private bool NochGespraech(Passant p)
+    {
+        var stelle = p.AlteMarktstelle >= 0 ? p.AlteMarktstelle : p.Marktstelle;
+        return stelle >= 0 && _marktstellen[stelle].Gruppe is var g and >= 0 && Marktbummel.Redet(Anwesende(g, p.Nummer).Anzahl);
     }
 
     /// <summary>Steht jemand an dieser Stelle (angekommen, nicht nur unterwegs dorthin)?</summary>

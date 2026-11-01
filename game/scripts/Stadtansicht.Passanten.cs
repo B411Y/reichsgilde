@@ -127,7 +127,13 @@ public partial class Stadtansicht
         public float[] Boden { get; set; } = Array.Empty<float>();
         /// <summary>Abstand der Stützpunkte von <see cref="Boden"/> (lange Wege gröber, <see cref="Passantenspur.BodenschrittLang"/>).</summary>
         public float BodenSchritt { get; set; } = Passantenspur.Bodenschritt;
-        public float Bodenlaenge => Boden.Length > 0 ? Boden[^1] : Laenge;
+        public float Bodenlaenge => Boden.Length > 0 && Fertig ? Boden[^1] : Laenge;
+        /// <summary>Bis zu welchem Eintrag <see cref="Boden"/> schon gerechnet ist (lange Tabellen werden über mehrere Bilder gefüllt), und ob sie fertig ist.</summary>
+        public int BodenBis { get; set; }
+        public bool Fertig => BodenBis >= Boden.Length - 1;
+        /// <summary>Der Versatz am Anfang, mit dem die Tabelle gerechnet wird.</summary>
+        public (float X, float Z) Start { get; set; }
+        public int Nummer { get; set; }
     }
 
     private readonly Dictionary<int, Passant> _passanten = new();
@@ -160,6 +166,9 @@ public partial class Stadtansicht
         var ticksJeSekunde = _simulation.Takt.TicksProSekunde;
 
         MarktflaechenPflegen(sekunden); // Markt v3: Belegung der Wege, Stehende (Stadtansicht.Marktbummel.cs)
+        Profil(0);
+        BodenmeterFuellen();            // angefangene Tabellen der Bodenmeter weiterrechnen, solange Zeit ist
+        Profil(1);
         var einwohner = einwohnerschaft.Einwohner;
         foreach (var e in einwohner)
         {
@@ -181,6 +190,7 @@ public partial class Stadtansicht
             if (weg is not null && !ReferenceEquals(p.FuerWeg, weg) && !MarktV2 && !WegsucheFrei())
             {
                 if (p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0) Laufen(p, e.Nummer, minuteGenau, ticksJeSekunde);
+                else if (p.Stand is not null && p.Figur is { Bewegung: "Reden" } redend && !NochGespraech(p)) BewegungSetzen(redend, "Stehen"); // der Partner ist gegangen
                 if (p.Knoten.Visible && p.Figur is { } wartend) FigurImBildBewegen(wartend, p.Knoten.Position, sekunden);
                 continue;
             }
@@ -212,7 +222,7 @@ public partial class Stadtansicht
                 }
                 if (weiter is { } strecke && p.Pfad.Length > 0) Weitergehen(p, weg, altPfad, strecke, minuteGenau);
                 var bodenUhr = ProfilMessen ? Stopwatch.StartNew() : null;
-                if (!SpurAlt && p.Pfad.Length > 0) MitteVon(p); // Mittellinie und Bodenmeter gleich hier (zählt zur Planung), nicht erst im ersten Schritt
+                if (!SpurAlt && p.Pfad.Length > 0) MitteAnlegen(p); // Mittellinie gleich hier, Bodenmeter über die nächsten Bilder verteilt (BodenmeterFuellen)
                 if (bodenUhr is not null) _bodenMax = Math.Max(_bodenMax, bodenUhr.Elapsed.TotalMilliseconds);
                 if (planUhr is not null) WegsucheZaehlen(planUhr.Elapsed.TotalMilliseconds);
             }
@@ -229,6 +239,22 @@ public partial class Stadtansicht
                 // keine Zeit mehr in diesem Bild und der Weg beginnt auf dem Platz: noch ein Bild stehen bleiben (sonst ginge sie die rohe Linie durch den Brunnen)
                 var schieben = minuteGenau - p.LaufStart + 1e-3;
                 (p.LaufStart, p.LaufEnde) = (p.LaufStart + schieben, p.LaufEnde + schieben);
+            }
+            // Bodenmeter: Wer jetzt losginge, deren Tabelle aber noch nicht fertig ist, rechnet ein Stück weiter (wenn Zeit ist) und wartet sonst ein Bild
+            if (weg is not null && p.Stand is not null && p.Mitte is { Fertig: false } offen && ReferenceEquals(offen.Pfad, p.Pfad)
+                && minuteGenau >= p.LaufStart && minuteGenau < p.LaufEnde)
+            {
+                if (WegsucheFrei())
+                {
+                    var uhr = Stopwatch.StartNew();
+                    BodenFuellen(offen, 2 * BodenStueck);
+                    WegsucheZaehlen(uhr.Elapsed.TotalMilliseconds);
+                }
+                if (!offen.Fertig)
+                {
+                    var schieben = minuteGenau - p.LaufStart + 1e-3;
+                    (p.LaufStart, p.LaufEnde) = (p.LaufStart + schieben, p.LaufEnde + schieben);
+                }
             }
             Profil(1); // Wege planen (auch über die Fläche)
             var losgegangen = weg is null || minuteGenau >= p.LaufStart;
@@ -353,11 +379,11 @@ public partial class Stadtansicht
     {
         var bilder = Math.Max(_profilBilder, 1);
         GD.Print("[passantenprofil] ms je Bild: " + string.Join(", ", Enumerable.Range(1, 8).Select(i => $"{ProfilNamen[i]} {_profilMs[i] / bilder:0.00} (höchstens {_profilMax[i]:0.0})")) +
-                 $", Wege über die Fläche höchstens {_flaecheBildMax:0.0} ms in einem Bild, ein Weg im Gassennetz höchstens {_netzMax:0.0} ms, eine Mittellinie mit Bodenmetern höchstens {_bodenMax:0.0} ms" +
+                 $", Wege über die Fläche höchstens {_flaecheBildMax:0.0} ms in einem Bild (einzeln {_flaecheEinzelMax:0.0}), ein Weg im Gassennetz höchstens {_netzMax:0.0} ms, eine Mittellinie mit Bodenmetern höchstens {_bodenMax:0.0} ms" +
                  $", Figuren {_passanten.Count}, laufend {_passanten.Values.Count(q => q.Stand is null && q.Knoten.Visible)}, sichtbar {_passanten.Values.Count(q => q.Knoten.Visible)}");
         Array.Clear(_profilMs);
         Array.Clear(_profilMax);
-        (_flaecheBildMax, _netzMax, _bodenMax) = (0, 0, 0);
+        (_flaecheBildMax, _netzMax, _bodenMax, _flaecheEinzelMax) = (0, 0, 0, 0);
         _profilBilder = 0;
     }
 
@@ -599,17 +625,64 @@ public partial class Stadtansicht
         return Passantenspur.StreckeZuBoden(mitte.Boden, mitte.Laenge, boden, mitte.BodenSchritt);
     }
 
-    /// <summary>Die Mittellinie des Pfades samt Bodenmetern (neu, sobald der Pfad wechselt; gebaut erst, wenn die Figur läuft).</summary>
+    /// <summary>Die Mittellinie des Pfades samt Bodenmetern, fertig gerechnet (neu, sobald der Pfad wechselt; eine angefangene Tabelle wird hier zu Ende gerechnet).</summary>
     private PfadMitte MitteVon(Passant p)
+    {
+        var mitte = MitteAnlegen(p);
+        BodenFuellen(mitte, int.MaxValue);
+        return mitte;
+    }
+
+    /// <summary>
+    /// Die Mittellinie anlegen, die Tabelle der Bodenmeter aber noch nicht füllen (das geschieht über die Bilder verteilt, <see cref="BodenmeterFuellen"/>,
+    /// oder spätestens beim ersten Schritt): Eine Tabelle für einen Weg von 400 m kostete sonst zur vollen Stunde ein ganzes Bild.
+    /// </summary>
+    private PfadMitte MitteAnlegen(Passant p)
     {
         if (p.Mitte is { } mitte && ReferenceEquals(mitte.Pfad, p.Pfad)) return mitte;
         mitte = PfadMitteBauen(p.Pfad);
         if (!SpurV1)
         {
-            mitte.BodenSchritt = Passantenspur.BodenschrittFuer(mitte.Laenge); // lange Wege gröber: sonst hakt zur vollen Stunde ein Bild
-            mitte.Boden = Passantenspur.Bodenmeter(mitte, p.Nummer, mitte.Laenge, (p.VersatzStart.X, p.VersatzStart.Z), mitte.BodenSchritt);
+            mitte.BodenSchritt = Passantenspur.BodenschrittFuer(mitte.Laenge); // lange Wege gröber
+            mitte.Boden = new float[Passantenspur.BodenmeterAnzahl(mitte.Laenge, mitte.BodenSchritt) + 1];
+            (mitte.Start, mitte.Nummer, mitte.BodenBis) = ((p.VersatzStart.X, p.VersatzStart.Z), p.Nummer, 0);
+            _bodenOffen.Add(p);
         }
         return p.Mitte = mitte;
+    }
+
+    /// <summary>Rechnet höchstens <paramref name="schritte"/> weitere Einträge der Tabelle; true, wenn sie danach fertig ist.</summary>
+    private static bool BodenFuellen(PfadMitte mitte, int schritte)
+    {
+        if (mitte.Fertig) return true;
+        var bis = (int)Math.Min((long)mitte.BodenBis + schritte, mitte.Boden.Length - 1);
+        Passantenspur.BodenmeterFuellen(mitte.Boden, mitte.BodenBis + 1, bis, mitte, mitte.Nummer, mitte.Laenge, mitte.Start, mitte.BodenSchritt);
+        mitte.BodenBis = bis;
+        return mitte.Fertig;
+    }
+
+    /// <summary>Figuren, deren Tabelle der Bodenmeter noch nicht fertig ist.</summary>
+    private readonly List<Passant> _bodenOffen = new();
+
+    /// <summary>So viele Einträge (ein Aufruf von Gehen je Eintrag) rechnet ein Stück der verteilten Tabelle.</summary>
+    private const int BodenStueck = 150;
+
+    /// <summary>
+    /// Jedes Bild: Tabellen der Bodenmeter stückweise weiterrechnen, solange in diesem Bild Zeit für Wegsuchen ist (<see cref="WegsucheFrei"/>), wer zuerst
+    /// losgeht, zuerst.
+    /// </summary>
+    private void BodenmeterFuellen()
+    {
+        if (_bodenOffen.Count == 0) return;
+        _bodenOffen.RemoveAll(q => q.Mitte is not { } m || m.Fertig || !ReferenceEquals(m.Pfad, q.Pfad));
+        if (_bodenOffen.Count > 1) _bodenOffen.Sort((a, b) => a.LaufStart.CompareTo(b.LaufStart));
+        foreach (var q in _bodenOffen)
+        {
+            if (!WegsucheFrei()) break;
+            var uhr = Stopwatch.StartNew();
+            BodenFuellen(q.Mitte!, BodenStueck);
+            WegsucheZaehlen(uhr.Elapsed.TotalMilliseconds);
+        }
     }
 
     /// <summary>

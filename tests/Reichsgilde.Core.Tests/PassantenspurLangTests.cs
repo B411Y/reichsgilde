@@ -30,5 +30,16 @@ static class PassantenspurLangTests
                 Pruefe.Wahr(groesste < grenze, $"Schritt {schritt}, Nummer {n}: bis {groesste:0.000} m anders");
             }
         }),
+        ("Passantenspur: Bodenmeter stückweise über mehrere Bilder gefüllt – genau dieselbe Tabelle wie in einem Zug", () =>
+        {
+            var linie = new Passantenspur.Polylinie(new (float, float)[] { (0, 0), (0, 70), (-50, 70), (-50, 200) }, new[] { 2.5f, 1.0f, 2.0f });
+            var schritt = Passantenspur.BodenschrittFuer(linie.Laenge);
+            var ganz = Passantenspur.Bodenmeter(linie, 5, linie.Laenge, (0.3f, 0.1f), schritt);
+            var stueckweise = new float[Passantenspur.BodenmeterAnzahl(linie.Laenge, schritt) + 1];
+            Pruefe.Gleich(ganz.Length, stueckweise.Length);
+            for (var von = 1; von < stueckweise.Length; von += 150)
+                Passantenspur.BodenmeterFuellen(stueckweise, von, Math.Min(von + 149, stueckweise.Length - 1), linie, 5, linie.Laenge, (0.3f, 0.1f), schritt);
+            for (var k = 0; k < ganz.Length; k++) Pruefe.Wahr(ganz[k] == stueckweise[k], $"Eintrag {k}: {ganz[k]} / {stueckweise[k]}");
+        }),
     };
 }

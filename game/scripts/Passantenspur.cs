@@ -382,16 +382,28 @@ public static class Passantenspur
     /// </summary>
     public static float[] Bodenmeter(IMittellinie mitte, int nummer, float laenge, (float X, float Z) start, float schritt = Bodenschritt)
     {
-        var anzahl = Math.Max(1, (int)MathF.Ceiling(laenge / schritt - 1e-4f));
-        var tabelle = new float[anzahl + 1];
-        var davor = Gehen(mitte, nummer, laenge, 0, start, false).Ort;
-        for (var k = 1; k <= anzahl; k++)
+        var tabelle = new float[BodenmeterAnzahl(laenge, schritt) + 1];
+        BodenmeterFuellen(tabelle, 1, tabelle.Length - 1, mitte, nummer, laenge, start, schritt);
+        return tabelle;
+    }
+
+    /// <summary>Wie viele Stücke die Tabelle der <see cref="Bodenmeter"/> eines Weges dieser Länge hat (die Tabelle hat eins mehr).</summary>
+    public static int BodenmeterAnzahl(float laenge, float schritt = Bodenschritt) => Math.Max(1, (int)MathF.Ceiling(laenge / schritt - 1e-4f));
+
+    /// <summary>
+    /// Füllt die Einträge <paramref name="von"/> bis einschließlich <paramref name="bis"/> einer Tabelle der <see cref="Bodenmeter"/> (die davor müssen schon
+    /// stehen; Eintrag 0 ist 0). So lässt sich eine lange Tabelle über mehrere Bilder verteilen – mit genau demselben Ergebnis wie in einem Zug.
+    /// </summary>
+    public static void BodenmeterFuellen(float[] tabelle, int von, int bis, IMittellinie mitte, int nummer, float laenge, (float X, float Z) start, float schritt = Bodenschritt)
+    {
+        if (von < 1 || von > bis) return;
+        var davor = Gehen(mitte, nummer, laenge, MathF.Min((von - 1) * schritt, laenge), start, false).Ort;
+        for (var k = von; k <= bis; k++)
         {
             var ort = Gehen(mitte, nummer, laenge, MathF.Min(k * schritt, laenge), start, false).Ort;
             tabelle[k] = tabelle[k - 1] + MathF.Sqrt((ort.X - davor.X) * (ort.X - davor.X) + (ort.Z - davor.Z) * (ort.Z - davor.Z));
             davor = ort;
         }
-        return tabelle;
     }
 
     /// <summary>Die Meter auf der Mittellinie, bei denen die Figur <paramref name="boden"/> Meter auf dem Boden gegangen ist (Umkehrung von <see cref="Bodenmeter"/>, dazwischen gerade).</summary>

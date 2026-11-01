@@ -37,6 +37,15 @@ public sealed class Gassennetz
     private List<(int Ziel, float Laenge, float Kosten)>[]? _nachbarn, _nachbarnMitFaehren;
     private readonly Dictionary<(int, int, bool), Vector3[]> _pfade = new();
 
+    /// <summary>
+    /// Gemerkte Ergebnisse von <see cref="PfadZwischen"/> (Schlüssel: Anfänge und Enden mit Vor- und Nachlauf auf Zentimeter). Zur vollen Stunde fragen
+    /// in Köln über hundert zugleich, meist dieselben Haustüren und Plätze (Profil 1.11.2026: bis 9 ms je Suche). Höchstens 20 000, dann neu.
+    /// </summary>
+    private readonly Dictionary<string, (Vector3[] Pfad, int Anfang, int Ende)?> _zwischen = new();
+
+    /// <summary>Wie viele Wege mit mehreren Anfängen gemerkt sind (für Tests).</summary>
+    public int ZwischenGemerkt => _zwischen.Count;
+
     public IReadOnlyList<Vector3> Knoten => _knoten;
     public IEnumerable<(Vector3 Von, Vector3 Bis)> Kanten => _kanten.Select(k => (_knoten[k.A], _knoten[k.B]));
 
@@ -172,6 +181,18 @@ public sealed class Gassennetz
     public (Vector3[] Pfad, int Anfang, int Ende)? PfadZwischen(IReadOnlyList<(int Knoten, float Vorlauf)> anfaenge, IReadOnlyList<(int Knoten, float Nachlauf)> enden)
     {
         if (anfaenge.Count == 0 || enden.Count == 0) return null;
+        var schluessel = new System.Text.StringBuilder();
+        foreach (var (k, v) in anfaenge) schluessel.Append(k).Append(':').Append((int)MathF.Round(v * 100)).Append(',');
+        schluessel.Append('>');
+        foreach (var (k, v) in enden) schluessel.Append(k).Append(':').Append((int)MathF.Round(v * 100)).Append(',');
+        var text = schluessel.ToString();
+        if (_zwischen.TryGetValue(text, out var gemerkt)) return gemerkt;
+        if (_zwischen.Count >= 20000) _zwischen.Clear();
+        return _zwischen[text] = PfadZwischenSuchen(anfaenge, enden);
+    }
+
+    private (Vector3[] Pfad, int Anfang, int Ende)? PfadZwischenSuchen(IReadOnlyList<(int Knoten, float Vorlauf)> anfaenge, IReadOnlyList<(int Knoten, float Nachlauf)> enden)
+    {
         var nachbarn = Nachbarn();
         var abstand = new float[_knoten.Count];
         var vorgaenger = new int[_knoten.Count];
@@ -308,6 +329,7 @@ public sealed class Gassennetz
     {
         _nachbarn = _nachbarnMitFaehren = null;
         _pfade.Clear();
+        _zwischen.Clear();
     }
 
     private List<(int Ziel, float Laenge, float Kosten)>[] Nachbarn(bool faehren = false)

@@ -152,7 +152,7 @@ public sealed class Marktflaeche
         if (laenge < 1e-5f) return true;
         // Stehende: nicht mitten durch (außer jemand steht am Anfang oder Ziel selbst – der Nachbar am Stand, der Partner im Gespräch); einmal je Person
         // genau gerechnet (nächster Punkt der Strecke), nicht je Abtastpunkt
-        if (_personen.Count > 0 && frei >= PersonFreiAb)
+        if (_personen.Count > 0 && frei >= PersonFreiAb && !_einfach)
             foreach (var (px, pz) in _personen)
             {
                 var (ax, az, bx, bz) = (px - a.X, pz - a.Z, px - b.X, pz - b.Z);
@@ -213,6 +213,28 @@ public sealed class Marktflaeche
     public (float Links, float Rechts) Seitlich(float x, float z, float rx, float rz, float frei, float hoechstens, bool mitKante = true) =>
         (-Raum(x, z, -rx, -rz, frei, hoechstens, mitKante), Raum(x, z, rx, rz, frei, hoechstens, mitKante));
 
+    /// <summary>
+    /// Mehr Zellen fasst eine Suche nicht an (etwa ein Drittel des Rasters eines 24-m-Platzes): Zur vollen Stunde soll keine einzelne Suche ein Bild
+    /// sprengen; ohne Ergebnis nimmt die Darstellung einen einfacheren Weg.
+    /// </summary>
+    public const int HoechstensBesucht = 4000;
+
+    /// <summary>Gewicht der Schätzung in A*, solange Belegung oder Stehende die Zellen teurer machen.</summary>
+    public const float SchaetzungGewicht = 2f;
+
+    private bool _einfach;
+
+    /// <summary>
+    /// Der einfache Rückfall, wenn <see cref="Gefaechert"/> zu teuer wurde: nur um die festen Hindernisse (ohne Belegung und Stehende), Schätzung leicht gewichtet,
+    /// ohne Obergrenze – auf dem freien Raster fast geradeaus und schnell. Nie durch einen Stand.
+    /// </summary>
+    public List<(float X, float Z)>? PfadEinfach((float X, float Z) von, (float X, float Z) nach, float frei)
+    {
+        _einfach = true;
+        try { return Pfad(von, nach, frei); }
+        finally { _einfach = false; }
+    }
+
     /// <summary>Wie viele Zellen die letzte Suche angefasst hat (zum Prüfen der Kosten).</summary>
     public int Besucht { get; private set; }
 
@@ -244,7 +266,8 @@ public sealed class Marktflaeche
         // die nächste freie Zelle, zu der man vom Punkt aus gerade hinkommt (nicht hinter Bank oder Stand); ohne eine solche die nächste überhaupt
         var (beste, besterAbstand, notfalls, notAbstand) = (-1, float.MaxValue, -1, float.MaxValue);
         var ringe = (int)MathF.Ceiling(3f / Zelle);
-        for (var r = 1; r <= ringe && beste < 0; r++)
+        var (ersterRing, pruefungen) = (-1, 0); // höchstens zwei Ringe über den ersten freien hinaus und 40 Sichtlinien (sonst kostet ein Ende mitten im Gedränge ein Bild)
+        for (var r = 1; r <= ringe && beste < 0 && (ersterRing < 0 || r <= ersterRing + 2) && pruefungen < 40; r++)
             for (var dj = -r; dj <= r; dj++)
                 for (var di = -r; di <= r; di++)
                 {
@@ -254,7 +277,10 @@ public sealed class Marktflaeche
                     var (x, z) = Mitte(i, j);
                     var d = (x - p.X) * (x - p.X) + (z - p.Z) * (z - p.Z);
                     if (d < notAbstand) (notfalls, notAbstand) = (j * _n + i, d);
-                    if (d < besterAbstand && Sichtlinie(p, (x, z), frei)) (beste, besterAbstand) = (j * _n + i, d);
+                    if (ersterRing < 0) ersterRing = r;
+                    if (d >= besterAbstand || pruefungen >= 40) continue;
+                    pruefungen++;
+                    if (Sichtlinie(p, (x, z), frei)) (beste, besterAbstand) = (j * _n + i, d);
                 }
         return beste >= 0 ? beste : notfalls;
     }
@@ -278,10 +304,13 @@ public sealed class Marktflaeche
         _lauf++;
         _offen.Clear();
         var (zi, zj) = (ziel % _n, ziel / _n);
+        // Mit Belegung und Stehenden (Zellen teurer als ihr Weg) ist die Schätzung zu vorsichtig, und A* fasst fast das ganze Raster an: dann gewichtet
+        // (doppelt), so geht die Suche zielstrebig – der Weg ist höchstens ein wenig länger als der beste, das Straffziehen glättet ihn ohnehin
+        var gewicht = _einfach ? 1.5f : _belegt ? SchaetzungGewicht : 1f;
         float Schaetzung(int k)
         {
             var (di, dj) = (Math.Abs(k % _n - zi), Math.Abs(k / _n - zj));
-            return Math.Max(di, dj) + 0.41421356f * Math.Min(di, dj);
+            return gewicht * (Math.Max(di, dj) + 0.41421356f * Math.Min(di, dj));
         }
         (_kosten[start], _her[start], _stempel[start]) = (0, -1, _lauf);
         _offen.Enqueue(start, Schaetzung(start));
@@ -289,7 +318,8 @@ public sealed class Marktflaeche
         while (_offen.TryDequeue(out var k, out var prio))
         {
             if (k == ziel) break;
-            if (prio > _kosten[k] + Schaetzung(k) + 1e-4f) continue; // veralteter Eintrag
+            if (Besucht >= HoechstensBesucht && !_einfach) return null; // zu teuer für ein Bild (die Darstellung nimmt dann einen einfacheren Weg)
+            if (prio > _kosten[k] + Schaetzung(k) + 1e-3f) continue; // veralteter Eintrag
             Besucht++;
             var (i, j) = (k % _n, k / _n);
             foreach (var (di, dj, kosten) in Nachbarn)
@@ -299,7 +329,7 @@ public sealed class Marktflaeche
                 var nk = nj * _n + ni;
                 if (_abstand[nk] < frei) continue;
                 if (di != 0 && dj != 0 && (_abstand[j * _n + ni] < frei || _abstand[nj * _n + i] < frei)) continue; // nicht über Eck durch ein Hindernis
-                var neu = _kosten[k] + kosten * (1 + Zusatz(nk)); // belegte Streifen und Stehende machen die Zelle teurer (nie billiger: die Schätzung bleibt richtig)
+                var neu = _kosten[k] + kosten * (_einfach ? 1 : 1 + Zusatz(nk)); // belegte Streifen und Stehende machen die Zelle teurer (nie billiger: die Schätzung bleibt richtig)
                 if (_stempel[nk] == _lauf && neu >= _kosten[nk]) continue;
                 (_kosten[nk], _her[nk], _stempel[nk]) = (neu, k, _lauf);
                 _offen.Enqueue(nk, neu + Schaetzung(nk));
@@ -349,13 +379,15 @@ public sealed class Marktflaeche
         if (laenge >= 3f && _belegt) seite = FreiesteSeite(von, nach, frei, seite, MathF.Min(laenge * anteil, hoechstens), rx, rz);
         if (laenge < 3f || MathF.Abs(seite) < 0.05f) return Pfad(von, nach, frei);
         var quer = MathF.Min(laenge * anteil, hoechstens) * seite;
+        // ein Zwischenpunkt (näher an der Geraden, wenn der weite in einem Hindernis läge); gelingt der Weg über ihn nicht, gleich der direkte – jede weitere
+        // Suche kostete zur vollen Stunde Zeit im selben Bild
         foreach (var f in new[] { 1f, 0.6f, 0.3f })
         {
             var mitte = (von.X + dx * 0.5f + rx * quer * f, von.Z + dz * 0.5f + rz * quer * f);
             if (!Auf(mitte.Item1, mitte.Item2, frei) || Abstand(mitte.Item1, mitte.Item2) < frei + 0.2f) continue;
             var erst = Pfad(von, mitte, frei);
             var dann = erst is null ? null : Pfad(mitte, nach, frei);
-            if (erst is null || dann is null) continue;
+            if (erst is null || dann is null) break;
             erst.AddRange(dann.Skip(1));
             return erst;
         }
