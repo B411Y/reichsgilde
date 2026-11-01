@@ -49,8 +49,8 @@
       "kennung": "trachyt",
       "name": "Trachyt",
       "herkunft": "Siebengebirge (Drachenfels)",
-      "farbe_hell": "#c6bda8",
-      "farbe_dunkel": "#8b8270",
+      "farbe_hell": "#ad9f84",
+      "farbe_dunkel": "#6f6552",
       "band_winkel": 0,
       "band_richtung": 0,
       "band_dicke": 1.4,
@@ -63,7 +63,7 @@
       "flechten": 0.55,
       "flechte_farbe": "#b9ae4a",
       "efeu": 0.3,
-      "schutt_farbe": "#a29c8e",
+      "schutt_farbe": "#8f8572",
       "formen": ["wand", "felsnase", "block", "schuttbrocken"]
     },
     {
