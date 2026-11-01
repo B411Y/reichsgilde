@@ -155,11 +155,13 @@ sealed class Messquellen
     private readonly Dictionary<string, string> _karten = new();
 
     /// <param name="ohneAbschnitt">Diesen Abschnitt der Wirtschaftsdaten weglassen (Diagnose, z. B. „schiffshandel“: alle Partien ohne Schiffe).</param>
-    public Messquellen(string? ohneAbschnitt = null)
+    /// <param name="anpassen">Ändert den Text der Wirtschaftsdaten vor allen Partien (z. B. <c>messen schaenke --ohne-plaetze</c>).</param>
+    public Messquellen(string? ohneAbschnitt = null, Func<string, string>? anpassen = null)
     {
         var pfad = Datenpfad.Wirtschaft();
         Wirtschaft = File.ReadAllText(pfad);
         if (ohneAbschnitt is not null) Wirtschaft = Messpartie.OhneAbschnitt(Wirtschaft, ohneAbschnitt);
+        if (anpassen is not null) Wirtschaft = anpassen(Wirtschaft);
         Katalog = File.ReadAllText(Path.Combine(Path.GetDirectoryName(pfad)!, "katalog.json"));
     }
 
@@ -193,7 +195,9 @@ static class Messpartie
         return knoten.ToJsonString();
     }
 
-    public static Partieergebnis Spielen(Messaufbau a, Messquellen q)
+    /// <param name="jeStunde">Wird zu jeder vollen Stunde vor dem nächsten Takt gerufen (nur lesen; z. B. <c>messen schaenke</c>).</param>
+    /// <param name="jahresende">Wird nach jedem Spieljahr gerufen (nur lesen), mit der Nummer des Jahres (1 = erstes).</param>
+    public static Partieergebnis Spielen(Messaufbau a, Messquellen q, Action<Stadtwirtschaft>? jeStunde = null, Action<Stadtwirtschaft, int>? jahresende = null)
     {
         var ergebnis = new Partieergebnis { Aufbau = a };
         var daten = Wirtschaftsdaten.AusJson(a.OhneSchiffshandel ? OhneAbschnitt(q.Wirtschaft, "schiffshandel") : q.Wirtschaft);
@@ -266,6 +270,7 @@ static class Messpartie
             {
                 var minute = sim.Zeit.MinuteImTag;
                 if (minute == Unterwelt.Nachtstunde) GaunerZaehlen(w, ergebnis);
+                if (jeStunde is not null && minute % 60 == 0) jeStunde(w);
                 if (marktJahr && minute % 60 == 0 && minute > 0)
                 {
                     stunden++;
@@ -288,6 +293,7 @@ static class Messpartie
                 sim.Tick();
             }
             BetriebeAufzeichnen(w, ergebnis, j, fahrten, seit);
+            jahresende?.Invoke(w, j);
 
             foreach (var c in w.Bank.IstAktiv ? w.Bank.Kredite : Array.Empty<Reichsgilde.Core.Bank.Kredit>())
                 if (krediteGesehen.Add(c.Nummer))
