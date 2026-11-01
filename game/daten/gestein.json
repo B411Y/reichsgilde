@@ -17,7 +17,7 @@
     "flechte_farbe": "Farbe der bunten Flechten (dazu immer weißgraue)",
     "efeu": "Efeu in den Klüften (Trachyt)",
     "schutt_farbe": "Farbe von Schutt und Sand am Fuß (für F6, Boden um den Fels)",
-    "formen": "Felsformen, die zu der Art passen (für F1 und F3)"
+    "formen": "Felsformen, die zu der Art passen: Kennungen der Karte (felsen.stuecke[].form, Felsformen im Kern), ein Test prüft sie"
   },
   "moos_farbe": "#46512a",
   "moos_farbe_trocken": "#5d5a33",
@@ -43,7 +43,7 @@
       "flechte_farbe": "#c98a3a",
       "efeu": 0.0,
       "schutt_farbe": "#6e6c67",
-      "formen": ["Rippe", "Platte", "Brocken", "Schuttstein"]
+      "formen": ["rippe", "wand", "platte", "schuttbrocken"]
     },
     {
       "kennung": "trachyt",
@@ -64,7 +64,7 @@
       "flechte_farbe": "#b9ae4a",
       "efeu": 0.3,
       "schutt_farbe": "#a29c8e",
-      "formen": ["Pfeiler", "Block", "Wandstück", "Brocken"]
+      "formen": ["wand", "felsnase", "block", "schuttbrocken"]
     },
     {
       "kennung": "buntsandstein",
@@ -85,7 +85,7 @@
       "flechte_farbe": "#a8a05a",
       "efeu": 0.0,
       "schutt_farbe": "#a8634a",
-      "formen": ["Kuppe", "Block", "Wandstück", "Brocken"]
+      "formen": ["kuppe", "ueberhang", "block", "schuttbrocken"]
     },
     {
       "kennung": "kalkstein",
@@ -106,7 +106,7 @@
       "flechte_farbe": "#b8a660",
       "efeu": 0.0,
       "schutt_farbe": "#9d988c",
-      "formen": ["Block", "Wandstück", "Platte", "Schuttstein"]
+      "formen": ["wand", "block", "platte", "schuttbrocken"]
     }
   ],
   "frisch_gebrochen": {
