@@ -12,10 +12,10 @@ namespace Reichsgilde;
 /// <item><b>Zellen</b> zu <see cref="FelsZelle"/> Metern: Je Zelle, Form und Gesteinsart ein <see cref="MultiMeshInstance3D"/> – 300 Stücke kosten so nur
 /// ein paar Zeichenaufrufe, und was nicht im Bild liegt, schneidet Godot zellenweise weg. In der Werkstatt baut eine Änderung nur ihre Zelle neu.</item>
 /// <item><b>Feinheit</b>: Die Netze <c>&lt;Form&gt;_0/1/2</c> aus <c>natur/natur_felsen.glb</c> (F1) wechseln mit dem Zoom der Spielkamera bzw. mit dem
-/// Abstand der freien Kamera zur Zelle (<see cref="FelsStufe"/>, mit Spielraum gegen Flackern). <b>Schatten</b> werfen nur die feine und die mittlere
-/// Stufe, also nur nah; weit herausgezoomt sind die Felsen klein und ohne.</item>
+/// Abstand der freien Kamera zur Zelle (<see cref="FelsStufe"/>, mit Spielraum gegen Flackern). <b>Schatten</b> wirft nur die feine Stufe
+/// (F8), also nur nah; weit herausgezoomt sind die Felsen klein und ohne.</item>
 /// <item><b>Material</b>: das Fels-Material aus F2 (<see cref="Gesteinsarten"/>) mit den gebackenen Atlanten und Vertexfarben der F1-Formen, eins je
-/// Gesteinsart für alle Stücke; dreiseitig ab Boden „Mittel“, eine Richtung auf „Niedrig“. Nässe und Schnee über <c>wetter.gdshaderinc</c>.
+/// Gesteinsart für alle Stücke; dreiseitig nur auf Boden „Hoch“ (F8), sonst eine Richtung. Nässe und Schnee über <c>wetter.gdshaderinc</c>.
 /// Die Einsinktiefe in Metern geht als Instanzdaten (x) an den Shader: Er zeichnet dort, wo das Stück aus dem Boden kommt, einen Moossaum.</item>
 /// <item><b>Werkstatt</b>: einzelne Stücke wählen (Strahl gegen den Kasten des Netzes, sonst die Grundfläche unter der Maus), ziehen, mit Q/E drehen und
 /// mit Entf löschen – der Kern rechnet (<see cref="Kartenentwurf.FelsVerschieben"/>, <see cref="Kartenentwurf.FelsDrehen"/>); beim Ziehen wandert nur
@@ -39,8 +39,8 @@ public partial class Stadtansicht
     /// <summary>Spielraum gegen Flackern beim Wechsel der Feinheit (Anteil der Grenze).</summary>
     private const float FelsSpielraum = 0.08f;
 
-    /// <summary>Schatten werfen nur die Stufen bis hier (0 fein, 1 mittel).</summary>
-    private const int FelsSchattenBisStufe = 1;
+    /// <summary>Schatten werfen nur die Stufen bis hier (0 fein, 1 mittel). F8: nur noch die feine – die Messung bestätigte nah auf Hoch +2,4 ms.</summary>
+    private const int FelsSchattenBisStufe = 0;
 
     private sealed class Felszelle
     {
@@ -67,8 +67,8 @@ public partial class Stadtansicht
     private bool _felsZellenNeu;
     private bool _felsDreiseitig = FelsDreiseitigGewuenscht;
 
-    /// <summary>Struktur dreiseitig ab Boden „Mittel“, eine Richtung auf „Niedrig“ (wie die Material-Bibliothek der Modelle).</summary>
-    private static bool FelsDreiseitigGewuenscht => Fenster.AktuelleBodenqualitaet != Bodenqualitaet.Niedrig;
+    /// <summary>Struktur dreiseitig nur auf Boden „Hoch“, sonst eine Richtung (F8: drei Abtastungen erst ab Hoch, Messung nah +2,4 ms).</summary>
+    private static bool FelsDreiseitigGewuenscht => Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch;
 
     /// <summary>Alle Felsstücke (für Tests und Messung).</summary>
     private int FelsAnzahl => _felsBilder.Count;
