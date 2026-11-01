@@ -15,6 +15,8 @@ Geprüft wird:
   - Verweise auf Prompt-Dateien (docs/assets/prompts/…) zeigen auf vorhandene Dateien.
   - Zeilen mit „datum“ nach dem Stichtag (Konstante STICHTAG, None = aus) tragen kein „CC BY“ als Lizenz (Ausnahme: Herkunft „Fremdpaket“, Fremdmaterial behält seine Lizenz).
   - Die Steam-Liste entspricht dem Protokoll (sonst mit --steam-liste neu schreiben).
+  - Die Danksagung im Spiel (game/daten/danksagung.json) nennt jedes Fremdmaterial mit Namensnennungspflicht
+    und ist aktuell (ruft tools/assets/danksagung_bauen.py --pruefen auf).
 
 Muster (relativ zum Repository): * = beliebig viele Zeichen ohne „/“, ** = beliebig viele Ordner, ? = ein Zeichen,
 {a,b} = a oder b. Trifft eine Datei mehrere Zeilen, gilt die **letzte** (wie bei CODEOWNERS) – so kann eine Einzelzeile
@@ -352,6 +354,13 @@ def main():
         elif not STEAM_LISTE.is_file() or STEAM_LISTE.read_text(encoding="utf-8") != soll:
             fehler.append(f"{STEAM_LISTE.relative_to(WURZEL)} passt nicht zum Protokoll – neu erzeugen mit: "
                           "python3 tools/assets/protokoll_pruefen.py --steam-liste")
+
+    # Danksagung im Spiel: jedes Fremdmaterial mit Namensnennung steht darin (tools/assets/danksagung_bauen.py)
+    danksagung = subprocess.run([sys.executable, str(WURZEL / "tools/assets/danksagung_bauen.py"), "--pruefen"],
+                                capture_output=True, text=True)
+    if danksagung.returncode != 0:
+        fehler.append("Danksagung (game/daten/danksagung.json) unvollständig oder veraltet:\n    " +
+                      danksagung.stdout.strip().replace("\n", "\n    "))
 
     if fehler:
         print(f"Asset-Protokoll: {len(fehler)} Fehler")

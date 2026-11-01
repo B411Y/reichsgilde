@@ -57,6 +57,7 @@ Startoptionen (nach `--`):
 - `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`)
 - `--karte=<kennung>` (neue Partie auf einer anderen Karte aus `game/karten/`, z. B. `koeln`, nur für diesen Start; im Hauptmenü wählt man sie unter „Neue Partie“ → „Stadt wählen“)
 - `--stadtwahl=1` (Hauptmenü öffnet gleich die Seite „Stadt wählen“, für Bildschirmfotos)
+- `--danksagung=1` (Hauptmenü öffnet gleich die Danksagung; `=lizenzen`: gleich die Lizenztexte der Engine; für Bildschirmfotos)
 - `--entwickler=1|0` (Entwickler-Modus für diesen Start an oder aus, ohne die gemerkte Einstellung zu ändern; die Kartenwahl zeigt dann auch Test- und Messkarten)
 - `--entwicklerfenster=<1–6>` (öffnet das Entwicklerfenster gleich, `1` = erster Reiter, `2` bis `6` = Familie und Ereignisse, Wirtschaft, Wetter und Darstellung, Messwerte, Klänge; nur mit `--entwickler=1` oder dem Haken „Entwickler-Optionen“, sonst gibt es das Fenster nicht; Taste F12 und der Knopf „Entwickler“ in der Betriebsleiste schalten es um)
 - `--kartenbild=<ziel.png>` (Karte als Vorschau für die Kartenwahl aufnehmen, 480 × 270, und beenden; mit `--karte=<kennung>`, gemacht für `tools/kartenbilder/kartenbilder.sh`)
