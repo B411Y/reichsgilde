@@ -626,6 +626,20 @@ func _anwenden6(w: Dictionary) -> void:
 					z["nasenspitze"] = hoch * f
 				if kurz > 0.0:
 					z["nase_laenge"] = -kurz * f
+	# Grundkopf 2 (Nutzer 01.11.2026: „immer noch zu fratzig, die erlaubten Werte zurückdrehen“): Mäßigung – jedes σ weich
+	# gekappt, z' = c · tanh(z / c) (klein bleibt linear, große Ausschläge laufen gegen c); c je Gen, sonst „kappe_standard“
+	var mg: Dictionary = vs.get("maessigung", {})
+	if not mg.is_empty():
+		var kappe: Dictionary = mg.get("kappe", {})
+		for k in z:
+			var c := float(kappe.get(k, mg.get("kappe_standard", 0.0)))
+			if c > 0.0:
+				z[k] = c * tanh(float(z[k]) / c)
+		var s2 := 0.0
+		for k in z:
+			s2 += float(z[k]) * float(z[k])
+		karikatur["K_gemaessigt"] = sqrt(s2 / maxf(z.size(), 1))
+	var mg_faktor: Dictionary = mg.get("staerke_faktor", {})
 	gene_z = z
 	# Gewichte der Gestalt-Gene
 	var gene_w := {}
@@ -648,6 +662,7 @@ func _anwenden6(w: Dictionary) -> void:
 		var st: Dictionary = e["staerke"]
 		var richt := "plus" if zk >= 0.0 else "minus"
 		var s := float(st["m"][richt]) * mann + float(st["w"][richt]) * (1.0 - mann)
+		s *= float(mg_faktor.get(k, 1.0))
 		var reife := 1.0
 		if e.get("reife", "") == "oben":
 			reife = ro
@@ -975,6 +990,8 @@ func _farben() -> void:
 		# Haar (im Mittel wie Etappe D, + dunkler, − heller als das Haar), Dichte breiter gestreut; Winkel und Dunkelheit
 		# vorläufig aus den freien Vorschlagsgenen (zug_11, zug_12; Vorschlag an kern: brauen_winkel, brauen_dunkel)
 		var vb: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("brauen", {}) if d_an and volk == "Mensch" else {}
+		# Grundkopf 2 (Probekopf mit „verschieden.grundkopf2“): Brauen aus Härchen, Haut mit feiner Struktur
+		var gk2: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf2", {}) if d_an and volk == "Mensch" else {}
 		if not vb.is_empty():
 			var dz := clampf(_sigma(vb["dunkel_gen"], float(gene.get(vb["dunkel_gen"], _mittel6(vb["dunkel_gen"]))), volk), -2.5, 2.5)
 			if dz >= 0.0:
@@ -998,6 +1015,8 @@ func _farben() -> void:
 			m.set_shader_parameter("dunkel", 0.9 if d_an else (0.78 if a_an else 0.6))
 			m.set_shader_parameter("zufall_hell", 0.7 if d_an else 0.4)
 			if m.shader == BRAUE6:
+				m.set_shader_parameter("haerchen", float(gk2.get("brauen_haerchen", 0.0)))
+				m.set_shader_parameter("haerchen_rest", float(gk2.get("brauen_haerchen_rest", 0.4)))
 				# Brauen je Person (Verschiedenheitsplan, Hebel 1): Stand 1,5 mm je σ zusätzlich zur Hautform (die bringt
 				# 1,0 mm/σ, zusammen 2,5), Dicke aus „brauen_dichte“ (σ 35: 0,6–1,4 über ±2σ), Winkel aus einem Gen
 				# „brauen_winkel“, wenn es eins gibt (Vorschlag an kern, heute 0). Mittelgesicht = unverändert.
@@ -1159,9 +1178,15 @@ func _farben() -> void:
 		iris = _entsaettigt(iris, 0.5)
 		kranz = _entsaettigt(kranz, 0.35)
 	var d_auge := a_auge and weg_d
+	# Grundkopf 2 (Prüfer: „leerer Blick, Augen wie eingesetzt“): Oberlid wirft mehr Schatten auf den Augapfel, Kontakt an
+	# der Lidkante dunkler – das Lid liegt sichtbar auf dem Auge; Tränensee am Unterlid weniger weiß
+	var gk2_auge: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf2", {}).get("augen", {}) if d_auge and volk == "Mensch" else {}
 	for m in lidschatten_stoffe:
 		m.shader = LIDSCHATTEN6 if d_auge else LIDSCHATTEN
 		m.set_shader_parameter("staerke", 0.9 if a_auge else 0.75)
+		m.set_shader_parameter("oben", float(gk2_auge.get("schatten_oben", 0.55)))
+		m.set_shader_parameter("oben_weite", float(gk2_auge.get("schatten_oben_weite", 0.4)))
+		m.set_shader_parameter("kontakt", float(gk2_auge.get("kontakt", 0.55)))
 	for m in hornhaut_stoffe:
 		# Runde 2 (Prüfer: „kein Glanzpunkt wie im Foto, leerer Blick“): Glanzpunkt klein und weich, aber deutlich; die
 		# Hornhaut zeichnet nach dem Lidschatten, damit er den Glanzpunkt des Schlüssellichts nicht schluckt
@@ -1173,7 +1198,7 @@ func _farben() -> void:
 	for m in traene_stoffe:
 		m.set_shader_parameter("traene_d", d_auge)
 		m.set_shader_parameter("rauheit", 0.05 if d_auge else 0.08)
-		m.set_shader_parameter("staerke", 0.65 if d_auge else 0.7)
+		m.set_shader_parameter("staerke", float(gk2_auge.get("traene", 0.65)) if d_auge else 0.7)
 	var loch := float(info.get("pupillenoeffnung", 0.31)) + 0.03
 	for m in augen_stoffe:
 		m.set_shader_parameter("iris_hohl", 0.55 if a_auge else 0.0)
@@ -1249,6 +1274,14 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_zeige", 0)
 		m.set_shader_parameter("c_spross_staerke", 0.6)
 		m.set_shader_parameter("c_gelb", 0.35 + 0.25 * greis)
+	# Grundkopf 2 (Prüfer: „Haut zu glatt“): Poren stärker und die grobe Lage der Porenkachel (Unebenheit 1–2 mm) deutlicher –
+	# nur Werte, keine weitere Abtastung (Kosten ≈ 0)
+	var gk2: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf2", {}) if weg_d and volk == "Mensch" else {}
+	if not gk2.is_empty():
+		for m in haut_stoffe:
+			m.set_shader_parameter("c_poren_staerke", float(m.get_shader_parameter("c_poren_staerke")) * float(gk2.get("poren_faktor", 1.0)))
+			m.set_shader_parameter("c_uneben", float(gk2.get("uneben", 0.5)))
+			m.set_shader_parameter("c_kontrast", float(gk2.get("kontrast", 1.15)))
 	werte3["haut_c"] = {"relief": rel, "wetter": w, "sommersprossen": spross, "bart": bart_c}
 
 # Halt B2: Farbe zur Helligkeit hin entsättigen (lineare Farbe als Color wie in _farben)
@@ -1300,6 +1333,9 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 	hw["farbe"] = farbe
 	hw["grau"] = grau
 	hw["kopfmitte"] = Vector3(0.0, augen_mitte.y + 0.01, augen_mitte.z - 0.08)
+	# Prüfung (Bogen „haar“: {"vorgabe": {"pruef_weg": [von, bis]}}): Strähnen mit diesem Index ausblenden
+	if haar_vorgabe.has("pruef_weg"):
+		hw["pruef_weg"] = Vector2(float(haar_vorgabe["pruef_weg"][0]), float(haar_vorgabe["pruef_weg"][1]))
 	haar_werte = hw
 	haar_knoten.karten_schatten = haar_schatten
 	haar_knoten.stile_setzen([hw["frisur"], hw["bart"]])
