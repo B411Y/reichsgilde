@@ -567,7 +567,7 @@ public sealed partial class Kartenentwurf
                     aus[k] = natur;
                     continue;
                 case "felsen":
-                    // wie natur: ohne Stücke und ohne Grundgestein fällt es weg (alte Karten bleiben Byte für Byte gleich)
+                    // wie natur: ohne Stücke und ohne Grundgestein fällt es weg, mit unbekannten Feldern darin (alte Karten bleiben Byte für Byte gleich)
                     if (_felsen.Count == 0 && _grundgestein.Gestein is null) continue;
                     var felsen = new JsonObject();
                     foreach (var (fk, fv) in v as JsonObject ?? new JsonObject())

@@ -36,7 +36,18 @@ public sealed class EntwurfFels : EntwurfTeil
     public Kartenort Punkt => new(X, Z);
 
     /// <summary>Die Form (null, wenn es sie nicht gibt).</summary>
-    public Felsform? Felsform => Felsformen.Finde(Form);
+    public Felsform? Felsform
+    {
+        get
+        {
+            // zwischengespeichert: Streuen fragt den Radius aller Stücke bei jedem Versuch
+            if (!ReferenceEquals(_formFuer, Form)) (_formFuer, _form) = (Form, Felsformen.Finde(Form));
+            return _form;
+        }
+    }
+
+    private string? _formFuer;
+    private Felsform? _form;
 
     /// <summary>Der Radius der Grundfläche (Meter, mit Maßstab) – für den Abstand beim Streuen.</summary>
     public double Radius => (Felsform?.Radius ?? 1) * Massstab;
@@ -94,7 +105,7 @@ public sealed class EntwurfGrundgestein : EntwurfTeil
     public string? Gestein { get; internal set; }
 
     /// <summary>Die Gesteinsart, die gilt.</summary>
-    public string Wirksam => Gestein ?? Felsformen.GrundgesteinVorgabe;
+    public string Wirksam => Felsformen.IstGestein(Gestein) ? Gestein! : Felsformen.GrundgesteinVorgabe; // ein unbekanntes gilt nicht (Prüfhinweis)
 
     internal override EntwurfTeil KopieTeil() => new EntwurfGrundgestein { Gestein = Gestein };
     internal override void UebernimmTeil(EntwurfTeil werte) => Gestein = ((EntwurfGrundgestein)werte).Gestein;
@@ -136,7 +147,14 @@ public sealed partial class Kartenentwurf
     }
 
     /// <summary>Die Gesteinsart, mit der ein Stück gezeichnet wird: seine eigene oder das Grundgestein.</summary>
-    public string GesteinVon(EntwurfFels f) => f.Gestein ?? _grundgestein.Wirksam;
+    public string GesteinVon(EntwurfFels f) => Felsformen.IstGestein(f.Gestein) ? f.Gestein! : _grundgestein.Wirksam;
+
+    /// <summary>Der Pinsel begrenzt, ein Gestein gleich dem Grundgestein fällt weg („gestein“ steht nur bei Abweichung in der Datei).</summary>
+    private Felspinsel FelsBegrenzt(Felspinsel pinsel)
+    {
+        var p = pinsel.Begrenzt();
+        return p.Gestein == _grundgestein.Wirksam ? p with { Gestein = null } : p;
+    }
 
     /// <summary>Löscht Felsstücke in einem Schritt; nichts, wenn keins im Entwurf ist.</summary>
     public void FelsenLoeschen(IEnumerable<EntwurfFels> felsen)
@@ -157,7 +175,7 @@ public sealed partial class Kartenentwurf
     /// </summary>
     public IReadOnlyList<Felslage> FelsStempelVorschau(Felspinsel pinsel, Kartenort ort, double? drehung = null, int? startwert = null)
     {
-        var p = pinsel.Begrenzt();
+        var p = FelsBegrenzt(pinsel);
         if (!Kartengrenzen.Aussen.Enthaelt(ort) || Felsstreuung.Filterfaktor(p.Filter, _hoehen, _boden, ort.X, ort.Z) < 0.5) return Array.Empty<Felslage>();
         var zufall = new Zufallsquelle(startwert ?? FelsStartwert(ort));
         return Felsstreuung.Treffer(p, zufall, _hoehen, ort.X, ort.Z, drehung is { } d ? Kartenraster.Drehung(d) : null)
@@ -197,17 +215,17 @@ public sealed partial class Kartenentwurf
     public void FelsStrichBeginnen(Felspinsel pinsel, int? startwert = null)
     {
         FelsStrichBeenden();
-        _felsstrich = new Felsstrich(this, pinsel.Begrenzt(), startwert);
+        _felsstrich = new Felsstrich(this, FelsBegrenzt(pinsel), startwert);
     }
 
     /// <summary>
     /// Führt den Strich bis zu diesem Punkt weiter (der erste Punkt setzt den ersten Tupfer, danach alle <see cref="Felspinsel.Tupfabstand"/>
     /// Meter einer). Die Stücke ändern sich sofort, jedes wird gemeldet. Gibt zurück, wie viele Stücke dazukamen oder wegfielen.
+    /// Ohne laufenden Strich (nie begonnen, oder Rückgängig, Wiederholen bzw. Speichern haben ihn beendet) geschieht nichts (0).
     /// </summary>
-    /// <exception cref="InvalidOperationException">Ohne <see cref="FelsStrichBeginnen"/>.</exception>
     public int FelsStrichWeiter(Kartenort p)
     {
-        var strich = _felsstrich ?? throw new InvalidOperationException("Es läuft kein Felsstrich (erst FelsStrichBeginnen).");
+        if (_felsstrich is not { } strich) return 0;
         var n = strich.Weiter(p);
         if (n > 0) MeldungenAusloesen();
         return n;

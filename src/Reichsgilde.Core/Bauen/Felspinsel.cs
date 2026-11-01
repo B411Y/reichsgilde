@@ -112,12 +112,12 @@ public static class Felsstreuung
     }
 
     /// <summary>
-    /// Wie stark der Filter an einem Ort wirkt (0 … 1): Steigung am Raster, Bodenart am nächsten Bodenpunkt. Ohne Filter 1.
+    /// Wie stark der Filter an einem Ort wirkt (0 … 1): Steigung am Raster, Bodenart am nächsten Bodenpunkt (gerundet, Punkt i liegt bei x = i). Ohne Filter 1.
     /// </summary>
     public static double Filterfaktor(Pinselfilter? filter, Hoehenraster hoehen, Bodenraster boden, double x, double z)
     {
         if (filter is null) return 1;
-        if (filter.Boden is { } t && !filter.BodenPasst(boden.Gewicht(Bodenraster.Punktindex(x), Bodenraster.Punktindex(z), t))) return 0;
+        if (filter.Boden is { } t && !filter.BodenPasst(boden.Gewicht(Bodenraster.Punktindex(x + Bodenraster.Abstand / 2), Bodenraster.Punktindex(z + Bodenraster.Abstand / 2), t))) return 0;
         return filter.MitSteigung ? filter.SteigungFaktor(Pinselfilter.Steigung(hoehen, x, z)) : 1;
     }
 

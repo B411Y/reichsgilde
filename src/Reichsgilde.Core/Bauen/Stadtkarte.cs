@@ -588,7 +588,7 @@ public sealed class Stadtkarte
             .Concat(Uebergaenge.SelectMany(u => Orte(new[] { u.Von, u.Bis }))).Concat(Orte(Kamera is null ? null : new[] { Kamera.Punkt }));
         var rest = Wege.SelectMany(w => Orte(w.Verlauf))
             .Concat(Natur.Flaechen.SelectMany(n => Orte(n.Flaeche))).Concat(Natur.Felder.SelectMany(n => Orte(n.Flaeche)))
-            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt))).Concat(Orte(Felsen?.Stuecke.Select(f => f.Punkt)))
+            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt))).Concat(Orte(Felsen?.Stuecke?.Select(f => f.Punkt)))
             .Concat(Wasser.SelectMany(w => Orte(w.Linie).Concat(Orte(w.Flaeche)))).Concat(Gelaende.SelectMany(x => Orte(x.Flaeche)));
         return Bauen.Kartengrenzen.Ableiten(spiel, rest, rand);
     }

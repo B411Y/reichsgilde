@@ -110,6 +110,7 @@ public sealed class Kartengeschichte
     /// <summary>Merkt sich den jetzigen Stand als gespeichert.</summary>
     public void Gespeichert()
     {
+        _entwurf.FelsStrichBeenden(); // ein laufender Felsstrich steht schon in der Datei: erst als Schritt eintragen, dann merken
         _gespeichert = Stand;
         _gespeichertVerloren = false;
     }

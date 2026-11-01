@@ -65,7 +65,10 @@ public sealed class Kartenfelsen
 /// <param name="Gerichtet">Hat die Form eine Schauseite (+Z), die hangabwärts zeigen soll (Wand, Rippe, Überhang, Felsnase)?</param>
 public sealed record Felsform(string Kennung, string Name, string Knoten, double Breite, double Tiefe, double Hoehe, bool Gerichtet)
 {
-    /// <summary>Der Radius einer Kreisfläche gleich der Grundfläche (Meter, bei Maßstab 1) – für den Abstand der Stücke untereinander.</summary>
+    /// <summary>
+    /// Der Radius des Kreises für Abstand und Dichte (Meter, bei Maßstab 1): ½ · √(Breite · Tiefe) – die Kreisfläche ist die der eingeschriebenen
+    /// Ellipse (π/4 der Rechteckfläche), denn die Felsen sind rund und füllen ihr Rechteck nicht.
+    /// </summary>
     public double Radius => 0.5 * Math.Sqrt(Breite * Tiefe);
 }
 
