@@ -43,6 +43,8 @@ public partial class Stadtansicht
     private const double AmpelFeld = 12;
 
     private Node3D? _fahrwegKnoten;
+    private Func<double, double, int, BauBefehl>? _fahrwegErzeuger;
+    private Betriebsart? _fahrwegArt;
     private readonly StandardMaterial3D?[] _fahrwegStoffe = new StandardMaterial3D?[2]; // einmal je Rang, für alle Bänder
     private string _fahrwegSchluessel = "";
     private int _fahrwegBelag; // zählt Änderungen des Belags (die Fahrzeiten ändern sich, die Wege nicht)
@@ -51,7 +53,7 @@ public partial class Stadtansicht
     private readonly Dictionary<(int, int), int> _ampelJeFeld = new();
     private IEnumerator<bool>? _ampelSuche;
     private int _ampelOrte, _ampelPruefungen;
-    private string _ampelSchluessel = "";
+    private (Betriebsart? Art, int Anzahl, long Summe, int Belag) _ampelSchluessel;
     private static readonly bool FahrwegZeit = OS.GetCmdlineUserArgs().Contains("--fahrwegzeit=1"); // Kosten ins Protokoll
     private double _ampelMsGesamt;
 
@@ -79,9 +81,16 @@ public partial class Stadtansicht
     private void FahrwegBild()
     {
         var w = _simulation?.Wirtschaft;
-        var art = _bauErzeuger is not null && w is { Bauen.IstAktiv: true } && _baumodus && !_wegeModus && _innen is null
-            ? (_bauErzeuger(0, 0, 0) as WerkstattBauen)?.Art : null;
+        if (!ReferenceEquals(_fahrwegErzeuger, _bauErzeuger)) // die Betriebsart nur einmal je gewähltem Gebäude erfragen
+        {
+            _fahrwegErzeuger = _bauErzeuger;
+            _fahrwegArt = (_bauErzeuger?.Invoke(0, 0, 0) as WerkstattBauen)?.Art;
+        }
+        var art = w is { Bauen.IstAktiv: true } && _baumodus && !_wegeModus && _innen is null ? _fahrwegArt : null;
         AmpelnSuchen(w, art);
+        // Steht die Maus über einer Tafel, hat der Umriss keinen Ort – dann bleibt der zuletzt gezeigte Weg stehen (sonst verschwände die Zeile
+        // „Fahrt zum Markt“ der Bautafel samt Tooltip, sobald man auf sie zeigt; Befund der Prüfung)
+        if (art is not null && BauAuftrag is null && GetViewport().GuiGetHoveredControl() is not null) return;
         var ort = art is not null && BauAuftrag is WerkstattBauen b && BauGrund is null ? b : null;
         FahrwegBauort = BauAuftrag is { } auftrag && art is not null ? new Vector3((float)auftrag.X, BodenHoehe((float)auftrag.X, (float)auftrag.Z), (float)auftrag.Z) : null;
         var schluessel = ort is null ? "" : $"{ort.Art}|{ort.X}|{ort.Z}|{ort.Drehung}|{_fahrwegBelag}";
@@ -145,7 +154,7 @@ public partial class Stadtansicht
             var (hin, zurueck) = w.FahrzeitenAuf(weg, ort.Art, start);
             var (schnell, schnellHin, schnellZurueck) = Schnellster(w, weg, ort.Art);
             var ende = weg.Punkte[^1];
-            var fuss = new Vector3((float)ende.X, BodenHoehe((float)ende.X, (float)ende.Z) + 2.5f, (float)ende.Z);
+            var fuss = new Vector3((float)ende.X, (DeckHoehe((float)ende.X, (float)ende.Z) ?? FussHoehe((float)ende.X, (float)ende.Z)) + 2.5f, (float)ende.Z);
             schilder.Add(new FahrwegSchild(fuss, weg.Markt.Name is { Length: > 0 } name ? name : "Marktplatz", hin, zurueck, start,
                 schnellHin, schnellZurueck, schnell, weg.Bester));
         }
@@ -216,10 +225,12 @@ public partial class Stadtansicht
             var farbe = Fahrzeitstufen.Farbe(linie[i].Minute);
             // ein wenig unregelmäßig wie mit dem Pinsel: die Deckung schwankt längs des Weges (fest nach der Stelle, kein Zufall)
             var pinsel = 0.85f + 0.15f * Mathf.Sin(linie[i].Ort.X * 0.9f + linie[i].Ort.Y * 1.3f);
+            // Höhe wie bei den Karren: Brücken und Fähren tragen (FahrHoehe); liegt die Mitte auf einem Fundament (Pflaster eines Platzes), die ganze Reihe darauf
+            var fundament = DeckHoehe(linie[i].Ort.X, linie[i].Ort.Y) ?? FussHoehe(linie[i].Ort.X, linie[i].Ort.Y);
             for (var s = 0; s < spalten.Length; s++)
             {
                 var o = linie[i].Ort + quer * linie[i].Halb * gehrung * spalten[s];
-                ecken[i * spalten.Length + s] = new Vector3(o.X, BodenHoehe(o.X, o.Y) + FahrwegHoehe, o.Y);
+                ecken[i * spalten.Length + s] = new Vector3(o.X, Mathf.Max(FahrHoehe(o.X, o.Y), fundament) + FahrwegHoehe, o.Y);
                 farben[i * spalten.Length + s] = new Color(farbe, deckung * profil[s] * pinsel);
             }
         }
@@ -250,10 +261,13 @@ public partial class Stadtansicht
     /// </summary>
     private void AmpelnSuchen(Stadtwirtschaft? w, Betriebsart? art)
     {
-        var schluessel = art is null || w is null ? "" : $"{art}|{w.Bauen.Grundstuecke.Count}|{string.Join(",", w.Bauen.Bauplaetze.Select(p => p.Nummer))}|{_fahrwegBelag}";
-        if (schluessel != _ampelSchluessel)
+        // Schlüssel ohne Text je Bild: Werkstatt, Zahl der Grundstücke, Summe der Nummern und Arten (ein Abriss macht ein Grundstück zum Bauplatz), Belag
+        var stand = (Art: art, Anzahl: 0, Summe: 0L, Belag: _fahrwegBelag);
+        if (art is not null && w is not null)
+            foreach (var g in w.Bauen.Grundstuecke) { stand.Anzahl++; stand.Summe += g.Nummer * 7L + (int)g.Art; }
+        if (stand != _ampelSchluessel)
         {
-            _ampelSchluessel = schluessel;
+            _ampelSchluessel = stand;
             _ampeln.Clear();
             _ampelJeFeld.Clear();
             _ampelMsGesamt = 0;
@@ -311,13 +325,23 @@ public partial class Stadtansicht
             w.Bauen.Grundriss(b).Felder(r, nurVorplatz: true).Count(f => nah.Contains(((int)Math.Floor(f.X / r), (int)Math.Floor(f.Z / r)))) >= 2;
 
         var gesehen = new HashSet<((int, int) Feld, int Drehung)>();
+        var geprueft = new HashSet<(double, double, int)>(); // überlappende Zonen: jede Stelle nur einmal
+        var zonen = karte.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)).ToList();
+        var freiePlaetze = w.Bauen.Bauplaetze.Where(p => !Bauwesen.IstWohnhausplatz(p)).ToList();
+        // wie in Bauwesen.Bauorte: Liegt ein Eckfeld weder in einer passenden Zone noch auf einem Bauplatz, lehnt PlatzVerboten die Stelle sicher ab
+        bool Bebaubar(double fx, double fz) => freiePlaetze.Any(p => p.Grundriss.Enthaelt(fx, fz)) || zonen.Any(z => z.Enthaelt(fx, fz));
+        bool EckenBebaubar(Grundriss g, WerkstattBauen b)
+        {
+            var (ax, az) = (g.HalbX - r / 2, g.HalbZ - r / 2);
+            return Bebaubar(b.X - ax, b.Z - az) && Bebaubar(b.X + ax, b.Z - az) && Bebaubar(b.X - ax, b.Z + az) && Bebaubar(b.X + ax, b.Z + az);
+        }
         var kandidaten = new List<WerkstattBauen>();
         foreach (var platz in w.Bauen.Bauplaetze.Where(p => !Bauwesen.IstWohnhausplatz(p)).OrderBy(p => p.Nummer))
             for (var d = 0; d < 4; d++)
                 kandidaten.Add((WerkstattBauen)w.Bauen.Einrasten(new WerkstattBauen(art, platz.Grundriss.X, platz.Grundriss.Z, d)));
         foreach (var b in kandidaten)
             foreach (var schritt in Pruefen(b)) yield return schritt;
-        foreach (var zone in karte.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)))
+        foreach (var zone in zonen)
         {
             var (x0, x1) = (Math.Floor(zone.Flaeche.Min(e => e[0]) / r) * r, zone.Flaeche.Max(e => e[0]));
             var (z0, z1) = (Math.Floor(zone.Flaeche.Min(e => e[1]) / r) * r, zone.Flaeche.Max(e => e[1]));
@@ -328,7 +352,7 @@ public partial class Stadtansicht
                     {
                         var g = new Grundriss(ex, ez, mass.Breite, mass.Tiefe, d); // (ex, ez) ist die nordwestliche Ecke, wie in Bauwesen.Bauorte
                         var b = new WerkstattBauen(art, ex + g.HalbX, ez + g.HalbZ, d);
-                        if (!zone.Enthaelt(b.X, b.Z) || !AnDerStrasse(b)) continue;
+                        if (!zone.Enthaelt(b.X, b.Z) || !geprueft.Add((b.X, b.Z, d)) || !EckenBebaubar(g, b) || !AnDerStrasse(b)) continue;
                         foreach (var schritt in Pruefen(b)) yield return schritt;
                     }
                 yield return true;
