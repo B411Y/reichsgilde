@@ -1102,12 +1102,12 @@
 <polygon points="124.78,-5.46 132.77,-5.83 133.22,4.16 125.23,4.53" fill="#5c5c5c" stroke="#1F2326" stroke-width="0.8"/>
 <circle cx="129.23" cy="4.34" r="0.9" fill="#fff"/>
 <text x="129" y="0.85" font-size="4" text-anchor="middle" fill="#fff" font-weight="bold">S8_Wohnhaus</text>
-<polygon points="25.7,-127 25.7,-135.5 33.7,-135.5 33.7,-127" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="33.7" cy="-131.25" r="0.9" fill="#A3262A"/>
-<polygon points="48.3,-146 48.3,-137.5 40.3,-137.5 40.3,-146" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="40.3" cy="-141.75" r="0.9" fill="#A3262A"/>
-<polygon points="48.3,-135.75 48.3,-127.25 40.3,-127.25 40.3,-135.75" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="40.3" cy="-131.5" r="0.9" fill="#A3262A"/>
+<polygon points="25.2,-127.5 25.2,-135.5 33.7,-135.5 33.7,-127.5" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="33.7" cy="-131.5" r="0.9" fill="#A3262A"/>
+<polygon points="48.8,-146 48.8,-138 40.3,-138 40.3,-146" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="40.3" cy="-142" r="0.9" fill="#A3262A"/>
+<polygon points="48.8,-136.5 48.8,-128.5 40.3,-128.5 40.3,-136.5" fill="#9DB287" stroke="#1F2326" stroke-width="0.3"/>
+<circle cx="40.3" cy="-132.5" r="0.9" fill="#A3262A"/>
 <polygon points="25.7,132 25.7,123.5 33.7,123.5 33.7,132" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="33.7" cy="127.75" r="0.9" fill="#A3262A"/>
 <polygon points="48.3,123.5 48.3,132 40.3,132 40.3,123.5" fill="#CFE0C0" stroke="#1F2326" stroke-width="0.3"/>

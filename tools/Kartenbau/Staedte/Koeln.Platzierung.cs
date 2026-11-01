@@ -172,12 +172,16 @@ public sealed partial class Koeln
         // Das Spiel ordnet die Plätze nach ihrer Lage: Plätze innerhalb einer Mauer (die Altstadt und Deutz zählen beide) bekommen zuerst die
         // Ratsherren- und Bürgerhäuser, nach dem Abstand zum Markt; die übrigen Häuser stehen auf den Plätzen vor den Mauern (Vorstadt).
         var n = 0;
+        // Seit 1.11.2026 stehen zwischen Mauer und Marktplatz an der Rheingasse (Meter entlang = z + 150) Häuser mit der Front zur Rheingasse: zur
+        // Stadt hin eins zwischen Wallstraße und Platz, am Rhein zwei hintereinander – vor den Wallstraßen gesetzt, damit sie an der Rheingasse
+        // stehen. Am Heumarkt Einwohnerplätze (das Bild vergibt die Einwohnerhäuser nach dem Abstand zum Platz des Spielers, dort stehen sie immer),
+        // am Alter Markt Kulissenhäuser (feste Modelle): Mit weniger Rivalen blieben Einwohnerplätze dort als letzte leer.
+        var kulissenAmMarkt = 0;
+        foreach (var (links, hoechstens) in new[] { (false, 1), (true, 2) })
+            kulissenAmMarkt += Reihe("kulisse_buergerhaus", "Rheingasse", links, 0, 150 - (R - MarktVonMauer), luecke: 1, hoechstens: hoechstens).Count;
         // Altstadt: an den Straßen um die Märkte und an den Wallstraßen (Häuser mit dem Rücken zur Mauer)
         foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
-            // seit 1.11.2026 zwischen Mauer und Marktplatz an der Rheingasse (Meter entlang = z + 150), mit der Front zur Rheingasse: zur Stadt hin
-            // ein Haus zwischen Wallstraße und Platz, am Rhein zwei hintereinander – vor den Wallstraßen, damit die Häuser an der Rheingasse stehen
-            ("Rheingasse", false, 0, 150 - (R - MarktVonMauer), 1), ("Rheingasse", true, 0, 150 - (R - MarktVonMauer), 2),
             ("Rheingasse", false, 150 + R - MarktVonMauer, 300, 1), ("Rheingasse", true, 150 + R - MarktVonMauer, 300, 2),
             ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 3),
             ("Hammergasse", true, 0, 200, 2), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
@@ -193,7 +197,7 @@ public sealed partial class Koeln
             ("Bayenstraße", true, 0, 200, 3), ("Rheingasse", true, 100, 200, 2), ("Engelspforte", true, 0, 200, 1),
         })
             k += Reihe("kulisse_buergerhaus", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
-        Console.WriteLine($"   Kulissenhäuser: {k}");
+        Console.WriteLine($"   Kulissenhäuser: {k} und {kulissenAmMarkt} am Alter Markt");
 
         // Deutz (innerhalb der Mauer von Deutz) und die Vorstädte vor den Toren: die kleinen Plätze
         n = 0;
