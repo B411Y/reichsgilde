@@ -27,6 +27,8 @@ const HAUT3_ULTRA := preload("res://versuch/charakter/haut3_ultra.gdshader")
 const AUGEN3 := preload("res://versuch/charakter/augen3.gdshader")
 const HORNHAUT := preload("res://versuch/charakter/hornhaut.gdshader")
 const LIDSCHATTEN := preload("res://versuch/charakter/lidschatten.gdshader")
+const LIDSCHATTEN6 := preload("res://versuch/charakter/lidschatten6.gdshader")   # Etappe D
+const BRAUE6 := preload("res://versuch/charakter/braue6.gdshader")               # Etappe D: Brauen, Wimpern gemischt
 const HAAR3 := preload("res://versuch/charakter/haar3.gdshader")
 const HAAR4 := preload("res://versuch/charakter/charakter_haar.gd")
 # Phase 6 (Stand 6): Haut und Augen mit behobenen Grundfehlern (S2) und Porträtlicht (S3); haut3/augen3 bleiben für Stand 5
@@ -81,6 +83,8 @@ var haar_stoffe: Array[ShaderMaterial] = []
 var augen_stoffe: Array[ShaderMaterial] = []
 var wimpern_stoffe: Array[ShaderMaterial] = []
 var lidschatten_stoffe: Array[ShaderMaterial] = []
+var hornhaut_stoffe: Array[ShaderMaterial] = []   # Etappe D: Hornhaut (Glanz) …
+var traene_stoffe: Array[ShaderMaterial] = []     # … und Tränenfilm getrennt einstellbar
 var haut2_stoffe: Array[ShaderMaterial] = []     # Phase-2-Haut eines Phase-3-Kopfs (Vergleich)
 var bilder := {}            # Phase 3: Name -> Texture2D (aus <glb-Ordner>/kopf3_tex)
 var phase3 := false
@@ -128,6 +132,13 @@ var regeln_pfad := REGELN6
 # etwas stärker. Nur Stand 6; ohne Zonenkarte (kopf6_tex/haut_zonen.png) bleibt die Haut wie Stand 6.
 var weg_a := false
 var weg_c := false              # Etappe C: Haut (nur mit weg_a, Stand 6 und den Bildern haut_c_*)
+# Etappe D (Bogenschlüssel „weg_d“, nur mit weg_a, Stand 6; Prüferbefund „Augen glasig, Brauen wie aufgeklebt“): Lederhaut
+# matter und getönt mit grauem Saum am Limbus, Iris mit Parallaxe, Hornhaut-Glanz klein und weich (F0 0,02), Schatten des
+# Oberlids und Kontaktschatten auf dem Augapfel (Lidschatten-Netz, Eckfarbe G/B aus kopf2_bauen.py), Tränensee am Unterlid,
+# feuchter Lidrand, Pupille nach dem Licht; Brauen heller, je Haar verschieden hell, weicher Rand (Brauenbilder
+# kopf3_haartexturen.py weich=1, Karten mit brauen_d=1 abstehend).
+var weg_d := false
+var pupille_licht := 0.8        # Etappe D: Helligkeit am Ort (0 Nacht … 1 Sonne) -> Pupille 0,26 … 0,46 des Irishalbmessers
 var wetter := 0.0               # Etappe C: Wetterhaut 0–1 (Außenarbeit; später aus Beruf und Jahren im Kern)
 var haut_einfach := false       # Etappe C: Stufen Niedrig/Mittel ohne Detailkacheln
 var c_info := {}                # haut_c.json (Reliefmaßstab, Bildpunktgröße)
@@ -226,6 +237,13 @@ func weg_c_setzen(an: bool) -> void:
 		return
 	weg_c = an
 	_shader_waehlen()
+
+# Etappe D: Augen und Brauen (die Werte setzt das nächste _farben())
+func weg_d_setzen(an: bool) -> void:
+	weg_d = an
+
+func pupille_licht_setzen(h: float) -> void:
+	pupille_licht = clampf(h, 0.0, 1.0)
 
 func _shader_waehlen() -> void:
 	for m in haut_stoffe:
@@ -884,20 +902,35 @@ func _farben() -> void:
 			if not bilder.has("brauen_w"):
 				breite /= lerpf(0.72, 1.0, geschlecht)
 		var a_an := st >= 6 and weg_a
+		var d_an := a_an and weg_d
 		if a_an:
 			# Weg A: Brauen nur wenig dunkler als das Haar (weniger Kontrast), etwas lichter und weicher an den Rändern
 			braue = haar.lerp(haar * 0.8, 0.2 + 0.2 * hh)
 			if mann:
 				dichte *= 0.85        # Frauenbrauen sind schon schmal und licht (sonst fast unsichtbar, Zufallsbogen)
+		if d_an:
+			# Etappe D: Brauen wie das Haar, kaum dunkler; die weichen Bilder haben weniger und feinere Randhaare, daher
+			# volle Dichte
+			braue = haar.lerp(haar * 0.85, 0.15 + 0.15 * hh)
+			dichte = minf(dichte / 0.85, 1.0) if mann else dichte
 		for m in haar_stoffe:
+			if m.shader in [HAAR3, BRAUE6]:
+				m.shader = BRAUE6 if d_an else HAAR3
 			m.set_shader_parameter("bild", brauen_bild)
 			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
 			m.set_shader_parameter("ebene", ebene)
-			m.set_shader_parameter("deckung", (0.68 if mann else 0.88) if a_an else 1.0)
-			m.set_shader_parameter("schwelle", 0.2 if a_an else 0.3)
-			m.set_shader_parameter("dunkel", 0.78 if a_an else 0.6)
+			m.set_shader_parameter("deckung", (1.45 if mann else 1.35) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
+			m.set_shader_parameter("mip_hub", 0.3)
+			m.set_shader_parameter("schwelle", 0.12 if d_an else (0.2 if a_an else 0.3))
+			m.set_shader_parameter("dunkel", 0.9 if d_an else (0.78 if a_an else 0.6))
+			m.set_shader_parameter("zufall_hell", 0.7 if d_an else 0.4)
 			farbe_setzen(m, "farbe", braue, st)
-			m.set_shader_parameter("grau", grau)
+			# Etappe D: Brauen ergrauen später als das Haupthaar und bleiben grau-braun statt weiß (Prüfer: „weiße Watte“)
+			m.set_shader_parameter("grau", grau * 0.6 if d_an else grau)
+			if d_an:
+				farbe_setzen(m, "farbe_grau", Color(0.55, 0.52, 0.49), st)
+			else:
+				m.set_shader_parameter("farbe_grau", null)      # Vorgabe des Shaders (wie bisher)
 			m.set_shader_parameter("dichte", clampf(dichte, 0.0, 1.0))
 			m.set_shader_parameter("breite", breite)
 		var wimper := haar.darkened(0.7)
@@ -946,14 +979,22 @@ func _farben() -> void:
 		if c_an:
 			_haut_c_setzen(mann, h, hh, bart, reif, greis, fett, faktor,
 				Vector4(0.7 * m_stirn, 0.6 * m_auge, 0.3 * m_mund, 0.3 * m_mund) * mf, grund)
+			# Etappe D: Lidrand und Karunkel nasser, Haut unter der Braue etwas dunkler (Haarwurzeln, Schatten der Haare)
+			for m in haut_stoffe:
+				m.set_shader_parameter("feucht", 1.7 if weg_d else 1.0)
+				m.set_shader_parameter("brauen_weich", 0.42 if weg_d else 0.3)
+				m.set_shader_parameter("brauen_glanz", 0.85 if weg_d else 0.0)
 		for m in wimpern_stoffe:
+			if m.shader in [HAAR3, BRAUE6]:
+				m.shader = BRAUE6 if d_an else HAAR3
 			# Etappe C: Unterlid-Wimpern licht, dünn, Wurzel weich; alle Wimpern etwas weniger schwarz und deckend
 			m.set_shader_parameter("unten_deckung", 0.3 if c_an else 1.0)
 			m.set_shader_parameter("unten_wurzel", 1.0 if c_an else 0.0)
 			m.set_shader_parameter("unten_hell", 0.45 if c_an else 0.0)
 			farbe_setzen(m, "haut_ton", grund, st)
 			m.set_shader_parameter("dunkel", 0.85 if c_an else 0.6)
-			m.set_shader_parameter("deckung", 0.7 if c_an else 1.0)
+			m.set_shader_parameter("deckung", 0.95 if d_an else (0.7 if c_an else 1.0))
+			m.set_shader_parameter("mip_hub", 0.35)
 			if c_an:
 				# Runde 2/3 (Prüfer: Wimpern schwarz, hart, zu dicht): lichter, durchscheinender, ein Viertel weniger Haare;
 				# graue Wimpern ergrauen fast wie die Brauen
@@ -1000,13 +1041,31 @@ func _farben() -> void:
 		# Weg A: Iris entsättigt (Diagnose: zu grün und gesättigt), Kranz ebenso; Limbus schmaler, damit die Iris nicht kleiner wirkt
 		iris = _entsaettigt(iris, 0.5)
 		kranz = _entsaettigt(kranz, 0.35)
+	var d_auge := a_auge and weg_d
 	for m in lidschatten_stoffe:
+		m.shader = LIDSCHATTEN6 if d_auge else LIDSCHATTEN
 		m.set_shader_parameter("staerke", 0.9 if a_auge else 0.75)
+		# nach der Hornhaut zeichnen: der Lidschatten dunkelt auch ihre Spiegelung ab
+		m.render_priority = 1 if d_auge else 0
+	for m in hornhaut_stoffe:
+		m.set_shader_parameter("rauheit", 0.06 if d_auge else 0.035)
+		m.set_shader_parameter("staerke", 0.5 if d_auge else 1.0)
+	for m in traene_stoffe:
+		m.set_shader_parameter("traene_d", d_auge)
+		m.set_shader_parameter("rauheit", 0.05 if d_auge else 0.08)
+		m.set_shader_parameter("staerke", 0.45 if d_auge else 0.7)
+	var loch := float(info.get("pupillenoeffnung", 0.31)) + 0.03
 	for m in augen_stoffe:
 		m.set_shader_parameter("iris_hohl", 0.55 if a_auge else 0.0)
-		m.set_shader_parameter("rand_schatten", 0.8 if a_auge else 0.0)
-		m.set_shader_parameter("limbus", 0.6 if a_auge else 0.75)
-		m.set_shader_parameter("limbus_breite", 0.16 if a_auge else 0.25)
+		m.set_shader_parameter("rand_schatten", (1.0 if d_auge else 0.8) if a_auge else 0.0)
+		m.set_shader_parameter("limbus", (0.72 if d_auge else 0.6) if a_auge else 0.75)
+		m.set_shader_parameter("limbus_breite", (0.22 if d_auge else 0.16) if a_auge else 0.25)
+		m.set_shader_parameter("iris_tiefe", 0.09 if d_auge else 0.0)
+		m.set_shader_parameter("lederhaut_glanz", 0.25 if d_auge else 0.5)
+		m.set_shader_parameter("lederhaut_rauheit", 0.32 if d_auge else 0.18)
+		m.set_shader_parameter("limbus_saum", 0.6 if d_auge else 0.0)
+		# Pupille nach dem Licht (Etappe D): hell 3 mm, dämmrig bis 5 mm; nie kleiner als die Öffnung im Netz
+		m.set_shader_parameter("pupille", loch + (0.2 * (1.0 - pupille_licht) if d_auge else 0.0))
 		m.set_shader_parameter("iris_bilder6", bilder.get("iris6"))
 		m.set_shader_parameter("iris_ebene", iris_ebene)
 		m.set_shader_parameter("iris_drehung", iris_dreh)
@@ -1317,6 +1376,9 @@ func _stoff3(art: String, mi: MeshInstance3D, s: int) -> Material:
 			if art == "traene":
 				m.set_shader_parameter("rauheit", 0.08)
 				m.set_shader_parameter("staerke", 0.7)
+				traene_stoffe.append(m)
+			else:
+				hornhaut_stoffe.append(m)
 			return m
 		"lidschatten":
 			var m := ShaderMaterial.new()

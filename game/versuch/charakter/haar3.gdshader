@@ -25,6 +25,7 @@ uniform float unten_deckung = 1.0;
 uniform float unten_wurzel = 0.0;   // 0 = Wurzel voll, 1 = Wurzel ausgeblendet
 uniform float unten_hell = 0.0;     // Anteil Hautton
 uniform vec3 haut_ton : source_color = vec3(0.6, 0.45, 0.38);
+uniform float zufall_hell = 0.4;    // Etappe D (Brauen 0,7): Helligkeit je Haar stärker verschieden (kein einheitlicher Farbblock)
 
 void fragment() {
 	vec4 t = ebene >= 0.0 ? texture(bilder6, vec3(UV, ebene)) : texture(bild, UV);
@@ -35,7 +36,7 @@ void fragment() {
 	a *= 1.0 - smoothstep(breite - 0.06, breite, t.g);
 	// Zufall je Haar aus R (langsam veränderlich, damit gefilterte Ränder nicht flimmern)
 	float zufall = fract(t.r * 5.71 + 0.3);
-	vec3 c = farbe * (0.8 + 0.4 * zufall);
+	vec3 c = farbe * (1.0 - 0.5 * zufall_hell + zufall_hell * zufall);
 	c = mix(c, farbe_grau * (0.85 + 0.3 * zufall), smoothstep(-0.04, 0.04, grau - fract(t.r * 2.37 + 0.11)));
 	c *= mix(0.85, 1.2, t.b);                    // Spitzen heller
 	float unten = step(0.75, UV.y) * step(ebene, -0.5);

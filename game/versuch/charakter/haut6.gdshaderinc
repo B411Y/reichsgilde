@@ -101,6 +101,7 @@ uniform float stoppeln = 0.7;                          // Bartstoppeln (nur mit 
 uniform float stoppel_dichte = 2.4;                    // × poren_dichte
 uniform float poren_ao = 0.1;
 uniform float brauen_weich = 0.3;                      // Brauenschatten auf der Haut (Phase 5: 0,55, hart)
+uniform float brauen_glanz = 0.0;                      // Etappe D: Hautglanz unter der Braue weg (funkelte durch die Haare)
 uniform float streu_poren = 0.5;                       // Grün und Blau: Anteil der Porennormale im Streulicht
 varying vec3 n_diffus_gb;
 #endif
@@ -259,7 +260,8 @@ void fragment() {
 	float nass = smoothstep(0.45, 0.95, gl.a) * feucht;
 	float r = 0.25 + 0.4 * gl.r + c_rau + 0.05 * pt.b * gl.g + 0.08 * furche + 0.1 * rand + 0.3 * haarig;
 	ROUGHNESS = clamp(mix(r, 0.15, nass), 0.10, 1.0);
-	spec_v = glanz * (1.0 - 0.85 * hl) * (1.0 - 0.4 * furche) * (1.0 - 0.4 * pt.b * gl.g) * (1.0 - 0.7 * haarig) * (1.0 + 0.8 * nass);
+	spec_v = glanz * (1.0 - 0.85 * hl) * (1.0 - 0.4 * furche) * (1.0 - 0.4 * pt.b * gl.g) * (1.0 - 0.7 * haarig) * (1.0 + 0.8 * nass)
+		* (1.0 - brauen_glanz * clamp(braue_a * 2.0, 0.0, 1.0));
 	SPECULAR = 0.42 * spec_v;
 	AO = 1.0 - max(0.8 * hoehlen * m.b, 0.9 * hl);
 	AO_LIGHT_AFFECT = mix(0.3, 1.0, hl);

@@ -36,6 +36,8 @@
 # Etappe C: "weg_c": true (Haut, zusammen mit "weg_a"), "wetter": 0–1 (Wetterhaut), "haut_werte": {Shaderwert: Wert}
 #   (Abstimmung; gilt bis zur nächsten Zelle, die den Wert neu setzt); --varianten=…:weg_c als 5. Feld,
 #   --stufe=mittel|niedrig nimmt die Haut ohne Detailkacheln.
+# Etappe D: "weg_d": true (Augen und Brauen, zusammen mit "weg_a"), "pupille_licht": 0–1 (Helligkeit am Ort, Standard 0,8);
+#   --varianten=…:weg_d als 6. Feld.
 extends Control
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -195,6 +197,8 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	k.stand_setzen(int(z.get("stand", 5)))
 	k.weg_a_setzen(bool(z.get("weg_a", false)))       # Halt B2: Aussehen Weg A
 	k.weg_c_setzen(bool(z.get("weg_c", false)))       # Etappe C: Haut
+	k.weg_d_setzen(bool(z.get("weg_d", false)))       # Etappe D: Augen und Brauen
+	k.pupille_licht_setzen(float(z.get("pupille_licht", 0.8)))
 	k.wetter = float(z.get("wetter", 0.0))
 	k.mimik_mit_alter = bool(z.get("mimik_mit_alter", true))
 	k.mimik = z.get("mimik", {})
@@ -792,7 +796,8 @@ func _messen() -> void:
 			if o.begins_with("~/"):
 				o = OS.get_environment("HOME").path_join(o.substr(2))
 			staende.append({"variante": t[0], "glb": o, "weg_a": t.size() > 2 and t[2] == "1",
-				"malfilter": t.size() > 3 and t[3] == "1", "weg_c": t.size() > 4 and t[4] == "1"})
+				"malfilter": t.size() > 3 and t[3] == "1", "weg_c": t.size() > 4 and t[4] == "1",
+				"weg_d": t.size() > 5 and t[5] == "1"})
 	for wdh in int(args.get("wiederholungen", "1")):
 		for l in laeufe:
 			if args.has("nur") and not String(args["nur"]).split(",").has(l["name"]):
@@ -856,6 +861,7 @@ func _ein_lauf(l: Dictionary) -> void:
 			mz["saat"] = int(l["saat"]) + i      # Etappe B: Zufallsperson (Gene, Züge, Asymmetrie gesetzt)
 		mz["weg_a"] = bool(l.get("weg_a", false))
 		mz["weg_c"] = bool(l.get("weg_c", false))
+		mz["weg_d"] = bool(l.get("weg_d", false))
 		zelle_setzen(b.kopf, mz)
 		if b.kopf.phase3:
 			b.kopf.vorher_setzen(bool(l.get("vorher", false)))
