@@ -1987,3 +1987,53 @@ Der Beruf ist also nicht benachteiligt, sondern wer weit draußen ausbaut, und d
 - **Alte Spielstände** rechnen weiter wie auf main: Der Greybox-Stand von Herbst 1406 (Datenversion 55) läuft drei Jahre bitgleich mit main 880e3387 (SHA-256 des Spielstands ohne Daten und Karte, Test `AlterSpielstandSollwertTests`). Die Daten- und Kartenabschnitte des Spielstands unterscheiden sich nur um neue, leere Felder.
 - **Gleichheitstest** (Linux/Windows, Speichern und Laden, deutsche Ländereinstellung) jetzt auch in Köln (vier Jahre, „Schwer“, mit drei Marktplätzen und den Wegen über das Pflaster).
 - **Fairness der Startgrundstücke** misst die Kartenprüfung nach dem Karrenweg statt der Luftlinie (`Startwegpruefung`, Hinweis „startweg“); Köln: der Spieler 23,6 m gegen 21,1 m der KI-Werkstätten (+10 %), Grube Scherfgin und Bauernhof Mommersloch −13 % bzw. +12 % gegen das Mittel des Start-Umlands.
+
+## Werkstatt-Bauplätze und KI nach Fahrzeit (Branch phase5/gehtempo, 1.11.2026)
+
+Entscheidung des Nutzers zum Ausbau (Befund H2): **Weg A** – „Kern = Bild“ bleibt, keine Höchstdauer für Werkstätten (V2 verworfen). Seit dem Abschnitt oben sind drei Dinge dazugekommen:
+
+- Die **KI wählt Karren nach Durchfluss und den Bauort nach der Fahrzeit** (Befund H1, spiel-ki, `phase5/gehtempo-ki` eingemergt). Den Bauort fragt sie jetzt beim Kern ab (`Stadtwirtschaft.FahrzeitAmBauort`). Der Bezugsspieler spielt wie die KI.
+- **Köln hat sieben Werkstatt-Bauplätze unter 45 Minuten** nahe den Märkten (leveldesign; fünf in Deutz, zwei am Alter Markt, Tabelle in LEVELDESIGN, Abschnitt Köln). Zusammen mit der Stelle am Malzbüchel sind das 8 Stellen statt 1.
+- Auf diesen Bauplätzen dürfen **keine Wohnhäuser** stehen (Zonenfeld `"nur": "werkstatt"`, Kern).
+
+**Messung:** dieselbe Messart wie die Endabnahme (`messen bericht 20 n --teile=3,5 …`, siehe oben). Gemessen auf dem Branch 31ba979e, verglichen mit main 880e3387 (die Basis des Branches; origin/main stand zur Messzeit bei cd994168 und ist nicht eingemergt). Für Teil 5 in Köln gibt es zwei Läufe: 20 Startwerte und, für den Vergleich auf denselben Partien, 10 Startwerte wie main. Dateien: `docs/messungen/balancing-2026-11-01-bauplaetze-{greybox,koeln-t3,koeln-t5,koeln-t5-10}.json`. Keine Partie mit Fehler, kein Bankrott, kein erloschenes Haus.
+
+| Reinvermögen nach 20 Jahren | main 880e3387 | Branch vorher (8dd81924) | jetzt | jetzt gegen main |
+|---|---|---|---|---|
+| **Köln, ausbauender Spieler** (Teil 5, Normal, 10 Startwerte) | **58.520** (±5.749) | 52.465 (±5.953) | **57.670** (±5.685) | −1,5 % |
+| Köln, ausbauender Spieler, 20 Startwerte | – | – | 56.503 (±3.987) | |
+| Köln, KI-Häuser Teil 5 Normal (10) | 75.482 | 61.594 | 67.436 | −11 % |
+| Köln, Median der KI-Häuser ÷ Median des Bezugs (10) | 75.960 ÷ 54.112 | 63.054 ÷ 51.105 | 62.132 ÷ 56.801 | |
+| Köln, KI davongezogen (> 2×), Normal (10) | 9 von 70 | 14 von 70 | 7 von 70 | |
+| Köln, Schwer: Bezug / KI-Häuser / davongezogen (10) | 85.074 / 109.190 / 0 von 70 | 57.257 / 85.067 / 30 von 70 | 73.129 / 95.158 / 16 von 70 | −14 % / −13 % |
+| Köln, Spieler mit einem Betrieb (Teil 3, 20) | 32.895 (±1.997) | 31.798 (±1.230) | 31.780 (±1.846) | −3,4 % (z −0,4) |
+| Köln, KI-Häuser Ø Teil 3 (kleinstes) | 74.254 (58.286) | 62.736 (53.859) | 64.628 (53.686) | −13 % |
+| Köln, Bürger: Ø Jahr, im Ziel 8–12 | 10,1; 17 von 20 | 10,1; 19 von 20 | 10,5; 19 von 20 | |
+| Greybox, ausbauender Spieler (Teil 5, 20) | 68.066 (±3.060) | 56.004 (±2.730) | 62.268 (±2.434) | −8,5 % |
+| Greybox, KI-Häuser Teil 5 / davongezogen | 78.461 / 3 von 60 | 69.017 / 9 von 60 | 74.507 / 3 von 60 | −5 % |
+| Greybox, Schwer: Bezug / KI / davongezogen | 68.162 / 119.993 / 14 von 60 | 46.818 / 110.814 / 43 von 60 | 63.499 / 116.029 / 24 von 60 | |
+| Greybox, Spieler mit einem Betrieb / KI-Häuser Ø (Teil 3) | 34.779 / 79.030 | 35.151 / 72.543 | 35.765 / 75.825 | +3 % / −4 % |
+| Greybox, Bürger im Ziel | 19 von 20 | 20 von 20 | 19 von 20 | |
+
+(Die Zeile mit den Medianen nennt die Mediane der beiden Gruppen; das Verhältnis je Partie schreibt der Bericht nicht in die Datei.)
+
+**Neubauten** (Abschnitt „ausbau“, Teil 5 Normal, alle Häuser; „danach“ = jedes volle Jahr nach dem Bau):
+
+| | Fahrzeit hin (Median) | Gewinn je Jahr danach | Stillstand |
+|---|---|---|---|
+| Köln main | 26 min | 2.665 | 5 % |
+| Köln vorher | 97 min | 1.985 | 15 % |
+| Köln jetzt (20) | 25 min | 2.797 | 4 % |
+| Köln jetzt, nur der ausbauende Spieler (20) | 24 min | 2.655 (main 2.665, vorher 1.810) | 6 % |
+| Greybox main / vorher / jetzt | 28 / 116 / 93 min | 2.292 / 1.116 / 2.178 | 6 / 27 / 7 % |
+
+Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 92) und bringen 2.730 Gulden im Jahr (main 2.645). Die Startwerkstätten bleiben wie vorher. Das **Umland** liegt weiter weit draußen: 263 Minuten Fahrt (main 116), 16 % Stillstand (main 6 %, vorher 22 %), 1.327 Gulden im Jahr (main 1.506, vorher 1.198).
+
+**Befund:**
+
+- **Ziel erreicht.** Der ausbauende Spieler liegt in Köln auf denselben zehn Partien bei 57.670 Gulden, main hatte 58.520. Der Unterschied von −1,5 % (z −0,1) liegt weit unter dem Fehler (±5.700). Vor diesem Auftrag waren es 52.465.
+- **Neubauten wie auf main.** In Köln verdienen Neubauten wieder so viel wie auf main. Dafür sorgen die Bauplätze und die KI, die nach der Fahrzeit wählt.
+- **Greybox:** Ihre Karte ist unverändert, dort wirkt nur die KI nach Fahrzeit. Der ausbauende Spieler holt von 56.004 auf 62.268 auf, main hatte 68.066. Es bleiben −8,5 % (z etwa −1,5): In der Greybox gibt es nur zwei gute Bauorte.
+- **KI-Häuser im Mittel weiter unter main** (Köln −13 % in Teil 3, −11 % in Teil 5). Der Rest des Verlusts kommt vom Umland, nicht mehr vom Ausbau: Die Umlandbetriebe der KI liegen 150–193 m vom Markt, der Ochsenkarren braucht dafür im Median 263 Minuten.
+- **„Schwer“ zieht deutlich weniger davon.** In Köln ziehen 16 statt 30 von 70 KI-Häusern davon, auf main waren es 0. In der Greybox sind es 24 statt 43 von 60, auf main 14.
+- **Fair geblieben:** kein Bankrott, Bürger im Ziel wie vorher, der Spieler mit einem Betrieb unverändert.
