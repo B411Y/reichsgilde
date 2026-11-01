@@ -2,7 +2,7 @@
   "bericht": "Balancing-Messung 6",
   "datum": "2026-11-01",
   "mainCommit": "2c5275c8",
-  "commit": "4e137abc",
+  "commit": "1b598be0",
   "datenversion": 65,
   "aufruf": "messen bericht 20 20 --teile=3 --fairness=greybox --rotationen=1 --datei=docs/messungen/balancing-2026-11-01-hausreihe-greybox.json",
   "parameter": {
@@ -799,5 +799,5 @@
   "befunde": [
     "Startfairness greybox: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … 0 % (gegen das Mittel desselben Hauses, 1 Rotationen × 20 Startwerte); der Spieler mit einem Betrieb hat 35.151 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 72.543 (−52 %). Bürger (Reinvermögen 10.000): Ø Jahr 9,5, im Ziel 8–12 Jahre 20/20."
   ],
-  "laufzeitSekunden": 34
+  "laufzeitSekunden": 49
 }
