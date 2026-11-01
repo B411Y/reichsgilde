@@ -9,7 +9,7 @@
 // die Fläche zur Seite zeigt, mehr Dunst): keine harte Kante. Mehr Dunst bei Nebel und Regen („dunst“); nachts weniger, damit die Berge dunkel vor dem
 // Nachthimmel stehen („nacht“). Wald und Wiese folgen der Jahreszeit (globale Uniform wie der Boden), im Winter liegt Schnee auf den Höhen.
 shader_type spatial;
-render_mode cull_back, shadows_disabled;
+render_mode cull_back, shadows_disabled, fog_disabled;   // eigener Dunst statt Godots Nebel (wie der Dunstring, sonst heller als er)
 
 global uniform vec4 jahreszeit_anteile;
 global uniform float wetter_schnee;
@@ -21,8 +21,8 @@ uniform vec4 wald_farbe : source_color = vec4(0.20, 0.27, 0.15, 1.0);
 uniform vec4 wiese_farbe : source_color = vec4(0.42, 0.45, 0.27, 1.0);
 uniform vec4 fels_farbe : source_color = vec4(0.66, 0.63, 0.57, 1.0);
 uniform vec4 schnee_farbe : source_color = vec4(0.86, 0.88, 0.91, 1.0);
-uniform float dunst_nah = 0.3;   // Dunst an der Außenkante
-uniform float dunst_fern = 0.86; // Dunst 300 m dahinter
+uniform float dunst_nah = 0.25;   // Dunst an der Außenkante
+uniform float dunst_fern = 0.8; // Dunst 300 m dahinter
 
 varying vec4 v_farbe;
 varying vec3 v_welt;
@@ -52,7 +52,7 @@ void fragment() {
 	// grobe Flecken, damit der Wald nicht wie eine Farbfläche wirkt
 	float fleck = k_rausch(v_welt.xz * 0.045) * 0.6 + k_rausch(v_welt.xz * 0.17) * 0.4;
 	vec3 grund = mix(wieseF, waldF * (0.8 + 0.4 * fleck), smoothstep(0.2, 0.7, wald + (fleck - 0.5) * 0.3));
-	grund = mix(grund, fels_farbe.rgb * (0.9 + 0.2 * fleck), smoothstep(0.25, 0.7, fels));
+	grund = mix(grund, fels_farbe.rgb * (0.8 + 0.2 * fleck), 0.6 * smoothstep(0.3, 0.8, fels));
 	// Schnee im Winter: oben zuerst, auf flachen Stellen
 	vec3 wn = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	float schnee = smoothstep(0.0, 0.3, wetter_schnee * 1.4 + hoehe * 0.8 - 0.55 + (fleck - 0.5) * 0.3) * smoothstep(0.4, 0.75, wn.y) * step(0.01, wetter_schnee);
@@ -60,11 +60,11 @@ void fragment() {
 
 	// Luftperspektive
 	float d = mix(dunst_nah, dunst_fern, tiefe) + 0.12 * smoothstep(0.2, 1.0, hoehe);
-	d += pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 3.0) * 0.45;   // Silhouette weich
+	d += pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 3.0) * 0.35;   // Silhouette weich
 	d = mix(d, 1.0, dunst * 0.75);
 	d = max(d, 1.0 - smoothstep(0.0, 0.1, hoehe));                         // Fuß im Dunst (unter 25 m)
 	d = clamp(d, 0.0, 1.0) * (1.0 - 0.6 * nacht);
-	ALBEDO = grund * (1.0 - d);
+	ALBEDO = grund * (1.0 - d) * (1.0 - 0.75 * nacht);                   // nachts dunkel vor dem Himmel
 	EMISSION = himmel * d;
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.15;

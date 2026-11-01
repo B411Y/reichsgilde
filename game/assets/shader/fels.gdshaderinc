@@ -274,6 +274,8 @@ void fragment() {
 	bool tropfen = false;
 #endif
 	wetter_flaeche(albedo, rough, nw, gl, nw, n, p, vec2(dot(p, su), dot(p, sv)), 0.3, 0.0, tiefeNass, ueber, TIME, tropfen);
+	// Fels saugt mehr Wasser als Putz und Ziegel: nass noch etwas dunkler (Flechten und Moos weniger, sie halten das Wasser an der Oberfläche)
+	albedo *= 1.0 - 0.22 * wetter_naesse * wetter_flaechen * (1.0 - 0.5 * max(moosMaske, flechteMaske));
 
 	ALBEDO = albedo;
 	ROUGHNESS = clamp(rough, 0.0, 1.0);
