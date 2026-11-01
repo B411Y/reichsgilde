@@ -1,0 +1,329 @@
+namespace Reichsgilde;
+
+/// <summary>
+/// Die freie Fläche eines Marktplatzes für die Passanten (Nutzer, 1.11.2026: Markt v3): das Pflaster aus der Karte (ein Quadrat, auch gedreht) ohne
+/// Stände, Brunnen, Bänke, Kreuz und Fässer. Nur Rechnung ohne Godot, damit ein Test sie mitübersetzen kann (<c>MarktflaecheTests</c>); die Darstellung
+/// (Stadtansicht.Marktbummel.cs) trägt die Hindernisse ein und fragt Wege und Platz ab.
+///
+/// So geht es:
+///   • Hindernisse sind Kreise und gedrehte Rechtecke in Metern der Stadt (x, z). <see cref="Abstand"/> ist der genaue Abstand eines Punktes zum nächsten
+///     Hindernis (innen negativ).
+///   • Ein Raster mit Zellen von <see cref="Zelle"/> Metern über das Quadrat merkt sich diesen Abstand je Zellmitte (einmal gerechnet). Darauf sucht
+///     <see cref="Pfad"/> mit A* (acht Nachbarn) einen Weg, auf dem überall mindestens <c>frei</c> Meter bis zum nächsten Hindernis bleiben, und zieht
+///     ihn danach straff (Sichtlinie: Ecken nur dort, wo ein Hindernis im Weg steht).
+///   • <see cref="Raum"/> sagt, wie weit man von einem Punkt in eine Richtung gehen kann, bis ein Hindernis zu nahe kommt – für das Ausweichen auf der
+///     Fläche (statt der Wegbreite in den Gassen).
+/// Kein Zufall und keine Uhr: Gleiche Eingaben geben den gleichen Weg.
+/// </summary>
+public sealed class Marktflaeche
+{
+    private readonly float _ox, _oz, _ax, _az, _halb;
+    private readonly int _n;
+    private readonly List<(float X, float Z, float R)> _kreise = new();
+    private readonly List<Rechteck> _rechtecke = new();
+    private float[] _abstand = Array.Empty<float>();
+
+    /// <summary>Ein gedrehtes Rechteck: Mitte, Richtung der ersten Achse (Länge 1), halbe Längen längs und quer.</summary>
+    public readonly record struct Rechteck(float X, float Z, float Ux, float Uz, float HalbU, float HalbV)
+    {
+        /// <summary>Abstand eines Punktes zum Rechteck (Meter, innen negativ).</summary>
+        public float Abstand(float x, float z)
+        {
+            var (dx, dz) = (x - X, z - Z);
+            var (u, v) = (MathF.Abs(dx * Ux + dz * Uz) - HalbU, MathF.Abs(-dx * Uz + dz * Ux) - HalbV);
+            var aussen = MathF.Sqrt(MathF.Max(u, 0) * MathF.Max(u, 0) + MathF.Max(v, 0) * MathF.Max(v, 0));
+            return aussen + MathF.Min(MathF.Max(u, v), 0);
+        }
+    }
+
+    /// <summary>Kantenlänge einer Rasterzelle (Meter).</summary>
+    public float Zelle { get; }
+
+    /// <summary>Die Rechtecke der Stände (für die Messung „in einem Stand“; <see cref="Stand"/> trägt sie ein).</summary>
+    public List<Rechteck> Staende { get; } = new();
+
+    /// <summary>
+    /// Eine Fläche um die Mitte (<paramref name="mitteX"/>, <paramref name="mitteZ"/>), deren lokale x-Achse in Richtung (<paramref name="achseX"/>,
+    /// <paramref name="achseZ"/>) zeigt (Länge 1), mit der halben Seitenlänge <paramref name="halb"/>.
+    /// </summary>
+    public Marktflaeche(float mitteX, float mitteZ, float achseX, float achseZ, float halb, float zelle = 0.25f)
+    {
+        var l = MathF.Sqrt(achseX * achseX + achseZ * achseZ);
+        (_ox, _oz, _ax, _az, _halb, Zelle) = (mitteX, mitteZ, l > 0 ? achseX / l : 1, l > 0 ? achseZ / l : 0, MathF.Max(halb, 0.5f), zelle);
+        _n = Math.Max(1, (int)MathF.Ceiling(2 * _halb / zelle));
+    }
+
+    public float Halb => _halb;
+
+    public void Kreis(float x, float z, float radius) { _kreise.Add((x, z, radius)); _abstand = Array.Empty<float>(); }
+
+    public void Rechteckig(Rechteck r) { _rechtecke.Add(r); _abstand = Array.Empty<float>(); }
+
+    /// <summary>Ein Stand: Hindernis und für die Messung gemerkt.</summary>
+    public void Stand(Rechteck r) { Rechteckig(r); Staende.Add(r); }
+
+    /// <summary>Wie viele Hindernisse eingetragen sind.</summary>
+    public int Hindernisse => _kreise.Count + _rechtecke.Count;
+
+    /// <summary>Genauer Abstand (Meter) eines Punktes zum nächsten Hindernis, innen negativ; ohne Hindernisse sehr groß.</summary>
+    public float Abstand(float x, float z)
+    {
+        var d = 1e6f;
+        foreach (var (kx, kz, r) in _kreise)
+        {
+            var (dx, dz) = (x - kx, z - kz);
+            d = MathF.Min(d, MathF.Sqrt(dx * dx + dz * dz) - r);
+        }
+        foreach (var r in _rechtecke) d = MathF.Min(d, r.Abstand(x, z));
+        return d;
+    }
+
+    /// <summary>Lokale Koordinaten (Meter ab der Mitte, längs der Achsen des Platzes).</summary>
+    public (float U, float V) Lokal(float x, float z)
+    {
+        var (dx, dz) = (x - _ox, z - _oz);
+        return (dx * _ax + dz * _az, -dx * _az + dz * _ax);
+    }
+
+    public (float X, float Z) Welt(float u, float v) => (_ox + u * _ax - v * _az, _oz + u * _az + v * _ax);
+
+    /// <summary>Liegt der Punkt auf dem Pflaster (mit <paramref name="rand"/> Metern Abstand zur Kante)?</summary>
+    public bool Auf(float x, float z, float rand = 0)
+    {
+        var (u, v) = Lokal(x, z);
+        return MathF.Abs(u) <= _halb - rand && MathF.Abs(v) <= _halb - rand;
+    }
+
+    /// <summary>Wie weit (Meter) der Punkt innen von der Kante des Pflasters ist (außen negativ).</summary>
+    public float Innen(float x, float z)
+    {
+        var (u, v) = Lokal(x, z);
+        return _halb - MathF.Max(MathF.Abs(u), MathF.Abs(v));
+    }
+
+    // ── Raster ──
+
+    private void Bereit()
+    {
+        if (_abstand.Length == _n * _n) return;
+        _abstand = new float[_n * _n];
+        for (var j = 0; j < _n; j++)
+            for (var i = 0; i < _n; i++)
+            {
+                var (x, z) = Mitte(i, j);
+                _abstand[j * _n + i] = Abstand(x, z);
+            }
+    }
+
+    private (float X, float Z) Mitte(int i, int j) => Welt(-_halb + (i + 0.5f) * Zelle, -_halb + (j + 0.5f) * Zelle);
+
+    private (int I, int J) ZelleBei(float x, float z)
+    {
+        var (u, v) = Lokal(x, z);
+        return (Math.Clamp((int)MathF.Floor((u + _halb) / Zelle), 0, _n - 1), Math.Clamp((int)MathF.Floor((v + _halb) / Zelle), 0, _n - 1));
+    }
+
+    /// <summary>Abstand zum nächsten Hindernis aus dem Raster (Mitte der Zelle, in der der Punkt liegt); außerhalb des Pflasters −1.</summary>
+    public float Rasterabstand(float x, float z)
+    {
+        Bereit();
+        if (!Auf(x, z, -0.01f)) return -1;
+        var (i, j) = ZelleBei(x, z);
+        return _abstand[j * _n + i];
+    }
+
+    /// <summary>
+    /// Steht nichts auf der geraden Linie von a nach b, das näher als <paramref name="frei"/> Meter heranreicht (und bleibt sie auf dem Pflaster)?
+    /// Abgetastet alle halbe Zelle; nahe an einem Ende, das selbst dichter an einem Hindernis liegt (ein Platz am Stand), genügt dessen Abstand.
+    /// </summary>
+    public bool Sichtlinie((float X, float Z) a, (float X, float Z) b, float frei)
+    {
+        Bereit();
+        var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+        var laenge = MathF.Sqrt(dx * dx + dz * dz);
+        var schritte = Math.Max(1, (int)MathF.Ceiling(laenge / (Zelle * 0.5f)));
+        var (startFrei, zielFrei) = (Abstand(a.X, a.Z), Abstand(b.X, b.Z));
+        for (var k = 0; k <= schritte; k++)
+        {
+            var t = k / (float)schritte;
+            var (x, z) = (a.X + dx * t, a.Z + dz * t);
+            if (!Auf(x, z, -0.05f)) return false;
+            // Nahe an einem Ende, das selbst dicht am Hindernis liegt (ein Platz vor dem Stand), reicht der Abstand dieses Endes (sonst käme man nie
+            // dorthin); näher als das Ende selbst kommt der Weg dem Hindernis nie
+            var noetig = frei;
+            if (t * laenge < frei + Zelle) noetig = MathF.Min(noetig, startFrei - 0.05f);
+            if ((1 - t) * laenge < frei + Zelle) noetig = MathF.Min(noetig, zielFrei - 0.05f);
+            if (Abstand(x, z) < noetig) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Wie weit (Meter, höchstens <paramref name="hoechstens"/>) man vom Punkt in Richtung (<paramref name="rx"/>, <paramref name="rz"/>, Länge 1) gehen
+    /// kann, bis ein Hindernis näher als <paramref name="frei"/> kommt oder das Pflaster endet (Schritte zu 5 cm, aus dem genauen Abstand).
+    /// Steht der Punkt schon zu nah, 0.
+    /// </summary>
+    public float Raum(float x, float z, float rx, float rz, float frei, float hoechstens)
+    {
+        var weit = 0f;
+        // in Sprüngen so groß wie der freie Abstand (genau, ohne etwas zu überspringen), am Ende fein
+        for (var k = 0; k < 64 && weit < hoechstens; k++)
+        {
+            var (px, pz) = (x + rx * weit, z + rz * weit);
+            var luft = MathF.Min(Abstand(px, pz) - frei, Innen(px, pz) - frei);
+            if (luft <= 0.005f) return k == 0 ? 0 : weit;
+            weit = MathF.Min(hoechstens, weit + MathF.Max(luft, 0.05f));
+        }
+        return MathF.Min(weit, hoechstens);
+    }
+
+    /// <summary>Wie viele Zellen die letzte Suche angefasst hat (zum Prüfen der Kosten).</summary>
+    public int Besucht { get; private set; }
+
+    /// <summary>
+    /// Ein Weg über das Pflaster von <paramref name="von"/> nach <paramref name="nach"/>, auf dem überall <paramref name="frei"/> Meter bis zu jedem
+    /// Hindernis bleiben (A* auf dem Raster, dann straff gezogen). Anfang und Ende sind genau die beiden Punkte, auch wenn sie selbst näher an einem
+    /// Hindernis liegen (ein Platz vor dem Stand, auf der Bank): Dann beginnt die Suche in der nächsten freien Zelle. Null, wenn keiner geht.
+    /// </summary>
+    public List<(float X, float Z)>? Pfad((float X, float Z) von, (float X, float Z) nach, float frei)
+    {
+        Bereit();
+        if (Sichtlinie(von, nach, frei)) return new() { von, nach };
+        var start = FreieZelle(von, frei);
+        var ziel = FreieZelle(nach, frei);
+        if (start < 0 || ziel < 0) return null;
+        var zellen = Suche(start, ziel, frei);
+        if (zellen is null) return null;
+        var roh = new List<(float X, float Z)> { von };
+        foreach (var k in zellen) roh.Add(Mitte(k % _n, k / _n));
+        roh.Add(nach);
+        return Straff(roh, frei);
+    }
+
+    /// <summary>Die Zelle des Punktes, wenn sie frei ist, sonst die nächste freie (Ringe nach außen, höchstens 3 m). −1, wenn keine.</summary>
+    private int FreieZelle((float X, float Z) p, float frei)
+    {
+        var (i0, j0) = ZelleBei(p.X, p.Z);
+        if (_abstand[j0 * _n + i0] >= frei) return j0 * _n + i0;
+        var (beste, besterAbstand) = (-1, float.MaxValue);
+        var ringe = (int)MathF.Ceiling(3f / Zelle);
+        for (var r = 1; r <= ringe && beste < 0; r++)
+            for (var dj = -r; dj <= r; dj++)
+                for (var di = -r; di <= r; di++)
+                {
+                    if (Math.Max(Math.Abs(di), Math.Abs(dj)) != r) continue;
+                    var (i, j) = (i0 + di, j0 + dj);
+                    if (i < 0 || j < 0 || i >= _n || j >= _n || _abstand[j * _n + i] < frei) continue;
+                    var (x, z) = Mitte(i, j);
+                    var d = (x - p.X) * (x - p.X) + (z - p.Z) * (z - p.Z);
+                    if (d < besterAbstand) (beste, besterAbstand) = (j * _n + i, d);
+                }
+        return beste;
+    }
+
+    private static readonly (int Di, int Dj, float Kosten)[] Nachbarn =
+    {
+        (1, 0, 1), (-1, 0, 1), (0, 1, 1), (0, -1, 1), (1, 1, 1.41421356f), (1, -1, 1.41421356f), (-1, 1, 1.41421356f), (-1, -1, 1.41421356f),
+    };
+
+    private float[] _kosten = Array.Empty<float>();
+    private int[] _her = Array.Empty<int>();
+    private int[] _stempel = Array.Empty<int>();
+    private int _lauf;
+    private readonly PriorityQueue<int, float> _offen = new();
+
+    /// <summary>A* von Zelle zu Zelle (acht Nachbarn, Schrägen nur, wenn beide Ecken frei sind); die Zellen vom ersten nach dem Start bis zum Ziel.</summary>
+    private List<int>? Suche(int start, int ziel, float frei)
+    {
+        var anzahl = _n * _n;
+        if (_kosten.Length != anzahl) (_kosten, _her, _stempel) = (new float[anzahl], new int[anzahl], new int[anzahl]);
+        _lauf++;
+        _offen.Clear();
+        var (zi, zj) = (ziel % _n, ziel / _n);
+        float Schaetzung(int k)
+        {
+            var (di, dj) = (Math.Abs(k % _n - zi), Math.Abs(k / _n - zj));
+            return Math.Max(di, dj) + 0.41421356f * Math.Min(di, dj);
+        }
+        (_kosten[start], _her[start], _stempel[start]) = (0, -1, _lauf);
+        _offen.Enqueue(start, Schaetzung(start));
+        Besucht = 0;
+        while (_offen.TryDequeue(out var k, out var prio))
+        {
+            if (k == ziel) break;
+            if (prio > _kosten[k] + Schaetzung(k) + 1e-4f) continue; // veralteter Eintrag
+            Besucht++;
+            var (i, j) = (k % _n, k / _n);
+            foreach (var (di, dj, kosten) in Nachbarn)
+            {
+                var (ni, nj) = (i + di, j + dj);
+                if (ni < 0 || nj < 0 || ni >= _n || nj >= _n) continue;
+                var nk = nj * _n + ni;
+                if (_abstand[nk] < frei) continue;
+                if (di != 0 && dj != 0 && (_abstand[j * _n + ni] < frei || _abstand[nj * _n + i] < frei)) continue; // nicht über Eck durch ein Hindernis
+                var neu = _kosten[k] + kosten;
+                if (_stempel[nk] == _lauf && neu >= _kosten[nk]) continue;
+                (_kosten[nk], _her[nk], _stempel[nk]) = (neu, k, _lauf);
+                _offen.Enqueue(nk, neu + Schaetzung(nk));
+            }
+        }
+        if (_stempel[ziel] != _lauf) return null;
+        var weg = new List<int>();
+        for (var k = ziel; k != start; k = _her[k]) weg.Add(k);
+        weg.Reverse();
+        return weg;
+    }
+
+    /// <summary>Straff ziehen: von jedem Eckpunkt aus so weit wie möglich geradeaus (Sichtlinie), Ecken nur, wo es sonst nicht geht.</summary>
+    private List<(float X, float Z)> Straff(List<(float X, float Z)> roh, float frei)
+    {
+        var aus = new List<(float X, float Z)> { roh[0] };
+        var anker = 0;
+        for (var k = 2; k < roh.Count; k++)
+        {
+            if (Sichtlinie(roh[anker], roh[k], frei)) continue;
+            anker = k - 1;
+            aus.Add(roh[anker]);
+        }
+        aus.Add(roh[^1]);
+        return aus;
+    }
+
+    /// <summary>
+    /// Ein Weg wie <see cref="Pfad"/>, aber über einen Zwischenpunkt neben der Geraden: um <paramref name="seite"/> (−1 bis 1) mal einen Anteil der Strecke
+    /// (höchstens <paramref name="hoechstens"/> Meter) seitlich der Mitte. So gehen zwei Personen mit demselben Ziel nicht auf derselben Linie, die Leute
+    /// fächern sich auf dem Platz auf. Liegt der Zwischenpunkt zu nah an einem Hindernis, rückt er zur Geraden; ganz ohne geht es gerade.
+    /// </summary>
+    public List<(float X, float Z)>? Gefaechert((float X, float Z) von, (float X, float Z) nach, float frei, float seite, float anteil = 0.3f, float hoechstens = 3.5f)
+    {
+        Bereit();
+        var (dx, dz) = (nach.X - von.X, nach.Z - von.Z);
+        var laenge = MathF.Sqrt(dx * dx + dz * dz);
+        if (laenge < 3f || MathF.Abs(seite) < 0.05f) return Pfad(von, nach, frei);
+        var quer = MathF.Min(laenge * anteil, hoechstens) * seite;
+        var (rx, rz) = (-dz / laenge, dx / laenge);
+        foreach (var f in new[] { 1f, 0.6f, 0.3f })
+        {
+            var mitte = (von.X + dx * 0.5f + rx * quer * f, von.Z + dz * 0.5f + rz * quer * f);
+            if (!Auf(mitte.Item1, mitte.Item2, frei) || Abstand(mitte.Item1, mitte.Item2) < frei + 0.2f) continue;
+            var erst = Pfad(von, mitte, frei);
+            var dann = erst is null ? null : Pfad(mitte, nach, frei);
+            if (erst is null || dann is null) continue;
+            erst.AddRange(dann.Skip(1));
+            return erst;
+        }
+        return Pfad(von, nach, frei);
+    }
+
+    /// <summary>Länge einer Punktfolge (Meter).</summary>
+    public static float Laenge(IReadOnlyList<(float X, float Z)> punkte)
+    {
+        var s = 0f;
+        for (var i = 1; i < punkte.Count; i++)
+        {
+            var (dx, dz) = (punkte[i].X - punkte[i - 1].X, punkte[i].Z - punkte[i - 1].Z);
+            s += MathF.Sqrt(dx * dx + dz * dz);
+        }
+        return s;
+    }
+}

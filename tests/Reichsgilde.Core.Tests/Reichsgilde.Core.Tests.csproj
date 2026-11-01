@@ -25,6 +25,9 @@
     <!-- Ausweichen der Passanten (Schicht 4) und ihr Einstieg auf das nächste Wegstück – PassantenausweichenTests.cs, PassantenwegeTests.cs -->
     <Compile Include="..\..\game\scripts\Passantenausweichen.cs" Link="Gehtempo\Passantenausweichen.cs" />
     <Compile Include="..\..\game\scripts\Wegeinstieg.cs" Link="Gehtempo\Wegeinstieg.cs" />
+    <!-- Markt v3 der Passanten: freie Fläche des Platzes und Bummeln von Ziel zu Ziel – MarktflaecheTests.cs, MarktbummelTests.cs -->
+    <Compile Include="..\..\game\scripts\Marktflaeche.cs" Link="Gehtempo\Marktflaeche.cs" />
+    <Compile Include="..\..\game\scripts\Marktbummel.cs" Link="Gehtempo\Marktbummel.cs" />
     <!-- Die Rechnung der Umgebungsklänge und der Menschen dahinter (Ton Schritt 4) kennt ebenfalls kein Godot – KlangUmgebungTests.cs -->
     <Compile Include="..\..\game\scripts\KlangUmgebungModell.cs" Link="Umgebung\KlangUmgebungModell.cs" />
     <Compile Include="..\..\game\scripts\KlangStadtlebenModell.cs" Link="Umgebung\KlangStadtlebenModell.cs" />
