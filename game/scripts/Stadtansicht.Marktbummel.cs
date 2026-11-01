@@ -168,7 +168,7 @@ public partial class Stadtansicht
 
     /// <summary>Rechenzeit (ms) und Zahl der Wege über die freie Fläche seit der letzten Zeile im Protokoll.</summary>
     private double _flaechenZeit;
-    private int _flaechenWege;
+    private int _flaechenWege, _bummelVersuche, _bummelGaenge;
 
     private List<Vector3> FlaechenWeg(MarktplatzAnsicht platz, Marktflaeche f, Vector3 von, Vector3 bis, int nummer, int schluessel, List<Vector3> punkte)
     {
@@ -207,15 +207,18 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wie weit eine Laufende von der Mittellinie ihres Weges aus (<paramref name="ort"/>) auf der Fläche nach links (≤ 0) und rechts (≥ 0) stehen darf, ohne
-    /// einem Hindernis näher als ihr Körper und etwas Luft zu kommen (höchstens 2,5 m) – null, wenn sie nicht auf dem Pflaster ist (dann gilt die Breite des Weges).
+    /// einem Hindernis näher als ihr Körper und etwas Luft zu kommen (höchstens 2,5 m) – null, wenn sie mehr als 3 m vor dem Pflaster ist (dann gilt nur die Breite
+    /// des Weges). <c>Auf</c>: auf dem Pflaster (dort gilt nur dieser Raum, davor zusätzlich die Wegbreite).
     /// </summary>
-    private (float Links, float Rechts)? FlaechenRaum(Passant p, Vector3 ort, Vector3 rechts)
+    private (float Links, float Rechts, bool Auf)? FlaechenRaum(Passant p, Vector3 ort, Vector3 rechts)
     {
         if (MarktV2) return null;
         foreach (var platz in _maerkte)
         {
-            if (platz.Flaeche is not { } f || f.Innen(ort.X, ort.Z) < 0) continue;
-            return f.Seitlich(ort.X, ort.Z, rechts.X, rechts.Z, p.Radius + 0.1f, 2.5f);
+            // schon 3 m vor dem Pflaster: Wer auf breiter Straße weit rechts geht, ist beim Eintreten schon so weit eingerückt, dass er keinen Stand streift
+            if (platz.Flaeche is not { } f || f.Innen(ort.X, ort.Z) is var innen && innen < -3f) continue;
+            var (links, rechtsRaum) = f.Seitlich(ort.X, ort.Z, rechts.X, rechts.Z, p.Radius + 0.1f, 2.5f, mitKante: innen >= 0);
+            return (links, rechtsRaum, innen >= 0);
         }
         return null;
     }
@@ -343,6 +346,7 @@ public partial class Stadtansicht
     {
         var platz = alt >= 0 ? _marktstellen[alt].Platz : MarktFuer(e);
         // klappt es nicht, später noch einmal (und die Wartezeit allein beginnt neu, sonst versuchte sie es jedes Bild)
+        _bummelVersuche++;
         if (platz?.Flaeche is not { } flaeche) { (p.BummelBis, p.AlleinSeit) = (minuteGenau + 30, minuteGenau); return false; }
         var zaehler = p.BummelZaehler + 1;
         var ziel = BummelBelegen(p.Nummer, p.BummelAnkunft, zaehler, platz, alt);
@@ -377,6 +381,7 @@ public partial class Stadtansicht
         var tempo = p.Gehtempo * Marktbummel.Tempoanteil(p.Nummer, zaehler, p.BummelAnkunft);
         (p.LaufStart, p.LaufEnde) = (minuteGenau, minuteGenau + p.Laenge / Math.Max(tempo * sekundenJeMinute, 1e-3));
         p.ImBummel = true;
+        _bummelGaenge++;
         Laufen(p, p.Nummer, minuteGenau, _simulation.Takt.TicksProSekunde);
         return true;
     }
@@ -465,7 +470,7 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     private double _marktMessSekunden, _alleinSumme, _inStandSumme, _kreisSumme, _amPlatzSumme, _marktMessBilder;
-    private long _alleinNeu, _inStandNeu, _kreisLinks, _kreisRechts;
+    private long _alleinNeu, _inStandNeu, _kreisLinks, _kreisRechts, _inStandStehend, _inStandBummel, _inStandEnde;
     private readonly HashSet<int> _alleinJetzt = new(), _inStandJetzt = new();
     private readonly Dictionary<int, double> _alleinSeit = new();
 
@@ -492,7 +497,16 @@ public partial class Stadtansicht
             {
                 var f = platz.Flaeche ?? StandFlaeche(platz);
                 if (!f.Auf(ort.X, ort.Z, -0.5f)) continue;
-                if (f.Staende.Any(r => r.Abstand(ort.X, ort.Z) < p.Radius - 0.05f)) inStand.Add(nummer);
+                if (f.Staende.Any(r => r.Abstand(ort.X, ort.Z) < p.Radius - 0.05f))
+                {
+                    inStand.Add(nummer);
+                    if (!_inStandJetzt.Contains(nummer))
+                    {
+                        if (p.Stand is not null) _inStandStehend++;
+                        else if (p.ImBummel) _inStandBummel++;
+                        else if (p.AmRand < 1.5f) _inStandEnde++;
+                    }
+                }
                 _amPlatzSumme += 1;
                 var brunnen = platz.Flaeche is null ? platz.Lage.Origin : platz.Brunnen;
                 var r = new Vector2(ort.X - brunnen.X, ort.Z - brunnen.Z);
@@ -551,7 +565,8 @@ public partial class Stadtansicht
         var minuten = Math.Max(_marktMessSekunden, 1) / 60.0;
         var bilder = Math.Max(_marktMessBilder, 1);
         GD.Print($"[passantenmarkt] Markt {(MarktV2 ? "v2" : "v3")}: seit {_marktMessSekunden:0} s im Bild – allein redend im Mittel {_alleinSumme / bilder:0.00} " +
-                 $"({_alleinNeu} Fälle, {_alleinNeu / minuten:0.0} je Minute), in Ständen im Mittel {_inStandSumme / bilder:0.00} ({_inStandNeu} Fälle, {_inStandNeu / minuten:0.0} je Minute), " +
+                 $"({_alleinNeu} Fälle, {_alleinNeu / minuten:0.0} je Minute), in Ständen im Mittel {_inStandSumme / bilder:0.00} ({_inStandNeu} Fälle, {_inStandNeu / minuten:0.0} je Minute; " +
+                 $"davon stehend {_inStandStehend}, bummelnd {_inStandBummel}, auf dem Weg des Kerns nahe Anfang oder Ziel {_inStandEnde}), " +
                  $"um den Brunnen kreisend im Mittel {_kreisSumme / bilder:0.00} von {_amPlatzSumme / bilder:0.0} auf dem Platz ({100 * _kreisSumme / Math.Max(_amPlatzSumme, 1):0.0} %; " +
                  $"Bilder in die eine Richtung {_kreisLinks}, in die andere {_kreisRechts})");
     }

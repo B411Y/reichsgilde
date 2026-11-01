@@ -167,7 +167,8 @@ public sealed class Marktflaeche
             if (luft < 0) return false;
             if (s >= laenge) return true;
             // die Lockerung an den Enden gilt nur dort: nicht über ihre Grenze hinwegspringen
-            var sprung = MathF.Max(0.02f, MathF.Min(luft, frei - noetig > 0 ? 0.1f : luft));
+            // (mindestens 8 cm: Wege an der Grenze des Abstands entlang würden sonst in winzigen Schritten abgetastet; was dazwischen fehlt, sind Millimeter)
+            var sprung = MathF.Max(0.08f, MathF.Min(luft, frei - noetig > 0 ? 0.1f : luft));
             s = MathF.Min(laenge, s + sprung);
         }
     }
@@ -177,14 +178,14 @@ public sealed class Marktflaeche
     /// kann, bis ein Hindernis näher als <paramref name="frei"/> kommt oder die Kante des Pflasters (mit <see cref="Kantenzugabe"/>) – in Sprüngen aus dem genauen Abstand.
     /// Steht der Punkt schon zu nah, 0.
     /// </summary>
-    public float Raum(float x, float z, float rx, float rz, float frei, float hoechstens)
+    public float Raum(float x, float z, float rx, float rz, float frei, float hoechstens, bool mitKante = true)
     {
         var weit = 0f;
         // in Sprüngen so groß wie der freie Abstand (genau, ohne etwas zu überspringen), am Ende fein
         for (var k = 0; k < 64 && weit < hoechstens; k++)
         {
             var (px, pz) = (x + rx * weit, z + rz * weit);
-            var luft = Frei(px, pz) - frei;
+            var luft = (mitKante ? Frei(px, pz) : Abstand(px, pz)) - frei;
             if (luft <= 0.005f) return k == 0 ? 0 : weit;
             weit = MathF.Min(hoechstens, weit + MathF.Max(luft, 0.05f));
         }
@@ -194,10 +195,11 @@ public sealed class Marktflaeche
     /// <summary>
     /// Wie weit eine Figur an der Stelle (<paramref name="x"/>, <paramref name="z"/>) der Mittellinie ihres Weges nach links (≤ 0) und rechts (≥ 0) seitlich
     /// stehen darf, ohne einem Hindernis näher als <paramref name="frei"/> (Körper und Luft) zu kommen, höchstens <paramref name="hoechstens"/> je Seite.
-    /// Die Darstellung begrenzt damit auf dem Platz die ganze seitliche Lage – Spur, Schwanken und Ausweichen.
+    /// Die Darstellung begrenzt damit auf dem Platz die ganze seitliche Lage – Spur, Schwanken und Ausweichen; vor dem Platz (in der Gasse davor) ohne die
+    /// Kante (<paramref name="mitKante"/> = false), dort zählen nur die Hindernisse.
     /// </summary>
-    public (float Links, float Rechts) Seitlich(float x, float z, float rx, float rz, float frei, float hoechstens) =>
-        (-Raum(x, z, -rx, -rz, frei, hoechstens), Raum(x, z, rx, rz, frei, hoechstens));
+    public (float Links, float Rechts) Seitlich(float x, float z, float rx, float rz, float frei, float hoechstens, bool mitKante = true) =>
+        (-Raum(x, z, -rx, -rz, frei, hoechstens, mitKante), Raum(x, z, rx, rz, frei, hoechstens, mitKante));
 
     /// <summary>Wie viele Zellen die letzte Suche angefasst hat (zum Prüfen der Kosten).</summary>
     public int Besucht { get; private set; }
@@ -301,15 +303,23 @@ public sealed class Marktflaeche
     /// <summary>Straff ziehen: von jedem Eckpunkt aus so weit wie möglich geradeaus (Sichtlinie), Ecken nur, wo es sonst nicht geht.</summary>
     private List<(float X, float Z)> Straff(List<(float X, float Z)> roh, float frei)
     {
+        // Vom Eckpunkt aus der fernste sichtbare Punkt: in Halbierungsschritten gesucht (Sichtbarkeit fällt längs eines A*-Weges fast immer nur einmal ab),
+        // so braucht jeder Eckpunkt nur wenige Sichtlinien statt einer je Rasterpunkt
         var aus = new List<(float X, float Z)> { roh[0] };
         var anker = 0;
-        for (var k = 2; k < roh.Count; k++)
+        while (anker < roh.Count - 1)
         {
-            if (Sichtlinie(roh[anker], roh[k], frei)) continue;
-            anker = k - 1;
+            var (sichtbar, unsichtbar) = (anker + 1, roh.Count);
+            if (Sichtlinie(roh[anker], roh[^1], frei)) sichtbar = roh.Count - 1;
+            else
+                while (unsichtbar - sichtbar > 1)
+                {
+                    var mitte = (sichtbar + unsichtbar) / 2;
+                    if (Sichtlinie(roh[anker], roh[mitte], frei)) sichtbar = mitte; else unsichtbar = mitte;
+                }
+            anker = sichtbar;
             aus.Add(roh[anker]);
         }
-        aus.Add(roh[^1]);
         return aus;
     }
 

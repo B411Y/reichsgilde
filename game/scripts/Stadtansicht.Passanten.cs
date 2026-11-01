@@ -251,8 +251,9 @@ public partial class Stadtansicht
                      $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s " +
                      $"({_messUhr.Elapsed.TotalMilliseconds / _passantenBilder:0} ms Bildzeit), " +
                      $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe" +
-                     (MarktV2 ? "" : $", Wege über die Marktfläche {_flaechenWege} in {_flaechenZeit:0.0} ms"));
-            (_flaechenWege, _flaechenZeit) = (0, 0);
+                     (MarktV2 ? "" : $", Wege über die Marktfläche {_flaechenWege} in {_flaechenZeit:0.0} ms, Bummelgänge {_bummelGaenge} von {_bummelVersuche}, " +
+                                     $"am Markt stehend {_passanten.Values.Count(q => q.Stand is { Ort.Ort: Stadtort.Markt } && q.Knoten.Visible)}, bummelnd {_passanten.Values.Count(q => q.ImBummel)}"));
+            (_flaechenWege, _flaechenZeit, _bummelGaenge, _bummelVersuche) = (0, 0, 0, 0);
             _passantenZeit = 0;
             _passantenBilder = 0;
             _passantenBewegtSumme = 0;
@@ -421,7 +422,7 @@ public partial class Stadtansicht
                 if (!MarktV2)
                 {
                     var flaeche = FlaechenRaum(p, hier, rechts);
-                    var (erlaubtL, erlaubtR) = flaeche ?? (-3f, 3f);
+                    var (erlaubtL, erlaubtR) = flaeche is { } fl ? (fl.Links, fl.Rechts) : (-3f, 3f);
                     // gerade an einem Ort losgegangen (Spur noch null): gleich die wahre Grenze, sonst höchstens 1,5 m je Sekunde
                     var schritt = p.GrenzeLinks <= -3f && p.GrenzeRechts >= 3f && strecke < 0.5f ? 10f : 1.5f * (float)_bildSekunden;
                     (p.GrenzeLinks, p.GrenzeRechts) = (Mathf.Clamp(erlaubtL, p.GrenzeLinks - schritt, p.GrenzeLinks + schritt), Mathf.Clamp(erlaubtR, p.GrenzeRechts - schritt, p.GrenzeRechts + schritt));
@@ -432,7 +433,7 @@ public partial class Stadtansicht
                         versatz += rechts * (begrenzt - spurQuer);
                         spurQuer = begrenzt;
                         var platzEnden = Mathf.Min(Passantenspur.Rampe(strecke, 0.6f), Passantenspur.Rampe(laenge - strecke, 0.6f));
-                        if (flaeche is not null)
+                        if (flaeche is { Auf: true })
                             (links, rechtsRaum) = (Mathf.Min(0, (p.GrenzeLinks - spurQuer) * platzEnden), Mathf.Max(0, (p.GrenzeRechts - spurQuer) * platzEnden));
                         else (links, rechtsRaum) = (Mathf.Max(links, Mathf.Min(0, p.GrenzeLinks - spurQuer)), Mathf.Min(rechtsRaum, Mathf.Max(0, p.GrenzeRechts - spurQuer)));
                     }

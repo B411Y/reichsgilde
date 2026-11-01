@@ -75,7 +75,7 @@ public partial class Stadtansicht
     private const float NaeheAbstand = 0.5f;
     private readonly HashSet<long> _naheBeruehrt = new(), _ueberschnitten = new(), _ueberschnittenStehend = new();
     private double _naheSekunden, _naheBilder, _naheLaeufer, _ueberBilder, _ueberBilderImBild;
-    private long _naheNeuGesamt, _naheNeuImBild, _naheGegen, _naheGleich, _ueberNeu, _ueberNeuImBild, _ueberStehendNeu, _ueberStehendNeuImBild, _ueberAmRand, _ueberAufPlatz, _ueberStehendAufPlatz;
+    private long _naheNeuGesamt, _naheNeuImBild, _naheGegen, _naheGleich, _ueberNeu, _ueberNeuImBild, _ueberStehendNeu, _ueberStehendNeuImBild, _ueberAmRand, _ueberAufPlatz, _ueberStehendAufPlatz, _ueberPlatzEnde, _ueberPlatzGegen, _ueberStehendPlatzEnde;
 
     /// <summary>
     /// Zählt jede neue Berührung zweier laufender Figuren (Abstand auf dem Boden unter 0,5 m; eine Berührung zählt einmal, bis sie sich wieder
@@ -113,7 +113,12 @@ public partial class Stadtansicht
                     {
                         _ueberNeu++;
                         if (imBild) _ueberNeuImBild++;
-                        if (imBild && AufDemPflaster(a.Knoten.Position) && AufDemPflaster(b.Knoten.Position)) _ueberAufPlatz++; // Markt v3: nur auf dem Platz
+                        if (imBild && AufDemPflaster(a.Knoten.Position) && AufDemPflaster(b.Knoten.Position)) // Markt v3: nur auf dem Platz, mit Ursache
+                        {
+                            _ueberAufPlatz++;
+                            if (Mathf.Min(a.AmRand, b.AmRand) < 1.5f) _ueberPlatzEnde++;
+                            if (Mathf.Cos(a.Knoten.Rotation.Y - b.Knoten.Rotation.Y) < 0) _ueberPlatzGegen++;
+                        }
                         if (Mathf.Min(a.AmRand, b.AmRand) < 2) _ueberAmRand++;
                     }
                 }
@@ -132,7 +137,11 @@ public partial class Stadtansicht
                 stehendJetzt.Add(schluessel);
                 if (_ueberschnittenStehend.Contains(schluessel)) continue;
                 _ueberStehendNeu++;
-                if (ImBild(a.Knoten.Position) && AufDemPflaster(a.Knoten.Position)) _ueberStehendAufPlatz++;
+                if (ImBild(a.Knoten.Position) && AufDemPflaster(a.Knoten.Position))
+                {
+                    _ueberStehendAufPlatz++;
+                    if (a.AmRand < 1.5f) _ueberStehendPlatzEnde++;
+                }
                 if (ImBild(a.Knoten.Position)) _ueberStehendNeuImBild++;
             }
         }
@@ -154,6 +163,7 @@ public partial class Stadtansicht
                  $"davon gegenläufig {_naheGegen}, gleichläufig {_naheGleich}), im Bild laufen im Mittel {_naheLaeufer / Math.Max(_naheBilder, 1):0.0} Figuren; " +
                  $"Überschneidungen Laufende: {_ueberNeu} ({_ueberNeu / minuten:0.0} je Minute; im Bild {_ueberNeuImBild}, {_ueberNeuImBild / minuten:0.0} je Minute; " +
                  $"Paar-Bilder {_ueberBilder:0}, im Bild {_ueberBilderImBild:0}; davon an Anfang oder Ziel {_ueberAmRand}), mit Stehenden {_ueberStehendNeu} (im Bild {_ueberStehendNeuImBild}, {_ueberStehendNeuImBild / minuten:0.0} je Minute); " +
-                 $"auf dem Pflaster eines Marktplatzes im Bild: Laufende {_ueberAufPlatz} ({_ueberAufPlatz / minuten:0.0} je Minute), mit Stehenden {_ueberStehendAufPlatz} ({_ueberStehendAufPlatz / minuten:0.0} je Minute)");
+                 $"auf dem Pflaster eines Marktplatzes im Bild: Laufende {_ueberAufPlatz} ({_ueberAufPlatz / minuten:0.0} je Minute; davon nahe Anfang oder Ziel {_ueberPlatzEnde}, gegenläufig {_ueberPlatzGegen}), " +
+                 $"mit Stehenden {_ueberStehendAufPlatz} ({_ueberStehendAufPlatz / minuten:0.0} je Minute; davon nahe Anfang oder Ziel {_ueberStehendPlatzEnde})");
     }
 }
