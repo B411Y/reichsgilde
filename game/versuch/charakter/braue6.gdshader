@@ -33,6 +33,10 @@ uniform float stand_oben_max = 0.0;  // E1: > 0 = Verschiebung nach oben weich a
 // E1 Runde 2 (Prüfer E0/E1: „die hintere Braue steht schräg über den Stirnumriss hinaus und schwebt“): die Karte steht
 // von der Haut ab; wo man sie fast von der Kante sieht (am Umriss), blendet sie aus. 0 = aus (wie Etappe D)
 uniform float rand_aus = 0.0;
+// E3 (Grundkopf; Prüfer E1: tief gesetzte Braue macht den Brauenwulst schräg zum „Sims“): Verschiebung nach unten weich
+// auf diesen Wert begrenzt (mm, 0 = aus), und die Kante des Ausblendens am Umriss (E1: 0,38)
+uniform float stand_unten_max = 0.0;
+uniform float rand_aus_kante = 0.38;
 uniform float mip_hub = 0.25;       // Deckung in der Ferne anheben (Mip-Stufe)
 uniform float deckung = 1.0;        // Halt B2 (Weg A): Brauen weniger deckend (weiche Haargruppen statt Aufkleber)
 // Etappe C (nur Wimpern; Prüferbefund „Unterlid wie ein Strich“): Band 0 des Wimpernbilds (Unterlid, UV.y > 0,75)
@@ -56,6 +60,9 @@ void fragment() {
 		float s = stand_mm + winkel_mm * (UV.x - 0.15);
 		if (stand_oben_max > 0.0 && s > 0.0) {
 			s = stand_oben_max * tanh(s / stand_oben_max);
+		}
+		if (stand_unten_max > 0.0 && s < 0.0) {
+			s = stand_unten_max * tanh(s / stand_unten_max);
 		}
 		float vq = (v - mitte_v - s / h) / max(dicke, 0.3) + mitte_v;
 		aussen = step(vq, 0.004) + step(0.996, vq);
@@ -81,7 +88,7 @@ void fragment() {
 	ALBEDO = c * dunkel;
 	ALPHA = clamp(a * deckung, 0.0, 1.0) * (1.0 - clamp(aussen, 0.0, 1.0));   // deckung > 1: dünne Haare decken mehr (Brauen)
 	if (braue && rand_aus > 0.0) {
-		ALPHA *= mix(1.0, smoothstep(0.1, 0.38, abs(dot(normalize(NORMAL), VIEW))), rand_aus);
+		ALPHA *= mix(1.0, smoothstep(0.1, max(rand_aus_kante, 0.11), abs(dot(normalize(NORMAL), VIEW))), rand_aus);
 	}
 	ROUGHNESS = 0.5;
 	SPECULAR = glanz;

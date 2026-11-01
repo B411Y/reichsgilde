@@ -1004,6 +1004,8 @@ func _farben() -> void:
 					m.set_shader_parameter("dicke", clampf(1.0 + 0.2 * z_dichte, 0.7, 1.4))
 					m.set_shader_parameter("winkel_mm", 2.0 * float(gene_z.get("brauen_winkel", 0.0)))
 					m.set_shader_parameter("rand_aus", 0.0)
+					m.set_shader_parameter("stand_unten_max", 0.0)
+					m.set_shader_parameter("rand_aus_kante", 0.38)
 				else:
 					# E1: v richtig herum (siehe braue6), Stand zusätzlich zur Hautform, oben weich begrenzt; Dicke wächst
 					# um eine Linie im oberen Drittel, also vor allem nach unten (oben ist in der Karte wenig Platz)
@@ -1019,6 +1021,9 @@ func _farben() -> void:
 					m.set_shader_parameter("dicke", clampf((1.0 + kd * z_dichte) * fd, float(vb["dicke_min"]), float(vb["dicke_max"])))
 					m.set_shader_parameter("winkel_mm", float(vb["winkel_mm_je_sigma"]) * wz)
 					m.set_shader_parameter("rand_aus", float(vb.get("rand_aus", 0.0)))
+					# E3: nach unten weich begrenzt, breiter ausgeblendet am Umriss (fehlen die Werte: wie E1)
+					m.set_shader_parameter("stand_unten_max", float(vb.get("stand_unten_max_mm", 0.0)))
+					m.set_shader_parameter("rand_aus_kante", float(vb.get("rand_aus_kante", 0.38)))
 			farbe_setzen(m, "farbe", braue, st)
 			# Etappe D: Brauen ergrauen später als das Haupthaar und bleiben grau-braun statt weiß (Prüfer: „weiße Watte“)
 			m.set_shader_parameter("grau", grau * 0.6 if d_an else grau)

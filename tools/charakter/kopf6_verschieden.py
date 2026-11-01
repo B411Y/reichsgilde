@@ -46,6 +46,10 @@ AUGEN = {
 # Runde 2: Höchstwert je Richtung (mm je σ). Lidspalte enger nur bis 1,3 mm/σ: in Runde 1 wirkte ein Kopf mit −2σ
 # „wie mit dem Lid im Auge“ (alle drei Prüfer)
 RICHTUNG_MAX = {("lidspalte", "minus"): 1.3}
+# E3 (Option --e3=1; Prüfer E1: tiefe Braue + Brauenwulst = „Sims“): Hautform der Braue nach unten nur 1,0 × der
+# natürlichen Streuung (nicht 1,3 ×), die Bildverschiebung nach unten weich auf 2 mm, am Umriss breiter ausblenden
+E3_RICHTUNG_FAKTOR = {("brauen_stand", "minus"): 1.0 / NATUR_FAKTOR_ALT}
+E3_BRAUEN = {"stand_unten_max_mm": 2.0, "rand_aus_kante": 0.55}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -53,6 +57,7 @@ NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-ve
 def main():
     opt = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
     ein, aus = os.path.expanduser(opt["ein"]), os.path.expanduser(opt["aus"])
+    e3 = opt.get("e3", "0") == "1"
     R = json.load(open(ein, encoding="utf-8"))
     bericht = {}
     for gen, f in AUGEN.items():
@@ -63,6 +68,8 @@ def main():
             for richt in ("plus", "minus"):
                 d = abs(e["wirkung_mm_je_1"][g][richt])
                 z_r = min(ziel, RICHTUNG_MAX.get((gen, richt), ziel))
+                if e3 and (gen, richt) in E3_RICHTUNG_FAKTOR:
+                    z_r = min(z_r, ziel / f * E3_RICHTUNG_FAKTOR[(gen, richt)])
                 st = round(min(z_r / d, STAERKE_MAX_AUGEN), 4) if d > 1e-6 else 0.0
                 e["staerke"][g][richt] = st
                 e["erreicht_mm_je_sigma"][g][richt] = round(st * d, 3)
@@ -98,6 +105,9 @@ def main():
         # Nasenlöcher der Frau von vorn sichtbar (Etappe D, E0-Panel): Spitze und Steg etwas tiefer (Testbogen nasenloch)
         "zusatz_w": {"w": {"gen_nasenspitze_minus": 0.5}},
     }
+    if e3:
+        R["verschieden"]["brauen"].update(E3_BRAUEN)
+        R["verschieden"]["beschreibung"] += "; E3: Braue nach unten begrenzt, breiter ausgeblendet"
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)
