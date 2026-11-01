@@ -33,6 +33,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Kartenwerkstatt: Gebäude lassen sich dort nicht umkennzeichnen; `Kartenentwurf.KennungSetzen` (Kern, PR #213) bräuchte dafür ein Feld in den Eigenschaften (Vorsicht: Startbelegung und Spielstände verweisen auf Kennungen)
 - Köln (Wahrzeichen, PR #215): Zwergen-Dombauhütte fehlt: Der einzige Steinmetz-Betrieb („Maurerei Lyskirchen“, Halbling) liegt 200 m vom Dom. Vorschlag: ein Werkstattplatz am Dom wird Dombauhütte mit zwergischem Meister (Volk, Name, Wappen im Startblock des Stadtskripts) – ändert die Startbelegung, daher Entscheidung des Nutzers
 - (von Kern) Startbelegung Köln (Balancing 3): Zwischen den KI-Häusern entscheiden Volk und Beruf – Zwerg-Schmied Overstolz +21 %, Elb-Tischler Hardevust −23 % gegen das Mittel der KI-Häuser nach 20 Jahren; drei Schmiede (mit dem Spieler) teilen sich den Markt. Ob die Belegung gemischt werden soll (z. B. kein Tischler-Paar, Zwerg nicht als Schmied), entscheidet das Leveldesign mit dem Nutzer (WIRTSCHAFTSMODELL „Balancing 3 (PR folgt)“).
+- (von Kern) Höhenkarten (Terrain3D-Übernahme Etappe 2): Das Kartenskript liest r16/raw ein (`hoehenkarte-einlesen`, LEVELDESIGN „Höhenkarten“, Herkunft nach `tools/Kartenbau/Staedte/HOEHENDATEN.md`). Für Köln mit amtlichem DGM NRW (dl-de/zero-2.0) wäre eine Hilfe im Stadtskript sinnvoll (z. B. `Hoehenkarte(pfad, lage, herkunft)` in `Stadtskript`, Datei außerhalb des Repositorys, SHA-256 im Skript); Vorschlag an infra: die HERKUNFT-Zeile im Kartenskript in der CI prüfen.
 
 ## Entscheidungen
 
