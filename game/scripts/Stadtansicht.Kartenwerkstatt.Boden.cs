@@ -34,10 +34,13 @@ public partial class Stadtansicht
     public bool BodenDeko { get; set; } = true;
     public double BodenDichte { get; set; } = 1;
 
+    /// <summary>Wo der Bodenpinsel wirkt (Steigung, Boden; Pinsel-Paket 1); <see cref="Pinselfilter.Keiner"/>: überall.</summary>
+    public Pinselfilter BodenFilter { get; set; } = Pinselfilter.Keiner;
+
     /// <summary>Der Pinsel mit den gewählten Werten.</summary>
     public Bodenpinsel BodenPinsel => BodenRadierer
-        ? Bodenpinsel.Radierer(BodenRadius, BodenKante)
-        : new Bodenpinsel(BodenArt, BodenRadius, BodenStaerke, BodenKante, BodenDeko, BodenDichte);
+        ? Bodenpinsel.Radierer(BodenRadius, BodenKante, BodenFilter)
+        : new Bodenpinsel(BodenArt, BodenRadius, BodenStaerke, BodenKante, BodenDeko, BodenDichte, BodenFilter);
 
     /// <summary>Die Farbe einer Textur aus dem Katalog (Vorschau im Katalog und Kreis an der Maus).</summary>
     public Color BodenFarbe(Bodentextur t) =>

@@ -27,6 +27,7 @@ public partial class Hauptmenue : Node
     private PanelContainer _oberhaupt = null!;
     private PanelContainer _laden = null!;
     private EinstellungenAnzeige _einstellungen = null!;
+    private DanksagungAnzeige _danksagung = null!;
     private SpielstandListe _liste = null!;
     private Label _ladeFehler = null!;
 
@@ -75,8 +76,9 @@ public partial class Hauptmenue : Node
         Datenvorrat.Vorladen(); // wirtschaft.json im Hintergrund, solange das Menü steht (Datenvorrat.cs)
         var portraetOption = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--portraets="));
         var stadtwahl = OS.GetCmdlineUserArgs().Any(a => a == "--stadtwahl=1");
+        var danksagung = OS.GetCmdlineUserArgs().Any(a => a is "--danksagung=1" or "--danksagung=lizenzen");
         var feuertest = Feuertest.Angefordert; // auch ohne „--“ davor erkannt (Feuertest.Startargumente)
-        if ((feuertest || KlicktestTreiber.SpielOptionen().Length > 0) && !_startoptionenGenutzt && portraetOption is null && !stadtwahl)
+        if ((feuertest || KlicktestTreiber.SpielOptionen().Length > 0) && !_startoptionenGenutzt && portraetOption is null && !stadtwahl && !danksagung)
         {
             // Startoptionen → Test- oder Prüflauf: Menü überspringen (nur beim ersten Mal – „Zurück zum Hauptmenü“ zeigt dann das Menü).
             _startoptionenGenutzt = true;
@@ -109,7 +111,8 @@ public partial class Hauptmenue : Node
         _neu = NeuTafel();
         _laden = LadeTafel();
         _einstellungen = new EinstellungenAnzeige(() => Zeigen(_start));
-        foreach (var tafel in new[] { _start, _kartenwahl, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
+        _danksagung = new DanksagungAnzeige(() => Zeigen(_start));
+        foreach (var tafel in new[] { _start, _kartenwahl, _oberhaupt, _neu, _laden, _einstellungen.Tafel, _danksagung.Tafel })
             mitte.AddChild(tafel);
         oberflaeche.AddChild(EntwicklerHaken());
         Zeigen(_start);
@@ -117,6 +120,12 @@ public partial class Hauptmenue : Node
         {
             _startoptionenGenutzt = true;
             KartenwahlZeigen();
+        }
+        if (danksagung) // für Bildschirmfotos
+        {
+            _startoptionenGenutzt = true;
+            DanksagungZeigen();
+            if (OS.GetCmdlineUserArgs().Contains("--danksagung=lizenzen")) _danksagung.LizenzenZeigen();
         }
         if (portraetOption is not null)
         {
@@ -170,7 +179,7 @@ public partial class Hauptmenue : Node
 
     private void Zeigen(PanelContainer tafel)
     {
-        foreach (var t in new[] { _start, _kartenwahl, _oberhaupt, _neu, _laden, _einstellungen.Tafel })
+        foreach (var t in new[] { _start, _kartenwahl, _oberhaupt, _neu, _laden, _einstellungen.Tafel, _danksagung.Tafel })
             t.Visible = t == tafel;
         _entwicklerHaken.Visible = tafel == _start;
     }
@@ -191,10 +200,17 @@ public partial class Hauptmenue : Node
         Knopf(spalte, "Einstellungen", () => { _einstellungen.Auffrischen(); Zeigen(_einstellungen.Tafel); });
         Knopf(spalte, "Kartenwerkstatt", WerkstattOeffnen).TooltipText =
             "Karten bauen und prüfen: Gebäude setzen, verschieben, drehen – Greybox und Köln öffnen (nur lesen), eigene Karten speichern";
+        Knopf(spalte, "Danksagung", DanksagungZeigen).TooltipText = "Wer am Spiel mitgewirkt hat und welches fremde Material in ihm steckt, mit Lizenzen";
         Knopf(spalte, "Beenden", () => GetTree().Quit());
 
         Text(spalte, "Hobby- und Lernprojekt · Open Source (MIT) · Greybox-Grafik", 11, new Color(0.6f, 0.6f, 0.6f), zentriert: true);
         return tafel;
+    }
+
+    private void DanksagungZeigen()
+    {
+        _danksagung.Oeffnen();
+        Zeigen(_danksagung.Tafel);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

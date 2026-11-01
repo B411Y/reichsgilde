@@ -85,7 +85,7 @@ public sealed partial class Kartenentwurf
     public void GelaendeStrichBeginnen(Pinsel pinsel)
     {
         GelaendeStrichBeenden();
-        _strich = Gelaendepinsel.Beginnen(_hoehen, pinsel, Kartengrenzen.Aussen);
+        _strich = Gelaendepinsel.Beginnen(_hoehen, pinsel, Kartengrenzen.Aussen, _boden);
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public sealed partial class Kartenentwurf
     {
         if (_strich is not { } strich) return false;
         _strich = null;
-        return Eintragen(PinselText(strich.Pinsel.Art), strich.Aenderung);
+        return Eintragen(PinselText(strich.Pinsel), strich.Aenderung);
     }
 
     /// <summary>Ein ganzer Strich in einem Aufruf (Kartenskript, Tests): Beginnen, alle Punkte, Beenden – ein Schritt.</summary>
@@ -132,15 +132,37 @@ public sealed partial class Kartenentwurf
         return Eintragen("Rampe angelegt", Gelaendepinsel.Rampe(_hoehen, von, nach, breite, kante, Kartengrenzen.Aussen));
     }
 
+    /// <summary>
+    /// Liest eine Höhenkarte ein (<see cref="Hoehenkarte"/>, Terrain3D-Übernahme Etappe 2): Rasterpunkte in der Karte unter dem Bild bekommen
+    /// ihre Höhe, alle anderen bleiben. Ein Schritt mit Rückgängig („Höhenkarte eingelesen“), wenn sich etwas ändert; der Bericht nennt, was
+    /// abgedeckt, geändert und abgeschnitten wurde.
+    /// </summary>
+    /// <exception cref="ArgumentException">Wenn die Lage nicht stimmt oder die Zahl der Werte nicht zu ihr passt.</exception>
+    public Hoehenkartenbericht HoehenkarteEinlesen(ushort[] werte, Hoehenkartenlage lage)
+    {
+        GelaendeStrichBeenden();
+        var bericht = Hoehenkarte.Einlesen(_hoehen, werte, lage, Kartengrenzen.Aussen, out var aenderung);
+        Eintragen("Höhenkarte eingelesen", aenderung);
+        return bericht;
+    }
+
+    /// <summary>
+    /// Das Raster der ganzen Karte (Spielfeld und Rand) als Höhenkarte, ein Pixel je Rasterpunkt (2 m); ohne Angabe von unten/oben (cm) die
+    /// tiefste und höchste Höhe. <c>Begrenzt</c> zählt Punkte außerhalb von unten … oben.
+    /// </summary>
+    public (ushort[] Werte, Hoehenkartenlage Lage, int Begrenzt) HoehenkarteAusgeben(int? untenCm = null, int? obenCm = null) =>
+        Hoehenkarte.Ausgeben(_hoehen, Kartengrenzen.Aussen, untenCm, obenCm);
+
     /// <summary>Eine Kachel, in der überall 0 steht (zum Vergleichen; nicht ändern).</summary>
     private static readonly short[] LeereKachel = new short[Hoehenraster.Kachel * Hoehenraster.Kachel];
 
-    private static string PinselText(Pinselart art) => art switch
+    private static string PinselText(Pinsel p) => p.Art switch
     {
-        Pinselart.Heben => "Gelände gehoben",
-        Pinselart.Senken => "Gelände gesenkt",
+        Pinselart.Heben => p.NurAusgleich ? "Mulden gehoben" : "Gelände gehoben",
+        Pinselart.Senken => p.NurAusgleich ? "Spitzen gekappt" : "Gelände gesenkt",
         Pinselart.Glaetten => "Gelände geglättet",
-        Pinselart.Ebnen => "Gelände geebnet",
+        Pinselart.Ebnen => p.Zielhoehe is { } z ? $"Gelände auf {Kartenschreiber.Zahl(z).Replace('.', ',')} m geebnet" : "Gelände geebnet",
+        Pinselart.Terrassen => "Terrassen angelegt",
         _ => "Gelände aufgeraut",
     };
 

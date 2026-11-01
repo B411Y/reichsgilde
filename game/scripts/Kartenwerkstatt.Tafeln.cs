@@ -119,8 +119,9 @@ public partial class Kartenwerkstatt
         (Pinselart.Heben, "Heben", "Hebt den Boden an (ein Hügel)"),
         (Pinselart.Senken, "Senken", "Senkt den Boden ab (eine Mulde, ein Graben)"),
         (Pinselart.Glaetten, "Glätten", "Gleicht Buckel aus, ohne die Höhe zu ändern"),
-        (Pinselart.Ebnen, "Ebnen", "Zieht alles auf die Höhe unter dem ersten Klick (eine Terrasse)"),
+        (Pinselart.Ebnen, "Ebnen", "Zieht alles auf die Höhe unter dem ersten Klick oder auf eine eingegebene Zielhöhe (Pipette: Strg+Klick)"),
         (Pinselart.Rauschen, "Rauschen", "Macht den Boden natürlich uneben (Buckel nach Startwert)"),
+        (Pinselart.Terrassen, "Terrassen", "Treppt den Boden in gleich hohe Stufen – Weinberg, Plateau, Hochufer"),
     };
 
     private static string Breite(double meter) => $"{Kartenschreiber.Zahl(Math.Round(meter, 2)).Replace('.', ',')} m";
@@ -180,6 +181,45 @@ public partial class Kartenwerkstatt
         _bodenInfo = Hauptmenue.Text(spalte, " ", 13, Gold, zentriert: true); // „Höhe 12,4 m · Gefälle 6 %“ unter der Maus
         _hilfe = Hauptmenue.Text(spalte, "", 12, Grau, zentriert: true);
         HilfeZeigen();
+        PinselInfoBauen();
+    }
+
+    /// <summary>Die Anzeige unter dem Pinsel (Pinsel-Paket 1): ein kleines Schild an der Maus mit Höhe, Steigung, Bodenarten und Filter.</summary>
+    private PanelContainer _pinselInfo = null!;
+    private Label _pinselInfoText = null!;
+
+    private void PinselInfoBauen()
+    {
+        var (tafel, spalte) = Tafel(rand: 6, abstand: 0);
+        tafel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.16f, 0.15f, 0.13f, 0.92f), BorderColor = new Color(Gold, 0.55f),
+            BorderWidthLeft = 1, BorderWidthTop = 1, BorderWidthRight = 1, BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 3, CornerRadiusTopRight = 3, CornerRadiusBottomLeft = 3, CornerRadiusBottomRight = 3,
+        });
+        tafel.MouseFilter = Control.MouseFilterEnum.Ignore;
+        tafel.Visible = false;
+        _oberflaeche.AddChild(tafel);
+        _pinselInfo = tafel;
+        _pinselInfoText = Hauptmenue.Text(spalte, "", 12, Hell);
+        _pinselInfoText.MouseFilter = Control.MouseFilterEnum.Ignore;
+    }
+
+    /// <summary>Jedes Bild: das Schild folgt der Maus (rechts unterhalb, am Bildrand nach innen geklappt) – nur mit Gelände- und Bodenpinsel.</summary>
+    private void PinselInfoZeigen()
+    {
+        var text = DialogOffen ? null : _stadt.WerkstattPinselInfo();
+        _pinselInfo.Visible = text is not null && _oberflaeche.Visible;
+        if (!_pinselInfo.Visible) return;
+        if (_pinselInfoText.Text != text) _pinselInfoText.Text = text;
+        _pinselInfo.ResetSize();
+        var maus = GetViewport().GetMousePosition();
+        var feld = GetViewport().GetVisibleRect().Size;
+        var groesse = _pinselInfo.GetCombinedMinimumSize();
+        var ort = maus + new Vector2(22, 22);
+        if (ort.X + groesse.X > feld.X - Rand) ort.X = maus.X - 22 - groesse.X;
+        if (ort.Y + groesse.Y > feld.Y - UntenBis) ort.Y = maus.Y - 22 - groesse.Y;
+        _pinselInfo.Position = ort;
     }
 
     /// <summary>Die Tastenhilfe unten nach dem Werkzeug; die zweite Zeile (Kamera) bleibt.</summary>
@@ -194,8 +234,9 @@ public partial class Kartenwerkstatt
                 "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
             Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
-            Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke und Kante rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Gelb: Hangsperre ab 8 %, rot ab 15 %",
-            Werkstattwerkzeug.Boden => "Mit gedrückter Maus malen – Radius, Stärke, Kante und Deko rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+            Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke, Kante und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück"
+                + (_stadt.GelaendeMitZielhoehe ? " · Strg+Klick: Zielhöhe aufnehmen" : "") + " · Gelb: Hangsperre ab 8 %, rot ab 15 %",
+            Werkstattwerkzeug.Boden => "Mit gedrückter Maus malen – Radius, Stärke, Kante, Deko und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Strg+Klick: Bodenart aufnehmen",
             Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Fluss => "Punkte klicken, in Fließrichtung (Pfeile) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab",
