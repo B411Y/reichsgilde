@@ -18,7 +18,7 @@ public partial class Kartenwerkstatt
     private static readonly Gruppe[] Gruppen =
     {
         new("auswaehlen", "Auswählen", "auswaehlen", Key.Key1, "Gebäude, Wege, Flächen, Pflanzen und Mauern anklicken, ziehen, drehen und löschen – ihre Eigenschaften stehen rechts.", false),
-        new("gelaende", "Gelände", "gelaende", Key.Key2, "Hügel und Mulden malen, Rampen ziehen, Berge setzen.", true),
+        new("gelaende", "Gelände", "gelaende", Key.Key2, "Hügel und Mulden malen, Rampen ziehen, Berge setzen, Felsen stempeln und streuen.", true),
         new("boden", "Boden", "boden", Key.Key3, "Bodentexturen malen: Erde, Kies, Pflaster, Sand … (mit Deko wie Steinen und Gras).", true),
         new("wasser", "Wasser", "wasser", Key.Key4, "Flüsse, Bäche, Seen, Teiche, Fähren und Häfen. Brücken und Furten entstehen von selbst.", true),
         new("wege", "Wege", "wege", Key.Key5, "Straßen, Gassen und Pfade zeichnen – von der Landstraße bis zum Fußweg.", true),
@@ -335,6 +335,18 @@ public partial class Kartenwerkstatt
         var berge = _entwurf.Katalog.Bausteine.Where(b => b.Art == Bausteinart.Berg).ToList();
         if (berge.Count > 0) Kopf("Berge");
         foreach (var b in berge) Gebaeude(b, b.Anzeigename, BausteinTipp(b), Werkstattwerkzeug.Baustein, "gelaende");
+        // Felsen (Felspinsel F4): die festen Gruppen als Stempel, ein Einzelstück, Streuen und Radierer – Gestein, Vorlage und Regler rechts
+        Kopf("Felsen");
+        var felsfarbe = Stadtansicht.FelsFarbe(_entwurf.Grundgestein.Wirksam);
+        foreach (var g in Felsformen.Gruppen)
+            Eintrag("fels:" + g.Kennung, g.Name, $"Stempel: eine {g.Name} aus {g.Stuecke.Count} Stücken mit einem Klick – die Schauseite zeigt hangabwärts. Die Vorschau an der Maus zeigt genau, was der Klick setzt.",
+                Werkstattwerkzeug.Fels, vorher: () => (_stadt.FelsModus, _stadt.FelsGruppe) = (Stadtansicht.FelsArt.Stempeln, g.Kennung), bild: Farbfeld(felsfarbe));
+        Eintrag("fels:einzeln", "Felsstück", "Stempel: ein einzelnes Stück aus den Formen rechts (Block, Platte, Überhang …) mit einem Klick",
+            Werkstattwerkzeug.Fels, vorher: () => (_stadt.FelsModus, _stadt.FelsGruppe) = (Stadtansicht.FelsArt.Stempeln, null), bild: Farbfeld(felsfarbe.Darkened(0.15f)));
+        Eintrag("fels:streuen", "Felsen streuen", "Mit gedrückter Maus malen: Stücke oder Gruppen locker in den Kreis streuen, bis die Dichte erreicht ist (Vorlage, Dichte und Größe rechts)",
+            Werkstattwerkzeug.Fels, vorher: () => _stadt.FelsModus = Stadtansicht.FelsArt.Streuen, bild: Farbfeld(felsfarbe.Lightened(0.15f)));
+        Eintrag("fels:radierer", "Fels-Radierer", "Mit gedrückter Maus über Felsstücke fahren – alle mit der Mitte im Kreis sind weg (der Filter rechts gilt auch hier)",
+            Werkstattwerkzeug.Fels, "radierer", () => _stadt.FelsModus = Stadtansicht.FelsArt.Radieren);
 
         // Boden (Schritt 5e): die elf Texturen mit Farbfeld, dazu der Radierer
         Gruppe("boden");

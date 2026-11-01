@@ -205,7 +205,7 @@ public partial class Kartenwerkstatt
         _pinselInfoText.MouseFilter = Control.MouseFilterEnum.Ignore;
     }
 
-    /// <summary>Jedes Bild: das Schild folgt der Maus (rechts unterhalb, am Bildrand nach innen geklappt) – nur mit Gelände- und Bodenpinsel.</summary>
+    /// <summary>Jedes Bild: das Schild folgt der Maus (rechts unterhalb, am Bildrand nach innen geklappt) – nur mit Gelände-, Boden- und Felspinsel.</summary>
     private void PinselInfoZeigen()
     {
         var text = DialogOffen ? null : _stadt.WerkstattPinselInfo();
@@ -237,6 +237,12 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke, Kante und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück"
                 + (_stadt.GelaendeMitZielhoehe ? " · Strg+Klick: Zielhöhe aufnehmen" : "") + " · Gelb: Hangsperre ab 8 %, rot ab 15 %",
             Werkstattwerkzeug.Boden => "Mit gedrückter Maus malen – Radius, Stärke, Kante, Deko und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück · Strg+Klick: Bodenart aufnehmen",
+            Werkstattwerkzeug.Fels => _stadt.FelsModus switch
+            {
+                Stadtansicht.FelsArt.Stempeln => "Klick stempelt, was die Vorschau zeigt – Vorlage, Gestein, Größe, Einsinken und Neigung rechts · „Neu würfeln“ rechts · Strg+Z nimmt es zurück",
+                Stadtansicht.FelsArt.Streuen => "Mit gedrückter Maus streuen – Vorlage, Dichte, Größe und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+                _ => "Mit gedrückter Maus radieren – Radius und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+            },
             Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Fluss => "Punkte klicken, in Fließrichtung (Pfeile) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab",
@@ -459,6 +465,11 @@ public partial class Kartenwerkstatt
         if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Boden)
         {
             if (neu || _gezeigt != BodenMarke) BodenTafel(); // Kartenwerkstatt.Eigenschaften.cs
+            return;
+        }
+        if (_stadt.Kartenwerkzeug == Werkstattwerkzeug.Fels)
+        {
+            if (neu || _gezeigt != FelsMarke) FelsTafel(); // Kartenwerkstatt.Felsen.cs
             return;
         }
         if (_stadt.Kartenwerkzeug is Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See or Werkstattwerkzeug.Faehre)

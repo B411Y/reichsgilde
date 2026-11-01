@@ -16,6 +16,7 @@ namespace Reichsgilde;
 ///   • Kartenwerkstatt.Palette.cs: Gruppenleiste links (Tasten 1–0), Paletten mit Icons und Vorschaubildern, Kopfleiste, klappbare Abschnitte;
 ///   • Kartenwerkstatt.Eigenschaften.cs: die Tafel rechts für Wege, Flächen (mit Streu-Gruppen), Pflanzen, Mauern und den Pinsel;
 ///   • Kartenwerkstatt.Start.cs: die Tafel „Start“ (Startbelegung: Spieler und KI-Häuser);
+///   • Kartenwerkstatt.Felsen.cs: die Tafel des Felswerkzeugs (Vorlage, Gestein, Grundgestein, Regler, Filter);
 ///   • Kartenwerkstatt.Karte.cs: der Reiter „Karte“ (Größe, Randstreifen, Rand vorschlagen, Kamera-Start) und die Tafel der Feldfläche;
 ///   • Kartenwerkstatt.Ebenen.cs: der Knopf „Ebenen“ (Bauzonen, Natur, Requisiten, Linien, Beschriftungen ein- und ausblenden, Taste H);
 ///   • Kartenwerkstatt.Katalogbilder.cs: die vorab gerenderten Vorschaubilder der Palette;
@@ -777,6 +778,11 @@ public partial class Kartenwerkstatt : Node
                         : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte, bodenfilter);
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
+            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · stempel:<vorlage>,x,z[,drehung] ·
+            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
+            // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
+            if (o.TryGetValue("werkstatt-fels", out var felsen))
+                foreach (var eintrag in felsen.Split('|', StringSplitOptions.RemoveEmptyEntries)) FelsBefehl(eintrag);
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
             if (o.TryGetValue("werkstatt-rampe", out var rampen))
                 foreach (var eintrag in rampen.Split('|', StringSplitOptions.RemoveEmptyEntries))
@@ -862,6 +868,49 @@ public partial class Kartenwerkstatt : Node
                 foreach (var ort in Liste("-," + orte).Punkte)
                     GD.Print($"Bildpunkt {Kartenschreiber.Zahl(ort.X)},{Kartenschreiber.Zahl(ort.Z)} -> {_stadt.WerkstattBildpunkt(ort.X, ort.Z)}");
             };
+    }
+
+    /// <summary>Ein Schritt der Startoption <c>--werkstatt-fels</c> (siehe dort).</summary>
+    private void FelsBefehl(string eintrag)
+    {
+        var (art, rest) = (eintrag.Split(':', 2)[0], eintrag.Contains(':') ? eintrag.Split(':', 2)[1] : "");
+        Felspinsel Vorlage(string text)
+        {
+            var (vorlage, gestein) = (text.Split('@')[0], text.Contains('@') ? text.Split('@')[1] : null);
+            if (gestein is not null && !Felsformen.IstGestein(gestein)) throw new ArgumentException($"Unbekannte Gesteinsart „{gestein}“.");
+            var basis = _stadt.FelsPinsel with { Radierer = false, Gestein = gestein ?? _stadt.FelsGestein };
+            if (Felsformen.Gruppe(vorlage) is { } g) return basis with { Gruppe = g.Kennung };
+            var formen = vorlage.Split('+');
+            if (formen.Any(f => Felsformen.Finde(f) is null)) throw new ArgumentException($"Unbekannte Felsvorlage „{vorlage}“ (wand, kuppe, rippe oder Formen mit +).");
+            return basis with { Gruppe = null, Formen = formen };
+        }
+        switch (art)
+        {
+            case "grundgestein":
+                _entwurf.GrundgesteinSetzen(rest);
+                break;
+            case "stempel":
+            {
+                var t = rest.Split(',');
+                _stadt.WerkstattFelsStempeln(Vorlage(t[0]), new Kartenort(Zahl(t[1]), Zahl(t[2])), t.Length > 3 ? Zahl(t[3]) : null);
+                break;
+            }
+            case "streuen":
+            {
+                var t = rest.Split(',', 4);
+                var pinsel = Vorlage(t[0]) with { Radius = Zahl(t[1]), Dichte = Zahl(t[2]) };
+                _stadt.WerkstattFelsStreuen(pinsel, Liste("-," + t[3]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
+                break;
+            }
+            case "radierer":
+            {
+                var t = rest.Split(',', 2);
+                _stadt.WerkstattFelsStreuen(Felspinsel.Radiergummi(Zahl(t[0]), _stadt.FelsFilter), Liste("-," + t[1]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
+                break;
+            }
+            default:
+                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, stempel, streuen, radierer).");
+        }
     }
 
     /// <summary>
