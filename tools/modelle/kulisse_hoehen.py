@@ -42,10 +42,12 @@ BRAUNKOHLE = (
     ("Tagebau Hambach und Sophienhöhe", 50.912, 6.460, 6.5),
     ("Tagebau Garzweiler", 51.060, 6.500, 6.0),
     ("Tagebau Inden", 50.850, 6.360, 5.0),
-    ("Glessener Höhe", 50.958, 6.735, 2.0),
+    ("Glessener Höhe und Kippen bei Habbelrath", 50.948, 6.712, 3.2),
     ("Vollrather Höhe", 51.045, 6.580, 2.5),
     ("Tagebau Fortuna", 50.980, 6.620, 3.5),
     ("Tagebau Frechen", 50.900, 6.790, 2.5),
+    ("Außenkippe Marienfeld (Frechen-Habbelrath)", 50.912, 6.735, 2.5),
+    ("Tagebau Bergheim und Fortuna-Garsdorf", 50.965, 6.620, 4.0),
 )
 
 # Gipfel mit Namen: ungefähre Lage; die genaue Lage ist der höchste DGM-Punkt im Umkreis (km), die Höhe kommt aus dem DGM.

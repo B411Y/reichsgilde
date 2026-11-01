@@ -131,16 +131,16 @@
     {
       "name": "Ville",
       "art": "gebiet",
-      "breite": 50.9168,
-      "laenge": 6.7381,
-      "hoehe_nn": 161,
-      "peilung": 264.0,
-      "entfernung_km": 15.7,
+      "breite": 50.8766,
+      "laenge": 6.7885,
+      "hoehe_nn": 138,
+      "peilung": 243.0,
+      "entfernung_km": 13.7,
       "staffel": "nah",
       "spiel": [
-        -875.5,
-        60.6,
-        111.8
+        -865.5,
+        57.3,
+        451.3
       ]
     }
   ]
