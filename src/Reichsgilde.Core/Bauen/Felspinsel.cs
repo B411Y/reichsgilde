@@ -132,10 +132,17 @@ public static class Felsstreuung
     /// <summary>
     /// Wie stark der Filter an einem Ort wirkt (0 … 1): Steigung am Raster, Bodenart am nächsten Bodenpunkt (gerundet, Punkt i liegt bei x = i). Ohne Filter 1.
     /// </summary>
-    public static double Filterfaktor(Pinselfilter? filter, Hoehenraster hoehen, Bodenraster boden, double x, double z)
+    public static double Filterfaktor(Pinselfilter? filter, Hoehenraster hoehen, Bodenraster boden, double x, double z) =>
+        Filterfaktor(filter, hoehen, boden.Gewicht, x, z);
+
+    /// <summary>
+    /// Wie oben, der Boden aber aus <paramref name="gewicht"/> (Punkt i, j, Textur → 0 … 255) – der Felsstrich mit „Boden“ liest so den Boden vor
+    /// dem Strich, sonst sähe der Filter, was der Strich selbst gerade malt (F6, wie beim Texturpinsel).
+    /// </summary>
+    internal static double Filterfaktor(Pinselfilter? filter, Hoehenraster hoehen, Func<int, int, Bodentextur, byte> gewicht, double x, double z)
     {
         if (filter is null) return 1;
-        if (filter.Boden is { } t && !filter.BodenPasst(boden.Gewicht(Bodenraster.Punktindex(x + Bodenraster.Abstand / 2), Bodenraster.Punktindex(z + Bodenraster.Abstand / 2), t))) return 0;
+        if (filter.Boden is { } t && !filter.BodenPasst(gewicht(Bodenraster.Punktindex(x + Bodenraster.Abstand / 2), Bodenraster.Punktindex(z + Bodenraster.Abstand / 2), t))) return 0;
         return filter.MitSteigung ? filter.SteigungFaktor(Pinselfilter.Steigung(hoehen, x, z)) : 1;
     }
 

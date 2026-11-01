@@ -34,7 +34,11 @@ static class FelsbodenTests
 
     static int G(Kartenentwurf e, double x, double z, Bodentextur t) => e.Boden.Gewicht((int)Math.Round(x), (int)Math.Round(z), t);
 
-    /// <summary>Die Prüfsumme des festen Ablaufs der FelsenTests ohne „Boden“, gemessen vor F6 (vor dem Suchraster): Es darf nichts ändern.</summary>
+    /// <summary>
+    /// Die Prüfsumme des festen Ablaufs der FelsenTests ohne „Boden“, gemessen vor F6 (vor dem Suchraster, Stand 84cc1a4c): Es darf nichts ändern.
+    /// Ändert sich später der Ablauf oder das Kartenformat, den Wert neu erzeugen: auf 84cc1a4c (mit dem neuen Ablauf ohne Boden) den Gleichheitstest
+    /// laufen lassen und die Zeile „fels …“ aus bin/…/gleichheit-pruefsumme.txt nehmen – oder den Test durch einen Vergleich ohne Raster ersetzen.
+    /// </summary>
     const string AblaufVorF6 = "2d66973a6b83153867af14bb0bcd333ddd83e347ee5180d2eef2594d201b1384";
 
     /// <summary>
@@ -69,12 +73,10 @@ static class FelsbodenTests
             var kies = Enumerable.Range(4, 6).Max(d => G(e, 50 - d, 0, Bodentextur.Kies));
             Pruefe.Wahr(kies >= 100, $"Kies hangabwärts: {kies}");
             Pruefe.Wahr(Enumerable.Range(3, 8).All(d => G(e, 50 + d, 0, Bodentextur.Kies) == 0), "kein Kies hangaufwärts");
-            var tiefe = Felsformen.Finde("wand")!.Tiefe / 2; // Halbachse in x bei Drehung 0 ist die Breite – hier quer zum Hang
             var breite = Felsformen.Finde("wand")!.Breite / 2;
             var moosOben = Enumerable.Range(0, 3).Max(d => G(e, 50 + breite + d * 0.5, 0, Bodentextur.Moos));
             Pruefe.Wahr(moosOben >= 60, $"Moos am oberen Rand: {moosOben}");
             Pruefe.Wahr(G(e, 50 + breite + 6, 0, Bodentextur.Moos) == 0, "Moos nur als Saum");
-            Pruefe.Wahr(tiefe > 0, "Maße");
             Pruefe.Gleich(0, (int)e.Boden.Dekodichte(50, 0), "Dekodichte bleibt 0");
             var nachher = e.ZuJson();
             e.Rueckgaengig();
@@ -153,6 +155,38 @@ static class FelsbodenTests
             Pruefe.Gleich(Sha(a.Boden.AlsText()), Sha(b.Boden.AlsText()), "Boden unabhängig von der Reihenfolge");
         }),
 
+        ("Felsboden: Ein Bodenfilter sieht den Boden vor dem Strich – mit Filter (Wiese, Fels) setzt der Strich mit Boden dieselben Stücke wie ohne", () =>
+        {
+            foreach (var t in new[] { Bodentextur.Wiese, Bodentextur.Fels })
+            {
+                var (a, b) = (HangMitEbene(), HangMitEbene());
+                foreach (var e in new[] { a, b }) e.BodenMalen(new Bodenpinsel(Bodentextur.Fels, Radius: 12), Linie(O(10, -5), O(40, 5), 6));
+                var strich = Linie(O(-10, 0), O(60, 10), 20);
+                var filter = new Pinselfilter(Boden: t);
+                a.FelsStreuen(new Felspinsel(Formen: new[] { "block", "kuppe" }, Radius: 12, Dichte: 0.35, Filter: filter, Boden: false), strich, startwert: 4);
+                b.FelsStreuen(new Felspinsel(Formen: new[] { "block", "kuppe" }, Radius: 12, Dichte: 0.35, Filter: filter), strich, startwert: 4);
+                Pruefe.Wahr(a.Felsen.Count > 0, $"{t}: Stücke");
+                Pruefe.Gleich(a.Felsen.Count, b.Felsen.Count, $"{t}: Zahl");
+                Pruefe.Wahr(a.Felsen.Zip(b.Felsen).All(p => p.First.GleicheWerte(p.Second)), $"{t}: gleiche Stücke");
+            }
+        }),
+
+        ("Felsboden: Fels- und Texturstrich beenden sich gegenseitig – Rückgängig führt Byte für Byte zum Anfang zurück", () =>
+        {
+            var e = HangMitEbene();
+            var vorher = e.ZuJson();
+            e.FelsStrichBeginnen(new Felspinsel(Formen: new[] { "kuppe" }, Radius: 10, Dichte: 0.4), startwert: 2);
+            e.FelsStrichWeiter(O(30, 0));
+            e.BodenMalen(new Bodenpinsel(Bodentextur.Erde, Radius: 8), new[] { O(26, 0), O(34, 0) });
+            Pruefe.Wahr(!e.FelsStrichLaeuft, "der Texturstrich beendet den Felsstrich");
+            e.BodenStrichBeginnen(new Bodenpinsel(Bodentextur.Sand, Radius: 8));
+            e.BodenStrichWeiter(O(28, 4));
+            e.FelsStreuen(new Felspinsel(Formen: new[] { "block" }, Radius: 8, Dichte: 0.3), new[] { O(30, 2) }, startwert: 3);
+            Pruefe.Wahr(!e.BodenStrichLaeuft, "der Felsstrich beendet den Texturstrich");
+            for (var n = 0; n < 4; n++) e.Rueckgaengig(); // Felsstrich, Erde, Sand, Felsstrich
+            Pruefe.Gleich(Sha(vorher), Sha(e.ZuJson()), "alles zurück");
+        }),
+
         ("Felsboden: Alte Karten – Stempel mit Boden und Rückgängig ergibt Byte für Byte die alte Datei", () =>
         {
             foreach (var datei in Directory.GetFiles(Path.Combine(Path.GetDirectoryName(Datenordner)!, "karten"), "*.json").OrderBy(d => d, StringComparer.Ordinal))
@@ -181,6 +215,10 @@ static class FelsbodenTests
             Pruefe.Wahr(!a.SequenceEqual(Felsboden.Schuttsteine(wand with { X = 51 }, e.Hoehen)), "andere Lage – andere Steine");
             Pruefe.Gleich(0, Felsboden.Schuttsteine(new Felsfuss("schuttbrocken", 50, 0, 0, 1), e.Hoehen).Count);
             Pruefe.Gleich(0, Felsboden.Schuttsteine(new Felsfuss("zinne", 50, 0, 0, 1), e.Hoehen).Count);
+            Pruefe.Gleich(0, Felsboden.Schuttsteine(wand, e.Hoehen, e.Boden).Count, "ohne Kies im Boden keine Steine");
+            e.FelsStempeln(new Felspinsel(Formen: new[] { "wand" }), O(50, 0), drehung: 0);
+            var aufKies = Felsboden.Schuttsteine(Felsfuss.Von(e.Felsen[0]), e.Hoehen, e.Boden);
+            Pruefe.Wahr(aufKies.Count > 0 && aufKies.Count <= a.Count, $"mit gemaltem Kegel: {aufKies.Count} von {a.Count}");
             var eben = Felsboden.Schuttsteine(new Felsfuss("kuppe", -100, 0, 0, 1), e.Hoehen);
             Pruefe.Wahr(eben.Any(s => s.X < -100) && eben.Any(s => s.X > -100), "in der Ebene rund um den Fuß");
         }),

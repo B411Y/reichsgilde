@@ -8,10 +8,10 @@ namespace Reichsgilde.Core.Bauen;
 //  Ein Felsstück soll nicht hart auf der Wiese stehen. Wie am echten Hang (Konzeptbild 6): Fels → Moos → Schutt/Kies → Wiese. Darum malt der
 //  Felspinsel beim Streuen und Stempeln den Boden mit – in denselben Befehl wie die Stücke (ein Schritt bei Rückgängig), in die vorhandenen
 //  Kanäle des Bodenrasters (Fels, Kies, Moos; kein neuer Kanal):
-//    • Fels unter der Grundfläche (Ellipse aus Breite × Tiefe, gedreht wie das Stück) und bis <see cref="Felsboden.FelsRand"/> darüber hinaus.
+//    • Fels unter der Grundfläche (Ellipse aus 0,8 × Breite × Tiefe, gedreht wie das Stück) und bis <see cref="Felsboden.FelsRand"/> darüber hinaus.
 //    • Schuttkegel hangabwärts: Kies, so lang wie das Stück hoch ist (mal <see cref="Felsboden.KegelJeHoehe"/>, am steilen Hang länger), unten
 //      breiter, mit ausgefranstem Ende. Auf ebenem Boden (unter Felspinsel.HangAb) statt des Kegels ein schmaler Kiesring um den Fuß.
-//    • Moossaum um den Fuß (bis <see cref="Felsboden.MoosBreite"/>), am stärksten am oberen Rand (hangaufwärts) und auf der Nordseite (−z),
+//    • Moossaum um den Fuß (1,6–3 m breit, je nach Höhe des Stücks), am stärksten am oberen Rand (hangaufwärts) und auf der Nordseite (−z),
 //      wo im Mittel des Tages Schatten ist – dieselbe Regel wie das Moos im Fels-Material.
 //  Je Punkt zählt in einem Strich das stärkste Gewicht jeder der drei Texturen (über alle Stücke des Strichs); der neue Wert wird jedes Mal aus
 //  dem Stand vor dem Strich gerechnet: erst Moos, dann Kies, zuletzt Fels darüber. So ist das Ergebnis unabhängig von der Reihenfolge der Stücke
@@ -37,11 +37,21 @@ public readonly record struct Schuttstein(double X, double Z, double Drehung, do
 /// <summary>Die Rechnungen für den Boden um den Fels (siehe Kopf der Datei).</summary>
 public static class Felsboden
 {
-    /// <summary>So weit reicht der Fels über die Grundfläche hinaus (Meter, weich auslaufend).</summary>
-    public const double FelsRand = 0.6;
+    /// <summary>
+    /// Die Grundfläche für den Boden: Anteil der Halbachsen von Breite und Tiefe. Die Stücke sind rund und stecken im Boden – ihr Fuß ist kleiner als
+    /// ihr Kasten (Klicktest: mit dem vollen Kasten lag ein breiter Fels-Rand frei um jedes Stück).
+    /// </summary>
+    public const double Grundflaeche = 0.8;
 
-    /// <summary>Breite des Moossaums außerhalb der Grundfläche (Meter, Plan: 0,5–1 m); er beginnt <see cref="MoosInnen"/> innerhalb.</summary>
-    public const double MoosBreite = 0.9, MoosInnen = 0.4;
+    /// <summary>So weit reicht der Fels über die Grundfläche hinaus (Meter, weich auslaufend).</summary>
+    public const double FelsRand = 0.4;
+
+    /// <summary>
+    /// Der Moossaum außerhalb der Grundfläche (Meter): ab <see cref="MoosVon"/>, voll bis MoosVon + 0,4, aus bei 1,2 m + ¼ der Höhe des Stücks
+    /// (<see cref="MoosBisMin"/> … <see cref="MoosBisMax"/>). Plan: 0,5–1 m; auf dem 1-m-Raster des Bodens war das nur ein Punkt breit und im Bild
+    /// nicht zu sehen (Klicktest), darum breiter.
+    /// </summary>
+    public const double MoosVon = 0.0, MoosBisMin = 1.6, MoosBisMax = 3;
 
     /// <summary>Wie stark Moos, Kies und Fels höchstens decken (Anteil; Fels ganz).</summary>
     public const double MoosStaerke = 0.85, KiesStaerke = 0.9;
@@ -62,13 +72,13 @@ public static class Felsboden
     /// <summary>Die Lage eines Stücks für den Boden: Halbachsen der Grundfläche, Drehung, Hang, Kegel.</summary>
     private readonly struct Lage
     {
-        public readonly double X, Z, Rb, Rt, C, S, Hoehe, Kegel, Gx, Gz, Rdir, Rquer, Reichweite;
+        public readonly double X, Z, Rb, Rt, C, S, Hoehe, Kegel, Gx, Gz, Rdir, Rquer, Reichweite, MoosBis;
         public readonly bool Hang;
 
         public Lage(Felsfuss f, Felsform form, Hoehenraster hoehen)
         {
             (X, Z) = (f.X, f.Z);
-            (Rb, Rt) = (form.Breite * f.Massstab / 2, form.Tiefe * f.Massstab / 2);
+            (Rb, Rt) = (Grundflaeche * form.Breite * f.Massstab / 2, Grundflaeche * form.Tiefe * f.Massstab / 2);
             var t = f.Drehung * Math.PI / 180;
             (C, S) = (DetMathe.Cos(t), DetMathe.Sin(t));
             Hoehe = form.Hoehe * f.Massstab;
@@ -80,7 +90,8 @@ public static class Felsboden
             Kegel = Math.Clamp(KegelJeHoehe * Hoehe * Math.Clamp(0.6 + steigung / 50, 0.6, 1.4), KegelMin, KegelMax);
             Rdir = Hang ? RadiusIn(Gx, Gz) : 0;
             Rquer = Hang ? RadiusIn(-Gz, Gx) : 0;
-            Reichweite = Math.Max(Rb, Rt) + Math.Max(Hang ? Kegel + 1 : 0.35 * Hoehe + 0.6, MoosBreite) + 1;
+            MoosBis = Math.Clamp(1.2 + 0.25 * Hoehe, MoosBisMin, MoosBisMax);
+            Reichweite = Math.Max(Rb, Rt) + Math.Max(Hang ? Kegel + 1 : 0.35 * Hoehe + 1, MoosBis) + 1;
         }
 
         /// <summary>Weltversatz → Achsen des Stücks (Umkehrung von Kartengeometrie.Dreh).</summary>
@@ -106,8 +117,8 @@ public static class Felsboden
     {
         if (!Malt(f.Form)) return;
         var l = new Lage(f, Felsformen.Finde(f.Form)!, hoehen);
-        var (i0, j0) = (Math.Max(erlaubt.I0, (int)Math.Floor(l.X - l.Reichweite)), Math.Max(erlaubt.J0, (int)Math.Floor(l.Z - l.Reichweite)));
-        var (i1, j1) = (Math.Min(erlaubt.I1, (int)Math.Ceiling(l.X + l.Reichweite)), Math.Min(erlaubt.J1, (int)Math.Ceiling(l.Z + l.Reichweite)));
+        var (a0, b0, a1, b1) = Bodenraster.PunkteIn(new Kartenrechteck(l.X - l.Reichweite, l.Z - l.Reichweite, l.X + l.Reichweite, l.Z + l.Reichweite));
+        var (i0, j0, i1, j1) = (Math.Max(erlaubt.I0, a0), Math.Max(erlaubt.J0, b0), Math.Min(erlaubt.I1, a1), Math.Min(erlaubt.J1, b1));
         for (var j = j0; j <= j1; j++)
             for (var i = i0; i <= i1; i++)
             {
@@ -125,7 +136,7 @@ public static class Felsboden
                 var oben = l.Hang ? Math.Max(0, -(ux * l.Gx + uz * l.Gz)) : 0;
                 var nord = Math.Max(0, -uz);
                 var seite = Math.Clamp(0.25 + 0.75 * Math.Max(oben, 0.8 * nord), 0, 1);
-                var moos = Gelaendeform.Weich((d + rand + MoosInnen) / MoosInnen) * Gelaendeform.Weich(1 - (d + rand) / MoosBreite) * seite;
+                var moos = Gelaendeform.Weich((d + rand - MoosVon) / 0.4) * Gelaendeform.Weich((l.MoosBis - d - rand) / (0.6 * l.MoosBis)) * seite;
 
                 double kies;
                 if (l.Hang)
@@ -137,18 +148,23 @@ public static class Felsboden
                     var halb = l.Rquer * (0.8 + 0.6 * Math.Clamp(t, 0, 1)) + 0.4;
                     kies = a <= 0 ? 0 : Gelaendeform.Weich((1 - t) / 0.45) * Gelaendeform.Weich((halb - q) / (0.4 * halb));
                 }
-                else kies = 0.6 * Gelaendeform.Weich(1 - (d + rand) / (0.35 * l.Hoehe + 0.6));
+                else kies = 0.6 * Gelaendeform.Weich(1 - (d + rand) / (0.35 * l.Hoehe + 1));
 
                 if (fels <= 0 && kies <= 0 && moos <= 0) continue;
                 aus(i, j, fels, kies, moos);
             }
     }
 
+    /// <summary>So viel Kies (Anteil 0 … 1) muss unter einem Schuttstein liegen, sonst fällt er weg.</summary>
+    public const double SteinAufKies = 0.2;
+
     /// <summary>
     /// Die Schuttsteine vor einem Stück (siehe Kopf der Datei): je Meter Höhe <see cref="SteineJeHoehe"/>, höchstens <see cref="SteineMax"/>, im
     /// Kegel hangabwärts (eben: rund um den Fuß). Aus Lage und Form gerechnet, ohne Zufall des Strichs – ein Stück hat immer dieselben Steine.
+    /// Mit <paramref name="boden"/> bleiben nur Steine, unter denen mindestens <see cref="SteinAufKies"/> Kies liegt: So liegen sie nur, wo der
+    /// Kegel gemalt ist (nicht bei „Boden aus“, nicht nach dem Radieren des Kieses; nach Verschieben oder neuem Gelände nur, wo noch Kies ist).
     /// </summary>
-    public static IReadOnlyList<Schuttstein> Schuttsteine(Felsfuss f, Hoehenraster hoehen)
+    public static IReadOnlyList<Schuttstein> Schuttsteine(Felsfuss f, Hoehenraster hoehen, Bodenraster? boden = null)
     {
         if (!Malt(f.Form)) return Array.Empty<Schuttstein>();
         var l = new Lage(f, Felsformen.Finde(f.Form)!, hoehen);
@@ -171,12 +187,13 @@ public static class Felsboden
             {
                 var w = zufall.NextDouble() * 2 * Math.PI;
                 var (ux, uz) = (DetMathe.Cos(w), DetMathe.Sin(w));
-                var r = l.RadiusIn(ux, uz) * 0.95 + zufall.NextDouble() * (0.25 * l.Hoehe + 0.3);
+                var r = l.RadiusIn(ux, uz) + zufall.NextDouble() * (0.25 * l.Hoehe + 0.6);
                 (x, z) = (l.X + ux * r, l.Z + uz * r);
             }
             var drehung = zufall.NextDouble() * 360;
             var massstab = Math.Clamp(Math.Min(1.6, 0.35 + 0.18 * l.Hoehe) * (0.55 + 0.9 * zufall.NextDouble()), Felsformen.MassstabMin, 2);
-            aus.Add(new Schuttstein(Kartenraster.Punkt(x), Kartenraster.Punkt(z), Kartenraster.Drehung(drehung), Math.Round(massstab, 2)));
+            var stein = new Schuttstein(Kartenraster.Punkt(x), Kartenraster.Punkt(z), Kartenraster.Drehung(drehung), Math.Round(massstab, 2));
+            if (boden is null || boden.Anteil(stein.X, stein.Z, Bodentextur.Kies) >= SteinAufKies) aus.Add(stein);
         }
         return aus;
     }

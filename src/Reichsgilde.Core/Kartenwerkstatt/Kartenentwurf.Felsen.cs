@@ -205,6 +205,7 @@ public sealed partial class Kartenentwurf
     public IReadOnlyList<EntwurfFels> FelsStempeln(Felspinsel pinsel, Kartenort ort, double? drehung = null, int? startwert = null)
     {
         FelsStrichBeenden();
+        BodenStrichBeenden();
         var neue = FelsStempelVorschau(pinsel with { Radierer = false }, ort, drehung, startwert).Select(EntwurfFels.Aus).ToList();
         if (neue.Count == 0) return neue;
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
@@ -245,6 +246,7 @@ public sealed partial class Kartenentwurf
     public void FelsStrichBeginnen(Felspinsel pinsel, int? startwert = null)
     {
         FelsStrichBeenden();
+        BodenStrichBeenden(); // beide schreiben in dieselben Kacheln, jeder aus seinem Stand vorher (F6)
         _felsstrich = new Felsstrich(this, FelsBegrenzt(pinsel), startwert);
     }
 
@@ -377,7 +379,10 @@ public sealed partial class Kartenentwurf
                 if (dx * dx + dz * dz > r2) continue;
                 var (x, z) = (m.X + dx, m.Z + dz);
                 if (!_e.Kartengrenzen.Aussen.Enthaelt(x, z)) continue;
-                var faktor = Felsstreuung.Filterfaktor(p.Filter, _e._hoehen, _e._boden, x, z);
+                // der Bodenfilter am Stand vor dem Strich (F6: der Strich malt selbst Boden)
+                var faktor = Boden is { } bs
+                    ? Felsstreuung.Filterfaktor(p.Filter, _e._hoehen, bs.Aenderung.GewichtVorher, x, z)
+                    : Felsstreuung.Filterfaktor(p.Filter, _e._hoehen, _e._boden, x, z);
                 if (faktor < 1 && zufall.NextDouble() >= faktor) continue;
                 var lagen = Felsstreuung.Treffer(p, zufall, _e._hoehen, x, z);
                 if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l))) continue;
