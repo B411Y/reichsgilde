@@ -1847,3 +1847,31 @@ Köln je Haus (vorher / nachher): Overstolz 70.492 / 83.398, Hardevust 42.871 / 
 **Befund:** Ziel erreicht – der Spieler bleibt bei 32.009 (−1 %), kein Bankrott, Bürger nach Ø 9,8 Jahren. Die KI-Häuser gewinnen 13 % (62.000, zwischen der Fahrzeit nach Weglänge mit gekapptem Umland, 54.793, und der alten festen Fahrzeit, 73.589): Ihr Umland fährt nicht mehr an der Höchstdauer. Wie stark das Umland auch den Spieler trägt, zeigen die Fassungen dazwischen: Mit Umlandwegen von 89–184 m kamen Erz und Holz so schnell auf den gemeinsamen Markt, dass der Schmied des Spielers mit derselben Werkstatt rund 7 % mehr hatte (34.778); erst mit gleich weiten Umlandwegen um 170 m (Ochsenkarren 4–5 Stunden) liegt er wieder bei 32.000. Der eine Bankrott der Fassung 1 war ein Einbruch beim Ausbau um Jahr 10 (Tiefstwert −984, andere Häuser knapp über null), in den beiden späteren Fassungen kam keiner vor. Drei Liegenschaften zum Kauf im Westen (Kräutergarten am Bach, Steinbruch am Felsenhang, Holzschlag im Eichenforst, 324–426 m) fahren weiter an der Höchstdauer – wie schon vorher für den Ochsenkarren; über alle 16 Umlandbetriebe sind es 8 von 72 Fahrten statt 23.
 
 **Klicktest** (Köln, Tempo 1, Vulkan auf der Grafikkarte, Messzeile `[karren] Profil`): Alle acht Werkstattkarren fahren im Bild den Weg des Kerns (gleiche Länge, 19,8–23,6 m, Anker im Modell 0,00 m vom Start) und kommen −1 bis 0 % gegen die Kernzeit am Halt an (nur die Rundung des Kerns auf ganze Minuten), jeder zu seinem Platz: Heumarkt 3 (Spieler 23,6 m, 30 Minuten), Alter Markt 2, Neumarkt 3. Stände stehen an allen drei Plätzen, ein Klick auf jeden öffnet die gemeinsame Preistafel.
+
+## Hausreihe vor dem Tor (Branch phase5/gehtempo)
+
+Wunsch des Nutzers (1.11.2026): Die Lage der drei Märkte bleibt, aber Alter Markt und Heumarkt lagen zu nah an der Mauer (der Platz stieß an Wallstraße und Tor). Beide rücken an der Rheingasse 15 m zur Stadtmitte (37 | ±110 statt ±125; der Rand des Platzes 28 statt 13 m vor dem Tor), so dass dazwischen Häuser stehen: zur Stadt hin die Wallstraße und ein Einwohnerplatz, am Rhein zwei Einwohnerplätze hintereinander. Deutz ist nach demselben Maßstab geprüft und bleibt, wie es ist (zwischen Neumarkt und Deutzer Mauer stehen nach Norden die Startgrundstücke, nach Süden und Osten Einwohnerplätze). Ziel wie bisher: Spieler um 30.000, KI-Häuser im bisherigen Rahmen, kein Bankrott. Keine Änderung an Kern, Daten oder Spielstand – nur die Karte.
+
+**Karte** (Einzelheiten in `docs/LEVELDESIGN.md`, Abschnitt Köln): Die Startgrundstücke an der Rheingasse ziehen 15 m mit; dafür rücken im Norden Trankgasse und Krähenpforte 9 m, Hafen, Kran und Zollstelle 6 m nach Süden. Der Kartäuserwall berührt den Heumarkt nicht mehr – das Grundstück, das an ihm lag (S3, Hardevust), liegt jetzt am Malzbüchel, einer neuen Hauptstraße von der Severinstraße zur Mitte des Heumarkts. Sechs Einwohnerplätze zwischen Mauer und Platz kommen dazu, einer an der Trankgasse fällt weg (71 statt 66); 52 Bauzonen, Kapazität 7.487 statt 7.746 Felder (80 % frei nach der Pflicht).
+
+**Fahrzeiten** (`messen karren koeln`, Handkarren bzw. Ochsenkarren eben):
+
+| Köln | Werkstatt: Weg Ø (min–max) | Handkarren Ø | an der Höchstdauer | Umland: Weg Ø (min–max) | Ochsenkarren Ø | an der Höchstdauer |
+|---|---|---|---|---|---|---|
+| vorher (e32f607a) | 22 m (20–24), Spieler 24 | 28 min | 0 von 48 | 170 m (150–193) | 269 min | 0 von 42 |
+| nachher | 22 m (20–24), Spieler 24 | 27 min | 0 von 48 | 173 m (151–193) | 273 min | 0 von 42 |
+
+Je Betrieb ändern sich nur drei Wege: Hardevust 24 → 21 m (über den Malzbüchel statt den Kartäuserwall), Lyskirchen 23 → 22 m und der Kräutergarten Gryn an der Bonner Straße 150 → 168 m (der Heumarkt liegt weiter vom Severinstor); die übrigen Umlandbetriebe fahren nach Deutz.
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler): **vorher** = f7d0b501 (Messung „Märkte an den Enden der Mauer und in Deutz“, auf main 2c5275c8), **nachher** = 22edd3b2 auf main 2c5275c8 (eingemergt) → `docs/messungen/balancing-2026-11-01-hausreihe-{koeln,greybox}.json`.
+
+| Köln (10 Startwerte) | vorher | **nachher** |
+|---|---|---|
+| Spieler (Median; Fehler des Mittels) | 32.009 (29.993; ±2.205) | **30.192** (29.589; ±1.705) |
+| KI-Häuser Ø (kleinstes) | 62.000 (40.618) | **63.605** (51.532) |
+| Bankrott | 0 | **0** |
+| Spieler Bürger: Ø Jahr (im Ziel 8–12) | 9,8 (10 von 10) | **9,5 (10 von 10)** |
+
+Köln je Haus (vorher / nachher): Overstolz 83.398 / 80.333, Hardevust 44.666 / 60.396, Lyskirchen 63.334 / 54.677, Gryn 75.516 / 76.447, Scherfgin 53.362 / 55.788, Mommersloch 73.107 / 66.063, Kleingedank 40.618 / 51.532. **Greybox** (20 Startwerte, Gegenprobe, die Karte ist unverändert): Spieler 35.151, KI-Häuser Ø 72.543 (53.704), kein Bankrott, Bürger 9,5 (20 von 20) – auf den Gulden wie vorher.
+
+**Befund:** Ziel erreicht – der Spieler liegt bei 30.192 (−6 %, unter dem Fehler des Unterschieds von ±2.787; der Median fast gleich), kein Bankrott, Bürger nach Ø 9,5 Jahren; die KI-Häuser im bisherigen Rahmen (+3 %). Deutlich über der Streuung gewinnen nur die beiden Tischler (Hardevust +35 %, Kleingedank +27 %, je etwa das 2,5-Fache des Fehlers des Unterschieds), damit hat das schwächste KI-Haus 51.532 statt 40.618; Hardevust fährt jetzt 21 statt 24 m, Kleingedanks Wege sind gleich – die Ursache ist nicht untersucht. Alle übrigen Unterschiede liegen in der Streuung (Lyskirchen −14 %, Mommersloch −10 %, je etwa ein Fehler des Unterschieds).
