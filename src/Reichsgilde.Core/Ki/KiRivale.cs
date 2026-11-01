@@ -536,7 +536,7 @@ public sealed partial class KiRivale
         && IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
 
     /// <summary>Eine freie Liegenschaft zum Kauf (oder zur Pacht) – oder eine Werkstatt der Stufe 1, die die KI neu bauen könnte.</summary>
-    private sealed record Angebot(string Name, Betriebsart Art, double Preis, bool IstPacht, bool Neubau, double BauJahre);
+    internal sealed record Angebot(string Name, Betriebsart Art, double Preis, bool IstPacht, bool Neubau, double BauJahre);
 
     /// <summary>
     /// Eine freie Werkstatt kaufen, einen Umlandbetrieb pachten oder eine Werkstatt neu bauen, wenn es sich rechnet:
@@ -557,27 +557,7 @@ public sealed partial class KiRivale
         if (voll && !Betriebe.Any(b => b.Ort == Arbeitsort.Umland && !HatWerkstattFuer(b.Artdaten.Beruf))) return;
 
         var daten = _w.Daten;
-        var wahl = _w.FreieLiegenschaften
-            .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
-            .Where(l => l.MindestGrad <= Math.Max(1, Konto.Meistergrad(daten.Art(l.Art).Beruf))) // verkaufte ausgebaute Werkstätten erst mit dem Meistergrad
-            .Select(l => new Angebot(l.Name, l.Art, l.Kaufpreis, l.IstPacht, Neubau: false, BauJahre: 0))
-            .Concat(Neubauten())
-            .Where(a => !voll || daten.Art(a.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(a.Art).Beruf))
-            .Where(a => !Gesperrt(a.Art))
-            // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
-            .Select(a => (Angebot: a, Beruf: daten.Art(a.Art).Beruf,
-                          Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, a.Art, leistung: _w.VolksFaktor(Konto, daten.Art(a.Art).Beruf)) * DiebesZuschlag(a.Art)))
-            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
-            .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
-            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
-            // Was der Betrieb kostet, bis er arbeitet: Preis, Lehrgeld und beim Neubau der Gewinn, der im Baujahr entgeht.
-            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Lehrgeld, x.Neu, Kosten: x.Angebot.Preis + x.Lehrgeld + x.Gewinn * x.Angebot.BauJahre))
-            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Amortisationsjahre)
-            .Where(x => Konto.Vermoegen - x.Angebot.Preis - x.Lehrgeld - daten.Fixkosten(x.Angebot.Art)
-                        - daten.Plaetze(x.Angebot.Art) * HoechsterLohn(x.Angebot.Art) >= Profil.Reserve)
-            .OrderByDescending(x => x.Gewinn - x.Kosten / Amortisationsjahre)
-            .ThenBy(x => x.Angebot.Name, StringComparer.Ordinal)
-            .FirstOrDefault();
+        var wahl = Expansionskandidaten(voll).FirstOrDefault();
         if (wahl.Angebot is not { } l) return;
 
         var waehrung = daten.Allgemein.Waehrung;
@@ -592,6 +572,42 @@ public sealed partial class KiRivale
         }
         Befehlen(new LiegenschaftErwerben(l.Name),
             $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {waehrung} im Jahr).");
+    }
+
+    /// <summary>
+    /// Die Angebote, die sich für <see cref="Expandieren"/> rechnen, das beste zuerst: Gewinn (mit Völkerbonus, im Umland nach dem Weg), Lehrgeld,
+    /// Kosten bis zum ersten Ertrag. <paramref name="voll"/>: Das Haus hat schon so viele Betriebe, wie es darf (dann nur die fehlende Werkstatt
+    /// zu einem Umlandbetrieb).
+    /// </summary>
+    internal List<(Angebot Angebot, string Beruf, double Gewinn, double Lehrgeld, bool Neu, double Kosten)> Expansionskandidaten(bool voll = false)
+    {
+        var daten = _w.Daten;
+        return _w.FreieLiegenschaften
+            .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
+            .Where(l => l.MindestGrad <= Math.Max(1, Konto.Meistergrad(daten.Art(l.Art).Beruf))) // verkaufte ausgebaute Werkstätten erst mit dem Meistergrad
+            .Select(l => new Angebot(l.Name, l.Art, l.Kaufpreis, l.IstPacht, Neubau: false, BauJahre: 0))
+            .Concat(Neubauten())
+            .Where(a => !voll || daten.Art(a.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(a.Art).Beruf))
+            .Where(a => !Gesperrt(a.Art))
+            // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
+            // Ein Umlandbetrieb gilt so viel weniger, wie seine Karren auf dem echten Weg nicht wegbringen (KiRivale.Umland.cs).
+            .Select(a => (Angebot: a, Beruf: daten.Art(a.Art).Beruf, Leistung: _w.VolksFaktor(Konto, daten.Art(a.Art).Beruf)))
+            .Select(x => (x.Angebot, x.Beruf, Schaetzung: x.Angebot.Neubau
+                ? (Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, x.Angebot.Art, leistung: x.Leistung), Karrenkosten: 0.0)
+                : NachDemWeg(x.Angebot.Name, x.Angebot.Art, Kalkulation.ErwarteterJahresgewinn(_w, x.Angebot.Art, leistung: x.Leistung), x.Leistung)))
+            .Select(x => (x.Angebot, x.Beruf, Gewinn: x.Schaetzung.Gewinn * DiebesZuschlag(x.Angebot.Art), x.Schaetzung.Karrenkosten))
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Karrenkosten, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
+            .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Karrenkosten, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
+            // Was der Betrieb kostet, bis er arbeitet: Preis, Lehrgeld, beim Neubau der Gewinn, der im Baujahr entgeht, und im Umland die Karren,
+            // die der Weg verlangt (KiRivale.Umland.cs).
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Lehrgeld, x.Neu, Kosten: x.Angebot.Preis + x.Lehrgeld + x.Gewinn * x.Angebot.BauJahre + x.Karrenkosten))
+            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Amortisationsjahre)
+            .Where(x => Konto.Vermoegen - x.Angebot.Preis - x.Lehrgeld - daten.Fixkosten(x.Angebot.Art)
+                        - daten.Plaetze(x.Angebot.Art) * HoechsterLohn(x.Angebot.Art) >= Profil.Reserve)
+            .OrderByDescending(x => x.Gewinn - x.Kosten / Amortisationsjahre)
+            .ThenBy(x => x.Angebot.Name, StringComparer.Ordinal)
+            .ToList();
     }
 
     /// <summary>Werkstätten, die die KI neu bauen könnte (nur mit Karte): jede Betriebsart der Stufe 1 in der Stadt, die ihr Stand erlaubt.</summary>

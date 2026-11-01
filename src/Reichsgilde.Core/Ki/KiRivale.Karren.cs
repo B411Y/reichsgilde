@@ -84,12 +84,15 @@ public sealed partial class KiRivale
     /// Rohstoffe; Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Ein Holzschlag (nur Holz, Lager 40) füllt den Kriegskarren
     /// (75) also nie; ein Bauernhof mit Gerste und Roggen schon.
     /// </summary>
-    internal double Durchfluss(Betrieb b, string typ)
+    internal double Durchfluss(Betrieb b, string typ) => Durchfluss(b, typ, b.LagerKapazitaetJeWare);
+
+    /// <summary>Wie <see cref="Durchfluss(Betrieb, string)"/>, mit einem anderen Lager je Ware (etwa nach einer Eigenschaft des Vorarbeiters, KiRivale.Umland.cs).</summary>
+    internal double Durchfluss(Betrieb b, string typ, int lagerJeWare)
     {
         var daten = _w.Daten.Logistik.Karren[typ];
         var minuten = _w.Fahrzeit(b, typ, zumMarkt: true) + _w.Fahrzeit(b, typ, zumMarkt: false);
         var waren = Math.Max(1, b.IstWerkstatt ? Math.Max(b.WarenInArbeit.Count, b.Zutaten.Count) : b.Rohstoffe.Count);
-        return Math.Min(daten.Gesamtkapazitaet, b.LagerKapazitaetJeWare * waren) / (double)Math.Max(1, minuten);
+        return Math.Min(daten.Gesamtkapazitaet, lagerJeWare * waren) / (double)Math.Max(1, minuten);
     }
 
     /// <summary>

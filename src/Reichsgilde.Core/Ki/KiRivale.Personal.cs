@@ -42,14 +42,14 @@ public sealed partial class KiRivale
     }
 
     /// <summary>
-    /// Die Eigenschaft mit dem höchsten Mehrgewinn im Jahr (<see cref="Personalwesen.MehrgewinnJeJahr"/>); bei Gleichstand (etwa ohne Gulden-Wirkung)
-    /// die erste der Wahl – also die aus der Gruppe Ware.
+    /// Die Eigenschaft mit dem höchsten Mehrgewinn im Jahr (<see cref="Personalwesen.MehrgewinnJeJahr"/>, im gebremsten Umland mit dem Lager,
+    /// <see cref="EigenschaftWert"/>); bei Gleichstand (etwa ohne Gulden-Wirkung) die erste der Wahl – also die aus der Gruppe Ware.
     /// </summary>
     private void EigenschaftWaehlenNachGewinn(Betrieb b, Arbeiter a)
     {
         if (a.EigenschaftWahl is not { Count: > 0 } wahl) return;
         var p = _w.Personal;
-        var beste = wahl.Select((k, i) => (Kennung: k, Wert: p.MehrgewinnJeJahr(b, k), Platz: i))
+        var beste = wahl.Select((k, i) => (Kennung: k, Wert: EigenschaftWert(b, k), Platz: i))
             .OrderByDescending(x => x.Wert).ThenBy(x => x.Platz).First();
         var name = p.Eigenschaft(b, beste.Kennung)?.Name ?? beste.Kennung;
         Befehlen(new EigenschaftWaehlen(b.Name, a.Nummer, beste.Kennung),
