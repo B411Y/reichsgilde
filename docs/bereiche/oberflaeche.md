@@ -270,7 +270,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Nach der Prüfung | Eine eingetippte Zielhöhe setzt den Haken „Feste Zielhöhe“ sichtbar; trifft die bereitgestellte Pipette keinen Boden, springt ihr Knopf heraus (Ereignis `WerkstattPipetteGeaendert(genommen)`); die Tooltips zu Mulden/Spitzen sagen genau, was geschieht (höchstens bis Mitte ± Stärke, auf ebenem Boden wie gewohnt); ist der Steigungsbereich schmaler als 4 Prozentpunkte, warnt die Tafel rot. | 31.10. |
 | Klicktest | Vulkan (T400), neue Karte mit Hügel aus der Startoption: Terrassen (4-m-Stufen, Fels an den Kanten), Ebnen mit Pipette (Bank auf genau 9,78 m), nur Mulden (−4,00 → −1,00 m, Ebene bleibt 0,00), nur Spitzen (Kuppe gekappt), Fels nur ab 15 % (Kuppe und Ebene bleiben Wiese), Moos nur auf Fels, Bodenart-Pipette. Bilder im Bericht. | 31.10. |
 
-### Schilder und Ampeln des Fahrwegs (Branch phase5/fahrweg-anzeige, PR folgt)
+### Schilder und Ampeln des Fahrwegs (PR #…)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

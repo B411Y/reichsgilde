@@ -475,7 +475,7 @@ Nutzerwunsch 31.10.2026: Passanten und Karren bewegten sich oft viel zu schnell 
 | Außerhalb des Bereichs (Marktplätze) | `Hauptszene.cs`: zwei Stellen (Klick auf einen Marktplatz öffnet das Marktfenster, Auswahltext mit dem Namen des Platzes) über `Stadtansicht.IstMarktplatz`/`MarktplatzName`. Kein Kern, keine Daten, keine `.glb`. | 31.10.2026 |
 | Spätere Idee | Eigene Charaktere der Häuser und Dynastien sollen später echt simuliert herumlaufen (Ort und Weg im Kern); dann entfällt für sie der Abgleich mit dem Kern, und `Gehtempo` wird Teil der Simulation. Noch nicht gebaut. | 31.10.2026 |
 
-### Fahrweg im Baumodus (Branch phase5/fahrweg-anzeige, PR folgt)
+### Fahrweg im Baumodus (PR #…)
 
 Nutzerwunsch 01.11.2026: Beim Bauen einer Werkstatt die Wege der Karren zu allen Marktplätzen in der ganzen Wegbreite zeigen, gefärbt nach der Fahrzeit (`Stadtansicht.Fahrweg.cs`).
 
@@ -488,3 +488,5 @@ Nutzerwunsch 01.11.2026: Beim Bauen einer Werkstatt die Wege der Karren zu allen
 | Kein Doppeltes | Schablonenpuffer (Stencil, „ungleich 1, schreiben“): Jede Stelle wird nur einmal gefärbt, an Ecken, Kreuzungen und wo sich Wege überlagern. Der beste Weg zuerst (`RenderPriority` 0), ein anderer erst ab der Stelle, an der er sich vom besten trennt. | 01.11.2026 |
 | Bester Markt | Deckung 0,62 und Schild mit Goldrand; die übrigen 0,3 und Schild blasser. | 01.11.2026 |
 | Ampeln | Schrittweise Suche (höchstens 3 ms je Bild) wie `Bauwesen.Bauorte`, aber nur an Stellen mit zwei Vorplatzfeldern in der Straßennähe (vorab gerechnet); je 12-m-Feld eine Ampel mit der besten Fahrzeit über die Drehungen. `Bauorte` selbst kostet in Köln 5 s am Stück – zu lang für ein Bild. | 01.11.2026 |
+| Außerhalb des Bereichs | Kern (klein, mit Test `FahrwegeAmBauortTests`): `Stadtwirtschaft.Fahrwege.cs` mit `FahrwegeAmBauort`, `FahrzeitenAuf`, `Zwischenzeiten` – nur Abfragen, nichts im Spielstand, deterministisch. Oberfläche: `BauAnzeige`, `BauRueckfrage`, `Hauptszene` (Zeile „Fahrt zum Markt“, Einhängen der `FahrwegAnzeige`). | 01.11.2026 |
+| Nach der Prüfung | Über einer Tafel bleibt der letzte Weg stehen (sonst verschwand die Zeile samt Tooltip); Höhe wie die Karren (Brücke, Fähre, Pflaster); Ampeln mit dem Ecken-Vorfilter aus `Bauorte` und ohne Doppelprüfung überlappender Zonen; Schilder am Rand nicht unter Zeitstrahl und Leiste; Legende der Ampeln nur mit Ampeln. | 01.11.2026 |
