@@ -55,9 +55,9 @@ public sealed class Marktflaeche
 
     public float Halb => _halb;
 
-    public void Kreis(float x, float z, float radius) { _kreise.Add((x, z, radius)); _abstand = Array.Empty<float>(); }
+    public void Kreis(float x, float z, float radius) { _kreise.Add((x, z, radius)); _abstand = Array.Empty<float>(); _gemerkt.Clear(); }
 
-    public void Rechteckig(Rechteck r) { _rechtecke.Add(r); _abstand = Array.Empty<float>(); }
+    public void Rechteckig(Rechteck r) { _rechtecke.Add(r); _abstand = Array.Empty<float>(); _gemerkt.Clear(); }
 
     /// <summary>Ein Stand: Hindernis und für die Messung gemerkt.</summary>
     public void Stand(Rechteck r) { Rechteckig(r); Staende.Add(r); }
@@ -348,6 +348,32 @@ public sealed class Marktflaeche
         }
         return Pfad(von, nach, frei);
     }
+
+    private readonly Dictionary<(int, int, int, int, int, int), List<(float X, float Z)>?> _gemerkt = new();
+
+    /// <summary>
+    /// Wie <see cref="Gefaechert"/>, aber gemerkt: Die Wege beginnen und enden fast immer an denselben Punkten (Einmündungen der Gassen, Stellen auf dem
+    /// Platz), darum lohnt es sich – zur vollen Stunde suchen sonst Dutzende zugleich. Die Seite wird dafür auf fünf Stufen gerundet (−1, −0,5, 0, 0,5, 1),
+    /// die Enden auf 5 cm. Höchstens 4000 Wege, dann beginnt der Speicher neu. Gibt eine Kopie zurück.
+    /// </summary>
+    public List<(float X, float Z)>? GefaechertGemerkt((float X, float Z) von, (float X, float Z) nach, float frei, float seite)
+    {
+        var stufe = (int)MathF.Round(Math.Clamp(seite, -1, 1) * 2);
+        var schluessel = ((int)MathF.Round(von.X * 20), (int)MathF.Round(von.Z * 20), (int)MathF.Round(nach.X * 20), (int)MathF.Round(nach.Z * 20), stufe, (int)MathF.Round(frei * 100));
+        if (!_gemerkt.TryGetValue(schluessel, out var weg))
+        {
+            if (_gemerkt.Count >= 4000) _gemerkt.Clear();
+            _gemerkt[schluessel] = weg = Gefaechert(von, nach, frei, stufe / 2f);
+        }
+        if (weg is null) return null;
+        // genau die verlangten Enden (gerundet gemerkt)
+        var kopie = new List<(float X, float Z)>(weg) { [0] = von };
+        kopie[^1] = nach;
+        return kopie;
+    }
+
+    /// <summary>Wie viele Wege gemerkt sind.</summary>
+    public int Gemerkt => _gemerkt.Count;
 
     /// <summary>Länge einer Punktfolge (Meter).</summary>
     public static float Laenge(IReadOnlyList<(float X, float Z)> punkte)

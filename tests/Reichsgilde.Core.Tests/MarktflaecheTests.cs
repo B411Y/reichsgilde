@@ -156,6 +156,21 @@ static class MarktflaecheTests
                 }
             Pruefe.Wahr(geprueft > 5000, $"nur {geprueft} Lagen geprüft");
         }),
+        ("Marktfläche: gemerkte Wege – gleich wie neu gesucht, genau die verlangten Enden, Seiten auf fünf Stufen", () =>
+        {
+            var f = Testplatz();
+            var (von, nach) = ((-6f, -5f), (-6f, 5f));
+            var neu = f.Gefaechert(von, nach, Frei, 0.5f)!;
+            var gemerkt = f.GefaechertGemerkt(von, nach, Frei, 0.45f)!;
+            Pruefe.Gleich(neu.Count, gemerkt.Count);
+            for (var i = 0; i < neu.Count; i++) Pruefe.Wahr(MathF.Abs(neu[i].X - gemerkt[i].X) + MathF.Abs(neu[i].Z - gemerkt[i].Z) < 1e-5f, $"Punkt {i} anders");
+            Pruefe.Gleich(1, f.Gemerkt);
+            var nochmal = f.GefaechertGemerkt((-6.01f, -5.01f), nach, Frei, 0.55f)!;
+            Pruefe.Gleich(1, f.Gemerkt);                       // derselbe Eintrag (5 cm, gleiche Stufe)
+            Pruefe.Gleich((-6.01f, -5.01f), nochmal[0]);       // aber mit dem verlangten Anfang
+            nochmal[1] = (0, 0);                                // eine Kopie: der Speicher bleibt unberührt
+            Pruefe.Wahr(f.GefaechertGemerkt(von, nach, Frei, 0.5f)![1] != (0, 0), "Speicher verändert");
+        }),
         ("Marktfläche: Kosten – eine Suche fasst höchstens einen Teil des Rasters an", () =>
         {
             var f = Testplatz();

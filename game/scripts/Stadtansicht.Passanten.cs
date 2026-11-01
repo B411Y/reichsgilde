@@ -421,7 +421,15 @@ public partial class Stadtansicht
                 // Sekunde, damit niemand seitlich springt). Die Enden schrumpfen dort nur auf den letzten 0,6 m (um die Stelle herum ist Raum).
                 if (!MarktV2)
                 {
+                    // auch 1 und 2 m voraus (auf der Mittellinie): Rückt ein Stand näher, rückt sie rechtzeitig ein, ohne zu springen
                     var flaeche = FlaechenRaum(p, hier, rechts);
+                    foreach (var voraus in new[] { 1f, 2f })
+                    {
+                        if (strecke + voraus > laenge) break;
+                        var (vx, vz) = mitte!.Bei(strecke + voraus);
+                        if (FlaechenRaum(p, new Vector3(vx, hier.Y, vz), rechts) is not { } spaeter) continue;
+                        flaeche = flaeche is { } jetzt ? (Mathf.Max(jetzt.Links, spaeter.Links), Mathf.Min(jetzt.Rechts, spaeter.Rechts), jetzt.Auf) : (spaeter.Links, spaeter.Rechts, false);
+                    }
                     var (erlaubtL, erlaubtR) = flaeche is { } fl ? (fl.Links, fl.Rechts) : (-3f, 3f);
                     // gerade an einem Ort losgegangen (Spur noch null): gleich die wahre Grenze, sonst höchstens 1,5 m je Sekunde
                     var schritt = p.GrenzeLinks <= -3f && p.GrenzeRechts >= 3f && strecke < 0.5f ? 10f : 1.5f * (float)_bildSekunden;

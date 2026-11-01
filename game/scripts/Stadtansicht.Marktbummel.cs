@@ -178,7 +178,7 @@ public partial class Stadtansicht
         if (vorVon is { } v1) punkte.Add(v1);
         var seite = Marktbummel.Seite(nummer, schluessel, 0);
         // gibt es mit vollem Abstand keinen Weg (Ende in einer engen Ecke), dann mit knapperem – nie gerade durch Stand oder Brunnen, wenn es anders geht
-        var weg = f.Gefaechert((a.X, a.Z), (b.X, b.Z), FlaecheFrei, seite) ?? f.Pfad((a.X, a.Z), (b.X, b.Z), 0.6f);
+        var weg = f.GefaechertGemerkt((a.X, a.Z), (b.X, b.Z), FlaecheFrei, seite) ?? f.Pfad((a.X, a.Z), (b.X, b.Z), 0.6f);
         if (weg is not null)
             for (var i = 1; i + 1 < weg.Count; i++) punkte.Add(new Vector3(weg[i].X, platz.Hoehe, weg[i].Z));
         if (vorBis is { } v2) punkte.Add(v2);
@@ -470,6 +470,7 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     private double _marktMessSekunden, _alleinSumme, _inStandSumme, _kreisSumme, _amPlatzSumme, _marktMessBilder;
+    private int _inStandGemeldet;
     private long _alleinNeu, _inStandNeu, _kreisLinks, _kreisRechts, _inStandStehend, _inStandBummel, _inStandEnde;
     private readonly HashSet<int> _alleinJetzt = new(), _inStandJetzt = new();
     private readonly Dictionary<int, double> _alleinSeit = new();
@@ -505,6 +506,10 @@ public partial class Stadtansicht
                         if (p.Stand is not null) _inStandStehend++;
                         else if (p.ImBummel) _inStandBummel++;
                         else if (p.AmRand < 1.5f) _inStandEnde++;
+                        if (_inStandGemeldet++ < 12) // die ersten Fälle genau (zum Suchen der Ursache)
+                            GD.Print($"[passantenmarkt] in Stand: Nummer {nummer} bei ({ort.X:0.00}|{ort.Z:0.00}), steht {p.Stand is not null}, bummelt {p.ImBummel}, " +
+                                     $"Pfad {p.Pfad.Length} Punkte ({string.Join(" ", p.Pfad.Take(12).Select(q => $"{q.X:0.0}|{q.Z:0.0}"))}), am Rand {p.AmRand:0.0} m, " +
+                                     $"seitlich {p.Seitlich:0.00}, Karren {p.Ausweichen:0.00}, Versatz ({p.VersatzJetzt.X:0.00}|{p.VersatzJetzt.Z:0.00}), Grenzen {p.GrenzeLinks:0.00}/{p.GrenzeRechts:0.00}");
                     }
                 }
                 _amPlatzSumme += 1;
