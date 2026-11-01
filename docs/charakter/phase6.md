@@ -1481,3 +1481,109 @@ Tageslicht (`vorlage`) und Spiellicht. Note „natürlich gegen Puppe“ 1–10,
    --aus=~/werkzeuge/charakter/glb6f/regeln6.json --e3=1`; `kopf6_tex` auf glb6d verknüpfen; Haar `GLB=…/glb6f
    GLB5=~/werkzeuge/charakter/glb6 tools/charakter/kopf6.sh nur_haar`.
 5. Bogen: Zelle mit `"kopf": "~/werkzeuge/charakter/glb6f/kopf6.glb"`, Lidform über `"formen": {"lid_rund": 1.0}`.
+
+## Grundkopf 2: Werte zurückgedreht, Augen, Frau, Haut (Probekopf glb6h)
+
+Anlass (Nutzer 01.11.2026): „Die Gesichter sind immer noch zu fratzig. Das kann man etwas weiter zurückdrehen von den
+erlaubten Werten.“ Dazu die Empfehlung aus E2/E3: Lider plastischer, Nase und Kinn der Frau als eigene Formen, Haut.
+Probekopf `~/werkzeuge/charakter/glb6h` (Runde 2; Runde 1 = glb6g), Probebau `glb6p_g` (`eigen=3`), Rezept
+`tools/charakter/kopf6_rezept_grundkopf2.json`, Regeln `kopf6_verschieden.py --e3=1 --e4=1`, Hautkarten mit
+`HAUTC_OPT="gk2=1"`. Vergleich „vorher“ ist glb6f (unverändert).
+
+### Was gebaut ist
+
+- **Mäßigung der Gene** (`charakter_kopf.gd`, Abschnitt `verschieden.maessigung` der regeln6.json): jedes σ weich gekappt,
+  z' = c · tanh(z / c), danach Stärke × Faktor. Kleine Ausschläge bleiben fast gleich, große laufen gegen c.
+
+  | Was | vorher (glb6f) | nachher (glb6h) |
+  |---|---|---|
+  | Augenpartie (Größe, Lidspalte, Schlupflid, Neigung, Brauenstand) | 1,3 × natürliche Streuung | 1,0 × |
+  | Lidspalte enger | höchstens 1,3 mm/σ | 1,0 mm/σ |
+  | Kappe heikle Gene (Brauenstand, Brauenwulst, Nase Länge/Breite/Höcker/Spitze, Kiefer Breite/Vorstand, Kinn, Kinnbreite, Augengröße, Lidspalte, Schlupflid, Augentiefe, Augenneigung, Wangenfülle) | keine | c = 1,3 σ, Stärke × 0,8 (Brauenwulst 0,7, Höcker 0,75, Augengröße 0,7, Wangenfülle 0,7) |
+  | Kappe Umriss und Mund (Gesichtsbreite/-länge, Jochbein, Mundbreite, Lippen, Mundwinkel) | keine | c = 1,5 σ, Stärke × 0,85 |
+  | übrige Gene und Gesichtszüge | keine | c = 1,6 σ |
+  | Karikaturbremse K_max / z-Grenze / Merkmale über der Grenze | 1,35 / 2,0 / 2 | 1,15 / 1,8 / 0 |
+  | Budget Gen-Anteil je Ziel | ±2,0 | ±1,6 |
+  | Nasenbudget / Stupsnase | 2,2 / 1,6 | 1,8 / 1,3 |
+  | Gesichtszüge (ICT) Faktor | 0,7 | 0,55 |
+  | Asymmetrie-Grenzen | Kinn 2,0, Nasenspitze 1,5, Augenhöhe 1,0, Brauen 2,0, Mundwinkel 1,5, Ohr 3,0 mm | × 0,7, Nasenspitze × 0,6 |
+  | Braue: Stand je σ / oben / unten / Winkel je σ | 2,5 / 1,5 / 2,0 / 2,2 mm | 1,2 / 1,0 / 1,5 / 1,2 mm |
+  | Braue: Dichte min, Dicke min | 0,75 / 0,75 | 0,9 / 0,85 |
+
+  Die Kern-Gene (`wirtschaft.json`) bleiben unverändert; alles läuft über die Darstellung.
+- **Eigene Formen** (`kopf6_eigen.py`, `eigen=3`): `eigen_nase_w` (Nasenspitze der Frau tiefer, Flügel schmaler und tiefer;
+  im Rezept 1,8, dazu Nasenlöcher schmaler 0,9, Flügel weniger gebläht 0,4, Nase flacher 0,3), `eigen_kinn_w` (Kinn der
+  Frau 1,8 mm vor, 0,8 mm tiefer; 1,6), `eigen_lippen` (Lippenrot voller; Frau 1,5, Mann 1,2), `eigen_lidkante` (Wulst
+  0,3 mm über dem Oberlidrand, 0,18 mm unter dem Unterlidrand, der Rand selbst bleibt). Wangen der Frau schlanker
+  (`probe_cheek_volume_incr` 0,55 → 0,25), Augenhöhle der Frau flacher (0,5 → 0,35).
+- **Haut** (`kopf6_hautc.py gk2=1`): Bartrand weich (Übergang 38 statt 10 mm), Karunkel größer und rosa, Wasserlinie (die
+  zum Augapfel schauende Lidkante feucht und rosa), Wimpernlinie (schmaler Schatten über dem Oberlidrand). Im Kopf
+  (`verschieden.grundkopf2`): Poren × 1,35, grobe Unebenheit 0,85 statt 0,5, Kontrast 1,22, Augenringe × 0,7.
+- **Brauen aus Härchen** (`braue6.gdshader`, `haerchen`): Haare über der Dichte bleiben als lichte Haare (40 %), statt
+  wegzufallen – keine gepunkteten Striche mehr; jedes Haar deckt etwas anders, Spitzen laufen aus, schmaler Glanz.
+  Frauenbrauen dicker und dichter (1,6 / 1,5), Hautschatten unter der Braue 0,12 statt 0,22.
+- **Augen**: Lidschatten auf dem Augapfel in Runde 1 stärker (Panel: Augen schlechter, „müde“) – in Runde 2 wieder wie
+  vorher; Tränensee am Unterlid weniger weiß (0,45 statt 0,65). Die drei Lidformen bleiben als Formen (keine Gene).
+- **Haarfleck** (dunkler Fleck oben seitlich bei `mann_kurz`, nur mit TressFX): gesucht, nicht behoben. Ausgeschlossen sind
+  Strähnendichte, Richtung, Knicke, Bindung an die Stützpunkte, die Simulation (auch ohne Einfrieren da), die Kopfhautkarte
+  und die Abdunklung innerer Strähnen. Mit allen Strähnen ausgeblendet ist er weg, mit einem beliebigen Achtel ausgeblendet
+  bleibt er – er entsteht aus vielen Strähnen zugleich, vermutlich wo zwei Kämmrichtungen aufeinandertreffen (an der Stelle
+  hat die Kopfhautkarte eine scharfe Kerbe). Prüfhilfe: Bogenzelle `"haar": {"vorgabe": {"pruef_weg": [von, bis]}}`.
+- **Vorfall**: Die Kopie der Texturordner übernahm Verknüpfungen auf glb6b2; der erste Hautbau schrieb dadurch die
+  Hautkarten von glb6b2 (und so glb6d bis glb6f) mit den neuen Werten. Sofort neu gebaut, `RELIEF`-Zeile gleich wie im
+  Originalbau (1,09108 / 0,92182 / 1,97237 / 1,59778) – wiederhergestellt. glb6g/glb6h haben eigene Dateien.
+
+### Prüfung
+
+Fratzen-Maß über 400 Männer und 400 Frauen (Saaten 30001–30400, 40001–40400, nur Gestalt-Gene), 14 Netzmaße in σ
+(natürliche Streuung, sonst Streuung „vorher“), je Person der größte Ausschlag:
+
+| | vorher Mann | nachher Mann | vorher Frau | nachher Frau |
+|---|---|---|---|---|
+| größter Ausschlag p50 / p95 / max | 1,83 / 2,80 / 4,74 σ | 1,17 / 1,76 / 2,22 σ | 1,91 / 3,12 / 3,98 σ | 1,26 / 1,94 / 2,39 σ |
+| Köpfe über 2,5 σ / über 3 σ | 13,0 % / 3,0 % | 0 / 0 | 19,0 % / 6,5 % | 0 / 0 |
+
+Die Streuung je Maß liegt nachher bei etwa 0,55–1,0 × der Streuung vorher; die Vielfalt bleibt sichtbar, wird aber
+kleiner (Panel: 4–5 von 10).
+
+Panel: je Runde drei frische blinde Prüfer, Köpfe A/B, Augen nah A/B, Fratzen-Bogen als Sätze X/Y mit je 40 Köpfen
+(20 Männer, 20 Frauen: die 4 extremsten von 400 je Geschlecht und 16 zufällige), vorn und schräg. Schlüssel
+`~/werkzeuge/charakter/bilder/phase6/GK2/schluessel_r<n>.json` (SHA-256 r1 `008fc89f…6b3012bac`, r2 `3d31e982…797b23f72`).
+
+| Runde | Mann vorher → neu | Frau vorher → neu | Augen vorher → neu | Fratzen deutlich vorher → neu (je Prüfer) |
+|---|---|---|---|---|
+| 1 (glb6g) | 5,3 → 5,8 | 4,3 → 4,2 | 5,8 → 5,0 | 2 / 4 / 1 → 0 / 2 / 0 |
+| 2 (glb6h) | 5,3 → 6,0 | 5,0 → 5,5 | 5,8 → 5,7 | 2 / 2 / 1 → 0 / 0 / 0 |
+
+- **Fratzen: Ziel 0 deutliche in Runde 2 erreicht** (alle drei Prüfer); grenzwertig 7–9 von 40 (vorher 9–13). Die
+  grenzwertigen sind meist Brauen (hoch, dick, gewölbt) und eine Frau mit großen Augen und kleinem Kinn (Saat 40008).
+- Bartrand: in Runde 2 bei „vorher“ von allen als harte Kante genannt, bei „neu“ nicht mehr.
+- **Natürlichkeit Ziel 7 nicht erreicht** (Mann 6,0, Frau 5,5). Was bleibt: Haut wirkt noch glatt, Iris matt und Blick
+  glasig, Frauenbrauen „flächig“, Gesicht der Frau wenig weiblich (nur das Haar macht sie zur Frau), Nasenlöcher von vorn,
+  grauer Schatten über dem inneren Oberlid der Frau, harte Strähnenenden an den Schläfen.
+
+### Messung (T400, Stufe Hoch, Commit 7c3e16a6, gepaart, 5 Wiederholungen, NAS-Last bis 30)
+
+`ohne_haar` +0,03 ms gegen glb6f und +0,44 ms gegen Halt B; `ohne_haar_zufall` −0,11 / +0,33 ms; VRAM 202 MB wie glb6f.
+Budget 1,0 ms eingehalten, die feinere Haut kostet nichts messbar (nur Werte, keine weitere Abtastung). `haar_tressfx_ruhe`
+schwankte um 3 ms (Rauschen). Gemessen mit glb6g; glb6h unterscheidet sich nur in Werten und Formgewichten.
+
+### Offen nach Grundkopf 2
+
+- Natürlichkeit 7: nächster Hebel Iris und Hornhaut (Tiefe, Glanzpunkt), Frauengesicht weiblicher (Stirn, Brauenbogen,
+  Jochbein), Frauenbrauen als eigene, dichtere Bilder.
+- Haarfleck: neu kämmen (`kopf6.sh kaemmen`, etwa 60 min CPU) oder Kämmrichtung an der Kerbe glätten.
+- Lidformen erst dem Nutzer zeigen.
+
+### Testanleitung Grundkopf 2
+
+1. Probebau: `GLB_PROBE=~/werkzeuge/charakter/glb6p_g PROBEN_OPT="ausschnitt=30 eigen=3 brauen_d=1
+   vorbilder=<vorbild_grund_m.npz>,<vorbild_grund_w.npz>" tools/charakter/kopf6.sh proben`.
+2. Ordner glb6h mit eigenen Kopien von `haar4/` und `kopf6_tex/` anlegen (keine Verknüpfungen auf andere Köpfe für Dateien,
+   die der Bau schreibt: `haut_c*`, `stuetzen*`, `kopfhaut*`, `bart*.png`, `rang.png`).
+3. Mischen: `GLB=~/werkzeuge/charakter/glb6h GLB_PROBE=~/werkzeuge/charakter/glb6p_g
+   REZEPT=tools/charakter/kopf6_rezept_grundkopf2.json tools/charakter/kopf6.sh mischen`; Regeln
+   `python3 tools/charakter/kopf6_verschieden.py --ein=~/werkzeuge/charakter/glb6d/regeln6.json
+   --aus=~/werkzeuge/charakter/glb6h/regeln6.json --e3=1 --e4=1`; Haut `HAUTC_OPT="gk2=1" GLB=… tools/charakter/kopf6.sh haut_c`.
+4. Fratzen-Maß: Personenliste mit Saaten, `charakter_schau.tscn -- --gewichte=… --aus=… --ende` (headless), dann
+   `stichprobe6._messen` je Person.
