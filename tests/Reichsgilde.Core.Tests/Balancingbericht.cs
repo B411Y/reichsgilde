@@ -15,6 +15,8 @@ using Reichsgilde.Core.Wirtschaft;
 //                                                                          [--teile=1,2,…] [--parallel=n] [--datei=pfad.json]
 //                                                                          [--fairness=greybox,probestadt,koeln] [--voelkerberufe=alle|Schmied,…]
 //                                                                          [--rotationen=n]   (Startfairness: nur die ersten n Rotationen)
+//                                                                          [--betriebe=datei.csv]   (jeder Betrieb je Jahr, Abschnitt „ausbau“)
+//                                                                          [--schwer=nein]   (KI-Stärke ohne die Partien „Schwer“)
 //  Schreibt docs/messungen/balancing-<datum>.json und eine kurze Übersicht auf die Konsole. Ändert keinen Wert.
 //
 //  Abschnitte: 1 Berufe, 2 Völker, 3 Startfairness, 4 Häuser (1/3/5/8, Messstadt), 5 KI-Stärke, 6 Einrichtung, 7 Gauner/Wache/Bank,
@@ -106,7 +108,7 @@ static partial class Balancingbericht
 
     /// <summary>Was ein Aufruf misst (aus den Argumenten nach „messen bericht“).</summary>
     sealed record Einstellung(int Jahre, int Startwerte, string Karte, HashSet<int> Teile, int Parallel, string? Datei, string[] Fairness, string[] VoelkerBerufe,
-        int? Rotationen = null)
+        int? Rotationen = null, bool OhneSchwer = false)
     {
         public IEnumerable<int> Werte => Enumerable.Range(1, Startwerte).Select(s => s * 101);
         public IReadOnlyList<int> Stich => Stichjahre(Jahre);
@@ -127,7 +129,8 @@ static partial class Balancingbericht
             Schalter("datei"),
             (Schalter("fairness") ?? "greybox,probestadt").Split(','),
             Schalter("voelkerberufe") is { } vb ? (vb == "alle" ? daten0.Berufe.Keys.ToArray() : vb.Split(',')) : Voelkerberufe,
-            Schalter("rotationen") is { } ro ? Math.Max(1, int.Parse(ro)) : null);
+            Schalter("rotationen") is { } ro ? Math.Max(1, int.Parse(ro)) : null,
+            Schalter("schwer") == "nein");
         var uhr = Stopwatch.StartNew();
         var q = new Messquellen(Schalter("ohne")); // --ohne=schiffshandel: alle Partien ohne diesen Abschnitt (Diagnose)
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
@@ -183,6 +186,12 @@ static partial class Balancingbericht
         if (e.Teile.Contains(7)) bericht["gaunerWacheBank"] = GaunerWacheBank(e, daten, ergebnisse, P, befunde);
         if (e.Teile.Contains(8)) bericht["hafenKasse"] = HafenKasse(e, daten, ergebnisse, P, befunde);
         if (e.Teile.Contains(9)) bericht["statutC"] = StatutC(e, q, daten, befunde);
+        // Ausbau (Befund H2 der Prüfung von phase5/gehtempo): jeder Betrieb an jedem Jahresende als CSV, die Neubauten zusammengefasst
+        if (Schalter("betriebe") is { } betriebeDatei)
+        {
+            BetriebeSchreiben(betriebeDatei, ergebnisse.Values);
+            bericht["ausbau"] = Ausbau(ergebnisse.Values);
+        }
         bericht["befunde"] = new JsonArray(befunde.Select(b => (JsonNode)b).ToArray());
         bericht["laufzeitSekunden"] = R(uhr.Elapsed.TotalSeconds);
 
@@ -224,7 +233,7 @@ static partial class Balancingbericht
                     break;
                 case 5:
                     yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi);
-                    yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi, Schwierigkeit: Schwierigkeit.Schwer);
+                    if (!e.OhneSchwer) yield return new Messaufbau(e.Karte, s, e.Jahre, Bezug: Bezugsart.WieKi, Schwierigkeit: Schwierigkeit.Schwer);
                     break;
                 case 6:
                     foreach (var b in berufe)
