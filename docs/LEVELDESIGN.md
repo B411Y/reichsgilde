@@ -219,6 +219,7 @@ Koordinaten wie bisher: Meter, x = Osten, z = Süden, Ursprung am Markt. **Drehu
 | `wege` | wie Format 1: `name`, `klasse`, `linie`, `gefahr`, `breite` (gezeichnete Breite in Metern; fehlt sie, gilt die Standardbreite der Klasse, §5), dazu seit PR #170 `kurve` (siehe „Wegkurve“ unten) und die Klassen `feldweg` und `fussweg`, seit PR #182 `belag`: Abschnitte mit anderem Belag als der Vorgabe der Klasse, z. B. `"belag": [{"von": 20, "bis": 50, "stufe": "pflaster"}, {"von": 50, "stufe": "kies"}]` (Meter entlang der Linie, ohne `bis` bis zum Ende; spätere vor früheren; bei Kies und Pflaster optional `zustand` 0–1, sonst neu; §5, „Belag“). Das **Gassennetz** entsteht nur aus den Wegen: Jede Tür, jeder Hof eines Werkstattplatzes, jeder Karrenplatz eines Umlandbetriebs und jedes Gatter einer Umlandstelle (Anker im Modell) wird automatisch mit dem nächsten Weg verbunden. Gassen von einer Werkstatt zum Markt, Zufahrten zu Gruben und Fußwege zu Weide, Feld und Wald sind also eigene Wege der Karte. |
 | `bauzonen` | wie Format 1: `kennung`, `art`, `flaeche`. |
 | `natur` | `flaechen`, `pflanzen` und seit PR #178 `felder` (siehe unten). |
+| `felsen` | optional (Felspinsel F3): das **Grundgestein** der Karte und die **Felsstücke** (siehe „Felsstücke“ unten). Fehlt es, gibt es keine Felsstücke, das Grundgestein ist Grauwacke. |
 | `wasser` | seit PR #180: Flüsse und Bäche als Linie, Seen und Teiche als Fläche (siehe „Wasser“ unten); ältere Einträge (Köln) lesen sich weiter. |
 | `uebergaenge` | seit PR #180 die **Fährstellen** (`art` „faehre“, `name`, `von` und `bis` = die beiden Anleger). Brücken entstehen von selbst; ein Eintrag „bruecke“ aus Format 1 zählt nur noch für das Wegenetz (Hinweis der Prüfung). |
 | `gelaende`, `haefen` | wie Format 1 (nur Köln; Häfen heißen seit PR #180 „hafenplatz“ und stehen unter `gebaeude`). |
@@ -312,6 +313,22 @@ Ein Strich ist ein Schritt mit Rückgängig; der Schritt merkt sich nur die Kach
 **Marktpflaster** (PR #212, Kartenregel): Der Marktplatz hat keinen eigenen Boden im Modell (`marktplatz.glb` ohne Bodenplatte). Unter der **ganzen Grundfläche jedes Marktes** (Baustein `markt`, 24 × 24 m) liegt die Bodentextur **Pflaster**, ohne Deko – so zeigt der Boden-Shader dort das Kopfsteinpflaster der Gassen, und Nässe und Schnee wirken wie auf den Gassen. Der Boden-Shader zeigt gemaltes Pflaster in der Mauer als Pflaster (sonst gilt dort der Stadtgrund aus Lehm); ohne die Textur liegt der Markt auf blankem Lehm. **Malen:** im Stadtskript nach `E.Setzen("markt", …)` die Zeile `MarktPflastern();`, an einer vorhandenen Karte der Umbau `dotnet run --project tools/Kartenbau -- umbauen marktpflaster-<karte>` (`greybox`, `koeln`, `probestadt`, `messstadt`), in der Kartenwerkstatt (Palette „Boden“, Textur Pflaster, Deko aus) mit Radius 1 m und Kante 0,25 in Zeilen im Abstand 1 m von Rand zu Rand der Grundfläche. Ein Test (`BodenTests`) prüft die Ecken und den Rand jedes Marktes aller Karten.
 
 **Deko** (nicht gespeichert, gerechnet): Was eine Textur streut und wie dicht (Stück je 100 m² bei vollem Anteil und normaler Dichte), steht im Katalog unter `bodentexturen` (Natur-Bausteine nach Gewicht, siehe „Gebäudekatalog“). Je Textur liegt ein festes Gitter auf dem Boden, in jeder Zelle ein Kandidat an einem festen Ort (aus `startwert`, Textur und Zelle); er wird gesetzt mit der Wahrscheinlichkeit Anteil · Dekodichte / 255. Ein Strich ändert also nur die Deko unter ihm. Deko liegt nur, wo mit „Deko streuen“ gemalt wurde – Karten ohne `boden` haben keine. Frei bleiben Wege, Gebäude, Bauzonen und Wasser mit 1 m Rand und die Mauer mit 3 m; anders als Bäume darf Deko in der Stadt liegen. Bodentexturen wirken nicht auf die Simulation.
+
+**Felsstücke** (Felspinsel F3; Kern `Bauen/Felsstuecke.cs`, `Bauen/Felspinsel.cs`, `Kartenwerkstatt/Kartenentwurf.Felsen.cs`). Felswände entstehen aus 3D-Stücken (`natur/natur_felsen.glb`), die halb im Hang stecken – das Höhenraster kann keine senkrechten Wände. Felsstücke **sperren nichts** (Nutzer 01.11.2026): Gebäude, Wege und Bauzonen dürfen auf ihnen stehen; die Prüfung gibt nur Hinweise (`fels`: unbekannte Form oder Gesteinsart, außerhalb der Karte).
+
+```json
+"felsen": {
+  "grundgestein": "trachyt",
+  "stuecke": [
+    {"form": "wand", "punkt": [40, -60], "drehung": 271.5, "massstab": 1.05, "neigung": 0.5, "einsinken": 0.3, "kippen": [2.1, -3.4]},
+    {"form": "block", "gestein": "kalkstein", "punkt": [44.35, -57.2], "drehung": 12.8, "massstab": 0.9, "neigung": 0.5, "einsinken": 0.27}
+  ]
+}
+```
+
+- `grundgestein`: eine Gesteinsart je Karte für den Hang-Fels im Boden (`grauwacke`, `trachyt`, `buntsandstein`, `kalkstein` wie in `game/daten/gestein.json`); ohne Angabe Grauwacke.
+- je Stück `form` (`wand`, `kuppe`, `rippe`, `block`, `platte`, `ueberhang`, `schuttbrocken`, `felsnase`), `gestein` nur, wenn es vom Grundgestein abweicht, `punkt` (Mitte der Grundfläche, 5 cm), `drehung` um die Senkrechte (Grad, 0,1°; die Schauseite +Z des Modells zeigt bei 0 nach Süden), `massstab` (0,25–4), `neigung` (Anteil 0–1, um den sich das Stück zur Hangnormalen neigt), `einsinken` (Anteil 0–0,9 der Höhe unter dem Boden, Vorgabe 0,3), `kippen` [um x, um z] in Grad (nur, wenn nicht 0; zufällig ±8°).
+- **Pinsel** der Kartenwerkstatt: **Streuen** als Strich (alle Radius/2 Meter ein Tupfer; jeder füllt seinen Kreis, bis die Grundflächen „Dichte“ des Kreises decken, höchstens 24 Versuche; zwei Stücke überdecken sich höchstens zu 35 % ihrer Radien), **Stempel** (ein Stück oder eine feste Gruppe mit einem Klick: Wand 6 Stücke, Kuppe 5, Rippe 6), **Radierer** (alle Stücke mit der Mitte im Kreis). Der Filter nach Steigung und Bodentextur gilt für alle drei. Formen mit Schauseite (Wand, Rippe, Überhang, Felsnase) und Gruppen drehen „zum Hang“ hangabwärts ± 20°, sobald der Hang 3 % steigt; sonst voll zufällig. Zufall nur aus dem Startwert des Strichs: gleicher Strich, gleiche Bytes. Jeder Strich und jeder Stempel ist ein Schritt mit Rückgängig.
 
 **Wasser** (seit PR #180, Entscheidungen in `docs/bereiche/leveldesign.md`, „Schritt 5c“; Kern `Bauen/Wasserform.cs`, `Bauen/Wasserplan.cs`). Unter `wasser` stehen Flüsse und Seen:
 
