@@ -136,6 +136,82 @@ public sealed class Gassennetz
         return pfad;
     }
 
+    /// <summary>Der Knoten genau an diesem Punkt (auf dem Boden, höchstens <paramref name="toleranz"/> Meter daneben) oder −1 – legt keinen neuen an.</summary>
+    public int KnotenGenau(Vector3 p, float toleranz = 0.05f)
+    {
+        for (var i = 0; i < _knoten.Count; i++)
+        {
+            var (dx, dz) = (_knoten[i].X - p.X, _knoten[i].Z - p.Z);
+            if (dx * dx + dz * dz <= toleranz * toleranz) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>
+    /// Die Kante, auf der ein Punkt liegt (die nächste, höchstens <paramref name="toleranz"/> Meter daneben), als ihre beiden Knoten – so, wie das Netz
+    /// jetzt ist (eine Kante, die später an einer Einmündung geteilt wurde, ist dann das Stück zwischen den Teilungen). Null, wenn keine so nah ist.
+    /// </summary>
+    public (int A, int B)? KanteBei(Vector3 p, float toleranz = 0.3f)
+    {
+        p.Y = 0;
+        (int, int)? beste = null;
+        var abstand = toleranz;
+        foreach (var (a, b) in _kanten)
+        {
+            var d = NaechsterPunkt(p, _knoten[a] with { Y = 0 }, _knoten[b] with { Y = 0 }).DistanceTo(p);
+            if (d < abstand) (beste, abstand) = ((a, b), d);
+        }
+        return beste;
+    }
+
+    /// <summary>
+    /// Der kürzeste Weg von irgendeinem der <paramref name="anfaenge"/> zu irgendeinem der <paramref name="enden"/>, wobei zu jedem Anfang ein Vorlauf und
+    /// zu jedem Ende ein Nachlauf (Meter außerhalb des Netzes) mitzählt: ein Durchgang (Dijkstra mit mehreren Quellen) statt eines je Paar. Ergebnis: die
+    /// Punktfolge im Netz und welcher Anfang und welches Ende (Nummern in den Listen) es wurden; null, wenn keiner verbunden ist. Ohne Fähren.
+    /// </summary>
+    public (Vector3[] Pfad, int Anfang, int Ende)? PfadZwischen(IReadOnlyList<(int Knoten, float Vorlauf)> anfaenge, IReadOnlyList<(int Knoten, float Nachlauf)> enden)
+    {
+        if (anfaenge.Count == 0 || enden.Count == 0) return null;
+        var nachbarn = Nachbarn();
+        var abstand = new float[_knoten.Count];
+        var vorgaenger = new int[_knoten.Count];
+        var quelle = new int[_knoten.Count];
+        Array.Fill(abstand, float.MaxValue);
+        Array.Fill(vorgaenger, -1);
+        var offen = new PriorityQueue<int, float>();
+        for (var i = 0; i < anfaenge.Count; i++)
+        {
+            var (k, vorlauf) = anfaenge[i];
+            if (k < 0 || vorlauf >= abstand[k]) continue;
+            (abstand[k], quelle[k]) = (vorlauf, i);
+            offen.Enqueue(k, vorlauf);
+        }
+        // Nachlauf je Knoten (der kleinste, falls ein Knoten mehrmals als Ende vorkommt)
+        var nachlauf = new Dictionary<int, (float Laenge, int Nummer)>();
+        for (var i = 0; i < enden.Count; i++)
+            if (enden[i].Knoten >= 0 && (!nachlauf.TryGetValue(enden[i].Knoten, out var alt) || enden[i].Nachlauf < alt.Laenge))
+                nachlauf[enden[i].Knoten] = (enden[i].Nachlauf, i);
+        var (bestes, bestesEnde) = (float.MaxValue, -1);
+        while (offen.TryDequeue(out var k, out var d))
+        {
+            if (d > abstand[k]) continue;
+            if (d >= bestes) break; // weiter weg als der beste Gesamtweg: fertig
+            if (nachlauf.TryGetValue(k, out var n) && d + n.Laenge < bestes) (bestes, bestesEnde) = (d + n.Laenge, k);
+            foreach (var (ziel, _, kosten) in nachbarn[k])
+            {
+                var neu = d + kosten;
+                if (neu >= abstand[ziel]) continue;
+                (abstand[ziel], vorgaenger[ziel], quelle[ziel]) = (neu, k, quelle[k]);
+                offen.Enqueue(ziel, neu);
+            }
+        }
+        if (bestesEnde < 0) return null;
+        var liste = new List<Vector3>();
+        for (var k = bestesEnde; k >= 0; k = vorgaenger[k]) liste.Add(_knoten[k]);
+        liste.Reverse();
+        return (liste.ToArray(), quelle[bestesEnde], nachlauf[bestesEnde].Nummer);
+    }
+
     /// <summary>Wie viele voneinander getrennte Teile das Netz hat (1 = alles hängt zusammen); Fähren verbinden (für Karren).</summary>
     public int Teile()
     {
