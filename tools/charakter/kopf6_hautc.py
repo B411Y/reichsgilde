@@ -262,7 +262,7 @@ def abstand_vieleck(xy, poly):
 
 
 # ---------------------------------------------------------------- Zonen und Glanz (1024)
-def zonen_und_glanz(X, N, P, masken_b):
+def zonen_und_glanz(X, N, P, masken_b, gk2=False):
     n = len(X)
     Z = np.zeros((n, 4))
     G = np.zeros((n, 4))
@@ -299,6 +299,8 @@ def zonen_und_glanz(X, N, P, masken_b):
     ohr = np.zeros(n)
     karunkel = np.zeros(n)
     feucht = np.zeros(n)
+    wasser = np.zeros(n)
+    wimpernlinie = np.zeros(n)
     for s, sg in (("r", -1.0), ("l", 1.0)):
         ex, en, ch, al = P[f"ex_{s}"], P[f"en_{s}"], P[f"ch_{s}"], P[f"al_{s}"]
         c = ex + 0.45 * (ch - ex) + np.array([sg * 8.0, 2.0, 0.0])
@@ -311,6 +313,9 @@ def zonen_und_glanz(X, N, P, masken_b):
         unter_auge = np.maximum(unter_auge, gauss(X, lid_u + [sg * 1.0, -6.5, -1.0], (11.0, 4.5, 6.0)) * vorn)
         lid = np.maximum(lid, gauss(X, 0.5 * (lid_u + lid_o), (13.0, 7.0, 8.0)))
         k = gauss(X, en + np.array([sg * -1.2, 0.0, -1.0]), (1.6, 1.4, 2.0))
+        if gk2:
+            # Grundkopf 2: Karunkel etwas größer (rosa Wulst im inneren Lidwinkel, Prüfer: „leerer Blick“)
+            k = np.maximum(k, gauss(X, en + np.array([sg * -1.6, -0.2, -1.6]), (2.1, 1.7, 2.4)))
         karunkel = np.maximum(karunkel, k)
         ring = [36, 41, 40, 39] if s == "r" else [45, 46, 47, 42]
         oben = [36, 37, 38, 39] if s == "r" else [45, 44, 43, 42]
@@ -318,6 +323,21 @@ def zonen_und_glanz(X, N, P, masken_b):
             L = np.array([P[f"lm{i}"] for i in pk])
             d, _, _ = abstand_t(X, L)
             feucht = np.maximum(feucht, st * np.exp(-0.5 * (d / sig) ** 2))
+        if gk2:
+            # Grundkopf 2: Wasserlinie – die Lidkante, die zum Augapfel schaut (bis 1,4 mm vom Rand), feucht und rosa;
+            # Wimpernlinie – ein schmaler Schatten der Wimpernwurzeln direkt über dem Oberlidrand
+            mitte = P[f"ps_{s}"] + np.array([0.0, 0.0, -12.0])
+            zum_auge = mitte - X
+            zum_auge /= np.maximum(np.linalg.norm(zum_auge, axis=1, keepdims=True), 1e-9)
+            L = np.array([P[f"lm{i}"] for i in ring + ring[:1]])
+            d, _, _ = abstand_t(X, L)
+            innen = glatt((N * zum_auge).sum(1), 0.05, 0.45) * glatt(d, 1.4, 0.6)
+            wasser = np.maximum(wasser, innen)
+            Lo = np.array([P[f"lm{i}"] for i in oben])
+            do, _, _ = abstand_t(X, Lo)
+            o = np.argsort(Lo[:, 0])
+            ueber = glatt(X[:, 1] - np.interp(X[:, 0], Lo[o, 0], Lo[o, 1]), -0.3, 0.2)
+            wimpernlinie = np.maximum(wimpernlinie, np.exp(-0.5 * (do / 0.5) ** 2) * ueber * (1.0 - innen))
         t = P[f"t_{s}"]
         o = glatt((X[:, 0] * sg - (abs(t[0]) - 4.0)), 0.0, 6.0) * glatt(np.abs(X[:, 1] - (t[1] + 5.0)), 38.0, 30.0) \
             * (np.abs(X[:, 2] - t[2]) < 32)
@@ -346,6 +366,9 @@ def zonen_und_glanz(X, N, P, masken_b):
     # Seite hinter dem Jochbein: Koteletten bis zur Ohrwurzel
     vor_ohr = glatt(X[:, 2], t_z + 4.0, t_z + 12.0)
     bart = glatt(X[:, 1], grenze + 4.0, grenze - 6.0) * vor_ohr
+    if gk2:
+        # Grundkopf 2 (Prüfer: „Bartschatten mit harter Kante“): Übergang 23 mm statt 10 mm, oben flach auslaufend
+        bart = glatt(X[:, 1], grenze + 7.0, grenze - 16.0) ** 1.6 * glatt(X[:, 2], t_z + 1.0, t_z + 16.0)
     # unten: Hals bis etwa 45 mm unter dem Kinn, hinten nicht in den Nacken
     bart *= glatt(X[:, 1], P["me"][1] - 55.0, P["me"][1] - 35.0)
     bart *= glatt(X[:, 2], t_z - 6.0, t_z + 6.0)
@@ -364,6 +387,8 @@ def zonen_und_glanz(X, N, P, masken_b):
     # Runde 3 (Prüfer: Lidränder und Ohren „glühen orange“): Lid, Lidrand und Ohr schwächer
     hb += 0.45 * ohr + 0.3 * kinn + 0.9 * karunkel + 0.12 * lid + 0.12 * stirn * (r3 > 0.5) + 0.15 * feucht
     hb += 0.15 * gauss(X, P["g"], (10.0, 8.0, 10.0))
+    if gk2:
+        hb += 0.35 * karunkel + 0.55 * wasser
     Z[:, 0] = hb * unruhig
     # ---- Sonne und Gelbton
     scheitel = glatt(X[:, 1], stirn_oben + 10.0, stirn_oben + 35.0)
@@ -380,6 +405,8 @@ def zonen_und_glanz(X, N, P, masken_b):
     mund = gauss(X, P["sto"] + [0, 1.0, -2.0], (20.0, 13.0, 12.0)) * vorn * (1.0 - lippen)
     Z[:, 2] += 0.18 * mund
     Z[:, 2] *= 0.75 + 0.5 * r2
+    if gk2:
+        Z[:, 2] += 0.45 * wimpernlinie
     # ---- Glanz: Rauheit je Zone
     rau = np.full(n, 0.52)
     rau = rau + (0.42 - rau) * stirn
@@ -431,6 +458,8 @@ def zonen_und_glanz(X, N, P, masken_b):
     G[:, 2] = np.clip(hoehle, 0, 1)
     # A: Feuchte (Lidrand, Karunkel ≥ 0,45) und Lippenrot als 0,3 (der Shader trennt beides; feucht wirkt erst ab 0,45)
     G[:, 3] = np.clip(np.maximum(np.maximum(feucht, karunkel), 0.3 * lippen * (feucht < 0.2)), 0, 1)
+    if gk2:
+        G[:, 3] = np.maximum(G[:, 3], np.clip(wasser, 0, 1))
     Z[:, 0] = np.clip(Z[:, 0], 0, 1)
     Z[:, 1] = np.clip(Z[:, 1], 0, 1)
     Z[:, 2] = np.clip(Z[:, 2], 0, 1)
@@ -625,7 +654,7 @@ def main():
     ok, X, Nn, _ = lagekarte(haut, H, N, g_zon)
     log("Lagekarte", g_zon, int(ok.sum()), "Bildpunkte")
     mb = lesen(masken, g_zon)[..., 2] if os.path.exists(masken) else np.zeros((g_zon, g_zon))
-    Z, G, info = zonen_und_glanz(X[ok], Nn[ok], P, mb[ok])
+    Z, G, info = zonen_und_glanz(X[ok], Nn[ok], P, mb[ok], gk2=opt.get("gk2", "0") == "1")
     bz = np.zeros((g_zon, g_zon, 4))
     bg = np.zeros((g_zon, g_zon, 4))
     bg[..., 0] = 0.6

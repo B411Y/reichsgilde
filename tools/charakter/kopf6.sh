@@ -18,7 +18,7 @@
 # Umgebung: GLB (Ausgabe, Standard ~/werkzeuge/charakter/glb6), GLB5 (Haar-Quelle, Standard ~/werkzeuge/charakter/glb5),
 #           GLB_PROBE (Probebau, Standard ~/werkzeuge/charakter/glb6p), REZEPT (nur „mischen“; Standard kopf6_rezept.json),
 #           PROBEN_OPT (Halt B2: weitere Optionen für den Probebau, z. B. "ausschnitt=22 vorbilder=<npz>"),
-#           MAKRO_NORMALEN=1: auch makro_ (Alter × Geschlecht) behält die Normalen – nur nach sauberem A/B (S2, Bogen P7)
+#           HAUTC_OPT (Grundkopf 2: z. B. "gk2=1" für kopf6_hautc.py), MAKRO_NORMALEN=1: auch makro_ (Alter × Geschlecht) behält die Normalen – nur nach sauberem A/B (S2, Bogen P7)
 HIER=$(cd "$(dirname "$0")" && pwd)
 AUS=${GLB:-$HOME/werkzeuge/charakter/glb6}
 QUELLE5=${GLB5:-$HOME/werkzeuge/charakter/glb5}
@@ -31,7 +31,7 @@ case "$MODUS" in ohne_haar|nur_kopf|nur_haar|kaemmen|haar_kopieren|proben|mische
 # Etappe C: Haut (Kacheln und Karten aus dem Grundnetz und den Merkpunkten; braucht kopf6.glb und haut_masken.png)
 haut_c() {
   nice -n 10 "$BPY" -I "$HIER/kopf6_kacheln.py" "$AUS/kopf6_tex" 2>&1 | tail -1
-  nice -n 10 "$BPY" -I "$HIER/kopf6_hautc.py" "$AUS/kopf6.glb" "$AUS/kopf6_tex" 2>&1 | grep -E "RELIEF|FERTIG|Traceback|Error"
+  nice -n 10 "$BPY" -I "$HIER/kopf6_hautc.py" "$AUS/kopf6.glb" "$AUS/kopf6_tex" $HAUTC_OPT 2>&1 | grep -E "RELIEF|FERTIG|Traceback|Error"
 }
 if [ "$MODUS" = "haut_c" ]; then
   haut_c
