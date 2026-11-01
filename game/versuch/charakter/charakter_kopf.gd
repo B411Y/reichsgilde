@@ -601,6 +601,19 @@ func _anwenden6(w: Dictionary) -> void:
 	karikatur = {}
 	if neu and R["schalter"].get("karikaturbremse", false):
 		_karikatur_bremse(z, R["karikatur"])
+	# Verschiedenheit E1 (nur Probeköpfe mit „verschieden“ in ihrer regeln6.json): Nasenbudget – Länge, Spitze und Höcker
+	# zusammen höchstens norm_max (√Σz²), sonst alle drei gemeinsam kleiner (Ausreißer aus drei gleichsinnigen Nasengenen)
+	var vs: Dictionary = R.get("verschieden", {}) if neu else {}
+	if vs.has("nasenbudget"):
+		var nb: Dictionary = vs["nasenbudget"]
+		var s2 := 0.0
+		for k in nb["gene"]:
+			s2 += pow(float(z.get(k, 0.0)), 2.0)
+		if sqrt(s2) > float(nb["norm_max"]):
+			karikatur["nasenbudget"] = sqrt(s2)
+			for k in nb["gene"]:
+				if z.has(k):
+					z[k] = float(z[k]) * float(nb["norm_max"]) / sqrt(s2)
 	gene_z = z
 	# Gewichte der Gestalt-Gene
 	var gene_w := {}
@@ -634,6 +647,12 @@ func _anwenden6(w: Dictionary) -> void:
 		_budget(w, gene_w, R)
 	for k in gene_w:
 		w[k] = gene_w[k]
+	# Verschiedenheit E1: feste Zugaben je Geschlecht (× Reife oben), z. B. Nasenspitze der Frau etwas tiefer (Nasenlöcher
+	# von vorn weniger sichtbar); stehen außerhalb des Budgets
+	for gs in vs.get("zusatz_w", {}):
+		var anteil := mann if gs == "m" else 1.0 - mann
+		for k in vs["zusatz_w"][gs]:
+			w[k] = float(w.get(k, 0.0)) + float(vs["zusatz_w"][gs][k]) * anteil * ro * mimikfaktor
 	# Gesichtszüge (nur Menschen; bei Kindern × Reife)
 	if neu and R["schalter"].get("zuege", false) and not zuege_aus:
 		for k in zuege:
@@ -756,11 +775,30 @@ func _budget(w: Dictionary, gene_w: Dictionary, R: Dictionary) -> void:
 			for t in zm[f]:
 				gen_teil[t] = float(gen_teil.get(t, 0.0)) + float(gene_w[f]) * float(zm[f][t])
 	var faktor_t := {}
-	var unten := float(R["budget"]["unten"])
-	var oben := float(R["budget"]["oben"])
+	var B: Dictionary = R["budget"]
+	var unten := float(B["unten"])
+	var oben := float(B["oben"])
+	# Verschiedenheit E1 (Modus „gen“): begrenzt wird der Gen-Anteil allein – die Reifeformen verbrauchen den Spielraum
+	# nicht mehr (vorher starben so ganze Richtungen, z. B. Wangenknochen schmaler bei Frauen) –, dazu eine weitere Grenze
+	# für die Summe. An den Zielen in „ziele_gesamt“ (Nase) zählt die Summe wie bisher.
+	var nur_gen := String(B.get("modus", "")) == "gen"
+	var ziele_ges: Array = B.get("ziele_gesamt", [])
 	for t in gen_teil:
 		var a := float(alt_teil.get(t, 0.0))
 		var g := float(gen_teil[t])
+		if nur_gen and not ziele_ges.has(t):
+			var f := 1.0
+			if g > float(B["gen_oben"]):
+				f = float(B["gen_oben"]) / g
+			elif g < float(B["gen_unten"]):
+				f = float(B["gen_unten"]) / g
+			if g > 0.0 and a + g * f > float(B["gesamt_oben"]):
+				f = minf(f, maxf((float(B["gesamt_oben"]) - a) / g, 0.0))
+			elif g < 0.0 and a + g * f < float(B["gesamt_unten"]):
+				f = minf(f, maxf((float(B["gesamt_unten"]) - a) / g, 0.0))
+			if f < 1.0:
+				faktor_t[t] = clampf(f, 0.0, 1.0)
+			continue
 		var ges := a + g
 		if ges > oben and g > 0.0:
 			faktor_t[t] = clampf((oben - a) / g, 0.0, 1.0)
@@ -893,10 +931,11 @@ func _farben() -> void:
 		if not bilder.has("brauen_w"):
 			breite *= lerpf(0.72, 1.0, geschlecht)
 		var ebene := -1.0
+		var bd := 0.5
 		if st >= 6 and bilder.has("brauen6") and formen.has("alter_reife_m_oben"):
 			# Etappe B (S7): Form aus „brauen_form“, Dichte und Breite aus „brauen_dichte“ (Vorschlagsgene)
 			ebene = float(brauen_ebene(float(gene.get("brauen_form", 128.0))) + (0 if mann else 6))
-			var bd := clampf((float(gene.get("brauen_dichte", 128.0)) - 40.0) / 180.0, 0.0, 1.0)
+			bd = clampf((float(gene.get("brauen_dichte", 128.0)) - 40.0) / 180.0, 0.0, 1.0)
 			dichte *= lerpf(0.72, 1.15, bd)
 			breite *= lerpf(0.88, 1.08, bd)
 			if not bilder.has("brauen_w"):
@@ -913,6 +952,21 @@ func _farben() -> void:
 			# volle Dichte
 			braue = haar.lerp(haar * 0.85, 0.15 + 0.15 * hh)
 			dichte = minf(dichte / 0.85, 1.0) if mann else dichte
+		# Verschiedenheit E1 (Probekopf mit „verschieden.brauen“): Brauen je Person stark verschieden – Dunkelheit gegen das
+		# Haar (im Mittel wie Etappe D, + dunkler, − heller als das Haar), Dichte breiter gestreut; Winkel und Dunkelheit
+		# vorläufig aus den freien Vorschlagsgenen (zug_11, zug_12; Vorschlag an kern: brauen_winkel, brauen_dunkel)
+		var vb: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("brauen", {}) if d_an and volk == "Mensch" else {}
+		if not vb.is_empty():
+			var dz := clampf(_sigma(vb["dunkel_gen"], float(gene.get(vb["dunkel_gen"], _mittel6(vb["dunkel_gen"]))), volk), -2.5, 2.5)
+			if dz >= 0.0:
+				braue = braue * (1.0 - float(vb["dunkel_je_sigma"]) * dz)
+			else:
+				var hell := float(vb["hell_je_sigma"]) * (1.0 if mann else float(vb.get("frau_hell", 1.0)))
+				braue = braue.lerp(haar.lerp(Color(0.62, 0.5, 0.38), 0.5), hell * -dz)
+			braue.a = 1.0
+			dichte = dichte / lerpf(0.72, 1.15, bd) * lerpf(float(vb["dichte_min"]), float(vb["dichte_max"]), bd)
+			if not mann:
+				dichte *= float(vb.get("frau_dichte", 1.0))
 		for m in haar_stoffe:
 			if m.shader in [HAAR3, BRAUE6]:
 				m.shader = BRAUE6 if d_an else HAAR3
@@ -929,9 +983,25 @@ func _farben() -> void:
 				# 1,0 mm/σ, zusammen 2,5), Dicke aus „brauen_dichte“ (σ 35: 0,6–1,4 über ±2σ), Winkel aus einem Gen
 				# „brauen_winkel“, wenn es eins gibt (Vorschlag an kern, heute 0). Mittelgesicht = unverändert.
 				m.set_shader_parameter("braue", true)
-				m.set_shader_parameter("stand_mm", 1.5 * float(gene_z.get("brauen_stand", 0.0)))
-				m.set_shader_parameter("dicke", clampf(1.0 + 0.2 * _sigma("brauen_dichte", float(gene.get("brauen_dichte", 128.0)), volk), 0.7, 1.4))
-				m.set_shader_parameter("winkel_mm", 2.0 * float(gene_z.get("brauen_winkel", 0.0)))
+				var z_dichte := _sigma("brauen_dichte", float(gene.get("brauen_dichte", 128.0)), volk)
+				if vb.is_empty():
+					m.set_shader_parameter("v_nach_unten", false)
+					m.set_shader_parameter("stand_oben_max", 0.0)
+					m.set_shader_parameter("mitte_v", 0.62)
+					m.set_shader_parameter("stand_mm", 1.5 * float(gene_z.get("brauen_stand", 0.0)))
+					m.set_shader_parameter("dicke", clampf(1.0 + 0.2 * z_dichte, 0.7, 1.4))
+					m.set_shader_parameter("winkel_mm", 2.0 * float(gene_z.get("brauen_winkel", 0.0)))
+				else:
+					# E1: v richtig herum (siehe braue6), Stand zusätzlich zur Hautform, oben weich begrenzt; Dicke wächst
+					# um eine Linie im oberen Drittel, also vor allem nach unten (oben ist in der Karte wenig Platz)
+					var wz := clampf(_sigma(vb["winkel_gen"], float(gene.get(vb["winkel_gen"], _mittel6(vb["winkel_gen"]))), volk), -2.5, 2.5)
+					m.set_shader_parameter("v_nach_unten", bool(vb.get("v_nach_unten", true)))
+					m.set_shader_parameter("stand_oben_max", float(vb["stand_oben_max_mm"]))
+					m.set_shader_parameter("mitte_v", float(vb["mitte_v"]))
+					m.set_shader_parameter("stand_mm", float(vb["stand_mm_je_sigma"]) * float(gene_z.get("brauen_stand", 0.0)))
+					var fd := 1.0 if mann else float(vb.get("frau_dicke", 1.0))
+					m.set_shader_parameter("dicke", clampf((1.0 + float(vb["dicke_je_sigma"]) * z_dichte) * fd, float(vb["dicke_min"]), float(vb["dicke_max"])))
+					m.set_shader_parameter("winkel_mm", float(vb["winkel_mm_je_sigma"]) * wz)
 			farbe_setzen(m, "farbe", braue, st)
 			# Etappe D: Brauen ergrauen später als das Haupthaar und bleiben grau-braun statt weiß (Prüfer: „weiße Watte“)
 			m.set_shader_parameter("grau", grau * 0.6 if d_an else grau)
@@ -990,7 +1060,8 @@ func _farben() -> void:
 			# Etappe D: Lidrand und Karunkel nasser, Haut unter der Braue etwas dunkler (Haarwurzeln, Schatten der Haare)
 			for m in haut_stoffe:
 				m.set_shader_parameter("feucht", 1.7 if weg_d else 1.0)
-				m.set_shader_parameter("brauen_weich", 0.42 if weg_d else 0.3)
+				# E1: der Hautschatten liegt fest an der Grundbraue und wandert nicht mit – schwächer, sonst doppelte Braue
+				m.set_shader_parameter("brauen_weich", float(vb["haut_schatten"]) if not vb.is_empty() else (0.42 if weg_d else 0.3))
 				m.set_shader_parameter("brauen_glanz", 0.85 if weg_d else 0.0)
 				if weg_d:
 					m.set_shader_parameter("c_loch", 0.38)   # Nasenloch innen nicht als schwarzes Loch (Runde 2) …
