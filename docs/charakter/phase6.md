@@ -1449,6 +1449,15 @@ Tageslicht (`vorlage`) und Spiellicht. Note „natürlich gegen Puppe“ 1–10,
 - Was bleibt: Frau Nasenbasis breit, Nasenlöcher von vorn, kleines Kinn; beide schwere Lider, leerer Blick, schmale
   Lippen; außerhalb der Form Brauen „aufgemalt“, Bartschatten mit harter Kante, glatte Haut.
 
+### Messung und Fratzen-Probe (Endstand, Commit 05196611)
+
+- **Leistung** (T400, Stufe Hoch, gepaart mit Halt B und E1, 5 Wiederholungen): `ohne_haar` +0,00 ms gegen E1 und
+  +0,38 ms gegen Halt B, `ohne_haar_zufall` +0,00 / +0,46 ms; VRAM 200 gegen 200/202 MB. Budget 1,0 ms eingehalten.
+  `haar_tressfx_ruhe` 27,3 gegen 30,6 ms (Rauschen, NAS-Last 6 bis 10).
+- **Fratzen-Probe** (3 Männer, Saaten 9801/9722/9842, E1 gegen neu): keine deutliche Fratze mehr. Auffällig: bei Saat 9842
+  sind die Brauen nur gepunktete Striche (vorher und neu gleich), bei allen dreien ein dunkler Fleck im Haar oben am
+  Schädel; Saat 9722 Nase leicht schief. Nächster Schritt: Braue bei dünner Dichte nicht ausdünnen, Haarlücke prüfen.
+
 ### Offen nach E2/E3
 
 - Mit den MakeHuman-Formen pendelt das Panel bei 5–6. Nächster Hebel: eigene Formen direkt am Netz (wie
