@@ -45,8 +45,9 @@ public sealed class WeglaengeDaten
     public int MindestMinuten { get; init; } = 10;
 
     /// <summary>
-    /// So viele Spielminuten dauert eine Fahrt höchstens, auch auf sehr langen Wegen (dann fährt der Karren im Bild schneller): Ein Karren soll
-    /// an einem Arbeitstag (8 bis 20 Uhr, 720 Minuten) wenigstens einmal hin und zurück kommen.
+    /// So viele Spielminuten dauert eine Fahrt höchstens, auch auf sehr langen Wegen: Ein Karren soll an einem Arbeitstag (8 bis 20 Uhr,
+    /// 720 Minuten) wenigstens einmal hin und zurück kommen. Das Bild fährt den Karren dann trotzdem in seinem festen Tempo (Darstellung,
+    /// Entscheidung 31.10.2026: nie gestaucht); er kommt später an, als der Kern verkauft, und kehrt am Markt sofort um.
     /// </summary>
     public int HoechstMinuten { get; init; } = 360;
 

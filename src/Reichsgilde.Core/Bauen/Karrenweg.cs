@@ -43,7 +43,14 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
     /// der Mitte des Vorplatzes. Umland: das Modell des Platzes (Ursprung mit Versatz, Drehung und Maßstab wie in der Karte); Hof und Anker sind
     /// dasselbe. Ohne Anker im Katalog beginnt der Weg am Hof bzw. am Ursprung des Modells.
     /// </summary>
-    public static (Kartenort Anker, Kartenort Hof) Start(Betriebsplatz platz, Betrieb betrieb, Gebaeudekatalog? katalog)
+    public static (Kartenort Anker, Kartenort Hof) Start(Betriebsplatz platz, Betrieb betrieb, Gebaeudekatalog? katalog) =>
+        Start(platz, betrieb.Art, betrieb.Artdaten, katalog);
+
+    /// <summary>
+    /// Wie <see cref="Start(Betriebsplatz, Betrieb, Gebaeudekatalog?)"/> für eine Betriebsart – auch für einen Bauort, auf dem noch kein Betrieb
+    /// steht (<see cref="Stadtwirtschaft.FahrzeitAmBauort"/>).
+    /// </summary>
+    public static (Kartenort Anker, Kartenort Hof) Start(Betriebsplatz platz, Betriebsart art, BetriebsartDaten daten, Gebaeudekatalog? katalog)
     {
         var (x, z) = platz.Punkt;
         var drehung = platz.DrehungGrad;
@@ -53,13 +60,13 @@ public sealed record Karrenweg(IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fah
             return new Kartenort(ursprung.X + d.X, ursprung.Z + d.Z);
         }
         var mitte = new Kartenort(x, z);
-        if (betrieb.InDerStadt)
+        if (daten.InDerStadt)
         {
             var tiefe = platz.Gebaeude is { } g ? (g.Baustein?.Groesse is { Length: 2 } gr ? gr[1] * g.Massstab : 0) : platz.Grundstueck!.Grundriss.Tiefe;
             var hof = Bei(mitte, 0, tiefe / 2 - HofVorKante);
-            return (katalog?.Werkstatt(betrieb.Artdaten.Beruf)?.KarrenAnker is { Length: 2 } a ? Bei(mitte, a[0], a[1]) : hof, hof);
+            return (katalog?.Werkstatt(daten.Beruf)?.KarrenAnker is { Length: 2 } a ? Bei(mitte, a[0], a[1]) : hof, hof);
         }
-        var (baustein, massstab) = platz.Gebaeude is { Baustein: { } b } geb ? (b, geb.Massstab) : (katalog?.Umland(betrieb.Art), 1.0);
+        var (baustein, massstab) = platz.Gebaeude is { Baustein: { } b } geb ? (b, geb.Massstab) : (katalog?.Umland(art), 1.0);
         var ursprung = platz.Gebaeude is { Baustein: { Versatz: { Length: 2 } v } } ? Bei(mitte, v[0] * massstab, v[1] * massstab) : mitte;
         var anker = baustein?.KarrenAnker is { Length: 2 } k ? Bei(ursprung, k[0] * massstab, k[1] * massstab) : ursprung;
         return (anker, anker);
