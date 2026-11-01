@@ -87,16 +87,22 @@ static class StartwegpruefungTests
             Pruefe.Wahr(ReferenceEquals(vorher, e.Startwegrechnung()), "ein fremdes Gebäude: dieselben Wege");
             Pruefe.Gleich(3, e.Befunde.Count(b => b.Regel == "startweg"));
 
-            // Befund der zweiten Prüfung: Ließ sich die Karte einmal nicht laden, blieb die Regel stumm, bis sich ein Weg änderte
+            // Befund der zweiten Prüfung: Musste das Netz neu gebaut werden, während sich die Karte nicht laden ließ (Umlandbetrieb ohne Betrieb), blieb die
+            // Regel danach stumm, bis sich wieder ein Weg änderte
             var grube = e.GebaeudeMit("Grube4")!;
             var betrieb = grube.Betrieb;
+            var weg = e.Wege[0];
             e.BetriebSetzen("Grube4", null);
+            e.WegVerschieben(weg, 0.5, 0); // das Netz wird neu gebaut – die Karte lädt jetzt nicht
             Pruefe.Gleich(0, e.Befunde.Count(b => b.Regel == "startweg"), "ohne Betrieb lädt die Karte nicht");
+            Pruefe.Wahr(e.Startnetz() is null, "kein Netz");
             e.BetriebSetzen("Grube4", betrieb);
             Pruefe.Gleich(3, e.Befunde.Count(b => b.Regel == "startweg"), "behoben: wieder drei Hinweise");
             e.BetriebSetzen("Grube4", null);
-            _ = e.Befunde;
-            e.Rueckgaengig();
+            e.WegVerschieben(weg, -0.5, 0);
+            Pruefe.Gleich(0, e.Befunde.Count(b => b.Regel == "startweg"), "wieder kaputt");
+            e.Rueckgaengig(); // der Weg zurück, die Karte noch kaputt
+            e.Rueckgaengig(); // der Betrieb zurück
             Pruefe.Gleich(3, e.Befunde.Count(b => b.Regel == "startweg"), "Rückgängig: wieder drei Hinweise");
             var s3 = e.GebaeudeMit("S3_Werkstatt")!;
             e.Verschieben(s3.Kennung, s3.X + 15, s3.Z);
