@@ -77,5 +77,31 @@ static class StartwegpruefungTests
             var greybox = Oeffnen("greybox");
             Pruefe.Wahr(greybox.Befunde.All(b => b.Regel != "startweg"), "Greybox ohne Regel der Startgrundstücke");
         }),
+
+        ("Startwege: ein Gebäude ohne Startplatz rechnet nichts neu; nach einem Ladefehler (Umlandbetrieb ohne Betrieb) springt die Regel nach der Behebung wieder an", () =>
+        {
+            var e = Oeffnen("koeln");
+            var vorher = e.Startwegrechnung();
+            var kulisse = e.Gebaeude.First(g => g.Katalog == "leerstand");
+            e.Verschieben(kulisse.Kennung, kulisse.X + 2, kulisse.Z);
+            Pruefe.Wahr(ReferenceEquals(vorher, e.Startwegrechnung()), "ein fremdes Gebäude: dieselben Wege");
+            Pruefe.Gleich(3, e.Befunde.Count(b => b.Regel == "startweg"));
+
+            // Befund der zweiten Prüfung: Ließ sich die Karte einmal nicht laden, blieb die Regel stumm, bis sich ein Weg änderte
+            var grube = e.GebaeudeMit("Grube4")!;
+            var betrieb = grube.Betrieb;
+            e.BetriebSetzen("Grube4", null);
+            Pruefe.Gleich(0, e.Befunde.Count(b => b.Regel == "startweg"), "ohne Betrieb lädt die Karte nicht");
+            e.BetriebSetzen("Grube4", betrieb);
+            Pruefe.Gleich(3, e.Befunde.Count(b => b.Regel == "startweg"), "behoben: wieder drei Hinweise");
+            e.BetriebSetzen("Grube4", null);
+            _ = e.Befunde;
+            e.Rueckgaengig();
+            Pruefe.Gleich(3, e.Befunde.Count(b => b.Regel == "startweg"), "Rückgängig: wieder drei Hinweise");
+            var s3 = e.GebaeudeMit("S3_Werkstatt")!;
+            e.Verschieben(s3.Kennung, s3.X + 15, s3.Z);
+            Pruefe.Gleich(Kartenentwurf.AusJson(e.ZuJson(), Katalog.Value).Befunde.Count(b => b.Regel == "startweg"), e.Befunde.Count(b => b.Regel == "startweg"),
+                "gleich wie frisch geöffnet");
+        }),
     };
 }

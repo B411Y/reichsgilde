@@ -89,7 +89,7 @@ public static class Startwegpruefung
             var mittel = gruppe.Average(w => w.Meter!.Value);
             foreach (var w in gruppe.Where(w => Math.Abs(w.Meter!.Value - mittel) > Spanne * mittel))
                 befunde.Add(new Befund(Schwere.Hinweis, "startweg",
-                    $"{w.Platz} ({w.Wer}): {M(w.Meter!.Value)} m Karrenweg zum {w.Markt}, {(gruppe.Key == Arbeitsort.Werkstatt ? "Startwerkstätten" : "Start-Umland")} im Mittel {M(mittel)} m (±{Spanne:P0}) – " +
+                    $"{w.Platz} ({w.Wer}): {M(w.Meter!.Value)} m Karrenweg zum {w.Markt}, {(gruppe.Key == Arbeitsort.Werkstatt ? "Startwerkstätten" : "Start-Umland")} im Mittel {M(mittel)} m (±{Zahlenformat.Prozent(Spanne)}) – " +
                     $"die Karren brauchen {(w.Meter > mittel ? "länger" : "kürzer")} als die der anderen Häuser.", new[] { w.Platz }, w.Punkt));
         }
         return befunde;
