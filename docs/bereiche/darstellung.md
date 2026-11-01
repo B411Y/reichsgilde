@@ -200,7 +200,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Passanten: Spur, Schwanken, Übergang (Branch fix/passanten-spur)
+### Passanten: Spur, Schwanken, Übergang (PR #283)
 
 Nutzerwunsch 1.11.2026 (alle Empfehlungen angenommen): Passanten liefen auf einer geraden Linie in fünf doppelt belegten Spuren. Modell in `game/scripts/Passantenspur.cs` (ohne Godot, wie `Gehtempo`; Tests `PassantenspurTests.cs`), Einbau in `Stadtansicht.Passanten.cs` (`Laufen`). Kern unberührt.
 
@@ -215,7 +215,7 @@ Nutzerwunsch 1.11.2026 (alle Empfehlungen angenommen): Passanten liefen auf eine
 | Messung für Schicht 4 (Abstoßung) | Vulkan (T400), Tempo 1, 07:00 Uhr, `--ui=0`, je ein Lauf je Zustand, Fenster 70–110 s nach dem Start, Bildrate 10–19/s, Berührung = zwei laufende Figuren unter 0,5 m, einmal gezählt bis sie sich trennen. **Markt Greybox** (`--blick=2,4,25`, rund 31 Figuren im Bild): alt 206, neu 195 Berührungen je Minute im Bild (je etwa 6 je Figur und Minute). **Lange Gasse Greybox** (`--blick=25,0,30`, rund 33 im Bild): alt 134, neu 96 je Minute. **Köln** (`--blick=37,-60,30`, nur rund 5 Figuren im Bild, weite Wege): alt 9, neu 3 je Minute (kaum aussagekräftig). Etwa drei Viertel der Berührungen sind gleichläufig (gleiche Richtung, vor allem der Schwung um 07:00, wenn viele aus denselben Häusern und Gassen zugleich zum Markt gehen), ein Viertel gegenläufig (Markt gesamt 112 je Minute in beiden Fassungen, Gasse 66 alt, 76 neu). Die neue Spur ändert den Markt kaum, auf der Gasse etwa ein Viertel weniger; die Zahl ist durch den gemeinsamen Start bestimmt, nicht durch die Spuren. | 1.11.2026 |
 | Empfehlung Schicht 4 | Nicht bauen, solange die Messung nicht auf einem ruhigen Tagesablauf (z. B. 11 Uhr) wiederholt ist: Die Ballung entsteht beim gemeinsamen Start (gleicher Weg, gleiche Zeit), eine Abstoßung würde sie nur verwischen, und sie kostet je Bild O(n²) (die Messung selbst tut das schon, nur mit der Option). Sinnvoller wäre, den Start zu streuen (Kern/Laufplan) oder die Spurbreite je Wegbreite der Karte zu nutzen. Entscheidung des Nutzers. | 1.11.2026 |
 
-### Passanten: Wegbreite, Wegeinstieg, Ausweichen (Schicht 4) (Branch fix/passanten-spur)
+### Passanten: Wegbreite, Wegeinstieg, Ausweichen (Schicht 4) (PR #283)
 
 Rückmeldung des Nutzers zu den Videos (1.11.2026): Seitenwechsel mitten in der Gasse, Figuren in Häusern, Figuren laufen ineinander, Hin und Zurück zum nächsten Wegpunkt, eigene Spur kaum sichtbar. Entscheidungen von Nutzer und Teamleiter: Losgehen streuen, ganze Wegbreite nutzen, Schicht 4 bauen, Gehtempo bleibt. Modell ohne Godot in `Passantenspur.cs`, `Wegeinstieg.cs`, `Passantenausweichen.cs` (Tests `PassantenwegeTests`, `PassantenausweichenTests`; die Tests von Schicht 1–3 unverändert grün), Einbau in `Stadtansicht.Passanten.cs`, `Stadtansicht.Passantenwege.cs`, `Stadtansicht.Passantenausweichen.cs`, `Stadtansicht.Gassennetz.cs`, `Stadtansicht.Karte.cs`. Kern unberührt.
 
@@ -231,7 +231,7 @@ Rückmeldung des Nutzers zu den Videos (1.11.2026): Seitenwechsel mitten in der 
 | Startoptionen | `--passantenspur=v1` (Stand vor dieser Änderung, zum Vergleichen; Karrenausweichen dort jetzt auch auf die Wegbreite begrenzt), `--passantennaehe=1` zählt zusätzlich Überschneidungen (Laufende untereinander, mit Stehenden, Paar-Bilder, an Anfang oder Ziel). | 1.11.2026 |
 | Außerhalb des Bereichs | Keine Kern-Datei geändert. `tests/Reichsgilde.Core.Tests/Reichsgilde.Core.Tests.csproj`: zwei Dateien aus `game/scripts` mitübersetzt (wie `Passantenspur.cs`). | 1.11.2026 |
 
-### Passanten: Markt v3 – freie Fläche, Bummeln, Gespräche (Branch fix/passanten-spur)
+### Passanten: Markt v3 – freie Fläche, Bummeln, Gespräche (PR #283)
 
 Nutzerwunsch 1.11.2026: eigene Runde nur für den Markt – frei über den Platz statt auf festen Wegen, Stände als Hindernisse, reden nur zu zweit, kein „Ritual“ am Brunnen; aus v2 bleibt: keine Überschneidungen, gestreutes Losgehen, kein Zurücklaufen, Ein- und Ausstieg ohne Sprung. Modell ohne Godot in `Marktflaeche.cs` und `Marktbummel.cs` (Tests `MarktflaecheTests`, `MarktbummelTests`, `MarktausweichenTests`), Einbau in `Stadtansicht.Marktbummel.cs`, `Stadtansicht.Markt.cs`, `Stadtansicht.Passanten.cs`, `Stadtansicht.Passantenwege.cs`, `Stadtansicht.Passantenausweichen.cs`. Kern unberührt.
 
@@ -248,7 +248,7 @@ Nutzerwunsch 1.11.2026: eigene Runde nur für den Markt – frei über den Platz
 | Startoptionen | `--passantenmarkt=v2` zeigt den Markt wie vorher; `--passantennaehe=1` schreibt zusätzlich `[passantenmarkt]` (allein Redende, Körper in Ständen, um den Brunnen Gehende, die ersten Fälle „in Stand“ genau) und die Überschneidungen auf dem Pflaster mit Ursache; das Protokoll der Passanten nennt Wege über die Fläche, Bummelgänge, Stehende und Bummelnde. | 1.11.2026 |
 | Außerhalb des Bereichs | Keine Kern-Datei geändert. `tests/Reichsgilde.Core.Tests/Reichsgilde.Core.Tests.csproj`: zwei Dateien aus `game/scripts` mitübersetzt. Ältere Abschnitte (SDFGI-Prüfung, Regen 4 Nachbesserung) wörtlich ins Archiv; dazu die Archivierung von main (#281) übernommen. | 1.11.2026 |
 
-### Passanten: Markt v3b – Streifen, Stehende, Brunnenrand, Kosten (Branch fix/passanten-spur)
+### Passanten: Markt v3b – Streifen, Stehende, Brunnenrand, Kosten (PR #283)
 
 Auftrag des Teamleiters 1.11.2026 nach dem Bericht zu v3.
 
@@ -260,7 +260,7 @@ Auftrag des Teamleiters 1.11.2026 nach dem Bericht zu v3.
 | Messung | Greybox 10 Uhr, drei Läufe zu 170 s, Stand dd873145, im Mittel je Minute im Bild auf dem Pflaster: Laufende 19,1 (16,2 / 17,5 / 23,5), mit Stehenden 11,0 (12,0 / 10,3 / 10,7); v3 ohne Streifen 29,1 und 13,6 (drei Läufe: 30,4 / 27,5 / 29,3 und 9,7 / 14,4 / 16,8); v2 23,3 und 12,0 (zwei Läufe). Allein redend 0, in Ständen 0 / 0 / 0,4, um den Brunnen gehend 13,9 / 14,9 / 13,7 % (Richtungen etwa 60/40). | 1.11.2026 |
 | Kosten | Profil (`--passantenprofil=1`) Köln Neumarkt 10 Uhr, ohne `--passantennaehe`: 3,7–6,2 ms je Bild für die Passanten (Laufen 1,9–4,3, Pose 0,1–0,5, Ausweichen 0,2–0,5, am Ort bis 0,5), zur vollen Stunde Wege planen ein Bild mit etwa 400 ms (138–152 Wege über die Flächen); im ersten Abschnitt nach dem Laden 15,7 ms. Die Messung selbst (`--passantennaehe=1`) kostete 3–6 ms (Paare über alle Figuren) – die früher genannten 7–14 ms enthielten sie. Eingebaut: Laufende außerhalb des Bildes nur jedes dritte Bild (Laufen, beide Male mit Messung: 3,3–7,3 → 2,2–6,2 ms). Vorschläge siehe Offen. | 1.11.2026 |
 
-### Passanten: Wegsuchen verteilt (Branch fix/passanten-spur)
+### Passanten: Wegsuchen verteilt (PR #283)
 
 Auftrag des Teamleiters 1.11.2026: Weg über den Platz erst beim Losgehen planen, höchstens so viele Wegsuchen je Bild, wie Zeit ist; Ziel kein Einzelbild über 20 ms zur vollen Stunde in Köln.
 
@@ -271,7 +271,7 @@ Auftrag des Teamleiters 1.11.2026: Weg über den Platz erst beim Losgehen planen
 | Bodenmeter langer Wege | Stützpunkte alle 0,1 m bis 60 m Weg, bis 150 m alle 0,25 m, darüber alle 0,5 m (`Passantenspur.BodenschrittFuer`); die Figur ist dabei höchstens 8 bzw. 10 cm längs des Weges anders (Test `PassantenspurLangTests`). Stehende auf der Fläche werden je Linie einmal genau geprüft (nicht je Abtastpunkt). | 1.11.2026 |
 | Messung | `--passantenprofil=1` (jetzt mit dem teuersten Bild je Abschnitt, dem teuersten Weg im Netz, über die Fläche und der teuersten Bodenmeter-Tabelle), Köln Neumarkt 10 Uhr, ohne `--passantennaehe`, Läufe von 110 s. Schlimmstes Einzelbild der Passanten zur vollen Stunde (11 Uhr): vorher 302,7 ms (Wege planen 144 ms, Laufen 84 ms), nachher 26,6 und 35,6 ms in zwei Läufen; übrige Abschnitte 16–23 ms; im Mittel 4–7 ms je Bild. Das erste Bild nach dem Laden bleibt lang (über 1 s, alle Figuren bekommen ihren ersten Weg). Ziel 20 ms nicht erreicht, siehe Offen. | 1.11.2026 |
 
-### Passanten: Netzwege gemerkt, Bodenmeter stückweise (Branch fix/passanten-spur)
+### Passanten: Netzwege gemerkt, Bodenmeter stückweise (PR #283)
 
 Auftrag des Teamleiters 1.11.2026.
 
