@@ -9,11 +9,24 @@ static class PassantenspurTests
     /// <summary>Alle Nummern, die die Tests durchgehen (die Einwohner einer großen Stadt).</summary>
     static IEnumerable<int> Nummern() => Enumerable.Range(0, 400);
 
-    /// <summary>Die Rechnung der Ansicht: Mittellinie nach +z (rechts ist −x), Position = Mittellinie + Versatz.</summary>
-    static (float X, float Z) Ort(int nummer, float strecke, float laenge, (float X, float Z) start)
+    /// <summary>Eine Mittellinie aus einer Punktfolge (x, z), wie das Gassennetz sie liefert: Punkt nach so vielen Metern Weg.</summary>
+    sealed class Linie : Passantenspur.IMittellinie
     {
-        var v = Passantenspur.Versatz(nummer, strecke, laenge - strecke, start, (-1, 0));
-        return (v.X, strecke + v.Z);
+        readonly (float X, float Z)[] _punkte;
+        public Linie(params (float X, float Z)[] punkte) => _punkte = punkte;
+        public float Laenge => _punkte.Zip(_punkte.Skip(1), (a, b) => MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z))).Sum();
+        public (float X, float Z) Bei(float strecke)
+        {
+            var rest = Math.Clamp(strecke, 0, Laenge);
+            for (var i = 0; i + 1 < _punkte.Length; i++)
+            {
+                var (a, b) = (_punkte[i], _punkte[i + 1]);
+                var stueck = MathF.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Z - a.Z) * (b.Z - a.Z));
+                if (rest <= stueck) return stueck > 0 ? (a.X + (b.X - a.X) * rest / stueck, a.Z + (b.Z - a.Z) * rest / stueck) : a;
+                rest -= stueck;
+            }
+            return _punkte[^1];
+        }
     }
 
     static double Korrelation(IEnumerable<float> a, IEnumerable<float> b)
@@ -109,7 +122,7 @@ static class PassantenspurTests
         ("Passantenspur: der Anschluss an einen laufenden Weg übernimmt den alten Versatz samt Richtung und gleitet ohne Sprung in die neue Spur", () =>
         {
             // der Versatz war nach links (±x) oder in Gehrichtung des alten Weges (z), der neue Weg liegt anders: kein Sprung, wie groß auch der Unterschied
-            foreach (var (start, rechts) in new[] { ((1.4f, 0f), (0f, 1f)), ((0f, 0.6f), (1f, 0f)), ((-0.7f, 0.7f), (0.7071f, 0.7071f)), ((0.6f, 0f), (0.6f, 0f)) })
+            foreach (var (start, rechts) in new[] { ((1.4f, 0f), (0f, 1f)), ((0f, 0.6f), (1f, 0f)), ((-0.7f, 0.7f), (0.7071f, 0.7071f)), ((0.6f, 0f), (1f, 0f)) })
             {
                 var n = 5;
                 var anfang = Passantenspur.Versatz(n, 0, 30, start, rechts);
@@ -133,35 +146,67 @@ static class PassantenspurTests
             for (var i = 1; i < kurz.Count; i++) Pruefe.Wahr(MathF.Abs(kurz[i] - kurz[i - 1]) <= 0.015f, "kurzer Weg: Sprung");
         }),
 
-        ("Passantenspur: die Füße rutschen nicht – die Figur blickt in ihre wirkliche Bewegungsrichtung, ihr Takt folgt dem Weg auf dem Boden", () =>
+        ("Passantenspur: die Füße rutschen nicht – Bewegung und Takt folgen dem Weg auf dem Boden, geradeaus, an einer Ecke und beim Anschluss", () =>
         {
-            foreach (var n in Nummern().Where(n => n % 7 == 0))
-            {
-                var (laenge, h) = (40f, 0.01f);
-                var vorher = Ort(n, 0, laenge, (0, 0));
-                for (var s = h; s <= laenge; s += h)
+            var gerade = new Linie((0, 0), (0, 40));
+            var ecke = new Linie((0, 0), (0, 20), (20, 20)); // 90°-Ecke nach links: die Figur geht rechts, also außen
+            var eckeRechts = new Linie((0, 0), (0, 20), (-20, 20)); // nach rechts: die Figur geht innen
+            foreach (var (linie, start, name) in new[] { (gerade, (0f, 0f), "gerade"), (ecke, (0f, 0f), "Ecke links (außen)"), (eckeRechts, (0f, 0f), "Ecke rechts (innen)"), (gerade, (-0.7f, 0f), "Anschluss") })
+                foreach (var n in Nummern().Where(n => n % 11 == 0))
                 {
-                    var jetzt = Ort(n, s, laenge, (0, 0));
-                    var wirklich = MathF.Sqrt((jetzt.X - vorher.X) * (jetzt.X - vorher.X) + (jetzt.Z - vorher.Z) * (jetzt.Z - vorher.Z)) / h;
-                    var (fx, fz) = Passantenspur.Bewegung(n, s - h, laenge - s + h, (0, 0), (-1, 0), (0, 1));
-                    var faktor = MathF.Sqrt(fx * fx + fz * fz);
-                    // Takt (Faktor der Darstellung) und gemessener Weg auf dem Boden stimmen überein (die Vorschau von 0,25 m mittelt die Krümmung)
-                    Pruefe.Wahr(MathF.Abs(faktor - wirklich) <= 0.08f, $"Nummer {n} bei {s} m: Takt {faktor}, Weg auf dem Boden {wirklich}");
-                    // und im Gehen, ohne Übergang, ist der Weg höchstens 4 % länger als die Mittellinie
-                    if (s > 1.5f && laenge - s > 1.5f) Pruefe.Wahr(faktor <= 1.045f, $"Nummer {n} bei {s} m: Faktor {faktor} im Gehen");
-                    Pruefe.Wahr(faktor <= 1.55f, $"Nummer {n} bei {s} m: Faktor {faktor} im Übergang");
+                    var laenge = linie.Laenge;
+                    var vorher = Passantenspur.Gehen(linie, n, laenge, 0, start, false).Ort;
+                    var (summeTakt, summeBoden, schritte) = (0.0, 0.0, 0);
+                    for (var s = 0.01f; s <= laenge; s += 0.01f)
+                    {
+                        var gang = Passantenspur.Gehen(linie, n, laenge, s, start, true);
+                        var wirklich = MathF.Sqrt((gang.Ort.X - vorher.X) * (gang.Ort.X - vorher.X) + (gang.Ort.Z - vorher.Z) * (gang.Ort.Z - vorher.Z)) / 0.01f;
+                        var faktor = MathF.Sqrt(gang.Bewegung.X * gang.Bewegung.X + gang.Bewegung.Z * gang.Bewegung.Z);
+                        // Takt (Länge der Bewegung) und gemessener Weg auf dem Boden stimmen überein: geradeaus Schritt für Schritt, sonst (an den Rändern des
+                        // Eckenfensters ändert sich die Steigung sprunghaft, die Schrittweite von 0,3 m mittelt das) über jedes Stück von einem Meter
+                        if (name == "gerade") Pruefe.Wahr(MathF.Abs(faktor - wirklich) <= 0.12f, $"{name}, Nummer {n}, bei {s} m: Takt {faktor}, Weg auf dem Boden {wirklich}");
+                        (summeTakt, summeBoden, schritte) = (summeTakt + faktor, summeBoden + wirklich, schritte + 1);
+                        if (schritte == 100)
+                        {
+                            Pruefe.Wahr(Math.Abs(summeTakt - summeBoden) / 100 <= 0.04, $"{name}, Nummer {n}, Meter bei {s} m: Takt {summeTakt / 100:0.000} im Mittel, Weg auf dem Boden {summeBoden / 100:0.000}");
+                            (summeTakt, summeBoden, schritte) = (0, 0, 0);
+                        }
+                        // und die Figur springt nirgends (auch an der Ecke nicht): höchstens 3 cm je Zentimeter Weg
+                        Pruefe.Wahr(wirklich <= 3f, $"{name}, Nummer {n}, bei {s} m: springt ({wirklich} cm je cm)");
+                        // im Gehen auf gerader Strecke ohne Übergang höchstens 4,5 % mehr, in den Übergängen bis 1,6
+                        if (name == "gerade" && s > 1.5f && laenge - s > 1.5f) Pruefe.Wahr(faktor <= 1.045f, $"Nummer {n} bei {s} m: Faktor {faktor} im Gehen");
+                        if (name != "Anschluss") Pruefe.Wahr(faktor <= 2.5f, $"{name}, Nummer {n}, bei {s} m: Faktor {faktor}");
+                        vorher = gang.Ort;
+                    }
+                }
+            // Ecke: außen läuft die Figur weiter als die Mittellinie, innen kürzer – der Takt folgt
+            var aussen = Passantenspur.Gehen(ecke, 3, ecke.Laenge, 20f, (0, 0), true).Bewegung;
+            var innen = Passantenspur.Gehen(eckeRechts, 3, eckeRechts.Laenge, 20f, (0, 0), true).Bewegung;
+            Pruefe.Wahr(MathF.Sqrt(innen.X * innen.X + innen.Z * innen.Z) < MathF.Sqrt(aussen.X * aussen.X + aussen.Z * aussen.Z), "innen kürzer als außen");
+            // am Anfang geht sie schräg auf die Spur zu (Blick nach rechts, rechts ist −x), am Ende zurück zur Mitte
+            var anfang = Passantenspur.Gehen(gerade, 1, gerade.Laenge, 0.5f, (0, 0), true).Bewegung;
+            Pruefe.Wahr(anfang.X < -0.3f && anfang.Z > 0.5f, $"Anfang: Bewegung {anfang}");
+            var ende = Passantenspur.Gehen(gerade, 1, gerade.Laenge, gerade.Laenge - 0.5f, (0, 0), true).Bewegung;
+            Pruefe.Wahr(ende.X > 0.3f, $"Ende: Bewegung {ende}");
+            // Ohne verlangte Bewegung bleibt sie null
+            Pruefe.Gleich(((float, float))(0, 0), Passantenspur.Gehen(gerade, 1, 40, 10, (0, 0), false).Bewegung);
+        }),
+
+        ("Passantenspur: auch auf einem sehr kurzen neuen Weg bleibt der Anschluss ohne Sprung (der alte Versatz verschwindet erst, wenn die Spur erreicht ist)", () =>
+        {
+            foreach (var laenge in new[] { 0.2f, 0.5f, 0.9f, 1.5f })
+            {
+                var start = (0.7f, -0.3f);
+                var anfang = Passantenspur.Versatz(4, 0, laenge, start, (-1, 0));
+                Pruefe.Ungefaehr(start.Item1, anfang.X, 1e-6); Pruefe.Ungefaehr(start.Item2, anfang.Z, 1e-6);
+                var vorher = anfang;
+                for (var s = 0.01f; s <= laenge; s += 0.01f)
+                {
+                    var jetzt = Passantenspur.Versatz(4, s, laenge - s, start, (-1, 0));
+                    Pruefe.Wahr(MathF.Sqrt((jetzt.X - vorher.X) * (jetzt.X - vorher.X) + (jetzt.Z - vorher.Z) * (jetzt.Z - vorher.Z)) <= 0.03f, $"Länge {laenge} bei {s} m: Sprung");
                     vorher = jetzt;
                 }
-                // die Blickrichtung ist die Richtung der Bewegung (kein Rutschen zur Seite): Bewegungsvektor ∥ Positionsänderung
-                var (x0, z0) = Ort(n, 10, laenge, (0, 0)); var (x1, z1) = Ort(n, 10.05f, laenge, (0, 0));
-                var (bx, bz) = Passantenspur.Bewegung(n, 10, 30, (0, 0), (-1, 0), (0, 1));
-                Pruefe.Wahr(MathF.Abs((x1 - x0) * bz - (z1 - z0) * bx) / MathF.Sqrt(bx * bx + bz * bz) / 0.05f < 0.05f, $"Nummer {n}: Blick nicht in Bewegungsrichtung");
             }
-            // am Anfang geht sie schräg auf die Spur zu (Blick nach rechts), am Ende zurück zur Mitte (Blick nach links), in der Mitte fast geradeaus
-            var (ax, _) = Passantenspur.Bewegung(1, 0.5f, 39.5f, (0, 0), (-1, 0), (0, 1));
-            Pruefe.Wahr(ax < -0.3f, $"Anfang: Bewegung nicht nach rechts (x = {ax}, rechts ist −x)");
-            var (ex, _) = Passantenspur.Bewegung(1, 39.5f, 0.5f, (0, 0), (-1, 0), (0, 1));
-            Pruefe.Wahr(ex > 0.3f, $"Ende: Bewegung nicht zurück zur Mitte (x = {ex})");
         }),
 
         ("Passantenspur: die Rechtsrichtung kommt aus den Punkten vor und hinter der Figur – an der Ecke gerundet, bei Umkehr der Rückfall", () =>

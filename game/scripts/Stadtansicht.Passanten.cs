@@ -39,8 +39,10 @@ public partial class Stadtansicht
         public int Nummer { get; init; }
         /// <summary>Alter Versatz (Meter, nur für <c>--passantenspur=alt</c> zum Vergleichen).</summary>
         public float Versatz { get; init; }
-        /// <summary>Wie weit (Vektor in Metern) die Figur zuletzt neben der Mittellinie des Weges stand (null, wenn sie nicht lief), und von wo der laufende Weg ihren Versatz beginnt (null = losgegangen an einem Ort).</summary>
+        /// <summary>Wie weit (Vektor in Metern) die Figur zuletzt neben der Mittellinie des Weges stand (null, wenn sie nicht lief; mit dem Ausweichen vor Karren), und von wo der laufende Weg ihren Versatz beginnt (null = losgegangen an einem Ort).</summary>
         public Vector3 VersatzJetzt { get; set; }
+        /// <summary>Die Mittellinie des Pfades für <see cref="Passantenspur.Gehen"/> (neu gebaut, sobald der Pfad wechselt).</summary>
+        public PfadMitte? Mitte { get; set; }
         public Vector3 VersatzStart { get; set; }
 
         /// <summary>Wie weit (Meter) die Figur gerade zusätzlich an den Rand ausweicht, weil ein Karren naht (Schritt 5d).</summary>
@@ -58,6 +60,18 @@ public partial class Stadtansicht
         public int AlteMarktstelle { get; set; } = -1;
         /// <summary>Laterne oder Fackel in der Hand, solange es dunkel ist (Stadtansicht.Nachtlichter.cs); null, bis die Figur das erste Mal im Dunkeln draußen ist.</summary>
         public Traglicht? Licht { get; set; }
+    }
+
+    /// <summary>Der Pfad einer Figur als Mittellinie für die Spur (Meter Weg → Punkt in x und z).</summary>
+    private sealed class PfadMitte : Passantenspur.IMittellinie
+    {
+        public required Vector3[] Pfad { get; init; }
+        public required float Laenge { get; init; }
+        public (float X, float Z) Bei(float strecke)
+        {
+            var punkt = Gassennetz.PunktAuf(Pfad, Laenge > 0 ? strecke / Laenge : 0, Laenge);
+            return (punkt.X, punkt.Z);
+        }
     }
 
     private readonly Dictionary<int, Passant> _passanten = new();
@@ -106,7 +120,8 @@ public partial class Stadtansicht
                 // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
                 // sie nicht ab: Sie geht von der Stelle, an der sie ist, über die Gassen zum Anfang des neuen Weges (siehe Weitergehen).
                 var weiter = MitteDesWegesWennImBild(p, minuteGenau);
-                p.VersatzStart = weiter is null ? Vector3.Zero : p.VersatzJetzt; // Anschluss an den laufenden Weg: der Versatz geht weich in den neuen über (samt Richtung)
+                p.VersatzStart = weiter is null ? Vector3.Zero : p.VersatzJetzt; // Anschluss an den laufenden Weg: der Versatz (samt Ausweichen und Richtung) geht weich in den neuen über
+                if (weiter is not null) p.Ausweichen = 0;
                 p.FuerWeg = weg;
                 p.Pfad = Strecke(weg, e, p);
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
@@ -328,19 +343,18 @@ public partial class Stadtansicht
             }
             else
             {
-                var zurueck = Gassennetz.PunktAuf(p.Pfad, Mathf.Max(0, anteil - fenster), p.Laenge);
-                var (rx, rz) = Passantenspur.Rechts((zurueck.X, zurueck.Z), (weiter.X, weiter.Z), (richtung.X, richtung.Z));
-                var (strecke, start) = (anteil * p.Laenge, (p.VersatzStart.X, p.VersatzStart.Z));
-                var (vx, vz) = Passantenspur.Versatz(p.Nummer, strecke, p.Laenge - strecke, start, (rx, rz));
-                var (fx, fz) = Passantenspur.Bewegung(p.Nummer, strecke, p.Laenge - strecke, start, (rx, rz), (richtung.X, richtung.Z));
-                (rechts, versatz) = (new Vector3(rx, 0, rz), new Vector3(vx, 0, vz));
-                bodenfaktor = Mathf.Sqrt(fx * fx + fz * fz);
-                if (bodenfaktor > 1e-3f) drehung = Mathf.Atan2(fx, fz); // die Figur blickt dorthin, wohin sie wirklich geht: kein seitliches Rutschen im Übergang
-                else bodenfaktor = 1f;
+                if (p.Mitte is null || !ReferenceEquals(p.Mitte.Pfad, p.Pfad) || p.Mitte.Laenge != p.Laenge) p.Mitte = new PfadMitte { Pfad = p.Pfad, Laenge = p.Laenge };
+                // Wohin die Figur wirklich geht (auch an Ecken und im Übergang), brauchen nur die, die man sieht
+                var gang = Passantenspur.Gehen(p.Mitte, p.Nummer, p.Laenge, anteil * p.Laenge, (p.VersatzStart.X, p.VersatzStart.Z), ImBild(hier));
+                (rechts, versatz) = (new Vector3(gang.Rechts.X, 0, gang.Rechts.Z), new Vector3(gang.Versatz.X, 0, gang.Versatz.Z));
+                var (fx, fz) = gang.Bewegung;
+                var laengeBewegung = Mathf.Sqrt(fx * fx + fz * fz);
+                // Fast stehend (Anschluss mit gegenläufigem Versatz): der Blick bliebe nicht ruhig, dann gilt die Richtung des Weges; der Takt höchstens doppelt
+                if (laengeBewegung >= 0.3f) (drehung, bodenfaktor) = (Mathf.Atan2(fx, fz), Mathf.Min(laengeBewegung, 2f));
             }
             p.Knoten.Rotation = new Vector3(0, drehung, 0);
-            p.VersatzJetzt = versatz;
-            hier += versatz + rechts * p.Ausweichen;
+            p.VersatzJetzt = versatz + rechts * p.Ausweichen;
+            hier += p.VersatzJetzt;
         }
         else p.VersatzJetzt = Vector3.Zero;
         p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)

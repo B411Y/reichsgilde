@@ -106,23 +106,51 @@ public static class Passantenspur
         // Je weiter der alte Versatz vom Ziel weg ist (anderer Weg, andere Richtung), desto länger dauert der Übergang: so bleibt er überall gleich flach
         var (dx, dz) = (rechts.X * ziel - start.X, rechts.Z * ziel - start.Z);
         var laenge = Uebergang * MathF.Max(1, MathF.Sqrt(dx * dx + dz * dz) / (Spurfern + Schwanken));
-        var (an, aus) = (Rampe(strecke, laenge), Rampe(rest));
+        var an = Rampe(strecke, laenge);
+        var aus = 1 - (1 - Rampe(rest)) * an; // am Anfang bleibt der alte Versatz auch auf einem ganz kurzen Weg, wie er ist; das Ausblenden greift erst, wenn die Spur erreicht ist
         return ((start.X * (1 - an) + rechts.X * ziel * an) * aus, (start.Z * (1 - an) + rechts.Z * ziel * an) * aus);
     }
 
-    /// <summary>Wie weit (Meter) die Richtung der Bewegung vorausgeschaut wird, um die Steigung des Versatzes zu messen.</summary>
-    public const float Vorschau = 0.25f;
+    /// <summary>Die Mittellinie eines Weges: der Punkt (x, z) nach so vielen Metern Weg (die Darstellung liefert ihn aus dem Gassennetz, ein Test aus einer Punktfolge).</summary>
+    public interface IMittellinie
+    {
+        (float X, float Z) Bei(float strecke);
+    }
+
+    /// <summary>Wo die Figur ist und wohin sie geht: <see cref="Ort"/> (Mittellinie plus Versatz), der <see cref="Versatz"/> und die <see cref="Rechts"/>richtung dazu, und die <see cref="Bewegung"/> (Weg auf dem Boden je Meter Mittellinie als Vektor; null, wenn nicht verlangt).</summary>
+    public readonly record struct Gang((float X, float Z) Ort, (float X, float Z) Versatz, (float X, float Z) Rechts, (float X, float Z) Bewegung);
+
+    /// <summary>Wie weit (Meter) vor und zurück der Weg auf dem Boden betrachtet wird, um die Bewegung zu messen.</summary>
+    public const float Schrittweite = 0.1f;
+
+    /// <summary>Wie weit (Meter) vor und zurück die Mittellinie betrachtet wird, um die Rechtsrichtung zu finden (Ecken werden über etwa einen Meter gerundet).</summary>
+    public const float Fenster = 0.5f;
 
     /// <summary>
-    /// Wohin die Figur auf dem Boden wirklich geht, je Meter Weg auf der Mittellinie: die Richtung der Mittellinie (<paramref name="richtung"/>, Länge 1) plus
-    /// die Änderung des Versatzes. Ihre Länge ist das Verhältnis „Weg auf dem Boden zu Weg auf der Mittellinie“ (mindestens 1, höchstens etwa 1,5 im
-    /// Übergang): Die Darstellung dreht die Figur in diese Richtung (kein seitliches Rutschen) und lässt die Schritte um dieses Verhältnis schneller laufen.
+    /// Die Figur nach <paramref name="strecke"/> Metern auf einem Weg der Länge <paramref name="laenge"/>. Mit <paramref name="mitBewegung"/> gehört
+    /// dazu, wohin sie auf dem Boden wirklich geht (aus ihrer Lage kurz davor und kurz danach (je 0,1 m), also auch an Ecken und im Übergang): Die Darstellung dreht die
+    /// Figur in diese Richtung (kein seitliches Rutschen) und lässt die Schritte um die Länge dieser Bewegung schneller laufen. Auf gerader Strecke im Gehen
+    /// ist sie höchstens 1,04, in den Übergängen bis etwa 1,5; beim Anschluss mit seitlichem Versatz oder an einer Ecke kann sie auch weit darüber oder
+    /// darunter liegen (die Darstellung begrenzt sie).
     /// </summary>
-    public static (float X, float Z) Bewegung(int nummer, float strecke, float rest, (float X, float Z) start, (float X, float Z) rechts, (float X, float Z) richtung)
+    public static Gang Gehen(IMittellinie mitte, int nummer, float laenge, float strecke, (float X, float Z) start, bool mitBewegung)
     {
-        var jetzt = Versatz(nummer, strecke, rest, start, rechts);
-        var spaeter = Versatz(nummer, strecke + Vorschau, rest - Vorschau, start, rechts);
-        return (richtung.X + (spaeter.X - jetzt.X) / Vorschau, richtung.Z + (spaeter.Z - jetzt.Z) / Vorschau);
+        var jetzt = Punkt(mitte, nummer, laenge, strecke, start);
+        if (!mitBewegung) return jetzt;
+        var (s0, s1) = (MathF.Max(0, strecke - Schrittweite), MathF.Min(laenge, strecke + Schrittweite));
+        if (s1 - s0 < 1e-3f) return jetzt;
+        var (davor, danach) = (Punkt(mitte, nummer, laenge, s0, start).Ort, Punkt(mitte, nummer, laenge, s1, start).Ort);
+        return jetzt with { Bewegung = ((danach.X - davor.X) / (s1 - s0), (danach.Z - davor.Z) / (s1 - s0)) };
+    }
+
+    private static Gang Punkt(IMittellinie mitte, int nummer, float laenge, float strecke, (float X, float Z) start)
+    {
+        var hier = mitte.Bei(strecke);
+        var zurueck = mitte.Bei(MathF.Max(0, strecke - Fenster));
+        var vor = mitte.Bei(MathF.Min(laenge, strecke + Fenster));
+        var rechts = Rechts(zurueck, vor, (vor.X - hier.X, vor.Z - hier.Z));
+        var versatz = Versatz(nummer, strecke, laenge - strecke, start, rechts);
+        return new Gang((hier.X + versatz.X, hier.Z + versatz.Z), versatz, rechts, (0, 0));
     }
 
     /// <summary>
