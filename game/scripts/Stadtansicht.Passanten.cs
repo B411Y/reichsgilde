@@ -98,9 +98,12 @@ public partial class Stadtansicht
             var weg = e.Weg;
             if (weg is not null && !ReferenceEquals(p.FuerWeg, weg))
             {
-                // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
-                // sie nicht ab: Sie geht von der Stelle, an der sie ist, über die Gassen zum Anfang des neuen Weges (siehe Weitergehen).
-                var weiter = MitteDesWegesWennImBild(p, minuteGenau);
+                // Geht die Figur gerade und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt sie nicht
+                // ab, wenn man es sähe – sie selbst ist im Bild, oder der neue Weg beginnt im Bild bzw. setzte sie an eine Stelle im Bild (sonst
+                // tauchte sie dort auf, Befund der Prüfung): Sie geht von der Stelle, an der sie ist, über die Gassen zum Anfang des neuen Weges
+                // (siehe Weitergehen). Sieht keiner hin, beginnt der neue Weg, wo der Kern sie hat.
+                var weiter = MitteDesWeges(p, minuteGenau);
+                var figurImBild = weiter is not null && ImBild(p.Knoten.Position);
                 p.FuerWeg = weg;
                 p.Pfad = Strecke(weg, e, p);
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
@@ -111,7 +114,7 @@ public partial class Stadtansicht
                     p.Pfad = PfadBauen(weg, e, p, AufDemRundgang(p.AlteMarktstelle) ? p.LaufStart : weg.Abmarsch, AufDemRundgang(p.Marktstelle) ? p.LaufEnde : weg.Ankunft);
                     p.Laenge = Gassennetz.Laenge(p.Pfad);
                 }
-                if (weiter is { } stelle && p.Pfad.Length > 0) Weitergehen(p, weg, stelle, minuteGenau);
+                if (weiter is { } stelle && p.Pfad.Length > 0 && (figurImBild || NeuerWegImBild(p, minuteGenau))) Weitergehen(p, weg, stelle, minuteGenau);
             }
             // Ist der Kern längst fertig und sieht keiner hin (weder die Figur noch ihr Ziel), kommt sie unbemerkt an: nie sichtbar springen
             if (weg is not null && p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0 && minuteGenau >= weg.Ankunft && minuteGenau < p.LaufEnde
@@ -288,20 +291,30 @@ public partial class Stadtansicht
     /// </summary>
     private void LaufPlanen(Passant p, Weg weg)
     {
-        var sekundenJeMinute = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
-        (p.LaufStart, p.LaufEnde) = Gehtempo.Planen(p.Laenge, p.Gehtempo * sekundenJeMinute, weg.Abmarsch, weg.Ankunft);
+        (p.LaufStart, p.LaufEnde) = Gehtempo.Planen(p.Laenge, Gehtempo.MeterJeSpielminute(p.Gehtempo, _simulation!.Takt.RundenDauerSekunden), weg.Abmarsch, weg.Ankunft);
     }
 
     /// <summary>
-    /// Wo die Figur auf ihrem alten Weg ist (die Mittellinie des Weges, ohne seitlichen Versatz), wenn sie gerade im Bild unterwegs ist und noch nicht
-    /// ankommt – sonst null. Nur dann muss ein neuer Weg an sie anschließen.
+    /// Wo die Figur auf ihrem alten Weg ist (die Mittellinie des Weges, ohne seitlichen Versatz), wenn sie gerade draußen unterwegs ist und noch nicht
+    /// ankommt – sonst null. Nur dann kann ein neuer Weg an sie anschließen (wenn man es sähe, siehe oben).
     /// </summary>
-    private Vector3? MitteDesWegesWennImBild(Passant p, double minuteGenau)
+    private Vector3? MitteDesWeges(Passant p, double minuteGenau)
     {
         if (p.Stand is not null || !p.Knoten.Visible || p.Pfad.Length == 0 || minuteGenau >= p.LaufEnde || minuteGenau < p.LaufStart) return null;
-        if (!ImBild(p.Knoten.Position)) return null;
         var anteil = (float)Math.Clamp((minuteGenau - p.LaufStart) / (p.LaufEnde - p.LaufStart), 0, 1);
         return Gassennetz.PunktAuf(p.Pfad, anteil);
+    }
+
+    /// <summary>
+    /// Läge die Figur mit dem eben geplanten neuen Weg sichtbar im Bild – an seinem Anfang (dort wartet sie bis zum Losgehen) oder an der Stelle, an
+    /// der sie jetzt auf ihm wäre (ist der Abmarsch schon vorbei)? Dann darf der Weg nicht hart beginnen, sie tauchte dort auf.
+    /// </summary>
+    private bool NeuerWegImBild(Passant p, double minuteGenau)
+    {
+        if (p.Pfad.Length == 0) return false;
+        if (ImBild(p.Pfad[0])) return true;
+        var anteil = p.LaufEnde > p.LaufStart ? (float)Math.Clamp((minuteGenau - p.LaufStart) / (p.LaufEnde - p.LaufStart), 0, 1) : 1f;
+        return ImBild(Gassennetz.PunktAuf(p.Pfad, anteil));
     }
 
     /// <summary>
@@ -323,8 +336,7 @@ public partial class Stadtansicht
             if (pfad[^1].DistanceTo(punkt) > 0.05f) pfad.Add(punkt);
         p.Pfad = pfad.ToArray();
         p.Laenge = Gassennetz.Laenge(p.Pfad);
-        var sekundenJeMinute = _simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag;
-        (p.LaufStart, p.LaufEnde) = Gehtempo.Weitergehen(p.Laenge, p.Gehtempo * sekundenJeMinute, minuteGenau, weg.Ankunft);
+        (p.LaufStart, p.LaufEnde) = Gehtempo.Weitergehen(p.Laenge, Gehtempo.MeterJeSpielminute(p.Gehtempo, _simulation!.Takt.RundenDauerSekunden), minuteGenau, weg.Ankunft);
     }
 
     /// <summary>Der Knoten des Gassennetzes, der einem Punkt am nächsten liegt (ohne einen neuen anzulegen).</summary>

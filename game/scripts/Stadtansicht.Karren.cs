@@ -283,8 +283,9 @@ public partial class Stadtansicht
         float Stelle(float anteil) => Math.Clamp(Math.Min(anteil + versatz, 1f - spaet), 0f, 1f);
         // Der Karren fährt im Tempo seiner Art (Nutzer, 31.10.2026: Ochse 0,8, Hand 1,0, Pferd 1,3 m/s bei Tempo 1) – nie gestreckt: Der Kern
         // rechnet seine Fahrzeit seit Datenversion 65 nach Weglänge mit demselben Tempo und auf demselben Weg (Halteplatz, Hof, Zubringer, Wege,
-        // Halt vor dem Pflaster), bis auf die Rundung auf ganze Minuten kommen beide zugleich an. Wer früher da ist, wartet am Markt, bis der Kern
-        // verkauft; wer später kommt, kehrt dort sofort um (Karrenzug). Wo keiner hinsieht, gilt der Kern (Abgleichen).
+        // Halt vor dem Pflaster), bei der Standard-Rundendauer kommen beide bis auf die Rundung auf ganze Minuten zugleich an. Wer früher da ist
+        // (längere Runden), wartet am Markt, bis der Kern verkauft; wer später kommt (kürzere Runden, eine vom Kern gekappte Fahrt über der
+        // Höchstdauer), kehrt dort sofort um (Karrenzug). Wo keiner hinsieht, gilt der Kern (Abgleichen).
         var (hin, zurueck) = ZugProfileVon(ansicht.Betrieb, karren, ansicht);
         var zug = gezeigt.Zug;
         if (gezeigt.ZugProfile is { } alt && !ReferenceEquals(alt.Hin, hin)) zug.Umstellen(alt.Hin, alt.Zurueck, hin, zurueck); // der Belag hat sich geändert
@@ -296,7 +297,7 @@ public partial class Stadtansicht
         {
             zug.Weiter(sim.Takt.IstPausiert ? 0 : delta * sim.Takt.TicksProSekunde, karren.Zustand, hin, zurueck);
             // Sieht keiner hin (der Karren und der Ort, an dem der Kern ihn hätte, liegen außerhalb des Bildes), gilt der Kern
-            if (!KarrenImBild(knoten.GlobalPosition) && !KarrenImBild(ToGlobal(PunktAufWeg(weg, Stelle((float)kernAnteil)))))
+            if (!KarrenImBild(knoten.GlobalPosition) && !KarrenImBild(ToGlobal(AufFuss(PunktAufWeg(weg, Stelle((float)kernAnteil))))))
                 zug.Abgleichen(karren.Zustand, kernAnteil, hin, zurueck);
         }
         gezeigt.Geschwindigkeit = sim.Takt.IstPausiert ? 0 : (float)(zug.MeterJeMinute(hin, zurueck) * sim.Takt.TicksProSekunde);
@@ -378,8 +379,8 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Messzeile der sichtbaren Hinfahrt (<c>[karren] …</c> im Log): Der Karren wird vom Abfahren bis zum Halt am Pflasterrand begleitet – gefahrene Strecke auf dem Weg (die Stelle, an der der Karren gezeigt wird; ohne die Rechtsspur),
-    /// Spielminuten und daraus das Tempo in Metern je Sekunde bei Tempo 1 (Spielminute = <see cref="Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute"/>
-    /// Sekunden), dazu die Kern-Fahrzeit. Nur Fahrten, die man von der Abfahrt an im Bild sah (nicht abgeglichen, nicht aus dem Bild).
+    /// Spielminuten und daraus das Tempo in Metern je echter Sekunde bei Tempo 1 (eine Spielminute = eingestellte Rundendauer ÷ 1.140 Sekunden, wie das
+    /// Bild fährt), dazu die Kern-Fahrzeit. Nur mit der Startoption <c>--karrenmessung=1</c>. Nur Fahrten, die man von der Abfahrt an im Bild sah (nicht abgeglichen, nicht aus dem Bild).
     /// </summary>
     private void KarrenMessen(KarrenAnsicht k, Karren karren, BetriebsAnsicht a, Etappe etappe, bool amHalt, double jetzt, float meter, Vector3 ort, bool neu)
     {
@@ -409,10 +410,14 @@ public partial class Stadtansicht
         KarrenfahrtGesehen(karren, a, gezeigt, minuten);
     }
 
+    /// <summary>Startoption <c>--karrenmessung=1</c>: die Messzeilen <c>[karren] Profil</c> und <c>[karren] Fahrt gesehen</c> ins Protokoll (zum Prüfen von Bild gegen Kern).</summary>
+    private static readonly bool KarrenMessung = OS.GetCmdlineUserArgs().Contains("--karrenmessung=1");
+
     private void KarrenfahrtGesehen(Karren karren, BetriebsAnsicht a, float strecke, double minuten)
     {
-        if (minuten <= 0) return;
-        var tempo = strecke / (minuten * Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute);
+        if (minuten <= 0 || !KarrenMessung) return;
+        // Meter je echter Sekunde bei Tempo 1 mit der eingestellten Rundendauer (wie das Bild fährt, Gehtempo.MeterJeSpielminute)
+        var tempo = strecke / (minuten * (_simulation!.Takt.RundenDauerSekunden / Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag));
         var kern = _wirtschaft?.Fahrzeit(karren, true) ?? 0;
         GD.Print($"[karren] Fahrt gesehen: {a.Betrieb.Name} {karren.Typ} {karren.Name} -> {a.Markt?.Name ?? "Ursprung"}: {strecke:0.0} m in {minuten:0.0} Spielminuten = {tempo:0.00} m/s bei Tempo 1 " +
                  $"(Tempo der Art {karren.Daten.Tempo:0.0} m/s), Kern-Fahrzeit {kern} min, Unterschied {minuten - kern:+0.0;-0.0;0.0} min");
@@ -431,7 +436,7 @@ public partial class Stadtansicht
     private void KarrenfahrtMelden(Betrieb betrieb, Karren karren, BetriebsAnsicht ansicht, float laenge,
         (IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> Hin, IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck> Zurueck)? fahrten, Stadtwirtschaft w, Fahrprofil hin)
     {
-        if (!_karrenfahrtenGemeldet.Add((betrieb, karren.Typ)) || fahrten is null) return;
+        if (!KarrenMessung || !_karrenfahrtenGemeldet.Add((betrieb, karren.Typ)) || fahrten is null) return;
         var kern = w.Fahrzeit(karren, true);
         var kernLaenge = fahrten.Value.Hin.Sum(s => s.Laenge);
         var woher = ansicht.WegVomKern ? "Weg des Kerns" : "Gassennetz, Kern bis zur Platzmitte";
@@ -455,8 +460,9 @@ public partial class Stadtansicht
     private readonly Dictionary<(Betrieb, string), (Fahrprofil Hin, Fahrprofil Zurueck)> _zugprofile = new();
 
     /// <summary>
-    /// Das Tempo des Karrens auf der Karrenstraße, alles aus dem Kern: das Tempo seiner Art (<see cref="KarrenDaten.MeterJeMinute"/>, fest mit der
-    /// Standard-Rundendauer wie im Kern) auf ebenem Fahrweg, je Stück geteilt durch den Zeitfaktor des Kerns (<c>Stadtwirtschaft.Zeitfaktor</c>:
+    /// Das Tempo des Karrens auf der Karrenstraße, alles aus dem Kern: das Tempo seiner Art (<see cref="KarrenDaten.Tempo"/>, Meter je echter Sekunde
+    /// bei Tempo 1 mit der eingestellten Rundendauer wie die Figuren, <see cref="Gehtempo.MeterJeSpielminute"/>; bei 15 Minuten je Runde genau das
+    /// Tempo des Kerns) auf ebenem Fahrweg, je Stück geteilt durch den Zeitfaktor des Kerns (<c>Stadtwirtschaft.Zeitfaktor</c>:
     /// bergauf und auf schlechtem Belag langsamer, Ausbau höchstens 15 % schneller). Furten bremsen, Fähren halten auf. Die Länge ist die des
     /// gezeigten Weges (vom Hof bis zum Halt am Rand des Pflasters); das Profil wird nicht auf die Fahrzeit des Kerns gestreckt (Tempo bleibt fest),
     /// die Abweichung zum Kern steht einmal je Betrieb im Log (<see cref="KarrenfahrtMelden"/>).
@@ -465,7 +471,8 @@ public partial class Stadtansicht
     {
         if (_zugprofile.TryGetValue((betrieb, karren.Typ), out var bekannt)) return bekannt;
         var laenge = WegLaenge(KarrenWeg(ansicht)); // bis zum Halt am Pflasterrand
-        var meterJeMinute = karren.Daten.MeterJeMinute > 0 ? karren.Daten.MeterJeMinute : Reichsgilde.Core.Zeit.Taktgeber.SekundenJeSpielminute; // ohne Tempo: 1 m/s
+        var meterJeMinute = Gehtempo.MeterJeSpielminute(karren.Daten.Tempo > 0 ? karren.Daten.Tempo : 1,
+            _simulation?.Takt.RundenDauerSekunden ?? Reichsgilde.Core.Zeit.Taktgeber.StandardRundenDauerSekunden); // ohne Tempo: 1 m/s
         if (_wirtschaft is not { } w)
             return (new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute), new Fahrprofil(Karrentempo.Stuecke(null, _ => 1, 0, 0), laenge, meterJeMinute));
         var fahrten = w.Fahrten(betrieb);

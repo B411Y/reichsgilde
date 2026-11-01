@@ -77,8 +77,12 @@ public partial class Stadtansicht
     /// <summary>Ist das die Kennung eines Marktplatzes („Marktplatz“ oder „Marktplatz:&lt;Name&gt;“ bei weiteren Plätzen einer Stadt)?</summary>
     public static bool IstMarktplatz(string? kennung) => kennung == "Marktplatz" || kennung?.StartsWith("Marktplatz:", StringComparison.Ordinal) == true;
 
-    /// <summary>Der Name zu einer Marktplatz-Kennung: „Marktplatz“ oder der Name des Platzes (Heumarkt, Alter Markt …).</summary>
-    public static string MarktplatzName(string kennung) => kennung.StartsWith("Marktplatz:", StringComparison.Ordinal) ? kennung["Marktplatz:".Length..] : "Marktplatz";
+    /// <summary>
+    /// Der Name zu einer Marktplatz-Kennung: bei weiteren Plätzen der Name aus der Kennung, beim ersten (Kennung „Marktplatz“) sein Name aus der Karte
+    /// (Köln: Heumarkt; Greybox: Marktplatz) – vorher stand dort immer „Marktplatz“ (Befund der Prüfung vom 1.11.2026).
+    /// </summary>
+    public string MarktplatzName(string kennung) => kennung.StartsWith("Marktplatz:", StringComparison.Ordinal) ? kennung["Marktplatz:".Length..]
+        : _maerkte.Count > 0 && _maerkte[0].Name is { Length: > 0 } name ? name : "Marktplatz";
 
     /// <summary>Alle Marktplätze der Karte in der Reihenfolge der Datei (leer ohne Marktplatz).</summary>
     private readonly List<MarktplatzAnsicht> _maerkte = new();

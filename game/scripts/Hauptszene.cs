@@ -1472,7 +1472,7 @@ public partial class Hauptszene : Node
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch
         {
-            var markt when Stadtansicht.IstMarktplatz(markt) => $"{Stadtansicht.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
+            var markt when Stadtansicht.IstMarktplatz(markt) => $"{_stadt.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
             "Rathaus" => RathausText(w),
             "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
                      + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",

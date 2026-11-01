@@ -1,5 +1,6 @@
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Wirtschaft;
+using Reichsgilde.Core.Zeit;
 
 namespace Reichsgilde;
 
@@ -7,10 +8,15 @@ namespace Reichsgilde;
 /// Wie schnell sich Figuren und Karren zeigen: feste Geschwindigkeiten in Metern je echter Sekunde bei Tempo 1 (Nutzer, 31.10.2026).
 /// Die Figuren der Stadtansicht sind nur Darstellung: Der Kern sagt, <i>wann</i> jemand losgeht und ankommt, die Darstellung
 /// geht in ihrem eigenen Tempo und kommt, wenn die Zeit knapp ist, eben später an. Bei höherem Spieltempo (2, 4, 8) laufen alle
-/// entsprechend schneller (die Umrechnung in Spielminuten steckt in <c>sekundenJeMinute</c>). Karren fahren im festen Tempo ihrer Art
-/// (<see cref="Karrentempo"/>, <see cref="Fahrprofil"/>); der Kern rechnet ihre Fahrzeit seit Datenversion 65 mit demselben Tempo nach Weglänge,
-/// aber über seine Karrenstraßen (Stadtansicht.Karren.cs, Messzeile <c>[karren] Profil</c>). Ohne Godot, damit ein Test die Datei mitübersetzen
-/// kann (<c>GehtempoTests</c>).
+/// entsprechend schneller. Karren fahren im festen Tempo ihrer Art (<see cref="Karrentempo"/>, <see cref="Fahrprofil"/>); der Kern rechnet ihre
+/// Fahrzeit seit Datenversion 65 mit demselben Tempo nach Weglänge auf derselben Strecke (Stadtansicht.Karren.cs, Messzeile <c>[karren] Profil</c>
+/// mit <c>--karrenmessung=1</c>).
+/// Eine Regel für Figuren und Karren (1.11.2026): Meter je echter Sekunde bei der <b>eingestellten</b> Rundendauer
+/// (<see cref="MeterJeSpielminute"/>) – so sieht man im Bild immer dieselben Geschwindigkeiten, wie lang man eine Runde auch einstellt. Der Kern
+/// rechnet die Fahrzeit der Karren dagegen fest mit der Standard-Rundendauer (<see cref="Taktgeber.SekundenJeSpielminute"/>), damit die
+/// Wirtschaft nicht an einer Menüeinstellung hängt. Bei 15 Minuten je Runde kommen Bild und Kern also gleichzeitig an; bei längeren Runden ist
+/// der Karren früher am Markt und wartet, bei kürzeren später und kehrt sofort um (<see cref="Karrenzug"/>). Ohne Godot, damit ein Test die Datei
+/// mitübersetzen kann (<c>GehtempoTests</c>).
 /// </summary>
 public static class Gehtempo
 {
@@ -37,6 +43,14 @@ public static class Gehtempo
 
     /// <summary>Wer unter Zeitdruck eilt, geht höchstens so viel mal schneller als sein eigenes Tempo.</summary>
     public const double EilenHoechstens = 1.3;
+
+    /// <summary>
+    /// Meter je Spielminute für ein Tempo von <paramref name="meterJeSekunde"/> Metern je echter Sekunde bei Tempo 1 und der eingestellten
+    /// Rundendauer <paramref name="rundenDauerSekunden"/> – die Regel für alles, was sich im Bild bewegt (Figuren, Karren, Streife). Mit der
+    /// Standard-Rundendauer (15 Minuten) genau <see cref="KarrenDaten.MeterJeMinute"/> des Kerns, Bit für Bit.
+    /// </summary>
+    public static double MeterJeSpielminute(double meterJeSekunde, double rundenDauerSekunden) =>
+        meterJeSekunde * (rundenDauerSekunden / Spielzeit.MinutenProTag);
 
     /// <summary>Der Grundwert einer Person: Boten eilen, Bettler, Witwer und alle, die gebeugt gehen, sind langsam, wer trägt, ist etwas langsamer.</summary>
     public static float Grund(string rolle, bool gebeugt, bool traegt)
@@ -115,9 +129,11 @@ public static class Karrentempo
 
 /// <summary>
 /// Die Fahrt eines Karrens mit fester Geschwindigkeit, Stück für Stück: wann (Spielminuten seit der Abfahrt) er wie weit ist. Der Weg
-/// wird als Anteil (0 bis 1) der Länge geführt. Die Stadtansicht fährt ohne <c>dauer</c>: Das Tempo bleibt fest (Ochse 0,8, Hand 1,0, Pferd 1,3 m/s),
-/// der Karren ist früher oder später am Halt als der Kern am Markt. Mit <c>dauer</c> (z. B. der Fahrzeit des Kerns) ließe sich das Profil auf
-/// genau diese Zeit strecken oder stauchen – das Tempo wäre dann nicht mehr fest.
+/// wird als Anteil (0 bis 1) der Länge geführt. Die Stadtansicht fährt ohne <c>dauer</c>: Das Tempo bleibt fest (Ochse 0,8, Hand 1,0, Pferd 1,3 m/s).
+/// Bei der Standard-Rundendauer kommt der Karren mit dem Kern an (bis auf dessen Rundung auf ganze Minuten) – außer an der Höchstdauer
+/// (<c>logistik.weglaenge.hoechstMinuten</c>): Kappt der Kern eine lange Fahrt, fährt der Karren im Bild trotzdem in seinem Tempo weiter und kommt
+/// später an; die Ware ist dann schon verkauft, er kehrt am Markt sofort um (<see cref="Karrenzug"/>). Mit <c>dauer</c> ließe sich das Profil auf
+/// genau eine Zeit strecken oder stauchen – das Tempo wäre dann nicht mehr fest (nur für Tests).
 /// </summary>
 public sealed class Fahrprofil
 {
@@ -206,8 +222,9 @@ public enum Etappe
 
 /// <summary>
 /// Die sichtbare Fahrt eines Karrens. Der Kern entscheidet, wann ein Karren fährt, und rechnet die Fahrzeit in Spielminuten – seit Datenversion 65
-/// nach Weglänge und Karrenart. Das Bild fährt im festen Tempo der Art über seinen eigenen Weg (Gassennetz, vom Hof bis zum Halt am Pflasterrand);
-/// beide Wege sind verschieden lang, darum ist der Karren früher oder später am Markt als der Kern, und so gleicht der Zug es aus:
+/// nach Weglänge und Karrenart auf derselben Strecke, die das Bild fährt. Das Bild fährt im festen Tempo der Art; früher oder später am Markt als
+/// der Kern ist der Karren nur an der Höchstdauer des Kerns, bei einer anderen als der Standard-Rundendauer (<see cref="Gehtempo.MeterJeSpielminute"/>)
+/// und mit alten Daten (dann sucht das Bild seinen Weg im Gassennetz). So gleicht der Zug es aus:
 ///   • Jede Fahrt, die der Kern beginnt (Wechsel nach „zum Markt“), merkt sich der Zug als offen. Am Hof fährt er sie, sobald er da ist.
 ///     Fährt er noch, verfallen verpasste Fahrten nicht – aber es bleibt höchstens <b>eine</b> offen, die übrigen werden übersprungen.
 ///   • Am Markt wartet der Zug, solange der Kern ihn noch dort wähnt, und kehrt sofort um, wenn der Kern verkauft hat.
