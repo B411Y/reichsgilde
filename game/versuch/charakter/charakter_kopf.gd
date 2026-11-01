@@ -707,8 +707,15 @@ func _anwenden6(w: Dictionary) -> void:
 		var auf := 1.0 - clampf((b - ruhe) / maxf(1.0 - ruhe, 0.01), 0.0, 1.0)
 		w["lidfalte_m"] = kurve_im_alter(ku["reife_oben_m"], alter) * mann * auf * mimikfaktor
 		w["lidfalte_w"] = kurve_im_alter(ku["reife_oben_w"], alter) * (1.0 - mann) * auf * mimikfaktor
+	# E2: Lidformen „lid_*“ (Probekopf glb6f) bewegen den Lidrand – beim Lidschluss wie die Lidfalte ausblenden
+	var lid_auf := 1.0
+	if formen.has("lidfalte_m"):
+		var b2 := 0.5 * (float(w.get("eyeBlinkLeft", 0.0)) + float(w.get("eyeBlinkRight", 0.0)))
+		var ruhe2 := maxf(lid, 0.0)
+		lid_auf = 1.0 - clampf((b2 - ruhe2) / maxf(1.0 - ruhe2, 0.01), 0.0, 1.0)
 	for k in zusatz_formen:
-		w[k] = float(w.get(k, 0.0)) + float(zusatz_formen[k])
+		var f := lid_auf if String(k).begins_with("lid_") else 1.0
+		w[k] = float(w.get(k, 0.0)) + float(zusatz_formen[k]) * f
 	gewichte = w
 	for name in formen:
 		form(name, float(w.get(name, 0.0)))

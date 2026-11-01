@@ -58,7 +58,10 @@ def main():
     from scipy import sparse
     from scipy.sparse.linalg import spsolve
     nase_abst = np.minimum.reduce([np.linalg.norm(S - P[k], axis=1) for k in ("al_r", "al_l", "sn")])
-    frei_n = (nase_abst < 14.0) & (daten < 0.5)
+    # Runde 1 (Godot): Nasenlöcher der Frau schwarz umrandet (Innenlagen stachen durch) – der ganze Nasenflügel- und
+    # Lochbereich um al und sn folgt harmonisch seinem Rand, die Spitze bleibt FB
+    # Runde 2: an der Flügelfurche der Frau klappte die Haut um (schwarze Bögen) – Bereich auf 20 mm erweitert
+    frei_n = ((nase_abst < 14.0) & (daten < 0.5)) | (nase_abst < float(opt.get("nase_mm", "20")))
     # Nasenhöhle (innen, hinter der Flügelbasis): dem Umfeld folgen, sonst wandert der Steg innen bis 9 mm seitlich
     al_y, al_z = 0.5 * (P["al_r"][1] + P["al_l"][1]), 0.5 * (P["al_r"][2] + P["al_l"][2])
     al_x = 0.5 * (abs(P["al_r"][0]) + abs(P["al_l"][0]))
@@ -80,6 +83,9 @@ def main():
         Lff, Lfk = L[fi][:, fi], L[fi][:, ke]
         for k in range(3):
             D[fi, k] = spsolve(Lff.tocsc(), -Lfk @ D[ke, k])
+        # Runde 2: innen wanderte der Steg mit den Wangen 5 mm seitlich und stach durch den Flügel – seitlicher Anteil
+        # zur Mitte hin auf 0 (Steg bleibt in der Mitte, die Flügel behalten ihn)
+        D[fi, 0] *= ve.glatt(np.abs(S[fi, 0]), 0.0, al_x + 4.0)
     gew_r = rand * daten
     sel = gew_r > 0.3
     s_r, R_r, t_r = ve.umeyama(S[sel], (S + D)[sel], gew_r[sel])
@@ -130,8 +136,14 @@ def main():
     seite_r = abst_je["r"] <= abst_je["l"]
     abst = np.minimum(abst_je["r"], abst_je["l"])
     verd = hoehle["r"] | hoehle["l"]
-    rand_lid = abst <= 2.5
-    frei_a = ((abst < 15.0) | verd) & ~rand_lid
+    # Runde 1 (Godot): Augapfel 5 mm vor, Oberlid harmonisch zur 8 mm zurückweichenden Braue – das Weiß stach über dem
+    # Lid durch. Jetzt: Augapfel höchstens AUGE_VOR_MAX mm vor (FB rät die Augen an geschlossenen Lidern), das ganze Lid
+    # bis 6 mm vom Rand folgt dem Augapfel, harmonisch erst 6–20 mm
+    for s_ in "rl":
+        augen_t[s_] = augen_t[s_].copy()
+        augen_t[s_][2] = min(augen_t[s_][2], float(opt.get("auge_vor_max", "2.0")))
+    rand_lid = abst <= 6.0
+    frei_a = ((abst < 20.0) | verd) & ~rand_lid
     ziel_a = D.copy()
     ziel_a[rand_lid & seite_r] = augen_t["r"]
     ziel_a[rand_lid & ~seite_r] = augen_t["l"]
