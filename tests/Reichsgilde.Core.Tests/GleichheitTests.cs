@@ -24,6 +24,7 @@ using Reichsgilde.Core.Zeit;
 ///   • Lauf C speichert und lädt an fünf Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
+/// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -60,7 +61,22 @@ static class GleichheitTests
     public static IEnumerable<(string, Action)> Alle() => Partien.Select(p => (
         $"Gleichheit: Startwert {p.Startwert} ({p.Schwierigkeit}, {p.Rivale}, {p.Beruf}) – 10 Jahre durchgehend, mit deutscher Ländereinstellung " +
         "und mit Speichern/Laden (auch direkt nach dem Löschen eines Betriebs) ergeben dieselbe Prüfsumme",
-        (Action)(() => Pruefen(p))));
+        (Action)(() => Pruefen(p)))).Append((
+        "Gleichheit: Felspinsel (Stempel, Streuen mit Filter, Radieren, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsenPruefen));
+
+    /// <summary>
+    /// Der Felsfall (Felspinsel F3): Ein fester Ablauf der Kartenwerkstatt (<see cref="FelsenTests.Ablauf"/>) – gleicher Strich, gleiche Bytes.
+    /// Die Prüfsumme der Kartendatei steht in der Datei der CI (Zeile „fels …“) und wird so zwischen Linux und Windows verglichen.
+    /// </summary>
+    static void FelsenPruefen()
+    {
+        var a = Sha256(FelsenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsenTests.Ablauf()), "Felsen: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsenTests.Ablauf())), "Felsen: de-DE");
+        Zeilen[-1] = new[] { $"fels {a}" };
+        DateiSchreiben();
+    }
 
     static void Pruefen(Partie p)
     {
