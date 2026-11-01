@@ -35,8 +35,13 @@ public partial class Stadtansicht
         public Weg? FuerWeg { get; set; }
         public Vector3[] Pfad { get; set; } = Array.Empty<Vector3>();
         public float Laenge { get; set; }
-        /// <summary>Seitlicher Versatz (Meter), damit nicht alle auf derselben Linie laufen.</summary>
+        /// <summary>Nummer des Einwohners (für die Spur, <see cref="Passantenspur"/>).</summary>
+        public int Nummer { get; init; }
+        /// <summary>Alter Versatz (Meter, nur für <c>--passantenspur=alt</c> zum Vergleichen).</summary>
         public float Versatz { get; init; }
+        /// <summary>Wie weit (Meter, rechts der Mitte) die Figur zuletzt neben dem Weg stand, und von wo der laufende Weg ihre Spur beginnt (0 = losgegangen an einem Ort).</summary>
+        public float SeiteJetzt { get; set; }
+        public float SeiteStart { get; set; }
 
         /// <summary>Wie weit (Meter) die Figur gerade zusätzlich an den Rand ausweicht, weil ein Karren naht (Schritt 5d).</summary>
         public float Ausweichen { get; set; }
@@ -101,6 +106,7 @@ public partial class Stadtansicht
                 // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
                 // sie nicht ab: Sie geht von der Stelle, an der sie ist, über die Gassen zum Anfang des neuen Weges (siehe Weitergehen).
                 var weiter = MitteDesWegesWennImBild(p, minuteGenau);
+                p.SeiteStart = weiter is null ? 0 : p.SeiteJetzt; // Anschluss an den laufenden Weg: die Spur geht weich in die neue über
                 p.FuerWeg = weg;
                 p.Pfad = Strecke(weg, e, p);
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
@@ -146,6 +152,7 @@ public partial class Stadtansicht
                 _imDom.Remove(nummer);
             }
 
+        if (NaeheMessen) NaeheZaehlen(sekunden);
         PassantenHervorheben();
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenBilder++;
@@ -158,6 +165,10 @@ public partial class Stadtansicht
             var laufend = _passanten.Values.Where(p => p.Stand is null && p.Knoten.Visible && p.LaufEnde > p.LaufStart)
                                            .Select(p => p.Laenge / ((p.LaufEnde - p.LaufStart) * sekundenJeMinute)).ToList();
             var tempi = laufend.Count == 0 ? "" : $"Gehtempo Ø {laufend.Average():0.0} m/s, höchstens {laufend.Max():0.0} m/s, ";
+            if (NaeheMessen)
+                GD.Print($"[passantennaehe] Spur {(SpurAlt ? "alt" : "neu")}: seit {_naheSekunden:0} s unter {NaeheAbstand} m: {_naheNeuGesamt} Begegnungen " +
+                         $"({_naheNeuGesamt * 60.0 / Math.Max(_naheSekunden, 1):0.0} je Minute; im Bild {_naheNeuImBild}, {_naheNeuImBild * 60.0 / Math.Max(_naheSekunden, 1):0.0} je Minute; " +
+                         $"davon gegenläufig {_naheGegen}, gleichläufig {_naheGleich}), im Bild laufen im Mittel {_naheLaeufer / Math.Max(_naheBilder, 1):0.0} Figuren");
             GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
                      $"{_passantenBewegtSumme / (double)_passantenBilder:0} bewegt je Bild, {tempi}" +
                      $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s " +
@@ -172,6 +183,45 @@ public partial class Stadtansicht
     }
 
     private long _passantenBewegtSumme;
+
+    // ── Messung für Schicht 4 (Abstoßung): wie oft kommen sich laufende Figuren näher als 0,5 m? (Startoption --passantennaehe=1, nur Protokoll) ──
+    private static bool NaeheMessen => Wasserarten.Startoption("passantennaehe") is "1" or "an" or "ja";
+    private const float NaeheAbstand = 0.5f;
+    private readonly HashSet<long> _naheBeruehrt = new();
+    private double _naheSekunden, _naheBilder, _naheLaeufer;
+    private long _naheNeuGesamt, _naheNeuImBild, _naheGegen, _naheGleich;
+
+    /// <summary>
+    /// Zählt jede neue Berührung zweier laufender Figuren (Abstand auf dem Boden unter 0,5 m; eine Berührung zählt einmal, bis sie sich wieder
+    /// trennen). Getrennt nach „im Bild“ und gegenläufig (Blickrichtungen mehr als 90° auseinander) oder gleichläufig. In der Pause zählt nichts.
+    /// </summary>
+    private void NaeheZaehlen(double sekunden)
+    {
+        if (sekunden <= 0) return;
+        _naheSekunden += sekunden;
+        _naheBilder++;
+        var laeufer = _passanten.Where(k => k.Value.Stand is null && k.Value.Knoten.Visible).OrderBy(k => k.Key).ToList();
+        _naheLaeufer += laeufer.Count(k => ImBild(k.Value.Knoten.Position));
+        var jetzt = new HashSet<long>();
+        for (var i = 0; i < laeufer.Count; i++)
+            for (var j = i + 1; j < laeufer.Count; j++)
+            {
+                var (a, b) = (laeufer[i].Value.Knoten, laeufer[j].Value.Knoten);
+                var d = a.Position - b.Position;
+                if (d.X * d.X + d.Z * d.Z >= NaeheAbstand * NaeheAbstand) continue;
+                var schluessel = (long)laeufer[i].Key * 1_000_000 + laeufer[j].Key;
+                jetzt.Add(schluessel);
+                if (_naheBeruehrt.Contains(schluessel)) continue;
+                _naheNeuGesamt++;
+                if (ImBild(a.Position) && ImBild(b.Position)) _naheNeuImBild++;
+                if (Mathf.Cos(a.Rotation.Y - b.Rotation.Y) < 0) _naheGegen++; else _naheGleich++;
+            }
+        _naheBeruehrt.Clear();
+        _naheBeruehrt.UnionWith(jetzt);
+    }
+
+    /// <summary>Startoption <c>--passantenspur=alt</c>: die frühere Linie in fünf Spuren statt der Spuren aus <see cref="Passantenspur"/> (zum Vergleichen).</summary>
+    private static bool SpurAlt => Wasserarten.Startoption("passantenspur") is "alt";
 
     /// <summary>
     /// Die Figur steht an ihrem Ort: nur draußen sichtbar. Steht sie schon da, bleibt alles, wie es ist – jede gesetzte Position
@@ -258,7 +308,8 @@ public partial class Stadtansicht
         {
             richtung = richtung.Normalized();
             p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
-            // Rechtsverkehr (Schritt 5d): am rechten Rand gehen, je nach Nummer etwas versetzt; naht ein Karren, weichen sie noch weiter aus
+            // Rechtsverkehr: auf der rechten Gassenhälfte gehen, auf der eigenen Spur der Person mit sanftem Schwanken, am Anfang und Ende weich
+            // (Passantenspur.cs); naht ein Karren, weichen sie noch weiter aus (Schritt 5d)
             var naht = false;
             foreach (var karrenAnsicht in _karren.Values)
             {
@@ -266,7 +317,22 @@ public partial class Stadtansicht
                 if (d.X * d.X + d.Z * d.Z < PassantenAusweichAbstand * PassantenAusweichAbstand) { naht = true; break; }
             }
             p.Ausweichen = Mathf.Lerp(p.Ausweichen, naht ? 1.0f : 0f, naht ? 0.12f : 0.04f);
-            hier += new Vector3(-richtung.Z, 0, richtung.X) * (0.55f + Mathf.Abs(p.Versatz) * 0.5f + p.Ausweichen);
+            float seite;
+            Vector3 rechts;
+            if (SpurAlt) // zum Vergleichen: die frühere gerade Linie in fünf Spuren
+            {
+                (seite, rechts) = (0.55f + Mathf.Abs(p.Versatz) * 0.5f, new Vector3(-richtung.Z, 0, richtung.X));
+            }
+            else
+            {
+                var fenster = 0.5f / Mathf.Max(p.Laenge, 1); // ein halber Meter vor und zurück: Ecken werden über etwa einen Meter gerundet
+                var (vor, zurueck) = (Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + fenster)), Gassennetz.PunktAuf(p.Pfad, Mathf.Max(0, anteil - fenster)));
+                var (rx, rz) = Passantenspur.Rechts((zurueck.X, zurueck.Z), (vor.X, vor.Z), (richtung.X, richtung.Z));
+                var strecke = anteil * p.Laenge;
+                (seite, rechts) = (Passantenspur.Seite(p.Nummer, strecke, p.Laenge - strecke, p.SeiteStart), new Vector3(rx, 0, rz));
+            }
+            p.SeiteJetzt = seite;
+            hier += rechts * (seite + p.Ausweichen);
         }
         p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)
         p.Knoten.Visible = true;
@@ -741,7 +807,7 @@ public partial class Stadtansicht
         {
             Knoten = knoten, Figur = FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer),
             Gebeugt = gebeugt, Traegt = tracht.Last is Last.Kiepe or Last.Buendel,
-            Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = GehtempoVon(e, gebeugt, tracht.Last is Last.Kiepe or Last.Buendel),
+            Nummer = e.Nummer, Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = GehtempoVon(e, gebeugt, tracht.Last is Last.Kiepe or Last.Buendel),
         };
     }
 

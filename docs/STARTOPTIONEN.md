@@ -41,6 +41,7 @@ Startoptionen (nach `--`):
 - `--hinterzimmer=1`
 - `--markt=1`
 - `--kischmied=aus|wenige|alle` (Passanten mit dem KI-Schmied aus TRELLIS: `aus` nur die Figuren aus Blender, `wenige` (Standard) jeder zweite Knecht und Tagelöhner, `alle` jeder Mann (Mensch, nicht gebeugt, ohne Last); für Vergleiche mit `--blick=0,0,25 --messung=12`. In der Schmiede (`--innen=1`) tragen die Arbeiter ihn immer)
+- `--passantenspur=alt` (die frühere gerade Linie in fünf Spuren statt der Spuren aus `Passantenspur.cs`: eigene Spur je Person auf der rechten Gassenhälfte, Schwanken, weiche Übergänge; zum Vergleichen) und `--passantennaehe=1` (Messung: wie oft kommen sich laufende Figuren näher als 0,5 m, Zeile `[passantennaehe]` alle 10 s im Protokoll, mit Unterscheidung gegenläufig/gleichläufig und „im Bild“; zählt nur bei laufender Zeit)
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=5000`; die beiden kosten zusammen 1.300)
 - `--umland=1` (den günstigsten freien Umlandbetrieb erwerben – wenn nötig erst zum Bürger aufsteigen –, ihm einen Ochsenkarren dazukaufen und seine Kurzübersicht mit „…“ zeigen: Karren mit Eskorte, Nachtfahrt und „Verkaufen“; mit `--vermoegen=30000`)
 - `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
