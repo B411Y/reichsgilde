@@ -13,7 +13,7 @@ public sealed record Gestein(
 
 /// <summary>
 /// Das Fels-Material (Felspinsel F2): liest die Gesteinsvorlagen aus <c>res://daten/gestein.json</c> und baut daraus <see cref="ShaderMaterial"/>
-/// mit <c>fels.gdshader</c> (Struktur dreiseitig, ab Grafikstufe Mittel) oder <c>fels_niedrig.gdshader</c> (nur von oben). Die Struktur ist
+/// mit <c>fels.gdshader</c> (Struktur dreiseitig, ab Grafikstufe Mittel) oder <c>fels_niedrig.gdshader</c> (eine Abtastung aus der stärksten Richtung der Fläche). Die Struktur ist
 /// <c>texturen/fels/fels_struktur.png</c> (<c>tools/oberflaeche/felstexturen.py</c>). Eine Gesteinsart je Karte für den Hang-Fels, einzelne
 /// Felsstücke dürfen abweichen (Nutzer 01.11.2026); das Spiel nutzt das Material ab F5, bis dahin nur die Testszene <see cref="Felstest"/>.
 /// </summary>
@@ -90,7 +90,7 @@ public static class Gesteinsarten
         return (Vector3.Up * Mathf.Cos(w) + abtauchen * Mathf.Sin(w)).Normalized();
     }
 
-    /// <summary>Ein neues Fels-Material für <paramref name="gestein"/>. <paramref name="dreiseitig"/>: Struktur von drei Seiten (Mittel und höher) oder nur von oben (Niedrig).</summary>
+    /// <summary>Ein neues Fels-Material für <paramref name="gestein"/>. <paramref name="dreiseitig"/>: Struktur von drei Seiten (Mittel und höher) oder aus einer Richtung (Niedrig).</summary>
     public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f)
     {
         var m = new ShaderMaterial { Shader = GD.Load<Shader>(dreiseitig ? ShaderHoch : ShaderNiedrig) };
@@ -133,6 +133,6 @@ public static class Gesteinsarten
         m.SetShaderParameter("rillen_abstand", Math.Max(0.05f, FrischWert("rillen_abstand", 0.35f)));
     }
 
-    /// <summary>Wechselt ein Fels-Material zwischen dreiseitig (Mittel und höher) und nur von oben (Niedrig); die Werte bleiben.</summary>
+    /// <summary>Wechselt ein Fels-Material zwischen dreiseitig (Mittel und höher) und einer Richtung (Niedrig); die Werte bleiben.</summary>
     public static void StufeSetzen(ShaderMaterial m, bool dreiseitig) => m.Shader = GD.Load<Shader>(dreiseitig ? ShaderHoch : ShaderNiedrig);
 }

@@ -3,7 +3,8 @@
 // Gemalt-realistisch: Godots eigenes Licht und eigene Schatten, kein light(), kein Umriss.
 //
 // Was er zeichnet, von unten nach oben:
-//   1. Struktur (Bruchflächen, Risse, Körnung) – dreiseitig projiziert (DREISEITIG, Hoch: 3 Abtastungen) oder nur von oben (Niedrig: 1)
+//   1. Struktur (Bruchflächen, Risse, Körnung) – dreiseitig projiziert (DREISEITIG, ab Mittel: 3 Abtastungen) oder aus einer Richtung, der stärksten
+//      der Fläche (Niedrig: 1)
 //   2. Schichtbänder: Bänke nach Winkel und Dicke, hell und dunkel im Wechsel, dunkle Fugen, Absätze an der Oberkante jeder Bank
 //   3. Klüfte: senkrechte Trennfugen (Pfeiler beim Trachyt, Blöcke bei Sandstein und Kalk), je Bank versetzt
 //   4. Moos: auf Flächen, die nach oben zeigen, auf Absätzen, auf der Nordseite und in Höhlungen (statt echtem Schatten, siehe unten)
@@ -101,15 +102,20 @@ void fragment() {
 	// die Neigung jeder Projektion in ihre beiden Weltachsen (u, v der Abtastung = diese Achsen)
 	nw = normalize(n + relief * (w.x * vec3(0.0, dx.y, dx.x) + w.y * vec3(dy.x, 0.0, dy.y) + w.z * vec3(dz.x, dz.y, 0.0)));
 #else
-	s = texture(struktur, p.xz / kachel);
+	// eine Abtastung aus der Richtung, in die die Fläche am stärksten zeigt (oben, Seite x oder Seite z): keine Streifen auf Wänden.
+	// An den Nähten springt die Projektion; die Mip-Stufe kommt deshalb aus den Ableitungen der Weltlage (stetig über die Naht),
+	// nicht aus denen der gewählten uv – sonst entstünden dort Linien aus der kleinsten Mip-Stufe.
+	vec3 a = abs(n);
+	vec3 px = dFdx(p) / kachel, py = dFdy(p) / kachel;
+	bool oben_ = a.y >= a.x && a.y >= a.z;
+	bool seiteX = !oben_ && a.x >= a.z;
+	vec2 uv = oben_ ? p.xz : (seiteX ? p.zy : p.xy);
+	vec2 gx = oben_ ? px.xz : (seiteX ? px.zy : px.xy);
+	vec2 gy = oben_ ? py.xz : (seiteX ? py.zy : py.xy);
+	s = textureGrad(struktur, uv / kachel, gx, gy);
 	vec2 d = neigung(s.rg);
-	// Höhe und Flecken zögen auf steilen Wänden ebenfalls senkrechte Streifen (in Farbe, Moos, Flechten): dort zur Mitte bzw. zu einem
-	// gerechneten Rauschen hin blenden (keine weitere Abtastung)
-	float flach = abs(n.y);
-	s.b = mix(0.5 + (wertrauschen(p * 1.7) - 0.5) * 0.6, s.b, 0.25 + 0.75 * flach);
-	s.a = mix(wertrauschen(p * 0.45 + 7.0), s.a, flach);
-	// nur von oben: auf steilen Wänden zöge die Struktur senkrechte Streifen, ihr Relief wirkt dort deshalb schwächer
-	nw = normalize(n + relief * (0.3 + 0.7 * abs(n.y)) * vec3(d.x, 0.0, d.y));
+	vec3 t = oben_ ? vec3(d.x, 0.0, d.y) : (seiteX ? vec3(0.0, d.y, d.x) : vec3(d.x, d.y, 0.0));
+	nw = normalize(n + relief * t);
 #endif
 	float h = s.b;                         // Höhe 0 tief … 1 hoch
 	float fleck = s.a;

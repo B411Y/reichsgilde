@@ -412,10 +412,10 @@ public partial class Felstest : Node3D
     {
         const float z0 = -2f;
         var boden = BruchBoden;
-        // Die alte Oberkante liegt 0,5 m unter der Krone der obersten Stufe: darüber Bewuchs, darunter frisch
+        // Die alte Oberkante liegt 1 m unter der Krone der obersten Stufe: darüber Bewuchs, darunter frisch
         var stufen = new[] { (Hoehe: 3.2f, Tiefe: 0f), (Hoehe: 6.2f, Tiefe: -4f), (Hoehe: 9.0f, Tiefe: -8f) };
         var krone = boden + stufen[^1].Hoehe;
-        var stoff = StoffFuer(g, frisch: true, frischBis: krone - 0.5f);
+        var stoff = StoffFuer(g, frisch: true, frischBis: krone - 1f);
         for (var i = 0; i < stufen.Length; i++)
         {
             var (h, t) = stufen[i];
@@ -507,7 +507,7 @@ public partial class Felstest : Node3D
         var wo = _abschnitt < 0 ? "Übersicht" : $"{_abschnitt + 1}: {Abschnitte[_abschnitt].Name}";
         var zeit = _zeit switch { Tageszeit.Tag => "Tag", Tageszeit.Abend => "Abend", _ => "Nacht" };
         _anzeige.Text = $"Felstest – Fels-Material mit Gesteinsvorlagen (Felspinsel F2), Felsen sind Platzhalter\n" +
-                        $"{wo}   {zeit}   Grafikstufe: {(_hoch ? "Hoch (dreiseitig)" : "Niedrig (nur von oben)")}   Felsen: {(_felsenAn ? "an" : "aus")}   " +
+                        $"{wo}   {zeit}   Grafikstufe: {(_hoch ? "Hoch (dreiseitig)" : "Niedrig (eine Richtung)")}   Felsen: {(_felsenAn ? "an" : "aus")}   " +
                         $"Bilder/s: {_fpsLetzte:F0}   Grafikkarte: {_gpuLetzte:F2} ms";
     }
 
