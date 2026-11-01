@@ -141,9 +141,11 @@ static class KiBauenTests
             var baustelle = w.Bauen.Grundstuecke.Single(g => g.Besitzer == k && g.Art == Grundstuecksart.Werkstatt);
             Pruefe.Gleich(Betriebsart.Giesserei, baustelle.Betriebsart);
             Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains($"baut {baustelle.Betrieb} neu")), "Begründung");
-            // Nah am Markt: keine gültige Stelle liegt näher am Marktplatz (Ursprung der Karte).
+            // Nah am Markt (Ursprung der Karte): unter den nächsten Stellen nach Luftlinie – seit phase5/gehtempo-ki die mit dem kürzesten Karrenweg
+            // (KiStandortTests), vorher die nächste.
             var abstand = baustelle.Grundriss.X * baustelle.Grundriss.X + baustelle.Grundriss.Z * baustelle.Grundriss.Z;
-            Pruefe.Wahr(w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).All(o => o.X * o.X + o.Z * o.Z >= abstand - 1e-6), "nächste Stelle zum Markt");
+            Pruefe.Wahr(w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Count(o => o.X * o.X + o.Z * o.Z < abstand - 1e-6) < KiRivale.StandortKandidaten,
+                "unter den nächsten Stellen zum Markt");
             Ticks(sim, Spielzeit.MinutenProTag);
             Pruefe.Gleich(1, Baustellen(w, k)); // zur zweiten Baustunde: voll – keine zweite Baustelle
             Ticks(sim, Spielzeit.MinutenProTag);

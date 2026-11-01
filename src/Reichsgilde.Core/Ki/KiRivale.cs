@@ -608,17 +608,18 @@ public sealed partial class KiRivale
     }
 
     /// <summary>
-    /// Die neue Werkstatt bauen: an der gültigen Stelle, die dem nächsten Marktplatz am nächsten liegt (Luftlinie; mehrere Märkte je Stadt seit
-    /// 31.10.2026, Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher) –
-    /// bei Gleichstand die erste in der festen Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
+    /// Die neue Werkstatt bauen: die gültigen Stellen nach Luftlinie zum nächsten Marktplatz geordnet (mehrere Märkte je Stadt seit 31.10.2026,
+    /// Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher), bei Gleichstand in der festen
+    /// Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Mit der Fahrzeit nach Weglänge nimmt die KI unter den nächsten die mit dem kürzesten Karrenweg
+    /// (<see cref="Bauort"/>, KiRivale.Standort.cs), sonst die erste. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
     /// </summary>
     private void WerkstattBauen(Angebot angebot, double gewinn)
     {
         _bauorteGefragt = true;
         var karte = _w.Karte;
-        var ort = _w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
+        var (ort, minuten) = Bauort(_w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
             .OrderBy(o => karte?.MarktAbstandQuadrat(o.X, o.Z) ?? o.X * o.X + o.Z * o.Z)
-            .FirstOrDefault();
+            .ToList(), angebot.Art);
         if (ort is null)
         {
             _keinWerkstattplatzJahr = _w.Uhr.Jahr;
@@ -626,8 +627,9 @@ public sealed partial class KiRivale
         }
         var v = _w.Bauen.Vorschau(Konto, ort);
         var waehrung = _w.Daten.Allgemein.Waehrung;
+        var weg = minuten is { } m ? $"; der {_w.Daten.Art(angebot.Art).Startkarren} braucht {Zahlenformat.Ganz(m)} Minuten zum Markt" : "";
         Befehlen(ort, $"baut {v.Betrieb} neu ({Zahlenformat.Ganz(v.Kosten)} {waehrung}, fertig in {Jahre(v.BauzeitMinuten)}; " +
-                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr) – keine freie Werkstatt rechnet sich besser.");
+                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr{weg}) – keine freie Werkstatt rechnet sich besser.");
     }
 
     /// <summary>
