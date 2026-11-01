@@ -1445,6 +1445,7 @@ public partial class Stadtansicht
         if (_wsZiehen is { } z) z.Drehung = Weiter(z.Drehung);
         else if (Kartenwerkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Pflanze) WerkstattDrehung = Weiter(WerkstattDrehung);
         else if (wiederholt || _entwurf is null) return; // gehaltene Taste: kein Befehl je Wiederholung
+        else if (_wsTeilZiehen is { Teil: EntwurfFels }) return; // beim Ziehen eines Felsstücks erst loslassen (sonst spränge es zurück)
         else if (WerkstattGewaehlt is EntwurfGebaeude g) Befehl(() => _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)));
         else if (WerkstattGewaehlt is EntwurfPflanze p) Befehl(() => _entwurf.PflanzeDrehen(p, Weiter(p.Drehung)));
         else if (WerkstattGewaehlt is EntwurfFels fels) Befehl(() => _entwurf.FelsDrehen(fels, Weiter(fels.Drehung)));

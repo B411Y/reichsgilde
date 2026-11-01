@@ -69,6 +69,8 @@ static class FelsenWaehlenTests
             var mitStrich = e.Felsen.Count;
             e.FelsVerschieben(f, 12, 22);
             Pruefe.Wahr(!e.FelsStrichLaeuft, "der Strich ist beendet");
+            Pruefe.Gleich(Kartenraster.Punkt(12), f.X);
+            Pruefe.Gleich(Kartenraster.Punkt(22), f.Z);
             Pruefe.Gleich(mitStrich, e.Felsen.Count);
             e.Rueckgaengig(); // das Verschieben
             Pruefe.Gleich(Kartenraster.Punkt(10), e.Felsen[0].X);

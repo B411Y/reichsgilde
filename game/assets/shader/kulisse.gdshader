@@ -62,10 +62,10 @@ void fragment() {
 	float d = mix(dunst_nah, dunst_fern, tiefe) + 0.12 * smoothstep(0.2, 1.0, hoehe);
 	d += pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 3.0) * 0.35;   // Silhouette weich
 	d = mix(d, 1.0, dunst * 0.75);
-	d = max(d, 1.0 - smoothstep(0.0, 0.1, hoehe));                         // Fuß im Dunst (unter 25 m)
 	d = clamp(d, 0.0, 1.0) * (1.0 - 0.6 * nacht);
-	ALBEDO = grund * (1.0 - d) * (1.0 - 0.75 * nacht);                   // nachts dunkel vor dem Himmel
+	d = max(d, 1.0 - smoothstep(0.0, 0.1, hoehe));                         // Fuß im Dunst (unter 25 m), auch nachts genau wie der Ring
+	ALBEDO = grund * (1.0 - d) * (1.0 - 0.75 * nacht);                   // nachts dunkel vor dem Himmel (der Fuß bleibt im Ring)
 	EMISSION = himmel * d;
 	ROUGHNESS = 0.95;
-	SPECULAR = 0.15;
+	SPECULAR = 0.15 * (1.0 - d);                                          // im vollen Dunst kein Glanz: genau die Farbe des Rings
 }

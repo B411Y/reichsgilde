@@ -22,7 +22,17 @@ public partial class Stadtansicht
     /// <summary>Jedes Bild (aus <see cref="GrafikBild"/>), nur mit <c>--felsvergleich=1</c>.</summary>
     private void FelsmessungSchritt(double delta)
     {
-        if (!FelsvergleichAn || (_felsenKnoten is null && _kulisse is null)) return;
+        if (!FelsvergleichAn || _fmRunde > WassermessungRunden) return;
+        if (_felsenKnoten is null && _kulisse is null)
+        {
+            if (_karteGebaut && (_fmZeit += delta) > 0) // nach dem Vorlauf: Karte ohne Felsen und Kulisse
+            {
+                GD.Print("[felsmessung] nichts zu messen: keine Felsstücke und keine Kulisse");
+                _fmRunde = WassermessungRunden + 1;
+                GetTree().Quit();
+            }
+            return;
+        }
         var rid = GetTree().Root.GetViewportRid();
         if (_fmZustand < 0 && _fmZeit <= -WassermessungVorlauf + 1e-9)
         {

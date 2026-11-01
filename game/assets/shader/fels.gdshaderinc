@@ -256,7 +256,7 @@ void fragment() {
 	albedo = mix(albedo, moosFarbe, moosMaske);
 	albedo = mix(albedo, efeu_farbe.rgb * (0.7 + 0.5 * fleck), efeuMaske);
 	// Moos und Efeu glätten das Relief (Polster), Flechten liegen flach auf
-	nw = normalize(mix(nw, n, max(moosMaske, efeuMaske) * 0.6));
+	nw = normalize(mix(nw, nf, max(moosMaske, efeuMaske) * 0.6));   // zur Grundform, nicht zur groben Geometrie
 
 	float rough = clamp(mix(rau, 1.0, max(max(moosMaske, efeuMaske), fugeMaske)), 0.0, 1.0);
 

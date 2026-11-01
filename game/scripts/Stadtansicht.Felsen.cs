@@ -64,7 +64,7 @@ public partial class Stadtansicht
     private readonly Dictionary<string, ShaderMaterial> _felsStoffe = new();
     private readonly Dictionary<string, Aabb> _felsKaesten = new();
     private bool _felsZellenNeu;
-    private bool _felsDreiseitig = true;
+    private bool _felsDreiseitig = FelsDreiseitigGewuenscht;
 
     /// <summary>Struktur dreiseitig ab Boden „Mittel“, eine Richtung auf „Niedrig“ (wie die Material-Bibliothek der Modelle).</summary>
     private static bool FelsDreiseitigGewuenscht => Fenster.AktuelleBodenqualitaet != Bodenqualitaet.Niedrig;
@@ -100,7 +100,7 @@ public partial class Stadtansicht
     private ShaderMaterial FelsStoff(string gestein)
     {
         if (!_felsStoffe.TryGetValue(gestein, out var stoff))
-            _felsStoffe[gestein] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), _felsDreiseitig = FelsDreiseitigGewuenscht, f1: true);
+            _felsStoffe[gestein] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), _felsDreiseitig, f1: true); // die Stufe stellt FelsenStufeNachfuehren für alle um
         return stoff;
     }
 
@@ -366,7 +366,8 @@ public partial class Stadtansicht
             AddChild(_felsMarke);
         }
         var radius = Mathf.Max(0.8f, (float)(Math.Max(form.Breite, form.Tiefe) / 2 * f.Massstab));
-        _felsMarke.Mesh = new TorusMesh { InnerRadius = radius, OuterRadius = radius + 0.3f, Rings = 32 };
+        if (_felsMarke.Mesh is not TorusMesh ring || !Mathf.IsEqualApprox(ring.InnerRadius, radius))
+            _felsMarke.Mesh = new TorusMesh { InnerRadius = radius, OuterRadius = radius + 0.3f, Rings = 32 };
         var (x, z) = ((float)f.X + (versatz?.X ?? 0), (float)f.Z + (versatz?.Y ?? 0));
         _felsMarke.Position = new Vector3(x, BodenHoehe(x, z) + 0.2f, z);
         _felsMarke.Visible = WerkstattTeilSichtbar(f);
@@ -391,7 +392,10 @@ public partial class Stadtansicht
             // Im Modell trifft o + d·t denselben Punkt wie von + richtung·t in der Welt: t ist für alle Stücke vergleichbar
             if (StrahlInKasten(kasten, umgekehrt * von, umgekehrt.Basis * richtung) is { } t && t < naechst) (beste, naechst) = (f, t);
         }
-        if (beste is not null) return beste;
+        // Nur, was vor dem Boden unter der Maus liegt (1 m Spielraum): nicht ein Stück hinter einer Kuppe, an dessen Kasten der Blick vorbeistreift
+        var bisBoden = von.DistanceTo(new Vector3(boden.X, BodenHoehe(boden.X, boden.Y), boden.Y)) + 1f;
+        if (beste is not null && naechst <= bisBoden) return beste;
+        beste = null;
         var abstand = float.MaxValue;
         foreach (var f in _entwurf.Felsen)
         {
