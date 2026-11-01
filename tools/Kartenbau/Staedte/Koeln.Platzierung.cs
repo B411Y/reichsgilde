@@ -120,14 +120,17 @@ public sealed partial class Koeln
     private void Startgrundstuecke()
     {
         // Je Marktplatz Grundstücke an den Straßen, die auf ihn führen (Werkstatt zum Platz hin), je Straßenseite höchstens eins. Die Rheingasse
-        // beginnt am Kunibertstor (z = −150), Meter entlang = z + 150; die Kirchstraße in Deutz am Nordtor, die Deutzer Freiheit am Brückenkopf.
+        // beginnt am Kunibertstor (z = −150), Meter entlang = z + 150; der Malzbüchel an der Severinstraße, die Kirchstraße in Deutz am Nordtor,
+        // die Deutzer Freiheit am Brückenkopf. Seit die Plätze am Rhein eine Hausreihe vom Tor abrücken (1.11.2026), liegen die Grundstücke an der
+        // Rheingasse 15 m weiter zur Stadtmitte (im Süden bis 3 m vor die Bayenstraße; im Norden rücken dafür Trankgasse 9 m und Hafen 6 m nach
+        // Süden), und das dritte am Südplatz fährt über den Malzbüchel statt über den Kartäuserwall (der den Platz nicht mehr berührt).
         // Der Spieler 2 m weiter vom Platz (innerhalb der ±10 % der Prüfung): sein Werkstattweg 24 m, 30 Minuten wie die alte feste Fahrzeit (die
         // Häuser der KI 20–24 m wie seit den drei Marktplätzen)
-        Startgrundstueck(1, "Rheingasse", links: false, sHint: 239, ziel: ZielAbstand + 2);   // Südplatz, nördlich davon, zur Stadt hin (der Spieler)
-        Startgrundstueck(2, "Rheingasse", links: true, sHint: 241);           // Südplatz, nördlich davon, zum Rhein
-        Startgrundstueck(3, "Kartäuserwall", links: true, sHint: 121);        // Südplatz, westlich an der Wallstraße
-        Startgrundstueck(4, "Rheingasse", links: false, sHint: 59);           // Nordplatz, südlich davon, zur Stadt hin
-        Startgrundstueck(5, "Rheingasse", links: true, sHint: 59);            // Nordplatz, südlich davon, zum Rhein
+        Startgrundstueck(1, "Rheingasse", links: false, sHint: 224, ziel: ZielAbstand + 2);   // Südplatz, nördlich davon, zur Stadt hin (der Spieler)
+        Startgrundstueck(2, "Rheingasse", links: true, sHint: 226);           // Südplatz, nördlich davon, zum Rhein
+        Startgrundstueck(3, "Malzbüchel", links: false, sHint: 18);           // Südplatz, westlich davon, zwischen Malzbüchel und Kartäuserwall
+        Startgrundstueck(4, "Rheingasse", links: false, sHint: 74);           // Nordplatz, südlich davon, zur Stadt hin
+        Startgrundstueck(5, "Rheingasse", links: true, sHint: 74);            // Nordplatz, südlich davon, zum Rhein
         Startgrundstueck(6, "Deutzer Kirchstraße", links: false, sHint: 19);  // Deutz, nördlich des Platzes, westlich der Kirchstraße
         Startgrundstueck(7, "Deutzer Kirchstraße", links: true, sHint: 19);   // Deutz, nördlich des Platzes, östlich der Kirchstraße
         Startgrundstueck(8, "Deutzer Freiheit", links: true, sHint: 12);      // Deutz, westlich des Platzes, nördlich der Freiheit (zum Rhein)
@@ -172,6 +175,10 @@ public sealed partial class Koeln
         // Altstadt: an den Straßen um die Märkte und an den Wallstraßen (Häuser mit dem Rücken zur Mauer)
         foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
+            // seit 1.11.2026 zwischen Mauer und Marktplatz an der Rheingasse (Meter entlang = z + 150), mit der Front zur Rheingasse: zur Stadt hin
+            // ein Haus zwischen Wallstraße und Platz, am Rhein zwei hintereinander – vor den Wallstraßen, damit die Häuser an der Rheingasse stehen
+            ("Rheingasse", false, 0, 150 - (R - MarktVonMauer), 1), ("Rheingasse", true, 0, 150 - (R - MarktVonMauer), 2),
+            ("Rheingasse", false, 150 + R - MarktVonMauer, 300, 1), ("Rheingasse", true, 150 + R - MarktVonMauer, 300, 2),
             ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 3),
             ("Hammergasse", true, 0, 200, 2), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
             ("Kunibertswall", true, 0, 1000, 5), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),

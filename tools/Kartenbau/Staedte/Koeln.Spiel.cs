@@ -26,9 +26,10 @@ public sealed partial class Koeln
     /// Die Umlandbetriebe: Baustein, Straße, Meter entlang der Straße, Seite (links in Laufrichtung) und – für eine Liegenschaft aus
     /// <c>wirtschaft.json</c> – ihr Name; ohne Namen gehört der Betrieb dem nächsten KI-Haus der passenden Art. Seit die Märkte am Rhein und in
     /// Deutz liegen (31.10.2026), stehen die Betriebe der KI-Häuser an Straßen, die nahe an einem Platz aus der Stadt führen (Bonner Straße, Mülheimer
-    /// Weg, Siegburger Straße), jeder etwa gleich weit vom nächsten Platz: Karrenweg 150–193 m, der Ochsenkarren 238–306 Minuten, unter der
+    /// Weg, Siegburger Straße), jeder etwa gleich weit vom nächsten Platz: Karrenweg 151–193 m, der Ochsenkarren 238–306 Minuten, unter der
     /// Höchstdauer (vorher an Aachener, Venloer, Luxemburger Straße und weiter draußen, 280–340 m, 26 von 42 Fahrten an der Höchstdauer; von dort
-    /// wären es zu den neuen Plätzen über die Wallstraßen 300–420 m). Die Liegenschaften zum Kauf bleiben, wo sie waren.
+    /// wären es zu den neuen Plätzen über die Wallstraßen 300–420 m). Seit der Heumarkt eine Hausreihe vom Tor abrückt (1.11.2026), fährt der
+    /// Kräutergarten an der Bonner Straße 168 statt 150 m (die übrigen fahren nach Deutz). Die Liegenschaften zum Kauf bleiben, wo sie waren.
     /// </summary>
     private static readonly (string Baustein, string Strasse, double S, bool Links, string? Liegenschaft)[] UmlandBetriebe =
     {
@@ -147,7 +148,7 @@ public sealed partial class Koeln
         Textur(Bodentextur.Sand, new[] { P(56.5, -499), P(56.5, 549) }, radius: 4, staerke: 0.9, kante: 0.5, deko: false);
         Textur(Bodentextur.Schlamm, new[] { P(58.5, -499), P(58.5, 549) }, radius: 2.5, staerke: 0.8, kante: 0.5, deko: false);
         // Kies am Hafen
-        TexturFlaeche(Bodentextur.Kies, 42, -70, 56, -24, radius: 4);
+        TexturFlaeche(Bodentextur.Kies, 42, -64, 56, -18, radius: 4);
         // Fels an den Gruben
         foreach (var g in _umland.Where(g => g.Katalog == "grube"))
             Textur(Bodentextur.Fels, new[] { P(g.X, g.Z) }, radius: 12, staerke: 0.8, kante: 0.7);
