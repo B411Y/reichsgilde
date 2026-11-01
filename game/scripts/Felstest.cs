@@ -73,6 +73,7 @@ public partial class Felstest : Node3D
             if (t.Length == 2) _optionen[t[0]] = t[1];
         }
         DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled); // Bildrate messen, nicht die Bildschirmfrequenz
+        RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
         _hoch = _optionen.GetValueOrDefault("felsstufe", "hoch") != "niedrig";
         _zeit = _optionen.GetValueOrDefault("tageszeit", "tag") switch { "abend" => Tageszeit.Abend, "nacht" => Tageszeit.Nacht, _ => Tageszeit.Tag };
         double.TryParse(_optionen.GetValueOrDefault("felsende", "0"), NumberStyles.Float, CultureInfo.InvariantCulture, out _ende);
@@ -565,7 +566,6 @@ public partial class Felstest : Node3D
     {
         _laufzeit += delta;
         var kasten = GetViewport().GetViewportRid();
-        if (_messBilder == 0 && _messZeit == 0) RenderingServer.ViewportSetMeasureRenderTime(kasten, true);
         _messCpu += RenderingServer.ViewportGetMeasuredRenderTimeCpu(kasten);
         _messGpu += RenderingServer.ViewportGetMeasuredRenderTimeGpu(kasten);
         _messZeit += delta;

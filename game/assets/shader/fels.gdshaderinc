@@ -10,8 +10,10 @@
 //   5. Flechten: Flecken auf freien Flächen, die nicht nach Norden zeigen (bunt und weißgrau)
 //   6. Efeu in den Klüften steiler Wände (Trachyt)
 //   7. „frisch gebrochen“ (Steinbruch): unter der Höhe frisch_bis kein Bewuchs, heller, glatter, mit Spaltrillen
-// Alle Muster liegen in Weltkoordinaten: Felsstücke stehen still, die Bänder laufen über benachbarte Stücke weiter wie im echten Hang;
-// je Stück kippen sie leicht und verschieben sich (Ort des Stücks als Zufall), damit nicht jeder Stein gleich aussieht.
+// Alle Muster liegen in Weltkoordinaten (Felsstücke stehen still, das Muster schwimmt nicht). Jedes Stück hat seine eigene Lage der
+// Bänder: Sie kippen bis etwa 6° und verschieben sich (Ort des Stücks als Zufall), damit nicht jeder Stein gleich aussieht; an der Grenze
+// zweier Stücke springen sie deshalb wie zwischen zwei verrutschten Blöcken. Werden Stücke später zu einem Netz zusammengefasst, teilen
+// sie sich diesen Zufall (bei MultiMesh enthält MODEL_MATRIX die Instanz, dort bleibt er je Stück).
 // „Im Schatten“: Der Fragment-Shader weiß nicht, ob die Sonne ein Pixel erreicht (das rechnet Godot erst im Licht). Moos wächst
 // deshalb dort, wo im Mittel des Tages Schatten ist: Nordseite (−z), Höhlungen der Struktur, Klüfte und unter Absätzen.
 
@@ -64,8 +66,13 @@ float wertrauschen(vec3 p) {
 
 void vertex() {
 	v_welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	v_normale = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	v_normale = normalize(MODEL_NORMAL_MATRIX * NORMAL);   // richtig auch bei ungleich skalierten Stücken
 	v_stueck = MODEL_MATRIX[3].xyz;
+}
+
+// Neigung aus der Textur: kodiert wie tools/oberflaeche/texturen.py (128 ± 127)
+vec2 neigung(vec2 c) {
+	return (c * 255.0 - 128.0) / 127.0;
 }
 
 // Abstand (m) zur nächsten Linie einer Schar paralleler Linien im Abstand a entlang der Koordinate x
@@ -90,12 +97,17 @@ void fragment() {
 	vec4 sy = texture(struktur, p.xz / kachel);
 	vec4 sz = texture(struktur, p.xy / kachel);
 	s = sx * w.x + sy * w.y + sz * w.z;
-	vec2 dx = sx.rg * 2.0 - 1.0, dy = sy.rg * 2.0 - 1.0, dz = sz.rg * 2.0 - 1.0;
+	vec2 dx = neigung(sx.rg), dy = neigung(sy.rg), dz = neigung(sz.rg);
 	// die Neigung jeder Projektion in ihre beiden Weltachsen (u, v der Abtastung = diese Achsen)
 	nw = normalize(n + relief * (w.x * vec3(0.0, dx.y, dx.x) + w.y * vec3(dy.x, 0.0, dy.y) + w.z * vec3(dz.x, dz.y, 0.0)));
 #else
 	s = texture(struktur, p.xz / kachel);
-	vec2 d = s.rg * 2.0 - 1.0;
+	vec2 d = neigung(s.rg);
+	// Höhe und Flecken zögen auf steilen Wänden ebenfalls senkrechte Streifen (in Farbe, Moos, Flechten): dort zur Mitte bzw. zu einem
+	// gerechneten Rauschen hin blenden (keine weitere Abtastung)
+	float flach = abs(n.y);
+	s.b = mix(0.5 + (wertrauschen(p * 1.7) - 0.5) * 0.6, s.b, 0.25 + 0.75 * flach);
+	s.a = mix(wertrauschen(p * 0.45 + 7.0), s.a, flach);
 	// nur von oben: auf steilen Wänden zöge die Struktur senkrechte Streifen, ihr Relief wirkt dort deshalb schwächer
 	nw = normalize(n + relief * (0.3 + 0.7 * abs(n.y)) * vec3(d.x, 0.0, d.y));
 #endif
@@ -147,7 +159,8 @@ void fragment() {
 		vec3 hell = mix(farbe_hell.rgb, farbe, 0.4) * (1.0 + frisch_aufhellen);
 		farbe = mix(farbe, hell, fr);
 		// Spaltrillen: senkrechte Rillen der Keile auf steilen Flächen, nur stellenweise
-		vec3 quer = normalize(cross(vec3(0.0, 1.0, 0.0), n + vec3(1e-4, 0.0, 0.0)));
+		vec3 q = vec3(n.z, 0.0, -n.x);                 // waagerecht in der Fläche (Kreuzprodukt mit oben)
+		vec3 quer = q / max(length(q), 1e-4);
 		float rille = 1.0 - smoothstep(0.0, 0.035, linienabstand(dot(p, quer) + 0.05 * sin(p.y * 3.0), rillen_abstand));
 		rille *= (1.0 - abs(n.y)) * smoothstep(0.35, 0.6, fleck) * spaltrillen;
 		farbe *= 1.0 - 0.35 * rille * fr;

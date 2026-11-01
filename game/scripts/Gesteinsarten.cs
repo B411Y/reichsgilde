@@ -5,7 +5,7 @@ using Godot;
 
 namespace Reichsgilde;
 
-/// <summary>Eine Gesteinsart aus <c>game/daten/gestein.json</c> (nur Optik). Farben linear umgerechnet setzt erst <see cref="Gesteinsarten.Anwenden"/>.</summary>
+/// <summary>Eine Gesteinsart aus <c>game/daten/gestein.json</c> (nur Optik). Die Farben bleiben sRGB; ins Lineare rechnet der Shader (<c>source_color</c>).</summary>
 public sealed record Gestein(
     string Kennung, string Name, Color Hell, Color Dunkel, float BandWinkel, float BandRichtung, float BandDicke, float BandKontrast,
     float Fuge, float KluftAbstand, float Kantenrundung, float Rauheit, float Moos, float Flechten, Color FlechteFarbe, float Efeu,
@@ -31,27 +31,35 @@ public static class Gesteinsarten
     public static IReadOnlyList<Gestein> Alle => _alle ??= Laden();
 
     /// <summary>Die Gesteinsart mit dieser Kennung (z. B. „grauwacke“) oder die erste, wenn es sie nicht gibt.</summary>
-    public static Gestein Nach(string kennung) => Alle.FirstOrDefault(g => g.Kennung == kennung) ?? Alle[0];
+    public static Gestein Nach(string kennung) => Alle.FirstOrDefault(g => g.Kennung == kennung) ?? Alle[0];   // Alle ist nie leer (Vorgabe)
 
     private static List<Gestein> Laden()
     {
         _wurzel = Json.ParseString(Godot.FileAccess.GetFileAsString(Pfad)).AsGodotDictionary();
+        var vorgabe = new Gestein("grau", "Grau", new Color(0.6f, 0.6f, 0.6f), new Color(0.35f, 0.35f, 0.35f), 0, 0, 0.4f, 0.2f, 0.4f, 0, 0.4f, 0.9f,
+            0.4f, 0.4f, new Color(0.8f, 0.6f, 0.3f), 0, new Color(0.5f, 0.5f, 0.5f), Array.Empty<string>());
         if (_wurzel is not { Count: > 0 } || !_wurzel.ContainsKey("gesteine"))
         {
             GD.PushError($"[fels] {Pfad} fehlt oder ist leer.");
-            return new List<Gestein> { new("grau", "Grau", new Color(0.6f, 0.6f, 0.6f), new Color(0.35f, 0.35f, 0.35f), 0, 0, 0.4f, 0.2f, 0.4f, 0, 0.4f, 0.9f, 0.4f, 0.4f, new Color(0.8f, 0.6f, 0.3f), 0, new Color(0.5f, 0.5f, 0.5f), Array.Empty<string>()) };
+            return new List<Gestein> { vorgabe };
         }
         var liste = new List<Gestein>();
         foreach (var eintrag in _wurzel["gesteine"].AsGodotArray())
         {
             var d = eintrag.AsGodotDictionary();
             float Zahl(string k) => d.ContainsKey(k) ? (float)d[k].AsDouble() : 0f;
+            string Text(string k) => d.ContainsKey(k) ? d[k].AsString() : "?";
             Color Farbe(string k) => d.ContainsKey(k) ? Color.FromHtml(d[k].AsString()) : Colors.Gray;
             liste.Add(new Gestein(
-                d["kennung"].AsString(), d["name"].AsString(), Farbe("farbe_hell"), Farbe("farbe_dunkel"), Zahl("band_winkel"), Zahl("band_richtung"),
+                Text("kennung"), Text("name"), Farbe("farbe_hell"), Farbe("farbe_dunkel"), Zahl("band_winkel"), Zahl("band_richtung"),
                 Math.Max(0.05f, Zahl("band_dicke")), Zahl("band_kontrast"), Zahl("fuge"), Zahl("kluft_abstand"), Zahl("kantenrundung"), Zahl("rauheit"),
                 Zahl("moos"), Zahl("flechten"), Farbe("flechte_farbe"), Zahl("efeu"), Farbe("schutt_farbe"),
                 d.ContainsKey("formen") ? d["formen"].AsGodotArray().Select(f => f.AsString()).ToArray() : Array.Empty<string>()));
+        }
+        if (liste.Count == 0)
+        {
+            GD.PushError($"[fels] {Pfad} enthält keine Gesteinsart.");
+            liste.Add(vorgabe);
         }
         return liste;
     }
@@ -122,7 +130,7 @@ public static class Gesteinsarten
         m.SetShaderParameter("frisch_aufhellen", FrischWert("aufhellen", 0.22f));
         m.SetShaderParameter("frisch_rauheit", FrischWert("rauheit", 0.72f));
         m.SetShaderParameter("spaltrillen", FrischWert("spaltrillen", 0.5f));
-        m.SetShaderParameter("rillen_abstand", FrischWert("rillen_abstand", 0.35f));
+        m.SetShaderParameter("rillen_abstand", Math.Max(0.05f, FrischWert("rillen_abstand", 0.35f)));
     }
 
     /// <summary>Wechselt ein Fels-Material zwischen dreiseitig (Mittel und höher) und nur von oben (Niedrig); die Werte bleiben.</summary>
