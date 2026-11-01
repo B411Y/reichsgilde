@@ -606,13 +606,13 @@
    ]
   },
   {"kennung": "U8", "art": "umland", "flaeche": [[230, -36], [246, -36], [246, -38], [250, -38], [250, -14], [230, -14]]},
-  {"kennung": "WB_Neumarkt1", "art": "vorstadt", "flaeche": [[136, 12], [152, 12], [152, 26], [136, 26]]},
-  {"kennung": "WB_Neumarkt2", "art": "vorstadt", "flaeche": [[152, 20], [166, 20], [166, 36], [152, 36]]},
-  {"kennung": "WB_Neumarkt3", "art": "vorstadt", "flaeche": [[176, 20], [190, 20], [190, 36], [176, 36]]},
-  {"kennung": "WB_Neumarkt4", "art": "vorstadt", "flaeche": [[186, 6], [202, 6], [202, 20], [186, 20]]},
-  {"kennung": "WB_Neumarkt5", "art": "vorstadt", "flaeche": [[192, -20], [208, -20], [208, -6], [192, -6]]},
-  {"kennung": "WB_AlterMarkt1", "art": "kern", "flaeche": [[0, -92], [16, -92], [16, -78], [0, -78]]},
-  {"kennung": "WB_AlterMarkt2", "art": "kern", "flaeche": [[-20, -102], [-6, -102], [-6, -86], [-20, -86]]}
+  {"kennung": "WB_Neumarkt1", "art": "vorstadt", "flaeche": [[136, 12], [152, 12], [152, 26], [136, 26]], "nur": "werkstatt"},
+  {"kennung": "WB_Neumarkt2", "art": "vorstadt", "flaeche": [[152, 20], [166, 20], [166, 36], [152, 36]], "nur": "werkstatt"},
+  {"kennung": "WB_Neumarkt3", "art": "vorstadt", "flaeche": [[176, 20], [190, 20], [190, 36], [176, 36]], "nur": "werkstatt"},
+  {"kennung": "WB_Neumarkt4", "art": "vorstadt", "flaeche": [[186, 6], [202, 6], [202, 20], [186, 20]], "nur": "werkstatt"},
+  {"kennung": "WB_Neumarkt5", "art": "vorstadt", "flaeche": [[192, -20], [208, -20], [208, -6], [192, -6]], "nur": "werkstatt"},
+  {"kennung": "WB_AlterMarkt1", "art": "kern", "flaeche": [[0, -92], [16, -92], [16, -78], [0, -78]], "nur": "werkstatt"},
+  {"kennung": "WB_AlterMarkt2", "art": "kern", "flaeche": [[-20, -102], [-6, -102], [-6, -86], [-20, -86]], "nur": "werkstatt"}
  ],
  "natur": {
   "flaechen": [

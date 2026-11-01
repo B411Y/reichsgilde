@@ -8,14 +8,15 @@ namespace Reichsgilde.Kartenbau.Staedte;
 // Bauorten lag nur einer unter 60 Minuten Handkarrenfahrt (Median 179). Hier bekommen die Märkte eigene Bauplätze, jeder unter 45 Minuten zum
 // nächsten Platz (etwa 35 m Karrenweg; gerechnet mit Stadtwirtschaft.FahrzeitAmBauort, Tabelle in docs/LEVELDESIGN.md, Abschnitt Köln).
 //
-// Ein Bauplatz ist eine eigene kleine Bauzone genau in der Größe einer Werkstatt (16 × 14 m auf dem 2-m-Raster). Häuser, Einwohnerplätze und die
+// Ein Bauplatz ist eine eigene kleine Bauzone genau in der Größe einer Werkstatt (16 × 14 m auf dem 2-m-Raster) mit `"nur": "werkstatt"`
+// (Wohnhäuser lehnt das Bauwesen dort ab; ein Stadthof ist so groß wie eine Werkstatt und nähme sonst die Plätze am Alter Markt). Häuser, Einwohnerplätze und die
 // Zonen aus dem Raster halten sich davon frei (Frei, Bauzonen); sonst bliebe nach den Reihen der Einwohnerplätze nichts übrig. Die Werkstatt darf
 // jede Drehung haben, die in die Fläche passt und ihre Vorderseite an eine Karrenstraße legt – der Kern nimmt für den Bauort die Drehung des Bauherrn.
 //
 // Platz gab es fast nur in Deutz: Um Alter Markt und Heumarkt stehen Startgrundstücke, Dom, St. Severin, Rheingasse und Rheinufer so dicht, dass
 // selbst ohne alle Einwohnerplätze und Kulissen je Platz nur zwei Stellen unter 45 Minuten lägen – genau auf der Hausreihe vor dem Tor am Rhein
 // (Wunsch des Nutzers vom 1.11.2026). Deshalb (Entscheidung des Nutzers, 1.11.2026): Deutz so viele Plätze wie passen – fünf (seine
-// Einwohnerplätze und die Ruine rücken nach außen, die Zahl bleibt) –, der Alte Markt zwei an der neuen Gasse Unter Fettenhennen, der Heumarkt
+// Einwohnerplätze und die Ruine rücken nach außen, die Zahl bleibt) –, der Alte Markt zwei an der neuen Straße Unter Fettenhennen, der Heumarkt
 // behält seine eine Stelle am Malzbüchel, die Hausreihe bleibt.
 
 public sealed partial class Koeln
@@ -31,7 +32,7 @@ public sealed partial class Koeln
         new("WB_Neumarkt3", "Neumarkt", 176, 20, 190, 36, "an der Deutzer Kirchstraße, südöstlich des Platzes"),
         new("WB_Neumarkt4", "Neumarkt", 186, 6, 202, 20, "an der Deutzer Freiheit Richtung Osttor (Südseite)"),
         new("WB_Neumarkt5", "Neumarkt", 192, -20, 208, -6, "an der Deutzer Freiheit Richtung Osttor (Nordseite)"),
-        // Alter Markt (37 | −110): zwei Höfe zwischen Dom und S4 an der neuen Gasse Unter Fettenhennen
+        // Alter Markt (37 | −110): zwei Höfe zwischen Dom und S4 an der neuen Straße Unter Fettenhennen
         new("WB_AlterMarkt1", "Alter Markt", 0, -92, 16, -78, "an Unter Fettenhennen, südwestlich des Platzes"),
         new("WB_AlterMarkt2", "Alter Markt", -20, -102, -6, -86, "am Ende von Unter Fettenhennen, hinter dem Dom"),
     };
@@ -79,7 +80,7 @@ public sealed partial class Koeln
         {
             var mitte = P((b.X0 + b.X1) / 2, (b.Z0 + b.Z1) / 2);
             var lage = LageVon(mitte) ?? throw new InvalidOperationException($"{b.Kennung}: keine Lage bei {mitte}.");
-            E.BauzoneAnlegen(lage, Umriss(b), b.Kennung);
+            E.BauzoneAnlegen(lage, Umriss(b), b.Kennung, Bauzone.NurWerkstatt);   // keine Wohnhäuser (sonst nähme die KI sie für Stadthöfe)
         }
         Console.WriteLine($"   Werkstatt-Bauplätze: {Werkstattbauplaetze.Count()}");
     }

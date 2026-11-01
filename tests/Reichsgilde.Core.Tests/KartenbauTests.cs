@@ -70,8 +70,8 @@ static class KartenbauTests
             {
                 // Köln seit den drei Marktplätzen (31.10.2026) neu, vorher 86 / 1.980 / −1.223.276; seit der gemeinsamen Strecke (Startgrundstücke 36 m vom Platz) die Prüfsumme neu, vorher −11.184.073;
                 // seit den Märkten an den Enden der Mauer und in Deutz die Prüfsumme neu, vorher −12.931.232; seit der Hausreihe vor dem Tor (1.11.2026) die
-                // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343
-                ("koeln", 0, 84, 1976, -6835905L), ("greybox", 4, 23, 714, -2170301L), ("probestadt", 0, 80, 1752, 7598432L), ("messstadt", 0, 80, 1752, 6597050L),
+                // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343
+                ("koeln", 0, 84, 1976, -6192870L), ("greybox", 4, 23, 714, -2170301L), ("probestadt", 0, 80, 1752, 7598432L), ("messstadt", 0, 80, 1752, 6597050L),
             })
             {
                 var k = Kapazitaetspruefung.Pruefen(Oeffnen(karte));
