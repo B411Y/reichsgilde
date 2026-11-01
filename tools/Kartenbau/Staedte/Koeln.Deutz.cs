@@ -39,11 +39,11 @@ public sealed partial class Koeln
     /// <summary>Gärten und Höfe hinter den Häusern der Deutzer Südhälfte (Bodentexturen; Natur und Äcker wachsen in der Stadt nicht).</summary>
     private void DeutzerGaerten()
     {
-        // Kraut- und Kohlgärten: an der Ostmauer neben der Abteigasse, zwischen WB_Neumarkt3 und dem Haus an der Abteigasse, hinter ihm bis an
-        // die Südmauer
-        TexturFlaeche(Bodentextur.Wiese, 208, 4, 210.5, 36, radius: 2, staerke: 0.9);
-        TexturFlaeche(Bodentextur.Wiese, 192.5, 23, 194.5, 37, radius: 2, staerke: 0.9);
-        TexturFlaeche(Bodentextur.Wiese, 197, 32, 204, 37, radius: 2, staerke: 0.9);
+        // Kraut- und Kohlgärten (umgegrabene Erde; Wiese zeigt die Stadtansicht in der Mauer als Lehm): an der Ostmauer neben der Abteigasse,
+        // zwischen WB_Neumarkt3 und dem Haus an der Abteigasse, hinter ihm bis an die Südmauer
+        TexturFlaeche(Bodentextur.Erde, 208, 4, 210.5, 36, radius: 2);
+        TexturFlaeche(Bodentextur.Erde, 192.5, 23, 194.5, 37, radius: 2);
+        TexturFlaeche(Bodentextur.Erde, 197, 32, 204, 37, radius: 2);
         // Höfe: am Ende der Abteigasse, zwischen den Häusern an der Urbanusgasse und WB_Neumarkt2
         TexturFlaeche(Bodentextur.Mist, 205, 33, 207, 36, radius: 1.5, staerke: 0.7);
         TexturFlaeche(Bodentextur.Mist, 149, 30, 150.5, 37, radius: 1.5, staerke: 0.7);
