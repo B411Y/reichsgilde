@@ -79,7 +79,7 @@ public partial class FahrwegAnzeige : Control
     {
         var schnell = s.SchnellKarren != "" && s.SchnellKarren != s.Karren
             ? $" Mit dem {s.SchnellKarren}: hin {s.SchnellHin}, zurück {s.SchnellZurueck} min." : "";
-        var andere = plaetze > 1 ? $" Die Wege zu allen {plaetze} Marktplätzen sind in der Stadt eingezeichnet, der kürzeste kräftig." : "";
+        var andere = plaetze > 1 ? $" Die Wege zu allen {plaetze} Marktplätzen sind in der Stadt eingezeichnet, kräftig der, zu dem die Karren fahren würden (nicht immer der schnellste: Gassen meiden sie)." : "";
         return $"So lange fährt der {s.Karren} (der Karren, mit dem die Werkstatt anfängt) von hier zum nächsten Marktplatz, {s.Markt}: " +
                $"hin {s.Hin}, zurück {s.Zurueck} min – {Fahrzeitstufen.Wort(s.Hin)}.{schnell}{andere}\n" +
                $"Grün bis {Fahrzeitstufen.GruenBis} min: im Rahmen · gelb bis {Fahrzeitstufen.GelbBis} min: weit · darüber rot: fast zu weit. " +
@@ -159,7 +159,8 @@ public partial class FahrwegAnzeige : Control
         var drinnen = bild.Grow(-12).HasPoint(fuss);
         var oben = new Vector2(fuss.X - breite / 2, fuss.Y - pfosten - hoehe);
         var kasten = new Rect2(oben, breite, hoehe);
-        var platz = bild.Grow(-12);
+        // nicht unter Zeitstrahl und Betriebsleiste rücken (dort läge es unter den Tafeln)
+        var platz = new Rect2(12, Rollbereich.KopfHoehe, bild.Size.X - 24, bild.Size.Y - Rollbereich.KopfHoehe - Rollbereich.LeistenHoehe);
         var verschoben = new Vector2(
             Mathf.Clamp(kasten.Position.X, platz.Position.X, platz.End.X - breite),
             Mathf.Clamp(kasten.Position.Y, platz.Position.Y, platz.End.Y - hoehe));

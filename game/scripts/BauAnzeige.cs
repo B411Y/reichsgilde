@@ -194,6 +194,7 @@ public partial class BauAnzeige : PanelContainer
             13, Grau, umbruchBreite: Breite);
 
         // Legende: die Farben der Bauzonen in der Stadt
+        if (_stadt.FahrwegAmpeln.Count == 0) return;
         var legende = new HBoxContainer();
         legende.AddThemeConstantOverride("separation", 14);
         _inhalt.AddChild(legende);
@@ -317,7 +318,7 @@ public partial class BauAnzeige : PanelContainer
     private void FahrwegZeigen(BauBefehl beispiel)
     {
         if (beispiel is not WerkstattBauen) return;
-        if (_stadt!.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f && _stadt.BauGrund is null && _stadt.BauAuftrag is not null)
+        if (_stadt!.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f)
         {
             var zeile = new HBoxContainer { TooltipText = FahrwegAnzeige.Tipp(f, _stadt.FahrwegSchilder.Count), MouseFilter = MouseFilterEnum.Stop };
             zeile.AddThemeConstantOverride("separation", 8);
@@ -325,6 +326,7 @@ public partial class BauAnzeige : PanelContainer
             Hauptmenue.Text(zeile, "Fahrt zum Markt:", 15, Hell).MouseFilter = MouseFilterEnum.Pass;
             Hauptmenue.Text(zeile, FahrwegAnzeige.Kurz(f), 15, Schriften.LesbareFarbe(Fahrzeitstufen.Stufe(f.Hin))).MouseFilter = MouseFilterEnum.Pass;
         }
+        if (_stadt.FahrwegAmpeln.Count == 0) return;
         var legende = new HBoxContainer { TooltipText = "Die Marken auf den freien Bauorten zeigen, wie lange der Startkarren von dort zum nächsten Marktplatz fährt (hin).", MouseFilter = MouseFilterEnum.Stop };
         legende.AddThemeConstantOverride("separation", 6);
         _inhalt.AddChild(legende);
