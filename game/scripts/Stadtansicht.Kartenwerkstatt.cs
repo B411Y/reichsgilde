@@ -66,6 +66,9 @@ public enum Werkstattwerkzeug
 
     /// <summary>Eine Fährstelle setzen: zwei Klicks, die beiden Anleger.</summary>
     Faehre,
+
+    /// <summary>Felsstücke streuen, stempeln oder radieren (Felspinsel F4) – die Art steht in <see cref="Stadtansicht.FelsModus"/>.</summary>
+    Fels,
 }
 
 /// <summary>
@@ -209,6 +212,7 @@ public partial class Stadtansicht
         Ladezeit.Marke("Werkstatt-Szene: Flächen");
         yield return new Ladeschritt(0.97f, "Bäume werden gepflanzt …");
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        FelsenAufbauen();    // Stadtansicht.Kartenwerkstatt.Felsen.cs (vorläufig bis F5)
         Ladezeit.Marke("Werkstatt-Szene: Natur");
         BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
         Ladezeit.Marke("Werkstatt-Szene: Bodendeko");
@@ -327,6 +331,12 @@ public partial class Stadtansicht
                 break;
             case EntwurfBoden:
                 if (a.Bereich is { } gemalt) BodenVormerken(gemalt); // Stadtansicht.Kartenwerkstatt.Boden.cs
+                break;
+            case EntwurfFels fels:
+                FelsBauen(fels, weg); // Stadtansicht.Kartenwerkstatt.Felsen.cs
+                break;
+            case EntwurfGrundgestein:
+                FelsenGesteinNeu();
                 break;
         }
         if (a.Objekt is EntwurfWeg or EntwurfMauer)
@@ -838,6 +848,7 @@ public partial class Stadtansicht
         GelaendeWerkzeugAus(); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
         BodenWerkzeugAus();    // Stadtansicht.Kartenwerkstatt.Boden.cs
         WasserWerkzeugAus();   // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        FelsWerkzeugAus();     // Stadtansicht.Kartenwerkstatt.Felsen.cs
         var b = _entwurf?.Katalog.Finde(baustein);
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
         if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
@@ -952,6 +963,9 @@ public partial class Stadtansicht
                 break;
             case Werkstattwerkzeug.Boden:
                 BodenPinselZeigen(maus);
+                break;
+            case Werkstattwerkzeug.Fels:
+                FelsPinselZeigen(maus); // Stadtansicht.Kartenwerkstatt.Felsen.cs
                 break;
             case Werkstattwerkzeug.Rampe:
                 RampeZeigen(maus);
@@ -1149,6 +1163,7 @@ public partial class Stadtansicht
                 else if (_wsStrich is not null) StrichAbbrechen();
                 else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
                 else if (_wsBodenStrich) BodenStrichAbbrechen();
+                else if (_wsFelsStrich) FelsStrichAbbrechen();
                 else if (_wsRampeAnfang is not null) _wsRampeAnfang = null;
                 else if (_wsFaehreStart is not null) _wsFaehreStart = null;
                 else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();
@@ -1167,10 +1182,11 @@ public partial class Stadtansicht
                 StrichBeenden();
                 GelaendeStrichBeenden();
                 BodenStrichBeenden();
+                FelsStrichBeenden();
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
-                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich && !_wsBodenStrich) WerkzeugBeenden();
+                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich && !_wsBodenStrich && !_wsFelsStrich) WerkzeugBeenden();
                 return false; // das Ziehen der Kamera läuft weiter
             case InputEventMouseMotion bewegung:
                 _wsOrt = null;
@@ -1180,6 +1196,7 @@ public partial class Stadtansicht
                 StrichWeiter(bewegung.Position);
                 GelaendeStrichWeiter(bewegung.Position);
                 BodenStrichWeiter(bewegung.Position);
+                FelsStrichWeiter(bewegung.Position);
                 return false;
         }
         return false;
@@ -1217,6 +1234,9 @@ public partial class Stadtansicht
                 return;
             case Werkstattwerkzeug.Boden:
                 BodenStrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Boden.cs
+                return;
+            case Werkstattwerkzeug.Fels:
+                FelsDruecken(maus); // Stadtansicht.Kartenwerkstatt.Felsen.cs
                 return;
             case Werkstattwerkzeug.Rampe:
                 RampeKlick(boden);
