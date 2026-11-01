@@ -1,0 +1,147 @@
+{
+  "beschreibung": "Berge der Kulisse um Köln (Modell assets/modelle/kulisse/kulisse_koeln.glb). Breite/Länge WGS84, hoehe_nn aus dem DGM NRW (Datenlizenz Deutschland – Zero 2.0), peilung in Grad ab Norden, entfernung_km von der Kartenmitte; spiel = Ort im Spiel (x, y, z in Metern, z = Süden) auf dem Kamm des Modells, für eine Beschriftung.",
+  "karte": "koeln",
+  "modell": "kulisse/kulisse_koeln",
+  "berge": [
+    {
+      "name": "Großer Ölberg",
+      "art": "gipfel",
+      "gebiet": "Siebengebirge",
+      "breite": 50.6822,
+      "laenge": 7.2481,
+      "hoehe_nn": 461,
+      "peilung": 145.6,
+      "entfernung_km": 34.8,
+      "staffel": "fern",
+      "spiel": [
+        473.3,
+        172.8,
+        789.3
+      ]
+    },
+    {
+      "name": "Löwenburg",
+      "art": "gipfel",
+      "gebiet": "Siebengebirge",
+      "breite": 50.664,
+      "laenge": 7.2503,
+      "hoehe_nn": 454,
+      "peilung": 147.3,
+      "entfernung_km": 36.5,
+      "staffel": "fern",
+      "spiel": [
+        443.0,
+        186.5,
+        792.8
+      ]
+    },
+    {
+      "name": "Petersberg",
+      "art": "gipfel",
+      "gebiet": "Siebengebirge",
+      "breite": 50.6862,
+      "laenge": 7.2095,
+      "hoehe_nn": 336,
+      "peilung": 149.1,
+      "entfernung_km": 32.9,
+      "staffel": "fern",
+      "spiel": [
+        412.3,
+        170.6,
+        797.4
+      ]
+    },
+    {
+      "name": "Drachenfels",
+      "art": "gipfel",
+      "gebiet": "Siebengebirge",
+      "breite": 50.6652,
+      "laenge": 7.2101,
+      "hoehe_nn": 322,
+      "peilung": 151.1,
+      "entfernung_km": 34.9,
+      "staffel": "fern",
+      "spiel": [
+        384.5,
+        151.0,
+        812.2
+      ]
+    },
+    {
+      "name": "Michelsberg",
+      "art": "gipfel",
+      "gebiet": "Eifel",
+      "breite": 50.5127,
+      "laenge": 6.8245,
+      "hoehe_nn": 587,
+      "peilung": 193.1,
+      "entfernung_km": 48.0,
+      "staffel": "fern",
+      "spiel": [
+        -241.6,
+        251.1,
+        848.4
+      ]
+    },
+    {
+      "name": "Bergisches Land",
+      "art": "gebiet",
+      "breite": 51.1006,
+      "laenge": 7.2076,
+      "hoehe_nn": 290,
+      "peilung": 45.0,
+      "entfernung_km": 25.3,
+      "staffel": "mitte",
+      "spiel": [
+        667.0,
+        151.9,
+        -677.1
+      ]
+    },
+    {
+      "name": "Siebengebirge",
+      "art": "gebiet",
+      "breite": 50.6824,
+      "laenge": 7.2495,
+      "hoehe_nn": 410,
+      "peilung": 145.5,
+      "entfernung_km": 34.8,
+      "staffel": "fern",
+      "spiel": [
+        464.4,
+        179.9,
+        790.5
+      ]
+    },
+    {
+      "name": "Eifel",
+      "art": "gebiet",
+      "breite": 50.5135,
+      "laenge": 6.8257,
+      "hoehe_nn": 563,
+      "peilung": 193.0,
+      "entfernung_km": 47.9,
+      "staffel": "fern",
+      "spiel": [
+        -244.6,
+        252.1,
+        848.2
+      ]
+    },
+    {
+      "name": "Ville",
+      "art": "gebiet",
+      "breite": 50.9168,
+      "laenge": 6.7381,
+      "hoehe_nn": 161,
+      "peilung": 264.0,
+      "entfernung_km": 15.7,
+      "staffel": "nah",
+      "spiel": [
+        -875.5,
+        60.6,
+        111.8
+      ]
+    }
+  ]
+}
