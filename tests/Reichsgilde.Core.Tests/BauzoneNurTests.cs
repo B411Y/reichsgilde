@@ -33,6 +33,13 @@ static class BauzoneNurTests
         return k;
     }
 
+    /// <summary>Die Meldung, mit der das Laden scheitert – oder null.</summary>
+    static string? Fehlerfrei(Action laden)
+    {
+        try { laden(); return null; }
+        catch (Exception e) { return e.Message + " " + string.Join(" ", (e as KartenFehler)?.Fehler ?? Array.Empty<string>()); }
+    }
+
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
         ("Bauzone „nur werkstatt“: Köln hat sieben Werkstatt-Bauplätze; dort steht eine Werkstatt, ein Stadthof nicht", () =>
@@ -54,7 +61,11 @@ static class BauzoneNurTests
             var plaetze = w.Karte!.Bauzonen.Where(z => z.NurWerkstaetten).ToList();
             bool AufPlatz(BauBefehl b) => plaetze.Any(z => w.Bauen.Grundriss(b).Felder(2).Any(f => z.Enthaelt(f.X, f.Z)));
             foreach (var stufe in new[] { 1, 3, 4 })
-                Pruefe.Wahr(!w.Bauen.Bauorte(k, new WohnhausBauen(stufe, 0, 0, 0)).Any(AufPlatz), $"Wohnhaus Stufe {stufe} auf einem Werkstatt-Bauplatz");
+            {
+                var orte = w.Bauen.Bauorte(k, new WohnhausBauen(stufe, 0, 0, 0));
+                Pruefe.Wahr(orte.Count > 0, $"Wohnhaus Stufe {stufe}: der Bauherr darf bauen");
+                Pruefe.Wahr(!orte.Any(AufPlatz), $"Wohnhaus Stufe {stufe} auf einem Werkstatt-Bauplatz");
+            }
             var werkstatt = w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Where(AufPlatz).ToList();
             Pruefe.Gleich(7, plaetze.Count(z => werkstatt.Any(b => w.Bauen.Grundriss(b).Felder(2).All(f => z.Enthaelt(f.X, f.Z)))));
         }),
@@ -76,6 +87,9 @@ static class BauzoneNurTests
             knoten["bauzonen"]![0]!.AsObject()["nur"] = "lager";
             var falsch = Kartenentwurf.AusJson(knoten.ToJsonString(), Katalog.Value);
             Pruefe.Wahr(falsch.Befunde.Any(b => b.Regel == "zone-nur" && b.Schwere == Schwere.Fehler), string.Join(" | ", falsch.Befunde));
+            // auch das Spiel lehnt sie beim Laden ab (Groß- und Kleinschreibung zählt)
+            knoten["bauzonen"]![0]!.AsObject()["nur"] = "Werkstatt";
+            Pruefe.Wahr(Fehlerfrei(() => Stadtkarte.AusJson(knoten.ToJsonString(), Katalog.Value)) is { } meldung && meldung.Contains("nur ist"), "Stadtkarte meldet „nur“");
         }),
     };
 }

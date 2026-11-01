@@ -752,6 +752,7 @@ public sealed class Stadtkarte
         {
             if (z.Flaeche.Count < 3) f.Add($"Bauzone {z.Kennung}: Die Fläche braucht mindestens drei Punkte.");
             if (!Linie(z.Flaeche)) f.Add($"Bauzone {z.Kennung}: Jeder Punkt hat genau zwei Zahlen [x, z].");
+            if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt) f.Add($"Bauzone {z.Kennung}: nur ist „{Bauzone.NurWerkstatt}“ oder fehlt (nicht „{nur}“).");
         }
 
         foreach (var g in Gebaeude)
