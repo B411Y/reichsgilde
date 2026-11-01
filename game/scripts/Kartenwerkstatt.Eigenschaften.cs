@@ -62,6 +62,7 @@ public partial class Kartenwerkstatt
             case EntwurfFaehre fa: _entwurf.FaehreLoeschen(fa); break;
             case EntwurfFlaeche f: _entwurf.FlaecheLoeschen(f); break;
             case EntwurfPflanze p: _entwurf.PflanzeLoeschen(p); break;
+            case EntwurfFels fels: _entwurf.FelsenLoeschen(new[] { fels }); break;
             case EntwurfMauer m: _entwurf.MauerLoeschen(m); break;
         }
     }

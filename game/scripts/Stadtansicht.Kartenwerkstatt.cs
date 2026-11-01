@@ -212,7 +212,7 @@ public partial class Stadtansicht
         Ladezeit.Marke("Werkstatt-Szene: Flächen");
         yield return new Ladeschritt(0.97f, "Bäume werden gepflanzt …");
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
-        FelsenAufbauen();    // Stadtansicht.Kartenwerkstatt.Felsen.cs (vorläufig bis F5)
+        FelsenAufbauen();    // Stadtansicht.Felsen.cs
         Ladezeit.Marke("Werkstatt-Szene: Natur");
         BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
         Ladezeit.Marke("Werkstatt-Szene: Bodendeko");
@@ -333,7 +333,7 @@ public partial class Stadtansicht
                 if (a.Bereich is { } gemalt) BodenVormerken(gemalt); // Stadtansicht.Kartenwerkstatt.Boden.cs
                 break;
             case EntwurfFels fels:
-                FelsBauen(fels, weg); // Stadtansicht.Kartenwerkstatt.Felsen.cs
+                FelsBauen(fels, weg); // Stadtansicht.Felsen.cs
                 break;
             case EntwurfGrundgestein:
                 FelsenGesteinNeu();
@@ -377,6 +377,7 @@ public partial class Stadtansicht
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
         if (_wsGriffeNeu) GriffeBauen();
+        FelsenNachziehen();        // vorgemerkte Zellen der Felsen (Stadtansicht.Felsen.cs)
         WerkstattEbenenAnwenden(); // Ebenen ein- und ausgeblendet (Stadtansicht.Kartenwerkstatt.Ebenen.cs)
     }
 
@@ -735,6 +736,9 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 PflanzeMarkieren(p);
                 break;
+            case EntwurfFels fels:
+                FelsMarkieren(fels); // Stadtansicht.Felsen.cs
+                break;
             case EntwurfMauer m:
                 MauerMarkieren(m);
                 break;
@@ -774,6 +778,7 @@ public partial class Stadtansicht
     {
         EntwurfGebaeude g => g.Punkt,
         EntwurfPflanze p => p.Punkt,
+        EntwurfFels fels => fels.Punkt,
         EntwurfWeg { Verlauf.Count: > 0 } w => w.Verlauf[w.Verlauf.Count / 2],
         EntwurfFluss { Punkte.Count: > 0 } fl => fl.Verlauf[fl.Verlauf.Count / 2],
         EntwurfFaehre fa => new Kartenort((fa.Von.X + fa.Bis.X) / 2, (fa.Von.Z + fa.Bis.Z) / 2),
@@ -1330,6 +1335,12 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(mauer, Ziehart.Griff, maus, p, TorGriffe, torNummer);
             return;
         }
+        if (FelsBei(maus, p, toleranz) is { } fels) // Stadtansicht.Felsen.cs
+        {
+            WerkstattWaehlen(fels);
+            TeilZiehenBeginnen(fels, Ziehart.Ganz, maus, p, -1, -1);
+            return;
+        }
         if (PflanzeBei(p, toleranz) is { } pflanze)
         {
             WerkstattWaehlen(pflanze);
@@ -1418,6 +1429,7 @@ public partial class Stadtansicht
             case EntwurfFaehre fa: Befehl(() => _entwurf.FaehreLoeschen(fa)); break;
             case EntwurfFlaeche f: Befehl(() => _entwurf.FlaecheLoeschen(f)); break;
             case EntwurfPflanze p: Befehl(() => _entwurf.PflanzeLoeschen(p)); break;
+            case EntwurfFels fels: Befehl(() => _entwurf.FelsenLoeschen(new[] { fels })); break;
             case EntwurfMauer m: Befehl(() => _entwurf.MauerLoeschen(m)); break;
         }
     }
@@ -1435,5 +1447,6 @@ public partial class Stadtansicht
         else if (wiederholt || _entwurf is null) return; // gehaltene Taste: kein Befehl je Wiederholung
         else if (WerkstattGewaehlt is EntwurfGebaeude g) Befehl(() => _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)));
         else if (WerkstattGewaehlt is EntwurfPflanze p) Befehl(() => _entwurf.PflanzeDrehen(p, Weiter(p.Drehung)));
+        else if (WerkstattGewaehlt is EntwurfFels fels) Befehl(() => _entwurf.FelsDrehen(fels, Weiter(fels.Drehung)));
     }
 }

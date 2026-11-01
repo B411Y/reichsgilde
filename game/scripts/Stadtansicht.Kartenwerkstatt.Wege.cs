@@ -472,6 +472,10 @@ public partial class Stadtansicht
                 t.Ort = m;
                 if (_wsPflanzen.TryGetValue(p, out var pflanze)) pflanze.Position = V3(p.Punkt) + new Vector3(m.X - t.Anfang.X, 0, m.Y - t.Anfang.Y);
                 break;
+            case EntwurfFels fels:
+                t.Ort = m;
+                FelsZiehenZeigen(fels, m - t.Anfang); // Stadtansicht.Felsen.cs
+                break;
         }
     }
 
@@ -514,6 +518,9 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 if (t.Aktiv && t.Ort != t.Anfang) Befehl(() => e.PflanzeVerschieben(p, p.X + t.Ort.X - t.Anfang.X, p.Z + t.Ort.Y - t.Anfang.Y));
                 break;
+            case EntwurfFels fels:
+                if (t.Aktiv && t.Ort != t.Anfang) Befehl(() => e.FelsVerschieben(fels, fels.X + t.Ort.X - t.Anfang.X, fels.Z + t.Ort.Y - t.Anfang.Y));
+                break;
             case EntwurfMauer mauer:
                 griff = MauerZiehenBeenden(t, mauer);
                 break;
@@ -548,6 +555,7 @@ public partial class Stadtansicht
         if (t.Teil is EntwurfFlaeche f && _wsFlaechen.TryGetValue(f, out var knoten)) knoten.Position = Vector3.Zero;
         if (_wsGriffe is not null) _wsGriffe.Position = Vector3.Zero;
         if (t.Teil is EntwurfPflanze p && _wsPflanzen.TryGetValue(p, out var pflanze)) pflanze.Position = V3(p.Punkt);
+        if (t.Teil is EntwurfFels fels) FelsZiehenZeigen(fels, null);
         if (t.Teil is EntwurfMauer m && _wsMauern.TryGetValue(m, out var mauer)) (mauer.Visible, mauer.Position) = (true, Vector3.Zero);
         TorwegeZeigen(Array.Empty<EntwurfWeg>()); // Wege, die der Vorschau eines wandernden Tores folgten (Stadtansicht.Kartenwerkstatt.Mauern.cs)
     }

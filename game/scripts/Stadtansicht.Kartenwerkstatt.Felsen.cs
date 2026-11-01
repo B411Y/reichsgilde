@@ -12,8 +12,8 @@ namespace Reichsgilde;
 /// gibt der Kern weiter, die Stücke erscheinen sofort, Loslassen macht den Strich zu einem Schritt, Esc nimmt ihn zurück), <b>Stempeln</b> mit einem
 /// Klick (ein Stück oder eine Gruppe; die Vorschau unter der Maus zeigt genau, was der Klick setzt), <b>Radieren</b> wie Streuen.</item>
 /// <item><b>Vorschau</b>: Kreis des Pinsels; beim Stempeln dazu die Stücke als helle Geister (höchstens acht Netze, je Bild nur neu gesetzt).</item>
-/// <item><b>VORLÄUFIGE Anzeige</b> der Stücke: je Stück ein MeshInstance3D mit dem F1-Netz (Stufe 1) und dem Fels-Material aus F2 (<see cref="Gesteinsarten"/>).
-/// F5 ersetzt sie durch MultiMeshes je Form mit Stufen nach dem Zoom und Schatten nur nah – bis dahin nur in der Werkstatt, nicht im Spiel.</item>
+/// <item><b>Anzeige</b> der Stücke wie im Spiel (Stadtansicht.Felsen.cs, F5): MultiMeshes je Zelle und Form, Feinheit nach dem Zoom; dort auch Wählen,
+/// Ziehen, Drehen (Q/E) und Löschen einzelner Stücke mit dem Werkzeug „Auswahl“.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -196,8 +196,8 @@ public partial class Stadtansicht
                 kinder.Add(neu);
             }
             var mi = kinder[i];
-            mi.Mesh = FelsNetz(l.Form);
-            mi.Transform = FelsLage(l.Form, l.X, l.Z, l.Drehung, l.Massstab, l.Neigung, l.Einsinken, l.KippenX, l.KippenZ);
+            mi.Mesh = FelsNetz(l.Form, 1);
+            mi.Transform = FelsLage(new Felsbild(l.Form, "", l.X, l.Z, l.Drehung, l.Massstab, l.Neigung, l.Einsinken, l.KippenX, l.KippenZ));
             mi.Visible = mi.Mesh is not null;
         }
     }
@@ -205,91 +205,6 @@ public partial class Stadtansicht
     private void FelsGeisterAus()
     {
         if (_wsFelsGeister is not null) _wsFelsGeister.Visible = false;
-    }
-
-    // ═════════════════════════════════════════════════════════════════════════
-    //  VORLÄUFIGE Anzeige der Stücke (bis F5): je Stück ein Netz
-    // ═════════════════════════════════════════════════════════════════════════
-
-    private const string FelsModell = "natur/natur_felsen";
-
-    /// <summary>Die Stufe der Netze in der Werkstatt (1 = mittel); F5 wählt sie nach dem Zoom.</summary>
-    private const int FelsStufe = 1;
-
-    private readonly Dictionary<EntwurfFels, MeshInstance3D> _wsFelsen = new();
-    private readonly Dictionary<string, ShaderMaterial> _wsFelsStoffe = new();
-    private Node3D? _wsFelsenKnoten;
-
-    /// <summary>Beim Aufbau der Werkstatt: alle Stücke.</summary>
-    private void FelsenAufbauen()
-    {
-        if (_entwurf is null) return;
-        _wsFelsenKnoten = new Node3D { Name = "Felsen" };
-        AddChild(_wsFelsenKnoten);
-        foreach (var f in _entwurf.Felsen) FelsBauen(f, false);
-    }
-
-    private Mesh? FelsNetz(string form) => Felsformen.Finde(form) is { } f ? NaturNetz(FelsModell, $"{f.Knoten}_{FelsStufe}") : null;
-
-    /// <summary>Das Fels-Material einer Gesteinsart (eins je Art, für alle Stücke geteilt).</summary>
-    private ShaderMaterial FelsStoff(string gestein)
-    {
-        if (!_wsFelsStoffe.TryGetValue(gestein, out var stoff)) _wsFelsStoffe[gestein] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), dreiseitig: true);
-        return stoff;
-    }
-
-    /// <summary>
-    /// Die Lage eines Stücks in der Welt: Drehung um die Senkrechte, geneigt zur Hangnormalen (Anteil <paramref name="neigung"/>), gekippt um die eigenen
-    /// Achsen, um <paramref name="einsinken"/> seiner Höhe unter den Boden unter der Mitte gesenkt, gleichmäßig skaliert.
-    /// </summary>
-    private Transform3D FelsLage(string form, double x, double z, double drehung, double massstab, double neigung, double einsinken, double kippenX, double kippenZ)
-    {
-        var hoehe = (float)((Felsformen.Finde(form)?.Hoehe ?? 1) * massstab);
-        var oben = Vector3.Up;
-        if (_entwurf is not null && neigung > 0)
-        {
-            var (gx, gz) = Felsstreuung.Hang(_entwurf.Hoehen, x, z);
-            var normale = new Vector3(-(float)gx, 1, -(float)gz).Normalized();
-            oben = oben.Slerp(normale, (float)neigung).Normalized();
-        }
-        var basis = new Basis(Vector3.Up, Mathf.DegToRad((float)drehung))
-                    * new Basis(Vector3.Right, Mathf.DegToRad((float)kippenX)) * new Basis(Vector3.Back, Mathf.DegToRad((float)kippenZ));
-        if (!oben.IsEqualApprox(Vector3.Up))
-        {
-            var achse = Vector3.Up.Cross(oben).Normalized();
-            basis = new Basis(achse, Vector3.Up.AngleTo(oben)) * basis;
-        }
-        var boden = BodenHoehe((float)x, (float)z);
-        return new Transform3D(basis.Scaled(Vector3.One * (float)massstab), new Vector3((float)x, boden - (float)einsinken * hoehe, (float)z));
-    }
-
-    /// <summary>Ein Stück neu (oder weg, <paramref name="weg"/>).</summary>
-    private void FelsBauen(EntwurfFels f, bool weg)
-    {
-        if (_wsFelsen.Remove(f, out var alt)) alt.QueueFree();
-        if (weg || _wsFelsenKnoten is null || _entwurf is null || FelsNetz(f.Form) is not { } netz) return;
-        var mi = new MeshInstance3D
-        {
-            Name = "Fels", Mesh = netz, MaterialOverride = FelsStoff(_entwurf.GesteinVon(f)),
-            Transform = FelsLage(f.Form, f.X, f.Z, f.Drehung, f.Massstab, f.Neigung, f.Einsinken, f.KippenX, f.KippenZ),
-        };
-        _wsFelsenKnoten.AddChild(mi);
-        _wsFelsen[f] = mi;
-    }
-
-    /// <summary>Das Grundgestein hat sich geändert: alle Stücke ohne eigenes Gestein bekommen das neue Material.</summary>
-    private void FelsenGesteinNeu()
-    {
-        if (_entwurf is null) return;
-        foreach (var (f, mi) in _wsFelsen) mi.MaterialOverride = FelsStoff(_entwurf.GesteinVon(f));
-    }
-
-    /// <summary>Das Gelände hat sich in diesem Rechteck geändert: die Stücke darin folgen dem Boden (aus <see cref="GelaendeNachziehen"/>).</summary>
-    private void FelsenImBereich(Rect2 rect)
-    {
-        foreach (var (f, mi) in _wsFelsen)
-            if (rect.Grow((float)f.Radius).HasPoint(V2(f.Punkt)))
-                mi.Transform = FelsLage(f.Form, f.X, f.Z, f.Drehung, f.Massstab, f.Neigung, f.Einsinken, f.KippenX, f.KippenZ);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
