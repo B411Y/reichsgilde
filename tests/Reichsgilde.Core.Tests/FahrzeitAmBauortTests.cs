@@ -95,6 +95,21 @@ static class FahrzeitAmBauortTests
             Pruefe.Gleich(((int?)wa.Fahrzeit(betrieb, "Handkarren", true), (int?)wa.Fahrzeit(betrieb, "Ochsenkarren", false)), vorher);
             // ohne Weglänge hängt die Zeit nicht an der Karrenart
             Pruefe.Gleich(wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Kriegskarren"));
+            // Die Zeit allein sagt in der Greybox wenig (Belag am Start überall 1: jede Strecke 30 Minuten, Befund der Prüfung) – darum die Strecke
+            // selbst: vor dem Bau dieselben Stücke wie nach dem Bau, an drei Bauorten von nah bis fern
+            var orte = wa.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Cast<WerkstattBauen>()
+                .OrderBy(o => wa.Karte!.MarktAbstandQuadrat(o.X, o.Z)).ToList();
+            foreach (var o in new[] { orte[0], orte[orte.Count / 2], orte[^1] })
+            {
+                if (wa.Bauen.PlatzVerboten(o) is not null) continue; // überdeckt den ersten Bau
+                var vorherStrecke = wa.StreckeAmBauort(o, alt.Art(Betriebsart.Giesserei), wa.Karte!, wa.Karrennetz!);
+                Pruefe.Wahr(wa.Ausfuehren(k, o).Erfolg, $"Bau bei {o.X} | {o.Z}");
+                var neu = wa.Betriebe.Single(b => b.Name == wa.Bauen.Grundstuecke.Last(g => g.Art == Grundstuecksart.Werkstatt).Betrieb);
+                var nachher = wa.Fahrten(neu)!.Value;
+                Pruefe.Wahr(vorherStrecke.Hin.Count > 0, $"Strecke bei {o.X} | {o.Z}");
+                Pruefe.Gleich(string.Join(";", nachher.Hin), string.Join(";", vorherStrecke.Hin), $"hin bei {o.X} | {o.Z}");
+                Pruefe.Gleich(string.Join(";", nachher.Zurueck), string.Join(";", vorherStrecke.Zurueck), $"zurück bei {o.X} | {o.Z}");
+            }
         }),
     };
 

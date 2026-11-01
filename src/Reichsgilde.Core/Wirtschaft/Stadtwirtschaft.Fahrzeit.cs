@@ -74,7 +74,8 @@ public sealed partial class Stadtwirtschaft
     /// <summary>
     /// Wie lange ein Karren der Art <paramref name="karrenTyp"/> von diesem Betrieb fährt (Spielminuten): <paramref name="zumMarkt"/> zum Markt,
     /// sonst zurück. Nach Weglänge und Tempo der Art (siehe oben); die Darstellung fährt den Karren bei der Standard-Rundendauer in dieser Zeit
-    /// (bis auf die Rundung auf ganze Minuten) – nur eine Fahrt, die die Höchstdauer kappt, dauert im Bild länger (das Tempo bleibt fest).
+    /// (bis auf die Rundung auf ganze Minuten) – nur eine Fahrt, die die Höchstdauer kappt, dauert im Bild länger, und eine unter der Mindestdauer
+    /// (ein Betrieb direkt am Platz) kürzer: Dann wartet der Karren am Markt (das Tempo bleibt fest).
     /// </summary>
     public int Fahrzeit(Betrieb betrieb, string karrenTyp, bool zumMarkt)
     {
@@ -104,12 +105,19 @@ public sealed partial class Stadtwirtschaft
             return null;
         var basis = Daten.Logistik.FahrzeitAb(artDaten.Ort);
         if (!NachStrecke(karrenTyp)) return basis;
+        var (hin, zurueck) = StreckeAmBauort(ort, artDaten, karte, netz);
+        var zeiten = Zeiten(hin, zurueck, karrenTyp, basis);
+        return zumMarkt ? zeiten.Hin : zeiten.Zurueck;
+    }
+
+    /// <summary>Die Strecke (hin, zurück), die eine Werkstatt an diesem Bauort hätte – wie <see cref="Fahrten"/> nach dem Bau (für Tests auch mit alten Daten).</summary>
+    internal (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck) StreckeAmBauort(WerkstattBauen ort, BetriebsartDaten artDaten, Stadtkarte karte, Karrennetz netz)
+    {
         var platz = new Betriebsplatz("", null, new Grundstueck(-1, Bauen.Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
         var (hin, zurueck, _, _) = NachWeglaengeGerechnet
             ? StreckeWieImBild(Karrenweg.Start(platz, ort.Art, artDaten, karte.Katalog), karte, netz)
             : StreckeAlt(platz, karte, netz);
-        var zeiten = Zeiten(hin, zurueck, karrenTyp, basis);
-        return zumMarkt ? zeiten.Hin : zeiten.Zurueck;
+        return (hin, zurueck);
     }
 
     /// <summary>Rechnet der Kern die Fahrzeit dieser Karrenart aus der Strecke (Weglänge, Steigung, Wasser oder Belag)? Sonst gilt die feste Zeit.</summary>
