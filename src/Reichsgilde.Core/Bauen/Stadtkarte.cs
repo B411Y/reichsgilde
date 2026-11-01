@@ -532,6 +532,13 @@ public sealed class Stadtkarte
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Bodenraster? Boden { get; init; }
 
+    /// <summary>
+    /// Die Felsstücke und das Grundgestein (Felspinsel F3, <see cref="Kartenfelsen"/>) – null: keine Felsen, Grundgestein nach der Vorgabe. Steht so
+    /// im Spielstand; ohne Felsen fehlt das Feld, ältere Spielstände bleiben gleich. Felsstücke sperren nichts.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Kartenfelsen? Felsen { get; init; }
+
     private Gelaendeform? _gelaendeform;
 
     /// <summary>
@@ -581,7 +588,7 @@ public sealed class Stadtkarte
             .Concat(Uebergaenge.SelectMany(u => Orte(new[] { u.Von, u.Bis }))).Concat(Orte(Kamera is null ? null : new[] { Kamera.Punkt }));
         var rest = Wege.SelectMany(w => Orte(w.Verlauf))
             .Concat(Natur.Flaechen.SelectMany(n => Orte(n.Flaeche))).Concat(Natur.Felder.SelectMany(n => Orte(n.Flaeche)))
-            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt)))
+            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt))).Concat(Orte(Felsen?.Stuecke.Select(f => f.Punkt)))
             .Concat(Wasser.SelectMany(w => Orte(w.Linie).Concat(Orte(w.Flaeche)))).Concat(Gelaende.SelectMany(x => Orte(x.Flaeche)));
         return Bauen.Kartengrenzen.Ableiten(spiel, rest, rand);
     }

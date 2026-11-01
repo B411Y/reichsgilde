@@ -16,7 +16,7 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Kartenentwurf.Wege.cs, Kartenentwurf.Flaechen.cs), die Mauern mit Toren und die Startbelegung (Schritt 3, Kartenentwurf.Mauern.cs und
 //  Kartenentwurf.Start.cs), Größe, Randstreifen, Kamera-Start und Felder (Schritt 5a, EntwurfKopf, EntwurfFeld und Kartenentwurf.Rand.cs) und das
 //  Gelände (Schritt 5b, Höhenraster mit Pinseln, Kartenentwurf.Gelaende.cs) und das Wasser (Schritt 5c: Flüsse, Seen, Fährstellen,
-//  Kartenentwurf.Wasser.cs).
+//  Kartenentwurf.Wasser.cs) und die Felsstücke (Felspinsel F3: Streuen, Stempeln, Radieren, Grundgestein, Kartenentwurf.Felsen.cs).
 //  Alles Übrige (die alte Liste gelaende, Häfen aus Format 1 …) liegt als JSON im Entwurf und wird für die Prüfung einmal in die Typen der
 //  Stadtkarte gelesen.
 //  Geändert wird nur über Befehle (Setzen, Verschieben, Drehen …), damit Rückgängig und Wiederholen immer stimmen.
@@ -228,6 +228,10 @@ public sealed partial class Kartenentwurf
     private readonly List<EntwurfTeil> _gewaesser;
     private readonly List<EntwurfFaehre> _faehren;
 
+    /// <summary>Die Felsstücke (<c>felsen.stuecke</c>) und das Grundgestein (<c>felsen.grundgestein</c>), Kartenentwurf.Felsen.cs.</summary>
+    private readonly List<EntwurfFels> _felsen;
+    private readonly EntwurfGrundgestein _grundgestein;
+
     /// <summary>Das Höhenraster (Feld <c>hoehen</c>) und das Gelände mit dem Bett der Wege und Mauern (Kartenentwurf.Gelaende.cs).</summary>
     private readonly Hoehenraster _hoehen;
     private readonly Gelaendeform _gelaende;
@@ -262,9 +266,10 @@ public sealed partial class Kartenentwurf
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
         List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
         List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen, List<EntwurfTeil> gewaesser, List<EntwurfFaehre> faehren,
-        Bodenraster boden)
+        Bodenraster boden, List<EntwurfFels> felsen, string? grundgestein)
     {
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
+        (_felsen, _grundgestein) = (felsen, new EntwurfGrundgestein { Gestein = grundgestein });
         (_gewaesser, _faehren) = (gewaesser, faehren);
         (_hoehen, _boden) = (hoehen, boden);
         _gelaende = new Gelaendeform(hoehen, Bettlinien, () => Wasser, Kaimauern);
@@ -310,7 +315,7 @@ public sealed partial class Kartenentwurf
             .Concat(_faehren.SelectMany(u => new[] { u.Von, u.Bis })).Concat(Orte(kamera is null ? null : new[] { kamera.Punkt }))
             .ToList();
         var rest = _wege.SelectMany(w => w.Verlauf).Concat(_naturflaechen.SelectMany(n => n.Ecken)).Concat(_felder.SelectMany(f => f.Ecken))
-            .Concat(_pflanzen.Select(p => p.Punkt))
+            .Concat(_pflanzen.Select(p => p.Punkt)).Concat(_felsen.Select(f => f.Punkt))
             .Concat(_gewaesser.SelectMany(g => g is EntwurfFluss f ? f.Punkte : ((EntwurfSee)g).Ecken)).Concat(_teile.Gelaende.SelectMany(x => Orte(x.Flaeche)))
             .ToList();
         return (spiel, rest);
@@ -448,10 +453,13 @@ public sealed partial class Kartenentwurf
         var gewaesser = Teilleser.Liste<Gewaesser>(daten["wasser"], "Gewässer")
             .Select(x => x.Wert.IstLinie ? (EntwurfTeil)EntwurfFluss.Aus(x.Wert, x.Vorlage) : EntwurfSee.Aus(x.Wert, x.Vorlage)).ToList();
         var faehren = Teilleser.Liste<Uebergang>(daten["uebergaenge"], "Übergang").Select(x => EntwurfFaehre.Aus(x.Wert, x.Vorlage)).ToList();
+        if (daten["felsen"] is not (null or JsonObject)) throw new KartenFehler(new[] { "felsen ist kein Objekt." });
+        var felsen = Teilleser.Liste<Felsstueck>(daten["felsen"]?["stuecke"], "Felsstück").Select(x => EntwurfFels.Aus(x.Wert, x.Vorlage)).ToList();
+        var grundgestein = Teilleser.Einzeln<string>(daten["felsen"]?["grundgestein"], "felsen.grundgestein");
 
         // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
         var rest = daten.DeepClone().AsObject();
-        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "mauern", "start", "hoehen", "boden", "wasser", "uebergaenge" }) rest.Remove(k);
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "felsen", "mauern", "start", "hoehen", "boden", "wasser", "uebergaenge" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
@@ -462,7 +470,7 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren, boden);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren, boden, felsen, grundgestein);
     }
 
     /// <summary>
@@ -472,7 +480,7 @@ public sealed partial class Kartenentwurf
     private static readonly string[] Reihenfolge =
     {
         "format", "kennung", "stadt", "vorlage", "beschreibung", "spielbar", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
-        "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen", "boden",
+        "felsen", "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen", "boden",
     };
 
     /// <summary>
@@ -483,7 +491,7 @@ public sealed partial class Kartenentwurf
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "spielbar", "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
+        foreach (var fehlt in new[] { "spielbar", "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "felsen", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
                      .Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
@@ -509,7 +517,8 @@ public sealed partial class Kartenentwurf
         };
         return new Kartenentwurf(MitAbschnitten(daten), new List<EntwurfGebaeude>(), new Stadtkarte { Kennung = kennung, Stadt = stadt, Groesse = new[] { breite, tiefe } },
             katalog, new List<EntwurfWeg>(), new List<EntwurfBauzone>(), new List<EntwurfNaturflaeche>(), new List<EntwurfPflanze>(), new List<EntwurfMauer>(),
-            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster(), new List<EntwurfTeil>(), new List<EntwurfFaehre>(), new Bodenraster());
+            new EntwurfStart(), new List<EntwurfFeld>(), new Hoehenraster(), new List<EntwurfTeil>(), new List<EntwurfFaehre>(), new Bodenraster(),
+            new List<EntwurfFels>(), null);
     }
 
     /// <summary>
@@ -556,6 +565,17 @@ public sealed partial class Kartenentwurf
                     natur["pflanzen"] = Liste(_pflanzen);
                     if (_felder.Count > 0 || natur.ContainsKey("felder")) natur["felder"] = Liste(_felder); // ältere Karten haben keine
                     aus[k] = natur;
+                    continue;
+                case "felsen":
+                    // wie natur: ohne Stücke und ohne Grundgestein fällt es weg (alte Karten bleiben Byte für Byte gleich)
+                    if (_felsen.Count == 0 && _grundgestein.Gestein is null) continue;
+                    var felsen = new JsonObject();
+                    foreach (var (fk, fv) in v as JsonObject ?? new JsonObject())
+                        felsen[fk] = fk is "grundgestein" or "stuecke" ? null : fv?.DeepClone();
+                    if (_grundgestein.Gestein is { } gestein) felsen["grundgestein"] = gestein;
+                    else felsen.Remove("grundgestein");
+                    felsen["stuecke"] = Liste(_felsen);
+                    aus[k] = felsen;
                     continue;
                 // Kopf: nur, was in der Datei stand oder gesetzt wurde (eine abgeleitete Größe bleibt ungeschrieben, die Datei unverändert)
                 case "spielbar":
@@ -669,8 +689,17 @@ public sealed partial class Kartenentwurf
         Geschichte.Ausfuehren(new TeilLoeschen(g, _gebaeude.IndexOf(g)));
     }
 
-    public bool Rueckgaengig() => Geschichte.Rueckgaengig();
-    public bool Wiederholen() => Geschichte.Wiederholen();
+    public bool Rueckgaengig()
+    {
+        FelsStrichBeenden();
+        return Geschichte.Rueckgaengig();
+    }
+
+    public bool Wiederholen()
+    {
+        FelsStrichBeenden();
+        return Geschichte.Wiederholen();
+    }
 
     /// <summary>Ändert ein Gebäude über eine Kopie; ändert sich nichts, entsteht kein Schritt.</summary>
     private void Aendern(string kennung, string was, Action<EntwurfGebaeude> aenderung)
@@ -743,6 +772,7 @@ public sealed partial class Kartenentwurf
         Kartenteil.Feld => _felder,
         Kartenteil.Gewaesser => _gewaesser,
         Kartenteil.Faehre => _faehren,
+        Kartenteil.Fels => _felsen,
         _ => throw new ArgumentException($"„{t.Bezeichnung}“ steht in keiner Liste.", nameof(t)),
     };
 
@@ -755,6 +785,7 @@ public sealed partial class Kartenentwurf
         if (t is EntwurfStart) return ReferenceEquals(t, _start) ? 0 : -1;
         if (t is EntwurfKopf) return ReferenceEquals(t, _kopf) ? 0 : -1;
         if (t is EntwurfGelaende) return ReferenceEquals(t, _gelaendeTeil) ? 0 : -1;
+        if (t is EntwurfGrundgestein) return ReferenceEquals(t, _grundgestein) ? 0 : -1;
         var l = Liste(t);
         for (var i = 0; i < l.Count; i++)
             if (ReferenceEquals(l[i], t)) return i;
