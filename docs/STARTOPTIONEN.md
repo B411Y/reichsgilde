@@ -222,6 +222,7 @@ Zum Bauen und Leerstand:
 - `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude; `--bauen=wege` öffnet das Baumenü im Wege-Modus: Wege leuchten, Klick auf einen Weg öffnet die Wegtafel)
 - `--bauort=<x>,<z>,<Drehung 0–3>` (der Umriss sitzt an dieser Stelle der Stadt in Metern, bis die Maus bewegt wird; Probestellen stehen unter `probeplan` in `greybox.json`)
 - `--bauklick=1` (dort die Rückfrage öffnen; `=2` gleich bauen)
+- `--fahrwegzeit=1` (Kosten des Fahrwegs im Baumodus ins Protokoll: `[fahrweg] … Wege bei x | z: Kern … ms, Bild … ms` bei jeder neuen Stelle des Umrisses, `[fahrweg] Ampeln: …` am Ende der Suche; mit `--bauen=werkstatt:<Art> --bauort=…`)
 - `--aufsteigen=1` (Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen, damit Werkstätten erlaubt sind; mit `--vermoegen=30000`)
 - `--spulen=<Ticks>` (so viele Spielminuten auf einen Schlag ablaufen lassen, `1200` = über die Bauzeit eines Spieljahres)
 - `--leerstand=kaufen|abreissen` (mit `--auswahl=wohnhaus:Haus_Eisenbart`, Leerzeichen als `_`: Rückfrage zum leeren Haus öffnen; mit `--bauklick=2` gleich ausführen)
