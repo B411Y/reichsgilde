@@ -57,6 +57,13 @@ static class KiKarrenwahlTests
     static void Nahe(double erwartet, double ist, double toleranz, string hinweis) =>
         Pruefe.Wahr(Math.Abs(erwartet - ist) <= toleranz, $"{hinweis}: erwartet {erwartet}, ist {ist}");
 
+    /// <summary>Den Karren auf den Weg zum Markt schicken (wie nach dem Laden eines Spielstands) bzw. wieder an den Hof stellen.</summary>
+    static void Unterwegs(Karren k, bool ja) =>
+        k.Wiederherstellen(k.Sichern() with { Zustand = ja ? KarrenZustand.ZumMarkt : KarrenZustand.AmBetrieb, Ankunft = ja ? long.MaxValue / 2 : 0 });
+
+    /// <summary>Der Karren hat ein ganzes Vorjahr gezählt (so viele Fahrten).</summary>
+    static void GanzesVorjahr(Karren k, int fahrten) => k.Wiederherstellen(k.Sichern() with { FahrtenVorjahr = fahrten, FahrtenGanzesJahr = true });
+
     const string Holzschlag = "Holzschlag Hardevust"; // eine Ware (Holz), 176 m bis zum Markt
     const string Bauernhof = "Bauernhof Mommersloch"; // zwei Waren (Gerste, Roggen), 193 m
 
@@ -137,6 +144,66 @@ static class KiKarrenwahlTests
             Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("tauscht") && e.Contains("der Arbeitszeit still")), string.Join(" | ", ki.Entscheidungen));
         }),
 
+        ("KI-Karrenwahl: Ist der Karren, den die KI tauschen will, unterwegs, wartet sie auf ihn – bei gleich guten nimmt sie den, der am Hof steht", () =>
+        {
+            var (_, w) = Koeln();
+            var (ki, b) = Von(w, Bauernhof);
+            b.KarrenHinzufuegen("Handkarren");
+            b.KarrenHinzufuegen("Ochsenkarren");
+            Pruefe.Gleich("Ochsenkarren, Handkarren, Ochsenkarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
+            var plan = ki.BesterKarrenplan(b, 0.25)!.Value;
+            Pruefe.Gleich(("Kriegskarren", 1), (plan.Typ, plan.Tausch!.Value)); // der Handkarren zuerst
+            Unterwegs(b.Karren[1], true);
+            Pruefe.Gleich(1, ki.BesterKarrenplan(b, 0.25)!.Value.Tausch); // kein schlechterer Tausch, nur weil der Handkarren fort ist
+            ki.KarrenNachDurchfluss(b, 0.25);
+            Pruefe.Gleich("Ochsenkarren, Handkarren, Ochsenkarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
+            Unterwegs(b.Karren[1], false);
+            ki.KarrenNachDurchfluss(b, 0.25);
+            Pruefe.Gleich("Ochsenkarren, Ochsenkarren, Kriegskarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
+            // drei gleiche: der erste ist unterwegs – getauscht wird der zweite, der am Hof steht
+            var (_, w2) = Koeln();
+            var (ki2, b2) = Von(w2, Bauernhof);
+            b2.KarrenHinzufuegen("Ochsenkarren");
+            b2.KarrenHinzufuegen("Ochsenkarren");
+            Unterwegs(b2.Karren[0], true);
+            Pruefe.Gleich(1, ki2.BesterKarrenplan(b2, 0.25)!.Value.Tausch);
+        }),
+
+        ("KI-Karrenwahl: Getauscht wird erst, wenn jeder Karren ein ganzes Vorjahr gezählt hat – dann zeigt der Stillstand des Vorjahres genau diese Karren", () =>
+        {
+            var (_, w) = Koeln();
+            var (ki, b) = Von(w, Bauernhof);
+            b.KarrenHinzufuegen("Ochsenkarren");
+            b.KarrenHinzufuegen("Ochsenkarren");
+            Pruefe.Wahr(!ki.TauschBereit(b), "neue Karren haben kein ganzes Vorjahr");
+            foreach (var k in b.Karren.Take(2)) GanzesVorjahr(k, 2);
+            Pruefe.Wahr(!ki.TauschBereit(b), "einer fehlt noch");
+            GanzesVorjahr(b.Karren[2], 0);
+            Pruefe.Wahr(ki.TauschBereit(b), "alle drei");
+        }),
+
+        ("KI-Karrenwahl: Köln, „Schwer“ – an der Grenze tauscht die KI im Lauf des Jahres, sobald ein Ochse am Hof steht (nicht nur um 23 Uhr)", () =>
+        {
+            var (sim, w) = Koeln();
+            var (ki, b) = Von(w, Bauernhof);
+            b.KarrenHinzufuegen("Ochsenkarren");
+            b.KarrenHinzufuegen("Ochsenkarren");
+            foreach (var k in b.Karren) GanzesVorjahr(k, 0); // als führen sie schon ein Jahr: nach dem Jahreswechsel zählt der Stillstand
+            var jahr = sim.Zeit.Jahr;
+            while (sim.Zeit.Jahr == jahr) sim.Tick();
+            var anteil = b.StillstandMinutenVorjahr / (double)b.Arbeitsminuten;
+            Pruefe.Wahr(anteil >= KiProfil.Standard.StillstandFuerKarrenkauf, $"drei Ochsen am Kölner Bauernhof: {anteil:P0} Stillstand");
+            Pruefe.Wahr(ki.TauschBereit(b), "nach dem Jahreswechsel tauschbereit");
+            Pruefe.Wahr(b.Karren.All(k => k.Typ == "Ochsenkarren"), "zum Jahresende kein Tausch, kein Kauf an der Grenze");
+            while (sim.Zeit.Jahr == jahr + 1 && b.Karren.All(k => k.Typ == "Ochsenkarren")) sim.Tick();
+            Pruefe.Wahr(sim.Zeit.Jahr == jahr + 1, "im Lauf des Jahres getauscht");
+            Pruefe.Wahr(sim.Zeit.UhrzeitInMinuten < 23 * 60, $"um {sim.Zeit.UhrzeitText}");
+            Pruefe.Gleich(3, b.Karren.Count);
+            Pruefe.Gleich(1, b.Karren.Count(k => k.Typ == "Kriegskarren"));
+            Pruefe.Wahr(!ki.TauschBereit(b), "der neue Karren sperrt den nächsten Tausch");
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("tauscht einen Ochsenkarren gegen einen Kriegskarren")), string.Join(" | ", ki.Entscheidungen));
+        }),
+
         ("KI-Karrenwahl: Ein Tausch, der sich erst nach der Frist bezahlt macht, unterbleibt – die KI behält ihre drei Karren", () =>
         {
             var (_, w) = Koeln();
@@ -190,7 +257,19 @@ static class KiKarrenwahlTests
             Pruefe.Gleich(w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Kriegskarren", true));
         }),
 
-        ("KI-Karrenwahl: Köln, ein Jahr „Schwer“ – jeder KI-Betrieb, der zu oft stillstand und kaufte, kaufte nach Plan; nie mehr als drei Karren", () =>
+        ("KI-Karrenwahl: Köln mit alten Daten, ein Jahr „Schwer“ – der Holzschlag bekommt wie bisher einen zweiten Ochsen, getauscht wird nie", () =>
+        {
+            var (sim, w) = Koeln(DatenMit(d => d["logistik"]!.AsObject().Remove("weglaenge")));
+            var holz = w.Betriebe.Single(b => b.Name == Holzschlag);
+            var ki = w.Rivalen.Single(r => r.Konto == holz.Konto);
+            var jahr = sim.Zeit.Jahr;
+            while (sim.Zeit.Jahr == jahr) sim.Tick();
+            Pruefe.Wahr(holz.StillstandMinutenVorjahr >= KiProfil.Standard.StillstandFuerKarrenkauf * holz.Arbeitsminuten, "Stillstand");
+            Pruefe.Gleich("Ochsenkarren, Ochsenkarren", string.Join(", ", holz.Karren.Select(k => k.Typ)));
+            Pruefe.Wahr(w.Rivalen.SelectMany(r => r.Entscheidungen).All(e => !e.Contains("tauscht")), "kein Tausch");
+        }),
+
+        ("KI-Karrenwahl: Köln, ein Jahr „Schwer“ – gekauft wird nur nach Stillstand, nie mehr als drei Karren; der Holzschlag bekommt den Kriegskarren", () =>
         {
             var (sim, w) = Koeln();
             var vorher = w.Betriebe.ToDictionary(b => b.Name, b => b.Karren.Select(k => k.Typ).ToList());

@@ -95,7 +95,8 @@ public sealed partial class KiRivale
     /// <summary>
     /// Was die KI für einen Betrieb erwägt, der im Vorjahr den Anteil <paramref name="stillstand"/> der Arbeitszeit stillstand:
     ///   • unter der Grenze von <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren je Art einen Kauf;
-    ///   • an der Grenze je verkäuflichem Karren und jeder Art mit mehr Durchfluss einen Tausch (Preis − Erlös des alten).
+    ///   • an der Grenze je Karren und jeder Art mit mehr Durchfluss einen Tausch (Preis − Erlös des alten) – auch für einen Karren, der gerade
+    ///     unterwegs ist: Getauscht wird er, sobald er am Hof steht (<see cref="KarrenTauschen"/>).
     /// Die Wirkung schätzt sie aus dem Vorjahr: <c>Stillstand nachher = Stillstand vorher ^ (Durchfluss nachher ÷ Durchfluss vorher)</c> –
     /// jeder zusätzliche Durchfluss drückt den Stillstand um denselben Faktor (auf den Kölner Umlandbetrieben nachgemessen: zwei Ochsen 50 %,
     /// drei Ochsen geschätzt 35 % und gemessen 32–38 %; Ochse und zwei Pferde geschätzt 23 %, gemessen 22 %). Ein linearer Ansatz versprach für
@@ -121,7 +122,7 @@ public sealed partial class KiRivale
                 yield return Plan(typ, null, d.Preis, jetzt + Durchfluss(b, typ));
             yield break;
         }
-        foreach (var (nummer, alt) in Verkaeufliche(b))
+        foreach (var (alt, nummer) in b.Karren.Select((k, i) => (k, i)))
         {
             var weg = Durchfluss(b, alt.Typ);
             foreach (var (typ, d) in arten)
@@ -134,7 +135,7 @@ public sealed partial class KiRivale
     /// Der Plan mit dem größten Wert im Jahr: Mehrgewinn − Kosten ÷ <see cref="Amortisationsjahre"/> (wie bei Kauf und Bau eines Betriebs). Er muss
     /// sich in dieser Frist bezahlen, und danach bleibt die Reserve. Nach dem Wert, nicht nach Durchfluss je Gulden: Der billige Handkarren
     /// brächte je Gulden oft am meisten, belegte aber einen der drei Plätze (Greybox, immer Handkarren: KI-Häuser bei „Schwer“ −10 %).
-    /// Gleichstand: der billigere, dann nach Art und Nummer. Null: nichts lohnt sich.
+    /// Gleichstand: der billigere, dann nach Art, dann ein Karren, der am Hof steht, dann nach Nummer. Null: nichts lohnt sich.
     /// </summary>
     internal Karrenplan? BesterKarrenplan(Betrieb b, double stillstand)
     {
@@ -146,15 +147,20 @@ public sealed partial class KiRivale
                      .OrderByDescending(p => p.Mehrgewinn - p.Kosten / jahre)
                      .ThenBy(p => p.Kosten)
                      .ThenBy(p => p.Typ, StringComparer.Ordinal)
+                     .ThenBy(p => p.Tausch is { } nr && _w.KarrenVerkaufVerboten(Konto, b, nr) is not null ? 1 : 0) // gleich gut: der am Hof
                      .ThenBy(p => p.Tausch ?? -1))
             return p;
         return null;
     }
 
-    /// <summary>Den besten Plan ausführen (<see cref="BesterKarrenplan"/>): beim Tausch erst den alten Karren verkaufen, dann den neuen kaufen und die Eskorte wählen.</summary>
+    /// <summary>
+    /// Den besten Plan ausführen (<see cref="BesterKarrenplan"/>): beim Tausch erst den alten Karren verkaufen, dann den neuen kaufen und die Eskorte
+    /// wählen. Ist der Karren, den der Plan tauschen will, unterwegs, geschieht nichts – der nächste Versuch kommt in der nächsten Stunde.
+    /// </summary>
     internal void KarrenNachDurchfluss(Betrieb b, double stillstand)
     {
         if (BesterKarrenplan(b, stillstand) is not { } plan) return;
+        if (plan.Tausch is { } unterwegs && _w.KarrenVerkaufVerboten(Konto, b, unterwegs) is not null) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
         var preis = _w.Daten.Logistik.Karren[plan.Typ].Preis;
         var wirkung = $"Stillstand ≈ {Prozent(plan.StillstandNachher)} statt {Prozent(stillstand)}, ≈ {Zahlenformat.Ganz(plan.Mehrgewinn)} {waehrung} mehr im Jahr";
@@ -173,5 +179,26 @@ public sealed partial class KiRivale
             text = $"{b.Name} stand {Prozent(stillstand)} der Arbeitszeit still – {plan.Typ} gekauft ({Zahlenformat.Ganz(preis)} {waehrung}; {wirkung}).";
         if (Befehlen(new KarrenKaufen(b.Name, plan.Typ), text))
             EskorteWaehlen(b);
+    }
+
+    /// <summary>
+    /// Darf die KI an diesem Betrieb tauschen? Erst wenn jeder seiner Karren ein ganzes Vorjahr gezählt hat (<see cref="Karren.FahrtenVorjahr"/>
+    /// gesetzt): Dann zeigt der Stillstand des Vorjahres genau diese Karren, und nach einem Tausch oder Kauf wartet sie, bis er wieder gilt. Kein
+    /// eigener Zustand im Spielstand nötig.
+    /// </summary>
+    internal bool TauschBereit(Betrieb b) => b.Karren.Count > 0 && b.Karren.All(k => k.FahrtenVorjahr is not null);
+
+    /// <summary>
+    /// Jede Stunde (Betriebssache, auch aus dem Kerker): An der Grenze von <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren tauscht die KI nach
+    /// Durchfluss (<see cref="KarrenNachDurchfluss"/>), wenn der Betrieb im Vorjahr zu oft stillstand und <see cref="TauschBereit"/> gilt – sobald
+    /// der Karren, den der Plan tauschen will, am Hof steht. Zum Jahresende ist der langsamste Karren eines gebremsten Umlandbetriebs oft unterwegs
+    /// (Köln: wartet vor dem Tor bis zum Morgen); deshalb nicht nur dann (Befund der Prüfung).
+    /// </summary>
+    private void KarrenTauschen(Betrieb b)
+    {
+        if (b.Belegt == 0 || b.Karren.Count < Profil.MaxKarrenJeBetrieb || !BrauchtKarren(b) || !TauschBereit(b)) return;
+        var anteil = b.StillstandMinutenVorjahr / (double)b.Arbeitsminuten;
+        if (anteil < Profil.StillstandFuerKarrenkauf || !KarrenwahlNachDurchfluss(b)) return;
+        KarrenNachDurchfluss(b, anteil);
     }
 }
