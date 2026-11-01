@@ -83,14 +83,17 @@
   {"kennung": "Buergerhaus_Kulisse6", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 6", "punkt": [2, 49.45], "drehung": 0},
   {"kennung": "Buergerhaus_Kulisse7", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 7", "punkt": [44.55, -15], "drehung": 270},
   {"kennung": "Buergerhaus_Kulisse8", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 8", "punkt": [44.55, -5.5], "drehung": 270},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [130.05, 14.2], "drehung": 182.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt2", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 2", "punkt": [167.55, 57.15], "drehung": 94.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt3", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 3", "punkt": [168.25, 66.35], "drehung": 94.4},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [168.95, 75.6], "drehung": 94.5},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [169.75, 84.85], "drehung": 95},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [170.6, 94.15], "drehung": 95.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [171.6, 103.45], "drehung": 96.9},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [172.85, 112.75], "drehung": 98.3},
+  {"kennung": "Buergerhaus_Kulisse9", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 9", "punkt": [134.5, 34.15], "drehung": 180},
+  {"kennung": "Buergerhaus_Kulisse10", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 10", "punkt": [144, 34.15], "drehung": 180},
+  {"kennung": "Buergerhaus_Kulisse11", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 11", "punkt": [199.85, 26.3], "drehung": 90},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [129.05, 14.75], "drehung": 90},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt2", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 2", "punkt": [129.05, 24], "drehung": 90},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt3", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 3", "punkt": [167.55, 57.15], "drehung": 94.6},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [168.25, 66.35], "drehung": 94.4},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [168.95, 75.6], "drehung": 94.5},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [169.75, 84.85], "drehung": 95},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [170.6, 94.15], "drehung": 95.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [171.6, 103.45], "drehung": 96.9},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt9", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 9", "punkt": [-141.15, 7.3], "drehung": 185.2},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt10", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 10", "punkt": [-150.35, 8.15], "drehung": 185.2},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt11", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 11", "punkt": [-159.55, 9], "drehung": 185.2},
@@ -250,11 +253,13 @@
    "kurve": "glatt"
   },
   {"name": "Bonner Straße", "klasse": "land", "linie": [[-22.35, 142.65], [-14, 190], [-4, 250], [6, 330], [14, 440], [20, 549]], "gefahr": 1, "breite": 4, "kurve": "glatt"},
-  {"name": "Deutzer Freiheit", "klasse": "haupt", "linie": [[126, 8], [170, 6], [213, -3]], "gefahr": 1, "breite": 5},
+  {"name": "Deutzer Freiheit", "klasse": "haupt", "linie": [[126, 8], [134, 7.65], [170, 6], [206, -1.55], [213, -3]], "gefahr": 1, "breite": 5},
   {"name": "Deutzer Kirchstraße", "klasse": "haupt", "linie": [[172, -47], [170, 6], [172, 41]], "gefahr": 1, "breite": 5},
   {"name": "Bensberger Straße", "klasse": "land", "linie": [[213, -3], [270, -10], [350, -25], [450, -45], [550, -70], [599, -85]], "gefahr": 1, "breite": 4, "kurve": "glatt"},
   {"name": "Mülheimer Weg", "klasse": "land", "linie": [[172, -47], [160, -110], [150, -160], [146, -200], [160, -300], [175, -400], [190, -499]], "gefahr": 1, "breite": 4, "kurve": "glatt"},
-  {"name": "Siegburger Straße", "klasse": "land", "linie": [[172, 41], [180, 120], [200, 200], [260, 300], [380, 420], [500, 540]], "gefahr": 1, "breite": 4, "kurve": "glatt"}
+  {"name": "Siegburger Straße", "klasse": "land", "linie": [[172, 41], [180, 120], [200, 200], [260, 300], [380, 420], [500, 540]], "gefahr": 1, "breite": 4, "kurve": "glatt"},
+  {"name": "Urbanusgasse", "klasse": "gasse", "linie": [[134, 7], [134, 7.65], [134, 28], [149, 28]], "gefahr": 1, "breite": 3},
+  {"name": "Abteigasse", "klasse": "gasse", "linie": [[206, -2.2], [206, -1.55], [206, 36]], "gefahr": 1, "breite": 3}
  ],
  "bauzonen": [
   {
@@ -551,7 +556,6 @@
    ]
   },
   {"kennung": "V14", "art": "vorstadt", "flaeche": [[152, -12], [166, -12], [166, -8], [156, -8], [156, 2], [152, 2]]},
-  {"kennung": "V15", "art": "vorstadt", "flaeche": [[192, 22], [204, 22], [204, 2], [210, 2], [210, 28], [206, 28], [206, 30], [202, 30], [202, 36], [192, 36]]},
   {
    "kennung": "U1",
    "art": "umland",
@@ -592,8 +596,8 @@
    "kennung": "U6",
    "art": "umland",
    "flaeche": [
-    [150, 110], [166, 110], [166, 116], [168, 116], [168, 120], [176, 120], [176, 124], [178, 124], [178, 136], [180, 136], [180, 146], [182, 146], [182, 156], [184, 156], [184, 166],
-    [176, 166], [176, 168], [168, 168], [168, 170], [158, 170], [158, 160], [156, 160], [156, 150], [154, 150], [154, 140], [152, 140], [152, 128], [150, 128]
+    [150, 110], [174, 110], [174, 112], [176, 112], [176, 124], [178, 124], [178, 136], [180, 136], [180, 146], [182, 146], [182, 156], [184, 156], [184, 166], [176, 166], [176, 168],
+    [168, 168], [168, 170], [158, 170], [158, 160], [156, 160], [156, 150], [154, 150], [154, 140], [152, 140], [152, 128], [150, 128]
    ]
   },
   {
@@ -1504,12 +1508,19 @@
     "sand": "40+n/tT6cP3k/T35X346VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0AS56QwIeOlYBLjplAh46NAEuekMCHjpWAS46ZQIeOjQBLnpDAh46VgEuOmUCHjo0ASAA",
     "schlamm": "44+LX8QPtP+l46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBl56VgVuOocIfjp4B446ZQZeelYFbjqHCH46eAeOOmUGXnpWBW46hwh+OngHjjplBlAA=="
    },
-   {"i": 2, "j": 0, "pflaster": "4d+Ofhf/1+/+/+/+/+pf/X4X+Ofv/v/v/v/v/v/v/v/v/v/v/gc="},
+   {
+    "i": 2,
+    "j": 0,
+    "pflaster": "4d+Ofhf/1+/+/+/+/+pf/X4X+Ofv/v/v/v/v/v/v/v/v/v/v/gc=",
+    "mist": "7/7/7/7/7/7/7/5Tb6og+1/bHjr6ovog+F/8Pjr7X4UE47/F/0P7T8TjxPhPtOOvtfhQTjv8X/Q/tPxOPE+E+046+aL5IP9PjT46X5og/F/rHv/v/v/v/v/v/mY=",
+    "deko": "7/7/7/7/7/6+8OPv5ePv1ePv5evv1eE0/MEPs/1+Jf5eE/zB+hD6P7wuOvs/owLjv8P5Mf8vg+Jf1eFS/i/y4l/l4T+z+jAuO/w/kx/y+D48L+L/LiX9XhP7wfkQ+T/MLiX+XhM/vBD8P+fiX9Xj7e/+/+/+/+/+/w=="
+   },
    {
     "i": 3,
     "j": 0,
     "fels": "458PovhPxPhfpOOEzIok44iohEHjiIZiIeNyZEQgPjciJAIR45LjwREQAC43EzMxIuOHdTEU44eVcx45Wbdz4625lT45Px2Xfjp93X47nbvjxbvj0V7/7/7/7/7/7/7/7/7/7/7/5/A=",
-    "deko": "45j2+C+i+i+C44KIRELjhmRG46RkQCHjciQiIB44QCIB47IQIeOBEAEC43ERMS46UzEQLjg1UzAuODVVMx45lVVR45GZUz46V5VeO1eV48N34+Pv/v/v/v/v/v/v/v/v/v/v/n8="
+    "mist": "7/7/7/7/7/7/7/7/4Lb6ogD5ol45+qL6IA+S+aLjn7X4UE47/F/0M/9PxeO0D4X7Xjn5ovkgD6L6ouOV+aIA+qJu/+/+/+/+/+/+bQ==",
+    "deko": "45j2+C+i+i+C44KIRELjhmRG4Q+qH+sQD9H7ot4iRkQCHg7+sflQD+H1/V4hIkIiAeDv2x+lD+TiVAIgHg/+sflQ/U4nIQIeEP1A/R9v5eIhEAEC4Q/kD+H1/V4hERMS4Q/bH6UP5OJVMxEC4O/rH5UP1OJTVTMC4Q/UD9H2/l4iNVUzHhD+QP4fX9XiOVVVHg79sfpQ/k4mGZUz4O/rH5UP1OJ1eVXhD9QP0fb+XiVXleEP5A/h9f1eJjd+Dv2x+lD+Tis+Dv6x+VD9Tj39QP0fb+Xjr+QP4fX9Xjj9sfpQ/k4s+sL+EP0fui3gj+sflQ/U4s+oH9EP4fX9Xgr9QP0fb+Xin5gf4f5ODf5A/h9f1eKfqB/R/U4L/bH6UP5OLv1P0fb+Xgj+sflQ/U4u/k/h9f1eCv1A/R9v5eKfmB/h/k4N/kD+H1/V4p+oH9H9Tgv9sfpQ/k4u/U/R9v5eCP6x+VD9Ti7+T+H6T+fgb9sfmhAP1A/R9v5eKfmB/h/kD4gfseBvqB3/kfkf5A/h9f1eKfqB/R/UD/f8HgX+T+H4wf+x+V+R/k4u/U/R/ILeBf1BAv4fof1OLv5P4f1r/U4E+h+CES/UD9H2/l4p+YH+H+QAD+TgT5H9EgH+QP4fX9Xin6gf0f1A/3/B4G+y/U/k/CAP0fb+Xin5gf4Q/R+U/X4G/C/k/U+yAP4fyi8OKfnC/RD+H8ovDv/v/v/v/v/v/jk="
    },
    {
     "i": 4,

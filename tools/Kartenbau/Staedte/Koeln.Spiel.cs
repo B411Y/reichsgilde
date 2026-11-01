@@ -149,6 +149,8 @@ public sealed partial class Koeln
         Textur(Bodentextur.Schlamm, new[] { P(58.5, -499), P(58.5, 549) }, radius: 2.5, staerke: 0.8, kante: 0.5, deko: false);
         // Kies am Hafen
         TexturFlaeche(Bodentextur.Kies, 42, -64, 56, -18, radius: 4);
+        // Gärten und Höfe in der Deutzer Südhälfte (Koeln.Deutz.cs)
+        DeutzerGaerten();
         // Fels an den Gruben
         foreach (var g in _umland.Where(g => g.Katalog == "grube"))
             Textur(Bodentextur.Fels, new[] { P(g.X, g.Z) }, radius: 12, staerke: 0.8, kante: 0.7);

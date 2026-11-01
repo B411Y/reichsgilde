@@ -262,6 +262,7 @@ public sealed partial class Koeln : Stadtskript
         WegGlatt(Wegklasse.Land, "Bensberger Straße", P(213, -3), P(270, -10), P(350, -25), P(450, -45), P(550, -70), P(599, -85));
         WegGlatt(Wegklasse.Land, "Mülheimer Weg", P(172, -47), P(160, -110), P(150, -160), P(146, -200), P(160, -300), P(175, -400), P(190, -499));
         WegGlatt(Wegklasse.Land, "Siegburger Straße", P(172, 41), P(180, 120), P(200, 200), P(260, 300), P(380, 420), P(500, 540));
+        DeutzerGassen();   // Urbanusgasse und Abteigasse in der Südhälfte (seit 1.11.2026, Koeln.Deutz.cs)
 
         E.FaehreSetzen(P(51, -200), P(146, -200), "Fähre Mülheim");
     }

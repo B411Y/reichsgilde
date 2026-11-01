@@ -47,10 +47,11 @@ public sealed partial class Koeln
     }
 
     /// <summary>
-    /// Steht an dieser Stelle nichts im Weg? Abstand zu Gebäuden (<paramref name="abstand"/>), zu Wegen (halbe Breite + 0,3 m), zu Mauern (4 m),
+    /// Steht an dieser Stelle nichts im Weg? Abstand zu Gebäuden (<paramref name="abstand"/>), zu Wegen (halbe Breite + 0,3 m), zu Mauern
+    /// (<paramref name="mauerAbstand"/>, sonst 4 m),
     /// zum Wasser (3 m) und zu den Werkstatt-Bauplätzen (2 m).
     /// </summary>
-    private bool Frei(IReadOnlyList<Kartenort> umriss, double abstand = 1.5, double wasserAbstand = 3)
+    private bool Frei(IReadOnlyList<Kartenort> umriss, double abstand = 1.5, double wasserAbstand = 3, double mauerAbstand = 4)
     {
         if (AmBauplatz(umriss)) return false;   // Werkstatt-Bauplätze nahe den Märkten bleiben frei (Koeln.Bauplaetze.cs)
         foreach (var g in E.Gebaeude)
@@ -61,7 +62,7 @@ public sealed partial class Koeln
         foreach (var w in E.Wege)
             if (Kartengeometrie.AbstandVielecke(umriss, w.Verlauf, false) < w.BreiteWirksam / 2 + 0.3) return false;
         foreach (var m in E.Mauern)
-            if (Kartengeometrie.AbstandVielecke(umriss, m.Ecken, m.Geschlossen) < 4) return false;
+            if (Kartengeometrie.AbstandVielecke(umriss, m.Ecken, m.Geschlossen) < mauerAbstand) return false;
         if (E.Wasserform.Ueberlappt(umriss) is not null) return false;
         foreach (var p in umriss.Append(Kartengeometrie.Mitte(umriss)))
             if (E.Wasserform.Uferabstand(p.X, p.Z, 8) < wasserAbstand) return false;
@@ -145,7 +146,7 @@ public sealed partial class Koeln
     /// Gibt die gesetzten Gebäude zurück.
     /// </summary>
     private List<EntwurfGebaeude> Reihe(string katalog, string strasse, bool links, double von, double bis, double luecke = 1, int hoechstens = int.MaxValue,
-        double abstandZurStrasse = 0.8)
+        double abstandZurStrasse = 0.8, double mauerAbstand = 4)
     {
         var weg = _strassen[strasse];
         var linie = weg.Verlauf;
@@ -159,7 +160,7 @@ public sealed partial class Koeln
             var d = Math.Round(Math.Atan2(-nx, -nz) * 180 / Math.PI * 10) / 10;
             var abstand = halb + abstandZurStrasse + b[1] / 2;
             var mitte = P(p.X + nx * abstand, p.Z + nz * abstand);
-            if (!Frei(Rechteck(mitte, b[0], b[1], d))) continue;
+            if (!Frei(Rechteck(mitte, b[0], b[1], d), mauerAbstand: mauerAbstand)) continue;
             liste.Add(E.Setzen(katalog, mitte.X, mitte.Z, d));
             s += b[0] / 2 + luecke - 0.5;
         }
@@ -203,10 +204,15 @@ public sealed partial class Koeln
             k += Reihe("kulisse_buergerhaus", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
         Console.WriteLine($"   Kulissenhäuser: {k} und {kulissenAmMarkt} am Alter Markt");
 
+        // Deutz, Südhälfte: Kulissenhäuser an Urbanusgasse und Abteigasse (seit 1.11.2026, Koeln.Deutz.cs)
+        Console.WriteLine($"   Kulissenhäuser in Deutz: {DeutzerHaeuser()}");
+
         // Deutz (innerhalb der Mauer von Deutz) und die Vorstädte vor den Toren: die kleinen Plätze
         n = 0;
-        foreach (var (strasse, links) in new[] { ("Deutzer Freiheit", true), ("Deutzer Freiheit", false), ("Deutzer Kirchstraße", true), ("Deutzer Kirchstraße", false) })
-            n += Reihe("einwohnerplatz_vorstadt", strasse, links, 0, 1000, luecke: 1.5, hoechstens: 3).Count;
+        foreach (var (strasse, links) in new[] { ("Deutzer Freiheit", true), ("Deutzer Freiheit", false), ("Deutzer Kirchstraße", true), ("Deutzer Kirchstraße", false),
+                     ("Urbanusgasse", false), ("Abteigasse", false) })
+            if (n < EinwohnerplaetzeDeutz)
+                n += Reihe("einwohnerplatz_vorstadt", strasse, links, 0, 1000, luecke: 1.5, hoechstens: Math.Min(3, EinwohnerplaetzeDeutz - n), abstandZurStrasse: 0.35).Count;
         // Seit den Werkstatt-Bauplätzen am Neumarkt (1.11.2026) passen in Deutz weniger Plätze; die übrigen stehen vor den Deutzer Toren, damit
         // es so viele bleiben wie vorher
         var vorDenToren = 0;
