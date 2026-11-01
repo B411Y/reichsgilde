@@ -31,6 +31,8 @@ public partial class Stadtansicht
     {
         /// <summary>Auf welchem Marktplatz die Stelle liegt.</summary>
         public MarktplatzAnsicht? Platz { get; init; }
+        /// <summary>Was man dort tut (Markt v3, Stadtansicht.Marktbummel.cs): Stand, Gespräch, Brunnen, Brunnenrand, Bank, Schauen.</summary>
+        public Marktbummel.Art Art { get; init; } = Marktbummel.Art.Schauen;
     }
 
     /// <summary>
@@ -49,6 +51,12 @@ public partial class Stadtansicht
 
         /// <summary>Kennung der Klickfläche: „Marktplatz“ beim ersten Platz (wie immer), bei weiteren „Marktplatz:&lt;Name&gt;“ – jede öffnet dieselbe Preistafel.</summary>
         public string Kennung => Nummer == 0 ? "Marktplatz" : "Marktplatz:" + Name;
+
+        /// <summary>Die freie Fläche des Pflasters ohne Stände, Brunnen, Bänke und Kreuz (Markt v3: Wege und Ausweichen, Stadtansicht.Marktbummel.cs).</summary>
+        public Marktflaeche? Flaeche { get; set; }
+        /// <summary>Mitte (x, z) und Halbmesser des Brunnenbeckens (Meter).</summary>
+        public Vector3 Brunnen { get; set; }
+        public float BrunnenRadius { get; set; } = 2f;
 
         /// <summary>Wegpunkte des Rundgangs und ihr Abstand vom ersten (Meter, entlang des Weges).</summary>
         public Vector3[] Rundgang { get; set; } = Array.Empty<Vector3>();
@@ -132,15 +140,20 @@ public partial class Stadtansicht
                              .ToDictionary(k => k.Name.ToString(), k => platz.Wurzel.Transform * k.Transform);
             for (var n = 1; anker.TryGetValue($"Anker_Stand{n}", out var lage); n++)
                 StandAufbauen(lage, n - 1, ansicht);
+            var gruppen = new List<(int Gruppe, Vector3 Ort)>();
             foreach (var (name, lage) in anker.OrderBy(x => x.Key, StringComparer.Ordinal))
             {
                 var blick = Blickwinkel(lage);
-                if (name.StartsWith("Anker_Brunnen")) _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Stehen") { Platz = ansicht });
-                else if (name.StartsWith("Anker_Sitz")) _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Sitzen") { Platz = ansicht });
+                if (name.StartsWith("Anker_Brunnen")) _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Stehen") { Platz = ansicht, Art = Marktbummel.Art.Brunnen });
+                else if (name.StartsWith("Anker_Sitz")) _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Sitzen") { Platz = ansicht, Art = Marktbummel.Art.Bank });
                 else if (name.StartsWith("Anker_Plausch") && int.TryParse(name["Anker_Plausch".Length..].Split('_')[0], out var gruppe))
-                    _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Reden", Gruppe: ansicht.Nummer * 100 + gruppe) { Platz = ansicht }); // die Runden verschiedener Plätze nie verwechseln
+                {
+                    if (MarktV2) _marktstellen.Add(new Marktstelle(lage.Origin, blick, "Reden", Gruppe: ansicht.Nummer * 100 + gruppe) { Platz = ansicht, Art = Marktbummel.Art.Gruppe }); // die Runden verschiedener Plätze nie verwechseln
+                    else gruppen.Add((gruppe, lage.Origin));
+                }
             }
             MarktHindernisseSammeln(platz.Wurzel, anker, ansicht);
+            if (!MarktV2) MarktV3Aufbauen(ansicht, anker, gruppen); // Gesprächsgruppen zu viert, Brunnenrand, Schaustellen, freie Fläche (Stadtansicht.Marktbummel.cs)
             // Rundgang: Anker_Weg1 … Anker_Weg12 in Laufrichtung; an jedem Wegpunkt beginnt ein Schlendernder
             var rundgang = Enumerable.Range(1, 99).Select(n => anker.TryGetValue($"Anker_Weg{n}", out var w) ? (Vector3?)w.Origin : null)
                                      .TakeWhile(w => w is not null).Select(w => w!.Value).ToArray();
@@ -148,7 +161,7 @@ public partial class Stadtansicht
             for (var i = 1; i < rundgang.Length; i++) bis[i] = bis[i - 1] + rundgang[i - 1].DistanceTo(rundgang[i]);
             (ansicht.Rundgang, ansicht.RundgangBis) = (rundgang, bis);
             ansicht.RundgangLaenge = rundgang.Length > 1 ? bis[^1] + rundgang[^1].DistanceTo(rundgang[0]) : 0;
-            for (var i = 0; i < rundgang.Length && ansicht.RundgangLaenge > 0; i++)
+            for (var i = 0; i < rundgang.Length && ansicht.RundgangLaenge > 0 && MarktV2; i++) // Markt v3: kein Rundgang im Gleichschritt mehr
                 _marktstellen.Add(new Marktstelle(rundgang[i], 0, "Gehen", Rundgang: i) { Platz = ansicht });
         }
         _marktBelegt = Enumerable.Repeat(-1, _marktstellen.Count).ToArray();
@@ -178,6 +191,7 @@ public partial class Stadtansicht
         foreach (var dx in new[] { -1f, 0f, 1f })
             _marktHindernisse.Add((lage * new Vector3(dx, 0, 0), 0.95f));
         if (form == "Stand_Karren") _marktHindernisse.Add((lage * new Vector3(-1.9f, 0, 0), 0.5f));
+        _standUmrisse.Add((platz, lage, form)); // genauer Umriss für die freie Fläche (Stadtansicht.Marktbummel.cs)
         foreach (var teil in modell.Wurzel.GetChildren().OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
@@ -197,7 +211,7 @@ public partial class Stadtansicht
         {
             var kunde = lage * k.Transform;
             stand.Kunden.Add(_marktstellen.Count);
-            _marktstellen.Add(new Marktstelle(kunde.Origin, Blickwinkel(kunde), "Stehen", Stand: _marktstaende.Count) { Platz = platz });
+            _marktstellen.Add(new Marktstelle(kunde.Origin, Blickwinkel(kunde), "Stehen", Stand: _marktstaende.Count) { Platz = platz, Art = Marktbummel.Art.Stand });
         }
         if (modell.Wurzel.GetNodeOrNull<Node3D>("Anker_Verkaeufer") is { } v)
         {
@@ -239,7 +253,7 @@ public partial class Stadtansicht
             StandZeigen(stand, _marktOffen);
             if (stand.Gezeigt is null || stand.VerkaeuferKnoten is not { } knoten || stand.Verkaeufer is not { } verkaeufer) continue;
             // Steht ein Kunde da, redet der Verkäufer mit ihm.
-            BewegungSetzen(verkaeufer, stand.Kunden.Any(k => _marktBelegt[k] >= 0) ? "Reden" : "Stehen");
+            BewegungSetzen(verkaeufer, stand.Kunden.Any(k => MarktV2 ? _marktBelegt[k] >= 0 : StelleBesetzt(k)) ? "Reden" : "Stehen"); // v3: erst, wenn der Kunde da ist
             FigurImBildBewegen(verkaeufer, knoten.Position, sekunden);
         }
     }
@@ -399,15 +413,22 @@ public partial class Stadtansicht
     /// Stände umgeht er (<see cref="PlatzZwischenpunkte"/>). Wege, die nur durchs Netz über die Mitte führen (Knoten am Brunnen), laufen so um den Brunnen
     /// herum. Der erste und letzte Punkt des Weges bleiben, wie sie sind.
     /// </summary>
-    private List<Vector3> UeberDenPlatz(IReadOnlyList<Vector3> pfad)
+    private List<Vector3> UeberDenPlatz(IReadOnlyList<Vector3> pfad, int nummer = 0)
     {
         var aus = pfad.ToList();
         foreach (var platz in _maerkte) // ein Weg kann mehrere Plätze berühren: nacheinander jeden Platz
-            if (platz.Halb > 0) aus = UeberDenPlatz(aus, platz);
+            if (platz.Halb > 0) aus = UeberDenPlatz(aus, platz, nummer);
         return aus;
     }
 
-    private List<Vector3> UeberDenPlatz(IReadOnlyList<Vector3> pfad, MarktplatzAnsicht platz)
+    /// <summary>
+    /// Die Punkte zwischen zwei Punkten auf dem Pflaster: Markt v3 über die freie Fläche, je Person gefächert (Stadtansicht.Marktbummel.cs); vorher um die
+    /// Kreise der Hindernisse herum (<see cref="PlatzZwischenpunkte"/>).
+    /// </summary>
+    private List<Vector3> ZwischenpunkteAufDemPlatz(MarktplatzAnsicht platz, Vector3 von, Vector3 bis, int nummer) =>
+        platz.Flaeche is not null ? FlaechenZwischenpunkte(platz, von, bis, nummer, Wegschluessel(von, bis)) : PlatzZwischenpunkte(von, bis);
+
+    private List<Vector3> UeberDenPlatz(IReadOnlyList<Vector3> pfad, MarktplatzAnsicht platz, int nummer)
     {
         var aus = new List<Vector3>();
         if (pfad.Count == 0) return aus;
@@ -429,7 +450,7 @@ public partial class Stadtansicht
                     var x1 = a.Lerp(b, stueck.Von);
                     var x2 = a.Lerp(b, stueck.Bis);
                     aus.Add(x1);
-                    aus.AddRange(PlatzZwischenpunkte(x1, x2));
+                    aus.AddRange(ZwischenpunkteAufDemPlatz(platz, x1, x2, nummer));
                     aus.Add(x2);
                 }
                 aus.Add(b);
@@ -443,7 +464,7 @@ public partial class Stadtansicht
             else if (!bDrin)
             {
                 var austritt = a.Lerp(b, abschnitt?.Bis ?? 0);
-                aus.AddRange(PlatzZwischenpunkte(eintritt, austritt));
+                aus.AddRange(ZwischenpunkteAufDemPlatz(platz, eintritt, austritt, nummer));
                 aus.Add(austritt);
                 aus.Add(b);
                 drin = false;
@@ -451,7 +472,7 @@ public partial class Stadtansicht
         }
         if (drin)
         {
-            aus.AddRange(PlatzZwischenpunkte(eintritt, pfad[^1]));
+            aus.AddRange(ZwischenpunkteAufDemPlatz(platz, eintritt, pfad[^1], nummer));
             if (aus.Count == 0 || aus[^1] != pfad[^1]) aus.Add(pfad[^1]);
         }
         return aus;
@@ -538,6 +559,7 @@ public partial class Stadtansicht
     /// </summary>
     private int MarktstelleBelegen(int nummer, long zeitpunkt, MarktplatzAnsicht? platz = null)
     {
+        if (!MarktV2) return BummelBelegen(nummer, zeitpunkt, 0, platz); // Markt v3: erstes Ziel wie jedes weitere (Stadtansicht.Marktbummel.cs)
         // Nur die Stellen des Platzes, zu dem der Einwohner geht (ohne Angabe alle)
         var stellen = Enumerable.Range(0, _marktstellen.Count).Where(k => platz is null || _marktstellen[k].Platz == platz).ToArray();
         var anzahl = stellen.Length;

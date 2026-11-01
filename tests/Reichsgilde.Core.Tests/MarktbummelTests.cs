@@ -60,7 +60,7 @@ static class MarktbummelTests
                 var (richtung, spanne, abstand) = Marktbummel.Kreisbogen(i, 2, 500);
                 if (richtung > 0) plus++;
                 Pruefe.Wahr(spanne >= 100 * MathF.PI / 180 - 1e-4 && spanne <= 250 * MathF.PI / 180 + 1e-4, $"Spanne {spanne}");
-                Pruefe.Wahr(abstand is >= 1.3f and <= 2.7f, $"Abstand {abstand}");
+                Pruefe.Wahr(abstand is >= 1.8f and <= 3.0f, $"Abstand {abstand}");
             }
             var anteil = kreisen / (float)wege;
             Pruefe.Wahr(anteil is > 0.04f and < 0.15f, $"Anteil der Wege mit Kreisen {anteil:0.000}");

@@ -101,6 +101,15 @@ public sealed class Marktflaeche
         return _halb - MathF.Max(MathF.Abs(u), MathF.Abs(v));
     }
 
+    /// <summary>
+    /// So viel (Meter) zählt die Kante des Pflasters weniger als ein Hindernis: Wege dürfen bis auf <c>frei − Kantenzugabe</c> an sie heran (dort münden
+    /// Gassen, aber dahinter stehen oft Häuser), Anfang und Ende an der Kante bleiben möglich.
+    /// </summary>
+    public const float Kantenzugabe = 0.6f;
+
+    /// <summary>Wie frei ein Punkt für einen Weg ist: Abstand zum nächsten Hindernis, nahe der Kante weniger (<see cref="Kantenzugabe"/>).</summary>
+    public float Frei(float x, float z) => MathF.Min(Abstand(x, z), Innen(x, z) + Kantenzugabe);
+
     // ── Raster ──
 
     private void Bereit()
@@ -111,7 +120,7 @@ public sealed class Marktflaeche
             for (var i = 0; i < _n; i++)
             {
                 var (x, z) = Mitte(i, j);
-                _abstand[j * _n + i] = Abstand(x, z);
+                _abstand[j * _n + i] = Frei(x, z);
             }
     }
 
@@ -138,29 +147,34 @@ public sealed class Marktflaeche
     /// </summary>
     public bool Sichtlinie((float X, float Z) a, (float X, float Z) b, float frei)
     {
-        Bereit();
         var (dx, dz) = (b.X - a.X, b.Z - a.Z);
         var laenge = MathF.Sqrt(dx * dx + dz * dz);
-        var schritte = Math.Max(1, (int)MathF.Ceiling(laenge / (Zelle * 0.5f)));
-        var (startFrei, zielFrei) = (Abstand(a.X, a.Z), Abstand(b.X, b.Z));
-        for (var k = 0; k <= schritte; k++)
+        if (laenge < 1e-5f) return true;
+        var (startFrei, zielFrei) = (Frei(a.X, a.Z), Frei(b.X, b.Z));
+        // In Sprüngen so groß wie die Luft über dem Nötigen (der Abstand ändert sich je Meter höchstens um einen Meter, so wird nichts übersprungen),
+        // mindestens 2 cm
+        for (var s = 0f; ; )
         {
-            var t = k / (float)schritte;
+            var t = s / laenge;
             var (x, z) = (a.X + dx * t, a.Z + dz * t);
             if (!Auf(x, z, -0.05f)) return false;
             // Nahe an einem Ende, das selbst dicht am Hindernis liegt (ein Platz vor dem Stand), reicht der Abstand dieses Endes (sonst käme man nie
             // dorthin); näher als das Ende selbst kommt der Weg dem Hindernis nie
             var noetig = frei;
-            if (t * laenge < frei + Zelle) noetig = MathF.Min(noetig, startFrei - 0.05f);
-            if ((1 - t) * laenge < frei + Zelle) noetig = MathF.Min(noetig, zielFrei - 0.05f);
-            if (Abstand(x, z) < noetig) return false;
+            if (s < frei + Zelle) noetig = MathF.Min(noetig, startFrei - 0.05f);
+            if (laenge - s < frei + Zelle) noetig = MathF.Min(noetig, zielFrei - 0.05f);
+            var luft = Frei(x, z) - noetig;
+            if (luft < 0) return false;
+            if (s >= laenge) return true;
+            // die Lockerung an den Enden gilt nur dort: nicht über ihre Grenze hinwegspringen
+            var sprung = MathF.Max(0.02f, MathF.Min(luft, frei - noetig > 0 ? 0.1f : luft));
+            s = MathF.Min(laenge, s + sprung);
         }
-        return true;
     }
 
     /// <summary>
     /// Wie weit (Meter, höchstens <paramref name="hoechstens"/>) man vom Punkt in Richtung (<paramref name="rx"/>, <paramref name="rz"/>, Länge 1) gehen
-    /// kann, bis ein Hindernis näher als <paramref name="frei"/> kommt oder das Pflaster endet (Schritte zu 5 cm, aus dem genauen Abstand).
+    /// kann, bis ein Hindernis näher als <paramref name="frei"/> kommt oder die Kante des Pflasters (mit <see cref="Kantenzugabe"/>) – in Sprüngen aus dem genauen Abstand.
     /// Steht der Punkt schon zu nah, 0.
     /// </summary>
     public float Raum(float x, float z, float rx, float rz, float frei, float hoechstens)
@@ -170,12 +184,20 @@ public sealed class Marktflaeche
         for (var k = 0; k < 64 && weit < hoechstens; k++)
         {
             var (px, pz) = (x + rx * weit, z + rz * weit);
-            var luft = MathF.Min(Abstand(px, pz) - frei, Innen(px, pz) - frei);
+            var luft = Frei(px, pz) - frei;
             if (luft <= 0.005f) return k == 0 ? 0 : weit;
             weit = MathF.Min(hoechstens, weit + MathF.Max(luft, 0.05f));
         }
         return MathF.Min(weit, hoechstens);
     }
+
+    /// <summary>
+    /// Wie weit eine Figur an der Stelle (<paramref name="x"/>, <paramref name="z"/>) der Mittellinie ihres Weges nach links (≤ 0) und rechts (≥ 0) seitlich
+    /// stehen darf, ohne einem Hindernis näher als <paramref name="frei"/> (Körper und Luft) zu kommen, höchstens <paramref name="hoechstens"/> je Seite.
+    /// Die Darstellung begrenzt damit auf dem Platz die ganze seitliche Lage – Spur, Schwanken und Ausweichen.
+    /// </summary>
+    public (float Links, float Rechts) Seitlich(float x, float z, float rx, float rz, float frei, float hoechstens) =>
+        (-Raum(x, z, -rx, -rz, frei, hoechstens), Raum(x, z, rx, rz, frei, hoechstens));
 
     /// <summary>Wie viele Zellen die letzte Suche angefasst hat (zum Prüfen der Kosten).</summary>
     public int Besucht { get; private set; }
@@ -194,7 +216,7 @@ public sealed class Marktflaeche
         if (start < 0 || ziel < 0) return null;
         var zellen = Suche(start, ziel, frei);
         if (zellen is null) return null;
-        var roh = new List<(float X, float Z)> { von };
+        var roh = new List<(float X, float Z)> { von, Mitte(start % _n, start / _n) };
         foreach (var k in zellen) roh.Add(Mitte(k % _n, k / _n));
         roh.Add(nach);
         return Straff(roh, frei);
@@ -205,7 +227,8 @@ public sealed class Marktflaeche
     {
         var (i0, j0) = ZelleBei(p.X, p.Z);
         if (_abstand[j0 * _n + i0] >= frei) return j0 * _n + i0;
-        var (beste, besterAbstand) = (-1, float.MaxValue);
+        // die nächste freie Zelle, zu der man vom Punkt aus gerade hinkommt (nicht hinter Bank oder Stand); ohne eine solche die nächste überhaupt
+        var (beste, besterAbstand, notfalls, notAbstand) = (-1, float.MaxValue, -1, float.MaxValue);
         var ringe = (int)MathF.Ceiling(3f / Zelle);
         for (var r = 1; r <= ringe && beste < 0; r++)
             for (var dj = -r; dj <= r; dj++)
@@ -216,9 +239,10 @@ public sealed class Marktflaeche
                     if (i < 0 || j < 0 || i >= _n || j >= _n || _abstand[j * _n + i] < frei) continue;
                     var (x, z) = Mitte(i, j);
                     var d = (x - p.X) * (x - p.X) + (z - p.Z) * (z - p.Z);
-                    if (d < besterAbstand) (beste, besterAbstand) = (j * _n + i, d);
+                    if (d < notAbstand) (notfalls, notAbstand) = (j * _n + i, d);
+                    if (d < besterAbstand && Sichtlinie(p, (x, z), frei)) (beste, besterAbstand) = (j * _n + i, d);
                 }
-        return beste;
+        return beste >= 0 ? beste : notfalls;
     }
 
     private static readonly (int Di, int Dj, float Kosten)[] Nachbarn =

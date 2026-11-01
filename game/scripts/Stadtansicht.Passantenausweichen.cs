@@ -75,7 +75,7 @@ public partial class Stadtansicht
     private const float NaeheAbstand = 0.5f;
     private readonly HashSet<long> _naheBeruehrt = new(), _ueberschnitten = new(), _ueberschnittenStehend = new();
     private double _naheSekunden, _naheBilder, _naheLaeufer, _ueberBilder, _ueberBilderImBild;
-    private long _naheNeuGesamt, _naheNeuImBild, _naheGegen, _naheGleich, _ueberNeu, _ueberNeuImBild, _ueberStehendNeu, _ueberStehendNeuImBild, _ueberAmRand;
+    private long _naheNeuGesamt, _naheNeuImBild, _naheGegen, _naheGleich, _ueberNeu, _ueberNeuImBild, _ueberStehendNeu, _ueberStehendNeuImBild, _ueberAmRand, _ueberAufPlatz, _ueberStehendAufPlatz;
 
     /// <summary>
     /// Zählt jede neue Berührung zweier laufender Figuren (Abstand auf dem Boden unter 0,5 m; eine Berührung zählt einmal, bis sie sich wieder
@@ -113,6 +113,7 @@ public partial class Stadtansicht
                     {
                         _ueberNeu++;
                         if (imBild) _ueberNeuImBild++;
+                        if (imBild && AufDemPflaster(a.Knoten.Position) && AufDemPflaster(b.Knoten.Position)) _ueberAufPlatz++; // Markt v3: nur auf dem Platz
                         if (Mathf.Min(a.AmRand, b.AmRand) < 2) _ueberAmRand++;
                     }
                 }
@@ -131,6 +132,7 @@ public partial class Stadtansicht
                 stehendJetzt.Add(schluessel);
                 if (_ueberschnittenStehend.Contains(schluessel)) continue;
                 _ueberStehendNeu++;
+                if (ImBild(a.Knoten.Position) && AufDemPflaster(a.Knoten.Position)) _ueberStehendAufPlatz++;
                 if (ImBild(a.Knoten.Position)) _ueberStehendNeuImBild++;
             }
         }
@@ -151,6 +153,7 @@ public partial class Stadtansicht
                  $"({_naheNeuGesamt / minuten:0.0} je Minute; im Bild {_naheNeuImBild}, {_naheNeuImBild / minuten:0.0} je Minute; " +
                  $"davon gegenläufig {_naheGegen}, gleichläufig {_naheGleich}), im Bild laufen im Mittel {_naheLaeufer / Math.Max(_naheBilder, 1):0.0} Figuren; " +
                  $"Überschneidungen Laufende: {_ueberNeu} ({_ueberNeu / minuten:0.0} je Minute; im Bild {_ueberNeuImBild}, {_ueberNeuImBild / minuten:0.0} je Minute; " +
-                 $"Paar-Bilder {_ueberBilder:0}, im Bild {_ueberBilderImBild:0}; davon an Anfang oder Ziel {_ueberAmRand}), mit Stehenden {_ueberStehendNeu} (im Bild {_ueberStehendNeuImBild}, {_ueberStehendNeuImBild / minuten:0.0} je Minute)");
+                 $"Paar-Bilder {_ueberBilder:0}, im Bild {_ueberBilderImBild:0}; davon an Anfang oder Ziel {_ueberAmRand}), mit Stehenden {_ueberStehendNeu} (im Bild {_ueberStehendNeuImBild}, {_ueberStehendNeuImBild / minuten:0.0} je Minute); " +
+                 $"auf dem Pflaster eines Marktplatzes im Bild: Laufende {_ueberAufPlatz} ({_ueberAufPlatz / minuten:0.0} je Minute), mit Stehenden {_ueberStehendAufPlatz} ({_ueberStehendAufPlatz / minuten:0.0} je Minute)");
     }
 }

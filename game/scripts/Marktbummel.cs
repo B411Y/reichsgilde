@@ -87,12 +87,12 @@ public static class Marktbummel
     public static bool Kreist(Art ziel, int nummer, int zaehler, long ankunft) =>
         ziel is Art.Brunnen or Art.Rand or Art.Schauen && Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 37)) < KreisenAnteil;
 
-    /// <summary>In welche Richtung sie um den Brunnen geht (+1 gegen den Uhrzeigersinn in x-z, −1 mit ihm), wie weit (Bogenmaß, 100° bis 250°) und in welchem Abstand (Meter über den Halbmesser des Brunnens).</summary>
+    /// <summary>In welche Richtung sie um den Brunnen geht (+1 gegen den Uhrzeigersinn in x-z, −1 mit ihm), wie weit (Bogenmaß, 100° bis 250°) und in welchem Abstand (Meter über den Halbmesser des Brunnens, 1,8 bis 3 m: außen an denen vorbei, die Wasser holen oder am Rand sitzen). Die Darstellung kürzt den Bogen, damit er vor dem Ziel endet.</summary>
     public static (int Richtung, float Spanne, float Abstand) Kreisbogen(int nummer, int zaehler, long ankunft)
     {
         var richtung = Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 41)) < 0.5f ? 1 : -1;
         var spanne = (100 + 150 * Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 43))) * MathF.PI / 180;
-        var abstand = 1.3f + 1.4f * Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 47));
+        var abstand = 1.8f + 1.2f * Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 47));
         return (richtung, spanne, abstand);
     }
 

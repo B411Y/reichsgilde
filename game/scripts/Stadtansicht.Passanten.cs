@@ -88,6 +88,25 @@ public partial class Stadtansicht
         public int AlteMarktstelle { get; set; } = -1;
         /// <summary>Laterne oder Fackel in der Hand, solange es dunkel ist (Stadtansicht.Nachtlichter.cs); null, bis die Figur das erste Mal im Dunkeln draußen ist.</summary>
         public Traglicht? Licht { get; set; }
+
+        // Markt v3 (Stadtansicht.Marktbummel.cs): von Ziel zu Ziel über den Platz
+        /// <summary>Geht sie gerade auf dem Markt von einer Stelle zur nächsten (ein Weg der Darstellung, nicht des Kerns)?</summary>
+        public bool ImBummel { get; set; }
+        /// <summary>Wann (Spielminute) sie am Markt angekommen ist (−1 = noch nicht), das wievielte Ziel sie hat, bis wann die Pause dauert, seit wann sie an der Stelle steht und seit wann allein in der Gruppe (−1 = nicht allein).</summary>
+        public long BummelAnkunft { get; set; } = -1;
+        public int BummelZaehler { get; set; }
+        public double BummelBis { get; set; }
+        public double AnStelleSeit { get; set; }
+        public double AlleinSeit { get; set; } = -1;
+        /// <summary>Auf welchem Platz sie gerade um den Brunnen geht (−1 = nicht).</summary>
+        public int KreistAuf { get; set; } = -1;
+        /// <summary>Dreht sich nach der Ankunft noch weich zur Blickrichtung ihrer Stelle.</summary>
+        public bool Drehen { get; set; }
+        /// <summary>Wie weit die Figur auf dem Markt seitlich der Mittellinie stehen darf (v3, links ≤ 0, rechts ≥ 0; ±3 = keine Grenze), nur begrenzt geändert.</summary>
+        public float GrenzeLinks { get; set; } = -3;
+        public float GrenzeRechts { get; set; } = 3;
+        /// <summary>Lage im letzten Bild (nur für die Messung).</summary>
+        public Vector3? Messlage { get; set; }
     }
 
     /// <summary>
@@ -127,6 +146,8 @@ public partial class Stadtansicht
         FigurenBildVorbereiten(); // Sichtfeld und Bildrate der Figuren (Stadtansicht.Figuren.cs)
         _figurenBewegt = 0;
         var sekunden = _simulation is { Takt.IstPausiert: false } ? delta : 0; // in der Pause stehen auch die Bewegungen still
+        _bildSekunden = sekunden;
+        _marktUhr += sekunden;
         MarktAktualisieren(minuteGenau, sekunden); // Auslagen und Verkäufer (Stadtansicht.Markt.cs)
         if (_simulation?.Wirtschaft?.Einwohnerschaft is not { IstAktiv: true } einwohnerschaft || !_wohnhaeuserGebaut) return;
         _passantenEbene ??= NeueEbene();
@@ -153,6 +174,8 @@ public partial class Stadtansicht
                 var weiter = MitteDesWegesWennImBild(p, minuteGenau);
                 p.VersatzStart = weiter is null ? Vector3.Zero : p.VersatzJetzt; // Anschluss an den laufenden Weg: der Versatz (samt Ausweichen und Richtung) geht weich in den neuen über
                 (p.Ausweichen, p.Seitlich, p.Seite, p.Rueckstand, p.SeitRate, p.Haltezeit, p.Bremse) = (0, 0, 0, 0, 0, 0, 1);
+                (p.ImBummel, p.BummelAnkunft, p.KreistAuf) = (false, -1, -1);
+                if (weiter is null) (p.GrenzeLinks, p.GrenzeRechts) = (-3f, 3f); // neu von einem Ort aus: keine alte Grenze // ein Weg des Kerns beendet das Bummeln (ein Gang über den Platz geht weiter, siehe Weitergehen)
                 // Wo sie steht, wenn der Weg dort beginnt, wo der alte endete: der Platz ihrer Ankunft (nicht ein neuer aus der Abmarschzeit)
                 (p.VonZeit, p.VonZeitFuer) = p.FuerWeg is { } vorher && vorher.Nach == weg.Von ? ((long?)vorher.Ankunft, weg) : ((long?)null, (Weg?)null);
                 var altPfad = p.Pfad;
@@ -182,6 +205,12 @@ public partial class Stadtansicht
             Aufenthalt? wo = weg is null || minuteGenau >= p.LaufEnde && p.Rueckstand <= 0.01f ? e.Aufenthalt
                            : !losgegangen ? weg.Von
                            : null;
+            // Markt v3: Wer auf dem Markt von Stelle zu Stelle geht, läuft, bis er dort ist (Stadtansicht.Marktbummel.cs)
+            if (p.ImBummel && wo is { Ort: Stadtort.Markt })
+            {
+                if (minuteGenau < p.LaufEnde || p.Rueckstand > 0.01f) wo = null;
+                else p.ImBummel = false;
+            }
             if (wo is { } ort)
                 AmOrtStellen(p, e, ort, weg, minuteGenau, losgegangen);
             else
@@ -203,7 +232,7 @@ public partial class Stadtansicht
             }
 
         AusweichenRechnen((float)sekunden, minuteGenau); // Schicht 4 für das nächste Bild (Stadtansicht.Passantenausweichen.cs)
-        if (NaeheMessen) NaeheZaehlen(sekunden);
+        if (NaeheMessen) { NaeheZaehlen(sekunden); MarktMessen(sekunden); }
         PassantenHervorheben();
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenBilder++;
@@ -216,12 +245,14 @@ public partial class Stadtansicht
             var laufend = _passanten.Values.Where(p => p.Stand is null && p.Knoten.Visible && p.LaufEnde > p.LaufStart)
                                            .Select(p => p.Laenge / ((p.LaufEnde - p.LaufStart) * sekundenJeMinute)).ToList();
             var tempi = laufend.Count == 0 ? "" : $"Gehtempo Ø {laufend.Average():0.0} m/s, höchstens {laufend.Max():0.0} m/s, ";
-            if (NaeheMessen) NaeheMelden(); // Stadtansicht.Passantenausweichen.cs
+            if (NaeheMessen) { NaeheMelden(); MarktMelden(); } // Stadtansicht.Passantenausweichen.cs, Stadtansicht.Marktbummel.cs
             GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
                      $"{_passantenBewegtSumme / (double)_passantenBilder:0} bewegt je Bild, {tempi}" +
                      $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s " +
                      $"({_messUhr.Elapsed.TotalMilliseconds / _passantenBilder:0} ms Bildzeit), " +
-                     $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe");
+                     $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe" +
+                     (MarktV2 ? "" : $", Wege über die Marktfläche {_flaechenWege} in {_flaechenZeit:0.0} ms"));
+            (_flaechenWege, _flaechenZeit) = (0, 0);
             _passantenZeit = 0;
             _passantenBilder = 0;
             _passantenBewegtSumme = 0;
@@ -250,12 +281,22 @@ public partial class Stadtansicht
         {
             // vor dem Losgehen an der alten Stelle, sonst an der eigenen (nach dem Laden ohne Weg erst jetzt belegt)
             var stelle = losgegangen ? p.Marktstelle : p.AlteMarktstelle;
-            if (stelle < 0 && losgegangen) stelle = p.Marktstelle = MarktstelleBelegen(e.Nummer, weg?.Ankunft ?? 0, MarktFuer(e));
-            if (p.Stand == stand && !AufDemRundgang(stelle)) return;
+            var warSichtbar = p.Knoten.Visible;
+            // Markt v3: eine Stelle nur belegen, wer noch nicht zu sehen war (nach dem Laden); wer schon am Platz steht (Markt war voll), geht nach seiner
+            // Pause zu einer frei gewordenen Stelle hin, statt dorthin zu springen
+            if (stelle < 0 && losgegangen && (MarktV2 || !warSichtbar)) stelle = p.Marktstelle = MarktstelleBelegen(e.Nummer, weg?.Ankunft ?? 0, MarktFuer(e));
+            var angekommen = p.Stand != stand;
+            // Markt v3: nach der Pause zum nächsten Ziel (vor dem Losgehen des Kerns nicht – dann steht sie, bis sie den Markt verlässt)
+            if (!MarktV2 && losgegangen && Bummeln(p, e, stelle, angekommen, minuteGenau)) return;
+            // Jedes Bild nur, wer schlendert (v2), sich noch zu seiner Stelle dreht oder (v3, im Bild) redet, sich umschaut oder schöpft
+            if (!angekommen && !AufDemRundgang(stelle) && !p.Drehen
+                && (MarktV2 || stelle < 0 || _marktstellen[stelle].Art is not (Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen) || !ImBild(p.Knoten.Position))) return;
             p.Stand = stand;
             _imDom.Remove(e.Nummer);
             p.Knoten.Visible = true;
-            AmMarktStellen(p, e, ort, stelle, minuteGenau);
+            // v3: Wer im Bild ankommt, dreht sich weich zu seiner Stelle (nur wer vorher nicht zu sehen war, steht gleich richtig)
+            if (angekommen) p.Drehen = !MarktV2 && warSichtbar;
+            AmMarktStellen(p, e, ort, stelle, minuteGenau, angekommen);
             return;
         }
         if (p.Stand == stand) return;
@@ -276,7 +317,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>An die Stelle auf dem Markt (oder, wenn der Markt voll ist, irgendwo zwischen die Stände) – mit Blick und Bewegung der Stelle.</summary>
-    private void AmMarktStellen(Passant p, Einwohner e, Aufenthalt markt, int stelle, double minuteGenau)
+    private void AmMarktStellen(Passant p, Einwohner e, Aufenthalt markt, int stelle, double minuteGenau, bool angekommen = true) // angekommen: erstes Bild an der Stelle
     {
         if (p.Figur is not { } figur) return;
         if (stelle < 0)
@@ -289,8 +330,14 @@ public partial class Stadtansicht
         var (ort, blick) = MarktstelleLage(stelle, minuteGenau);
         // Auf der Bank: die Hüfte auf Sitzhöhe – kleine Völker sitzen höher und lassen die Beine baumeln
         if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(s.Platz?.Hoehe ?? _marktY, s.Ort.Y - (figur.Kniehoehe - 0.02f));
+        else if (!MarktV2) ort = AufFuss(ort); // v3: stehend auf dem Boden wie beim Gehen (kein Höhensprung bei Ankunft und Abgang)
         p.Knoten.Position = ort;
-        p.Knoten.Rotation = new Vector3(0, blick, 0);
+        if (!MarktV2 && s.Art is Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen)
+        {
+            MarktStehen(p, figur, s, blick, minuteGenau); // reden nur zu zweit, sonst umschauen; am Brunnen schöpfen (Stadtansicht.Marktbummel.cs)
+            return;
+        }
+        p.Knoten.Rotation = new Vector3(0, p.Drehen ? WeichDrehen(p, blick) : blick, 0);
         var takt = s.Rundgang >= 0 ? SchlenderTempo * (float)_simulation!.Takt.Tempo / (GehenTempo * figur.Beinfaktor) : 1;
         BewegungSetzen(figur, s.Bewegung, takt);
     }
@@ -368,6 +415,28 @@ public partial class Stadtansicht
                 var spielraum = Mathf.Max(gang.Halb - Passantenspur.Wandabstand, 0);
                 var enden = Mathf.Min(Passantenspur.Rampe(strecke, 1.5f), Passantenspur.Rampe(laenge - strecke, 1.5f));
                 var (links, rechtsRaum) = (Mathf.Min(0, (-spielraum - spurQuer) * enden), Mathf.Max(0, (spielraum - spurQuer) * enden));
+                // Auf dem Pflaster eines Marktplatzes (v3, Stadtansicht.Marktbummel.cs): Die ganze seitliche Lage – Spur, Schwanken, Ausweichen – bleibt so weit von
+                // Ständen, Brunnen, Bänken und Kreuz, dass der Körper frei ist (die Grenzen gemessen von der Mittellinie aus, sie ändern sich höchstens 1,5 m je
+                // Sekunde, damit niemand seitlich springt). Die Enden schrumpfen dort nur auf den letzten 0,6 m (um die Stelle herum ist Raum).
+                if (!MarktV2)
+                {
+                    var flaeche = FlaechenRaum(p, hier, rechts);
+                    var (erlaubtL, erlaubtR) = flaeche ?? (-3f, 3f);
+                    // gerade an einem Ort losgegangen (Spur noch null): gleich die wahre Grenze, sonst höchstens 1,5 m je Sekunde
+                    var schritt = p.GrenzeLinks <= -3f && p.GrenzeRechts >= 3f && strecke < 0.5f ? 10f : 1.5f * (float)_bildSekunden;
+                    (p.GrenzeLinks, p.GrenzeRechts) = (Mathf.Clamp(erlaubtL, p.GrenzeLinks - schritt, p.GrenzeLinks + schritt), Mathf.Clamp(erlaubtR, p.GrenzeRechts - schritt, p.GrenzeRechts + schritt));
+                    if (p.GrenzeLinks < -2.9f && p.GrenzeRechts > 2.9f) { } // nicht auf dem Platz: die Wegbreite gilt
+                    else
+                    {
+                        var begrenzt = Mathf.Clamp(spurQuer, Mathf.Min(p.GrenzeLinks, 0), Mathf.Max(p.GrenzeRechts, 0));
+                        versatz += rechts * (begrenzt - spurQuer);
+                        spurQuer = begrenzt;
+                        var platzEnden = Mathf.Min(Passantenspur.Rampe(strecke, 0.6f), Passantenspur.Rampe(laenge - strecke, 0.6f));
+                        if (flaeche is not null)
+                            (links, rechtsRaum) = (Mathf.Min(0, (p.GrenzeLinks - spurQuer) * platzEnden), Mathf.Max(0, (p.GrenzeRechts - spurQuer) * platzEnden));
+                        else (links, rechtsRaum) = (Mathf.Max(links, Mathf.Min(0, p.GrenzeLinks - spurQuer)), Mathf.Min(rechtsRaum, Mathf.Max(0, p.GrenzeRechts - spurQuer)));
+                    }
+                }
                 var karren = Mathf.Clamp(p.Ausweichen, links, rechtsRaum);
                 (p.RaumLinks, p.RaumRechts) = (links - karren, rechtsRaum - karren);
                 versatz += rechts * Mathf.Clamp(karren + p.Seitlich, links, rechtsRaum);
@@ -380,6 +449,8 @@ public partial class Stadtansicht
                 }
                 if (vorwaerts.LengthSquared() > 1e-6f) drehung = Mathf.Atan2(vorwaerts.X, vorwaerts.Z);
             }
+            // v3: beim Losgehen von einer Stelle auf dem Markt dreht sie sich in die Gehrichtung, statt herumzuspringen
+            if (p.ImBummel && strecke < 1.2f && p.Knoten.Visible) drehung = Mathf.LerpAngle(p.Knoten.Rotation.Y, drehung, (float)Math.Min(1, _bildSekunden * 6));
             p.Knoten.Rotation = new Vector3(0, drehung, 0);
             p.VersatzJetzt = versatz;
             p.RechtsJetzt = rechts;
@@ -392,7 +463,7 @@ public partial class Stadtansicht
         // An der Tür (Schicht 4): Wer drinnen losgeht und dort warten muss, weil gerade jemand aus derselben Tür tritt, bleibt so lange drinnen; wer an
         // der eigenen Tür ankommt und dort aufgehalten wird, ist schon drin – so drängt sich niemand im Türrahmen
         p.WartetDrinnen = false;
-        if (!SpurV1 && p.FuerWeg is { } weg && p.Bremse < 0.3f)
+        if (!SpurV1 && !p.ImBummel && p.FuerWeg is { } weg && p.Bremse < 0.3f)
         {
             if (strecke < 0.3f && p.VersatzStart == Vector3.Zero && !Draussen(weg.Von)) (p.Knoten.Visible, p.WartetDrinnen) = (false, true);
             else if (strecke > laenge - 0.5f && !Draussen(weg.Nach)) (p.Rueckstand, p.LaufEnde) = (0, Math.Min(p.LaufEnde, minuteGenau));
@@ -579,7 +650,7 @@ public partial class Stadtansicht
         if (Draussen(weg.Nach)) pfad.Add(StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft));
         else if (TuerVon(weg.Nach) is { } eingang) pfad.Add(eingang);      // verschwindet erst an der Tür
         if (!SpurV1) pfad = OhneUmkehr(pfad); // nirgends bis zu einem Knoten und auf derselben Linie zurück (Stadtansicht.Passantenwege.cs)
-        return UeberDenPlatz(pfad).ToArray();
+        return UeberDenPlatz(pfad, p.Nummer).ToArray();
     }
 
     /// <summary>
@@ -705,7 +776,8 @@ public partial class Stadtansicht
             var z = versuch == 0 ? zahl : Streuung((int)zahl, 900 + versuch);
             var punkt = RingUmMitte(mitte, 3f, halb - 1.5f, (z & 0xFFFF) / 65535f, ((z >> 16) & 0xFFFF) / 65535f);
             if (versuch == 0) erster = punkt;
-            if (!_marktHindernisse.Any(h => new Vector2(punkt.X - h.Mitte.X, punkt.Z - h.Mitte.Z).Length() < h.Radius + Wegrand)) return punkt;
+            if (platz?.Flaeche is { } f ? f.Abstand(punkt.X, punkt.Z) >= 0.6f // Markt v3: genaue Umrisse der Stände
+                : !_marktHindernisse.Any(h => new Vector2(punkt.X - h.Mitte.X, punkt.Z - h.Mitte.Z).Length() < h.Radius + Wegrand)) return punkt;
         }
         return erster;
     }

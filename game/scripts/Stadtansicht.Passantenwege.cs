@@ -39,6 +39,8 @@ public partial class Stadtansicht
     /// </summary>
     private float StueckHalbbreite(Vector3 a, Vector3 b)
     {
+        // auf dem Pflaster gleich (nicht gemerkt: die Wege über die freie Fläche sind je Person andere Stücke)
+        if (AufDemPflaster(new Vector3((a.X + b.X) / 2, 0, (a.Z + b.Z) / 2))) return PflasterHalb;
         var stand = _wegStrecken.Count * 7919 + _anschlussStrecken.Count;
         if (stand != _stueckBreitenStand) { _stueckBreiten.Clear(); _stueckBreitenStand = stand; }
         var (ka, kb) = ((Mathf.RoundToInt(a.X * 10), Mathf.RoundToInt(a.Z * 10)), (Mathf.RoundToInt(b.X * 10), Mathf.RoundToInt(b.Z * 10)));
@@ -102,6 +104,8 @@ public partial class Stadtansicht
             }
             else pfad = WeitergehenV1(stelle, neu); // keine Verbindung über die Einstiege: wie früher über den nächsten Knoten (nicht geradewegs durch Häuser)
             pfad = OhneUmkehr(pfad);
+            // Markt v3: Was davon auf einem Marktplatz liegt, geht über dessen freie Fläche (nicht über Knoten am Brunnen oder durch Stände)
+            if (!MarktV2) pfad = UeberDenPlatz(pfad, p.Nummer);
         }
         p.Pfad = pfad.ToArray();
         p.Laenge = Gassennetz.Laenge(p.Pfad);

@@ -125,7 +125,36 @@ static class MarktflaecheTests
             var richtung = f.Raum(4, 0, -1, 0, 0.32f, 3f);                           // zum Brunnen (Rand bei 1,98)
             Pruefe.Ungefaehr(4 - 1.98 - 0.32, richtung, 0.06);
             Pruefe.Wahr(f.Raum(2.2f, 0, -1, 0, 0.32f, 1.5f) == 0, "schon zu nah: kein Raum");
-            Pruefe.Ungefaehr(0.68, f.Raum(5, 11, 0, 1, 0.32f, 1.5f), 0.06);           // zur Kante des Pflasters
+            Pruefe.Ungefaehr(1 + Marktflaeche.Kantenzugabe - 0.32, f.Raum(5, 11, 0, 1, 0.32f, 1.5f), 0.06); // zur Kante des Pflasters (mit Zugabe)
+        }),
+        ("Marktfläche: mit Spur, Schwanken und gerundeten Ecken bleibt jeder Körper aus Ständen und Brunnen (seitliche Lage begrenzt wie in der Darstellung)", () =>
+        {
+            var f = Testplatz();
+            const float radius = 0.32f; // der breiteste Körper (Oger)
+            var wege = new[] { ((-11.5f, 0f), (11.5f, 0.5f)), ((-11f, -11f), (0.15f, -7.55f)), ((11f, -11.5f), (-9f, 3.5f)), ((6f, 11f), (-4f, -6.6f)) };
+            var (geprueft, schlechteste) = (0, float.MaxValue);
+            foreach (var (von, nach) in wege)
+                for (var nummer = 0; nummer < 30; nummer++)
+                {
+                    var weg = f.Gefaechert(von, nach, Frei, (nummer % 7 - 3) / 3f) ?? throw new Exception($"kein Weg {von} → {nach}");
+                    var linie = new Passantenspur.Polylinie(weg, Enumerable.Repeat(1.0f, weg.Count - 1).ToArray()); // Pflaster: halbe Breite 1 m wie in der Darstellung
+                    for (var strecke = 0f; strecke <= linie.Laenge; strecke += 0.05f)
+                    {
+                        var gang = Passantenspur.Gehen(linie, nummer, linie.Laenge, strecke, (0, 0), false);
+                        var (cx, cz) = (gang.Ort.X - gang.Versatz.X, gang.Ort.Z - gang.Versatz.Z);
+                        var quer = gang.Versatz.X * gang.Rechts.X + gang.Versatz.Z * gang.Rechts.Z;
+                        var (links, rechts) = f.Seitlich(cx, cz, gang.Rechts.X, gang.Rechts.Z, radius + 0.1f, 2.5f);
+                        quer = Math.Clamp(quer, MathF.Min(links, 0), MathF.Max(rechts, 0));
+                        var (x, z) = (cx + gang.Rechts.X * quer, cz + gang.Rechts.Z * quer);
+                        // ein Ende, das selbst näher dran ist (Kundenplatz), darf so nah sein wie es selbst
+                        var noetig = MathF.Min(radius, f.Abstand(cx, cz) - 0.01f);
+                        var abstand = f.Abstand(x, z);
+                        schlechteste = MathF.Min(schlechteste, abstand - noetig);
+                        Pruefe.Wahr(abstand >= noetig - 0.02f, $"Nummer {nummer}, {von} → {nach}, {strecke:0.00} m: Körper {abstand - radius:0.00} m im Hindernis");
+                        geprueft++;
+                    }
+                }
+            Pruefe.Wahr(geprueft > 5000, $"nur {geprueft} Lagen geprüft");
         }),
         ("Marktfläche: Kosten – eine Suche fasst höchstens einen Teil des Rasters an", () =>
         {
