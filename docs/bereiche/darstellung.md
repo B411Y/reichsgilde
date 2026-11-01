@@ -187,6 +187,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Regen 4) Tropfenflecken an Wänden sieht man nur bis etwa Zoom 30, die Rinnsale werden ab Zoom ≈ 50 schwächer und sind bei ≈ 125 weg; der Startblick in Köln (Zoom 130) zeigt an Wänden nur die fleckige Nässe.
 - Fels-Material: Moos „im Schatten“ ist geschätzt (Nordseite, Höhlungen, Klüfte, unter Absätzen); der echte Schatten der Sonne ist im Fragment-Shader nicht bekannt.
 
+- (F7) Die Kulissenberge sind mit der Spielkamera nicht zu sehen: Sie ist orthografisch und 40° geneigt, der obere Bildrand zeigt beim größten Zoom (140) nur etwa 110 m über den Blickpunkt hinaus, und der Blickpunkt bleibt im Spielfeld. Ein Berg im Abstand d hinter dem Blickpunkt mit Höhe h erscheint im Bild bei d · sin 40° + h · cos 40°, das ist für den Ring (375–575 m hinter dem Spielfeld) immer weit über dem Bildrand. Zu sehen ist die Kulisse mit der freien Kamera (`--freiekamera=1`) und künftigen Kamerafahrten. Empfehlung: so lassen und die Kulisse für Kamerafahrten, Ladebilder und die freie Kamera nutzen; wer sie im Spiel sehen will, bräuchte eine flachere Kamera am Rand (eigene Designfrage).
+- (F5) Leistung Hoch mit der freien Kamera nah am Hang (80 Stücke bildfüllend): etwa +2,3 ms; Ziel 0,4–0,8 ms. Die Grafikkarte war bei der Messung von anderen Läufen belegt (Grundlast 37–62 ms). Wenn sich das bestätigt: Schatten nur Stufe 0 statt 0 und 1, oder dreiseitig erst ab Hoch.
+- Fels-Struktur: `fels_struktur.png` bleibt der prozedurale Platzhalter (Python) als feine Körnung; die Form der F1-Stücke kommt aus ihren Atlanten. Eine in Blender gebackene Körnung mit denselben Kanälen wäre ein späterer Feinschliff.
+- Kartenwerkstatt: Ein gewähltes Felsstück zeigt in der Tafel „Eigenschaften“ nur „Hinfahren“ und „Löschen“; eine kleine Tafel mit Form, Gestein, Größe, Drehung (wie bei Pflanzen) wäre Sache der Oberfläche.
+
 ## Entscheidungen
 
 ### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #…)
@@ -205,3 +210,33 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Testszene | `--felstest=1` (`Felstest.cs`): Hang mit den vier Arten und einem Steinbruch, freie Kamera ab Start, N Tageszeit, G Grafikstufe, Messzyklus `--felsmessung=1` | 01.11.2026 |
 | Leistung | T400, Vulkan, 1600 × 900, Testszene mit Schatten und SSAO, `--felsmessung=1` (GPU-Zeit je Bild, Mittel aus 12 s), Stand 693810c8: Übersicht (173 Stücke) Hoch 8,42 / Niedrig 7,87 / gleiche Felsen mit `StandardMaterial3D` 7,62 / ohne Felsen 6,92 ms; mit 300 Brocken mehr Hoch 9,09 / Niedrig 9,25 / ohne 8,22 ms (einfach verrauscht); Steinbruch bildfüllend Hoch 10,46 / Niedrig 9,98 / einfach 8,00 / ohne 7,43 ms. Nach der Umstellung von Niedrig auf eine Richtung (96ab4d9f): Steinbruch Hoch 10,24 / Niedrig 10,04 / einfach 7,91 / ohne 7,35 ms. Der Fels-Shader kostet also bildfüllend etwa 2,5 ms (Hoch) bzw. 2,0 ms (Niedrig) mehr als ein einfaches Material, in der Übersicht unter 1 ms; die Messungen liefen neben anderen Klicktests und Blender, Ausreißer sind verworfen | 01.11.2026 |
 | Außerhalb des Bereichs | `game/scripts/Hauptmenue.cs` (oberflaeche): zwei Zeilen, damit `--felstest=1` die Testszene statt des Spiels öffnet (wie `--wassertest`) | 01.11.2026 |
+
+### Felsen im Spiel (Felspinsel F5, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Darstellung | `Stadtansicht.Felsen.cs`, im Spiel und in der Werkstatt gleich: Zellen zu 64 m, je Zelle, Form und Gesteinsart ein MultiMesh; eine Änderung baut nur ihre Zelle neu | 01.11.2026 |
+| Feinheit | `<Form>_0/1/2` je Zelle nach dem Zoom der Spielkamera (fein bis 45, mittel bis 100, darüber grob; 8 % Spielraum), bei der freien Kamera nach dem Abstand zur Zelle | 01.11.2026 |
+| Schatten | nur Stufe 0 und 1 („nah“: bis Zoom 100); weit herausgezoomt keine | 01.11.2026 |
+| Grafikstufe | dreiseitig ab Boden „Mittel“, eine Richtung auf „Niedrig“ (Einstellung Boden, wie die Material-Bibliothek) | 01.11.2026 |
+| Atlanten | Normale des F1-Atlas als Grundform, die Struktur nur noch Körnung (Relief × 0,6); Höhlung ab Mittel aus dem Bild (`HOEHLUNG_BILD`), auf Niedrig aus den Vertexfarben. Import: VRAM, `felsen_normal` als Normal Map (RGTC, z im Shader), `felsen_hoehlung` BPTC, beide ohne sRGB | 01.11.2026 |
+| Bewuchs | Verdeckung und Rinnen tragen Moos, Kanten Flechten und helle Abnutzung; Moossaum am Boden aus der Einsinktiefe (`INSTANCE_CUSTOM.x`); Hangseite (Vertex A) dunkler und bemooster; Moos glättet zur Atlas-Normale | 01.11.2026 |
+| Wetter | `wetter_flaeche` wie die Modelle (Nässe, Rinnsale, Tropfen nur dreiseitig, Schnee), dazu nass bis 22 % dunkler | 01.11.2026 |
+| Platzhalter-Material | das Material „Fels“ der glb wird beim ersten Laden entfernt, damit die Material-Bibliothek das Netz samt Schattennetz unverändert lässt | 01.11.2026 |
+| Werkstatt | Wählen (Strahl gegen den Kasten des Netzes bis zum Boden, sonst die Grundfläche), Ziehen, Q/E, Entf; Ebene „Baum- und Naturzonen“; die vorläufige Anzeige aus F4 ist ersetzt | 01.11.2026 |
+| Gestein | `formen` in `gestein.json` mit den Kennungen der Karte, ein Test prüft sie | 01.11.2026 |
+| Leistung | `--felsvergleich=1`, T400, Vulkan, 1600 × 900, Köln mit 300 Stücken in 35 Zellen, Branch-Stand cc3bc91a (Grundlage phase5/felskarte; main cd994168), GPU-Median aus drei Runden, Grafikkarte von anderen Läufen mitbelegt: Spielkamera an der Nordostecke (Zoom 100) Hoch +1,0 ms (Grundlast 62 ms, im Rauschen), Niedrig ±0; freie Kamera nah am Hang Hoch +2,3 ms, Niedrig +0,05 ms | 01.11.2026 |
+| Außerhalb des Bereichs | Kern: `Kartenentwurf.FelsVerschieben`, `FelsDrehen` (je ein Schritt, beenden einen laufenden Strich) mit Test `FelsenWaehlenTests.cs`; `game/daten/gestein.json` (Formen); `Kartenwerkstatt.Eigenschaften.cs` (oberflaeche): eine Zeile, damit „Löschen“ Felsstücke nimmt | 01.11.2026 |
+| Prüfung | zwei unabhängige Prüfer, kein hoher Befund; behoben: Treffer nur vor dem Boden, Stufe des Materials beim Anlegen, Ring nur bei neuem Radius, Q/E beim Ziehen gesperrt, Messung ohne Felsen beendet sich, Test geschärft, Fuß der Kulisse nachts wie der Ring, Glanz im Dunst aus, Moos zur Atlas-Normale, Protokoll und Doku | 01.11.2026 |
+
+### Kulissenberge (Felspinsel F7, PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einbau | `Stadtansicht.Kulisse.cs`: `berge.json` nennt Karte und Modell; passt die Kennung, steht `kulisse_koeln.glb` im Ursprung der Karte (genordet), ohne Kollision, ohne Schatten (werfen und empfangen), nur im Spiel | 01.11.2026 |
+| Niedrig | nur `Staffel_Nah` (Einstellung Boden „Niedrig“) | 01.11.2026 |
+| Dunst | `kulisse.gdshader`: Luftperspektive als Emission in der Farbe des Dunstrings (so ist voller Dunst genau die Ringfarbe), nach Tiefe im Ring (B), Höhe (A) und Silhouette; der Fuß taucht ganz hinein; mehr bei Nebel, Regen, Landnebel; nachts weniger Dunst und dunkler; `fog_disabled` (Godots Nebel machte die Berge heller als den Ring) | 01.11.2026 |
+| Jahreszeit | Wald und Wiese nach `jahreszeit_anteile`, Schnee auf den Höhen nach `wetter_schnee`; Fels (G) als helle Bänder, schwach | 01.11.2026 |
+| Namen | Schild an der Maus wie in den Räumen: Gipfel (36 px) vor Gebieten (110 px), Name, Gebiet, Höhe über dem Meer | 01.11.2026 |
+| Leistung | im Rauschen der Messung (siehe F5); ein Zeichenaufruf je Staffel | 01.11.2026 |
+
