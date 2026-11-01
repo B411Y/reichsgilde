@@ -20,10 +20,10 @@ static class MarktplaetzeTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
     /// <summary>
-    /// Köln (31.10.2026): Rheingasse und die Deutzer Straßen führen durch die Mitten der Plätze und brauchen keine Linie; Kunibertswall und
-    /// Kartäuserwall berühren Alter Markt und Heumarkt an ihrem Ende an der Rheingasse (die Linie fällt mit der Rheingasse zusammen).
+    /// Köln (seit 1.11.2026): Rheingasse, Malzbüchel und die Deutzer Straßen führen durch die Mitten der Plätze oder enden dort und brauchen keine
+    /// Linie (bis dahin 2: Kunibertswall und Kartäuserwall berührten Alter Markt und Heumarkt an ihrem Ende an der Rheingasse).
     /// </summary>
-    const int MarktlinienKoeln = 2;
+    const int MarktlinienKoeln = 0;
 
     /// <summary>
     /// Kleine Karte: Weststraße endet am Westrand eines Marktplatzes (24 × 24 um 0 | 0), die Oststraße beginnt auf dem Platz (12 | 4) und führt
@@ -148,7 +148,7 @@ static class MarktplaetzeTests
                 Pruefe.Gleich(vorher[b.Name], (w2.MarktplatzVon(b)!.Name, w2.Fahrzeit(b, "Handkarren", true), w2.Fahrzeit(b, "Ochsenkarren", false)), b.Name);
         }),
 
-        ("Köln: zwei Plätze an den Enden der Mauer, einer in Deutz; jede Startwerkstatt fährt zu ihrem Platz – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
+        ("Köln: zwei Plätze an den Enden der Mauer (eine Hausreihe vor dem Tor), einer in Deutz; jede Startwerkstatt fährt zu ihrem Platz – Werkstattwege 20–24 m (Halteplatz bis Halt), für alle Häuser fast gleich", () =>
         {
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
             // Lage nach der Kennung (Entscheidung des Nutzers 31.10.2026): Süden hinter dem Bayentor, Norden hinter dem Kunibertstor (beide innen am
@@ -159,6 +159,17 @@ static class MarktplaetzeTests
             var (sued, nord, deutz) = (karte.Marktplaetze[0].Punkt, karte.Marktplaetze[1].Punkt, karte.Marktplaetze[2].Punkt);
             Pruefe.Wahr(sued[1] > 100 && nord[1] < -100 && Math.Abs(sued[0] - 37) < 1 && Math.Abs(nord[0] - 37) < 1, $"Süden {sued[0]} | {sued[1]}, Norden {nord[0]} | {nord[1]}");
             Pruefe.Wahr(deutz[0] > 130 && Math.Abs(deutz[1]) < 40, $"Deutz {deutz[0]} | {deutz[1]}");
+            // Zwischen Mauer und Platz eine Hausreihe (Wunsch des Nutzers 1.11.2026; bis dahin stieß der Platz an Wallstraße und Tor): Der äußere
+            // Rand des Platzes (24 × 24 m) liegt mindestens 25 m vor dem Tor (z = ±150), und zu beiden Seiten der Rheingasse steht dazwischen ein
+            // Einwohnerplatz
+            foreach (var (platz, richtung) in new[] { (sued, 1), (nord, -1) })
+            {
+                var rand = richtung * platz[1] + 12;
+                Pruefe.Wahr(150 - rand >= 25, $"Platz bei z = {platz[1]}: {150 - rand:0.#} m vom Tor");
+                foreach (var seite in new[] { -1, 1 })
+                    Pruefe.Wahr(karte.GebaeudeDerArt(Bausteinart.Einwohnerplatz).Any(g => Math.Sign(g.Punkt[0] - platz[0]) == seite
+                        && richtung * g.Punkt[1] is var t && t > rand && t < 150), $"Platz bei z = {platz[1]}: kein Haus zwischen Platz und Mauer auf der Seite {seite}");
+            }
             Pruefe.Gleich(MarktlinienKoeln, Karrennetz.Marktlinien(karte).Count);
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie(Rivalen: 7), karte: karte);
@@ -232,6 +243,11 @@ static class MarktplaetzeTests
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("koeln")))!;
             var gebaeude = json["gebaeude"]!.AsArray();
             foreach (var g in gebaeude.Where(g => (string?)g!["kennung"] is "MarktNord" or "MarktDeutz").ToList()) gebaeude.Remove(g); // bleibt der Heumarkt
+            // Eine Straße, die den Platz nur berührt: Der Malzbüchel endet hier am Westrand des Heumarkts statt in seiner Mitte (in der Karte führen
+            // seit 1.11.2026 alle Straßen durch die Mitten der Plätze, dann braucht es keine Linie über das Pflaster)
+            var malzbuechel = json["wege"]!.AsArray().Single(w => (string?)w!["name"] == "Malzbüchel")!["linie"]!.AsArray();
+            var heumarkt = gebaeude.Single(g => (string?)g!["kennung"] == "MarktSued")!["punkt"]!.AsArray();
+            malzbuechel[^1] = new System.Text.Json.Nodes.JsonArray((double)heumarkt[0]! - 12, (double)heumarkt[1]!);
             var karte = Stadtkarte.AusJson(json.ToJsonString(), Katalog.Value);
             Pruefe.Gleich(1, karte.Marktplaetze.Count);
             var ohneLinien = Karrennetz.Von(karte, marktlinien: false).Groesse;

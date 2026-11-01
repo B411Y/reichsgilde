@@ -98,11 +98,11 @@ static class BauenTests
             Pruefe.Gleich(2, k.Format);
             Pruefe.Gleich("koeln", k.Kennung);
             Pruefe.Gleich(2.0, k.Raster);
-            Pruefe.Gleich(32, k.Wege.Count); // Stadtskript Köln (PR #213): 14 Haupt-, 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
+            Pruefe.Gleich(33, k.Wege.Count); // Stadtskript Köln (PR #213): 15 Haupt- (seit 1.11.2026 mit dem Malzbüchel), 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(51, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51
-            Pruefe.Gleich(12, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist jetzt Bauland: 11 → 12
+            Pruefe.Gleich(52, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52
+            Pruefe.Gleich(11, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
