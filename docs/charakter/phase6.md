@@ -1399,3 +1399,76 @@ Budget +1,0 ms gegen Halt B eingehalten; Grafikspeicher gleich (dasselbe Netz, k
 4. Gleichheit glb6d mit neuem Code: Gewichteausdruck wie 1. gegen den Stand vor E1 vergleichen (bitgleich).
 5. Messung: `--varianten=haltb:~/werkzeuge/charakter/glb6:0:0:0:0,hd:~/werkzeuge/charakter/glb6d:1:0:1:1,
    he:~/werkzeuge/charakter/glb6e:1:0:1:1 --stufe=hoch --wiederholungen=5 --messen` bei freier T400.
+
+## Grundkopf E2/E3: zwei Grundgesichter (Probekopf glb6f)
+
+Anlass (Nutzer 01.11.2026): erst zwei gute Grundköpfe (Mann, Frau, Mensch, 35 Jahre), Gene und Vielfalt erst danach. E2 =
+Lider und Augen am Grundkopf (drei Lidformen zum Zeigen, nicht in den Genen), E3 = Grundkopf neu formen (Nase, Mund,
+Kinn, Kiefer, Seitenansicht, Fratzen-Stirn, klare Geschlechtsunterschiede). Probekopf `~/werkzeuge/charakter/glb6f`
+(Probebau `glb6p_f` = glb6p_d2 + `vorbild_grund_m/w`), Rezept `tools/charakter/kopf6_rezept_grundkopf.json`, Regeln aus
+glb6d mit `kopf6_verschieden.py --e3=1`. glb6d und glb6e bleiben unverändert (glb6e = Vergleich „vorher“, Stand 5d1d510d).
+
+### Was gebaut ist
+
+- **Weg 1 (verworfen): absolute FaceBuilder-Form.** Mann `h_m35_hell` neu mit FaceBuilder (4 Fotos, RMS 3,2 mm), unser
+  Netz mit `fb_auf_gitter.py grund --fb=<Person> --bereich=kopf` absolut auf die Person eingepasst, daraus
+  `tools/charakter/grundkopf_fb.py` die Form `vorbild_grund_<g>`: nur Gesicht (Stirn weich bis g + 80 mm, Schädel bleibt –
+  die FB-Köpfe raten ihn unter dem Haar, Mann 176 mm lang statt ≈ 190), symmetrisch, Lid bis 6 mm am Augapfel (höchstens
+  2 mm vor), Augenpartie und Nasenbereich (20 mm) harmonisch, verdeckte Ecken per Strahltest, seitlicher Versatz in der
+  Nase zur Mitte gedämpft. Zwei Fehler auf dem Weg: Augapfel stach über dem Lid durch (Runde 0), Nasenflügelfurche der Frau
+  klappte um (schwarze Bögen). Im Panel machte die Form beide Köpfe schlechter („teigig, verquollen, Doppelkinn“) – im
+  Endrezept mit Gewicht 0.
+- **Weg 2: gezielte Reifeformen** (MakeHuman-Probeformen in `alter_reife_<g>_oben/unten`, `alter_mitte_w`) nach den
+  Prüferbefunden. Frau: Nase kürzer (vert −0,2 statt +0,39), schmaler (horiz −0,8), Volumen −0,4, Flügel nicht gebläht,
+  Spitze schmaler (0,1 statt 0,6), Löcher schmaler; Augenhöhle 0,5, Unterlid 0,5, Tränenrinne aus; Wangen voller (+0,55),
+  Jochbein −0,5 statt −1,0, Kieferkante aus, Kiefer schmaler; Lippen voller; Braue höher; Schläfe +0,3. Mann (Stand Runde 2):
+  Braue höher (0,4 statt 0,8), Lider leichter, Augenhöhle 0,7, Kinn +0,75, Lippen voller, Mund 0,2 zurück.
+- **Fratzen-Stirn** (`braue6.gdshader` `stand_unten_max`, `rand_aus_kante`; `kopf6_verschieden.py --e3=1`): Bildverschiebung
+  der Braue nach unten weich auf 2 mm (tanh), Hautform nach unten 1,0 × natürliche Streuung (statt 1,3 ×), Ausblenden am
+  Umriss bis Kante 0,55 (E1: 0,38). Ohne `--e3` bitgleich wie E1 (Vergleich der ganzen Regeldatei).
+- **E2 Lidformen** als Formen im Kopf (nicht in den Genen): `lid_mandel` (Außenwinkel hoch, außen verjüngt), `lid_rund`
+  (Lidspalte weiter, Deckfalte höher), `lid_schlupf` (Deckfalte tiefer und vor, außen schwerer). `charakter_kopf.gd` blendet
+  Formen `lid_*` beim Lidschluss wie die Lidfalte aus – sonst schloss das runde Lid nicht.
+
+### Prüfung
+
+Panel je Runde: drei frische blinde Prüfer, je Kopf A/B (vorher glb6e / neu glb6f, gemischt), vorn, schräg, Profil bei
+Tageslicht (`vorlage`) und Spiellicht. Note „natürlich gegen Puppe“ 1–10, Fratze, Seitenansicht, Geschlecht. Schlüssel
+`~/werkzeuge/charakter/bilder/phase6/GK/schluessel_r<n>.json` (SHA-256 r1 `7d186e3f…88282a`, r2 `0849d541…aa9173`, r3
+`6a775565…373e33`).
+
+| Runde | Mann vorher → neu | Frau vorher → neu | Fratzen „neu“ |
+|---|---|---|---|
+| 1 (FB-Form voll) | 6,0 → 5,0 | 5,0 → 4,0 | Frau 2× „grenzwertig bis deutlich“ (Lider, Schnauze) |
+| 2 (Reife-Korrekturen) | 6,0 → 6,0 | 4,7 → 5,3 | keine deutliche; Frau Nase grenzwertig |
+| 3 (Frau Nase/Wangen, Mann Lider) | 6,2 → 5,7 | 4,2 → 5,2 | keine deutliche; Frau Nase grenzwertig |
+
+- **Ziel ≥ 7 nicht erreicht.** Endstand = Mann aus Runde 2, Frau aus Runde 3 (diese Kombination ohne eigenes Panel).
+- Seitenansicht neu: Mann 3 × „ja / eher ja“; Frau gemischt (Nase, kleines Kinn). Geschlecht: Mann immer eindeutig, Frau
+  in Runde 3 dreimal „Frau“, zweimal „vor allem durch das Haar“.
+- Was bleibt: Frau Nasenbasis breit, Nasenlöcher von vorn, kleines Kinn; beide schwere Lider, leerer Blick, schmale
+  Lippen; außerhalb der Form Brauen „aufgemalt“, Bartschatten mit harter Kante, glatte Haut.
+
+### Offen nach E2/E3
+
+- Mit den MakeHuman-Formen pendelt das Panel bei 5–6. Nächster Hebel: eigene Formen direkt am Netz (wie
+  `kopf6_eigen.py`) für Nase und Kinn der Frau, und Lider/Augen mit mehr Dicke (Lidkante, Karunkel) – das nennen alle
+  Prüfer.
+- FaceBuilder nicht als Grundform; höchstens als Maßstab einzelner Maße.
+- Lidformen erst dem Nutzer zeigen, dann entscheiden, ob sie Gene werden.
+
+### Testanleitung E2/E3
+
+1. FB-Kopf Mann: `~/werkzeuge/charakter/facebuilder/fb_lauf.sh kopf h_m35_hell`; absolute Einpassung je Geschlecht:
+   `$BPY fb_auf_gitter.py grund --fb=arbeit/<id>/fb_kopf.npz --geschlecht=<g> --merkpunkte=daten/merkpunkte_fb_grund.json
+   --bereich=kopf --glb=~/werkzeuge/charakter/glb6p_d2/kopf6p.glb --rezept_s4=<lauf4/rezept_s4_d.json> --aus=<abs_g>`.
+2. Form: `$BPY tools/charakter/grundkopf_fb.py --abbildung=<abs_g/abbildung_g.npz> --geschlecht=<g> --glb=<wie 1.>
+   --rezept_s4=<wie 1.> --aus=~/werkzeuge/charakter/arbeit/grundkopf`.
+3. Probebau: `GLB_PROBE=~/werkzeuge/charakter/glb6p_f PROBEN_OPT="ausschnitt=30 eigen=2 brauen_d=1
+   vorbilder=<vorbild_grund_m.npz>,<vorbild_grund_w.npz>" tools/charakter/kopf6.sh proben`.
+4. Mischen: `GLB=~/werkzeuge/charakter/glb6f GLB_PROBE=~/werkzeuge/charakter/glb6p_f
+   REZEPT=tools/charakter/kopf6_rezept_grundkopf.json tools/charakter/kopf6.sh mischen`; Regeln
+   `python3 tools/charakter/kopf6_verschieden.py --ein=~/werkzeuge/charakter/glb6d/regeln6.json
+   --aus=~/werkzeuge/charakter/glb6f/regeln6.json --e3=1`; `kopf6_tex` auf glb6d verknüpfen; Haar `GLB=…/glb6f
+   GLB5=~/werkzeuge/charakter/glb6 tools/charakter/kopf6.sh nur_haar`.
+5. Bogen: Zelle mit `"kopf": "~/werkzeuge/charakter/glb6f/kopf6.glb"`, Lidform über `"formen": {"lid_rund": 1.0}`.
