@@ -22,8 +22,9 @@ static class MarktplaetzeTests
     /// <summary>
     /// Köln (seit 1.11.2026): Rheingasse, Malzbüchel und die Deutzer Straßen führen durch die Mitten der Plätze oder enden dort und brauchen keine
     /// Linie (bis dahin 2: Kunibertswall und Kartäuserwall berührten Alter Markt und Heumarkt an ihrem Ende an der Rheingasse).
+    /// Seit dem 1.11.2026 beginnt Unter Fettenhennen (zu den Werkstatt-Bauplätzen am Alter Markt) auf der Rheingasse im Platz: 1.
     /// </summary>
-    const int MarktlinienKoeln = 0;
+    const int MarktlinienKoeln = 1;
 
     /// <summary>
     /// Kleine Karte: Weststraße endet am Westrand eines Marktplatzes (24 × 24 um 0 | 0), die Oststraße beginnt auf dem Platz (12 | 4) und führt
