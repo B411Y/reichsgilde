@@ -166,6 +166,20 @@ public sealed partial class Kartenentwurf
         Geschichte.Ausfuehren(befehle.Count == 1 ? befehle[0] : new Sammelbefehl($"{befehle.Count} Felsstücke gelöscht", befehle));
     }
 
+    /// <summary>Verschiebt ein Felsstück (Werkstatt: wählen und ziehen, F5); ein Schritt, gerundet wie in der Datei. Ein laufender Strich endet vorher.</summary>
+    public void FelsVerschieben(EntwurfFels f, double x, double z)
+    {
+        FelsStrichBeenden();
+        Aendern(f, "verschoben", n => (n.X, n.Z) = (Kartenraster.Punkt(x), Kartenraster.Punkt(z)));
+    }
+
+    /// <summary>Dreht ein Felsstück um die Senkrechte (Werkstatt: Q/E, F5); ein Schritt, 0 … 360° gerundet wie in der Datei.</summary>
+    public void FelsDrehen(EntwurfFels f, double drehung)
+    {
+        FelsStrichBeenden();
+        Aendern(f, "gedreht", n => n.Drehung = Kartenraster.Drehung(drehung));
+    }
+
     // ── Stempel ──────────────────────────────────────────────────────────────
 
     /// <summary>
