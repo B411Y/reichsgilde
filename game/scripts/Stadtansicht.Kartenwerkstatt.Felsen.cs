@@ -106,6 +106,11 @@ public partial class Stadtansicht
     private void FelsStrichWeiter(Vector2 maus)
     {
         if (!_wsFelsStrich || BodenpunktBei(maus) is not { } boden) return;
+        if (_entwurf is not { FelsStrichLaeuft: true }) // Strg+Z bei gedrückter Maus hat den Strich beendet
+        {
+            _wsFelsStrich = false;
+            return;
+        }
         FelsStrichPunkt(boden);
     }
 
