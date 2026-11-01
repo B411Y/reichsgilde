@@ -145,7 +145,7 @@ public partial class Stadtansicht
             var ab = 0;
             if (!weg.Bester)
                 while (ab + 1 < weg.Punkte.Count && ab + 1 < bester.Punkte.Count && weg.Punkte[ab + 1].Abstand(bester.Punkte[ab + 1]) < 0.05) ab++;
-            var band = FahrwegBand(karte, weg, minuten, ab, weg.Bester ? 0.62f : 0.3f);
+            var band = FahrwegBand(karte, weg, minuten, ab, weg.Bester ? 0.72f : 0.35f);
             if (band is not null)
             {
                 band.MaterialOverride = _fahrwegStoffe[weg.Bester ? 0 : 1] ??= FahrwegStoff(weg.Bester ? 0 : 1);
