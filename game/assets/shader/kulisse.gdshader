@@ -23,6 +23,9 @@ uniform vec4 fels_farbe : source_color = vec4(0.66, 0.63, 0.57, 1.0);
 uniform vec4 schnee_farbe : source_color = vec4(0.86, 0.88, 0.91, 1.0);
 uniform float dunst_nah = 0.25;   // Dunst an der Außenkante
 uniform float dunst_fern = 0.8; // Dunst 300 m dahinter
+// Stufe Niedrig zeigt nur die nahe Staffel (F8): Ohne die Staffeln dahinter stünde ihr Kamm hart vor dem Ring – darum dort mehr Dunst nach oben
+// und eine breitere, weichere Silhouette.
+uniform float allein = 0.0;
 
 varying vec4 v_farbe;
 varying vec3 v_welt;
@@ -60,12 +63,18 @@ void fragment() {
 
 	// Luftperspektive
 	float d = mix(dunst_nah, dunst_fern, tiefe) + 0.12 * smoothstep(0.2, 1.0, hoehe);
-	d += pow(1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0), 3.0) * 0.35;   // Silhouette weich
+	float seitlich = 1.0 - clamp(abs(dot(NORMAL, VIEW)), 0.0, 1.0);
+	d += mix(pow(seitlich, 3.0) * 0.35, pow(seitlich, 1.6) * 0.6, allein);  // Silhouette weich (allein: breiter)
+	d += allein * 0.3 * smoothstep(0.15, 0.7, hoehe);                       // allein: die Kämme tiefer im Dunst
 	d = mix(d, 1.0, dunst * 0.75);
 	d = clamp(d, 0.0, 1.0) * (1.0 - 0.6 * nacht);
 	d = max(d, 1.0 - smoothstep(0.0, 0.1, hoehe));                         // Fuß im Dunst (unter 25 m), auch nachts genau wie der Ring
 	ALBEDO = grund * (1.0 - d) * (1.0 - 0.75 * nacht);                   // nachts dunkel vor dem Himmel (der Fuß bleibt im Ring)
-	EMISSION = himmel * d;
+	// nachts (F8): ein schwacher, kühler Schein auf Hängen und Kämmen, die zum Himmel zeigen – die Berge heben sich leicht vom Nachthimmel ab,
+	// statt mit ihm zu verschwimmen; der Fuß bleibt wie der Ring
+	float oben_n = clamp(wn.y, 0.0, 1.0);
+	vec3 nachtschein = vec3(0.020, 0.026, 0.040) * (0.35 + 0.65 * oben_n) * (0.5 + 0.5 * pow(seitlich, 1.5)) * smoothstep(0.08, 0.3, hoehe);
+	EMISSION = himmel * d + nachtschein * nacht * (1.0 - d);
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.15 * (1.0 - d);                                          // im vollen Dunst kein Glanz: genau die Farbe des Rings
 }

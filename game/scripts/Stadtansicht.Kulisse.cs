@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// Die Kulissenberge am Kartenrand (Felspinsel F7) – ein Teil der <c>partial class Stadtansicht</c>, nur im Spiel. Was hinter der Karte steht, sagt
 /// <c>game/daten/berge.json</c>: die Karte (<c>karte</c>), das Modell (<c>modell</c>, drei Staffeln <c>Staffel_Nah/Mitte/Fern</c>, Ursprung = Ursprung der
 /// Karte, genordet) und die Berge mit Namen und Ort im Spiel. Die Berge sind Kulisse: keine Kollision, kein Schatten, die Maus trifft sie nicht, sie
-/// stehen nicht im Höhenraster. Auf der Stufe „Niedrig“ (Boden) nur die nahe Staffel.
+/// stehen nicht im Höhenraster. Auf der Stufe „Niedrig“ (Boden) nur die nahe Staffel, mit weicherer Silhouette (Shader-Uniform <c>allein</c>).
 /// <list type="bullet">
 /// <item><b>Dunst</b> (<c>kulisse.gdshader</c>): je weiter hinten und je höher, desto mehr Himmelsfarbe; die Farbe ist die des Dunstrings am Rand
 /// (<see cref="DunstFarbeNachfuehren"/>), mehr bei Nebel und Regen, weniger in der Nacht (die Berge stehen dann dunkel vor dem Nachthimmel).</item>
@@ -72,6 +72,7 @@ public partial class Stadtansicht
         var alle = Fenster.AktuelleBodenqualitaet != Bodenqualitaet.Niedrig;
         foreach (var teil in _kulisse.FindChildren("Staffel_*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
             teil.Visible = alle || teil.Name == "Staffel_Nah";
+        _kulisseStoff?.SetShaderParameter("allein", alle ? 0f : 1f); // allein: weichere Silhouette der nahen Staffel (kulisse.gdshader)
     }
 
     /// <summary>Jedes Bild: Himmelsfarbe, Dunst des Wetters und Nacht in den Shader (nur bei Änderung), dann das Schild der Gipfel.</summary>
