@@ -75,7 +75,7 @@ void fragment() {
 		c = mix(c, kranz_farbe * (0.45 + 0.9 * t.r), clamp(t.g * kranz * innen * 1.4, 0.0, 1.0));
 		c *= mix(1.0, 1.0 - limbus, smoothstep(1.0 - limbus_breite, 1.0, r));   // dunkler Limbusring
 		c = mix(vec3(0.008), c, smoothstep(pupille - 0.015, pupille + 0.015, r));
-		c = mix(c, sklera * mix(vec3(0.85), limbus_saum_farbe * 0.8, limbus_saum), smoothstep(1.0, 1.08, r));   // außerhalb des Limbus
+		c = mix(c, sklera * mix(vec3(0.85), limbus_saum_farbe * 0.8, limbus_saum), smoothstep(1.0 - 0.04 * limbus_saum, 1.08 + 0.04 * limbus_saum, r));   // außerhalb des Limbus (Etappe D weicher)
 		// Ecken hinter der Augapfelmitte (Eckfarbe R = 1): Das ICT-Auge hat die Pupille als Öffnung, durch die man
 		// auf die Innenseite sieht – die ist schwarz (sonst erscheint dort eine helle Sichel)
 		c = mix(c, vec3(0.004), smoothstep(0.97, 0.995, COLOR.r));
@@ -104,7 +104,7 @@ void fragment() {
 		c = mix(c * vec3(0.92, 0.74, 0.7), c, smoothstep(0.15, 0.7, nv));
 		c *= mix(vec3(1.0), rand_farbe, smoothstep(0.55, 0.95, length(p)) * rand_schatten);
 		// Etappe D: weicher Übergang zur Iris – grauer Saum außen am Limbus (Irishalbmesser ≈ 0,37 des Augapfels)
-		c *= mix(vec3(1.0), limbus_saum_farbe, limbus_saum * (1.0 - smoothstep(0.38, 0.52, length(p))));
+		c *= mix(vec3(1.0), limbus_saum_farbe, limbus_saum * (1.0 - smoothstep(0.37, 0.56, length(p))));
 		// Hornhautbereich der äußeren Kugel (Übergangsring): durchsichtig
 		ALPHA = 1.0 - smoothstep(0.4, 0.6, COLOR.r);
 		ALPHA_SCISSOR_THRESHOLD = 0.5;

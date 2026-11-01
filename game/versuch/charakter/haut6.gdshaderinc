@@ -138,6 +138,7 @@ uniform float c_spross_staerke = 0.9;
 uniform float c_altersflecken = 0.0;
 uniform float c_rau = 0.0;                   // Rauheit dazu (Alter, Wetter)
 uniform float c_loch = 0.8;                  // Nasenloch dunkel
+uniform float c_loch_braun = 0.0;            // Etappe D: Nasenloch innen bräunlich-neutral statt rot (Prüfer: „rot ausgeleuchtet“)
 uniform float c_furche_dunkel = 0.25;        // Furchen dunkler (Falten lesen sich über die Verschattung)
 uniform float c_uneben = 0.35;               // grobe Lage der Porenkachel (× 2,7 größer): Unebenheit 1–2 mm
 uniform int c_zeige = 0;                     // Prüfanzeige: 1 Höhle, 2 Glanzkarte, 3 Zonen, 4 Furche, 5 Bart/Sprossen
@@ -231,6 +232,7 @@ void fragment() {
 	c *= 1.0 - c_hoehle_albedo * (pt.b + 0.5 * c_uneben * pt2.b) * gl.g;
 	c *= 1.0 - hoehlen * 0.5 * m.b;
 	c *= 1.0 - c_loch * gl.b;
+	c = mix(c, vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))) * vec3(1.15, 0.95, 0.8), c_loch_braun * smoothstep(0.1, 0.6, gl.b));
 	// Lippenrot (Glanzkarte A ≈ 0,3): weniger lachsfarben (Runde 3)
 	float lippe = smoothstep(0.12, 0.26, gl.a) * (1.0 - smoothstep(0.36, 0.44, gl.a));
 	c = mix(c, vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))) * vec3(1.12, 0.94, 0.9), 0.3 * lippe);

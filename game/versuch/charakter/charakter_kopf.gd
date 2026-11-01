@@ -919,7 +919,7 @@ func _farben() -> void:
 			m.set_shader_parameter("bild", brauen_bild)
 			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
 			m.set_shader_parameter("ebene", ebene)
-			m.set_shader_parameter("deckung", (1.15 if mann else 1.1) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
+			m.set_shader_parameter("deckung", (1.05 if mann else 1.05) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
 			m.set_shader_parameter("mip_hub", 0.3)
 			m.set_shader_parameter("schwelle", 0.12 if d_an else (0.2 if a_an else 0.3))
 			m.set_shader_parameter("dunkel", 0.9 if d_an else (0.78 if a_an else 0.6))
@@ -993,7 +993,10 @@ func _farben() -> void:
 				m.set_shader_parameter("brauen_weich", 0.42 if weg_d else 0.3)
 				m.set_shader_parameter("brauen_glanz", 0.85 if weg_d else 0.0)
 				if weg_d:
-					m.set_shader_parameter("c_loch", 0.3)   # Nasenloch innen nicht als schwarzes Loch (Runde 2)
+					m.set_shader_parameter("c_loch", 0.38)   # Nasenloch innen nicht als schwarzes Loch (Runde 2) …
+					m.set_shader_parameter("c_loch_braun", 0.8)   # … und nicht rot ausgeleuchtet (Runde 3)
+				else:
+					m.set_shader_parameter("c_loch_braun", 0.0)
 		for m in wimpern_stoffe:
 			if m.shader in [HAAR3, BRAUE6]:
 				m.shader = BRAUE6 if d_an else HAAR3
@@ -1003,7 +1006,7 @@ func _farben() -> void:
 			m.set_shader_parameter("unten_hell", 0.45 if c_an else 0.0)
 			farbe_setzen(m, "haut_ton", grund, st)
 			m.set_shader_parameter("dunkel", 0.85 if c_an else 0.6)
-			m.set_shader_parameter("deckung", 0.8 if d_an else (0.7 if c_an else 1.0))
+			m.set_shader_parameter("deckung", 0.65 if d_an else (0.7 if c_an else 1.0))
 			m.set_shader_parameter("mip_hub", 0.35)
 			if c_an:
 				# Runde 2/3 (Prüfer: Wimpern schwarz, hart, zu dicht): lichter, durchscheinender, ein Viertel weniger Haare;
@@ -1014,7 +1017,7 @@ func _farben() -> void:
 			if d_an:
 				# Etappe D, Runde 2 (Prüfer: „steifer schwarzer Stachelkranz, außen abstehend“): weniger, braunere Wimpern
 				farbe_setzen(m, "farbe", haar.darkened(0.25).lerp(grund, 0.2), st)
-				m.set_shader_parameter("dichte", 0.55 if mann else 0.62)
+				m.set_shader_parameter("dichte", 0.5 if mann else 0.58)
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
@@ -1089,7 +1092,8 @@ func _farben() -> void:
 		farbe_setzen(m, "iris_farbe", iris, st)
 		farbe_setzen(m, "kranz_farbe", kranz, st)
 		if st >= 6:
-			farbe_setzen(m, "sklera", linear(SKLERA6), st)
+			# Etappe D, Runde 3 (Prüfer: „Augenweiß zu hell“): Lederhaut etwas dunkler
+			farbe_setzen(m, "sklera", linear(SKLERA6.darkened(0.12) if d_auge else SKLERA6), st)
 		m.set_shader_parameter("kranz", clampf(1.0 - at * 0.9, 0.1, 1.0) * lerpf(0.4, 1.0, ah))
 	for m in zahnfleisch_stoffe:
 		farbe_setzen(m, "farbe", linear(ZAHNFLEISCH6) if st >= 6 else Color(0.62, 0.27, 0.26), st)
@@ -1122,7 +1126,8 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_hb", 0.2 * roet * (1.12 if mann else 1.0) + 0.05 * greis + 0.08 * w)
 		m.set_shader_parameter("c_sonne", 0.06 + 0.04 * reif + 0.2 * w)
 		m.set_shader_parameter("c_braeune", 0.15 * w)
-		m.set_shader_parameter("c_ringe", (0.35 + 0.15 * ring_a) * (1.0 if mann else 1.35))
+		# Etappe D, Runde 3 (Prüfer: „dunkelviolette Linie unter dem Unterlid“): Augenringe schwächer, die Furche ist Form
+		m.set_shader_parameter("c_ringe", (0.35 + 0.15 * ring_a) * (1.0 if mann else 1.35) * (0.65 if weg_d else 1.0))
 		m.set_shader_parameter("c_bart", bart_c)
 		m.set_shader_parameter("c_bart_farbe", bart_farbe)
 		m.set_shader_parameter("c_stoppeln", (0.9 * clampf(bart / 0.5, 0.0, 1.0) * (1.0 - 0.6 * hh)) if mann else 0.0)
