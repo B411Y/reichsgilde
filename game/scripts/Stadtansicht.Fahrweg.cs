@@ -145,7 +145,7 @@ public partial class Stadtansicht
             var ab = 0;
             if (!weg.Bester)
                 while (ab + 1 < weg.Punkte.Count && ab + 1 < bester.Punkte.Count && weg.Punkte[ab + 1].Abstand(bester.Punkte[ab + 1]) < 0.05) ab++;
-            var band = FahrwegBand(karte, weg, minuten, ab, weg.Bester ? 0.72f : 0.35f);
+            var band = FahrwegBand(karte, weg, minuten, ab, weg.Bester ? 0.8f : 0.45f);
             if (band is not null)
             {
                 band.MaterialOverride = _fahrwegStoffe[weg.Bester ? 0 : 1] ??= FahrwegStoff(weg.Bester ? 0 : 1);
@@ -210,7 +210,7 @@ public partial class Stadtansicht
         if (linie.Count < 2) return null;
 
         float[] spalten = { -1f, -0.5f, 0f, 0.5f, 1f };
-        float[] profil = { 0.55f, 0.9f, 1f, 0.9f, 0.55f };
+        float[] profil = { 0.7f, 0.95f, 1f, 0.95f, 0.7f };
         var ecken = new Vector3[linie.Count * spalten.Length];
         var farben = new Color[ecken.Length];
         for (var i = 0; i < linie.Count; i++)
@@ -224,7 +224,7 @@ public partial class Stadtansicht
             var gehrung = Mathf.Min(3, 1 / Mathf.Max(0.33f, Mathf.Abs(quer.Dot(new Vector2(-bezug.Y, bezug.X)))));
             var farbe = Fahrzeitstufen.Farbe(linie[i].Minute);
             // ein wenig unregelmäßig wie mit dem Pinsel: die Deckung schwankt längs des Weges (fest nach der Stelle, kein Zufall)
-            var pinsel = 0.85f + 0.15f * Mathf.Sin(linie[i].Ort.X * 0.9f + linie[i].Ort.Y * 1.3f);
+            var pinsel = 0.9f + 0.1f * Mathf.Sin(linie[i].Ort.X * 0.9f + linie[i].Ort.Y * 1.3f);
             // Höhe wie bei den Karren: Brücken und Fähren tragen (FahrHoehe); liegt die Mitte auf einem Fundament (Pflaster eines Platzes), die ganze Reihe darauf
             var fundament = DeckHoehe(linie[i].Ort.X, linie[i].Ort.Y) ?? FussHoehe(linie[i].Ort.X, linie[i].Ort.Y);
             for (var s = 0; s < spalten.Length; s++)
@@ -288,9 +288,9 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Suche der Ampeln in kleinen Schritten (jedes <c>yield</c> ist eine Prüfung oder eine Fahrzeit). Gesucht wird wie in <see cref="Bauwesen.Bauorte"/>
-    /// – erst die freien Bauplätze, dann die Rasterstellen der Bauzonen, in denen die Werkstatt stehen darf, je Stelle vier Drehungen –, aber nur dort,
+    /// – die freien Bauplätze und die Rasterstellen der Bauzonen, in denen die Werkstatt stehen darf, je Stelle vier Drehungen –, aber nur dort,
     /// wo mindestens zwei Felder des Vorplatzes nah genug an einer Karrenstraße liegen (vorab aus einer Karte der Straßennähe, das spart die teure
-    /// Prüfung des Platzes an den meisten Stellen). Je Feld von <see cref="AmpelFeld"/> m und je Drehung zählt der erste erlaubte Ort; die Ampel des
+    /// Prüfung des Platzes an den meisten Stellen). Geprüft werden die Stellen nach der Luftlinie zum nächsten Markt, die nahen zuerst. Je Feld von <see cref="AmpelFeld"/> m und je Drehung zählt der erste erlaubte Ort; die Ampel des
     /// Feldes zeigt die beste Fahrzeit des Startkarrens unter ihnen (Kern: <see cref="Stadtwirtschaft.FahrzeitAmBauort"/>).
     /// </summary>
     private IEnumerable<bool> AmpelSuche(Stadtwirtschaft w, Betriebsart art)
@@ -339,8 +339,6 @@ public partial class Stadtansicht
         foreach (var platz in w.Bauen.Bauplaetze.Where(p => !Bauwesen.IstWohnhausplatz(p)).OrderBy(p => p.Nummer))
             for (var d = 0; d < 4; d++)
                 kandidaten.Add((WerkstattBauen)w.Bauen.Einrasten(new WerkstattBauen(art, platz.Grundriss.X, platz.Grundriss.Z, d)));
-        foreach (var b in kandidaten)
-            foreach (var schritt in Pruefen(b)) yield return schritt;
         foreach (var zone in zonen)
         {
             var (x0, x1) = (Math.Floor(zone.Flaeche.Min(e => e[0]) / r) * r, zone.Flaeche.Max(e => e[0]));
@@ -353,11 +351,15 @@ public partial class Stadtansicht
                         var g = new Grundriss(ex, ez, mass.Breite, mass.Tiefe, d); // (ex, ez) ist die nordwestliche Ecke, wie in Bauwesen.Bauorte
                         var b = new WerkstattBauen(art, ex + g.HalbX, ez + g.HalbZ, d);
                         if (!zone.Enthaelt(b.X, b.Z) || !geprueft.Add((b.X, b.Z, d)) || !EckenBebaubar(g, b) || !AnDerStrasse(b)) continue;
-                        foreach (var schritt in Pruefen(b)) yield return schritt;
+                        kandidaten.Add(b);
                     }
                 yield return true;
             }
         }
+        // Die Stellen nahe den Märkten zuerst (Luftlinie zum nächsten Platz, bei Gleichstand in der Reihenfolge oben): Die guten Plätze erscheinen so
+        // als erste (Entscheidung des Teamleiters vom 01.11.2026).
+        foreach (var b in kandidaten.OrderBy(k => karte.MarktAbstandQuadrat(k.X, k.Z)).ToList())
+            foreach (var schritt in Pruefen(b)) yield return schritt;
 
         // Ein Ort: schon ein erlaubter Ort dieser Drehung im Feld? Sonst prüfen und die Fahrzeit nehmen.
         IEnumerable<bool> Pruefen(WerkstattBauen b)
