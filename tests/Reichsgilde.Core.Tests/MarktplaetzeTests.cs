@@ -160,15 +160,15 @@ static class MarktplaetzeTests
             Pruefe.Wahr(sued[1] > 100 && nord[1] < -100 && Math.Abs(sued[0] - 37) < 1 && Math.Abs(nord[0] - 37) < 1, $"Süden {sued[0]} | {sued[1]}, Norden {nord[0]} | {nord[1]}");
             Pruefe.Wahr(deutz[0] > 130 && Math.Abs(deutz[1]) < 40, $"Deutz {deutz[0]} | {deutz[1]}");
             // Zwischen Mauer und Platz eine Hausreihe (Wunsch des Nutzers 1.11.2026; bis dahin stieß der Platz an Wallstraße und Tor): Der äußere
-            // Rand des Platzes (24 × 24 m) liegt mindestens 25 m vor dem Tor (z = ±150), und zu beiden Seiten der Rheingasse steht dazwischen ein
-            // Einwohnerplatz
-            foreach (var (platz, richtung) in new[] { (sued, 1), (nord, -1) })
+            // Rand des Platzes (24 × 24 m) liegt mindestens 25 m vor dem Tor (z = ±150), und zu beiden Seiten der Rheingasse (bis 15 m von ihr) steht
+            // dazwischen ein Haus – am Heumarkt ein Einwohnerplatz, am Alter Markt ein Kulissenhaus (das dort immer steht, auch mit wenigen Rivalen)
+            foreach (var (platz, richtung, art) in new[] { (sued, 1, Bausteinart.Einwohnerplatz), (nord, -1, Bausteinart.Kulisse) })
             {
                 var rand = richtung * platz[1] + 12;
                 Pruefe.Wahr(150 - rand >= 25, $"Platz bei z = {platz[1]}: {150 - rand:0.#} m vom Tor");
                 foreach (var seite in new[] { -1, 1 })
-                    Pruefe.Wahr(karte.GebaeudeDerArt(Bausteinart.Einwohnerplatz).Any(g => Math.Sign(g.Punkt[0] - platz[0]) == seite
-                        && richtung * g.Punkt[1] is var t && t > rand && t < 150), $"Platz bei z = {platz[1]}: kein Haus zwischen Platz und Mauer auf der Seite {seite}");
+                    Pruefe.Wahr(karte.GebaeudeDerArt(art).Any(g => Math.Sign(g.Punkt[0] - platz[0]) == seite && Math.Abs(g.Punkt[0] - platz[0]) < 15
+                        && richtung * g.Punkt[1] is var t && t > rand && t < 150), $"Platz bei z = {platz[1]}: kein Haus ({art}) zwischen Platz und Mauer auf der Seite {seite}");
             }
             Pruefe.Gleich(MarktlinienKoeln, Karrennetz.Marktlinien(karte).Count);
             var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
@@ -259,7 +259,10 @@ static class MarktplaetzeTests
             Pruefe.Gleich(ohneLinien, alt.Karrennetz!.Groesse);
             var neu = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 7),
                 karte: Stadtkarte.AusJson(json.ToJsonString(), Katalog.Value)).Simulation.Wirtschaft!;
-            Pruefe.Wahr(neu.Karrennetz!.Groesse != ohneLinien, "mit Datenversion 65 ist der Heumarkt eine Kreuzung");
+            // mit Datenversion 65 kommen alle Wege ins Netz (Gassen, Fußwege) – verglichen wird mit demselben Netz ohne die Linie (Befund der Prüfung
+            // 1.11.2026: gegen das Netz nur der Karrenstraßen wäre der Unterschied auch ohne Linie da)
+            Pruefe.Gleich(Karrennetz.Von(karte, alleWege: true).Groesse, neu.Karrennetz!.Groesse);
+            Pruefe.Wahr(neu.Karrennetz!.Groesse != Karrennetz.Von(karte, marktlinien: false, alleWege: true).Groesse, "mit Datenversion 65 ist der Heumarkt eine Kreuzung");
         }),
 
         ("Kartenprüfung: ein Marktplatz, den keine Karrenstraße berührt, gibt einen Hinweis „markt“; die Plätze der Karten nicht", () =>
