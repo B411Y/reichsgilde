@@ -513,6 +513,8 @@ def main():
     schnell, ohne_bilder, ordner, nur = argumente()
     bs.neue_szene()
     formen = [f for f in FORMEN if not nur or f in nur]
+    if nur or schnell:
+        print("WARNUNG: --nur/--schnell überschreibt Modell und Atlas mit einer Probe – vor dem Commit ohne beides neu bauen")
     paare, gross, spielnetze = [], {}, {}
     for i, form in enumerate(FORMEN):
         if form not in formen:
