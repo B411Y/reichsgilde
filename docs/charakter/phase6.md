@@ -1187,3 +1187,215 @@ Budget +1,0 ms auf Hoch eingehalten. Grafikspeicher gleich (die weichen Brauenbi
    "weg_d": true` (optional `"pupille_licht": 0–1`); Mimik nur auf Zeilen- oder Spaltenebene (Zellen erben sie nicht).
 7. Messung: `--varianten=haltb:~/werkzeuge/charakter/glb6:0:0:0:0,hc:~/werkzeuge/charakter/glb6b2:1:0:1:0,
    hd:~/werkzeuge/charakter/glb6d:1:0:1:1 --stufe=hoch|ultra --messen`.
+
+## Verschiedenheit E0 und E1: Prüfmaß und schnelle Welle (Probekopf glb6e)
+
+Anlass: Verschiedenheitsplan vom 01.11.2026 – alle Köpfe wirken wie Geschwister. Die Streuung saß an Kinn, Kiefer und
+Umriss (2,6–2,7 mm), Augen, Lider und Brauen bewegten sich nur um 0,5–1 mm. Nutzerentscheidungen (01.11.2026): Augen und
+Brauen leicht spielhaft (≈ 1,3 × der natürlichen Streuung), die Grenze setzt das Fratzen-Panel; andere Völker später (nur
+Menschen); kein FaceBuilder-Abo. E1 umfasst die Hebel 1 (Brauen) und 2 (Augen neu eichen, Budget) des Plans, dazu
+Nasenbudget, Oberlid und Nasenloch; Hebel 3–5 (Lidformen, Grundköpfe, Leitmerkmal) folgen in E2–E4.
+
+### E0: Prüfmaß
+
+- **Panel** `tools/charakter/boegen6/panel_v.py` (fest und wiederholbar): je Geschlecht 16 Zufallspersonen (Saaten
+  9001–9016 bzw. 9101–9116, 35 Jahre, nur die Gestalt-Gene aus der Saat; Haut, Haar- und Augenfarbe, Frisur und Licht
+  fest). Blatt A vorn (K1, A1–A16), Blatt B schräg (35°, gemischt), Blätter C1/C2 mit 15 Paaren (5 echte Geschwister mit
+  gleichen Eltern, 10 Fremde, gemischt) und Blatt X mit 8 Extremköpfen aus einer Stichprobe von 300 (5 nach dem
+  Augenmaß √(Mittel z²) über die Augen- und Brauengene, 3 nach der Nasennorm), vorn und schräg. Gleiche Saaten in jeder
+  Runde, die Mischung hängt an `--runde`. Der Schlüssel liegt außerhalb des Repositorys
+  (`~/werkzeuge/charakter/bilder/phase6/V/schluessel_v_<runde>.json`), sein SHA-256 steht vor dem Urteil fest.
+- **Prüfer**: drei frische Agenten je Runde, nur die zehn Blätter (4 × 4 Zellen je Blatt), Zuordnung B → A mit bloßem
+  Auge (keine Messung), „Geschwister?“ 1–10 je Paar, Fratzen-Liste, Note „verschiedene Menschen“ 1–10.
+- **Natürliche Streuung** (Literatur statt Gedächtnis): Lidspaltenhöhe σ 1,0–1,7 mm, Brauenhöhe σ 1,9–3,1 mm. Die Eichung
+  ging von 0,84 bzw. 1,33 mm aus – also selbst am Ziel 0,75 × zu klein.
+- **Befund im Brauen-Shader** (`braue6`, Etappe D): In Godot läuft `UV.y` in der Brauenkarte von oben nach unten (glTF:
+  Bildzeile 0 = oben; am Netz geprüft). Etappe D rechnete umgekehrt: Ein hoher `brauen_stand` hob die Haut um 1,0 mm/σ,
+  schob das Brauenbild aber um 1,5 mm/σ nach unten (netto −0,5 mm/σ), und die Dicke wuchs um eine Linie am unteren Rand.
+
+| E0 (Stand ef84658b, Schlüssel `3f7f0485…a8d800`) | Prüfer 1 | Prüfer 2 | Prüfer 3 | Mittel |
+|---|---|---|---|---|
+| Männer: B → A richtig (Zufall 1/16) | 2/16 | 4/16 | 3/16 | **3,0/16** |
+| Frauen: B → A richtig | 3/16 | 2/16 | 6/16 | **3,7/16** |
+| Männer: Geschwister echt / fremd (Mittel 1–10) | 5,4 / 4,5 | 5,2 / 4,2 | 5,2 / 4,6 | 5,3 / 4,4 |
+| Frauen: Geschwister echt / fremd | 4,8 / 4,6 | 4,6 / 4,8 | 4,8 / 4,4 | 4,7 / 4,6 |
+| Fremde mit „Geschwister“ ≥ 6 (Männer, Frauen) | 1/10, 2/10 | 3/10, 3/10 | 2/10, 2/10 | 20 %, 23 % |
+| Note „verschiedene Menschen“ (Männer, Frauen) | 4, 3 | 4, 3 | 4, 4 | 4, 3,3 |
+
+- Kein Prüfer gab eine Zuordnung „sicher“; alle schreiben, schräg gingen die Unterschiede fast ganz verloren. Unterschieden
+  wurde an Brauen, Lidschwere, Gesichtsbreite, Nase und Lippen; gleich wirkten Augenform, Augenabstand, Stirn und Schädel.
+  Frauenbrauen „fast unsichtbar“ (alle drei), Nasenlöcher der Frau von vorn sichtbar (alle drei).
+- **Fratzen E0** (von mindestens zwei Prüfern, alle „grenzwertig“ außer wo vermerkt): Männer X1 schräg (aufgeblähte Wange,
+  Schnauze; zweimal „deutlich“), X4 (Schlitzaugen, vorgeschobener Mund), X7 (sehr lange, hängende Nase), X2 schräg; die
+  hintere Braue steht schräg über den Stirnumriss hinaus (Karten abstehend). Frauen X6 (Stupsnase mit großen Nasenlöchern,
+  einmal „deutlich“), X2/X3 schräg (Schmollmund, fliehendes Kinn), X1. Alle drei sehen in jedem Schrägbild der Männer einen
+  dunklen Fleck im Haar über dem Ohr (TressFX, nicht Teil von E1).
+- Die Zellen tragen nachweislich die Gene laut Schlüssel (16/16 je Geschlecht, Begleitdateien); Prüfer 2 vermutete ein
+  ungemischtes Blatt B – seine 9 Wahlen „gleiche Nummer“ trafen nur 4.
+
+### E1: Was gebaut ist
+
+Alles hängt an den Regeldaten eines neuen Probekopfs `~/werkzeuge/charakter/glb6e`: Netz, Bilder und Haar sind
+Verknüpfungen auf glb6d, nur `regeln6.json` ist neu (`tools/charakter/kopf6_verschieden.py` aus der von glb6d). Der Code
+liest die neuen Abschnitte nur, wenn sie da sind; glb6d rechnet mit dem neuen Code bitgleich wie vorher (Gewichteausdruck
+600 Personen, Vergleich der ganzen Datei).
+
+- **Brauen** (Hebel 1; `braue6.gdshader`, `charakter_kopf.gd`, Abschnitt `verschieden.brauen`): `v_nach_unten` rechnet die
+  Karte richtig herum; Stand 2,5 mm/σ im Bild zusätzlich zur Hautform, nach oben weich auf 1,5 mm begrenzt (über der Braue
+  sind in der Karte nur 1,5–3 mm Platz, sonst wäre sie oben abgeschnitten); Winkel 2,2 mm/σ am äußeren Ende; Dicke
+  1 + 0,35·z nach oben, 1 + 0,15·z nach unten (0,75–1,8) um eine Linie im oberen Drittel (wächst vor allem nach unten;
+  stärker gestaucht zerfiel die Braue zum Strich); Dichte aus `brauen_dichte` breiter (0,75–1,2 statt 0,72–1,15);
+  Dunkelheit gegen das Haar ±30 %/σ, im Mittel wie Etappe D; Frauen dichter (× 1,3), etwas höher (× 1,15) und nur zu 60 %
+  aufgehellt (E0: „fast unsichtbar“); der feste Brauenschatten auf der Haut 0,42 → 0,22 (er wandert nicht mit); die Karte
+  blendet am Umriss aus (`rand_aus`: wo man sie fast von der Kante sieht – die hintere Braue ragte schräg über die Stirn). Winkel und Dunkelheit kommen vorläufig aus den freien Vorschlagsgenen
+  `zug_11` und `zug_12` (erblich, σ 32; die Züge nutzen nur `zug_01`–`zug_10`).
+- **Augenpartie neu geeicht** (Hebel 2): Ziel je σ = 1,3 × natürliche Streuung statt 0,75 × für Lidspalte (Höhe, mit 1,2 mm
+  aus der Literatur; enger höchstens 1,3 mm/σ), Augengröße, Schlupflid, Augenneigung, Brauenstand; Augenabstand 1,0 ×;
+  Stärke dort bis 1,0 je σ statt 0,6. Nase, Kinn, Kiefer, Umriss und Augentiefe bleiben (Augentiefe × 1,3 in Runde 1–2
+  machte tief liegende Augen zur Fratze).
+
+| Gen (mm je σ) | E0 | E1 |
+|---|---|---|
+| Lidspalte (Höhe), weiter / enger | 0,63 | 1,56 / 1,30 |
+| Augengröße (Lidspaltenbreite) | 1,05 | 1,82 |
+| Augenneigung (Außenwinkel) | 0,60 | 1,04 |
+| Brauenstand (Haut, ohne Bild) | 1,00 | 1,73 |
+| Brauenstand gesamt mit Bild | ≈ −0,5 (Vorzeichenfehler) | 3,0–4,2 (nach oben weich begrenzt) |
+| Schlupflid | 0,42–0,58 | 0,70–0,96 (Ziel 1,39; die Formen geben nicht mehr her) |
+| Augenabstand (Mann / Frau) | 2,70 / 2,55 | 3,60 / 3,40 |
+
+- **Budget** (Modus `gen`): begrenzt wird nur der Gen-Anteil je MakeHuman-Ziel (±2,0), die Summe mit den Reifeformen auf
+  [−1,6; 2,4]; an den Nasenzielen zählt die Summe wie bisher (sonst stapelt sich `nose-point-down` aus Reife, Länge und
+  Spitze). Bevölkerungsrechnung (2000 Personen, z ≤ 2): mit der neuen Eichung kämen unter dem alten Budget Brauenstand−
+  (0,88), Lidspalte−, Schlupflid+ nur gekürzt an; mit dem neuen alle voll. Bei der Frau leben Wangenknochen schmaler
+  (0,32 → 1,0) und Gesicht schmaler (0,67 → 1,0) wieder auf; Nasenlänge+ (0,8) und Nasenspitze− (0,77) bleiben gekürzt
+  (gewollt).
+- **Nasenbudget**: √(Σ z²) über Nasenlänge, Spitze und Höcker höchstens 2,2, sonst die drei gemeinsam kleiner; greift bei
+  66 von 600 Personen (11 %; mit 2,0 wären es 19 %). Dazu ein Stupsnasen-Deckel: Spitze hoch und Nase kurz zusammen
+  höchstens 1,6σ (Schweinsnase von vorn), greift ebenfalls bei 11 %.
+- **Oberlid**: Ruhelage 0,22 → 0,18, Alterszuschlag 0,06 → 0,03 (Etappe D: Mann 70 „halb zu“).
+- **Nasenloch der Frau**: feste Zugabe 0,5 × `gen_nasenspitze_minus` (× Reife oben) – Spitze und Steg etwas tiefer
+  (Testbogen 0 / 0,25 / 0,5 / Länge+ 0,3: bei 0,5 von vorn fast verdeckt, 0,25 zu wenig). `nose-nostrils-angle-down` und
+  `nose-base-down` fehlen im Probebau (bräuchten einen Blender-Lauf).
+- **Netz allein** (Wahrnehmungsskript `konfig.py`, 60 Männer, ohne Shader und Budget): Braue über dem Auge σ 0,97 →
+  1,48 mm, Lidregion gegen den Augapfel 0,72 → 0,97 mm, Brauenkarte ohne Lage 0,87 → 1,30 mm (Stand Runde 1); dazu kommt
+  jetzt die Bildverschiebung der Braue (2,5 mm/σ).
+- **Lid–Augapfel** (`Netzmesser._lid`, an allen 16 X-Köpfen; das Maß ist schon am Grundgesicht negativ, gewertet wird die
+  Verschlechterung, Grenze 0,6 mm wie Etappe B): Endstand höchstens −0,44 mm (Mann 9793, ein Nasen- und Augenextrem), sonst
+  −0,37 … +0,68 mm (Runde 1: −0,55 mm).
+
+### Prüfung E1
+
+Panel wie E0 (gleiche Saaten und Extremköpfe, neue Mischung je Runde, Schlüssel vorher versiegelt), je Runde drei neue
+blinde Prüfer. Runde 1: Brauenstand 2,0 mm/σ, Dicke 0,25/σ, Dunkelheit 20/25 %, Dichte ab 0,62, ohne Ausblenden am Umriss,
+Augenabstand und Lidspalte enger wie geeicht, Augentiefe × 1,3, Nasenzugabe 0,4 (Commit `f4f8682a`, Schlüssel
+`35a5a87b…779b1b`). Runde 2: wie unten unter „Runde 2“ (`f7792068`, `5ec0d3c2…ae66e8e6b`). Runde 3 = Endstand
+(`83c845c3`, `4382a0c0…6ad00e`).
+
+| B → A richtig (von 16) | E0 | E1 Runde 1 | E1 Runde 2 | E1 Runde 3 (Endstand) |
+|---|---|---|---|---|
+| Männer, Prüfer 1 / 2 / 3 | 2 / 4 / 3 | 7 / 2 / 6 | 3 / 7 / 8 | 3 / 5 / 4 |
+| Männer, Mittel | 3,0 | 5,0 | **6,0** | **4,0** |
+| Frauen, Prüfer 1 / 2 / 3 | 3 / 2 / 6 | 4 / 4 / 3 | 5 / 6 / 4 | 5 / 4 / 6 |
+| Frauen, Mittel | 3,7 | 3,7 | **5,0** | **5,0** |
+| Geschwister echt / fremd (Mittel 1–10, Männer; Frauen) | 5,3 / 4,4; 4,7 / 4,6 | 4,6 / 4,5; 4,9 / 4,5 | 5,1 / 4,5; 4,5 / 4,6 | 4,7 / 4,9; 4,5 / 4,5 |
+| Fremde „Geschwister“ ≥ 6 (Männer, Frauen) | 20 %, 23 % | 37 %, 17 % | 30 %, 23 % | 37 %, 23 % |
+| Note „verschiedene Menschen“ (Männer, Frauen) | 4, 3,3 | 4, 4 | 4, 4,7 | 4, 3,3 |
+
+- **Runde 1**: Alle drei erkannten vor allem Köpfe mit auffälligen Lidern (Männer A11 mit fast geschlossenen Augen: 3 von 3)
+  und kräftigen Brauen; „unterschieden fast nur an Brauen, Lidern und Kieferbreite – Nase, Mund, Stirn und Umriss nahezu
+  gleich; schräg bleiben nur Brauen und Lider“. Frauenbrauen „ähnlich dünne Striche“. Fratzen „deutlich“: die hintere Braue
+  ragt schräg als zerrissener Strich über den Stirnumriss (Männer Saat 9842, alle drei), einmal Schnauze mit Brauenwulst
+  (Männer 9801, Frauen 9793). Grenzwertig: Lid „wie im Auge“ (Männer A11 = Saat 9011, alle drei), Brauen in Striche
+  zerfallen (niedrige Dichte), die Nasen- und Mundextreme wie in E0, ein heller Fleck zwischen den Brauen (der feste
+  Hautschatten der Grundbraue ist schwächer).
+- **Runde 2** antwortet darauf: Karte am Umriss ausblenden (`rand_aus`; Randtest: von vorn unverändert, schräg verschwindet
+  das überstehende Stück), Dichte nicht unter 0,75, Lidspalte enger höchstens 1,3 mm/σ, Brauen breiter gestreut
+  (Stand 2,5 mm/σ, Dicke 0,35/σ, Dunkelheit ±30 %/σ), Augenabstand 1,0 × natürlich, Nasenzugabe 0,5. Im Bild ist der
+  Schritt klein (mittlerer Bildunterschied gegen Runde 1 0,2–0,3 Grauwerte je Zelle).
+- **Runde 2**: Männer 6,0, Frauen 5,0 von 16 (ein Prüfer 8/16 bei den Männern). Wieder „fast nur Brauen, Lider, Kiefer-
+  und Wangenbreite; schräg verschwimmt es“; bei den Frauen half jetzt auch die Nase (Stupsnase oder lange gerade Nase) und
+  der Umriss. Die schwebende hintere Braue wird seltener genannt (meist „knapp am Umriss“). Drei Fratzen hat E1 verschärft
+  (alle „deutlich“): eine dünn auslaufende, dünn gestellte Braue zerfiel zum gestrichelten Strich (Männer 9842: Dicke 0,51 –
+  gestaucht statt schmal), eine kurze und zugleich aufgestülpte Nase zeigt die Nasenlöcher wie eine Schweinsnase (Frauen
+  9839; das Nasenbudget griff nicht, Norm nur 1,7) und tief liegende Augen unter dem Brauenwulst (Männer 9722, Augentiefe
+  +2,35σ × 1,3). Dazu weiter die Mund- und Profilextreme aus E0 (Frauen 9801 „Schnauze“).
+- **Runde 3** antwortet darauf: Brauen nach unten nur 0,15/σ dünner, mindestens 0,75; Stupsnasen-Deckel (Spitze⁺ + Kürze⁻
+  ≤ 1,6σ, greift bei 11 %); Augentiefe wieder wie E0.
+- **Runde 3 (Endstand)**: Männer 4,0, Frauen 5,0 von 16. Die Prüfer streuen stark (Runde 2 → 3 nur mit
+  Fratzen-Korrekturen: Männer 6,0 → 4,0); über alle neun E1-Urteile gemittelt **Männer 5,0, Frauen 4,6** gegen E0 3,0 /
+  3,7. Immer erkannt (3 von 3) wurden nur Köpfe mit auffälligen Lidern oder Brauen. Geschwister trennen sich in keiner
+  Runde. Fratzen „deutlich“ im Endstand: Männer 9801 schräg (Wangenbeule, Kante am Brauenwulst, Schmollmund; schon in E0
+  zweimal „deutlich“), Männer 9722 schräg (Stirnwulst „wie ein Sims“ mit Kerbe an der Nasenwurzel – die tiefer gesetzte
+  Braue verstärkt das), Männer 9842 schräg (Braue vor der Stirnkante, zweimal), Frauen 9801 und 9842 schräg (je einmal).
+  Gebessert: gestrichelte Brauen nur noch grenzwertig (vorher dreimal „deutlich“), Schweinsnase Frauen 9839 nicht mehr
+  „deutlich“; weiter grenzwertig: fast geschlossene Lider (Männer A11), Nasenlöcher der Frau von vorn bei aufgestülpten
+  Nasen, die hintere Braue knapp am Umriss.
+- **Ergebnis E1:** Wiedererkennung im Mittel aller E1-Urteile +2,0 (Männer) bzw. +0,9 (Frauen) von 16, Endstand +1,0 / +1,3;
+  Ziel ≥ 8 **nicht erreicht**;
+  Fratzen nicht nur vereinzelt grenzwertig, sondern weiter einige „deutlich“ – teils aus E0 (Mund, Profil), teils durch
+  die tiefere Braue im Schrägbild verstärkt.
+
+**Kosten** (T400, 1280 × 720, Stufe Hoch, Halt B | Etappe D | E1 gepaart im selben Prozess, Median aus 5 Wiederholungen,
+Commit `f7792068`; T400 ohne fremde GPU-Prozesse, die CPU-Last der NAS lag durch Messläufe anderer Mitglieder bei 15–22 und
+wird nur vermerkt; ein erster Lauf unter Last 40–61 war nicht belastbar und ist verworfen; Runde 3 ändert nur Werte auf der
+CPU-Seite):
+
+| Lauf | Halt B | D | E1 | E1 gegen D | E1 gegen Halt B |
+|---|---|---|---|---|---|
+| ohne Haar, Mittelgesicht | 6,50 | 6,84 | 6,92 ms | +0,08 | **+0,44** |
+| ohne Haar, Zufallsperson | 6,63 | 7,00 | 7,03 ms | +0,03 | **+0,41** |
+| TressFX in Ruhe | 29,54 | 29,58 | 29,58 ms | ±0,00 | **+0,04** |
+
+Budget +1,0 ms gegen Halt B eingehalten; Grafikspeicher gleich (dasselbe Netz, keine neuen Bilder).
+
+### Selbst getroffene Entscheidungen (E1)
+
+- Alles über einen neuen Probekopf (glb6e = glb6d + eigene `regeln6.json`), nicht über die Regeln im Repository: Etappe D
+  bleibt bitgleich vergleichbar, und die Eichung bleibt in der Darstellung (Plan: nicht über die Streuung im Erbgut).
+- Winkel und Dunkelheit der Brauen vorläufig aus `zug_11` und `zug_12` (erblich, sonst ungenutzt) statt aus dem
+  Personen-Samen (der wäre nicht erblich und schwächte das Familiensignal).
+- Lidspalte mit 1,2 mm natürlicher Streuung (Literatur) statt der Annahme 0,84 mm; nach Runde 1 enger höchstens 1,3 mm/σ.
+- Augenabstand auf 1,0 × (nicht 1,3 ×), Augentiefe wie E0 – beides nach den Fratzen-Befunden.
+- Frauenbrauen im Mittel etwas dichter und höher (× 1,3 / × 1,15): gegen „Mittel nicht dunkler“ des Plans abgewogen, weil
+  alle drei E0-Prüfer die Frauenbrauen „fast unsichtbar“ nannten; die Farbe im Mittel bleibt wie Etappe D.
+- Nasenloch über eine feste Zugabe vorhandener Formen statt eines neuen Probebaus (`nose-nostrils-angle-down` fehlt).
+- Drei Panel-Runden statt einer: Runde 2 und 3 antworten nur auf Befunde der Prüfer (Fratzen und Brauen), nicht auf die
+  Trefferzahl selbst.
+
+### Offen nach E1
+
+- **Ziel ≥ 8/16 nicht erreicht.** Alle Prüfer aller Runden: schräg tragen nur Brauen und Lider; Nase, Mund, Stirn und
+  Umriss „bei allen gleich“. Mehr Augen- und Brauenstreuung allein reicht nicht – nächste Hebel: eigene Lidformen (E2,
+  Blender-Backlauf mit MPFB-Zielen Augenhöhe, Epikanthus, Tränensack, Lidfaltenhöhe), mehrere Grundköpfe (E3) und ein
+  Leitmerkmal je Person (Hebel 5).
+- Geschwister trennen sich im Panel nicht (echte 4,5–5,1 gegen Fremde 4,5–4,6 von 10): bei gleichen Farben und gleicher
+  Frisur fehlen die erblichen Merkmale, die Familien im Spiel tragen (Haar, Augenfarbe, Haut).
+- Fratzen außerhalb von E1, die alle Runden nennen: vorgeschobener Mund mit fliehendem Kinn („Schnauze“, Lippen und
+  Kiefervorstand), sehr lange hängende Nase; die hintere Braue liegt schräg teils noch knapp am Stirnumriss.
+- Fratzen, die E1 verstärkt: eine tief gesetzte Braue (Hautform plus Bildverschiebung zusammen bis ≈ 8 mm bei −2σ) macht
+  im Schrägbild aus einem kräftigen Brauenwulst einen „Sims“ (Männer 9722); Vorschlag: Verschiebung nach unten wie nach
+  oben weich begrenzen (≈ 2 mm) und die Hautform nach unten nicht über 1,0 × eichen. Die Braue an der Stirnkante
+  (Männer 9842) braucht ein breiteres Ausblenden am Umriss oder flachere Karten.
+- Die Prüfer streuen von Runde zu Runde um ±2 Treffer (gleicher Stand); für kleine Schritte fünf Prüfer je Runde nehmen.
+- Ein dunkler Fleck im TressFX-Haar „mann_kurz“ über dem Ohr, in jedem Schrägbild (von den meisten Prüfern aller Runden genannt).
+- Gen-Vorschläge an kern (gebündelt über den Teamleiter): `brauen_winkel`, `brauen_dunkel` (Mensch 16/128/240, σ 32,
+  Dominanz 50, Mutation 3; andere Völker σ 0); dann `zug_11`/`zug_12` in `kopf6_verschieden.py` ersetzen.
+- Die Regeln von glb6e gelten nur für den Probekopf; ins Spiel (Repository-`regeln6.json`) erst nach der Etappe, die den Kopf
+  neu baut.
+
+### Testanleitung E0/E1
+
+1. Stichprobe für die Extremköpfe (ohne Grafikkarte): `python3 tools/charakter/boegen6/panel_v.py stichprobe <p.json>`, dann
+   `$G --headless --path game res://versuch/charakter/charakter_schau.tscn -- --glb=~/werkzeuge/charakter/glb6d
+   --gewichte=<p.json> --aus=<stichprobe.json> --stand=6 --ende`.
+2. Probekopf E1: Ordner `~/werkzeuge/charakter/glb6e` mit Verknüpfungen auf alle Dateien von glb6d außer `regeln6.json`, dann
+   `python3 tools/charakter/kopf6_verschieden.py --ein=~/werkzeuge/charakter/glb6d/regeln6.json
+   --aus=~/werkzeuge/charakter/glb6e/regeln6.json`.
+3. Panel: `python3 tools/charakter/boegen6/panel_v.py boegen --kopf=~/werkzeuge/charakter/glb6<d|e>/kopf6.glb --runde=<name>
+   --stichprobe=<stichprobe.json> --aus=<bögen> --schluessel=~/werkzeuge/charakter/bilder/phase6/V`; je Bogen
+   `GLB=~/werkzeuge/charakter/glb6 tools/charakter/schau.sh <roh> 1280x720 --bogen=<bogen.json> --ende` (das Bogen-PNG der Schau
+   ist nur der Fensterausschnitt; die Prüferblätter entstehen aus den Zellen `zz_ss.png`, 4 × 4).
+4. Gleichheit glb6d mit neuem Code: Gewichteausdruck wie 1. gegen den Stand vor E1 vergleichen (bitgleich).
+5. Messung: `--varianten=haltb:~/werkzeuge/charakter/glb6:0:0:0:0,hd:~/werkzeuge/charakter/glb6d:1:0:1:1,
+   he:~/werkzeuge/charakter/glb6e:1:0:1:1 --stufe=hoch --wiederholungen=5 --messen` bei freier T400.

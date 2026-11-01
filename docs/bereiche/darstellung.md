@@ -171,6 +171,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Wasser (Phase 3d): Vom Randeis brechen keine Stücke ab, die dann treiben; Schollen schieben sich am Pfeiler nicht übereinander (nur Stau in der Ebene). Ein Bach liegt an der Mündung höher als der Fluss (Kern: Duffesbach 0,55 m); die Darstellung lässt seine Fläche auf den Fluss hinabfallen, ein eingeschnittenes Bett bis zum Fluss wäre Sache des Kerns
 - Charakter Etappe C (Haut, Branch phase5/charakter-werkzeug): Nasenloch innen dunkelbraun statt rot; Stoppeln mit auslaufender Dichte und kräftigerem Bartschatten; Altersflecken auf der Glatze weniger orange; Tränensäcke als Form (Schlupflid und Unterlid kamen mit Etappe D); Haut-Texturen komprimieren (38,7 MB) vor einem Einbau ins Spiel (`docs/charakter/phase6.md`, Offen nach Etappe C)
 - Charakter Etappe D (Augen, Brauen, Nase): offen siehe `docs/charakter/phase6.md`, „Offen nach Etappe D“; Gen-Vorschläge `brauen_winkel` und `brauen_dunkel` gehen gebündelt über den Teamleiter an kern (Verschiedenheitsplan)
+- Charakter Verschiedenheit E1 (Probekopf glb6e): Ziel ≥ 8/16 Wiedererkennung nicht erreicht; offen siehe `docs/charakter/phase6.md`, „Offen nach E1“ (Lidformen E2, Grundköpfe E3, Leitmerkmal, TressFX-Loch über dem Ohr, Messung T400 bei ruhiger NAS); Gen-Vorschläge `brauen_winkel`, `brauen_dunkel` (heute vorläufig `zug_11`, `zug_12`) gebündelt über den Teamleiter an kern
 
 ## Entscheidungen
 
@@ -228,3 +229,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Brauen und Wimpern | Alpha-Mischung statt Alpha-Schere (`braue6`), weiche Bilder mit Flaum und Lücken, Karten abstehend; Brauen je Person über Stand, Dicke und (künftig) Winkel im Shader – Hebel 1 des Verschiedenheitsplans, ohne neue Bilder oder Formen. | 01.11.2026 |
 | Kosten | T400 Hoch gegen Halt B +0,41 (ohne Haar), +0,46 (Zufallsperson), +0,15 ms (TressFX); gegen Haut C ±0,0. Keine neuen Formen im Spiel (die Augenformen stecken in den Reifeformen). | 01.11.2026 |
 | Blindtest | Drei Runden, neu gegen Haut C im Mittel +0,75 / +1,0 / +0,25; Ziel +1,5 nicht erreicht. Stärkstes Restmerkmal ist die glatte Haut; dazu flaches Auge im Profil, teils schwere Oberlider, Nasenlöcher der Frau (`docs/charakter/phase6.md`, Prüfung Etappe D). | 01.11.2026 |
+
+### Charakter Verschiedenheit E0/E1 (Branch phase5/charakter-werkzeug, noch ohne PR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Prüfmaß | Festes Blind-Panel `tools/charakter/boegen6/panel_v.py`: 16 Männer, 16 Frauen (gleiche Farben, Frisur, Licht), vorn ↔ schräg zuordnen, 15 Paare „Geschwister?“, 8 Extremköpfe; drei frische Prüfer je Runde, Schlüssel vorher als SHA-256. | 01.11.2026 |
+| Brauen-Fehler | `braue6` rechnete die Karte verkehrt herum (UV.y läuft in Godot von oben nach unten): ein hoher Brauenstand schob das Bild nach unten. Behoben nur mit den Regeln des Probekopfs (`v_nach_unten`), damit Etappe D bitgleich bleibt. | 01.11.2026 |
+| Eichung | Augenpartie 1,3 × der natürlichen Streuung (Nutzer) über die Darstellung (`regeln6.json` des Probekopfs, `kopf6_verschieden.py`), nicht über die Streuung im Erbgut; Nase, Kinn, Umriss bleiben; Augenabstand 1,0 ×. | 01.11.2026 |
+| Budget | Nur der Gen-Anteil je MakeHuman-Ziel begrenzt, Reifeformen zählen nicht mehr; an der Nase die Summe wie bisher; Nasenbudget √Σz² ≤ 2,2. | 01.11.2026 |
+| Brauen-Gene | Winkel und Dunkelheit vorläufig aus den freien Vorschlagsgenen `zug_11`, `zug_12` (erblich); Vorschlag an kern: eigene Gene `brauen_winkel`, `brauen_dunkel`. | 01.11.2026 |
+| Ergebnis | E0 3,0 / 3,7 von 16 (Männer / Frauen) → E1 Endstand 4,0 / 5,0 (alle neun E1-Urteile 5,0 / 4,6); Ziel ≥ 8/16 nicht erreicht: die Prüfer unterscheiden schräg fast nur Brauen und Lider. Einige Fratzen „deutlich“ (Profil und Mund wie E0, Brauenwulst bei tiefer Braue) (`docs/charakter/phase6.md`, Prüfung E1). T400 +0,44 ms gegen Halt B. | 01.11.2026 |
