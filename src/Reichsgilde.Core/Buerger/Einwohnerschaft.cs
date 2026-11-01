@@ -199,9 +199,21 @@ public sealed class Einwohnerschaft
     /// genau anderthalbmal so viele Einwohner wie eine Schänke, ohne Würfelglück. Wer schon in einer Schänke sitzt
     /// oder heute schon eine hatte, bleibt dort, solange in ihr Platz ist.
     /// </summary>
-    private void SchaenkenVerteilen(List<Betrieb> schaenken) =>
-        Quote(_einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList(), schaenken, _w.Gastwirtschaft.Anziehung,
-              Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n);
+    private List<Einwohner> SchaenkenVerteilen(List<Betrieb> schaenken)
+    {
+        var g = _w.Gastwirtschaft;
+        var mitPlaetzen = g.IstAktiv && schaenken.Any(b => g.Sitzplaetze(b) is not null);
+        return Quote(_einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList(), schaenken, g.Anziehung,
+                     Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n,
+                     mitPlaetzen ? b => g.Sitzplaetze(b) ?? int.MaxValue : null,
+                     e => Nutzen(e, Handlung.Einkehren, 1));
+    }
+
+    /// <summary>
+    /// Wie viele Einwohner in der zuletzt geplanten Stunde einkehren wollten, aber in keiner Schänke Platz fanden (Sitzplätze, Datenversion 66).
+    /// Nur zum Ansehen und Messen; nicht im Spielstand (nach dem Laden 0 bis zur nächsten vollen Stunde).
+    /// </summary>
+    public int OhneSchankplatz { get; private set; }
 
     /// <summary>
     /// Wer betet, verteilt sich auf die Kirchen seiner Konfession (gibt es keine, auf alle), als Quote nach deren Anziehung
@@ -226,11 +238,16 @@ public sealed class Einwohnerschaft
     /// Verteilt Einwohner als feste Quote nach der Anziehung auf Betriebe (Verfahren der größten Reste, wie bei Sitzverteilungen).
     /// So bekommt ein Betrieb mit anderthalbfacher Anziehung genau anderthalbmal so viele Einwohner – ohne Würfelglück.
     /// Wer schon dort ist oder heute schon dort war (Stamm), bleibt, solange Platz ist.
+    /// Mit <paramref name="hoechstens"/> (Sitzplätze der Schänken): Was über die Plätze eines Betriebs hinausgeht, geht an die anziehendsten
+    /// mit freien Plätzen; reicht es nirgends, bekommen die Stammgäste ihren Platz, dann die mit dem größten <paramref name="dringlichkeit"/>
+    /// (wer eben keinen Platz fand, will in der nächsten Stunde umso mehr), bei Gleichstand die kleinere Nummer. Wer leer ausgeht, steht in der Rückgabe.
     /// </summary>
-    private static void Quote(List<Einwohner> leute, List<Betrieb> ziele, Func<Betrieb, double> anziehung, Stadtort ort,
-                              Func<Einwohner, string?> stamm, Action<Einwohner, string> setzen)
+    private static List<Einwohner> Quote(List<Einwohner> leute, List<Betrieb> ziele, Func<Betrieb, double> anziehung, Stadtort ort,
+                              Func<Einwohner, string?> stamm, Action<Einwohner, string> setzen,
+                              Func<Betrieb, int>? hoechstens = null, Func<Einwohner, double>? dringlichkeit = null)
     {
-        if (ziele.Count == 0 || leute.Count == 0) return;
+        var ohnePlatz = new List<Einwohner>();
+        if (ziele.Count == 0 || leute.Count == 0) return ohnePlatz;
         var werte = ziele.Select(anziehung).ToList();
         var summe = werte.Sum();
         if (summe <= 0) werte = ziele.Select(_ => 1.0).ToList();
@@ -241,18 +258,48 @@ public sealed class Einwohnerschaft
                      .Take(leute.Count - plaetze.Sum()))
             plaetze[i]++;
 
+        var knapp = false;
+        if (hoechstens is not null)
+        {
+            // Mehr, als Plätze da sind: Die Übrigen gehen in die anziehendsten Betriebe mit freien Plätzen (bei Gleichstand der erste).
+            var grenze = ziele.Select(hoechstens).ToList();
+            var uebrig = 0;
+            for (var i = 0; i < ziele.Count; i++)
+                if (plaetze[i] > grenze[i])
+                {
+                    uebrig += plaetze[i] - grenze[i];
+                    plaetze[i] = grenze[i];
+                }
+            foreach (var i in Enumerable.Range(0, ziele.Count).OrderByDescending(i => werte[i]).ThenBy(i => i))
+            {
+                var dazu = Math.Min(uebrig, grenze[i] - plaetze[i]);
+                plaetze[i] += dazu;
+                uebrig -= dazu;
+            }
+            knapp = uebrig > 0;
+        }
+
         var index = ziele.Select((b, i) => (b.Name, i)).ToDictionary(x => x.Name, x => x.i);
         var offen = new List<Einwohner>();
         // Erst die Stammgäste des Tages (wer schon da ist, zuerst), dann alle übrigen in die freien Plätze.
         foreach (var e in leute.OrderBy(e => e.Ort == ort ? 0 : 1).ThenBy(e => e.Nummer))
             if (stamm(e) is { } s && index.TryGetValue(s, out var i) && plaetze[i] > 0) plaetze[i]--;
             else offen.Add(e);
+        // Reichen die Plätze nicht, kommt zuerst, wer am dringendsten will (ohne Knappheit bleibt die Reihenfolge wie bisher).
+        if (knapp && dringlichkeit is not null)
+            offen = offen.Select(e => (e, d: dringlichkeit(e))).OrderByDescending(x => x.d).ThenBy(x => x.e.Nummer).Select(x => x.e).ToList();
         foreach (var e in offen)
         {
             var i = Enumerable.Range(0, ziele.Count).OrderByDescending(j => plaetze[j]).ThenBy(j => j).First();
+            if (plaetze[i] <= 0)
+            {
+                ohnePlatz.Add(e);
+                continue;
+            }
             plaetze[i]--;
             setzen(e, ziele[i].Name);
         }
+        return ohnePlatz;
     }
 
     /// <summary>
@@ -675,6 +722,8 @@ public sealed class Einwohnerschaft
         // Die Messe wird zur vollen Stunde MesseUm abgerechnet – für die Stunde davor (z. B. 9–10 Uhr bei Messe um 10).
         var messe = _w.Kirchenwesen.IstAktiv && stunde + 1 == _w.Kirchenwesen.Daten.MesseUm ? d.Messe : 1;
 
+        // Die zweitbeste Handlung ohne Einkehren: Sie tut, wer in keiner Schänke mehr Platz findet (Sitzplätze, Datenversion 66).
+        var ersatz = new Dictionary<Einwohner, Handlung>(ReferenceEqualityComparer.Instance);
         foreach (var e in _einwohner)
         {
             // Der Tag schreitet voran: Alle Bedürfnisse werden dringender (nach dem Volk gewichtet).
@@ -683,6 +732,8 @@ public sealed class Einwohnerschaft
 
             var beste = Handlung.Ruhen;
             var besterNutzen = double.MinValue;
+            var ohneSchaenke = Handlung.Ruhen;
+            var ohneSchaenkeNutzen = double.MinValue;
             foreach (var h in Enum.GetValues<Handlung>())
             {
                 if (!Moeglich(h, stunde, schaenken)) continue;
@@ -694,16 +745,28 @@ public sealed class Einwohnerschaft
                     beste = h;
                     besterNutzen = nutzen;
                 }
+                if (h != Handlung.Einkehren && nutzen > ohneSchaenkeNutzen)
+                {
+                    ohneSchaenke = h;
+                    ohneSchaenkeNutzen = nutzen;
+                }
             }
-
-            foreach (var (b, x) in d.Handlungen[beste].Stillt)
-                e.Setzen(b, e.Wert(b) - x * (beste == Handlung.Beten ? messe : 1));
             e.Handlung = beste;
+            if (beste == Handlung.Einkehren) ersatz[e] = ohneSchaenke;
         }
 
         // Wer einkehrt, verteilt sich nach der Anziehung auf die Schänken (Stufe, Ansehen) – ohne Würfel, als Quote.
-        SchaenkenVerteilen(schaenken);
+        // Mit Sitzplätzen: Wer nirgends Platz findet, tut das Nächstbeste; sein Vergnügen bleibt ungestillt, so kommt er später wieder.
+        var ohnePlatz = SchaenkenVerteilen(schaenken);
+        foreach (var e in ohnePlatz) e.Handlung = ersatz[e];
+        OhneSchankplatz = ohnePlatz.Count;
         KirchenVerteilen(kirchen);
+
+        // Erst jetzt stillt jeder, was er tut (vorher stand noch nicht fest, wer in der Schänke Platz findet). Jeder Einwohner liest beim
+        // Wählen nur seine eigenen Bedürfnisse – darum rechnet das genau wie das Stillen gleich nach der Wahl.
+        foreach (var e in _einwohner)
+            foreach (var (b, x) in d.Handlungen[e.Handlung].Stillt)
+                e.Setzen(b, e.Wert(b) - x * (e.Handlung == Handlung.Beten ? messe : 1));
 
         foreach (var e in _einwohner)
         {

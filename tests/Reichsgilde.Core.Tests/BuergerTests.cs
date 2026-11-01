@@ -374,6 +374,9 @@ static class BuergerTests
                 {
                     sim.Tick();
                     if (sim.Zeit.MinuteImTag % 60 != 59) continue;
+                    // Seit Datenversion 66 mit Sitzplätzen (20 und 30): Ist eine voll, sitzen die Übrigen in der anderen – das zählt hier nicht.
+                    var g = sim.Wirtschaft!.Gastwirtschaft;
+                    if (ew.Einkehrende(schaenke) >= g.Sitzplaetze(schaenke) || ew.Einkehrende(wirtshaus) >= g.Sitzplaetze(wirtshaus)) continue;
                     s += ew.Einkehrende(schaenke);
                     w += ew.Einkehrende(wirtshaus);
                 }

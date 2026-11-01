@@ -51,7 +51,8 @@ static class BuergerSchankschlussTests
                     var hinweis = $"Startwert {startwert}, Tag {tag}";
                     Bis(sim, schluss - 15); // 21:45: der Abend in der Schänke
                     var vorher = ew.Am(Stadtort.Schaenke).Count();
-                    Pruefe.Wahr(vorher >= 20, $"{hinweis}: Um 21:45 sollten viele in der Schänke sitzen (waren {vorher}) – sonst prüft der Test nichts");
+                    // Seit Datenversion 66 sitzen in der einen Schänke höchstens 20 (Sitzplätze), vorher waren es abends über 100.
+                    Pruefe.Wahr(vorher >= 10, $"{hinweis}: Um 21:45 sollten viele in der Schänke sitzen (waren {vorher}) – sonst prüft der Test nichts");
 
                     Bis(sim, schluss + 1); // die Planung um 22:00 ist gelaufen
                     Pruefe.Wahr(ew.Einwohner.All(e => e.Handlung == Handlung.Ruhen && e.Ort == Stadtort.Heim && e.Betrieb is null),
