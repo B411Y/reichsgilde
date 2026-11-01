@@ -367,8 +367,8 @@ def zonen_und_glanz(X, N, P, masken_b, gk2=False):
     vor_ohr = glatt(X[:, 2], t_z + 4.0, t_z + 12.0)
     bart = glatt(X[:, 1], grenze + 4.0, grenze - 6.0) * vor_ohr
     if gk2:
-        # Grundkopf 2 (Prüfer: „Bartschatten mit harter Kante“): Übergang 23 mm statt 10 mm, oben flach auslaufend
-        bart = glatt(X[:, 1], grenze + 7.0, grenze - 16.0) ** 1.6 * glatt(X[:, 2], t_z + 1.0, t_z + 16.0)
+        # Grundkopf 2 (Prüfer: „Bartschatten mit harter Kante“): Übergang 38 mm statt 10 mm, oben flach auslaufend
+        bart = glatt(X[:, 1], grenze + 10.0, grenze - 28.0) ** 2.0 * glatt(X[:, 2], t_z - 2.0, t_z + 20.0)
     # unten: Hals bis etwa 45 mm unter dem Kinn, hinten nicht in den Nacken
     bart *= glatt(X[:, 1], P["me"][1] - 55.0, P["me"][1] - 35.0)
     bart *= glatt(X[:, 2], t_z - 6.0, t_z + 6.0)

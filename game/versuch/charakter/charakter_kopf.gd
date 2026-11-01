@@ -1282,6 +1282,8 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 			m.set_shader_parameter("c_poren_staerke", float(m.get_shader_parameter("c_poren_staerke")) * float(gk2.get("poren_faktor", 1.0)))
 			m.set_shader_parameter("c_uneben", float(gk2.get("uneben", 0.5)))
 			m.set_shader_parameter("c_kontrast", float(gk2.get("kontrast", 1.15)))
+			# Runde 1 (Prüfer: „grauer Fleck zwischen Oberlid und Nasenwurzel wie ein Bluterguss“): Augenringe schwächer
+			m.set_shader_parameter("c_ringe", float(m.get_shader_parameter("c_ringe")) * float(gk2.get("ringe_faktor", 1.0)))
 	werte3["haut_c"] = {"relief": rel, "wetter": w, "sommersprossen": spross, "bart": bart_c}
 
 # Halt B2: Farbe zur Helligkeit hin entsättigen (lineare Farbe als Color wie in _farben)

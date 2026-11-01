@@ -73,7 +73,7 @@
    "probe_nose_trans_backward": 0.3393,
    "probe_nose_trans_up": 0.5,
    "probe_nose_septumangle_decr": 0.5,
-   "probe_nose_nostrils_width_decr": 0.5,
+   "probe_nose_nostrils_width_decr": 0.9,
    "probe_nose_flaring_incr": 0.0,
    "probe_nose_point_width_incr": 0.1,
    "eigen_augenhoehle": 0.35,
@@ -91,7 +91,8 @@
    "probe_nose_scale_vert_decr": 0.2,
    "eigen_nase_w": 1.8,
    "eigen_lidkante": 1.0,
-   "probe_nose_scale_depth_decr": 0.3
+   "probe_nose_scale_depth_decr": 0.3,
+   "probe_nose_flaring_decr": 0.4
   },
   "alter_reife_w_unten": {
    "probe_mouth_trans_down": 0.425,
@@ -118,7 +119,7 @@
    "probe_chin_jaw_drop_incr": 0.6,
    "probe_head_square": 0.0,
    "vorbild_grund_w": 0.0,
-   "probe_cheek_volume_incr": 0.55,
+   "probe_cheek_volume_incr": 0.25,
    "eigen_kinn_w": 1.6,
    "eigen_lippen": 1.5
   },

@@ -56,16 +56,16 @@ E3_BRAUEN = {"stand_unten_max_mm": 2.0, "rand_aus_kante": 0.55}
 # bremse, Budget, Nasenbudget, Asymmetrie, Züge und Brauen enger.
 E4_UEBERZEICHNUNG = 1.0
 E4_RICHTUNG_MAX = {("lidspalte", "minus"): 1.0}
-HEIKEL = ["brauen_stand", "brauenwulst", "nase_laenge", "nase_breite", "nase_hoecker", "nasenspitze", "kiefer_breite",
+HEIKEL = ["wangen_fuelle", "brauen_stand", "brauenwulst", "nase_laenge", "nase_breite", "nase_hoecker", "nasenspitze", "kiefer_breite",
           "kiefer_vorstand", "kinn", "kinn_breite", "augen_groesse", "lidspalte", "schlupflid", "augen_tiefe",
           "augen_neigung"]
 # Umriss und Mund (nicht heikel, aber die Gesichtsbreite trägt bei Frauen 5,6 mm/σ in die Kieferbreite)
-MITTEL = ["gesicht_breite", "gesicht_laenge", "wangen_fuelle", "wangenknochen", "mund_breite", "lippen", "mundwinkel"]
+MITTEL = ["gesicht_breite", "gesicht_laenge", "wangenknochen", "mund_breite", "lippen", "mundwinkel"]
 E4_MAESSIGUNG = {
     "beschreibung": "E4: z' = c · tanh(z / c) je Gen (kappe, sonst kappe_standard), danach Stärke × staerke_faktor",
     "kappe_standard": 1.6,
     "kappe": dict({g: 1.3 for g in HEIKEL}, **{g: 1.5 for g in MITTEL}),
-    "staerke_faktor": dict({g: 0.8 for g in HEIKEL}, brauenwulst=0.7, nase_hoecker=0.75, **{g: 0.85 for g in MITTEL}),
+    "staerke_faktor": dict({g: 0.8 for g in HEIKEL}, brauenwulst=0.7, nase_hoecker=0.75, augen_groesse=0.7, wangen_fuelle=0.7, **{g: 0.85 for g in MITTEL}),
 }
 E4_KARIKATUR = {"K_max": 1.15, "z_grenze": 1.8, "hoechstens_ueber": 0, "z_anheben": 1.0}
 E4_BUDGET = {"gen_unten": -1.6, "gen_oben": 1.6}
@@ -73,14 +73,15 @@ E4_NASENBUDGET = {"norm_max": 1.8, "stupsnase_max": 1.3}
 E4_ZUEGE_FAKTOR = 0.55
 E4_ASYM_FAKTOR = {"kinn_seitlich": 0.7, "nasenspitze_seitlich": 0.6, "augenhoehe": 0.7, "brauen": 0.7,
                   "mundwinkel": 0.7, "ohrhoehe": 0.7}
-E4_BRAUEN = {"stand_mm_je_sigma": 1.6, "stand_oben_max_mm": 1.2, "stand_unten_max_mm": 1.5, "winkel_mm_je_sigma": 1.2,
+E4_BRAUEN = {"stand_mm_je_sigma": 1.2, "stand_oben_max_mm": 1.0, "stand_unten_max_mm": 1.5, "winkel_mm_je_sigma": 1.2,
              "dicke_je_sigma": 0.3, "dicke_min": 0.85, "dichte_min": 0.9, "dunkel_je_sigma": 0.25,
              # Frauen: Brauen waren dünne, gepunktete Striche – dicker und dichter; Hautschatten unter der Braue schwächer
              # (er liegt fest und wirkt „aufgemalt“)
-             "frau_dicke": 1.35, "frau_dichte": 1.35, "haut_schatten": 0.12}
+             "frau_dicke": 1.6, "frau_dichte": 1.5, "haut_schatten": 0.12}
 # Haut und Brauen des Grundkopfs 2 (charakter_kopf.gd liest „verschieden.grundkopf2“)
 E4_GRUNDKOPF2 = {"brauen_haerchen": 1.0, "brauen_haerchen_rest": 0.4, "poren_faktor": 1.35, "uneben": 0.85, "kontrast": 1.22,
-                 "augen": {"schatten_oben": 0.7, "schatten_oben_weite": 0.5, "kontakt": 0.7, "traene": 0.45}}
+                 "augen": {"schatten_oben": 0.55, "schatten_oben_weite": 0.4, "kontakt": 0.55, "traene": 0.45},
+                 "ringe_faktor": 0.7}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
