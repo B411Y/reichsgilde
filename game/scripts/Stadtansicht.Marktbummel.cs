@@ -145,6 +145,64 @@ public partial class Stadtansicht
 
     private double _personenSeit;
 
+    /// <summary>So viele Spielminuten vor dem Losgehen wird der Weg über den Platz gesucht (oder sofort, wenn noch Zeit im Bild ist).</summary>
+    private const double PlatzVorlauf = 20;
+
+    /// <summary>
+    /// So viele Millisekunden je Bild dürfen Wegsuchen höchstens kosten (neue Wege des Kerns außerhalb des Bildes, Flächen der Plätze, Bummelgänge); was nicht
+    /// mehr passt, kommt im nächsten Bild dran. Eine Suche wird nie mitten abgebrochen; die erste im Bild läuft immer.
+    /// </summary>
+    private const double WegsucheJeBildMs = 2;
+    private double _wegsucheMs;
+    private int _wegsucheBild = -1;
+
+    /// <summary>Rechnet Zeit einer Wegplanung dem Bild zu (für <see cref="WegsucheFrei"/>).</summary>
+    private void WegsucheZaehlen(double ms)
+    {
+        if (_wegsucheBild != _figurenBild) (_wegsucheBild, _wegsucheMs) = (_figurenBild, 0);
+        _wegsucheMs += ms;
+    }
+
+    /// <summary>Ist in diesem Bild noch Zeit für eine Wegsuche (Gassennetz neuer Wege des Kerns, Flächen der Plätze, Bummelgänge)?</summary>
+    private bool WegsucheFrei()
+    {
+        if (_wegsucheBild != _figurenBild) (_wegsucheBild, _wegsucheMs) = (_figurenBild, 0);
+        return _wegsucheMs < WegsucheJeBildMs;
+    }
+
+    /// <summary>
+    /// Sucht für einen Weg des Kerns, dessen Teil auf einem Platz noch offen ist, den Weg über die freie Fläche (<see cref="UeberDenPlatz(IReadOnlyList{Vector3}, int)"/>).
+    /// Der Plan bleibt im selben Tempo: Die Laufzeit wächst oder schrumpft mit der Länge. False, wenn in diesem Bild keine Zeit mehr war.
+    /// </summary>
+    private bool PlatzNachplanen(Passant p, double minuteGenau)
+    {
+        if (!WegsucheFrei()) return false;
+        var uhr = System.Diagnostics.Stopwatch.StartNew();
+        var alt = p.Laenge;
+        p.Pfad = UeberDenPlatz(p.Pfad, p.Nummer).ToArray();
+        p.Laenge = Gassennetz.Laenge(p.Pfad);
+        p.Mitte = null;
+        p.PlatzOffen = false;
+        if (alt > 0.01f && p.LaufEnde > p.LaufStart)
+            p.LaufEnde = p.LaufStart + (p.LaufEnde - p.LaufStart) * p.Laenge / alt; // gleiches Tempo; wer schon geht, bleibt an seiner Stelle
+        if (!SpurAlt && p.Pfad.Length > 0) MitteVon(p); // Bodenmeter gleich hier (zählt zur Wegsuche)
+        _wegsucheMs += uhr.Elapsed.TotalMilliseconds;
+        return true;
+    }
+
+    /// <summary>Berührt der Pfad das Pflaster eines Marktplatzes (ein Punkt darauf oder ein Stück hindurch)?</summary>
+    private bool BeruehrtPlatz(IReadOnlyList<Vector3> pfad)
+    {
+        foreach (var platz in _maerkte)
+        {
+            if (platz.Halb <= 0) continue;
+            if (pfad.Count > 0 && platz.Auf(pfad[0])) return true;
+            for (var i = 0; i + 1 < pfad.Count; i++)
+                if (ImPflaster(platz, pfad[i], pfad[i + 1]) is not null) return true;
+        }
+        return false;
+    }
+
     /// <summary>
     /// Jedes Bild (v3): Die Belegung der Streifen verblasst; einmal je Sekunde erfährt jede Fläche, wer auf ihr steht oder sitzt (Wege machen einen Bogen um sie).
     /// </summary>
@@ -368,6 +426,14 @@ public partial class Stadtansicht
 
     /// <summary>Wählt das nächste Ziel auf demselben Platz, belegt es, legt den Weg über die Fläche (vielleicht ein Stück um den Brunnen) und geht los.</summary>
     private bool BummelLosgehen(Passant p, Einwohner e, int alt, double minuteGenau)
+    {
+        if (!WegsucheFrei()) return false; // keine Zeit mehr in diesem Bild: im nächsten (die Pause ist dann ein Bild länger)
+        var suchUhr = System.Diagnostics.Stopwatch.StartNew();
+        try { return BummelGang(p, e, alt, minuteGenau); }
+        finally { _wegsucheMs += suchUhr.Elapsed.TotalMilliseconds; }
+    }
+
+    private bool BummelGang(Passant p, Einwohner e, int alt, double minuteGenau)
     {
         var platz = alt >= 0 ? _marktstellen[alt].Platz : MarktFuer(e);
         // klappt es nicht, später noch einmal (und die Wartezeit allein beginnt neu, sonst versuchte sie es jedes Bild)

@@ -150,6 +150,17 @@ public sealed class Marktflaeche
         var (dx, dz) = (b.X - a.X, b.Z - a.Z);
         var laenge = MathF.Sqrt(dx * dx + dz * dz);
         if (laenge < 1e-5f) return true;
+        // Stehende: nicht mitten durch (außer jemand steht am Anfang oder Ziel selbst – der Nachbar am Stand, der Partner im Gespräch); einmal je Person
+        // genau gerechnet (nächster Punkt der Strecke), nicht je Abtastpunkt
+        if (_personen.Count > 0 && frei >= PersonFreiAb)
+            foreach (var (px, pz) in _personen)
+            {
+                var (ax, az, bx, bz) = (px - a.X, pz - a.Z, px - b.X, pz - b.Z);
+                if (ax * ax + az * az < PersonAmEnde * PersonAmEnde || bx * bx + bz * bz < PersonAmEnde * PersonAmEnde) continue;
+                var t = Math.Clamp((ax * dx + az * dz) / (laenge * laenge), 0, 1);
+                var (ex, ez) = (ax - dx * t, az - dz * t);
+                if (ex * ex + ez * ez < PersonAbstand * PersonAbstand) return false;
+            }
         var (startFrei, zielFrei) = (Frei(a.X, a.Z), Frei(b.X, b.Z));
         // In Sprüngen so groß wie die Luft über dem Nötigen (der Abstand ändert sich je Meter höchstens um einen Meter, so wird nichts übersprungen),
         // mindestens 2 cm
@@ -165,16 +176,7 @@ public sealed class Marktflaeche
             if (laenge - s < frei + Zelle) noetig = MathF.Min(noetig, zielFrei - 0.05f);
             var luft = Frei(x, z) - noetig;
             if (luft < 0) return false;
-            // Stehende: nicht mitten durch (außer jemand steht am Anfang oder Ziel selbst – der Nachbar am Stand, der Partner im Gespräch)
-            if (_personen.Count > 0 && frei >= PersonFreiAb)
-                foreach (var (px, pz) in _personen)
-                {
-                    var (ex, ez) = (px - x, pz - z);
-                    if (ex * ex + ez * ez >= PersonAbstand * PersonAbstand) continue;
-                    var (ax, az, bx, bz) = (px - a.X, pz - a.Z, px - b.X, pz - b.Z);
-                    if (ax * ax + az * az < PersonAmEnde * PersonAmEnde || bx * bx + bz * bz < PersonAmEnde * PersonAmEnde) continue;
-                    return false;
-                }
+
             if (s >= laenge) return true;
             // die Lockerung an den Enden gilt nur dort: nicht über ihre Grenze hinwegspringen
             // (mindestens 8 cm: Wege an der Grenze des Abstands entlang würden sonst in winzigen Schritten abgetastet; was dazwischen fehlt, sind Millimeter)

@@ -105,6 +105,10 @@ public partial class Stadtansicht
         /// <summary>Wie weit die Figur auf dem Markt seitlich der Mittellinie stehen darf (v3, links ≤ 0, rechts ≥ 0; ±3 = keine Grenze), nur begrenzt geändert.</summary>
         public float GrenzeLinks { get; set; } = -3;
         public float GrenzeRechts { get; set; } = 3;
+        /// <summary>Markt v3: Der Teil des Weges auf einem Platz ist noch nicht über die freie Fläche gesucht (geschieht kurz vor dem Losgehen).</summary>
+        public bool PlatzOffen { get; set; }
+        /// <summary>Beginnt der laufende Weg auf dem Pflaster eines Platzes (dann geht sie erst los, wenn der Weg über die Fläche gesucht ist)?</summary>
+        public bool PfadBeginntAufPlatz { get; set; }
         /// <summary>Lage im letzten Bild (nur für die Messung).</summary>
         public Vector3? Messlage { get; set; }
     }
@@ -121,6 +125,8 @@ public partial class Stadtansicht
         public bool OhneRundung { get; init; }
         public override (float X, float Z)? Gerundet(float strecke, float fenster) => OhneRundung ? null : base.Gerundet(strecke, fenster);
         public float[] Boden { get; set; } = Array.Empty<float>();
+        /// <summary>Abstand der Stützpunkte von <see cref="Boden"/> (lange Wege gröber, <see cref="Passantenspur.BodenschrittLang"/>).</summary>
+        public float BodenSchritt { get; set; } = Passantenspur.Bodenschritt;
         public float Bodenlaenge => Boden.Length > 0 ? Boden[^1] : Laenge;
     }
 
@@ -169,6 +175,17 @@ public partial class Stadtansicht
             // nach der Ankunft am neuen, dazwischen unterwegs.
             var weg = e.Weg;
             Profil(0);
+            // Ein neuer Weg des Kerns wird nur geplant, solange in diesem Bild noch Zeit für Wegsuchen ist – zur vollen Stunde bekommen in Köln über hundert
+            // zugleich einen Weg, das verteilt sich so auf einige Bilder. Bis dahin bleibt alles, wie es war (wer geht, geht seinen alten Weg weiter, wer steht,
+            // steht noch ein, zwei Bilder länger)
+            if (weg is not null && !ReferenceEquals(p.FuerWeg, weg) && !MarktV2 && !WegsucheFrei())
+            {
+                if (p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0) Laufen(p, e.Nummer, minuteGenau, ticksJeSekunde);
+                if (p.Knoten.Visible && p.Figur is { } wartend) FigurImBildBewegen(wartend, p.Knoten.Position, sekunden);
+                continue;
+            }
+            var planUhr = weg is not null && !ReferenceEquals(p.FuerWeg, weg) ? Stopwatch.StartNew() : null;
+            var netzMs = 0.0;
             if (weg is not null && !ReferenceEquals(p.FuerWeg, weg))
             {
                 // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
@@ -182,7 +199,9 @@ public partial class Stadtansicht
                 (p.VonZeit, p.VonZeitFuer) = p.FuerWeg is { } vorher && vorher.Nach == weg.Von ? ((long?)vorher.Ankunft, weg) : ((long?)null, (Weg?)null);
                 var altPfad = p.Pfad;
                 p.FuerWeg = weg;
+                var netzUhr = ProfilMessen ? Stopwatch.StartNew() : null;
                 p.Pfad = Strecke(weg, e, p);
+                if (netzUhr is not null) { netzMs = netzUhr.Elapsed.TotalMilliseconds; _netzMax = Math.Max(_netzMax, netzMs); }
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
                 LaufPlanen(p, weg);
                 // Wer schlendert, ist beim Losgehen und Ankommen schon ein Stück weiter auf dem Rundgang: den Weg mit diesen Zeiten neu legen
@@ -192,12 +211,26 @@ public partial class Stadtansicht
                     p.Laenge = Gassennetz.Laenge(p.Pfad);
                 }
                 if (weiter is { } strecke && p.Pfad.Length > 0) Weitergehen(p, weg, altPfad, strecke, minuteGenau);
+                var bodenUhr = ProfilMessen ? Stopwatch.StartNew() : null;
+                if (!SpurAlt && p.Pfad.Length > 0) MitteVon(p); // Mittellinie und Bodenmeter gleich hier (zählt zur Planung), nicht erst im ersten Schritt
+                if (bodenUhr is not null) _bodenMax = Math.Max(_bodenMax, bodenUhr.Elapsed.TotalMilliseconds);
+                if (planUhr is not null) WegsucheZaehlen(planUhr.Elapsed.TotalMilliseconds);
             }
             Profil(1); // neue Wege planen
             // Ist der Kern längst fertig und sieht keiner hin (weder die Figur noch ihr Ziel), kommt sie unbemerkt an: nie sichtbar springen
             if (weg is not null && p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0 && minuteGenau >= weg.Ankunft + p.Verzoegerung && minuteGenau < p.LaufEnde
                 && !ImBild(p.Knoten.Position) && !ImBild(p.Pfad[^1]))
                 p.LaufEnde = minuteGenau;
+            // Markt v3: Weg über den Platz kurz vor dem Losgehen suchen, höchstens so viele je Bild, wie die Zeit erlaubt (Stadtansicht.Marktbummel.cs)
+            Profil(0);
+            if (p.PlatzOffen && weg is not null && minuteGenau >= p.LaufStart - PlatzVorlauf && !PlatzNachplanen(p, minuteGenau)
+                && p.PfadBeginntAufPlatz && minuteGenau >= p.LaufStart && minuteGenau < p.LaufEnde)
+            {
+                // keine Zeit mehr in diesem Bild und der Weg beginnt auf dem Platz: noch ein Bild stehen bleiben (sonst ginge sie die rohe Linie durch den Brunnen)
+                var schieben = minuteGenau - p.LaufStart + 1e-3;
+                (p.LaufStart, p.LaufEnde) = (p.LaufStart + schieben, p.LaufEnde + schieben);
+            }
+            Profil(1); // Wege planen (auch über die Fläche)
             var losgegangen = weg is null || minuteGenau >= p.LaufStart;
             if (losgegangen && p.AlteMarktstelle >= 0)
             {
@@ -256,8 +289,16 @@ public partial class Stadtansicht
         PassantenHervorheben();
         Profil(8); // Hervorheben
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
+        _passantenSchlimmstes = Math.Max(_passantenSchlimmstes, _passantenUhr.Elapsed.TotalMilliseconds);
         _passantenBilder++;
         _profilBilder++;
+        if (ProfilMessen)
+        {
+            for (var i = 0; i < _profilBild.Length; i++) _profilMax[i] = Math.Max(_profilMax[i], _profilBild[i]);
+            Array.Clear(_profilBild);
+            _flaecheBildMax = Math.Max(_flaecheBildMax, _flaechenZeit - _flaecheBildVorher);
+            _flaecheBildVorher = _flaechenZeit;
+        }
         _passantenBewegtSumme += _figurenBewegt;
         _passantenSeitMessung += delta;
         if (_passantenSeitMessung >= 10)
@@ -271,13 +312,14 @@ public partial class Stadtansicht
             if (ProfilMessen) ProfilMelden();
             GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
                      $"{_passantenBewegtSumme / (double)_passantenBilder:0} bewegt je Bild, {tempi}" +
-                     $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s " +
+                     $"{_passantenZeit / _passantenBilder:0.00} ms je Bild (schlimmstes {_passantenSchlimmstes:0.0} ms), {Engine.GetFramesPerSecond()} Bilder/s " +
                      $"({_messUhr.Elapsed.TotalMilliseconds / _passantenBilder:0} ms Bildzeit), " +
                      $"{RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TotalDrawCallsInFrame)} Zeichenaufrufe" +
                      (MarktV2 ? "" : $", Wege über die Marktfläche {_flaechenWege} in {_flaechenZeit:0.0} ms, Bummelgänge {_bummelGaenge} von {_bummelVersuche}, " +
                                      $"am Markt stehend {_passanten.Values.Count(q => q.Stand is { Ort.Ort: Stadtort.Markt } && q.Knoten.Visible)}, bummelnd {_passanten.Values.Count(q => q.ImBummel)}"));
-            (_flaechenWege, _flaechenZeit, _bummelGaenge, _bummelVersuche) = (0, 0, 0, 0);
+            (_flaechenWege, _flaechenZeit, _bummelGaenge, _bummelVersuche, _flaecheBildVorher) = (0, 0, 0, 0, 0);
             _passantenZeit = 0;
+            _passantenSchlimmstes = 0;
             _passantenBilder = 0;
             _passantenBewegtSumme = 0;
             _passantenSeitMessung = 0;
@@ -286,6 +328,7 @@ public partial class Stadtansicht
     }
 
     private long _passantenBewegtSumme;
+    private double _passantenSchlimmstes;
 
     /// <summary>Laufende außerhalb des Bildes werden nur jedes so vielte Bild weitergestellt (über die Nummer verteilt).</summary>
     private const int AusserhalbJedes = 3;
@@ -293,7 +336,8 @@ public partial class Stadtansicht
     // ── Profil der Rechenzeit (Startoption --passantenprofil=1, nur Protokoll) ──
     private static readonly bool ProfilMessen = Wasserarten.Startoption("passantenprofil") is "1" or "an" or "ja";
     private static readonly string[] ProfilNamen = { "Rest", "Wege planen", "am Ort", "Laufen", "Licht", "Pose", "Ausweichen", "Messung", "Hervorheben" };
-    private readonly double[] _profilMs = new double[9];
+    private readonly double[] _profilMs = new double[9], _profilBild = new double[9], _profilMax = new double[9];
+    private double _flaecheBildMax, _flaecheBildVorher, _netzMax, _bodenMax;
     private readonly Stopwatch _profilUhr = new();
     private int _profilBilder;
 
@@ -301,16 +345,19 @@ public partial class Stadtansicht
     private void Profil(int abschnitt)
     {
         if (!ProfilMessen) return;
-        if (abschnitt > 0) _profilMs[abschnitt] += _profilUhr.Elapsed.TotalMilliseconds;
+        if (abschnitt > 0) { _profilMs[abschnitt] += _profilUhr.Elapsed.TotalMilliseconds; _profilBild[abschnitt] += _profilUhr.Elapsed.TotalMilliseconds; }
         _profilUhr.Restart();
     }
 
     private void ProfilMelden()
     {
         var bilder = Math.Max(_profilBilder, 1);
-        GD.Print("[passantenprofil] ms je Bild: " + string.Join(", ", Enumerable.Range(1, 8).Select(i => $"{ProfilNamen[i]} {_profilMs[i] / bilder:0.00}")) +
+        GD.Print("[passantenprofil] ms je Bild: " + string.Join(", ", Enumerable.Range(1, 8).Select(i => $"{ProfilNamen[i]} {_profilMs[i] / bilder:0.00} (höchstens {_profilMax[i]:0.0})")) +
+                 $", Wege über die Fläche höchstens {_flaecheBildMax:0.0} ms in einem Bild, ein Weg im Gassennetz höchstens {_netzMax:0.0} ms, eine Mittellinie mit Bodenmetern höchstens {_bodenMax:0.0} ms" +
                  $", Figuren {_passanten.Count}, laufend {_passanten.Values.Count(q => q.Stand is null && q.Knoten.Visible)}, sichtbar {_passanten.Values.Count(q => q.Knoten.Visible)}");
         Array.Clear(_profilMs);
+        Array.Clear(_profilMax);
+        (_flaecheBildMax, _netzMax, _bodenMax) = (0, 0, 0);
         _profilBilder = 0;
     }
 
@@ -549,7 +596,7 @@ public partial class Stadtansicht
         var mitte = MitteVon(p);
         if (SpurV1) return Mathf.Clamp(anteil * mitte.Laenge, 0, mitte.Laenge);
         var boden = Mathf.Clamp(anteil * mitte.Bodenlaenge - p.Rueckstand, 0, mitte.Bodenlaenge);
-        return Passantenspur.StreckeZuBoden(mitte.Boden, mitte.Laenge, boden);
+        return Passantenspur.StreckeZuBoden(mitte.Boden, mitte.Laenge, boden, mitte.BodenSchritt);
     }
 
     /// <summary>Die Mittellinie des Pfades samt Bodenmetern (neu, sobald der Pfad wechselt; gebaut erst, wenn die Figur läuft).</summary>
@@ -557,7 +604,11 @@ public partial class Stadtansicht
     {
         if (p.Mitte is { } mitte && ReferenceEquals(mitte.Pfad, p.Pfad)) return mitte;
         mitte = PfadMitteBauen(p.Pfad);
-        if (!SpurV1) mitte.Boden = Passantenspur.Bodenmeter(mitte, p.Nummer, mitte.Laenge, (p.VersatzStart.X, p.VersatzStart.Z));
+        if (!SpurV1)
+        {
+            mitte.BodenSchritt = Passantenspur.BodenschrittFuer(mitte.Laenge); // lange Wege gröber: sonst hakt zur vollen Stunde ein Bild
+            mitte.Boden = Passantenspur.Bodenmeter(mitte, p.Nummer, mitte.Laenge, (p.VersatzStart.X, p.VersatzStart.Z), mitte.BodenSchritt);
+        }
         return p.Mitte = mitte;
     }
 
@@ -709,7 +760,10 @@ public partial class Stadtansicht
         if (Draussen(weg.Nach)) pfad.Add(StreckenEnde(weg.Nach, e, p.Marktstelle, weg.Ankunft, ankunft));
         else if (TuerVon(weg.Nach) is { } eingang) pfad.Add(eingang);      // verschwindet erst an der Tür
         if (!SpurV1) pfad = OhneUmkehr(pfad); // nirgends bis zu einem Knoten und auf derselben Linie zurück (Stadtansicht.Passantenwege.cs)
-        return UeberDenPlatz(pfad, p.Nummer).ToArray();
+        // Markt v3: Der Weg über den Platz wird erst kurz vor dem Losgehen gesucht (PlatzNachplanen) – zur vollen Stunde bekommen sonst alle zugleich einen Weg
+        p.PlatzOffen = !MarktV2 && BeruehrtPlatz(pfad);
+        p.PfadBeginntAufPlatz = p.PlatzOffen && AufDemPflaster(pfad[0]);
+        return p.PlatzOffen ? pfad.ToArray() : UeberDenPlatz(pfad, p.Nummer).ToArray();
     }
 
     /// <summary>

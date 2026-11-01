@@ -104,8 +104,14 @@ public partial class Stadtansicht
             }
             else pfad = WeitergehenV1(stelle, neu); // keine Verbindung über die Einstiege: wie früher über den nächsten Knoten (nicht geradewegs durch Häuser)
             pfad = OhneUmkehr(pfad);
-            // Markt v3: Was davon auf einem Marktplatz liegt, geht über dessen freie Fläche (nicht über Knoten am Brunnen oder durch Stände)
-            if (!MarktV2) pfad = UeberDenPlatz(pfad, p.Nummer);
+            // Markt v3: Was davon auf einem Platz liegt, geht über dessen freie Fläche – gleich, wenn sie gerade auf dem Platz ist, sonst kurz bevor sie hinkommt
+            // (PlatzNachplanen, höchstens so viele je Bild, wie die Zeit erlaubt; zur vollen Stunde schließen viele zugleich an)
+            if (!MarktV2)
+            {
+                p.PlatzOffen = BeruehrtPlatz(pfad);
+                p.PfadBeginntAufPlatz = p.PlatzOffen && AufDemPflaster(pfad[0]);
+                if (p.PfadBeginntAufPlatz) { pfad = UeberDenPlatz(pfad, p.Nummer); p.PlatzOffen = false; }
+            }
         }
         p.Pfad = pfad.ToArray();
         p.Laenge = Gassennetz.Laenge(p.Pfad);

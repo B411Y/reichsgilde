@@ -363,6 +363,14 @@ public static class Passantenspur
         return jetzt with { Bewegung = ((danach.X - davor.X) / (s1 - s0), (danach.Z - davor.Z) / (s1 - s0)) };
     }
 
+    /// <summary>
+    /// Abstand (Meter Mittellinie) der Stützpunkte in <see cref="Bodenmeter"/> für lange Wege (<see cref="BodenschrittFuer"/>): Die Tabelle eines Weges von 400 m kostete sonst zur vollen Stunde einige Millisekunden je Figur (Profil Köln, 1.11.2026).
+    /// </summary>
+    public const float BodenschrittLang = 0.25f, LangerWeg = 60f, BodenschrittSehrLang = 0.5f, SehrLangerWeg = 150f;
+
+    /// <summary>Der Abstand der Stützpunkte für einen Weg dieser Länge (Meter): bis 60 m <see cref="Bodenschritt"/>, bis 150 m 0,25 m, darüber 0,5 m.</summary>
+    public static float BodenschrittFuer(float laenge) => laenge > SehrLangerWeg ? BodenschrittSehrLang : laenge > LangerWeg ? BodenschrittLang : Bodenschritt;
+
     /// <summary>Abstand (Meter Mittellinie) der Stützpunkte in <see cref="Bodenmeter"/>.</summary>
     public const float Bodenschritt = 0.1f;
 
@@ -372,14 +380,14 @@ public static class Passantenspur
     /// diesem Weg und setzt die Figur über <see cref="StreckeZuBoden"/>: So geht jede in ihrem Tempo, auch an Ecken – innen läge sonst kaum Weg auf einem
     /// Meter Mittellinie (sie bliebe fast stehen), außen viel (sie hetzte).
     /// </summary>
-    public static float[] Bodenmeter(IMittellinie mitte, int nummer, float laenge, (float X, float Z) start)
+    public static float[] Bodenmeter(IMittellinie mitte, int nummer, float laenge, (float X, float Z) start, float schritt = Bodenschritt)
     {
-        var anzahl = Math.Max(1, (int)MathF.Ceiling(laenge / Bodenschritt - 1e-4f));
+        var anzahl = Math.Max(1, (int)MathF.Ceiling(laenge / schritt - 1e-4f));
         var tabelle = new float[anzahl + 1];
         var davor = Gehen(mitte, nummer, laenge, 0, start, false).Ort;
         for (var k = 1; k <= anzahl; k++)
         {
-            var ort = Gehen(mitte, nummer, laenge, MathF.Min(k * Bodenschritt, laenge), start, false).Ort;
+            var ort = Gehen(mitte, nummer, laenge, MathF.Min(k * schritt, laenge), start, false).Ort;
             tabelle[k] = tabelle[k - 1] + MathF.Sqrt((ort.X - davor.X) * (ort.X - davor.X) + (ort.Z - davor.Z) * (ort.Z - davor.Z));
             davor = ort;
         }
@@ -387,7 +395,7 @@ public static class Passantenspur
     }
 
     /// <summary>Die Meter auf der Mittellinie, bei denen die Figur <paramref name="boden"/> Meter auf dem Boden gegangen ist (Umkehrung von <see cref="Bodenmeter"/>, dazwischen gerade).</summary>
-    public static float StreckeZuBoden(float[] tabelle, float laenge, float boden)
+    public static float StreckeZuBoden(float[] tabelle, float laenge, float boden, float schritt = Bodenschritt)
     {
         if (tabelle.Length < 2 || boden <= 0) return 0;
         if (boden >= tabelle[^1]) return laenge;
@@ -397,7 +405,7 @@ public static class Passantenspur
             var mitte = (lo + hi) / 2;
             if (tabelle[mitte] <= boden) lo = mitte; else hi = mitte;
         }
-        var (s0, s1) = (lo * Bodenschritt, MathF.Min(hi * Bodenschritt, laenge));
+        var (s0, s1) = (lo * schritt, MathF.Min(hi * schritt, laenge));
         var stueck = tabelle[hi] - tabelle[lo];
         return stueck > 1e-6f ? s0 + (s1 - s0) * (boden - tabelle[lo]) / stueck : s0;
     }
