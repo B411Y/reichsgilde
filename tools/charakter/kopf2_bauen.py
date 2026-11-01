@@ -820,13 +820,15 @@ adams_buckel[:, 1] = -0.003 * np.exp(-0.5 * ((_rel[:, 0] / 0.008) ** 2 + (_rel[:
 bericht["adamsapfel_mm"] = [round(float(v) * 1000, 1) for v in adams_p]
 
 # Phase 6 (S4): eigene Formen direkt auf dem ICT-Netz (kopf6_eigen.py), dazu der Adamsapfel als eigene Form;
-# Etappe D (eigen=2): dazu Augenhöhle, Deckfalte und Unterlid
+# Etappe D (eigen=2): dazu Augenhöhle, Deckfalte und Unterlid; Grundkopf 2 (eigen=3): dazu Nase und Kinn der Frau,
+# Lippen, Lidkante
 eigen_haut = {}
-if OPTIONEN.get("eigen") in ("1", "2"):
+if OPTIONEN.get("eigen") in ("1", "2", "3"):
     import kopf6_eigen as ke
     eigen_haut, eigen_bericht = ke.formen(H_ecken, N_HAUT, H_flaechen, S[ict["merkpunkte68"]], augen,
                                           np.arange(T["mundhoehle"][0], N_HAUT), abstand_hals,
-                                          etappe_d=OPTIONEN.get("eigen") == "2")
+                                          etappe_d=OPTIONEN.get("eigen") in ("2", "3"),
+                                          grundkopf2=OPTIONEN.get("eigen") == "3")
     eigen_haut["eigen_adamsapfel"] = adams_buckel.copy()
     bericht["eigen_formen"] = eigen_bericht
     zeit("Eigene Formen: " + json.dumps(eigen_bericht, ensure_ascii=False))

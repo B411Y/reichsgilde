@@ -28,6 +28,17 @@ Etappe D (Augenpartie, nur mit etappe_d=True bzw. kopf2_bauen.py eigen=2; Halt B
                       ausgeblendet, wenn das Lid schließt (kopf6_eichen.py legt sie in „lidfalte_<g>“)
   eigen_unterlid      Unterlid: Lidwulst (Pars tarsalis) 0,45 mm vor, 2 mm unter dem Rand, darunter die Lid-Wangen-Furche
                       0,35 mm tief bei 5,5 mm; zu den Lidwinkeln auslaufend, der Lidrand selbst bleibt
+
+Grundkopf 2 (nur mit grundkopf2=True bzw. kopf2_bauen.py eigen=3; Prüferbefund E2/E3: Frau Nase und Kinn, beide Lider
+und Lippen):
+  eigen_nase_w        Nasenspitze der Frau 0,9 mm tiefer und 0,3 mm vor, Nasenflügel 0,6 mm zur Mitte und 0,5 mm tiefer:
+                      die Nasenbasis kippt nach unten, von vorn sieht man weniger Nasenloch; Steg und Flügel kleiner
+  eigen_kinn_w        Kinn der Frau 1,8 mm vor und 0,8 mm tiefer (Kinnwulst unter der Kinnlippenfurche, weich, rund);
+                      Lippen und Hals bleiben
+  eigen_lippen        Lippenrot 0,55 mm voller (entlang der Normale, Mitte am stärksten, zu den Mundwinkeln und zur
+                      Lippenfuge auslaufend), Oberlippe 0,25 mm höher, Unterlippe 0,25 mm tiefer
+  eigen_lidkante      Lidkante mit Dicke: am Oberlid 0,5–2,5 mm über dem Rand ein Wulst 0,3 mm (die Kante liest sich als
+                      runde Leiste mit Glanzlicht), am Unterlid 0,18 mm bei 0,9 mm; der Lidrand selbst bleibt am Augapfel
 """
 import numpy as np
 
@@ -75,7 +86,7 @@ def _naechster(p, linie):
     return d, k
 
 
-def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False):
+def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False, grundkopf2=False):
     """Alle eigenen Formen. H: Hautecken (m), n_haut: Zahl der ICT-Hautecken (davor), flaechen: Hautflächen,
     L: 68 Merkpunkte (m), augen: {"l"/"r": (Mitte, Halbmesser)}, ausschluss: Ecken ohne Versatz (Mund- und
     Augenhöhlen), hals_abstand: Abstand jeder ICT-Hautecke zur Halsnaht (m), etappe_d: dazu die Formen der Augenpartie
@@ -229,6 +240,8 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
     ablegen("eigen_hoecker", Nv * (2.0 * mm * w)[:, None])
     if etappe_d:
         augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
+    if grundkopf2:
+        grundkopf2_formen(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     return aus, bericht
 
 
@@ -319,3 +332,90 @@ def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, m
     for name in ("eigen_augenhoehle", "eigen_deckfalte_m", "eigen_deckfalte_w", "eigen_unterlid"):
         b = np.linalg.norm(aus[name][:n_haut], axis=1)
         bericht[name]["lidrand_max_mm"] = round(float(b[rand].max() * 1000), 3)
+
+
+def grundkopf2_formen(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm):
+    """Grundkopf 2: Nase und Kinn der Frau, Lippen, Lidkante (siehe Kopf der Datei). Blender-Achsen: x = linke Seite der
+    Figur, −y = vorn, z = oben; Meter."""
+    xz = np.c_[V[:, 0], np.zeros(len(V)), V[:, 2]]
+    # ---------------------------------------------------------------- Nase der Frau
+    prn = L[30]
+    nase = (np.abs(V[:, 0]) < 0.02) & (V[:, 2] < L[29, 2] + 0.002) & (V[:, 2] > L[33, 2] - 0.006) \
+        & (V[:, 1] < L[33, 1] + 0.004)
+    w_spitze = np.exp(-0.5 * (np.linalg.norm(V - prn, axis=1) / (5.5 * mm)) ** 2) * nase
+    dd = np.zeros_like(V)
+    dd[:, 2] -= 0.9 * mm * w_spitze
+    dd[:, 1] -= 0.3 * mm * w_spitze
+    for al in (31, 35):
+        a = L[al] + np.array([np.sign(L[al, 0]) * 0.002, 0.0, 0.0])          # Flügel (etwas außerhalb des Ansatzes)
+        w_fl = np.exp(-0.5 * (np.linalg.norm(V - a, axis=1) / (4.5 * mm)) ** 2) * nase \
+            * (np.sign(V[:, 0]) == np.sign(L[al, 0]))
+        dd[:, 0] -= np.sign(L[al, 0]) * 0.6 * mm * w_fl
+        dd[:, 2] -= 0.5 * mm * w_fl
+    ablegen("eigen_nase_w", dd)
+    # ---------------------------------------------------------------- Kinn der Frau
+    unterlippe = L[57]
+    me = L[8]
+    pg = me + 0.4 * (unterlippe - me)
+    rel = V - pg
+    w = np.exp(-0.5 * ((rel[:, 0] / (10.0 * mm)) ** 2 + (rel[:, 2] / (8.0 * mm)) ** 2))
+    w *= stufe(V[:, 2], unterlippe[2] - 0.0015, unterlippe[2] - 0.0055)      # Lippe bleibt
+    w *= stufe(V[:, 2], me[2] - 0.012, me[2] - 0.004)                         # Hals bleibt
+    w *= (V[:, 1] < pg[1] + 0.015) * stufe(Nv[:, 1], 0.2, -0.2)
+    dd = np.zeros_like(V)
+    dd[:, 1] -= 1.8 * mm * w
+    dd[:, 2] -= 0.8 * mm * w
+    ablegen("eigen_kinn_w", dd)
+    # ---------------------------------------------------------------- Lippen voller
+    aussen = L[48:60]
+    innen = L[60:68]
+    ao, _ = _linie(np.vstack([aussen, aussen[:1]]), 30)
+    ai, _ = _linie(np.vstack([innen, innen[:1]]), 30)
+    d_o, _ = _naechster(xz, np.c_[ao[:, 0], np.zeros(len(ao)), ao[:, 2]])
+    d_i, _ = _naechster(xz, np.c_[ai[:, 0], np.zeros(len(ai)), ai[:, 2]])
+    # innerhalb der äußeren Kontur (Vieleck in x/z)
+    px, pz = V[:, 0], V[:, 2]
+    drin = np.zeros(len(V), bool)
+    for (x1, z1), (x2, z2) in zip(aussen[:, [0, 2]], np.roll(aussen[:, [0, 2]], -1, 0)):
+        kreuzt = ((z1 > pz) != (z2 > pz)) & (px < (x2 - x1) * (pz - z1) / (z2 - z1 + 1e-12) + x1)
+        drin ^= kreuzt
+    halb = 0.5 * (L[54, 0] - L[48, 0])
+    mitte_x = 0.5 * (L[54, 0] + L[48, 0])
+    quer = np.abs(V[:, 0] - mitte_x) / max(halb, 1e-6)
+    vorn_mund = (V[:, 1] < L[62, 1] + 0.006) & (Nv[:, 1] < 0.3)
+    w = np.where(drin, stufe(d_o, 0.0, 1.5 * mm), 0.35 * np.exp(-0.5 * (d_o / (1.0 * mm)) ** 2))
+    w *= stufe(d_i, 0.0, 1.2 * mm) * (1 - stufe(quer, 0.65, 1.0)) * vorn_mund
+    z_sto = 0.5 * (L[62, 2] + L[66, 2])
+    oben = (V[:, 2] > z_sto).astype(float)
+    dd = Nv * (0.55 * mm * w)[:, None]
+    dd[:, 2] += (0.25 * mm * w) * (2 * oben - 1)
+    ablegen("eigen_lippen", dd)
+    # ---------------------------------------------------------------- Lidkante mit Dicke
+    dd = np.zeros_like(V)
+    for s in ("r", "l"):
+        o = L[ober[s]]
+        u = L[unter_rand[s]]
+        ol, _ = _linie(o, 30)
+        ul, _ = _linie(u, 30)
+        d_ob, _ = _naechster(xz, np.c_[ol[:, 0], np.zeros(len(ol)), ol[:, 2]])
+        d_un, _ = _naechster(xz, np.c_[ul[:, 0], np.zeros(len(ul)), ul[:, 2]])
+        z_o = np.interp(V[:, 0], *[a[np.argsort(o[:, 0])] for a in (o[:, 0], o[:, 2])])
+        z_u = np.interp(V[:, 0], *[a[np.argsort(u[:, 0])] for a in (u[:, 0], u[:, 2])])
+        x0, x1 = sorted((o[0, 0], o[-1, 0]))
+        lat = np.clip((V[:, 0] - x0) / (x1 - x0), 0, 1)
+        enden = stufe(lat, 0.0, 0.15) * (1 - stufe(lat, 0.85, 1.0))
+        nah = np.linalg.norm(V - ps[s], axis=1) < 0.026
+        vorn_auge = (V[:, 1] < ps[s][1]) & (Nv[:, 1] < -0.1)
+        w_o = 0.3 * mm * np.exp(-0.5 * ((d_ob - 1.3 * mm) / (0.6 * mm)) ** 2) * stufe(d_ob, 0.35 * mm, 0.7 * mm) \
+            * (V[:, 2] > z_o)
+        w_u = 0.18 * mm * np.exp(-0.5 * ((d_un - 0.9 * mm) / (0.45 * mm)) ** 2) * stufe(d_un, 0.3 * mm, 0.55 * mm) \
+            * (V[:, 2] < z_u)
+        dd += Nv * ((w_o + w_u) * enden * nah * vorn_auge)[:, None]
+    ablegen("eigen_lidkante", dd)
+    rand = np.zeros(len(V), bool)
+    for s in ("r", "l"):
+        rl, _ = _linie(np.vstack([L[ober[s]], L[unter_rand[s]][1:]]), 30)
+        dr, _ = _naechster(xz, np.c_[rl[:, 0], np.zeros(len(rl)), rl[:, 2]])
+        rand |= (dr < 0.0003) & (np.linalg.norm(V - ps[s], axis=1) < 0.028)
+    b = np.linalg.norm(aus["eigen_lidkante"][:n_haut], axis=1)
+    bericht["eigen_lidkante"]["lidrand_max_mm"] = round(float(b[rand].max() * 1000), 3)
