@@ -5,8 +5,6 @@ using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
 
-namespace Reichsgilde.Core.Tests;
-
 /// <summary>
 /// Felspinsel F6: Boden um den Fels (Fels unter dem Stück, Schuttkegel hangabwärts, Moossaum oben und im Norden) – mit den Stücken ein Befehl,
 /// Rückgängig Byte für Byte, alte Karten unverändert; die Schuttsteine aus Lage und Form; das Suchraster ändert kein Ergebnis.

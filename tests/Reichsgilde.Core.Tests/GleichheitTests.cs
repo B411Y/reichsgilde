@@ -25,7 +25,8 @@ using Reichsgilde.Core.Zeit;
 ///   • Lauf C speichert und lädt an fünf Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
-/// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei.
+/// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
+/// und der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -66,7 +67,19 @@ static class GleichheitTests
         "und mit Speichern/Laden (auch direkt nach dem Löschen eines Betriebs) ergeben dieselbe Prüfsumme",
         (Action)(() => Pruefen(p)))).Append((
         "Gleichheit: Felspinsel (Stempel, Streuen mit Filter, Radieren, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelsenPruefen));
+        FelsenPruefen)).Append((
+        "Gleichheit: Felsboden (Felsstrich und Boden als ein Befehl, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsbodenPruefen));
+
+    /// <summary>Der Felsboden (F6): Stücke und Boden um den Fels in einem Befehl – gleiche Bytes (Zeile „felsboden …“ in der Datei der CI).</summary>
+    static void FelsbodenPruefen()
+    {
+        var a = Sha256(FelsbodenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsbodenTests.Ablauf()), "Felsboden: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsbodenTests.Ablauf())), "Felsboden: de-DE");
+        Zeilen[-2] = new[] { $"felsboden {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>
     /// Der Felsfall (Felspinsel F3): Ein fester Ablauf der Kartenwerkstatt (<see cref="FelsenTests.Ablauf"/>) – gleicher Strich, gleiche Bytes.
