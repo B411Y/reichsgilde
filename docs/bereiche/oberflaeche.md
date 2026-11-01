@@ -26,6 +26,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Danksagung (PR „Oberfläche: Danksagung mit allen Lizenzhinweisen“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort und Aufbau | Knopf „Danksagung“ im Hauptmenü (`DanksagungAnzeige`), rollbare Menütafel in fünf Gruppen: Spiel, Engine & Bibliotheken, Klänge, Bilder & Modelle, Schriften; zweiter Knopf „Lizenztexte der Engine“ (Texte von Godot selbst). Menütafel im bisherigen Stil, noch nicht im Buch-/Schriftrollenstil (der Umbau steht aus). | 31.10.2026 |
+| Daten | `game/daten/danksagung.json` wird von `tools/assets/danksagung_bauen.py` aus `tools/assets/danksagung_quelle.json`, der Freesound-Tabelle in `game/assets/audio/umgebung/HERKUNFT.md` und dem Protokoll gebaut; `protokoll_pruefen.py` (CI) wird rot, wenn Fremdmaterial fehlt oder die Datei veraltet ist. Ablauf: `docs/assets/README.md`. | 31.10.2026 |
+| Namensnennung | CC BY, MIT, OFL und Apache mit Werk, Urheber, Adresse und Lizenz einzeln; CC0 (Kenney, Quaternius, ambientCG, Freesound-Urheber) als freiwilliger Dank. Wortlaut „mit Unterstützung von Claude (Anthropic)“ ist ein Vorschlag, der Nutzer entscheidet. | 31.10.2026 |
+
 ### Waren-Knöpfe (PR #210)
 
 | Thema | Entscheidung | Datum |
