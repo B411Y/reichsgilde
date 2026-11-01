@@ -25,7 +25,7 @@
   {"kennung": "Stapelhaus", "katalog": "lagerschuppen", "name": "Stapelhaus", "punkt": [50, 28], "drehung": 270},
   {"kennung": "L1", "katalog": "leerstand", "name": "Haus zum güldenen Hammer (leer)", "punkt": [-64, 94], "drehung": 90},
   {"kennung": "L2", "katalog": "leerstand", "name": "Haus zum weißen Schwan (leer)", "punkt": [-100, -40], "drehung": 90},
-  {"kennung": "L3", "katalog": "leerstand", "name": "Haus zum schwarzen Raben (Ruine)", "punkt": [196, 27], "drehung": 180},
+  {"kennung": "L3", "katalog": "leerstand", "name": "Haus zum schwarzen Raben (Ruine)", "punkt": [183, 54], "drehung": 274.7},
   {"kennung": "S1_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [26.5, 79], "drehung": 90},
   {"kennung": "S1_Wohnhaus", "katalog": "wohnhausplatz", "name": "Wohnhaus Rheingasse", "punkt": [28.5, 66.9], "drehung": 90, "lage": "mauerring"},
   {"kennung": "S2_Werkstatt", "katalog": "werkstattplatz", "name": "Werkstatt Rheingasse", "punkt": [47.5, 81.5], "drehung": 270, "betrieb": "Gießerei Overstolz"},
@@ -83,14 +83,14 @@
   {"kennung": "Buergerhaus_Kulisse6", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 6", "punkt": [2, 49.45], "drehung": 0},
   {"kennung": "Buergerhaus_Kulisse7", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 7", "punkt": [44.55, -15], "drehung": 270},
   {"kennung": "Buergerhaus_Kulisse8", "katalog": "kulisse_buergerhaus", "name": "Bürgerhaus (Kulisse) 8", "punkt": [44.55, -5.5], "drehung": 270},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [188, -4.3], "drehung": 11.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt2", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 2", "punkt": [197.05, -6.2], "drehung": 11.8},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt3", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 3", "punkt": [130.05, 14.2], "drehung": 182.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [139.3, 13.8], "drehung": 182.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [148.5, 13.4], "drehung": 182.6},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [177.45, 23.8], "drehung": 273.3},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [164.6, 23.55], "drehung": 93.3},
-  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [165.1, 32.8], "drehung": 93.3},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt1", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt", "punkt": [130.05, 14.2], "drehung": 182.6},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt2", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 2", "punkt": [167.55, 57.15], "drehung": 94.6},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt3", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 3", "punkt": [168.25, 66.35], "drehung": 94.4},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt4", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 4", "punkt": [168.95, 75.6], "drehung": 94.5},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt5", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 5", "punkt": [169.75, 84.85], "drehung": 95},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt6", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 6", "punkt": [170.6, 94.15], "drehung": 95.8},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt7", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 7", "punkt": [171.6, 103.45], "drehung": 96.9},
+  {"kennung": "Einwohnerplatz_in_der_Vorstadt8", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 8", "punkt": [172.85, 112.75], "drehung": 98.3},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt9", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 9", "punkt": [-141.15, 7.3], "drehung": 185.2},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt10", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 10", "punkt": [-150.35, 8.15], "drehung": 185.2},
   {"kennung": "Einwohnerplatz_in_der_Vorstadt11", "katalog": "einwohnerplatz_vorstadt", "name": "Einwohnerplatz in der Vorstadt 11", "punkt": [-159.55, 9], "drehung": 185.2},
@@ -171,7 +171,7 @@
   }
  ],
  "wege": [
-  {"name": "Rheingasse", "klasse": "haupt", "linie": [[37, -150], [37, -138], [37, -61], [37, -22], [37, 8], [37, 57], [37, 110], [37, 138], [37, 150]], "gefahr": 1, "breite": 5},
+  {"name": "Rheingasse", "klasse": "haupt", "linie": [[37, -150], [37, -138], [37, -101], [37, -61], [37, -22], [37, 8], [37, 57], [37, 110], [37, 138], [37, 150]], "gefahr": 1, "breite": 5},
   {
    "name": "Hohe Straße",
    "klasse": "haupt",
@@ -198,6 +198,7 @@
   {"name": "Rheinbrücke", "klasse": "haupt", "linie": [[37, 8], [126, 8]], "gefahr": 1, "breite": 5},
   {"name": "Trankgasse", "klasse": "gasse", "linie": [[-34, -61], [0, -61], [37, -61]], "gefahr": 1, "breite": 3},
   {"name": "Hammergasse", "klasse": "gasse", "linie": [[-80, -45], [-34, -45]], "gefahr": 1, "breite": 3},
+  {"name": "Unter Fettenhennen", "klasse": "haupt", "linie": [[37, -101], [24, -95], [-3, -95]], "gefahr": 1, "breite": 5},
   {"name": "Engelspforte", "klasse": "gasse", "linie": [[-34, -112], [-32.25, -112], [-11, -112]], "gefahr": 1, "breite": 3},
   {"name": "Krähenpforte", "klasse": "gasse", "linie": [[0, -61], [0, -47]], "gefahr": 1, "breite": 3},
   {"name": "Wollgasse", "klasse": "gasse", "linie": [[-62, 4], [-56, 40], [-50, 60.1]], "gefahr": 1, "breite": 3},
@@ -277,7 +278,14 @@
     [-38, -82], [-38, -48], [-54, -48]
    ]
   },
-  {"kennung": "K4", "art": "kern", "flaeche": [[-30, -90], [-26, -90], [-26, -92], [-22, -92], [-22, -94], [-18, -94], [-18, -96], [-10, -96], [-10, -98], [-4, -98], [-4, -74], [-30, -74]]},
+  {
+   "kennung": "K4",
+   "art": "kern",
+   "flaeche": [
+    [-30, -90], [-26, -90], [-26, -92], [-22, -92], [-22, -84], [-4, -84], [-4, -92], [-2, -92], [-2, -76], [16, -76], [16, -72], [18, -72], [18, -70], [20, -70], [20, -64],
+    [0, -64], [0, -74], [-30, -74]
+   ]
+  },
   {
    "kennung": "K5",
    "art": "kern",
@@ -390,14 +398,7 @@
     [-48, 52], [-50, 52], [-50, 46], [-52, 46]
    ]
   },
-  {
-   "kennung": "M10",
-   "art": "mauerring",
-   "flaeche": [
-    [-30, -110], [-14, -110], [-14, -102], [-2, -102], [-2, -100], [-4, -100], [-4, -98], [-10, -98], [-10, -96], [-18, -96], [-18, -94], [-22, -94], [-22, -92], [-26, -92],
-    [-26, -90], [-30, -90]
-   ]
-  },
+  {"kennung": "M10", "art": "mauerring", "flaeche": [[-30, -110], [-14, -110], [-14, -104], [-22, -104], [-22, -92], [-26, -92], [-26, -90], [-30, -90]]},
   {
    "kennung": "M11",
    "art": "mauerring",
@@ -432,7 +433,7 @@
    "art": "mauerring",
    "flaeche": [[-8, 80], [-6, 80], [-6, 68], [-4, 68], [-4, 64], [12, 64], [12, 62], [20, 62], [20, 68], [16, 68], [16, 90], [34, 90], [34, 96], [22, 96], [22, 106], [8, 106], [8, 86], [-8, 86]]
   },
-  {"kennung": "M16", "art": "mauerring", "flaeche": [[6, -102], [22, -102], [22, -96], [34, -96], [34, -92], [22, -92], [22, -94], [18, -94], [18, -96], [10, -96], [10, -98], [6, -98]]},
+  {"kennung": "M16", "art": "mauerring", "flaeche": [[-4, -102], [22, -102], [22, -98], [-4, -98]]},
   {"kennung": "M17", "art": "mauerring", "flaeche": [[40, 50], [42, 50], [42, 48], [44, 48], [44, 46], [46, 46], [46, 44], [48, 44], [48, 42], [50, 42], [50, 62], [40, 62]]},
   {
    "kennung": "V1",
@@ -550,16 +551,7 @@
    ]
   },
   {"kennung": "V14", "art": "vorstadt", "flaeche": [[152, -12], [166, -12], [166, -8], [156, -8], [156, 2], [152, 2]]},
-  {
-   "kennung": "V15",
-   "art": "vorstadt",
-   "flaeche": [[176, 30], [184, 30], [184, 8], [186, 8], [186, 6], [196, 6], [196, 4], [204, 4], [204, 2], [210, 2], [210, 28], [206, 28], [206, 18], [186, 18], [186, 36], [176, 36]]
-  },
-  {
-   "kennung": "V16",
-   "art": "vorstadt",
-   "flaeche": [[186, -42], [202, -42], [202, -32], [208, -32], [208, -6], [204, -6], [204, -12], [192, -12], [192, -32], [188, -32], [188, -40], [186, -40]]
-  },
+  {"kennung": "V15", "art": "vorstadt", "flaeche": [[192, 22], [204, 22], [204, 2], [210, 2], [210, 28], [206, 28], [206, 30], [202, 30], [202, 36], [192, 36]]},
   {
    "kennung": "U1",
    "art": "umland",
@@ -600,8 +592,8 @@
    "kennung": "U6",
    "art": "umland",
    "flaeche": [
-    [150, 110], [174, 110], [174, 112], [176, 112], [176, 124], [178, 124], [178, 136], [180, 136], [180, 146], [182, 146], [182, 156], [184, 156], [184, 166], [176, 166], [176, 168],
-    [168, 168], [168, 170], [158, 170], [158, 160], [156, 160], [156, 150], [154, 150], [154, 140], [152, 140], [152, 128], [150, 128]
+    [150, 110], [166, 110], [166, 116], [168, 116], [168, 120], [176, 120], [176, 124], [178, 124], [178, 136], [180, 136], [180, 146], [182, 146], [182, 156], [184, 156], [184, 166],
+    [176, 166], [176, 168], [168, 168], [168, 170], [158, 170], [158, 160], [156, 160], [156, 150], [154, 150], [154, 140], [152, 140], [152, 128], [150, 128]
    ]
   },
   {
@@ -613,7 +605,14 @@
     [186, 128], [184, 128]
    ]
   },
-  {"kennung": "U8", "art": "umland", "flaeche": [[230, -36], [246, -36], [246, -38], [250, -38], [250, -14], [230, -14]]}
+  {"kennung": "U8", "art": "umland", "flaeche": [[230, -36], [246, -36], [246, -38], [250, -38], [250, -14], [230, -14]]},
+  {"kennung": "WB_Neumarkt1", "art": "vorstadt", "flaeche": [[136, 12], [152, 12], [152, 26], [136, 26]]},
+  {"kennung": "WB_Neumarkt2", "art": "vorstadt", "flaeche": [[152, 20], [166, 20], [166, 36], [152, 36]]},
+  {"kennung": "WB_Neumarkt3", "art": "vorstadt", "flaeche": [[176, 20], [190, 20], [190, 36], [176, 36]]},
+  {"kennung": "WB_Neumarkt4", "art": "vorstadt", "flaeche": [[186, 6], [202, 6], [202, 20], [186, 20]]},
+  {"kennung": "WB_Neumarkt5", "art": "vorstadt", "flaeche": [[192, -20], [208, -20], [208, -6], [192, -6]]},
+  {"kennung": "WB_AlterMarkt1", "art": "kern", "flaeche": [[0, -92], [16, -92], [16, -78], [0, -78]]},
+  {"kennung": "WB_AlterMarkt2", "art": "kern", "flaeche": [[-20, -102], [-6, -102], [-6, -86], [-20, -86]]}
  ],
  "natur": {
   "flaechen": [
