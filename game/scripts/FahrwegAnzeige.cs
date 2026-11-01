@@ -161,9 +161,11 @@ public partial class FahrwegAnzeige : Control
         var kasten = new Rect2(oben, breite, hoehe);
         // nicht unter Zeitstrahl und Betriebsleiste rücken (dort läge es unter den Tafeln)
         var platz = new Rect2(12, Rollbereich.KopfHoehe, bild.Size.X - 24, bild.Size.Y - Rollbereich.KopfHoehe - Rollbereich.LeistenHoehe);
+        // In einem sehr kleinen Fenster (z. B. ohne Bildschirm im Rauchtest der CI) ist der Platz kleiner als das Schild:
+        // dann links bzw. oben anlegen, statt Clamp mit Untergrenze über der Obergrenze aufzurufen (das wirft eine Ausnahme).
         var verschoben = new Vector2(
-            Mathf.Clamp(kasten.Position.X, platz.Position.X, platz.End.X - breite),
-            Mathf.Clamp(kasten.Position.Y, platz.Position.Y, platz.End.Y - hoehe));
+            Mathf.Clamp(kasten.Position.X, platz.Position.X, Mathf.Max(platz.Position.X, platz.End.X - breite)),
+            Mathf.Clamp(kasten.Position.Y, platz.Position.Y, Mathf.Max(platz.Position.Y, platz.End.Y - hoehe)));
         kasten.Position = verschoben;
 
         // Pfosten (nur, wenn der Platz im Bild ist) bzw. Spitze zum Platz
