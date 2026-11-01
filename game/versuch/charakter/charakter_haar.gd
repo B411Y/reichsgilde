@@ -463,6 +463,7 @@ func _parameter() -> void:
 			s.set_shader_parameter("laenge", float(werte.get("bart_laenge", 1.0)) if bart else 1.0)
 			s.set_shader_parameter("dichte", float(werte.get("bart_dichte", 1.0)) if bart else 1.0)
 			if s == t.get("stoff_tfx"):
+				s.set_shader_parameter("pruef_weg", werte.get("pruef_weg", Vector2(-1.0, -1.0)) if t["art"] == "frisur" else Vector2(-1.0, -1.0))
 				var km: Vector3 = werte.get("kopfmitte", Vector3(0, 0.82, 0.04))
 				s.set_shader_parameter("kopf_mitte", global_transform * km if is_inside_tree() else km)
 

@@ -41,6 +41,7 @@ uniform float color_variation : hint_range(0.0, 1.0) = 0.45;
 uniform float tip_fade : hint_range(0.0, 1.0) = 0.35;
 uniform float spitze_hell = 1.25;
 uniform float innen_dunkel : hint_range(0.0, 1.0) = 0.5;   // Licht auf den innersten Strähnen (Lage 0)
+uniform vec2 pruef_weg = vec2(-1.0);   // Prüfung: Leitsträhnen mit Index in [x; y) ausblenden (−1 = aus)
 uniform float schatten_rest : hint_range(0.0, 1.0) = 0.35; // Licht im Schatten (Streuung durchs Haar)
 uniform vec3 kopf_mitte = vec3(0.0, 0.82, 0.04);             // Welt; für die weiche Licht-Schatten-Grenze um den Kopf
 uniform float schatten_karte : hint_range(0.0, 1.0) = 0.3;  // Anteil der Schattenkarte (Rest: weiche Grenze)
@@ -89,6 +90,9 @@ void vertex() {
 	float h3 = hash1(float(strand) * 3.17 + 5.3);
 	// Glatze (Rang je Leitsträhne), Ausdünnen und Bartdichte je Haar
 	v_weg = step(suv.y, kahl) * step(0.001, kahl) + step(h2, duenn) * step(0.001, duenn) + step(dichte, h3) * step(dichte, 0.999);
+	if (pruef_weg.x >= 0.0 && float(strand) >= pruef_weg.x && float(strand) < pruef_weg.y) {
+		v_weg = 1.0;
+	}
 	v_ende = laenge * (0.75 + 0.35 * h1);
 
 	float ratio = mix(1.0, fiber_ratio, v_t);
