@@ -772,6 +772,7 @@ public partial class Stadtansicht : Node3D
         GrundstueckeAktualisieren(); // Wohnhäuser, Baustellen und Bauplätze der Karte (Stadtansicht.Bauen.cs)
         Ladezeit.Dazu("im Bild: Grundstücke", uhr);
         BauUmrissAktualisieren();    // Baumodus: der Umriss an der Maus
+        FahrwegBild();               // Baumodus: Wege der Karren zu den Märkten und Ampeln der Bauorte (Stadtansicht.Fahrweg.cs)
         var zeit = _simulation.Zeit;
         // Die Simulation zählt nur ganze Minuten (bei Tempo 1 etwa eine pro Sekunde). Für die Darstellung
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
