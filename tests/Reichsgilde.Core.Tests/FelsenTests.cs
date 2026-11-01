@@ -162,6 +162,11 @@ static class FelsenTests
             Pruefe.Gleich(einmal, Kartenentwurf.AusJson(einmal, Katalog.Value).ZuJson(), "und bleiben beim nächsten Schreiben gleich");
             var fels = g.Befunde.Where(x => x.Regel == "fels").ToList();
             Pruefe.Wahr(fels.Count >= 2 && fels.All(x => x.Schwere == Schwere.Hinweis), "nur Hinweise: " + string.Join(" | ", fels));
+
+            // Werte außerhalb der Grenzen: ein Hinweis; ein leerer Eintrag oder ein Punkt ohne zwei Zahlen: Fehler der Stadtkarte (nicht zu zeichnen)
+            var grenzen = Kartenentwurf.AusJson(text.Replace("\"massstab\": " + Kartenschreiber.Zahl(neue[0].Massstab), "\"massstab\": -3"), Katalog.Value);
+            Pruefe.Wahr(grenzen.Befunde.Any(x => x.Regel == "fels" && x.Text.Contains("außerhalb der Grenzen") && x.Schwere == Schwere.Hinweis), "Hinweis bei Maßstab −3");
+            Pruefe.WirftMitMeldung(() => Stadtkarte.AusJson(text.Replace("\"stuecke\": [", "\"stuecke\": [null, "), Katalog.Value), "felsen.stuecke");
         }),
 
         ("Felsen: Stempel einer Wand setzt die ganze Gruppe genau wie die Vorschau, ein Schritt; Rückgängig und Wiederholen Byte für Byte", () =>
@@ -222,6 +227,17 @@ static class FelsenTests
             var vorher = a.Felsen.Count;
             a.FelsStreuen(new Felspinsel(Formen: new[] { "block", "kuppe" }, Radius: 10, Dichte: 0.25), Linie(O(-50, 0), O(50, 0), 20), 9);
             Pruefe.Wahr(a.Felsen.Count - vorher <= vorher / 3, $"zweiter Strich: {a.Felsen.Count - vorher} neue zu {vorher}");
+        }),
+
+        ("Felsen: Die Dichte gilt bei kleinem wie bei großem Radius (Deckung um die Mitte des Strichs zwischen 0,5- und 1,6-mal der Dichte)", () =>
+        {
+            foreach (var radius in new[] { 5.0, 20, 50 })
+            {
+                var e = Kartenentwurf.Neu("probe", "Probe", 1000, 1000, Katalog.Value);
+                e.FelsStreuen(new Felspinsel(Formen: new[] { "block" }, Radius: radius, Dichte: 0.3), Linie(O(-4 * radius, 0), O(4 * radius, 0), 40), 11);
+                var deckung = e.Felsen.Where(f => f.Punkt.Abstand(O(0, 0)) <= radius).Sum(f => Math.PI * f.Radius * f.Radius) / (Math.PI * radius * radius);
+                Pruefe.Wahr(deckung >= 0.15 && deckung <= 0.48, $"Radius {radius}: Deckung {deckung:0.00} bei Dichte 0,3");
+            }
         }),
 
         ("Felsen: Radierer nimmt die Stücke im Kreis weg (ein Schritt), Rückgängig setzt jedes an seine Stelle zurück", () =>
@@ -308,6 +324,12 @@ static class FelsenTests
             Pruefe.Gleich(0, e.FelsStrichWeiter(O(40, 0)), "Weiter ohne Strich tut nichts");
             Pruefe.Gleich(0, e.Felsen.Count);
             Pruefe.Wahr(e.Wiederholen() && e.Felsen.Count > n, "wiederholt");
+            // Rückgängig direkt über die Geschichte mitten in einem Radierstrich: der Strich wird zuerst ein Schritt
+            var stand = e.ZuJson();
+            e.FelsStrichBeginnen(Felspinsel.Radiergummi(50), 1);
+            e.FelsStrichWeiter(O(0, 0));
+            Pruefe.Wahr(e.Geschichte.Rueckgaengig() && !e.FelsStrichLaeuft, "Geschichte.Rueckgaengig beendet den Strich");
+            Pruefe.Gleich(stand, e.ZuJson(), "nur der Radierstrich ist zurückgenommen");
             e.GrundgesteinSetzen("kalkstein");
             Pruefe.Gleich("Grundgestein geändert", e.Geschichte.RueckgaengigText);
             Pruefe.Wahr(meldungen.Any(m => m.Teil == Kartenteil.Grundgestein), "Grundgestein gemeldet");
