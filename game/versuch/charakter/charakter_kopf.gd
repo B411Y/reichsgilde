@@ -919,11 +919,19 @@ func _farben() -> void:
 			m.set_shader_parameter("bild", brauen_bild)
 			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
 			m.set_shader_parameter("ebene", ebene)
-			m.set_shader_parameter("deckung", (1.45 if mann else 1.35) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
+			m.set_shader_parameter("deckung", (1.15 if mann else 1.1) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
 			m.set_shader_parameter("mip_hub", 0.3)
 			m.set_shader_parameter("schwelle", 0.12 if d_an else (0.2 if a_an else 0.3))
 			m.set_shader_parameter("dunkel", 0.9 if d_an else (0.78 if a_an else 0.6))
 			m.set_shader_parameter("zufall_hell", 0.7 if d_an else 0.4)
+			if m.shader == BRAUE6:
+				# Brauen je Person (Verschiedenheitsplan, Hebel 1): Stand 1,5 mm je σ zusätzlich zur Hautform (die bringt
+				# 1,0 mm/σ, zusammen 2,5), Dicke aus „brauen_dichte“ (σ 35: 0,6–1,4 über ±2σ), Winkel aus einem Gen
+				# „brauen_winkel“, wenn es eins gibt (Vorschlag an kern, heute 0). Mittelgesicht = unverändert.
+				m.set_shader_parameter("braue", true)
+				m.set_shader_parameter("stand_mm", 1.5 * float(gene_z.get("brauen_stand", 0.0)))
+				m.set_shader_parameter("dicke", clampf(1.0 + 0.2 * _sigma("brauen_dichte", float(gene.get("brauen_dichte", 128.0)), volk), 0.7, 1.4))
+				m.set_shader_parameter("winkel_mm", 2.0 * float(gene_z.get("brauen_winkel", 0.0)))
 			farbe_setzen(m, "farbe", braue, st)
 			# Etappe D: Brauen ergrauen später als das Haupthaar und bleiben grau-braun statt weiß (Prüfer: „weiße Watte“)
 			m.set_shader_parameter("grau", grau * 0.6 if d_an else grau)
@@ -984,6 +992,8 @@ func _farben() -> void:
 				m.set_shader_parameter("feucht", 1.7 if weg_d else 1.0)
 				m.set_shader_parameter("brauen_weich", 0.42 if weg_d else 0.3)
 				m.set_shader_parameter("brauen_glanz", 0.85 if weg_d else 0.0)
+				if weg_d:
+					m.set_shader_parameter("c_loch", 0.3)   # Nasenloch innen nicht als schwarzes Loch (Runde 2)
 		for m in wimpern_stoffe:
 			if m.shader in [HAAR3, BRAUE6]:
 				m.shader = BRAUE6 if d_an else HAAR3
@@ -993,7 +1003,7 @@ func _farben() -> void:
 			m.set_shader_parameter("unten_hell", 0.45 if c_an else 0.0)
 			farbe_setzen(m, "haut_ton", grund, st)
 			m.set_shader_parameter("dunkel", 0.85 if c_an else 0.6)
-			m.set_shader_parameter("deckung", 0.95 if d_an else (0.7 if c_an else 1.0))
+			m.set_shader_parameter("deckung", 0.8 if d_an else (0.7 if c_an else 1.0))
 			m.set_shader_parameter("mip_hub", 0.35)
 			if c_an:
 				# Runde 2/3 (Prüfer: Wimpern schwarz, hart, zu dicht): lichter, durchscheinender, ein Viertel weniger Haare;
@@ -1001,6 +1011,10 @@ func _farben() -> void:
 				farbe_setzen(m, "farbe", haar.darkened(0.4).lerp(grund, 0.15), st)
 				m.set_shader_parameter("dichte", 0.72 if mann else 0.78)
 				m.set_shader_parameter("grau", grau * 0.8)
+			if d_an:
+				# Etappe D, Runde 2 (Prüfer: „steifer schwarzer Stachelkranz, außen abstehend“): weniger, braunere Wimpern
+				farbe_setzen(m, "farbe", haar.darkened(0.25).lerp(grund, 0.2), st)
+				m.set_shader_parameter("dichte", 0.55 if mann else 0.62)
 		_haar_aktualisieren(haar, grau)
 	else:
 		haar = haar.lerp(Color(0.72, 0.71, 0.69), grau)
@@ -1045,15 +1059,18 @@ func _farben() -> void:
 	for m in lidschatten_stoffe:
 		m.shader = LIDSCHATTEN6 if d_auge else LIDSCHATTEN
 		m.set_shader_parameter("staerke", 0.9 if a_auge else 0.75)
-		# nach der Hornhaut zeichnen: der Lidschatten dunkelt auch ihre Spiegelung ab
-		m.render_priority = 1 if d_auge else 0
 	for m in hornhaut_stoffe:
-		m.set_shader_parameter("rauheit", 0.06 if d_auge else 0.035)
-		m.set_shader_parameter("staerke", 0.5 if d_auge else 1.0)
+		# Runde 2 (Prüfer: „kein Glanzpunkt wie im Foto, leerer Blick“): Glanzpunkt klein und weich, aber deutlich; die
+		# Hornhaut zeichnet nach dem Lidschatten, damit er den Glanzpunkt des Schlüssellichts nicht schluckt
+		m.set_shader_parameter("rauheit", 0.045 if d_auge else 0.035)
+		m.set_shader_parameter("staerke", 0.85 if d_auge else 1.0)
+		m.render_priority = 1 if d_auge else 0
+		# weiches Fenster-Glanzlicht, heller bei hellem Licht am Ort
+		m.set_shader_parameter("fenster", (0.15 + 0.5 * pupille_licht) if d_auge else 0.0)
 	for m in traene_stoffe:
 		m.set_shader_parameter("traene_d", d_auge)
 		m.set_shader_parameter("rauheit", 0.05 if d_auge else 0.08)
-		m.set_shader_parameter("staerke", 0.45 if d_auge else 0.7)
+		m.set_shader_parameter("staerke", 0.65 if d_auge else 0.7)
 	var loch := float(info.get("pupillenoeffnung", 0.31)) + 0.03
 	for m in augen_stoffe:
 		m.set_shader_parameter("iris_hohl", 0.55 if a_auge else 0.0)

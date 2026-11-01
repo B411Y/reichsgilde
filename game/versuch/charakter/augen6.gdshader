@@ -41,7 +41,7 @@ uniform float iris_tiefe = 0.0;              // Etappe D: Parallaxe (Verschiebun
 uniform float lederhaut_glanz = 0.5;         // Etappe D: SPECULAR der Lederhaut (bisher 0,5)
 uniform float lederhaut_rauheit = 0.18;      // Etappe D: Rauheit der Lederhaut (bisher 0,18)
 uniform float limbus_saum = 0.0;             // Etappe D: grauer Saum außen am Limbus (0 = keiner)
-uniform vec3 limbus_saum_farbe = vec3(0.70, 0.71, 0.75);
+uniform vec3 limbus_saum_farbe = vec3(0.74, 0.72, 0.72);
 
 void fragment() {
 	float nv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
