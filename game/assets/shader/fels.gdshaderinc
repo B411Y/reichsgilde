@@ -114,8 +114,8 @@ void fragment() {
 	vec2 gy = oben_ ? py.xz : (seiteX ? py.zy : py.xy);
 	s = textureGrad(struktur, uv / kachel, gx, gy);
 	vec2 d = neigung(s.rg);
-	vec3 t = oben_ ? vec3(d.x, 0.0, d.y) : (seiteX ? vec3(0.0, d.y, d.x) : vec3(d.x, d.y, 0.0));
-	nw = normalize(n + relief * t);
+	vec3 kipp1 = oben_ ? vec3(d.x, 0.0, d.y) : (seiteX ? vec3(0.0, d.y, d.x) : vec3(d.x, d.y, 0.0));
+	nw = normalize(n + relief * kipp1);
 #endif
 	float h = s.b;                         // Höhe 0 tief … 1 hoch
 	float fleck = s.a;
