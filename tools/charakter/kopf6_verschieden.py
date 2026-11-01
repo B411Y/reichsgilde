@@ -8,7 +8,7 @@ linear (Wirkung je Formgewicht bei 0,5 gemessen, Stärke = Ziel / Wirkung); desh
 
 Was sich ändert (Nutzerentscheidung 01.11.2026: Augen und Brauen leicht spielhaft ≈ 1,3 × der natürlichen Streuung):
   - Augenpartie: Ziel je σ = 1,3 × natürliche Streuung (vorher 0,75 ×); Lidspalte mit der natürlichen Streuung aus der
-    Literatur (≈ 1,2 mm statt 0,84); Augentiefe × 1,3 gegen vorher; Stärke dort höchstens 1,0 je σ (vorher 0,6).
+    Literatur (≈ 1,2 mm statt 0,84); Stärke dort höchstens 1,0 je σ (vorher 0,6).
     Nase, Kinn, Kiefer und Umriss bleiben (Plan: dort streut es schon am stärksten).
   - Budget je MakeHuman-Ziel: begrenzt wird der Gen-Anteil allein (die Reifeformen verbrauchen den Spielraum nicht mehr),
     dazu eine weitere Grenze für die Summe; an den Nasenzielen zählt die Summe wie bisher (sonst stapelt sich
@@ -31,14 +31,14 @@ NATUR_FAKTOR_ALT = 0.75          # kopf6_eichen.py: +1σ = 0,75 × natürliche S
 UEBERZEICHNUNG = 1.3             # Nutzer 01.11.2026
 STAERKE_MAX_AUGEN = 1.0          # Formgewicht je σ (bei 2σ = 2,0)
 # Gen: Faktor auf das alte Ziel. Standard 1,3 / 0,75; Lidspalte zusätzlich mit der Literaturstreuung 1,2 statt 0,84 mm
-# (Lidspaltenhöhe ps–pi, σ 1,0–1,7 mm); Augentiefe nur × 1,3 (Knochen, Fratzengefahr)
+# (Lidspaltenhöhe ps–pi, σ 1,0–1,7 mm)
 AUGEN = {
     "augen_groesse": UEBERZEICHNUNG / NATUR_FAKTOR_ALT,
     "lidspalte": UEBERZEICHNUNG / NATUR_FAKTOR_ALT * 1.2 / 0.84,
     "schlupflid": UEBERZEICHNUNG / NATUR_FAKTOR_ALT,
     "augen_neigung": UEBERZEICHNUNG / NATUR_FAKTOR_ALT,
     "brauen_stand": UEBERZEICHNUNG / NATUR_FAKTOR_ALT,
-    "augen_tiefe": 1.3,
+    # Augentiefe bleibt wie E0 (Runde 2: × 1,3 machte tief liegende Augen unter dem Brauenwulst zur Fratze)
     # Runde 2: Augenabstand auf 1,0 × der natürlichen Streuung (NIOSH 3,6 / 3,4 mm) – Lage der Augen ist ein starker
     # Anhaltspunkt für die Wiedererkennung; nicht 1,3 × (weit oder eng stehende Augen kippen schnell ins Karikierte)
     "augen_abstand": 1.0 / NATUR_FAKTOR_ALT,
@@ -77,7 +77,8 @@ def main():
     R["lid_ruhe"]["greis"] = 0.03
     R["verschieden"] = {
         "beschreibung": "Verschiedenheit E1 (tools/charakter/kopf6_verschieden.py): Brauen je Person, Nasenbudget, Zugaben",
-        "nasenbudget": {"gene": ["nase_laenge", "nasenspitze", "nase_hoecker"], "norm_max": 2.2},
+        "nasenbudget": {"gene": ["nase_laenge", "nasenspitze", "nase_hoecker"], "norm_max": 2.2,
+                        "stupsnase_max": 1.6},   # Runde 3: Spitze⁺ + Kürze⁻ in σ (Schweinsnase von vorn)
         "brauen": {
             "v_nach_unten": True,          # braue6: v läuft in der Karte von oben (0) nach unten (Etappe D rechnete umgekehrt)
             "mitte_v": 0.72,               # Ankerlinie für die Dicke (Anteil der Kartenhöhe von unten): dicker wächst nach unten
@@ -86,7 +87,7 @@ def main():
             "winkel_gen": "zug_11", "winkel_mm_je_sigma": 2.2,
             # Runde 2: Brauen tragen die Wiedererkennung (alle Prüfer) – Dicke und Dunkelheit breiter; Dichte nicht unter
             # 0,75 (darunter zerfiel die Braue in Striche: „gestrichelt, zerrissen“)
-            "dicke_je_sigma": 0.35, "dicke_min": 0.5, "dicke_max": 1.8,
+            "dicke_je_sigma": 0.35, "dicke_je_sigma_minus": 0.15, "dicke_min": 0.75, "dicke_max": 1.8,   # Runde 3
             "dichte_min": 0.75, "dichte_max": 1.2,
             "dunkel_gen": "zug_12", "dunkel_je_sigma": 0.3, "hell_je_sigma": 0.3,
             "rand_aus": 1.0,               # Karte am Umriss ausblenden (schwebende hintere Braue)

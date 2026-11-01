@@ -614,6 +614,18 @@ func _anwenden6(w: Dictionary) -> void:
 			for k in nb["gene"]:
 				if z.has(k):
 					z[k] = float(z[k]) * float(nb["norm_max"]) / sqrt(s2)
+		# Runde 3: Stupsnase (Spitze hoch und Nase kurz zugleich) zeigt die Nasenlöcher von vorn wie eine Schweinsnase –
+		# Spitze⁺ + Kürze⁻ zusammen höchstens stupsnase_max (in σ), sonst beide kleiner
+		if nb.has("stupsnase_max"):
+			var hoch := maxf(float(z.get("nasenspitze", 0.0)), 0.0)
+			var kurz := maxf(-float(z.get("nase_laenge", 0.0)), 0.0)
+			if hoch + kurz > float(nb["stupsnase_max"]):
+				var f := float(nb["stupsnase_max"]) / (hoch + kurz)
+				karikatur["stupsnase"] = hoch + kurz
+				if hoch > 0.0:
+					z["nasenspitze"] = hoch * f
+				if kurz > 0.0:
+					z["nase_laenge"] = -kurz * f
 	gene_z = z
 	# Gewichte der Gestalt-Gene
 	var gene_w := {}
@@ -1001,7 +1013,10 @@ func _farben() -> void:
 					m.set_shader_parameter("mitte_v", float(vb["mitte_v"]))
 					m.set_shader_parameter("stand_mm", float(vb["stand_mm_je_sigma"]) * float(gene_z.get("brauen_stand", 0.0)))
 					var fd := 1.0 if mann else float(vb.get("frau_dicke", 1.0))
-					m.set_shader_parameter("dicke", clampf((1.0 + float(vb["dicke_je_sigma"]) * z_dichte) * fd, float(vb["dicke_min"]), float(vb["dicke_max"])))
+					# Runde 3: dünner nur wenig (gestaucht zerfiel die Braue zum gestrichelten Strich); dünne Brauen kommen
+					# aus der Form („dünn auslaufend“) und der Dichte
+					var kd := float(vb["dicke_je_sigma"]) if z_dichte >= 0.0 else float(vb.get("dicke_je_sigma_minus", vb["dicke_je_sigma"]))
+					m.set_shader_parameter("dicke", clampf((1.0 + kd * z_dichte) * fd, float(vb["dicke_min"]), float(vb["dicke_max"])))
 					m.set_shader_parameter("winkel_mm", float(vb["winkel_mm_je_sigma"]) * wz)
 					m.set_shader_parameter("rand_aus", float(vb.get("rand_aus", 0.0)))
 			farbe_setzen(m, "farbe", braue, st)
