@@ -189,6 +189,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Fels-Material: noch nicht an die Grafikstufen des Spiels angebunden (erst F5, Einbau als MultiMesh; Zuordnung siehe Entscheidungen).
 - Fels-Material: Moos „im Schatten“ ist geschätzt (Nordseite, Höhlungen, Klüfte, unter Absätzen); der echte Schatten der Sonne ist im Fragment-Shader nicht bekannt.
 - (F5) Fels-Material: Nässe bei Regen fehlt noch – beim Einbau über `wetter.gdshaderinc` (dunkler und glänzender, wie Mauern und Dächer).
+- (von Kern, Felsen F5) `formen` in `game/daten/gestein.json` auf die Karten-Kennungen der F1-Formen nachziehen (wand, kuppe, rippe, block, platte, ueberhang, schuttbrocken, felsnase statt Pfeiler, Wandstück, Brocken, Schuttstein).
+- (von Kern, Felsen F5) Import der Fels-Texturen `texturen/felsen/*.webp` ohne sRGB, `felsen_normal` als Normal Map; die `.import`-Dateien fehlen noch.
+- (von Oberfläche, Felsen F5) Mit der MultiMesh-Darstellung einzelne Felsstücke in der Werkstatt wählbar machen (Treffer, Ziehen, Q/E wie bei Pflanzen); bis dahin ersetzt F5 die vorläufige Anzeige in `Stadtansicht.Kartenwerkstatt.Felsen.cs`.
 
 ## Entscheidungen
 
