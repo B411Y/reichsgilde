@@ -76,7 +76,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Absicherung | Datenprüfung: `buerger.handlungen.Einkehren.bis` ≤ `Gastwirtschaft.SchliesstUm` (22), sonst säßen Einwohner in der geschlossenen Schänke; ebenso `Arbeiten.bis`, sobald eine Rolle `arbeitsort` Schaenke hat (heute keine). Ein zu früher Beginn (`Einkehren.von` vor `gastwirtschaft.oeffnetUm`) wird wie bisher nur mit Kopplung geprüft (`Wirtschaftsdaten`, Kern; heute beide 12 Uhr). Der Parameter von `Wo`, `IstUnterwegs` und `IstAngekommen` heißt jetzt `vergangeneMinuten`, der Kommentar warnt vor der Uhrzeit. Test `BuergerSchankschlussTests` (Wirt, Startwerte 1400 und 99, drei Tage): ab 22 Uhr wählen alle Ruhen daheim, wer geht, geht aus der Schänke ins eigene Haus, ab 22:10 ist jede Schänke leer, um 22:50 ist niemand mehr unterwegs, bis 23 Uhr bleibt sie leer; dazu die Datenprüfung mit `bis` = 23 (Einkehren, Arbeiten mit Schankrolle). Verhalten unverändert. | 31.10.2026 |
 | Mittagsandrang | Echt, aber keine Regel verletzt: Um 12 Uhr wählen 92–107 von 123 Einwohnern Einkehren, kurz vor 13 Uhr sitzen bis zu 107 (Startwert 1400) bzw. 103 (99) in der einen Schänke, abends um 21:45 bis 84 bzw. 78. Ursache: Vergnügen wächst ab 4 Uhr um 5 je Stunde (mittags etwa 40), Einkehren stillt 40 + 5 Ruhe, Arbeiten 25 (+ 5 Beharrung). Eine Kapazität für Einwohner gibt es nicht (`Gastwirtschaft.SitzplaetzeImRaum` = 12 begrenzt nur die Gäste, die der Innenraum zeigt); Gäste und Umsatz hängen nur am Verhältnis zum Üblichen je Uhrzeit (Faktor 1 ± 0,5), der Andrang kostet oder bringt also nichts. Nicht erfunden, als Designfrage gemeldet (siehe „Offen“). | 31.10.2026 |
 
-### Karren und Bauort nach dem Karrenweg (phase5/gehtempo-ki, PR #…)
+### Karren und Bauort nach dem Karrenweg (PR #282)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -263,7 +263,7 @@ Gemessen auf main `24963d29` + PR #274, Wirt-Partie (Spieler Wirt, eine Schänke
 - In der Viertelstunde ab 22:00 sitzen nur noch die, deren Abmarsch (0–9 Minuten nach der vollen Stunde) noch nicht gekommen ist; ab 22:10 ist die Schänke leer. Zwischen den vollen Stunden ist ein guter Teil der Stadt unterwegs (Wege 30 ± 10 Minuten), um 21:15 etwa 96 und um 22:15 etwa 69–76 auf dem Weg zur bzw. von der Schänke.
 - Gäste und Umsatz der Schänke (Tage 1–10) und `messen 30 20` (Eisenbart Ø 176.661, Eichwald Ø 135.108, Kieselbach Ø 172.261) zeichengleich mit main.
 
-### Karren und Bauort nach dem Karrenweg (phase5/gehtempo-ki)
+### Karren und Bauort nach dem Karrenweg (PR #282)
 
 Gemessen auf main `880e3387` und phase5/gehtempo `dd347586` („vorher“) + dieser Branch (`5314f99d`; `ad482322` ändert nur den Tausch in der Not), `messen bericht 20 20 --teile=5 --karte=greybox`. KI-Stärke: Der Bezugsspieler (Schmied, Mensch) wird von der KI geführt; Reinvermögen nach 20 Jahren, Mittel ± Fehler des Mittels:
 

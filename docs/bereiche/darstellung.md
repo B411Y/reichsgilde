@@ -194,7 +194,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Gehtempo fest, Passanten nur Darstellung (Branch phase5/gehtempo)
+### Gehtempo fest, Passanten nur Darstellung (PR #282)
 
 Nutzerwunsch 31.10.2026: Passanten und Karren bewegten sich oft viel zu schnell (Passanten bis 7 m/s, Karren in Köln bis über 12 m/s). Der Kern bleibt unverändert; Modell und Tests in `game/scripts/Gehtempo.cs` und `tests/Reichsgilde.Core.Tests/GehtempoTests.cs` (die Datei wird mitübersetzt wie `KlangAnsagenErkennung.cs`).
 
@@ -212,7 +212,7 @@ Nutzerwunsch 31.10.2026: Passanten und Karren bewegten sich oft viel zu schnell 
 | Außerhalb des Bereichs (Marktplätze) | `Hauptszene.cs`: zwei Stellen (Klick auf einen Marktplatz öffnet das Marktfenster, Auswahltext mit dem Namen des Platzes) über `Stadtansicht.IstMarktplatz`/`MarktplatzName`. Kein Kern, keine Daten, keine `.glb`. | 31.10.2026 |
 | Spätere Idee | Eigene Charaktere der Häuser und Dynastien sollen später echt simuliert herumlaufen (Ort und Weg im Kern); dann entfällt für sie der Abgleich mit dem Kern, und `Gehtempo` wird Teil der Simulation. Noch nicht gebaut. | 31.10.2026 |
 
-### Fahrweg im Baumodus (PR #…)
+### Fahrweg im Baumodus (PR #282)
 
 Nutzerwunsch 01.11.2026: Beim Bauen einer Werkstatt die Wege der Karren zu allen Marktplätzen in der ganzen Wegbreite zeigen, gefärbt nach der Fahrzeit (`Stadtansicht.Fahrweg.cs`).
 

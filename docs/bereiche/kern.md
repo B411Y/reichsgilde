@@ -150,7 +150,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Abfragen | `Person.Erbgut` → `Erbgut.SichtbarerWert(kennung)` bzw. `(GenVorlage)` (0–255), `VerdeckterWert`, `WertImAlter(kennung, menschenjahre)`, `Hat`, `AlsText`; `Familienbuch.Erbgutvorlage` → `Gene`, `Gen(kennung)`, `GeneDerArt`, `GenVorlage.Grenzen(volk)`, `Alterskurve`. Entwicklerbefehl `EntwicklerErbgut(Person)` (neu würfeln; den Knopf im Entwicklerfenster führt `oberflaeche.md` unter „Offen“). | 29.10.2026 |
 | Tests | `ErbgutTests` (13): Vorlage gültig und eingebettet gleich der Datei, Fehlermeldungen (auch unbekannte Felder und `beiFrauen`), Kind mit nur einem Elternteil (Grenzen, gleiche Bytes, `KindAufnehmen`), Bart der Zwerginnen, gleiche Eltern + Startwert = gleiche Bytes (auch ganze Partien), Volksgrenzen (6 × 1000 und Kinder aller Völkerpaare), Verteilung (Mittel, Streuung 0,88 × bei ±2σ, nichts außerhalb, Korrelation; dazu je Volk und Gen der echten Vorlage), Dominanz, Großeltern (30 % blonde Enkel dunkelhaariger Eltern), Erben im Spiel + Speichern/Laden + Prüfsumme, alter Spielstand, unbekannte und fehlende Gene, Entwicklerbefehl. | 29.10.2026 |
 
-### Fahrzeit nach Weglänge (Branch phase5/gehtempo)
+### Fahrzeit nach Weglänge (PR #282)
 
 Entscheidung des Nutzers 31.10.2026: Fahrzeit nach Weglänge und Karrenart, mit Steigung und Belag; Kern und Bild stimmen überein. Messung und Varianten in `docs/WIRTSCHAFTSMODELL.md`, „Fahrzeit nach Weglänge“.
 
@@ -169,7 +169,7 @@ Entscheidung des Nutzers 31.10.2026: Fahrzeit nach Weglänge und Karrenart, mit 
 | Messwerkzeug | `messen karren [Karte …] [--jahre=n]` (Fahrzeiten je Betrieb, mit `--jahre` Stillstand und Fahrten je Jahr); `messen bericht … --rotationen=n` (Startfairness mit weniger Rotationen; der Wohnhausplatz wirkt nicht). | 31.10.2026 |
 | Tests | `FahrzeitWeglaengeTests` (10): Daten, Länge ÷ Tempo je Art hin und zurück und nach dem Laden, Ankunft eines Karrens, Rundendauer, Mindest- und Höchstdauer, feste Zeit ohne Karte und mit alten Daten (auch mit Belagfaktor), alter Spielstand, Ausbau-Grenze, Datenprüfung, gesparte Minuten; `GehtempoTests` (Greybox und Köln: Darstellung fährt im Tempo des Kerns und kommt mit dem Kern an). Steigungs-, Wasser- und Belagtests auf die neue Regel umgestellt (Absicht gleich: bergauf länger, Furt +5, Pflaster schneller …), Datenversion 65 in den Versionstests. | 31.10.2026 |
 
-### Mehrere Marktplätze je Stadt (Branch phase5/gehtempo)
+### Mehrere Marktplätze je Stadt (PR #282)
 
 Entscheidung des Nutzers 31.10.2026: Köln bekommt drei Märkte – Alter Markt, Heumarkt, Neumarkt, Namen wie in Köln, die Lage so, dass die Wirtschaft passt; Ziel: Reinvermögen nach 20 Jahren wieder etwa wie vorher (Spieler rund 30.000, KI-Häuser im früheren Rahmen, kein Bankrott). Eine feste Deckelung der Fahrzeit ist nicht gewählt. Messung in `docs/WIRTSCHAFTSMODELL.md`, „Mehrere Marktplätze“.
 
@@ -184,7 +184,7 @@ Entscheidung des Nutzers 31.10.2026: Köln bekommt drei Märkte – Alter Markt,
 | Außerhalb des Bereichs | Kartenskript und Karte (`tools/Kartenbau/Staedte/Koeln*.cs`, `game/karten/koeln.json`, `docs/karten/koeln*.svg`, `docs/LEVELDESIGN.md`), KI (`KiRivale.WerkstattBauen`); offene Punkte für darstellung (Karren zum Platz des Betriebs, Stände an allen Plätzen), oberflaeche (Platzname in Karrentafel), spiel-ki (Standortwahl nach Karrenweg, Karrenwahl) in deren Bereichsdateien. | 31.10.2026 |
 | Tests | `MarktplaetzeTests` (10): alte Karten ohne Marktlinien, Platz als Kreuzung (mit und ohne Markt), nächster Platz und Gleichstand in der Probestadt mit drei Plätzen, ein Stadtmarkt (Verkauf am Ostmarkt im Angebot des einen Markts), Speichern und Laden, Köln (drei Plätze, Werkstattwege 20–25 m, 1/3/4 Häuser je Platz, Spieler am Heumarkt), alter Greybox-Stand, Kosten mit Furt und Fähre und eine Karte ohne Markt, alter Kölner Stand auf altem Netz, Prüfhinweis „markt“, Abstand für die KI. Schnappschüsse der Kölner Kapazität und des Startplatzes neu (Absicht gleich). | 31.10.2026 |
 
-### Eine Strecke für Kern und Bild (Branch phase5/gehtempo)
+### Eine Strecke für Kern und Bild (PR #282)
 
 Auftrag des Teamleiters 31.10.2026 nach dem Klicktest der Darstellung (Köln: Karren im Bild 26–34 % früher am Halt, Greybox Weinmarkt +105 %, Kieselbach −71 %): Kern und Bild auf dieselbe Strecke, eine gemeinsame Wegberechnung, Darstellung liest nur. Messung in `docs/WIRTSCHAFTSMODELL.md`, „Eine Strecke für Kern und Bild“.
 
@@ -205,7 +205,7 @@ Auftrag des Teamleiters 31.10.2026 nach dem Klicktest der Darstellung (Köln: Ka
 | Prüfung | Unabhängiger Prüfer (extra hoch) über `1f0e80ad..4a8883ed`: 1 mittel (Start im Haltquadrat), 5 niedrig (Hof näher am Pflaster als am Weg, Furten an Gassen, `"KarrenAnker": null` im Spielstand, Tests zu schwach, zwei veraltete Texte: Prüfhinweis „markt“ und Kommentar zu `Fahrten`) – alle behoben. Ohne Befund: alte Daten (Spielstand bis auf `KarrenAnker` bytegleich mit 1f0e80ad), Gleichschritt mit Speichern und Laden, Umrechnung Anker/Hof/Halt gegen die Darstellung, Stücke und Punkte, Wegebau. | 31.10.2026 |
 | Tests | `KarrenwegTests` (8): Anker im Katalog gegen die glb, Verlauf auf Greybox/Köln/Probestadt (Start, Hof, Anschluss am nächsten Weg, Halt, Stücke = Punkte, Rückweg), Bild = Kern im festen Tempo, Gassen- und Fußwegkosten und Anschluss nicht über den Platz, alte Daten gegen feste Werte des alten Codes (1f0e80ad, bitgenau), Randfälle (Start im Quadrat, nie im Quadrat, Rand auf einem Punkt, gedrehter Platz, Zubringer mit Anker am Hof), Halteplatz und Hof mit Drehung, Maßstab und Versatz gegen eine unabhängige Rechnung wie im Bild, Zubringer über das Pflaster. Marktplatz- und Wegbelagtests auf Zubringer und Halt umgestellt (Absicht gleich), Schnappschüsse Köln und Greybox neu. | 31.10.2026 |
 
-### Märkte an den Enden der Mauer und in Deutz (Branch phase5/gehtempo)
+### Märkte an den Enden der Mauer und in Deutz (PR #282)
 
 Entscheidung des Nutzers 31.10.2026 (ersetzt die Lage aus „Mehrere Marktplätze je Stadt“): zwei Märkte innerhalb des Mauerhalbkreises an seinen Enden am Rhein, der dritte in Deutz; Namen nach dem Vorschlag des Teamleiters (Nord Alter Markt, Süd Heumarkt, Deutz Neumarkt), tauschbar an einer Stelle. Ziel wie bisher: Spieler um 30.000, KI im bisherigen Rahmen, kein Bankrott. Messung in `docs/WIRTSCHAFTSMODELL.md`, „Märkte an den Enden der Mauer und in Deutz“.
 
@@ -224,7 +224,7 @@ Entscheidung des Nutzers 31.10.2026 (ersetzt die Lage aus „Mehrere Marktplätz
 | Außerhalb des Bereichs | Kartenskript und Karte (`tools/Kartenbau/Staedte/Koeln*.cs`, `game/karten/koeln.json`, `docs/karten/koeln*.svg`, `docs/LEVELDESIGN.md`), Spielbuch (`stadt-und-ansicht.md`, `wirtschaft-und-handel.md`), `docs/wasser/phase3.md` und `docs/feuer/phase2.md` (Orte am Bach und der Spielerwerkstatt), je eine Zeile „(von Kern)“ unter Offen in `docs/bereiche/darstellung.md` und `docs/bereiche/leveldesign.md`. | 31.10.2026 |
 
 
-### Hausreihe vor dem Tor (Branch phase5/gehtempo)
+### Hausreihe vor dem Tor (PR #282)
 
 Wunsch des Nutzers 1.11.2026: Die Lage der Märkte ist grundsätzlich richtig, aber Alter Markt und Heumarkt liegen zu nah an der Mauer – etwas weiter zur Stadtmitte, so dass mindestens ein bis zwei Hausreihen zwischen Mauer und Markt liegen; Deutz nach demselben Prinzip prüfen. Messung in `docs/WIRTSCHAFTSMODELL.md`, „Hausreihe vor dem Tor“.
 
@@ -268,7 +268,7 @@ Wunsch des Nutzers 1.11.2026: Die Lage der Märkte ist grundsätzlich richtig, a
 | Ausgabe | Ein Pixel je Rasterpunkt der ganzen Karte, ohne Angabe 0 = tiefste und 65535 = höchste Höhe; Spanne höchstens 8.000 cm, also mit Stufe 1 verlustfrei zurück (Test). | 01.11. |
 | Nach der Prüfung | Unabhängiger Prüfer: 1 mittel, 4 niedrig, alle behoben. Unlesbare Schalter (Komma, Text, „big“) brechen mit 2 ab statt still die Vorgabe zu nehmen, „−“ gilt als Minus; unten/oben/Versatz höchstens ±10 km, Spanne in `long`; Maßstab, Versatz und Stufe in einer Division (vorher zweimal gerundet, Gleichstand unter 0 nach oben); `hoehenkarte-ausgeben` nur mit `--ueberschreiben` über eine vorhandene Datei; `--abruf` Pflicht (A3); die Werkstatt-Startoption sagt, dass sie ohne Herkunft liest. | 01.11. |
 
-### Nachbesserung nach der Prüfung (Branch phase5/gehtempo)
+### Nachbesserung nach der Prüfung (PR #282)
 
 Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI, spiel-ki auf `phase5/gehtempo-ki`), H2 (Ausbau ungemessen), M1–M8 und niedrige Befunde; Auftrag des Teamleiters an kern ohne H1 und M7. Messung in `docs/WIRTSCHAFTSMODELL.md`, „Endabnahme gegen main und Ausbau“.
 
@@ -290,7 +290,7 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Außerhalb des Bereichs | Darstellung (`Gehtempo.cs`, `Stadtansicht.Karren.cs`, `Stadtansicht.Passanten.cs`, `Stadtansicht.Markt.cs`), Oberfläche (`Hauptszene.cs`, eine Zeile: Name des Platzes), `docs/LEVELDESIGN.md` (Regel 5), `docs/STARTOPTIONEN.md`, Spielbuch, je eine Zeile „(von Kern)“ unter Offen in `docs/bereiche/darstellung.md` und `docs/bereiche/spiel-ki.md`. | 1.11.2026 |
 | Prüfung | Unabhängiger Prüfer (extra hoch) über `a4c5ea66..b217cfc7` und die Doku: 1 mittel – die Startweg-Rechnung merkte sich einen Ladefehler der Karte (Umlandbetrieb ohne Betrieb) und blieb nach der Behebung stumm, bis sich ein Weg änderte (jetzt neu bei jeder Änderung, Test) –, 6 niedrig: Wege bei jeder Gebäudeänderung neu gerechnet (jetzt nur Startplätze und Marktplätze, Kommentar mit den gemessenen Kosten), `{x:P0}` nach Systemsprache (jetzt `Zahlenformat.Prozent`), der Test mit alten Daten erkannte keinen falschen Weg (jetzt die Strecke), Sichtprüfung der Passanten ohne Geländehöhe (jetzt `AufFuss`, auch beim unbemerkten Ankommen), ein Sprung am Markt-Rundgang (Vermutung, schon vorher bei Figuren im Bild: Offen bei darstellung), Doku (Hinweiszahl in LEVELDESIGN, Platzhalter, Mindestdauer im Kommentar) – behoben bis auf den Rundgang. Ohne Befund: Fahrzeit für bestehende Betriebe bitgleich (Greybox und Köln, neue und alte Daten, alle Karrenarten, Weglängen, Marktplätze, Prüfsumme nach zwei Jahren), Bauort-Abfrage auch für Tischlerei, Maurerei, Tinkturei, Sollwerte des alten Spielstands auf main nachgerechnet, Messcode ohne Einfluss, M6 bei 15 Minuten bitgleich, M8 schlüssig, Zwischenspeicher bei Rückgängig, Wiederholen, Löschen, Einfügen und Umbenennen. | 1.11.2026 |
 
-### Werkstatt-Bauplätze und KI nach Fahrzeit (Branch phase5/gehtempo)
+### Werkstatt-Bauplätze und KI nach Fahrzeit (PR #282)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

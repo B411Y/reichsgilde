@@ -1693,7 +1693,7 @@ Der Gardist (Mensch) verliert 7,5 % durch seinen kleineren Bonus (+5 → +2 %), 
 
 Mittel über alle zehn Berufe gegen Menschen: Zwerg +7,8 → +9,1 %, Elb −3,3 → −1,6 %, Halbling +0,6 → +1,1 %. Halbling-Dieb und die Halbling- und Zwerg-Geldleiher bleiben vorn; beim Halbling-Geldleiher (ohne Bonus) und dem größten Teil des Halbling-Diebs wirkt etwas anderes als der Bonus (Familie, Talente, Meinungen; offen in kern.md).
 
-## Fahrzeit nach Weglänge (Branch phase5/gehtempo)
+## Fahrzeit nach Weglänge (PR #282)
 
 *Zwischenstand: Die Zahlen dieses Abschnitts gelten für Köln mit einem Markt. Überholt durch „Mehrere Marktplätze“ und die folgenden Abschnitte; den Endstand gegen main fasst „Endabnahme gegen main und Ausbau“ zusammen.*
 
@@ -1747,7 +1747,7 @@ Die Greybox-Zeilen der Varianten haben 10 Startwerte, vorher und nachher 20; Mes
 
 Mehr Ladung hilft nicht: Es fehlt nicht Laderaum, sondern die Werkstatt wartet stundenlang auf Zutaten, die erst mit dem Karren kommen. Ein Ausgleich in den Wirtschaftswerten (Ladung, Karrenpreise) kann die sieben- bis zwölffache Fahrzeit in Köln nicht auffangen; das ist eine Designfrage (Höchstdauer, Lage der Plätze bzw. weitere Märkte in Köln, Rundendauer) und liegt beim Teamleiter. Bis dahin bleiben die Werte wie gebaut (Höchstdauer 360). **Empfehlung des Kerns:** die Höchstdauer je Arbeitsort an die alte feste Zeit binden (höchstens doppelt so lang: Werkstatt 60, Umland 240 Minuten; kleine Kern-Änderung) und Köln im Leveldesign kürzere Wege geben (Plätze näher am Markt oder weitere Märkte) – dann greift die Grenze selten, und die Karren fahren fast überall in ihrem Tempo. **Entschieden (Nutzer, 31.10.2026):** mehrere Märkte in Köln, keine feste Deckelung – siehe „Mehrere Marktplätze“.
 
-## Mehrere Marktplätze (Branch phase5/gehtempo)
+## Mehrere Marktplätze (PR #282)
 
 *Zwischenstand: Die Lage der Plätze ist überholt durch „Märkte an den Enden der Mauer und in Deutz“ und „Hausreihe vor dem Tor“; die Regel (ein Stadtmarkt, nächster Platz, Platz als Kreuzung) gilt weiter.*
 
@@ -1782,7 +1782,7 @@ Köln je Haus (vorher / Branch / nachher): Overstolz (Zwerg Schmied) 89.862 / 6.
 
 **Befund:** Das Ziel des Spielers ist erreicht (33.919, +9 % gegen vorher – der Weg zum Heumarkt dauert 27 statt 30 Minuten), kein Bankrott, Bürger nach Ø 10,0 Jahren. Die KI-Häuser liegen bei 57.238 (−22 % gegen vorher) – so viel, wie die Fahrzeit nach Weglänge auch in der Greybox kostet (79.030 → 61.624, −22 %). Der Grund ist das Umland: Die Umlandbetriebe liegen draußen an den Landstraßen, 286–369 m vom nächsten Platz, und bleiben fast alle an der Höchstdauer (ein Ochsenkarren schafft in 360 Minuten 227 m); Marktplätze in der Stadt helfen dort nicht. Sollen die KI-Häuser in Köln näher an vorher, wären die Hebel Umlandbetriebe näher an den Toren (Leveldesign) oder eine eigene Grenze fürs Umland (nicht gewählt) – beides Entscheidungen für Teamleiter und Nutzer.
 
-## Eine Strecke für Kern und Bild (Branch phase5/gehtempo)
+## Eine Strecke für Kern und Bild (PR #282)
 
 Auftrag des Teamleiters (31.10.2026) nach dem Klicktest der Darstellung: Der Karren fährt im Bild im festen Tempo vom Hof über die Gassen bis zum Halt am Pflasterrand, der Kern rechnete vom nächsten Punkt einer Karrenstraße bis zur Platzmitte – in Köln war der Karren 26–34 % früher am Halt (Bild 14–16 m, Kern 21–22 m), am Weinmarkt der Greybox 105 % später (die Gasse führt um das Haus herum), Kieselbach 71 % früher. Ziel: dieselbe Strecke, Abweichung je Betrieb höchstens wenige Prozent, Spieler Köln weiter um 30.000, kein Bankrott.
 
@@ -1824,7 +1824,7 @@ Köln je Haus (vorher / nachher): Overstolz 71.421 / 70.492, Hardevust 51.862 / 
 
 **Befund:** Kern und Bild fahren dieselbe Strecke (Abweichung nur die Rundung des Kerns auf ganze Minuten, Test `KarrenwegTests`). Mit den nachjustierten Karten bleibt der Spieler in beiden Städten im Ziel (Köln 32.425, −4,4 %; Greybox 35.151, +1,6 %), kein Bankrott, Bürger im Ziel. Die KI-Häuser der Greybox gewinnen 18 % – fast ganz Kieselbach (+72 %): Sein Karren fuhr im Kern bisher 89 m außen herum, im Bild schon immer 26 m über seine Gasse; jetzt rechnet der Kern, was man sieht. In Köln verlieren die KI-Häuser 4 % (Werkstattwege 25–30 statt 27–28 Minuten, die Umlandwege etwas kürzer). Die Klicktests (Tempo 1) zeigen je Werkstatt −1 bis +2 % gegen die Kernzeit (Köln, Greybox, Probestadt; vorher −34 bis +105 %), gesehene Fahrten 1,00 m/s (auf Gassen 0,85 m/s, wie der Kern); im Umland gleiche Längen, die Zeit kappt der Kern bei 360 Minuten.
 
-## Märkte an den Enden der Mauer und in Deutz (Branch phase5/gehtempo)
+## Märkte an den Enden der Mauer und in Deutz (PR #282)
 
 *Zwischenstand: Alter Markt und Heumarkt rückten danach eine Hausreihe vom Tor ab („Hausreihe vor dem Tor“).*
 
@@ -1854,7 +1854,7 @@ Köln je Haus (vorher / nachher): Overstolz 70.492 / 83.398, Hardevust 42.871 / 
 
 **Klicktest** (Köln, Tempo 1, Vulkan auf der Grafikkarte, Messzeile `[karren] Profil`): Alle acht Werkstattkarren fahren im Bild den Weg des Kerns (gleiche Länge, 19,8–23,6 m, Anker im Modell 0,00 m vom Start) und kommen −1 bis 0 % gegen die Kernzeit am Halt an (nur die Rundung des Kerns auf ganze Minuten), jeder zu seinem Platz: Heumarkt 3 (Spieler 23,6 m, 30 Minuten), Alter Markt 2, Neumarkt 3. Stände stehen an allen drei Plätzen, ein Klick auf jeden öffnet die gemeinsame Preistafel.
 
-## Hausreihe vor dem Tor (Branch phase5/gehtempo)
+## Hausreihe vor dem Tor (PR #282)
 
 Wunsch des Nutzers (1.11.2026): Die Lage der drei Märkte bleibt, aber Alter Markt und Heumarkt lagen zu nah an der Mauer (der Platz stieß an Wallstraße und Tor). Beide rücken an der Rheingasse 15 m zur Stadtmitte (37 | ±110 statt ±125; der Rand des Platzes 28 statt 13 m vor dem Tor), so dass dazwischen Häuser stehen: zur Stadt hin die Wallstraße und ein Haus, am Rhein zwei Häuser hintereinander (am Heumarkt Einwohnerplätze, am Alter Markt Kulissenhäuser, die auch mit wenigen Rivalen stehen). Deutz ist nach demselben Maßstab geprüft und bleibt, wie es ist (zwischen Neumarkt und Deutzer Mauer stehen nach Norden die Startgrundstücke, nach Süden und Osten Einwohnerplätze). Ziel wie bisher: Spieler um 30.000, KI-Häuser im bisherigen Rahmen, kein Bankrott. Keine Änderung an Kern, Daten oder Spielstand – nur die Karte.
 
@@ -1884,7 +1884,7 @@ Köln je Haus (vorher / nachher): Overstolz 83.398 / 81.379, Hardevust 44.666 / 
 
 **Klicktest** (Köln, Tempo 1, Vulkan auf der Grafikkarte, Messzeile `[karren] Profil`): Alle acht Werkstattkarren fahren im Bild den Weg des Kerns (gleiche Länge, 19,8–23,6 m, Anker im Modell 0,00 m vom Start) und kommen −1 bis +2 % gegen die Kernzeit am Halt an (nur die Rundung des Kerns auf ganze Minuten: Lyskirchen 27,5 gegen 27 Minuten), jeder zu seinem Platz: Heumarkt 3 (Spieler 23,6 m, 30 Minuten; Hardevust jetzt 21,2 m über den Malzbüchel), Alter Markt 2, Neumarkt 3. Im Bild stehen zwischen Tor und Platz am Heumarkt ein großes Einwohnerhaus an der Stadtseite und zwei am Rhein, am Alter Markt die drei Kulissenhäuser (eins neben St. Kunibert, zwei am Rhein; zweiter Lauf nach dem Umbau, gleiche Messzeilen), in Deutz zwei Häuser vor dem Südtor; ein Klick auf Alter Markt und Neumarkt öffnet die gemeinsame Preistafel.
 
-## Endabnahme gegen main und Ausbau (Branch phase5/gehtempo, Prüfung 1.11.2026)
+## Endabnahme gegen main und Ausbau (PR #282, Prüfung 1.11.2026)
 
 Eine unabhängige Prüfung (1.11.2026) fand: Die Abschnitte oben verglichen die KI-Häuser mit Zwischenständen des Branches statt mit main (Befund M1), die KI-Stärke war am Endstand nicht gemessen (M2), Lyskirchen verlor in Köln 31 % (M3), und gemessen war nur ein Spieler mit genau einem Betrieb – wer ausbaut, bekam in Köln fast nur Bauorte drei Stunden vom Markt (H2). Hier der Vergleich gegen **main 880e3387** (feste Fahrzeit 30 / 120 Minuten) für den Endstand des Branches. Die Simulation des Branches ist seit 1b598be0 unverändert (danach nur Messcode, Kartenprüfung, Darstellung, Doku; die Greybox gibt auf den Gulden dieselben Zahlen wie die Prüfung auf dd347586). Die Karrenwahl der KI (Befund H1) bessert spiel-ki gerade nach; diese Zahlen sind vor H1.
 
@@ -1988,7 +1988,7 @@ Der Beruf ist also nicht benachteiligt, sondern wer weit draußen ausbaut, und d
 - **Gleichheitstest** (Linux/Windows, Speichern und Laden, deutsche Ländereinstellung) jetzt auch in Köln (vier Jahre, „Schwer“, mit drei Marktplätzen und den Wegen über das Pflaster).
 - **Fairness der Startgrundstücke** misst die Kartenprüfung nach dem Karrenweg statt der Luftlinie (`Startwegpruefung`, Hinweis „startweg“); Köln: der Spieler 23,6 m gegen 21,1 m der KI-Werkstätten (+10 %), Grube Scherfgin und Bauernhof Mommersloch −13 % bzw. +12 % gegen das Mittel des Start-Umlands.
 
-## Werkstatt-Bauplätze und KI nach Fahrzeit (Branch phase5/gehtempo, 1.11.2026)
+## Werkstatt-Bauplätze und KI nach Fahrzeit (PR #282, 1.11.2026)
 
 Entscheidung des Nutzers zum Ausbau (Befund H2): **Weg A** – „Kern = Bild“ bleibt, keine Höchstdauer für Werkstätten (V2 verworfen). Seit dem Abschnitt oben sind drei Dinge dazugekommen:
 

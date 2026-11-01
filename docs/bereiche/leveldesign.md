@@ -107,7 +107,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Palette | Gruppe „Flächen und Natur“: unter „Natur“ die Pflanzen (jetzt auch Kit-Bäume, Kiefer, Totbaum, Kit-Gras, Klee, Farn, Kraut, Blumen, Pilze, Kiesel, Felsen, Trittsteine), darunter „Requisiten (Asset-Kits)“ mit den Gegenständen und Zierteilen. Der Pinsel kennt sie als Gruppen „Bäume (Kit)“, „Boden (Kit)“, „Steine (Kit)“, „Gegenstände“, „Zierteile“. | 28.10.2026 |
 | Kartenwahl (von Oberfläche, PR #229) | Neue optionale Felder `spielbar` (bietet die Karte in der Kartenwahl an) und `beschreibung` (Kurztext der Kachel). Nur die Probestadt trägt `spielbar: true`, gesetzt mit dem Umbau `kartenwahl` und im Stadtskript; Köln bekommt das Feld, wenn die Stadt spielbar ist (Kartenskript `SpielbarSetzen(true)`). | 28.10.2026 |
 
-### Köln: Werkstatt-Bauplätze nahe den Märkten (Branch phase5/gehtempo)
+### Köln: Werkstatt-Bauplätze nahe den Märkten (PR #282)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
