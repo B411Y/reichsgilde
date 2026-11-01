@@ -14,8 +14,12 @@ namespace Reichsgilde;
 ///
 /// Das Maß der Gasse ist <see cref="Gassenbreite"/>, fest 2 m (Annahme: die schmalste Gasse der Karten, der Fußweg im Wald, ist 2 m breit, die
 /// Hauptgassen 5 m; die Breite der Karte wird hier nicht gelesen, damit die Spuren überall gleich aussehen). Die Spur reicht von
-/// <see cref="Spurnah"/> bis <see cref="Spurfern"/> Meter rechts der Mitte, mit dem Schwanken von 0,25 bis 0,85 m, der Körper bleibt also
-/// innerhalb der rechten Hälfte (Schulterbreite etwa 0,5 m). Der Karrenausweichschritt (Schritt 5d) kommt in der Darstellung noch dazu.
+/// <see cref="Spurnah"/> bis <see cref="Spurfern"/> Meter rechts der Mitte, mit dem Schwanken von 0,20 bis 0,75 m: Die Mitte der Figur bleibt auf der
+/// rechten Hälfte, der Körper (Schulterbreite etwa 0,5 m) reicht höchstens bis zum rechten Rand der 2-m-Gasse. Der Karrenausweichschritt
+/// (Schritt 5d) kommt in der Darstellung noch dazu und führt bis an den Rand.
+///
+/// Weil die Figur seitlich versetzt geht (Übergang, Schwanken), geht sie auf dem Boden etwas weiter als die Mittellinie: <see cref="Bewegung"/> gibt die
+/// wirkliche Richtung und das Verhältnis der beiden Wege (für den Takt der Schritte, damit die Füße nicht rutschen) an.
 /// </summary>
 public static class Passantenspur
 {
@@ -23,7 +27,7 @@ public static class Passantenspur
     public const float Gassenbreite = 2.0f;
 
     /// <summary>Die Grundspur liegt zwischen so viel und so viel Meter rechts der Mitte (bei zwei Metern Gassenbreite die rechte Hälfte).</summary>
-    public const float Spurnah = 0.40f, Spurfern = 0.70f;
+    public const float Spurnah = 0.35f, Spurfern = 0.60f;
 
     /// <summary>Wie weit (Meter) die Figur beim Gehen um ihre Spur pendelt, höchstens.</summary>
     public const float Schwanken = 0.15f;
@@ -34,16 +38,29 @@ public static class Passantenspur
     /// <summary>Wellenlängen (Meter) der beiden Schwingungen: die erste 3 bis 4 m, die zweite 4 bis 5 m.</summary>
     public const float WelleKurzMin = 3f, WelleKurzMax = 4f, WelleLangMin = 4f, WelleLangMax = 5f;
 
-    /// <summary>Gleichmäßig verteilter Bruchteil (0 bis 1) aus einer Nummer und einem Schlüssel: Goldener Schnitt, dadurch auch bei aufeinanderfolgenden Nummern weit gestreut.</summary>
+    /// <summary>
+    /// Ein fester „Zufall“ (0 bis unter 1) aus einer Nummer und einem Schlüssel (Mischfunktion, kein Zufallsgenerator): Wellenlängen und Phasen
+    /// hängen so nicht voneinander und nicht von der Grundspur ab, zwei Personen mit ähnlicher Spur schwanken also nicht im Gleichschritt.
+    /// </summary>
     public static float Bruchteil(int nummer, int schluessel)
     {
-        const double phi = 0.6180339887498949;
-        var x = (nummer * 2 + 1 + schluessel * 7919L) * phi;
-        return (float)(x - Math.Floor(x));
+        unchecked
+        {
+            var h = (uint)nummer * 0x9E3779B1u ^ (uint)(schluessel + 1) * 0x85EBCA6Bu;
+            h ^= h >> 16; h *= 0x7FEB352Du; h ^= h >> 15; h *= 0x846CA68Bu; h ^= h >> 16;
+            return (h >> 8) / 16777216f;
+        }
     }
 
-    /// <summary>Die eigene Spur dieser Person (Meter rechts der Mitte), fest nach der Nummer, von <see cref="Spurnah"/> bis <see cref="Spurfern"/>.</summary>
-    public static float Grundspur(int nummer) => Spurnah + (Spurfern - Spurnah) * Bruchteil(nummer, 0);
+    /// <summary>
+    /// Die eigene Spur dieser Person (Meter rechts der Mitte), fest nach der Nummer, von <see cref="Spurnah"/> bis <see cref="Spurfern"/>. Der Goldene Schnitt
+    /// verteilt aufeinanderfolgende Nummern gleichmäßig über die Breite (Nachbarn im Haus liegen nicht auf derselben Spur).
+    /// </summary>
+    public static float Grundspur(int nummer)
+    {
+        var x = (nummer * 2L + 1) * 0.6180339887498949;
+        return Spurnah + (Spurfern - Spurnah) * (float)(x - Math.Floor(x));
+    }
 
     /// <summary>Die erste und zweite Wellenlänge dieser Person (Meter).</summary>
     public static (float Kurz, float Lang) Wellenlaengen(int nummer) =>
@@ -61,9 +78,9 @@ public static class Passantenspur
     }
 
     /// <summary>Weiche Rampe von 0 auf 1 über <see cref="Uebergang"/> Meter (S-Kurve: am Anfang und am Ende ohne Knick).</summary>
-    public static float Rampe(float meter)
+    public static float Rampe(float meter, float laenge = Uebergang)
     {
-        var t = Math.Clamp(meter / Uebergang, 0f, 1f);
+        var t = Math.Clamp(meter / laenge, 0f, 1f);
         return t * t * (3 - 2 * t);
     }
 
@@ -73,11 +90,39 @@ public static class Passantenspur
     /// von einem laufenden Weg auf den neuen übergeht) und gleicht sich über <see cref="Uebergang"/> Meter an die Spur an, am Ende geht sie ebenso zurück
     /// auf die Mitte des Weges.
     /// </summary>
-    public static float Seite(int nummer, float strecke, float rest, float startseite = 0)
+    public static float Seite(int nummer, float strecke, float rest, float startseite = 0) =>
+        Versatz(nummer, strecke, rest, (startseite, 0), (1, 0)).X;
+
+    /// <summary>
+    /// Der seitliche Versatz als Vektor (x, z in Metern) nach <paramref name="strecke"/> Metern, mit noch <paramref name="rest"/> Metern bis zum Ende:
+    /// <paramref name="rechts"/> ist die Rechtsrichtung der Figur (Länge 1), <paramref name="start"/> der Versatz, mit dem sie auf den Weg kommt (null, wenn sie
+    /// an einem Ort losgeht; sonst ihr bisheriger Versatz als Vektor, also auch seine Richtung – so springt sie beim Anschluss nicht). Der Versatz gleitet
+    /// über <see cref="Uebergang"/> Meter von <paramref name="start"/> auf die Spur (<see cref="Grundspur"/> plus <see cref="Schwankung"/> nach rechts)
+    /// und am Ende zurück auf null.
+    /// </summary>
+    public static (float X, float Z) Versatz(int nummer, float strecke, float rest, (float X, float Z) start, (float X, float Z) rechts)
     {
         var ziel = Grundspur(nummer) + Schwankung(nummer, strecke);
-        var an = Rampe(strecke);
-        return (startseite + (ziel - startseite) * an) * Rampe(rest);
+        // Je weiter der alte Versatz vom Ziel weg ist (anderer Weg, andere Richtung), desto länger dauert der Übergang: so bleibt er überall gleich flach
+        var (dx, dz) = (rechts.X * ziel - start.X, rechts.Z * ziel - start.Z);
+        var laenge = Uebergang * MathF.Max(1, MathF.Sqrt(dx * dx + dz * dz) / (Spurfern + Schwanken));
+        var (an, aus) = (Rampe(strecke, laenge), Rampe(rest));
+        return ((start.X * (1 - an) + rechts.X * ziel * an) * aus, (start.Z * (1 - an) + rechts.Z * ziel * an) * aus);
+    }
+
+    /// <summary>Wie weit (Meter) die Richtung der Bewegung vorausgeschaut wird, um die Steigung des Versatzes zu messen.</summary>
+    public const float Vorschau = 0.25f;
+
+    /// <summary>
+    /// Wohin die Figur auf dem Boden wirklich geht, je Meter Weg auf der Mittellinie: die Richtung der Mittellinie (<paramref name="richtung"/>, Länge 1) plus
+    /// die Änderung des Versatzes. Ihre Länge ist das Verhältnis „Weg auf dem Boden zu Weg auf der Mittellinie“ (mindestens 1, höchstens etwa 1,5 im
+    /// Übergang): Die Darstellung dreht die Figur in diese Richtung (kein seitliches Rutschen) und lässt die Schritte um dieses Verhältnis schneller laufen.
+    /// </summary>
+    public static (float X, float Z) Bewegung(int nummer, float strecke, float rest, (float X, float Z) start, (float X, float Z) rechts, (float X, float Z) richtung)
+    {
+        var jetzt = Versatz(nummer, strecke, rest, start, rechts);
+        var spaeter = Versatz(nummer, strecke + Vorschau, rest - Vorschau, start, rechts);
+        return (richtung.X + (spaeter.X - jetzt.X) / Vorschau, richtung.Z + (spaeter.Z - jetzt.Z) / Vorschau);
     }
 
     /// <summary>

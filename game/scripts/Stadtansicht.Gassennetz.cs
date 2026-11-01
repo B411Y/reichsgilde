@@ -166,10 +166,13 @@ public sealed class Gassennetz
     }
 
     /// <summary>Der Punkt bei diesem Anteil (0 = Anfang, 1 = Ende) der Strecke.</summary>
-    public static Vector3 PunktAuf(Vector3[] pfad, float anteil)
+    public static Vector3 PunktAuf(Vector3[] pfad, float anteil) => PunktAuf(pfad, anteil, pfad.Length == 0 ? 0 : Laenge(pfad));
+
+    /// <summary>Wie <see cref="PunktAuf(Vector3[], float)"/>, mit der schon bekannten Länge des Pfades (spart die Rechnung, wenn mehrere Punkte je Bild gebraucht werden).</summary>
+    public static Vector3 PunktAuf(Vector3[] pfad, float anteil, float laenge)
     {
         if (pfad.Length == 0) return Vector3.Zero;
-        var rest = Mathf.Clamp(anteil, 0, 1) * Laenge(pfad);
+        var rest = Mathf.Clamp(anteil, 0, 1) * laenge;
         for (var i = 0; i + 1 < pfad.Length; i++)
         {
             var stueck = pfad[i].DistanceTo(pfad[i + 1]);

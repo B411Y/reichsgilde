@@ -39,9 +39,9 @@ public partial class Stadtansicht
         public int Nummer { get; init; }
         /// <summary>Alter Versatz (Meter, nur für <c>--passantenspur=alt</c> zum Vergleichen).</summary>
         public float Versatz { get; init; }
-        /// <summary>Wie weit (Meter, rechts der Mitte) die Figur zuletzt neben dem Weg stand, und von wo der laufende Weg ihre Spur beginnt (0 = losgegangen an einem Ort).</summary>
-        public float SeiteJetzt { get; set; }
-        public float SeiteStart { get; set; }
+        /// <summary>Wie weit (Vektor in Metern) die Figur zuletzt neben der Mittellinie des Weges stand (null, wenn sie nicht lief), und von wo der laufende Weg ihren Versatz beginnt (null = losgegangen an einem Ort).</summary>
+        public Vector3 VersatzJetzt { get; set; }
+        public Vector3 VersatzStart { get; set; }
 
         /// <summary>Wie weit (Meter) die Figur gerade zusätzlich an den Rand ausweicht, weil ein Karren naht (Schritt 5d).</summary>
         public float Ausweichen { get; set; }
@@ -106,7 +106,7 @@ public partial class Stadtansicht
                 // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
                 // sie nicht ab: Sie geht von der Stelle, an der sie ist, über die Gassen zum Anfang des neuen Weges (siehe Weitergehen).
                 var weiter = MitteDesWegesWennImBild(p, minuteGenau);
-                p.SeiteStart = weiter is null ? 0 : p.SeiteJetzt; // Anschluss an den laufenden Weg: die Spur geht weich in die neue über
+                p.VersatzStart = weiter is null ? Vector3.Zero : p.VersatzJetzt; // Anschluss an den laufenden Weg: der Versatz geht weich in den neuen über (samt Richtung)
                 p.FuerWeg = weg;
                 p.Pfad = Strecke(weg, e, p);
                 p.Laenge = Gassennetz.Laenge(p.Pfad);
@@ -166,7 +166,7 @@ public partial class Stadtansicht
                                            .Select(p => p.Laenge / ((p.LaufEnde - p.LaufStart) * sekundenJeMinute)).ToList();
             var tempi = laufend.Count == 0 ? "" : $"Gehtempo Ø {laufend.Average():0.0} m/s, höchstens {laufend.Max():0.0} m/s, ";
             if (NaeheMessen)
-                GD.Print($"[passantennaehe] Spur {(SpurAlt ? "alt" : "neu")}: seit {_naheSekunden:0} s unter {NaeheAbstand} m: {_naheNeuGesamt} Begegnungen " +
+                GD.Print($"[passantennaehe] Spur {(SpurAlt ? "alt" : "neu")}, Tempo {_simulation.Takt.Tempo}: seit {_naheSekunden:0} s unter {NaeheAbstand} m: {_naheNeuGesamt} Begegnungen " +
                          $"({_naheNeuGesamt * 60.0 / Math.Max(_naheSekunden, 1):0.0} je Minute; im Bild {_naheNeuImBild}, {_naheNeuImBild * 60.0 / Math.Max(_naheSekunden, 1):0.0} je Minute; " +
                          $"davon gegenläufig {_naheGegen}, gleichläufig {_naheGleich}), im Bild laufen im Mittel {_naheLaeufer / Math.Max(_naheBilder, 1):0.0} Figuren");
             GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
@@ -185,7 +185,7 @@ public partial class Stadtansicht
     private long _passantenBewegtSumme;
 
     // ── Messung für Schicht 4 (Abstoßung): wie oft kommen sich laufende Figuren näher als 0,5 m? (Startoption --passantennaehe=1, nur Protokoll) ──
-    private static bool NaeheMessen => Wasserarten.Startoption("passantennaehe") is "1" or "an" or "ja";
+    private static readonly bool NaeheMessen = Wasserarten.Startoption("passantennaehe") is "1" or "an" or "ja";
     private const float NaeheAbstand = 0.5f;
     private readonly HashSet<long> _naheBeruehrt = new();
     private double _naheSekunden, _naheBilder, _naheLaeufer;
@@ -221,7 +221,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Startoption <c>--passantenspur=alt</c>: die frühere Linie in fünf Spuren statt der Spuren aus <see cref="Passantenspur"/> (zum Vergleichen).</summary>
-    private static bool SpurAlt => Wasserarten.Startoption("passantenspur") is "alt";
+    private static readonly bool SpurAlt = Wasserarten.Startoption("passantenspur") is "alt";
 
     /// <summary>
     /// Die Figur steht an ihrem Ort: nur draußen sichtbar. Steht sie schon da, bleibt alles, wie es ist – jede gesetzte Position
@@ -301,13 +301,16 @@ public partial class Stadtansicht
         _imDom.Remove(nummer);
         if (p.Pfad.Length == 0) { p.Knoten.Visible = false; return; }
         var anteil = (float)Math.Clamp((minuteGenau - p.LaufStart) / (p.LaufEnde - p.LaufStart), 0, 1);
-        var hier = Gassennetz.PunktAuf(p.Pfad, anteil);
-        var weiter = Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + 0.5f / Mathf.Max(p.Laenge, 1)));
+        var laenge = Mathf.Max(p.Laenge, 1);
+        var hier = Gassennetz.PunktAuf(p.Pfad, anteil, p.Laenge);
+        var fenster = 0.5f / laenge; // ein halber Meter vor und zurück: Ecken werden über etwa einen Meter gerundet
+        var weiter = Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + fenster), p.Laenge);
         var richtung = weiter - hier;
+        var bodenfaktor = 1f; // Weg auf dem Boden je Meter Mittellinie: seitlich versetzt geht die Figur etwas weiter, ihre Schritte laufen entsprechend schneller
         if (richtung.LengthSquared() > 1e-6f)
         {
             richtung = richtung.Normalized();
-            p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
+            var drehung = Mathf.Atan2(richtung.X, richtung.Z);
             // Rechtsverkehr: auf der rechten Gassenhälfte gehen, auf der eigenen Spur der Person mit sanftem Schwanken, am Anfang und Ende weich
             // (Passantenspur.cs); naht ein Karren, weichen sie noch weiter aus (Schritt 5d)
             var naht = false;
@@ -317,23 +320,29 @@ public partial class Stadtansicht
                 if (d.X * d.X + d.Z * d.Z < PassantenAusweichAbstand * PassantenAusweichAbstand) { naht = true; break; }
             }
             p.Ausweichen = Mathf.Lerp(p.Ausweichen, naht ? 1.0f : 0f, naht ? 0.12f : 0.04f);
-            float seite;
-            Vector3 rechts;
+            Vector3 rechts, versatz;
             if (SpurAlt) // zum Vergleichen: die frühere gerade Linie in fünf Spuren
             {
-                (seite, rechts) = (0.55f + Mathf.Abs(p.Versatz) * 0.5f, new Vector3(-richtung.Z, 0, richtung.X));
+                rechts = new Vector3(-richtung.Z, 0, richtung.X);
+                versatz = rechts * (0.55f + Mathf.Abs(p.Versatz) * 0.5f);
             }
             else
             {
-                var fenster = 0.5f / Mathf.Max(p.Laenge, 1); // ein halber Meter vor und zurück: Ecken werden über etwa einen Meter gerundet
-                var (vor, zurueck) = (Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + fenster)), Gassennetz.PunktAuf(p.Pfad, Mathf.Max(0, anteil - fenster)));
-                var (rx, rz) = Passantenspur.Rechts((zurueck.X, zurueck.Z), (vor.X, vor.Z), (richtung.X, richtung.Z));
-                var strecke = anteil * p.Laenge;
-                (seite, rechts) = (Passantenspur.Seite(p.Nummer, strecke, p.Laenge - strecke, p.SeiteStart), new Vector3(rx, 0, rz));
+                var zurueck = Gassennetz.PunktAuf(p.Pfad, Mathf.Max(0, anteil - fenster), p.Laenge);
+                var (rx, rz) = Passantenspur.Rechts((zurueck.X, zurueck.Z), (weiter.X, weiter.Z), (richtung.X, richtung.Z));
+                var (strecke, start) = (anteil * p.Laenge, (p.VersatzStart.X, p.VersatzStart.Z));
+                var (vx, vz) = Passantenspur.Versatz(p.Nummer, strecke, p.Laenge - strecke, start, (rx, rz));
+                var (fx, fz) = Passantenspur.Bewegung(p.Nummer, strecke, p.Laenge - strecke, start, (rx, rz), (richtung.X, richtung.Z));
+                (rechts, versatz) = (new Vector3(rx, 0, rz), new Vector3(vx, 0, vz));
+                bodenfaktor = Mathf.Sqrt(fx * fx + fz * fz);
+                if (bodenfaktor > 1e-3f) drehung = Mathf.Atan2(fx, fz); // die Figur blickt dorthin, wohin sie wirklich geht: kein seitliches Rutschen im Übergang
+                else bodenfaktor = 1f;
             }
-            p.SeiteJetzt = seite;
-            hier += rechts * (seite + p.Ausweichen);
+            p.Knoten.Rotation = new Vector3(0, drehung, 0);
+            p.VersatzJetzt = versatz;
+            hier += versatz + rechts * p.Ausweichen;
         }
+        else p.VersatzJetzt = Vector3.Zero;
         p.Knoten.Position = AufFuss(hier); // auf Gelände auf dem Boden (Stadtansicht.Gelaende.cs)
         p.Knoten.Visible = true;
         if (p.Figur is not { } figur) return;
@@ -344,7 +353,7 @@ public partial class Stadtansicht
                               : tempo > EilenAb * bein ? ("Eilen", EilenTempo)
                               : p.Traegt ? ("Tragen", TragenTempo)
                               : ("Gehen", GehenTempo);
-        BewegungSetzen(figur, bewegung, tempo / (grund * bein));
+        BewegungSetzen(figur, bewegung, tempo * bodenfaktor / (grund * bein));
     }
 
     /// <summary>
