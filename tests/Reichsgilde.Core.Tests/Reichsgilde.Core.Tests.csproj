@@ -20,6 +20,8 @@
     <Compile Include="..\..\game\scripts\KlangAnsagenErkennung.cs" Link="Ansagen\KlangAnsagenErkennung.cs" />
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
     <Compile Include="..\..\game\scripts\Gehtempo.cs" Link="Gehtempo\Gehtempo.cs" />
+    <!-- Die Spuren der Passanten (Rechtsverkehr, Schwanken, weiche Übergänge) – PassantenspurTests.cs -->
+    <Compile Include="..\..\game\scripts\Passantenspur.cs" Link="Gehtempo\Passantenspur.cs" />
     <!-- Die Rechnung der Umgebungsklänge und der Menschen dahinter (Ton Schritt 4) kennt ebenfalls kein Godot – KlangUmgebungTests.cs -->
     <Compile Include="..\..\game\scripts\KlangUmgebungModell.cs" Link="Umgebung\KlangUmgebungModell.cs" />
     <Compile Include="..\..\game\scripts\KlangStadtlebenModell.cs" Link="Umgebung\KlangStadtlebenModell.cs" />
