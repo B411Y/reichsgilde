@@ -5,7 +5,7 @@ namespace Reichsgilde;
 /// (<c>MarktbummelTests</c>); die Darstellung (Stadtansicht.Marktbummel.cs) führt sie aus.
 ///
 /// Wer auf dem Markt ist, bleibt nicht an einer Stelle stehen, bis der Kern ihn weiterschickt: Er geht von Ziel zu Ziel – an einen Stand, zu einer
-/// Gesprächsgruppe, an den Brunnen (Wasser holen), auf den Brunnenrand oder eine Bank, oder er bleibt irgendwo stehen und schaut sich um. Jede Pause ist
+/// Gesprächsgruppe, an den Brunnen (Wasser holen), an den Brunnenrand (anlehnen) oder auf eine Bank, oder er bleibt irgendwo stehen und schaut sich um. Jede Pause ist
 /// anders lang, keiner geht im Gleichtakt los. Nur wenige gehen ein Stück um den Brunnen herum, und nicht alle in dieselbe Richtung.
 /// Alles fest aus der Nummer der Person und dem wievielten Ziel (kein Würfel, jeder Lauf gleich).
 /// </summary>
@@ -37,7 +37,7 @@ public static class Marktbummel
     /// <summary>Höchstens so viele Leute gehen auf einem Platz zugleich um den Brunnen herum.</summary>
     public const int KreisenHoechstens = 2;
 
-    /// <summary>So oft (Anteil der Wege zum Brunnen, auf den Rand oder zum Schauen) geht man vorher ein Stück um den Brunnen.</summary>
+    /// <summary>So oft (Anteil der Wege zum Brunnen, an den Rand oder zum Schauen) geht man vorher ein Stück um den Brunnen.</summary>
     public const float KreisenAnteil = 0.3f;
 
     /// <summary>So viele Personen hat eine Gesprächsgruppe höchstens; geredet wird erst ab zweien.</summary>
@@ -83,11 +83,11 @@ public static class Marktbummel
     /// <summary>Wie lange (Spielminuten) sie allein an einer Gesprächsstelle wartet.</summary>
     public static double Alleinwarten(int nummer, int zaehler) => AlleinVon + (AlleinBis - AlleinVon) * Passantenspur.Bruchteil(nummer, 31 + 7 * zaehler);
 
-    /// <summary>Geht sie auf diesem Weg zuerst ein Stück um den Brunnen (nur zum Brunnen, auf den Rand oder zum Schauen; die Obergrenze prüft die Darstellung)?</summary>
+    /// <summary>Geht sie auf diesem Weg zuerst ein Stück um den Brunnen (nur zum Brunnen, an den Rand oder zum Schauen; die Obergrenze prüft die Darstellung)?</summary>
     public static bool Kreist(Art ziel, int nummer, int zaehler, long ankunft) =>
         ziel is Art.Brunnen or Art.Rand or Art.Schauen && Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 37)) < KreisenAnteil;
 
-    /// <summary>In welche Richtung sie um den Brunnen geht (+1 gegen den Uhrzeigersinn in x-z, −1 mit ihm), wie weit (Bogenmaß, 100° bis 250°) und in welchem Abstand (Meter über den Halbmesser des Brunnens, 1,8 bis 3 m: außen an denen vorbei, die Wasser holen oder am Rand sitzen). Die Darstellung kürzt den Bogen, damit er vor dem Ziel endet.</summary>
+    /// <summary>In welche Richtung sie um den Brunnen geht (+1 gegen den Uhrzeigersinn in x-z, −1 mit ihm), wie weit (Bogenmaß, 100° bis 250°) und in welchem Abstand (Meter über den Halbmesser des Brunnens, 1,8 bis 3 m: außen an denen vorbei, die Wasser holen oder am Rand lehnen). Die Darstellung kürzt den Bogen, damit er vor dem Ziel endet.</summary>
     public static (int Richtung, float Spanne, float Abstand) Kreisbogen(int nummer, int zaehler, long ankunft)
     {
         var richtung = Passantenspur.Bruchteil(nummer, Schluessel(zaehler, ankunft, 41)) < 0.5f ? 1 : -1;

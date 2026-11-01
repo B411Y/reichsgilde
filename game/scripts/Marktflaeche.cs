@@ -165,6 +165,16 @@ public sealed class Marktflaeche
             if (laenge - s < frei + Zelle) noetig = MathF.Min(noetig, zielFrei - 0.05f);
             var luft = Frei(x, z) - noetig;
             if (luft < 0) return false;
+            // Stehende: nicht mitten durch (außer jemand steht am Anfang oder Ziel selbst – der Nachbar am Stand, der Partner im Gespräch)
+            if (_personen.Count > 0 && frei >= PersonFreiAb)
+                foreach (var (px, pz) in _personen)
+                {
+                    var (ex, ez) = (px - x, pz - z);
+                    if (ex * ex + ez * ez >= PersonAbstand * PersonAbstand) continue;
+                    var (ax, az, bx, bz) = (px - a.X, pz - a.Z, px - b.X, pz - b.Z);
+                    if (ax * ax + az * az < PersonAmEnde * PersonAmEnde || bx * bx + bz * bz < PersonAmEnde * PersonAmEnde) continue;
+                    return false;
+                }
             if (s >= laenge) return true;
             // die Lockerung an den Enden gilt nur dort: nicht über ihre Grenze hinwegspringen
             // (mindestens 8 cm: Wege an der Grenze des Abstands entlang würden sonst in winzigen Schritten abgetastet; was dazwischen fehlt, sind Millimeter)
@@ -287,7 +297,7 @@ public sealed class Marktflaeche
                 var nk = nj * _n + ni;
                 if (_abstand[nk] < frei) continue;
                 if (di != 0 && dj != 0 && (_abstand[j * _n + ni] < frei || _abstand[nj * _n + i] < frei)) continue; // nicht über Eck durch ein Hindernis
-                var neu = _kosten[k] + kosten;
+                var neu = _kosten[k] + kosten * (1 + Zusatz(nk)); // belegte Streifen und Stehende machen die Zelle teurer (nie billiger: die Schätzung bleibt richtig)
                 if (_stempel[nk] == _lauf && neu >= _kosten[nk]) continue;
                 (_kosten[nk], _her[nk], _stempel[nk]) = (neu, k, _lauf);
                 _offen.Enqueue(nk, neu + Schaetzung(nk));
@@ -333,9 +343,10 @@ public sealed class Marktflaeche
         Bereit();
         var (dx, dz) = (nach.X - von.X, nach.Z - von.Z);
         var laenge = MathF.Sqrt(dx * dx + dz * dz);
+        var (rx, rz) = laenge > 0 ? (-dz / laenge, dx / laenge) : (0f, 0f);
+        if (laenge >= 3f && _belegt) seite = FreiesteSeite(von, nach, frei, seite, MathF.Min(laenge * anteil, hoechstens), rx, rz);
         if (laenge < 3f || MathF.Abs(seite) < 0.05f) return Pfad(von, nach, frei);
         var quer = MathF.Min(laenge * anteil, hoechstens) * seite;
-        var (rx, rz) = (-dz / laenge, dx / laenge);
         foreach (var f in new[] { 1f, 0.6f, 0.3f })
         {
             var mitte = (von.X + dx * 0.5f + rx * quer * f, von.Z + dz * 0.5f + rz * quer * f);
@@ -347,6 +358,135 @@ public sealed class Marktflaeche
             return erst;
         }
         return Pfad(von, nach, frei);
+    }
+
+    // ── Belegung: Wer schon geht und wer steht (Markt v3b, Teamleiter 1.11.2026) ──
+
+    /// <summary>So viel kostet ein Rasterschritt mehr, je Weg, der gerade über die Zelle führt (Mitte des Streifens; zum Rand des Streifens weniger).</summary>
+    public const float StreifenKosten = 1.2f;
+    /// <summary>Halbe Breite (Meter) des Streifens, den ein Weg belegt.</summary>
+    public const float StreifenHalb = 0.7f;
+    /// <summary>Nach so vielen Sekunden ist die Belegung eines Weges nur noch halb so viel wert (die Leute sind dann ein gutes Stück weiter).</summary>
+    public const float StreifenHalbwert = 15f;
+    /// <summary>Um Stehende: so viel teurer (dicht bei der Person, bis <see cref="PersonUmkreis"/> auf null), damit Wege nicht durch Gruppen und Wartende führen.</summary>
+    public const float PersonKosten = 4f, PersonUmkreis = 1.1f;
+    /// <summary>Eine gerade Linie darf an Stehenden nicht näher als so viel vorbeiführen; steht jemand so nah am Anfang oder Ziel, zählt er nicht.</summary>
+    public const float PersonAbstand = 0.6f, PersonAmEnde = 1.3f;
+    /// <summary>Nur Wege mit so viel Abstand achten auf Stehende (der knappe Rückfallweg nicht).</summary>
+    public const float PersonFreiAb = 1f;
+
+    private float[] _streifen = Array.Empty<float>(), _personKosten = Array.Empty<float>();
+    private readonly List<(float X, float Z)> _personen = new();
+    private bool _belegt;
+    private float _alterung;
+
+    private float Zusatz(int k) => (_streifen.Length > k ? _streifen[k] * StreifenKosten : 0) + (_personKosten.Length > k ? _personKosten[k] : 0);
+
+    /// <summary>Ein Weg wird gegangen: Er belegt seinen Streifen (fällt mit der Zeit ab, <see cref="Altern"/>).</summary>
+    public void Belegen(IReadOnlyList<(float X, float Z)> weg)
+    {
+        if (weg.Count < 2) return;
+        if (_streifen.Length != _n * _n) _streifen = new float[_n * _n];
+        var r = (int)MathF.Ceiling(StreifenHalb / Zelle);
+        var zuletzt = -1;
+        for (var i = 1; i < weg.Count; i++)
+        {
+            var (dx, dz) = (weg[i].X - weg[i - 1].X, weg[i].Z - weg[i - 1].Z);
+            var l = MathF.Sqrt(dx * dx + dz * dz);
+            for (var t = 0f; t <= l; t += Zelle * 2)
+            {
+                var (x, z) = (weg[i - 1].X + dx * t / MathF.Max(l, 1e-5f), weg[i - 1].Z + dz * t / MathF.Max(l, 1e-5f));
+                var (ci, cj) = ZelleBei(x, z);
+                if (cj * _n + ci == zuletzt) continue;
+                zuletzt = cj * _n + ci;
+                for (var dj = -r; dj <= r; dj++)
+                    for (var di = -r; di <= r; di++)
+                    {
+                        var (ii, jj) = (ci + di, cj + dj);
+                        if (ii < 0 || jj < 0 || ii >= _n || jj >= _n) continue;
+                        var d = MathF.Sqrt(di * di + dj * dj) * Zelle;
+                        if (d > StreifenHalb) continue;
+                        // alle 0,5 m ein Abtastpunkt: in der Mitte des Streifens kommt so etwa 1 je Weg zusammen
+                        _streifen[jj * _n + ii] += 0.5f * (1 - d / StreifenHalb);
+                    }
+            }
+        }
+        _belegt = true;
+    }
+
+    /// <summary>Die Belegung verblasst (Halbwertszeit <see cref="StreifenHalbwert"/> Sekunden); gerechnet höchstens zweimal je Sekunde.</summary>
+    public void Altern(float sekunden)
+    {
+        _alterung += sekunden;
+        if (_alterung < 0.5f || !_belegt) return;
+        var faktor = MathF.Pow(0.5f, _alterung / StreifenHalbwert);
+        _alterung = 0;
+        var noch = false;
+        for (var k = 0; k < _streifen.Length; k++)
+        {
+            var w = _streifen[k] * faktor;
+            _streifen[k] = w < 0.02f ? 0 : w;
+            noch |= w >= 0.02f;
+        }
+        _belegt = noch || _personen.Count > 0;
+    }
+
+    /// <summary>Wer gerade auf dem Platz steht (oder sitzt): Wege machen einen Bogen um sie. Gemerkte Wege gelten danach nicht mehr.</summary>
+    public void Personen(IEnumerable<(float X, float Z)> stehende)
+    {
+        _personen.Clear();
+        _personen.AddRange(stehende);
+        if (_personKosten.Length != _n * _n) _personKosten = new float[_n * _n];
+        else Array.Clear(_personKosten);
+        var r = (int)MathF.Ceiling(PersonUmkreis / Zelle);
+        foreach (var (x, z) in _personen)
+        {
+            var (ci, cj) = ZelleBei(x, z);
+            for (var dj = -r; dj <= r; dj++)
+                for (var di = -r; di <= r; di++)
+                {
+                    var (ii, jj) = (ci + di, cj + dj);
+                    if (ii < 0 || jj < 0 || ii >= _n || jj >= _n) continue;
+                    var (mx, mz) = Mitte(ii, jj);
+                    var d = MathF.Sqrt((mx - x) * (mx - x) + (mz - z) * (mz - z));
+                    if (d < PersonUmkreis) _personKosten[jj * _n + ii] += PersonKosten * (1 - d / PersonUmkreis);
+                }
+        }
+        if (_personen.Count > 0) _belegt = true;
+        _gemerkt.Clear();
+    }
+
+    /// <summary>Wie stark der Streifen (Belegung und Stehende) an einem Punkt ist (für Tests und die Wahl der Seite).</summary>
+    public float Belegung(float x, float z)
+    {
+        if (!Auf(x, z)) return 0;
+        var (i, j) = ZelleBei(x, z);
+        return Zusatz(j * _n + i);
+    }
+
+    /// <summary>
+    /// Die Seite (fünf Stufen von −1 bis 1) mit der wenigsten Belegung entlang von Anfang → Zwischenpunkt → Ziel; bei gleicher Belegung die nächste zur eigenen
+    /// <paramref name="seite"/>. So weichen Ströme einander aus: Wer nach anderen den Platz quert, nimmt einen freieren Streifen.
+    /// </summary>
+    private float FreiesteSeite((float X, float Z) von, (float X, float Z) nach, float frei, float seite, float quer, float rx, float rz)
+    {
+        var (beste, besteKosten) = (seite, float.MaxValue);
+        var (dx, dz) = (nach.X - von.X, nach.Z - von.Z);
+        var laenge = MathF.Sqrt(dx * dx + dz * dz);
+        foreach (var stufe in new[] { -1f, -0.5f, 0f, 0.5f, 1f })
+        {
+            var mitte = (von.X + dx * 0.5f + rx * quer * stufe, von.Z + dz * 0.5f + rz * quer * stufe);
+            if (stufe != 0 && (!Auf(mitte.Item1, mitte.Item2, frei) || Abstand(mitte.Item1, mitte.Item2) < frei + 0.2f)) continue;
+            var summe = 0f;
+            foreach (var (a, b) in new[] { (von, mitte), (mitte, nach) })
+            {
+                var l = MathF.Sqrt((b.Item1 - a.Item1) * (b.Item1 - a.Item1) + (b.Item2 - a.Item2) * (b.Item2 - a.Item2));
+                for (var t = 0.5f; t < l; t += 0.5f) summe += Belegung(a.Item1 + (b.Item1 - a.Item1) * t / l, a.Item2 + (b.Item2 - a.Item2) * t / l) * 0.5f;
+            }
+            var kosten = summe + 0.3f * MathF.Abs(stufe - seite) * laenge * 0.1f;
+            if (kosten < besteKosten - 1e-4f) (beste, besteKosten) = (stufe, kosten);
+        }
+        return beste;
     }
 
     private readonly Dictionary<(int, int, int, int, int, int), List<(float X, float Z)>?> _gemerkt = new();
@@ -364,6 +504,7 @@ public sealed class Marktflaeche
         {
             if (_gemerkt.Count >= 4000) _gemerkt.Clear();
             _gemerkt[schluessel] = weg = Gefaechert(von, nach, frei, stufe / 2f);
+            // (mit Belegung wählt Gefaechert die Seite selbst; der Schlüssel bleibt die eigene Stufe – bis zur nächsten Belegung der Stehenden, dann neu)
         }
         if (weg is null) return null;
         // genau die verlangten Enden (gerundet gemerkt)

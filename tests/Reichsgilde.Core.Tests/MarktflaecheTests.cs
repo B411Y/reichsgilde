@@ -171,6 +171,38 @@ static class MarktflaecheTests
             nochmal[1] = (0, 0);                                // eine Kopie: der Speicher bleibt unberührt
             Pruefe.Wahr(f.GefaechertGemerkt(von, nach, Frei, 0.5f)![1] != (0, 0), "Speicher verändert");
         }),
+        ("Marktfläche: belegte Streifen – wer nach anderen denselben Weg über den Platz nimmt, geht auf einem anderen Streifen", () =>
+        {
+            var f = Testplatz();
+            var (von, nach) = ((-6f, -5.5f), (-6f, 5.5f));
+            var erster = f.Gefaechert(von, nach, Frei, 0)!;
+            f.Belegen(erster);
+            f.Belegen(erster); // zwei sind schon dort gegangen
+            var zweiter = f.Gefaechert(von, nach, Frei, 0)!;
+            // die Mitte des zweiten Weges liegt deutlich neben der des ersten
+            static (float X, float Z) Mitte(List<(float X, float Z)> w) => w.OrderBy(p => MathF.Abs(p.Z)).First();
+            Pruefe.Wahr(MathF.Abs(Mitte(zweiter).X - Mitte(erster).X) > 0.8f, $"gleicher Streifen: {Mitte(erster).X:0.00} / {Mitte(zweiter).X:0.00}");
+            // die Belegung verblasst
+            var vorher = f.Belegung(-6, 0);
+            f.Altern(Marktflaeche.StreifenHalbwert);
+            Pruefe.Ungefaehr(vorher / 2, f.Belegung(-6, 0), vorher * 0.05 + 0.03);
+        }),
+        ("Marktfläche: Stehende – der Weg führt nicht mitten durch jemanden, der dasteht; am Ziel stehende Nachbarn zählen nicht", () =>
+        {
+            var f = Testplatz();
+            var (von, nach) = ((-6f, -5.5f), (-6f, 5.5f));
+            f.Personen(new[] { (-6f, 0f), (-6.1f, 5.6f) });
+            var weg = f.Gefaechert(von, nach, Frei, 0)!;
+            var naechster = float.MaxValue;
+            for (var i = 1; i < weg.Count; i++)
+                for (var t = 0f; t <= 1; t += 0.01f)
+                {
+                    var (x, z) = (weg[i - 1].X + (weg[i].X - weg[i - 1].X) * t, weg[i - 1].Z + (weg[i].Z - weg[i - 1].Z) * t);
+                    naechster = MathF.Min(naechster, MathF.Sqrt((x + 6) * (x + 6) + z * z));
+                }
+            Pruefe.Wahr(naechster >= Marktflaeche.PersonAbstand - 0.05f, $"nur {naechster:0.00} m an der Stehenden vorbei");
+            Pruefe.Gleich(nach, weg[^1]); // das Ziel neben dem Nachbarn bleibt erreichbar
+        }),
         ("Marktfläche: Kosten – eine Suche fasst höchstens einen Teil des Rasters an", () =>
         {
             var f = Testplatz();

@@ -12,7 +12,7 @@ namespace Reichsgilde;
 ///   • <b>Bummeln</b> (<see cref="Marktbummel"/>): Wer am Markt ist, geht von Ziel zu Ziel (Stand, Gespräch, Brunnen, Brunnenrand, Bank, Schauen), jede
 ///     Pause anders lang. Ein Gang über den Platz ist ein Weg wie jeder andere (<see cref="Laufen"/>, mit Spur und Ausweichen).
 ///   • <b>Gespräche</b>: Gruppen bis vier, zwei stehen sich gegenüber; geredet wird erst zu zweit, allein schaut man sich um und geht nach einer Weile weiter.
-///   • <b>Brunnen</b>: Wasser holen (bücken), auf dem Rand sitzen, schauen; nur wenige gehen ein Stück um ihn herum, in beide Richtungen.
+///   • <b>Brunnen</b>: Wasser holen (bücken), am Rand lehnen, schauen (gesessen wird nur auf Bänken); nur wenige gehen ein Stück um ihn herum, in beide Richtungen.
 /// Mit <c>--passantenmarkt=v2</c> (und <c>--passantenspur=v1|alt</c>) bleibt der Markt wie vorher: feste Stellen, Rundgang, Wege um Kreise.
 /// </summary>
 public partial class Stadtansicht
@@ -41,7 +41,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Baut für Markt v3 die freie Fläche des Platzes (Hindernisse aus dem Modell <c>marktplatz.glb</c> und den Ständen, Maße aus
-    /// <c>tools/modelle/markt.py</c>), die Gesprächsgruppen zu viert um die Mitten der Plauderrunden, Sitze auf dem Brunnenrand und Stellen zum Schauen.
+    /// <c>tools/modelle/markt.py</c>), die Gesprächsgruppen zu viert um die Mitten der Plauderrunden, Plätze zum Anlehnen am Brunnenrand und Stellen zum Schauen.
     /// </summary>
     private void MarktV3Aufbauen(MarktplatzAnsicht platz, Dictionary<string, Transform3D> anker, List<(int Gruppe, Vector3 Ort)> gruppen)
     {
@@ -98,7 +98,8 @@ public partial class Stadtansicht
             }
         }
 
-        // Brunnenrand: Sitze rundum (Hüfte auf dem Rand, Blick nach außen), nicht vor den Wasserstellen und nicht am Eimer
+        // Brunnenrand: Plätze zum Anlehnen rundum (mit dem Rücken am Becken stehen, Blick nach außen), nicht vor den Wasserstellen und nicht am Eimer.
+        // Gesessen wird nur auf Bänken: Der Rand ist 0,78 m hoch, die Beine hingen in der Luft (Teamleiter, 1.11.2026)
         var wasser = _marktstellen.Where(s => s.Platz == platz && s.Art == Marktbummel.Art.Brunnen).Select(s => s.Ort).ToList();
         for (var k = 0; k < 8; k++)
         {
@@ -106,9 +107,10 @@ public partial class Stadtansicht
             var aussen = Im(Mathf.Cos(w) * 2.6f, 0, Mathf.Sin(w) * 2.6f);
             if (wasser.Any(q => new Vector2(q.X - aussen.X, q.Z - aussen.Z).Length() < 1.3f * m)) continue;
             if (new Vector2(eimer.X - aussen.X, eimer.Z - aussen.Z).Length() < 1.2f * m) continue;
-            var sitz = Im(Mathf.Cos(w) * 1.92f, 0.78f, Mathf.Sin(w) * 1.92f);
-            var raus = new Vector3(sitz.X - mitte.X, 0, sitz.Z - mitte.Z);
-            _marktstellen.Add(new Marktstelle(sitz, Mathf.Atan2(raus.X, raus.Z), "Sitzen") { Platz = platz, Art = Marktbummel.Art.Rand });
+            var lehnen = Im(Mathf.Cos(w) * 1.98f, 0, Mathf.Sin(w) * 1.98f);
+            var raus = new Vector3(lehnen.X - mitte.X, 0, lehnen.Z - mitte.Z).Normalized();
+            lehnen += raus * 0.26f; // Körper (Rücken) gerade am Beckenrand
+            _marktstellen.Add(new Marktstelle(new Vector3(lehnen.X, platz.Hoehe, lehnen.Z), Mathf.Atan2(raus.X, raus.Z), "Stehen") { Platz = platz, Art = Marktbummel.Art.Rand });
         }
 
         // Stellen zum Schauen: frei auf dem Platz, mit Abstand zu allem anderen (fest: am weitesten von den schon gewählten, höchstens zehn)
@@ -138,7 +140,27 @@ public partial class Stadtansicht
             _marktstellen.Add(new Marktstelle(ort, blick, "Stehen") { Platz = platz, Art = Marktbummel.Art.Schauen });
         }
         GD.Print($"Markt {platz.Name}: freie Fläche {2 * platz.Halb:0} m mit {flaeche.Hindernisse} Hindernissen, {gruppen.Select(g => g.Gruppe).Distinct().Count()} Gesprächsgruppen, " +
-                 $"{_marktstellen.Count(s => s.Platz == platz && s.Art == Marktbummel.Art.Rand)} Sitze am Brunnenrand, {schau.Count} Stellen zum Schauen");
+                 $"{_marktstellen.Count(s => s.Platz == platz && s.Art == Marktbummel.Art.Rand)} Plätze zum Anlehnen am Brunnenrand, {schau.Count} Stellen zum Schauen");
+    }
+
+    private double _personenSeit;
+
+    /// <summary>
+    /// Jedes Bild (v3): Die Belegung der Streifen verblasst; einmal je Sekunde erfährt jede Fläche, wer auf ihr steht oder sitzt (Wege machen einen Bogen um sie).
+    /// </summary>
+    private void MarktflaechenPflegen(double sekunden)
+    {
+        if (MarktV2 || _maerkte.Count == 0) return;
+        foreach (var platz in _maerkte) platz.Flaeche?.Altern((float)sekunden);
+        _personenSeit += sekunden;
+        if (_personenSeit < 1) return;
+        _personenSeit = 0;
+        foreach (var platz in _maerkte)
+        {
+            if (platz.Flaeche is not { } f) continue;
+            f.Personen(_passanten.Values.Where(q => q.Stand is not null && q.Knoten.Visible && f.Auf(q.Knoten.Position.X, q.Knoten.Position.Z, -0.5f))
+                                         .Select(q => (q.Knoten.Position.X, q.Knoten.Position.Z)).ToList());
+        }
     }
 
     /// <summary>Der Marktplatz, auf dessen Pflaster der Punkt liegt (null, wenn keiner).</summary>
@@ -172,7 +194,7 @@ public partial class Stadtansicht
 
     private List<Vector3> FlaechenWeg(MarktplatzAnsicht platz, Marktflaeche f, Vector3 von, Vector3 bis, int nummer, int schluessel, List<Vector3> punkte)
     {
-        // Ein Sitz (Bank, Brunnenrand) liegt im Hindernis: Man steht nach vorn auf bzw. setzt sich von vorn, nie über Lehne oder Becken
+        // Ein Sitz (Bank) liegt im Hindernis: Man steht nach vorn auf bzw. setzt sich von vorn, nie über die Lehne
         var (vorVon, vorBis) = (Vorpunkt(von), Vorpunkt(bis));
         var (a, b) = (vorVon ?? von, vorBis ?? bis);
         if (vorVon is { } v1) punkte.Add(v1);
@@ -180,14 +202,17 @@ public partial class Stadtansicht
         // gibt es mit vollem Abstand keinen Weg (Ende in einer engen Ecke), dann mit knapperem – nie gerade durch Stand oder Brunnen, wenn es anders geht
         var weg = f.GefaechertGemerkt((a.X, a.Z), (b.X, b.Z), FlaecheFrei, seite) ?? f.Pfad((a.X, a.Z), (b.X, b.Z), 0.6f);
         if (weg is not null)
+        {
             for (var i = 1; i + 1 < weg.Count; i++) punkte.Add(new Vector3(weg[i].X, platz.Hoehe, weg[i].Z));
+            f.Belegen(weg); // wer danach den Platz quert, nimmt einen freieren Streifen
+        }
         if (vorBis is { } v2) punkte.Add(v2);
         return punkte;
     }
 
     /// <summary>
-    /// Der Punkt, über den man eine Stelle betritt und verlässt: bei einem Sitz (Bank, Brunnenrand) 0,6 m davor in Blickrichtung (man setzt sich von vorn,
-    /// nie über Lehne oder Becken), bei einem Platz in einer Gesprächsgruppe 0,8 m außen (man kommt von außen dazu, nicht mitten durch die anderen). Sonst null.
+    /// Der Punkt, über den man eine Stelle betritt und verlässt: bei einem Sitz (Bank) 0,6 m davor in Blickrichtung (man setzt sich von vorn,
+    /// nie über die Lehne), bei einem Platz in einer Gesprächsgruppe 0,8 m außen (man kommt von außen dazu, nicht mitten durch die anderen). Sonst null.
     /// </summary>
     private Vector3? Vorpunkt(Vector3 p)
     {
@@ -243,7 +268,7 @@ public partial class Stadtansicht
         var alterStand = ausser >= 0 ? _marktstellen[ausser].Stand : -1;
         foreach (var art in Marktbummel.Reihenfolge(Marktbummel.Waehlen(nummer, zaehler, ankunft)))
         {
-            if (ki && art is Marktbummel.Art.Bank or Marktbummel.Art.Rand) continue; // der KI-Schmied kann noch nicht sitzen
+            if (ki && art is Marktbummel.Art.Bank) continue; // der KI-Schmied kann noch nicht sitzen
             var passend = stellen.Where(k => _marktstellen[k].Art == art && (art != Marktbummel.Art.Stand || _marktstellen[k].Stand != alterStand)).ToList();
             if (passend.Count == 0) continue;
             var gewaehlt = art == Marktbummel.Art.Gruppe ? GruppenplatzWaehlen(passend, wahl, ausser) : passend[(int)(wahl * passend.Count) % passend.Count];
@@ -443,6 +468,9 @@ public partial class Stadtansicht
                 break;
             case Marktbummel.Art.Schauen:
                 blick = grundblick + Marktbummel.Umschauen(p.Nummer, sekunden);
+                break;
+            case Marktbummel.Art.Rand: // angelehnt: nur wenig umschauen, der Rücken bleibt am Becken
+                blick = grundblick + Marktbummel.Umschauen(p.Nummer, sekunden, 0.35f);
                 break;
             case Marktbummel.Art.Brunnen:
                 if (minuteGenau - p.AnStelleSeit < Marktbummel.Schoepfen) bewegung = "Buecken";

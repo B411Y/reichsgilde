@@ -153,6 +153,7 @@ public partial class Stadtansicht
         _passantenEbene ??= NeueEbene();
         var ticksJeSekunde = _simulation.Takt.TicksProSekunde;
 
+        MarktflaechenPflegen(sekunden); // Markt v3: Belegung der Wege, Stehende (Stadtansicht.Marktbummel.cs)
         var einwohner = einwohnerschaft.Einwohner;
         foreach (var e in einwohner)
         {
@@ -167,6 +168,7 @@ public partial class Stadtansicht
             // Wo die Figur ist, sagt ihr eigener Laufplan (siehe LaufPlanen): vor dem Losgehen am alten Ort,
             // nach der Ankunft am neuen, dazwischen unterwegs.
             var weg = e.Weg;
+            Profil(0);
             if (weg is not null && !ReferenceEquals(p.FuerWeg, weg))
             {
                 // Geht die Figur gerade im Bild und ist mit ihrem alten Weg noch nicht fertig (sie geht langsamer, als der Kern rechnet), reißt
@@ -191,6 +193,7 @@ public partial class Stadtansicht
                 }
                 if (weiter is { } strecke && p.Pfad.Length > 0) Weitergehen(p, weg, altPfad, strecke, minuteGenau);
             }
+            Profil(1); // neue Wege planen
             // Ist der Kern längst fertig und sieht keiner hin (weder die Figur noch ihr Ziel), kommt sie unbemerkt an: nie sichtbar springen
             if (weg is not null && p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0 && minuteGenau >= weg.Ankunft + p.Verzoegerung && minuteGenau < p.LaufEnde
                 && !ImBild(p.Knoten.Position) && !ImBild(p.Pfad[^1]))
@@ -211,13 +214,27 @@ public partial class Stadtansicht
                 if (minuteGenau < p.LaufEnde || p.Rueckstand > 0.01f) wo = null;
                 else p.ImBummel = false;
             }
+            Profil(0);
             if (wo is { } ort)
+            {
                 AmOrtStellen(p, e, ort, weg, minuteGenau, losgegangen);
+                Profil(2); // am Ort stellen (auch Bummeln)
+            }
+            else if (p.Stand is null && p.Knoten.Visible && !p.WartetDrinnen && (p.Nummer + _figurenBild) % AusserhalbJedes != 0 && !ImBild(p.Knoten.Position))
+            {
+                // Außerhalb des Bildes (mit 1,5 m Rand) läuft sie nur jedes dritte Bild weiter – ihre Lage folgt dem Plan, nichts geht verloren, und ehe sie
+                // ins Bild kommt, ist sie wieder jedes Bild dran (1.11.2026: Laufen war in Köln der größte Posten)
+            }
             else
+            {
                 Laufen(p, e.Nummer, minuteGenau, ticksJeSekunde);
+                Profil(3); // laufen
+            }
             PassantLichtStellen(p, e); // Laterne oder Fackel im Dunkeln (Stadtansicht.Nachtlichter.cs)
+            Profil(4); // Licht
             if (p.Knoten.Visible && p.Figur is { } figur)
                 FigurImBildBewegen(figur, p.Knoten.Position, sekunden);
+            Profil(5); // Figur bewegen (Pose)
         }
 
         // Verstorbene und Weggezogene verschwinden (nur prüfen, wenn die Zahl nicht stimmt)
@@ -231,11 +248,16 @@ public partial class Stadtansicht
                 _imDom.Remove(nummer);
             }
 
+        Profil(0);
         AusweichenRechnen((float)sekunden, minuteGenau); // Schicht 4 für das nächste Bild (Stadtansicht.Passantenausweichen.cs)
+        Profil(6); // Ausweichen
         if (NaeheMessen) { NaeheZaehlen(sekunden); MarktMessen(sekunden); }
+        Profil(7); // Messung (nur mit --passantennaehe)
         PassantenHervorheben();
+        Profil(8); // Hervorheben
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenBilder++;
+        _profilBilder++;
         _passantenBewegtSumme += _figurenBewegt;
         _passantenSeitMessung += delta;
         if (_passantenSeitMessung >= 10)
@@ -246,6 +268,7 @@ public partial class Stadtansicht
                                            .Select(p => p.Laenge / ((p.LaufEnde - p.LaufStart) * sekundenJeMinute)).ToList();
             var tempi = laufend.Count == 0 ? "" : $"Gehtempo Ø {laufend.Average():0.0} m/s, höchstens {laufend.Max():0.0} m/s, ";
             if (NaeheMessen) { NaeheMelden(); MarktMelden(); } // Stadtansicht.Passantenausweichen.cs, Stadtansicht.Marktbummel.cs
+            if (ProfilMessen) ProfilMelden();
             GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
                      $"{_passantenBewegtSumme / (double)_passantenBilder:0} bewegt je Bild, {tempi}" +
                      $"{_passantenZeit / _passantenBilder:0.00} ms je Bild, {Engine.GetFramesPerSecond()} Bilder/s " +
@@ -263,6 +286,33 @@ public partial class Stadtansicht
     }
 
     private long _passantenBewegtSumme;
+
+    /// <summary>Laufende außerhalb des Bildes werden nur jedes so vielte Bild weitergestellt (über die Nummer verteilt).</summary>
+    private const int AusserhalbJedes = 3;
+
+    // ── Profil der Rechenzeit (Startoption --passantenprofil=1, nur Protokoll) ──
+    private static readonly bool ProfilMessen = Wasserarten.Startoption("passantenprofil") is "1" or "an" or "ja";
+    private static readonly string[] ProfilNamen = { "Rest", "Wege planen", "am Ort", "Laufen", "Licht", "Pose", "Ausweichen", "Messung", "Hervorheben" };
+    private readonly double[] _profilMs = new double[9];
+    private readonly Stopwatch _profilUhr = new();
+    private int _profilBilder;
+
+    /// <summary>Rechnet die Zeit seit dem letzten Aufruf dem Abschnitt <paramref name="abschnitt"/> zu (0 = Rest, nicht gezählt); ohne Option nichts.</summary>
+    private void Profil(int abschnitt)
+    {
+        if (!ProfilMessen) return;
+        if (abschnitt > 0) _profilMs[abschnitt] += _profilUhr.Elapsed.TotalMilliseconds;
+        _profilUhr.Restart();
+    }
+
+    private void ProfilMelden()
+    {
+        var bilder = Math.Max(_profilBilder, 1);
+        GD.Print("[passantenprofil] ms je Bild: " + string.Join(", ", Enumerable.Range(1, 8).Select(i => $"{ProfilNamen[i]} {_profilMs[i] / bilder:0.00}")) +
+                 $", Figuren {_passanten.Count}, laufend {_passanten.Values.Count(q => q.Stand is null && q.Knoten.Visible)}, sichtbar {_passanten.Values.Count(q => q.Knoten.Visible)}");
+        Array.Clear(_profilMs);
+        _profilBilder = 0;
+    }
 
     /// <summary>
     /// Startoption <c>--passantenspur=alt</c>: die frühere Linie in fünf Spuren statt der Spuren aus <see cref="Passantenspur"/>; <c>=v1</c>: die Spuren
@@ -291,7 +341,7 @@ public partial class Stadtansicht
             if (!MarktV2 && losgegangen && Bummeln(p, e, stelle, angekommen, minuteGenau)) return;
             // Jedes Bild nur, wer schlendert (v2), sich noch zu seiner Stelle dreht oder (v3, im Bild) redet, sich umschaut oder schöpft
             if (!angekommen && !AufDemRundgang(stelle) && !p.Drehen
-                && (MarktV2 || stelle < 0 || _marktstellen[stelle].Art is not (Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen) || !ImBild(p.Knoten.Position))) return;
+                && (MarktV2 || stelle < 0 || _marktstellen[stelle].Art is not (Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen or Marktbummel.Art.Rand) || !ImBild(p.Knoten.Position))) return;
             p.Stand = stand;
             _imDom.Remove(e.Nummer);
             p.Knoten.Visible = true;
@@ -333,7 +383,7 @@ public partial class Stadtansicht
         if (s.Bewegung == "Sitzen") ort.Y = Mathf.Max(s.Platz?.Hoehe ?? _marktY, s.Ort.Y - (figur.Kniehoehe - 0.02f));
         else if (!MarktV2) ort = AufFuss(ort); // v3: stehend auf dem Boden wie beim Gehen (kein Höhensprung bei Ankunft und Abgang)
         p.Knoten.Position = ort;
-        if (!MarktV2 && s.Art is Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen)
+        if (!MarktV2 && s.Art is Marktbummel.Art.Gruppe or Marktbummel.Art.Schauen or Marktbummel.Art.Brunnen or Marktbummel.Art.Rand)
         {
             MarktStehen(p, figur, s, blick, minuteGenau); // reden nur zu zweit, sonst umschauen; am Brunnen schöpfen (Stadtansicht.Marktbummel.cs)
             return;
