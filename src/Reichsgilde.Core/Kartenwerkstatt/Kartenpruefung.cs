@@ -613,7 +613,8 @@ public static class Kartenpruefung
 
         /// <summary>
         /// Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (Luftlinie; ohne Marktplatz vom Ursprung, wo der Markt bis Oktober 2026
-        /// immer lag). Seit dem 31.10.2026 darf eine Stadt mehrere Marktplätze haben; „gleich weit vom Markt“ heißt dann: vom jeweils nächsten.
+        /// immer lag). Seit dem 31.10.2026 darf eine Stadt mehrere Marktplätze haben; „gleich weit vom Markt“ heißt dann: vom jeweils nächsten. Nur
+        /// noch für die Wohnhausplätze (Regel 4): Der Wohnhausplatz wirkt im Kern nicht, die Werkstätten misst <see cref="Startwegpruefung"/> nach dem Weg.
         /// </summary>
         private double ZumMarkt(Kartenort p)
         {
@@ -635,8 +636,10 @@ public static class Kartenpruefung
         }
 
         /// <summary>
-        /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (±10 %; karte.py, Regel 5) – mit mehreren
-        /// Marktplätzen jedes vom nächsten.
+        /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (karte.py, Regel 5). „Gleich weit“ misst
+        /// seit dem 1.11.2026 den Karrenweg, wie ihn der Kern rechnet (<see cref="Startwegpruefung"/>, Befund M4 der Prüfung von phase5/gehtempo):
+        /// Die Luftlinie wirkt im Kern nicht, der Weg über die Fahrzeit schon. Abweichungen über ±10 % vom Mittel (Werkstätten und Start-Umland
+        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet.
         /// </summary>
         private void Startgrundstuecke()
         {
@@ -645,11 +648,7 @@ public static class Kartenpruefung
             if (starts.Count != _r.Startgrundstuecke)
                 Fehler("startgrundstuecke", $"Die Karte hat {starts.Count} Startgrundstücke statt {_r.Startgrundstuecke}.", null);
             if (starts.Count == 0) return;
-            var abstand = starts.ToDictionary(s => s.Key, s => ZumMarkt(new Kartenort(s.Average(g => g.X), s.Average(g => g.Z))));
-            var mittel = abstand.Values.Average();
-            foreach (var s in starts.Where(s => Math.Abs(abstand[s.Key] - mittel) > 0.10 * mittel))
-                Fehler("startgrundstuecke", $"Startgrundstück {s.Key}: {M(abstand[s.Key])} m zum Markt, im Mittel {M(mittel)} m (±10 %).",
-                    s.First().Punkt, s.Select(g => g.Kennung).ToArray());
+            _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
         }
 
         /// <summary>

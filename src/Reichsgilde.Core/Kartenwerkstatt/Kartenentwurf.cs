@@ -392,6 +392,33 @@ public sealed partial class Kartenentwurf
 
     private (Schwere Schwere, Kapazitaet Ergebnis)? _kapazitaet;
 
+    /// <summary>
+    /// Die Karrenwege der Startbetriebe zum Markt (<see cref="Startwegpruefung"/>, für die Fairness der Startgrundstücke) – aus dem
+    /// Zwischenspeicher, bis sich ein Gebäude oder die Startbelegung ändert (dann nur die Wege, wenige Millisekunden) bzw. ein Weg, ein Gewässer,
+    /// eine Fähre oder ein Marktplatz (dann auch Karte und Karrennetz, in Köln etwa so lange wie die übrige Prüfung). Ein Geländestrich ändert die
+    /// Längen nicht (nur die Steigung, die hier nicht zählt) und rechnet nichts neu.
+    /// </summary>
+    public IReadOnlyList<Startweg> Startwegrechnung() => _startwege ??= Startwegpruefung.Rechnen(this);
+
+    private IReadOnlyList<Startweg>? _startwege;
+
+    /// <summary>Karte und Karrennetz für die Startwege (null, wenn die Karte sich nicht laden lässt oder keinen Marktplatz hat).</summary>
+    internal (Stadtkarte Karte, Karrennetz Netz)? Startnetz()
+    {
+        if (_startnetzGerechnet) return _startnetz;
+        _startnetzGerechnet = true;
+        try
+        {
+            var karte = ZuStadtkarte();
+            _startnetz = karte.Marktplaetze.Count == 0 ? null : (karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true));
+        }
+        catch (Exception) { _startnetz = null; } // die Fehler der Karte melden die übrigen Regeln
+        return _startnetz;
+    }
+
+    private (Stadtkarte Karte, Karrennetz Netz)? _startnetz;
+    private bool _startnetzGerechnet;
+
     /// <summary>Hat die Karte Fehler (Hinweise zählen nicht)?</summary>
     public bool HatFehler => Befunde.Any(b => b.Schwere == Schwere.Fehler);
 
@@ -786,6 +813,9 @@ public sealed partial class Kartenentwurf
     {
         _befunde = null;
         if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
+        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Start or Kartenteil.Gewaesser or Kartenteil.Faehre) _startwege = null;
+        if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre || a.Objekt is EntwurfGebaeude { Katalog: Stadtkarte.MarktKatalog })
+            (_startnetz, _startnetzGerechnet) = (null, false); // das Netz hängt an Wegen, Wasser und Marktplätzen (Marktlinien, Halt)
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken
         if (a.Teil is Kartenteil.Weg or Kartenteil.Gewaesser or Kartenteil.Faehre or Kartenteil.Gelaende) _wasserplan = null; // Brücken, Furten, Fähren
