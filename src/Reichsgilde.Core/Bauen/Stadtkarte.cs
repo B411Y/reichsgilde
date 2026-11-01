@@ -588,7 +588,7 @@ public sealed class Stadtkarte
             .Concat(Uebergaenge.SelectMany(u => Orte(new[] { u.Von, u.Bis }))).Concat(Orte(Kamera is null ? null : new[] { Kamera.Punkt }));
         var rest = Wege.SelectMany(w => Orte(w.Verlauf))
             .Concat(Natur.Flaechen.SelectMany(n => Orte(n.Flaeche))).Concat(Natur.Felder.SelectMany(n => Orte(n.Flaeche)))
-            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt))).Concat(Orte(Felsen?.Stuecke?.Select(f => f.Punkt)))
+            .Concat(Orte(Natur.Pflanzen.Select(p => p.Punkt))).Concat(Orte(Felsen?.Stuecke?.Where(f => f is not null).Select(f => f.Punkt)))
             .Concat(Wasser.SelectMany(w => Orte(w.Linie).Concat(Orte(w.Flaeche)))).Concat(Gelaende.SelectMany(x => Orte(x.Flaeche)));
         return Bauen.Kartengrenzen.Ableiten(spiel, rest, rand);
     }
@@ -761,6 +761,9 @@ public sealed class Stadtkarte
                         f.Add($"{wer}: Den Natur-Baustein „{art}“ gibt es im Katalog nicht.");
             }
         }
+        // Felsstücke sperren nichts, aber ein kaputter Eintrag lässt sich nicht zeichnen (die Werkstatt lehnt ihn ebenso ab)
+        if (Felsen?.Stuecke is { } stuecke && stuecke.Any(s => s is null || !Punkt(s.Punkt)))
+            f.Add("felsen.stuecke: Jedes Felsstück ist ein Objekt mit punkt [x, z].");
         if (Katalog is not null)
             foreach (var p in Natur.Pflanzen.Where(p => !IstNatur(p.Katalog)))
                 f.Add($"Pflanze bei [{string.Join(", ", p.Punkt)}]: Den Natur-Baustein „{p.Katalog}“ gibt es im Katalog nicht.");

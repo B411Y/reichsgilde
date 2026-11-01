@@ -315,8 +315,11 @@ public sealed partial class Kartenentwurf
             var zufall = _zufall!;
             var ziel = p.Dichte * Math.PI * r2;
             var belegt = _e._felsen.Where(f => ImKreis(f.X, f.Z)).Sum(f => Math.PI * f.Radius * f.Radius);
-            for (var versuch = 0; versuch < Felspinsel.Versuche && belegt < ziel; versuch++)
+            var versuche = (int)Math.Clamp(Math.Ceiling(3 * (ziel - belegt) / Math.Max(1e-3, p.KleinsterPlatz)), Felspinsel.VersucheMin, Felspinsel.VersucheMax);
+            var fehl = 0;
+            for (var versuch = 0; versuch < versuche && belegt < ziel && fehl < Felspinsel.FehlversucheMax; versuch++)
             {
+                fehl++; // ein Treffer setzt es unten zurück
                 // ein Punkt im Kreis (verwerfen außerhalb – ohne Winkelfunktionen)
                 var (dx, dz) = ((2 * zufall.NextDouble() - 1) * p.Radius, (2 * zufall.NextDouble() - 1) * p.Radius);
                 if (dx * dx + dz * dz > r2) continue;
@@ -326,6 +329,7 @@ public sealed partial class Kartenentwurf
                 if (faktor < 1 && zufall.NextDouble() >= faktor) continue;
                 var lagen = Felsstreuung.Treffer(p, zufall, _e._hoehen, x, z);
                 if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l))) continue;
+                fehl = 0;
                 foreach (var l in lagen)
                 {
                     Ausfuehren(new TeilSetzen(EntwurfFels.Aus(l), _e._felsen.Count));

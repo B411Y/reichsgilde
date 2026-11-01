@@ -33,8 +33,12 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
     /// <summary>Kleinster und größter Radius (Meter).</summary>
     public const double MinRadius = 1, MaxRadius = 100;
 
-    /// <summary>So viele Versuche macht ein Tupfer höchstens, ein Stück zu setzen.</summary>
-    public const int Versuche = 24;
+    /// <summary>
+    /// Versuche je Tupfer: dreimal so viele, wie Plätze (Stück oder Gruppe, kleinste Form bei kleinster Größe) in die noch freie Zieldichte passen,
+    /// mindestens <see cref="VersucheMin"/>, höchstens <see cref="VersucheMax"/>; nach <see cref="FehlversucheMax"/> Fehlversuchen in Folge ist der
+    /// Kreis voll. So erreicht ein großer Radius dieselbe Deckung wie ein kleiner.
+    /// </summary>
+    public const int VersucheMin = 24, VersucheMax = 2000, FehlversucheMax = 60;
 
     /// <summary>So weit dürfen sich die Kreise der Grundflächen zweier Stücke überdecken (Anteil der Summe der Radien).</summary>
     public const double Ueberlappung = 0.35;
@@ -58,6 +62,19 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
         {
             var liste = (Formen ?? Array.Empty<string>()).Select(Felsformen.Finde).OfType<Felsform>().ToList();
             return liste.Count > 0 ? liste : new[] { Felsformen.Finde(FormVorgabe)! };
+        }
+    }
+
+    /// <summary>Die Grundfläche (Kreise, m²) des kleinsten Platzes, den der Pinsel setzt: eine Gruppe ganz, sonst die kleinste Form – bei kleinster Größe.</summary>
+    public double KleinsterPlatz
+    {
+        get
+        {
+            var s = Math.Max(Felsformen.MassstabMin, Groesse * (1 - Streuung));
+            double Flaeche(string form, double m) => Felsformen.Finde(form) is { } f ? Math.PI * f.Radius * m * f.Radius * m : 1;
+            return Felsformen.Gruppe(Gruppe) is { } g
+                ? g.Stuecke.Sum(x => Flaeche(x.Form, s * x.Massstab * 0.92))
+                : FormenWirksam.Min(f => Flaeche(f.Kennung, s));
         }
     }
 
