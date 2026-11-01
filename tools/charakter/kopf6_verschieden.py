@@ -39,7 +39,13 @@ AUGEN = {
     "augen_neigung": UEBERZEICHNUNG / NATUR_FAKTOR_ALT,
     "brauen_stand": UEBERZEICHNUNG / NATUR_FAKTOR_ALT,
     "augen_tiefe": 1.3,
+    # Runde 2: Augenabstand auf 1,0 × der natürlichen Streuung (NIOSH 3,6 / 3,4 mm) – Lage der Augen ist ein starker
+    # Anhaltspunkt für die Wiedererkennung; nicht 1,3 × (weit oder eng stehende Augen kippen schnell ins Karikierte)
+    "augen_abstand": 1.0 / NATUR_FAKTOR_ALT,
 }
+# Runde 2: Höchstwert je Richtung (mm je σ). Lidspalte enger nur bis 1,3 mm/σ: in Runde 1 wirkte ein Kopf mit −2σ
+# „wie mit dem Lid im Auge“ (alle drei Prüfer)
+RICHTUNG_MAX = {("lidspalte", "minus"): 1.3}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -56,7 +62,8 @@ def main():
             ziel = e["ziel_mm_je_sigma"][g] * f
             for richt in ("plus", "minus"):
                 d = abs(e["wirkung_mm_je_1"][g][richt])
-                st = round(min(ziel / d, STAERKE_MAX_AUGEN), 4) if d > 1e-6 else 0.0
+                z_r = min(ziel, RICHTUNG_MAX.get((gen, richt), ziel))
+                st = round(min(z_r / d, STAERKE_MAX_AUGEN), 4) if d > 1e-6 else 0.0
                 e["staerke"][g][richt] = st
                 e["erreicht_mm_je_sigma"][g][richt] = round(st * d, 3)
             e["ziel_mm_je_sigma"][g] = round(ziel, 3)
@@ -74,18 +81,21 @@ def main():
         "brauen": {
             "v_nach_unten": True,          # braue6: v läuft in der Karte von oben (0) nach unten (Etappe D rechnete umgekehrt)
             "mitte_v": 0.72,               # Ankerlinie für die Dicke (Anteil der Kartenhöhe von unten): dicker wächst nach unten
-            "stand_mm_je_sigma": 2.0,      # zusätzlich zur Hautform
+            "stand_mm_je_sigma": 2.5,      # zusätzlich zur Hautform (Runde 1: 2,0)
             "stand_oben_max_mm": 1.5,      # weich begrenzt (über der Braue ist in der Karte 1,5–3 mm Platz)
             "winkel_gen": "zug_11", "winkel_mm_je_sigma": 2.2,
-            "dicke_je_sigma": 0.25, "dicke_min": 0.6, "dicke_max": 1.5,
-            "dichte_min": 0.62, "dichte_max": 1.2,
-            "dunkel_gen": "zug_12", "dunkel_je_sigma": 0.2, "hell_je_sigma": 0.25,
+            # Runde 2: Brauen tragen die Wiedererkennung (alle Prüfer) – Dicke und Dunkelheit breiter; Dichte nicht unter
+            # 0,75 (darunter zerfiel die Braue in Striche: „gestrichelt, zerrissen“)
+            "dicke_je_sigma": 0.35, "dicke_min": 0.5, "dicke_max": 1.8,
+            "dichte_min": 0.75, "dichte_max": 1.2,
+            "dunkel_gen": "zug_12", "dunkel_je_sigma": 0.3, "hell_je_sigma": 0.3,
+            "rand_aus": 1.0,               # Karte am Umriss ausblenden (schwebende hintere Braue)
             "haut_schatten": 0.22,         # Brauenschatten auf der Haut (Etappe D 0,42) – er wandert nicht mit
             # Frauen: Brauen in E0 von allen drei Prüfern „fast unsichtbar“ – etwas dichter, heller nur zu 60 %
             "frau_dichte": 1.3, "frau_dicke": 1.15, "frau_hell": 0.6,
         },
         # Nasenlöcher der Frau von vorn sichtbar (Etappe D, E0-Panel): Spitze und Steg etwas tiefer (Testbogen nasenloch)
-        "zusatz_w": {"w": {"gen_nasenspitze_minus": 0.4}},
+        "zusatz_w": {"w": {"gen_nasenspitze_minus": 0.5}},
     }
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:

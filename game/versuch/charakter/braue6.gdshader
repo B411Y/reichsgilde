@@ -30,6 +30,9 @@ uniform float winkel_mm = 0.0;       // + = Ende außen höher (je Länge der Br
 uniform float mitte_v = 0.62;        // Mittellinie der Braue in der Lage (Anteil der Kartenhöhe)         // Glanz der Haare (haar3: 0,35 – funkelte als weiße Punkte)
 uniform bool v_nach_unten = false;   // E1: v der Karte läuft von oben nach unten (richtig für die Karten aus kopf3_haare.py)
 uniform float stand_oben_max = 0.0;  // E1: > 0 = Verschiebung nach oben weich auf diesen Wert begrenzt (mm)
+// E1 Runde 2 (Prüfer E0/E1: „die hintere Braue steht schräg über den Stirnumriss hinaus und schwebt“): die Karte steht
+// von der Haut ab; wo man sie fast von der Kante sieht (am Umriss), blendet sie aus. 0 = aus (wie Etappe D)
+uniform float rand_aus = 0.0;
 uniform float mip_hub = 0.25;       // Deckung in der Ferne anheben (Mip-Stufe)
 uniform float deckung = 1.0;        // Halt B2 (Weg A): Brauen weniger deckend (weiche Haargruppen statt Aufkleber)
 // Etappe C (nur Wimpern; Prüferbefund „Unterlid wie ein Strich“): Band 0 des Wimpernbilds (Unterlid, UV.y > 0,75)
@@ -77,6 +80,9 @@ void fragment() {
 	c = mix(c, mix(c, haut_ton * 0.55, unten_hell), unten);
 	ALBEDO = c * dunkel;
 	ALPHA = clamp(a * deckung, 0.0, 1.0) * (1.0 - clamp(aussen, 0.0, 1.0));   // deckung > 1: dünne Haare decken mehr (Brauen)
+	if (braue && rand_aus > 0.0) {
+		ALPHA *= mix(1.0, smoothstep(0.1, 0.38, abs(dot(normalize(NORMAL), VIEW))), rand_aus);
+	}
 	ROUGHNESS = 0.5;
 	SPECULAR = glanz;
 	BACKLIGHT = c * 0.25;
