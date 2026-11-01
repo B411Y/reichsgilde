@@ -41,19 +41,19 @@ static class FelsenTests
 
     /// <summary>
     /// Ein fester Ablauf mit allen Befehlen (Stempel der drei Gruppen, Streuen mit Filter, Radieren, Rückgängig/Wiederholen, Grundgestein) –
-    /// sein Ergebnis als Kartendatei. Für die Gleichheit zwischen Linux und Windows (GleichheitTests) und die Ländereinstellung.
+    /// sein Ergebnis als Kartendatei; mit <paramref name="boden"/> malt jeder Pinsel den Boden mit (F6). Für die Gleichheit zwischen Linux und Windows (GleichheitTests) und die Ländereinstellung.
     /// </summary>
-    internal static string Ablauf()
+    internal static string Ablauf(bool boden = true)
     {
         var e = HangMitEbene();
         e.GrundgesteinSetzen("trachyt");
-        e.FelsStempeln(new Felspinsel(Gruppe: "wand"), O(40, -60));
-        e.FelsStempeln(new Felspinsel(Gruppe: "kuppe", Gestein: "buntsandstein", Groesse: 1.2), O(-60, 40));
-        e.FelsStempeln(new Felspinsel(Gruppe: "rippe", Neigung: 0.8), O(70, 60), drehung: 33.3);
-        e.FelsStreuen(new Felspinsel(Formen: new[] { "block", "platte", "schuttbrocken" }, Radius: 12, Dichte: 0.3, Filter: new Pinselfilter(SteigungAb: 10)),
+        e.FelsStempeln(new Felspinsel(Gruppe: "wand", Boden: boden), O(40, -60));
+        e.FelsStempeln(new Felspinsel(Gruppe: "kuppe", Gestein: "buntsandstein", Groesse: 1.2, Boden: boden), O(-60, 40));
+        e.FelsStempeln(new Felspinsel(Gruppe: "rippe", Neigung: 0.8, Boden: boden), O(70, 60), drehung: 33.3);
+        e.FelsStreuen(new Felspinsel(Formen: new[] { "block", "platte", "schuttbrocken" }, Radius: 12, Dichte: 0.3, Filter: new Pinselfilter(SteigungAb: 10), Boden: boden),
             Linie(O(-30, 0), O(60, 10), 30));
-        e.FelsStreuen(new Felspinsel(Formen: new[] { "felsnase", "ueberhang" }, Radius: 15, Dichte: 0.15, Gestein: "kalkstein"), Linie(O(20, 100), O(90, 120), 10), startwert: 77);
-        if (!e.FelsStreuen(Felspinsel.Radiergummi(6), Linie(O(30, 0), O(40, 5), 4))) throw new Exception("Ablauf: der Radierer nimmt nichts weg – Ablauf anpassen");
+        e.FelsStreuen(new Felspinsel(Formen: new[] { "felsnase", "ueberhang" }, Radius: 15, Dichte: 0.15, Gestein: "kalkstein", Boden: boden), Linie(O(20, 100), O(90, 120), 10), startwert: 77);
+        if (!e.FelsStreuen(Felspinsel.Radiergummi(6) with { Boden = boden }, Linie(O(30, 0), O(40, 5), 4))) throw new Exception("Ablauf: der Radierer nimmt nichts weg – Ablauf anpassen");
         e.Rueckgaengig();
         e.Wiederholen();
         return e.ZuJson();
@@ -343,7 +343,7 @@ static class FelsenTests
         ("Felsen: Der feste Ablauf gibt mit deutscher Ländereinstellung dieselben Bytes; Werte gerundet wie in der Datei", () =>
         {
             var a = Ablauf();
-            Pruefe.Gleich(Sha(a), Sha(MitKultur("de-DE", Ablauf)), "de-DE");
+            Pruefe.Gleich(Sha(a), Sha(MitKultur("de-DE", () => Ablauf())), "de-DE");
             var e = Kartenentwurf.AusJson(a, Katalog.Value);
             Pruefe.Wahr(e.Felsen.Count > 20, $"Stücke im Ablauf: {e.Felsen.Count}");
             Pruefe.Wahr(e.Felsen.All(f => f.X == Kartenraster.Punkt(f.X) && f.Z == Kartenraster.Punkt(f.Z) && f.Drehung == Kartenraster.Drehung(f.Drehung)

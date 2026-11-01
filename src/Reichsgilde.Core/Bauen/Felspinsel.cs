@@ -24,11 +24,12 @@ namespace Reichsgilde.Core.Bauen;
 /// <summary>
 /// Ein Felspinsel (siehe Kopf der Datei): Vorlage (<paramref name="Formen"/> oder <paramref name="Gruppe"/>), <paramref name="Gestein"/> (null:
 /// Grundgestein der Karte), Radius (Meter), Dichte (Anteil der gedeckten Fläche 0 … 1), Größe (Maßstab) mit Streuung (± Anteil), Einsinken
-/// (Anteil der Höhe), Neigung zum Hang (0 … 1), „zum Hang drehen“, Filter und Radierer.
+/// (Anteil der Höhe), Neigung zum Hang (0 … 1), „zum Hang drehen“, Filter, Radierer und „Boden mitmalen“ (F6: Fels, Schuttkegel und Moossaum,
+/// Felsboden.cs; nicht beim Radierer).
 /// </summary>
 public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, string? Gestein = null, double Radius = 8, double Dichte = 0.2,
     double Groesse = 1, double Streuung = 0.25, double Einsinken = Felsformen.EinsinkenVorgabe, double Neigung = 0.5, bool ZumHang = true,
-    Pinselfilter? Filter = null, bool Radierer = false)
+    Pinselfilter? Filter = null, bool Radierer = false, bool Boden = true)
 {
     /// <summary>Kleinster und größter Radius (Meter).</summary>
     public const double MinRadius = 1, MaxRadius = 100;

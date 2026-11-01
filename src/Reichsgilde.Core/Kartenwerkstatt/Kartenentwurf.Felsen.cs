@@ -11,6 +11,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //  Strich. Beim Ziehen ändert sich die Liste sofort (die Darstellung zeichnet mit, jedes Stück wird als Gesetzt/Gelöscht gemeldet); erst
 //  „Beenden“ legt den ganzen Strich als einen Schritt in die Geschichte – Rückgängig nimmt ihn ganz zurück.
 //  Felsstücke sperren nichts: Die Prüfung meldet nur Hinweise (unbekannte Form oder Gesteinsart, außerhalb der Karte).
+//  F6: Streuen und Stempeln malen den Boden mit (Fels, Schuttkegel, Moossaum; Bauen/Felsboden.cs), wenn der Pinsel „Boden“ an hat – Stücke und
+//  Boden sind ein Befehl, also ein Schritt bei Rückgängig. Für Tausende Stücke sucht der Strich Nachbarn in einem Raster (Felsraster).
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Ein Felsstück im Entwurf: dieselben Felder wie <see cref="Felsstueck"/>, aber veränderbar (nur über die Befehle des Entwurfs).</summary>
@@ -206,9 +208,23 @@ public sealed partial class Kartenentwurf
         var neue = FelsStempelVorschau(pinsel with { Radierer = false }, ort, drehung, startwert).Select(EntwurfFels.Aus).ToList();
         if (neue.Count == 0) return neue;
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
+        if (pinsel.Boden)
+        {
+            // der Boden zuerst ins Raster, dann als Teil desselben Befehls (sein Ausführen setzt dieselben Kacheln noch einmal)
+            var boden = new Felsbodenstrich(_boden, _hoehen, Kartengrenzen.Aussen);
+            foreach (var f in neue) boden.Malen(Felsfuss.Von(f));
+            if (FelsBodenBefehl(boden, "Boden um den Fels") is { } b) befehle.Add(b);
+        }
         var name = Felsformen.Gruppe(pinsel.Gruppe) is { } g ? $"Gruppe {g.Name}" : neue[0].Bezeichnung;
         Geschichte.Ausfuehren(new Sammelbefehl($"{name} gestempelt", befehle));
         return neue;
+    }
+
+    /// <summary>Die Änderung des Bodens als Befehl (null: es änderte sich nichts).</summary>
+    private static BodenAendern? FelsBodenBefehl(Felsbodenstrich boden, string text)
+    {
+        var kacheln = boden.Aenderung.Kacheln();
+        return kacheln.Count == 0 || boden.Aenderung.Bereich is not { } bereich ? null : new BodenAendern(text, kacheln, bereich);
     }
 
     /// <summary>Der Startwert eines Strichs oder Stempels ohne eigenen: aus dem ersten Punkt (cm) und der Zahl der Stücke.</summary>
@@ -253,7 +269,9 @@ public sealed partial class Kartenentwurf
         if (strich.Befehle.Count == 0) return false;
         var (neu, weg) = (strich.Befehle.Count(b => b is TeilSetzen), strich.Befehle.Count(b => b is TeilLoeschen));
         var text = strich.Pinsel.Radierer ? $"{weg} Felsstücke radiert" : $"{neu} Felsstücke gestreut";
-        Geschichte.Ausfuehren(new SchonAusgefuehrt(new Sammelbefehl(text, strich.Befehle)));
+        var befehle = strich.Befehle;
+        if (strich.Boden is { } boden && FelsBodenBefehl(boden, "Boden um den Fels") is { } b) befehle = befehle.Append(b).ToList();
+        Geschichte.Ausfuehren(new SchonAusgefuehrt(new Sammelbefehl(text, befehle)));
         return true;
     }
 
@@ -274,9 +292,28 @@ public sealed partial class Kartenentwurf
         private Kartenort? _letzter;
         private double _rest;
 
-        public Felsstrich(Kartenentwurf entwurf, Felspinsel pinsel, int? startwert) => (_e, Pinsel, _startwert) = (entwurf, pinsel, startwert);
+        public Felsstrich(Kartenentwurf entwurf, Felspinsel pinsel, int? startwert)
+        {
+            (_e, Pinsel, _startwert) = (entwurf, pinsel, startwert);
+            if (pinsel.Boden && !pinsel.Radierer) Boden = new Felsbodenstrich(entwurf._boden, entwurf._hoehen, entwurf.Kartengrenzen.Aussen);
+        }
 
         public Felspinsel Pinsel { get; }
+
+        /// <summary>Der Boden, den der Strich mitmalt (null: Radierer oder „Boden“ aus).</summary>
+        public Felsbodenstrich? Boden { get; }
+
+        private Felsraster? _raster;
+
+        /// <summary>Das Suchraster der Stücke – neu gebaut, wenn sich die Liste außerhalb des Strichs geändert hat.</summary>
+        private Felsraster Raster
+        {
+            get
+            {
+                if (_raster is null || _raster.Anzahl != _e._felsen.Count) _raster = new Felsraster(_e._felsen);
+                return _raster;
+            }
+        }
 
         /// <summary>Die Befehle des Strichs in der Reihenfolge, in der sie schon ausgeführt sind.</summary>
         public List<IKartenbefehl> Befehle { get; } = new();
@@ -328,7 +365,8 @@ public sealed partial class Kartenentwurf
             }
             var zufall = _zufall!;
             var ziel = p.Dichte * Math.PI * r2;
-            var belegt = _e._felsen.Where(f => ImKreis(f.X, f.Z)).Sum(f => Math.PI * f.Radius * f.Radius);
+            var belegt = Raster.Im(m.X, m.Z, p.Radius).Where(f => ImKreis(f.X, f.Z)).Sum(f => Math.PI * f.Radius * f.Radius);
+            Kartenrechteck? bodenBereich = null;
             var versuche = (int)Math.Clamp(Math.Ceiling(3 * (ziel - belegt) / Math.Max(1e-3, p.KleinsterPlatz)), Felspinsel.VersucheMin, Felspinsel.VersucheMax);
             var fehl = 0;
             for (var versuch = 0; versuch < versuche && belegt < ziel && fehl < Felspinsel.FehlversucheMax; versuch++)
@@ -346,21 +384,75 @@ public sealed partial class Kartenentwurf
                 fehl = 0;
                 foreach (var l in lagen)
                 {
-                    Ausfuehren(new TeilSetzen(EntwurfFels.Aus(l), _e._felsen.Count));
+                    var neu = EntwurfFels.Aus(l);
+                    var raster = Raster; // vor dem Setzen: es kennt die Stücke bis hier
+                    Ausfuehren(new TeilSetzen(neu, _e._felsen.Count));
+                    raster.Dazu(neu);
                     if (ImKreis(l.X, l.Z)) belegt += Math.PI * l.Radius * l.Radius;
+                    if (Boden?.Malen(Felsfuss.Von(l)) is { } r) bodenBereich = bodenBereich is { } b
+                        ? new Kartenrechteck(Math.Min(b.X0, r.X0), Math.Min(b.Z0, r.Z0), Math.Max(b.X1, r.X1), Math.Max(b.Z1, r.Z1)) : r;
                 }
             }
+            if (bodenBereich is { } bereich) _e.Vormerken(new Kartenaenderung(Aenderungsart.Geaendert, _e._bodenTeil, bereich));
         }
 
         /// <summary>Liegt das Stück zu nah an einem anderen (Kreise der Grundflächen überdecken sich mehr als erlaubt)?</summary>
         private bool ZuNah(Felslage l)
         {
-            foreach (var f in _e._felsen)
+            var raster = Raster;
+            foreach (var f in raster.Im(l.X, l.Z, (1 - Felspinsel.Ueberlappung) * (l.Radius + raster.GroessterRadius)))
             {
                 var d = (1 - Felspinsel.Ueberlappung) * (l.Radius + f.Radius);
                 if ((f.X - l.X) * (f.X - l.X) + (f.Z - l.Z) * (f.Z - l.Z) < d * d) return true;
             }
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Ein Suchraster der Felsstücke (Zellen zu <see cref="Zelle"/> Metern) für Abstand und Dichte beim Streuen – bei Tausenden Stücken prüft ein
+    /// Versuch nur die Zellen in seiner Nähe statt aller Stücke. <see cref="Im"/> gibt die Stücke in der Reihenfolge der Liste zurück, damit Summen
+    /// genau so gerundet werden wie über die ganze Liste.
+    /// </summary>
+    private sealed class Felsraster
+    {
+        public const double Zelle = 16;
+
+        private readonly Dictionary<(int, int), List<(int Nr, EntwurfFels Fels)>> _zellen = new();
+
+        public Felsraster(IReadOnlyList<EntwurfFels> felsen)
+        {
+            foreach (var f in felsen) Dazu(f);
+        }
+
+        /// <summary>So viele Stücke kennt es (die Liste hat sich geändert, wenn sie mehr oder weniger hat).</summary>
+        public int Anzahl { get; private set; }
+
+        /// <summary>Der größte Radius einer Grundfläche bisher (Meter).</summary>
+        public double GroessterRadius { get; private set; }
+
+        private static (int, int) ZelleBei(double x, double z) => ((int)Math.Floor(x / Zelle), (int)Math.Floor(z / Zelle));
+
+        /// <summary>Ein Stück, das hinten an die Liste kam.</summary>
+        public void Dazu(EntwurfFels f)
+        {
+            var k = ZelleBei(f.X, f.Z);
+            if (!_zellen.TryGetValue(k, out var liste)) _zellen[k] = liste = new();
+            liste.Add((Anzahl++, f));
+            GroessterRadius = Math.Max(GroessterRadius, f.Radius);
+        }
+
+        /// <summary>Alle Stücke, deren Mitte höchstens <paramref name="weite"/> (in jeder Achse) von (x, z) entfernt sein kann – nach ihrer Nummer.</summary>
+        public IEnumerable<EntwurfFels> Im(double x, double z, double weite)
+        {
+            var (i0, j0) = ZelleBei(x - weite, z - weite);
+            var (i1, j1) = ZelleBei(x + weite, z + weite);
+            var treffer = new List<(int Nr, EntwurfFels Fels)>();
+            for (var j = j0; j <= j1; j++)
+                for (var i = i0; i <= i1; i++)
+                    if (_zellen.TryGetValue((i, j), out var liste)) treffer.AddRange(liste);
+            treffer.Sort((a, b) => a.Nr.CompareTo(b.Nr));
+            return treffer.Select(t => t.Fels);
         }
     }
 }
