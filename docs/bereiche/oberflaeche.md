@@ -24,6 +24,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - DirectX 12 im Export: Godot legt `D3D12Core.dll` und `d3d12SDKLayers.dll` nur bei, wenn `application/export_d3d12` der Windows-Vorgabe auf „Yes“ steht oder `project.godot` selbst DirectX 12 nennt (Quelltext 4.5; für 4.7.2 nicht einzeln geprüft). Empfehlung: `application/export_d3d12=1` in `game/export_presets.cfg` (geschützte Datei, der Nutzer entscheidet).
 - Kartenwerkstatt mit `--werkstatt-ausprobieren=<Beruf>`: Die Probepartie startet, während `Kartenwerkstatt._Ready` noch in `ErsteBilderAbwarten` wartet; danach greift es auf die schon freigegebene Werkstatt zu (`ObjectDisposedException` bei `GetTree()`, Kartenwerkstatt.cs:192, einmal im Log). Nur über die Startoption, die Probepartie läuft trotzdem. Vorschlag: nach `StartoptionenAusfuehren` abbrechen, wenn die Werkstatt nicht mehr im Baum ist.
 - (Felsen) Einzelne Felsstücke lassen sich in der Werkstatt noch nicht wählen, verschieben oder drehen (nur stempeln, streuen, radieren). Empfehlung: mit F5 (Darstellung als MultiMesh) einen Treffer je Stück und Ziehen wie bei Pflanzen nachrüsten.
+- (von Kern) Mehrere Marktplätze je Stadt (Köln: Heumarkt, Alter Markt, Neumarkt; Branch phase5/gehtempo): Ein Stadtmarkt mit gemeinsamen Preisen – das Marktfenster gilt für alle Plätze. Karrentafel und Handel von Hand könnten nennen, zu welchem Platz ein Karren fährt (`Stadtwirtschaft.MarktplatzVon(betrieb)?.Name`); die Ankunft (`AnkunftAmMarkt(karren)`) rechnet schon mit dem Weg dorthin.
 
 ## Entscheidungen
 
@@ -282,3 +283,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Dichte | Vorgabe beim Streuen 20 % für Einzelstücke, 10 % für Gruppen (Gruppen sind groß und standen mit 30 % zu dicht); die Werkstatt merkt sich beide getrennt. | 01.11. |
 | Klicktest | Vulkan (T400), neue Karte mit Hügel: Wand gestempelt (Schauseite hangabwärts, Geist der nächsten Wand), Rippen gestreut, radiert, Rückgängig; mit echter Maus Kuppe gestempelt, zweiter Stempel, Strg+Z nimmt ihn zurück. | 01.11. |
 
+### Schilder und Ampeln des Fahrwegs (PR #282)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zeichnung | `FahrwegAnzeige` (Control unter allen Tafeln) zeichnet im Holzschnitt-Stil: Papier um 2 px neben dem schwarzen Rahmen, Schraffur unten und rechts, Pfosten zum Halt am Markt; Siegel als Farbmarke. Gezeichnet statt Asset (kein Protokolleintrag nötig). | 01.11.2026 |
+| Schild | Name des Platzes, „Startkarren: hin … · zurück … min“, darunter der schnellste Karren (die Karrenart mit der kürzesten Hinfahrt). Bester Platz mit Goldrand, die anderen blasser; ein Platz außerhalb des Bildes: Schild am Rand mit Spitze zu ihm. | 01.11.2026 |
+| Ampel | Kleines Siegel in der Stufenfarbe, darunter die Minuten nur bis Zoom 150 (weiter draußen würden die Zahlen das Bild überladen). | 01.11.2026 |
+| Tafeln | Bautafel: Zeile „Fahrt zum Markt: … min (Platz)“ in der Stufenfarbe und eine Legende der Ampeln; Rückfrage: dieselbe Zeile in der Rechnung. Tooltip: hin und zurück, schnellster Karren, Stufen, Zahl der Plätze. | 01.11.2026 |

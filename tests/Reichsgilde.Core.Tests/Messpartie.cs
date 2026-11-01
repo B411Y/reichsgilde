@@ -102,10 +102,30 @@ sealed class Gaunerzaehler
     public double Chancen;
 }
 
+/// <summary>
+/// Ein Betrieb am Ende eines Spieljahres – für den Ausbau (<c>messen bericht … --betriebe=datei.csv</c>, Balancingbericht.Ausbau.cs): wo er steht,
+/// seit wann, wie lange seine Karren zum Markt fahren, wie oft sie fuhren, wie lange er stillstand und was er brachte.
+/// </summary>
+sealed class Betriebsjahr
+{
+    public int Haus, Jahr;
+    public string Name = "", Ort = "", Art = "", Karren = "";
+    /// <summary>Auf einem gebauten Grundstück (nicht auf einem Platz der Karte, wie die Startwerkstätten und die Liegenschaften zum Kauf).</summary>
+    public bool Neubau;
+    /// <summary>Das erste Jahresende, an dem es den Betrieb gab (1 = am Ende des ersten Jahres).</summary>
+    public int SeitJahr;
+    /// <summary>Hinfahrt des ersten Karrens zum Markt nach dem Kern (Minuten); ohne Karren die Hinfahrt eines Handkarrens bzw. Ochsenkarrens.</summary>
+    public int FahrzeitHin;
+    public int Fahrten;
+    public double StillstandProzent, Umsatz, Gewinn;
+}
+
 sealed class Partieergebnis
 {
     public required Messaufbau Aufbau;
     public readonly List<Hausverlauf> Haeuser = new();
+    /// <summary>Jeder Betrieb an jedem Jahresende (siehe <see cref="Betriebsjahr"/>).</summary>
+    public readonly List<Betriebsjahr> Betriebe = new();
     public readonly Dictionary<int, List<Warenjahr>> Markt = new();
     /// <summary>„Hinterzimmer: Diebstahl“, „Diebe: Einbruch“ … – je Art.</summary>
     public readonly SortedDictionary<string, Gaunerzaehler> Gauner = new(StringComparer.Ordinal);
@@ -232,6 +252,8 @@ static class Messpartie
         var krediteGesehen = new HashSet<int>();
         var buergerSchwelle = daten.Staende.Count > 1 ? daten.Staende[1].Schwelle : double.MaxValue;
         var spitzel = new double[w.Konten.Count];
+        var fahrten = new Dictionary<Betrieb, int>(ReferenceEqualityComparer.Instance); // Fahrten des Jahres, kurz vor dem Jahresabschluss gezählt
+        var seit = new Dictionary<string, int>(StringComparer.Ordinal);
         for (var j = 1; j <= a.Jahre; j++)
         {
             var jahr = sim.Zeit.Jahr;
@@ -260,8 +282,12 @@ static class Messpartie
                 if (minute == Spielzeit.MinutenProTag - 1 && w.Justiz.IstAktiv)
                     for (var i = 0; i < w.Konten.Count && i < spitzel.Length; i++)
                         spitzel[i] = w.Konten.Count(z => w.Justiz.HatSpitzel(w.Konten[i], z)) * w.Justiz.Daten.SpitzelKosten;
+                // Die Fahrten zählen bis zum letzten Takt des Jahres (FahrtenVorjahr ist im ersten Jahr eines Karrens leer)
+                if (minute == Spielzeit.MinutenProTag - 1)
+                    foreach (var b in w.Betriebe) fahrten[b] = b.Karren.Sum(k => k.FahrtenImJahr);
                 sim.Tick();
             }
+            BetriebeAufzeichnen(w, ergebnis, j, fahrten, seit);
 
             foreach (var c in w.Bank.IstAktiv ? w.Bank.Kredite : Array.Empty<Reichsgilde.Core.Bank.Kredit>())
                 if (krediteGesehen.Add(c.Nummer))
@@ -333,6 +359,32 @@ static class Messpartie
         }
         return ergebnis;
     }
+
+    /// <summary>Jeder Betrieb am Ende des Spieljahres <paramref name="jahr"/> (siehe <see cref="Betriebsjahr"/>); Häuser nach Kontonummer (Spieler 0).</summary>
+    private static void BetriebeAufzeichnen(Stadtwirtschaft w, Partieergebnis e, int jahr, Dictionary<Betrieb, int> fahrten, Dictionary<string, int> seit)
+    {
+        foreach (var b in w.Betriebe)
+        {
+            var haus = -1;
+            for (var i = 0; i < w.Konten.Count; i++)
+                if (w.Konten[i] == b.Konto) { haus = i; break; }
+            var typ = b.Karren.Count > 0 ? b.Karren[0].Typ : b.InDerStadt ? "Handkarren" : "Ochsenkarren";
+            if (!seit.TryGetValue(b.Name, out var ab)) seit[b.Name] = ab = jahr;
+            e.Betriebe.Add(new Betriebsjahr
+            {
+                Haus = haus, Jahr = jahr, Name = b.Name, Ort = b.Ort.ToString(), Art = b.Art.ToString(), SeitJahr = ab,
+                Neubau = w.Bauen.IstAktiv && w.Bauen.Werkstatt(b.Name) is not null,
+                FahrzeitHin = FahrzeitHin(w, b, typ), Karren = string.Join("+", b.Karren.Select(k => k.Typ.Replace("karren", ""))),
+                Fahrten = fahrten.GetValueOrDefault(b),
+                StillstandProzent = b.Arbeitsminuten > 0 ? 100.0 * b.StillstandMinutenVorjahr / b.Arbeitsminuten : 0,
+                Umsatz = b.Vorjahr?.Umsatz ?? 0, Gewinn = b.Vorjahr?.Gewinn ?? 0,
+            });
+        }
+        fahrten.Clear();
+    }
+
+    /// <summary>Wie lange ein Karren dieser Art vom Betrieb zum Markt fährt (Kern).</summary>
+    private static int FahrzeitHin(Stadtwirtschaft w, Betrieb b, string typ) => w.Fahrzeit(b, typ, zumMarkt: true);
 
     /// <summary>Zählt die Karrenverkäufe der KI aus ihren Meldungen (Begründungen in KiRivale.Karren.cs, PR #205).</summary>
     public static void KarrenZaehlen(Partieergebnis e, string meldung)

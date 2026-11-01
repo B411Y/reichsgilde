@@ -37,14 +37,18 @@ static class WegebauTests
         return (sim, spieler, sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler));
     }
 
-    /// <summary>Die Fahrzeit nach der Formel: feste Zeit × Mittel der Belagfaktoren nach Länge (die Stadt der Probestadt ist flach).</summary>
-    static int Erwartet(Stadtwirtschaft w, Betrieb b, bool hin)
-    {
-        var (h, z) = w.Fahrten(b)!.Value;
-        var fahrt = hin ? h : z;
-        var faktor = fahrt.Sum(s => s.Laenge * w.Wegebau.Faktor(s)) / fahrt.Sum(s => s.Laenge);
-        return (int)Math.Round(w.Daten.Logistik.FahrzeitAb(b.Ort) * faktor, MidpointRounding.AwayFromZero);
-    }
+    /// <summary>Die Karrenart der Werkstatt in der Probestadt (Startkarren der Gießerei).</summary>
+    const string Hand = "Handkarren";
+
+    /// <summary>Die Fahrzeit eines Handkarrens nach der Formel (Länge × Belagfaktor ÷ Tempo, Datenversion 65; FahrzeitWeglaengeTests.NachFormel).</summary>
+    static int Erwartet(Stadtwirtschaft w, Betrieb b, bool hin) => FahrzeitWeglaengeTests.NachFormel(w, b, Hand, hin);
+
+    /// <summary>
+    /// Eine Fahrt über flache Stücke mit dem Belagfaktor <paramref name="faktor"/> auf den Wegen der Karte mit dem Handkarren: Länge × Faktor ÷ Tempo,
+    /// auf ganze Minuten. Der Zubringer am Anfang (Halteplatz, Hof → nächster Weg; Datenversion 65) gehört zu keinem Weg und fährt wie der Bezug.
+    /// </summary>
+    static int Flach(IReadOnlyList<Fahrtstueck> fahrt, double faktor) =>
+        (int)Math.Round(fahrt.Sum(s => s.Laenge * (s.Weg >= 0 ? faktor : 1)) / (Daten.Value.Logistik.Karren[Hand].MeterJeMinute), MidpointRounding.AwayFromZero);
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
@@ -95,45 +99,50 @@ static class WegebauTests
                 Pruefe.Wahr(!File.ReadAllText(Datenpfad.Karte(kennung)).Contains("\"belag\""), kennung);
         }),
 
-        ("Wegbelag: Tempo – Fahrweg wie bisher (Greybox und Probestadt mit Daten 52 genau die feste Fahrzeit), Pflaster schneller, Trampelpfad langsamer; ohne „wegebau“ wie vorher", () =>
+        ("Wegbelag: Tempo – auf Fahrweg (Bezug) Länge ÷ Tempo, Pflaster höchstens 15 % schneller, Kies schneller, Trampelpfad langsamer; ohne „wegebau“ kein Belag", () =>
         {
             var (sim, _, werkstatt) = Partie();
             var w = sim.Wirtschaft!;
-            var basis = w.Daten.Logistik.FahrzeitAb(werkstatt.Ort);
             Pruefe.Wahr(w.Wegebau.IstAktiv, "aktiv");
-            Pruefe.Wahr(w.Fahrten(werkstatt)!.Value.Hin.All(s => s.Art != Fahrbahn.Strasse || s.Weg >= 0), "jedes Straßenstück kennt seinen Weg");
-            Pruefe.Gleich((basis, basis), (w.Fahrzeit(werkstatt, true), w.Fahrzeit(werkstatt, false)), "Fahrweg = Bezug");
+            // jedes Straßenstück kennt seinen Weg – bis auf den Zubringer am Anfang (vom Halteplatz über den Hof zum nächsten Weg, höchstens zwei Stücke)
+            var zubringer = w.Fahrten(werkstatt)!.Value.Hin.TakeWhile(s => s.Weg < 0).Count();
+            Pruefe.Wahr(zubringer is >= 1 and <= 2, $"Zubringer: {zubringer} Stücke");
+            Pruefe.Wahr(w.Fahrten(werkstatt)!.Value.Hin.Skip(zubringer).All(s => s.Art != Fahrbahn.Strasse || s.Weg >= 0), "jedes Straßenstück dahinter kennt seinen Weg");
+            var (h0, z0) = w.Fahrten(werkstatt)!.Value;
+            Pruefe.Gleich((Flach(h0, 1), Flach(z0, 1)), (w.Fahrzeit(werkstatt, Hand, true), w.Fahrzeit(werkstatt, Hand, false)), "Fahrweg = Bezug");
             Pruefe.Ungefaehr(1, w.Wegebau.Faktor(w.Fahrten(werkstatt)!.Value.Hin[0]), 0);
-            // Pflaster auf der ganzen Hauptstraße: 0,85 ÷ 1 der Zeit auf der Hauptstraße
+            // Pflaster auf der ganzen Hauptstraße: 0,85 ÷ 1 = 0,85 der Zeit, aber höchstens 15 % schneller (Faktor 1 ÷ 1,15)
             var e = Probestadt();
             e.BelagSetzen(e.Wege.Single(x => x.Name == "Hauptstraße"), Belagstufe.Pflaster);
             var (simP, _, wp) = Partie(e);
             var p = simP.Wirtschaft!;
-            Pruefe.Wahr(p.Fahrten(wp)!.Value.Hin.Where(s => s.Art == Fahrbahn.Strasse).All(s => p.Karte!.Wege[s.Weg].Name == "Hauptstraße"), "nur über die Hauptstraße");
-            Pruefe.Ungefaehr(0.85, p.Wegebau.Faktor(p.Fahrten(wp)!.Value.Hin[0]), 1e-12);
-            Pruefe.Gleich((int)Math.Round(basis * 0.85, MidpointRounding.AwayFromZero), p.Fahrzeit(wp, true));
-            Pruefe.Gleich(Erwartet(p, wp, false), p.Fahrzeit(wp, false));
+            var hinP = p.Fahrten(wp)!.Value.Hin;
+            Pruefe.Wahr(hinP.Where(s => s.Art == Fahrbahn.Strasse && s.Weg >= 0).All(s => p.Karte!.Wege[s.Weg].Name == "Hauptstraße"), "nur über die Hauptstraße");
+            Pruefe.Ungefaehr(1 / 1.15, p.Wegebau.Faktor(hinP.First(s => s.Weg >= 0)), 1e-12);
+            Pruefe.Ungefaehr(1, p.Wegebau.Faktor(hinP[0]), 0); // der Zubringer: kein Weg der Karte, kein Pflaster
+            Pruefe.Gleich(Flach(hinP, 1 / 1.15), p.Fahrzeit(wp, Hand, true));
+            Pruefe.Gleich(Erwartet(p, wp, false), p.Fahrzeit(wp, Hand, false));
             // Trampelpfad: 0,85 ÷ 0,7
             e.BelagSetzen(e.Wege.Single(x => x.Name == "Hauptstraße"), Belagstufe.Trampelpfad);
             var (simT, _, wt) = Partie(e);
-            Pruefe.Gleich((int)Math.Round(basis * 0.85 / 0.70, MidpointRounding.AwayFromZero), simT.Wirtschaft!.Fahrzeit(wt, true));
+            Pruefe.Gleich(Flach(simT.Wirtschaft!.Fahrten(wt)!.Value.Hin, 0.85 / 0.70), simT.Wirtschaft.Fahrzeit(wt, Hand, true));
             // Kies: 0,85 ÷ 0,95
             e.BelagSetzen(e.Wege.Single(x => x.Name == "Hauptstraße"), Belagstufe.Kies);
             var (simK, _, wk) = Partie(e);
-            Pruefe.Gleich((int)Math.Round(basis * 0.85 / 0.95, MidpointRounding.AwayFromZero), simK.Wirtschaft!.Fahrzeit(wk, true));
+            Pruefe.Gleich(Flach(simK.Wirtschaft!.Fahrten(wk)!.Value.Hin, 0.85 / 0.95), simK.Wirtschaft.Fahrzeit(wk, Hand, true));
             // ohne Abschnitt „wegebau“: Pflaster wirkt nicht, keine Abfragen
             var (simO, _, wo) = Partie(e, DatenMit(d => d.Remove("wegebau")));
             Pruefe.Wahr(!simO.Wirtschaft!.Wegebau.IstAktiv, "ohne Daten nicht aktiv");
-            Pruefe.Gleich(basis, simO.Wirtschaft.Fahrzeit(wo, true));
+            Pruefe.Gleich(Flach(simO.Wirtschaft.Fahrten(wo)!.Value.Hin, 1), simO.Wirtschaft.Fahrzeit(wo, Hand, true));
             Pruefe.Gleich(Belagstufe.Kies, simO.Wirtschaft.Wegebau.BelagBei(0, 10), "Startbelag der Karte ohne Daten");
-            // Greybox mit allen Häusern: am Start genau die feste Fahrzeit
+            // Greybox mit allen Häusern: jeder Karren nach der Formel (Länge, Steigung, Belag, Tempo seiner Art)
             var greybox = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
             var simG = Partieaufbau.Erstellen(Partieeinstellungen.Standard, Daten.Value, new NeuePartie(Rivalen: 3), karte: greybox).Simulation;
-            foreach (var b in simG.Wirtschaft!.Betriebe)
-            {
-                var bz = simG.Wirtschaft.Daten.Logistik.FahrzeitAb(b.Ort);
-                Pruefe.Gleich((bz, bz), (simG.Wirtschaft.Fahrzeit(b, true), simG.Wirtschaft.Fahrzeit(b, false)), b.Name);
-            }
+            var g = simG.Wirtschaft!;
+            foreach (var b in g.Betriebe.Where(b => g.Fahrten(b) is { Hin.Count: > 0 }))
+                foreach (var k in b.Karren)
+                    Pruefe.Gleich((FahrzeitWeglaengeTests.NachFormel(g, b, k.Typ, true), FahrzeitWeglaengeTests.NachFormel(g, b, k.Typ, false)),
+                        (g.Fahrzeit(k, true), g.Fahrzeit(k, false)), $"{b.Name} {k.Typ}");
         }),
 
         ("Wegbelag: Abfragen – Stücke zu 5 m, Abschnitte, Belag und Verkehr an einer Stelle, nächster Weg zu einem Punkt", () =>
@@ -200,7 +209,7 @@ static class WegebauTests
             Pruefe.Wahr(wb2.Verkehr(haupt, stelle) >= 70, "30 Karren + Grundverkehr");
             Jahr();
             Pruefe.Gleich(Belagstufe.Fahrweg, wb2.BelagBei(haupt, stelle), "ausgetreten");
-            Pruefe.Gleich(Daten.Value.Logistik.FahrzeitAb(w2.Ort), sim2.Wirtschaft.Fahrzeit(w2, true), "als Fahrweg wieder die feste Zeit");
+            Pruefe.Gleich(Erwartet(sim2.Wirtschaft, w2, true), sim2.Wirtschaft.Fahrzeit(w2, Hand, true), "als Fahrweg wieder Länge ÷ Tempo");
             // Karren zählen wirklich: ein Jahr Spiel, dann stehen Fahrten im Vorjahr
             var (sim3, _, w3) = Partie();
             for (var i = 0; i < Spielzeit.MinutenProTag; i++) sim3.Tick();
@@ -219,7 +228,7 @@ static class WegebauTests
             var wb = w.Wegebau;
             var nr = Nr(w.Karte!, "Hauptstraße");
             Pruefe.Ungefaehr(0.95 + 0.05 * 0.3, wb.Stueck(nr, 3).Tempo, 1e-12);
-            var vorher = w.Fahrzeit(werkstatt, true);
+            var vorher = w.Fahrzeit(werkstatt, Hand, true);
             Pruefe.Gleich(Erwartet(w, werkstatt, true), vorher);
             wb.Jahresende(); // 0,3 − 0,03 = 0,27: noch Pflaster
             Pruefe.Gleich(Belagstufe.Pflaster, wb.Stueck(nr, 3).Stufe);
@@ -227,8 +236,8 @@ static class WegebauTests
             wb.Jahresende(); // 0,24 < 0,25: Kies, neu
             Pruefe.Gleich(Belagstufe.Kies, wb.Stueck(nr, 3).Stufe);
             Pruefe.Ungefaehr(1, wb.Stueck(nr, 3).Zustand, 1e-12);
-            Pruefe.Gleich(Erwartet(w, werkstatt, true), w.Fahrzeit(werkstatt, true), "neu gerechnet nach dem Jahreswechsel");
-            Pruefe.Wahr(w.Fahrzeit(werkstatt, true) >= vorher, "Kies ist nicht schneller");
+            Pruefe.Gleich(Erwartet(w, werkstatt, true), w.Fahrzeit(werkstatt, Hand, true), "neu gerechnet nach dem Jahreswechsel");
+            Pruefe.Wahr(w.Fahrzeit(werkstatt, Hand, true) >= vorher, "Kies ist nicht schneller");
         }),
 
         ("Wegbelag: Bauauftrag des Spielers – Preis je Meter, Bauzeit, Baustelle; danach Pflaster und kürzere Fahrt; Ausbessern kostet den fehlenden Zustand", () =>
@@ -253,15 +262,15 @@ static class WegebauTests
             Pruefe.Wahr(wb.Stueck(nr, 8).Baustelle && !wb.Stueck(nr, 6).Baustelle, "Stücke im Bau");
             Pruefe.Wahr(wb.Vorschau(spieler, nr, 70, 80, Belagstufe.Kies).Verboten!.Contains("schon gebaut"), "überlappt die Baustelle");
             Pruefe.Gleich(Belagstufe.Fahrweg, wb.BelagBei(nr, 40), "noch im Bau");
-            var vorher = w.Fahrzeit(werkstatt, true);
+            var vorher = w.Fahrzeit(werkstatt, Hand, true);
             wb.Minute(new Spielzeit(bau.FertigAb - 1));
             Pruefe.Gleich(1, wb.Baustellen.Count);
             wb.Minute(new Spielzeit(bau.FertigAb));
             Pruefe.Gleich(0, wb.Baustellen.Count);
             Pruefe.Gleich(Belagstufe.Pflaster, wb.BelagBei(nr, 40));
             Pruefe.Gleich(Belagstufe.Fahrweg, wb.BelagBei(nr, 76));
-            Pruefe.Wahr(w.Fahrzeit(werkstatt, true) < vorher, $"schneller: {w.Fahrzeit(werkstatt, true)} < {vorher}");
-            Pruefe.Gleich(Erwartet(w, werkstatt, true), w.Fahrzeit(werkstatt, true));
+            Pruefe.Wahr(w.Fahrzeit(werkstatt, Hand, true) < vorher, $"schneller: {w.Fahrzeit(werkstatt, Hand, true)} < {vorher}");
+            Pruefe.Gleich(Erwartet(w, werkstatt, true), w.Fahrzeit(werkstatt, Hand, true));
             // schon gepflastert: nichts zu tun; Kies auf Pflaster bleibt Pflaster
             Pruefe.Wahr(wb.Vorschau(spieler, nr, 35, 75, Belagstufe.Pflaster).Verboten!.Contains("schon"), "schon Pflaster");
             Pruefe.Ungefaehr(0, wb.Vorschau(spieler, nr, 35, 75, Belagstufe.Kies).Kosten, 1e-9);
@@ -373,7 +382,7 @@ static class WegebauTests
                 (wb2.Antrag!.Value.Antragsteller.Inhaber, wb2.Antrag.Value.Weg, wb2.Antrag.Value.Von, wb2.Antrag.Value.Bis));
             Pruefe.Gleich(7, wb2.FahrtenVorjahr(werkstatt.Name));
             var werkstatt2 = w2.Betriebe.Single(b => b.Name == werkstatt.Name);
-            Pruefe.Gleich(w.Fahrzeit(werkstatt, true), w2.Fahrzeit(werkstatt2, true));
+            Pruefe.Gleich(w.Fahrzeit(werkstatt, Hand, true), w2.Fahrzeit(werkstatt2, Hand, true));
             // dasselbe Jahr weiter: dieselben Fahrten zählen mit (3 + 0 → im Vorjahr 3)
             wb.Jahresende();
             wb2.Jahresende();

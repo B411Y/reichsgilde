@@ -218,7 +218,16 @@ public partial class Stadtansicht : Node3D
         public required Betrieb Betrieb { get; init; }
         /// <summary>Wo Karren losfahren und halten: bei Werkstätten mit Modell dessen „Anker_Karren“ (<see cref="KarrenAnker"/>), sonst der Hof vor dem Tor.</summary>
         public required Vector3 Hof { get; set; }
+        /// <summary>
+        /// Der Weg der Karren zum Marktplatz ihres Betriebs. Mit Datenversion 65 der Weg des Kerns (<see cref="Stadtwirtschaft.Karrenverlauf"/>: vom Halteplatz
+        /// am Modell über Hof und Zubringer bis zum Halt 3,5 m vor dem Pflaster, <see cref="WegVomKern"/>); sonst über das Gassennetz vom Hof bis zur Mitte
+        /// des Platzes, gezeigt bis zum Halt (<c>KarrenWegBisPlatzrand</c>).
+        /// </summary>
         public required Vector3[] WegZumMarkt { get; set; }
+        /// <summary>Kommt <see cref="WegZumMarkt"/> vom Kern? Dann beginnt er schon am Halteplatz und endet am Halt (nicht kürzen, nichts voranstellen).</summary>
+        public bool WegVomKern { get; init; }
+        /// <summary>Der Marktplatz, zu dem die Karren des Betriebs fahren (<c>Stadtwirtschaft.MarktplatzVon</c>); null ohne Marktplatz.</summary>
+        public MarktplatzAnsicht? Markt { get; set; }
         /// <summary>Alles, was zum Betrieb gehört (Gebäude, Weg, Innenraum) – verschwindet beim Verkauf in einem Zug.</summary>
         public Node3D? Gruppe { get; set; }
         public bool Spieler { get; set; }
@@ -292,16 +301,35 @@ public partial class Stadtansicht : Node3D
     private Vector3? HofVon(string betrieb) => PlatzVon(betrieb)?.Hof;
 
     /// <summary>
-    /// Der Weg vom <paramref name="start"/> (Hof, Karrenplatz) über das Gassennetz bis zur Mitte des Marktplatzes – für die Karren. Hängt der Start
-    /// noch nicht am Netz (eine neu gebaute Werkstatt), bekommt er sein Stück zum nächsten Weg (gezeichnet in <paramref name="breite"/>).
+    /// Der Weg vom <paramref name="start"/> (Hof, Karrenplatz) über das Gassennetz bis zur Mitte des Marktplatzes <paramref name="markt"/> (null: der
+    /// erste) – für die Karren. Hängt der Start noch nicht am Netz (eine neu gebaute Werkstatt), bekommt er sein Stück zum nächsten Weg (gezeichnet in
+    /// <paramref name="breite"/>).
     /// </summary>
-    private Vector3[] MarktWeg(Vector3 start, float breite)
+    private Vector3[] MarktWeg(Vector3 start, float breite, MarktplatzAnsicht? markt = null)
     {
+        // (der Weg wird auch mit dem Weg des Kerns gesucht: Er hängt eine neu gebaute Werkstatt mit ihrem gezeichneten Stück an die Gasse)
         var von = AnWegAnschliessen(start, breite);
-        var nach = MarktKnoten();
+        var nach = MarktKnoten(markt);
         var pfad = nach >= 0 ? _netz.Pfad(von, nach, faehren: true) : Array.Empty<Vector3>(); // Karren setzen mit Fähren über (Stadtansicht.Wasser.cs)
-        return pfad.Length >= 2 ? pfad : new[] { start, _markt };
+        return pfad.Length >= 2 ? pfad : new[] { start, markt?.Mitte ?? _markt };
     }
+
+    /// <summary>
+    /// Der Marktplatz, zu dem die Karren dieses Betriebs fahren: der, den der Kern gewählt hat (<see cref="Stadtwirtschaft.MarktplatzVon"/>, der nächste nach
+    /// Wegkosten über die Karrenstraßen). Ohne Kern-Antwort (Hauptmenü, Betrieb ohne Platz) der erste; null ohne Marktplatz.
+    /// </summary>
+    private MarktplatzAnsicht? MarktFuer(Betrieb betrieb)
+    {
+        if (_maerkte.Count <= 1 || _wirtschaft?.MarktplatzVon(betrieb) is not { } g) return _maerkte.FirstOrDefault();
+        return _maerkte.FirstOrDefault(m => ReferenceEquals(m.Gebaeude, g) || m.Gebaeude.Kennung == g.Kennung) ?? _maerkte[0];
+    }
+
+    /// <summary>
+    /// Der Weg der Karren dieses Betriebs, wie der Kern ihn rechnet (<see cref="Stadtwirtschaft.Karrenverlauf"/>, Datenversion 65) – null mit alten Daten,
+    /// ohne Weg oder ohne Partie (Hauptmenü): Dann sucht die Darstellung den Weg im Gassennetz (<see cref="MarktWeg"/>).
+    /// </summary>
+    private Vector3[]? KernWeg(Betrieb betrieb) =>
+        _wirtschaft?.Karrenverlauf(betrieb) is { Count: >= 2 } punkte ? punkte.Select(p => new Vector3((float)p.X, 0, (float)p.Z)).ToArray() : null;
 
     /// <summary>Freie Bauplätze und Gruben, die noch niemandem gehören: Name → ihre Darstellung.</summary>
     private readonly Dictionary<string, Node3D> _freiePlaetze = new();
@@ -499,7 +527,7 @@ public partial class Stadtansicht : Node3D
         {
             // Karren starten und halten am „Anker_Karren“ des Modells (erst jetzt, nach dem Drehen, liegt er an seinem Platz) und fahren von dort zum Hof und weiter
             ansicht.Hof = halt;
-            if (ansicht.WegZumMarkt[0].DistanceTo(halt) > 0.1f) ansicht.WegZumMarkt = ansicht.WegZumMarkt.Prepend(halt).ToArray();
+            if (!ansicht.WegVomKern && ansicht.WegZumMarkt[0].DistanceTo(halt) > 0.1f) ansicht.WegZumMarkt = ansicht.WegZumMarkt.Prepend(halt).ToArray(); // der Weg des Kerns beginnt schon dort
         }
         _betriebe[betrieb] = ansicht;
         GlobaleBeleuchtungNeuAnlegen(); // SDFGI sieht das neue Gebäude sonst erst, wenn die Kamera weiterwandert
@@ -693,12 +721,17 @@ public partial class Stadtansicht : Node3D
         var schild = Beschriftung(betrieb.Name, p.Mitte + new Vector3(0, 13, 1), 44, kennung: BetriebsKennung(betrieb));
 
         var hof = p.Hof;
+        var markt = MarktFuer(betrieb);
+        var netzweg = MarktWeg(hof, HofwegBreite, markt); // eine neu gebaute Werkstatt bekommt hier ihr Stück zur nächsten Gasse
+        var kernweg = KernWeg(betrieb);
         var ansicht = new BetriebsAnsicht
         {
             Betrieb = betrieb,
             Mitte = p.Mitte,
             Hof = hof,
-            WegZumMarkt = MarktWeg(hof, HofwegBreite), // eine neu gebaute Werkstatt bekommt hier ihr Stück zur nächsten Gasse
+            Markt = markt,
+            WegZumMarkt = kernweg ?? netzweg,
+            WegVomKern = kernweg is not null,
             Modell = modell,
             Schild = schild,
             Dach = modell?.Wurzel,
@@ -739,6 +772,7 @@ public partial class Stadtansicht : Node3D
         GrundstueckeAktualisieren(); // Wohnhäuser, Baustellen und Bauplätze der Karte (Stadtansicht.Bauen.cs)
         Ladezeit.Dazu("im Bild: Grundstücke", uhr);
         BauUmrissAktualisieren();    // Baumodus: der Umriss an der Maus
+        FahrwegBild();               // Baumodus: Wege der Karren zu den Märkten und Ampeln der Bauorte (Stadtansicht.Fahrweg.cs)
         var zeit = _simulation.Zeit;
         // Die Simulation zählt nur ganze Minuten (bei Tempo 1 etwa eine pro Sekunde). Für die Darstellung
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
@@ -776,8 +810,8 @@ public partial class Stadtansicht : Node3D
 
             for (var i = 0; i < betrieb.Karren.Count; i++)
             {
-                // Hin- und Rückfahrt dauern auf Gelände verschieden lang (der Kern rechnet die Steigung ein, Stadtwirtschaft.Fahrzeit); in der Ebene gleich lang wie immer
-                var fahrzeit = w.Fahrzeit(betrieb, zumMarkt: betrieb.Karren[i].Zustand != KarrenZustand.ZumBetrieb);
+                // Die Fahrzeit des Kerns hängt an Weglänge und Karrenart, Hin- und Rückfahrt am Hang verschieden lang (Stadtwirtschaft.Fahrzeit)
+                var fahrzeit = w.Fahrzeit(betrieb.Karren[i], zumMarkt: betrieb.Karren[i].Zustand != KarrenZustand.ZumBetrieb);
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
             }
         }

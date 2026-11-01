@@ -19,6 +19,13 @@ public sealed class Taktgeber
     public const double MinRundenDauerSekunden = 60;
     public const double MaxRundenDauerSekunden = 2 * 60 * 60;
 
+    /// <summary>
+    /// So viele echte Sekunden dauert eine Spielminute bei Tempo 1 und der Standard-Rundendauer: 900 ÷ 1140 ≈ 0,79. Damit rechnet der Kern ein
+    /// Tempo, wie man es im Bild sieht (Meter je Sekunde), in Meter je Spielminute um (Karren: <c>KarrenDaten.MeterJeMinute</c>). Fest mit der
+    /// Standard-Rundendauer, nicht mit der eingestellten: Die Simulation darf nicht davon abhängen, wie lang jemand eine Runde einstellt.
+    /// </summary>
+    public const double SekundenJeSpielminute = StandardRundenDauerSekunden / Spielzeit.MinutenProTag;
+
     /// <summary>Erlaubte Tempostufen (Faktor auf die normale Geschwindigkeit).</summary>
     public static readonly IReadOnlyList<double> Tempostufen = new[] { 1.0, 2.0, 4.0, 8.0 };
 

@@ -437,7 +437,7 @@ static class GelaendeTests
         ("Steigung bremst Karren: ab 6 % je Prozentpunkt 5 % länger, höchstens dreimal so lang; bergab und eben wie bisher", () =>
         {
             var s = Daten.Value.Logistik.Steigung!;
-            Pruefe.Gleich(64, Daten.Value.Version);
+            Pruefe.Gleich(65, Daten.Value.Version);
             Pruefe.Gleich(1.0, s.Faktor(0.06));
             Pruefe.Ungefaehr(1.2, s.Faktor(0.10), 1e-12);
             Pruefe.Gleich(3.0, s.Faktor(0.5));
@@ -446,7 +446,7 @@ static class GelaendeTests
             Pruefe.Gleich(1.0, s.Faktor(Array.Empty<Fahrtstueck>()));
         }),
 
-        ("Fahrzeit der Karren: bergauf zum Markt länger, bergab zurück wie bisher; flache Wege und flache Karten genau die feste Fahrzeit", () =>
+        ("Fahrzeit der Karren: bergauf zum Markt länger, bergab zurück wie in der Ebene; auf flachen Wegen Länge ÷ Tempo der Karrenart", () =>
         {
             // Probestadt: der Markt auf einem Hügel (6 m, Radius 60) – die Werkstatt im Westen fährt die Hauptstraße hinauf
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
@@ -454,28 +454,37 @@ static class GelaendeTests
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var w = sim.Wirtschaft!;
             var west = w.Betriebe.Single(b => b.Konto == spieler);   // der Spieler beginnt auf dem Werkstattplatz bei (−30 | −10)
-            var basis = Daten.Value.Logistik.FahrzeitAb(west.Ort);
+            var karren = west.Karren[0];
+            var jeMinute = karren.Daten.MeterJeMinute;
             var (hin, zurueck) = w.Fahrten(west)!.Value;
             var faktor = Daten.Value.Logistik.Steigung!.Faktor(hin);
             Pruefe.Wahr(faktor > 1.05, $"Faktor bergauf {faktor:0.000}");
-            Pruefe.Gleich((int)Math.Round(basis * faktor, MidpointRounding.AwayFromZero), w.Fahrzeit(west, zumMarkt: true));
-            Pruefe.Gleich(basis, w.Fahrzeit(west, zumMarkt: false), "bergab wie bisher");
+            int Eben(IReadOnlyList<Fahrtstueck> fahrt) => (int)Math.Round(fahrt.Sum(x => x.Laenge) / jeMinute, MidpointRounding.AwayFromZero);
+            Pruefe.Gleich(FahrzeitWeglaengeTests.NachFormel(w, west, karren.Typ, true), w.Fahrzeit(karren, zumMarkt: true));
+            Pruefe.Wahr(w.Fahrzeit(karren, zumMarkt: true) > Eben(hin), $"bergauf länger: {w.Fahrzeit(karren, true)} > {Eben(hin)}");
+            Pruefe.Gleich(Eben(zurueck), w.Fahrzeit(karren, zumMarkt: false), "bergab wie in der Ebene");
             Pruefe.Ungefaehr(-hin.Sum(x => x.Anstieg), zurueck.Sum(x => x.Anstieg), 1e-9);
-            Pruefe.Gleich(w.Uhr.UhrzeitInMinuten + w.Fahrzeit(west, true), w.AnkunftAmMarkt(west));
-            // ohne Hügel: die Werkstätten der flachen Stadt fahren genau die feste Zeit, obwohl die Karte Gelände hat
+            Pruefe.Gleich(w.Uhr.UhrzeitInMinuten + w.Fahrzeit(karren, true), w.AnkunftAmMarkt(karren));
+            // ohne Hügel: die Werkstätten der flachen Stadt fahren Länge ÷ Tempo, obwohl die Karte Gelände hat
             var f = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             var (simF, spielerF) = f.Ausprobieren(Daten.Value, "Schmied");
             var wf = simF.Wirtschaft!;
             Pruefe.Wahr(!wf.Karte!.Gelaendeform.IstFlach, "Probestadt hat Gelände");
-            foreach (var b in wf.Betriebe)
-                Pruefe.Gleich((basis, basis), (wf.Fahrzeit(b, true), wf.Fahrzeit(b, false)), b.Name);
+            foreach (var b in wf.Betriebe.Where(b => b.InDerStadt && b.Karren.Count > 0))
+            {
+                var (h, z) = wf.Fahrten(b)!.Value;
+                Pruefe.Wahr(h.Concat(z).All(x => wf.Zeitfaktor(x) == 1), $"{b.Name}: flach und Fahrweg");
+                var v = b.Karren[0].Daten.MeterJeMinute;
+                int Zeit(IReadOnlyList<Fahrtstueck> fahrt) => (int)Math.Round(fahrt.Sum(x => x.Laenge) / v, MidpointRounding.AwayFromZero);
+                Pruefe.Gleich((Zeit(h), Zeit(z)), (wf.Fahrzeit(b.Karren[0], true), wf.Fahrzeit(b.Karren[0], false)), b.Name);
+            }
             // Messstadt (flach): die feste Fahrzeit, ohne Netz zu bauen (die Greybox hat seit PR #199 Gelände)
             var flach = Stadtkarte.AusDatei(Datenpfad.Karte("messstadt"));
             Pruefe.Wahr(flach.Gelaendeform.IstFlach, "Messstadt flach");
             // nach dem Laden dieselben Zeiten
             var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler));
             var west2 = geladen.Wirtschaft!.Betriebe.Single(b => b.Name == west.Name);
-            Pruefe.Gleich(w.Fahrzeit(west, true), geladen.Wirtschaft.Fahrzeit(west2, true), "nach dem Laden");
+            Pruefe.Gleich(w.Fahrzeit(karren, true), geladen.Wirtschaft.Fahrzeit(west2.Karren[0], true), "nach dem Laden");
         }),
 
         ("Spielstand: Das Gelände der Karte liegt im Spielstand und kommt beim Laden genauso wieder", () =>

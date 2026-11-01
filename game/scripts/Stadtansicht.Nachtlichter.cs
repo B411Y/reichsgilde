@@ -422,8 +422,8 @@ public partial class Stadtansicht
     private long _wachAbfrage = -1;
     private int _wachStempel;
 
-    /// <summary>Gehtempo der Nachtwächter in Metern je echter Sekunde (bei Tempo 1): gemächlich, sie schauen sich um.</summary>
-    private const float WachTempo = 1.5f;
+    /// <summary>Gehtempo der Nachtwächter in Metern je echter Sekunde (bei Tempo 1): gemächlich, sie schauen sich um (<see cref="Gehtempo.Streife"/>).</summary>
+    private const float WachTempo = Gehtempo.Streife;
 
     /// <summary>Abstand (Meter) zwischen zwei Wachleuten desselben Hauses, wenn eine Schicht aufbricht.</summary>
     private const float WachAbstand = 18f;

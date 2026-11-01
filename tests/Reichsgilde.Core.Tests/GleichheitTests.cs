@@ -17,7 +17,8 @@ using Reichsgilde.Core.Zeit;
 /// deterministisch ist: gleicher Startwert + gleiche Befehle zur gleichen Minute = gleiches Ergebnis, auf Windows wie auf Linux.
 ///
 /// Je Startwert spielt dieselbe Partie dreimal 10 Jahre auf der Greybox-Karte (1 Mensch, 3 KI-Häuser; mehrere Menschen kennt der
-/// Partieaufbau noch nicht) mit einem festen Befehlsskript des Menschen: kaufen und verkaufen per Karren, einen Zweitbetrieb pachten,
+/// Partieaufbau noch nicht), dazu eine Partie 4 Jahre in Köln (drei Marktplätze, Wege über das Pflaster, Fahrzeit nach Weglänge – Befund der
+/// Prüfung von phase5/gehtempo, 1.11.2026), mit einem festen Befehlsskript des Menschen: kaufen und verkaufen per Karren, einen Zweitbetrieb pachten,
 /// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
@@ -29,18 +30,20 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class GleichheitTests
 {
-    const int Jahre = 10;
     static readonly DateTime Zeitpunkt = new(2026, 10, 29, 12, 0, 0);
     static long Minute(int jahr, int stunde, int minute = 0) => jahr * (long)Spielzeit.MinutenProTag + (stunde * 60 + minute - Spielzeit.TagesbeginnMinute);
 
-    /// <summary>Eine Partie des Tests: Startwert, Schwierigkeit, Charakter der KI und Beruf des Menschen.</summary>
-    sealed record Partie(int Startwert, Schwierigkeit Schwierigkeit, KiCharakter Rivale, string Beruf);
+    /// <summary>Eine Partie des Tests: Startwert, Schwierigkeit, Charakter der KI, Beruf des Menschen, Karte und Länge.</summary>
+    sealed record Partie(int Startwert, Schwierigkeit Schwierigkeit, KiCharakter Rivale, string Beruf, string Karte = "greybox", int Jahre = 10);
 
     static readonly Partie[] Partien =
     {
         new(1400, Schwierigkeit.Normal, KiCharakter.Ausgewogen, "Schmied"),
         new(4711, Schwierigkeit.Schwer, KiCharakter.Wagemutig, "Tischler"),
-        new(2026, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
+        // bis zur gemeinsamen Strecke von Kern und Bild (31.10.2026) 2026 – dort stirbt seither das Oberhaupt des Menschen im Jahr 1 ohne Erben, das Skript hätte nichts abzugeben
+        new(2027, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
+        // Köln (vier Jahre: Köln rechnet etwa doppelt so lange wie die Greybox; im vierten Jahr wird der Zweitbetrieb abgegeben und wieder erworben)
+        new(1401, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
     };
 
     /// <summary>
@@ -59,7 +62,7 @@ static class GleichheitTests
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
 
     public static IEnumerable<(string, Action)> Alle() => Partien.Select(p => (
-        $"Gleichheit: Startwert {p.Startwert} ({p.Schwierigkeit}, {p.Rivale}, {p.Beruf}) – 10 Jahre durchgehend, mit deutscher Ländereinstellung " +
+        $"Gleichheit: Startwert {p.Startwert} ({p.Schwierigkeit}, {p.Rivale}, {p.Beruf}{(p.Karte == "greybox" ? "" : $", {p.Karte}")}) – {p.Jahre} Jahre durchgehend, mit deutscher Ländereinstellung " +
         "und mit Speichern/Laden (auch direkt nach dem Löschen eines Betriebs) ergeben dieselbe Prüfsumme",
         (Action)(() => Pruefen(p)))).Append((
         "Gleichheit: Felspinsel (Stempel, Streuen mit Filter, Radieren, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
@@ -92,8 +95,9 @@ static class GleichheitTests
             string.Join(", ", a.Befehle.GroupBy(z => z[(z.IndexOf(' ') + 1)..]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"));
         foreach (var art in new[] { "Handelsauftrag", "BetriebVerkaufen", "LiegenschaftErwerben" })
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains($" {art} ok")), $"Kein erfolgreicher Befehl {art} im Skript – Skript anpassen ({Erfolge(art)})");
-        Pruefe.Wahr(a.Befehle.Count(z => z.Contains(" BetriebVerkaufen ok")) == Abgabejahre.Length
-                    && a.Befehle.Count(z => z.Contains(" LiegenschaftErwerben ok")) >= Abgabejahre.Length + 1,
+        var abgaben = Abgabejahre.Count(j => j < p.Jahre);
+        Pruefe.Wahr(a.Befehle.Count(z => z.Contains(" BetriebVerkaufen ok")) == abgaben
+                    && a.Befehle.Count(z => z.Contains(" LiegenschaftErwerben ok")) >= abgaben + 1,
             $"Löschen und Einfügen in jedem Abgabejahr ({Erfolge("BetriebVerkaufen")}, {Erfolge("LiegenschaftErwerben")})");
 
         var zeilen = a.Jahre.Select((s, i) => $"startwert {p.Startwert} jahr {i + 1}: {s}")
@@ -123,7 +127,7 @@ static class GleichheitTests
     {
         // Daten und Karte frisch aus der Datei: Die Partie verändert ihre Karte (Bauten), jeder Lauf beginnt wie neu.
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-        var karte = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+        var karte = Stadtkarte.AusDatei(Datenpfad.Karte(p.Karte));
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = p.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = p.Schwierigkeit },
             daten, new NeuePartie(Startvermoegen: 15_000, Rivale: p.Rivale, Beruf: p.Beruf), karte: karte); // genug für Bürgerhaus, Stand und Pacht
@@ -132,7 +136,7 @@ static class GleichheitTests
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
         var befehle = new List<string>();
         var jahre = new List<string>();
-        for (long t = 0; t < Jahre * (long)Spielzeit.MinutenProTag; t++)
+        for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) (sim, spieler) = SpeichernUndLaden(sim, spieler);
             foreach (var befehl in skript.Befehle(t, sim.Wirtschaft!, spieler))

@@ -1,0 +1,2225 @@
+{
+  "bericht": "Balancing-Messung 6",
+  "datum": "2026-11-01",
+  "mainCommit": "880e3387",
+  "commit": "a4c5ea66",
+  "datenversion": 65,
+  "aufruf": "messen bericht 20 10 --teile=5 --karte=koeln --parallel=3 --betriebe=<notizordner>/branch-koeln-t5.csv --datei=<notizordner>/branch-koeln-t5.json",
+  "parameter": {
+    "jahre": 20,
+    "startwerte": 10,
+    "zufallsstartwerte": "101, 202 … 1010 (s × 101)",
+    "stichjahre": [
+      5,
+      10,
+      20
+    ],
+    "karte": "koeln",
+    "fairnesskarten": [
+      "greybox",
+      "probestadt"
+    ],
+    "teile": [
+      5
+    ],
+    "band": "±15 % um das Mittel",
+    "startvermoegen": 4000,
+    "ohneAbschnitt": null
+  },
+  "partien": 20,
+  "partienMitFehler": 0,
+  "kiStaerke": {
+    "erklaerung": "Der Spieler (Schmied, Mensch) wird von der KI mit demselben Profil wie die KI-Häuser geführt („Bezugsspieler“: gleiche Strategie, Einrichtung wie die KI, keine Prämien, üblicher Lohn – so spielt heute jedes KI-Haus). Schwierigkeit „Normal“: Alle beginnen gleich mit einer Werkstatt und zwei Gesellen (PR #177); unter „schwer“ derselbe Vergleich, wenn die KI-Häuser mit Werkstatt und Umlandbetrieb (5 Arbeiter) beginnen. Verhältnis = Reinvermögen eines KI-Hauses ÷ Reinvermögen des Bezugsspielers derselben Partie; davongezogen > 2, abgeschlagen < 0,5. Rang des Bezugs: 1 = reichstes Haus. Hinweis: Die KI zahlt keine Prämien und nimmt keine Kredite; Einrichtung kauft sie zum Jahresende, wenn sie sich in höchstens 4 Jahren bezahlt macht (PR #177).",
+    "n": 10,
+    "bezug": {
+      "5": {
+        "n": 10,
+        "mittel": 5765,
+        "streuung": 1162,
+        "fehlerMittel": 368,
+        "min": 4475,
+        "q10": 4526,
+        "q25": 4855,
+        "median": 5364,
+        "q75": 6624,
+        "q90": 7072,
+        "max": 7847
+      },
+      "10": {
+        "n": 10,
+        "mittel": 7904,
+        "streuung": 2785,
+        "fehlerMittel": 881,
+        "min": 2588,
+        "q10": 6315,
+        "q25": 6822,
+        "median": 7359,
+        "q75": 9229,
+        "q90": 10649,
+        "max": 13223
+      },
+      "20": {
+        "n": 10,
+        "mittel": 52465,
+        "streuung": 18825,
+        "fehlerMittel": 5953,
+        "min": 30235,
+        "q10": 32180,
+        "q25": 36278,
+        "median": 51105,
+        "q75": 64211,
+        "q90": 73589,
+        "max": 87342
+      }
+    },
+    "bezugStandAmEnde": {
+      "Patrizier": 6,
+      "Edler": 4
+    },
+    "bezugRang": {
+      "n": 10,
+      "mittel": 5,
+      "streuung": 2.45,
+      "fehlerMittel": 0.77,
+      "min": 1,
+      "q10": 1.9,
+      "q25": 3.25,
+      "median": 5.5,
+      "q75": 6.75,
+      "q90": 8,
+      "max": 8
+    },
+    "bezugBetriebe": {
+      "5": {
+        "n": 10,
+        "mittel": 1,
+        "streuung": 0,
+        "fehlerMittel": 0,
+        "min": 1,
+        "q10": 1,
+        "q25": 1,
+        "median": 1,
+        "q75": 1,
+        "q90": 1,
+        "max": 1
+      },
+      "10": {
+        "n": 10,
+        "mittel": 2.5,
+        "streuung": 0.85,
+        "fehlerMittel": 0.27,
+        "min": 1,
+        "q10": 1,
+        "q25": 2.25,
+        "median": 3,
+        "q75": 3,
+        "q90": 3,
+        "max": 3
+      },
+      "20": {
+        "n": 10,
+        "mittel": 4.1,
+        "streuung": 0.32,
+        "fehlerMittel": 0.1,
+        "min": 4,
+        "q10": 4,
+        "q25": 4,
+        "median": 4,
+        "q75": 4,
+        "q90": 4.1,
+        "max": 5
+      }
+    },
+    "kiBetriebe": {
+      "5": {
+        "n": 70,
+        "mittel": 1,
+        "streuung": 0,
+        "fehlerMittel": 0,
+        "min": 1,
+        "q10": 1,
+        "q25": 1,
+        "median": 1,
+        "q75": 1,
+        "q90": 1,
+        "max": 1
+      },
+      "10": {
+        "n": 70,
+        "mittel": 2.74,
+        "streuung": 0.61,
+        "fehlerMittel": 0.07,
+        "min": 1,
+        "q10": 2,
+        "q25": 3,
+        "median": 3,
+        "q75": 3,
+        "q90": 3,
+        "max": 3
+      },
+      "20": {
+        "n": 70,
+        "mittel": 4.16,
+        "streuung": 0.4,
+        "fehlerMittel": 0.05,
+        "min": 3,
+        "q10": 4,
+        "q25": 4,
+        "median": 4,
+        "q75": 4,
+        "q90": 5,
+        "max": 5
+      }
+    },
+    "bezugJeJahrImMittel": {
+      "gewinn": 4500,
+      "amtseinkommen": 88,
+      "familie": -350,
+      "geschenke": -32,
+      "gericht": -243,
+      "gaunerei": 36,
+      "investitionen": -2014,
+      "standesgebuehren": -295,
+      "zinsen": -0,
+      "davonSteuer": -407,
+      "davonSpitzel": -92,
+      "schiffeAmEnde": 0.3
+    },
+    "kiJeJahrImMittel": {
+      "gewinn": 4985,
+      "amtseinkommen": 62,
+      "familie": -372,
+      "geschenke": -39,
+      "gericht": -216,
+      "gaunerei": 29,
+      "investitionen": -2079,
+      "standesgebuehren": -351,
+      "zinsen": -0,
+      "davonSteuer": -432,
+      "davonSpitzel": -87,
+      "schiffeAmEnde": 0.54
+    },
+    "kiHaeuser": {
+      "5": {
+        "n": 70,
+        "mittel": 6358,
+        "streuung": 956,
+        "fehlerMittel": 114,
+        "min": 4016,
+        "q10": 5194,
+        "q25": 5644,
+        "median": 6444,
+        "q75": 7073,
+        "q90": 7485,
+        "max": 9045
+      },
+      "10": {
+        "n": 70,
+        "mittel": 6991,
+        "streuung": 3634,
+        "fehlerMittel": 434,
+        "min": -81,
+        "q10": 3245,
+        "q25": 4512,
+        "median": 6623,
+        "q75": 9169,
+        "q90": 11107,
+        "max": 20993
+      },
+      "20": {
+        "n": 70,
+        "mittel": 61594,
+        "streuung": 18217,
+        "fehlerMittel": 2177,
+        "min": 18499,
+        "q10": 40182,
+        "q25": 47010,
+        "median": 63054,
+        "q75": 73658,
+        "q90": 84614,
+        "max": 99574
+      }
+    },
+    "jeHaus": [
+      {
+        "haus": "Haus Overstolz",
+        "volk": "Zwerg",
+        "beruf": "Schmied",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6052,
+            "streuung": 1277,
+            "fehlerMittel": 404,
+            "min": 4016,
+            "q10": 4677,
+            "q25": 5332,
+            "median": 5781,
+            "q75": 7248,
+            "q90": 7619,
+            "max": 7784
+          },
+          "10": {
+            "n": 10,
+            "mittel": 9580,
+            "streuung": 4874,
+            "fehlerMittel": 1541,
+            "min": 4565,
+            "q10": 4655,
+            "q25": 7476,
+            "median": 8416,
+            "q75": 9746,
+            "q90": 15062,
+            "max": 20993
+          },
+          "20": {
+            "n": 10,
+            "mittel": 75498,
+            "streuung": 9448,
+            "fehlerMittel": 2988,
+            "min": 61213,
+            "q10": 64621,
+            "q25": 68363,
+            "median": 76150,
+            "q75": 82176,
+            "q90": 87898,
+            "max": 88902
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 2,
+          "Edler": 8
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5911,
+          "amtseinkommen": 28,
+          "familie": -359,
+          "geschenke": -46,
+          "gericht": -235,
+          "gaunerei": 22,
+          "investitionen": -2221,
+          "standesgebuehren": -415,
+          "zinsen": -0,
+          "davonSteuer": -522,
+          "davonSpitzel": -84,
+          "schiffeAmEnde": 0.9
+        }
+      },
+      {
+        "haus": "Haus Hardevust",
+        "volk": "Elb",
+        "beruf": "Tischler",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6182,
+            "streuung": 629,
+            "fehlerMittel": 199,
+            "min": 5100,
+            "q10": 5421,
+            "q25": 5818,
+            "median": 6219,
+            "q75": 6686,
+            "q90": 6784,
+            "max": 7039
+          },
+          "10": {
+            "n": 10,
+            "mittel": 5684,
+            "streuung": 3849,
+            "fehlerMittel": 1217,
+            "min": 1167,
+            "q10": 2287,
+            "q25": 3228,
+            "median": 4674,
+            "q75": 7433,
+            "q90": 9700,
+            "max": 14101
+          },
+          "20": {
+            "n": 10,
+            "mittel": 56252,
+            "streuung": 17530,
+            "fehlerMittel": 5543,
+            "min": 35854,
+            "q10": 36929,
+            "q25": 42233,
+            "median": 53845,
+            "q75": 68808,
+            "q90": 79955,
+            "max": 81217
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 7,
+          "Edler": 3
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 4533,
+          "amtseinkommen": 70,
+          "familie": -390,
+          "geschenke": -21,
+          "gericht": -190,
+          "gaunerei": 27,
+          "investitionen": -1707,
+          "standesgebuehren": -265,
+          "zinsen": -0,
+          "davonSteuer": -399,
+          "davonSpitzel": -93,
+          "schiffeAmEnde": 0.7
+        }
+      },
+      {
+        "haus": "Haus Lyskirchen",
+        "volk": "Halbling",
+        "beruf": "Steinmetz",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6491,
+            "streuung": 1008,
+            "fehlerMittel": 319,
+            "min": 4169,
+            "q10": 5701,
+            "q25": 6052,
+            "median": 6798,
+            "q75": 7143,
+            "q90": 7416,
+            "max": 7483
+          },
+          "10": {
+            "n": 10,
+            "mittel": 6338,
+            "streuung": 3531,
+            "fehlerMittel": 1117,
+            "min": -81,
+            "q10": 3515,
+            "q25": 4605,
+            "median": 5256,
+            "q75": 9018,
+            "q90": 10129,
+            "max": 11954
+          },
+          "20": {
+            "n": 10,
+            "mittel": 60682,
+            "streuung": 13985,
+            "fehlerMittel": 4422,
+            "min": 39995,
+            "q10": 40182,
+            "q25": 55426,
+            "median": 61275,
+            "q75": 68093,
+            "q90": 71859,
+            "max": 86740
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 5,
+          "Edler": 5
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5295,
+          "amtseinkommen": 34,
+          "familie": -391,
+          "geschenke": -36,
+          "gericht": -329,
+          "gaunerei": 55,
+          "investitionen": -2281,
+          "standesgebuehren": -325,
+          "zinsen": -0,
+          "davonSteuer": -492,
+          "davonSpitzel": -92,
+          "schiffeAmEnde": 0.5
+        }
+      },
+      {
+        "haus": "Haus Gryn",
+        "volk": "Mensch",
+        "beruf": "Alchimist",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6519,
+            "streuung": 896,
+            "fehlerMittel": 283,
+            "min": 5116,
+            "q10": 5191,
+            "q25": 6048,
+            "median": 6639,
+            "q75": 7270,
+            "q90": 7477,
+            "max": 7619
+          },
+          "10": {
+            "n": 10,
+            "mittel": 8325,
+            "streuung": 3396,
+            "fehlerMittel": 1074,
+            "min": 3400,
+            "q10": 4121,
+            "q25": 5861,
+            "median": 8617,
+            "q75": 10724,
+            "q90": 12471,
+            "max": 13266
+          },
+          "20": {
+            "n": 10,
+            "mittel": 75170,
+            "streuung": 19672,
+            "fehlerMittel": 6221,
+            "min": 40388,
+            "q10": 51942,
+            "q25": 58357,
+            "median": 83296,
+            "q75": 89364,
+            "q90": 92389,
+            "max": 99574
+          }
+        },
+        "standAmEnde": {
+          "Edler": 10
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5582,
+          "amtseinkommen": 139,
+          "familie": -394,
+          "geschenke": -18,
+          "gericht": -136,
+          "gaunerei": 6,
+          "investitionen": -2654,
+          "standesgebuehren": -475,
+          "zinsen": -0,
+          "davonSteuer": -413,
+          "davonSpitzel": -68,
+          "schiffeAmEnde": 0.7
+        }
+      },
+      {
+        "haus": "Haus Scherfgin",
+        "volk": "Mensch",
+        "beruf": "Schmied",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6307,
+            "streuung": 719,
+            "fehlerMittel": 227,
+            "min": 5392,
+            "q10": 5434,
+            "q25": 5615,
+            "median": 6420,
+            "q75": 6698,
+            "q90": 6974,
+            "max": 7552
+          },
+          "10": {
+            "n": 10,
+            "mittel": 8561,
+            "streuung": 2387,
+            "fehlerMittel": 755,
+            "min": 4714,
+            "q10": 6009,
+            "q25": 6764,
+            "median": 8758,
+            "q75": 9863,
+            "q90": 11024,
+            "max": 12607
+          },
+          "20": {
+            "n": 10,
+            "mittel": 47072,
+            "streuung": 19155,
+            "fehlerMittel": 6057,
+            "min": 18499,
+            "q10": 23305,
+            "q25": 33927,
+            "median": 48043,
+            "q75": 60242,
+            "q90": 64856,
+            "max": 80538
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 5,
+          "Edler": 5
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 4263,
+          "amtseinkommen": 77,
+          "familie": -353,
+          "geschenke": -40,
+          "gericht": -175,
+          "gaunerei": 16,
+          "investitionen": -2094,
+          "standesgebuehren": -325,
+          "zinsen": -0,
+          "davonSteuer": -373,
+          "davonSpitzel": -89,
+          "schiffeAmEnde": 0.3
+        }
+      },
+      {
+        "haus": "Haus Mommersloch",
+        "volk": "Halbling",
+        "beruf": "Wirt",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6859,
+            "streuung": 1252,
+            "fehlerMittel": 396,
+            "min": 4953,
+            "q10": 5263,
+            "q25": 6036,
+            "median": 7070,
+            "q75": 7420,
+            "q90": 8200,
+            "max": 9045
+          },
+          "10": {
+            "n": 10,
+            "mittel": 5236,
+            "streuung": 2152,
+            "fehlerMittel": 680,
+            "min": 1813,
+            "q10": 3485,
+            "q25": 3864,
+            "median": 4519,
+            "q75": 6882,
+            "q90": 8303,
+            "max": 8327
+          },
+          "20": {
+            "n": 10,
+            "mittel": 65547,
+            "streuung": 16552,
+            "fehlerMittel": 5234,
+            "min": 32664,
+            "q10": 44584,
+            "q25": 63393,
+            "median": 67997,
+            "q75": 73095,
+            "q90": 75784,
+            "max": 93512
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 2,
+          "Edler": 8
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 5147,
+          "amtseinkommen": 42,
+          "familie": -365,
+          "geschenke": -59,
+          "gericht": -176,
+          "gaunerei": 32,
+          "investitionen": -1902,
+          "standesgebuehren": -415,
+          "zinsen": -0,
+          "davonSteuer": -456,
+          "davonSpitzel": -89,
+          "schiffeAmEnde": 0.3
+        }
+      },
+      {
+        "haus": "Haus Kleingedank",
+        "volk": "Mensch",
+        "beruf": "Tischler",
+        "jahre": {
+          "5": {
+            "n": 10,
+            "mittel": 6099,
+            "streuung": 731,
+            "fehlerMittel": 231,
+            "min": 5143,
+            "q10": 5356,
+            "q25": 5473,
+            "median": 6054,
+            "q75": 6571,
+            "q90": 7026,
+            "max": 7288
+          },
+          "10": {
+            "n": 10,
+            "mittel": 5215,
+            "streuung": 2625,
+            "fehlerMittel": 830,
+            "min": 959,
+            "q10": 2282,
+            "q25": 3259,
+            "median": 5813,
+            "q75": 6935,
+            "q90": 7667,
+            "max": 9329
+          },
+          "20": {
+            "n": 10,
+            "mittel": 50937,
+            "streuung": 9701,
+            "fehlerMittel": 3068,
+            "min": 40556,
+            "q10": 40589,
+            "q25": 47010,
+            "median": 48245,
+            "q75": 51081,
+            "q90": 66615,
+            "max": 69722
+          }
+        },
+        "standAmEnde": {
+          "Patrizier": 8,
+          "Edler": 2
+        },
+        "bankrott": 0,
+        "erloschen": 0,
+        "jeJahrImMittel": {
+          "gewinn": 4164,
+          "amtseinkommen": 42,
+          "familie": -353,
+          "geschenke": -57,
+          "gericht": -270,
+          "gaunerei": 43,
+          "investitionen": -1694,
+          "standesgebuehren": -235,
+          "zinsen": -0,
+          "davonSteuer": -366,
+          "davonSpitzel": -95,
+          "schiffeAmEnde": 0.4
+        }
+      }
+    ],
+    "verhaeltnisKiZuBezug": {
+      "5": {
+        "n": 70,
+        "mittel": 1.13,
+        "streuung": 0.23,
+        "fehlerMittel": 0.03,
+        "min": 0.7,
+        "q10": 0.81,
+        "q25": 0.99,
+        "median": 1.12,
+        "q75": 1.28,
+        "q90": 1.44,
+        "max": 1.7
+      },
+      "10": {
+        "n": 70,
+        "mittel": 1.01,
+        "streuung": 0.65,
+        "fehlerMittel": 0.08,
+        "min": -0.01,
+        "q10": 0.35,
+        "q25": 0.58,
+        "median": 0.9,
+        "q75": 1.26,
+        "q90": 1.76,
+        "max": 4.19
+      },
+      "20": {
+        "n": 70,
+        "mittel": 1.32,
+        "streuung": 0.63,
+        "fehlerMittel": 0.08,
+        "min": 0.37,
+        "q10": 0.63,
+        "q25": 0.85,
+        "median": 1.15,
+        "q75": 1.69,
+        "q90": 2.31,
+        "max": 2.76
+      }
+    },
+    "davongezogen": {
+      "schwelle": 2,
+      "anzahl": 14,
+      "von": 70
+    },
+    "abgeschlagen": {
+      "schwelle": 0.5,
+      "anzahl": 2,
+      "von": 70
+    },
+    "kiBankrott": 0,
+    "kiErloschen": 0,
+    "kiStandAmEnde": {
+      "Patrizier": 29,
+      "Edler": 41
+    },
+    "spielerMitEinemBetrieb": null,
+    "schwer": {
+      "n": 10,
+      "bezug": {
+        "5": {
+          "n": 10,
+          "mittel": 5963,
+          "streuung": 1473,
+          "fehlerMittel": 466,
+          "min": 4184,
+          "q10": 4273,
+          "q25": 4783,
+          "median": 5938,
+          "q75": 6769,
+          "q90": 7840,
+          "max": 8470
+        },
+        "10": {
+          "n": 10,
+          "mittel": 7915,
+          "streuung": 3269,
+          "fehlerMittel": 1034,
+          "min": 4487,
+          "q10": 4918,
+          "q25": 5882,
+          "median": 6384,
+          "q75": 10737,
+          "q90": 11922,
+          "max": 13784
+        },
+        "20": {
+          "n": 10,
+          "mittel": 57257,
+          "streuung": 37605,
+          "fehlerMittel": 11892,
+          "min": 4562,
+          "q10": 20168,
+          "q25": 29522,
+          "median": 50939,
+          "q75": 76761,
+          "q90": 100652,
+          "max": 127878
+        }
+      },
+      "kiHaeuser": {
+        "5": {
+          "n": 70,
+          "mittel": 6031,
+          "streuung": 1997,
+          "fehlerMittel": 239,
+          "min": 2468,
+          "q10": 3632,
+          "q25": 4562,
+          "median": 5821,
+          "q75": 7867,
+          "q90": 8599,
+          "max": 10636
+        },
+        "10": {
+          "n": 70,
+          "mittel": 17050,
+          "streuung": 4979,
+          "fehlerMittel": 595,
+          "min": 6534,
+          "q10": 10146,
+          "q25": 14557,
+          "median": 17241,
+          "q75": 20209,
+          "q90": 22545,
+          "max": 28184
+        },
+        "20": {
+          "n": 70,
+          "mittel": 85067,
+          "streuung": 23207,
+          "fehlerMittel": 2774,
+          "min": 40315,
+          "q10": 56060,
+          "q25": 64384,
+          "median": 91166,
+          "q75": 102157,
+          "q90": 112335,
+          "max": 135741
+        }
+      },
+      "verhaeltnisKiZuBezug": {
+        "5": {
+          "n": 70,
+          "mittel": 1.08,
+          "streuung": 0.46,
+          "fehlerMittel": 0.06,
+          "min": 0.32,
+          "q10": 0.61,
+          "q25": 0.71,
+          "median": 0.99,
+          "q75": 1.37,
+          "q90": 1.8,
+          "max": 2.42
+        },
+        "10": {
+          "n": 70,
+          "mittel": 2.43,
+          "streuung": 1.03,
+          "fehlerMittel": 0.12,
+          "min": 0.52,
+          "q10": 1.19,
+          "q25": 1.51,
+          "median": 2.39,
+          "q75": 3.13,
+          "q90": 3.64,
+          "max": 5.09
+        },
+        "20": {
+          "n": 70,
+          "mittel": 3.55,
+          "streuung": 5.49,
+          "fehlerMittel": 0.66,
+          "min": 0.4,
+          "q10": 0.68,
+          "q25": 0.98,
+          "median": 1.64,
+          "q75": 2.64,
+          "q90": 6.15,
+          "max": 25.52
+        }
+      },
+      "davongezogen": {
+        "schwelle": 2,
+        "anzahl": 30,
+        "von": 70
+      },
+      "kiBankrott": 0,
+      "kiErloschen": 0
+    }
+  },
+  "ausbau": [
+    {
+      "karte": "koeln",
+      "spielerGefuehrt": "WieKi",
+      "schwierigkeit": "Normal",
+      "partien": 10,
+      "startwerkstaetten": {
+        "betriebe": 80,
+        "jeHausUndPartie": 1,
+        "seitJahr": {
+          "n": 80,
+          "mittel": 1,
+          "streuung": 0,
+          "fehlerMittel": 0,
+          "min": 1,
+          "q10": 1,
+          "q25": 1,
+          "median": 1,
+          "q75": 1,
+          "q90": 1,
+          "max": 1
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 80,
+          "mittel": 27,
+          "streuung": 1,
+          "fehlerMittel": 0,
+          "min": 25,
+          "q10": 25,
+          "q25": 27,
+          "median": 27,
+          "q75": 28,
+          "q90": 30,
+          "max": 30
+        },
+        "ueber60Minuten": 0,
+        "jahreDanach": {
+          "betriebsjahre": 1520,
+          "gewinn": {
+            "n": 1520,
+            "mittel": 3229,
+            "streuung": 2137,
+            "fehlerMittel": 55,
+            "min": -2299,
+            "q10": 988,
+            "q25": 1586,
+            "median": 2632,
+            "q75": 4817,
+            "q90": 5934,
+            "max": 15063
+          },
+          "stillstandProzent": {
+            "n": 1520,
+            "mittel": 6.8,
+            "streuung": 7.3,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 5.6,
+            "q75": 10.2,
+            "q90": 16.7,
+            "max": 51.7
+          },
+          "fahrten": {
+            "n": 1520,
+            "mittel": 10.1,
+            "streuung": 3.2,
+            "fehlerMittel": 0.1,
+            "min": 0,
+            "q10": 6,
+            "q25": 8,
+            "median": 9,
+            "q75": 12,
+            "q90": 15,
+            "max": 21
+          },
+          "fahrzeitHin": {
+            "n": 1520,
+            "mittel": 25,
+            "streuung": 1,
+            "fehlerMittel": 0,
+            "min": 23,
+            "q10": 23,
+            "q25": 25,
+            "median": 25,
+            "q75": 27,
+            "q90": 27,
+            "max": 30
+          }
+        }
+      },
+      "neubauten": {
+        "betriebe": 112,
+        "jeHausUndPartie": 1.4,
+        "seitJahr": {
+          "n": 112,
+          "mittel": 14.3,
+          "streuung": 2.6,
+          "fehlerMittel": 0.2,
+          "min": 9,
+          "q10": 11,
+          "q25": 13,
+          "median": 14,
+          "q75": 16,
+          "q90": 18,
+          "max": 20
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 112,
+          "mittel": 103,
+          "streuung": 41,
+          "fehlerMittel": 4,
+          "min": 10,
+          "q10": 67,
+          "q25": 81,
+          "median": 97,
+          "q75": 133,
+          "q90": 153,
+          "max": 159
+        },
+        "ueber60Minuten": 102,
+        "jahreDanach": {
+          "betriebsjahre": 632,
+          "gewinn": {
+            "n": 632,
+            "mittel": 1985,
+            "streuung": 1752,
+            "fehlerMittel": 70,
+            "min": -4020,
+            "q10": -174,
+            "q25": 1041,
+            "median": 2067,
+            "q75": 2770,
+            "q90": 4037,
+            "max": 10366
+          },
+          "stillstandProzent": {
+            "n": 632,
+            "mittel": 14.6,
+            "streuung": 21.1,
+            "fehlerMittel": 0.8,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 0,
+            "q75": 29.1,
+            "q90": 50.5,
+            "max": 80.3
+          },
+          "fahrten": {
+            "n": 632,
+            "mittel": 4.6,
+            "streuung": 4.9,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 4,
+            "q75": 9,
+            "q90": 12,
+            "max": 18
+          },
+          "fahrzeitHin": {
+            "n": 632,
+            "mittel": 92,
+            "streuung": 44,
+            "fehlerMittel": 2,
+            "min": 10,
+            "q10": 10,
+            "q25": 68,
+            "median": 92,
+            "q75": 131,
+            "q90": 149,
+            "max": 159
+          }
+        }
+      },
+      "neubautenSpieler": {
+        "betriebe": 16,
+        "jeHausUndPartie": 1.6,
+        "seitJahr": {
+          "n": 16,
+          "mittel": 14,
+          "streuung": 2.9,
+          "fehlerMittel": 0.7,
+          "min": 9,
+          "q10": 11,
+          "q25": 12,
+          "median": 14,
+          "q75": 15,
+          "q90": 18,
+          "max": 20
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 16,
+          "mittel": 96,
+          "streuung": 44,
+          "fehlerMittel": 11,
+          "min": 10,
+          "q10": 39,
+          "q25": 76,
+          "median": 97,
+          "q75": 131,
+          "q90": 144,
+          "max": 157
+        },
+        "ueber60Minuten": 14,
+        "jahreDanach": {
+          "betriebsjahre": 96,
+          "gewinn": {
+            "n": 96,
+            "mittel": 1810,
+            "streuung": 1867,
+            "fehlerMittel": 191,
+            "min": -3820,
+            "q10": -260,
+            "q25": 496,
+            "median": 1889,
+            "q75": 2721,
+            "q90": 4190,
+            "max": 6848
+          },
+          "stillstandProzent": {
+            "n": 96,
+            "mittel": 20.1,
+            "streuung": 24,
+            "fehlerMittel": 2.4,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 4.3,
+            "q75": 41.3,
+            "q90": 53.5,
+            "max": 80.3
+          },
+          "fahrten": {
+            "n": 96,
+            "mittel": 5.9,
+            "streuung": 4.9,
+            "fehlerMittel": 0.5,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 6.5,
+            "q75": 10,
+            "q90": 12.5,
+            "max": 15
+          },
+          "fahrzeitHin": {
+            "n": 96,
+            "mittel": 85,
+            "streuung": 46,
+            "fehlerMittel": 5,
+            "min": 10,
+            "q10": 10,
+            "q25": 67,
+            "median": 92,
+            "q75": 131,
+            "q90": 141,
+            "max": 157
+          }
+        }
+      },
+      "neubautenKi": {
+        "betriebe": 96,
+        "jeHausUndPartie": 1.37,
+        "seitJahr": {
+          "n": 96,
+          "mittel": 14.3,
+          "streuung": 2.6,
+          "fehlerMittel": 0.3,
+          "min": 9,
+          "q10": 11,
+          "q25": 13,
+          "median": 14,
+          "q75": 16,
+          "q90": 18,
+          "max": 20
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 96,
+          "mittel": 104,
+          "streuung": 41,
+          "fehlerMittel": 4,
+          "min": 10,
+          "q10": 68,
+          "q25": 81,
+          "median": 98,
+          "q75": 134,
+          "q90": 155,
+          "max": 159
+        },
+        "ueber60Minuten": 88,
+        "jahreDanach": {
+          "betriebsjahre": 536,
+          "gewinn": {
+            "n": 536,
+            "mittel": 2016,
+            "streuung": 1731,
+            "fehlerMittel": 75,
+            "min": -4020,
+            "q10": -151,
+            "q25": 1127,
+            "median": 2090,
+            "q75": 2775,
+            "q90": 4007,
+            "max": 10366
+          },
+          "stillstandProzent": {
+            "n": 536,
+            "mittel": 13.6,
+            "streuung": 20.4,
+            "fehlerMittel": 0.9,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 0,
+            "q75": 27.2,
+            "q90": 48.5,
+            "max": 79.9
+          },
+          "fahrten": {
+            "n": 536,
+            "mittel": 4.4,
+            "streuung": 4.9,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 3,
+            "q75": 8,
+            "q90": 12,
+            "max": 18
+          },
+          "fahrzeitHin": {
+            "n": 536,
+            "mittel": 94,
+            "streuung": 43,
+            "fehlerMittel": 2,
+            "min": 10,
+            "q10": 10,
+            "q25": 78,
+            "median": 92,
+            "q75": 131,
+            "q90": 149,
+            "max": 159
+          }
+        }
+      },
+      "werkstaettenGekauft": {
+        "betriebe": 0,
+        "jeHausUndPartie": 0,
+        "seitJahr": {
+          "n": 0
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 0
+        },
+        "ueber60Minuten": 0,
+        "jahreDanach": {
+          "betriebsjahre": 0,
+          "gewinn": {
+            "n": 0
+          },
+          "stillstandProzent": {
+            "n": 0
+          },
+          "fahrten": {
+            "n": 0
+          },
+          "fahrzeitHin": {
+            "n": 0
+          }
+        }
+      },
+      "umland": {
+        "betriebe": 143,
+        "jeHausUndPartie": 1.79,
+        "seitJahr": {
+          "n": 143,
+          "mittel": 8.3,
+          "streuung": 1.5,
+          "fehlerMittel": 0.1,
+          "min": 6,
+          "q10": 7,
+          "q25": 7,
+          "median": 8,
+          "q75": 9,
+          "q90": 10,
+          "max": 13
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 143,
+          "mittel": 267,
+          "streuung": 66,
+          "fehlerMittel": 5,
+          "min": 121,
+          "q10": 195,
+          "q25": 235,
+          "median": 263,
+          "q75": 306,
+          "q90": 360,
+          "max": 360
+        },
+        "ueber60Minuten": 143,
+        "jahreDanach": {
+          "betriebsjahre": 1652,
+          "gewinn": {
+            "n": 1652,
+            "mittel": 1195,
+            "streuung": 645,
+            "fehlerMittel": 16,
+            "min": -1571,
+            "q10": 288,
+            "q25": 794,
+            "median": 1371,
+            "q75": 1674,
+            "q90": 1869,
+            "max": 2631
+          },
+          "stillstandProzent": {
+            "n": 1652,
+            "mittel": 22.8,
+            "streuung": 19.3,
+            "fehlerMittel": 0.5,
+            "min": 0,
+            "q10": 0,
+            "q25": 6.7,
+            "median": 18.1,
+            "q75": 35.5,
+            "q90": 51.5,
+            "max": 87.1
+          },
+          "fahrten": {
+            "n": 1652,
+            "mittel": 4.8,
+            "streuung": 1.7,
+            "fehlerMittel": 0,
+            "min": 0,
+            "q10": 2,
+            "q25": 4,
+            "median": 5,
+            "q75": 6,
+            "q90": 6,
+            "max": 8
+          },
+          "fahrzeitHin": {
+            "n": 1652,
+            "mittel": 253,
+            "streuung": 69,
+            "fehlerMittel": 2,
+            "min": 109,
+            "q10": 179,
+            "q25": 215,
+            "median": 249,
+            "q75": 279,
+            "q90": 360,
+            "max": 360
+          }
+        }
+      },
+      "neubautenNachFahrzeit": [
+        {
+          "fahrzeitHin": "1–45",
+          "betriebe": 10,
+          "jahreDanach": {
+            "betriebsjahre": 96,
+            "gewinn": {
+              "n": 96,
+              "mittel": 3714,
+              "streuung": 1805,
+              "fehlerMittel": 184,
+              "min": 175,
+              "q10": 1235,
+              "q25": 2024,
+              "median": 4023,
+              "q75": 5193,
+              "q90": 5955,
+              "max": 7224
+            },
+            "stillstandProzent": {
+              "n": 96,
+              "mittel": 2,
+              "streuung": 1.9,
+              "fehlerMittel": 0.2,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 1.8,
+              "q75": 3.2,
+              "q90": 4.7,
+              "max": 6.9
+            },
+            "fahrten": {
+              "n": 96,
+              "mittel": 11.7,
+              "streuung": 3.2,
+              "fehlerMittel": 0.3,
+              "min": 3,
+              "q10": 7,
+              "q25": 10.8,
+              "median": 12,
+              "q75": 14,
+              "q90": 15,
+              "max": 18
+            },
+            "fahrzeitHin": {
+              "n": 96,
+              "mittel": 10,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 10,
+              "q10": 10,
+              "q25": 10,
+              "median": 10,
+              "q75": 10,
+              "q90": 10,
+              "max": 10
+            }
+          }
+        },
+        {
+          "fahrzeitHin": "46–120",
+          "betriebe": 51,
+          "jahreDanach": {
+            "betriebsjahre": 302,
+            "gewinn": {
+              "n": 302,
+              "mittel": 1877,
+              "streuung": 1425,
+              "fehlerMittel": 82,
+              "min": -3820,
+              "q10": 131,
+              "q25": 1158,
+              "median": 2067,
+              "q75": 2719,
+              "q90": 3229,
+              "max": 7157
+            },
+            "stillstandProzent": {
+              "n": 302,
+              "mittel": 12,
+              "streuung": 17.7,
+              "fehlerMittel": 1,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 0,
+              "q75": 24.2,
+              "q90": 41.4,
+              "max": 65
+            },
+            "fahrten": {
+              "n": 302,
+              "mittel": 3.2,
+              "streuung": 4.3,
+              "fehlerMittel": 0.2,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 0,
+              "q75": 7,
+              "q90": 10,
+              "max": 15
+            },
+            "fahrzeitHin": {
+              "n": 302,
+              "mittel": 84,
+              "streuung": 11,
+              "fehlerMittel": 1,
+              "min": 63,
+              "q10": 67,
+              "q25": 78,
+              "median": 85,
+              "q75": 92,
+              "q90": 96,
+              "max": 98
+            }
+          }
+        },
+        {
+          "fahrzeitHin": "121–240",
+          "betriebe": 51,
+          "jahreDanach": {
+            "betriebsjahre": 234,
+            "gewinn": {
+              "n": 234,
+              "mittel": 1415,
+              "streuung": 1671,
+              "fehlerMittel": 109,
+              "min": -4020,
+              "q10": -651,
+              "q25": 208,
+              "median": 1666,
+              "q75": 2619,
+              "q90": 3134,
+              "max": 10366
+            },
+            "stillstandProzent": {
+              "n": 234,
+              "mittel": 23.2,
+              "streuung": 25.4,
+              "fehlerMittel": 1.7,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 14.8,
+              "q75": 47.6,
+              "q90": 61.1,
+              "max": 80.3
+            },
+            "fahrten": {
+              "n": 234,
+              "mittel": 3.6,
+              "streuung": 3.7,
+              "fehlerMittel": 0.2,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 3,
+              "q75": 7,
+              "q90": 9,
+              "max": 11
+            },
+            "fahrzeitHin": {
+              "n": 234,
+              "mittel": 137,
+              "streuung": 12,
+              "fehlerMittel": 1,
+              "min": 119,
+              "q10": 123,
+              "q25": 128,
+              "median": 132,
+              "q75": 149,
+              "q90": 154,
+              "max": 159
+            }
+          }
+        },
+        {
+          "fahrzeitHin": "über 240",
+          "betriebe": 0,
+          "jahreDanach": {
+            "betriebsjahre": 0,
+            "gewinn": {
+              "n": 0
+            },
+            "stillstandProzent": {
+              "n": 0
+            },
+            "fahrten": {
+              "n": 0
+            },
+            "fahrzeitHin": {
+              "n": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "karte": "koeln",
+      "spielerGefuehrt": "WieKi",
+      "schwierigkeit": "Schwer",
+      "partien": 10,
+      "startwerkstaetten": {
+        "betriebe": 80,
+        "jeHausUndPartie": 1,
+        "seitJahr": {
+          "n": 80,
+          "mittel": 1,
+          "streuung": 0,
+          "fehlerMittel": 0,
+          "min": 1,
+          "q10": 1,
+          "q25": 1,
+          "median": 1,
+          "q75": 1,
+          "q90": 1,
+          "max": 1
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 80,
+          "mittel": 27,
+          "streuung": 1,
+          "fehlerMittel": 0,
+          "min": 25,
+          "q10": 25,
+          "q25": 27,
+          "median": 27,
+          "q75": 28,
+          "q90": 30,
+          "max": 30
+        },
+        "ueber60Minuten": 0,
+        "jahreDanach": {
+          "betriebsjahre": 1520,
+          "gewinn": {
+            "n": 1520,
+            "mittel": 3837,
+            "streuung": 2612,
+            "fehlerMittel": 67,
+            "min": -2971,
+            "q10": 1015,
+            "q25": 1735,
+            "median": 3604,
+            "q75": 5265,
+            "q90": 7176,
+            "max": 15501
+          },
+          "stillstandProzent": {
+            "n": 1520,
+            "mittel": 7.6,
+            "streuung": 7.1,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 6.5,
+            "q75": 12.7,
+            "q90": 17.5,
+            "max": 36.7
+          },
+          "fahrten": {
+            "n": 1520,
+            "mittel": 10.9,
+            "streuung": 3.5,
+            "fehlerMittel": 0.1,
+            "min": 2,
+            "q10": 7,
+            "q25": 8,
+            "median": 11,
+            "q75": 13,
+            "q90": 16,
+            "max": 21
+          },
+          "fahrzeitHin": {
+            "n": 1520,
+            "mittel": 25,
+            "streuung": 1,
+            "fehlerMittel": 0,
+            "min": 23,
+            "q10": 23,
+            "q25": 25,
+            "median": 25,
+            "q75": 27,
+            "q90": 27,
+            "max": 30
+          }
+        }
+      },
+      "neubauten": {
+        "betriebe": 110,
+        "jeHausUndPartie": 1.38,
+        "seitJahr": {
+          "n": 110,
+          "mittel": 12,
+          "streuung": 2.6,
+          "fehlerMittel": 0.3,
+          "min": 8,
+          "q10": 10,
+          "q25": 10,
+          "median": 11,
+          "q75": 13,
+          "q90": 16,
+          "max": 20
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 110,
+          "mittel": 104,
+          "streuung": 41,
+          "fehlerMittel": 4,
+          "min": 10,
+          "q10": 67,
+          "q25": 83,
+          "median": 98,
+          "q75": 137,
+          "q90": 156,
+          "max": 160
+        },
+        "ueber60Minuten": 100,
+        "jahreDanach": {
+          "betriebsjahre": 866,
+          "gewinn": {
+            "n": 866,
+            "mittel": 2152,
+            "streuung": 1987,
+            "fehlerMittel": 68,
+            "min": -5921,
+            "q10": -158,
+            "q25": 1158,
+            "median": 2372,
+            "q75": 3074,
+            "q90": 4326,
+            "max": 9673
+          },
+          "stillstandProzent": {
+            "n": 866,
+            "mittel": 14.9,
+            "streuung": 21.4,
+            "fehlerMittel": 0.7,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 0,
+            "q75": 30.3,
+            "q90": 49.2,
+            "max": 89.2
+          },
+          "fahrten": {
+            "n": 866,
+            "mittel": 4.7,
+            "streuung": 5.2,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 3,
+            "q75": 9,
+            "q90": 12,
+            "max": 31
+          },
+          "fahrzeitHin": {
+            "n": 866,
+            "mittel": 95,
+            "streuung": 43,
+            "fehlerMittel": 1,
+            "min": 10,
+            "q10": 10,
+            "q25": 79,
+            "median": 95,
+            "q75": 131,
+            "q90": 149,
+            "max": 157
+          }
+        }
+      },
+      "neubautenSpieler": {
+        "betriebe": 27,
+        "jeHausUndPartie": 2.7,
+        "seitJahr": {
+          "n": 27,
+          "mittel": 12.7,
+          "streuung": 3.8,
+          "fehlerMittel": 0.7,
+          "min": 8,
+          "q10": 8.6,
+          "q25": 9.5,
+          "median": 11,
+          "q75": 17,
+          "q90": 18,
+          "max": 19
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 27,
+          "mittel": 100,
+          "streuung": 52,
+          "fehlerMittel": 10,
+          "min": 10,
+          "q10": 10,
+          "q25": 83,
+          "median": 97,
+          "q75": 138,
+          "q90": 157,
+          "max": 160
+        },
+        "ueber60Minuten": 22,
+        "jahreDanach": {
+          "betriebsjahre": 198,
+          "gewinn": {
+            "n": 198,
+            "mittel": 2058,
+            "streuung": 2089,
+            "fehlerMittel": 148,
+            "min": -4021,
+            "q10": -291,
+            "q25": 454,
+            "median": 1771,
+            "q75": 3473,
+            "q90": 5082,
+            "max": 6970
+          },
+          "stillstandProzent": {
+            "n": 198,
+            "mittel": 23.9,
+            "streuung": 22.1,
+            "fehlerMittel": 1.6,
+            "min": 0,
+            "q10": 0,
+            "q25": 2.3,
+            "median": 21.8,
+            "q75": 40.5,
+            "q90": 55.4,
+            "max": 85.8
+          },
+          "fahrten": {
+            "n": 198,
+            "mittel": 9,
+            "streuung": 3.5,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 5,
+            "q25": 7,
+            "median": 9,
+            "q75": 12,
+            "q90": 13,
+            "max": 22
+          },
+          "fahrzeitHin": {
+            "n": 198,
+            "mittel": 82,
+            "streuung": 53,
+            "fehlerMittel": 4,
+            "min": 10,
+            "q10": 10,
+            "q25": 10,
+            "median": 92,
+            "q75": 132,
+            "q90": 149,
+            "max": 157
+          }
+        }
+      },
+      "neubautenKi": {
+        "betriebe": 83,
+        "jeHausUndPartie": 1.19,
+        "seitJahr": {
+          "n": 83,
+          "mittel": 11.8,
+          "streuung": 2.1,
+          "fehlerMittel": 0.2,
+          "min": 8,
+          "q10": 10,
+          "q25": 10.5,
+          "median": 11,
+          "q75": 13,
+          "q90": 14,
+          "max": 20
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 83,
+          "mittel": 105,
+          "streuung": 38,
+          "fehlerMittel": 4,
+          "min": 10,
+          "q10": 67,
+          "q25": 83,
+          "median": 98,
+          "q75": 136,
+          "q90": 154,
+          "max": 159
+        },
+        "ueber60Minuten": 78,
+        "jahreDanach": {
+          "betriebsjahre": 668,
+          "gewinn": {
+            "n": 668,
+            "mittel": 2179,
+            "streuung": 1956,
+            "fehlerMittel": 76,
+            "min": -5921,
+            "q10": -29,
+            "q25": 1460,
+            "median": 2433,
+            "q75": 3010,
+            "q90": 4017,
+            "max": 9673
+          },
+          "stillstandProzent": {
+            "n": 668,
+            "mittel": 12.2,
+            "streuung": 20.4,
+            "fehlerMittel": 0.8,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 0,
+            "q75": 23.3,
+            "q90": 45.6,
+            "max": 89.2
+          },
+          "fahrten": {
+            "n": 668,
+            "mittel": 3.5,
+            "streuung": 4.9,
+            "fehlerMittel": 0.2,
+            "min": 0,
+            "q10": 0,
+            "q25": 0,
+            "median": 0,
+            "q75": 8,
+            "q90": 11,
+            "max": 31
+          },
+          "fahrzeitHin": {
+            "n": 668,
+            "mittel": 99,
+            "streuung": 38,
+            "fehlerMittel": 1,
+            "min": 10,
+            "q10": 64,
+            "q25": 80,
+            "median": 96,
+            "q75": 131,
+            "q90": 150,
+            "max": 157
+          }
+        }
+      },
+      "werkstaettenGekauft": {
+        "betriebe": 0,
+        "jeHausUndPartie": 0,
+        "seitJahr": {
+          "n": 0
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 0
+        },
+        "ueber60Minuten": 0,
+        "jahreDanach": {
+          "betriebsjahre": 0,
+          "gewinn": {
+            "n": 0
+          },
+          "stillstandProzent": {
+            "n": 0
+          },
+          "fahrten": {
+            "n": 0
+          },
+          "fahrzeitHin": {
+            "n": 0
+          }
+        }
+      },
+      "umland": {
+        "betriebe": 142,
+        "jeHausUndPartie": 1.78,
+        "seitJahr": {
+          "n": 142,
+          "mittel": 3.6,
+          "streuung": 3.2,
+          "fehlerMittel": 0.3,
+          "min": 1,
+          "q10": 1,
+          "q25": 1,
+          "median": 4,
+          "q75": 5,
+          "q90": 7,
+          "max": 19
+        },
+        "fahrzeitHinBeimBau": {
+          "n": 142,
+          "mittel": 267,
+          "streuung": 67,
+          "fehlerMittel": 6,
+          "min": 121,
+          "q10": 181,
+          "q25": 238,
+          "median": 267,
+          "q75": 306,
+          "q90": 360,
+          "max": 360
+        },
+        "ueber60Minuten": 142,
+        "jahreDanach": {
+          "betriebsjahre": 2325,
+          "gewinn": {
+            "n": 2325,
+            "mittel": 1203,
+            "streuung": 585,
+            "fehlerMittel": 12,
+            "min": -1078,
+            "q10": 401,
+            "q25": 809,
+            "median": 1291,
+            "q75": 1643,
+            "q90": 1871,
+            "max": 2454
+          },
+          "stillstandProzent": {
+            "n": 2325,
+            "mittel": 19.3,
+            "streuung": 16.9,
+            "fehlerMittel": 0.4,
+            "min": 0,
+            "q10": 0,
+            "q25": 5.8,
+            "median": 12.5,
+            "q75": 32.1,
+            "q90": 45,
+            "max": 86.9
+          },
+          "fahrten": {
+            "n": 2325,
+            "mittel": 5,
+            "streuung": 1.5,
+            "fehlerMittel": 0,
+            "min": 0,
+            "q10": 4,
+            "q25": 4,
+            "median": 5,
+            "q75": 6,
+            "q90": 6,
+            "max": 8
+          },
+          "fahrzeitHin": {
+            "n": 2325,
+            "mittel": 255,
+            "streuung": 66,
+            "fehlerMittel": 1,
+            "min": 106,
+            "q10": 174,
+            "q25": 217,
+            "median": 254,
+            "q75": 281,
+            "q90": 360,
+            "max": 360
+          }
+        }
+      },
+      "neubautenNachFahrzeit": [
+        {
+          "fahrzeitHin": "1–45",
+          "betriebe": 10,
+          "jahreDanach": {
+            "betriebsjahre": 112,
+            "gewinn": {
+              "n": 112,
+              "mittel": 3740,
+              "streuung": 2109,
+              "fehlerMittel": 199,
+              "min": -734,
+              "q10": 1091,
+              "q25": 2077,
+              "median": 3862,
+              "q75": 5148,
+              "q90": 6115,
+              "max": 9673
+            },
+            "stillstandProzent": {
+              "n": 112,
+              "mittel": 2.1,
+              "streuung": 2,
+              "fehlerMittel": 0.2,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 1.9,
+              "q75": 3.6,
+              "q90": 5,
+              "max": 6.9
+            },
+            "fahrten": {
+              "n": 112,
+              "mittel": 11.1,
+              "streuung": 5,
+              "fehlerMittel": 0.5,
+              "min": 0,
+              "q10": 6.1,
+              "q25": 9,
+              "median": 12,
+              "q75": 14,
+              "q90": 14.9,
+              "max": 31
+            },
+            "fahrzeitHin": {
+              "n": 112,
+              "mittel": 10,
+              "streuung": 0,
+              "fehlerMittel": 0,
+              "min": 10,
+              "q10": 10,
+              "q25": 10,
+              "median": 10,
+              "q75": 10,
+              "q90": 10,
+              "max": 10
+            }
+          }
+        },
+        {
+          "fahrzeitHin": "46–120",
+          "betriebe": 50,
+          "jahreDanach": {
+            "betriebsjahre": 414,
+            "gewinn": {
+              "n": 414,
+              "mittel": 2057,
+              "streuung": 1803,
+              "fehlerMittel": 89,
+              "min": -5921,
+              "q10": 114,
+              "q25": 1158,
+              "median": 2406,
+              "q75": 2878,
+              "q90": 3634,
+              "max": 8923
+            },
+            "stillstandProzent": {
+              "n": 414,
+              "mittel": 13.1,
+              "streuung": 18.3,
+              "fehlerMittel": 0.9,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 0,
+              "q75": 26.9,
+              "q90": 40.9,
+              "max": 77.6
+            },
+            "fahrten": {
+              "n": 414,
+              "mittel": 3.9,
+              "streuung": 4.8,
+              "fehlerMittel": 0.2,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 0,
+              "q75": 9,
+              "q90": 11,
+              "max": 15
+            },
+            "fahrzeitHin": {
+              "n": 414,
+              "mittel": 84,
+              "streuung": 11,
+              "fehlerMittel": 1,
+              "min": 63,
+              "q10": 67,
+              "q25": 79,
+              "median": 83,
+              "q75": 93,
+              "q90": 97,
+              "max": 101
+            }
+          }
+        },
+        {
+          "fahrzeitHin": "121–240",
+          "betriebe": 50,
+          "jahreDanach": {
+            "betriebsjahre": 340,
+            "gewinn": {
+              "n": 340,
+              "mittel": 1744,
+              "streuung": 1908,
+              "fehlerMittel": 103,
+              "min": -5165,
+              "q10": -695,
+              "q25": 541,
+              "median": 2067,
+              "q75": 2792,
+              "q90": 3770,
+              "max": 7968
+            },
+            "stillstandProzent": {
+              "n": 340,
+              "mittel": 21.2,
+              "streuung": 25.7,
+              "fehlerMittel": 1.4,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 0,
+              "q75": 41.6,
+              "q90": 62.4,
+              "max": 89.2
+            },
+            "fahrten": {
+              "n": 340,
+              "mittel": 3.6,
+              "streuung": 4,
+              "fehlerMittel": 0.2,
+              "min": 0,
+              "q10": 0,
+              "q25": 0,
+              "median": 0,
+              "q75": 7,
+              "q90": 9,
+              "max": 13
+            },
+            "fahrzeitHin": {
+              "n": 340,
+              "mittel": 137,
+              "streuung": 12,
+              "fehlerMittel": 1,
+              "min": 117,
+              "q10": 123,
+              "q25": 128,
+              "median": 133,
+              "q75": 149,
+              "q90": 154,
+              "max": 157
+            }
+          }
+        },
+        {
+          "fahrzeitHin": "über 240",
+          "betriebe": 0,
+          "jahreDanach": {
+            "betriebsjahre": 0,
+            "gewinn": {
+              "n": 0
+            },
+            "stillstandProzent": {
+              "n": 0
+            },
+            "fahrten": {
+              "n": 0
+            },
+            "fahrzeitHin": {
+              "n": 0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "befunde": [
+    "KI-Stärke (koeln, 20 Jahre): Bezugsspieler mit der Strategie der KI 52.465 Gulden, KI-Häuser Ø 61.594 (Verhältnis KI ÷ Bezug Median 1,15); davongezogen (> 2×) 14/70, abgeschlagen (< ½) 2/70, bankrott 0, erloschen 0.",
+    "KI-Stärke bei „Schwer“ (KI-Häuser mit Werkstatt und Umland): Bezug 57.257, KI-Häuser Ø 85.067 (Verhältnis Median 1,64; davongezogen 30/70)."
+  ],
+  "laufzeitSekunden": 3136
+}

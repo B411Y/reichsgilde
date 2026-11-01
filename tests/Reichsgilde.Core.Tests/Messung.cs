@@ -12,6 +12,8 @@ using Reichsgilde.Core.Wirtschaft;
 ///          … -- messen 30 20 Mensch - Wagemutig   (fünftes Argument: Charakter des Rivalen)
 ///          … -- messen 30 20 greybox   („greybox“ an beliebiger Stelle: mit der Greybox-Karte – Bauen, Leerstand, Neubau)
 ///          … -- messen bericht 20 20   (Balancing-Bericht als JSON in docs/messungen/, siehe Balancingbericht.cs)
+///          … -- messen karren [Karte …]   (Fahrzeiten der Karren je Betrieb, siehe Karrenmessung.cs)
+///          … -- messen bauorte [Karte …]   (Fahrzeit an jedem Werkstatt-Bauort, siehe Bauortmessung.cs)
 /// </summary>
 static class Messung
 {
@@ -25,6 +27,12 @@ static class Messung
         // Schiffshandel (PR #199): … -- messen schiffe [Jahre] [Startwerte] [Karte] – siehe Schiffsmessung.cs
         if (args.Length > 0 && args[0] == "schiffe")
             return Schiffsmessung.Erstellen(args[1..]);
+        // Fahrzeiten der Karren je Betrieb (Datenversion 65): … -- messen karren [Karte …] – siehe Karrenmessung.cs
+        if (args.Length > 0 && args[0] == "karren")
+            return Karrenmessung.Erstellen(args[1..]);
+        // Fahrzeit an allen Werkstatt-Bauorten (Befund H2 der Prüfung von phase5/gehtempo): … -- messen bauorte [Karte …] – siehe Bauortmessung.cs
+        if (args.Length > 0 && args[0] == "bauorte")
+            return Bauortmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

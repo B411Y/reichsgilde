@@ -1,0 +1,804 @@
+{
+  "bericht": "Balancing-Messung 6",
+  "datum": "2026-10-31",
+  "mainCommit": "c393d5a0",
+  "commit": "b37d4b6c",
+  "datenversion": 65,
+  "aufruf": "messen bericht 20 20 --teile=3 --fairness=greybox --rotationen=1 --parallel=4 --datei=/tmp/claude-1000/-home-claude-projekte-reichsgilde/4c541d35-c849-4e58-bcde-35f887f98cda/scratchpad/maerkte/mess/maerkte-branch-greybox.json",
+  "parameter": {
+    "jahre": 20,
+    "startwerte": 20,
+    "zufallsstartwerte": "101, 202 … 2020 (s × 101)",
+    "stichjahre": [
+      5,
+      10,
+      20
+    ],
+    "karte": "greybox",
+    "fairnesskarten": [
+      "greybox"
+    ],
+    "teile": [
+      3
+    ],
+    "band": "±15 % um das Mittel",
+    "startvermoegen": 4000,
+    "ohneAbschnitt": null
+  },
+  "partien": 20,
+  "partienMitFehler": 0,
+  "startfairness": {
+    "erklaerung": "Greybox und Probestadt (mit --fairness=… auch Köln) mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. Startfairness: Die Wohnhausplätze von Spieler und KI-Häusern rotieren (Rotation r: der i-te wohnt, wo vorher der (i + r)-te wohnte), jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt seit Datenversion 65 über die Fahrzeit der Karren (Weglänge zum Markt), ist aber an das Haus gebunden; der Wohnhausplatz wirkt im Kern nicht (Bürger kaufen am Markt, --rotationen=1 genügt dann). „gegenHausmittelProzent“: Vermögen auf diesem Platz gegen das Mittel desselben Hauses über alle Plätze – trennt Platz und Haus. Start: Startgeld, Betriebe, Arbeiter und erwarteter Jahresgewinn (Kalkulation, mit Völkerbonus) zu Beginn. Jahre bis Bürger: erstes Jahr mit Reinvermögen ≥ 10.000 (Ziel Z2: 8–12).",
+    "karten": [
+      {
+        "karte": "greybox",
+        "rotationen": 1,
+        "n": 20,
+        "start": [
+          {
+            "haus": "Spieler",
+            "volk": "Mensch",
+            "beruf": "Schmied",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1868
+          },
+          {
+            "haus": "Haus Eisenbart",
+            "volk": "Zwerg",
+            "beruf": "Schmied",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1987
+          },
+          {
+            "haus": "Haus Eichwald",
+            "volk": "Elb",
+            "beruf": "Tischler",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1876
+          },
+          {
+            "haus": "Haus Kieselbach",
+            "volk": "Halbling",
+            "beruf": "Steinmetz",
+            "startvermoegen": 4000,
+            "betriebe": 1,
+            "arbeiter": 2,
+            "erwarteterJahresgewinn": 1835
+          }
+        ],
+        "jeHaus": [
+          {
+            "haus": "Spieler (ein Betrieb, KI geführt)",
+            "volk": "Mensch",
+            "beruf": "Schmied",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 5253,
+                "streuung": 790,
+                "fehlerMittel": 177,
+                "min": 3976,
+                "q10": 4226,
+                "q25": 4719,
+                "median": 5289,
+                "q75": 5674,
+                "q90": 6378,
+                "max": 6561
+              },
+              "10": {
+                "n": 20,
+                "mittel": 9728,
+                "streuung": 2728,
+                "fehlerMittel": 610,
+                "min": 3177,
+                "q10": 6356,
+                "q25": 8587,
+                "median": 10658,
+                "q75": 11050,
+                "q90": 12371,
+                "max": 14299
+              },
+              "20": {
+                "n": 20,
+                "mittel": 34588,
+                "streuung": 11571,
+                "fehlerMittel": 2587,
+                "min": 20904,
+                "q10": 24647,
+                "q25": 28328,
+                "median": 31191,
+                "q75": 36188,
+                "q90": 46268,
+                "max": 71738
+              }
+            },
+            "standAmEnde": {
+              "Patrizier": 19,
+              "Edler": 1
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 2646,
+              "amtseinkommen": 74,
+              "familie": -401,
+              "geschenke": -39,
+              "gericht": -171,
+              "gaunerei": 3,
+              "investitionen": -759,
+              "standesgebuehren": -190,
+              "zinsen": -0,
+              "davonSteuer": -306,
+              "davonSpitzel": -90,
+              "schiffeAmEnde": 0.75
+            }
+          },
+          {
+            "haus": "Haus Eisenbart",
+            "volk": "Zwerg",
+            "beruf": "Schmied",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 5984,
+                "streuung": 933,
+                "fehlerMittel": 209,
+                "min": 4127,
+                "q10": 5067,
+                "q25": 5352,
+                "median": 5853,
+                "q75": 6700,
+                "q90": 6887,
+                "max": 8097
+              },
+              "10": {
+                "n": 20,
+                "mittel": 8469,
+                "streuung": 4061,
+                "fehlerMittel": 908,
+                "min": 704,
+                "q10": 4447,
+                "q25": 5762,
+                "median": 8068,
+                "q75": 11233,
+                "q90": 12751,
+                "max": 17384
+              },
+              "20": {
+                "n": 20,
+                "mittel": 85002,
+                "streuung": 18164,
+                "fehlerMittel": 4062,
+                "min": 43143,
+                "q10": 58385,
+                "q25": 80419,
+                "median": 86321,
+                "q75": 97517,
+                "q90": 107317,
+                "max": 108874
+              }
+            },
+            "standAmEnde": {
+              "Patrizier": 2,
+              "Edler": 17,
+              "Freiherr": 1
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 5931,
+              "amtseinkommen": 134,
+              "familie": -378,
+              "geschenke": -9,
+              "gericht": -90,
+              "gaunerei": 4,
+              "investitionen": -2321,
+              "standesgebuehren": -475,
+              "zinsen": -0,
+              "davonSteuer": -576,
+              "davonSpitzel": -56,
+              "schiffeAmEnde": 0.6
+            }
+          },
+          {
+            "haus": "Haus Eichwald",
+            "volk": "Elb",
+            "beruf": "Tischler",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 5626,
+                "streuung": 1041,
+                "fehlerMittel": 233,
+                "min": 3419,
+                "q10": 4099,
+                "q25": 5034,
+                "median": 5676,
+                "q75": 6260,
+                "q90": 6933,
+                "max": 7116
+              },
+              "10": {
+                "n": 20,
+                "mittel": 5686,
+                "streuung": 2832,
+                "fehlerMittel": 633,
+                "min": 973,
+                "q10": 2074,
+                "q25": 4032,
+                "median": 5368,
+                "q75": 7966,
+                "q90": 9461,
+                "max": 10805
+              },
+              "20": {
+                "n": 20,
+                "mittel": 56277,
+                "streuung": 17187,
+                "fehlerMittel": 3843,
+                "min": 31778,
+                "q10": 40144,
+                "q25": 45634,
+                "median": 52578,
+                "q75": 64597,
+                "q90": 76826,
+                "max": 98841
+              }
+            },
+            "standAmEnde": {
+              "Patrizier": 12,
+              "Edler": 8
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 4530,
+              "amtseinkommen": 109,
+              "familie": -410,
+              "geschenke": -22,
+              "gericht": -111,
+              "gaunerei": 13,
+              "investitionen": -1971,
+              "standesgebuehren": -295,
+              "zinsen": -0,
+              "davonSteuer": -477,
+              "davonSpitzel": -76,
+              "schiffeAmEnde": 0.75
+            }
+          },
+          {
+            "haus": "Haus Kieselbach",
+            "volk": "Halbling",
+            "beruf": "Steinmetz",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "n": 20,
+                "mittel": 4682,
+                "streuung": 584,
+                "fehlerMittel": 131,
+                "min": 3429,
+                "q10": 3963,
+                "q25": 4340,
+                "median": 4751,
+                "q75": 5153,
+                "q90": 5310,
+                "max": 5458
+              },
+              "10": {
+                "n": 20,
+                "mittel": 8631,
+                "streuung": 2077,
+                "fehlerMittel": 464,
+                "min": 2498,
+                "q10": 6969,
+                "q25": 7797,
+                "median": 8725,
+                "q75": 10188,
+                "q90": 10599,
+                "max": 11733
+              },
+              "20": {
+                "n": 20,
+                "mittel": 43592,
+                "streuung": 11477,
+                "fehlerMittel": 2566,
+                "min": 24516,
+                "q10": 27979,
+                "q25": 38018,
+                "median": 43298,
+                "q75": 48666,
+                "q90": 57004,
+                "max": 70406
+              }
+            },
+            "standAmEnde": {
+              "Patrizier": 17,
+              "Edler": 3
+            },
+            "bankrott": 0,
+            "erloschen": 0,
+            "jeJahrImMittel": {
+              "gewinn": 3817,
+              "amtseinkommen": 51,
+              "familie": -353,
+              "geschenke": -40,
+              "gericht": -157,
+              "gaunerei": 50,
+              "investitionen": -1781,
+              "standesgebuehren": -220,
+              "zinsen": -0,
+              "davonSteuer": -386,
+              "davonSpitzel": -86,
+              "schiffeAmEnde": 0.4
+            }
+          }
+        ],
+        "jeWohnhausplatz": [
+          {
+            "wohnhausplatz": "Wohnhaus1",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 5253,
+                  "streuung": 790,
+                  "fehlerMittel": 177,
+                  "min": 3976,
+                  "q10": 4226,
+                  "q25": 4719,
+                  "median": 5289,
+                  "q75": 5674,
+                  "q90": 6378,
+                  "max": 6561
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 15,
+                  "fehlerMittel": 3.4,
+                  "min": -24.3,
+                  "q10": -19.5,
+                  "q25": -10.2,
+                  "median": 0.7,
+                  "q75": 8,
+                  "q90": 21.4,
+                  "max": 24.9
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 9728,
+                  "streuung": 2728,
+                  "fehlerMittel": 610,
+                  "min": 3177,
+                  "q10": 6356,
+                  "q25": 8587,
+                  "median": 10658,
+                  "q75": 11050,
+                  "q90": 12371,
+                  "max": 14299
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 28,
+                  "fehlerMittel": 6.3,
+                  "min": -67.3,
+                  "q10": -34.7,
+                  "q25": -11.7,
+                  "median": 9.6,
+                  "q75": 13.6,
+                  "q90": 27.2,
+                  "max": 47
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 34588,
+                  "streuung": 11571,
+                  "fehlerMittel": 2587,
+                  "min": 20904,
+                  "q10": 24647,
+                  "q25": 28328,
+                  "median": 31191,
+                  "q75": 36188,
+                  "q90": 46268,
+                  "max": 71738
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 33.5,
+                  "fehlerMittel": 7.5,
+                  "min": -39.6,
+                  "q10": -28.7,
+                  "q25": -18.1,
+                  "median": -9.8,
+                  "q75": 4.6,
+                  "q90": 33.8,
+                  "max": 107.4
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 20,
+                "mittel": 5253,
+                "streuung": 790,
+                "fehlerMittel": 177,
+                "min": 3976,
+                "q10": 4226,
+                "q25": 4719,
+                "median": 5289,
+                "q75": 5674,
+                "q90": 6378,
+                "max": 6561
+              },
+              "10": {
+                "n": 20,
+                "mittel": 9728,
+                "streuung": 2728,
+                "fehlerMittel": 610,
+                "min": 3177,
+                "q10": 6356,
+                "q25": 8587,
+                "median": 10658,
+                "q75": 11050,
+                "q90": 12371,
+                "max": 14299
+              },
+              "20": {
+                "n": 20,
+                "mittel": 34588,
+                "streuung": 11571,
+                "fehlerMittel": 2587,
+                "min": 20904,
+                "q10": 24647,
+                "q25": 28328,
+                "median": 31191,
+                "q75": 36188,
+                "q90": 46268,
+                "max": 71738
+              }
+            }
+          },
+          {
+            "wohnhausplatz": "Wohnhaus2",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 5984,
+                  "streuung": 933,
+                  "fehlerMittel": 209,
+                  "min": 4127,
+                  "q10": 5067,
+                  "q25": 5352,
+                  "median": 5853,
+                  "q75": 6700,
+                  "q90": 6887,
+                  "max": 8097
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 15.6,
+                  "fehlerMittel": 3.5,
+                  "min": -31,
+                  "q10": -15.3,
+                  "q25": -10.6,
+                  "median": -2.2,
+                  "q75": 12,
+                  "q90": 15.1,
+                  "max": 35.3
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 8469,
+                  "streuung": 4061,
+                  "fehlerMittel": 908,
+                  "min": 704,
+                  "q10": 4447,
+                  "q25": 5762,
+                  "median": 8068,
+                  "q75": 11233,
+                  "q90": 12751,
+                  "max": 17384
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 47.9,
+                  "fehlerMittel": 10.7,
+                  "min": -91.7,
+                  "q10": -47.5,
+                  "q25": -32,
+                  "median": -4.7,
+                  "q75": 32.6,
+                  "q90": 50.6,
+                  "max": 105.3
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 85002,
+                  "streuung": 18164,
+                  "fehlerMittel": 4062,
+                  "min": 43143,
+                  "q10": 58385,
+                  "q25": 80419,
+                  "median": 86321,
+                  "q75": 97517,
+                  "q90": 107317,
+                  "max": 108874
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 21.4,
+                  "fehlerMittel": 4.8,
+                  "min": -49.2,
+                  "q10": -31.3,
+                  "q25": -5.4,
+                  "median": 1.6,
+                  "q75": 14.7,
+                  "q90": 26.3,
+                  "max": 28.1
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 0
+              },
+              "10": {
+                "n": 0
+              },
+              "20": {
+                "n": 0
+              }
+            }
+          },
+          {
+            "wohnhausplatz": "Wohnhaus3",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 5626,
+                  "streuung": 1041,
+                  "fehlerMittel": 233,
+                  "min": 3419,
+                  "q10": 4099,
+                  "q25": 5034,
+                  "median": 5676,
+                  "q75": 6260,
+                  "q90": 6933,
+                  "max": 7116
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 18.5,
+                  "fehlerMittel": 4.1,
+                  "min": -39.2,
+                  "q10": -27.1,
+                  "q25": -10.5,
+                  "median": 0.9,
+                  "q75": 11.3,
+                  "q90": 23.2,
+                  "max": 26.5
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 5686,
+                  "streuung": 2832,
+                  "fehlerMittel": 633,
+                  "min": 973,
+                  "q10": 2074,
+                  "q25": 4032,
+                  "median": 5368,
+                  "q75": 7966,
+                  "q90": 9461,
+                  "max": 10805
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 49.8,
+                  "fehlerMittel": 11.1,
+                  "min": -82.9,
+                  "q10": -63.5,
+                  "q25": -29.1,
+                  "median": -5.6,
+                  "q75": 40.1,
+                  "q90": 66.4,
+                  "max": 90
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 56277,
+                  "streuung": 17187,
+                  "fehlerMittel": 3843,
+                  "min": 31778,
+                  "q10": 40144,
+                  "q25": 45634,
+                  "median": 52578,
+                  "q75": 64597,
+                  "q90": 76826,
+                  "max": 98841
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 30.5,
+                  "fehlerMittel": 6.8,
+                  "min": -43.5,
+                  "q10": -28.7,
+                  "q25": -18.9,
+                  "median": -6.6,
+                  "q75": 14.8,
+                  "q90": 36.5,
+                  "max": 75.6
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 0
+              },
+              "10": {
+                "n": 0
+              },
+              "20": {
+                "n": 0
+              }
+            }
+          },
+          {
+            "wohnhausplatz": "Wohnhaus4",
+            "n": 20,
+            "jahre": {
+              "5": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 4682,
+                  "streuung": 584,
+                  "fehlerMittel": 131,
+                  "min": 3429,
+                  "q10": 3963,
+                  "q25": 4340,
+                  "median": 4751,
+                  "q75": 5153,
+                  "q90": 5310,
+                  "max": 5458
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": 0,
+                  "streuung": 12.5,
+                  "fehlerMittel": 2.8,
+                  "min": -26.8,
+                  "q10": -15.3,
+                  "q25": -7.3,
+                  "median": 1.5,
+                  "q75": 10.1,
+                  "q90": 13.4,
+                  "max": 16.6
+                }
+              },
+              "10": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 8631,
+                  "streuung": 2077,
+                  "fehlerMittel": 464,
+                  "min": 2498,
+                  "q10": 6969,
+                  "q25": 7797,
+                  "median": 8725,
+                  "q75": 10188,
+                  "q90": 10599,
+                  "max": 11733
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 24.1,
+                  "fehlerMittel": 5.4,
+                  "min": -71.1,
+                  "q10": -19.3,
+                  "q25": -9.7,
+                  "median": 1.1,
+                  "q75": 18,
+                  "q90": 22.8,
+                  "max": 35.9
+                }
+              },
+              "20": {
+                "reinvermoegen": {
+                  "n": 20,
+                  "mittel": 43592,
+                  "streuung": 11477,
+                  "fehlerMittel": 2566,
+                  "min": 24516,
+                  "q10": 27979,
+                  "q25": 38018,
+                  "median": 43298,
+                  "q75": 48666,
+                  "q90": 57004,
+                  "max": 70406
+                },
+                "gegenHausmittelProzent": {
+                  "n": 20,
+                  "mittel": -0,
+                  "streuung": 26.3,
+                  "fehlerMittel": 5.9,
+                  "min": -43.8,
+                  "q10": -35.8,
+                  "q25": -12.8,
+                  "median": -0.7,
+                  "q75": 11.6,
+                  "q90": 30.8,
+                  "max": 61.5
+                }
+              }
+            },
+            "spielerReinvermoegen": {
+              "5": {
+                "n": 0
+              },
+              "10": {
+                "n": 0
+              },
+              "20": {
+                "n": 0
+              }
+            }
+          }
+        ],
+        "spielerJahreBisBuerger": {
+          "n": 20,
+          "mittel": 11,
+          "streuung": 2.2,
+          "fehlerMittel": 0.5,
+          "min": 8,
+          "q10": 9,
+          "q25": 10,
+          "median": 10,
+          "q75": 11.3,
+          "q90": 15,
+          "max": 15
+        },
+        "spielerBuergerErreicht": 20,
+        "spielerBuergerIn8bis12": 16
+      }
+    ]
+  },
+  "befunde": [
+    "Startfairness greybox: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … 0 % (gegen das Mittel desselben Hauses, 1 Rotationen × 20 Startwerte); der Spieler mit einem Betrieb hat 34.588 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 61.623 (−44 %). Bürger (Reinvermögen 10.000): Ø Jahr 11,0, im Ziel 8–12 Jahre 16/20."
+  ],
+  "laufzeitSekunden": 24
+}

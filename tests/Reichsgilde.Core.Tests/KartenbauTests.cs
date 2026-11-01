@@ -47,28 +47,31 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln (Stadtskript, PR #213): 8.041 Felder, Pflicht und Reserve passen – 81 % frei nach der Pflicht", () =>
+        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten seit 1.11.2026): 7.687 Felder, Pflicht und Reserve passen – 80 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 8041 Felder, davon fest belegt 4",
+                "Stadt-Bauzonen: 7687 Felder, davon fest belegt 0",
                 "Pflicht Werkstatt: 16 von 16 passen", "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 6525 Felder (81%), nach der Reserve: 6061 Felder",
+                "Frei nach der Pflicht: 6175 Felder (80%), nach der Reserve: 5711 Felder",
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
-            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve, dazu die festen (nur 4 Felder: die Plätze der Karte liegen neben den Zonen)
+            // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve; feste keine (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder)
             Pruefe.Gleich(84, k.Plaetze.Count(p => p.Art != "fest"));
             Pruefe.Gleich(16 * 56, k.Plaetze.Where(p => p.Art == "Werkstatt").Sum(p => p.Felder.Count));
-            Pruefe.Gleich(4, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
+            Pruefe.Gleich(0, k.Plaetze.Where(p => p.Art == "fest").Sum(p => p.Felder.Count));
         }),
 
         ("Kapazität aller Karten: dieselben Plätze wie vor der Beschleunigung (27.10.2026) – Anzahl, Felder und eine Prüfsumme ihrer Lage", () =>
         {
             foreach (var (karte, befunde, plaetze, felder, summe) in new[]
             {
-                ("koeln", 0, 86, 1980, -1223276L), ("greybox", 4, 22, 698, -2115343L), ("probestadt", 0, 80, 1752, 7598432L), ("messstadt", 0, 80, 1752, 6597050L),
+                // Köln seit den drei Marktplätzen (31.10.2026) neu, vorher 86 / 1.980 / −1.223.276; seit der gemeinsamen Strecke (Startgrundstücke 36 m vom Platz) die Prüfsumme neu, vorher −11.184.073;
+                // seit den Märkten an den Enden der Mauer und in Deutz die Prüfsumme neu, vorher −12.931.232; seit der Hausreihe vor dem Tor (1.11.2026) die
+                // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343
+                ("koeln", 0, 84, 1976, -6192870L), ("greybox", 4, 23, 714, -2170301L), ("probestadt", 0, 80, 1752, 7598432L), ("messstadt", 0, 80, 1752, 6597050L),
             })
             {
                 var k = Kapazitaetspruefung.Pruefen(Oeffnen(karte));

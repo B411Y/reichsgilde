@@ -162,6 +162,20 @@ public sealed class Bauzone
     /// <summary>Umriss als Vieleck, je Punkt [x, z] (auf dem 2-m-Raster).</summary>
     public List<double[]> Flaeche { get; init; } = new();
 
+    /// <summary>
+    /// Was hier nur gebaut werden darf: <see cref="NurWerkstatt"/> („werkstatt“) für einen Werkstatt-Bauplatz nahe einem Markt (seit 1.11.2026,
+    /// Köln) – dort lehnt das Bauwesen Wohnhäuser ab. Null (Vorgabe, alte Karten): alles, was die Lage erlaubt.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Nur { get; init; }
+
+    /// <summary>Der Wert von <see cref="Nur"/> für Werkstatt-Bauplätze.</summary>
+    public const string NurWerkstatt = "werkstatt";
+
+    /// <summary>Darf hier nur eine Werkstatt stehen?</summary>
+    [JsonIgnore]
+    public bool NurWerkstaetten => Nur == NurWerkstatt;
+
     /// <summary>Liegt der Punkt in der Zone?</summary>
     public bool Enthaelt(double x, double z) => Geometrie.ImVieleck(x, z, Flaeche);
 
@@ -607,6 +621,34 @@ public sealed class Stadtkarte
     /// <summary>Alle Gebäude einer Art (<see cref="Bausteinart"/>), in der Reihenfolge der Datei.</summary>
     public IEnumerable<Kartengebaeude> GebaeudeDerArt(string art) => Gebaeude.Where(g => g.Art == art);
 
+    /// <summary>Kennung des Bausteins „Marktplatz“ im Gebäudekatalog.</summary>
+    public const string MarktKatalog = "markt";
+
+    /// <summary>
+    /// Die Marktplätze der Stadt (Gebäude mit dem Baustein <see cref="MarktKatalog"/>) in der Reihenfolge der Datei. Eine Stadt darf mehrere haben
+    /// (Entscheidung des Nutzers vom 31.10.2026, Köln: Heumarkt, Alter Markt, Neumarkt). Sie sind EIN Stadtmarkt mit gemeinsamen Preisen und
+    /// gemeinsamem Bestand; ein Karren fährt zum nächsten (<see cref="Wirtschaft.Stadtwirtschaft.MarktplatzVon"/>), und jeder Platz verbindet die
+    /// Karrenstraßen, die ihn berühren (<see cref="Karrennetz.Marktlinien"/>).
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<Kartengebaeude> Marktplaetze => Gebaeude.Where(g => g.Katalog == MarktKatalog).ToList();
+
+    /// <summary>
+    /// Das Quadrat der Luftlinie vom Punkt zur Mitte des nächsten Marktplatzes – ohne Marktplatz zum Ursprung (früher lag der Markt immer dort).
+    /// Mit einem Markt im Ursprung genau <c>x² + z²</c> wie bis Oktober 2026 (Standortwahl der KI).
+    /// </summary>
+    public double MarktAbstandQuadrat(double x, double z)
+    {
+        var best = double.MaxValue;
+        foreach (var m in Gebaeude)
+        {
+            if (m.Katalog != MarktKatalog) continue;
+            var (dx, dz) = (x - m.Punkt[0], z - m.Punkt[1]);
+            best = Math.Min(best, dx * dx + dz * dz);
+        }
+        return best < double.MaxValue ? best : x * x + z * z;
+    }
+
     /// <summary>
     /// Die Wohnhausplätze in Konto-Reihenfolge: der des Spielers, dann die der KI-Häuser aus <see cref="Start"/> (auch wenn ein Haus nicht
     /// mitspielt), danach die übrigen Wohnhausplätze in der Reihenfolge der Datei (für weitere Häuser).
@@ -717,6 +759,7 @@ public sealed class Stadtkarte
         {
             if (z.Flaeche.Count < 3) f.Add($"Bauzone {z.Kennung}: Die Fläche braucht mindestens drei Punkte.");
             if (!Linie(z.Flaeche)) f.Add($"Bauzone {z.Kennung}: Jeder Punkt hat genau zwei Zahlen [x, z].");
+            if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt) f.Add($"Bauzone {z.Kennung}: nur ist „{Bauzone.NurWerkstatt}“ oder fehlt (nicht „{nur}“).");
         }
 
         foreach (var g in Gebaeude)

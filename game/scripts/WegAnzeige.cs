@@ -157,13 +157,13 @@ public partial class WegAnzeige : PanelContainer
             13, Grau, zentriert: true, umbruchBreite: Breite);
 
         // ── der Belag Abschnitt für Abschnitt ──
-        Hauptmenue.Text(_inhalt, "Belag", 16, Gold).TooltipText = "Zustand und Belag der Abschnitte: Trampelpfad, Fahrweg, Kies oder Pflaster. Besserer Belag macht Karren schneller und Fußgänger sicherer.";
+        Hauptmenue.Text(_inhalt, "Belag", 16, Gold).TooltipText = "Zustand und Belag der Abschnitte: Trampelpfad, Fahrweg, Kies oder Pflaster. Besserer Belag macht Karren schneller und Fußgänger sicherer. „Karren … %“: Tempo der Karren gegen den Fahrweg (100 %), wie der Kern die Fahrzeit rechnet – Pflaster höchstens 115 %.";
         var abschnitte = bau.Abschnitte(_weg);
         foreach (var a in abschnitte.Take(10))
         {
             var zustand = Wegbelag.IstBefestigt(a.Stufe) ? $"Zustand {Math.Round(a.Zustand * 100)} %" : $"ausgetreten {Math.Round(a.Austritt * 100)} %";
             var bauText = a.Baustelle ? " · wird gebaut" : "";
-            Hauptmenue.Text(_inhalt, $"{Zahlenformat.Ganz(a.Von)}–{Zahlenformat.Ganz(a.Bis)} m: {Wegbelag.Anzeigename(a.Stufe)}, {zustand} · Verkehr {Zahlenformat.Ganz(a.Verkehr)}/Jahr · Karren {Math.Round(a.Tempo * 100)} %{bauText}",
+            Hauptmenue.Text(_inhalt, $"{Zahlenformat.Ganz(a.Von)}–{Zahlenformat.Ganz(a.Bis)} m: {Wegbelag.Anzeigename(a.Stufe)}, {zustand} · Verkehr {Zahlenformat.Ganz(a.Verkehr)}/Jahr · Karren {Math.Round(100 / bau.Daten!.Zeitfaktor(a.Tempo))} %{bauText}",
                 13, a.Baustelle ? Gold : Hell, umbruchBreite: Breite);
         }
         if (abschnitte.Count > 10) Hauptmenue.Text(_inhalt, $"… und {abschnitte.Count - 10} weitere Abschnitte", 12, Grau);

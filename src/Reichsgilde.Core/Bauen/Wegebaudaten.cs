@@ -17,6 +17,12 @@ public sealed class WegebauDaten
     /// </summary>
     public Belagstufe Bezug { get; init; } = Belagstufe.Fahrweg;
 
+    /// <summary>
+    /// Ein besserer Belag macht Karren höchstens so viel mal so schnell wie der <see cref="Bezug"/> (ab Datenversion 65, Nutzer 31.10.2026:
+    /// höchstens 15 % schneller, also 1,15) – ein schlechterer bremst ohne Grenze. Null: ohne Grenze (Pflaster wie vor Datenversion 65 ×1,18).
+    /// </summary>
+    public double? AusbauHoechstens { get; init; }
+
     /// <summary>Länge eines Wegstücks im Spiel (Meter): Belag, Austritt, Verkehr und Bauaufträge gelten je Stück.</summary>
     public double Stueck { get; init; } = 5;
 
@@ -45,6 +51,16 @@ public sealed class WegebauDaten
     public WegeratDaten Rat { get; init; } = new();
 
     public double TempoVon(Belagstufe s) => Tempo.GetValueOrDefault(s.ToString(), 1);
+
+    /// <summary>
+    /// Wie viel mal so lang ein Stück mit diesem Tempo dauert wie auf dem <see cref="Bezug"/>: Bezugstempo ÷ Tempo, aber nie kürzer als
+    /// 1 ÷ <see cref="AusbauHoechstens"/>.
+    /// </summary>
+    public double Zeitfaktor(double tempo)
+    {
+        var f = TempoVon(Bezug) / tempo;
+        return AusbauHoechstens is { } h ? Math.Max(1 / h, f) : f;
+    }
     public double VerfallVon(Belagstufe s) => Verfall.GetValueOrDefault(s.ToString());
     public double PreisVon(Belagstufe s) => PreisJeMeter.GetValueOrDefault(s.ToString());
     public double BauzeitVon(Belagstufe s) => BauzeitJeMeter.GetValueOrDefault(s.ToString());
@@ -65,6 +81,7 @@ public sealed class WegebauDaten
         foreach (var k in Tempo.Keys.Concat(Verfall.Keys).Concat(PreisJeMeter.Keys).Concat(BauzeitJeMeter.Keys))
             if (!Enum.TryParse<Belagstufe>(k, out _)) f.Add($"{p}: unbekannte Stufe „{k}“ (erlaubt: {string.Join(", ", Enum.GetNames<Belagstufe>())}).");
         if (Stueck is < 1 or > 50) f.Add($"{p}.stueck muss zwischen 1 und 50 Metern liegen.");
+        if (AusbauHoechstens is < 1) f.Add($"{p}.ausbauHoechstens muss mindestens 1 sein (1 = kein Belag schneller als der Bezug).");
         if (VerfallSchwelle is < 0 or >= 1) f.Add($"{p}.verfallSchwelle muss zwischen 0 und 1 liegen.");
         if (BauzeitGrund < 0) f.Add($"{p}.bauzeitGrund darf nicht negativ sein.");
         if (HoechstensMeter < Stueck) f.Add($"{p}.hoechstensMeter muss mindestens ein Stück lang sein.");

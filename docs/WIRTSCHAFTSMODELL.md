@@ -112,7 +112,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Kriegskarren | 3 × 25 | 900 | – |
 
 - Ladeflächen sind frei belegbar (ein Ochsenkarren kann 40 Eisen laden).
-- Fahrzeit vom Betrieb zum Markt: **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
+- Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
 - Lager je Betrieb: 40 Stück je Ware.
 - **Verwalter-Regel:** Der Karren fährt los, wenn eines davon zutrifft:
   - Er kann mindestens drei Viertel einer Ladung mitnehmen.
@@ -1692,3 +1692,348 @@ Der Gardist (Mensch) verliert 7,5 % durch seinen kleineren Bonus (+5 → +2 %), 
 | Geldleiher | +27,6 → +21,1 % | −2,2 → −2,0 % | +18,6 → +17,5 % |
 
 Mittel über alle zehn Berufe gegen Menschen: Zwerg +7,8 → +9,1 %, Elb −3,3 → −1,6 %, Halbling +0,6 → +1,1 %. Halbling-Dieb und die Halbling- und Zwerg-Geldleiher bleiben vorn; beim Halbling-Geldleiher (ohne Bonus) und dem größten Teil des Halbling-Diebs wirkt etwas anderes als der Bonus (Familie, Talente, Meinungen; offen in kern.md).
+
+## Fahrzeit nach Weglänge (PR #282)
+
+*Zwischenstand: Die Zahlen dieses Abschnitts gelten für Köln mit einem Markt. Überholt durch „Mehrere Marktplätze“ und die folgenden Abschnitte; den Endstand gegen main fasst „Endabnahme gegen main und Ausbau“ zusammen.*
+
+Entscheidung des Nutzers (31.10.2026): Der Kern rechnet die Karren-Fahrzeit nach Weglänge und Karrenart, mit Steigung und Belag – Kern und Bild sollen übereinstimmen, die Ware kommt, wenn der Karren sichtbar ankommt. Vorher: fest 30 bzw. 120 Minuten, in Köln fuhr der Karren sichtbar 4- bis 15-mal so lange.
+
+**Regel (Datenversion 65):** `logistik.karren.<Art>.tempo` (Meter je Sekunde bei Tempo 1: Handkarren 1,0, Ochsenkarren 0,8, Kriegskarren 1,3), `logistik.weglaenge` (mindestMinuten 10, hoechstMinuten 360), `wegebau.ausbauHoechstens` 1,15. Fahrzeit = Σ Länge × Zeitfaktor ÷ (Tempo × 900/1140 m je Spielminute) + Furt (5) und Fähre (30), auf ganze Minuten, zwischen 10 und 360. Zeitfaktor = Steigung (ab 6 % je Prozentpunkt 5 % länger, höchstens ×3) × Belag (Bezugstempo ÷ Tempo des Stücks, nie unter 1 ÷ 1,15: Pflaster ×0,87 statt ×0,85, Kies ×0,89, Trampelpfad ×1,21). Die Umrechnung nimmt die Standard-Rundendauer (15 Minuten), nicht die eingestellte. Ohne Karte, Platz oder Weg die feste Zeit; Daten ohne `weglaenge` (alle Spielstände bis Datenversion 64 bringen ihre Daten mit) fahren genau wie vorher. Mindestdauer: Anspannen und Einreihen, wirkt erst unter 8 m Weg. Höchstdauer: Ein Karren soll an einem Arbeitstag (8–20 Uhr) wenigstens einmal hin und zurück kommen; darüber fährt er im Bild trotzdem in seinem Tempo weiter (das Profil wird nie gestaucht, Darstellung 31.10.2026), kommt nach dem Verkauf an und kehrt sofort um. Die KI rechnet die Ersparnis eines Wegausbaus mit denselben Zeiten (an der Höchstdauer spart ein Ausbau nichts).
+
+**Fahrzeiten** (`messen karren`, Start „Schwer“ mit allen KI-Häusern; eben, Minuten je Weg):
+
+| Karte, Arbeitsort | Betriebe | Länge Ø (min–max) | fest | Handkarren | Ochsenkarren | Kriegskarren | an der Höchstdauer |
+|---|---|---|---|---|---|---|---|
+| Greybox, Werkstatt | 4 | 39 m (22–89) | 30 | 50 (28–113) | 62 | 38 | 0 von 24 Fahrten |
+| Greybox, Umland | 3 | 116 m (98–136) | 120 | 147 | 184 (155–216) | 113 | 0 von 18 |
+| Köln, Werkstatt | 8 | 178 m (80–292) | 30 | 225 (102–360) | 281 | 173 | 10 von 48 |
+| Köln, Umland | 7 | 411 m (369–450) | 120 | 521 → 360 | 651 → 360 | 401 → 360 | 40 von 42 |
+
+Die alten festen Zeiten entsprechen einem Weg von etwa 24 m (Handkarren, 30 Minuten) bzw. 76 m (Ochse, 120 Minuten). In der Greybox liegen drei der vier Werkstätten so nah (22–24 m), in Köln keine.
+
+**Messung:** vorher main `24963d29` (dazu nur der Test-Schalter `--rotationen`), nachher dieser Branch `9c2bdd85`. Greybox `messen bericht 20 20 --teile=1,3,5 --fairness=greybox --rotationen=1` (260 Partien), Köln `messen bericht 20 10 --teile=3 --fairness=koeln --rotationen=1` (10 Partien; der Wohnhausplatz wirkt nicht, eine Rotation genügt) → `docs/messungen/balancing-2026-10-31-fahrzeit-{vorher,nachher}-{greybox,koeln}.json`. Keine Partie mit Fehler.
+
+**Greybox:** Die Berufe mit einem Betrieb (Werkstatt am Weinmarkt, 24 m, 31 statt 30 Minuten) bleiben im Band ±15 % (Mittel des Zuwachses 28.838 → 29.551); der Steinmetz gewinnt (30.565 → 34.955), weil der Steinmetz der KI schwächer wird. Wer expandiert, verliert: KI-Häuser nach 20 Jahren 79.030 → 62.312 (−21 %), Bezugsspieler mit KI-Strategie 68.066 → 52.239 (KI ÷ Bezug bleibt 1,08), „Schwer“ 119.993 → 90.802. Die Lage entscheidet: Eisenbart (Werkstatt 22 m, Grube 98 m) 86.944 → 85.035, Eichwald (22 m, Holzschlag 115 m) 64.773 → 54.457, **Kieselbach (Maurerei 89 m, Steinbruch 136 m) 85.373 → 47.446 (−44 %)**.
+
+**Köln kippt:** Ein Karren schafft dort ein bis zwei Fahrten im Spieljahr; die fernen Werkstätten stehen im ersten Jahr zu 95 % still (der Verwalter fährt zuerst Zutaten holen und ist zehn Stunden unterwegs), danach 15–70 % (`messen karren koeln --jahre=3`).
+
+| Haus (20 Jahre) | Volk, Beruf | vorher | nachher | Variante Höchstdauer 60 |
+|---|---|---|---|---|
+| Spieler (ein Betrieb, 228 m) | Mensch Schmied | 31.199 | 6.939 | 28.323 |
+| Overstolz (233 m) | Zwerg Schmied | 89.862 | 6.634 | 55.057 |
+| Hardevust (131 m) | Elb Tischler | 57.095 | 9.228 | 44.440 |
+| Lyskirchen (80 m) | Halbling Steinmetz | 78.875 | 39.939 | 56.858 |
+| Gryn (107 m) | Mensch Alchimist | 83.008 | 28.072 | 61.757 |
+| Scherfgin (121 m) | Mensch Schmied | 60.903 | 25.172 | 42.035 |
+| Mommersloch (229 m) | Halbling Wirt | 80.951 | 3.517 | 48.338 |
+| Kleingedank (292 m) | Mensch Tischler | 64.430 | 3.106 (1 bankrott) | 41.824 |
+
+Der Spieler erreicht in Köln den Bürger nach Ø 16,5 statt 10,0 Jahren (0 von 10 im Ziel 8–12).
+
+**Stellschrauben, als Datenvarianten gemessen** (Köln wie oben, Greybox `--teile=3`, je 10 Startwerte; Reinvermögen nach 20 Jahren, Spieler / KI-Häuser im Mittel):
+
+| Variante | Köln Spieler / KI-Häuser | Köln Bürger (Ø Jahr) | Greybox Spieler / KI-Häuser | schnellster Karren im Bild (Köln) |
+|---|---|---|---|---|
+| vorher (feste Zeit) | 31.199 / 73.589 | 10,0 | 34.779 / 79.030 (20 Startwerte) | bis über 12 m/s |
+| **gebaut: Höchstdauer 360** | 6.939 / 16.524 (1 bankrott) | 16,5 | 34.825 / 62.312 (20 Startwerte) | 1,6 m/s (Ochse Umland, gekappt) |
+| Höchstdauer 120 | 13.557 / 27.057 | 14,7 | 36.514 / 66.871 | 4,8 m/s |
+| Höchstdauer 60 (Umland schneller als früher) | 28.323 / 50.044 | 11,7 | 37.811 / 75.438 | 9,5 m/s |
+| je Arbeitsort höchstens doppelte feste Zeit (Werkstatt 60, Umland 240; Versuch im Code, nicht gebaut) | 22.613 / 42.329 | 12,6 | 34.970 / 66.840 | 6,2 m/s (Werkstatt 292 m) |
+| Ladung ×3 (alle Karren) | 5.342 / 18.959 (1 bankrott) | 18,5 | 35.322 / 61.424 | 1,6 m/s |
+| Tempo ×4 (entspricht 60 Minuten je Runde) | 22.083 / 57.088 | 12,0 | 42.786 / 91.014 | 5,2 m/s (oder 1,3 m/s bei 60 Minuten je Runde) |
+
+Die Greybox-Zeilen der Varianten haben 10 Startwerte, vorher und nachher 20; Messdateien der Varianten nicht im Repository (Versuche).
+
+Mehr Ladung hilft nicht: Es fehlt nicht Laderaum, sondern die Werkstatt wartet stundenlang auf Zutaten, die erst mit dem Karren kommen. Ein Ausgleich in den Wirtschaftswerten (Ladung, Karrenpreise) kann die sieben- bis zwölffache Fahrzeit in Köln nicht auffangen; das ist eine Designfrage (Höchstdauer, Lage der Plätze bzw. weitere Märkte in Köln, Rundendauer) und liegt beim Teamleiter. Bis dahin bleiben die Werte wie gebaut (Höchstdauer 360). **Empfehlung des Kerns:** die Höchstdauer je Arbeitsort an die alte feste Zeit binden (höchstens doppelt so lang: Werkstatt 60, Umland 240 Minuten; kleine Kern-Änderung) und Köln im Leveldesign kürzere Wege geben (Plätze näher am Markt oder weitere Märkte) – dann greift die Grenze selten, und die Karren fahren fast überall in ihrem Tempo. **Entschieden (Nutzer, 31.10.2026):** mehrere Märkte in Köln, keine feste Deckelung – siehe „Mehrere Marktplätze“.
+
+## Mehrere Marktplätze (PR #282)
+
+*Zwischenstand: Die Lage der Plätze ist überholt durch „Märkte an den Enden der Mauer und in Deutz“ und „Hausreihe vor dem Tor“; die Regel (ein Stadtmarkt, nächster Platz, Platz als Kreuzung) gilt weiter.*
+
+Entscheidung des Nutzers (31.10.2026): Köln bekommt mehrere Märkte – **Alter Markt, Heumarkt, Neumarkt**, Namen wie in Köln, die Lage so, dass die Wirtschaft passt. Ziel: Reinvermögen nach 20 Jahren in Köln wieder etwa wie vorher (Spieler rund 30.000, KI-Häuser im früheren Rahmen, kein Bankrott). Die feste Deckelung der Fahrzeit (Werkstatt 60 / Umland 240) ist nicht gewählt.
+
+**Regel (Kern, keine neue Datenversion):** Eine Stadt hat einen Markt mit mehreren Plätzen – gemeinsame Preise, gemeinsamer Bestand. Ein Karren fährt zum nächsten Platz (kürzester Weg über die Karrenstraßen, nach den Kosten der Wegwahl; bei Gleichstand der erste der Karte). Ein Marktplatz ist eine Kreuzung: Karrenstraßen, die ihn berühren, sind über das Pflaster mit seiner Mitte verbunden (ab Datenversion 65; alte Spielstände rechnen auf ihrem alten Netz). Greybox, Probestadt und Messstadt rechnen wie vorher (die Greybox-Messung unten ist auf die Gulden gleich).
+
+**Wo die Plätze stehen:** Eine Suche über alle Stellen an Karrenstraßen (je Stelle ein Probe-Grundstück und sein Karrenweg zum nächsten Platz) zeigte: Werkstattwege um 24 m (= die alte feste Zeit von 30 Minuten für den Handkarren) gibt es nur an den Ecken von Kreuzungen, eine je Ecke. Darum Heumarkt (0 | 0, Severinstraße, Brückenstraße und Schildergasse enden an ihm), **Alter Markt** (37 | 57) am Rhein (Rheingasse/Bayenstraße), **Neumarkt** (−34 | 57) im Westen (Hohe Straße/Weyerstraße/Bayenstraße); die acht Startgrundstücke an den Ecken, die Werkstatt zum Platz hin (Spieler am Heumarkt, vier KI-Häuser am Neumarkt, drei am Alter Markt). Mit dem einen Heumarkt waren drei Plätze bestenfalls bei Werkstatt Ø 76 Minuten gewesen, wenn die Startgrundstücke bleiben (gesucht über 240 Stellen).
+
+**Fahrzeiten** (`messen karren koeln`, Handkarren eben):
+
+| Köln | Werkstatt: Weg Ø (min–max) | Handkarren | an der Höchstdauer | Umland: Weg Ø (min–max) | an der Höchstdauer |
+|---|---|---|---|---|---|
+| ein Markt (Branch 42f4197c) | 178 m (80–292) | 225 min | 10 von 48 Fahrten | 411 m (369–450) | 40 von 42 |
+| drei Marktplätze | 22 m (21–22) | 27 min | 0 von 48 | 327 m (286–369) | 28 von 42 |
+
+**Wie stark der Werkstattweg wirkt** (Versuch im Code, nicht gebaut: Köln mit einem Markt, Werkstattfahrten auf höchstens n Minuten gekappt, Umland 360; 10 Startwerte, 20 Jahre): Werkstatt 30 → Spieler 31.693, KI-Häuser Ø 53.068; 45 → 26.846 / 43.018; 60 → 24.613 / 36.289. Das Spielerziel braucht also die alte Werkstattzeit; das Umland drückt vor allem die KI-Häuser (sie haben ein Umland).
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler). Alle drei Spalten gegen denselben main 6ab07bdf (eingemergt; origin/main stand während der Messung bei c393d5a0, nur Ton dazu): **vorher** = main 6ab07bdf (feste Fahrzeit; main kennt `--rotationen` nicht, darum alle 8 bzw. 4 Rotationen – der Wohnhausplatz wirkt nicht; die Mittel sind auf die Gulden gleich mit `balancing-2026-10-31-fahrzeit-vorher-*.json` auf 24963d29), **Branch** = 42f4197c mit main 6ab07bdf (b37d4b6c, nur zum Messen), **nachher** = dieser Branch (Köln 41ccad30, Greybox f56b6f5f; dazwischen nichts, was mit Datenversion 65 anders rechnet) → `docs/messungen/balancing-2026-10-31-maerkte-{branch,nachher}-{koeln,greybox}.json`.
+
+| Karte | | vorher (fest) | Branch (ein Markt) | nachher (drei Plätze) |
+|---|---|---|---|---|
+| Köln (10 Startwerte; vorher 80 Partien) | Spieler | 31.199 | 7.170 | **33.919** |
+| | KI-Häuser Ø (kleinstes Haus) | 73.589 (57.095) | 16.832 (2.665) | **57.238** (39.124) |
+| | Bankrott | 0 | 1 | **0** |
+| | Spieler Bürger: Ø Jahr (im Ziel 8–12) | 10,0 (56 von 80) | 18,3 (0 von 10) | **10,0 (10 von 10)** |
+| Greybox (20 Startwerte; vorher 80 Partien) | Spieler | 34.779 | 34.588 | 34.588 |
+| | KI-Häuser Ø | 79.030 | 61.624 | 61.624 |
+| | Bankrott | 0 | 0 | 0 |
+
+Köln je Haus (vorher / Branch / nachher): Overstolz (Zwerg Schmied) 89.862 / 6.378 / 71.421, Hardevust (Elb Tischler) 57.095 / 10.117 / 51.862, Lyskirchen (Halbling Steinmetz) 78.875 / 39.549 / 54.019, Gryn (Mensch Alchimist) 83.008 / 30.074 / 74.930, Scherfgin (Mensch Schmied) 60.903 / 26.062 / 39.124, Mommersloch (Halbling Wirt) 80.951 / 2.980 / 58.244, Kleingedank (Mensch Tischler) 64.430 / 2.665 (ein Bankrott) / 51.063.
+
+**Befund:** Das Ziel des Spielers ist erreicht (33.919, +9 % gegen vorher – der Weg zum Heumarkt dauert 27 statt 30 Minuten), kein Bankrott, Bürger nach Ø 10,0 Jahren. Die KI-Häuser liegen bei 57.238 (−22 % gegen vorher) – so viel, wie die Fahrzeit nach Weglänge auch in der Greybox kostet (79.030 → 61.624, −22 %). Der Grund ist das Umland: Die Umlandbetriebe liegen draußen an den Landstraßen, 286–369 m vom nächsten Platz, und bleiben fast alle an der Höchstdauer (ein Ochsenkarren schafft in 360 Minuten 227 m); Marktplätze in der Stadt helfen dort nicht. Sollen die KI-Häuser in Köln näher an vorher, wären die Hebel Umlandbetriebe näher an den Toren (Leveldesign) oder eine eigene Grenze fürs Umland (nicht gewählt) – beides Entscheidungen für Teamleiter und Nutzer.
+
+## Eine Strecke für Kern und Bild (PR #282)
+
+Auftrag des Teamleiters (31.10.2026) nach dem Klicktest der Darstellung: Der Karren fährt im Bild im festen Tempo vom Hof über die Gassen bis zum Halt am Pflasterrand, der Kern rechnete vom nächsten Punkt einer Karrenstraße bis zur Platzmitte – in Köln war der Karren 26–34 % früher am Halt (Bild 14–16 m, Kern 21–22 m), am Weinmarkt der Greybox 105 % später (die Gasse führt um das Haus herum), Kieselbach 71 % früher. Ziel: dieselbe Strecke, Abweichung je Betrieb höchstens wenige Prozent, Spieler Köln weiter um 30.000, kein Bankrott.
+
+**Regel (Datenversion 65, keine neue Version – sie kam mit diesem Branch):** Die Strecke beginnt am Halteplatz des Modells (`karrenAnker` im Katalog = „Anker_Karren“ der glb), führt bei einer Werkstatt zum Hof (Mitte des Vorplatzes), von dort gerade zum nächsten Weg der Karte jeder Klasse (der Hofweg, den das Bild zeichnet) und über das Netz aller Wege bis zum Halt 3,5 m vor dem Pflaster; zurück derselbe Weg. Steht der Karren schon am Platz (im Haltquadrat), hält er sofort (Mindestdauer); liegt der Hof näher am Pflaster als am nächsten Weg, fährt er wie im Bild gerade zum Platz (beides nur bei Neubauten nah am Platz, Befunde der Prüfung). Gassen kosten für die Wahl des Weges je Meter das Doppelte, Fußwege und Leinpfade das Vierfache – die Fahrzeit rechnet weiter nur Länge, Steigung und Belag (Gassen haben ab Werk einen langsameren Belag). Unter mehreren Plätzen der mit den kleinsten Kosten bis zum Halt. Die Darstellung fährt die Punkte des Kerns (`Stadtwirtschaft.Karrenverlauf`). Alte Daten rechnen wie vorher.
+
+**Karten nachjustiert** (die gemeinsame Strecke allein verschob die Wirtschaft deutlich: Köln Spieler 39.803, +17 %, weil die Werkstattwege auf 13–16 m schrumpften; Greybox Spieler 22.267, −36 %, weil der Weinmarkt-Karren jetzt 50 m um das Haus fährt):
+
+| Karte | Änderung | Werkstattwege vorher → nachher (Handkarren) |
+|---|---|---|
+| Greybox | neues **Weinmarktgässchen** (2,4 m) vom Hof nach Osten und zwischen Grundstück und Markt zur Westgasse | Weinmarkt 24 → 20 m (31 → 30 min; ohne Gässchen 50 m, 71 min), Eisenbart 22 → 18, Eichwald 22 → 11, Kieselbach 89 → 26 m (113 → 38 min) |
+| Köln | Stadtskript: Startgrundstücke 36 statt 28 m vom nächsten Platz (`ZielAbstand`); ein Kulissenhaus weniger, 52 statt 51 Bauzonen | 21–22 → 20–24 m (27–28 → 25–30 min, der Spieler 30 wie die alte feste Zeit) |
+
+**Fahrzeiten** (`messen karren`, Start „Schwer“, eben, Handkarren / Ochsenkarren):
+
+| Karte, Arbeitsort | Betriebe | Länge Ø (min–max) vorher → nachher | Handkarren Ø | an der Höchstdauer |
+|---|---|---|---|---|
+| Greybox, Werkstatt | 4 | 39 (22–89) → 19 m (11–26) | 50 → 24 min | 0 von 24 |
+| Greybox, Umland | 3 | 116 (98–136) → 100 m (83–121) | 147 → 127 min | 0 von 18 |
+| Köln, Werkstatt | 8 | 22 (21–22) → 22 m (20–24) | 27 → 27 min | 0 von 48 |
+| Köln, Umland | 7 | 327 (286–369) → 307 m (279–336) | 415 → 388 min | 28 → 26 von 42 |
+| Probestadt, Werkstatt | 3 | 31 (30–32) → 23 m (22–24) | 40 → 30 min | 0 von 18 |
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler): **vorher** = dieser Branch vor der Änderung (Köln 41ccad30, Greybox f56b6f5f, siehe „Mehrere Marktplätze“), **nachher** = c10fc194 (mit den Befunden der Prüfung; vor ihnen 4a8883ed: Köln Spieler 32.393, KI-Häuser 54.561, Greybox gleich); beide auf main c393d5a0 (eingemergt; origin/main stand danach bei 2c5275c8, nur Ton) → `docs/messungen/balancing-2026-10-31-strecke-{koeln,greybox}.json`.
+
+| Karte | | vorher | nur gemeinsame Strecke | nachher (Karten nachjustiert) |
+|---|---|---|---|---|
+| Köln (10 Startwerte) | Spieler | 33.919 | 39.803 | **32.425** |
+| | KI-Häuser Ø (kleinstes) | 57.238 (39.124) | 59.826 (47.883) | **54.793** (42.800) |
+| | Bankrott | 0 | 0 | **0** |
+| | Spieler Bürger: Ø Jahr (im Ziel 8–12) | 10,0 (10 von 10) | 9,3 (10 von 10) | **10,4 (10 von 10)** |
+| Greybox (20 Startwerte) | Spieler | 34.588 | 22.267 | **35.151** |
+| | KI-Häuser Ø (kleinstes) | 61.624 (43.592) | 72.548 (60.694) | **72.543** (53.704) |
+| | Bankrott | 0 | 0 | **0** |
+| | Spieler Bürger: Ø Jahr (im Ziel 8–12) | 11,0 (16 von 20) | 12,2 (13 von 20) | **9,5 (20 von 20)** |
+
+Köln je Haus (vorher / nachher): Overstolz 71.421 / 70.492, Hardevust 51.862 / 42.871, Lyskirchen 54.019 / 59.052, Gryn 74.930 / 57.429, Scherfgin 39.124 / 53.185, Mommersloch 58.244 / 57.722, Kleingedank 51.063 / 42.800. Greybox: Eisenbart 85.002 / 89.008, Eichwald 56.277 / 53.704, Kieselbach 43.592 / 74.916.
+
+`messen 30 20 greybox` (Dynastie Eisenbart, 30 Jahre, 20 Startwerte), vorher 1f0e80ad / nachher 4a8883ed: Vermögen Ø 208.680 → 210.363, Eichwald 156.787 → 169.334, Kieselbach 115.258 → 194.002; bankrott 0 / 0. `messen 30 20` ohne Karte rechnet mit fester Fahrzeit (keine Strecke) und bleibt gleich.
+
+**Befund:** Kern und Bild fahren dieselbe Strecke (Abweichung nur die Rundung des Kerns auf ganze Minuten, Test `KarrenwegTests`). Mit den nachjustierten Karten bleibt der Spieler in beiden Städten im Ziel (Köln 32.425, −4,4 %; Greybox 35.151, +1,6 %), kein Bankrott, Bürger im Ziel. Die KI-Häuser der Greybox gewinnen 18 % – fast ganz Kieselbach (+72 %): Sein Karren fuhr im Kern bisher 89 m außen herum, im Bild schon immer 26 m über seine Gasse; jetzt rechnet der Kern, was man sieht. In Köln verlieren die KI-Häuser 4 % (Werkstattwege 25–30 statt 27–28 Minuten, die Umlandwege etwas kürzer). Die Klicktests (Tempo 1) zeigen je Werkstatt −1 bis +2 % gegen die Kernzeit (Köln, Greybox, Probestadt; vorher −34 bis +105 %), gesehene Fahrten 1,00 m/s (auf Gassen 0,85 m/s, wie der Kern); im Umland gleiche Längen, die Zeit kappt der Kern bei 360 Minuten.
+
+## Märkte an den Enden der Mauer und in Deutz (PR #282)
+
+*Zwischenstand: Alter Markt und Heumarkt rückten danach eine Hausreihe vom Tor ab („Hausreihe vor dem Tor“).*
+
+Entscheidung des Nutzers (31.10.2026, ersetzt die Lage aus „Mehrere Marktplätze“): Köln hat zwei Märkte innerhalb des Mauerhalbkreises an seinen Enden, wo er auf den Rhein trifft, und den dritten in Deutz. Namen wie bisher (Vorschlag des Teamleiters): **Alter Markt** im Norden hinter dem Kunibertstor (37 | −125), **Heumarkt** im Süden hinter dem Bayentor (37 | 125), **Neumarkt** in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße (170 | 6). Die Namen stehen nur im Stadtskript (`Koeln.Maerkte`, mit dem Dativ für den Werkstattnamen), die Kennungen folgen der Lage. Ziel wie bisher: Spieler nach 20 Jahren um 30.000, KI-Häuser im bisherigen Rahmen, kein Bankrott. Keine Änderung an Kern, Daten oder Spielstand – nur die Karte.
+
+**Karte** (Leveldesign, Einzelheiten in `docs/LEVELDESIGN.md`, Abschnitt Köln): Startgrundstücke an den Straßen, die auf die Plätze führen, je Straßenseite eins, 36 m vom nächsten Platz – der Spieler und zwei KI-Häuser am Heumarkt (Rheingasse, Kartäuserwall), zwei am Alter Markt (Rheingasse), drei in Deutz (Kirchstraße, Freiheit). Der Spieler liegt 38 m vom Platz (innerhalb der ±10 % der Prüfung), damit sein Werkstattweg wie bisher 24 m (30 Minuten, die alte feste Zeit) ist. Platz geschaffen haben: Kran und Zollstelle südlich des Hafens, der Duffesbach als Graben vor der Südmauer, die Ruine in Deutz im Südosten; am alten Heumarkt im Ursprung laufen Severinstraße, Schildergasse und Brückenstraße zusammen. Die **Umlandbetriebe der KI-Häuser** liegen nicht mehr an Aachener, Venloer und Luxemburger Straße (von dort wären es über die Wallstraßen 300–420 m zum nächsten Platz), sondern an Bonner Straße, Mülheimer Weg und Siegburger Straße, jeder etwa gleich weit vom nächsten Platz; die neun Liegenschaften zum Kauf bleiben, wo sie waren. Kein Betrieb fährt über den Rhein: Die drei Deutzer Werkstätten und sechs Umlandbetriebe fahren zum Neumarkt (Test).
+
+**Fahrzeiten** (`messen karren koeln`, Handkarren bzw. Ochsenkarren eben):
+
+| Köln | Werkstatt: Weg Ø (min–max) | Handkarren Ø | an der Höchstdauer | Umland: Weg Ø (min–max) | Ochsenkarren Ø | an der Höchstdauer |
+|---|---|---|---|---|---|---|
+| vorher (0c614dbf) | 22 m (20–24) | 27 min | 0 von 48 | 307 m (279–336) | 485 min (gefahren höchstens 360) | 26 von 42 |
+| nachher | 22 m (20–24), Spieler 24 | 28 min | 0 von 48 | 170 m (150–193) | 269 min | 0 von 42 |
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler): **vorher** = 0c614dbf (Messung auf c10fc194, „Eine Strecke für Kern und Bild“), **nachher** = f7d0b501 auf main 2c5275c8 (eingemergt) → `docs/messungen/balancing-2026-10-31-maerkte2-{koeln,greybox}.json`. Dazwischen zwei Fassungen, die nicht gebaut sind (gleicher main):
+
+| Köln (10 Startwerte) | vorher | Fassung 1: Umland 89–184 m, Spieler 21 m | Fassung 2: Spieler 24 m | **nachher**: Umland 150–193 m |
+|---|---|---|---|---|
+| Spieler | 32.425 | 34.366 | 34.778 | **32.009** |
+| KI-Häuser Ø (kleinstes) | 54.793 (42.800) | 66.059 (48.651) | 64.857 (47.150) | **62.000** (40.618) |
+| Bankrott | 0 | 1 (Lyskirchen, um Jahr 10) | 0 | **0** |
+| Spieler Bürger: Ø Jahr (im Ziel 8–12) | 10,4 (10 von 10) | 10,2 (10 von 10) | 10,0 (10 von 10) | **9,8 (10 von 10)** |
+
+Köln je Haus (vorher / nachher): Overstolz 70.492 / 83.398, Hardevust 42.871 / 44.666, Lyskirchen 59.052 / 63.334, Gryn 57.429 / 75.516, Scherfgin 53.185 / 53.362, Mommersloch 57.722 / 73.107, Kleingedank 42.800 / 40.618. **Greybox** (20 Startwerte, Gegenprobe, die Karte ist unverändert): Spieler 35.151, KI-Häuser Ø 72.543 (53.704), kein Bankrott, Bürger 9,5 (20 von 20) – auf den Gulden wie vorher.
+
+**Befund:** Ziel erreicht – der Spieler bleibt bei 32.009 (−1 %), kein Bankrott, Bürger nach Ø 9,8 Jahren. Die KI-Häuser gewinnen 13 % (62.000, zwischen der Fahrzeit nach Weglänge mit gekapptem Umland, 54.793, und der alten festen Fahrzeit, 73.589): Ihr Umland fährt nicht mehr an der Höchstdauer. Wie stark das Umland auch den Spieler trägt, zeigen die Fassungen dazwischen: Mit Umlandwegen von 89–184 m kamen Erz und Holz so schnell auf den gemeinsamen Markt, dass der Schmied des Spielers mit derselben Werkstatt rund 7 % mehr hatte (34.778); erst mit gleich weiten Umlandwegen um 170 m (Ochsenkarren 4–5 Stunden) liegt er wieder bei 32.000. Der eine Bankrott der Fassung 1 war ein Einbruch beim Ausbau um Jahr 10 (Tiefstwert −984, andere Häuser knapp über null), in den beiden späteren Fassungen kam keiner vor. Drei Liegenschaften zum Kauf im Westen (Kräutergarten am Bach, Steinbruch am Felsenhang, Holzschlag im Eichenforst, 324–426 m) fahren weiter an der Höchstdauer – wie schon vorher für den Ochsenkarren; über alle 16 Umlandbetriebe sind es 8 von 72 Fahrten statt 23.
+
+**Klicktest** (Köln, Tempo 1, Vulkan auf der Grafikkarte, Messzeile `[karren] Profil`): Alle acht Werkstattkarren fahren im Bild den Weg des Kerns (gleiche Länge, 19,8–23,6 m, Anker im Modell 0,00 m vom Start) und kommen −1 bis 0 % gegen die Kernzeit am Halt an (nur die Rundung des Kerns auf ganze Minuten), jeder zu seinem Platz: Heumarkt 3 (Spieler 23,6 m, 30 Minuten), Alter Markt 2, Neumarkt 3. Stände stehen an allen drei Plätzen, ein Klick auf jeden öffnet die gemeinsame Preistafel.
+
+## Hausreihe vor dem Tor (PR #282)
+
+Wunsch des Nutzers (1.11.2026): Die Lage der drei Märkte bleibt, aber Alter Markt und Heumarkt lagen zu nah an der Mauer (der Platz stieß an Wallstraße und Tor). Beide rücken an der Rheingasse 15 m zur Stadtmitte (37 | ±110 statt ±125; der Rand des Platzes 28 statt 13 m vor dem Tor), so dass dazwischen Häuser stehen: zur Stadt hin die Wallstraße und ein Haus, am Rhein zwei Häuser hintereinander (am Heumarkt Einwohnerplätze, am Alter Markt Kulissenhäuser, die auch mit wenigen Rivalen stehen). Deutz ist nach demselben Maßstab geprüft und bleibt, wie es ist (zwischen Neumarkt und Deutzer Mauer stehen nach Norden die Startgrundstücke, nach Süden und Osten Einwohnerplätze). Ziel wie bisher: Spieler um 30.000, KI-Häuser im bisherigen Rahmen, kein Bankrott. Keine Änderung an Kern, Daten oder Spielstand – nur die Karte.
+
+**Karte** (Einzelheiten in `docs/LEVELDESIGN.md`, Abschnitt Köln): Die Startgrundstücke an der Rheingasse ziehen 14–15 m mit; dafür rücken im Norden Trankgasse und Krähenpforte 9 m, Hafen, Kran und Zollstelle 6 m nach Süden. Der Kartäuserwall berührt den Heumarkt nicht mehr – das Grundstück, das an ihm lag (S3, Hardevust), liegt jetzt am Malzbüchel, einer neuen Hauptstraße von der Severinstraße zur Mitte des Heumarkts. Drei Einwohnerplätze am Heumarkt und drei Kulissenhäuser am Alter Markt kommen dazu, ein Einwohnerplatz an der Trankgasse fällt weg (68 statt 66 Einwohnerplätze, 8 statt 5 Kulissenhäuser); 52 Bauzonen, Kapazität 7.487 statt 7.746 Felder (80 % frei nach der Pflicht).
+
+**Fahrzeiten** (`messen karren koeln`, Handkarren bzw. Ochsenkarren eben):
+
+| Köln | Werkstatt: Weg Ø (min–max) | Handkarren Ø | an der Höchstdauer | Umland: Weg Ø (min–max) | Ochsenkarren Ø | an der Höchstdauer |
+|---|---|---|---|---|---|---|
+| vorher (e32f607a) | 22 m (20–24), Spieler 24 | 28 min | 0 von 48 | 170 m (150–193) | 269 min | 0 von 42 |
+| nachher | 22 m (20–24), Spieler 24 | 27 min | 0 von 48 | 173 m (151–193) | 273 min | 0 von 42 |
+
+Je Betrieb ändern sich nur drei Wege: Hardevust 24 → 21 m (über den Malzbüchel statt den Kartäuserwall), Lyskirchen 23 → 22 m und der Kräutergarten Gryn an der Bonner Straße 150 → 168 m (der Heumarkt liegt weiter vom Severinstor); die übrigen Umlandbetriebe fahren nach Deutz.
+
+**Messung** (`messen bericht 20 n --teile=3 --fairness=<karte> --rotationen=1`, Reinvermögen nach 20 Jahren, Mittel; keine Partie mit Fehler): **vorher** = f7d0b501 (Messung „Märkte an den Enden der Mauer und in Deutz“, auf main 2c5275c8), **nachher** = 1b598be0 auf main 2c5275c8 (eingemergt) → `docs/messungen/balancing-2026-11-01-hausreihe-{koeln,greybox}.json`.
+
+| Köln (10 Startwerte) | vorher | **nachher** |
+|---|---|---|
+| Spieler (Median; Fehler des Mittels) | 32.009 (29.993; ±2.205) | **31.222** (31.194; ±1.398) |
+| KI-Häuser Ø (kleinstes) | 62.000 (40.618) | **63.526** (50.462) |
+| Bankrott | 0 | **0** |
+| Spieler Bürger: Ø Jahr (im Ziel 8–12) | 9,8 (10 von 10) | **9,5 (10 von 10)** |
+
+Köln je Haus (vorher / nachher): Overstolz 83.398 / 81.379, Hardevust 44.666 / 58.007, Lyskirchen 63.334 / 54.216, Gryn 75.516 / 76.595, Scherfgin 53.362 / 56.367, Mommersloch 73.107 / 67.655, Kleingedank 40.618 / 50.462. Eine erste Fassung mit Einwohnerplätzen auch am Alter Markt (22edd3b2, nicht mehr gebaut) ergab Spieler 30.192, KI-Häuser Ø 63.605 (51.532), kein Bankrott – die Kulissen ändern nur den Fußverkehr der Wege dort und damit den Verlauf der Partien. **Greybox** (20 Startwerte, Gegenprobe, die Karte ist unverändert): Spieler 35.151, KI-Häuser Ø 72.543 (53.704), kein Bankrott, Bürger 9,5 (20 von 20) – auf den Gulden wie vorher.
+
+**Befund:** Ziel erreicht – der Spieler liegt bei 31.222 (−2 %, weit unter dem Fehler des Unterschieds von ±2.611; der Median 31.194), kein Bankrott, Bürger nach Ø 9,5 Jahren; die KI-Häuser +2 % gegen den Zwischenstand f7d0b501 (63.526 gegen 62.000) – **gegen main (feste Fahrzeit, 73.589) aber −14 %**; dieser Vergleich fehlte hier zuerst (Befund M1 der Prüfung vom 1.11.2026), siehe „Endabnahme gegen main und Ausbau“. Am deutlichsten gewinnen gegen f7d0b501 die beiden Tischler (Hardevust +30 %, Kleingedank +24 %, je etwa das Doppelte des Fehlers des Unterschieds; gegen main +2 % bzw. −22 %), damit hat das schwächste KI-Haus 50.462 statt 40.618; Hardevust fährt jetzt 21 statt 24 m, Kleingedanks Wege sind gleich – die Ursache ist nicht untersucht. Alle übrigen Unterschiede gegen f7d0b501 liegen in der Streuung (Lyskirchen −14 %, Mommersloch −7 %, je etwa ein bis anderthalb Fehler des Unterschieds); gegen main verliert Lyskirchen 31 % (siehe „Endabnahme gegen main und Ausbau“).
+
+**Klicktest** (Köln, Tempo 1, Vulkan auf der Grafikkarte, Messzeile `[karren] Profil`): Alle acht Werkstattkarren fahren im Bild den Weg des Kerns (gleiche Länge, 19,8–23,6 m, Anker im Modell 0,00 m vom Start) und kommen −1 bis +2 % gegen die Kernzeit am Halt an (nur die Rundung des Kerns auf ganze Minuten: Lyskirchen 27,5 gegen 27 Minuten), jeder zu seinem Platz: Heumarkt 3 (Spieler 23,6 m, 30 Minuten; Hardevust jetzt 21,2 m über den Malzbüchel), Alter Markt 2, Neumarkt 3. Im Bild stehen zwischen Tor und Platz am Heumarkt ein großes Einwohnerhaus an der Stadtseite und zwei am Rhein, am Alter Markt die drei Kulissenhäuser (eins neben St. Kunibert, zwei am Rhein; zweiter Lauf nach dem Umbau, gleiche Messzeilen), in Deutz zwei Häuser vor dem Südtor; ein Klick auf Alter Markt und Neumarkt öffnet die gemeinsame Preistafel.
+
+## Endabnahme gegen main und Ausbau (PR #282, Prüfung 1.11.2026)
+
+Eine unabhängige Prüfung (1.11.2026) fand: Die Abschnitte oben verglichen die KI-Häuser mit Zwischenständen des Branches statt mit main (Befund M1), die KI-Stärke war am Endstand nicht gemessen (M2), Lyskirchen verlor in Köln 31 % (M3), und gemessen war nur ein Spieler mit genau einem Betrieb – wer ausbaut, bekam in Köln fast nur Bauorte drei Stunden vom Markt (H2). Hier der Vergleich gegen **main 880e3387** (feste Fahrzeit 30 / 120 Minuten) für den Endstand des Branches. Die Simulation des Branches ist seit 1b598be0 unverändert (danach nur Messcode, Kartenprüfung, Darstellung, Doku; die Greybox gibt auf den Gulden dieselben Zahlen wie die Prüfung auf dd347586). Die Karrenwahl der KI (Befund H1) bessert spiel-ki gerade nach; diese Zahlen sind vor H1.
+
+**Messung** (`messen bericht 20 n --teile=… --karte=<karte> --fairness=<karte> --rotationen=1 --betriebe=<datei.csv>`; main mit dem Messcode dieses Branches, sonst unverändert; keine Partie mit Fehler) → `docs/messungen/balancing-2026-11-01-endabnahme-{main,branch}-{greybox,koeln-t3,koeln-t5}.json`. Greybox 20 Startwerte (Teil 3 und 5), Köln Teil 3 mit 20 Startwerten, Teil 5 mit 10.
+
+### Spieler und KI-Häuser (Teil 3: Spieler mit einem Betrieb, KI-Häuser bauen aus)
+
+| Köln (20 Startwerte) | main 880e3387 | Branch | Unterschied |
+|---|---|---|---|
+| Spieler (Mensch Schmied, ein Betrieb) | 32.895 (±1.997) | 31.798 (±1.230) | −3,3 % (z −0,5) |
+| Haus Overstolz (Zwerg Schmied) | 88.161 (±2.371) | 75.626 (±3.434) | −14,2 % (z −3,0) |
+| Haus Hardevust (Elb Tischler) | 63.235 (±3.521) | 56.261 (±2.973) | −11,0 % (z −1,5) |
+| Haus Lyskirchen (Halbling Steinmetz) | 73.460 (±4.886) | 55.712 (±3.918) | −24,2 % (z −2,8) |
+| Haus Gryn (Mensch Alchimist) | 87.819 (±3.323) | 73.423 (±4.688) | −16,4 % (z −2,5) |
+| Haus Scherfgin (Mensch Schmied) | 58.286 (±4.138) | 55.494 (±4.266) | −4,8 % (z −0,5) |
+| Haus Mommersloch (Halbling Wirt) | 84.814 (±3.203) | 68.779 (±2.646) | −18,9 % (z −3,9) |
+| Haus Kleingedank (Mensch Tischler) | 64.003 (±3.375) | 53.859 (±3.642) | −15,8 % (z −2,0) |
+| **KI-Häuser Ø** (kleinstes) | **74.254** (58.286) | **62.736** (53.859) | **−15,5 %** |
+| Bankrott / erloschen | 0 / 0 | 0 / 0 | |
+| Spieler Bürger: Ø Jahr (im Ziel 8–12) | 10,1 (17 von 20) | 10,1 (19 von 20) | |
+
+(Reinvermögen nach 20 Jahren, Mittel mit Fehler des Mittels; z = Unterschied ÷ Fehler des Unterschieds.) **Greybox** (20): Spieler 34.779 → 35.151 (+1 %), KI-Häuser 79.030 → 72.543 (−8 %; Eisenbart +2 %, Eichwald −17 %, Kieselbach −12 %), Bürger im Ziel 19 → 20 von 20, kein Bankrott.
+
+**Befund:** Der Spieler mit einem Betrieb bleibt in beiden Städten im Ziel (Köln 31.798, Greybox 35.151; um 30.000, kein Bankrott, Bürger im Ziel). Die KI-Häuser verlieren gegen main 16 % in Köln und 8 % in der Greybox – nicht „im bisherigen Rahmen“, wie die Abschnitte oben gegen ihre Zwischenstände schrieben (M1). Der Verlust kommt ganz aus dem Ausbau: Startwerkstätten bringen auf beiden Ständen dasselbe, Neubauten und Umland weniger (unten). Mit 10 Startwerten (Prüfung) lag Köln bei 31.222 / 63.526 gegen 31.199 / 73.589; mit 20 ändern sich die Mittel um einige Prozent, die Aussage nicht.
+
+### KI-Stärke (Teil 5: der Spieler mit der Strategie der KI, „Bezugsspieler“)
+
+| Karte, Schwierigkeit | Bezugsspieler main → Branch | KI-Häuser main → Branch | Median KI ÷ Bezug | KI davongezogen (> 2×) |
+|---|---|---|---|---|
+| Greybox, Normal (20) | 68.066 → 56.004 (−18 %) | 78.461 → 69.017 (−12 %) | 1,08 → 1,14 | 3/60 → 9/60 |
+| Greybox, Schwer (20) | 68.162 → 46.818 (−31 %) | 119.993 → 110.814 (−8 %) | 1,81 → 2,27 | 14/60 → 43/60 |
+| Köln, Normal (10) | 58.520 → 52.465 (−10 %) | 75.482 → 61.594 (−18 %) | 1,45 → 1,15 | 9/70 → 14/70 |
+| Köln, Schwer (10) | 85.074 → 57.257 (−33 %) | 109.190 → 85.067 (−22 %) | 1,32 → 1,64 | 0/70 → 30/70 |
+
+Bei „Normal“ verlieren Bezugsspieler und KI-Häuser ähnlich viel, das Verhältnis bleibt nahe 1. Bei „Schwer“ (die KI-Häuser starten mit Werkstatt und Umlandbetrieb) zieht die KI davon: Der Bezugsspieler baut erst aus und trifft dann auf die weiten Bauorte und das weite Umland (unten), die KI hat ihr Umland vom Start an. Ob „Schwer“ so schwer sein soll, ist eine Frage an den Nutzer; die Karrenwahl der KI (H1) ändert die Zahlen noch.
+
+### Ausbau (Befund H2)
+
+**Bauorte** (`messen bauorte`, Fahrzeit des Handkarrens zum nächsten Platz an jedem Ort, an dem man jetzt eine Gießerei bauen dürfte, je Stelle die beste Drehung; `Stadtwirtschaft.FahrzeitAmBauort`, dieselbe Zahl wie nach dem Bau):
+
+| Karte | Stellen | Median | bis 30 min | bis 60 min | bis 120 min | an der Höchstdauer | zehn Neubauten nacheinander, Reihenfolge der KI (Luftlinie) | … der schnellste freie Ort |
+|---|---|---|---|---|---|---|---|---|
+| Greybox | 54 | 123 min | 8 | 10 | 26 | 0 | 131, 113, 189, 108, 130, 154, 198, 118, 133 | 21, 33, 103, 108, 118, 130, 133, 186, 198 |
+| Köln | 602 | 179 min | 1 | 1 | 87 | 54 | 10, 103, 145, 165, 71, 91, 135, 109, 89, 163 | 10, 71, 89, 91, 101, 107, 109, 117, 135, 137 |
+
+In der Greybox passen nur neun Neubauten nebeneinander. Die Startwerkstätten fahren 25–30 Minuten (Köln) bzw. 15–38 (Greybox). In Köln liegt ein einziger Bauort unter einer Stunde (direkt am Platz); wer die zweite Werkstatt baut, fährt mindestens 71 Minuten, im Mittel der KI-Reihenfolge zwei Stunden. In der Greybox gibt es zwei gute Stellen (21 und 33 Minuten), die KI wählt nach Luftlinie aber zuerst 131 und 113.
+
+**Was Neubauten bringen** (Abschnitt „ausbau“ der Messdateien; Neubau = Werkstatt, die ein Haus im Lauf der Partie baut; „danach“ = jedes volle Jahr nach dem Bau; Teil-5-Partien „Normal“, alle Häuser):
+
+| | Neubauten je Haus | Baujahr (Median) | Fahrzeit hin (Median) | Gewinn je Jahr danach | Stillstand | Fahrten zum Markt je Jahr |
+|---|---|---|---|---|---|---|
+| Greybox main | 1,3 | 14 | 28 min | 2.292 | 6 % | 7,2 |
+| Greybox Branch | 1,3 | 14 | 116 min | 1.116 (−51 %) | 27 % | 5,0 |
+| Köln main | 1,4 | 14 | 26 min | 2.665 | 5 % | 5,0 |
+| Köln Branch | 1,4 | 14 | 97 min | 1.985 (−26 %) | 15 % | 4,6 |
+| Köln main, nur der ausbauende Spieler | 2,3 | 13 | 26 min | 2.665 | 9 % | 8,5 |
+| Köln Branch, nur der ausbauende Spieler | 1,6 | 14 | 97 min | 1.810 (−32 %) | 20 % | 5,9 |
+
+Köln Branch nach Fahrzeit des Neubaus: bis 45 Minuten (10 Neubauten, die eine Stelle am Platz) 3.714 Gulden im Jahr, 46–120 Minuten (51) 1.877, 121–240 Minuten (51) 1.415. Die Startwerkstätten bringen auf beiden Ständen dasselbe (Köln 3.265 / 3.229, Greybox 3.186 / 3.290). Das Umland verliert ebenfalls: Köln 116 → 263 Minuten, Stillstand 6 → 23 %, Gewinn −21 %.
+
+**Woran es hängt:** nicht am Vorrat, sondern an den Fahrten. Ein Karren mit 2 × 2 Stunden Weg schafft vier bis fünf Fahrten im Jahr; jede Fahrt verkauft und kauft ein. Mit einem Vorrat für zwei Hin- und Rückfahrten (V1 unten) bleibt der Stillstand der Greybox-Neubauten bei 25 % (Branch 27 %).
+
+**Varianten** (Versuche im Code, nicht gebaut; je eine Kopie des Branches, Teil 3 und Teil 5 „Normal“, Greybox 20 Startwerte, Köln 10; Reinvermögen nach 20 Jahren):
+
+| Stand | Greybox: Spieler mit einem Betrieb / KI-Häuser | Greybox: ausbauender Spieler (±Fehler) / KI-Häuser, KI davongezogen | Köln: Spieler / KI-Häuser | Köln: ausbauender Spieler (±Fehler) / KI-Häuser, KI davongezogen | Neubauten Köln: Fahrzeit / Gewinn je Jahr (alle; nur der Spieler) |
+|---|---|---|---|---|---|
+| main (feste Fahrzeit) | 34.779 / 79.030 | 68.066 (±3.060) / 78.461, 3 von 60 | 31.199 / 73.589 | 58.520 (±5.749) / 75.482, 9 von 70 | 26 min / 2.665; 2.665 |
+| Branch | 35.151 / 72.543 | 56.004 (±2.730) / 69.017, 9 von 60 | 31.222 / 63.526 | 52.465 (±5.953) / 61.594, 14 von 70 | 97 min / 1.985; 1.810 |
+| V1 Vorrat für zwei Hin- und Rückfahrten (mindestens 4 Stunden) | 33.506 / 72.476 | 55.560 (±2.735) / 70.382, 8 von 60 | 31.053 / 64.086 | 56.459 (±5.564) / 62.151, 6 von 70 | 97 min / 1.939; 1.856 |
+| V2 Höchstdauer 60 Minuten für Werkstätten in der Stadt (Umland 360) | 33.681 / 74.023 | 64.160 (±2.444) / 73.721, 3 von 60 | 31.205 / 64.101 | 58.997 (±4.427) / 64.161, 3 von 70 | 60 min / 2.277; 2.248 |
+| V3 Bauort nach Fahrzeit (`FahrzeitAmBauort` statt Luftlinie, KI und Bezugsspieler) | 34.245 / 75.143 | 67.222 (±2.389) / 71.546, 1 von 60 | 32.145 / 63.433 | 55.631 (±4.944) / 62.779, 7 von 70 | 96 min / 2.170; 2.135 |
+
+Köln mit 10 Startwerten (Teil 3 von main und Branch: dieselben Partien wie in der Prüfung, 31.199 / 73.589 bzw. 31.222 / 63.526); der Fehler des Mittels des Bezugsspielers liegt dort bei ±4.400–6.000 – Unterschiede unter etwa 8.000 sind Zufall. Belastbar sind in Köln die Gewinne der Neubauten (Fehler ±50–200) und die Greybox (20 Startwerte). Greybox-Neubauten der Häuser: Branch 116 Minuten / 1.116 Gulden im Jahr, Stillstand 27 %; V1 117 / 1.128, 25 %; V2 60 / 1.742, 13 %; V3 94 / 1.912, 13 % (main 28 / 2.292, 6 %).
+
+**Befund und Empfehlung (Designfrage an den Nutzer, nichts davon ist gebaut):**
+
+- **V1, Vorrat nach Fahrzeit, hilft nicht.** Der Stillstand der fernen Neubauten bleibt (Greybox 25 % statt 27 %), ihr Gewinn auch. Es fehlen Fahrten, nicht Zutaten im Lager: Jede Fahrt verkauft und kauft ein, und ein Karren mit 2 × 2 Stunden Weg kommt vier- bis fünfmal im Jahr zum Markt.
+- **V2, eigene Höchstdauer für Werkstätten (60 Minuten), wirkt am stärksten.** Neubauten in Köln bringen 2.277 statt 1.985 Gulden im Jahr (main 2.665), der ausbauende Spieler ist in beiden Städten fast wieder auf main (Greybox 64.160 gegen 68.066), die KI zieht nicht öfter davon als auf main. Der Preis: Kern und Bild stimmen für ferne Werkstätten nicht mehr – der Karren käme im Bild später an, als die Ware verkauft ist, oder führe sichtbar schneller. Eine feste Deckelung hatte der Nutzer am 31.10.2026 nicht gewählt.
+- **V3, Bauort nach Fahrzeit, hilft nur, wo es gute Bauorte gibt.** In der Greybox (zwei Stellen unter 35 Minuten) holt der ausbauende Spieler damit main fast ein (67.222), in Köln kaum (Neubauten 96 statt 97 Minuten): Dort liegt ein einziger Bauort unter einer Stunde.
+- **Empfehlung des Kerns:** Kern und Bild gleich lassen (keine Deckelung) und den Ausbau über die Karte lösen – **in Köln Bauplätze nahe den drei Märkten** (Leveldesign: Bauzonen an den Straßen, die auf die Plätze führen; ein Haus baut in 20 Jahren im Mittel 1,4 Werkstätten, für acht Häuser genügen etwa 10 bis 15 Bauorte unter 45 Minuten, also bis etwa 35 m Karrenweg), dazu **die Fahrzeit im Bauvorschlag** (Oberfläche, mit `FahrzeitAmBauort`) und **die KI wählt nach Fahrzeit** (spiel-ki, V3). Wenn das in Köln nicht genug Platz findet, als Rückfall V2 (Höchstdauer nur für Werkstätten in der Stadt, das Bild streckt dann nur diese Fahrten).
+
+### Lyskirchen (Befund M3)
+
+Mit 20 Startwerten verliert Lyskirchen (Halbling Steinmetz) in Köln 24 % (z −2,8) – nicht mehr allein: Mommersloch −19 % (z −3,9), Overstolz −14 % (z −3,0). Die −31 % der Prüfung (10 Startwerte) waren zum Teil Streuung. Die Ursache ist belegt (Gewinn über 20 Jahre je Partie aus `--betriebe`, Teil 3):
+
+| Lyskirchen, Gewinn in 20 Jahren | main | Branch | Unterschied |
+|---|---|---|---|
+| Startwerkstatt (Maurerei, 25–27 Minuten) | 67.436 | 68.027 | +591 |
+| Neubauten | 17.088 | 4.470 | −12.618 |
+| Umland (zwei Steinbrüche) | 37.754 | 33.246 | −4.507 |
+
+- **Neubauten:** Lyskirchen erweitert vor allem um Steinmetzhütte und Steinschneiderei (je 0,75 je Partie, ab Jahr 14). Sie liegen im Median 133 Minuten vom Markt (main 26), stehen 30 bzw. 35 % still und bringen 410 bzw. 1.103 statt 3.880 bzw. 2.393 Gulden im Jahr. Der Steinmetz braucht für jedes Stück viel Stein; mit sechs bis acht Fahrten im Jahr kommt nicht genug nach, und fertige Ware kommt nicht schnell genug weg.
+- **Umland:** Seine beiden Steinbrüche sind das fernste Umland der Kölner Häuser (Median 326 Minuten, einer an der Höchstdauer; die anderen Häuser 174–275), Stillstand 22 % statt 9 %.
+- **Gegenprobe:** Die Neubauten der Tischler Hardevust und Kleingedank liegen im Median 10 Minuten vom Markt – sie bekommen meist den einen Bauort am Platz – und verdienen wie auf main (3.154 bzw. 3.171 Gulden im Jahr). Darum fielen die Tischler im Zwischenstand gegen f7d0b501 „+30 %“ auf. Gryn, Scherfgin und Overstolz bauen bei 79–81 Minuten und verdienen 344–1.587.
+
+Der Beruf ist also nicht benachteiligt, sondern wer weit draußen ausbaut, und der Steinmetz am stärksten, weil er die meisten Zutaten je Stück braucht. Der Weg dorthin ist H2 (Ausbau).
+
+### Weitere Befunde der Prüfung
+
+- **Alte Spielstände** rechnen weiter wie auf main: Der Greybox-Stand von Herbst 1406 (Datenversion 55) läuft drei Jahre bitgleich mit main 880e3387 (SHA-256 des Spielstands ohne Daten und Karte, Test `AlterSpielstandSollwertTests`). Die Daten- und Kartenabschnitte des Spielstands unterscheiden sich nur um neue, leere Felder.
+- **Gleichheitstest** (Linux/Windows, Speichern und Laden, deutsche Ländereinstellung) jetzt auch in Köln (vier Jahre, „Schwer“, mit drei Marktplätzen und den Wegen über das Pflaster).
+- **Fairness der Startgrundstücke** misst die Kartenprüfung nach dem Karrenweg statt der Luftlinie (`Startwegpruefung`, Hinweis „startweg“); Köln: der Spieler 23,6 m gegen 21,1 m der KI-Werkstätten (+10 %), Grube Scherfgin und Bauernhof Mommersloch −13 % bzw. +12 % gegen das Mittel des Start-Umlands.
+
+## Werkstatt-Bauplätze und KI nach Fahrzeit (PR #282, 1.11.2026)
+
+Entscheidung des Nutzers zum Ausbau (Befund H2): **Weg A** – „Kern = Bild“ bleibt, keine Höchstdauer für Werkstätten (V2 verworfen). Seit dem Abschnitt oben sind drei Dinge dazugekommen:
+
+- Die **KI wählt Karren nach Durchfluss und den Bauort nach der Fahrzeit** (Befund H1, spiel-ki, `phase5/gehtempo-ki` eingemergt). Den Bauort fragt sie jetzt beim Kern ab (`Stadtwirtschaft.FahrzeitAmBauort`). Der Bezugsspieler spielt wie die KI.
+- **Köln hat sieben Werkstatt-Bauplätze unter 45 Minuten** nahe den Märkten (leveldesign; fünf in Deutz, zwei am Alter Markt, Tabelle in LEVELDESIGN, Abschnitt Köln). Zusammen mit der Stelle am Malzbüchel sind das 8 Stellen statt 1.
+- Auf diesen Bauplätzen dürfen **keine Wohnhäuser** stehen (Zonenfeld `"nur": "werkstatt"`, Kern).
+
+**Messung:** dieselbe Messart wie die Endabnahme (`messen bericht 20 n --teile=3,5 …`, siehe oben). Gemessen auf dem Branch 31ba979e, verglichen mit main 880e3387 (die Basis des Branches; origin/main stand zur Messzeit bei cd994168 und ist nicht eingemergt). Für Teil 5 in Köln gibt es zwei Läufe: 20 Startwerte und, für den Vergleich auf denselben Partien, 10 Startwerte wie main. Dateien: `docs/messungen/balancing-2026-11-01-bauplaetze-{greybox,koeln-t3,koeln-t5,koeln-t5-10}.json`. Keine Partie mit Fehler, kein Bankrott, kein erloschenes Haus.
+
+| Reinvermögen nach 20 Jahren | main 880e3387 | Branch vorher (8dd81924) | jetzt | jetzt gegen main |
+|---|---|---|---|---|
+| **Köln, ausbauender Spieler** (Teil 5, Normal, 10 Startwerte) | **58.520** (±5.749) | 52.465 (±5.953) | **57.670** (±5.685) | −1,5 % |
+| Köln, ausbauender Spieler, 20 Startwerte | – | – | 56.503 (±3.987) | |
+| Köln, KI-Häuser Teil 5 Normal (10) | 75.482 | 61.594 | 67.436 | −11 % |
+| Köln, Median der KI-Häuser ÷ Median des Bezugs (10) | 75.960 ÷ 54.112 | 63.054 ÷ 51.105 | 62.132 ÷ 56.801 | |
+| Köln, KI davongezogen (> 2×), Normal (10) | 9 von 70 | 14 von 70 | 7 von 70 | |
+| Köln, Schwer: Bezug / KI-Häuser / davongezogen (10) | 85.074 / 109.190 / 0 von 70 | 57.257 / 85.067 / 30 von 70 | 73.129 / 95.158 / 16 von 70 | −14 % / −13 % |
+| Köln, Spieler mit einem Betrieb (Teil 3, 20) | 32.895 (±1.997) | 31.798 (±1.230) | 31.780 (±1.846) | −3,4 % (z −0,4) |
+| Köln, KI-Häuser Ø Teil 3 (kleinstes) | 74.254 (58.286) | 62.736 (53.859) | 64.628 (53.686) | −13 % |
+| Köln, Bürger: Ø Jahr, im Ziel 8–12 | 10,1; 17 von 20 | 10,1; 19 von 20 | 10,5; 19 von 20 | |
+| Greybox, ausbauender Spieler (Teil 5, 20) | 68.066 (±3.060) | 56.004 (±2.730) | 62.268 (±2.434) | −8,5 % |
+| Greybox, KI-Häuser Teil 5 / davongezogen | 78.461 / 3 von 60 | 69.017 / 9 von 60 | 74.507 / 3 von 60 | −5 % |
+| Greybox, Schwer: Bezug / KI / davongezogen | 68.162 / 119.993 / 14 von 60 | 46.818 / 110.814 / 43 von 60 | 63.499 / 116.029 / 24 von 60 | |
+| Greybox, Spieler mit einem Betrieb / KI-Häuser Ø (Teil 3) | 34.779 / 79.030 | 35.151 / 72.543 | 35.765 / 75.825 | +3 % / −4 % |
+| Greybox, Bürger im Ziel | 19 von 20 | 20 von 20 | 19 von 20 | |
+
+(Die Zeile mit den Medianen nennt die Mediane der beiden Gruppen; das Verhältnis je Partie schreibt der Bericht nicht in die Datei.)
+
+**Neubauten** (Abschnitt „ausbau“, Teil 5 Normal, alle Häuser; „danach“ = jedes volle Jahr nach dem Bau):
+
+| | Fahrzeit hin (Median) | Gewinn je Jahr danach | Stillstand |
+|---|---|---|---|
+| Köln main | 26 min | 2.665 | 5 % |
+| Köln vorher | 97 min | 1.985 | 15 % |
+| Köln jetzt (20) | 25 min | 2.797 | 4 % |
+| Köln jetzt, nur der ausbauende Spieler (20) | 24 min | 2.655 (main 2.665, vorher 1.810) | 6 % |
+| Greybox main / vorher / jetzt | 28 / 116 / 93 min | 2.292 / 1.116 / 2.178 | 6 / 27 / 7 % |
+
+Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 92) und bringen 2.730 Gulden im Jahr (main 2.645). Die Startwerkstätten bleiben wie vorher. Das **Umland** liegt weiter weit draußen: 263 Minuten Fahrt (main 116), 16 % Stillstand (main 6 %, vorher 22 %), 1.327 Gulden im Jahr (main 1.506, vorher 1.198).
+
+**Befund:**
+
+- **Ziel erreicht.** Der ausbauende Spieler liegt in Köln auf denselben zehn Partien bei 57.670 Gulden, main hatte 58.520. Der Unterschied von −1,5 % (z −0,1) liegt weit unter dem Fehler (±5.700). Vor diesem Auftrag waren es 52.465.
+- **Neubauten wie auf main.** In Köln verdienen Neubauten wieder so viel wie auf main. Dafür sorgen die Bauplätze und die KI, die nach der Fahrzeit wählt.
+- **Greybox:** Ihre Karte ist unverändert, dort wirkt nur die KI nach Fahrzeit. Der ausbauende Spieler holt von 56.004 auf 62.268 auf, main hatte 68.066. Es bleiben −8,5 % (z etwa −1,5): In der Greybox gibt es nur zwei gute Bauorte.
+- **KI-Häuser im Mittel weiter unter main** (Köln −13 % in Teil 3, −11 % in Teil 5). Der Rest des Verlusts kommt vom Umland, nicht mehr vom Ausbau: Die Umlandbetriebe der KI liegen 150–193 m vom Markt, der Ochsenkarren braucht dafür im Median 263 Minuten.
+- **„Schwer“ zieht deutlich weniger davon.** In Köln ziehen 16 statt 30 von 70 KI-Häusern davon, auf main waren es 0. In der Greybox sind es 24 statt 43 von 60, auf main 14.
+- **Fair geblieben:** kein Bankrott, Bürger im Ziel wie vorher, der Spieler mit einem Betrieb unverändert.

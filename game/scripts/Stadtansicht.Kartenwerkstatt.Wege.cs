@@ -177,14 +177,15 @@ public partial class Stadtansicht
                 var q = Geometry3D.GetClosestPointToSegment(p, von, bis);
                 if (q.DistanceTo(p) < abstand) (naechster, abstand) = (q, q.DistanceTo(p));
             }
-            if (ueberDenMarkt && _marktHalb > 0 && AbstandZumPflaster(p) < abstand) _wsNetz.Weg(p, _markt);
+            if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand) _wsNetz.Weg(p, markt.Mitte);
             else if (naechster is { } q)
             {
                 _wsNetz.Weg(p, q);
                 if (breite is { } b && abstand > 0.3f) WegZiehen(p, q, b, _wsAnschluesse);
             }
         }
-        if (_marktHalb > 0 && !_wsNetz.Knoten.Any(k => k.DistanceTo(_markt) < Gassennetz.Fang)) Anhaengen(_markt, null, ueberDenMarkt: false);
+        foreach (var platz in _maerkte)
+            if (platz.Halb > 0 && !_wsNetz.Knoten.Any(k => k.DistanceTo(platz.Mitte) < Gassennetz.Fang)) Anhaengen(platz.Mitte, null, ueberDenMarkt: false);
         foreach (var tor in _entwurf.Mauern.SelectMany(m => m.Tore)) Anhaengen(V3(tor.Punkt), null);
         foreach (var g in _entwurf.Gebaeude)
         {

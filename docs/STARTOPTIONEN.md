@@ -44,6 +44,7 @@ Startoptionen (nach `--`):
 - `--kischmied=aus|wenige|alle` (Passanten mit dem KI-Schmied aus TRELLIS: `aus` nur die Figuren aus Blender, `wenige` (Standard) jeder zweite Knecht und Tagelöhner, `alle` jeder Mann (Mensch, nicht gebeugt, ohne Last); für Vergleiche mit `--blick=0,0,25 --messung=12`. In der Schmiede (`--innen=1`) tragen die Arbeiter ihn immer)
 - `--karren=<Typen>` (der eigenen Werkstatt Karren dazukaufen, z. B. `Ochsenkarren,Kriegskarren`, mit `--vermoegen=5000`; die beiden kosten zusammen 1.300)
 - `--umland=1` (den günstigsten freien Umlandbetrieb erwerben – wenn nötig erst zum Bürger aufsteigen –, ihm einen Ochsenkarren dazukaufen und seine Kurzübersicht mit „…“ zeigen: Karren mit Eskorte, Nachtfahrt und „Verkaufen“; mit `--vermoegen=30000`)
+- `--karrenmessung=1` (Messzeilen der Karren ins Protokoll: einmal je Betrieb und Karrenart `[karren] Profil: … Weg im Bild … m bis zum Halt (Kern … m, …), im festen Tempo … min, Kern-Fahrzeit … min, Ankunft ±…` und je Hinfahrt, die man von der Abfahrt an sah, `[karren] Fahrt gesehen: … m in … Spielminuten = … m/s bei Tempo 1 …` – zum Prüfen von Bild gegen Kern; ohne die Option schreibt die Stadtansicht keine dieser Zeilen, `Stadtansicht.Karren.cs`)
 - `--schiff=<Anzahl>` (am ersten Hafen so viele Flussschiffe kaufen, mit `--vermoegen=10000`; Karte mit Hafen, z. B. `--karte=probestadt` oder `greybox`)
 - `--schiffsauftrag=vorschlag` (jedem eigenen Schiff am Kai den Vorschlag als Auftrag geben; `=<Ziel>`: den Vorschlag für diese ferne Stadt, z. B. `Eisenfurt`, Leerzeichen als `_`)
 - `--hafen=1` (Hafentafel des ersten Hafens rechts öffnen, ohne `--blick` fährt die Kamera hin; `=<Kennung>` eines Hafens der Karte, z. B. `Hafen1`; `=staedte`: Reiter „Ferne Städte“). Ein ausgewähltes Schiff: `--auswahl=schiff:<Name>`
@@ -229,6 +230,7 @@ Zum Bauen und Leerstand:
 - `--bauen=1` (Baumodus mit Bautafel; `--bauen=wohnhaus:<Stufe 0–4>` oder `--bauen=werkstatt:<Betriebsart>` wählt gleich das Gebäude; `--bauen=wege` öffnet das Baumenü im Wege-Modus: Wege leuchten, Klick auf einen Weg öffnet die Wegtafel)
 - `--bauort=<x>,<z>,<Drehung 0–3>` (der Umriss sitzt an dieser Stelle der Stadt in Metern, bis die Maus bewegt wird; Probestellen stehen unter `probeplan` in `greybox.json`)
 - `--bauklick=1` (dort die Rückfrage öffnen; `=2` gleich bauen)
+- `--fahrwegzeit=1` (Kosten des Fahrwegs im Baumodus ins Protokoll: `[fahrweg] … Wege bei x | z: Kern … ms, Bild … ms` bei jeder neuen Stelle des Umrisses, `[fahrweg] Ampeln: …` am Ende der Suche; mit `--bauen=werkstatt:<Art> --bauort=…`)
 - `--aufsteigen=1` (Wohnhaus zum Bürgerhaus ausbauen und zum Bürger aufsteigen, damit Werkstätten erlaubt sind; mit `--vermoegen=30000`)
 - `--spulen=<Ticks>` (so viele Spielminuten auf einen Schlag ablaufen lassen, `1200` = über die Bauzeit eines Spieljahres)
 - `--leerstand=kaufen|abreissen` (mit `--auswahl=wohnhaus:Haus_Eisenbart`, Leerzeichen als `_`: Rückfrage zum leeren Haus öffnen; mit `--bauklick=2` gleich ausführen)
