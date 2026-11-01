@@ -1,5 +1,5 @@
 {
-  "version": 65,
+  "version": 66,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1113,6 +1113,7 @@
     "vorrat": 15,
     "anziehungJeStufe": [ 1, 1.5, 2 ],
     "anziehungJeAnsehen": 0.0125,
+    "sitzplaetzeJeStufe": [ 20, 30, 40 ],
     "dunkleEcke": { "chance": 0.2 },
     "wuerfeltisch": { "abStufe": 2, "einsatzJeGast": 4, "ansehen": 2 },
     "stammtisch": { "abStufe": 3, "gunst": 4 },
