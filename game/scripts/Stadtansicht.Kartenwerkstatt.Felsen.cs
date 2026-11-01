@@ -42,7 +42,18 @@ public partial class Stadtansicht
     public string? FelsGestein { get; set; }
 
     public double FelsRadius { get; set; } = 10;
-    public double FelsDichte { get; set; } = 0.2;
+    /// <summary>Dichte beim Streuen: je eine für Einzelstücke (0,2) und für Gruppen (0,1 – Gruppen sind groß und stehen sonst zu dicht).</summary>
+    public double FelsDichte
+    {
+        get => FelsGruppe is null ? _felsDichteEinzeln : _felsDichteGruppe;
+        set
+        {
+            if (FelsGruppe is null) _felsDichteEinzeln = value;
+            else _felsDichteGruppe = value;
+        }
+    }
+
+    private double _felsDichteEinzeln = 0.2, _felsDichteGruppe = 0.1;
     public double FelsGroesse { get; set; } = 1;
     public double FelsStreuung { get; set; } = 0.25;
     public double FelsEinsinken { get; set; } = Felsformen.EinsinkenVorgabe;
