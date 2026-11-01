@@ -46,6 +46,11 @@ uniform float unten_wurzel = 0.0;   // 0 = Wurzel voll, 1 = Wurzel ausgeblendet
 uniform float unten_hell = 0.0;     // Anteil Hautton
 uniform vec3 haut_ton : source_color = vec3(0.6, 0.45, 0.38);
 uniform float zufall_hell = 0.4;    // Etappe D (Brauen 0,7): Helligkeit je Haar stärker verschieden (kein einheitlicher Farbblock)
+// Grundkopf 2 (Prüfer: „Brauen aufgemalt“, bei dünner Dichte „gepunktete Striche“): haerchen > 0 – Haare über der Dichte
+// fallen nicht weg, sondern bleiben als feine, lichte Haare (haerchen_rest); die Spitzen laufen aus, jedes Haar deckt etwas
+// verschieden, und die Haarfarbe hat einen schmalen, längs laufenden Glanz. 0 = wie bisher.
+uniform float haerchen = 0.0;
+uniform float haerchen_rest = 0.4;
 
 void fragment() {
 	vec2 uv = UV;
@@ -75,8 +80,18 @@ void fragment() {
 	vec2 px = uv * (ebene >= 0.0 ? vec2(textureSize(bilder6, 0).xy) : vec2(textureSize(bild, 0)));
 	float lod = max(0.0, 0.5 * log2(max(dot(dFdx(px), dFdx(px)), dot(dFdy(px), dFdy(px)))));
 	float a = clamp(t.a * (1.0 + mip_hub * lod), 0.0, 1.0);
-	a *= 1.0 - smoothstep(dichte - 0.03, dichte, t.r);
-	a *= 1.0 - smoothstep(breite - 0.06, breite, t.g);
+	float weg_d = smoothstep(dichte - 0.03, dichte, t.r);
+	float weg_b = smoothstep(breite - 0.06, breite, t.g);
+	if (haerchen > 0.0) {
+		// lichte Haare statt Lücken; die Randhaare (breite) bleiben schwächer als die über der Dichte
+		float rest = haerchen_rest * haerchen;
+		a *= (1.0 - weg_d * (1.0 - rest)) * (1.0 - weg_b * (1.0 - 0.6 * rest));
+		a *= mix(1.0, 0.55 + 0.6 * fract(t.r * 13.7 + 0.21), 0.6 * haerchen);   // jedes Haar deckt etwas anders
+		a *= 1.0 - 0.45 * haerchen * smoothstep(0.55, 1.0, t.b);                 // Spitzen laufen aus
+	} else {
+		a *= 1.0 - weg_d;
+		a *= 1.0 - weg_b;
+	}
 	// Zufall je Haar aus R (langsam veränderlich, damit gefilterte Ränder nicht flimmern)
 	float zufall = fract(t.r * 5.71 + 0.3);
 	vec3 c = farbe * (1.0 - 0.5 * zufall_hell + zufall_hell * zufall);
@@ -90,7 +105,7 @@ void fragment() {
 	if (braue && rand_aus > 0.0) {
 		ALPHA *= mix(1.0, smoothstep(0.1, max(rand_aus_kante, 0.11), abs(dot(normalize(NORMAL), VIEW))), rand_aus);
 	}
-	ROUGHNESS = 0.5;
-	SPECULAR = glanz;
+	ROUGHNESS = mix(0.5, 0.38, haerchen);
+	SPECULAR = glanz * (1.0 + 0.6 * haerchen);
 	BACKLIGHT = c * 0.25;
 }
