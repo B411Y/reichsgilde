@@ -15,7 +15,9 @@ public sealed record Gestein(
 /// Das Fels-Material (Felspinsel F2): liest die Gesteinsvorlagen aus <c>res://daten/gestein.json</c> und baut daraus <see cref="ShaderMaterial"/>
 /// mit <c>fels.gdshader</c> (Struktur dreiseitig, ab Grafikstufe Mittel) oder <c>fels_niedrig.gdshader</c> (eine Abtastung aus der stärksten Richtung der Fläche). Die Struktur ist
 /// <c>texturen/fels/fels_struktur.png</c> (<c>tools/oberflaeche/felstexturen.py</c>). Eine Gesteinsart je Karte für den Hang-Fels, einzelne
-/// Felsstücke dürfen abweichen (Nutzer 01.11.2026); das Spiel nutzt das Material ab F5, bis dahin nur die Testszene <see cref="Felstest"/>.
+/// Felsstücke dürfen abweichen (Nutzer 01.11.2026). Für die echten Felsformen (F1, <c>natur_felsen.glb</c>) bindet <see cref="Material"/> mit
+/// <c>f1</c> die gebackenen Atlanten ein (<c>texturen/felsen/felsen_normal.webp</c> als Normal Map, <c>felsen_hoehlung.webp</c>: R Verdeckung, G Kante,
+/// B Rinne; beide ohne sRGB) – so zeichnet sie das Spiel (Stadtansicht.Felsen.cs, F5); die Testszene <see cref="Felstest"/> nutzt Platzhalter ohne.
 /// </summary>
 public static class Gesteinsarten
 {
@@ -23,6 +25,8 @@ public static class Gesteinsarten
     public const string ShaderHoch = "res://assets/shader/fels.gdshader";
     public const string ShaderNiedrig = "res://assets/shader/fels_niedrig.gdshader";
     public const string StrukturPfad = "res://assets/texturen/fels/fels_struktur.png";
+    public const string AtlasNormalPfad = "res://assets/texturen/felsen/felsen_normal.webp";
+    public const string AtlasHoehlungPfad = "res://assets/texturen/felsen/felsen_hoehlung.webp";
 
     private static List<Gestein>? _alle;
     private static Godot.Collections.Dictionary? _wurzel;
@@ -90,11 +94,20 @@ public static class Gesteinsarten
         return (Vector3.Up * Mathf.Cos(w) + abtauchen * Mathf.Sin(w)).Normalized();
     }
 
-    /// <summary>Ein neues Fels-Material für <paramref name="gestein"/>. <paramref name="dreiseitig"/>: Struktur von drei Seiten (Mittel und höher) oder aus einer Richtung (Niedrig).</summary>
-    public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f)
+    /// <summary>
+    /// Ein neues Fels-Material für <paramref name="gestein"/>. <paramref name="dreiseitig"/>: Struktur von drei Seiten (Mittel und höher) oder aus einer
+    /// Richtung (Niedrig). <paramref name="f1"/>: für die F1-Felsformen (Atlas über UV0 und Vertexfarben), nicht für Platzhalter ohne beides.
+    /// </summary>
+    public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f, bool f1 = false)
     {
         var m = new ShaderMaterial { Shader = GD.Load<Shader>(dreiseitig ? ShaderHoch : ShaderNiedrig) };
         m.SetShaderParameter("struktur", GD.Load<Texture2D>(StrukturPfad));
+        if (f1)
+        {
+            m.SetShaderParameter("f1_netz", true);
+            m.SetShaderParameter("atlas_normal", GD.Load<Texture2D>(AtlasNormalPfad));
+            m.SetShaderParameter("atlas_hoehlung", GD.Load<Texture2D>(AtlasHoehlungPfad));
+        }
         Anwenden(m, gestein);
         FrischSetzen(m, frisch, frischBis);
         return m;

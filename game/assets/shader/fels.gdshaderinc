@@ -17,8 +17,24 @@
 // sie sich diesen Zufall (bei MultiMesh enthält MODEL_MATRIX die Instanz, dort bleibt er je Stück).
 // „Im Schatten“: Der Fragment-Shader weiß nicht, ob die Sonne ein Pixel erreicht (das rechnet Godot erst im Licht). Moos wächst
 // deshalb dort, wo im Mittel des Tages Schatten ist: Nordseite (−z), Höhlungen der Struktur, Klüfte und unter Absätzen.
+//
+// Die echten Felsformen (F1, natur_felsen.glb, f1_netz = true; Felspinsel F5) bringen ihre gebackene Form mit: einen Atlas 4 × 2 über UV0 mit der
+// Normalen (Tangentenraum, OpenGL-Richtung, felsen_normal.webp) und der Höhlung (felsen_hoehlung.webp: R Verdeckung, G Kante, B Rinne), dazu
+// Vertexfarben (R Höhlung grob, G Kante, B Höhe im Stück 0 unten … 1 oben, A Tiefe 0 vorn … 1 zum Hang). Die Normale des Atlas ist die Grundform,
+// die Struktur oben kommt als feine Körnung darauf. Ab Mittel (HOEHLUNG_BILD) kommt die Höhlung aus dem Bild, auf Niedrig aus den Ecken (eine
+// Abtastung weniger). Verdeckung dunkelt und trägt Moos, Kanten bekommen Flechten und helle Abnutzung, Rinnen sind dunkel und tragen Moos im
+// Schatten; am Fuß (Boden, INSTANCE_CUSTOM.x = Einsinktiefe in Metern) ein Moossaum, die Hangseite etwas dunkler und bemooster.
+// Wetter wie die übrigen Oberflächen (wetter.gdshaderinc, wetter_flaeche): nass dunkler und glatter, Rinnsale auf steilen Flächen, Tropfen auf
+// flachen (ab Mittel), Schnee auf allem, was nach oben zeigt. Die Platzhalter der Testszene (f1_netz = false) haben weder Atlas noch Vertexfarben.
+
+#include "res://assets/shader/wetter.gdshaderinc"
 
 uniform sampler2D struktur : hint_default_white, repeat_enable, filter_linear_mipmap_anisotropic;
+// Die gebackene Form der F1-Felsen (Atlas über UV0, ohne sRGB) und ob das Netz sie hat
+uniform bool f1_netz = false;
+uniform sampler2D atlas_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform sampler2D atlas_hoehlung : hint_default_white, filter_linear_mipmap_anisotropic, repeat_disable;
+uniform float atlas_staerke = 1.0;          // wie stark die Normale des Atlas wirkt
 uniform float kachel = 2.5;                  // Meter je Kachel der Struktur
 
 uniform vec4 farbe_hell : source_color = vec4(0.55, 0.57, 0.59, 1.0);
@@ -49,6 +65,8 @@ uniform float rillen_abstand = 0.35;
 varying vec3 v_welt;
 varying vec3 v_normale;
 varying vec3 v_stueck;
+varying vec4 v_ecke;                         // Vertexfarbe (siehe oben)
+varying float v_ueber;                       // Höhe über dem Boden in Metern (ungefähr: Boden unter der Mitte des Stücks)
 
 float hash1(vec3 p) {
 	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
@@ -69,6 +87,8 @@ void vertex() {
 	v_welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_normale = normalize(MODEL_NORMAL_MATRIX * NORMAL);   // richtig auch bei ungleich skalierten Stücken
 	v_stueck = MODEL_MATRIX[3].xyz;
+	v_ecke = COLOR;
+	v_ueber = v_welt.y - (MODEL_MATRIX[3].y + INSTANCE_CUSTOM.x);
 }
 
 // Neigung aus der Textur: kodiert wie tools/oberflaeche/texturen.py (128 ± 127)
@@ -88,6 +108,29 @@ void fragment() {
 	float zufall = hash1(floor(v_stueck * 3.1) + 0.37);
 	float relief = mix(1.5, 0.55, kantenrundung);
 
+	// ── 0. Gebackene Form (F1) ──
+	vec3 nf = n;                            // Grundform: Normale des Atlas in der Welt
+	float aoForm = 1.0, kante = 0.0, rinne = 0.0, hoeheStueck = 0.5, tiefeStueck = 0.0;
+	if (f1_netz) {
+		vec2 t2 = texture(atlas_normal, UV).rg * 2.0 - 1.0;
+		vec3 tn = vec3(t2 * atlas_staerke, sqrt(max(1.0 - dot(t2, t2), 0.0)));
+		vec3 vn = normalize(TANGENT * tn.x + BINORMAL * tn.y + NORMAL * tn.z);
+		nf = normalize((INV_VIEW_MATRIX * vec4(vn, 0.0)).xyz);
+#ifdef HOEHLUNG_BILD
+		vec3 hb = texture(atlas_hoehlung, UV).rgb;
+		aoForm = hb.r;
+		kante = hb.g;
+		rinne = hb.b;
+#else
+		aoForm = v_ecke.r;                  // Verdeckung und Rinne zusammen (grob, je Ecke)
+		kante = v_ecke.g;
+		rinne = clamp((1.0 - v_ecke.r) * 0.8, 0.0, 1.0);
+#endif
+		hoeheStueck = v_ecke.b;
+		tiefeStueck = v_ecke.a;
+		relief *= 0.6;                      // die Form trägt der Atlas, die Struktur nur noch die Körnung
+	}
+
 	// ── 1. Struktur ──
 	vec4 s;
 	vec3 nw;
@@ -100,7 +143,7 @@ void fragment() {
 	s = sx * w.x + sy * w.y + sz * w.z;
 	vec2 dx = neigung(sx.rg), dy = neigung(sy.rg), dz = neigung(sz.rg);
 	// die Neigung jeder Projektion in ihre beiden Weltachsen (u, v der Abtastung = diese Achsen)
-	nw = normalize(n + relief * (w.x * vec3(0.0, dx.y, dx.x) + w.y * vec3(dy.x, 0.0, dy.y) + w.z * vec3(dz.x, dz.y, 0.0)));
+	nw = normalize(nf + relief * (w.x * vec3(0.0, dx.y, dx.x) + w.y * vec3(dy.x, 0.0, dy.y) + w.z * vec3(dz.x, dz.y, 0.0)));
 #else
 	// eine Abtastung aus der Richtung, in die die Fläche am stärksten zeigt (oben, Seite x oder Seite z): keine Streifen auf Wänden.
 	// An den Nähten springt die Projektion; die Mip-Stufe kommt deshalb aus den Ableitungen der Weltlage (stetig über die Naht),
@@ -115,7 +158,7 @@ void fragment() {
 	s = textureGrad(struktur, uv / kachel, gx, gy);
 	vec2 d = neigung(s.rg);
 	vec3 kipp1 = oben_ ? vec3(d.x, 0.0, d.y) : (seiteX ? vec3(0.0, d.y, d.x) : vec3(d.x, d.y, 0.0));
-	nw = normalize(n + relief * kipp1);
+	nw = normalize(nf + relief * kipp1);
 #endif
 	float h = s.b;                         // Höhe 0 tief … 1 hoch
 	float fleck = s.a;
@@ -158,6 +201,11 @@ void fragment() {
 	farbe *= 1.0 + (zufall - 0.5) * 0.12;
 	float ao = 1.0 - 0.55 * fugeMaske - 0.6 * kluft - 0.35 * (1.0 - h) * (1.0 - h);
 	float rau = rauheit;
+	if (f1_netz) {
+		farbe = mix(farbe, farbe_hell.rgb * 1.08, 0.3 * kante);   // abgenutzte, helle Kanten
+		farbe *= (1.0 - 0.3 * rinne) * (0.94 + 0.12 * hoeheStueck);   // Rinnen dunkel, oben heller
+		ao *= mix(1.0, aoForm, 0.85) * (1.0 - 0.2 * tiefeStueck);       // Hangseite dunkler
+	}
 
 	// ── 7. frisch gebrochen (vor dem Bewuchs, weil es ihn wegnimmt) ──
 	float fr = frisch ? 1.0 - smoothstep(frisch_bis - 0.25, frisch_bis + 0.25, p.y) : 0.0;
@@ -179,12 +227,17 @@ void fragment() {
 	float oben = smoothstep(0.25, 0.85, nw.y);
 	float nord = clamp(-nw.z, 0.0, 1.0) * (1.0 - abs(nw.y));
 	float mooswert = moos * (0.85 * oben + 0.45 * nord + 0.3 * (1.0 - h) + 0.35 * absatz * clamp(nw.y + 0.4, 0.0, 1.0) + 0.35 * kluftBreit);
+	if (f1_netz) {
+		float saum = 1.0 - smoothstep(0.0, 0.6, v_ueber);   // Moossaum am Boden
+		mooswert += moos * (0.4 * (1.0 - aoForm) + 0.35 * rinne * (1.0 - oben) + 0.3 * kante * oben + 0.15 * tiefeStueck) + 0.5 * moos * saum;
+	}
 	float moosMaske = smoothstep(0.42, 0.62, mooswert + (fleck - 0.5) * 1.2) * bewuchs;
 	vec3 moosFarbe = mix(moos_farbe.rgb, moos_trocken.rgb, clamp(fleck * 0.9 - 0.35 + oben * 0.15 - nord * 0.4, 0.0, 0.7));
 	moosFarbe *= 0.8 + 0.4 * h;
 
 	// ── 5. Flechten ──
 	float frei = clamp(0.75 + 0.35 * nw.z + 0.15 * nw.x, 0.0, 1.0) * (1.0 - 0.6 * oben) * (1.0 - kluftBreit);
+	frei = clamp(frei * mix(1.0, aoForm, 0.6) * (1.0 - 0.7 * rinne) + 0.35 * kante, 0.0, 1.0);   // Flechten auf freien Kanten
 	float flRausch = wertrauschen(p * 2.8 + zufall * 17.0) * 0.6 + wertrauschen(p * 9.0) * 0.4;
 	float flSchwelle = 0.82 - 0.22 * flechten * frei;
 	float flechteMaske = smoothstep(flSchwelle, flSchwelle + 0.04, flRausch * (0.6 + 0.4 * h)) * step(0.01, flechten) * (1.0 - moosMaske) * bewuchs;
@@ -205,11 +258,29 @@ void fragment() {
 	// Moos und Efeu glätten das Relief (Polster), Flechten liegen flach auf
 	nw = normalize(mix(nw, n, max(moosMaske, efeuMaske) * 0.6));
 
+	float rough = clamp(mix(rau, 1.0, max(max(moosMaske, efeuMaske), fugeMaske)), 0.0, 1.0);
+
+	// ── 8. Wetter: Nässe, Rinnsale, Tropfen und Schnee wie die übrigen Oberflächen ──
+	vec3 gl = vec3(0.0);
+	vec3 su = cross(vec3(0.0, 1.0, 0.0), n);
+	bool flach = length(su) < 0.05;
+	su = flach ? vec3(1.0, 0.0, 0.0) : normalize(su);
+	vec3 sv = flach ? vec3(0.0, 0.0, -1.0) : cross(n, su);
+	float tiefeNass = clamp(0.5 + 0.5 * rinne + 0.3 * max(fugeMaske, kluft), 0.0, 1.0);   // Fugen und Rinnen bleiben länger nass
+	float ueber = f1_netz ? v_ueber : 1.0;
+#ifdef DREISEITIG
+	bool tropfen = true;
+#else
+	bool tropfen = false;
+#endif
+	wetter_flaeche(albedo, rough, nw, gl, nw, n, p, vec2(dot(p, su), dot(p, sv)), 0.3, 0.0, tiefeNass, ueber, TIME, tropfen);
+
 	ALBEDO = albedo;
-	ROUGHNESS = clamp(mix(rau, 1.0, max(max(moosMaske, efeuMaske), fugeMaske)), 0.0, 1.0);
+	ROUGHNESS = clamp(rough, 0.0, 1.0);
 	METALLIC = 0.0;
 	SPECULAR = 0.35;
 	AO = clamp(ao, 0.0, 1.0);
 	AO_LIGHT_AFFECT = 0.35;
+	EMISSION = gl;
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 }
