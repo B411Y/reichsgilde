@@ -183,8 +183,10 @@ public sealed partial class KiRivale
 
     /// <summary>
     /// Darf die KI an diesem Betrieb tauschen? Erst wenn jeder seiner Karren ein ganzes Vorjahr gezählt hat (<see cref="Karren.FahrtenVorjahr"/>
-    /// gesetzt): Dann zeigt der Stillstand des Vorjahres genau diese Karren, und nach einem Tausch oder Kauf wartet sie, bis er wieder gilt. Kein
-    /// eigener Zustand im Spielstand nötig.
+    /// gesetzt): Dann zeigt der Stillstand des Vorjahres sicher diese Karren, und nach einem Tausch oder Kauf wartet sie, bis er wieder gilt. Kein
+    /// eigener Zustand im Spielstand nötig. Vorsichtig: Ein Karren, der zum Jahresende gekauft wurde (nach dem Jahresabschluss der Karren), fährt
+    /// das ganze Folgejahr mit, zählt aber erst nach dem zweiten Jahreswechsel – die KI tauscht dann ein Jahr später als nötig. Genauer ginge es
+    /// nur mit einer Abfrage des Kerns, ob ein Karren das laufende Jahr ganz zählt (Prüfung, niedrig).
     /// </summary>
     internal bool TauschBereit(Betrieb b) => b.Karren.Count > 0 && b.Karren.All(k => k.FahrtenVorjahr is not null);
 
@@ -196,7 +198,8 @@ public sealed partial class KiRivale
     /// </summary>
     private void KarrenTauschen(Betrieb b)
     {
-        if (b.Belegt == 0 || b.Karren.Count < Profil.MaxKarrenJeBetrieb || !BrauchtKarren(b) || !TauschBereit(b)) return;
+        // nicht in der Not: wie Ausbau und Expansion (sonst verkaufte KarrenNotverkauf den neuen Karren in der nächsten Stunde mit Verlust)
+        if (InNot || b.Belegt == 0 || b.Karren.Count < Profil.MaxKarrenJeBetrieb || !BrauchtKarren(b) || !TauschBereit(b)) return;
         var anteil = b.StillstandMinutenVorjahr / (double)b.Arbeitsminuten;
         if (anteil < Profil.StillstandFuerKarrenkauf || !KarrenwahlNachDurchfluss(b)) return;
         KarrenNachDurchfluss(b, anteil);
