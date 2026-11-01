@@ -122,7 +122,7 @@ public sealed partial class Koeln
         // Je Marktplatz Grundstücke an den Straßen, die auf ihn führen (Werkstatt zum Platz hin), je Straßenseite höchstens eins. Die Rheingasse
         // beginnt am Kunibertstor (z = −150), Meter entlang = z + 150; der Malzbüchel an der Severinstraße, die Kirchstraße in Deutz am Nordtor,
         // die Deutzer Freiheit am Brückenkopf. Seit die Plätze am Rhein eine Hausreihe vom Tor abrücken (1.11.2026), liegen die Grundstücke an der
-        // Rheingasse 15 m weiter zur Stadtmitte (im Süden bis 3 m vor die Bayenstraße; im Norden rücken dafür Trankgasse 9 m und Hafen 6 m nach
+        // Rheingasse 14–15 m weiter zur Stadtmitte (im Süden bis 3 m vor die Bayenstraße; im Norden rücken dafür Trankgasse 9 m und Hafen 6 m nach
         // Süden), und das dritte am Südplatz fährt über den Malzbüchel statt über den Kartäuserwall (der den Platz nicht mehr berührt).
         // Der Spieler 2 m weiter vom Platz (innerhalb der ±10 % der Prüfung): sein Werkstattweg 24 m, 30 Minuten wie die alte feste Fahrzeit (die
         // Häuser der KI 20–24 m wie seit den drei Marktplätzen)
