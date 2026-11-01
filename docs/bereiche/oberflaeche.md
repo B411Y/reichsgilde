@@ -269,3 +269,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Nebenbei behoben | Schieberegler melden sich bei `TreeEntered` statt `Ready` am Bild-Takt an: Die klappbaren Abschnitte hängen sie um, danach fehlte die Abfrage des Loslassens und beim Schließen kam „disconnect a nonexistent connection“. In der Palette springt beim Klick der vorige Werkzeug-Knopf heraus (vorher blieben z. B. Heben und Senken beide gedrückt). | 31.10. |
 | Nach der Prüfung | Eine eingetippte Zielhöhe setzt den Haken „Feste Zielhöhe“ sichtbar; trifft die bereitgestellte Pipette keinen Boden, springt ihr Knopf heraus (Ereignis `WerkstattPipetteGeaendert(genommen)`); die Tooltips zu Mulden/Spitzen sagen genau, was geschieht (höchstens bis Mitte ± Stärke, auf ebenem Boden wie gewohnt); ist der Steigungsbereich schmaler als 4 Prozentpunkte, warnt die Tafel rot. | 31.10. |
 | Klicktest | Vulkan (T400), neue Karte mit Hügel aus der Startoption: Terrassen (4-m-Stufen, Fels an den Kanten), Ebnen mit Pipette (Bank auf genau 9,78 m), nur Mulden (−4,00 → −1,00 m, Ebene bleibt 0,00), nur Spitzen (Kuppe gekappt), Fels nur ab 15 % (Kuppe und Ebene bleiben Wiese), Moos nur auf Fels, Bodenart-Pipette. Bilder im Bericht. | 31.10. |
+
+### Schilder und Ampeln des Fahrwegs (Branch phase5/fahrweg-anzeige, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zeichnung | `FahrwegAnzeige` (Control unter allen Tafeln) zeichnet im Holzschnitt-Stil: Papier um 2 px neben dem schwarzen Rahmen, Schraffur unten und rechts, Pfosten zum Halt am Markt; Siegel als Farbmarke. Gezeichnet statt Asset (kein Protokolleintrag nötig). | 01.11.2026 |
+| Schild | Name des Platzes, „Startkarren: hin … · zurück … min“, darunter der schnellste Karren (die Karrenart mit der kürzesten Hinfahrt). Bester Platz mit Goldrand, die anderen blasser; ein Platz außerhalb des Bildes: Schild am Rand mit Spitze zu ihm. | 01.11.2026 |
+| Ampel | Kleines Siegel in der Stufenfarbe, darunter die Minuten nur bis Zoom 150 (weiter draußen würden die Zahlen das Bild überladen). | 01.11.2026 |
+| Tafeln | Bautafel: Zeile „Fahrt zum Markt: … min (Platz)“ in der Stufenfarbe und eine Legende der Ampeln; Rückfrage: dieselbe Zeile in der Rechnung. Tooltip: hin und zurück, schnellster Karren, Stufen, Zahl der Plätze. | 01.11.2026 |
