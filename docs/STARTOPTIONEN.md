@@ -193,6 +193,12 @@ Bodentexturen (Schritt 5e):
 
 Werkzeug dazu mit `--werkstatt-werkzeug=boden:<textur>` oder `boden:radierer` (Pinselkreis, Tafel).
 
+Felsstücke (Felspinsel F3/F4):
+
+- `--werkstatt-fels=<schritt>[|…]` (nach den Gelände- und Bodenstrichen, je Schritt ein Befehl mit Rückgängig): `grundgestein:<gestein>` (`grauwacke`, `trachyt`, `buntsandstein`, `kalkstein`) · `stempel:<vorlage>,<x>,<z>[,<grad>]` · `streuen:<vorlage>,<radius>,<dichte>,<x1>,<z1>;…` (Dichte als Anteil 0–1) · `radierer:<radius>,<x1>,<z1>;…`. `<vorlage>` ist eine Gruppe (`wand`, `kuppe`, `rippe`) oder Formen mit `+` (`block+platte`, alle acht: `wand`, `kuppe`, `rippe`, `block`, `platte`, `ueberhang`, `schuttbrocken`, `felsnase`), hinten wahlweise `@<gestein>`; Größe, Einsinken, Neigung und Filter wie in der Tafel.
+
+Werkzeug dazu mit `--werkstatt-werkzeug=fels:<wand|kuppe|rippe|einzeln|streuen|radierer>`; mit `--werkstatt-umriss=fels:<…>,<x>,<z>` steht Kreis bzw. Stempel-Vorschau an dieser Stelle.
+
 Mauern, Tore und Start (Mauern und Tore vor den Wegen, der Start danach):
 
 - `--werkstatt-mauer=<x1>,<z1>;<x2>,<z2>;…[,offen]` (ohne `offen` ab drei Ecken geschlossen)

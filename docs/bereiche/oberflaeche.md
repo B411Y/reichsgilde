@@ -23,6 +23,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von kern) Erbgut (Charakter-Editor, Phase 1): Knopf „Erbgut neu würfeln“ im Entwicklerfenster bei der Person (wie „Geben“/„Entfernen“ beim Zug) – der Befehl `EntwicklerErbgut(Person)` steht im Kern bereit.
 - DirectX 12 im Export: Godot legt `D3D12Core.dll` und `d3d12SDKLayers.dll` nur bei, wenn `application/export_d3d12` der Windows-Vorgabe auf „Yes“ steht oder `project.godot` selbst DirectX 12 nennt (Quelltext 4.5; für 4.7.2 nicht einzeln geprüft). Empfehlung: `application/export_d3d12=1` in `game/export_presets.cfg` (geschützte Datei, der Nutzer entscheidet).
 - Kartenwerkstatt mit `--werkstatt-ausprobieren=<Beruf>`: Die Probepartie startet, während `Kartenwerkstatt._Ready` noch in `ErsteBilderAbwarten` wartet; danach greift es auf die schon freigegebene Werkstatt zu (`ObjectDisposedException` bei `GetTree()`, Kartenwerkstatt.cs:192, einmal im Log). Nur über die Startoption, die Probepartie läuft trotzdem. Vorschlag: nach `StartoptionenAusfuehren` abbrechen, wenn die Werkstatt nicht mehr im Baum ist.
+- (Felsen) Einzelne Felsstücke lassen sich in der Werkstatt noch nicht wählen, verschieben oder drehen (nur stempeln, streuen, radieren). Empfehlung: mit F5 (Darstellung als MultiMesh) einen Treffer je Stück und Ziehen wie bei Pflanzen nachrüsten.
 
 ## Entscheidungen
 
@@ -268,3 +269,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Nebenbei behoben | Schieberegler melden sich bei `TreeEntered` statt `Ready` am Bild-Takt an: Die klappbaren Abschnitte hängen sie um, danach fehlte die Abfrage des Loslassens und beim Schließen kam „disconnect a nonexistent connection“. In der Palette springt beim Klick der vorige Werkzeug-Knopf heraus (vorher blieben z. B. Heben und Senken beide gedrückt). | 31.10. |
 | Nach der Prüfung | Eine eingetippte Zielhöhe setzt den Haken „Feste Zielhöhe“ sichtbar; trifft die bereitgestellte Pipette keinen Boden, springt ihr Knopf heraus (Ereignis `WerkstattPipetteGeaendert(genommen)`); die Tooltips zu Mulden/Spitzen sagen genau, was geschieht (höchstens bis Mitte ± Stärke, auf ebenem Boden wie gewohnt); ist der Steigungsbereich schmaler als 4 Prozentpunkte, warnt die Tafel rot. | 31.10. |
 | Klicktest | Vulkan (T400), neue Karte mit Hügel aus der Startoption: Terrassen (4-m-Stufen, Fels an den Kanten), Ebnen mit Pipette (Bank auf genau 9,78 m), nur Mulden (−4,00 → −1,00 m, Ebene bleibt 0,00), nur Spitzen (Kuppe gekappt), Fels nur ab 15 % (Kuppe und Ebene bleiben Wiese), Moos nur auf Fels, Bodenart-Pipette. Bilder im Bericht. | 31.10. |
+
+### Kartenwerkstatt: Felspinsel F4 (Branch phase5/felskarte, noch ohne PR)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Platz | Keine neue Gruppe (die Tasten 1–0 sind belegt): Abschnitt „Felsen“ in der Palette **Gelände** (2) mit den Stempeln Felswand, Felskuppe, Felsrippe, Felsstück, dazu „Felsen streuen“ und „Fels-Radierer“. Symbole als Farbfeld in der Farbe des Grundgesteins (wie die Bodentexturen), der Radierer mit dem vorhandenen Icon – kein neues Asset. | 01.11. |
+| Tafel | Klappbare Abschnitte „Vorlage“ (Gruppe oder Einzelstücke mit Haken je Form, Gestein der neuen Stücke mit „wie die Karte“, Grundgestein der Karte als Befehl mit Rückgängig), „Pinsel“ (Radius und Dichte nur beim Streuen, Größe, Streuung, Einsinken, Neigung, „Schauseite hangabwärts“) und „Filter“ (derselbe Abschnitt wie Gelände und Boden). Radierer nur Radius und Filter. Tooltips an jedem Regler. | 01.11. |
+| Vorschau | Streuen und Radieren: Kreis an der Maus (rot beim Radierer). Stempel: die Stücke selbst als helle Geister (höchstens so viele Netze wie die größte Gruppe, wiederverwendet) und je Stück ein Kreis der Grundfläche – gerechnet vom Kern (`FelsStempelVorschau`) mit dem Startwert, den auch der Klick nimmt; „Neu würfeln“ zählt ihn weiter. Das Schild an der Maus (Höhe, Steigung, Filter) gilt auch für den Felspinsel. | 01.11. |
+| Anzeige | VORLÄUFIG bis F5: je Stück ein MeshInstance3D (Stufe 1 aus `natur_felsen.glb`, Fels-Material aus F2 je Gesteinsart geteilt), nur in der Werkstatt. Lage: Drehung, Neigung zur Hangnormalen, Kippen, Einsinken unter den Boden unter der Mitte; folgt Geländeänderungen. Kein Wählen einzelner Stücke (nur Radierer). | 01.11. |
+| Startoption | `--werkstatt-fels=grundgestein:…|stempel:…|streuen:…|radierer:…` und die Werkzeuge `fels:<wand|kuppe|rippe|einzeln|streuen|radierer>` für `--werkstatt-werkzeug`/`--werkstatt-umriss` (STARTOPTIONEN.md). | 01.11. |
+| Klicktest | Vulkan (T400), neue Karte mit Hügel: Wand gestempelt (Schauseite hangabwärts, Geist der nächsten Wand), Rippen gestreut, radiert, Rückgängig; mit echter Maus Kuppe gestempelt, zweiter Stempel, Strg+Z nimmt ihn zurück. | 01.11. |
+
