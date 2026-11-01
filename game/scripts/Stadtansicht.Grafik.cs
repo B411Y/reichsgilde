@@ -50,6 +50,8 @@ public partial class Stadtansicht
         BodenqualitaetNachfuehren(); // Shader des Bodens und Grasbüschel (Stadtansicht.Boden.cs)
         OberflaecheStufeNachfuehren(); // Material-Bibliothek der Modelle (Stadtansicht.Oberflaechendetails.cs)
         WasserStufeNachfuehren(); // Stufe des Wassers aus der Voreinstellung (Stadtansicht.Wasser.cs)
+        FelsenStufeNachfuehren(); // Fels-Material dreiseitig oder eine Richtung (Stadtansicht.Felsen.cs)
+        KulisseStufeNachfuehren(); // Kulissenberge: auf Niedrig nur die nahe Staffel (Stadtansicht.Kulisse.cs)
         // Mesh-LOD: Godot darf Modelle vereinfachen, die im Bild klein sind. Nur in der Stufe „Nah“ – auch die Schatten nehmen dann
         // die vereinfachten Modelle, und Spitzdächer, Zinnen und Balken werfen keinen Schatten mehr (siehe SchattenEinrichten).
         GetViewport().MeshLodThreshold = Fenster.AktuelleFeinheiten == Feinheiten.Nah ? 1f : 0f;
@@ -64,6 +66,9 @@ public partial class Stadtansicht
         WetterNebel(); // Nebel des Wetters (Stadtansicht.Wetter.cs)
         BodennebelNachfuehren(); // Schwaden am Boden (Stadtansicht.Bodennebel.cs)
         FeinheitenNachZoom();
+        FelsenBild();   // Feinheit und Schatten der Felsen nach Zoom (Stadtansicht.Felsen.cs)
+        KulisseBild();  // Dunst der Kulissenberge nach Tageszeit und Wetter, Namen der Gipfel (Stadtansicht.Kulisse.cs)
+        FelsmessungSchritt(delta); // --felsvergleich=1 (Stadtansicht.Felsmessung.cs)
     }
 
     // ═════════════════════════════════════════════════════════════════════════
