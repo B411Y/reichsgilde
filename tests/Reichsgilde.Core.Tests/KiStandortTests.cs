@@ -10,8 +10,8 @@ using Reichsgilde.Core.Zeit;
 /// Bauort einer neuen Werkstatt nach dem Karrenweg (phase5/gehtempo-ki, offener Punkt aus „Mehrere Marktplätze“): Mit der Fahrzeit nach Weglänge
 /// (Datenversion 65) nimmt die KI unter den <see cref="KiRivale.StandortKandidaten"/> nächsten Bauorten (Luftlinie zum nächsten Marktplatz) den mit
 /// der kürzesten Fahrt des Startkarrens hin und zurück. In der Greybox liegt der Luftlinien-erste Bauort (0 | 25, Hof nach Süden) 25 m vom Platz,
-/// sein Karren braucht aber 131 Minuten; gedreht wenige Meter daneben 24. Die Fahrzeit rechnet die KI wie der Kern die Strecke eines Betriebs
-/// (Halteplatz, Hof, Zubringer, Netz aller Wege, Halt am Pflaster) – der erste Test hält beide gleich.
+/// sein Karren braucht aber 131 Minuten; gedreht wenige Meter daneben 24. Die Fahrzeit fragt die KI beim Kern ab
+/// (<see cref="Stadtwirtschaft.FahrzeitAmBauort"/>) – der erste Test prüft, dass sie nach dem Bau die des Betriebs ist.
 /// </summary>
 static class KiStandortTests
 {
