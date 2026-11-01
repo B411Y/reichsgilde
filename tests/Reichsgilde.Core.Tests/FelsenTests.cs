@@ -53,7 +53,7 @@ static class FelsenTests
         e.FelsStreuen(new Felspinsel(Formen: new[] { "block", "platte", "schuttbrocken" }, Radius: 12, Dichte: 0.3, Filter: new Pinselfilter(SteigungAb: 10)),
             Linie(O(-30, 0), O(60, 10), 30));
         e.FelsStreuen(new Felspinsel(Formen: new[] { "felsnase", "ueberhang" }, Radius: 15, Dichte: 0.15, Gestein: "kalkstein"), Linie(O(20, 100), O(90, 120), 10), startwert: 77);
-        e.FelsStreuen(Felspinsel.Radiergummi(6), Linie(O(30, 0), O(40, 5), 4));
+        if (!e.FelsStreuen(Felspinsel.Radiergummi(6), Linie(O(30, 0), O(40, 5), 4))) throw new Exception("Ablauf: der Radierer nimmt nichts weg – Ablauf anpassen");
         e.Rueckgaengig();
         e.Wiederholen();
         return e.ZuJson();
@@ -139,9 +139,20 @@ static class FelsenTests
             Pruefe.Gleich("kalkstein", zwei.GesteinVon(zwei.Felsen[0]));
 
             // ein Stück ohne gestein und ohne kippen: beides fehlt in der Datei, das Grundgestein gilt
-            var f = Kartenentwurf.AusJson(text.Replace("\"gestein\": \"kalkstein\", ", ""), Katalog.Value);
+            var ohne = System.Text.RegularExpressions.Regex.Replace(text.Replace("\"gestein\": \"kalkstein\", ", ""), @", ""kippen"": \[[^\]]*\]", "");
+            var f = Kartenentwurf.AusJson(ohne, Katalog.Value);
             Pruefe.Gleich("buntsandstein", f.GesteinVon(f.Felsen[0]));
-            Pruefe.Wahr(!f.ZuJson().Contains("\"gestein\""), "ohne Abweichung kein gestein");
+            Pruefe.Wahr(f.Felsen.All(x => x.KippenX == 0 && x.KippenZ == 0), "ohne kippen gerade");
+            Pruefe.Wahr(!f.ZuJson().Contains("\"gestein\"") && !f.ZuJson().Contains("\"kippen\""), "ohne Abweichung kein gestein, ohne Kippen kein kippen");
+            Pruefe.Gleich(ohne, f.ZuJson(), "so wieder geschrieben");
+
+            // ein Pinsel mit dem Grundgestein schreibt kein gestein (es folgt dem Grundgestein)
+            var gleich = Leer();
+            gleich.GrundgesteinSetzen("trachyt");
+            gleich.FelsStempeln(new Felspinsel(Gruppe: "kuppe", Gestein: "trachyt"), O(0, 0));
+            Pruefe.Wahr(gleich.Felsen.All(x => x.Gestein is null), "Gestein gleich Grundgestein fällt weg");
+            gleich.GrundgesteinSetzen("kalkstein");
+            Pruefe.Gleich("kalkstein", gleich.GesteinVon(gleich.Felsen[0]));
 
             // unbekannte Felder bleiben, unbekannte Form und Gesteinsart sind nur Hinweise (Felsen sperren nichts)
             var fremd = text.Replace("\"grundgestein\": \"buntsandstein\"", "\"grundgestein\": \"marmor\", \"notiz\": 1").Replace("\"form\": \"wand\"", "\"form\": \"zinne\"");
@@ -206,7 +217,7 @@ static class FelsenTests
                 }
             // gedeckte Fläche um die Mitte: höchstens etwa die Dichte (ein Stück darf die Grenze überschreiten)
             var mitte = a.Felsen.Where(f => f.Punkt.Abstand(O(0, 0)) <= 10).Sum(f => Math.PI * f.Radius * f.Radius) / (Math.PI * 100);
-            Pruefe.Wahr(mitte <= 0.25 + 0.6, $"Dichte um die Mitte {mitte:0.00}");
+            Pruefe.Wahr(mitte <= 0.25 + 0.25, $"Dichte um die Mitte {mitte:0.00}");
             // ein zweiter Strich über dieselbe Stelle setzt kaum noch etwas (der Kreis ist voll)
             var vorher = a.Felsen.Count;
             a.FelsStreuen(new Felspinsel(Formen: new[] { "block", "kuppe" }, Radius: 10, Dichte: 0.25), Linie(O(-50, 0), O(50, 0), 20), 9);
@@ -226,6 +237,18 @@ static class FelsenTests
             e.Rueckgaengig();
             Pruefe.Gleich(voll, e.ZuJson(), "Rückgängig: dieselbe Datei");
             Pruefe.Wahr(!e.FelsStreuen(Felspinsel.Radiergummi(3), new[] { O(300, 0) }), "wo nichts liegt, kein Schritt");
+
+            // ein langer Radierstrich mit vielen Tupfern: Rückgängig und Wiederholen zweimal Byte für Byte
+            Pruefe.Wahr(e.FelsStreuen(Felspinsel.Radiergummi(5), Linie(O(-45, -3), O(45, 3), 30)), "langer Radierstrich");
+            var radiert = e.ZuJson();
+            Pruefe.Wahr(e.Felsen.Count < vorher - 5, "viele weg");
+            for (var i = 0; i < 2; i++)
+            {
+                e.Rueckgaengig();
+                Pruefe.Gleich(voll, e.ZuJson(), $"Rückgängig {i + 1}");
+                e.Wiederholen();
+                Pruefe.Gleich(radiert, e.ZuJson(), $"Wiederholen {i + 1}");
+            }
         }),
 
         ("Felsen: Filter nach Steigung und Boden gilt für Streuen, Stempel und Radierer", () =>
@@ -282,6 +305,8 @@ static class FelsenTests
             Pruefe.Wahr(e.Rueckgaengig(), "Rückgängig beendet den Strich und nimmt ihn zurück");
             Pruefe.Gleich(0, e.Felsen.Count);
             Pruefe.Wahr(!e.FelsStrichLaeuft, "kein Strich mehr");
+            Pruefe.Gleich(0, e.FelsStrichWeiter(O(40, 0)), "Weiter ohne Strich tut nichts");
+            Pruefe.Gleich(0, e.Felsen.Count);
             Pruefe.Wahr(e.Wiederholen() && e.Felsen.Count > n, "wiederholt");
             e.GrundgesteinSetzen("kalkstein");
             Pruefe.Gleich("Grundgestein geändert", e.Geschichte.RueckgaengigText);
