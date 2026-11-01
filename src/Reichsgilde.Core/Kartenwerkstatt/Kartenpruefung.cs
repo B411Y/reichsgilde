@@ -245,6 +245,7 @@ public static class Kartenpruefung
             if (_r.Stadtregeln) Probeplan();
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
             if (_r.Startgrundstuecke > 0) Startgrundstuecke();
+            Marktplaetze();
             Vorkommen();
             Mauern();
             Haefen();
@@ -484,6 +485,8 @@ public static class Kartenpruefung
             foreach (var (z, flaeche, zr) in _zonen)
             {
                 var mitte = Kartengeometrie.Mitte(flaeche);
+                if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt)
+                    FehlerAn("zone-nur", $"Bauzone {z.Kennung}: „nur“ kennt nur „{Bauzone.NurWerkstatt}“, nicht „{nur}“.", mitte, new[] { z });
                 if (karren.Count == 0)
                 {
                     FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die Karte hat keine Karrenstraße.", mitte, new[] { z });
@@ -610,7 +613,18 @@ public static class Kartenpruefung
             };
         }
 
-        /// <summary>So viele Wohnhausplätze wie Häuser, die ersten vier gleich weit vom Markt (±10 %; greybox.py, Regel 4).</summary>
+        /// <summary>
+        /// Wie weit ein Punkt von der Mitte des nächsten Marktplatzes liegt (Luftlinie; ohne Marktplatz vom Ursprung, wo der Markt bis Oktober 2026
+        /// immer lag). Seit dem 31.10.2026 darf eine Stadt mehrere Marktplätze haben; „gleich weit vom Markt“ heißt dann: vom jeweils nächsten. Nur
+        /// noch für die Wohnhausplätze (Regel 4): Der Wohnhausplatz wirkt im Kern nicht, die Werkstätten misst <see cref="Startwegpruefung"/> nach dem Weg.
+        /// </summary>
+        private double ZumMarkt(Kartenort p)
+        {
+            var maerkte = _e.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog).Select(g => g.Punkt).ToList();
+            return maerkte.Count == 0 ? p.Abstand(new Kartenort(0, 0)) : maerkte.Min(m => p.Abstand(m));
+        }
+
+        /// <summary>So viele Wohnhausplätze wie Häuser, die ersten vier gleich weit vom (nächsten) Markt (±10 %; greybox.py, Regel 4).</summary>
         private void WohnhausplaetzeZaehlen()
         {
             var plaetze = _e.Gebaeude.Where(g => g.Art == Bausteinart.Wohnhausplatz).ToList();
@@ -618,13 +632,17 @@ public static class Kartenpruefung
                 Fehler("wohnhausplaetze", $"Die Karte hat {plaetze.Count} Wohnhausplätze statt {_r.Wohnhausplaetze}.", null);
             var vorn = plaetze.Take(4).ToList();
             if (vorn.Count == 0) return;
-            var markt = new Kartenort(0, 0);
-            var mittel = vorn.Average(g => g.Punkt.Abstand(markt));
-            foreach (var g in vorn.Where(g => Math.Abs(g.Punkt.Abstand(markt) - mittel) > 0.10 * mittel))
-                Fehler("wohnhausplaetze", $"{Wer(g)}: {M(g.Punkt.Abstand(markt))} m zum Markt, die ersten vier im Mittel {M(mittel)} m (±10 %).", g.Punkt, g.Kennung);
+            var mittel = vorn.Average(g => ZumMarkt(g.Punkt));
+            foreach (var g in vorn.Where(g => Math.Abs(ZumMarkt(g.Punkt) - mittel) > 0.10 * mittel))
+                Fehler("wohnhausplaetze", $"{Wer(g)}: {M(ZumMarkt(g.Punkt))} m zum Markt, die ersten vier im Mittel {M(mittel)} m (±10 %).", g.Punkt, g.Kennung);
         }
 
-        /// <summary>Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (±10 %; karte.py, Regel 5).</summary>
+        /// <summary>
+        /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (karte.py, Regel 5). „Gleich weit“ misst
+        /// seit dem 1.11.2026 den Karrenweg, wie ihn der Kern rechnet (<see cref="Startwegpruefung"/>, Befund M4 der Prüfung von phase5/gehtempo):
+        /// Die Luftlinie wirkt im Kern nicht, der Weg über die Fahrzeit schon. Abweichungen über ±10 % vom Mittel (Werkstätten und Start-Umland
+        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet.
+        /// </summary>
         private void Startgrundstuecke()
         {
             var starts = _e.Gebaeude.Select(g => (g, m: Regex.Match(g.Kennung, @"^(S\d+)_(Werkstatt|Wohnhaus)$"))).Where(x => x.m.Success)
@@ -632,12 +650,25 @@ public static class Kartenpruefung
             if (starts.Count != _r.Startgrundstuecke)
                 Fehler("startgrundstuecke", $"Die Karte hat {starts.Count} Startgrundstücke statt {_r.Startgrundstuecke}.", null);
             if (starts.Count == 0) return;
-            var markt = new Kartenort(0, 0);
-            var abstand = starts.ToDictionary(s => s.Key, s => new Kartenort(s.Average(g => g.X), s.Average(g => g.Z)).Abstand(markt));
-            var mittel = abstand.Values.Average();
-            foreach (var s in starts.Where(s => Math.Abs(abstand[s.Key] - mittel) > 0.10 * mittel))
-                Fehler("startgrundstuecke", $"Startgrundstück {s.Key}: {M(abstand[s.Key])} m zum Markt, im Mittel {M(mittel)} m (±10 %).",
-                    s.First().Punkt, s.Select(g => g.Kennung).ToArray());
+            _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
+        }
+
+        /// <summary>
+        /// Jeder Marktplatz wird von einer Karrenstraße berührt (Hinweis, seit den mehreren Marktplätzen am 31.10.2026): Sonst kommen die Karren nur
+        /// über eine Gasse oder einen Fußweg hin, die ihn berühren (ab Datenversion 65, teurer für die Wahl des Weges), oder der Kern hängt den Platz an
+        /// den nächsten Weg, und das Stück von dort zählt für die Fahrzeit nicht (<c>Karrennetz.Marktlinien</c>, <c>Karrennetz.Fahrt</c>).
+        /// </summary>
+        private void Marktplaetze()
+        {
+            foreach (var g in _e.Gebaeude.Where(g => g.Katalog == Stadtkarte.MarktKatalog))
+            {
+                var ecken = g.Ecken();
+                if (ecken.Count == 0) continue;
+                var beruehrt = _wege.Any(w => Kartenweg.TraegtKarren(w.Weg.Klasse) && w.Linie.Length >= 2
+                                              && Kartengeometrie.AbstandVielecke(ecken, w.Linie, false) <= Karrennetz.Fang);
+                if (!beruehrt)
+                    Hinweis("markt", $"{Wer(g)}: Keine Karrenstraße berührt den Marktplatz – die Karren kommen nur über Gassen oder Fußwege hin oder halten an der nächsten Straße (das letzte Stück zählt nicht).", g.Punkt, g.Kennung);
+            }
         }
 
         /// <summary>Jedes Vorkommen liegt an einem Weg oder in der Fläche eines Umlandbetriebs (karte.py, Regel 6).</summary>

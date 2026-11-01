@@ -24,7 +24,7 @@ public sealed partial class KiRivale
     private double Wechselschwelle => Profil.Wechselschwelle * Neigung.Wechselschwelle;
 
     /// <summary>So viele Jahre darf ein Kauf, Ausbau oder Brief zum Bezahlen brauchen (Profil ± Mutig/Feige, mindestens 1).</summary>
-    private double Amortisationsjahre => Math.Max(1, Profil.MaxAmortisationJahre + Neigung.Amortisation);
+    internal double Amortisationsjahre => Math.Max(1, Profil.MaxAmortisationJahre + Neigung.Amortisation);
 
     /// <summary>
     /// Ab dieser Beweiskraft klagt die KI an: so viele Beweise, wie ein sicherer Schuldspruch braucht (auch gegen bestochene Richter),

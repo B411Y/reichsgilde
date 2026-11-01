@@ -457,7 +457,7 @@ public partial class MarktAnzeige : PanelContainer
         var waehrung = w.Daten.Allgemein.Waehrung;
         var h = w.Daten.Handel!;
         var karren = b.Karren[Math.Min(GewaehlterKarren, b.Karren.Count - 1)];
-        var ankunft = w.AnkunftAmMarkt(b);
+        var ankunft = w.AnkunftAmMarkt(karren);
         string Kurz(IReadOnlyDictionary<string, int> l) => string.Join(", ", l.Where(x => x.Value > 0).Select(x => $"{x.Value} {x.Key}"));
         var unterwegs = karren.Zustand != KarrenZustand.AmBetrieb;
         var info = $"{karren.ZustandText(_simulation!.Zeit)} · Markt {h.MarktVon}–{h.MarktBis} Uhr" +

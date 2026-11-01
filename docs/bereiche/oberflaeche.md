@@ -23,6 +23,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von kern) Erbgut (Charakter-Editor, Phase 1): Knopf „Erbgut neu würfeln“ im Entwicklerfenster bei der Person (wie „Geben“/„Entfernen“ beim Zug) – der Befehl `EntwicklerErbgut(Person)` steht im Kern bereit.
 - DirectX 12 im Export: Godot legt `D3D12Core.dll` und `d3d12SDKLayers.dll` nur bei, wenn `application/export_d3d12` der Windows-Vorgabe auf „Yes“ steht oder `project.godot` selbst DirectX 12 nennt (Quelltext 4.5; für 4.7.2 nicht einzeln geprüft). Empfehlung: `application/export_d3d12=1` in `game/export_presets.cfg` (geschützte Datei, der Nutzer entscheidet).
 - Kartenwerkstatt mit `--werkstatt-ausprobieren=<Beruf>`: Die Probepartie startet, während `Kartenwerkstatt._Ready` noch in `ErsteBilderAbwarten` wartet; danach greift es auf die schon freigegebene Werkstatt zu (`ObjectDisposedException` bei `GetTree()`, Kartenwerkstatt.cs:192, einmal im Log). Nur über die Startoption, die Probepartie läuft trotzdem. Vorschlag: nach `StartoptionenAusfuehren` abbrechen, wenn die Werkstatt nicht mehr im Baum ist.
+- (von Kern) Mehrere Marktplätze je Stadt (Köln: Heumarkt, Alter Markt, Neumarkt; Branch phase5/gehtempo): Ein Stadtmarkt mit gemeinsamen Preisen – das Marktfenster gilt für alle Plätze. Karrentafel und Handel von Hand könnten nennen, zu welchem Platz ein Karren fährt (`Stadtwirtschaft.MarktplatzVon(betrieb)?.Name`); die Ankunft (`AnkunftAmMarkt(karren)`) rechnet schon mit dem Weg dorthin.
 
 ## Entscheidungen
 
@@ -268,3 +269,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Nebenbei behoben | Schieberegler melden sich bei `TreeEntered` statt `Ready` am Bild-Takt an: Die klappbaren Abschnitte hängen sie um, danach fehlte die Abfrage des Loslassens und beim Schließen kam „disconnect a nonexistent connection“. In der Palette springt beim Klick der vorige Werkzeug-Knopf heraus (vorher blieben z. B. Heben und Senken beide gedrückt). | 31.10. |
 | Nach der Prüfung | Eine eingetippte Zielhöhe setzt den Haken „Feste Zielhöhe“ sichtbar; trifft die bereitgestellte Pipette keinen Boden, springt ihr Knopf heraus (Ereignis `WerkstattPipetteGeaendert(genommen)`); die Tooltips zu Mulden/Spitzen sagen genau, was geschieht (höchstens bis Mitte ± Stärke, auf ebenem Boden wie gewohnt); ist der Steigungsbereich schmaler als 4 Prozentpunkte, warnt die Tafel rot. | 31.10. |
 | Klicktest | Vulkan (T400), neue Karte mit Hügel aus der Startoption: Terrassen (4-m-Stufen, Fels an den Kanten), Ebnen mit Pipette (Bank auf genau 9,78 m), nur Mulden (−4,00 → −1,00 m, Ebene bleibt 0,00), nur Spitzen (Kuppe gekappt), Fels nur ab 15 % (Kuppe und Ebene bleiben Wiese), Moos nur auf Fels, Bodenart-Pipette. Bilder im Bericht. | 31.10. |
+
+### Schilder und Ampeln des Fahrwegs (PR #282)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zeichnung | `FahrwegAnzeige` (Control unter allen Tafeln) zeichnet im Holzschnitt-Stil: Papier um 2 px neben dem schwarzen Rahmen, Schraffur unten und rechts, Pfosten zum Halt am Markt; Siegel als Farbmarke. Gezeichnet statt Asset (kein Protokolleintrag nötig). | 01.11.2026 |
+| Schild | Name des Platzes, „Startkarren: hin … · zurück … min“, darunter der schnellste Karren (die Karrenart mit der kürzesten Hinfahrt). Bester Platz mit Goldrand, die anderen blasser; ein Platz außerhalb des Bildes: Schild am Rand mit Spitze zu ihm. | 01.11.2026 |
+| Ampel | Kleines Siegel in der Stufenfarbe, darunter die Minuten nur bis Zoom 150 (weiter draußen würden die Zahlen das Bild überladen). | 01.11.2026 |
+| Tafeln | Bautafel: Zeile „Fahrt zum Markt: … min (Platz)“ in der Stufenfarbe und eine Legende der Ampeln; Rückfrage: dieselbe Zeile in der Rechnung. Tooltip: hin und zurück, schnellster Karren, Stufen, Zahl der Plätze. | 01.11.2026 |

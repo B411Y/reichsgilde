@@ -74,6 +74,7 @@ public partial class Stadtansicht
     {
         _belagVeraltet = true;
         _wegeVeraltet = true; // das Leuchten des Wege-Modus zieht nach (Stadtansicht.Wegemodus.cs)
+        FahrwegBelagGeaendert(); // die Fahrzeiten des Fahrwegs im Baumodus ebenso (Stadtansicht.Fahrweg.cs)
     }
 
     /// <summary>Jedes Bild (aus <see cref="_Process"/>): ist der Belag veraltet, werden die Wege mit geänderten Stücken neu gezeichnet.</summary>
@@ -81,7 +82,7 @@ public partial class Stadtansicht
     {
         if (!_belagVeraltet || _karte is not { } karte) return;
         _belagVeraltet = false;
-        _fahrtprofile.Clear(); // das Tempo der Karren hängt am Belag
+        _zugprofile.Clear(); // das Tempo der Karren hängt am Belag (der Kern rechnet seine Fahrzeiten zur selben Zeit neu)
         for (var i = 0; i < karte.Wege.Count; i++)
         {
             var w = karte.Wege[i];

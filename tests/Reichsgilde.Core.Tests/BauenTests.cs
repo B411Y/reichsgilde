@@ -98,11 +98,12 @@ static class BauenTests
             Pruefe.Gleich(2, k.Format);
             Pruefe.Gleich("koeln", k.Kennung);
             Pruefe.Gleich(2.0, k.Raster);
-            Pruefe.Gleich(32, k.Wege.Count); // Stadtskript Köln (PR #213): 14 Haupt-, 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
+            Pruefe.Gleich(34, k.Wege.Count); // Stadtskript Köln (PR #213): 16 Haupt- (seit 1.11.2026 mit dem Malzbüchel und Unter Fettenhennen), 8 Land-, 3 Wallstraßen, 5 Gassen, 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(51, k.Bauzonen.Count);
-            Pruefe.Gleich(10, k.Bauzonen.Count(z => z.Art == Lage.Kern));
+            Pruefe.Gleich(58, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58
+            Pruefe.Gleich(7, k.Bauzonen.Count(z => z.Kennung.StartsWith("WB_"))); // je ein Werkstatt-Bauplatz als eigene Zone (Koeln.Bauplaetze.cs)
+            Pruefe.Gleich(13, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
@@ -117,7 +118,7 @@ static class BauenTests
             Pruefe.Gleich("Haus Overstolz", k.Startbelegung.Haeuser[0].Name);
             Pruefe.Gleich("S1_Wohnhaus", k.Startbelegung.Spieler.Wohnhaus);
 
-            var s1 = k.GebaeudeMit("S1_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, gedreht zur Hohen Straße
+            var s1 = k.GebaeudeMit("S2_Werkstatt")!.Grundriss!.Value; // 16 × 14 im Startgrundstück, an der Rheingasse vor dem Heumarkt (seit 31.10.2026)
             Pruefe.Wahr(s1 is { Breite: 16, Tiefe: 14 }, "Werkstattplatz 16 × 14 m");
             Pruefe.Wahr(k.GebaeudeMit("Gereon")!.Grundriss is { Breite: 16, Tiefe: 14 }, "Kirche 16 × 14 wie im Kapazitätswerkzeug");
 
@@ -496,7 +497,7 @@ static class BauenTests
 
         ("Bauen: Daten werden geprüft – je Wohnhausstufe ein Eintrag, Maße auf dem Raster, Lagen nicht leer, nurNeubau nur ab dem Bürgerhaus", () =>
         {
-            Pruefe.Gleich(64, Daten.Value.Version);
+            Pruefe.Gleich(65, Daten.Value.Version);
             Pruefe.Gleich(5, Daten.Value.Bauen!.Wohnhaus.Count);
             Pruefe.Gleich((16.0, 14.0), (Daten.Value.Bauen.Werkstatt.Breite, Daten.Value.Bauen.Werkstatt.Tiefe));
             Pruefe.Gleich("False False False True True", string.Join(" ", Daten.Value.Bauen.Wohnhaus.Select(m => m.NurNeubau))); // Stadtpalais, Stadthof

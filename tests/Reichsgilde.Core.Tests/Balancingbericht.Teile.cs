@@ -23,7 +23,8 @@ static partial class Balancingbericht
         var letztes = e.Stich[^1];
         foreach (var (karte, anzahl) in Fairnesskarten(e))
         {
-            var laeufe = Gut(e.Werte.SelectMany(s => Enumerable.Range(0, anzahl + 1).Select(r => p(new Messaufbau(karte, s, e.Jahre, Rotation: r)))));
+            var rotationen = Rotationen(e, anzahl);
+            var laeufe = Gut(e.Werte.SelectMany(s => Enumerable.Range(0, rotationen).Select(r => p(new Messaufbau(karte, s, e.Jahre, Rotation: r)))));
             if (laeufe.Count == 0) continue;
             var start = new JsonArray(laeufe[0].Haeuser.Select(h => (JsonNode)new JsonObject
             {
@@ -56,7 +57,7 @@ static partial class Balancingbericht
             var buerger = spieler.Where(h => h.BuergerReinJahr is not null).Select(h => (double)h.BuergerReinJahr!.Value).ToList();
             karten.Add(new JsonObject
             {
-                ["karte"] = karte, ["rotationen"] = anzahl + 1, ["n"] = laeufe.Count, ["start"] = start, ["jeHaus"] = jeHaus, ["jeWohnhausplatz"] = jePlatz,
+                ["karte"] = karte, ["rotationen"] = rotationen, ["n"] = laeufe.Count, ["start"] = start, ["jeHaus"] = jeHaus, ["jeWohnhausplatz"] = jePlatz,
                 ["spielerJahreBisBuerger"] = Kennzahl(buerger, 1), ["spielerBuergerErreicht"] = buerger.Count,
                 ["spielerBuergerIn8bis12"] = buerger.Count(x => x is >= 8 and <= 12),
             });
@@ -65,7 +66,7 @@ static partial class Balancingbericht
             var spielerRein = hausMittel[(true, laeufe[0].Spieler.Name)][letztes];
             var kiRein = hausMittel.Where(x => !x.Key.IstSpieler).Average(x => x.Value[letztes]);
             befunde.Add($"Startfairness {karte}: Wohnhausplatz verschiebt das Vermögen nach {letztes} Jahren um {Vz(platzSpanne.Min())} … {Vz(platzSpanne.Max())} % " +
-                        $"(gegen das Mittel desselben Hauses, {anzahl + 1} Rotationen × {e.Startwerte} Startwerte); der Spieler mit einem Betrieb hat " +
+                        $"(gegen das Mittel desselben Hauses, {rotationen} Rotationen × {e.Startwerte} Startwerte); der Spieler mit einem Betrieb hat " +
                         $"{Text(spielerRein)} Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel {Text(kiRein)} ({Vz(Abstand(spielerRein, kiRein))} %). " +
                         $"Bürger (Reinvermögen 10.000): Ø Jahr {Zahl((buerger.Count > 0 ? buerger.Average() : double.NaN), "0.0")}, im Ziel 8–12 Jahre {buerger.Count(x => x is >= 8 and <= 12)}/{spieler.Count}.");
             Console.WriteLine($"3 Startfairness {karte}: Plätze {string.Join(", ", jePlatz.Select(x => $"{x!["wohnhausplatz"]} {Vz((double)x["jahre"]![letztes.ToString()]!["gegenHausmittelProzent"]!["mittel"]!, 1)} %"))}");
@@ -74,8 +75,9 @@ static partial class Balancingbericht
         {
             ["erklaerung"] = "Greybox und Probestadt (mit --fairness=… auch Köln) mit allen KI-Häusern der Karte. Der Spieler (Schmied, Mensch) wird von der KI mit genau einem Betrieb geführt. " +
                              "Startfairness: Die Wohnhausplätze von Spieler und KI-Häusern rotieren (Rotation r: der i-te wohnt, wo vorher der (i + r)-te wohnte), " +
-                             "jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt im " +
-                             "Kern nicht (Fahrzeit nach Stadt/Umland, nicht nach Weglänge; Bürger kaufen am Markt). „gegenHausmittelProzent“: Vermögen auf diesem Platz " +
+                             "jede Rotation mit allen Startwerten – so steht jedes Haus gleich oft auf jedem Platz. Die Werkstattplätze bleiben: Ihre Lage wirkt seit " +
+                             "Datenversion 65 über die Fahrzeit der Karren (Weglänge zum Markt), ist aber an das Haus gebunden; der Wohnhausplatz wirkt im Kern nicht " +
+                             "(Bürger kaufen am Markt, --rotationen=1 genügt dann). „gegenHausmittelProzent“: Vermögen auf diesem Platz " +
                              "gegen das Mittel desselben Hauses über alle Plätze – trennt Platz und Haus. Start: Startgeld, Betriebe, Arbeiter und erwarteter " +
                              "Jahresgewinn (Kalkulation, mit Völkerbonus) zu Beginn. Jahre bis Bürger: erstes Jahr mit Reinvermögen ≥ 10.000 (Ziel Z2: 8–12).",
             ["karten"] = karten,

@@ -281,27 +281,31 @@ public sealed class EntwurfBauzone : EntwurfFlaeche
     public string Kennung { get; internal set; } = "";
     public Lage Art { get; internal set; }
 
+    /// <summary>Was hier nur gebaut werden darf (<see cref="Bauzone.Nur"/>: „werkstatt“) – null: alles, was die Lage erlaubt.</summary>
+    public string? Nur { get; internal set; }
+
     internal override void VieleckSetzen(int aussparung, IEnumerable<Kartenort> ecken) => _ecken = ecken.ToList();
 
     internal static EntwurfBauzone Aus(Bauzone z, JsonObject? vorlage) =>
-        new() { Kennung = z.Kennung, Art = z.Art, _ecken = Orte(z.Flaeche), Vorlage = vorlage };
+        new() { Kennung = z.Kennung, Art = z.Art, Nur = z.Nur, _ecken = Orte(z.Flaeche), Vorlage = vorlage };
 
     /// <summary>Die Zone in den Typen der Stadtkarte.</summary>
-    public Bauzone AlsBauzone() => new() { Kennung = Kennung, Art = Art, Flaeche = Roh(_ecken) };
+    public Bauzone AlsBauzone() => new() { Kennung = Kennung, Art = Art, Nur = Nur, Flaeche = Roh(_ecken) };
 
-    internal override EntwurfTeil KopieTeil() => new EntwurfBauzone { Kennung = Kennung, Art = Art, _ecken = _ecken.ToList(), Vorlage = Vorlage };
+    internal override EntwurfTeil KopieTeil() => new EntwurfBauzone { Kennung = Kennung, Art = Art, Nur = Nur, _ecken = _ecken.ToList(), Vorlage = Vorlage };
 
     internal override void UebernimmTeil(EntwurfTeil werte)
     {
         var o = (EntwurfBauzone)werte;
-        (Kennung, Art, _ecken, Vorlage) = (o.Kennung, o.Art, o._ecken.ToList(), o.Vorlage);
+        (Kennung, Art, Nur, _ecken, Vorlage) = (o.Kennung, o.Art, o.Nur, o._ecken.ToList(), o.Vorlage);
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) =>
-        anderer is EntwurfBauzone o && Kennung == o.Kennung && Art == o.Art && _ecken.SequenceEqual(o._ecken);
+        anderer is EntwurfBauzone o && Kennung == o.Kennung && Art == o.Art && Nur == o.Nur && _ecken.SequenceEqual(o._ecken);
 
     internal override JsonObject AlsJson() => Zusammensetzen(Vorlage,
-        ("kennung", Kennung), ("art", Art.ToString().ToLowerInvariant()), ("flaeche", JsonPunkte(_ecken)));
+        ("kennung", Kennung), ("art", Art.ToString().ToLowerInvariant()), ("flaeche", JsonPunkte(_ecken)),
+        ("nur", Nur is null ? null : JsonValue.Create(Nur)));
 }
 
 /// <summary>

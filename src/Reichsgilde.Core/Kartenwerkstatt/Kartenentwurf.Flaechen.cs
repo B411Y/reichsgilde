@@ -51,9 +51,9 @@ public sealed partial class Kartenentwurf
     /// Lage mit der kleinsten freien Nummer („K4“, „V9“), wenn keine angegeben ist.
     /// </summary>
     /// <exception cref="ArgumentException">Mit weniger als drei verschiedenen Ecken.</exception>
-    public EntwurfBauzone BauzoneAnlegen(Lage art, IReadOnlyList<Kartenort> ecken, string? kennung = null)
+    public EntwurfBauzone BauzoneAnlegen(Lage art, IReadOnlyList<Kartenort> ecken, string? kennung = null, string? nur = null)
     {
-        var zone = new EntwurfBauzone { Art = art, Kennung = string.IsNullOrWhiteSpace(kennung) ? NeueZonenkennung(art) : kennung };
+        var zone = new EntwurfBauzone { Art = art, Nur = nur, Kennung = string.IsNullOrWhiteSpace(kennung) ? NeueZonenkennung(art) : kennung };
         zone.VieleckSetzen(-1, Ecken(ecken, zone));
         if (zone.Ecken.Count < 3) throw new ArgumentException("Eine Bauzone braucht mindestens drei verschiedene Ecken.", nameof(ecken));
         Geschichte.Ausfuehren(new TeilSetzen(zone, _bauzonen.Count));

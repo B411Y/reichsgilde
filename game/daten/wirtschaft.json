@@ -1,5 +1,5 @@
 {
-  "version": 64,
+  "version": 65,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -858,21 +858,28 @@
       "furtMinuten": 5,
       "faehreMinuten": 30
     },
+    "weglaenge": {
+      "mindestMinuten": 10,
+      "hoechstMinuten": 360
+    },
     "karren": {
       "Handkarren": {
         "sorten": 1,
         "kapazitaetJeSorte": 15,
-        "preis": 150
+        "preis": 150,
+        "tempo": 1.0
       },
       "Ochsenkarren": {
         "sorten": 2,
         "kapazitaetJeSorte": 20,
-        "preis": 400
+        "preis": 400,
+        "tempo": 0.8
       },
       "Kriegskarren": {
         "sorten": 3,
         "kapazitaetJeSorte": 25,
-        "preis": 900
+        "preis": 900,
+        "tempo": 1.3
       }
     },
     "eskorten": {
@@ -1444,6 +1451,7 @@
   "wegebau": {
     "tempo": { "Trampelpfad": 0.70, "Fahrweg": 0.85, "Kies": 0.95, "Pflaster": 1.00 },
     "bezug": "Fahrweg",
+    "ausbauHoechstens": 1.15,
     "stueck": 5,
     "verkehr": {
       "halten": 5, "voll": 50, "hoechstensJeJahr": 0.5, "verwildern": 0.2,

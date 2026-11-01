@@ -11,17 +11,23 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //  Spielen: Godot mit -- --karte=koeln
 //
 //  Erkennbar und spielbar vereinfacht (Entscheidung des Nutzers, 26.10.2026): Die Wahrzeichen stehen an ungefähr richtiger Lage, die
-//  Stadt ist auf etwa ein Zehntel verkleinert. Meter auf dem Boden, x = Osten, z = Süden, der Heumarkt bei 0 | 0.
+//  Stadt ist auf etwa ein Zehntel verkleinert. Meter auf dem Boden, x = Osten, z = Süden, der Ursprung in der Altstadt (bis 31.10.2026 lag dort
+//  der Heumarkt; heute kreuzen sich dort Severinstraße, Schildergasse und Brückenstraße).
 //
 //    • Rhein: fließt nach Norden, 60–100 m breit, läuft von Außenkante zu Außenkante; sein linkes Ufer liegt bei x = 60. Am linken Ufer
 //      Rheingasse, Hafen mit Kran, Zollstelle und Stapelhaus, davor Leinpfade; Rheinbrücke (Fiktion) und Fähre Mülheim.
 //    • Deutz am rechten Ufer mit kleiner Mauer (Nord-, Ost- und Südtor), Deutzer Freiheit, Vorstadt.
 //    • Stadtmauer: Halbkreis (Mitte 24 | 0, Radius 150 m) zum Rhein hin offen, Tore Eigelstein, Ehren, Hahnen, Weyer, Severin und die
 //      Ufertore Kunibert und Bayen; innen die Wallstraßen.
-//    • Markt: Heumarkt (Ursprung); Rathaus, Groß St. Martin, St. Gereon, St. Severin, St. Aposteln, St. Kunibert,
-//      Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
-//    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) rund um den Markt, Einwohnerplätze, Bauzonen aus dem Raster (alles, was
-//      frei ist, siehe Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen, Vorkommen.
+//    • Märkte (Entscheidung des Nutzers 31.10.2026, ein Stadtmarkt mit drei Plätzen): zwei innerhalb der Mauer an ihren Enden am Rhein – im
+//      Norden hinter dem Kunibertstor, im Süden hinter dem Bayentor, seit 1.11.2026 mit einer Hausreihe zwischen Mauer und Platz (40 m vom Tor
+//      an der Rheingasse, am Südplatz kommt der Malzbüchel von Westen an) –, der dritte in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße.
+//      Namen wie in Köln, nur in `Maerkte` gepflegt (Kommentare hier nennen die Plätze nach der Lage). Rathaus, Groß St. Martin, St. Gereon, St. Severin,
+//      St. Aposteln, St. Kunibert, Dom-Baustelle im Norden. Hauptstraßen mit echten Namen, Nebengassen mit erfundenen kölschen.
+//    • Spiel: acht Startgrundstücke (Spieler und sieben KI-Häuser) an den Straßen, die auf die Marktplätze führen, je 36 m vom nächsten (der
+//      Werkstattweg vom Halteplatz bis zum Halt am Pflaster 20–24 m, der Spieler 30 Minuten wie die alte feste Fahrzeit): der Spieler und zwei
+//      KI-Häuser am Südplatz, zwei am Nordplatz, drei in Deutz. Einwohnerplätze, Bauzonen aus dem Raster (alles, was frei ist, siehe
+//      Koeln.Zonen.cs), Umlandbetriebe an den Landstraßen (die der KI-Häuser an den Straßen nahe den Märkten), Vorkommen.
 //    • Gelände: Terrasse der Altstadt mit Hochufer zum Rhein, sanft ansteigend nach Westen (Ville), Bergisches Land im Osten.
 //    • Rand (300 m): Kölner Bucht (Felder), Ville und Königsforst (Wald), im Dunst.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -30,7 +36,7 @@ public sealed partial class Koeln : Stadtskript
 {
     public override string Kennung => "koeln";
     public override string Stadt => "Köln";
-    public override string Beschreibung => "Köln: Rhein, Mauerhalbkreis mit Toren, Märkte, Dom-Baustelle, Hafen, Deutz, Gelände, 8 Startgrundstücke, 8 Häuser";
+    public override string Beschreibung => "Köln: Rhein, Mauerhalbkreis mit Toren, drei Marktplätze, Dom-Baustelle, Hafen, Deutz, Gelände, 8 Startgrundstücke, 8 Häuser";
     public override (double Breite, double Tiefe) Groesse => (700, 450);
 
     // ── Maße ─────────────────────────────────────────────────────────────────
@@ -40,7 +46,24 @@ public sealed partial class Koeln : Stadtskript
     private const double Ufer = 60;     // das linke Rheinufer (Wasserlinie) bei x = 60
     private const double RheinX = 37;   // Rheingasse
     private const double HoheX = -34;   // Hohe Straße
-    private const double ZielAbstand = 96;   // so weit vom Markt liegen die Startgrundstücke (±10 %)
+    private const double ZielAbstand = 36;   // so weit vom nächsten Marktplatz liegen die Startgrundstücke (±10 %; bis 31.10.2026 96 m vom Heumarkt, dann 28 – seit Kern und Bild dieselbe Strecke rechnen, 36)
+    private const double MarktVonMauer = 40; // so weit liegt die Mitte der beiden Plätze an der Rheingasse innerhalb der Mauer (bis 1.11.2026 25 m: der Platz am Tor)
+
+    /// <summary>Ein Marktplatz: Name (wie in Köln), wie man „an ihm“ sagt (für den Namen der Werkstatt), Kennung nach der Lage, Mitte.</summary>
+    private sealed record Marktort(string Name, string Dativ, string Kennung, Kartenort Ort);
+
+    // Die drei Marktplätze (Entscheidung des Nutzers 31.10.2026): zwei an den Enden des Mauerhalbkreises, wo er auf den Rhein trifft, der dritte
+    // in Deutz an der Kreuzung von Deutzer Freiheit und Kirchstraße. Seit 1.11.2026 (Wunsch des Nutzers) liegen die beiden an der Rheingasse etwas
+    // weiter zur Stadtmitte, so dass zwischen Mauer und Platz eine Hausreihe steht: hinter dem Tor die Wallstraße, dann Häuser zu beiden Seiten der
+    // Rheingasse, dann der Platz (vorher berührte die Wallstraße den Platz). Die Rheingasse läuft über beide Plätze; am Heumarkt kommt von Westen
+    // der Malzbüchel an (der Platz ist eine Kreuzung, wie der Neumarkt).
+    // Die Namen stehen nur hier – sollen sie die Plätze tauschen, genügt es im Skript, Name und Dativ zu tauschen (die Kennung bleibt bei der
+    // Lage; dazu die eine Zeile mit den Namen in MarktplaetzeTests und die Doku, die die Plätze beschreibt).
+    // Reihenfolge = Reihenfolge in der Karte: Der erste ist der Platz des Spielers (im Bild „der Markt“, bei Gleichstand der Wege der erste).
+    private static readonly Marktort MarktSued = new("Heumarkt", "am Heumarkt", "MarktSued", P(RheinX, R - MarktVonMauer));
+    private static readonly Marktort MarktNord = new("Alter Markt", "am Alten Markt", "MarktNord", P(RheinX, -(R - MarktVonMauer)));
+    private static readonly Marktort MarktDeutz = new("Neumarkt", "am Neumarkt", "MarktDeutz", P(170, 6));
+    private static readonly Marktort[] Maerkte = { MarktSued, MarktNord, MarktDeutz };
 
     private readonly Dictionary<string, EntwurfWeg> _strassen = new();
     private EntwurfMauer _stadtmauer = null!, _deutzer = null!;
@@ -57,7 +80,8 @@ public sealed partial class Koeln : Stadtskript
         E.VorlageSetzen("Köln um 1400 (Dom als Baustelle), auf etwa ein Zehntel verkleinert; Lage der Wahrzeichen und Straßennamen nach der Stadt");
         E.FiktionHinzufuegen("Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).");
         E.FiktionHinzufuegen("Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.");
-        E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier offen durch die Südstadt.");
+        E.FiktionHinzufuegen("Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.");
+        E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier als Graben vor der Südmauer und mündet hinter dem Bayentor.");
         E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt.");
 
         Wasser();
@@ -71,10 +95,13 @@ public sealed partial class Koeln : Stadtskript
         Arbeitsstellen();
         KreuzungenVerbinden();
         Bauzonen();
+        WerkstattbauplaetzeAnlegen();
         Natur();
         Boden();
         Start();
-        E.KameraStartSetzen(P(-6, -22), 130);
+        // Der Blick beim Start: zwischen dem Grundstück des Spielers und seinem Platz (bis 31.10.2026 auf die Altstadtmitte bei −6 | −22)
+        var spielerPlatz = Maerkte.MinBy(m => m.Ort.Abstand(_startMitten[0]))!.Ort;
+        E.KameraStartSetzen(P(Math.Round((_startMitten[0].X + spielerPlatz.X) / 2), Math.Round((_startMitten[0].Z + spielerPlatz.Z) / 2)), 130);
         E.RandVorschlagen(1, ersetzen: false);
     }
 
@@ -116,13 +143,16 @@ public sealed partial class Koeln : Stadtskript
         for (var i = 0; i < rhein.Length; i++) E.FlussBreiteSetzen(fluss, i, rhein[i].Breite);
         E.FlussStroemungSetzen(fluss, 1.2);
 
-        // Duffesbach: kommt von Westen, läuft durch die Südstadt in den Rhein (Furten, an der Severinstraße eine Holzbrücke)
+        // Duffesbach: kommt von Westen und läuft als Graben 15 m vor der Südmauer (Radius 165 um die Mitte des Halbkreises) zum Rhein, hinter
+        // dem Bayentor in den Strom (bis 31.10.2026 quer durch die Südstadt; dort liegt jetzt der Südplatz). An der Bonner Straße vor dem
+        // Severinstor eine Holzbrücke, am Leinpfad eine Furt.
         var bach = E.FlussAnlegen(new[]
         {
-            P(-215, 150), P(-150, 130), P(-100, 116), P(-62, 109), P(-34, 108), P(-12, 112), P(12, 118), P(37, 121), P(62, 124), P(90, 127),
+            P(-215, 150), P(-150, 130), P(-100, 116), P(-82, 127), P(-60, 142), P(-36, 154), P(-20, 159), P(-4, 163), P(12, 165), P(37, 167),
+            P(62, 168), P(90, 169),
         }, "bach", 3, "Duffesbach");
         E.FlussStroemungSetzen(bach, 0.6);
-        E.FlussTiefeSetzen(bach, 5, 0.9);   // tief genug für eine Holzbrücke an der Severinstraße, sonst Furten
+        E.FlussTiefeSetzen(bach, 6, 0.9);   // tief genug für eine Holzbrücke an der Bonner Straße, sonst Furten
     }
 
     // ── Gelände ──────────────────────────────────────────────────────────────
@@ -184,19 +214,27 @@ public sealed partial class Koeln : Stadtskript
         Weg(Wegklasse.Haupt, "Eigelstein", Bogen(18, R), Bogen(18, WallR), P(-27, -118), P(HoheX, -110));
         Weg(Wegklasse.Haupt, "Ehrenstraße", Bogen(60, R), Bogen(60, WallR), P(-80, -45), P(-72, -20));
         Weg(Wegklasse.Haupt, "Hahnenstraße", Bogen(90, R), Bogen(90, WallR), P(-84, -8));
-        Weg(Wegklasse.Haupt, "Schildergasse", P(-60, -8), P(HoheX, -8), P(-12, -8));
+        Weg(Wegklasse.Haupt, "Schildergasse", P(-60, -8), P(HoheX, -8), P(0, -8));
         Weg(Wegklasse.Haupt, "Breite Straße", P(HoheX, -22), P(RheinX, -22));
         Weg(Wegklasse.Haupt, "Weyerstraße", Bogen(120, R), Bogen(120, WallR), P(-70, 64), P(HoheX, 57));
         Weg(Wegklasse.Haupt, "Bayenstraße", P(HoheX, 57), P(RheinX, 57));
-        Weg(Wegklasse.Haupt, "Severinstraße", Bogen(162, R), Bogen(162, WallR), P(-14, 100), P(-7.7, 57), P(-2, 30), P(0, 12));
-        Weg(Wegklasse.Haupt, "Brückenstraße", P(12, 8), P(RheinX, 8));
+        // Severinstraße bis zur Breiten Straße; Schildergasse und Brückenstraße münden in sie (bis 31.10.2026 endeten alle drei am Heumarkt im Ursprung)
+        Weg(Wegklasse.Haupt, "Severinstraße", Bogen(162, R), Bogen(162, WallR), P(-15.5, R - MarktVonMauer), P(-14, 100), P(-7.7, 57), P(-2, 30), P(0, 12), P(0, -22));
+        // Malzbüchel: von der Severinstraße zum Heumarkt, bis zur Rheingasse in seiner Mitte (seit 1.11.2026; vorher berührte der Kartäuserwall
+        // den Platz – dort fuhr das dritte Startgrundstück des Heumarkts zum Platz)
+        Weg(Wegklasse.Haupt, "Malzbüchel", P(-15.5, R - MarktVonMauer), MarktSued.Ort);
+        Weg(Wegklasse.Haupt, "Brückenstraße", P(0, 8), P(RheinX, 8));
         Weg(Wegklasse.Haupt, "Rheinbrücke", P(RheinX, 8), P(126, 8));
-        Weg(Wegklasse.Gasse, "Trankgasse", P(HoheX, -70), P(RheinX, -70));
+        // Trankgasse und Krähenpforte bis 1.11.2026 9 m weiter nördlich (z = −70): Dort liegt jetzt das Startgrundstück an der Stadtseite des Alter Markts
+        Weg(Wegklasse.Gasse, "Trankgasse", P(HoheX, -61), P(RheinX, -61));
         Weg(Wegklasse.Gasse, "Hammergasse", P(-80, -45), P(HoheX, -45));
+        // Unter Fettenhennen (Name einer Straße am echten Dom): eine Hauptstraße vom Alter Markt nach Westen in den Hof zwischen Dom und S4, an ihr
+        // ein Werkstatt-Bauplatz (seit 1.11.2026, Koeln.Bauplaetze.cs). Sie beginnt auf der Rheingasse im Platz, damit sie im Netz hängt.
+        Weg(Wegklasse.Haupt, "Unter Fettenhennen", P(RheinX, -101), P(24, -95), P(-3, -95));
 
         // Nebengassen mit erfundenen Namen (nur Fußgänger)
         Weg(Wegklasse.Gasse, "Engelspforte", P(HoheX, -112), P(-11, -112));
-        Weg(Wegklasse.Gasse, "Krähenpforte", P(0, -70), P(0, -56));
+        Weg(Wegklasse.Gasse, "Krähenpforte", P(0, -61), P(0, -47));
         Weg(Wegklasse.Gasse, "Wollgasse", P(-62, 4), P(-56, 40), P(-50, 60.1));
 
         // Wallstraßen innerhalb der Mauer
@@ -232,8 +270,9 @@ public sealed partial class Koeln : Stadtskript
 
     private void Wahrzeichen()
     {
-        // Es gibt nur einen Marktplatz (Entscheidung des Nutzers): den Heumarkt im Ursprung; Alter Markt und Neumarkt sind Bauland
-        Haus("markt", "Heumarkt", 0, 0, kennung: "Heumarkt");
+        // Drei Marktplätze, ein Stadtmarkt (Entscheidung des Nutzers vom 31.10.2026): an den Enden der Mauer am Rhein (seit 1.11.2026 mit einer
+        // Hausreihe vor dem Tor) und in Deutz
+        foreach (var m in Maerkte) Haus("markt", m.Name, m.Ort.X, m.Ort.Z, kennung: m.Kennung);
         MarktPflastern();
 
         Haus("rathaus", "Rathaus", -20, -44, 90, "Rathaus");
@@ -244,15 +283,17 @@ public sealed partial class Koeln : Stadtskript
         Haus("kirche", "St. Kunibert", 14, -128, 0, "Kunibert");
         Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
 
-        // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser, das Stapelhaus am Ufer
-        Haus("hafenplatz", "Rheinhafen", 51, -60, 270, "Rheinhafen");
-        Haus("hafenkran", "Rheinkran", 54, -78, 270, "Rheinkran");
-        Haus("zollstelle", "Zollstelle", 54, -92, 270, "Zollstelle");
+        // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser (Kran und Zollstelle südlich des Hafens, bis 31.10.2026 nördlich –
+        // dort liegt jetzt ein Startgrundstück am Nordplatz; seit 1.11.2026 alle drei 6 m weiter südlich, damit das Grundstück mit dem Platz
+        // nach Süden rücken kann), das Stapelhaus am Ufer
+        Haus("hafenplatz", "Rheinhafen", 51, -54, 270, "Rheinhafen");
+        Haus("hafenkran", "Rheinkran", 54, -38, 270, "Rheinkran");
+        Haus("zollstelle", "Zollstelle", 54, -24, 270, "Zollstelle");
         Haus("lagerschuppen", "Stapelhaus", 50, 28, 270, "Stapelhaus");
 
-        // Leerstände und Ruinen: Hausnamen aus der Stadt
+        // Leerstände und Ruinen: Hausnamen aus der Stadt (die Ruine von Deutz seit dem 1.11.2026 vor dem Südtor)
         Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90, "L1");
         Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90, "L2");
-        Haus("leerstand", "Haus zum schwarzen Raben (Ruine)", 150, 24, 180, "L3");
+        RuineVorDemSuedtor();   // bis 1.11.2026 bei 196 | 27 in Deutz, dort liegen jetzt Werkstatt-Bauplätze (Koeln.Bauplaetze.cs)
     }
 }
