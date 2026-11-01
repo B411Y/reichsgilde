@@ -49,7 +49,8 @@ public partial class Stadtansicht
         /// <summary>Die Stücke der Zelle (Schlüssel: <see cref="EntwurfFels"/> in der Werkstatt, die Nummer in der Karte im Spiel).</summary>
         public List<object> Stuecke { get; } = new();
 
-        public List<(MultiMeshInstance3D Teil, string Form)> Teile { get; } = new();
+        /// <summary>Je Form und Gestein ein Teil; <c>Schutt</c>: die Schuttsteine vor den Stücken (F6, ohne Schatten, nur nah).</summary>
+        public List<(MultiMeshInstance3D Teil, string Form, bool Schutt)> Teile { get; } = new();
         public Vector3 Mitte { get; set; }
         public int Stufe { get; set; } = -1;
         public bool Neu { get; set; } = true;
@@ -204,7 +205,7 @@ public partial class Stadtansicht
     /// <summary>Eine Zelle neu: je Form und Gesteinsart ein MultiMesh in der Stufe, die zuletzt galt (die nächste Prüfung stellt sie richtig).</summary>
     private void FelsZelleBauen(Felszelle zelle)
     {
-        foreach (var (teil, _) in zelle.Teile) teil.QueueFree();
+        foreach (var (teil, _, _) in zelle.Teile) teil.QueueFree();
         zelle.Teile.Clear();
         zelle.Neu = false;
         if (zelle.Stuecke.Count == 0) return;
@@ -218,6 +219,36 @@ public partial class Stadtansicht
             var gruppe = gruppen.FindIndex(g => g.Art == art);
             if (gruppe < 0) gruppen.Add((art, new List<object> { s }));
             else gruppen[gruppe].Stuecke.Add(s);
+        }
+        // die Schuttsteine (F6) je Gestein, nach den Stücken der Zelle
+        var schutt = new List<(string Gestein, List<Felsbild> Steine)>();
+        foreach (var s in zelle.Stuecke)
+        {
+            var steine = FelsSchutt(_felsBilder[s]);
+            if (steine.Count == 0) continue;
+            var k = schutt.FindIndex(x => x.Gestein == steine[0].Gestein);
+            if (k < 0) schutt.Add((steine[0].Gestein, steine));
+            else schutt[k].Steine.AddRange(steine);
+        }
+        foreach (var (gestein, steine) in schutt)
+        {
+            if (FelsNetz(Felsboden.Schuttform, stufe) is not { } netz) continue;
+            var vielfach = new MultiMesh
+            {
+                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseCustomData = true, Mesh = netz, InstanceCount = steine.Count,
+            };
+            for (var i = 0; i < steine.Count; i++)
+            {
+                vielfach.SetInstanceTransform(i, FelsLage(steine[i]));
+                vielfach.SetInstanceCustomData(i, new Color(FelsTiefe(steine[i]), 0, 0, 0));
+            }
+            var teil = new MultiMeshInstance3D
+            {
+                Name = "Schutt", Multimesh = vielfach, MaterialOverride = FelsStoff(gestein), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Visible = stufe < 2,
+            };
+            zelle.Knoten.AddChild(teil);
+            zelle.Teile.Add((teil, Felsboden.Schuttform, true));
         }
         foreach (var ((form, gestein), stuecke) in gruppen)
         {
@@ -242,7 +273,7 @@ public partial class Stadtansicht
                 CastShadow = stufe <= FelsSchattenBisStufe ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off,
             };
             zelle.Knoten.AddChild(teil);
-            zelle.Teile.Add((teil, form));
+            zelle.Teile.Add((teil, form, false));
         }
         zelle.Mitte = summe / Math.Max(1, zelle.Stuecke.Count);
     }
@@ -274,10 +305,11 @@ public partial class Stadtansicht
             if (stufe == zelle.Stufe) continue;
             zelle.Stufe = stufe;
             var schatten = stufe <= FelsSchattenBisStufe ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off;
-            foreach (var (teil, form) in zelle.Teile)
+            foreach (var (teil, form, schutt) in zelle.Teile)
             {
                 if (FelsNetz(form, stufe) is { } netz) teil.Multimesh.Mesh = netz;
-                teil.CastShadow = schatten;
+                teil.CastShadow = schutt ? GeometryInstance3D.ShadowCastingSetting.Off : schatten;
+                if (schutt) teil.Visible = stufe < 2;
             }
         }
     }
@@ -289,8 +321,11 @@ public partial class Stadtansicht
     /// <summary>Die Felsstücke der Karte (im Spiel; die Werkstatt baut sie aus dem Entwurf, <see cref="FelsenAufbauen"/>).</summary>
     private void FelsenAusKarte(Stadtkarte karte)
     {
-        if (_entwurf is not null || karte.Felsen?.Stuecke is not { Count: > 0 } stuecke) return;
-        var grund = Felsformen.IstGestein(karte.Felsen.Grundgestein) ? karte.Felsen.Grundgestein! : Felsformen.GrundgesteinVorgabe;
+        if (_entwurf is not null) return;
+        var grundKarte = Felsformen.IstGestein(karte.Felsen?.Grundgestein) ? karte.Felsen!.Grundgestein! : Felsformen.GrundgesteinVorgabe;
+        FelsbodenFarbe(grundKarte, karte.Felsen is not null); // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher
+        if (karte.Felsen?.Stuecke is not { Count: > 0 } stuecke) return;
+        var grund = grundKarte;
         for (var i = 0; i < stuecke.Count; i++)
         {
             var s = stuecke[i];
@@ -316,6 +351,7 @@ public partial class Stadtansicht
         FelsenKnotenAnlegen();
         foreach (var f in _entwurf.Felsen) FelsSetzen(f, FelsBildVon(f));
         FelsenNachziehen();
+        FelsbodenFarbeNachEntwurf();
     }
 
     /// <summary>Ein Stück neu, geändert oder weg (<paramref name="weg"/>) – aus der Meldung des Entwurfs.</summary>
@@ -323,6 +359,7 @@ public partial class Stadtansicht
     {
         if (weg || _entwurf is null || Felsformen.Finde(f.Form) is null) FelsWeg(f);
         else FelsSetzen(f, FelsBildVon(f));
+        FelsbodenFarbeNachEntwurf();
         FelsMarkieren(f);
     }
 
@@ -331,12 +368,13 @@ public partial class Stadtansicht
     {
         if (_entwurf is null) return;
         foreach (var f in _entwurf.Felsen) FelsSetzen(f, FelsBildVon(f));
+        FelsbodenFarbeNachEntwurf();
     }
 
     /// <summary>Das Gelände hat sich in diesem Rechteck geändert: Die Zellen darin folgen dem Boden (aus <see cref="GelaendeNachziehen"/>).</summary>
     private void FelsenImBereich(Rect2 rect)
     {
-        var weit = rect.Grow(12f); // größter Radius eines Stücks bei Maßstab 2
+        var weit = rect.Grow(30f); // größter Radius eines Stücks samt Schuttkegel (Felsboden.KegelMax)
         foreach (var (ort, zelle) in _felsZellen)
         {
             if (!new Rect2(ort.I * FelsZelle, ort.J * FelsZelle, FelsZelle, FelsZelle).Intersects(weit)) continue;
