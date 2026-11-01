@@ -102,16 +102,25 @@ static class KiUmlandTests
             var (gEiche, karren) = ki.NachDemWeg("Holzschlag im Eichenforst", Betriebsart.Holzfaellerei, g);
             Pruefe.Wahr(Math.Abs(gEiche - (g - (1 - eiche.Anteil) * eiche.Wert)) < 1e-9, $"{gEiche} statt {g}");
             Pruefe.Gleich((eiche.Karren - 1) * w.Daten.Logistik.Karren[eiche.Typ].Preis, karren);
+            Pruefe.Gleich("Ochsenkarren", eiche.Typ); // an der Höchstdauer gleicher Durchfluss: die billigere Art
             Pruefe.Gleich(null, ki.UmlandSchaetzen("Wachturm an der Landstraße", Betriebsart.Wachturm));
             Pruefe.Gleich(null, ki.UmlandSchaetzen("Gießerei", Betriebsart.Giesserei));
         }),
 
-        ("KI-Umland: In Köln pachtet die KI den Holzschlag im Eichenforst nicht mehr (rechnet sich mit drei Karren nicht), die nahe Grube weiter zum vollen Gewinn", () =>
+        ("KI-Umland: In Köln steht der Holzschlag im Eichenforst (Höchstdauer, drei Ochsen) als letzter Kandidat – weit hinter dem näheren Holzschlag und der nahen Grube", () =>
         {
             var (w, ki) = Partie("koeln");
             Reich(w, ki);
             var kandidaten = ki.Expansionskandidaten();
-            Pruefe.Wahr(kandidaten.All(x => x.Angebot.Name != "Holzschlag im Eichenforst"), string.Join(", ", kandidaten.Select(x => x.Angebot.Name)));
+            var namen = string.Join(", ", kandidaten.Select(x => x.Angebot.Name));
+            var eiche = kandidaten.FindIndex(x => x.Angebot.Name == "Holzschlag im Eichenforst");
+            Pruefe.Wahr(eiche < 0 || kandidaten.Skip(eiche + 1).All(x => !x.Angebot.Name.StartsWith("Holzschlag") && !x.Angebot.Name.StartsWith("Grube")), namen);
+            if (eiche >= 0)
+            {
+                // an der Höchstdauer fahren alle Arten gleich lang: Wie beim Karrenkauf zählt der billigere Ochse (2 × 400)
+                Pruefe.Gleich(800.0, kandidaten[eiche].Kosten);
+                Pruefe.Wahr(kandidaten[eiche].Gewinn < 300, $"Eichenforst {kandidaten[eiche].Gewinn}");
+            }
             var grube = kandidaten.Single(x => x.Angebot.Name == "Grube am Silberberg");
             Pruefe.Wahr(kandidaten.Any(x => x.Angebot.Name == "Holzschlag Hardevust"), "der nähere Holzschlag bleibt ein Kandidat");
             var hardevust = kandidaten.Single(x => x.Angebot.Name == "Holzschlag Hardevust");

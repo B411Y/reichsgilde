@@ -75,7 +75,8 @@ public sealed partial class KiRivale
         {
             if (FahrzeitDerLiegenschaft(name, art, t) is not var (hin, zurueck)) return null;
             var f = Math.Min(k.Gesamtkapazitaet, _w.Daten.Logistik.LagerJeWare * d.Rohstoffe.Count) / (double)Math.Max(1, hin + zurueck);
-            if (f > fluss + 1e-12) (fluss, typ) = (f, t);
+            // bei gleichem Durchfluss (etwa an der Höchstdauer) die billigere Art – wie der Karrenkauf (BesterKarrenplan)
+            if (f > fluss + 1e-12 || (Math.Abs(f - fluss) <= 1e-12 && typ != "" && k.Preis < _w.Daten.Logistik.Karren[typ].Preis)) (fluss, typ) = (f, t);
         }
         if (FoerderungUndWert(art, leistung) is not var (stueck, wert) || stueck <= 0 || fluss <= 0) return null;
         var jeKarren = fluss * FahrminutenJeKarrenUndJahr;

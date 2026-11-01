@@ -13,9 +13,10 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Abteigasse (nach der Abtei Deutz, erfunden): von der Freiheit vor dem Osttor zwischen WB_Neumarkt4 und der Ostmauer nach Süden bis vor
 //      die Südmauer, eine Sackgasse. Häuser an der Westseite, an der Mauer ein Gartenstreifen.
 //
-// Die Gassen sind Fußwege (keine Karren): Die Fahrzeiten der Bauplätze bleiben, wie sie waren (Tabelle in docs/LEVELDESIGN.md). Die Häuser sind
-// Kulissenhäuser (feste Modelle, stehen auch mit wenigen Rivalen); die acht Einwohnerplätze von Deutz bleiben, wo sie waren. Bauplätze, Gassen
-// und Häuser halten die Abstände der Kartenregeln (Bauplatz 2 m, Gasse 1,5 m zur Bauzone, Mauer 4 m wie überall im Skript).
+// Die Gassen sind Wege der Klasse Gasse (Karren nehmen sie nur, wenn nichts anderes geht – sie zählen im Karrennetz doppelt); die Fahrzeiten
+// der Bauplätze bleiben, wie sie waren (Tabelle in docs/LEVELDESIGN.md). Die Häuser sind Kulissenhäuser (feste Modelle, stehen auch mit wenigen
+// Rivalen); von den acht Einwohnerplätzen von Deutz stehen zwei an der Urbanusgasse in der Mauer, sechs vor dem Südtor. Abstände: Gassenmitte
+// mindestens 2 m zu den Bauplätzen, Häuser 2 m zu den Bauplätzen und 3 m zur Mauerlinie (Regel 1 m).
 
 public sealed partial class Koeln
 {
