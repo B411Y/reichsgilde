@@ -153,6 +153,9 @@ public partial class Stadtansicht
         LagenZeichnen(knoten, lagen);
     }
 
+    /// <summary>Wo sich der Boden geändert hat, seit die Felszellen zuletzt folgten (Schuttsteine, F6); null: nirgends.</summary>
+    private Rect2? _wsFelsBodenBereich;
+
     /// <summary>
     /// Am Ende des Bildes (aus <see cref="Nachziehen"/>, vor der Natur): die Bilder der Kacheln im geänderten Rechteck ersetzen und, wenn kein Strich läuft,
     /// die Deko der Kacheln neu streuen, die ein geändertes Rechteck oder ein verändertes Hindernis (<see cref="_wsNaturBereiche"/>) berührt.
@@ -165,9 +168,17 @@ public partial class Stadtansicht
             var r = Vereinigt(_wsBodenBereiche);
             _wsBodenBereiche.Clear();
             BodenStoffeNeu(r);
+            // Schuttsteine liegen nur auf Kies (F6): die Zellen darüber neu – erst nach dem Strich, nicht in jedem Bild
+            var rect = new Rect2((float)r.X0, (float)r.Z0, (float)(r.X1 - r.X0), (float)(r.Z1 - r.Z0));
+            _wsFelsBodenBereich = _wsFelsBodenBereich is { } alt ? alt.Merge(rect) : rect;
+        }
+        if (_wsFelsBodenBereich is { } fb && !_entwurf.BodenStrichLaeuft && !_entwurf.FelsStrichLaeuft && !_wsBodenStrich)
+        {
+            _wsFelsBodenBereich = null;
+            FelsenImBereich(fb);
         }
         if (_wsNaturBereiche.Count > 0) _wsDekoBereiche.AddRange(_wsNaturBereiche);
-        if (_wsDekoBereiche.Count == 0 || _entwurf.BodenStrichLaeuft || _wsBodenStrich) return;
+        if (_wsDekoBereiche.Count == 0 || _entwurf.BodenStrichLaeuft || _entwurf.FelsStrichLaeuft || _wsBodenStrich) return;
         var bereiche = _wsDekoBereiche.Select(b => b.Grow((float)Bodendeko.Rand + 1)).ToList();
         _wsDekoBereiche.Clear();
         foreach (var b in bereiche) BueschelBereich(b); // auch die Grasbüschel weichen (Stadtansicht.Bueschel.cs)

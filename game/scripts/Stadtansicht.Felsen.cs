@@ -374,7 +374,7 @@ public partial class Stadtansicht
     /// <summary>Das Gelände hat sich in diesem Rechteck geändert: Die Zellen darin folgen dem Boden (aus <see cref="GelaendeNachziehen"/>).</summary>
     private void FelsenImBereich(Rect2 rect)
     {
-        var weit = rect.Grow(30f); // größter Radius eines Stücks samt Schuttkegel (Felsboden.KegelMax)
+        var weit = rect.Grow(20f); // größter Radius eines Stücks samt Schuttkegel (Grundfläche + 0,8 · Felsboden.KegelMax)
         foreach (var (ort, zelle) in _felsZellen)
         {
             if (!new Rect2(ort.I * FelsZelle, ort.J * FelsZelle, FelsZelle, FelsZelle).Intersects(weit)) continue;

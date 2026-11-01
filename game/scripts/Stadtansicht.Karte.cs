@@ -121,6 +121,7 @@ public partial class Stadtansicht
         if (karte is null)
         {
             Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f); // ohne Karte nur die Wiese (der Fehler ist schon gemeldet)
+            FelsbodenFarbe(Felsformen.GrundgesteinVorgabe, false); // keine Gesteinsfarbe aus einer früheren Karte (Stadtansicht.Felsboden.cs)
             yield break;
         }
         Ladezeit.Marke("vor dem Kartenaufbau");

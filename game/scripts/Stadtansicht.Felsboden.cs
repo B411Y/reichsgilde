@@ -10,11 +10,15 @@ namespace Reichsgilde;
 /// <item><b>Farbe der Gesteinsart</b>: Fels im Boden (am Hang und gemalt) nimmt Hell und Dunkel des Grundgesteins der Karte an, Kies etwas dessen
 /// Schuttfarbe – über die globalen Uniforms <c>boden_gestein_*</c> (boden.gdshaderinc). Karten ohne Felsen behalten den Boden wie bisher.</item>
 /// <item><b>Schuttsteine</b>: kleine Steine der Form „schuttbrocken“ im Kegel vor jedem Stück (<see cref="Felsboden.Schuttsteine"/>), mit dem
-/// Fels-Material des Stücks, ohne Schatten und nur nah (Stufe 0 und 1); sie werden mit der Zelle ihres Stücks gebaut.</item>
+/// Fels-Material des Stücks, ohne Schatten und nur nah (Stufe 0 und 1), nur wo Kies liegt; sie werden mit der Zelle ihres Stücks gebaut, in der
+/// Werkstatt auch nach jeder Änderung des Bodens darunter.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
 {
+    /// <summary>Ohne Bodenraster: überall Wiese – dann liegen keine Schuttsteine.</summary>
+    private static readonly Bodenraster LeererBoden = new();
+
     private bool? _felsbodenAn;
     private string? _felsbodenGestein;
 
@@ -47,7 +51,7 @@ public partial class Stadtansicht
     {
         var aus = new List<Felsbild>();
         if ((_entwurf?.Hoehen ?? _gelaende?.Roh) is not { } raster) return aus;
-        foreach (var s in Felsboden.Schuttsteine(new Felsfuss(b.Form, b.X, b.Z, b.Drehung, b.Massstab), raster))
+        foreach (var s in Felsboden.Schuttsteine(new Felsfuss(b.Form, b.X, b.Z, b.Drehung, b.Massstab), raster, BodenRaster ?? LeererBoden))
             aus.Add(new Felsbild(Felsboden.Schuttform, b.Gestein, s.X, s.Z, s.Drehung, s.Massstab, 0.6, 0.3, 0, 0));
         return aus;
     }

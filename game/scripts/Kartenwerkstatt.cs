@@ -890,7 +890,12 @@ public partial class Kartenwerkstatt : Node
                 _entwurf.GrundgesteinSetzen(rest);
                 break;
             case "boden": // boden:aus / boden:an – „Boden mitmalen“ für die folgenden Schritte (F6)
-                _stadt.FelsBoden = rest != "aus";
+                _stadt.FelsBoden = rest switch
+                {
+                    "an" => true,
+                    "aus" => false,
+                    _ => throw new ArgumentException($"boden:{rest} – nur boden:an oder boden:aus."),
+                };
                 break;
             case "stempel":
             {
