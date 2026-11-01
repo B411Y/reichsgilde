@@ -778,7 +778,7 @@ public partial class Kartenwerkstatt : Node
                         : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte, bodenfilter);
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
-            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · stempel:<vorlage>,x,z[,drehung] ·
+            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · stempel:<vorlage>,x,z[,drehung] ·
             // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
             if (o.TryGetValue("werkstatt-fels", out var felsen))
@@ -889,6 +889,9 @@ public partial class Kartenwerkstatt : Node
             case "grundgestein":
                 _entwurf.GrundgesteinSetzen(rest);
                 break;
+            case "boden": // boden:aus / boden:an – „Boden mitmalen“ für die folgenden Schritte (F6)
+                _stadt.FelsBoden = rest != "aus";
+                break;
             case "stempel":
             {
                 var t = rest.Split(',');
@@ -909,7 +912,7 @@ public partial class Kartenwerkstatt : Node
                 break;
             }
             default:
-                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, stempel, streuen, radierer).");
+                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, stempel, streuen, radierer).");
         }
     }
 

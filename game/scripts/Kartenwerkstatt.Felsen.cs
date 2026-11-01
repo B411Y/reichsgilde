@@ -73,6 +73,12 @@ public partial class Kartenwerkstatt
         hang.AddThemeFontSizeOverride("font_size", 14);
         hang.Toggled += an => _stadt.FelsZumHang = an;
         _eigenschaften.AddChild(hang);
+        var boden = new CheckBox { Text = "Boden mitmalen", ButtonPressed = _stadt.FelsBoden, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Unter jedem Stück wird der Boden zu Fels, hangabwärts liegt ein Schuttkegel aus Kies, am oberen Rand und im Norden ein Moossaum – " +
+                          "alles ein Schritt mit den Stücken. Der Radierer der Felsen lässt den Boden (dafür der Radierer der Bodentexturen)." };
+        boden.AddThemeFontSizeOverride("font_size", 14);
+        boden.Toggled += an => _stadt.FelsBoden = an;
+        _eigenschaften.AddChild(boden);
         Hauptmenue.Text(_eigenschaften, modus == Stadtansicht.FelsArt.Stempeln
                 ? "Die Vorschau an der Maus zeigt genau die Stücke, die der Klick setzt. Felsen sperren nichts: Gebäude, Wege und Bauzonen dürfen darauf stehen."
                 : "Ein Strich setzt alle halben Radius einen Tupfer; jedes Stück hält Abstand zu den anderen. Felsen sperren nichts.",

@@ -60,6 +60,9 @@ public partial class Stadtansicht
     public double FelsNeigung { get; set; } = 0.5;
     public bool FelsZumHang { get; set; } = true;
 
+    /// <summary>Boden mitmalen (F6): Fels unter dem Stück, Schuttkegel hangabwärts, Moossaum – im selben Schritt wie die Stücke.</summary>
+    public bool FelsBoden { get; set; } = true;
+
     /// <summary>Wo der Felspinsel wirkt (Steigung, Boden); <see cref="Pinselfilter.Keiner"/>: überall.</summary>
     public Pinselfilter FelsFilter { get; set; } = Pinselfilter.Keiner;
 
@@ -70,7 +73,7 @@ public partial class Stadtansicht
     public Felspinsel FelsPinsel => FelsModus == FelsArt.Radieren
         ? Felspinsel.Radiergummi(FelsRadius, FelsFilter)
         : new Felspinsel(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken, FelsNeigung,
-            FelsZumHang, FelsFilter);
+            FelsZumHang, FelsFilter, Boden: FelsBoden);
 
     /// <summary>Die Farbe einer Gesteinsart (hell) für Symbol und Kreis.</summary>
     public static Color FelsFarbe(string? gestein) => Gesteinsarten.Nach(gestein ?? Felsformen.GrundgesteinVorgabe).Hell;
