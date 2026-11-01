@@ -197,6 +197,7 @@ def brauen(pfad, rng, frau=False):
     FRAU = frau
     bild = Bild()
     wolke = _wolke(rng)
+    wolke2 = _wolke(rng, 10) if WEICH else None
     mehr = {5: 1.45, 3: 1.25, 4: 0.7}.get(FORM, 1.0)
     for lage, anzahl in ((0, int(880 * mehr)), (1, int(260 * mehr))) if not frau else ((0, int(720 * mehr)), (1, int(170 * mehr))):
         haare = []
@@ -204,12 +205,17 @@ def brauen(pfad, rng, frau=False):
             u, v = rng.random(), rng.random() * 1.12 - 0.06
             dichte, rand = brauen_form(u, np.clip(v, 0, 1))
             # unregelmäßig: Büschel und Lücken; am Rand vereinzelt abstehende Haare
-            dichte = dichte * np.clip(0.75 + 0.45 * wolke(u, v), 0.25, 1.2)
-            if dichte < 0.05 and rng.random() < 0.05:
-                # einzelne abstehende Haare knapp (bis 1,2 mm) außerhalb des Randes
+            if WEICH:
+                # Etappe D, Runde 2 (Prüfer: „glatter Bogen, wie nachgezogen“): kräftigere Büschel und Lücken in zwei Weiten
+                dichte = dichte * np.clip(0.6 + 0.6 * wolke(u, v) + 0.35 * wolke2(3.1 * u, 2.3 * v), 0.12, 1.35)
+            else:
+                dichte = dichte * np.clip(0.75 + 0.45 * wolke(u, v), 0.25, 1.2)
+            if dichte < 0.05 and rng.random() < (0.12 if WEICH else 0.05):
+                # einzelne abstehende Haare knapp (bis 1,2 mm, weich bis 2 mm) außerhalb des Randes
                 ob, un = braue_kanten_mm(u)
                 y_mm = v * float(braue_hoehe_mm(u))
-                if un - 1.2 < y_mm < ob + 1.2 and 0.08 < u < 0.95:
+                w_rand = 2.0 if WEICH else 1.2
+                if un - w_rand < y_mm < ob + w_rand and 0.08 < u < 0.95:
                     dichte = 0.5
             if rng.random() > dichte or not (0.0 < v < 1.0):
                 continue

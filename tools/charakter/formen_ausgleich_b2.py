@@ -199,15 +199,19 @@ SCHLUESSEL = ("ipd", "augapfel_ipd", "zy", "n_me", "gesichtsindex", "kinnmitte_z
 # Etappe D: Nase je Geschlecht (Bereiche; Toleranz). Fotovorlagen (Mittel m/w): ps_sn_ipd 0,769/0,752, ps_prn_ipd
 # 0,625/0,593, Nase–Kinn 0,409/0,424, al_ipd 0,542/0,500; die Frau bleibt unter dem Fotomittel, weil n–sn sonst über
 # Farkas + 1 σ wüchse (das Fotomittel verlangte bei ihr 6 mm mehr Nase)
-NASE_D = {"m": [("ps_sn_ipd", "bereich", 0.755, 0.80, 0.008), ("ps_prn_ipd", "min", 0.58, 0, 0.012),
-                ("nase_kinn", "bereich", 0.39, 0.43, 0.006), ("al_ipd", "bereich", 0.52, 0.56, 0.008),
-                ("nasolabial", "bereich", 90.0, 102.0, 2.0), ("n_sn", "bereich", 52.0, 56.5, 0.8)],
+# Runde 2 (Blindtest: Männernase im Profil „zu kurz, aufgestülpt“): Mann zum Fotomittel und darüber (Prüfvorlagen 0,82
+# und 0,77), Spitze tiefer, n–sn bis Farkas + 1 σ
+NASE_D = {"m": [("ps_sn_ipd", "bereich", 0.775, 0.815, 0.008), ("ps_prn_ipd", "min", 0.62, 0, 0.012),
+                ("nase_kinn", "bereich", 0.39, 0.44, 0.006), ("al_ipd", "bereich", 0.52, 0.56, 0.008),
+                ("nasolabial", "bereich", 88.0, 98.0, 2.0), ("n_sn", "bereich", 52.0, 58.0, 0.8)],
           "w": [("ps_sn_ipd", "bereich", 0.66, 0.72, 0.008), ("ps_prn_ipd", "min", 0.52, 0, 0.012),
                 ("nase_kinn", "bereich", 0.37, 0.43, 0.006), ("al_ipd", "bereich", 0.48, 0.52, 0.008),
                 ("nasolabial", "bereich", 96.0, 108.0, 2.0), ("n_sn", "bereich", 48.5, 52.5, 0.8)]}
 NASE_D_FORMEN = ["probe_nose_trans_down", "probe_nose_septumangle_decr", "probe_nose_nostrils_width_decr",
                  "probe_nose_flaring_decr", "probe_nose_point_width_decr", "probe_nose_scale_depth_incr"]
 AUGEN_D = {"eigen_augenhoehle": 1.0, "eigen_unterlid": 1.0, "eigen_traenenrinne": 0.6}
+# Deckfalte je Geschlecht (Runde 2: bei der Frau las der Prüfer „aufgequollenes Oberlid mit harter Kante“)
+DECKFALTE_D = {"m": 1.0, "w": 0.4}
 
 
 def main():
@@ -326,7 +330,7 @@ def main():
             for f in NASE_D_FORMEN:
                 if f not in var and not any(gegenform(f) == k for k in var):
                     var[f] = V(f, 0.0, -0.6 if gegenform(f) else 0.0, 0.8)
-            fest = dict(fest, **AUGEN_D, **{f"eigen_deckfalte_{g}": 1.0})
+            fest = dict(fest, **AUGEN_D, **{f"eigen_deckfalte_{g}": DECKFALTE_D[g]})
             if opt.get("basis"):
                 # nur die Nase rechnet; alles andere bleibt wie in B2 (sonst wandert z. B. der Kiefer mit und der
                 # Vorher-Nachher-Vergleich misst nicht mehr nur Nase und Augen)
