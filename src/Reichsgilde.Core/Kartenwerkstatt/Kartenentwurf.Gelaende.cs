@@ -85,7 +85,7 @@ public sealed partial class Kartenentwurf
     public void GelaendeStrichBeginnen(Pinsel pinsel)
     {
         GelaendeStrichBeenden();
-        _strich = Gelaendepinsel.Beginnen(_hoehen, pinsel, Kartengrenzen.Aussen);
+        _strich = Gelaendepinsel.Beginnen(_hoehen, pinsel, Kartengrenzen.Aussen, _boden);
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public sealed partial class Kartenentwurf
     {
         if (_strich is not { } strich) return false;
         _strich = null;
-        return Eintragen(PinselText(strich.Pinsel.Art), strich.Aenderung);
+        return Eintragen(PinselText(strich.Pinsel), strich.Aenderung);
     }
 
     /// <summary>Ein ganzer Strich in einem Aufruf (Kartenskript, Tests): Beginnen, alle Punkte, Beenden – ein Schritt.</summary>
@@ -135,12 +135,13 @@ public sealed partial class Kartenentwurf
     /// <summary>Eine Kachel, in der überall 0 steht (zum Vergleichen; nicht ändern).</summary>
     private static readonly short[] LeereKachel = new short[Hoehenraster.Kachel * Hoehenraster.Kachel];
 
-    private static string PinselText(Pinselart art) => art switch
+    private static string PinselText(Pinsel p) => p.Art switch
     {
-        Pinselart.Heben => "Gelände gehoben",
-        Pinselart.Senken => "Gelände gesenkt",
+        Pinselart.Heben => p.NurAusgleich ? "Mulden gehoben" : "Gelände gehoben",
+        Pinselart.Senken => p.NurAusgleich ? "Spitzen gekappt" : "Gelände gesenkt",
         Pinselart.Glaetten => "Gelände geglättet",
-        Pinselart.Ebnen => "Gelände geebnet",
+        Pinselart.Ebnen => p.Zielhoehe is { } z ? $"Gelände auf {Kartenschreiber.Zahl(z).Replace('.', ',')} m geebnet" : "Gelände geebnet",
+        Pinselart.Terrassen => "Terrassen angelegt",
         _ => "Gelände aufgeraut",
     };
 

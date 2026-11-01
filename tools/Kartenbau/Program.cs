@@ -18,8 +18,10 @@ namespace Reichsgilde.Kartenbau;
 //                                                   Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite in die Karte schreiben
 //    dotnet run --project tools/Kartenbau -- randvorschlag <karte> [<startwert>]   Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren)
 //    dotnet run --project tools/Kartenbau -- gelaende <karte> <pinsel> <x,z;x,z…> [--radius= --staerke= --kante= --startwert= --massstab=]
-//                                                   ein Strich mit einem Geländepinsel (heben, senken, glaetten, ebnen, rauschen)
+//                                                   [--ziel= --stufe= --boeschung= --ausgleich --steigung=<ab>-<bis> --bodenfilter=<textur>[:<rand>]]
+//                                                   ein Strich mit einem Geländepinsel (heben, senken, glaetten, ebnen, rauschen, terrassen)
 //    dotnet run --project tools/Kartenbau -- textur <karte> <textur|radierer> <x,z;x,z…> [--radius= --staerke= --kante= --deko=an|aus --dichte=]
+//                                                   [--steigung=<ab>-<bis> --bodenfilter=<textur>[:<rand>]]
 //                                                   ein Strich mit dem Texturpinsel (wiese, erde, fels, kies, waldboden, sand, schlamm, moos, lehm, pflaster, mist)
 //    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
 //    dotnet run --project tools/Kartenbau -- fluss <karte> <x,z[,breite[,tiefe]];…> [--art=bach] [--name=] [--breite=] [--tiefe=] [--stroemung=]
@@ -136,19 +138,59 @@ public static class Program
     private static string? Text(IEnumerable<string> args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a ? a[(name.Length + 1)..] : null;
 
-    /// <summary>Der Pinsel aus seinem Namen (heben, senken, glaetten, ebnen, rauschen) und den Schaltern – null bei unbekanntem Namen.</summary>
+    /// <summary>
+    /// Der Pinsel aus seinem Namen (heben, senken, glaetten, ebnen, rauschen, terrassen) und den Schaltern – null bei unbekanntem Namen oder
+    /// unlesbarem Filter. Pinsel-Paket 1: --ziel (Ebnen: Zielhöhe; Terrassen: Bezugshöhe), --stufe, --boeschung, --ausgleich (nur Mulden / nur
+    /// Spitzen) und der Filter (<see cref="FilterVon"/>).
+    /// </summary>
     private static Pinsel? PinselVon(string name, IEnumerable<string> args)
     {
         if (!Enum.TryParse<Pinselart>(name, ignoreCase: true, out var art) || int.TryParse(name, out _)) return null;
+        if (!FilterVon(args, out var filter)) return null;
         var p = new Pinsel(art);
         return p with
         {
             Radius = Wert(args, "--radius") ?? p.Radius,
-            Staerke = Wert(args, "--staerke") ?? (art is Pinselart.Glaetten or Pinselart.Ebnen ? 1 : p.Staerke),
+            Staerke = Wert(args, "--staerke") ?? (p.StaerkeAlsAnteil ? 1 : p.Staerke),
             Kante = Wert(args, "--kante") ?? p.Kante,
             Startwert = (int)(Wert(args, "--startwert") ?? p.Startwert),
             Massstab = Wert(args, "--massstab") ?? p.Massstab,
+            Zielhoehe = Wert(args, "--ziel"),
+            Stufenhoehe = Wert(args, "--stufe") ?? p.Stufenhoehe,
+            Boeschung = Wert(args, "--boeschung") ?? p.Boeschung,
+            NurAusgleich = args.Contains("--ausgleich"),
+            Filter = filter,
         };
+    }
+
+    /// <summary>
+    /// Der Filter eines Pinsels aus --steigung=&lt;ab&gt;-&lt;bis&gt; (Prozent, eine Seite darf fehlen: „15-“, „-8“) und --bodenfilter=&lt;textur&gt;[:&lt;rand 0–1&gt;].
+    /// False, wenn eine Angabe nicht lesbar ist; ohne Angaben ist der Filter null.
+    /// </summary>
+    private static bool FilterVon(IEnumerable<string> args, out Pinselfilter? filter)
+    {
+        filter = null;
+        var f = Pinselfilter.Keiner;
+        if (Text(args, "--steigung") is { } steigung)
+        {
+            var g = steigung.Split('-', 2);
+            if (g.Length != 2 || Zahlen(g.Where(t => t.Length > 0)) is not { } z || z.Count == 0) return false;
+            f = f with
+            {
+                SteigungAb = g[0].Length > 0 ? z[0] : 0,
+                SteigungBis = g[1].Length > 0 ? z[^1] : null,
+            };
+        }
+        if (Text(args, "--bodenfilter") is { } boden)
+        {
+            var t = boden.Split(':');
+            if (Bodenraster.TexturVon(t[0]) is not { } textur) return false;
+            double? rand = t.Length > 1 ? Zahlen(t.Skip(1)) is { Count: 1 } r ? r[0] : null : 0;
+            if (rand is null) return false;
+            f = f with { Boden = textur, BodenRand = rand.Value };
+        }
+        filter = f.IstLeer ? null : f;
+        return true;
     }
 
     /// <summary>Der Texturpinsel aus dem Namen der Textur (oder „radierer“) und den Schaltern – null bei unbekanntem Namen oder --deko.</summary>
@@ -159,6 +201,7 @@ public static class Program
         var p = radierer ? Bodenpinsel.Radierer() : new Bodenpinsel(Bodenraster.TexturVon(name)!.Value);
         var deko = Text(args, "--deko");
         if (deko is not (null or "an" or "aus")) return null;
+        if (!FilterVon(args, out var filter)) return null;
         return p with
         {
             Radius = Wert(args, "--radius") ?? p.Radius,
@@ -166,6 +209,7 @@ public static class Program
             Kante = Wert(args, "--kante") ?? p.Kante,
             Deko = !radierer && deko != "aus",
             Dichte = Wert(args, "--dichte") ?? p.Dichte,
+            Filter = filter,
         };
     }
 
@@ -187,9 +231,14 @@ public static class Program
                                                   Größe des Spielfelds (ohne Zahlen: aus dem Inhalt abgeleitet) und Randbreite schreiben
               randvorschlag <karte> [<startwert>]  Felder und Waldstücke im Randstreifen vorschlagen (ersetzt einen früheren Vorschlag)
               gelaende <karte> <pinsel> <x,z;x,z…> [--radius=10] [--staerke=…] [--kante=0.5] [--startwert=1] [--massstab=20]
-                                                  ein Strich mit einem Geländepinsel: heben, senken (Stärke in m je Tupfer, Vorgabe 0.25),
-                                                  glaetten, ebnen (Stärke 0–1, Vorgabe 1), rauschen (Stärke in m, Maßstab = Buckelgröße in m)
+                       [--ziel=<m>] [--stufe=2] [--boeschung=0.3] [--ausgleich] [--steigung=<ab>-<bis>] [--bodenfilter=<textur>[:<rand>]]
+                                                  ein Strich mit einem Geländepinsel: heben, senken (Stärke in m je Tupfer, Vorgabe 0.25;
+                                                  --ausgleich: nur Mulden heben bzw. nur Spitzen kappen), glaetten, ebnen (Stärke 0–1, Vorgabe 1;
+                                                  --ziel: auf diese Höhe statt der unter dem ersten Punkt), rauschen (Stärke in m, Maßstab =
+                                                  Buckelgröße in m), terrassen (Stufen von --stufe m bei --ziel + Vielfachen, --boeschung 0–1);
+                                                  Filter: nur bei --steigung (Prozent, z. B. 15- oder -8) bzw. nur auf --bodenfilter (Rand 0–1)
               textur <karte> <textur|radierer> <x,z;x,z…> [--radius=5] [--staerke=1] [--kante=0.5] [--deko=an|aus] [--dichte=1]
+                       [--steigung=<ab>-<bis>] [--bodenfilter=<textur>[:<rand>]]
                                                   ein Strich mit dem Texturpinsel: wiese, erde, fels, kies, waldboden, sand, schlamm, moos,
                                                   lehm, pflaster, mist (Stärke 0–1; Deko streuen mit Dichte 0–2) oder radierer (zurück zur Wiese)
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]

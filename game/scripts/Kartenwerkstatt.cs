@@ -144,6 +144,14 @@ public partial class Kartenwerkstatt : Node
             if (_stadt.WerkstattGewaehlt is EntwurfFluss fluss && ReferenceEquals(_gezeigt, fluss) && !EingabeOffen()) TeilTafel(fluss); // Breite und Tiefe am gewählten Punkt
         };
         _stadt.WerkstattNaturGestreut += () => EigenschaftenZeigen(neu: false);
+        _stadt.WerkstattPipetteGeaendert += genommen =>
+        {
+            // die Bodenart-Pipette wählt die Textur wie ein Klick in der Palette (Knopf, Name in der Leiste); die Höhen-Pipette zeigt nur den
+            // Wert; ohne Treffer springt der Knopf „Pipette“ heraus
+            var textur = "boden:" + Bodenraster.Kennung(_stadt.BodenArt);
+            if (genommen && _stadt.Kartenwerkzeug == Werkstattwerkzeug.Boden && _katalogKnoepfe.ContainsKey(textur)) KatalogWaehlen(textur);
+            else EigenschaftenZeigen(neu: true);
+        };
         GetTree().AutoAcceptQuit = false; // das Schließen des Fensters fragt nach ungespeicherten Änderungen (_Notification)
         if (zurueck is { } wieder)
         {
@@ -205,8 +213,10 @@ public partial class Kartenwerkstatt : Node
         var uhr = Ladezeit.Uhr();
         _stadt.WerkstattAktualisieren();
         Ladezeit.Dazu("im Bild: WerkstattAktualisieren", uhr);
-        var boden = _stadt.WerkstattBodenInfo();
-        var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden); // Höhe, Gefälle und Boden unter der Maus
+        PinselInfoZeigen(); // Kartenwerkstatt.Tafeln.cs: das Schild unter dem Pinsel
+        // Höhe, Gefälle und Boden unter der Maus – nicht doppelt, solange das Schild sie zeigt (dort die Steigung, wie der Filter sie misst)
+        var boden = _pinselInfo.Visible ? null : _stadt.WerkstattBodenInfo();
+        var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden);
         if (_bodenInfo.Text != info) _bodenInfo.Text = info;
     }
 
@@ -483,6 +493,45 @@ public partial class Kartenwerkstatt : Node
 
     private static double Zahl(string text) => double.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// Die Angaben des Pinsel-Pakets 1 in den Startoptionen („ziel=3.5“, „stufe=2“, „boeschung=0.3“, „ausgleich=1“, „steigung=15-40“ oder „steigung=-8“,
+    /// „bodenfilter=sand:0.5“); andere Angaben (kante, deko, dichte) übergeht sie.
+    /// </summary>
+    private static (double? Ziel, double? Stufe, double? Boeschung, bool Ausgleich, Pinselfilter? Filter) PinselAngaben(IEnumerable<string> angaben)
+    {
+        (double? ziel, double? stufe, double? boeschung, bool ausgleich) = (null, null, null, false);
+        var filter = Pinselfilter.Keiner;
+        foreach (var angabe in angaben)
+        {
+            var kv = angabe.Split('=', 2);
+            if (kv.Length < 2) continue;
+            switch (kv[0])
+            {
+                case "ziel": ziel = Zahl(kv[1]); break;
+                case "stufe": stufe = Zahl(kv[1]); break;
+                case "boeschung": boeschung = Zahl(kv[1]); break;
+                case "ausgleich": ausgleich = kv[1] is "1" or "an"; break;
+                case "steigung":
+                    var grenzen = kv[1].Split('-', 2);
+                    filter = filter with
+                    {
+                        SteigungAb = grenzen[0].Length > 0 ? Zahl(grenzen[0]) : 0,
+                        SteigungBis = grenzen.Length > 1 && grenzen[1].Length > 0 ? Zahl(grenzen[1]) : null,
+                    };
+                    break;
+                case "bodenfilter":
+                    var b = kv[1].Split(':');
+                    filter = filter with
+                    {
+                        Boden = Bodenraster.TexturVon(b[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{b[0]}“ im Filter."),
+                        BodenRand = b.Length > 1 ? Zahl(b[1]) : 0,
+                    };
+                    break;
+            }
+        }
+        return (ziel, stufe, boeschung, ausgleich, filter.IstLeer ? null : filter);
+    }
+
     /// <summary>„art,x1,z1;x2,z2;…[,wort]“ → Art, Punkte und das Wort am Ende (oder null).</summary>
     private static (string Art, List<Kartenort> Punkte, string? Wort) Liste(string eintrag)
     {
@@ -647,24 +696,39 @@ public partial class Kartenwerkstatt : Node
                 _stadt.PinselRadius = Zahl(t[0]);
                 _stadt.WerkstattRadieren(Liste("-," + t[1]).Punkte);
             }
-            // --werkstatt-gelaende=<pinsel>,<radius>,<staerke>,x1,z1;x2,z2;…[|…]: ein Pinselstrich (ein Schritt); <pinsel> ist heben, senken, glaetten, ebnen
-            // oder rauschen, hinten mit :kante[:startwert[:massstab]] (Kante 0 … 1)
+            // --werkstatt-filter=<gelaende|boden>:<angaben>: der Filter in der Tafel (wie unten steigung=…,bodenfilter=…; leer: aus)
+            if (o.TryGetValue("werkstatt-filter", out var filterOption))
+                foreach (var eintrag in filterOption.Split('|', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var (wem, angaben) = (eintrag.Split(':', 2)[0], eintrag.Contains(':') ? eintrag.Split(':', 2)[1] : "");
+                    var filter = PinselAngaben(angaben.Split(',', StringSplitOptions.RemoveEmptyEntries)).Filter ?? Pinselfilter.Keiner;
+                    if (wem == "boden") _stadt.BodenFilter = filter;
+                    else _stadt.GelaendeFilter = filter;
+                }
+            // --werkstatt-gelaende=<pinsel>,<radius>,<staerke>,x1,z1;x2,z2;…[,<angabe>=<wert>…][|…]: ein Pinselstrich (ein Schritt); <pinsel> ist heben, senken,
+            // glaetten, ebnen, rauschen oder terrassen, hinten mit :kante[:startwert[:massstab]] (Kante 0 … 1); Angaben (Pinsel-Paket 1): ziel=<m>, stufe=<m>,
+            // boeschung=<0–1>, ausgleich=1 (nur Mulden / nur Spitzen), steigung=<ab>-<bis> (Prozent, eine Seite darf fehlen), bodenfilter=<textur>[:<rand 0–1>]
             if (o.TryGetValue("werkstatt-gelaende", out var gelaende))
                 foreach (var eintrag in gelaende.Split('|', StringSplitOptions.RemoveEmptyEntries))
                 {
                     var t = eintrag.Split(',', 4);
                     var p = t[0].Split(':');
-                    if (!Enum.TryParse<Pinselart>(p[0], ignoreCase: true, out var art)) throw new ArgumentException($"Unbekannter Geländepinsel „{p[0]}“ (heben, senken, glaetten, ebnen, rauschen).");
-                    var gelaendepinsel = new Pinsel(art, Zahl(t[1]), Zahl(t[2]), p.Length > 1 ? Zahl(p[1]) : 0.5, p.Length > 2 ? (int)Zahl(p[2]) : 1, p.Length > 3 ? Zahl(p[3]) : 20);
-                    _entwurf.GelaendePinseln(gelaendepinsel, Liste("-," + t[3]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
+                    if (!Enum.TryParse<Pinselart>(p[0], ignoreCase: true, out var art)) throw new ArgumentException($"Unbekannter Geländepinsel „{p[0]}“ (heben, senken, glaetten, ebnen, rauschen, terrassen).");
+                    var tail = System.Text.RegularExpressions.Regex.Match(t[3], ",[a-z]+=");
+                    var angaben = PinselAngaben(tail.Success ? t[3][(tail.Index + 1)..].Split(',') : Array.Empty<string>());
+                    var gelaendepinsel = new Pinsel(art, Zahl(t[1]), Zahl(t[2]), p.Length > 1 ? Zahl(p[1]) : 0.5, p.Length > 2 ? (int)Zahl(p[2]) : 1, p.Length > 3 ? Zahl(p[3]) : 20)
+                    {
+                        Zielhoehe = angaben.Ziel, Stufenhoehe = angaben.Stufe ?? 2, Boeschung = angaben.Boeschung ?? 0.3, NurAusgleich = angaben.Ausgleich, Filter = angaben.Filter,
+                    };
+                    _entwurf.GelaendePinseln(gelaendepinsel, Liste("-," + (tail.Success ? t[3][..tail.Index] : t[3])).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
                 }
-            // --werkstatt-boden=<textur|radierer>,<radius>,<staerke>,x1,z1;x2,z2;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>][|…]: ein Texturstrich (ein Schritt);
-            // <textur> ist eine Kennung wie waldboden oder sand
+            // --werkstatt-boden=<textur|radierer>,<radius>,<staerke>,x1,z1;x2,z2;…[,kante=<0–1>][,deko=aus][,dichte=<0–2>][,steigung=…][,bodenfilter=…][|…]: ein
+            // Texturstrich (ein Schritt); <textur> ist eine Kennung wie waldboden oder sand; steigung und bodenfilter wie bei --werkstatt-gelaende
             if (o.TryGetValue("werkstatt-boden", out var boeden))
                 foreach (var eintrag in boeden.Split('|', StringSplitOptions.RemoveEmptyEntries))
                 {
                     var t = eintrag.Split(',', 4);
-                    var tail = System.Text.RegularExpressions.Regex.Match(t[3], ",(kante|deko|dichte)=");
+                    var tail = System.Text.RegularExpressions.Regex.Match(t[3], ",(kante|deko|dichte|steigung|bodenfilter)=");
                     var punkte = Liste("-," + (tail.Success ? t[3][..tail.Index] : t[3])).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList();
                     var (kante, deko, dichte) = (0.5, true, 1.0);
                     if (tail.Success)
@@ -675,9 +739,10 @@ public partial class Kartenwerkstatt : Node
                             else if (kv[0] == "deko") deko = kv[1] != "aus";
                             else if (kv[0] == "dichte") dichte = Zahl(kv[1]);
                         }
+                    var bodenfilter = tail.Success ? PinselAngaben(t[3][(tail.Index + 1)..].Split(',')).Filter : null;
                     var bodenpinsel = t[0] == "radierer"
-                        ? Bodenpinsel.Radierer(Zahl(t[1]), kante)
-                        : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte);
+                        ? Bodenpinsel.Radierer(Zahl(t[1]), kante, bodenfilter)
+                        : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte, bodenfilter);
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)

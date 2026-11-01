@@ -12,17 +12,23 @@ namespace Reichsgilde.Core.Bauen;
 //    • Deko: Mit „Deko streuen“ geht die Dekodichte um das Gewicht des Tupfers zur Dichte des Pinsels (0 … 2, 1 = normal), ohne auf 0
 //      (dort streut nichts). Gilt unabhängig von der Stärke: Eine leicht gemalte Textur streut, aber nur nach ihrem Anteil.
 //    • Radierer: Wiese mit Stärke 1, ohne Deko.
+//    • Filter (Pinsel-Paket 1, Pinselfilter): nur bei einer Steigung (aus dem Höhenraster, das ein Texturstrich nicht ändert) oder nur auf einer
+//      Bodentextur – gemessen am Boden vor dem Strich, sonst wüchse die gemalte Fläche mit jedem Tupfer über ihren Filter hinaus.
 //  Alles bleibt in der Karte (Spielfeld und Rand). Ohne Zufall: gleicher Strich, gleicher Boden.
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// <summary>Ein Texturpinsel (siehe Kopf der Datei): Textur, Radius (m), Stärke (0 … 1), Kante (0 … 1), Deko streuen, Dichte der Deko (0 … 2).</summary>
-public sealed record Bodenpinsel(Bodentextur Textur, double Radius = 5, double Staerke = 1, double Kante = 0.5, bool Deko = true, double Dichte = 1)
+/// <summary>
+/// Ein Texturpinsel (siehe Kopf der Datei): Textur, Radius (m), Stärke (0 … 1), Kante (0 … 1), Deko streuen, Dichte der Deko (0 … 2) und der
+/// Filter (Steigung, Boden; null: überall).
+/// </summary>
+public sealed record Bodenpinsel(Bodentextur Textur, double Radius = 5, double Staerke = 1, double Kante = 0.5, bool Deko = true, double Dichte = 1,
+    Pinselfilter? Filter = null)
 {
     /// <summary>Kleinster und größter Radius (Meter).</summary>
     public const double MinRadius = 0.5, MaxRadius = 100;
 
     /// <summary>Der Radierer: zurück zur Wiese, ohne Deko.</summary>
-    public static Bodenpinsel Radierer(double radius = 5, double kante = 0.5) => new(Bodentextur.Wiese, radius, 1, kante, Deko: false);
+    public static Bodenpinsel Radierer(double radius = 5, double kante = 0.5, Pinselfilter? filter = null) => new(Bodentextur.Wiese, radius, 1, kante, Deko: false, Filter: filter);
 
     /// <summary>Ist das der Radierer (Wiese ohne Deko)?</summary>
     public bool IstRadierer => Textur == Bodentextur.Wiese && !Deko;
@@ -34,6 +40,7 @@ public sealed record Bodenpinsel(Bodentextur Textur, double Radius = 5, double S
         Staerke = Math.Clamp(Staerke, 0, 1),
         Kante = Math.Clamp(Kante, 0, 1),
         Dichte = Math.Clamp(Dichte, 0, 2),
+        Filter = Filter is { } f && !f.Begrenzt().IstLeer ? f.Begrenzt() : null,
     };
 
     /// <summary>Abstand der Tupfer entlang des Strichs (Meter).</summary>
@@ -123,13 +130,18 @@ public sealed class Bodenstrich
     /// <summary>Je Punkt das stärkste Gewicht, mit dem ihn ein Tupfer dieses Strichs traf.</summary>
     private readonly Dictionary<(int, int), double> _staerkster = new();
 
+    /// <summary>Die Steigung für den Filter (null: kein Filter nach der Steigung).</summary>
+    private readonly Filtermessung? _filter;
+
     private Kartenort? _letzter;
     private double _rest;
 
-    internal Bodenstrich(Bodenraster raster, Bodenpinsel pinsel, Kartenrechteck karte)
+    /// <param name="hoehen">Das Höhenraster für einen Filter nach der Steigung (null: flach).</param>
+    internal Bodenstrich(Bodenraster raster, Bodenpinsel pinsel, Kartenrechteck karte, Hoehenraster? hoehen = null)
     {
         Pinsel = pinsel.Begrenzt();
         _aenderung = new Bodenaenderung(raster, karte);
+        if (Pinsel.Filter is { MitSteigung: true } f) _filter = new Filtermessung(f, hoehen is null ? (_, _) => 0 : (i, j) => hoehen.Wert(i, j));
     }
 
     public Bodenpinsel Pinsel { get; }
@@ -182,7 +194,15 @@ public sealed class Bodenstrich
             {
                 var (dx, dz) = (i * Bodenraster.Abstand - m.X, j * Bodenraster.Abstand - m.Z);
                 var w = p.Gewicht(Math.Sqrt(dx * dx + dz * dz));
-                if (w <= 0 || w <= _staerkster.GetValueOrDefault((i, j))) continue;
+                if (w <= 0) continue;
+                if (p.Filter is { } filter)
+                {
+                    _aenderung.Vorher(i, j, vorher);
+                    if (filter.Boden is { } t && !filter.BodenPasst(t == Bodentextur.Wiese ? 255 - Summe(vorher) : vorher[(int)t - 1])) continue;
+                    if (_filter is not null) w *= _filter.SteigungFaktor(i * Bodenraster.Abstand, j * Bodenraster.Abstand);
+                    if (w <= 0) continue;
+                }
+                if (w <= _staerkster.GetValueOrDefault((i, j))) continue;
                 _staerkster[(i, j)] = w;
                 _aenderung.Vorher(i, j, vorher);
                 var a = p.Staerke * w;
@@ -205,6 +225,13 @@ public sealed class Bodenstrich
                 _aenderung.Setzen(i, j, neu);
             }
         return new Kartenrechteck(i0 * Bodenraster.Abstand, j0 * Bodenraster.Abstand, i1 * Bodenraster.Abstand, j1 * Bodenraster.Abstand);
+
+        static int Summe(Span<byte> werte)
+        {
+            var summe = 0;
+            for (var c = 0; c < Bodenraster.DekoKanal; c++) summe += werte[c];
+            return summe;
+        }
 
         static int Groesster(Span<byte> werte)
         {

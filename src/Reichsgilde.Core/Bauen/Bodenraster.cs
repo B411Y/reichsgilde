@@ -162,6 +162,20 @@ public sealed class Bodenraster
     }
 
     /// <summary>
+    /// Die Texturen am nächsten Bodenpunkt eines Orts mit ihrem Anteil (0 … 255, zusammen 255), die stärkste zuerst (bei Gleichstand in der
+    /// Reihenfolge der Liste); Texturen mit Anteil 0 fehlen. Für die Anzeige unter dem Pinsel und die Bodenart-Pipette (die erste ist
+    /// <see cref="Textur"/>).
+    /// </summary>
+    public IReadOnlyList<(Bodentextur Textur, byte Anteil)> Anteile(double x, double z)
+    {
+        var (i, j) = ((int)Math.Round(x / Abstand, MidpointRounding.AwayFromZero), (int)Math.Round(z / Abstand, MidpointRounding.AwayFromZero));
+        var liste = new List<(Bodentextur, byte)>();
+        for (var t = 0; t < Texturen; t++)
+            if (Gewicht(i, j, (Bodentextur)t) is > 0 and var w) liste.Add(((Bodentextur)t, w));
+        return liste.OrderByDescending(e => e.Item2).ThenBy(e => (int)e.Item1).ToList();
+    }
+
+    /// <summary>
     /// Ein Ausschnitt als Splatmap für die Darstellung: <paramref name="breite"/> × <paramref name="tiefe"/> Punkte ab (i0, j0), Zeile für Zeile
     /// (j), je Punkt vier Bytes (RGBA) – Gruppe 0: Wiese, Erde, Fels, Kies; 1: Waldboden, Sand, Schlamm, Moos; 2: Lehm, Pflaster, Mist, 0.
     /// Die Werte aller drei Gruppen ergeben zusammen 255.

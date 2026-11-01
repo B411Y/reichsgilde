@@ -488,10 +488,19 @@ public partial class Kartenwerkstatt
                 12, Grau, umbruchBreite: Rechtsbreite - 30);
             return;
         }
+        // Pinsel-Paket 1: Überschriften „Pinsel“ und „Filter“ (Größe 15) werden klappbare Abschnitte (Kartenwerkstatt.Palette.cs)
+        _eigenschaften.RemoveChild(raster);
+        Hauptmenue.Text(_eigenschaften, "Pinsel", 15, Gold);
+        _eigenschaften.AddChild(raster);
         Zeile(raster, "Radius", Schieber(1, 100, 1, _stadt.GelaendeRadius, Breite, r => _stadt.GelaendeRadius = r, "Halbmesser des Kreises an der Maus"));
-        if (art is Pinselart.Glaetten or Pinselart.Ebnen)
+        if (art is Pinselart.Glaetten or Pinselart.Ebnen or Pinselart.Terrassen)
             Zeile(raster, "Stärke", Schieber(0.05, 1, 0.05, _stadt.GelaendeStaerke, s => $"{s * 100:0} %", s => _stadt.GelaendeStaerke = s,
-                art == Pinselart.Ebnen ? "100 % ebnet ganz, weniger zieht den Boden nur ein Stück zur Zielhöhe" : "Wie stark Buckel je Tupfer ausgeglichen werden"));
+                art switch
+                {
+                    Pinselart.Ebnen => "100 % ebnet ganz, weniger zieht den Boden nur ein Stück zur Zielhöhe",
+                    Pinselart.Terrassen => "100 % setzt jeden Punkt ganz auf seine Stufe, weniger nur ein Stück dorthin",
+                    _ => "Wie stark Buckel je Tupfer ausgeglichen werden",
+                }));
         else
             Zeile(raster, "Stärke", Schieber(0.05, art == Pinselart.Rauschen ? 4 : 2, 0.05, _stadt.GelaendeStaerke, s => $"{Komma(s, "0.00")} m", s => _stadt.GelaendeStaerke = s,
                 art == Pinselart.Rauschen ? "Höhe der Buckel in Metern" : "Meter je Tupfer (ein Tupfer alle Radius/4 Meter entlang des Strichs)"));
@@ -503,17 +512,169 @@ public partial class Kartenwerkstatt
             Zeile(raster, "Startwert", start);
             Zeile(raster, "Maßstab", Schieber(4, 100, 1, _stadt.GelaendeMassstab, Breite, m => _stadt.GelaendeMassstab = m, "Größe der Buckel in Metern"));
         }
+        if (art is Pinselart.Heben or Pinselart.Senken)
+            _eigenschaften.AddChild(Haken(art == Pinselart.Heben ? "Nur Mulden heben" : "Nur Spitzen kappen",
+                art == Pinselart.Heben ? _stadt.GelaendeNurMulden : _stadt.GelaendeNurSpitzen,
+                an => { if (art == Pinselart.Heben) _stadt.GelaendeNurMulden = an; else _stadt.GelaendeNurSpitzen = an; },
+                art == Pinselart.Heben
+                    ? "Hebt höchstens bis zur Höhe der Pinselmitte plus Stärke: Was darüber liegt (Kuppen), bleibt, Senken und Hangfuß füllen sich. Ist alles eben, hebt er wie gewohnt"
+                    : "Senkt höchstens bis zur Höhe der Pinselmitte minus Stärke: Was darunter liegt (Mulden), bleibt, Grate werden gekappt. Ist alles eben, senkt er wie gewohnt"));
+        if (art == Pinselart.Ebnen)
+        {
+            var fest = Haken("Feste Zielhöhe", _stadt.GelaendeZielFest, an => _stadt.GelaendeZielFest = an,
+                "Aus: Zielhöhe ist die Höhe unter dem ersten Klick. An: die Höhe darunter (eintippen oder mit der Pipette aufnehmen)");
+            _eigenschaften.AddChild(fest);
+            // eine eingetippte Höhe gilt sofort – der Haken zeigt es
+            ZielhoeheZeile("Zielhöhe", "Auf diese Höhe zieht der Pinsel den Boden (−20 bis +60 m, auf Zentimeter)", ein: () =>
+            {
+                _stadt.GelaendeZielFest = true;
+                fest.SetPressedNoSignal(true);
+            });
+        }
+        if (art == Pinselart.Terrassen)
+        {
+            var stufen = ZweiSpalten();
+            Zeile(stufen, "Stufenhöhe", Schieber(Pinsel.MinStufe, 10, 0.25, _stadt.GelaendeStufenhoehe, Breite, h => _stadt.GelaendeStufenhoehe = h, "Höhe einer Stufe in Metern"));
+            Zeile(stufen, "Böschung", Schieber(0, 1, 0.05, _stadt.GelaendeBoeschung, b => $"{b * 100:0} %",
+                b => _stadt.GelaendeBoeschung = b, "Anteil jeder Stufe, über den es weich hinaufgeht: 0 % senkrechte Kante, 100 % sanfte Wellen"));
+            ZielhoeheZeile("Bezugshöhe", "Hier liegt eine Stufe, die übrigen im Abstand der Stufenhöhe darüber und darunter (Vorgabe 0 m)");
+        }
         var text = art switch
         {
             Pinselart.Heben => "Mit gedrückter Maus über den Boden fahren: Er steigt unter dem Pinsel.",
             Pinselart.Senken => "Mit gedrückter Maus über den Boden fahren: Er sinkt unter dem Pinsel.",
             Pinselart.Glaetten => "Gleicht kleine Unebenheiten aus; die großen Formen bleiben.",
-            Pinselart.Ebnen => "Der erste Klick bestimmt die Zielhöhe; alles im Strich wird dorthin gezogen – so entsteht eine Terrasse für Gebäude.",
+            Pinselart.Ebnen => "Ohne feste Zielhöhe bestimmt der erste Klick sie; alles im Strich wird dorthin gezogen – so entsteht eine Terrasse für Gebäude. Strg+Klick nimmt die Höhe auf.",
+            Pinselart.Terrassen => "Treppt den Boden in gleich hohe Stufen: jeder Punkt geht auf die nächste Stufe – für Weinberge, Plateaus und Hochufer. Strg+Klick nimmt die Bezugshöhe auf.",
             _ => "Lässt kleine Hügel und Mulden wachsen. Ohne Zufall: gleicher Startwert, gleiche Buckel.",
         };
         Hauptmenue.Text(_eigenschaften, text + "\nWege und Mauern ebnen den Boden unter sich quer ein; Gebäude stehen auf dem höchsten Punkt unter ihrer Fläche, darunter wächst ein Sockel aus Bruchstein.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
+        FilterAbschnitt(() => _stadt.GelaendeFilter, f => _stadt.GelaendeFilter = f);
     }
+
+    /// <summary>
+    /// Der Hinweis unter den Steigungsreglern: Innen an jeder Grenze läuft der Pinsel über 2 Prozentpunkte weich aus – ein Bereich schmaler als
+    /// 4 Punkte wirkt nirgends voll, „bis“ gleich „ab“ gar nicht.
+    /// </summary>
+    private static void SchmalZeigen(Label hinweis, Pinselfilter filter)
+    {
+        var f = filter.Begrenzt();
+        var breite = f.SteigungBis is { } bis ? bis - f.SteigungAb : double.PositiveInfinity;
+        hinweis.Text = breite <= 0 ? "„bis“ liegt nicht über „ab“ – so wirkt der Pinsel nirgends."
+            : breite < 2 * Pinselfilter.Uebergang ? $"Der Bereich ist schmaler als {2 * Pinselfilter.Uebergang:0} Prozentpunkte – der Pinsel wirkt nirgends mit voller Stärke."
+            : "";
+        hinweis.Visible = hinweis.Text.Length > 0;
+    }
+
+    /// <summary>Ein Raster mit zwei Spalten (Beschriftung, Feld) unten in der Tafel.</summary>
+    private GridContainer ZweiSpalten()
+    {
+        var raster = new GridContainer { Columns = 2 };
+        raster.AddThemeConstantOverride("h_separation", 10);
+        raster.AddThemeConstantOverride("v_separation", 6);
+        _eigenschaften.AddChild(raster);
+        return raster;
+    }
+
+    /// <summary>Ein Haken mit Tooltip (Schriftgröße wie „Deko streuen“).</summary>
+    private static CheckBox Haken(string text, bool an, Action<bool> umschalten, string tipp)
+    {
+        var haken = new CheckBox { Text = text, ButtonPressed = an, FocusMode = Control.FocusModeEnum.None, TooltipText = tipp };
+        haken.AddThemeFontSizeOverride("font_size", 14);
+        haken.Toggled += an => umschalten(an);
+        return haken;
+    }
+
+    /// <summary>Die Zeile der Ziel- bzw. Bezugshöhe: ein Zahlenfeld (Meter, auf cm) und der Knopf „Pipette“ (der nächste Klick nimmt die Höhe auf).</summary>
+    private void ZielhoeheZeile(string beschriftung, string tipp, Action? ein = null)
+    {
+        var raster = ZweiSpalten();
+        var zeile = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        zeile.AddThemeConstantOverride("separation", 8);
+        var feld = new Zahlfeld
+        {
+            MinValue = Hoehenraster.Tiefste, MaxValue = Hoehenraster.Hoechste, Step = 0.01, Value = _stadt.GelaendeZielhoehe, Suffix = "m",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, TooltipText = tipp, CustomArrowStep = 0.5,
+        };
+        feld.ValueChanged += w =>
+        {
+            _stadt.GelaendeZielhoehe = w;
+            ein?.Invoke();
+        };
+        zeile.AddChild(feld);
+        var pipette = new Button
+        {
+            Text = "Pipette", ToggleMode = true, ButtonPressed = _stadt.PipetteBereit, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Der nächste Klick in die Karte nimmt die Höhe des Bodens dort auf, statt zu malen (oder gleich Strg+Klick)",
+        };
+        pipette.AddThemeFontSizeOverride("font_size", 13);
+        pipette.Toggled += an => _stadt.PipetteBereit = an;
+        zeile.AddChild(pipette);
+        Zeile(raster, beschriftung, zeile);
+    }
+
+    /// <summary>
+    /// Der Abschnitt „Filter“ (Pinsel-Paket 1) für Gelände- und Bodenpinsel: Steigung ab/bis mit drei Vorlagen, Bodentextur mit Rand. Die Vorlagen
+    /// zeichnen die Tafel neu, damit die Regler den neuen Stand zeigen.
+    /// </summary>
+    private void FilterAbschnitt(Func<Pinselfilter> holen, Action<Pinselfilter> setzen)
+    {
+        var filter = holen();
+        Hauptmenue.Text(_eigenschaften, "Filter", 15, Gold);
+        var vorlagen = new HBoxContainer();
+        vorlagen.AddThemeConstantOverride("separation", 6);
+        _eigenschaften.AddChild(vorlagen);
+        void Vorlage(string text, string tipp, Func<Pinselfilter, Pinselfilter> neu)
+        {
+            var knopf = new Button { Text = text, FocusMode = Control.FocusModeEnum.None, TooltipText = tipp, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            knopf.Pressed += () =>
+            {
+                setzen(neu(holen()));
+                EigenschaftenZeigen(neu: true);
+            };
+            vorlagen.AddChild(knopf);
+        }
+        Vorlage("Überall", "Kein Filter: Der Pinsel wirkt im ganzen Kreis", _ => Pinselfilter.Keiner);
+        Vorlage($"Ebene ≤ {Kartenpruefung.HangHinweis * 100:0} %", "Nur wo es flacher ist als der Hinweis der Hangsperre (8 %) – Wiese, Bauplätze",
+            f => f with { SteigungAb = 0, SteigungBis = Kartenpruefung.HangHinweis * 100 });
+        Vorlage($"Hang ≥ {Kartenpruefung.HangFehler * 100:0} %", "Nur wo es steiler ist als die Grenze der Hangsperre (15 %) – Fels an Böschungen",
+            f => f with { SteigungAb = Kartenpruefung.HangFehler * 100, SteigungBis = null });
+        var raster = ZweiSpalten();
+        const double ohneGrenze = 100;
+        Label? schmal = null, wirkt = null; // Hinweise unten: Bereich zu schmal, wo der Pinsel wirkt – folgen jedem Regler
+        void Setzen(Pinselfilter neu)
+        {
+            setzen(neu);
+            if (schmal is not null) SchmalZeigen(schmal, neu);
+            if (wirkt is not null) wirkt.Text = WirktText(neu);
+        }
+        Zeile(raster, "Steigung ab", Schieber(0, ohneGrenze, 1, filter.SteigungAb, a => $"{a:0} %", a => Setzen(holen() with { SteigungAb = a }),
+            "Unter dieser Steigung wirkt der Pinsel nicht (100 % = 45°); innen an der Grenze läuft er über 2 Prozentpunkte weich aus"));
+        Zeile(raster, "Steigung bis", Schieber(0, ohneGrenze, 1, filter.SteigungBis ?? ohneGrenze, b => b >= ohneGrenze ? "ohne Grenze" : $"{b:0} %",
+            b => Setzen(holen() with { SteigungBis = b >= ohneGrenze ? null : b }), "Über dieser Steigung wirkt der Pinsel nicht; ganz rechts: ohne Grenze"));
+        var wahl = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Nur auf dieser Bodentextur malen (gemessen am Boden vor dem Strich)" };
+        wahl.AddItem("jeder Boden");
+        var texturen = Enum.GetValues<Bodentextur>();
+        foreach (var t in texturen) wahl.AddItem(_stadt.BodenName(t));
+        wahl.Selected = filter.Boden is { } gewaehlt ? Array.IndexOf(texturen, gewaehlt) + 1 : 0;
+        wahl.ItemSelected += i =>
+        {
+            setzen(holen() with { Boden = i == 0 ? null : texturen[i - 1] });
+            EigenschaftenZeigen(neu: true);
+        };
+        Zeile(raster, "Nur auf", wahl);
+        if (filter.Boden is not null)
+            Zeile(raster, "Rand", Schieber(0, 1, 0.05, filter.BodenRand, r => $"{r * 100:0} %", r => setzen(holen() with { BodenRand = r }),
+                "0 %: nur wo die Textur mindestens die Hälfte deckt; 100 %: auch wo nur ein Hauch davon liegt"));
+        schmal = Hauptmenue.Text(_eigenschaften, "", 12, Rot, umbruchBreite: Rechtsbreite - 30);
+        SchmalZeigen(schmal, filter);
+        wirkt = Hauptmenue.Text(_eigenschaften, WirktText(filter), 12, Grau, umbruchBreite: Rechtsbreite - 30);
+    }
+
+    private static string WirktText(Pinselfilter filter) => filter.Begrenzt().IstLeer
+        ? "Der Pinsel wirkt überall in seinem Kreis." : "Der Pinsel wirkt nur, wo der Filter passt – das Schild an der Maus zeigt es.";
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Boden: Texturpinsel und Radierer
@@ -528,7 +689,17 @@ public partial class Kartenwerkstatt
         kopf.AddThemeConstantOverride("separation", 8);
         _eigenschaften.AddChild(kopf);
         kopf.AddChild(new TextureRect { Texture = Farbfeld(radierer ? new Color(0.33f, 0.40f, 0.24f) : _stadt.BodenFarbe(_stadt.BodenArt)), StretchMode = TextureRect.StretchModeEnum.KeepCentered, MouseFilter = Control.MouseFilterEnum.Ignore });
-        Hauptmenue.Text(kopf, radierer ? "Boden-Radierer" : _stadt.BodenName(_stadt.BodenArt), 17, Gold);
+        var name = Hauptmenue.Text(kopf, radierer ? "Boden-Radierer" : _stadt.BodenName(_stadt.BodenArt), 17, Gold);
+        name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var pipette = new Button
+        {
+            Text = "Pipette", ToggleMode = true, ButtonPressed = _stadt.PipetteBereit, FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Der nächste Klick in die Karte nimmt die stärkste Bodenart dort als Textur des Pinsels, statt zu malen (oder gleich Strg+Klick)",
+        };
+        pipette.AddThemeFontSizeOverride("font_size", 13);
+        pipette.Toggled += an => _stadt.PipetteBereit = an;
+        kopf.AddChild(pipette);
+        Hauptmenue.Text(_eigenschaften, "Pinsel", 15, Gold);
         var raster = new GridContainer { Columns = 2 };
         raster.AddThemeConstantOverride("h_separation", 10);
         raster.AddThemeConstantOverride("v_separation", 6);
@@ -541,6 +712,7 @@ public partial class Kartenwerkstatt
         if (radierer)
         {
             Hauptmenue.Text(_eigenschaften, "Malt die Wiese zurück und nimmt die Deko mit.", 12, Grau, umbruchBreite: Rechtsbreite - 30);
+            FilterAbschnitt(() => _stadt.BodenFilter, f => _stadt.BodenFilter = f);
             return;
         }
         var deko = new CheckBox { Text = "Deko streuen", ButtonPressed = _stadt.BodenDeko, FocusMode = Control.FocusModeEnum.None,
@@ -556,8 +728,9 @@ public partial class Kartenwerkstatt
         var streut = daten is { Dichte: > 0 } && daten.Deko.Count > 0
             ? "Streut: " + string.Join(", ", daten.Deko.Where(e => e.Value > 0).Select(e => ArtName(e.Key))) + "."
             : "Diese Textur streut nichts.";
-        Hauptmenue.Text(_eigenschaften, streut + "\nWege, Gebäude, Bauzonen und Wasser bleiben frei. Die Deko ist nicht gespeichert, sondern wird aus dem Boden gerechnet.",
-            12, Grau, umbruchBreite: Rechtsbreite - 30);
+        Hauptmenue.Text(_eigenschaften, streut + "\nWege, Gebäude, Bauzonen und Wasser bleiben frei. Die Deko ist nicht gespeichert, sondern wird aus dem Boden gerechnet. "
+            + "Strg+Klick nimmt die Bodenart unter der Maus auf.", 12, Grau, umbruchBreite: Rechtsbreite - 30);
+        FilterAbschnitt(() => _stadt.BodenFilter, f => _stadt.BodenFilter = f);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -612,7 +785,9 @@ public partial class Kartenwerkstatt
         {
             if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true }) vorher ??= regler.Value;
         };
-        regler.Ready += () => regler.GetTree().ProcessFrame += Abfragen;
+        // bei jedem Eintritt in den Baum an-, beim Verlassen abmelden: Die klappbaren Abschnitte (AbschnitteBilden) hängen die Regler um –
+        // „Ready“ käme danach nicht wieder, die Abfrage fehlte und das Abmelden beim Schließen ginge ins Leere
+        regler.TreeEntered += () => regler.GetTree().ProcessFrame += Abfragen;
         regler.TreeExiting += () => regler.GetTree().ProcessFrame -= Abfragen;
         void Abfragen()
         {
