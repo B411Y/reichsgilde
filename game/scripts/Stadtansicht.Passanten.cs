@@ -202,7 +202,7 @@ public partial class Stadtansicht
                 _imDom.Remove(nummer);
             }
 
-        AusweichenRechnen((float)sekunden); // Schicht 4 für das nächste Bild (Stadtansicht.Passantenausweichen.cs)
+        AusweichenRechnen((float)sekunden, minuteGenau); // Schicht 4 für das nächste Bild (Stadtansicht.Passantenausweichen.cs)
         if (NaeheMessen) NaeheZaehlen(sekunden);
         PassantenHervorheben();
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
@@ -366,7 +366,7 @@ public partial class Stadtansicht
                 // Karte); an Anfang und Ende des Weges (Tür, Platz) schrumpft er auf null, dort geht sie genau auf ihren Punkt
                 var spurQuer = versatz.Dot(rechts);
                 var spielraum = Mathf.Max(gang.Halb - Passantenspur.Wandabstand, 0);
-                var enden = Mathf.Min(Passantenspur.Rampe(strecke, 1.5f), Passantenspur.Rampe(p.Laenge - strecke, 1.5f));
+                var enden = Mathf.Min(Passantenspur.Rampe(strecke, 1.5f), Passantenspur.Rampe(laenge - strecke, 1.5f));
                 var (links, rechtsRaum) = (Mathf.Min(0, (-spielraum - spurQuer) * enden), Mathf.Max(0, (spielraum - spurQuer) * enden));
                 var karren = Mathf.Clamp(p.Ausweichen, links, rechtsRaum);
                 (p.RaumLinks, p.RaumRechts) = (links - karren, rechtsRaum - karren);

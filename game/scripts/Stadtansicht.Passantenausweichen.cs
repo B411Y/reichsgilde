@@ -32,7 +32,7 @@ public partial class Stadtansicht
     };
 
     /// <summary>Ein Schritt Ausweichen für alle sichtbaren Figuren (in der Pause nicht).</summary>
-    private void AusweichenRechnen(float sekunden)
+    private void AusweichenRechnen(float sekunden, double minuteGenau)
     {
         if (SpurV1 || sekunden <= 0) return;
         _ausweichListe.Clear();
@@ -62,7 +62,9 @@ public partial class Stadtansicht
             (p.Seitlich, p.Seite, p.Bremse, p.Haltezeit) = (f.Seitlich, f.Seite, f.Bremse, f.Haltezeit);
             // gebremst bleibt sie hinter ihrem Plan zurück, frei holt sie auf (Meter auf dem Boden)
             var tempo = (float)((p.Mitte?.Bodenlaenge ?? p.Laenge) * ticksJeSekunde / Math.Max(p.LaufEnde - p.LaufStart, 1e-6));
-            if (p.Bremse < 0.999f) p.Rueckstand += (1 - p.Bremse) * tempo * sekunden;
+            // (nach dem Planende wächst er nicht mehr – sonst ginge sie rückwärts –, und sie holt ihn in ihrem eigenen, gebremsten Tempo auf)
+            if (minuteGenau >= p.LaufEnde) p.Rueckstand = Mathf.Max(0, p.Rueckstand - p.Bremse * tempo * sekunden);
+            else if (p.Bremse < 0.999f) p.Rueckstand += (1 - p.Bremse) * tempo * sekunden;
             else if (p.Rueckstand > 0) p.Rueckstand = Mathf.Max(0, p.Rueckstand - Aufholen * tempo * sekunden);
             if (p.Rueckstand > RueckstandHoechstens) (p.Rueckstand, p.Bremse) = (RueckstandHoechstens, 1);
         }

@@ -79,8 +79,10 @@ public partial class Stadtansicht
     private void Weitergehen(Passant p, Weg weg, Vector3[] altPfad, float strecke, double minuteGenau)
     {
         var altXZ = altPfad.Select(v => (v.X, v.Z)).ToArray();
-        var (sx, sz) = new Passantenspur.Polylinie(altXZ).Bei(strecke); // die Meter sind auf dem Boden gezählt (ohne Höhe)
-        var stelle = new Vector3(sx, 0, sz);
+        // wo die Figur gezeigt wurde (auf der gerundeten Mittellinie, ohne ihren Versatz – der geht über VersatzStart weich weiter), mit der Höhe des Pfades
+        var altLinie = new Passantenspur.Polylinie(altXZ);
+        var stelle = p.Knoten.Position - p.VersatzJetzt;
+        stelle.Y = Gassennetz.PunktAuf(altPfad, altLinie.Laenge > 0 ? strecke / altLinie.Laenge : 0).Y;
         var neu = p.Pfad;
         List<Vector3> pfad;
         if (SpurV1) pfad = WeitergehenV1(stelle, neu);
@@ -98,7 +100,7 @@ public partial class Stadtansicht
                 pfad.AddRange(verbindung.Pfad);
                 pfad.AddRange(ausstiege[verbindung.Ende].Folge.Select(i => neu[i]));
             }
-            else pfad.AddRange(neu); // kein Netz dazwischen: geradewegs zum Anfang des neuen Weges
+            else pfad = WeitergehenV1(stelle, neu); // keine Verbindung über die Einstiege: wie früher über den nächsten Knoten (nicht geradewegs durch Häuser)
             pfad = OhneUmkehr(pfad);
         }
         p.Pfad = pfad.ToArray();

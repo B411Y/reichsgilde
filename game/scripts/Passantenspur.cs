@@ -185,6 +185,7 @@ public static class Passantenspur
     {
         private readonly double[] _meter, _x, _z, _rx, _rz, _ax, _az, _bx, _bz;
         private readonly float[] _anfaenge, _halbe;
+        private readonly float _schmalste;
 
         /// <summary>Länge der Linie (Meter, auf dem Boden).</summary>
         public float Laenge { get; }
@@ -208,7 +209,9 @@ public static class Passantenspur
             }
             Laenge = (float)_meter[n - 1];
             var breiten = halbe ?? Enumerable.Repeat(Gassenbreite / 2, Math.Max(punkte.Count - 1, 1)).ToArray();
+            _schmalste = float.MaxValue;
             (_anfaenge, _halbe) = Stuecke(punkte.Count >= 2 ? punkte : new[] { punkte.Count > 0 ? punkte[0] : (0f, 0f), punkte.Count > 0 ? punkte[0] : (0f, 0f) }, breiten);
+            foreach (var h in _halbe) _schmalste = MathF.Min(_schmalste, h);
         }
 
         /// <summary>Das Stück, in dem der Meter liegt (das letzte, das bei oder vor ihm beginnt; nie das letzte Punkt-„Stück“).</summary>
@@ -231,7 +234,7 @@ public static class Passantenspur
             return ((float)(_x[i] + _rx[i] * t), (float)(_z[i] + _rz[i] * t));
         }
 
-        public float Halbbreite(float strecke) => Huellbreite(_anfaenge, _halbe, Laenge, strecke);
+        public float Halbbreite(float strecke) => Huellbreite(_anfaenge, _halbe, Laenge, strecke, _schmalste);
 
         /// <summary>Die zweite Stammfunktion bei <paramref name="s"/> Metern.</summary>
         private (double X, double Z) Zweite(double s)
@@ -274,7 +277,7 @@ public static class Passantenspur
                     // die Ecke als Stück von einem Meter (halb davor, halb danach): so hat die Breite dort keine Spitze, und die Figur rückt nicht
                     // erst zur Mitte und gleich wieder hinaus
                     anfaenge.Add(MathF.Max(meter - 0.5f, anfaenge.Count > 0 ? anfaenge[^1] : 0));
-                    breiten.Add(MathF.Min(Eckenhalb, halbe[i]));
+                    breiten.Add(MathF.Min(Eckenhalb, MathF.Min(halbe[i], halbe[i - 1])));
                     anfaenge.Add(MathF.Min(meter + 0.5f, meter + laenge));
                     breiten.Add(halbe[i]);
                     meter += laenge;
@@ -305,7 +308,7 @@ public static class Passantenspur
     /// <see cref="BreiteSteigung"/> mal Abstand dorthin“: nie breiter als das Stück, auf dem die Figur ist, stetig, und eine enge Stelle macht die Spur
     /// schon davor schmal. Durchsucht nur die Stücke in Reichweite.
     /// </summary>
-    public static float Huellbreite(IReadOnlyList<float> anfaenge, IReadOnlyList<float> halbe, float laenge, float strecke)
+    public static float Huellbreite(IReadOnlyList<float> anfaenge, IReadOnlyList<float> halbe, float laenge, float strecke, float? schmalste = null)
     {
         var n = halbe.Count;
         if (n == 0) return Gassenbreite / 2;
@@ -317,8 +320,8 @@ public static class Passantenspur
             if (anfaenge[mitte] <= s) lo = mitte; else hi = mitte - 1;
         }
         var beste = halbe[lo];
-        var kleinste = beste;
-        for (var j = 0; j < n; j++) kleinste = MathF.Min(kleinste, halbe[j]);
+        var kleinste = schmalste ?? beste; // die schmalste Stelle des ganzen Weges (ohne Angabe hier gesucht)
+        if (schmalste is null) for (var j = 0; j < n; j++) kleinste = MathF.Min(kleinste, halbe[j]);
         for (var j = lo + 1; j < n; j++)
         {
             var abstand = anfaenge[j] - s;
@@ -406,7 +409,7 @@ public static class Passantenspur
     public const float Eckenrundung = 3f;
 
     /// <summary>So weit (Meter) vor und zurück wird die gerundete Mittellinie betrachtet, um ihre Richtung zu finden.</summary>
-    private const float Richtungsschritt = 0.05f;
+    private const float Richtungsschritt = 0.25f;
 
     private static Gang Punkt(IMittellinie mitte, int nummer, float laenge, float strecke, (float X, float Z) start)
     {

@@ -80,7 +80,7 @@ public sealed class Passantenausweichen
 
     private readonly Dictionary<long, int> _kopf = new();
     private int[] _naechste = Array.Empty<int>();
-    private float[] _neu = Array.Empty<float>();
+    private float[] _neu = Array.Empty<float>(), _bremseVorher = Array.Empty<float>();
 
     /// <summary>Wie viele Paare im letzten Schritt verglichen wurden (zum Prüfen der Kosten).</summary>
     public int Paare { get; private set; }
@@ -93,7 +93,8 @@ public sealed class Passantenausweichen
     {
         Paare = 0;
         if (anzahl == 0) return;
-        if (_naechste.Length < anzahl) { _naechste = new int[anzahl * 2]; _neu = new float[anzahl * 2]; }
+        if (_naechste.Length < anzahl) { _naechste = new int[anzahl * 2]; _neu = new float[anzahl * 2]; _bremseVorher = new float[anzahl * 2]; }
+        for (var i = 0; i < anzahl; i++) _bremseVorher[i] = figuren[i].Bremse; // die Bremse der anderen aus dem letzten Bild (unabhängig von der Reihenfolge)
         // Zellen so groß, dass alles, was in der Vorschau herankommen kann, in den neun Zellen liegt (bei hohem Spieltempo größer)
         var schnellste = 0f;
         for (var i = 0; i < anzahl; i++) schnellste = MathF.Max(schnellste, figuren[i].Vx * figuren[i].Vx + figuren[i].Vz * figuren[i].Vz);
@@ -148,7 +149,7 @@ public sealed class Passantenausweichen
                         // Wege kreuzen sich (weder gleich- noch gegenläufig) und die andere ist vor ihr: Vortritt nach der Nummer – wer ihn lässt, wird
                         // langsamer, bis die andere vorbei ist (sonst warteten beide aufeinander)
                         // (nur, wenn die andere auch geht: Wer selbst wartet, bekommt keinen Vortritt – sonst warteten im Kreis alle aufeinander)
-                        if (!gleichlaeufig && !gegenlaeufig && laengs > 0 && a.Nummer > b.Nummer && b.Bremse > 0.5f)
+                        if (!gleichlaeufig && !gegenlaeufig && laengs > 0 && a.Nummer > b.Nummer && _bremseVorher[j] > 0.5f)
                             vortritt = MathF.Min(vortritt, Math.Clamp(t / Vorschau, 0, 1) * 0.6f);
                         var quer = nx * a.Rx + nz * a.Rz; // wo die andere seitlich ist (rechts positiv)
                         var laengsNah = nx * fx + nz * fz;
