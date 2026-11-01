@@ -76,6 +76,7 @@ public static class Kapazitaetspruefung
         private readonly double _r;
         private readonly int _i0, _j0, _breite, _hoehe;
         private readonly Lage?[] _zone;             // null: keine Stadt-Bauzone
+        private readonly bool[] _nurWerkstatt;      // Feld einer Zone „nur“: „werkstatt“ (Werkstatt-Bauplatz): dort keine Wohnhäuser
         private readonly double[] _karren, _alle;   // Abstand zur nächsten Karrenstraße bzw. zum nächsten Weg
         private readonly bool[] _frei;
         private readonly int[] _felder;             // die Nummern aller Zonenfelder, aufsteigend
@@ -88,13 +89,14 @@ public static class Kapazitaetspruefung
         public Belegung(Kartenentwurf e)
         {
             (_e, _r) = (e, e.Raster);
-            var zonen = e.Bauzonen.Where(z => z.Art != Lage.Umland && z.Ecken.Count > 0).Select(z => (z.Art, Ecken: z.Ecken,
+            var zonen = e.Bauzonen.Where(z => z.Art != Lage.Umland && z.Ecken.Count > 0).Select(z => (z.Art, NurWerkstatt: z.Nur == Bauzone.NurWerkstatt, Ecken: z.Ecken,
                 I0: (int)Math.Floor(z.Ecken.Min(q => q.X) / _r), I1: (int)Math.Floor(z.Ecken.Max(q => q.X) / _r),
                 J0: (int)Math.Floor(z.Ecken.Min(q => q.Z) / _r), J1: (int)Math.Floor(z.Ecken.Max(q => q.Z) / _r))).ToList();
             if (zonen.Count > 0)
                 (_i0, _j0, _breite, _hoehe) = (zonen.Min(z => z.I0), zonen.Min(z => z.J0),
                     zonen.Max(z => z.I1) - zonen.Min(z => z.I0) + 1, zonen.Max(z => z.J1) - zonen.Min(z => z.J0) + 1);
             _zone = new Lage?[_breite * _hoehe];
+            _nurWerkstatt = new bool[_zone.Length];
             // Eine spätere Zone überschreibt eine frühere, wie vorher im Wörterbuch. Je Rasterzeile (gleiches j, also gleiches Z) schneiden
             // dieselben Kanten mit denselben X-Werten wie in Kartengeometrie.ImVieleck; ein Feld liegt drin, wenn rechts von seiner Mitte
             // ungerade viele Schnitte liegen. Dasselbe Ergebnis, aber die Ecken werden je Zeile statt je Feld durchgegangen.
@@ -115,7 +117,7 @@ public static class Kapazitaetspruefung
                     {
                         var px = Mitte(i, j).X;
                         while (links < schnitte.Count && !(px < schnitte[links])) links++;
-                        if ((schnitte.Count - links) % 2 == 1) _zone[Nummer(i, j)] = z.Art;
+                        if ((schnitte.Count - links) % 2 == 1) (_zone[Nummer(i, j)], _nurWerkstatt[Nummer(i, j)]) = (z.Art, z.NurWerkstatt);
                     }
                 }
             _felder = Enumerable.Range(0, _zone.Length).Where(n => _zone[n] is not null).ToArray();
@@ -241,7 +243,7 @@ public static class Kapazitaetspruefung
                     foreach (var (oi, oj) in new[] { (0, 0), (-(w - 1), 0), (0, -(h - 1)), (-(w - 1), -(h - 1)) })
                     {
                         var (i0, j0) = (i + oi, j + oj);
-                        if (!Passt(i0, j0, w, h, dist, erlaubt)) continue;
+                        if (!Passt(i0, j0, w, h, dist, erlaubt, werkstatt)) continue;
                         var felder = new List<(int, int)>(w * h);
                         for (var a = 0; a < w; a++)
                             for (var c = 0; c < h; c++)
@@ -289,7 +291,7 @@ public static class Kapazitaetspruefung
 
         /// <summary>Sind alle Felder des Rechtecks frei (und in einer erlaubten Lage), und liegen mindestens zwei nah genug an der Straße?</summary>
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-        private bool Passt(int i0, int j0, int w, int h, double[] dist, IReadOnlySet<Lage>? erlaubt)
+        private bool Passt(int i0, int j0, int w, int h, double[] dist, IReadOnlySet<Lage>? erlaubt, bool werkstatt)
         {
             // Felder außerhalb des Rasters liegen in keiner Bauzone, sind also nie frei.
             if (i0 < _i0 || j0 < _j0 || i0 + w > _i0 + _breite || j0 + h > _j0 + _hoehe) return false;
@@ -301,6 +303,7 @@ public static class Kapazitaetspruefung
                 {
                     if (!_frei[f]) return false;
                     if (erlaubt is not null && !erlaubt.Contains(_zone[f]!.Value)) return false;
+                    if (!werkstatt && _nurWerkstatt[f]) return false;
                     if (dist[f] <= Strassennah) nah++;
                 }
             }

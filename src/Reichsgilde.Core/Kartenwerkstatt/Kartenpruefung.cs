@@ -485,6 +485,8 @@ public static class Kartenpruefung
             foreach (var (z, flaeche, zr) in _zonen)
             {
                 var mitte = Kartengeometrie.Mitte(flaeche);
+                if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt)
+                    FehlerAn("zone-nur", $"Bauzone {z.Kennung}: „nur“ kennt nur „{Bauzone.NurWerkstatt}“, nicht „{nur}“.", mitte, new[] { z });
                 if (karren.Count == 0)
                 {
                     FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die Karte hat keine Karrenstraße.", mitte, new[] { z });
