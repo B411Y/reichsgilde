@@ -1,0 +1,161 @@
+{
+  "hinweis": "Handgepflegte Quelle der Danksagung. Daraus, aus der Quellentabelle in game/assets/audio/umgebung/HERKUNFT.md (Freesound-Aufnahmen) und aus docs/assets/protokoll.csv baut tools/assets/danksagung_bauen.py die Datei game/daten/danksagung.json. 'deckt' nennt die Anfänge der Protokoll-Muster (pfad_muster), die der Eintrag abdeckt; jede Fremdpaket-Zeile des Protokolls muss gedeckt sein. 'pflicht': true = Namensnennung verlangt (CC BY, MIT, OFL, Apache); sonst freiwilliger Dank (CC0).",
+  "gruppen": [
+    {
+      "name": "Spiel",
+      "text": "Reichsgilde ist ein Hobby- und Lernprojekt: eine Wirtschaftssimulation im Heiligen Römischen Reich um 1480, im Geist der Schedelschen Weltchronik gestaltet.",
+      "eintraege": [
+        {
+          "werk": "Reichsgilde",
+          "autor": "Entwicklung, Gestaltung und Spielidee: B411Y",
+          "quelle": "https://github.com/B411Y/reichsgilde",
+          "lizenz": "Code und Shader: MIT. Inhalte, die bis zum 29.10.2026 entstanden: CC BY 4.0; neuere Inhalte: Alle Rechte vorbehalten",
+          "hinweis": "Details: LICENSE und LICENSE-INHALTE.md im Projekt",
+          "pflicht": true,
+          "deckt": []
+        },
+        {
+          "werk": "Programmierung, Werkzeuge und Dokumentation",
+          "autor": "mit Unterstützung von Claude (Anthropic)",
+          "quelle": "https://www.anthropic.com",
+          "lizenz": "",
+          "hinweis": "Der Wortlaut dieser Zeile ist ein Vorschlag; der Entwickler entscheidet",
+          "pflicht": false,
+          "deckt": []
+        }
+      ],
+      "dank": "",
+      "deckt": []
+    },
+    {
+      "name": "Engine & Bibliotheken",
+      "text": "Das Spiel läuft auf diesen freien Programmen. Die vollständigen Lizenztexte der Engine stehen unter „Lizenztexte der Engine“.",
+      "eintraege": [
+        {
+          "werk": "Godot Engine 4",
+          "autor": "Copyright (c) 2014-heute Godot Engine contributors; (c) 2007-2014 Juan Linietsky, Ariel Manzur",
+          "quelle": "https://godotengine.org",
+          "lizenz": "MIT",
+          "hinweis": "Die Engine bringt weitere Bibliotheken mit (z. B. FreeType, Vorbis, Jolt Physics); ihre Hinweise stehen in den Lizenztexten der Engine",
+          "pflicht": true,
+          "deckt": []
+        },
+        {
+          "werk": ".NET 8 und C#",
+          "autor": ".NET Foundation und Mitwirkende, Microsoft",
+          "quelle": "https://dotnet.microsoft.com",
+          "lizenz": "MIT",
+          "hinweis": "",
+          "pflicht": true,
+          "deckt": []
+        },
+        {
+          "werk": "TressFX-Godot (Echtzeit-Haar)",
+          "autor": "ismailivanov, nach AMD TressFX (Advanced Micro Devices); gebaut mit godot-cpp (Godot Engine contributors)",
+          "quelle": "https://github.com/ismailivanov/TressFX-Godot",
+          "lizenz": "MIT",
+          "hinweis": "Lizenztexte liegen dem Paket bei (LICENSE-TressFX-Godot.txt, LICENSE-godot-cpp.txt)",
+          "pflicht": true,
+          "deckt": []
+        },
+        {
+          "werk": "Realistic Water Shader (Grundlage des Wassers, abgewandelt)",
+          "autor": "UnionBytes / Achim Menzel (AiYori), Copyright 2019; Godot-4-Fassung von clayjohn",
+          "quelle": "https://github.com/godot-extended-libraries/godot-realistic-water",
+          "lizenz": "MIT",
+          "hinweis": "Lizenztext und Autorenliste: game/assets/shader/realistisches_wasser/",
+          "pflicht": true,
+          "deckt": [
+            "game/assets/shader/realistisches_wasser/",
+            "game/assets/shader/wasser_"
+          ]
+        }
+      ],
+      "dank": "",
+      "deckt": []
+    },
+    {
+      "name": "Klänge",
+      "text": "Geräusche der Oberfläche und der Stadt. Die Aufnahmen der Umgebung stammen von Freesound.org; sie wurden zugeschnitten, gefiltert und zu Schleifen gelegt.",
+      "eintraege": [
+        {
+          "werk": "RPG Audio und Impact Sounds (Klicks, Blättern, Münzen, Holz, Glocke)",
+          "autor": "Kenney",
+          "quelle": "https://kenney.nl",
+          "lizenz": "CC0 1.0",
+          "hinweis": "",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/audio/geraeusche/oberflaeche/"
+          ]
+        }
+      ],
+      "dank": "Die Sprecherstimme des Haushofmeisters ist künstlich erzeugt (Qwen3-TTS, Alibaba Qwen, Apache-2.0) und gehört keiner echten Person.",
+      "deckt": [
+        "game/assets/audio/stimmen/",
+        "game/assets/audio/umgebung/"
+      ]
+    },
+    {
+      "name": "Bilder & Modelle",
+      "text": "Eigene Grafiken sind teils mit lokaler Bild-KI entstanden. Fremde Modelle und Texturen:",
+      "eintraege": [
+        {
+          "werk": "Stylized Nature MegaKit, Fantasy Props MegaKit, Medieval Village MegaKit (Bäume, Steine, Boden, Fässer, Kisten, Zäune; bearbeitet)",
+          "autor": "Quaternius",
+          "quelle": "https://quaternius.com",
+          "lizenz": "CC0 1.0",
+          "hinweis": "",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/modelle/natur/natur_kit_",
+            "game/assets/modelle/props/props_"
+          ]
+        },
+        {
+          "werk": "Snow 014 (Eisrelief)",
+          "autor": "ambientCG",
+          "quelle": "https://ambientcg.com/view?id=Snow014",
+          "lizenz": "CC0 1.0",
+          "hinweis": "",
+          "pflicht": false,
+          "deckt": [
+            "game/assets/texturen/eis/"
+          ]
+        }
+      ],
+      "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, TRELLIS.2 (Microsoft, MIT), AssetFurnace (Apache-2.0), SkinTokens (MIT) und Kimodo (NVIDIA Open Model License) für das KI-Schmiedmodell, Blender und ComfyUI. Das Schmiedmodell ist eine KI-Arbeit.",
+      "deckt": []
+    },
+    {
+      "name": "Schriften",
+      "text": "Beide Schriften stehen unter der SIL Open Font License 1.1 (https://openfontlicense.org).",
+      "eintraege": [
+        {
+          "werk": "Alegreya",
+          "autor": "Copyright The Alegreya Project Authors",
+          "quelle": "https://github.com/huertatipografica/Alegreya",
+          "lizenz": "OFL 1.1",
+          "hinweis": "Lizenztext: OFL-Alegreya.txt",
+          "pflicht": true,
+          "deckt": [
+            "game/assets/oberflaeche/schriften/"
+          ]
+        },
+        {
+          "werk": "Germania One",
+          "autor": "John Vargas Beltrán (Reserved Font Name „Germania“)",
+          "quelle": "https://fonts.google.com/specimen/Germania+One",
+          "lizenz": "OFL 1.1",
+          "hinweis": "Lizenztext: OFL-GermaniaOne.txt",
+          "pflicht": true,
+          "deckt": [
+            "game/assets/oberflaeche/schriften/"
+          ]
+        }
+      ],
+      "dank": "",
+      "deckt": []
+    }
+  ]
+}
