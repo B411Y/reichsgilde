@@ -329,7 +329,8 @@ public partial class Stadtansicht
     {
         if (_entwurf is not null) return;
         var grundKarte = Felsformen.IstGestein(karte.Felsen?.Grundgestein) ? karte.Felsen!.Grundgestein! : Felsformen.GrundgesteinVorgabe;
-        FelsbodenFarbe(grundKarte, karte.Felsen is not null); // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher
+        // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher – wie in der Werkstatt erst mit Stücken oder gesetztem Grundgestein
+        FelsbodenFarbe(grundKarte, karte.Felsen is { } fk && (fk.Stuecke is { Count: > 0 } || fk.Grundgestein is not null));
         if (karte.Felsen?.Stuecke is not { Count: > 0 } stuecke) return;
         var grund = grundKarte;
         for (var i = 0; i < stuecke.Count; i++)
@@ -380,7 +381,6 @@ public partial class Stadtansicht
     /// <summary>Das Gelände hat sich in diesem Rechteck geändert: Die Zellen darin folgen dem Boden (aus <see cref="GelaendeNachziehen"/>).</summary>
     private void FelsenImBereich(Rect2 rect)
     {
-        FelsGelaendeBereich(rect);
         var weit = rect.Grow(20f); // größter Radius eines Stücks samt Schuttkegel (Grundfläche + 0,8 · Felsboden.KegelMax)
         foreach (var (ort, zelle) in _felsZellen)
         {

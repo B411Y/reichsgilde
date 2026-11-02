@@ -9,7 +9,7 @@ namespace Reichsgilde;
 /// dem Gelände liegt – bei großen, gekippten Stücken am Hang genau an seiner Stelle, nicht nur unter der Mitte des Stücks.
 /// <list type="bullet">
 /// <item><b>Bild</b>: die Höhen der Rasterpunkte des Bodens (2 m, <see cref="Gelaendeform.Ausschnitt"/>, mit dem Bett der Wege) im Rechteck um alle
-/// Felsstücke samt <see cref="FelsGelaendeRand"/>, ein Kanal 32 Bit (Rf). Köln mit 300 Stücken: etwa 600 × 450 Punkte, gut 1 MB.</item>
+/// Felsstücke samt <see cref="FelsGelaendeRand"/> und <see cref="FelsGelaendeVorrat"/>, ein Kanal Halbfloat (Rh). Köln mit 300 Stücken: etwa 730 × 580 Punkte, unter 1 MB.</item>
 /// <item><b>Globale Uniforms</b> <c>fels_gelaende</c> (das Bild) und <c>fels_gelaende_feld</c> (Ecke und 1 / Ausdehnung; z = 0: kein Bild) –
 /// <c>fels.gdshaderinc</c> liest sie mit einer Abtastung je Bildpunkt (bilinear, wie der Kern; das Netz teilt die Zellen in Dreiecke, der Unterschied
 /// ist am Fuß nur Zentimeter).</item>
@@ -22,8 +22,11 @@ public partial class Stadtansicht
     /// <summary>So weit (Meter) reicht das Bild über die Mitten der Stücke hinaus: halbe Breite des größten Stücks samt Kippen und Spielraum.</summary>
     private const float FelsGelaendeRand = 30f;
 
-    /// <summary>Höchstens so viele Rasterpunkte je Seite (8 km): größere Karten gibt es nicht, aber ein verirrtes Stück soll kein Riesenbild bauen.</summary>
-    private const int FelsGelaendeMax = 4096;
+    /// <summary>Höchstens so viele Rasterpunkte je Seite (4 km): größere Karten gibt es nicht, aber ein verirrtes Stück soll kein Riesenbild bauen.</summary>
+    private const int FelsGelaendeMax = 2048;
+
+    /// <summary>Vorrat je Seite beim Neubau (Rasterpunkte, 128 m): Der Pinsel setzt Stück für Stück nach außen, nicht jedes soll das Bild neu bauen.</summary>
+    private const int FelsGelaendeVorrat = 64;
 
     private Image? _felsGelaendeBild;
     private ImageTexture? _felsGelaendeTextur;
@@ -46,7 +49,9 @@ public partial class Stadtansicht
         if (_felsGelaendeNeu)
         {
             _felsGelaendeNeu = false;
-            if (FelsGelaendeGebraucht() is { } feld && !FelsGelaendeEnthaelt(feld)) FelsGelaendeBauen(feld);
+            if (FelsGelaendeGebraucht() is { } feld && !FelsGelaendeEnthaelt(feld))
+                FelsGelaendeBauen((feld.I0 - FelsGelaendeVorrat, feld.J0 - FelsGelaendeVorrat,
+                    Math.Min(FelsGelaendeMax, feld.Breite + 2 * FelsGelaendeVorrat), Math.Min(FelsGelaendeMax, feld.Tiefe + 2 * FelsGelaendeVorrat)));
         }
         if (_felsGelaendeGeaendert is { } rect && _felsGelaendeBild is not null)
         {
@@ -78,19 +83,24 @@ public partial class Stadtansicht
         return _felsGelaendeBild is not null && f.I0 >= g.I0 && f.J0 >= g.J0 && f.I0 + f.Breite <= g.I0 + g.Breite && f.J0 + f.Tiefe <= g.J0 + g.Tiefe;
     }
 
-    /// <summary>Die Höhen eines Ausschnitts als Bytes (Rf, Zeile für Zeile); auf flachem Boden überall 0.</summary>
-    private byte[] FelsGelaendeHoehen(int i0, int j0, int breite, int tiefe)
+    /// <summary>
+    /// Die Höhen eines Ausschnitts als Bild (Zeile für Zeile; auf flachem Boden überall 0) im Format Rh: Halbfloat lässt sich überall linear filtern
+    /// (32-Bit-Float nicht auf jeder Grafikkarte) und ist bis 64 m Höhe auf 3 cm genau.
+    /// </summary>
+    private Image FelsGelaendeHoehen(int i0, int j0, int breite, int tiefe)
     {
         var werte = _gelaende is { } g ? g.Ausschnitt(i0, j0, breite, tiefe) : new float[breite * tiefe];
         var bytes = new byte[werte.Length * 4];
         Buffer.BlockCopy(werte, 0, bytes, 0, bytes.Length);
-        return bytes;
+        var bild = Image.CreateFromData(breite, tiefe, false, Image.Format.Rf, bytes);
+        bild.Convert(Image.Format.Rh);
+        return bild;
     }
 
     private void FelsGelaendeBauen((int I0, int J0, int Breite, int Tiefe) f)
     {
         _felsGelaendeFeld = f;
-        _felsGelaendeBild = Image.CreateFromData(f.Breite, f.Tiefe, false, Image.Format.Rf, FelsGelaendeHoehen(f.I0, f.J0, f.Breite, f.Tiefe));
+        _felsGelaendeBild = FelsGelaendeHoehen(f.I0, f.J0, f.Breite, f.Tiefe);
         _felsGelaendeTextur = ImageTexture.CreateFromImage(_felsGelaendeBild);
         var a = (float)Hoehenraster.Abstand;
         RenderingServer.GlobalShaderParameterSet("fels_gelaende", _felsGelaendeTextur);
@@ -110,7 +120,7 @@ public partial class Stadtansicht
         var j1 = Math.Min(f.J0 + f.Tiefe - 1, (int)Math.Ceiling(rect.End.Y / a) + 1);
         if (i0 > i1 || j0 > j1) return;
         var (b, t) = (i1 - i0 + 1, j1 - j0 + 1);
-        var stueck = Image.CreateFromData(b, t, false, Image.Format.Rf, FelsGelaendeHoehen(i0, j0, b, t));
+        var stueck = FelsGelaendeHoehen(i0, j0, b, t);
         _felsGelaendeBild!.BlitRect(stueck, new Rect2I(0, 0, b, t), new Vector2I(i0 - f.I0, j0 - f.J0));
         _felsGelaendeTextur!.Update(_felsGelaendeBild);
     }
@@ -120,6 +130,8 @@ public partial class Stadtansicht
     {
         if (_felsGelaendeBild is null) return;
         RenderingServer.GlobalShaderParameterSet("fels_gelaende_feld", Vector4.Zero);
+        // die Textur nicht festhalten: ein Punkt statt des ganzen Bildes
+        RenderingServer.GlobalShaderParameterSet("fels_gelaende", ImageTexture.CreateFromImage(Image.CreateEmpty(1, 1, false, Image.Format.Rh)));
         _felsGelaendeBild = null;
         _felsGelaendeTextur = null;
     }
