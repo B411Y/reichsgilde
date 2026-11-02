@@ -95,6 +95,24 @@ public readonly record struct Felsbasis(double M00, double M01, double M02, doub
         return (Kartengeometrie.Mod(a * grad, 360), b * grad, c * grad);
     }
 
+    /// <summary>Die umgekehrte Drehung (bei einer Drehung die Transponierte).</summary>
+    public Felsbasis Transponiert => new(M00, M10, M20, M01, M11, M21, M02, M12, M22);
+
+    /// <summary>
+    /// Wie <see cref="Euler()"/>, aber von den beiden Winkelsätzen derselben Drehung – (a, b, c) und (a + 180, 180 − b, c + 180) – der, der näher
+    /// an den bisherigen Winkeln liegt: So springen die Zahlenfelder nicht, wenn ein Stück über 90° gekippt ist (Kippen dann −180 … 180).
+    /// </summary>
+    public (double Drehung, double Kippen, double Rollen) EulerNahe(double drehung, double kippen, double rollen)
+    {
+        var (a, b, c) = Euler();
+        static double Abstand(double x, double y) => Math.Abs(Kartengeometrie.Mod(x - y + 180, 360) - 180);
+        static double Halb(double w) => Kartengeometrie.Mod(w + 180, 360) - 180;
+        var (a2, b2, c2) = (Kartengeometrie.Mod(a + 180, 360), Halb(180 - b), Halb(c + 180));
+        var eins = Abstand(a, drehung) + Abstand(b, kippen) + Abstand(c, rollen);
+        var zwei = Abstand(a2, drehung) + Abstand(b2, kippen) + Abstand(c2, rollen);
+        return zwei < eins ? (a2, b2, c2) : (a, b, c);
+    }
+
     /// <summary>
     /// Die Drehung um eine Achse durch den Ursprung (Länge 1) um einen Winkel im Bogenmaß (Rodrigues) – für die Neigung zum Hang.
     /// </summary>
@@ -182,7 +200,7 @@ public static class Felsraum
 
     /// <summary>
     /// Der Versatz (Meter, gerundet wie in der Datei), mit dem das Stück auf dem Boden aufsetzt (wie die Taste End in Unreal): Von acht Punkten
-    /// auf dem Rand der Grundfläche (Ellipse aus 0,8 × Breite × Tiefe wie beim Felsboden) liegt der tiefste – gemessen am Boden unter ihm – genau
+    /// auf dem Rand der Grundfläche (Ellipse aus 0,8 × Breite × Tiefe wie beim Felsboden) und acht ebensolchen auf Höhe der Oberkante liegt der tiefste – gemessen am Boden unter ihm – genau
     /// Einsinken · Höhe unter dem Boden. Auf ebenem Boden und gerade stehend ist das 0; ein gekipptes Stück hebt sich, bis seine untere Kante
     /// so tief steckt wie sonst die ganze Unterkante.
     /// </summary>
@@ -193,11 +211,13 @@ public static class Felsraum
         var (hb, ht) = (Felsboden.Grundflaeche * r.Groesse.X / 2, Felsboden.Grundflaeche * r.Groesse.Z / 2);
         const double d = 0.70710678118654752; // cos 45°
         var versatz = double.MinValue;
-        foreach (var (u, v) in new[] { (1.0, 0.0), (d, d), (0.0, 1.0), (-d, d), (-1.0, 0.0), (-d, -d), (0.0, -1.0), (d, -d) })
-        {
-            var p = r.InWelt(new Felsvektor(u * hb, 0, v * ht));
-            versatz = Math.Max(versatz, hoehen.Hoehe(p.X, p.Z) - tiefe - p.Y);
-        }
+        // Unter- und Oberkante: ein über 90° gekipptes Stück steht auf seiner Oberseite
+        foreach (var y in new[] { 0.0, r.Groesse.Y })
+            foreach (var (u, v) in new[] { (1.0, 0.0), (d, d), (0.0, 1.0), (-d, d), (-1.0, 0.0), (-d, -d), (0.0, -1.0), (d, -d) })
+            {
+                var p = r.InWelt(new Felsvektor(u * hb, y, v * ht));
+                versatz = Math.Max(versatz, hoehen.Hoehe(p.X, p.Z) - tiefe - p.Y);
+            }
         return Kartenraster.Punkt(Math.Clamp(versatz, -Felsformen.VersatzMax, Felsformen.VersatzMax));
     }
 }

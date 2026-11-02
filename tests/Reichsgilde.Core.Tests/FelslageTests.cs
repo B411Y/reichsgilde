@@ -41,12 +41,11 @@ static class FelslageTests
     }
 
     /// <summary>
-    /// Ein Ablauf nur mit Pinseln, wie es sie vor R2 gab (Stempel, Streuen, Radieren, Rückgängig), ohne Boden. Seine Prüfsumme stammt aus dem
-    /// Stand vor R2 (phase5/felsbild 711cfe9b): Ein alter Strich mit gleichem Startwert ergibt dieselben Stücke.
+    /// Ein Ablauf nur mit Pinseln, wie es sie vor R2 gab (Stempel, Streuen, Radieren, Rückgängig), mit oder ohne Boden. Seine Prüfsummen stammen
+    /// aus dem Stand vor R2 (phase5/felsbild 711cfe9b): Ein alter Strich mit gleichem Startwert ergibt dieselben Stücke (und denselben Boden).
     /// </summary>
-    static string AlterAblauf()
+    static string AlterAblauf(bool boden = false)
     {
-        const bool boden = false;
         var e = HangMitEbene();
         e.GrundgesteinSetzen("trachyt");
         e.FelsStempeln(new Felspinsel(Gruppe: "wand", Boden: boden), O(40, -60));
@@ -104,6 +103,8 @@ static class FelslageTests
             Pruefe.Gleich("89bbc16442a5f4918a757cc3803b023db6ae0a09b2aa88425389c6c5797cacf7", Sha(alt),
                 "alter Ablauf: dieselben Bytes wie vor R2 (ändert sich das gewollt, hier die neue Prüfsumme eintragen und es im Bericht nennen)");
             Pruefe.Gleich(alt, Kartenentwurf.AusJson(alt, Katalog.Value).ZuJson(), "alte Felsen wieder geschrieben");
+            // mit Boden: hängt auch am Felsboden – ändert der sich gewollt (etwa R1), hier die neue Prüfsumme eintragen
+            Pruefe.Gleich("2c74dbcb26b03cdffce6098aee8d527d78858a90f6e901143bd0bca1affcc159", Sha(AlterAblauf(boden: true)), "alter Ablauf mit Boden wie vor R2");
         }),
 
         ("Fels R2: Achsen, Versatz und volles Kippen stehen in der Datei, lesen und schreiben ergibt dieselben Bytes; die Stadtkarte liest sie", () =>
@@ -282,6 +283,32 @@ static class FelslageTests
             Nahe(n1.Y, nb.Y, 1e-3, "Achse y = Normale");
         }),
 
+        ("Fels R2: Am Hang dreht eine Weltachse die ganze Lage samt Hangneigung; Einrasten auf dem Kopf; Winkel springen nicht über 90°", () =>
+        {
+            var e = HangMitEbene();
+            e.FelsStempeln(new Felspinsel(Formen: new[] { "block" }, Neigung: 1, Boden: false), O(50, 0), drehung: 20, startwert: 1);
+            var f = e.Felsen[0];
+            foreach (var achse in new[] { Felsachse.X, Felsachse.Y, Felsachse.Z })
+            {
+                var vorher = e.FelsRahmen(f).Basis;
+                e.FelsTransformieren(new[] { f }, new Felsaenderung(Drehachse: achse, Winkel: 30));
+                BasisNahe(Felsbasis.Um(achse, 30) * vorher, e.FelsRahmen(f).Basis, 3e-3, $"um Welt-{achse} am Hang");
+            }
+            // auf dem Kopf (Kippen 180°) auf ebenem Boden: Einrasten hebt um die ganze Höhe
+            var b = Leer();
+            b.FelsStempeln(new Felspinsel(Formen: new[] { "block" }, Boden: false), O(0, 0), drehung: 0, startwert: 1);
+            var k = b.Felsen[0];
+            b.FelsTransformieren(new[] { k }, new Felswerte(Kippen: 180, Rollen: 0));
+            b.FelsEinrasten(new[] { k });
+            Nahe(Felsformen.Finde("block")!.Hoehe * k.Massstab, k.Versatz, 0.03, "auf dem Kopf um die Höhe gehoben");
+            // über 90° gekippt: eine kleine Drehung um die eigene y-Achse lässt Kippen nahe 120
+            b.FelsTransformieren(new[] { k }, new Felswerte(Drehung: 10, Kippen: 120, Rollen: 30));
+            b.FelsTransformieren(new[] { k }, new Felsaenderung(Drehachse: Felsachse.Y, Winkel: 0.1, Weltachsen: false));
+            Pruefe.Wahr(Math.Abs(k.KippenX - 120) < 1 && Math.Abs(k.Drehung - 10) < 1, $"Winkel nahe den alten ({k.Drehung}, {k.KippenX}, {k.KippenZ})");
+            // ein umgekehrter Bereich bleibt „Von fest“
+            Pruefe.Wahr(new Felspinsel(Versatzbereich: new(5, 2)).Begrenzt().Versatzbereich!.IstLeer, "Bis < Von bleibt leer");
+        }),
+
         ("Fels R2: Zufallsbereiche – Werte im Bereich; leere Bereiche ziehen nicht (gleiche Stücke wie ohne); Größe min–max; Grenze in Grad", () =>
         {
             Kartenentwurf Streuen(Felspinsel p)
@@ -364,6 +391,13 @@ static class FelslageTests
             }
             nur.Rueckgaengig();
             Pruefe.Gleich(vorher.ZuJson(), nur.ZuJson(), "Rückgängig");
+            // ohne Angabe: nur Größe, Drehung und was einen Bereich hat – gestreckte, gehobene Stücke bleiben es
+            var g = HangMitEbene();
+            g.FelsStempeln(new Felspinsel(Formen: new[] { "block" }, Boden: false), O(-50, 0), startwert: 1);
+            g.FelsTransformieren(g.Felsen, new Felswerte(AchseY: 2, Versatz: 3, Einsinken: 0.5));
+            g.FelsNeuWuerfeln(g.Felsen, new Felspinsel(Kippbereich: new(10, 20)), startwert: 2);
+            Pruefe.Gleich((2.0, 3.0, 0.5), (g.Felsen[0].AchseY, g.Felsen[0].Versatz, g.Felsen[0].Einsinken), "ohne Bereich bleibt es");
+            Pruefe.Wahr(g.Felsen[0].KippenX is >= 10 and <= 20, "Kippen aus dem Bereich");
         }),
 
         ("Fels R2: Der Ablauf mit allem aus R2 gibt zweimal dieselben Bytes; alle Werte gerundet wie in der Datei und in ihren Grenzen", () =>

@@ -42,12 +42,8 @@ public sealed record Felsbereich(double Von, double Bis)
     /// <summary>Der Wert mit einem neuen Wurf aus der Quelle – nur, wenn der Bereich nicht leer ist.</summary>
     internal double Ziehen(Zufallsquelle zufall) => IstLeer ? Von : Wert(zufall.NextDouble());
 
-    /// <summary>Der Bereich in Grenzen (Von und Bis je zwischen <paramref name="min"/> und <paramref name="max"/>, Von ≤ Bis).</summary>
-    internal Felsbereich Begrenzt(double min, double max)
-    {
-        var (a, b) = (Math.Clamp(Von, min, max), Math.Clamp(Bis, min, max));
-        return a <= b ? new(a, b) : new(b, a);
-    }
+    /// <summary>Der Bereich in Grenzen (Von und Bis je zwischen <paramref name="min"/> und <paramref name="max"/>; nicht getauscht: Bis ≤ Von bleibt „Von fest“).</summary>
+    internal Felsbereich Begrenzt(double min, double max) => new(Math.Clamp(Von, min, max), Math.Clamp(Bis, min, max));
 }
 
 /// <summary>
@@ -125,6 +121,9 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
         get
         {
             var s = Math.Max(Felsformen.MassstabMin, Groesse * (1 - Streuung));
+            // mit Achsen-Bereichen die kleinste Grundfläche (R2; ohne Bereich ändert sich die Zahl nicht: alte Striche bleiben gleich)
+            if (AchseX is not null || AchseZ is not null) s *= Math.Sqrt(Math.Clamp(AchseX?.Von ?? 1, Felsformen.AchseMin, Felsformen.AchseMax)
+                                                                       * Math.Clamp(AchseZ?.Von ?? 1, Felsformen.AchseMin, Felsformen.AchseMax));
             double Flaeche(string form, double m) => Felsformen.Finde(form) is { } f ? Math.PI * f.Radius * m * f.Radius * m : 1;
             return Felsformen.Gruppe(Gruppe) is { } g
                 ? g.Stuecke.Sum(x => Flaeche(x.Form, s * x.Massstab * 0.92))

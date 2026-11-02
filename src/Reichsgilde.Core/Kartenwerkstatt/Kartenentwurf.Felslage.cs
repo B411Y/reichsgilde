@@ -35,7 +35,7 @@ public sealed record Felswerte(double? X = null, double? Z = null, double? Versa
 public sealed record Felsaenderung(double DX = 0, double DY = 0, double DZ = 0, Felsachse? Drehachse = null, double Winkel = 0,
     double FaktorX = 1, double FaktorY = 1, double FaktorZ = 1, bool UmMitte = true, bool Weltachsen = true);
 
-/// <summary>Was „Neu würfeln“ neu zieht (Vorgabe: alles außer Ort, Form und Gestein).</summary>
+/// <summary>Was „Neu würfeln“ neu zieht (ohne Angabe: Größe, Drehung und die Werte, für die der Pinsel einen Bereich hat; siehe FelsNeuWuerfeln).</summary>
 [Flags]
 public enum Felswurf
 {
@@ -104,11 +104,11 @@ public sealed partial class Kartenentwurf
         {
             var ort = new Felsvektor(f.X, f.Versatz, f.Z);
             var (drehung, kippen, rollen) = (f.Drehung, f.KippenX, f.KippenZ);
-            var (massstab, ax, ay, az) = (f.Massstab, f.AchseX, f.AchseY, f.AchseZ);
+            double? massstab = null, ax = null, ay = null, az = null;
             if (skaliert)
             {
-                if (a.FaktorX == a.FaktorY && a.FaktorY == a.FaktorZ) massstab *= a.FaktorX;
-                else (ax, ay, az) = (ax * a.FaktorX, ay * a.FaktorY, az * a.FaktorZ);
+                if (a.FaktorX == a.FaktorY && a.FaktorY == a.FaktorZ) massstab = f.Massstab * a.FaktorX;
+                else (ax, ay, az) = (f.AchseX * a.FaktorX, f.AchseY * a.FaktorY, f.AchseZ * a.FaktorZ);
                 if (a.UmMitte)
                     ort = new Felsvektor(mitte.X + (ort.X - mitte.X) * a.FaktorX, mitte.Y + (ort.Y - mitte.Y) * a.FaktorY, mitte.Z + (ort.Z - mitte.Z) * a.FaktorZ);
             }
@@ -116,18 +116,27 @@ public sealed partial class Kartenentwurf
             {
                 var achse = a.Drehachse!.Value;
                 var um = Felsbasis.Um(achse, a.Winkel);
+                var eigen = Felsbasis.AusEuler(drehung, kippen, rollen);
                 if (a.Weltachsen)
                 {
-                    // um die Senkrechte genau: Y · (Y · X · Z) = (Y + w) · X · Z
-                    if (achse == Felsachse.Y) drehung += a.Winkel;
-                    else (drehung, kippen, rollen) = (um * Felsbasis.AusEuler(drehung, kippen, rollen)).Euler();
-                    if (a.UmMitte) ort = mitte + um.Mal(ort - mitte);
+                    // Die ganze Drehung ist Hangneigung · eigen: in der Welt gedreht wird sie um · H(alt) · eigen; die neue Hangneigung am neuen Ort
+                    // kommt wieder heraus (eigen' = H(neu)ᵀ · um · H(alt) · eigen). Ohne Neigung um die Senkrechte genau: (Y + w) · X · Z.
+                    var vorher = Felsraum.Hangneigung(_hoehen, f.X, f.Z, f.Neigung);
+                    var neuOrt = a.UmMitte ? mitte + um.Mal(ort - mitte) : ort;
+                    var nachher = Felsraum.Hangneigung(_hoehen, neuOrt.X + a.DX, neuOrt.Z + a.DZ, f.Neigung);
+                    if (achse == Felsachse.Y && vorher == Felsbasis.Einheit && nachher == Felsbasis.Einheit) drehung += a.Winkel;
+                    else (drehung, kippen, rollen) = (nachher.Transponiert * um * vorher * eigen).EulerNahe(drehung, kippen, rollen);
+                    ort = neuOrt;
                 }
                 else if (achse == Felsachse.Z) rollen += a.Winkel; // (Y · X · Z) · Z = Y · X · (Z + w)
-                else (drehung, kippen, rollen) = (Felsbasis.AusEuler(drehung, kippen, rollen) * um).Euler();
+                else (drehung, kippen, rollen) = (eigen * um).EulerNahe(drehung, kippen, rollen);
             }
             ort += new Felsvektor(a.DX, a.DY, a.DZ);
-            werte.Add((f, new Felswerte(ort.X, ort.Z, ort.Y, drehung, kippen, rollen, massstab, ax, ay, az)));
+            // nur, was sich ändert (ein Wert außerhalb der Grenzen aus einer Datei bleibt beim bloßen Verschieben, wie er ist)
+            werte.Add((f, new Felswerte(
+                X: verschoben || ort.X != f.X ? ort.X : null, Z: verschoben || ort.Z != f.Z ? ort.Z : null, Versatz: ort.Y != f.Versatz ? ort.Y : null,
+                Drehung: gedreht ? drehung : null, Kippen: gedreht ? kippen : null, Rollen: gedreht ? rollen : null,
+                Massstab: massstab, AchseX: ax, AchseY: ay, AchseZ: az)));
         }
         var was = (verschoben ? 1 : 0) + (gedreht ? 1 : 0) + (skaliert ? 1 : 0) > 1 ? "verändert"
             : verschoben ? "verschoben" : gedreht ? "gedreht" : "skaliert";
@@ -153,11 +162,14 @@ public sealed partial class Kartenentwurf
 
     /// <summary>
     /// Würfelt Stücke mit den Zufallsbereichen des Pinsels neu (wie ein Stück, das der Pinsel an derselben Stelle setzte; „Reapply“). Nur, was in
-    /// <paramref name="was"/> steht, ändert sich; Ort, Form und Gestein bleiben. Ohne Startwert einer aus dem ersten Stück. Die Stücke ziehen in
-    /// der Reihenfolge des Entwurfs aus einer Quelle – gleiche Auswahl, gleicher Pinsel, gleicher Startwert: gleiche Werte. Ein Schritt.
+    /// <paramref name="was"/> steht, ändert sich; Ort, Form und Gestein bleiben. Ohne Angabe (<see cref="WurfVorgabe"/>) Größe und Drehung und
+    /// nur die Werte, für die der Pinsel einen Bereich hat – so setzt ein Pinsel ohne Achsen-Bereich gestreckte Stücke nicht zurück. Ohne Startwert
+    /// einer aus dem ersten Stück. Die Stücke ziehen in der Reihenfolge des Entwurfs aus einer Quelle – gleiche Auswahl, gleicher Pinsel, gleicher
+    /// Startwert: gleiche Werte. Ein Schritt.
     /// </summary>
-    public void FelsNeuWuerfeln(IEnumerable<EntwurfFels> felsen, Felspinsel pinsel, Felswurf was = Felswurf.Alle, int? startwert = null)
+    public void FelsNeuWuerfeln(IEnumerable<EntwurfFels> felsen, Felspinsel pinsel, Felswurf? was = null, int? startwert = null)
     {
+        var wurf = was ?? WurfVorgabe(pinsel);
         var liste = Geordnet(felsen);
         if (liste.Count == 0) return;
         var p = FelsBegrenzt(pinsel) with { Gruppe = null, Radierer = false };
@@ -166,7 +178,7 @@ public sealed partial class Kartenentwurf
         foreach (var f in liste)
         {
             var l = Felsstreuung.Treffer(p with { Formen = new[] { f.Form } }, zufall, _hoehen, f.X, f.Z)[0];
-            bool Ja(Felswurf w) => (was & w) != 0;
+            bool Ja(Felswurf w) => (wurf & w) != 0;
             werte.Add((f, new Felswerte(
                 Versatz: Ja(Felswurf.Versatz) ? l.Versatz : null, Drehung: Ja(Felswurf.Drehung) ? l.Drehung : null,
                 Kippen: Ja(Felswurf.Kippen) ? l.KippenX : null, Rollen: Ja(Felswurf.Rollen) ? l.KippenZ : null,
@@ -178,6 +190,12 @@ public sealed partial class Kartenentwurf
     }
 
     // ── Hilfen ───────────────────────────────────────────────────────────────
+
+    /// <summary>Was „Neu würfeln“ ohne Angabe neu zieht: Größe und Drehung, dazu Achsen, Kippen, Rollen, Versatz nur mit Bereich im Pinsel.</summary>
+    public static Felswurf WurfVorgabe(Felspinsel p) => Felswurf.Groesse | Felswurf.Drehung
+        | (p.AchseX is not null || p.AchseY is not null || p.AchseZ is not null ? Felswurf.Achsen : 0)
+        | (p.Kippbereich is not null ? Felswurf.Kippen : 0) | (p.Rollbereich is not null ? Felswurf.Rollen : 0)
+        | (p.Versatzbereich is not null ? Felswurf.Versatz : 0);
 
     /// <summary>
     /// R5 („Hang mitformen“, nur wenn das Häkchen gesetzt ist): ein Befehl, der das Gelände um neue Stücke formt – er käme in denselben

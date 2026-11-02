@@ -924,6 +924,7 @@ public partial class Kartenwerkstatt : Node
                 var w = new Felswerte();
                 foreach (var feld in t.Skip(1))
                 {
+                    if (!feld.Contains('=')) throw new ArgumentException($"lage: „{feld}“ – jedes Feld als <feld>=<wert>.");
                     var (name, wert) = (feld.Split('=')[0], Zahl(feld.Split('=')[1]));
                     w = name switch
                     {
