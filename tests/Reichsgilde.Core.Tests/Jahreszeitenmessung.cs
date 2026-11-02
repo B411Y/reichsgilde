@@ -39,10 +39,12 @@ static class Jahreszeitenmessung
         "Umsatz", "davon Ausschank", "Zutaten", "Personal", "Fixkosten", "Steuer", "Schaden", "Transport", "Investitionen", "Hauswert",
         "Standesgebuehren", "Amt", "Geschenke", "Familie", "Gericht", "Gaunerei", "Zinsen", "Verkaeufe", "Rest", "Reinvermoegen",
         "Lagerwert (Bestand)", "Fahrten", "Koepfe (Mittel)", "Gaeste bewirtet", "Gaeste abgewiesen", "Gaeste ausgefallen",
+        "Betriebe: Umsatz", "Betriebe: Zutaten", "Betriebe: Gewinn", "Schiffe: Ertrag",
     };
     const int PUmsatz = 0, PAusschank = 1, PZutaten = 2, PPersonal = 3, PFix = 4, PSteuer = 5, PSchaden = 6, PTransport = 7, PInvest = 8, PHauswert = 9,
         PStand = 10, PAmt = 11, PGeschenke = 12, PFamilie = 13, PGericht = 14, PGaunerei = 15, PZinsen = 16, PVerkaeufe = 17, PRest = 18, PRein = 19,
-        PLager = 20, PFahrten = 21, PKoepfe = 22, PBewirtet = 23, PAbgewiesen = 24, PAusgefallen = 25;
+        PLager = 20, PFahrten = 21, PKoepfe = 22, PBewirtet = 23, PAbgewiesen = 24, PAusgefallen = 25,
+        PBetriebUmsatz = 26, PBetriebZutaten = 27, PBetriebGewinn = 28, PSchiffErtrag = 29;
 
     sealed class Zaehler
     {
@@ -480,6 +482,11 @@ static class Jahreszeitenmessung
             werte[PGericht] = v.Gericht; werte[PGaunerei] = v.Gaunerei; werte[PZinsen] = v.Zinsen; werte[PVerkaeufe] = v.Verkaeufe;
             werte[PRest] = rein - gebucht; werte[PRein] = rein; werte[PLager] = lager;
             werte[PFahrten] = eigene.Sum(b => b.Karren.Sum(k => k.FahrtenVorjahr ?? 0));
+            // Die Rechnung der Betriebe (Ausschank, Verkäufe der Karren, Zutaten der Karren, Löhne …) ohne die Schiffe, die am Konto buchen
+            werte[PBetriebUmsatz] = eigene.Sum(b => b.Vorjahr?.Umsatz ?? 0);
+            werte[PBetriebZutaten] = eigene.Sum(b => b.Vorjahr?.Zutaten ?? 0);
+            werte[PBetriebGewinn] = eigene.Sum(b => b.Vorjahr?.Gewinn ?? 0);
+            werte[PSchiffErtrag] = w.Schiffahrt.SchiffeVon(spieler).Sum(s => s.ErtragVorjahr ?? 0);
             werte[PKoepfe] = z.KoepfeStunden[j] / Math.Max(1, (Spielzeit.MinutenProTag - 1) / 60 + 1);
             z.KoepfeStunden[j] = 0;
             foreach (var b in eigene.Where(b => b.IstSchaenke))
