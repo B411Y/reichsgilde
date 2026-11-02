@@ -15,7 +15,7 @@ public sealed class BlitzDaten
 
     /// <summary>
     /// Höhe der Gebäude in Metern nach Kennung im Gebäudekatalog (Werkstätten und Wohnhäuser nach ihrem Modell: „schmied“, „stadtpalais“ …). Hohe
-    /// Gebäude und Gebäude auf Anhöhen trifft es öfter: Gewicht = (Höhe + Höhe des Bodens über dem Mittel der Stadt)². Kirchtürme haben um 1400
+    /// Gebäude und Gebäude auf Anhöhen trifft es öfter: Gewicht = Höhe + Höhe des Bodens über dem Mittel der Stadt (linear). Kirchtürme haben um 1400
     /// keinen Blitzableiter. Gebäude, die hier fehlen, haben <see cref="Standardhoehe"/>; Höhe 0 nimmt ein Gebäude aus (Marktplatz).
     /// </summary>
     public Dictionary<string, double> Hoehen { get; init; } = new();

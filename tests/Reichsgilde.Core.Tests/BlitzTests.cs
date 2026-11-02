@@ -43,6 +43,24 @@ static class BlitzTests
         throw new Exception("Kein Gewitter in 40 Jahren");
     }
 
+    /// <summary>
+    /// Eine Partie (Chance 1), deren erstes Gewitter eine Werkstatt mit Besitzer trifft – gesucht ab Startwert 1400, damit der Test nicht von der Zielwahl
+    /// eines einzelnen Startwerts abhängt. Die Uhr steht kurz vor dem Gewitter.
+    /// </summary>
+    static (Simulation Sim, Konto Spieler, long Gewitter) PartieMitWerkstattTreffer(Wirtschaftsdaten daten)
+    {
+        for (var startwert = 1400; startwert < 1440; startwert++)
+        {
+            var (sim, spieler) = Partie(daten, startwert);
+            var gewitter = ErstesGewitter(sim.Wirtschaft!);
+            var (probe, _) = Partie(daten, startwert);
+            BisMinute(probe, gewitter + 1);
+            if (probe.Wirtschaft!.Blitz.Einschlaege.LastOrDefault() is { Ziel.Betrieb: { } b } && b.Konto.IstAktiv)
+                return (sim, spieler, gewitter);
+        }
+        throw new Exception("Kein Startwert 1400–1439, dessen erstes Gewitter eine Werkstatt trifft");
+    }
+
     static void BisMinute(Simulation sim, long minute)
     {
         while (sim.Zeit.VergangeneMinuten < minute)
@@ -87,15 +105,15 @@ static class BlitzTests
             Pruefe.Wahr(f.Any(x => x.Contains("stillstandMinuten")), "Stillstand kürzer als das Feuer wird abgelehnt");
         }),
 
-        ("Blitz: Gewicht – ein Kirchturm (40 m) zieht den Blitz gut 16-mal so oft an wie ein Bürgerhaus (10 m), ein Haus 10 m über dem Mittel 4-mal", () =>
+        ("Blitz: Gewicht – ein Kirchturm (40 m) zieht den Blitz 4-mal so oft an wie ein Bürgerhaus (10 m), ein Haus 10 m über dem Mittel doppelt so oft (linear)", () =>
         {
             Blitzziel Ziel(double hoehe, double boden) => new("x", "x", 0, 0, hoehe, boden, null, null);
-            Pruefe.Ungefaehr(16, Blitzwesen.Gewicht(Ziel(40, 0), 0) / Blitzwesen.Gewicht(Ziel(10, 0), 0), 1e-9);
-            Pruefe.Ungefaehr(4, Blitzwesen.Gewicht(Ziel(10, 15), 5) / Blitzwesen.Gewicht(Ziel(10, 5), 5), 1e-9);
+            Pruefe.Ungefaehr(4, Blitzwesen.Gewicht(Ziel(40, 0), 0) / Blitzwesen.Gewicht(Ziel(10, 0), 0), 1e-9);
+            Pruefe.Ungefaehr(2, Blitzwesen.Gewicht(Ziel(10, 15), 5) / Blitzwesen.Gewicht(Ziel(10, 5), 5), 1e-9);
             Pruefe.Gleich(1.0, Blitzwesen.Gewicht(Ziel(2, -20), 0)); // tief im Tal: mindestens 1
             var ziele = new[] { Ziel(40, 0) with { Kennung = "kirche" }, Ziel(10, 0) with { Kennung = "haus" } };
             var kirche = Enumerable.Range(0, 1000).Count(i => Blitzwesen.Waehlen(ziele, (i + 0.5) / 1000)!.Kennung == "kirche");
-            Pruefe.Wahr(kirche is > 930 and < 960, $"Kirche {kirche} von 1000 (erwartet 1600/1700 ≈ 941)");
+            Pruefe.Wahr(kirche is > 790 and < 810, $"Kirche {kirche} von 1000 (erwartet 40/50 = 800)");
         }),
 
         ("Blitz: Ziele in der Greybox – Werkstätten mit Betrieb, Wohnhäuser der Häuser, Dom, Rathaus, Einwohnerhäuser; kein Markt, kein Fels, kein Feld", () =>
@@ -115,11 +133,10 @@ static class BlitzTests
 
         ("Blitz: Mit Chance 1 schlägt es mitten im ersten Gewitter ein – Meldung, Brand 60–180 Minuten, Schaden am Gebäude; danach „aus“", () =>
         {
-            var (sim, _) = Partie(MitChance(1));
+            var (sim, _, gewitter) = PartieMitWerkstattTreffer(MitChance(1));
             var w = sim.Wirtschaft!;
             var meldungen = new List<string>();
             w.Meldung += m => meldungen.Add(m);
-            var gewitter = ErstesGewitter(w);
             BisMinute(sim, gewitter);
             Pruefe.Gleich(0, w.Blitz.Einschlaege.Count, "vor der Mitte des Gewitters");
             BisMinute(sim, gewitter + 1);
@@ -128,7 +145,7 @@ static class BlitzTests
             Pruefe.Wahr(e.BrandEnde - e.Minute is >= 60 and <= 180, $"Dauer {e.BrandEnde - e.Minute}");
             Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Blitzschlag! ") && m.Contains(" brennt.")), "Meldung Blitzschlag");
             Pruefe.Wahr(w.Blitz.Brand(e.Ziel.Kennung) == e, "brennt");
-            // Startwert 1400: Das erste Gewitter trifft eine Werkstatt (der Schaden muss geprüft werden, nicht nur „wenn“)
+            // Das erste Gewitter trifft eine Werkstatt (der Schaden muss geprüft werden, nicht nur „wenn“)
             Pruefe.Wahr(e.Ziel.Betrieb is { } b && b.SabotageMinuten == w.Daten.Blitz!.StillstandMinuten, $"Werkstatt repariert ({e.Ziel.Kennung})");
             if (e.Ziel.Bewohner is { } k) Pruefe.Wahr(k.WohnhausInstandBis == e.BrandEnde + w.Daten.Blitz!.InstandMinuten, "Wohnhaus instand bis");
             BisMinute(sim, e.BrandEnde + 1);
@@ -189,10 +206,9 @@ static class BlitzTests
 
         ("Blitz: Nach Speichern und Laden mitten im Brand rechnet der Kern das Feuer nach – gleicher Einschlag, gleiche Prüfsumme danach", () =>
         {
-            // Startwert 1400: Das erste Gewitter trifft eine Werkstatt – der Schaden darf nach dem Laden nicht noch einmal wirken
-            var (sim, spieler) = Partie(MitChance(1), startwert: 1400);
+            // Das erste Gewitter trifft eine Werkstatt – der Schaden darf nach dem Laden nicht noch einmal wirken
+            var (sim, spieler, gewitter) = PartieMitWerkstattTreffer(MitChance(1));
             var w = sim.Wirtschaft!;
-            var gewitter = ErstesGewitter(w);
             BisMinute(sim, gewitter + 30);
             var e = w.Blitz.Einschlaege.Single();
             Pruefe.Wahr(e.Ziel.Betrieb is not null, $"eine Werkstatt ({e.Ziel.Kennung})");

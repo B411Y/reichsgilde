@@ -150,7 +150,8 @@ public sealed class Blitzwesen
     }
 
     /// <summary>Startwert des Zufalls für das Gewitter zu dieser Minute: aus dem Startwert der Partie und der Minute, sonst nichts.</summary>
-    private int Saat(long minute) => unchecked(_startwert * 92821 + (int)minute * 68917 + 5381);
+    /// Gut durchmischt (<see cref="Dynastie.Zugwuerfel.Mischen"/>): Benachbarte Startwerte entscheiden sonst oft gleich (Befund der Prüfung).
+    private int Saat(long minute) => Dynastie.Zugwuerfel.Mischen(_startwert, (int)minute, 0x426C69);
 
     /// <summary>Würfelt für das Gewitter zur Minute <paramref name="minute"/>: Schlägt es ein, wo, und wie lange brennt es?</summary>
     private bool Wurf(long minute, out Blitzziel ziel, out int dauer)
@@ -166,7 +167,7 @@ public sealed class Blitzwesen
         return true;
     }
 
-    /// <summary>Ein Gebäude nach Gewicht (Höhe über dem mittleren Boden der Stadt, zum Quadrat); <paramref name="wurf"/> 0 … 1.</summary>
+    /// <summary>Ein Gebäude nach Gewicht (Höhe über dem mittleren Boden der Stadt); <paramref name="wurf"/> 0 … 1.</summary>
     internal static Blitzziel? Waehlen(IReadOnlyList<Blitzziel> ziele, double wurf)
     {
         if (ziele.Count == 0) return null;
@@ -183,11 +184,13 @@ public sealed class Blitzwesen
         return ziele[^1];
     }
 
-    /// <summary>Gewicht eines Gebäudes: (Höhe + Höhe des Bodens über dem Mittel der Stadt)², mindestens 1 – hohe Bauten und Anhöhen trifft es öfter.</summary>
+    /// <summary>
+    /// Gewicht eines Gebäudes: Höhe + Höhe des Bodens über dem Mittel der Stadt, mindestens 1 – hohe Bauten und Anhöhen trifft es öfter. Linear
+    /// (Teamleiter 2.11.2026): Zum Quadrat bekamen Kirchen und Dom zwei Drittel aller Einschläge, die Häuser der Spieler fast nie einen.
+    /// </summary>
     internal static double Gewicht(Blitzziel ziel, double mittlererBoden)
     {
-        var h = Math.Max(1, ziel.Hoehe + ziel.Boden - mittlererBoden);
-        return h * h;
+        return Math.Max(1, ziel.Hoehe + ziel.Boden - mittlererBoden);
     }
 
     // ── Ziele ───────────────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ using Reichsgilde.Core.Zeit;
 /// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
-///   • Lauf C speichert und lädt an sieben Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in zwei Bränden nach Blitzschlag) und direkt nach jedem Löschen.
+///   • Lauf C speichert und lädt an acht Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in drei Bränden nach Blitzschlag, einer davon über den Jahreswechsel) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
@@ -48,10 +48,11 @@ static class GleichheitTests
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
-    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 69): Bei 4711 schlägt es in Minute 1411 ein (Jahr 1, 8:31 Uhr; das Feuer brennt
-    /// mindestens eine Stunde), bei 1400 in Minute 3202 (Jahr 2, 19:22). Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
+    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 69; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
+    /// 18:23 Uhr), bei 2027 in Minute 6380 (Jahr 5, 15:20) und 10231 (Jahr 8, 22:31 – es brennt über den Jahreswechsel, geladen wird um 4:01 im Jahr 9).
+    /// Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
     /// </summary>
-    static readonly long[] Ladepunkte = { Minute(1, 9, 30), Minute(1, 12, 20), Minute(2, 20, 0), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
+    static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(8, 19, 0), Minute(9, 4, 1) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
@@ -76,8 +77,8 @@ static class GleichheitTests
         Vergleichen("Lauf B (de-DE)", a, b);
         Vergleichen("Lauf C (Speichern und Laden)", a, c);
         Pruefe.Gleich(string.Join("\n", a.Blitze), string.Join("\n", c.Blitze), "Blitzschläge (Minute, Ziel, Schaden) mit Speichern und Laden");
-        // Ein Blitzfall (Datenversion 69): In den drei Greybox-Partien schlägt der Blitz mindestens einmal ein (4711 im Jahr 0 und 1, 1400 im Jahr 2, 2027 im Jahr 9)
-        if (p.Karte == "greybox") Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
+        // Ein Blitzfall (Datenversion 69): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
+        if (p.Startwert is 4711 or 2027) Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
