@@ -302,7 +302,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bauliste | Die Zeile „keine Ampeln → return“ aus #282 stand in `ListeZeigen` statt nur in `FahrwegZeigen`: Bei offener Liste gibt es nie Ampeln, Legende und alle Gebäudeknöpfe fehlten. Entfernt (Befund der Prüfung) | 02.11.2026 |
 | Werkstatt-Bauplatz | Tooltip an der Maus über einer Zone mit `"nur": "werkstatt"` („Nur Werkstätten …“), Zeile in „Platz wählen“, Legende „Rand mit Amboss: nur Werkstätten“ nur auf Karten mit solchen Zonen; kein Tooltip bei offener Rückfrage, die graue Zeile nur bei grünem Umriss | 02.11.2026 |
 
-### Sitzplätze in der Schänke (PR #…)
+### Sitzplätze in der Schänke (PR #287)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

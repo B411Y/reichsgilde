@@ -268,7 +268,7 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | KI | Die KI hält sich an dieselbe Grenze (Einzelheiten in `docs/bereiche/spiel-ki.md`, „Karren-Höchstzahl“). | 2.11.2026 |
 | Tests | `KarrenHoechstzahlTests` (Daten und Prüfung, Spieler im Umland bis 5 und in der Stadt bis 3, alte Daten ohne Grenze, KI kauft am gebremsten Holzschlag einen vierten und tauscht erst an der Grenze von 5); Datenversion 66 in den Tests, die sie nennen; `KiUmlandTests` mit 5 erlaubten Karren (Schätzung beim Pachten weiter mit 3). Messung in `docs/bereiche/spiel-ki.md` („Karren-Höchstzahl: Umland bis 5 Karren“). | 2.11.2026 |
 
-### Sitzplätze der Schänken (PR #…)
+### Sitzplätze der Schänken (PR #287)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
