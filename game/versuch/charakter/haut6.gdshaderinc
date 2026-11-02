@@ -141,6 +141,9 @@ uniform float c_loch = 0.8;                  // Nasenloch dunkel
 uniform float c_loch_braun = 0.0;            // Etappe D: Nasenloch innen bräunlich-neutral statt rot (Prüfer: „rot ausgeleuchtet“)
 uniform float c_furche_dunkel = 0.25;        // Furchen dunkler (Falten lesen sich über die Verschattung)
 uniform float c_uneben = 0.35;               // grobe Lage der Porenkachel (× 2,7 größer): Unebenheit 1–2 mm
+// Grundkopf 3 (Prüfer: „Haut noch glatt“): dritte, feinere Lage der Porenkachel (× 2,3 dichter, gedreht) in Normale,
+// Rauheit und Glanz – feine Hautfelderung im Glanzlicht; 0 = aus (eine Abtastung mehr nur, wenn an)
+uniform float c_fein = 0.0;
 uniform int c_zeige = 0;                     // Prüfanzeige: 1 Höhle, 2 Glanzkarte, 3 Zonen, 4 Furche, 5 Bart/Sprossen
 const vec3 K_EU = vec3(0.405, 0.572, 1.0);   // Eumelanin (Plan S9)
 const vec3 K_HB = vec3(0.037, 1.0, 0.795);   // Hämoglobin
@@ -181,6 +184,8 @@ void fragment() {
 	float hv = dot(texture(c_relief, UV + vec2(0.0, er.y)) * 2.0 - 1.0, rw);
 	vec2 fal = vec2(-(hu - h0), hv - h0);
 	float furche = clamp(-dot(texture(c_relief, UV) * 2.0 - 1.0, rw_f) * c_bildpunkt_mm / 0.3, 0.0, 1.0);
+	vec2 fein = vec2(0.0);
+	float fein_b = 0.0;
 #ifdef EINFACH
 	vec4 pt = vec4(0.5, 0.5, 0.0, 0.0);
 	vec4 pt2 = pt;
@@ -193,6 +198,11 @@ void fragment() {
 	vec4 fl1 = texture(c_flecken, UV * c_flecken_dichte + c_versatz.yx);
 	vec4 fl2 = texture(c_flecken, mat2(vec2(0.8, 0.6), vec2(-0.6, 0.8)) * UV * (c_flecken_dichte * 0.41) + c_versatz * 1.7 + 0.37);
 	vec4 fl3 = texture(c_flecken, UV * (c_flecken_dichte * 0.33) + c_versatz * 2.3 + 0.61);
+	if (c_fein > 0.0) {
+		vec4 pt3 = texture(c_poren, mat2(vec2(0.28, 0.96), vec2(-0.96, 0.28)) * UV * (c_poren_dichte * 2.3) + c_versatz * 5.3 + 0.19);
+		fein = (pt3.xy * 2.0 - 1.0) * c_fein;
+		fein_b = pt3.b * c_fein;
+	}
 #endif
 	// Grundton × Hautbild mit verstärkter Mittelfrequenz
 	vec3 fb = max(f.rgb * 2.0, vec3(0.0));
@@ -248,7 +258,7 @@ void fragment() {
 	if (c_zeige == 4) { ALBEDO = vec3(furche); }
 	if (c_zeige == 5) { ALBEDO = vec3(zc.a * c_bart, spross, altfl); }
 	vec2 meso = (nt.xy * 2.0 - 1.0) * normal_staerke;
-	vec2 mikro = ((pt.xy * 2.0 - 1.0) + (pt2.xy * 2.0 - 1.0) * c_uneben) * 1.2 * c_poren_staerke * gl.g;
+	vec2 mikro = ((pt.xy * 2.0 - 1.0) + (pt2.xy * 2.0 - 1.0) * c_uneben + fein) * 1.2 * c_poren_staerke * gl.g;
 	vec3 n = normalize(vec3(meso + mikro + fal, 1.0));
 	NORMAL_MAP = n * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = 1.0;
@@ -260,9 +270,10 @@ void fragment() {
 	hoehle_v = hl;
 	float rand = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	float nass = smoothstep(0.45, 0.95, gl.a) * feucht;
-	float r = 0.25 + 0.4 * gl.r + c_rau + 0.05 * pt.b * gl.g + 0.08 * furche + 0.1 * rand + 0.3 * haarig;
+	float r = 0.25 + 0.4 * gl.r + c_rau + 0.05 * pt.b * gl.g + 0.08 * furche + 0.1 * rand + 0.3 * haarig + 0.08 * fein_b * gl.g;
 	ROUGHNESS = clamp(mix(r, 0.15, nass), 0.10, 1.0);
 	spec_v = glanz * (1.0 - 0.85 * hl) * (1.0 - 0.4 * furche) * (1.0 - 0.4 * pt.b * gl.g) * (1.0 - 0.7 * haarig) * (1.0 + 0.8 * nass)
+		* (1.0 - 0.3 * fein_b * gl.g)
 		* (1.0 - brauen_glanz * clamp(braue_a * 2.0, 0.0, 1.0));
 	SPECULAR = 0.42 * spec_v;
 	AO = 1.0 - max(0.8 * hoehlen * m.b, 0.9 * hl);

@@ -45,6 +45,12 @@ uniform vec2 pruef_weg = vec2(-1.0);   // Prüfung: Leitsträhnen mit Index in [
 uniform float schatten_rest : hint_range(0.0, 1.0) = 0.35; // Licht im Schatten (Streuung durchs Haar)
 uniform vec3 kopf_mitte = vec3(0.0, 0.82, 0.04);             // Welt; für die weiche Licht-Schatten-Grenze um den Kopf
 uniform float schatten_karte : hint_range(0.0, 1.0) = 0.3;  // Anteil der Schattenkarte (Rest: weiche Grenze)
+// Grundkopf 3 (Prüfer: „harte Strähnenlinien an den Schläfen“): eine Leitsträhne steht für ein Bündel feiner Haare, ist aber
+// als volle, dunkle Linie gezeichnet – einzeln über der Haut wirkt sie wie ein Draht. Schmale Strähnen (unter breite_ref
+// Bildpunkten) decken nur anteilig; wo viele übereinanderliegen, bleibt das Haar dicht. 0 = aus (wie bisher)
+uniform float breite_deckung = 0.0;
+uniform float breite_min = 0.55;
+uniform float breite_ref = 2.0;
 
 varying vec3 v_tangent;
 varying vec3 v_color;
@@ -130,6 +136,7 @@ void fragment() {
 	ALPHA = clamp((v_expanded - dist) / max(expand_pixels, 1e-3), 0.0, 1.0);
 	float ende = min(1.0, v_ende);
 	ALPHA *= smoothstep(ende, ende - tip_fade * ende, v_t);
+	ALPHA *= mix(1.0, clamp(2.0 * v_half_width / breite_ref, breite_min, 1.0), breite_deckung);
 	AO = mix(1.0 - root_shadow * (1.0 - 0.6 * grau), 1.0, v_t) * mix(innen_dunkel, 1.0, v_lage);
 	AO_LIGHT_AFFECT = 1.0;
 }
