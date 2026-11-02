@@ -273,12 +273,12 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Anzeige unter dem Pinsel (Pinsel-Paket 1), nur mit Gelände- und Bodenpinsel: Höhe des Rasters (wie die Pipette sie nimmt) und Steigung
+    /// Die Anzeige unter dem Pinsel (Pinsel-Paket 1), nur mit Gelände-, Boden- und Felspinsel: Höhe des Rasters (wie die Pipette sie nimmt) und Steigung
     /// (wie der Filter sie misst), die Bodenarten mit Anteil und ob der Filter hier greift. Null: kein Pinsel, Maus über einer Tafel oder neben dem Boden.
     /// </summary>
     public string? WerkstattPinselInfo()
     {
-        if (_entwurf is null || Kartenwerkzeug is not (Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Boden) || WerkstattGesperrt) return null;
+        if (_entwurf is null || Kartenwerkzeug is not (Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Boden or Werkstattwerkzeug.Fels) || WerkstattGesperrt) return null;
         if (GetViewport().GuiGetHoveredControl() is not null) return null;
         if (_wsOrt is null && !GetViewport().GetVisibleRect().HasPoint(GetViewport().GetMousePosition())) return null;
         if ((_wsOrt ?? BodenpunktBei(GetViewport().GetMousePosition())) is not { } p) return null;
@@ -292,7 +292,7 @@ public partial class Stadtansicht
         zeilen.Add(string.Join(" · ", anteile.Take(3).Select(a => $"{BodenName(a.Textur)} {Math.Round(a.Anteil * 100.0 / 255, MidpointRounding.AwayFromZero)} %")));
         if (Kartenwerkzeug == Werkstattwerkzeug.Gelaende && GelaendeArt == Pinselart.Terrassen)
             zeilen.Add($"Stufe hier: {Meter(new Pinsel(Pinselart.Terrassen, Zielhoehe: GelaendeZielhoehe, Stufenhoehe: GelaendeStufenhoehe, Boeschung: GelaendeBoeschung).Begrenzt().Stufe(roh * 100) / 100)}");
-        var filter = Kartenwerkzeug == Werkstattwerkzeug.Gelaende ? GelaendeFilter : BodenFilter;
+        var filter = Kartenwerkzeug switch { Werkstattwerkzeug.Gelaende => GelaendeFilter, Werkstattwerkzeug.Fels => FelsFilter, _ => BodenFilter };
         if (!filter.IstLeer)
         {
             var f = filter.Begrenzt();
@@ -353,6 +353,7 @@ public partial class Stadtansicht
             if (BereichVon(f) is { } b && b.Intersects(rect)) FlaecheBauen(f, false);
         foreach (var p in _entwurf.Pflanzen.ToList())
             if (rect.HasPoint(V2(p.Punkt))) PflanzeBauen(p, false);
+        FelsenImBereich(rect); // Stadtansicht.Kartenwerkstatt.Felsen.cs
         NaturBereichVormerken(rect.Grow(NaturUeberstand)); // die Natur der Flächen und die Äcker folgen dem Boden (Stadtansicht.Kartenwerkstatt.Natur.cs)
         _wsFehlerNeu = true; // die Hangsperre hat sich vielleicht geändert
         _wsGriffeNeu = true;

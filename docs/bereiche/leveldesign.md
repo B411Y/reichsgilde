@@ -37,7 +37,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Köln seit 1.11.2026 (Wunsch des Nutzers, Branch `phase5/gehtempo`): Heumarkt und Alter Markt eine Hausreihe vom Tor abgerückt (37 \| ±110), dazwischen Häuser an der Rheingasse (am Heumarkt drei Einwohnerplätze, am Alter Markt drei Kulissenhäuser, die auch mit wenigen Rivalen stehen); am Heumarkt der Malzbüchel (neue Hauptstraße von der Severinstraße, an ihm S3), im Norden Trankgasse und Krähenpforte 9 m, Hafen, Kran und Zollstelle 6 m nach Süden. Einzelheiten in `docs/LEVELDESIGN.md` (Abschnitt Köln) und `docs/bereiche/kern.md` („Hausreihe vor dem Tor“). Offen dazu: Zur Stadt hin steht nur eine Reihe (zwei hätten Bayenstraße und Trankgasse weiter verschoben); Deutz ist geprüft und unverändert.
 - (von Kern) Höhenkarten (Terrain3D-Übernahme Etappe 2): Das Kartenskript liest r16/raw ein (`hoehenkarte-einlesen`, LEVELDESIGN „Höhenkarten“, Herkunft nach `tools/Kartenbau/Staedte/HOEHENDATEN.md`). Für Köln mit amtlichem DGM NRW (dl-de/zero-2.0) wäre eine Hilfe im Stadtskript sinnvoll (z. B. `Hoehenkarte(pfad, lage, herkunft)` in `Stadtskript`, Datei außerhalb des Repositorys, SHA-256 im Skript); Vorschlag an infra: die HERKUNFT-Zeile im Kartenskript in der CI prüfen.
 - Köln, Werkstatt-Bauplätze (1.11.2026, Branch phase5/gehtempo): Sieben der acht Deutzer Einwohnerplätze stehen jetzt vor dem Südtor an der Siegburger Straße; ob Deutz in der Mauer wieder Wohnhäuser braucht (Bild), mit dem Nutzer klären. Zusammen mit der Stelle am Malzbüchel gibt es 8 Stellen unter 45 Minuten statt der empfohlenen 10–15 – mehr passt ohne die Hausreihe vor dem Tor nicht.
-- Kartenwerkstatt: Das Zonenfeld `nur` (Werkstatt-Bauplatz) bleibt beim Bearbeiten erhalten, lässt sich in den Eigenschaften einer Bauzone aber noch nicht setzen oder löschen (Kern hat `EntwurfBauzone.Nur`, ein Befehl mit Rückgängig fehlt).
 
 ## Entscheidungen
 
@@ -119,3 +118,9 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Alter Markt | Neue Hauptstraße **Unter Fettenhennen** (Straßenname am echten Dom) von der Rheingasse im Platz (37 \| −101) nach Westen bis −3 \| −95, in den Hof zwischen Dom und S4; daran WB_AlterMarkt1 (27 Minuten) und WB_AlterMarkt2 am Ende hinter dem Dom (41 Minuten). Die Startgrundstücke fahren wie vorher. | 1.11.2026 |
 | Ergebnis | 8 Stellen unter 45 Minuten statt 1 (mit der Stelle am Malzbüchel, 10 Minuten), Median aller Bauorte 185 Minuten; zehn Neubauten nach Luftlinie (frühere Reihenfolge der KI) 20, 22, 10, 20, 26, 33, 27, 103, 41, 71 Minuten (vorher 10, 103, 145, 165, 71, 91, 135, 109, 89, 163). Startwerkstätten 25–30 Minuten wie vorher, Prüfung 0 Fehler mit denselben 4 Hinweisen, Kapazität passt (Pflicht und Reserve). Tabelle in `docs/LEVELDESIGN.md`, Abschnitt Köln. | 1.11.2026 |
 | Außerhalb des Bereichs | Tests: `BauenTests` (Köln: 34 Wege, 58 Bauzonen, 13 Kern, 7 Bauplätze), `KartenbauTests` (Kapazität 7.687 Felder, Prüfsumme der Plätze), `MarktplaetzeTests` (eine Marktlinie: Unter Fettenhennen beginnt im Alter Markt). | 1.11.2026 |
+
+### Kartenwerkstatt: „nur Werkstätten“ einer Bauzone (PR #285)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Eigenschaften | Häkchen „nur Werkstätten“ in der Tafel einer Bauzone setzt bzw. löscht `"nur": "werkstatt"`; Befehl `Kartenentwurf.BauzoneNurSetzen(zone, nur)` (Kern, mit Rückgängig, nur „werkstatt“ oder null, Test `KartenwerkstattBauzoneNurTests`) | 02.11.2026 |

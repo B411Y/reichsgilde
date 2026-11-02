@@ -40,7 +40,7 @@ public partial class Stadtansicht
     {
         EntwurfBauzone => _wsEbenen[Werkstattebene.Bauzonen],
         EntwurfNaturflaeche { Art: "streu" } => _wsEbenen[Werkstattebene.Requisiten],
-        EntwurfFlaeche or EntwurfPflanze => _wsEbenen[Werkstattebene.Natur],
+        EntwurfFlaeche or EntwurfPflanze or EntwurfFels => _wsEbenen[Werkstattebene.Natur],
         EntwurfWeg or EntwurfMauer or EntwurfFluss or EntwurfFaehre => _wsEbenen[Werkstattebene.Linien],
         _ => true,
     };
@@ -65,6 +65,7 @@ public partial class Stadtansicht
         foreach (var (flaeche, knoten) in _wsNatur) Setzen(knoten, flaeche.Art == "streu" ? An(Werkstattebene.Requisiten) : An(Werkstattebene.Natur));
         foreach (var knoten in _wsFelder.Values) Setzen(knoten, An(Werkstattebene.Natur));
         Setzen(_wsPflanzenKnoten, An(Werkstattebene.Natur));
+        FelsenEbeneAnwenden(An(Werkstattebene.Natur)); // Stadtansicht.Felsen.cs
 
         var linien = An(Werkstattebene.Linien);
         foreach (var knoten in _wsWege.Values) Setzen(knoten.GetNodeOrNull<Node3D>("Markierung"), linien);
