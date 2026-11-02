@@ -63,6 +63,8 @@ static class KartenformatTests
             var imKatalog = k.Bausteine.Select(b => b.Modell).OfType<string>().ToHashSet();
             var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figuren/") && !d.StartsWith("fahrzeuge/") && !d.StartsWith("tiere/")
                                             && !d.StartsWith("innen/") && d != "gebaeude/marktstaende" && d != "gebaeude/lichter" && d != "wasser/wasser_schiff").ToList();
+            // Ohne Katalog: Requisiten (requisiten/, z. B. der Eimer der Löschkette) setzt das Spiel bei Ereignissen, nicht die Karte.
+            fehlen.RemoveAll(d => d.StartsWith("requisiten/"));
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
         }),
 

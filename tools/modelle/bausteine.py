@@ -34,6 +34,8 @@ VORSCHAU = os.path.join(WURZEL, "docs", "modelle")
 # Modelle der Umlandbetriebe, des Felsbergs und der Umlandstellen (Unterordner umland/); ein neues Umlandmodell gehört hier dazu.
 UMLAND_MODELLE = {"grube", "holzschlag", "steinbruch", "kraeutergarten", "duftgarten", "bauernhof", "klosterhof", "wachturm",
                   "berg_grube", "umland_stellen"}
+# Requisiten (Unterordner requisiten/): einzelne Gegenstände, die das Spiel bei Ereignissen setzt (Eimer der Löschkette).
+REQUISITEN_MODELLE = {"eimer"}
 
 KAMERA_NEIGUNG = 40.0        # Grad, wie im Spiel
 UNSICHTBAR_Z = -0.77         # Normale mit z darunter (> 50° nach unten) sieht die Kamera nie
@@ -91,6 +93,7 @@ FARBEN = {
     "Formsand": (0.46, 0.37, 0.27),
     "Wasser": (0.15, 0.21, 0.23),
     "Leder": (0.31, 0.20, 0.13),
+    "Rost": (0.36, 0.21, 0.12),            # Rostsaum an Eisenreifen (Holzeimer)
     "Kupfer": (0.36, 0.56, 0.47),          # grün angelaufenes Kupfer (Dachreiter des Tischlers)
     "Schnittholz": (0.66, 0.53, 0.36),     # frisch gesägte Bretter und Hirnholz
     "Seil": (0.55, 0.48, 0.35),
@@ -1250,7 +1253,8 @@ def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
 def unterordner(name):
     """Unterordner des Modells `name` unter game/assets/modelle/ – nach Art getrennt, wie der Gebäudekatalog sie nennt
     („gebaeude/schmied“): innen (…_innen), natur (natur_…), figuren (figur_…), fahrzeuge (karren_…), tiere (vogel_…),
-    wasser (wasser_…: Brücken, Fähre, Hafen, Furt- und Ufersteine), props (props_…: Gegenstände und Zierteile der Asset-Kits), umland (UMLAND_MODELLE), sonst gebaeude (Wohn- und
+    wasser (wasser_…: Brücken, Fähre, Hafen, Furt- und Ufersteine), props (props_…: Gegenstände und Zierteile der Asset-Kits), umland (UMLAND_MODELLE),
+    requisiten (REQUISITEN_MODELLE: einzelne Gegenstände aus eigenen Skripten, z. B. der Eimer der Löschkette), sonst gebaeude (Wohn- und
     Einwohnerhäuser, Werkstätten, Sonderbauten, Markt)."""
     if name.endswith("_innen"):
         return "innen"
@@ -1258,6 +1262,8 @@ def unterordner(name):
                            ("wasser_", "wasser"), ("props_", "props")):
         if name.startswith(anfang):
             return ordner
+    if name in REQUISITEN_MODELLE:
+        return "requisiten"
     return "umland" if name in UMLAND_MODELLE else "gebaeude"
 
 
