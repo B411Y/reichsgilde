@@ -49,6 +49,12 @@ public partial class Stadtansicht
     /// <summary>Die gezeichneten Wege der Karte, Stück für Stück: hier schließen Türen und Höfe an, hier wächst nichts.</summary>
     private readonly List<(Vector3 Von, Vector3 Bis, float Breite)> _wegStrecken = new();
 
+    /// <summary>Die Anschlussstücke an die Wege (Türen, Höfe, Karrenplätze, Gatter) mit ihrer Breite – ein Türweg gilt als <see cref="TuerwegBreite"/> breit.</summary>
+    private readonly List<(Vector3 Von, Vector3 Bis, float Breite)> _anschlussStrecken = new();
+
+    /// <summary>Wie breit (Meter) der Weg von einer Haustür (oder Tor, Rathaus, Dom) bis zur Gasse für die Passanten gilt.</summary>
+    private const float TuerwegBreite = 1.4f;
+
     /// <summary>Wo die Wege an Rathaus und Dom beginnen (vor der Tür des Modells); null, wenn die Karte keins hat.</summary>
     private Vector3? _rathausTuer, _domTuer;
 
@@ -477,6 +483,7 @@ public partial class Stadtansicht
         if (naechster is not { } q)
             return _netz.KnotenBei(p); // eine Karte ohne Wege: ein Knoten für sich
         _netz.Weg(p, q);
+        _anschlussStrecken.Add((p, q, zeichnen ?? TuerwegBreite)); // für die Breite, in der Passanten dort gehen (Stadtansicht.Passantenwege.cs)
         if (zeichnen is { } breite && abstand > 0.3f) WegZiehen(p, q, breite);
         return _netz.KnotenBei(p);
     }
