@@ -70,6 +70,15 @@ public sealed partial class Kartenentwurf
         return new Felsvektor(x / felsen.Count, y / felsen.Count, z / felsen.Count);
     }
 
+    /// <summary>Die gemeinsame Mitte von Stücken in der Welt (Ort und Höhe der Aufsetzpunkte, <see cref="Felsraum.KontaktY"/>, gemittelt) – um sie drehen und skalieren mehrere Stücke in Weltlage.</summary>
+    public Felsvektor FelsMitteWelt(IReadOnlyCollection<EntwurfFels> felsen)
+    {
+        if (felsen.Count == 0) return new Felsvektor(0, 0, 0);
+        double x = 0, y = 0, z = 0;
+        foreach (var f in felsen) (x, y, z) = (x + f.X, y + Felsraum.KontaktY(f.AlsLage(), _hoehen), z + f.Z);
+        return new Felsvektor(x / felsen.Count, y / felsen.Count, z / felsen.Count);
+    }
+
     // ── Transformieren ───────────────────────────────────────────────────────
 
     /// <summary>Setzt für alle Stücke dieselben Werte (null bleibt). Ein Schritt; nichts, wenn sich nichts ändert. Stücke außerhalb des Entwurfs fallen weg.</summary>
@@ -90,19 +99,52 @@ public sealed partial class Kartenentwurf
         Schritt(befehle, was);
     }
 
-    /// <summary>Ändert Stücke relativ (siehe <see cref="Felsaenderung"/>). Ein Schritt.</summary>
+    /// <summary>
+    /// Ändert Stücke relativ (siehe <see cref="Felsaenderung"/>). Ein Schritt.
+    /// <para>Mehrere Stücke um ihre Mitte (Entscheid 02.11.2026): <b>Skalieren</b> und <b>Drehen um Welt-x oder Welt-z</b> rechnen in Weltlage – die
+    /// Mitte ist der Mittelpunkt der Stücke samt Höhe, jedes Stück rückt dort hin, wo der Gizmo es zeichnet, und sein Versatz wird am neuen Ort aus
+    /// der Höhe dort zurückgerechnet (<see cref="Felsraum.VersatzFuer"/>); so landet auf unebenem Boden nichts meterweit neben dem Drehpunkt. Das
+    /// <b>Drehen um die Senkrechte</b> bleibt am Boden: Der Versatz bleibt, die Stücke gehen mit dem Gelände. Ein einzelnes Stück dreht und
+    /// skaliert um sich selbst.</para>
+    /// </summary>
     public void FelsTransformieren(IEnumerable<EntwurfFels> felsen, Felsaenderung aenderung)
     {
-        var liste = Geordnet(felsen);
+        var (werte, was) = FelsWerte(Geordnet(felsen), aenderung);
+        FelsTransformieren(werte, was);
+    }
+
+    /// <summary>
+    /// Wie die Stücke aussähen, wenn <paramref name="aenderung"/> gälte – ohne etwas zu ändern: für die Vorschau beim Ziehen am Gizmo (die Darstellung zeigt
+    /// die Stücke dort, bis Loslassen den Befehl gibt). Gerundet und begrenzt wie der Befehl.
+    /// </summary>
+    public IReadOnlyList<(EntwurfFels Fels, Felslage Lage)> FelsVorschau(IEnumerable<EntwurfFels> felsen, Felsaenderung aenderung)
+    {
+        var (werte, _) = FelsWerte(Geordnet(felsen), aenderung);
+        var aus = new List<(EntwurfFels, Felslage)>(werte.Count);
+        foreach (var (f, w) in werte)
+        {
+            var kopie = (EntwurfFels)f.KopieTeil();
+            Einsetzen(kopie, w);
+            aus.Add((f, kopie.AlsLage()));
+        }
+        return aus;
+    }
+
+    /// <summary>Die neuen Werte je Stück für eine relative Änderung und der Text für den Schritt (die Rechnung, siehe <see cref="FelsTransformieren(IEnumerable{EntwurfFels}, Felsaenderung)"/>).</summary>
+    private (List<(EntwurfFels, Felswerte)> Werte, string Was) FelsWerte(List<EntwurfFels> liste, Felsaenderung aenderung)
+    {
         var a = aenderung;
-        var mitte = FelsMitte(liste);
         var skaliert = a.FaktorX != 1 || a.FaktorY != 1 || a.FaktorZ != 1;
         var gedreht = a.Drehachse is not null && a.Winkel != 0;
         var verschoben = a.DX != 0 || a.DY != 0 || a.DZ != 0;
+        // Weltlage: mehrere Stücke um ihre Mitte, sobald skaliert oder um x/z gedreht wird
+        var welt = liste.Count > 1 && a.UmMitte && (skaliert || (gedreht && a.Weltachsen && a.Drehachse != Felsachse.Y));
+        var mitte = welt ? FelsMitteWelt(liste) : FelsMitte(liste);
         var werte = new List<(EntwurfFels, Felswerte)>(liste.Count);
         foreach (var f in liste)
         {
-            var ort = new Felsvektor(f.X, f.Versatz, f.Z);
+            var l = f.AlsLage();
+            var ort = new Felsvektor(f.X, welt ? Felsraum.KontaktY(l, _hoehen) : f.Versatz, f.Z);
             var (drehung, kippen, rollen) = (f.Drehung, f.KippenX, f.KippenZ);
             double? massstab = null, ax = null, ay = null, az = null;
             if (skaliert)
@@ -131,16 +173,28 @@ public sealed partial class Kartenentwurf
                 else if (achse == Felsachse.Z) rollen += a.Winkel; // (Y · X · Z) · Z = Y · X · (Z + w)
                 else (drehung, kippen, rollen) = (eigen * um).EulerNahe(drehung, kippen, rollen);
             }
-            ort += new Felsvektor(a.DX, a.DY, a.DZ);
+            double? versatz;
+            if (welt)
+            {
+                // zurück auf den Versatz am neuen Ort
+                var neu = l with { X = ort.X + a.DX, Z = ort.Z + a.DZ };
+                versatz = Felsraum.VersatzFuer(neu, ort.Y, _hoehen) + a.DY;
+            }
+            else
+            {
+                ort += new Felsvektor(a.DX, a.DY, a.DZ);
+                versatz = ort.Y;
+            }
+            var (x, z) = welt ? (ort.X + a.DX, ort.Z + a.DZ) : (ort.X, ort.Z);
             // nur, was sich ändert (ein Wert außerhalb der Grenzen aus einer Datei bleibt beim bloßen Verschieben, wie er ist)
             werte.Add((f, new Felswerte(
-                X: verschoben || ort.X != f.X ? ort.X : null, Z: verschoben || ort.Z != f.Z ? ort.Z : null, Versatz: ort.Y != f.Versatz ? ort.Y : null,
+                X: verschoben || x != f.X ? x : null, Z: verschoben || z != f.Z ? z : null, Versatz: versatz != f.Versatz ? versatz : null,
                 Drehung: gedreht ? drehung : null, Kippen: gedreht ? kippen : null, Rollen: gedreht ? rollen : null,
                 Massstab: massstab, AchseX: ax, AchseY: ay, AchseZ: az)));
         }
         var was = (verschoben ? 1 : 0) + (gedreht ? 1 : 0) + (skaliert ? 1 : 0) > 1 ? "verändert"
             : verschoben ? "verschoben" : gedreht ? "gedreht" : "skaliert";
-        FelsTransformieren(werte, was);
+        return (werte, was);
     }
 
     /// <summary>
@@ -198,10 +252,18 @@ public sealed partial class Kartenentwurf
         | (p.Versatzbereich is not null ? Felswurf.Versatz : 0);
 
     /// <summary>
-    /// R5 („Hang mitformen“, nur wenn das Häkchen gesetzt ist): ein Befehl, der das Gelände um neue Stücke formt – er käme in denselben
-    /// Sammelbefehl wie Stücke und Boden (ein Schritt bei Rückgängig). Bis R5 gibt es ihn nicht (null).
+    /// R5 („Hang mitformen“, nur wenn das Häkchen <see cref="Felspinsel.HangFormen"/> gesetzt ist): ein Befehl, der das Gelände hinter den neuen
+    /// Wänden anhebt (<see cref="Felshang"/>). Er steht im selben Sammelbefehl wie Stücke und Boden – ein Schritt bei Rückgängig. Das Raster
+    /// ändert sich dabei sofort (wie beim Boden um den Fels); null, wenn nichts zu heben ist.
     /// </summary>
-    private IKartenbefehl? FelsHangBefehl(IReadOnlyList<EntwurfFels> neue, Felspinsel pinsel) => null;
+    private IKartenbefehl? FelsHangBefehl(IReadOnlyList<EntwurfFels> neue, Felspinsel pinsel)
+    {
+        if (!pinsel.HangFormen) return null;
+        var aenderung = Felshang.Formen(_hoehen, Kartengrenzen.Aussen, neue.Select(f => f.AlsLage()));
+        if (aenderung is null) return null;
+        var kacheln = aenderung.Kacheln();
+        return kacheln.Count == 0 || aenderung.Bereich is not { } bereich ? null : new GelaendeAendern("Hang hinter dem Fels", kacheln, bereich);
+    }
 
     /// <summary>Die Stücke, die zum Entwurf gehören, jedes einmal, in der Reihenfolge des Entwurfs.</summary>
     private List<EntwurfFels> Geordnet(IEnumerable<EntwurfFels> felsen) =>

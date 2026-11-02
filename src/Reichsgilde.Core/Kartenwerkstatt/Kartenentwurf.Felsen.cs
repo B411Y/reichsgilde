@@ -429,9 +429,11 @@ public sealed partial class Kartenentwurf
         private bool ZuNah(Felslage l)
         {
             var raster = Raster;
+            var meine = Felsformen.Finde(l.Form)?.Ueberlappung ?? Felspinsel.Ueberlappung;
             foreach (var f in raster.Im(l.X, l.Z, (1 - Felspinsel.Ueberlappung) * (l.Radius + raster.GroessterRadius)))
             {
-                var d = (1 - Felspinsel.Ueberlappung) * (l.Radius + f.Radius);
+                // die großen Stücke des Wand-Satzes dürfen sich weiter überlappen (R4); gilt, was von beiden mehr erlaubt
+                var d = (1 - Math.Max(meine, f.Felsform?.Ueberlappung ?? Felspinsel.Ueberlappung)) * (l.Radius + f.Radius);
                 if ((f.X - l.X) * (f.X - l.X) + (f.Z - l.Z) * (f.Z - l.Z) < d * d) return true;
             }
             return false;

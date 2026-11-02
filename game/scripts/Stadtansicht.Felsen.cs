@@ -29,7 +29,8 @@ public partial class Stadtansicht
     private readonly record struct Felsbild(string Form, string Gestein, double X, double Z, double Drehung, double Massstab, double Neigung,
         double Einsinken, double KippenX, double KippenZ, double AchseX = 1, double AchseY = 1, double AchseZ = 1, double Versatz = 0);
 
-    private const string FelsModell = "natur/natur_felsen";
+    /// <summary>Das Modell einer Form: die F1-Formen aus <c>natur_felsen</c>, die des Felswand-Satzes aus <c>natur_felswand</c>.</summary>
+    private static string FelsModellVon(string form) => Felsformen.Finde(form)?.Modell ?? Felsformen.ModellF1;
 
     /// <summary>Kantenlänge der Zellen (Meter): klein genug zum Wegschneiden, groß genug für wenige Zeichenaufrufe.</summary>
     private const float FelsZelle = 64f;
@@ -85,7 +86,7 @@ public partial class Stadtansicht
     /// </summary>
     private Mesh? FelsNetz(string form, int stufe)
     {
-        if (Felsformen.Finde(form) is not { } f || NaturNetz(FelsModell, $"{f.Knoten}_{Math.Clamp(stufe, 0, 2)}") is not { } netz) return null;
+        if (Felsformen.Finde(form) is not { } f || NaturNetz(f.Modell, $"{f.Knoten}_{Math.Clamp(stufe, 0, 2)}") is not { } netz) return null;
         if (netz is ArrayMesh a && a.GetSurfaceCount() > 0 && a.SurfaceGetMaterial(0) is not null) a.SurfaceSetMaterial(0, null);
         return netz;
     }
@@ -98,11 +99,13 @@ public partial class Stadtansicht
         return _felsKaesten[form] = netz.GetAabb();
     }
 
-    /// <summary>Das Fels-Material einer Gesteinsart (eins je Art, für alle Stücke geteilt).</summary>
-    private ShaderMaterial FelsStoff(string gestein)
+    /// <summary>Das Fels-Material einer Gesteinsart für die Atlanten einer Form (eins je Art und Modell, für alle Stücke geteilt).</summary>
+    private ShaderMaterial FelsStoff(string gestein, string form)
     {
-        if (!_felsStoffe.TryGetValue(gestein, out var stoff))
-            _felsStoffe[gestein] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), _felsDreiseitig, f1: true); // die Stufe stellt FelsenStufeNachfuehren für alle um
+        var wand = FelsModellVon(form) == Felsformen.ModellWand;
+        var schluessel = wand ? gestein + "|wand" : gestein;
+        if (!_felsStoffe.TryGetValue(schluessel, out var stoff))
+            _felsStoffe[schluessel] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), _felsDreiseitig, f1: true, wand: wand); // die Stufe stellt FelsenStufeNachfuehren für alle um
         return stoff;
     }
 
@@ -150,8 +153,16 @@ public partial class Stadtansicht
     private static float FelsTiefe(in Felsbild b) =>
         (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.AchseY * b.Einsinken - b.Versatz);
 
-    /// <summary>Die Instanzdaten für den Shader: x Einsinktiefe (Moossaum, Ersatz ohne Höhenbild), y Höhe des Stücks in Metern (Breite des Übergangs am Fuß, R1).</summary>
-    private static Color FelsDaten(in Felsbild b) => new(FelsTiefe(b), (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab), 0, 0);
+    /// <summary>
+    /// Die Instanzdaten für den Shader: x Einsinktiefe (Moossaum, Ersatz ohne Höhenbild), y Höhe des Stücks in Metern mit der Achse Höhe (Breite des Übergangs am
+    /// Fuß, R1), z und w nur bei den Formen des Felswand-Satzes: Neigung der Bankfugen in Grad und eine 1 dazu (die Bänder im Shader folgen ihr).
+    /// </summary>
+    private static Color FelsDaten(in Felsbild b)
+    {
+        var form = Felsformen.Finde(b.Form);
+        var wand = form?.Modell == Felsformen.ModellWand;
+        return new(FelsTiefe(b), (float)((form?.Hoehe ?? 1) * b.Massstab * b.AchseY), wand ? (float)form!.Schichtneigung : 0, wand ? 1 : 0);
+    }
 
     private static (int I, int J) FelsZelleBei(double x, double z) => ((int)Math.Floor(x / FelsZelle), (int)Math.Floor(z / FelsZelle));
 
@@ -257,7 +268,7 @@ public partial class Stadtansicht
             }
             var teil = new MultiMeshInstance3D
             {
-                Name = "Schutt", Multimesh = vielfach, MaterialOverride = FelsStoff(gestein), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Name = "Schutt", Multimesh = vielfach, MaterialOverride = FelsStoff(gestein, Felsboden.Schuttform), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
                 Visible = stufe < 2,
             };
             zelle.Knoten.AddChild(teil);
@@ -282,7 +293,7 @@ public partial class Stadtansicht
             }
             var teil = new MultiMeshInstance3D
             {
-                Name = form, Multimesh = vielfach, MaterialOverride = FelsStoff(gestein),
+                Name = form, Multimesh = vielfach, MaterialOverride = FelsStoff(gestein, form),
                 CastShadow = stufe <= FelsSchattenBisStufe ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off,
             };
             zelle.Knoten.AddChild(teil);
@@ -390,7 +401,7 @@ public partial class Stadtansicht
     /// <summary>Das Gelände hat sich in diesem Rechteck geändert: Die Zellen darin folgen dem Boden (aus <see cref="GelaendeNachziehen"/>).</summary>
     private void FelsenImBereich(Rect2 rect)
     {
-        var weit = rect.Grow(20f); // größter Radius eines Stücks samt Schuttkegel (Grundfläche + 0,8 · Felsboden.KegelMax)
+        var weit = rect.Grow(36f); // größter Radius eines Stücks samt Schuttkegel (Grundfläche + 0,8 · Felsboden.KegelMax; die großen Wände sind bis 20 m breit)
         foreach (var (ort, zelle) in _felsZellen)
         {
             if (!new Rect2(ort.I * FelsZelle, ort.J * FelsZelle, FelsZelle, FelsZelle).Intersects(weit)) continue;

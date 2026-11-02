@@ -82,6 +82,7 @@ varying vec3 v_normale;
 varying vec4 v_ecke;                         // Vertexfarbe (siehe oben)
 varying float v_fuss;                        // Höhe des Übergangs am Fuß (m): 0,3 … 1,0 nach der Höhe des Stücks (INSTANCE_CUSTOM.y)
 varying vec2 v_makro;                        // Makrovariation (15 m, 60 m) – im Vertex-Shader, die Netze sind dicht genug
+varying vec3 v_bn;                           // senkrecht auf den Schichten (Welt): die Instanz kennt die Neigung der Bänke ihrer Form (INSTANCE_CUSTOM.zw), sonst gilt band_normale
 varying float v_ueber;                       // Höhe über dem Boden unter der Mitte des Stücks (Ersatz ohne Höhenbild)
 
 float hash1(vec3 p) {
@@ -103,6 +104,13 @@ void vertex() {
 	v_welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_normale = normalize(MODEL_NORMAL_MATRIX * NORMAL);   // richtig auch bei ungleich skalierten Stücken
 	v_ecke = COLOR;
+	// Felswand-Satz (R4): INSTANCE_CUSTOM.w = 1 sagt, dass .z die Neigung der Bankfugen in der Wandebene ist (Grad, + = nach +X steigend); die Bänder folgen
+	// ihr, sonst kreuzten sie die Bankfugen im Netz. Normale der Bänke = y-Achse des Stücks, um die z-Achse (Schauseite) gedreht.
+	v_bn = band_normale;
+	if (INSTANCE_CUSTOM.w > 0.5) {
+		float sw = radians(INSTANCE_CUSTOM.z);
+		v_bn = normalize(normalize(MODEL_MATRIX[1].xyz) * cos(sw) - normalize(MODEL_MATRIX[0].xyz) * sin(sw));
+	}
 	v_ueber = v_welt.y - (MODEL_MATRIX[3].y + INSTANCE_CUSTOM.x);
 	// kleine Steine (Schutt) höchstens 30 % ihrer Höhe, sonst wären sie ganz bodenfarben
 	v_fuss = INSTANCE_CUSTOM.y > 0.0 ? min(clamp(0.2 * INSTANCE_CUSTOM.y, 0.35, 1.0), 0.3 * INSTANCE_CUSTOM.y) : fuss_hoehe;
@@ -197,7 +205,7 @@ void fragment() {
 	// ── 2. Schichtbänder ──
 	// in Weltlage über alle Stücke hinweg; die Grenze wellt sich mit der Struktur und zwei kurzen Wellen, die Bänke werden über große Strecken
 	// dicker und dünner (m60) – so laufen sie durch eine ganze Wand, ohne mit dem Lineal gezogen zu wirken
-	vec3 bn = normalize(band_normale);
+	vec3 bn = normalize(v_bn);
 	float welle = 0.25 * sin(dot(p.xz, vec2(0.61, 0.37))) + 0.15 * sin(dot(p, vec3(1.7, 0.3, -1.3)));
 	float lage = dot(p, bn) / band_dicke + (h - 0.5) * 0.45 + welle + (m60 - 0.5) * 8.0;
 	float bank = floor(lage);

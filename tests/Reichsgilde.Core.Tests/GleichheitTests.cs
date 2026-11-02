@@ -74,7 +74,9 @@ static class GleichheitTests
         "Gleichheit: Felsboden (Felsstrich und Boden als ein Befehl, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelsbodenPruefen)).Append((
         "Gleichheit: Felslage R2 (Zufallsbereiche, Transformieren um alle Achsen, Einrasten, Neu würfeln) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelslagePruefen));
+        FelslagePruefen)).Append((
+        "Gleichheit: Felswand-Satz R3/R5 (Hang mitformen, Drehen und Skalieren mehrerer Stücke in Weltlage, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelswandPruefen));
 
     /// <summary>
     /// Die Felslage (Fels-Plan R2): Zufallsbereiche, Drehen um alle Achsen (Euler über DetMathe), Einrasten und Neu würfeln – gleiche Bytes (Zeile
@@ -86,6 +88,16 @@ static class GleichheitTests
         Pruefe.Gleich(a, Sha256(FelslageTests.Ablauf()), "Felslage: zweiter Lauf");
         Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelslageTests.Ablauf())), "Felslage: de-DE");
         Zeilen[-3] = new[] { $"felslage {a}" };
+        DateiSchreiben();
+    }
+
+    /// <summary>Der Felswand-Satz (Fels R3/R5): Hang mitformen und Mehrfach-Transformationen in Weltlage – gleiche Bytes (Zeile „felswand …“ in der Datei der CI).</summary>
+    static void FelswandPruefen()
+    {
+        var a = Sha256(FelsgizmoTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsgizmoTests.Ablauf()), "Felswand: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsgizmoTests.Ablauf())), "Felswand: de-DE");
+        Zeilen[-4] = new[] { $"felswand {a}" };
         DateiSchreiben();
     }
 

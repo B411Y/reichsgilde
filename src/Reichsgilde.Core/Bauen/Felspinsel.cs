@@ -55,7 +55,7 @@ public sealed record Felsbereich(double Von, double Bis)
 /// (Breite, Höhe, Tiefe; 0,25 … 4); <paramref name="Drehbereich"/> – Drehung um die Senkrechte in Grad (bei „zum Hang“ am Hang um hangabwärts
 /// herum, sonst ab Norden; vorher ±20° bzw. 0 … 360°); <paramref name="Kippbereich"/>, <paramref name="Rollbereich"/> – Grad (−180 … 180; vorher
 /// ±8°); <paramref name="Versatzbereich"/> – Höhenversatz in Metern (±20); <paramref name="NeigungBis"/> – am Hang höchstens so viele Grad aus
-/// der Senkrechten neigen (wie „Align Max Angle“ in Unreal). <paramref name="HangFormen"/>: das Gelände mitformen (folgt in R5, wirkt noch nicht).
+/// der Senkrechten neigen (wie „Align Max Angle“ in Unreal). <paramref name="HangFormen"/>: „Hang mitformen“ (R5, <see cref="Felshang"/>): Der Stempel hebt das Gelände hinter den Wänden des Wand-Satzes an, damit sie im Hang stecken.
 /// </summary>
 public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, string? Gestein = null, double Radius = 8, double Dichte = 0.2,
     double Groesse = 1, double Streuung = 0.25, double Einsinken = Felsformen.EinsinkenVorgabe, double Neigung = 0.5, bool ZumHang = true,
@@ -236,7 +236,7 @@ public static class Felsstreuung
             var o = Kartengeometrie.Dreh(s.X * groesse, s.Z * groesse, grund);
             var eigen = n == 0 ? 0 : Plusminus(6); // das erste Stück (die Mitte der Gruppe) steht genau in der Drehung der Gruppe
             var massstab = n == 0 ? groesse * s.Massstab : groesse * s.Massstab * (1 + Plusminus(0.08));
-            var einsinken = p.Einsinken + s.Einsinken + Plusminus(0.05);
+            var einsinken = p.Einsinken * (Felsformen.Finde(s.Form)?.EinsinkenFaktor ?? 1) + s.Einsinken + Plusminus(0.05); // die großen Wände stecken weniger tief (R4)
             var (uk, ur) = (zufall.NextDouble(), zufall.NextDouble());
             var kx = p.Kippbereich is { } kb ? Felsraum.Winkel(kb.Wert(uk)) : Math.Round((2 * uk - 1) * Felsformen.KippenMax, 1) + 0.0;
             var kz = p.Rollbereich is { } rb ? Felsraum.Winkel(rb.Wert(ur)) : Math.Round((2 * ur - 1) * Felsformen.KippenMax, 1) + 0.0;

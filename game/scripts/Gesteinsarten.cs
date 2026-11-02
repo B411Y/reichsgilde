@@ -28,6 +28,10 @@ public static class Gesteinsarten
     public const string AtlasNormalPfad = "res://assets/texturen/felsen/felsen_normal.webp";
     public const string AtlasHoehlungPfad = "res://assets/texturen/felsen/felsen_hoehlung.webp";
 
+    /// <summary>Die Atlanten des Felswand-Satzes (R4, <c>natur_felswand.glb</c>, 4096 × 2048; gleiche Kanäle wie die der F1-Formen).</summary>
+    public const string WandNormalPfad = "res://assets/texturen/felswand/felswand_normal.webp";
+    public const string WandHoehlungPfad = "res://assets/texturen/felswand/felswand_hoehlung.webp";
+
     private static List<Gestein>? _alle;
     private static Godot.Collections.Dictionary? _wurzel;
 
@@ -97,17 +101,17 @@ public static class Gesteinsarten
 
     /// <summary>
     /// Ein neues Fels-Material für <paramref name="gestein"/>. <paramref name="dreiseitig"/>: Struktur von drei Seiten (Mittel und höher) oder aus einer
-    /// Richtung (Niedrig). <paramref name="f1"/>: für die F1-Felsformen (Atlas über UV0 und Vertexfarben), nicht für Platzhalter ohne beides.
+    /// Richtung (Niedrig). <paramref name="f1"/>: für die echten Felsformen (Atlas über UV0 und Vertexfarben), nicht für Platzhalter ohne beides; <paramref name="wand"/>: mit den Atlanten des Felswand-Satzes statt denen der F1-Formen.
     /// </summary>
-    public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f, bool f1 = false)
+    public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f, bool f1 = false, bool wand = false)
     {
         var m = new ShaderMaterial { Shader = GD.Load<Shader>(dreiseitig ? ShaderHoch : ShaderNiedrig) };
         m.SetShaderParameter("struktur", GD.Load<Texture2D>(StrukturPfad));
         if (f1)
         {
             m.SetShaderParameter("f1_netz", true);
-            m.SetShaderParameter("atlas_normal", GD.Load<Texture2D>(AtlasNormalPfad));
-            m.SetShaderParameter("atlas_hoehlung", GD.Load<Texture2D>(AtlasHoehlungPfad));
+            m.SetShaderParameter("atlas_normal", GD.Load<Texture2D>(wand ? WandNormalPfad : AtlasNormalPfad));
+            m.SetShaderParameter("atlas_hoehlung", GD.Load<Texture2D>(wand ? WandHoehlungPfad : AtlasHoehlungPfad));
         }
         Anwenden(m, gestein);
         FrischSetzen(m, frisch, frischBis);

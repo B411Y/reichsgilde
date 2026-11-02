@@ -176,6 +176,18 @@ public static class Felsraum
         return new Felsvektor((f?.Breite ?? 1) * l.Massstab * l.AchseX, (f?.Hoehe ?? 1) * l.Massstab * l.AchseY, (f?.Tiefe ?? 1) * l.Massstab * l.AchseZ);
     }
 
+    /// <summary>Die Höhe des Ursprungs eines Stücks in der Welt: Boden unter der Mitte − Einsinken · Höhe + Versatz.</summary>
+    public static double UrsprungY(Felslage l, Hoehenraster hoehen) => hoehen.Hoehe(l.X, l.Z) - l.Einsinken * Groesse(l).Y + l.Versatz;
+
+    /// <summary>
+    /// Die Höhe des Aufsetzpunktes eines Stücks: Boden unter der Mitte + Versatz – der Punkt, an dem das Stück bei Einsinken 0 den Boden berührte. Mit
+    /// ihm rechnen mehrere Stücke in Weltlage (er hängt nicht von der Größe ab: ein skaliertes Stück behält sein Einsinken als Anteil).
+    /// </summary>
+    public static double KontaktY(Felslage l, Hoehenraster hoehen) => hoehen.Hoehe(l.X, l.Z) + l.Versatz;
+
+    /// <summary>Der Versatz (ungerundet), bei dem der Aufsetzpunkt des Stücks in der Höhe <paramref name="weltY"/> liegt – die Umkehrung von <see cref="KontaktY"/> am Ort der Lage.</summary>
+    public static double VersatzFuer(Felslage l, double weltY, Hoehenraster hoehen) => weltY - hoehen.Hoehe(l.X, l.Z);
+
     /// <summary>
     /// Das Stück im Raum: Ursprung = Boden unter der Mitte − Einsinken · Höhe + Versatz, Drehung = Hangneigung · Y · X · Z. <paramref name="boden"/>:
     /// die Bodenhöhe unter der Mitte, wenn der Aufrufer sie anders misst (die Darstellung auf ihren Dreiecken); sonst bilinear aus dem Raster.

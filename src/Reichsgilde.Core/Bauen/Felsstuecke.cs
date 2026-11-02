@@ -7,7 +7,7 @@ namespace Reichsgilde.Core.Bauen;
 //  Felsstücke in der Karte (Felspinsel F3)
 //
 //  Unser Gelände ist ein Höhenraster mit 2 m Abstand: Böschungen gehen, senkrechte Wände nicht. Felswände entstehen darum aus Felsstücken –
-//  3D-Modellen aus natur/natur_felsen.glb (F1), die halb im Hang stecken. Die Karte speichert je Stück Lage, Form, Gestein, Größe, Drehung,
+//  3D-Modellen aus natur/natur_felsen.glb (F1, 8 Formen) und natur/natur_felswand.glb (R4, 11 große Stücke), die halb im Hang stecken. Die Karte speichert je Stück Lage, Form, Gestein, Größe, Drehung,
 //  Neigung zum Hang, Einsinktiefe und ein leichtes Kippen; dazu eine Grundgesteinsart je Karte (der Hang-Fels im Boden, einzelne Stücke dürfen
 //  abweichen). Felsstücke sperren nichts (Nutzer 01.11.2026): Bauen, Wege und Bauzonen auf Fels bleiben erlaubt.
 //
@@ -76,7 +76,16 @@ public sealed class Kartenfelsen
 
 /// <summary>Eine Felsform aus <c>natur_felsen.glb</c> (F1): Kennung, Name, Knoten im Modell (<c>&lt;Knoten&gt;_&lt;Stufe&gt;</c>), Maße in Metern.</summary>
 /// <param name="Gerichtet">Hat die Form eine Schauseite (+Z), die hangabwärts zeigen soll (Wand, Rippe, Überhang, Felsnase)?</param>
-public sealed record Felsform(string Kennung, string Name, string Knoten, double Breite, double Tiefe, double Hoehe, bool Gerichtet)
+/// <param name="Modell">Das Modell im Ordner <c>game/assets/modelle/</c> ohne Endung: F1 <c>natur/natur_felsen</c>, der Felswand-Satz (R4) <c>natur/natur_felswand</c>.</param>
+/// <param name="EinsinkenFaktor">Wie viel vom Einsinken des Pinsels diese Form nimmt (1: alles; die großen Wände stecken nur 5–15 % tief, Gesimse setzen auf).</param>
+/// <param name="Ueberlappung">So weit dürfen sich die Kreise der Grundfläche dieser Form mit denen der Nachbarn überdecken (Anteil der Summe der Radien).</param>
+/// <param name="HangFormt">Hat die Form eine offene Rückseite, hinter der das Gelände steigen muss („Hang mitformen“, R5)?</param>
+/// <param name="Schichtneigung">Neigung der Schichtfugen in der Wandebene in Grad (+ = nach +X steigend; aus dem Extra <c>schicht_neigung</c> des Knotens): die Bänder im Shader folgen ihr.</param>
+/// <param name="Fusslinie">Wo die Vorderseite am Boden steht (z im Modell, Meter bei Maßstab 1; der Schuttfuß davor zählt nicht) – nur für „Hang mitformen“.</param>
+/// <param name="Rueckwand">Wo die offene Rückseite endet (z im Modell, negativ): Dahinter muss das Gelände bis zur Oberkante reichen – nur für „Hang mitformen“.</param>
+public sealed record Felsform(string Kennung, string Name, string Knoten, double Breite, double Tiefe, double Hoehe, bool Gerichtet,
+    string Modell = Felsformen.ModellF1, double EinsinkenFaktor = 1, double Ueberlappung = Felspinsel.Ueberlappung, bool HangFormt = false,
+    double Schichtneigung = 0, double Fusslinie = 0, double Rueckwand = 0)
 {
     /// <summary>
     /// Der Radius des Kreises für Abstand und Dichte (Meter, bei Maßstab 1): ½ · √(Breite · Tiefe) – die Kreisfläche ist die der eingeschriebenen
@@ -121,7 +130,13 @@ public static class Felsformen
     /// <summary>Die Gesteinsarten (Kennungen wie in <c>game/daten/gestein.json</c>, ein Test vergleicht).</summary>
     public static readonly IReadOnlyList<string> Gesteine = new[] { "grauwacke", "trachyt", "buntsandstein", "kalkstein" };
 
-    /// <summary>Die acht Formen aus F1 (Maße aus <c>tools/modelle/natur_felsen.py</c>, Übergabe F1).</summary>
+    /// <summary>Die Modelle der Formen (Pfad ohne Endung unter <c>game/assets/modelle/</c>).</summary>
+    public const string ModellF1 = "natur/natur_felsen", ModellWand = "natur/natur_felswand";
+
+    /// <summary>
+    /// Die Formen: die acht aus F1 (Maße aus <c>tools/modelle/natur_felsen.py</c>) und die elf des Felswand-Satzes (R4, <c>tools/modelle/natur_felswand.py</c>;
+    /// Maße aus dem Netz der mittleren Stufe). Alle Formen haben ihren Ursprung in der Mitte der Grundfläche, die Schauseite zeigt nach +Z.
+    /// </summary>
     public static readonly IReadOnlyList<Felsform> Alle = new Felsform[]
     {
         new("wand", "Felswand", "Wand", 9.0, 3.2, 6.6, true),
@@ -132,6 +147,18 @@ public static class Felsformen
         new("ueberhang", "Überhang", "Ueberhang", 6.4, 4.5, 4.7, true),
         new("schuttbrocken", "Schuttbrocken", "Schuttbrocken", 0.63, 0.53, 0.42, false),
         new("felsnase", "Felsnase", "Felsnase", 3.2, 4.8, 3.2, true),
+        // Felswand-Satz (R4): große Stücke mit offener Rückseite (sie stecken im Hang), Wände überlappen zu 40–70 %
+        new("wand_gross_1", "Große Wand 1", "WandGross1", 20.4, 9.2, 16.0, true, ModellWand, 0.33, 0.6, true, 30.4, 2.0, -5.0),
+        new("wand_gross_2", "Große Wand 2 (Säulenfels)", "WandGross2", 14.0, 10.0, 18.7, true, ModellWand, 0.33, 0.6, true, -19.3, 2.9, -5.0),
+        new("wand_gross_3", "Große Wand 3", "WandGross3", 18.1, 10.4, 12.0, true, ModellWand, 0.33, 0.6, true, -21.6, 2.6, -5.5),
+        new("wand_mittel_1", "Mittlere Wand 1", "WandMittel1", 9.2, 5.7, 7.9, true, ModellWand, 0.33, 0.55, true, -37.9, 0.9, -3.0),
+        new("wand_mittel_2", "Mittlere Wand 2 (Eckstück)", "WandMittel2", 6.4, 5.1, 10.0, true, ModellWand, 0.33, 0.55, true, 24.6, 0.8, -3.0),
+        new("wand_mittel_3", "Mittlere Wand 3", "WandMittel3", 8.0, 6.3, 5.1, true, ModellWand, 0.33, 0.55, true, -18.9, 1.6, -3.2),
+        new("gesims_1", "Gesims 1", "Gesims1", 10.1, 3.9, 2.0, true, ModellWand, 0, 0.5),
+        new("gesims_2", "Gesims 2", "Gesims2", 8.5, 3.8, 3.1, true, ModellWand, 0, 0.5),
+        new("pfeiler_1", "Pfeiler", "Pfeiler1", 6.2, 5.9, 17.4, false, ModellWand, 0.25, 0.45, false, -10.7),
+        new("pfeilerbuendel", "Pfeilerbündel", "Pfeilerbuendel", 10.2, 8.9, 13.9, false, ModellWand, 0.25, 0.45, true, -9.2, 4.0, -4.0),
+        new("schuttkegel", "Schuttkegel", "Schuttkegel", 14.3, 8.8, 3.9, true, ModellWand, 0.1, 0.7, false, -30),
     };
 
     /// <summary>
@@ -154,6 +181,13 @@ public static class Felsformen
         {
             new("rippe", 0, 0, 0, 1), new("rippe", -3.2, -1.0, 6, 0.8), new("rippe", 3.0, 0.8, -5, 0.85),
             new("schuttbrocken", -0.8, 6.2, 30, 1.3), new("schuttbrocken", 1.6, 5.6, 110, 1.1), new("platte", 0.4, 7.4, 20, 0.6, -0.1),
+        }),
+        // Große Wand (R4/R5): drei große Wände nebeneinander (rund ein Drittel überlappt), davor zwei mittlere und Schuttkegel; sinnvoll mit „Hang mitformen“
+        new("wandgross", "Große Wand", new Gruppenstueck[]
+        {
+            new("wand_gross_1", 0, 0, 0, 1), new("wand_gross_2", -11.5, 1.0, 6, 0.95), new("wand_gross_3", 12.5, 1.5, -7, 0.95),
+            new("wand_mittel_1", -5, 9, 10, 1), new("wand_mittel_3", 6.5, 8.5, -8, 1),
+            new("schuttkegel", 0, 7.5, 0, 1), new("schuttkegel", -11, 8, 15, 0.8),
         }),
     };
 

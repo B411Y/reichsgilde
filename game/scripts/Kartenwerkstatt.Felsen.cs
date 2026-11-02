@@ -61,7 +61,7 @@ public partial class Kartenwerkstatt
             Zeile(raster, "Dichte", Schieber(0.02, 0.8, 0.02, _stadt.FelsDichte, d => $"{d * 100:0} %", d => _stadt.FelsDichte = d,
                 "Wie viel des Kreises die Felsen bedecken sollen: Der Strich setzt Stücke, bis die Grundflächen diesen Anteil erreichen"));
         Zeile(raster, "Größe", Schieber(Felsformen.MassstabMin, 2.5, 0.05, _stadt.FelsGroesse, g => $"{Komma(g, "0.00")} ×", g => _stadt.FelsGroesse = g,
-            "Maßstab der Stücke (1 = wie das Modell: eine Felswand ist 9 m breit und 6,6 m hoch)"));
+            "Maßstab der Stücke (1 = wie das Modell: eine Felswand ist 9 m breit und 6,6 m hoch, die große Wand 20 m breit und 16 m hoch)"));
         Zeile(raster, "Streuung", Schieber(0, 0.75, 0.05, _stadt.FelsStreuung, s => $"± {s * 100:0} %", s => _stadt.FelsStreuung = s,
             "So weit weicht die Größe je Stück (bzw. Gruppe) zufällig ab"));
         Zeile(raster, "Einsinken", Schieber(0, 0.6, 0.05, _stadt.FelsEinsinken, e => $"{e * 100:0} %", e => _stadt.FelsEinsinken = e,
@@ -79,6 +79,15 @@ public partial class Kartenwerkstatt
         boden.AddThemeFontSizeOverride("font_size", 14);
         boden.Toggled += an => _stadt.FelsBoden = an;
         _eigenschaften.AddChild(boden);
+        if (modus == Stadtansicht.FelsArt.Stempeln)
+        {
+            var hangFormen = new CheckBox { Text = "Hang mitformen", ButtonPressed = _stadt.FelsHangFormen, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = "Der Stempel hebt das Gelände hinter und neben den großen Wänden an (sie sind hinten offen), damit sie im Hang stecken und nicht auf der Wiese stehen. " +
+                              "Der Hang beginnt etwa 2,5 m hinter der Fußlinie. Ein Schritt mit den Stücken; gilt nur für die Wände des Wand-Satzes (Große Wand, Mittlere Wand, Pfeilerbündel)." };
+            hangFormen.AddThemeFontSizeOverride("font_size", 14);
+            hangFormen.Toggled += an => _stadt.FelsHangFormen = an;
+            _eigenschaften.AddChild(hangFormen);
+        }
         Hauptmenue.Text(_eigenschaften, modus == Stadtansicht.FelsArt.Stempeln
                 ? "Die Vorschau an der Maus zeigt genau die Stücke, die der Klick setzt. Felsen sperren nichts: Gebäude, Wege und Bauzonen dürfen darauf stehen."
                 : "Ein Strich setzt alle halben Radius einen Tupfer; jedes Stück hält Abstand zu den anderen. Felsen sperren nichts.",
@@ -92,7 +101,7 @@ public partial class Kartenwerkstatt
         Hauptmenue.Text(_eigenschaften, "Vorlage", 15, Gold);
         var raster = ZweiSpalten();
         var vorlage = new OptionButton { FocusMode = Control.FocusModeEnum.None,
-            TooltipText = "Eine feste Gruppe (Wand, Kuppe, Rippe aus 5 bis 6 Stücken) oder einzelne Stücke aus den Formen darunter" };
+            TooltipText = "Eine feste Gruppe (Wand, Kuppe, Rippe, Große Wand aus 5 bis 7 Stücken) oder einzelne Stücke aus den Formen darunter" };
         vorlage.AddItem("Einzelstücke");
         foreach (var g in Felsformen.Gruppen) vorlage.AddItem($"Gruppe {g.Name} ({g.Stuecke.Count} Stücke)");
         vorlage.Selected = gruppe is null ? 0 : Felsformen.Gruppen.ToList().IndexOf(gruppe) + 1;

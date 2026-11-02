@@ -63,26 +63,39 @@ public partial class Stadtansicht
     /// </summary>
     private static void FelsnaeheEintragen(Bodenraster raster, int i0, int j0, byte[] splat2)
     {
+        if (FelsnaeheRechnen(raster, i0, j0, BodenBild) is not { } naehe) return;
+        for (var k = 0; k < BodenBild * BodenBild; k++) splat2[k * 4 + 3] = (byte)Math.Clamp((int)(naehe[k] * 255f + 0.5f), 0, 255);
+    }
+
+    /// <summary>
+    /// Die Felsnähe (0 … 1) für <paramref name="n"/> × <paramref name="n"/> Bodenpunkte ab Punkt i0, j0 – null, wenn ringsum weder Fels noch Kies liegt.
+    /// Der Boden-Shader liest sie als Kanal A von Bild 2 (<see cref="FelsnaeheEintragen"/>), der Grasteppich und die Büschel rechnen mit ihr, damit auf
+    /// steinigem Boden keine vollen Halme stehen (Fels R5).
+    /// </summary>
+    internal static float[]? FelsnaeheRechnen(Bodenraster raster, int i0, int j0, int n)
+    {
         const int r = FelsnaeheRadius, rand = FelsnaeheReichweite;
-        var n = BodenBild + 2 * rand;
-        var g0 = raster.Splat(i0 - rand, j0 - rand, n, n, 0); // Gruppe 0: Wiese, Erde, Fels, Kies
-        var a = new float[n * n];
+        var m = n + 2 * rand;
+        var g0 = raster.Splat(i0 - rand, j0 - rand, m, m, 0); // Gruppe 0: Wiese, Erde, Fels, Kies
+        var a = new float[m * m];
         var irgendwo = false;
         for (var k = 0; k < a.Length; k++)
         {
             a[k] = Math.Max(g0[k * 4 + 2], 0.8f * g0[k * 4 + 3]) / 255f;
             irgendwo |= a[k] > 0;
         }
-        if (!irgendwo) return;
-        var b = new float[n * n];
+        if (!irgendwo) return null;
+        var b = new float[m * m];
         for (var durchgang = 0; durchgang < 2; durchgang++)
         {
-            Kasten(a, b, n, r, 1, n);   // waagerecht
-            Kasten(b, a, n, r, n, 1);   // senkrecht
+            Kasten(a, b, m, r, 1, m);   // waagerecht
+            Kasten(b, a, m, r, m, 1);   // senkrecht
         }
-        for (var j = 0; j < BodenBild; j++)
-            for (var i = 0; i < BodenBild; i++)
-                splat2[(j * BodenBild + i) * 4 + 3] = (byte)Math.Clamp((int)(a[(j + rand) * n + i + rand] * 2.2f * 255f + 0.5f), 0, 255);
+        var aus = new float[n * n];
+        for (var j = 0; j < n; j++)
+            for (var i = 0; i < n; i++)
+                aus[j * n + i] = Math.Min(1f, a[(j + rand) * m + i + rand] * 2.2f);
+        return aus;
 
         // gleitender Mittelwert über 2r + 1 Punkte entlang einer Richtung (schritt 1: Zeile, n: Spalte); am Rand wird mit 0 gerechnet
         static void Kasten(float[] von, float[] nach, int n, int r, int schritt, int quer)

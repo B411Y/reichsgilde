@@ -332,13 +332,6 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung | `--felsvergleich=1` am 02.11. abgebrochen: Rechner voll ausgelastet (Last 23–25, Blender und Messungen anderer), „GPU je Runde“ schwankte um bis zu 12 ms, selbst die Kulisse allein zeigte +10 ms – nicht belastbar. Erwartet aus dem Aufbau: wenige Rauschen mehr je Bildpunkt (Makro jetzt im Vertex-Shader), eine Abtastung für das Höhenbild, Fußteil nur am Fuß; Nachmessung bei ruhigem Rechner (spätestens R6) | 02.11.2026 |
 | Spiel wie Werkstatt | `boden_gestein_an` im Spiel erst mit Stücken oder gesetztem Grundgestein (vorher reichte ein leerer Abschnitt `felsen`) | 02.11.2026 |
 | Prüfung | zwei unabhängige Prüfer, kein hoher Befund; umgesetzt: Fuß kleiner Steine, Fußteil nur am Fuß, Makro im Vertex-Shader, Bänke dicker/dünner (Faktor 8), Risse früher aus, Grün nach Jahreszeit, Höhenbild Rh mit Vorrat und nur bei Geländeänderung neu, Textur beim Verlassen freigegeben | 02.11.2026 |
-### Baumodus: Stand im Umriss, Werkstatt-Bauplätze (PR #285)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Umriss | Rot/grün nach `Bauwesen.BauVerboten` (erst Bauherr: Stand, Handwerk, Geld; dann der Platz) statt nur `PlatzVerboten` – dieselbe Prüfung wie beim Klick, keine neue Kern-Abfrage | 02.11.2026 |
-| Werkstatt-Bauplatz | Gestrichelter Rand (0,7 m, 2 m je Strich, Eisen und hell im Wechsel) und ein flacher Amboss in der Mitte, Beschriftung mit „nur Werkstätten“; in `BauzoneZeichnen`, also auch in der Kartenwerkstatt. `Stadtansicht.BauzoneUnterMaus` für den Tooltip der Oberfläche | 02.11.2026 |
-
 ### Felswand-Satz aus einem Dichtefeld (Felsen R4, PR folgt)
 
 | Thema | Entscheidung | Datum |
