@@ -354,6 +354,7 @@ public partial class Stadtansicht
         foreach (var p in _entwurf.Pflanzen.ToList())
             if (rect.HasPoint(V2(p.Punkt))) PflanzeBauen(p, false);
         FelsenImBereich(rect); // Stadtansicht.Kartenwerkstatt.Felsen.cs
+        FelsGelaendeBereich(rect); // das Höhenbild unter den Felsen (Stadtansicht.Felsgelaende.cs)
         NaturBereichVormerken(rect.Grow(NaturUeberstand)); // die Natur der Flächen und die Äcker folgen dem Boden (Stadtansicht.Kartenwerkstatt.Natur.cs)
         _wsFehlerNeu = true; // die Hangsperre hat sich vielleicht geändert
         _wsGriffeNeu = true;

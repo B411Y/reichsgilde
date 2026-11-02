@@ -16,7 +16,8 @@ namespace Reichsgilde;
 /// (F8), also nur nah; weit herausgezoomt sind die Felsen klein und ohne.</item>
 /// <item><b>Material</b>: das Fels-Material aus F2 (<see cref="Gesteinsarten"/>) mit den gebackenen Atlanten und Vertexfarben der F1-Formen, eins je
 /// Gesteinsart für alle Stücke; dreiseitig nur auf Boden „Hoch“ (F8), sonst eine Richtung. Nässe und Schnee über <c>wetter.gdshaderinc</c>.
-/// Die Einsinktiefe in Metern geht als Instanzdaten (x) an den Shader: Er zeichnet dort, wo das Stück aus dem Boden kommt, einen Moossaum.</item>
+/// Die Einsinktiefe und die Höhe des Stücks in Metern gehen als Instanzdaten (x, y) an den Shader: Er zeichnet dort, wo das Stück aus dem Boden kommt,
+/// einen Moossaum und den Übergang zur Bodenfarbe (R1; die Höhe über dem Gelände liest er aus dem Höhenbild, Stadtansicht.Felsgelaende.cs).</item>
 /// <item><b>Werkstatt</b>: einzelne Stücke wählen (Strahl gegen den Kasten des Netzes, sonst die Grundfläche unter der Maus), ziehen, mit Q/E drehen und
 /// mit Entf löschen – der Kern rechnet (<see cref="Kartenentwurf.FelsVerschieben"/>, <see cref="Kartenentwurf.FelsDrehen"/>); beim Ziehen wandert nur
 /// die eine Instanz mit, bis Loslassen den Befehl gibt.</item>
@@ -149,6 +150,9 @@ public partial class Stadtansicht
     private static float FelsTiefe(in Felsbild b) =>
         (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.AchseY * b.Einsinken - b.Versatz);
 
+    /// <summary>Die Instanzdaten für den Shader: x Einsinktiefe (Moossaum, Ersatz ohne Höhenbild), y Höhe des Stücks in Metern (Breite des Übergangs am Fuß, R1).</summary>
+    private static Color FelsDaten(in Felsbild b) => new(FelsTiefe(b), (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab), 0, 0);
+
     private static (int I, int J) FelsZelleBei(double x, double z) => ((int)Math.Floor(x / FelsZelle), (int)Math.Floor(z / FelsZelle));
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -179,6 +183,7 @@ public partial class Stadtansicht
         _felsBilder[schluessel] = bild;
         _felsZelleVon[schluessel] = ort;
         _felsZellenNeu = true;
+        FelsGelaendeVormerken(); // reicht das Höhenbild noch (Stadtansicht.Felsgelaende.cs)?
     }
 
     /// <summary>Nimmt ein Stück weg (seine Zelle wird neu gebaut).</summary>
@@ -197,6 +202,7 @@ public partial class Stadtansicht
     /// <summary>Baut die vorgemerkten Zellen neu (jedes Bild gefragt; in der Werkstatt auch am Ende von <see cref="Nachziehen"/>).</summary>
     private void FelsenNachziehen()
     {
+        FelsGelaendeNachziehen(); // das Gelände unter den Felsen für den Fuß im Shader (Stadtansicht.Felsgelaende.cs)
         if (!_felsZellenNeu) return;
         _felsZellenNeu = false;
         foreach (var (ort, zelle) in _felsZellen.ToList())
@@ -247,7 +253,7 @@ public partial class Stadtansicht
             for (var i = 0; i < steine.Count; i++)
             {
                 vielfach.SetInstanceTransform(i, FelsLage(steine[i]));
-                vielfach.SetInstanceCustomData(i, new Color(FelsTiefe(steine[i]), 0, 0, 0));
+                vielfach.SetInstanceCustomData(i, FelsDaten(steine[i]));
             }
             var teil = new MultiMeshInstance3D
             {
@@ -269,7 +275,7 @@ public partial class Stadtansicht
                 var b = _felsBilder[stuecke[i]];
                 var lage = FelsLage(b);
                 vielfach.SetInstanceTransform(i, lage);
-                vielfach.SetInstanceCustomData(i, new Color(FelsTiefe(b), 0, 0, 0));
+                vielfach.SetInstanceCustomData(i, FelsDaten(b));
                 _felsLagen[stuecke[i]] = lage;
                 _felsInstanz[stuecke[i]] = (vielfach, i);
                 summe += lage.Origin;
@@ -330,7 +336,8 @@ public partial class Stadtansicht
     {
         if (_entwurf is not null) return;
         var grundKarte = Felsformen.IstGestein(karte.Felsen?.Grundgestein) ? karte.Felsen!.Grundgestein! : Felsformen.GrundgesteinVorgabe;
-        FelsbodenFarbe(grundKarte, karte.Felsen is not null); // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher
+        // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher – wie in der Werkstatt erst mit Stücken oder gesetztem Grundgestein
+        FelsbodenFarbe(grundKarte, karte.Felsen is { } fk && (fk.Stuecke is { Count: > 0 } || fk.Grundgestein is not null));
         if (karte.Felsen?.Stuecke is not { Count: > 0 } stuecke) return;
         var grund = grundKarte;
         for (var i = 0; i < stuecke.Count; i++)

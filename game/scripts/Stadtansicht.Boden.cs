@@ -162,7 +162,9 @@ public partial class Stadtansicht
         var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
         for (var gruppe = 0; gruppe < 3; gruppe++)
         {
-            var bild = Image.CreateFromData(BodenBild, BodenBild, false, Image.Format.Rgba8, raster.Splat(i0, j0, BodenBild, BodenBild, gruppe));
+            var daten = raster.Splat(i0, j0, BodenBild, BodenBild, gruppe);
+            if (gruppe == 2) FelsnaeheEintragen(raster, i0, j0, daten); // A ist frei: die Nähe zu Fels und Schutt (Stadtansicht.Felsboden.cs, Fels R1)
+            var bild = Image.CreateFromData(BodenBild, BodenBild, false, Image.Format.Rgba8, daten);
             if (eintrag.Bilder[gruppe] is { } alt) alt.Update(bild);
             else
             {
@@ -185,7 +187,7 @@ public partial class Stadtansicht
             return;
         }
         if (!_bodenGebaut) return;
-        var (i0, j0, i1, j1) = KachelBereich(bereich.Vergroessert(2));
+        var (i0, j0, i1, j1) = KachelBereich(bereich.Vergroessert(2 + FelsnaeheReichweite)); // die Felsnähe reicht über die Kachelkante
         var (a0, b0, a1, b1) = KachelBereich(_grenzen.Aussen);
         for (var j = Math.Max(j0, b0); j <= Math.Min(j1, b1); j++)
             for (var i = Math.Max(i0, a0); i <= Math.Min(i1, a1); i++)

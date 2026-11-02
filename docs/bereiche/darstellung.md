@@ -203,6 +203,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (F8) Freie Kamera nah auf Hoch kosten 313 Felsstücke weiter etwa +2,5 ms (Spielkamera +1,0 ms, im Ziel). Weitere Hebel, falls nötig: Grenze der feinen Stufe enger (45 → 30), Schuttsteine mit einer Abtastung statt dreiseitig, oder Fels-Shader ohne Wetter-Tropfen auf Hoch.
 - Blitzschlag: `BlitzUm(start)` (`Stadtansicht.Blitzbrand.cs`, genutzt in `Stadtansicht.Feuer.FlammenEnde`) sucht den Einschlag nur nach der Minute; ein Gaunerbrand, der in derselben Minute wie ein Blitz anderswo ausbricht, bekäme Dauer und Größe des Blitzfeuers. Kennung oder Betrieb mit vergleichen (Befund der Prüfung, selten).
 
+- (Fels R1) Gras und Büschel lesen nur das Wiesengewicht des Kerns: Auf der steinigen Felsnähe stehen weiter volle Halme. Bei Bedarf den Kanal A in `GrasKachelRechnen` mitlesen (nur mit `boden_gestein_an`).
+- (Fels R1) Die Felsnähe zählt jeden gemalten Fels und Kies, auch Kiesufer auf Karten mit Felsen (6 m steiniger Saum); ggf. nur Kies schwächer gewichten.
+- (Fels R1) `felsgrund` rechnet sein Rauschen von oben (`p.xz`); an sehr steilem Hang-Fels (über 60°) streckt es sich. Auf Hoch dreiseitig gewichten, falls es stört.
+- (Fels R1) Der Übergang am Fuß ist bei kleinen Stücken dezent; den größten Gewinn gegen „hingestellt“ bringen große Stücke (R4) und „Hang mitformen“ (R5).
+
 ## Entscheidungen
 
 ### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #284)
@@ -310,3 +315,16 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung (F8) | `--felsvergleich=1`, T400 frei (nvidia-smi ohne fremde Prozesse), Vulkan, 1600 × 900, Köln mit 313 Stücken in 81 Zellen samt Boden um den Fels, gemessen auf main ec36ff33 + dieser Branch; GPU-Median aus drei Runden, „Felsen“ gegen „ohne“. Spielkamera über dem Hang (Zoom 100): Hoch +1,0 ms bei 27,3 ms (3,6 %), Mittel +1,3 ms, Niedrig im Rauschen (−0,7). Freie Kamera nah: Hoch +2,4 ms, Mittel +2,3 ms, Niedrig +0,8 ms. Kulisse +0,1–0,6 ms. Die Bildzeit (45–65 ms) begrenzt hier die CPU unter Xvfb, nicht die Grafikkarte; die Bilder/s ändern sich mit der Spielkamera nicht messbar. Ziel „höchstens 5 % mit der Spielkamera“ erreicht | 02.11.2026 |
 | Schatten und Abtastung | Weil sich nah +2,4 ms auf Hoch bestätigten: Schatten nur noch Stufe 0 (statt 0 und 1), dreiseitige Abtastung nur auf Boden „Hoch“ (statt ab Mittel). Nachmessung: freie Kamera nah Mittel +1,2 ms (vorher +2,3), Hoch unverändert +2,5 ms (nah sind die Zellen ohnehin Stufe 0 und dreiseitig), Spielkamera Hoch +1,0 ms | 02.11.2026 |
 | Klicktest Werkstatt (Integration) | Gestempelter Fels malt Boden (Statuszeile „Boden: Fels/Kies“, nach dem Verschieben bleibt grauer Felsboden). Unter dem Stück deckt der Fels ihn zu, auf ebenem Grund sind Kiesring und Moos dezent – kein Fehler, aber leicht zu übersehen | 02.11.2026 |
+
+### Fels: Material und Übergang zum Boden (Fels R1, PR offen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bänder | in Weltlage über alle Stücke (kein Zufall je Stück mehr), Neigung und Richtung aus `gestein.json`, Dicke wellt sich über etwa 60 m; Klüfte fest in der Welt (17°) | 02.11.2026 |
+| Makrovariation | Wertrauschen 15 und 60 m auf Helligkeit (0,74–1,2) und Farbton; neue Felder `eisen`/`eisen_farbe` in `gestein.json` für rostige Bänke und Auswaschung unter den Fugen; dunkle Wasserstreifen auf steilen Flächen der Grundform | 02.11.2026 |
+| Moos | Polster nach der Grundform (nicht der Körnung), große Zonen und Klumpen statt Tarnflecken; oben, Absätze, Nordseite, Rinnen, Klüfte | 02.11.2026 |
+| Fuß | Höhenbild des Geländes unter den Felsen als globale Textur (`Stadtansicht.Felsgelaende.cs`, 2 m, Halbfloat Rh – Rf ist nicht überall linear filterbar –, Rechteck um alle Stücke + 30 m + 128 m Vorrat); im Shader eine Abtastung je Bildpunkt. Übergang 20 % der Stückhöhe (0,35–1 m, kleine Steine höchstens 30 %, `INSTANCE_CUSTOM.y`) zu Erde, Schutt und Moos mit Rauschen am Rand, dunkle Fuge am Boden. Kein Dither (Alpha-Hash bricht das frühe Tiefenverwerfen; die Farbmischung reicht) | 02.11.2026 |
+| Felsboden | Ursache der „Pflasterinseln“: die Fels-Textur des Bodens sind gleich große Platten, und jedes Stück malt seinen eigenen Fleck. Auf Karten mit Felsen zeichnet `felsgrund` den Fels im Boden aus Rauschen, Kieskörnung, kurzen Rissen und Schutt in Senken; die Felsnähe (Kanal A von Gewichtsbild 2, nur Darstellung) macht die Wiese zwischen nahen Flecken steinig. Der Kern bleibt unverändert | 02.11.2026 |
+| Leistung | `--felsvergleich=1` am 02.11. abgebrochen: Rechner voll ausgelastet (Last 23–25, Blender und Messungen anderer), „GPU je Runde“ schwankte um bis zu 12 ms, selbst die Kulisse allein zeigte +10 ms – nicht belastbar. Erwartet aus dem Aufbau: wenige Rauschen mehr je Bildpunkt (Makro jetzt im Vertex-Shader), eine Abtastung für das Höhenbild, Fußteil nur am Fuß; Nachmessung bei ruhigem Rechner (spätestens R6) | 02.11.2026 |
+| Spiel wie Werkstatt | `boden_gestein_an` im Spiel erst mit Stücken oder gesetztem Grundgestein (vorher reichte ein leerer Abschnitt `felsen`) | 02.11.2026 |
+| Prüfung | zwei unabhängige Prüfer, kein hoher Befund; umgesetzt: Fuß kleiner Steine, Fußteil nur am Fuß, Makro im Vertex-Shader, Bänke dicker/dünner (Faktor 8), Risse früher aus, Grün nach Jahreszeit, Höhenbild Rh mit Vorrat und nur bei Geländeänderung neu, Textur beim Verlassen freigegeben | 02.11.2026 |

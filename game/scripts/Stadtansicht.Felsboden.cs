@@ -12,6 +12,10 @@ namespace Reichsgilde;
 /// <item><b>Schuttsteine</b>: kleine Steine der Form „schuttbrocken“ im Kegel vor jedem Stück (<see cref="Felsboden.Schuttsteine"/>), mit dem
 /// Fels-Material des Stücks, ohne Schatten und nur nah (Stufe 0 und 1), nur wo Kies liegt; sie werden mit der Zelle ihres Stücks gebaut, in der
 /// Werkstatt auch nach jeder Änderung des Bodens darunter.</item>
+/// <item><b>Felsnähe</b> (Fels R1): Der Kern malt den Boden je Stück; nebeneinander standen so graue Inseln in der Wiese. In den freien Kanal A des
+/// dritten Gewichtsbilds jeder Kachel kommt darum die geglättete Menge von Fels und Kies ringsum (<see cref="FelsnaeheEintragen"/>, etwa 6 m weit).
+/// Der Boden-Shader macht daraus auf Karten mit Felsen eine steinige, magere Wiese mit Kies und Erde, die benachbarte Flecken zu einer Fläche
+/// verbindet und ihre Ränder ausfranst. Nur Darstellung: Das Bodenraster des Kerns bleibt, wie es ist.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -44,6 +48,59 @@ public partial class Stadtansicht
     {
         if (_entwurf is null) return;
         FelsbodenFarbe(_entwurf.Grundgestein.Wirksam, _entwurf.Felsen.Count > 0 || _entwurf.Grundgestein.Gestein is not null);
+    }
+
+    /// <summary>Radius (Rasterpunkte = Meter) der beiden Kastenfilter der Felsnähe; zusammen reichen sie doppelt so weit.</summary>
+    private const int FelsnaeheRadius = 3;
+
+    /// <summary>So weit (Meter) wirkt Fels oder Kies in die Felsnähe hinein.</summary>
+    private const int FelsnaeheReichweite = 2 * FelsnaeheRadius;
+
+    /// <summary>
+    /// Schreibt die Felsnähe in Kanal A von <paramref name="splat2"/> (Bild der Gruppe 2 ab Punkt i0, j0, <see cref="BodenBild"/> Punkte je Seite):
+    /// Fels und Kies (Kies zu 80 %) ringsum, zweimal mit einem Kastenfilter geglättet (fast eine Glocke) und verstärkt – mitten in einem Fleck 1,
+    /// zwischen zwei Flecken wenige Meter auseinander noch deutlich, weit weg 0.
+    /// </summary>
+    private static void FelsnaeheEintragen(Bodenraster raster, int i0, int j0, byte[] splat2)
+    {
+        const int r = FelsnaeheRadius, rand = FelsnaeheReichweite;
+        var n = BodenBild + 2 * rand;
+        var g0 = raster.Splat(i0 - rand, j0 - rand, n, n, 0); // Gruppe 0: Wiese, Erde, Fels, Kies
+        var a = new float[n * n];
+        var irgendwo = false;
+        for (var k = 0; k < a.Length; k++)
+        {
+            a[k] = Math.Max(g0[k * 4 + 2], 0.8f * g0[k * 4 + 3]) / 255f;
+            irgendwo |= a[k] > 0;
+        }
+        if (!irgendwo) return;
+        var b = new float[n * n];
+        for (var durchgang = 0; durchgang < 2; durchgang++)
+        {
+            Kasten(a, b, n, r, 1, n);   // waagerecht
+            Kasten(b, a, n, r, n, 1);   // senkrecht
+        }
+        for (var j = 0; j < BodenBild; j++)
+            for (var i = 0; i < BodenBild; i++)
+                splat2[(j * BodenBild + i) * 4 + 3] = (byte)Math.Clamp((int)(a[(j + rand) * n + i + rand] * 2.2f * 255f + 0.5f), 0, 255);
+
+        // gleitender Mittelwert über 2r + 1 Punkte entlang einer Richtung (schritt 1: Zeile, n: Spalte); am Rand wird mit 0 gerechnet
+        static void Kasten(float[] von, float[] nach, int n, int r, int schritt, int quer)
+        {
+            var f = 1f / (2 * r + 1);
+            for (var q = 0; q < n; q++)
+            {
+                var start = q * quer;
+                var summe = 0f;
+                for (var k = 0; k <= r && k < n; k++) summe += von[start + k * schritt];
+                for (var k = 0; k < n; k++)
+                {
+                    nach[start + k * schritt] = summe * f;
+                    if (k + r + 1 < n) summe += von[start + (k + r + 1) * schritt];
+                    if (k - r >= 0) summe -= von[start + (k - r) * schritt];
+                }
+            }
+        }
     }
 
     /// <summary>Die Schuttsteine eines Stücks als Bilder (Form „schuttbrocken“, Gestein des Stücks); leer ohne Höhenraster.</summary>

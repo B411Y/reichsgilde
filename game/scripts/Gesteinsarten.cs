@@ -9,7 +9,7 @@ namespace Reichsgilde;
 public sealed record Gestein(
     string Kennung, string Name, Color Hell, Color Dunkel, float BandWinkel, float BandRichtung, float BandDicke, float BandKontrast,
     float Fuge, float KluftAbstand, float Kantenrundung, float Rauheit, float Moos, float Flechten, Color FlechteFarbe, float Efeu,
-    Color SchuttFarbe, string[] Formen);
+    Color SchuttFarbe, string[] Formen, float Eisen = 0f, Color EisenFarbe = default);
 
 /// <summary>
 /// Das Fels-Material (Felspinsel F2): liest die Gesteinsvorlagen aus <c>res://daten/gestein.json</c> und baut daraus <see cref="ShaderMaterial"/>
@@ -58,7 +58,8 @@ public static class Gesteinsarten
                 Text("kennung"), Text("name"), Farbe("farbe_hell"), Farbe("farbe_dunkel"), Zahl("band_winkel"), Zahl("band_richtung"),
                 Math.Max(0.05f, Zahl("band_dicke")), Zahl("band_kontrast"), Zahl("fuge"), Zahl("kluft_abstand"), Zahl("kantenrundung"), Zahl("rauheit"),
                 Zahl("moos"), Zahl("flechten"), Farbe("flechte_farbe"), Zahl("efeu"), Farbe("schutt_farbe"),
-                d.ContainsKey("formen") ? d["formen"].AsGodotArray().Select(f => f.AsString()).ToArray() : Array.Empty<string>()));
+                d.ContainsKey("formen") ? d["formen"].AsGodotArray().Select(f => f.AsString()).ToArray() : Array.Empty<string>(),
+                Zahl("eisen"), d.ContainsKey("eisen_farbe") ? Farbe("eisen_farbe") : new Color(0.62f, 0.36f, 0.2f)));
         }
         if (liste.Count == 0)
         {
@@ -129,6 +130,8 @@ public static class Gesteinsarten
         m.SetShaderParameter("flechten", g.Flechten);
         m.SetShaderParameter("flechte_farbe", g.FlechteFarbe);
         m.SetShaderParameter("efeu", g.Efeu);
+        m.SetShaderParameter("eisen", g.Eisen);
+        m.SetShaderParameter("eisen_farbe", g.EisenFarbe);
         m.SetShaderParameter("moos_farbe", GemeinsameFarbe("moos_farbe", new Color(0.31f, 0.36f, 0.13f)));
         m.SetShaderParameter("moos_trocken", GemeinsameFarbe("moos_farbe_trocken", new Color(0.44f, 0.42f, 0.17f)));
         m.SetShaderParameter("flechte_hell", GemeinsameFarbe("flechte_hell", new Color(0.79f, 0.78f, 0.74f)));
