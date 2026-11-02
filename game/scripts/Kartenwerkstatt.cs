@@ -779,7 +779,7 @@ public partial class Kartenwerkstatt : Node
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
             // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · stempel:<vorlage>,x,z[,drehung] ·
-            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
+            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
             if (o.TryGetValue("werkstatt-fels", out var felsen))
                 foreach (var eintrag in felsen.Split('|', StringSplitOptions.RemoveEmptyEntries)) FelsBefehl(eintrag);
@@ -916,8 +916,30 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattFelsStreuen(Felspinsel.Radiergummi(Zahl(t[0]), _stadt.FelsFilter), Liste("-," + t[1]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
                 break;
             }
+            case "lage": // lage:<nr>,<feld>=<wert>,… – Werte eines Stücks setzen (Fels-Plan R2, Kartenentwurf.FelsTransformieren), Nummer ab 0
+            {
+                var t = rest.Split(',');
+                var nr = (int)Zahl(t[0]);
+                if (nr < 0 || nr >= _entwurf.Felsen.Count) throw new ArgumentException($"lage:{nr} – es gibt {_entwurf.Felsen.Count} Felsstücke (Nummer ab 0).");
+                var w = new Felswerte();
+                foreach (var feld in t.Skip(1))
+                {
+                    if (!feld.Contains('=')) throw new ArgumentException($"lage: „{feld}“ – jedes Feld als <feld>=<wert>.");
+                    var (name, wert) = (feld.Split('=')[0], Zahl(feld.Split('=')[1]));
+                    w = name switch
+                    {
+                        "x" => w with { X = wert }, "z" => w with { Z = wert }, "versatz" => w with { Versatz = wert }, "drehung" => w with { Drehung = wert },
+                        "kippen" => w with { Kippen = wert }, "rollen" => w with { Rollen = wert }, "massstab" => w with { Massstab = wert },
+                        "ax" => w with { AchseX = wert }, "ay" => w with { AchseY = wert }, "az" => w with { AchseZ = wert },
+                        "neigung" => w with { Neigung = wert }, "einsinken" => w with { Einsinken = wert },
+                        _ => throw new ArgumentException($"lage: unbekanntes Feld „{name}“ (x, z, versatz, drehung, kippen, rollen, massstab, ax, ay, az, neigung, einsinken)."),
+                    };
+                }
+                _entwurf.FelsTransformieren(new[] { _entwurf.Felsen[nr] }, w);
+                break;
+            }
             default:
-                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, stempel, streuen, radierer).");
+                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, stempel, streuen, radierer, lage).");
         }
     }
 

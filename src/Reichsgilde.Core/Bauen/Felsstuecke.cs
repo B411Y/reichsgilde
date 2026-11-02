@@ -14,11 +14,16 @@ namespace Reichsgilde.Core.Bauen;
 //  Datei (Feld „felsen“, freiwillig): { "grundgestein": "grauwacke", "stuecke": [ { "form": "wand", "punkt": [x, z], "drehung": 12.5,
 //  "massstab": 1.1, "neigung": 0.5, "einsinken": 0.3, "kippen": [2.1, -3.4] }, … ] } – „gestein“ nur, wenn ein Stück vom Grundgestein abweicht,
 //  „kippen“ nur, wenn es nicht 0 ist. Ohne Stücke und ohne Grundgestein fällt „felsen“ weg: alte Karten bleiben Byte für Byte gleich.
+//  Seit R2 (Fels-Plan, 02.11.2026) dazu, beide nur, wenn sie nicht der Vorgabe entsprechen: „achsen“ [sx, sy, sz] – die Größe je Achse als
+//  Faktoren auf „massstab“ (Breite, Höhe, Tiefe; je 0,25 … 4, auf 0,01) – und „versatz“, die Höhe in Metern über der Lage aus dem Boden
+//  (± 20 m, auf 5 cm). „kippen“ [x, z] reicht jetzt von −180 bis 180° (vorher ±8°): x ist das Kippen (Pitch), z das Rollen (Roll).
+//  Zusammen mit „drehung“ (Gieren, um die Senkrechte) sind das volle Euler-Winkel in der Reihenfolge Y · X · Z (Bauen/Felsraum.cs).
 //
 //  Lage im Raum (für die Darstellung, F5): Das Modell hat seinen Ursprung in der Mitte der Grundfläche, y = 0 ist die Unterkante, die Schauseite
 //  zeigt nach +Z. Gedreht wird um die Senkrechte wie Gebäude und Pflanzen (Kartengeometrie.Dreh). „neigung“ (0 … 1) ist der Anteil, um den sich
-//  das Stück zur Hangnormalen neigt (0 = steht senkrecht, 1 = liegt ganz am Hang an); „kippen“ sind zwei kleine Winkel in Grad um die eigene x-
-//  und z-Achse; „einsinken“ (0 … 0,9) ist der Anteil der Höhe, um den das Stück unter den Boden reicht (Höhe des Bodens unter der Mitte).
+//  das Stück zur Hangnormalen neigt (0 = steht senkrecht, 1 = liegt ganz am Hang an); „kippen“ sind zwei Winkel in Grad um die eigene x-
+//  und z-Achse; „einsinken“ (0 … 0,9) ist der Anteil der Höhe, um den das Stück unter den Boden reicht (Höhe des Bodens unter der Mitte);
+//  „versatz“ hebt (oder senkt) es danach senkrecht. Die ganze Lage im Raum rechnet Felsraum (für die Werkstatt und die Darstellung gleich).
 //
 //  Der Streu-Pinsel und der Stempel (Felsstreuung): gleicher Strich, gleicher Startwert, gleiche Karte – gleiche Stücke, auf jedem Rechner. Darum
 //  Zufall nur aus der Zufallsquelle des Strichs, Winkel nur über DetMathe, alle Werte gerundet wie in der Datei (5 cm, 0,1°, 0,01).
@@ -47,9 +52,17 @@ public sealed class Felsstueck
     /// <summary>Anteil der Höhe unter dem Boden (0 … 0,9).</summary>
     public double Einsinken { get; init; } = Felsformen.EinsinkenVorgabe;
 
-    /// <summary>Kippen um die eigene x- und z-Achse in Grad – null: gerade.</summary>
+    /// <summary>Kippen (x) und Rollen (z) um die eigenen Achsen in Grad (−180 … 180) – null: gerade.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double[]? Kippen { get; init; }
+
+    /// <summary>Größe je Achse [Breite, Höhe, Tiefe] als Faktoren auf <see cref="Massstab"/> (0,25 … 4) – null: gleichmäßig (R2).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Achsen { get; init; }
+
+    /// <summary>Höhenversatz in Metern (± 20) über der Lage aus Boden und Einsinken – 0 fehlt in der Datei (R2).</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Versatz { get; init; }
 }
 
 /// <summary>Die Felsen der Karte: Grundgestein (null: Vorgabe <see cref="Felsformen.GrundgesteinVorgabe"/>) und die Stücke.</summary>
@@ -87,8 +100,17 @@ public static class Felsformen
     /// <summary>Höchstens so viel der Höhe darf ein Stück einsinken.</summary>
     public const double EinsinkenMax = 0.9;
 
-    /// <summary>So weit kippt ein Stück höchstens zufällig um seine Achsen (Grad, Plan: ±8°).</summary>
+    /// <summary>So weit kippt ein Stück zufällig um seine Achsen, wenn der Pinsel keinen Bereich nennt (Grad, Plan: ±8°).</summary>
     public const double KippenMax = 8;
+
+    /// <summary>Grenze für Kippen und Rollen in der Datei (Grad, −180 … 180; R2).</summary>
+    public const double KippenGrenze = 180;
+
+    /// <summary>Kleinster und größter Faktor je Achse („achsen“, R2).</summary>
+    public const double AchseMin = 0.25, AchseMax = 4;
+
+    /// <summary>Größter Höhenversatz nach oben wie nach unten (Meter, „versatz“, R2).</summary>
+    public const double VersatzMax = 20;
 
     /// <summary>Kleinster und größter Maßstab eines Stücks.</summary>
     public const double MassstabMin = 0.25, MassstabMax = 4;

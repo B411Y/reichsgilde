@@ -845,7 +845,7 @@ public static class Kartenpruefung
 
         /// <summary>
         /// Felsstücke (Felspinsel F3): Sie sperren nichts (Nutzer 01.11.2026), darum nur Hinweise – eine unbekannte Form oder Gesteinsart (das
-        /// Spiel zeichnet sie dann nicht bzw. im Grundgestein) und Stücke außerhalb der Karte.
+        /// Spiel zeichnet sie dann nicht bzw. im Grundgestein), Werte außerhalb ihrer Grenzen (auch Kippen, Achsen, Versatz; R2) und Stücke außerhalb der Karte.
         /// </summary>
         private void Felsen()
         {
@@ -860,6 +860,13 @@ public static class Kartenpruefung
                     || f.Neigung < 0 || f.Neigung > 1 || f.Drehung < 0 || f.Drehung >= 360)
                     HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Maßstab {M(f.Massstab)} (0,25–4), Einsinken {M(f.Einsinken)} (0–0,9), Neigung {M(f.Neigung)} (0–1) " +
                                       $"oder Drehung {M(f.Drehung)} (0–360) liegt außerhalb der Grenzen.", f.Punkt, new[] { f });
+                // R2: Kippen und Rollen −180 … 180°, Achsen 0,25 … 4, Versatz ± 20 m
+                if (Math.Abs(f.KippenX) > Felsformen.KippenGrenze || Math.Abs(f.KippenZ) > Felsformen.KippenGrenze)
+                    HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Kippen {M(f.KippenX)} oder Rollen {M(f.KippenZ)} liegt außerhalb von −180 bis 180°.", f.Punkt, new[] { f });
+                if (new[] { f.AchseX, f.AchseY, f.AchseZ }.Any(a => a < Felsformen.AchseMin || a > Felsformen.AchseMax))
+                    HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Achsen {M(f.AchseX)} × {M(f.AchseY)} × {M(f.AchseZ)} – jede gehört zwischen 0,25 und 4.", f.Punkt, new[] { f });
+                if (Math.Abs(f.Versatz) > Felsformen.VersatzMax)
+                    HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Versatz {M(f.Versatz)} m liegt außerhalb von ±20 m.", f.Punkt, new[] { f });
                 if (!_grenzen.InDerKarte(f.X, f.Z)) HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt} liegt außerhalb der Karte.", f.Punkt, new[] { f });
             }
         }

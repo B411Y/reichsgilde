@@ -200,7 +200,8 @@ public partial class Stadtansicht
             }
             var mi = kinder[i];
             mi.Mesh = FelsNetz(l.Form, 1);
-            mi.Transform = FelsLage(new Felsbild(l.Form, "", l.X, l.Z, l.Drehung, l.Massstab, l.Neigung, l.Einsinken, l.KippenX, l.KippenZ));
+            mi.Transform = FelsLage(new Felsbild(l.Form, "", l.X, l.Z, l.Drehung, l.Massstab, l.Neigung, l.Einsinken, l.KippenX, l.KippenZ,
+                l.AchseX, l.AchseY, l.AchseZ, l.Versatz));
             mi.Visible = mi.Mesh is not null;
         }
     }

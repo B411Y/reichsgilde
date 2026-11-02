@@ -26,7 +26,7 @@ public partial class Stadtansicht
 {
     /// <summary>Ein Felsstück, wie es gezeichnet wird (aus der Karte oder dem Entwurf), mit der Gesteinsart, die gilt.</summary>
     private readonly record struct Felsbild(string Form, string Gestein, double X, double Z, double Drehung, double Massstab, double Neigung,
-        double Einsinken, double KippenX, double KippenZ);
+        double Einsinken, double KippenX, double KippenZ, double AchseX = 1, double AchseY = 1, double AchseZ = 1, double Versatz = 0);
 
     private const string FelsModell = "natur/natur_felsen";
 
@@ -115,12 +115,14 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Lage eines Stücks in der Welt: Drehung um die Senkrechte, geneigt zur Hangnormalen (Anteil Neigung), gekippt um die eigenen Achsen, um
-    /// Einsinken seiner Höhe unter den Boden unter der Mitte gesenkt, gleichmäßig skaliert. Die Hangnormale rechnet der Kern aus dem Höhenraster.
+    /// Die Lage eines Stücks in der Welt: Drehung um die Senkrechte, geneigt zur Hangnormalen (Anteil Neigung), gekippt und gerollt um die eigenen
+    /// Achsen (volle Euler-Winkel Y · X · Z, R2), um Einsinken seiner Höhe unter den Boden unter der Mitte gesenkt und um den Versatz gehoben,
+    /// skaliert mit Maßstab mal Achse (in den Achsen des Stücks). Die Hangnormale rechnet der Kern aus dem Höhenraster; dieselbe Lage beschreibt
+    /// Felsraum.Rahmen im Kern.
     /// </summary>
     private Transform3D FelsLage(in Felsbild b)
     {
-        var hoehe = (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab);
+        var hoehe = (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.AchseY);
         var oben = Vector3.Up;
         if (b.Neigung > 0 && (_entwurf?.Hoehen ?? _gelaende?.Roh) is { } raster)
         {
@@ -136,11 +138,16 @@ public partial class Stadtansicht
             basis = new Basis(achse, Vector3.Up.AngleTo(oben)) * basis;
         }
         var boden = BodenHoehe((float)b.X, (float)b.Z);
-        return new Transform3D(basis.Scaled(Vector3.One * (float)b.Massstab), new Vector3((float)b.X, boden - (float)b.Einsinken * hoehe, (float)b.Z));
+        var groesse = new Vector3((float)b.AchseX, (float)b.AchseY, (float)b.AchseZ) * (float)b.Massstab;
+        return new Transform3D(basis * Basis.FromScale(groesse), new Vector3((float)b.X, boden - (float)b.Einsinken * hoehe + (float)b.Versatz, (float)b.Z));
     }
 
-    /// <summary>Wie tief das Stück im Boden steckt (Meter) – für den Moossaum im Shader.</summary>
-    private static float FelsTiefe(in Felsbild b) => (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.Einsinken);
+    /// <summary>
+    /// Wie tief das Stück im Boden steckt (Meter: der Boden liegt so weit über dem Ursprung) – für den Moossaum im Shader. Ein um mehr als die
+    /// Einsinktiefe gehobenes Stück schwebt: dann negativ, der Saum beginnt am Boden darunter.
+    /// </summary>
+    private static float FelsTiefe(in Felsbild b) =>
+        (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.AchseY * b.Einsinken - b.Versatz);
 
     private static (int I, int J) FelsZelleBei(double x, double z) => ((int)Math.Floor(x / FelsZelle), (int)Math.Floor(z / FelsZelle));
 
@@ -332,7 +339,8 @@ public partial class Stadtansicht
             if (s?.Punkt is not { Length: 2 } p || Felsformen.Finde(s.Form) is null) continue;
             var gestein = Felsformen.IstGestein(s.Gestein) ? s.Gestein! : grund;
             FelsSetzen(i, new Felsbild(s.Form, gestein, p[0], p[1], s.Drehung, s.Massstab, s.Neigung, s.Einsinken,
-                s.Kippen is { Length: 2 } k ? k[0] : 0, s.Kippen is { Length: 2 } k2 ? k2[1] : 0));
+                s.Kippen is { Length: 2 } k ? k[0] : 0, s.Kippen is { Length: 2 } k2 ? k2[1] : 0,
+                s.Achsen is { Length: 3 } a ? a[0] : 1, s.Achsen is { Length: 3 } a2 ? a2[1] : 1, s.Achsen is { Length: 3 } a3 ? a3[2] : 1, s.Versatz));
         }
         FelsenNachziehen();
     }
@@ -342,7 +350,8 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     private Felsbild FelsBildVon(EntwurfFels f, double? x = null, double? z = null) =>
-        new(f.Form, _entwurf!.GesteinVon(f), x ?? f.X, z ?? f.Z, f.Drehung, f.Massstab, f.Neigung, f.Einsinken, f.KippenX, f.KippenZ);
+        new(f.Form, _entwurf!.GesteinVon(f), x ?? f.X, z ?? f.Z, f.Drehung, f.Massstab, f.Neigung, f.Einsinken, f.KippenX, f.KippenZ,
+            f.AchseX, f.AchseY, f.AchseZ, f.Versatz);
 
     /// <summary>Beim Aufbau der Werkstatt: alle Stücke des Entwurfs.</summary>
     private void FelsenAufbauen()
@@ -403,7 +412,7 @@ public partial class Stadtansicht
             };
             AddChild(_felsMarke);
         }
-        var radius = Mathf.Max(0.8f, (float)(Math.Max(form.Breite, form.Tiefe) / 2 * f.Massstab));
+        var radius = Mathf.Max(0.8f, (float)(Math.Max(form.Breite * f.AchseX, form.Tiefe * f.AchseZ) / 2 * f.Massstab));
         if (_felsMarke.Mesh is not TorusMesh ring || !Mathf.IsEqualApprox(ring.InnerRadius, radius))
             _felsMarke.Mesh = new TorusMesh { InnerRadius = radius, OuterRadius = radius + 0.3f, Rings = 32 };
         var (x, z) = ((float)f.X + (versatz?.X ?? 0), (float)f.Z + (versatz?.Y ?? 0));

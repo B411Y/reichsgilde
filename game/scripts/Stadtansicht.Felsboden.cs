@@ -51,7 +51,7 @@ public partial class Stadtansicht
     {
         var aus = new List<Felsbild>();
         if ((_entwurf?.Hoehen ?? _gelaende?.Roh) is not { } raster) return aus;
-        foreach (var s in Felsboden.Schuttsteine(new Felsfuss(b.Form, b.X, b.Z, b.Drehung, b.Massstab), raster, BodenRaster ?? LeererBoden))
+        foreach (var s in Felsboden.Schuttsteine(new Felsfuss(b.Form, b.X, b.Z, b.Drehung, b.Massstab, b.AchseX, b.AchseY, b.AchseZ), raster, BodenRaster ?? LeererBoden))
             aus.Add(new Felsbild(Felsboden.Schuttform, b.Gestein, s.X, s.Z, s.Drehung, s.Massstab, 0.6, 0.3, 0, 0));
         return aus;
     }
