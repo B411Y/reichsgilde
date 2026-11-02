@@ -2071,22 +2071,38 @@ Entscheidung des Nutzers vom 31.10.2026 (Weg B): Ein Spieltag bleibt ein Jahr, d
 
 | Jahreszeit | Nachfrage | Angebot (Ernte) | Arbeit | Wege |
 |---|---|---|---|---|
-| Frühling | Festmarkt 10–16 Uhr: Fertigwaren ×1,2 | – | – | Trampelpfad ×1,3, Fahrweg ×1,2; Umland fest ×1,15 |
+| Frühling | Festmarkt 10–16 Uhr: Fertigwaren ×1,2 (ohne Ausschank) | – | – | Trampelpfad ×1,3, Fahrweg ×1,2; Umland fest ×1,15 |
 | Sommer | – | – | – | – |
-| Herbst | Festmarkt 10–16 Uhr: Fertigwaren ×1,2 | Gerste, Roggen ×1,25; Kräuter ×1,2 | Bauernhof 1,2; Kräutergarten 1,15 | – |
+| Herbst | Festmarkt 10–16 Uhr: Fertigwaren ×1,2 (ohne Ausschank) | Gerste, Roggen ×1,25; Kräuter ×1,2 | Bauernhof 1,2; Kräutergarten 1,15 | – |
 | Winter | Holz 1,4; Kerze, Kräuterschnaps 1,25; Heilsalbe 1,15; Kräuterlikör, Weingeist 1,1 – streng: Zuschlag ×1,5 (Holz 1,6) | – | Holzschlag 0,85; Steinbruch, Bauernhof 0,8; Kräuter-, Duftgarten 0,75 | streng: Fähre 120 statt 30 min, solange der Fluss zu ist |
 
 **Strenger Winter.** Kälte k je Winter aus `Zufallsquelle(Mischen(startwert, jahr))`; streng ab k ≥ 0,7 (Chance 0,3). Zufrieren um 7 + (Wurf mod 4) Uhr, Dauer 6 + round((k − 0,7)/0,3 × 8) Stunden, höchstens bis 23 Uhr. Im Eis lehnt der Hafen Aufträge ab, jedes Schiff außerhalb des Kais ruht (Beginn und Ende + 1 je Minute). Festmärkte: Wirtshausgäste ×1,3, Besucher ×1,6 (nur Darstellung).
 
-**Messung** (`messen jahreszeiten 20 20`, Greybox und Köln, je 20 Startwerte, Spieler mit einem Betrieb von der KI geführt, alle KI-Häuser der Karte; gemessen auf main ec36ff33 + Schänken-Branch 2b086d90 + dieser Branch e2ae4368; Vergleich `--ohne-jahreszeiten` auf 9dfd5f9b = Stand der Schänken). Reinvermögen im Jahr 20 (Mittel, ± Fehler des Mittels):
+**Festmarkt (Daten).** `festmaerkte[].typen = ["Fertigprodukt", "Heilmittel"]` (die „Fertigwaren“ des Markt-Reiters; leer = alle Waren, wie Daten ohne das Feld). Die Speisen und Getränke der Wirtshäuser (`gastwirtschaft.ausschank`) steigen nicht, solange der Markt mehr Gäste bringt (`gaeste` > 0): Die Mehrnachfrage steckt in den Gästen.
+
+**Messung** (`messen jahreszeiten 20 20`, Greybox und Köln, je 20 Startwerte, alle KI-Häuser der Karte; Spieler mit einem Betrieb von der KI geführt als Schmied und als Wirt, dazu der ausbauende Spieler „Ausbau“ = Schmied mit dem Profil der KI-Häuser). Gemessen auf main 4220c631 + Schänken-Branch fe06dc26 + dieser Branch 10c99cec; Vergleich `--ohne-jahreszeiten` auf demselben Stand (= Schänken wie main). Reinvermögen im Jahr 20 (Mittel, ± Fehler des Mittels):
 
 | Karte, Spieler | Spieler ohne | Spieler mit | KI-Häuser ohne | KI-Häuser mit | Bürger im Ziel ohne / mit | bankrott |
 |---|---|---|---|---|---|---|
-| Greybox, Schmied | 34.676 ± 1.563 | 35.847 ± 1.586 (+3 %) | 75.941 | 72.763 (−4 %) | 19/20 / 19/20 | 0 / 0 |
-| Greybox, Wirt | 37.984 ± 1.460 | 34.172 ± 1.966 (−10 %) | 76.269 | 74.425 (−2 %) | 14/20 / 18/20 | 0 / 0 |
-| Köln, Schmied | 32.109 ± 1.892 | 34.097 ± 2.180 (+6 %) | 66.416 | 68.550 (+3 %) | 19/20 / 20/20 | 0 / 0 |
-| Köln, Wirt | 33.406 ± 1.931 | 27.438 ± 2.072 (−18 %) | 68.967 | 66.713 (−3 %) | 14/20 / 15/20 | 0 / 0 |
+| Greybox, Schmied | 35.765 ± 1.559 | 37.832 ± 1.670 (+6 %) | 75.825 | 77.977 (+3 %) | 19 / 16 | 0 / 0 |
+| Greybox, Wirt | 37.379 ± 2.177 | 35.790 ± 1.855 (−4 %) | 77.197 | 75.680 (−2 %) | 17 / 13 | 0 / 0 |
+| Greybox, Ausbau | 62.268 ± 2.434 | 67.025 ± 4.097 (+8 %) | 74.507 | 75.088 (+1 %) | 10 / 7 | 0 / 0 |
+| Köln, Schmied | 31.780 ± 1.846 | 33.733 ± 1.265 (+6 %) | 64.628 | 68.858 (+7 %) | 19 / 18 | 0 / 0 |
+| Köln, Wirt | 33.640 ± 1.875 | 26.443 ± 1.273 (−21 %) | 68.113 | 69.983 (+3 %) | 17 / 15 | 0 / 0 |
+| Köln, Ausbau | 56.503 ± 3.987 | 59.965 ± 4.200 (+6 %) | 65.793 | 69.024 (+5 %) | 10 / 10 | 0 / 0 |
 
-Preise je Jahreszeit (Preis ÷ Grundpreis, Mittel der vollen Stunden, Greybox Schmied; Köln ähnlich): Holz F/S/H/W 0,94/0,89/0,90/1,04 (ohne 0,90/0,89/0,88/0,86, also Winter +21 %), Kerze 1,34/1,30/1,34/1,46 (ohne 1,30–1,32), Gerste 1,07/1,03/0,95/1,02 (ohne 1,03–1,01: Herbst −7 %), alle Waren 1,18/1,14/1,17/1,15 (ohne 1,14–1,15; Frühling und Herbst +3 % durch den Festmarkt). Der Fluss fror in 26 von 100 Wintern zu, im Mittel 10,2 Stunden. Der Umsatz je Jahreszeit steigt mit den Jahren (die Winter liegen im Zyklus später) – Vergleich nur zwischen ohne und mit derselben Spalte: Spieler-Schmied Greybox Frühling 11.307 statt 8.591, Winter 13.424 statt 12.218.
+Preise je Jahreszeit (Preis ÷ Grundpreis, Mittel der vollen Stunden, Greybox Schmied; Köln ähnlich): Holz F/S/H/W 0,91/0,90/0,88/1,04 (ohne 0,90/0,89/0,88/0,86, also Winter +21 %), Kerze 1,33/1,30/1,34/1,46 (ohne 1,30–1,32), Gerste 1,04/1,03/0,93/1,03 (ohne 1,02–1,03: Herbst −9 %), alle Waren 1,17/1,14/1,16/1,15 (ohne 1,14). Der Fluss fror in 26 von 100 Wintern zu, im Mittel 10,2 Stunden. Der Umsatz je Jahreszeit steigt mit den Jahren (die Winter liegen im Zyklus später) – Vergleich nur zwischen ohne und mit derselben Spalte: Spieler-Schmied Greybox Frühling 10.731 statt 8.256, Winter 12.902 statt 11.557.
 
-**Befund Wirt.** Der Wirt mit einem Betrieb verliert mit den Jahreszeiten 10 % (Greybox, knapp über dem Rauschen) bzw. 18 % (Köln, rund dreifacher Fehler des Mittels), der Schmied gewinnt 3–6 %, die KI-Häuser liegen bei −4 bis +3 %. Ohne den Wintervorrat der KI (`--ohne-vorrat`, nur Köln) liegt der Wirt bei 28.950 ± 1.337 – der Vorrat ist also nicht die Ursache; die KI-Häuser dort 70.381 (mit Vorrat 66.713, ohne Jahreszeiten 68.967; im Rauschen). Die Ursache ist noch nicht zerlegt (Kandidaten: Festmarkt füllt die Sitzplätze, der Gast bleibt ohne Platz; Schlamm verlängert die Fahrten der Schänke im ersten Jahr). Offen in `docs/bereiche/kern.md`.
+**Befund Wirt und Zerlegung.** Mit dem Festmarkt für alle Waren verlor der Wirt 10 % (Greybox) bzw. 18 % (Köln). Zerlegung (`--ohne-folge`, je eine Folge aus, sonst alles; Stand vor der Typgrenze, main 4220c631 + Schänken 2b086d90 + 7eccc4ec), Wirt J20 gegen ohne Jahreszeiten (37.984 / 33.406; Fehler des Mittels je Lauf 1.300–2.100, also etwa ± 6–8 % auf eine Differenz):
+
+| Lauf | Greybox | Köln |
+|---|---|---|
+| alle Folgen | 34.172 (−10 %) | 27.438 (−18 %) |
+| ohne Festmarkt | 37.333 (−2 %) | 31.822 (−5 %) |
+| ohne Schlamm | 32.861 (−13 %) | 30.705 (−8 %) |
+| ohne Winterarbeit | 34.164 (−10 %) | 30.126 (−10 %) |
+| ohne strengen Winter (Eis) | 34.868 (−8 %) | 32.865 (−2 %) |
+| ohne Ernte | 32.708 (−14 %) | 29.931 (−10 %) |
+| ohne Winternachfrage | 32.100 (−15 %) | 31.483 (−6 %) |
+
+Eindeutig ist nur der Festmarkt. Auf dem Schänken-Stand fe06dc26 (nur Wirt, gegen 37.379 / 33.640): Nachfrage nur Fertigprodukt −14 / −18 %, Fertigwaren mit Heilmittel −19 / −16 %, Festmarkt ohne Nachfragezuschlag −3 / −12 %, ganz ohne Festmarkt-Folgen −2 / −9 %, ohne Gästezuschlag −12 / −11 %. In der Greybox verteuerte also der Zuschlag auf Bier und Mahlzeit den Wirt, der zu festen Preisen ausschenkt – daher die Ausnahme für den Ausschank (Greybox jetzt −4 %). **Köln bleibt bei −21 %** (in den Proben −9 bis −21 %): Der Umsatz des Wirts ist mit Jahreszeiten gleich oder höher (8.032/8.717/9.527/10.504 gegen 8.143/8.738/9.186/9.996), der Verlust liegt also bei den Kosten. Keine einzelne Folge erklärt ihn: ohne Eis −17 %, ohne Winternachfrage −16 % (auf 10c99cec), Schlamm, Winterarbeit und Ernte im alten Stand je −8 bis −10 %. Ohne den Wintervorrat der KI (`--ohne-vorrat`, Köln, Stand vor der Typgrenze) 28.950 ± 1.337 – nicht die Ursache. Offen in `docs/bereiche/kern.md`. Messdateien `end-ohne.json`, `end2-mit.json`, `zerlegung/ohne-*.json` und die Proben im Messordner des Auftrags (nicht im Repository).
