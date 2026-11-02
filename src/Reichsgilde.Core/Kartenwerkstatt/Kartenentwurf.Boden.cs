@@ -62,6 +62,7 @@ public sealed partial class Kartenentwurf
     public void BodenStrichBeginnen(Bodenpinsel pinsel)
     {
         BodenStrichBeenden();
+        FelsStrichBeenden(); // ein Felsstrich malt Boden mit (F6): erst ihn abschließen
         _bodenstrich = new Bodenstrich(_boden, pinsel, Kartengrenzen.Aussen, _hoehen);
     }
 
