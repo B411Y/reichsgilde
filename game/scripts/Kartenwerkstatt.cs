@@ -587,7 +587,7 @@ public partial class Kartenwerkstatt : Node
         return art switch
         {
             "weg" => _entwurf.Wege.FirstOrDefault(w => w.Name == name),
-            "zone" => _entwurf.Bauzonen.FirstOrDefault(z => z.Kennung == name),
+            "zone" => _entwurf.Bauzonen.FirstOrDefault(z => z.Kennung == name || z.Kennung == text[(text.IndexOf(':') + 1)..]), // Kennungen wie „WB_Neumarkt1“ behalten den Unterstrich
             "natur" => _entwurf.Naturflaechen.FirstOrDefault(n => n.Name == name),
             "feld" => _entwurf.Felder.FirstOrDefault(n => n.Name == name),
             "mauer" => _entwurf.Mauern.FirstOrDefault(m => m.Name == name),
