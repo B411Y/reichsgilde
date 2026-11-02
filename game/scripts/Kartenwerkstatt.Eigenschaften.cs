@@ -149,6 +149,9 @@ public partial class Kartenwerkstatt
         lage.Select(lage.GetItemIndex((int)z.Art));
         lage.ItemSelected += i => _entwurf.BauzoneArtSetzen(z, (Lage)lage.GetItemId((int)i));
         Zeile(raster, "Lage", lage);
+        // „nur“: Werkstatt-Bauplatz (Bauzone.Nur = „werkstatt“) – Haken an setzt das Feld, aus löscht es; Rückgängig wie jede Änderung
+        Zeile(raster, "Nur", Haken("nur Werkstätten", z.Nur == Bauzone.NurWerkstatt, an => _entwurf.BauzoneNurSetzen(z, an ? Bauzone.NurWerkstatt : null),
+            "An: Werkstatt-Bauplatz (z. B. nahe einem Markt) – hier dürfen nur Werkstätten stehen, Wohnhäuser lehnt das Spiel ab. Aus: alles, was die Lage erlaubt."));
         Zeile(raster, "Fläche", Wert($"{Math.Round(Inhalt(z.Ecken))} m² · {z.Ecken.Count} Ecken"));
         Hauptmenue.Text(_eigenschaften, "Ecken rasten auf das 2-m-Raster. Griffe ziehen, Klick auf den Rand fügt eine Ecke ein, Ziehen innen verschiebt die Zone.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
