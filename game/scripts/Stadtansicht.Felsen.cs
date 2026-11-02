@@ -18,7 +18,7 @@ namespace Reichsgilde;
 /// Gesteinsart für alle Stücke; dreiseitig nur auf Boden „Hoch“ (F8), sonst eine Richtung. Nässe und Schnee über <c>wetter.gdshaderinc</c>.
 /// Die Einsinktiefe und die Höhe des Stücks in Metern gehen als Instanzdaten (x, y) an den Shader: Er zeichnet dort, wo das Stück aus dem Boden kommt,
 /// einen Moossaum und den Übergang zur Bodenfarbe (R1; die Höhe über dem Gelände liest er aus dem Höhenbild, Stadtansicht.Felsgelaende.cs).</item>
-/// <item><b>Werkstatt</b>: einzelne Stücke wählen (Strahl gegen den Kasten des Netzes, sonst die Grundfläche unter der Maus), ziehen, mit Q/E drehen und
+/// <item><b>Werkstatt</b>: einzelne Stücke wählen (Strahl gegen den Kasten des Netzes, sonst die Grundfläche unter der Maus), ziehen, mit dem Gizmo (Felsgizmo.cs) drehen und
 /// mit Entf löschen – der Kern rechnet (<see cref="Kartenentwurf.FelsVerschieben"/>, <see cref="Kartenentwurf.FelsDrehen"/>); beim Ziehen wandert nur
 /// die eine Instanz mit, bis Loslassen den Befehl gibt.</item>
 /// </list>

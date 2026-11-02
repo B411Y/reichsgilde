@@ -72,7 +72,6 @@ static class FelsgizmoTests
             Pruefe.Gleich(3, Stadtkarte.AusJson(text, Katalog.Value).Felsen!.Stuecke.Count);
             Pruefe.Gleich(0, Kartenpruefung.Pruefen(zwei).Count(b => b.Regel == "fels"), "keine Hinweise zu den Formen");
             // Wände dürfen sich mehr überlappen: Zwei Wände 14 m auseinander (Radius je knapp 7) halten Abstand wie 35 % nicht, aber wie 60 %
-            var r = Felsformen.Finde("wand_gross_1")!.Radius;
             var streu = Leer();
             streu.FelsStreuen(new Felspinsel(Formen: new[] { "wand_gross_1" }, Radius: 40, Dichte: 0.5, Boden: false),
                 Enumerable.Range(0, 12).Select(i => O(-60 + i * 10, 0)).ToList(), startwert: 11);
@@ -84,7 +83,6 @@ static class FelsgizmoTests
                     dichtester = Math.Min(dichtester, Math.Sqrt(Math.Pow(wand[i].X - wand[j].X, 2) + Math.Pow(wand[i].Z - wand[j].Z, 2)) / (wand[i].Radius + wand[j].Radius));
             Pruefe.Wahr(dichtester >= 0.4 - 1e-9, $"Abstand mindestens 40 % der Radiensumme, ist {dichtester}");
             Pruefe.Wahr(dichtester < 0.65, $"enger als bei F1 (65 %), ist {dichtester}");
-            _ = r;
         }),
 
         ("Fels R3: Mehrere Stücke um Welt-x drehen und skalieren rechnet in Weltlage und den Versatz am neuen Ort zurück", () =>
@@ -160,6 +158,10 @@ static class FelsgizmoTests
             Pruefe.Wahr(e.Hoehen.Hoehe(0, -5.2 * s) <= oben, "nicht über der Oberkante an der Rückseite");
             // seitlich läuft er aus: weit neben der Wand wieder eben
             Nahe(0, e.Hoehen.Hoehe(wand.Massstab * 10.2 + 14, -8 * s), 0.05, "weit neben der Wand eben");
+            // das Stück bleibt, wo es stand: auch abseits eines Rasterpunkts und gedreht (der Hang hebt den Boden unter der Mitte nicht mit)
+            var schief = Leer();
+            var w2 = schief.FelsStempeln(new Felspinsel(Formen: new[] { "wand_gross_2" }, Boden: false, HangFormen: true), O(1.3, 1.7), drehung: 37, startwert: 2)[0];
+            Nahe(0, schief.FelsRahmen(w2).Ursprung.Y + w2.Einsinken * schief.FelsRahmen(w2).Groesse.Y, 0.06, "Fuß der Wand steht auf dem Gelände von vorher");
             Pruefe.Gleich("Große Wand 1 gestempelt", e.Geschichte.RueckgaengigText);
             e.Rueckgaengig();
             Pruefe.Gleich(vorher, e.ZuJson(), "Rückgängig: Byte für Byte die Karte vorher (Stück und Gelände zusammen)");
@@ -210,7 +212,7 @@ static class FelsgizmoTests
                 for (var i = -80; i < 100; i++)
                     if (hang.Hoehen.Wert(i, j) < vorher.Wert(i, j)) gesenkt++;
             Pruefe.Gleich(0, gesenkt, "nie gesenkt");
-            Pruefe.Wahr(hang.Hoehen.Wert(-10, 20) != vorher.Wert(-10, 20) || hang.Hoehen.Wert(-30, 40) != vorher.Wert(-30, 40) || hang.Geschichte.KannRueckgaengig,
+            Pruefe.Wahr(hang.Hoehen.Wert(-10, 20) != vorher.Wert(-10, 20) || hang.Hoehen.Wert(-30, 40) != vorher.Wert(-30, 40),
                 "etwas wurde gehoben");
         }),
     };

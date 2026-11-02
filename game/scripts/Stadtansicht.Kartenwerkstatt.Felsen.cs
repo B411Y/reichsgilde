@@ -14,7 +14,7 @@ namespace Reichsgilde;
 /// <item><b>Hang mitformen</b> (R5, Häkchen in der Tafel, Standard aus): Der Stempel hebt das Gelände hinter den Wänden an – ein Schritt mit den Stücken.</item>
 /// <item><b>Vorschau</b>: Kreis des Pinsels; beim Stempeln dazu die Stücke als helle Geister (höchstens acht Netze, je Bild nur neu gesetzt).</item>
 /// <item><b>Anzeige</b> der Stücke wie im Spiel (Stadtansicht.Felsen.cs, F5): MultiMeshes je Zelle und Form, Feinheit nach dem Zoom; dort auch Wählen,
-/// Ziehen, Drehen (Q/E) und Löschen einzelner Stücke mit dem Werkzeug „Auswahl“.</item>
+/// Ziehen, Gizmo (W/E/R, Stadtansicht.Felsgizmo.cs) und Löschen einzelner Stücke mit dem Werkzeug „Auswahl“.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht

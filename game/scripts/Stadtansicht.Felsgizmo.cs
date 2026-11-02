@@ -82,6 +82,10 @@ public partial class Stadtansicht
         public float T0 { get; init; }
         public Vector3 P0 { get; init; }
         public Felsaenderung? Aenderung { get; set; }
+
+        /// <summary>Beim Drehen: letzter Winkel zum Startvektor und die Summe der Änderungen (so läuft der Ring über einen halben Umlauf hinaus).</summary>
+        public double WinkelLetzt { get; set; }
+        public double WinkelSumme { get; set; }
     }
 
     private Node3D? _felsGizmo;
@@ -217,6 +221,7 @@ public partial class Stadtansicht
     {
         if (_gizmoZug is not { } zug) return;
         _gizmoZug = null;
+        if (_entwurf is not null) GizmoZugNachfuehren(zug, GetViewport().GetMousePosition()); // die letzte Mausbewegung zählt
         var auswahl = _felsAuswahl.ToList();
         if (_entwurf is not null && zug.Aenderung is { } a && auswahl.Count > 0)
             Befehl(() => _entwurf.FelsTransformieren(auswahl, a));
@@ -405,6 +410,7 @@ public partial class Stadtansicht
         if (!FelsGizmoAktiv)
         {
             if (_felsGizmo is { Visible: true }) _felsGizmo.Visible = false;
+            if (_gizmoZug is not null) FelsGizmoAbbrechen(); // der Zug endet ohne Befehl (Werkzeug gewechselt, Auswahl leer): Instanzen zurück
             _gizmoZug = null;
             FelsMarkenAktualisieren();
             return;
@@ -625,7 +631,12 @@ public partial class Stadtansicht
                 if (EbenenTreffer(zug.Mitte, achse, von, richtung) is { } p && zug.P0 != zug.Mitte)
                 {
                     var (v0, v1) = ((zug.P0 - zug.Mitte).Normalized(), (p - zug.Mitte).Normalized());
-                    var winkel = Mathf.RadToDeg(Mathf.Atan2(achse.Dot(v0.Cross(v1)), v0.Dot(v1)));
+                    var jetzt = (double)Mathf.RadToDeg(Mathf.Atan2(achse.Dot(v0.Cross(v1)), v0.Dot(v1)));
+                    var schritt = jetzt - zug.WinkelLetzt;
+                    schritt -= 360 * Math.Round(schritt / 360); // auf ±180 gebracht
+                    zug.WinkelSumme += schritt;
+                    zug.WinkelLetzt = jetzt;
+                    var winkel = zug.WinkelSumme;
                     var grad = raster ? Runden(winkel, GizmoRasterWinkel) : Math.Round(winkel, 1);
                     var welt = FelsGizmoWelt;
                     a = new Felsaenderung(Drehachse: g.Achse switch { 0 => Felsachse.X, 1 => Felsachse.Y, _ => Felsachse.Z }, Winkel: grad,

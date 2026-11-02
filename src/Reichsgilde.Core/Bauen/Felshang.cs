@@ -37,6 +37,9 @@ public static class Felshang
     /// <summary>Kleinste und größte Breite (Meter), über die das Gelände seitlich auf Null zurückgeht.</summary>
     public const double SeiteMin = 3, SeiteMax = 10;
 
+    /// <summary>So weit (Meter) hinter dem Hinterland läuft das Gelände weich auf Null zurück (keine senkrechte Kante hinten).</summary>
+    public const double Auslauf = 8;
+
     private static double Weich(double t) => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
 
     /// <summary>Formt das Gelände hinter den Stücken (nur die, deren Form <see cref="Felsform.HangFormt"/> hat). Null, wenn sich nichts ändert.</summary>
@@ -90,7 +93,7 @@ public static class Felshang
         var t = l.Drehung * Math.PI / 180;
         var (c, s) = (DetMathe.Cos(t), DetMathe.Sin(t));
         // Rechteck um das Stück samt Rand (Meter), als Grenzen der Rasterpunkte
-        var (rv, ru) = (hinten + 1, halb + seite + 1);
+        var (rv, ru) = (hinten + Auslauf + 1, halb + seite + 1);
         double minx = double.MaxValue, minz = double.MaxValue, maxx = double.MinValue, maxz = double.MinValue;
         foreach (var (u, v) in new[] { (-ru, rueck - rv), (ru, rueck - rv), (-ru, start), (ru, start) })
         {
@@ -112,7 +115,10 @@ public static class Felshang
                 if (seitlich <= 0) continue;
                 var ende = au >= halb ? 1.0 : (au / halb) * (au / halb);
                 var rampe = d >= start - rueck ? 1 : Weich(d / (start - rueck));
-                var dahinter = Math.Min(Math.Max(0, d - (start - rueck)), hinten);
+                var roh = Math.Max(0, d - (start - rueck));
+                var dahinter = Math.Min(roh, hinten);
+                seitlich *= 1 - Weich((roh - hinten) / Auslauf);
+                if (seitlich <= 0) continue;
                 var soll = basis + hoehe * (1 - (1 - Enden) * ende) * rampe + Hinterland * dahinter * (1 - (1 - Enden) * ende);
                 var alt = raster.Wert(i, j) / 100.0;
                 if (soll <= alt) continue;

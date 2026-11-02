@@ -232,7 +232,13 @@ public sealed partial class Kartenentwurf
         var neue = FelsStempelVorschau(pinsel with { Radierer = false }, ort, drehung, startwert).Select(EntwurfFels.Aus).ToList();
         if (neue.Count == 0) return neue;
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
-        if (FelsHangBefehl(neue, pinsel) is { } hang) befehle.Insert(0, hang); // R5: „Hang mitformen“ (Kartenentwurf.Felslage.cs)
+        var vorher = neue.Select(f => _hoehen.Hoehe(f.X, f.Z)).ToList();
+        if (FelsHangBefehl(neue, pinsel) is { } hang)
+        {
+            befehle.Insert(0, hang); // R5: „Hang mitformen“ (Kartenentwurf.Felslage.cs)
+            // der Hang kann den Boden unter der Mitte eines Stücks mit heben (bilinear aus vier Rasterpunkten): das Stück bleibt dort, wo es stand
+            for (var i = 0; i < neue.Count; i++) neue[i].Versatz = Kartenraster.Punkt(neue[i].Versatz - (_hoehen.Hoehe(neue[i].X, neue[i].Z) - vorher[i]));
+        }
         if (pinsel.Boden)
         {
             // der Boden zuerst ins Raster, dann als Teil desselben Befehls (sein Ausführen setzt dieselben Kacheln noch einmal)
