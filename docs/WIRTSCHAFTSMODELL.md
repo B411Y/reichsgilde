@@ -2037,3 +2037,26 @@ Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 9
 - **KI-Häuser im Mittel weiter unter main** (Köln −13 % in Teil 3, −11 % in Teil 5). Der Rest des Verlusts kommt vom Umland, nicht mehr vom Ausbau: Die Umlandbetriebe der KI liegen 150–193 m vom Markt, der Ochsenkarren braucht dafür im Median 263 Minuten.
 - **„Schwer“ zieht deutlich weniger davon.** In Köln ziehen 16 statt 30 von 70 KI-Häusern davon, auf main waren es 0. In der Greybox sind es 24 statt 43 von 60, auf main 14.
 - **Fair geblieben:** kein Bankrott, Bürger im Ziel wie vorher, der Spieler mit einem Betrieb unverändert.
+
+## Sitzplätze der Schänken (Datenversion 66)
+
+**Regel** (Entscheidung des Nutzers, 1.11.2026): Schänke 20, Wirtshaus 30, Gasthaus 40 Sitzplätze (`gastwirtschaft.sitzplaetzeJeStufe`). Ein Gast bleibt etwa eine Stunde, also kommen je Stunde höchstens so viele Gäste in eine Schänke, wie sie Plätze hat. Wer keinen Platz findet, geht in die anziehendste Schänke mit freien Plätzen und zahlt dort; ist überall voll, fällt der Besuch aus (`Gaestebuch.Voll`, `Gaestebuch.Ausgefallen`). Kein Aufschub auf später: Voll ist es zur Abendspitze, und die Stunden bis zum Schankschluss sind genauso voll. Für die Einwohner der Bürger-KI gilt dieselbe Grenze; wer nirgends Platz findet, tut das Nächstbeste und versucht es in der nächsten Stunde wieder (sein Vergnügen bleibt ungestillt). `ErwarteteGaeste` und `BardeNutzen` (KI) zählen je Stunde höchstens die Plätze. Ohne die Angabe in den Daten (alte Spielstände) rechnet alles wie bis Datenversion 65 – geprüft: der Kern dieses Branches mit den Daten von main gibt `messen bericht 20 20 --teile=3,5` auf der Greybox Wert für Wert dasselbe wie main.
+
+**Vorher:** In der Greybox saßen abends bis zu 121 Einwohner in einer Schänke, in Köln bis zu 195. Bei den Gästen der Wirtschaft (120 je Jahr in der Stadt) wäre eine Schänke allein mit Barde abends mit 25,7 Gästen je Stunde über 20 gewesen.
+
+**Messung** (`messen schaenke 20 20`, je Karte 20 Startwerte und drei Aufbauten mit allen KI-Häusern: Spieler als Wirt mit einem Betrieb, als ausbauender Wirt, als Schmied mit einem Betrieb; Reinvermögen nach 20 Jahren). **Vorher** = derselbe Kern mit `--ohne-plaetze` (rechnet wie main), **nachher** = mit Plätzen; gemessen auf main ec36ff33 + dieser Branch (d8185afc…78816282). Keine Partie mit Fehler, kein Bankrott.
+
+| Karte, Aufbau | Spieler vorher → nachher | KI-Häuser | Bürger im Ziel 8–12 | Umsatz Schänke Spieler / KI je Jahr | ausgefallen je Jahr (Anteil der Gäste) |
+|---|---|---|---|---|---|
+| Greybox, Wirt ein Betrieb | 37.379 → 35.979 | 77.197 → 77.739 | 17 → 13 von 20 (Ø 10,4 → 11,3) | 6.400 → 6.365 / 1.140 → 1.393 | 13,4 (15 %) |
+| Greybox, Wirt ausbauend | 64.125 → 59.031 | 76.435 → 76.914 | 7 → 6 | 9.368 → 9.308 / – | 10,5 (11 %) |
+| Greybox, Schmied ein Betrieb | 35.765 → 34.930 | 75.825 → 76.338 | 19 → 19 | – / 1.143 → 1.105 | 4,1 (25 %) |
+| Köln, Wirt ein Betrieb | 33.640 → 31.769 | 68.113 → 68.337 | 17 → 14 (Ø 9,3 → 9,6) | 5.461 → 5.464 / 6.968 → 7.175 | 0 |
+| Köln, Wirt ausbauend | 54.137 → 46.772 | 65.916 → 66.345 | 12 → 9 | 6.760 → 7.094 / 6.786 → 7.082 | 0 |
+| Köln, Schmied ein Betrieb | 31.780 → 30.609 | 64.628 → 68.124 | 19 → 20 | – / 7.291 → 7.492 | 12,0 (16 %) |
+
+Fehler des Mittels beim Spieler 1.400–5.100 (ausbauender Wirt Köln 5.140 / 4.844). Voll ist eine Schänke in 9–18 % der offenen Stunden, nie in Köln, wenn der Spieler Wirt ist (zwei Schänken teilen sich die Gäste). Es sitzen nie mehr Einwohner in einer Schänke, als sie Plätze hat (vorher in 32–80 % der offenen Stunden).
+
+**Balancing-Bericht** (`messen bericht 20 20 --teile=3,5 --karte=<karte> --fairness=<karte> --rotationen=1`, main ec36ff33 gegen diesen Branch): Greybox Spieler mit einem Betrieb 35.765 → 34.930, KI-Häuser 75.825 → 76.338, Bürger im Ziel 19 → 19; ausbauender Bezugsspieler 62.268 → 59.405 (KI 74.507 → 74.495, davongezogen 3 → 6 von 60), Schwer 63.499 → 61.677. Köln Spieler 31.780 → 30.609, KI-Häuser 64.628 → 68.124 (+5 %, am meisten Gryn +11 %, Mommersloch +11 %, Hardevust +10 %), Bürger im Ziel 19 → 20; ausbauender Bezugsspieler 56.503 → 53.580 (KI 65.793 → 68.277, davongezogen 15 → 28 von 140), Schwer 77.280 → 78.128.
+
+**Befund:** Die Wirtshaus-Wirtschaft bricht nicht ein – der Umsatz der Schänken bleibt auf beiden Karten gleich (−1 % bis +5 %). Abgewiesen werden vor allem Gäste, die vorher ohnehin keine Ware bekommen hätten: In der Greybox fehlt dem Wirt allein in der Stadt oft die Ware (≈ 80 Gäste je Jahr „ohne Ware“), die Abendspitze war schon vorher leer gelaufen. Der Spieler liegt in allen sechs Aufbauten 2–14 % tiefer, jede einzelne Abweichung unter zwei Fehlern; die KI-Häuser in Köln liegen höher. Vermutete Ursache (nicht geprüft): Wer keinen Platz findet, kauft ein oder geht durch die Gassen und wirkt dort über die Kopplung an Markt und Taschendiebe. Darum keine Änderung an Preisen oder Gästen. Messdateien `schaenke-{plaetze,ohne}.json` und `bericht-{main,branch}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
