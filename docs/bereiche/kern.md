@@ -255,4 +255,4 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Schaden (Platzhalter) | Werkstatt: `Sabotieren(stillstandMinuten = 300)` ab dem Einschlag, Arbeit ruht also auch während des Brandes; Wohnhaus: `WohnhausInstandBis` = Ende + 1.140 Minuten (Ansehen fehlt). Reparatursummen 0 (Felder `reparatur`, `wohnhausReparatur` vorhanden). Andere Gebäude nur im Bild. |
 | Spielstand | Unverändert. Laufende Feuer rechnet der Kern nach dem Laden aus dem Plan nach (`Einschlaege`, nur fürs Bild); Gleichheitstest mit Ladepunkten im Brand. |
 | Datenversion | 69 (main hatte 65, andere Branches 66–68). |
-
+| Messung | Main 4220c631 + Branch, je 10 Startwerte, 20 Jahre: Greybox und Köln je 13 Einschläge in 200 Jahren (1,3 je Partie), zwei Drittel in Kirchen und Dom, das Haus des Spielers nie, ein KI-Betrieb einmal; Vermögen praktisch unverändert (WIRTSCHAFTSMODELL „Blitzschlag im Gewitter“). |
