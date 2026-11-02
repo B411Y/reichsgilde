@@ -26,7 +26,7 @@ using Reichsgilde.Core.Zeit;
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
-/// und der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl.
+/// der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl, und die Felslage (R2): Zufallsbereiche, Transformieren, Einrasten, Neu würfeln.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -69,7 +69,22 @@ static class GleichheitTests
         "Gleichheit: Felspinsel (Stempel, Streuen mit Filter, Radieren, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelsenPruefen)).Append((
         "Gleichheit: Felsboden (Felsstrich und Boden als ein Befehl, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelsbodenPruefen));
+        FelsbodenPruefen)).Append((
+        "Gleichheit: Felslage R2 (Zufallsbereiche, Transformieren um alle Achsen, Einrasten, Neu würfeln) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelslagePruefen));
+
+    /// <summary>
+    /// Die Felslage (Fels-Plan R2): Zufallsbereiche, Drehen um alle Achsen (Euler über DetMathe), Einrasten und Neu würfeln – gleiche Bytes (Zeile
+    /// „felslage …“ in der Datei der CI).
+    /// </summary>
+    static void FelslagePruefen()
+    {
+        var a = Sha256(FelslageTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelslageTests.Ablauf()), "Felslage: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelslageTests.Ablauf())), "Felslage: de-DE");
+        Zeilen[-3] = new[] { $"felslage {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Der Felsboden (F6): Stücke und Boden um den Fels in einem Befehl – gleiche Bytes (Zeile „felsboden …“ in der Datei der CI).</summary>
     static void FelsbodenPruefen()
