@@ -84,10 +84,12 @@ public sealed class GastwirtschaftDaten
     public List<int> SitzplaetzeJeStufe { get; init; } = new();
 
     /// <summary>
-    /// So viele Gäste stehen für alle Einwohner der Stadt (Entscheidung des Nutzers, 2.11.2026): Die Einwohner der Bürger-KI sind mehr als die
-    /// Gäste der Wirtschaft (abends sitzen fast alle in den Schänken, es kommen aber nur ≈ 17 Gäste je Stunde). Eine Schänke nimmt darum
-    /// Plätze × Einwohner ÷ dieser Wert Einwohner auf (aufgerundet). 17 = Gäste der vollsten Stunde (120 × 2 ÷ 14): Die Einwohner werden erst knapp,
-    /// wenn auch die Gäste nicht mehr hineinpassen – für Gäste bleibt immer Platz. 0 = die Plätze selbst (wie die Gäste).
+    /// So viele Gäste stehen für alle Einwohner der Stadt (Entscheidung des Nutzers, 2.11.2026): Die Einwohner der Bürger-KI sind viel mehr als die
+    /// Gäste der Wirtschaft (am Nachmittag sitzen bis zu 98 % von ihnen in einer Schänke, es kommen aber nur 8,6–17 Gäste je Stunde). Eine Schänke
+    /// nimmt darum ⌈Plätze × Einwohner ÷ dieser Wert⌉ Einwohner auf. Mit 17 (Gäste der vollsten Stunde, 120 × 2 ÷ 14) und mindestens 20 Plätzen
+    /// sind das immer mehr Einwohner, als die Stadt hat: Die Einwohner-Grenze greift mit den Spieldaten nie, die Kopplung an die Einwohner
+    /// wirkt wie bis Datenversion 65, und nur die Gäste sind durch die Sitzplätze begrenzt. Sie greift erst bei einem Wert über den kleinsten
+    /// Sitzplätzen (20); 0 = die Sitzplätze selbst (so prüfen es die Tests).
     /// </summary>
     public int EinwohnerBezug { get; init; }
 
