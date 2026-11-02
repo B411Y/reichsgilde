@@ -110,6 +110,7 @@ public sealed class Kartengeschichte
     /// <summary>Merkt sich den jetzigen Stand als gespeichert.</summary>
     public void Gespeichert()
     {
+        _entwurf.FelsStrichBeenden(); // ein laufender Felsstrich steht schon in der Datei: erst als Schritt eintragen, dann merken
         _gespeichert = Stand;
         _gespeichertVerloren = false;
     }
@@ -133,6 +134,7 @@ public sealed class Kartengeschichte
 
     public bool Rueckgaengig()
     {
+        _entwurf.FelsStrichBeenden(); // ein laufender Felsstrich wird zuerst ein Schritt (seine Indizes gelten nur auf seinem Stand)
         if (_zurueck.Last is not { } letzter) return false;
         _zurueck.RemoveLast();
         letzter.Value.Zuruecknehmen(_entwurf);
@@ -143,6 +145,7 @@ public sealed class Kartengeschichte
 
     public bool Wiederholen()
     {
+        _entwurf.FelsStrichBeenden();
         if (!_vor.TryPop(out var befehl)) return false;
         befehl.Ausfuehren(_entwurf);
         _zurueck.AddLast(befehl);

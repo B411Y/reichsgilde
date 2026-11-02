@@ -40,6 +40,22 @@ project/solution_directory="../"
 
 [shader_globals]
 
+boden_gestein_hell={
+"type": "vec3",
+"value": Vector3(0.27, 0.28, 0.3)
+}
+boden_gestein_dunkel={
+"type": "vec3",
+"value": Vector3(0.08, 0.09, 0.1)
+}
+boden_gestein_schutt={
+"type": "vec3",
+"value": Vector3(0.16, 0.15, 0.14)
+}
+boden_gestein_an={
+"type": "float",
+"value": 0.0
+}
 wind_richtung={
 "type": "vec2",
 "value": Vector2(1, 0.4)

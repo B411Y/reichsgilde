@@ -101,7 +101,7 @@ public partial class Stadtansicht
     private void BueschelBild()
     {
         if (!BueschelAn || _gelaendeKnoten is null || _randKnoten is null) return;
-        if (_wsBodenStrich || _entwurf is { BodenStrichLaeuft: true }) return;
+        if (_wsBodenStrich || _entwurf is { BodenStrichLaeuft: true } or { FelsStrichLaeuft: true }) return; // auch der Felsstrich malt Boden (F6)
         if (_bueschelBodenAlles || _bueschelBodenNeu.Count > 0) BueschelBodenRechnen();
         var alle = _bueschelAlleBauen;
         if (alle)
