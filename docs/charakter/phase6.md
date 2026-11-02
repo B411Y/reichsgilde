@@ -1663,6 +1663,8 @@ je 40 Köpfen: dieselben Saaten wie Grundkopf 2, die 4 extremsten von 400 je Ges
 | Runde | Mann vorher → neu | Frau vorher → neu | Augen vorher → neu | Fratzen deutlich vorher → neu (je Prüfer) | Lidformen richtig (je Prüfer, von 18) |
 |---|---|---|---|---|---|
 | 1 (glb6i, Commit 290cde1e) | 5,3 → 5,5 | 4,7 → 4,0 | 5,0 → 5,5 | 0 / 0 / 0 → 0 / 0 / 0 | 10 / 10 / 11 (57 %, Zufall 33 %) |
+| 2 (Commit 6209c176 + Kiefer, Haut) | 5,3 → 4,7 | 5,0 → 4,5 | 5,3 → 4,7 | 0 / 2 / 0 → 0 / 2 / 0 | 10 / 11 / 13 (63 %) |
+| 3 (Commit c0a62a9d, Endstand) | 5,7 → 5,8 | 4,5 → 4,3 | 6,0 → 5,0 | 0 / 2 / 0 → 0 / 2 / 0 | 12 / 8 / 10 (56 %) |
 
 - Runde 1: Frau schlechter – alle drei sahen bei „neu“ eine **harte Falte von der Wange zum Kiefer** (schräg und
   Profil). Ursache: die Mulde unter dem neuen Jochbein und die Stufe der Kieferform auf Höhe der Nasenbasis (Übergang
@@ -1670,3 +1672,68 @@ je 40 Köpfen: dieselben Saaten wie Grundkopf 2, die 4 extremsten von 400 je Ges
   und schlupf werden verwechselt (7 bzw. 10 von 18); rund „starrt“ (zu viel Weiß). Runde 2: rund 0,5 statt 0,7,
   mandel 1,0 statt 0,75, schlupf 0,85–0,95. Glanzpunkt: lag bei mandel und schlupf unter dem Oberlid (tiefer gelegt).
   Bleibt: Haut zu glatt (alle), Tränenwinkel und Feuchtglanz schwach, Frau „nur über das Haar weiblich“, Vielfalt 3–5.
+- Runde 2: Die Wangenfalte ist weg (keiner nennt sie mehr), die Lidformen werden besser getrennt – aber die Grundköpfe
+  (Gen-Mittel 128 = mandel, Gewicht 1,0) wirken „schläfrig, schwere Lider“, schlupf „harter Grat“; dadurch fallen
+  Mann, Frau und Augen unter „vorher“. Die beiden „deutlichen“ Fratzen eines Prüfers (Nase lang und spitz, Saaten mit
+  den größten Ausschlägen) nennt er in beiden Sätzen gleich – sie kommen aus der Form, nicht aus Grundkopf 3. Frau:
+  Mund „vorgeschoben, Schmollmund“. Runde 3: mandel 0,55/0,6, schlupf 0,65/0,6; Lippen der Frau 1,5 → 1,0, Mund
+  0,25 zurück.
+
+- Runde 3: Der Mann liegt knapp über „vorher“, die Frau knapp darunter, die Augen schlechter: Zwei Prüfer loben bei
+  „vorher“ die **dickeren Frauenbrauen** und die deutlichere Lidkante – die feineren Frauenbrauen (Dicke 1,25, Deckung
+  0,85) lesen sich als „dünn, aufgemalt“. Fratzen: Sätze vorher und neu werden gleich beurteilt (alle drei Prüfer halten
+  sie für „deckungsgleich“: Grundkopf 3 ändert an Zufallsköpfen nur Lidform, Augen und Haut, die Form der Männer gar
+  nicht); keine deutliche Fratze, die zwei eines Prüfers (Brauen-Balken, lange Nase) stehen in beiden Sätzen.
+  Lidformen: schlupf und rund werden meist erkannt, mandel geht in rund über (Außenwinkel zu schwach).
+- **Ziel 7 nicht erreicht.** Was alle drei Runden tragen: Haut zu glatt und wachsartig (auch mit der dritten Porenlage),
+  Frau „nur über das Haar weiblich“ (hohe kahle Stirn, Scheitel als heller Hautstreifen, kräftiger Kiefer), Drahtsträhnen
+  an den Schläfen der Frau, Tränenwinkel und Feuchtglanz schwach, geringe Vielfalt (gleiche Frisur, Haarfarbe, Hautton).
+  Behoben: Haarfleck, graue Rinne über dem inneren Oberlid (nur noch als „Lidschatten“ bei der Frau genannt),
+  Glanzpunkt sichtbar, Wangenfalte (aus Runde 1).
+
+### Messung (T400, Stufe Hoch, gepaart, 5 Wiederholungen)
+
+| Lauf | Commit 290cde1e (Runde 1, anteilige Haardeckung an), Last bis 54 | Commit c0a62a9d (Stand Runde 2, Deckung aus), Karte frei, Last bis 17 |
+|---|---|---|
+| `ohne_haar` gegen Grundkopf 2 / Halt B | −1,08 / −1,59 ms (Rauschen) | **+0,03 / +0,41 ms** |
+| `ohne_haar_zufall` gegen Grundkopf 2 / Halt B | −0,36 / −0,16 ms | +0,04 / +0,28 ms |
+| `haar_tressfx_ruhe` gegen Grundkopf 2 | **+17,8 ms** (in allen 5 Wiederholungen) | +0,13 ms |
+| VRAM | 202 MB wie Grundkopf 2 | 202 MB |
+
+Budget 1,0 ms gegen Halt B eingehalten (+0,41 ms). Feinere Iris, Glanzpunkt, dritte Porenlage kosten zusammen etwa
+0,03 ms. Die anteilige Haardeckung kostete 18 ms (Alpha unter 1 schaltet die Tiefen-Vorstufe der Strähnen ab, jede
+Haarlage wird gemischt) – sie bleibt als Schalter, ist im Probekopf aus.
+
+### Vorschlag an kern: Gen „lidform“
+
+Neues Gen am Ende von `game/daten/erbgut.json` (Wortlaut wie im Vorschlag `game/versuch/charakter/erbgut_vorschlag.json`):
+`{"kennung": "lidform", "name": "Lidform", "art": "Merkmal", "dominanz": 50, "mutation": 0, "verteilung": "Gleich",
+"voelker": {<alle sechs>: {"min": 0, "mittel": 128, "max": 255, "streuung": 0}}}`. Gleich verteilt und ohne Mutation:
+jedes Kind erbt ein Allel jedes Elternteils unverändert, sichtbar ist eines (Dominanz 50); die Darstellung teilt die
+Skala je Volk in die Bänder rund/mandel/schlupf (Anteile oben). Die Würfel je Gen sind getrennt – ein Gen am Ende
+ändert keinen anderen Genwert; alte Spielstände bekommen es beim Laden gewürfelt bzw. vererbt (`AusSpielstand`). Den
+Charaktereditor bedient `Kopf.lidform_wert(form, volk, lf)` (Genwert in der Bandmitte).
+
+### Offen nach Grundkopf 3
+
+- Frauenbrauen wieder wie Grundkopf 2 (Dicke 1,6, Dichte 1,5, Deckung 1,05) – Runde 3 bevorzugt sie; nur Werte.
+- Frau weiblicher: der Hebel liegt nicht mehr in kleinen Formen, sondern am Haaransatz (tiefere Stirnlinie, Scheitel
+  dichter, keine kahle Hochstirn) und an der Kieferbreite der Reifeform; erst messen, dann ein Panel.
+- Lidform mandel: Außenwinkel deutlicher heben, ohne die Lidspalte zu verengen (sonst „schläfrig“).
+- Drahtsträhnen an den Schläfen: nicht im Shader (anteilige Deckung kostet 18 ms), sondern im Stil `frau_knoten` die
+  Schläfensträhnen näher an die Haut und dichter kämmen.
+- Haut: die dritte Porenlage reicht nicht; nächster Hebel ist die Rauheit im Spiellicht („wachsartig“).
+
+### Testanleitung Grundkopf 3
+
+1. Kopie: `cp -rL ~/werkzeuge/charakter/glb6h ~/werkzeuge/charakter/glb6i` (keine Verknüpfungen).
+2. Haar: `blender.sh -b --factory-startup -P tools/charakter/kopf4_haar.py -- ~/werkzeuge/charakter/glb6i
+   backdaten=~/werkzeuge/charakter/arbeit/phase6/backdaten.npz kopf=kopf6_mn.glb nur=mann_kurz`, danach
+   `GLB=…/glb6i GLB5=~/werkzeuge/charakter/glb6 tools/charakter/kopf6.sh nur_haar`.
+3. Probebau: `GLB_PROBE=~/werkzeuge/charakter/glb6p_h PROBEN_OPT="ausschnitt=30 eigen=4 brauen_d=1
+   vorbilder=<vorbild_grund_m.npz>,<vorbild_grund_w.npz>" tools/charakter/kopf6.sh proben`.
+4. Mischen: `GLB=…/glb6i GLB_PROBE=…/glb6p_h REZEPT=tools/charakter/kopf6_rezept_grundkopf3.json
+   tools/charakter/kopf6.sh mischen`; Regeln `python3 tools/charakter/kopf6_verschieden.py
+   --ein=~/werkzeuge/charakter/glb6d/regeln6.json --aus=~/werkzeuge/charakter/glb6i/regeln6.json --e3=1 --e4=1 --e5=1`;
+   dann wie 2. `nur_haar` (Stützpunkte).
+5. Bogen: Zelle mit `"kopf": "~/werkzeuge/charakter/glb6i/kopf6.glb"`, Lidform gezielt über `"lidform": "schlupf"`.
