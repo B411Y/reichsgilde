@@ -2062,3 +2062,16 @@ Die Einwohner-Grenze kann mit Bezug 17 nicht erreicht werden (Greybox 121–123 
 **Zwischenstand** (Einwohner-Grenze = Sitzplätze, vor der Entscheidung vom 2.11.2026): Die Schänke einer Stadt war ab Mittag mit Einwohnern voll, der Kopplungsfaktor blieb 1, 9–15 % mehr Gäste wollten herein, und die Vermögen streuten um main (ausbauender Wirt Köln 54.137 → 47.881, unter zwei Fehlern). Dateien `schaenke-plaetze2.json`, `bericht-branch2-*.json`.
 
 Messdateien `schaenke-{plaetze3,ohne}.json`, `bericht-{main,branch3}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
+
+## Blitzschlag im Gewitter (PR #288, 2.11.2026)
+
+Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Gebäude (Gewicht: Höhe + Boden über dem Mittel, **linear** – Teamleiter 2.11.2026). Schaden als Platzhalter: Werkstatt 300 Arbeitsminuten Stillstand ab dem Einschlag, Wohnhaus ohne Ansehen bis ein Spieljahr nach dem Feuer, keine Reparatursumme.
+
+**Messung** (gemessen auf main 4220c631 + dieser Branch, Saat je Gewitter durchmischt; je 10 Startwerte 1400, 1437 … 1733, 20 Jahre, Spieler mit einem Betrieb von der KI geführt; dieselbe Partie mit `chance` 0 zum Vergleich – der Blitz würfelt mit eigener Quelle, darum laufen beide Partien bis zum ersten Treffer mit Wirkung Wurf für Wurf gleich):
+
+| Karte | Einschläge in 200 Jahren | Kirchen/Dom | Wohn-, Einwohner- und Kulissenhäuser | Werkstätten, Umland, Rathaus, Hafen | Haus des Spielers | KI-Häuser |
+|---|---|---|---|---|---|---|
+| Greybox | 17 (0–3 je Partie, Mittel 1,7) | 3 | 9 | 5 | 1 (Wohnhaus) | 1 (Gießerei) |
+| Köln | 17 (0–3, Mittel 1,7) | 5 | 6 | 6 | 0 | 1 (Werkstatt) |
+
+Zusammen: Kirchen und Dom 24 % der Einschläge (zum Quadrat waren es 69 %, 18 von 26), Wohnhäuser 44 %. Das Vermögen ändert sich nur in den drei Partien mit einem Treffer in ein Haus, und dort als Rauschen in beide Richtungen (Spieler −2.489 bis +11.082, KI −13.429 bis +26.121): Für die Wirtschaft ist der Blitz praktisch ohne Wirkung.
