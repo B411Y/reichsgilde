@@ -70,7 +70,7 @@ FORMEN = (
     ("wand_mittel_3", "WandMittel3", (5000, 1700, 500), 0.035),     # Absatz 8 × 6,5 × 5
     ("gesims_1", "Gesims1", (3000, 1000, 300), 0.03),               # eine Bank 10 × 4 × 1,8 zum Stapeln
     ("gesims_2", "Gesims2", (3000, 1000, 300), 0.03),               # zwei Bänke 8 × 4 × 3, obere kragt vor
-    ("pfeiler_1", "Pfeiler1", (6000, 2000, 600), 0.035),            # freistehender Turm 4 × 4 × 18 (mit Schuttfuß)
+    ("pfeiler_1", "Pfeiler1", (6000, 2000, 600), 0.035),            # freistehender Turm 4 × 4 × 17–19 (mit Schuttfuß)
     ("pfeilerbuendel", "Pfeilerbuendel", (11000, 3600, 1100), 0.045),  # vier Pfeiler vor einer Rückwand 10 × 8 × 15
     ("schuttkegel", "Schuttkegel", (6000, 2000, 600), 0.03),        # Schutthalde am Wandfuß 14 × 9 × 4
 )
@@ -129,7 +129,7 @@ STUECKE = {
     "gesims_2": dict(art="gesims2", B=8.4, T=4, H=2.95, gestein="sandstein", fallen=3, richtung=90, kluft=3.2,
                      relief=0.15, gross=0.3, rippe=0.2, welle=0.08, schutt=None, raster=0.05, rund_oben=0.35, spalten=0.0,
                      bruch=0.05),
-    "pfeiler_1": dict(art="pfeiler", B=4, T=4, H=18, gestein="trachyt", fallen=15, richtung=45, kluft_achse=(3, 0),
+    "pfeiler_1": dict(art="pfeiler", B=4, T=4, H=20, gestein="trachyt", fallen=15, richtung=45, kluft_achse=(3, 0),
                       kluft=3.3, spalten=0.35, spalt_tiefe=1.2, relief=0.25, gross=0.4, rippe=0.3, schutt=(0.3, 0.7),
                       raster=0.06, hoehe=(0.92, 1.0), risse=1.4, kluft_rund=0.15),
     "pfeilerbuendel": dict(art="buendel", B=10, T=8, H=15, gestein="trachyt", fallen=18, richtung=-60,
