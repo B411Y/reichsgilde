@@ -15,6 +15,13 @@ uniform float traene_innen = 0.2;    // Anteil an der Karunkel
 uniform float fenster = 0.0;         // Stärke des Fenster-Glanzlichts (0 = aus)
 uniform vec3 fenster_richtung = vec3(-0.2, 0.17, 0.96);    // im Blickraum, zur Kamera hin
 uniform float fenster_groesse = 0.13;  // Winkelhalbmesser (Bogenmaß)
+// Grundkopf 3 (Prüfer: „Blick glasig, kein klarer Glanzpunkt“; 0 = wie bisher): ein kleiner, scharfer Kern im Fenster-Glanzlicht
+// (der Glanzpunkt wie im Foto) und eine schwache Spiegelung der hellen Umgebung oben (Himmel, Decke) – nach unten dunkel,
+// zum Rand stärker (Fresnel). Beides hängt nur an der Blickrichtung, nicht an den Lampen.
+uniform float glanz_kern = 0.0;
+uniform float glanz_kern_groesse = 0.035;
+uniform float umgebung = 0.0;
+uniform vec3 umgebung_farbe : source_color = vec3(0.85, 0.88, 0.92);
 
 void fragment() {
 	ALBEDO = vec3(0.0);
@@ -28,5 +35,13 @@ void fragment() {
 	if (fenster > 0.0) {
 		float c = dot(normalize(reflect(-VIEW, NORMAL)), normalize(fenster_richtung));
 		EMISSION = vec3(fenster * smoothstep(cos(fenster_groesse * 1.8), cos(fenster_groesse * 0.15), c));   // weicher Rand
+		if (glanz_kern > 0.0) {
+			EMISSION += vec3(glanz_kern * smoothstep(cos(glanz_kern_groesse * 1.5), cos(glanz_kern_groesse * 0.6), c)) * s;
+		}
+	}
+	if (umgebung > 0.0) {
+		vec3 rv = normalize(reflect(-VIEW, NORMAL));
+		float fr = 0.04 + 0.96 * pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
+		EMISSION += umgebung_farbe * umgebung * smoothstep(-0.15, 0.6, rv.y) * (0.35 + 8.0 * fr) * s;
 	}
 }

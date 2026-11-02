@@ -42,6 +42,14 @@ uniform float lederhaut_glanz = 0.5;         // Etappe D: SPECULAR der Lederhaut
 uniform float lederhaut_rauheit = 0.18;      // Etappe D: Rauheit der Lederhaut (bisher 0,18)
 uniform float limbus_saum = 0.0;             // Etappe D: grauer Saum außen am Limbus (0 = keiner)
 uniform vec3 limbus_saum_farbe = vec3(0.74, 0.72, 0.72);
+// Grundkopf 3 (Prüfer: „Iris matt, Blick glasig“; Standard 0 = wie bisher): iris_detail hebt die Fasern im Kontrast, legt
+// feine Radialfasern (je Winkel, flimmerfrei ausgeblendet, wenn sie kleiner als ein Bildpunkt werden) und dunkle Krypten
+// aus dem Tiefenkanal darüber; iris_kaustik hellt die Iris auf der Seite gegenüber der Blickneigung auf (die Hornhaut
+// bündelt das Licht dort – wirkt mit iris_hohl und der Parallaxe als Tiefe); limbus_hart macht den Limbusring zur Lederhaut
+// hin schärfer (der Ring selbst bleibt weich nach innen).
+uniform float iris_detail = 0.0;
+uniform float iris_kaustik = 0.0;
+uniform float limbus_hart = 0.0;
 
 void fragment() {
 	float nv = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
@@ -70,10 +78,36 @@ void fragment() {
 		q = vec2(cos(iris_drehung) * q.x - sin(iris_drehung) * q.y, sin(iris_drehung) * q.x + cos(iris_drehung) * q.y);
 		vec2 uvb = 0.5 + 0.5 * q;
 		vec4 t = iris_ebene >= 0.0 ? texture(iris_bilder6, vec3(uvb, iris_ebene)) : texture(iris_bild, uvb);
-		c = iris_farbe * (0.3 + 1.0 * t.r);
+		float faser = t.r;
+		if (iris_detail > 0.0) {
+			// Kontrast der Fasern um ihre Mitte, dazu feine Radialfasern (drei Wellen je Winkel, leicht gewunden)
+			faser = mix(faser, smoothstep(0.12, 0.88, faser), 0.7 * iris_detail);
+			float wi = atan(q.y, q.x);
+			float rr = (r - pupille) / max(1.0 - pupille, 0.01);
+			float aa = 1.0 - smoothstep(0.6, 1.4, fwidth(wi * 150.0));
+			float fein = 0.5 * sin(wi * 151.0 + 5.0 * sin(wi * 9.0 + rr * 4.0) + rr * 7.0) + 0.3 * sin(wi * 263.0 + rr * 13.0)
+				+ 0.2 * sin(wi * 89.0 - rr * 5.0);
+			faser = clamp(faser + iris_detail * 0.16 * fein * aa * smoothstep(0.02, 0.15, rr) * (1.0 - smoothstep(0.85, 1.0, rr)), 0.0, 1.0);
+		}
+		c = iris_farbe * (0.3 + 1.0 * faser);
+		if (iris_detail > 0.0) {
+			c *= 1.0 - 0.4 * iris_detail * smoothstep(0.3, 0.8, t.b);    // Krypten und Furchen (Tiefenkanal) dunkler
+		}
 		float innen = 1.0 - smoothstep(0.35, 0.75, (r - pupille) / (1.0 - pupille));
-		c = mix(c, kranz_farbe * (0.45 + 0.9 * t.r), clamp(t.g * kranz * innen * 1.4, 0.0, 1.0));
-		c *= mix(1.0, 1.0 - limbus, smoothstep(1.0 - limbus_breite, 1.0, r));   // dunkler Limbusring
+		c = mix(c, kranz_farbe * (0.45 + 0.9 * faser), clamp(t.g * kranz * innen * 1.4, 0.0, 1.0));
+		c *= mix(1.0, 1.0 - limbus, smoothstep(1.0 - limbus_breite, 1.0 - 0.5 * limbus_breite * limbus_hart, r));   // dunkler Limbusring
+		if (iris_kaustik > 0.0) {
+			// Licht gesammelt auf der vom Blick abgewandten Seite: Richtung aus der Blickneigung im Rahmen der Iris-UV
+			vec3 dp1 = dFdx(VERTEX);
+			vec3 dp2 = dFdy(VERTEX);
+			vec2 du1 = dFdx(UV);
+			vec2 du2 = dFdy(UV);
+			vec3 t_ = cross(dp2, NORMAL) * du1.x + cross(NORMAL, dp1) * du2.x;
+			vec3 b_ = cross(dp2, NORMAL) * du1.y + cross(NORMAL, dp1) * du2.y;
+			vec2 vt = vec2(dot(VIEW, normalize(t_)), dot(VIEW, normalize(b_))) + vec2(0.25, -0.35);   // Licht schräg oben
+			float seite = clamp(dot(normalize(p + 1e-4), -normalize(vt + 1e-4)), 0.0, 1.0);
+			c *= 1.0 + iris_kaustik * seite * seite * smoothstep(0.35, 0.8, r) * (1.0 - smoothstep(0.85, 1.0, r));
+		}
 		c = mix(vec3(0.008), c, smoothstep(pupille - 0.015, pupille + 0.015, r));
 		c = mix(c, sklera * mix(vec3(0.85), limbus_saum_farbe * 0.8, limbus_saum), smoothstep(1.0 - 0.04 * limbus_saum, 1.08 + 0.04 * limbus_saum, r));   // außerhalb des Limbus (Etappe D weicher)
 		// Ecken hinter der Augapfelmitte (Eckfarbe R = 1): Das ICT-Auge hat die Pupille als Öffnung, durch die man
