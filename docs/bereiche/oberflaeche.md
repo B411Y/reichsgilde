@@ -278,3 +278,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schild | Name des Platzes, „Startkarren: hin … · zurück … min“, darunter der schnellste Karren (die Karrenart mit der kürzesten Hinfahrt). Bester Platz mit Goldrand, die anderen blasser; ein Platz außerhalb des Bildes: Schild am Rand mit Spitze zu ihm. | 01.11.2026 |
 | Ampel | Kleines Siegel in der Stufenfarbe, darunter die Minuten nur bis Zoom 150 (weiter draußen würden die Zahlen das Bild überladen). | 01.11.2026 |
 | Tafeln | Bautafel: Zeile „Fahrt zum Markt: … min (Platz)“ in der Stufenfarbe und eine Legende der Ampeln; Rückfrage: dieselbe Zeile in der Rechnung. Tooltip: hin und zurück, schnellster Karren, Stufen, Zahl der Plätze. | 01.11.2026 |
+
+### Bautafel rechts und Werkstatt-Bauplätze (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache Bildmitte | `Fensterrahmen.Anmelden` ruft `_Ready` des Rahmens sofort auf; bei sichtbarer Tafel setzte `BeimZeigen` schon die Mitte (`_platz = MitteLage`), bevor der Aufrufer `Mittig = false` setzen konnte. Bau-, Weg- und Auswahltafel blieben so in der Mitte. Jetzt nimmt `Mittig = false` eine schon gesetzte Mitte zurück | 02.11.2026 |
+| Bautafel | Öffnet immer rechts unter dem Zeitstrahl (`PlatzSetzen` wie die Auswahl, auch nach dem Ziehen); die Höhe hält Zeitstrahl und Betriebsleiste frei (`RechtsAnheften`) | 02.11.2026 |
+| Werkstatt-Bauplatz | Tooltip an der Maus über einer Zone mit `"nur": "werkstatt"` („Nur Werkstätten …“), Zeile in „Platz wählen“, Legende „Rand mit Amboss: nur Werkstätten“ nur auf Karten mit solchen Zonen | 02.11.2026 |
