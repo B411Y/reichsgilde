@@ -3,7 +3,7 @@
 Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Klangseite und ist am 30./31.10.2026 geprüft; sie steht in der Tabelle:
 
 - **CC0 1.0** (Public Domain Dedication, https://creativecommons.org/publicdomain/zero/1.0/): keine Namensnennung nötig; wir nennen die Urheber trotzdem.
-- **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/): **Namensnennung verlangt, Bearbeitung erlaubt** (Schnitte, Filter, Pegel). Diese Quellen sind: klankbeeld (große Glocke Noteman, Niederlande: Abendglocke, Feuerglocke und das Sturmläuten beim Blitzschlag, `glocken/glocke_sturm.ogg`, gesetzt aus einem Schlag der Feuerglocke mit `tools/ton/glocke_sturm_bauen.py`), poots (Frösche), juskiddink (Horn der Streife). Die Nennung steht in dieser Datei, im Protokoll (`docs/assets/protokoll.csv`, Spalte Bemerkung) und muss in einer späteren Liste der Mitwirkenden im Spiel (Danksagung) wiederkehren.
+- **CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/): **Namensnennung verlangt, Bearbeitung erlaubt** (Schnitte, Filter, Pegel). Diese Quellen sind: klankbeeld (große Glocke Noteman, Niederlande: Abendglocke und Feuerglocke), poots (Frösche), juskiddink (Horn der Streife). Die Nennung steht in dieser Datei, im Protokoll (`docs/assets/protokoll.csv`, Spalte Bemerkung) und muss in einer späteren Liste der Mitwirkenden im Spiel (Danksagung) wiederkehren.
 - Nichts aus dem Spiel „Die Gilde“, keine craigsmith-Aufnahmen (unklare Rechtekette), nichts mit NC-Lizenz, kein Sonniss.
 
 - **Quelle ist die öffentliche HQ-Vorschau** (OGG Vorbis, etwa 192 kbit/s) der Klangseite, nicht das Original (das gibt es nur mit Anmeldung). Die SHA-256 der Vorschau steht unten und in `tools/ton/umgebung_schnitte.json`; mit derselben Nummer lässt sich später das Original einsetzen und neu bauen.
@@ -156,3 +156,5 @@ Alle Fremdaufnahmen stammen von **freesound.org**. Die Lizenz steht auf jeder Kl
 | rufe/donner_2.ogg | 196125 | 199.5–213.5 | Hochpass 30 Hz, Tiefpass 6000 Hz, Tiefbass unter 120 Hz +5 dB, weicher Begrenzer −10 dBFS, −17 LUFS, Spitze −2,5 dBTP | Donner nah (normales Gewitter, nie näher als 1 km) |
 | rufe/donner_3.ogg | 844420 | 2.3–20.0 | Hochpass 28 Hz, Tiefpass 7000 Hz, Tiefbass unter 120 Hz +7 dB, weicher Begrenzer −10 dBFS, −17 LUFS, Spitze −2,5 dBTP | Donner nah (normales Gewitter, nie näher als 1 km) |
 | rufe/donner_4.ogg | 844420 | 2.3–34.0 | Hochpass 28 Hz, Tiefpass 7000 Hz, Tiefbass unter 120 Hz +7 dB, weicher Begrenzer −10 dBFS, −17 LUFS, Spitze −2,5 dBTP | Donner nah (normales Gewitter, nie näher als 1 km) |
+
+**Sturmläuten beim Blitzschlag** (`glocken/glocke_sturm.ogg`, 2.11.2026): aus dem Geläut des Kölner Doms (511546, polymorpheva, CC0), den Ausschnitten der Morgenglocke, mit `tools/ton/glocke_sturm_bauen.py` schneller, pochend und gedämpft als Schleife gesetzt.

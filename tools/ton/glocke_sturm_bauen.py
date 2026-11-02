@@ -1,47 +1,40 @@
-"""Baut das Sturmläuten der Feuerglocke beim Blitzschlag: game/assets/audio/umgebung/glocken/glocke_sturm.ogg.
+"""Baut die Feuerglocke beim Blitzschlag: game/assets/audio/umgebung/glocken/glocke_sturm.ogg (Schleife).
 
-Quelle ist ein einzelner Schlag der großen Glocke „Noteman“ aus der vorhandenen Feuerglocke (glocke_feuer_1.ogg, Ausschnitt 17,85–20,85 s;
-Aufnahme 204899 von klankbeeld, CC BY 4.0, siehe game/assets/audio/umgebung/HERKUNFT.md). Der Schlag klingt schneller aus, wird um den Faktor
-1,50 bzw. 1,42 höher gesetzt (eine kleinere Glocke, die beim Schwingen an beiden Seiten anschlägt) und 95 s lang schnell und unregelmäßig
-wiederholt (alle 0,66–0,78 s, am Anfang langsamer, die Glocke kommt in Schwung, zum Ende hin langsamer); Lautheit wie die Feuerglocke
-(gleicher RMS), Spitze höchstens 0,89, OGG Vorbis 112 kbit/s, mono, 48 kHz. Der Zufall hat einen festen Startwert: gleicher Klang bei jedem Lauf (die Datei unterscheidet sich nur in der Seriennummer des Ogg-Stroms).
+Quelle ist das Geläut des Kölner Doms (Aufnahme 511546 von polymorpheva, CC0; die vorhandenen Ausschnitte glocke_morgen_1.ogg und
+glocke_morgen_2.ogg, siehe game/assets/audio/umgebung/HERKUNFT.md). Wunsch des Nutzers (2.11.2026): tiefer und wärmer als das erste
+Sturmläuten aus der Noteman-Glocke, weniger schrill, etwas langsamer. Beide Ausschnitte werden aneinandergeblendet, um den Faktor 1,12
+schneller (und damit etwas höher) gesetzt, im Takt von 0,9 s leicht pochend betont (Sturm statt Feiertag) und über 2,5 kHz gedämpft.
+Das Ende ist mit gleicher Leistung über den Anfang geblendet: Die Datei läuft als Schleife, bis das Feuer aus ist (KlangSturmlaeuten).
+Lautheit RMS 0,12 (etwas leiser als die anderen Glocken), Spitze höchstens 0,85, OGG Vorbis 112 kbit/s, mono, 48 kHz.
 
-Läuft in Blender (dessen Python hat numpy und audaspace „aud“ zum Lesen und Schreiben von OGG; ffmpeg oder soxr braucht es nicht):
+Läuft in Blender (dessen Python hat numpy und audaspace „aud“ zum Lesen und Schreiben von OGG):
   ~/werkzeuge/blender/blender.sh -b --python tools/ton/glocke_sturm_bauen.py -- game/assets/audio/umgebung/glocken/glocke_sturm.ogg
 """
 import os, sys
 import aud, numpy as np
 r = 48000
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-quelle = aud.Sound(os.path.join(WURZEL, "game/assets/audio/umgebung/glocken/glocke_feuer_1.ogg")).data()[:, 0].astype(np.float64)
-schlag = quelle[int(17.85 * r):int(20.85 * r)].copy()
-n = len(schlag); t = np.arange(n) / r
-schlag *= np.where(t < 0.5, 1.0, np.exp(-(t - 0.5) * 2.2))   # Ausklang kürzer: schnelle Schläge sollen nicht verschwimmen
-schlag[:int(0.004 * r)] *= np.linspace(0, 1, int(0.004 * r))
-schlag[-int(0.05 * r):] *= np.linspace(1, 0, int(0.05 * r))
+G = os.path.join(WURZEL, "game/assets/audio/umgebung/glocken/")
+def lesen(n): return aud.Sound(G + n + ".ogg").data()[:, 0].astype(np.float64)
+def tiefpass(x, hz):
+    X = np.fft.rfft(x); f = np.fft.rfftfreq(len(x), 1 / r)
+    X *= 1 / np.sqrt(1 + (f / hz) ** 4)
+    return np.fft.irfft(X, len(x))
 def tonhoehe(x, f):
-    idx = np.arange(0, len(x) - 1, f)
-    return np.interp(idx, np.arange(len(x)), x)
-klein = [tonhoehe(schlag, 1.50), tonhoehe(schlag, 1.42)]   # eine kleinere Glocke, die beim Schwingen an beiden Seiten anschlägt
-dauer = 95.0
-aus = np.zeros(int((dauer + 3) * r))
-zufall = np.random.default_rng(1402)
-zeit, i, schlaege = 0.25, 0, 0
-while zeit < dauer - 4:
-    s = klein[i % 2] * (0.85 + 0.15 * zufall.random()) * (0.55 + 0.45 * min(1, zeit / 4))   # die ersten Schläge leiser: die Glocke kommt in Schwung
-    a = int(zeit * r); aus[a:a + len(s)] += s[:len(aus) - a]
-    abstand = 0.66 + 0.12 * zufall.random()
-    if zeit < 4: abstand += 0.5 * (1 - zeit / 4)              # am Anfang langsamer
-    if zeit > dauer - 12: abstand += 0.35 * (zeit - (dauer - 12)) / 8   # zum Ende hin langsamer
-    zeit += abstand; i += 1; schlaege += 1
-aus = aus[:int(dauer * r)]
-aus[-int(1.5 * r):] *= np.linspace(1, 0, int(1.5 * r))
-rms_ziel = float(np.sqrt((quelle ** 2).mean()))
-aus *= rms_ziel / float(np.sqrt((aus ** 2).mean()))
-spitze = float(np.abs(aus).max())
-if spitze > 0.89: aus *= 0.89 / spitze
-print("Schläge", schlaege, "Spitze", float(np.abs(aus).max()), "RMS", float(np.sqrt((aus ** 2).mean())), "Ziel", rms_ziel)
+    idx = np.arange(0, len(x) - 1, f); return np.interp(idx, np.arange(len(x)), x)
+blende = int(2.0 * r)
+a, b = lesen("glocke_morgen_1"), lesen("glocke_morgen_2")
+w = np.linspace(0, np.pi / 2, blende)
+x = np.concatenate([a[:-blende], a[-blende:] * np.cos(w) + b[:blende] * np.sin(w), b[blende:]])
+x = tonhoehe(x, 1.12)
+t = np.arange(len(x)) / r
+x = tiefpass(x * (0.65 + 0.35 * np.exp(-((t % 0.9) / 0.25))), 2500)
+# Schleifennaht: das Ende über den Anfang blenden, die Datei wird um die Blende kürzer
+x[:blende] = x[:blende] * np.sin(w) + x[-blende:] * np.cos(w)
+x = x[:-blende]
+x *= 0.12 / np.sqrt((x ** 2).mean()); x *= min(1, 0.85 / np.abs(x).max())
+print("Länge", len(x) / r, "s, Spitze", float(np.abs(x).max()))
 ziel = sys.argv[-1]
-klang = aud.Sound.buffer(aus.astype(np.float32).reshape(-1, 1), r)
-klang.write(ziel, rate=r, channels=aud.CHANNELS_MONO, format=aud.FORMAT_FLOAT32, container=aud.CONTAINER_OGG, codec=aud.CODEC_VORBIS, bitrate=112000)
+aud.Sound.buffer(x.astype(np.float32).reshape(-1, 1), r).write(ziel, rate=r, channels=aud.CHANNELS_MONO, format=aud.FORMAT_FLOAT32,
+    container=aud.CONTAINER_OGG, codec=aud.CODEC_VORBIS, bitrate=112000)
 print("geschrieben", ziel)
