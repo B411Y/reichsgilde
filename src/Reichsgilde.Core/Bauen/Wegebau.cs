@@ -317,6 +317,12 @@ public sealed class Wegebau
         Geaendert();
     }
 
+    /// <summary>
+    /// Der Zeitfaktor der Wege hat sich ohne neuen Belag geändert (Schlamm der Jahreszeit, Fähre im Eis; Datenversion 67): Fahrzeiten neu,
+    /// und die Darstellung rechnet das Tempo ihrer Karren neu – über dasselbe Ereignis wie ein neuer Belag.
+    /// </summary>
+    internal void ZeitfaktorGeaendert() => Geaendert();
+
     private void Geaendert()
     {
         _w.FahrzeitenVeraltet();

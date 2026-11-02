@@ -52,8 +52,17 @@ public sealed class Marktstand
         }
     }
 
+    /// <summary>
+    /// Faktor der Jahreszeit auf die Grundversorgung (1 = wie in den Daten; Herbst: die Ernte bringt mehr Gerste, Roggen, Kräuter). Setzt das
+    /// <see cref="Jahreszeitenwesen"/> (Datenversion 67).
+    /// </summary>
+    public double Angebotsfaktor { get; internal set; } = 1;
+
+    /// <summary>Was Händler und Bauern im Jahr liefern: Nachfrage der Einwohner × NPC-Anteil × <see cref="Angebotsfaktor"/>.</summary>
+    public double Grundversorgung => Grundnachfrage * _ware.NpcAnteil * Angebotsfaktor;
+
     /// <summary>Gesamtangebot pro Jahr: NPC-Grundversorgung plus Spieler.</summary>
-    public double Gesamtangebot => Grundnachfrage * _ware.NpcAnteil + SpielerAngebotImJahr;
+    public double Gesamtangebot => Grundversorgung + SpielerAngebotImJahr;
 
     public double Preisfaktor => FaktorBei(0);
 
@@ -64,10 +73,16 @@ public sealed class Marktstand
     public double NachfrageFaktor { get; internal set; } = 1;
 
     /// <summary>
-    /// Nachfrage der Stadt im Jahr – <see cref="Grundnachfrage"/> mal <see cref="NachfrageFaktor"/> mal <see cref="Markt.Ratsfaktor"/>
-    /// (größerer Marktplatz, Fest; PR #200).
+    /// Faktor der Jahreszeit und des Festmarkts auf die Nachfrage (1 = wie in den Daten; Winter: Brennholz, Kerzen; Festmarkt: alle Waren).
+    /// Setzt das <see cref="Jahreszeitenwesen"/> (Datenversion 67).
     /// </summary>
-    public double Nachfrage => Grundnachfrage * NachfrageFaktor * (_markt?.Ratsfaktor ?? 1);
+    public double Jahreszeitfaktor { get; internal set; } = 1;
+
+    /// <summary>
+    /// Nachfrage der Stadt im Jahr – <see cref="Grundnachfrage"/> mal <see cref="NachfrageFaktor"/> mal <see cref="Markt.Ratsfaktor"/>
+    /// (größerer Marktplatz, Fest; PR #200) mal <see cref="Jahreszeitfaktor"/>.
+    /// </summary>
+    public double Nachfrage => Grundnachfrage * NachfrageFaktor * (_markt?.Ratsfaktor ?? 1) * Jahreszeitfaktor;
 
     /// <summary>Art der Ware aus den Daten (Rohstoff, Zwischenprodukt, Fertigprodukt, Heilmittel).</summary>
     public string Typ => _ware.Typ;
@@ -91,7 +106,7 @@ public sealed class Marktstand
         get
         {
             var aeltestes = (_aktuellesFach + 1) % _verkaufteStueckProStunde.Length;
-            var angebot = Grundnachfrage * _ware.NpcAnteil + _verkaufteStueckProStunde.Sum() - _verkaufteStueckProStunde[aeltestes];
+            var angebot = Grundversorgung + _verkaufteStueckProStunde.Sum() - _verkaufteStueckProStunde[aeltestes];
             var faktor = DetMathe.Pow(Nachfrage / Math.Max(angebot, 1e-9), _allgemein.Elastizitaet);
             return _ware.Grundpreis * Math.Clamp(faktor, _allgemein.PreisMin, _allgemein.PreisMax);
         }

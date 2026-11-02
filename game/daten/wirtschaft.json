@@ -1,5 +1,5 @@
 {
-  "version": 66,
+  "version": 67,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -2076,7 +2076,8 @@
   "ki": {
     "einrichtung": { "hoechstensJahre": 4, "charakterJahre": 0.5, "reserveFaktor": 2 },
     "wegebau": { "hoechstensJahre": 5, "charakterJahre": 1, "wertJeKarrenminute": 1.5, "reserveFaktor": 2, "hoechstensMeter": 100 },
-    "schiffe": { "hoechstens": 1, "mindestGewinnJeFahrt": 100, "auslastung": 0.5, "hoechstensJahre": 4, "charakterJahre": 1, "reserveFaktor": 2 }
+    "schiffe": { "hoechstens": 1, "mindestGewinnJeFahrt": 100, "auslastung": 0.5, "hoechstensJahre": 4, "charakterJahre": 1, "reserveFaktor": 2 },
+    "jahreszeiten": { "vorratAbStunde": 17 }
   },
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "schiffshandel": {
@@ -2102,6 +2103,26 @@
     "geleitFaktor": 3,
     "verkaufAnteil": 0.5,
     "hafenAbstand": 40
+  },
+  "jahreszeiten": {
+    "fruehling": {
+      "schlamm": { "Trampelpfad": 1.3, "Fahrweg": 1.2 },
+      "schlammUmland": 1.15
+    },
+    "sommer": {},
+    "herbst": {
+      "angebot": { "Gerste": 1.25, "Roggen": 1.25, "Kräuter": 1.2 },
+      "arbeit": { "Bauernhof": 1.2, "Kraeutergarten": 1.15 }
+    },
+    "winter": {
+      "nachfrage": { "Holz": 1.4, "Kerze": 1.25, "Kräuterschnaps": 1.25, "Heilsalbe": 1.15, "Kräuterlikör": 1.1, "Weingeist": 1.1 },
+      "arbeit": { "Holzfaellerei": 0.85, "Steinbruch": 0.8, "Bauernhof": 0.8, "Kraeutergarten": 0.75, "Duftgarten": 0.75 }
+    },
+    "strengerWinter": { "chance": 0.3, "nachfrageZuschlag": 0.5, "zufrierenVon": 7, "zufrierenBis": 10, "dauerMin": 6, "dauerMax": 14, "faehreMinuten": 120 },
+    "festmaerkte": [
+      { "name": "Frühjahrsmarkt", "jahreszeit": "Fruehling", "von": 10, "bis": 16, "nachfrage": 0.2, "gaeste": 0.3, "besucher": 0.6 },
+      { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "gaeste": 0.3, "besucher": 0.6 }
+    ]
   },
   "glaube": {
     "voelker": {

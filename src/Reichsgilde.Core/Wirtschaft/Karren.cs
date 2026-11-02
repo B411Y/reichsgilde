@@ -389,7 +389,8 @@ public sealed class Karren
     /// <summary>
     /// Bis zu welchem Bestand der Verwalter jede Zutat auffüllt: den Bedarf von <see cref="LogistikDaten.ZutatenVorratStunden"/> Arbeitsstunden
     /// bei der jetzigen Leistung (eine Runde = von jeder Ware in Arbeit ein Stück), mindestens für 2 × <see cref="LogistikDaten.NachkaufUnterStueck"/>
-    /// Stück (damit er nicht gleich wieder losfährt), höchstens bis zur Lagergrenze.
+    /// Stück (damit er nicht gleich wieder losfährt), höchstens bis zur Lagergrenze. Der Verwalter eines KI-Hauses legt im späten Herbst Vorrat für
+    /// den Winter an (<see cref="Ki.KiRivale.WinterVorrat"/>, Datenversion 67).
     /// </summary>
     private Dictionary<string, int> Vorratsziel(Stadtwirtschaft w)
     {
@@ -397,7 +398,9 @@ public sealed class Karren
         var minutenJeRunde = Heimat.WarenInArbeit.Sum(Heimat.MinutenJeStueck);
         var rundenJeStunde = minutenJeRunde > 0 ? Kalkulation.Leistung(w, Heimat) * 60 / minutenJeRunde : 0;
         var runden = Math.Max(2.0 * l.NachkaufUnterStueck, rundenJeStunde * l.ZutatenVorratStunden);
-        return Heimat.Zutaten.ToDictionary(z => z.Key, z => (int)Math.Min(Heimat.LagerKapazitaetJeWare, Math.Ceiling(runden * z.Value)));
+        var ki = w.Jahreszeiten.IstAktiv ? w.Rivalen.FirstOrDefault(r => r.Konto == Heimat.Konto) : null; // Vorrat vor dem Winter (KiRivale.Jahreszeiten.cs)
+        return Heimat.Zutaten.ToDictionary(z => z.Key, z => Math.Max((int)Math.Min(Heimat.LagerKapazitaetJeWare, Math.Ceiling(runden * z.Value)),
+            ki?.WinterVorrat(Heimat, z.Key) ?? 0));
     }
 
     /// <summary>Jahresabschluss des Betriebs: Die Fahrten dieses Jahres werden zu denen des Vorjahrs.</summary>

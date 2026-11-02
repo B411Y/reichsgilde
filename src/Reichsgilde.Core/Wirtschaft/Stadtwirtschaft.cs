@@ -99,6 +99,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Schiffe der Häuser, ihre Fahrten zu den fernen Städten am Fluss und deren Märkte (braucht die <see cref="Karte"/> mit Hafen und „schiffshandel“).</summary>
     public Schiffahrt Schiffahrt { get; }
 
+    /// <summary>Folgen der Jahreszeit: Winter, Eis auf dem Fluss, Ernte, Schlamm, Festmärkte (Abschnitt „jahreszeiten“, Datenversion 67).</summary>
+    public Jahreszeitenwesen Jahreszeiten { get; }
+
     /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
     public Bauen.Stadtkarte? Karte { get; private set; }
 
@@ -328,6 +331,7 @@ public sealed partial class Stadtwirtschaft
         Bauen = new Bauen.Bauwesen(this, daten.Bauen);
         Wegebau = new Bauen.Wegebau(this, daten.Wegebau);
         Schiffahrt = new Schiffahrt(this, daten.Schiffshandel);
+        Jahreszeiten = new Jahreszeitenwesen(this, daten.Jahreszeiten, zufallsstartwert);
         Gesundheit = new Gesundheitswesen(this, daten.Gesundheit, zufallsstartwert);
         Gastwirtschaft = new Gastwirtschaft(this, daten.Gastwirtschaft);
         Werkstaetten = new Werkstattwesen(this, daten.Werkstatt, zufallsstartwert);
@@ -352,6 +356,7 @@ public sealed partial class Stadtwirtschaft
     {
         Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
         Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
+        Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 67)
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -499,6 +504,7 @@ public sealed partial class Stadtwirtschaft
     internal void Tick(Spielzeit zeit)
     {
         EinwohnerZaehlen();
+        Jahreszeiten.Minute(zeit); // Meldungen zur Jahreszeit; im Eis ruhen die Schiffe (vor Karren und Schiffen dieser Minute)
         if (zeit.MinuteImTag % 60 == 0 && zeit.VergangeneMinuten > 0)
             Markt.NeueStunde();
         else if (zeit.VergangeneMinuten > 0)
@@ -514,7 +520,7 @@ public sealed partial class Stadtwirtschaft
             if (IstArbeitszeit(betrieb, zeit))
             {
                 var volk = VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf); // Zwerge schmieden besser, Elben predigen besser …
-                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand), volk);
+                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb), volk);
             }
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los – um 20 Uhr und, mit gauner.nachtVersuche, zu jeder vollen
@@ -584,6 +590,7 @@ public sealed partial class Stadtwirtschaft
     /// <returns>false, wenn die Partie vor der Ratssitzung anhält – dann folgt der Rest mit <see cref="JahresabrechnungAbschliessen"/>.</returns>
     internal bool Jahresabrechnung(int neuesJahr, Spielzeit zeit)
     {
+        Jahreszeiten.Jahreswechsel(); // neue Jahreszeit: Fahrzeiten neu (Schlamm), bevor jemand mit ihnen rechnet
         StundeVorbei(zeit);
         if (Gauner.VersuchUm(Spielzeit.MinutenProTag) is { } versuch) // Gaunerei je Nachtstunde: der Versuch um 23 Uhr
             Nachtversuch(zeit, versuch);

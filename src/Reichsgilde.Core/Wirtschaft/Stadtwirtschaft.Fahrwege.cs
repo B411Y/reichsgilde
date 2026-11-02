@@ -53,7 +53,7 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public (int Hin, int Zurueck) FahrzeitenAuf(Fahrweg weg, Betriebsart art, string karrenTyp)
     {
-        var basis = Daten.Logistik.FahrzeitAb(Daten.Art(art).Ort);
+        var basis = FesteFahrzeit(Daten.Art(art).Ort);
         return NachStrecke(karrenTyp) ? Zeiten(weg.Hin, weg.Zurueck, karrenTyp, basis) : (basis, basis);
     }
 

@@ -223,6 +223,12 @@ public sealed class Wirtschaftsdaten
     /// </summary>
     public SchiffshandelDaten? Schiffshandel { get; init; }
 
+    /// <summary>
+    /// Folgen der Jahreszeiten für die Wirtschaft (ab Datenversion 67): Winter mit Brennholz und Eis auf dem Fluss, Ernte im Herbst, Schlamm im
+    /// Frühling, Festmärkte. Fehlt der Abschnitt, wirkt die Jahreszeit nur auf Licht, Wetter und Ton.
+    /// </summary>
+    public JahreszeitenDaten? Jahreszeiten { get; init; }
+
     /// <summary>Konfessionen, Glaubensnähe im Rat, Bekehrung und Stadtglaube (ab Datenversion 22). Fehlt der Abschnitt, spielt der Glaube keine Rolle.</summary>
     public Glaube.GlaubeDaten? Glaube { get; init; }
 
@@ -478,6 +484,7 @@ public sealed class Wirtschaftsdaten
         Logistik.Pruefen(f);
         Handel?.Pruefen(f);
         Schiffshandel?.Pruefen(f, Waren, Logistik.Eskorten);
+        Jahreszeiten?.Pruefen(f, Waren, Betriebsarten);
         Wohnen?.Pruefen(f, Staende.Count, Waren);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);

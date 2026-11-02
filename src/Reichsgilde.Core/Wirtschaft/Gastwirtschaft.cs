@@ -313,7 +313,8 @@ public sealed class Gastwirtschaft
         var schaenken = Schaenken.ToList();
         var summe = schaenken.Sum(Anziehung);
         if (summe <= 0) return;
-        var gaeste = d.GaesteJeJahr * gewicht / GewichtSumme * _w.Ratsantraege.Gaestefaktor; // im Festjahr kommen mehr (PR #200)
+        var gaeste = d.GaesteJeJahr * gewicht / GewichtSumme * _w.Ratsantraege.Gaestefaktor // im Festjahr kommen mehr (PR #200)
+                     * _w.Jahreszeiten.Gaestefaktor(zeit); // und während eines Festmarkts (Datenversion 67)
         // Bürger-KI: Wie viele Einwohner diese Stunde wirklich eingekehrt sind, verschiebt die Gäste (Faktor um 1).
         // Ohne Kopplung (Abschnitt „buerger" oder „kopplung.schaenke" fehlt) genau wie bisher: gaeste × Anziehung ÷ Summe.
         var anteile = _w.Einwohnerschaft.Gaesteanteile(schaenken, gaeste, Anziehung, stunde);
