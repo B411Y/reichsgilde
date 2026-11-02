@@ -98,8 +98,9 @@ E5_LIDFORM = {
         "Oger": {"rund": 0.15, "mandel": 0.25, "schlupf": 0.60},
     },
     # Formgewicht der Lidform (lid_<form> der .glb) je Geschlecht – kleiner als die Zeigeformen aus E2 (1,0)
-    # Runde 1 (Panel: rund „starrt“, mandel kaum von schlupf zu trennen): rund schwächer, mandel und schlupf deutlicher
-    "staerke": {"rund": {"m": 0.5, "w": 0.55}, "mandel": {"m": 1.0, "w": 1.0}, "schlupf": {"m": 0.95, "w": 0.85}},
+    # Runde 1 (Panel: rund „starrt“, mandel kaum von schlupf zu trennen): rund schwächer, mandel und schlupf deutlicher.
+    # Runde 2 (Panel: Grundköpfe mit mandel 1,0 „schläfrig“, schlupf „harter Grat“): mandel und schlupf wieder leichter
+    "staerke": {"rund": {"m": 0.5, "w": 0.55}, "mandel": {"m": 0.55, "w": 0.6}, "schlupf": {"m": 0.65, "w": 0.6}},
 }
 # Augen, Brauen und Haut des Grundkopfs 3 (charakter_kopf.gd liest „verschieden.grundkopf3“)
 E5_GRUNDKOPF3 = {

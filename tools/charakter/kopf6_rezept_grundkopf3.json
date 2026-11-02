@@ -115,7 +115,7 @@
    "eigen_kieferkante": 0.0,
    "eigen_jochbein": 0.0,
    "probe_head_scale_horiz_decr": 0.068,
-   "probe_mouth_trans_backward": 0.05,
+   "probe_mouth_trans_backward": 0.25,
    "probe_cheek_inner_incr": 0.1075,
    "probe_neck_double_decr": 0.0,
    "probe_head_invertedtriangular": 0.0,
@@ -124,7 +124,7 @@
    "vorbild_grund_w": 0.0,
    "probe_cheek_volume_incr": 0.25,
    "eigen_kinn_w": 1.6,
-   "eigen_lippen": 1.5,
+   "eigen_lippen": 1.0,
    "eigen_jochbein_w": 1.2,
    "eigen_kiefer_w": 1.4
   },
