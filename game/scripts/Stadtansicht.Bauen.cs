@@ -539,7 +539,7 @@ public partial class Stadtansicht
             }
         }
         foreach (var (ecken, farbe) in new[] { (dunkel, WerkstattplatzEisen), (hell, WerkstattplatzHell) })
-            if (ecken.Count > 0) eltern.AddChild(new MeshInstance3D { Mesh = Dreiecksnetz(ecken), MaterialOverride = Transparent(farbe, 0.9f) });
+            if (ecken.Count > 0) eltern.AddChild(new MeshInstance3D { Mesh = Dreiecksnetz(ecken), MaterialOverride = UeberDerZone(farbe, 0.9f) });
 
         // Amboss in der Mitte (Seitenansicht, flach auf dem Boden: Horn links, Bahn oben, Fuß unten); Größe nach der Zone, höchstens 7 m breit
         var mass = Mathf.Clamp(kleinsteSeite / 8, 0.8f, 1.25f);
@@ -554,7 +554,18 @@ public partial class Stadtansicht
         var dreiecke = Geometry2D.TriangulatePolygon(ort);
         if (dreiecke.Length == 0) return;
         var amboss = dreiecke.Select(i => new Vector3(ort[i].X, BodenHoehe(ort[i].X, ort[i].Y) + 0.2f, ort[i].Y)).ToList();
-        eltern.AddChild(new MeshInstance3D { Mesh = Dreiecksnetz(amboss), MaterialOverride = Transparent(WerkstattplatzEisen, 0.92f) });
+        eltern.AddChild(new MeshInstance3D { Mesh = Dreiecksnetz(amboss), MaterialOverride = UeberDerZone(WerkstattplatzEisen, 0.92f) });
+    }
+
+    /// <summary>
+    /// Durchsichtig wie die Zone, aber immer nach ihr gezeichnet: Godot sortiert Durchsichtiges nach dem Abstand der Mitte, die große Zonenfläche lag
+    /// sonst oft über Rand und Amboss, und das Eisen verschwamm mit dem Teal der Zone (Klicktest Köln, Nacht).
+    /// </summary>
+    private static StandardMaterial3D UeberDerZone(Color farbe, float alpha)
+    {
+        var stoff = Transparent(farbe, alpha);
+        stoff.RenderPriority = 2;
+        return stoff;
     }
 
     /// <summary>Ein einfaches Netz aus Dreiecken (je drei Ecken hintereinander).</summary>
