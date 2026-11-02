@@ -1459,11 +1459,6 @@ Offen nach Phase 3: Messung je Art in ruhiger Stunde.
 | Klicktest | T400, Vulkan, 1600 × 900, Köln, Blick nach Nordwesten wie die Nutzerbilder: Rheinbrücke (`--blick=85,8,70`), Stadtmauer mit Duffesbach (`-75,95,100`), Felder (`-150,120,110`); Voreinstellung Hoch, 5:30, 6:40 und 8:00 Uhr im Frühling (`--morgennebel=0.8`, höchste Stärke dort) und im Herbst (`1`), dazu Ultra an der Brücke. Vorher (Stand `54c716de`, Frühling 6:41): der Rhein eine graue Fläche (Hoch und Ultra), am Duffesbach ein Band mit Treppenkante. Nachher: Fetzen mit Lücken ohne gerade Kanten, der Rhein bleibt sichtbar (Ultra etwas dichter); 5:30 dunkelblau verschleiert, um 8 Uhr im Frühling an Land fast weg und über dem Wasser Reste, im Herbst an Land noch Fetzen. Nachts 23 und 3 Uhr am Deutzer Ufer und vor dem Hahnentor, Nachtnebel an und aus, dazu nah mit der freien Kamera (Test-Zusammenführung mit `phase5/wasser-darstellung`): an = blaugrauer Schleier über dem Rhein, an Land kaum zu sehen; **kein heller Saum** am Fuß von Häusern, Mauer, Tor und Brückenpfeilern, darum Standard an. OpenGL (`opengl3`, Ultra, Morgen und Nacht): keine Meldung „fog not supported“ mehr, der Bodennebel ist dort jetzt zu sehen (vorher blendete er über die falsch zurückgerechnete Tiefe aus). | 30.10.2026 |
 | Kosten | T400, Köln, Brücke 6:40 mit dichtestem Nebel, `--messung=20 --vsync=Aus --tiltshift=Aus`, nur bei freier Grafikkarte, je zwei Läufe: Voreinstellung Hoch ohne Dunst 31,4 ms GPU je Bild, mit (Morgendunst Niedrig: eine beleuchtete Schicht, Höhennebel) 34,8 ms (**+3,4 ms**); Hoch mit Morgendunst Hoch (zwei Schichten und Volumen) 38,7 ms (+7,3 ms); Ultra ohne Dunst 50,0 ms, mit 57,7–58,3 ms (**+8 ms**), in zwei von vier Ultra-Läufen mit Volumen aber 92–100 ms (Ursache offen, das Volumen gab es vorher schon). Nachts (23 Uhr, Deutz, Hoch): Nachtnebel aus 28,4 ms, an 31,3 ms (**+2,9 ms**). Die Mehrkosten gegenüber vorher kommen vor allem daher, dass der Bodennebel jetzt beleuchtet ist (Schatten des Mondes, Lichthof), und vom Rauschen (neun Wertrauschen je Bildpunkt und Schicht). | 30.10.2026 |
 
-### Regen 4 und Schornsteine (PR #270)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-
 ### Treibende Schollen 2: ruhiger Stau, Bruch, Schmelzen (PR #272)
 
 | Thema | Entscheidung | Datum |
