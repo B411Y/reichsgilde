@@ -15,6 +15,10 @@ static class SchankplaetzeTests
     static readonly Lazy<Wirtschaftsdaten> OhnePlaetze = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten()
         .Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ],", "")));
 
+    /// <summary>Die Daten mit Einwohner-Plätzen gleich den Sitzplätzen (einwohnerBezug 0): Nur so wird es für die Einwohner knapp – mit 17 nie.</summary>
+    static readonly Lazy<Wirtschaftsdaten> EinwohnerEng = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+        .Replace("\"einwohnerBezug\": 17,", "\"einwohnerBezug\": 0,")));
+
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, wirtschaftsdaten: daten ?? Daten.Value);
 
@@ -159,10 +163,43 @@ static class SchankplaetzeTests
             Pruefe.Gleich(new Schankplaetze(30, 17, 13), g.Platzbelegung(s));
         }),
 
-        ("Sitzplätze: In einer Partie sitzen nie mehr Einwohner in einer Schänke, als sie Plätze hat; abends ist sie voll, und es finden nicht alle Platz", () =>
+        ("Sitzplätze: Einwohner-Plätze = Sitzplätze × Einwohner ÷ 17 (aufgerundet); mit Bezug 0 die Sitzplätze selbst", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 101 },
                 Daten.Value, new NeuePartie(Beruf: "Wirt"));
+            var w = sim.Wirtschaft!;
+            var schaenke = w.Betriebe.First(b => b.Konto == spieler && b.IstSchaenke);
+            Pruefe.Gleich(17, Daten.Value.Gastwirtschaft!.EinwohnerBezug);
+            Pruefe.Gleich(20, w.Gastwirtschaft.EinwohnerPlaetze(schaenke, 17));
+            Pruefe.Gleich(22, w.Gastwirtschaft.EinwohnerPlaetze(schaenke, 18)); // 360 ÷ 17 = 21,2
+            Pruefe.Gleich(118, w.Gastwirtschaft.EinwohnerPlaetze(schaenke, 100)); // 2.000 ÷ 17 = 117,6
+            var eng = NeueSimulation(EinwohnerEng.Value);
+            var (w2, _, s2) = Wirt(eng);
+            Pruefe.Gleich(20, w2.Gastwirtschaft.EinwohnerPlaetze(s2, 100));
+            var alt = NeueSimulation(OhnePlaetze.Value);
+            var (w3, _, s3) = Wirt(alt);
+            Pruefe.Wahr(w3.Gastwirtschaft.EinwohnerPlaetze(s3, 100) is null, "ohne Sitzplätze ohne Grenze");
+            var falsch = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"einwohnerBezug\": 17,", "\"einwohnerBezug\": -1,");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "einwohnerBezug");
+        }),
+
+        ("Sitzplätze: Mit den Spieldaten finden Einwohner immer Platz; mit Bezug 0 sitzen nie mehr darin, als die Schänke Plätze hat", () =>
+        {
+            // Mit den Spieldaten (Bezug 17) fasst jede Schänke mehr Einwohner, als die Stadt hat – die Grenze greift nie (Entscheidung 2.11.2026).
+            var (sim0, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 101 },
+                Daten.Value, new NeuePartie(Beruf: "Wirt"));
+            for (var i = 0; i < 2 * Reichsgilde.Core.Zeit.Spielzeit.MinutenProTag; i++)
+            {
+                sim0.Tick();
+                var n = sim0.Wirtschaft!.Einwohnerschaft.Einwohner.Count;
+                foreach (var b in sim0.Wirtschaft.Gastwirtschaft.Schaenken)
+                    Pruefe.Wahr(sim0.Wirtschaft.Gastwirtschaft.EinwohnerPlaetze(b, n) > n, $"{b.Name}: Einwohner-Plätze nicht über der Einwohnerzahl {n}");
+                Pruefe.Gleich(0, sim0.Wirtschaft.Einwohnerschaft.OhneSchankplatz);
+            }
+
+            // Mit Bezug 0 (Einwohner-Plätze = Sitzplätze) wird es abends knapp: höchstens 20, und nicht alle finden Platz.
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 101 },
+                EinwohnerEng.Value, new NeuePartie(Beruf: "Wirt"));
             var w = sim.Wirtschaft!;
             var ew = w.Einwohnerschaft;
             Pruefe.Wahr(ew.IstAktiv, "ohne Einwohner");
@@ -188,12 +225,12 @@ static class SchankplaetzeTests
             Pruefe.Wahr(ohnePlatz > 0, "niemand fand keinen Platz");
         }),
 
-        ("Sitzplätze: Bei Knappheit kommt dran, wer am längsten wartet – kein Volk bleibt abends draußen (Startwerte 101 und 202, drei Tage)", () =>
+        ("Sitzplätze: Bei Knappheit kommt dran, wer am längsten wartet – kein Volk bleibt abends draußen (Bezug 0, Startwerte 101 und 202, drei Tage)", () =>
         {
             foreach (var startwert in new[] { 101, 202 })
             {
                 var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert },
-                    Daten.Value, new NeuePartie(Beruf: "Wirt"));
+                    EinwohnerEng.Value, new NeuePartie(Beruf: "Wirt")); // Bezug 0: knapp schon in der kleinen Stadt
                 var w = sim.Wirtschaft!;
                 var ew = w.Einwohnerschaft;
                 var abends = new Dictionary<int, int>();                    // Nummer → Abendstunden in der Schänke

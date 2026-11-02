@@ -83,6 +83,16 @@ public sealed class GastwirtschaftDaten
     /// </summary>
     public List<int> SitzplaetzeJeStufe { get; init; } = new();
 
+    /// <summary>
+    /// So viele Gäste stehen für alle Einwohner der Stadt (Entscheidung des Nutzers, 2.11.2026): Die Einwohner der Bürger-KI sind viel mehr als die
+    /// Gäste der Wirtschaft (am Nachmittag sitzen bis zu 98 % von ihnen in einer Schänke, es kommen aber nur 8,6–17 Gäste je Stunde). Eine Schänke
+    /// nimmt darum ⌈Plätze × Einwohner ÷ dieser Wert⌉ Einwohner auf. Mit 17 (Gäste der vollsten Stunde, 120 × 2 ÷ 14) und mindestens 20 Plätzen
+    /// sind das immer mehr Einwohner, als die Stadt hat: Die Einwohner-Grenze greift mit den Spieldaten nie, die Kopplung an die Einwohner
+    /// wirkt wie bis Datenversion 65, und nur die Gäste sind durch die Sitzplätze begrenzt. Sie greift erst bei einem Wert über den kleinsten
+    /// Sitzplätzen (20); 0 = die Sitzplätze selbst (so prüfen es die Tests).
+    /// </summary>
+    public int EinwohnerBezug { get; init; }
+
     public DunkleEckeDaten DunkleEcke { get; init; } = new();
     public WuerfeltischDaten Wuerfeltisch { get; init; } = new();
     public StammtischDaten Stammtisch { get; init; } = new();
@@ -100,6 +110,7 @@ public sealed class GastwirtschaftDaten
             f.Add($"gastwirtschaft: oeffnetUm zwischen {erste} und {letzte} (gespielte Stunden), abendAb danach.");
         if (AnziehungJeStufe.Count == 0 || AnziehungJeStufe.Any(a => a <= 0)) f.Add("gastwirtschaft.anziehungJeStufe: Werte größer als 0.");
         if (SitzplaetzeJeStufe.Any(p => p <= 0)) f.Add("gastwirtschaft.sitzplaetzeJeStufe: Werte größer als 0 (oder ganz weglassen: ohne Grenze).");
+        if (EinwohnerBezug < 0) f.Add("gastwirtschaft.einwohnerBezug: 0 (die Plätze selbst) oder größer.");
         if (DunkleEcke.Chance is < 0 or > 1) f.Add("gastwirtschaft.dunkleEcke.chance muss zwischen 0 und 1 liegen.");
         if (Barde.Kosten < 0 || Barde.Gaeste < 0 || Barde.Zeche < 0 || Barde.Stammtisch < 0) f.Add("gastwirtschaft.barde: Werte dürfen nicht negativ sein.");
     }
@@ -196,6 +207,17 @@ public sealed class Gastwirtschaft
         if (!IstAktiv || !b.IstSchaenke) return null;
         var p = Daten.SitzplaetzeJeStufe;
         return p.Count == 0 ? null : p[Math.Clamp(b.Stufe - 1, 0, p.Count - 1)];
+    }
+
+    /// <summary>
+    /// So viele Einwohner (Bürger-KI) finden in dieser Schänke Platz: Sitzplätze × Einwohner ÷ <see cref="GastwirtschaftDaten.EinwohnerBezug"/>,
+    /// aufgerundet (ohne Bezug die Sitzplätze selbst). null = ohne Grenze.
+    /// </summary>
+    public int? EinwohnerPlaetze(Betrieb b, int einwohner)
+    {
+        if (Sitzplaetze(b) is not { } p) return null;
+        var bezug = Daten.EinwohnerBezug;
+        return bezug <= 0 ? p : (int)(((long)p * einwohner + bezug - 1) / bezug);
     }
 
     /// <summary>Erwartete Gäste im Jahr nach der Anziehung, ohne Sitzplätze und ohne Barde (so rechnete <see cref="ErwarteteGaeste"/> bis Datenversion 65).</summary>
