@@ -30,6 +30,7 @@ Plan (Schritte in dieser Reihenfolge):
 - **Blitzeinschlag → Gebäudebrand** (Spielmechanik, nicht Ton): `Stadtansicht.BlitzEinschlag(Vector3 ort)` ist die Andockstelle (hellster Blitz aus der Richtung des Orts, brachiale Einschlag-Aufnahme ohne Verzögerung, Abstand aus dem Ort); die Mechanik „Einschlag setzt ein Haus in Brand“ kommt später (Kern, siehe `docs/bereiche/kern.md`).
 - (Gespräche) Gesprächsrunden von Passanten im Stil von Gothic 1 (kurz, derb, direkt), lageabhängig: Stil- und Bauleitfaden steht in `docs/ton/gespraeche-stil.md` (Stilregeln, Aufbau, Bedingungen mit Fundstellen im Kern, Wiederholungsregeln, Datenformat als Block `runden` in `game/daten/gespraeche.json`, Stimm-KI-Hinweise, 30 eigene Beispielzeilen). Offen: Nutzerurteil zu den Fragen im Abschnitt 10 des Leitfadens (Verständlichkeit, Umfang, Derbheit), dann Umsetzung in Schritten: Lagebild und Auswahl (Test), Stimmen-Vorlagen, 40 Runden erzeugen, Untertitel. Vom Teamleiter zu beauftragen: Rollen je Gruppe aus der Stadtansicht (darstellung), Schalter und Untertitel (oberflaeche).
 - (Umgebung) Regen nur gemessen, nicht gehört (Hörprobe 7 liegt beim Nutzer): Pegel (Regen im Freien klar über der Stadt-Grundschicht), Ziegeldach statt Blech, Traufe. Die Dachaufnahme (466241, vom Dachboden, mit etwas Verkehr und Wind im Hintergrund, Hochpass 180 Hz) und die 16 s lange Traufe (622847, hörbar wiederkehrend) sind die schwächsten Stellen; Schindel- und Strohdach bleiben offen, bis es brauchbare CC0-Aufnahmen gibt (gesucht: „rain thatched roof“ ergab nichts Passendes).
+- Blitzschlag: Rufe und Stimmengewirr an der Löschkette (CC0 suchen); Sturmläuten angehört prüfen lassen (nur gemessen) und ob eine CC0-Glocke statt Noteman (CC BY 4.0) besser passt
 
 ## Entscheidungen
 
@@ -175,3 +176,10 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Dächer nur bei Häusern | `regen_dach` (466241 richwise, „Soft rain on a tile roof“, Ziegeldach vom Dachboden, 100–190 s, Hochpass 180 Hz, Tiefpass 8 kHz) und neu `regen_traufe` (622847 ankealtd, Regen und Tropfen aus der Dachrinne, 0,3–19,7 s, Hochpass 400 Hz): Gewicht nur bei Stadtanteil im Umkreis (`Glatt(0,15; 0,65; Stadt)` bzw. `(0,3; 0,8)`, auf Wiese und im Wald null) und nach der Nähe der Kamera (Traufe mit dem Quadrat der Nähe, also nur ganz nah). Grundpegel −9 bzw. −10 dB | 31.10.2026 |
 | Entfernt | Die drei CC-BY-Aufnahmen 184627 (Erbsland-Music), 213329 (LolitaPerdurabo) und 836064 (newlocknew) samt Namensnennung; die Regenschichten sind jetzt alle CC0, die Danksagungsliste wird kürzer | 31.10.2026 |
 | Prüfung | Selbsttest: Dach und Traufe nahe an Häusern hörbar, auf Wiese und im Wald null, Traufe ohne Regen null; **Regen im Freien mindestens 6 dB (Regen 0,5), 9 dB (0,75) und 10 dB (Guss) über dem Rest der Umgebung**; Regen auch auf der Wiese weit herausgezoomt deutlich. Hörprobe: `--umgebungfahrt=5` (80 s: Wiese, Gassen, starker Regen) | 31.10.2026 |
+
+### Feuerglocke beim Blitzschlag (phase5/blitzbrand)
+
+| Frage | Entscheidung |
+|---|---|
+| Klang | `glocken/glocke_sturm.ogg` (95 s): ein Schlag der großen Glocke Noteman aus `glocke_feuer_1.ogg`, kürzerer Ausklang, Tonhöhe 1,50/1,42, 123 Schläge alle 0,66–0,78 s, am Anfang und Ende langsamer; Werkzeug `tools/ton/glocke_sturm_bauen.py` (läuft in Blender, audaspace + numpy). Lizenz CC BY 4.0 wie die Feuerglocke (die CC0-Aufnahmen Kölner Dom und Fribourg haben keine einzelnen Schläge). |
+| Wo, wann | Die nächste Kirche (Kirche, Dom, Kölner Dom; sonst der Markt) in 25 m Höhe, 5–9 s nach dem Einschlag, 3D über `KlangDienst.WeltSpielen` (Bus Umgebung, Reichweite 1.600 m); nur ein Läuten zugleich. |
