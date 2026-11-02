@@ -354,8 +354,10 @@ public sealed class Gastwirtschaft
             uebrig[i] = kommen[i] - sitzen;
         }
         if (uebrig.All(u => u == 0)) return;
-        // In der Reihenfolge, in der eine Schänke nach der anderen ausweicht: die anziehendste zuerst, bei Gleichstand nach dem Namen.
+        // In der Reihenfolge, in der eine Schänke nach der anderen ausweicht: die anziehendste zuerst, bei Gleichstand nach dem Namen;
+        // nur Schänken, die etwas zum Ausschenken haben (in eine ohne Ware geht keiner hinüber).
         var reihe = Enumerable.Range(0, schaenken.Count)
+            .Where(i => Daten.Ausschank.Any(x => schaenken[i].ImLager(x) > 0))
             .OrderByDescending(i => Anziehung(schaenken[i])).ThenBy(i => schaenken[i].Name, StringComparer.Ordinal).ToList();
         for (var i = 0; i < schaenken.Count; i++)
         {
