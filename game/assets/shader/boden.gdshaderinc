@@ -667,6 +667,9 @@ void fragment() {
 		w[T_LEHM] += w[T_WIESE] * stadtgrund;
 		w[T_WIESE] *= 1.0 - stadtgrund;
 	}
+	// Gemalte Beete und Höfe in der Mauer (Erde, Moos, Mist: Gärten, Misthaufen) bleiben sichtbar: Dort gilt der Lehm der Stadt nicht, sonst übermalt er
+	// sie ganz (Kleinkram 2.11.2026: die Deutzer Gärten hoben sich nicht vom Lehm ab). Wiese und Lehm zählen nicht – das war schon Lehm.
+	info.b *= 1.0 - clamp(w[T_ERDE] + w[7] + w[10], 0.0, 1.0);
 	bool nur_stadt = info.b > 0.996;
 
 	// Fels am Hang: ab etwa 35° Gefälle tritt er von selbst hervor (die Grenze leicht unregelmäßig). Er wird nach den übrigen Texturen
