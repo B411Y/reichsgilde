@@ -15,7 +15,7 @@ using Reichsgilde.Core.Wirtschaft;
 //  als ausbauender Wirt (KI mit dem Profil der KI-Häuser) und als Schmied mit einem Betrieb (wie Teil 3 des Balancing-Berichts).
 //  Gemessen: Reinvermögen von Spieler und KI-Häusern, Jahr bis Bürger, Umsatz der Schänken (Ausschank und Würfelgeld) des Spielers
 //  und der KI-Häuser, Gäste, „voll“ (Gäste, die in ihrer Schänke keinen Platz fanden) und „ausgefallen“ (nirgends Platz),
-//  dazu je Stunde, wie oft eine Schänke voll war und wie oft mehr Einwohner darin saßen, als sie Plätze hat.
+//  dazu je Stunde, wie oft eine Schänke voll war und wie oft mehr Einwohner darin saßen, als sie Einwohner-Plätze hat (mit Bezug 17 nie).
 //  --ohne-plaetze nimmt gastwirtschaft.sitzplaetzeJeStufe aus den Daten (Rechnung wie bis Datenversion 65) und zählt, wie oft eine
 //  Schänke mit 20/30/40 Plätzen voll gewesen wäre. Ändert keinen Wert.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -150,7 +150,9 @@ static class Schaenkenmessung
             z.StundenOffen++;
             if (buch.Voll > alt.Voll) z.StundenVoll++;
             if (kommen - alt.Kommen > plaetze || buch.Voll > alt.Voll) z.StundenUeberPlaetzen++; // ohne Grenze: wäre voll gewesen
-            if (einwohner > (g.EinwohnerPlaetze(b, w.Einwohnerschaft.Einwohner.Count) ?? plaetze)) z.EinwohnerUeber++; // ohne Grenze: über den Sitzplätzen
+            // Gegen die Einwohner-Plätze; ohne Plätze in den Daten gegen dieselbe Formel mit Bezug 17 (⌈Plätze × Einwohner ÷ 17⌉)
+            var einwohnerPlaetze = g.EinwohnerPlaetze(b, w.Einwohnerschaft.Einwohner.Count) ?? (plaetze * w.Einwohnerschaft.Einwohner.Count + 16) / 17;
+            if (einwohner > einwohnerPlaetze) z.EinwohnerUeber++;
         }
     }
 
