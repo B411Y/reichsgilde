@@ -49,6 +49,12 @@ public partial class Stadtansicht
     /// <summary>Die gezeichneten Wege der Karte, Stück für Stück: hier schließen Türen und Höfe an, hier wächst nichts.</summary>
     private readonly List<(Vector3 Von, Vector3 Bis, float Breite)> _wegStrecken = new();
 
+    /// <summary>Die Anschlussstücke an die Wege (Türen, Höfe, Karrenplätze, Gatter) mit ihrer Breite – ein Türweg gilt als <see cref="TuerwegBreite"/> breit.</summary>
+    private readonly List<(Vector3 Von, Vector3 Bis, float Breite)> _anschlussStrecken = new();
+
+    /// <summary>Wie breit (Meter) der Weg von einer Haustür (oder Tor, Rathaus, Dom) bis zur Gasse für die Passanten gilt.</summary>
+    private const float TuerwegBreite = 1.4f;
+
     /// <summary>Wo die Wege an Rathaus und Dom beginnen (vor der Tür des Modells); null, wenn die Karte keins hat.</summary>
     private Vector3? _rathausTuer, _domTuer;
 
@@ -121,6 +127,7 @@ public partial class Stadtansicht
         if (karte is null)
         {
             Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f); // ohne Karte nur die Wiese (der Fehler ist schon gemeldet)
+            FelsbodenFarbe(Felsformen.GrundgesteinVorgabe, false); // keine Gesteinsfarbe aus einer früheren Karte (Stadtansicht.Felsboden.cs)
             yield break;
         }
         Ladezeit.Marke("vor dem Kartenaufbau");
@@ -154,6 +161,8 @@ public partial class Stadtansicht
         Ladezeit.Marke("Szene: Umland und Anschlüsse");
         yield return new Ladeschritt(0.58f, "Bäume werden gepflanzt …");
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
+        FelsenAusKarte(karte); // Stadtansicht.Felsen.cs
+        KulisseAusKarte(karte); // Stadtansicht.Kulisse.cs
         Ladezeit.Marke("Szene: Natur");
         yield return new Ladeschritt(0.605f, "Felder werden bestellt …");
         FelderAusKarte(karte); // Stadtansicht.Rand.cs
@@ -477,6 +486,7 @@ public partial class Stadtansicht
         if (naechster is not { } q)
             return _netz.KnotenBei(p); // eine Karte ohne Wege: ein Knoten für sich
         _netz.Weg(p, q);
+        _anschlussStrecken.Add((p, q, zeichnen ?? TuerwegBreite)); // für die Breite, in der Passanten dort gehen (Stadtansicht.Passantenwege.cs)
         if (zeichnen is { } breite && abstand > 0.3f) WegZiehen(p, q, breite);
         return _netz.KnotenBei(p);
     }

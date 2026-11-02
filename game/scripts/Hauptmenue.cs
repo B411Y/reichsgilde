@@ -91,6 +91,8 @@ public partial class Hauptmenue : Node
                 CallDeferred(MethodName.WerkstattOeffnen);
             else if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--wassertest")))
                 Callable.From(() => GetTree().ChangeSceneToFile(Wassertest.Szene)).CallDeferred();
+            else if (Felstest.Angefordert)
+                Callable.From(() => GetTree().ChangeSceneToFile(Felstest.Szene)).CallDeferred();
             else
                 CallDeferred(MethodName.SpielStarten);
             return;

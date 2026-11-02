@@ -838,6 +838,7 @@
       "Werkstatt": 30,
       "Umland": 120
     },
+    "karrenHoechstens": { "Werkstatt": 3, "Umland": 5 },
     "lagerJeWare": 40,
     "abfahrtAbFuellgrad": 0.75,
     "nachkaufUnterStueck": 5,

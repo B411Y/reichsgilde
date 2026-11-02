@@ -195,8 +195,10 @@ public sealed partial class Koeln : Stadtskript
         })
             E.TorSetzen(_stadtmauer, ort.X, ort.Z, name);
 
-        // Deutz: kleine Mauer um den Brückenkopf, zum Rhein hin offen
-        _deutzer = E.MauerAnlegen(new[] { P(130, -48), P(212, -46), P(214, 40), P(130, 42) }, geschlossen: false, name: "Deutzer Mauer");
+        // Deutz: kleine Mauer um den Brückenkopf, zum Rhein hin offen. Ihre Enden am Rhein seit 1.11.2026 bei x = 128,5 statt 130: Die Stadtansicht
+        // zählt zur Stadt, was innerhalb der (zum Rhein hin geschlossen gedachten) Linie liegt, und die Einwohnerplätze am Rhein an der Urbanusgasse
+        // (Koeln.Deutz.cs) haben ihre Mitte bei x = 129 – sonst bekämen sie als Vorstadt erst ganz zuletzt ein Haus.
+        _deutzer = E.MauerAnlegen(new[] { P(128.5, -48), P(212, -46), P(214, 40), P(128.5, 42) }, geschlossen: false, name: "Deutzer Mauer");
         E.TorSetzen(_deutzer, 172, -47, "Deutzer Nordtor");
         E.TorSetzen(_deutzer, 213, -3, "Deutzer Osttor");
         E.TorSetzen(_deutzer, 172, 41, "Deutzer Südtor");
@@ -262,6 +264,7 @@ public sealed partial class Koeln : Stadtskript
         WegGlatt(Wegklasse.Land, "Bensberger Straße", P(213, -3), P(270, -10), P(350, -25), P(450, -45), P(550, -70), P(599, -85));
         WegGlatt(Wegklasse.Land, "Mülheimer Weg", P(172, -47), P(160, -110), P(150, -160), P(146, -200), P(160, -300), P(175, -400), P(190, -499));
         WegGlatt(Wegklasse.Land, "Siegburger Straße", P(172, 41), P(180, 120), P(200, 200), P(260, 300), P(380, 420), P(500, 540));
+        DeutzerGassen();   // Urbanusgasse und Abteigasse in der Südhälfte (seit 1.11.2026, Koeln.Deutz.cs)
 
         E.FaehreSetzen(P(51, -200), P(146, -200), "Fähre Mülheim");
     }

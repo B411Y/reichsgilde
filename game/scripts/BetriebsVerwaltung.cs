@@ -429,7 +429,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
             info.Text = karren.ZustandText(_simulation.Zeit);
             VerkaufenAngleichen(verkaufen, b, i, w);
         }
-        _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+        // Höchstzahl je Ort aus dem Kern (Datenversion 66: Werkstatt 3, Umland 5) – gesperrt mit Grund im Tooltip
+        var grenze = w.KarrenKaufVerboten(b);
+        _kaufenKnopf.Disabled = grenze is not null || b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+        _kaufenKnopf.TooltipText = grenze ?? (w.Daten.Logistik.HoechstKarren(b.Ort) is { } n ? $"Höchstens {n} Karren je Betrieb {(b.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")}." : "");
         _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
     }
 
