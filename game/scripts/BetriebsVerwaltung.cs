@@ -486,13 +486,23 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (g.Vorjahr(b) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
         zeilen.Add($"Ausschank (je {d.Vorrat} bleiben für die Gäste im Lager): {string.Join(" · ", ausschank)}");
         zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(g.ErwarteteGaeste(b))} Gäste im Jahr bei der heutigen Konkurrenz.");
+        // Sitzplätze (Kern: Gastwirtschaft.Platzbelegung) und wer heute keinen Platz fand (Gästebuch: Voll, davon Ausgefallen) – ein Spieljahr ist ein Spieltag
+        if (g.Platzbelegung(b) is { } plaetze)
+        {
+            var zeile = $"Plätze: {plaetze.Belegt} belegt / {plaetze.Frei} frei (von {plaetze.Plaetze})";
+            if (jetzt.Voll > 0)
+                zeile += $" · heute abgewiesen: {jetzt.Voll}" + (jetzt.Ausgefallen > 0 ? $" (davon {jetzt.Ausgefallen} ohne Platz in der ganzen Stadt)" : "");
+            zeilen.Add(zeile);
+        }
         zeilen.Add(g.HatStammtisch(b)
             ? $"Stammtisch: Am Jahresende +{Zahlenformat.Ganz(d.Stammtisch.Gunst)} Meinung bei jedem Ratsherrn (mit Barde ×{Zahlenformat.Ganz(d.Barde.Stammtisch)}) – ohne Bestechung."
             : $"Stammtisch ab Stufe {d.Stammtisch.AbStufe} (Gasthaus).");
         zeilen.Add($"Dunkle Ecke: Am Gerichtstag hört ihr Gerüchte über andere Häuser ({Zahlenformat.Ganz(d.DunkleEcke.Chance * 100)} % je Tat).");
         var text = string.Join("\n", zeilen);
         if (_gaesteText.Text != text) _gaesteText.Text = text;
-        _gaesteText.TooltipText = "Die Gastwirtschaft: Gäste kommen nach Lage und Konkurrenz und trinken, was der Ausschank bietet; Buchführung des laufenden Jahres und des Vorjahrs.";
+        _gaesteText.TooltipText = "Die Gastwirtschaft: Gäste kommen nach Lage und Konkurrenz und trinken, was der Ausschank bietet; Buchführung des laufenden Jahres und des Vorjahrs.\n" +
+                                  "Plätze: So viele Gäste passen gleichzeitig in die Schänke; „belegt“ ist die Schätzung für die laufende Stunde. " +
+                                  "Abgewiesen: Gäste, die heute keinen Platz fanden und in eine andere Schänke gingen – mehr Platz gibt es mit dem Ausbau.";
 
         var gebucht = g.BardeGebucht(b);
         var knopf = gebucht ? "Barde spielt heute Abend ♪" : $"Barde einladen ({Zahlenformat.Ganz(d.Barde.Kosten)} {waehrung})";
