@@ -549,6 +549,8 @@ public partial class Stadtansicht
             new(1.6f, -1.0f), new(-1.4f, -1.0f), new(-1.4f, -0.6f), new(-0.5f, 0.2f), new(-0.7f, 0.8f), new(-1.4f, 0.9f),
         };
         var ort = umriss.Select(v => mitte + new Vector2(v.X, -v.Y - 2.5f) * mass).ToArray(); // etwas unter der Beschriftung
+        var ambossMitte = mitte + new Vector2(0, -2.5f) * mass;
+        if (!Geometry2D.IsPointInPolygon(ambossMitte, punkte)) return; // kleine oder verwinkelte Zone: lieber ohne Amboss als daneben
         var dreiecke = Geometry2D.TriangulatePolygon(ort);
         if (dreiecke.Length == 0) return;
         var amboss = dreiecke.Select(i => new Vector3(ort[i].X, BodenHoehe(ort[i].X, ort[i].Y) + 0.2f, ort[i].Y)).ToList();
@@ -566,6 +568,9 @@ public partial class Stadtansicht
         return netz;
     }
 
+    /// <summary>Hat die Karte Werkstatt-Bauplätze (<see cref="Bauzone.NurWerkstaetten"/>)?</summary>
+    public bool HatWerkstattplaetze => _karte?.Bauzonen.Any(z => z.NurWerkstaetten) == true;
+
     /// <summary>
     /// Im Baumodus: die Bauzone unter der Maus (null: keine, die Maus über einer Tafel oder kein Baumodus) – für den Tooltip
     /// „nur Werkstätten“ der Oberfläche (<c>BauAnzeige</c>). Steht ein Umriss, zählt seine Mitte.
@@ -574,7 +579,7 @@ public partial class Stadtansicht
     {
         get
         {
-            if (!_baumodus || _karte is not { } karte) return null;
+            if (!_baumodus || !HatWerkstattplaetze || _karte is not { } karte) return null; // nur für Werkstatt-Bauplätze gebraucht: sonst kein Strahl
             Vector2? ort = BauAuftrag is { } b ? new Vector2((float)b.X, (float)b.Z) : null;
             if (ort is null && GetViewport().GuiGetHoveredControl() is null) ort = BodenpunktBei(GetViewport().GetMousePosition());
             return ort is { } o ? karte.Bauzonen.FirstOrDefault(z => z.Enthaelt(o.X, o.Y)) : null;

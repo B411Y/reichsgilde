@@ -196,8 +196,8 @@ public partial class BauAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m, mit der Vorderseite an einer Straße.",
             13, Grau, umbruchBreite: Breite);
 
-        // Legende: die Farben der Bauzonen in der Stadt
-        if (_stadt.FahrwegAmpeln.Count == 0) return;
+        // Legende: die Farben der Bauzonen in der Stadt (die Zeile „FahrwegAmpeln.Count == 0 → return“ aus #282 gehörte nur in FahrwegZeigen:
+        // bei offener Liste gibt es nie Ampeln, die ganze Liste fehlte)
         var legende = new HBoxContainer();
         legende.AddThemeConstantOverride("separation", 14);
         _inhalt.AddChild(legende);
@@ -302,7 +302,7 @@ public partial class BauAnzeige : PanelContainer
             Hauptmenue.Text(_inhalt, "✗ " + grund, 15, Rot, umbruchBreite: Breite);
         else
             Hauptmenue.Text(_inhalt, "✔ Hier kann gebaut werden – Klick setzt das Gebäude.", 15, Gruen, umbruchBreite: Breite);
-        if (_stadt.BauzoneUnterMaus is { NurWerkstaetten: true })
+        if (_stadt.BauGrund is null && _stadt.BauzoneUnterMaus is { NurWerkstaetten: true }) // rot nennt der Grund es schon
             Hauptmenue.Text(_inhalt, "Werkstatt-Bauplatz: Hier dürfen nur Werkstätten stehen.", 13, Grau, umbruchBreite: Breite).TooltipText = WerkstattTippText;
         FahrwegZeigen(g.Beispiel);
         Hauptmenue.Text(_inhalt, "R dreht das Gebäude (Eingang zur Straße) · Q/E drehen die Kamera · Rechtsklick oder Esc: zurück zur Auswahl",
@@ -365,7 +365,7 @@ public partial class BauAnzeige : PanelContainer
     /// </summary>
     private void WerkstattTippAktualisieren()
     {
-        var zeigen = Visible && !_wege && _stadt?.BauzoneUnterMaus is { NurWerkstaetten: true } && GetViewport().GuiGetHoveredControl() is null;
+        var zeigen = Visible && !_wege && _stadt is { BauFest: false, HatWerkstattplaetze: true } && _stadt.BauzoneUnterMaus is { NurWerkstaetten: true } && GetViewport().GuiGetHoveredControl() is null;
         if (!zeigen)
         {
             if (_werkstattTipp is { Visible: true }) _werkstattTipp.Hide();
