@@ -1,10 +1,10 @@
 """Felswand-Satz (Felsen zweite Generation, Etappe R4): große Wandstücke, mittlere Stücke, Gesimse, Pfeiler und ein
-Schuttkegel, gebaut aus Schichtbänken und Kluftblöcken statt aus runden Brocken. Die 8 Formen aus natur_felsen.py (F1)
-bleiben als Füller daneben bestehen.
+Schuttkegel als gewachsener Fels. Die 8 Formen aus natur_felsen.py (F1) bleiben als Füller daneben bestehen.
 
     blender -b --python tools/modelle/natur_felswand.py -- [--schnell] [--ohne-bilder] [--bilder=<ordner>]
-            [--nur=wand_gross_1,pfeiler_1] [--ausgabe=<ordner>] [--konzept=<bild1>,<bild2>] [--nur-form]
-(--nur-form: nur formen und Vorschaubilder ohne Karten, ohne Backen und ohne Export – für schnelle Proben)
+            [--nur=wand_gross_1,pfeiler_1] [--ausgabe=<ordner>] [--konzept=<bild1>,<bild2>] [--nur-form] [--probe]
+(--nur-form: nur formen und Vorschaubilder, ohne Karten, ohne Backen und ohne Export; --probe: statt der Vorschau nur
+ zwei Bilder der gewählten Stücke im Hang, neben dem ersten Konzeptbild – für schnelle Formproben)
 
 Schreibt game/assets/modelle/natur/natur_felswand.glb und die Strukturkarten game/assets/texturen/felswand/
 (mit --ausgabe=<ordner> stattdessen alles in diesen Ordner, z. B. für einen Lauf auf einem anderen Rechner):
@@ -14,29 +14,37 @@ Schreibt game/assets/modelle/natur/natur_felswand.glb und die Strukturkarten gam
 Beide 4096 × 2048 Pixel. Die großen Stücke haben je ein Feld 1024 × 1024, die mittleren Stücke und Gesimse je 512 × 512
 (Lage in FELDER). Kanäle wie bei F1, damit das Fels-Material (F2) die Karten ohne Änderung liest.
 
-Bauweise (statt vereinigter Superellipsoide wie in F1):
-  * Schichtbänke: waagrechte Lagen (Dicke je Stück einstellbar), dazwischen dünne, weiche Lagen, die zurückwittern –
-    so entstehen Kehlen und Überhänge an der Bank darüber.
-  * Kluftblöcke: jede Bank ist durch senkrechte Klüfte in Blöcke geteilt; jeder Block ist ein Quader mit leicht
-    gekippten, ebenen Flächen und gebrochenen Ecken (Fasen, an der Vorderkante oben oft ein großer Abbruch).
-    Zwischen den Blöcken bleibt eine Fuge, hinter ihnen ein Kern: Die Fugen sind echte, etwa 1 m tiefe Spalten.
-  * Hauptklüfte teilen die Wand in Säulen mit eigenem Vorsprung und eigener Höhe; die oberen Bänke springen zurück
-    oder fehlen (Abbruchkante), die Enden laufen in den Hang zurück, damit sich Stücke überlappen lassen.
-  * Alles wird mit dem Voxel-Remesher (Voxel 4–5 cm) zu einer Hülle vereinigt, fein aufgeraut (Risse, Körnung),
-    unten bei z = 0 und hinten an der Hangseite abgeschnitten (offen), dann auf die Spielstufen vereinfacht.
+Bauweise (R4b: ein Felskörper aus einem Dichtefeld statt gestapelter Kluftblöcke, die wie Mauerwerk aussahen):
+  * Jedes Stück ist ein Feld f(x, y, z) (< 0 = Fels) auf einem Gitter von 5–8 cm; die Fläche entsteht mit Surface Nets.
+    Das Feld ist eine Summe aus
+      - Grundkörper: Wand mit nach hinten geneigter Front, deren Enden in den Hang zurücklaufen und niedriger werden;
+        Pfeiler mit gerundetem Querschnitt, nach oben schlanker; Gesims als Platte,
+      - Schichtung: Bänke unterschiedlicher Dicke, um 20–40° geneigt (Fallen und Fallrichtung je Stück, SCHICHTUNG).
+        Weiche Lagen wittern zurück (Kehle, die harte Bank darüber hängt über), Bankkanten gerundet – ein
+        Treppenprofil entlang der Fallrichtung, mit Rauschen in Dicke und Rücksprung,
+      - große Formen aus niederfrequentem Rauschen (Rippen, Rinnen) und ein kleiner Versatz und eine leichte Drehung je
+        Hauptkluft-Säule, damit große, zusammenhängende Flächen mit eigenen Winkeln entstehen,
+      - Oberkante: jede Säule endet an einer Schichtfläche (Schichtköpfe, Sägezahn wie in Konzept 1), gerundet,
+      - Hauptklüfte (Voronoi-Kanten in der Ebene quer zur Kluftachse) als schmale Kerben, nur wenige tief (Spalten),
+      - unten eine Schutthalde aus kantigen Steinen und einzelnen Brocken, die flach in den Boden ausläuft.
+  * Danach Glätten, Voxel-Remesh (3–5 cm) und feines Aufrauen: Haarrisse (3D-Voronoi, ein Netz aus feinen Linien, nur
+    stellenweise), die Hauptklüfte als feine Linie, Feinschichtung in einzelnen Bänken, flache Abplatzungen, Körnung.
+    Dann unten und hinten abgeschnitten (offen), auf die Spielstufen vereinfacht und gebacken.
 
 Knoten „<Form>_<Stufe>“ (0 fein, 1 mittel, 2 grob), Ursprung Mitte der Grundfläche, z = 0 Unterkante, nichts darunter;
 im Spiel Y oben, Schauseite +Z, die Rückseite (−Z) gehört in den Hang. Unterseite offen (außer bei den Gesimsen, deren
 Unterseite beim Stapeln als Überhang zu sehen ist), Rückseite offen (außer beim freistehenden Pfeiler).
-Extras je Knoten: „kennung“, „stufe“. Ein Material „Fels“ (Platzhalter, das Spiel setzt das Fels-Material).
-Vertexfarbe COLOR_0 (linear) wie F1: R Höhlung (Verdeckung × (1 − 0,6 · Rinne)), G Kante, B Höhe im Stück (0 unten … 1
-oben), A Tiefe (0 vorn … 1 hinten). UV0: Atlas der Strukturkarten. Kein UV2.
+Extras je Knoten: „kennung“, „stufe“, „schicht_neigung“ (Neigung der Schichtfugen in der Wandebene in Grad, + = nach +X
+steigend; für Shader-Bänder, die der Schichtung folgen sollen). Ein Material „Fels“ (Platzhalter, das Spiel setzt das
+Fels-Material). Vertexfarbe COLOR_0 (linear) wie F1: R Höhlung (Verdeckung × (1 − 0,6 · Rinne)), G Kante, B Höhe im Stück
+(0 unten … 1 oben), A Tiefe (0 vorn … 1 hinten). UV0: Atlas der Strukturkarten. Kein UV2.
 """
 
 import math
 import os
 import random
 import sys
+import time
 
 import bmesh
 import bpy
@@ -54,15 +62,15 @@ ATLAS = (4096, 2048)
 
 # Kennung, Knotenname, Dreiecke je Stufe 0/1/2, Voxelgröße (m) des hohen Netzes
 FORMEN = (
-    ("wand_gross_1", "WandGross1", (11000, 3600, 1100), 0.045),     # gebankte Wand 20 × 8 × 16
-    ("wand_gross_2", "WandGross2", (11000, 3600, 1100), 0.045),     # hohe, säulige Wand 14 × 8 × 20
-    ("wand_gross_3", "WandGross3", (11000, 3600, 1100), 0.045),     # Bruchwand mit zwei Absätzen 18 × 10 × 12
-    ("wand_mittel_1", "WandMittel1", (5000, 1700, 500), 0.035),     # gebankte Wand 9 × 5 × 8
-    ("wand_mittel_2", "WandMittel2", (5000, 1700, 500), 0.035),     # Eckstück 6 × 5 × 10, rechte Seite offen sichtbar
-    ("wand_mittel_3", "WandMittel3", (5000, 1700, 500), 0.035),     # Absatz 8 × 6 × 5
+    ("wand_gross_1", "WandGross1", (11000, 3600, 1100), 0.045),     # gebankte Wand 20 × 10 × 16
+    ("wand_gross_2", "WandGross2", (11000, 3600, 1100), 0.045),     # hohe, säulige Wand 14 × 10 × 20
+    ("wand_gross_3", "WandGross3", (11000, 3600, 1100), 0.045),     # Wand mit zwei Absätzen 18 × 11 × 12
+    ("wand_mittel_1", "WandMittel1", (5000, 1700, 500), 0.035),     # steil geschichtete Wand 9 × 6 × 8
+    ("wand_mittel_2", "WandMittel2", (5000, 1700, 500), 0.035),     # Eckstück 6 × 6 × 10, rechte Seite offen sichtbar
+    ("wand_mittel_3", "WandMittel3", (5000, 1700, 500), 0.035),     # Absatz 8 × 6,5 × 5
     ("gesims_1", "Gesims1", (3000, 1000, 300), 0.03),               # eine Bank 10 × 4 × 1,8 zum Stapeln
     ("gesims_2", "Gesims2", (3000, 1000, 300), 0.03),               # zwei Bänke 8 × 4 × 3, obere kragt vor
-    ("pfeiler_1", "Pfeiler1", (6000, 2000, 600), 0.035),            # freistehender Turm 4 × 4 × 18
+    ("pfeiler_1", "Pfeiler1", (6000, 2000, 600), 0.035),            # freistehender Turm 4 × 4 × 18 (mit Schuttfuß)
     ("pfeilerbuendel", "Pfeilerbuendel", (11000, 3600, 1100), 0.045),  # vier Pfeiler vor einer Rückwand 10 × 8 × 15
     ("schuttkegel", "Schuttkegel", (6000, 2000, 600), 0.03),        # Schutthalde am Wandfuß 14 × 9 × 4
 )
@@ -77,421 +85,712 @@ FELDER = {
     "gesims_1": (2560, 1536, 512), "gesims_2": (3072, 1024, 512),
 }
 
+# Gesteine: Anteile der Lagenarten (hart, mittel, weich), Bankdicke (m) und Rücksprung (m, + = zurück) je Lagenart,
+# Rundung der Bankkanten (m), Anteil fein geschichteter Bänke und (wo angegeben) Anteil offener Bankfugen
+GESTEIN = {
+    # Grauwacke, Schiefer-Sandstein-Wechsel (Konzept 1): kräftige Bänke, weiche Zwischenlagen mit Kehlen
+    "grauwacke": dict(anteile=(0.45, 0.35, 0.20), dicke=((0.5, 1.6), (0.18, 0.55), (0.1, 0.3)),
+                      rueck=((-0.15, 0.08), (0.08, 0.32), (0.45, 1.05)), rund=(0.18, 0.42), lamellen=0.65),
+    # Trachyt (Konzept 2): dicke, harte Bänke, kaum Kehlen; die Säulen machen die Klüfte
+    "trachyt": dict(anteile=(0.78, 0.18, 0.04), dicke=((2.2, 5.0), (0.8, 1.6), (0.2, 0.4)),
+                    rueck=((-0.1, 0.1), (0.05, 0.22), (0.3, 0.6)), rund=(0.15, 0.32), lamellen=0.0, fuge_offen=0.35),
+    # Sandstein, dünnbankig (Konzept 4 links): viele dünne Bänke, regelmäßigere Kehlen
+    "sandstein": dict(anteile=(0.42, 0.38, 0.20), dicke=((0.4, 1.3), (0.18, 0.55), (0.1, 0.25)),
+                      rueck=((-0.1, 0.1), (0.08, 0.3), (0.35, 0.85)), rund=(0.14, 0.32), lamellen=0.6),
+}
+
+# Je Stück: Grundkörper (art), Maße B × T × H (m, T einschließlich Schuttfuß), Gestein, Schichtung (fallen in Grad,
+# richtung = Fallrichtung in Grad: 0 fällt nach +X, 90 in den Hang, −90 zum Betrachter), Kluftachse (fallen, richtung;
+# ohne Angabe senkrecht zur Schichtung), Hauptkluft-Zellen (m), Anteil tiefer Spalten, Versatz der Säulen (m),
+# große Formen (m), Rippen und Rinnen entlang der Wand (m), Anteil offener Bankfugen, Front-Neigung (m zurück je m Höhe), Schutthalde (Höhe von–bis, m), Gitter (m)
+STANDARD = dict(lehne=0.22, kluft=5.0, anis=1.0, spalten=0.2, spalt_tiefe=2.2, spalt_breite=0.4, relief=0.45,
+                gross=1.1, rippe=1.0, kluft_rund=0.3, fuge_offen=0.7, welle=0.3, schutt=(0.5, 1.6), raster=0.08, hoehe=(0.8, 1.0), enden=(1.0, 1.0),
+                offen_rechts=False, stufen=(), risse=1.8, bruch=0.13, rund_oben=0.6, kluft_achse=None)
+STUECKE = {
+    "wand_gross_1": dict(art="wand", B=20, T=10, H=16, gestein="grauwacke", fallen=32, richtung=200, lehne=0.3,
+                         kluft=6.5, spalten=0.22, relief=0.3, gross=0.6, rippe=1.3, schutt=(0.7, 2.0), risse=2.0),
+    "wand_gross_2": dict(art="wand", B=14, T=10, H=20, gestein="trachyt", fallen=22, richtung=-30, kluft_achse=(5, 60),
+                         lehne=0.14, kluft=3.4, spalten=0.4, spalt_tiefe=3.0, relief=0.7, gross=0.9, rippe=1.6, hoehe=(0.7, 1.0),
+                         rund_oben=0.8, risse=2.4),
+    "wand_gross_3": dict(art="wand", B=18, T=11, H=12, gestein="sandstein", fallen=22, richtung=-12, lehne=0.2,
+                         kluft=6.0, spalten=0.15, relief=0.3, gross=0.7, rippe=1.1, stufen=((4.2, 2.2), (8.3, 2.0)), risse=2.0,
+                         hoehe=(0.88, 1.0)),
+    "wand_mittel_1": dict(art="wand", B=9, T=6, H=8, gestein="grauwacke", fallen=38, richtung=-5, lehne=0.3,
+                          kluft=4.0, relief=0.3, gross=0.6, rippe=1.0, schutt=(0.5, 1.3), raster=0.06),
+    "wand_mittel_2": dict(art="wand", B=6, T=6, H=10, gestein="grauwacke", fallen=26, richtung=160, lehne=0.18,
+                          kluft=3.6, relief=0.4, gross=0.6, rippe=0.9, enden=(1.0, 0.0), offen_rechts=True, schutt=(0.5, 1.3),
+                          raster=0.06),
+    "wand_mittel_3": dict(art="wand", B=8, T=6.5, H=5, gestein="sandstein", fallen=20, richtung=20, lehne=0.2,
+                          kluft=4.0, relief=0.3, gross=0.5, rippe=0.8, stufen=((2.4, 2.0),), schutt=(0.4, 1.0), raster=0.06,
+                          hoehe=(0.9, 1.0)),
+    "gesims_1": dict(art="gesims", B=10, T=4, H=1.8, gestein="sandstein", fallen=3, richtung=90, kluft=3.5,
+                     relief=0.15, gross=0.35, rippe=0.2, welle=0.08, schutt=None, raster=0.05, rund_oben=0.35, spalten=0.0,
+                     bruch=0.05),
+    "gesims_2": dict(art="gesims2", B=8.4, T=4, H=2.95, gestein="sandstein", fallen=3, richtung=90, kluft=3.2,
+                     relief=0.15, gross=0.3, rippe=0.2, welle=0.08, schutt=None, raster=0.05, rund_oben=0.35, spalten=0.0,
+                     bruch=0.05),
+    "pfeiler_1": dict(art="pfeiler", B=4, T=4, H=18, gestein="trachyt", fallen=15, richtung=45, kluft_achse=(3, 0),
+                      kluft=3.3, spalten=0.35, spalt_tiefe=1.2, relief=0.25, gross=0.4, rippe=0.3, schutt=(0.3, 0.7),
+                      raster=0.06, hoehe=(0.92, 1.0), risse=1.4, kluft_rund=0.15),
+    "pfeilerbuendel": dict(art="buendel", B=10, T=8, H=15, gestein="trachyt", fallen=18, richtung=-60,
+                           kluft_achse=(4, 30), kluft=2.8, spalten=0.35, relief=0.4, gross=0.6, rippe=1.0, lehne=0.1,
+                           schutt=(0.4, 1.2), raster=0.07, hoehe=(0.88, 1.0)),
+    "schuttkegel": dict(art="schutt", B=12.5, T=9, H=4, gestein="grauwacke", fallen=30, richtung=0, raster=0.06,
+                        schutt=None),
+}
+# Fallen und Fallrichtung der Schichtung je Stück (für Shader-Bänder: Neigung in der Wandebene als Extra im Knoten)
+SCHICHTUNG = {k: (v["fallen"], v["richtung"]) for k, v in STUECKE.items()}
+BOESCHUNG = math.tan(math.radians(36))     # Schutthalden
+
 
 def argumente():
     a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     wert = lambda n, d: next((x.split("=", 1)[1] for x in a if x.startswith(f"--{n}=")), d)  # noqa: E731
     nur = wert("nur", None)
     konzept = wert("konzept", "")
-    return dict(schnell="--schnell" in a, nur_form="--nur-form" in a, ohne_bilder="--ohne-bilder" in a, bilder=wert("bilder", bs.VORSCHAU),
+    return dict(schnell="--schnell" in a, nur_form="--nur-form" in a or "--probe" in a, probe="--probe" in a,
+                ohne_bilder="--ohne-bilder" in a, bilder=wert("bilder", bs.VORSCHAU),
                 nur=nur.split(",") if nur else None, ausgabe=wert("ausgabe", None),
                 konzept=[k for k in konzept.split(",") if k])
 
 
-# ── 1. Bausteine: Kluftblock als Schnitt von Ebenen ─────────────────────────────────────────────────────────────────
-def huelle(punkte):
-    bm = bmesh.new()
-    for p in punkte:
-        bm.verts.new(p)
-    erg = bmesh.ops.convex_hull(bm, input=bm.verts)
-    weg = [v for v in erg.get("geom_interior", []) if isinstance(v, bmesh.types.BMVert)]
-    weg += [v for v in erg.get("geom_unused", []) if isinstance(v, bmesh.types.BMVert)]
-    if weg:
-        bmesh.ops.delete(bm, geom=list(set(weg)), context="VERTS")
-    return bm
+# ── 1. Rauschen und Zellen (numpy, auf ganzen Punktmengen) ───────────────────────────────────────────────────────────
+_M1, _M2, _S33 = np.uint64(0xFF51AFD7ED558CCD), np.uint64(0xC4CEB9FE1A85EC53), np.uint64(33)
 
 
-def polytop(punkte, ebenen):
-    """Konvexer Körper: Hülle der `punkte`, nacheinander an jeder Ebene (Punkt, Normale nach außen) beschnitten."""
-    pts = punkte
-    for p, n in ebenen:
-        bm = huelle(pts)
-        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
-        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=p, plane_no=n, clear_outer=True)
-        pts = [v.co.copy() for v in bm.verts]
-        bm.free()
-        if len(pts) < 4:
-            return None
-    return huelle(pts)
+def zufall(*zahlen, k=0):
+    """Gleichverteilt in [0, 1) je Ganzzahl-Tupel (z. B. Zellkennung) und Kanal k; gleiche Eingabe, gleiche Zahl."""
+    with np.errstate(over="ignore"):
+        h = np.uint64((0x9E3779B97F4A7C15 * (k + 1)) & 0xFFFFFFFFFFFFFFFF)
+        for zahl in zahlen:
+            h = h ^ (np.asarray(zahl, np.int64).astype(np.uint64) + np.uint64(0x632BE59BD9B4E019))
+            h = h ^ (h >> _S33)
+            h = h * _M1
+            h = h ^ (h >> _S33)
+            h = h * _M2
+            h = h ^ (h >> _S33)
+    return (h >> np.uint64(11)).astype(np.float64) * (1.0 / 9007199254740992.0)
 
 
-def gedreht(n, gier, nick):
-    """Normale n um die Hochachse (gier) und um die Querachse (nick) gedreht, Winkel in Grad."""
-    g, k = math.radians(gier), math.radians(nick)
-    x, y, h = n
-    x, y = x * math.cos(g) - y * math.sin(g), x * math.sin(g) + y * math.cos(g)
-    y, h = y * math.cos(k) - h * math.sin(k), y * math.sin(k) + h * math.cos(k)
-    return Vector((x, y, h)).normalized()
+class Rauschen:
+    """Gradientenrauschen (Perlin) in 3D, Werte etwa −1 … 1."""
+
+    def __init__(self, saat):
+        r = np.random.default_rng(saat)
+        self.p = np.concatenate([r.permutation(256)] * 2).astype(np.intp)
+        g = r.normal(size=(256, 3))
+        self.g = (g / np.linalg.norm(g, axis=1, keepdims=True)).astype(np.float32)
+
+    def __call__(self, x, y, z):
+        x, y, z = (np.asarray(a, np.float64) for a in (x, y, z))
+        xi, yi, zi = np.floor(x), np.floor(y), np.floor(z)
+        xf, yf, zf = (x - xi).astype(np.float32), (y - yi).astype(np.float32), (z - zi).astype(np.float32)
+        X, Y, Z = (xi.astype(np.int64) & 255), (yi.astype(np.int64) & 255), (zi.astype(np.int64) & 255)
+        u, v, w = (t * t * t * (t * (t * 6 - 15) + 10) for t in (xf, yf, zf))
+        p, g = self.p, self.g
+        A, B = p[X] + Y, p[X + 1] + Y
+        AA, AB, BA, BB = p[A] + Z, p[A + 1] + Z, p[B] + Z, p[B + 1] + Z
+
+        def d(h, dx, dy, dz):
+            G = g[p[h]]
+            return G[..., 0] * dx + G[..., 1] * dy + G[..., 2] * dz
+
+        def l(t, a, b):
+            return a + t * (b - a)
+        y1 = l(v, l(u, d(AA, xf, yf, zf), d(BA, xf - 1, yf, zf)), l(u, d(AB, xf, yf - 1, zf), d(BB, xf - 1, yf - 1, zf)))
+        y2 = l(v, l(u, d(AA + 1, xf, yf, zf - 1), d(BA + 1, xf - 1, yf, zf - 1)),
+               l(u, d(AB + 1, xf, yf - 1, zf - 1), d(BB + 1, xf - 1, yf - 1, zf - 1)))
+        return l(w, y1, y2).astype(np.float64) * 1.5
 
 
-def klotz(z, x0, x1, y0, y1, h0, h1, fallen=0.0, deckel=None, seite=6.0, front=(14.0, 9.0), lehne=0.0, brueche=2,
-          bruch_tief=(0.12, 0.45), fasen=0.35):
-    """Kluftblock: zwischen zwei Kluftflächen (links, rechts; je um `seite` Grad verdreht), Bankfuge unten und oben
-    (Gefälle `fallen` = dz je dx, gleich für die ganze Wand), Vorderfläche (Gier, Nick bis `front` Grad) und Rückfläche.
-    `deckel`: z der Abbruchkante oben (waagrecht, leicht verkippt), sonst die Bankfuge. Dazu `brueche` große
-    Abbruchflächen an den vorderen Ecken und schmale Fasen an den Kanten – ebene Flächen, scharfe Kanten."""
-    xm, ym = (x0 + x1) / 2, (y0 + y1) / 2
-    ua, ub = h0 + fallen * x0, h0 + fallen * x1
-    oa, ob = h1 + fallen * x0, h1 + fallen * x1
-    if deckel is not None:
-        oa, ob = min(oa, deckel), min(ob, deckel)
-    zu, zo = min(ua, ub) - 0.5, max(oa, ob) + 0.5
-    if max(oa, ob) - max(ua, ub) < 0.12:
-        return None
-    zm = (max(ua, ub) + min(oa, ob)) / 2
-    pts = [Vector((x, y, h)) for x in (x0 - 0.6, x1 + 0.6) for y in (y0 - 0.6, y1 + 0.6) for h in (zu, zo)]
-    fn = Vector((-fallen, 0, 1)).normalized()
-    ebenen = [
-        (Vector((x0, ym, zm)), gedreht(Vector((-1, 0, lehne)), z.uniform(-seite, seite), 0)),
-        (Vector((x1, ym, zm)), gedreht(Vector((1, 0, -lehne)), z.uniform(-seite, seite), 0)),
-        (Vector((xm, ym, h0 + fallen * xm)), gedreht(-fn, 0, z.uniform(-1.5, 1.5))),
-        (Vector((xm, y0, zm)), gedreht(Vector((0, -1, 0)), z.uniform(-front[0], front[0]), z.uniform(-front[1], front[1] * 0.6))),
-        (Vector((xm, y1, zm)), Vector((0, 1, 0))),
-    ]
-    if deckel is not None and deckel < max(h1 + fallen * x0, h1 + fallen * x1):
-        ebenen.append((Vector((xm, ym, deckel)), gedreht(Vector((0, 0, 1)), z.uniform(-180, 180), z.uniform(-6, 6))))
-        ebenen.append((Vector((xm, ym, h1 + fallen * xm)), gedreht(fn, 0, z.uniform(-1.5, 1.5))))
-    else:
-        ebenen.append((Vector((xm, ym, h1 + fallen * xm)), gedreht(fn, 0, z.uniform(-1.5, 1.5))))
-    m = min(x1 - x0, max(oa, ob) - min(ua, ub), y1 - y0)
-    for _ in range(brueche):                   # große Abbrüche an vorderen Ecken und Kanten (meist oben)
-        sx = z.choice((-1, 1)) * z.uniform(0.0, 1.0)
-        sz = 1.0 if z.random() < 0.7 else -0.6
-        n = Vector((sx, -z.uniform(0.6, 1.4), sz * z.uniform(0.4, 1.3))).normalized()
-        ecke = Vector((xm + sx * (x1 - x0) / 2, y0, (max(oa, ob) if sz > 0 else min(ua, ub))))
-        ebenen.append((ecke - n * (m * z.uniform(*bruch_tief)), n))
-    for kante_x in (x0, x1):                   # Fasen an den senkrechten Vorderkanten
-        if z.random() < fasen:
-            n = Vector((math.copysign(1, kante_x - xm), -1, z.uniform(-0.3, 0.3))).normalized()
-            ebenen.append((Vector((kante_x, y0, zm)) - n * z.uniform(0.04, 0.16), n))
-    if z.random() < fasen:                     # Fase an der Vorderkante oben
-        n = Vector((z.uniform(-0.2, 0.2), -1, 1)).normalized()
-        ebenen.append((Vector((xm, y0, max(oa, ob))) - n * z.uniform(0.05, 0.2), n))
-    return polytop(pts, ebenen)
+def fbm(r, x, y, z, oktaven=3, lac=2.03, gain=0.5):
+    s, a, f, norm = 0.0, 1.0, 1.0, 0.0
+    for i in range(oktaven):
+        s = s + a * r(x * f + 17.3 * i, y * f, z * f)
+        norm += a
+        a *= gain
+        f *= lac
+    return s / norm
 
 
-def brocken(z, mitte, r, flach=0.6, flaechen=9):
-    """Kantiger Schuttbrocken: Kugel aus zufälligen Bruchebenen, flach gelagert."""
-    pts = [Vector((mitte[0] + x * r * 1.3, mitte[1] + y * r * 1.3, mitte[2] + h * r * flach * 1.3))
-           for x in (-1, 1) for y in (-1, 1) for h in (-1, 1)]
-    ebenen = []
-    for _ in range(flaechen):
-        n = Vector((z.gauss(0, 1), z.gauss(0, 1), z.gauss(0, 1) * 1.4)).normalized()
-        d = r * z.uniform(0.55, 1.0) * (flach if abs(n.z) > 0.7 else 1.0)
-        ebenen.append((Vector(mitte) + n * d, n))
-    return polytop(pts, ebenen)
+def _tabelle(i0, i1, saat, zitter, dims):
+    """Zellpunkte (Lage in der Zelle 0 … 1) für alle Zellen von i0 − 3 … i1 + 3 je Achse."""
+    achsen = [np.arange(a - 3, b + 4) for a, b in zip(i0, i1)]
+    gitter = np.meshgrid(*achsen, indexing="ij")
+    return [0.5 + zitter * (zufall(*gitter, saat, k=1 + d) - 0.5) for d in range(dims)], [a - 3 for a in i0]
 
 
-def kasten(x0, x1, y0, y1, z0, z1):
-    bm = bmesh.new()
-    vs = [bm.verts.new((x, y, h)) for x in (x0, x1) for y in (y0, y1) for h in (z0, z1)]
-    bmesh.ops.convex_hull(bm, input=vs)
-    return bm
-
-
-# ── 2. Wandstück aus Bänken und Säulen ───────────────────────────────────────────────────────────────────────────────
-def baenke(z, unten, oben, dicke, weich):
-    """Liste (z0, z1, ist_weich) von unten bis über `oben`."""
-    lagen, h = [], unten
-    while h < oben:
-        if lagen and not lagen[-1][2] and z.random() < weich:
-            d = z.uniform(0.2, 0.45)
-            lagen.append((h, h + d, True))
-        else:
-            d = z.uniform(*dicke)
-            lagen.append((h, h + d, False))
-        h += d
-    return lagen
-
-
-def wandstueck(z, B, T, H, dicke=(0.7, 2.0), weich=0.3, kluft=(1.2, 3.0), haupt=(4.0, 7.0), lehne_zurueck=0.06,
-               relief=1.2, enden=(1.0, 1.0), ueberhang=0.35, abbruch=0.35, stufen=(), unten=-1.2, fuge=(0.02, 0.06),
-               saeulen_hoehe=(0.72, 1.0), fallen_grad=0.0, offen_rechts=False, y_vorn=None, seite=7.0,
-               front_grad=(3.0, 2.0), brueche=(0, 2), verwachsen=0.35):
-    """Kluftblöcke einer Wand: Breite B (x), Tiefe T (y, vorn −T/2), Höhe H (z). Gibt eine Liste von bmesh zurück.
-    fallen_grad: Schichtfallen in der Wandebene (die Bänke laufen schräg durch die Wand, wie in Konzept 1).
-    stufen: [(z, rücksprung)] – über z springt die Front um rücksprung nach hinten (Absätze wie im Steinbruch).
-    enden: (links, rechts) Stärke, mit der die Enden in den Hang zurücklaufen (0 = Ende steht frei, Eckstück)."""
-    teile = []
-    fallen = math.tan(math.radians(fallen_grad))
-    yv0 = -T / 2 if y_vorn is None else y_vorn
-    yh = T / 2 + 0.6                                   # hinten über den Schnitt hinaus
-    saat = z.uniform(0, 100)
-    reserve = abs(fallen) * B / 2
-    lagen = baenke(z, unten - reserve, H + 2.5 + reserve, dicke, weich)
-    # Bank-Vorsprung: Zufallsweg, nach weicher Lage oft ein Vorsprung (Überhang); weiche Lagen wittern zurück
-    vor, bank_vor = 0.0, []
-    for i, (h0, h1, w) in enumerate(lagen):
-        vor = max(-0.7, min(0.7, vor + z.uniform(-0.3, 0.3)))
-        extra = z.uniform(0.4, 1.1) if (i > 0 and lagen[i - 1][2] and z.random() < ueberhang and h0 > 1.0) else 0.0
-        bank_vor.append(vor + extra if not w else vor - z.uniform(0.4, 1.0))
-    # Säulen zwischen Hauptklüften
-    grenzen, x = [-B / 2], -B / 2
-    while True:
-        x += z.uniform(*haupt)
-        if x > B / 2 - haupt[0] * 0.5:
-            break
-        grenzen.append(x)
-    grenzen.append(B / 2)
-    saeulen = []
-    for i in range(len(grenzen) - 1):
-        saeulen.append(dict(x0=grenzen[i], x1=grenzen[i + 1], vor=z.uniform(-0.8, 0.8) * relief,
-                            top=H * z.uniform(*saeulen_hoehe), lehne=z.uniform(-0.04, 0.04)))
-    max(saeulen, key=lambda s: s["x1"] - s["x0"])["top"] = H
-    # Hauptklüfte laufen nicht schnurgerade: je Bank versetzt (±0,45 m), verschieden breit, manchmal überbrückt
-    kluft_lage = {(gi, li): (z.uniform(-0.45, 0.45), 0.0 if z.random() < 0.18 else z.uniform(0.06, 0.55))
-                  for gi in range(1, len(grenzen) - 1) for li in range(len(lagen))}
-
-    def front(xx, hh, s, bv):
-        """y der Vorderfläche an (xx, hh) für Säule s und Bankvorsprung bv (größer = weiter vorn)."""
-        y = yv0 - s["vor"] - bv + lehne_zurueck * max(0.0, hh)
-        y -= relief * 0.6 * noise.noise(Vector((xx / 6.0, hh / 8.0, saat)))
-        for sz, rueck in stufen:
-            if hh > sz:
-                y += rueck
-        rand = 3.5                                   # Enden laufen in den Hang zurück
-        if xx < -B / 2 + rand:
-            y += enden[0] * 3.2 * ((-B / 2 + rand - xx) / rand) ** 1.5
-        if xx > B / 2 - rand and not offen_rechts:
-            y += enden[1] * 3.2 * ((xx - (B / 2 - rand)) / rand) ** 1.5
-        return min(y, T / 2 - 1.6)
-
-    def hoehe_bei(xx, s):
-        t = s["top"] * (1 + 0.06 * noise.noise(Vector((xx / 3.0, saat, 2.0))))
-        rand = 4.0
-        for sg, st in ((-1, enden[0]), (1, 0.0 if offen_rechts else enden[1])):
-            d = (B / 2 - sg * xx)
-            if d < rand:
-                t *= 1 - 0.55 * st * ((rand - d) / rand) ** 1.2
-        return min(t, H)
-
-    for si, s in enumerate(saeulen):
-        for li, (h0, h1, weich_lage) in enumerate(lagen):
-            bv = bank_vor[li]
-            sx0, sx1 = s["x0"], s["x1"]
-            if si > 0:
-                v, b = kluft_lage[(si, li)]
-                sx0 += v + b / 2
-            if si < len(saeulen) - 1:
-                v, b = kluft_lage[(si + 1, li)]
-                sx1 += v - b / 2
-            if h0 + fallen * (sx0 if fallen > 0 else sx1) > H + 0.5:
+def zellen2(u, v, groesse, saat, zitter=0.9):
+    """Voronoi in der Ebene (u, v) in Metern. Gibt (Abstand zur nächsten Zellgrenze in m, Zelle u, Zelle v,
+    Zellpunkt u, Zellpunkt v in m) zurück; die Zellgrenzen sind gerade Linien (Klüfte)."""
+    U, V = u / groesse, v / groesse
+    iu, iv = np.floor(U).astype(np.int64), np.floor(V).astype(np.int64)
+    fu, fv = U - iu, V - iv
+    (tu, tv), (u0, v0) = _tabelle((iu.min(), iv.min()), (iu.max(), iv.max()), saat, zitter, 2)
+    beste = np.full(U.shape, 1e9)
+    mu, mv = np.zeros(U.shape, np.int64), np.zeros(U.shape, np.int64)
+    au, av = np.zeros(U.shape), np.zeros(U.shape)
+    for du in (-1, 0, 1):
+        for dv in (-1, 0, 1):
+            cu, cv = iu + du - u0, iv + dv - v0
+            pu, pv = du + tu[cu, cv], dv + tv[cu, cv]
+            d = (pu - fu) ** 2 + (pv - fv) ** 2
+            m = d < beste
+            beste = np.where(m, d, beste)
+            mu, mv = np.where(m, du, mu), np.where(m, dv, mv)
+            au, av = np.where(m, pu, au), np.where(m, pv, av)
+    kante = np.full(U.shape, 1e9)
+    for du in range(-2, 3):
+        for dv in range(-2, 3):
+            if du == 0 and dv == 0:
                 continue
-            if h1 + fallen * (sx1 if fallen > 0 else sx0) < -0.4:
-                continue
-            x = sx0
-            versatz = z.uniform(0.2, 0.9)
-            breiten = []
-            while x < sx1 - 0.3:
-                w = max(0.5, z.uniform(*kluft) * (versatz if not breiten else 1.0))
-                if x + w > sx1 - 0.6:
-                    w = sx1 - x
-                breiten.append((x, x + w))
-                x += w
-            zusammen = []
-            for b in breiten:                          # verwachsene Nachbarn: keine Kluft dazwischen
-                if zusammen and z.random() < verwachsen and b[1] - zusammen[-1][0] < kluft[1] * 1.8:
-                    zusammen[-1] = (zusammen[-1][0], b[1])
-                else:
-                    zusammen.append(b)
-            for bx0, bx1 in zusammen:
-                xm = (bx0 + bx1) / 2
-                top = hoehe_bei(xm, s)
-                za, zb = h0 + fallen * xm, h1 + fallen * xm
-                if za >= top - 0.15 or zb < -0.3:
-                    continue
-                oberste = zb >= top - 0.05
-                if oberste and z.random() < abbruch * 0.45:   # Block der obersten Bank fehlt: Kerbe in der Abbruchkante
-                    continue
-                g = z.uniform(*fuge)
-                zmitte = (za + min(zb, top)) / 2
-                yf = front(xm, zmitte, s, bv) + z.uniform(-0.05, 0.05)
-                if oberste:
-                    yf += z.uniform(0.0, 1.8) * abbruch       # oben springt die Kante unregelmäßig zurück
-                tiefe = yh - yf if oberste else z.uniform(1.5, 2.6)
-                k = klotz(z, bx0 + g / 2, bx1 - g / 2, yf, yf + tiefe, h0 + g / 2, h1 - g / 2, fallen=fallen,
-                          deckel=top if oberste else None, seite=seite, lehne=s["lehne"],
-                          front=front_grad if not weich_lage else (3.0, 2.0),
-                          brueche=z.randint(*brueche) if not weich_lage else 0,
-                          fasen=0.35 if not weich_lage else 0.9)
-                if k:
-                    teile.append(k)
-        # Kern hinter den Blöcken in Scheiben zu 1,5 m: Fugen werden etwa 1 m tiefe Spalten
-        sx0, sx1 = s["x0"] + (0.5 if si > 0 else 0.0), s["x1"] - (0.5 if si < len(saeulen) - 1 else 0.0)
-        top_s = max(hoehe_bei(xx, s) for xx in (sx0 + 0.3, (sx0 + sx1) / 2, sx1 - 0.3))
-        h = unten - reserve
-        while h < top_s - 0.6:
-            h2 = min(h + 1.5, top_s - 0.4)
-            n_x = max(1, round((sx1 - sx0) / 1.0))
-            for k in range(n_x):                     # in Streifen zu etwa 1 m, damit der Kern den Enden folgt
-                xa, xb = sx0 + (sx1 - sx0) * k / n_x, sx0 + (sx1 - sx0) * (k + 1) / n_x
-                yk = min(front(xx, hh, s, bank_vor[min(range(len(lagen)), key=lambda i: abs((lagen[i][0] + lagen[i][1]) / 2 + fallen * xx - hh))])
-                         for xx in (xa, xb) for hh in (h, h2)) + 1.1
-                hb = min(h2, min(hoehe_bei(xa, s), hoehe_bei(xb, s)) - 0.4)
-                if hb > h + 0.1:
-                    teile.append(kasten(xa - 0.02, xb + 0.02, yk, yh, max(unten - reserve, h - 0.02), hb + 0.02))
-            h = h2
-        # Hauptkluft: zurückgesetzte Füllung, damit man nicht durch die Wand sieht
-        if s["x1"] < B / 2 - 0.01:
-            yk = front(s["x1"], H / 2, s, 0.0) + z.uniform(2.0, 3.2)
-            teile.append(kasten(s["x1"] - 0.8, s["x1"] + 0.8, min(yk, yh - 0.5), yh, unten, min(s["top"], H) - 1.0))
-    return teile
+            ou, ov = mu + du, mv + dv
+            cu, cv = iu + ou - u0, iv + ov - v0
+            pu, pv = ou + tu[cu, cv], ov + tv[cu, cv]
+            nu, nv = pu - au, pv - av
+            ln = np.sqrt(nu * nu + nv * nv) + 1e-9
+            kante = np.minimum(kante, (((au + pu) * 0.5 - fu) * nu + ((av + pv) * 0.5 - fv) * nv) / ln)
+    return kante * groesse, iu + mu, iv + mv, (iu + au) * groesse, (iv + av) * groesse
 
 
-# ── 3. Pfeiler, Schutt ───────────────────────────────────────────────────────────────────────────────────────────────
-def pfeiler(z, mx, my, B, T, H, nx=2, ny=2, lagen=(1.2, 3.5), unten=-1.2, verjuengung=0.12):
-    """Turm aus nx × ny Teilsäulen mit unregelmäßigen Lagerfugen (Trachyt), Teilsäulen verschieden hoch; die Blöcke
-    sind stärker gebrochen (verwitterte, aber kantige Säulen wie in Konzept 2)."""
-    teile = []
-    for i in range(nx):
-        for j in range(ny):
-            x0 = mx - B / 2 + B * i / nx
-            x1 = mx - B / 2 + B * (i + 1) / nx
-            y0 = my - T / 2 + T * j / ny
-            y1 = my - T / 2 + T * (j + 1) / ny
-            top = H * (1.0 if (i, j) == (nx // 2, ny // 2) else z.uniform(0.62, 0.97))
-            lehne = z.uniform(-0.03, 0.03)
-            h = unten
-            while h < top - 0.3:
-                d = min(z.uniform(*lagen), top - h)
-                if top - (h + d) < 0.6:
-                    d = top - h
-                ein = verjuengung * max(0.0, h) / H * (x1 - x0)   # nach oben schlanker
-                g = z.uniform(0.04, 0.1)
-                v = z.uniform(-0.18, 0.18)
-                oben = top - h - d < 0.1
-                k = klotz(z, x0 + ein / 2 + g / 2 + v, x1 - ein / 2 - g / 2 + v, y0 + ein / 2 + g / 2,
-                          y1 - ein / 2 - g / 2, h + g / 2, h + d - g / 2, seite=5.0, front=(8.0, 6.0), lehne=lehne,
-                          brueche=z.randint(2, 4) if oben else z.randint(0, 2), bruch_tief=(0.1, 0.35), fasen=0.9)
-                if k:
-                    teile.append(k)
-                h += d
-            k = 0.45
-            teile.append(kasten(x0 + k, x1 - k, y0 + k, y1 - k, unten, top - 0.5))
-    return teile
+def zellen3(x, y, z, groesse, saat, zitter=0.9):
+    """Voronoi im Raum. Gibt (Abstand zur Grenzfläche zum zweitnächsten Zellpunkt in m, Zellkennung als Tupel,
+    Zellpunkt (x, y, z) in m, Abstand zum Zellpunkt in m) zurück."""
+    P = [np.asarray(a, np.float64) / groesse for a in (x, y, z)]
+    I = [np.floor(a).astype(np.int64) for a in P]
+    F = [a - i for a, i in zip(P, I)]
+    t, o = _tabelle([i.min() for i in I], [i.max() for i in I], saat, zitter, 3)
+    d1, d2 = np.full(P[0].shape, 1e9), np.full(P[0].shape, 1e9)
+    a = [np.zeros(P[0].shape) for _ in range(3)]
+    b = [np.zeros(P[0].shape) for _ in range(3)]
+    ka = [np.zeros(P[0].shape, np.int64) for _ in range(3)]
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                c = (I[0] + dx - o[0], I[1] + dy - o[1], I[2] + dz - o[2])
+                p = [dx + t[0][c], dy + t[1][c], dz + t[2][c]]
+                d = (p[0] - F[0]) ** 2 + (p[1] - F[1]) ** 2 + (p[2] - F[2]) ** 2
+                m1 = d < d1
+                m2 = ~m1 & (d < d2)
+                for j in range(3):
+                    b[j] = np.where(m1, a[j], np.where(m2, p[j], b[j]))
+                    a[j] = np.where(m1, p[j], a[j])
+                    ka[j] = np.where(m1, I[j] + (dx, dy, dz)[j], ka[j])
+                d2 = np.where(m1, d1, np.where(m2, d, d2))
+                d1 = np.where(m1, d, d1)
+    ln = np.sqrt(sum((b[j] - a[j]) ** 2 for j in range(3))) + 1e-9
+    mitte = [(I[j] + a[j]) * groesse for j in range(3)]
+    return (d2 - d1) / (2 * ln) * groesse, tuple(ka), mitte, np.sqrt(d1) * groesse
 
 
-def schuttkegel(z, B, T, H, unten=-0.6):
-    """Halde: Fächer mit Böschungswinkel um 33°, die Kegelspitze hinten an der Wand; darauf dicht kantige, flach
-    gelagerte Brocken, große rollen weiter (am Fuß größer)."""
-    teile = []
-    n = 48
-    bm = bmesh.new()
-    gitter = {}
-    for i in range(n + 1):
-        for j in range(n + 1):
-            x = -B / 2 + B * i / n
-            y = -T / 2 + T * j / n
-            gitter[(i, j)] = bm.verts.new((x, y, kegel_hoehe(x, y, B, T, H)))
-    for i in range(n):
-        for j in range(n):
-            bm.faces.new((gitter[(i, j)], gitter[(i + 1, j)], gitter[(i + 1, j + 1)], gitter[(i, j + 1)]))
-    rand = [e for e in bm.edges if e.is_boundary]           # nach unten zu einem Körper schließen
-    erg = bmesh.ops.extrude_edge_only(bm, edges=rand)
-    for v in [e for e in erg["geom"] if isinstance(e, bmesh.types.BMVert)]:
-        v.co.z = unten
-    bmesh.ops.contextual_create(bm, geom=[e for e in bm.edges if all(abs(v.co.z - unten) < 1e-6 for v in e.verts)])
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    teile.append(bm)
-    for _ in range(2600):
-        x = z.uniform(-B / 2, B / 2)
-        y = z.uniform(-T / 2, T / 2)
-        h = kegel_hoehe(x, y, B, T, H)
-        if h <= 0.02 and z.random() < 0.9:
-            continue
-        unten_anteil = 1 - min(1.0, h / H)
-        r = z.uniform(0.07, 0.2) + unten_anteil ** 2 * z.uniform(0.0, 0.45)
-        b = brocken(z, (x, y, h + r * z.uniform(-0.25, 0.05)), r, flach=z.uniform(0.4, 0.75))
-        if b:
-            teile.append(b)
-    return teile
+def glatt(a, b, x):
+    t = np.clip((x - a) / (b - a), 0.0, 1.0)
+    return t * t * (3 - 2 * t)
 
 
-def kegel_hoehe(x, y, B, T, H):
-    """Höhe des Schuttfächers: Spitze hinten (y = T/2) in der Mitte, Böschung zur Front und zu den Seiten."""
-    ry = (T / 2 - y) / T                      # 0 hinten … 1 vorn
-    rx = abs(x) / (B / 2)
-    r = math.sqrt(ry * ry + (rx * 0.85) ** 2)
-    h = H * max(0.0, 1 - r) ** 1.15
-    h += 0.12 * noise.noise(Vector((x / 2.5, y / 2.5, 3.3)))
-    return max(0.0, h)
+def smin(a, b, k):
+    h = np.maximum(k - np.abs(a - b), 0.0) / k
+    return np.minimum(a, b) - h * h * k * 0.25
 
 
-def form_teile(form, z):
-    """Liste der Teile (bmesh) einer Form. Vorderseite −Y (im Spiel +Z), Hang hinten (+Y)."""
-    if form == "wand_gross_1":       # gebankte Wand, kräftige Bänke mit weichen Lagen und Überhängen
-        return wandstueck(z, 20, 8, 16, dicke=(0.8, 2.0), weich=0.35, kluft=(1.2, 2.8), haupt=(3.5, 6.5), relief=1.4,
-                          ueberhang=0.45, fallen_grad=9.0)
-    if form == "wand_gross_2":       # hohe, säulige Wand: dicke Bänke, viele senkrechte Klüfte (Trachyt, Konzept 2)
-        return wandstueck(z, 14, 8, 20, dicke=(1.8, 4.0), weich=0.12, kluft=(0.9, 1.8), haupt=(2.5, 4.5), relief=1.8,
-                          ueberhang=0.25, lehne_zurueck=0.04, saeulen_hoehe=(0.6, 1.0), seite=4.0,
-                          front_grad=(4.0, 3.0))
-    if form == "wand_gross_3":       # Bruchwand mit zwei Absätzen, dünne, regelmäßige Bänke (Steinbruch, Konzept 4)
-        return wandstueck(z, 18, 10, 12, dicke=(0.5, 1.2), weich=0.15, kluft=(1.0, 2.4), haupt=(4.0, 7.0), relief=0.7,
-                          ueberhang=0.15, lehne_zurueck=0.02, stufen=((4.2, 2.2), (8.3, 2.0)), abbruch=0.25,
-                          saeulen_hoehe=(0.85, 1.0), seite=2.0, front_grad=(2.0, 1.0), brueche=(0, 1))
-    if form == "wand_mittel_1":
-        return wandstueck(z, 9, 5, 8, dicke=(0.6, 1.6), weich=0.35, kluft=(1.0, 2.2), haupt=(3.0, 4.5), relief=0.9,
-                          ueberhang=0.45, fallen_grad=-15.0)
-    if form == "wand_mittel_2":      # Eckstück: rechtes Ende frei sichtbar
-        return wandstueck(z, 6, 5, 10, dicke=(1.0, 2.6), weich=0.2, kluft=(0.9, 1.8), haupt=(2.4, 3.4), relief=0.9,
-                          enden=(1.0, 0.0), offen_rechts=True, saeulen_hoehe=(0.7, 1.0))
-    if form == "wand_mittel_3":      # niedriger Absatz: vordere Bank, die obere springt 2 m zurück
-        return wandstueck(z, 8, 6, 5, dicke=(0.5, 1.3), weich=0.25, kluft=(1.0, 2.4), haupt=(3.0, 4.5), relief=0.6,
-                          stufen=((2.4, 2.0),), saeulen_hoehe=(0.85, 1.0))
-    if form == "gesims_1":           # eine Bank zum Stapeln, Unterseite geschlossen (sie ist als Überhang zu sehen)
-        return wandstueck(z, 10, 4, 1.8, dicke=(1.8, 1.8), weich=0.0, kluft=(1.0, 2.6), haupt=(3.5, 5.0), relief=0.5,
-                          unten=0.0, abbruch=0.15, ueberhang=0.0, lehne_zurueck=0.0, enden=(0.6, 0.6),
-                          saeulen_hoehe=(1.0, 1.0))
-    if form == "gesims_2":           # zwei Bänke, die obere kragt vor
-        teile = wandstueck(z, 8, 4, 1.3, dicke=(1.3, 1.3), weich=0.0, kluft=(1.0, 2.2), haupt=(3.0, 4.5), relief=0.4,
-                           unten=0.0, abbruch=0.0, ueberhang=0.0, lehne_zurueck=0.0, enden=(0.6, 0.6),
-                           saeulen_hoehe=(1.0, 1.0), y_vorn=-1.2)
-        oben = wandstueck(z, 8.4, 4, 1.6, dicke=(1.6, 1.6), weich=0.0, kluft=(1.2, 2.6), haupt=(3.0, 4.5), relief=0.4,
-                          unten=0.0, abbruch=0.2, ueberhang=0.0, lehne_zurueck=0.0, enden=(0.5, 0.5),
-                          saeulen_hoehe=(1.0, 1.0), y_vorn=-2.0)
-        for t in oben:
-            bmesh.ops.translate(t, verts=t.verts, vec=(0, 0, 1.35))
-        return teile + oben
-    if form == "pfeiler_1":
-        return pfeiler(z, 0, 0, 4, 4, 18, nx=2, ny=2)
-    if form == "pfeilerbuendel":     # vier Pfeiler in einem flachen Bogen vor einer niedrigeren Rückwand
-        teile = wandstueck(z, 10, 8, 9, dicke=(1.5, 3.0), weich=0.1, kluft=(0.9, 1.8), haupt=(2.5, 4.0), relief=0.8,
-                           y_vorn=0.2, saeulen_hoehe=(0.75, 1.0))
-        for mx, my, b, t, h in ((-3.4, -1.0, 2.8, 3.2, 12.5), (-0.6, -2.0, 3.2, 3.6, 15.0), (2.3, -1.5, 2.6, 3.0, 13.5),
-                                (4.0, 0.4, 2.0, 2.4, 10.0)):
-            teile += pfeiler(z, mx, my, b, t, h, nx=2, ny=1)
-        return teile
-    if form == "schuttkegel":
-        return schuttkegel(z, 14, 9, 4)
-    raise ValueError(form)
+def smax(a, b, k):
+    return -smin(-a, -b, k)
+
+
+def richtung(fallen, azimut):
+    """Normale einer Fläche, die um `fallen` Grad in Richtung `azimut` (0 = +X, 90 = +Y in den Hang) einfällt."""
+    a, p = math.radians(fallen), math.radians(azimut)
+    return np.array([math.sin(a) * math.cos(p), math.sin(a) * math.sin(p), math.cos(a)])
+
+
+def basis(n):
+    """Zwei Achsen senkrecht zu n: e1 waagrecht (Streichen), e2 = n × e1."""
+    e1 = np.cross((0.0, 0.0, 1.0), n)
+    e1 = e1 / np.linalg.norm(e1) if np.linalg.norm(e1) > 1e-6 else np.array([1.0, 0.0, 0.0])
+    return e1, np.cross(n, e1)
+
+
+def schicht_neigung(form):
+    """Neigung der Schichtfugen in der Wandebene (Grad, + = nach +X steigend)."""
+    n = richtung(*SCHICHTUNG[form])
+    return round(math.degrees(math.atan2(-n[0], n[2])), 1)
+
+
+# ── 2. Grundkörper ───────────────────────────────────────────────────────────────────────────────────────────────────
+def rundbox(x, y, hx, hy, r):
+    qx, qy = np.abs(x) - hx + r, np.abs(y) - hy + r
+    return np.sqrt(np.maximum(qx, 0) ** 2 + np.maximum(qy, 0) ** 2) + np.minimum(np.maximum(qx, qy), 0) - r
+
+
+class Wand:
+    """Front bei y = yv (Fuß), nach hinten geneigt; Enden laufen in den Hang zurück und werden niedriger."""
+    oben_schicht = True
+    zellhoehe = False
+
+    def __init__(self, fels, B, H, yv, yh, lehne, enden=(1.0, 1.0), offen_rechts=False, x0=0.0, schutt=True):
+        self.f, self.B, self.H, self.yv, self.yh, self.lehne = fels, B, H, yv, yh, lehne
+        self.enden, self.offen_rechts, self.x0, self.schutt = enden, offen_rechts, x0, schutt
+        self.unten = None
+
+    def ende_rueck(self, X):
+        x, rand = X - self.x0, min(3.5, self.B * 0.25)
+        r = self.enden[0] * 3.2 * np.clip((-self.B / 2 + rand - x) / rand, 0, 1) ** 1.5
+        if not self.offen_rechts:
+            r = r + self.enden[1] * 3.2 * np.clip((x - (self.B / 2 - rand)) / rand, 0, 1) ** 1.5
+        return r
+
+    def seite(self, X, Y, Z, R):
+        x = X - self.x0
+        f = np.minimum(self.yv + self.lehne * np.maximum(Z, 0) + self.ende_rueck(X) + R, self.yh - 1.2) - Y
+        # seitlich nicht über B/2 hinaus (Rücksprünge wirken mit), das offene Ende darf 0,4 m vorspringen
+        rechts = x - self.B / 2 + (np.maximum(R, -0.4) if self.offen_rechts else 0.3 * np.maximum(R, 0))
+        f = smax(f, rechts, 0.5)
+        return smax(f, -x - self.B / 2 + 0.3 * np.maximum(R, 0), 0.5)
+
+    def hoehe(self, X, Y):
+        x, rand = X - self.x0, min(4.0, self.B * 0.3)
+        t = self.H * (1 + 0.05 * self.f.r[2](x / 3.0, 0.5, 2.5))
+        for sg, st in ((-1, self.enden[0]), (1, 0.0 if self.offen_rechts else self.enden[1])):
+            d = self.B / 2 - sg * x
+            t = t * (1 - 0.45 * st * np.clip((rand - d) / rand, 0, 1) ** 1.2)
+        return np.minimum(t, self.H)
+
+    def fuss(self, X, Y):
+        return self.yv + self.ende_rueck(X) - Y
+
+
+class Pfeiler:
+    """Säule mit gerundetem Querschnitt, nach oben schlanker. Der Kopf jeder Teilsäule (Hauptkluft-Zelle) ist eigen hoch,
+    ohne Einrasten auf die (beim Trachyt sehr dicken) Bänke."""
+    oben_schicht = False
+    zellhoehe = True
+
+    def __init__(self, fels, cx, cy, B, T, H, verj=0.14, rund=0.7, schutt=True):
+        self.f, self.cx, self.cy, self.B, self.T, self.H = fels, cx, cy, B, T, H
+        self.verj, self.rund, self.schutt, self.unten = verj, rund, schutt, None
+
+    def seite(self, X, Y, Z, R):
+        k = 1 - self.verj * np.clip(Z / self.H, 0, 1)
+        return rundbox(X - self.cx, Y - self.cy, self.B / 2 * k, self.T / 2 * k, self.rund) + R
+
+    def hoehe(self, X, Y):
+        """Kopf zum Rand hin niedriger (bis 83 %): keine dünnen Randsplitter über der Mitte."""
+        r = np.hypot((X - self.cx) / (self.B / 2), (Y - self.cy) / (self.T / 2))
+        return self.H * (1 - 0.12 * np.clip(r, 0, 1.2) ** 2)
+
+    def fuss(self, X, Y):
+        return rundbox(X - self.cx, Y - self.cy, self.B / 2, self.T / 2, self.rund)
+
+
+class Platte:
+    """Eine Bank (Gesims): Front bei yv, Unterseite geschlossen."""
+    oben_schicht = False
+    zellhoehe = False
+
+    def __init__(self, fels, B, z0, z1, yv, yh, enden=0.6):
+        self.f, self.B, self.z0, self.z1, self.yv, self.yh, self.enden = fels, B, z0, z1, yv, yh, enden
+        self.unten, self.schutt = z0, False
+
+    def seite(self, X, Y, Z, R):
+        rand = min(2.5, self.B * 0.3)
+        e = self.enden * 1.6 * np.clip((np.abs(X) - (self.B / 2 - rand)) / rand, 0, 1) ** 1.5
+        f = np.minimum(self.yv + e + R, self.yh - 0.8) - Y
+        return smax(f, np.abs(X) - self.B / 2 + 0.3 * np.maximum(R, 0), 0.4)
+
+    def hoehe(self, X, Y):
+        return self.z1 + 0.05 * self.f.r[2](X / 2.0, Y / 2.0, 0.3)
+
+    def fuss(self, X, Y):
+        return self.yv - Y
+
+
+# ── 3. Felskörper als Dichtefeld ─────────────────────────────────────────────────────────────────────────────────────
+class Fels:
+    def __init__(self, form, saat, schnell=False):
+        self.form, self.saat = form, saat
+        p = self.p = dict(STANDARD, **STUECKE[form])
+        self.z = random.Random(saat)
+        self.r = [Rauschen(saat * 13 + i) for i in range(10)]
+        self.nb = richtung(p["fallen"], p["richtung"])
+        self.nj = richtung(*p["kluft_achse"]) if p["kluft_achse"] else self.nb
+        self.e1, self.e2 = basis(self.nj)
+        # entlang der Wand, aber längs der Kluftachse fest: Koordinate für Rippen und seitliche Schwankung
+        q = np.array([1.0, 0.0, 0.0]) - self.nj[0] * self.nj
+        self.eq = q / np.linalg.norm(q)
+        B, T, H = p["B"], p["T"], p["H"]
+        self.yh = T / 2
+        self.raster = p["raster"] * (1.5 if schnell else 1.0)
+        self.laenge = (p["schutt"][1] / BOESCHUNG + 0.3) if p["schutt"] else 0.4     # Schuttfuß vor der Wand
+        unten = -0.8 if p["art"] not in ("gesims", "gesims2") else -0.3
+        rand = {"pfeiler": self.laenge + 0.6, "buendel": 2.0}.get(p["art"], 1.6)
+        vorn = self.laenge + 0.6 if p["art"] == "pfeiler" else 0.4
+        self.bereich = ((-B / 2 - rand, B / 2 + rand), (-T / 2 - vorn, self.yh + vorn + 0.2), (unten, H + 1.0))
+        self.koerper = self.koerper_anlegen()
+        self.schichten_anlegen()
+        self.stufen_s = [(float(np.dot(self.nb, (0.0, self.vorn_bei(zs), zs))), r) for zs, r in p["stufen"]]
+
+    def vorn_bei(self, z):
+        k = self.koerper[0]
+        return getattr(k, "yv", 0.0) + getattr(k, "lehne", 0.0) * z
+
+    def koerper_anlegen(self):
+        p, f = self.p, self
+        B, T, H, art = p["B"], p["T"], p["H"], p["art"]
+        laenge = self.laenge
+        if art == "wand":
+            return [Wand(f, B, H, -T / 2 + laenge, self.yh, p["lehne"], p["enden"], p["offen_rechts"])]
+        if art == "gesims":
+            return [Platte(f, B, 0.0, H, -T / 2 + 0.2, self.yh)]
+        if art == "gesims2":                 # untere Bank, darüber eine vorkragende
+            return [Platte(f, B - 0.4, 0.0, 1.35, -T / 2 + 1.0, self.yh), Platte(f, B, 1.25, H, -T / 2 + 0.2, self.yh)]
+        if art == "pfeiler":
+            return [Pfeiler(f, 0, 0, B, T, H)]
+        if art == "buendel":                 # vier Pfeiler in einem flachen Bogen vor einer niedrigeren Rückwand
+            teile = [Wand(f, B, 9.0, 0.6, self.yh, p["lehne"], (0.8, 0.8))]
+            for mx, my, b, t, h in ((-3.4, -1.0, 2.8, 3.2, 12.5), (-0.6, -1.8, 3.2, 3.4, 15.0),
+                                    (2.3, -1.4, 2.6, 3.0, 13.5), (4.0, 0.3, 2.0, 2.4, 10.0)):
+                teile.append(Pfeiler(f, mx, my, b, t, h, verj=0.1, rund=0.6))
+            return teile
+        return []                            # Schuttkegel: eigenes Feld
+
+    def schichten_anlegen(self):
+        g = GESTEIN[self.p["gestein"]]
+        (x0, x1), (y0, y1), (z0, z1) = self.bereich
+        ecken = [float(np.dot(self.nb, (x, y, h))) for x in (x0, x1) for y in (y0, y1) for h in (z0, z1)]
+        s, ende = min(ecken) - 3.0, max(ecken) + 3.0
+        grenzen, rueck, rund, breite, lamelle, arten, vorher = [s], [], [], [], [], [], -1
+        while s < ende:
+            a = self.z.choices((0, 1, 2), weights=g["anteile"])[0]
+            if a == 2 and vorher == 2:
+                a = 1
+            d = self.z.uniform(*g["dicke"][a])
+            rueck.append(self.z.uniform(*g["rueck"][a]))
+            rund.append(self.z.uniform(*g["rund"]) * (0.35 if a == 2 else 1.0) * min(1.0, d / 0.8))
+            breite.append(min(0.45 * d, 0.45))
+            lamelle.append(self.z.uniform(0.09, 0.22) if a < 2 and self.z.random() < g["lamellen"] else 0.0)
+            s += d
+            grenzen.append(s)
+            arten.append(a)
+            vorher = a
+        self.grenzen, self.rueck, self.rund = np.array(grenzen), np.array(rueck), np.array(rund)
+        self.rundbreite, self.lamelle = np.array(breite), np.array(lamelle)
+        # offene Bankfugen (gerundete Kanten, Rille): an weichen Lagen immer, sonst nur ein Teil – geschlossene Fugen
+        # lassen mehrere Lagen als eine dicke Bank stehen (unterschiedlich dicke Bänke statt gleicher Bretter)
+        offen = [self.z.random() < g.get("fuge_offen", self.p["fuge_offen"]) for _ in grenzen]
+        for i, a in enumerate(arten):
+            if a == 2:
+                offen[i] = offen[i + 1] = True
+        self.offen = np.array(offen, np.float64)
+
+    # Bausteine des Feldes
+    def schicht_s(self, X, Y, Z):
+        s = X * self.nb[0] + Y * self.nb[1] + Z * self.nb[2]
+        return s + self.p["welle"] * (fbm(self.r[1], X / 7.0, Y / 7.0, Z / 7.0, 2)
+                                      + 0.4 * self.r[2](X / 2.2 + 3.1, Y / 2.2, Z / 2.2))
+
+    def laengs(self, X, Y, Z):
+        return X * self.eq[0] + Y * self.eq[1] + Z * self.eq[2]
+
+    def bank(self, s):
+        return np.clip(np.searchsorted(self.grenzen, s, side="right") - 1, 0, len(self.rueck) - 1)
+
+    def schicht_rueck(self, s, w):
+        """Treppenprofil quer zur Schichtung: Rücksprung je Bank und gerundete Bankkanten, beides entlang der Wand
+        (w) schwankend – mal scharfe, mal tief ausgewitterte Kante."""
+        i = self.bank(s)
+        quer = np.clip(0.5 + 0.6 * self.r[3](w / 5.0, i * 1.37, 0.5), 0, 1)
+        r = self.rueck[i] * (0.45 + 1.1 * quer)
+        kante = np.clip(0.55 + 0.75 * self.r[3](w / 3.0, i * 2.11 + 40.0, 1.5), 0.1, 1.4)
+        unten = self.offen[i] * (1 - np.clip((s - self.grenzen[i]) / self.rundbreite[i], 0, 1)) ** 2
+        oben = self.offen[i + 1] * (1 - np.clip((self.grenzen[i + 1] - s) / self.rundbreite[i], 0, 1)) ** 2
+        return r + self.rund[i] * kante * np.maximum(unten, oben)
+
+    def kluftebene(self, X, Y, Z):
+        u = X * self.e1[0] + Y * self.e1[1] + Z * self.e1[2]
+        v = X * self.e2[0] + Y * self.e2[1] + Z * self.e2[2]
+        return u, v
+
+    def hauptkluefte(self, u, v):
+        a = self.p["anis"]
+        kante, zu, zv, cu, cv = zellen2(u, v / a, self.p["kluft"], self.saat + 11)
+        return kante, zu, zv, cu, cv * a
+
+    def oberkante(self, kp, zu, zv, cu, cv):
+        """Schichtfläche (s-Wert), an der eine Säule (Hauptkluft-Zelle) oben endet: die Bankgrenze unter der Höhe, die
+        der Körper an der Säulenachse hat (je Säule etwas niedriger, manchmal eine Bank mehr)."""
+        e1, e2, nj = self.e1, self.e2, self.nj
+        bx, by, bz = cu * e1[0] + cv * e2[0], cu * e1[1] + cv * e2[1], cu * e1[2] + cv * e2[2]
+        lo, hi = self.p["hoehe"]
+        fak = lo + (hi - lo) * zufall(zu, zv, self.saat, k=7) ** 0.7
+        px, py = bx, by
+        for _ in range(3):
+            ht = kp.hoehe(px, py) * fak
+            t = (ht - bz) / nj[2]
+            px, py = bx + t * nj[0], by + t * nj[1]
+        sc = px * self.nb[0] + py * self.nb[1] + ht * self.nb[2]
+        i = np.searchsorted(self.grenzen, sc, side="right") - 1
+        i = np.clip(i, 0, len(self.grenzen) - 2)
+        tief = sc - self.grenzen[i] > 1.5                  # höchstens 1,5 m unter die Zielhöhe einrasten
+        i = i + ((zufall(zu, zv, self.saat, k=8) < 0.3) | tief)
+        return self.grenzen[np.clip(i, 0, len(self.grenzen) - 1)]
+
+    def feld(self, X, Y, Z):
+        if self.p["art"] == "schutt":
+            return self.feld_schutt(X, Y, Z)
+        p = self.p
+        s = self.schicht_s(X, Y, Z)
+        u, v = self.kluftebene(X, Y, Z)
+        kante, zu, zv, cu, cv = self.hauptkluefte(u, v)
+        w = self.laengs(X, Y, Z)
+        # Rücksprung: Schichtung, Säulenversatz mit leichter Drehung, große Formen (vor allem entlang der Wand), Absätze
+        R = self.schicht_rueck(s, w)
+        R = R + p["relief"] * (2 * zufall(zu, zv, self.saat, k=5) - 1)
+        R = R + 0.07 * (2 * zufall(zu, zv, self.saat, k=6) - 1) * (u - cu) \
+              + 0.05 * (2 * zufall(zu, zv, self.saat, k=9) - 1) * (v - cv)
+        R = R + p["gross"] * fbm(self.r[0], X / 9.0, Y / 9.0, Z / 24.0, 3)
+        rippe = self.rippe(w, zu, zv)
+        R = R + rippe
+        # Säulenkanten an den Hauptklüften gerundet und ausgewittert (vorspringende Säule: runde Kante)
+        R = R + p["kluft_rund"] * (1 - np.clip(kante / 0.6, 0, 1)) ** 2
+        for sk, rk in self.stufen_s:
+            R = R + rk * glatt(sk - 0.25, sk + 0.25, s)
+        f = np.full(X.shape, 1e3)
+        for kp in self.koerper:
+            fk = kp.seite(X, Y, Z, R)
+            if kp.oben_schicht:                 # Rinnen enden tiefer als Rippen
+                fk = smax(fk, s - self.oberkante(kp, zu, zv, cu, cv) + 0.8 * np.maximum(rippe, 0), p["rund_oben"])
+            if kp.zellhoehe:                   # ebener Kopf je Teilsäule, Höhe aus der Wölbung an der Säulenmitte
+                lo, hi = p["hoehe"]
+                fak = lo + (hi - lo) * zufall(zu, zv, self.saat, k=7) ** 0.7
+                mx = cu * self.e1[0] + cv * self.e2[0]
+                my = cu * self.e1[1] + cv * self.e2[1]
+                fk = smax(fk, Z - kp.hoehe(mx, my) * fak, p["rund_oben"])
+                fk = smax(fk, Z - kp.H, 0.5)
+            else:
+                fk = smax(fk, Z - kp.hoehe(X, Y), 0.5)
+            if kp.unten is not None:
+                fk = smax(fk, kp.unten + 0.04 * self.r[4](X / 1.5, Y / 1.5, 0.7) - Z, 0.25)
+            f = smin(f, fk, 0.5)
+        # Hauptklüfte als Kerbe, die nach innen schmaler wird; nur wenige tief (Spalten)
+        m = 0.5 + 0.55 * self.r[5](X / 7.0, Y / 7.0, Z / 7.0)
+        tief = glatt(1 - p["spalten"] - 0.05, 1 - p["spalten"] + 0.08, m) if p["spalten"] > 0 else 0.0
+        D = 0.25 + (p["spalt_tiefe"] - 0.25) * tief
+        hw = 0.045 + (p["spalt_breite"] / 2 - 0.045) * tief
+        kerbe = np.minimum(hw * np.clip(1 + f / D, 0, 1) - kante, f + D)
+        f = smax(f, kerbe, 0.05)
+        # gebrochene Flächen: jedes Feld zwischen den Haarrissen etwas vor oder zurück und leicht gedreht
+        nah = np.abs(f) < 0.5
+        if nah.any():
+            f[nah] = f[nah] + self.bruchflaechen(X[nah], Y[nah], Z[nah])
+        # Schutthalde am Fuß
+        if p["schutt"]:
+            f = self.halde(f, X, Y, Z, rippe, rippe + p["relief"] * (2 * zufall(zu, zv, self.saat, k=5) - 1))
+        return f
+
+    def rippe(self, w, zu, zv):
+        """Rippen und Rinnen: je Hauptkluft-Säule ein eigener Vorsprung (ebene Fläche, Stufe an der Kluft), dazu ein
+        sanfter Wechsel entlang der Wand (w); + = Rinne."""
+        stufe = 2 * zufall(zu, zv, self.saat, k=13) - 1
+        sanft = np.clip(2.0 * fbm(self.r[9], w / 6.5, 0.37, 0.71, 2), -1, 1)
+        return self.p["rippe"] * (0.55 * stufe + 0.45 * sanft)
+
+    def halde(self, f, X, Y, Z, rippe, versatz):
+        """Schutthalde vor dem Fuß (36°), folgt der Front samt Säulenversatz (versatz, + = zurück); in Rinnen höher."""
+        p = self.p
+        h0, h1 = p["schutt"]
+        fuss = np.full(X.shape, 1e3)
+        for kp in self.koerper:
+            if kp.schutt:
+                fuss = np.minimum(fuss, kp.fuss(X, Y) + versatz)
+        ht = h0 + (h1 - h0) * np.clip(0.5 + 0.7 * self.r[6](X / 6.0, 0.3, 1.1)
+                                      + 0.5 * np.maximum(rippe, 0) / max(p["rippe"], 0.1), 0, 1)
+        aus = np.ones(X.shape)
+        for kp in self.koerper:              # an den Wandenden läuft die Halde aus (kein Schnitt am Gitterrand)
+            if isinstance(kp, Wand):
+                aus = aus * glatt(0.0, 3.0, kp.B / 2 - 0.3 - np.abs(X - kp.x0))
+        ht = ht * aus
+        zt = ht - BOESCHUNG * np.maximum(fuss, 0)
+        nah = (Z < h1 + 1.2) & (Z > zt - 0.6)
+        ft = Z - zt
+        if nah.any():
+            ft[nah] = ft[nah] + self.steine(X[nah], Y[nah], Z[nah], 0.45, 0.09) * aus[nah] + 0.1 * (1 - aus[nah])
+            ft[nah] = smin(ft[nah], self.brocken(X[nah], Y[nah], Z[nah], zt[nah], ht[nah]), 0.12)
+        return smin(f, ft, 0.35)
+
+    def brocken(self, X, Y, Z, zboden, ht):
+        """Einzelne kantige Brocken auf der Halde: Voronoi-Zelle im Grundriss (ebene Seiten), oben gerundet und flach,
+        nur ein Teil der Zellen trägt einen Brocken."""
+        k, zx, zy, cx, cy = zellen2(X, Y, 2.2, self.saat + 51)
+        # nicht an den auslaufenden Wandenden und nicht vor dem Haldenfuß
+        da = (zufall(zx, zy, self.saat, k=14) < 0.3) & (ht > 0.45) & (zboden > -0.2)
+        r = 0.35 + 0.45 * zufall(zx, zy, self.saat, k=15)
+        dz = (Z - np.maximum(zboden, 0) - 0.15 * r) / 0.65
+        rund = np.sqrt((X - cx) ** 2 + (Y - cy) ** 2 + dz * dz) - r
+        return np.where(da, np.maximum(rund, 0.1 - k), 1e3)
+
+    def bruchflaechen(self, X, Y, Z):
+        """Versatz (m, + = zurück) je Feld der Haarrisse (dieselben Zellen wie die Risse in feinheit)."""
+        _, kid, mitte, _ = zellen3(X, Y, Z, self.p["risse"], self.saat + 21)
+        a = self.p["bruch"]
+        d = a * (2 * zufall(*kid, self.saat, k=11) - 1)
+        for j, P in enumerate((X, Y, Z)):
+            d = d + 0.05 * (2 * zufall(*kid, self.saat, k=12 + j) - 1) * (P - mitte[j])
+        return d * self.rissmaske(X, Y, Z)
+
+    def rissmaske(self, X, Y, Z):
+        """Wo Haarrisse und gebrochene Flächen sind (gut die Hälfte), dazwischen große ruhige Flächen."""
+        return glatt(-0.3, 0.15, self.r[7](X / 7.0, Y / 7.0, Z / 7.0))
+
+    def steine(self, X, Y, Z, groesse, tiefe):
+        """Kantige, flach liegende Steine: Fugen zwischen Voronoi-Zellen, jede Zelle etwas höher oder tiefer."""
+        k, kid, _, _ = zellen3(X, Y, Z * 1.7, groesse, self.saat + 31)
+        hub = (zufall(*kid, self.saat, k=3) - 0.5) * 2 * tiefe
+        return tiefe * (1 - glatt(0.0, 0.08, k)) - hub
+
+    def feld_schutt(self, X, Y, Z):
+        """Schuttkegel: Fächer mit Böschung um 33°, Spitze hinten an der Wand; kantige Steine, am Fuß größer."""
+        B, T, H = self.p["B"], self.p["T"], self.p["H"]
+        ry = (T / 2 - Y) / T
+        rx = np.abs(X) / (B / 2)
+        r = np.sqrt(ry * ry + (rx * 0.85) ** 2)
+        zc = H * np.maximum(0.0, 1 - r) ** 1.15 + 0.15 * self.r[0](X / 2.5, Y / 2.5, 3.3)
+        f = Z - zc
+        nah = np.abs(f) < 0.8
+        if nah.any():
+            fuss = np.clip(1 - zc[nah] / H, 0, 1)
+            klein = self.steine(X[nah], Y[nah], Z[nah], 0.4, 0.08)
+            k, kid, _, _ = zellen3(X[nah], Y[nah], Z[nah] * 1.6, 0.9, self.saat + 41)
+            gross = 0.16 * (1 - glatt(0.0, 0.12, k)) - (zufall(*kid, self.saat, k=4) - 0.5) * 0.36
+            f[nah] = f[nah] + np.where(fuss > 0.55, gross + 0.4 * klein, klein)
+        return f
+
+    # Gitter und Fläche
+    def gitter(self):
+        h = self.raster
+        (x0, x1), (y0, y1), (z0, z1) = self.bereich
+        xs, ys, zs = (np.arange(a, b + h, h) for a, b in ((x0, x1), (y0, y1), (z0, z1)))
+        feld = np.empty((len(xs), len(ys), len(zs)), np.float32)
+        schritt = max(1, int(450000 / (len(xs) * len(ys))))
+        for k in range(0, len(zs), schritt):
+            X, Y, Z = np.meshgrid(xs, ys, zs[k:k + schritt], indexing="ij")
+            feld[:, :, k:k + schritt] = self.feld(X.ravel(), Y.ravel(), Z.ravel()).reshape(X.shape)
+        feld[0], feld[-1], feld[:, 0], feld[:, -1], feld[:, :, 0], feld[:, :, -1] = 1, 1, 1, 1, 1, 1
+        return feld, np.array((x0, y0, z0)), h
+
+    # feine Oberfläche nach dem Remesh
+    def feinheit(self, co, no):
+        """Verschiebung in m entlang der Normale: Haarrisse, Hauptklüfte als Linie, Feinschichtung, Abplatzungen,
+        Körnung."""
+        X, Y, Z = co[:, 0], co[:, 1], co[:, 2]
+        p = self.p
+        d = np.zeros(len(X))
+        # Haarrisse: ein Netz aus feinen Linien (3D-Voronoi), nur stellenweise; leichte Facette je Rissfeld
+        k, kid, mitte, _ = zellen3(X, Y, Z, p["risse"], self.saat + 21)
+        auslaufen = glatt(-0.15, 0.3, self.r[6](X / 1.3 + 9.1, Y / 1.3, Z / 1.3))   # Risse enden, keine Vielecke
+        d -= 0.05 * (1 - glatt(0.0, 0.035, k)) ** 1.5 * self.rissmaske(X, Y, Z) * auslaufen
+        if p["art"] != "schutt":
+            u, v = self.kluftebene(X, Y, Z)
+            kante = self.hauptkluefte(u, v)[0]
+            d -= 0.04 * (1 - glatt(0.0, 0.04, kante))
+            # Feinschichtung in einzelnen Bänken (schmale Rillen parallel zur Schichtung)
+            s = self.schicht_s(X, Y, Z)
+            i = self.bank(s)
+            lam = self.lamelle[i]
+            t = np.where(lam > 0, (s - self.grenzen[i]) / np.maximum(lam, 1e-3), 0.5)
+            t = t + 0.35 * self.r[5](X / 1.6 + 4.4, Y / 1.6, Z / 1.6)                      # Lagen wellig
+            fr = t - np.floor(t)
+            d -= np.where(lam > 0, 0.035 * (1 - np.clip(np.minimum(fr, 1 - fr) / 0.22, 0, 1)) ** 2, 0.0)
+        # Abplatzungen: flache Schalen
+        _, _, _, r1 = zellen3(X, Y, Z, 0.7, self.saat + 23)
+        d -= 0.02 * (1 - np.clip(r1 / 0.5, 0, 1)) ** 2
+        # Körnung
+        d += 0.006 * fbm(self.r[8], X / 0.12, Y / 0.12, Z / 0.12, 3)
+        return d
+
+
+def flaeche_aus_feld(f, ursprung, h):
+    """Surface Nets: je Gitterzelle mit Vorzeichenwechsel ein Punkt (Mittel der Kantenschnitte), je Gitterkante mit
+    Wechsel ein Viereck aus den vier Zellen um sie. Gibt (Punkte, Vierecke) zurück, Flächen nach außen gerichtet."""
+    n = f.shape
+    zn = (n[0] - 1, n[1] - 1, n[2] - 1)
+    innen = f < 0
+    idx, pos, kanten = [], [], []
+    for achse in range(3):
+        a0, a1 = [slice(None)] * 3, [slice(None)] * 3
+        a0[achse], a1[achse] = slice(0, -1), slice(1, None)
+        f0, f1 = f[tuple(a0)], f[tuple(a1)]
+        I = np.nonzero(innen[tuple(a0)] != innen[tuple(a1)])
+        t = f0[I] / (f0[I] - f1[I])
+        p = np.stack(I, 1).astype(np.float64)
+        p[:, achse] += t
+        b, c = [x for x in range(3) if x != achse]
+        zellen = []
+        for db, dc in ((1, 1), (0, 1), (0, 0), (1, 0)):
+            zi = [I[0], I[1], I[2]]
+            zi[b], zi[c] = I[b] - db, I[c] - dc
+            lin = np.ravel_multi_index(tuple(zi), zn)
+            idx.append(lin)
+            pos.append(p)
+            zellen.append(lin)
+        q = np.stack(zellen, 1)
+        aussen_plus = f0[I] < 0                  # innen am unteren Ende: Normale zeigt in +achse
+        if achse == 1:
+            aussen_plus = ~aussen_plus           # Ebene (x, z): x × z = −y
+        q = np.where(aussen_plus[:, None], q, q[:, ::-1])
+        kanten.append(q)
+    idx = np.concatenate(idx)
+    pos = np.concatenate(pos)
+    zellen, umkehr = np.unique(idx, return_inverse=True)
+    anzahl = np.bincount(umkehr)
+    punkte = np.stack([np.bincount(umkehr, weights=pos[:, j]) / anzahl for j in range(3)], 1)
+    punkte = ursprung + punkte * h
+    vier = np.searchsorted(zellen, np.concatenate(kanten))
+    return punkte, vier
+
+
+def netz_aus(punkte, vierecke, name):
+    me = bpy.data.meshes.new(name)
+    me.vertices.add(len(punkte))
+    me.vertices.foreach_set("co", punkte.astype(np.float32).ravel())
+    me.loops.add(vierecke.size)
+    me.loops.foreach_set("vertex_index", vierecke.astype(np.int32).ravel())
+    me.polygons.add(len(vierecke))
+    me.polygons.foreach_set("loop_start", np.arange(0, vierecke.size, 4, dtype=np.int32))
+    me.update(calc_edges=True)
+    me.validate()
+    return me
 
 
 # ── 4. Hohes Netz ────────────────────────────────────────────────────────────────────────────────────────────────────
 def hoch_netz(form, saat, schnell):
-    z = random.Random(saat)
-    bm = bmesh.new()
-    for teil in form_teile(form, z):
-        me = bpy.data.meshes.new("_t")
-        teil.to_mesh(me)
-        bm.from_mesh(me)
-        bpy.data.meshes.remove(me)
-        teil.free()
-    me = bpy.data.meshes.new(f"_Hoch_{form}")
-    bm.to_mesh(me)
-    bm.free()
+    t0 = time.time()
+    fels = Fels(form, saat, schnell)
+    feld, ursprung, h = fels.gitter()
+    t1 = time.time()
+    punkte, vier = flaeche_aus_feld(feld, ursprung, h)
+    del feld
+    me = netz_aus(punkte, vier, f"_Hoch_{form}")
     obj = bpy.data.objects.new(f"_Hoch_{form}", me)
     bpy.context.scene.collection.objects.link(obj)
+    gl = obj.modifiers.new("Glatt", "SMOOTH")
+    gl.factor, gl.iterations = 0.5, 2
+    anwenden(obj)
     mod = obj.modifiers.new("Remesh", "REMESH")
     mod.mode = "VOXEL"
     mod.voxel_size = VOXEL[form] * (1.8 if schnell else 1.0)
     mod.adaptivity = 0.0
     anwenden(obj)
-    aufrauen(obj, saat, SCHICHTUNG.get(form))
+    aufrauen(obj, fels)
     abschneiden(obj, form)
     for p in obj.data.polygons:
         p.use_smooth = True
+    print(f"  {form}: Feld {feld_text(fels)} in {t1 - t0:.0f} s, Netz in {time.time() - t1:.0f} s", flush=True)
     return obj
+
+
+def feld_text(fels):
+    (x0, x1), (y0, y1), (z0, z1) = fels.bereich
+    return f"{(x1 - x0) / fels.raster:.0f}×{(y1 - y0) / fels.raster:.0f}×{(z1 - z0) / fels.raster:.0f} ({fels.raster * 100:.0f} cm)"
 
 
 def anwenden(obj):
@@ -505,15 +804,8 @@ def anwenden(obj):
     neu.name = name
 
 
-# Feine Schichtung innerhalb der Bänke: (Abstand der Schichtfugen in m, Gefälle in Grad wie die Bänke der Form)
-SCHICHTUNG = {"wand_gross_1": (0.32, 9.0), "wand_mittel_1": (0.28, -15.0), "wand_gross_3": (0.45, 0.0),
-              "gesims_1": (0.3, 0.0), "gesims_2": (0.3, 0.0), "wand_mittel_3": (0.4, 0.0)}
-
-
-def aufrauen(obj, saat, schichtung=None):
-    """Feine Oberfläche in Metern: Haarrisse (Voronoi-Ränder), flache Dellen der Bruchflächen, Körnung, dazu feine
-    Schichtfugen (schmale Rillen parallel zu den Bänken). Klein gehalten, damit die ebenen Flächen und scharfen Kanten
-    der Blöcke bleiben (kein Knubbeln)."""
+def aufrauen(obj, fels):
+    """Feine Oberfläche (Fels.feinheit) entlang der Punktnormalen."""
     me = obj.data
     n = len(me.vertices)
     co = np.empty(n * 3)
@@ -522,22 +814,9 @@ def aufrauen(obj, saat, schichtung=None):
     no = np.empty(n * 3)
     me.vertices.foreach_get("normal", no)
     no = no.reshape(n, 3)
-    versatz = Vector((saat * 0.731 % 50, saat * 0.377 % 50, saat * 0.913 % 50))
     d = np.empty(n)
-    for i in range(n):
-        p = Vector(co[i]) + versatz
-        q = p + noise.noise_vector(p / 1.5, noise_basis="PERLIN_ORIGINAL") * 0.25
-        abst, _ = noise.voronoi(q / 0.9, distance_metric="DISTANCE", exponent=2.5)
-        riss = max(0.0, 1.0 - (abst[1] - abst[0]) / 0.05)
-        delle = noise.noise(p / 0.7, noise_basis="PERLIN_ORIGINAL")
-        rau = noise.fractal(p / 0.12, 0.6, 2.2, 3, noise_basis="BLENDER")
-        rille = 0.0
-        if schichtung:
-            t = (co[i][2] - math.tan(math.radians(schichtung[1])) * co[i][0]) / schichtung[0]
-            t += 0.25 * noise.noise(p / 2.0)
-            f = t - math.floor(t)
-            rille = max(0.0, 1.0 - min(f, 1.0 - f) / 0.09) ** 2
-        d[i] = -0.03 * riss * riss + 0.012 * delle + 0.007 * rau - 0.035 * rille
+    for a in range(0, n, 200000):
+        d[a:a + 200000] = fels.feinheit(co[a:a + 200000], no[a:a + 200000])
     co += no * d[:, None]
     me.vertices.foreach_set("co", co.ravel())
     me.update()
@@ -553,8 +832,7 @@ def unten_offen(form):
 
 def hinterkante(form):
     """y der Schnittebene an der Hangseite (Blender +Y)."""
-    return {"wand_gross_1": 4, "wand_gross_2": 4, "wand_gross_3": 5, "wand_mittel_1": 2.5, "wand_mittel_2": 2.5,
-            "wand_mittel_3": 3, "gesims_1": 2, "gesims_2": 2, "pfeilerbuendel": 4, "schuttkegel": 4.3}.get(form)
+    return STUECKE[form]["T"] / 2
 
 
 def abschneiden(obj, form):
@@ -978,7 +1256,7 @@ def vorschau(spielnetze, formen, texturordner, ordner, schnell, konzept):
     except TypeError:
         szene.view_settings.view_transform = "Standard"
     licht_und_welt(szene)
-    st = vorschau_stoff(texturordner) if texturordner else bs._hilfsstoff("_Grau", (0.42, 0.40, 0.37))
+    st = vorschau_stoff(texturordner) if texturordner else probe_stoff()
     gras = bs._hilfsstoff("_Gras", (0.30, 0.34, 0.19))
     kam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera"))
     szene.collection.objects.link(kam)
@@ -1014,10 +1292,10 @@ def vorschau(spielnetze, formen, texturordner, ordner, schnell, konzept):
         bilder.append(rendern(szene, os.path.join(ordner, f"r4_stufe0_{teil}.png"), (2400, 1100), schnell, stufe0))
 
     # b) zusammengestellte Felswand im Hang (Spielkamera 40°, perspektivisch) aus 6 Stücken
-    def hang(x, y):
+    def hang(x, y):                  # steigt erst 2,5 m hinter der Fußlinie an (die Front liegt bis dahin zurück)
         h = 0.0
-        if y > -1.0:
-            h = min(21.0, (y + 1.0) * 2.6)
+        if y > 1.0:
+            h = min(21.0, (y - 1.0) * 3.6)
         h += 0.6 * noise.noise(Vector((x / 9, y / 9, 1.7))) + 0.15 * noise.noise(Vector((x / 2.5, y / 2.5, 4.2)))
         return h - 0.02 * abs(x)
     hang_o = hang_netz("_Hang", gras, hang, -60, 60, -40, 60, n=160)
@@ -1025,10 +1303,10 @@ def vorschau(spielnetze, formen, texturordner, ordner, schnell, konzept):
     ox = 400.0                                                       # abseits der Reihen
     hang_o.location.x = ox
     # (Form, Ort x/y, Drehung, Einsinken als Anteil der Höhe, Höhe des Fußes)
-    zusammen = [("wand_gross_1", (0, 4.0), 0, 0.08, 0.0), ("wand_gross_2", (-13, 4.5), 8, 0.08, 0.0),
-                ("wand_mittel_1", (12.5, 2.5), -10, 0.1, 0.0), ("pfeiler_1", (-6.5, -1.0), 20, 0.08, 0.0),
-                ("gesims_1", (11.5, 4.0), -8, 0.0, 6.4), ("schuttkegel", (-1.0, -4.3), 0, 0.03, 0.0),
-                ("wand_mittel_3", (19, -1.5), -20, 0.1, 0.0)]
+    zusammen = [("wand_gross_1", (0, 0.4), 0, 0.04, 0.0), ("wand_gross_2", (-14, 1.0), 8, 0.04, 0.0),
+                ("wand_mittel_1", (13.5, -0.6), -10, 0.05, 0.0), ("pfeiler_1", (-7.5, -4.2), 20, 0.05, 0.0),
+                ("gesims_1", (13.5, 1.6), -8, 0.0, 6.6), ("schuttkegel", (-8.0, -5.0), 10, 0.03, 0.0),
+                ("wand_mittel_3", (20.5, 0.0), -20, 0.06, 0.0)]
     for form, (px, py), dreh, ein, fuss in zusammen:
         if (form, 0) not in spielnetze:
             continue
@@ -1048,6 +1326,127 @@ def vorschau(spielnetze, formen, texturordner, ordner, schnell, konzept):
     return bilder
 
 
+def probe_stoff():
+    """Nur für Formproben ohne Backen: Fels mit Verdeckung (AO-Knoten, Cycles), Kanten etwas heller, Moos auf
+    Oberflächen – damit man die Form ohne gebackene Karten beurteilen kann."""
+    m = stoff_mit_knoten("_Probe")
+    nt = m.node_tree
+    L = nt.links.new
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.92
+    ao = nt.nodes.new("ShaderNodeAmbientOcclusion")
+    ao.inputs["Distance"].default_value = 2.0
+    ao.samples = 8
+    ao.inputs["Color"].default_value = (0.2, 0.19, 0.175, 1)
+    dunkel = nt.nodes.new("ShaderNodeMix")
+    dunkel.data_type = "RGBA"
+    dunkel.blend_type = "MULTIPLY"
+    L(ao.outputs["AO"], dunkel.inputs["Factor"])
+    dunkel.inputs[6].default_value = (0.2, 0.19, 0.175, 1)
+    dunkel.inputs[7].default_value = (0.15, 0.15, 0.15, 1)
+    farbe = nt.nodes.new("ShaderNodeMix")
+    farbe.data_type = "RGBA"
+    L(ao.outputs["AO"], farbe.inputs["Factor"])
+    L(dunkel.outputs[2], farbe.inputs[6])
+    farbe.inputs[7].default_value = (0.2, 0.19, 0.175, 1)
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    L(geo.outputs["Normal"], sep.inputs[0])
+    moos_f = nt.nodes.new("ShaderNodeMapRange")
+    moos_f.inputs["From Min"].default_value, moos_f.inputs["From Max"].default_value = 0.78, 0.95
+    L(sep.outputs[2], moos_f.inputs["Value"])
+    rausch = nt.nodes.new("ShaderNodeTexNoise")
+    rausch.inputs["Scale"].default_value = 0.5
+    mal = nt.nodes.new("ShaderNodeMath")
+    mal.operation = "MULTIPLY"
+    L(moos_f.outputs["Result"], mal.inputs[0])
+    L(rausch.outputs["Fac"], mal.inputs[1])
+    stufe = nt.nodes.new("ShaderNodeMapRange")
+    stufe.inputs["From Min"].default_value, stufe.inputs["From Max"].default_value = 0.28, 0.42
+    L(mal.outputs[0], stufe.inputs["Value"])
+    moos = nt.nodes.new("ShaderNodeMix")
+    moos.data_type = "RGBA"
+    L(stufe.outputs["Result"], moos.inputs["Factor"])
+    L(farbe.outputs[2], moos.inputs[6])
+    moos.inputs[7].default_value = (0.05, 0.075, 0.025, 1)
+    L(moos.outputs[2], bsdf.inputs["Base Color"])
+    return m
+
+
+def probe_bilder(hochnetze, spielnetze, formen, ordner, konzept):
+    """Schnelle Formprobe: je Stück das hohe Netz (wie es mit gebackener Normale wirken soll) und Stufe 0 in einem
+    Hang, von schräg oben (wie Konzept 1), nah und von der Seite; das erste Bild neben dem ersten Konzeptbild. Die
+    Bilder sind immer klein (halbe Größe, 16 Proben); die Netze sind mit --schnell grob, sonst wie im Export."""
+    schnell = True
+    szene = bpy.context.scene
+    szene.render.engine = "CYCLES"
+    bs.cycles_geraet(szene)
+    szene.cycles.samples = 16 if schnell else 32
+    szene.cycles.use_denoising = True
+    try:
+        szene.view_settings.view_transform = "AgX"
+    except TypeError:
+        szene.view_settings.view_transform = "Standard"
+    licht_und_welt(szene)
+    szene.objects["Sonne"].rotation_euler = (math.radians(58), 0, math.radians(50))   # Streiflicht von rechts vorn
+    szene.objects["Sonne"].data.energy = 4.5
+    szene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.35
+    st = probe_stoff()
+    gras = bs._hilfsstoff("_Gras", (0.30, 0.34, 0.19))
+    gt = gras.node_tree
+    flecken = gt.nodes.new("ShaderNodeTexNoise")
+    flecken.inputs["Scale"].default_value = 0.12
+    flecken.inputs["Detail"].default_value = 4
+    koord = gt.nodes.new("ShaderNodeTexCoord")
+    gt.links.new(koord.outputs["Object"], flecken.inputs["Vector"])
+    rampe = gt.nodes.new("ShaderNodeValToRGB")
+    rampe.color_ramp.elements[0].position, rampe.color_ramp.elements[1].position = 0.35, 0.65
+    rampe.color_ramp.elements[0].color = (0.02, 0.04, 0.01, 1)
+    rampe.color_ramp.elements[1].color = (0.16, 0.16, 0.06, 1)
+    gt.links.new(flecken.outputs["Fac"], rampe.inputs["Fac"])
+    gt.links.new(rampe.outputs["Color"], gt.nodes["Principled BSDF"].inputs["Base Color"])
+    kam = bpy.data.objects.new("Kamera", bpy.data.cameras.new("Kamera"))
+    szene.collection.objects.link(kam)
+    szene.camera = kam
+    os.makedirs(ordner, exist_ok=True)
+    bilder = []
+    for n, form in enumerate(formen):
+        p = dict(STANDARD, **STUECKE[form])
+        if p["art"] not in ("wand", "buendel", "pfeiler"):
+            continue
+        fels = Fels(form, 0)
+        ox = 200.0 * (n + 1)
+        H, yh = p["H"], p["T"] / 2
+        yv = fels.koerper[0].yv if p["art"] == "wand" else (-p["T"] / 2 if p["art"] == "pfeiler" else 0.6)
+        y0 = yv + 2.5                                   # die Front liegt bis etwa 2,5 m hinter der Fußlinie
+        k = max(2.4, (H + 0.5) / max(0.5, yh - y0 - 0.3))
+
+        def hang(x, y, y0=y0, k=k, H=H, frei=p["art"] == "pfeiler"):
+            h = 0.0 if frei else min(H + 0.5, max(0.0, (y - y0) * k))
+            return h + 0.25 * noise.noise(Vector((x / 7, y / 7, 1.7))) + 0.08 * noise.noise(Vector((x / 2, y / 2, 4.2)))
+        hang_o = hang_netz(f"_Hang_{form}", gras, hang, -45, 45, -35, 30, n=180)
+        hang_o.location.x = ox
+        hoch = kopie(hochnetze[form], st, (ox, 0, 0))
+        fein = kopie(spielnetze[(form, 0)], st, (ox, 0, 0))
+        groesse = max(p["B"], H)
+        for name, objekt in (("hoch", hoch), ("stufe0", fein)):
+            kamera_setzen(kam, (ox - 1.0, 0.0, H * 0.4), groesse * 2.0, 34, drehung=28, linse=35)
+            pfad = rendern(szene, os.path.join(ordner, f"probe_{form}_{name}.png"), (1600, 900), schnell,
+                           [objekt, hang_o])
+            bilder.append(pfad)
+            if name == "hoch" and konzept and n == 0:
+                aus = os.path.join(ordner, f"probe_{form}_neben_konzept.png")
+                nebeneinander(pfad, konzept[0], aus)
+                bilder.append(aus)
+        kamera_setzen(kam, (ox + 1.0, -1.0, H * 0.45), groesse * 0.9, 14, drehung=-22, linse=30)
+        bilder.append(rendern(szene, os.path.join(ordner, f"probe_{form}_nah.png"), (1600, 900), schnell,
+                              [hoch, hang_o]))
+        kamera_setzen(kam, (ox, 0.0, H * 0.5), groesse * 2.2, 5, drehung=-70, linse=35)      # von der Seite
+        bilder.append(rendern(szene, os.path.join(ordner, f"probe_{form}_seite.png"), (1600, 900), schnell,
+                              [hoch, hang_o]))
+    return bilder
+
+
 def main():
     arg = argumente()
     schnell = arg["schnell"]
@@ -1058,7 +1457,7 @@ def main():
     ausgabe = arg["ausgabe"]
     texturordner = ausgabe or TEXTUREN
     glb = os.path.join(ausgabe, NAME + ".glb") if ausgabe else bs.modellpfad(NAME)
-    paare, spielnetze = [], {}
+    paare, spielnetze, hochnetze = [], {}, {}
     for i, (form, knoten, _, _) in enumerate(FORMEN):
         if form not in formen:
             continue
@@ -1070,13 +1469,17 @@ def main():
         for s in (1, 2):
             spielnetze[(form, s)] = vereinfachen(stufe0, f"{knoten}_{s}", DREIECKE[form][s], form)
         paare.append((form, hoch, stufe0))
+        hochnetze[form] = hoch
         d = stufe0.dimensions
         print(f"{form} ({knoten}): {d.x:.2f} × {d.y:.2f} × {d.z:.2f} m (B × T × H), hoch {tri_hoch} Dreiecke, Stufen "
               + " / ".join(str(len(spielnetze[(form, s)].data.polygons)) for s in range(3)), flush=True)
     if arg["nur_form"]:                               # schnelle Formprobe: ohne Backen, ohne Export
         for _, h, _ in paare:
             h.hide_render = True
-        vorschau(spielnetze, formen, None, arg["bilder"], True, arg["konzept"])
+        if arg["probe"]:
+            probe_bilder(hochnetze, spielnetze, formen, arg["bilder"], arg["konzept"])
+        else:
+            vorschau(spielnetze, formen, None, arg["bilder"], True, arg["konzept"])
         return
     gebacken = backen(paare, schnell)
     texturen_schreiben(gebacken, texturordner)
@@ -1090,6 +1493,7 @@ def main():
             o.data.materials.append(fels)
             o["kennung"] = form
             o["stufe"] = s
+            o["schicht_neigung"] = schicht_neigung(form)
             teile.append(o)
     print("geschrieben:", exportieren(glb, teile))
     if not arg["ohne_bilder"]:
