@@ -50,6 +50,14 @@ Nasenlöcher von vorn):
                       auslaufend (Runde 1: die Mulde darunter zeichnete eine harte Falte zum Mundwinkel)
   eigen_kiefer_w      Kieferwinkel weicher: um lm3/lm13 2,5 mm zur Mitte und 1 mm nach oben (rundet den Winkel)
   eigen_nasenloch_w   Nasenflügelrand 0,7 mm tiefer und 0,3 mm vor – deckt die Nasenlöcher in der Vorderansicht
+
+Grundkopf 4 (nur mit grundkopf4=True bzw. kopf2_bauen.py eigen=5; Panel Grundkopf 3: „mandel geht in rund über,
+Außenwinkel zu schwach“, enger gestellte Mandel wirkt „schläfrig“):
+  eigen_mandel        Mandelform: beide Lider der äußeren Hälfte gemeinsam gehoben, am äußeren Lidwinkel 2,6 mm (ab 20 %
+                      der Lidbreite steigend, jenseits des Winkels über 12 mm auslaufend), der Winkel 0,6 mm nach außen;
+                      Ober- und Unterlid wandern gleich weit, die Lidspalte bleibt also so hoch wie sie ist. Bis 12 mm um
+                      den Lidrand auslaufend; Ecken nah am Lidrand bleiben auf dem Augapfel (Abstand zur Augenmitte
+                      wie vorher, sonst drückt das Unterlid in den Augapfel)
 """
 import numpy as np
 
@@ -98,7 +106,7 @@ def _naechster(p, linie):
 
 
 def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False, grundkopf2=False,
-           grundkopf3=False):
+           grundkopf3=False, grundkopf4=False):
     """Alle eigenen Formen. H: Hautecken (m), n_haut: Zahl der ICT-Hautecken (davor), flaechen: Hautflächen,
     L: 68 Merkpunkte (m), augen: {"l"/"r": (Mitte, Halbmesser)}, ausschluss: Ecken ohne Versatz (Mund- und
     Augenhöhlen), hals_abstand: Abstand jeder ICT-Hautecke zur Halsnaht (m), etappe_d: dazu die Formen der Augenpartie
@@ -256,6 +264,8 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
         grundkopf2_formen(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     if grundkopf3:
         grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn)
+    if grundkopf4:
+        grundkopf4_formen(V, L, augen, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     return aus, bericht
 
 
@@ -489,6 +499,47 @@ def grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn):
         dd[:, 2] -= 0.7 * mm * w
         dd[:, 1] -= 0.3 * mm * w
     ablegen("eigen_nasenloch_w", dd)
+
+
+def grundkopf4_formen(V, L, augen, ober, unter_rand, ablegen, aus, bericht, n_haut, mm):
+    """Grundkopf 4: Mandelform (siehe Kopf der Datei). Blender-Achsen: x = linke Seite der Figur, −y = vorn, z = oben."""
+    xz = np.c_[V[:, 0], np.zeros(len(V)), V[:, 2]]
+    innen_w = {"r": 39, "l": 42}
+    aussen_w = {"r": 36, "l": 45}
+    dd = np.zeros_like(V)
+    rand_nah = np.zeros(len(V), bool)
+    hub_winkel = []
+    for s in ("r", "l"):
+        c, r_a = np.asarray(augen[s][0], dtype=np.float64), float(augen[s][1])
+        sg = np.sign(c[0])
+        seite = np.sign(V[:, 0]) == sg
+        a, b = abs(L[innen_w[s], 0]), abs(L[aussen_w[s], 0])
+        lat = (np.abs(V[:, 0]) - a) / (b - a)                          # 0 innen, 1 außen (nicht begrenzt)
+        jenseits = np.abs(V[:, 0]) - b                                   # Abstand außerhalb des äußeren Winkels (m)
+        rl, _ = _linie(np.vstack([L[ober[s]], L[unter_rand[s]][1:]]), 30)
+        d_rand, _ = _naechster(xz, np.c_[rl[:, 0], np.zeros(len(rl)), rl[:, 2]])
+        hub = stufe(lat, 0.2, 1.0) * (1 - stufe(jenseits, 2.0 * mm, 14.0 * mm))
+        um = 1 - stufe(d_rand, 3.0 * mm, 12.0 * mm)                      # um den Lidrand, weich auslaufend
+        nah = np.linalg.norm(V - c, axis=1) < 0.03
+        vorn_auge = V[:, 1] < c[1] + 0.004
+        w = hub * um * nah * vorn_auge * seite
+        d = np.zeros_like(V)
+        d[:, 2] = 2.6 * mm * w
+        d[:, 0] = sg * 0.6 * mm * w * stufe(lat, 0.5, 1.0)
+        # Lidrand auf dem Augapfel halten: Abstand zur Augenmitte wie vorher (bis 2,5 mm vom Rand voll, aus bei 4 mm)
+        kontakt = (1 - stufe(d_rand, 2.5 * mm, 4.0 * mm)) * (np.linalg.norm(V - c, axis=1) < r_a + 0.004) * seite
+        q = V + d
+        r0 = np.linalg.norm(V - c, axis=1)
+        r1 = np.maximum(np.linalg.norm(q - c, axis=1), 1e-9)
+        d += ((r0 - r1) / r1 * kontakt)[:, None] * (q - c)
+        dd += d
+        rand_nah |= (d_rand < 0.0005) & nah & seite
+        i_aus = np.argmin(np.linalg.norm(V - L[aussen_w[s]], axis=1))
+        hub_winkel.append(round(float(dd[i_aus, 2] * 1000), 2))
+    ablegen("eigen_mandel", dd)
+    bericht["eigen_mandel"]["hub_aussenwinkel_mm"] = hub_winkel
+    b = np.linalg.norm(aus["eigen_mandel"][:n_haut], axis=1)
+    bericht["eigen_mandel"]["lidrand_max_mm"] = round(float(b[rand_nah].max() * 1000), 3)
 
 
 def kante(punkte, x):
