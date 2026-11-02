@@ -48,14 +48,16 @@ static class GleichheitTests
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
+    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 69): Bei 4711 schlägt es in Minute 1411 ein (Jahr 1, 8:31 Uhr; das Feuer brennt
+    /// mindestens eine Stunde), bei 1400 in Minute 3202 (Jahr 2, 19:22). Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
     /// </summary>
-    static readonly long[] Ladepunkte = { Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
+    static readonly long[] Ladepunkte = { Minute(1, 9, 30), Minute(1, 12, 20), Minute(2, 20, 0), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle);
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, int Blitze);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -73,6 +75,9 @@ static class GleichheitTests
 
         Vergleichen("Lauf B (de-DE)", a, b);
         Vergleichen("Lauf C (Speichern und Laden)", a, c);
+        Pruefe.Gleich(a.Blitze, c.Blitze, "Blitzschläge mit Speichern und Laden");
+        // Ein Blitzfall (Datenversion 69): In den drei Greybox-Partien schlägt der Blitz mindestens einmal ein (4711 im Jahr 0 und 1, 1400 im Jahr 2, 2027 im Jahr 9)
+        if (p.Karte == "greybox") Pruefe.Wahr(a.Blitze >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -118,16 +123,19 @@ static class GleichheitTests
         sim.Wirtschaft!.RatssitzungAnhalten = _ => true; // wie die Oberfläche: Die Partie hält vor der Sitzung, der Mensch stimmt mit
 
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
+        var blitze = 0;
+        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m => { if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal)) blitze++; };
+        BlitzeZaehlen(sim);
         var befehle = new List<string>();
         var jahre = new List<string>();
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
-            if (laden && Ladepunkte.Contains(t)) (sim, spieler) = SpeichernUndLaden(sim, spieler);
+            if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
             foreach (var befehl in skript.Befehle(t, sim.Wirtschaft!, spieler))
             {
                 var ergebnis = sim.Wirtschaft!.Ausfuehren(spieler, befehl);
                 befehle.Add($"{t} {befehl.GetType().Name} {(ergebnis.Erfolg ? "ok" : "abgelehnt")}");
-                if (laden && ergebnis.Erfolg && befehl is BetriebVerkaufen) (sim, spieler) = SpeichernUndLaden(sim, spieler); // direkt nach dem Löschen
+                if (laden && ergebnis.Erfolg && befehl is BetriebVerkaufen) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); } // direkt nach dem Löschen
             }
 
             var jahr = sim.Zeit.Jahr;
@@ -144,7 +152,7 @@ static class GleichheitTests
             Pruefe.Gleich(t + 1, sim.Zeit.VergangeneMinuten, "Die Uhr läuft mit dem Skript");
             if (sim.Zeit.Jahr != jahr) jahre.Add(Pruefsumme(sim));
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze);
     }
 
     /// <summary>Wie ein Spieler, der speichert und gleich wieder lädt – mit allem, was die Oberfläche danach wieder einstellt.</summary>
