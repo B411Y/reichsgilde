@@ -894,6 +894,20 @@ def vereinfachen(quelle, name, ziel, form):
             v.co.z = 0.0
         if yh is not None and v.co.y > yh:
             v.co.y = yh
+    # Collapse kann doppelte Flächen und lose Kanten hinterlassen (z. B. WandMittel2_2): entfernen, sonst meldet der
+    # glTF-Export „not valid“ und bereinigt selbst
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    lose = [v for v in bm.verts if not v.link_faces]
+    if lose:
+        bmesh.ops.delete(bm, geom=lose, context="VERTS")
+    lose = [e for e in bm.edges if not e.link_faces]
+    if lose:
+        bmesh.ops.delete(bm, geom=lose, context="EDGES")
+    bm.to_mesh(obj.data)
+    bm.free()
+    if obj.data.validate():
+        print(f"  {name}: doppelte oder ungültige Flächen entfernt", flush=True)
     for p in obj.data.polygons:
         p.use_smooth = True
     return obj
