@@ -10,7 +10,8 @@ using Reichsgilde.Core.Zeit;
 //  Jahreszeitenmessung – Folgen der Jahreszeiten (Messung, kein Test; Datenversion 67)
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
-//                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--datei=pfad.json]
+//                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--beruf=Schmied|Wirt|Ausbau]
+//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage] [--datei=pfad.json]
 //
 //  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
 //  ohne Expansion) und der ausbauende Spieler („Ausbau“: Schmied, von der KI mit dem Profil der KI-Häuser geführt, mit Expansion).
@@ -47,6 +48,8 @@ static class Jahreszeitenmessung
         // --ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage: einzelne Folgen abschalten (Zerlegung)
         var folgen = (Schalter("ohne-folge") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
         var nurBeruf = Schalter("beruf");
+        if (nurBeruf is not (null or "Schmied" or "Wirt" or "Ausbau")) throw new ArgumentException($"Unbekannter Aufbau „{nurBeruf}“ (Schmied, Wirt oder Ausbau).");
+        if (ohne && folgen.Length > 0) throw new ArgumentException("--ohne-folge geht nur mit den Jahreszeiten, nicht zusammen mit --ohne-jahreszeiten.");
         var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null,
             anpassen: ohneVorrat || folgen.Length > 0 ? json => OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen) : null);
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);

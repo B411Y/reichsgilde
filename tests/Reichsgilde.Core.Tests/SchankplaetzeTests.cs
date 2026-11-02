@@ -16,7 +16,7 @@ static class SchankplaetzeTests
         .Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ],", "")));
 
     /// <summary>Die Daten mit Einwohner-Plätzen gleich den Sitzplätzen (einwohnerBezug 0): Nur so wird es für die Einwohner knapp – mit 17 nie.</summary>
-    static readonly Lazy<Wirtschaftsdaten> EinwohnerEng = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+    static readonly Lazy<Wirtschaftsdaten> EinwohnerEng = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten()
         .Replace("\"einwohnerBezug\": 17,", "\"einwohnerBezug\": 0,")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
