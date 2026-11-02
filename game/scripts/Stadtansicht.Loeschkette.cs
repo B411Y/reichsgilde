@@ -51,7 +51,7 @@ public partial class Stadtansicht
         public bool Fertig { get; set; }
     }
 
-    private static Mesh? _eimerNetz;
+    private static Mesh? _eimerNetz, _reifNetz;
     private static Material? _eimerStoff, _reifStoff;
 
     /// <summary>Ein Eimer (Platzhalter): Daube aus Holz, zwei dunkle Reifen.</summary>
@@ -61,9 +61,9 @@ public partial class Stadtansicht
         _eimerStoff ??= new StandardMaterial3D { AlbedoColor = new Color(0.45f, 0.31f, 0.18f), Roughness = 0.9f };
         _reifStoff ??= new StandardMaterial3D { AlbedoColor = new Color(0.12f, 0.11f, 0.10f), Roughness = 0.6f, Metallic = 0.4f };
         var eimer = new MeshInstance3D { Name = "Eimer", Mesh = _eimerNetz, MaterialOverride = _eimerStoff, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+        _reifNetz ??= new CylinderMesh { TopRadius = 0.143f, BottomRadius = 0.143f, Height = 0.025f, RadialSegments = 10, Rings = 1 };
         foreach (var h in new[] { -0.07f, 0.07f })
-            eimer.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.142f + h * 0.1f, BottomRadius = 0.142f + h * 0.1f, Height = 0.025f, RadialSegments = 10, Rings = 1 },
-                MaterialOverride = _reifStoff, Position = new Vector3(0, h, 0) });
+            eimer.AddChild(new MeshInstance3D { Mesh = _reifNetz, MaterialOverride = _reifStoff, Position = new Vector3(0, h, 0) });
         eltern.AddChild(eimer);
         return eimer;
     }
@@ -84,7 +84,7 @@ public partial class Stadtansicht
             }
         }
         var wasser = NaechstesWasser(haus);
-        var saat = (uint)(e.Minute * 2246822519L) ^ (uint)e.Ziel.Kennung.GetHashCode(StringComparison.Ordinal);
+        var saat = (uint)(e.Minute * 2246822519L) ^ (uint)e.Ziel.Kennung.Sum(c => c * 31);
         var anzahl = 6 + (int)(saat % 10); // 6–15
         // Die Kette: vom Rand des Hauses (der Seite zum Wasser) zum Wasser; reicht sie nicht, beginnt sie am Haus
         var richtung = new Vector3(wasser.X - haus.X, 0, wasser.Z - haus.Z);
@@ -110,7 +110,7 @@ public partial class Stadtansicht
         var knoten = Enumerable.Range(0, _netz.Knoten.Count)
             .Select(i => (I: i, D: new Vector2(_netz.Knoten[i].X - haus.X, _netz.Knoten[i].Z - haus.Z).Length()))
             .Where(x => x.D is > 25f and < 70f).OrderBy(x => (x.I * 2654435761u) ^ saat).Take(anzahl).Select(x => x.I).ToList();
-        if (knoten.Count == 0) knoten.Add(_netz.KnotenBei(haus + richtung * 30f));
+        if (knoten.Count == 0) knoten.Add(NaechsterKnoten(haus + richtung * 30f));
         for (var n = 0; n < anzahl; n++)
         {
             // die ersten bilden die Kette (vom Haus her), wer übrig ist, schüttet mit am Haus
@@ -140,10 +140,11 @@ public partial class Stadtansicht
     /// <summary>Der Weg über die Gassen von <paramref name="von"/> zum Platz <paramref name="nach"/>, das letzte Stück quer über den Platz.</summary>
     private void HelferPfad(Helfer h, Vector3 von, Vector3 nach)
     {
-        var a = _netz.KnotenBei(von);
-        var b = _netz.KnotenBei(nach);
+        // Nur vorhandene Knoten (NaechsterKnoten, Stadtansicht.Passantenwege.cs): KnotenBei legte neue an und ließe alle Passanten ihre Wege neu suchen (Befund der Prüfung)
+        var a = NaechsterKnoten(von);
+        var b = NaechsterKnoten(nach);
         var pfad = new List<Vector3> { von };
-        if (a >= 0 && b >= 0) pfad.AddRange(_netz.Pfad(a, b));
+        if (a >= 0 && b >= 0 && a != b) pfad.AddRange(_netz.Pfad(a, b));
         pfad.Add(nach);
         h.Pfad = pfad.Select(p => new Vector3(p.X, 0, p.Z)).ToArray();
         h.Laenge = Gassennetz.Laenge(h.Pfad);
@@ -184,7 +185,7 @@ public partial class Stadtansicht
     private void LoeschketteAktualisieren(Loeschkette lk, double minuteGenau, double delta)
     {
         if (lk.Fertig || !IsInstanceValid(lk.Wurzel)) return;
-        var echt = _simulation is { Takt.IstPausiert: false } ? (float)delta : 0f; // in der Pause steht alles
+        var echt = _simulation is { Takt.IstPausiert: false, Ratssitzung: null } ? (float)delta : 0f; // in der Pause und während der Ratssitzung steht alles
         var tempo = (float)Math.Clamp(_simulation?.Takt.Tempo ?? 1, 0.5, 4);
         var sekunden = echt * tempo; // im schnellen Spiel laufen und reichen sie schneller, sonst wären sie erst da, wenn es aus ist
         lk.Zeit += sekunden;

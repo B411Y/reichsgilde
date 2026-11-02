@@ -23,10 +23,18 @@ public partial class Stadtansicht
 {
     /// <summary>Alle eingesetzten Modelle der Stadt (auch die Blöcke der Bauten ohne Modell), um das Gebäude an einer Stelle zu finden.</summary>
     private readonly List<ModellInstanz> _alleModelle = new();
+    private int _modelleAufraeumenAb = 1000;
+
+    /// <summary>Was schon im ersten Bild der Partie im Kern stand (nach dem Laden), ist kein frischer Einschlag: kein Strahl, keine Glocke.</summary>
+    private bool _blitzeGesehen;
 
     private void ModellMerken(ModellInstanz modell)
     {
-        if (_alleModelle.Count > 4000) _alleModelle.RemoveAll(m => !IsInstanceValid(m.Wurzel));
+        if (_alleModelle.Count >= _modelleAufraeumenAb)
+        {
+            _alleModelle.RemoveAll(m => !IsInstanceValid(m.Wurzel));
+            _modelleAufraeumenAb = Math.Max(1000, _alleModelle.Count * 2); // erst wieder bei doppelt so vielen
+        }
         _alleModelle.Add(modell);
     }
 
@@ -55,7 +63,7 @@ public partial class Stadtansicht
     private void BlitzbrandAktualisieren(Stadtwirtschaft w, long jetzt, double bruchteil, double delta)
     {
         StrahlNachfuehren(delta);
-        if (!w.Blitz.IstAktiv) return;
+        if (!w.Blitz.IstAktiv) { _blitzeGesehen = true; return; }
         var einschlaege = w.Blitz.Einschlaege;
         foreach (var e in einschlaege)
         {
@@ -63,7 +71,7 @@ public partial class Stadtansicht
             {
                 var hier = e.Ziel.Betrieb is null && e.Ziel.Bewohner is null;
                 _blitze[e] = a = new Blitzansicht { Einschlag = e, Hier = hier, Modell = ModellBei((float)e.Ziel.X, (float)e.Ziel.Z) };
-                var frisch = jetzt - e.Minute <= 2;
+                var frisch = _blitzeGesehen && jetzt - e.Minute <= 2;
                 GD.Print($"[blitz] Einschlag {e.Ziel.Kennung} ({e.Ziel.Name}) um Spielminute {e.Minute}, brennt bis {e.BrandEnde}, Modell {(a.Modell is null ? "nicht gefunden" : a.Modell.Wurzel.Name)}{(frisch ? "" : " (nach dem Laden)")}");
                 if (frisch) EinschlagZeigen(e, a.Modell);
                 if (e.BrenntUm(jetzt)) a.Kette = LoeschketteBeginnen(e, a.Modell);
@@ -81,9 +89,12 @@ public partial class Stadtansicht
             }
             if (a.Kette is { } kette) LoeschketteAktualisieren(kette, jetzt + bruchteil, delta);
         }
+        _blitzeGesehen = true;
         // Zum Jahreswechsel vergisst der Kern die alten Einschläge: Ruß ab, übrige Helfer weg
-        if (_blitze.Count == einschlaege.Count) return;
-        foreach (var (e, a) in _blitze.Where(x => !einschlaege.Contains(x.Key)).ToList())
+        if (_blitze.Count == 0) return;
+        var noch = new HashSet<Blitzeinschlag>(einschlaege, ReferenceEqualityComparer.Instance);
+        if (_blitze.Count == noch.Count && _blitze.Keys.All(noch.Contains)) return;
+        foreach (var (e, a) in _blitze.Where(x => !noch.Contains(x.Key)).ToList())
         {
             if (a.Russ && a.Modell is { } m && IsInstanceValid(m.Wurzel)) DachRussSetzen(m, false);
             if (a.Kette is not null) LoeschketteEntfernen(a.Kette);
@@ -96,8 +107,9 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Das Modell, das an der Stelle (x, z) der Karte steht: unter den Modellen, deren Grundfläche den Punkt enthält und mindestens 20 m² groß ist (kein
-    /// Baum, keine Kiste), das kleinste – sonst das nächste in 12 m. Null, wenn dort nichts steht.
+    /// Das Modell, das an der Stelle (x, z) der Karte steht: unter den Modellen, deren Grundfläche (im eigenen, gedrehten Raum des Modells) den Punkt
+    /// enthält und 20–2.500 m² groß ist (kein Baum, keine Kiste, keine Mauer, kein Berg), das kleinste – sonst das nächste in 12 m. Null, wenn dort nichts steht.
+    /// Die lokalen Umrisse werden je Modell gemerkt (<see cref="_umrisse"/>).
     /// </summary>
     private ModellInstanz? ModellBei(float x, float z)
     {
@@ -105,25 +117,37 @@ public partial class Stadtansicht
         var besteFlaeche = float.MaxValue;
         ModellInstanz? naechstes = null;
         var naechsterAbstand = 12f * 12f;
+        var stadt = GlobalTransform.AffineInverse();
         foreach (var m in _alleModelle)
         {
             if (!IsInstanceValid(m.Wurzel) || !m.Wurzel.IsInsideTree() || !m.Wurzel.IsVisibleInTree()) continue;
-            var lage = m.Wurzel.GlobalPosition;
-            if ((lage.X - x) * (lage.X - x) + (lage.Z - z) * (lage.Z - z) > 60f * 60f) continue;
-            var (min, max) = WeltUmriss(m.Wurzel);
+            var lage = stadt * m.Wurzel.GlobalTransform; // Modell → Stadt
+            if ((lage.Origin.X - x) * (lage.Origin.X - x) + (lage.Origin.Z - z) * (lage.Origin.Z - z) > 60f * 60f) continue;
+            var (min, max) = BlitzUmriss(m.Wurzel);
             if (min.X > max.X) continue;
-            var flaeche = (max.X - min.X) * (max.Z - min.Z);
-            if (flaeche < 20f) continue;
-            if (x >= min.X && x <= max.X && z >= min.Z && z <= max.Z)
+            var groesse = (max - min) * lage.Basis.Scale;
+            var flaeche = groesse.X * groesse.Z;
+            if (flaeche is < 20f or > 2500f) continue;
+            var p = lage.AffineInverse() * new Vector3(x, lage.Origin.Y, z); // der Punkt im Raum des Modells
+            if (p.X >= min.X && p.X <= max.X && p.Z >= min.Z && p.Z <= max.Z)
             {
                 if (flaeche < besteFlaeche) (bestes, besteFlaeche) = (m, flaeche);
                 continue;
             }
-            var (cx, cz) = ((min.X + max.X) / 2, (min.Z + max.Z) / 2);
-            var d = (cx - x) * (cx - x) + (cz - z) * (cz - z);
+            var mitte = lage * ((min + max) / 2);
+            var d = (mitte.X - x) * (mitte.X - x) + (mitte.Z - z) * (mitte.Z - z);
             if (d < naechsterAbstand) (naechstes, naechsterAbstand) = (m, d);
         }
         return bestes ?? naechstes;
+    }
+
+    private readonly Dictionary<Node3D, (Vector3 Min, Vector3 Max)> _umrisse = new(ReferenceEqualityComparer.Instance);
+
+    private (Vector3 Min, Vector3 Max) BlitzUmriss(Node3D wurzel)
+    {
+        if (_umrisse.TryGetValue(wurzel, out var u)) return u;
+        if (_umrisse.Count > 4000) _umrisse.Clear();
+        return _umrisse[wurzel] = ModellUmriss(wurzel);
     }
 
     /// <summary>Umriss eines Modells in Koordinaten der Stadt (achsparallel, aus den acht Ecken des lokalen Umrisses).</summary>
@@ -174,7 +198,10 @@ public partial class Stadtansicht
         // Feuerglocke: die nächste Kirche, ein paar Sekunden nach dem Einschlag (5–9 s)
         var kirche = NaechsteKirche(spitze);
         var warten = 5f + (e.Minute % 5);
-        GetTree().CreateTimer(warten).Timeout += () => KlangSturmlaeuten.Laeuten(kirche, e.Ziel.Name);
+        GetTree().CreateTimer(warten).Timeout += () =>
+        {
+            if (IsInstanceValid(this) && IsInsideTree()) KlangSturmlaeuten.Laeuten(this, kirche, e.Ziel.Name); // nicht mehr nach dem Wechsel ins Menü oder einem Laden
+        };
         GD.Print($"[blitz] Strahl auf {spitze}, Feuerglocke in {warten:0} s von {kirche}");
     }
 

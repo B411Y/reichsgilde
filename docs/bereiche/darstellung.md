@@ -289,6 +289,6 @@ Auftrag des Teamleiters 1.11.2026.
 | Frage | Entscheidung |
 |---|---|
 | Was zeigt der Einschlag? | Gezackter Strahl aus etwa 160 m Höhe auf die Dachspitze (zwei gekreuzte Bänder je Stück, additiv, 0,55 s mit drei Pulsen), `OmniLight3D` am Dach, dazu der vorhandene direkte Einschlag `BlitzEinschlag` (hellster Blitz, lauter Donner). Nur bei frischen Einschlägen (≤ 2 Spielminuten), nicht nach dem Laden. |
-| Welches Modell brennt? | `ModellBei`: unter allen eingesetzten Modellen (`ModellMerken`) das kleinste, dessen Grundfläche den Punkt des Kerns enthält (≥ 20 m²), sonst das nächste in 12 m. Werkstatt und Wohnhaus brennen über ihre bisherigen Wege, mit der Dauer aus dem Kern. |
+| Welches Modell brennt? | `ModellBei`: unter allen eingesetzten Modellen (`ModellMerken`) das kleinste, dessen Grundfläche (im gedrehten Raum des Modells) den Punkt des Kerns enthält (20–2.500 m², keine Mauer, kein Berg), sonst das nächste in 12 m. Werkstatt und Wohnhaus brennen über ihre bisherigen Wege, mit der Dauer aus dem Kern. |
 | Ruß | Werkstatt bis zur Reparatur, Wohnhaus bis zur Instandsetzung (wie bisher), andere Gebäude bis zum Jahreswechsel. |
 | Löschkette | Nur Darstellung, eigene Figuren (6–15) von Gassenknoten 25–70 m entfernt; Reihe vom Haus zum Wasser (Brunnen des nächsten Marktes oder Flussufer), Abstand 1,7 m, übrige schütten am Haus; Eimer wandern von Hand zu Hand; nach dem Feuer zurück und fort. Laufen und Reichen folgen dem Spieltempo (begrenzt 0,5–4). |

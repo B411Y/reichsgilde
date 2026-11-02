@@ -182,4 +182,4 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Frage | Entscheidung |
 |---|---|
 | Klang | `glocken/glocke_sturm.ogg` (95 s): ein Schlag der großen Glocke Noteman aus `glocke_feuer_1.ogg`, kürzerer Ausklang, Tonhöhe 1,50/1,42, 123 Schläge alle 0,66–0,78 s, am Anfang und Ende langsamer; Werkzeug `tools/ton/glocke_sturm_bauen.py` (läuft in Blender, audaspace + numpy). Lizenz CC BY 4.0 wie die Feuerglocke (die CC0-Aufnahmen Kölner Dom und Fribourg haben keine einzelnen Schläge). |
-| Wo, wann | Die nächste Kirche (Kirche, Dom, Kölner Dom; sonst der Markt) in 25 m Höhe, 5–9 s nach dem Einschlag, 3D über `KlangDienst.WeltSpielen` (Bus Umgebung, Reichweite 1.600 m); nur ein Läuten zugleich. |
+| Wo, wann | Die nächste Kirche (Kirche, Dom, Kölner Dom; sonst der Markt) in 25 m Höhe, 5–9 s nach dem Einschlag, 3D (`AudioStreamPlayer3D` an der Stadt, Bus Umgebung, Reichweite 1.600 m, verstummt beim Verlassen der Partie); nur ein Läuten zugleich. |

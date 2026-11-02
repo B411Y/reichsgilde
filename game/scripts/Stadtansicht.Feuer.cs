@@ -532,7 +532,7 @@ public partial class Stadtansicht
         {
             if (!IsInstanceValid(k.Rauch)) { weg = true; continue; }
             bool soll;
-            if (_braende.ContainsKey(k.Kennung)) soll = false;
+            if (_braende.ContainsKey(k.Kennung) || _braende.ContainsKey("blitz:" + k.Kennung.Replace("kulisse:", ""))) soll = false;
             else if (_betriebNachName.TryGetValue(k.Kennung, out var b))
                 soll = w.IstArbeitszeit(b, zeit) && b.Belegt > 0 && b.Stillstand is null && b.SabotageMinuten == 0;
             else soll = WohnhausHeizt(k.Saat, uhrzeit, jahreszeit);
@@ -691,7 +691,8 @@ public partial class Stadtansicht
         _sabotageGesehen[b] = minuten;
         // Blitzschlag (Stadtansicht.Blitzbrand.cs): Der Kern kennt Beginn und Ende; nach dem Laden brennt ein laufendes Feuer weiter
         var blitz = BlitzBrandIn(b);
-        if (blitz is not null && !_braende.ContainsKey(b.Name) && BrandLaeuft(blitz.Minute, jetzt)) neu = true;
+        if (blitz is not null && !BrandLaeuft(blitz.Minute, jetzt)) blitz = null; // ein alter Blitz zählt nicht (ein Anschlag später im Jahr brennt mit eigener Dauer)
+        if (blitz is not null && !_braende.ContainsKey(b.Name)) neu = true;
         if (neu) BrandAnbringen(b.Name, modell, blitz?.Minute ?? jetzt);
         var russ = minuten > 0 || _braende.ContainsKey(b.Name);
         if (russ != _russDach.Contains(b))
