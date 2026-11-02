@@ -11,7 +11,7 @@ using Reichsgilde.Core.Zeit;
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--beruf=Schmied|Wirt|Ausbau]
-//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage] [--datei=pfad.json]
+//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage] [--ohne-schiffe] [--datei=pfad.json]
 //
 //  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
 //  ohne Expansion) und der ausbauende Spieler („Ausbau“: Schmied, von der KI mit dem Profil der KI-Häuser geführt, mit Expansion).
@@ -20,7 +20,9 @@ using Reichsgilde.Core.Zeit;
 //  und alle Waren, Schiffsertrag je Jahreszeit, wie oft der Fluss zufriert und wie lange.
 //  Dazu die Rechnung des Spielers je Jahreszeit (Mittel je Jahr) und über die ganze Partie: alle Posten der Jahresrechnung, Ausschank, Hauswert,
 //  Rest (was ohne Posten ins Reinvermögen ging), Lagerwert am Jahresende (zum Grundpreis), Fahrten, Köpfe, Gäste und je Zutat die eingekaufte Menge
-//  mit Preis (Ladung des Karrens, wenn er vom Markt abfährt; Preis zur Minute des Kaufs).
+//  mit Preis (Ladung des Karrens, wenn er vom Markt abfährt; Preis zur Minute des Kaufs), hergestellte Waren, Arbeiterstunden je Ware, Stufe, Schiffe
+//  und Schiffskäufe; die Fahrten aller Schiffe nach Jahreszeit, Ziel, Stunde, Eis und Festmarkt (erwarteter Gewinn der KI gegen Ertrag) und je Jahr
+//  Reinvermögen, Umsatz, Gewinn, Stufe und Stand des Spielers. --ohne-schiffe spielt ohne Schiffshandel (Abschnitt „schiffshandel“ fehlt).
 //  --ohne-jahreszeiten nimmt den Abschnitt „jahreszeiten“ aus den Daten (Rechnung wie bis Datenversion 66 = Stand der Schänken). Ändert keinen Wert.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -56,6 +58,23 @@ static class Jahreszeitenmessung
         public readonly SortedDictionary<string, double>[] KaufStueck = Enumerable.Range(0, 4).Select(_ => new SortedDictionary<string, double>(StringComparer.Ordinal)).ToArray();
         public readonly SortedDictionary<string, double>[] KaufGulden = Enumerable.Range(0, 4).Select(_ => new SortedDictionary<string, double>(StringComparer.Ordinal)).ToArray();
         public readonly double[] KoepfeStunden = new double[4];
+        /// <summary>Hergestellte Stück je Ware und Stunden je gewählter Ware (Produkt der Werkstatt zur vollen Stunde) des Spielers je Jahreszeit.</summary>
+        public readonly SortedDictionary<string, double>[] Hergestellt = Enumerable.Range(0, 4).Select(_ => new SortedDictionary<string, double>(StringComparer.Ordinal)).ToArray();
+        public readonly SortedDictionary<string, double>[] ProduktStunden = Enumerable.Range(0, 4).Select(_ => new SortedDictionary<string, double>(StringComparer.Ordinal)).ToArray();
+        public readonly double[] SchiffeJahre = new double[4], SchiffErtrag = new double[4], Stufe = new double[4];
+        /// <summary>Fahrten der Schiffe des Spielers nach Jahreszeit des Auslaufens und ob sie über den Jahreswechsel gingen (Index Jahreszeit × 2 + quer).</summary>
+        public readonly double[] FahrtAnzahl = new double[8], FahrtErwartet = new double[8], FahrtErtrag = new double[8];
+        public readonly Dictionary<Schiff, Fahrtbuch> Fahrt = new(ReferenceEqualityComparer.Instance);
+        /// <summary>Erwarteter Gewinn der letzten Fahrtplanung je Schiffsname (alle Häuser).</summary>
+        public readonly Dictionary<string, double> Erwartung = new(StringComparer.Ordinal);
+        /// <summary>Fahrten aller Schiffe nach Gruppen („alle|Winter|quer“, „alle|Eis“, „spieler|…“): Anzahl, erwartet, Ertrag.</summary>
+        public readonly SortedDictionary<string, double[]> Fahrtgruppen = new(StringComparer.Ordinal);
+        /// <summary>Schiffskäufe am Ende eines Jahres dieser Jahreszeit: des Spielers und aller KI-Häuser; dazu der erwartete Jahresgewinn des Spielers.</summary>
+        public readonly double[] KaufSpieler = new double[4], KaufKi = new double[4], KaufErwartet = new double[4];
+        public int SchiffeSpielerVorher, SchiffeKiVorher;
+        public double LetzteKaufErwartung;
+        public bool Angemeldet;
+        public int JahrGesehen = -1;
         public double ReinVorher = double.NaN, HauswertVorher;
         public readonly Dictionary<Karren, KarrenZustand> Zustand = new(ReferenceEqualityComparer.Instance);
     }
@@ -73,6 +92,7 @@ static class Jahreszeitenmessung
         // --ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage: einzelne Folgen abschalten (Zerlegung)
         var folgen = (Schalter("ohne-folge") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
         var nurBeruf = Schalter("beruf");
+        var ohneSchiffe = args.Contains("--ohne-schiffe"); // ohne Schiffshandel für alle (Zerlegung)
         if (nurBeruf is not (null or "Schmied" or "Wirt" or "Ausbau")) throw new ArgumentException($"Unbekannter Aufbau „{nurBeruf}“ (Schmied, Wirt oder Ausbau).");
         if (ohne && folgen.Length > 0) throw new ArgumentException("--ohne-folge geht nur mit den Jahreszeiten, nicht zusammen mit --ohne-jahreszeiten.");
         var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null,
@@ -83,9 +103,9 @@ static class Jahreszeitenmessung
         foreach (var karte in karten)
             for (var s = 1; s <= startwerte; s++)
             {
-                if (nurBeruf is null or "Schmied") aufbauten.Add(new Messaufbau(karte, s * 101, jahre));
-                if (nurBeruf is null or "Wirt") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt"));
-                if (nurBeruf is null or "Ausbau") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Bezug: Bezugsart.WieKi));
+                if (nurBeruf is null or "Schmied") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, OhneSchiffshandel: ohneSchiffe));
+                if (nurBeruf is null or "Wirt") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt", OhneSchiffshandel: ohneSchiffe));
+                if (nurBeruf is null or "Ausbau") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Bezug: Bezugsart.WieKi, OhneSchiffshandel: ohneSchiffe));
             }
         Console.Error.WriteLine($"Jahreszeitenmessung: {aufbauten.Count} Partien zu {jahre} Jahren, {parallel} parallel{(ohne ? ", ohne Jahreszeiten" : "")} …");
         var ergebnisse = new ConcurrentDictionary<Messaufbau, (Partieergebnis P, Zaehler Z)>();
@@ -150,6 +170,15 @@ static class Jahreszeitenmessung
                 ["buergerJahr"] = Balancingbericht.Kennzahl(buerger, 1), ["buergerErreicht"] = buerger.Count, ["buergerImZiel"] = imZiel, ["bankrott"] = bankrott,
                 ["eiswinter"] = eis, ["winter"] = winter, ["eisstundenJeEiswinter"] = Math.Round(eisstunden, 1), ["jahreszeiten"] = jahreszeiten,
                 ["rechnungSpieler"] = rechnung.Json,
+                ["spielerJeJahr"] = new JsonObject
+                {
+                    ["rein"] = new JsonArray(Enumerable.Range(1, jahre).Select(j => (JsonNode)Math.Round(liste.Average(x => x.P.Spieler.Im(j).Rein))).ToArray()),
+                    ["umsatz"] = new JsonArray(Enumerable.Range(1, jahre).Select(j => (JsonNode)Math.Round(liste.Average(x => x.P.Spieler.Im(j).Umsatz))).ToArray()),
+                    ["gewinn"] = new JsonArray(Enumerable.Range(1, jahre).Select(j => (JsonNode)Math.Round(liste.Average(x => x.P.Spieler.Im(j).Gewinn))).ToArray()),
+                    ["stufe"] = new JsonArray(Enumerable.Range(1, jahre).Select(j => (JsonNode)Math.Round(liste.Average(x => (double)x.P.Spieler.Im(j).Stufe), 2)).ToArray()),
+                    ["stand"] = new JsonArray(Enumerable.Range(1, jahre).Select(j => (JsonNode)Math.Round(liste.Average(x => (double)x.P.Spieler.Im(j).Stand), 2)).ToArray()),
+                    ["reinEinzeln"] = new JsonArray(liste.Select(x => (JsonNode)Math.Round(x.P.Spieler.Im(jahre).Rein)).ToArray()),
+                },
             });
         }
         foreach (var (karte, beruf, r) in kosten)
@@ -218,16 +247,132 @@ static class Jahreszeitenmessung
             };
         }
         json["einkauf"] = kauf;
+        foreach (var (titel, f) in new (string, Func<Zaehler, int, SortedDictionary<string, double>>)[] { ("Hergestellt", (z, i) => z.Hergestellt[i]), ("Arbeiterstunden", (z, i) => z.ProduktStunden[i]) })
+        {
+            var waren = liste.SelectMany(z => Enumerable.Range(0, 4).SelectMany(i => f(z, i).Keys)).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToList();
+            var obj = new JsonObject();
+            foreach (var ware in waren)
+            {
+                var werte = Enumerable.Range(0, 4).Select(i => JeJahr(i, z => f(z, i).GetValueOrDefault(ware))).ToArray();
+                zeilen.Add($"{titel} {ware} | {string.Join(" | ", werte.Select(x => x.ToString("0", inv)))} | {(liste.Sum(z => Enumerable.Range(0, 4).Sum(i => f(z, i).GetValueOrDefault(ware))) / n).ToString("0", inv)}");
+                obj[ware] = new JsonArray(werte.Select(x => (JsonNode)Math.Round(x, 1)).ToArray());
+            }
+            json[titel] = obj;
+        }
+        var fahrten = new JsonObject();
+        for (var k = 0; k < 8; k++)
+        {
+            var anzahl = liste.Sum(z => z.FahrtAnzahl[k]) / n;
+            var erwartet = liste.Sum(z => z.FahrtErwartet[k]) / n;
+            var ertrag = liste.Sum(z => z.FahrtErtrag[k]) / n;
+            var name = $"{(Jahreszeit)(k / 2)}{(k % 2 == 1 ? " über den Jahreswechsel" : "")}";
+            zeilen.Add($"Schiffsfahrten ab {name}: Anzahl {anzahl.ToString("0.0", inv)}, erwartet {erwartet.ToString("0", inv)}, Ertrag {ertrag.ToString("0", inv)} (je Partie)");
+            fahrten[name] = new JsonObject { ["anzahl"] = Math.Round(anzahl, 2), ["erwartet"] = Math.Round(erwartet), ["ertrag"] = Math.Round(ertrag) };
+        }
+        json["schiffsfahrten"] = fahrten;
+        var gruppen = new JsonObject();
+        foreach (var g in liste.SelectMany(z => z.Fahrtgruppen.Keys).Distinct().OrderBy(x => x, StringComparer.Ordinal))
+        {
+            var a = Enumerable.Range(0, 3).Select(i => liste.Sum(z => z.Fahrtgruppen.TryGetValue(g, out var x) ? x[i] : 0) / n).ToArray();
+            zeilen.Add($"Fahrten {g}: Anzahl {a[0].ToString("0.00", inv)}, erwartet {a[1].ToString("0", inv)}, Ertrag {a[2].ToString("0", inv)}, je Fahrt {(a[0] > 0 ? a[1] / a[0] : 0).ToString("0", inv)} / {(a[0] > 0 ? a[2] / a[0] : 0).ToString("0", inv)} (je Partie)");
+            gruppen[g] = new JsonArray(a.Select(x => (JsonNode)Math.Round(x, 2)).ToArray());
+        }
+        json["fahrtgruppen"] = gruppen;
+        foreach (var (titel, f) in new (string, Func<Zaehler, double[]>)[] { ("Schiffskauf Spieler am Jahresende", z => z.KaufSpieler), ("Schiffskauf KI am Jahresende", z => z.KaufKi), ("Schiffskauf Spieler erwartet", z => z.KaufErwartet) })
+        {
+            var werte = Enumerable.Range(0, 4).Select(i => liste.Sum(z => f(z)[i]) / n).ToArray();
+            zeilen.Add($"{titel} (je Partie) | {string.Join(" | ", werte.Select(x => x.ToString("0.00", inv)))} | {werte.Sum().ToString("0.00", inv)}");
+            json[titel] = new JsonArray(werte.Select(x => (JsonNode)Math.Round(x, 3)).ToArray());
+        }
+        foreach (var (titel, f) in new (string, Func<Zaehler, double[]>)[] { ("Schiffe", z => z.SchiffeJahre), ("Schiffsertrag Spieler", z => z.SchiffErtrag), ("Stufe", z => z.Stufe) })
+        {
+            var werte = Enumerable.Range(0, 4).Select(i => JeJahr(i, z => f(z)[i])).ToArray();
+            zeilen.Add($"{titel} | {string.Join(" | ", werte.Select(x => x.ToString("0.00", inv)))} | –");
+            json[titel] = new JsonArray(werte.Select(x => (JsonNode)Math.Round(x, 2)).ToArray());
+        }
         return (zeilen, json);
     }
 
+    /// <summary>Eine Fahrt eines Schiffs: Jahreszeit, Jahr und Stunde beim Auslaufen, Ziel, erwarteter Gewinn der KI, Ertrag bis jetzt, Eis unterwegs, Festmarkt beim Auslaufen.</summary>
+    sealed class Fahrtbuch
+    {
+        public int Jahreszeit, Jahr, Stunde;
+        public double Erwartet, Ertrag, Zuletzt;
+        public SchiffZustand Zustand;
+        public bool Eis, Fest;
+        public string Ziel = "";
+    }
+
     /// <summary>
-    /// Vor jedem Takt: Fährt ein Karren des Spielers vom Markt ab, ist seine Ladung genau das, was er dort gekauft hat (verkauft und abgeladen wird
-    /// vorher) – Stück und Gulden zum Marktpreis dieser Minute. Dazu die Köpfe der Betriebe des Spielers zu jeder vollen Stunde.
+    /// Vor jedem Takt: die Fahrten aller Schiffe (Ertrag von Auslaufen bis Heimkehr, über den Jahreswechsel hinweg; erwarteter Gewinn aus der
+    /// Meldung der KI). Fährt ein Karren des Spielers vom Markt ab, ist seine Ladung genau das, was er dort gekauft hat (verkauft und abgeladen wird
+    /// vorher) – Stück und Gulden zum Marktpreis dieser Minute. Dazu Köpfe und gewählte Waren der Betriebe des Spielers zu jeder vollen Stunde.
     /// </summary>
     static void Minute(Stadtwirtschaft w, Zaehler z)
     {
         var spieler = w.Konten[0];
+        if (!z.Angemeldet)
+        {
+            z.Angemeldet = true;
+            // „Haus …: schickt <Schiff> nach <Ziel>: … erwarteter Gewinn ≈ 1.234 Gulden.“ – der Gewinn, mit dem die KI die Fahrt plant
+            w.Meldung += m =>
+            {
+                if (m.StartsWith(spieler.Inhaber + ": kauft ein ", StringComparison.Ordinal) && m.IndexOf("erwartet ≈ ", StringComparison.Ordinal) is var k and >= 0)
+                    z.LetzteKaufErwartung = double.Parse(new string(m[(k + 11)..].TakeWhile(c => char.IsDigit(c) || c == '.').Where(c => c != '.').ToArray()), System.Globalization.CultureInfo.InvariantCulture);
+                // jedes Haus: „<Haus>: schickt <Schiff> nach <Ziel>: … erwarteter Gewinn ≈ N Gulden.“
+                if (m.IndexOf(": schickt ", StringComparison.Ordinal) is var s0 and >= 0 && m.IndexOf(" nach ", s0, StringComparison.Ordinal) is var s1 and >= 0
+                    && m.IndexOf("erwarteter Gewinn ≈ ", StringComparison.Ordinal) is var s2 and >= 0)
+                {
+                    var name = m[(s0 + 10)..s1];
+                    var wert = new string(m[(s2 + 20)..].TakeWhile(c => char.IsDigit(c) || c is '.' or '-' or '−').Where(c => c != '.').ToArray()).Replace('−', '-');
+                    if (double.TryParse(wert, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var e2)) z.Erwartung[name] = e2;
+                }
+            };
+        }
+        var jahrJetzt = w.Uhr.Jahr;
+        var neuesJahr = z.JahrGesehen >= 0 && jahrJetzt != z.JahrGesehen;
+        z.JahrGesehen = jahrJetzt;
+        foreach (var schiff in w.Schiffahrt.Schiffe)
+        {
+            var istSpieler = schiff.Besitzer == spieler;
+            if (!z.Fahrt.TryGetValue(schiff, out var f))
+                z.Fahrt[schiff] = f = new Fahrtbuch { Zustand = schiff.Zustand, Zuletzt = schiff.ErtragLaufend, Jahr = -1 };
+            // Ertrag seit der letzten Minute; am Jahreswechsel stand er zuletzt im Vorjahr (ErtragVorjahr = Laufend − Unterhalt)
+            var vorher = neuesJahr ? (schiff.ErtragVorjahr ?? 0) + schiff.Daten.Unterhalt : f.Zuletzt;
+            var zuwachs = (neuesJahr ? vorher - f.Zuletzt + schiff.ErtragLaufend : schiff.ErtragLaufend - f.Zuletzt);
+            f.Zuletzt = schiff.ErtragLaufend;
+            if (f.Jahr >= 0) f.Ertrag += zuwachs;
+            if (f.Jahr >= 0 && w.Jahreszeiten.FlussZugefroren) f.Eis = true;
+            if (f.Zustand == SchiffZustand.AmKai && schiff.Zustand != SchiffZustand.AmKai)
+            {
+                f.Jahr = jahrJetzt; f.Jahreszeit = (int)w.Uhr.Jahreszeit; f.Ertrag = 0; f.Stunde = w.Uhr.UhrzeitInMinuten / 60;
+                f.Eis = false; f.Fest = w.Jahreszeiten.FestmarktJetzt is not null; f.Ziel = schiff.Auftrag?.Ziel ?? "";
+                f.Erwartet = z.Erwartung.Remove(schiff.Name, out var e) ? e : double.NaN;
+                // die Hinfracht dieser Minute steht schon im Ertrag (vor dem Takt gebucht)
+                f.Ertrag = schiff.ErtragLaufend - (f.Zuletzt - zuwachs);
+            }
+            else if (f.Zustand != SchiffZustand.AmKai && schiff.Zustand == SchiffZustand.AmKai && f.Jahr >= 0)
+            {
+                var k = f.Jahreszeit * 2 + (jahrJetzt != f.Jahr ? 1 : 0);
+                if (istSpieler)
+                {
+                    z.FahrtAnzahl[k]++;
+                    if (!double.IsNaN(f.Erwartet)) z.FahrtErwartet[k] += f.Erwartet;
+                    z.FahrtErtrag[k] += f.Ertrag;
+                }
+                var jz = ((Jahreszeit)f.Jahreszeit).ToString();
+                var quer = jahrJetzt != f.Jahr ? "quer" : "im Jahr";
+                var stundenGruppe = f.Stunde < 10 ? "04-10" : f.Stunde < 16 ? "10-16" : "16-23";
+                foreach (var g in new[] { $"alle|{jz}|{quer}", $"alle|{jz}|{(f.Eis ? "Eis" : "ohne Eis")}", $"alle|{jz}|{(f.Fest ? "Festmarkt" : "ohne Festmarkt")}",
+                             $"alle|{jz}|{f.Ziel}", $"alle|{jz}|ab {stundenGruppe}", $"alle|{jz}" })
+                {
+                    if (!z.Fahrtgruppen.TryGetValue(g, out var a)) z.Fahrtgruppen[g] = a = new double[3];
+                    a[0]++; a[1] += double.IsNaN(f.Erwartet) ? 0 : f.Erwartet; a[2] += f.Ertrag;
+                }
+                f.Jahr = -1;
+            }
+            f.Zustand = schiff.Zustand;
+        }
         if (double.IsNaN(z.ReinVorher)) { z.ReinVorher = spieler.Reinvermoegen; z.HauswertVorher = spieler.Hauswert; }
         var j = (int)w.Uhr.Jahreszeit;
         var volleStunde = w.Uhr.MinuteImTag % 60 == 0;
@@ -235,6 +380,12 @@ static class Jahreszeitenmessung
         {
             if (b.Konto != spieler) continue;
             if (volleStunde) z.KoepfeStunden[j] += b.Belegt;
+            if (volleStunde && b.IstWerkstatt)
+                foreach (var a in b.Arbeiter)
+                {
+                    var ware = b.WareVon(a);
+                    z.ProduktStunden[j][ware] = z.ProduktStunden[j].GetValueOrDefault(ware) + 1;
+                }
             foreach (var k in b.Karren)
             {
                 var vorher = z.Zustand.TryGetValue(k, out var zv) ? zv : k.Zustand;
@@ -329,6 +480,15 @@ static class Jahreszeitenmessung
                     werte[PBewirtet] += g.Bewirtet; werte[PAbgewiesen] += g.Abgewiesen; werte[PAusgefallen] += g.Ausgefallen;
                 }
             for (var p = 0; p < werte.Length; p++) z.Posten[j, p] += werte[p];
+            foreach (var (ware, stueck) in v.Hergestellt) z.Hergestellt[j][ware] = z.Hergestellt[j].GetValueOrDefault(ware) + stueck;
+            z.SchiffeJahre[j] += w.Schiffahrt.SchiffeVon(spieler).Count();
+            var sp = w.Schiffahrt.SchiffeVon(spieler).Count();
+            var ki = w.Schiffahrt.Schiffe.Count - sp;
+            if (sp > z.SchiffeSpielerVorher) { z.KaufSpieler[j] += sp - z.SchiffeSpielerVorher; z.KaufErwartet[j] += z.LetzteKaufErwartung; }
+            if (ki > z.SchiffeKiVorher) z.KaufKi[j] += ki - z.SchiffeKiVorher;
+            z.SchiffeSpielerVorher = sp; z.SchiffeKiVorher = ki; z.LetzteKaufErwartung = 0;
+            z.SchiffErtrag[j] += w.Schiffahrt.SchiffeVon(spieler).Sum(s => s.ErtragVorjahr ?? 0);
+            z.Stufe[j] += eigene.Where(b => b.InDerStadt).Select(b => b.Stufe).DefaultIfEmpty(0).Max();
             z.ReinVorher = spieler.Reinvermoegen;
             z.HauswertVorher = spieler.Hauswert;
         }
