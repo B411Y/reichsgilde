@@ -17,7 +17,7 @@ namespace Reichsgilde;
 /// Der Stand der Grundstücke ist die Quelle – das gilt auch nach dem Laden eines Spielstands.
 ///
 /// Dazu der <b>Baumodus</b>: Die Bauzonen der Karte erscheinen als farbige Flächen mit 2-m-Raster (Farbe je Lage), und ein
-/// Umriss folgt der Maus, grün oder rot nach <c>PlatzVerboten</c>, mit dem Grund als Text. R dreht, Klick setzt.
+/// Umriss folgt der Maus, grün oder rot nach <c>BauVerboten</c> (Bauherr: Stand, Handwerk, Geld; dann der Platz), mit dem Grund als Text. R dreht, Klick setzt.
 /// Die Oberfläche (<c>BauAnzeige</c>) wählt das Gebäude und fragt vor dem Bauen nach; hier wird nur gezeigt und die Eingabe gelesen.
 /// </summary>
 public partial class Stadtansicht
@@ -505,8 +505,80 @@ public partial class Stadtansicht
 
         // Beschriftung in der Mitte der Zone
         var mitte = new Vector3((minX + maxX) / 2, BodenHoehe((minX + maxX) / 2, (minZ + maxZ) / 2), (minZ + maxZ) / 2);
-        var label = Beschriftung($"{zone.Kennung} · {LageName(zone.Art)}", mitte + new Vector3(0, 5, 0), 36, eltern);
+        var label = Beschriftung($"{zone.Kennung} · {LageName(zone.Art)}{(zone.NurWerkstaetten ? "\nnur Werkstätten" : "")}", mitte + new Vector3(0, 5, 0), 36, eltern);
         label.Modulate = farbe.Lightened(0.5f);
+        if (zone.NurWerkstaetten) WerkstattplatzMarkieren(punkte, new Vector2(mitte.X, mitte.Z), Mathf.Min(maxX - minX, maxZ - minZ), eltern);
+    }
+
+    /// <summary>Farben der Markierung eines Werkstatt-Bauplatzes: Eisen (Amboss, Strich) und helle Lücke dazwischen.</summary>
+    public static readonly Color WerkstattplatzEisen = new(0.16f, 0.15f, 0.17f), WerkstattplatzHell = new(0.93f, 0.90f, 0.82f);
+
+    /// <summary>
+    /// Ein Werkstatt-Bauplatz (<see cref="Bauzone.NurWerkstaetten"/>) bekommt im Baumodus und in der Kartenwerkstatt einen gestrichelten Rand
+    /// (Eisen und hell im Wechsel, 2 m je Strich) und in der Mitte einen flachen Amboss auf dem Boden – so sieht man ihn auch ohne Beschriftung.
+    /// </summary>
+    private void WerkstattplatzMarkieren(Vector2[] punkte, Vector2 mitte, float kleinsteSeite, Node3D eltern)
+    {
+        // Rand: ein 0,7 m breites Band, je 2 m abwechselnd dunkel und hell, auf dem Boden
+        const float Band = 0.7f, Strich = 2f;
+        var dunkel = new List<Vector3>();
+        var hell = new List<Vector3>();
+        var n = 0;
+        for (var i = 0; i < punkte.Length; i++)
+        {
+            var (a, b) = (punkte[i], punkte[(i + 1) % punkte.Length]);
+            var laenge = a.DistanceTo(b);
+            if (laenge < 0.01f) continue;
+            var quer = (b - a).Normalized().Orthogonal() * (Band / 2);
+            for (var t = 0f; t < laenge; t += Strich, n++)
+            {
+                var (p, q) = (a.Lerp(b, t / laenge), a.Lerp(b, Mathf.Min(1, (t + Strich) / laenge)));
+                Vector3 Ecke(Vector2 v) => new(v.X, BodenHoehe(v.X, v.Y) + 0.16f, v.Y);
+                var ziel = n % 2 == 0 ? dunkel : hell;
+                ziel.AddRange(new[] { Ecke(p - quer), Ecke(q - quer), Ecke(q + quer), Ecke(p - quer), Ecke(q + quer), Ecke(p + quer) });
+            }
+        }
+        foreach (var (ecken, farbe) in new[] { (dunkel, WerkstattplatzEisen), (hell, WerkstattplatzHell) })
+            if (ecken.Count > 0) eltern.AddChild(new MeshInstance3D { Mesh = Dreiecksnetz(ecken), MaterialOverride = Transparent(farbe, 0.9f) });
+
+        // Amboss in der Mitte (Seitenansicht, flach auf dem Boden: Horn links, Bahn oben, Fuß unten); Größe nach der Zone, höchstens 7 m breit
+        var mass = Mathf.Clamp(kleinsteSeite / 8, 0.8f, 1.25f);
+        var umriss = new Vector2[]
+        {
+            new(-3.0f, 1.3f), new(-1.4f, 1.8f), new(2.6f, 1.8f), new(2.6f, 1.0f), new(1.0f, 0.8f), new(0.7f, 0.2f), new(1.6f, -0.6f),
+            new(1.6f, -1.0f), new(-1.4f, -1.0f), new(-1.4f, -0.6f), new(-0.5f, 0.2f), new(-0.7f, 0.8f), new(-1.4f, 0.9f),
+        };
+        var ort = umriss.Select(v => mitte + new Vector2(v.X, -v.Y - 2.5f) * mass).ToArray(); // etwas unter der Beschriftung
+        var dreiecke = Geometry2D.TriangulatePolygon(ort);
+        if (dreiecke.Length == 0) return;
+        var amboss = dreiecke.Select(i => new Vector3(ort[i].X, BodenHoehe(ort[i].X, ort[i].Y) + 0.2f, ort[i].Y)).ToList();
+        eltern.AddChild(new MeshInstance3D { Mesh = Dreiecksnetz(amboss), MaterialOverride = Transparent(WerkstattplatzEisen, 0.92f) });
+    }
+
+    /// <summary>Ein einfaches Netz aus Dreiecken (je drei Ecken hintereinander).</summary>
+    private static ArrayMesh Dreiecksnetz(List<Vector3> ecken)
+    {
+        var netz = new ArrayMesh();
+        var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
+        netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        return netz;
+    }
+
+    /// <summary>
+    /// Im Baumodus: die Bauzone unter der Maus (null: keine, die Maus über einer Tafel oder kein Baumodus) – für den Tooltip
+    /// „nur Werkstätten“ der Oberfläche (<c>BauAnzeige</c>). Steht ein Umriss, zählt seine Mitte.
+    /// </summary>
+    public Bauzone? BauzoneUnterMaus
+    {
+        get
+        {
+            if (!_baumodus || _karte is not { } karte) return null;
+            Vector2? ort = BauAuftrag is { } b ? new Vector2((float)b.X, (float)b.Z) : null;
+            if (ort is null && GetViewport().GuiGetHoveredControl() is null) ort = BodenpunktBei(GetViewport().GetMousePosition());
+            return ort is { } o ? karte.Bauzonen.FirstOrDefault(z => z.Enthaelt(o.X, o.Y)) : null;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -604,7 +676,8 @@ public partial class Stadtansicht
             }
             var befehl = w.Bauen.Einrasten(_bauErzeuger(ort.Value.X, ort.Value.Y, BauDrehung));
             BauAuftrag = befehl;
-            BauGrund = w.Bauen.PlatzVerboten(befehl);
+            // Erst der Bauherr (Stand, Handwerk, Geld – gilt überall), dann der Platz: dieselbe Prüfung wie beim Klick (Bauwesen.BauVerboten)
+            BauGrund = _spielerKonto is { } bauherr ? w.Bauen.BauVerboten(bauherr, befehl) : w.Bauen.PlatzVerboten(befehl);
         }
         if (BauAuftrag is { } b) UmrissZeigen(w, b);
     }
