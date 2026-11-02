@@ -137,12 +137,18 @@ def kaemmen(stil, wurzel, normal, rng):
     w = Vector(wurzel)
     n = Vector(normal)
     L = stil.laenge(wurzel, normal)
-    lage = rng.uniform(*stil.volumen)
+    # Grundkopf 4: Stile mit hautnah() legen Strähnen am Haaransatz, an den Schläfen und am Scheitel flach an die Haut
+    # (niedrige Lage, flacher Wurzelhub); die Schattierung „innen“ gilt dort nicht (darüber liegt kein Haar)
+    nah = float(stil.hautnah(wurzel)) if hasattr(stil, "hautnah") else 0.0
+    vol = stil.volumen if nah <= 0.0 else (stil.volumen[0] * (1 - 0.6 * nah), stil.volumen[1] * (1 - 0.75 * nah))
+    lage = rng.uniform(*vol)
     stil.letzte_lage = (lage - stil.volumen[0]) / max(stil.volumen[1] - stil.volumen[0], 1e-9)
+    if nah > 0.0:
+        stil.letzte_lage = max(stil.letzte_lage, 0.5 * nah)
     if L < 0.002:
         return None
     p = w + n * 0.0004
-    d = _norm(_tangential(stil.kamm(p, n, 0.0, wurzel), n) + n * stil.hub)
+    d = _norm(_tangential(stil.kamm(p, n, 0.0, wurzel), n) + n * stil.hub * (1 - 0.7 * nah))
     pkt = [Vector(w), Vector(p)]
     s = 0.0004
     schritt = min(stil.schritt, L / 6)
@@ -376,10 +382,40 @@ class MannZurueck(Stil):
 class FrauScheitel(Stil):
     """Grundlage der Frauenfrisuren: Mittelscheitel, Haar glatt zur Seite und über die Ohren nach hinten."""
     geschlecht = "w"
+    # Grundkopf 4 (kopf4_haar.py gk4=1; Panel Grundkopf 3: „hohe kahle Stirn, Scheitel als heller Hautstreifen,
+    # Drahtsträhnen an den Schläfen“): Haaransatz vorn 9 mm, an den Schläfen 4–6 mm tiefer, Übergang 8 statt 14 mm
+    # (dichter am Rand, die Kopfhautkarte macht ihn weich); Strähnen am Haaransatz, an den Schläfen und am Scheitel
+    # hautnah (hautnah()). Aus = wie bisher
+    gk4 = False
+
+    def tiefer(self, q):
+        if not self.gk4:
+            return 0.002 * self.M
+        richt = self.h.richtung(q)
+        return np.interp(richt, [0, 25, 45, 70, 100, 180], [9.0, 8.0, 6.0, 4.0, 2.5, 2.0]) * 0.001 * self.M
 
     def dichte(self, q):
         # Frauen: Ansatz etwas tiefer und runder, Schläfen voller
+        if self.gk4:
+            return self.h.kopfhaut(q, tiefer=self.tiefer(q), weich=(-0.004, 0.004), ohr_frei=(0.018, 0.028))
         return self.h.kopfhaut(q, tiefer=0.002 * self.M, ohr_frei=(0.018, 0.028))
+
+    def hautnah(self, w):
+        """Grundkopf 4: 0 (Lage wie bisher) bis 1 (flach an der Haut) je Wurzel: bis 6 mm über dem Haaransatz voll, aus
+        bei 22 mm; an den Schläfen (30–145° von vorn) bis 20 mm, aus bei 45 mm; am Scheitel (|x| < 4 mm vor dem
+        Wirbel) zu 80 %."""
+        if not self.gk4:
+            return 0.0
+        h, M = self.h, self.M
+        q = np.atleast_2d(np.asarray(w, dtype=np.float64))
+        richt = h.richtung(q)
+        ueber = float(q[0, 2] - h.haaransatz_z(richt, self.tiefer(q))[0])
+        r = float(richt[0])
+        rand = 1.0 - glatt(ueber, 0.006 * M, 0.022 * M)
+        schlaefe = glatt(r, 30.0, 50.0) * (1.0 - glatt(r, 120.0, 145.0)) * (1.0 - glatt(ueber, 0.02 * M, 0.045 * M))
+        scheitel = (1.0 - glatt(abs(q[0, 0]), 0.004 * M, 0.012 * M)) \
+            * (1.0 - glatt(q[0, 1] - h.wirbel[1], -0.01 * M, 0.01 * M))
+        return float(max(rand, schlaefe, 0.8 * scheitel))
 
     def scheitel(self, q, w):
         # Phase 5: hinter dem Wirbel ohne Seitenzug (sonst läuft der Scheitel als heller Strich bis in den Nacken)

@@ -7,6 +7,8 @@ Aufruf:  tools/charakter/blender.sh -b --factory-startup -P tools/charakter/kopf
          [nur_kopfhaut=1] nur die Kopfhautkarten neu (aus den gespeicherten Wurzeln)
          [ohne_karten=1]  Phase 5: nur Leitsträhnen für TressFX, keine Haarkarten (Rückfall fehlt dann für diese Stile)
          [stile=4]        die Stile der Phase 4 (kopf4_frisuren.py) statt der zehn je Geschlecht (kopf5_frisuren.py)
+         [gk4=1]          Grundkopf 4: Frauenfrisuren mit Mittelscheitel (FrauScheitel) mit tieferem, dichterem
+                          Haaransatz, Strähnen an Haaransatz, Schläfen und Scheitel hautnah
          (oder tools/charakter/kopf4.sh)
 
 Ergebnis in <glb-ordner>/haar4/ (nicht im Repository):
@@ -43,6 +45,9 @@ if OPT.get("stile", "5") == "5":
     import kopf5_frisuren as kf  # noqa: E402
 else:
     kf = kf4
+# Grundkopf 4: Haaransatz und Schläfen der Frauenfrisuren (kopf4_frisuren.FrauScheitel.gk4, Standard aus)
+if OPT.get("gk4") == "1":
+    kf4.FrauScheitel.gk4 = True
 os.makedirs(AUS, exist_ok=True)
 rng = np.random.default_rng(1480)
 
