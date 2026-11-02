@@ -223,7 +223,7 @@ public sealed class Einwohnerschaft
     }
 
     /// <summary>
-    /// Wie viele Einwohner in der zuletzt geplanten Stunde einkehren wollten, aber in keiner Schänke Platz fanden (Sitzplätze, Datenversion 66).
+    /// Wie viele Einwohner in der zuletzt geplanten Stunde einkehren wollten, aber in keiner Schänke Platz fanden (Sitzplätze, Datenversion 67).
     /// Nur zum Ansehen und Messen; nicht im Spielstand (nach dem Laden 0 bis zur nächsten vollen Stunde).
     /// </summary>
     public int OhneSchankplatz { get; private set; }
@@ -736,7 +736,7 @@ public sealed class Einwohnerschaft
         // Die Messe wird zur vollen Stunde MesseUm abgerechnet – für die Stunde davor (z. B. 9–10 Uhr bei Messe um 10).
         var messe = _w.Kirchenwesen.IstAktiv && stunde + 1 == _w.Kirchenwesen.Daten.MesseUm ? d.Messe : 1;
 
-        // Die zweitbeste Handlung ohne Einkehren: Sie tut, wer in keiner Schänke mehr Platz findet (Sitzplätze, Datenversion 66).
+        // Die zweitbeste Handlung ohne Einkehren: Sie tut, wer in keiner Schänke mehr Platz findet (Sitzplätze, Datenversion 67).
         var ersatz = new Dictionary<Einwohner, Handlung>(ReferenceEqualityComparer.Instance);
         foreach (var e in _einwohner)
         {

@@ -6,7 +6,7 @@ using Reichsgilde.Core;
 using Reichsgilde.Core.Wirtschaft;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Schänkenmessung – Sitzplätze der Wirtshäuser (Messung, kein Test; Datenversion 66)
+//  Schänkenmessung – Sitzplätze der Wirtshäuser (Messung, kein Test; Datenversion 67)
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen schaenke [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-plaetze] [--datei=pfad.json]

@@ -77,7 +77,7 @@ public sealed class GastwirtschaftDaten
     public double AnziehungJeAnsehen { get; init; } = 0.0125;
 
     /// <summary>
-    /// Sitzplätze je Ausbaustufe (Schänke, Wirtshaus, Gasthaus; ab Datenversion 66: 20, 30, 40). So viele Gäste sitzen in einer Stunde
+    /// Sitzplätze je Ausbaustufe (Schänke, Wirtshaus, Gasthaus; ab Datenversion 67: 20, 30, 40). So viele Gäste sitzen in einer Stunde
     /// höchstens in der Schänke (ein Gast bleibt etwa eine Stunde). Leer = ohne Grenze wie bis Datenversion 65 (alte Spielstände bringen
     /// ihre Daten mit und rechnen weiter wie damals).
     /// </summary>
@@ -119,7 +119,7 @@ public sealed class GastwirtschaftDaten
 /// <summary>
 /// Was eine Schänke in einem Jahr bewirtet hat. <paramref name="Abgewiesen"/>: Gäste ohne Ausschankware im Lager.
 /// <paramref name="Voll"/>: Gäste, die hierher wollten, aber keinen Platz fanden (sie gehen in die nächste freie Schänke);
-/// <paramref name="Ausgefallen"/>: davon die, die nirgends Platz fanden – ihr Besuch fällt aus (ab Datenversion 66).
+/// <paramref name="Ausgefallen"/>: davon die, die nirgends Platz fanden – ihr Besuch fällt aus (ab Datenversion 67).
 /// <paramref name="Bewirtet"/> zählt auch die Gäste, die aus einer vollen Schänke herüberkamen.
 /// </summary>
 public sealed record Gaestebuch(int Bewirtet, int Abgewiesen, double Einnahmen, double Wuerfelgeld,
@@ -359,7 +359,7 @@ public sealed class Gastwirtschaft
     }
 
     /// <summary>
-    /// Die Gäste der Stunde setzen sich (ab Datenversion 66 mit Sitzplätzen): Jede Schänke nimmt so viele, wie sie Plätze hat. Wer in seiner
+    /// Die Gäste der Stunde setzen sich (ab Datenversion 67 mit Sitzplätzen): Jede Schänke nimmt so viele, wie sie Plätze hat. Wer in seiner
     /// Schänke keinen Platz findet, geht in die nächste freie – die anziehendste mit freiem Platz (bei Gleichstand nach dem Namen) – und zahlt
     /// dort deren Zeche. Ist überall voll, fällt der Besuch aus; er wird nicht auf später verschoben (voll ist es zur Abendspitze, und die
     /// Stunden danach bis zum Schankschluss sind genauso voll). Ohne Sitzplätze in den Daten genau wie bis Datenversion 65.

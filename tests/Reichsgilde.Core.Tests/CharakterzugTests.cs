@@ -49,7 +49,7 @@ static class CharakterzugTests
         ("Charakterzüge: Daten – 24 Züge, 16 Persönlichkeitszüge in 8 Gegensatzpaaren, 4 angeborene, 4 erworbene; Datenversion 60", () =>
         {
             var d = Daten.Value.Charakterzuege!;
-            Pruefe.Gleich(66, Daten.Value.Version);
+            Pruefe.Gleich(67, Daten.Value.Version);
             Pruefe.Gleich(24, d.Alle.Count);
             var persoenlich = d.Alle.Where(z => z.Art == Zugart.Persoenlichkeit).ToList();
             Pruefe.Gleich(16, persoenlich.Count);
