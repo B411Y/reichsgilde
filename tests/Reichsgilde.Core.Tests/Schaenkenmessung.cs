@@ -150,7 +150,7 @@ static class Schaenkenmessung
             z.StundenOffen++;
             if (buch.Voll > alt.Voll) z.StundenVoll++;
             if (kommen - alt.Kommen > plaetze || buch.Voll > alt.Voll) z.StundenUeberPlaetzen++; // ohne Grenze: wäre voll gewesen
-            if (einwohner > plaetze) z.EinwohnerUeber++;
+            if (einwohner > (g.EinwohnerPlaetze(b, w.Einwohnerschaft.Einwohner.Count) ?? plaetze)) z.EinwohnerUeber++; // ohne Grenze: über den Sitzplätzen
         }
     }
 
