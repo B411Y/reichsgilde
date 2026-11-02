@@ -17,7 +17,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Abfrage für den Kauf von Einrichtung (PR #177): `Werkstattwesen.ErwarteterMehrgewinnJeJahr(Betrieb, kennung)` und `Amortisationsjahre(…)`; Eisentür und Löschfass bringen nur etwas nach Raub bzw. Brand im Vorjahr (`Betriebsrechnung.Raub`, `Brandschaden`). Seit PR #177 holt ein Einbruch beim Geldleiher Geld aus der Kasse – `Unterwelt.ErwarteterGewinn` und `Diebeswesen.ErwarteterEinbruch` rechnen es schon mit.
 - (von Kern) Teure Ware im Lager schützen (PR #232): Seit der Giftdolch einen Dolch des Schmieds braucht (≈ 170 Gulden je Stück), räumen die Diebe der KI-Häuser das Lager einer Siederei nachts aus (Startwert 202: fünf Einbrüche in zwei Nächten, 42 Dolche ≈ 8.800 Gulden, danach Bankrott). Die KI sollte Eisentür und Wächter nach dem Lagerwert kaufen bzw. einstellen, nicht erst nach einem Angriff (gilt auch für Gold, Goldketten, Prunkwaren).
 - Mittagsandrang in der Schänke (PR #274): Um 12 Uhr, der ersten Stunde mit Einkehren, gehen fast alle Einwohner zugleich hin (bis 107 von 123 in der einen Schänke), abends um 21:45 bis 84. Eine Kapazität für Einwohner gibt es nicht. Designfrage beim Teamleiter, Empfehlung: Sitzplätze je Schänke nach Stufe im Abschnitt `buerger` (im Verhältnis von `anziehungJeStufe`, etwa 20/30/40); wer keinen Platz bekommt, nimmt die nächstbeste Handlung (mittags Arbeit, abends daheim); ohne Eintrag unbegrenzt wie heute. Vorher messen, wie sich die Gäste auf mehrere Schänken verteilen. Nur den Mittag zu dämpfen, verschiebt den Andrang auf 18 Uhr.
-- Einwarige Umlandbetriebe (Holzschlag, Lager 40 Holz): Auch nach phase5/deutz-ki (Vorarbeiter mit Lager) stehen die Kölner Holzschläge mit drei Karren 21–29 % still (Hardevust 28,8 %, Kleingedank 23,3 %, Teil 5 Normal; „Schwer“ 25,8 / 21,5 %). Empfehlung: ein vierter Karren nur für einwarige Umlandbetriebe ab 20 % Stillstand an der Grenze von drei (Regel der KI, kein Wert in `wirtschaft.json`): nach dem Karrenkauf-Modell 28 % → etwa 17 %, ≈ 290 Gulden im Jahr für 900 (gut 3 Jahre). Die Nachtfahrt brächte weniger (Fahrfenster 20–23 Uhr, etwa +20 % Fahrzeit ≈ 200 Gulden), kostet aber Torgeld und das doppelte Überfallrisiko je Nachtfahrt (Holz ist billig, die Bande nimmt trotzdem die Ladung) – netto wenig. Designfrage beim Teamleiter; erst bauen, dann messen.
 - Die Schätzung „Stillstand vorher ^ (Durchfluss nachher ÷ vorher)“ ist im ersten Jahr zu optimistisch: Die Prüfung sah in Köln nach dem ersten Kauf 7–12 % geschätzt und 14–41 % im Folgejahr gemessen (Grube 18 %, Bauernhof 41 %) – das erste Jahr hat Anlaufverluste (leere Karren, Lager füllt sich). Die KI kauft dann im Jahr darauf nach; schlimmstenfalls einen Karren zu spät. Bei Gelegenheit das erste Jahr eines Betriebs nicht als Eichung nehmen.
 
 ## Entscheidungen
@@ -165,3 +164,23 @@ Gemessen auf main `ec36ff33` + dieser Branch (`97001082`, mit den Häusern in De
 | Greybox Schwer: Bezug / KI-Häuser, davongezogen | 63.499 / 116.029, 24/60 | 61.613 / 117.546, 25/60 |
 
 Die KI-Häuser in Köln gewinnen etwas (Normal innerhalb des Fehlers, „Schwer“ +4.400), das Ziel 75.482 (alter main, Teil 5, 10 Startwerte) erreichen sie nicht: Die Umlandbetriebe der KI-Häuser liegen auf der Karte 220–290 Minuten vom Markt, ihr Stillstand bleibt (Holzschläge 21–29 %), und der Gewinn je KI-Haus aus dem Umland in 20 Jahren bleibt bei ≈ 26.400 (alter main 32.971). Was die Änderung bringt, ist das Meiden des Eichenforsts (75 Gulden im Jahr) und eine bessere Wahl der Liegenschaften (Umland 1.405 statt 1.322 je Jahr, Neubauten +2.600 je Haus). „Schwer“: 25 statt 18 von 140 KI-Häusern ziehen davon (> 2× Bezug) – der Bezugsspieler schwankt dort stark (± 7.365). Der Rest ist Karte (Lage des Umlands) oder Kern (Höchstdauer, Karren). Messdateien im Notizordner (`…/scratchpad/deutz-ki/mess/`).
+
+### Karren-Höchstzahl: Umland bis 5 Karren (Branch phase5/deutz-ki)
+
+Gemessen auf main `ec36ff33` + dieser Branch (`adfd5f2d`), wie oben (`messen bericht 20 20 --teile=5`, 20 Startwerte; die Messdatei nennt als main `4220c631`, den Stand von origin/main zur Messzeit – der Branch ist darauf nicht neu aufgesetzt). „Vorher“ = derselbe Branch mit 3 Karren (`97001082`). Keine Partie mit Fehler, kein Bankrott.
+
+| | main ec36ff33 | 3 Karren | 5 Karren im Umland |
+|---|---|---|---|
+| Köln Normal: Bezug / KI-Häuser | 56.503 / 65.793 | 54.240 / 66.805 | 55.547 / 66.339 |
+| Köln Normal: davongezogen | 15/140 | 16/140 | 11/140 |
+| Köln Schwer: Bezug / KI-Häuser | 77.280 / 95.778 | 79.314 / 100.162 | 78.584 / 99.893 |
+| Köln Schwer: davongezogen | 18/140 | 25/140 | 26/140 |
+| Köln Umland Normal: Gewinn je Jahr, Stillstand | 1.322, 16 % | 1.405, 13,6 % | 1.427, 11,7 % |
+| Holzschlag Hardevust / Kleingedank, Stillstand Normal | 28,1 / 23,8 % | 28,8 / 23,3 % | 20,4 / 19,9 % |
+| dieselben, Stillstand Schwer | 26,8 / 22,2 % | 25,8 / 21,5 % | 16,6 / 16,9 % |
+| Holzschlag Hardevust / Kleingedank, Gewinn je Jahr Normal | 705 / 839 | 799 / 871 | 980 / 938 |
+| Greybox Normal: Bezug / KI-Häuser, davongezogen | 62.268 / 74.507, 3/60 | 61.749 / 75.344, 4/60 | 61.592 / 75.071, 6/60 |
+| Greybox Schwer: KI-Häuser, davongezogen | 116.029, 24/60 | 117.546, 25/60 | 117.502, 25/60 |
+
+Die Holzschläge stehen mit dem vierten (und fünften) Karren gut 8 Punkte weniger still und verdienen mehr; die KI kauft die Karren nur nach Stillstand. Das Vermögen der KI-Häuser ändert sich im Rahmen des Fehlers (± 1.700), „Schwer“ zieht die KI nicht öfter davon als mit 3 Karren. Ein erster Lauf mit der Schätzung beim Pachten für 5 Karren pachtete den Holzschlag im Eichenforst wieder (204 statt 12 Betriebsjahre, 43 % Stillstand) und ließ in „Schwer“ 34 von 140 KI-Häusern davonziehen; deshalb schätzt die KI das Pachten weiter mit 3 Karren (Befund H1 der Prüfung). Die Nachtfahrt ist damit nicht nötig.
+
