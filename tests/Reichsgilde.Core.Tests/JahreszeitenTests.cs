@@ -125,7 +125,7 @@ static class JahreszeitenTests
             var (zustand, ende) = (schiff.Zustand, schiff.Ende);
             sim.Tick(); // die erste Minute im Eis
             Pruefe.Wahr(w.Jahreszeiten.FlussZugefroren, "zugefroren");
-            Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Der Sandfluss ist zugefroren! Hafen und Fähre sind geschlossen, 1 Schiff liegt im Eis fest")), string.Join(" | ", meldungen));
+            Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Der Sandfluss ist zugefroren! Hafen und Fähre sind geschlossen, 1 Schiff ruht bis zum Eisgang")), string.Join(" | ", meldungen));
             Pruefe.Wahr(w.Ausfuehren(k, new SchiffKaufen()).Erfolg, "zweites Schiff, am Kai");
             var amKai = w.Schiffahrt.SchiffeVon(k).Single(x => x.Zustand == SchiffZustand.AmKai);
             Pruefe.Wahr(w.Schiffahrt.AuftragVerboten(k, amKai.Name, new Schiffsauftrag("Eisenfurt", new Dictionary<string, int>(), new Dictionary<string, int> { ["Holz"] = 1 }))
@@ -216,8 +216,7 @@ static class JahreszeitenTests
             Pruefe.Gleich(Jahreszeit.Fruehling, w.Uhr.Jahreszeit);
             var fruehling = hin.Select(w.Zeitfaktor).ToList();
             var fahrzeitFruehling = w.Fahrzeit(betrieb, "Handkarren", true);
-            w.Uhr = new Spielzeit(Minute(1, 4));
-            w.FahrzeitenVeraltet();
+            w.Uhr = new Spielzeit(Minute(1, 4)); // ohne FahrzeitenVeraltet: die gemerkten Zeiten gelten nur für ihre Jahreszeit
             var sommer = hin.Select(w.Zeitfaktor).ToList();
             var fahrzeitSommer = w.Fahrzeit(betrieb, "Handkarren", true);
             var erde = 0;

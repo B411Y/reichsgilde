@@ -11,7 +11,7 @@ public sealed partial class KiRivale
 {
     /// <summary>
     /// Läuft kein Schiff aus? Solange der Fluss zu ist, nimmt der Hafen ohnehin nichts an; im strengen Winter lässt die KI die Schiffe schon vorher am
-    /// Kai, sonst säßen sie im Eis fest. Zur ersten Stunde des Jahres (bzw. zur Stunde des Zufrierens) sagt sie es einmal.
+    /// Kai, sonst säßen sie im Eis fest. Zur ersten Stunde des Jahres sagt sie es einmal.
     /// </summary>
     private bool SchiffeBleibenImHafen()
     {

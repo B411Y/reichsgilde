@@ -37,7 +37,9 @@ static class Datenpfad
         json ??= File.ReadAllText(Wirtschaft());
         const string anfang = "\n  \"jahreszeiten\": {";
         var a = json.IndexOf(anfang, StringComparison.Ordinal);
-        if (a < 0) return json;
+        if (a < 0)
+            return System.Text.Json.Nodes.JsonNode.Parse(json)!["jahreszeiten"] is null ? json
+                : throw new InvalidDataException("Abschnitt „jahreszeiten“ steht nicht wie erwartet in den Daten – Datenpfad.OhneJahreszeiten anpassen.");
         var e = json.IndexOf("\n  },", a, StringComparison.Ordinal);
         if (e < 0) throw new InvalidDataException("Ende des Abschnitts „jahreszeiten“ nicht gefunden.");
         var ohne = json[..a] + json[(e + "\n  },".Length)..];

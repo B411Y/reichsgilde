@@ -127,7 +127,7 @@ public sealed class StrengerWinterDaten
     public int DauerMin { get; init; } = 6;
     public int DauerMax { get; init; } = 14;
 
-    /// <summary>So viele Minuten kostet eine Fähre, solange der Fluss zu ist (sie ruht; wer hinüber muss, wartet oder nimmt den Umweg).</summary>
+    /// <summary>So viele Minuten kostet eine Fähre, solange der Fluss zu ist (sie ruht; wer hinüber muss, wartet – die Wegwahl bleibt dieselbe).</summary>
     public int FaehreMinuten { get; init; } = 120;
 
     internal void Pruefen(List<string> f)
@@ -170,7 +170,7 @@ public sealed class FestmarktDaten
         var p = $"jahreszeiten.festmaerkte „{Name}“";
         if (Name == "") f.Add("jahreszeiten.festmaerkte: Jeder Festmarkt braucht einen Namen.");
         var erste = Spielzeit.TagesbeginnMinute / 60;
-        var letzte = Spielzeit.TagesendeMinute / 60;
+        var letzte = Spielzeit.TagesendeMinute / 60 - 1; // das Ende muss im Spieltag liegen (sonst käme keine Meldung)
         if (Von < erste || Bis > letzte || Von >= Bis) f.Add($"{p}: von und bis müssen zwischen {erste} und {letzte} Uhr liegen, von vor bis.");
         if (Nachfrage is < 0 or > 2 || Gaeste is < 0 or > 2 || Besucher is < 0 or > 5) f.Add($"{p}: nachfrage und gaeste zwischen 0 und 2, besucher zwischen 0 und 5.");
     }

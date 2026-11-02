@@ -214,6 +214,7 @@ public sealed class Schiffahrt
 
         var hin = schiff.Zustand == SchiffZustand.Hinfahrt;
         var dauer = Math.Max(1, schiff.Ende - schiff.Beginn);
+        if (_w.Jahreszeiten.FlussZugefroren) minute = Math.Floor(minute); // im Eis steht das Schiff (seine Zeiten rücken minutenweise mit), ohne Ruckeln
         var fortschritt = Math.Clamp((minute - schiff.Beginn) / dauer, 0, 1);
         var flussauf = stadt.Daten.IstFlussauf;
         var route = Route(hafen.Kennung, flussauf);

@@ -110,17 +110,17 @@ public sealed class Jahreszeitenwesen
     public bool FlussZugefroren => ZugefrorenUm(_w.Uhr);
 
     /// <summary>Ist der Fluss zu dieser Zeit zugefroren?</summary>
-    public bool ZugefrorenUm(Spielzeit zeit) => HatFluss && WinterVon(zeit.Jahr) is { } l && l.ZuUm(zeit.MinuteImTag);
+    public bool ZugefrorenUm(Spielzeit zeit) => WinterVon(zeit.Jahr) is { } l && l.ZuUm(zeit.MinuteImTag) && HatFluss;
 
     /// <summary>Strenger Winter, aber der Fluss ist noch offen und wird heute noch zufrieren („Eis treibt“) – Schiffe sollten nicht mehr auslaufen.</summary>
-    public bool EisDroht => HatFluss && DiesesJahr is { Streng: true } l && _w.Uhr.MinuteImTag < l.ZufrierenMinute;
+    public bool EisDroht => DiesesJahr is { Streng: true } l && _w.Uhr.MinuteImTag < l.ZufrierenMinute && HatFluss;
 
     /// <summary>Hat die Karte einen Fluss, der zufrieren kann (Gewässer der Art „fluss“)?</summary>
     public bool HatFluss => Flussname is not null;
 
     /// <summary>Name des ersten Flusses der Karte (am Hafen, sonst der erste) – null ohne Fluss oder ohne Karte.</summary>
     public string? Flussname =>
-        _w.Schiffahrt.Haefen.Count > 0 ? _w.Schiffahrt.Haefen[0].Fluss
+        _w.Schiffahrt.Haefen.Count > 0 ? (_w.Schiffahrt.Haefen[0].Fluss is { Length: > 0 } n ? n : "Fluss")
         : _w.Karte?.Wasser.FirstOrDefault(g => g.Art == "fluss") is { } g ? (g.Name != "" ? g.Name : "Fluss") : null;
 
     /// <summary>Der Festmarkt, der gerade läuft (null: keiner).</summary>
@@ -272,7 +272,7 @@ public sealed class Jahreszeitenwesen
         {
             var unterwegs = _w.Schiffahrt.Schiffe.Count(s => s.Zustand != SchiffZustand.AmKai);
             Melden($"Der {fluss} ist zugefroren! Hafen und Fähre sind geschlossen" +
-                   (unterwegs > 0 ? $", {unterwegs} {(unterwegs == 1 ? "Schiff liegt" : "Schiffe liegen")} im Eis fest" : "") +
+                   (unterwegs > 0 ? $", {unterwegs} {(unterwegs == 1 ? "Schiff ruht" : "Schiffe ruhen")} bis zum Eisgang" : "") +
                    (l.BisJahresende ? " – bis zum Ende des Winters." : " – bis das Eis bricht."));
             _w.Wegebau.ZeitfaktorGeaendert(); // die Fähre kostet nun die Wartezeit im Eis
         }

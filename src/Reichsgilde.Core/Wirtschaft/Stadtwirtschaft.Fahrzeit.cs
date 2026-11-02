@@ -46,6 +46,12 @@ public sealed partial class Stadtwirtschaft
     internal void FahrzeitenVeraltet() => _fahrzeiten.Clear();
 
     /// <summary>
+    /// Für welche Lage die gemerkten Fahrzeiten gelten: Jahreszeit (Schlamm) und Eis auf dem Fluss (Fähre). Ändert sie sich, gelten sie nicht mehr –
+    /// gleich in der ersten Minute, auch für Befehle vor dem Takt dieser Minute und unabhängig davon, ob die Oberfläche vorher gefragt hat (Befund der Prüfung).
+    /// </summary>
+    private (Zeit.Jahreszeit, bool)? _fahrzeitenLage;
+
+    /// <summary>
     /// Das Netz der Wege der Karte, auf denen Karren fahren (null ohne Karte) – einmal gebaut, die Karte einer Partie ändert sich nicht. Mit der
     /// Fahrzeit nach Weglänge (<c>logistik.weglaenge</c>, Datenversion 65) sind Marktplätze Kreuzungen (<see cref="Karrennetz.Marktlinien"/>) und
     /// Gassen, Fußwege und Leinpfade gehören dazu (teurer für die Wahl des Weges, <see cref="Karrennetz.Wegkosten"/>); vorher nur die Karrenstraßen.
@@ -92,6 +98,11 @@ public sealed partial class Stadtwirtschaft
     {
         var basis = FesteFahrzeit(betrieb.Ort);
         if (!NachStrecke(karrenTyp)) return basis;
+        if (Jahreszeiten.IstAktiv && (Uhr.Jahreszeit, Jahreszeiten.FlussZugefroren) is var lage && lage != _fahrzeitenLage)
+        {
+            _fahrzeiten.Clear();
+            _fahrzeitenLage = lage;
+        }
         if (!_fahrzeiten.TryGetValue(betrieb, out var jeArt))
             _fahrzeiten[betrieb] = jeArt = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
         if (!jeArt.TryGetValue(karrenTyp, out var zeiten))
