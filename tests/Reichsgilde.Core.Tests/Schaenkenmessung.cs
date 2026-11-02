@@ -16,7 +16,7 @@ using Reichsgilde.Core.Wirtschaft;
 //  Gemessen: Reinvermögen von Spieler und KI-Häusern, Jahr bis Bürger, Umsatz der Schänken (Ausschank und Würfelgeld) des Spielers
 //  und der KI-Häuser, Gäste, „voll“ (Gäste, die in ihrer Schänke keinen Platz fanden) und „ausgefallen“ (nirgends Platz),
 //  dazu je Stunde, wie oft eine Schänke voll war und wie oft mehr Einwohner darin saßen, als sie Einwohner-Plätze hat (mit Bezug 17 nie).
-//  --ohne-plaetze nimmt gastwirtschaft.sitzplaetzeJeStufe aus den Daten (Rechnung wie bis Datenversion 65) und zählt, wie oft eine
+//  --ohne-plaetze nimmt gastwirtschaft.sitzplaetzeJeStufe aus den Daten (Rechnung wie bis Datenversion 66) und zählt, wie oft eine
 //  Schänke mit 20/30/40 Plätzen voll gewesen wäre. Ändert keinen Wert.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -123,7 +123,7 @@ static class Schaenkenmessung
         return ergebnisse.Values.Any(x => x.P.Fehler is not null) ? 1 : 0;
     }
 
-    /// <summary>Die Wirtschaftsdaten ohne <c>gastwirtschaft.sitzplaetzeJeStufe</c>: Gäste ohne Grenze wie bis Datenversion 65.</summary>
+    /// <summary>Die Wirtschaftsdaten ohne <c>gastwirtschaft.sitzplaetzeJeStufe</c>: Gäste ohne Grenze wie bis Datenversion 66.</summary>
     static string OhnePlaetze(string json)
     {
         var knoten = JsonNode.Parse(json)!.AsObject();

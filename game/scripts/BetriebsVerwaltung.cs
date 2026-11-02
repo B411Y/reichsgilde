@@ -494,7 +494,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         {
             var zeile = $"Plätze: {plaetze.Belegt} belegt / {plaetze.Frei} frei (von {plaetze.Plaetze})";
             if (jetzt.Voll > 0)
-                zeile += $" · heute abgewiesen: {jetzt.Voll}" + (jetzt.Ausgefallen > 0 ? $" (davon {jetzt.Ausgefallen} ohne Platz in der ganzen Stadt)" : "");
+                zeile += $" · heute kein Platz: {jetzt.Voll}" + (jetzt.Ausgefallen > 0 ? $" (davon {jetzt.Ausgefallen} ohne Platz in der ganzen Stadt)" : "");
             zeilen.Add(zeile);
         }
         zeilen.Add(g.HatStammtisch(b)
@@ -505,7 +505,7 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (_gaesteText.Text != text) _gaesteText.Text = text;
         _gaesteText.TooltipText = "Die Gastwirtschaft: Gäste kommen nach Lage und Konkurrenz und trinken, was der Ausschank bietet; Buchführung des laufenden Jahres und des Vorjahrs.\n" +
                                   "Plätze: So viele Gäste passen gleichzeitig in die Schänke; „belegt“ ist die Schätzung für die laufende Stunde. " +
-                                  "Abgewiesen: Gäste, die heute keinen Platz fanden und in eine andere Schänke gingen – mehr Platz gibt es mit dem Ausbau.";
+                                  "Kein Platz: Gäste, die heute hier keinen Platz fanden und in eine andere Schänke gingen oder ganz ausblieben – mehr Platz gibt es mit dem Ausbau.";
 
         var gebucht = g.BardeGebucht(b);
         var knopf = gebucht ? "Barde spielt heute Abend ♪" : $"Barde einladen ({Zahlenformat.Ganz(d.Barde.Kosten)} {waehrung})";

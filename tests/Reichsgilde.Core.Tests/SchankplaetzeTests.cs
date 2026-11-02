@@ -5,7 +5,7 @@ using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
 /// Sitzplätze der Schänken (Datenversion 67, Entscheidung des Nutzers 1.11.2026): Schänke 20, Wirtshaus 30, Gasthaus 40. Wer keinen Platz findet,
-/// geht in die nächste freie Schänke; ist überall voll, fällt der Besuch aus. Ohne Sitzplätze in den Daten wie bis Datenversion 65.
+/// geht in die nächste freie Schänke; ist überall voll, fällt der Besuch aus. Ohne Sitzplätze in den Daten wie bis Datenversion 66.
 /// </summary>
 static class SchankplaetzeTests
 {
@@ -89,7 +89,7 @@ static class SchankplaetzeTests
             var platz = g.Platzbelegung(s)!;
             Pruefe.Gleich(new Schankplaetze(20, 20, 0), platz);
 
-            // Ohne Sitzplätze kommen alle (wie bis Datenversion 65).
+            // Ohne Sitzplätze kommen alle (wie bis Datenversion 66).
             var alt = NeueSimulation(OhnePlaetze.Value);
             var (w2, k2, s2) = Wirt(alt);
             Pruefe.Wahr(w2.Ausfuehren(k2, new BardeEinladen(s2.Name)).Erfolg, "Barde");

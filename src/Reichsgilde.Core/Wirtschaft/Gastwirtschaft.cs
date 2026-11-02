@@ -78,7 +78,7 @@ public sealed class GastwirtschaftDaten
 
     /// <summary>
     /// Sitzplätze je Ausbaustufe (Schänke, Wirtshaus, Gasthaus; ab Datenversion 67: 20, 30, 40). So viele Gäste sitzen in einer Stunde
-    /// höchstens in der Schänke (ein Gast bleibt etwa eine Stunde). Leer = ohne Grenze wie bis Datenversion 65 (alte Spielstände bringen
+    /// höchstens in der Schänke (ein Gast bleibt etwa eine Stunde). Leer = ohne Grenze wie bis Datenversion 66 (alte Spielstände bringen
     /// ihre Daten mit und rechnen weiter wie damals).
     /// </summary>
     public List<int> SitzplaetzeJeStufe { get; init; } = new();
@@ -88,7 +88,7 @@ public sealed class GastwirtschaftDaten
     /// Gäste der Wirtschaft (am Nachmittag sitzen bis zu 98 % von ihnen in einer Schänke, es kommen aber nur 8,6–17 Gäste je Stunde). Eine Schänke
     /// nimmt darum ⌈Plätze × Einwohner ÷ dieser Wert⌉ Einwohner auf. Mit 17 (Gäste der vollsten Stunde, 120 × 2 ÷ 14) und mindestens 20 Plätzen
     /// sind das immer mehr Einwohner, als die Stadt hat: Die Einwohner-Grenze greift mit den Spieldaten nie, die Kopplung an die Einwohner
-    /// wirkt wie bis Datenversion 65, und nur die Gäste sind durch die Sitzplätze begrenzt. Sie greift erst bei einem Wert über den kleinsten
+    /// wirkt wie bis Datenversion 66, und nur die Gäste sind durch die Sitzplätze begrenzt. Sie greift erst bei einem Wert über den kleinsten
     /// Sitzplätzen (20); 0 = die Sitzplätze selbst (so prüfen es die Tests).
     /// </summary>
     public int EinwohnerBezug { get; init; }
@@ -220,7 +220,7 @@ public sealed class Gastwirtschaft
         return bezug <= 0 ? p : (int)(((long)p * einwohner + bezug - 1) / bezug);
     }
 
-    /// <summary>Erwartete Gäste im Jahr nach der Anziehung, ohne Sitzplätze und ohne Barde (so rechnete <see cref="ErwarteteGaeste"/> bis Datenversion 65).</summary>
+    /// <summary>Erwartete Gäste im Jahr nach der Anziehung, ohne Sitzplätze und ohne Barde (so rechnete <see cref="ErwarteteGaeste"/> bis Datenversion 66).</summary>
     private double GaesteNachAnziehung(Betrieb b)
     {
         var alle = Schaenken.Append(b).Distinct().Sum(Anziehung);
@@ -362,7 +362,7 @@ public sealed class Gastwirtschaft
     /// Die Gäste der Stunde setzen sich (ab Datenversion 67 mit Sitzplätzen): Jede Schänke nimmt so viele, wie sie Plätze hat. Wer in seiner
     /// Schänke keinen Platz findet, geht in die nächste freie – die anziehendste mit freiem Platz (bei Gleichstand nach dem Namen) – und zahlt
     /// dort deren Zeche. Ist überall voll, fällt der Besuch aus; er wird nicht auf später verschoben (voll ist es zur Abendspitze, und die
-    /// Stunden danach bis zum Schankschluss sind genauso voll). Ohne Sitzplätze in den Daten genau wie bis Datenversion 65.
+    /// Stunden danach bis zum Schankschluss sind genauso voll). Ohne Sitzplätze in den Daten genau wie bis Datenversion 66.
     /// </summary>
     private void Platznehmen(List<Betrieb> schaenken, int[] kommen, bool[] barden)
     {
@@ -377,9 +377,9 @@ public sealed class Gastwirtschaft
         }
         if (uebrig.All(u => u == 0)) return;
         // In der Reihenfolge, in der eine Schänke nach der anderen ausweicht: die anziehendste zuerst, bei Gleichstand nach dem Namen;
-        // nur Schänken, die etwas zum Ausschenken haben (in eine ohne Ware geht keiner hinüber).
+        // nur Schänken, die etwas zum Ausschenken haben (in eine ohne Ware geht keiner hinüber; geprüft bei jedem Gast, weil eine Schänke
+        // in derselben Stunde leer werden kann – sonst zählte der Gast hier als „kein Platz“ und dort noch einmal als „ohne Ware“).
         var reihe = Enumerable.Range(0, schaenken.Count)
-            .Where(i => Daten.Ausschank.Any(x => schaenken[i].ImLager(x) > 0))
             .OrderByDescending(i => Anziehung(schaenken[i])).ThenBy(i => schaenken[i].Name, StringComparer.Ordinal).ToList();
         for (var i = 0; i < schaenken.Count; i++)
         {
@@ -388,7 +388,7 @@ public sealed class Gastwirtschaft
             var ausgefallen = 0;
             for (var n = 0; n < uebrig[i]; n++)
             {
-                var ziel = reihe.FirstOrDefault(j => j != i && frei[j] > 0, -1);
+                var ziel = reihe.FirstOrDefault(j => j != i && frei[j] > 0 && Daten.Ausschank.Any(x => schaenken[j].ImLager(x) > 0), -1);
                 if (ziel < 0)
                 {
                     ausgefallen++;
