@@ -109,7 +109,8 @@ E5_GRUNDKOPF3 = {
               "fenster_groesse": 0.09, "limbus_saum": 0.2, "iris_hell": 0.12,
               # Glanzpunkt tiefer (bei mandel und schlupf lag er unter dem Oberlid und wurde mit verschattet)
               "fenster_richtung": [-0.22, 0.06, 0.97]},
-    "haut": {"fein": 0.7, "poren_faktor": 1.1},
+    # Runde 1 (alle: „Haut zu glatt“): feine Lage und Poren stärker
+    "haut": {"fein": 1.0, "poren_faktor": 1.25},
     # Messung T400 (Commit 290cde1e): anteilige Deckung kostet im Haar +18 ms (die Tiefen-Vorstufe greift bei Alpha < 1
     # nicht mehr, jede Haarlage wird gemischt) – aus; der Schalter bleibt für eine billigere Lösung
     "haar_breite_deckung": 0.0,

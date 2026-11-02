@@ -1652,3 +1652,21 @@ die regeln6.json von glb6h bitgleich).
 - **Vorfall-Schutz**: glb6i entstand mit `cp -rL` (echte Dateien); `mischen.sh` und das Kämmen verweigern, wenn im Ordner
   eine Verknüpfung liegt. Die Dateien von glb6, glb6b2, glb6d–glb6h und glb6p_g sind nach allen Läufen unverändert
   (Größe und Zeitstempel aller 907 Dateien gegen den Schnappschuss vom Anfang).
+
+### Prüfung
+
+Panel je Runde: drei frische blinde Prüfer wie in Grundkopf 2 (Köpfe A/B, Augen nah A/B, Fratzen-Bogen als Sätze X/Y mit
+je 40 Köpfen: dieselben Saaten wie Grundkopf 2, die 4 extremsten von 400 je Geschlecht und 16 zufällige), dazu
+**Lidformen**: 18 Augenpaare (6 Personen × 3 Formen, gemischt), jedes einer Form zuzuordnen. Schlüssel
+`~/werkzeuge/charakter/bilder/phase6/GK3/schluessel_r<n>.json` (SHA-256 r1 `bbccdb85…dd485e59ab`).
+
+| Runde | Mann vorher → neu | Frau vorher → neu | Augen vorher → neu | Fratzen deutlich vorher → neu (je Prüfer) | Lidformen richtig (je Prüfer, von 18) |
+|---|---|---|---|---|---|
+| 1 (glb6i, Commit 290cde1e) | 5,3 → 5,5 | 4,7 → 4,0 | 5,0 → 5,5 | 0 / 0 / 0 → 0 / 0 / 0 | 10 / 10 / 11 (57 %, Zufall 33 %) |
+
+- Runde 1: Frau schlechter – alle drei sahen bei „neu“ eine **harte Falte von der Wange zum Kiefer** (schräg und
+  Profil). Ursache: die Mulde unter dem neuen Jochbein und die Stufe der Kieferform auf Höhe der Nasenbasis (Übergang
+  nur 10 mm). Runde 2: Jochbein ohne Mulde, Kiefer mit 25 mm Übergang. Lidformen: rund wird erkannt (14 von 18), mandel
+  und schlupf werden verwechselt (7 bzw. 10 von 18); rund „starrt“ (zu viel Weiß). Runde 2: rund 0,5 statt 0,7,
+  mandel 1,0 statt 0,75, schlupf 0,85–0,95. Glanzpunkt: lag bei mandel und schlupf unter dem Oberlid (tiefer gelegt).
+  Bleibt: Haut zu glatt (alle), Tränenwinkel und Feuchtglanz schwach, Frau „nur über das Haar weiblich“, Vielfalt 3–5.
