@@ -81,6 +81,7 @@ varying vec3 v_welt;
 varying vec3 v_normale;
 varying vec4 v_ecke;                         // Vertexfarbe (siehe oben)
 varying float v_fuss;                        // Höhe des Übergangs am Fuß (m): 0,3 … 1,0 nach der Höhe des Stücks (INSTANCE_CUSTOM.y)
+varying vec2 v_makro;                        // Makrovariation (15 m, 60 m) – im Vertex-Shader, die Netze sind dicht genug
 varying float v_ueber;                       // Höhe über dem Boden unter der Mitte des Stücks (Ersatz ohne Höhenbild)
 
 float hash1(vec3 p) {
@@ -103,7 +104,9 @@ void vertex() {
 	v_normale = normalize(MODEL_NORMAL_MATRIX * NORMAL);   // richtig auch bei ungleich skalierten Stücken
 	v_ecke = COLOR;
 	v_ueber = v_welt.y - (MODEL_MATRIX[3].y + INSTANCE_CUSTOM.x);
-	v_fuss = INSTANCE_CUSTOM.y > 0.0 ? clamp(0.2 * INSTANCE_CUSTOM.y, 0.35, 1.0) : fuss_hoehe;
+	// kleine Steine (Schutt) höchstens 30 % ihrer Höhe, sonst wären sie ganz bodenfarben
+	v_fuss = INSTANCE_CUSTOM.y > 0.0 ? min(clamp(0.2 * INSTANCE_CUSTOM.y, 0.35, 1.0), 0.3 * INSTANCE_CUSTOM.y) : fuss_hoehe;
+	v_makro = vec2(wertrauschen(v_welt * 0.067 + vec3(3.1, 1.7, 5.3)), wertrauschen(v_welt * 0.017 + vec3(7.7, 2.9, 0.4)));
 }
 
 // Neigung aus der Textur: kodiert wie tools/oberflaeche/texturen.py (128 ± 127)
@@ -133,8 +136,8 @@ void fragment() {
 		}
 	}
 	// Makrovariation: zwei große Wellen in der Welt (etwa 15 und 60 m)
-	float m15 = wertrauschen(p * 0.067 + vec3(3.1, 1.7, 5.3));
-	float m60 = wertrauschen(p * 0.017 + vec3(7.7, 2.9, 0.4));
+	float m15 = v_makro.x;
+	float m60 = v_makro.y;
 
 	// ── 0. Gebackene Form (F1) ──
 	vec3 nf = n;                            // Grundform: Normale des Atlas in der Welt
@@ -196,7 +199,7 @@ void fragment() {
 	// dicker und dünner (m60) – so laufen sie durch eine ganze Wand, ohne mit dem Lineal gezogen zu wirken
 	vec3 bn = normalize(band_normale);
 	float welle = 0.25 * sin(dot(p.xz, vec2(0.61, 0.37))) + 0.15 * sin(dot(p, vec3(1.7, 0.3, -1.3)));
-	float lage = dot(p, bn) / band_dicke + (h - 0.5) * 0.45 + welle + (m60 - 0.5) * 2.5;
+	float lage = dot(p, bn) / band_dicke + (h - 0.5) * 0.45 + welle + (m60 - 0.5) * 8.0;
 	float bank = floor(lage);
 	float inBank = fract(lage);
 	float bankHell = hash1(vec3(bank, 13.0, 2.0)) - 0.5;
@@ -310,17 +313,20 @@ void fragment() {
 
 	// ── Fuß (R1): Bodenfarbe in den untersten fuss_hoehe Metern ── Erde und Schutt der Gesteinsart wechseln fleckig, auf der Nord- und Hangseite
 	// Moos; die Grenze franst mit dem Rauschen aus (statt einer Linie dort, wo das Netz den Boden schneidet). Darunter eine dunkle Fuge.
-	float fussRand = ueber + (klumpen - 0.5) * 0.5 * v_fuss + (fleck - 0.5) * 0.2 * v_fuss;
-	float fuss = (1.0 - smoothstep(0.0, v_fuss, fussRand)) * fussAn;
-	vec3 schutt = boden_gestein_an > 0.0 ? boden_gestein_schutt : farbe_dunkel.rgb * 0.8;
-	vec3 erde = vec3(0.085, 0.066, 0.046);
-	vec3 fussFarbe = mix(erde, schutt * (0.7 + 0.5 * h), smoothstep(0.35, 0.65, wertrauschen(p * 0.9 + 2.0) * 0.7 + h * 0.3));
-	fussFarbe = mix(fussFarbe, moosFarbe * 0.85, clamp((0.35 + nord + 0.6 * tiefeStueck) * moos, 0.0, 0.75) * smoothstep(0.4, 0.6, klumpen + 0.15));
-	// ganz unten (erstes Drittel) dunkles Grün wie Gras und Moos am Boden, darüber Erde und Schutt
-	fussFarbe = mix(fussFarbe, vec3(0.06, 0.085, 0.03) * (0.8 + 0.4 * h), (1.0 - smoothstep(0.0, 0.35 * v_fuss, fussRand)) * 0.7 * bewuchs);
-	albedo = mix(albedo, fussFarbe, fuss * 0.92 * bewuchs);
-	ao *= mix(1.0, mix(0.55, 1.0, smoothstep(0.0, 0.35, ueber + 0.05)), fussAn);
-	nw = normalize(mix(nw, nf, fuss * 0.5));
+	float fuss = 0.0;
+	if (fussAn > 0.0 && ueber < 1.5 * v_fuss + 0.6) {   // nur am Fuß rechnen (einheitlicher Zweig je Stück)
+		float fussRand = ueber + (klumpen - 0.5) * 0.5 * v_fuss + (fleck - 0.5) * 0.2 * v_fuss;
+		fuss = (1.0 - smoothstep(0.0, v_fuss, fussRand)) * fussAn;
+		vec3 schutt = boden_gestein_an > 0.0 ? boden_gestein_schutt : farbe_dunkel.rgb * 0.8;
+		vec3 erde = vec3(0.085, 0.066, 0.046);
+		vec3 fussFarbe = mix(erde, schutt * (0.7 + 0.5 * h), smoothstep(0.35, 0.65, wertrauschen(p * 0.9 + 2.0) * 0.7 + h * 0.3));
+		fussFarbe = mix(fussFarbe, moosFarbe * 0.85, clamp((0.35 + nord + 0.6 * tiefeStueck) * moos, 0.0, 0.75) * smoothstep(0.4, 0.6, klumpen + 0.15));
+		// ganz unten (erstes Drittel) dunkles Grün wie Gras und Moos am Boden, darüber Erde und Schutt
+		fussFarbe = mix(fussFarbe, jahreszeit_wiese(vec3(0.06, 0.085, 0.03)) * (0.8 + 0.4 * h), (1.0 - smoothstep(0.0, 0.35 * v_fuss, fussRand)) * 0.7 * bewuchs);
+		albedo = mix(albedo, fussFarbe, fuss * 0.92 * bewuchs);
+		ao *= mix(1.0, mix(0.55, 1.0, smoothstep(0.0, 0.35, ueber + 0.05)), fussAn);
+		nw = normalize(mix(nw, nf, fuss * 0.5));
+	}
 
 	float rough = clamp(mix(rau, 1.0, max(max(moosMaske, efeuMaske), max(fugeMaske, fuss))), 0.0, 1.0);
 

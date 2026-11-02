@@ -342,7 +342,7 @@ Schicht felsgrund(Schicht s, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	float t = clamp(r2 * 0.35 + r3 * 0.25 + r1 * 0.4, 0.0, 1.0);
 	vec3 g = mix(boden_gestein_dunkel * 0.6, boden_gestein_hell * 0.88, smoothstep(0.15, 0.9, t));
 	g *= 0.6 + 0.8 * smoothstep(0.04, 0.45, lk);                                   // Körnung
-	float nah = 1.0 - smoothstep(0.04, 0.15, max(length(dx), length(dy)));       // Meter je Bildpunkt: Risse nur nah
+	float nah = 1.0 - smoothstep(0.015, 0.05, max(length(dx), length(dy)));      // Meter je Bildpunkt: Risse nur nah (dünner als ein Bildpunkt flimmerten sie)
 	float riss = (1.0 - smoothstep(0.0, 0.025, abs(rausch(p * 0.9 + 5.5) - 0.5))) * smoothstep(0.35, 0.6, r1)
 		* smoothstep(0.42, 0.58, rausch(p * 2.3 + 1.9)) * nah;                    // kurze Stücke, nicht durchgezogen
 	g *= 1.0 - 0.5 * riss;
@@ -352,7 +352,7 @@ Schicht felsgrund(Schicht s, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	// Erde und Moos in Flecken (etwa 2–3 m): Der Fels liegt nie ganz blank
 	float fleck = rausch(p * 0.33 + 12.7);
 	g = mix(g, vec3(0.075, 0.062, 0.045) * (0.8 + 0.5 * lk), smoothstep(0.62, 0.8, fleck) * 0.6);
-	g = mix(g, vec3(0.08, 0.1, 0.035) * (0.7 + 0.6 * lk), smoothstep(0.7, 0.85, 1.0 - fleck + (r3 - 0.5) * 0.3) * 0.55);
+	g = mix(g, jahreszeit_wiese(vec3(0.08, 0.1, 0.035)) * (0.7 + 0.6 * lk), smoothstep(0.7, 0.85, 1.0 - fleck + (r3 - 0.5) * 0.3) * 0.55);
 	s.fh.rgb = mix(s.fh.rgb, g, boden_gestein_an);
 	s.fh.a = mix(s.fh.a, clamp(0.25 + 0.45 * r2 + 0.2 * r1 - 0.3 * senke + 0.2 * k.a * senke - 0.2 * riss, 0.0, 1.0), boden_gestein_an);
 	s.n = normalize(mix(s.n, n, 0.7 * boden_gestein_an));
