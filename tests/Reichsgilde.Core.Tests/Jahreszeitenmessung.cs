@@ -69,6 +69,8 @@ static class Jahreszeitenmessung
         public readonly Dictionary<Schiff, Fahrtbuch> Fahrt = new(ReferenceEqualityComparer.Instance);
         /// <summary>Erwarteter Gewinn der letzten Fahrtplanung je Schiffsname (alle Häuser).</summary>
         public readonly Dictionary<string, double> Erwartung = new(StringComparer.Ordinal);
+        /// <summary>Schiffe, die beim Losschicken (Meldung der KI) schon zur selben Stadt fuhren, je Schiffsname.</summary>
+        public readonly Dictionary<string, int> MitfahrerBeimAuftrag = new(StringComparer.Ordinal);
         /// <summary>Fahrten aller Schiffe nach Gruppen („alle|Winter|quer“, „alle|Eis“, „spieler|…“): Anzahl, erwartet, Ertrag.</summary>
         public readonly SortedDictionary<string, double[]> Fahrtgruppen = new(StringComparer.Ordinal);
         /// <summary>Schiffskäufe am Ende eines Jahres dieser Jahreszeit: des Spielers und aller KI-Häuser; dazu der erwartete Jahresgewinn des Spielers.</summary>
@@ -95,10 +97,12 @@ static class Jahreszeitenmessung
         var folgen = (Schalter("ohne-folge") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
         var nurBeruf = Schalter("beruf");
         var ohneSchiffe = args.Contains("--ohne-schiffe"); // ohne Schiffshandel für alle (Zerlegung)
+        var ohneVerkehr = args.Contains("--ohne-verkehr"); // schiffshandel.verkehrBeachten aus: jedes Schiff plant, als wäre es allein (wie bis zum Fix)
         if (nurBeruf is not (null or "Schmied" or "Wirt" or "Ausbau")) throw new ArgumentException($"Unbekannter Aufbau „{nurBeruf}“ (Schmied, Wirt oder Ausbau).");
         if (ohne && folgen.Length > 0) throw new ArgumentException("--ohne-folge geht nur mit den Jahreszeiten, nicht zusammen mit --ohne-jahreszeiten.");
         var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null,
-            anpassen: ohneVorrat || folgen.Length > 0 ? json => OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen) : null);
+            anpassen: ohneVorrat || folgen.Length > 0 || ohneVerkehr
+                ? json => OhneVerkehr(OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen), ohneVerkehr) : null);
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         var aufbauten = new List<Messaufbau>();
@@ -301,6 +305,7 @@ static class Jahreszeitenmessung
         public int Jahreszeit, Jahr, Stunde;
         public double Erwartet, Ertrag, Zuletzt;
         public SchiffZustand Zustand;
+        public int FahrtenGesehen;
         public bool Eis, Fest;
         /// <summary>So viele andere Schiffe fuhren beim Auslaufen schon zur selben Stadt (beladen oder unterwegs, noch nicht dort).</summary>
         public int Mitfahrer;
@@ -312,6 +317,29 @@ static class Jahreszeitenmessung
     /// Meldung der KI). Fährt ein Karren des Spielers vom Markt ab, ist seine Ladung genau das, was er dort gekauft hat (verkauft und abgeladen wird
     /// vorher) – Stück und Gulden zum Marktpreis dieser Minute. Dazu Köpfe und gewählte Waren der Betriebe des Spielers zu jeder vollen Stunde.
     /// </summary>
+    /// <summary>Eine heimgekehrte Fahrt zählen: beim Spieler je Jahreszeit, bei allen Schiffen in den Gruppen.</summary>
+    static void FahrtAbschliessen(Zaehler z, Fahrtbuch f, bool istSpieler, int jahrJetzt)
+    {
+        var k = f.Jahreszeit * 2 + (jahrJetzt != f.Jahr ? 1 : 0);
+        if (istSpieler)
+        {
+            z.FahrtAnzahl[k]++;
+            if (!double.IsNaN(f.Erwartet)) z.FahrtErwartet[k] += f.Erwartet;
+            z.FahrtErtrag[k] += f.Ertrag;
+        }
+        var jz = ((Jahreszeit)f.Jahreszeit).ToString();
+        var quer = jahrJetzt != f.Jahr ? "quer" : "im Jahr";
+        var stundenGruppe = f.Stunde < 10 ? "04-10" : f.Stunde < 16 ? "10-16" : "16-23";
+        var mit = f.Mitfahrer >= 3 ? "3+" : f.Mitfahrer.ToString();
+        foreach (var g in new[] { $"alle|{jz}|{quer}", $"alle|{jz}|Mitfahrer {mit}", $"mitfahrer|{mit}", $"mitfahrer|{f.Ziel}|{mit}", $"alle|{jz}|{(f.Eis ? "Eis" : "ohne Eis")}",
+                     $"alle|{jz}|{(f.Fest ? "Festmarkt" : "ohne Festmarkt")}", $"alle|{jz}|{f.Ziel}", $"alle|{jz}|ab {stundenGruppe}", $"alle|{jz}" })
+        {
+            if (!z.Fahrtgruppen.TryGetValue(g, out var a)) z.Fahrtgruppen[g] = a = new double[3];
+            a[0]++; a[1] += double.IsNaN(f.Erwartet) ? 0 : f.Erwartet; a[2] += f.Ertrag;
+        }
+        f.Jahr = -1;
+    }
+
     static void Minute(Stadtwirtschaft w, Zaehler z)
     {
         var spieler = w.Konten[0];
@@ -330,6 +358,10 @@ static class Jahreszeitenmessung
                     var name = m[(s0 + 10)..s1];
                     var wert = new string(m[(s2 + 20)..].TakeWhile(c => char.IsDigit(c) || c is '.' or '-' or '−').Where(c => c != '.').ToArray()).Replace('−', '-');
                     if (double.TryParse(wert, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var e2)) z.Erwartung[name] = e2;
+                    // Die Meldung kommt gleich nach dem Auftrag: Das Schiff wird schon beladen, die nach ihm im selben Takt losgeschickten noch nicht.
+                    if (w.Schiffahrt.Schiffe.FirstOrDefault(x => x.Name == name) is { Auftrag: { } a } schiff)
+                        z.MitfahrerBeimAuftrag[name] = w.Schiffahrt.Schiffe.Count(x => x != schiff && x.Auftrag?.Ziel == a.Ziel
+                                                                                       && x.Zustand is SchiffZustand.Beladen or SchiffZustand.Hinfahrt);
                 }
             };
         }
@@ -340,42 +372,28 @@ static class Jahreszeitenmessung
         {
             var istSpieler = schiff.Besitzer == spieler;
             if (!z.Fahrt.TryGetValue(schiff, out var f))
-                z.Fahrt[schiff] = f = new Fahrtbuch { Zustand = schiff.Zustand, Zuletzt = schiff.ErtragLaufend, Jahr = -1 };
-            // Ertrag seit der letzten Minute; am Jahreswechsel stand er zuletzt im Vorjahr (ErtragVorjahr = Laufend − Unterhalt)
-            var vorher = neuesJahr ? (schiff.ErtragVorjahr ?? 0) + schiff.Daten.Unterhalt : f.Zuletzt;
+                z.Fahrt[schiff] = f = new Fahrtbuch { Zustand = schiff.Zustand, Zuletzt = schiff.ErtragLaufend, Jahr = -1, FahrtenGesehen = schiff.Fahrten };
+            // Ertrag seit der letzten Minute; am Jahreswechsel stand er zuletzt im Vorjahr (ErtragVorjahr = Laufend − Unterhalt; den Unterhalt zahlt
+            // nur ein Besitzer, der noch im Spiel ist – ist er es jetzt nicht mehr, war er es am Jahresende meist auch nicht)
+            var vorher = neuesJahr ? (schiff.ErtragVorjahr ?? 0) + (schiff.Besitzer.IstAktiv ? schiff.Daten.Unterhalt : 0) : f.Zuletzt;
             var zuwachs = (neuesJahr ? vorher - f.Zuletzt + schiff.ErtragLaufend : schiff.ErtragLaufend - f.Zuletzt);
             f.Zuletzt = schiff.ErtragLaufend;
             if (f.Jahr >= 0) f.Ertrag += zuwachs;
             if (f.Jahr >= 0 && w.Jahreszeiten.FlussZugefroren) f.Eis = true;
-            if (f.Zustand == SchiffZustand.AmKai && schiff.Zustand != SchiffZustand.AmKai)
+            // Heimgekehrt (der Zähler der Fahrten stieg): Fahrt abschließen – auch wenn das Schiff in derselben Minute schon wieder ausläuft;
+            // dessen Hinfracht steht dann noch in der alten Fahrt (selten: Heimkehr im letzten Takt des Jahres oder wiederkehrender Auftrag).
+            var heim = schiff.Fahrten != f.FahrtenGesehen;
+            f.FahrtenGesehen = schiff.Fahrten;
+            if (heim && f.Jahr >= 0) FahrtAbschliessen(z, f, istSpieler, jahrJetzt);
+            if (f.Jahr < 0 && schiff.Zustand != SchiffZustand.AmKai && (f.Zustand == SchiffZustand.AmKai || heim))
             {
                 f.Jahr = jahrJetzt; f.Jahreszeit = (int)w.Uhr.Jahreszeit; f.Ertrag = 0; f.Stunde = w.Uhr.UhrzeitInMinuten / 60;
                 f.Eis = false; f.Fest = w.Jahreszeiten.FestmarktJetzt is not null; f.Ziel = schiff.Auftrag?.Ziel ?? "";
-                f.Mitfahrer = w.Schiffahrt.Schiffe.Count(x => x != schiff && x.Auftrag?.Ziel == f.Ziel && x.Zustand is SchiffZustand.Beladen or SchiffZustand.Hinfahrt);
+                f.Mitfahrer = z.MitfahrerBeimAuftrag.Remove(schiff.Name, out var mf) ? mf // ohne Meldung (z. B. wiederkehrender Auftrag) gezählt vor dem Takt
+                    : w.Schiffahrt.Schiffe.Count(x => x != schiff && x.Auftrag?.Ziel == f.Ziel && x.Zustand is SchiffZustand.Beladen or SchiffZustand.Hinfahrt);
                 f.Erwartet = z.Erwartung.Remove(schiff.Name, out var e) ? e : double.NaN;
                 // die Hinfracht dieser Minute steht schon im Ertrag (vor dem Takt gebucht)
                 f.Ertrag = schiff.ErtragLaufend - (f.Zuletzt - zuwachs);
-            }
-            else if (f.Zustand != SchiffZustand.AmKai && schiff.Zustand == SchiffZustand.AmKai && f.Jahr >= 0)
-            {
-                var k = f.Jahreszeit * 2 + (jahrJetzt != f.Jahr ? 1 : 0);
-                if (istSpieler)
-                {
-                    z.FahrtAnzahl[k]++;
-                    if (!double.IsNaN(f.Erwartet)) z.FahrtErwartet[k] += f.Erwartet;
-                    z.FahrtErtrag[k] += f.Ertrag;
-                }
-                var jz = ((Jahreszeit)f.Jahreszeit).ToString();
-                var quer = jahrJetzt != f.Jahr ? "quer" : "im Jahr";
-                var stundenGruppe = f.Stunde < 10 ? "04-10" : f.Stunde < 16 ? "10-16" : "16-23";
-                var mit = f.Mitfahrer >= 3 ? "3+" : f.Mitfahrer.ToString();
-                foreach (var g in new[] { $"alle|{jz}|{quer}", $"alle|{jz}|Mitfahrer {mit}", $"mitfahrer|{mit}", $"mitfahrer|{f.Ziel}|{mit}", $"alle|{jz}|{(f.Eis ? "Eis" : "ohne Eis")}", $"alle|{jz}|{(f.Fest ? "Festmarkt" : "ohne Festmarkt")}",
-                             $"alle|{jz}|{f.Ziel}", $"alle|{jz}|ab {stundenGruppe}", $"alle|{jz}" })
-                {
-                    if (!z.Fahrtgruppen.TryGetValue(g, out var a)) z.Fahrtgruppen[g] = a = new double[3];
-                    a[0]++; a[1] += double.IsNaN(f.Erwartet) ? 0 : f.Erwartet; a[2] += f.Ertrag;
-                }
-                f.Jahr = -1;
             }
             f.Zustand = schiff.Zustand;
         }
@@ -433,6 +451,14 @@ static class Jahreszeitenmessung
         return wurzel.ToJsonString();
     }
 
+    static string OhneVerkehr(string json, bool ohne)
+    {
+        if (!ohne) return json;
+        var knoten = JsonNode.Parse(json)!.AsObject();
+        knoten["schiffshandel"]!.AsObject().Remove("verkehrBeachten");
+        return knoten.ToJsonString();
+    }
+
     static string OhneVorrat(string json)
     {
         var knoten = JsonNode.Parse(json)!.AsObject();
@@ -450,6 +476,11 @@ static class Jahreszeitenmessung
         z.Preis[j, Waren.Length] += w.Markt.Staende.Average(s => s.Preisfaktor);
         if (w.Jahreszeiten.FlussZugefroren) z.Eisstunden++;
     }
+
+    /// <summary>Was diese Rechnung am Bargeld und an den Forderungen ändert (alle Posten mit Vorzeichen, ohne Hauswert).</summary>
+    static double Netto(Jahresbilanz v) =>
+        v.Umsatz - v.Zutaten - v.Personal - v.Fixkosten - v.Steuer - v.Schaden - v.Transport - v.Investitionen
+        - v.Standesgebuehren + v.Amtseinkommen - v.Geschenke - v.Familie - v.Gericht - v.Gaunerei - v.Zinsen + v.Verkaeufe;
 
     /// <summary>Am Ende jedes Jahres: Umsatz der Jahresrechnung von Spieler und KI-Häusern und der Schiffsertrag – nach der Jahreszeit des Jahres.</summary>
     static void Jahresende(Stadtwirtschaft w, Zaehler z)
@@ -470,9 +501,11 @@ static class Jahreszeitenmessung
             var eigene = w.Betriebe.Where(b => b.Konto == spieler).ToList();
             var ausschank = eigene.Where(b => b.IstSchaenke).Sum(b => w.Gastwirtschaft.Vorjahr(b) is { } g ? g.Einnahmen + g.Wuerfelgeld : 0);
             var hauswert = spieler.Hauswert - z.HauswertVorher;
-            var rein = spieler.Reinvermoegen - z.ReinVorher;
-            var gebucht = v.Umsatz - v.Zutaten - v.Personal - v.Fixkosten - v.Steuer - v.Schaden - v.Transport - v.Investitionen + hauswert
-                          - v.Standesgebuehren + v.Amtseinkommen - v.Geschenke - v.Familie - v.Gericht - v.Gaunerei - v.Zinsen + v.Verkaeufe;
+            // Was nach dem Abschluss des Kontos gebucht wurde (Jahresende der KI: Schiff, Einrichtung, Karren, Wohnhaus …; Ratssitzung), steht schon im
+            // Laufend des neuen Jahres und dort in dessen Rechnung – hier gehört es nicht in den Zuwachs (den Hauswert behandelt der Hauswert-Posten)
+            var nach = Netto(spieler.Laufend);
+            var rein = spieler.Reinvermoegen - nach - z.ReinVorher;
+            var gebucht = Netto(v) + hauswert;
             var lager = eigene.Sum(b => b.Lager.Sum(x => x.Value * w.Daten.Waren[x.Key].Grundpreis)
                                         + b.Karren.Sum(k => k.Ladung.Sum(x => x.Value * w.Daten.Waren[x.Key].Grundpreis)));
             var werte = new double[Postennamen.Length];
@@ -504,7 +537,7 @@ static class Jahreszeitenmessung
             z.SchiffeSpielerVorher = sp; z.SchiffeKiVorher = ki; z.LetzteKaufErwartung = 0;
             z.SchiffErtrag[j] += w.Schiffahrt.SchiffeVon(spieler).Sum(s => s.ErtragVorjahr ?? 0);
             z.Stufe[j] += eigene.Where(b => b.InDerStadt).Select(b => b.Stufe).DefaultIfEmpty(0).Max();
-            z.ReinVorher = spieler.Reinvermoegen;
+            z.ReinVorher = spieler.Reinvermoegen - nach;
             z.HauswertVorher = spieler.Hauswert;
         }
         if (j == (int)Jahreszeit.Winter)
