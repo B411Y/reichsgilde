@@ -252,6 +252,41 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
+| Belegte Streifen | Jeder Weg über die Fläche belegt seinen Streifen (0,7 m halb breit, etwa 1 je Weg, Halbwertszeit 15 s); A* rechnet jeden Schritt mal (1 + 1,2 × Belegung), `Gefaechert` nimmt unter fünf Seiten die am wenigsten belegte (bei Gleichstand die eigene). So weichen Ströme einander aus. | 1.11.2026 |
+| Stehende | Einmal je Sekunde kennt jede Fläche die Stehenden und Sitzenden: bis 1,1 m um sie teurer (bis +4), gerade Linien halten 0,6 m Abstand, außer die Person steht bis 1,3 m an Anfang oder Ziel (Nachbar am Stand, Partner im Gespräch). Gemerkte Wege gelten bis zur nächsten Meldung. | 1.11.2026 |
+| Brunnenrand | Niemand setzt sich mehr darauf (die Hüfte läge auf 0,78 m, die Beine hingen). Stattdessen lehnt man stehend mit dem Rücken am Becken (0,26 m vor dem Rand, Blick nach außen, wenig Umschauen). Gesessen wird nur auf Bänken. | 1.11.2026 |
+| Messung | Greybox 10 Uhr, drei Läufe zu 170 s, Stand dd873145, im Mittel je Minute im Bild auf dem Pflaster: Laufende 19,1 (16,2 / 17,5 / 23,5), mit Stehenden 11,0 (12,0 / 10,3 / 10,7); v3 ohne Streifen 29,1 und 13,6 (drei Läufe: 30,4 / 27,5 / 29,3 und 9,7 / 14,4 / 16,8); v2 23,3 und 12,0 (zwei Läufe). Allein redend 0, in Ständen 0 / 0 / 0,4, um den Brunnen gehend 13,9 / 14,9 / 13,7 % (Richtungen etwa 60/40). | 1.11.2026 |
+| Kosten | Profil (`--passantenprofil=1`) Köln Neumarkt 10 Uhr, ohne `--passantennaehe`: 3,7–6,2 ms je Bild für die Passanten (Laufen 1,9–4,3, Pose 0,1–0,5, Ausweichen 0,2–0,5, am Ort bis 0,5), zur vollen Stunde Wege planen ein Bild mit etwa 400 ms (138–152 Wege über die Flächen); im ersten Abschnitt nach dem Laden 15,7 ms. Die Messung selbst (`--passantennaehe=1`) kostete 3–6 ms (Paare über alle Figuren) – die früher genannten 7–14 ms enthielten sie. Eingebaut: Laufende außerhalb des Bildes nur jedes dritte Bild (Laufen, beide Male mit Messung: 3,3–7,3 → 2,2–6,2 ms). Vorschläge siehe Offen. | 1.11.2026 |
+
+### Passanten: Wegsuchen verteilt (PR #283)
+
+Auftrag des Teamleiters 1.11.2026: Weg über den Platz erst beim Losgehen planen, höchstens so viele Wegsuchen je Bild, wie Zeit ist; Ziel kein Einzelbild über 20 ms zur vollen Stunde in Köln.
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weg über den Platz später | Ein neuer Weg des Kerns bekommt zuerst nur das Gassennetz; der Teil auf einem Platz (`PlatzOffen`) wird 20 Spielminuten vor dem Losgehen oder später über die Fläche gesucht (`PlatzNachplanen`, gleiches Tempo: die Laufzeit wächst mit der Länge). Beginnt der Weg auf dem Platz und ist im Bild keine Zeit mehr, bleibt die Figur ein Bild länger stehen. Ein Anschluss im Bild (`Weitergehen`) sucht den Platz gleich, wenn die Figur auf ihm ist, sonst ebenso später. | 1.11.2026 |
+| Höchstens so viel je Bild | Wegsuchen (neue Wege des Kerns samt Gassennetz und Mittellinie mit Bodenmetern, Wege über die Flächen, Bummelgänge) teilen sich 2 ms je Bild (`WegsucheJeBildMs`); die erste läuft immer, der Rest im nächsten Bild. Bis dahin bleibt alles, wie es war (wer geht, geht den alten Weg weiter). | 1.11.2026 |
+| Bodenmeter langer Wege | Stützpunkte alle 0,1 m bis 60 m Weg, bis 150 m alle 0,25 m, darüber alle 0,5 m (`Passantenspur.BodenschrittFuer`); die Figur ist dabei höchstens 8 bzw. 10 cm längs des Weges anders (Test `PassantenspurLangTests`). Stehende auf der Fläche werden je Linie einmal genau geprüft (nicht je Abtastpunkt). | 1.11.2026 |
+| Messung | `--passantenprofil=1` (jetzt mit dem teuersten Bild je Abschnitt, dem teuersten Weg im Netz, über die Fläche und der teuersten Bodenmeter-Tabelle), Köln Neumarkt 10 Uhr, ohne `--passantennaehe`, Läufe von 110 s. Schlimmstes Einzelbild der Passanten zur vollen Stunde (11 Uhr): vorher 302,7 ms (Wege planen 144 ms, Laufen 84 ms), nachher 26,6 und 35,6 ms in zwei Läufen; übrige Abschnitte 16–23 ms; im Mittel 4–7 ms je Bild. Das erste Bild nach dem Laden bleibt lang (über 1 s, alle Figuren bekommen ihren ersten Weg). Ziel 20 ms nicht erreicht, siehe Offen. | 1.11.2026 |
+
+### Passanten: Netzwege gemerkt, Bodenmeter stückweise (PR #283)
+
+Auftrag des Teamleiters 1.11.2026.
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Netzwege | `Gassennetz.PfadZwischen` merkt seine Ergebnisse (Anfänge, Enden, Vor- und Nachlauf auf Zentimeter; bis 20 000; neu bei jeder Änderung des Netzes). Teuerster Netzweg zur vollen Stunde 9 → 2–8 ms. | 1.11.2026 |
+| Bodenmeter stückweise | Die Tabelle wird bei der Planung nur angelegt und über die Bilder in Stücken zu 150 Einträgen gefüllt (`BodenmeterFuellen`, wer zuerst losgeht, zuerst, im Budget der Wegsuchen); `Passantenspur.BodenmeterFuellen` gibt genau dieselbe Tabelle wie in einem Zug (Test). Will jemand losgehen, dessen Tabelle fehlt, rechnet er ein Stück und wartet sonst ein Bild; wer schon geht, rechnet den Rest sofort. Teuerste Tabelle im Bild 7–17 → 2–3 ms. | 1.11.2026 |
+| Fläche | A* auf der Fläche mit Belegung und Stehenden: Schätzung doppelt gewichtet und höchstens 4000 Zellen; gelingt der gefächerte Weg nicht, der einfache um die festen Hindernisse (`PfadEinfach`), erst danach die Kreise wie vor v3. `FreieZelle` prüft höchstens 40 Sichtlinien. Wer schon geht und bis 15 m an einem Platz ist, bekommt den Weg über die Fläche sofort (sonst ginge er die rohe Linie durch einen Stand). | 1.11.2026 |
+| Allein redend | Ursache: Wer auf die Planung seines neuen Weges wartete (Budget), wurde ein paar Bilder nicht gestellt und redete weiter, obwohl der Partner schon ging. Jetzt hört sie dann auf (`NochGespraech`). Greybox 10 Uhr: 0. | 1.11.2026 |
+| Messung | Köln Neumarkt, Start 10 Uhr, ohne `--passantennaehe`, zwei Läufe: schlimmstes Einzelbild zur vollen Stunde 26,0 und 32,5 ms (vorher 26,6 / 35,6, ganz am Anfang 302,7), sonst 16–25 ms. Greybox 10 Uhr (mit Messung): Überschneidungen auf dem Pflaster Laufende 18,8, mit Stehenden 8,5 je Minute, allein redend 0, in Ständen 0, schlimmstes Bild 8–22 ms. Ziel 20 ms in Köln zur vollen Stunde nicht ganz erreicht, siehe Offen. | 1.11.2026 |
+
+### Baumodus: Stand im Umriss, Werkstatt-Bauplätze (PR #285)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umriss | Rot/grün nach `Bauwesen.BauVerboten` (erst Bauherr: Stand, Handwerk, Geld; dann der Platz) statt nur `PlatzVerboten` – dieselbe Prüfung wie beim Klick, keine neue Kern-Abfrage | 02.11.2026 |
+| Werkstatt-Bauplatz | Gestrichelter Rand (0,7 m, 2 m je Strich, Eisen und hell im Wechsel) und ein flacher Amboss in der Mitte, Beschriftung mit „nur Werkstätten“; in `BauzoneZeichnen`, also auch in der Kartenwerkstatt. `Stadtansicht.BauzoneUnterMaus` für den Tooltip der Oberfläche | 02.11.2026 |
 | Boden | Den Boden um den Fels malt der Kern (`Felsboden.cs`, siehe `kern.md`); die Darstellung zeichnet ihn mit den vorhandenen Bodentexturen Fels, Kies und Moos | 01.11.2026 |
 | Farbe des Gesteins | Fels im Boden (am Hang und gemalt) nimmt Hell und Dunkel des Grundgesteins an, Kies 40 % von dessen Schuttfarbe; globale Uniforms `boden_gestein_*`, gesetzt aus `Stadtansicht.Felsboden.cs`. Nur auf Karten mit Feld `felsen` – alte Karten sehen aus wie vorher (eigene Wahl) | 01.11.2026 |
 | Schuttsteine | Je Stück kleine Steine der Form `schuttbrocken` im Kegel (`Felsboden.Schuttsteine`), Material des Stücks, ohne Schatten, nur Stufe 0 und 1, nur wo mindestens 20 % Kies liegt (Prüfer-Empfehlung: so passen Steine und gemalter Kegel immer zusammen) | 01.11.2026 |

@@ -45,7 +45,20 @@ public partial class Fensterrahmen : Node
     /// beide frei lässt); es hält dort, bis der Spieler es zieht. false: eigene Regel über <see cref="PlatzSetzen"/> oder der Platz, den der Anker vorgibt
     /// (die Auswahl an der Maus, Charakter, Bau- und Wegtafel rechts).
     /// </summary>
-    public bool Mittig { get; set; } = true;
+    public bool Mittig
+    {
+        get => _mittig;
+        set
+        {
+            _mittig = value;
+            // Abschalten nimmt auch eine schon gesetzte Mitte zurück: Anmelden ruft _Ready (und bei sichtbarer Tafel BeimZeigen) sofort auf, also bevor der
+            // Aufrufer Mittig = false setzen kann – sonst bliebe die Tafel für immer in der Mitte (die Bautafel verdeckte so Weg und Schild des besten Marktes).
+            if (!value && _mitteGesetzt) { _platz = null; _bewegt = false; _mitteGesetzt = false; }
+        }
+    }
+
+    private bool _mittig = true;
+    private bool _mitteGesetzt;
 
     /// <summary>Versatz zwischen zwei festgehaltenen Fenstern, die zugleich offen sind (Pixel je weiteres Fenster).</summary>
     private const float Staffel = 28;
@@ -67,6 +80,7 @@ public partial class Fensterrahmen : Node
     public void PlatzSetzen(Func<Vector2, Vector2, Vector2>? platz)
     {
         _platz = platz;
+        _mitteGesetzt = false;
         if (platz is null) return;
         Mittig = false;
         _bewegt = true;
@@ -220,6 +234,7 @@ public partial class Fensterrahmen : Node
         if (Mittig) // immer wieder in die Mitte, auch nach dem Ziehen
         {
             _platz = MitteLage;
+            _mitteGesetzt = true;
             _bewegt = true;
         }
         NachVornBringen();
@@ -291,6 +306,7 @@ public partial class Fensterrahmen : Node
         if (imFenster.Y > Griffhoehe || imFenster.X > _tafel.Size.X - rechts) return;
         _zieht = true;
         _platz = null;
+        _mitteGesetzt = false;
         _griff = _tafel.GetViewport().GetMousePosition() - _tafel.GlobalPosition;
         _ziel = _tafel.GlobalPosition;
     }

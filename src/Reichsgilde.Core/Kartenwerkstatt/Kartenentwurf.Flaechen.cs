@@ -65,6 +65,18 @@ public sealed partial class Kartenentwurf
     /// <summary>Ändert die Kennung (sie muss in der Karte frei sein, sonst meldet die Prüfung sie doppelt).</summary>
     public void BauzoneKennungSetzen(EntwurfBauzone zone, string kennung) => Aendern(zone, "umbenannt", z => z.Kennung = kennung);
 
+    /// <summary>
+    /// Setzt oder löscht, was in der Zone nur gebaut werden darf: <see cref="Bauzone.NurWerkstatt"/> („werkstatt“: Werkstatt-Bauplatz, Wohnhäuser
+    /// abgelehnt) oder null (alles, was die Lage erlaubt). Ohne Änderung kein Eintrag in der Geschichte (siehe Aendern).
+    /// </summary>
+    /// <exception cref="ArgumentException">Bei einem anderen Wert als „werkstatt“ oder null.</exception>
+    public void BauzoneNurSetzen(EntwurfBauzone zone, string? nur)
+    {
+        if (nur is not null and not Bauzone.NurWerkstatt)
+            throw new ArgumentException($"„{nur}“ kennt eine Bauzone nicht – erlaubt sind „{Bauzone.NurWerkstatt}“ oder nichts.", nameof(nur));
+        Aendern(zone, nur is null ? "für alles freigegeben" : "nur Werkstätten", z => z.Nur = nur);
+    }
+
     private string NeueZonenkennung(Lage art)
     {
         var basis = art.ToString()[..1];
