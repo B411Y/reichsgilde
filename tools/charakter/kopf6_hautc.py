@@ -27,6 +27,7 @@ Der Hautshader (haut6c.gdshader, #define WEG_C) liest sie; die Detailkacheln kom
 Aufruf: $BPY -I tools/charakter/kopf6_hautc.py <kopf6.glb> <ausgabeordner> [relief=2048] [zonen=1024] [samen=6107]
         [gk2=1] (Grundkopf 2: Karunkel, Wasserlinie, Wimpernlinie, weicher Bartrand) [gk4=1] (Grundkopf 4, nur mit gk2:
         Karunkel größer und röter, dunkler Grund des Tränenwinkels)
+        [gk5=1] (Grundkopf 5: weniger Augenring über dem Oberlid und an der Nasenwurzel – grauer Schatten der Frau)
 """
 import json
 import os
@@ -264,7 +265,7 @@ def abstand_vieleck(xy, poly):
 
 
 # ---------------------------------------------------------------- Zonen und Glanz (1024)
-def zonen_und_glanz(X, N, P, masken_b, gk2=False, gk4=False):
+def zonen_und_glanz(X, N, P, masken_b, gk2=False, gk4=False, gk5=False):
     n = len(X)
     Z = np.zeros((n, 4))
     G = np.zeros((n, 4))
@@ -352,9 +353,12 @@ def zonen_und_glanz(X, N, P, masken_b, gk2=False, gk4=False):
         ohr = np.maximum(ohr, o)
         # ---- Augenringe: unter dem Auge zum inneren Winkel stärker, inneres Oberlid
         Z[:, 2] += 0.75 * gauss(X, lid_u + [sg * -2.0, -5.5, -1.0], (9.0, 4.0, 6.0)) * vorn
-        Z[:, 2] += 0.6 * gauss(X, en + [sg * -0.5, -4.0, -1.0], (4.5, 4.5, 5.0))
-        Z[:, 2] += 0.35 * gauss(X, en + [sg * 2.0, 5.0, -2.0], (5.0, 3.5, 5.0))
-        Z[:, 2] += 0.25 * gauss(X, lid_o + [0, 3.0, -1.5], (9.0, 3.0, 5.0)) * vorn
+        # Grundkopf 5 (Panel: „graubrauner Schatten über Oberlid und Nasenwurzel der Frau“): innerer Winkel, Nasenwurzel
+        # und Oberlid schwächer, die Augenringe unter dem Auge bleiben
+        f_in, f_nw, f_ob = (0.5, 0.3, 0.25) if gk5 else (1.0, 1.0, 1.0)
+        Z[:, 2] += 0.6 * f_in * gauss(X, en + [sg * -0.5, -4.0, -1.0], (4.5, 4.5, 5.0))
+        Z[:, 2] += 0.35 * f_nw * gauss(X, en + [sg * 2.0, 5.0, -2.0], (5.0, 3.5, 5.0))
+        Z[:, 2] += 0.25 * f_ob * gauss(X, lid_o + [0, 3.0, -1.5], (9.0, 3.0, 5.0)) * vorn
         # Schläfenvene (schwach)
         Z[:, 2] += 0.22 * gauss(X, ex + [sg * 14.0, 12.0, -14.0], (6.0, 12.0, 10.0)) * (r2 > 0.45)
         # ---- Bartgebiet: unter der Linie Koteletten – Wange – Mundwinkel – Nasenflügel, vor dem Ohr
@@ -666,7 +670,7 @@ def main():
     ok, X, Nn, _ = lagekarte(haut, H, N, g_zon)
     log("Lagekarte", g_zon, int(ok.sum()), "Bildpunkte")
     mb = lesen(masken, g_zon)[..., 2] if os.path.exists(masken) else np.zeros((g_zon, g_zon))
-    Z, G, info = zonen_und_glanz(X[ok], Nn[ok], P, mb[ok], gk2=opt.get("gk2", "0") == "1", gk4=opt.get("gk4", "0") == "1")
+    Z, G, info = zonen_und_glanz(X[ok], Nn[ok], P, mb[ok], gk2=opt.get("gk2", "0") == "1", gk4=opt.get("gk4", "0") == "1", gk5=opt.get("gk5", "0") == "1")
     bz = np.zeros((g_zon, g_zon, 4))
     bg = np.zeros((g_zon, g_zon, 4))
     bg[..., 0] = 0.6

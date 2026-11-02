@@ -1862,3 +1862,32 @@ gemessen +0,41 ms) – der Abstand Grundkopf 4 gegen 3 ist gepaart und stabil (+
 5. Messen: `schau.sh <aus> 1280x720 --messen --varianten=haltb:~/werkzeuge/charakter/glb6:0:0:0:0,
    gi:~/werkzeuge/charakter/glb6i:1:0:1:1,gj:~/werkzeuge/charakter/glb6j:1:0:1:1 --stufe=hoch --wiederholungen=5
    --nur=ohne_haar,haar_tressfx_frau_knoten,ohne_haar_zufall --licht=spiel`.
+
+## Grundkopf 5: Mittelgesicht der Frau, Brauen 1,4, weichere Deckfalte, mandel der Männer (Probekopf glb6k)
+
+Anlass (Nutzer 02.11.2026). Probekopf `~/werkzeuge/charakter/glb6k` (Kopie von glb6j mit `cp -rL`), Probebau `glb6p_k` (`eigen=6`),
+Rezept `tools/charakter/kopf6_rezept_grundkopf5.json`, Regeln `kopf6_verschieden.py --e3=1 … --e6=1 --e7=1`, Haut
+`HAUTC_OPT="gk2=1 gk4=1 gk5=1"`. Haar unverändert aus glb6j. Vergleich „vorher“ ist glb6j (unverändert).
+
+- **Mittelgesicht der Frau** (`kopf6_eigen.py`, neue Form `eigen_mitte_w`, Gewicht 1,0): Nasenflügel 1,4 mm zur Mitte und
+  1,0 mm tiefer, Spitze 0,8 mm tiefer, Wangenmitte 1,7 mm nach außen; dazu im Rezept Mund breiter (`probe_mouth_scale_horiz_incr`
+  0,34 → 0,55), Lippen 1,0 → 1,3, Wangen (`cheek_volume_incr` 0,35, `cheek_inner_incr` 0,2), Nasenflügelrand 2,4, Flügel enger.
+  Erster Versuch mit Mundwinkel-Dehnung zeichnete eine Falte, erster Versuch mit hartem Kasten eine Kante unter der Nase – beides raus.
+- **Frauenbrauen** Dicke 1,4, Dichte 1,35, Deckung 0,95 (`E7_BRAUEN`).
+- **Schatten über Oberlid und Nasenwurzel**: Zonenkarte „Augenringe“ (`kopf6_hautc.py gk5=1`): innerer Winkel × 0,5, Nasenwurzel × 0,3, Oberlid × 0,25; Ringe unter dem Auge bleiben.
+- **schlupf Männer**: `eigen_deckfalte_m` breiteres, flacheres Band (σ 2,6 statt 1,3 mm, Höhe 0,75), läuft nach oben aus.
+- **mandel Männer**: Stärke 0,55 → 0,72 (`lidform.staerke.mandel.m`, `E7_LIDFORM_STAERKE`).
+- Panel-Werkzeug `tools/charakter/boegen6/panel_gk.py` (Köpfe, Augen nah, Fratzen-Sätze, Lidformen).
+
+### Prüfung (Runde 1, ungültig)
+
+Drei blinde Prüfer: Die Fratzen- und Lidformen-Bögen waren zu hoch für das Fenster (2000x1400) und abgeschnitten (nur 16 von 40
+Köpfen, 6 von 18 Lidformen sichtbar); Mann A/B und Frau A/B waren kaum zu unterscheiden (Frau B „etwas mehr Wangenfalten“).
+Noten alle um 4–6 (Mann 5, Frau 4, Augen 4–5, Fratzen deutlich 0–5 je nach Prüfer, in X und Y gleich). Weiter genannt: Nasenlöcher von vorn,
+graubrauner Schatten über Oberlid (Frau und Mann), harte Faltenlinie bei 30217. Runde 2 nicht gelaufen.
+
+### Offen nach Grundkopf 5
+
+- Bögen mit Fenster 2000x3100 neu rendern, dann Runde 1 wiederholen.
+- Änderungen sind zu klein, um blind erkannt zu werden; Nasenlöcher bleiben sichtbar: stärkere Formänderung an der Nasenspitze nötig.
+

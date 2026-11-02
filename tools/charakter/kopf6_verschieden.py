@@ -130,6 +130,11 @@ E6_GRUNDKOPF4 = {"haut": {"rau_unruhe": 0.1, "glanz_unruhe": 0.25, "rau_zusatz":
                           "streu_faktor": 0.85},
                  "kopfhaut_dunkel": 0.93}
 E6_LIDFORM_STAERKE = {"rund": {"m": 0.45, "w": 0.5}}
+# Grundkopf 5 (Option --e7=1; Panel Grundkopf 4: Frauenbrauen „zu kräftig“ in Zufallsköpfen, Mandel der Männer geht in
+# rund über): Frauenbrauen Dicke 1,4 (Mitte zwischen Grundkopf 2 und 3), Dichte 1,35, Deckung 0,95; mandel der Männer
+# 0,55 → 0,72 (eigene Stärke je Geschlecht)
+E7_BRAUEN = {"frau_dicke": 1.4, "frau_dichte": 1.35, "frau_deckung": 0.95}
+E7_LIDFORM_STAERKE = {"mandel": {"m": 0.72, "w": 0.6}}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -141,6 +146,7 @@ def main():
     e4 = opt.get("e4", "0") == "1"
     e5 = opt.get("e5", "0") == "1"
     e6 = opt.get("e6", "0") == "1"
+    e7 = opt.get("e7", "0") == "1"
     R = json.load(open(ein, encoding="utf-8"))
     bericht = {}
     for gen, f in AUGEN.items():
@@ -218,6 +224,12 @@ def main():
             R["verschieden"]["lidform"] = json.loads(json.dumps(R["verschieden"]["lidform"]))
             R["verschieden"]["lidform"]["staerke"].update(E6_LIDFORM_STAERKE)
         R["verschieden"]["beschreibung"] += "; E6: Frauenbrauen wie Grundkopf 2, Haut des Grundkopfs 4"
+    if e7:
+        R["verschieden"]["brauen"].update(E7_BRAUEN)
+        if "lidform" in R["verschieden"]:
+            R["verschieden"]["lidform"] = json.loads(json.dumps(R["verschieden"]["lidform"]))
+            R["verschieden"]["lidform"]["staerke"]["mandel"].update(E7_LIDFORM_STAERKE["mandel"])
+        R["verschieden"]["beschreibung"] += "; E7: Frauenbrauen Dicke 1,4, mandel der Männer stärker"
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)
