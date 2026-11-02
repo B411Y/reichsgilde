@@ -482,6 +482,7 @@ public partial class Stadtansicht : Node3D
         WetterAufgeben(); // die globalen Shader-Werte zurück auf Sommer und trocken (Stadtansicht.Wetter.cs)
         OberflaecheAufgeben();
         GlobaleBeleuchtungAufgeben();
+        FelsGelaendeAufgeben(); // das Höhenbild der Felsen (Stadtansicht.Felsgelaende.cs)
         if (_wirtschaft is not null)
         {
             _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
