@@ -119,6 +119,12 @@ E5_GRUNDKOPF3 = {
 # Frauenbrauen (Panel Grundkopf 2: „flächig“): feiner – weniger dick und dicht als in E4, weniger deckend; der Bogen sitzt
 # über die Form eigen_braue_w höher
 E5_BRAUEN = {"frau_dicke": 1.25, "frau_dichte": 1.2, "frau_deckung": 0.85}
+# Grundkopf 4 (Option --e6=1; Nutzer 02.11.2026 nach Runde 3 von Grundkopf 3): Frauenbrauen wieder wie Grundkopf 2
+# (Panel Runde 3: die feineren lesen sich als „dünn, aufgemalt“), Haut weniger wachsartig: Rauheit und Glanz fleckig
+# (Mittelfrequenz aus der Fleckenkachel, keine weitere Abtastung), Hautunruhe etwas stärker, Streulicht etwas schmaler
+E6_BRAUEN = {"frau_dicke": 1.6, "frau_dichte": 1.5, "frau_deckung": 1.05}
+E6_GRUNDKOPF4 = {"haut": {"rau_unruhe": 0.1, "glanz_unruhe": 0.45, "rau_zusatz": 0.03, "unruhe_faktor": 1.35,
+                          "streu_faktor": 0.85}}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -129,6 +135,7 @@ def main():
     e3 = opt.get("e3", "0") == "1"
     e4 = opt.get("e4", "0") == "1"
     e5 = opt.get("e5", "0") == "1"
+    e6 = opt.get("e6", "0") == "1"
     R = json.load(open(ein, encoding="utf-8"))
     bericht = {}
     for gen, f in AUGEN.items():
@@ -199,6 +206,10 @@ def main():
         R["verschieden"]["grundkopf3"] = E5_GRUNDKOPF3
         R["verschieden"]["brauen"].update(E5_BRAUEN)
         R["verschieden"]["beschreibung"] += "; E5: Lidform als Erbmerkmal, Augen und Brauen des Grundkopfs 3"
+    if e6:
+        R["verschieden"]["brauen"].update(E6_BRAUEN)
+        R["verschieden"]["grundkopf4"] = E6_GRUNDKOPF4
+        R["verschieden"]["beschreibung"] += "; E6: Frauenbrauen wie Grundkopf 2, Haut des Grundkopfs 4"
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)

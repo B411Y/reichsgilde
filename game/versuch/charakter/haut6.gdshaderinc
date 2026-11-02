@@ -144,6 +144,10 @@ uniform float c_uneben = 0.35;               // grobe Lage der Porenkachel (× 2
 // Grundkopf 3 (Prüfer: „Haut noch glatt“): dritte, feinere Lage der Porenkachel (× 2,3 dichter, gedreht) in Normale,
 // Rauheit und Glanz – feine Hautfelderung im Glanzlicht; 0 = aus (eine Abtastung mehr nur, wenn an)
 uniform float c_fein = 0.0;
+// Grundkopf 4 (Prüfer: „Haut wachsartig“): Rauheit und Glanz fleckig in der Mittelfrequenz (Wellen etwa 6–50 mm, aus
+// den groben Rauschkanälen der Fleckenkachel, die schon abgetastet ist); fettiger = glatter und glänzender. 0 = aus
+uniform float c_rau_unruhe = 0.0;
+uniform float c_glanz_unruhe = 0.0;
 uniform int c_zeige = 0;                     // Prüfanzeige: 1 Höhle, 2 Glanzkarte, 3 Zonen, 4 Furche, 5 Bart/Sprossen
 const vec3 K_EU = vec3(0.405, 0.572, 1.0);   // Eumelanin (Plan S9)
 const vec3 K_HB = vec3(0.037, 1.0, 0.795);   // Hämoglobin
@@ -271,9 +275,11 @@ void fragment() {
 	float rand = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
 	float nass = smoothstep(0.45, 0.95, gl.a) * feucht;
 	float r = 0.25 + 0.4 * gl.r + c_rau + 0.05 * pt.b * gl.g + 0.08 * furche + 0.1 * rand + 0.3 * haarig + 0.08 * fein_b * gl.g;
+	float fett = clamp((fl3.r - 0.5) * 2.0 + (fl3.g - 0.5) * 1.4, -1.0, 1.0);   // Grundkopf 4: + = fettiger
+	r -= c_rau_unruhe * fett;
 	ROUGHNESS = clamp(mix(r, 0.15, nass), 0.10, 1.0);
 	spec_v = glanz * (1.0 - 0.85 * hl) * (1.0 - 0.4 * furche) * (1.0 - 0.4 * pt.b * gl.g) * (1.0 - 0.7 * haarig) * (1.0 + 0.8 * nass)
-		* (1.0 - 0.3 * fein_b * gl.g)
+		* (1.0 - 0.3 * fein_b * gl.g) * (1.0 + c_glanz_unruhe * fett)
 		* (1.0 - brauen_glanz * clamp(braue_a * 2.0, 0.0, 1.0));
 	SPECULAR = 0.42 * spec_v;
 	AO = 1.0 - max(0.8 * hoehlen * m.b, 0.9 * hl);

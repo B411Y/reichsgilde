@@ -1346,6 +1346,18 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_fein", float(gk3_haut.get("fein", 0.0)))
 		if not gk3_haut.is_empty():
 			m.set_shader_parameter("c_poren_staerke", float(m.get_shader_parameter("c_poren_staerke")) * float(gk3_haut.get("poren_faktor", 1.0)))
+	# Grundkopf 4 (Prüfer: „Haut wachsartig“): Rauheit und Glanz fleckig, etwas rauer, Hautunruhe stärker, Streulicht
+	# schmaler („verschieden.grundkopf4.haut“; ohne den Abschnitt wie bisher). Nur Werte, keine weitere Abtastung
+	var gk4_haut: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf4", {}).get("haut", {}) if weg_d and volk == "Mensch" else {}
+	for m in haut_stoffe:
+		m.set_shader_parameter("c_rau_unruhe", float(gk4_haut.get("rau_unruhe", 0.0)))
+		m.set_shader_parameter("c_glanz_unruhe", float(gk4_haut.get("glanz_unruhe", 0.0)))
+		m.set_shader_parameter("streu", 0.4 * float(gk4_haut.get("streu_faktor", 1.0)))
+		if not gk4_haut.is_empty():
+			m.set_shader_parameter("c_rau", float(m.get_shader_parameter("c_rau")) + float(gk4_haut.get("rau_zusatz", 0.0)))
+			var uf := float(gk4_haut.get("unruhe_faktor", 1.0))
+			m.set_shader_parameter("c_unruhe_eu", float(m.get_shader_parameter("c_unruhe_eu")) * uf)
+			m.set_shader_parameter("c_unruhe_hb", float(m.get_shader_parameter("c_unruhe_hb")) * uf)
 	werte3["haut_c"] = {"relief": rel, "wetter": w, "sommersprossen": spross, "bart": bart_c}
 
 # Halt B2: Farbe zur Helligkeit hin entsättigen (lineare Farbe als Color wie in _farben)

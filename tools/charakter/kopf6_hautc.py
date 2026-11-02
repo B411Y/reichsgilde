@@ -25,6 +25,8 @@ haut_c_relief.png (2048², linear)  Höhen (0,5 = keine) in Bildpunkt-Einheiten 
 Der Hautshader (haut6c.gdshader, #define WEG_C) liest sie; die Detailkacheln kommen aus kopf6_kacheln.py.
 
 Aufruf: $BPY -I tools/charakter/kopf6_hautc.py <kopf6.glb> <ausgabeordner> [relief=2048] [zonen=1024] [samen=6107]
+        [gk2=1] (Grundkopf 2: Karunkel, Wasserlinie, Wimpernlinie, weicher Bartrand) [gk4=1] (Grundkopf 4, nur mit gk2:
+        Karunkel größer und röter, dunkler Grund des Tränenwinkels)
 """
 import json
 import os
@@ -262,7 +264,7 @@ def abstand_vieleck(xy, poly):
 
 
 # ---------------------------------------------------------------- Zonen und Glanz (1024)
-def zonen_und_glanz(X, N, P, masken_b, gk2=False):
+def zonen_und_glanz(X, N, P, masken_b, gk2=False, gk4=False):
     n = len(X)
     Z = np.zeros((n, 4))
     G = np.zeros((n, 4))
@@ -301,6 +303,7 @@ def zonen_und_glanz(X, N, P, masken_b, gk2=False):
     feucht = np.zeros(n)
     wasser = np.zeros(n)
     wimpernlinie = np.zeros(n)
+    winkel = np.zeros(n)
     for s, sg in (("r", -1.0), ("l", 1.0)):
         ex, en, ch, al = P[f"ex_{s}"], P[f"en_{s}"], P[f"ch_{s}"], P[f"al_{s}"]
         c = ex + 0.45 * (ch - ex) + np.array([sg * 8.0, 2.0, 0.0])
@@ -316,6 +319,11 @@ def zonen_und_glanz(X, N, P, masken_b, gk2=False):
         if gk2:
             # Grundkopf 2: Karunkel etwas größer (rosa Wulst im inneren Lidwinkel, Prüfer: „leerer Blick“)
             k = np.maximum(k, gauss(X, en + np.array([sg * -1.6, -0.2, -1.6]), (2.1, 1.7, 2.4)))
+        if gk4:
+            # Grundkopf 4 (Prüfer: „Tränenwinkel schwach“): Karunkel noch etwas größer, dazu der dunkle Grund des
+            # Tränenwinkels (die Bucht zwischen Karunkel und Lidwinkel)
+            k = np.maximum(k, gauss(X, en + np.array([sg * -1.9, -0.3, -1.9]), (2.5, 2.0, 2.8)))
+            winkel = np.maximum(winkel, gauss(X, en + np.array([sg * -0.4, 0.0, -0.6]), (1.1, 1.0, 1.4)))
         karunkel = np.maximum(karunkel, k)
         ring = [36, 41, 40, 39] if s == "r" else [45, 46, 47, 42]
         oben = [36, 37, 38, 39] if s == "r" else [45, 44, 43, 42]
@@ -389,6 +397,8 @@ def zonen_und_glanz(X, N, P, masken_b, gk2=False):
     hb += 0.15 * gauss(X, P["g"], (10.0, 8.0, 10.0))
     if gk2:
         hb += 0.35 * karunkel + 0.55 * wasser
+    if gk4:
+        hb += 0.3 * karunkel
     Z[:, 0] = hb * unruhig
     # ---- Sonne und Gelbton
     scheitel = glatt(X[:, 1], stirn_oben + 10.0, stirn_oben + 35.0)
@@ -407,6 +417,8 @@ def zonen_und_glanz(X, N, P, masken_b, gk2=False):
     Z[:, 2] *= 0.75 + 0.5 * r2
     if gk2:
         Z[:, 2] += 0.45 * wimpernlinie
+    if gk4:
+        Z[:, 2] += 0.5 * winkel
     # ---- Glanz: Rauheit je Zone
     rau = np.full(n, 0.52)
     rau = rau + (0.42 - rau) * stirn
@@ -654,7 +666,7 @@ def main():
     ok, X, Nn, _ = lagekarte(haut, H, N, g_zon)
     log("Lagekarte", g_zon, int(ok.sum()), "Bildpunkte")
     mb = lesen(masken, g_zon)[..., 2] if os.path.exists(masken) else np.zeros((g_zon, g_zon))
-    Z, G, info = zonen_und_glanz(X[ok], Nn[ok], P, mb[ok], gk2=opt.get("gk2", "0") == "1")
+    Z, G, info = zonen_und_glanz(X[ok], Nn[ok], P, mb[ok], gk2=opt.get("gk2", "0") == "1", gk4=opt.get("gk4", "0") == "1")
     bz = np.zeros((g_zon, g_zon, 4))
     bg = np.zeros((g_zon, g_zon, 4))
     bg[..., 0] = 0.6
