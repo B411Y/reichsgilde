@@ -8,7 +8,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>
 /// Karrenwahl der KI nach Durchfluss (Befund H1 der Prüfung von phase5/gehtempo): Seit die Fahrzeit nach Weglänge und Karrenart rechnet
 /// (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s, Datenversion 65), wählt die KI die Karrenart nach dem Durchfluss auf dem echten Weg und darf an
-/// der Grenze von <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren einen langsamen gegen einen schnelleren tauschen.
+/// der Grenze von <see cref="KiRivale.MaxKarren"/> (Umland seit Datenversion 66: 5; hier mit Daten für drei) Karren einen langsamen gegen einen schnelleren tauschen.
 ///   • Durchfluss eines Karrens = Ladung ÷ (Fahrzeit hin + zurück, wie der Kern sie rechnet – mit Belag und Höchstdauer); Ladung höchstens,
 ///     was das Lager fasst (Lager je Ware × Zahl der Waren).
 ///   • Stillstand nachher = Stillstand vorher ^ (Durchfluss nachher ÷ Durchfluss vorher).
@@ -63,6 +63,12 @@ static class KiKarrenwahlTests
 
     /// <summary>Der Karren hat ein ganzes Vorjahr gezählt (so viele Fahrten).</summary>
     static void GanzesVorjahr(Karren k, int fahrten) => k.Wiederherstellen(k.Sichern() with { FahrtenVorjahr = fahrten, FahrtenGanzesJahr = true });
+
+    /// <summary>
+    /// Die Daten mit höchstens drei Karren auch im Umland (wie vor Datenversion 66): Die Tests des Tauschs an der Grenze sind an drei Karren
+    /// geeicht; seit 66 liegt die Grenze im Umland bei fünf (KarrenHoechstzahlTests).
+    /// </summary>
+    static readonly Lazy<Wirtschaftsdaten> DreiImUmland = new(() => DatenMit(d => d["logistik"]!["karrenHoechstens"]!["Umland"] = 3));
 
     const string Holzschlag = "Holzschlag Hardevust"; // eine Ware (Holz), 176 m bis zum Markt
     const string Bauernhof = "Bauernhof Mommersloch"; // zwei Waren (Gerste, Roggen), 193 m
@@ -124,11 +130,11 @@ static class KiKarrenwahlTests
 
         ("KI-Karrenwahl: An der Grenze von drei Karren tauscht die KI einen Ochsen des Bauernhofs gegen einen Kriegskarren (Preis − Erlös des alten)", () =>
         {
-            var (_, w) = Koeln();
+            var (_, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Bauernhof);
             b.KarrenHinzufuegen("Ochsenkarren");
             b.KarrenHinzufuegen("Ochsenkarren");
-            Pruefe.Gleich(KiProfil.Standard.MaxKarrenJeBetrieb, b.Karren.Count);
+            Pruefe.Gleich(ki.MaxKarren(b.Ort), b.Karren.Count);
             var plaene = ki.Karrenplaene(b, 0.25).ToList();
             Pruefe.Wahr(plaene.Count > 0 && plaene.All(p => p.Tausch is not null), "an der Grenze nur Tausch");
             Pruefe.Wahr(plaene.All(p => ki.Durchfluss(b, p.Typ) > ki.Durchfluss(b, b.Karren[p.Tausch!.Value].Typ)), "nur gegen einen schnelleren");
@@ -146,7 +152,7 @@ static class KiKarrenwahlTests
 
         ("KI-Karrenwahl: Ist der Karren, den die KI tauschen will, unterwegs, wartet sie auf ihn – bei gleich guten nimmt sie den, der am Hof steht", () =>
         {
-            var (_, w) = Koeln();
+            var (_, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Bauernhof);
             b.KarrenHinzufuegen("Handkarren");
             b.KarrenHinzufuegen("Ochsenkarren");
@@ -161,7 +167,7 @@ static class KiKarrenwahlTests
             ki.KarrenNachDurchfluss(b, 0.25);
             Pruefe.Gleich("Ochsenkarren, Ochsenkarren, Kriegskarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
             // drei gleiche: der erste ist unterwegs – getauscht wird der zweite, der am Hof steht
-            var (_, w2) = Koeln();
+            var (_, w2) = Koeln(DreiImUmland.Value);
             var (ki2, b2) = Von(w2, Bauernhof);
             b2.KarrenHinzufuegen("Ochsenkarren");
             b2.KarrenHinzufuegen("Ochsenkarren");
@@ -171,7 +177,7 @@ static class KiKarrenwahlTests
 
         ("KI-Karrenwahl: Getauscht wird erst, wenn jeder Karren ein ganzes Vorjahr gezählt hat – dann zeigt der Stillstand des Vorjahres genau diese Karren", () =>
         {
-            var (_, w) = Koeln();
+            var (_, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Bauernhof);
             b.KarrenHinzufuegen("Ochsenkarren");
             b.KarrenHinzufuegen("Ochsenkarren");
@@ -184,7 +190,7 @@ static class KiKarrenwahlTests
 
         ("KI-Karrenwahl: Köln, „Schwer“ – an der Grenze tauscht die KI im Lauf des Jahres, sobald ein Ochse am Hof steht (nicht nur um 23 Uhr)", () =>
         {
-            var (sim, w) = Koeln();
+            var (sim, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Bauernhof);
             b.KarrenHinzufuegen("Ochsenkarren");
             b.KarrenHinzufuegen("Ochsenkarren");
@@ -206,7 +212,7 @@ static class KiKarrenwahlTests
 
         ("KI-Karrenwahl: Ein Tausch, der sich erst nach der Frist bezahlt macht, unterbleibt – die KI behält ihre drei Karren", () =>
         {
-            var (_, w) = Koeln();
+            var (_, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Holzschlag);
             b.KarrenHinzufuegen("Kriegskarren");
             b.KarrenHinzufuegen("Kriegskarren");
@@ -269,7 +275,7 @@ static class KiKarrenwahlTests
             Pruefe.Wahr(w.Rivalen.SelectMany(r => r.Entscheidungen).All(e => !e.Contains("tauscht")), "kein Tausch");
         }),
 
-        ("KI-Karrenwahl: Köln, ein Jahr „Schwer“ – gekauft wird nur nach Stillstand, nie mehr als drei Karren; der Holzschlag bekommt den Kriegskarren", () =>
+        ("KI-Karrenwahl: Köln, ein Jahr „Schwer“ – gekauft wird nur nach Stillstand, nie mehr als die Grenze (Stadt 3, Umland 5); der Holzschlag bekommt den Kriegskarren", () =>
         {
             var (sim, w) = Koeln();
             var vorher = w.Betriebe.ToDictionary(b => b.Name, b => b.Karren.Select(k => k.Typ).ToList());
@@ -278,7 +284,7 @@ static class KiKarrenwahlTests
             var gekauft = 0;
             foreach (var b in w.Betriebe.Where(b => w.Rivalen.Any(r => r.Konto == b.Konto) && vorher.ContainsKey(b.Name)))
             {
-                Pruefe.Wahr(b.Karren.Count <= KiProfil.Standard.MaxKarrenJeBetrieb, b.Name);
+                Pruefe.Wahr(b.Karren.Count <= w.Daten.Logistik.HoechstKarren(b.Ort), b.Name);
                 var neu = b.Karren.Select(k => k.Typ).ToList();
                 if (neu.SequenceEqual(vorher[b.Name])) continue;
                 gekauft++;
