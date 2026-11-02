@@ -52,7 +52,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Ein Eimer: das Modell <c>requisiten/eimer.glb</c> (Knoten „Eimer“ und „Wasser“, Ursprung Bodenmitte). <paramref name="voll"/>: mit Wasser
+    /// Ein Eimer: das Modell <c>requisiten/eimer.glb</c> (Knoten „Eimer_0“ nah, „Eimer_1“ fern und „Wasser“, Ursprung Bodenmitte). <paramref name="voll"/>: mit Wasser
     /// (Hinweg zum Haus), sonst leer (Rückweg zum Wasser). Fehlt die Datei, bleibt ein leerer Knoten (das Spiel meldet den Fehler).
     /// </summary>
     private Node3D EimerBauen(Node3D eltern, bool voll)
@@ -60,6 +60,14 @@ public partial class Stadtansicht
         var eimer = Modell("requisiten/eimer")?.Instantiate<Node3D>() ?? new Node3D();
         eimer.Name = voll ? "EimerVoll" : "EimerLeer";
         if (eimer.FindChild("Wasser", true, false) is Node3D wasser) wasser.Visible = voll;
+        // zwei Stufen: Eimer_0 (194 Dreiecke) bis 25 m vor der Kamera, darüber Eimer_1 (82); das Wasser nur nah
+        const float Stufenwechsel = 25f, Uebergang = 2f;
+        if (eimer.FindChild("Eimer_0", true, false) is GeometryInstance3D nah)
+            (nah.VisibilityRangeEnd, nah.VisibilityRangeEndMargin) = (Stufenwechsel, Uebergang);
+        if (eimer.FindChild("Eimer_1", true, false) is GeometryInstance3D fern)
+            (fern.VisibilityRangeBegin, fern.VisibilityRangeBeginMargin) = (Stufenwechsel, Uebergang);
+        if (eimer.FindChild("Wasser", true, false) is GeometryInstance3D wasserNetz)
+            (wasserNetz.VisibilityRangeEnd, wasserNetz.VisibilityRangeEndMargin) = (Stufenwechsel, Uebergang);
         foreach (var teil in eimer.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
             teil.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         eltern.AddChild(eimer);
