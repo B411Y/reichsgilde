@@ -298,6 +298,7 @@ public partial class Hauptszene : Node
         lade.Schliessen();
         _umgebungBereit = true;
         if (_einschlagNach is { } einschlagSekunden) GetTree().CreateTimer(einschlagSekunden).Timeout += () => _stadt.BlitzEinschlag(_stadt.KlangMarktMitte + new Godot.Vector3(8, 0, 6));
+        BlitzschlagVorgeben(optionen); // --blitzschlag=<Gebäude>[@Sekunden] (Hauptszene.Blitz.cs)
         Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
     }
 
@@ -1090,7 +1091,7 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
-        w.Meldung += meldung => Protokollieren(SchiffsMeldung(meldung)); // Überfälle auf eigene Schiffe als Warnung (Hauptszene.Hafen.cs)
+        w.Meldung += meldung => Protokollieren(BlitzMeldung(SchiffsMeldung(meldung))); // Überfälle auf eigene Schiffe und Blitzschlag ins eigene Haus als Warnung (Hauptszene.Hafen.cs, Hauptszene.Blitz.cs)
         AnsagenVerbinden(simulation, w, spieler);
         // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
         foreach (var rivale in w.Rivalen)
