@@ -10,8 +10,8 @@ namespace Reichsgilde;
 /// Brennt ein Haus, laufen 6–15 Leute aus der Nähe herbei (eigene Figuren, die Passanten des Kerns gehen ihren Weg weiter): Sie kommen über die
 /// Gassen von Knoten 25–70 m entfernt, stellen sich in einer Reihe zwischen Wasser und Haus auf – vom Brunnen des nächsten Marktes oder vom
 /// Ufer des nächsten Flusses, ist das Wasser weiter als die Kette reicht, steht sie am Haus und die Eimer kommen von hinten – und reichen Eimer von
-/// Hand zu Hand; die vorderen zwei schütten. Ist das Feuer aus, gehen alle zurück und verschwinden dort, wo sie herkamen. Die Eimer sind ein
-/// Platzhalter (ein Holzzylinder mit zwei dunklen Reifen), bis es ein Modell gibt.
+/// Hand zu Hand; die vorderen zwei schütten. Ist das Feuer aus, gehen alle zurück und verschwinden dort, wo sie herkamen. Die Eimer
+/// (Modell <c>requisiten/eimer</c>) gehen voll zum Haus und leer zurück.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -44,26 +44,24 @@ public partial class Stadtansicht
         public required Blitzeinschlag Einschlag { get; init; }
         public required Node3D Wurzel { get; init; }
         public List<Helfer> Helfer { get; } = new();
-        public List<MeshInstance3D> Eimer { get; } = new();
+        public List<Node3D> Eimer { get; } = new();
         /// <summary>Die Plätze der Kette vom Wasser (0) zum Haus.</summary>
         public Vector3[] Kette { get; set; } = Array.Empty<Vector3>();
         public float Zeit { get; set; }
         public bool Fertig { get; set; }
     }
 
-    private static Mesh? _eimerNetz, _reifNetz;
-    private static Material? _eimerStoff, _reifStoff;
-
-    /// <summary>Ein Eimer (Platzhalter): Daube aus Holz, zwei dunkle Reifen.</summary>
-    private MeshInstance3D EimerBauen(Node3D eltern)
+    /// <summary>
+    /// Ein Eimer: das Modell <c>requisiten/eimer.glb</c> (Knoten „Eimer“ und „Wasser“, Ursprung Bodenmitte). <paramref name="voll"/>: mit Wasser
+    /// (Hinweg zum Haus), sonst leer (Rückweg zum Wasser). Fehlt die Datei, bleibt ein leerer Knoten (das Spiel meldet den Fehler).
+    /// </summary>
+    private Node3D EimerBauen(Node3D eltern, bool voll)
     {
-        _eimerNetz ??= new CylinderMesh { TopRadius = 0.15f, BottomRadius = 0.12f, Height = 0.26f, RadialSegments = 10, Rings = 1 };
-        _eimerStoff ??= new StandardMaterial3D { AlbedoColor = new Color(0.45f, 0.31f, 0.18f), Roughness = 0.9f };
-        _reifStoff ??= new StandardMaterial3D { AlbedoColor = new Color(0.12f, 0.11f, 0.10f), Roughness = 0.6f, Metallic = 0.4f };
-        var eimer = new MeshInstance3D { Name = "Eimer", Mesh = _eimerNetz, MaterialOverride = _eimerStoff, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
-        _reifNetz ??= new CylinderMesh { TopRadius = 0.143f, BottomRadius = 0.143f, Height = 0.025f, RadialSegments = 10, Rings = 1 };
-        foreach (var h in new[] { -0.07f, 0.07f })
-            eimer.AddChild(new MeshInstance3D { Mesh = _reifNetz, MaterialOverride = _reifStoff, Position = new Vector3(0, h, 0) });
+        var eimer = Modell("requisiten/eimer")?.Instantiate<Node3D>() ?? new Node3D();
+        eimer.Name = voll ? "EimerVoll" : "EimerLeer";
+        if (eimer.FindChild("Wasser", true, false) is Node3D wasser) wasser.Visible = voll;
+        foreach (var teil in eimer.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+            teil.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         eltern.AddChild(eimer);
         return eimer;
     }
@@ -127,9 +125,9 @@ public partial class Stadtansicht
             HelferPfad(h, herkunft, stelle);
             lk.Helfer.Add(h);
         }
-        for (var i = 0; i < Math.Max(2, glieder / 2); i++)
+        for (var i = 0; i < 2 * Math.Max(1, glieder / 2); i++)
         {
-            var eimer = EimerBauen(wurzel);
+            var eimer = EimerBauen(wurzel, voll: i % 2 == 0); // gerade voll zum Haus, ungerade leer zurück
             eimer.Visible = false;
             lk.Eimer.Add(eimer);
         }
@@ -244,7 +242,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Eimer wandern gleichmäßig verteilt vom Wasser zum Haus, je Stück zwischen zwei Leuten in einem kleinen Bogen (von Hand zu Hand); vorn
-    /// werden sie geleert und tauchen am Wasser wieder auf. Erst, wenn die Kette steht.
+    /// werden sie geleert; die leeren wandern auf der anderen Seite der Reihe zurück zum Wasser. Erst, wenn die Kette steht.
     /// </summary>
     private void EimerBewegen(Loeschkette lk, bool brennt)
     {
@@ -255,11 +253,16 @@ public partial class Stadtansicht
             var eimer = lk.Eimer[i];
             if (!steht || n < 2) { eimer.Visible = false; continue; }
             var weg = (n - 1) * KettenAbstand;
-            var s = (lk.Zeit * EimerTempo + i * weg / lk.Eimer.Count) % weg;
-            var stueck = Mathf.Min(n - 2, (int)(s / KettenAbstand));
-            var t = s / KettenAbstand - stueck;
+            var zurueck = i % 2 == 1; // leer vom Haus zum Wasser, etwas versetzt auf der anderen Seite der Reihe
+            var s = (lk.Zeit * EimerTempo + (i / 2) * weg / Math.Max(1, lk.Eimer.Count / 2)) % weg;
+            if (zurueck) s = weg - s;
+            var stueck = Mathf.Clamp((int)(s / KettenAbstand), 0, n - 2);
+            var t = Mathf.Clamp(s / KettenAbstand - stueck, 0, 1);
             var p = lk.Kette[stueck].Lerp(lk.Kette[stueck + 1], t);
-            eimer.Position = p + new Vector3(0, 0.75f + 0.18f * Mathf.Sin(t * Mathf.Pi), 0);
+            var laengs = lk.Kette[stueck + 1] - lk.Kette[stueck];
+            var quer = new Vector3(-laengs.Z, 0, laengs.X).Normalized() * (zurueck ? -0.3f : 0.3f);
+            eimer.Position = p + quer + new Vector3(0, 0.6f + 0.18f * Mathf.Sin(t * Mathf.Pi), 0);
+            eimer.Rotation = new Vector3(0, Mathf.Atan2(laengs.X, laengs.Z), 0);
             eimer.Visible = true;
         }
     }

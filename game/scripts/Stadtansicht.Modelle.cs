@@ -139,7 +139,7 @@ public partial class Stadtansicht
                         break;
                     default:
                         if (zustand.Brand && Dachstoffe.Contains(stoff.ResourceName))
-                            teil.SetSurfaceOverrideMaterial(i, Umgefaerbt(stoff, stoff.AlbedoColor.Lerp(Russ, 0.8f)));
+                            teil.SetSurfaceOverrideMaterial(i, RussStoff(stoff));
                         break;
                 }
             }

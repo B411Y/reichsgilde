@@ -593,22 +593,57 @@ public partial class Stadtansicht
         var wurzel = new Node3D { Name = "Brand" };
         modell.Wurzel.AddChild(wurzel);
         var brand = new Brand { Wurzel = wurzel, Start = start, FlammenEnde = FlammenEnde(start) };
+        // Blitzschlag: ein großes Feuer, das aus dem Dach schlägt (oben auf dem Dach, mehrere Herde, mehr Fenster); ein Anschlag bleibt kleiner
+        var blitz = BlitzUm(start) is not null;
         // Über der Mitte des Dachs (der obere Teil des Modells, nicht der Hof), etwas unter dem First
         var mitte = (dachMin + dachMax) * 0.5f;
         var groesse = Mathf.Clamp(Mathf.Min(dachMax.X - dachMin.X, dachMax.Z - dachMin.Z) / 5f, 0.7f, 1.3f);
+        if (blitz) groesse = Mathf.Clamp(Mathf.Min(max.X - min.X, max.Z - min.Z) / 4f, 1.4f, 2.4f);
         var dach = Feuer.Neu(FeuerVorgabe.Gebaeudebrand, true, (Streuung(kennung.Sum(c => c), 41) & 0xFFFF) / 65535f, groesse);
-        dach.Position = new Vector3(mitte.X, max.Y - Mathf.Min(2.4f, (max.Y - min.Y) * 0.3f), mitte.Z);
+        dach.Position = new Vector3(mitte.X, blitz ? DachHoeheBei(modell.Wurzel, mitte.X, mitte.Z, max.Y) - 0.6f : max.Y - Mathf.Min(2.4f, (max.Y - min.Y) * 0.3f), mitte.Z);
         wurzel.AddChild(dach);
         brand.Feuer.Add(dach);
-        foreach (var lage in BrandFenster(modell, 3))
+        if (blitz)
         {
-            var f = Feuer.Neu(FeuerVorgabe.Fensterbrand, false, (Streuung((int)(lage.X * 100), (int)(lage.Z * 100)) & 0xFFFF) / 65535f);
+            // zwei weitere Herde auf dem Hauptdach, längs der langen Seite, ohne Licht (eins genügt)
+            var lang = max.X - min.X >= max.Z - min.Z;
+            foreach (var t in new[] { 0.3f, 0.7f })
+            {
+                var x = lang ? Mathf.Lerp(min.X, max.X, t) : (min.X + max.X) / 2;
+                var z = lang ? (min.Z + max.Z) / 2 : Mathf.Lerp(min.Z, max.Z, t);
+                var herd = Feuer.Neu(FeuerVorgabe.Gebaeudebrand, false, (Streuung((int)(t * 1000) + kennung.Length, 43) & 0xFFFF) / 65535f, groesse * 0.8f);
+                herd.Position = new Vector3(x, DachHoeheBei(modell.Wurzel, x, z, max.Y) - 0.4f, z);
+                wurzel.AddChild(herd);
+                brand.Feuer.Add(herd);
+            }
+        }
+        foreach (var lage in BrandFenster(modell, blitz ? 6 : 3))
+        {
+            var f = Feuer.Neu(FeuerVorgabe.Fensterbrand, false, (Streuung((int)(lage.X * 100), (int)(lage.Z * 100)) & 0xFFFF) / 65535f, blitz ? 1.4f : 1f);
             f.Position = lage;
             wurzel.AddChild(f);
             brand.Feuer.Add(f);
         }
         _braende[kennung] = brand;
         GD.Print($"[feuer] Brand: {kennung} ab Spielminute {start} ({brand.Feuer.Count - 1} Fenster)");
+    }
+
+    /// <summary>Die Höhe der obersten Fläche des Modells (lokal) über der Stelle (x, z), gesucht in 2 m Umkreis; sonst <paramref name="sonst"/>.</summary>
+    private static float DachHoeheBei(Node3D modell, float x, float z, float sonst)
+    {
+        var hoechste = float.MinValue;
+        foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (Nebenteil(teil.Name.ToString()) || !teil.Visible || teil.Mesh is not { } netz) continue;
+            var lage = LageUnter(modell, teil);
+            for (var f = 0; f < netz.GetSurfaceCount(); f++)
+                foreach (var ecke in netz.SurfaceGetArrays(f)[(int)Mesh.ArrayType.Vertex].AsVector3Array())
+                {
+                    var p = lage * ecke;
+                    if ((p.X - x) * (p.X - x) + (p.Z - z) * (p.Z - z) < 4f && p.Y > hoechste) hoechste = p.Y;
+                }
+        }
+        return hoechste > float.MinValue ? hoechste : sonst;
     }
 
     /// <summary>
@@ -664,6 +699,23 @@ public partial class Stadtansicht
         return gewaehlt;
     }
 
+    private static ShaderMaterial? _russSchicht;
+    private readonly Dictionary<BaseMaterial3D, Material> _russStoffe = new();
+
+    /// <summary>
+    /// Das rußige Dachmaterial: die Farbe dunkler (wie bisher) und darüber eine zweite Schicht (<c>russ.gdshader</c>) mit Kohle und hellen
+    /// Ascheschlieren – auch auf dunklem Schiefer sichtbar (Blitzschlag, 2.11.2026). Je Vorlage einmal.
+    /// </summary>
+    private Material RussStoff(BaseMaterial3D stoff)
+    {
+        if (_russStoffe.TryGetValue(stoff, out var fertig)) return fertig;
+        _russSchicht ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/russ.gdshader"), RenderPriority = 1 };
+        var kopie = (BaseMaterial3D)stoff.Duplicate();
+        kopie.AlbedoColor = stoff.AlbedoColor.Lerp(Russ, 0.8f);
+        kopie.NextPass = _russSchicht;
+        return _russStoffe[stoff] = kopie;
+    }
+
     /// <summary>Färbt das Dach eines Werkstattmodells rußig (nach einem Brand, bis die Reparatur fertig ist) oder gibt ihm seine Farbe zurück.</summary>
     private void DachRussSetzen(ModellInstanz modell, bool russ)
     {
@@ -672,7 +724,7 @@ public partial class Stadtansicht
             if (teil.Mesh is not { } netz) continue;
             for (var i = 0; i < netz.GetSurfaceCount(); i++)
                 if (netz.SurfaceGetMaterial(i) is BaseMaterial3D stoff && Dachstoffe.Contains(stoff.ResourceName))
-                    teil.SetSurfaceOverrideMaterial(i, russ ? Umgefaerbt(stoff, stoff.AlbedoColor.Lerp(Russ, 0.8f)) : null);
+                    teil.SetSurfaceOverrideMaterial(i, russ ? RussStoff(stoff) : null);
         }
     }
 

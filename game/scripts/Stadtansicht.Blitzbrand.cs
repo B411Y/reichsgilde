@@ -187,6 +187,10 @@ public partial class Stadtansicht
     private OmniLight3D? _strahlLicht;
     private float _strahlZeit = -1;
 
+    /// <summary>Kern des Strahls: über 1 (HDR), damit er grell weiß-bläulich leuchtet und im Glühen (Glow) strahlt, nicht grau wirkt.</summary>
+    private static readonly Color StrahlFarbe = new(3.2f, 3.5f, 4.5f, 1f);
+    private static readonly Color StrahlSchein = new(0.35f, 0.45f, 0.9f, 0.35f);
+
     /// <summary>So lange (echte Sekunden) ist der Strahl zu sehen: drei Pulse, dazwischen dunkel, dann ein Nachglühen.</summary>
     private const float StrahlDauer = 0.55f;
 
@@ -255,7 +259,7 @@ public partial class Stadtansicht
             return punkte;
         }
         var haupt = Zacken(oben, spitze, 18, 9f);
-        for (var i = 0; i + 1 < haupt.Count; i++) Band(haupt[i], haupt[i + 1], 1.1f);
+        for (var i = 0; i + 1 < haupt.Count; i++) Band(haupt[i], haupt[i + 1], 1.4f);
         for (var ast = 0; ast < 2; ast++)
         {
             var ab = haupt[3 + zufall.RandiRange(0, 8)];
@@ -264,16 +268,26 @@ public partial class Stadtansicht
             for (var i = 0; i + 1 < zweig.Count; i++) Band(zweig[i], zweig[i + 1], 0.5f);
         }
         netz.SurfaceEnd();
+        // Schein um den Kern: dieselbe Linie breit und schwach (zweite Fläche des Netzes, eigenes Material)
+        netz.SurfaceBegin(Mesh.PrimitiveType.Triangles);
+        for (var i = 0; i + 1 < haupt.Count; i++) Band(haupt[i], haupt[i + 1], 6f);
+        netz.SurfaceEnd();
         _strahl = new MeshInstance3D
         {
             Name = "Blitzstrahl", Mesh = netz, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            MaterialOverride = new StandardMaterial3D
-            {
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, BlendMode = BaseMaterial3D.BlendModeEnum.Add,
-                Transparency = BaseMaterial3D.TransparencyEnum.Alpha, CullMode = BaseMaterial3D.CullModeEnum.Disabled,
-                AlbedoColor = new Color(0.85f, 0.9f, 1f, 1f), DisableFog = true,
-            },
         };
+        _strahl.SetSurfaceOverrideMaterial(0, new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, BlendMode = BaseMaterial3D.BlendModeEnum.Add,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha, CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            AlbedoColor = StrahlFarbe, DisableFog = true,
+        });
+        _strahl.SetSurfaceOverrideMaterial(1, new StandardMaterial3D
+        {
+            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, BlendMode = BaseMaterial3D.BlendModeEnum.Add,
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha, CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+            AlbedoColor = StrahlSchein, DisableFog = true,
+        });
         AddChild(_strahl);
         _strahlLicht = new OmniLight3D
         {
@@ -291,9 +305,10 @@ public partial class Stadtansicht
         _strahlZeit += (float)delta;
         var t = _strahlZeit;
         var hell = t < 0.07f ? 1f : t < 0.12f ? 0.1f : t < 0.2f ? 0.95f : t < 0.26f ? 0.15f : t < 0.33f ? 0.8f : Mathf.Max(0, 0.5f * (1 - (t - 0.33f) / (StrahlDauer - 0.33f)));
-        if (_strahl.MaterialOverride is StandardMaterial3D stoff) stoff.AlbedoColor = new Color(0.85f, 0.9f, 1f, hell);
+        if (_strahl.GetSurfaceOverrideMaterial(0) is StandardMaterial3D stoff) stoff.AlbedoColor = new Color(StrahlFarbe.R, StrahlFarbe.G, StrahlFarbe.B, hell);
+        if (_strahl.GetSurfaceOverrideMaterial(1) is StandardMaterial3D schein) schein.AlbedoColor = new Color(StrahlSchein.R, StrahlSchein.G, StrahlSchein.B, StrahlSchein.A * hell);
         _strahl.Visible = hell > 0.01f;
-        if (_strahlLicht is not null) _strahlLicht.LightEnergy = 14f * hell;
+        if (_strahlLicht is not null) _strahlLicht.LightEnergy = 24f * hell;
         if (t < StrahlDauer) return;
         _strahl.QueueFree();
         _strahlLicht?.QueueFree();
