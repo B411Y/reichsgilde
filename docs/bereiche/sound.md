@@ -21,7 +21,7 @@ Plan (Schritte in dieser Reihenfolge):
 
 - Gesprächsrunden mit der Stimm-KI im Stil von Gothic 1 (kurz, derb, direkt) – Nutzerwunsch, nach den freien Aufnahmen. Die Gesprächsliste `game/daten/gespraeche.json` ist dafür vorbereitet (Anlass → Dateien); ebenso ein gesprochener Ruf des Nachtwächters („Hört, ihr Leut, …“) statt des Horns allein.
 - (Umgebung) Gesprächsfetzen: nur 14 Stück aus zwei arabischen CC0-Aufnahmen (sounds_from_palestine, Straße bei Nacht, Familie), zum Teil mit Straßenhintergrund trotz Entrauschen; mehr und sauberere Aufnahmen (Stable Audio Open auf dem Grafik-PC oder freie Aufnahmen aus einem Markt) wären besser.
-- (Umgebung) Namensnennung der CC-BY-Quellen im Spiel: klankbeeld (Glocke Noteman), poots (Frösche), juskiddink (Horn) gehören in eine Liste der Mitwirkenden im Spiel (Danksagung); bis dahin nur in `HERKUNFT.md` und im Protokoll.
+- (Umgebung) Namensnennung der CC-BY-Quellen im Spiel: klankbeeld (Glocke Noteman, auch das Sturmläuten beim Blitzschlag), poots (Frösche), juskiddink (Horn) gehören in eine Liste der Mitwirkenden im Spiel (Danksagung); bis dahin nur in `HERKUNFT.md` und im Protokoll.
 - (Umgebung) Glocken ohne Vorlage der Kölner Glockenordnung: Die Zeiten folgen den Regeln des Spiels (8, 10, 20, 22 Uhr); eine echte Quelle zu Köln um 1400 (Rügeglocke, Feuerglocke, Torschluss) fehlt, die Websuche fand nur allgemeine Belege (Türmer, Feuerglocke, Wächter mit Horn, Glocke als Zeitzeichen).
 
 - Eigenes, helleres Geläut je romanischer Kirche in Köln (wenn Köln-Paket 2 kommt), Dom bleibt am tiefsten.
@@ -30,7 +30,7 @@ Plan (Schritte in dieser Reihenfolge):
 - **Blitzeinschlag → Gebäudebrand** (Spielmechanik, nicht Ton): `Stadtansicht.BlitzEinschlag(Vector3 ort)` ist die Andockstelle (hellster Blitz aus der Richtung des Orts, brachiale Einschlag-Aufnahme ohne Verzögerung, Abstand aus dem Ort); die Mechanik „Einschlag setzt ein Haus in Brand“ kommt später (Kern, siehe `docs/bereiche/kern.md`).
 - (Gespräche) Gesprächsrunden von Passanten im Stil von Gothic 1 (kurz, derb, direkt), lageabhängig: Stil- und Bauleitfaden steht in `docs/ton/gespraeche-stil.md` (Stilregeln, Aufbau, Bedingungen mit Fundstellen im Kern, Wiederholungsregeln, Datenformat als Block `runden` in `game/daten/gespraeche.json`, Stimm-KI-Hinweise, 30 eigene Beispielzeilen). Offen: Nutzerurteil zu den Fragen im Abschnitt 10 des Leitfadens (Verständlichkeit, Umfang, Derbheit), dann Umsetzung in Schritten: Lagebild und Auswahl (Test), Stimmen-Vorlagen, 40 Runden erzeugen, Untertitel. Vom Teamleiter zu beauftragen: Rollen je Gruppe aus der Stadtansicht (darstellung), Schalter und Untertitel (oberflaeche).
 - (Umgebung) Regen nur gemessen, nicht gehört (Hörprobe 7 liegt beim Nutzer): Pegel (Regen im Freien klar über der Stadt-Grundschicht), Ziegeldach statt Blech, Traufe. Die Dachaufnahme (466241, vom Dachboden, mit etwas Verkehr und Wind im Hintergrund, Hochpass 180 Hz) und die 16 s lange Traufe (622847, hörbar wiederkehrend) sind die schwächsten Stellen; Schindel- und Strohdach bleiben offen, bis es brauchbare CC0-Aufnahmen gibt (gesucht: „rain thatched roof“ ergab nichts Passendes).
-- Blitzschlag: Rufe und Stimmengewirr an der Löschkette (CC0 suchen); Klangprobe A oder B für das Sturmläuten (Nutzer entscheidet; eingebaut ist B, CC0)
+- Blitzschlag: Rufe und Stimmengewirr an der Löschkette (CC0 suchen)
 
 ## Entscheidungen
 
@@ -181,5 +181,5 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 
 | Frage | Entscheidung |
 |---|---|
-| Klang | `glocken/glocke_sturm.ogg` (49,8 s, Schleife): Geläut des Kölner Doms (CC0) aus den Ausschnitten der Morgenglocke, Faktor 1,12 schneller, im Takt von 0,9 s pochend betont, über 2,5 kHz gedämpft; Werkzeug `tools/ton/glocke_sturm_bauen.py` (Blender, audaspace + numpy). Ersetzt die erste Fassung aus einem hochgesetzten Schlag der Noteman-Glocke (Nutzer: zu penetrant); Klangproben `klangprobe_a` (Noteman tiefer, langsamer) und `_b` (Dom) liegen beim Teamleiter, eingebaut ist vorerst B. |
+| Klang | `glocken/glocke_sturm.ogg` (50 s, nahtlose Schleife): **Klangprobe A** (Wahl des Nutzers, 2.11.2026) – ein Schlag der großen Glocke Noteman (klankbeeld, CC BY 4.0, Namensnennung in `HERKUNFT.md` und im Protokoll), über 1,8 kHz gedämpft, abwechselnd um 1,12 und 1,06 tiefer gesetzt, ein Schlag alle 1,15–1,3 s; Werkzeug `tools/ton/glocke_sturm_bauen.py` (Blender, audaspace + numpy). Verworfen: die erste, hochgesetzte Noteman-Fassung (zu penetrant) und Klangprobe B aus dem Geläut des Kölner Doms (CC0). |
 | Wo, wann | Die nächste Kirche (Kirche, Dom, Kölner Dom; sonst der Markt) in 25 m Höhe, 5–9 s nach dem Einschlag, nur wenn es dann noch brennt; läutet als Schleife, bis kein Blitzfeuer mehr brennt, und klingt dann in 4 s aus. 3D (`AudioStreamPlayer3D` an der Stadt, Bus Umgebung, −4 dB, bis 45 m voll, dann leiser mit der Entfernung, Reichweite 1.000 m); verstummt beim Verlassen der Partie und beim Laden; nur ein Läuten zugleich. |

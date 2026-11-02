@@ -3,8 +3,8 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Die Feuerglocke beim Blitzschlag: Die nächste Kirche läutet Sturm, solange das Feuer brennt (<c>glocke_sturm.ogg</c>, Geläut des Kölner Doms,
-/// etwas schneller und pochend, als Schleife; <c>tools/ton/glocke_sturm_bauen.py</c>). Ist das Feuer aus, klingt es in
+/// Die Feuerglocke beim Blitzschlag: Die nächste Kirche läutet Sturm, solange das Feuer brennt (<c>glocke_sturm.ogg</c>, große Glocke Noteman,
+/// tief und gedämpft, ein Schlag alle 1,15–1,3 s, als Schleife; <c>tools/ton/glocke_sturm_bauen.py</c>). Ist das Feuer aus, klingt es in
 /// <see cref="Ausklang"/> Sekunden weich aus (<see cref="Beenden"/>). Der Klang steht an der Kirche in der Welt (ein
 /// <see cref="AudioStreamPlayer3D"/> an der Stadt, Bus Umgebung): nah gut zu hören, mit der Entfernung leiser. Der Spieler hängt an der Stadt –
 /// verlässt man die Partie oder lädt, verstummt die Glocke mit ihr. Läutet sie schon, bleibt es bei dem einen Läuten.

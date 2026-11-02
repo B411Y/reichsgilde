@@ -74,7 +74,7 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 | Messe (Stunde des Kirchenwesens, 10 Uhr) | **Messglocke**, Geläut |
 | Arbeitsende 20 Uhr | **Abendglocke**, die große Glocke allein, dann weitere (Feierabend) |
 | Schankschluss 22 Uhr | **Feuerglocke**, die große Glocke allein, langsam und schwer (Sperrstunde: Feuer abdecken, Gassen räumen) |
-| Blitzschlag (ein Haus brennt) | **Sturmläuten** von der nächsten Kirche, ein paar Sekunden nach dem Einschlag: das tiefe Geläut des Doms, eilig und pochend, so lange das Feuer brennt; dann klingt es aus. Nah gut zu hören, mit der Entfernung leiser. Der Einschlag selbst hat den lauten direkten Donner |
+| Blitzschlag (ein Haus brennt) | **Sturmläuten** von der nächsten Kirche, ein paar Sekunden nach dem Einschlag: die große Glocke allein, tief und gedämpft, Schlag auf Schlag, so lange das Feuer brennt; dann klingt es aus. Nah gut zu hören, mit der Entfernung leiser. Der Einschlag selbst hat den lauten direkten Donner |
 | Nacht, eine Streife mit Laterne ist unterwegs | ab und zu das **Horn des Nachtwächters** an der Streife |
 
 - **Wer zählt:** alle Figuren draußen auf Gassen, am Tor und auf dem Markt im Umkreis der Kamera – auch hinter Häusern, nicht nur die im Bild. Wer in einem Haus, in der Kirche oder im Umland ist, zählt nicht. Der Umkreis wächst mit dem Zoom (nah etwa 40 m, Startzoom etwa 90 m, ganz oben etwa 120 m); wer nah ist, zählt ganz, am Rand immer weniger. Die Einstellung „Menge der Passanten“ gilt auch hier: Wer nicht gezeigt wird, ist nicht zu hören. Gesprächsfetzen tragen weniger weit (Zoom 40 etwa 26 m).
