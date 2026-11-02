@@ -121,7 +121,7 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Ergebnis | 8 Stellen unter 45 Minuten statt 1 (mit der Stelle am Malzbüchel, 10 Minuten), Median aller Bauorte 185 Minuten; zehn Neubauten nach Luftlinie (frühere Reihenfolge der KI) 20, 22, 10, 20, 26, 33, 27, 103, 41, 71 Minuten (vorher 10, 103, 145, 165, 71, 91, 135, 109, 89, 163). Startwerkstätten 25–30 Minuten wie vorher, Prüfung 0 Fehler mit denselben 4 Hinweisen, Kapazität passt (Pflicht und Reserve). Tabelle in `docs/LEVELDESIGN.md`, Abschnitt Köln. | 1.11.2026 |
 | Außerhalb des Bereichs | Tests: `BauenTests` (Köln: 34 Wege, 58 Bauzonen, 13 Kern, 7 Bauplätze), `KartenbauTests` (Kapazität 7.687 Felder, Prüfsumme der Plätze), `MarktplaetzeTests` (eine Marktlinie: Unter Fettenhennen beginnt im Alter Markt). | 1.11.2026 |
 
-### Deutz, Südhälfte (Branch phase5/deutz-ki)
+### Deutz, Südhälfte (PR #286)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

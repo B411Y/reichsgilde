@@ -87,7 +87,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bauort | `WerkstattBauen` ordnet die Bauorte wie bisher nach Luftlinie zum nächsten Platz und nimmt unter den ersten `StandortKandidaten` (20) den mit der kürzesten Fahrt des Startkarrens hin und zurück, bei Gleichstand den näheren (`KiRivale.Standort.cs`); ohne Fahrzeit nach Weglänge den ersten. Eine Schätzung über das Netz ab der Mitte des Grundrisses taugte nicht: Die Drehung bestimmt Hof und Zubringer (Greybox #2: geschätzt 45, wirklich 126 min). Deshalb fragt die KI die Kern-Abfrage `Stadtwirtschaft.FahrzeitAmBauort` (vorher eine eigene Kopie der Strecke, beim Zusammenführen in phase5/gehtempo ersetzt); `KiStandortTests` baut an fünf Orten (Greybox, Köln über das Pflaster) und vergleicht mit `Stadtwirtschaft.Fahrzeit`. In Köln ist der erste nach Luftlinie schon der beste. Der bestehende Test „baut neu – nahe am Markt“ prüft jetzt „unter den 20 nächsten“. | 01.11.2026 |
 | Tests | `KiKarrenwahlTests` (Durchfluss nach Lager und Fahrzeit, Formel, Holzschlag bekommt das Pferd, Tausch am Bauernhof, Warten auf den Karren, Sperre, Kölner Jahr mit Tausch im Lauf des Jahres, Tausch erst in der Frist, Höchstdauer: Ochse statt Pferd, Geld, alte Daten mit einem Kölner Jahr, ein Kölner Jahr „Schwer“), `KiStandortTests` (Schätzung = Kern, Greybox baut am schnellsten der nächsten, alte Daten nach Luftlinie). | 01.11.2026 |
 
-### Umland nach dem Karrenweg (Branch phase5/deutz-ki)
+### Umland nach dem Karrenweg (PR #286)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -98,7 +98,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Vorarbeiter mit Lager | Im Umland ab `StillstandFuerKarrenkauf` Stillstand (Fahrzeit nach Weglänge) bewertet `EigenschaftWert` die Eigenschaft „Ordnungsliebend“ (+20 Lager je Ware) wie einen Karrenkauf: Durchfluss mit dem größeren Lager, `Stillstand nachher = vorher ^ (Fluss nachher ÷ vorher)`, × Wert eines vollen Arbeitsjahres; andere Eigenschaften × (1 − Stillstand), weil mehr Förderung nur hilft, wo sie auch weggefahren wird. Der Kern bewertet Lager mit 0, die KI wählte es deshalb nie, solange eine andere der drei Eigenschaften Gulden brachte. Am Holzschlag fasst ein Kriegskarren dann 60 statt 40. Werkstätten wie bisher. | 1.11.2026 |
 | Tests | `KiUmlandTests`: Fahrzeit der Liegenschaft = Kern nach der Pacht (vier Kölner Liegenschaften, alle Karrenarten); Schätzung (Silberberg voll, Eichenforst 0,3–0,45, Kräutergarten am Bach 0,6–0,9, Karren und Kosten); in Köln steht der Eichenforst höchstens als letzter Kandidat (Kosten 2 Ochsen), der nähere Holzschlag weit davor; alte Daten wie bisher; Vorarbeiter im gebremsten Holzschlag (ein Jahr „Schwer“) wählt Lager. | 1.11.2026 |
 
-### Karren-Höchstzahl (Branch phase5/deutz-ki)
+### Karren-Höchstzahl (PR #286)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -147,7 +147,7 @@ Gemessen auf main `880e3387` und phase5/gehtempo `dd347586` („vorher“) + die
 
 Kein Bankrott. Woher der Rückgang kam (Greybox, Normal, 4 Startwerte, Jahr 15, je KI-Werkstatt): vorher lagen 7 von 23 Werkstätten über 60 min vom Markt (gebaut „an der Ringgasse“ und „am Felsenhang“, 99–174 min, drei Handkarren, 44 % Stillstand, Gewinn Ø 435 statt 4.072); mit Karrenwahl allein 31 % Stillstand, Gewinn 621; mit Bauort nach Karrenweg nur noch 2 weite, alle Werkstätten zusammen 73.613 (vorher 68.197, main 73.025). Einzelne Versuche (8 Startwerte, Greybox): immer Kriegskarren im Umland KI Schwer +1,8 %, Ochse und Tausch +1,3 %, immer Handkarren −10 %. **Köln** (Teil 5, 20 Startwerte) lief bei Abgabe noch (Rechner mit Last um 30); nachtragen.
 
-### Umland nach dem Karrenweg (Branch phase5/deutz-ki)
+### Umland nach dem Karrenweg (PR #286)
 
 Gemessen auf main `ec36ff33` + dieser Branch (`97001082`, mit den Häusern in Deutz), `messen bericht 20 20 --teile=5 --karte=koeln|greybox --parallel=3`, 20 Startwerte, Reinvermögen nach 20 Jahren (Mittel ± Fehler). Keine Partie mit Fehler, kein Bankrott, kein Haus erloschen.
 
@@ -165,7 +165,7 @@ Gemessen auf main `ec36ff33` + dieser Branch (`97001082`, mit den Häusern in De
 
 Die KI-Häuser in Köln gewinnen etwas (Normal innerhalb des Fehlers, „Schwer“ +4.400), das Ziel 75.482 (alter main, Teil 5, 10 Startwerte) erreichen sie nicht: Die Umlandbetriebe der KI-Häuser liegen auf der Karte 220–290 Minuten vom Markt, ihr Stillstand bleibt (Holzschläge 21–29 %), und der Gewinn je KI-Haus aus dem Umland in 20 Jahren bleibt bei ≈ 26.400 (alter main 32.971). Was die Änderung bringt, ist das Meiden des Eichenforsts (75 Gulden im Jahr) und eine bessere Wahl der Liegenschaften (Umland 1.405 statt 1.322 je Jahr, Neubauten +2.600 je Haus). „Schwer“: 25 statt 18 von 140 KI-Häusern ziehen davon (> 2× Bezug) – der Bezugsspieler schwankt dort stark (± 7.365). Der Rest ist Karte (Lage des Umlands) oder Kern (Höchstdauer, Karren). Messdateien im Notizordner (`…/scratchpad/deutz-ki/mess/`).
 
-### Karren-Höchstzahl: Umland bis 5 Karren (Branch phase5/deutz-ki)
+### Karren-Höchstzahl: Umland bis 5 Karren (PR #286)
 
 Gemessen auf main `ec36ff33` + dieser Branch (`adfd5f2d`), wie oben (`messen bericht 20 20 --teile=5`, 20 Startwerte; die Messdatei nennt als main `4220c631`, den Stand von origin/main zur Messzeit – der Branch ist darauf nicht neu aufgesetzt). „Vorher“ = derselbe Branch mit 3 Karren (`97001082`). Keine Partie mit Fehler, kein Bankrott.
 
