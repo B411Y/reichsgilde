@@ -77,7 +77,9 @@ public sealed partial class KiRivale
         var budget = Konto.Vermoegen - typ.Preis - d.ReserveFaktor * Profil.Reserve;
         if (budget <= 0) return;
         if (Kalkulation.BesteSchiffsfahrt(_w, Konto, typ, budget, "Keine", Vorsicht) is not { } v) return;
-        var jahresgewinn = v.Rechnung.GewinnJeJahr * d.Auslastung - typ.Unterhalt;
+        // Ein Schiff fährt alle Jahreszeiten: der beste Auftrag im Mittel der vier, nicht zu den Preisen dieses Jahresendes (Datenversion 67)
+        var jahresgewinn = _w.Jahreszeiten.Jahresmittel(() => Kalkulation.BesteSchiffsfahrt(_w, Konto, typ, budget, "Keine", Vorsicht)?.Rechnung.GewinnJeJahr ?? 0)
+                           * d.Auslastung - typ.Unterhalt;
         if (jahresgewinn <= 0 || typ.Preis / jahresgewinn > grenze) return;
         var waehrung = _w.Daten.Allgemein.Waehrung;
         Befehlen(new Wirtschaft.SchiffKaufen(Typ: name),

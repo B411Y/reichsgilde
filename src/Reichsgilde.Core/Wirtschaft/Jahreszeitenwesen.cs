@@ -191,6 +191,37 @@ public sealed class Jahreszeitenwesen
         return 1 + (FestmarktUm(jahreszeit, zeit.StundeDieEndete)?.Gaeste ?? 0);
     }
 
+    /// <summary>
+    /// Das Mittel einer Rechnung über die vier Jahreszeiten: Sie läuft viermal, jedes Mal mit den Nachfrage- und Angebotsfaktoren einer Jahreszeit
+    /// an allen Marktständen (gewöhnlicher Winter, ohne Festmarkt), danach steht der Markt wieder genau wie vorher. Für Entscheidungen über
+    /// Jahre, etwa den Kauf eines Schiffs: Sonst sähe ein Kauf am Ende eines Winters die Winterpreise für alle Jahre. Ohne Jahreszeiten läuft
+    /// sie einmal, wie sie ist. Ändert nichts am Spielstand.
+    /// </summary>
+    internal double Jahresmittel(Func<double> rechnung)
+    {
+        if (Daten is null) return rechnung();
+        var staende = _w.Markt.Staende.ToList();
+        var vorher = staende.Select(s => (s.Jahreszeitfaktor, s.Angebotsfaktor)).ToList();
+        var summe = 0.0;
+        try
+        {
+            foreach (var j in Enum.GetValues<Jahreszeit>())
+            {
+                foreach (var s in staende)
+                {
+                    s.Jahreszeitfaktor = NachfrageFaktor(s.Ware, j, streng: false, festmarkt: null);
+                    s.Angebotsfaktor = Daten.Von(j).AngebotVon(s.Ware);
+                }
+                summe += rechnung();
+            }
+        }
+        finally
+        {
+            for (var i = 0; i < staende.Count; i++) (staende[i].Jahreszeitfaktor, staende[i].Angebotsfaktor) = vorher[i];
+        }
+        return summe / 4;
+    }
+
     /// <summary>Die Werte für Furten und Fähren, solange der Fluss zu ist: die Fähre dauert <see cref="StrengerWinterDaten.FaehreMinuten"/>.</summary>
     internal WasserDaten? MitEis(WasserDaten? wasser)
     {
