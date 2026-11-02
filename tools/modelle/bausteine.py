@@ -1253,13 +1253,13 @@ def farben_zusammenlegen(objekte, behalten=BENANNTE_STOFFE):
 def unterordner(name):
     """Unterordner des Modells `name` unter game/assets/modelle/ – nach Art getrennt, wie der Gebäudekatalog sie nennt
     („gebaeude/schmied“): innen (…_innen), natur (natur_…), figuren (figur_…), fahrzeuge (karren_…), tiere (vogel_…),
-    wasser (wasser_…: Brücken, Fähre, Hafen, Furt- und Ufersteine), props (props_…: Gegenstände und Zierteile der Asset-Kits), umland (UMLAND_MODELLE),
+    wasser (wasser_…: Brücken, Fähre, Hafen, Furt- und Ufersteine), props (props_…: Gegenstände und Zierteile der Asset-Kits), kulisse (kulisse_…: Berge hinter dem Kartenrand), umland (UMLAND_MODELLE),
     requisiten (REQUISITEN_MODELLE: einzelne Gegenstände aus eigenen Skripten, z. B. der Eimer der Löschkette), sonst gebaeude (Wohn- und
     Einwohnerhäuser, Werkstätten, Sonderbauten, Markt)."""
     if name.endswith("_innen"):
         return "innen"
     for anfang, ordner in (("natur_", "natur"), ("figur_", "figuren"), ("karren_", "fahrzeuge"), ("vogel_", "tiere"),
-                           ("wasser_", "wasser"), ("props_", "props")):
+                           ("wasser_", "wasser"), ("props_", "props"), ("kulisse_", "kulisse")):
         if name.startswith(anfang):
             return ordner
     if name in REQUISITEN_MODELLE:

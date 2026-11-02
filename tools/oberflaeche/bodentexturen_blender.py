@@ -26,7 +26,7 @@ Schreibt nach game/assets/texturen/boden/ (Format: siehe unten und docs/bereiche
 Beide sind Texture2DArrays mit elf Schichten untereinander, Reihenfolge wie `Bodentextur` im Kern:
     0 Wiese  1 Erde  2 Fels  3 Kies  4 Waldboden  5 Sand  6 Schlamm  7 Moos  8 Lehm  9 Pflaster  10 Mist
 Das Pixelmittel jeder Farbschicht wird auf das der 5e-Textur (game/assets/texturen/boden.png) abgeglichen, damit die
-Helligkeit im Spiel gleich bleibt. Dazu Vorschaubilder in docs/bilder/boden/ (je Textur 2 × 2 gekachelt und beleuchtet).
+Helligkeit im Spiel gleich bleibt (Ausnahme: MITTEL_ERSATZ, das Moos ist dunkler und satter). Dazu Vorschaubilder in docs/bilder/boden/ (je Textur 2 × 2 gekachelt und beleuchtet).
 """
 import math
 import os
@@ -1287,6 +1287,11 @@ def nach_srgb(c):
     return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)
 
 
+# Ausnahmen vom Abgleich mit der 5e-Textur (sRGB 0..255): Das Moos lag mit (69, 89, 42) fast im Ton der Wiese (82, 100, 60), der Moossaum am
+# Fels (Felspinsel F6) war darum kaum zu sehen. Jetzt dunkler und satter, ein Moos- bis Olivgrün mit wenig Blau.
+MITTEL_ERSATZ = {"moos": np.array([58.0, 78.0, 28.0]) / 255}
+
+
 def alte_mittel():
     """Pixelmittel je Schicht der 5e-Textur (sRGB 0..1)."""
     img = bpy.data.images.load(ALT)
@@ -1462,7 +1467,7 @@ def packen():
             vorschau.append(np.full((N, N, 3), 0.12))
             continue
         roh = dict(np.load(pfad))
-        farbe, h, n, rau = aufbereiten(name, roh, alt[name])
+        farbe, h, n, rau = aufbereiten(name, roh, MITTEL_ERSATZ.get(name, alt[name]))
         print(f"[{name}] Mittel neu {np.round(farbe.reshape(-1, 3).mean(0) * 255, 1)} alt {np.round(alt[name] * 255, 1)}"
               f" | Höhe {h.mean():.2f} ± {h.std():.2f} | Rauheit {rau.mean():.2f}")
         farben.append(np.dstack([np.round(farbe * 255), 1 + np.round(h * 254)]).astype(np.uint8))   # A nie 0

@@ -214,7 +214,7 @@ public sealed class Wirtschaftsdaten
     /// </summary>
     public Bauen.WegebauDaten? Wegebau { get; init; }
 
-    /// <summary>Blitzschlag im Gewitter (ab Datenversion 69): Chance, Brenndauer, Höhen der Gebäude, Schaden. Fehlt der Abschnitt, schlägt kein Blitz ein.</summary>
+    /// <summary>Blitzschlag im Gewitter (ab Datenversion 68): Chance, Brenndauer, Höhen der Gebäude, Schaden. Fehlt der Abschnitt, schlägt kein Blitz ein.</summary>
     public Gefahren.BlitzDaten? Blitz { get; init; }
 
     /// <summary>Handel von Hand per Karrenauftrag (ab Datenversion 24). Fehlt der Abschnitt, handeln nur die Verwalter.</summary>

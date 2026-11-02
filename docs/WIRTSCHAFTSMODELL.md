@@ -2038,6 +2038,31 @@ Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 9
 - **„Schwer“ zieht deutlich weniger davon.** In Köln ziehen 16 statt 30 von 70 KI-Häusern davon, auf main waren es 0. In der Greybox sind es 24 statt 43 von 60, auf main 14.
 - **Fair geblieben:** kein Bankrott, Bürger im Ziel wie vorher, der Spieler mit einem Betrieb unverändert.
 
+## Sitzplätze der Schänken (Datenversion 67)
+
+**Regel** (Entscheidung des Nutzers, 1.11.2026): Schänke 20, Wirtshaus 30, Gasthaus 40 Sitzplätze (`gastwirtschaft.sitzplaetzeJeStufe`). Ein Gast bleibt etwa eine Stunde, also kommen je Stunde höchstens so viele Gäste in eine Schänke, wie sie Plätze hat. Wer keinen Platz findet, geht in die anziehendste Schänke mit freien Plätzen und zahlt dort; ist überall voll, fällt der Besuch aus (`Gaestebuch.Voll`, `Gaestebuch.Ausgefallen`). Kein Aufschub auf später: Voll ist es zur Abendspitze, und die Stunden bis zum Schankschluss sind genauso voll. Für die Einwohner der Bürger-KI gilt eine mitwachsende Grenze (Entscheidung des Nutzers, 2.11.2026): ⌈Plätze × Einwohner ÷ 17⌉ (`gastwirtschaft.einwohnerBezug`; 17 = Gäste der vollsten Stunde, 120 × 2 ÷ 14). Weil die Plätze mindestens 20 sind, fasst damit jede Schänke mehr Einwohner, als die Stadt hat – **die Einwohner-Grenze greift mit den Spieldaten nie**, die Kopplung an die Einwohner wirkt wie bisher, begrenzt sind nur die Gäste. Erst mit `einwohnerBezug` über 20 (oder 0 = die Plätze selbst) würde sie greifen; dann gilt: Wer nirgends Platz findet, tut das Nächstbeste und versucht es in der nächsten Stunde wieder (sein Vergnügen bleibt ungestillt). `ErwarteteGaeste` und `BardeNutzen` (KI) zählen je Stunde höchstens die Plätze. Ohne die Angabe in den Daten (alte Spielstände) rechnet alles wie bis Datenversion 65 – geprüft: der Kern dieses Branches mit den Daten von main gibt `messen bericht 20 20 --teile=3,5` auf der Greybox Wert für Wert dasselbe wie main.
+
+**Vorher:** In der Greybox saßen bis zu 121 Einwohner in einer Schänke (am Nachmittag), in Köln bis zu 195. Bei den Gästen der Wirtschaft (120 je Jahr in der Stadt) wäre eine Schänke allein mit Barde abends mit 25,7 Gästen je Stunde über 20 gewesen.
+
+**Messung** (`messen schaenke 20 20` und `messen bericht 20 20 --teile=3,5 --karte=<karte> --fairness=<karte> --rotationen=1`, je Karte 20 Startwerte; Aufbauten mit allen KI-Häusern: Spieler als Wirt mit einem Betrieb, als ausbauender Wirt, als Schmied mit einem Betrieb). Vorher = main ec36ff33 (Bericht) bzw. der Kern von 78816282 mit `--ohne-plaetze` (`schaenke-ohne.json`; der Pfad ohne Plätze ist seitdem unverändert), nachher = 19d82567. Keine Partie mit Fehler, kein Bankrott.
+
+**Ergebnis** (gemessen auf main ec36ff33 + 19d82567, vor dem Merge von #286 mit der Karren-Höchstzahl): Reinvermögen, Gewinne, Umsatz der Schänken und Bürger-Jahre sind in allen sechs Aufbauten und im Balancing-Bericht (Teil 3 und 5, Greybox und Köln) **Wert für Wert gleich wie main** – auch der ausbauende Wirt in Köln (54.137) und die Städte mit nur einer Schänke. Grund: Voll ist eine Schänke nur zur Abendspitze, und dann ist ihr Lager in diesen Partien schon leer – wer keinen Platz findet, wäre vorher „ohne Ware“ abgewiesen worden. Die Platzgrenze verschiebt also nur Abweisungen von „ohne Ware“ zu „ausgefallen“; spürbar wird sie erst, wenn ein Wirt abends noch genug im Lager hat (z. B. der Spieler mit vollem Keller oder Barden).
+
+| Karte, Aufbau | Spieler J20 | Bürger im Ziel | Umsatz Schänke Spieler / KI | Gäste / ohne Ware vorher → nachher / ausgefallen je Jahr | Stunden voll | Einwohner höchstens in einer Schänke |
+|---|---|---|---|---|---|---|
+| Greybox, Wirt ein Betrieb | 37.379 | 17 | 6.400 / 1.140 | 70,9 / 82,9 → 71,1 / 11,8 (14 %) | 11,6 % | 112 |
+| Greybox, Wirt ausbauend | 64.125 | 7 | 9.368 / – | 84,3 / 67,9 → 58,0 / 9,9 (11 %) | 7,7 % | 112 |
+| Greybox, Schmied ein Betrieb | 35.765 | 19 | – / 1.143 | 12,6 / 29,0 → 26,2 / 2,8 (18 %) | 12,2 % | 121 |
+| Köln, Wirt ein Betrieb | 33.640 | 17 | 5.461 / 6.968 | 111,0 / 44,4 → 44,4 / 0 | 0 | 122 |
+| Köln, Wirt ausbauend | 54.137 | 12 | 6.760 / 6.786 | 122,2 / 31,9 → 31,9 / 0 | 0 | 116 |
+| Köln, Schmied ein Betrieb | 31.780 | 19 | – / 7.291 | 61,0 / 93,2 → 84,0 / 9,1 (13 %) | 11,9 % | 195 |
+
+Die Einwohner-Grenze kann mit Bezug 17 nicht erreicht werden (Greybox 121–123 Einwohner, Grenze ≥ 145; Köln 223, Grenze ≥ 263; höchstens 81–98 % der Einwohner sitzen in einer Schänke, am Nachmittag). Bericht Teil 3/5 (gleich wie main): Greybox Spieler 35.765, KI-Häuser 75.825, ausbauend 62.268; Köln Spieler 31.780, KI-Häuser 64.628, ausbauend 56.503; Bürger im Ziel 19 von 20 auf beiden Karten.
+
+**Zwischenstand** (Einwohner-Grenze = Sitzplätze, vor der Entscheidung vom 2.11.2026): Die Schänke einer Stadt war ab Mittag mit Einwohnern voll, der Kopplungsfaktor blieb 1, 9–15 % mehr Gäste wollten herein, und die Vermögen streuten um main (ausbauender Wirt Köln 54.137 → 47.881, unter zwei Fehlern). Dateien `schaenke-plaetze2.json`, `bericht-branch2-*.json`.
+
+Messdateien `schaenke-{plaetze3,ohne}.json`, `bericht-{main,branch3}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
+
 ## Blitzschlag im Gewitter (phase5/blitzbrand, 2.11.2026)
 
 Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Gebäude (Gewicht: Höhe + Boden über dem Mittel, **linear** – Teamleiter 2.11.2026). Schaden als Platzhalter: Werkstatt 300 Arbeitsminuten Stillstand ab dem Einschlag, Wohnhaus ohne Ansehen bis ein Spieljahr nach dem Feuer, keine Reparatursumme.

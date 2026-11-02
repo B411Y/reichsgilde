@@ -46,6 +46,12 @@ public enum Kartenteil
 
     /// <summary>Die Bodentexturen (Bodenraster, Schritt 5e; nur einmal je Karte) – die Änderung nennt das Rechteck (<see cref="Kartenaenderung.Bereich"/>).</summary>
     Boden,
+
+    /// <summary>Ein Felsstück (<see cref="EntwurfFels"/>, Felspinsel F3).</summary>
+    Fels,
+
+    /// <summary>Das Grundgestein der Karte (Felspinsel F3; nur einmal je Karte).</summary>
+    Grundgestein,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>

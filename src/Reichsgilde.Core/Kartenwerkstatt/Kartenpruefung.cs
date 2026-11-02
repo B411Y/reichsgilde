@@ -253,6 +253,7 @@ public static class Kartenpruefung
             Natur();
             Feldflaechen();
             Pflanzen();
+            Felsen();
             Grenzen();
             Start();
             Wegenetz();
@@ -840,6 +841,27 @@ public static class Kartenpruefung
             }
             foreach (var p in _e.Pflanzen.Where(p => !IstNatur(p.Katalog)))
                 FehlerAn("natur", $"Pflanze bei {p.Punkt}: „{p.Katalog}“ ist keine Natur-Art im Katalog.", p.Punkt, new[] { p });
+        }
+
+        /// <summary>
+        /// Felsstücke (Felspinsel F3): Sie sperren nichts (Nutzer 01.11.2026), darum nur Hinweise – eine unbekannte Form oder Gesteinsart (das
+        /// Spiel zeichnet sie dann nicht bzw. im Grundgestein) und Stücke außerhalb der Karte.
+        /// </summary>
+        private void Felsen()
+        {
+            if (_e.Grundgestein.Gestein is { } gg && !Felsformen.IstGestein(gg))
+                Hinweis("fels", $"Das Grundgestein „{gg}“ gibt es nicht – es gilt {Felsformen.GrundgesteinVorgabe}.", null);
+            foreach (var f in _e.Felsen)
+            {
+                if (f.Felsform is null) HinweisAn("fels", $"Felsstück bei {f.Punkt}: Eine Form „{f.Form}“ gibt es nicht.", f.Punkt, new[] { f });
+                if (f.Gestein is { } g && !Felsformen.IstGestein(g))
+                    HinweisAn("fels", $"Felsstück bei {f.Punkt}: Eine Gesteinsart „{g}“ gibt es nicht – es gilt das Grundgestein.", f.Punkt, new[] { f });
+                if (f.Massstab < Felsformen.MassstabMin || f.Massstab > Felsformen.MassstabMax || f.Einsinken < 0 || f.Einsinken > Felsformen.EinsinkenMax
+                    || f.Neigung < 0 || f.Neigung > 1 || f.Drehung < 0 || f.Drehung >= 360)
+                    HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt}: Maßstab {M(f.Massstab)} (0,25–4), Einsinken {M(f.Einsinken)} (0–0,9), Neigung {M(f.Neigung)} (0–1) " +
+                                      $"oder Drehung {M(f.Drehung)} (0–360) liegt außerhalb der Grenzen.", f.Punkt, new[] { f });
+                if (!_grenzen.InDerKarte(f.X, f.Z)) HinweisAn("fels", $"{f.Bezeichnung} bei {f.Punkt} liegt außerhalb der Karte.", f.Punkt, new[] { f });
+            }
         }
 
         /// <summary>

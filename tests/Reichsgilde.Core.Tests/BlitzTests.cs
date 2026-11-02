@@ -9,7 +9,7 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 /// <summary>
-/// Blitzschlag im Gewitter (Wunsch des Nutzers vom 2.11.2026, Datenversion 69): der Wetterplan im Kern (würfelt wie vorher die Darstellung),
+/// Blitzschlag im Gewitter (Wunsch des Nutzers vom 2.11.2026, Datenversion 68): der Wetterplan im Kern (würfelt wie vorher die Darstellung),
 /// Einschlag mitten im Gewitter, Ziele nach Höhe und Anhöhe, Brand 1–3 Stunden, Schaden als Platzhalter (Werkstatt steht still, Wohnhaus
 /// ohne Ansehen), Nachrechnen nach dem Laden ohne Spielstandfeld, Entwicklerbefehl.
 /// </summary>

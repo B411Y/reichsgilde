@@ -1,7 +1,7 @@
 namespace Reichsgilde.Core.Gefahren;
 
 /// <summary>
-/// Blitzschlag im Gewitter (Abschnitt <c>blitz</c> in wirtschaft.json, ab Datenversion 69; Wunsch des Nutzers vom 2.11.2026). Fehlt der Abschnitt,
+/// Blitzschlag im Gewitter (Abschnitt <c>blitz</c> in wirtschaft.json, ab Datenversion 68; Wunsch des Nutzers vom 2.11.2026). Fehlt der Abschnitt,
 /// schlägt kein Blitz ein. Der Schaden ist ein Platzhalter, bis das richtige Schadensmodell kommt: Eine Werkstatt steht still wie nach einer
 /// Sabotage, ein Wohnhaus verliert bis zur Instandsetzung sein Ansehen wie nach einer Brandstiftung.
 /// </summary>

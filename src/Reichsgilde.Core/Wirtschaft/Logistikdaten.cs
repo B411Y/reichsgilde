@@ -271,6 +271,16 @@ public sealed class LogistikDaten
 
     public int FahrzeitAb(Arbeitsort ort) => Fahrzeiten.GetValueOrDefault(ort.ToString(), 30);
 
+    /// <summary>
+    /// Höchstens so viele Karren je Betrieb, nach Arbeitsort (Datenversion 66, Entscheidung des Nutzers vom 2.11.2026: Werkstatt 3, Umland 5 – das
+    /// Umland liegt seit der Fahrzeit nach Weglänge weit draußen). Gilt für Spieler und KI gleich. Null bzw. ohne Eintrag für den Ort: keine Grenze
+    /// im Kern (wie vor Datenversion 66; die KI hielt sich an <c>KiProfil.MaxKarrenJeBetrieb</c> = 3).
+    /// </summary>
+    public Dictionary<string, int>? KarrenHoechstens { get; init; }
+
+    /// <summary>Wie viele Karren ein Betrieb an diesem Ort höchstens haben darf (<see cref="KarrenHoechstens"/>) – null: keine Grenze.</summary>
+    public int? HoechstKarren(Arbeitsort ort) => KarrenHoechstens is { } h && h.TryGetValue(ort.ToString(), out var n) ? n : null;
+
     internal void Pruefen(List<string> f)
     {
         foreach (var ort in Enum.GetNames<Arbeitsort>())
@@ -286,6 +296,12 @@ public sealed class LogistikDaten
         if (ZutatenVorratStunden <= 0) f.Add("logistik.zutatenVorratStunden muss größer als 0 sein.");
         if (ZutatenAnteilKasse is <= 0 or > 1) f.Add("logistik.zutatenAnteilKasse muss größer als 0 und höchstens 1 sein.");
         if (KarrenVerkaufAnteil is < 0 or > 1) f.Add("logistik.karrenVerkaufAnteil muss zwischen 0 und 1 liegen.");
+        if (KarrenHoechstens is { } kh)
+            foreach (var (ort, n) in kh.OrderBy(x => x.Key, StringComparer.Ordinal))
+            {
+                if (!Enum.GetNames<Arbeitsort>().Contains(ort, StringComparer.Ordinal)) f.Add($"logistik.karrenHoechstens: Den Arbeitsort „{ort}“ gibt es nicht.");
+                if (n < 1) f.Add($"logistik.karrenHoechstens.{ort} muss mindestens 1 sein.");
+            }
         if (Karren.Count == 0) f.Add("logistik.karren: Es ist kein Karrentyp definiert.");
         foreach (var (name, k) in Karren)
             if (k.Sorten <= 0 || k.KapazitaetJeSorte <= 0) f.Add($"Karren {name}: sorten und kapazitaetJeSorte müssen größer als 0 sein.");

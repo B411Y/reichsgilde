@@ -207,6 +207,15 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
 
+    /// <summary>
+    /// Warum dieser Betrieb keinen weiteren Karren bekommt – oder null: Er hat schon so viele, wie sein Arbeitsort erlaubt
+    /// (<see cref="LogistikDaten.HoechstKarren"/>, Datenversion 66: Werkstatt 3, Umland 5). Das Geld prüft der Kauf selbst.
+    /// </summary>
+    public string? KarrenKaufVerboten(Betrieb betrieb) =>
+        Daten.Logistik.HoechstKarren(betrieb.Ort) is { } n && betrieb.Karren.Count >= n
+            ? $"{betrieb.Name} hat schon {Zahlenformat.Ganz(betrieb.Karren.Count)} Karren – mehr als {Zahlenformat.Ganz(n)} gehen {(betrieb.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")} nicht."
+            : null;
+
     /// <summary>Warum dieses Haus den Karren Nr. <paramref name="karrenNr"/> (ab 0) dieses Betriebs nicht verkaufen kann – oder null.</summary>
     public string? KarrenVerkaufVerboten(Konto konto, Betrieb betrieb, int karrenNr)
     {
@@ -1070,6 +1079,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (!Daten.Logistik.Karren.TryGetValue(befehl.Typ, out var daten))
             return Befehlsergebnis.Abgelehnt($"Den Karrentyp „{befehl.Typ}“ gibt es nicht.");
+        if (KarrenKaufVerboten(betrieb) is { } grenze) return Befehlsergebnis.Abgelehnt(grenze);
         if (betrieb.Konto.Vermoegen < daten.Preis)
             return Befehlsergebnis.Abgelehnt(
                 $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");

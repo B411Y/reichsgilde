@@ -25,6 +25,8 @@ using Reichsgilde.Core.Zeit;
 ///   • Lauf C speichert und lädt an acht Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in drei Bränden nach Blitzschlag, einer davon über den Jahreswechsel) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
+/// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
+/// und der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -48,7 +50,7 @@ static class GleichheitTests
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
-    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 69; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
+    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 68; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
     /// 18:23 Uhr), bei 2027 in Minute 6380 (Jahr 5, 15:20) und 10231 (Jahr 8, 22:31 – es brennt über den Jahreswechsel, geladen wird um 4:01 im Jahr 9).
     /// Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
     /// </summary>
@@ -66,7 +68,34 @@ static class GleichheitTests
     public static IEnumerable<(string, Action)> Alle() => Partien.Select(p => (
         $"Gleichheit: Startwert {p.Startwert} ({p.Schwierigkeit}, {p.Rivale}, {p.Beruf}{(p.Karte == "greybox" ? "" : $", {p.Karte}")}) – {p.Jahre} Jahre durchgehend, mit deutscher Ländereinstellung " +
         "und mit Speichern/Laden (auch direkt nach dem Löschen eines Betriebs) ergeben dieselbe Prüfsumme",
-        (Action)(() => Pruefen(p))));
+        (Action)(() => Pruefen(p)))).Append((
+        "Gleichheit: Felspinsel (Stempel, Streuen mit Filter, Radieren, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsenPruefen)).Append((
+        "Gleichheit: Felsboden (Felsstrich und Boden als ein Befehl, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsbodenPruefen));
+
+    /// <summary>Der Felsboden (F6): Stücke und Boden um den Fels in einem Befehl – gleiche Bytes (Zeile „felsboden …“ in der Datei der CI).</summary>
+    static void FelsbodenPruefen()
+    {
+        var a = Sha256(FelsbodenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsbodenTests.Ablauf()), "Felsboden: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsbodenTests.Ablauf())), "Felsboden: de-DE");
+        Zeilen[-2] = new[] { $"felsboden {a}" };
+        DateiSchreiben();
+    }
+
+    /// <summary>
+    /// Der Felsfall (Felspinsel F3): Ein fester Ablauf der Kartenwerkstatt (<see cref="FelsenTests.Ablauf"/>) – gleicher Strich, gleiche Bytes.
+    /// Die Prüfsumme der Kartendatei steht in der Datei der CI (Zeile „fels …“) und wird so zwischen Linux und Windows verglichen.
+    /// </summary>
+    static void FelsenPruefen()
+    {
+        var a = Sha256(FelsenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsenTests.Ablauf()), "Felsen: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsenTests.Ablauf())), "Felsen: de-DE");
+        Zeilen[-1] = new[] { $"fels {a}" };
+        DateiSchreiben();
+    }
 
     static void Pruefen(Partie p)
     {
@@ -77,7 +106,7 @@ static class GleichheitTests
         Vergleichen("Lauf B (de-DE)", a, b);
         Vergleichen("Lauf C (Speichern und Laden)", a, c);
         Pruefe.Gleich(string.Join("\n", a.Blitze), string.Join("\n", c.Blitze), "Blitzschläge (Minute, Ziel, Schaden) mit Speichern und Laden");
-        // Ein Blitzfall (Datenversion 69): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
+        // Ein Blitzfall (Datenversion 68): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
         if (p.Startwert is 4711 or 2027) Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.

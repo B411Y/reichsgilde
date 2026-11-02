@@ -309,13 +309,42 @@ Schicht dreiseitig(int nr, vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
 }
 #endif
 
-// Der Fels am Hang: in Hoch dreiseitig, sonst von oben
+// Die Gesteinsart der Karte (Felspinsel F6, Stadtansicht.Felsboden.cs): Fels im Boden – am Hang und gemalt – nimmt ihre Farbe an, Kies etwas
+// die Farbe ihres Schutts. Die Helligkeit der Textur wählt zwischen dunkler und heller Farbe, ihr Relief bleibt. boden_gestein_an = 0: Karte ohne
+// Felsen, der Boden bleibt wie bisher.
+global uniform vec3 boden_gestein_hell;
+global uniform vec3 boden_gestein_dunkel;
+global uniform vec3 boden_gestein_schutt;
+global uniform float boden_gestein_an;
+
+vec3 gestein_farbe(int nr, vec3 c) {
+	if (boden_gestein_an <= 0.0 || (nr != T_FELS && nr != T_KIES)) return c;
+	float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+	if (nr == T_FELS) {
+		vec3 g = mix(boden_gestein_dunkel, boden_gestein_hell, smoothstep(0.06, 0.32, l));
+		// das feine Relief der Textur bleibt als Helligkeit erhalten
+		g *= 0.8 + 0.4 * smoothstep(0.03, 0.4, l);
+		return mix(c, g, 0.85 * boden_gestein_an);
+	}
+	vec3 k = boden_gestein_schutt * (0.6 + 1.4 * l);
+	return mix(c, k, 0.4 * boden_gestein_an);
+}
+
+Schicht eben_gestein(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
+	Schicht s = eben(nr, p, n, dx, dy);
+	s.fh.rgb = gestein_farbe(nr, s.fh.rgb);
+	return s;
+}
+
+// Der Fels am Hang: in Hoch dreiseitig, sonst von oben; in der Farbe der Gesteinsart
 Schicht hangfels(vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
 #if BODEN_STUFE >= 2
-	return dreiseitig(T_FELS, p, n, dpx, dpy);
+	Schicht s = dreiseitig(T_FELS, p, n, dpx, dpy);
 #else
-	return eben(T_FELS, p.xz, n, dpx.xz, dpy.xz);
+	Schicht s = eben(T_FELS, p.xz, n, dpx.xz, dpy.xz);
 #endif
+	s.fh.rgb = gestein_farbe(T_FELS, s.fh.rgb);
+	return s;
 }
 
 // Höhenmischung zweier Schichten (ab Mittel): a = Anteil der oberen (0–1) mit Höhe ho und Rang ro, die untere mit Höhe hu und Rang ru;
@@ -670,7 +699,7 @@ void fragment() {
 		float summe = 0.0;
 		for (int i = 0; i < 11; i++) {
 			if (w[i] < 0.012) continue;
-			Schicht s = eben(i, welt, n, dpx.xz, dpy.xz);
+			Schicht s = eben_gestein(i, welt, n, dpx.xz, dpy.xz);
 			float gewinn = w[i] * (0.55 + s.fh.a * 0.9 + (hash(vec2(float(i), 3.0)) - 0.5) * (rn - 0.5) * 1.6);
 			gewinn = max(gewinn, 0.0) * w[i];
 			fh += s.fh * gewinn;
@@ -703,7 +732,7 @@ void fragment() {
 		}
 		if (nr[1] < 0) {
 			// nur eine Textur: nichts zu mischen
-			Schicht s = eben(nr[0], welt, n, dpx.xz, dpy.xz);
+			Schicht s = eben_gestein(nr[0], welt, n, dpx.xz, dpy.xz);
 			fh = s.fh;
 			nw = s.n;
 			rau = s.rau;
@@ -718,7 +747,7 @@ void fragment() {
 			float hoechst = -9.0;
 			for (int j = 0; j < 3; j++) {
 				if (nr[j] < 0) break;
-				Schicht s = eben(nr[j], welt, n, dpx.xz, dpy.xz);
+				Schicht s = eben_gestein(nr[j], welt, n, dpx.xz, dpy.xz);
 				sfh[j] = s.fh;
 #if BODEN_STUFE >= 2
 				sn[j] = s.n;
