@@ -22,7 +22,7 @@ using Reichsgilde.Core.Zeit;
 /// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
-///   • Lauf C speichert und lädt an fünf Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
+///   • Lauf C speichert und lädt an sieben Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in zwei Bränden nach Blitzschlag) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
@@ -57,7 +57,7 @@ static class GleichheitTests
     static readonly int[] Abgabejahre = { 3, 7 };
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, int Blitze);
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -75,9 +75,9 @@ static class GleichheitTests
 
         Vergleichen("Lauf B (de-DE)", a, b);
         Vergleichen("Lauf C (Speichern und Laden)", a, c);
-        Pruefe.Gleich(a.Blitze, c.Blitze, "Blitzschläge mit Speichern und Laden");
+        Pruefe.Gleich(string.Join("\n", a.Blitze), string.Join("\n", c.Blitze), "Blitzschläge (Minute, Ziel, Schaden) mit Speichern und Laden");
         // Ein Blitzfall (Datenversion 69): In den drei Greybox-Partien schlägt der Blitz mindestens einmal ein (4711 im Jahr 0 und 1, 1400 im Jahr 2, 2027 im Jahr 9)
-        if (p.Karte == "greybox") Pruefe.Wahr(a.Blitze >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
+        if (p.Karte == "greybox") Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -123,8 +123,8 @@ static class GleichheitTests
         sim.Wirtschaft!.RatssitzungAnhalten = _ => true; // wie die Oberfläche: Die Partie hält vor der Sitzung, der Mensch stimmt mit
 
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
-        var blitze = 0;
-        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m => { if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal)) blitze++; };
+        var blitze = new List<string>(); // Minute und Text jeder Meldung „Blitzschlag!“ (Ziel und Schaden stehen darin)
+        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m => { if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}"); };
         BlitzeZaehlen(sim);
         var befehle = new List<string>();
         var jahre = new List<string>();

@@ -41,7 +41,7 @@ public sealed class Wetterplan
     private static float Gewicht(Jahreszeit jahreszeit, Wetterlage lage, int minuteImTag, Wetterlage? vorher)
     {
         float g = Gewichte[jahreszeit][(int)lage];
-        var stunde = 5 + minuteImTag / 60;
+        var stunde = 5 + minuteImTag / 60; // noch aus dem Spieltag 5–22 Uhr: „vor 9 Uhr“ heißt seit dem Spieltag 4–23 Uhr vor 8 Uhr, „ab Mittag“ ab 11 Uhr – bleibt so, damit das Wetter gleich würfelt
         if (lage == Wetterlage.Nebel) g *= stunde < 9 ? 2f : 0.33f;
         if (lage == Wetterlage.Gewitter) g *= stunde >= 12 ? 1.5f : 0.33f;
         if (lage == vorher) g *= 0.4f; // dieselbe Lage noch einmal ist seltener: Das Wetter soll sich über den Tag ändern

@@ -21,7 +21,7 @@ public sealed class BlitzDaten
     public Dictionary<string, double> Hoehen { get; init; } = new();
 
     /// <summary>Höhe der Gebäude, die in <see cref="Hoehen"/> fehlen (Meter).</summary>
-    public double Standardhoehe { get; init; } = 9;
+    public double Standardhoehe { get; init; } = 10;
 
     /// <summary>
     /// Werkstatt: So viele Arbeitsminuten wird nach dem Einschlag repariert statt gearbeitet (wie <c>gauner.sabotage.stillstandMinuten</c>). Sie

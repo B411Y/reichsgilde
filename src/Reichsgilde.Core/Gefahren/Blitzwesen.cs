@@ -53,7 +53,7 @@ public sealed class Blitzwesen
     private readonly Wetterplan _plan;
     private readonly List<Blitzeinschlag> _einschlaege = new();
 
-    /// <summary>Bis zu dieser Spielminute (ausschließlich) sind die Einschläge bekannt; −1: noch nicht nachgerechnet (neu oder nach dem Laden).</summary>
+    /// <summary>Schalter: −1 = noch nicht nachgerechnet (neu oder nach dem Laden), sonst die Minute nach dem letzten Lauf von <see cref="Minute"/>.</summary>
     private long _bekanntBis = -1;
 
     internal Blitzwesen(Stadtwirtschaft w, BlitzDaten? daten, int startwert)
@@ -108,7 +108,7 @@ public sealed class Blitzwesen
         Nachrechnen(jetzt);
         foreach (var e in _einschlaege)
             if (e.BrandEnde == jetzt)
-                _w.Melden($"Das Feuer in {e.Ziel.Name} ist aus{(e.Ziel.Besitzer is { } b ? $" ({b.Inhaber})" : "")} – es bleiben Ruß und Schaden.");
+                _w.Melden($"{Gross(e.Ziel.Name)}{(e.Ziel.Besitzer is { } b ? $" ({b.Inhaber})" : "")} brennt nicht mehr – {(e.Ziel.Besitzer is not null ? "es bleiben Ruß und Schaden" : "es bleibt Ruß")}.");
         if (IstGewitterminute(jetzt) && Wurf(jetzt, out var ziel, out var dauer))
             Einschlagen(ziel, jetzt, dauer, wirken: true);
         _bekanntBis = jetzt + 1;
@@ -132,13 +132,13 @@ public sealed class Blitzwesen
             ziel = ziele.FirstOrDefault(z => z.Kennung == gebaeude)
                    ?? ziele.FirstOrDefault(z => z.Betrieb?.Name == gebaeude)
                    ?? (gebaeude == "haus" && haus is not null ? ziele.FirstOrDefault(z => z.Bewohner == haus) : null)
-                   ?? (gebaeude == "werkstatt" && haus is not null ? ziele.FirstOrDefault(z => z.Betrieb?.Konto == haus) : null);
+                   ?? (gebaeude == "werkstatt" && haus is not null ? ziele.FirstOrDefault(z => z.Betrieb is { IstWerkstatt: true } b && b.Konto == haus) : null);
         if (ziel is null) return Befehlsergebnis.Abgelehnt($"Ein Gebäude „{gebaeude}“ gibt es hier nicht.");
         if (Einschlaege.Any(e => e.Ziel.Kennung == ziel.Kennung && e.BrenntUm(jetzt)))
             return Befehlsergebnis.Abgelehnt($"{ziel.Name} brennt schon.");
         var d = Daten!.DauerMinuten;
         var e = Einschlagen(ziel, jetzt, d[0] + zufall.Next(d[1] - d[0] + 1), wirken: true);
-        return Befehlsergebnis.Ok($"Blitzschlag in {ziel.Name} – es brennt {Zahlenformat.Knapp((e.BrandEnde - e.Minute) / 60.0)} Stunden.");
+        return Befehlsergebnis.Ok($"Blitzschlag: {Gross(ziel.Name)} – es brennt {Zahlenformat.Knapp((e.BrandEnde - e.Minute) / 60.0)} Stunden.");
     }
 
     // ── Würfeln ─────────────────────────────────────────────────────────────
@@ -322,10 +322,16 @@ public sealed class Blitzwesen
     {
         var jahresbeginn = bis / Spielzeit.MinutenProTag * Spielzeit.MinutenProTag;
         if (_einschlaege.Count > 0 && _einschlaege[0].Minute < jahresbeginn)
-            _einschlaege.RemoveAll(e => e.Minute < jahresbeginn && e.BrandEnde <= bis);
+            _einschlaege.RemoveAll(e => e.Minute < jahresbeginn && e.BrandEnde < bis); // strikt: in der Minute BrandEnde kommt noch die Meldung „brennt nicht mehr“
         if (_bekanntBis >= 0 || !IstAktiv) return;
         _bekanntBis = bis;
-        foreach (var minute in Gewitterminuten((int)(bis / Spielzeit.MinutenProTag)))
+        // auch das Vorjahr: ein Feuer vom späten Abend brennt über den Jahreswechsel (23 → 4 Uhr) hinaus (Befund der Prüfung, gut ein Viertel der Einschläge)
+        var jahr = (int)(bis / Spielzeit.MinutenProTag);
+        if (jahr > 0)
+            foreach (var minute in Gewitterminuten(jahr - 1))
+                if (Wurf(minute, out var ziel, out var dauer) && minute + dauer >= bis)
+                    Einschlagen(ziel, minute, dauer, wirken: false);
+        foreach (var minute in Gewitterminuten(jahr))
             if (minute < bis && Wurf(minute, out var ziel, out var dauer))
                 Einschlagen(ziel, minute, dauer, wirken: false);
     }

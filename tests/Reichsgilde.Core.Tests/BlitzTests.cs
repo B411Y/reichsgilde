@@ -52,6 +52,8 @@ static class BlitzTests
         }
     }
 
+    static string Gross(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
+
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
         ("Blitz: Wetterplan im Kern würfelt wie der alte Wetterablauf der Darstellung (Startwert 1400, Jahre 0–3)", () =>
@@ -126,11 +128,12 @@ static class BlitzTests
             Pruefe.Wahr(e.BrandEnde - e.Minute is >= 60 and <= 180, $"Dauer {e.BrandEnde - e.Minute}");
             Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Blitzschlag! ") && m.Contains(" brennt.")), "Meldung Blitzschlag");
             Pruefe.Wahr(w.Blitz.Brand(e.Ziel.Kennung) == e, "brennt");
-            if (e.Ziel.Betrieb is { } b) Pruefe.Wahr(b.SabotageMinuten > 0, "Werkstatt repariert");
+            // Startwert 1400: Das erste Gewitter trifft eine Werkstatt (der Schaden muss geprüft werden, nicht nur „wenn“)
+            Pruefe.Wahr(e.Ziel.Betrieb is { } b && b.SabotageMinuten == w.Daten.Blitz!.StillstandMinuten, $"Werkstatt repariert ({e.Ziel.Kennung})");
             if (e.Ziel.Bewohner is { } k) Pruefe.Wahr(k.WohnhausInstandBis == e.BrandEnde + w.Daten.Blitz!.InstandMinuten, "Wohnhaus instand bis");
             BisMinute(sim, e.BrandEnde + 1);
             Pruefe.Wahr(w.Blitz.Brand(e.Ziel.Kennung) is null, "gelöscht");
-            Pruefe.Wahr(meldungen.Any(m => m.StartsWith($"Das Feuer in {e.Ziel.Name} ist aus")), "Meldung aus");
+            Pruefe.Wahr(meldungen.Any(m => m.Contains(" brennt nicht mehr – es bleiben Ruß und Schaden")), "Meldung aus");
         }),
 
         ("Blitz: Chance 0 – zwanzig Jahre Greybox ohne Einschlag; ohne Abschnitt „blitz“ ist das Blitzwesen aus", () =>
@@ -186,22 +189,54 @@ static class BlitzTests
 
         ("Blitz: Nach Speichern und Laden mitten im Brand rechnet der Kern das Feuer nach – gleicher Einschlag, gleiche Prüfsumme danach", () =>
         {
-            var (sim, spieler) = Partie(MitChance(1), startwert: 4711);
+            // Startwert 1400: Das erste Gewitter trifft eine Werkstatt – der Schaden darf nach dem Laden nicht noch einmal wirken
+            var (sim, spieler) = Partie(MitChance(1), startwert: 1400);
             var w = sim.Wirtschaft!;
             var gewitter = ErstesGewitter(w);
             BisMinute(sim, gewitter + 30);
             var e = w.Blitz.Einschlaege.Single();
+            Pruefe.Wahr(e.Ziel.Betrieb is not null, $"eine Werkstatt ({e.Ziel.Kennung})");
+            var reparatur = e.Ziel.Betrieb!.SabotageMinuten;
             var json = Speicherung.Speichern(sim, spieler, Zeitpunkt);
             var (geladen, _) = Speicherung.Laden(json);
             var g = geladen.Wirtschaft!.Blitz.Einschlaege.Single();
             Pruefe.Gleich((e.Minute, e.BrandEnde, e.Ziel.Kennung), (g.Minute, g.BrandEnde, g.Ziel.Kennung));
             Pruefe.Wahr(geladen.Wirtschaft.Blitz.Brand(e.Ziel.Kennung) is not null, "brennt nach dem Laden weiter");
+            BisMinute(geladen, gewitter + 31);
+            BisMinute(sim, gewitter + 31);
+            Pruefe.Gleich(e.Ziel.Betrieb.SabotageMinuten, geladen.Wirtschaft.Betriebe.Single(b => b.Name == e.Ziel.Betrieb.Name).SabotageMinuten, "Reparatur nicht doppelt");
+            Pruefe.Wahr(e.Ziel.Betrieb.SabotageMinuten <= reparatur, "Reparatur nur einmal");
             BisMinute(sim, e.BrandEnde + 1);
             BisMinute(geladen, e.BrandEnde + 1);
             Pruefe.Wahr(geladen.Wirtschaft.Blitz.Einschlaege.Count <= 1 && geladen.Wirtschaft.Blitz.Brand(e.Ziel.Kennung) is null, "nicht doppelt, gelöscht");
             BisMinute(sim, gewitter + 600);
             BisMinute(geladen, gewitter + 600);
             Pruefe.Gleich(Zustandspruefsumme.Berechnen(sim), Zustandspruefsumme.Berechnen(geladen), "Prüfsumme");
+        }),
+
+        ("Blitz: Ein Feuer vom späten Abend brennt über den Jahreswechsel – mit Meldung „brennt nicht mehr“, und nach dem Laden um 4 Uhr brennt es weiter", () =>
+        {
+            var (sim, spieler) = Partie(MitChance(1));
+            var w = sim.Wirtschaft!;
+            var meldungen = new List<string>();
+            w.Meldung += m => meldungen.Add(m);
+            Blitzeinschlag? spaet = null;
+            for (var jahr = 0; jahr < 40 && spaet is null; jahr++)
+                foreach (var m in w.Blitz.Gewitterminuten(jahr))
+                {
+                    BisMinute(sim, m + 1);
+                    if (w.Blitz.Einschlaege.LastOrDefault() is { } e && e.Minute == m && e.BrandEnde > (jahr + 1L) * Spielzeit.MinutenProTag) { spaet = e; break; }
+                }
+            Pruefe.Wahr(spaet is not null, "kein spätes Feuer in 40 Jahren");
+            var neujahr = (spaet!.Minute / Spielzeit.MinutenProTag + 1) * Spielzeit.MinutenProTag;
+            var ab = meldungen.Count; // ältere Feuer (auch in „ein Bürgerhaus“) zählen nicht
+            BisMinute(sim, neujahr + 1);
+            Pruefe.Wahr(w.Blitz.Brand(spaet.Ziel.Kennung) is not null, "brennt nach 4 Uhr weiter");
+            var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, spieler, Zeitpunkt));
+            Pruefe.Wahr(geladen.Wirtschaft!.Blitz.Brand(spaet.Ziel.Kennung) is { } g && g.Minute == spaet.Minute, "nach dem Laden brennt es weiter");
+            BisMinute(sim, spaet.BrandEnde + 1);
+            var aus = meldungen.Skip(ab).Count(m => m.StartsWith(Gross(spaet.Ziel.Name)) && m.Contains(" brennt nicht mehr"));
+            Pruefe.Gleich(1, aus, $"Meldung „brennt nicht mehr“ genau einmal ({spaet.Ziel.Name}, Ende {spaet.BrandEnde})");
         }),
 
         ("Blitz: Gleicher Startwert, gleiche Einschläge (zwei Läufe, je acht Jahre Köln mit Chance 1)", () =>
