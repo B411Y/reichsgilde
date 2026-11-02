@@ -475,7 +475,8 @@ def grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn):
         G = L[go]
         sg = np.sign(G[0])
         a = np.linalg.norm((V - G) / np.array([0.014, 0.014, 0.016]), axis=1)
-        w = np.exp(-0.5 * a ** 2) * (np.sign(V[:, 0]) == sg) * stufe(V[:, 2], L[33, 2] + 0.005, L[33, 2] - 0.005)
+        # Runde 2 (Panel: Falte quer über die Wange): weicher Übergang nach oben über 25 mm statt 10 mm
+        w = np.exp(-0.5 * a ** 2) * (np.sign(V[:, 0]) == sg) * stufe(V[:, 2], L[33, 2] + 0.005, L[33, 2] - 0.020)
         dd[:, 0] -= sg * 2.5 * mm * w
         dd[:, 2] += 1.0 * mm * w
     ablegen("eigen_kiefer_w", dd)
