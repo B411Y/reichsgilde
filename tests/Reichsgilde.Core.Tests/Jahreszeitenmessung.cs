@@ -43,15 +43,19 @@ static class Jahreszeitenmessung
         var parallel = int.Parse(Schalter("parallel") ?? "2");
         var ohne = args.Contains("--ohne-jahreszeiten");
         var ohneVorrat = args.Contains("--ohne-vorrat"); // ohne ki.jahreszeiten: die KI legt keinen Wintervorrat an
-        var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null, anpassen: ohneVorrat ? OhneVorrat : null);
+        // --ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage: einzelne Folgen abschalten (Zerlegung)
+        var folgen = (Schalter("ohne-folge") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var nurBeruf = Schalter("beruf");
+        var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null,
+            anpassen: ohneVorrat || folgen.Length > 0 ? json => OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen) : null);
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         var aufbauten = new List<Messaufbau>();
         foreach (var karte in karten)
             for (var s = 1; s <= startwerte; s++)
             {
-                aufbauten.Add(new Messaufbau(karte, s * 101, jahre));
-                aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt"));
+                if (nurBeruf is null or "Schmied") aufbauten.Add(new Messaufbau(karte, s * 101, jahre));
+                if (nurBeruf is null or "Wirt") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt"));
             }
         Console.Error.WriteLine($"Jahreszeitenmessung: {aufbauten.Count} Partien zu {jahre} Jahren, {parallel} parallel{(ohne ? ", ohne Jahreszeiten" : "")} …");
         var ergebnisse = new ConcurrentDictionary<Messaufbau, (Partieergebnis P, Zaehler Z)>();
@@ -128,6 +132,26 @@ static class Jahreszeitenmessung
             Console.Error.WriteLine($"geschrieben: {datei}");
         }
         return ergebnisse.Values.Any(x => x.P.Fehler is not null) ? 1 : 0;
+    }
+
+    /// <summary>Schaltet einzelne Folgen der Jahreszeiten ab (Zerlegung eines Befunds).</summary>
+    static string OhneFolgen(string json, string[] folgen)
+    {
+        if (folgen.Length == 0) return json;
+        var j = JsonNode.Parse(json)!.AsObject()["jahreszeiten"]!.AsObject();
+        var wurzel = j.Parent!;
+        foreach (var f in folgen)
+            switch (f)
+            {
+                case "festmarkt": j["festmaerkte"] = new JsonArray(); break;
+                case "schlamm": j["fruehling"]!["schlamm"] = new JsonObject(); j["fruehling"]!["schlammUmland"] = 1; break;
+                case "winterarbeit": j["winter"]!["arbeit"] = new JsonObject(); break;
+                case "eis": j.Remove("strengerWinter"); break;
+                case "ernte": j["herbst"]!["angebot"] = new JsonObject(); j["herbst"]!["arbeit"] = new JsonObject(); break;
+                case "winternachfrage": j["winter"]!["nachfrage"] = new JsonObject(); break;
+                default: throw new ArgumentException($"Unbekannte Folge „{f}“.");
+            }
+        return wurzel.ToJsonString();
     }
 
     static string OhneVorrat(string json)
