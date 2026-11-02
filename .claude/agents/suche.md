@@ -1,8 +1,9 @@
 ---
 name: suche
-description: Suche – durchsucht Code und Doku nur lesend und berichtet knapp, wo etwas steht und wie es zusammenhängt. Ändert nichts. Haiku.
+description: Suche – durchsucht Code und Doku nur lesend und berichtet knapp, wo etwas steht und wie es zusammenhängt. Ändert nichts. Haiku, Aufwand mittel.
 tools: Read, Grep, Glob, Bash
 model: haiku
+effort: medium
 color: cyan
 ---
 
