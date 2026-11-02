@@ -72,7 +72,7 @@ FORMEN = (
     ("gesims_2", "Gesims2", (3000, 1000, 300), 0.03),               # zwei Bänke 8 × 4 × 3, obere kragt vor
     ("pfeiler_1", "Pfeiler1", (6000, 2000, 600), 0.035),            # freistehender Turm 4 × 4 × 17–19 (mit Schuttfuß)
     ("pfeilerbuendel", "Pfeilerbuendel", (11000, 3600, 1100), 0.045),  # vier Pfeiler vor einer Rückwand 10 × 8 × 15
-    ("schuttkegel", "Schuttkegel", (6000, 2000, 600), 0.03),        # Schutthalde am Wandfuß 14 × 9 × 4
+    ("schuttkegel", "Schuttkegel", (6000, 2000, 600), 0.03),        # Schutthalde am Wandfuß 15 × 9 × 4
 )
 KNOTEN = {k: n for k, n, _, _ in FORMEN}
 DREIECKE = {k: d for k, _, d, _ in FORMEN}
@@ -423,7 +423,8 @@ class Fels:
         self.laenge = (p["schutt"][1] / BOESCHUNG + 0.3) if p["schutt"] else 0.4     # Schuttfuß vor der Wand
         unten = -0.8 if p["art"] not in ("gesims", "gesims2") else -0.3
         rand = {"pfeiler": self.laenge + 0.6, "buendel": 2.0}.get(p["art"], 1.6)
-        vorn = self.laenge + 0.6 if p["art"] == "pfeiler" else 0.4
+        # vorn genug Rand, damit Halde und Brocken auslaufen und nicht am Gitterrand abgeschnitten werden
+        vorn = {"pfeiler": self.laenge + 0.6, "buendel": self.laenge + 0.6, "wand": 1.2}.get(p["art"], 0.4)
         self.bereich = ((-B / 2 - rand, B / 2 + rand), (-T / 2 - vorn, self.yh + vorn + 0.2), (unten, H + 1.0))
         self.koerper = self.koerper_anlegen()
         self.schichten_anlegen()
@@ -653,15 +654,16 @@ class Fels:
         ry = (T / 2 - Y) / T
         rx = np.abs(X) / (B / 2)
         r = np.sqrt(ry * ry + (rx * 0.85) ** 2)
-        zc = H * np.maximum(0.0, 1 - r) ** 1.15 + 0.15 * self.r[0](X / 2.5, Y / 2.5, 3.3)
+        auf = np.clip((1 - r) * 4, 0, 1)            # 1 auf dem Kegel, 0 außerhalb: dort keine Steinhaut am Boden
+        zc = H * np.maximum(0.0, 1 - r) ** 1.15 + 0.15 * self.r[0](X / 2.5, Y / 2.5, 3.3) * auf - 0.06 * (1 - auf)
         f = Z - zc
-        nah = np.abs(f) < 0.8
+        nah = (np.abs(f) < 0.8) & (auf > 0)
         if nah.any():
             fuss = np.clip(1 - zc[nah] / H, 0, 1)
             klein = self.steine(X[nah], Y[nah], Z[nah], 0.4, 0.08)
             k, kid, _, _ = zellen3(X[nah], Y[nah], Z[nah] * 1.6, 0.9, self.saat + 41)
             gross = 0.16 * (1 - glatt(0.0, 0.12, k)) - (zufall(*kid, self.saat, k=4) - 0.5) * 0.36
-            f[nah] = f[nah] + np.where(fuss > 0.55, gross + 0.4 * klein, klein)
+            f[nah] = f[nah] + np.where(fuss > 0.55, gross + 0.4 * klein, klein) * auf[nah]
         return f
 
     # Gitter und Fläche
@@ -848,30 +850,37 @@ def abschneiden(obj, form):
     if hinten_offen(form):
         geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
         bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0, hinterkante(form), 0), plane_no=(0, 1, 0), clear_outer=True)
-    # lose Splitter (Inseln mit wenigen Flächen) entfernen
-    bm.verts.ensure_lookup_table()
+    nur_groesste_insel(bm, obj.name)
+    bm.to_mesh(obj.data)
+    bm.free()
+    obj.data.update()
+
+
+def nur_groesste_insel(bm, name=""):
+    """Nur das größte zusammenhängende Teil behalten: lose Splitter, schwebende Scherben, dünne Haut am Gitterboden.
+    Gesucht wird über die Punktobjekte selbst (nach bisect_plane haben neue Punkte keinen gültigen Index)."""
     gesehen, inseln = set(), []
     for v in bm.verts:
-        if v.index in gesehen:
+        if v in gesehen:
             continue
         stapel, insel = [v], []
-        gesehen.add(v.index)
+        gesehen.add(v)
         while stapel:
             w = stapel.pop()
             insel.append(w)
             for e in w.link_edges:
                 o = e.other_vert(w)
-                if o.index not in gesehen:
-                    gesehen.add(o.index)
+                if o not in gesehen:
+                    gesehen.add(o)
                     stapel.append(o)
         inseln.append(insel)
-    groesste = max(len(i) for i in inseln)
-    weg = [v for i in inseln if len(i) < max(200, groesste * 0.002) for v in i]
-    if weg:
-        bmesh.ops.delete(bm, geom=weg, context="VERTS")
-    bm.to_mesh(obj.data)
-    bm.free()
-    obj.data.update()
+    if len(inseln) < 2:
+        return
+    inseln.sort(key=len, reverse=True)
+    weg = [v for i in inseln[1:] for v in i]
+    print(f"  {name}: {len(inseln) - 1} lose Teile entfernt ({len(weg)} Punkte, größtes {len(inseln[1])}, "
+          f"behalten {len(inseln[0])})", flush=True)
+    bmesh.ops.delete(bm, geom=weg, context="VERTS")
 
 
 # ── 5. Spielnetze ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -894,10 +903,11 @@ def vereinfachen(quelle, name, ziel, form):
             v.co.z = 0.0
         if yh is not None and v.co.y > yh:
             v.co.y = yh
-    # Collapse kann doppelte Flächen und lose Kanten hinterlassen (z. B. WandMittel2_2): entfernen, sonst meldet der
-    # glTF-Export „not valid“ und bereinigt selbst
+    # Collapse kann doppelte Flächen und lose Kanten hinterlassen und kleine Teile abtrennen: entfernen, sonst meldet
+    # der glTF-Export „not valid“ und bereinigt selbst
     bm = bmesh.new()
     bm.from_mesh(obj.data)
+    nur_groesste_insel(bm, name)
     lose = [v for v in bm.verts if not v.link_faces]
     if lose:
         bmesh.ops.delete(bm, geom=lose, context="VERTS")
