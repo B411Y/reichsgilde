@@ -102,7 +102,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Regel der KI | `KiRivale.MaxKarren(ort)` = Grenze des Kerns, ohne sie das Profil (3). Den vierten und fünften Karren kauft die KI wie jeden: zum Jahresende ab 20 % Stillstand, wenn er sich in der Frist bezahlt macht (`BesterKarrenplan`); getauscht wird erst an der Grenze von 5. Die Schätzung beim Pachten (`UmlandSchaetzen`) rechnet mit bis zu 5 Karren. | 2.11.2026 |
+| Regel der KI | `KiRivale.MaxKarren(ort)` = Grenze des Kerns, ohne sie das Profil (3). Den vierten und fünften Karren kauft die KI wie jeden: zum Jahresende ab 20 % Stillstand, wenn er sich in der Frist bezahlt macht (`BesterKarrenplan`); getauscht wird erst an der Grenze von 5. Die Schätzung beim Pachten (`UmlandSchaetzen`) rechnet weiter mit höchstens 3 Karren (Profil), auch wo der Kern 5 erlaubt – mit 5 pachtete die KI den Eichenforst wieder (Befund H1 der Prüfung, Messung unten). | 2.11.2026 |
 | Alte Regel | Ohne Fahrzeit nach Weglänge (keine Karte, kein Weg) kauft die KI wie bisher Ochsen- bzw. Handkarren ohne Amortisation und höchstens bis zur Grenze des Profils (3), auch wenn der Kern 5 erlaubt (Befund N2 der Prüfung). | 2.11.2026 |
 
 ## Messungen
