@@ -212,7 +212,7 @@ Wunsch des Nutzers 1.11.2026: Die Lage der Märkte ist grundsätzlich richtig, a
 | Ausgabe | Ein Pixel je Rasterpunkt der ganzen Karte, ohne Angabe 0 = tiefste und 65535 = höchste Höhe; Spanne höchstens 8.000 cm, also mit Stufe 1 verlustfrei zurück (Test). | 01.11. |
 | Nach der Prüfung | Unabhängiger Prüfer: 1 mittel, 4 niedrig, alle behoben. Unlesbare Schalter (Komma, Text, „big“) brechen mit 2 ab statt still die Vorgabe zu nehmen, „−“ gilt als Minus; unten/oben/Versatz höchstens ±10 km, Spanne in `long`; Maßstab, Versatz und Stufe in einer Division (vorher zweimal gerundet, Gleichstand unter 0 nach oben); `hoehenkarte-ausgeben` nur mit `--ueberschreiben` über eine vorhandene Datei; `--abruf` Pflicht (A3); die Werkstatt-Startoption sagt, dass sie ohne Herkunft liest. | 01.11. |
 
-### Felspinsel F3: Felsstücke in der Karte (Branch phase5/felskarte, noch ohne PR)
+### Felspinsel F3: Felsstücke in der Karte (PR #284)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -231,7 +231,7 @@ Wunsch des Nutzers 1.11.2026: Die Lage der Märkte ist grundsätzlich richtig, a
 | Nach der Prüfung | Unabhängiger Prüfer: kein hoher, 1 mittlerer, 8 niedrige Befunde. Behoben: `FelsStrichWeiter` ohne Strich gibt 0 statt zu werfen (Strg+Z bei gedrückter Maus; die Werkstatt prüft `FelsStrichLaeuft`), `Kartengeschichte.Gespeichert` beendet einen laufenden Felsstrich, `Stadtkarte` verträgt `"stuecke": null`, Bodenfilter am nächsten Bodenpunkt (gerundet), Form im Stück zwischengespeichert, Kommentar zum Radius (Ellipsenfläche, Absicht), Tests geschärft (Kippen, langer Radierstrich mit zweimal Rückgängig/Wiederholen, Dichte-Schranke, Radierer im Gleichheitsablauf abgesichert). Bleibt: von Hand geschriebene `felsen` ohne Inhalt fallen samt unbekannten Feldern weg (wie `natur`); Streuen über Tausende Stücke ohne Suchraster (20–30 ms je Tupfer bei 4.000 Stücken) – ein Raster mit F5/F6, wenn Karten so viele haben. | 01.11. |
 | Zweite Prüfung | Zweiter unabhängiger Prüfer: 1 mittel (Dichte bei großem Radius weit unter dem Regler, Radius 30 m nur 0,1 statt 0,3), 4 niedrig. Behoben: Versuche aus der Zieldichte (Test: Radius 5, 20, 50 m decken 0,15–0,48 bei Dichte 0,3); `Kartengeschichte.Rueckgaengig`/`Wiederholen` beenden einen laufenden Felsstrich selbst; `Stadtkarte.Pruefen` meldet leere Felsstücke und Punkte ohne zwei Zahlen (Fehler, sonst Absturz in der Darstellung); Hinweis `fels` für Maßstab, Einsinken, Neigung, Drehung außerhalb der Grenzen. Bleibt wie bei Pflanzen: Ein von Hand kaputter `punkt` wird im Entwurf still [0, 0]. | 01.11. |
 
-### Felspinsel F6: Boden um den Fels (PR #…)
+### Felspinsel F6: Boden um den Fels (PR #284)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

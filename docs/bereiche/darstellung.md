@@ -202,7 +202,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #…)
+### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #284)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -219,7 +219,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Leistung | T400, Vulkan, 1600 × 900, Testszene mit Schatten und SSAO, `--felsmessung=1` (GPU-Zeit je Bild, Mittel aus 12 s), Stand 693810c8: Übersicht (173 Stücke) Hoch 8,42 / Niedrig 7,87 / gleiche Felsen mit `StandardMaterial3D` 7,62 / ohne Felsen 6,92 ms; mit 300 Brocken mehr Hoch 9,09 / Niedrig 9,25 / ohne 8,22 ms (einfach verrauscht); Steinbruch bildfüllend Hoch 10,46 / Niedrig 9,98 / einfach 8,00 / ohne 7,43 ms. Nach der Umstellung von Niedrig auf eine Richtung (96ab4d9f): Steinbruch Hoch 10,24 / Niedrig 10,04 / einfach 7,91 / ohne 7,35 ms. Der Fels-Shader kostet also bildfüllend etwa 2,5 ms (Hoch) bzw. 2,0 ms (Niedrig) mehr als ein einfaches Material, in der Übersicht unter 1 ms; die Messungen liefen neben anderen Klicktests und Blender, Ausreißer sind verworfen | 01.11.2026 |
 | Außerhalb des Bereichs | `game/scripts/Hauptmenue.cs` (oberflaeche): zwei Zeilen, damit `--felstest=1` die Testszene statt des Spiels öffnet (wie `--wassertest`) | 01.11.2026 |
 
-### Felsen im Spiel (Felspinsel F5, PR #…)
+### Felsen im Spiel (Felspinsel F5, PR #284)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -237,7 +237,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Außerhalb des Bereichs | Kern: `Kartenentwurf.FelsVerschieben`, `FelsDrehen` (je ein Schritt, beenden einen laufenden Strich) mit Test `FelsenWaehlenTests.cs`; `game/daten/gestein.json` (Formen); `Kartenwerkstatt.Eigenschaften.cs` (oberflaeche): eine Zeile, damit „Löschen“ Felsstücke nimmt | 01.11.2026 |
 | Prüfung | zwei unabhängige Prüfer, kein hoher Befund; behoben: Treffer nur vor dem Boden, Stufe des Materials beim Anlegen, Ring nur bei neuem Radius, Q/E beim Ziehen gesperrt, Messung ohne Felsen beendet sich, Test geschärft, Fuß der Kulisse nachts wie der Ring, Glanz im Dunst aus, Moos zur Atlas-Normale, Protokoll und Doku | 01.11.2026 |
 
-### Kulissenberge (Felspinsel F7, PR #…)
+### Kulissenberge (Felspinsel F7, PR #284)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -248,7 +248,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Namen | Schild an der Maus wie in den Räumen: Gipfel (36 px) vor Gebieten (110 px), Name, Gebiet, Höhe über dem Meer | 01.11.2026 |
 | Leistung | im Rauschen der Messung (siehe F5); ein Zeichenaufruf je Staffel | 01.11.2026 |
 
-### Boden um den Fels und Feinschliff (Felspinsel F6/F8, PR #…)
+### Boden um den Fels und Feinschliff (Felspinsel F6/F8, PR #284)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -271,3 +271,4 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Messung | Vulkan (T400), Greybox, 07:00, Tempo 1, `--ui=0`, je ein Lauf von 170 s, Summen ab Spielbeginn (100–140 s), Last auf dem NAS hoch (Bildrate nur grob). Je Minute im Bild, `v1` → neu: **Gasse** (`--blick=25,0,30`) Nahkontakte 123 → 27, Überschneidungen 120 → 10, Paar-Bilder 14969 → 24; **Markt** (`2,4,25`) Nahkontakte 241 → 95, Überschneidungen 217 → 74, Paar-Bilder 16198 → 974; **breite Straße** (`25,0,12`, Ostgasse 5 m) Nahkontakte 79 → 19, Überschneidungen 78 → 12, Paar-Bilder 5879 → 116. Rechenzeit der Passanten 3–6 ms je Bild in beiden Ständen (Schwankung durch andere Läufe), Bildrate 9–18/s. | 1.11.2026 |
 | Startoptionen | `--passantenspur=v1` (Stand vor dieser Änderung, zum Vergleichen; Karrenausweichen dort jetzt auch auf die Wegbreite begrenzt), `--passantennaehe=1` zählt zusätzlich Überschneidungen (Laufende untereinander, mit Stehenden, Paar-Bilder, an Anfang oder Ziel). | 1.11.2026 |
 | Außerhalb des Bereichs | Keine Kern-Datei geändert. `tests/Reichsgilde.Core.Tests/Reichsgilde.Core.Tests.csproj`: zwei Dateien aus `game/scripts` mitübersetzt (wie `Passantenspur.cs`). | 1.11.2026 |
+| Klicktest Werkstatt (Integration) | Gestempelter Fels malt Boden (Statuszeile „Boden: Fels/Kies“, nach dem Verschieben bleibt grauer Felsboden). Unter dem Stück deckt der Fels ihn zu, auf ebenem Grund sind Kiesring und Moos dezent – kein Fehler, aber leicht zu übersehen | 02.11.2026 |
