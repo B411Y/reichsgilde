@@ -300,6 +300,8 @@ static class Jahreszeitenmessung
         public double Erwartet, Ertrag, Zuletzt;
         public SchiffZustand Zustand;
         public bool Eis, Fest;
+        /// <summary>So viele andere Schiffe fuhren beim Auslaufen schon zur selben Stadt (beladen oder unterwegs, noch nicht dort).</summary>
+        public int Mitfahrer;
         public string Ziel = "";
     }
 
@@ -347,6 +349,7 @@ static class Jahreszeitenmessung
             {
                 f.Jahr = jahrJetzt; f.Jahreszeit = (int)w.Uhr.Jahreszeit; f.Ertrag = 0; f.Stunde = w.Uhr.UhrzeitInMinuten / 60;
                 f.Eis = false; f.Fest = w.Jahreszeiten.FestmarktJetzt is not null; f.Ziel = schiff.Auftrag?.Ziel ?? "";
+                f.Mitfahrer = w.Schiffahrt.Schiffe.Count(x => x != schiff && x.Auftrag?.Ziel == f.Ziel && x.Zustand is SchiffZustand.Beladen or SchiffZustand.Hinfahrt);
                 f.Erwartet = z.Erwartung.Remove(schiff.Name, out var e) ? e : double.NaN;
                 // die Hinfracht dieser Minute steht schon im Ertrag (vor dem Takt gebucht)
                 f.Ertrag = schiff.ErtragLaufend - (f.Zuletzt - zuwachs);
@@ -363,7 +366,8 @@ static class Jahreszeitenmessung
                 var jz = ((Jahreszeit)f.Jahreszeit).ToString();
                 var quer = jahrJetzt != f.Jahr ? "quer" : "im Jahr";
                 var stundenGruppe = f.Stunde < 10 ? "04-10" : f.Stunde < 16 ? "10-16" : "16-23";
-                foreach (var g in new[] { $"alle|{jz}|{quer}", $"alle|{jz}|{(f.Eis ? "Eis" : "ohne Eis")}", $"alle|{jz}|{(f.Fest ? "Festmarkt" : "ohne Festmarkt")}",
+                var mit = f.Mitfahrer >= 3 ? "3+" : f.Mitfahrer.ToString();
+                foreach (var g in new[] { $"alle|{jz}|{quer}", $"alle|{jz}|Mitfahrer {mit}", $"mitfahrer|{mit}", $"mitfahrer|{f.Ziel}|{mit}", $"alle|{jz}|{(f.Eis ? "Eis" : "ohne Eis")}", $"alle|{jz}|{(f.Fest ? "Festmarkt" : "ohne Festmarkt")}",
                              $"alle|{jz}|{f.Ziel}", $"alle|{jz}|ab {stundenGruppe}", $"alle|{jz}" })
                 {
                     if (!z.Fahrtgruppen.TryGetValue(g, out var a)) z.Fahrtgruppen[g] = a = new double[3];
