@@ -75,7 +75,7 @@ Das Baumenü öffnest du mit dem Knopf **+ Bauen** oder der Taste **B**. Es hat 
 ![Bauen: Platz wählen mit grünem Umriss](../bilder/handbuch/steuerung-bauen.webp)
 
 1. Wähle in der Liste ein Gebäude (Wohnhaus oder Werkstatt). Die Tafel wechselt zu **Platz wählen**.
-2. Ein **Umriss** folgt der Maus. **Grün** heißt: Hier darf gebaut werden. **Rot** heißt: Hier nicht; der Grund steht an der Maus und in der Tafel („Hier ist keine Bauzone …“, „Hier steht Ringplatz 11.“, „… darf erst bauen, wer mindestens Bürger ist“).
+2. Ein **Umriss** folgt der Maus. **Grün** heißt: Hier darf gebaut werden. **Rot** heißt: Hier nicht; der Grund steht an der Maus und in der Tafel („Hier ist keine Bauzone …“, „Hier steht Ringplatz 11.“; fehlt Geld oder Stand, steht auch das schon hier).
 3. **R** (oder der Knopf **Drehen**) dreht das Gebäude, damit der Eingang zur Straße zeigt. **Q** und **E** drehen weiter die Kamera.
 4. **Klick** setzt das Gebäude; danach folgt eine Rückfrage mit den Kosten.
 5. **Rechtsklick** oder **Esc** geht zurück zur Auswahl, ein weiteres **Esc** schließt das Baumenü.
