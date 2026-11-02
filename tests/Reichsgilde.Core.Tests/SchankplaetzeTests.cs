@@ -159,7 +159,7 @@ static class SchankplaetzeTests
             Pruefe.Gleich(new Schankplaetze(30, 17, 13), g.Platzbelegung(s));
         }),
 
-        ("Sitzplätze: In einer Partie sitzen nie mehr Einwohner in einer Schänke, als sie Plätze hat; wer keinen findet, kommt später wieder", () =>
+        ("Sitzplätze: In einer Partie sitzen nie mehr Einwohner in einer Schänke, als sie Plätze hat; abends ist sie voll, und es finden nicht alle Platz", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 101 },
                 Daten.Value, new NeuePartie(Beruf: "Wirt"));
@@ -186,6 +186,40 @@ static class SchankplaetzeTests
             }
             Pruefe.Gleich(20, hoechstens); // abends voll
             Pruefe.Wahr(ohnePlatz > 0, "niemand fand keinen Platz");
+        }),
+
+        ("Sitzplätze: Bei Knappheit kommt dran, wer am längsten wartet – kein Volk bleibt abends draußen (Startwerte 101 und 202, drei Tage)", () =>
+        {
+            foreach (var startwert in new[] { 101, 202 })
+            {
+                var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert },
+                    Daten.Value, new NeuePartie(Beruf: "Wirt"));
+                var w = sim.Wirtschaft!;
+                var ew = w.Einwohnerschaft;
+                var abends = new Dictionary<int, int>();                    // Nummer → Abendstunden in der Schänke
+                var knapp = 0;
+                for (var tag = 0; tag < 3; tag++)
+                {
+                    var jahr = sim.Zeit.Jahr;
+                    while (sim.Zeit.Jahr == jahr)
+                    {
+                        sim.Tick();
+                        var uhr = sim.Zeit.UhrzeitInMinuten;
+                        if (uhr % 60 != 30 || uhr / 60 < 18 || uhr / 60 >= 22) continue;
+                        if (ew.OhneSchankplatz > 0) knapp++;
+                        foreach (var e in ew.Einwohner.Where(e => e.Ort == Reichsgilde.Core.Buerger.Stadtort.Schaenke))
+                            abends[e.Nummer] = abends.GetValueOrDefault(e.Nummer) + 1;
+                    }
+                }
+                Pruefe.Wahr(knapp > 0, $"Startwert {startwert}: nie knapp – der Test prüft nichts");
+                foreach (var volk in ew.Einwohner.Select(e => e.Volk).Distinct().OrderBy(v => v))
+                {
+                    var leute = ew.Einwohner.Where(e => e.Volk == volk).ToList();
+                    if (leute.Count < 5) continue;
+                    var mitPlatz = leute.Count(e => abends.ContainsKey(e.Nummer));
+                    Pruefe.Wahr(mitPlatz * 2 >= leute.Count, $"Startwert {startwert}: nur {mitPlatz} von {leute.Count} ({volk}) saßen an drei Abenden einmal in der Schänke");
+                }
+            }
         }),
 
         ("Sitzplätze: Gästebuch mit „voll“ und „ausgefallen“ übersteht Speichern und Laden; ein altes Gästebuch ohne die Felder lädt mit 0", () =>

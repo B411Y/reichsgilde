@@ -284,7 +284,7 @@ static partial class Balancingbericht
     private static string Projektordner() =>
         Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!;
 
-    private static string Git(string befehl)
+    internal static string Git(string befehl)
     {
         try
         {

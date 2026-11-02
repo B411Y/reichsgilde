@@ -113,6 +113,7 @@ static class Schaenkenmessung
             var json = new JsonObject
             {
                 ["messung"] = "Schänkenmessung (Sitzplätze)", ["datenversion"] = daten.Version, ["ohnePlaetze"] = ohnePlaetze,
+                ["mainCommit"] = Balancingbericht.Git("rev-parse --short origin/main"), ["commit"] = Balancingbericht.Git("rev-parse --short HEAD"),
                 ["aufruf"] = "messen schaenke " + string.Join(' ', args), ["jahre"] = jahre, ["startwerte"] = startwerte,
                 ["fehler"] = ergebnisse.Count(x => x.Value.P.Fehler is not null), ["gruppen"] = gruppen,
             };
