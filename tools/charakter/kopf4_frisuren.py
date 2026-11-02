@@ -383,9 +383,11 @@ class FrauScheitel(Stil):
     """Grundlage der Frauenfrisuren: Mittelscheitel, Haar glatt zur Seite und über die Ohren nach hinten."""
     geschlecht = "w"
     # Grundkopf 4 (kopf4_haar.py gk4=1; Panel Grundkopf 3: „hohe kahle Stirn, Scheitel als heller Hautstreifen,
-    # Drahtsträhnen an den Schläfen“): Haaransatz vorn 9 mm, an den Schläfen 4–6 mm tiefer, Übergang 8 statt 14 mm
-    # (dichter am Rand, die Kopfhautkarte macht ihn weich); Strähnen am Haaransatz, an den Schläfen und am Scheitel
-    # hautnah (hautnah()). Aus = wie bisher
+    # Drahtsträhnen an den Schläfen“): Haaransatz vorn 9 mm, an den Schläfen 4–6 mm tiefer, Übergang 4 statt 14 mm
+    # (keine lichte Randzone, deren einzelne Strähnen als Draht über die Stirn liefen; die Kopfhautkarte macht den Rand
+    # weich); Strähnen am Haaransatz, an den Schläfen und am Scheitel hautnah (hautnah()); vorn am Rand laufen sie zur
+    # Seite und nach hinten statt schräg über die Stirn, am Scheitel erst ein Stück nach hinten (scheitel()). Aus = wie
+    # bisher
     gk4 = False
 
     def tiefer(self, q):
@@ -397,7 +399,7 @@ class FrauScheitel(Stil):
     def dichte(self, q):
         # Frauen: Ansatz etwas tiefer und runder, Schläfen voller
         if self.gk4:
-            return self.h.kopfhaut(q, tiefer=self.tiefer(q), weich=(-0.004, 0.004), ohr_frei=(0.018, 0.028))
+            return self.h.kopfhaut(q, tiefer=self.tiefer(q), weich=(-0.0015, 0.0025), ohr_frei=(0.018, 0.028))
         return self.h.kopfhaut(q, tiefer=0.002 * self.M, ohr_frei=(0.018, 0.028))
 
     def hautnah(self, w):
@@ -411,17 +413,34 @@ class FrauScheitel(Stil):
         richt = h.richtung(q)
         ueber = float(q[0, 2] - h.haaransatz_z(richt, self.tiefer(q))[0])
         r = float(richt[0])
-        rand = 1.0 - glatt(ueber, 0.006 * M, 0.022 * M)
+        rand = self.am_rand(w)
         schlaefe = glatt(r, 30.0, 50.0) * (1.0 - glatt(r, 120.0, 145.0)) * (1.0 - glatt(ueber, 0.02 * M, 0.045 * M))
         scheitel = (1.0 - glatt(abs(q[0, 0]), 0.004 * M, 0.012 * M)) \
             * (1.0 - glatt(q[0, 1] - h.wirbel[1], -0.01 * M, 0.01 * M))
         return float(max(rand, schlaefe, 0.8 * scheitel))
 
+    def am_rand(self, w):
+        """Grundkopf 4: 1 bis 6 mm über dem Haaransatz, 0 ab 22 mm (je Wurzel, zwischengespeichert)."""
+        if not hasattr(self, "_rand"):
+            self._rand = {}
+        schl = (round(float(w[0]), 6), round(float(w[1]), 6), round(float(w[2]), 6))
+        if schl not in self._rand:
+            q = np.atleast_2d(np.asarray(w, dtype=np.float64))
+            ueber = float(q[0, 2] - self.h.haaransatz_z(self.h.richtung(q), self.tiefer(q))[0])
+            self._rand[schl] = float(1.0 - glatt(ueber, 0.006 * self.M, 0.022 * self.M))
+        return self._rand[schl]
+
     def scheitel(self, q, w):
         # Phase 5: hinter dem Wirbel ohne Seitenzug (sonst läuft der Scheitel als heller Strich bis in den Nacken)
         sx = 1.0 if w[0] >= 0 else -1.0
         hinten = glatt(w[1] - self.h.kopfmitte[1], 0.0, 0.05 * self.M)
-        return Vector((sx * (1.0 - hinten), 0.35 + 0.4 * hinten, -0.35 - 0.4 * hinten))
+        if not self.gk4:
+            return Vector((sx * (1.0 - hinten), 0.35 + 0.4 * hinten, -0.35 - 0.4 * hinten))
+        # Grundkopf 4: vorn am Haaransatz (bis 40° von vorn) zur Seite und nach hinten, nicht schräg über die Stirn;
+        # Wurzeln dicht am Scheitel (|x| < 2–6 mm) laufen erst mehr nach hinten und decken den Scheitel
+        vr = (1.0 - glatt(float(self.h.richtung(np.atleast_2d(w))[0]), 25.0, 45.0)) * self.am_rand(w)
+        nah = 0.45 + 0.55 * glatt(abs(float(w[0])), 0.002 * self.M, 0.006 * self.M)
+        return Vector((sx * (1.0 - hinten) * nah, 0.35 + 0.4 * hinten + 0.35 * vr, -0.35 - 0.4 * hinten + 0.35 * vr))
 
 
 class FrauKnoten(FrauScheitel):

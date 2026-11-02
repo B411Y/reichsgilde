@@ -9,6 +9,8 @@ Aufruf:  tools/charakter/blender.sh -b --factory-startup -P tools/charakter/kopf
          [stile=4]        die Stile der Phase 4 (kopf4_frisuren.py) statt der zehn je Geschlecht (kopf5_frisuren.py)
          [gk4=1]          Grundkopf 4: Frauenfrisuren mit Mittelscheitel (FrauScheitel) mit tieferem, dichterem
                           Haaransatz, Strähnen an Haaransatz, Schläfen und Scheitel hautnah
+         [anliegend=frau_knoten,…]  Grundkopf 4: die Kopfhautkarte dieser Stile färbt die Haut auch unter flach
+                          anliegenden Strähnen (Punkte bis 1,5 mm über der Haut), nicht nur um die Wurzeln
          (oder tools/charakter/kopf4.sh)
 
 Ergebnis in <glb-ordner>/haar4/ (nicht im Repository):
@@ -137,6 +139,34 @@ def aus_bin(h, pfad_ohne):
     return {k: v for k, v in felder.items() if k.startswith("straehnen")}, st
 
 
+ANLIEGEND = set(OPT["anliegend"].split(",")) if "anliegend" in OPT else set()
+
+
+def anliegende_punkte(h, st, abstand=0.0015, schritt=0.002):
+    """Grundkopf 4: Punkte alle `schritt` m entlang der Strähnen, die höchstens `abstand` über der Haut liegen. Die
+    Kopfhautkarte färbt die Haut dann auch dort, wo flach anliegende Strähnen über sie laufen (Schläfe, vor dem Ohr) –
+    zwischen den einzelnen Strähnen scheint keine helle Haut durch („Drahtsträhnen“)."""
+    aus = []
+    for s in st:
+        L = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(s, axis=0), axis=1))])
+        if L[-1] < 2 * schritt:
+            continue
+        t = np.arange(schritt, L[-1], schritt)
+        for p in np.stack([np.interp(t, L, s[:, k]) for k in range(3)], 1):
+            a, l, _ = h.abstand(p)
+            if l is not None and a < abstand:
+                aus.append(p)
+    return np.array(aus, dtype=np.float64).reshape(-1, 3)
+
+
+def wurzeln_und_anliegend(name, h, st):
+    if name not in ANLIEGEND:
+        return st[:, 0].copy()
+    extra = anliegende_punkte(h, st)
+    zeit(f"{name}: {len(extra)} anliegende Punkte für die Kopfhautkarte")
+    return np.concatenate([st[:, 0], extra])
+
+
 def karten_neu(h, felder, st, karten_art):
     rg = felder["straehnen_info"][:, 1]
     E, N, T, UV, UV2, F, I, MS = kk.karten(st, st[:, 0], h, rng, **karten_art)
@@ -206,7 +236,7 @@ for Klasse in alle_stile:
                 continue
             felder, st = aus_bin(h, pf)
             if teil == "haupt":
-                wurzeln_je_stil[name] = (Klasse.geschlecht, st[:, 0].copy())
+                wurzeln_je_stil[name] = (Klasse.geschlecht, wurzeln_und_anliegend(name, h, st))
             if "nur_kopfhaut" in OPT:
                 continue
             felder, zahlen = karten_neu(h, felder, st, ka)
@@ -219,7 +249,7 @@ for Klasse in alle_stile:
             zeit(f"{name}: Karten neu {teile}")
         continue
     st, ww, nn, buschel, lagen = kf4.erzeugen(stil, rng, log=lambda t: zeit(t))
-    wurzeln_je_stil[name] = (Klasse.geschlecht, ww)
+    wurzeln_je_stil[name] = (Klasse.geschlecht, ww if name not in ANLIEGEND else wurzeln_und_anliegend(name, h, st))
     felder, zahlen = teil_daten(h, st, ww, buschel, art, rang=stil.teil != "bart", lage=lagen)
     teile = [{"name": "haupt", **zahlen}]
     vorschau_teile[name] = [st]

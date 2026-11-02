@@ -816,8 +816,8 @@
    "ictid_033": 1.0
   },
   "lid_mandel": {
-   "eigen_mandel": 1.0,
-   "probe_eye_height3_decr": 0.3,
+   "eigen_mandel": 1.2,
+   "probe_eye_height3_decr": 0.4,
    "probe_eye_height1_incr": 0.2
   },
   "lid_rund": {
