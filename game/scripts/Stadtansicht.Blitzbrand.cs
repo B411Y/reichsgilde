@@ -14,7 +14,7 @@ namespace Reichsgilde;
 /// <item><b>Feuer</b>: Werkstätten und Wohnhäuser zünden über ihren Weg in Stadtansicht.Feuer.cs (der Kern meldet Reparatur bzw. Instandsetzung);
 /// Kirchen, Rathaus, Einwohner- und Kulissenhäuser hier: das Modell an der Stelle des Einschlags brennt so lange wie im Kern, danach schwelt es, und
 /// das Dach bleibt bis zum Jahresende rußig (der Kern vergisst die Einschläge zum Jahreswechsel).</item>
-/// <item><b>Feuerglocke</b>: Ein paar Sekunden nach dem Einschlag läutet die nächste Kirche Sturm (<see cref="KlangSturmlaeuten"/>).</item>
+/// <item><b>Feuerglocke</b>: Ein paar Sekunden nach dem Einschlag läutet die nächste Kirche Sturm, bis das Feuer aus ist (<see cref="KlangSturmlaeuten"/>).</item>
 /// <item><b>Löschkette</b>: Passanten laufen herbei und reichen Eimer (Stadtansicht.Loeschkette.cs).</item>
 /// </list>
 /// Welches Modell brennt, sucht <see cref="ModellBei"/> an der Stelle des Kerns unter allen eingesetzten Modellen (<see cref="ModellMerken"/>).
@@ -89,6 +89,8 @@ public partial class Stadtansicht
             }
             if (a.Kette is { } kette) LoeschketteAktualisieren(kette, jetzt + bruchteil, delta);
         }
+        // Die Feuerglocke läutet, solange irgendwo ein Blitzfeuer brennt; dann klingt sie aus
+        if (KlangSturmlaeuten.Laeutet && !einschlaege.Any(e => e.BrenntUm(jetzt))) KlangSturmlaeuten.Beenden();
         _blitzeGesehen = true;
         // Zum Jahreswechsel vergisst der Kern die alten Einschläge: Ruß ab, übrige Helfer weg
         if (_blitze.Count == 0) return;
@@ -204,7 +206,9 @@ public partial class Stadtansicht
         var warten = 5f + (e.Minute % 5);
         GetTree().CreateTimer(warten).Timeout += () =>
         {
-            if (IsInstanceValid(this) && IsInsideTree()) KlangSturmlaeuten.Laeuten(this, kirche, e.Ziel.Name); // nicht mehr nach dem Wechsel ins Menü oder einem Laden
+            // nicht mehr nach dem Wechsel ins Menü oder einem Laden, und nicht, wenn das Feuer schon aus ist
+            if (IsInstanceValid(this) && IsInsideTree() && _simulation is { } sim && e.BrenntUm(sim.Zeit.VergangeneMinuten))
+                KlangSturmlaeuten.Laeuten(this, kirche, e.Ziel.Name);
         };
         GD.Print($"[blitz] Strahl auf {spitze}, Feuerglocke in {warten:0} s von {kirche}");
     }
