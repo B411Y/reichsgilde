@@ -56,7 +56,8 @@ static class GleichheitTests
     static readonly int[] Abgabejahre = { 3, 7 };
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle);
+    /// <param name="Erloschen">Ab welchem Jahr (0 = erstes) das Haus des Spielers nicht mehr aktiv ist (gestorben ohne Erben, bankrott) – sonst null.</param>
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, int? Erloschen);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -87,7 +88,9 @@ static class GleichheitTests
             string.Join(", ", a.Befehle.GroupBy(z => z[(z.IndexOf(' ') + 1)..]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"));
         foreach (var art in new[] { "Handelsauftrag", "BetriebVerkaufen", "LiegenschaftErwerben" })
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains($" {art} ok")), $"Kein erfolgreicher Befehl {art} im Skript – Skript anpassen ({Erfolge(art)})");
-        var abgaben = Abgabejahre.Count(j => j < p.Jahre);
+        // Abgeben kann nur ein Haus, das noch lebt (Startwert 2027 mit den Festmärkten für Fertigwaren: Der Patriarch stirbt Ende 1406 ohne Erben)
+        var abgaben = Abgabejahre.Count(j => j < p.Jahre && j < (a.Erloschen ?? int.MaxValue));
+        Pruefe.Wahr(abgaben >= 1, $"Das Haus des Spielers erlischt vor dem ersten Abgabejahr (Jahr {a.Erloschen}) – Skript oder Startwert anpassen");
         Pruefe.Wahr(a.Befehle.Count(z => z.Contains(" BetriebVerkaufen ok")) == abgaben
                     && a.Befehle.Count(z => z.Contains(" LiegenschaftErwerben ok")) >= abgaben + 1,
             $"Löschen und Einfügen in jedem Abgabejahr ({Erfolge("BetriebVerkaufen")}, {Erfolge("LiegenschaftErwerben")})");
@@ -128,6 +131,7 @@ static class GleichheitTests
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
         var befehle = new List<string>();
         var jahre = new List<string>();
+        int? erloschen = null;
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) (sim, spieler) = SpeichernUndLaden(sim, spieler);
@@ -150,9 +154,13 @@ static class GleichheitTests
                 sim.RatssitzungWeiter();
             }
             Pruefe.Gleich(t + 1, sim.Zeit.VergangeneMinuten, "Die Uhr läuft mit dem Skript");
-            if (sim.Zeit.Jahr != jahr) jahre.Add(Pruefsumme(sim));
+            if (sim.Zeit.Jahr != jahr)
+            {
+                jahre.Add(Pruefsumme(sim));
+                if (erloschen is null && !spieler.IstAktiv) erloschen = jahre.Count;
+            }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, erloschen);
     }
 
     /// <summary>Wie ein Spieler, der speichert und gleich wieder lädt – mit allem, was die Oberfläche danach wieder einstellt.</summary>
