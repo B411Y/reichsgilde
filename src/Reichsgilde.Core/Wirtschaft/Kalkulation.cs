@@ -115,6 +115,9 @@ public static class Kalkulation
     /// (nach Steuer). Erlös hier: was die Rückfracht am Markt bringt (nach Steuer; jedes Stück drückt den Preis) – auch für Ware, die ins
     /// Lager geht. Zoll je beladener Fahrt: Zollstellen × Anteil × Wert der Ladung zum Marktpreis. Geleit je beladener Fahrt.
     /// Risiko: Chance der Piraten × Erfolgschance (mit Geleit) × Beuteanteil × Wert der Ladung × <paramref name="vorsicht"/>.
+    /// Andere Schiffe, die schon unterwegs sind, kommen zuerst an (Datenversion 67): Was sie dort verkaufen bzw. an Rückfracht kaufen und was
+    /// sie heimbringen, steht in den Preisen schon als verkauft bzw. gekauft (<see cref="Unterwegs"/>, <see cref="Heimfracht"/>). Fahren zwei
+    /// Schiffe zugleich zur selben Stadt, bringt das zweite sonst im Mittel nichts mehr (Messung 2.11.2026, Köln).
     /// </summary>
     public static Fahrtrechnung Schiffsfahrt(Stadtwirtschaft w, Konto konto, SchiffstypDaten typ, FerneStadt stadt,
         IReadOnlyDictionary<string, int> hinfracht, IReadOnlyDictionary<string, int> rueckfracht, bool ausLager = false, string geleit = "Keine",
@@ -127,9 +130,12 @@ public static class Kalkulation
         var hin = hinfracht.Where(x => x.Value > 0).ToList();
         var rueck = rueckfracht.Where(x => x.Value > 0).ToList();
         var einkauf = hin.Sum(x => ausLager ? w.Markt[x.Key].Verkaufswert(x.Value) * (1 - steuer) * vf : w.HandKaufpreis(konto, x.Key, x.Value, d.HeimatmarktAnteil));
-        var erloesFern = hin.Sum(x => stadt.Erloes(x.Key, x.Value)) * vf;
-        var einkaufFern = rueck.Sum(x => stadt.Kosten(x.Key, x.Value)) * ef;
-        var erloesHeim = rueck.Sum(x => w.Markt[x.Key].Verkaufswert(x.Value)) * (1 - steuer) * vf;
+        // Was andere Schiffe vorher dort verkaufen und kaufen bzw. hier verkaufen, drückt die Preise schon (Datenversion 67)
+        var (dortVerkauft, dortGekauft) = Unterwegs(w, stadt);
+        var heim = Heimfracht(w);
+        var erloesFern = hin.Sum(x => stadt.Erloes(x.Key, x.Value, dortVerkauft.GetValueOrDefault(x.Key))) * vf;
+        var einkaufFern = rueck.Sum(x => stadt.Kosten(x.Key, x.Value, dortGekauft.GetValueOrDefault(x.Key))) * ef;
+        var erloesHeim = rueck.Sum(x => w.Markt[x.Key].Verkaufswert(x.Value, heim.GetValueOrDefault(x.Key))) * (1 - steuer) * vf;
         var wertHin = hin.Sum(x => w.Markt[x.Key].Preis * x.Value);
         var wertRueck = rueck.Sum(x => w.Markt[x.Key].Preis * x.Value);
         var zoll = w.Schiffahrt.Zollstellen(konto, stadt) * d.ZollJeStelle * (wertHin + wertRueck);
@@ -169,16 +175,19 @@ public static class Kalkulation
         var hk = w.HandKaufFaktor(konto);
         var rate = SchiffsRisiko(w, konto, geleit) * vorsicht;
         Fahrtvorschlag? bester = null;
+        var heim = Heimfracht(w);
         foreach (var stadt in w.Schiffahrt.Staedte.Where(s => ziel is null || s.Name == ziel))
         {
             var zollRate = w.Schiffahrt.Zollstellen(konto, stadt) * d.ZollJeStelle + rate;
-            // Hinfracht: am Markt kaufen, dort verkaufen
+            var (dortVerkauft, dortGekauft) = Unterwegs(w, stadt);
+            // Hinfracht: am Markt kaufen, dort verkaufen – nach dem, was andere Schiffe auf dem Weg dorthin schon geladen haben
             var hin = Fuellen(typ, stadt.Daten.Kauft.Keys, (ware, n, q) =>
-                stadt.Erloes(ware, q, n) * vf - w.Markt[ware].HandKaufpreis(q, hk, n, d.HeimatmarktAnteil) - zollRate * w.Markt[ware].Preis * q,
+                stadt.Erloes(ware, q, n + dortVerkauft.GetValueOrDefault(ware)) * vf - w.Markt[ware].HandKaufpreis(q, hk, n, d.HeimatmarktAnteil) - zollRate * w.Markt[ware].Preis * q,
                 (ware, n, q) => w.Markt[ware].HandKaufpreis(q, hk, n, d.HeimatmarktAnteil), budget);
-            // Rückfracht: dort kaufen, hier verkaufen
+            // Rückfracht: dort kaufen, hier verkaufen – nach den Rückfrachten, die andere Schiffe vorher dort kaufen bzw. hier verkaufen
             var rueck = Fuellen(typ, stadt.Daten.Verkauft.Keys, (ware, n, q) =>
-                w.Markt[ware].Verkaufswert(q, n) * (1 - steuer) * vf - stadt.Kosten(ware, q, n) * ef - zollRate * w.Markt[ware].Preis * q,
+                w.Markt[ware].Verkaufswert(q, n + heim.GetValueOrDefault(ware)) * (1 - steuer) * vf - stadt.Kosten(ware, q, n + dortGekauft.GetValueOrDefault(ware)) * ef
+                - zollRate * w.Markt[ware].Preis * q,
                 (_, _, _) => 0, double.MaxValue);
             if (hin.Count + rueck.Count == 0) continue;
             var r = Schiffsfahrt(w, konto, typ, stadt, hin, rueck, false, geleit, vorsicht);
@@ -195,6 +204,39 @@ public static class Kalkulation
                 bester = new Fahrtvorschlag(stadt.Name, hin, rueck, r);
         }
         return bester;
+    }
+
+    /// <summary>
+    /// Was die Schiffe, die schon zu dieser fernen Stadt unterwegs sind (beladen oder auf der Hinfahrt), dort vor einem neuen Schiff tun:
+    /// ihre Hinfracht verkaufen und ihre geplante Rückfracht kaufen – je Ware in Stück. Sonst plant jedes Schiff, als wäre es allein, und nach
+    /// Eis oder Festmarkt laufen viele zugleich zur selben Stadt aus (Datenversion 67).
+    /// </summary>
+    private static (Dictionary<string, int> Verkauft, Dictionary<string, int> Gekauft) Unterwegs(Stadtwirtschaft w, FerneStadt stadt)
+    {
+        var verkauft = new Dictionary<string, int>(StringComparer.Ordinal);
+        var gekauft = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var s in w.Schiffahrt.Schiffe)
+        {
+            if (s.Auftrag is not { } a || a.Ziel != stadt.Name || s.Zustand is not (SchiffZustand.Beladen or SchiffZustand.Hinfahrt)) continue;
+            foreach (var (ware, stueck) in s.Ladung) verkauft[ware] = verkauft.GetValueOrDefault(ware) + stueck;
+            foreach (var (ware, stueck) in a.Rueckfracht.Where(x => x.Value > 0)) gekauft[ware] = gekauft.GetValueOrDefault(ware) + stueck;
+        }
+        return (verkauft, gekauft);
+    }
+
+    /// <summary>Rückfracht, die andere Schiffe noch heimbringen und am Markt verkaufen werden (geladen oder geplant) – je Ware in Stück.</summary>
+    private static Dictionary<string, int> Heimfracht(Stadtwirtschaft w)
+    {
+        var heim = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var s in w.Schiffahrt.Schiffe)
+        {
+            if (s.Auftrag is not { } a) continue;
+            var fracht = s.Zustand is SchiffZustand.InFernerStadt or SchiffZustand.Rueckfahrt ? s.Ladung
+                : s.Zustand is SchiffZustand.Beladen or SchiffZustand.Hinfahrt ? a.Rueckfracht : null;
+            if (fracht is null || a.Betrieb is not null) continue; // in ein Lager, nicht an den Markt
+            foreach (var (ware, stueck) in fracht.Where(x => x.Value > 0)) heim[ware] = heim.GetValueOrDefault(ware) + stueck;
+        }
+        return heim;
     }
 
     /// <summary>Füllt die Laderäume eines Schiffs nacheinander mit der Ware, deren nächster Laderaum den meisten Gewinn dazubringt.</summary>
