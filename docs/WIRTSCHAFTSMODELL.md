@@ -1220,6 +1220,8 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 - **Runde 2, Greybox:** 57 Schiffe (vorher 49; das erste Ø in Jahr 4,7), 1.143 Schiffsjahre, 3,00 Fahrten (Weidenmünd 2.467, Eisenfurt 1.011); Flusspiraten 252 Angriffe, 121 gelungen. `messen 30 20 greybox`: Eisenbart Ø 250.864 (wie oben), Bürgermeister 15/20 (vorher 14/20), Stand der KI am Ende Reichsgraf 43, Freiherr 17 (vorher 38/20/Edler 2); kein Bankrott. Drei Schiffe teilen sich die Märkte, das Schiff bleibt dort weit unter einem Umlandbetrieb.
 - **Befund:** Die teureren Rohstoffe dort dämpfen die KI-Häuser (Probestadt Runde 1 → 2: −5 Punkte) und helfen dem Steinmetz (weniger billiger Bruchstein und Granit). Den passiven Spieler treffen sie nicht (+25,0 → +25,7 %): Er ist Schmied, und die KI kauft seine Fertigwaren (Silberringe, Rapiere, Silberketten) als Hinfracht am Markt daheim – die besser bezahlten Fertigwaren verstärken das. Das Ziel „passiver Spieler deutlich weniger“ ist mit Preisen der fernen Städte nicht zu erreichen. Entscheidung des Nutzers: so lassen, die Exportnachfrage ist gewollt (Feinschliff in der nächsten Balancing-Runde).
 
+**Schiffsverkehr (Datenversion 67, `schiffshandel.verkehrBeachten`):** Die Rechnung einer Fahrt (Tafel und KI, `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt`) zählt die Schiffe, die schon unterwegs sind: Hinfracht und geplante Rückfracht der Schiffe auf dem Weg zur selben Stadt als dort schon verkauft bzw. gekauft, die Rückfracht aller Schiffe, die noch heimkommen (ohne Aufträge ins Lager eines Betriebs), als daheim schon verkauft – `vorher` in `Erloes`, `Kosten` und `Verkaufswert`. Ohne den Schalter (alte Spielstände mit ihren Daten) plant jedes Schiff, als wäre es allein. Anlass und Messung: „Jahreszeiten“, Abschnitt „Wirt in Köln: Kosten und Schiffsverkehr“.
+
 ## Stadtkasse, Ämter und neue Anträge (PR #200)
 
 **Regeln** (Abschnitt `politik.kasse`, `politik.bauvorhaben`, `politik.fest`, `politik.befugnisse`; Datenversion 54):
@@ -2105,4 +2107,51 @@ Preise je Jahreszeit (Preis ÷ Grundpreis, Mittel der vollen Stunden, Greybox Sc
 | ohne Ernte | 32.708 (−14 %) | 29.931 (−10 %) |
 | ohne Winternachfrage | 32.100 (−15 %) | 31.483 (−6 %) |
 
-Eindeutig ist nur der Festmarkt. Auf dem Schänken-Stand fe06dc26 (nur Wirt, gegen 37.379 / 33.640): Nachfrage nur Fertigprodukt −14 / −18 %, Fertigwaren mit Heilmittel −19 / −16 %, Festmarkt ohne Nachfragezuschlag −3 / −12 %, ganz ohne Festmarkt-Folgen −2 / −9 %, ohne Gästezuschlag −12 / −11 %. In der Greybox verteuerte also der Zuschlag auf Bier und Mahlzeit den Wirt, der zu festen Preisen ausschenkt – daher die Ausnahme für den Ausschank (Greybox jetzt −4 %). **Köln bleibt bei −21 %** (in den Proben −9 bis −21 %): Der Umsatz des Wirts ist mit Jahreszeiten gleich oder höher (8.032/8.717/9.527/10.504 gegen 8.143/8.738/9.186/9.996), der Verlust liegt also bei den Kosten. Keine einzelne Folge erklärt ihn: ohne Eis −17 %, ohne Winternachfrage −16 % (auf 10c99cec), Schlamm, Winterarbeit und Ernte im alten Stand je −8 bis −10 %. Ohne den Wintervorrat der KI (`--ohne-vorrat`, Köln, Stand vor der Typgrenze) 28.950 ± 1.337 – nicht die Ursache. Offen in `docs/bereiche/kern.md`. Messdateien `end-ohne.json`, `end2-mit.json`, `zerlegung/ohne-*.json` und die Proben im Messordner des Auftrags (nicht im Repository).
+Eindeutig ist nur der Festmarkt. Auf dem Schänken-Stand fe06dc26 (nur Wirt, gegen 37.379 / 33.640): Nachfrage nur Fertigprodukt −14 / −18 %, Fertigwaren mit Heilmittel −19 / −16 %, Festmarkt ohne Nachfragezuschlag −3 / −12 %, ganz ohne Festmarkt-Folgen −2 / −9 %, ohne Gästezuschlag −12 / −11 %. In der Greybox verteuerte also der Zuschlag auf Bier und Mahlzeit den Wirt, der zu festen Preisen ausschenkt – daher die Ausnahme für den Ausschank (Greybox jetzt −4 %). **Köln blieb bei −21 %** (in den Proben −9 bis −21 %): Der Umsatz des Wirts ist mit Jahreszeiten gleich oder höher (8.032/8.717/9.527/10.504 gegen 8.143/8.738/9.186/9.996), der Verlust liegt also bei den Kosten. Keine einzelne Folge erklärt ihn: ohne Eis −17 %, ohne Winternachfrage −16 % (auf 10c99cec), Schlamm, Winterarbeit und Ernte im alten Stand je −8 bis −10 %. Ohne den Wintervorrat der KI (`--ohne-vorrat`, Köln, Stand vor der Typgrenze) 28.950 ± 1.337 – nicht die Ursache. Aufgeklärt mit 80 Startwerten im nächsten Abschnitt. Messdateien `end-ohne.json`, `end2-mit.json`, `zerlegung/ohne-*.json` und die Proben im Messordner des Auftrags (nicht im Repository).
+
+### Wirt in Köln: Kosten und Schiffsverkehr (80 Startwerte)
+
+Mit 80 statt 20 Startwerten (Grafik-PC, Köln, nur Wirt; gemessen auf main acc53465 + dieser Branch bb69a86c) verliert der Wirt nicht 21, sondern **10,0 %** (31.374 ± 907 → 28.228 ± 801; Median −8,8 %). Die Messung schlüsselt jetzt die Rechnung des Spielers je Jahreszeit auf (`messen jahreszeiten`: alle Posten, Einkauf je Zutat mit Preis, Fahrten aller Schiffe mit erwartetem gegen tatsächlichen Gewinn). Kosten vorher (Gulden je Jahr der Jahreszeit F / S / H / W, Δ = Summe über 20 Jahre):
+
+| Posten | ohne Jahreszeiten | mit | Δ |
+|---|---|---|---|
+| Ausschank | 5.026 / 5.181 / 5.194 / 5.921 | 4.889 / 5.016 / 5.240 / 5.228 | −4.746 |
+| übriger Umsatz (Karren am Markt, Schiffe) | 2.952 / 3.266 / 3.664 / 4.116 | 3.090 / 3.854 / 4.083 / 4.492 | +7.611 |
+| Zutaten der Karren (Gerste, Roggen, Weingeist) | 2.641 / 2.660 / 2.725 / 3.268 | 2.446 / 2.549 / 2.494 / 2.596 | −6.045 |
+| davon Weingeist | 1.236 / 1.292 / 1.443 / 1.822 | 1.022 / 1.135 / 1.240 / 1.143 | −6.268 |
+| Einkauf der Schiffe (Hin- und Rückfracht) | 1.598 / 1.785 / 2.207 / 2.354 | 2.073 / 2.524 / 2.741 / 2.648 | +10.204 |
+| Löhne | 929 / 896 / 955 / 1.068 | 929 / 897 / 939 / 1.073 | −49 |
+| Pacht und Unterhalt | 126 / 128 / 142 / 148 | 147 / 149 / 162 / 170 | +421 |
+| Zoll und Geleit | 107 / 116 / 149 / 161 | 138 / 159 / 191 / 181 | +681 |
+| Steuer | 246 / 256 / 252 / 283 | 236 / 249 / 247 / 256 | −249 |
+| Gericht | 211 / 282 / 303 / 303 | 356 / 243 / 332 / 321 | +765 |
+| Investitionen | 420 / 344 / 1.001 / 592 | 434 / 352 / 852 / 765 | +229 |
+| Zuwachs Reinvermögen | 1.394 / 1.586 / 997 / 1.498 | 879 / 1.374 / 1.286 / 1.307 | −3.146 |
+
+Der Ausschank sinkt (−4.746), dafür kauft der Wirt weniger Weingeist (−6.268) – die Schänke allein verliert kaum. Den Verlust machen **die Schiffe**: Mit Jahreszeiten kauft der Wirt (von der KI geführt) öfter eins (0,34 statt 0,24 je Partie, 3,8 statt 2,45 Schiffsjahre), und sie bringen nach Unterhalt −724 statt +95 Gulden (je Partie über 20 Jahre); dazu Zoll, Geleit und Unterhalt +1.100. Ohne Schiffshandel (`--ohne-schiffe`) sind es nur **−2,4 %** (28.980 ± 668 → 28.295 ± 722). Die Zerlegung nach Folgen (80 Startwerte, gegen 31.374) zeigt keine einzelne Ursache: ohne Festmarkt −6,6 %, Schlamm −10,4, Winterarbeit −6,3, Eis −7,9, Ernte −10,4, Winternachfrage −5,4 %.
+
+**Ursache: Schiffe im Pulk.** Jedes Schiff plante seine Fahrt, als wäre es allein (`Kalkulation.BesteSchiffsfahrt` zu den Preisen von jetzt). Fahren schon andere zur selben Stadt, verkaufen und kaufen sie dort vorher, und ihre Rückfracht kommt vorher heim. Fahrten aller Schiffe nach der Zahl der Schiffe, die beim Losschicken schon zur selben Stadt fuhren (Köln, je Partie; erwarteter Gewinn der KI gegen Ertrag):
+
+| Schiffe schon unterwegs | Fahrten ohne / mit Jahreszeiten | Ertrag ÷ erwartet ohne / mit | Ertrag je Fahrt ohne / mit |
+|---|---|---|---|
+| keins | 59,8 / 57,1 | 110 / 107 % | 467 / 439 |
+| eins | 20,5 / 20,7 | −22 / −31 % | −69 / −95 |
+| zwei | 3,2 / 4,5 | −140 / −152 % | −375 / −412 |
+| drei und mehr | 0,7 / 1,2 | −312 / −255 % | −717 / −682 |
+
+Eis (alle Schiffe warten bis zum Eisgang), Festmarkt (Fertigwaren erst teuer, dann billig) und die Preissprünge der Jahreszeiten lassen viele Schiffe in derselben Stunde auslaufen. Mit Jahreszeiten kaufen auch die KI-Häuser mehr Schiffe (3,31 statt 2,74 je Partie), und die Fahrten aller Schiffe bringen zusammen 17 % weniger (20.443 statt 24.764 je Partie).
+
+**Fix: Schiffsverkehr** (`schiffshandel.verkehrBeachten`, siehe „Schiffshandel“). Die Rechnung zählt die Ladung und die geplante Rückfracht der Schiffe, die schon unterwegs sind. Danach fährt fast kein Schiff mehr hinter einem anderen her (Pulk mit 1 oder mehr: 5,3 statt 26,4 bzw. 24,4 je Partie), eine Fahrt bringt im Mittel mehr als erwartet, und die Fahrten aller Schiffe in Köln bringen 59–65 Tsd. statt 20–25 Tsd. Gulden je Partie. Verworfen: den Schiffskauf der KI im Mittel der vier Jahreszeiten rechnen (Köln-Wirt −10,1 statt −10,0 %, Commit d42454c8, zurückgenommen) – nicht der Kauf, die Fahrten waren schlecht.
+
+**Endmessung** (`messen jahreszeiten 20 80`, Greybox und Köln, je 80 Startwerte, Grafik-PC; gemessen auf main acc53465 + dieser Branch 58a34c47 bzw. bitgleich 154c0024; Vergleich `--ohne-jahreszeiten` auf demselben Stand, auch dort mit dem Schiffsverkehr). Reinvermögen im Jahr 20 (Mittel ± Fehler des Mittels):
+
+| Karte, Spieler | Spieler ohne | Spieler mit | KI-Häuser ohne | KI-Häuser mit | Bürger im Ziel ohne / mit | bankrott ohne / mit |
+|---|---|---|---|---|---|---|
+| Greybox, Ausbau | 62.996 ± 1.513 | 65.499 ± 1.850 (+4,0 %) | 76.005 | 78.250 (+3,0 %) | 40 / 41 | 0 / 1 |
+| Greybox, Schmied | 36.697 ± 928 | 38.625 ± 983 (+5,3 %) | 77.569 | 78.761 (+1,5 %) | 80 / 74 | 0 / 0 |
+| Greybox, Wirt | 38.266 ± 941 | 35.256 ± 880 (−7,9 %) | 77.302 | 77.628 (+0,4 %) | 66 / 52 | 0 / 0 |
+| Köln, Ausbau | 56.129 ± 2.015 | 61.762 ± 2.306 (+10,0 %) | 68.027 | 68.693 (+1,0 %) | 40 / 48 | 0 / 0 |
+| Köln, Schmied | 31.318 ± 760 | 33.719 ± 1.016 (+7,7 %) | 67.962 | 68.507 (+0,8 %) | 72 / 68 | 0 / 0 |
+| Köln, Wirt | 32.573 ± 951 | 29.728 ± 875 (−8,7 %) | 68.688 | 68.807 (+0,2 %) | 59 / 53 | 0 / 0 |
+
+Ziel Wirt höchstens −5 % **verfehlt**: Köln −8,7 %, Greybox −7,9 %. Schmied, Ausbau und KI-Häuser liegen im Plus. Der Rest des Wirts kommt aus dem Winter: Weingeist ×1,1 macht Dünnbier und Starkbier teurer, die KI wählt die Ware einer Schänke nach dem Marktpreis und schenkt im Winter Körnermahlzeit statt Dünnbier aus (Köln: 49 statt 39 Körnermahlzeiten, 4 statt 13 Dünnbier; Ausschank im Winter 5.137 statt 5.787 Gulden). Probe ohne Weingeist in der Winternachfrage (`--ohne-folge=winternachfrage:Weingeist`, 154c0024): Wirt Köln −3,1 %, Greybox −5,5 % ±3,4 (Median −5,0 %), Schmied +4,9 / +7,5 %, Ausbau +4,1 / +7,8 %, KI-Häuser +0,7 bis +2,9 %, ein Bankrott (Ausbau Greybox, wie mit dem Fix allein). Die Bedingungen des Nutzers für diese Änderung (Wirt auf beiden Karten höchstens −5 %, die anderen höchstens 2 Punkte schlechter als mit dem Fix, kein Bankrott) sind knapp verfehlt – Weingeist bleibt in der Winternachfrage (offen in `docs/bereiche/kern.md`). Messdateien im Messordner des Auftrags (`vom_pc/`, nicht im Repository).

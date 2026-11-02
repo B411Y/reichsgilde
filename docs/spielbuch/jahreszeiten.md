@@ -32,7 +32,7 @@ Im Frühling und im Herbst ist von 10 bis 16 Uhr **Festmarkt** (Frühjahrsmarkt 
 ## Die KI-Häuser
 
 Die KI-Häuser wissen dasselbe wie du:
-- Im strengen Winter lassen sie ihre Schiffe am Kai, schon bevor der Fluss zufriert, und schicken sie erst nach dem Eisgang wieder los.
+- Im strengen Winter lassen sie ihre Schiffe am Kai, schon bevor der Fluss zufriert, und schicken sie erst nach dem Eisgang wieder los. Damit nach dem Eisgang oder zum Festmarkt nicht alle zugleich mit derselben Fracht zur selben Stadt fahren, rechnet jedes Schiff mit denen, die schon unterwegs sind (siehe [Wirtschaft und Handel](wirtschaft-und-handel.md), Hafen und Schiffe).
 - Im Herbst ab 17 Uhr füllen ihre Verwalter die Zutaten, die im Winter teurer werden oder jetzt mit der Ernte billig sind (Holz, Gerste, Roggen, Kräuter), bis zur Lagergrenze auf.
 
 ## Für Entwickler
