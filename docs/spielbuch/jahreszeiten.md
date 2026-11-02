@@ -27,7 +27,7 @@ Wer im strengen Winter ein Schiff losschickt, bevor der Fluss zufriert, riskiert
 
 ## Festmärkte
 
-Im Frühling und im Herbst ist von 10 bis 16 Uhr **Festmarkt** (Frühjahrsmarkt und Herbstmarkt): Händler und Käufer kommen von weit her, die Nachfrage nach Fertigwaren steigt um 20 % (ihre Preise um gut 9 %), die Wirtshäuser haben 30 % mehr Gäste. Rohstoffe, Zwischenprodukte und Heilmittel bleiben, wie sie sind – sonst zahlten die Werkstätten mehr für ihre Zutaten, und der Wirt, der zu festen Preisen ausschenkt, verlöre. Beginn und Ende stehen in den Meldungen.
+Im Frühling und im Herbst ist von 10 bis 16 Uhr **Festmarkt** (Frühjahrsmarkt und Herbstmarkt): Händler und Käufer kommen von weit her, die Nachfrage nach Fertigwaren (alles, was der Markt-Reiter unter „Fertigwaren“ zeigt, auch der Kräuterschnaps) steigt um 20 % (ihre Preise um gut 9 %), die Wirtshäuser haben 30 % mehr Gäste. Rohstoffe und Zwischenwaren bleiben, wie sie sind – sonst zahlten die Werkstätten mehr für Getreide und Rohstoffe, und der Wirt, der zu festen Preisen ausschenkt, verlöre. Wer eine Fertigware weiterverarbeitet (Werkzeug für die Steinfigur, Dolche für die Giftdolche), zahlt am Festmarkt dafür mehr. Beginn und Ende stehen in den Meldungen.
 
 ## Die KI-Häuser
 

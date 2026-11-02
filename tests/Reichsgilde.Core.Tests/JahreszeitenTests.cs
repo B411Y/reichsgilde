@@ -75,7 +75,8 @@ static class JahreszeitenTests
             Pruefe.Wahr(Kaputt("\"Trampelpfad\": 1.3", "\"Pflaster\": 1.3").Contains("befestigt"), "Schlamm auf Pflaster");
             Pruefe.Wahr(Kaputt("\"zufrierenVon\": 7", "\"zufrierenVon\": 2").Contains("zufrierenVon"), "Stunde vor Tagesbeginn");
             Pruefe.Wahr(Kaputt("\"jahreszeit\": \"Herbst\", \"von\": 10", "\"jahreszeit\": \"Fruehling\", \"von\": 12").Contains("überschneiden"), "zwei Märkte zugleich");
-            Pruefe.Wahr(Kaputt("\"typen\": [ \"Fertigprodukt\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n", "\"typen\": [ \"Fertigware\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n").Contains("Fertigware"), "unbekannter Warentyp");
+            Pruefe.Wahr(Kaputt("\"typen\": [ \"Fertigprodukt\", \"Heilmittel\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n", "\"typen\": [ \"Fertigware\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n").Contains("Fertigware"), "unbekannter Warentyp");
+            Pruefe.Wahr(Kaputt("\"typen\": [ \"Fertigprodukt\", \"Heilmittel\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n", "\"typen\": [ \"Heilmittel\", \"Heilmittel\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n").Contains("zweimal"), "Warentyp doppelt");
         }),
 
         ("Jahreszeiten: Der Winter eines Jahres ist fest aus Startwert und Jahr; etwa drei von zehn sind streng, Zufrieren 7–10 Uhr, 6–14 Stunden", () =>
@@ -259,9 +260,11 @@ static class JahreszeitenTests
             Pruefe.Ungefaehr(1.2, w.Markt["Werkzeug"].Jahreszeitfaktor, 1e-12);
             Pruefe.Gleich(1.0, w.Markt["Gerste"].Jahreszeitfaktor); // nur Fertigwaren: Getreide und Rohstoffe der Werkstätten bleiben, wie sie sind
             Pruefe.Gleich(1.0, w.Markt["Eisen"].Jahreszeitfaktor);
+            Pruefe.Ungefaehr(1.2, w.Markt["Kräuterschnaps"].Jahreszeitfaktor, 1e-12); // Heilmittel zählt wie im Markt-Reiter zu den Fertigwaren
             Pruefe.Ungefaehr(1.6, w.Jahreszeiten.Besucherfaktor, 1e-12);
             Pruefe.Wahr(w.Markt["Werkzeug"].Preis > preis * 1.05, "Preis steigt");
-            Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Festmarkt: Herbstmarkt bis 16 Uhr")), string.Join(" | ", meldungen));
+            Pruefe.Wahr(meldungen.Any(m => m == "Festmarkt: Herbstmarkt bis 16 Uhr – Händler und Käufer kommen von weit her, die Nachfrage nach Fertigwaren steigt, die Wirtshäuser füllen sich."),
+                string.Join(" | ", meldungen));
             Pruefe.Ungefaehr(1.3, w.Jahreszeiten.Gaestefaktor(new Spielzeit(Minute(2, 11))), 1e-12); // die Stunde 10–11 Uhr
             Pruefe.Gleich(1.0, w.Jahreszeiten.Gaestefaktor(new Spielzeit(Minute(2, 10)))); // die Stunde 9–10 Uhr
             while (sim.Zeit.UhrzeitInMinuten <= 16 * 60) sim.Tick();
@@ -271,6 +274,19 @@ static class JahreszeitenTests
             var (_, sommer) = Stadt(Minute(1, 12));
             Pruefe.Gleich(null, sommer.Jahreszeiten.FestmarktJetzt);
             Pruefe.Gleich(1.0, sommer.Jahreszeiten.Besucherfaktor);
+        }),
+
+        ("Festmärkte: Ohne „typen“ gilt der Zuschlag für alle Waren (Daten vor der Typgrenze); Meldung mit den Wörtern der Oberfläche", () =>
+        {
+            var json = Json.Value.Replace("\"typen\": [ \"Fertigprodukt\", \"Heilmittel\" ], ", "");
+            Pruefe.Wahr(json != Json.Value, "typen steht nicht wie erwartet in wirtschaft.json");
+            var (sim, w) = Stadt(Minute(2, 9, 58), daten: Wirtschaftsdaten.AusJson(json));
+            while (sim.Zeit.UhrzeitInMinuten <= 10 * 60) sim.Tick();
+            Pruefe.Ungefaehr(1.2, w.Markt["Gerste"].Jahreszeitfaktor, 1e-12);
+            Pruefe.Ungefaehr(1.2, w.Markt["Werkzeug"].Jahreszeitfaktor, 1e-12);
+            Pruefe.Gleich("allen Waren", Jahreszeitenwesen.Typenname(new List<string>()));
+            Pruefe.Gleich("Fertigwaren", Jahreszeitenwesen.Typenname(new List<string> { "Fertigprodukt", "Heilmittel" }));
+            Pruefe.Gleich("Rohstoffen, Zwischenwaren und Fertigwaren", Jahreszeitenwesen.Typenname(new List<string> { "Rohstoff", "Zwischenprodukt", "Heilmittel" }));
         }),
 
         ("Jahreszeiten: Zum Jahresbeginn sagt eine Meldung, was die Jahreszeit bringt", () =>

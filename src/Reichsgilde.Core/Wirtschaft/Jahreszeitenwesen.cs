@@ -29,7 +29,7 @@ public sealed record Winterlage(int Jahr, double Kaelte, bool Streng, int Zufrie
 ///     Höfe und Kräutergärten bringen mehr.
 ///   • <b>Frühling:</b> Schlamm – Trampelpfade und Fahrwege dauern länger (<see cref="Schlamm"/> im Zeitfaktor des Kerns, das Bild fährt mit demselben
 ///     Faktor), Kies und Pflaster nicht.
-///   • <b>Festmärkte</b> zu festen Stunden einer Jahreszeit: mehr Nachfrage aller Waren, mehr Wirtshausgäste, mehr Besucher (für die Darstellung).
+///   • <b>Festmärkte</b> zu festen Stunden einer Jahreszeit: mehr Nachfrage nach den Waren der Festmarkt-Typen (Fertigwaren), mehr Wirtshausgäste, mehr Besucher (für die Darstellung).
 ///
 /// Nichts davon steht im Spielstand: Die Jahreszeit kommt aus der Uhr, der Winter aus dem Startwert der Partie und dem Jahr (eigene
 /// <see cref="Zufallsquelle"/> je Winter, sie würfelt genau zweimal). Eine geladene Partie und jeder Mitspieler rechnen denselben Winter.
@@ -261,8 +261,8 @@ public sealed class Jahreszeitenwesen
         foreach (var f in Daten.Festmaerkte.Where(f => f.Jahreszeit == zeit.Jahreszeit))
         {
             if (m == f.Von * 60 - Spielzeit.TagesbeginnMinute)
-                Melden($"Festmarkt: {f.Name} bis {f.Bis} Uhr – Händler und Käufer kommen von weit her, die Nachfrage nach " +
-                       (f.Typen.Count == 0 ? "allen Waren" : string.Join(" und ", f.Typen.Select(TypMehrzahl))) + " steigt" +
+                Melden($"Festmarkt: {f.Name} bis {f.Bis} Uhr – Händler und Käufer kommen von weit her" +
+                       (f.Nachfrage > 0 ? $", die Nachfrage nach {Typenname(f.Typen)} steigt" : "") +
                        (f.Gaeste > 0 ? ", die Wirtshäuser füllen sich." : "."));
             else if (m == f.Bis * 60 - Spielzeit.TagesbeginnMinute)
                 Melden($"Festmarkt: {f.Name} ist vorbei.");
@@ -293,14 +293,25 @@ public sealed class Jahreszeitenwesen
 
     private void Melden(string text) => _w.Melden(text);
 
-    private static string TypMehrzahl(string typ) => typ switch
+    /// <summary>Die Warentypen eines Festmarkts für die Meldung, mit den Wörtern der Oberfläche: Fertigprodukt und Heilmittel heißen dort zusammen
+    /// „Fertigwaren“ (Markt-Reiter), leer heißt alle Waren.</summary>
+    internal static string Typenname(IReadOnlyCollection<string> typen)
     {
-        "Fertigprodukt" => "Fertigwaren",
-        "Zwischenprodukt" => "Zwischenprodukten",
-        "Rohstoff" => "Rohstoffen",
-        "Heilmittel" => "Heilmitteln",
-        _ => typ,
-    };
+        if (typen.Count == 0) return "allen Waren";
+        var namen = new List<string>();
+        foreach (var t in typen)
+        {
+            var name = t switch
+            {
+                "Fertigprodukt" or "Heilmittel" => "Fertigwaren",
+                "Zwischenprodukt" => "Zwischenwaren",
+                "Rohstoff" => "Rohstoffen",
+                _ => t,
+            };
+            if (!namen.Contains(name)) namen.Add(name);
+        }
+        return namen.Count == 1 ? namen[0] : string.Join(", ", namen.Take(namen.Count - 1)) + " und " + namen[^1];
+    }
 
     /// <summary>Was zu Beginn eines Jahres über die Jahreszeit gemeldet wird – nach den Daten.</summary>
     private string Jahresmeldung(Spielzeit zeit)

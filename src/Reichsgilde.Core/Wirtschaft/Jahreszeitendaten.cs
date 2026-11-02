@@ -41,6 +41,8 @@ public sealed class JahreszeitenDaten
             m.Pruefen(f);
             foreach (var t in m.Typen.Where(t => !typen.Contains(t)))
                 f.Add($"jahreszeiten.festmaerkte „{m.Name}“: Einen Warentyp „{t}“ gibt es nicht.");
+            foreach (var t in m.Typen.GroupBy(t => t, StringComparer.Ordinal).Where(g => g.Count() > 1))
+                f.Add($"jahreszeiten.festmaerkte „{m.Name}“: Der Warentyp „{t.Key}“ steht zweimal in „typen“.");
             if (!namen.Add(m.Name)) f.Add($"jahreszeiten.festmaerkte: Den Festmarkt „{m.Name}“ gibt es zweimal.");
         }
         foreach (var g in Festmaerkte.GroupBy(m => m.Jahreszeit).Where(g => g.Count() > 1))
@@ -163,7 +165,7 @@ public sealed class FestmarktDaten
     public double Nachfrage { get; init; }
 
     /// <summary>
-    /// Für welche Warentypen der Zuschlag gilt (leer: alle). Die Messebesucher kaufen Fertigwaren; Getreide und Rohstoffe teurer zu machen, traf die
+    /// Für welche Warentypen der Zuschlag gilt (leer: alle). Die Messebesucher kaufen Fertigwaren (in den Daten Fertigprodukt und Heilmittel, wie im Markt-Reiter); Getreide und Rohstoffe teurer zu machen, traf die
     /// Werkstätten, die sie verarbeiten – vor allem den Wirt, der zu festen Preisen ausschenkt (Zerlegung 2.11.2026: Wirt −10 / −18 %).
     /// </summary>
     public List<string> Typen { get; init; } = new();

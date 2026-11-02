@@ -73,7 +73,7 @@ public sealed class Marktstand
     public double NachfrageFaktor { get; internal set; } = 1;
 
     /// <summary>
-    /// Faktor der Jahreszeit und des Festmarkts auf die Nachfrage (1 = wie in den Daten; Winter: Brennholz, Kerzen; Festmarkt: alle Waren).
+    /// Faktor der Jahreszeit und des Festmarkts auf die Nachfrage (1 = wie in den Daten; Winter: Brennholz, Kerzen; Festmarkt: Fertigwaren).
     /// Setzt das <see cref="Jahreszeitenwesen"/> (Datenversion 67).
     /// </summary>
     public double Jahreszeitfaktor { get; internal set; } = 1;
