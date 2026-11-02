@@ -17,12 +17,12 @@ static class WegebauTests
 {
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten())); // ohne Schlamm und Festmarkt im Frühling 1400
 
     /// <summary>Die echten Daten mit geändertem Inhalt (z. B. ohne „wegebau“).</summary>
     static Wirtschaftsdaten DatenMit(Action<JsonObject> aendern)
     {
-        var knoten = JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!.AsObject();
+        var knoten = JsonNode.Parse(Datenpfad.OhneJahreszeiten())!.AsObject();
         aendern(knoten);
         return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
     }

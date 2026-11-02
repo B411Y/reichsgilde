@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class SchiffshandelTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneJahreszeiten()); // ohne Festmarkt im Frühling 1400 (die Rechnung sagt den Preis von jetzt voraus)
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
 
     const string Piratenzeile = "\"piraten\": {\"name\": \"Flusspiraten\", \"chance\": 0.05, \"staerke\": 1.0, \"beuteAnteil\": 0.5}";
@@ -66,7 +66,7 @@ static class SchiffshandelTests
         ("Daten: Datenversion 58, ein Flussschiff, zwei ferne Städte (flussauf und flussab); Fehler fallen auf", () =>
         {
             var d = Daten.Value.Schiffshandel!;
-            Pruefe.Gleich(66, Daten.Value.Version);
+            Pruefe.Gleich(67, Daten.Value.Version);
             Pruefe.Gleich(1, d.Schiffe.Count);
             Pruefe.Gleich("flussauf, flussab", string.Join(", ", d.Staedte.Select(s => s.Richtung)));
             Pruefe.Gleich(120, d.Schiffe["Flussschiff"].Gesamtkapazitaet);

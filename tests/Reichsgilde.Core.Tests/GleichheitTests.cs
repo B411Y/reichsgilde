@@ -48,8 +48,9 @@ static class GleichheitTests
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
+    /// Dazu mitten im Eis des strengen Winters 1407 (Startwert 1400: der Grenzfluss ist von 7 bis 19 Uhr zu, Datenversion 67).
     /// </summary>
-    static readonly long[] Ladepunkte = { Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
+    static readonly long[] Ladepunkte = { Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(7, 12, 30), Minute(8, 19, 0) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
@@ -67,6 +68,13 @@ static class GleichheitTests
 
     static void Pruefen(Partie p)
     {
+        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis (Köln 1401: 1403) – sonst prüft der Test die Jahreszeiten nicht.
+        if (p.Startwert is 1400 or 1401)
+        {
+            var winter = new Stadtwirtschaft(Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), Partieeinstellungen.Standard.StartStatut, p.Startwert)
+                .Jahreszeiten.WinterVon(p.Startwert == 1400 ? 1407 : 1403);
+            Pruefe.Wahr(winter is { Streng: true }, $"Startwert {p.Startwert}: kein strenger Winter im Testzeitraum – Winterfall anpassen");
+        }
         var a = Spielen(p, laden: false);
         var b = MitKultur("de-DE", () => Spielen(p, laden: false));
         var c = Spielen(p, laden: true);

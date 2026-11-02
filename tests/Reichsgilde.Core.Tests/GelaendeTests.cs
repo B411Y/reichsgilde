@@ -14,7 +14,8 @@ static class GelaendeTests
 {
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    /// <summary>Die echten Daten ohne Jahreszeiten: Die Fahrzeiten hier gelten im Frühling 1400 ohne Schlamm (der steht in JahreszeitenTests).</summary>
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(JahreszeitenTests.DatenOhneJahreszeiten);
 
     static string Text(string kennung) => File.ReadAllText(Datenpfad.Karte(kennung));
     static Kartenort O(double x, double z) => new(x, z);
@@ -437,7 +438,7 @@ static class GelaendeTests
         ("Steigung bremst Karren: ab 6 % je Prozentpunkt 5 % länger, höchstens dreimal so lang; bergab und eben wie bisher", () =>
         {
             var s = Daten.Value.Logistik.Steigung!;
-            Pruefe.Gleich(66, Daten.Value.Version);
+            Pruefe.Gleich(67, Daten.Value.Version);
             Pruefe.Gleich(1.0, s.Faktor(0.06));
             Pruefe.Ungefaehr(1.2, s.Faktor(0.10), 1e-12);
             Pruefe.Gleich(3.0, s.Faktor(0.5));

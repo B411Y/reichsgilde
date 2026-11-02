@@ -202,6 +202,7 @@ static class KarrenwegTests
         {
             var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!;
             json["logistik"]!.AsObject().Remove("weglaenge");
+            json.AsObject().Remove("jahreszeiten"); // alte Daten kannten keine Jahreszeiten (Datenversion 67)
             var alt = Wirtschaftsdaten.AusJson(json.ToJsonString());
             // Werte des Codes vor der gemeinsamen Strecke (Stand 1f0e80ad, dieselben Daten ohne weglaenge; an den Karrenstraßen beider Karten hat sich
             // nichts geändert): Länge hin und zurück bitgenau, Fahrzeit Handkarren hin und Ochsenkarren zurück

@@ -19,12 +19,14 @@ static class FahrzeitWeglaengeTests
 {
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    /// <summary>Die echten Daten ohne Jahreszeiten: Diese Tests laufen im Frühling 1400 und rechnen ohne Schlamm (der steht in JahreszeitenTests).</summary>
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(JahreszeitenTests.DatenOhneJahreszeiten);
 
-    /// <summary>Die echten Daten mit geändertem Inhalt.</summary>
+    /// <summary>Die echten Daten (ohne Jahreszeiten) mit geändertem Inhalt.</summary>
     static Wirtschaftsdaten DatenMit(Action<JsonObject> aendern)
     {
         var knoten = JsonNode.Parse(File.ReadAllText(Datenpfad.Wirtschaft()))!.AsObject();
+        knoten.Remove("jahreszeiten");
         aendern(knoten);
         return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
     }
@@ -33,8 +35,9 @@ static class FahrzeitWeglaengeTests
     const double MeterJeMinuteBei1 = 900.0 / 1140;
 
     /// <summary>
-    /// Die Fahrzeit nach der Formel, unabhängig vom Kern gerechnet: Summe der Stücke Länge × Steigungsfaktor × Belagfaktor ÷ (Tempo × 900/1140),
-    /// dazu Furt und Fähre, auf ganze Minuten, zwischen Mindest- und Höchstdauer. Für die Tests der Steigung, des Wassers und des Belags.
+    /// Die Fahrzeit nach der Formel, unabhängig vom Kern gerechnet: Summe der Stücke Länge × Steigungsfaktor × Belagfaktor × Schlamm ÷ (Tempo × 900/1140),
+    /// dazu Furt und Fähre, auf ganze Minuten, zwischen Mindest- und Höchstdauer. Für die Tests der Steigung, des Wassers und des Belags. Schlamm
+    /// (Datenversion 67): auf Trampelpfad und Fahrweg eines Weges der Karte der Faktor der Jahreszeit aus den Daten.
     /// </summary>
     internal static int NachFormel(Stadtwirtschaft w, Betrieb b, string typ, bool hin)
     {
@@ -43,7 +46,10 @@ static class FahrzeitWeglaengeTests
         var l = w.Daten.Logistik;
         var v = l.Karren[typ].Tempo * MeterJeMinuteBei1;
         var steigung = w.Karte!.Gelaendeform.HatHoehen ? l.Steigung : null;
-        var minuten = fahrt.Sum(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * (w.Wegebau.IstAktiv ? w.Wegebau.Faktor(s) : 1)) / v;
+        var schlamm = w.Daten.Jahreszeiten?.Von(w.Uhr.Jahreszeit).Schlamm;
+        double Schlamm(Fahrtstueck s) => schlamm is not null && s.Art == Fahrbahn.Strasse && s.Weg >= 0
+            && schlamm.TryGetValue(w.Wegebau.BelagBei(s.Weg, s.Stelle).ToString(), out var f) ? f : 1;
+        var minuten = fahrt.Sum(s => s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * (w.Wegebau.IstAktiv ? w.Wegebau.Faktor(s) : 1) * Schlamm(s)) / v;
         // Furten und Fähren: mit Datenversion 65 hält auch eine Furt an einer Gasse oder einem Fußweg auf (Netz aller Wege)
         if ((w.Karte.Wasserplan.HaeltAuf || w.Karte.Wasserplan.Querungen.Any(q => q.Art == Uebergangsart.Furt)) && l.Wasser is { } wasser) minuten += wasser.Aufschlag(fahrt);
         var gerundet = Math.Max(1, (int)Math.Round(minuten, MidpointRounding.AwayFromZero));
@@ -73,7 +79,7 @@ static class FahrzeitWeglaengeTests
         ("Fahrzeit nach Weglänge: Daten – Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s; 1 m/s = 0,79 m je Spielminute; mindestens 10, höchstens 360 Minuten; Ausbau höchstens 1,15", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(66, d.Version);
+            Pruefe.Gleich(67, d.Version);
             Pruefe.Gleich((1.0, 0.8, 1.3), (d.Logistik.Karren["Handkarren"].Tempo, d.Logistik.Karren["Ochsenkarren"].Tempo, d.Logistik.Karren["Kriegskarren"].Tempo));
             Pruefe.Ungefaehr(MeterJeMinuteBei1, Taktgeber.SekundenJeSpielminute, 1e-12);
             Pruefe.Ungefaehr(0.8 * MeterJeMinuteBei1, d.Logistik.Karren["Ochsenkarren"].MeterJeMinute, 1e-12);

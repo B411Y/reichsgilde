@@ -13,7 +13,7 @@ static class WasserTests
 {
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten())); // ohne Schlamm und Festmarkt im Frühling 1400
 
     static string Text(string kennung) => File.ReadAllText(Datenpfad.Karte(kennung));
     static Kartenort O(double x, double z) => new(x, z);

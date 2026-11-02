@@ -33,6 +33,9 @@ static class Messung
         // Sitzplätze der Schänken (Datenversion 66): … -- messen schaenke [Jahre] [Startwerte] [--karten=…] [--ohne-plaetze] – siehe Schaenkenmessung.cs
         if (args.Length > 0 && args[0] == "schaenke")
             return Schaenkenmessung.Erstellen(args[1..]);
+        // Folgen der Jahreszeiten (Datenversion 67): … -- messen jahreszeiten [Jahre] [Startwerte] [--karten=…] [--ohne-jahreszeiten] – siehe Jahreszeitenmessung.cs
+        if (args.Length > 0 && args[0] == "jahreszeiten")
+            return Jahreszeitenmessung.Erstellen(args[1..]);
         // Fahrzeit an allen Werkstatt-Bauorten (Befund H2 der Prüfung von phase5/gehtempo): … -- messen bauorte [Karte …] – siehe Bauortmessung.cs
         if (args.Length > 0 && args[0] == "bauorte")
             return Bauortmessung.Erstellen(args[1..]);

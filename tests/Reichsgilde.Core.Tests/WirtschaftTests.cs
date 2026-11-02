@@ -28,6 +28,23 @@ static class Datenpfad
     /// </summary>
     public static string EinVersuchJeNacht(string json) => json.Replace("\"nachtVersuche\": 4", "\"nachtVersuche\": 1").Replace("\"versuchFaktor\": 0.3333", "\"versuchFaktor\": 1");
 
+    /// <summary>
+    /// Die echten Daten ohne Abschnitt „jahreszeiten“ (Datenversion 67), als Text mit derselben Formatierung (Tests ersetzen darin Zeilen) – für
+    /// Tests einer Mechanik, die im Frühling 1400 laufen und ohne Schlamm, Frühjahrsmarkt und Winter rechnen. Die Jahreszeiten prüft JahreszeitenTests.
+    /// </summary>
+    public static string OhneJahreszeiten(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        const string anfang = "\n  \"jahreszeiten\": {";
+        var a = json.IndexOf(anfang, StringComparison.Ordinal);
+        if (a < 0) return json;
+        var e = json.IndexOf("\n  },", a, StringComparison.Ordinal);
+        if (e < 0) throw new InvalidDataException("Ende des Abschnitts „jahreszeiten“ nicht gefunden.");
+        var ohne = json[..a] + json[(e + "\n  },".Length)..];
+        if (System.Text.Json.Nodes.JsonNode.Parse(ohne)!["jahreszeiten"] is not null) throw new InvalidDataException("„jahreszeiten“ nicht entfernt.");
+        return ohne;
+    }
+
     /// <summary>Die Karte game/karten/&lt;kennung&gt;.json (neben game/daten/).</summary>
     public static string Karte(string kennung) =>
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Wirtschaft()))!, "karten", kennung + ".json");
@@ -38,7 +55,7 @@ static class Datenpfad
     /// </summary>
     public static string OhneAktionspunkte(string? json = null)
     {
-        var knoten = System.Text.Json.Nodes.JsonNode.Parse(json ?? File.ReadAllText(Wirtschaft()),
+        var knoten = System.Text.Json.Nodes.JsonNode.Parse(json ?? OhneJahreszeiten(),
             documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true })!;
         knoten.AsObject().Remove("aktionspunkte");
         return knoten.ToJsonString();
@@ -46,11 +63,12 @@ static class Datenpfad
 
     /// <summary>
     /// Die echten Daten ohne Abschnitt „stadt“: Die Nachfrage ist fest wie in „waren“ (Einwohnerfaktor 1, die Bezugsstadt mit vier Häusern) –
-    /// für Proben mit nur einem oder zwei Häusern, die die Referenzwerte des Wirtschaftsmodells nachrechnen.
+    /// für Proben mit nur einem oder zwei Häusern, die die Referenzwerte des Wirtschaftsmodells nachrechnen. Ohne Jahreszeiten (die Referenzwerte
+    /// gelten für ein Jahr ohne Winter, Ernte und Festmarkt).
     /// </summary>
     public static string OhneStadt()
     {
-        var knoten = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Wirtschaft()),
+        var knoten = System.Text.Json.Nodes.JsonNode.Parse(OhneJahreszeiten(),
             documentOptions: new System.Text.Json.JsonDocumentOptions { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true })!;
         knoten.AsObject().Remove("stadt");
         return knoten.ToJsonString();

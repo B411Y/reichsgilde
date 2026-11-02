@@ -17,7 +17,7 @@ static class MarktplaetzeTests
 {
     static string Datenordner => Path.GetDirectoryName(Datenpfad.Wirtschaft())!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Datenordner, "katalog.json")));
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten())); // ohne Schlamm und Festmarkt im Frühling 1400
 
     /// <summary>
     /// Köln (seit 1.11.2026): Rheingasse, Malzbüchel und die Deutzer Straßen führen durch die Mitten der Plätze oder enden dort und brauchen keine
