@@ -76,7 +76,7 @@
    "probe_nose_nostrils_width_decr": 0.9,
    "probe_nose_flaring_incr": 0.0,
    "probe_nose_point_width_incr": 0.1,
-   "eigen_augenhoehle": 0.1,
+   "eigen_augenhoehle": 0.0,
    "eigen_unterlid": 0.5,
    "probe_eye_scale_incr": 0.1,
    "probe_eye_eyefold_down": 0.3,
@@ -125,7 +125,7 @@
    "probe_cheek_volume_incr": 0.25,
    "eigen_kinn_w": 1.6,
    "eigen_lippen": 1.5,
-   "eigen_jochbein_w": 1.5,
+   "eigen_jochbein_w": 1.2,
    "eigen_kiefer_w": 1.4
   },
   "lidfalte_m": {

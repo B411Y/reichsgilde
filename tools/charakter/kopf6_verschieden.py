@@ -98,14 +98,17 @@ E5_LIDFORM = {
         "Oger": {"rund": 0.15, "mandel": 0.25, "schlupf": 0.60},
     },
     # Formgewicht der Lidform (lid_<form> der .glb) je Geschlecht – kleiner als die Zeigeformen aus E2 (1,0)
-    "staerke": {"rund": {"m": 0.7, "w": 0.75}, "mandel": {"m": 0.7, "w": 0.75}, "schlupf": {"m": 0.75, "w": 0.65}},
+    # Runde 1 (Panel: rund „starrt“, mandel kaum von schlupf zu trennen): rund schwächer, mandel und schlupf deutlicher
+    "staerke": {"rund": {"m": 0.5, "w": 0.55}, "mandel": {"m": 1.0, "w": 1.0}, "schlupf": {"m": 0.95, "w": 0.85}},
 }
 # Augen, Brauen und Haut des Grundkopfs 3 (charakter_kopf.gd liest „verschieden.grundkopf3“)
 E5_GRUNDKOPF3 = {
     "augen": {"iris_entsaettigt": 0.3, "kranz_entsaettigt": 0.2, "iris_detail": 1.0, "iris_kaustik": 0.8,
               "iris_tiefe": 0.2, "limbus": 0.8, "limbus_breite": 0.2, "limbus_hart": 0.6,
               "glanz_kern": 5.0, "glanz_kern_groesse": 0.04, "umgebung": 0.1, "fenster_faktor": 0.7,
-              "fenster_groesse": 0.09, "limbus_saum": 0.2, "iris_hell": 0.12},
+              "fenster_groesse": 0.09, "limbus_saum": 0.2, "iris_hell": 0.12,
+              # Glanzpunkt tiefer (bei mandel und schlupf lag er unter dem Oberlid und wurde mit verschattet)
+              "fenster_richtung": [-0.22, 0.06, 0.97]},
     "haut": {"fein": 0.7, "poren_faktor": 1.1},
     "haar_breite_deckung": 1.0,
 }

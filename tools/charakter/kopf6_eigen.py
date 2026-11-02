@@ -46,8 +46,8 @@ Nasenlöcher von vorn):
                       Brauenwulst und Glabella 0,8 mm zurück
   eigen_braue_w       Brauenbogen höher: die Haut der äußeren zwei Drittel der Braue 1,6 mm nach oben (am Bogen, etwa 70 %
                       der Brauenlänge, am stärksten, zum Ende auslaufend); Brauenkarten folgen, das Oberlid bleibt
-  eigen_jochbein_w    Jochbein höher: 1,3 mm nach außen 17 mm unter der Pupillenhöhe (eigen_jochbein: 24 mm), darunter
-                      0,6 mm flacher (weicher Übergang zur Wange)
+  eigen_jochbein_w    Jochbein höher: 1,3 mm nach außen 17 mm unter der Pupillenhöhe (eigen_jochbein: 24 mm), weich
+                      auslaufend (Runde 1: die Mulde darunter zeichnete eine harte Falte zum Mundwinkel)
   eigen_kiefer_w      Kieferwinkel weicher: um lm3/lm13 2,5 mm zur Mitte und 1 mm nach oben (rundet den Winkel)
   eigen_nasenloch_w   Nasenflügelrand 0,7 mm tiefer und 0,3 mm vor – deckt die Nasenlöcher in der Vorderansicht
 """
@@ -465,9 +465,9 @@ def grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn):
         dd[:, 2] += 1.6 * mm * w
     ablegen("eigen_braue_w", dd)
     # ---------------------------------------------------------------- Jochbein höher
-    hoch = np.exp(-0.5 * (((ax - 0.045) / 0.009) ** 2 + ((V[:, 2] - (z_p - 0.017)) / 0.007) ** 2))
-    tief = np.exp(-0.5 * (((ax - 0.043) / 0.010) ** 2 + ((V[:, 2] - (z_p - 0.036)) / 0.007) ** 2))
-    w = (1.3 * mm * hoch - 0.6 * mm * tief) * vorn * stufe(Nv[:, 1], 0.3, -0.1)
+    # Runde 1 (Panel: „harte Falte vom Jochbein zum Mundwinkel“): ohne die flache Mulde darunter, breiter auslaufend
+    hoch = np.exp(-0.5 * (((ax - 0.045) / 0.011) ** 2 + ((V[:, 2] - (z_p - 0.017)) / 0.009) ** 2))
+    w = 1.3 * mm * hoch * vorn * stufe(Nv[:, 1], 0.3, -0.1)
     ablegen("eigen_jochbein_w", Nv * w[:, None])
     # ---------------------------------------------------------------- Kieferwinkel weicher
     dd = np.zeros_like(V)
