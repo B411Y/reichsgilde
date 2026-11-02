@@ -123,8 +123,12 @@ E5_BRAUEN = {"frau_dicke": 1.25, "frau_dichte": 1.2, "frau_deckung": 0.85}
 # (Panel Runde 3: die feineren lesen sich als „dünn, aufgemalt“), Haut weniger wachsartig: Rauheit und Glanz fleckig
 # (Mittelfrequenz aus der Fleckenkachel, keine weitere Abtastung), Hautunruhe etwas stärker, Streulicht etwas schmaler
 E6_BRAUEN = {"frau_dicke": 1.6, "frau_dichte": 1.5, "frau_deckung": 1.05}
-E6_GRUNDKOPF4 = {"haut": {"rau_unruhe": 0.1, "glanz_unruhe": 0.45, "rau_zusatz": 0.03, "unruhe_faktor": 1.35,
-                          "streu_faktor": 0.85}}
+# Runde 1 (Panel: „weißer Glanzstreifen an Schläfe und Stirn“, Scheitel heller Hautstreifen, rund „glotzt“): Glanz
+# weniger fleckig, etwas matter; Haut unter dichtem Haar dunkler; rund etwas schwächer
+E6_GRUNDKOPF4 = {"haut": {"rau_unruhe": 0.1, "glanz_unruhe": 0.25, "rau_zusatz": 0.05, "unruhe_faktor": 1.35,
+                          "streu_faktor": 0.85},
+                 "kopfhaut_dunkel": 0.93}
+E6_LIDFORM_STAERKE = {"rund": {"m": 0.45, "w": 0.5}}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -209,6 +213,9 @@ def main():
     if e6:
         R["verschieden"]["brauen"].update(E6_BRAUEN)
         R["verschieden"]["grundkopf4"] = E6_GRUNDKOPF4
+        if "lidform" in R["verschieden"]:
+            R["verschieden"]["lidform"] = json.loads(json.dumps(R["verschieden"]["lidform"]))
+            R["verschieden"]["lidform"]["staerke"].update(E6_LIDFORM_STAERKE)
         R["verschieden"]["beschreibung"] += "; E6: Frauenbrauen wie Grundkopf 2, Haut des Grundkopfs 4"
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:

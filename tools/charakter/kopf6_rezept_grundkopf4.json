@@ -1,5 +1,5 @@
 {
- "_beschreibung": "Rezept des fertigen Kopfs kopf6 (Etappe B): Formen als Mischung der Probeformen aus kopf6.sh proben (formen_mischen.py). Erzeugt von kopf6_eichen.py aus kopf6_rezept_s4.json (S4) und der Eichung (S5–S7). E3 (01.11.2026): Grundkopf nach FaceBuilder-Person (vorbild_grund_<g>, grundkopf_fb.py) fest in der Reife unten. E2: drei Lidformen lid_mandel, lid_rund, lid_schlupf (nur zum Zeigen, nicht in den Genen). Runde 2 (Panel r1: FB-Form machte beide teigig/verquollen): FB-Form aus, gezielte Reife-Korrekturen nach Prüferbefund. Runde 3: Frau Nase kürzer/schmaler, Augen ruhiger, Wangen voller; Mann Mund breiter, Lider leichter. Endstand: Mann wie Runde 2 (Runde 3 beim Mann schlechter), Frau wie Runde 3. Grundkopf 2 (01.11.2026, kopf6_rezept_grundkopf2.json; Probebau mit eigen=3): Frau eigene Nase (eigen_nase_w) und Kinn (eigen_kinn_w), beide Lippen voller (eigen_lippen), Lidkante mit Dicke (eigen_lidkante). Grundkopf 3 (02.11.2026, kopf6_rezept_grundkopf3.json; Probebau mit eigen=4): Frau Stirn runder (eigen_stirn_w), Brauenbogen höher (eigen_braue_w, Braue nicht mehr nach unten), Jochbein höher (eigen_jochbein_w), Kieferwinkel weicher (eigen_kiefer_w), Nasenflügelrand tiefer (eigen_nasenloch_w); Augenhöhle der Frau flacher (kein grauer Schatten über dem inneren Oberlid). Grundkopf 4 (02.11.2026, kopf6_rezept_grundkopf4.json; Probebau mit eigen=5): Lidform mandel aus der eigenen Mandelform (eigen_mandel: beide Lider der äußeren Hälfte gehoben, die Lidspalte bleibt offen) statt probe_eye_corner1_up, äußerer Oberlidrand nur noch leicht tiefer (Panel Grundkopf 3: mandel ging in rund über, die enger gestellte Mandel wirkte schläfrig).",
+ "_beschreibung": "Rezept des fertigen Kopfs kopf6 (Etappe B): Formen als Mischung der Probeformen aus kopf6.sh proben (formen_mischen.py). Erzeugt von kopf6_eichen.py aus kopf6_rezept_s4.json (S4) und der Eichung (S5–S7). E3 (01.11.2026): Grundkopf nach FaceBuilder-Person (vorbild_grund_<g>, grundkopf_fb.py) fest in der Reife unten. E2: drei Lidformen lid_mandel, lid_rund, lid_schlupf (nur zum Zeigen, nicht in den Genen). Runde 2 (Panel r1: FB-Form machte beide teigig/verquollen): FB-Form aus, gezielte Reife-Korrekturen nach Prüferbefund. Runde 3: Frau Nase kürzer/schmaler, Augen ruhiger, Wangen voller; Mann Mund breiter, Lider leichter. Endstand: Mann wie Runde 2 (Runde 3 beim Mann schlechter), Frau wie Runde 3. Grundkopf 2 (01.11.2026, kopf6_rezept_grundkopf2.json; Probebau mit eigen=3): Frau eigene Nase (eigen_nase_w) und Kinn (eigen_kinn_w), beide Lippen voller (eigen_lippen), Lidkante mit Dicke (eigen_lidkante). Grundkopf 3 (02.11.2026, kopf6_rezept_grundkopf3.json; Probebau mit eigen=4): Frau Stirn runder (eigen_stirn_w), Brauenbogen höher (eigen_braue_w, Braue nicht mehr nach unten), Jochbein höher (eigen_jochbein_w), Kieferwinkel weicher (eigen_kiefer_w), Nasenflügelrand tiefer (eigen_nasenloch_w); Augenhöhle der Frau flacher (kein grauer Schatten über dem inneren Oberlid). Grundkopf 4 (02.11.2026, kopf6_rezept_grundkopf4.json; Probebau mit eigen=5): Lidform mandel aus der eigenen Mandelform (eigen_mandel: beide Lider der äußeren Hälfte gehoben, die Lidspalte bleibt offen) statt probe_eye_corner1_up, äußerer Oberlidrand nur noch leicht tiefer (Panel Grundkopf 3: mandel ging in rund über, die enger gestellte Mandel wirkte schläfrig). Runde 2 (Panel Runde 1: neue Mandel „glotzend“, schlupf mit sinkender Lidkante „verschlafen“): mandel in Mitte und Innenseite wie Grundkopf 3, außen eigen_mandel 1,4; schlupf mit mehr Deckfalte, Lidkante weniger tief.",
  "formen": {
   "alter_mitte_m": {
    "probe_cheek_volume_decr": 0.2,
@@ -816,9 +816,10 @@
    "ictid_033": 1.0
   },
   "lid_mandel": {
-   "eigen_mandel": 1.2,
-   "probe_eye_height3_decr": 0.4,
-   "probe_eye_height1_incr": 0.2
+   "eigen_mandel": 1.4,
+   "probe_eye_height3_decr": 0.6,
+   "probe_eye_height2_decr": 0.25,
+   "probe_eye_height1_incr": 0.3
   },
   "lid_rund": {
    "probe_eye_height2_incr": 0.8,
@@ -831,10 +832,10 @@
    "probe_eye_eyefold_down": 1.0,
    "probe_eye_eyefold_convex": 1.0,
    "probe_eye_eyefold_angle_up": 0.8,
-   "eigen_deckfalte_w": 1.6,
-   "eigen_deckfalte_m": 1.0,
-   "probe_eye_height2_decr": 0.45,
-   "probe_eye_height3_decr": 0.3,
+   "eigen_deckfalte_w": 1.9,
+   "eigen_deckfalte_m": 1.5,
+   "probe_eye_height2_decr": 0.2,
+   "probe_eye_height3_decr": 0.2,
    "probe_eye_corner1_down": 0.4
   }
  },

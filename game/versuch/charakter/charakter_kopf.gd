@@ -1442,7 +1442,11 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 			bart_tex = HAAR4.bild(o.path_join(datei))
 			bart_kanal[i] = clampf(float(hw["bart_dichte"]) * (0.5 + 0.5 * float(hw["bart_laenge"])), 0.0, 1.0)
 	var unter := farbe.lerp(Color(0.78, 0.77, 0.75), grau)
+	# Grundkopf 4 (Prüfer: „Scheitel als heller Hautstreifen“): Haut unter dichtem Haar dunkler – bei 0,8 blieben 20 %
+	# Hautton, im linearen Licht heller als das dunkle Haar daneben („verschieden.grundkopf4.kopfhaut_dunkel“)
+	var gk4: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf4", {}) if weg_d and volk == "Mensch" else {}
 	for m in haut_stoffe:
+		m.set_shader_parameter("kopfhaut_dunkel", float(gk4.get("kopfhaut_dunkel", 0.8)))
 		m.set_shader_parameter("kopfhaut_tex", kopfhaut_tex)
 		m.set_shader_parameter("kopfhaut_kanal", kanal)
 		m.set_shader_parameter("rang_tex", rang_tex)
