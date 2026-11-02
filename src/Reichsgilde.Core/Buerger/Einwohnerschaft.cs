@@ -206,7 +206,20 @@ public sealed class Einwohnerschaft
         return Quote(_einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList(), schaenken, g.Anziehung,
                      Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n,
                      mitPlaetzen ? b => g.Sitzplaetze(b) ?? int.MaxValue : null,
-                     e => Nutzen(e, Handlung.Einkehren, 1));
+                     Dringlichkeit);
+    }
+
+    /// <summary>
+    /// Wie dringend ein Einwohner einkehren will: die Bedürfnisse, die Einkehren stillt, ungedeckelt und nach dem Volk gewichtet. Anders als
+    /// <see cref="Nutzen"/> wächst sie weiter, solange er keinen Platz findet – so kommt, wer eben leer ausging, als Nächster dran.
+    /// </summary>
+    private double Dringlichkeit(Einwohner e)
+    {
+        var d = Daten;
+        var summe = 0.0;
+        foreach (var (b, _) in d.Handlungen[Handlung.Einkehren].Stillt)
+            summe += e.Wert(b) * d.Gewicht(e.Volk, b);
+        return summe;
     }
 
     /// <summary>
@@ -239,7 +252,7 @@ public sealed class Einwohnerschaft
     /// So bekommt ein Betrieb mit anderthalbfacher Anziehung genau anderthalbmal so viele Einwohner – ohne Würfelglück.
     /// Wer schon dort ist oder heute schon dort war (Stamm), bleibt, solange Platz ist.
     /// Mit <paramref name="hoechstens"/> (Sitzplätze der Schänken): Was über die Plätze eines Betriebs hinausgeht, geht an die anziehendsten
-    /// mit freien Plätzen; reicht es nirgends, bekommen die Stammgäste ihren Platz, dann die mit dem größten <paramref name="dringlichkeit"/>
+    /// mit freien Plätzen; reicht es nirgends, behält, wer gerade dort sitzt, seinen Platz, dann kommen die mit der größten <paramref name="dringlichkeit"/>
     /// (wer eben keinen Platz fand, will in der nächsten Stunde umso mehr), bei Gleichstand die kleinere Nummer. Wer leer ausgeht, steht in der Rückgabe.
     /// </summary>
     private static List<Einwohner> Quote(List<Einwohner> leute, List<Betrieb> ziele, Func<Betrieb, double> anziehung, Stadtort ort,
@@ -282,8 +295,9 @@ public sealed class Einwohnerschaft
         var index = ziele.Select((b, i) => (b.Name, i)).ToDictionary(x => x.Name, x => x.i);
         var offen = new List<Einwohner>();
         // Erst die Stammgäste des Tages (wer schon da ist, zuerst), dann alle übrigen in die freien Plätze.
+        // Reichen die Plätze nicht, behält nur, wer gerade dort sitzt, seinen Platz; wer heute schon einmal da war, wartet mit den anderen.
         foreach (var e in leute.OrderBy(e => e.Ort == ort ? 0 : 1).ThenBy(e => e.Nummer))
-            if (stamm(e) is { } s && index.TryGetValue(s, out var i) && plaetze[i] > 0) plaetze[i]--;
+            if (stamm(e) is { } s && index.TryGetValue(s, out var i) && plaetze[i] > 0 && (!knapp || (e.Ort == ort && e.Betrieb == s))) plaetze[i]--;
             else offen.Add(e);
         // Reichen die Plätze nicht, kommt zuerst, wer am dringendsten will (ohne Knappheit bleibt die Reihenfolge wie bisher).
         if (knapp && dringlichkeit is not null)
