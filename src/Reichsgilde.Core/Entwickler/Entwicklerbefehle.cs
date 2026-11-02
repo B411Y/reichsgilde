@@ -74,6 +74,13 @@ public sealed record EntwicklerFeuer(string Betrieb) : EntwicklerBefehl;
 /// <summary>Feuer im Wohnhaus dieses Hauses (wie eine gelungene Brandstiftung): Schaden, Instandsetzung – ohne Täter und Spur.</summary>
 public sealed record EntwicklerHausbrand(string? Haus = null) : EntwicklerBefehl;
 
+/// <summary>
+/// Der Blitz schlägt sofort ein (auch ohne Gewitter), mit Brand und Schaden wie im Gewitter (<see cref="Gefahren.Blitzwesen"/>). <c>Gebaeude</c>:
+/// Kennung in der Karte („Rathaus“, „Wohnhaus3“; Neubau „grundstueck:7“), Name eines Betriebs, „haus“ oder „werkstatt“ des Absenders; null: eines
+/// nach den Gewichten des Gewitters. Startoption <c>--blitzschlag=…</c>.
+/// </summary>
+public sealed record EntwicklerBlitz(string? Gebaeude = null) : EntwicklerBefehl;
+
 // ── Wirtschaft ──────────────────────────────────────────────────────────────
 
 /// <summary>Ware ins Lager des Betriebs legen (negativ: herausnehmen, höchstens was da ist) – ohne Kosten, auch über die Lagergrenze.</summary>

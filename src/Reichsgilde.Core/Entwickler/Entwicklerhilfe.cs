@@ -63,6 +63,7 @@ public sealed class Entwicklerhilfe
             case EntwicklerDiebstahl d: return MitBetrieb(d.Betrieb, Diebstahl);
             case EntwicklerFeuer f: return MitBetrieb(f.Betrieb, Feuer);
             case EntwicklerHausbrand hb: return MitHaus(absender, hb.Haus, Hausbrand);
+            case EntwicklerBlitz bl: return _w.Blitz.Entwicklerblitz(bl.Gebaeude, absender);
             case EntwicklerWare ware: return MitBetrieb(ware.Betrieb, b => Ware(b, ware.Ware, ware.Menge));
             case EntwicklerZutaten z: return MitBetrieb(z.Betrieb, Zutaten);
             default: return Befehlsergebnis.Abgelehnt($"Den Entwicklerbefehl {befehl.GetType().Name} kennt der Kern nicht.");

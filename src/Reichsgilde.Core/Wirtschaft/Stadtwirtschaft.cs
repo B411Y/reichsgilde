@@ -149,6 +149,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>
     public Buerger.Einwohnerschaft Einwohnerschaft { get; }
 
+    /// <summary>Blitzschlag im Gewitter: Einschlag, Brand und Schaden (Platzhalter; braucht die <see cref="Karte"/> und „blitz“).</summary>
+    public Gefahren.Blitzwesen Blitz { get; }
+
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
@@ -334,6 +337,7 @@ public sealed partial class Stadtwirtschaft
         Personal = new Personalwesen(this, daten.Personal);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
+        Blitz = new Gefahren.Blitzwesen(this, daten.Blitz, zufallsstartwert);
     }
 
     // ── Einwohner und Nachfrage (PR #177) ───────────────────────────────────
@@ -540,6 +544,7 @@ public sealed partial class Stadtwirtschaft
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
         Wegebau.Minute(zeit); // fertig ausgebaute Wege
         Ratsantraege.Minute(zeit); // fertige Bauvorhaben der Stadt
+        Blitz.Minute(zeit); // mitten im Gewitter: Blitzschlag (eigener Zufall aus Startwert und Minute, nichts im Spielstand)
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
