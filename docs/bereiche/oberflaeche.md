@@ -279,7 +279,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ampel | Kleines Siegel in der Stufenfarbe, darunter die Minuten nur bis Zoom 150 (weiter draußen würden die Zahlen das Bild überladen). | 01.11.2026 |
 | Tafeln | Bautafel: Zeile „Fahrt zum Markt: … min (Platz)“ in der Stufenfarbe und eine Legende der Ampeln; Rückfrage: dieselbe Zeile in der Rechnung. Tooltip: hin und zurück, schnellster Karren, Stufen, Zahl der Plätze. | 01.11.2026 |
 
-### Bautafel rechts und Werkstatt-Bauplätze (PR #…)
+### Bautafel rechts und Werkstatt-Bauplätze (PR #285)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
