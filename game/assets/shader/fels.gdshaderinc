@@ -11,10 +11,14 @@
 //   5. Flechten: Flecken auf freien Flächen, die nicht nach Norden zeigen (bunt und weißgrau)
 //   6. Efeu in den Klüften steiler Wände (Trachyt)
 //   7. „frisch gebrochen“ (Steinbruch): unter der Höhe frisch_bis kein Bewuchs, heller, glatter, mit Spaltrillen
-// Alle Muster liegen in Weltkoordinaten (Felsstücke stehen still, das Muster schwimmt nicht). Jedes Stück hat seine eigene Lage der
-// Bänder: Sie kippen bis etwa 6° und verschieben sich (Ort des Stücks als Zufall), damit nicht jeder Stein gleich aussieht; an der Grenze
-// zweier Stücke springen sie deshalb wie zwischen zwei verrutschten Blöcken. Werden Stücke später zu einem Netz zusammengefasst, teilen
-// sie sich diesen Zufall (bei MultiMesh enthält MODEL_MATRIX die Instanz, dort bleibt er je Stück).
+// Alle Muster liegen in Weltkoordinaten (Felsstücke stehen still, das Muster schwimmt nicht) und kennen das einzelne Stück nicht (R1): Bänder,
+// Klüfte und Farbe laufen über Stückgrenzen durch, eine Wand aus vielen Stücken liest sich als eine Masse. Neigung und Richtung der Bänke kommen
+// aus gestein.json (band_winkel, band_richtung), ihre Dicke wellt sich über große Strecken.
+// Makrovariation (R1): großflächige Helligkeit und Farbton (Wellenlängen etwa 15 und 60 m), einzelne Bänke mit Eisenfarbe (gestein.json: eisen),
+// Auswaschung unter jeder Fuge und dunkle Wasserstreifen auf steilen Flächen.
+// Fuß (R1): Die Höhe über dem Gelände kommt aus dem Höhenbild der Felsen (fels_gelaende, Stadtansicht.Felsgelaende.cs) an der Weltlage jedes
+// Bildpunkts – auch bei großen, gekippten Stücken am Hang stimmt sie. In den untersten 0,35–1 m (20 % der Höhe des Stücks, INSTANCE_CUSTOM.y)
+// nimmt der Fels die Farbe des Bodens an (Erde, Schutt der Gesteinsart, Moos), mit ausgefranster Grenze, und am Boden liegt eine dunkle Fuge.
 // „Im Schatten“: Der Fragment-Shader weiß nicht, ob die Sonne ein Pixel erreicht (das rechnet Godot erst im Licht). Moos wächst
 // deshalb dort, wo im Mittel des Tages Schatten ist: Nordseite (−z), Höhlungen der Struktur, Klüfte und unter Absätzen.
 //
@@ -61,12 +65,23 @@ uniform float frisch_aufhellen = 0.22;
 uniform float frisch_rauheit = 0.72;
 uniform float spaltrillen = 0.5;
 uniform float rillen_abstand = 0.35;
+uniform float eisen = 0.0;                   // Anteil der Bänke mit Eisenfarbe und Stärke der rostigen Auswaschung (0 … 1)
+uniform vec4 eisen_farbe : source_color = vec4(0.62, 0.36, 0.2, 1.0);
+uniform float fuss_hoehe = 0.8;              // so hoch (m) nimmt der Fels am Fuß die Farbe des Bodens an (ohne Höhe des Stücks)
+
+// Das Gelände unter den Felsen (Stadtansicht.Felsgelaende.cs): Höhe in Metern je Rasterpunkt (2 m); fels_gelaende_feld = Welt-X/Z der Ecke
+// (eine halbe Zelle vor dem ersten Punkt) und 1 / Ausdehnung in Metern. z = 0: kein Bild (Testszene), dann gilt der Boden unter der Mitte des Stücks.
+global uniform sampler2D fels_gelaende : filter_linear, repeat_disable;
+global uniform vec4 fels_gelaende_feld;
+// Farbe des Schutts der Gesteinsart der Karte (linear, Stadtansicht.Felsboden.cs); boden_gestein_an = 0: Karte ohne Felsen
+global uniform vec3 boden_gestein_schutt;
+global uniform float boden_gestein_an;
 
 varying vec3 v_welt;
 varying vec3 v_normale;
-varying vec3 v_stueck;
 varying vec4 v_ecke;                         // Vertexfarbe (siehe oben)
-varying float v_ueber;                       // Höhe über dem Boden in Metern (ungefähr: Boden unter der Mitte des Stücks)
+varying float v_fuss;                        // Höhe des Übergangs am Fuß (m): 0,3 … 1,0 nach der Höhe des Stücks (INSTANCE_CUSTOM.y)
+varying float v_ueber;                       // Höhe über dem Boden unter der Mitte des Stücks (Ersatz ohne Höhenbild)
 
 float hash1(vec3 p) {
 	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
@@ -86,9 +101,9 @@ float wertrauschen(vec3 p) {
 void vertex() {
 	v_welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	v_normale = normalize(MODEL_NORMAL_MATRIX * NORMAL);   // richtig auch bei ungleich skalierten Stücken
-	v_stueck = MODEL_MATRIX[3].xyz;
 	v_ecke = COLOR;
 	v_ueber = v_welt.y - (MODEL_MATRIX[3].y + INSTANCE_CUSTOM.x);
+	v_fuss = INSTANCE_CUSTOM.y > 0.0 ? clamp(0.2 * INSTANCE_CUSTOM.y, 0.35, 1.0) : fuss_hoehe;
 }
 
 // Neigung aus der Textur: kodiert wie tools/oberflaeche/texturen.py (128 ± 127)
@@ -105,8 +120,21 @@ float linienabstand(float x, float a) {
 void fragment() {
 	vec3 p = v_welt;
 	vec3 n = normalize(v_normale);
-	float zufall = hash1(floor(v_stueck * 3.1) + 0.37);
 	float relief = mix(1.5, 0.55, kantenrundung);
+
+	// Höhe über dem Gelände an genau diesem Punkt (siehe Kopf); ohne Höhenbild wie bisher
+	float ueber = f1_netz ? v_ueber : 1.0;
+	float fussAn = f1_netz ? 1.0 : 0.0;          // Platzhalter der Testszene ohne Höhenbild: kein Fuß
+	if (fels_gelaende_feld.z > 0.0) {
+		vec2 guv = (p.xz - fels_gelaende_feld.xy) * fels_gelaende_feld.zw;
+		if (guv.x > 0.0 && guv.y > 0.0 && guv.x < 1.0 && guv.y < 1.0) {
+			ueber = p.y - textureLod(fels_gelaende, guv, 0.0).r;
+			fussAn = 1.0;
+		}
+	}
+	// Makrovariation: zwei große Wellen in der Welt (etwa 15 und 60 m)
+	float m15 = wertrauschen(p * 0.067 + vec3(3.1, 1.7, 5.3));
+	float m60 = wertrauschen(p * 0.017 + vec3(7.7, 2.9, 0.4));
 
 	// ── 0. Gebackene Form (F1) ──
 	vec3 nf = n;                            // Grundform: Normale des Atlas in der Welt
@@ -164,14 +192,15 @@ void fragment() {
 	float fleck = s.a;
 
 	// ── 2. Schichtbänder ──
-	// je Stück kippen die Bänke bis etwa 6° und verschieben sich, die Grenze wellt sich mit der Struktur und einer langen Welle
-	vec3 kipp = vec3(zufall - 0.5, 0.0, fract(zufall * 7.13) - 0.5) * 0.2;
-	vec3 bn = normalize(band_normale + kipp);
-	float welle = 0.25 * sin(dot(p.xz, vec2(0.61, 0.37)) + zufall * 6.28) + 0.15 * sin(dot(p, vec3(1.7, 0.3, -1.3)));
-	float lage = dot(p, bn) / band_dicke + (h - 0.5) * 0.45 + welle + zufall * 3.0;
+	// in Weltlage über alle Stücke hinweg; die Grenze wellt sich mit der Struktur und zwei kurzen Wellen, die Bänke werden über große Strecken
+	// dicker und dünner (m60) – so laufen sie durch eine ganze Wand, ohne mit dem Lineal gezogen zu wirken
+	vec3 bn = normalize(band_normale);
+	float welle = 0.25 * sin(dot(p.xz, vec2(0.61, 0.37))) + 0.15 * sin(dot(p, vec3(1.7, 0.3, -1.3)));
+	float lage = dot(p, bn) / band_dicke + (h - 0.5) * 0.45 + welle + (m60 - 0.5) * 2.5;
 	float bank = floor(lage);
 	float inBank = fract(lage);
-	float bankHell = hash1(vec3(bank, zufall * 13.0, 2.0)) - 0.5;
+	float bankHell = hash1(vec3(bank, 13.0, 2.0)) - 0.5;
+	float bankEisen = step(1.0 - 0.35 * eisen, hash1(vec3(bank, 4.0, 9.0)));   // einzelne Bänke rostfarben
 	// Fuge mindestens 3 cm breit (auch bei dünnen Bänken sichtbar), bei gerundeten Kanten breiter
 	float fugeBreite = max(mix(0.06, 0.14, kantenrundung), 0.03 / band_dicke);
 	float unten = 1.0 - smoothstep(0.0, fugeBreite, inBank);         // Unterkante der Bank: Fläche neigt sich in die Fuge hinab
@@ -183,7 +212,7 @@ void fragment() {
 	// ── 3. Klüfte ──
 	float kluft = 0.0, kluftBreit = 0.0;
 	if (kluft_abstand > 0.0) {
-		vec2 r1 = vec2(cos(zufall * 0.6 + 0.3), sin(zufall * 0.6 + 0.3));
+		vec2 r1 = vec2(0.955, 0.296);                    // fest in der Welt (etwa 17°): Klüfte laufen über Stückgrenzen durch
 		vec2 r2 = vec2(-r1.y, r1.x);
 		float warp = (h - 0.5) * 0.25 * kluft_abstand;
 		float a1 = linienabstand(dot(p.xz, r1) + warp, kluft_abstand);
@@ -198,7 +227,10 @@ void fragment() {
 	// ── Grundfarbe ──
 	float t = clamp(0.5 + (h - 0.5) * 0.45 + bankHell * 3.0 * band_kontrast + (fleck - 0.5) * 0.2, 0.0, 1.0);
 	vec3 farbe = mix(farbe_dunkel.rgb, farbe_hell.rgb, t);
-	farbe *= 1.0 + (zufall - 0.5) * 0.12;
+	// Makrovariation: Helligkeit und Farbton über große Flächen, rostige Bänke
+	farbe *= mix(0.74, 1.2, m60 * 0.55 + m15 * 0.45);
+	farbe = mix(farbe * vec3(0.94, 0.98, 1.05), farbe * vec3(1.07, 1.0, 0.88), smoothstep(0.3, 0.7, m15 * 0.6 + (1.0 - m60) * 0.4));
+	farbe = mix(farbe, eisen_farbe.rgb * (0.65 + 0.55 * h), bankEisen * (0.3 + 0.25 * m15) * eisen);
 	float ao = 1.0 - 0.55 * fugeMaske - 0.6 * kluft - 0.35 * (1.0 - h) * (1.0 - h);
 	float rau = rauheit;
 	if (f1_netz) {
@@ -206,6 +238,16 @@ void fragment() {
 		farbe *= (1.0 - 0.3 * rinne) * (0.94 + 0.12 * hoeheStueck);   // Rinnen dunkel, oben heller
 		ao *= mix(1.0, aoForm, 0.85) * (1.0 - 0.2 * tiefeStueck);       // Hangseite dunkler
 	}
+
+	// ── Auswaschung und Wasserstreifen (R1) ── auf steilen Flächen der Grundform: Unter jeder Fuge läuft Wasser über die Bank darunter
+	// (dunkler, bei Eisen rostig), dazu lange, dunkle Rinnen aus senkrecht gestrecktem Rauschen, stärker in den Rinnen der Form
+	float steilForm = 1.0 - smoothstep(0.35, 0.8, abs(nf.y));
+	float streifen = wertrauschen(vec3(p.x * 1.6, p.y * 0.11, p.z * 1.6) + 11.0);
+	float unterFuge = (1.0 - smoothstep(0.0, band_dicke * (0.5 + 1.5 * streifen) + 0.15, (1.0 - inBank) * band_dicke)) * fuge;
+	float wasch = steilForm * smoothstep(0.35, 0.7, streifen) * unterFuge;
+	float rinnsal = steilForm * smoothstep(0.62, 0.8, streifen + 0.25 * rinne + (m15 - 0.5) * 0.3);
+	farbe *= 1.0 - 0.18 * wasch - 0.28 * rinnsal;
+	farbe = mix(farbe, farbe * vec3(1.12, 0.92, 0.78), wasch * eisen * 0.8);
 
 	// ── 7. frisch gebrochen (vor dem Bewuchs, weil es ihn wegnimmt) ──
 	float fr = frisch ? 1.0 - smoothstep(frisch_bis - 0.25, frisch_bis + 0.25, p.y) : 0.0;
@@ -223,22 +265,30 @@ void fragment() {
 	}
 	float bewuchs = 1.0 - fr;
 
-	// ── 4. Moos ──
-	float oben = smoothstep(0.25, 0.85, nw.y);
-	float nord = clamp(-nw.z, 0.0, 1.0) * (1.0 - abs(nw.y));
-	float mooswert = moos * (0.85 * oben + 0.45 * nord + 0.3 * (1.0 - h) + 0.35 * absatz * clamp(nw.y + 0.4, 0.0, 1.0) + 0.35 * kluftBreit);
+	// ── 4. Moos ── (R1) als Polster nach der Weltlage statt eines gleichmäßigen Teppichs: auf Oberseiten und Absätzen, auf der Nordseite, in
+	// Rinnen und Klüften; die Richtung kommt überwiegend aus der Grundform (nicht aus der feinen Körnung, die sonst Tarnflecken streut). Wo
+	// es wächst, entscheiden zusätzlich große Zonen (m15) und Klumpen von etwa einem halben Meter.
+	vec3 nm = normalize(mix(nf, nw, 0.35));
+	float oben = smoothstep(0.35, 0.85, nm.y);
+	float nord = clamp(-nm.z, 0.0, 1.0) * (1.0 - abs(nm.y));
+	float zone = smoothstep(0.2, 0.75, m15 * 0.75 + m60 * 0.25);
+	float klumpen = wertrauschen(p * 1.9 + 5.0);
+	float mooswert = moos * (0.95 * oben * (0.55 + 0.9 * zone) + 0.5 * nord * (0.4 + 0.8 * zone) + 0.15 * (1.0 - h)
+		+ 0.45 * absatz * clamp(nm.y + 0.4, 0.0, 1.0) + 0.35 * kluftBreit + 0.25 * rinnsal);
 	if (f1_netz) {
-		float saum = 1.0 - smoothstep(0.0, 0.6, v_ueber);   // Moossaum am Boden
-		mooswert += moos * (0.4 * (1.0 - aoForm) + 0.35 * rinne * (1.0 - oben) + 0.3 * kante * oben + 0.15 * tiefeStueck) + 0.5 * moos * saum;
+		mooswert += moos * (0.35 * (1.0 - aoForm) * max(oben, nord) + 0.4 * rinne * (1.0 - oben) * (0.5 + nord) + 0.35 * kante * oben + 0.15 * tiefeStueck);
 	}
-	float moosMaske = smoothstep(0.42, 0.62, mooswert + (fleck - 0.5) * 1.2) * bewuchs;
-	vec3 moosFarbe = mix(moos_farbe.rgb, moos_trocken.rgb, clamp(fleck * 0.9 - 0.35 + oben * 0.15 - nord * 0.4, 0.0, 0.7));
-	moosFarbe *= 0.8 + 0.4 * h;
+	float saum = (1.0 - smoothstep(0.0, 0.5 + v_fuss, ueber)) * fussAn;   // Moossaum am Boden
+	mooswert += 0.45 * moos * saum * (0.5 + nord + 0.5 * tiefeStueck);
+	float moosRoh = mooswert + (klumpen - 0.5) * 0.55 + (fleck - 0.5) * 0.35;
+	float moosMaske = smoothstep(0.4, 0.56, moosRoh) * bewuchs;
+	vec3 moosFarbe = mix(moos_farbe.rgb, moos_trocken.rgb, clamp(fleck * 0.9 - 0.35 + oben * 0.15 - nord * 0.4 + (zone - 0.5) * -0.3, 0.0, 0.7));
+	moosFarbe *= (0.8 + 0.4 * h) * (0.78 + 0.22 * smoothstep(0.45, 0.8, moosRoh));   // Polster: am Rand dunkler, in der Mitte voll
 
 	// ── 5. Flechten ──
 	float frei = clamp(0.75 + 0.35 * nw.z + 0.15 * nw.x, 0.0, 1.0) * (1.0 - 0.6 * oben) * (1.0 - kluftBreit);
 	frei = clamp(frei * mix(1.0, aoForm, 0.6) * (1.0 - 0.7 * rinne) + 0.35 * kante, 0.0, 1.0);   // Flechten auf freien Kanten
-	float flRausch = wertrauschen(p * 2.8 + zufall * 17.0) * 0.6 + wertrauschen(p * 9.0) * 0.4;
+	float flRausch = wertrauschen(p * 2.8 + 17.0) * 0.6 + wertrauschen(p * 9.0) * 0.4;
 	float flSchwelle = 0.82 - 0.22 * flechten * frei;
 	float flechteMaske = smoothstep(flSchwelle, flSchwelle + 0.04, flRausch * (0.6 + 0.4 * h)) * step(0.01, flechten) * (1.0 - moosMaske) * bewuchs;
 	vec3 flechteFarbe = mix(flechte_hell.rgb, flechte_farbe.rgb, step(0.55, wertrauschen(p * 1.3 + 3.7)));
@@ -247,7 +297,7 @@ void fragment() {
 	float efeuMaske = 0.0;
 	if (efeu > 0.0) {
 		float steil = 1.0 - smoothstep(0.3, 0.7, abs(nw.y));
-		float lage2 = wertrauschen(vec3(p.x * 0.7, p.y * 0.25, p.z * 0.7) + zufall * 9.0);
+		float lage2 = wertrauschen(vec3(p.x * 0.7, p.y * 0.25, p.z * 0.7) + 9.0);
 		efeuMaske = smoothstep(0.55, 0.7, kluftBreit * 0.7 + lage2 * efeu * 0.9 - 0.15 + (fleck - 0.5) * 0.4) * steil * bewuchs;
 	}
 
@@ -258,7 +308,21 @@ void fragment() {
 	// Moos und Efeu glätten das Relief (Polster), Flechten liegen flach auf
 	nw = normalize(mix(nw, nf, max(moosMaske, efeuMaske) * 0.6));   // zur Grundform, nicht zur groben Geometrie
 
-	float rough = clamp(mix(rau, 1.0, max(max(moosMaske, efeuMaske), fugeMaske)), 0.0, 1.0);
+	// ── Fuß (R1): Bodenfarbe in den untersten fuss_hoehe Metern ── Erde und Schutt der Gesteinsart wechseln fleckig, auf der Nord- und Hangseite
+	// Moos; die Grenze franst mit dem Rauschen aus (statt einer Linie dort, wo das Netz den Boden schneidet). Darunter eine dunkle Fuge.
+	float fussRand = ueber + (klumpen - 0.5) * 0.5 * v_fuss + (fleck - 0.5) * 0.2 * v_fuss;
+	float fuss = (1.0 - smoothstep(0.0, v_fuss, fussRand)) * fussAn;
+	vec3 schutt = boden_gestein_an > 0.0 ? boden_gestein_schutt : farbe_dunkel.rgb * 0.8;
+	vec3 erde = vec3(0.085, 0.066, 0.046);
+	vec3 fussFarbe = mix(erde, schutt * (0.7 + 0.5 * h), smoothstep(0.35, 0.65, wertrauschen(p * 0.9 + 2.0) * 0.7 + h * 0.3));
+	fussFarbe = mix(fussFarbe, moosFarbe * 0.85, clamp((0.35 + nord + 0.6 * tiefeStueck) * moos, 0.0, 0.75) * smoothstep(0.4, 0.6, klumpen + 0.15));
+	// ganz unten (erstes Drittel) dunkles Grün wie Gras und Moos am Boden, darüber Erde und Schutt
+	fussFarbe = mix(fussFarbe, vec3(0.06, 0.085, 0.03) * (0.8 + 0.4 * h), (1.0 - smoothstep(0.0, 0.35 * v_fuss, fussRand)) * 0.7 * bewuchs);
+	albedo = mix(albedo, fussFarbe, fuss * 0.92 * bewuchs);
+	ao *= mix(1.0, mix(0.55, 1.0, smoothstep(0.0, 0.35, ueber + 0.05)), fussAn);
+	nw = normalize(mix(nw, nf, fuss * 0.5));
+
+	float rough = clamp(mix(rau, 1.0, max(max(moosMaske, efeuMaske), max(fugeMaske, fuss))), 0.0, 1.0);
 
 	// ── 8. Wetter: Nässe, Rinnsale, Tropfen und Schnee wie die übrigen Oberflächen ──
 	vec3 gl = vec3(0.0);
@@ -267,7 +331,6 @@ void fragment() {
 	su = flach ? vec3(1.0, 0.0, 0.0) : normalize(su);
 	vec3 sv = flach ? vec3(0.0, 0.0, -1.0) : cross(n, su);
 	float tiefeNass = clamp(0.5 + 0.5 * rinne + 0.3 * max(fugeMaske, kluft), 0.0, 1.0);   // Fugen und Rinnen bleiben länger nass
-	float ueber = f1_netz ? v_ueber : 1.0;
 #ifdef DREISEITIG
 	bool tropfen = true;
 #else
