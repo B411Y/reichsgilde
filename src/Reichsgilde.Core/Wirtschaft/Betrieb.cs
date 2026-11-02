@@ -798,7 +798,7 @@ public sealed class Betrieb
             else
             {
                 _sabotageMinuten--;
-                grund = "Nach dem Anschlag wird repariert – die Arbeit ruht.";
+                grund = "Nach dem Brand wird repariert – die Arbeit ruht.";
             }
             if (LeistungProMinute <= 0) return;
             if (_letzterStillstand != grund) melden($"{Name}: {grund}");
