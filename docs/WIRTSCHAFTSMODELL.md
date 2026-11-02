@@ -2040,13 +2040,13 @@ Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 9
 
 ## Blitzschlag im Gewitter (phase5/blitzbrand, 2.11.2026)
 
-Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Gebäude (Gewicht: (Höhe + Boden über dem Mittel)²). Schaden als Platzhalter: Werkstatt 300 Arbeitsminuten Stillstand ab dem Einschlag, Wohnhaus ohne Ansehen bis ein Spieljahr nach dem Feuer, keine Reparatursumme.
+Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Gebäude (Gewicht: Höhe + Boden über dem Mittel, **linear** – Teamleiter 2.11.2026). Schaden als Platzhalter: Werkstatt 300 Arbeitsminuten Stillstand ab dem Einschlag, Wohnhaus ohne Ansehen bis ein Spieljahr nach dem Feuer, keine Reparatursumme.
 
-**Messung** (gemessen auf main 4220c631 + dieser Branch; je 10 Startwerte 1400, 1437 … 1733, 20 Jahre, Spieler mit einem Betrieb von der KI geführt; dieselbe Partie mit `chance` 0 zum Vergleich – der Blitz würfelt mit eigener Quelle, darum laufen beide Partien bis zum ersten Treffer mit Wirkung Wurf für Wurf gleich):
+**Messung** (gemessen auf main 4220c631 + dieser Branch, Saat je Gewitter durchmischt; je 10 Startwerte 1400, 1437 … 1733, 20 Jahre, Spieler mit einem Betrieb von der KI geführt; dieselbe Partie mit `chance` 0 zum Vergleich – der Blitz würfelt mit eigener Quelle, darum laufen beide Partien bis zum ersten Treffer mit Wirkung Wurf für Wurf gleich):
 
-| Karte | Einschläge in 200 Jahren | je Partie (20 Jahre) | Kirche/Dom | Haus des Spielers | KI-Häuser | Δ Reinvermögen Spieler | Δ KI zusammen |
-|---|---|---|---|---|---|---|---|
-| Greybox | 13 | 0–3, Mittel 1,3 | 8 (Dom) | 0 | 1 (Holzschlag) | −80 (eine Partie −803, Folge des KI-Treffers) | +728 (Rauschen nach dem Treffer) |
-| Köln | 13 | 0–3, Mittel 1,3 | 10 (Kirchen, Dom) | 0 | 0 | 0 | 0 |
+| Karte | Einschläge in 200 Jahren | Kirchen/Dom | Wohn-, Einwohner- und Kulissenhäuser | Werkstätten, Umland, Rathaus, Hafen | Haus des Spielers | KI-Häuser |
+|---|---|---|---|---|---|---|
+| Greybox | 17 (0–3 je Partie, Mittel 1,7) | 3 | 9 | 5 | 1 (Wohnhaus) | 1 (Gießerei) |
+| Köln | 17 (0–3, Mittel 1,7) | 5 | 6 | 6 | 0 | 1 (Werkstatt) |
 
-Das Gewitter ist selten (fast nur im Sommer, 1–2 je Sommerjahr), und die Kirchtürme ziehen den Blitz an: Sie bekommen zwei Drittel der Einschläge. Für die Wirtschaft ist der Blitz damit praktisch ohne Wirkung; den Spieler trifft es in 20 Jahren fast nie (Erwartung grob 2–3 % je Partie).
+Zusammen: Kirchen und Dom 24 % der Einschläge (zum Quadrat waren es 69 %, 18 von 26), Wohnhäuser 44 %. Das Vermögen ändert sich nur in den drei Partien mit einem Treffer in ein Haus, und dort als Rauschen in beide Richtungen (Spieler −2.489 bis +11.082, KI −13.429 bis +26.121): Für die Wirtschaft ist der Blitz praktisch ohne Wirkung.
