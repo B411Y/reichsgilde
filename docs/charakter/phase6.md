@@ -1738,3 +1738,127 @@ Charaktereditor bedient `Kopf.lidform_wert(form, volk, lf)` (Genwert in der Band
    --ein=~/werkzeuge/charakter/glb6d/regeln6.json --aus=~/werkzeuge/charakter/glb6i/regeln6.json --e3=1 --e4=1 --e5=1`;
    dann wie 2. `nur_haar` (Stützpunkte).
 5. Bogen: Zelle mit `"kopf": "~/werkzeuge/charakter/glb6i/kopf6.glb"`, Lidform gezielt über `"lidform": "schlupf"`.
+
+## Grundkopf 4: Frauenbrauen, Haaransatz, Schläfen, Mandelform, Haut (Probekopf glb6j)
+
+Anlass (Nutzer 02.11.2026: Grundkopf 4 nach den Empfehlungen aus Runde 3 von Grundkopf 3). Probekopf
+`~/werkzeuge/charakter/glb6j` (eigene Kopie von glb6i mit `cp -rL`), Probebau `glb6p_j` (`eigen=5`), Rezept
+`tools/charakter/kopf6_rezept_grundkopf4.json`, Regeln `kopf6_verschieden.py --e3=1 --e4=1 --e5=1 --e6=1`, Hautkarten
+mit `HAUTC_OPT="gk2=1 gk4=1"`, `frau_knoten` gekämmt mit `gk4=1`, Kopfhautkarten mit `anliegend=frau_knoten`. Vergleich
+„vorher“ ist glb6i (unverändert). Alle neuen Werte sind Schalter mit Standard „wie bisher“: ältere Probeköpfe sehen
+gleich aus (ihre regeln6.json hat keinen Abschnitt `grundkopf4`; `--e5` ohne `--e6` schreibt die regeln6.json von glb6i
+bitgleich; der Probebau `glb6p_j` hat alle 362 Formen von `glb6p_h` unverändert und nur `eigen_mandel` dazu).
+
+### Was gebaut ist
+
+- **Frauenbrauen** wieder wie Grundkopf 2: Dicke 1,6, Dichte 1,5, Deckung 1,05 (`verschieden.brauen.frau_*`).
+- **Haaransatz der Frau** (`kopf4_frisuren.py`, `FrauScheitel.gk4`, nur mit `kopf4_haar.py gk4=1`):
+
+  | Was | vorher | Grundkopf 4 |
+  |---|---|---|
+  | Haaransatz tiefer (vorn / 25° / 45° / 70° / 100°) | 2 mm | 16 / 13 / 9 / 5 / 3 mm (Runde 1: 9 / 8 / 6 / 4 / 2,5) |
+  | Übergang der Dichte am Rand | −6 … +8 mm | −1,5 … +2,5 mm (keine lichte Randzone mehr) |
+  | Strähnen am Rand (bis 6 mm über dem Ansatz, aus bei 22 mm), an den Schläfen (30–145°, bis 20/45 mm) und am Scheitel (bis 4 mm neben der Mitte, zu 80 %) | Lage 1,5–7 mm, Wurzelhub 0,3 | „hautnah“: Lage bis × 0,25, Hub bis × 0,3; innen-dunkel gilt dort nicht |
+  | Randsträhnen vorn (bis 40°) | zur Seite und schräg nach unten über die Stirn | zur Seite und nach hinten |
+  | Wurzeln dicht am Scheitel (2–6 mm neben der Mitte) | gleich zur Seite | erst mehr nach hinten (Seitenzug × 0,45) |
+
+  Erster Versuch nur mit tieferem Ansatz: die wenigen Wurzeln im langen Übergang liefen als einzelne „Drähte“ schräg über
+  die Stirn – deshalb der kurze Übergang und die Richtung am Rand. Strähnen 4281 statt 4153 (+3 %), Knoten 700 wie bisher.
+- **Kopfhautkarte unter anliegenden Strähnen** (`kopf4_haar.py anliegend=frau_knoten`): Punkte alle 2 mm entlang der
+  Strähnen, die höchstens 1,5 mm über der Haut liegen (18 974), zählen für die Kopfhautkarte wie Wurzeln. Zwischen den
+  flach liegenden Schläfensträhnen scheint keine helle Haut mehr durch. Haut unter dichtem Haar dunkler
+  (`kopfhaut_dunkel` 0,8 → 0,93, `verschieden.grundkopf4.kopfhaut_dunkel`): bei 0,8 blieben 20 % Hautton, im linearen
+  Licht deutlich heller als das dunkle Haar – der „helle Scheitel“.
+- **Mandelform** (`kopf6_eigen.py`, `eigen_mandel`, Probebau `eigen=5`): die Lider der äußeren Hälfte gehoben (2,6 mm am
+  äußeren Winkel bei Gewicht 1, ab 20 % der Lidbreite steigend, jenseits des Winkels über 12 mm auslaufend), das Unterlid
+  nur zu 40 % (am Winkel voll; Runde 2: mit voll gehobenem Unterlid „heller Rand am Unterlid, verquollen“), der Winkel
+  0,6 mm nach außen, Lidrand auf dem Augapfel gehalten (Abstand zur Augenmitte wie vorher). Rezept `lid_mandel`: Mitte und Innenseite wie
+  Grundkopf 3 (`height2_decr` 0,25, `height1_incr` 0,3), außen `eigen_mandel` 1,4 statt `corner1_up` 1,0 und
+  `height3_decr` 0,6 statt 0,9. Bei Stärke 0,55/0,6 hebt sich der äußere Winkel um etwa 2,1 mm (vorher 0,6 mm).
+- **schlupf**: mehr Deckfalte (`eigen_deckfalte_w` 1,6 → 1,9, `_m` 1,0 → 1,5), Lidkante weniger tief (`height2_decr`
+  0,45 → 0,2, `height3_decr` 0,3 → 0,2). **rund** leichter (0,5/0,55 → 0,45/0,5).
+- **Haut** (`haut6.gdshaderinc` `c_rau_unruhe`, `c_glanz_unruhe`; `verschieden.grundkopf4.haut`): Rauheit und Glanz fleckig
+  in der Mittelfrequenz (aus den groben Rauschkanälen der schon abgetasteten Fleckenkachel, keine weitere Abtastung;
+  fettiger = glatter und glänzender): Rauheit ± 0,1, Glanz ± 25 % (Runde 1: ± 45 % gab „weißen Glanzstreifen an der
+  Stirn“), Rauheit + 0,08, Hautunruhe × 1,5, Streulicht × 0,85. **Tränenwinkel** (`kopf6_hautc.py gk4=1`): Karunkel größer und röter, dazu der dunkle Grund der Bucht am inneren
+  Lidwinkel.
+- **Messlauf** `haar_tressfx_frau_knoten` (`charakter_schau.gd`): der Nackenknoten der Grundköpfe in Ruhe.
+
+### Prüfung
+
+Panel je Runde: drei frische blinde Prüfer wie in Grundkopf 3 (Köpfe A/B, Augen nah A/B, Fratzen-Sätze X/Y mit je 40
+Köpfen aus denselben Saaten, Lidformen 18 Augenpaare). Vorher = glb6i. Schlüssel
+`~/werkzeuge/charakter/bilder/phase6/GK4/schluessel_r<n>.json` (SHA-256 r1 `a4fadf5c…c17971be`, r2 `8da96cd1…df34a9140c`,
+r3 `82e3d5f0…cb9228b`). Noten Mittel der drei Prüfer.
+
+| Runde | Mann vorher → neu | Frau vorher → neu | Augen vorher → neu | Fratzen deutlich vorher → neu (je Prüfer) | grenzwertig vorher → neu | Lidformen richtig (je Prüfer, von 18) |
+|---|---|---|---|---|---|---|
+| 1 (Commit a49e5652) | 5,2 → 5,8 | 4,2 → 4,8 | 5,8 → 5,0 | 1 / 0 / 0 → 1 / 0 / 0 | 10 / 8 / 11 → gleich | 10 / 9 / 11 (56 %) |
+| 2 (Commit c646a58a) | 5,5 → 5,8 | 4,8 → 4,5 | 6,0 → 5,0 | 0 / 1 / 0 → 0 / 1 / 0 | 11 / 13 / 11 → 12 / 14 / 12 | 12 / 9 / 9 (56 %) |
+| 3 (Commit 513007e8, Endstand) | 6,2 → 6,0 | 4,3 → 5,3 | 5,0 → 6,0 | 0 / 0 / 0 → 0 / 0 / 0 | 12 / 9 / 10 → gleich | 10 / 11 / 15 (67 %) |
+
+- Runde 1: Haar an Schläfen und Stirn besser („seitlich weniger Drahtsträhnen“), aber die neue Mandel war „offener,
+  glotzend, mehr Weiß“ (alle drei bevorzugten das Oberlid, das den Irisrand leicht deckt), schlupf „Lidkante sinkt,
+  verschlafen“, ein „weißer Glanzstreifen an Stirn und Schläfe“, Scheitel und hohe Stirn blieben. Runde 2: Mandel innen
+  wie Grundkopf 3, schlupf mit mehr Deckfalte, rund leichter, Haaransatz 13 mm, Haut unter Haar dunkler, Glanz weniger
+  fleckig.
+- Runde 2: Schläfen und Scheitel klar besser (alle drei sehen Drahtsträhnen und den breiteren Scheitel nur bei
+  „vorher“), aber die Mandel hob das Unterlid mit („heller Rand am Unterlid, verquollen“, alle drei) – Augen und Frau
+  fielen. Die Frauenbrauen nach Grundkopf 2 lasen sich in den Zufallsköpfen „dunkler, kräftiger, wie gezeichnet“ (+1
+  grenzwertig je Prüfer). Runde 3: Unterlid nur zu 40 % gehoben, Haaransatz 16 mm, Haut rauer.
+- Runde 3: **Frau +1,0, Augen +1,0** gegen Grundkopf 3, Mann gleich (6,0). Die neuen Brauen „verankern das Gesicht“ (die
+  feineren von Grundkopf 3 „fast unsichtbar, aufgemalt“). Tränenwinkel „rosa, etwas deutlicher“. Lidformen 67 %
+  (Grundkopf 3: 56 %); je Form rund 12, mandel 11, schlupf 13 von 18; mandel und rund verwechselt 7 von 36 Urteilen
+  (Runde 1: 8, Runde 2: 9) – die Mandel der Männer (Saaten 30011, 30217) geht noch in rund über.
+- **Fratzen:** in keiner Runde eine deutliche neue; die Gesichter in X und Y sind für alle Prüfer gleich, die Unterschiede
+  liegen im Frauenhaar („in Y weniger Drahtsträhnen, Scheitel schmaler und dunkler“).
+- **Ziel 7 nicht erreicht.** Was bleibt: Frau „nur über das Haar weiblich“ (Stupsnase mit Nasenlöchern von vorn, kleiner
+  Mund, flaches Mittelgesicht – Form, nicht Grundkopf 4), graubrauner Schatten über Oberlid und Nasenwurzel der Frau,
+  Scheitel weiter sichtbar (schmaler), einzelne Drahtsträhnen an Schläfe und Ohr in der Schrägansicht, Haarmasse im
+  Tageslicht ohne Struktur, Haut im Spiellicht „leicht wachsig“ (Stirn, Nase), schlupf der Männer mit harter
+  Faltenlinie (L12, L16: „eingeschnitten, alt“), Bartstoppeln „wie Krümel“, geringe Vielfalt (gleiches Haar, gleicher
+  Hautton).
+
+### Messung (T400, Stufe Hoch, gepaart, 5 Wiederholungen, Licht Spiel)
+
+| Lauf | Runde 1 (Commit a49e5652, 4226 Strähnen) | Runde 2 (c646a58a, 4192) | Endstand (513007e8, 4281) |
+|---|---|---|---|
+| `haar_tressfx_frau_knoten` gegen Grundkopf 3 | −0,19 ms | −0,11 ms | **−0,03 ms** |
+| `ohne_haar` gegen Grundkopf 3 / Halt B | +0,05 / +0,63 ms | +0,04 / +0,63 ms | **+0,03 / +0,65 ms** |
+| `ohne_haar_zufall` gegen Grundkopf 3 / Halt B | +0,05 / +0,58 ms | +0,04 / +0,58 ms | +0,03 / +0,55 ms |
+| VRAM (Halt B / Grundkopf 3 / 4) | 236 / 238 / 238 MB (mit Haar) | gleich | gleich |
+
+Budget eingehalten: Kopf +0,65 ms gegen Halt B (höchstens 1,0), Haar gegen Grundkopf 3 −0,03 ms (höchstens +0,3). Last
+bis 20, keine fremde Last auf der Karte. Grundkopf 3 selbst lag in diesen Läufen +0,59 ms über Halt B (in Grundkopf 3
+gemessen +0,41 ms) – der Abstand Grundkopf 4 gegen 3 ist gepaart und stabil (+0,03 bis +0,05 ms).
+
+### Offen nach Grundkopf 4
+
+- Frau weiblicher: der nächste Hebel ist die Form des Mittelgesichts (Nasenlöcher von vorn, Nasenrücken, Mund, Kinn),
+  nicht mehr Haar oder Brauen.
+- Grauer Schatten über Oberlid und Nasenwurzel der Frau (alle drei Runden): Zonenkarte „Augenringe“ und Lidschatten
+  prüfen (Diagnose wie in Grundkopf 3, mit den neuen Brauen).
+- schlupf der Männer: die Faltenlinie zeichnet sich im Schlüssellicht hart ab (meist nur am Auge zum Licht) – Deckfalte
+  weicher auslaufen lassen oder `eigen_deckfalte_m` wieder kleiner.
+- Mandel der Männer geht noch in rund über (Saaten 30011, 30217): `eigen_mandel` für Männer etwas stärker (eigene
+  Stärke je Geschlecht ist im Abschnitt `lidform.staerke` schon vorhanden).
+- Frauenbrauen in den Zufallsköpfen „dunkler, kräftiger“: Dicke 1,4 als Mitte zwischen Grundkopf 2 und 3 prüfen.
+- Haar: einzelne Drahtsträhnen an Schläfe und Ohr in der Schrägansicht, krause Enden seitlich am Knoten, Masse ohne
+  Struktur im Tageslicht.
+
+### Testanleitung Grundkopf 4
+
+1. Kopie: `cp -rL ~/werkzeuge/charakter/glb6i ~/werkzeuge/charakter/glb6j`.
+2. Probebau: `GLB_PROBE=~/werkzeuge/charakter/glb6p_j PROBEN_OPT="ausschnitt=30 eigen=5 brauen_d=1
+   vorbilder=<vorbild_grund_m.npz>,<vorbild_grund_w.npz>" tools/charakter/kopf6.sh proben` (etwa 3 min).
+3. Mischen: `GLB=…/glb6j GLB_PROBE=…/glb6p_j REZEPT=tools/charakter/kopf6_rezept_grundkopf4.json
+   tools/charakter/kopf6.sh mischen`; Regeln `python3 tools/charakter/kopf6_verschieden.py
+   --ein=~/werkzeuge/charakter/glb6d/regeln6.json --aus=~/werkzeuge/charakter/glb6j/regeln6.json --e3=1 --e4=1 --e5=1
+   --e6=1`; Haut `HAUTC_OPT="gk2=1 gk4=1" GLB=…/glb6j tools/charakter/kopf6.sh haut_c`.
+4. Haar: `blender.sh -b --factory-startup -P tools/charakter/kopf4_haar.py -- ~/werkzeuge/charakter/glb6j
+   backdaten=~/werkzeuge/charakter/arbeit/phase6/backdaten.npz kopf=kopf6_mn.glb nur=frau_knoten gk4=1` (etwa 2 min),
+   dann `GLB=…/glb6j GLB5=~/werkzeuge/charakter/glb6 tools/charakter/kopf6.sh nur_haar anliegend=frau_knoten`
+   (Stützpunkte und Kopfhautkarten, etwa 5 min).
+5. Messen: `schau.sh <aus> 1280x720 --messen --varianten=haltb:~/werkzeuge/charakter/glb6:0:0:0:0,
+   gi:~/werkzeuge/charakter/glb6i:1:0:1:1,gj:~/werkzeuge/charakter/glb6j:1:0:1:1 --stufe=hoch --wiederholungen=5
+   --nur=ohne_haar,haar_tressfx_frau_knoten,ohne_haar_zufall --licht=spiel`.
