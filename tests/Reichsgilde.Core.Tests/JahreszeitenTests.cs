@@ -248,7 +248,7 @@ static class JahreszeitenTests
             Pruefe.Gleich(120, w.Fahrzeit(grube.Karren[0], zumMarkt: true));
         }),
 
-        ("Festmärkte: Im Frühling und Herbst von 10 bis 16 Uhr mehr Nachfrage nach Fertigwaren und mehr Gäste, Meldung zu Beginn und Ende; im Sommer keiner", () =>
+        ("Festmärkte: Im Frühling und Herbst von 10 bis 16 Uhr mehr Nachfrage nach Fertigwaren (ohne Ausschank der Wirtshäuser) und mehr Gäste, Meldung zu Beginn und Ende; im Sommer keiner", () =>
         {
             var (sim, w) = Stadt(Minute(2, 9, 58));
             var meldungen = new List<string>();
@@ -261,6 +261,8 @@ static class JahreszeitenTests
             Pruefe.Gleich(1.0, w.Markt["Gerste"].Jahreszeitfaktor); // nur Fertigwaren: Getreide und Rohstoffe der Werkstätten bleiben, wie sie sind
             Pruefe.Gleich(1.0, w.Markt["Eisen"].Jahreszeitfaktor);
             Pruefe.Ungefaehr(1.2, w.Markt["Kräuterschnaps"].Jahreszeitfaktor, 1e-12); // Heilmittel zählt wie im Markt-Reiter zu den Fertigwaren
+            Pruefe.Gleich(1.0, w.Markt["Dünnbier"].Jahreszeitfaktor); // Speisen und Getränke der Wirtshäuser: die Mehrnachfrage steckt in den Gästen
+            Pruefe.Gleich(1.0, w.Markt["Körnermahlzeit"].Jahreszeitfaktor);
             Pruefe.Ungefaehr(1.6, w.Jahreszeiten.Besucherfaktor, 1e-12);
             Pruefe.Wahr(w.Markt["Werkzeug"].Preis > preis * 1.05, "Preis steigt");
             Pruefe.Wahr(meldungen.Any(m => m == "Festmarkt: Herbstmarkt bis 16 Uhr – Händler und Käufer kommen von weit her, die Nachfrage nach Fertigwaren steigt, die Wirtshäuser füllen sich."),
@@ -284,6 +286,7 @@ static class JahreszeitenTests
             while (sim.Zeit.UhrzeitInMinuten <= 10 * 60) sim.Tick();
             Pruefe.Ungefaehr(1.2, w.Markt["Gerste"].Jahreszeitfaktor, 1e-12);
             Pruefe.Ungefaehr(1.2, w.Markt["Werkzeug"].Jahreszeitfaktor, 1e-12);
+            Pruefe.Gleich(1.0, w.Markt["Dünnbier"].Jahreszeitfaktor); // auch hier: die Gäste tragen den Zuschlag (gaeste 0,3)
             Pruefe.Gleich("allen Waren", Jahreszeitenwesen.Typenname(new List<string>()));
             Pruefe.Gleich("Fertigwaren", Jahreszeitenwesen.Typenname(new List<string> { "Fertigprodukt", "Heilmittel" }));
             Pruefe.Gleich("Rohstoffen, Zwischenwaren und Fertigwaren", Jahreszeitenwesen.Typenname(new List<string> { "Rohstoff", "Zwischenprodukt", "Heilmittel" }));

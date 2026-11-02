@@ -155,8 +155,17 @@ public sealed class Jahreszeitenwesen
         if (Daten is null) return 1;
         var f = Daten.Von(jahreszeit).NachfrageVon(ware);
         if (streng && jahreszeit == Jahreszeit.Winter && Daten.StrengerWinter is { } s) f = 1 + (f - 1) * (1 + s.NachfrageZuschlag);
-        return f * (festmarkt is not null && festmarkt.GiltFuer(_w.Daten.Waren.TryGetValue(ware, out var w) ? w.Typ : "") ? 1 + festmarkt.Nachfrage : 1);
+        return f * (festmarkt is not null && festmarkt.GiltFuer(_w.Daten.Waren.TryGetValue(ware, out var w) ? w.Typ : "") && !GaesteTragen(festmarkt, ware)
+            ? 1 + festmarkt.Nachfrage : 1);
     }
+
+    /// <summary>
+    /// Speisen und Getränke der Wirtshäuser (<c>gastwirtschaft.ausschank</c>): Bringt der Festmarkt mehr Gäste, steckt die Mehrnachfrage danach schon in
+    /// den Gästen – am Markt steigt sie nicht noch einmal. Sonst verteuerte der Markt Bier und Mahlzeit, die der Wirt zu festen Preisen ausschenkt
+    /// (Messung 2.11.2026: Wirt Greybox −12 bis −19 % mit, −1 bis −3 % ohne Nachfragezuschlag).
+    /// </summary>
+    private bool GaesteTragen(FestmarktDaten festmarkt, string ware) =>
+        festmarkt.Gaeste > 0 && _w.Daten.Gastwirtschaft is { } g && g.Ausschank.Contains(ware);
 
     /// <summary>Faktor des Schlamms auf ein Stück einer Fahrt (1 außer auf unbefestigten Wegen der Karte in einer Jahreszeit mit Schlamm).</summary>
     public double Schlamm(Fahrtstueck s)
