@@ -12,8 +12,9 @@ using Reichsgilde.Core.Zeit;
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--datei=pfad.json]
 //
-//  Je Karte und Startwert zwei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
-//  ohne Expansion). Gemessen: Reinvermögen von Spieler und KI-Häusern, Bankrotte, Jahr bis Bürger, Umsatz von Spieler und KI je Jahreszeit
+//  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
+//  ohne Expansion) und der ausbauende Spieler („Ausbau“: Schmied, von der KI mit dem Profil der KI-Häuser geführt, mit Expansion).
+//  --beruf=Schmied|Wirt|Ausbau misst nur einen Aufbau. Gemessen: Reinvermögen von Spieler und KI-Häusern, Bankrotte, Jahr bis Bürger, Umsatz von Spieler und KI je Jahreszeit
 //  (Jahresrechnung des Jahres), Preise je Jahreszeit (Mittel der vollen Stunden, Preis ÷ Grundpreis) für Holz, Kerze, Gerste, Roggen, Kräuter
 //  und alle Waren, Schiffsertrag je Jahreszeit, wie oft der Fluss zufriert und wie lange.
 //  --ohne-jahreszeiten nimmt den Abschnitt „jahreszeiten“ aus den Daten (Rechnung wie bis Datenversion 66 = Stand der Schänken). Ändert keinen Wert.
@@ -56,6 +57,7 @@ static class Jahreszeitenmessung
             {
                 if (nurBeruf is null or "Schmied") aufbauten.Add(new Messaufbau(karte, s * 101, jahre));
                 if (nurBeruf is null or "Wirt") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt"));
+                if (nurBeruf is null or "Ausbau") aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Bezug: Bezugsart.WieKi));
             }
         Console.Error.WriteLine($"Jahreszeitenmessung: {aufbauten.Count} Partien zu {jahre} Jahren, {parallel} parallel{(ohne ? ", ohne Jahreszeiten" : "")} …");
         var ergebnisse = new ConcurrentDictionary<Messaufbau, (Partieergebnis P, Zaehler Z)>();
@@ -78,7 +80,7 @@ static class Jahreszeitenmessung
         Console.WriteLine($"Karte | Aufbau | Spieler J{jahre} | KI-Häuser J{jahre} | Bürger Ø Jahr (im Ziel 8–12) | bankrott | Eiswinter/Winter | Eisstunden je Eiswinter | " +
                           "Umsatz Spieler F/S/H/W | Umsatz KI je Haus F/S/H/W | Schiffsertrag F/S/H/W | " + string.Join(" | ", Waren.Append("alle").Select(x => $"Preis {x} F/S/H/W")));
         foreach (var g in ergebnisse.Where(x => x.Value.P.Fehler is null)
-                     .GroupBy(x => (x.Key.Karte, x.Key.Beruf))
+                     .GroupBy(x => (x.Key.Karte, Beruf: Aufbauname(x.Key)))
                      .OrderBy(x => x.Key.Karte, StringComparer.Ordinal).ThenBy(x => x.Key.Beruf, StringComparer.Ordinal))
         {
             var liste = g.OrderBy(x => x.Key.Startwert).Select(x => x.Value).ToList();
@@ -133,6 +135,9 @@ static class Jahreszeitenmessung
         }
         return ergebnisse.Values.Any(x => x.P.Fehler is not null) ? 1 : 0;
     }
+
+    /// <summary>Name des Aufbaus in Tabelle und JSON: der Beruf, beim ausbauenden Spieler „Ausbau“.</summary>
+    static string Aufbauname(Messaufbau a) => a.Bezug == Bezugsart.WieKi ? "Ausbau" : a.Beruf;
 
     /// <summary>Schaltet einzelne Folgen der Jahreszeiten ab (Zerlegung eines Befunds).</summary>
     static string OhneFolgen(string json, string[] folgen)
