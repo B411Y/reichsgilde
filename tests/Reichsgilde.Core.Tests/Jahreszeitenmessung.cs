@@ -10,7 +10,7 @@ using Reichsgilde.Core.Zeit;
 //  Jahreszeitenmessung – Folgen der Jahreszeiten (Messung, kein Test; Datenversion 67)
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
-//                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--datei=pfad.json]
+//                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--datei=pfad.json]
 //
 //  Je Karte und Startwert zwei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
 //  ohne Expansion). Gemessen: Reinvermögen von Spieler und KI-Häusern, Bankrotte, Jahr bis Bürger, Umsatz von Spieler und KI je Jahreszeit
@@ -42,7 +42,8 @@ static class Jahreszeitenmessung
         var karten = (Schalter("karten") ?? "greybox,koeln").Split(',');
         var parallel = int.Parse(Schalter("parallel") ?? "2");
         var ohne = args.Contains("--ohne-jahreszeiten");
-        var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null);
+        var ohneVorrat = args.Contains("--ohne-vorrat"); // ohne ki.jahreszeiten: die KI legt keinen Wintervorrat an
+        var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null, anpassen: ohneVorrat ? OhneVorrat : null);
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         var aufbauten = new List<Messaufbau>();
@@ -127,6 +128,13 @@ static class Jahreszeitenmessung
             Console.Error.WriteLine($"geschrieben: {datei}");
         }
         return ergebnisse.Values.Any(x => x.P.Fehler is not null) ? 1 : 0;
+    }
+
+    static string OhneVorrat(string json)
+    {
+        var knoten = JsonNode.Parse(json)!.AsObject();
+        knoten["ki"]!.AsObject().Remove("jahreszeiten");
+        return knoten.ToJsonString();
     }
 
     /// <summary>Zu jeder vollen Stunde: Preise der Jahreszeit; im Winter, ob der Fluss zu ist.</summary>
