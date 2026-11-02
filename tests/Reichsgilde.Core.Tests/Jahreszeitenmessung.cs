@@ -11,7 +11,7 @@ using Reichsgilde.Core.Zeit;
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--beruf=Schmied|Wirt|Ausbau]
-//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage] [--ohne-schiffe] [--datei=pfad.json]
+//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage,winternachfrage:Ware] [--ohne-schiffe] [--datei=pfad.json]
 //
 //  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
 //  ohne Expansion) und der ausbauende Spieler („Ausbau“: Schmied, von der KI mit dem Profil der KI-Häuser geführt, mit Expansion).
@@ -422,6 +422,10 @@ static class Jahreszeitenmessung
                 case "eis": j.Remove("strengerWinter"); break;
                 case "ernte": j["herbst"]!["angebot"] = new JsonObject(); j["herbst"]!["arbeit"] = new JsonObject(); break;
                 case "winternachfrage": j["winter"]!["nachfrage"] = new JsonObject(); break;
+                // winternachfrage:Ware – nur diese Ware aus der Winternachfrage (z. B. winternachfrage:Weingeist)
+                case var x when x.StartsWith("winternachfrage:", StringComparison.Ordinal):
+                    if (j["winter"]!["nachfrage"]!.AsObject().Remove(x["winternachfrage:".Length..]) is false) throw new ArgumentException($"„{x}“: Die Ware steht nicht in der Winternachfrage.");
+                    break;
                 default: throw new ArgumentException($"Unbekannte Folge „{f}“.");
             }
         return wurzel.ToJsonString();
