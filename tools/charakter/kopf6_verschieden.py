@@ -135,6 +135,12 @@ E6_LIDFORM_STAERKE = {"rund": {"m": 0.45, "w": 0.5}}
 # 0,55 → 0,72 (eigene Stärke je Geschlecht)
 E7_BRAUEN = {"frau_dicke": 1.4, "frau_dichte": 1.35, "frau_deckung": 0.95}
 E7_LIDFORM_STAERKE = {"mandel": {"m": 0.72, "w": 0.6}}
+# Grundkopf 5b (Option --e8=1; Panel Grundkopf 5: „graubrauner Schatten über Oberlid und Nasenwurzel“). Einzeltest (je eine Quelle
+# auf 0): Zonenkarte „Augenringe“, Brauenschatten und Schlagschatten tragen nichts bei, die Verdeckung (SSAO + gebackene Karte) etwa
+# ein Zehntel; den harten, grauen Schattenrand macht das seit Grundkopf 4 schmalere Streulicht (streu_faktor 0,85) – Schlüssellicht von
+# der Seite auf die steile Nasenflanke. Streulicht wieder breiter und farbiger, gebackene Verdeckung etwas schwächer; Runde 1:
+# Krähenfüße am Außenwinkel „scharf, harter dunkler Knick“ – Relief der Augenpartie × 0,5
+E8_HAUT = {"streu_faktor": 1.2, "streu_farbe": 0.45, "streu_frei": 0.45, "hoehlen": 0.5, "relief_augen": 0.5}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -147,6 +153,7 @@ def main():
     e5 = opt.get("e5", "0") == "1"
     e6 = opt.get("e6", "0") == "1"
     e7 = opt.get("e7", "0") == "1"
+    e8 = opt.get("e8", "0") == "1"
     R = json.load(open(ein, encoding="utf-8"))
     bericht = {}
     for gen, f in AUGEN.items():
@@ -230,6 +237,9 @@ def main():
             R["verschieden"]["lidform"] = json.loads(json.dumps(R["verschieden"]["lidform"]))
             R["verschieden"]["lidform"]["staerke"]["mandel"].update(E7_LIDFORM_STAERKE["mandel"])
         R["verschieden"]["beschreibung"] += "; E7: Frauenbrauen Dicke 1,4, mandel der Männer stärker"
+    if e8:
+        R["verschieden"]["grundkopf4"]["haut"].update(E8_HAUT)
+        R["verschieden"]["beschreibung"] += "; E8: Streulicht breiter und farbiger, gebackene Verdeckung schwächer, Relief der Augenpartie × 0,5"
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)

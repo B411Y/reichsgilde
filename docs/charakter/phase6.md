@@ -1888,6 +1888,115 @@ graubrauner Schatten über Oberlid (Frau und Mann), harte Faltenlinie bei 30217.
 
 ### Offen nach Grundkopf 5
 
-- Bögen mit Fenster 2000x3100 neu rendern, dann Runde 1 wiederholen.
-- Änderungen sind zu klein, um blind erkannt zu werden; Nasenlöcher bleiben sichtbar: stärkere Formänderung an der Nasenspitze nötig.
+Erledigt in Grundkopf 5b (nächster Abschnitt): Bögen vollständig, Änderungen deutlicher, Schatten über Oberlid und Nasenwurzel
+auf die Ursache zurückgeführt. Der Zonenkarten-Eingriff dieses Abschnitts (`gk5=1`) war nicht die Ursache (Einzeltest unten),
+bleibt aber im Bau, er ist wirkungslos.
 
+## Grundkopf 5b: Nasenspitze der Frau, Mittelgesicht, Streulicht gegen den Schatten, weichere Lidfalte der Männer (Probekopf glb6l)
+
+Anlass (Nutzer 02.11.2026, Runde 1 von Grundkopf 5 „kaum Wirkung“). Probekopf `~/werkzeuge/charakter/glb6l` (`cp -rL` von glb6k),
+Probebau `glb6p_l` (`eigen=7`), Rezept `tools/charakter/kopf6_rezept_grundkopf5b.json`, Regeln `kopf6_verschieden.py --e3=1 … --e7=1 --e8=1`,
+Haut `HAUTC_OPT="gk2=1 gk4=1 gk5=1"` (Karten unverändert). Haar unverändert aus glb6j, Shader-Code unverändert. „Vorher“ ist
+Grundkopf 4 (Commit edde0caa, glb6j). Ältere Köpfe sind unberührt (alle neuen Werte stehen nur in glb6l und im Rezept; im Kopf-Skript
+gilt ohne die neuen Schlüssel der alte Wert).
+
+### Prüfbögen repariert
+
+`panel_gk.py vollstaendig` rechnet die Größe jedes Bogens nach (Zellen, Zellgröße, Rand, Beschriftung) und vergleicht sie mit dem
+PNG; ein kleineres Bild heißt „abgeschnitten“. Fenster 2000x3100: Fratzen-Bögen 1744x3025 (20 Zellen = 10 Köpfe je Bogen, vier Bögen
+je Satz = 40 Köpfe), Lidformen 1858x2471 (9 Augenpaare je Bogen, zwei Bögen = 18). Beide Sätze (vorher und neu) und beide Runden:
+`VOLLSTAENDIG`. Für die Prüfer schneidet `blind5b.py` die langen Bögen in zwei Hälften (Zeilen 1–3 und 4–5, Lidformen Zeilen 1–2 und 3),
+damit kein Bild auf die Hälfte verkleinert wird; die Hälften decken die volle Höhe (1871 + 1154 = 3025, 1694 + 777 = 2471).
+
+### Ursache des Schattens über Oberlid und Nasenwurzel (Einzeltest, je eine Quelle auf 0)
+
+Bogen „Augen nah“, Frau (Grundkopf 5, glb6k) und Mann Saat 30217; Wirkung am Schattenfeld der Nasenflanke (Verhältnis zur
+gespiegelten, vom Schlüssellicht getroffenen Seite; 1,0 = kein Schatten):
+
+| Quelle auf 0 | Verhältnis | Befund |
+|---|---|---|
+| (nichts, Referenz) | 0,68 | harter, grauer Schattenrand über Oberlid und Nasenflanke |
+| Zonenkarte „Augenringe“ (`c_ringe`) | 0,68 | keine Änderung – **nicht die Ursache** |
+| Brauenschatten (`brauen_dichte`) | 0,68 | nur unter der Braue |
+| Relief und Furchen (`relief_staerke`, `c_furche_dunkel`) | 0,68 | Falten weg (auch die Krähenfüße), Schatten bleibt |
+| Schlagschatten des Schlüssellichts | 0,68 | keine Änderung |
+| SSAO (Bühne) / gebackene Verdeckung (`hoehlen`) | 0,69 / 0,68 | etwa ein Zehntel heller in Lidwinkel und Nasenflanke |
+| alle fünf zusammen | 0,69 | Schatten bleibt, nur schwächer |
+| Schlüssellicht von vorn (Richtung 0°, 10°) | 1,06 | Schatten weg: Licht (Seitenlicht) auf die steile Nasenflanke |
+| Streulicht breiter (`streu` 0,34 → 0,45 / 0,60) | 0,72 / 0,77 | Rand weich und warm; **das ist der Hebel** |
+
+Ursache: Seitenlicht auf die steile Nasenflanke (Form), und seit Grundkopf 4 ein harter, grauer Rand, weil dort das Streulicht der
+Haut schmaler wurde (`streu_faktor` 0,85 gegen „wachsig“). Fix: `verschieden.grundkopf4.haut` (E8, `--e8=1`): `streu_faktor` 1,2 (Streu 0,48),
+`streu_farbe` 0,45 (Farbtrennung des Wraps, Voreinstellung 0,3), `streu_frei` 0,45 (Schattenfreiheit, 0,3), `hoehlen` 0,5 (gebackene Verdeckung, 0,6),
+gelesen in `charakter_kopf.gd` (ohne die Schlüssel gelten die Voreinstellungen des Stoffs). Dazu die Form: `eigen_nasenflanke`
+(Nasenflanke neben dem inneren Lidwinkel 2 mm gefüllt, Gewicht 1,0 bei der Frau). Krähenfüße („scharf, harter dunkler Knick am Außenwinkel“, Runde 1):
+`relief_augen` 0,5 (Relief der Augenpartie halbiert, `relief_gewicht.y`).
+
+### Was gebaut ist
+
+- **Nasenspitze der Frau** (`kopf6_eigen.py`, `eigen_nasenspitze_w`, Rezept 1,4): untere Nase um die Nasenwurzel nach unten gedreht (Wirkung steigt vom
+  halben Nasenrücken zur Spitze: Spitze 3,2 mm tiefer, 0,6 mm zurück; fällt unter der Nasenbasis über 12 mm aus, die Oberlippe bleibt); dazu die Flügel
+  1,2 mm tiefer. Septumwinkel statt `decr` 0,5 jetzt `incr` 0,6, `eigen_nasenloch_w` 2,4 → 4,0, `probe_nose_flaring_decr` 0,5 → 0,9. Weiter getestet:
+  Spitze 2,0 gab eine Hakennase (zu viel), `septumangle_incr` 1,0 eine lange Nase.
+- **Mittelgesicht doppelt so stark wie in Grundkopf 5** (Frau): Mund `probe_mouth_scale_horiz_incr` 0,55 → 0,75, Lippen 0,6/0,75 → 0,7/0,8, `eigen_lippen` 1,3 → 1,6,
+  Wangen `cheek_volume_incr` 0,35 → 0,45, `cheek_inner_incr` 0,2 → 0,29. `eigen_mitte_w` bleibt 1,0: mit 1,6 (Runde 1) bildete die Wangenmitte (2,7 mm) einen Wulst
+  mit Naht am Mundwinkel (Einzeltest: Wange auf Grundkopf-5-Werte ändert nichts, `mitte` 1,0 beseitigt es). Mund und Wangen bleiben in den Reglergrenzen
+  (alle `probe_*` ≤ 1,0).
+- **Harte Faltenlinie bei Saat 30217** (`schlupf`, Mann): Einzeltest über Rezeptvarianten – nicht die Deckfalte allein, sondern Rinne (`eigen_lidfalte_m`) und Deckfalte-Band
+  liegen an derselben Stelle (7,5 mm über dem Lidrand), die Haut über der Falte sank 0,7 mm ab und legte sich über die ruhende Haut. Neu: `eigen_deckfalte_m2` (runder Wulst
+  ohne Absenkung, σ 3,4 mm, 0,9 mm entlang der Normale) und `eigen_lidfalte_m2` (Rinne σ 2,4 mm, 0,75 mm tief) statt der alten Männerformen; bei `schlupf`
+  wird die Rinne wieder herausgenommen (`eigen_lidfalte_m2` −1,85 in `lid_schlupf`, Deckfalte 1,5). Frauen unverändert.
+- Werkzeug: `panel_gk.py vollstaendig`; `tools/charakter/boegen6/blind_gk.py` mischt A/B, X/Y und teilt die Bögen (braucht PIL, z. B. aus Blenders Python mit `PYTHONPATH=~/werkzeuge/charakter/pylib_b2`).
+
+### Selbstkontrolle vor dem Panel
+
+Vorher/Nachher nebeneinander (Köpfe, Augen nah) angesehen: Nasenspitze tiefer und Nasenlöcher von vorn kleiner, Mund breiter und voller, Schattenrand an Nasenflanke und
+Oberlid weich und warm, dünne Lidlinie bei 30011/30217 deutlich schwächer. Unterschied klar sichtbar, erst dann Panel. Runde 1 (Rezept mit `eigen_mitte_w` 1,6) zeigte
+am Mundwinkel den Wulst; Runde 2 hat ihn nicht mehr.
+
+### Prüfung
+
+Drei frische blinde Prüfer je Runde (Sonnet, mittlerer Aufwand), vollständige Bögen (40 Fratzen-Köpfe je Satz, 18 Lidformen). Schlüssel
+`~/werkzeuge/charakter/bilder/phase6/GK5B/schluessel_r<n>.json` (SHA-256 r1 `25fdbc1a…ba45ef`, r2 `155e9c25…c662165`). Noten Mittel der drei Prüfer.
+
+| Runde | Mann vorher → neu | Frau vorher → neu | Augen vorher → neu | Fratzen deutlich vorher → neu (je Prüfer) | grenzwertig vorher → neu (je Prüfer) | Lidformen richtig (je Prüfer, von 18) |
+|---|---|---|---|---|---|---|
+| 1 (Rezept g0, Relief 1,0, `eigen_mitte_w` 1,6) | 6,0 → 6,0 | 5,7 → 5,0 | 5,5 → 6,0 | 1 / 0 / 0 → 5 / 0 / 2 | 8 / 8 / 4 → 11 / 8 / 10 | 10 / 13 / 7 (56 %) |
+| 2 (Endstand, Commit siehe Bericht) | 6,0 → 5,7 | 5,0 → 5,0 | 5,0 → 5,8 | 0 / 0 / 0 → 0 / 0 / 0 | 10 / 9 / 6 → 10 / 10 / 5 | 6 / 12 / 9 (50 %) |
+
+- Runde 1: Frau schlechter (alle drei: Wangenwulst und harte Naht Nase–Mundwinkel, „Mund zu breit“), Fratzen im Satz „neu“ bei zwei Prüfern (40008, 40009 mit Wangenwülsten).
+  Augen besser; Schatten und Linien über dem Lid „in B weicher und wärmer“ (ein Prüfer: kein Unterschied). Nasenlöcher: zwei von drei sahen sie bei „neu“ kleiner,
+  alle nennen sie noch „deutlich sichtbar“.
+- Runde 2 (Wulst weg, Nasenflügel tiefer, Relief der Augenpartie × 0,5): **keine deutliche Fratze mehr** (0/0/0 in beiden Sätzen), Frau gleich „vorher“ (5,0), **Augen +0,8**
+  (alle drei bevorzugen die neue Augenpartie: Schatten über Oberlid und Nasenwurzel „weicher und wärmer“, dünne Faltenlinien und Krähenfüße „schwächer“ – Aufgaben 3 und 4 blind bestätigt).
+  Nasenlöcher bleiben für alle drei „von vorn deutlich sichtbar, dunkle Schlitze“ (bei „neu“ eher schmaler, aber nicht verschwunden); die Frau „kaum weiblich“ (Mund, Nase, Kiefer).
+  Mann gleich bis −0,3 (ein Prüfer: „Lid schwer“).
+- Lidformen: 50 % (Grundkopf 4: 67 %, Runde 1 von 5b: 56 %), die Streuung zwischen den Prüfern ist groß (6 bis 12 von 18). Immer richtig: schlupf der Männer (L2, L5, L15 in Runde 2
+  von allen dreien), rund der Frauen (L7, L10). Immer falsch: mandel und rund bei Saat 30217 (L11, L14 vertauscht), schlupf der Frau 40200 (L6: alle „mandel“), mandel der Frau 40100 (L17: alle „schlupf“).
+  Die Köpfe der Lidformen-Bögen kommen nur aus „neu“, ein Vergleich mit „vorher“ liegt nicht vor.
+
+### Messung
+
+Nicht gemessen: Shader-Code und Haar sind unverändert (Streulicht, Verdeckung und Relief nur als Werte, keine weitere Abtastung; Formen sind Daten der .glb).
+
+### Offen nach Grundkopf 5b
+
+- Nasenlöcher der Frau von vorn bleiben als dunkle Schlitze sichtbar: Empfehlung: Flügelrand weitere 1–1,5 mm tiefer und Boden der Nasenlöcher heben (`eigen_nasenloch_w` 4,0 → 5,5, neue Form
+  für die Nasenlochränder), danach noch ein Panel; `c_loch` 0,45 → 0,25 ändert allein kaum etwas (Selbsttest).
+- Frau „kaum weiblich“ ohne Haar (alle sechs Prüfer): Mund, Kiefer und Kinn, Stirn – eine Runde nur dafür, mit Probeköpfen aus dem Vorbildkopf (kleinere Schritte, ein Merkmal je Lauf).
+- Lidformen: mandel und rund bei Männern kaum unterscheidbar (30217 vertauscht), schlupf der Frauen 40100/40200 wird „mandel“: die negative `eigen_lidfalte_m2` in `lid_schlupf`
+  trifft auch Frauen (die Form ist nicht nach Geschlecht getrennt); Empfehlung: die Rinne der Männer insgesamt auf 0,4 senken statt in `lid_schlupf` zu entfernen, `mandel` der Männer
+  prüfen (Mandelwinkel) und die Lidformen-Bögen mit „vorher“ zum Vergleich rendern.
+- Haut „fleckig-marmoriert, wächsern“ und Hautton einheitlich (alle sechs Prüfer, auch in Grundkopf 4): nicht Teil dieses Auftrags.
+- Der breitere Streulichtwert macht die Haut insgesamt etwas heller und flacher (Köpfe von vorn); Beobachtung in Grundkopf 5b, kein Prüfer nannte es.
+
+### Testanleitung Grundkopf 5b
+
+1. Kopie: `cp -rL ~/werkzeuge/charakter/glb6k ~/werkzeuge/charakter/glb6l; cp -r ~/werkzeuge/charakter/glb6p_k ~/werkzeuge/charakter/glb6p_l`.
+2. Probebau: `GLB_PROBE=~/werkzeuge/charakter/glb6p_l PROBEN_OPT="ausschnitt=30 eigen=7 brauen_d=1 vorbilder=<vorbild_grund_m.npz>,<vorbild_grund_w.npz>" tools/charakter/kopf6.sh proben` (etwa 3 min).
+3. Mischen (17 s): `GLB=…/glb6l GLB_PROBE=…/glb6p_l REZEPT=tools/charakter/kopf6_rezept_grundkopf5b.json tools/charakter/kopf6.sh mischen`; Regeln `python3 tools/charakter/kopf6_verschieden.py
+   --ein=~/werkzeuge/charakter/glb6d/regeln6.json --aus=~/werkzeuge/charakter/glb6l/regeln6.json --e3=1 --e4=1 --e5=1 --e6=1 --e7=1 --e8=1`; Haut `HAUTC_OPT="gk2=1 gk4=1 gk5=1" GLB=…/glb6l tools/charakter/kopf6.sh haut_c`.
+4. Bögen: `python3 tools/charakter/boegen6/panel_gk.py boegen --vorher=…/glb6j/kopf6.glb --neu=…/glb6l/kopf6.glb --stichprobe=<stichprobe.json> --aus=<b>`, je Satz `schau.sh <bilder> 2000x3100 --bogen=<a.json>,… --ende`,
+   dann `panel_gk.py vollstaendig --boegen=<b> --bilder=<bilder> --praefix=neu|vorher` (muss `VOLLSTAENDIG` melden), dann `blind_gk.py` und erst dann die Prüfer.
+5. Einzeltests ohne Neubau: Bogenzellen mit `"haut_werte": {…}`, `"umgebung": {"ssao_enabled": false}`, `"schluessel": {…}`, `"schluessel_richtung": [0, 10]`, `"formen": {"lidfalte_m": -1.0}`, `"lidform": "rund|mandel|schlupf"`,
+   `"kopf": "~/…/kopf6.glb"` je Zelle; Rezeptvarianten mischen in 17 s.

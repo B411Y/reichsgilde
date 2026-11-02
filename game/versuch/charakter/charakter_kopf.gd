@@ -1353,6 +1353,19 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 		m.set_shader_parameter("c_rau_unruhe", float(gk4_haut.get("rau_unruhe", 0.0)))
 		m.set_shader_parameter("c_glanz_unruhe", float(gk4_haut.get("glanz_unruhe", 0.0)))
 		m.set_shader_parameter("streu", 0.4 * float(gk4_haut.get("streu_faktor", 1.0)))
+		# Grundkopf 5b (Prüfer: „graubrauner Schatten über Oberlid und Nasenwurzel“; Einzeltest: Schlüssellicht von der Seite auf
+		# die Nasenflanke, harter und grauer Schattenrand, weil das Streulicht seit Grundkopf 4 schmaler ist): Farbtrennung und
+		# Schattenfreiheit des Streulichts sowie die baked Verdeckung als Werte; ohne die Schlüssel wie die Voreinstellung des Stoffs
+		m.set_shader_parameter("streu_farbe", float(gk4_haut.get("streu_farbe", 0.3)))
+		m.set_shader_parameter("streu_schattenfrei", float(gk4_haut.get("streu_frei", 0.3)))
+		m.set_shader_parameter("hoehlen", float(gk4_haut.get("hoehlen", 0.6)))
+		# Grundkopf 5b, Runde 2 (Prüfer: „harter dunkler Knick am Außenwinkel, scharfe Krähenfüße“): Relief der Augenpartie
+		# (Kanal 2 von relief_gewicht, Krähenfüße) schwächer
+		var rg_aug := float(gk4_haut.get("relief_augen", 1.0))
+		if rg_aug != 1.0:
+			var rg: Vector4 = m.get_shader_parameter("relief_gewicht")
+			rg.y *= rg_aug
+			m.set_shader_parameter("relief_gewicht", rg)
 		if not gk4_haut.is_empty():
 			m.set_shader_parameter("c_rau", float(m.get_shader_parameter("c_rau")) + float(gk4_haut.get("rau_zusatz", 0.0)))
 			var uf := float(gk4_haut.get("unruhe_faktor", 1.0))

@@ -57,6 +57,18 @@ Faltenlinie, Frau nur über das Haar weiblich):
   eigen_mitte_w       Mittelgesicht der Frau: Nasenflügel 1,4 mm zur Mitte und 1,0 mm tiefer, Nasenspitze 0,8 mm tiefer
                       (die Nasenlöcher rücken unter die Spitze); Wangenmitte 1,7 mm nach außen (plastischer)
 
+Grundkopf 5b (nur mit grundkopf5b=True bzw. kopf2_bauen.py eigen=7; Panel Grundkopf 5: Änderungen zu klein, Nasenlöcher der
+Frau von vorn weiter sichtbar, graubrauner Schatten über Oberlid und Nasenwurzel; Ursache des Schattens laut Einzeltest: Schlüssellicht
+von der Seite auf die steile Nasenflanke, dazu ein Teil Verdeckung – Zonenkarte und Brauenschatten tragen nichts bei):
+  eigen_nasenspitze_w   untere Nase der Frau um die Nasenwurzel nach unten gedreht: Wirkung wächst vom halben Nasenrücken zur Spitze
+                        (Spitze 3,2 mm tiefer und 0,6 mm zurück), fällt unter der Nasenbasis über 12 mm aus (Oberlippe bleibt);
+                        dazu die Nasenflügel 1,2 mm tiefer – die Spitze liegt tiefer als die Nasenlöcher
+  eigen_deckfalte_m2    Deckfalte der Männer als runder Wulst (σ 3,4 mm, 0,9 mm entlang der Normale, ohne Absenkung): ersetzt im Rezept
+                        eigen_deckfalte_m, dessen Absenkung eine dünne, harte Faltenlinie zeichnete (Saat 30217, schlupf)
+  eigen_lidfalte_m2     Oberlidfalte der Männer breiter und flacher (σ 2,4 mm, 0,75 mm tief) statt σ 1,6 mm und 1,0 mm
+  eigen_nasenflanke     Nasenflanke neben dem inneren Lidwinkel 2,0 mm nach außen gefüllt (flacherer Übergang von der Nase zur
+                        Augenhöhle; Lidrand und Augapfel bleiben)
+
 Grundkopf 4 (nur mit grundkopf4=True bzw. kopf2_bauen.py eigen=5; Panel Grundkopf 3: „mandel geht in rund über,
 Außenwinkel zu schwach“, enger gestellte Mandel wirkt „schläfrig“):
   eigen_mandel        Mandelform: beide Lider der äußeren Hälfte gemeinsam gehoben, am äußeren Lidwinkel 2,6 mm (ab 20 %
@@ -112,7 +124,7 @@ def _naechster(p, linie):
 
 
 def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False, grundkopf2=False,
-           grundkopf3=False, grundkopf4=False, grundkopf5=False):
+           grundkopf3=False, grundkopf4=False, grundkopf5=False, grundkopf5b=False):
     """Alle eigenen Formen. H: Hautecken (m), n_haut: Zahl der ICT-Hautecken (davor), flaechen: Hautflächen,
     L: 68 Merkpunkte (m), augen: {"l"/"r": (Mitte, Halbmesser)}, ausschluss: Ecken ohne Versatz (Mund- und
     Augenhöhlen), hals_abstand: Abstand jeder ICT-Hautecke zur Halsnaht (m), etappe_d: dazu die Formen der Augenpartie
@@ -166,8 +178,11 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
     # ---------------------------------------------------------------- Oberlidfalte (eine Rinne)
     ober = {"r": [36, 37, 38, 39], "l": [42, 43, 44, 45]}
     unter_rand = {"r": [39, 40, 41, 36], "l": [45, 46, 47, 42]}
-    for wer, h in (("m", 7.5), ("w", 9.5)):
+    for wer, h in (("m", 7.5), ("w", 9.5)) + ((("m2", 7.5),) if grundkopf5b else ()):
         dd = np.zeros_like(V)
+        # Grundkopf 5b („m2“): die Rinne der Männer breiter und flacher (σ 2,4 mm, 0,75 mm tief), damit sie im Seitenlicht keine
+        # dünne Linie zeichnet
+        sigma_rinne, tiefe_rinne = (2.4, 0.75) if wer == "m2" else (1.6, 1.0)
         for s in ("r", "l"):
             rand = L[ober[s]]
             hub = np.array([0.45, 1.0, 1.0, 0.45]) * h * mm   # zu den Lidwinkeln flacher
@@ -183,9 +198,9 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
             # Etappe B (Prüferbefund): breiter, flacher, weiche Enden – die schmale Rinne (σ 1 mm, 1,25 mm tief, kurze
             # Enden) zeichnete sich beim geschlossenen Auge als harte Platte ab
             enden = stufe(t[kf], 0.0, 0.25) * (1 - stufe(t[kf], 0.75, 1.0))
-            rinne = np.exp(-0.5 * (dfalte / (1.6 * mm)) ** 2) * enden
+            rinne = np.exp(-0.5 * (dfalte / (sigma_rinne * mm)) ** 2) * enden
             rinne *= stufe(drand, 0.0025, 0.005) * nah_auge * vorn_auge
-            dd += -Nv * (1.0 * mm * rinne)[:, None]
+            dd += -Nv * (tiefe_rinne * mm * rinne)[:, None]
         ablegen(f"eigen_lidfalte_{wer}", dd)
         # Prüfung: Versatz am Lidrand (Ecken bis 1 mm vom Rand in der Vorderansicht)
         b = np.linalg.norm(aus[f"eigen_lidfalte_{wer}"][:n_haut], axis=1)
@@ -265,7 +280,8 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
     w = np.exp(-0.5 * ((laengs / 0.006) ** 2 + (np.abs(V[:, 0]) / 0.0045) ** 2)) * (quer < 0.012) * stufe(Nv[:, 1], -0.2, -0.6)
     ablegen("eigen_hoecker", Nv * (2.0 * mm * w)[:, None])
     if etappe_d:
-        augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm, weiche_deckfalte_m=grundkopf5)
+        augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm, weiche_deckfalte_m=grundkopf5,
+                    deckfalte_m2=grundkopf5b)
     if grundkopf2:
         grundkopf2_formen(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     if grundkopf3:
@@ -274,10 +290,12 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
         grundkopf4_formen(V, L, augen, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     if grundkopf5:
         grundkopf5_formen(V, Nv, L, ablegen, mm)
+    if grundkopf5b:
+        grundkopf5b_formen(V, Nv, L, ps, ablegen, bericht, mm)
     return aus, bericht
 
 
-def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm, weiche_deckfalte_m=False):
+def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm, weiche_deckfalte_m=False, deckfalte_m2=False):
     """Etappe D: Augenhöhle, Deckfalte und Unterlid (siehe Kopf der Datei). Lage in der Vorderansicht (x, z) gegen die
     Lidränder der ICT-Merkpunkte; „seitlich“ 0 am inneren, 1 am äußeren Lidwinkel; ps = Augapfelmitten."""
     xz = np.c_[V[:, 0], np.zeros(len(V)), V[:, 2]]
@@ -327,7 +345,7 @@ def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, m
     ablegen("eigen_augenhoehle", dd)
 
     # ---------------------------------------------------------------- Deckfalte über der Lidfalte (wie eigen_lidfalte)
-    for wer, h in (("m", 7.5), ("w", 9.5)):
+    for wer, h in (("m", 7.5), ("w", 9.5)) + ((("m2", 7.5),) if deckfalte_m2 else ()):
         dd = np.zeros_like(V)
         for s in ("r", "l"):
             rand = L[ober[s]]
@@ -335,7 +353,13 @@ def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, m
             falte = rand.copy()
             falte[:, 2] += hub
             ueber = V[:, 2] - kante_z(falte, V[:, 0])           # Abstand über der Falte (m)
-            if weiche_deckfalte_m and wer == "m":
+            if wer == "m2":
+                # Grundkopf 5b (Panel Grundkopf 5: harte Faltenlinie bei Saat 30217, schlupf der Männer): die Haut über der
+                # Falte sank bisher 0,7 mm ab und legte sich über die ruhende – dort der Knick, im Seitenlicht eine dünne
+                # dunkle Linie. Jetzt ein runder Wulst ohne Absenkung: breit (σ 3,4 mm, Mitte 3 mm über der Falte), steigt
+                # über 4,5 mm an, Versatz nur entlang der Normale
+                band = np.exp(-0.5 * ((ueber - 3.0 * mm) / (3.4 * mm)) ** 2) * stufe(ueber, -2.5 * mm, 2.0 * mm)
+            elif weiche_deckfalte_m and wer == "m":
                 # Grundkopf 5 (Panel: „schlupf der Männer: harte Faltenlinie im Schlüssellicht“): breiteres, flacheres Band,
                 # das nach oben langsam ausläuft (Mitte 2,4 mm, σ 2,6 mm, Höhe 0,75)
                 band = 0.75 * np.exp(-0.5 * ((ueber - 2.4 * mm) / (2.6 * mm)) ** 2) * stufe(ueber, -0.8 * mm, 1.4 * mm)
@@ -346,7 +370,10 @@ def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, m
             nah = np.linalg.norm(V - ps[s], axis=1) < 0.028
             vorn_auge = (V[:, 1] < ps[s][1]) & (Nv[:, 1] < -0.15)
             w = band * enden * nah * vorn_auge * seite[s] * stufe(rand_d[s], 0.0025, 0.005)
-            dd += (Nv * 0.5 * mm + np.array([0.0, 0.0, -0.7 * mm])) * w[:, None]
+            if wer == "m2":
+                dd += (Nv * 0.9 * mm + np.array([0.0, 0.0, -0.1 * mm])) * w[:, None]
+            else:
+                dd += (Nv * 0.5 * mm + np.array([0.0, 0.0, -0.7 * mm])) * w[:, None]
         ablegen(f"eigen_deckfalte_{wer}", dd)
 
     # ---------------------------------------------------------------- Unterlid: Lidwulst und Lid-Wangen-Furche
@@ -366,7 +393,7 @@ def augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, m
     rand = np.zeros(len(V), bool)
     for s in ("r", "l"):
         rand |= (rand_d[s] < 0.001) & (np.linalg.norm(V - ps[s], axis=1) < 0.028)
-    for name in ("eigen_augenhoehle", "eigen_deckfalte_m", "eigen_deckfalte_w", "eigen_unterlid"):
+    for name in ("eigen_augenhoehle", "eigen_deckfalte_m", "eigen_deckfalte_w", "eigen_unterlid") + (("eigen_deckfalte_m2",) if deckfalte_m2 else ()):
         b = np.linalg.norm(aus[name][:n_haut], axis=1)
         bericht[name]["lidrand_max_mm"] = round(float(b[rand].max() * 1000), 3)
 
@@ -588,3 +615,38 @@ def grundkopf5_formen(V, Nv, L, ablegen, mm):
         * stufe(Nv[:, 1], 0.3, -0.1) * (V[:, 1] < L[33, 1] + 0.02)
     dd += Nv * (1.7 * mm * wang)[:, None]
     ablegen("eigen_mitte_w", dd)
+
+
+def grundkopf5b_formen(V, Nv, L, ps, ablegen, bericht, mm):
+    """Grundkopf 5b: Nasenspitze der Frau nach unten gedreht, Nasenflanke gefüllt (siehe Kopf der Datei). Blender-Achsen:
+    x = linke Seite der Figur, −y = vorn, z = oben; Meter. ps: Augapfelmitten {"l"/"r": Punkt}."""
+    ax = np.abs(V[:, 0])
+    z_n, z_t, z_s = L[27, 2], L[30, 2], L[33, 2]
+    y_s = L[33, 1]
+    bericht["nase_merkpunkte_mm"] = {"27": [round(float(v) * 1000, 1) for v in L[27]], "30": [round(float(v) * 1000, 1) for v in L[30]],
+                                     "31": [round(float(v) * 1000, 1) for v in L[31]], "33": [round(float(v) * 1000, 1) for v in L[33]]}
+    # ---------------------------------------------------------------- Nasenspitze nach unten drehen
+    breit = stufe(ax, 0.029, 0.019)                                  # Nasenflügel und Spitze, Wange bleibt
+    steig = stufe(V[:, 2], z_t + 0.5 * (z_n - z_t), z_t + 0.003)     # 0 am halben Nasenrücken, 1 an der Spitze
+    unten = stufe(V[:, 2], z_s - 0.012, z_s - 0.0005)                # aus unter der Nasenbasis: die Oberlippe bleibt
+    vorn_n = stufe(V[:, 1], y_s + 0.013, y_s + 0.005)                # nur die vordere Nase
+    w = breit * steig * unten * vorn_n
+    dd = np.zeros_like(V)
+    dd[:, 2] -= 3.2 * mm * w
+    dd[:, 1] += 0.6 * mm * w
+    # Nasenflügel zusätzlich tiefer, damit die Nasenlöcher unter Spitze und Flügelrand verschwinden
+    fl = stufe(ax, 0.007, 0.011) * stufe(ax, 0.026, 0.020) * stufe(V[:, 2], z_s - 0.004, z_s + 0.001) \
+        * stufe(V[:, 2], z_t + 0.001, z_s + 0.006) * vorn_n
+    dd[:, 2] -= 1.2 * mm * fl
+    ablegen("eigen_nasenspitze_w", dd)
+    # ---------------------------------------------------------------- Nasenflanke füllen
+    dd = np.zeros_like(V)
+    for al, auge in ((39, "r"), (42, "l")):
+        en = L[al]
+        sg = np.sign(en[0])
+        x_m = sg * (abs(en[0]) - 0.0045)
+        d_auge = np.linalg.norm(V - ps[auge], axis=1)
+        w = np.exp(-0.5 * (((V[:, 0] - x_m) / 0.0055) ** 2 + ((V[:, 2] - (en[2] + 0.003)) / 0.010) ** 2))
+        w *= (np.sign(V[:, 0]) == sg) * stufe(d_auge, 0.012, 0.018) * stufe(Nv[:, 1], 0.2, -0.3) * (V[:, 1] < en[1] + 0.006)
+        dd += Nv * (2.0 * mm * w)[:, None]
+    ablegen("eigen_nasenflanke", dd)
