@@ -110,7 +110,9 @@ E5_GRUNDKOPF3 = {
               # Glanzpunkt tiefer (bei mandel und schlupf lag er unter dem Oberlid und wurde mit verschattet)
               "fenster_richtung": [-0.22, 0.06, 0.97]},
     "haut": {"fein": 0.7, "poren_faktor": 1.1},
-    "haar_breite_deckung": 1.0,
+    # Messung T400 (Commit 290cde1e): anteilige Deckung kostet im Haar +18 ms (die Tiefen-Vorstufe greift bei Alpha < 1
+    # nicht mehr, jede Haarlage wird gemischt) – aus; der Schalter bleibt für eine billigere Lösung
+    "haar_breite_deckung": 0.0,
 }
 # Frauenbrauen (Panel Grundkopf 2: „flächig“): feiner – weniger dick und dicht als in E4, weniger deckend; der Bogen sitzt
 # über die Form eigen_braue_w höher

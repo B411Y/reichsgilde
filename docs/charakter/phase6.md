@@ -1587,3 +1587,68 @@ schwankte um 3 ms (Rauschen). Gemessen mit glb6g; glb6h unterscheidet sich nur i
    --aus=~/werkzeuge/charakter/glb6h/regeln6.json --e3=1 --e4=1`; Haut `HAUTC_OPT="gk2=1" GLB=… tools/charakter/kopf6.sh haut_c`.
 4. Fratzen-Maß: Personenliste mit Saaten, `charakter_schau.tscn -- --gewichte=… --aus=… --ende` (headless), dann
    `stichprobe6._messen` je Person.
+
+## Grundkopf 3: Iris, Frauengesicht, Lidform als Erbmerkmal, Haar, Haut (Probekopf glb6i)
+
+Anlass (Nutzer 02.11.2026: „weiter nach Empfehlung“, Lidformen: alle drei einführen). Probekopf
+`~/werkzeuge/charakter/glb6i` (eigene Kopie von glb6h mit `cp -rL`, keine Verknüpfungen), Probebau `glb6p_h`
+(`eigen=4`), Rezept `tools/charakter/kopf6_rezept_grundkopf3.json`, Regeln `kopf6_verschieden.py --e3=1 --e4=1 --e5=1`.
+Vergleich „vorher“ ist glb6h (unverändert). Alle neuen Shaderwerte sind Schalter mit Standard „wie bisher“; ältere
+Probeköpfe sehen gleich aus (ihre regeln6.json hat keinen Abschnitt `grundkopf3`/`lidform`; `--e4` ohne `--e5` schreibt
+die regeln6.json von glb6h bitgleich).
+
+### Was gebaut ist
+
+- **Iris und Hornhaut** (`augen6.gdshader`, `hornhaut.gdshader`, Abschnitt `verschieden.grundkopf3.augen`):
+
+  | Was | glb6h | glb6i |
+  |---|---|---|
+  | Iris entsättigt / Kranz entsättigt | 0,5 / 0,35 | 0,3 / 0,2, Iris 12 % heller |
+  | feine Fasern (`iris_detail`): Kontrast, Radialfasern je Winkel (flimmerfrei ausgeblendet), Krypten aus dem Tiefenkanal | aus | 1,0 |
+  | Kaustik (Iris hellt gegenüber dem Licht auf) | aus | 0,8 |
+  | Parallaxe (`iris_tiefe`) | 0,09 | 0,2 |
+  | Limbusring Stärke / Breite / Kante zur Lederhaut | 0,72 / 0,22 / weich | 0,8 / 0,2 / schärfer (0,6) |
+  | grauer Saum außen am Limbus | 0,6 | 0,2 (der graue Hof machte den Blick glasig) |
+  | Glanzpunkt: Fenster / scharfer Kern | 1,0 × / – | 0,7 × (kleiner) / Kern 5,0, 0,04 rad |
+  | Lage des Glanzpunkts (Blickraum) | (−0,2; 0,17; 0,96) | (−0,22; 0,06; 0,97) – lag bei mandel und schlupf unter dem Oberlid |
+  | Umgebungsspiegelung (oben hell, Fresnel) | aus | 0,1 |
+
+- **Frauengesicht** (`kopf6_eigen.py`, `eigen=4`, im Rezept in der Reife der Frau): `eigen_stirn_w` (Stirn 1,4 mm vor,
+  Brauenwulst 0,8 mm zurück; Rezept 1,6), `eigen_braue_w` (äußere zwei Drittel der Braue 1,6 mm höher; 1,5),
+  `eigen_jochbein_w` (Jochbein 17 mm unter der Pupille 1,3 mm vor, darunter 0,6 mm flacher; 1,5), `eigen_kiefer_w`
+  (Kieferwinkel 2,5 mm zur Mitte, 1 mm hoch; 1,4), `eigen_nasenloch_w` (Nasenflügelrand 0,7 mm tiefer, 0,3 mm vor; 2,0).
+  Die Braue sinkt nicht mehr (`probe_eyebrows_trans_down` 0,3 → 0), die Augenhöhle der Frau ist flacher
+  (`eigen_augenhoehle` 0,35 → 0,1): Die Rinne über dem inneren Oberlid war der **graue Schatten** (Diagnose: mit
+  Augenringen, Augenschatten, Brauenschatten, Höhlen und Furchen auf 0 blieb er – er ist Form, nicht Farbe).
+  Frauenbrauen feiner: Dicke 1,6 → 1,25, Dichte 1,5 → 1,2, Deckung 1,05 → 0,85 (`verschieden.brauen.frau_*`).
+- **Lidform als Erbmerkmal** (`charakter_kopf.gd`, Abschnitt `verschieden.lidform`): Jede Person hat eine von drei
+  Formen (`lid_rund`, `lid_mandel`, `lid_schlupf` der .glb, Gewicht je Geschlecht 0,65–0,75, bei Kindern × 0,5–1 nach
+  der Reife, beim Lidschluss ausgeblendet). Quelle ist das Vorschlagsgen `lidform` in `erbgut_vorschlag.json` (gleich
+  verteilt 0–255, Mutation 0: das Kind erbt die Lidform eines Elternteils unverändert, verdeckte Allele können in der
+  nächsten Generation wieder auftauchen). Die Anteile je Volk teilen die Skala in drei Bänder (unten rund, Mitte mandel,
+  oben schlupf; Wert 128 ist beim Menschen mandel):
+
+  | Volk | rund | mandel | schlupf |
+  |---|---|---|---|
+  | Mensch | 25 % | 45 % | 30 % |
+  | Zwerg | 15 % | 35 % | 50 % |
+  | Elb | 10 % | 80 % | 10 % |
+  | Halbling | 50 % | 30 % | 20 % |
+  | Ork | 15 % | 40 % | 45 % |
+  | Oger | 15 % | 25 % | 60 % |
+
+  Menschen: die Mandelform ist in Mitteleuropa am häufigsten, das Schlupflid (Deckfalte über dem Lidrand) verbreitet und
+  nimmt mit dem Alter zu (das übernimmt das Gen `schlupflid`), runde Lider sind seltener. Gezielt setzen:
+  `lidform_vorgabe` am Kopf (Bogenschlüssel `"lidform"`), für den Charaktereditor gibt `lidform_wert(form, volk, lf)` den
+  Genwert in der Bandmitte zurück – so gesetzt wird die Form danach wie jede andere vererbt. Andere Völker rechnen ihre
+  Gene noch nach Phase 5 (`neue_rechnung_voelker` nur Mensch); die Anteile stehen bereit.
+- **Haar**: `mann_kurz` in glb6i neu gekämmt (`kopf4_haar.py nur=mann_kurz`, 65 s, danach alle Kopfhautkarten aus den
+  gespeicherten Wurzeln). Der dunkle Fleck ist weg. Die Wurzeldichte war vorher gleichmäßig (Nachbarn im Umkreis 4 mm
+  p50 7, max 12) – der Fleck lag an der zufälligen Lage der Strähnen, nicht an einer Kerbe der Kämmrichtung. Strähnen
+  an den Schläfen: eine Leitsträhne steht für ein Bündel, wurde aber als volle Linie gezeichnet; schmale Strähnen (unter
+  2 Bildpunkten) decken jetzt anteilig (`haar4_straehne.gdshader` `breite_deckung`, nicht unter 55 %; nur Frisuren).
+- **Haut**: dritte, feinere Lage der Porenkachel (× 2,3 dichter, gedreht) in Normale, Rauheit und Glanz
+  (`haut6.gdshaderinc` `c_fein` 0,7; eine Abtastung mehr, nur wenn an), Poren × 1,1.
+- **Vorfall-Schutz**: glb6i entstand mit `cp -rL` (echte Dateien); `mischen.sh` und das Kämmen verweigern, wenn im Ordner
+  eine Verknüpfung liegt. Die Dateien von glb6, glb6b2, glb6d–glb6h und glb6p_g sind nach allen Läufen unverändert
+  (Größe und Zeitstempel aller 907 Dateien gegen den Schnappschuss vom Anfang).
