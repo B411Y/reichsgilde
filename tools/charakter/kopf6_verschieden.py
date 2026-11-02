@@ -82,6 +82,36 @@ E4_BRAUEN = {"stand_mm_je_sigma": 1.2, "stand_oben_max_mm": 1.0, "stand_unten_ma
 E4_GRUNDKOPF2 = {"brauen_haerchen": 1.0, "brauen_haerchen_rest": 0.4, "poren_faktor": 1.35, "uneben": 0.85, "kontrast": 1.22,
                  "augen": {"schatten_oben": 0.55, "schatten_oben_weite": 0.4, "kontakt": 0.55, "traene": 0.45},
                  "ringe_faktor": 0.7}
+# Grundkopf 3 (Option --e5=1; Nutzer 02.11.2026 „weiter nach Empfehlung“, Lidformen als Erbmerkmal):
+# Lidform aus dem Gen „lidform“ (gleich verteilt 0–255, Mutation 0; Vorschlag an kern). Anteile je Volk (Reihenfolge der
+# Bänder: rund unten, mandel Mitte, schlupf oben). Menschen: Mandelform am häufigsten, Schlupflid (Deckfalte über dem
+# Lidrand) bei Mitteleuropäern verbreitet, runde Lider seltener. Elben fast nur mandel, Zwerge und Oger mit schwerem Lid
+# (tiefer Brauenwulst), Halblinge mit dem Kindchenschema runder.
+E5_LIDFORM = {
+    "gen": "lidform",
+    "anteile": {
+        "Mensch": {"rund": 0.25, "mandel": 0.45, "schlupf": 0.30},
+        "Zwerg": {"rund": 0.15, "mandel": 0.35, "schlupf": 0.50},
+        "Elb": {"rund": 0.10, "mandel": 0.80, "schlupf": 0.10},
+        "Halbling": {"rund": 0.50, "mandel": 0.30, "schlupf": 0.20},
+        "Ork": {"rund": 0.15, "mandel": 0.40, "schlupf": 0.45},
+        "Oger": {"rund": 0.15, "mandel": 0.25, "schlupf": 0.60},
+    },
+    # Formgewicht der Lidform (lid_<form> der .glb) je Geschlecht – kleiner als die Zeigeformen aus E2 (1,0)
+    "staerke": {"rund": {"m": 0.7, "w": 0.75}, "mandel": {"m": 0.7, "w": 0.75}, "schlupf": {"m": 0.75, "w": 0.65}},
+}
+# Augen, Brauen und Haut des Grundkopfs 3 (charakter_kopf.gd liest „verschieden.grundkopf3“)
+E5_GRUNDKOPF3 = {
+    "augen": {"iris_entsaettigt": 0.3, "kranz_entsaettigt": 0.2, "iris_detail": 1.0, "iris_kaustik": 0.8,
+              "iris_tiefe": 0.2, "limbus": 0.8, "limbus_breite": 0.2, "limbus_hart": 0.6,
+              "glanz_kern": 5.0, "glanz_kern_groesse": 0.04, "umgebung": 0.1, "fenster_faktor": 0.7,
+              "fenster_groesse": 0.09, "limbus_saum": 0.2, "iris_hell": 0.12},
+    "haut": {"fein": 0.7, "poren_faktor": 1.1},
+    "haar_breite_deckung": 1.0,
+}
+# Frauenbrauen (Panel Grundkopf 2: „flächig“): feiner – weniger dick und dicht als in E4, weniger deckend; der Bogen sitzt
+# über die Form eigen_braue_w höher
+E5_BRAUEN = {"frau_dicke": 1.25, "frau_dichte": 1.2, "frau_deckung": 0.85}
 NASEN_ZIELE = ["nose/nose-point-down", "nose/nose-point-up", "nose/nose-scale-vert-incr", "nose/nose-scale-vert-decr",
                "nose/nose-septumangle-incr", "nose/nose-septumangle-decr", "nose/nose-hump-incr", "nose/nose-hump-decr"]
 
@@ -91,6 +121,7 @@ def main():
     ein, aus = os.path.expanduser(opt["ein"]), os.path.expanduser(opt["aus"])
     e3 = opt.get("e3", "0") == "1"
     e4 = opt.get("e4", "0") == "1"
+    e5 = opt.get("e5", "0") == "1"
     R = json.load(open(ein, encoding="utf-8"))
     bericht = {}
     for gen, f in AUGEN.items():
@@ -156,6 +187,11 @@ def main():
         R["verschieden"]["brauen"].update(E4_BRAUEN)
         R["verschieden"]["grundkopf2"] = E4_GRUNDKOPF2
         R["verschieden"]["beschreibung"] += "; E4: Mäßigung (Augenpartie 1,0 × natürlich, weiche Kappen, engere Grenzen)"
+    if e5:
+        R["verschieden"]["lidform"] = E5_LIDFORM
+        R["verschieden"]["grundkopf3"] = E5_GRUNDKOPF3
+        R["verschieden"]["brauen"].update(E5_BRAUEN)
+        R["verschieden"]["beschreibung"] += "; E5: Lidform als Erbmerkmal, Augen und Brauen des Grundkopfs 3"
     os.makedirs(os.path.dirname(aus), exist_ok=True)
     with open(aus, "w", encoding="utf-8") as f:
         json.dump(R, f, indent=1, ensure_ascii=False)

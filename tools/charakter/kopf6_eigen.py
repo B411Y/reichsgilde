@@ -39,6 +39,17 @@ und Lippen):
                       Lippenfuge auslaufend), Oberlippe 0,25 mm höher, Unterlippe 0,25 mm tiefer
   eigen_lidkante      Lidkante mit Dicke: am Oberlid 0,5–2,5 mm über dem Rand ein Wulst 0,3 mm (die Kante liest sich als
                       runde Leiste mit Glanzlicht), am Unterlid 0,18 mm bei 0,9 mm; der Lidrand selbst bleibt am Augapfel
+
+Grundkopf 3 (nur mit grundkopf3=True bzw. kopf2_bauen.py eigen=4; Panel Grundkopf 2: „Frau nur durch das Haar weiblich“,
+Nasenlöcher von vorn):
+  eigen_stirn_w       Stirn der Frau runder und glatter: über der Braue (Mitte 30 mm über der Brauenlinie) 1,4 mm nach vorn,
+                      Brauenwulst und Glabella 0,8 mm zurück
+  eigen_braue_w       Brauenbogen höher: die Haut der äußeren zwei Drittel der Braue 1,6 mm nach oben (am Bogen, etwa 70 %
+                      der Brauenlänge, am stärksten, zum Ende auslaufend); Brauenkarten folgen, das Oberlid bleibt
+  eigen_jochbein_w    Jochbein höher: 1,3 mm nach außen 17 mm unter der Pupillenhöhe (eigen_jochbein: 24 mm), darunter
+                      0,6 mm flacher (weicher Übergang zur Wange)
+  eigen_kiefer_w      Kieferwinkel weicher: um lm3/lm13 2,5 mm zur Mitte und 1 mm nach oben (rundet den Winkel)
+  eigen_nasenloch_w   Nasenflügelrand 0,7 mm tiefer und 0,3 mm vor – deckt die Nasenlöcher in der Vorderansicht
 """
 import numpy as np
 
@@ -86,7 +97,8 @@ def _naechster(p, linie):
     return d, k
 
 
-def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False, grundkopf2=False):
+def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, etappe_d=False, grundkopf2=False,
+           grundkopf3=False):
     """Alle eigenen Formen. H: Hautecken (m), n_haut: Zahl der ICT-Hautecken (davor), flaechen: Hautflächen,
     L: 68 Merkpunkte (m), augen: {"l"/"r": (Mitte, Halbmesser)}, ausschluss: Ecken ohne Versatz (Mund- und
     Augenhöhlen), hals_abstand: Abstand jeder ICT-Hautecke zur Halsnaht (m), etappe_d: dazu die Formen der Augenpartie
@@ -242,6 +254,8 @@ def formen(H, n_haut, flaechen, L, augen, ausschluss, hals_abstand, mm=0.001, et
         augenpartie(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
     if grundkopf2:
         grundkopf2_formen(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_haut, mm)
+    if grundkopf3:
+        grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn)
     return aus, bericht
 
 
@@ -419,3 +433,64 @@ def grundkopf2_formen(V, Nv, L, ps, ober, unter_rand, ablegen, aus, bericht, n_h
         rand |= (dr < 0.0003) & (np.linalg.norm(V - ps[s], axis=1) < 0.028)
     b = np.linalg.norm(aus["eigen_lidkante"][:n_haut], axis=1)
     bericht["eigen_lidkante"]["lidrand_max_mm"] = round(float(b[rand].max() * 1000), 3)
+
+
+def grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn):
+    """Grundkopf 3: Stirn, Brauenbogen, Jochbein, Kiefer und Nasenflügel der Frau (siehe Kopf der Datei). Blender-Achsen:
+    x = linke Seite der Figur, −y = vorn, z = oben; Meter."""
+    ax = np.abs(V[:, 0])
+    brauen = {"r": [17, 18, 19, 20, 21], "l": [26, 25, 24, 23, 22]}      # je Seite von außen nach innen
+    z_braue = float(np.mean(L[17:27, 2]))
+    vorn_flaeche = vorn * stufe(Nv[:, 1], 0.1, -0.3)
+    # ---------------------------------------------------------------- Stirn runder, Brauenwulst flacher
+    dz = V[:, 2] - z_braue
+    buckel = np.exp(-0.5 * ((dz - 0.030) / 0.014) ** 2) * np.exp(-0.5 * (V[:, 0] / 0.032) ** 2) * stufe(dz, 0.006, 0.014)
+    wulst = np.exp(-0.5 * ((dz - 0.002) / 0.005) ** 2) * np.exp(-0.5 * (V[:, 0] / 0.026) ** 2)
+    oben = V[:, 2] > L[27, 2] - 0.004                                   # Nase und Lider bleiben
+    w = (1.4 * mm * buckel - 0.8 * mm * wulst) * vorn_flaeche * oben
+    ablegen("eigen_stirn_w", Nv * w[:, None])
+    # ---------------------------------------------------------------- Brauenbogen höher
+    dd = np.zeros_like(V)
+    for s in ("r", "l"):
+        b = L[brauen[s]]
+        o = np.argsort(np.abs(b[:, 0]))                                 # von innen nach außen
+        bx, bz = np.abs(b[o, 0]), b[o, 2]
+        x_in, x_aus = bx[0], bx[-1]
+        t = (ax - x_in) / max(x_aus - x_in, 1e-6)                       # 0 innen, 1 außen
+        hub = stufe(t, 0.1, 0.7) * (1 - stufe(t, 0.85, 1.25))
+        zb = np.interp(ax, bx, bz)
+        um = np.exp(-0.5 * ((V[:, 2] - zb - 0.002) / 0.006) ** 2)
+        lid = stufe(V[:, 2] - kante(L[ober[s]], V[:, 0]), 0.004, 0.008)  # Oberlid bleibt
+        w = hub * um * lid * (np.sign(V[:, 0]) == np.sign(ps[s][0])) * vorn_flaeche
+        dd[:, 2] += 1.6 * mm * w
+    ablegen("eigen_braue_w", dd)
+    # ---------------------------------------------------------------- Jochbein höher
+    hoch = np.exp(-0.5 * (((ax - 0.045) / 0.009) ** 2 + ((V[:, 2] - (z_p - 0.017)) / 0.007) ** 2))
+    tief = np.exp(-0.5 * (((ax - 0.043) / 0.010) ** 2 + ((V[:, 2] - (z_p - 0.036)) / 0.007) ** 2))
+    w = (1.3 * mm * hoch - 0.6 * mm * tief) * vorn * stufe(Nv[:, 1], 0.3, -0.1)
+    ablegen("eigen_jochbein_w", Nv * w[:, None])
+    # ---------------------------------------------------------------- Kieferwinkel weicher
+    dd = np.zeros_like(V)
+    for go in (3, 13):
+        G = L[go]
+        sg = np.sign(G[0])
+        a = np.linalg.norm((V - G) / np.array([0.014, 0.014, 0.016]), axis=1)
+        w = np.exp(-0.5 * a ** 2) * (np.sign(V[:, 0]) == sg) * stufe(V[:, 2], L[33, 2] + 0.005, L[33, 2] - 0.005)
+        dd[:, 0] -= sg * 2.5 * mm * w
+        dd[:, 2] += 1.0 * mm * w
+    ablegen("eigen_kiefer_w", dd)
+    # ---------------------------------------------------------------- Nasenflügelrand tiefer
+    dd = np.zeros_like(V)
+    nase = (ax < 0.022) & (V[:, 2] < L[30, 2] + 0.002) & (V[:, 2] > L[33, 2] - 0.006) & (V[:, 1] < L[33, 1] + 0.006)
+    for al in (31, 35):
+        a = L[al] + np.array([np.sign(L[al, 0]) * 0.0025, 0.0, -0.001])
+        w = np.exp(-0.5 * (np.linalg.norm(V - a, axis=1) / (3.5 * mm)) ** 2) * nase * (np.sign(V[:, 0]) == np.sign(L[al, 0]))
+        dd[:, 2] -= 0.7 * mm * w
+        dd[:, 1] -= 0.3 * mm * w
+    ablegen("eigen_nasenloch_w", dd)
+
+
+def kante(punkte, x):
+    """z der Linie durch `punkte` (nach x sortiert) an der Stelle x."""
+    o = np.argsort(punkte[:, 0])
+    return np.interp(x, punkte[o, 0], punkte[o, 2])
