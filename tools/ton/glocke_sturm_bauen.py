@@ -3,7 +3,7 @@
 Quelle ist die große Glocke Noteman (Aufnahme 204899 von klankbeeld, CC BY 4.0, Namensnennung verlangt; der vorhandene Ausschnitt
 glocke_feuer_1.ogg, siehe game/assets/audio/umgebung/HERKUNFT.md). Klangprobe A, vom Nutzer gewählt (2.11.2026): ein Schlag aus
 17,85–21,85 s des Ausschnitts, nach 0,6 s schneller ausklingend, über 1,8 kHz gedämpft, abwechselnd um den Faktor 1,12 und 1,06
-gesetzt (zwei Seiten der Glocke), ein Schlag alle 1,15–1,3 s mit leicht wechselnder Stärke (feste Saat 7, gleiche Datei bei jedem Bau).
+höher gesetzt (zwei Seiten der Glocke; tiefer als die erste Fassung mit 1,5), ein Schlag alle 1,15–1,3 s mit leicht wechselnder Stärke (feste Saat 7, gleiche Datei bei jedem Bau).
 Die Schläge liegen im Kreis: Was über das Ende hinausklingt, läuft am Anfang weiter, darum hat die Schleife keine Naht. Die Abstände
 sind so gestreckt, dass sie genau 50 s füllen. Lautheit RMS 0,12, Spitze höchstens 0,85, OGG Vorbis 112 kbit/s, mono, 48 kHz.
 Die Datei läuft als Schleife, bis das Feuer aus ist (KlangSturmlaeuten).

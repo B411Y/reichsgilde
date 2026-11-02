@@ -201,6 +201,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Blitzschlag: Wasser aus dem Eimer (Spritzer), Helfer aus den echten Passanten statt eigener Figuren; Flammen aus Fenstern und Dach (Wunsch des Nutzers, eigener Auftrag)
 - (von Kern) Sitzplätze der Schänken (Datenversion 67: 20/30/40): `Stadtansicht.Innenraeume.GaesteSchaetzung` rechnet die Gäste der Stunde selbst aus `ErwarteteGaeste`, das jetzt je Stunde höchstens die Plätze zählt – besser `Gastwirtschaft.GaesteJetzt(b, hoechstens)` oder `Platzbelegung(b)` nehmen (dort auch Barde, Plätze und Schankschluss 22 Uhr). Die Einwohner finden mit den Spieldaten immer Platz (Einwohner-Grenze > Einwohnerzahl), am Bild der Einwohner ändert sich nichts.
 - (F8) Freie Kamera nah auf Hoch kosten 313 Felsstücke weiter etwa +2,5 ms (Spielkamera +1,0 ms, im Ziel). Weitere Hebel, falls nötig: Grenze der feinen Stufe enger (45 → 30), Schuttsteine mit einer Abtastung statt dreiseitig, oder Fels-Shader ohne Wetter-Tropfen auf Hoch.
+- Blitzschlag: `BlitzUm(start)` (`Stadtansicht.Blitzbrand.cs`, genutzt in `Stadtansicht.Feuer.FlammenEnde`) sucht den Einschlag nur nach der Minute; ein Gaunerbrand, der in derselben Minute wie ein Blitz anderswo ausbricht, bekäme Dauer und Größe des Blitzfeuers. Kennung oder Betrieb mit vergleichen (Befund der Prüfung, selten).
 
 ## Entscheidungen
 
