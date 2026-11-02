@@ -148,14 +148,14 @@ public sealed class Jahreszeitenwesen
 
     /// <summary>
     /// Nachfragefaktor einer Ware in dieser Lage: der Faktor der Jahreszeit f, im strengen Winter 1 + (f − 1) × (1 + Zuschlag), mal 1 + Zuschlag
-    /// des Festmarkts.
+    /// des Festmarkts, wenn er für den Typ der Ware gilt (<see cref="FestmarktDaten.Typen"/>).
     /// </summary>
     public double NachfrageFaktor(string ware, Jahreszeit jahreszeit, bool streng, FestmarktDaten? festmarkt)
     {
         if (Daten is null) return 1;
         var f = Daten.Von(jahreszeit).NachfrageVon(ware);
         if (streng && jahreszeit == Jahreszeit.Winter && Daten.StrengerWinter is { } s) f = 1 + (f - 1) * (1 + s.NachfrageZuschlag);
-        return f * (1 + (festmarkt?.Nachfrage ?? 0));
+        return f * (festmarkt is not null && festmarkt.GiltFuer(_w.Daten.Waren.TryGetValue(ware, out var w) ? w.Typ : "") ? 1 + festmarkt.Nachfrage : 1);
     }
 
     /// <summary>Faktor des Schlamms auf ein Stück einer Fahrt (1 außer auf unbefestigten Wegen der Karte in einer Jahreszeit mit Schlamm).</summary>
@@ -261,7 +261,8 @@ public sealed class Jahreszeitenwesen
         foreach (var f in Daten.Festmaerkte.Where(f => f.Jahreszeit == zeit.Jahreszeit))
         {
             if (m == f.Von * 60 - Spielzeit.TagesbeginnMinute)
-                Melden($"Festmarkt: {f.Name} bis {f.Bis} Uhr – Händler und Käufer kommen von weit her, die Nachfrage am Markt steigt" +
+                Melden($"Festmarkt: {f.Name} bis {f.Bis} Uhr – Händler und Käufer kommen von weit her, die Nachfrage nach " +
+                       (f.Typen.Count == 0 ? "allen Waren" : string.Join(" und ", f.Typen.Select(TypMehrzahl))) + " steigt" +
                        (f.Gaeste > 0 ? ", die Wirtshäuser füllen sich." : "."));
             else if (m == f.Bis * 60 - Spielzeit.TagesbeginnMinute)
                 Melden($"Festmarkt: {f.Name} ist vorbei.");
@@ -291,6 +292,15 @@ public sealed class Jahreszeitenwesen
     }
 
     private void Melden(string text) => _w.Melden(text);
+
+    private static string TypMehrzahl(string typ) => typ switch
+    {
+        "Fertigprodukt" => "Fertigwaren",
+        "Zwischenprodukt" => "Zwischenprodukten",
+        "Rohstoff" => "Rohstoffen",
+        "Heilmittel" => "Heilmitteln",
+        _ => typ,
+    };
 
     /// <summary>Was zu Beginn eines Jahres über die Jahreszeit gemeldet wird – nach den Daten.</summary>
     private string Jahresmeldung(Spielzeit zeit)

@@ -6,9 +6,9 @@ Ein Spieltag ist ein Spieljahr, und jedes Jahr hat seine Jahreszeit: Frühling 1
 
 | Jahreszeit | Markt | Arbeit | Wege und Wasser |
 |---|---|---|---|
-| **Frühling** | Frühjahrsmarkt 10–16 Uhr | wie im Sommer | Schlamm: Karren fahren auf Trampelpfaden 30 % und auf Fahrwegen 20 % länger, auf Kies und Pflaster wie sonst; aus dem Umland ohne Weg auf der Karte 15 % länger |
+| **Frühling** | Frühjahrsmarkt 10–16 Uhr (Fertigwaren) | wie im Sommer | Schlamm: Karren fahren auf Trampelpfaden 30 % und auf Fahrwegen 20 % länger, auf Kies und Pflaster wie sonst; aus dem Umland ohne Weg auf der Karte 15 % länger |
 | **Sommer** | wie in den Daten | wie in den Daten | wie in den Daten |
-| **Herbst** | Ernte: Bauern bringen 25 % mehr Gerste und Roggen und 20 % mehr Kräuter auf den Markt, die Preise fallen; Herbstmarkt 10–16 Uhr | Bauernhof +20 %, Kräutergarten +15 % | wie im Sommer |
+| **Herbst** | Ernte: Bauern bringen 25 % mehr Gerste und Roggen und 20 % mehr Kräuter auf den Markt, die Preise fallen; Herbstmarkt 10–16 Uhr (Fertigwaren) | Bauernhof +20 %, Kräutergarten +15 % | wie im Sommer |
 | **Winter** | Nachfrage nach Brennholz +40 %, Kerzen und Kräuterschnaps +25 %, Heilsalbe +15 %, Kräuterlikör und Weingeist +10 % | Holzschlag −15 %, Steinbruch und Bauernhof −20 %, Kräuter- und Duftgarten −25 %; Grube, Klosterhof und alle Werkstätten wie sonst | im strengen Winter friert der Fluss zu (siehe unten) |
 
 Die Preise folgen der Nachfrage über die Elastizität des Marktes: 40 % mehr Nachfrage nach Holz heben den Preis um gut 18 %, 25 % mehr Gerste senken ihn um gut 10 %.
@@ -27,7 +27,7 @@ Wer im strengen Winter ein Schiff losschickt, bevor der Fluss zufriert, riskiert
 
 ## Festmärkte
 
-Im Frühling und im Herbst ist von 10 bis 16 Uhr **Festmarkt** (Frühjahrsmarkt und Herbstmarkt): Händler und Käufer kommen von weit her, die Nachfrage nach allen Waren steigt um 20 % (die Preise um gut 9 %), die Wirtshäuser haben 30 % mehr Gäste. Beginn und Ende stehen in den Meldungen.
+Im Frühling und im Herbst ist von 10 bis 16 Uhr **Festmarkt** (Frühjahrsmarkt und Herbstmarkt): Händler und Käufer kommen von weit her, die Nachfrage nach Fertigwaren steigt um 20 % (ihre Preise um gut 9 %), die Wirtshäuser haben 30 % mehr Gäste. Rohstoffe, Zwischenprodukte und Heilmittel bleiben, wie sie sind – sonst zahlten die Werkstätten mehr für ihre Zutaten, und der Wirt, der zu festen Preisen ausschenkt, verlöre. Beginn und Ende stehen in den Meldungen.
 
 ## Die KI-Häuser
 

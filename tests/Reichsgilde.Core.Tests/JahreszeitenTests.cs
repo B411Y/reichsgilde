@@ -75,6 +75,7 @@ static class JahreszeitenTests
             Pruefe.Wahr(Kaputt("\"Trampelpfad\": 1.3", "\"Pflaster\": 1.3").Contains("befestigt"), "Schlamm auf Pflaster");
             Pruefe.Wahr(Kaputt("\"zufrierenVon\": 7", "\"zufrierenVon\": 2").Contains("zufrierenVon"), "Stunde vor Tagesbeginn");
             Pruefe.Wahr(Kaputt("\"jahreszeit\": \"Herbst\", \"von\": 10", "\"jahreszeit\": \"Fruehling\", \"von\": 12").Contains("überschneiden"), "zwei Märkte zugleich");
+            Pruefe.Wahr(Kaputt("\"typen\": [ \"Fertigprodukt\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n", "\"typen\": [ \"Fertigware\" ], \"gaeste\": 0.3, \"besucher\": 0.6 }\n").Contains("Fertigware"), "unbekannter Warentyp");
         }),
 
         ("Jahreszeiten: Der Winter eines Jahres ist fest aus Startwert und Jahr; etwa drei von zehn sind streng, Zufrieren 7–10 Uhr, 6–14 Stunden", () =>
@@ -246,7 +247,7 @@ static class JahreszeitenTests
             Pruefe.Gleich(120, w.Fahrzeit(grube.Karren[0], zumMarkt: true));
         }),
 
-        ("Festmärkte: Im Frühling und Herbst von 10 bis 16 Uhr mehr Nachfrage und Gäste, Meldung zu Beginn und Ende; im Sommer keiner", () =>
+        ("Festmärkte: Im Frühling und Herbst von 10 bis 16 Uhr mehr Nachfrage nach Fertigwaren und mehr Gäste, Meldung zu Beginn und Ende; im Sommer keiner", () =>
         {
             var (sim, w) = Stadt(Minute(2, 9, 58));
             var meldungen = new List<string>();
@@ -256,6 +257,8 @@ static class JahreszeitenTests
             while (sim.Zeit.UhrzeitInMinuten <= 10 * 60) sim.Tick();
             Pruefe.Gleich("Herbstmarkt", w.Jahreszeiten.FestmarktJetzt?.Name);
             Pruefe.Ungefaehr(1.2, w.Markt["Werkzeug"].Jahreszeitfaktor, 1e-12);
+            Pruefe.Gleich(1.0, w.Markt["Gerste"].Jahreszeitfaktor); // nur Fertigwaren: Getreide und Rohstoffe der Werkstätten bleiben, wie sie sind
+            Pruefe.Gleich(1.0, w.Markt["Eisen"].Jahreszeitfaktor);
             Pruefe.Ungefaehr(1.6, w.Jahreszeiten.Besucherfaktor, 1e-12);
             Pruefe.Wahr(w.Markt["Werkzeug"].Preis > preis * 1.05, "Preis steigt");
             Pruefe.Wahr(meldungen.Any(m => m.StartsWith("Festmarkt: Herbstmarkt bis 16 Uhr")), string.Join(" | ", meldungen));

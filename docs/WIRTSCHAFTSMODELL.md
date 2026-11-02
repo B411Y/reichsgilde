@@ -2069,9 +2069,9 @@ Entscheidung des Nutzers vom 31.10.2026 (Weg B): Ein Spieltag bleibt ein Jahr, d
 
 | Jahreszeit | Nachfrage | Angebot (Ernte) | Arbeit | Wege |
 |---|---|---|---|---|
-| Frühling | Festmarkt 10–16 Uhr: alle Waren ×1,2 | – | – | Trampelpfad ×1,3, Fahrweg ×1,2; Umland fest ×1,15 |
+| Frühling | Festmarkt 10–16 Uhr: Fertigwaren ×1,2 | – | – | Trampelpfad ×1,3, Fahrweg ×1,2; Umland fest ×1,15 |
 | Sommer | – | – | – | – |
-| Herbst | Festmarkt 10–16 Uhr: alle ×1,2 | Gerste, Roggen ×1,25; Kräuter ×1,2 | Bauernhof 1,2; Kräutergarten 1,15 | – |
+| Herbst | Festmarkt 10–16 Uhr: Fertigwaren ×1,2 | Gerste, Roggen ×1,25; Kräuter ×1,2 | Bauernhof 1,2; Kräutergarten 1,15 | – |
 | Winter | Holz 1,4; Kerze, Kräuterschnaps 1,25; Heilsalbe 1,15; Kräuterlikör, Weingeist 1,1 – streng: Zuschlag ×1,5 (Holz 1,6) | – | Holzschlag 0,85; Steinbruch, Bauernhof 0,8; Kräuter-, Duftgarten 0,75 | streng: Fähre 120 statt 30 min, solange der Fluss zu ist |
 
 **Strenger Winter.** Kälte k je Winter aus `Zufallsquelle(Mischen(startwert, jahr))`; streng ab k ≥ 0,7 (Chance 0,3). Zufrieren um 7 + (Wurf mod 4) Uhr, Dauer 6 + round((k − 0,7)/0,3 × 8) Stunden, höchstens bis 23 Uhr. Im Eis lehnt der Hafen Aufträge ab, jedes Schiff außerhalb des Kais ruht (Beginn und Ende + 1 je Minute). Festmärkte: Wirtshausgäste ×1,3, Besucher ×1,6 (nur Darstellung).

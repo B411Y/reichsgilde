@@ -2120,8 +2120,8 @@
     },
     "strengerWinter": { "chance": 0.3, "nachfrageZuschlag": 0.5, "zufrierenVon": 7, "zufrierenBis": 10, "dauerMin": 6, "dauerMax": 14, "faehreMinuten": 120 },
     "festmaerkte": [
-      { "name": "Frühjahrsmarkt", "jahreszeit": "Fruehling", "von": 10, "bis": 16, "nachfrage": 0.2, "gaeste": 0.3, "besucher": 0.6 },
-      { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "gaeste": 0.3, "besucher": 0.6 }
+      { "name": "Frühjahrsmarkt", "jahreszeit": "Fruehling", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt" ], "gaeste": 0.3, "besucher": 0.6 },
+      { "name": "Herbstmarkt", "jahreszeit": "Herbst", "von": 10, "bis": 16, "nachfrage": 0.2, "typen": [ "Fertigprodukt" ], "gaeste": 0.3, "besucher": 0.6 }
     ]
   },
   "glaube": {

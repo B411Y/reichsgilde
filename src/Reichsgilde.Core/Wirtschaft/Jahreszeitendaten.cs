@@ -35,9 +35,12 @@ public sealed class JahreszeitenDaten
             Von(j).Pruefen(f, $"jahreszeiten.{KleinerName(j)}", waren, arten);
         StrengerWinter?.Pruefen(f);
         var namen = new HashSet<string>(StringComparer.Ordinal);
+        var typen = waren.Values.Select(w => w.Typ).ToHashSet(StringComparer.Ordinal);
         foreach (var m in Festmaerkte)
         {
             m.Pruefen(f);
+            foreach (var t in m.Typen.Where(t => !typen.Contains(t)))
+                f.Add($"jahreszeiten.festmaerkte „{m.Name}“: Einen Warentyp „{t}“ gibt es nicht.");
             if (!namen.Add(m.Name)) f.Add($"jahreszeiten.festmaerkte: Den Festmarkt „{m.Name}“ gibt es zweimal.");
         }
         foreach (var g in Festmaerkte.GroupBy(m => m.Jahreszeit).Where(g => g.Count() > 1))
@@ -156,8 +159,16 @@ public sealed class FestmarktDaten
     public int Von { get; init; } = 10;
     public int Bis { get; init; } = 16;
 
-    /// <summary>Zuschlag auf die Nachfrage aller Waren, solange der Markt läuft (0,2 = +20 %).</summary>
+    /// <summary>Zuschlag auf die Nachfrage, solange der Markt läuft (0,2 = +20 %) – für die Waren der <see cref="Typen"/>.</summary>
     public double Nachfrage { get; init; }
+
+    /// <summary>
+    /// Für welche Warentypen der Zuschlag gilt (leer: alle). Die Messebesucher kaufen Fertigwaren; Getreide und Rohstoffe teurer zu machen, traf die
+    /// Werkstätten, die sie verarbeiten – vor allem den Wirt, der zu festen Preisen ausschenkt (Zerlegung 2.11.2026: Wirt −10 / −18 %).
+    /// </summary>
+    public List<string> Typen { get; init; } = new();
+
+    public bool GiltFuer(string typ) => Typen.Count == 0 || Typen.Contains(typ);
 
     /// <summary>Zuschlag auf die Gäste der Wirtshäuser in diesen Stunden.</summary>
     public double Gaeste { get; init; }
