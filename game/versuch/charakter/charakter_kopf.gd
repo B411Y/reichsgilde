@@ -147,6 +147,11 @@ static var _erbgut6 := {}
 var volk := "Mensch"
 var aussehen_samen := 0         # 0 = keiner (Mittelgesicht: keine Asymmetrie)
 var iris_vorgabe := -1          # Bogenschlüssel „iris_muster“ (0–5), sonst Wahl nach Augenfarbe und Samen
+# Grundkopf 3 (Nutzer 02.11.2026): Lidform als Erbmerkmal – rund, mandel oder schlupf. Ohne Vorgabe aus dem Gen
+# („verschieden.lidform.gen“ der regeln6.json), mit Vorgabe gezielt gesetzt (Charaktereditor, Bogenschlüssel „lidform“)
+const LIDFORMEN := ["rund", "mandel", "schlupf"]
+var lidform_vorgabe := ""       # "" = aus dem Gen, sonst eine der LIDFORMEN
+var lidform := ""               # zuletzt gewählte Lidform (zum Prüfen; "" = Kopf ohne Lidformen)
 var gene_z := {}                # zuletzt gerechnete σ-Werte nach der Karikaturbremse (zum Prüfen)
 var karikatur := {}             # K vorher/nachher, Kappungen (zum Prüfen)
 static var _poren: NoiseTexture2D
@@ -728,6 +733,16 @@ func _anwenden6(w: Dictionary) -> void:
 		var b2 := 0.5 * (float(w.get("eyeBlinkLeft", 0.0)) + float(w.get("eyeBlinkRight", 0.0)))
 		var ruhe2 := maxf(lid, 0.0)
 		lid_auf = 1.0 - clampf((b2 - ruhe2) / maxf(1.0 - ruhe2, 0.01), 0.0, 1.0)
+	# Grundkopf 3: Lidform aus dem Gen oder der Vorgabe (Formen lid_<form> der .glb), wie die Lidfalte beim Lidschluss
+	# ausgeblendet; bei Kindern schwächer (die Formen sind am erwachsenen Lid gebaut)
+	var lf: Dictionary = vs.get("lidform", {})
+	lidform = ""
+	if not lf.is_empty() and formen.has("lid_mandel"):
+		lidform = lidform_vorgabe if lidform_vorgabe in LIDFORMEN else lidform_aus_wert(float(gene.get(lf["gen"], 128.0)), volk, lf)
+		var stk: Dictionary = lf["staerke"]
+		for n in LIDFORMEN:
+			var s := float(stk[n]["m"]) * mann + float(stk[n]["w"]) * (1.0 - mann)
+			w["lid_" + n] = (s * lerpf(0.5, 1.0, ro) if n == lidform else 0.0) * lid_auf * mimikfaktor
 	for k in zusatz_formen:
 		var f := lid_auf if String(k).begins_with("lid_") else 1.0
 		w[k] = float(w.get(k, 0.0)) + float(zusatz_formen[k]) * f
@@ -736,6 +751,30 @@ func _anwenden6(w: Dictionary) -> void:
 		form(name, float(w.get(name, 0.0)))
 	_merkpunkte(w)
 	_farben()
+
+# Grundkopf 3: Lidform aus dem Genwert. Das Gen ist gleich verteilt (0–255); die Anteile je Volk („anteile“, Reihenfolge
+# wie LIDFORMEN, Summe 1) teilen die Skala in drei Bänder – rund unten, mandel in der Mitte (Wert 128 ist beim Menschen
+# mandel), schlupf oben. Fehlt das Volk, gelten die Anteile der Menschen.
+static func lidform_aus_wert(wert: float, v: String, lf: Dictionary) -> String:
+	var an: Dictionary = lf["anteile"].get(v, lf["anteile"]["Mensch"])
+	var u := clampf((wert + 0.5) / 256.0, 0.0, 1.0)
+	var grenze := 0.0
+	for n in LIDFORMEN:
+		grenze += float(an[n])
+		if u < grenze:
+			return n
+	return LIDFORMEN[LIDFORMEN.size() - 1]
+
+# Umkehrung für den Charaktereditor: ein Genwert (0–255) in der Mitte des Bandes, der beim Volk genau diese Lidform gibt –
+# so lässt sich die Form gezielt setzen und wird danach wie jede andere vererbt
+static func lidform_wert(form: String, v: String, lf: Dictionary) -> int:
+	var an: Dictionary = lf["anteile"].get(v, lf["anteile"]["Mensch"])
+	var unten := 0.0
+	for n in LIDFORMEN:
+		if n == form:
+			return clampi(int((unten + 0.5 * float(an[n])) * 256.0), 0, 255)
+		unten += float(an[n])
+	return 128
 
 # Mittelwerte aller Gene der Vorschlagsdatei (Etappe B), für Zellen ohne Saat
 static func mittelwerte6(v: String) -> Dictionary:
@@ -1009,7 +1048,8 @@ func _farben() -> void:
 			m.set_shader_parameter("bild", brauen_bild)
 			m.set_shader_parameter("bilder6", bilder.get("brauen6"))
 			m.set_shader_parameter("ebene", ebene)
-			m.set_shader_parameter("deckung", (1.05 if mann else 1.05) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
+			# Grundkopf 3 (Prüfer: „Frauenbrauen flächig“): Frauenbrauen weniger deckend („verschieden.brauen.frau_deckung“)
+			m.set_shader_parameter("deckung", (1.05 if mann else float(vb.get("frau_deckung", 1.05))) if d_an else ((0.68 if mann else 0.88) if a_an else 1.0))
 			m.set_shader_parameter("mip_hub", 0.3)
 			m.set_shader_parameter("schwelle", 0.12 if d_an else (0.2 if a_an else 0.3))
 			m.set_shader_parameter("dunkel", 0.9 if d_an else (0.78 if a_an else 0.6))
@@ -1173,11 +1213,15 @@ func _farben() -> void:
 			iris_dreh = rng.randf_range(0.0, TAU)
 	werte3["iris_ebene"] = iris_ebene
 	var a_auge := st >= 6 and weg_a
+	var d_auge := a_auge and weg_d
+	# Grundkopf 3 (Prüfer: „Iris matt, Blick glasig“): Iris weniger entsättigt, feine Fasern, Kaustik, schärferer Limbus,
+	# stärkere Parallaxe; Hornhaut mit scharfem Glanzpunkt und schwacher Umgebungsspiegelung („verschieden.grundkopf3.augen“)
+	var gk3_auge: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf3", {}).get("augen", {}) if d_auge and volk == "Mensch" else {}
 	if a_auge:
 		# Weg A: Iris entsättigt (Diagnose: zu grün und gesättigt), Kranz ebenso; Limbus schmaler, damit die Iris nicht kleiner wirkt
-		iris = _entsaettigt(iris, 0.5)
-		kranz = _entsaettigt(kranz, 0.35)
-	var d_auge := a_auge and weg_d
+		iris = _entsaettigt(iris, float(gk3_auge.get("iris_entsaettigt", 0.5)))
+		iris = Color(iris.r, iris.g, iris.b).lightened(float(gk3_auge.get("iris_hell", 0.0)))
+		kranz = _entsaettigt(kranz, float(gk3_auge.get("kranz_entsaettigt", 0.35)))
 	# Grundkopf 2 (Prüfer: „leerer Blick, Augen wie eingesetzt“): Oberlid wirft mehr Schatten auf den Augapfel, Kontakt an
 	# der Lidkante dunkler – das Lid liegt sichtbar auf dem Auge; Tränensee am Unterlid weniger weiß
 	var gk2_auge: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf2", {}).get("augen", {}) if d_auge and volk == "Mensch" else {}
@@ -1194,7 +1238,16 @@ func _farben() -> void:
 		m.set_shader_parameter("staerke", 0.85 if d_auge else 1.0)
 		m.render_priority = 1 if d_auge else 0
 		# weiches Fenster-Glanzlicht, heller bei hellem Licht am Ort
-		m.set_shader_parameter("fenster", (0.15 + 0.5 * pupille_licht) if d_auge else 0.0)
+		m.set_shader_parameter("fenster", (0.15 + 0.5 * pupille_licht) * float(gk3_auge.get("fenster_faktor", 1.0)) if d_auge else 0.0)
+		m.set_shader_parameter("fenster_groesse", float(gk3_auge.get("fenster_groesse", 0.13)))
+		m.set_shader_parameter("glanz_kern", float(gk3_auge.get("glanz_kern", 0.0)) * (0.4 + 0.6 * pupille_licht))
+		m.set_shader_parameter("glanz_kern_groesse", float(gk3_auge.get("glanz_kern_groesse", 0.035)))
+		m.set_shader_parameter("umgebung", float(gk3_auge.get("umgebung", 0.0)) * (0.3 + 0.7 * pupille_licht))
+		if gk3_auge.has("fenster_richtung"):
+			var fr: Array = gk3_auge["fenster_richtung"]
+			m.set_shader_parameter("fenster_richtung", Vector3(fr[0], fr[1], fr[2]))
+		else:
+			m.set_shader_parameter("fenster_richtung", Vector3(-0.2, 0.17, 0.96))
 	for m in traene_stoffe:
 		m.set_shader_parameter("traene_d", d_auge)
 		m.set_shader_parameter("rauheit", 0.05 if d_auge else 0.08)
@@ -1203,12 +1256,15 @@ func _farben() -> void:
 	for m in augen_stoffe:
 		m.set_shader_parameter("iris_hohl", 0.55 if a_auge else 0.0)
 		m.set_shader_parameter("rand_schatten", (1.0 if d_auge else 0.8) if a_auge else 0.0)
-		m.set_shader_parameter("limbus", (0.72 if d_auge else 0.6) if a_auge else 0.75)
-		m.set_shader_parameter("limbus_breite", (0.22 if d_auge else 0.16) if a_auge else 0.25)
-		m.set_shader_parameter("iris_tiefe", 0.09 if d_auge else 0.0)
+		m.set_shader_parameter("limbus", float(gk3_auge.get("limbus", 0.72 if d_auge else 0.6)) if a_auge else 0.75)
+		m.set_shader_parameter("limbus_breite", float(gk3_auge.get("limbus_breite", 0.22 if d_auge else 0.16)) if a_auge else 0.25)
+		m.set_shader_parameter("iris_tiefe", float(gk3_auge.get("iris_tiefe", 0.09)) if d_auge else 0.0)
+		m.set_shader_parameter("iris_detail", float(gk3_auge.get("iris_detail", 0.0)))
+		m.set_shader_parameter("iris_kaustik", float(gk3_auge.get("iris_kaustik", 0.0)))
+		m.set_shader_parameter("limbus_hart", float(gk3_auge.get("limbus_hart", 0.0)))
 		m.set_shader_parameter("lederhaut_glanz", 0.25 if d_auge else 0.5)
 		m.set_shader_parameter("lederhaut_rauheit", 0.32 if d_auge else 0.18)
-		m.set_shader_parameter("limbus_saum", 0.6 if d_auge else 0.0)
+		m.set_shader_parameter("limbus_saum", float(gk3_auge.get("limbus_saum", 0.6)) if d_auge else 0.0)
 		# Pupille nach dem Licht (Etappe D): hell 3 mm, dämmrig bis 5 mm; nie kleiner als die Öffnung im Netz
 		m.set_shader_parameter("pupille", loch + (0.2 * (1.0 - pupille_licht) if d_auge else 0.0))
 		m.set_shader_parameter("iris_bilder6", bilder.get("iris6"))
@@ -1284,6 +1340,12 @@ func _haut_c_setzen(mann: bool, h: float, hh: float, bart: float, reif: float, g
 			m.set_shader_parameter("c_kontrast", float(gk2.get("kontrast", 1.15)))
 			# Runde 1 (Prüfer: „grauer Fleck zwischen Oberlid und Nasenwurzel wie ein Bluterguss“): Augenringe schwächer
 			m.set_shader_parameter("c_ringe", float(m.get_shader_parameter("c_ringe")) * float(gk2.get("ringe_faktor", 1.0)))
+	# Grundkopf 3 (Prüfer: „Haut noch glatt“): feinere dritte Porenlage, Poren noch etwas stärker
+	var gk3_haut: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf3", {}).get("haut", {}) if weg_d and volk == "Mensch" else {}
+	for m in haut_stoffe:
+		m.set_shader_parameter("c_fein", float(gk3_haut.get("fein", 0.0)))
+		if not gk3_haut.is_empty():
+			m.set_shader_parameter("c_poren_staerke", float(m.get_shader_parameter("c_poren_staerke")) * float(gk3_haut.get("poren_faktor", 1.0)))
 	werte3["haut_c"] = {"relief": rel, "wetter": w, "sommersprossen": spross, "bart": bart_c}
 
 # Halt B2: Farbe zur Helligkeit hin entsättigen (lineare Farbe als Color wie in _farben)
@@ -1335,6 +1397,9 @@ func _haar_aktualisieren(farbe: Color, grau: float) -> void:
 	hw["farbe"] = farbe
 	hw["grau"] = grau
 	hw["kopfmitte"] = Vector3(0.0, augen_mitte.y + 0.01, augen_mitte.z - 0.08)
+	# Grundkopf 3 (Prüfer: „harte Strähnenlinien an den Schläfen“): dünne Strähnen decken anteilig
+	var gk3: Dictionary = regeln6(regeln_pfad).get("verschieden", {}).get("grundkopf3", {}) if stand >= 6 and weg_a and weg_d and volk == "Mensch" else {}
+	hw["breite_deckung"] = float(gk3.get("haar_breite_deckung", 0.0))
 	# Prüfung (Bogen „haar“: {"vorgabe": {"pruef_weg": [von, bis]}}): Strähnen mit diesem Index ausblenden
 	if haar_vorgabe.has("pruef_weg"):
 		hw["pruef_weg"] = Vector2(float(haar_vorgabe["pruef_weg"][0]), float(haar_vorgabe["pruef_weg"][1]))

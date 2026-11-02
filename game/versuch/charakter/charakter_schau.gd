@@ -38,6 +38,7 @@
 #   --stufe=mittel|niedrig nimmt die Haut ohne Detailkacheln.
 # Etappe D: "weg_d": true (Augen und Brauen, zusammen mit "weg_a"), "pupille_licht": 0–1 (Helligkeit am Ort, Standard 0,8);
 #   --varianten=…:weg_d als 6. Feld.
+# Grundkopf 3: "lidform": "rund"|"mandel"|"schlupf" setzt die Lidform gezielt (sonst aus dem Gen „lidform“).
 extends Control
 
 const Kopf := preload("res://versuch/charakter/charakter_kopf.gd")
@@ -193,6 +194,7 @@ static func zelle_setzen(k: Kopf, z: Dictionary) -> void:
 	gene.merge(z.get("gene", {}), true)
 	k.volk = volk
 	k.iris_vorgabe = int(z.get("iris_muster", -1))
+	k.lidform_vorgabe = String(z.get("lidform", ""))   # Grundkopf 3: rund | mandel | schlupf, sonst aus dem Gen
 	k.gene = {}                                    # jede Zelle setzt alle Gene neu (nichts von der vorigen Person)
 	k.stand_setzen(int(z.get("stand", 5)))
 	k.weg_a_setzen(bool(z.get("weg_a", false)))       # Halt B2: Aussehen Weg A

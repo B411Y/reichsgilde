@@ -1,6 +1,6 @@
 {
  "version": 1,
- "beschreibung": "Charakter Phase 6 (Etappe B, Versuch): Vorschlag an kern – vollständige Kopie von game/daten/erbgut.json (Version 1, unverändert) plus Schub 1 (10 neue Gene, Plan S7) und die Gesichtszüge zug_01–zug_12 (Plan S6); Korrelationen nur in neue Gene. Wird nur im Versuch über Erbgutvorlage.AusJson geladen (ErbgutBruecke.cs), nicht vom Spiel. Die Gen-Vorlage des Erbguts (Phase 1 des Charakter-Editors). Jede Person trägt je Gen zwei Allele (0–255); eines ist sichtbar. Alle Völker teilen dieselbe Skala (0 = sehr wenig, 255 = sehr viel); Mann und Frau teilen die Werte (eigene Formen gibt ihnen die Darstellung); beiFrauen = bei Frauen zeigt sich statt dieses Gens ein anderes (der Bart). Je Volk: min/max = Grenzen, die immer halten; mittel und streuung = Glockenkurve, gewürfelt höchstens ±2 Streuungen vom Mittel (die Korrelationen können einen Wert darüber hinaus schieben, aber nie über min/max). dominanz = Chance in Prozent, dass das höhere Allel sichtbar wird (50 = Zufall). mutation = höchstens so viel weicht ein vererbtes Allel ab. alter = Verschiebung des sichtbaren Werts nach Menschenjahren (für die Darstellung). Erklärung: docs/spielbuch/erbgut.md",
+ "beschreibung": "Charakter Phase 6 (Etappe B, Versuch): Vorschlag an kern – vollständige Kopie von game/daten/erbgut.json (Version 1, unverändert) plus Schub 1 (10 neue Gene, Plan S7) und die Gesichtszüge zug_01–zug_12 (Plan S6), dazu „lidform“ (Grundkopf 3, 02.11.2026); Korrelationen nur in neue Gene. Wird nur im Versuch über Erbgutvorlage.AusJson geladen (ErbgutBruecke.cs), nicht vom Spiel. Die Gen-Vorlage des Erbguts (Phase 1 des Charakter-Editors). Jede Person trägt je Gen zwei Allele (0–255); eines ist sichtbar. Alle Völker teilen dieselbe Skala (0 = sehr wenig, 255 = sehr viel); Mann und Frau teilen die Werte (eigene Formen gibt ihnen die Darstellung); beiFrauen = bei Frauen zeigt sich statt dieses Gens ein anderes (der Bart). Je Volk: min/max = Grenzen, die immer halten; mittel und streuung = Glockenkurve, gewürfelt höchstens ±2 Streuungen vom Mittel (die Korrelationen können einen Wert darüber hinaus schieben, aber nie über min/max). dominanz = Chance in Prozent, dass das höhere Allel sichtbar wird (50 = Zufall). mutation = höchstens so viel weicht ein vererbtes Allel ab. alter = Verschiebung des sichtbaren Werts nach Menschenjahren (für die Darstellung). Erklärung: docs/spielbuch/erbgut.md",
  "gene": [
   {
    "kennung": "groesse",
@@ -2913,6 +2913,53 @@
      "min": 128,
      "mittel": 128,
      "max": 128,
+     "streuung": 0
+    }
+   }
+  },
+  {
+   "kennung": "lidform",
+   "name": "Lidform",
+   "art": "Merkmal",
+   "beschreibung": "Wählt die Form des Oberlids: rund, mandelförmig oder Schlupflid (die Anteile je Volk legt die Darstellung fest: unten rund, in der Mitte mandel, oben schlupf). Gleich verteilt und ohne Mutation – das Kind erbt die Lidform eines Elternteils unverändert.",
+   "dominanz": 50,
+   "mutation": 0,
+   "verteilung": "Gleich",
+   "voelker": {
+    "Mensch": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Zwerg": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Elb": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Halbling": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Ork": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
+     "streuung": 0
+    },
+    "Oger": {
+     "min": 0,
+     "mittel": 128,
+     "max": 255,
      "streuung": 0
     }
    }
