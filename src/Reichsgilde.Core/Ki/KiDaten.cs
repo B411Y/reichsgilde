@@ -15,11 +15,32 @@ public sealed class KiDaten
     /// <summary>Wann die KI Schiffe kauft und losschickt (Schiffshandel, PR #199). Fehlt der Teil, treibt sie keinen Schiffshandel.</summary>
     public KiSchiffDaten? Schiffe { get; init; }
 
+    /// <summary>Wie die KI sich auf die Jahreszeit einstellt (Vorrat vor dem Winter; Datenversion 67). Fehlt der Teil, legt sie keinen Vorrat an.</summary>
+    public KiJahreszeitenDaten? Jahreszeiten { get; init; }
+
     public void Pruefen(List<string> f)
     {
         Einrichtung?.Pruefen(f);
         Wegebau?.Pruefen(f);
         Schiffe?.Pruefen(f);
+        Jahreszeiten?.Pruefen(f);
+    }
+}
+
+/// <summary>
+/// Vorrat vor dem Winter (Datenversion 67): Im Herbst ab <see cref="VorratAbStunde"/> Uhr füllt der Verwalter eines KI-Hauses die Zutaten, die im
+/// Winter teurer werden (Nachfrage des Winters über 1) oder jetzt mit der Ernte billig sind (Angebot des Herbstes über 1), bis zur Lagergrenze auf –
+/// zum Marktpreis wie jeder Einkauf des Verwalters, im Rahmen seines Geldes (<c>logistik.zutatenAnteilKasse</c>).
+/// </summary>
+public sealed class KiJahreszeitenDaten
+{
+    /// <summary>Ab dieser vollen Stunde im Herbst (Uhrzeit) legt die KI Vorrat an.</summary>
+    public int VorratAbStunde { get; init; } = 17;
+
+    public void Pruefen(List<string> f)
+    {
+        if (VorratAbStunde < Zeit.Spielzeit.TagesbeginnMinute / 60 || VorratAbStunde >= Zeit.Spielzeit.TagesendeMinute / 60)
+            f.Add($"ki.jahreszeiten.vorratAbStunde muss zwischen {Zeit.Spielzeit.TagesbeginnMinute / 60} und {Zeit.Spielzeit.TagesendeMinute / 60 - 1} Uhr liegen.");
     }
 }
 
