@@ -207,6 +207,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels R1) Die Felsnähe zählt jeden gemalten Fels und Kies, auch Kiesufer auf Karten mit Felsen (6 m steiniger Saum); ggf. nur Kies schwächer gewichten.
 - (Fels R1) `felsgrund` rechnet sein Rauschen von oben (`p.xz`); an sehr steilem Hang-Fels (über 60°) streckt es sich. Auf Hoch dreiseitig gewichten, falls es stört.
 - (Fels R1) Der Übergang am Fuß ist bei kleinen Stücken dezent; den größten Gewinn gegen „hingestellt“ bringen große Stücke (R4) und „Hang mitformen“ (R5).
+- (F8) Freie Kamera nah auf Hoch kosten 313 Felsstücke weiter etwa +2,5 ms (Spielkamera +1,0 ms, im Ziel). Weitere Hebel, falls nötig: Grenze der feinen Stufe enger (45 → 30), Schuttsteine mit einer Abtastung statt dreiseitig, oder Fels-Shader ohne Wetter-Tropfen auf Hoch.
+- (Felsen R4) Felswand-Satz `natur_felswand.glb` ist noch nicht im Spiel: `Felsformen` (Kern) und Werkstatt kennen nur die 8 F1-Formen. Maße, Knoten und Kennungen für `Felsstuecke` stehen im Abschnitt „Felswand-Satz aus einem Dichtefeld“; Fallwinkel je Stück als Extra `schicht_neigung` für Shader-Bänder (R1).
+- (Felsen R4) „Hang mitformen“ (R5): Gelände hinter einer Wand erst etwa 2,5 m hinter der Fußlinie ansteigen lassen. Kehlen, Rinnen und Säulenversatz legen die Front bis 2–3 m hinter den Fuß; ein Hang, der direkt am Fuß steigt, sticht durch die Wand (gesehen in der Vorschau). Die Schutthalde (Fuß bis Haldenrand 2–3 m) gehört dabei vor die Fußlinie.
+- (Felsen R4) `wand_mittel_1` wirkt durch 38° Fallen und die zurücklaufenden Enden eher als schräger Keil denn als Wand; wenn es in der Werkstatt stört, Fallen auf etwa 30° senken (eine Zahl in `STUECKE`, neuer Lauf auf dem Grafik-PC).
 
 ## Entscheidungen
 
@@ -328,3 +332,26 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung | `--felsvergleich=1` am 02.11. abgebrochen: Rechner voll ausgelastet (Last 23–25, Blender und Messungen anderer), „GPU je Runde“ schwankte um bis zu 12 ms, selbst die Kulisse allein zeigte +10 ms – nicht belastbar. Erwartet aus dem Aufbau: wenige Rauschen mehr je Bildpunkt (Makro jetzt im Vertex-Shader), eine Abtastung für das Höhenbild, Fußteil nur am Fuß; Nachmessung bei ruhigem Rechner (spätestens R6) | 02.11.2026 |
 | Spiel wie Werkstatt | `boden_gestein_an` im Spiel erst mit Stücken oder gesetztem Grundgestein (vorher reichte ein leerer Abschnitt `felsen`) | 02.11.2026 |
 | Prüfung | zwei unabhängige Prüfer, kein hoher Befund; umgesetzt: Fuß kleiner Steine, Fußteil nur am Fuß, Makro im Vertex-Shader, Bänke dicker/dünner (Faktor 8), Risse früher aus, Grün nach Jahreszeit, Höhenbild Rh mit Vorrat und nur bei Geländeänderung neu, Textur beim Verlassen freigegeben | 02.11.2026 |
+### Baumodus: Stand im Umriss, Werkstatt-Bauplätze (PR #285)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umriss | Rot/grün nach `Bauwesen.BauVerboten` (erst Bauherr: Stand, Handwerk, Geld; dann der Platz) statt nur `PlatzVerboten` – dieselbe Prüfung wie beim Klick, keine neue Kern-Abfrage | 02.11.2026 |
+| Werkstatt-Bauplatz | Gestrichelter Rand (0,7 m, 2 m je Strich, Eisen und hell im Wechsel) und ein flacher Amboss in der Mitte, Beschriftung mit „nur Werkstätten“; in `BauzoneZeichnen`, also auch in der Kartenwerkstatt. `Stadtansicht.BauzoneUnterMaus` für den Tooltip der Oberfläche | 02.11.2026 |
+
+### Felswand-Satz aus einem Dichtefeld (Felsen R4, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bauweise | Jedes Stück ist ein Dichtefeld auf einem Gitter von 5–8 cm, die Fläche entsteht mit Surface Nets (numpy, `tools/modelle/natur_felswand.py`); danach Glätten, Voxel-Remesh (3–4,5 cm), feines Aufrauen, Stufen 0/1/2, Backen wie bisher. Ersetzt die Kluftblöcke aus Ebenenschnitten, die wie Mauerwerk aus gleich großen, waagrechten Quadern wirkten (Befund 02.11.2026). Freigabe des Modells durch den Nutzer: 20-m-Wände, die 8 F1-Formen bleiben | 02.11.2026 |
+| Schichtung | Bänke unterschiedlich dick, je Stück eigenes Fallen und eigene Fallrichtung (Wände 20–38°, Gesimse 3°, Pfeiler 15–18°); weiche Lagen wittern zurück (Kehle, Überhang nur dort), Bankkanten gerundet und entlang der Wand verschieden stark, nur ein Teil der Bankfugen offen; Feinschichtung (wellige Rillen) in einzelnen Bänken | 02.11.2026 |
+| Klüfte | Hauptklüfte als Voronoi-Kanten quer zur Kluftachse: schmale Kerben, die nach innen enger werden, nur 15–40 % tief (Spalten); Haarrisse als 3D-Voronoi nur auf gut der Hälfte der Fläche und auslaufend (keine geschlossenen Vielecke); je Rissfeld ein kleiner Versatz (gebrochene Flächen) | 02.11.2026 |
+| Großform | Rippen und Rinnen je Hauptkluft-Säule plus sanfte Welle entlang der Wand; Oberkante auf Schichtflächen (Sägezahn), Rinnen enden tiefer; Enden laufen in den Hang zurück und werden niedriger (Überlappen 40–70 %); Trachyt (`wand_gross_2`, Pfeiler, Bündel) mit senkrechter Kluftachse als Säulenfels, Pfeilerköpfe eben je Teilsäule | 02.11.2026 |
+| Schutt | Halde mit 36° vor dem Fuß, folgt der zurückgesetzten Front, in Rinnen höher, kantige Steine und einzelne Brocken, läuft an den Wandenden aus; der Schuttkegel ist ein eigenes Feld aus Steinen, am Fuß größer | 02.11.2026 |
+| Maße (B × T × H, m) | `wand_gross_1` 20,4 × 9,2 × 16,0 · `wand_gross_2` 14,1 × 10,0 × 18,7 · `wand_gross_3` 18,1 × 10,4 × 12,0 · `wand_mittel_1` 9,2 × 5,7 × 7,9 · `wand_mittel_2` 6,4 × 5,1 × 10,0 · `wand_mittel_3` 8,1 × 6,3 × 5,1 · `gesims_1` 10,1 × 3,9 × 2,0 · `gesims_2` 8,5 × 3,8 × 3,1 · `pfeiler_1` 6,2 × 5,9 × 17,4 (Säule 4 × 4, Rest Schuttfuß) · `pfeilerbuendel` 10,3 × 8,9 × 14,0 · `schuttkegel` 14,3 × 8,8 × 3,9. T schließt den Schuttfuß ein; Wände hinten offen bei y = T/2, Gesimse unten geschlossen, Pfeiler rundum geschlossen | 02.11.2026 |
+| Dreiecke | wie R4: große Stücke 11 000 / 3 600 / 1 100, mittlere 5 000 / 1 700 / 500, Gesimse 3 000 / 1 000 / 300, Pfeiler und Schuttkegel 6 000 / 2 000 / 600; zusammen 110 179 Dreiecke in 33 Knoten; Atlas 4096 × 2048 wie R4 | 02.11.2026 |
+| Ein Teil je Knoten | Nach dem Remesh und nach jedem Vereinfachen bleibt nur das größte zusammenhängende Teil (keine schwebenden Scherben, keine eingeschlossenen Höhlungen), doppelte Flächen und lose Kanten werden entfernt; das Rechengitter hat vorn genug Rand, damit Halde und Brocken auslaufen (Befunde der unabhängigen Prüfung) | 02.11.2026 |
+| Extra `schicht_neigung` | je Knoten die Neigung der Schichtfugen in der Wandebene (Grad, + = nach +X steigend), für Shader-Bänder, die der Schichtung folgen (R1) | 02.11.2026 |
+| Formprobe | `--probe` (mit `--nur=…`, wahlweise `--schnell`): hohes Netz und Stufe 0 im Hang, schräg von oben, nah und von der Seite, ohne Backen; auf der NAS in wenigen Minuten. Den vollen Lauf mit Backen macht der Grafik-PC (etwa 6 min) | 02.11.2026 |
+| Import | `.import`-Dateien wie F1 (Normale als Normal Map S3TC, Höhlung BPTC ohne sRGB, Mipmaps an), UIDs neu; Godot ergänzt Zieldateien beim ersten Import | 02.11.2026 |
+| Außerhalb des Bereichs | `tests/Reichsgilde.Core.Tests/KartenformatTests.cs` (kern): `natur/natur_felswand` braucht keinen Katalog-Eintrag (setzt der Fels-Pinsel) | 02.11.2026 |
