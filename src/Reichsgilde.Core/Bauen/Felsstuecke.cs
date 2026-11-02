@@ -182,12 +182,12 @@ public static class Felsformen
             new("rippe", 0, 0, 0, 1), new("rippe", -3.2, -1.0, 6, 0.8), new("rippe", 3.0, 0.8, -5, 0.85),
             new("schuttbrocken", -0.8, 6.2, 30, 1.3), new("schuttbrocken", 1.6, 5.6, 110, 1.1), new("platte", 0.4, 7.4, 20, 0.6, -0.1),
         }),
-        // Große Wand (R4/R5): drei große Wände nebeneinander (rund ein Drittel überlappt), davor zwei mittlere und Schuttkegel; sinnvoll mit „Hang mitformen“
+        // Große Wand (R4/R5): drei große Wände nebeneinander (rund ein Drittel überlappt), ein Pfeiler am Rand und Schuttkegel davor; sinnvoll mit „Hang mitformen“.
+        // Die mittleren Wände fehlen mit Absicht: Ihre Rückseite ist offen, und von hinten (die Kamera dreht in 90°-Schritten) stünden sie hohl vor dem Hang.
         new("wandgross", "Große Wand", new Gruppenstueck[]
         {
             new("wand_gross_1", 0, 0, 0, 1), new("wand_gross_2", -11.5, 1.0, 6, 0.95), new("wand_gross_3", 12.5, 1.5, -7, 0.95),
-            new("wand_mittel_1", -5, 9, 10, 1), new("wand_mittel_3", 6.5, 8.5, -8, 1),
-            new("schuttkegel", 0, 7.5, 0, 1), new("schuttkegel", -11, 8, 15, 0.8),
+            new("pfeiler_1", -21, 5, 12, 0.85), new("schuttkegel", 0, 7.5, 0, 1), new("schuttkegel", -11, 8, 15, 0.8),
         }),
     };
 
