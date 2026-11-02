@@ -90,6 +90,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bauort | `WerkstattBauen` ordnet die Bauorte wie bisher nach Luftlinie zum nächsten Platz und nimmt unter den ersten `StandortKandidaten` (20) den mit der kürzesten Fahrt des Startkarrens hin und zurück, bei Gleichstand den näheren (`KiRivale.Standort.cs`); ohne Fahrzeit nach Weglänge den ersten. Eine Schätzung über das Netz ab der Mitte des Grundrisses taugte nicht: Die Drehung bestimmt Hof und Zubringer (Greybox #2: geschätzt 45, wirklich 126 min). Deshalb fragt die KI die Kern-Abfrage `Stadtwirtschaft.FahrzeitAmBauort` (vorher eine eigene Kopie der Strecke, beim Zusammenführen in phase5/gehtempo ersetzt); `KiStandortTests` baut an fünf Orten (Greybox, Köln über das Pflaster) und vergleicht mit `Stadtwirtschaft.Fahrzeit`. In Köln ist der erste nach Luftlinie schon der beste. Der bestehende Test „baut neu – nahe am Markt“ prüft jetzt „unter den 20 nächsten“. | 01.11.2026 |
 | Tests | `KiKarrenwahlTests` (Durchfluss nach Lager und Fahrzeit, Formel, Holzschlag bekommt das Pferd, Tausch am Bauernhof, Warten auf den Karren, Sperre, Kölner Jahr mit Tausch im Lauf des Jahres, Tausch erst in der Frist, Höchstdauer: Ochse statt Pferd, Geld, alte Daten mit einem Kölner Jahr, ein Kölner Jahr „Schwer“), `KiStandortTests` (Schätzung = Kern, Greybox baut am schnellsten der nächsten, alte Daten nach Luftlinie). | 01.11.2026 |
 
+### Jahreszeiten (PR #…, von kern gebaut)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Schiffe im Eis | `SchiffeBleibenImHafen`: Ist der Fluss zu oder für heute angekündigt (`EisDroht`, die Stunde steht in der Meldung zum Jahresbeginn), schickt die KI kein Schiff los; nach dem Eisgang wieder. | 2.11.2026 |
+| Vorrat vor dem Winter | `WinterVorrat` (`ki.jahreszeiten.vorratAbStunde` 17): Im Herbst ab 17 Uhr füllt der Verwalter eines KI-Hauses Zutaten mit Winternachfrage oder Ernte (Holz, Gerste, Roggen, Kräuter) bis zur Lagergrenze – über `Karren.Vorratsziel`, zum Marktpreis, im Rahmen von `zutatenAnteilKasse`. Reine Rechnung aus Uhr und Daten. Der Verwalter des Spielers tut das nicht (Designfrage beim Teamleiter). | 2.11.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).

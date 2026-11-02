@@ -18,7 +18,7 @@ Die Preise folgen der Nachfrage über die Elastizität des Marktes: 40 % mehr Na
 Etwa jeder dritte Winter ist **streng** (der Rhein fror um 1400 in harten Wintern zu, etwa im Winter 1407/08). Die Meldung zum Jahresbeginn kündigt ihn an: „Ein strenger Winter: Eis treibt auf dem Rhein, gegen 8 Uhr friert er zu.“
 
 - Die Nachfrage des Winters wächst noch einmal um die Hälfte ihres Zuschlags: Brennholz +60 % statt +40 %, Kerzen +37,5 % statt +25 %.
-- Zwischen 7 und 10 Uhr **friert der Fluss zu**, für 6 bis 14 Stunden – je kälter, desto länger, manchmal bis zum Ende des Winters. Die Meldung: „Der Rhein ist zugefroren! Hafen und Fähre sind geschlossen, 1 Schiff liegt im Eis fest.“
+- Zwischen 7 und 10 Uhr **friert der Fluss zu**, für 6 bis 14 Stunden – je kälter, desto länger, manchmal bis zum Ende des Winters. Die Meldung: „Der Rhein ist zugefroren! Hafen und Fähre sind geschlossen, 1 Schiff ruht bis zum Eisgang – bis das Eis bricht.“
 - Solange der Fluss zu ist, **nimmt der Hafen keine Aufträge an**, und **alle Schiffe ruhen** – auch die auf dem Fluss und in der fernen Stadt. Sie kommen um die Eiszeit später heim. Den Unterhalt zahlen sie trotzdem.
 - Die **Fähre** liegt fest: Ein Karren, der über sie muss, wartet 120 statt 30 Minuten.
 - Bricht das Eis, meldet das Spiel den Eisgang, und Hafen und Fähre arbeiten wieder.
