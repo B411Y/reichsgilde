@@ -1622,7 +1622,7 @@ die regeln6.json von glb6h bitgleich).
   Augenringen, Augenschatten, Brauenschatten, Höhlen und Furchen auf 0 blieb er – er ist Form, nicht Farbe).
   Frauenbrauen feiner: Dicke 1,6 → 1,25, Dichte 1,5 → 1,2, Deckung 1,05 → 0,85 (`verschieden.brauen.frau_*`).
 - **Lidform als Erbmerkmal** (`charakter_kopf.gd`, Abschnitt `verschieden.lidform`): Jede Person hat eine von drei
-  Formen (`lid_rund`, `lid_mandel`, `lid_schlupf` der .glb, Gewicht je Geschlecht 0,65–0,75, bei Kindern × 0,5–1 nach
+  Formen (`lid_rund`, `lid_mandel`, `lid_schlupf` der .glb, Endstand Mann/Frau rund 0,5/0,55, mandel 0,55/0,6, schlupf 0,65/0,6, bei Kindern × 0,5–1 nach
   der Reife, beim Lidschluss ausgeblendet). Quelle ist das Vorschlagsgen `lidform` in `erbgut_vorschlag.json` (gleich
   verteilt 0–255, Mutation 0: das Kind erbt die Lidform eines Elternteils unverändert, verdeckte Allele können in der
   nächsten Generation wieder auftauchen). Die Anteile je Volk teilen die Skala in drei Bänder (unten rund, Mitte mandel,
@@ -1646,9 +1646,10 @@ die regeln6.json von glb6h bitgleich).
   gespeicherten Wurzeln). Der dunkle Fleck ist weg. Die Wurzeldichte war vorher gleichmäßig (Nachbarn im Umkreis 4 mm
   p50 7, max 12) – der Fleck lag an der zufälligen Lage der Strähnen, nicht an einer Kerbe der Kämmrichtung. Strähnen
   an den Schläfen: eine Leitsträhne steht für ein Bündel, wurde aber als volle Linie gezeichnet; schmale Strähnen (unter
-  2 Bildpunkten) decken jetzt anteilig (`haar4_straehne.gdshader` `breite_deckung`, nicht unter 55 %; nur Frisuren).
+  2 Bildpunkten) können anteilig decken (`haar4_straehne.gdshader` `breite_deckung`, nicht unter 55 %; nur Frisuren) –
+  im Endstand **aus**, weil es 18 ms kostet (siehe Messung).
 - **Haut**: dritte, feinere Lage der Porenkachel (× 2,3 dichter, gedreht) in Normale, Rauheit und Glanz
-  (`haut6.gdshaderinc` `c_fein` 0,7; eine Abtastung mehr, nur wenn an), Poren × 1,1.
+  (`haut6.gdshaderinc` `c_fein` 1,0; eine Abtastung mehr, nur wenn an), Poren × 1,25.
 - **Vorfall-Schutz**: glb6i entstand mit `cp -rL` (echte Dateien); `mischen.sh` und das Kämmen verweigern, wenn im Ordner
   eine Verknüpfung liegt. Die Dateien von glb6, glb6b2, glb6d–glb6h und glb6p_g sind nach allen Läufen unverändert
   (Größe und Zeitstempel aller 907 Dateien gegen den Schnappschuss vom Anfang).
