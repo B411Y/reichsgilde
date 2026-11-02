@@ -10,6 +10,7 @@ Alles, was das Spiel kann, im Detail – ein Kapitel je Thema. Die Kurzfassung s
 - [Einstellungen](einstellungen.md) – Voreinstellungen, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel
 - [Ton und Ansagen](ton.md) – Haushofmeister: die 20 Ereignisse, Vorrang, Pause, Abschalten; Geräusche der Stadt nach Tageszeit und Zoom
 - [Wirtschaft und Handel](wirtschaft-und-handel.md) – Markt, Betriebe, Karren, Handel von Hand, Hafen und Schiffe, Expansion, Meistergrade
+- [Jahreszeiten](jahreszeiten.md) – Winter mit Brennholz und Eis auf dem Fluss, Ernte im Herbst, Schlamm im Frühling, Festmärkte
 - [Berufe](berufe.md) – zehn Handwerke von Schmied bis Parfumeur
 - [Haus und Dynastie](haus-und-dynastie.md) – Wappen, Familie, Erbfolge, Talente, Gesundheit, Wohnhaus
 - [Erbgut](erbgut.md) – Gene mit zwei Allelen, Vererbung, Dominanz und Völker: die Grundlage der 3D-Köpfe
