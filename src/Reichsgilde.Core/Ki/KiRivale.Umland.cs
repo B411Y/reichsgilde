@@ -14,7 +14,7 @@ namespace Reichsgilde.Core.Ki;
 /// zieht die KI jetzt ab, was die Karren voraussichtlich nicht wegbringen (<see cref="UmlandSchaetzen"/>): Gewinn − (1 − Anteil) × Wert der
 /// Förderung; die Karren, die sie dafür über den Startkarren hinaus kaufen wird, zählen zu den Kosten wie der Kaufpreis (<see cref="NachDemWeg"/>).
 /// Der Anteil kommt aus dem echten Weg der Liegenschaft (dieselbe Strecke, die der Kern nach der Pacht rechnet) und den Karren, die die KI dort
-/// höchstens hätte (<see cref="KiProfil.MaxKarrenJeBetrieb"/> der Art mit dem meisten Durchfluss, wie beim Karrenkauf). Ein Weg, auf dem drei
+/// höchstens hätte (<see cref="MaxKarren"/> der Art mit dem meisten Durchfluss, wie beim Karrenkauf). Ein Weg, auf dem drei
 /// Karren die Förderung nicht schaffen, gilt so viel weniger, dass die KI eine nähere Liegenschaft, eine Werkstatt oder nichts nimmt.
 /// Ohne Fahrzeit nach Weglänge (alte Daten, keine Karte, kein Weg) bleibt es bei der alten Schätzung.
 /// </summary>
@@ -54,10 +54,14 @@ public sealed partial class KiRivale
         return weg is null ? null : _w.FahrzeitenAuf(weg, art, karrenTyp);
     }
 
+    // Die Schätzung beim Pachten rechnet mit höchstens KiProfil.MaxKarrenJeBetrieb (3) Karren, auch wenn der Kern im Umland 5 erlaubt
+    // (Datenversion 66): FahrminutenJeKarrenUndJahr ist an ein bis drei Karren geeicht, und mit 5 galten die weiten Liegenschaften als voll
+    // weggebracht – in der Messung pachtete die KI den Holzschlag im Eichenforst wieder (204 statt 12 Betriebsjahre, 43 % Stillstand;
+    // Befund H1 der Prüfung). Den vierten und fünften Karren kauft sie trotzdem, wenn ein Betrieb stillsteht.
     /// <summary>
     /// Was die KI von einer freien Umland-Liegenschaft erwartet, wenn sie dort Karren der Art mit dem meisten Durchfluss hält (wie beim Karrenkauf):
     ///   • <paramref name="Anteil"/>: welcher Teil der Förderung weggebracht wird (0 … 1), <c>min(1, Karren × Durchfluss × <see cref="FahrminutenJeKarrenUndJahr"/>
-    ///     ÷ Förderung im Jahr)</c> mit höchstens <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren. Durchfluss: Ladung (was der Karren fasst, höchstens
+    ///     ÷ Förderung im Jahr)</c> mit höchstens <see cref="KiProfil.MaxKarrenJeBetrieb"/> (3) Karren. Durchfluss: Ladung (was der Karren fasst, höchstens
     ///     Lager je Ware × Zahl der Rohstoffe) ÷ Fahrzeit hin und zurück. Förderung: volle Belegung mit der besten Arbeitskraft, die Ware mit dem
     ///     meisten Gewinn je Minute (wie <see cref="Kalkulation.ErwarteterJahresgewinn"/>);
     ///   • <paramref name="Wert"/>: Wert der vollen Förderung im Jahr (Gewinn je Arbeitsminute × Arbeitsminuten aller Plätze);
@@ -80,7 +84,7 @@ public sealed partial class KiRivale
         }
         if (FoerderungUndWert(art, leistung) is not var (stueck, wert) || stueck <= 0 || fluss <= 0) return null;
         var jeKarren = fluss * FahrminutenJeKarrenUndJahr;
-        var karren = Math.Clamp((int)Math.Ceiling(stueck / jeKarren - 1e-9), 1, Math.Max(1, Profil.MaxKarrenJeBetrieb));
+        var karren = Math.Clamp((int)Math.Ceiling(stueck / jeKarren - 1e-9), 1, Math.Max(1, Math.Min(MaxKarren(Arbeitsort.Umland), Profil.MaxKarrenJeBetrieb)));
         return new Umlandschaetzung(Math.Min(1, karren * jeKarren / stueck), wert, karren, typ);
     }
 

@@ -8,10 +8,17 @@ namespace Reichsgilde.Core.Ki;
 ///
 /// Karren wählen nach Durchfluss (phase5/gehtempo, Befund H1 der Prüfung): Seit der Kern die Fahrzeit nach Weglänge und Karrenart rechnet
 /// (Datenversion 65; Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s), kauft die KI die Art, die auf dem echten Weg am meisten bringt, und tauscht an der
-/// Grenze von <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren einen langsamen gegen einen schnelleren (<see cref="KarrenNachDurchfluss"/>).
+/// Grenze von <see cref="MaxKarren"/> Karren einen langsamen gegen einen schnelleren (<see cref="KarrenNachDurchfluss"/>).
 /// </summary>
 public sealed partial class KiRivale
 {
+    /// <summary>
+    /// So viele Karren hält die KI an einem Betrieb dieses Orts höchstens: die Grenze des Kerns (<c>logistik.karrenHoechstens</c>, Datenversion 66:
+    /// Werkstatt 3, Umland 5 – für Spieler und KI gleich), ohne sie <see cref="KiProfil.MaxKarrenJeBetrieb"/> (3). Über drei kauft sie nur wie jeden
+    /// Karren: ab <see cref="KiProfil.StillstandFuerKarrenkauf"/> Stillstand, wenn er sich in der Frist bezahlt macht (<see cref="BesterKarrenplan"/>).
+    /// </summary>
+    internal int MaxKarren(Arbeitsort ort) => _w.Daten.Logistik.HoechstKarren(ort) ?? Profil.MaxKarrenJeBetrieb;
+
     /// <summary>Braucht dieser Betrieb Karren? Alle außer Wache und Geldleihe (die haben nichts zu fahren).</summary>
     private bool BrauchtKarren(Betrieb b) => !_w.Wache.IstWachbetrieb(b) && !_w.Bank.IstBankbetrieb(b);
 
@@ -97,7 +104,7 @@ public sealed partial class KiRivale
 
     /// <summary>
     /// Was die KI für einen Betrieb erwägt, der im Vorjahr den Anteil <paramref name="stillstand"/> der Arbeitszeit stillstand:
-    ///   • unter der Grenze von <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren je Art einen Kauf;
+    ///   • unter der Grenze von <see cref="MaxKarren"/> Karren je Art einen Kauf;
     ///   • an der Grenze je Karren und jeder Art mit mehr Durchfluss einen Tausch (Preis − Erlös des alten) – auch für einen Karren, der gerade
     ///     unterwegs ist: Getauscht wird er, sobald er am Hof steht (<see cref="KarrenTauschen"/>).
     /// Die Wirkung schätzt sie aus dem Vorjahr: <c>Stillstand nachher = Stillstand vorher ^ (Durchfluss nachher ÷ Durchfluss vorher)</c> –
@@ -119,7 +126,7 @@ public sealed partial class KiRivale
             return new Karrenplan(typ, tausch, kosten, nachher, (vorher - nachher) * jahreswert);
         }
         var arten = _w.Daten.Logistik.Karren.OrderBy(x => x.Key, StringComparer.Ordinal).ToList();
-        if (b.Karren.Count < Profil.MaxKarrenJeBetrieb)
+        if (b.Karren.Count < MaxKarren(b.Ort))
         {
             foreach (var (typ, d) in arten)
                 yield return Plan(typ, null, d.Preis, jetzt + Durchfluss(b, typ));
@@ -194,7 +201,7 @@ public sealed partial class KiRivale
     internal bool TauschBereit(Betrieb b) => b.Karren.Count > 0 && b.Karren.All(k => k.FahrtenVorjahr is not null);
 
     /// <summary>
-    /// Jede Stunde (Betriebssache, auch aus dem Kerker): An der Grenze von <see cref="KiProfil.MaxKarrenJeBetrieb"/> Karren tauscht die KI nach
+    /// Jede Stunde (Betriebssache, auch aus dem Kerker): An der Grenze von <see cref="MaxKarren"/> Karren tauscht die KI nach
     /// Durchfluss (<see cref="KarrenNachDurchfluss"/>), wenn der Betrieb im Vorjahr zu oft stillstand und <see cref="TauschBereit"/> gilt – sobald
     /// der Karren, den der Plan tauschen will, am Hof steht. Zum Jahresende ist der langsamste Karren eines gebremsten Umlandbetriebs oft unterwegs
     /// (Köln: wartet vor dem Tor bis zum Morgen); deshalb nicht nur dann (Befund der Prüfung).
@@ -202,7 +209,7 @@ public sealed partial class KiRivale
     private void KarrenTauschen(Betrieb b)
     {
         // nicht in der Not: wie Ausbau und Expansion (sonst verkaufte KarrenNotverkauf den neuen Karren in der nächsten Stunde mit Verlust)
-        if (InNot || b.Belegt == 0 || b.Karren.Count < Profil.MaxKarrenJeBetrieb || !BrauchtKarren(b) || !TauschBereit(b)) return;
+        if (InNot || b.Belegt == 0 || b.Karren.Count < MaxKarren(b.Ort) || !BrauchtKarren(b) || !TauschBereit(b)) return;
         var anteil = b.StillstandMinutenVorjahr / (double)b.Arbeitsminuten;
         if (anteil < Profil.StillstandFuerKarrenkauf || !KarrenwahlNachDurchfluss(b)) return;
         KarrenNachDurchfluss(b, anteil);

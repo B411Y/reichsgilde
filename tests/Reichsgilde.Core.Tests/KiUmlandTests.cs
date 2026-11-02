@@ -85,7 +85,7 @@ static class KiUmlandTests
             }
         }),
 
-        ("KI-Umland: Schätzung – nahe Liegenschaften voll weggebracht, der Holzschlag im Eichenforst (Höchstdauer) nur gut ein Drittel; Werkstatt und Wachturm ohne Schätzung", () =>
+        ("KI-Umland: Schätzung – nahe Liegenschaften voll weggebracht, der Holzschlag im Eichenforst (Höchstdauer) nur gut ein Drittel (geschätzt mit drei Karren, auch wenn fünf erlaubt sind); Werkstatt und Wachturm ohne Schätzung", () =>
         {
             var (w, ki) = Partie("koeln");
             var silber = ki.UmlandSchaetzen("Grube am Silberberg", Betriebsart.Mine)!.Value;
@@ -94,7 +94,8 @@ static class KiUmlandTests
             Pruefe.Gleich(1.0, silber.Anteil);
             Pruefe.Wahr(eiche.Anteil is > 0.3 and < 0.45, $"Eichenforst {eiche.Anteil:0.00}");
             Pruefe.Wahr(bach.Anteil is > 0.6 and < 0.9, $"Kräutergarten am Bach {bach.Anteil:0.00}");
-            Pruefe.Gleich(ki.Profil.MaxKarrenJeBetrieb, eiche.Karren);
+            Pruefe.Gleich(ki.Profil.MaxKarrenJeBetrieb, eiche.Karren); // geschätzt mit höchstens 3, auch wenn der Kern im Umland 5 erlaubt
+            Pruefe.Gleich(5, ki.MaxKarren(Arbeitsort.Umland));
             Pruefe.Wahr(silber.Karren < eiche.Karren, "die nahe Grube braucht weniger Karren");
             // Gewinn nach dem Weg: unverändert, wo alles wegkommt; sonst um den Rest der Förderung kleiner, Karren als Kosten
             var g = Kalkulation.ErwarteterJahresgewinn(w, Betriebsart.Mine);
@@ -114,10 +115,12 @@ static class KiUmlandTests
             var kandidaten = ki.Expansionskandidaten();
             var namen = string.Join(", ", kandidaten.Select(x => x.Angebot.Name));
             var eiche = kandidaten.FindIndex(x => x.Angebot.Name == "Holzschlag im Eichenforst");
-            Pruefe.Wahr(eiche < 0 || kandidaten.Skip(eiche + 1).All(x => !x.Angebot.Name.StartsWith("Holzschlag") && !x.Angebot.Name.StartsWith("Grube")), namen);
+            var naeher = kandidaten.FindIndex(x => x.Angebot.Name == "Holzschlag Hardevust");
+            var grubeNr = kandidaten.FindIndex(x => x.Angebot.Name == "Grube am Silberberg");
+            Pruefe.Wahr(eiche < 0 || (eiche > naeher && eiche > grubeNr && eiche == kandidaten.Count - 1), namen);
             if (eiche >= 0)
             {
-                // an der Höchstdauer fahren alle Arten gleich lang: Wie beim Karrenkauf zählt der billigere Ochse (2 × 400)
+                // an der Höchstdauer fahren alle Arten gleich lang: Wie beim Karrenkauf zählt der billigere Ochse (2 × 400 über den Startkarren)
                 Pruefe.Gleich(800.0, kandidaten[eiche].Kosten);
                 Pruefe.Wahr(kandidaten[eiche].Gewinn < 300, $"Eichenforst {kandidaten[eiche].Gewinn}");
             }

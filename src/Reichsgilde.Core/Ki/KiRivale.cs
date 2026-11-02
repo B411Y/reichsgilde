@@ -18,7 +18,7 @@ namespace Reichsgilde.Core.Ki;
 /// <param name="Wechselschwelle">Um so viel (0,15 = 15 %) muss ein anderes Produkt besser sein, damit umgestellt wird.</param>
 /// <param name="MindestStundenJeProdukt">So lange bleibt die KI mindestens bei einem Produkt.</param>
 /// <param name="Vorsicht">1 = rechnet nüchtern; 2 = fürchtet Raubverluste doppelt so stark (nimmt eher Eskorte).</param>
-/// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht. An der Grenze tauscht sie (Fahrzeit nach Weglänge, stündlich, sobald
+/// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht, wenn der Kern keine Grenze nennt (<c>logistik.karrenHoechstens</c>, sonst gilt die; KiRivale.MaxKarren). An der Grenze tauscht sie (Fahrzeit nach Weglänge, stündlich, sobald
 /// der Karren am Hof steht) einen langsamen gegen einen schnelleren, wenn es sich bezahlt macht.</param>
 /// <param name="StillstandFuerKarrenkauf">Ab diesem Anteil Stillstand an der Arbeitszeit (0,2 = 20 %) kauft sie einen Karren.</param>
 /// <param name="MaxBetriebe">Mehr Betriebe erwirbt die KI nicht – sonst bliebe für Mitspieler nichts übrig.</param>
@@ -1881,10 +1881,11 @@ public sealed partial class KiRivale
         if (KarrenwahlNachDurchfluss(betrieb))
         {
             // Kaufen zum Jahresende; an der Grenze tauscht die KI stündlich, sobald der Karren am Hof steht (KarrenTauschen).
-            if (betrieb.Karren.Count < Profil.MaxKarrenJeBetrieb) KarrenNachDurchfluss(betrieb, anteil);
+            if (betrieb.Karren.Count < MaxKarren(betrieb.Ort)) KarrenNachDurchfluss(betrieb, anteil);
             return;
         }
-        if (betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb)
+        // alte Regel (ohne Fahrzeit nach Weglänge, ohne Amortisation): wie bisher höchstens die Grenze des Profils
+        if (betrieb.Karren.Count >= Math.Min(MaxKarren(betrieb.Ort), Profil.MaxKarrenJeBetrieb))
             return;
 
         // Kurze Stadtwege: kleiner, billiger Karren. Lange, gefährliche Umlandwege: viel Ladung je Fahrt.

@@ -99,6 +99,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Vorarbeiter mit Lager | Im Umland ab `StillstandFuerKarrenkauf` Stillstand (Fahrzeit nach Weglänge) bewertet `EigenschaftWert` die Eigenschaft „Ordnungsliebend“ (+20 Lager je Ware) wie einen Karrenkauf: Durchfluss mit dem größeren Lager, `Stillstand nachher = vorher ^ (Fluss nachher ÷ vorher)`, × Wert eines vollen Arbeitsjahres; andere Eigenschaften × (1 − Stillstand), weil mehr Förderung nur hilft, wo sie auch weggefahren wird. Der Kern bewertet Lager mit 0, die KI wählte es deshalb nie, solange eine andere der drei Eigenschaften Gulden brachte. Am Holzschlag fasst ein Kriegskarren dann 60 statt 40. Werkstätten wie bisher. | 1.11.2026 |
 | Tests | `KiUmlandTests`: Fahrzeit der Liegenschaft = Kern nach der Pacht (vier Kölner Liegenschaften, alle Karrenarten); Schätzung (Silberberg voll, Eichenforst 0,3–0,45, Kräutergarten am Bach 0,6–0,9, Karren und Kosten); in Köln steht der Eichenforst höchstens als letzter Kandidat (Kosten 2 Ochsen), der nähere Holzschlag weit davor; alte Daten wie bisher; Vorarbeiter im gebremsten Holzschlag (ein Jahr „Schwer“) wählt Lager. | 1.11.2026 |
 
+### Karren-Höchstzahl (Branch phase5/deutz-ki)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel der KI | `KiRivale.MaxKarren(ort)` = Grenze des Kerns, ohne sie das Profil (3). Den vierten und fünften Karren kauft die KI wie jeden: zum Jahresende ab 20 % Stillstand, wenn er sich in der Frist bezahlt macht (`BesterKarrenplan`); getauscht wird erst an der Grenze von 5. Die Schätzung beim Pachten (`UmlandSchaetzen`) rechnet mit bis zu 5 Karren. | 2.11.2026 |
+| Alte Regel | Ohne Fahrzeit nach Weglänge (keine Karte, kein Weg) kauft die KI wie bisher Ochsen- bzw. Handkarren ohne Amortisation und höchstens bis zur Grenze des Profils (3), auch wenn der Kern 5 erlaubt (Befund N2 der Prüfung). | 2.11.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
