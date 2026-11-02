@@ -569,7 +569,7 @@ public partial class Stadtansicht
             if (stunde != letzteStunde)
             {
                 var gezaehlt = stunde == letzteStunde + 1 && letzteStunde >= d.OeffnetUm && buch.Bewirtet >= bewirtetStand;
-                gezeigt = gezaehlt ? buch.Bewirtet - bewirtetStand : (int)Math.Round(GaesteSchaetzung(g, b, stunde));
+                gezeigt = gezaehlt ? buch.Bewirtet - bewirtetStand : g.Platzbelegung(b)?.Belegt ?? 0;
                 draussen = gezaehlt ? Math.Max(0, buch.Abgewiesen - abgewiesenStand) : 0;
                 letzteStunde = stunde;
                 bewirtetStand = buch.Bewirtet;
@@ -590,19 +590,10 @@ public partial class Stadtansicht
             barde.Koerper.Visible = spielt;
             a.Infotafel!.Text = !offen ? $"Ausschank ab {d.OeffnetUm} Uhr · dieses Jahr {buch.Bewirtet} Gäste bewirtet"
                 : $"{gezeigt} Gäste in der Stunde · dieses Jahr {buch.Bewirtet} bewirtet"
+                  + (g.Platzbelegung(b) is { } pl ? $"\nPlätze: {Zahlenformat.Ganz(pl.Belegt)} belegt / {Zahlenformat.Ganz(pl.Frei)} frei" + (pl.Frei == 0 ? " · heute kein Platz mehr" : "") : "")
                   + (draussen > 0 ? $" · {draussen} abgewiesen (kein Vorrat)" : "")
                   + (spielt ? "\nDer Barde spielt auf" : "");
         };
-    }
-
-    /// <summary>Erwartete Gäste in dieser Stunde – dieselbe Rechnung wie in der Gastwirtschaft (Gewichte nach Tageszeit, Barde).</summary>
-    private static double GaesteSchaetzung(Gastwirtschaft g, Betrieb b, int stunde)
-    {
-        var d = g.Daten;
-        double Gewicht(int h) => h < d.OeffnetUm ? 0 : h >= d.AbendAb ? d.AbendGewicht : 1;
-        var summe = Enumerable.Range(Spielzeit.TagesbeginnMinute / 60, Spielzeit.StundenProTag).Sum(Gewicht);
-        var barde = g.BardeGebucht(b) && stunde >= d.AbendAb ? 1 + d.Barde.Gaeste : 1;
-        return summe <= 0 ? 0 : g.ErwarteteGaeste(b) * Gewicht(stunde) / summe * barde;
     }
 
     /// <summary>
