@@ -205,7 +205,7 @@ public sealed class Einwohnerschaft
         var mitPlaetzen = g.IstAktiv && schaenken.Any(b => g.Sitzplaetze(b) is not null);
         return Quote(_einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList(), schaenken, g.Anziehung,
                      Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n,
-                     mitPlaetzen ? b => g.Sitzplaetze(b) ?? int.MaxValue : null,
+                     mitPlaetzen ? b => g.EinwohnerPlaetze(b, _einwohner.Count) ?? int.MaxValue : null,
                      Dringlichkeit);
     }
 
