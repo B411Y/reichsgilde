@@ -23,12 +23,17 @@ namespace Reichsgilde.Core.Bauen;
 //  (wie die Deko der Bodentexturen) – die Darstellung zeichnet sie mit dem Fels-Material des Stücks.
 // ═════════════════════════════════════════════════════════════════════════════
 
-/// <summary>Was der Boden von einem Felsstück braucht: Form, Mitte, Drehung (Grad) und Maßstab.</summary>
-public readonly record struct Felsfuss(string Form, double X, double Z, double Drehung, double Massstab)
+/// <summary>
+/// Was der Boden von einem Felsstück braucht: Form, Mitte, Drehung (Grad), Maßstab und (R2) die Faktoren je Achse – Breite und Tiefe für die
+/// Grundfläche, die Höhe für Kegel, Moossaum und Schuttsteine. Kippen, Rollen und Versatz bleiben außen vor (der Fleck liegt flach im Boden).
+/// </summary>
+public readonly record struct Felsfuss(string Form, double X, double Z, double Drehung, double Massstab, double AchseX = 1, double AchseY = 1,
+    double AchseZ = 1)
 {
-    public static Felsfuss Von(Felslage l) => new(l.Form, l.X, l.Z, l.Drehung, l.Massstab);
-    public static Felsfuss Von(EntwurfFels f) => new(f.Form, f.X, f.Z, f.Drehung, f.Massstab);
-    public static Felsfuss Von(Felsstueck f) => new(f.Form, f.Punkt is { Length: 2 } p ? p[0] : 0, f.Punkt is { Length: 2 } q ? q[1] : 0, f.Drehung, f.Massstab);
+    public static Felsfuss Von(Felslage l) => new(l.Form, l.X, l.Z, l.Drehung, l.Massstab, l.AchseX, l.AchseY, l.AchseZ);
+    public static Felsfuss Von(EntwurfFels f) => new(f.Form, f.X, f.Z, f.Drehung, f.Massstab, f.AchseX, f.AchseY, f.AchseZ);
+    public static Felsfuss Von(Felsstueck f) => new(f.Form, f.Punkt is { Length: 2 } p ? p[0] : 0, f.Punkt is { Length: 2 } q ? q[1] : 0, f.Drehung, f.Massstab,
+        f.Achsen is { Length: 3 } a ? a[0] : 1, f.Achsen is { Length: 3 } b ? b[1] : 1, f.Achsen is { Length: 3 } c ? c[2] : 1);
 }
 
 /// <summary>Ein Schuttstein vor einem Felsstück (Form „schuttbrocken“): Ort, Drehung (Grad), Maßstab.</summary>
@@ -78,10 +83,10 @@ public static class Felsboden
         public Lage(Felsfuss f, Felsform form, Hoehenraster hoehen)
         {
             (X, Z) = (f.X, f.Z);
-            (Rb, Rt) = (Grundflaeche * form.Breite * f.Massstab / 2, Grundflaeche * form.Tiefe * f.Massstab / 2);
+            (Rb, Rt) = (Grundflaeche * form.Breite * f.Massstab * f.AchseX / 2, Grundflaeche * form.Tiefe * f.Massstab * f.AchseZ / 2);
             var t = f.Drehung * Math.PI / 180;
             (C, S) = (DetMathe.Cos(t), DetMathe.Sin(t));
-            Hoehe = form.Hoehe * f.Massstab;
+            Hoehe = form.Hoehe * f.Massstab * f.AchseY;
             var (hx, hz) = Felsstreuung.Hang(hoehen, f.X, f.Z);
             var steigung = Pinselfilter.Betrag(hx, hz);
             Hang = steigung >= Felspinsel.HangAb;
