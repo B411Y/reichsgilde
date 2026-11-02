@@ -60,9 +60,11 @@ static class KartenformatTests
             foreach (var b in k.Bausteine.Where(b => b.Modell is not null))
                 Pruefe.Wahr(dateien.Contains(b.Modell!), $"Baustein „{b.Kennung}“: Modell {b.Modell}.glb fehlt");
             // Nicht in der Stadt aufgestellt: Figuren, Karren, Vögel, Innenräume, das Flussschiff; die Marktstände gehören zum Markt.
+            // Ohne Katalog: die Felsstücke (setzt der Fels-Pinsel, Felspinsel F3/F5) und die Kulissenberge hinter dem Kartenrand.
             var imKatalog = k.Bausteine.Select(b => b.Modell).OfType<string>().ToHashSet();
             var fehlen = dateien.Where(d => !imKatalog.Contains(d) && !d.StartsWith("figuren/") && !d.StartsWith("fahrzeuge/") && !d.StartsWith("tiere/")
-                                            && !d.StartsWith("innen/") && d != "gebaeude/marktstaende" && d != "gebaeude/lichter" && d != "wasser/wasser_schiff").ToList();
+                                            && !d.StartsWith("innen/") && d != "gebaeude/marktstaende" && d != "gebaeude/lichter" && d != "wasser/wasser_schiff"
+                                            && d != "natur/natur_felsen" && !d.StartsWith("kulisse/")).ToList();
             Pruefe.Wahr(fehlen.Count == 0, "Modelle ohne Baustein im Katalog: " + string.Join(", ", fehlen));
         }),
 

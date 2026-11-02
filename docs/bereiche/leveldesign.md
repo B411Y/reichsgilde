@@ -38,6 +38,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Höhenkarten (Terrain3D-Übernahme Etappe 2): Das Kartenskript liest r16/raw ein (`hoehenkarte-einlesen`, LEVELDESIGN „Höhenkarten“, Herkunft nach `tools/Kartenbau/Staedte/HOEHENDATEN.md`). Für Köln mit amtlichem DGM NRW (dl-de/zero-2.0) wäre eine Hilfe im Stadtskript sinnvoll (z. B. `Hoehenkarte(pfad, lage, herkunft)` in `Stadtskript`, Datei außerhalb des Repositorys, SHA-256 im Skript); Vorschlag an infra: die HERKUNFT-Zeile im Kartenskript in der CI prüfen.
 - Köln, Werkstatt-Bauplätze (1.11.2026, Branch phase5/gehtempo): Zusammen mit der Stelle am Malzbüchel gibt es 8 Stellen unter 45 Minuten statt der empfohlenen 10–15 – mehr passt ohne die Hausreihe vor dem Tor nicht.
 - Kartenwerkstatt: Das Zonenfeld `nur` (Werkstatt-Bauplatz) bleibt beim Bearbeiten erhalten, lässt sich in den Eigenschaften einer Bauzone aber noch nicht setzen oder löschen (Kern hat `EntwurfBauzone.Nur`, ein Befehl mit Rückgängig fehlt).
+- Köln, Werkstatt-Bauplätze (1.11.2026, Branch phase5/gehtempo): Sieben der acht Deutzer Einwohnerplätze stehen jetzt vor dem Südtor an der Siegburger Straße; ob Deutz in der Mauer wieder Wohnhäuser braucht (Bild), mit dem Nutzer klären. Zusammen mit der Stelle am Malzbüchel gibt es 8 Stellen unter 45 Minuten statt der empfohlenen 10–15 – mehr passt ohne die Hausreihe vor dem Tor nicht.
 
 ## Entscheidungen
 
@@ -129,3 +130,8 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Selbst getroffen | Häuser 3 m von der Mauerlinie statt 4 m (`Reihe(…, mauerAbstand: 3)`; Regel 1 m), sonst passt an der Südmauer kein Haus. Die Einwohnerplätze der Urbanusgasse zählen zu den 8 Deutzer Plätzen (zwei in der Mauer, sechs vor dem Südtor statt eins und sieben); die übrigen Häuser sind Kulissen (stehen auch mit wenigen Rivalen). Die Rasterzone V15 an der Ostmauer fällt weg (Kapazität 7.608 statt 7.687 Felder, passt). Tests mit Köln-Zahlen nachgezogen (`BauenTests`: 36 Wege, 57 Zonen; `KartenbauTests`: Kapazität und Prüfsumme). | 1.11.2026 |
 | Mauer | Die Deutzer Mauer endet am Rhein bei x = 128,5 statt 130 (beide Enden): Die Stadtansicht zählt einen Einwohnerplatz zur Stadt, wenn seine Mitte innerhalb der geschlossen gedachten Mauerlinie liegt, und die beiden an der Urbanusgasse stehen bei x = 129 (die Gassenmitte hält 2 m zu WB_Neumarkt1, der Platz 3 m zum Wasser; Abstand zur Mauerlinie nur 0,55 m). Sonst blieben sie leer, bis die Vorstadt voll ist (Bild geprüft). Zonen, Gebäude und Wege bleiben gleich (das Nordtor rastet von z −47 auf −46,95). | 1.11.2026 |
 | Fahrzeiten | WB_Neumarkt1–5 vorher und nachher gleich (Handkarren 26, 20, 20, 22, 33 Minuten; Ochse 32, 25, 26, 27, 42). | 1.11.2026 |
+### Kartenwerkstatt: „nur Werkstätten“ einer Bauzone (PR #285)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Eigenschaften | Häkchen „nur Werkstätten“ in der Tafel einer Bauzone setzt bzw. löscht `"nur": "werkstatt"`; Befehl `Kartenentwurf.BauzoneNurSetzen(zone, nur)` (Kern, mit Rückgängig, nur „werkstatt“ oder null, Test `KartenwerkstattBauzoneNurTests`) | 02.11.2026 |
