@@ -25,6 +25,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Kartenwerkstatt mit `--werkstatt-ausprobieren=<Beruf>`: Die Probepartie startet, während `Kartenwerkstatt._Ready` noch in `ErsteBilderAbwarten` wartet; danach greift es auf die schon freigegebene Werkstatt zu (`ObjectDisposedException` bei `GetTree()`, Kartenwerkstatt.cs:192, einmal im Log). Nur über die Startoption, die Probepartie läuft trotzdem. Vorschlag: nach `StartoptionenAusfuehren` abbrechen, wenn die Werkstatt nicht mehr im Baum ist.
 - (Felsen) Einzelne Felsstücke lassen sich in der Werkstatt noch nicht wählen, verschieben oder drehen (nur stempeln, streuen, radieren). Empfehlung: mit F5 (Darstellung als MultiMesh) einen Treffer je Stück und Ziehen wie bei Pflanzen nachrüsten.
 - (von Kern) Mehrere Marktplätze je Stadt (Köln: Heumarkt, Alter Markt, Neumarkt; Branch phase5/gehtempo): Ein Stadtmarkt mit gemeinsamen Preisen – das Marktfenster gilt für alle Plätze. Karrentafel und Handel von Hand könnten nennen, zu welchem Platz ein Karren fährt (`Stadtwirtschaft.MarktplatzVon(betrieb)?.Name`); die Ankunft (`AnkunftAmMarkt(karren)`) rechnet schon mit dem Weg dorthin.
+- Schänke: „Plätze: belegt / frei“ und „heute kein Platz“ auch auf die Infotafel im Gastraum (steht bisher nur in der Betriebsverwaltung).
 
 ## Entscheidungen
 
@@ -300,3 +301,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bautafel | Öffnet immer rechts unter dem Zeitstrahl (`PlatzSetzen` wie die Auswahl, auch nach dem Ziehen); die Höhe hält Zeitstrahl und Betriebsleiste frei (`RechtsAnheften`) | 02.11.2026 |
 | Bauliste | Die Zeile „keine Ampeln → return“ aus #282 stand in `ListeZeigen` statt nur in `FahrwegZeigen`: Bei offener Liste gibt es nie Ampeln, Legende und alle Gebäudeknöpfe fehlten. Entfernt (Befund der Prüfung) | 02.11.2026 |
 | Werkstatt-Bauplatz | Tooltip an der Maus über einer Zone mit `"nur": "werkstatt"` („Nur Werkstätten …“), Zeile in „Platz wählen“, Legende „Rand mit Amboss: nur Werkstätten“ nur auf Karten mit solchen Zonen; kein Tooltip bei offener Rückfrage, die graue Zeile nur bei grünem Umriss | 02.11.2026 |
+
+### Sitzplätze in der Schänke (PR #287)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anzeige | Betriebsverwaltung (`GaststubeAktualisieren`) unter „Erwartet ≈ … Gäste“: „Plätze: belegt / frei (von n)“ aus `Gastwirtschaft.Platzbelegung` (Schätzung der laufenden Stunde), dahinter „heute kein Platz: n“ aus `Gaestebuch.Voll` nur, wenn größer 0, mit „(davon m ohne Platz in der ganzen Stadt)“ aus `Ausgefallen`. Nur Gäste-Plätze, keine Einwohner-Grenze (greift mit den Spieldaten nie). Tooltip in einfacher Sprache am Gästetext | 02.11.2026 |

@@ -34,10 +34,10 @@ static class KarrenHoechstzahlTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Karren-Höchstzahl: Daten 66 – Werkstatt 3, Umland 5; Prüfung meldet unbekannte Orte und Werte unter 1", () =>
+        ("Karren-Höchstzahl: Daten ab 66 – Werkstatt 3, Umland 5; Prüfung meldet unbekannte Orte und Werte unter 1", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(66, d.Version);
+            Pruefe.Gleich(67, d.Version);
             Pruefe.Gleich(3, d.Logistik.HoechstKarren(Arbeitsort.Werkstatt));
             Pruefe.Gleich(5, d.Logistik.HoechstKarren(Arbeitsort.Umland));
             Pruefe.Wirft(() => DatenMit(j => j["logistik"]!["karrenHoechstens"]!["Umland"] = 0));
