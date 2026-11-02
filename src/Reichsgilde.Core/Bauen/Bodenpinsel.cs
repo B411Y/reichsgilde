@@ -94,6 +94,17 @@ public sealed class Bodenaenderung
             if (alt[c] is { } w) aus[c] = w[n];
     }
 
+    /// <summary>Der Anteil einer Textur an einem Punkt vor dem Strich (0 … 255; die Wiese bekommt, was übrig bleibt).</summary>
+    internal byte GewichtVorher(int i, int j, Bodentextur t)
+    {
+        Span<byte> w = stackalloc byte[Bodenraster.Kanaele];
+        Vorher(i, j, w);
+        if (t != Bodentextur.Wiese) return w[(int)t - 1];
+        var summe = 0;
+        for (var c = 0; c < Bodenraster.DekoKanal; c++) summe += w[c];
+        return (byte)(255 - summe);
+    }
+
     /// <summary>Setzt die elf Werte eines Punkts; merkt sich vorher seine Kachel.</summary>
     internal void Setzen(int i, int j, ReadOnlySpan<byte> werte)
     {
