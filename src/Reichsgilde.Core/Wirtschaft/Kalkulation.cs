@@ -115,10 +115,12 @@ public static class Kalkulation
     /// (nach Steuer). Erlös hier: was die Rückfracht am Markt bringt (nach Steuer; jedes Stück drückt den Preis) – auch für Ware, die ins
     /// Lager geht. Zoll je beladener Fahrt: Zollstellen × Anteil × Wert der Ladung zum Marktpreis. Geleit je beladener Fahrt.
     /// Risiko: Chance der Piraten × Erfolgschance (mit Geleit) × Beuteanteil × Wert der Ladung × <paramref name="vorsicht"/>.
-    /// Mit <see cref="SchiffshandelDaten.VerkehrBeachten"/> (Datenversion 67) kommen andere Schiffe, die schon unterwegs sind, zuerst an: Was sie
-    /// dort verkaufen bzw. an Rückfracht kaufen und was sie heimbringen, steht in den Preisen schon als verkauft bzw. gekauft
-    /// (<see cref="Unterwegs"/>, <see cref="Heimfracht"/>). Sonst plant jedes Schiff, als wäre es allein: Fährt schon eines zur selben Stadt,
-    /// bringt das zweite im Mittel nichts mehr (Messung 2.11.2026, Köln).
+    /// Mit <see cref="SchiffshandelDaten.VerkehrBeachten"/> (Datenversion 67) gilt als schon gehandelt, was andere Schiffe vorher erledigen: Was sie
+    /// dort verkaufen bzw. an Rückfracht kaufen und was sie heimbringen (<see cref="Unterwegs"/>, <see cref="Heimfracht"/>). Angenommen ist,
+    /// dass sie vorher ankommen (ein Schiffstyp, gleiche Ladezeit; ändert sich die Fahrzeit durch einen Hafenausbau, kann ein späteres Schiff
+    /// überholen) und dass das geplante Schiff selbst am Kai liegt (sonst zählte es sich mit). Dass sich der Markt dort bis zur eigenen Ankunft
+    /// ein wenig erholt, wird nicht abgezogen – vorsichtig gerechnet. Ohne den Schalter plant jedes Schiff, als wäre es allein: Fährt schon eines
+    /// zur selben Stadt, bringt das zweite im Mittel wenig oder nichts mehr (Messung 2.11.2026, Köln).
     /// </summary>
     public static Fahrtrechnung Schiffsfahrt(Stadtwirtschaft w, Konto konto, SchiffstypDaten typ, FerneStadt stadt,
         IReadOnlyDictionary<string, int> hinfracht, IReadOnlyDictionary<string, int> rueckfracht, bool ausLager = false, string geleit = "Keine",
@@ -227,8 +229,9 @@ public static class Kalkulation
     }
 
     /// <summary>
-    /// Rückfracht, die andere Schiffe noch heimbringen und am Markt verkaufen werden (geladen oder geplant) – je Ware in Stück; ohne die
-    /// Schiffe, deren Auftrag in das Lager eines Betriebs liefert, und leer ohne <see cref="SchiffshandelDaten.VerkehrBeachten"/>.
+    /// Rückfracht, die andere Schiffe noch heimbringen und am Markt verkaufen werden (geladen oder geplant, aus jeder fernen Stadt) – je Ware in
+    /// Stück; ohne die Schiffe, deren Auftrag in das Lager eines Betriebs liefert (was nicht mehr ins Lager passt, ginge doch an den Markt), und
+    /// leer ohne <see cref="SchiffshandelDaten.VerkehrBeachten"/>.
     /// </summary>
     private static Dictionary<string, int> Heimfracht(Stadtwirtschaft w)
     {

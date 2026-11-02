@@ -20,7 +20,8 @@ static class SchiffsverkehrTests
         var knoten = JsonNode.Parse(Json.Value)!.AsObject();
         var s = knoten["schiffshandel"]!.AsObject();
         Pruefe.Wahr(s["verkehrBeachten"]?.GetValue<bool>() == true, "verkehrBeachten steht nicht in wirtschaft.json");
-        if (!verkehr) s.Remove("verkehrBeachten");
+        if (verkehr) s["verkehrBeachten"] = true;
+        else s.Remove("verkehrBeachten"); // wie alte Daten: ohne Angabe aus
         s["piraten"]!["chance"] = 0;
         return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
     }
@@ -38,12 +39,12 @@ static class SchiffsverkehrTests
 
     static readonly Dictionary<string, int> Hin = D(("Silberring", 10)), Rueck = D(("Gold", 10));
 
-    /// <summary>Das erste Haus schickt sein Schiff mit <see cref="Hin"/> und <see cref="Rueck"/> nach Weidenmünd.</summary>
-    static Schiff Vorausschicken(Stadtwirtschaft w, Konto k)
+    /// <summary>Das erste Haus schickt sein Schiff mit <see cref="Hin"/> und <see cref="Rueck"/> nach Weidenmünd (oder mit dem Auftrag, der übergeben wird).</summary>
+    static Schiff Vorausschicken(Stadtwirtschaft w, Konto k, SchiffsauftragErteilen? auftrag = null)
     {
         Pruefe.Wahr(w.Ausfuehren(k, new SchiffKaufen()).Erfolg, "Schiff kaufen");
         var schiff = w.Schiffahrt.SchiffeVon(k).Single();
-        var e = w.Ausfuehren(k, new SchiffsauftragErteilen(schiff.Name, "Weidenmünd", Hin, Rueck));
+        var e = w.Ausfuehren(k, auftrag is null ? new SchiffsauftragErteilen(schiff.Name, "Weidenmünd", Hin, Rueck) : auftrag with { Schiff = schiff.Name });
         Pruefe.Wahr(e.Erfolg, e.Meldung);
         return schiff;
     }
@@ -99,25 +100,48 @@ static class SchiffsverkehrTests
             Pruefe.Gleich(w.Markt["Gold"].Verkaufswert(10) * (1 - w.SteuersatzMarkt(hinten)) * vf, Rechnung(w, hinten).ErloesHeim, "heimgekehrt: nichts mehr unterwegs");
         }),
 
-        ("Schiffsverkehr: Die KI schickt ein zweites Schiff nicht mehr mit derselben Fracht hinterher, wenn sie dadurch nichts mehr brächte", () =>
+        ("Schiffsverkehr: Der Vorschlag für das zweite Schiff rechnet mit dem ersten – weniger Gewinn, und Vorschlag und Rechnung stimmen überein", () =>
+        {
+            var typ = Daten(true).Schiffshandel!.Schiffe["Flussschiff"];
+            // Das erste Schiff nimmt den besten Auftrag nach Weidenmünd, das zweite bekommt danach seinen Vorschlag
+            Fahrtvorschlag Zweiter(bool verkehr, out Fahrtvorschlag ersterVorschlag)
+            {
+                var (_, w, vorne, hinten) = Stadt(verkehr);
+                var erster = Kalkulation.BesteSchiffsfahrt(w, vorne, typ, 30_000, ziel: "Weidenmünd");
+                Pruefe.Wahr(erster is not null, "Vorschlag für das erste Schiff");
+                ersterVorschlag = erster!;
+                Vorausschicken(w, vorne, new SchiffsauftragErteilen("", "Weidenmünd", erster!.Hinfracht, erster.Rueckfracht));
+                var zweiter = Kalkulation.BesteSchiffsfahrt(w, hinten, typ, 30_000, ziel: "Weidenmünd");
+                Pruefe.Wahr(zweiter is not null, $"Vorschlag für das zweite Schiff ({(verkehr ? "mit" : "ohne")} Schalter)");
+                Pruefe.Gleich(zweiter!.Rechnung.Gewinn, Kalkulation.Schiffsfahrt(w, hinten, typ, w.Schiffahrt.Stadt(zweiter.Ziel)!, zweiter.Hinfracht, zweiter.Rueckfracht).Gewinn,
+                    "Vorschlag und Rechnung stimmen überein");
+                return zweiter;
+            }
+            var ohne = Zweiter(verkehr: false, out var erster);
+            var mit = Zweiter(verkehr: true, out _);
+            Pruefe.Wahr(mit.Rechnung.Gewinn < ohne.Rechnung.Gewinn - 50, $"mit Schalter erwartet das zweite Schiff weniger ({ohne.Rechnung.Gewinn:0} → {mit.Rechnung.Gewinn:0})");
+            Pruefe.Wahr(ohne.Rechnung.Gewinn > erster.Rechnung.Gewinn - 400, "ohne Schalter sieht das zweite Schiff fast denselben Gewinn wie das erste (es kennt es nicht)");
+        }),
+
+        ("Schiffsverkehr: Ein Schiff zur anderen Stadt zählt dort nicht mit; eine Rückfracht ins Lager eines Betriebs geht nicht an den Markt", () =>
         {
             var (_, w, vorne, hinten) = Stadt(verkehr: true);
-            Vorausschicken(w, vorne);
-            var typ = w.Schiffahrt.Daten!.Schiffe["Flussschiff"];
-            var mit = Kalkulation.BesteSchiffsfahrt(w, hinten, typ, 30_000, ziel: "Weidenmünd");
-            var (_, w2, vorne2, hinten2) = Stadt(verkehr: false);
-            Vorausschicken(w2, vorne2);
-            var ohne = Kalkulation.BesteSchiffsfahrt(w2, hinten2, typ, 30_000, ziel: "Weidenmünd");
-            Pruefe.Wahr(ohne is not null, "ohne Schalter gibt es einen Vorschlag");
-            Pruefe.Wahr(mit is null || mit.Rechnung.Gewinn < ohne!.Rechnung.Gewinn, "mit Schalter erwartet der Vorschlag weniger");
-            if (mit is not null)
-            {
-                Pruefe.Wahr(mit.Hinfracht.GetValueOrDefault("Silberring") <= ohne!.Hinfracht.GetValueOrDefault("Silberring"), "nicht mehr Silberringe hinterher");
-                Pruefe.Gleich(mit.Rechnung.Gewinn, Rechnung2(w, hinten, typ, mit).Gewinn, "Vorschlag und Rechnung stimmen überein");
-            }
+            var vorher = Rechnung(w, hinten);
+            Vorausschicken(w, vorne, new SchiffsauftragErteilen("", "Eisenfurt", D(("Körnermahlzeit", 10)), D(("Eisen", 10))));
+            var nachher = Rechnung(w, hinten);
+            Pruefe.Gleich(vorher.ErloesFern, nachher.ErloesFern, "Erlös in Weidenmünd");
+            Pruefe.Gleich(vorher.EinkaufFern, nachher.EinkaufFern, "Einkauf in Weidenmünd");
+            Pruefe.Gleich(vorher.ErloesHeim, nachher.ErloesHeim, "Gold daheim (das Eisen ist eine andere Ware)");
+
+            var (_, w2, vorne2, hinten2) = Stadt(verkehr: true);
+            var b = w2.BetriebEroeffnen("Gießerei am Hafen", Betriebsart.Giesserei, vorne2, startkarren: "");
+            b.Einlagern("Silberring", 10);
+            var vorher2 = Rechnung(w2, hinten2);
+            Vorausschicken(w2, vorne2, new SchiffsauftragErteilen("", "Weidenmünd", Hin, Rueck, Betrieb: b.Name));
+            var nachher2 = Rechnung(w2, hinten2);
+            Pruefe.Gleich(vorher2.ErloesHeim, nachher2.ErloesHeim, "die Rückfracht geht ins Lager, nicht an den Markt");
+            Pruefe.Wahr(nachher2.ErloesFern < vorher2.ErloesFern, "die Silberringe aus dem Lager verkauft es dort trotzdem vorher");
         }),
     };
 
-    static Fahrtrechnung Rechnung2(Stadtwirtschaft w, Konto k, SchiffstypDaten typ, Fahrtvorschlag v) =>
-        Kalkulation.Schiffsfahrt(w, k, typ, w.Schiffahrt.Stadt(v.Ziel)!, v.Hinfracht, v.Rueckfracht);
 }
