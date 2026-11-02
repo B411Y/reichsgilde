@@ -125,7 +125,8 @@ E5_BRAUEN = {"frau_dicke": 1.25, "frau_dichte": 1.2, "frau_deckung": 0.85}
 E6_BRAUEN = {"frau_dicke": 1.6, "frau_dichte": 1.5, "frau_deckung": 1.05}
 # Runde 1 (Panel: „weißer Glanzstreifen an Schläfe und Stirn“, Scheitel heller Hautstreifen, rund „glotzt“): Glanz
 # weniger fleckig, etwas matter; Haut unter dichtem Haar dunkler; rund etwas schwächer
-E6_GRUNDKOPF4 = {"haut": {"rau_unruhe": 0.1, "glanz_unruhe": 0.25, "rau_zusatz": 0.05, "unruhe_faktor": 1.35,
+# Runde 2 (Panel: „Stirn- und Nasenglanz im Spiellicht wachsig“, „zu glatt“): rauer, Unruhe stärker
+E6_GRUNDKOPF4 = {"haut": {"rau_unruhe": 0.1, "glanz_unruhe": 0.25, "rau_zusatz": 0.08, "unruhe_faktor": 1.5,
                           "streu_faktor": 0.85},
                  "kopfhaut_dunkel": 0.93}
 E6_LIDFORM_STAERKE = {"rund": {"m": 0.45, "w": 0.5}}

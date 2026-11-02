@@ -55,9 +55,9 @@ Grundkopf 4 (nur mit grundkopf4=True bzw. kopf2_bauen.py eigen=5; Panel Grundkop
 Außenwinkel zu schwach“, enger gestellte Mandel wirkt „schläfrig“):
   eigen_mandel        Mandelform: beide Lider der äußeren Hälfte gemeinsam gehoben, am äußeren Lidwinkel 2,6 mm (ab 20 %
                       der Lidbreite steigend, jenseits des Winkels über 12 mm auslaufend), der Winkel 0,6 mm nach außen;
-                      Ober- und Unterlid wandern gleich weit, die Lidspalte bleibt also so hoch wie sie ist. Bis 12 mm um
-                      den Lidrand auslaufend; Ecken nah am Lidrand bleiben auf dem Augapfel (Abstand zur Augenmitte
-                      wie vorher, sonst drückt das Unterlid in den Augapfel)
+                      das Unterlid hebt sich nur zu 40 % (am äußeren Winkel voll), die Lidspalte wird also nicht enger.
+                      Bis 12 mm um den Lidrand auslaufend; Ecken nah am Lidrand bleiben auf dem Augapfel (Abstand zur
+                      Augenmitte wie vorher, sonst drückt das Unterlid in den Augapfel)
 """
 import numpy as np
 
@@ -501,7 +501,7 @@ def grundkopf3_formen(V, Nv, L, ps, ober, ablegen, mm, z_p, vorn):
     ablegen("eigen_nasenloch_w", dd)
 
 
-def grundkopf4_formen(V, L, augen, ober, unter_rand, ablegen, aus, bericht, n_haut, mm):
+def grundkopf4_formen(V, L, augen, ober, unter_rand, ablegen, aus, bericht, n_haut, mm, unten_rest=0.6):
     """Grundkopf 4: Mandelform (siehe Kopf der Datei). Blender-Achsen: x = linke Seite der Figur, −y = vorn, z = oben."""
     xz = np.c_[V[:, 0], np.zeros(len(V)), V[:, 2]]
     innen_w = {"r": 39, "l": 42}
@@ -522,7 +522,11 @@ def grundkopf4_formen(V, L, augen, ober, unter_rand, ablegen, aus, bericht, n_ha
         um = 1 - stufe(d_rand, 3.0 * mm, 12.0 * mm)                      # um den Lidrand, weich auslaufend
         nah = np.linalg.norm(V - c, axis=1) < 0.03
         vorn_auge = V[:, 1] < c[1] + 0.004
-        w = hub * um * nah * vorn_auge * seite
+        # Runde 2 (Panel: „heller Rand am Unterlid, verquollen“): das Unterlid hebt sich nur zu 40 %, am äußeren Winkel
+        # (ab 85 % der Lidbreite) voll – der Winkel steigt, die Lidspalte öffnet sich außen etwas
+        z_mitte = 0.5 * (kante(L[ober[s]], V[:, 0]) + kante(L[unter_rand[s]], V[:, 0]))
+        unten = stufe(z_mitte - V[:, 2], -0.0005, 0.0005) * (1 - stufe(lat, 0.85, 1.0))
+        w = hub * um * nah * vorn_auge * seite * (1 - unten_rest * unten)
         d = np.zeros_like(V)
         d[:, 2] = 2.6 * mm * w
         d[:, 0] = sg * 0.6 * mm * w * stufe(lat, 0.5, 1.0)

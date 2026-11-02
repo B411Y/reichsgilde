@@ -383,7 +383,7 @@ class FrauScheitel(Stil):
     """Grundlage der Frauenfrisuren: Mittelscheitel, Haar glatt zur Seite und über die Ohren nach hinten."""
     geschlecht = "w"
     # Grundkopf 4 (kopf4_haar.py gk4=1; Panel Grundkopf 3: „hohe kahle Stirn, Scheitel als heller Hautstreifen,
-    # Drahtsträhnen an den Schläfen“): Haaransatz vorn 13 mm, an den Schläfen 5–8 mm tiefer, Übergang 4 statt 14 mm
+    # Drahtsträhnen an den Schläfen“): Haaransatz vorn 16 mm, an den Schläfen 5–9 mm tiefer, Übergang 4 statt 14 mm
     # (keine lichte Randzone, deren einzelne Strähnen als Draht über die Stirn liefen; die Kopfhautkarte macht den Rand
     # weich); Strähnen am Haaransatz, an den Schläfen und am Scheitel hautnah (hautnah()); vorn am Rand laufen sie zur
     # Seite und nach hinten statt schräg über die Stirn, am Scheitel erst ein Stück nach hinten (scheitel()). Aus = wie
@@ -395,7 +395,8 @@ class FrauScheitel(Stil):
             return 0.002 * self.M
         richt = self.h.richtung(q)
         # Runde 1 (Panel: „Stirn hoch, Schläfen licht“): vorn 13 statt 9 mm, Schläfen 5–8 statt 4–6 mm
-        return np.interp(richt, [0, 25, 45, 70, 100, 180], [13.0, 11.0, 8.0, 5.0, 3.0, 2.0]) * 0.001 * self.M
+        # Runde 2 (Panel: „Stirn weiter hoch“): vorn 16 mm
+        return np.interp(richt, [0, 25, 45, 70, 100, 180], [16.0, 13.0, 9.0, 5.0, 3.0, 2.0]) * 0.001 * self.M
 
     def dichte(self, q):
         # Frauen: Ansatz etwas tiefer und runder, Schläfen voller
