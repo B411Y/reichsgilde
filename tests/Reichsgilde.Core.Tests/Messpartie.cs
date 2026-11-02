@@ -197,7 +197,9 @@ static class Messpartie
 
     /// <param name="jeStunde">Wird zu jeder vollen Stunde vor dem nächsten Takt gerufen (nur lesen; z. B. <c>messen schaenke</c>).</param>
     /// <param name="jahresende">Wird nach jedem Spieljahr gerufen (nur lesen), mit der Nummer des Jahres (1 = erstes).</param>
-    public static Partieergebnis Spielen(Messaufbau a, Messquellen q, Action<Stadtwirtschaft>? jeStunde = null, Action<Stadtwirtschaft, int>? jahresende = null)
+    /// <param name="jeMinute">Wird vor jedem Takt gerufen (nur lesen; z. B. die Einkäufe in <c>messen jahreszeiten</c>).</param>
+    public static Partieergebnis Spielen(Messaufbau a, Messquellen q, Action<Stadtwirtschaft>? jeStunde = null, Action<Stadtwirtschaft, int>? jahresende = null,
+        Action<Stadtwirtschaft>? jeMinute = null)
     {
         var ergebnis = new Partieergebnis { Aufbau = a };
         var daten = Wirtschaftsdaten.AusJson(a.OhneSchiffshandel ? OhneAbschnitt(q.Wirtschaft, "schiffshandel") : q.Wirtschaft);
@@ -290,6 +292,7 @@ static class Messpartie
                 // Die Fahrten zählen bis zum letzten Takt des Jahres (FahrtenVorjahr ist im ersten Jahr eines Karrens leer)
                 if (minute == Spielzeit.MinutenProTag - 1)
                     foreach (var b in w.Betriebe) fahrten[b] = b.Karren.Sum(k => k.FahrtenImJahr);
+                jeMinute?.Invoke(w);
                 sim.Tick();
             }
             BetriebeAufzeichnen(w, ergebnis, j, fahrten, seit);
