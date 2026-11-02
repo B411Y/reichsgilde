@@ -115,9 +115,10 @@ public static class Kalkulation
     /// (nach Steuer). Erlös hier: was die Rückfracht am Markt bringt (nach Steuer; jedes Stück drückt den Preis) – auch für Ware, die ins
     /// Lager geht. Zoll je beladener Fahrt: Zollstellen × Anteil × Wert der Ladung zum Marktpreis. Geleit je beladener Fahrt.
     /// Risiko: Chance der Piraten × Erfolgschance (mit Geleit) × Beuteanteil × Wert der Ladung × <paramref name="vorsicht"/>.
-    /// Andere Schiffe, die schon unterwegs sind, kommen zuerst an (Datenversion 67): Was sie dort verkaufen bzw. an Rückfracht kaufen und was
-    /// sie heimbringen, steht in den Preisen schon als verkauft bzw. gekauft (<see cref="Unterwegs"/>, <see cref="Heimfracht"/>). Fahren zwei
-    /// Schiffe zugleich zur selben Stadt, bringt das zweite sonst im Mittel nichts mehr (Messung 2.11.2026, Köln).
+    /// Mit <see cref="SchiffshandelDaten.VerkehrBeachten"/> (Datenversion 67) kommen andere Schiffe, die schon unterwegs sind, zuerst an: Was sie
+    /// dort verkaufen bzw. an Rückfracht kaufen und was sie heimbringen, steht in den Preisen schon als verkauft bzw. gekauft
+    /// (<see cref="Unterwegs"/>, <see cref="Heimfracht"/>). Sonst plant jedes Schiff, als wäre es allein: Fährt schon eines zur selben Stadt,
+    /// bringt das zweite im Mittel nichts mehr (Messung 2.11.2026, Köln).
     /// </summary>
     public static Fahrtrechnung Schiffsfahrt(Stadtwirtschaft w, Konto konto, SchiffstypDaten typ, FerneStadt stadt,
         IReadOnlyDictionary<string, int> hinfracht, IReadOnlyDictionary<string, int> rueckfracht, bool ausLager = false, string geleit = "Keine",
@@ -208,13 +209,14 @@ public static class Kalkulation
 
     /// <summary>
     /// Was die Schiffe, die schon zu dieser fernen Stadt unterwegs sind (beladen oder auf der Hinfahrt), dort vor einem neuen Schiff tun:
-    /// ihre Hinfracht verkaufen und ihre geplante Rückfracht kaufen – je Ware in Stück. Sonst plant jedes Schiff, als wäre es allein, und nach
-    /// Eis oder Festmarkt laufen viele zugleich zur selben Stadt aus (Datenversion 67).
+    /// ihre Hinfracht verkaufen und ihre geplante Rückfracht kaufen – je Ware in Stück; leer ohne <see cref="SchiffshandelDaten.VerkehrBeachten"/>.
+    /// Ohne das plante jedes Schiff, als wäre es allein, und nach Eis oder Festmarkt liefen viele zugleich zur selben Stadt aus (Datenversion 67).
     /// </summary>
     private static (Dictionary<string, int> Verkauft, Dictionary<string, int> Gekauft) Unterwegs(Stadtwirtschaft w, FerneStadt stadt)
     {
         var verkauft = new Dictionary<string, int>(StringComparer.Ordinal);
         var gekauft = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (w.Schiffahrt.Daten?.VerkehrBeachten != true) return (verkauft, gekauft);
         foreach (var s in w.Schiffahrt.Schiffe)
         {
             if (s.Auftrag is not { } a || a.Ziel != stadt.Name || s.Zustand is not (SchiffZustand.Beladen or SchiffZustand.Hinfahrt)) continue;
@@ -224,10 +226,14 @@ public static class Kalkulation
         return (verkauft, gekauft);
     }
 
-    /// <summary>Rückfracht, die andere Schiffe noch heimbringen und am Markt verkaufen werden (geladen oder geplant) – je Ware in Stück.</summary>
+    /// <summary>
+    /// Rückfracht, die andere Schiffe noch heimbringen und am Markt verkaufen werden (geladen oder geplant) – je Ware in Stück; ohne die
+    /// Schiffe, deren Auftrag in das Lager eines Betriebs liefert, und leer ohne <see cref="SchiffshandelDaten.VerkehrBeachten"/>.
+    /// </summary>
     private static Dictionary<string, int> Heimfracht(Stadtwirtschaft w)
     {
         var heim = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (w.Schiffahrt.Daten?.VerkehrBeachten != true) return heim;
         foreach (var s in w.Schiffahrt.Schiffe)
         {
             if (s.Auftrag is not { } a) continue;

@@ -2100,6 +2100,7 @@
     "zollJeStelle": 0.025,
     "erholungJeStunde": 0.072,
     "heimatmarktAnteil": 0.85,
+    "verkehrBeachten": true,
     "piraten": {"name": "Flusspiraten", "chance": 0.05, "staerke": 1.0, "beuteAnteil": 0.5},
     "geleitFaktor": 3,
     "verkaufAnteil": 0.5,
