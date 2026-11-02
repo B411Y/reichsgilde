@@ -557,6 +557,8 @@ public partial class Stadtansicht
     {
         public required Node3D Wurzel { get; init; }
         public required long Start { get; init; }
+        /// <summary>Bis zu dieser Spielminute schlagen Flammen aus dem Haus (nach einem Anschlag <see cref="BrennMinuten"/>, nach einem Blitzschlag so lange, wie der Kern sagt).</summary>
+        public required long FlammenEnde { get; init; }
         public List<Feuer> Feuer { get; } = new();
         public bool Flammen { get; set; } = true;
     }
@@ -570,8 +572,11 @@ public partial class Stadtansicht
     private readonly HashSet<string> _brandVorgabe = (OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--brand="))?["--brand=".Length..] ?? "")
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet();
 
-    /// <summary>Brennt oder schwelt es dort gerade (nach dem Ausbruch zur Spielminute <paramref name="start"/>)?</summary>
-    private static bool BrandLaeuft(long start, long jetzt) => jetzt >= start && jetzt < start + BrennMinuten + GlimmMinuten;
+    /// <summary>Brennt oder schwelt es dort gerade (nach dem Ausbruch zur Spielminute <paramref name="start"/>)? Nach einem Blitzschlag brennt es so lange, wie der Kern sagt.</summary>
+    private bool BrandLaeuft(long start, long jetzt) => jetzt >= start && jetzt < FlammenEnde(start) + GlimmMinuten;
+
+    /// <summary>Bis wann Flammen aus dem Haus schlagen, das zur Spielminute <paramref name="start"/> Feuer fing: nach einem Blitzschlag bis zum Ende im Kern, sonst <see cref="BrennMinuten"/>.</summary>
+    private long FlammenEnde(long start) => BlitzUm(start) is { } e ? e.BrandEnde : start + BrennMinuten;
 
     /// <summary>
     /// Zündet das Modell an: ein großes Feuer aus dem Dach (mit Licht und dicker Rauchsäule) und Flammen aus bis zu drei Fenstern, vorzugsweise vorn
@@ -587,7 +592,7 @@ public partial class Stadtansicht
         if (dachMin.X > dachMax.X) (dachMin, dachMax) = (min, max);
         var wurzel = new Node3D { Name = "Brand" };
         modell.Wurzel.AddChild(wurzel);
-        var brand = new Brand { Wurzel = wurzel, Start = start };
+        var brand = new Brand { Wurzel = wurzel, Start = start, FlammenEnde = FlammenEnde(start) };
         // Über der Mitte des Dachs (der obere Teil des Modells, nicht der Hof), etwas unter dem First
         var mitte = (dachMin + dachMax) * 0.5f;
         var groesse = Mathf.Clamp(Mathf.Min(dachMax.X - dachMin.X, dachMax.Z - dachMin.Z) / 5f, 0.7f, 1.3f);
@@ -684,7 +689,10 @@ public partial class Stadtansicht
         if (_brandVorgabe.Count > 0 && (_brandVorgabe.Remove(b.Name) || (a.Spieler && (_brandVorgabe.Remove("1") | _brandVorgabe.Remove("werkstatt")))))
             neu = true;
         _sabotageGesehen[b] = minuten;
-        if (neu) BrandAnbringen(b.Name, modell, jetzt);
+        // Blitzschlag (Stadtansicht.Blitzbrand.cs): Der Kern kennt Beginn und Ende; nach dem Laden brennt ein laufendes Feuer weiter
+        var blitz = BlitzBrandIn(b);
+        if (blitz is not null && !_braende.ContainsKey(b.Name) && BrandLaeuft(blitz.Minute, jetzt)) neu = true;
+        if (neu) BrandAnbringen(b.Name, modell, blitz?.Minute ?? jetzt);
         var russ = minuten > 0 || _braende.ContainsKey(b.Name);
         if (russ != _russDach.Contains(b))
         {
@@ -697,6 +705,8 @@ public partial class Stadtansicht
     private static long? WohnhausBrandStart(Konto k, Stadtwirtschaft w, long jetzt)
     {
         if (k.WohnhausInstandBis is not { } bis || bis <= jetzt) return null;
+        if (w.Blitz.Einschlaege.LastOrDefault(e => e.Ziel.Bewohner == k && w.Blitz.Daten is { } d && e.BrandEnde + d.InstandMinuten == bis) is { } blitz)
+            return blitz.Minute; // Blitzschlag: instand gesetzt wird ab dem Ende des Feuers
         var dauer = w.Gauner.IstAktiv && w.Gauner.Daten.Wohnhaus is { } wh ? wh.Brand.InstandMinuten : Spielzeit.MinutenProTag;
         return bis - dauer;
     }
@@ -709,19 +719,20 @@ public partial class Stadtansicht
         foreach (var (kennung, brand) in _braende)
         {
             var t = jetzt - brand.Start + (float)bruchteil;
-            if (!IsInstanceValid(brand.Wurzel) || t >= BrennMinuten + GlimmMinuten)
+            var brennMinuten = brand.FlammenEnde - brand.Start;
+            if (!IsInstanceValid(brand.Wurzel) || t >= brennMinuten + GlimmMinuten)
             {
                 (fertig ??= new()).Add(kennung);
                 continue;
             }
-            var flammen = t < BrennMinuten;
+            var flammen = t < brennMinuten;
             if (flammen != brand.Flammen)
             {
                 brand.Flammen = flammen;
                 foreach (var f in brand.Feuer) f.FlammeAn = flammen;
             }
             // Ausbruch: der Rauch quillt in den ersten Minuten auf; Schwelen: er wird dünner
-            var rauch = t < 4f ? Mathf.Clamp(t / 4f, 0.05f, 1f) : flammen ? 1f : 1f - 0.85f * (t - BrennMinuten) / GlimmMinuten;
+            var rauch = t < 4f ? Mathf.Clamp(t / 4f, 0.05f, 1f) : flammen ? 1f : 1f - 0.85f * (t - brennMinuten) / GlimmMinuten;
             foreach (var f in brand.Feuer)
                 if (Mathf.Abs(f.RauchStaerke - rauch) > 0.01f) f.RauchStaerke = rauch;
         }

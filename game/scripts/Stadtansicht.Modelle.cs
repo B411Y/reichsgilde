@@ -151,7 +151,9 @@ public partial class Stadtansicht
         if (modell.FindChild("Tretrad", true, false) is not null) HafenBelebt(modell); // das Tretrad dreht sich, die Kähne sitzen auf dem Wasser (Stadtansicht.Wasser.Uebergaenge.cs)
         if (ankerKennung is not null)
             _modellAnker[ankerKennung] = (modell.FindChild("Anker_Tuer", true, false) as Node3D, modell.FindChild("Anker_Karren", true, false) as Node3D);
-        return new ModellInstanz(modell, glut.ToArray(), glutAn, fenster.ToArray());
+        var instanz = new ModellInstanz(modell, glut.ToArray(), glutAn, fenster.ToArray());
+        ModellMerken(instanz); // für den Blitzschlag: welches Modell steht wo (Stadtansicht.Blitzbrand.cs)
+        return instanz;
     }
 
     /// <summary>
