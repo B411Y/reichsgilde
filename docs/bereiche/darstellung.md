@@ -284,7 +284,7 @@ Auftrag des Teamleiters 1.11.2026.
 | Allein redend | Ursache: Wer auf die Planung seines neuen Weges wartete (Budget), wurde ein paar Bilder nicht gestellt und redete weiter, obwohl der Partner schon ging. Jetzt hört sie dann auf (`NochGespraech`). Greybox 10 Uhr: 0. | 1.11.2026 |
 | Messung | Köln Neumarkt, Start 10 Uhr, ohne `--passantennaehe`, zwei Läufe: schlimmstes Einzelbild zur vollen Stunde 26,0 und 32,5 ms (vorher 26,6 / 35,6, ganz am Anfang 302,7), sonst 16–25 ms. Greybox 10 Uhr (mit Messung): Überschneidungen auf dem Pflaster Laufende 18,8, mit Stehenden 8,5 je Minute, allein redend 0, in Ständen 0, schlimmstes Bild 8–22 ms. Ziel 20 ms in Köln zur vollen Stunde nicht ganz erreicht, siehe Offen. | 1.11.2026 |
 
-### Blitzschlag: Strahl, Feuer, Löschkette (phase5/blitzbrand)
+### Blitzschlag: Strahl, Feuer, Löschkette (PR #288)
 
 | Frage | Entscheidung |
 |---|---|

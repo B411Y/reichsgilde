@@ -2063,7 +2063,7 @@ Die Einwohner-Grenze kann mit Bezug 17 nicht erreicht werden (Greybox 121–123 
 
 Messdateien `schaenke-{plaetze3,ohne}.json`, `bericht-{main,branch3}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
 
-## Blitzschlag im Gewitter (phase5/blitzbrand, 2.11.2026)
+## Blitzschlag im Gewitter (PR #288, 2.11.2026)
 
 Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Gebäude (Gewicht: Höhe + Boden über dem Mittel, **linear** – Teamleiter 2.11.2026). Schaden als Platzhalter: Werkstatt 300 Arbeitsminuten Stillstand ab dem Einschlag, Wohnhaus ohne Ansehen bis ein Spieljahr nach dem Feuer, keine Reparatursumme.
 

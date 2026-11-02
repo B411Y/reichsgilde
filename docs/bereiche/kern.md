@@ -260,7 +260,7 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Messung | Gemessen auf dem Branch 31ba979e gegen main 880e3387, mit derselben Messart wie die Endabnahme. Köln: Der ausbauende Spieler liegt auf denselben 10 Partien bei 57.670 (main 58.520, vorher 52.465), mit 20 Startwerten bei 56.503. Die KI-Häuser in Teil 5 liegen bei 67.436 (main 75.482), davongezogen sind 7 von 70 (main 9). Bei „Schwer“ sind es 16 statt 30 von 70. Der Spieler mit einem Betrieb hat 31.780 (main 32.895), die KI in Teil 3 Ø 64.628 (main 74.254). Neubauten fahren 25 statt 97 Minuten und bringen 2.797 Gulden im Jahr (main 2.665). Greybox: ausbauender Spieler 62.268 (main 68.066, vorher 56.004). Kein Bankrott, Bürger im Ziel 19 von 20. Dateien `docs/messungen/balancing-2026-11-01-bauplaetze-*.json`, Tabelle in WIRTSCHAFTSMODELL. | 1.11.2026 |
 | Außerhalb des Bereichs | Messung als kern im Auftrag des Teamleiters, zusammen mit integration (Merge, KI auf die Kern-Abfrage umgestellt) und leveldesign (Bauplätze). | 1.11.2026 |
 
-### Blitzschlag im Gewitter (phase5/blitzbrand)
+### Blitzschlag im Gewitter (PR #288)
 
 | Frage | Entscheidung |
 |---|---|

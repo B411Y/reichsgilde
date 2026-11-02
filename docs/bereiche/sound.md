@@ -177,7 +177,7 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Entfernt | Die drei CC-BY-Aufnahmen 184627 (Erbsland-Music), 213329 (LolitaPerdurabo) und 836064 (newlocknew) samt Namensnennung; die Regenschichten sind jetzt alle CC0, die Danksagungsliste wird kürzer | 31.10.2026 |
 | Prüfung | Selbsttest: Dach und Traufe nahe an Häusern hörbar, auf Wiese und im Wald null, Traufe ohne Regen null; **Regen im Freien mindestens 6 dB (Regen 0,5), 9 dB (0,75) und 10 dB (Guss) über dem Rest der Umgebung**; Regen auch auf der Wiese weit herausgezoomt deutlich. Hörprobe: `--umgebungfahrt=5` (80 s: Wiese, Gassen, starker Regen) | 31.10.2026 |
 
-### Feuerglocke beim Blitzschlag (phase5/blitzbrand)
+### Feuerglocke beim Blitzschlag (PR #288)
 
 | Frage | Entscheidung |
 |---|---|
