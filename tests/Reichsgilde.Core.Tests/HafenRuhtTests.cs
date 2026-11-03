@@ -39,7 +39,12 @@ static class HafenRuhtTests
     /// </summary>
     static List<string> Partie(string json, int jahre)
     {
-        var daten = Wirtschaftsdaten.AusJson(json);
+        // Blitzschaden (Datenversion 71) wie vor dem Schalter abschalten: alte Blitzwerte (Reparatur 0, keine Anteile, kein Sprung)
+        var knoten = JsonNode.Parse(json)!;
+        var blitz = knoten["blitz"]!.AsObject();
+        foreach (var feld in new[] { "reparaturAnteil", "lagerAnteil", "waechterFaktor", "wohnhausAnteil", "sprung" }) blitz.Remove(feld);
+        blitz["reparatur"] = 0;
+        var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
             daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied"), karte: Karte("greybox"));
@@ -57,6 +62,9 @@ static class HafenRuhtTests
             foreach (var schluessel in n.Select(p => p.Key).ToList())
                 if (schluessel.Equals("daten", StringComparison.OrdinalIgnoreCase) || schluessel.Equals("karte", StringComparison.OrdinalIgnoreCase))
                     n.Remove(schluessel);
+            // Das Feld „Blitz“ (Einschläge im Spielstand, seit dem Blitzschaden) gab es vor dem Schalter nicht
+            foreach (var schluessel in n.Select(p => p.Key).Where(k => k.Equals("wirtschaft", StringComparison.OrdinalIgnoreCase)).ToList())
+                n[schluessel]!.AsObject().Remove("Blitz");
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
@@ -80,7 +88,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(70, d.Version);
+            Pruefe.Gleich(71, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");
