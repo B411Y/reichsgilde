@@ -15,6 +15,7 @@ namespace Reichsgilde;
 /// Tasten: C Spielkamera, F Flugkamera, V Spielkamera weit, Mausrad Zoom (Spielkamera), R Pixel, 0 aus, Tab Tafel, Esc Ende.
 /// Startoptionen (alle freiwillig): <c>--pixelmodus=aus|pixel</c>, <c>--pixelsicht=spiel|spielnah|spielweit|flug|nah</c>, <c>--pixeltexel=&lt;Bildpunkte&gt;</c>, <c>--pixelzoom=&lt;m&gt;</c> (Standard 40), <c>--pixelkreis=1</c>,
 /// <c>--pixelmessung=1</c> (aus und an je 6 s messen, Ergebnis im Log, dann beenden), <c>--pixelende=&lt;s&gt;</c>, <c>--pixeltafel=0</c> (Tafel zu).
+/// Weg A (Regler „Pixelgröße“ 2–6, Option <c>--pixelgroesse=N</c>, <c>--pixelscroll=&lt;m/s&gt;</c>): die Spielkamera-Welt wird in einem SubViewport mit 1/N der Auflösung gerendert und hart hochgezogen, Kamera-Snapping mit Versatz; Tafel und Schrift bleiben scharf.
 /// Kein Teil des Spiels; der Shader liegt in <c>assets/shader/pixel_farbe.gdshader</c>.
 /// </summary>
 public partial class Pixeltest : Node3D
@@ -27,6 +28,7 @@ public partial class Pixeltest : Node3D
     /// <summary>Alle einstellbaren Werte (werden gespeichert).</summary>
     private sealed class Werte
     {
+        public int PixelGroesse = 1;   // Weg A: Welt in 1/N der Auflösung rendern (1 = aus)
         public bool An = true, Texel = true, Stufen = true, Kanten = true, Halme = true, Zweier;
         public int Lichtstufen = 3;
         public float TexelPx = 3f, Duester = 0.12f, KanteHell = 0.08f, StufenStaerke = 1f, LichtDunkel = 0.25f, LichtHell = 0.95f, Ferne = 1.25f;
@@ -45,6 +47,13 @@ public partial class Pixeltest : Node3D
     private ShaderMaterial _farbStoff = null!;
     private SubViewport _lichtBild = null!;
     private Camera3D _lichtKamera = null!;
+    // Weg A: Welt in einem SubViewport mit 1/N der Auflösung, hart (Nearest) hochgezogen; die Oberfläche liegt darüber in voller Auflösung
+    private SubViewport _welt = null!;
+    private TextureRect _weltAnzeige = null!;
+    private CanvasLayer _weltEbene = null!;
+    private Camera3D _aktiv = null!;
+    private bool _weltA;
+    private Basis _spielBasis; private Vector3 _spielOrt; private float _scroll, _scrollTempo;
     private Label _anzeige = null!, _pfad = null!;
     private PanelContainer _tafel = null!;
     private readonly Dictionary<string, Action<Werte>> _abgleich = new();
@@ -52,7 +61,7 @@ public partial class Pixeltest : Node3D
     private readonly List<MeshInstance3D> _netze = new();
     private double _ende, _zeit;
     private double _messZeit; private int _messSchritt = -1; private readonly List<double> _gpu = new(), _cpu = new();
-    private readonly string[] _messNamen = { "aus", "Pixel" };
+    private readonly string[] _messNamen = { "aus", "Runde 3 (volle Auflösung)", "Weg A Pixelgröße 2", "Weg A Pixelgröße 3", "Weg A Pixelgröße 4" };
 
     public override void _Ready()
     {
@@ -63,6 +72,7 @@ public partial class Pixeltest : Node3D
         }
         DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
         RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
+        float.TryParse(_optionen.GetValueOrDefault("pixelscroll", "0"), NumberStyles.Float, CultureInfo.InvariantCulture, out _scrollTempo);
         double.TryParse(_optionen.GetValueOrDefault("pixelende", "0"), NumberStyles.Float, CultureInfo.InvariantCulture, out _ende);
         _kreis = _optionen.GetValueOrDefault("pixelkreis") == "1";
 
@@ -73,7 +83,9 @@ public partial class Pixeltest : Node3D
         _kamera.MindestHoehe = 0.4f;
         _spielKamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = _spielZoom, Near = 1f, Far = 600f, Name = "Spielkamera" };
         AddChild(_spielKamera);
+        WeltBauen_A();
         NachbearbeitungBauen();
+        if (int.TryParse(_optionen.GetValueOrDefault("pixelgroesse", ""), out var pg)) _w.PixelGroesse = Mathf.Clamp(pg, 1, 8);
         if (_optionen.GetValueOrDefault("pixelmodus", "pixel") == "aus") _w = Aus();
         if (float.TryParse(_optionen.GetValueOrDefault("pixeltexel", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var tpx)) _w.TexelPx = tpx;
         OberflaecheBauen();
@@ -347,13 +359,71 @@ public partial class Pixeltest : Node3D
         _lichtBild.AddChild(_lichtKamera);
         AddChild(_lichtBild);
         _farbStoff.SetShaderParameter("licht", _lichtBild.GetTexture());
+        RenderingServer.ViewportSetMeasureRenderTime(_lichtBild.GetViewportRid(), true);
+    }
+
+    private void WeltBauen_A()
+    {
+        _welt = new SubViewport
+        {
+            Size = new Vector2I(800, 450), RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled, Msaa3D = Viewport.Msaa.Disabled,
+            Name = "WeltNiedrig", TransparentBg = false,
+        };
+        AddChild(_welt);
+        _weltEbene = new CanvasLayer { Layer = 0, Visible = false };
+        AddChild(_weltEbene);
+        _weltAnzeige = new TextureRect
+        {
+            Texture = _welt.GetTexture(), TextureFilter = CanvasItem.TextureFilterEnum.Nearest, StretchMode = TextureRect.StretchModeEnum.Scale,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _weltAnzeige.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _weltEbene.AddChild(_weltAnzeige);
+        RenderingServer.ViewportSetMeasureRenderTime(_welt.GetViewportRid(), true);
+    }
+
+    /// <summary>Schaltet Weg A ein oder aus: die Spielkamera, das Nachbearbeitungs-Viereck und das Beleuchtungsbild ziehen in den Welt-SubViewport um (oder zurück).</summary>
+    private void WeltUmschalten(bool a)
+    {
+        if (a == _weltA) return;
+        _weltA = a;
+        _lichtBild.Reparent(a ? _welt : this, false);
+        _spielKamera.Reparent(a ? _welt : this, true);
+        _welt.RenderTargetUpdateMode = a ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
+        _weltEbene.Visible = a;
+        if (a) _kamera.HilfeSichtbar = false;
+        GetViewport().Disable3D = a;
+        _aktiv.MakeCurrent();
+        _flaeche.Reparent(_aktiv, false);
+        if (!a) { _spielKamera.Size = _spielZoom; _spielKamera.Position = _spielOrt; _flaeche.Visible = _w.An; }
+    }
+
+    /// <summary>Kamera-Snapping (Weg A): die Spielkamera rastet in Kamerarichtung auf das Raster der Weltpixel; der Rest wird beim Hochziehen als Versatz des Bildes ausgeglichen.</summary>
+    private void SpielKameraSetzen()
+    {
+        if (!_spiel) return;
+        var fenster = GetViewport().GetVisibleRect().Size;
+        var ort = _spielOrt + _spielBasis * new Vector3(_scroll, 0, 0);
+        if (!_weltA) { _spielKamera.Size = _spielZoom; _spielKamera.GlobalPosition = ort; return; }
+        var n = _w.PixelGroesse;
+        var ps = _spielZoom * n / fenster.Y;                         // Meter je Weltpixel
+        var gross = new Vector2I(Mathf.CeilToInt(fenster.X / n) + 2, Mathf.CeilToInt(fenster.Y / n) + 2);
+        if (_welt.Size != gross) _welt.Size = gross;
+        var lokal = _spielBasis.Transposed() * ort;
+        var einrast = new Vector2(Mathf.Round(lokal.X / ps), Mathf.Round(lokal.Y / ps)) * ps;
+        var rest = new Vector2(lokal.X, lokal.Y) - einrast;           // Meter
+        _spielKamera.GlobalPosition = _spielBasis * new Vector3(einrast.X, einrast.Y, lokal.Z);
+        _spielKamera.Size = ps * gross.Y;
+        _weltAnzeige.Size = new Vector2(gross.X, gross.Y) * n;
+        _weltAnzeige.Position = (fenster - _weltAnzeige.Size) / 2f + new Vector2(-rest.X, rest.Y) / ps * n;
+        _farbStoff.SetShaderParameter("ortho_groesse", _spielKamera.Size);
     }
 
     private void LichtKameraAbgleichen()
     {
-        var k = GetViewport().GetCamera3D();
+        var k = _aktiv;
         if (k is null || _lichtBild is null) return;
-        var flaeche = GetViewport().GetVisibleRect().Size;
+        var flaeche = _weltA ? new Vector2(_welt.Size.X, _welt.Size.Y) : GetViewport().GetVisibleRect().Size;
         var groesse = new Vector2I(Mathf.Max((int)flaeche.X, 16), Mathf.Max((int)flaeche.Y, 16));
         if (_lichtBild.Size != groesse) _lichtBild.Size = groesse;
         _lichtKamera.GlobalTransform = k.GlobalTransform;
@@ -366,7 +436,8 @@ public partial class Pixeltest : Node3D
     {
         var w = _w;
         _flaeche.Visible = w.An;
-        _farbStoff.SetShaderParameter("texel_an", w.Texel);
+        WeltUmschalten(_spiel && w.An && w.PixelGroesse >= 2);
+        _farbStoff.SetShaderParameter("texel_an", w.Texel && !_weltA);
         _farbStoff.SetShaderParameter("stufen_an", w.Stufen);
         _farbStoff.SetShaderParameter("stufen", w.Lichtstufen);
         _farbStoff.SetShaderParameter("stufen_staerke", w.StufenStaerke);
@@ -391,12 +462,13 @@ public partial class Pixeltest : Node3D
 
     private void KameraWerte()
     {
-        _farbStoff.SetShaderParameter("ortho_groesse", _spiel ? _spielZoom : 0f);
+        _farbStoff.SetShaderParameter("ortho_groesse", _spiel ? (_weltA ? _spielKamera.Size : _spielZoom) : 0f);
         _farbStoff.SetShaderParameter("fov_faktor", 2f * Mathf.Tan(Mathf.DegToRad(_kamera.Fov) / 2f));
     }
 
     private void Aktiv(Camera3D k)
     {
+        _aktiv = k;
         k.MakeCurrent();
         _flaeche.Reparent(k, false);
     }
@@ -406,7 +478,8 @@ public partial class Pixeltest : Node3D
     {
         _spiel = true; _spielZoom = Mathf.Clamp(zoom, 15f, 140f);
         var basis = Basis.FromEuler(new Vector3(Mathf.DegToRad(-40f), Mathf.DegToRad(30f), 0));
-        _spielKamera.GlobalTransform = new Transform3D(basis, new Vector3(2, 0, 2) + basis * new Vector3(0, 0, 150f));
+        _spielBasis = basis; _spielOrt = new Vector3(2, 0, 2) + basis * new Vector3(0, 0, 150f); _scroll = 0;
+        _spielKamera.GlobalTransform = new Transform3D(basis, _spielOrt);
         _spielKamera.Size = _spielZoom;
         Aktiv(_spielKamera);
         Anwenden();
@@ -415,6 +488,7 @@ public partial class Pixeltest : Node3D
     private void Flug(bool nah)
     {
         _spiel = false; Aktiv(_kamera);
+        WeltUmschalten(false);
         if (nah) _kamera.Blicken(new Vector3(14, 2.6f, 11), new Vector3(7, 1.6f, 4));
         else _kamera.Blicken(new Vector3(30, 14, 34), new Vector3(0, 2, 0));
         Anwenden();
@@ -444,6 +518,7 @@ public partial class Pixeltest : Node3D
         spalte.AddChild(new Label { Text = "Pixel-Look einstellen (Tab: ein/aus)" });
 
         Schalter(spalte, "Pixel-Look an", w => w.An, (w, v) => w.An = v);
+        Regler(spalte, "Pixelgröße (Weg A: Welt niedrig rendern, 1 = aus)", 1, 6, 1, w => w.PixelGroesse, (w, v) => w.PixelGroesse = (int)v);
         Schalter(spalte, "Texel (Welt-Raster, Nearest)", w => w.Texel, (w, v) => w.Texel = v);
         Regler(spalte, "Texelgröße (Bildpunkte, Spielkamera)", 1, 8, 0.5f, w => w.TexelPx, (w, v) => w.TexelPx = v);
         Schalter(spalte, "Texelgröße in Zweierstufen (kein Wandern beim Zoomen)", w => w.Zweier, (w, v) => w.Zweier = v);
@@ -519,7 +594,7 @@ public partial class Pixeltest : Node3D
     {
         var d = new Godot.Collections.Dictionary
         {
-            ["pixel_look_an"] = _w.An, ["texel"] = _w.Texel, ["texelgroesse_bildpunkte"] = _w.TexelPx, ["zweierstufen"] = _w.Zweier, ["rasterung_ab_bildpunkte"] = _w.Ferne,
+            ["pixel_look_an"] = _w.An, ["pixelgroesse_weg_a"] = _w.PixelGroesse, ["texel"] = _w.Texel, ["texelgroesse_bildpunkte"] = _w.TexelPx, ["zweierstufen"] = _w.Zweier, ["rasterung_ab_bildpunkte"] = _w.Ferne,
             ["stufenlicht"] = _w.Stufen, ["lichtstufen"] = _w.Lichtstufen, ["stufen_staerke"] = _w.StufenStaerke,
             ["licht_unterste_stufe"] = _w.LichtDunkel, ["licht_oberste_stufe"] = _w.LichtHell,
             ["kantenlicht"] = _w.Kanten, ["kantenlicht_staerke"] = _w.KanteHell, ["duesternis"] = _w.Duester,
@@ -569,7 +644,6 @@ public partial class Pixeltest : Node3D
             && !_tafel.GetGlobalRect().HasPoint(mb.Position))
         {
             _spielZoom = Mathf.Clamp(_spielZoom * (mb.ButtonIndex == MouseButton.WheelUp ? 0.9f : 1.1f), 15f, 140f);
-            _spielKamera.Size = _spielZoom;
             KameraWerte();
         }
     }
@@ -577,6 +651,8 @@ public partial class Pixeltest : Node3D
     public override void _Process(double delta)
     {
         _zeit += delta;
+        if (_scrollTempo != 0 && _spiel) _scroll += _scrollTempo * (float)delta;
+        SpielKameraSetzen();
         LichtKameraAbgleichen();
         if (_kreis && !_spiel)
         {
@@ -594,14 +670,15 @@ public partial class Pixeltest : Node3D
         if (_messZeit == 0)
         {
             _w = _messSchritt == 0 ? Aus() : Pixel();
+            if (_messSchritt >= 2) _w.PixelGroesse = _messSchritt;
             Abgleichen(); _gpu.Clear(); _cpu.Clear();
         }
         _messZeit += delta;
         if (_messZeit > 2.0)
         {
-            var rid = GetViewport().GetViewportRid();
-            _gpu.Add(RenderingServer.ViewportGetMeasuredRenderTimeGpu(rid));
-            _cpu.Add(RenderingServer.ViewportGetMeasuredRenderTimeCpu(rid));
+            var rids = new[] { GetViewport().GetViewportRid(), _welt.GetViewportRid(), _lichtBild.GetViewportRid() };
+            _gpu.Add(rids.Sum(r => (double)RenderingServer.ViewportGetMeasuredRenderTimeGpu(r)));
+            _cpu.Add(rids.Sum(r => (double)RenderingServer.ViewportGetMeasuredRenderTimeCpu(r)));
         }
         if (_messZeit > 8.0)
         {
