@@ -22,6 +22,7 @@ uniform sampler2D licht : filter_nearest, repeat_disable;   // Beleuchtung allei
 uniform float ortho_groesse = 0.0;     // vom Skript: sichtbare Höhe in Metern bei orthografischer Kamera, sonst 0
 uniform float fov_faktor = 1.0;        // vom Skript: 2 * tan(Sichtfeld / 2) bei perspektivischer Kamera
 uniform float lichtskala = 1.0;        // vom Skript: Dämmerung und Nacht, alle Lichtstufen so viel dunkler
+uniform float tag = 1.0;               // vom Skript: 1 = Tag, 0 = Nacht; Kontrast und Düsternis wirken nachts nicht (sonst säuft das Bild ab)
 uniform float dunst_bezug = 150.0;     // vom Skript: Entfernung der Brennebene (Kamera zum Blickpunkt)
 uniform vec3 dunst_farbe = vec3(0.55, 0.6, 0.68);   // vom Skript: bei Nacht dunkel (linear)
 
@@ -141,8 +142,8 @@ void fragment() {
 
 	// 5. Kontrast um die Mitte (nach Helligkeit) und Düsternis
 	float lc = max(lum(c), 0.0005);
-	c *= clamp(pow(lc / 0.18, KONTRAST - 1.0), 0.6, 1.5);
-	c *= 1.0 - DUESTER;
+	c *= clamp(pow(lc / 0.18, (KONTRAST - 1.0) * tag), 0.6, 1.5);
+	c *= 1.0 - DUESTER * tag;
 	ALBEDO = max(c, vec3(0.0));
 	ALPHA = 1.0;
 }

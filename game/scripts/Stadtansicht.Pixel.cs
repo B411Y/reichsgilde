@@ -41,6 +41,8 @@ public partial class Stadtansicht
     private CanvasLayer _pxEbene = null!;
     private TextureRect _pxAnzeige = null!, _pxGluehAnzeige = null!;
     private ColorRect _pxVignette = null!;
+    private CanvasLayer? _pxNamenEbene;
+    private readonly List<Label> _pxNamen = new();
     private bool _weltGesperrt;
     private Func<float>? _pxZeitFunktion;
     private double _pxMessSekunden, _pxMessLauf; // _pxMessSekunden: 0 = noch nicht geprüft, −1 = keine Messung
@@ -207,6 +209,7 @@ public partial class Stadtansicht
         _pxFlaeche.Visible = licht;
         _pxGluehAnzeige.Visible = schein;
         _pxVignette.Visible = gewuenscht;
+        PixelNamen(gewuenscht && laeuft && !raum ? kamera : null);
         if (!laeuft || kamera is null) return;
 
         // Größen: Weltpixel = n × n Fensterpixel. Die Oberfläche kann skaliert sein (ContentScaleFactor): Bildschirmpixel und Zeichenfläche sind zu trennen.
@@ -244,9 +247,51 @@ public partial class Stadtansicht
         _pxFarbe.SetShaderParameter("ortho_groesse", ortho ? groesse : 0f);
         _pxFarbe.SetShaderParameter("fov_faktor", 2f * Mathf.Tan(Mathf.DegToRad(kamera.Fov) / 2f));
         _pxFarbe.SetShaderParameter("dunst_bezug", KameraAbstand);
-        _pxFarbe.SetShaderParameter("lichtskala", PixelLichtskala());
+        var skala = PixelLichtskala();
+        _pxFarbe.SetShaderParameter("lichtskala", skala);
+        _pxFarbe.SetShaderParameter("tag", Mathf.SmoothStep(PixelLichtBoden, 0.85f, skala));
         _pxFarbe.SetShaderParameter("dunst_farbe", new Vector3(0.55f, 0.6f, 0.68f).Lerp(new Vector3(0.10f, 0.11f, 0.16f), NebelDunkel()));
         _pxGluehStoff.SetShaderParameter("welt_groesse", new Vector2(gross.X, gross.Y));
+    }
+
+    /// <summary>
+    /// Gebäudenamen (Label3D mit Kennung) bleiben im Pixel-Look lesbar: Die 3D-Schilder werden nicht gezeichnet (Sichtebene 0), stattdessen stehen
+    /// Control-Beschriftungen in voller Auflösung über dem Pixelbild, an der Stelle, auf die die Kamera der Logik das Schild projiziert (das Pixelbild
+    /// zeigt dieselbe Stelle auf ein Weltpixel genau). Größe wie das Schild: Schrift · Pixelgröße des Schildes (0,04 m) · Bildhöhe / Bezugszoom.
+    /// <paramref name="kamera"/> null: kein Pixel-Look bzw. Raum – die Schilder kehren in die Welt zurück.
+    /// </summary>
+    private void PixelNamen(Camera3D? kamera)
+    {
+        var anzeigen = kamera is not null;
+        var zahl = 0;
+        foreach (var label in _beschriftungen)
+        {
+            if (!label.HasMeta("kennung")) continue;
+            var ziel = anzeigen ? 0u : 1u;
+            if (label.Layers != ziel) label.Layers = ziel;
+            if (!anzeigen || !label.Visible || kamera!.IsPositionBehind(label.GlobalPosition)) continue;
+            _pxNamenEbene ??= new CanvasLayer { Name = "PixelNamen", Layer = 0 };
+            if (_pxNamenEbene.GetParent() is null) AddChild(_pxNamenEbene);
+            if (zahl == _pxNamen.Count)
+            {
+                var neu = new Label { MouseFilter = Control.MouseFilterEnum.Ignore, HorizontalAlignment = HorizontalAlignment.Center };
+                _pxNamenEbene.AddChild(neu);
+                _pxNamen.Add(neu);
+            }
+            var l = _pxNamen[zahl++];
+            var hoehe = GetViewport().GetVisibleRect().Size.Y;
+            var massstab = label.PixelSize * hoehe / BezugsZoom; // Bildpunkte je Schrifteinheit des Schildes
+            var groesse = Mathf.Max(6, Mathf.RoundToInt(label.FontSize * massstab));
+            l.Text = label.Text;
+            l.Visible = true;
+            l.AddThemeFontOverride("font", label.Font);
+            l.AddThemeFontSizeOverride("font_size", groesse);
+            l.AddThemeColorOverride("font_color", label.Modulate);
+            l.AddThemeColorOverride("font_outline_color", label.OutlineModulate);
+            l.AddThemeConstantOverride("outline_size", Mathf.RoundToInt(label.OutlineSize * massstab));
+            l.Position = (kamera!.UnprojectPosition(label.GlobalPosition) - l.GetCombinedMinimumSize() / 2f).Round();
+        }
+        for (var i = zahl; i < _pxNamen.Count; i++) _pxNamen[i].Visible = false;
     }
 
     /// <summary>Überträgt die Kamera der Logik auf eine Kamera im SubViewport (Projektion, Entfernungen, Umgebung, Sichtebenen).</summary>
@@ -268,13 +313,16 @@ public partial class Stadtansicht
     /// Wie hell das volle Licht gerade ist (1 = Mittag): Sonne (oder Mond) plus Umgebungslicht im Verhältnis zum Tag. Die Lichtstufen des Shaders sind auf den Tag
     /// abgestimmt; ohne diesen Faktor fiele abends alles in die dunkelste Stufe.
     /// </summary>
+    /// <summary>Kleinste Lichtskala: Nachts bleiben die Flächen sichtbar (Boden und Wände etwa so hell wie ohne Pixel-Look), Fenster und Feuer leuchten darüber.</summary>
+    private const float PixelLichtBoden = 0.34f;
+
     private float PixelLichtskala()
     {
         static float Hell(Color c) => 0.2126f * c.R + 0.7152f * c.G + 0.0722f * c.B;
         var umgebung = _umgebung.Environment;
         var sonne = _sonne.Visible ? _sonne.LightEnergy * Hell(_sonne.LightColor) : 0f;
         var licht = sonne + umgebung.AmbientLightEnergy * Hell(umgebung.AmbientLightColor);
-        return Mathf.Clamp(licht / 1.55f, 0.15f, 1f);
+        return Mathf.Clamp(licht / 1.55f, PixelLichtBoden, 1f);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
