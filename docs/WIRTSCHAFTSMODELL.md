@@ -1222,6 +1222,21 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 
 **Schiffsverkehr (Datenversion 69, `schiffshandel.verkehrBeachten`):** Die Rechnung einer Fahrt (Tafel und KI, `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt`) zählt die Schiffe, die schon unterwegs sind: Hinfracht und geplante Rückfracht der Schiffe auf dem Weg zur selben Stadt als dort schon verkauft bzw. gekauft, die Rückfracht aller Schiffe, die noch heimkommen (ohne Aufträge ins Lager eines Betriebs), als daheim schon verkauft – `vorher` in `Erloes`, `Kosten` und `Verkaufswert`. Ohne den Schalter (alte Spielstände mit ihren Daten) plant jedes Schiff, als wäre es allein. Anlass und Messung: „Jahreszeiten“, Abschnitt „Wirt in Köln: Kosten und Schiffsverkehr“.
 
+**Hafen ruht (Datenversion 70, `schiffshandel.aktiv: false`; Nutzerentscheidung vom 03.11.2026):** Der Schiffshandel ist aus dem laufenden Spiel genommen, der Code bleibt für ein späteres Add-on. Niemand kauft oder schickt Schiffe (Befehle abgelehnt mit „Der Schiffshandel ruht …“), die KI plant keine (ihre Schiffszüge hängen an `Schiffahrt.IstAktiv`), die fernen Märkte erholen sich nicht mehr (es handelt ja niemand), der Zöllner hat keinen Nutzen, „Hafen erweitern“ wird abgelehnt. Der Hafen bleibt ein zweiter Ort zum Handeln mit dem Markt der Stadt – dieselben Waren, gemeinsamer Vorrat und gemeinsame Preise (`Schiffahrt.HafenMarkt` = `Stadtwirtschaft.Markt`), kein eigener Markt; zu, solange der Fluss im strengen Winter zugefroren ist (`HafenOffen`). Am Rechenweg der Wirtschaft ändert der Hafen als Handelsort nichts: Die Karren fahren weiter zum nächsten Marktplatz. Ohne Angabe gilt `aktiv: true` – alte Spielstände bringen ihre Daten mit und rechnen wie bisher (Test „Schalter an … bitgleich mit dem Kern vor dem Schalter“: drei Jahre Greybox mit Schiff, SHA-256 je Jahr gegen phase5/jahreszeiten `0512c835`). Messung: `messen jahreszeiten … --mit-schiffshandel` rechnet wie vorher, ohne den Schalter wie jetzt; Kurzprobe unten.
+
+**Kurzprobe** (NAS, `messen jahreszeiten 20 4`, Greybox und Köln, je 4 Startwerte, Spieler J20 und Ø KI-Häuser J20; gemessen auf main 6f80481b + phase5/jahreszeiten 0512c835 + dieser Branch daec02c5; „an“ = `--mit-schiffshandel`, bitgleich mit vorher). Nur Richtung, Streuung bei 4 Startwerten groß; volle Messung mit 80 Startwerten auf dem Grafik-PC steht aus.
+
+| Karte, Aufbau | Spieler an | Spieler aus | | KI an | KI aus | |
+|---|---|---|---|---|---|---|
+| Greybox, Ausbau | 67.460 | 63.360 | −6,1 % | 80.426 | 69.762 | −13,3 % |
+| Greybox, Schmied | 38.117 | 35.229 | −7,6 % | 83.104 | 70.198 | −15,5 % |
+| Greybox, Wirt | 31.336 | 34.063 | +8,7 % | 78.048 | 74.752 | −4,2 % |
+| Köln, Ausbau | 60.191 | 55.700 | −7,5 % | 76.173 | 69.281 | −9,0 % |
+| Köln, Schmied | 33.703 | 36.129 | +7,2 % | 75.960 | 69.975 | −7,9 % |
+| Köln, Wirt | 25.677 | 28.310 | +10,3 % | 74.818 | 69.291 | −7,4 % |
+
+Keine Bankrotte. Erwartet: Ohne die Rückfracht der Schiffe werden Rohstoffe daheim teurer und die Exportnachfrage fehlt (siehe Befund PR #199: Schiffshandel hob auch Häuser ohne Schiff um 21–26 %) – die KI-Häuser verlieren 4–16 %, die Werkstatt-Spieler je nach Karte; der Wirt gewinnt (er verlor bisher an eigenen Schiffen, „Wirt in Köln“).
+
 ## Stadtkasse, Ämter und neue Anträge (PR #200)
 
 **Regeln** (Abschnitt `politik.kasse`, `politik.bauvorhaben`, `politik.fest`, `politik.befugnisse`; Datenversion 54):
