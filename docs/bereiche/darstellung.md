@@ -219,7 +219,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Pixel-Look (PR folgt, Branch phase5/pixel-look)
+### Pixel-Look (PR #295)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
