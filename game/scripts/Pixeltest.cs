@@ -7,15 +7,14 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Testszene „Pixel-Look“ (<c>--pixeltest=1</c>): derselbe Ausschnitt (Häuser, Figuren, Gras, Fels, Wasser, Feuer, Nebel) mit Bausteinen, die ihn
-/// wie sehr feine Pixelart aussehen lassen – in VOLLER Auflösung, ohne kleinere Renderauflösung und ohne Hochskalieren (Nutzer, 03.11.2026;
-/// „Bucket 2“: Texel-Pixelart, Objekte bewegen sich frei). Die Bausteine sind einzeln schaltbar:
-/// 3 Stufenlicht (Toon-Stufen, harte Schattenkante), 4 Umriss (1 Bildpunkt, aus Tiefe und Normalen), 5 Palette (aus/frei/Holzschnitt),
-/// 6 Dithering (aus/Bildschirm/Welt), 7 Texel-Raster (feste Texel je Meter für alle Netze, Nearest-Filter), 8 Punktgröße 1/2/3, 9 Nebel.
-/// Dithering „Welt“ ist an die Texel der Weltpositionen gebunden (bleibt beim Fahren und Drehen am Objekt), „Bildschirm“ an das Bildschirmraster.
-/// Weitere Tasten: 1 Übersicht, 2 Nah, 0 alles aus, Y alles an mit freier Palette, X alles an mit Holzschnitt-Palette, K Kamera kreist (Dreh-Beobachtung),
-/// Esc Ende. Kamera: <see cref="FreieKamera"/> ab Start. Startoptionen: <c>--pixelmodus=aus|stufen|frei|holz</c>, <c>--pixelsicht=uebersicht|nah</c>,
-/// <c>--pixelkreis=1</c>, <c>--pixelmessung=1</c> (aus und alles an je 6 s messen, Ergebnis im Log, dann beenden), <c>--pixelende=&lt;s&gt;</c>.
+/// Testszene „Pixel-Look“ (Versuch, Nutzer 03.11.2026): derselbe Ausschnitt (Häuser, Figuren, Gras, Fels, Teich, Feuer) in voller Auflösung, aber mit
+/// dem Stil einer Pixelart-Vorlage: wenige Lichtstufen mit harter Schattengrenze und violettem Schatten, warme entsättigte Farben, helle/dunkle Kanten
+/// statt schwarzem Umriss, wenige Texelflecken, Pixel-Wasser. Alles live einstellbar über die Reglertafel (Tab klappt sie ein und aus);
+/// „Werte speichern“ schreibt die Einstellung nach <c>user://pixellook.json</c> (Pfad steht auf der Tafel), „Werte kopieren“ legt sie in die Zwischenablage.
+/// Startet ohne Optionen (auch mit F6 im Godot-Editor) in der Spielkamera (orthografisch, 40 Grad schräg) mit der Voreinstellung „Referenz“.
+/// Tasten: C Spielkamera, F Flugkamera, V Spielkamera weit, Mausrad Zoom (Spielkamera), R Referenz, 0 aus, Tab Tafel, Esc Ende.
+/// Startoptionen (alle freiwillig): <c>--pixelmodus=aus|referenz</c>, <c>--pixelsicht=spiel|spielnah|spielweit|flug|nah</c>, <c>--pixeltexel=&lt;Bildpunkte&gt;</c>, <c>--pixelpalette=aus|oklab|rgb</c>, <c>--pixelkreis=1</c>,
+/// <c>--pixelmessung=1</c> (aus und an je 6 s messen, Ergebnis im Log, dann beenden), <c>--pixelende=&lt;s&gt;</c>, <c>--pixeltafel=0</c> (Tafel zu).
 /// Kein Teil des Spiels; die Shader liegen in <c>assets/shader/pixel_*.gdshader</c>.
 /// </summary>
 public partial class Pixeltest : Node3D
@@ -25,31 +24,35 @@ public partial class Pixeltest : Node3D
     public static bool Angefordert =>
         OS.GetCmdlineUserArgs().Any(a => a == "--pixeltest" || (a.StartsWith("--pixeltest=") && a != "--pixeltest=0"));
 
+    /// <summary>Alle einstellbaren Werte (werden gespeichert).</summary>
+    private sealed class Werte
+    {
+        public bool An = true, Stufen = true, Kanten = true, Flecken = true, Halme = true;
+        public int Lichtstufen = 3, Palette = 0, PaletteStufen = 12, Dither = 0;
+        public float TexelPx = 3f, SchattenTon = -60f, SchattenStaerke = 0.05f, KanteHell = 0.13f, KanteDunkel = 0.12f, Saettigung = 0.8f, Waerme = 0.03f, Ferne = 1.4f;
+    }
+
+    private Werte _w = new();
     private readonly Dictionary<string, string> _optionen = new();
-    private bool _stufen, _umriss, _texel, _nebel;
-    private int _palette, _dither, _punkt = 1;     // Palette 0 aus/1 frei/2 Holzschnitt; Dither 0 aus/1 Bildschirm/2 Welt
-    private bool _kreis;
-    private float _kreisWinkel;
+    private bool _nebel, _kreis, _spiel;
+    private float _kreisWinkel, _spielZoom = 60f;
     private FreieKamera _kamera = null!;
+    private Camera3D _spielKamera = null!;
     private WorldEnvironment _umgebung = null!;
     private DirectionalLight3D _sonne = null!;
-    private MeshInstance3D _umrissFlaeche = null!;
-    private ColorRect _farbe = null!;
-    private ShaderMaterial _farbStoff = null!, _umrissStoff = null!, _texelStoff = null!;
-    private Label _anzeige = null!;
+    private MeshInstance3D _flaeche = null!, _wasser = null!;
+    private MultiMeshInstance3D _gras = null!;
+    private ShaderMaterial _farbStoff = null!, _wasserPixel = null!;
+    private Material? _wasserVorher;
+    private Label _anzeige = null!, _pfad = null!;
+    private PanelContainer _tafel = null!;
+    private readonly Dictionary<string, Action<Werte>> _abgleich = new();
+    private readonly List<Action> _reglerNeu = new();
     private readonly List<MeshInstance3D> _netze = new();
     private readonly Dictionary<BaseMaterial3D, BaseMaterial3D.TextureFilterEnum> _filterVorher = new();
-    private double _ende, _zeit, _fps;
+    private double _ende, _zeit;
     private double _messZeit; private int _messSchritt = -1; private readonly List<double> _gpu = new(), _cpu = new();
-    private readonly string[] _messNamen = { "aus", "alles an (frei)", "alles an (Holzschnitt)" };
-
-    private static float Hoehe(float x, float z)
-    {
-        var y = 0.5f * Mathf.Sin(x * 0.09f) * Mathf.Cos(z * 0.07f) + 0.15f * Mathf.Sin(x * 0.4f + z * 0.3f);
-        var d = new Vector2(x + 16f, z - 14f).Length();      // Teich
-        if (d < 10f) y -= (1f - d / 10f) * 1.6f + 0.2f;
-        return y;
-    }
+    private readonly string[] _messNamen = { "aus", "Referenz", "Referenz mit Palette Oklab" };
 
     public override void _Ready()
     {
@@ -68,18 +71,39 @@ public partial class Pixeltest : Node3D
         _kamera = FreieKamera.Einhaengen(this, new Vector3(30, 14, 34), new Vector3(0, 2, 0));
         _kamera.Bodenhoehe = Hoehe;
         _kamera.MindestHoehe = 0.4f;
+        _spielKamera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = _spielZoom, Near = 1f, Far = 600f, Name = "Spielkamera" };
+        AddChild(_spielKamera);
         NachbearbeitungBauen();
+        if (_optionen.GetValueOrDefault("pixelmodus", "referenz") == "aus") _w = Aus();
+        if (float.TryParse(_optionen.GetValueOrDefault("pixeltexel", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var tpx)) _w.TexelPx = tpx;
+        _w.Palette = _optionen.GetValueOrDefault("pixelpalette", "aus") switch { "oklab" => 1, "rgb" => 2, _ => _w.Palette };
         OberflaecheBauen();
-        Sicht(_optionen.GetValueOrDefault("pixelsicht", "uebersicht") == "nah");
-        switch (_optionen.GetValueOrDefault("pixelmodus", "aus"))
+        switch (_optionen.GetValueOrDefault("pixelsicht", "spiel"))
         {
-            case "stufen": _stufen = true; _umriss = true; break;
-            case "frei": Alles(1); break;
-            case "holz": Alles(2); break;
+            case "flug": Flug(false); break;
+            case "nah": Flug(true); break;
+            case "spielweit": SpielSicht(140f); break;
+            case "spielnah": SpielSicht(25f); break;
+            default: SpielSicht(60f); break;
         }
-        Anwenden();
+        if (_optionen.GetValueOrDefault("pixeltafel") == "0") _tafel.Visible = false;
         if (_optionen.GetValueOrDefault("pixelmessung") == "1") _messSchritt = 0;
         GD.Print($"[pixeltest] renderer={RenderingServer.GetCurrentRenderingDriverName()} netze={_netze.Count}");
+    }
+
+    private static Werte Aus() => new() { An = false };
+    private static Werte Referenz() => new();
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Welt
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private static float Hoehe(float x, float z)
+    {
+        var y = 0.5f * Mathf.Sin(x * 0.09f) * Mathf.Cos(z * 0.07f) + 0.15f * Mathf.Sin(x * 0.4f + z * 0.3f);
+        var d = new Vector2(x + 16f, z - 14f).Length();      // Teich
+        if (d < 10f) y -= (1f - d / 10f) * 1.6f + 0.2f;
+        return y;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -129,7 +153,9 @@ public partial class Pixeltest : Node3D
             wasser.MaterialOverride = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/wasser_mittel.gdshader") };
         else
             wasser.MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.2f, 0.35f, 0.45f, 0.8f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha };
-        AddChild(wasser);   // kein Texel-Overlay auf Wasser (Transparenz)
+        AddChild(wasser);
+        _wasser = wasser; _wasserVorher = wasser.MaterialOverride;
+        _wasserPixel = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_wasser.gdshader") };
 
         // Häuser (Maße der Modelle werden ins Log geschrieben)
         Haus("gebaeude/fachwerkhaus", new Vector3(-4, 0, -6), 20);
@@ -268,17 +294,18 @@ public partial class Pixeltest : Node3D
     {
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
-        for (var k = 0; k < 3; k++)
+        // Senkrechte schmale Halme (zwei gekreuzte Dreiecke je Büschel), Normalen nach oben wie beim Boden: kein Knick, also keine Kante im Gras;
+        // hell und warm wie Heu, vorn dunkler wirkt durch das Stufenlicht
+        for (var k = 0; k < 2; k++)
         {
-            var w = k * Mathf.Pi / 3f; var d = new Vector3(Mathf.Cos(w), 0, Mathf.Sin(w)) * 0.07f;
-            st.SetColor(new Color(0.18f, 0.28f, 0.1f)); st.AddVertex(-d);
-            st.SetColor(new Color(0.18f, 0.28f, 0.1f)); st.AddVertex(d);
-            st.SetColor(new Color(0.55f, 0.65f, 0.28f)); st.AddVertex(new Vector3(d.Z * 2, 0.5f, -d.X * 2));
+            var w = k * Mathf.Pi / 2f; var d = new Vector3(Mathf.Cos(w), 0, Mathf.Sin(w)) * 0.035f;
+            st.SetNormal(Vector3.Up); st.SetColor(new Color(0.56f, 0.45f, 0.2f)); st.AddVertex(-d);
+            st.SetNormal(Vector3.Up); st.SetColor(new Color(0.56f, 0.45f, 0.2f)); st.AddVertex(d);
+            st.SetNormal(Vector3.Up); st.SetColor(new Color(0.90f, 0.78f, 0.36f)); st.AddVertex(new Vector3(0, 0.6f, 0));
         }
-        st.GenerateNormals();
         var netz = st.Commit();
         var zufall = new RandomNumberGenerator { Seed = 11 };
-        const int anzahl = 9000;
+        const int anzahl = 16000;
         var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = false, Mesh = netz, InstanceCount = anzahl };
         for (var i = 0; i < anzahl; i++)
         {
@@ -289,11 +316,12 @@ public partial class Pixeltest : Node3D
             var b = new Basis(Vector3.Up, zufall.RandfRange(0, Mathf.Tau)).Scaled(new Vector3(s, s, s));
             mm.SetInstanceTransform(i, new Transform3D(b, new Vector3(x, y, z)));
         }
-        AddChild(new MultiMeshInstance3D
+        _gras = new MultiMeshInstance3D
         {
             Multimesh = mm, Name = "Gras", CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             MaterialOverride = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true, CullMode = BaseMaterial3D.CullModeEnum.Disabled, Roughness = 1f },
-        });
+        };
+        AddChild(_gras);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -302,71 +330,93 @@ public partial class Pixeltest : Node3D
 
     private void NachbearbeitungBauen()
     {
-        // Umriss: Vollbild-Viereck vor der Kamera (Spatial-Shader liest Tiefe und Normalen)
-        _umrissStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_umriss.gdshader") };
-        _umrissFlaeche = new MeshInstance3D
+        // Ein Vollbild-Viereck vor der Kamera; die kleinste Zeichenreihenfolge, damit Wasser, Feuer und Nebel danach darüber liegen
+        _farbStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_farbe.gdshader"), RenderPriority = -128 };
+        _flaeche = new MeshInstance3D
         {
-            Mesh = new QuadMesh { Size = new Vector2(2, 2), FlipFaces = true }, MaterialOverride = _umrissStoff,
+            Mesh = new QuadMesh { Size = new Vector2(2, 2), FlipFaces = true }, MaterialOverride = _farbStoff,
             ExtraCullMargin = 16384f, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
-        _kamera.AddChild(_umrissFlaeche);
-
-        // Farbe: Vollbild-Rechteck auf dem Bild (Canvas-Shader liest das fertige Bild)
-        var ebene = new CanvasLayer { Layer = 1 };
-        AddChild(ebene);
-        _farbStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_farbe.gdshader") };
-        _farbe = new ColorRect { Material = _farbStoff, MouseFilter = Control.MouseFilterEnum.Ignore };
-        _farbe.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        ebene.AddChild(_farbe);
-
-        // Texel-Raster: Overlay auf allen Netzen
-        _texelStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_texel.gdshader") };
-    }
-
-    private void Alles(int palette)
-    {
-        _stufen = true; _umriss = true; _palette = palette; _dither = 2; _texel = true; _punkt = 1;
+        _kamera.AddChild(_flaeche);
     }
 
     private void Anwenden()
     {
-        _umrissFlaeche.Visible = _umriss;
-        _farbe.Visible = _stufen || _palette != 0 || _dither == 1;
-        _farbStoff.SetShaderParameter("stufen_an", _stufen);
-        _farbStoff.SetShaderParameter("stufen", 4);
-        _farbStoff.SetShaderParameter("palette", _palette);
-        _farbStoff.SetShaderParameter("dither_an", _dither == 1);
-        _farbStoff.SetShaderParameter("dither_punkt", _punkt);
-        var raster = _texel || _dither == 2;
-        _texelStoff.SetShaderParameter("geordnet", _dither == 2);
-        _texelStoff.SetShaderParameter("koernung", _dither == 2 ? 0.07f : 0.16f);
-        _texelStoff.SetShaderParameter("texel_je_meter", 16f / _punkt);
+        var w = _w;
+        _flaeche.Visible = w.An;
+        _farbStoff.SetShaderParameter("stufen_an", w.Stufen);
+        _farbStoff.SetShaderParameter("stufen", w.Lichtstufen);
+        _farbStoff.SetShaderParameter("palette", w.Palette);
+        _farbStoff.SetShaderParameter("pal_l", w.PaletteStufen);
+        _farbStoff.SetShaderParameter("dither", w.Dither);
+        _farbStoff.SetShaderParameter("dither_staerke", 0.8f);
+        _farbStoff.SetShaderParameter("koernung_an", w.Flecken);
+        _farbStoff.SetShaderParameter("koernung", 0.18f);
+        _farbStoff.SetShaderParameter("texel_je_meter", 16f);
+        _farbStoff.SetShaderParameter("texel_auto", _spiel);
+        KameraWerte();
+        _farbStoff.SetShaderParameter("texel_ziel_px", w.TexelPx);
+        _farbStoff.SetShaderParameter("blende_von", w.Ferne);
+        _farbStoff.SetShaderParameter("umriss_an", w.Kanten);
+        _farbStoff.SetShaderParameter("kante_hell", w.KanteHell);
+        _farbStoff.SetShaderParameter("kante_dunkel", w.KanteDunkel);
+        _farbStoff.SetShaderParameter("sattel", w.Saettigung);
+        _farbStoff.SetShaderParameter("waerme", new Vector2(w.Waerme / 3f, w.Waerme));
+        var ton = Mathf.DegToRad(w.SchattenTon);
+        _farbStoff.SetShaderParameter("schatten_ton", new Vector2(Mathf.Cos(ton), Mathf.Sin(ton)) * w.SchattenStaerke);
+        _farbStoff.SetShaderParameter("sonne_richtung", -_sonne.GlobalBasis.Z);
+        _wasserPixel.SetShaderParameter("texel", 0.16f);
+        _wasser.MaterialOverride = w.An && w.Flecken ? _wasserPixel : _wasserVorher;
+        _gras.Visible = w.Halme;
         foreach (var m in _netze)
         {
             if (!IsInstanceValid(m)) continue;
-            m.MaterialOverlay = raster ? _texelStoff : null;
-            // Nearest-Filter für alle Standard-Materialien (Texturen der Modelle)
             for (var i = 0; i < m.GetSurfaceOverrideMaterialCount(); i++)
             {
                 var mat = m.GetActiveMaterial(i) as BaseMaterial3D;
                 if (mat is null) continue;
                 if (!_filterVorher.ContainsKey(mat)) _filterVorher[mat] = mat.TextureFilter;
-                mat.TextureFilter = _texel ? BaseMaterial3D.TextureFilterEnum.NearestWithMipmaps : _filterVorher[mat];
+                mat.TextureFilter = w.An && w.Flecken ? BaseMaterial3D.TextureFilterEnum.NearestWithMipmaps : _filterVorher[mat];
             }
         }
-        _sonne.ShadowBlur = _stufen ? 0f : 1f;
+        _sonne.ShadowBlur = w.An && w.Stufen ? 0f : 1f;
         _umgebung.Environment.FogEnabled = _nebel;
         AnzeigeAktualisieren();
     }
 
-    private void Sicht(bool nah)
+    private void KameraWerte()
     {
+        _farbStoff.SetShaderParameter("ortho_groesse", _spiel ? _spielZoom : 0f);
+        _farbStoff.SetShaderParameter("fov_faktor", 2f * Mathf.Tan(Mathf.DegToRad(_kamera.Fov) / 2f));
+    }
+
+    private void Aktiv(Camera3D k)
+    {
+        k.MakeCurrent();
+        _flaeche.Reparent(k, false);
+    }
+
+    /// <summary>Spielkamera: orthografisch, 40 Grad schräg von oben, 150 m Abstand – wie im Spiel (Stadtansicht.KameraAufbauen). Zoom = sichtbare Höhe in Metern (Spiel: 25–140, Start 95).</summary>
+    private void SpielSicht(float zoom)
+    {
+        _spiel = true; _spielZoom = Mathf.Clamp(zoom, 25f, 140f);
+        var basis = Basis.FromEuler(new Vector3(Mathf.DegToRad(-40f), Mathf.DegToRad(30f), 0));
+        _spielKamera.GlobalTransform = new Transform3D(basis, new Vector3(2, 0, 2) + basis * new Vector3(0, 0, 150f));
+        _spielKamera.Size = _spielZoom;
+        Aktiv(_spielKamera);
+        Anwenden();
+    }
+
+    private void Flug(bool nah)
+    {
+        _spiel = false; Aktiv(_kamera);
         if (nah) _kamera.Blicken(new Vector3(14, 2.6f, 11), new Vector3(7, 1.6f, 4));
         else _kamera.Blicken(new Vector3(30, 14, 34), new Vector3(0, 2, 0));
+        Anwenden();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
-    //  Oberfläche, Tasten, Messung
+    //  Reglertafel, Tasten, Messung
     // ═════════════════════════════════════════════════════════════════════════
 
     private void OberflaecheBauen()
@@ -374,24 +424,124 @@ public partial class Pixeltest : Node3D
         var ebene = new CanvasLayer { Layer = 5 };
         AddChild(ebene);
         _anzeige = new Label { Position = new Vector2(14, 10) };
-        var hilfe = new Label { Position = new Vector2(14, 0), AnchorTop = 1f, AnchorBottom = 1f, OffsetTop = -40f, OffsetBottom = -10f,
-            Text = "1 Übersicht  2 Nah  3 Stufenlicht  4 Umriss  5 Palette  6 Dithering  7 Texel-Raster  8 Punktgröße  9 Nebel  0 aus  Y alles frei  X alles Holzschnitt  K kreisen  H Kamerahilfe  Esc Ende" };
-        foreach (var l in new[] { _anzeige, hilfe })
+        _anzeige.AddThemeColorOverride("font_color", new Color(1f, 0.95f, 0.85f));
+        _anzeige.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.95f));
+        _anzeige.AddThemeConstantOverride("outline_size", 6);
+        ebene.AddChild(_anzeige);
+
+        _tafel = new PanelContainer { Position = new Vector2(0, 0) };
+        _tafel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
+        _tafel.OffsetLeft = -330; _tafel.OffsetRight = -8; _tafel.OffsetTop = 8;
+        _tafel.GrowHorizontal = Control.GrowDirection.Begin;
+        ebene.AddChild(_tafel);
+        var spalte = new VBoxContainer();
+        _tafel.AddChild(spalte);
+        spalte.AddChild(new Label { Text = "Pixel-Look einstellen (Tab: ein/aus)" });
+
+        Schalter(spalte, "Pixel-Look an", w => w.An, (w, v) => w.An = v);
+        Schalter(spalte, "Stufenlicht", w => w.Stufen, (w, v) => w.Stufen = v);
+        Regler(spalte, "Lichtstufen", 2, 5, 1, w => w.Lichtstufen, (w, v) => w.Lichtstufen = (int)v);
+        Regler(spalte, "Schattenton (Grad, -60 = violett)", -180, 180, 5, w => w.SchattenTon, (w, v) => w.SchattenTon = v);
+        Regler(spalte, "Schattenstärke", 0, 0.15f, 0.005f, w => w.SchattenStaerke, (w, v) => w.SchattenStaerke = v);
+        Schalter(spalte, "Kanten hell/dunkel", w => w.Kanten, (w, v) => w.Kanten = v);
+        Regler(spalte, "Kante hell", 0, 0.3f, 0.01f, w => w.KanteHell, (w, v) => w.KanteHell = v);
+        Regler(spalte, "Kante dunkel", 0, 0.3f, 0.01f, w => w.KanteDunkel, (w, v) => w.KanteDunkel = v);
+        Regler(spalte, "Sättigung", 0.2f, 1.4f, 0.05f, w => w.Saettigung, (w, v) => w.Saettigung = v);
+        Regler(spalte, "Wärme", 0, 0.08f, 0.005f, w => w.Waerme, (w, v) => w.Waerme = v);
+        Schalter(spalte, "Texelflecken und Pixel-Wasser", w => w.Flecken, (w, v) => w.Flecken = v);
+        Regler(spalte, "Texelgröße (Bildpunkte, Spielkamera)", 1, 8, 0.5f, w => w.TexelPx, (w, v) => w.TexelPx = v);
+        Regler(spalte, "Ferne ausblenden (Texel unter x Punkten)", 0.5f, 4f, 0.1f, w => w.Ferne, (w, v) => w.Ferne = v);
+        Schalter(spalte, "Dithering (Welt)", w => w.Dither == 2, (w, v) => w.Dither = v ? 2 : 0);
+        Wahl(spalte, "Palette", new[] { "aus", "Oklab", "RGB" }, w => w.Palette, (w, v) => w.Palette = v);
+        Regler(spalte, "Palettenstufen", 4, 24, 1, w => w.PaletteStufen, (w, v) => w.PaletteStufen = (int)v);
+        Schalter(spalte, "Gras-Halme", w => w.Halme, (w, v) => w.Halme = v);
+
+        var reihe = new HBoxContainer(); spalte.AddChild(reihe);
+        Knopf(reihe, "Referenz", () => { _w = Referenz(); Abgleichen(); });
+        Knopf(reihe, "Aus", () => { _w = Aus(); Abgleichen(); });
+        Knopf(reihe, "Spielkamera", () => SpielSicht(_spielZoom));
+        Knopf(reihe, "Flugkamera", () => Flug(false));
+        var reihe2 = new HBoxContainer(); spalte.AddChild(reihe2);
+        Knopf(reihe2, "Werte speichern", Speichern);
+        Knopf(reihe2, "Werte kopieren", () => { DisplayServer.ClipboardSet(Json()); _pfad.Text = "In die Zwischenablage kopiert."; });
+        _pfad = new Label { Text = "Speicherort: " + ProjectSettings.GlobalizePath("user://pixellook.json"), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(300, 0) };
+        spalte.AddChild(_pfad);
+    }
+
+    private void Abgleichen()
+    {
+        foreach (var a in _reglerNeu) a();
+        Anwenden();
+    }
+
+    private void Schalter(Container eltern, string text, Func<Werte, bool> lesen, Action<Werte, bool> setzen)
+    {
+        var k = new CheckBox { Text = text, ButtonPressed = lesen(_w) };
+        k.Toggled += an => { setzen(_w, an); Anwenden(); };
+        _reglerNeu.Add(() => k.SetPressedNoSignal(lesen(_w)));
+        eltern.AddChild(k);
+    }
+
+    private void Regler(Container eltern, string text, float min, float max, float schritt, Func<Werte, float> lesen, Action<Werte, float> setzen)
+    {
+        var name = new Label { Text = text };
+        var h = new HSlider { MinValue = min, MaxValue = max, Step = schritt, Value = lesen(_w), CustomMinimumSize = new Vector2(210, 0), SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var wert = new Label { Text = lesen(_w).ToString("0.###", CultureInfo.InvariantCulture), CustomMinimumSize = new Vector2(46, 0) };
+        h.ValueChanged += v => { setzen(_w, (float)v); wert.Text = ((float)v).ToString("0.###", CultureInfo.InvariantCulture); Anwenden(); };
+        _reglerNeu.Add(() => { h.SetValueNoSignal(lesen(_w)); wert.Text = lesen(_w).ToString("0.###", CultureInfo.InvariantCulture); });
+        var zeile = new HBoxContainer();
+        zeile.AddChild(h); zeile.AddChild(wert);
+        eltern.AddChild(name); eltern.AddChild(zeile);
+    }
+
+    private void Wahl(Container eltern, string text, string[] eintraege, Func<Werte, int> lesen, Action<Werte, int> setzen)
+    {
+        var o = new OptionButton();
+        foreach (var e in eintraege) o.AddItem(e);
+        o.Selected = lesen(_w);
+        o.ItemSelected += i => { setzen(_w, (int)i); Anwenden(); };
+        _reglerNeu.Add(() => o.Selected = lesen(_w));
+        var zeile = new HBoxContainer();
+        zeile.AddChild(new Label { Text = text + ": " }); zeile.AddChild(o);
+        eltern.AddChild(zeile);
+    }
+
+    private static void Knopf(Container eltern, string text, Action tat)
+    {
+        var k = new Button { Text = text };
+        k.Pressed += tat;
+        eltern.AddChild(k);
+    }
+
+    private string Json()
+    {
+        var d = new Godot.Collections.Dictionary
         {
-            l.AddThemeColorOverride("font_color", new Color(1f, 0.95f, 0.85f));
-            l.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0, 0.95f));
-            l.AddThemeConstantOverride("outline_size", 6);
-            l.AddThemeFontSizeOverride("font_size", 16);
-            ebene.AddChild(l);
-        }
+            ["pixel_look_an"] = _w.An, ["stufenlicht"] = _w.Stufen, ["lichtstufen"] = _w.Lichtstufen,
+            ["schattenton_grad"] = _w.SchattenTon, ["schattenstaerke"] = _w.SchattenStaerke,
+            ["kanten"] = _w.Kanten, ["kante_hell"] = _w.KanteHell, ["kante_dunkel"] = _w.KanteDunkel,
+            ["saettigung"] = _w.Saettigung, ["waerme"] = _w.Waerme,
+            ["texelflecken_und_wasser"] = _w.Flecken, ["texelgroesse_bildpunkte"] = _w.TexelPx, ["ferne_ausblenden_bildpunkte"] = _w.Ferne,
+            ["dithering_welt"] = _w.Dither == 2, ["palette"] = new[] { "aus", "oklab", "rgb" }[_w.Palette], ["palettenstufen"] = _w.PaletteStufen,
+            ["gras_halme"] = _w.Halme, ["kamera"] = _spiel ? "spielkamera" : "flugkamera", ["spielkamera_zoom_m"] = _spielZoom,
+        };
+        return Json_(d);
+    }
+
+    private static string Json_(Godot.Collections.Dictionary d) => Godot.Json.Stringify(d, "  ");
+
+    private void Speichern()
+    {
+        using var f = Godot.FileAccess.Open("user://pixellook.json", Godot.FileAccess.ModeFlags.Write);
+        if (f is null) { _pfad.Text = "Speichern fehlgeschlagen."; return; }
+        f.StoreString(Json());
+        _pfad.Text = "Gespeichert: " + ProjectSettings.GlobalizePath("user://pixellook.json");
     }
 
     private void AnzeigeAktualisieren()
     {
-        var pal = new[] { "aus", "frei (6 Stufen je Kanal)", "Holzschnitt (21 Farben)" }[_palette];
-        var dit = new[] { "aus", "Bildschirm", "Welt (je Texel)" }[_dither];
-        _anzeige.Text = $"Pixeltest – Pixel-Look in voller Auflösung\nStufenlicht: {(_stufen ? "an" : "aus")}   Umriss: {(_umriss ? "an" : "aus")}   Palette: {pal}   Dithering: {dit}   " +
-                        $"Texel-Raster: {(_texel ? "an" : "aus")}   Punktgröße: {_punkt}   Nebel: {(_nebel ? "an" : "aus")}   Bilder/s: {_fps:F0}";
+        _anzeige.Text = $"Pixeltest – Kamera: {(_spiel ? $"Spielkamera (Zoom {_spielZoom:F0} m)" : "Flugkamera")}   Texel {_w.TexelPx:0.#} Bildpunkte   Bilder/s: {Engine.GetFramesPerSecond():F0}\n" +
+                        "C Spielkamera  V weit  F Flugkamera  Mausrad Zoom  R Referenz  0 aus  Tab Tafel";
     }
 
     public override void _UnhandledKeyInput(InputEvent e)
@@ -399,30 +549,41 @@ public partial class Pixeltest : Node3D
         if (e is not InputEventKey { Pressed: true, Echo: false } t) return;
         switch (t.Keycode)
         {
-            case Key.Key1: Sicht(false); break;
-            case Key.Key2: Sicht(true); break;
-            case Key.Key3: _stufen = !_stufen; break;
-            case Key.Key4: _umriss = !_umriss; break;
-            case Key.Key5: _palette = (_palette + 1) % 3; break;
-            case Key.Key6: _dither = (_dither + 1) % 3; break;
-            case Key.Key7: _texel = !_texel; break;
-            case Key.Key8: _punkt = _punkt % 3 + 1; break;
-            case Key.Key9: _nebel = !_nebel; break;
-            case Key.Key0: _stufen = _umriss = _texel = _nebel = false; _palette = _dither = 0; _punkt = 1; break;
-            case Key.Y: Alles(1); break;
-            case Key.X: Alles(2); break;
+            case Key.Key1: Flug(false); break;
+            case Key.Key2: Flug(true); break;
+            case Key.F: Flug(false); break;
+            case Key.C: SpielSicht(60f); break;
+            case Key.V: SpielSicht(140f); break;
+            case Key.R: _w = Referenz(); Abgleichen(); break;
+            case Key.Key0: _w = Aus(); Abgleichen(); break;
+            case Key.Key9: _nebel = !_nebel; Anwenden(); break;
             case Key.K: _kreis = !_kreis; break;
-            case Key.Escape: GetTree().Quit(); return;
-            default: return;
+            case Key.Tab: _tafel.Visible = !_tafel.Visible; break;
+            case Key.Escape: GetTree().Quit(); break;
         }
-        Anwenden();
+    }
+
+    public override void _Input(InputEvent e)
+    {
+        if (_spiel && e is InputEventMouseButton { Pressed: true } mb && (mb.ButtonIndex == MouseButton.WheelUp || mb.ButtonIndex == MouseButton.WheelDown)
+            && !_tafel.GetGlobalRect().HasPoint(mb.Position))
+        {
+            _spielZoom = Mathf.Clamp(_spielZoom * (mb.ButtonIndex == MouseButton.WheelUp ? 0.9f : 1.1f), 25f, 140f);
+            _spielKamera.Size = _spielZoom;
+            KameraWerte();
+        }
     }
 
     public override void _Process(double delta)
     {
         _zeit += delta;
-        _fps = Engine.GetFramesPerSecond();
-        if (_kreis)
+        {
+            var hoehe = GetViewport().GetVisibleRect().Size.Y;
+            var k = GetViewport().GetCamera3D();
+            var mpp = _spiel ? _spielZoom / hoehe : 2f * Mathf.Tan(Mathf.DegToRad(k.Fov) / 2f) * k.GlobalPosition.DistanceTo(_wasser.GlobalPosition) / hoehe;
+            _wasserPixel.SetShaderParameter("meter_je_pixel", mpp);
+        }
+        if (_kreis && !_spiel)
         {
             _kreisWinkel += (float)delta * 0.25f;
             var m = new Vector3(6, 2, 2);
@@ -437,10 +598,9 @@ public partial class Pixeltest : Node3D
     {
         if (_messZeit == 0)
         {
-            _stufen = _umriss = _texel = _nebel = false; _palette = _dither = 0;
-            if (_messSchritt == 1) Alles(1);
-            if (_messSchritt == 2) Alles(2);
-            Anwenden(); _gpu.Clear(); _cpu.Clear();
+            _w = _messSchritt == 0 ? Aus() : Referenz();
+            if (_messSchritt == 2) _w.Palette = 1;
+            Abgleichen(); _gpu.Clear(); _cpu.Clear();
         }
         _messZeit += delta;
         if (_messZeit > 2.0)
