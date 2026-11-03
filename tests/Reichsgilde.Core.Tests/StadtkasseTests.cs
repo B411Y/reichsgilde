@@ -15,9 +15,9 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class StadtkasseTests
 {
-    static readonly Lazy<string> Json = new(() => Datenpfad.OhneAktionspunkte());
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneAktionspunkte(Datenpfad.OhneJahreszeiten(Datenpfad.MitSchiffshandel()))); // Hafenzoll und Hafenausbau brauchen Schiffe
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
-    static readonly Lazy<Wirtschaftsdaten> MitAp = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> MitAp = new(() => Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel()));
 
     internal static Simulation NeueSimulation(Wirtschaftsdaten? daten = null, Spielzeit? zeit = null) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, zeit, daten ?? Daten.Value);

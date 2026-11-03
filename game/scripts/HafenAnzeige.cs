@@ -17,6 +17,9 @@ namespace Reichsgilde;
 /// <item><b>Ferne Städte</b>: je Stadt, was sie kauft und verkauft, zu welchem Preis (neben dem Preis am Markt daheim) und wie sehr der Markt dort schon
 /// gedrückt ist.</item>
 /// </list>
+/// Ruht der Schiffshandel (<see cref="Schiffahrt.Ruht"/>, Datenversion 70), fehlen beide Reiter samt Kaufknöpfen: Die Tafel sagt nur, dass man hier
+/// mit dem Markt der Stadt handelt (dieselben Waren, Vorrat und Preise), und „Waren handeln“ öffnet die Markttafel – im Winter (Eisschollen)
+/// ist der Hafen zu (<see cref="Schiffahrt.HafenOffen"/>).
 /// Gelesen wird nur aus dem Kern; die Befehle gehen über <see cref="Stadtwirtschaft.Ausfuehren"/>. Die Tafel baut sich nur neu, wenn sich der Aufbau ändert
 /// (Schiff gekauft, abgelegt, angekommen, anderes Ziel …), sonst werden zweimal je Sekunde die Texte nachgezogen – so bleibt eine Eingabe in den Mengen stehen.
 /// </summary>
@@ -80,6 +83,14 @@ public partial class HafenAnzeige : PanelContainer
     private string _kaufBeschreibung = "";
     private Label? _fremde;
 
+    // Hafen ruht: nur Handel mit dem Markt der Stadt
+    private VBoxContainer _ruhtSeite = null!;
+    private Label _ruhtText = null!;
+    private Button _handeln = null!;
+
+    /// <summary>„Waren handeln“, wenn der Schiffshandel ruht: die Markttafel öffnen.</summary>
+    public event Action? MarktGewuenscht;
+
     /// <summary>Ergebnis eines Befehls (Kauf, Auftrag, Verkauf …) – für die Meldungen.</summary>
     public event Action<string>? Gemeldet;
 
@@ -117,6 +128,14 @@ public partial class HafenAnzeige : PanelContainer
         spalte.AddChild(_reiter);
         _schiffsSeite = Seite("Schiffe");
         _staedteSeite = Seite("Ferne Städte");
+
+        _ruhtSeite = new VBoxContainer { Visible = false };
+        _ruhtSeite.AddThemeConstantOverride("separation", 8);
+        spalte.AddChild(_ruhtSeite);
+        _ruhtText = Hauptmenue.Text(_ruhtSeite, "", 13, Grau, umbruchBreite: Breite);
+        _handeln = new Button { FocusMode = FocusModeEnum.None, SizeFlagsHorizontal = SizeFlags.ShrinkBegin, Text = "Waren handeln" };
+        _handeln.Pressed += () => MarktGewuenscht?.Invoke();
+        _ruhtSeite.AddChild(_handeln);
 
         Rollbereich.Einhuellen(this);
         Fensterrahmen.Anmelden(this, "Hafen", festhaltbar: true);
@@ -162,8 +181,23 @@ public partial class HafenAnzeige : PanelContainer
         }
         var titel = hafen.Name;
         if (_titel.Text != titel) _titel.Text = titel;
-        var fluss = $"am {hafen.Fluss} · Schiffe fahren flussauf und flussab zu den fernen Städten am Kartenrand";
+        var ruht = w.Schiffahrt.Ruht;
+        var fluss = ruht ? $"am {hafen.Fluss}" : $"am {hafen.Fluss} · Schiffe fahren flussauf und flussab zu den fernen Städten am Kartenrand";
         if (_fluss.Text != fluss) _fluss.Text = fluss;
+        if (_reiter.Visible == ruht) _reiter.Visible = !ruht;
+        if (_ruhtSeite.Visible != ruht) _ruhtSeite.Visible = ruht;
+        if (ruht)
+        {
+            var offen = w.Schiffahrt.HafenOffen;
+            var text = offen
+                ? "Am Hafen handelt man mit dem Markt der Stadt: dieselben Waren, derselbe Vorrat und dieselben Preise wie auf dem Marktplatz."
+                : w.Jahreszeiten.FlussZugefroren
+                    ? $"Der {w.Jahreszeiten.Flussname ?? hafen.Fluss} ist zugefroren – der Hafen ist geschlossen. Gehandelt wird solange auf dem Marktplatz."
+                    : $"Im Winter treiben Eisschollen auf dem {w.Jahreszeiten.Flussname ?? hafen.Fluss} – der Hafen ist bis zum Frühling geschlossen. Gehandelt wird solange auf dem Marktplatz.";
+            if (_ruhtText.Text != text) _ruhtText.Text = text;
+            if (_handeln.Disabled == offen) _handeln.Disabled = !offen;
+            return;
+        }
 
         var aufbau = Aufbauschluessel(w);
         if (aufbau != _aufbau)

@@ -11,7 +11,7 @@ static class SchiffsvorschlagTests
 {
     static (Stadtwirtschaft W, Konto Spieler) Partie()
     {
-        var daten = Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()));
+        var daten = Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel());
         var karte = Stadtkarte.AusDatei(Datenpfad.Karte("probestadt"));
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 7, Siegbedingung = Siegbedingung.Endlos },
             daten, new NeuePartie(Startvermoegen: 20_000, Rivalen: karte.Startbelegung.Haeuser.Count), karte: karte);

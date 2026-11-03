@@ -44,7 +44,8 @@ static class BalancingberichtNeuTests
 
         ("Bericht: Spitzel je Haus und Jahr – Vielfache der Spitzelkosten, mit den Schiffen der KI", () =>
         {
-            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 10, Bezug: Bezugsart.Passiv), Quellen.Value);
+            // mit laufendem Schiffshandel (Datenversion 70: in den Spieldaten ruht er)
+            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 10, Bezug: Bezugsart.Passiv), new Messquellen(anpassen: j => Datenpfad.MitSchiffshandel(j)));
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
             var kosten = Wirtschaftsdaten.AusJson(Quellen.Value.Wirtschaft).Justiz!.SpitzelKosten;
             var alle = r.Haeuser.SelectMany(h => h.Jahre).ToList();

@@ -58,8 +58,22 @@ public sealed class Marktstand
     /// </summary>
     public double Angebotsfaktor { get; internal set; } = 1;
 
-    /// <summary>Was Händler und Bauern im Jahr liefern: Nachfrage der Einwohner × NPC-Anteil × <see cref="Angebotsfaktor"/>.</summary>
-    public double Grundversorgung => Grundnachfrage * _ware.NpcAnteil * Angebotsfaktor;
+    /// <summary>
+    /// Faktor des Landhandels auf die Grundversorgung (1 = wie in den Daten): Ruht der Schiffshandel in einer Stadt mit Hafen, bringen Fuhrleute
+    /// über Land, was sonst die Rückfracht der Schiffe brachte (<see cref="SchiffshandelDaten.Landhandel"/>). Setzt die <see cref="Schiffahrt"/>.
+    /// </summary>
+    public double LandhandelAngebot { get; internal set; } = 1;
+
+    /// <summary>
+    /// Faktor des Landhandels auf die Nachfrage (1 = wie in den Daten): Händler kaufen für die fernen Städte, was sonst die Schiffe ausführten.
+    /// Setzt die <see cref="Schiffahrt"/>, nur wenn der Schiffshandel ruht.
+    /// </summary>
+    public double LandhandelNachfrage { get; internal set; } = 1;
+
+    /// <summary>
+    /// Was Händler und Bauern im Jahr liefern: Nachfrage der Einwohner × NPC-Anteil × <see cref="Angebotsfaktor"/> × <see cref="LandhandelAngebot"/>.
+    /// </summary>
+    public double Grundversorgung => Grundnachfrage * _ware.NpcAnteil * Angebotsfaktor * LandhandelAngebot;
 
     /// <summary>Gesamtangebot pro Jahr: NPC-Grundversorgung plus Spieler.</summary>
     public double Gesamtangebot => Grundversorgung + SpielerAngebotImJahr;
@@ -80,9 +94,9 @@ public sealed class Marktstand
 
     /// <summary>
     /// Nachfrage der Stadt im Jahr – <see cref="Grundnachfrage"/> mal <see cref="NachfrageFaktor"/> mal <see cref="Markt.Ratsfaktor"/>
-    /// (größerer Marktplatz, Fest; PR #200) mal <see cref="Jahreszeitfaktor"/>.
+    /// (größerer Marktplatz, Fest; PR #200) mal <see cref="Jahreszeitfaktor"/> mal <see cref="LandhandelNachfrage"/>.
     /// </summary>
-    public double Nachfrage => Grundnachfrage * NachfrageFaktor * (_markt?.Ratsfaktor ?? 1) * Jahreszeitfaktor;
+    public double Nachfrage => Grundnachfrage * NachfrageFaktor * (_markt?.Ratsfaktor ?? 1) * Jahreszeitfaktor * LandhandelNachfrage;
 
     /// <summary>Art der Ware aus den Daten (Rohstoff, Zwischenprodukt, Fertigprodukt, Heilmittel).</summary>
     public string Typ => _ware.Typ;

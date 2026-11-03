@@ -11,7 +11,7 @@ using Reichsgilde.Core.Zeit;
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--beruf=Schmied|Wirt|Ausbau]
-//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage,winternachfrage:Ware] [--ohne-schiffe] [--ki-schaenke[=anteil]] [--datei=pfad.json]
+//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage,winternachfrage:Ware] [--ohne-schiffe] [--mit-schiffshandel] [--preise-alle] [--ki-schaenke[=anteil]] [--datei=pfad.json]
 //
 //  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
 //  ohne Expansion) und der ausbauende Spieler („Ausbau“: Schmied, von der KI mit dem Profil der KI-Häuser geführt, mit Expansion).
@@ -23,6 +23,8 @@ using Reichsgilde.Core.Zeit;
 //  mit Preis (Ladung des Karrens, wenn er vom Markt abfährt; Preis zur Minute des Kaufs), hergestellte Waren, Arbeiterstunden je Ware, Stufe, Schiffe
 //  und Schiffskäufe; die Fahrten aller Schiffe nach Jahreszeit, Ziel, Stunde, Eis und Festmarkt (erwarteter Gewinn der KI gegen Ertrag) und je Jahr
 //  Reinvermögen, Umsatz, Gewinn, Stufe und Stand des Spielers. --ohne-schiffe spielt ohne Schiffshandel (Abschnitt „schiffshandel“ fehlt).
+//  --mit-schiffshandel stellt schiffshandel.aktiv an (Datenversion 70 „Hafen ruht“: in den Spieldaten aus) – so rechnet die Messung wie vorher, der Vergleich.
+//  --preise-alle druckt je Gruppe für jede Ware den mittleren Preisfaktor und das mittlere Angebot der Häuser (Stück im letzten Jahr) über die Partie.
 //  --ki-schaenke[=anteil] setzt „ki.schaenke“ (die KI wählt die Ware einer Schänke nach dem Ausschank, spiel-ki; anteil = gaesteanteil, Standard 1).
 //  --ohne-jahreszeiten nimmt den Abschnitt „jahreszeiten“ aus den Daten (Rechnung wie bis Datenversion 68 = Stand von main ohne diesen PR). Ändert keinen Wert.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -53,6 +55,8 @@ static class Jahreszeitenmessung
         public readonly double[] UmsatzSpieler = new double[4], UmsatzKi = new double[4], Schiffsertrag = new double[4];
         public readonly double[,] Preis = new double[4, Waren.Length + 1];
         public readonly int[] Stunden = new int[4];
+        /// <summary>Je Ware über die ganze Partie: Summe der Preisfaktoren und des Angebots der Häuser im letzten Jahr, zu jeder vollen Stunde (--preise-alle).</summary>
+        public readonly SortedDictionary<string, double> PreisJeWare = new(StringComparer.Ordinal), AngebotJeWare = new(StringComparer.Ordinal);
         public int Eiswinter, Eisstunden, Winter;
         public readonly Dictionary<string, double> SchiffVorher = new(StringComparer.Ordinal);
         /// <summary>Rechnung des Spielers: Summe der Jahre je Jahreszeit (<see cref="Postennamen"/>).</summary>
@@ -98,14 +102,17 @@ static class Jahreszeitenmessung
         var folgen = (Schalter("ohne-folge") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
         var nurBeruf = Schalter("beruf");
         var ohneSchiffe = args.Contains("--ohne-schiffe"); // ohne Schiffshandel für alle (Zerlegung)
+        var mitSchiffen = args.Contains("--mit-schiffshandel"); // schiffshandel.aktiv an: wie vor „Hafen ruht“ (Datenversion 70) – der Vergleich dazu
+        if (mitSchiffen && ohneSchiffe) throw new ArgumentException("--mit-schiffshandel und --ohne-schiffe schließen sich aus.");
         var ohneVerkehr = args.Contains("--ohne-verkehr"); // schiffshandel.verkehrBeachten aus: jedes Schiff plant, als wäre es allein (wie bis zum Fix)
         // --ki-schaenke[=anteil]: ki.schaenke setzen (Ware der Schänke nach dem Ausschank, spiel-ki), auch zusammen mit --ohne-jahreszeiten
         var kiSchaenke = args.Contains("--ki-schaenke") ? "1" : Schalter("ki-schaenke");
         if (nurBeruf is not (null or "Schmied" or "Wirt" or "Ausbau")) throw new ArgumentException($"Unbekannter Aufbau „{nurBeruf}“ (Schmied, Wirt oder Ausbau).");
         if (ohne && folgen.Length > 0) throw new ArgumentException("--ohne-folge geht nur mit den Jahreszeiten, nicht zusammen mit --ohne-jahreszeiten.");
         var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null,
-            anpassen: ohneVorrat || folgen.Length > 0 || ohneVerkehr || kiSchaenke is not null
-                ? json => KiSchaenke(OhneVerkehr(OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen), ohneVerkehr), kiSchaenke) : null);
+            anpassen: ohneVorrat || folgen.Length > 0 || ohneVerkehr || kiSchaenke is not null || mitSchiffen
+                ? json => KiSchaenke(OhneVerkehr(OhneFolgen(ohneVorrat ? OhneVorrat(MitSchiffen(json)) : MitSchiffen(json), folgen), ohneVerkehr), kiSchaenke) : null);
+        string MitSchiffen(string json) => mitSchiffen ? Datenpfad.MitSchiffshandel(json) : json;
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         var aufbauten = new List<Messaufbau>();
@@ -158,6 +165,14 @@ static class Jahreszeitenmessung
                               $"{(buerger.Count > 0 ? buerger.Average() : double.NaN):0.0} ({imZiel}/{liste.Count}) | {bankrott} | {eis}/{winter} | {eisstunden:0.0} | " +
                               $"{Vier(i => JeJahr(z => z.UmsatzSpieler, i), "0")} | {Vier(i => JeJahr(z => z.UmsatzKi, i) / kiHaeuser, "0")} | {Vier(i => JeJahr(z => z.Schiffsertrag, i), "0")} | " +
                               string.Join(" | ", Enumerable.Range(0, Waren.Length + 1).Select(w => Vier(i => Preis(i, w), "0.00"))));
+            if (args.Contains("--preise-alle"))
+            {
+                // je Ware: mittlerer Preisfaktor und mittleres Angebot der Häuser (Stück im letzten Jahr) über die ganze Partie
+                var stunden = Math.Max(1, liste.Sum(x => x.Z.Stunden.Sum()));
+                Console.WriteLine($"  Preise {g.Key.Karte}/{g.Key.Beruf}: " + string.Join("; ", liste[0].Z.PreisJeWare.Keys.Select(ware =>
+                    $"{ware} {(liste.Sum(x => x.Z.PreisJeWare[ware]) / stunden).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)}" +
+                    $"/{(liste.Sum(x => x.Z.AngebotJeWare[ware]) / stunden).ToString("0", System.Globalization.CultureInfo.InvariantCulture)}")));
+            }
             var rechnung = Rechnung(liste.Select(x => x.Z).ToList(), jahre);
             kosten.Add((g.Key.Karte, g.Key.Beruf, rechnung));
             var jahreszeiten = new JsonObject();
@@ -486,6 +501,11 @@ static class Jahreszeitenmessung
         z.Stunden[j]++;
         for (var i = 0; i < Waren.Length; i++) z.Preis[j, i] += w.Markt[Waren[i]].Preisfaktor;
         z.Preis[j, Waren.Length] += w.Markt.Staende.Average(s => s.Preisfaktor);
+        foreach (var s in w.Markt.Staende)
+        {
+            z.PreisJeWare[s.Ware] = z.PreisJeWare.GetValueOrDefault(s.Ware) + s.Preisfaktor;
+            z.AngebotJeWare[s.Ware] = z.AngebotJeWare.GetValueOrDefault(s.Ware) + s.SpielerAngebotImJahr;
+        }
         if (w.Jahreszeiten.FlussZugefroren) z.Eisstunden++;
     }
 

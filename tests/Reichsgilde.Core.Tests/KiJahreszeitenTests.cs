@@ -12,7 +12,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class KiJahreszeitenTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.MitSchiffshandel()); // Schiffshandel an (Datenversion 70: in den Spieldaten ruht er)
 
     const string SchiffZeile = "\"schiffe\": { \"hoechstens\": 1, \"mindestGewinnJeFahrt\": 100, \"auslastung\": 0.5, \"hoechstensJahre\": 4,";
 
