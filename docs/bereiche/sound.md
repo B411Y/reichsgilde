@@ -21,7 +21,6 @@ Plan (Schritte in dieser Reihenfolge):
 
 - Gesprächsrunden mit der Stimm-KI im Stil von Gothic 1 (kurz, derb, direkt) – Nutzerwunsch, nach den freien Aufnahmen. Die Gesprächsliste `game/daten/gespraeche.json` ist dafür vorbereitet (Anlass → Dateien); ebenso ein gesprochener Ruf des Nachtwächters („Hört, ihr Leut, …“) statt des Horns allein.
 - (Umgebung) Gesprächsfetzen: nur 14 Stück aus zwei arabischen CC0-Aufnahmen (sounds_from_palestine, Straße bei Nacht, Familie), zum Teil mit Straßenhintergrund trotz Entrauschen; mehr und sauberere Aufnahmen (Stable Audio Open auf dem Grafik-PC oder freie Aufnahmen aus einem Markt) wären besser.
-- (Umgebung) Namensnennung der CC-BY-Quellen im Spiel: klankbeeld (Glocke Noteman), poots (Frösche), juskiddink (Horn) gehören in eine Liste der Mitwirkenden im Spiel (Danksagung); bis dahin nur in `HERKUNFT.md` und im Protokoll.
 - (Umgebung) Glocken ohne Vorlage der Kölner Glockenordnung: Die Zeiten folgen den Regeln des Spiels (8, 10, 20, 22 Uhr); eine echte Quelle zu Köln um 1400 (Rügeglocke, Feuerglocke, Torschluss) fehlt, die Websuche fand nur allgemeine Belege (Türmer, Feuerglocke, Wächter mit Horn, Glocke als Zeitzeichen).
 
 - Eigenes, helleres Geläut je romanischer Kirche in Köln (wenn Köln-Paket 2 kommt), Dom bleibt am tiefsten.
