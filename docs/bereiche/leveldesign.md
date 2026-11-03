@@ -135,3 +135,11 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Eigenschaften | Häkchen „nur Werkstätten“ in der Tafel einer Bauzone setzt bzw. löscht `"nur": "werkstatt"`; Befehl `Kartenentwurf.BauzoneNurSetzen(zone, nur)` (Kern, mit Rückgängig, nur „werkstatt“ oder null, Test `KartenwerkstattBauzoneNurTests`) | 02.11.2026 |
+
+### Kleinkram: Deutzer Gärten sichtbar (Sammel-Branch 2.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | In der Mauer (Stadtgrund) übermalte der Lehm der Stadt jede gemalte Textur außer Pflaster: `boden.gdshaderinc` übersprang dort alle Texturgewichte (`nur_stadt`). Die Erde der Gärten war also nie zu sehen. | 2.11.2026 |
+| Lösung | Shader: Wo Erde, Moos oder Mist gemalt sind, gilt der Stadtgrund nicht (`info.b *= 1 - (Erde + Moos + Mist)`; Wiese und Lehm zählen nicht). Karte: `Koeln.Deutz.cs` malt auf die drei Beete Moos (Stärke 0,85, kleiner als die Erde, damit ein Rand aus Erde bleibt). `koeln.json` und die beiden Vorschau-Bilder neu gebaut (`bauen koeln --ueberschreiben`; geändert nur die Kachel 3/0 und die Beete im SVG). Andere Karten ändern sich nur, wo sie in der Mauer Erde, Moos oder Mist malen (keine). | 2.11.2026 |
+
