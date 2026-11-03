@@ -1344,7 +1344,7 @@ public partial class Stadtansicht
             case "kunde" when teile.Length >= 2 && int.TryParse(teile[1], out var kundenplatz):
                 return KundeText(a, kundenplatz);
             case "gast":
-                return ("Gast", "");
+                return ("Gast", SchaenkePlaetzeText(a));
             case "barde":
                 return ("Barde", "spielt zur Laute");
             case "glaeubiger":
@@ -1364,5 +1364,17 @@ public partial class Stadtansicht
                                                                     + (_gewaehlt.Contains(nr) ? " · ausgewählt" : ""));
         }
         return ("", "");
+    }
+
+    /// <summary>
+    /// Die Sitzplätze der Schänke in dieser Stunde aus dem Kern (<see cref="Gastwirtschaft.Platzbelegung"/>), dazu „heute kein Platz“, wenn Gäste dieses Jahr (= dieser Spieltag) keinen fanden
+    /// (<see cref="Gaestebuch.Voll"/>). Leer, wenn das Haus keine Schänke ist.
+    /// </summary>
+    private string SchaenkePlaetzeText(BetriebsAnsicht a)
+    {
+        if (_simulation?.Wirtschaft?.Gastwirtschaft is not { IstAktiv: true } g || g.Platzbelegung(a.Betrieb) is not { } p) return "";
+        var voll = g.DiesesJahr(a.Betrieb).Voll;
+        return $"Plätze: {Zahlenformat.Ganz(p.Belegt)} belegt / {Zahlenformat.Ganz(p.Frei)} frei"
+               + (voll > 0 ? $" · heute kein Platz für {Zahlenformat.Ganz(voll)} Gäste" : "");
     }
 }
