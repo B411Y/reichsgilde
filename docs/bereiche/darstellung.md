@@ -202,7 +202,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Jahreszeiten mit Folgen (Datenversion 69, `Stadtwirtschaft.Jahreszeiten`, Spielbuch „Jahreszeiten“). Was die Darstellung zeigen könnte, alles nur lesend: **Eis** – `FlussZugefroren` (strenger Winter, für einige Stunden; `DiesesJahr` mit `ZufrierenMinute`/`TauwetterMinute`, `EisDroht` vorher) → beim Fluss `Eisregel.Voll` statt Randeis und Schollen, die Schiffe liegen still (der Kern hält ihre Zeiten an, `Schiffahrt.Lage` bleibt stehen), Fähre ohne Fährmann; Eisgang zur `TauwetterMinute` (Schollen treiben ab). `IstStrengerWinter` könnte mehr Schnee und Frost geben. **Festmarkt** – `FestmarktJetzt` (Frühjahrs- und Herbstmarkt 10–16 Uhr), `Besucherfaktor` (1,6): mehr Passanten und Stände am Markt, Fahnen, Gaukler; auch Bürger-KI könnte daran andocken. **Schlamm** – im Frühling ist `Schlamm(Belagstufe)` auf Trampelpfad 1,3 und Fahrweg 1,2: matschiger, dunklerer Boden auf Erdwegen; das Tempo der Karren stimmt schon (der Kern rechnet es in `Zeitfaktor`, die Profile werden beim Jahreswechsel über `BelagGeaendert` neu gerechnet). Ein eigenes Ereignis „Zeitfaktor geändert“ statt `BelagGeaendert` würde das Neuzeichnen aller Wege sparen.
 - (F8) Freie Kamera nah auf Hoch kosten 313 Felsstücke weiter etwa +2,5 ms (Spielkamera +1,0 ms, im Ziel). Weitere Hebel, falls nötig: Grenze der feinen Stufe enger (45 → 30), Schuttsteine mit einer Abtastung statt dreiseitig, oder Fels-Shader ohne Wetter-Tropfen auf Hoch.
 - Blitzschlag: `BlitzUm(start)` (`Stadtansicht.Blitzbrand.cs`, genutzt in `Stadtansicht.Feuer.FlammenEnde`) sucht den Einschlag nur nach der Minute; ein Gaunerbrand, der in derselben Minute wie ein Blitz anderswo ausbricht, bekäme Dauer und Größe des Blitzfeuers. Kennung oder Betrieb mit vergleichen (Befund der Prüfung, selten).
-- (von Kern) Hafen ruht (Datenversion 70, Branch `phase5/hafen-ruht`): Der Schiffshandel ist aus (`schiffshandel.aktiv: false`), es fahren keine Schiffe mehr. Gewünscht ist ein **Zierschiff** nur zur Darstellung: legt ab und zu am Hafen an, fährt weg, kommt wieder. Lesen aus dem Kern: `Schiffahrt.Ruht` (dann Zierschiff statt `Stadtansicht.Schiffe`), `Schiffahrt.HafenOffen` (im ganzen Winter false – Eisschollen –, dann liegt es nicht am Hafen), `Haefen` und `Route(hafen, flussauf)` für Liegeplatz und Weg. Der Kern rechnet nichts dafür; Zeitplan und Zufall bleiben in der Darstellung (nicht aus der `Zufallsquelle` des Kerns).
 
 - (Fels R1) Die Felsnähe zählt jeden gemalten Fels und Kies, auch Kiesufer auf Karten mit Felsen (6 m steiniger Saum); ggf. nur Kies schwächer gewichten.
 - (Fels R1) `felsgrund` rechnet sein Rauschen von oben (`p.xz`); an sehr steilem Hang-Fels (über 60°) streckt es sich. Auf Hoch dreiseitig gewichten, falls es stört.
@@ -216,6 +215,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels R4) Leistung der elf neuen Formen (bis 11.000 Dreiecke je Stück auf der feinen Stufe, Atlas 4096 × 2048 je zwei Karten) ist nicht gemessen; Messung gehört zu R6 (Befehl an „main“, Grafik-PC).
 
 ## Entscheidungen
+
+### Zierschiff am Hafen (Branch `phase5/zierschiff`)
+
+| Frage | Entscheidung |
+|---|---|
+| Wann fährt es? | Nur bei `Schiffahrt.Ruht` und `HafenOffen` (nie im Winter). Zwei Besuche je Spieljahr, Ankunft 05:10–06:10 bzw. 14:40–15:40 Uhr, Liegezeit 1–2,5 Spielstunden. Beide enden vor 19:30 Uhr: Es liegt nie über Nacht und fährt nie im Dunkeln (natürlicher als ein Schiff im Dunkeln ohne Laterne). |
+| Woher die Zeiten? | Reine Funktion der Spielminute (Streuzahl aus der Fensternummer, Ganzzahlen), keine Uhrzeit, kein Zufall des Kerns, nichts im Spielstand: Laden und Speichern geben dasselbe Bild. |
+| Wird der Hafen zu, während es liegt? | Es legt sofort ab und fährt seine Route zu Ende (sonst schlösse der Hafen zu Winterbeginn mit ihm im Bild); im Spiel kommt das nicht vor, weil beide Besuche vor dem Jahresende enden. |
+| Weg und Modell | Erster Hafen der Karte, Routen des Kerns (`Route`), Modell und Pose der Handelsschiffe (jetzt gemeinsame Hilfen). Hausfarbe fest (rotbraun), keine Klickfläche, 2,5 m weiter draußen am Kai (der Steg des Hafenmodells ragt ins Wasser). Ohne Hafen oder Route kein Schiff (Probestadt ohne Fluss). |
+| Außerhalb des Bereichs | `Hauptszene.cs` (oberflaeche): Startoption `--startrunde=<n>` für Bilder im Winter, in `docs/STARTOPTIONEN.md` eingetragen. |
 
 ### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #284)
 
