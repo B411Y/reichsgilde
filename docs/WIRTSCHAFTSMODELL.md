@@ -2221,7 +2221,7 @@ Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Geb
 
 Zusammen: Kirchen und Dom 24 % der Einschläge (zum Quadrat waren es 69 %, 18 von 26), Wohnhäuser 44 %. Das Vermögen ändert sich nur in den drei Partien mit einem Treffer in ein Haus, und dort als Rauschen in beide Richtungen (Spieler −2.489 bis +11.082, KI −13.429 bis +26.121): Für die Wirtschaft ist der Blitz praktisch ohne Wirkung.
 
-### Blitzschaden und Übersprung (PR #…, 3.11.2026)
+### Blitzschaden und Übersprung (PR #294, 3.11.2026)
 
 Variante B des Entwurfs (Nutzer 3.11.2026): **Schwere** = (gewürfelte Brenndauer − 60) ÷ 120, also 0 bei einer Stunde, 1 bei drei – kein neuer Wurf. Werte in `blitz` (alle einstellbar; Vorgaben ohne Wirkung, darum rechnen Spielstände mit Daten bis 70 wie bisher; der Branch setzt Datenversion 71):
 

@@ -243,7 +243,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Hang mitformen (`Bauen/Felshang.cs`) | `Felspinsel.HangFormen` (Vorgabe aus, nur beim Stempel): hinter Stücken mit `HangFormt` (Wände mit offener Rückseite, Pfeilerbündel) hebt der Befehl das Gelände an: ab 2,5 m hinter der Fußlinie (`Vorlauf`, R4b: sonst sticht der Hang durch die Wand) eine S-Kurve bis 0,4 m unter die Oberkante an der Rückseite (bei 16 m Wand knapp 70°), dahinter 0,25 m je Meter weiter (höchstens die Höhe des Stücks); seitlich voll bis zum Wandende (an den Enden 60 % der Höhe, die Wände laufen dort niedriger aus), dann über 3–10 m weich auf Null. Nur gehoben, nie gesenkt, Höchstwert über alle Stücke eines Stempels (Reihenfolge gleichgültig, Test; zwei Stempel nacheinander rechnen vom schon gehobenen Gelände); ein Stück mit höherer Wand dahinter (mittlere Wand vor einer großen) formt nichts, sonst entstünde ein Wall dazwischen. Gerechnet mit der Drehung um die Senkrechte, ganze Rasterpunkte, `DetMathe`. `GelaendeAendern` im selben Sammelbefehl wie Stücke und Boden; das Raster ändert sich beim Stempeln sofort (wie der Boden), Rückgängig Byte für Byte (Test). Gilt nicht fürs Streuen (eigene Wahl: ein Strich mit Tausenden Tupfern bräuchte eigene Regeln). | 02.11.2026 |
 | Gleichheit | Neuer Fall „felswand …“ (`FelsgizmoTests.Ablauf`: Große Wand mit Hang, Drehen um x, z und y, Skalieren, Einrasten, Rückgängig). | 02.11.2026 |
 
-### Blitzschaden (PR #…)
+### Blitzschaden (PR #294)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
