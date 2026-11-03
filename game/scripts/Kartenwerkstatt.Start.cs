@@ -92,6 +92,7 @@ public partial class Kartenwerkstatt
         }
         if ((_startOffen && _stadt.Kartenwerkzeug != Werkstattwerkzeug.Platz) || _karteOffen) ReiterWaehlen(false);
         EigenschaftenZeigen(neu: true);
+        HilfeZeigen(); // ein gewähltes Felsstück hat eigene Tasten (Gizmo)
     }
 
     /// <summary>Die Startbelegung hat sich geändert: die Tafel am Ende des Bildes neu (ein Befehl kann mehrere Meldungen schicken).</summary>

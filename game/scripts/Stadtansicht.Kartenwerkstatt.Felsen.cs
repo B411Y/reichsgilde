@@ -11,9 +11,10 @@ namespace Reichsgilde;
 /// <item><b>Werkzeug</b> <see cref="Werkstattwerkzeug.Fels"/> in drei Arten (<see cref="FelsArt"/>): <b>Streuen</b> mit gedrückter Maus (jede Mausbewegung
 /// gibt der Kern weiter, die Stücke erscheinen sofort, Loslassen macht den Strich zu einem Schritt, Esc nimmt ihn zurück), <b>Stempeln</b> mit einem
 /// Klick (ein Stück oder eine Gruppe; die Vorschau unter der Maus zeigt genau, was der Klick setzt), <b>Radieren</b> wie Streuen.</item>
+/// <item><b>Hang mitformen</b> (R5, Häkchen in der Tafel, Standard aus): Der Stempel hebt das Gelände hinter den Wänden an – ein Schritt mit den Stücken.</item>
 /// <item><b>Vorschau</b>: Kreis des Pinsels; beim Stempeln dazu die Stücke als helle Geister (höchstens acht Netze, je Bild nur neu gesetzt).</item>
 /// <item><b>Anzeige</b> der Stücke wie im Spiel (Stadtansicht.Felsen.cs, F5): MultiMeshes je Zelle und Form, Feinheit nach dem Zoom; dort auch Wählen,
-/// Ziehen, Drehen (Q/E) und Löschen einzelner Stücke mit dem Werkzeug „Auswahl“.</item>
+/// Ziehen, Gizmo (W/E/R, Stadtansicht.Felsgizmo.cs) und Löschen einzelner Stücke mit dem Werkzeug „Auswahl“.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
@@ -63,6 +64,12 @@ public partial class Stadtansicht
     /// <summary>Boden mitmalen (F6): Fels unter dem Stück, Schuttkegel hangabwärts, Moossaum – im selben Schritt wie die Stücke.</summary>
     public bool FelsBoden { get; set; } = true;
 
+    /// <summary>
+    /// „Hang mitformen“ (R5, Vorgabe aus): Der Stempel hebt das Gelände hinter den großen Wänden an, damit sie im Hang stecken (Felshang.cs). Gilt nur für
+    /// den Stempel und nur für die Wände des Wand-Satzes.
+    /// </summary>
+    public bool FelsHangFormen { get; set; }
+
     /// <summary>Wo der Felspinsel wirkt (Steigung, Boden); <see cref="Pinselfilter.Keiner"/>: überall.</summary>
     public Pinselfilter FelsFilter { get; set; } = Pinselfilter.Keiner;
 
@@ -73,7 +80,7 @@ public partial class Stadtansicht
     public Felspinsel FelsPinsel => FelsModus == FelsArt.Radieren
         ? Felspinsel.Radiergummi(FelsRadius, FelsFilter)
         : new Felspinsel(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken, FelsNeigung,
-            FelsZumHang, FelsFilter, Boden: FelsBoden);
+            FelsZumHang, FelsFilter, Boden: FelsBoden, HangFormen: FelsHangFormen);
 
     /// <summary>Die Farbe einer Gesteinsart (hell) für Symbol und Kreis.</summary>
     public static Color FelsFarbe(string? gestein) => Gesteinsarten.Nach(gestein ?? Felsformen.GrundgesteinVorgabe).Hell;
@@ -200,7 +207,8 @@ public partial class Stadtansicht
             }
             var mi = kinder[i];
             mi.Mesh = FelsNetz(l.Form, 1);
-            mi.Transform = FelsLage(new Felsbild(l.Form, "", l.X, l.Z, l.Drehung, l.Massstab, l.Neigung, l.Einsinken, l.KippenX, l.KippenZ));
+            mi.Transform = FelsLage(new Felsbild(l.Form, "", l.X, l.Z, l.Drehung, l.Massstab, l.Neigung, l.Einsinken, l.KippenX, l.KippenZ,
+                l.AchseX, l.AchseY, l.AchseZ, l.Versatz));
             mi.Visible = mi.Mesh is not null;
         }
     }

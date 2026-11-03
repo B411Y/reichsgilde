@@ -8,6 +8,10 @@
   Blattkarten als graue Masken mit unseren Laubfarben (Jahreszeit), kahle Winterfassung der Laubbäume.
 - Die Pakete selbst liegen nicht im Repository.
 
+`natur_felsen.glb` (Felsstücke F1) und `natur_felswand.glb` (Felswand-Satz R4) entstehen aus eigenen Skripten (`tools/modelle/natur_felsen.py`,
+`natur_felswand.py`) und stehen unter **„Alle Rechte vorbehalten“** (© B411Y; Entscheidung des Nutzers vom 02.11.2026, siehe `LICENSE-INHALTE.md`);
+ihre Strukturkarten unter `game/assets/texturen/felsen/` und `felswand/` ebenso.
+
 Die übrigen Dateien in diesem Ordner entstehen aus eigenen Skripten (CC BY 4.0, siehe `LICENSE-INHALTE.md`).
 
 Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.
