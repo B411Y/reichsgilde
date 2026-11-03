@@ -11,7 +11,7 @@ using Reichsgilde.Core.Zeit;
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--beruf=Schmied|Wirt|Ausbau]
-//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage,winternachfrage:Ware] [--ohne-schiffe] [--datei=pfad.json]
+//                [--ohne-folge=festmarkt,schlamm,winterarbeit,eis,ernte,winternachfrage,winternachfrage:Ware] [--ohne-schiffe] [--ki-schaenke[=anteil]] [--datei=pfad.json]
 //
 //  Je Karte und Startwert drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Schmied und als Wirt mit einem Betrieb (KI geführt,
 //  ohne Expansion) und der ausbauende Spieler („Ausbau“: Schmied, von der KI mit dem Profil der KI-Häuser geführt, mit Expansion).
@@ -23,6 +23,7 @@ using Reichsgilde.Core.Zeit;
 //  mit Preis (Ladung des Karrens, wenn er vom Markt abfährt; Preis zur Minute des Kaufs), hergestellte Waren, Arbeiterstunden je Ware, Stufe, Schiffe
 //  und Schiffskäufe; die Fahrten aller Schiffe nach Jahreszeit, Ziel, Stunde, Eis und Festmarkt (erwarteter Gewinn der KI gegen Ertrag) und je Jahr
 //  Reinvermögen, Umsatz, Gewinn, Stufe und Stand des Spielers. --ohne-schiffe spielt ohne Schiffshandel (Abschnitt „schiffshandel“ fehlt).
+//  --ki-schaenke[=anteil] setzt „ki.schaenke“ (die KI wählt die Ware einer Schänke nach dem Ausschank, spiel-ki; anteil = gaesteanteil, Standard 1).
 //  --ohne-jahreszeiten nimmt den Abschnitt „jahreszeiten“ aus den Daten (Rechnung wie bis Datenversion 68 = Stand von main ohne diesen PR). Ändert keinen Wert.
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -98,11 +99,13 @@ static class Jahreszeitenmessung
         var nurBeruf = Schalter("beruf");
         var ohneSchiffe = args.Contains("--ohne-schiffe"); // ohne Schiffshandel für alle (Zerlegung)
         var ohneVerkehr = args.Contains("--ohne-verkehr"); // schiffshandel.verkehrBeachten aus: jedes Schiff plant, als wäre es allein (wie bis zum Fix)
+        // --ki-schaenke[=anteil]: ki.schaenke setzen (Ware der Schänke nach dem Ausschank, spiel-ki), auch zusammen mit --ohne-jahreszeiten
+        var kiSchaenke = args.Contains("--ki-schaenke") ? "1" : Schalter("ki-schaenke");
         if (nurBeruf is not (null or "Schmied" or "Wirt" or "Ausbau")) throw new ArgumentException($"Unbekannter Aufbau „{nurBeruf}“ (Schmied, Wirt oder Ausbau).");
         if (ohne && folgen.Length > 0) throw new ArgumentException("--ohne-folge geht nur mit den Jahreszeiten, nicht zusammen mit --ohne-jahreszeiten.");
         var q = new Messquellen(ohneAbschnitt: ohne ? "jahreszeiten" : null,
-            anpassen: ohneVorrat || folgen.Length > 0 || ohneVerkehr
-                ? json => OhneVerkehr(OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen), ohneVerkehr) : null);
+            anpassen: ohneVorrat || folgen.Length > 0 || ohneVerkehr || kiSchaenke is not null
+                ? json => KiSchaenke(OhneVerkehr(OhneFolgen(ohneVorrat ? OhneVorrat(json) : json, folgen), ohneVerkehr), kiSchaenke) : null);
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
         var aufbauten = new List<Messaufbau>();
@@ -456,6 +459,15 @@ static class Jahreszeitenmessung
         if (!ohne) return json;
         var knoten = JsonNode.Parse(json)!.AsObject();
         knoten["schiffshandel"]!.AsObject().Remove("verkehrBeachten");
+        return knoten.ToJsonString();
+    }
+
+    /// <summary>--ki-schaenke: „ki.schaenke“ mit diesem Gästeanteil setzen (null = Daten unverändert).</summary>
+    static string KiSchaenke(string json, string? anteil)
+    {
+        if (anteil is null) return json;
+        var knoten = JsonNode.Parse(json)!.AsObject();
+        knoten["ki"]!.AsObject()["schaenke"] = new JsonObject { ["gaesteanteil"] = double.Parse(anteil, System.Globalization.CultureInfo.InvariantCulture) };
         return knoten.ToJsonString();
     }
 
