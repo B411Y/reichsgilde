@@ -216,6 +216,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Zierschiff am Hafen (PR #293)
+
+| Frage | Entscheidung |
+|---|---|
+| Wann fährt es? | Nur bei `Schiffahrt.Ruht` und `HafenOffen` (nie im Winter). Zwei Besuche je Spieljahr, Ankunft 05:10–06:10 bzw. 14:40–15:40 Uhr, Liegezeit 1–2,5 Spielstunden. Beide enden vor 19:30 Uhr: Es liegt nie über Nacht und fährt nie im Dunkeln (natürlicher als ein Schiff im Dunkeln ohne Laterne). |
+| Woher die Zeiten? | Reine Funktion der Spielminute (Streuzahl aus der Fensternummer, Ganzzahlen), keine Uhrzeit, kein Zufall des Kerns, nichts im Spielstand: Laden und Speichern geben dasselbe Bild. |
+| Wird der Hafen zu, während es liegt? | Es legt sofort ab und fährt seine Route zu Ende (sonst schlösse der Hafen zu Winterbeginn mit ihm im Bild); im Spiel kommt das nicht vor, weil beide Besuche vor dem Jahresende enden. |
+| Weg und Modell | Erster Hafen der Karte, Routen des Kerns (`Route`), Modell und Pose der Handelsschiffe (jetzt gemeinsame Hilfen). Hausfarbe fest (rotbraun), keine Klickfläche, 2,5 m weiter draußen am Kai (der Steg des Hafenmodells ragt ins Wasser). Ohne Hafen oder Route kein Schiff (Probestadt ohne Fluss). |
+| Außerhalb des Bereichs | `Hauptszene.cs` (oberflaeche): Startoption `--startrunde=<n>` für Bilder im Winter, in `docs/STARTOPTIONEN.md` eingetragen. |
+
 ### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #284)
 
 | Thema | Entscheidung | Datum |

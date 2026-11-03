@@ -339,15 +339,15 @@ static class GleichheitTests
                 foreach (var waehler in w.Rat.Waehler(bewerbung).Where(a => a.Ratsherr is not null).Take(3))
                     liste.Add(new Schenken(waehler.Ratsherr!.Name, 250));
 
-            // Löschen und danach Einfügen: den Zweitbetrieb ab 12 Uhr abgeben, sobald es geht (kein Karren unterwegs), und eine Stunde
-            // später wieder erwerben (Lauf C lädt direkt nach dem Löschen)
+            // Löschen und danach Einfügen: den Zweitbetrieb ab 12 Uhr abgeben, sobald es geht (kein Karren unterwegs), und zehn Minuten
+            // später wieder erwerben (Lauf C lädt direkt nach dem Löschen; nach einer Stunde hatte bei 2027 mit dem Landhandel im Jahr 7 schon die KI zugegriffen)
             if (_zweitbetrieb is not null && Abgabejahre.Contains(jahr) && _abgegebenIm != jahr && uhr >= Minute(0, 12)
                 && w.Betriebe.FirstOrDefault(b => b.Name == _zweitbetrieb && b.Konto == spieler) is { } abgeben
                 && w.VerkaufVerboten(spieler, abgeben) is null)
             {
                 liste.Add(new BetriebVerkaufen(_zweitbetrieb));
                 _abgegebenIm = jahr;
-                _wiederUm = t + 60;
+                _wiederUm = t + 10;
             }
             if (t == _wiederUm && _zweitbetrieb is not null)
             {

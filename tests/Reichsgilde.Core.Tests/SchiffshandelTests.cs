@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class SchiffshandelTests
 {
-    static readonly Lazy<string> Json = new(() => Datenpfad.OhneJahreszeiten()); // ohne Festmarkt im Frühling 1400 (die Rechnung sagt den Preis von jetzt voraus)
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneJahreszeiten(Datenpfad.MitSchiffshandel())); // ohne Festmarkt im Frühling 1400 (die Rechnung sagt den Preis von jetzt voraus)
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
 
     const string Piratenzeile = "\"piraten\": {\"name\": \"Flusspiraten\", \"chance\": 0.05, \"staerke\": 1.0, \"beuteAnteil\": 0.5}";

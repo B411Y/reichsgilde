@@ -1222,6 +1222,49 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 
 **Schiffsverkehr (Datenversion 69, `schiffshandel.verkehrBeachten`):** Die Rechnung einer Fahrt (Tafel und KI, `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt`) zählt die Schiffe, die schon unterwegs sind: Hinfracht und geplante Rückfracht der Schiffe auf dem Weg zur selben Stadt als dort schon verkauft bzw. gekauft, die Rückfracht aller Schiffe, die noch heimkommen (ohne Aufträge ins Lager eines Betriebs), als daheim schon verkauft – `vorher` in `Erloes`, `Kosten` und `Verkaufswert`. Ohne den Schalter (alte Spielstände mit ihren Daten) plant jedes Schiff, als wäre es allein. Anlass und Messung: „Jahreszeiten“, Abschnitt „Wirt in Köln: Kosten und Schiffsverkehr“.
 
+**Hafen ruht (Datenversion 70, `schiffshandel.aktiv: false`; Nutzerentscheidung vom 03.11.2026):** Der Schiffshandel ist aus dem laufenden Spiel genommen, der Code bleibt für ein späteres Add-on. Niemand kauft oder schickt Schiffe (Befehle abgelehnt mit „Der Schiffshandel ruht …“), die KI plant keine (ihre Schiffszüge hängen an `Schiffahrt.IstAktiv`), die fernen Märkte erholen sich nicht mehr (es handelt ja niemand), der Zöllner hat keinen Nutzen, „Hafen erweitern“ wird abgelehnt. Der Hafen bleibt ein zweiter Ort zum Handeln mit dem Markt der Stadt – dieselben Waren, gemeinsamer Vorrat und gemeinsame Preise (`Schiffahrt.HafenMarkt` = `Stadtwirtschaft.Markt`), kein eigener Markt; im ganzen Winter zu (Eisschollen, auch im milden Winter und im Eis; `HafenOffen`, nur mit Abschnitt `jahreszeiten`) – der Marktplatz bleibt offen. Am Rechenweg der Wirtschaft ändert der Hafen als Handelsort nichts: Die Karren fahren weiter zum nächsten Marktplatz. Ohne Angabe gilt `aktiv: true` – alte Spielstände bringen ihre Daten mit und rechnen wie bisher (Test „Schalter an … bitgleich mit dem Kern vor dem Schalter“: drei Jahre Greybox mit Schiff, SHA-256 je Jahr gegen phase5/jahreszeiten `0512c835`). Messung: `messen jahreszeiten … --mit-schiffshandel` rechnet wie vorher, ohne den Schalter wie jetzt; Kurzprobe unten.
+
+**Kurzprobe** (NAS, `messen jahreszeiten 20 4`, Greybox und Köln, je 4 Startwerte, Spieler J20 und Ø KI-Häuser J20; gemessen auf main 6f80481b + phase5/jahreszeiten 0512c835 + dieser Branch daec02c5; „an“ = `--mit-schiffshandel`, bitgleich mit vorher). Nur Richtung, Streuung bei 4 Startwerten groß; volle Messung mit 80 Startwerten auf dem Grafik-PC steht aus.
+
+| Karte, Aufbau | Spieler an | Spieler aus | | KI an | KI aus | |
+|---|---|---|---|---|---|---|
+| Greybox, Ausbau | 67.460 | 63.360 | −6,1 % | 80.426 | 69.762 | −13,3 % |
+| Greybox, Schmied | 38.117 | 35.229 | −7,6 % | 83.104 | 70.198 | −15,5 % |
+| Greybox, Wirt | 31.336 | 34.063 | +8,7 % | 78.048 | 74.752 | −4,2 % |
+| Köln, Ausbau | 60.191 | 55.700 | −7,5 % | 76.173 | 69.281 | −9,0 % |
+| Köln, Schmied | 33.703 | 36.129 | +7,2 % | 75.960 | 69.975 | −7,9 % |
+| Köln, Wirt | 25.677 | 28.310 | +10,3 % | 74.818 | 69.291 | −7,4 % |
+
+Keine Bankrotte. Erwartet: Ohne die Rückfracht der Schiffe werden Rohstoffe daheim teurer und die Exportnachfrage fehlt (siehe Befund PR #199: Schiffshandel hob auch Häuser ohne Schiff um 21–26 %) – die KI-Häuser verlieren 4–16 %, die Werkstatt-Spieler je nach Karte; der Wirt gewinnt (er verlor bisher an eigenen Schiffen, „Wirt in Köln“).
+
+**Volle Messung** (Grafik-PC, `messen jahreszeiten 20 80` gegen `--mit-schiffshandel`, Commit 9a8d18aa): Spieler J20 Greybox Ausbau 65.959 → 54.231, Schmied 39.255 → 32.415, Wirt 34.913 → 31.152; Köln Ausbau 58.731 → 52.666, Schmied 34.117 → 28.432, Wirt 30.451 → 28.104 (−8 bis −18 %); KI-Häuser Greybox 78–79 → 68–72 Tsd., Köln 70,5 → 64,7–66,1 Tsd. (−7 bis −13 %); keine Bankrotte.
+
+**Landhandel (Ausgleich, Nutzer: Option A; Abschnitt `schiffshandel.landhandel`, Datenversion bleibt 70):** Die Zerlegung (NAS, 8 Startwerte, `--preise-alle`: mittlerer Preisfaktor je Ware über die Partie) zeigt, dass ohne Schiffe kaum Rohstoffe fehlen: Eisen, Silber, Holz, Holzzapfen und Getreide sind höchstens 1 % teurer, Bruchstein und Granit 1 %; spürbar nur Wachs und Jasmin (+5 %), Kräuter und Gold (+2–3 %), die Weidenmünd lieferte. Der größere Teil ist die **Ausfuhr**: Die Waren, die die fernen Städte kauften, sind ohne Schiffe 2–4,5 % billiger (Armbrust −4,5, Körnermahlzeit −4,3, Silberkette und Silberring −3,5, Dolch, Werkzeug, Dünnbier, Starkbier, Kerze je −3, Rosenwasser, Grabstein, Mühlstein −2 %), weil die Häuser sie jetzt daheim verkaufen (6–11 Stück mehr im Jahr am Markt). Dazu fehlt der KI der Ertrag ihrer eigenen Schiffe – den kann nur ein höherer Preis ihrer Waren ersetzen. Darum hebt der Landhandel vor allem die Nachfrage der Ausfuhrwaren (Händler kaufen sie für die fernen Städte und bringen sie über Land) und etwas die Grundversorgung der Rückfrachtwaren (Fuhrleute bringen sie):
+
+| Ware | Faktor |
+|---|---|
+| Angebot (× Grundversorgung) | Wachs, Jasmin 1,1 · Gold 1,06 · Bruchstein 1,03 · Granit 1,02 |
+| Nachfrage, Schmiede | Armbrust, Silberkette, Silberring, Werkzeug 1,08 · Dolch 1,06 · Goldkette 1,05 |
+| Nachfrage, Wirt und Kerzen | Körnermahlzeit, Dünnbier, Starkbier, Kerze 1,09 |
+| Nachfrage, Tinkturen | Rosenwasser 1,1 · Moschusduft, Fechterduft 1,08 |
+| Nachfrage, Steinmetz | Grabstein, Mühlstein 1,12 · Taufbecken, Steinfigur 1,1 |
+
+Die Steinmetz- und Duftwaren liegen höher, weil vor allem die KI-Häuser (Maurerei, Tinkturei) sie machen und ihnen der Schiffsertrag fehlt; Eisen, Silber und Holz bleiben unberührt – mehr Grundversorgung drückte die Preise der Gruben und Holzfäller der KI. Dolch nur 1,06 – mit 1,08 rutscht die passiv gespielte Siederei mit Giftdolch (Test) im zweiten Jahr ins Minus, sie kauft Dolche als Zutat; Kräuter ohne Faktor (ohne Schiffe nur 2,7 % teurer) – mit 1,06 verschob sich die Umland-Schätzung der KI für den Kräutergarten (Test). Regel: `Marktstand.LandhandelAngebot` (auf `Grundversorgung`) und `LandhandelNachfrage` (auf `Nachfrage`), gesetzt von `Schiffahrt.MarktSetzen` aus `EinwohnerZaehlen`, nur wenn der Schiffshandel ruht und die Karte einen Hafen hat (`LandhandelWirkt`); sonst bleiben beide 1. Mit `--mit-schiffshandel` rechnet alles bitgleich wie vorher (Sollwerttest in `HafenRuhtTests`); eine Stadt ohne Hafen hatte nie Schiffe und bekommt auch keinen Landhandel.
+
+**Probe** (NAS, `messen jahreszeiten 20 8`, beide Karten, gemessen auf main 66908ff9 + dieser Branch; „an“ = `--mit-schiffshandel`, dieselben Startwerte). Bei 8 Startwerten streut der Spieler um ±5–17 % (Fehler des Mittels je Gruppe), die KI um ±3–5 % – die Werte der Spieler sind nur Richtung; die volle Messung macht der Grafik-PC.
+
+| Karte, Aufbau | Spieler an | ruht, ohne Landhandel | ruht, mit Landhandel | KI an | KI ohne | KI mit |
+|---|---|---|---|---|---|---|
+| Greybox, Ausbau | 59.622 | −3,5 % | +9,7 % | 77.112 | −10,1 % | −2,5 % |
+| Greybox, Schmied | 36.589 | −4,1 % | +1,4 % | 78.709 | −11,7 % | −3,0 % |
+| Greybox, Wirt | 31.953 | +9,6 % | +18,7 % | 75.041 | −6,0 % | +4,9 % |
+| Köln, Ausbau | 59.312 | −5,3 % | +11,2 % | 73.705 | −8,3 % | −2,4 % |
+| Köln, Schmied | 35.844 | −5,5 % | −4,1 % | 74.004 | −8,5 % | −3,8 % |
+| Köln, Wirt | 27.924 | −10,4 % | −4,1 % | 71.291 | −6,1 % | −1,2 % |
+| Mittel | | −3,2 % | +5,5 % | | −8,4 % | −1,3 % |
+
+Keine Bankrotte. Die KI liegt mit dem Landhandel im Mittel bei −1 % (vorher −8 %, wie in der vollen Messung). Beim Spieler unterschätzt die Probe den Verlust ohne Ausgleich (−3 % statt −14 % mit 80 Startwerten); rechnet man ihre Wirkung (+9 Punkte) auf die volle Messung, landet er bei etwa −5 %. Wie groß die Streuung ist, zeigen die Vorproben mit fast gleichen Werten: Schmiedewaren 1,08 mit Dolch 1,08 und Kräuter 1,06 ergaben Spieler +13,7 %, KI −1,1 %; Schmiedewaren 1,07 Spieler +3,6 %, KI −2,8 %. Ob ±5 % halten, zeigt erst die volle Messung; liegt der Spieler darunter, sind die Faktoren der Schmiede- und Wirtswaren die Stellschraube (die KI hängt mehr an den Steinmetz- und Duftwaren).
+
 ## Stadtkasse, Ämter und neue Anträge (PR #200)
 
 **Regeln** (Abschnitt `politik.kasse`, `politik.bauvorhaben`, `politik.fest`, `politik.befugnisse`; Datenversion 54):

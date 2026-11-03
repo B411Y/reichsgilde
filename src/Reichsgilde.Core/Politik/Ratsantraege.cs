@@ -183,7 +183,7 @@ public sealed class Ratsantraege
                 if (BauvorhabenNamens(a.Bauvorhaben) is not { } b) return $"Ein Bauvorhaben „{a.Bauvorhaben}“ gibt es nicht.";
                 if (IstGebaut(b.Kennung)) return $"{b.Name}: Das ist schon gebaut.";
                 if (ImBau(b.Kennung)) return $"{b.Name}: Daran wird schon gebaut.";
-                if (b.Wirkung == Bauwirkung.Hafen && !_w.Schiffahrt.IstAktiv) return $"{b.Name}: Die Stadt hat keinen Hafen.";
+                if (b.Wirkung == Bauwirkung.Hafen && !_w.Schiffahrt.IstAktiv) return _w.Schiffahrt.Ruht && _w.Schiffahrt.HatHafen ? $"{b.Name}: Der Schiffshandel ruht." : $"{b.Name}: Die Stadt hat keinen Hafen.";
                 if (Kasse.Stand < b.Kosten)
                     return $"{b.Name} kostet {Zahlenformat.Ganz(b.Kosten)} {waehrung} – in der Stadtkasse liegen nur {Zahlenformat.Ganz(Kasse.Stand)}.";
                 return null;

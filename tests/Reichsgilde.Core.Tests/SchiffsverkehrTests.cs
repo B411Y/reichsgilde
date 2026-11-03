@@ -12,7 +12,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class SchiffsverkehrTests
 {
-    static readonly Lazy<string> Json = new(() => Datenpfad.OhneJahreszeiten());
+    static readonly Lazy<string> Json = new(() => Datenpfad.OhneJahreszeiten(Datenpfad.MitSchiffshandel()));
 
     /// <summary>Die Daten ohne Piraten, mit oder ohne den Schalter.</summary>
     static Wirtschaftsdaten Daten(bool verkehr)
