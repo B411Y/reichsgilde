@@ -120,9 +120,9 @@ public partial class Hauptszene
         if (w.Schiffahrt.Ruht)
         {
             var offen = w.Schiffahrt.HafenOffen;
-            var zu = offen ? "offen" : "zugefroren";
+            var zu = offen ? "offen" : w.Jahreszeiten.FlussZugefroren ? "zugefroren" : "Winter: zu";
             if (zustand.Text != zu) zustand.Text = zu;
-            var hinweis = offen ? "Hafen: Handel mit dem Markt der Stadt (dieselben Waren und Preise)" : "Hafen: zugefroren – geschlossen, bis das Eis bricht";
+            var hinweis = offen ? "Hafen: Handel mit dem Markt der Stadt (dieselben Waren und Preise)" : "Hafen: im Winter geschlossen (Eisschollen) – gehandelt wird auf dem Marktplatz";
             if (knopf.TooltipText != hinweis) knopf.TooltipText = hinweis;
             return;
         }

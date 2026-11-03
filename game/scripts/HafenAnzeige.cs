@@ -18,8 +18,8 @@ namespace Reichsgilde;
 /// gedrückt ist.</item>
 /// </list>
 /// Ruht der Schiffshandel (<see cref="Schiffahrt.Ruht"/>, Datenversion 70), fehlen beide Reiter samt Kaufknöpfen: Die Tafel sagt nur, dass man hier
-/// mit dem Markt der Stadt handelt (dieselben Waren, Vorrat und Preise), und „Waren handeln“ öffnet die Markttafel – solange der Fluss zugefroren
-/// ist, ist der Hafen zu (<see cref="Schiffahrt.HafenOffen"/>).
+/// mit dem Markt der Stadt handelt (dieselben Waren, Vorrat und Preise), und „Waren handeln“ öffnet die Markttafel – im Winter (Eisschollen)
+/// ist der Hafen zu (<see cref="Schiffahrt.HafenOffen"/>).
 /// Gelesen wird nur aus dem Kern; die Befehle gehen über <see cref="Stadtwirtschaft.Ausfuehren"/>. Die Tafel baut sich nur neu, wenn sich der Aufbau ändert
 /// (Schiff gekauft, abgelegt, angekommen, anderes Ziel …), sonst werden zweimal je Sekunde die Texte nachgezogen – so bleibt eine Eingabe in den Mengen stehen.
 /// </summary>
@@ -191,7 +191,9 @@ public partial class HafenAnzeige : PanelContainer
             var offen = w.Schiffahrt.HafenOffen;
             var text = offen
                 ? "Am Hafen handelt man mit dem Markt der Stadt: dieselben Waren, derselbe Vorrat und dieselben Preise wie auf dem Marktplatz."
-                : $"Der {w.Jahreszeiten.Flussname ?? hafen.Fluss} ist zugefroren – der Hafen ist geschlossen, bis das Eis bricht. Gehandelt wird solange auf dem Marktplatz.";
+                : w.Jahreszeiten.FlussZugefroren
+                    ? $"Der {w.Jahreszeiten.Flussname ?? hafen.Fluss} ist zugefroren – der Hafen ist geschlossen. Gehandelt wird solange auf dem Marktplatz."
+                    : $"Im Winter treiben Eisschollen auf dem {w.Jahreszeiten.Flussname ?? hafen.Fluss} – der Hafen ist bis zum Frühling geschlossen. Gehandelt wird solange auf dem Marktplatz.";
             if (_ruhtText.Text != text) _ruhtText.Text = text;
             if (_handeln.Disabled == offen) _handeln.Disabled = !offen;
             return;

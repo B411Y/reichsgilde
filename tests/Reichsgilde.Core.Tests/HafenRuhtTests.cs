@@ -121,21 +121,31 @@ static class HafenRuhtTests
             Pruefe.Wahr(holz > 0 && k.Vermoegen > 0, "Preise und Konto");
         }),
 
-        ("Hafen ruht: Im strengen Winter ist der Hafen zu, solange der Fluss zugefroren ist – davor und danach offen; ohne Hafen nie offen", () =>
+        ("Hafen ruht: Im Winter ist der Hafen zu (Eisschollen) – die ganze Jahreszeit, mild oder streng, auch im Eis; Frühling, Sommer und Herbst offen; ohne Jahreszeiten immer offen; ohne Hafen nie", () =>
         {
             var daten = Wirtschaftsdaten.AusJson(Json.Value);
+            long Minute(int jahr, int stunde) => jahr * (long)Spielzeit.MinutenProTag + stunde * 60 - Spielzeit.TagesbeginnMinute;
+            for (var jahr = 0; jahr < 8; jahr++)
+                foreach (var stunde in new[] { 4, 12, 22 })
+                {
+                    var (_, w) = Stadt(daten, Minute(jahr, stunde));
+                    var winter = w.Uhr.Jahreszeit == Jahreszeit.Winter;
+                    Pruefe.Gleich(jahr % 4 == 3, winter, $"Jahr {jahr}: Winter");
+                    Pruefe.Gleich(!winter, w.Schiffahrt.HafenOffen, $"Jahr {jahr}, {stunde} Uhr");
+                }
+            // Im Eis des strengen Winters ebenso zu
             int startwert = -1;
             for (var s = 1; s < 5000 && startwert < 0; s++)
                 if (new Stadtwirtschaft(daten, Partieeinstellungen.Standard.StartStatut, s).Jahreszeiten.WinterVon(1403) is { Streng: true, BisJahresende: false })
                     startwert = s;
             Pruefe.Wahr(startwert > 0, "Startwert mit strengem Winter 1403");
-            var (sim, w) = Stadt(daten, 3 * (long)Spielzeit.MinutenProTag, startwert);
-            var lage = w.Jahreszeiten.DiesesJahr!;
-            Pruefe.Wahr(w.Schiffahrt.HafenOffen, "morgens offen");
+            var (sim, eis) = Stadt(daten, 3 * (long)Spielzeit.MinutenProTag, startwert);
+            var lage = eis.Jahreszeiten.DiesesJahr!;
             while (sim.Zeit.MinuteImTag <= lage.ZufrierenMinute) sim.Tick();
-            Pruefe.Wahr(w.Jahreszeiten.FlussZugefroren && !w.Schiffahrt.HafenOffen, "im Eis zu");
-            while (sim.Zeit.MinuteImTag <= lage.TauwetterMinute) sim.Tick();
-            Pruefe.Wahr(!w.Jahreszeiten.FlussZugefroren && w.Schiffahrt.HafenOffen, "nach dem Eisgang offen");
+            Pruefe.Wahr(eis.Jahreszeiten.FlussZugefroren && !eis.Schiffahrt.HafenOffen, "im Eis zu");
+            // Ohne Abschnitt „jahreszeiten“ kein Winter mit Folgen: offen
+            var (_, ohne) = Stadt(Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten(Json.Value)), Minute(3, 12));
+            Pruefe.Wahr(ohne.Schiffahrt.HafenOffen, "ohne Jahreszeiten im Jahr 3 offen");
             var ohneKarte = new Stadtwirtschaft(daten, Partieeinstellungen.Standard.StartStatut, 1);
             Pruefe.Wahr(!ohneKarte.Schiffahrt.HatHafen && !ohneKarte.Schiffahrt.HafenOffen, "ohne Karte kein Hafen");
         }),

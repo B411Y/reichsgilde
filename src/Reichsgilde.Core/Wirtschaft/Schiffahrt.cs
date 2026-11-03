@@ -58,10 +58,12 @@ public sealed class Schiffahrt
     public bool HatHafen => Daten is not null && Haefen.Count > 0;
 
     /// <summary>
-    /// Ist der Hafen offen? Es gibt ihn (<see cref="HatHafen"/>), und der Fluss ist nicht zugefroren (strenger Winter, <see cref="Jahreszeitenwesen.FlussZugefroren"/>).
-    /// Für die Oberfläche (Handel am Hafen) und die Darstellung (Zierschiff legt nur an, wenn offen).
+    /// Ist der Hafen offen? Es gibt ihn (<see cref="HatHafen"/>), und es ist nicht Winter (Eisschollen; Nutzerentscheidung vom 03.11.2026 – die ganze
+    /// Jahreszeit, nicht nur das Eis des strengen Winters) und der Fluss nicht zugefroren. Ohne Abschnitt „jahreszeiten“ ist er immer offen.
+    /// Gilt nur für den Hafen; der Marktplatz bleibt offen. Für die Oberfläche (Handel am Hafen) und die Darstellung (Zierschiff legt nur an, wenn offen).
     /// </summary>
-    public bool HafenOffen => HatHafen && !_w.Jahreszeiten.FlussZugefroren;
+    public bool HafenOffen => HatHafen && !_w.Jahreszeiten.FlussZugefroren
+                              && !(_w.Jahreszeiten.IstAktiv && _w.Uhr.Jahreszeit == Zeit.Jahreszeit.Winter);
 
     /// <summary>
     /// Der Markt, mit dem man am Hafen handelt: derselbe wie am Marktplatz – dieselben Waren, gemeinsamer Vorrat, gemeinsame Preise (Hafen ruht,
