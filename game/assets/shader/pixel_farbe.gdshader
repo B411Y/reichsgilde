@@ -57,7 +57,9 @@ float licht_l(vec2 u) {
 
 float stufe_von(float l, float n, float dunkel, float hell) {
 	float x = clamp((l - dunkel * 0.5) / max(hell - dunkel * 0.5, 0.01), 0.0, 1.0);
-	float k = min(floor(x * n), n - 1.0);
+	// weiche Stufen: die Stufe wächst in der oberen Hälfte jedes Abschnitts glatt an (harte Sprünge machten um Laternen Ringe)
+	float v = x * n;
+	float k = min(floor(v) + smoothstep(0.5, 1.0, fract(v)), n - 1.0);
 	return mix(dunkel, hell, k / (n - 1.0));
 }
 
@@ -99,6 +101,7 @@ void fragment() {
 		if (lmax - lmin > 0.18 * hl) lq = stufe_von(sum / cnt, n * 2.0 - 1.0, dk, hl);
 		float f = lq / max(l, 0.04 * lichtskala);
 		f = min(f, mix(1.8, 1.0, smoothstep(0.5, 0.9, lum(c))));   // leuchtende Flächen (Fenster, Feuer) nicht hochziehen
+		f = mix(f, 1.0, smoothstep(hl, hl * 1.6, l));   // heller als volles Sonnenlicht: Punktlichter (Laterne, Fackel) fallen ungestuft und weich ab
 		c *= f;
 	}
 
