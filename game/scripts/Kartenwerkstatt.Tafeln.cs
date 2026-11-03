@@ -250,6 +250,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Faehre => "Zwei Klicks: die Anleger an beiden Ufern (rasten an Wegen ein, der Ring zeigt wo) · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
+            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: W verschieben · E drehen · R skalieren (Gizmo ziehen, Strg rastet ein) · Q Welt/Stück · B auf den Boden · Umschalt+Klick wählt mehrere · Entf löscht · Esc nimmt den Zug zurück · Strg+Z/Y",
             _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
         };
         _hilfe.Text = zeile + "\nMausrad Zoom · rechte Maustaste oder WASD verschieben die Kamera · Strg+Q/E oder Bild auf/ab drehen sie · Alt zeigt alle Namen · 1–0 wählt die Gruppe links";

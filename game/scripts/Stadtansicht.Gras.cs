@@ -238,7 +238,8 @@ public partial class Stadtansicht
         var ergebnis = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
         var stadt = liste.Select(k => _grasStadt.GetValueOrDefault(k)).ToArray();
         var stark = _grasMakroStark = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch;
-        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, stark));
+        var felsKarte = _felsbodenAn == true; // nur Karten mit Felsen: die Wiese um und zwischen den Flecken wird steinig (Stadtansicht.Felsboden.cs)
+        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, stark, felsKarte));
         for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnis[n]);
         _grasBlickFuer = null;
         if (alles) GD.Print($"Grasteppich: {_grasKacheln.Count} Kacheln, {_grasKacheln.Values.Sum(k => k.Felder.Length)} Felder mit Gras, {uhr.ElapsedMilliseconds} ms");
@@ -318,7 +319,7 @@ public partial class Stadtansicht
     /// </summary>
     private static (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder) GrasKachelRechnen(int ti, int tj, float[]? hoehen, byte[]? stadt, Bodenraster? raster,
         Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser,
-        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, bool stark)
+        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, bool stark, bool felsKarte)
     {
         const int n = BodenBild;
         var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
@@ -326,6 +327,8 @@ public partial class Stadtansicht
         var (gi0, gj0) = (ti * KachelZellen - 1, tj * KachelZellen - 1);
         float H(int i, int j) => hoehen![(j - gj0) * GrasRaster + i - gi0];
         var splat = raster is { IstLeer: false } && BodenKachelGemalt(raster, ti, tj) ? raster.Splat(i0, j0, n, n, 0) : null;
+        // Fels R5: Wo der Boden steinig ist (Felsnähe wie im Boden-Shader), stehen keine vollen Halme
+        var naehe = splat is not null && felsKarte && raster is not null ? FelsnaeheRechnen(raster, i0, j0, n) : null;
         var daten = new float[n * n * 4];
         var farbe = new byte[n * n * 4];
         var (unten, oben) = (float.MaxValue, float.MinValue);
@@ -348,6 +351,7 @@ public partial class Stadtansicht
                 }
                 var d = splat is null ? 1f : splat[o] / 255f; // Gruppe 0, R = Wiese
                 d *= 1f - Mathf.SmoothStep(0.86f, 0.8f, normale.Y); // Fels am Hang (boden.gdshaderinc: ab etwa 33°)
+                if (naehe is not null) d *= 1f - 0.9f * Mathf.SmoothStep(0.3f, 0.8f, naehe[b * n + a]); // steiniger Boden: Kies, Erde und Fels statt Wiese
                 // Pflaster als Grund (Punkt k des groben Bildes liegt bei Kachel + k − 0,5 m, also gut einen halben Meter neben diesem): wie im Shader
                 if (stadt is not null) d *= 1f - Mathf.SmoothStep(0.3f, 0.6f, stadt[(Math.Min(b, SchichtInfoBild - 1) * SchichtInfoBild + Math.Min(a, SchichtInfoBild - 1)) * 4 + 2] / 255f);
                 if (d > 0f && frei is not null && frei.AufGebaeude(x, z, 0.4)) d = 0f;

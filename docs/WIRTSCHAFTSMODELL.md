@@ -2080,7 +2080,7 @@ Die Einwohner-Grenze kann mit Bezug 17 nicht erreicht werden (Greybox 121–123 
 
 Messdateien `schaenke-{plaetze3,ohne}.json`, `bericht-{main,branch3}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
 
-## Jahreszeiten (Datenversion 69)
+## Jahreszeiten (Datenversion 69, PR #292)
 
 Entscheidung des Nutzers vom 31.10.2026 (Weg B): Ein Spieltag bleibt ein Jahr, die Jahreszeit des Jahres wirkt auf die Wirtschaft. Abschnitt `jahreszeiten`, Teilsystem `Jahreszeitenwesen`; ohne Abschnitt rechnet alles bitgleich wie Datenversion 68. Spielbuch: [Jahreszeiten](spielbuch/jahreszeiten.md).
 
@@ -2170,6 +2170,15 @@ Eis (alle Schiffe warten bis zum Eisgang), Festmarkt (Fertigwaren erst teuer, da
 | Köln, Wirt | 32.573 ± 951 | 29.728 ± 875 (−8,7 %) | 68.688 | 68.807 (+0,2 %) | 59 / 53 | 0 / 0 |
 
 Ziel Wirt höchstens −5 % **verfehlt**: Köln −8,7 %, Greybox −7,9 %. Schmied, Ausbau und KI-Häuser liegen im Plus. Der Rest des Wirts kommt aus dem Winter: Weingeist ×1,1 macht Dünnbier und Starkbier teurer, die KI wählt die Ware einer Schänke nach dem Marktpreis und schenkt im Winter Körnermahlzeit statt Dünnbier aus (Köln: 49 statt 39 Körnermahlzeiten, 4 statt 13 Dünnbier; Ausschank im Winter 5.137 statt 5.787 Gulden). Probe ohne Weingeist in der Winternachfrage (`--ohne-folge=winternachfrage:Weingeist`, 154c0024): Wirt Köln −3,1 %, Greybox −5,5 % ±3,4 (Median −5,0 %), Schmied +4,9 / +7,5 %, Ausbau +4,1 / +7,8 %, KI-Häuser +0,7 bis +2,9 %, ein Bankrott (Ausbau Greybox, wie mit dem Fix allein). Die Bedingungen des Nutzers für diese Änderung (Wirt auf beiden Karten höchstens −5 %, die anderen höchstens 2 Punkte schlechter als mit dem Fix, kein Bankrott) sind knapp verfehlt – Weingeist bleibt in der Winternachfrage (offen in `docs/bereiche/kern.md`). Messdateien im Messordner des Auftrags (`vom_pc/`, nicht im Repository).
+
+**Endmessung für den PR** (`messen jahreszeiten 20 80`, Datenversion 69, beide Karten, Grafik-PC; main 6f80481b + Branch 0512c835; Wirkung der Jahreszeiten auf das Reinvermögen im Jahr 20 gegen `--ohne-jahreszeiten`):
+
+| Karte | Ausbau | Schmied | Wirt | KI-Häuser |
+|---|---|---|---|---|
+| Greybox | +6,7 % (1 Bankrott mit Jahreszeiten) | +5,3 % | −6,5 % | +1,2 bis +2,3 % |
+| Köln | +2,0 % | +8,0 % | −3,8 % | −0,4 bis +1,3 % |
+
+Der Wirt liegt in Köln im Ziel (höchstens −5 %), in der Greybox verfehlt er es knapp. Die Ware der Schänke nach dem Ausschankpreis (`ki.schaenke`, spiel-ki) wurde mit Anteil 1 und 0,75 mitgemessen: Der Wirt ist damit absolut rund 3.000 Gulden ärmer, der Schalter bleibt aus (Nutzer, 3.11.2026).
 
 ## Blitzschlag im Gewitter (PR #288, 2.11.2026)
 
