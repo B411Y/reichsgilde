@@ -109,6 +109,14 @@ public sealed class SchiffshandelDaten
     /// </summary>
     public bool Aktiv { get; init; } = true;
 
+    /// <summary>
+    /// Landhandel, solange der Schiffshandel ruht (<see cref="Aktiv"/> false) und die Karte einen Hafen hat: Faktoren je Ware auf Grundversorgung
+    /// („angebot“: Fuhrleute bringen, was sonst die Rückfracht brachte) und Nachfrage („nachfrage“: Händler kaufen für die fernen Städte, was
+    /// sonst die Schiffe ausführten). Gleicht aus, was die Stadt ohne Schiffe verliert (Datenversion 70, Nutzer: Option A). Mit laufendem
+    /// Schiffshandel ohne Wirkung.
+    /// </summary>
+    public LandhandelDaten Landhandel { get; init; } = new();
+
     public Dictionary<string, SchiffstypDaten> Schiffe { get; init; } = new();
 
     /// <summary>Die fernen Städte (Namen je Karte später in der Kartenwerkstatt, Schritt 6).</summary>
@@ -187,5 +195,29 @@ public sealed class SchiffshandelDaten
         if (VerkaufAnteil is < 0 or > 1) f.Add($"{p}.verkaufAnteil muss zwischen 0 und 1 liegen.");
         if (HafenAbstand <= 0) f.Add($"{p}.hafenAbstand muss größer als 0 sein.");
         if (eskorten.Count > 0 && !eskorten.ContainsKey("Keine")) f.Add($"{p}: Das Geleit „Keine“ fehlt unter logistik.eskorten.");
+        Landhandel.Pruefen(f, $"{p}.landhandel", waren);
+    }
+}
+
+/// <summary>Landhandel, solange der Schiffshandel ruht (<see cref="SchiffshandelDaten.Landhandel"/>): Faktoren je Ware, fehlende Waren 1.</summary>
+public sealed class LandhandelDaten
+{
+    /// <summary>Faktor auf die Grundversorgung je Ware (Rohstoffe, die sonst die Rückfracht der Schiffe brachte).</summary>
+    public Dictionary<string, double> Angebot { get; init; } = new();
+
+    /// <summary>Faktor auf die Nachfrage je Ware (Waren, die sonst die Schiffe in die fernen Städte ausführten).</summary>
+    public Dictionary<string, double> Nachfrage { get; init; } = new();
+
+    public double AngebotVon(string ware) => Angebot.GetValueOrDefault(ware, 1);
+    public double NachfrageVon(string ware) => Nachfrage.GetValueOrDefault(ware, 1);
+
+    internal void Pruefen(List<string> f, string p, IReadOnlyDictionary<string, WareDaten> waren)
+    {
+        foreach (var (titel, liste) in new[] { ("angebot", Angebot), ("nachfrage", Nachfrage) })
+            foreach (var (ware, x) in liste.OrderBy(x => x.Key, StringComparer.Ordinal))
+            {
+                if (!waren.ContainsKey(ware)) f.Add($"{p}.{titel}: Eine Ware „{ware}“ gibt es nicht.");
+                if (x is <= 0 or > 3) f.Add($"{p}.{titel}.{ware} muss über 0 und höchstens 3 sein.");
+            }
     }
 }

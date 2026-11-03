@@ -370,6 +370,7 @@ public sealed partial class Stadtwirtschaft
         Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
         Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
         Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 69)
+        Schiffahrt.MarktSetzen(); // Landhandel, solange der Schiffshandel ruht (Datenversion 70)
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>

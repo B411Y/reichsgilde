@@ -71,6 +71,30 @@ public sealed class Schiffahrt
     /// </summary>
     public Markt HafenMarkt => _w.Markt;
 
+    /// <summary>Wirkt der Landhandel (<see cref="SchiffshandelDaten.Landhandel"/>)? Der Schiffshandel ruht, und die Karte hat einen Hafen.</summary>
+    public bool LandhandelWirkt => Ruht && HatHafen;
+
+    /// <summary>Zuletzt an die Marktstände gegeben: wirkt der Landhandel? (Anfangs nein – alle Faktoren 1.)</summary>
+    private bool _landhandelGesetzt;
+
+    /// <summary>
+    /// Zu Beginn jeder Minute und nach dem Laden (aus <see cref="Stadtwirtschaft.EinwohnerZaehlen"/>): die Faktoren des Landhandels an jedem
+    /// Marktstand – nur wenn sich geändert hat, ob er wirkt. Mit laufendem Schiffshandel bleibt alles bei 1 (bitgleich mit vorher).
+    /// </summary>
+    internal void MarktSetzen()
+    {
+        // (ohne Karte nicht nach Häfen suchen: die Suche merkt sich ihr Ergebnis, und die Karte kommt erst nach dem Erzeugen)
+        var an = Ruht && _w.Karte is not null && HatHafen;
+        if (an == _landhandelGesetzt) return;
+        _landhandelGesetzt = an;
+        var l = Daten!.Landhandel; // (an nur mit Daten)
+        foreach (var s in _w.Markt.Staende)
+        {
+            s.LandhandelAngebot = an ? l.AngebotVon(s.Ware) : 1;
+            s.LandhandelNachfrage = an ? l.NachfrageVon(s.Ware) : 1;
+        }
+    }
+
     /// <summary>So viele Schiffe hat das Laden verworfen, weil der Schiffshandel in den Daten ruht (Spielstand mit Schiffen, Daten ohne Schiffshandel).</summary>
     public int BeimLadenVerworfen { get; private set; }
 
