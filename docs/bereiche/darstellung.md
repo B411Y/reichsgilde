@@ -12,6 +12,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
+- (Pixel-Look) Namen der Gebäude (Label3D) werden mit gepixelt, auch bei Pixel 3 schlecht lesbar; Abhilfe: eigene Vollauflösungs-Ansicht nur für die Schilder
+- (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
+- (Pixel-Look) Hoher Lichtwechsel (Blitz, Fackeln) nicht gesondert abgestimmt; Lichtskala nach Tageslicht nur grob geeicht (Abend und Nacht prüfen); Kartenwerkstatt liest die Grafik-Startoptionen nicht (nur die gespeicherte Wahl)
 - (3) Raumansicht für den Dom und Feinschliff der Werkstatträume je Beruf (zweiter Teil von PR #52)
 - (3) (von Kern) Karren am Stadttor zeigen: `Karren.WartetAmTor(zeit)` – Hinweg draußen vor dem Tor, Rückweg drinnen (ab PR #67)
 - (3) Einwohner in den Innenräumen von Schänken und Kirchen der Häuser zeigen (im Dom erledigt, PR #93)
@@ -215,6 +219,18 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels R4) Leistung der elf neuen Formen (bis 11.000 Dreiecke je Stück auf der feinen Stufe, Atlas 4096 × 2048 je zwei Karten) ist nicht gemessen; Messung gehört zu R6 (Befehl an „main“, Grafik-PC).
 
 ## Entscheidungen
+
+### Pixel-Look (PR folgt, Branch phase5/pixel-look)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Option | Grafikoption „Pixel-Look“ (Aus, Pixel 2, Pixel 3) mit Schalter „Glühen“, unter Grafik → Erweitert → Stimmung; Standard aus, nicht Teil der Voreinstellungen; alle übrigen Werte fest wie „Pixel 2 fein“ (Umrisse, weiche Schatten, Dunst, Kontrast 1,12, Vignette 0,18, Düsternis 12 %, ruhiges Gras) | 03.11.2026 |
+| Aufbau | Die Welt rechnet in drei verschachtelten SubViewports (Beleuchtung in Welt in Schein), das Fenster zeichnet kein 3D; die Spielkamera bleibt die Kamera der Logik, darum ist beim Auswählen, Bauen und in der Kartenwerkstatt nichts umzurechnen; eine zweite Kamera folgt ihr mit Snapping, der Rest als Versatz des Bildes | 03.11.2026 |
+| Leistung | Glühen im Maßstab des Weltbildes (8 statt 12 Abtastwerte je Ring, 1/4 bzw. 1/9 der Bildpunkte): 0,2–0,5 ms. Halmzahl halb bzw. 30 %. GPU-Zeit auf der T400 (Köln, 1600 × 900, Hoch): aus 41 ms, Pixel 2 rund 29 ms, Pixel 3 rund 21 ms; das Beleuchtungsbild kostet davon rund ein Drittel (9 bzw. 7 ms). Messungen schwanken, sobald ein anderer Prozess die Grafikkarte nutzt (Pixel 2 einmal 48 ms) | 03.11.2026 |
+| Zoom | Nur im Pixel-Look feste Stufen 25/35/50/70/100/140; sonst stufenlos wie bisher | 03.11.2026 |
+| Räume und freie Kamera | Räume: nur grobe Pixel ohne Stufenlicht, Umrisse und Glühen (spart das Beleuchtungsbild); Raum- und freie Kamera ohne Snapping | 03.11.2026 |
+| Versuchsszene | `Pixeltest` bleibt auf dem Versuchszweig `versuch/pixel-look`, kommt nicht ins Spiel | 03.11.2026 |
+| Bloom, Unschärfe | Im Pixel-Look ersetzt das Glühen den Bloom der Stadt (in den Räumen bleibt er); keine Miniatur-Unschärfe | 03.11.2026 |
 
 ### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #284)
 
