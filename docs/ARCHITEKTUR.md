@@ -287,6 +287,7 @@ Ein KI-Rivale (`src/Reichsgilde.Core/Ki/KiRivale.cs`) führt ein Konto und alle 
 | Wann | Entscheidung | Rechnung |
 |---|---|---|
 | jede volle Stunde | Produkt der Gießerei | Gewinn je Arbeitsminute = (Preis × (1 − Steuer) − Zutaten zum Marktpreis) ÷ Zeit. Wechsel erst ab 15 % Vorsprung und frühestens nach 6 Stunden. |
+| jede volle Stunde | Ware der Schänke (`ki.schaenke`, `Ki/KiRivale.Schaenke.cs`) | `SchankwertJeArbeitsminute`: wie oben, aber eine Ausschankware bringt für den Anteil der erwarteten Gäste (`Gastwirtschaft.ErwarteteGaeste` × `gaesteanteil` ÷ Stück im Jahr, höchstens 1) den festen Ausschankpreis, nur der Rest den Marktpreis. Ohne Abschnitt wie jede Werkstatt. |
 | jede volle Stunde | Förderung der Mine | Silberanteil in Stufen 20/35/50/65/80 % nach dem Preisvorsprung von Silber gegenüber Eisen |
 | jede volle Stunde | Personal | Freie Plätze mit der erlaubten Arbeitskraft mit dem höchsten Jahresertrag besetzen: Tempo × 720 Min. × Wert je Minute − Lohn − Risiko × Schaden |
 | jede volle Stunde | Eskorte | Geringste erwartete Kosten: Eskortenlohn + Überfallchance × Erfolgschance der Banden × Ladungswert × Vorsicht |

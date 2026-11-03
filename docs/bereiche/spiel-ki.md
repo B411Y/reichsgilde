@@ -19,6 +19,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Mittagsandrang in der Schänke (PR #274): Um 12 Uhr, der ersten Stunde mit Einkehren, gehen fast alle Einwohner zugleich hin (bis 107 von 123 in der einen Schänke), abends um 21:45 bis 84. Eine Kapazität für Einwohner gibt es nicht. Designfrage beim Teamleiter, Empfehlung: Sitzplätze je Schänke nach Stufe im Abschnitt `buerger` (im Verhältnis von `anziehungJeStufe`, etwa 20/30/40); wer keinen Platz bekommt, nimmt die nächstbeste Handlung (mittags Arbeit, abends daheim); ohne Eintrag unbegrenzt wie heute. Vorher messen, wie sich die Gäste auf mehrere Schänken verteilen. Nur den Mittag zu dämpfen, verschiebt den Andrang auf 18 Uhr.
 - Die Schätzung „Stillstand vorher ^ (Durchfluss nachher ÷ vorher)“ ist im ersten Jahr zu optimistisch: Die Prüfung sah in Köln nach dem ersten Kauf 7–12 % geschätzt und 14–41 % im Folgejahr gemessen (Grube 18 %, Bauernhof 41 %) – das erste Jahr hat Anlaufverluste (leere Karren, Lager füllt sich). Die KI kauft dann im Jahr darauf nach; schlimmstenfalls einen Karren zu spät. Bei Gelegenheit das erste Jahr eines Betriebs nicht als Eichung nehmen.
 - (von Kern) Sitzplätze der Schänken (Datenversion 67): Die Einwohner finden in einer Schänke höchstens ⌈Plätze × Einwohner ÷ 17⌉ Plätze (`Gastwirtschaft.EinwohnerPlaetze`, `Einwohnerschaft.Quote` mit Grenze, Ersatzhandlung, Stillen nach der Verteilung; `OhneSchankplatz`). Entscheidung des Nutzers vom 2.11.2026; mit 17 und mindestens 20 Plätzen ist die Grenze immer größer als die Einwohnerzahl, greift also nie – die Kopplung wirkt wie bisher. Zur Kenntnis, nichts zu tun.
+- Ware der Schänke nach dem Ausschank (`ki.schaenke`, Branch phase5/jahreszeiten): gebaut, aber nicht in `wirtschaft.json` – erst die volle Messung auf dem Grafik-PC (80 Startwerte, beide Karten, Wirt/Schmied/Ausbau/KI, `--ki-schaenke` mit Anteil 1 und 0,75, mit und ohne Jahreszeiten; Befehle unten unter „Messungen“). Danach entscheidet der Nutzer, ob und mit welchem `gaesteanteil` der Abschnitt in die Daten kommt. Die Kurzprobe (4 Startwerte) zeigt: Mit Anteil 1 macht die Schänke fast nur Körnermahlzeit und verdient selbst etwas weniger; der Gewinn im Reinvermögen kann Rauschen der Schiffe sein.
 
 ## Entscheidungen
 
@@ -113,6 +114,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Schiffe im Eis | `SchiffeBleibenImHafen`: Ist der Fluss zu oder für heute angekündigt (`EisDroht`, die Stunde steht in der Meldung zum Jahresbeginn), schickt die KI kein Schiff los; nach dem Eisgang wieder. | 2.11.2026 |
 | Vorrat vor dem Winter | `WinterVorrat` (`ki.jahreszeiten.vorratAbStunde` 17): Im Herbst ab 17 Uhr füllt der Verwalter eines KI-Hauses Zutaten mit Winternachfrage oder Ernte (Holz, Gerste, Roggen, Kräuter) bis zur Lagergrenze – über `Karren.Vorratsziel`, zum Marktpreis, im Rahmen von `zutatenAnteilKasse`. Reine Rechnung aus Uhr und Daten. Der Verwalter des Spielers tut das nicht (Designfrage beim Teamleiter). | 2.11.2026 |
 
+### Ware der Schänke nach dem Ausschank (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anlass | Endmessung Jahreszeiten (kern, `docs/bereiche/kern.md` Offen): Der Wirt verliert mit den Jahreszeiten 8–9 %; die KI wählte die Ware der Schänke wie jede Werkstatt nach dem Marktpreis (`Kalkulation.GewinnJeArbeitsminute`), obwohl die Gäste den festen Ausschankpreis (Grundpreis × 1,2) zahlen. | 3.11.2026 |
+| Regel | `KiRivale.SchankwertJeArbeitsminute(betrieb, ware)` (`Ki/KiRivale.Schaenke.cs`): (Erlös − Zutaten zum Marktpreis) ÷ Zeit mit Erlös = Anteil × Ausschankpreis + (1 − Anteil) × Marktpreis, nach Umsatzsteuer. Anteil = `Gastwirtschaft.ErwarteteGaeste` × `ki.schaenke.gaesteanteil` ÷ Stück im Jahr (`Kalkulation.Leistung` × Arbeitsminuten ÷ `MinutenJeStueck`, nur diese Ware), höchstens 1; ohne Personal 1. Weingeist (kein Ausschank) zum Marktpreis. `ProduktWaehlen` nimmt diesen Wert für Schänken; Wechselschwelle und Mindeststunden bleiben. Gilt für KI-Häuser und den von der KI geführten Messspieler. | 3.11.2026 |
+| Schalter | Neuer Teil `ki.schaenke` (`KiSchaenkeDaten`, `gaesteanteil` 0–1, Standard 1) – **nicht** in `wirtschaft.json`, keine Datenversion. Ohne den Teil rechnet die KI bitgleich wie vorher (Test). Messung: `messen jahreszeiten … --ki-schaenke[=anteil]` (kleine Ergänzung in `tests/Reichsgilde.Core.Tests/Jahreszeitenmessung.cs`, Bereich kern). | 3.11.2026 |
+| Tests | Neu `KiSchaenkeWareTests` (5): ohne Teil gleich `GewinnJeArbeitsminute`; mehr Gäste als Stück = Ausschankpreis; Anteil unter 1 gemischt, Anteil 0 = Marktpreis; Körnermahlzeit am Markt teuer → ohne Teil stellt die KI vom Dünnbier um, mit bleibt sie; Prüfung des Werts. | 3.11.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
@@ -192,3 +202,26 @@ Gemessen auf main `ec36ff33` + dieser Branch (`adfd5f2d`), wie oben (`messen ber
 
 Die Holzschläge stehen mit dem vierten (und fünften) Karren gut 8 Punkte weniger still und verdienen mehr; die KI kauft die Karren nur nach Stillstand. Das Vermögen der KI-Häuser ändert sich im Rahmen des Fehlers (± 1.700), „Schwer“ zieht die KI nicht öfter davon als mit 3 Karren. Ein erster Lauf mit der Schätzung beim Pachten für 5 Karren pachtete den Holzschlag im Eichenforst wieder (204 statt 12 Betriebsjahre, 43 % Stillstand) und ließ in „Schwer“ 34 von 140 KI-Häusern davonziehen; deshalb schätzt die KI das Pachten weiter mit 3 Karren (Befund H1 der Prüfung). Die Nachtfahrt ist damit nicht nötig.
 
+### Ware der Schänke nach dem Ausschank – Kurzprobe (PR #…)
+
+Gemessen auf main `6f80481b` + Branch phase5/jahreszeiten `e666edf6`, nur Köln, nur Wirt, **4 Startwerte** (Richtungsprobe, Fehler des Mittels weit über den Unterschieden): `messen jahreszeiten 20 4 --karten=koeln --beruf=Wirt --parallel=4` mit/ohne `--ohne-jahreszeiten` und `--ki-schaenke[=0.75]`. Reinvermögen J20 des Spielers, Gewinn der Betriebe (ohne Schiffe) über 20 Jahre, hergestellt je Jahr (Körnermahlzeit / Dünnbier / Starkbier):
+
+| | ohne Jahreszeiten | mit Jahreszeiten | Δ |
+|---|---|---|---|
+| vorher (ohne `ki.schaenke`) | 39.694, Betriebe 53.577, 35 / 14 / 16 | 25.677, Betriebe 48.551, 54 / 4 / 8 | −35,3 % |
+| `--ki-schaenke` (Anteil 1) | 38.476, Betriebe 49.884, 67 / 0 / 5 | 27.608, Betriebe 47.700, 70 / 0 / 2 | −28,2 % |
+| `--ki-schaenke=0.75` | – | 30.676, Betriebe 49.962, 57 / 0 / 10 | – |
+
+Mit Anteil 1 sieht die KI fast jede Ausschankware zum Ausschankpreis; je Arbeitsminute ist dann die Körnermahlzeit am besten, und die Schänke macht fast nur noch sie – der Gewinn der Betriebe sinkt (−2 / −7 %), weil der Überschuss doch zum Markt geht (bewirtet 55 von ≈ 70 Stück im Jahr, 16 Gäste je Jahr abgewiesen, weil der Karren alles über dem Vorrat von 15 mitnimmt). Mit 0,75 bleiben Starkbier und Marktanteil, die Betriebe verdienen mehr als vorher (+3 %). Der Abstand im Reinvermögen hängt stark an den Schiffen (je Lauf −0,8 bis +7,4 Tsd.) – erst die volle Messung entscheidet.
+
+Befehle für den Grafik-PC (80 Startwerte, beide Karten, alle Aufbauten; jeweils auf demselben Stand):
+
+```bash
+P="dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten 20 80 --karten=greybox,koeln --parallel=12"
+$P --ohne-jahreszeiten                        --datei=schaenke-ohne.json        # Bezug ohne ki.schaenke (= Endmessung)
+$P                                            --datei=schaenke-mit.json
+$P --ohne-jahreszeiten --ki-schaenke          --datei=schaenke1-ohne.json
+$P                     --ki-schaenke          --datei=schaenke1-mit.json
+$P --ohne-jahreszeiten --ki-schaenke=0.75     --datei=schaenke75-ohne.json
+$P                     --ki-schaenke=0.75     --datei=schaenke75-mit.json
+```
