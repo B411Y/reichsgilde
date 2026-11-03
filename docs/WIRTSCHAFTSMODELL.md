@@ -2075,3 +2075,27 @@ Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Geb
 | Köln | 17 (0–3, Mittel 1,7) | 5 | 6 | 6 | 0 | 1 (Werkstatt) |
 
 Zusammen: Kirchen und Dom 24 % der Einschläge (zum Quadrat waren es 69 %, 18 von 26), Wohnhäuser 44 %. Das Vermögen ändert sich nur in den drei Partien mit einem Treffer in ein Haus, und dort als Rauschen in beide Richtungen (Spieler −2.489 bis +11.082, KI −13.429 bis +26.121): Für die Wirtschaft ist der Blitz praktisch ohne Wirkung.
+
+### Blitzschaden und Übersprung (PR #…, 3.11.2026)
+
+Variante B des Entwurfs (Nutzer 3.11.2026): **Schwere** = (gewürfelte Brenndauer − 60) ÷ 120, also 0 bei einer Stunde, 1 bei drei – kein neuer Wurf. Werte in `blitz` (alle einstellbar; Vorgaben ohne Wirkung, darum rechnen Spielstände mit Daten bis 69 wie bisher):
+
+| Wert | Wirkung |
+|---|---|
+| Werkstatt | Stillstand 300 Arbeitsminuten wie bisher; Reparatur max(`reparatur` = 100, `reparaturAnteil` [0,10; 0,25] nach Schwere × Bauwert) × Brandschutz (Löschfass) – Gießerei 350–875, Schmiede 600–1.500, Goldschmiede 1.100–2.750 Gulden; Umland (Pacht) 100. `lagerAnteil` [0,10; 0,40] jeder Ware verbrennt (ganze Stück, abgerundet). Karren und Geld bleiben. |
+| Wohnhaus | Ansehen fehlt bis Ende + 1.140 Minuten wie bisher; Reparatur max(`wohnhausReparatur` = 0, `wohnhausAnteil` [0,5; 1] × Brandschaden der Brandstiftung (20 % vom Ausbaupreis, mindestens 100)) × Brandschutz-Einrichtung. |
+| Wächter | Wächter bzw. Hauswächter: Brenndauer und Schwere × `waechterFaktor` 0,67. |
+| Übersprung | `sprung`: Nachbarn mit Grundflächen höchstens `abstand` 6 m auseinander (Kante zu Kante, Grundfläche mit Vorplatz); zur Mitte jeder vollen Brandstunde je Nachbar `chanceJeStunde` 0,15 × Brandschutz × (`waechterFaktor` 0,5 mit Wächter); Dauer × `dauerFaktor` 0,5, Schwere × `schwereFaktor` 0,5; höchstens ein Sprung (das übergesprungene Feuer würfelt nicht). |
+| Kein | Ausbrennen, Blitzableiter, Wirkung von Kirche und Rathaus (eigener PR). KI-Häuser nach derselben Regel. |
+
+**Kurzmessung** (gemessen auf main 6f80481b + dieser Branch 2a50321f; `messen blitz 20 4`: je Karte und Beruf 4 Startwerte 101–404, 20 Jahre, Spieler mit einem Betrieb von der KI geführt; „ohne“ = dieselben Partien mit den Werten von Datenversion 68 – der Blitz würfelt mit eigener Quelle, darum sind die Einschläge in beiden gleich):
+
+| Karte | Beruf | Einschläge/Partie | Sprünge/Partie | Treffer Haus Spieler / KI je Partie (mit, inkl. Sprung) | Reparatur/Partie | Spieler J20 mit / ohne | KI J20 mit / ohne |
+|---|---|---|---|---|---|---|---|
+| Greybox | Schmied | 1,00 | 0,75 | 0,25 / 0,25 | 121 | 37.573 / 35.740 | 78.971 / 75.789 |
+| Greybox | Wirt | 1,00 | 0,75 | 0,25 / 0,25 | 121 | 38.850 / 38.403 | 88.284 / 90.431 |
+| Köln | Schmied | 1,00 | 0,50 | 0 / 0 | 0 | 35.841 / 35.841 | 72.108 / 72.108 |
+| Köln | Wirt | 1,00 | 0,25 | 0 / 0 | 0 | 39.469 / 39.469 | 71.815 / 71.815 |
+
+Größenordnung: ein Treffer in ein Haus kostet einige hundert Gulden (hier ein Wohnhaus und eine KI-Werkstatt, zusammen 484 Gulden in einer Partie) bei 36.000–90.000 Gulden Vermögen nach 20 Jahren – unter 2 %; die Unterschiede im Vermögen sind Rauschen in beide Richtungen (die Partie läuft nach dem ersten Treffer anders). Sprünge sind häufiger als gedacht (0,25–0,75 je Partie, meist auf Bürger- und Kulissenhäuser, weil die Grundflächen mit Vorplatz dicht aneinander liegen). Die volle Messung (mehr Startwerte, auch mit Chance 1 für die Trefferhäufigkeit) steht aus.
+
