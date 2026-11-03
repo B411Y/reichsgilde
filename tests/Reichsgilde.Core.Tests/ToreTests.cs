@@ -7,7 +7,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>Tests für die Stadttore: Torschluss um 20 Uhr, Warten bis zum Morgen, Torgeld mit Nachtfahrt-Erlaubnis.</summary>
 static class ToreTests
 {
-    static readonly string Json = File.ReadAllText(Datenpfad.Wirtschaft());
+    static readonly string Json = Datenpfad.OhneJahreszeiten(); // ohne Schlamm im Frühling 1400
     static Wirtschaftsdaten Daten() => Wirtschaftsdaten.AusJson(Json);
 
     /// <summary>Spielminute dieser Uhrzeit am ersten Tag (05:00 = 0).</summary>

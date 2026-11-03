@@ -1,6 +1,6 @@
 # Bereich kern – Archiv der älteren Entscheidungen
 
-Hier stehen die Entscheidungsabschnitte, die vor dem 27.10.2026 abgeschlossen wurden, **wörtlich** aus [../kern.md](../kern.md) verschoben (Stand 29.10.2026; am 31.10.2026 dazu PR #219 und #224, am 1.11.2026 PR #227, #231, #232, #244, #247, #251, #253 und #254, am 3.11.2026 PR #259). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
+Hier stehen die Entscheidungsabschnitte, die vor dem 27.10.2026 abgeschlossen wurden, **wörtlich** aus [../kern.md](../kern.md) verschoben (Stand 29.10.2026; am 31.10.2026 dazu PR #219 und #224, am 1.11.2026 PR #227, #231, #232, #244, #247, #251, #253 und #254, am 2.11.2026 PR #259). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
 
 ## Entscheidungen (älter)
 

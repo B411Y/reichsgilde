@@ -16,7 +16,9 @@
     "flechten": "Menge Flechten (auf freien, sonnigen Flächen)",
     "flechte_farbe": "Farbe der bunten Flechten (dazu immer weißgraue)",
     "efeu": "Efeu in den Klüften (Trachyt)",
-    "schutt_farbe": "Farbe von Schutt und Sand am Fuß (für F6, Boden um den Fels)",
+    "schutt_farbe": "Farbe von Schutt und Sand am Fuß (für F6, Boden um den Fels; auch der Fuß der Stücke nimmt sie an, Fels R1)",
+    "eisen": "Anteil der Bänke mit Eisenfarbe und Stärke der rostigen Auswaschung unter den Fugen (Fels R1)",
+    "eisen_farbe": "Farbe der eisenhaltigen Bänke und Streifen",
     "formen": "Felsformen, die zu der Art passen: Kennungen der Karte (felsen.stuecke[].form, Felsformen im Kern), ein Test prüft sie"
   },
   "moos_farbe": "#46512a",
@@ -43,6 +45,8 @@
       "flechte_farbe": "#c98a3a",
       "efeu": 0.0,
       "schutt_farbe": "#6e6c67",
+      "eisen": 0.35,
+      "eisen_farbe": "#9a6a45",
       "formen": ["rippe", "wand", "platte", "schuttbrocken"]
     },
     {
@@ -64,6 +68,8 @@
       "flechte_farbe": "#b9ae4a",
       "efeu": 0.3,
       "schutt_farbe": "#968a72",
+      "eisen": 0.15,
+      "eisen_farbe": "#a07a4a",
       "formen": ["wand", "felsnase", "block", "schuttbrocken"]
     },
     {
@@ -85,6 +91,8 @@
       "flechte_farbe": "#a8a05a",
       "efeu": 0.0,
       "schutt_farbe": "#a8634a",
+      "eisen": 0.6,
+      "eisen_farbe": "#8a3f2c",
       "formen": ["kuppe", "ueberhang", "block", "schuttbrocken"]
     },
     {
@@ -106,6 +114,8 @@
       "flechte_farbe": "#b8a660",
       "efeu": 0.0,
       "schutt_farbe": "#9d988c",
+      "eisen": 0.25,
+      "eisen_farbe": "#a68a5c",
       "formen": ["wand", "block", "platte", "schuttbrocken"]
     }
   ],

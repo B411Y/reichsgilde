@@ -32,8 +32,22 @@ public sealed class EntwurfFels : EntwurfTeil
     public double Massstab { get; internal set; } = 1;
     public double Neigung { get; internal set; }
     public double Einsinken { get; internal set; } = Felsformen.EinsinkenVorgabe;
+    /// <summary>Kippen um die eigene x-Achse (Grad, −180 … 180).</summary>
     public double KippenX { get; internal set; }
+
+    /// <summary>Rollen um die eigene z-Achse (Grad, −180 … 180).</summary>
     public double KippenZ { get; internal set; }
+
+    /// <summary>Faktoren je Achse auf den Maßstab (Breite, Höhe, Tiefe; 1: gleichmäßig; R2).</summary>
+    public double AchseX { get; internal set; } = 1;
+    public double AchseY { get; internal set; } = 1;
+    public double AchseZ { get; internal set; } = 1;
+
+    /// <summary>Höhenversatz in Metern (R2).</summary>
+    public double Versatz { get; internal set; }
+
+    /// <summary>Hat das Stück Achsen ungleich 1 („achsen“ in der Datei)?</summary>
+    private bool HatAchsen => AchseX != 1 || AchseY != 1 || AchseZ != 1;
 
     public Kartenort Punkt => new(X, Z);
 
@@ -51,33 +65,39 @@ public sealed class EntwurfFels : EntwurfTeil
     private string? _formFuer;
     private Felsform? _form;
 
-    /// <summary>Der Radius der Grundfläche (Meter, mit Maßstab) – für den Abstand beim Streuen.</summary>
-    public double Radius => (Felsform?.Radius ?? 1) * Massstab;
+    /// <summary>Der Radius der Grundfläche (Meter, mit Maßstab und den Achsen der Grundfläche) – für den Abstand beim Streuen.</summary>
+    public double Radius => (Felsform?.Radius ?? 1) * Massstab * Math.Sqrt(AchseX * AchseZ);
 
     /// <summary>Das Stück in den Typen der Stadtkarte.</summary>
     public Felsstueck AlsFelsstueck() => new()
     {
         Form = Form, Gestein = Gestein, Punkt = new[] { X, Z }, Drehung = Drehung, Massstab = Massstab, Neigung = Neigung, Einsinken = Einsinken,
         Kippen = KippenX == 0 && KippenZ == 0 ? null : new[] { KippenX, KippenZ },
+        Achsen = HatAchsen ? new[] { AchseX, AchseY, AchseZ } : null, Versatz = Versatz,
     };
+
+    /// <summary>Das Stück als Lage (für Felsraum, den Felsboden und die Darstellung).</summary>
+    public Felslage AlsLage() => new(Form, Gestein, X, Z, Drehung, Massstab, Neigung, Einsinken, KippenX, KippenZ, AchseX, AchseY, AchseZ, Versatz);
 
     internal static EntwurfFels Aus(Felsstueck f, JsonObject? vorlage) => new()
     {
         Form = f.Form, Gestein = f.Gestein, X = f.Punkt is { Length: 2 } ? f.Punkt[0] : 0, Z = f.Punkt is { Length: 2 } ? f.Punkt[1] : 0,
         Drehung = f.Drehung, Massstab = f.Massstab, Neigung = f.Neigung, Einsinken = f.Einsinken,
-        KippenX = f.Kippen is { Length: 2 } k ? k[0] : 0, KippenZ = f.Kippen is { Length: 2 } k2 ? k2[1] : 0, Vorlage = vorlage,
+        KippenX = f.Kippen is { Length: 2 } k ? k[0] : 0, KippenZ = f.Kippen is { Length: 2 } k2 ? k2[1] : 0,
+        AchseX = f.Achsen is { Length: 3 } a ? a[0] : 1, AchseY = f.Achsen is { Length: 3 } a2 ? a2[1] : 1, AchseZ = f.Achsen is { Length: 3 } a3 ? a3[2] : 1,
+        Versatz = f.Versatz, Vorlage = vorlage,
     };
 
     internal static EntwurfFels Aus(Felslage l) => new()
     {
         Form = l.Form, Gestein = l.Gestein, X = l.X, Z = l.Z, Drehung = l.Drehung, Massstab = l.Massstab, Neigung = l.Neigung, Einsinken = l.Einsinken,
-        KippenX = l.KippenX, KippenZ = l.KippenZ,
+        KippenX = l.KippenX, KippenZ = l.KippenZ, AchseX = l.AchseX, AchseY = l.AchseY, AchseZ = l.AchseZ, Versatz = l.Versatz,
     };
 
     internal override EntwurfTeil KopieTeil() => new EntwurfFels
     {
         Form = Form, Gestein = Gestein, X = X, Z = Z, Drehung = Drehung, Massstab = Massstab, Neigung = Neigung, Einsinken = Einsinken,
-        KippenX = KippenX, KippenZ = KippenZ, Vorlage = Vorlage,
+        KippenX = KippenX, KippenZ = KippenZ, AchseX = AchseX, AchseY = AchseY, AchseZ = AchseZ, Versatz = Versatz, Vorlage = Vorlage,
     };
 
     internal override void UebernimmTeil(EntwurfTeil werte)
@@ -85,16 +105,19 @@ public sealed class EntwurfFels : EntwurfTeil
         var o = (EntwurfFels)werte;
         (Form, Gestein, X, Z, Drehung, Massstab, Neigung, Einsinken, KippenX, KippenZ, Vorlage) =
             (o.Form, o.Gestein, o.X, o.Z, o.Drehung, o.Massstab, o.Neigung, o.Einsinken, o.KippenX, o.KippenZ, o.Vorlage);
+        (AchseX, AchseY, AchseZ, Versatz) = (o.AchseX, o.AchseY, o.AchseZ, o.Versatz);
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfFels o && Form == o.Form && Gestein == o.Gestein && X == o.X
         && Z == o.Z && Drehung == o.Drehung && Massstab == o.Massstab && Neigung == o.Neigung && Einsinken == o.Einsinken && KippenX == o.KippenX
-        && KippenZ == o.KippenZ;
+        && KippenZ == o.KippenZ && AchseX == o.AchseX && AchseY == o.AchseY && AchseZ == o.AchseZ && Versatz == o.Versatz;
 
     internal override JsonObject AlsJson() => Zusammensetzen(Vorlage,
         ("form", Form), ("gestein", Gestein), ("punkt", JsonPunkt(new Kartenort(X, Z))), ("drehung", Drehung), ("massstab", Massstab),
         ("neigung", Neigung), ("einsinken", Einsinken),
-        ("kippen", KippenX == 0 && KippenZ == 0 ? null : new JsonArray(JsonValue.Create(KippenX), JsonValue.Create(KippenZ))));
+        ("kippen", KippenX == 0 && KippenZ == 0 ? null : new JsonArray(JsonValue.Create(KippenX), JsonValue.Create(KippenZ))),
+        ("achsen", HatAchsen ? new JsonArray(JsonValue.Create(AchseX), JsonValue.Create(AchseY), JsonValue.Create(AchseZ)) : null),
+        ("versatz", Versatz == 0 ? null : JsonValue.Create(Versatz)));
 }
 
 /// <summary>Das Grundgestein der Karte als Teil (nur einmal je Karte; für Rückgängig und die Meldung <see cref="Kartenteil.Grundgestein"/>).</summary>
@@ -209,6 +232,13 @@ public sealed partial class Kartenentwurf
         var neue = FelsStempelVorschau(pinsel with { Radierer = false }, ort, drehung, startwert).Select(EntwurfFels.Aus).ToList();
         if (neue.Count == 0) return neue;
         var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
+        var vorher = neue.Select(f => _hoehen.Hoehe(f.X, f.Z)).ToList();
+        if (FelsHangBefehl(neue, pinsel) is { } hang)
+        {
+            befehle.Insert(0, hang); // R5: „Hang mitformen“ (Kartenentwurf.Felslage.cs)
+            // der Hang kann den Boden unter der Mitte eines Stücks mit heben (bilinear aus vier Rasterpunkten): das Stück bleibt dort, wo es stand
+            for (var i = 0; i < neue.Count; i++) neue[i].Versatz = Kartenraster.Punkt(neue[i].Versatz - (_hoehen.Hoehe(neue[i].X, neue[i].Z) - vorher[i]));
+        }
         if (pinsel.Boden)
         {
             // der Boden zuerst ins Raster, dann als Teil desselben Befehls (sein Ausführen setzt dieselben Kacheln noch einmal)
@@ -405,9 +435,11 @@ public sealed partial class Kartenentwurf
         private bool ZuNah(Felslage l)
         {
             var raster = Raster;
+            var meine = Felsformen.Finde(l.Form)?.Ueberlappung ?? Felspinsel.Ueberlappung;
             foreach (var f in raster.Im(l.X, l.Z, (1 - Felspinsel.Ueberlappung) * (l.Radius + raster.GroessterRadius)))
             {
-                var d = (1 - Felspinsel.Ueberlappung) * (l.Radius + f.Radius);
+                // die großen Stücke des Wand-Satzes dürfen sich weiter überlappen (R4); gilt, was von beiden mehr erlaubt
+                var d = (1 - Math.Max(meine, f.Felsform?.Ueberlappung ?? Felspinsel.Ueberlappung)) * (l.Radius + f.Radius);
                 if ((f.X - l.X) * (f.X - l.X) + (f.Z - l.Z) * (f.Z - l.Z) < d * d) return true;
             }
             return false;

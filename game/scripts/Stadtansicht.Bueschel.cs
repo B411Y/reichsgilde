@@ -140,10 +140,11 @@ public partial class Stadtansicht
         _bueschelBodenAlles = false;
         _bueschelBodenNeu.Clear();
         var ergebnis = new Vector4[]?[liste.Count];
+        var felsKarte = _felsbodenAn == true;
         if (raster is { IstLeer: false })
             Parallel.For(0, liste.Count, k =>
             {
-                if (BodenKachelGemalt(raster, liste[k].I, liste[k].J)) ergebnis[k] = BueschelAusBoden(raster, liste[k].I, liste[k].J);
+                if (BodenKachelGemalt(raster, liste[k].I, liste[k].J)) ergebnis[k] = BueschelAusBoden(raster, liste[k].I, liste[k].J, felsKarte);
             });
         for (var k = 0; k < liste.Count; k++)
         {
@@ -250,13 +251,14 @@ public partial class Stadtansicht
     /// Büschel an gemalten Grenzen der Wiese zu Erde, Fels, Kies, Sand, Lehm oder Mist: wo die Wiese um 40 % deckt (dort liegt die Grenze der
     /// Höhenmischung, Wiese steht in der Rangfolge über diesen Texturen) und der Rest überwiegend eine dieser Texturen ist.
     /// </summary>
-    private static Vector4[]? BueschelAusBoden(Bodenraster raster, int ti, int tj)
+    private static Vector4[]? BueschelAusBoden(Bodenraster raster, int ti, int tj, bool felsKarte)
     {
         const float kachel = KachelZellen * 2f;
         const int n = (int)(kachel / BueschelZelle);
         var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
         var splat = new byte[3][];
         for (var g = 0; g < 3; g++) splat[g] = raster.Splat(i0, j0, BodenBild, BodenBild, g);
+        var naehe = felsKarte ? FelsnaeheRechnen(raster, i0, j0, BodenBild) : null; // Fels R5: im steinigen Boden stehen keine Büschel
         // Wert einer Textur an einem Ort (bilinear zwischen den Punkten wie im Shader; Punkt k liegt bei i0 + k)
         float Wert(int textur, float x, float z)
         {
@@ -275,6 +277,7 @@ public partial class Stadtansicht
             {
                 var h = BueschelWurf(ti * n + ci, tj * n + cj, 2);
                 var (x, z) = (x0 + (ci + Teil(h, 2)) * BueschelZelle, z0 + (cj + Teil(h, 3)) * BueschelZelle);
+                if (naehe is not null && naehe[Math.Clamp((int)(z - j0), 0, BodenBild - 1) * BodenBild + Math.Clamp((int)(x - i0), 0, BodenBild - 1)] > 0.7f) continue;
                 var wiese = Wert(0, x, z);
                 var chance = 0.8f * Mathf.Max(0f, 1f - Mathf.Abs(wiese - 0.4f) / 0.12f);
                 if (chance <= 0f || Teil(h, 4) >= chance) continue;

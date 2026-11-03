@@ -766,6 +766,7 @@ public partial class Stadtansicht
         WerkstattGewaehlt = teil;
         _wsGriff = null;
         Auswahl = teil is EntwurfGebaeude g ? StueckKennung(g) : null; // der Name bleibt sichtbar
+        FelsAuswahlSetzen(teil); // Stadtansicht.Felsgizmo.cs
         if (vorher is not null && !ReferenceEquals(vorher, teil)) TeilMarkieren(vorher);
         if (teil is not null) TeilMarkieren(teil);
         GriffeBauen();
@@ -921,6 +922,7 @@ public partial class Stadtansicht
         if (_entwurf is null) return;
         Nachziehen();
         GriffAenderungMelden(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        FelsGizmoAktualisieren(); // Stadtansicht.Felsgizmo.cs
         GriffeSkalieren();
         var maus = _wsOrt ?? MausBoden();
         VorschauLeeren();
@@ -1147,6 +1149,9 @@ public partial class Stadtansicht
             or Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See;
         switch (eingabe)
         {
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.W or Key.E or Key.R or Key.Q or Key.B, CtrlPressed: false, AltPressed: false } gizmoTaste
+                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (W/E/R wie in Unreal, Q Welt/Stück, B auf den Boden)
+                return true;
             case InputEventKey { Pressed: true, Keycode: Key.Q or Key.E, CtrlPressed: false } taste:
                 Drehen(taste.Keycode == Key.Q ? 1 : -1, taste.AltPressed, taste.Echo);
                 return true;
@@ -1163,7 +1168,8 @@ public partial class Stadtansicht
                 Loeschen();
                 return true;
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape }:
-                if (_wsZiehen is not null) ZiehenAbbrechen();
+                if (FelsGizmoAbbrechen()) { }
+                else if (_wsZiehen is not null) ZiehenAbbrechen();
                 else if (_wsTeilZiehen is not null) TeilZiehenAbbrechen();
                 else if (_wsStrich is not null) StrichAbbrechen();
                 else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
@@ -1188,6 +1194,7 @@ public partial class Stadtansicht
                 GelaendeStrichBeenden();
                 BodenStrichBeenden();
                 FelsStrichBeenden();
+                FelsGizmoLoslassen();
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
@@ -1267,6 +1274,7 @@ public partial class Stadtansicht
     private void AuswahlKlick(Vector2 maus, Vector2? boden)
     {
         if (_entwurf is null) return;
+        if (FelsGizmoDruecken(maus)) return; // ein Griff des Gizmos geht vor (Stadtansicht.Felsgizmo.cs)
         var toleranz = Mathf.Max(0.6f, MeterJePixel * 8);
         // Was ausgeblendet ist (Ebenen), lässt sich nicht treffen: Wege, Mauern, Tore, Flüsse und Fähren gehören zu „Wege und Grenzen“
         var linien = WerkstattEbeneSichtbar(Werkstattebene.Linien);
@@ -1275,6 +1283,11 @@ public partial class Stadtansicht
         {
             WerkstattWaehlen(ganzeMauer);
             TeilZiehenBeginnen(ganzeMauer, Ziehart.Ganz, maus, ganz, -1, -1);
+            return;
+        }
+        if (Input.IsKeyPressed(Key.Shift) && boden is { } dazu && WerkstattEbeneSichtbar(Werkstattebene.Natur) && FelsBei(maus, dazu, toleranz) is { } dazuFels)
+        {
+            FelsAuswahlUmschalten(dazuFels); // Umschalt+Klick: Felsstück zur Auswahl hinzunehmen oder herausnehmen
             return;
         }
         if (GriffBei(maus) is { } griff && WerkstattGewaehlt is { } gewaehlt)
@@ -1429,7 +1442,7 @@ public partial class Stadtansicht
             case EntwurfFaehre fa: Befehl(() => _entwurf.FaehreLoeschen(fa)); break;
             case EntwurfFlaeche f: Befehl(() => _entwurf.FlaecheLoeschen(f)); break;
             case EntwurfPflanze p: Befehl(() => _entwurf.PflanzeLoeschen(p)); break;
-            case EntwurfFels fels: Befehl(() => _entwurf.FelsenLoeschen(new[] { fels })); break;
+            case EntwurfFels fels: Befehl(() => _entwurf.FelsenLoeschen(_felsAuswahl.Count > 1 ? _felsAuswahl.ToList() : new[] { fels })); break;
             case EntwurfMauer m: Befehl(() => _entwurf.MauerLoeschen(m)); break;
         }
     }

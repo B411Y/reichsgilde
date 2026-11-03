@@ -123,6 +123,12 @@ public sealed class SchiffshandelDaten
 
     public PiratenDaten Piraten { get; init; } = new();
 
+    /// <summary>
+    /// Rechnet die Schiffsfahrt mit den Schiffen, die schon zur selben Stadt bzw. heim unterwegs sind (<see cref="Kalkulation.Schiffsfahrt"/>,
+    /// Datenversion 69)? Ohne Angabe nein – so rechnen alte Spielstände mit ihren Daten wie bisher.
+    /// </summary>
+    public bool VerkehrBeachten { get; init; }
+
     /// <summary>Das Geleit eines Schiffs kostet so viel mal die Eskorte eines Karrens (<c>logistik.eskorten</c>).</summary>
     public double GeleitFaktor { get; init; } = 3;
 

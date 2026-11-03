@@ -56,6 +56,14 @@ boden_gestein_an={
 "type": "float",
 "value": 0.0
 }
+fels_gelaende={
+"type": "sampler2D",
+"value": ""
+}
+fels_gelaende_feld={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 wind_richtung={
 "type": "vec2",
 "value": Vector2(1, 0.4)

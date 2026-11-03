@@ -330,8 +330,38 @@ vec3 gestein_farbe(int nr, vec3 c) {
 	return mix(c, k, 0.4 * boden_gestein_an);
 }
 
+// Fels im Boden auf Karten mit Felsen (Fels R1): Die Textur Fels besteht aus gleich großen Platten mit dunklen Fugen – um ein Felsstück sah das wie
+// Pflaster aus. Hier tragen stattdessen Rauschen in drei Größen (etwa 0,8, 2,5 und 8 m) Helligkeit und Höhe; dazu unregelmäßige Risse (Höhenlinien
+// eines Rauschens, nur stellenweise, weit weg ausgeblendet), die Körnung der Kies-Textur und in den Senken Schutt (Kies in der Schuttfarbe der
+// Gesteinsart). Die Höhe für die Mischung folgt dem Rauschen, damit Gras und Moos in unregelmäßigen Buchten über den Fels wachsen.
+Schicht felsgrund(Schicht s, vec2 p, vec3 n, vec2 dx, vec2 dy) {
+	float r1 = rausch(p * 1.25 + 2.1), r2 = rausch(p * 0.4 + 8.3), r3 = rausch(p * 0.12 + 4.4);
+	float km = massstab * 0.6;
+	vec4 k = textureGrad(texturen, vec3(p / km, float(T_KIES)), dx / km, dy / km);
+	float lk = dot(k.rgb, vec3(0.2126, 0.7152, 0.0722));
+	float t = clamp(r2 * 0.35 + r3 * 0.25 + r1 * 0.4, 0.0, 1.0);
+	vec3 g = mix(boden_gestein_dunkel * 0.6, boden_gestein_hell * 0.88, smoothstep(0.15, 0.9, t));
+	g *= 0.6 + 0.8 * smoothstep(0.04, 0.45, lk);                                   // Körnung
+	float nah = 1.0 - smoothstep(0.015, 0.05, max(length(dx), length(dy)));      // Meter je Bildpunkt: Risse nur nah (dünner als ein Bildpunkt flimmerten sie)
+	float riss = (1.0 - smoothstep(0.0, 0.025, abs(rausch(p * 0.9 + 5.5) - 0.5))) * smoothstep(0.35, 0.6, r1)
+		* smoothstep(0.42, 0.58, rausch(p * 2.3 + 1.9)) * nah;                    // kurze Stücke, nicht durchgezogen
+	g *= 1.0 - 0.5 * riss;
+	float senke = smoothstep(0.38, 0.66, (1.0 - r2) * 0.6 + (1.0 - r1) * 0.4);
+	vec3 schutt = mix(k.rgb, boden_gestein_schutt * (0.55 + 1.5 * lk), 0.65);
+	g = mix(g, schutt, senke * 0.85);
+	// Erde und Moos in Flecken (etwa 2–3 m): Der Fels liegt nie ganz blank
+	float fleck = rausch(p * 0.33 + 12.7);
+	g = mix(g, vec3(0.075, 0.062, 0.045) * (0.8 + 0.5 * lk), smoothstep(0.62, 0.8, fleck) * 0.6);
+	g = mix(g, jahreszeit_wiese(vec3(0.08, 0.1, 0.035)) * (0.7 + 0.6 * lk), smoothstep(0.7, 0.85, 1.0 - fleck + (r3 - 0.5) * 0.3) * 0.55);
+	s.fh.rgb = mix(s.fh.rgb, g, boden_gestein_an);
+	s.fh.a = mix(s.fh.a, clamp(0.25 + 0.45 * r2 + 0.2 * r1 - 0.3 * senke + 0.2 * k.a * senke - 0.2 * riss, 0.0, 1.0), boden_gestein_an);
+	s.n = normalize(mix(s.n, n, 0.7 * boden_gestein_an));
+	return s;
+}
+
 Schicht eben_gestein(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	Schicht s = eben(nr, p, n, dx, dy);
+	if (nr == T_FELS && boden_gestein_an > 0.0) return felsgrund(s, p, n, dx, dy);
 	s.fh.rgb = gestein_farbe(nr, s.fh.rgb);
 	return s;
 }
@@ -343,6 +373,7 @@ Schicht hangfels(vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
 #else
 	Schicht s = eben(T_FELS, p.xz, n, dpx.xz, dpy.xz);
 #endif
+	if (boden_gestein_an > 0.0) return felsgrund(s, p.xz, n, dpx.xz, dpy.xz);
 	s.fh.rgb = gestein_farbe(T_FELS, s.fh.rgb);
 	return s;
 }
@@ -613,6 +644,7 @@ void fragment() {
 	vec3 n = normalize(welt_n);
 	float w[11] = float[](1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 	float pflaster = 0.0;
+	float felsnah = 0.0;
 	if (gemalt) {
 		vec2 uv = (welt - ursprung + vec2(0.5)) / bildgroesse;
 		vec4 g0 = texture(splat0, uv);
@@ -622,6 +654,17 @@ void fragment() {
 		w[4] = g1.r; w[5] = g1.g; w[6] = g1.b; w[7] = g1.a;
 		w[8] = g2.r; w[9] = g2.g; w[10] = g2.b;
 		pflaster = g2.g;
+		felsnah = g2.a;
+	}
+	// Felsnähe (Fels R1, Stadtansicht.Felsboden.cs): Auf Karten mit Felsen wird die Wiese um und zwischen den Flecken aus Fels und Kies steinig und
+	// mager – Kies, Erde und etwas Fels in Buchten aus zwei Rauschen. So verbinden sich die Flecken benachbarter Stücke, und ihr Rand franst aus.
+	if (felsnah > 0.0 && boden_gestein_an > 0.0) {
+		float rf = rausch(welt * 0.55 + 9.1) * 0.65 + rausch(welt * 2.1 + 1.3) * 0.35;
+		float steinig = smoothstep(0.3, 0.8, felsnah + (rf - 0.5) * 0.9) * w[T_WIESE] * 0.8 * boden_gestein_an;
+		w[T_WIESE] -= steinig;
+		w[T_KIES] += steinig * 0.5;
+		w[T_ERDE] += steinig * 0.3;
+		w[T_FELS] += steinig * 0.2;
 	}
 	// die Wegeschicht zuerst: Ganz im Pflaster der Stadt braucht es den Boden darunter nicht
 	vec4 ws = vec4(1.0, 1.0, 0.25, 0.0);
@@ -667,6 +710,9 @@ void fragment() {
 		w[T_LEHM] += w[T_WIESE] * stadtgrund;
 		w[T_WIESE] *= 1.0 - stadtgrund;
 	}
+	// Gemalte Beete und Höfe in der Mauer (Erde, Moos, Mist: Gärten, Misthaufen) bleiben sichtbar: Dort gilt der Lehm der Stadt nicht, sonst übermalt er
+	// sie ganz (Kleinkram 2.11.2026: die Deutzer Gärten hoben sich nicht vom Lehm ab). Wiese und Lehm zählen nicht – das war schon Lehm.
+	info.b *= 1.0 - clamp(w[T_ERDE] + w[7] + w[10], 0.0, 1.0);
 	bool nur_stadt = info.b > 0.996;
 
 	// Fels am Hang: ab etwa 35° Gefälle tritt er von selbst hervor (die Grenze leicht unregelmäßig). Er wird nach den übrigen Texturen

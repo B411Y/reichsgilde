@@ -9,7 +9,7 @@ namespace Reichsgilde;
 public sealed record Gestein(
     string Kennung, string Name, Color Hell, Color Dunkel, float BandWinkel, float BandRichtung, float BandDicke, float BandKontrast,
     float Fuge, float KluftAbstand, float Kantenrundung, float Rauheit, float Moos, float Flechten, Color FlechteFarbe, float Efeu,
-    Color SchuttFarbe, string[] Formen);
+    Color SchuttFarbe, string[] Formen, float Eisen = 0f, Color EisenFarbe = default);
 
 /// <summary>
 /// Das Fels-Material (Felspinsel F2): liest die Gesteinsvorlagen aus <c>res://daten/gestein.json</c> und baut daraus <see cref="ShaderMaterial"/>
@@ -27,6 +27,10 @@ public static class Gesteinsarten
     public const string StrukturPfad = "res://assets/texturen/fels/fels_struktur.png";
     public const string AtlasNormalPfad = "res://assets/texturen/felsen/felsen_normal.webp";
     public const string AtlasHoehlungPfad = "res://assets/texturen/felsen/felsen_hoehlung.webp";
+
+    /// <summary>Die Atlanten des Felswand-Satzes (R4, <c>natur_felswand.glb</c>, 4096 × 2048; gleiche Kanäle wie die der F1-Formen).</summary>
+    public const string WandNormalPfad = "res://assets/texturen/felswand/felswand_normal.webp";
+    public const string WandHoehlungPfad = "res://assets/texturen/felswand/felswand_hoehlung.webp";
 
     private static List<Gestein>? _alle;
     private static Godot.Collections.Dictionary? _wurzel;
@@ -58,7 +62,8 @@ public static class Gesteinsarten
                 Text("kennung"), Text("name"), Farbe("farbe_hell"), Farbe("farbe_dunkel"), Zahl("band_winkel"), Zahl("band_richtung"),
                 Math.Max(0.05f, Zahl("band_dicke")), Zahl("band_kontrast"), Zahl("fuge"), Zahl("kluft_abstand"), Zahl("kantenrundung"), Zahl("rauheit"),
                 Zahl("moos"), Zahl("flechten"), Farbe("flechte_farbe"), Zahl("efeu"), Farbe("schutt_farbe"),
-                d.ContainsKey("formen") ? d["formen"].AsGodotArray().Select(f => f.AsString()).ToArray() : Array.Empty<string>()));
+                d.ContainsKey("formen") ? d["formen"].AsGodotArray().Select(f => f.AsString()).ToArray() : Array.Empty<string>(),
+                Zahl("eisen"), d.ContainsKey("eisen_farbe") ? Farbe("eisen_farbe") : new Color(0.62f, 0.36f, 0.2f)));
         }
         if (liste.Count == 0)
         {
@@ -96,17 +101,17 @@ public static class Gesteinsarten
 
     /// <summary>
     /// Ein neues Fels-Material für <paramref name="gestein"/>. <paramref name="dreiseitig"/>: Struktur von drei Seiten (Mittel und höher) oder aus einer
-    /// Richtung (Niedrig). <paramref name="f1"/>: für die F1-Felsformen (Atlas über UV0 und Vertexfarben), nicht für Platzhalter ohne beides.
+    /// Richtung (Niedrig). <paramref name="f1"/>: für die echten Felsformen (Atlas über UV0 und Vertexfarben), nicht für Platzhalter ohne beides; <paramref name="wand"/>: mit den Atlanten des Felswand-Satzes statt denen der F1-Formen.
     /// </summary>
-    public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f, bool f1 = false)
+    public static ShaderMaterial Material(Gestein gestein, bool dreiseitig, bool frisch = false, float frischBis = 1000f, bool f1 = false, bool wand = false)
     {
         var m = new ShaderMaterial { Shader = GD.Load<Shader>(dreiseitig ? ShaderHoch : ShaderNiedrig) };
         m.SetShaderParameter("struktur", GD.Load<Texture2D>(StrukturPfad));
         if (f1)
         {
             m.SetShaderParameter("f1_netz", true);
-            m.SetShaderParameter("atlas_normal", GD.Load<Texture2D>(AtlasNormalPfad));
-            m.SetShaderParameter("atlas_hoehlung", GD.Load<Texture2D>(AtlasHoehlungPfad));
+            m.SetShaderParameter("atlas_normal", GD.Load<Texture2D>(wand ? WandNormalPfad : AtlasNormalPfad));
+            m.SetShaderParameter("atlas_hoehlung", GD.Load<Texture2D>(wand ? WandHoehlungPfad : AtlasHoehlungPfad));
         }
         Anwenden(m, gestein);
         FrischSetzen(m, frisch, frischBis);
@@ -129,6 +134,8 @@ public static class Gesteinsarten
         m.SetShaderParameter("flechten", g.Flechten);
         m.SetShaderParameter("flechte_farbe", g.FlechteFarbe);
         m.SetShaderParameter("efeu", g.Efeu);
+        m.SetShaderParameter("eisen", g.Eisen);
+        m.SetShaderParameter("eisen_farbe", g.EisenFarbe);
         m.SetShaderParameter("moos_farbe", GemeinsameFarbe("moos_farbe", new Color(0.31f, 0.36f, 0.13f)));
         m.SetShaderParameter("moos_trocken", GemeinsameFarbe("moos_farbe_trocken", new Color(0.44f, 0.42f, 0.17f)));
         m.SetShaderParameter("flechte_hell", GemeinsameFarbe("flechte_hell", new Color(0.79f, 0.78f, 0.74f)));

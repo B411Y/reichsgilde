@@ -131,6 +131,7 @@ public partial class Kartenwerkstatt : Node
         Ladezeit.Marke("Werkstatt: Tafeln bauen");
         _entwurf.Geaendert += EntwurfGeaendert;
         _stadt.WerkstattAuswahlGeaendert += AuswahlGeaendert;
+        _stadt.FelsGizmoGeaendert += FelsGizmoGeaendert;
         _stadt.WerkstattWerkzeugBeendet += KatalogWahlAufheben;
         _stadt.WerkstattWerkzeugGeaendert += () =>
         {
@@ -226,7 +227,14 @@ public partial class Kartenwerkstatt : Node
     {
         GetTree().AutoAcceptQuit = true;
         _entwurf.Geaendert -= EntwurfGeaendert;
+        _stadt.FelsGizmoGeaendert -= FelsGizmoGeaendert;
         _stadt.WerkstattLoesen();
+    }
+
+    /// <summary>Modus, Achsen oder Auswahl des Fels-Gizmos haben sich geändert: Die Tafel zeigt es (nur, wenn sie ein Felsstück zeigt).</summary>
+    private void FelsGizmoGeaendert()
+    {
+        if (_stadt.WerkstattGewaehlt is EntwurfFels && _stadt.Kartenwerkzeug == Werkstattwerkzeug.Auswahl && !EingabeOffen()) EigenschaftenZeigen(neu: true);
     }
 
     private void EntwurfGeaendert(Kartenaenderung a)
@@ -778,8 +786,8 @@ public partial class Kartenwerkstatt : Node
                         : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte, bodenfilter);
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
-            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · stempel:<vorlage>,x,z[,drehung] ·
-            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
+            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · hang:aus|an (R5) · wahl:<nr>+… und gizmo:… (R3, siehe FelsBefehl) · stempel:<vorlage>,x,z[,drehung] ·
+            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
             if (o.TryGetValue("werkstatt-fels", out var felsen))
                 foreach (var eintrag in felsen.Split('|', StringSplitOptions.RemoveEmptyEntries)) FelsBefehl(eintrag);
@@ -916,8 +924,79 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattFelsStreuen(Felspinsel.Radiergummi(Zahl(t[0]), _stadt.FelsFilter), Liste("-," + t[1]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
                 break;
             }
+            case "lage": // lage:<nr>,<feld>=<wert>,… – Werte eines Stücks setzen (Fels-Plan R2, Kartenentwurf.FelsTransformieren), Nummer ab 0
+            {
+                var t = rest.Split(',');
+                var nr = (int)Zahl(t[0]);
+                if (nr < 0 || nr >= _entwurf.Felsen.Count) throw new ArgumentException($"lage:{nr} – es gibt {_entwurf.Felsen.Count} Felsstücke (Nummer ab 0).");
+                var w = new Felswerte();
+                foreach (var feld in t.Skip(1))
+                {
+                    if (!feld.Contains('=')) throw new ArgumentException($"lage: „{feld}“ – jedes Feld als <feld>=<wert>.");
+                    var (name, wert) = (feld.Split('=')[0], Zahl(feld.Split('=')[1]));
+                    w = name switch
+                    {
+                        "x" => w with { X = wert }, "z" => w with { Z = wert }, "versatz" => w with { Versatz = wert }, "drehung" => w with { Drehung = wert },
+                        "kippen" => w with { Kippen = wert }, "rollen" => w with { Rollen = wert }, "massstab" => w with { Massstab = wert },
+                        "ax" => w with { AchseX = wert }, "ay" => w with { AchseY = wert }, "az" => w with { AchseZ = wert },
+                        "neigung" => w with { Neigung = wert }, "einsinken" => w with { Einsinken = wert },
+                        _ => throw new ArgumentException($"lage: unbekanntes Feld „{name}“ (x, z, versatz, drehung, kippen, rollen, massstab, ax, ay, az, neigung, einsinken)."),
+                    };
+                }
+                _entwurf.FelsTransformieren(new[] { _entwurf.Felsen[nr] }, w);
+                break;
+            }
+            case "hang": // hang:an / hang:aus – „Hang mitformen“ für die folgenden Stempel (R5)
+                _stadt.FelsHangFormen = rest switch
+                {
+                    "an" => true,
+                    "aus" => false,
+                    _ => throw new ArgumentException($"hang:{rest} – nur hang:an oder hang:aus."),
+                };
+                break;
+            case "wahl": // wahl:<nr>[+<nr>…] – Felsstücke wählen (Nummer ab 0), das letzte ist das gewählte; der Gizmo (R3) steht dann an ihnen
+            {
+                var stuecke = rest.Split('+', StringSplitOptions.RemoveEmptyEntries).Select(n => (int)Zahl(n))
+                    .Select(n => n >= 0 && n < _entwurf.Felsen.Count ? _entwurf.Felsen[n] : throw new ArgumentException($"wahl:{n} – es gibt {_entwurf.Felsen.Count} Felsstücke (Nummer ab 0).")).ToList();
+                _stadt.WerkstattFelsWaehlen(stuecke);
+                break;
+            }
+            case "gizmo": // gizmo:verschieben,dx,dy,dz · gizmo:drehen,x|y|z,winkel[,stueck] · gizmo:skalieren,fx,fy,fz · gizmo:modus,w|e|r · gizmo:achsen,welt|stueck · gizmo:boden[,hang]
+            {
+                var t = rest.Split(',');
+                bool Ok(bool ok) => ok ? true : throw new ArgumentException("gizmo: nichts gewählt (erst wahl:<nr>).");
+                switch (t[0])
+                {
+                    case "verschieben":
+                        Ok(_stadt.WerkstattFelsGizmo(Stadtansicht.FelsGizmoArt.Verschieben, new Felsaenderung(DX: Zahl(t[1]), DY: Zahl(t[2]), DZ: Zahl(t[3]))));
+                        break;
+                    case "drehen":
+                    {
+                        var achse = t[1] switch { "x" => Felsachse.X, "y" => Felsachse.Y, "z" => Felsachse.Z, _ => throw new ArgumentException($"gizmo:drehen – Achse „{t[1]}“ (x, y oder z).") };
+                        var eigene = t.Length > 3 && t[3] == "stueck";
+                        Ok(_stadt.WerkstattFelsGizmo(Stadtansicht.FelsGizmoArt.Drehen, new Felsaenderung(Drehachse: achse, Winkel: Zahl(t[2]), UmMitte: !eigene, Weltachsen: !eigene)));
+                        break;
+                    }
+                    case "skalieren":
+                        Ok(_stadt.WerkstattFelsGizmo(Stadtansicht.FelsGizmoArt.Skalieren, new Felsaenderung(FaktorX: Zahl(t[1]), FaktorY: Zahl(t[2]), FaktorZ: Zahl(t[3]))));
+                        break;
+                    case "modus":
+                        _stadt.FelsGizmoModusSetzen(t[1] switch { "w" => Stadtansicht.FelsGizmoArt.Verschieben, "e" => Stadtansicht.FelsGizmoArt.Drehen, "r" => Stadtansicht.FelsGizmoArt.Skalieren,
+                            _ => throw new ArgumentException($"gizmo:modus – w, e oder r, nicht „{t[1]}“.") });
+                        break;
+                    case "achsen":
+                        _stadt.FelsGizmoWeltSetzen(t[1] == "welt");
+                        break;
+                    case "boden":
+                        _stadt.FelsAufsetzen(t.Length > 1 && t[1] == "hang");
+                        break;
+                    default:
+                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen oder boden.");
+                }
+                break;
+            }
             default:
-                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, stempel, streuen, radierer).");
+                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, hang, stempel, streuen, radierer, lage, wahl, gizmo).");
         }
     }
 

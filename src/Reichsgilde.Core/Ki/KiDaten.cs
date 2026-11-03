@@ -15,11 +15,58 @@ public sealed class KiDaten
     /// <summary>Wann die KI Schiffe kauft und losschickt (Schiffshandel, PR #199). Fehlt der Teil, treibt sie keinen Schiffshandel.</summary>
     public KiSchiffDaten? Schiffe { get; init; }
 
+    /// <summary>Wie die KI sich auf die Jahreszeit einstellt (Vorrat vor dem Winter; Datenversion 69). Fehlt der Teil, legt sie keinen Vorrat an.</summary>
+    public KiJahreszeitenDaten? Jahreszeiten { get; init; }
+
+    /// <summary>
+    /// Wie die KI die Ware einer Schänke wählt (<see cref="KiSchaenkeDaten"/>). Fehlt der Teil, wählt sie wie jede Werkstatt nach dem Marktpreis
+    /// (so rechnete sie bis Datenversion 69; alte Spielstände bringen ihre Daten mit).
+    /// </summary>
+    public KiSchaenkeDaten? Schaenke { get; init; }
+
     public void Pruefen(List<string> f)
     {
         Einrichtung?.Pruefen(f);
         Wegebau?.Pruefen(f);
         Schiffe?.Pruefen(f);
+        Jahreszeiten?.Pruefen(f);
+        Schaenke?.Pruefen(f);
+    }
+}
+
+/// <summary>
+/// Die Ware einer Schänke nach dem Ausschank (<see cref="KiRivale.SchankwertJeArbeitsminute"/>): Was die Gäste trinken und essen, bringt den
+/// festen Ausschankpreis, nicht den Marktpreis. Die KI rechnet darum je Ausschankware mit dem Anteil, den die erwarteten Gäste eines Jahres
+/// abnehmen würden, zum Ausschankpreis und nur den Rest zum Marktpreis.
+/// </summary>
+public sealed class KiSchaenkeDaten
+{
+    /// <summary>
+    /// Mit diesem Anteil der erwarteten Gäste (<see cref="Wirtschaft.Gastwirtschaft.ErwarteteGaeste"/>) rechnet die KI (1 = alle). Kleiner, wenn
+    /// ein Teil der Gäste erfahrungsgemäß eine andere Ware aus dem Vorrat bestellt.
+    /// </summary>
+    public double Gaesteanteil { get; init; } = 1;
+
+    public void Pruefen(List<string> f)
+    {
+        if (Gaesteanteil is < 0 or > 1) f.Add("ki.schaenke.gaesteanteil muss zwischen 0 und 1 liegen.");
+    }
+}
+
+/// <summary>
+/// Vorrat vor dem Winter (Datenversion 69): Im Herbst ab <see cref="VorratAbStunde"/> Uhr füllt der Verwalter eines KI-Hauses die Zutaten, die im
+/// Winter teurer werden (Nachfrage des Winters über 1) oder jetzt mit der Ernte billig sind (Angebot des Herbstes über 1), bis zur Lagergrenze auf –
+/// zum Marktpreis wie jeder Einkauf des Verwalters, im Rahmen seines Geldes (<c>logistik.zutatenAnteilKasse</c>).
+/// </summary>
+public sealed class KiJahreszeitenDaten
+{
+    /// <summary>Ab dieser vollen Stunde im Herbst (Uhrzeit) legt die KI Vorrat an.</summary>
+    public int VorratAbStunde { get; init; } = 17;
+
+    public void Pruefen(List<string> f)
+    {
+        if (VorratAbStunde < Zeit.Spielzeit.TagesbeginnMinute / 60 || VorratAbStunde >= Zeit.Spielzeit.TagesendeMinute / 60)
+            f.Add($"ki.jahreszeiten.vorratAbStunde muss zwischen {Zeit.Spielzeit.TagesbeginnMinute / 60} und {Zeit.Spielzeit.TagesendeMinute / 60 - 1} Uhr liegen.");
     }
 }
 

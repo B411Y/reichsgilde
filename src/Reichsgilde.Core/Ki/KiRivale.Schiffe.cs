@@ -27,6 +27,7 @@ public sealed partial class KiRivale
     {
         var s = _w.Schiffahrt;
         if (!s.IstAktiv || _w.Daten.Ki?.Schiffe is not { } d) return;
+        if (SchiffeBleibenImHafen()) return; // Eis auf dem Fluss oder angekündigt (KiRivale.Jahreszeiten.cs)
         foreach (var schiff in s.SchiffeVon(Konto).Where(x => x.Zustand == SchiffZustand.AmKai).ToList())
         {
             var budget = Konto.Vermoegen - Profil.Reserve;
