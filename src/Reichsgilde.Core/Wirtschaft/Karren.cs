@@ -235,13 +235,13 @@ public sealed class Karren
         }
         Zustand = KarrenZustand.ZumBetrieb;
         _rueckfahrtWartet = true;
-        Ankunft = TorWartenBis!.Value + w.Fahrzeit(Heimat, zumMarkt: false);
+        Ankunft = TorWartenBis!.Value + w.Fahrzeit(this, zumMarkt: false);
     }
 
     private void Losfahren(KarrenZustand ziel, Spielzeit zeit, Stadtwirtschaft w)
     {
         Zustand = ziel;
-        Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(Heimat, zumMarkt: ziel == KarrenZustand.ZumMarkt);
+        Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(this, zumMarkt: ziel == KarrenZustand.ZumMarkt);
         if (ziel == KarrenZustand.ZumMarkt) FahrtenImJahr++;
         w.Wegebau.FahrtZaehlen(Heimat); // Verkehr auf den Wegen (Austritt)
 

@@ -51,9 +51,9 @@ public sealed partial class Kartenentwurf
     /// Lage mit der kleinsten freien Nummer („K4“, „V9“), wenn keine angegeben ist.
     /// </summary>
     /// <exception cref="ArgumentException">Mit weniger als drei verschiedenen Ecken.</exception>
-    public EntwurfBauzone BauzoneAnlegen(Lage art, IReadOnlyList<Kartenort> ecken, string? kennung = null)
+    public EntwurfBauzone BauzoneAnlegen(Lage art, IReadOnlyList<Kartenort> ecken, string? kennung = null, string? nur = null)
     {
-        var zone = new EntwurfBauzone { Art = art, Kennung = string.IsNullOrWhiteSpace(kennung) ? NeueZonenkennung(art) : kennung };
+        var zone = new EntwurfBauzone { Art = art, Nur = nur, Kennung = string.IsNullOrWhiteSpace(kennung) ? NeueZonenkennung(art) : kennung };
         zone.VieleckSetzen(-1, Ecken(ecken, zone));
         if (zone.Ecken.Count < 3) throw new ArgumentException("Eine Bauzone braucht mindestens drei verschiedene Ecken.", nameof(ecken));
         Geschichte.Ausfuehren(new TeilSetzen(zone, _bauzonen.Count));
@@ -64,6 +64,18 @@ public sealed partial class Kartenentwurf
 
     /// <summary>Ändert die Kennung (sie muss in der Karte frei sein, sonst meldet die Prüfung sie doppelt).</summary>
     public void BauzoneKennungSetzen(EntwurfBauzone zone, string kennung) => Aendern(zone, "umbenannt", z => z.Kennung = kennung);
+
+    /// <summary>
+    /// Setzt oder löscht, was in der Zone nur gebaut werden darf: <see cref="Bauzone.NurWerkstatt"/> („werkstatt“: Werkstatt-Bauplatz, Wohnhäuser
+    /// abgelehnt) oder null (alles, was die Lage erlaubt). Ohne Änderung kein Eintrag in der Geschichte (siehe Aendern).
+    /// </summary>
+    /// <exception cref="ArgumentException">Bei einem anderen Wert als „werkstatt“ oder null.</exception>
+    public void BauzoneNurSetzen(EntwurfBauzone zone, string? nur)
+    {
+        if (nur is not null and not Bauzone.NurWerkstatt)
+            throw new ArgumentException($"„{nur}“ kennt eine Bauzone nicht – erlaubt sind „{Bauzone.NurWerkstatt}“ oder nichts.", nameof(nur));
+        Aendern(zone, nur is null ? "für alles freigegeben" : "nur Werkstätten", z => z.Nur = nur);
+    }
 
     private string NeueZonenkennung(Lage art)
     {

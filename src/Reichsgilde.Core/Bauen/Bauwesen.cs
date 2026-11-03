@@ -418,8 +418,11 @@ public sealed class Bauwesen
 
         foreach (var feld in felder)
         {
-            var lage = BauplatzBei(feld)?.Lage ?? karte.Bauzonen.FirstOrDefault(z => z.Enthaelt(feld.X, feld.Z))?.Art;
+            var bauplatz = BauplatzBei(feld);
+            var zone = bauplatz is null ? karte.Bauzonen.FirstOrDefault(z => z.Enthaelt(feld.X, feld.Z)) : null;
+            var lage = bauplatz?.Lage ?? zone?.Art;
             if (lage is null) return "Hier ist keine Bauzone – gebaut wird nur in den Bauzonen und auf Bauplätzen.";
+            if (zone is { NurWerkstaetten: true } && befehl is not WerkstattBauen) return "Dieser Bauplatz ist für eine Werkstatt.";
             if (!mass.Lagen.Contains(lage.Value))
                 return lage == Lage.Umland ? "Im Umland wird nicht gebaut." : $"Ein {name} steht nur {LagenText(mass.Lagen)}.";
         }

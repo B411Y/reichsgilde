@@ -165,7 +165,7 @@ public partial class Stadtansicht
             _grasKacheln.Clear();
             _grasAlles = true;
         }
-        if ((_grasAlles || _grasNeu.Count > 0) && !_wsBodenStrich && _entwurf is not { BodenStrichLaeuft: true }) GrasKachelnRechnen();
+        if ((_grasAlles || _grasNeu.Count > 0) && !_wsBodenStrich && _entwurf is not { BodenStrichLaeuft: true } and not { FelsStrichLaeuft: true }) GrasKachelnRechnen();
         GrasImBild();
     }
 

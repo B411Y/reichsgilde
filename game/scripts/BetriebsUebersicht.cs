@@ -164,7 +164,7 @@ public partial class BetriebsUebersicht : VBoxContainer
                     : "Kein Personal – stellt unter „…“ Arbeitskräfte ein.",
                 true, "personal");
         if (b.SabotageMinuten > 0)
-            return ("Reparatur", b.Stillstand ?? "Nach dem Anschlag wird repariert.", true, null);
+            return ("Reparatur", b.Stillstand ?? "Nach dem Brand wird repariert.", true, null);
         if (b.Stillstand is { } still)
         {
             // Lager voll: Eine der Waren, an denen gearbeitet wird, hat keinen Platz mehr. Sonst fehlt eine Zutat – die holen die Karren vom Markt.

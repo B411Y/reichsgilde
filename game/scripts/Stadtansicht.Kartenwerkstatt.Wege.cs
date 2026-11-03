@@ -177,14 +177,15 @@ public partial class Stadtansicht
                 var q = Geometry3D.GetClosestPointToSegment(p, von, bis);
                 if (q.DistanceTo(p) < abstand) (naechster, abstand) = (q, q.DistanceTo(p));
             }
-            if (ueberDenMarkt && _marktHalb > 0 && AbstandZumPflaster(p) < abstand) _wsNetz.Weg(p, _markt);
+            if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand) _wsNetz.Weg(p, markt.Mitte);
             else if (naechster is { } q)
             {
                 _wsNetz.Weg(p, q);
                 if (breite is { } b && abstand > 0.3f) WegZiehen(p, q, b, _wsAnschluesse);
             }
         }
-        if (_marktHalb > 0 && !_wsNetz.Knoten.Any(k => k.DistanceTo(_markt) < Gassennetz.Fang)) Anhaengen(_markt, null, ueberDenMarkt: false);
+        foreach (var platz in _maerkte)
+            if (platz.Halb > 0 && !_wsNetz.Knoten.Any(k => k.DistanceTo(platz.Mitte) < Gassennetz.Fang)) Anhaengen(platz.Mitte, null, ueberDenMarkt: false);
         foreach (var tor in _entwurf.Mauern.SelectMany(m => m.Tore)) Anhaengen(V3(tor.Punkt), null);
         foreach (var g in _entwurf.Gebaeude)
         {
@@ -472,6 +473,10 @@ public partial class Stadtansicht
                 t.Ort = m;
                 if (_wsPflanzen.TryGetValue(p, out var pflanze)) pflanze.Position = V3(p.Punkt) + new Vector3(m.X - t.Anfang.X, 0, m.Y - t.Anfang.Y);
                 break;
+            case EntwurfFels fels:
+                t.Ort = m;
+                FelsZiehenZeigen(fels, m - t.Anfang); // Stadtansicht.Felsen.cs
+                break;
         }
     }
 
@@ -514,6 +519,9 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 if (t.Aktiv && t.Ort != t.Anfang) Befehl(() => e.PflanzeVerschieben(p, p.X + t.Ort.X - t.Anfang.X, p.Z + t.Ort.Y - t.Anfang.Y));
                 break;
+            case EntwurfFels fels:
+                if (t.Aktiv && t.Ort != t.Anfang) Befehl(() => e.FelsVerschieben(fels, fels.X + t.Ort.X - t.Anfang.X, fels.Z + t.Ort.Y - t.Anfang.Y));
+                break;
             case EntwurfMauer mauer:
                 griff = MauerZiehenBeenden(t, mauer);
                 break;
@@ -548,6 +556,7 @@ public partial class Stadtansicht
         if (t.Teil is EntwurfFlaeche f && _wsFlaechen.TryGetValue(f, out var knoten)) knoten.Position = Vector3.Zero;
         if (_wsGriffe is not null) _wsGriffe.Position = Vector3.Zero;
         if (t.Teil is EntwurfPflanze p && _wsPflanzen.TryGetValue(p, out var pflanze)) pflanze.Position = V3(p.Punkt);
+        if (t.Teil is EntwurfFels fels) FelsZiehenZeigen(fels, null);
         if (t.Teil is EntwurfMauer m && _wsMauern.TryGetValue(m, out var mauer)) (mauer.Visible, mauer.Position) = (true, Vector3.Zero);
         TorwegeZeigen(Array.Empty<EntwurfWeg>()); // Wege, die der Vorschau eines wandernden Tores folgten (Stadtansicht.Kartenwerkstatt.Mauern.cs)
     }

@@ -218,6 +218,11 @@ public partial class Hauptszene : Node
         ratMitte.AddChild(_bauFrage);
         _bau = new BauAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_bau); // rechts, anstelle des Kontors
+        var fahrweg = new FahrwegAnzeige(); // Schilder an den Märkten und Ampeln der Bauorte im Baumodus – unter allen Tafeln
+        GetNode<CanvasLayer>("Oberflaeche").AddChild(fahrweg);
+        GetNode<CanvasLayer>("Oberflaeche").MoveChild(fahrweg, 0);
+        fahrweg.Verbinden(_stadt);
+        _bauFrage.Fahrweg = () => _stadt.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f ? (f, _stadt.FahrwegSchilder.Count) : null;
         _wegTafel = new WegAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
@@ -293,6 +298,7 @@ public partial class Hauptszene : Node
         lade.Schliessen();
         _umgebungBereit = true;
         if (_einschlagNach is { } einschlagSekunden) GetTree().CreateTimer(einschlagSekunden).Timeout += () => _stadt.BlitzEinschlag(_stadt.KlangMarktMitte + new Godot.Vector3(8, 0, 6));
+        BlitzschlagVorgeben(optionen); // --blitzschlag=<Gebäude>[@Sekunden] (Hauptszene.Blitz.cs)
         Ladezeit.BilderMessen(GetTree(), "Partie"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
     }
 
@@ -460,7 +466,7 @@ public partial class Hauptszene : Node
             _auswahlRahmen.PlatzSetzen((groesse, sichtbar) => Tooltips.Lage(klickort, groesse, sichtbar));
             _auswahlKlickBild = Engine.GetProcessFrames();
             AuswahlAnzeigen();
-            if (kennung == "Marktplatz") MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
+            if (Stadtansicht.IstMarktplatz(kennung)) MarktOeffnen(); // wie im Original: ein Klick auf den Markt öffnet die Preistafel
         };
         _stadt.InnenansichtGewechselt += kennung =>
         {
@@ -1085,7 +1091,7 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
-        w.Meldung += meldung => Protokollieren(SchiffsMeldung(meldung)); // Überfälle auf eigene Schiffe als Warnung (Hauptszene.Hafen.cs)
+        w.Meldung += meldung => Protokollieren(BlitzMeldung(SchiffsMeldung(meldung))); // Überfälle auf eigene Schiffe und Blitzschlag ins eigene Haus als Warnung (Hauptszene.Hafen.cs, Hauptszene.Blitz.cs)
         AnsagenVerbinden(simulation, w, spieler);
         // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
         foreach (var rivale in w.Rivalen)
@@ -1472,7 +1478,7 @@ public partial class Hauptszene : Node
             : frei is not null ? LiegenschaftText(frei, w)
             : _auswahlKennung switch
         {
-            "Marktplatz" => $"Marktplatz\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster.",
+            var markt when Stadtansicht.IstMarktplatz(markt) => $"{_stadt.MarktplatzName(markt)}\n\n{w.Markt.Staende.Count()} Waren – Preise und Einzelheiten im Marktfenster (ein gemeinsamer Markt der Stadt).",
             "Rathaus" => RathausText(w),
             "Dom" => "Dom\n\nKatholische und evangelische Gläubige aller vier Kulturvölker. "
                      + "Für die Kirche sind Orks und Oger Heiden.\n\nPredigten, Ablass und Kirchenbann folgen später.",

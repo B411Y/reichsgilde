@@ -23,6 +23,16 @@ namespace Reichsgilde.Core.Bauen;
 //
 //  Belag (Schritt 5d): Jedes Stück einer Fahrt weiß, auf welchem Weg der Karte und an welcher Stelle es liegt – die Logistik liest dort den
 //  Belag (Wegebau). Gewählt wird der Weg weiter nach der Länge: Der Belag ändert sich im Spiel, die Strecke eines Betriebs nicht.
+//
+//  Marktplätze (31.10.2026, mehrere Märkte je Stadt): Ein Marktplatz ist eine Kreuzung. Jede Karrenstraße, die seine Fläche berührt, ist über
+//  das Pflaster mit seiner Mitte verbunden (Marktlinien) – Straßen, die am Platzrand enden, sind so über den Platz verbunden. Auf Greybox,
+//  Probestadt und Messstadt ändert das nichts (dort führen die Straßen schon zur Mitte oder berühren den Platz nicht); die Stadtwirtschaft
+//  nimmt die Linien nur mit Daten ab Version 65 (Fahrzeit nach Weglänge), alte Spielstände rechnen mit ihrem alten Netz.
+//
+//  Alle Wege (31.10.2026, gemeinsame Strecke mit dem Bild): Mit Daten ab Version 65 liegen auch Gassen, Fußwege und Leinpfade im Netz – teurer
+//  für die Wahl des Weges (Gasse ×2, Fußweg und Leinpfad ×4 je Meter, Kostenfaktor), damit ein Karren sie nur nimmt, wo die Karrenstraße einen
+//  großen Umweg macht oder sein Hof an einer Gasse liegt. Die Fahrt kennt dann auch ihren Verlauf (FahrtMitVerlauf, Punkte zwischen den Stücken):
+//  Die Darstellung fährt den Karren genau dort, wo der Kern die Zeit rechnet (Karrenweg).
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Worauf ein Stück einer Fahrt liegt.</summary>
@@ -40,7 +50,26 @@ public enum Fahrbahn
 /// Schritt 5d), −1 ohne.
 /// </summary>
 public sealed record Netzlinie(IReadOnlyList<Kartenort> Linie, IReadOnlyList<(double Von, double Bis, Fahrbahn? Art)>? Stellen = null, bool IstFaehre = false,
-    int Weg = -1);
+    int Weg = -1)
+{
+    /// <summary>
+    /// Für die Wahl des Weges zählt ein Meter dieser Linie so viel wie so viele Meter Karrenstraße (<see cref="Karrennetz.Wegkosten"/>: Gasse 2,
+    /// Fußweg und Leinpfad 4). Die Fahrzeit ändert er nicht (die rechnet die Logistik aus Länge, Steigung und Belag).
+    /// </summary>
+    public double Kostenfaktor { get; init; } = 1;
+
+    /// <summary>Darf ein Hof hier ans Netz (<see cref="Karrennetz.FahrtMitVerlauf"/>)? Nicht die Linien über einen Marktplatz – sie sind kein Weg der Karte.</summary>
+    public bool Anschluss { get; init; } = true;
+}
+
+/// <summary>
+/// Eine Fahrt über das Netz mit ihrem Verlauf: die Stücke und die Punkte dazwischen (Stück i führt von <see cref="Punkte"/>[i] nach
+/// <see cref="Punkte"/>[i + 1]; ohne Weg beides leer).
+/// </summary>
+public sealed record Netzfahrt(IReadOnlyList<Fahrtstueck> Stuecke, IReadOnlyList<Kartenort> Punkte)
+{
+    public static readonly Netzfahrt Leer = new(Array.Empty<Fahrtstueck>(), Array.Empty<Kartenort>());
+}
 
 /// <summary>
 /// Ein Stück einer Fahrt: Länge in Metern und Anstieg in Metern (positiv = bergauf in Fahrtrichtung), dazu die Fahrbahn (Straße, Brücke,
@@ -54,6 +83,9 @@ public readonly record struct Fahrtstueck(double Laenge, double Anstieg, Fahrbah
 
     /// <summary>Meter entlang des Verlaufs des Weges.</summary>
     public double Stelle { get; init; }
+
+    /// <summary>Für die Wahl des Weges: ein Meter zählt so viel wie so viele Meter Karrenstraße (<see cref="Netzlinie.Kostenfaktor"/>; 1 auf Karrenstraßen).</summary>
+    public double Kostenfaktor { get; init; } = 1;
 
     /// <summary>Die Steigung als Anteil (0,1 = 10 %); 0 bei Länge 0.</summary>
     public double Steigung => Laenge > 0 ? Anstieg / Laenge : 0;
@@ -71,39 +103,108 @@ public sealed class Karrennetz
     /// <summary>Für die Wahl des Weges zählt eine Fähre wie so viele Meter Umweg (dazu ihre Länge).</summary>
     public const double FaehreUmweg = 300;
 
+    /// <summary>Für die Wahl des Weges zählt ein Meter Gasse so viel wie so viele Meter Karrenstraße (nur im Netz aller Wege).</summary>
+    public const double GasseKosten = 2;
+
+    /// <summary>Für die Wahl des Weges zählt ein Meter Fußweg oder Leinpfad so viel wie so viele Meter Karrenstraße (nur im Netz aller Wege).</summary>
+    public const double FusswegKosten = 4;
+
+    /// <summary>Kostenfaktor einer Wegklasse für die Wahl des Weges: Karrenstraßen 1, Gasse <see cref="GasseKosten"/>, Fußweg und Leinpfad <see cref="FusswegKosten"/>.</summary>
+    public static double Wegkosten(Wegklasse k) => Kartenweg.TraegtKarren(k) ? 1 : k == Wegklasse.Gasse ? GasseKosten : FusswegKosten;
+
     private readonly List<Kartenort> _knoten = new();
 
     /// <summary>Die Linie, die den Knoten angelegt hat – Punkte derselben Linie verschmelzen nur, wenn sie gleich sind.</summary>
     private readonly List<int> _linieVon = new();
-    private readonly List<List<(int Ziel, double Laenge, double Anstieg, Fahrbahn Art, double Kosten, int Weg, double Stelle)>> _nachbarn = new();
+    private readonly List<List<(int Ziel, double Laenge, double Anstieg, Fahrbahn Art, double Kosten, int Weg, double Stelle, double Faktor)>> _nachbarn = new();
 
     /// <summary>
-    /// Die Kanten einmal (von, nach, Anstieg von → nach, Fahrbahn, Kosten für die Wegwahl, Weg der Karte und Stelle der Mitte) – zum
-    /// Anhängen eines Ortes.
+    /// Die Kanten einmal (von, nach, Anstieg von → nach, Fahrbahn, Kosten für die Wegwahl, Weg der Karte und Stelle der Mitte, Kostenfaktor
+    /// der Linie, ob ein Hof hier ans Netz darf) – zum Anhängen eines Ortes.
     /// </summary>
-    private readonly List<(int A, int B, double Anstieg, Fahrbahn Art, double Kosten, int Weg, double Stelle)> _kanten = new();
+    private readonly List<(int A, int B, double Anstieg, Fahrbahn Art, double Kosten, int Weg, double Stelle, double Faktor, bool Anschluss)> _kanten = new();
 
     private readonly Dictionary<(long, long), List<int>> _raster = new();
 
     /// <summary>
     /// Das Netz der Karrenstraßen einer Karte, mit den Höhenprofilen ihres Geländes und dem Wasser: Brücken und Furten aus dem
-    /// <see cref="Stadtkarte.Wasserplan"/>, Stücke im See gesperrt, die Fähren als Kanten.
+    /// <see cref="Stadtkarte.Wasserplan"/>, Stücke im See gesperrt, die Fähren als Kanten. Mit <paramref name="marktlinien"/> sind die Marktplätze
+    /// Kreuzungen (<see cref="Marktlinien"/>); mit <paramref name="alleWege"/> liegen auch Gassen, Fußwege und Leinpfade im Netz, teurer für die Wahl
+    /// des Weges (<see cref="Wegkosten"/>). Die Stadtwirtschaft nimmt beides nur mit der Fahrzeit nach Weglänge (Datenversion 65) – ein alter
+    /// Spielstand mit seinen alten Daten behält das Netz, mit dem er gespeichert wurde.
     /// </summary>
-    public static Karrennetz Von(Stadtkarte karte)
+    public static Karrennetz Von(Stadtkarte karte, bool marktlinien = true, bool alleWege = false)
     {
         var plan = karte.Wasserplan;
         var linien = new List<Netzlinie>();
         for (var i = 0; i < karte.Wege.Count; i++)
         {
             var w = karte.Wege[i];
-            if (!w.IstKarrenstrasse || w.Linie.Count < 2) continue;
+            if ((!alleWege && !w.IstKarrenstrasse) || w.Linie.Count < 2) continue;
             var stellen = plan.Querungen.Where(q => q.Weg == i).Select(q => (q.VonStelle, q.BisStelle, (Fahrbahn?)(q.IstBruecke ? Fahrbahn.Bruecke : Fahrbahn.Furt)))
                 .Concat(plan.Sperren.Where(x => x.Weg == i).Select(x => (x.VonStelle, x.BisStelle, (Fahrbahn?)null))).ToList();
-            linien.Add(new Netzlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), stellen.Count == 0 ? null : stellen, Weg: i));
+            linien.Add(new Netzlinie(w.Verlauf.Select(Kartenort.Aus).ToList(), stellen.Count == 0 ? null : stellen, Weg: i) { Kostenfaktor = Wegkosten(w.Klasse) });
         }
         linien.AddRange(plan.Faehren.Select(f => new Netzlinie(new[] { f.Von, f.Bis }, IstFaehre: true)));
+        if (marktlinien) linien.AddRange(Marktlinien(karte, alleWege));
         return new Karrennetz(linien, karte.Gelaendeform);
     }
+
+    /// <summary>
+    /// Die Wege über das Pflaster der Marktplätze (31.10.2026): Ein Marktplatz ist eine Kreuzung. Je Marktplatz und Karrenstraße, die seine Fläche
+    /// berührt (ihr nächster Punkt zur Mitte liegt auf dem Platz oder höchstens <see cref="Fang"/> daneben), eine gerade Linie von diesem Punkt zur
+    /// Mitte – so sind die Straßen, die am Platzrand enden, über den Platz verbunden, und der Markt hängt in seiner Mitte. Führt eine Straße durch die
+    /// Mitte (Greybox), braucht sie keine. Ohne Größe des Bausteins (unbekannter Katalog) keine. Die Linien gehören zu keinem Weg der Karte (Belag
+    /// wie der Bezug, kein Ausbau), an ihnen hängt kein Hof (<see cref="Netzlinie.Anschluss"/>). Mit <paramref name="alleWege"/> auch für Gassen,
+    /// Fußwege und Leinpfade, die den Platz berühren (das Netz aller Wege).
+    /// </summary>
+    public static IReadOnlyList<Netzlinie> Marktlinien(Stadtkarte karte, bool alleWege = false)
+    {
+        var liste = new List<Netzlinie>();
+        foreach (var m in karte.Marktplaetze)
+        {
+            var ecken = Kartengrenzen.GebaeudeEcken(m.Baustein, m.Punkt[0], m.Punkt[1], m.Drehung, m.Massstab);
+            if (ecken.Count == 0) continue;
+            var mitte = new Kartenort(m.Punkt[0], m.Punkt[1]);
+            foreach (var w in karte.Wege)
+            {
+                if ((!alleWege && !w.IstKarrenstrasse) || w.Linie.Count < 2) continue;
+                var p = NaechsterPunkt(w.Verlauf.Select(Kartenort.Aus).ToList(), mitte);
+                if (p.Abstand(mitte) <= 0.01 || Kartengeometrie.AbstandVielecke(ecken, new[] { p }) > Fang) continue;
+                liste.Add(new Netzlinie(new[] { p, mitte }) { Anschluss = false });
+            }
+        }
+        return liste;
+
+        static Kartenort NaechsterPunkt(IReadOnlyList<Kartenort> linie, Kartenort p)
+        {
+            var (best, abstand) = (linie[0], double.MaxValue);
+            for (var i = 0; i + 1 < linie.Count; i++)
+            {
+                var (a, b) = (linie[i], linie[i + 1]);
+                var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+                var l2 = dx * dx + dz * dz;
+                var t = l2 <= 0 ? 0 : Math.Clamp(((p.X - a.X) * dx + (p.Z - a.Z) * dz) / l2, 0, 1);
+                var q = new Kartenort(a.X + dx * t, a.Z + dz * t);
+                if (q.Abstand(p) < abstand) (best, abstand) = (q, q.Abstand(p));
+            }
+            return best;
+        }
+    }
+
+    /// <summary>
+    /// Was eine Fahrt für die Wahl des Weges kostet (wie die Wegsuche): Straße und Brücke ihre Länge, eine Furt das <see cref="FurtKosten"/>-fache,
+    /// eine Fähre ihre Länge und <see cref="FaehreUmweg"/>; Straße, Brücke und Furt mal dem Kostenfaktor ihres Weges (Gasse, Fußweg). Damit wählt
+    /// der Kern unter mehreren Marktplätzen den nächsten.
+    /// </summary>
+    public static double Kosten(IReadOnlyList<Fahrtstueck> fahrt) => fahrt.Sum(s => KostenVon(s.Art, s.Laenge, s.Kostenfaktor));
+
+    private static double KostenVon(Fahrbahn art, double laenge, double faktor) => art switch
+    {
+        Fahrbahn.Furt => laenge * FurtKosten * faktor,
+        Fahrbahn.Faehre => laenge + FaehreUmweg,
+        _ => laenge * faktor,
+    };
 
     /// <param name="linien">Die Mittellinien der Karrenstraßen.</param>
     /// <param name="gelaende">Für die Höhen (Profil jeder Linie); flach: alle Anstiege 0.</param>
@@ -208,16 +309,12 @@ public sealed class Karrennetz
                 if (vorher >= 0 && vorher != k)
                 {
                     var laenge = _knoten[vorher].Abstand(_knoten[k]);
-                    var kosten = art switch
-                    {
-                        Fahrbahn.Furt => laenge * FurtKosten,
-                        Fahrbahn.Faehre => laenge + FaehreUmweg,
-                        _ => laenge,
-                    };
+                    var faktor = art == Fahrbahn.Faehre ? 1 : netzlinien[linie].Kostenfaktor;
+                    var kosten = KostenVon(art, laenge, faktor);
                     var mitte = stelleVon[s].Anfang + (tVorher + t) / 2 * stelleVon[s].Laenge;
-                    _nachbarn[vorher].Add((k, laenge, h - hVorher, art, kosten, weg, mitte));
-                    _nachbarn[k].Add((vorher, laenge, hVorher - h, art, kosten, weg, mitte));
-                    _kanten.Add((vorher, k, h - hVorher, art, kosten, weg, mitte));
+                    _nachbarn[vorher].Add((k, laenge, h - hVorher, art, kosten, weg, mitte, faktor));
+                    _nachbarn[k].Add((vorher, laenge, hVorher - h, art, kosten, weg, mitte, faktor));
+                    _kanten.Add((vorher, k, h - hVorher, art, kosten, weg, mitte, faktor, netzlinien[linie].Anschluss));
                 }
                 (vorher, hVorher, tVorher) = (k, h, t);
             }
@@ -252,21 +349,22 @@ public sealed class Karrennetz
         if (best.Index >= 0) return best.Index;
         _knoten.Add(p);
         _linieVon.Add(linie);
-        _nachbarn.Add(new List<(int, double, double, Fahrbahn, double, int, double)>());
+        _nachbarn.Add(new List<(int, double, double, Fahrbahn, double, int, double, double)>());
         if (!_raster.TryGetValue((ci, cj), out var neu)) _raster[(ci, cj)] = neu = new List<int>();
         neu.Add(_knoten.Count - 1);
         return _knoten.Count - 1;
     }
 
     /// <summary>
-    /// Wo ein Ort am Netz hängt: die nächste Kante (keine Fähre), die Stelle darauf (0 … 1) und der Abstand. Null bei einem leeren Netz.
+    /// Wo ein Ort am Netz hängt: die nächste Kante (keine Fähre; mit <paramref name="nurAnschluss"/> auch keine Linie über einen Marktplatz), die
+    /// Stelle darauf (0 … 1) und der Abstand. Null bei einem leeren Netz.
     /// </summary>
-    private (int Kante, double T)? Anhaengen(Kartenort p)
+    private (int Kante, double T)? Anhaengen(Kartenort p, bool nurAnschluss = false)
     {
         var best = (Kante: -1, T: 0.0, Abstand: double.MaxValue);
         for (var k = 0; k < _kanten.Count; k++)
         {
-            if (_kanten[k].Art == Fahrbahn.Faehre) continue;
+            if (_kanten[k].Art == Fahrbahn.Faehre || (nurAnschluss && !_kanten[k].Anschluss)) continue;
             var (a, b) = (_knoten[_kanten[k].A], _knoten[_kanten[k].B]);
             var (dx, dz) = (b.X - a.X, b.Z - a.Z);
             var t = Math.Clamp(((p.X - a.X) * dx + (p.Z - a.Z) * dz) / (dx * dx + dz * dz), 0, 1);
@@ -276,22 +374,44 @@ public sealed class Karrennetz
         return best.Kante < 0 ? null : (best.Kante, best.T);
     }
 
+    /// <summary>Wie weit ein Ort vom nächsten Weg der Karte im Netz liegt (keine Fähre, keine Linie über einen Platz) – null bei einem leeren Netz.</summary>
+    public double? AbstandZumWeg(Kartenort p)
+    {
+        if (Anhaengen(p, nurAnschluss: true) is not { } a) return null;
+        var k = _kanten[a.Kante];
+        var (x, z) = (_knoten[k.A].X + (_knoten[k.B].X - _knoten[k.A].X) * a.T, _knoten[k.A].Z + (_knoten[k.B].Z - _knoten[k.A].Z) * a.T);
+        return p.Abstand(new Kartenort(x, z));
+    }
+
     /// <summary>
     /// Die Fahrt über das Netz von <paramref name="von"/> nach <paramref name="nach"/>: der kürzeste Weg zwischen den Stellen, an denen
     /// die beiden Orte am Netz hängen, als Stücke mit Länge und Anstieg in Fahrtrichtung. Leer, wenn das Netz leer ist oder die beiden
     /// Stellen nicht verbunden sind.
     /// </summary>
-    public IReadOnlyList<Fahrtstueck> Fahrt(Kartenort von, Kartenort nach)
+    public IReadOnlyList<Fahrtstueck> Fahrt(Kartenort von, Kartenort nach) => Suchen(von, nach, false).Stuecke;
+
+    /// <summary>
+    /// Wie <see cref="Fahrt"/>, dazu der Verlauf (die Punkte zwischen den Stücken, vom Anschluss bei <paramref name="von"/> bis zum Anschluss bei
+    /// <paramref name="nach"/>). <paramref name="von"/> hängt nur an einem Weg der Karte, nicht an einer Linie über einen Marktplatz
+    /// (<see cref="Netzlinie.Anschluss"/>) – so wie die Darstellung einen Hof an den nächsten Weg hängt.
+    /// </summary>
+    public Netzfahrt FahrtMitVerlauf(Kartenort von, Kartenort nach) => Suchen(von, nach, true);
+
+    private Netzfahrt Suchen(Kartenort von, Kartenort nach, bool vonNurAnschluss)
     {
-        if (Anhaengen(von) is not { } start || Anhaengen(nach) is not { } ziel) return Array.Empty<Fahrtstueck>();
+        if (Anhaengen(von, vonNurAnschluss) is not { } start || Anhaengen(nach) is not { } ziel) return Netzfahrt.Leer;
         var (s, z) = (_kanten[start.Kante], _kanten[ziel.Kante]);
         var sLaenge = _knoten[s.A].Abstand(_knoten[s.B]);
         var zLaenge = _knoten[z.A].Abstand(_knoten[z.B]);
+        Kartenort Auf((int A, int B) kante, double t) =>
+            new(_knoten[kante.A].X + (_knoten[kante.B].X - _knoten[kante.A].X) * t, _knoten[kante.A].Z + (_knoten[kante.B].Z - _knoten[kante.A].Z) * t);
+        var (anfang, ende) = (Auf((s.A, s.B), start.T), Auf((z.A, z.B), ziel.T));
         // beide auf derselben Kante: das Stück dazwischen
         if (start.Kante == ziel.Kante)
-            return new[] { new Fahrtstueck(Math.Abs(ziel.T - start.T) * sLaenge, (ziel.T - start.T) * s.Anstieg, s.Art) { Weg = s.Weg, Stelle = s.Stelle } };
+            return new Netzfahrt(new[] { new Fahrtstueck(Math.Abs(ziel.T - start.T) * sLaenge, (ziel.T - start.T) * s.Anstieg, s.Art) { Weg = s.Weg, Stelle = s.Stelle, Kostenfaktor = s.Faktor } },
+                new[] { anfang, ende });
 
-        // Dijkstra nach den Kosten (Straße und Brücke: die Länge; Furt und Fähre teurer), begonnen an beiden Enden der Startkante
+        // Dijkstra nach den Kosten (Straße und Brücke: die Länge; Furt und Fähre teurer, Gassen und Fußwege nach ihrem Faktor), begonnen an beiden Enden der Startkante
         var abstand = new double[_knoten.Count];
         var vor = new int[_knoten.Count];
         Array.Fill(abstand, double.MaxValue);
@@ -303,7 +423,7 @@ public sealed class Karrennetz
         while (offen.TryDequeue(out var k, out var d))
         {
             if (d > abstand[k]) continue;
-            foreach (var (n, _, _, _, kosten, _, _) in _nachbarn[k])
+            foreach (var (n, _, _, _, kosten, _, _, _) in _nachbarn[k])
                 if (d + kosten < abstand[n])
                 {
                     (abstand[n], vor[n]) = (d + kosten, k);
@@ -313,25 +433,34 @@ public sealed class Karrennetz
         // ins Ziel über das nähere Ende der Zielkante
         var ueberA = abstand[z.A] + ziel.T * z.Kosten;
         var ueberB = abstand[z.B] + (1 - ziel.T) * z.Kosten;
-        if (Math.Min(ueberA, ueberB) >= double.MaxValue / 2) return Array.Empty<Fahrtstueck>();
+        if (Math.Min(ueberA, ueberB) >= double.MaxValue / 2) return Netzfahrt.Leer;
         var letzter = ueberA <= ueberB ? z.A : z.B;
 
-        var stuecke = new List<Fahrtstueck>();
+        // rückwärts gesammelt: je Stück sein Endpunkt
+        var stuecke = new List<(Fahrtstueck Stueck, Kartenort Bis)>();
         // das letzte Stück: vom Knoten auf der Zielkante bis zur Stelle
-        stuecke.Add((letzter == z.A ? new Fahrtstueck(ziel.T * zLaenge, ziel.T * z.Anstieg, z.Art) : new Fahrtstueck((1 - ziel.T) * zLaenge, -(1 - ziel.T) * z.Anstieg, z.Art))
-            with { Weg = z.Weg, Stelle = z.Stelle });
+        stuecke.Add(((letzter == z.A ? new Fahrtstueck(ziel.T * zLaenge, ziel.T * z.Anstieg, z.Art) : new Fahrtstueck((1 - ziel.T) * zLaenge, -(1 - ziel.T) * z.Anstieg, z.Art))
+            with { Weg = z.Weg, Stelle = z.Stelle, Kostenfaktor = z.Faktor }, ende));
         var knoten = letzter;
         while (vor[knoten] >= 0)
         {
             var v = vor[knoten];
             var kante = _nachbarn[v].Where(x => x.Ziel == knoten).OrderBy(x => x.Kosten).ThenBy(x => x.Laenge).First();
-            stuecke.Add(new Fahrtstueck(kante.Laenge, kante.Anstieg, kante.Art) { Weg = kante.Weg, Stelle = kante.Stelle });
+            stuecke.Add((new Fahrtstueck(kante.Laenge, kante.Anstieg, kante.Art) { Weg = kante.Weg, Stelle = kante.Stelle, Kostenfaktor = kante.Faktor }, _knoten[knoten]));
             knoten = v;
         }
         // das erste Stück: von der Stelle auf der Startkante bis zu ihrem Knoten
-        stuecke.Add((knoten == s.A ? new Fahrtstueck(start.T * sLaenge, -start.T * s.Anstieg, s.Art) : new Fahrtstueck((1 - start.T) * sLaenge, (1 - start.T) * s.Anstieg, s.Art))
-            with { Weg = s.Weg, Stelle = s.Stelle });
+        stuecke.Add(((knoten == s.A ? new Fahrtstueck(start.T * sLaenge, -start.T * s.Anstieg, s.Art) : new Fahrtstueck((1 - start.T) * sLaenge, (1 - start.T) * s.Anstieg, s.Art))
+            with { Weg = s.Weg, Stelle = s.Stelle, Kostenfaktor = s.Faktor }, _knoten[knoten]));
         stuecke.Reverse();
-        return stuecke.Where(x => x.Laenge > 1e-9).ToList();
+        var punkte = new List<Kartenort> { anfang };
+        var liste = new List<Fahrtstueck>();
+        foreach (var (stueck, bis) in stuecke)
+        {
+            if (stueck.Laenge <= 1e-9) continue;
+            liste.Add(stueck);
+            punkte.Add(bis);
+        }
+        return liste.Count == 0 ? Netzfahrt.Leer : new Netzfahrt(liste, punkte);
     }
 }

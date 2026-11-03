@@ -264,10 +264,12 @@ static class KartenwerkstattStartTests
             g.Verschieben(wohnhaus.Kennung, -50, -30);
             Pruefe.Wahr(Fehler(g).Any(b => b.Regel == "mauer" && b.Gebaeude.Contains(wohnhaus.Kennung)), "jedes Gebäude, nicht nur Werkstätten");
 
-            // Köln (Stadtskript, PR #213): kein Gebäude auf der Mauer, eine Startbelegung; der einzige Hinweis ist die lange Rheinbrücke
+            // Köln (Stadtskript, PR #213): kein Gebäude auf der Mauer, eine Startbelegung; Hinweise nur die lange Rheinbrücke und seit dem 1.11.2026 die
+            // drei Startwege außerhalb von ±10 % (StartwegpruefungTests)
             var koeln = Oeffnen("koeln");
             var hinweise = koeln.Befunde.Where(b => b.Schwere == Schwere.Hinweis).ToList();
-            Pruefe.Wahr(hinweise.All(b => b.Regel == "bruecke-lang") && hinweise.Count == 1, "Köln:\n  " + Liste(hinweise));
+            Pruefe.Wahr(hinweise.All(b => b.Regel is "bruecke-lang" or "startweg") && hinweise.Count(b => b.Regel == "bruecke-lang") == 1
+                        && hinweise.Count(b => b.Regel == "startweg") == 3, "Köln:\n  " + Liste(hinweise));
             Pruefe.Wahr(!koeln.HatFehler, "Köln ohne Fehler");
             // ein Haus auf der Stadtmauer bleibt in Köln ein Hinweis (dort gelten die Stadtregeln nicht)
             var hausAufMauer = koeln.Gebaeude.First(x => x.Katalog == "leerstand");

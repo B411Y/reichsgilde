@@ -132,7 +132,8 @@
   {"name": "Fußweg Feld", "klasse": "gasse", "linie": [[-58, 6], [-59.8, 56.6]], "gefahr": 1, "breite": 2},
   {"name": "Fußweg Wald", "klasse": "gasse", "linie": [[-66, 6], [-67.45, -8.65]], "gefahr": 1, "breite": 2},
   {"name": "Südgasse", "klasse": "haupt", "linie": [[38, 38], [38, 50]], "gefahr": 1, "breite": 4},
-  {"name": "Hafenstraße", "klasse": "land", "linie": [[38, 50], [38, 133]], "gefahr": 1, "breite": 4}
+  {"name": "Hafenstraße", "klasse": "land", "linie": [[38, 50], [38, 133]], "gefahr": 1, "breite": 4},
+  {"name": "Weinmarktgässchen", "klasse": "gasse", "linie": [[-23, 22.5], [-13.8, 22.5], [-13.8, 6]], "gefahr": 1, "breite": 2.4}
  ],
  "bauzonen": [
   {"kennung": "K1", "art": "kern", "flaeche": [[4, 22], [36, 22], [36, 36], [4, 36]]},

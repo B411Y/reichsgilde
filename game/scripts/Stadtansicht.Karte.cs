@@ -24,7 +24,12 @@ public partial class Stadtansicht
     private bool _karteGebaut;
     private Gebaeudekatalog? Katalog => _karte?.Katalog ?? _entwurf?.Katalog;
 
-    /// <summary>Mitte des Marktplatzes (Ursprung, wenn die Karte keinen Markt hat) und die Lage seines Modells. <c>_markt</c> liegt immer auf y = 0 (das Gassennetz rechnet in der Ebene), <c>_marktY</c> ist die Höhe des Pflasters.</summary>
+    /// <summary>
+    /// Mitte des (ersten) Marktplatzes (Ursprung, wenn die Karte keinen Markt hat) und die Lage seines Modells. <c>_markt</c> liegt immer auf y = 0 (das
+    /// Gassennetz rechnet in der Ebene), <c>_marktY</c> ist die Höhe des Pflasters. Hat die Stadt mehrere Marktplätze (<see cref="_maerkte"/>, Köln), sind
+    /// diese Felder der erste (Brunnen, Fahnen, Vögel und der Blick des Klangs bleiben bei ihm); alles, was zu einem bestimmten Platz gehört (Karren,
+    /// Stände, Passanten, Wege über das Pflaster), liest den Platz aus <see cref="_maerkte"/>.
+    /// </summary>
     private Vector3 _markt;
     private float _marktY;
     private Transform3D _marktLage = Transform3D.Identity;
@@ -43,6 +48,12 @@ public partial class Stadtansicht
 
     /// <summary>Die gezeichneten Wege der Karte, Stück für Stück: hier schließen Türen und Höfe an, hier wächst nichts.</summary>
     private readonly List<(Vector3 Von, Vector3 Bis, float Breite)> _wegStrecken = new();
+
+    /// <summary>Die Anschlussstücke an die Wege (Türen, Höfe, Karrenplätze, Gatter) mit ihrer Breite – ein Türweg gilt als <see cref="TuerwegBreite"/> breit.</summary>
+    private readonly List<(Vector3 Von, Vector3 Bis, float Breite)> _anschlussStrecken = new();
+
+    /// <summary>Wie breit (Meter) der Weg von einer Haustür (oder Tor, Rathaus, Dom) bis zur Gasse für die Passanten gilt.</summary>
+    private const float TuerwegBreite = 1.4f;
 
     /// <summary>Wo die Wege an Rathaus und Dom beginnen (vor der Tür des Modells); null, wenn die Karte keins hat.</summary>
     private Vector3? _rathausTuer, _domTuer;
@@ -116,6 +127,7 @@ public partial class Stadtansicht
         if (karte is null)
         {
             Flaeche(Vector3.Zero, new Vector2(520, 480), Wiese, -0.05f); // ohne Karte nur die Wiese (der Fehler ist schon gemeldet)
+            FelsbodenFarbe(Felsformen.GrundgesteinVorgabe, false); // keine Gesteinsfarbe aus einer früheren Karte (Stadtansicht.Felsboden.cs)
             yield break;
         }
         Ladezeit.Marke("vor dem Kartenaufbau");
@@ -129,7 +141,7 @@ public partial class Stadtansicht
         foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
         Ladezeit.Marke("Szene: Sockel und Mauern");
         yield return new Ladeschritt(0.30f, "Rathaus und Dom werden errichtet …");
-        if (karte.GebaeudeDerArt(Bausteinart.Sonderbau).FirstOrDefault(g => g.Katalog == "markt") is { } markt) Marktstaende(markt); // Stadtansicht.Markt.cs
+        foreach (var platz in _maerkte) Marktstaende(platz); // Stadtansicht.Markt.cs: Stände, Verkäufer und Klickfläche an jedem Platz
         SonderbautenBauen(karte); // Rathaus, Dom und Bauten ohne eigene Ansicht
         Ladezeit.Marke("Szene: Markt und Sonderbauten");
         yield return new Ladeschritt(0.33f, "Häuser werden gebaut …");
@@ -149,6 +161,8 @@ public partial class Stadtansicht
         Ladezeit.Marke("Szene: Umland und Anschlüsse");
         yield return new Ladeschritt(0.58f, "Bäume werden gepflanzt …");
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
+        FelsenAusKarte(karte); // Stadtansicht.Felsen.cs
+        KulisseAusKarte(karte); // Stadtansicht.Kulisse.cs
         Ladezeit.Marke("Szene: Natur");
         yield return new Ladeschritt(0.605f, "Felder werden bestellt …");
         FelderAusKarte(karte); // Stadtansicht.Rand.cs
@@ -165,12 +179,20 @@ public partial class Stadtansicht
     /// <summary>Marktplatz, Tore, Mauerflächen und Rahmen der Karte – was später beim Zeichnen und Laufen gebraucht wird.</summary>
     private void LagenLesen(Stadtkarte karte)
     {
-        if (karte.GebaeudeDerArt(Bausteinart.Sonderbau).FirstOrDefault(g => g.Katalog == "markt") is { } markt)
+        foreach (var markt in karte.Marktplaetze)
         {
-            _marktLage = ModellLage(markt);
-            _markt = Punkt3(markt.Punkt);
-            _marktY = FundamentVon(markt).Hoehe;
-            _marktHalb = Mathf.Min(GroesseVon(markt).X, GroesseVon(markt).Y) / 2;
+            var platz = new MarktplatzAnsicht
+            {
+                Nummer = _maerkte.Count,
+                Gebaeude = markt,
+                Lage = ModellLage(markt),
+                Mitte = Punkt3(markt.Punkt),
+                Hoehe = FundamentVon(markt).Hoehe,
+                Halb = Mathf.Min(GroesseVon(markt).X, GroesseVon(markt).Y) / 2,
+            };
+            _maerkte.Add(platz);
+            if (_maerkte.Count > 1) continue;
+            (_marktLage, _markt, _marktY, _marktHalb) = (platz.Lage, platz.Mitte, platz.Hoehe, platz.Halb); // der erste Platz bleibt „der Markt“ der übrigen Dateien
         }
         foreach (var mauer in karte.Mauern)
         {
@@ -299,6 +321,7 @@ public partial class Stadtansicht
         var kennung = "karte:" + g.Kennung;
         Klickflaeche(kennung, new Vector3(0, hoehe / 2, 0), new Vector3(groesse.X, hoehe, groesse.Y), gruppe);
         Beschriftung(g.Name, new Vector3(0, hoehe + 6, 0), 44, gruppe, kennung);
+        ModellMerken(new ModellInstanz(gruppe, Array.Empty<StandardMaterial3D>(), 0, Array.Empty<(MeshInstance3D, int)>())); // auch ein Block kann brennen (Stadtansicht.Blitzbrand.cs)
     }
 
     /// <summary>
@@ -410,8 +433,17 @@ public partial class Stadtansicht
     /// </summary>
     private void Anschliessen(Stadtkarte karte)
     {
-        if (_marktHalb > 0 && MarktKnoten() < 0)
-            AnWegAnschliessen(_markt, ueberDenMarkt: false);
+        // Ein Marktplatz ist eine Kreuzung (wie im Kern, Karrennetz.Marktlinien): Jede Karrenstraße, die sein Pflaster berührt, ist über den Platz mit
+        // seiner Mitte verbunden – so sind Straßen, die am Rand enden, verbunden, und die Karren finden denselben Weg wie die Fahrzeit des Kerns.
+        foreach (var linie in Karrennetz.Marktlinien(karte))
+        {
+            var (von, mitte) = (new Vector3((float)linie.Linie[0].X, 0, (float)linie.Linie[0].Z), new Vector3((float)linie.Linie[1].X, 0, (float)linie.Linie[1].Z));
+            AnWegAnschliessen(von, ueberDenMarkt: false);
+            _netz.Weg(von, mitte);
+        }
+        foreach (var platz in _maerkte)
+            if (platz.Halb > 0 && MarktKnoten(platz) < 0)
+                AnWegAnschliessen(platz.Mitte, ueberDenMarkt: false);
         foreach (var tor in _tore) AnWegAnschliessen(tor.Ort);
         if (TuerAnker("Rathaus") is { } rathaus) _rathausTuer = _netz.Knoten[AnWegAnschliessen(rathaus)];
         if (TuerAnker("Dom") is { } dom) _domTuer = _netz.Knoten[AnWegAnschliessen(dom)];
@@ -426,11 +458,12 @@ public partial class Stadtansicht
         }
     }
 
-    /// <summary>Der Knoten des Gassennetzes in der Mitte des Marktplatzes – −1, wenn kein Weg dorthin führt.</summary>
-    private int MarktKnoten()
+    /// <summary>Der Knoten des Gassennetzes in der Mitte des Marktplatzes (ohne Angabe der erste) – −1, wenn kein Weg dorthin führt.</summary>
+    private int MarktKnoten(MarktplatzAnsicht? platz = null)
     {
+        var mitte = platz?.Mitte ?? _markt;
         for (var i = 0; i < _netz.Knoten.Count; i++)
-            if (_netz.Knoten[i].DistanceTo(_markt) < Gassennetz.Fang) return i;
+            if (_netz.Knoten[i].DistanceTo(mitte) < Gassennetz.Fang) return i;
         return -1;
     }
 
@@ -446,14 +479,15 @@ public partial class Stadtansicht
     {
         p.Y = 0;
         var (naechster, abstand) = NaechsterWegpunkt(p);
-        if (ueberDenMarkt && _marktHalb > 0 && AbstandZumPflaster(p) < abstand)
+        if (ueberDenMarkt && NaechsterMarkt(p) is { } markt && markt.Abstand(p) < abstand)
         {
-            _netz.Weg(p, _markt);
+            _netz.Weg(p, markt.Mitte);
             return _netz.KnotenBei(p);
         }
         if (naechster is not { } q)
             return _netz.KnotenBei(p); // eine Karte ohne Wege: ein Knoten für sich
         _netz.Weg(p, q);
+        _anschlussStrecken.Add((p, q, zeichnen ?? TuerwegBreite)); // für die Breite, in der Passanten dort gehen (Stadtansicht.Passantenwege.cs)
         if (zeichnen is { } breite && abstand > 0.3f) WegZiehen(p, q, breite);
         return _netz.KnotenBei(p);
     }
@@ -472,14 +506,24 @@ public partial class Stadtansicht
         return (beste, abstand);
     }
 
-    /// <summary>Abstand eines Punktes zum Pflaster des Marktplatzes (0 auf dem Pflaster).</summary>
-    private float AbstandZumPflaster(Vector3 p)
+    /// <summary>Abstand eines Punktes zum Pflaster des nächsten Marktplatzes (0 auf dem Pflaster; ohne Marktplatz ein sehr großer Wert).</summary>
+    private float AbstandZumPflaster(Vector3 p) => NaechsterMarkt(p)?.Abstand(p) ?? float.MaxValue;
+
+    /// <summary>Der Marktplatz, dessen Pflaster dem Punkt am nächsten liegt (null ohne Marktplatz); bei gleichem Abstand der erste.</summary>
+    private MarktplatzAnsicht? NaechsterMarkt(Vector3 p)
     {
-        var lokal = MarktLokal(p);
-        return new Vector2(Mathf.Max(0, Mathf.Abs(lokal.X) - _marktHalb), Mathf.Max(0, Mathf.Abs(lokal.Z) - _marktHalb)).Length();
+        MarktplatzAnsicht? beste = null;
+        var abstand = float.MaxValue;
+        foreach (var m in _maerkte)
+        {
+            if (m.Halb <= 0) continue;
+            var d = m.Abstand(p);
+            if (d < abstand) (beste, abstand) = (m, d);
+        }
+        return beste;
     }
 
-    /// <summary>Ein Punkt in Koordinaten des Marktplatzes (Mitte im Ursprung, Kanten parallel zu den Achsen, in Metern der Stadt).</summary>
+    /// <summary>Ein Punkt in Koordinaten des (ersten) Marktplatzes (Mitte im Ursprung, Kanten parallel zu den Achsen, in Metern der Stadt).</summary>
     private Vector3 MarktLokal(Vector3 p)
     {
         var massstab = _marktLage.Basis.Scale.X;

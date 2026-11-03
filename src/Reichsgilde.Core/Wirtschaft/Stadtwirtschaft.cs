@@ -149,6 +149,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>
     public Buerger.Einwohnerschaft Einwohnerschaft { get; }
 
+    /// <summary>Blitzschlag im Gewitter: Einschlag, Brand und Schaden (Platzhalter; braucht die <see cref="Karte"/> und „blitz“).</summary>
+    public Gefahren.Blitzwesen Blitz { get; }
+
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
 
@@ -198,11 +201,20 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Was ein Einkauf von Hand jetzt kosten würde (jedes Stück hebt den Preis).</summary>
     public double HandKaufpreis(Konto konto, string ware, int stueck, double anteil = 1) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto), anteil: anteil);
 
-    /// <summary>Wann käme ein Karren dieses Betriebs am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht)</summary>
-    public int AnkunftAmMarkt(Betrieb betrieb) => Uhr.UhrzeitInMinuten + Fahrzeit(betrieb, zumMarkt: true);
+    /// <summary>Wann käme dieser Karren am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht; die Fahrzeit hängt an seiner Art)</summary>
+    public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + Fahrzeit(karren, zumMarkt: true);
 
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
+
+    /// <summary>
+    /// Warum dieser Betrieb keinen weiteren Karren bekommt – oder null: Er hat schon so viele, wie sein Arbeitsort erlaubt
+    /// (<see cref="LogistikDaten.HoechstKarren"/>, Datenversion 66: Werkstatt 3, Umland 5). Das Geld prüft der Kauf selbst.
+    /// </summary>
+    public string? KarrenKaufVerboten(Betrieb betrieb) =>
+        Daten.Logistik.HoechstKarren(betrieb.Ort) is { } n && betrieb.Karren.Count >= n
+            ? $"{betrieb.Name} hat schon {Zahlenformat.Ganz(betrieb.Karren.Count)} Karren – mehr als {Zahlenformat.Ganz(n)} gehen {(betrieb.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")} nicht."
+            : null;
 
     /// <summary>Warum dieses Haus den Karren Nr. <paramref name="karrenNr"/> (ab 0) dieses Betriebs nicht verkaufen kann – oder null.</summary>
     public string? KarrenVerkaufVerboten(Konto konto, Betrieb betrieb, int karrenNr)
@@ -242,7 +254,7 @@ public sealed partial class Stadtwirtschaft
             if (danach > betrieb.LagerKapazitaetJeWare)
                 return $"Das Lager fasst nur {betrieb.LagerKapazitaetJeWare} {ware} – danach wären es {danach}.";
         }
-        var ankunft = AnkunftAmMarkt(betrieb);
+        var ankunft = AnkunftAmMarkt(karren);
         if (!vormerken && (ankunft < h.MarktVon * 60 || ankunft > h.MarktBis * 60))
             return $"Der Markt hat von {h.MarktVon} bis {h.MarktBis} Uhr offen – der Karren käme um {ankunft / 60:00}:{ankunft % 60:00} an.";
         var kosten = kaufen.Sum(x => HandKaufpreis(betrieb.Konto, x.Key, x.Value));
@@ -261,7 +273,7 @@ public sealed partial class Stadtwirtschaft
         if (unterwegs)
         {
             var zurueck = karren.Zustand == KarrenZustand.ZumBetrieb ? karren.Ankunft
-                : karren.Ankunft + Fahrzeit(betrieb, zumMarkt: false);
+                : karren.Ankunft + Fahrzeit(karren, zumMarkt: false);
             var um = Uhr.UhrzeitInMinuten + (int)(zurueck - Uhr.VergangeneMinuten);
             karren.Vormerkung = new Vormerkung(new Dictionary<string, int>(befehl.Verkauf), new Dictionary<string, int>(befehl.Kauf));
             return Befehlsergebnis.Ok($"{karren.Name} ist unterwegs – der Auftrag ist vorgemerkt und startet, sobald er zurück ist (etwa {um / 60:00}:{um % 60:00}).");
@@ -334,6 +346,7 @@ public sealed partial class Stadtwirtschaft
         Personal = new Personalwesen(this, daten.Personal);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
+        Blitz = new Gefahren.Blitzwesen(this, daten.Blitz, zufallsstartwert);
     }
 
     // ── Einwohner und Nachfrage (PR #177) ───────────────────────────────────
@@ -540,6 +553,7 @@ public sealed partial class Stadtwirtschaft
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
         Wegebau.Minute(zeit); // fertig ausgebaute Wege
         Ratsantraege.Minute(zeit); // fertige Bauvorhaben der Stadt
+        Blitz.Minute(zeit); // mitten im Gewitter: Blitzschlag (eigener Zufall aus Startwert und Minute, nichts im Spielstand)
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
@@ -1065,6 +1079,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (!Daten.Logistik.Karren.TryGetValue(befehl.Typ, out var daten))
             return Befehlsergebnis.Abgelehnt($"Den Karrentyp „{befehl.Typ}“ gibt es nicht.");
+        if (KarrenKaufVerboten(betrieb) is { } grenze) return Befehlsergebnis.Abgelehnt(grenze);
         if (betrieb.Konto.Vermoegen < daten.Preis)
             return Befehlsergebnis.Abgelehnt(
                 $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");

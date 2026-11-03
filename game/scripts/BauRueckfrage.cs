@@ -38,6 +38,9 @@ public partial class BauRueckfrage : PanelContainer
     private string _bauplan = "";
     private double _seitAktualisierung;
 
+    /// <summary>Der Fahrweg der Karren vom gewählten Bauort zum nächsten Markt und die Zahl der eingezeichneten Plätze (Stadtansicht, nur bei einer Werkstatt).</summary>
+    public Func<(Stadtansicht.FahrwegSchild Schild, int Plaetze)?>? Fahrweg { get; set; }
+
     /// <summary>Ergebnis des Befehls (Erfolg oder Ablehnung) – für das Protokoll.</summary>
     public event Action<string>? Gemeldet;
 
@@ -163,7 +166,8 @@ public partial class BauRueckfrage : PanelContainer
             var v = w.Bauen.Vorschau(_spieler, befehl);
             verboten = v.Verboten;
             knopf = "Bauen";
-            plan = string.Join("|", "neu", v.Gebaeude, v.Betrieb, Zahlenformat.Ganz(v.Kosten), Zahlenformat.Ganz(v.Anrechnung), verboten, Zahlenformat.Ganz(_spieler.Vermoegen), FertigText(v.BauzeitMinuten));
+            plan = string.Join("|", "neu", v.Gebaeude, v.Betrieb, Zahlenformat.Ganz(v.Kosten), Zahlenformat.Ganz(v.Anrechnung), verboten, Zahlenformat.Ganz(_spieler.Vermoegen), FertigText(v.BauzeitMinuten),
+                befehl is WerkstattBauen && Fahrweg?.Invoke() is var (f, _) ? $"{f.Hin}/{f.Zurueck}/{f.Markt}" : "");
             zeigen = () => NeubauZeigen(w, befehl, v, waehrung);
         }
         else if (_leer is { } leer)
@@ -214,6 +218,12 @@ public partial class BauRueckfrage : PanelContainer
             Zeile(rechnung, "Dazu ein Jahr Unterhalt, bar vorhanden", Zahlenformat.Ganz(v.Unterhalt));
         Zeile(rechnung, "Euer Vermögen", $"{Zahlenformat.Ganz(_spieler!.Vermoegen)} {waehrung}", Hell, 14);
         Zeile(rechnung, "Bauzeit", $"{BauAnzeige.BauzeitText(v.BauzeitMinuten)} – fertig {FertigText(v.BauzeitMinuten)}", Hell, 14);
+        if (werkstatt && Fahrweg?.Invoke() is var (fahrweg, plaetze))
+        {
+            var (links, rechts) = Zeile(rechnung, "Fahrt zum Markt", FahrwegAnzeige.Kurz(fahrweg), Schriften.LesbareFarbe(Fahrzeitstufen.Stufe(fahrweg.Hin)), 14);
+            links.TooltipText = rechts.TooltipText = FahrwegAnzeige.Tipp(fahrweg, plaetze);
+            links.MouseFilter = rechts.MouseFilter = MouseFilterEnum.Stop;
+        }
 
         Hauptmenue.Text(_inhalt, werkstatt
             ? "Während des Baus fallen keine Löhne und kein Unterhalt an. Danach öffnet die Werkstatt; Personal stellt ihr dann ein wie überall."
@@ -270,11 +280,12 @@ public partial class BauRueckfrage : PanelContainer
     }
 
     /// <summary>Eine Zeile der Rechnung: Text links, Betrag rechtsbündig.</summary>
-    private static void Zeile(GridContainer raster, string text, string betrag, Color? farbe = null, int groesse = 14)
+    private static (Label Links, Label Rechts) Zeile(GridContainer raster, string text, string betrag, Color? farbe = null, int groesse = 14)
     {
         var links = Hauptmenue.Text(raster, text, groesse, Hell);
         links.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         var rechts = Hauptmenue.Text(raster, betrag, groesse, farbe ?? Hell);
         rechts.HorizontalAlignment = HorizontalAlignment.Right;
+        return (links, rechts);
     }
 }

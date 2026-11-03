@@ -66,6 +66,9 @@ public enum Werkstattwerkzeug
 
     /// <summary>Eine Fährstelle setzen: zwei Klicks, die beiden Anleger.</summary>
     Faehre,
+
+    /// <summary>Felsstücke streuen, stempeln oder radieren (Felspinsel F4) – die Art steht in <see cref="Stadtansicht.FelsModus"/>.</summary>
+    Fels,
 }
 
 /// <summary>
@@ -209,6 +212,7 @@ public partial class Stadtansicht
         Ladezeit.Marke("Werkstatt-Szene: Flächen");
         yield return new Ladeschritt(0.97f, "Bäume werden gepflanzt …");
         PflanzenAufbauen();  // Stadtansicht.Kartenwerkstatt.Natur.cs
+        FelsenAufbauen();    // Stadtansicht.Felsen.cs
         Ladezeit.Marke("Werkstatt-Szene: Natur");
         BodendekoAufbauen(); // Stadtansicht.Kartenwerkstatt.Boden.cs
         Ladezeit.Marke("Werkstatt-Szene: Bodendeko");
@@ -328,6 +332,12 @@ public partial class Stadtansicht
             case EntwurfBoden:
                 if (a.Bereich is { } gemalt) BodenVormerken(gemalt); // Stadtansicht.Kartenwerkstatt.Boden.cs
                 break;
+            case EntwurfFels fels:
+                FelsBauen(fels, weg); // Stadtansicht.Felsen.cs
+                break;
+            case EntwurfGrundgestein:
+                FelsenGesteinNeu();
+                break;
         }
         if (a.Objekt is EntwurfWeg or EntwurfMauer)
         {
@@ -367,6 +377,7 @@ public partial class Stadtansicht
         if (_wsNetzNeu) NetzBauen();
         if (_wsFehlerNeu) FehlerZeigen();
         if (_wsGriffeNeu) GriffeBauen();
+        FelsenNachziehen();        // vorgemerkte Zellen der Felsen (Stadtansicht.Felsen.cs)
         WerkstattEbenenAnwenden(); // Ebenen ein- und ausgeblendet (Stadtansicht.Kartenwerkstatt.Ebenen.cs)
     }
 
@@ -725,6 +736,9 @@ public partial class Stadtansicht
             case EntwurfPflanze p:
                 PflanzeMarkieren(p);
                 break;
+            case EntwurfFels fels:
+                FelsMarkieren(fels); // Stadtansicht.Felsen.cs
+                break;
             case EntwurfMauer m:
                 MauerMarkieren(m);
                 break;
@@ -764,6 +778,7 @@ public partial class Stadtansicht
     {
         EntwurfGebaeude g => g.Punkt,
         EntwurfPflanze p => p.Punkt,
+        EntwurfFels fels => fels.Punkt,
         EntwurfWeg { Verlauf.Count: > 0 } w => w.Verlauf[w.Verlauf.Count / 2],
         EntwurfFluss { Punkte.Count: > 0 } fl => fl.Verlauf[fl.Verlauf.Count / 2],
         EntwurfFaehre fa => new Kartenort((fa.Von.X + fa.Bis.X) / 2, (fa.Von.Z + fa.Bis.Z) / 2),
@@ -838,6 +853,7 @@ public partial class Stadtansicht
         GelaendeWerkzeugAus(); // Stadtansicht.Kartenwerkstatt.Gelaende.cs
         BodenWerkzeugAus();    // Stadtansicht.Kartenwerkstatt.Boden.cs
         WasserWerkzeugAus();   // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        FelsWerkzeugAus();     // Stadtansicht.Kartenwerkstatt.Felsen.cs
         var b = _entwurf?.Katalog.Finde(baustein);
         if (werkzeug == Werkstattwerkzeug.Baustein && (b is null || b.Art == Bausteinart.Natur)) werkzeug = Werkstattwerkzeug.Auswahl;
         if (werkzeug == Werkstattwerkzeug.Pflanze && b is not { Art: Bausteinart.Natur }) werkzeug = Werkstattwerkzeug.Auswahl;
@@ -952,6 +968,9 @@ public partial class Stadtansicht
                 break;
             case Werkstattwerkzeug.Boden:
                 BodenPinselZeigen(maus);
+                break;
+            case Werkstattwerkzeug.Fels:
+                FelsPinselZeigen(maus); // Stadtansicht.Kartenwerkstatt.Felsen.cs
                 break;
             case Werkstattwerkzeug.Rampe:
                 RampeZeigen(maus);
@@ -1149,6 +1168,7 @@ public partial class Stadtansicht
                 else if (_wsStrich is not null) StrichAbbrechen();
                 else if (_wsGelaendeStrich) GelaendeStrichAbbrechen();
                 else if (_wsBodenStrich) BodenStrichAbbrechen();
+                else if (_wsFelsStrich) FelsStrichAbbrechen();
                 else if (_wsRampeAnfang is not null) _wsRampeAnfang = null;
                 else if (_wsFaehreStart is not null) _wsFaehreStart = null;
                 else if (_wsPunkte.Count > 0) ZeichnenAbbrechen();
@@ -1159,7 +1179,7 @@ public partial class Stadtansicht
                 else return false;
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } klick:
-                LinksDruecken(klick.Position, klick.DoubleClick);
+                LinksDruecken(klick.Position, klick.DoubleClick, klick.CtrlPressed);
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false }:
                 ZiehenBeenden();
@@ -1167,10 +1187,11 @@ public partial class Stadtansicht
                 StrichBeenden();
                 GelaendeStrichBeenden();
                 BodenStrichBeenden();
+                FelsStrichBeenden();
                 return true;
             case InputEventMouseButton { ButtonIndex: MouseButton.Right } rechts:
                 if (rechts.Pressed) _wsRechtsGezogen = 0;
-                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich && !_wsBodenStrich) WerkzeugBeenden();
+                else if (_wsRechtsGezogen < 6 && Kartenwerkzeug != Werkstattwerkzeug.Auswahl && _wsPunkte.Count == 0 && _wsStrich is null && !_wsGelaendeStrich && !_wsBodenStrich && !_wsFelsStrich) WerkzeugBeenden();
                 return false; // das Ziehen der Kamera läuft weiter
             case InputEventMouseMotion bewegung:
                 _wsOrt = null;
@@ -1180,16 +1201,18 @@ public partial class Stadtansicht
                 StrichWeiter(bewegung.Position);
                 GelaendeStrichWeiter(bewegung.Position);
                 BodenStrichWeiter(bewegung.Position);
+                FelsStrichWeiter(bewegung.Position);
                 return false;
         }
         return false;
     }
 
-    /// <summary>Linke Maustaste: was sie tut, sagt das Werkzeug.</summary>
-    private void LinksDruecken(Vector2 maus, bool doppelklick)
+    /// <summary>Linke Maustaste: was sie tut, sagt das Werkzeug (Gelände- und Bodenpinsel: mit Strg die Pipette).</summary>
+    private void LinksDruecken(Vector2 maus, bool doppelklick, bool strg = false)
     {
         if (_entwurf is null) return;
         var boden = BodenpunktBei(maus);
+        if (Kartenwerkzeug is Werkstattwerkzeug.Gelaende or Werkstattwerkzeug.Boden && PipetteKlick(boden, strg)) return; // Stadtansicht.Kartenwerkstatt.Gelaende.cs
         switch (Kartenwerkzeug)
         {
             case Werkstattwerkzeug.Baustein when WerkstattBaustein is { } katalog:
@@ -1216,6 +1239,9 @@ public partial class Stadtansicht
                 return;
             case Werkstattwerkzeug.Boden:
                 BodenStrichBeginnen(maus); // Stadtansicht.Kartenwerkstatt.Boden.cs
+                return;
+            case Werkstattwerkzeug.Fels:
+                FelsDruecken(maus); // Stadtansicht.Kartenwerkstatt.Felsen.cs
                 return;
             case Werkstattwerkzeug.Rampe:
                 RampeKlick(boden);
@@ -1309,6 +1335,12 @@ public partial class Stadtansicht
             TeilZiehenBeginnen(mauer, Ziehart.Griff, maus, p, TorGriffe, torNummer);
             return;
         }
+        if (FelsBei(maus, p, toleranz) is { } fels) // Stadtansicht.Felsen.cs
+        {
+            WerkstattWaehlen(fels);
+            TeilZiehenBeginnen(fels, Ziehart.Ganz, maus, p, -1, -1);
+            return;
+        }
         if (PflanzeBei(p, toleranz) is { } pflanze)
         {
             WerkstattWaehlen(pflanze);
@@ -1397,6 +1429,7 @@ public partial class Stadtansicht
             case EntwurfFaehre fa: Befehl(() => _entwurf.FaehreLoeschen(fa)); break;
             case EntwurfFlaeche f: Befehl(() => _entwurf.FlaecheLoeschen(f)); break;
             case EntwurfPflanze p: Befehl(() => _entwurf.PflanzeLoeschen(p)); break;
+            case EntwurfFels fels: Befehl(() => _entwurf.FelsenLoeschen(new[] { fels })); break;
             case EntwurfMauer m: Befehl(() => _entwurf.MauerLoeschen(m)); break;
         }
     }
@@ -1412,7 +1445,9 @@ public partial class Stadtansicht
         if (_wsZiehen is { } z) z.Drehung = Weiter(z.Drehung);
         else if (Kartenwerkzeug is Werkstattwerkzeug.Baustein or Werkstattwerkzeug.Pflanze) WerkstattDrehung = Weiter(WerkstattDrehung);
         else if (wiederholt || _entwurf is null) return; // gehaltene Taste: kein Befehl je Wiederholung
+        else if (_wsTeilZiehen is { Teil: EntwurfFels }) return; // beim Ziehen eines Felsstücks erst loslassen (sonst spränge es zurück)
         else if (WerkstattGewaehlt is EntwurfGebaeude g) Befehl(() => _entwurf.Drehen(g.Kennung, Weiter(g.Drehung)));
         else if (WerkstattGewaehlt is EntwurfPflanze p) Befehl(() => _entwurf.PflanzeDrehen(p, Weiter(p.Drehung)));
+        else if (WerkstattGewaehlt is EntwurfFels fels) Befehl(() => _entwurf.FelsDrehen(fels, Weiter(fels.Drehung)));
     }
 }

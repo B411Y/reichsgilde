@@ -104,6 +104,15 @@ public sealed class Baustein
     /// </summary>
     public double[]? Versatz { get; init; }
 
+    /// <summary>
+    /// Werkstatt und Umlandbetrieb: wo die Karren halten und losfahren – der Knoten „Anker_Karren“ des Modells als [x, z] in Metern, lokal wie
+    /// <see cref="Versatz"/> (vom Ursprung des Modells, ungedreht, ohne Maßstab). Der Kern beginnt dort den Weg der Karren (<see cref="Karrenweg"/>), die
+    /// Darstellung fährt sie genau so; ein Test vergleicht die Werte mit den Modellen. Fehlt er, beginnt der Weg am Hof (Werkstatt) bzw. am Ursprung.
+    /// Ohne Wert nicht im Spielstand (der Katalog steht mit der Karte darin: ein alter Stand bleibt beim Speichern gleich).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? KarrenAnker { get; init; }
+
     /// <summary>Umlandbetrieb: welche Betriebsart (Name wie in <see cref="Betriebsart"/>, z. B. „Mine“).</summary>
     public string? Betriebsart { get; init; }
 
@@ -230,6 +239,8 @@ public sealed class Gebaeudekatalog
                 f.Add($"{wer}: groesse ist [Breite, Tiefe], beide größer als 0.");
             if (b.Versatz is { Length: not 2 })
                 f.Add($"{wer}: versatz hat genau zwei Zahlen [x, z].");
+            if (b.KarrenAnker is { Length: not 2 })
+                f.Add($"{wer}: karrenAnker hat genau zwei Zahlen [x, z].");
             if (b.Varianten < 1)
                 f.Add($"{wer}: varianten ist mindestens 1.");
             if (b.Art is Bausteinart.Kulisse or Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle or Bausteinart.Berg or Bausteinart.Mauer

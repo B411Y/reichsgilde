@@ -219,6 +219,15 @@ def rauschen(b):
     for x, y in ((12, 35), (24, 36), (36, 35)):
         b.e(x, y, 2, 1.5, STEIN, schraffur=0, umriss=False)
 
+def terrassen(b):
+    # drei Stufen mit Grasnarbe und Weinstöcken, die Böschungen aus Erde (Pinsel-Paket 1)
+    b.v([(4, 43), (4, 35), (13, 35), (17, 28), (26, 28), (30, 21), (44, 21), (44, 43)], ERDE)
+    for x0, y, x1 in ((4, 35, 13), (17, 28, 26), (30, 21, 44)):
+        b.r(x0, y - 2, x1, y + 1, GRUEN, schraffur=0)
+    for x, y in ((8, 33), (21, 26), (35, 19), (40, 19)):
+        b.l([(x, y), (x, y - 5)], 1.2, BRAUN, umriss=False, schraffur=0)
+        b.e(x, y - 5, 1.8, 1.5, GRUEN_D, umriss=False, schraffur=0)
+
 def rampe(b):
     b.v([(4, 42), (44, 42), (44, 10)], SAND)
     b.l([(10, 38), (38, 18)], 3, BRAUN, schraffur=0, umriss=False)
@@ -404,7 +413,7 @@ ICONS = {
     'auswaehlen': auswaehlen, 'gelaende': gelaende, 'boden': boden, 'wasser': wasser, 'wege': wege,
     'flaechen': flaechen, 'gebaeude': gebaeude, 'mauer': mauer, 'start': start, 'pruefen': pruefen,
     # Werkzeuge
-    'heben': heben, 'senken': senken, 'glaetten': glaetten, 'ebnen': ebnen, 'rauschen': rauschen, 'rampe': rampe,
+    'heben': heben, 'senken': senken, 'glaetten': glaetten, 'ebnen': ebnen, 'rauschen': rauschen, 'terrassen': terrassen, 'rampe': rampe,
     'radierer': radierer, 'pinsel': pinsel, 'pflanze': pflanze,
     'weg_land': weg_land, 'weg_haupt': weg_haupt, 'weg_gasse': weg_gasse, 'weg_feld': weg_feld, 'weg_fuss': weg_fuss,
     'bauzone': bauzone, 'bauzone_kern': bauzone_kern, 'bauzone_mauerring': bauzone_mauerring,

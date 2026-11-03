@@ -17,50 +17,85 @@ using Reichsgilde.Core.Zeit;
 /// deterministisch ist: gleicher Startwert + gleiche Befehle zur gleichen Minute = gleiches Ergebnis, auf Windows wie auf Linux.
 ///
 /// Je Startwert spielt dieselbe Partie dreimal 10 Jahre auf der Greybox-Karte (1 Mensch, 3 KI-Häuser; mehrere Menschen kennt der
-/// Partieaufbau noch nicht) mit einem festen Befehlsskript des Menschen: kaufen und verkaufen per Karren, einen Zweitbetrieb pachten,
+/// Partieaufbau noch nicht), dazu eine Partie 4 Jahre in Köln (drei Marktplätze, Wege über das Pflaster, Fahrzeit nach Weglänge – Befund der
+/// Prüfung von phase5/gehtempo, 1.11.2026), mit einem festen Befehlsskript des Menschen: kaufen und verkaufen per Karren, einen Zweitbetrieb pachten,
 /// abgeben und wieder erwerben (Löschen und danach Einfügen), Stand, Bewerbung, Geschenk und Stimmen in der Ratssitzung.
 ///   • Lauf A durchgehend.
 ///   • Lauf B genauso, aber mit deutscher Ländereinstellung (eine Zahl als Text darf nirgends in den Spielstand geraten).
-///   • Lauf C speichert und lädt an fünf Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend) und direkt nach jedem Löschen.
+///   • Lauf C speichert und lädt an acht Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in drei Bränden nach Blitzschlag, einer davon über den Jahreswechsel) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
+/// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
+/// und der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl.
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
 {
-    const int Jahre = 10;
     static readonly DateTime Zeitpunkt = new(2026, 10, 29, 12, 0, 0);
     static long Minute(int jahr, int stunde, int minute = 0) => jahr * (long)Spielzeit.MinutenProTag + (stunde * 60 + minute - Spielzeit.TagesbeginnMinute);
 
-    /// <summary>Eine Partie des Tests: Startwert, Schwierigkeit, Charakter der KI und Beruf des Menschen.</summary>
-    sealed record Partie(int Startwert, Schwierigkeit Schwierigkeit, KiCharakter Rivale, string Beruf);
+    /// <summary>Eine Partie des Tests: Startwert, Schwierigkeit, Charakter der KI, Beruf des Menschen, Karte und Länge.</summary>
+    sealed record Partie(int Startwert, Schwierigkeit Schwierigkeit, KiCharakter Rivale, string Beruf, string Karte = "greybox", int Jahre = 10);
 
     static readonly Partie[] Partien =
     {
         new(1400, Schwierigkeit.Normal, KiCharakter.Ausgewogen, "Schmied"),
         new(4711, Schwierigkeit.Schwer, KiCharakter.Wagemutig, "Tischler"),
-        new(2026, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
+        // bis zur gemeinsamen Strecke von Kern und Bild (31.10.2026) 2026 – dort stirbt seither das Oberhaupt des Menschen im Jahr 1 ohne Erben, das Skript hätte nichts abzugeben
+        new(2027, Schwierigkeit.Normal, KiCharakter.Vorsichtig, "Steinmetz"),
+        // Köln (vier Jahre: Köln rechnet etwa doppelt so lange wie die Greybox; im vierten Jahr wird der Zweitbetrieb abgegeben und wieder erworben)
+        new(1401, Schwierigkeit.Schwer, KiCharakter.Ausgewogen, "Schmied", "koeln", 4),
     };
 
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
+    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 68; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
+    /// 18:23 Uhr), bei 2027 in Minute 6380 (Jahr 5, 15:20) und 10231 (Jahr 8, 22:31 – es brennt über den Jahreswechsel, geladen wird um 4:01 im Jahr 9).
+    /// Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
     /// </summary>
-    static readonly long[] Ladepunkte = { Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(8, 19, 0) };
+    static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(8, 19, 0), Minute(9, 4, 1) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle);
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
 
     public static IEnumerable<(string, Action)> Alle() => Partien.Select(p => (
-        $"Gleichheit: Startwert {p.Startwert} ({p.Schwierigkeit}, {p.Rivale}, {p.Beruf}) – 10 Jahre durchgehend, mit deutscher Ländereinstellung " +
+        $"Gleichheit: Startwert {p.Startwert} ({p.Schwierigkeit}, {p.Rivale}, {p.Beruf}{(p.Karte == "greybox" ? "" : $", {p.Karte}")}) – {p.Jahre} Jahre durchgehend, mit deutscher Ländereinstellung " +
         "und mit Speichern/Laden (auch direkt nach dem Löschen eines Betriebs) ergeben dieselbe Prüfsumme",
-        (Action)(() => Pruefen(p))));
+        (Action)(() => Pruefen(p)))).Append((
+        "Gleichheit: Felspinsel (Stempel, Streuen mit Filter, Radieren, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsenPruefen)).Append((
+        "Gleichheit: Felsboden (Felsstrich und Boden als ein Befehl, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsbodenPruefen));
+
+    /// <summary>Der Felsboden (F6): Stücke und Boden um den Fels in einem Befehl – gleiche Bytes (Zeile „felsboden …“ in der Datei der CI).</summary>
+    static void FelsbodenPruefen()
+    {
+        var a = Sha256(FelsbodenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsbodenTests.Ablauf()), "Felsboden: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsbodenTests.Ablauf())), "Felsboden: de-DE");
+        Zeilen[-2] = new[] { $"felsboden {a}" };
+        DateiSchreiben();
+    }
+
+    /// <summary>
+    /// Der Felsfall (Felspinsel F3): Ein fester Ablauf der Kartenwerkstatt (<see cref="FelsenTests.Ablauf"/>) – gleicher Strich, gleiche Bytes.
+    /// Die Prüfsumme der Kartendatei steht in der Datei der CI (Zeile „fels …“) und wird so zwischen Linux und Windows verglichen.
+    /// </summary>
+    static void FelsenPruefen()
+    {
+        var a = Sha256(FelsenTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelsenTests.Ablauf()), "Felsen: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsenTests.Ablauf())), "Felsen: de-DE");
+        Zeilen[-1] = new[] { $"fels {a}" };
+        DateiSchreiben();
+    }
 
     static void Pruefen(Partie p)
     {
@@ -70,14 +105,18 @@ static class GleichheitTests
 
         Vergleichen("Lauf B (de-DE)", a, b);
         Vergleichen("Lauf C (Speichern und Laden)", a, c);
+        Pruefe.Gleich(string.Join("\n", a.Blitze), string.Join("\n", c.Blitze), "Blitzschläge (Minute, Ziel, Schaden) mit Speichern und Laden");
+        // Ein Blitzfall (Datenversion 68): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
+        if (p.Startwert is 4711 or 2027) Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
             string.Join(", ", a.Befehle.GroupBy(z => z[(z.IndexOf(' ') + 1)..]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"));
         foreach (var art in new[] { "Handelsauftrag", "BetriebVerkaufen", "LiegenschaftErwerben" })
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains($" {art} ok")), $"Kein erfolgreicher Befehl {art} im Skript – Skript anpassen ({Erfolge(art)})");
-        Pruefe.Wahr(a.Befehle.Count(z => z.Contains(" BetriebVerkaufen ok")) == Abgabejahre.Length
-                    && a.Befehle.Count(z => z.Contains(" LiegenschaftErwerben ok")) >= Abgabejahre.Length + 1,
+        var abgaben = Abgabejahre.Count(j => j < p.Jahre);
+        Pruefe.Wahr(a.Befehle.Count(z => z.Contains(" BetriebVerkaufen ok")) == abgaben
+                    && a.Befehle.Count(z => z.Contains(" LiegenschaftErwerben ok")) >= abgaben + 1,
             $"Löschen und Einfügen in jedem Abgabejahr ({Erfolge("BetriebVerkaufen")}, {Erfolge("LiegenschaftErwerben")})");
 
         var zeilen = a.Jahre.Select((s, i) => $"startwert {p.Startwert} jahr {i + 1}: {s}")
@@ -107,23 +146,26 @@ static class GleichheitTests
     {
         // Daten und Karte frisch aus der Datei: Die Partie verändert ihre Karte (Bauten), jeder Lauf beginnt wie neu.
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-        var karte = Stadtkarte.AusDatei(Datenpfad.Karte("greybox"));
+        var karte = Stadtkarte.AusDatei(Datenpfad.Karte(p.Karte));
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = p.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = p.Schwierigkeit },
             daten, new NeuePartie(Startvermoegen: 15_000, Rivale: p.Rivale, Beruf: p.Beruf), karte: karte); // genug für Bürgerhaus, Stand und Pacht
         sim.Wirtschaft!.RatssitzungAnhalten = _ => true; // wie die Oberfläche: Die Partie hält vor der Sitzung, der Mensch stimmt mit
 
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
+        var blitze = new List<string>(); // Minute und Text jeder Meldung „Blitzschlag!“ (Ziel und Schaden stehen darin)
+        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m => { if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}"); };
+        BlitzeZaehlen(sim);
         var befehle = new List<string>();
         var jahre = new List<string>();
-        for (long t = 0; t < Jahre * (long)Spielzeit.MinutenProTag; t++)
+        for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
-            if (laden && Ladepunkte.Contains(t)) (sim, spieler) = SpeichernUndLaden(sim, spieler);
+            if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
             foreach (var befehl in skript.Befehle(t, sim.Wirtschaft!, spieler))
             {
                 var ergebnis = sim.Wirtschaft!.Ausfuehren(spieler, befehl);
                 befehle.Add($"{t} {befehl.GetType().Name} {(ergebnis.Erfolg ? "ok" : "abgelehnt")}");
-                if (laden && ergebnis.Erfolg && befehl is BetriebVerkaufen) (sim, spieler) = SpeichernUndLaden(sim, spieler); // direkt nach dem Löschen
+                if (laden && ergebnis.Erfolg && befehl is BetriebVerkaufen) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); } // direkt nach dem Löschen
             }
 
             var jahr = sim.Zeit.Jahr;
@@ -140,7 +182,7 @@ static class GleichheitTests
             Pruefe.Gleich(t + 1, sim.Zeit.VergangeneMinuten, "Die Uhr läuft mit dem Skript");
             if (sim.Zeit.Jahr != jahr) jahre.Add(Pruefsumme(sim));
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze);
     }
 
     /// <summary>Wie ein Spieler, der speichert und gleich wieder lädt – mit allem, was die Oberfläche danach wieder einstellt.</summary>

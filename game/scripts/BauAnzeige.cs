@@ -95,6 +95,8 @@ public partial class BauAnzeige : PanelContainer
         Aufbauen(erzwingen: true);
         Show();
         Rollbereich.RechtsAnheften(this); // rechts unter dem Zeitstrahl, über der Betriebsleiste
+        // Auch nach dem Ziehen öffnet sie wieder rechts (wie die Auswahl): Der Rahmen setzt jedes Bild die Lage, bis der Spieler sie zieht
+        Fensterrahmen.Von(this)?.PlatzSetzen((groesse, sichtbar) => new Vector2(sichtbar.X - groesse.X - 16, Rollbereich.KopfHoehe));
     }
 
     /// <summary>Schließt den Baumodus ganz: Bauzonen und Umriss verschwinden.</summary>
@@ -131,6 +133,7 @@ public partial class BauAnzeige : PanelContainer
 
     public override void _Process(double delta)
     {
+        WerkstattTippAktualisieren();
         if (!Visible) return;
         _seitAktualisierung += delta;
         if (_seitAktualisierung < 0.25) return;
@@ -159,7 +162,9 @@ public partial class BauAnzeige : PanelContainer
         "Liste|" + Zahlenformat.Ganz(_spieler!.Vermoegen) + "|" + string.Join("|", Gebaeude(w).Select(x => x.Verboten + Zahlenformat.Ganz(x.Vorschau.Kosten)));
 
     private string PlatzwahlPlan(Stadtwirtschaft w, (string Name, Func<double, double, int, BauBefehl> Erzeuger, BauBefehl Beispiel) g) =>
-        $"Platz|{g.Name}|{_stadt!.BauGrund}|{_stadt.BauAuftrag is not null}|{_stadt.BauDrehung}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}";
+        $"Platz|{g.Name}|{_stadt!.BauGrund}|{_stadt.BauAuftrag is not null}|{_stadt.BauDrehung}|{Zahlenformat.Ganz(_spieler!.Vermoegen)}|" +
+        (_stadt.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f ? $"{f.Hin}/{f.Zurueck}/{f.Markt}/{_stadt.FahrwegSchilder.Count}" : "") +
+        $"|{_stadt.FahrwegAmpeln.Count > 0}|{_stadt.BauzoneUnterMaus?.NurWerkstaetten == true}";
 
     /// <summary>Was gebaut werden kann: Wohnhaus-Stufen und Werkstätten der Stadt (Stufe 1), mit Vorschau und dem Grund, warum es nicht geht.</summary>
     private List<(string Gruppe, string Name, string Beruf, Func<double, double, int, BauBefehl> Erzeuger, Bauvorschau Vorschau, string? Verboten)> Gebaeude(Stadtwirtschaft w)
@@ -191,7 +196,8 @@ public partial class BauAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m, mit der Vorderseite an einer Straße.",
             13, Grau, umbruchBreite: Breite);
 
-        // Legende: die Farben der Bauzonen in der Stadt
+        // Legende: die Farben der Bauzonen in der Stadt (die Zeile „FahrwegAmpeln.Count == 0 → return“ aus #282 gehörte nur in FahrwegZeigen:
+        // bei offener Liste gibt es nie Ampeln, die ganze Liste fehlte)
         var legende = new HBoxContainer();
         legende.AddThemeConstantOverride("separation", 14);
         _inhalt.AddChild(legende);
@@ -204,6 +210,7 @@ public partial class BauAnzeige : PanelContainer
             punkt.MouseFilter = MouseFilterEnum.Pass;
             Hauptmenue.Text(legende, Stadtansicht.LageName(lage), 13, Hell).TooltipText = lageTipp;
         }
+        if (w.Karte?.Bauzonen.Any(z => z.NurWerkstaetten) == true) WerkstattplatzLegende();
 
         string? gruppe = null;
         foreach (var (g, name, beruf, erzeuger, vorschau, verboten) in Gebaeude(w))
@@ -295,6 +302,9 @@ public partial class BauAnzeige : PanelContainer
             Hauptmenue.Text(_inhalt, "✗ " + grund, 15, Rot, umbruchBreite: Breite);
         else
             Hauptmenue.Text(_inhalt, "✔ Hier kann gebaut werden – Klick setzt das Gebäude.", 15, Gruen, umbruchBreite: Breite);
+        if (_stadt.BauGrund is null && _stadt.BauzoneUnterMaus is { NurWerkstaetten: true }) // rot nennt der Grund es schon
+            Hauptmenue.Text(_inhalt, "Werkstatt-Bauplatz: Hier dürfen nur Werkstätten stehen.", 13, Grau, umbruchBreite: Breite).TooltipText = WerkstattTippText;
+        FahrwegZeigen(g.Beispiel);
         Hauptmenue.Text(_inhalt, "R dreht das Gebäude (Eingang zur Straße) · Q/E drehen die Kamera · Rechtsklick oder Esc: zurück zur Auswahl",
             13, Grau, umbruchBreite: Breite);
 
@@ -305,6 +315,79 @@ public partial class BauAnzeige : PanelContainer
         drehen.CustomMinimumSize = new Vector2(120, 36);
         var zurueck = Hauptmenue.Knopf(knoepfe, "Zurück", Zurueck);
         zurueck.CustomMinimumSize = new Vector2(120, 36);
+    }
+
+    /// <summary>
+    /// Bei einer Werkstatt: die Zeile „Fahrt zum Markt: … min“ (Farbe der Stufe, Tooltip mit Rückfahrt und schnellstem Karren) und eine kurze
+    /// Legende der Ampeln. Die Zahlen kommen aus dem Kern über die Stadtansicht (<see cref="Stadtansicht.FahrwegSchilder"/>).
+    /// </summary>
+    private void FahrwegZeigen(BauBefehl beispiel)
+    {
+        if (beispiel is not WerkstattBauen) return;
+        if (_stadt!.FahrwegSchilder.FirstOrDefault(s => s.Bester) is { } f)
+        {
+            var zeile = new HBoxContainer { TooltipText = FahrwegAnzeige.Tipp(f, _stadt.FahrwegSchilder.Count), MouseFilter = MouseFilterEnum.Stop };
+            zeile.AddThemeConstantOverride("separation", 8);
+            _inhalt.AddChild(zeile);
+            Hauptmenue.Text(zeile, "Fahrt zum Markt:", 15, Hell).MouseFilter = MouseFilterEnum.Pass;
+            Hauptmenue.Text(zeile, FahrwegAnzeige.Kurz(f), 15, Schriften.LesbareFarbe(Fahrzeitstufen.Stufe(f.Hin))).MouseFilter = MouseFilterEnum.Pass;
+        }
+        if (_stadt.FahrwegAmpeln.Count == 0) return;
+        var legende = new HBoxContainer { TooltipText = "Die Marken auf den freien Bauorten zeigen, wie lange der Startkarren von dort zum nächsten Marktplatz fährt (hin).", MouseFilter = MouseFilterEnum.Stop };
+        legende.AddThemeConstantOverride("separation", 6);
+        _inhalt.AddChild(legende);
+        foreach (var (farbe, text) in new[] { (Fahrzeitstufen.Gruen, $"bis {Fahrzeitstufen.GruenBis} min"), (Fahrzeitstufen.Gelb, $"bis {Fahrzeitstufen.GelbBis} min"), (Fahrzeitstufen.Rot, "weiter") })
+        {
+            legende.AddChild(new ColorRect { Color = farbe, CustomMinimumSize = new Vector2(12, 12), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Pass });
+            Hauptmenue.Text(legende, text, 13, Grau).MouseFilter = MouseFilterEnum.Pass;
+        }
+    }
+
+    /// <summary>Was der Tooltip über einem Werkstatt-Bauplatz sagt (einfache Sprache).</summary>
+    private const string WerkstattTippText = "Nur Werkstätten: Dieser Bauplatz liegt nah am Markt und ist für Werkstätten freigehalten. Ein Wohnhaus darf hier nicht stehen.";
+
+    /// <summary>Zeile der Legende: der gestrichelte Rand mit Amboss bedeutet „nur Werkstätten“.</summary>
+    private void WerkstattplatzLegende()
+    {
+        var zeile = new HBoxContainer { TooltipText = WerkstattTippText, MouseFilter = MouseFilterEnum.Stop };
+        zeile.AddThemeConstantOverride("separation", 4);
+        _inhalt.AddChild(zeile);
+        foreach (var farbe in new[] { Stadtansicht.WerkstattplatzEisen, Stadtansicht.WerkstattplatzHell, Stadtansicht.WerkstattplatzEisen })
+            zeile.AddChild(new ColorRect { Color = farbe, CustomMinimumSize = new Vector2(8, 8), SizeFlagsVertical = SizeFlags.ShrinkCenter, MouseFilter = MouseFilterEnum.Pass });
+        Hauptmenue.Text(zeile, "  Rand mit Amboss: nur Werkstätten", 13, Hell).MouseFilter = MouseFilterEnum.Pass;
+    }
+
+    private PanelContainer? _werkstattTipp;
+
+    /// <summary>
+    /// Ein kleiner Tooltip an der Maus, solange sie im Baumodus über einem Werkstatt-Bauplatz steht (die Stadt ist kein Steuerelement, ein
+    /// gewöhnlicher Tooltip ginge dort nicht). Er hängt als „oberste Ebene“ an der Tafel – kein Container verschiebt ihn.
+    /// </summary>
+    private void WerkstattTippAktualisieren()
+    {
+        var zeigen = Visible && !_wege && _stadt is { BauFest: false, HatWerkstattplaetze: true } && _stadt.BauzoneUnterMaus is { NurWerkstaetten: true } && GetViewport().GuiGetHoveredControl() is null;
+        if (!zeigen)
+        {
+            if (_werkstattTipp is { Visible: true }) _werkstattTipp.Hide();
+            return;
+        }
+        if (_werkstattTipp is null)
+        {
+            _werkstattTipp = new PanelContainer { TopLevel = true, MouseFilter = MouseFilterEnum.Ignore, ZIndex = 100 };
+            _werkstattTipp.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = new Color(0.12f, 0.11f, 0.09f, 0.96f), BorderColor = new Color(0.95f, 0.82f, 0.45f, 0.8f),
+                BorderWidthLeft = 1, BorderWidthRight = 1, BorderWidthTop = 1, BorderWidthBottom = 1,
+                ContentMarginLeft = 8, ContentMarginRight = 8, ContentMarginTop = 6, ContentMarginBottom = 6,
+            });
+            var text = new Label { Text = "Nur Werkstätten\nDieser Bauplatz ist für Werkstätten freigehalten –\nein Wohnhaus darf hier nicht stehen.", MouseFilter = MouseFilterEnum.Ignore };
+            text.AddThemeFontSizeOverride("font_size", 14);
+            _werkstattTipp.AddChild(text);
+            AddChild(_werkstattTipp);
+        }
+        _werkstattTipp.Show();
+        var maus = GetViewport().GetMousePosition();
+        _werkstattTipp.GlobalPosition = Tooltips.Lage(maus, _werkstattTipp.GetCombinedMinimumSize(), GetViewport().GetVisibleRect().Size);
     }
 
     /// <summary>„4 Stunden", „1 Spieljahr", „2 Spieljahre" – ein Spieljahr hat 1.020 Spielminuten.</summary>

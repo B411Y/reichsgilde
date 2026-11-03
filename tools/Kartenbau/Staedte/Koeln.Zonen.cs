@@ -58,6 +58,7 @@ public sealed partial class Koeln
                 if (p.X >= g.Rahmen.X0 && p.X <= g.Rahmen.X1 && p.Z >= g.Rahmen.Z0 && p.Z <= g.Rahmen.Z1 && AbstandZuUmriss(p, g.Ecken) < 2) return true;
             foreach (var m in mauern)
                 if (p.X >= m.Rahmen.X0 && p.X <= m.Rahmen.X1 && p.Z >= m.Rahmen.Z0 && p.Z <= m.Rahmen.Z1 && Kartengeometrie.AbstandLinie(p, m.Linie) < 3) return true;
+            if (AufBauplatz(p)) return true;   // die Werkstatt-Bauplätze sind eigene Zonen (Koeln.Bauplaetze.cs)
             return E.Wasserform.Uferabstand(p.X, p.Z, 8) < 3;
         }
 

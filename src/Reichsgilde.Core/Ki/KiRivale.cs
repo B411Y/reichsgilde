@@ -18,7 +18,8 @@ namespace Reichsgilde.Core.Ki;
 /// <param name="Wechselschwelle">Um so viel (0,15 = 15 %) muss ein anderes Produkt besser sein, damit umgestellt wird.</param>
 /// <param name="MindestStundenJeProdukt">So lange bleibt die KI mindestens bei einem Produkt.</param>
 /// <param name="Vorsicht">1 = rechnet nüchtern; 2 = fürchtet Raubverluste doppelt so stark (nimmt eher Eskorte).</param>
-/// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht.</param>
+/// <param name="MaxKarrenJeBetrieb">Mehr Karren kauft die KI für einen Betrieb nicht, wenn der Kern keine Grenze nennt (<c>logistik.karrenHoechstens</c>, sonst gilt die; KiRivale.MaxKarren). An der Grenze tauscht sie (Fahrzeit nach Weglänge, stündlich, sobald
+/// der Karren am Hof steht) einen langsamen gegen einen schnelleren, wenn es sich bezahlt macht.</param>
 /// <param name="StillstandFuerKarrenkauf">Ab diesem Anteil Stillstand an der Arbeitszeit (0,2 = 20 %) kauft sie einen Karren.</param>
 /// <param name="MaxBetriebe">Mehr Betriebe erwirbt die KI nicht – sonst bliebe für Mitspieler nichts übrig.</param>
 /// <param name="MaxAmortisationJahre">Ein Kauf muss sich in so vielen Jahren aus dem erwarteten Gewinn bezahlt machen.</param>
@@ -52,12 +53,14 @@ public sealed record KiProfil(
 ///   jede volle Stunde   • Gießerei: das Produkt mit dem höchsten Gewinn je Arbeitsminute
 ///                       • Mine: Aufteilung der Förderung zwischen Eisen und Silber
 ///                       • freie Arbeitsplätze mit der ertragreichsten erlaubten Arbeitskraft besetzen
+///                       • an der Grenze von drei Karren einen langsamen gegen einen schnelleren tauschen (nach Weglänge, KiRivale.Karren.cs)
 ///                       • Eskorte je Karren nach erwartetem Verlust wählen
 ///                       • in der Not (gemahnt, Geld reicht nicht): einen Karren verkaufen, aber nie den letzten eines Betriebs
 ///   einmal am Tag       • Politik im Rat, Brautschau, Gericht (Spitzel, Anklage, Verteidigung)
 ///                       • befördern, wenn sich der Brief bezahlt macht; Eigenschaft des Vorarbeiters nach Gewinn (KiRivale.Personal.cs)
 ///                       • zur eigenen Baustunde: Bauplatz für ein neues Wohnhaus oder eine neue Werkstatt suchen
-///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand; einen verkaufen, der das ganze Jahr nicht fuhr
+///   zum Jahresende      • Karren kaufen, wenn ein Betrieb zu oft stillstand – nach Weglänge die Art, die auf seinem Weg nach dem Durchfluss am meisten
+///                         einbringt (KiRivale.Karren.cs); einen verkaufen, der das ganze Jahr nicht fuhr
 ///                       • Einrichtung kaufen, die sich schnell bezahlt macht (je Betrieb höchstens ein Stück; dazu eins fürs Wohnhaus)
 ///                       • Verlustjahre der Betriebe zählen (verkauft wird in den Stunden danach)
 ///
@@ -203,6 +206,7 @@ public sealed partial class KiRivale
             if (betrieb.Belegt == 0) // die vergangene Stunde ohne jedes Personal – zählt gegen das Verlustjahr
                 _stundenOhnePersonal[betrieb.Name] = _stundenOhnePersonal.GetValueOrDefault(betrieb.Name) + 1;
             PersonalBesetzen(betrieb);
+            KarrenTauschen(betrieb); // an der Grenze nach Durchfluss (KiRivale.Karren.cs)
             EskorteWaehlen(betrieb);
         }
         SchiffeLosschicken(); // Schiffe am Kai bekommen einen Auftrag, wenn sich eine Fahrt lohnt – Betriebssache wie die Karren
@@ -532,7 +536,7 @@ public sealed partial class KiRivale
         && IstReich && Konto.Berufe.Count < MaxBerufe && _w.Daten.Berufe.ContainsKey(beruf) && _w.ApReichen(Konto, new BerufErlernen(beruf));
 
     /// <summary>Eine freie Liegenschaft zum Kauf (oder zur Pacht) – oder eine Werkstatt der Stufe 1, die die KI neu bauen könnte.</summary>
-    private sealed record Angebot(string Name, Betriebsart Art, double Preis, bool IstPacht, bool Neubau, double BauJahre);
+    internal sealed record Angebot(string Name, Betriebsart Art, double Preis, bool IstPacht, bool Neubau, double BauJahre);
 
     /// <summary>
     /// Eine freie Werkstatt kaufen, einen Umlandbetrieb pachten oder eine Werkstatt neu bauen, wenn es sich rechnet:
@@ -553,27 +557,7 @@ public sealed partial class KiRivale
         if (voll && !Betriebe.Any(b => b.Ort == Arbeitsort.Umland && !HatWerkstattFuer(b.Artdaten.Beruf))) return;
 
         var daten = _w.Daten;
-        var wahl = _w.FreieLiegenschaften
-            .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
-            .Where(l => l.MindestGrad <= Math.Max(1, Konto.Meistergrad(daten.Art(l.Art).Beruf))) // verkaufte ausgebaute Werkstätten erst mit dem Meistergrad
-            .Select(l => new Angebot(l.Name, l.Art, l.Kaufpreis, l.IstPacht, Neubau: false, BauJahre: 0))
-            .Concat(Neubauten())
-            .Where(a => !voll || daten.Art(a.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(a.Art).Beruf))
-            .Where(a => !Gesperrt(a.Art))
-            // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
-            .Select(a => (Angebot: a, Beruf: daten.Art(a.Art).Beruf,
-                          Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, a.Art, leistung: _w.VolksFaktor(Konto, daten.Art(a.Art).Beruf)) * DiebesZuschlag(a.Art)))
-            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
-            .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
-            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
-            // Was der Betrieb kostet, bis er arbeitet: Preis, Lehrgeld und beim Neubau der Gewinn, der im Baujahr entgeht.
-            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Lehrgeld, x.Neu, Kosten: x.Angebot.Preis + x.Lehrgeld + x.Gewinn * x.Angebot.BauJahre))
-            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Amortisationsjahre)
-            .Where(x => Konto.Vermoegen - x.Angebot.Preis - x.Lehrgeld - daten.Fixkosten(x.Angebot.Art)
-                        - daten.Plaetze(x.Angebot.Art) * HoechsterLohn(x.Angebot.Art) >= Profil.Reserve)
-            .OrderByDescending(x => x.Gewinn - x.Kosten / Amortisationsjahre)
-            .ThenBy(x => x.Angebot.Name, StringComparer.Ordinal)
-            .FirstOrDefault();
+        var wahl = Expansionskandidaten(voll).FirstOrDefault();
         if (wahl.Angebot is not { } l) return;
 
         var waehrung = daten.Allgemein.Waehrung;
@@ -588,6 +572,42 @@ public sealed partial class KiRivale
         }
         Befehlen(new LiegenschaftErwerben(l.Name),
             $"{(l.IstPacht ? "pachtet" : "kauft")} {l.Name} (erwarteter Gewinn ≈ {Zahlenformat.Ganz(wahl.Gewinn)} {waehrung} im Jahr).");
+    }
+
+    /// <summary>
+    /// Die Angebote, die sich für <see cref="Expandieren"/> rechnen, das beste zuerst: Gewinn (mit Völkerbonus, im Umland nach dem Weg), Lehrgeld,
+    /// Kosten bis zum ersten Ertrag. <paramref name="voll"/>: Das Haus hat schon so viele Betriebe, wie es darf (dann nur die fehlende Werkstatt
+    /// zu einem Umlandbetrieb).
+    /// </summary>
+    internal List<(Angebot Angebot, string Beruf, double Gewinn, double Lehrgeld, bool Neu, double Kosten)> Expansionskandidaten(bool voll = false)
+    {
+        var daten = _w.Daten;
+        return _w.FreieLiegenschaften
+            .Where(l => Konto.Stand >= daten.StandStufe(l.MindestStand))
+            .Where(l => l.MindestGrad <= Math.Max(1, Konto.Meistergrad(daten.Art(l.Art).Beruf))) // verkaufte ausgebaute Werkstätten erst mit dem Meistergrad
+            .Select(l => new Angebot(l.Name, l.Art, l.Kaufpreis, l.IstPacht, Neubau: false, BauJahre: 0))
+            .Concat(Neubauten())
+            .Where(a => !voll || daten.Art(a.Art).Ort == Arbeitsort.Werkstatt && NurUmland(daten.Art(a.Art).Beruf))
+            .Where(a => !Gesperrt(a.Art))
+            // Mit dem Völkerbonus: Ein Zwergenhaus sucht eher eine Werkstatt, in der Zwerge gut sind.
+            // Ein Umlandbetrieb gilt so viel weniger, wie seine Karren auf dem echten Weg nicht wegbringen (KiRivale.Umland.cs).
+            .Select(a => (Angebot: a, Beruf: daten.Art(a.Art).Beruf, Leistung: _w.VolksFaktor(Konto, daten.Art(a.Art).Beruf)))
+            .Select(x => (x.Angebot, x.Beruf, Schaetzung: x.Angebot.Neubau
+                ? (Gewinn: Kalkulation.ErwarteterJahresgewinn(_w, x.Angebot.Art, leistung: x.Leistung), Karrenkosten: 0.0)
+                : NachDemWeg(x.Angebot.Name, x.Angebot.Art, Kalkulation.ErwarteterJahresgewinn(_w, x.Angebot.Art, leistung: x.Leistung), x.Leistung)))
+            .Select(x => (x.Angebot, x.Beruf, Gewinn: x.Schaetzung.Gewinn * DiebesZuschlag(x.Angebot.Art), x.Schaetzung.Karrenkosten))
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Karrenkosten, Lehrgeld: NeuerBeruf(x.Beruf) ? daten.Berufe[x.Beruf].Lehrgeld : -1))
+            .Where(x => x.Lehrgeld < 0 || DarfBerufLernen(x.Beruf))
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Karrenkosten, Lehrgeld: Math.Max(0, x.Lehrgeld), Neu: x.Lehrgeld >= 0))
+            // Was der Betrieb kostet, bis er arbeitet: Preis, Lehrgeld, beim Neubau der Gewinn, der im Baujahr entgeht, und im Umland die Karren,
+            // die der Weg verlangt (KiRivale.Umland.cs).
+            .Select(x => (x.Angebot, x.Beruf, x.Gewinn, x.Lehrgeld, x.Neu, Kosten: x.Angebot.Preis + x.Lehrgeld + x.Gewinn * x.Angebot.BauJahre + x.Karrenkosten))
+            .Where(x => x.Gewinn > 0 && x.Kosten <= x.Gewinn * Amortisationsjahre)
+            .Where(x => Konto.Vermoegen - x.Angebot.Preis - x.Lehrgeld - daten.Fixkosten(x.Angebot.Art)
+                        - daten.Plaetze(x.Angebot.Art) * HoechsterLohn(x.Angebot.Art) >= Profil.Reserve)
+            .OrderByDescending(x => x.Gewinn - x.Kosten / Amortisationsjahre)
+            .ThenBy(x => x.Angebot.Name, StringComparer.Ordinal)
+            .ToList();
     }
 
     /// <summary>Werkstätten, die die KI neu bauen könnte (nur mit Karte): jede Betriebsart der Stufe 1 in der Stadt, die ihr Stand erlaubt.</summary>
@@ -606,15 +626,18 @@ public sealed partial class KiRivale
     }
 
     /// <summary>
-    /// Die neue Werkstatt bauen: an der gültigen Stelle, die dem Marktplatz (Ursprung der Karte) am nächsten liegt –
-    /// bei Gleichstand die erste in der festen Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
+    /// Die neue Werkstatt bauen: die gültigen Stellen nach Luftlinie zum nächsten Marktplatz geordnet (mehrere Märkte je Stadt seit 31.10.2026,
+    /// Andockstelle des Kerns: <see cref="Bauen.Stadtkarte.MarktAbstandQuadrat"/>; ein Markt im Ursprung wie bisher), bei Gleichstand in der festen
+    /// Reihenfolge von <see cref="Bauwesen.Bauorte"/>. Mit der Fahrzeit nach Weglänge nimmt die KI unter den nächsten die mit dem kürzesten Karrenweg
+    /// (<see cref="Bauort"/>, KiRivale.Standort.cs), sonst die erste. Ohne Platz sucht die KI erst im nächsten Jahr wieder.
     /// </summary>
     private void WerkstattBauen(Angebot angebot, double gewinn)
     {
         _bauorteGefragt = true;
-        var ort = _w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
-            .OrderBy(o => o.X * o.X + o.Z * o.Z)
-            .FirstOrDefault();
+        var karte = _w.Karte;
+        var (ort, minuten) = Bauort(_w.Bauen.Bauorte(Konto, new WerkstattBauen(angebot.Art, 0, 0, 0))
+            .OrderBy(o => karte?.MarktAbstandQuadrat(o.X, o.Z) ?? o.X * o.X + o.Z * o.Z)
+            .ToList(), angebot.Art);
         if (ort is null)
         {
             _keinWerkstattplatzJahr = _w.Uhr.Jahr;
@@ -622,8 +645,9 @@ public sealed partial class KiRivale
         }
         var v = _w.Bauen.Vorschau(Konto, ort);
         var waehrung = _w.Daten.Allgemein.Waehrung;
+        var weg = minuten is { } m ? $"; der {_w.Daten.Art(angebot.Art).Startkarren} braucht {Zahlenformat.Ganz(m)} Minuten zum Markt" : "";
         Befehlen(ort, $"baut {v.Betrieb} neu ({Zahlenformat.Ganz(v.Kosten)} {waehrung}, fertig in {Jahre(v.BauzeitMinuten)}; " +
-                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr) – keine freie Werkstatt rechnet sich besser.");
+                      $"erwarteter Gewinn ≈ {Zahlenformat.Ganz(gewinn)} {waehrung} im Jahr{weg}) – keine freie Werkstatt rechnet sich besser.");
     }
 
     /// <summary>
@@ -1841,13 +1865,27 @@ public sealed partial class KiRivale
             .Select(k => k.Value.Kosten).DefaultIfEmpty(0).Max() * _w.Daten.Schichtfaktor(art);
     }
 
+    /// <summary>
+    /// Zum Jahresende: Stand der Betrieb im Vorjahr zu oft still (<see cref="KiProfil.StillstandFuerKarrenkauf"/>), bekommt er einen Karren.
+    /// Rechnet der Kern seine Fahrzeit nach Weglänge (Datenversion 65), wählt die KI nach Durchfluss und tauscht an der Grenze
+    /// (<see cref="KarrenNachDurchfluss"/>, KiRivale.Karren.cs); sonst fahren alle Arten gleich lang, und es gilt die Regel unten.
+    /// </summary>
     private void KarrenNachkaufen(Betrieb betrieb)
     {
-        if (betrieb.Belegt == 0 || betrieb.Karren.Count >= Profil.MaxKarrenJeBetrieb || !BrauchtKarren(betrieb))
+        if (betrieb.Belegt == 0 || !BrauchtKarren(betrieb))
             return;
 
         var anteil = betrieb.StillstandMinutenVorjahr / (double)betrieb.Arbeitsminuten;
         if (anteil < Profil.StillstandFuerKarrenkauf)
+            return;
+        if (KarrenwahlNachDurchfluss(betrieb))
+        {
+            // Kaufen zum Jahresende; an der Grenze tauscht die KI stündlich, sobald der Karren am Hof steht (KarrenTauschen).
+            if (betrieb.Karren.Count < MaxKarren(betrieb.Ort)) KarrenNachDurchfluss(betrieb, anteil);
+            return;
+        }
+        // alte Regel (ohne Fahrzeit nach Weglänge, ohne Amortisation): wie bisher höchstens die Grenze des Profils
+        if (betrieb.Karren.Count >= Math.Min(MaxKarren(betrieb.Ort), Profil.MaxKarrenJeBetrieb))
             return;
 
         // Kurze Stadtwege: kleiner, billiger Karren. Lange, gefährliche Umlandwege: viel Ladung je Fahrt.
