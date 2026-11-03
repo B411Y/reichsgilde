@@ -99,7 +99,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Schiffe der Häuser, ihre Fahrten zu den fernen Städten am Fluss und deren Märkte (braucht die <see cref="Karte"/> mit Hafen und „schiffshandel“).</summary>
     public Schiffahrt Schiffahrt { get; }
 
-    /// <summary>Folgen der Jahreszeit: Winter, Eis auf dem Fluss, Ernte, Schlamm, Festmärkte (Abschnitt „jahreszeiten“, Datenversion 67).</summary>
+    /// <summary>Folgen der Jahreszeit: Winter, Eis auf dem Fluss, Ernte, Schlamm, Festmärkte (Abschnitt „jahreszeiten“, Datenversion 69).</summary>
     public Jahreszeitenwesen Jahreszeiten { get; }
 
     /// <summary>Die Karte der Stadt: Wege, Bauzonen, feste Bauten, Wohnhausplätze (null: ohne Karte – dann wird nicht gebaut).</summary>
@@ -151,6 +151,9 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>
     public Buerger.Einwohnerschaft Einwohnerschaft { get; }
+
+    /// <summary>Blitzschlag im Gewitter: Einschlag, Brand und Schaden (Platzhalter; braucht die <see cref="Karte"/> und „blitz“).</summary>
+    public Gefahren.Blitzwesen Blitz { get; }
 
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
     public int Jahr => _konten.Count > 0 ? _konten[0].Laufend.Jahr : Spielzeit.StartJahr;
@@ -206,6 +209,15 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
+
+    /// <summary>
+    /// Warum dieser Betrieb keinen weiteren Karren bekommt – oder null: Er hat schon so viele, wie sein Arbeitsort erlaubt
+    /// (<see cref="LogistikDaten.HoechstKarren"/>, Datenversion 66: Werkstatt 3, Umland 5). Das Geld prüft der Kauf selbst.
+    /// </summary>
+    public string? KarrenKaufVerboten(Betrieb betrieb) =>
+        Daten.Logistik.HoechstKarren(betrieb.Ort) is { } n && betrieb.Karren.Count >= n
+            ? $"{betrieb.Name} hat schon {Zahlenformat.Ganz(betrieb.Karren.Count)} Karren – mehr als {Zahlenformat.Ganz(n)} gehen {(betrieb.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")} nicht."
+            : null;
 
     /// <summary>Warum dieses Haus den Karren Nr. <paramref name="karrenNr"/> (ab 0) dieses Betriebs nicht verkaufen kann – oder null.</summary>
     public string? KarrenVerkaufVerboten(Konto konto, Betrieb betrieb, int karrenNr)
@@ -338,6 +350,7 @@ public sealed partial class Stadtwirtschaft
         Personal = new Personalwesen(this, daten.Personal);
         Kirchenwesen = new Kirche.Kirchenwesen(this, daten.Kirche, zufallsstartwert);
         Einwohnerschaft = new Buerger.Einwohnerschaft(this, daten.Buerger, zufallsstartwert);
+        Blitz = new Gefahren.Blitzwesen(this, daten.Blitz, zufallsstartwert);
     }
 
     // ── Einwohner und Nachfrage (PR #177) ───────────────────────────────────
@@ -356,7 +369,7 @@ public sealed partial class Stadtwirtschaft
     {
         Markt.Einwohnerfaktor = Daten.Stadt?.Faktor(WirtschaftendeHaeuser) ?? 1;
         Markt.Ratsfaktor = Ratsantraege.Nachfragefaktor; // größerer Marktplatz, Fest (PR #200)
-        Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 67)
+        Jahreszeiten.MarktSetzen(); // Winter, Ernte, Festmarkt (Datenversion 69)
     }
 
     /// <summary>Legt ein Konto an – mit dem Startvermögen aus den Daten oder einem eigenen (z. B. Schwierigkeitsgrad).</summary>
@@ -546,6 +559,7 @@ public sealed partial class Stadtwirtschaft
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
         Wegebau.Minute(zeit); // fertig ausgebaute Wege
         Ratsantraege.Minute(zeit); // fertige Bauvorhaben der Stadt
+        Blitz.Minute(zeit); // mitten im Gewitter: Blitzschlag (eigener Zufall aus Startwert und Minute, nichts im Spielstand)
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
@@ -1072,6 +1086,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (!Daten.Logistik.Karren.TryGetValue(befehl.Typ, out var daten))
             return Befehlsergebnis.Abgelehnt($"Den Karrentyp „{befehl.Typ}“ gibt es nicht.");
+        if (KarrenKaufVerboten(betrieb) is { } grenze) return Befehlsergebnis.Abgelehnt(grenze);
         if (betrieb.Konto.Vermoegen < daten.Preis)
             return Befehlsergebnis.Abgelehnt(
                 $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");

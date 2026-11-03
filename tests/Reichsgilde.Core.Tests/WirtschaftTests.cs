@@ -29,7 +29,7 @@ static class Datenpfad
     public static string EinVersuchJeNacht(string json) => json.Replace("\"nachtVersuche\": 4", "\"nachtVersuche\": 1").Replace("\"versuchFaktor\": 0.3333", "\"versuchFaktor\": 1");
 
     /// <summary>
-    /// Die echten Daten ohne Abschnitt „jahreszeiten“ (Datenversion 67), als Text mit derselben Formatierung (Tests ersetzen darin Zeilen) – für
+    /// Die echten Daten ohne Abschnitt „jahreszeiten“ (Datenversion 69), als Text mit derselben Formatierung (Tests ersetzen darin Zeilen) – für
     /// Tests einer Mechanik, die im Frühling 1400 laufen und ohne Schlamm, Frühjahrsmarkt und Winter rechnen. Die Jahreszeiten prüft JahreszeitenTests.
     /// </summary>
     public static string OhneJahreszeiten(string? json = null)

@@ -63,14 +63,14 @@ public sealed partial class Stadtwirtschaft
     /// Die Werte für Furten und Fähren (<c>logistik.wasser</c>), wenn auf der Karte etwas Karren aufhalten kann – sonst null (Furten und Fähren kosten
     /// dann nichts, wie bis Schritt 5c). Bis Datenversion 64 eine Furt an einer Karrenstraße oder eine Fähre (<see cref="Wasserplan.HaeltAuf"/>), mit
     /// dem Netz aller Wege auch eine Furt an einer Gasse, einem Fußweg oder Leinpfad (Befund der Prüfung). Die Darstellung nimmt dieselben Werte.
-    /// Solange der Fluss zugefroren ist (strenger Winter, Datenversion 67), kostet eine Fähre <see cref="StrengerWinterDaten.FaehreMinuten"/>.
+    /// Solange der Fluss zugefroren ist (strenger Winter, Datenversion 69), kostet eine Fähre <see cref="StrengerWinterDaten.FaehreMinuten"/>.
     /// </summary>
     public WasserDaten? Wasserhalt => Jahreszeiten.MitEis(Daten.Logistik.Wasser is { } w && Karte is { } k
         && (k.Wasserplan.HaeltAuf || (NachWeglaengeGerechnet && k.Wasserplan.Querungen.Any(q => q.Art == Uebergangsart.Furt))) ? w : null);
 
     /// <summary>
     /// Die feste Fahrzeit des Arbeitsorts (<c>logistik.fahrzeiten</c>), aus dem Umland im Frühling mal <see cref="Jahreszeitenwesen.SchlammUmland"/>
-    /// (Landwege ohne Strecke auf der Karte; Datenversion 67).
+    /// (Landwege ohne Strecke auf der Karte; Datenversion 69).
     /// </summary>
     private int FesteFahrzeit(Arbeitsort ort)
     {
@@ -198,7 +198,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>
     /// Wie viel mal so lang ein Stück einer Fahrt dauert wie auf ebenem Fahrweg (dem Bezugsbelag): Steigung (nur auf Karten mit Höhen,
     /// <see cref="SteigungDaten.Faktor(double)"/>) mal Belag (<see cref="Bauen.Wegebau.Faktor"/>, ein Ausbau höchstens 15 % schneller) mal Schlamm
-    /// der Jahreszeit auf Trampelpfad und Fahrweg (<see cref="Jahreszeitenwesen.Schlamm(Fahrtstueck)"/>, Datenversion 67). 1 ohne Karte. Die
+    /// der Jahreszeit auf Trampelpfad und Fahrweg (<see cref="Jahreszeitenwesen.Schlamm(Fahrtstueck)"/>, Datenversion 69). 1 ohne Karte. Die
     /// Darstellung rechnet mit demselben Faktor (sichtbares Tempo = Tempo der Art ÷ Faktor).
     /// </summary>
     public double Zeitfaktor(Fahrtstueck s)

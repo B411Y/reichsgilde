@@ -6,7 +6,7 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 /// <summary>
-/// Tests für den Schiffsverkehr in der Schiffsrechnung (<c>schiffshandel.verkehrBeachten</c>, Datenversion 67): Ein Schiff rechnet mit dem, was die
+/// Tests für den Schiffsverkehr in der Schiffsrechnung (<c>schiffshandel.verkehrBeachten</c>, Datenversion 69): Ein Schiff rechnet mit dem, was die
 /// Schiffe vor ihm zur selben Stadt bringen, dort kaufen und heimbringen – ohne den Schalter (alte Spielstände mit ihren Daten) wie bisher.
 /// Gespielt wird in der Probestadt (Hafen am Sandfluss), ohne Piraten.
 /// </summary>

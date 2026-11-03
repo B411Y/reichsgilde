@@ -30,10 +30,10 @@ static class Messung
         // Fahrzeiten der Karren je Betrieb (Datenversion 65): … -- messen karren [Karte …] – siehe Karrenmessung.cs
         if (args.Length > 0 && args[0] == "karren")
             return Karrenmessung.Erstellen(args[1..]);
-        // Sitzplätze der Schänken (Datenversion 66): … -- messen schaenke [Jahre] [Startwerte] [--karten=…] [--ohne-plaetze] – siehe Schaenkenmessung.cs
+        // Sitzplätze der Schänken (Datenversion 67): … -- messen schaenke [Jahre] [Startwerte] [--karten=…] [--ohne-plaetze] – siehe Schaenkenmessung.cs
         if (args.Length > 0 && args[0] == "schaenke")
             return Schaenkenmessung.Erstellen(args[1..]);
-        // Folgen der Jahreszeiten (Datenversion 67): … -- messen jahreszeiten [Jahre] [Startwerte] [--karten=…] [--ohne-jahreszeiten] – siehe Jahreszeitenmessung.cs
+        // Folgen der Jahreszeiten (Datenversion 69): … -- messen jahreszeiten [Jahre] [Startwerte] [--karten=…] [--ohne-jahreszeiten] – siehe Jahreszeitenmessung.cs
         if (args.Length > 0 && args[0] == "jahreszeiten")
             return Jahreszeitenmessung.Erstellen(args[1..]);
         // Fahrzeit an allen Werkstatt-Bauorten (Befund H2 der Prüfung von phase5/gehtempo): … -- messen bauorte [Karte …] – siehe Bauortmessung.cs

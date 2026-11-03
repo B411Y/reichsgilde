@@ -4,9 +4,9 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Folgen der Jahreszeiten für die Wirtschaft (Abschnitt „jahreszeiten“ in wirtschaft.json, ab Datenversion 67; Entscheidung des Nutzers vom
+/// Folgen der Jahreszeiten für die Wirtschaft (Abschnitt „jahreszeiten“ in wirtschaft.json, ab Datenversion 69; Entscheidung des Nutzers vom
 /// 31.10.2026, Weg B: ein Spieltag bleibt ein Jahr, die Jahreszeit des Jahres wird spürbar). Fehlt der Abschnitt, hat die Jahreszeit keine
-/// Wirkung auf die Wirtschaft – nur Licht, Wetter und Ton richten sich nach ihr, wie bis Datenversion 66.
+/// Wirkung auf die Wirtschaft – nur Licht, Wetter und Ton richten sich nach ihr, wie bis Datenversion 68.
 /// </summary>
 public sealed class JahreszeitenDaten
 {

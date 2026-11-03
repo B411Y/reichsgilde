@@ -1,5 +1,5 @@
 {
-  "version": 67,
+  "version": 69,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -838,6 +838,7 @@
       "Werkstatt": 30,
       "Umland": 120
     },
+    "karrenHoechstens": { "Werkstatt": 3, "Umland": 5 },
     "lagerJeWare": 40,
     "abfahrtAbFuellgrad": 0.75,
     "nachkaufUnterStueck": 5,
@@ -1470,6 +1471,22 @@
       "budgetJeJahr": 600, "kasseHoechstens": 3000, "marktRadius": 30, "ausbessernAb": 0.6, "hoechstensMeterJeJahr": 100,
       "antragGunst": 10, "antragVerkehr": 30, "antragAnsehen": 5, "ansehenJahre": 5
     }
+  },
+  "blitz": {
+    "chance": 0.25,
+    "dauerMinuten": [60, 180],
+    "hoehen": {
+      "dom": 55, "koelner_dom": 50, "kirche": 40, "rathaus": 22, "markt": 0,
+      "hafen": 6, "hafenkran": 12, "lagerschuppen": 7, "zollstelle": 8, "leerstand": 10,
+      "werkstattplatz": 10, "kulisse_buergerhaus": 10, "einwohnerplatz_ring": 10, "einwohnerplatz_vorstadt": 8,
+      "fachwerkhaus": 9, "buergerhaus": 10, "steinhaus": 11, "stadtpalais": 13, "stadthof": 12,
+      "wachturm": 15, "klosterhof": 12, "bauernhof": 9, "grube": 7, "holzschlag": 6, "steinbruch": 6, "kraeutergarten": 5, "duftgarten": 5
+    },
+    "standardhoehe": 10,
+    "stillstandMinuten": 300,
+    "reparatur": 0,
+    "instandMinuten": 1140,
+    "wohnhausReparatur": 0
   },
   "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [

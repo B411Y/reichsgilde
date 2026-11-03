@@ -37,7 +37,7 @@ static class FahrzeitWeglaengeTests
     /// <summary>
     /// Die Fahrzeit nach der Formel, unabhängig vom Kern gerechnet: Summe der Stücke Länge × Steigungsfaktor × Belagfaktor × Schlamm ÷ (Tempo × 900/1140),
     /// dazu Furt und Fähre, auf ganze Minuten, zwischen Mindest- und Höchstdauer. Für die Tests der Steigung, des Wassers und des Belags. Schlamm
-    /// (Datenversion 67): auf Trampelpfad und Fahrweg eines Weges der Karte der Faktor der Jahreszeit aus den Daten.
+    /// (Datenversion 69): auf Trampelpfad und Fahrweg eines Weges der Karte der Faktor der Jahreszeit aus den Daten.
     /// </summary>
     internal static int NachFormel(Stadtwirtschaft w, Betrieb b, string typ, bool hin)
     {
@@ -79,7 +79,7 @@ static class FahrzeitWeglaengeTests
         ("Fahrzeit nach Weglänge: Daten – Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s; 1 m/s = 0,79 m je Spielminute; mindestens 10, höchstens 360 Minuten; Ausbau höchstens 1,15", () =>
         {
             var d = Daten.Value;
-            Pruefe.Gleich(67, d.Version);
+            Pruefe.Gleich(69, d.Version);
             Pruefe.Gleich((1.0, 0.8, 1.3), (d.Logistik.Karren["Handkarren"].Tempo, d.Logistik.Karren["Ochsenkarren"].Tempo, d.Logistik.Karren["Kriegskarren"].Tempo));
             Pruefe.Ungefaehr(MeterJeMinuteBei1, Taktgeber.SekundenJeSpielminute, 1e-12);
             Pruefe.Ungefaehr(0.8 * MeterJeMinuteBei1, d.Logistik.Karren["Ochsenkarren"].MeterJeMinute, 1e-12);

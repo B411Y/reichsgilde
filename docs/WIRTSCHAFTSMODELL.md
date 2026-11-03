@@ -1220,7 +1220,7 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 - **Runde 2, Greybox:** 57 Schiffe (vorher 49; das erste Ø in Jahr 4,7), 1.143 Schiffsjahre, 3,00 Fahrten (Weidenmünd 2.467, Eisenfurt 1.011); Flusspiraten 252 Angriffe, 121 gelungen. `messen 30 20 greybox`: Eisenbart Ø 250.864 (wie oben), Bürgermeister 15/20 (vorher 14/20), Stand der KI am Ende Reichsgraf 43, Freiherr 17 (vorher 38/20/Edler 2); kein Bankrott. Drei Schiffe teilen sich die Märkte, das Schiff bleibt dort weit unter einem Umlandbetrieb.
 - **Befund:** Die teureren Rohstoffe dort dämpfen die KI-Häuser (Probestadt Runde 1 → 2: −5 Punkte) und helfen dem Steinmetz (weniger billiger Bruchstein und Granit). Den passiven Spieler treffen sie nicht (+25,0 → +25,7 %): Er ist Schmied, und die KI kauft seine Fertigwaren (Silberringe, Rapiere, Silberketten) als Hinfracht am Markt daheim – die besser bezahlten Fertigwaren verstärken das. Das Ziel „passiver Spieler deutlich weniger“ ist mit Preisen der fernen Städte nicht zu erreichen. Entscheidung des Nutzers: so lassen, die Exportnachfrage ist gewollt (Feinschliff in der nächsten Balancing-Runde).
 
-**Schiffsverkehr (Datenversion 67, `schiffshandel.verkehrBeachten`):** Die Rechnung einer Fahrt (Tafel und KI, `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt`) zählt die Schiffe, die schon unterwegs sind: Hinfracht und geplante Rückfracht der Schiffe auf dem Weg zur selben Stadt als dort schon verkauft bzw. gekauft, die Rückfracht aller Schiffe, die noch heimkommen (ohne Aufträge ins Lager eines Betriebs), als daheim schon verkauft – `vorher` in `Erloes`, `Kosten` und `Verkaufswert`. Ohne den Schalter (alte Spielstände mit ihren Daten) plant jedes Schiff, als wäre es allein. Anlass und Messung: „Jahreszeiten“, Abschnitt „Wirt in Köln: Kosten und Schiffsverkehr“.
+**Schiffsverkehr (Datenversion 69, `schiffshandel.verkehrBeachten`):** Die Rechnung einer Fahrt (Tafel und KI, `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt`) zählt die Schiffe, die schon unterwegs sind: Hinfracht und geplante Rückfracht der Schiffe auf dem Weg zur selben Stadt als dort schon verkauft bzw. gekauft, die Rückfracht aller Schiffe, die noch heimkommen (ohne Aufträge ins Lager eines Betriebs), als daheim schon verkauft – `vorher` in `Erloes`, `Kosten` und `Verkaufswert`. Ohne den Schalter (alte Spielstände mit ihren Daten) plant jedes Schiff, als wäre es allein. Anlass und Messung: „Jahreszeiten“, Abschnitt „Wirt in Köln: Kosten und Schiffsverkehr“.
 
 ## Stadtkasse, Ämter und neue Anträge (PR #200)
 
@@ -2040,7 +2040,7 @@ Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 9
 - **„Schwer“ zieht deutlich weniger davon.** In Köln ziehen 16 statt 30 von 70 KI-Häusern davon, auf main waren es 0. In der Greybox sind es 24 statt 43 von 60, auf main 14.
 - **Fair geblieben:** kein Bankrott, Bürger im Ziel wie vorher, der Spieler mit einem Betrieb unverändert.
 
-## Sitzplätze der Schänken (Datenversion 66)
+## Sitzplätze der Schänken (Datenversion 67)
 
 **Regel** (Entscheidung des Nutzers, 1.11.2026): Schänke 20, Wirtshaus 30, Gasthaus 40 Sitzplätze (`gastwirtschaft.sitzplaetzeJeStufe`). Ein Gast bleibt etwa eine Stunde, also kommen je Stunde höchstens so viele Gäste in eine Schänke, wie sie Plätze hat. Wer keinen Platz findet, geht in die anziehendste Schänke mit freien Plätzen und zahlt dort; ist überall voll, fällt der Besuch aus (`Gaestebuch.Voll`, `Gaestebuch.Ausgefallen`). Kein Aufschub auf später: Voll ist es zur Abendspitze, und die Stunden bis zum Schankschluss sind genauso voll. Für die Einwohner der Bürger-KI gilt eine mitwachsende Grenze (Entscheidung des Nutzers, 2.11.2026): ⌈Plätze × Einwohner ÷ 17⌉ (`gastwirtschaft.einwohnerBezug`; 17 = Gäste der vollsten Stunde, 120 × 2 ÷ 14). Weil die Plätze mindestens 20 sind, fasst damit jede Schänke mehr Einwohner, als die Stadt hat – **die Einwohner-Grenze greift mit den Spieldaten nie**, die Kopplung an die Einwohner wirkt wie bisher, begrenzt sind nur die Gäste. Erst mit `einwohnerBezug` über 20 (oder 0 = die Plätze selbst) würde sie greifen; dann gilt: Wer nirgends Platz findet, tut das Nächstbeste und versucht es in der nächsten Stunde wieder (sein Vergnügen bleibt ungestillt). `ErwarteteGaeste` und `BardeNutzen` (KI) zählen je Stunde höchstens die Plätze. Ohne die Angabe in den Daten (alte Spielstände) rechnet alles wie bis Datenversion 65 – geprüft: der Kern dieses Branches mit den Daten von main gibt `messen bericht 20 20 --teile=3,5` auf der Greybox Wert für Wert dasselbe wie main.
 
@@ -2048,7 +2048,7 @@ Im Kölner Teil 3 fahren Neubauten jetzt im Median 22 Minuten (main 26, vorher 9
 
 **Messung** (`messen schaenke 20 20` und `messen bericht 20 20 --teile=3,5 --karte=<karte> --fairness=<karte> --rotationen=1`, je Karte 20 Startwerte; Aufbauten mit allen KI-Häusern: Spieler als Wirt mit einem Betrieb, als ausbauender Wirt, als Schmied mit einem Betrieb). Vorher = main ec36ff33 (Bericht) bzw. der Kern von 78816282 mit `--ohne-plaetze` (`schaenke-ohne.json`; der Pfad ohne Plätze ist seitdem unverändert), nachher = 19d82567. Keine Partie mit Fehler, kein Bankrott.
 
-**Ergebnis:** Reinvermögen, Gewinne, Umsatz der Schänken und Bürger-Jahre sind in allen sechs Aufbauten und im Balancing-Bericht (Teil 3 und 5, Greybox und Köln) **Wert für Wert gleich wie main** – auch der ausbauende Wirt in Köln (54.137) und die Städte mit nur einer Schänke. Grund: Voll ist eine Schänke nur zur Abendspitze, und dann ist ihr Lager in diesen Partien schon leer – wer keinen Platz findet, wäre vorher „ohne Ware“ abgewiesen worden. Die Platzgrenze verschiebt also nur Abweisungen von „ohne Ware“ zu „ausgefallen“; spürbar wird sie erst, wenn ein Wirt abends noch genug im Lager hat (z. B. der Spieler mit vollem Keller oder Barden).
+**Ergebnis** (gemessen auf main ec36ff33 + 19d82567, vor dem Merge von #286 mit der Karren-Höchstzahl): Reinvermögen, Gewinne, Umsatz der Schänken und Bürger-Jahre sind in allen sechs Aufbauten und im Balancing-Bericht (Teil 3 und 5, Greybox und Köln) **Wert für Wert gleich wie main** – auch der ausbauende Wirt in Köln (54.137) und die Städte mit nur einer Schänke. Grund: Voll ist eine Schänke nur zur Abendspitze, und dann ist ihr Lager in diesen Partien schon leer – wer keinen Platz findet, wäre vorher „ohne Ware“ abgewiesen worden. Die Platzgrenze verschiebt also nur Abweisungen von „ohne Ware“ zu „ausgefallen“; spürbar wird sie erst, wenn ein Wirt abends noch genug im Lager hat (z. B. der Spieler mit vollem Keller oder Barden).
 
 | Karte, Aufbau | Spieler J20 | Bürger im Ziel | Umsatz Schänke Spieler / KI | Gäste / ohne Ware vorher → nachher / ausgefallen je Jahr | Stunden voll | Einwohner höchstens in einer Schänke |
 |---|---|---|---|---|---|---|
@@ -2065,9 +2065,9 @@ Die Einwohner-Grenze kann mit Bezug 17 nicht erreicht werden (Greybox 121–123 
 
 Messdateien `schaenke-{plaetze3,ohne}.json`, `bericht-{main,branch3}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
 
-## Jahreszeiten (Datenversion 67)
+## Jahreszeiten (Datenversion 69)
 
-Entscheidung des Nutzers vom 31.10.2026 (Weg B): Ein Spieltag bleibt ein Jahr, die Jahreszeit des Jahres wirkt auf die Wirtschaft. Abschnitt `jahreszeiten`, Teilsystem `Jahreszeitenwesen`; ohne Abschnitt rechnet alles bitgleich wie Datenversion 66. Spielbuch: [Jahreszeiten](spielbuch/jahreszeiten.md).
+Entscheidung des Nutzers vom 31.10.2026 (Weg B): Ein Spieltag bleibt ein Jahr, die Jahreszeit des Jahres wirkt auf die Wirtschaft. Abschnitt `jahreszeiten`, Teilsystem `Jahreszeitenwesen`; ohne Abschnitt rechnet alles bitgleich wie Datenversion 68. Spielbuch: [Jahreszeiten](spielbuch/jahreszeiten.md).
 
 **Rechnung.** Nachfrage einer Ware = Grundnachfrage × Bürger-Faktor × Ratsfaktor × **Jahreszeitfaktor**; Grundversorgung = Grundnachfrage × NPC-Anteil × **Angebotsfaktor**. Mit der Elastizität 0,5 hebt ein Nachfragefaktor f den Preis um √f, ein Angebotsfaktor a senkt ihn um 1/√a (solange die Spieler wenig liefern). Leistung eines Betriebs × **Arbeitsfaktor** (auch in `Kalkulation.Leistung`). Zeitfaktor eines Wegstücks × **Schlamm** (Belag des Stücks), Umland ohne Strecke × `schlammUmland`.
 
@@ -2155,3 +2155,16 @@ Eis (alle Schiffe warten bis zum Eisgang), Festmarkt (Fertigwaren erst teuer, da
 | Köln, Wirt | 32.573 ± 951 | 29.728 ± 875 (−8,7 %) | 68.688 | 68.807 (+0,2 %) | 59 / 53 | 0 / 0 |
 
 Ziel Wirt höchstens −5 % **verfehlt**: Köln −8,7 %, Greybox −7,9 %. Schmied, Ausbau und KI-Häuser liegen im Plus. Der Rest des Wirts kommt aus dem Winter: Weingeist ×1,1 macht Dünnbier und Starkbier teurer, die KI wählt die Ware einer Schänke nach dem Marktpreis und schenkt im Winter Körnermahlzeit statt Dünnbier aus (Köln: 49 statt 39 Körnermahlzeiten, 4 statt 13 Dünnbier; Ausschank im Winter 5.137 statt 5.787 Gulden). Probe ohne Weingeist in der Winternachfrage (`--ohne-folge=winternachfrage:Weingeist`, 154c0024): Wirt Köln −3,1 %, Greybox −5,5 % ±3,4 (Median −5,0 %), Schmied +4,9 / +7,5 %, Ausbau +4,1 / +7,8 %, KI-Häuser +0,7 bis +2,9 %, ein Bankrott (Ausbau Greybox, wie mit dem Fix allein). Die Bedingungen des Nutzers für diese Änderung (Wirt auf beiden Karten höchstens −5 %, die anderen höchstens 2 Punkte schlechter als mit dem Fix, kein Bankrott) sind knapp verfehlt – Weingeist bleibt in der Winternachfrage (offen in `docs/bereiche/kern.md`). Messdateien im Messordner des Auftrags (`vom_pc/`, nicht im Repository).
+
+## Blitzschlag im Gewitter (PR #288, 2.11.2026)
+
+Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Gebäude (Gewicht: Höhe + Boden über dem Mittel, **linear** – Teamleiter 2.11.2026). Schaden als Platzhalter: Werkstatt 300 Arbeitsminuten Stillstand ab dem Einschlag, Wohnhaus ohne Ansehen bis ein Spieljahr nach dem Feuer, keine Reparatursumme.
+
+**Messung** (gemessen auf main 4220c631 + dieser Branch, Saat je Gewitter durchmischt; je 10 Startwerte 1400, 1437 … 1733, 20 Jahre, Spieler mit einem Betrieb von der KI geführt; dieselbe Partie mit `chance` 0 zum Vergleich – der Blitz würfelt mit eigener Quelle, darum laufen beide Partien bis zum ersten Treffer mit Wirkung Wurf für Wurf gleich):
+
+| Karte | Einschläge in 200 Jahren | Kirchen/Dom | Wohn-, Einwohner- und Kulissenhäuser | Werkstätten, Umland, Rathaus, Hafen | Haus des Spielers | KI-Häuser |
+|---|---|---|---|---|---|---|
+| Greybox | 17 (0–3 je Partie, Mittel 1,7) | 3 | 9 | 5 | 1 (Wohnhaus) | 1 (Gießerei) |
+| Köln | 17 (0–3, Mittel 1,7) | 5 | 6 | 6 | 0 | 1 (Werkstatt) |
+
+Zusammen: Kirchen und Dom 24 % der Einschläge (zum Quadrat waren es 69 %, 18 von 26), Wohnhäuser 44 %. Das Vermögen ändert sich nur in den drei Partien mit einem Treffer in ein Haus, und dort als Rauschen in beide Richtungen (Spieler −2.489 bis +11.082, KI −13.429 bis +26.121): Für die Wirtschaft ist der Blitz praktisch ohne Wirkung.

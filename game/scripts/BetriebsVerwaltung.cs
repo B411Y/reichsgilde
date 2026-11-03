@@ -429,7 +429,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
             info.Text = karren.ZustandText(_simulation.Zeit);
             VerkaufenAngleichen(verkaufen, b, i, w);
         }
-        _kaufenKnopf.Disabled = b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+        // Höchstzahl je Ort aus dem Kern (Datenversion 66: Werkstatt 3, Umland 5) – gesperrt mit Grund im Tooltip
+        var grenze = w.KarrenKaufVerboten(b);
+        _kaufenKnopf.Disabled = grenze is not null || b.Konto.Vermoegen < w.Daten.Logistik.Karren[_karrenTypen[Math.Max(0, _karrenTyp.Selected)]].Preis;
+        _kaufenKnopf.TooltipText = grenze ?? (w.Daten.Logistik.HoechstKarren(b.Ort) is { } n ? $"Höchstens {n} Karren je Betrieb {(b.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")}." : "");
         _handelKnopf.Visible = w.Daten.Handel is not null && b.Karren.Count > 0;
     }
 
@@ -486,13 +489,23 @@ public partial class BetriebsVerwaltung : VBoxContainer
         if (g.Vorjahr(b) is { } vorjahr) zeilen.Add($"Vorjahr: {Buch(vorjahr)}");
         zeilen.Add($"Ausschank (je {d.Vorrat} bleiben für die Gäste im Lager): {string.Join(" · ", ausschank)}");
         zeilen.Add($"Erwartet ≈ {Zahlenformat.Ganz(g.ErwarteteGaeste(b))} Gäste im Jahr bei der heutigen Konkurrenz.");
+        // Sitzplätze (Kern: Gastwirtschaft.Platzbelegung) und wer heute keinen Platz fand (Gästebuch: Voll, davon Ausgefallen) – ein Spieljahr ist ein Spieltag
+        if (g.Platzbelegung(b) is { } plaetze)
+        {
+            var zeile = $"Plätze: {plaetze.Belegt} belegt / {plaetze.Frei} frei (von {plaetze.Plaetze})";
+            if (jetzt.Voll > 0)
+                zeile += $" · heute kein Platz: {jetzt.Voll}" + (jetzt.Ausgefallen > 0 ? $" (davon {jetzt.Ausgefallen} ohne Platz in der ganzen Stadt)" : "");
+            zeilen.Add(zeile);
+        }
         zeilen.Add(g.HatStammtisch(b)
             ? $"Stammtisch: Am Jahresende +{Zahlenformat.Ganz(d.Stammtisch.Gunst)} Meinung bei jedem Ratsherrn (mit Barde ×{Zahlenformat.Ganz(d.Barde.Stammtisch)}) – ohne Bestechung."
             : $"Stammtisch ab Stufe {d.Stammtisch.AbStufe} (Gasthaus).");
         zeilen.Add($"Dunkle Ecke: Am Gerichtstag hört ihr Gerüchte über andere Häuser ({Zahlenformat.Ganz(d.DunkleEcke.Chance * 100)} % je Tat).");
         var text = string.Join("\n", zeilen);
         if (_gaesteText.Text != text) _gaesteText.Text = text;
-        _gaesteText.TooltipText = "Die Gastwirtschaft: Gäste kommen nach Lage und Konkurrenz und trinken, was der Ausschank bietet; Buchführung des laufenden Jahres und des Vorjahrs.";
+        _gaesteText.TooltipText = "Die Gastwirtschaft: Gäste kommen nach Lage und Konkurrenz und trinken, was der Ausschank bietet; Buchführung des laufenden Jahres und des Vorjahrs.\n" +
+                                  "Plätze: So viele Gäste passen gleichzeitig in die Schänke; „belegt“ ist die Schätzung für die laufende Stunde. " +
+                                  "Kein Platz: Gäste, die heute hier keinen Platz fanden und in eine andere Schänke gingen oder ganz ausblieben – mehr Platz gibt es mit dem Ausbau.";
 
         var gebucht = g.BardeGebucht(b);
         var knopf = gebucht ? "Barde spielt heute Abend ♪" : $"Barde einladen ({Zahlenformat.Ganz(d.Barde.Kosten)} {waehrung})";

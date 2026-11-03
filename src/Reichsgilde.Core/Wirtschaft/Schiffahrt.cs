@@ -26,7 +26,7 @@ public sealed record Hafenplatz(string Kennung, string Name, Kartenort Liegeplat
 ///   • In der fernen Stadt: alles verkaufen, die Rückfracht kaufen, so weit das Geld reicht; dann die Liegezeit.
 ///   • Daheim: Die Rückfracht geht ins Lager des Betriebs (was nicht passt, auf den Markt) oder ohne Betrieb auf den Markt.
 ///   • Zum Jahresende: Unterhalt je Schiff (Fixkosten).
-/// Das Wetter wirkt nicht (Entscheidung zu PR #195). Im strengen Winter friert der Fluss zu (Datenversion 67, <see cref="Jahreszeitenwesen"/>): Dann nimmt
+/// Das Wetter wirkt nicht (Entscheidung zu PR #195). Im strengen Winter friert der Fluss zu (Datenversion 69, <see cref="Jahreszeitenwesen"/>): Dann nimmt
 /// der Hafen keine Aufträge an, und jedes Schiff, das nicht am Kai liegt, ruht – seine Zeiten rücken Minute für Minute mit.
 /// </summary>
 public sealed class Schiffahrt

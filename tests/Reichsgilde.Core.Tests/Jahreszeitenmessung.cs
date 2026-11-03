@@ -7,7 +7,7 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  Jahreszeitenmessung – Folgen der Jahreszeiten (Messung, kein Test; Datenversion 67)
+//  Jahreszeitenmessung – Folgen der Jahreszeiten (Messung, kein Test; Datenversion 69)
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen jahreszeiten [Jahre] [Startwerte]
 //                [--karten=greybox,koeln] [--parallel=n] [--ohne-jahreszeiten] [--ohne-vorrat] [--beruf=Schmied|Wirt|Ausbau]
@@ -23,7 +23,7 @@ using Reichsgilde.Core.Zeit;
 //  mit Preis (Ladung des Karrens, wenn er vom Markt abfährt; Preis zur Minute des Kaufs), hergestellte Waren, Arbeiterstunden je Ware, Stufe, Schiffe
 //  und Schiffskäufe; die Fahrten aller Schiffe nach Jahreszeit, Ziel, Stunde, Eis und Festmarkt (erwarteter Gewinn der KI gegen Ertrag) und je Jahr
 //  Reinvermögen, Umsatz, Gewinn, Stufe und Stand des Spielers. --ohne-schiffe spielt ohne Schiffshandel (Abschnitt „schiffshandel“ fehlt).
-//  --ohne-jahreszeiten nimmt den Abschnitt „jahreszeiten“ aus den Daten (Rechnung wie bis Datenversion 66 = Stand der Schänken). Ändert keinen Wert.
+//  --ohne-jahreszeiten nimmt den Abschnitt „jahreszeiten“ aus den Daten (Rechnung wie bis Datenversion 68 = Stand von main ohne diesen PR). Ändert keinen Wert.
 // ═════════════════════════════════════════════════════════════════════════════
 
 static class Jahreszeitenmessung

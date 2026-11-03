@@ -54,7 +54,7 @@ public sealed class Marktstand
 
     /// <summary>
     /// Faktor der Jahreszeit auf die Grundversorgung (1 = wie in den Daten; Herbst: die Ernte bringt mehr Gerste, Roggen, Kräuter). Setzt das
-    /// <see cref="Jahreszeitenwesen"/> (Datenversion 67).
+    /// <see cref="Jahreszeitenwesen"/> (Datenversion 69).
     /// </summary>
     public double Angebotsfaktor { get; internal set; } = 1;
 
@@ -74,7 +74,7 @@ public sealed class Marktstand
 
     /// <summary>
     /// Faktor der Jahreszeit und des Festmarkts auf die Nachfrage (1 = wie in den Daten; Winter: Brennholz, Kerzen; Festmarkt: Fertigwaren).
-    /// Setzt das <see cref="Jahreszeitenwesen"/> (Datenversion 67).
+    /// Setzt das <see cref="Jahreszeitenwesen"/> (Datenversion 69).
     /// </summary>
     public double Jahreszeitfaktor { get; internal set; } = 1;
 

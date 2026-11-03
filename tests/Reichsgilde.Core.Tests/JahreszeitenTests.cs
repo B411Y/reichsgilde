@@ -7,9 +7,9 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 /// <summary>
-/// Tests: Folgen der Jahreszeiten für die Wirtschaft (Abschnitt „jahreszeiten“, Datenversion 67; Nutzer 31.10.2026, Weg B) – Winter mit Nachfrage
+/// Tests: Folgen der Jahreszeiten für die Wirtschaft (Abschnitt „jahreszeiten“, Datenversion 69; Nutzer 31.10.2026, Weg B) – Winter mit Nachfrage
 /// und langsamer Arbeit im Freien, strenger Winter mit Eis auf dem Fluss (Hafen und Fähre zu, die Schiffe ruhen), Ernte im Herbst, Schlamm im
-/// Frühling (auch im Zeitfaktor, nach dem das Bild fährt), Festmärkte, Meldungen; ohne Abschnitt bleibt alles wie bis Datenversion 66.
+/// Frühling (auch im Zeitfaktor, nach dem das Bild fährt), Festmärkte, Meldungen; ohne Abschnitt bleibt alles wie bis Datenversion 68.
 /// </summary>
 static class JahreszeitenTests
 {
@@ -63,7 +63,7 @@ static class JahreszeitenTests
     {
         ("Jahreszeiten: Daten werden geprüft (Ware, Betriebsart, Belag, Stunden, Überschneidung der Festmärkte)", () =>
         {
-            Pruefe.Wahr(Daten.Value.Jahreszeiten is not null && Daten.Value.Version >= 67, "Abschnitt ab Datenversion 67");
+            Pruefe.Wahr(Daten.Value.Jahreszeiten is not null && Daten.Value.Version >= 69, "Abschnitt ab Datenversion 69");
             string Kaputt(string alt, string neu)
             {
                 Pruefe.Wahr(Json.Value.Contains(alt), $"„{alt}“ steht nicht in wirtschaft.json");

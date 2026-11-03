@@ -19,7 +19,7 @@ public sealed record Winterlage(int Jahr, double Kaelte, bool Streng, int Zufrie
 }
 
 /// <summary>
-/// Die Folgen der Jahreszeit für die Wirtschaft (Abschnitt „jahreszeiten“, Datenversion 67; Nutzer 31.10.2026, Weg B). Jedes Spieljahr hat eine
+/// Die Folgen der Jahreszeit für die Wirtschaft (Abschnitt „jahreszeiten“, Datenversion 69; Nutzer 31.10.2026, Weg B). Jedes Spieljahr hat eine
 /// Jahreszeit (<see cref="Spielzeit.Jahreszeit"/>), und sie gilt das ganze Jahr:
 ///   • <b>Winter:</b> mehr Nachfrage nach Brennholz, Kerzen und Schnaps; Arbeit im Freien (Holzschlag, Steinbruch, Höfe, Gärten) langsamer. In einem
 ///     <b>strengen Winter</b> (gewürfelt, <see cref="Winterlage"/>) wächst die Nachfrage noch einmal, und der Fluss friert für einige Stunden zu:

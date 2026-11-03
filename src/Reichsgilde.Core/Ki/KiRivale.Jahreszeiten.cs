@@ -4,7 +4,7 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde.Core.Ki;
 
 /// <summary>
-/// Die KI-Häuser und die Jahreszeit (Datenversion 67): kein Schiffshandel bei Eis und Vorrat vor dem Winter. Beides liest nur, was auch der Spieler
+/// Die KI-Häuser und die Jahreszeit (Datenversion 69): kein Schiffshandel bei Eis und Vorrat vor dem Winter. Beides liest nur, was auch der Spieler
 /// weiß – die Jahreszeit, den angekündigten strengen Winter (die Meldung zum Jahresbeginn nennt die Stunde, zu der der Fluss zufriert), die Daten.
 /// </summary>
 public sealed partial class KiRivale

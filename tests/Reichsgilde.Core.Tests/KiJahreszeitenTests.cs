@@ -6,7 +6,7 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 /// <summary>
-/// Tests: Die KI-Häuser und die Jahreszeit (Datenversion 67) – im strengen Winter kein Schiff mehr auf den Fluss (schon bevor er zufriert, die
+/// Tests: Die KI-Häuser und die Jahreszeit (Datenversion 69) – im strengen Winter kein Schiff mehr auf den Fluss (schon bevor er zufriert, die
 /// Meldung zum Jahresbeginn sagt es an), und im späten Herbst füllt der Verwalter die Zutaten, die im Winter teurer werden oder mit der Ernte billig
 /// sind, bis zur Lagergrenze auf.
 /// </summary>

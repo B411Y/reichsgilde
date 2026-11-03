@@ -17,10 +17,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Abfrage für den Kauf von Einrichtung (PR #177): `Werkstattwesen.ErwarteterMehrgewinnJeJahr(Betrieb, kennung)` und `Amortisationsjahre(…)`; Eisentür und Löschfass bringen nur etwas nach Raub bzw. Brand im Vorjahr (`Betriebsrechnung.Raub`, `Brandschaden`). Seit PR #177 holt ein Einbruch beim Geldleiher Geld aus der Kasse – `Unterwelt.ErwarteterGewinn` und `Diebeswesen.ErwarteterEinbruch` rechnen es schon mit.
 - (von Kern) Teure Ware im Lager schützen (PR #232): Seit der Giftdolch einen Dolch des Schmieds braucht (≈ 170 Gulden je Stück), räumen die Diebe der KI-Häuser das Lager einer Siederei nachts aus (Startwert 202: fünf Einbrüche in zwei Nächten, 42 Dolche ≈ 8.800 Gulden, danach Bankrott). Die KI sollte Eisentür und Wächter nach dem Lagerwert kaufen bzw. einstellen, nicht erst nach einem Angriff (gilt auch für Gold, Goldketten, Prunkwaren).
 - Mittagsandrang in der Schänke (PR #274): Um 12 Uhr, der ersten Stunde mit Einkehren, gehen fast alle Einwohner zugleich hin (bis 107 von 123 in der einen Schänke), abends um 21:45 bis 84. Eine Kapazität für Einwohner gibt es nicht. Designfrage beim Teamleiter, Empfehlung: Sitzplätze je Schänke nach Stufe im Abschnitt `buerger` (im Verhältnis von `anziehungJeStufe`, etwa 20/30/40); wer keinen Platz bekommt, nimmt die nächstbeste Handlung (mittags Arbeit, abends daheim); ohne Eintrag unbegrenzt wie heute. Vorher messen, wie sich die Gäste auf mehrere Schänken verteilen. Nur den Mittag zu dämpfen, verschiebt den Andrang auf 18 Uhr.
-- Einwarige Umlandbetriebe (Holzschlag, Lager 40 Holz): Auch mit drei Kriegskarren stehen die Kölner Holzschläge noch etwa 20 % still (gemessen 12–28 %), weil das Lager vor jeder Abfahrt voll ist und die Karren dicht hintereinander fahren. Mehr bringt nur ein vierter Karren (`KiProfil.MaxKarrenJeBetrieb`, nur für neue Partien) oder die Nachtfahrt (Torgeld, doppeltes Überfallrisiko). Designfrage, erst nach dem Merge messen.
-- Die Gewinnschätzung beim Kauf oder Bau eines Betriebs (`Kalkulation.ErwarteterJahresgewinn`, `Expandieren`) kennt den Weg nicht: Ein freier Umlandbetrieb am Rand der Karte gilt so viel wie einer am Tor (Prüfung phase5/gehtempo, niedrig). Mit weiteren Städten wichtiger.
 - Die Schätzung „Stillstand vorher ^ (Durchfluss nachher ÷ vorher)“ ist im ersten Jahr zu optimistisch: Die Prüfung sah in Köln nach dem ersten Kauf 7–12 % geschätzt und 14–41 % im Folgejahr gemessen (Grube 18 %, Bauernhof 41 %) – das erste Jahr hat Anlaufverluste (leere Karren, Lager füllt sich). Die KI kauft dann im Jahr darauf nach; schlimmstenfalls einen Karren zu spät. Bei Gelegenheit das erste Jahr eines Betriebs nicht als Eichung nehmen.
-- (von Kern) Sitzplätze der Schänken (Datenversion 66): Die Einwohner finden in einer Schänke höchstens ⌈Plätze × Einwohner ÷ 17⌉ Plätze (`Gastwirtschaft.EinwohnerPlaetze`, `Einwohnerschaft.Quote` mit Grenze, Ersatzhandlung, Stillen nach der Verteilung; `OhneSchankplatz`). Entscheidung des Nutzers vom 2.11.2026; mit 17 und mindestens 20 Plätzen ist die Grenze immer größer als die Einwohnerzahl, greift also nie – die Kopplung wirkt wie bisher. Zur Kenntnis, nichts zu tun.
+- (von Kern) Sitzplätze der Schänken (Datenversion 67): Die Einwohner finden in einer Schänke höchstens ⌈Plätze × Einwohner ÷ 17⌉ Plätze (`Gastwirtschaft.EinwohnerPlaetze`, `Einwohnerschaft.Quote` mit Grenze, Ersatzhandlung, Stillen nach der Verteilung; `OhneSchankplatz`). Entscheidung des Nutzers vom 2.11.2026; mit 17 und mindestens 20 Plätzen ist die Grenze immer größer als die Einwohnerzahl, greift also nie – die Kopplung wirkt wie bisher. Zur Kenntnis, nichts zu tun.
 
 ## Entscheidungen
 
@@ -90,6 +88,24 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bauort | `WerkstattBauen` ordnet die Bauorte wie bisher nach Luftlinie zum nächsten Platz und nimmt unter den ersten `StandortKandidaten` (20) den mit der kürzesten Fahrt des Startkarrens hin und zurück, bei Gleichstand den näheren (`KiRivale.Standort.cs`); ohne Fahrzeit nach Weglänge den ersten. Eine Schätzung über das Netz ab der Mitte des Grundrisses taugte nicht: Die Drehung bestimmt Hof und Zubringer (Greybox #2: geschätzt 45, wirklich 126 min). Deshalb fragt die KI die Kern-Abfrage `Stadtwirtschaft.FahrzeitAmBauort` (vorher eine eigene Kopie der Strecke, beim Zusammenführen in phase5/gehtempo ersetzt); `KiStandortTests` baut an fünf Orten (Greybox, Köln über das Pflaster) und vergleicht mit `Stadtwirtschaft.Fahrzeit`. In Köln ist der erste nach Luftlinie schon der beste. Der bestehende Test „baut neu – nahe am Markt“ prüft jetzt „unter den 20 nächsten“. | 01.11.2026 |
 | Tests | `KiKarrenwahlTests` (Durchfluss nach Lager und Fahrzeit, Formel, Holzschlag bekommt das Pferd, Tausch am Bauernhof, Warten auf den Karren, Sperre, Kölner Jahr mit Tausch im Lauf des Jahres, Tausch erst in der Frist, Höchstdauer: Ochse statt Pferd, Geld, alte Daten mit einem Kölner Jahr, ein Kölner Jahr „Schwer“), `KiStandortTests` (Schätzung = Kern, Greybox baut am schnellsten der nächsten, alte Daten nach Luftlinie). | 01.11.2026 |
 
+### Umland nach dem Karrenweg (PR #286)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Befund | Seit dem Gehtempo lagen die KI-Häuser in Köln 11–13 % unter dem alten main. Fast der ganze Verlust kam aus dem Umland (Teil 5, Normal, je KI-Haus in 20 Jahren 32.971 → 26.510 Gulden; Startwerkstätten −1.650, Neubauten +1.155): Die Fahrten dauern 263 statt 116 Minuten, die Holzschläge (nur Holz, Lager 40) stehen trotz drei Karren 24–28 % still, und die KI pachtete Liegenschaften ohne Blick auf den Weg – den Holzschlag im Eichenforst an der Höchstdauer (360 Minuten, 54 % Stillstand, 75 Gulden im Jahr), den Kräutergarten am Bach (325 Minuten, 25 %). | 1.11.2026 |
+| Pachten nach dem Weg | `Expandieren` (jetzt über `Expansionskandidaten`) rechnet eine freie Umland-Liegenschaft mit `NachDemWeg` (`KiRivale.Umland.cs`): Gewinn − (1 − Anteil) × Wert der vollen Förderung; die Karren, die der Weg über den Startkarren hinaus verlangt, zählen zu den Kosten (Preis der Art mit dem meisten Durchfluss, bei Gleichstand – etwa an der Höchstdauer – der billigeren, wie beim Karrenkauf; Befund M1 der Prüfung). Der Holzschlag im Eichenforst (drei Ochsen, Anteil 0,37, ≈ 175 statt 1.878 Gulden im Jahr) bleibt so nur noch letzter Kandidat. `Anteil = min(1, Karren × Durchfluss × FahrminutenJeKarrenUndJahr ÷ Förderung)` mit höchstens `MaxKarrenJeBetrieb` Karren dieser Art; Durchfluss wie beim Karrenkauf (Ladung ÷ Fahrzeit hin und zurück), Förderung mit der besten Arbeitskraft und Ware wie `Kalkulation.ErwarteterJahresgewinn`. Werkstätten und Neubauten bleiben wie bisher (deren Ort wählt `Bauort`). | 1.11.2026 |
+| Fahrzeit der Liegenschaft | Dieselbe Strecke, die der Kern nach der Pacht rechnet: `Stadtwirtschaft.StreckeWieImBild` ab `Bauen.PlatzVon(Name)`, Fahrzeit mit `FahrzeitenAuf` (Belag, Steigung, Furten, Mindest- und Höchstdauer). Die Strecke merkt sich die KI je Liegenschaft (die Karte ändert sich nicht; der Belag zählt jedes Mal neu) – nicht im Spielstand, nach dem Laden gleich neu gerechnet. Ohne `logistik.weglaenge`, Karte oder Weg die alte Schätzung. | 1.11.2026 |
+| Eichung | `FahrminutenJeKarrenUndJahr` = 600: So viele Minuten fährt ein Umlandkarren im Mittel im Jahr (der Rest ist Warten aufs Laden, vor dem Tor, hinter dem Karren davor). Geeicht an den Kölner Liegenschaften auf main ec36ff33 (Mittel über die Jahre): gemessen weggebracht (1 − Stillstand, Teil 5 Normal, 20 Startwerte) Eichenforst 46 %, Holzschlag Hardevust 72 %, Kräutergarten am Bach 75 %, Felsenhang 87 %; geschätzt 37, 79, 76, 83 %. Mit 420 (aus der Rechnung mit Tempo 1) war die Schätzung zu streng. Eine Konstante der KI, kein Wert in `wirtschaft.json`. | 1.11.2026 |
+| Vorarbeiter mit Lager | Im Umland ab `StillstandFuerKarrenkauf` Stillstand (Fahrzeit nach Weglänge) bewertet `EigenschaftWert` die Eigenschaft „Ordnungsliebend“ (+20 Lager je Ware) wie einen Karrenkauf: Durchfluss mit dem größeren Lager, `Stillstand nachher = vorher ^ (Fluss nachher ÷ vorher)`, × Wert eines vollen Arbeitsjahres; andere Eigenschaften × (1 − Stillstand), weil mehr Förderung nur hilft, wo sie auch weggefahren wird. Der Kern bewertet Lager mit 0, die KI wählte es deshalb nie, solange eine andere der drei Eigenschaften Gulden brachte. Am Holzschlag fasst ein Kriegskarren dann 60 statt 40. Werkstätten wie bisher. | 1.11.2026 |
+| Tests | `KiUmlandTests`: Fahrzeit der Liegenschaft = Kern nach der Pacht (vier Kölner Liegenschaften, alle Karrenarten); Schätzung (Silberberg voll, Eichenforst 0,3–0,45, Kräutergarten am Bach 0,6–0,9, Karren und Kosten); in Köln steht der Eichenforst höchstens als letzter Kandidat (Kosten 2 Ochsen), der nähere Holzschlag weit davor; alte Daten wie bisher; Vorarbeiter im gebremsten Holzschlag (ein Jahr „Schwer“) wählt Lager. | 1.11.2026 |
+
+### Karren-Höchstzahl (PR #286)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel der KI | `KiRivale.MaxKarren(ort)` = Grenze des Kerns, ohne sie das Profil (3). Den vierten und fünften Karren kauft die KI wie jeden: zum Jahresende ab 20 % Stillstand, wenn er sich in der Frist bezahlt macht (`BesterKarrenplan`); getauscht wird erst an der Grenze von 5. Die Schätzung beim Pachten (`UmlandSchaetzen`) rechnet weiter mit höchstens 3 Karren (Profil), auch wo der Kern 5 erlaubt – mit 5 pachtete die KI den Eichenforst wieder (Befund H1 der Prüfung, Messung unten). | 2.11.2026 |
+| Alte Regel | Ohne Fahrzeit nach Weglänge (keine Karte, kein Weg) kauft die KI wie bisher Ochsen- bzw. Handkarren ohne Amortisation und höchstens bis zur Grenze des Profils (3), auch wenn der Kern 5 erlaubt (Befund N2 der Prüfung). | 2.11.2026 |
+
 ### Jahreszeiten (PR #…, von kern gebaut)
 
 | Thema | Entscheidung | Datum |
@@ -100,154 +116,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
-
-### KI-Häuser im Rat (PR #73)
-
-Gemessen auf main `89a6c68` + PR #73, `messen 30 20`, Spieler Mensch (passiv). Vermögen Ø am Ende, in Klammern „am Ende Bürgermeister“:
-
-| KI-Charakter | Eisenbart | Eichwald | Kieselbach |
-|---|---|---|---|
-| vorsichtig, main | 156.684 | 141.408 (10/20) | 175.356 (7/20) |
-| vorsichtig, jetzt | 156.684 | 141.408 (10/20) | 175.356 (7/20) |
-| ausgewogen, main | 170.235 | 101.958 (4/20) | 152.002 (9/20) |
-| ausgewogen, jetzt | 170.263 | 102.775 (4/20) | 151.742 (9/20) |
-| wagemutig, main | 93.172 | 60.590 (3/20) | 77.700 (3/20) |
-| wagemutig, jetzt | 91.843 | 60.133 (2/20) | 75.793 (3/20) |
-
-Amtswechsel im Rat (20 Startwerte × 30 Jahre): vorsichtig 392 → 392, ausgewogen 457 → 465, wagemutig 430 → 444; Bürgermeisterwechsel gleich (25 / 34 / 40). Die Wirkung ist klein, weil im Mittel nur 1,6–2 der 7 Sitze bei Häusern liegen und die Ratsherren die Wahl entscheiden – und weil der Spieler in der Messung sich nie bewirbt. Spürbar wird es, wenn der Spieler gegen einen KI-Amtsinhaber antritt: Ausgewogene und wagemutige KI-Häuser stimmen dann für ihn, solange er ärmer ist als der Amtsinhaber bzw. nicht führt. Rechenzeit unverändert (19–20 s).
-
-### Wohnhaus und Sparen (PR #82)
-
-Gemessen auf main `fa43221` + PR #82, je Charakter 20 Partien × 30 Jahre, alle drei KI-Häuser (60 Häuser je Zeile), Stand am Ende:
-
-| KI-Charakter | main | mit PR #82 |
-|---|---|---|
-| Vorsichtig | Edler 11, Freiherr 49 – Rein Ø 115.378 | Edler 11, Freiherr 49 – Rein Ø 119.017 |
-| Ausgewogen | Edler 24, Freiherr 36 – Rein Ø 100.814 | Edler 20, Freiherr 40 – Rein Ø 111.218 |
-| Wagemutig | Edler 56, Freiherr 4 – Rein Ø 58.282 | Edler 57, Freiherr 3 – Rein Ø 63.944 |
-
-`messen 30 20` (ausgewogen): Eichwald Ø 77.487 → 98.916, Kieselbach Ø 101.048 → 107.109, Spieler Ø 123.907 → 127.631; Geschenke an Ratsherren Ø 1.025 → 847. Wagemutige Häuser bleiben meist Edler, weil sie zu wenig verdienen (Rein Ø 64.000, Freiherr braucht 100.000 + Hof 25.000) – keine Falle mehr, sondern Charakter: Gaunerei und Kerker kosten.
-### Wegzeiten der Einwohner (PR #80)
-
-Gemessen auf main `00c0cd3` + PR #80: `messen 30 20` (ausgewogen, wagemutig) **zeichengleich** mit main – Wegzeiten wirken nur über die Passanten auf die Taschendiebe. Spieler als Dieb (20 × 30 Jahre): Beute Ø 713 statt 716 Gulden im Jahr – das Übliche je Uhrzeit passt sich an, mehr Passanten unterwegs heißt nicht mehr Beute.
-
-### KI-Häuser handeln nicht von Hand (PR #86)
-
-Probeweise gebaut (nicht übernommen): Eigene Ware zurückhalten unter 70/80/90 % des Grundpreises (vorsichtig/ausgewogen/wagemutig), freigeben 10 Punkte darüber oder ab 75/90 % Lagerfüllung. Gemessen auf main `2cd3222`, je Charakter 20 Partien × 30 Jahre, 60 KI-Häuser, Reinvermögen Ø am Ende:
-
-| KI-Charakter | ohne Zurückhalten | mit Zurückhalten |
-|---|---|---|
-| Vorsichtig | 119.017 | 119.014 |
-| Ausgewogen | 111.218 | 108.483 (−2,5 %) |
-| Wagemutig | 63.944 | 61.444 (−4 %) |
-
-Schwellen-Versuch (ausgewogen): unter 50–70 % wird nie zurückgehalten (Preis fällt nicht so tief), unter 80 % −0,7 bis −1,5 %. Preissturz durch den Spieler (6 Stunden lang je 100 Stück jeder KI-Ware, Jahr 5–7, 20 Partien): Zuwachs der KI mit und ohne Zurückhalten unter 70 % gleich (14.031), unter 80 % weniger (13.797).
-
-### Warenkorb je Volk und Rolle (PR #91)
-
-Faktoren in der Standardstadt (Startwert 101, Jahr 2), je Gruppe von günstig nach teuer: Schmiedewaren 1,07 … 0,96; Holzwaren 1,03 … 0,93; Steinwaren 1,07 … 0,96; Arzneien 1,02 … 0,92 (Kräuterschnaps 1,02); Speis und Trank 1,06 … 0,96; Kirchenbedarf 1,10 … 1,03; Duftwaren 1,02 … 0,92. Erste Fassung (Preisklassen ×1,5/×0,5) drückte alles an die Grenzen ±10 % – das Volk war nicht mehr zu sehen.
-
-`messen 30 20`, gemessen auf main `4f8cf6d` + PR #91, Vermögen Ø am Ende:
-
-| Haus | main | mit Warenkorb |
-|---|---|---|
-| Spieler Eisenbart (Schmied, passiv) | 174.720 | 170.059 (−3 %) |
-| Eichwald (Tischler, KI) | 106.067 | 96.175 (−9 %) |
-| Kieselbach (Steinmetz, KI) | 144.125 | 138.788 (−4 %) |
-
-Alle verlieren etwas, weil späte Werkstätten vor allem teure Waren herstellen und die Einkaufenden meist arm sind. Kern-Test „Zwei Gießereien teilen sich den Silberring-Markt“: 611 → 649 (+6 %, Silberring ist günstige Schmiedeware).
-
-### KI kauft Leerstand, baut neu und verkauft Betriebe (PR #108)
-
-Gemessen auf main `5e62a04` + PR #108, `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre, je drei KI-Häuser (60 Häuser). Neu: `messen … greybox` spielt mit der Greybox-Karte und zählt, was die KI-Häuser bauen und verkaufen, dazu ihren Stand am Ende. Vorher = Funktions-Branch mit der Kern-Arbeit, ohne die KI-Änderungen (Köln dort zeichengleich mit main).
-
-| Messung | Eisenbart Ø | Eichwald Ø | Kieselbach Ø | Stand am Ende (60 Häuser) | gebaut, gekauft, verkauft (Summe) |
-|---|---|---|---|---|---|
-| Köln, ausgewogen, vorher | 170.059 | 96.175 | 138.788 | Edler 3, Freiherr 56, Reichsgraf 1 | – |
-| Köln, ausgewogen, jetzt | 170.396 | 97.581 | 138.144 | Edler 3, Freiherr 56, Reichsgraf 1 | 3 Betriebe nach Verlustjahren verkauft |
-| Greybox, ausgewogen, vorher | 194.271 | 115.357 | 161.676 | **Patrizier 60** (hängen am Steinhaus) | – |
-| Greybox, ausgewogen, jetzt | 169.601 | 98.870 | 139.748 | Edler 4, Freiherr 55, Reichsgraf 1 | 60 Stadtpalais, 59 Stadthöfe neu gebaut; 3 Verlustverkäufe |
-| Greybox, vorsichtig, vorher | 172.903 | 153.120 | 189.260 | Patrizier 60 | – |
-| Greybox, vorsichtig, jetzt | 149.077 | 127.752 | 168.396 | Freiherr 57, Reichsgraf 3 | 60 Stadtpalais, 60 Stadthöfe |
-| Greybox, wagemutig, vorher | 111.611 | 70.712 | 78.944 | Patrizier 60 | – |
-| Greybox, wagemutig, jetzt | 93.400 | 64.666 | 76.592 | Edler 39, Freiherr 21 | 60 Stadtpalais, 42 Stadthöfe; 2 Verlustverkäufe |
-
-- **Greybox:** Vorher blieben alle KI-Häuser Patrizier, weil der Ausbau zum Stadtpalais abgelehnt wird; ihr Vermögen war höher, weil sie keine Standesgebühren und keinen größeren Unterhalt zahlten. Jetzt kommen sie so weit wie in Köln (ausgewogen: Edler 4 / Freiherr 55 / Reichsgraf 1 gegen 3 / 56 / 1).
-- **Leerstand** kaufte in den Messungen kein KI-Haus: Kein KI-Haus geht bankrott, und der bankrotte passive Spieler hinterlässt nur ein Fachwerkhaus. **Werkstätten** baute die KI nie neu – es gab immer freie, und bei gleichem Preis gewinnt der Kauf (Baujahr). Beides prüfen die Tests (`KiBauenTests`).
-- **Verkäufe** sind selten (2–3 in 600 Hausjahren), **Notverkäufe** gab es keine (kein KI-Haus kam in Not; Test `KiVerkaufTests`). Die erste Fassung ohne Lagerwert verkaufte 19 Werkstätten, meist die ausgebauten Hauptwerkstätten, und kostete Haus Eisenbart Ø 11.000 Gulden.
-- Rechenzeit der Messung: Köln 38 s, Greybox 43 s – die Bauortsuche fällt nicht ins Gewicht.
-
-### Gaunerstücke gegen Wohnhäuser (PR #119)
-
-Gemessen auf main `5db3ab6` + PR #119 (bis main `cd00f6d` kamen nur Modelle dazu), `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre. Neu in der Messung: die Zeile „Banden der KI je Art und Ziel“ (Summe über alle Partien).
-
-| Messung | Eisenbart Ø | Eichwald Ø | Kieselbach Ø | Banden der KI (Summe) |
-|---|---|---|---|---|
-| Köln, ausgewogen, vorher | 170.396 | 97.581 | 138.144 | Diebstahl 420 |
-| Köln, ausgewogen, jetzt | 158.436 | 97.265 | 137.862 | Diebstahl 342, Einbruch 137 |
-| Köln, wagemutig, vorher | 101.867 | 67.902 | 74.040 | Diebstahl 869, Sabotage 1 |
-| Köln, wagemutig, jetzt | 89.015 | 57.458 | 77.743 | Diebstahl 636, Einbruch 280, Brand 52 |
-| Greybox, ausgewogen, vorher | 169.601 | 98.870 | 139.748 | – |
-| Greybox, ausgewogen, jetzt | 157.689 | 96.805 | 138.480 | – |
-
-- **Ausgewogen:** Eichwald und Kieselbach brechen bei Eisenbart ein (72-mal in 20 Partien), Eichwald auch bei Kieselbach (64-mal), meist statt eines Diebstahls. Eisenbart, das führende Haus und damit das Ziel, verliert im Schnitt **7 %**; der Einbruch holt bei Stadthof und Palais bis 1.500 bzw. 1.200 Gulden, mehr als ein Diebstahl. Die anderen beiden bleiben gleich (was sie erbeuten, verlieren sie an den Einbrüchen gegeneinander). Ein Startwert (1818) fällt aus der Reihe: 160.646 → 94.416; ohne ihn sind es −5 %.
-- **Wagemutig:** 52 Brände, 39 davon am Stadthof von Eisenbart (Reparatur 5.000, gelingt halb so oft). Eisenbart verliert 13 %, Eichwald 15 %, Kieselbach gewinnt 5 %.
-- **Spieler:** Der passive Spieler bleibt im Fachwerkhaus, wo sich kein Einbruch lohnt – Raub und Schäden bei ihm unverändert (Ø 369). Bürgermeister wird Eisenbart etwas später (Ø Jahr 14,7 statt 13,6).
-- Kerkerjahre der KI weiter 0, kein KI-Haus bankrott.
-
-
-### Verlustjahre, Notverkauf und Sparziel (PR #123)
-
-Gemessen auf main `cd6a466` + PR #123, `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre. Neu in der Messung: die Zeile „Sparjahre der KI“ (Jahre, in denen ein KI-Haus zum Jahresende spart, Ø je Partie, und die längste Folge in einer Partie).
-
-| Messung | Ergebnis main = PR | Sparjahre Ø (längste Folge) |
-|---|---|---|
-| Köln, ausgewogen | Eisenbart 158.436, Eichwald 97.265, Kieselbach 137.862; Edler 5, Freiherr 55 | Eisenbart 6,0 (3), Eichwald 5,0 (4), Kieselbach 5,0 (3) |
-| Köln, wagemutig | Eisenbart 89.015, Eichwald 57.458, Kieselbach 77.743; Edler 34, Freiherr 26; 2 Verkäufe nach Verlustjahren | Eisenbart 4,5 (5), Eichwald 2,2 (3), Kieselbach 3,0 (3) |
-| Greybox, ausgewogen | Eisenbart 157.689, Eichwald 96.805, Kieselbach 138.480; Edler 6, Freiherr 54 | Eisenbart 8,2 (3), Eichwald 6,4 (4), Kieselbach 6,2 (3) |
-
-- **Gleich auf die Zahl:** In den Messungen steht kein KI-Betrieb ein Viertel des Jahres ohne Personal, und kein Haus kommt in Not. Die neuen Regeln greifen nur im Ausnahmefall (die Tests in `KiVerkaufTests` zeigen ihn).
-- **Sparziel:** Kein Haus spart länger als 5 Jahre in Folge; danach steigt es auf oder baut. Die längste Folge hat die wagemutige Eisenbart-KI vor dem Freiherrn (100.000 und ein Stadthof). Die Sparlogik passt also zur Schwelle als Ziel.
-
-### Warenkorb ohne Abneigung (PR #127)
-
-Gemessen auf main `1209ff2` + PR #127, `messen 30 20` (Spieler Mensch, passiv), 20 Partien × 30 Jahre. „Ohne Warenkorb“ = `buerger.warenkorb.spanne` 0 zum Vergleich. Vermögen Ø am Ende, in Klammern gegen „ohne Warenkorb“:
-
-| Messung | Haus | ohne Warenkorb | bisher | ohne Abneigung |
-|---|---|---|---|---|
-| Köln, ausgewogen | Eisenbart (Spieler) | 167.673 | 158.436 (−5,5 %) | 163.070 (−2,7 %) |
-| | Eichwald | 103.416 | 97.265 (−5,9 %) | 97.608 (−5,6 %) |
-| | Kieselbach | 142.722 | 137.862 (−3,4 %) | 141.735 (−0,7 %) |
-| Köln, wagemutig | Eisenbart (Spieler) | 91.270 | 89.015 (−2,5 %) | 90.307 (−1,1 %) |
-| | Eichwald | 67.801 | 57.458 (−15,3 %) | 59.696 (−12,0 %) |
-| | Kieselbach | 67.581 | 77.743 (+15,0 %) | 67.650 (+0,1 %) |
-| Greybox, ausgewogen | Eisenbart (Spieler) | 168.691 | 157.689 (−6,5 %) | 162.635 (−3,6 %) |
-| | Eichwald | 104.280 | 96.805 (−7,2 %) | 97.509 (−6,5 %) |
-| | Kieselbach | 143.029 | 138.480 (−3,2 %) | 142.891 (−0,1 %) |
-
-- Eisenbart und Kieselbach verlieren nur noch 0–4 %. **Eichwald** (Tischler) bleibt bei etwa −6 %: Schrank und Prunktruhe sind teure Holzwaren, die außer Ratsherren und Bürgersöhnen niemand bevorzugt, und Holzwaren sind nur bei Halblingen beliebt. Das ist die gewollte Färbung der Standardstadt.
-- Die wagemutigen Zeilen schwanken stark (Kieselbach +15 % bisher ist Rauschen der Gaunerstücke, nicht der Warenkorb).
-- Stand der KI-Häuser am Ende (Köln, ausgewogen): Edler 3, Freiherr 57 (bisher Edler 5, Freiherr 55); kein Haus bankrott. Alle Tests unverändert grün, auch „Zwei Gießereien teilen sich den Silberring-Markt“.
-
-### KI kauft Einrichtung (PR #177)
-
-Gemessen auf main `821bc97` + Funktions-Branch `phase5/balancing-1` mit Kern Schritt 0 (`4f0d587`: gleicher Start, Abfrage Mehrgewinn) + diese Änderung – **noch vor** den neuen Preisen des Kerns (Datenversion 48, billigere Eisentür, Hauptbücher, Pfandkammer). `messen 30 20 Mensch x <Charakter>`, 20 Partien × 30 Jahre, drei KI-Häuser je Partie (60 Häuser). „Ohne“ = dieselbe Fassung ohne Abschnitt `ki` in `wirtschaft.json`. Vermögen Ø am Ende:
-
-| Charakter | Haus | ohne | mit Einrichtung |
-|---|---|---|---|
-| ausgewogen | Eisenbart | 78.147 | 92.552 (+18 %) |
-| | Eichwald | 65.606 | 88.841 (+35 %) |
-| | Kieselbach | 74.232 | 99.685 (+34 %) |
-| vorsichtig | Eisenbart | 77.768 | 87.440 (+12 %) |
-| | Eichwald | 72.336 | 90.726 (+25 %) |
-| | Kieselbach | 108.087 | 126.220 (+17 %) |
-| wagemutig | Eisenbart | 56.466 | 73.726 (+31 %) |
-| | Eichwald | 34.810 | 59.147 (+70 %) |
-| | Kieselbach | 37.617 | 53.067 (+41 %) |
-
-- **Gekaufte Stücke** je KI-Haus in 30 Jahren: ausgewogen Ø 4,9, vorsichtig Ø 3,8, wagemutig Ø 5,0. Jedes Haus kauft Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2), Lederschürzen und das Sonderstück seines Handwerks (Blasebalg, Leimofen, Flaschenzug); die Eisentür 52-mal (ausgewogen) bzw. 60-mal (wagemutig), bei den Vorsichtigen nie – dort stiehlt kein KI-Haus. Regale, Löschfass und die Stücke der Umlandbetriebe nie (keine Gulden-Wirkung, kein Brand bzw. keine Einrichtung).
-- **Stand am Ende:** ausgewogen Edler 58, Patrizier 2 → Edler 29, Freiherr 31; vorsichtig Edler 34, Freiherr 23, Gemeiner 3 → Edler 16, Freiherr 41, Gemeiner 3; wagemutig Edler 28, Patrizier 32 → Edler 55, Freiherr 4, Patrizier 1. Kein Haus bankrott.
-- Die Werkzeuge (10 % schneller je Stück, für alle Waren) machen sich deutlich unter 4 Jahren bezahlt; der große Zuwachs zeigt, dass die Einrichtung für jeden lohnt, der sie kauft – auch für den Spieler. Die gemeinsame Messung mit den neuen Kern-Werten macht der Teamleiter.
 
 ### KI nach Meinungen (PR #231)
 
@@ -286,4 +154,41 @@ Gemessen auf main `880e3387` und phase5/gehtempo `dd347586` („vorher“) + die
 | je Haus Normal (Eisenbart, Eichwald, Kieselbach) | 86.760, 63.364, 85.260 | 79.036, 56.492, 71.524 | 86.999, 60.847, 75.675 |
 
 Kein Bankrott. Woher der Rückgang kam (Greybox, Normal, 4 Startwerte, Jahr 15, je KI-Werkstatt): vorher lagen 7 von 23 Werkstätten über 60 min vom Markt (gebaut „an der Ringgasse“ und „am Felsenhang“, 99–174 min, drei Handkarren, 44 % Stillstand, Gewinn Ø 435 statt 4.072); mit Karrenwahl allein 31 % Stillstand, Gewinn 621; mit Bauort nach Karrenweg nur noch 2 weite, alle Werkstätten zusammen 73.613 (vorher 68.197, main 73.025). Einzelne Versuche (8 Startwerte, Greybox): immer Kriegskarren im Umland KI Schwer +1,8 %, Ochse und Tausch +1,3 %, immer Handkarren −10 %. **Köln** (Teil 5, 20 Startwerte) lief bei Abgabe noch (Rechner mit Last um 30); nachtragen.
+
+### Umland nach dem Karrenweg (PR #286)
+
+Gemessen auf main `ec36ff33` + dieser Branch (`97001082`, mit den Häusern in Deutz), `messen bericht 20 20 --teile=5 --karte=koeln|greybox --parallel=3`, 20 Startwerte, Reinvermögen nach 20 Jahren (Mittel ± Fehler). Keine Partie mit Fehler, kein Bankrott, kein Haus erloschen.
+
+| | main ec36ff33 | Branch |
+|---|---|---|
+| Köln Normal: ausbauender Spieler (Bezug) | 56.503 ± 3.987 | 54.240 ± 4.070 |
+| Köln Normal: KI-Häuser | 65.793 ± 1.576 | 66.805 ± 1.782 (+1,5 %) |
+| Köln Normal: Median KI ÷ Bezug, davongezogen | 1,18, 15/140 | 1,26, 16/140 |
+| Köln Schwer: Bezug / KI-Häuser | 77.280 / 95.778 | 79.314 / 100.162 (+4,6 %) |
+| Köln Schwer: Median, davongezogen | 1,24, 18/140 | 1,23, 25/140 |
+| Köln Umland Normal: Betriebe, Gewinn je Jahr, Stillstand | 287, 1.322, 16 % | 265, 1.405, 13,6 % |
+| Köln: Holzschlag im Eichenforst gepachtet (Betriebsjahre, Normal / Schwer) | 230 / 291 | 12 / 0 |
+| Greybox Normal: Bezug / KI-Häuser, davongezogen | 62.268 / 74.507, 3/60 | 61.749 / 75.344, 4/60 |
+| Greybox Schwer: Bezug / KI-Häuser, davongezogen | 63.499 / 116.029, 24/60 | 61.613 / 117.546, 25/60 |
+
+Die KI-Häuser in Köln gewinnen etwas (Normal innerhalb des Fehlers, „Schwer“ +4.400), das Ziel 75.482 (alter main, Teil 5, 10 Startwerte) erreichen sie nicht: Die Umlandbetriebe der KI-Häuser liegen auf der Karte 220–290 Minuten vom Markt, ihr Stillstand bleibt (Holzschläge 21–29 %), und der Gewinn je KI-Haus aus dem Umland in 20 Jahren bleibt bei ≈ 26.400 (alter main 32.971). Was die Änderung bringt, ist das Meiden des Eichenforsts (75 Gulden im Jahr) und eine bessere Wahl der Liegenschaften (Umland 1.405 statt 1.322 je Jahr, Neubauten +2.600 je Haus). „Schwer“: 25 statt 18 von 140 KI-Häusern ziehen davon (> 2× Bezug) – der Bezugsspieler schwankt dort stark (± 7.365). Der Rest ist Karte (Lage des Umlands) oder Kern (Höchstdauer, Karren). Messdateien im Notizordner (`…/scratchpad/deutz-ki/mess/`).
+
+### Karren-Höchstzahl: Umland bis 5 Karren (PR #286)
+
+Gemessen auf main `ec36ff33` + dieser Branch (`adfd5f2d`), wie oben (`messen bericht 20 20 --teile=5`, 20 Startwerte; die Messdatei nennt als main `4220c631`, den Stand von origin/main zur Messzeit – der Branch ist darauf nicht neu aufgesetzt). „Vorher“ = derselbe Branch mit 3 Karren (`97001082`). Keine Partie mit Fehler, kein Bankrott.
+
+| | main ec36ff33 | 3 Karren | 5 Karren im Umland |
+|---|---|---|---|
+| Köln Normal: Bezug / KI-Häuser | 56.503 / 65.793 | 54.240 / 66.805 | 55.547 / 66.339 |
+| Köln Normal: davongezogen | 15/140 | 16/140 | 11/140 |
+| Köln Schwer: Bezug / KI-Häuser | 77.280 / 95.778 | 79.314 / 100.162 | 78.584 / 99.893 |
+| Köln Schwer: davongezogen | 18/140 | 25/140 | 26/140 |
+| Köln Umland Normal: Gewinn je Jahr, Stillstand | 1.322, 16 % | 1.405, 13,6 % | 1.427, 11,7 % |
+| Holzschlag Hardevust / Kleingedank, Stillstand Normal | 28,1 / 23,8 % | 28,8 / 23,3 % | 20,4 / 19,9 % |
+| dieselben, Stillstand Schwer | 26,8 / 22,2 % | 25,8 / 21,5 % | 16,6 / 16,9 % |
+| Holzschlag Hardevust / Kleingedank, Gewinn je Jahr Normal | 705 / 839 | 799 / 871 | 980 / 938 |
+| Greybox Normal: Bezug / KI-Häuser, davongezogen | 62.268 / 74.507, 3/60 | 61.749 / 75.344, 4/60 | 61.592 / 75.071, 6/60 |
+| Greybox Schwer: KI-Häuser, davongezogen | 116.029, 24/60 | 117.546, 25/60 | 117.502, 25/60 |
+
+Die Holzschläge stehen mit dem vierten (und fünften) Karren gut 8 Punkte weniger still und verdienen mehr; die KI kauft die Karren nur nach Stillstand. Das Vermögen der KI-Häuser ändert sich im Rahmen des Fehlers (± 1.700), „Schwer“ zieht die KI nicht öfter davon als mit 3 Karren. Ein erster Lauf mit der Schätzung beim Pachten für 5 Karren pachtete den Holzschlag im Eichenforst wieder (204 statt 12 Betriebsjahre, 43 % Stillstand) und ließ in „Schwer“ 34 von 140 KI-Häusern davonziehen; deshalb schätzt die KI das Pachten weiter mit 3 Karren (Befund H1 der Prüfung). Die Nachtfahrt ist damit nicht nötig.
 

@@ -390,7 +390,7 @@ public sealed class Karren
     /// Bis zu welchem Bestand der Verwalter jede Zutat auffüllt: den Bedarf von <see cref="LogistikDaten.ZutatenVorratStunden"/> Arbeitsstunden
     /// bei der jetzigen Leistung (eine Runde = von jeder Ware in Arbeit ein Stück), mindestens für 2 × <see cref="LogistikDaten.NachkaufUnterStueck"/>
     /// Stück (damit er nicht gleich wieder losfährt), höchstens bis zur Lagergrenze. Der Verwalter eines KI-Hauses legt im späten Herbst Vorrat für
-    /// den Winter an (<see cref="Ki.KiRivale.WinterVorrat"/>, Datenversion 67).
+    /// den Winter an (<see cref="Ki.KiRivale.WinterVorrat"/>, Datenversion 69).
     /// </summary>
     private Dictionary<string, int> Vorratsziel(Stadtwirtschaft w)
     {

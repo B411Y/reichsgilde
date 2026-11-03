@@ -15,7 +15,7 @@ public sealed class KiDaten
     /// <summary>Wann die KI Schiffe kauft und losschickt (Schiffshandel, PR #199). Fehlt der Teil, treibt sie keinen Schiffshandel.</summary>
     public KiSchiffDaten? Schiffe { get; init; }
 
-    /// <summary>Wie die KI sich auf die Jahreszeit einstellt (Vorrat vor dem Winter; Datenversion 67). Fehlt der Teil, legt sie keinen Vorrat an.</summary>
+    /// <summary>Wie die KI sich auf die Jahreszeit einstellt (Vorrat vor dem Winter; Datenversion 69). Fehlt der Teil, legt sie keinen Vorrat an.</summary>
     public KiJahreszeitenDaten? Jahreszeiten { get; init; }
 
     public void Pruefen(List<string> f)
@@ -28,7 +28,7 @@ public sealed class KiDaten
 }
 
 /// <summary>
-/// Vorrat vor dem Winter (Datenversion 67): Im Herbst ab <see cref="VorratAbStunde"/> Uhr füllt der Verwalter eines KI-Hauses die Zutaten, die im
+/// Vorrat vor dem Winter (Datenversion 69): Im Herbst ab <see cref="VorratAbStunde"/> Uhr füllt der Verwalter eines KI-Hauses die Zutaten, die im
 /// Winter teurer werden (Nachfrage des Winters über 1) oder jetzt mit der Ernte billig sind (Angebot des Herbstes über 1), bis zur Lagergrenze auf –
 /// zum Marktpreis wie jeder Einkauf des Verwalters, im Rahmen seines Geldes (<c>logistik.zutatenAnteilKasse</c>).
 /// </summary>

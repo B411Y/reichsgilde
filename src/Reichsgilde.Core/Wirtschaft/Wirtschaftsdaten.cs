@@ -214,6 +214,9 @@ public sealed class Wirtschaftsdaten
     /// </summary>
     public Bauen.WegebauDaten? Wegebau { get; init; }
 
+    /// <summary>Blitzschlag im Gewitter (ab Datenversion 68): Chance, Brenndauer, Höhen der Gebäude, Schaden. Fehlt der Abschnitt, schlägt kein Blitz ein.</summary>
+    public Gefahren.BlitzDaten? Blitz { get; init; }
+
     /// <summary>Handel von Hand per Karrenauftrag (ab Datenversion 24). Fehlt der Abschnitt, handeln nur die Verwalter.</summary>
     public HandelDaten? Handel { get; init; }
 
@@ -224,7 +227,7 @@ public sealed class Wirtschaftsdaten
     public SchiffshandelDaten? Schiffshandel { get; init; }
 
     /// <summary>
-    /// Folgen der Jahreszeiten für die Wirtschaft (ab Datenversion 67): Winter mit Brennholz und Eis auf dem Fluss, Ernte im Herbst, Schlamm im
+    /// Folgen der Jahreszeiten für die Wirtschaft (ab Datenversion 69): Winter mit Brennholz und Eis auf dem Fluss, Ernte im Herbst, Schlamm im
     /// Frühling, Festmärkte. Fehlt der Abschnitt, wirkt die Jahreszeit nur auf Licht, Wetter und Ton.
     /// </summary>
     public JahreszeitenDaten? Jahreszeiten { get; init; }
@@ -488,6 +491,7 @@ public sealed class Wirtschaftsdaten
         Wohnen?.Pruefen(f, Staende.Count, Waren);
         Bauen?.Pruefen(f, Wohnen);
         Wegebau?.Pruefen(f);
+        Blitz?.Pruefen(f);
         Verkauf.Pruefen(f);
         Stadt?.Pruefen(f);
         Werkstatt?.Pruefen(f, Berufe, Waren, Arbeitskraefte);

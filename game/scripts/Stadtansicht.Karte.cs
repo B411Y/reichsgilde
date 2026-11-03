@@ -321,6 +321,7 @@ public partial class Stadtansicht
         var kennung = "karte:" + g.Kennung;
         Klickflaeche(kennung, new Vector3(0, hoehe / 2, 0), new Vector3(groesse.X, hoehe, groesse.Y), gruppe);
         Beschriftung(g.Name, new Vector3(0, hoehe + 6, 0), 44, gruppe, kennung);
+        ModellMerken(new ModellInstanz(gruppe, Array.Empty<StandardMaterial3D>(), 0, Array.Empty<(MeshInstance3D, int)>())); // auch ein Block kann brennen (Stadtansicht.Blitzbrand.cs)
     }
 
     /// <summary>

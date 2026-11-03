@@ -1,6 +1,6 @@
 # Jahreszeiten
 
-Ein Spieltag ist ein Spieljahr, und jedes Jahr hat seine Jahreszeit: Frühling 1400, Sommer 1401, Herbst 1402, Winter 1403, dann wieder Frühling. Wie die Stadt dabei aussieht (Wiese, Laub, Schnee, Licht), steht unter [Stadt und Ansicht](stadt-und-ansicht.md). Seit Datenversion 67 hat die Jahreszeit auch **Folgen für die Wirtschaft** (Entscheidung des Nutzers vom 31.10.2026). Sie gelten das ganze Jahr. Zu Beginn jedes Jahres sagt eine Meldung, was die Jahreszeit bringt.
+Ein Spieltag ist ein Spieljahr, und jedes Jahr hat seine Jahreszeit: Frühling 1400, Sommer 1401, Herbst 1402, Winter 1403, dann wieder Frühling. Wie die Stadt dabei aussieht (Wiese, Laub, Schnee, Licht), steht unter [Stadt und Ansicht](stadt-und-ansicht.md). Seit Datenversion 69 hat die Jahreszeit auch **Folgen für die Wirtschaft** (Entscheidung des Nutzers vom 31.10.2026). Sie gelten das ganze Jahr. Zu Beginn jedes Jahres sagt eine Meldung, was die Jahreszeit bringt.
 
 ## Was jede Jahreszeit ändert
 

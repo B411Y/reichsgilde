@@ -86,7 +86,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Alles, woran sich das Bild eines Grundstücks ändert, als Text – gleicher Text, gleiches Bild.</summary>
-    private static string StandVon(Grundstueck g, Stadtwirtschaft w, long minute)
+    private string StandVon(Grundstueck g, Stadtwirtschaft w, long minute)
     {
         var k = g.Besitzer;
         var bau = g.Arbeit is null && k is { } b && b.WohnhausFertigAb is { } f && f > minute;

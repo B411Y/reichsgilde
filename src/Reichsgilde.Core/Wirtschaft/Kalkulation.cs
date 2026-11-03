@@ -115,7 +115,7 @@ public static class Kalkulation
     /// (nach Steuer). Erlös hier: was die Rückfracht am Markt bringt (nach Steuer; jedes Stück drückt den Preis) – auch für Ware, die ins
     /// Lager geht. Zoll je beladener Fahrt: Zollstellen × Anteil × Wert der Ladung zum Marktpreis. Geleit je beladener Fahrt.
     /// Risiko: Chance der Piraten × Erfolgschance (mit Geleit) × Beuteanteil × Wert der Ladung × <paramref name="vorsicht"/>.
-    /// Mit <see cref="SchiffshandelDaten.VerkehrBeachten"/> (Datenversion 67) gilt als schon gehandelt, was andere Schiffe vorher erledigen: Was sie
+    /// Mit <see cref="SchiffshandelDaten.VerkehrBeachten"/> (Datenversion 69) gilt als schon gehandelt, was andere Schiffe vorher erledigen: Was sie
     /// dort verkaufen bzw. an Rückfracht kaufen und was sie heimbringen (<see cref="Unterwegs"/>, <see cref="Heimfracht"/>). Angenommen ist,
     /// dass sie vorher ankommen (ein Schiffstyp, gleiche Ladezeit; ändert sich die Fahrzeit durch einen Hafenausbau, kann ein späteres Schiff
     /// überholen) und dass das geplante Schiff selbst am Kai liegt (sonst zählte es sich mit). Dass sich der Markt dort bis zur eigenen Ankunft
@@ -133,7 +133,7 @@ public static class Kalkulation
         var hin = hinfracht.Where(x => x.Value > 0).ToList();
         var rueck = rueckfracht.Where(x => x.Value > 0).ToList();
         var einkauf = hin.Sum(x => ausLager ? w.Markt[x.Key].Verkaufswert(x.Value) * (1 - steuer) * vf : w.HandKaufpreis(konto, x.Key, x.Value, d.HeimatmarktAnteil));
-        // Was andere Schiffe vorher dort verkaufen und kaufen bzw. hier verkaufen, drückt die Preise schon (Datenversion 67)
+        // Was andere Schiffe vorher dort verkaufen und kaufen bzw. hier verkaufen, drückt die Preise schon (Datenversion 69)
         var (dortVerkauft, dortGekauft) = Unterwegs(w, stadt);
         var heim = Heimfracht(w);
         var erloesFern = hin.Sum(x => stadt.Erloes(x.Key, x.Value, dortVerkauft.GetValueOrDefault(x.Key))) * vf;
@@ -212,7 +212,7 @@ public static class Kalkulation
     /// <summary>
     /// Was die Schiffe, die schon zu dieser fernen Stadt unterwegs sind (beladen oder auf der Hinfahrt), dort vor einem neuen Schiff tun:
     /// ihre Hinfracht verkaufen und ihre geplante Rückfracht kaufen – je Ware in Stück; leer ohne <see cref="SchiffshandelDaten.VerkehrBeachten"/>.
-    /// Ohne das plante jedes Schiff, als wäre es allein, und nach Eis oder Festmarkt liefen viele zugleich zur selben Stadt aus (Datenversion 67).
+    /// Ohne das plante jedes Schiff, als wäre es allein, und nach Eis oder Festmarkt liefen viele zugleich zur selben Stadt aus (Datenversion 69).
     /// </summary>
     private static (Dictionary<string, int> Verkauft, Dictionary<string, int> Gekauft) Unterwegs(Stadtwirtschaft w, FerneStadt stadt)
     {
@@ -280,7 +280,7 @@ public static class Kalkulation
     /// <summary>
     /// Arbeitsminuten eines Gesellen, die der Betrieb in einer Spielminute schafft – wie die Simulation sie rechnet: Tempo und Laune der
     /// Arbeiter (wer nach einem Unfall fehlt, zählt nicht) × Handwerkskunst des Oberhaupts × Völkerbonus × (1 − Krankenstand im Pestjahr)
-    /// × Jahreszeit (Arbeit im Freien, Ernte; Datenversion 67).
+    /// × Jahreszeit (Arbeit im Freien, Ernte; Datenversion 69).
     /// </summary>
     public static double Leistung(Stadtwirtschaft w, Betrieb b) =>
         b.LeistungProMinute * w.Familien.LeistungsFaktor(b.Konto) * w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * (1 - w.Gesundheit.Krankenstand) * w.Jahreszeiten.Arbeitsfaktor(b);

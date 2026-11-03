@@ -64,9 +64,12 @@ static class BefehlTests
             Erfolg(w.Ausfuehren(s, new KarrenKaufen("Gießerei", "Kriegskarren")));
             Pruefe.Gleich(2, g.Karren.Count);
             Pruefe.Ungefaehr(4000 - 900, s.Vermoegen, 1e-9);
-            for (var i = 0; i < 3; i++) w.Ausfuehren(s, new KarrenKaufen("Gießerei", "Kriegskarren"));
+            // seit Datenversion 66 höchstens 3 Karren in der Stadt, 5 im Umland: die übrigen gehen an die Grube
+            Erfolg(w.Ausfuehren(s, new KarrenKaufen("Gießerei", "Kriegskarren")));
+            Abgelehnt(w.Ausfuehren(s, new KarrenKaufen("Gießerei", "Kriegskarren")), "3 Karren");
+            for (var i = 0; i < 2; i++) Erfolg(w.Ausfuehren(s, new KarrenKaufen("Grube", "Kriegskarren")));
             Pruefe.Ungefaehr(400, s.Vermoegen, 1e-9);
-            Abgelehnt(w.Ausfuehren(s, new KarrenKaufen("Gießerei", "Kriegskarren")), "fehlen 500");
+            Abgelehnt(w.Ausfuehren(s, new KarrenKaufen("Grube", "Kriegskarren")), "fehlen 500");
             Abgelehnt(w.Ausfuehren(s, new KarrenKaufen("Gießerei", "Sänfte")), "gibt es nicht");
         }),
 

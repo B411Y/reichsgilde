@@ -125,7 +125,7 @@ public sealed class SchiffshandelDaten
 
     /// <summary>
     /// Rechnet die Schiffsfahrt mit den Schiffen, die schon zur selben Stadt bzw. heim unterwegs sind (<see cref="Kalkulation.Schiffsfahrt"/>,
-    /// Datenversion 67)? Ohne Angabe nein – so rechnen alte Spielstände mit ihren Daten wie bisher.
+    /// Datenversion 69)? Ohne Angabe nein – so rechnen alte Spielstände mit ihren Daten wie bisher.
     /// </summary>
     public bool VerkehrBeachten { get; init; }
 

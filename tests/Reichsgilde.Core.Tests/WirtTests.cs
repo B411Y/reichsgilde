@@ -111,7 +111,7 @@ static class WirtTests
         ("Barde: abends 50 % mehr Gäste, jeder zahlt 10 % mehr; einmal je Jahr, 120 Gulden Lohn", () =>
         {
             var sim = NeueSimulation();
-            // Gasthaus (40 Sitzplätze, Datenversion 66): Die 25,7 Gäste einer Abendstunde mit Barde finden alle Platz – in der Schänke wären es 20.
+            // Gasthaus (40 Sitzplätze, Datenversion 67): Die 25,7 Gäste einer Abendstunde mit Barde finden alle Platz – in der Schänke wären es 20.
             var (w, k, s) = Wirt(sim, Betriebsart.Gasthaus);
             var vorher = k.Vermoegen;
             Pruefe.Wahr(w.Ausfuehren(k, new BardeEinladen(s.Name)).Erfolg, "Barde");
@@ -267,7 +267,7 @@ static class WirtTests
             Pruefe.Gleich(9, g.GaesteJetzt(s));
             BisUhrzeit(sim, 18);
             Pruefe.Wahr(g.BardeSpielt(s), "abends");
-            Pruefe.Gleich(20, g.GaesteJetzt(s, hoechstens: 40)); // 120 × 2/14 × 1,5 ≈ 25,7 – seit Datenversion 66 höchstens 20 Sitzplätze der Schänke
+            Pruefe.Gleich(20, g.GaesteJetzt(s, hoechstens: 40)); // 120 × 2/14 × 1,5 ≈ 25,7 – seit Datenversion 67 höchstens 20 Sitzplätze der Schänke
             Pruefe.Gleich(12, g.GaesteJetzt(s));
             var (_, k2, gasthaus) = Wirt(sim, Betriebsart.Gasthaus, name: "Familie Fass"); // 40 Plätze, aber nun mit Konkurrenz
             Pruefe.Wahr(w.Ausfuehren(k2, new BardeEinladen(gasthaus.Name)).Erfolg, "Barde im Gasthaus");
