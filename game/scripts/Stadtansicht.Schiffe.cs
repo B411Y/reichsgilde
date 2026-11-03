@@ -64,11 +64,13 @@ public partial class Stadtansicht
     /// <summary>Die Kennung des Hafens (Gebäude der Karte) aus der Kennung „hafen:…“, sonst null.</summary>
     public static string? HafenAusKennung(string? kennung) => kennung is not null && kennung.StartsWith("hafen:") ? kennung["hafen:".Length..] : null;
 
-    private SchiffAnsicht SchiffErzeugen(Schiff schiff, int nummer)
+    private SchiffAnsicht SchiffErzeugen(Schiff schiff, int nummer) => SchiffErzeugen(schiff.Name, Besitzerfarbe(schiff.Besitzer), nummer, true);
+
+    /// <summary>Ein Schiff anlegen; <paramref name="klickbar"/> ist es nur bei den Schiffen des Handels, nicht beim Zierschiff.</summary>
+    private SchiffAnsicht SchiffErzeugen(string name, Color farbe, int nummer, bool klickbar)
     {
-        var wurzel = new Node3D { Name = "Schiff_" + schiff.Name.Replace(" ", "_") };
+        var wurzel = new Node3D { Name = "Schiff_" + name.Replace(" ", "_") };
         AddChild(wurzel);
-        var farbe = Besitzerfarbe(schiff.Besitzer);
         // Hausfarbe und Wimpel (flattert); Segel, Planke und Ladung schaltet SchiffBewegen
         var modell = ModellEinsetzen(SchiffModell, wurzel, Vector3.Zero, new ModellZustand(Besitzer: farbe))?.Wurzel;
         var ladung = new List<MeshInstance3D>();
@@ -88,24 +90,27 @@ public partial class Stadtansicht
             if (modell.FindChild("Anker_Kai", true, false) is Node3D kai) ankerKai = LageUnter(modell, kai).Origin;
         }
         // Die Klickfläche umfasst den Rumpf (20 × 4,2 m) bis über das Dollbord; das Segel nicht, sonst verdeckt es den Hafen dahinter
-        Klickflaeche(SchiffKennung(schiff), new Vector3(0, 1, 0), new Vector3(20, 3, 4.6f), wurzel);
-        Beschriftung(schiff.Name, new Vector3(0, 14, 0), 40, wurzel, SchiffKennung(schiff));
+        if (klickbar)
+        {
+            Klickflaeche("schiff:" + name, new Vector3(0, 1, 0), new Vector3(20, 3, 4.6f), wurzel);
+            Beschriftung(name, new Vector3(0, 14, 0), 40, wurzel, "schiff:" + name);
+        }
         var ansicht = new SchiffAnsicht
         {
             Wurzel = wurzel, SegelGesetzt = gesetzt, SegelGerefft = gerefft, Planke = planke, Ladung = ladung.ToArray(), AnkerKai = ankerKai, Nummer = nummer,
         };
-        ansicht.Schiffer = SchifferEinsetzen(modell, schiff, farbe);
+        ansicht.Schiffer = SchifferEinsetzen(modell, name, farbe);
         return ansicht;
     }
 
     /// <summary>Der Schiffer am Heck (<c>Anker_Schiffer</c>, blickt mit −Z wie die Anker der Karren): ein Mensch im Gewand der gedämpften Hausfarbe.</summary>
-    private Figur? SchifferEinsetzen(Node3D? modell, Schiff schiff, Color besitzer)
+    private Figur? SchifferEinsetzen(Node3D? modell, string name, Color besitzer)
     {
         if (modell?.FindChild("Anker_Schiffer", true, false) is not Node3D anker || anker.GetParent() is not { } eltern) return null;
         var halter = new Node3D { Name = "Schiffer" };
         eltern.AddChild(halter);
         halter.Transform = anker.Transform.RotatedLocal(Vector3.Up, Mathf.Pi);
-        var nummer = 4 * (int)(StabilerHash("schiff/" + schiff.Name) % 100000);
+        var nummer = 4 * (int)(StabilerHash("schiff/" + name) % 100000);
         var gewand = besitzer.Lerp(new Color(0.45f, 0.38f, 0.28f), 0.45f);
         var figur = FigurEinsetzen(halter, AussehenAusNummer(nummer, gewand) with { Kopf = Kopfbedeckung.Strohhut }, nummer);
         if (figur is not null) BewegungSetzen(figur, "Stehen");
@@ -115,6 +120,11 @@ public partial class Stadtansicht
     /// <summary>Jedes Bild: Schiffe der Häuser anlegen, verkaufte entfernen, alle an ihren Ort setzen (aus <see cref="Aktualisieren"/>).</summary>
     private void SchiffeAktualisieren(Stadtwirtschaft w, double minute, double delta)
     {
+        if (w.Schiffahrt.Ruht && _schiffe.Count == 0)
+        {
+            ZierschiffAktualisieren(w, minute, delta); // Stadtansicht.Zierschiff.cs
+            return;
+        }
         if (!w.Schiffahrt.IstAktiv && _schiffe.Count == 0) return;
         var liste = w.Schiffahrt.Schiffe;
         if (_schiffe.Count > 0)
@@ -188,6 +198,27 @@ public partial class Stadtansicht
             drehung = Mathf.Atan2(-(float)lage.RichtungZ, (float)lage.RichtungX);
         }
 
+        SchiffPoseSetzen(ansicht, ziel, drehung, delta);
+
+        // Segel, Planke und Ladung nur beim Wechsel schalten
+        var faehrt = schiff.Zustand is SchiffZustand.Hinfahrt or SchiffZustand.Rueckfahrt;
+        SchiffSegelUndPlanke(ansicht, faehrt, liegt && paeckchen == 0);
+        var kapazitaet = Math.Max(1, schiff.Daten.Gesamtkapazitaet);
+        var stapel = schiff.Geladen <= 0 ? 0 : Math.Clamp((int)Math.Ceiling((double)schiff.Geladen / kapazitaet * ansicht.Ladung.Length), 1, ansicht.Ladung.Length);
+        if (stapel != ansicht.GezeigteLadung)
+        {
+            ansicht.GezeigteLadung = stapel;
+            for (var i = 0; i < ansicht.Ladung.Length; i++) ansicht.Ladung[i].Visible = i < stapel;
+        }
+    }
+
+    /// <summary>
+    /// Das Schiff an Ort und Drehung setzen: Höhe auf dem Wasserspiegel (im Fluss oder im Hafenbecken; über Land gilt der zuletzt gefundene), leichtes Rollen
+    /// und Stampfen; erscheint es neu, steht es gleich richtig, sonst gleitet es. Der Schiffer fährt mit.
+    /// </summary>
+    private void SchiffPoseSetzen(SchiffAnsicht ansicht, Vector3 ziel, float drehung, double delta)
+    {
+        var knoten = ansicht.Wurzel;
         // Auf dem Wasserspiegel (im Fluss oder im Hafenbecken); über Land (kurz beim Ablegen) gilt der zuletzt gefundene Spiegel
         if (SpiegelMitBecken(ziel.X, ziel.Z) is { } spiegel) ansicht.Spiegel = (float)spiegel;
         else if (!ansicht.Sichtbar) ansicht.Spiegel = BodenHoehe(ziel.X, ziel.Z);
@@ -202,30 +233,24 @@ public partial class Stadtansicht
         // leichtes Rollen und Stampfen
         knoten.Rotation = new Vector3(0.010f * Mathf.Sin(zeit * 0.6f + ansicht.Nummer), gier, 0.014f * Mathf.Sin(zeit * 0.75f + ansicht.Nummer * 1.3f));
 
-        // Segel, Planke und Ladung nur beim Wechsel schalten
-        var faehrt = schiff.Zustand is SchiffZustand.Hinfahrt or SchiffZustand.Rueckfahrt;
+        if (ansicht.Schiffer is { } schiffer)
+            FigurImBildBewegen(schiffer, knoten.Position, _simulation?.Takt.IstPausiert == true ? 0 : delta);
+    }
+
+    /// <summary>Segel gesetzt in Fahrt, gerefft am Kai; die Laufplanke nur am Kai. Geschaltet wird nur beim Wechsel.</summary>
+    private static void SchiffSegelUndPlanke(SchiffAnsicht ansicht, bool faehrt, bool planke)
+    {
         if (ansicht.GezeigtesSegel != faehrt)
         {
             ansicht.GezeigtesSegel = faehrt;
             if (ansicht.SegelGesetzt is not null) ansicht.SegelGesetzt.Visible = faehrt;
             if (ansicht.SegelGerefft is not null) ansicht.SegelGerefft.Visible = !faehrt;
         }
-        var planke = liegt && paeckchen == 0;
         if (ansicht.GezeigtePlanke != planke)
         {
             ansicht.GezeigtePlanke = planke;
             if (ansicht.Planke is not null) ansicht.Planke.Visible = planke;
         }
-        var kapazitaet = Math.Max(1, schiff.Daten.Gesamtkapazitaet);
-        var stapel = schiff.Geladen <= 0 ? 0 : Math.Clamp((int)Math.Ceiling((double)schiff.Geladen / kapazitaet * ansicht.Ladung.Length), 1, ansicht.Ladung.Length);
-        if (stapel != ansicht.GezeigteLadung)
-        {
-            ansicht.GezeigteLadung = stapel;
-            for (var i = 0; i < ansicht.Ladung.Length; i++) ansicht.Ladung[i].Visible = i < stapel;
-        }
-
-        if (ansicht.Schiffer is { } schiffer)
-            FigurImBildBewegen(schiffer, knoten.Position, _simulation?.Takt.IstPausiert == true ? 0 : delta);
     }
 
     /// <summary>Wo die Kamera für einen Hafen bzw. ein Schiff hinfährt (Betriebsleiste, Hafentafel); null, wenn die Kennung keins ist.</summary>

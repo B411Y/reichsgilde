@@ -20,6 +20,7 @@ namespace Reichsgilde;
 ///
 /// Startoptionen zum Testen (nach "--" an Godot anhängen):
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
+///   --startrunde=4     Partie beginnt in der 4. Runde (Winter), nur für Bilder
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
 ///   --nachtnebel=aus   Nebel in der Nacht aus (wie Lösung A vom 29.10.2026; Standard an) – nur Darstellung (Stadtansicht.Bodennebel.cs)
 ///   --morgennebel=1    Nebel des Spieltags fest vorgeben (0–1, sonst gewürfelt nach Jahreszeit und Nacht) – nur Darstellung
@@ -951,6 +952,9 @@ public partial class Hauptszene : Node
         Spielzeit? start = null;
         if (optionen.TryGetValue("startstunde", out var s) && int.TryParse(s, out var stunde))
             start = new Spielzeit(Math.Clamp(stunde * 60 - Spielzeit.TagesbeginnMinute, 0, Spielzeit.MinutenProTag - 1));
+        // --startrunde=4: die Partie beginnt in dieser Runde (Jahr), z. B. 4 = Winter; nur für Bilder (mit --startstunde)
+        if (optionen.TryGetValue("startrunde", out var r) && int.TryParse(r, out var runde) && runde > 1)
+            start = new Spielzeit((start?.VergangeneMinuten ?? 0) + (long)(Math.Min(runde, 400) - 1) * Spielzeit.MinutenProTag);
         double? startvermoegen = optionen.TryGetValue("vermoegen", out var v) && double.TryParse(v, out var betrag) ? betrag : null;
 
         var karte = Stadtkarten.Startkarte; // --karte=koeln: eine andere Karte, nur für diesen Start (das Hauptmenü nimmt dieselbe)
