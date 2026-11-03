@@ -16,6 +16,8 @@ namespace Reichsgilde;
 /// Startoptionen (alle freiwillig): <c>--pixelmodus=aus|pixel</c>, <c>--pixelsicht=spiel|spielnah|spielweit|flug|nah</c>, <c>--pixeltexel=&lt;Bildpunkte&gt;</c>, <c>--pixelzoom=&lt;m&gt;</c> (Standard 40), <c>--pixelkreis=1</c>,
 /// <c>--pixelmessung=1</c> (aus und an je 6 s messen, Ergebnis im Log, dann beenden), <c>--pixelende=&lt;s&gt;</c>, <c>--pixeltafel=0</c> (Tafel zu).
 /// Weg A (Regler „Pixelgröße“ 2–6, Option <c>--pixelgroesse=N</c>, <c>--pixelscroll=&lt;m/s&gt;</c>): die Spielkamera-Welt wird in einem SubViewport mit 1/N der Auflösung gerendert und hart hochgezogen, Kamera-Snapping mit Versatz; Tafel und Schrift bleiben scharf.
+/// Runde 4 (Feinschliff auf Weg A, alle Bausteine einzeln schaltbar): Umrisse, Glühen (volle Auflösung), Tiefendunst, Kontrast und Vignette, weiche Schattenkante, ruhiges Gras, feste Zoomstufen.
+/// Optionen dazu: <c>--pixelvorgabe=alt|fein|aus</c> (Standard fein = „Pixel 2 fein“), <c>--pixelnur=umriss|gluehen|dunst|farbe|schatten|gras|zoom</c> (alt plus ein Baustein), <c>--pixelabend=1</c> (Abendbild mit Fensterlicht und Laternen), <c>--pixelssao=0</c>, <c>--pixelschatten=0</c>. Taste T = Pixel 2 alt, R = Pixel 2 fein.
 /// Kein Teil des Spiels; der Shader liegt in <c>assets/shader/pixel_farbe.gdshader</c>.
 /// </summary>
 public partial class Pixeltest : Node3D
@@ -32,6 +34,11 @@ public partial class Pixeltest : Node3D
         public bool An = true, Texel = true, Stufen = true, Kanten = true, Halme = true, Zweier;
         public int Lichtstufen = 3;
         public float TexelPx = 3f, Duester = 0.12f, KanteHell = 0.08f, StufenStaerke = 1f, LichtDunkel = 0.25f, LichtHell = 0.95f, Ferne = 1.25f;
+        // Runde 4 (Feinschliff Weg A); die alte Voreinstellung hat alles aus
+        public bool Umriss, Gluehen, Dunst, GrasRuhig;
+        public float UmrissDunkel = 0.4f, UmrissHell = 0.2f, GluehStaerke = 0.85f, GluehSchwelle = 0.3f, GluehRadius = 1f;
+        public float DunstDichte = 0.0045f, DunstMax = 0.42f, Kontrast = 1f, Vignette = 0f;
+        public int SchattenWeich, ZoomModus = 2;   // Schatten: 0 hart, 1 weich, 2 weicher; Zoom: 0 stufenlos (schwimmt), 1 gleiten und nach dem Stopp neu ausrichten, 2 feste Stufen
     }
 
     private Werte _w = new();
@@ -52,7 +59,12 @@ public partial class Pixeltest : Node3D
     private TextureRect _weltAnzeige = null!;
     private CanvasLayer _weltEbene = null!;
     private Camera3D _aktiv = null!;
-    private bool _weltA;
+    private bool _weltA, _abend;
+    private ColorRect _gluehen = null!, _vignette = null!;
+    private ShaderMaterial _gluehStoff = null!, _vignetteStoff = null!;
+    private MultiMeshInstance3D _grasRuhig = null!;
+    private float _zoomZiel = 40f, _zoomAnim = 40f, _zoomRuhe, _lichtskala = 1f;
+    private static readonly float[] ZoomStufen = { 15f, 20f, 28f, 40f, 56f, 80f, 112f, 140f };
     private Basis _spielBasis; private Vector3 _spielOrt; private float _scroll, _scrollTempo;
     private Label _anzeige = null!, _pfad = null!;
     private PanelContainer _tafel = null!;
@@ -61,7 +73,7 @@ public partial class Pixeltest : Node3D
     private readonly List<MeshInstance3D> _netze = new();
     private double _ende, _zeit;
     private double _messZeit; private int _messSchritt = -1; private readonly List<double> _gpu = new(), _cpu = new();
-    private readonly string[] _messNamen = { "aus", "Runde 3 (volle Auflösung)", "Weg A Pixelgröße 2", "Weg A Pixelgröße 3", "Weg A Pixelgröße 4" };
+    private readonly string[] _messNamen = { "aus", "Pixel 2 alt (Runde 3)", "Pixel 2 fein (Runde 4)", "fein ohne ruhiges Gras (alt: Gras aus)", "fein ohne Glühen", "fein ohne Umrisse", "fein ohne Dunst, Kontrast, Vignette, weiche Schatten", "Pixel 3 fein", "Pixel 2 fein, Zoom 140 m" };
 
     public override void _Ready()
     {
@@ -85,10 +97,16 @@ public partial class Pixeltest : Node3D
         AddChild(_spielKamera);
         WeltBauen_A();
         NachbearbeitungBauen();
-        if (int.TryParse(_optionen.GetValueOrDefault("pixelgroesse", ""), out var pg)) _w.PixelGroesse = Mathf.Clamp(pg, 1, 8);
+        _w = _optionen.GetValueOrDefault("pixelvorgabe", "fein") switch { "alt" => Pixel2Alt(), "aus" => Aus(), _ => Pixel2Fein() };
+        if (_optionen.TryGetValue("pixelnur", out var nur)) _w = NurBaustein(nur);
         if (_optionen.GetValueOrDefault("pixelmodus", "pixel") == "aus") _w = Aus();
         if (float.TryParse(_optionen.GetValueOrDefault("pixeltexel", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var tpx)) _w.TexelPx = tpx;
+        _abend = _optionen.GetValueOrDefault("pixelabend") == "1";
+        if (_optionen.GetValueOrDefault("pixelssao") == "0") _umgebung.Environment.SsaoEnabled = false;
+        if (_optionen.GetValueOrDefault("pixelschatten") == "0") _sonne.ShadowEnabled = false;
+        if (_abend) AbendBauen();
         OberflaecheBauen();
+        if (int.TryParse(_optionen.GetValueOrDefault("pixelgroesse", ""), out var pg)) { _w.PixelGroesse = Mathf.Clamp(pg, 1, 8); }
         switch (_optionen.GetValueOrDefault("pixelsicht", "spiel"))
         {
             case "flug": Flug(false); break;
@@ -104,6 +122,29 @@ public partial class Pixeltest : Node3D
 
     private static Werte Aus() => new() { An = false };
     private static Werte Pixel() => new();
+    /// <summary>Die Voreinstellung der Runde 3 mit Pixelgröße 2 (Vergleich).</summary>
+    private static Werte Pixel2Alt() => new() { PixelGroesse = 2, ZoomModus = 0 };
+    /// <summary>„Pixel 2 fein“: Runde 3 plus Umrisse, Glühen, Tiefendunst, Kontrast, Vignette, weiche Schattenkante, ruhiges Gras, feste Zoomstufen.</summary>
+    private static Werte Pixel2Fein() => new()
+    {
+        PixelGroesse = 2, Umriss = true, Gluehen = true, Dunst = true, GrasRuhig = true, Kontrast = 1.12f, Vignette = 0.18f, SchattenWeich = 1, ZoomModus = 2, KanteHell = 0f,
+    };
+    /// <summary>Alt plus genau ein Baustein (Prüfbilder): umriss, gluehen, dunst, farbe, schatten, gras, zoom.</summary>
+    private static Werte NurBaustein(string name)
+    {
+        var w = Pixel2Alt();
+        switch (name)
+        {
+            case "umriss": w.Umriss = true; w.KanteHell = 0f; break;
+            case "gluehen": w.Gluehen = true; break;
+            case "dunst": w.Dunst = true; break;
+            case "farbe": w.Kontrast = 1.12f; w.Vignette = 0.18f; break;
+            case "schatten": w.SchattenWeich = 1; break;
+            case "gras": w.GrasRuhig = true; break;
+            case "zoom": w.ZoomModus = 2; break;
+        }
+        return w;
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Welt
@@ -205,7 +246,8 @@ public partial class Pixeltest : Node3D
             AddChild(fm); _netze.Add(fm);
         }
 
-        Gras();
+        _gras = Gras(false);
+        _grasRuhig = Gras(true);
 
         // Feuer: Korb vor dem Rathaus, Fackel am Haus
         foreach (var (v, p) in new[] { (FeuerVorgabe.Feuerkorb, new Vector3(9, 0, 12)), (FeuerVorgabe.Fackel, new Vector3(2, 1.6f, 10)) })
@@ -219,6 +261,41 @@ public partial class Pixeltest : Node3D
         AddChild(korb); _netze.Add(korb);
         var licht = new OmniLight3D { Position = new Vector3(9, Hoehe(9, 12) + 1.4f, 12), LightColor = new Color(1f, 0.55f, 0.25f), LightEnergy = 1.6f, OmniRange = 9f };
         AddChild(licht);
+    }
+
+    /// <summary>Abendbild (<c>--pixelabend=1</c>): tiefe warme Sonne, Dämmerhimmel, Fensterlicht, Laternen und Feuer – um das Glühen zu zeigen.</summary>
+    private void AbendBauen()
+    {
+        _lichtskala = 0.62f;
+        _sonne.RotationDegrees = new Vector3(-9, 140, 0);
+        _sonne.LightColor = new Color(1f, 0.58f, 0.32f); _sonne.LightEnergy = 0.75f;
+        var env = _umgebung.Environment;
+        var himmel = (ProceduralSkyMaterial)env.Sky.SkyMaterial;
+        himmel.SkyTopColor = new Color(0.09f, 0.12f, 0.24f); himmel.SkyHorizonColor = new Color(0.55f, 0.36f, 0.30f);
+        himmel.GroundHorizonColor = new Color(0.22f, 0.18f, 0.20f); himmel.GroundBottomColor = new Color(0.08f, 0.08f, 0.12f);
+        env.AmbientLightColor = new Color(0.40f, 0.46f, 0.70f); env.AmbientLightEnergy = 0.55f;
+        // Fenster der Häuser leuchten (fenster.gdshader wie im Spiel)
+        var fenster = GD.Load<Shader>("res://assets/shader/fenster.gdshader");
+        var stoff = new ShaderMaterial { Shader = fenster };
+        stoff.SetShaderParameter("helligkeit", 1f); stoff.SetShaderParameter("anteil", 0.85f);
+        foreach (var m in _netze)
+        {
+            if (m.Mesh is null) continue;
+            for (var i = 0; i < m.Mesh.GetSurfaceCount(); i++)
+                if (m.Mesh.SurfaceGetMaterial(i)?.ResourceName == "Fenster") m.SetSurfaceOverrideMaterial(i, stoff);
+        }
+        // Laternen: Pfahl, glühende Kugel, Licht
+        foreach (var p in new[] { new Vector3(-1.5f, 0, 10), new Vector3(15, 0, 9), new Vector3(-8, 0, 1), new Vector3(3, 0, -1) })
+        {
+            var y = Hoehe(p.X, p.Z);
+            var pfahl = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.05f, BottomRadius = 0.07f, Height = 2.4f }, Position = new Vector3(p.X, y + 1.2f, p.Z) };
+            pfahl.MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.16f, 0.12f, 0.09f) };
+            AddChild(pfahl); _netze.Add(pfahl);
+            var kugel = new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.17f, Height = 0.34f }, Position = new Vector3(p.X, y + 2.5f, p.Z) };
+            kugel.MaterialOverride = new StandardMaterial3D { ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = new Color(1f, 0.72f, 0.38f) };
+            AddChild(kugel); _netze.Add(kugel);
+            AddChild(new OmniLight3D { Position = new Vector3(p.X, y + 2.5f, p.Z), LightColor = new Color(1f, 0.62f, 0.3f), LightEnergy = 1.5f, OmniRange = 8f });
+        }
     }
 
     private Node3D? Modell(string datei)
@@ -300,21 +377,24 @@ public partial class Pixeltest : Node3D
     }
 
     /// <summary>Einfaches Gras: Büschel aus drei Dreiecken, ein MultiMesh. Platzhalter nur für diesen Test (das Spiel hat sein eigenes Gras).</summary>
-    private void Gras()
+    private MultiMeshInstance3D Gras(bool ruhig)
     {
         var st = new SurfaceTool();
         st.Begin(Mesh.PrimitiveType.Triangles);
         // Senkrechte schmale Halme (zwei gekreuzte Dreiecke je Büschel), Normalen nach oben wie beim Boden; Farben wie die Wiese des Bodens
         for (var k = 0; k < 2; k++)
         {
-            var w = k * Mathf.Pi / 2f; var d = new Vector3(Mathf.Cos(w), 0, Mathf.Sin(w)) * 0.035f;
-            st.SetNormal(Vector3.Up); st.SetColor(new Color(0.24f, 0.32f, 0.14f)); st.AddVertex(-d);
-            st.SetNormal(Vector3.Up); st.SetColor(new Color(0.24f, 0.32f, 0.14f)); st.AddVertex(d);
-            st.SetNormal(Vector3.Up); st.SetColor(new Color(0.40f, 0.50f, 0.24f)); st.AddVertex(new Vector3(0, 0.6f, 0));
+            // ruhig: breiter (mehr als ein Weltpixel), kürzer, Spitze und Fuß näher an der Wiesenfarbe, dafür dichter – weniger Strichrauschen im Low-Res-Bild
+            var w = k * Mathf.Pi / 2f; var d = new Vector3(Mathf.Cos(w), 0, Mathf.Sin(w)) * (ruhig ? 0.07f : 0.035f);
+            var fuss = ruhig ? new Color(0.25f, 0.325f, 0.15f) : new Color(0.24f, 0.32f, 0.14f);
+            var spitze = ruhig ? new Color(0.39f, 0.49f, 0.23f) : new Color(0.40f, 0.50f, 0.24f);
+            st.SetNormal(Vector3.Up); st.SetColor(fuss); st.AddVertex(-d);
+            st.SetNormal(Vector3.Up); st.SetColor(fuss); st.AddVertex(d);
+            st.SetNormal(Vector3.Up); st.SetColor(spitze); st.AddVertex(new Vector3(0, ruhig ? 0.38f : 0.6f, 0));
         }
         var netz = st.Commit();
         var zufall = new RandomNumberGenerator { Seed = 11 };
-        const int anzahl = 16000;
+        var anzahl = ruhig ? 42000 : 16000;
         var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = false, Mesh = netz, InstanceCount = anzahl };
         for (var i = 0; i < anzahl; i++)
         {
@@ -325,12 +405,14 @@ public partial class Pixeltest : Node3D
             var b = new Basis(Vector3.Up, zufall.RandfRange(0, Mathf.Tau)).Scaled(new Vector3(s, s, s));
             mm.SetInstanceTransform(i, new Transform3D(b, new Vector3(x, y, z)));
         }
-        _gras = new MultiMeshInstance3D
+        var knoten = new MultiMeshInstance3D
         {
             Multimesh = mm, Name = "Gras", CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            MaterialOverride = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true, CullMode = BaseMaterial3D.CullModeEnum.Disabled, Roughness = 1f },
+            MaterialOverride = ruhig ? new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_gras.gdshader") }
+                : new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true, CullMode = BaseMaterial3D.CullModeEnum.Disabled, Roughness = 1f },
         };
-        AddChild(_gras);
+        AddChild(knoten);
+        return knoten;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -359,6 +441,7 @@ public partial class Pixeltest : Node3D
         _lichtBild.AddChild(_lichtKamera);
         AddChild(_lichtBild);
         _farbStoff.SetShaderParameter("licht", _lichtBild.GetTexture());
+        _gluehStoff.SetShaderParameter("licht", _lichtBild.GetTexture());
         RenderingServer.ViewportSetMeasureRenderTime(_lichtBild.GetViewportRid(), true);
     }
 
@@ -379,6 +462,16 @@ public partial class Pixeltest : Node3D
         };
         _weltAnzeige.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
         _weltEbene.AddChild(_weltAnzeige);
+        // Glühen (additiv, weich, volle Auflösung) als Kind des Weltbildes: folgt Versatz und Größe; Vignette (mal) über dem ganzen Fenster
+        _gluehStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_gluehen.gdshader") };
+        _gluehStoff.SetShaderParameter("welt", _welt.GetTexture());
+        _gluehen = new ColorRect { Material = _gluehStoff, MouseFilter = Control.MouseFilterEnum.Ignore, Color = Colors.White, Visible = false };
+        _gluehen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _weltAnzeige.AddChild(_gluehen);
+        _vignetteStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_vignette.gdshader") };
+        _vignette = new ColorRect { Material = _vignetteStoff, MouseFilter = Control.MouseFilterEnum.Ignore, Color = Colors.White, Visible = false };
+        _vignette.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _weltEbene.AddChild(_vignette);
         RenderingServer.ViewportSetMeasureRenderTime(_welt.GetViewportRid(), true);
     }
 
@@ -414,9 +507,21 @@ public partial class Pixeltest : Node3D
         var rest = new Vector2(lokal.X, lokal.Y) - einrast;           // Meter
         _spielKamera.GlobalPosition = _spielBasis * new Vector3(einrast.X, einrast.Y, lokal.Z);
         _spielKamera.Size = ps * gross.Y;
-        _weltAnzeige.Size = new Vector2(gross.X, gross.Y) * n;
-        _weltAnzeige.Position = (fenster - _weltAnzeige.Size) / 2f + new Vector2(-rest.X, rest.Y) / ps * n;
+        var anzeigeGroesse = new Vector2(gross.X, gross.Y) * n;
+        var anzeigeOrt = (fenster - anzeigeGroesse) / 2f + new Vector2(-rest.X, rest.Y) / ps * n;
+        // Zoom-Gleiten (Modus 1): das fertige Bild wird bis zum Stopp um die Fenstermitte skaliert, erst danach neu gerastert
+        var s = _w.ZoomModus == 1 && _zoomAnim > 0 ? _spielZoom / _zoomAnim : 1f;
+        if (Mathf.Abs(s - 1f) > 0.0005f)
+        {
+            var mitte = fenster / 2f;
+            anzeigeOrt = mitte + (anzeigeOrt + anzeigeGroesse / 2f - mitte) * s - anzeigeGroesse * s / 2f;
+            anzeigeGroesse *= s;
+        }
+        _weltAnzeige.Size = anzeigeGroesse;
+        _weltAnzeige.Position = anzeigeOrt;
+        _gluehStoff.SetShaderParameter("welt_groesse", new Vector2(gross.X, gross.Y));
         _farbStoff.SetShaderParameter("ortho_groesse", _spielKamera.Size);
+        _farbStoff.SetShaderParameter("dunst_bezug", 150f);   // Entfernung Kamera – Blickpunkt (SpielSicht)
     }
 
     private void LichtKameraAbgleichen()
@@ -454,7 +559,24 @@ public partial class Pixeltest : Node3D
         _farbStoff.SetShaderParameter("kante_an", w.Kanten);
         _farbStoff.SetShaderParameter("kante_hell", w.KanteHell);
         _farbStoff.SetShaderParameter("sonne_richtung", -_sonne.GlobalBasis.Z);
-        _gras.Visible = w.Halme;
+        _farbStoff.SetShaderParameter("umriss_an", w.Umriss);
+        _farbStoff.SetShaderParameter("umriss_dunkel", w.UmrissDunkel);
+        _farbStoff.SetShaderParameter("umriss_hell", w.UmrissHell);
+        _farbStoff.SetShaderParameter("dunst_an", w.Dunst);
+        _farbStoff.SetShaderParameter("dunst_dichte", w.DunstDichte);
+        _farbStoff.SetShaderParameter("dunst_max", w.DunstMax);
+        _farbStoff.SetShaderParameter("dunst_farbe", _abend ? new Vector3(0.10f, 0.11f, 0.16f) : new Vector3(0.55f, 0.6f, 0.68f));
+        _farbStoff.SetShaderParameter("kontrast", w.Kontrast);
+        _farbStoff.SetShaderParameter("schatten_weich", w.SchattenWeich);
+        _farbStoff.SetShaderParameter("lichtskala", _lichtskala);
+        _gluehen.Visible = w.Gluehen && _weltA;
+        _gluehStoff.SetShaderParameter("staerke", w.GluehStaerke);
+        _gluehStoff.SetShaderParameter("schwelle", w.GluehSchwelle);
+        _gluehStoff.SetShaderParameter("radius", w.GluehRadius);
+        _vignette.Visible = w.Vignette > 0.001f && _weltA;
+        _vignetteStoff.SetShaderParameter("staerke", w.Vignette);
+        _gras.Visible = w.Halme && !w.GrasRuhig;
+        _grasRuhig.Visible = w.Halme && w.GrasRuhig;
         _sonne.ShadowBlur = w.An && w.Stufen ? 0f : 1f;
         _umgebung.Environment.FogEnabled = _nebel;
         AnzeigeAktualisieren();
@@ -477,6 +599,7 @@ public partial class Pixeltest : Node3D
     private void SpielSicht(float zoom)
     {
         _spiel = true; _spielZoom = Mathf.Clamp(zoom, 15f, 140f);
+        _zoomZiel = _zoomAnim = _spielZoom;
         var basis = Basis.FromEuler(new Vector3(Mathf.DegToRad(-40f), Mathf.DegToRad(30f), 0));
         _spielBasis = basis; _spielOrt = new Vector3(2, 0, 2) + basis * new Vector3(0, 0, 150f); _scroll = 0;
         _spielKamera.GlobalTransform = new Transform3D(basis, _spielOrt);
@@ -532,9 +655,26 @@ public partial class Pixeltest : Node3D
         Regler(spalte, "Kantenlicht-Stärke", 0, 0.3f, 0.01f, w => w.KanteHell, (w, v) => w.KanteHell = v);
         Regler(spalte, "Düsternis", 0, 0.4f, 0.01f, w => w.Duester, (w, v) => w.Duester = v);
         Schalter(spalte, "Gras-Halme", w => w.Halme, (w, v) => w.Halme = v);
+        spalte.AddChild(new Label { Text = "— Runde 4: Feinschliff —" });
+        Schalter(spalte, "1 Umrisse (Außenkontur, Innenkanten)", w => w.Umriss, (w, v) => w.Umriss = v);
+        Regler(spalte, "Umriss-Faktor (kleiner = dunkler)", 0.2f, 1f, 0.02f, w => w.UmrissDunkel, (w, v) => w.UmrissDunkel = v);
+        Regler(spalte, "Innenkante heller um", 0, 0.4f, 0.01f, w => w.UmrissHell, (w, v) => w.UmrissHell = v);
+        Schalter(spalte, "2 Glühen (volle Auflösung)", w => w.Gluehen, (w, v) => w.Gluehen = v);
+        Regler(spalte, "Glühen Stärke", 0, 1.5f, 0.05f, w => w.GluehStaerke, (w, v) => w.GluehStaerke = v);
+        Regler(spalte, "Glühen ab Helligkeit", 0.1f, 1f, 0.01f, w => w.GluehSchwelle, (w, v) => w.GluehSchwelle = v);
+        Regler(spalte, "Glühen Radius (Vielfaches)", 0.4f, 2.5f, 0.1f, w => w.GluehRadius, (w, v) => w.GluehRadius = v);
+        Schalter(spalte, "3 Tiefendunst", w => w.Dunst, (w, v) => w.Dunst = v);
+        Regler(spalte, "Dunst Dichte (je m)", 0, 0.02f, 0.0005f, w => w.DunstDichte, (w, v) => w.DunstDichte = v);
+        Regler(spalte, "Dunst höchstens", 0, 0.8f, 0.01f, w => w.DunstMax, (w, v) => w.DunstMax = v);
+        Regler(spalte, "4 Kontrast (1 = aus)", 0.8f, 1.4f, 0.01f, w => w.Kontrast, (w, v) => w.Kontrast = v);
+        Regler(spalte, "4 Vignette (0 = aus)", 0, 0.5f, 0.01f, w => w.Vignette, (w, v) => w.Vignette = v);
+        Regler(spalte, "5 Schattenkante (0 hart, 1 weich, 2 weicher)", 0, 2, 1, w => w.SchattenWeich, (w, v) => w.SchattenWeich = (int)v);
+        Regler(spalte, "6 Zoom (0 stufenlos, 1 gleiten, 2 Stufen)", 0, 2, 1, w => w.ZoomModus, (w, v) => w.ZoomModus = (int)v);
+        Schalter(spalte, "7 Gras ruhig (dichter, kürzer)", w => w.GrasRuhig, (w, v) => w.GrasRuhig = v);
 
         var reihe = new HBoxContainer(); spalte.AddChild(reihe);
-        Knopf(reihe, "Pixel", () => { _w = Pixel(); Abgleichen(); });
+        Knopf(reihe, "Pixel 2 alt", () => { _w = Pixel2Alt(); Abgleichen(); });
+        Knopf(reihe, "Pixel 2 fein", () => { _w = Pixel2Fein(); Abgleichen(); });
         Knopf(reihe, "Aus", () => { _w = Aus(); Abgleichen(); });
         Knopf(reihe, "Spielkamera", () => SpielSicht(_spielZoom));
         Knopf(reihe, "Flugkamera", () => Flug(false));
@@ -598,7 +738,11 @@ public partial class Pixeltest : Node3D
             ["stufenlicht"] = _w.Stufen, ["lichtstufen"] = _w.Lichtstufen, ["stufen_staerke"] = _w.StufenStaerke,
             ["licht_unterste_stufe"] = _w.LichtDunkel, ["licht_oberste_stufe"] = _w.LichtHell,
             ["kantenlicht"] = _w.Kanten, ["kantenlicht_staerke"] = _w.KanteHell, ["duesternis"] = _w.Duester,
-            ["gras_halme"] = _w.Halme, ["kamera"] = _spiel ? "spielkamera" : "flugkamera", ["spielkamera_zoom_m"] = _spielZoom,
+            ["gras_halme"] = _w.Halme,
+            ["umriss"] = _w.Umriss, ["umriss_faktor"] = _w.UmrissDunkel, ["innenkante_heller"] = _w.UmrissHell,
+            ["gluehen"] = _w.Gluehen, ["gluehen_staerke"] = _w.GluehStaerke, ["gluehen_schwelle"] = _w.GluehSchwelle, ["gluehen_radius"] = _w.GluehRadius,
+            ["tiefendunst"] = _w.Dunst, ["dunst_dichte"] = _w.DunstDichte, ["dunst_max"] = _w.DunstMax, ["kontrast"] = _w.Kontrast, ["vignette"] = _w.Vignette,
+            ["schattenkante"] = _w.SchattenWeich, ["zoom_modus"] = _w.ZoomModus, ["gras_ruhig"] = _w.GrasRuhig, ["kamera"] = _spiel ? "spielkamera" : "flugkamera", ["spielkamera_zoom_m"] = _spielZoom,
         };
         return Json_(d);
     }
@@ -629,7 +773,8 @@ public partial class Pixeltest : Node3D
             case Key.F: Flug(false); break;
             case Key.C: SpielSicht(40f); break;
             case Key.V: SpielSicht(140f); break;
-            case Key.R: _w = Pixel(); Abgleichen(); break;
+            case Key.R: _w = Pixel2Fein(); Abgleichen(); break;
+            case Key.T: _w = Pixel2Alt(); Abgleichen(); break;
             case Key.Key0: _w = Aus(); Abgleichen(); break;
             case Key.Key9: _nebel = !_nebel; Anwenden(); break;
             case Key.K: _kreis = !_kreis; break;
@@ -643,7 +788,24 @@ public partial class Pixeltest : Node3D
         if (_spiel && e is InputEventMouseButton { Pressed: true } mb && (mb.ButtonIndex == MouseButton.WheelUp || mb.ButtonIndex == MouseButton.WheelDown)
             && !_tafel.GetGlobalRect().HasPoint(mb.Position))
         {
-            _spielZoom = Mathf.Clamp(_spielZoom * (mb.ButtonIndex == MouseButton.WheelUp ? 0.9f : 1.1f), 15f, 140f);
+            var hoch = mb.ButtonIndex == MouseButton.WheelUp;
+            if (_w.ZoomModus == 0 || !_weltA)
+            {
+                _spielZoom = _zoomZiel = _zoomAnim = Mathf.Clamp(_spielZoom * (hoch ? 0.9f : 1.1f), 15f, 140f);
+            }
+            else if (_w.ZoomModus == 2)
+            {
+                // feste Stufen: eine Stufe je Rasttick, sofort neu gerastert (das Raster ist je Stufe immer dasselbe, nichts schwimmt)
+                var i = Array.FindIndex(ZoomStufen, z => z >= _spielZoom - 0.01f);
+                if (i < 0) i = ZoomStufen.Length - 1;
+                i = Mathf.Clamp(i + (hoch ? -1 : 1), 0, ZoomStufen.Length - 1);
+                _spielZoom = _zoomZiel = _zoomAnim = ZoomStufen[i];
+            }
+            else
+            {
+                _zoomZiel = Mathf.Clamp(_zoomZiel * (hoch ? 0.9f : 1.1f), 15f, 140f);
+                _zoomRuhe = 0f;
+            }
             KameraWerte();
         }
     }
@@ -652,6 +814,12 @@ public partial class Pixeltest : Node3D
     {
         _zeit += delta;
         if (_scrollTempo != 0 && _spiel) _scroll += _scrollTempo * (float)delta;
+        if (_w.ZoomModus == 1 && _weltA && Mathf.Abs(_zoomZiel - _spielZoom) > 0.001f)
+        {
+            _zoomAnim = Mathf.Lerp(_zoomAnim, _zoomZiel, 1f - Mathf.Exp(-14f * (float)delta));
+            _zoomRuhe += (float)delta;
+            if (_zoomRuhe > 0.3f) { _spielZoom = _zoomAnim = _zoomZiel; KameraWerte(); }   // nach dem Stopp: neu ausrichten
+        }
         SpielKameraSetzen();
         LichtKameraAbgleichen();
         if (_kreis && !_spiel)
@@ -669,9 +837,14 @@ public partial class Pixeltest : Node3D
     {
         if (_messZeit == 0)
         {
-            _w = _messSchritt == 0 ? Aus() : Pixel();
-            if (_messSchritt >= 2) _w.PixelGroesse = _messSchritt;
-            Abgleichen(); _gpu.Clear(); _cpu.Clear();
+            _w = _messSchritt == 0 ? Aus() : _messSchritt == 1 ? Pixel2Alt() : Pixel2Fein();
+            if (_messSchritt == 3) _w.Halme = false;
+            if (_messSchritt == 4) _w.Gluehen = false;
+            if (_messSchritt == 5) _w.Umriss = false;
+            if (_messSchritt == 6) { _w.Dunst = false; _w.Kontrast = 1f; _w.Vignette = 0f; _w.SchattenWeich = 0; }
+            if (_messSchritt == 7) _w.PixelGroesse = 3;
+            Abgleichen();
+            if (_messSchritt == 8) SpielSicht(140f); _gpu.Clear(); _cpu.Clear();
         }
         _messZeit += delta;
         if (_messZeit > 2.0)
