@@ -14,6 +14,7 @@ using Reichsgilde.Core.Wirtschaft;
 ///          … -- messen bericht 20 20   (Balancing-Bericht als JSON in docs/messungen/, siehe Balancingbericht.cs)
 ///          … -- messen karren [Karte …]   (Fahrzeiten der Karren je Betrieb, siehe Karrenmessung.cs)
 ///          … -- messen bauorte [Karte …]   (Fahrzeit an jedem Werkstatt-Bauort, siehe Bauortmessung.cs)
+///          … -- messen blitz 20 8 [--karten=…] [--berufe=…]   (Blitzschaden mit/ohne, Sprünge je Partie, siehe Blitzmessung.cs)
 /// </summary>
 static class Messung
 {
@@ -39,6 +40,9 @@ static class Messung
         // Fahrzeit an allen Werkstatt-Bauorten (Befund H2 der Prüfung von phase5/gehtempo): … -- messen bauorte [Karte …] – siehe Bauortmessung.cs
         if (args.Length > 0 && args[0] == "bauorte")
             return Bauortmessung.Erstellen(args[1..]);
+        // Blitzschaden und Übersprung (3.11.2026): … -- messen blitz [Jahre] [Startwerte] [--karten=…] [--berufe=…] – siehe Blitzmessung.cs
+        if (args.Length > 0 && args[0] == "blitz")
+            return Blitzmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

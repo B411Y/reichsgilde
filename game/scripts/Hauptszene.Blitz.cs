@@ -12,10 +12,11 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Hauptszene
 {
-    /// <summary>Eine Meldung „Blitzschlag! …“ über ein Gebäude des Spielers wird zur Warnung.</summary>
+    /// <summary>Eine Meldung „Blitzschlag! …“ oder „Funkenflug! …“ (übergesprungenes Feuer) über ein Gebäude des Spielers wird zur Warnung.</summary>
     private string BlitzMeldung(string meldung)
     {
-        if (!meldung.StartsWith("Blitzschlag! ", StringComparison.Ordinal) || _simulation?.Wirtschaft is not { } w || _spieler is null) return meldung;
+        if (!(meldung.StartsWith("Blitzschlag! ", StringComparison.Ordinal) || meldung.StartsWith("Funkenflug! ", StringComparison.Ordinal))
+            || _simulation?.Wirtschaft is not { } w || _spieler is null) return meldung;
         var e = w.Blitz.Einschlaege.LastOrDefault();
         return e?.Ziel.Besitzer == _spieler ? "⚠ " + meldung : meldung;
     }

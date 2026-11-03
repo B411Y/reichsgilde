@@ -152,7 +152,7 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Die Einwohner der Stadt – Bürger-KI (Bereich Spiel-KI). Ohne Abschnitt „buerger" leer.</summary>
     public Buerger.Einwohnerschaft Einwohnerschaft { get; }
 
-    /// <summary>Blitzschlag im Gewitter: Einschlag, Brand und Schaden (Platzhalter; braucht die <see cref="Karte"/> und „blitz“).</summary>
+    /// <summary>Blitzschlag im Gewitter: Einschlag, Brand, Übersprung und Schaden (braucht die <see cref="Karte"/> und „blitz“).</summary>
     public Gefahren.Blitzwesen Blitz { get; }
 
     /// <summary>Das laufende Spieljahr (das Jahr der laufenden Jahresrechnung).</summary>
@@ -560,7 +560,7 @@ public sealed partial class Stadtwirtschaft
         Bauen.Minute(zeit);  // fertige Baustellen: Umzug, neue Werkstätten, Bauplätze
         Wegebau.Minute(zeit); // fertig ausgebaute Wege
         Ratsantraege.Minute(zeit); // fertige Bauvorhaben der Stadt
-        Blitz.Minute(zeit); // mitten im Gewitter: Blitzschlag (eigener Zufall aus Startwert und Minute, nichts im Spielstand)
+        Blitz.Minute(zeit); // mitten im Gewitter: Blitzschlag (eigener Zufall aus Startwert und Minute), Sprünge aufs Nachbarhaus
 
         // Bürger-KI: Die Einwohner planen jede volle Stunde ihren Tag (lesen nur, eigener Zufall).
         Einwohnerschaft.Minute(zeit);
@@ -1197,6 +1197,7 @@ public sealed partial class Stadtwirtschaft
         Ratsantraege = Kasse.IstAktiv ? Ratsantraege.Sichern(k => _konten.IndexOf(k)) : null,
         Befugnisse = Kasse.IstAktiv ? Befugnisse.Sichern(k => _konten.IndexOf(k)) : null,
         Meinungen = Meinungen.Sichern(k => _konten.IndexOf(k)),
+        Blitz = Blitz.IstAktiv ? Blitz.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -1269,6 +1270,7 @@ public sealed partial class Stadtwirtschaft
         Kasse.Wiederherstellen(s.Stadtkasse); // alte Spielstände: Startbestand der Karte, Steuersatz aus den Daten
         Ratsantraege.Wiederherstellen(s.Ratsantraege, _konten);
         Befugnisse.Wiederherstellen(s.Befugnisse, _konten);
+        Blitz.Wiederherstellen(s.Blitz, _konten); // nach Konten und Betrieben: Ziele per Name und Kontonummer
         ToteBetriebeFreigeben(); // alte Spielstände: Betriebe toter Häuser standen still – nun stehen sie zum Verkauf
         EinwohnerZaehlen();
     }

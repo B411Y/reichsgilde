@@ -73,8 +73,8 @@ public partial class Stadtansicht
                 _blitze[e] = a = new Blitzansicht { Einschlag = e, Hier = hier, Modell = ModellBei((float)e.Ziel.X, (float)e.Ziel.Z) };
                 var frisch = _blitzeGesehen && jetzt - e.Minute <= 2;
                 GD.Print($"[blitz] Einschlag {e.Ziel.Kennung} ({e.Ziel.Name}) um Spielminute {e.Minute}, brennt bis {e.BrandEnde}, Modell {(a.Modell is null ? "nicht gefunden" : a.Modell.Wurzel.Name)}{(frisch ? "" : " (nach dem Laden)")}");
-                if (frisch) EinschlagZeigen(e, a.Modell);
-                if (e.BrenntUm(jetzt)) a.Kette = LoeschketteBeginnen(e, a.Modell);
+                if (frisch && !e.IstUebersprung) EinschlagZeigen(e, a.Modell); // ein übergesprungenes Feuer kommt ohne Blitz (die Glocke läutet schon)
+                if (e.BrenntUm(jetzt) && !e.IstUebersprung) a.Kette = LoeschketteBeginnen(e, a.Modell); // die Eimerkette bleibt vorerst beim ersten Haus
             }
             if (a.Hier && a.Modell is { } modell && IsInstanceValid(modell.Wurzel))
             {
