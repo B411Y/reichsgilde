@@ -52,7 +52,23 @@ public partial class Stadtansicht
     private readonly List<(double Fenster, double Welt, double Licht, double Glueh, double Cpu)> _pxMessung = new();
 
     /// <summary>Feste Zoomstufen der Spielkamera im Pixel-Look (sichtbare Höhe in Metern); Faktor etwa 1,4, die letzte Stufe ist der größte erlaubte Zoom.</summary>
-    private static readonly float[] PixelZoomStufen = { 25f, 35f, 50f, 70f, 100f, 140f };
+    private static readonly float[] PixelZoomStufen = { 35f, 70f, 140f };
+
+    /// <summary>Ab diesem Zoom (Meter sichtbare Höhe) und darunter sind die Weltpixel 3 × 3 groß (nah), darüber 2 × 2. Zwischen nah (35 m) und mittel (70 m); Rückschaltung mit Abstand, damit eine Kamerafahrt nicht flackert.</summary>
+    private const float PixelNahBis = 52f, PixelNahZurueck = 56f;
+
+    /// <summary>
+    /// Welche Pixelgröße gerade gilt: Räume und Innenansichten 3, die Kartenwerkstatt 2 (freier Zoom), draußen nah (bis <see cref="PixelNahBis"/>) 3, sonst 2.
+    /// Der Wechsel passiert zwischen zwei Bildern; <see cref="PixelBild"/> stellt dabei die Größe der Ansichten um.
+    /// </summary>
+    private void PixelGroesseWaehlen()
+    {
+        int n;
+        if (_raum is not null || _innen is not null) n = 3;
+        else if (_entwurf is not null) n = 2;
+        else n = Fenster.PixelGroesseGewaehlt == 3 ? (_kamera.Size <= PixelNahZurueck ? 3 : 2) : (_kamera.Size <= PixelNahBis ? 3 : 2);
+        Fenster.PixelGroesseGewaehlt = n;
+    }
 
     /// <summary>Sperrt oder gibt das 3D-Bild frei (Ladebildschirm der Hauptszene und der Kartenwerkstatt). Ersetzt dort <c>GetViewport().Disable3D</c>.</summary>
     public void Welt3DSperren(bool sperre)
@@ -190,6 +206,7 @@ public partial class Stadtansicht
     /// </summary>
     private void PixelBild()
     {
+        PixelGroesseWaehlen();
         var gewuenscht = Fenster.PixelGroesse > 1;
         if (_pxMessSekunden >= 0) PixelMessen(GetViewport()); // --pixelmessung=<s>, auch ohne Pixel-Look (Vergleichswert)
         if (_pxWelt is null)
@@ -203,7 +220,7 @@ public partial class Stadtansicht
         wurzel.Disable3D = _weltGesperrt || gewuenscht; // das Fenster zeichnet im Pixel-Look keine 3D-Welt (die Ladebildschirme sperren sie zusätzlich)
         var laeuft = gewuenscht && !_weltGesperrt && kamera is not null && kamera != _pxKamera;
         var raum = _raum is not null;
-        var licht = laeuft && !raum;
+        var licht = laeuft;
         var schein = licht && Fenster.PixelGluehenAn;
         _pxEbene.Visible = gewuenscht;
         _pxWelt!.RenderTargetUpdateMode = laeuft ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
@@ -216,6 +233,10 @@ public partial class Stadtansicht
         var teilchen = licht ? PixelTeilchenEbene : 1u; // nur wenn das Beleuchtungsbild läuft, sonst sehen Fenster- und Raumkamera die Teilchen wie sonst
         if (_regen is not null && _regen.Layers != teilchen) _regen.Layers = teilchen;
         if (_schnee is not null && _schnee.Layers != teilchen) _schnee.Layers = teilchen;
+        // ebenso alle anderen durchsichtigen Flächen: Traufentropfen und -spritzer, Lichtflecken und -schein, Flammen und Rauch (sonst dunkle Rechtecke im Beleuchtungsbild)
+        foreach (VisualInstance3D? knoten in new VisualInstance3D?[] { _traufTropfen, _traufRinge, _fleckBoden, _fleckSchein })
+            if (knoten is not null && knoten.Layers != teilchen) knoten.Layers = teilchen;
+        Feuer.EbeneSetzen(GetTree(), teilchen);
         if (!laeuft || kamera is null) return;
 
         // Größen: Weltpixel = n × n Fensterpixel. Die Oberfläche kann skaliert sein (ContentScaleFactor): Bildschirmpixel und Zeichenfläche sind zu trennen.
@@ -368,7 +389,7 @@ public partial class Stadtansicht
         if (_pxMessLauf < 3 + _pxMessSekunden) return;
         var m = _pxMessung;
         GD.Print(string.Create(CultureInfo.InvariantCulture,
-            $"[pixelmessung] look={Fenster.AktuellerPixelLook} gluehen={Fenster.PixelGluehenAn} bilder={m.Count} fenster={m.Average(x => x.Fenster):F2} ms, welt={m.Average(x => x.Welt):F2} ms, licht={m.Average(x => x.Licht):F2} ms, " +
+            $"[pixelmessung] pixellook={Fenster.PixelLookAn} n={Fenster.PixelGroesse} gluehen={Fenster.PixelGluehenAn} bilder={m.Count} fenster={m.Average(x => x.Fenster):F2} ms, welt={m.Average(x => x.Welt):F2} ms, licht={m.Average(x => x.Licht):F2} ms, " +
             $"glueh={m.Average(x => x.Glueh):F2} ms, summe={m.Average(x => x.Fenster + x.Welt + x.Licht + x.Glueh):F2} ms, cpu={m.Average(x => x.Cpu):F2} ms, fps={Engine.GetFramesPerSecond():F0}"));
         GetTree().Quit();
     }

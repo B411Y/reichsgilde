@@ -1141,7 +1141,7 @@ public partial class Stadtansicht : Node3D
         _kamerafahrt?.Kill(); // Mausrad unterbricht eine laufende Kamerafahrt
         var (min, max) = _innen is null ? (KameraMinZoom, KameraGroessterZoom()) : (InnenMinZoom, InnenMaxZoom);
         // Pixel-Look: feste Zoomstufen, damit das Pixelraster beim Zoomen nicht schwimmt (Stadtansicht.Pixel.cs); sonst stufenlos
-        _kamera.Size = _innen is null && Fenster.PixelGroesse > 1 ? PixelZoomStufe(_kamera.Size, faktor < 1f, min, max) : Mathf.Clamp(_kamera.Size * faktor, min, max);
+        _kamera.Size = _innen is null && _entwurf is null && Fenster.PixelLookAn ? PixelZoomStufe(_kamera.Size, faktor < 1f, min, max) : Mathf.Clamp(_kamera.Size * faktor, min, max);
     }
 
     /// <summary>Das ausgewählte Gebäude (setzt die Hauptszene) – sein Name bleibt sichtbar.</summary>

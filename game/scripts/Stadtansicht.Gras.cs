@@ -38,7 +38,7 @@ public partial class Stadtansicht
     {
         var (dichte, hoechstens, hoehe) = g switch { Grasteppich.SehrDicht => (6f, 64f, 0.38f), _ => (2.5f, 32f, 0.36f) };
         // Pixel-Look: Halme kleiner als ein Weltpixel sind nur Rauschen – weniger Halme sehen gleich aus und sparen Zeichenarbeit (Stadtansicht.Pixel.cs)
-        var pixel = Fenster.PixelGroesse switch { 2 => 0.5f, 3 => 0.3f, _ => 1f };
+        var pixel = Fenster.PixelLookAn ? 0.4f : 1f; // ein fester Wert, damit der Wechsel der Pixelgröße beim Zoomen das Gras nicht neu baut
         return (dichte * pixel, hoechstens * pixel, hoehe);
     }
 
@@ -69,7 +69,7 @@ public partial class Stadtansicht
     private bool _grasMakroStark = true;
 
     /// <summary>Wofür die Felder im Bild zuletzt gewählt wurden (Kamera, Zoom, Bildgröße, Netz); null = neu wählen.</summary>
-    private (Vector3 Ort, Vector3 Blick, float Zoom, Vector2 Bild, int Netz, int Pixel)? _grasBlickFuer;
+    private (Vector3 Ort, Vector3 Blick, float Zoom, Vector2 Bild, int Netz, bool Pixel)? _grasBlickFuer;
 
     /// <summary>Die Äcker, über denen kein Gras steht: je Knoten der Äcker (im Spiel einer, in der Werkstatt einer je Feldfläche) die Stücke.</summary>
     private readonly Dictionary<Node3D, Feldparzelle[]> _grasAecker = new();
@@ -210,7 +210,7 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("dichte", dichte);
         stoff.SetShaderParameter("dichte_max", hoechstens);
         stoff.SetShaderParameter("hoehe", hoehe);
-        stoff.SetShaderParameter("ruhig", Fenster.PixelGroesse > 1); // Pixel-Look: Halme wie der Boden beleuchtet, kein Flackern
+        stoff.SetShaderParameter("ruhig", Fenster.PixelLookAn); // Pixel-Look: Halme wie der Boden beleuchtet, kein Flackern
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -518,7 +518,7 @@ public partial class Stadtansicht
         var netz = 0;
         while (netz < GrasNetzDichten.Length - 1 && GrasNetzDichten[netz] < ziel) netz++;
         var t = _kamera.GlobalTransform;
-        var stand = (Ort: t.Origin.Snapped(Vector3.One * 0.5f), Blick: t.Basis.Z.Snapped(Vector3.One * 0.002f), Zoom: Mathf.Snapped(_kamera.Size, 0.25f), Bild: bildgroesse, Netz: netz, Pixel: Fenster.PixelGroesse);
+        var stand = (Ort: t.Origin.Snapped(Vector3.One * 0.5f), Blick: t.Basis.Z.Snapped(Vector3.One * 0.002f), Zoom: Mathf.Snapped(_kamera.Size, 0.25f), Bild: bildgroesse, Netz: netz, Pixel: Fenster.PixelLookAn);
         if (_grasBlickFuer == stand) return;
         _grasBlickFuer = stand;
         var ecken = new[] { Vector2.Zero, new Vector2(bildgroesse.X, 0), bildgroesse, new Vector2(0, bildgroesse.Y) };
