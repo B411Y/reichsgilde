@@ -1,5 +1,5 @@
 {
-  "version": 69,
+  "version": 70,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -2099,6 +2099,7 @@
   },
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "schiffshandel": {
+    "aktiv": false,
     "schiffe": {
       "Flussschiff": {"sorten": 4, "kapazitaetJeSorte": 30, "preis": 3000, "unterhalt": 350, "minutenFlussab": 67, "minutenFlussauf": 112, "ladeMinuten": 22, "liegeMinuten": 34, "meterJeMinute": 8}
     },
