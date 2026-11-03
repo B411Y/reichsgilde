@@ -482,6 +482,7 @@ public partial class Stadtansicht : Node3D
         WetterAufgeben(); // die globalen Shader-Werte zurück auf Sommer und trocken (Stadtansicht.Wetter.cs)
         OberflaecheAufgeben();
         GlobaleBeleuchtungAufgeben();
+        FelsGelaendeAufgeben(); // das Höhenbild der Felsen (Stadtansicht.Felsgelaende.cs)
         if (_wirtschaft is not null)
         {
             _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;
@@ -1051,7 +1052,7 @@ public partial class Stadtansicht : Node3D
         // Verschieben mit Tastatur – nicht beim Schreiben in ein Textfeld, nicht mit Strg (Strg+S speichert in der Kartenwerkstatt) und nicht mit freier Kamera
         if (frei || GetViewport().GuiGetFocusOwner() is LineEdit or TextEdit || Input.IsKeyPressed(Key.Ctrl)) return;
         var richtung = Vector2.Zero;
-        if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) richtung.Y -= 1;
+        if ((Input.IsKeyPressed(Key.W) && !FelsGizmoAktiv) || Input.IsKeyPressed(Key.Up)) richtung.Y -= 1; // W gehört dem Gizmo, solange ein Felsstück gewählt ist (Pfeil hoch schiebt weiter)
         if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) richtung.Y += 1;
         if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left)) richtung.X -= 1;
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) richtung.X += 1;

@@ -16,8 +16,9 @@ namespace Reichsgilde;
 /// (F8), also nur nah; weit herausgezoomt sind die Felsen klein und ohne.</item>
 /// <item><b>Material</b>: das Fels-Material aus F2 (<see cref="Gesteinsarten"/>) mit den gebackenen Atlanten und Vertexfarben der F1-Formen, eins je
 /// Gesteinsart für alle Stücke; dreiseitig nur auf Boden „Hoch“ (F8), sonst eine Richtung. Nässe und Schnee über <c>wetter.gdshaderinc</c>.
-/// Die Einsinktiefe in Metern geht als Instanzdaten (x) an den Shader: Er zeichnet dort, wo das Stück aus dem Boden kommt, einen Moossaum.</item>
-/// <item><b>Werkstatt</b>: einzelne Stücke wählen (Strahl gegen den Kasten des Netzes, sonst die Grundfläche unter der Maus), ziehen, mit Q/E drehen und
+/// Die Einsinktiefe und die Höhe des Stücks in Metern gehen als Instanzdaten (x, y) an den Shader: Er zeichnet dort, wo das Stück aus dem Boden kommt,
+/// einen Moossaum und den Übergang zur Bodenfarbe (R1; die Höhe über dem Gelände liest er aus dem Höhenbild, Stadtansicht.Felsgelaende.cs).</item>
+/// <item><b>Werkstatt</b>: einzelne Stücke wählen (Strahl gegen den Kasten des Netzes, sonst die Grundfläche unter der Maus), ziehen, mit dem Gizmo (Felsgizmo.cs) drehen und
 /// mit Entf löschen – der Kern rechnet (<see cref="Kartenentwurf.FelsVerschieben"/>, <see cref="Kartenentwurf.FelsDrehen"/>); beim Ziehen wandert nur
 /// die eine Instanz mit, bis Loslassen den Befehl gibt.</item>
 /// </list>
@@ -26,9 +27,10 @@ public partial class Stadtansicht
 {
     /// <summary>Ein Felsstück, wie es gezeichnet wird (aus der Karte oder dem Entwurf), mit der Gesteinsart, die gilt.</summary>
     private readonly record struct Felsbild(string Form, string Gestein, double X, double Z, double Drehung, double Massstab, double Neigung,
-        double Einsinken, double KippenX, double KippenZ);
+        double Einsinken, double KippenX, double KippenZ, double AchseX = 1, double AchseY = 1, double AchseZ = 1, double Versatz = 0);
 
-    private const string FelsModell = "natur/natur_felsen";
+    /// <summary>Das Modell einer Form: die F1-Formen aus <c>natur_felsen</c>, die des Felswand-Satzes aus <c>natur_felswand</c>.</summary>
+    private static string FelsModellVon(string form) => Felsformen.Finde(form)?.Modell ?? Felsformen.ModellF1;
 
     /// <summary>Kantenlänge der Zellen (Meter): klein genug zum Wegschneiden, groß genug für wenige Zeichenaufrufe.</summary>
     private const float FelsZelle = 64f;
@@ -84,7 +86,7 @@ public partial class Stadtansicht
     /// </summary>
     private Mesh? FelsNetz(string form, int stufe)
     {
-        if (Felsformen.Finde(form) is not { } f || NaturNetz(FelsModell, $"{f.Knoten}_{Math.Clamp(stufe, 0, 2)}") is not { } netz) return null;
+        if (Felsformen.Finde(form) is not { } f || NaturNetz(f.Modell, $"{f.Knoten}_{Math.Clamp(stufe, 0, 2)}") is not { } netz) return null;
         if (netz is ArrayMesh a && a.GetSurfaceCount() > 0 && a.SurfaceGetMaterial(0) is not null) a.SurfaceSetMaterial(0, null);
         return netz;
     }
@@ -97,11 +99,13 @@ public partial class Stadtansicht
         return _felsKaesten[form] = netz.GetAabb();
     }
 
-    /// <summary>Das Fels-Material einer Gesteinsart (eins je Art, für alle Stücke geteilt).</summary>
-    private ShaderMaterial FelsStoff(string gestein)
+    /// <summary>Das Fels-Material einer Gesteinsart für die Atlanten einer Form (eins je Art und Modell, für alle Stücke geteilt).</summary>
+    private ShaderMaterial FelsStoff(string gestein, string form)
     {
-        if (!_felsStoffe.TryGetValue(gestein, out var stoff))
-            _felsStoffe[gestein] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), _felsDreiseitig, f1: true); // die Stufe stellt FelsenStufeNachfuehren für alle um
+        var wand = FelsModellVon(form) == Felsformen.ModellWand;
+        var schluessel = wand ? gestein + "|wand" : gestein;
+        if (!_felsStoffe.TryGetValue(schluessel, out var stoff))
+            _felsStoffe[schluessel] = stoff = Gesteinsarten.Material(Gesteinsarten.Nach(gestein), _felsDreiseitig, f1: true, wand: wand); // die Stufe stellt FelsenStufeNachfuehren für alle um
         return stoff;
     }
 
@@ -115,12 +119,14 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Lage eines Stücks in der Welt: Drehung um die Senkrechte, geneigt zur Hangnormalen (Anteil Neigung), gekippt um die eigenen Achsen, um
-    /// Einsinken seiner Höhe unter den Boden unter der Mitte gesenkt, gleichmäßig skaliert. Die Hangnormale rechnet der Kern aus dem Höhenraster.
+    /// Die Lage eines Stücks in der Welt: Drehung um die Senkrechte, geneigt zur Hangnormalen (Anteil Neigung), gekippt und gerollt um die eigenen
+    /// Achsen (volle Euler-Winkel Y · X · Z, R2), um Einsinken seiner Höhe unter den Boden unter der Mitte gesenkt und um den Versatz gehoben,
+    /// skaliert mit Maßstab mal Achse (in den Achsen des Stücks). Die Hangnormale rechnet der Kern aus dem Höhenraster; dieselbe Lage beschreibt
+    /// Felsraum.Rahmen im Kern.
     /// </summary>
     private Transform3D FelsLage(in Felsbild b)
     {
-        var hoehe = (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab);
+        var hoehe = (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.AchseY);
         var oben = Vector3.Up;
         if (b.Neigung > 0 && (_entwurf?.Hoehen ?? _gelaende?.Roh) is { } raster)
         {
@@ -136,11 +142,27 @@ public partial class Stadtansicht
             basis = new Basis(achse, Vector3.Up.AngleTo(oben)) * basis;
         }
         var boden = BodenHoehe((float)b.X, (float)b.Z);
-        return new Transform3D(basis.Scaled(Vector3.One * (float)b.Massstab), new Vector3((float)b.X, boden - (float)b.Einsinken * hoehe, (float)b.Z));
+        var groesse = new Vector3((float)b.AchseX, (float)b.AchseY, (float)b.AchseZ) * (float)b.Massstab;
+        return new Transform3D(basis * Basis.FromScale(groesse), new Vector3((float)b.X, boden - (float)b.Einsinken * hoehe + (float)b.Versatz, (float)b.Z));
     }
 
-    /// <summary>Wie tief das Stück im Boden steckt (Meter) – für den Moossaum im Shader.</summary>
-    private static float FelsTiefe(in Felsbild b) => (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.Einsinken);
+    /// <summary>
+    /// Wie tief das Stück im Boden steckt (Meter: der Boden liegt so weit über dem Ursprung) – für den Moossaum im Shader. Ein um mehr als die
+    /// Einsinktiefe gehobenes Stück schwebt: dann negativ, der Saum beginnt am Boden darunter.
+    /// </summary>
+    private static float FelsTiefe(in Felsbild b) =>
+        (float)((Felsformen.Finde(b.Form)?.Hoehe ?? 1) * b.Massstab * b.AchseY * b.Einsinken - b.Versatz);
+
+    /// <summary>
+    /// Die Instanzdaten für den Shader: x Einsinktiefe (Moossaum, Ersatz ohne Höhenbild), y Höhe des Stücks in Metern mit der Achse Höhe (Breite des Übergangs am
+    /// Fuß, R1), z und w nur bei den Formen des Felswand-Satzes: Neigung der Bankfugen in Grad und eine 1 dazu (die Bänder im Shader folgen ihr).
+    /// </summary>
+    private static Color FelsDaten(in Felsbild b)
+    {
+        var form = Felsformen.Finde(b.Form);
+        var wand = form?.Modell == Felsformen.ModellWand;
+        return new(FelsTiefe(b), (float)((form?.Hoehe ?? 1) * b.Massstab * b.AchseY), wand ? (float)form!.Schichtneigung : 0, wand ? 1 : 0);
+    }
 
     private static (int I, int J) FelsZelleBei(double x, double z) => ((int)Math.Floor(x / FelsZelle), (int)Math.Floor(z / FelsZelle));
 
@@ -172,6 +194,7 @@ public partial class Stadtansicht
         _felsBilder[schluessel] = bild;
         _felsZelleVon[schluessel] = ort;
         _felsZellenNeu = true;
+        FelsGelaendeVormerken(); // reicht das Höhenbild noch (Stadtansicht.Felsgelaende.cs)?
     }
 
     /// <summary>Nimmt ein Stück weg (seine Zelle wird neu gebaut).</summary>
@@ -190,6 +213,7 @@ public partial class Stadtansicht
     /// <summary>Baut die vorgemerkten Zellen neu (jedes Bild gefragt; in der Werkstatt auch am Ende von <see cref="Nachziehen"/>).</summary>
     private void FelsenNachziehen()
     {
+        FelsGelaendeNachziehen(); // das Gelände unter den Felsen für den Fuß im Shader (Stadtansicht.Felsgelaende.cs)
         if (!_felsZellenNeu) return;
         _felsZellenNeu = false;
         foreach (var (ort, zelle) in _felsZellen.ToList())
@@ -240,11 +264,11 @@ public partial class Stadtansicht
             for (var i = 0; i < steine.Count; i++)
             {
                 vielfach.SetInstanceTransform(i, FelsLage(steine[i]));
-                vielfach.SetInstanceCustomData(i, new Color(FelsTiefe(steine[i]), 0, 0, 0));
+                vielfach.SetInstanceCustomData(i, FelsDaten(steine[i]));
             }
             var teil = new MultiMeshInstance3D
             {
-                Name = "Schutt", Multimesh = vielfach, MaterialOverride = FelsStoff(gestein), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                Name = "Schutt", Multimesh = vielfach, MaterialOverride = FelsStoff(gestein, Felsboden.Schuttform), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
                 Visible = stufe < 2,
             };
             zelle.Knoten.AddChild(teil);
@@ -262,14 +286,14 @@ public partial class Stadtansicht
                 var b = _felsBilder[stuecke[i]];
                 var lage = FelsLage(b);
                 vielfach.SetInstanceTransform(i, lage);
-                vielfach.SetInstanceCustomData(i, new Color(FelsTiefe(b), 0, 0, 0));
+                vielfach.SetInstanceCustomData(i, FelsDaten(b));
                 _felsLagen[stuecke[i]] = lage;
                 _felsInstanz[stuecke[i]] = (vielfach, i);
                 summe += lage.Origin;
             }
             var teil = new MultiMeshInstance3D
             {
-                Name = form, Multimesh = vielfach, MaterialOverride = FelsStoff(gestein),
+                Name = form, Multimesh = vielfach, MaterialOverride = FelsStoff(gestein, form),
                 CastShadow = stufe <= FelsSchattenBisStufe ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off,
             };
             zelle.Knoten.AddChild(teil);
@@ -323,7 +347,8 @@ public partial class Stadtansicht
     {
         if (_entwurf is not null) return;
         var grundKarte = Felsformen.IstGestein(karte.Felsen?.Grundgestein) ? karte.Felsen!.Grundgestein! : Felsformen.GrundgesteinVorgabe;
-        FelsbodenFarbe(grundKarte, karte.Felsen is not null); // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher
+        // Stadtansicht.Felsboden.cs: ohne Felsen bleibt der Boden wie bisher – wie in der Werkstatt erst mit Stücken oder gesetztem Grundgestein
+        FelsbodenFarbe(grundKarte, karte.Felsen is { } fk && (fk.Stuecke is { Count: > 0 } || fk.Grundgestein is not null));
         if (karte.Felsen?.Stuecke is not { Count: > 0 } stuecke) return;
         var grund = grundKarte;
         for (var i = 0; i < stuecke.Count; i++)
@@ -332,7 +357,8 @@ public partial class Stadtansicht
             if (s?.Punkt is not { Length: 2 } p || Felsformen.Finde(s.Form) is null) continue;
             var gestein = Felsformen.IstGestein(s.Gestein) ? s.Gestein! : grund;
             FelsSetzen(i, new Felsbild(s.Form, gestein, p[0], p[1], s.Drehung, s.Massstab, s.Neigung, s.Einsinken,
-                s.Kippen is { Length: 2 } k ? k[0] : 0, s.Kippen is { Length: 2 } k2 ? k2[1] : 0));
+                s.Kippen is { Length: 2 } k ? k[0] : 0, s.Kippen is { Length: 2 } k2 ? k2[1] : 0,
+                s.Achsen is { Length: 3 } a ? a[0] : 1, s.Achsen is { Length: 3 } a2 ? a2[1] : 1, s.Achsen is { Length: 3 } a3 ? a3[2] : 1, s.Versatz));
         }
         FelsenNachziehen();
     }
@@ -342,7 +368,8 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     private Felsbild FelsBildVon(EntwurfFels f, double? x = null, double? z = null) =>
-        new(f.Form, _entwurf!.GesteinVon(f), x ?? f.X, z ?? f.Z, f.Drehung, f.Massstab, f.Neigung, f.Einsinken, f.KippenX, f.KippenZ);
+        new(f.Form, _entwurf!.GesteinVon(f), x ?? f.X, z ?? f.Z, f.Drehung, f.Massstab, f.Neigung, f.Einsinken, f.KippenX, f.KippenZ,
+            f.AchseX, f.AchseY, f.AchseZ, f.Versatz);
 
     /// <summary>Beim Aufbau der Werkstatt: alle Stücke des Entwurfs.</summary>
     private void FelsenAufbauen()
@@ -374,7 +401,7 @@ public partial class Stadtansicht
     /// <summary>Das Gelände hat sich in diesem Rechteck geändert: Die Zellen darin folgen dem Boden (aus <see cref="GelaendeNachziehen"/>).</summary>
     private void FelsenImBereich(Rect2 rect)
     {
-        var weit = rect.Grow(20f); // größter Radius eines Stücks samt Schuttkegel (Grundfläche + 0,8 · Felsboden.KegelMax)
+        var weit = rect.Grow(36f); // größter Radius eines Stücks samt Schuttkegel (Grundfläche + 0,8 · Felsboden.KegelMax; die großen Wände sind bis 20 m breit)
         foreach (var (ort, zelle) in _felsZellen)
         {
             if (!new Rect2(ort.I * FelsZelle, ort.J * FelsZelle, FelsZelle, FelsZelle).Intersects(weit)) continue;
@@ -403,7 +430,7 @@ public partial class Stadtansicht
             };
             AddChild(_felsMarke);
         }
-        var radius = Mathf.Max(0.8f, (float)(Math.Max(form.Breite, form.Tiefe) / 2 * f.Massstab));
+        var radius = Mathf.Max(0.8f, (float)(Math.Max(form.Breite * f.AchseX, form.Tiefe * f.AchseZ) / 2 * f.Massstab));
         if (_felsMarke.Mesh is not TorusMesh ring || !Mathf.IsEqualApprox(ring.InnerRadius, radius))
             _felsMarke.Mesh = new TorusMesh { InnerRadius = radius, OuterRadius = radius + 0.3f, Rings = 32 };
         var (x, z) = ((float)f.X + (versatz?.X ?? 0), (float)f.Z + (versatz?.Y ?? 0));

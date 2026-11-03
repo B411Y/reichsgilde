@@ -216,7 +216,7 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public string? KarrenKaufVerboten(Betrieb betrieb) =>
         Daten.Logistik.HoechstKarren(betrieb.Ort) is { } n && betrieb.Karren.Count >= n
-            ? $"{betrieb.Name} hat schon {Zahlenformat.Ganz(betrieb.Karren.Count)} Karren – mehr als {Zahlenformat.Ganz(n)} gehen {(betrieb.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")} nicht."
+            ? $"{betrieb.Name} hat schon {Zahlenformat.Ganz(betrieb.Karren.Count)} Karren – mehr als {Zahlenformat.Ganz(n)} sind {(betrieb.Ort == Arbeitsort.Umland ? "im Umland" : "in der Stadt")} nicht erlaubt."
             : null;
 
     /// <summary>Warum dieses Haus den Karren Nr. <paramref name="karrenNr"/> (ab 0) dieses Betriebs nicht verkaufen kann – oder null.</summary>

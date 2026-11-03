@@ -44,6 +44,7 @@ public partial class Kartenwerkstatt
             case EntwurfFeld fe: FeldTafel(fe, raster); break; // Kartenwerkstatt.Karte.cs
             case EntwurfPflanze p: PflanzenTafel(p, raster); break;
             case EntwurfMauer m: MauerTafel(m, raster); break;
+            case EntwurfFels fels: FelsLageTafel(fels, raster); break; // Kartenwerkstatt.Felslage.cs
         }
         var knoepfe = new HBoxContainer();
         knoepfe.AddThemeConstantOverride("separation", 8);

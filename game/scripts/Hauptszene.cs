@@ -1,6 +1,7 @@
 using Godot;
 using Reichsgilde.Core;
 using Reichsgilde.Core.Bauen;
+using Reichsgilde.Core.Entwickler;
 using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Wirtschaft;
@@ -566,6 +567,16 @@ public partial class Hauptszene : Node
                 _simulation.Bote.Einreihen(_spieler, new KarrenKaufen(kaeufer.Name, typ), ergebnis =>
                 {
                     if (!ergebnis.Erfolg) Protokollieren("--karren=" + typ + ": " + ergebnis.Meldung);
+                });
+            }
+        if (optionen.TryGetValue("vorrat", out var vorrat) && _eigeneGiesserei is { } lagerBetrieb && _spieler is not null)
+            foreach (var eintrag in vorrat.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) // --vorrat=Gerste:60,Roggen:60 (Klicktest)
+            {
+                var teile = eintrag.Split(':');
+                if (teile.Length != 2 || !int.TryParse(teile[1], out var menge)) { Protokollieren($"--vorrat={eintrag}: gemeint ist Ware:Menge."); continue; }
+                _simulation.Bote.Einreihen(_spieler, new EntwicklerWare(lagerBetrieb.Name, teile[0].Replace('_', ' '), menge), ergebnis =>
+                {
+                    if (!ergebnis.Erfolg) Protokollieren("--vorrat=" + eintrag + ": " + ergebnis.Meldung);
                 });
             }
         if (optionen.GetValueOrDefault("umland") == "1") UmlandVorbereiten();

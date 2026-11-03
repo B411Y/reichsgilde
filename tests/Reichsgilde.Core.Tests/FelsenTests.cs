@@ -83,17 +83,25 @@ static class FelsenTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Felsen: Formen und Gruppen wie aus F1 (8 Formen, 3 Gruppen mit 3–8 Stücken), Gesteinsarten wie in gestein.json", () =>
+        ("Felsen: Formen und Gruppen – 8 aus F1, 11 aus dem Felswand-Satz (R4), 4 Gruppen mit 3–8 Stücken, Gesteinsarten wie in gestein.json", () =>
         {
-            Pruefe.Gleich(8, Felsformen.Alle.Count);
-            Pruefe.Gleich(8, Felsformen.Alle.Select(f => f.Kennung).Distinct().Count());
-            Pruefe.Gleich("Wand,Kuppe,Rippe,Block,Platte,Ueberhang,Schuttbrocken,Felsnase", string.Join(",", Felsformen.Alle.Select(f => f.Knoten)));
+            Pruefe.Gleich(19, Felsformen.Alle.Count);
+            Pruefe.Gleich(19, Felsformen.Alle.Select(f => f.Kennung).Distinct().Count());
+            var f1 = Felsformen.Alle.Where(f => f.Modell == Felsformen.ModellF1).ToList();
+            Pruefe.Gleich("Wand,Kuppe,Rippe,Block,Platte,Ueberhang,Schuttbrocken,Felsnase", string.Join(",", f1.Select(f => f.Knoten)));
+            var wand = Felsformen.Alle.Where(f => f.Modell == Felsformen.ModellWand).ToList();
+            Pruefe.Gleich(11, wand.Count);
+            Pruefe.Gleich("wand_gross_1,wand_gross_2,wand_gross_3,wand_mittel_1,wand_mittel_2,wand_mittel_3,gesims_1,gesims_2,pfeiler_1,pfeilerbuendel,schuttkegel",
+                string.Join(",", wand.Select(f => f.Kennung)));
+            Pruefe.Wahr(wand.All(f => f.Ueberlappung is >= 0.4 and <= 0.7), "Überlappung der großen Stücke 40–70 %");
+            Pruefe.Wahr(f1.All(f => f.Ueberlappung == Felspinsel.Ueberlappung && f.EinsinkenFaktor == 1 && !f.HangFormt), "F1 bleibt, wie es war");
+            Pruefe.Wahr(wand.Where(f => f.HangFormt).All(f => f.Rueckwand < 0 && f.Fusslinie > f.Rueckwand && f.Hoehe >= 5), "nur Wände mit offener Rückseite formen den Hang");
             foreach (var g in Felsformen.Gruppen)
             {
                 Pruefe.Wahr(g.Stuecke.Count is >= 3 and <= 8, $"Gruppe {g.Kennung} hat {g.Stuecke.Count} Stücke");
                 Pruefe.Wahr(g.Stuecke.All(s => Felsformen.Finde(s.Form) is not null), $"Gruppe {g.Kennung}: unbekannte Form");
             }
-            Pruefe.Gleich("wand,kuppe,rippe", string.Join(",", Felsformen.Gruppen.Select(g => g.Kennung)));
+            Pruefe.Gleich("wand,kuppe,rippe,wandgross", string.Join(",", Felsformen.Gruppen.Select(g => g.Kennung)));
             using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(Datenordner, "gestein.json")));
             var kennungen = doc.RootElement.GetProperty("gesteine").EnumerateArray().Select(g => g.GetProperty("kennung").GetString()).ToList();
             Pruefe.Gleich(string.Join(",", kennungen), string.Join(",", Felsformen.Gesteine));
