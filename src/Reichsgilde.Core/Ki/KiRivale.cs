@@ -276,9 +276,9 @@ public sealed partial class KiRivale
         if (_stundenSeitWechsel[betrieb] < Profil.MindestStundenJeProdukt)
             return;
 
-        var aktuell = GewinnJeArbeitsminute(betrieb.Produkt);
+        var aktuell = ProduktWert(betrieb, betrieb.Produkt); // Schänke mit ki.schaenke: nach dem Ausschank (KiRivale.Schaenke.cs)
         var (bestes, wert) = betrieb.Artdaten.Produkte
-            .Select(x => (Ware: x, Wert: GewinnJeArbeitsminute(x)))
+            .Select(x => (Ware: x, Wert: ProduktWert(betrieb, x)))
             .OrderByDescending(x => x.Wert)
             .ThenBy(x => x.Ware, StringComparer.Ordinal)
             .First();

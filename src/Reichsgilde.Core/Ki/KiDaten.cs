@@ -18,12 +18,38 @@ public sealed class KiDaten
     /// <summary>Wie die KI sich auf die Jahreszeit einstellt (Vorrat vor dem Winter; Datenversion 69). Fehlt der Teil, legt sie keinen Vorrat an.</summary>
     public KiJahreszeitenDaten? Jahreszeiten { get; init; }
 
+    /// <summary>
+    /// Wie die KI die Ware einer Schänke wählt (<see cref="KiSchaenkeDaten"/>). Fehlt der Teil, wählt sie wie jede Werkstatt nach dem Marktpreis
+    /// (so rechnete sie bis Datenversion 69; alte Spielstände bringen ihre Daten mit).
+    /// </summary>
+    public KiSchaenkeDaten? Schaenke { get; init; }
+
     public void Pruefen(List<string> f)
     {
         Einrichtung?.Pruefen(f);
         Wegebau?.Pruefen(f);
         Schiffe?.Pruefen(f);
         Jahreszeiten?.Pruefen(f);
+        Schaenke?.Pruefen(f);
+    }
+}
+
+/// <summary>
+/// Die Ware einer Schänke nach dem Ausschank (<see cref="KiRivale.SchankwertJeArbeitsminute"/>): Was die Gäste trinken und essen, bringt den
+/// festen Ausschankpreis, nicht den Marktpreis. Die KI rechnet darum je Ausschankware mit dem Anteil, den die erwarteten Gäste eines Jahres
+/// abnehmen würden, zum Ausschankpreis und nur den Rest zum Marktpreis.
+/// </summary>
+public sealed class KiSchaenkeDaten
+{
+    /// <summary>
+    /// Mit diesem Anteil der erwarteten Gäste (<see cref="Wirtschaft.Gastwirtschaft.ErwarteteGaeste"/>) rechnet die KI (1 = alle). Kleiner, wenn
+    /// ein Teil der Gäste erfahrungsgemäß eine andere Ware aus dem Vorrat bestellt.
+    /// </summary>
+    public double Gaesteanteil { get; init; } = 1;
+
+    public void Pruefen(List<string> f)
+    {
+        if (Gaesteanteil is < 0 or > 1) f.Add("ki.schaenke.gaesteanteil muss zwischen 0 und 1 liegen.");
     }
 }
 
