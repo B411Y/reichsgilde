@@ -39,6 +39,7 @@ uniform vec3 wiese_farbe : source_color = vec3(0.32, 0.4, 0.18);
 uniform float dichte = 6.0;
 uniform float dichte_max = 32.0;
 uniform float hoehe = 0.3;
+uniform bool ruhig = false;   // Pixel-Look (Stadtansicht.Pixel.cs): alle Halme wie der Boden beleuchten (Normale nach oben), sonst flackern sie im Low-Res-Bild
 
 const float FELD = 4.0;
 const float WEG_TEXEL = 0.25;
@@ -197,7 +198,7 @@ void fragment() {
 	// am Grund dunkel (die Halme verdecken einander), an den Spitzen hell und etwas gelblich (von der Sonne gebleicht)
 	ALBEDO = mix(farbe * 0.42, farbe * vec3(1.34, 1.32, 1.0), smoothstep(0.0, 0.7, spitze));
 	// dieselbe Normale für Vorder- und Rückseite (sonst wäre eine Seite jedes Halms dunkel)
-	NORMAL = normalize(gras_n);
+	NORMAL = ruhig ? normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz) : normalize(gras_n);
 	ROUGHNESS = 0.85;
 	SPECULAR = 0.3;
 }

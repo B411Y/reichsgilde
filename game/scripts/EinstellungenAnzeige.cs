@@ -132,6 +132,13 @@ public sealed class EinstellungenAnzeige
         (Miniaturunschaerfe.Aus, "Aus"), (Miniaturunschaerfe.Leicht, "Leicht (empfohlen)"), (Miniaturunschaerfe.Stark, "Stark"),
     };
 
+    private static readonly (PixelLook Stufe, string Name, string Erklaerung)[] Pixelstufen =
+    {
+        (PixelLook.Aus, "Aus (empfohlen)", "Der gemalt-realistische Look des Spiels."),
+        (PixelLook.Pixel2, "Pixel 2", "Die Welt wird mit der halben Auflösung gerechnet und ohne Glättung hochgezogen: grobe Pixel, Licht in drei Stufen, dunkle Umrisse, Dunst in der Ferne. Tafeln und Schrift bleiben scharf."),
+        (PixelLook.Pixel3, "Pixel 3", "Wie Pixel 2, aber mit einem Drittel der Auflösung: gröbere Pixel, noch weniger Rechenarbeit."),
+    };
+
     private static readonly (Morgendunst Stufe, string Name, string Erklaerung)[] Dunststufen =
     {
         (Morgendunst.Aus, "Aus", "Klare Luft zu jeder Stunde."),
@@ -232,6 +239,8 @@ public sealed class EinstellungenAnzeige
     private readonly HSlider _bloomRegler;
     private readonly Label _bloomWert;
     private readonly OptionButton _unschaerfe;
+    private readonly OptionButton _pixelLook;
+    private readonly CheckButton _pixelGluehen;
     private readonly CheckButton _wolken;
     private readonly OptionButton _dunst;
     private readonly OptionButton _wetter;
@@ -474,6 +483,20 @@ public sealed class EinstellungenAnzeige
             Fenster.UnschaerfeSetzen(Unschaerfen[nummer].Stufe);
             Auffrischen();
         });
+        zeile = Zeile(e, "Pixel-Look", () => Liste("Die Stadt im Pixel-Stil, wie ein Spiel der 1990er. Das Zoomen geht dann in festen Stufen, das Gras steht ruhiger. " +
+                                                   "Räume werden nur grob gepixelt. Der Bloom wird durch das Glühen ersetzt. Spart Grafikleistung (Pixel 3 am meisten).",
+                                                   Pixelstufen.Select(p => (p.Name, p.Erklaerung)), IndexVon(Pixelstufen, p => p.Stufe == Fenster.AktuellerPixelLook)));
+        _pixelLook = Auswahl(zeile, Pixelstufen.Select(p => p.Name), nummer =>
+        {
+            Fenster.PixelLookSetzen(Pixelstufen[nummer].Stufe);
+            Auffrischen();
+        });
+        _pixelGluehen = Schalter(e, "Pixel-Look: Glühen", () => "Weicher Schein um Fenster, Feuer und Laternen. Nur mit Pixel 2 oder Pixel 3; ersetzt dann den Lichtschein (Bloom) der Stadt. Kostet sehr wenig.",
+                                 an =>
+                                 {
+                                     Fenster.PixelGluehenSetzen(an);
+                                     Auffrischen();
+                                 }, einzug: Einzug);
         _wolken = Schalter(e, "Wolkenschatten", () => "Schatten einzelner Wolken ziehen langsam mit dem Wind über Felder, Gassen und Dächer – nur bei Sonne.",
                            an =>
                            {
@@ -721,6 +744,9 @@ public sealed class EinstellungenAnzeige
         _bloom.SetPressedNoSignal(Fenster.BloomAn);
         WertSetzen(_bloomRegler, _bloomWert, Fenster.BloomStaerke, " %");
         _unschaerfe.Select(Array.FindIndex(Unschaerfen, u => u.Stufe == Fenster.AktuelleUnschaerfe));
+        _pixelLook.Select(Array.FindIndex(Pixelstufen, p => p.Stufe == Fenster.AktuellerPixelLook));
+        _pixelGluehen.SetPressedNoSignal(Fenster.PixelGluehenAn);
+        _pixelGluehen.Disabled = Fenster.AktuellerPixelLook == PixelLook.Aus;
         _wolken.SetPressedNoSignal(Fenster.WolkenschattenAn);
         _dunst.Select(Array.FindIndex(Dunststufen, d => d.Stufe == Fenster.AktuellerDunst));
         _wetter.Select(Array.FindIndex(Wetterstufen, w => w.Stufe == Fenster.AktuelleWettereffekte));

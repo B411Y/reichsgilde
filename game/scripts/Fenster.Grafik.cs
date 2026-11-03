@@ -133,6 +133,7 @@ public partial class Fenster
         SchaerfeSetzen(Wert("schaerfe", StandardSchaerfe).AsInt32(), false);
         FahnenSetzen(Wert("fahnen", true).AsBool(), false);
         OberflaechengroesseSetzen(Wert("uigroesse", 100).AsInt32(), false);
+        PixelLaden(datei, geladen); // Pixel-Look, Standard aus (Fenster.Pixel.cs)
         FarbfilterSetzen(Art("farbfilter", Farbfilter.Aus), false);
         // Bodenqualität (ab Schritt 5h) und Grasteppich (ab 5i): Fehlen sie in einer älteren Datei, die der Stufe, die die übrigen Regler zeigen –
         // sonst stünde dort „Eigene“
@@ -467,7 +468,10 @@ public partial class Fenster
 
     /// <summary>GPU-Zeit des letzten Bildes in Millisekunden (0, wenn nicht gemessen wird oder der Treiber es nicht kann).</summary>
     private static float GpuZeit() =>
-        _instanz?.GetTree().Root is { } fenster ? (float)RenderingServer.ViewportGetMeasuredRenderTimeGpu(fenster.GetViewportRid()) : 0f;
+        (_instanz?.GetTree().Root is { } fenster ? (float)RenderingServer.ViewportGetMeasuredRenderTimeGpu(fenster.GetViewportRid()) : 0f) + (PixelGpuZeit?.Invoke() ?? 0f);
+
+    /// <summary>Im Pixel-Look rechnet die Welt in eigenen Ansichten: ihre GPU-Zeit (ms) kommt dazu (gesetzt von der Stadtansicht, Stadtansicht.Pixel.cs).</summary>
+    public static Func<float>? PixelGpuZeit { get; set; }
 
     /// <summary>War beim Start keine Datei mit Einstellungen da? Dann wählt das Spiel die Voreinstellung selbst (<see cref="AutomatischWaehlen"/>).</summary>
     public static bool ErsterStart { get; private set; }
@@ -714,6 +718,7 @@ public partial class Fenster
         if (optionen.TryGetValue("fahnen", out var fahnen)) FahnenSetzen(An(fahnen), speichern: false);
         if (Zahl("uigroesse", out var uigroesse)) OberflaechengroesseSetzen(uigroesse, speichern: false);
         if (Art<Farbfilter>("farbfilter", out var farbfilter)) FarbfilterSetzen(farbfilter, speichern: false);
+        PixelStartoptionen(optionen); // --pixellook=0|2|3, --pixelgluehen=0|1 (Fenster.Pixel.cs)
         if (optionen.GetValueOrDefault("automatisch") == "1") AutomatischWaehlen();
         if (Zahl("messung", out var messung) && messung > 0) MessungStarten(messung);
     }
