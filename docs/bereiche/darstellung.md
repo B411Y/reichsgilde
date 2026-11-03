@@ -219,6 +219,20 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Grafikstil: Pixel-Look (Nutzer 03.11.2026)
+
+Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutzer, 20.10.2026).
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stil | Der Pixel-Look ist das Stilmittel der 2,5D-3D-Welt: niedrige Auflösung (Welt 1/2 bzw. 1/3), Nearest-Hochzug, treppige Kanten, Kamera-Snapping | 03.11.2026 |
+| Farben | Originalfarben und Original-Texturen der Modelle, keine Palettenreduktion, kein Western- oder Farbfilter; leicht düsterer (Düsternis etwa 12 %) | 03.11.2026 |
+| Licht und Kanten | Stufenlicht mit weichen Stufen für Sonne und Mond, weiche Punktlichter; Umrisse in abgedunkelter Eigenfarbe, helle Innenkanten; Glühen der Lichter in voller Auflösung; leichter Tiefendunst; Vignette | 03.11.2026 |
+| Zoom | Stadtansicht drei Stufen: weit 140 m und mittel 70 m mit Pixel 2, nah 35 m mit Pixel 3; Innenräume Pixel 3 | 03.11.2026 |
+| Oberfläche | Tafeln, Schrift und Gebäudenamen in voller Auflösung, scharf; die Oberfläche bleibt kolorierter Holzschnitt (Ausnahme Charakterzug-Medaillons) | 03.11.2026 |
+| Modelle | Bleiben schlicht mit Oberflächenstruktur (Mauerwerk, Maserung, Ziegel), kein Holzschnitt-Shader; neue Modelle und Texturen im Klicktest mit Pixel-Look prüfen | 03.11.2026 |
+| Alter Look | Bleibt als abschaltbare Grafikoption „Pixel-Look aus“; die Umstellung des Standards läuft auf `phase5/pixel-zoom` (Einzelheiten zur Umsetzung unter „Pixel-Look (PR #295)“) | 03.11.2026 |
+
 ### Pixel-Look (PR #295)
 
 | Thema | Entscheidung | Datum |
