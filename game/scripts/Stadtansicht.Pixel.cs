@@ -5,7 +5,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Der <b>Pixel-Look</b> der Stadtansicht (Grafikoption, Nutzer 03.11.2026; Vorlage: Versuch Runde 4 „Pixel 2 fein“) – ein Teil der <c>partial class Stadtansicht</c>.
-/// Aus (Standard) bleibt alles wie es war. Bei Pixel 2 oder Pixel 3 (<see cref="Fenster.AktuellerPixelLook"/>) gilt:
+/// Seit dem PR „drei Zoomstufen“ ist er Standard (<see cref="Fenster.PixelLookAn"/>); aus bleibt alles wie vor dem Pixel-Look. Die Pixelgröße N (2 oder 3) wählt <see cref="PixelGroesseWaehlen"/> je Zoomstufe. Eingeschaltet gilt:
 /// <list type="bullet">
 /// <item><b>Die Welt rechnet in einem SubViewport mit 1/N der Fensterauflösung</b> (<c>PixelWelt</c>, teilt sich die 3D-Welt des Fensters) und wird mit Nearest
 /// hochgezogen (ein <see cref="TextureRect"/> auf einer <see cref="CanvasLayer"/> unter der Oberfläche). Das Fenster selbst zeichnet dann keine 3D-Welt
@@ -18,16 +18,15 @@ namespace Reichsgilde;
 /// <item><b>Beleuchtungsbild als zweiter Durchgang</b> (<c>PixelLicht</c>, Debug-Zeichnung „Beleuchtung“ mit weißen Flächen, gleiche Welt, gleiche Kamera, ohne das Nachbearbeitungs-Viereck):
 /// <c>pixel_farbe.gdshader</c> setzt daraus Stufenlicht, weiche Schattenkanten, Umrisse, Tiefendunst und Kontrast auf das Bild (ein Vollbild-Viereck vor der Kamera).
 /// Wasser, Feuer, Rauch, Regen und Nebel werden danach darüber gezeichnet. Das Glühen (<c>pixel_gluehen.gdshader</c>) rechnet im Maßstab des Weltbildes in einem dritten SubViewport
-/// (<c>PixelGlueh</c>) und wird weich auf Fenstergröße gezogen: nur ein Viertel (Pixel 2) bzw. ein Neuntel (Pixel 3) der Bildpunkte, 24 statt 72 Abtastungen je Punkt.</item>
+/// (<c>PixelGlueh</c>) und wird weich auf Fenstergröße gezogen: nur ein Viertel (N = 2) bzw. ein Neuntel (N = 3) der Bildpunkte, 24 statt 72 Abtastungen je Punkt.</item>
 /// <item><b>Reihenfolge der Ansichten:</b> Godot zeichnet verschachtelte Ansichten innen vor außen. Darum liegt <c>PixelLicht</c> in <c>PixelWelt</c> und diese in <c>PixelGlueh</c>:
 /// Beleuchtung, dann Welt, dann Schein, dann das Fenster.</item>
-/// <item><b>Feste Zoomstufen</b> der Spielkamera (<see cref="PixelZoomStufe"/>), nur im Pixel-Look; sonst bleibt der Zoom stufenlos. Ruhiges Gras (<c>gras.gdshader</c>, Uniform <c>ruhig</c>) und
+/// <item><b>Drei feste Zoomstufen</b> der Spielkamera (<see cref="PixelZoomStufe"/>: 140/70/35 m), nur im Pixel-Look und nicht in der Kartenwerkstatt; sonst bleibt der Zoom stufenlos. Ruhiges Gras (<c>gras.gdshader</c>, Uniform <c>ruhig</c>) und
 /// weniger Halme (<see cref="GrasWerte"/>); die Vignette liegt in voller Auflösung auf der Welt-Ebene.</item>
-/// <item><b>Räume</b> (Raumkamera): Das Bild wird nur niedrig aufgelöst und hart hochgezogen; Stufenlicht, Umrisse und Glühen entfallen (kein Beleuchtungsbild, das spart die zweite
-/// Zeichnung der vielen Raumlichter).</item>
+/// <item><b>Räume</b> (Raumkamera) und Innenansichten: Pixel 3, ebenfalls mit Beleuchtungsbild (Stufenlicht, Umrisse) und Glühen.</item>
 /// </list>
 /// Das Fenster schaltet das 3D-Bild beim Laden ebenfalls ab: Darüber läuft <see cref="Welt3DSperren"/>, damit der Pixel-Look dabei nicht gegen sich selbst arbeitet.
-/// Startoptionen: <c>--pixellook=0|2|3</c>, <c>--pixelgluehen=0|1</c> (Fenster.Pixel.cs), <c>--pixelmessung=&lt;s&gt;</c> (Zeiten der Ansichten im Log, dann beenden).
+/// Startoptionen: <c>--pixellook=0|1</c>, <c>--pixelgluehen=0|1</c> (Fenster.Pixel.cs), <c>--pixelmessung=&lt;s&gt;</c> (Zeiten der Ansichten im Log, dann beenden).
 /// </summary>
 public partial class Stadtansicht
 {
@@ -51,7 +50,7 @@ public partial class Stadtansicht
     private double _pxMessSekunden, _pxMessLauf; // _pxMessSekunden: 0 = noch nicht geprüft, −1 = keine Messung
     private readonly List<(double Fenster, double Welt, double Licht, double Glueh, double Cpu)> _pxMessung = new();
 
-    /// <summary>Feste Zoomstufen der Spielkamera im Pixel-Look (sichtbare Höhe in Metern); Faktor etwa 1,4, die letzte Stufe ist der größte erlaubte Zoom.</summary>
+    /// <summary>Feste Zoomstufen der Spielkamera im Pixel-Look (sichtbare Höhe in Metern): nah, mittel, weit; die letzte Stufe ist der größte erlaubte Zoom.</summary>
     private static readonly float[] PixelZoomStufen = { 35f, 70f, 140f };
 
     /// <summary>Ab diesem Zoom (Meter sichtbare Höhe) und darunter sind die Weltpixel 3 × 3 groß (nah), darüber 2 × 2. Zwischen nah (35 m) und mittel (70 m); Rückschaltung mit Abstand, damit eine Kamerafahrt nicht flackert.</summary>
@@ -82,7 +81,7 @@ public partial class Stadtansicht
     private static float PixelZoomStufe(float jetzt, bool hinein, float min, float max)
     {
         var stufen = PixelZoomStufen.Where(s => s >= min - 0.01f && s < max - 0.01f).Append(max).ToArray();
-        if (hinein) return stufen.Where(s => s < jetzt - 0.5f).DefaultIfEmpty(stufen[0]).Max();
+        if (hinein) return stufen.Where(s => s < jetzt - 0.5f).DefaultIfEmpty(Mathf.Min(stufen[0], jetzt)).Max(); // unter der kleinsten Stufe (Mindestzoom 25 m) bleibt der Zoom, wie er ist
         return stufen.Where(s => s > jetzt + 0.5f).DefaultIfEmpty(stufen[^1]).Min();
     }
 

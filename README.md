@@ -14,7 +14,7 @@
 
 ![Köln am Rhein: Dom, Rathaus, Marktplatz und Fachwerkhäuser an einem sonnigen Vormittag](docs/bilder/koeln-dom-markt.webp)
 
-*Arbeitstitel · Hobby- und Lernprojekt · Grafikstil: Oberfläche als kolorierter Holzschnitt des Spätmittelalters, die 3D-Welt gemalt-realistisch (im Aufbau, vieles noch aus einfachen Grundformen)*
+*Arbeitstitel · Hobby- und Lernprojekt · Grafikstil: Oberfläche als kolorierter Holzschnitt des Spätmittelalters, die 3D-Welt im Pixel-Look (niedrig aufgelöst, mit Originalfarben der Modelle; im Aufbau, vieles noch aus einfachen Grundformen)*
 
 </div>
 
