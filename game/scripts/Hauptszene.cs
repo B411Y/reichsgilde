@@ -284,7 +284,7 @@ public partial class Hauptszene : Node
         var lade = Ladebildschirm.Zeigen(GetTree(), Stadtkarten.StartKennung); // vom Hauptmenü schon offen; sonst (Startoptionen, Test) hier
         UmgebungAnlegen(); // Umgebungsklänge: laden jetzt im Hintergrund, spielen ab dem Ende des Ladebildschirms (Hauptszene.Umgebung.cs)
         lade.Fortschritt(0.07f, "Die Chronik wird aufgeschlagen …");
-        GetViewport().Disable3D = true; // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
+        _stadt.Welt3DSperren(true); // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
         _simulation = SimulationAufbauen(optionen);
         await lade.Durchlaufen(_stadt.Aufbauen(), 0.16f, 0.71f);
@@ -310,7 +310,7 @@ public partial class Hauptszene : Node
     /// </summary>
     private async Task ErsteBilderAbwarten(Ladebildschirm lade, float von)
     {
-        GetViewport().Disable3D = false;
+        _stadt.Welt3DSperren(false);
         _stadt.SetProcess(true); // rechnen ja, Eingabe erst ohne Ladebildschirm
         var anfang = Time.GetTicksMsec();
         var vorher = anfang;

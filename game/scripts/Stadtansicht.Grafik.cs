@@ -37,7 +37,11 @@ public partial class Stadtansicht
         GrafikNachfuehren();
     }
 
-    private void GrafikAufgeben() => Fenster.GrafikGeaendert -= GrafikNachfuehren;
+    private void GrafikAufgeben()
+    {
+        Fenster.GrafikGeaendert -= GrafikNachfuehren;
+        PixelAufgeben(); // das Fenster zeichnet wieder 3D (Stadtansicht.Pixel.cs)
+    }
 
     /// <summary>Bei jeder Änderung der Einstellungen: was nicht jedes Bild nachgezogen wird.</summary>
     private void GrafikNachfuehren()
@@ -55,6 +59,7 @@ public partial class Stadtansicht
         // Mesh-LOD: Godot darf Modelle vereinfachen, die im Bild klein sind. Nur in der Stufe „Nah“ – auch die Schatten nehmen dann
         // die vereinfachten Modelle, und Spitzdächer, Zinnen und Balken werfen keinen Schatten mehr (siehe SchattenEinrichten).
         GetViewport().MeshLodThreshold = Fenster.AktuelleFeinheiten == Feinheiten.Nah ? 1f : 0f;
+        PixelNachfuehren(); // Pixel-Look: Ansichten bauen bzw. nachziehen, Glühen statt Bloom (Stadtansicht.Pixel.cs)
     }
 
     /// <summary>Jedes Bild (aus _Process): Unschärfe nach Zoom, Wolken im Wind, Dunst nach Uhrzeit, Feinheiten nach Zoom.</summary>

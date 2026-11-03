@@ -337,10 +337,10 @@ public partial class Stadtansicht
     /// Stellt den Bloom einer Umgebung (Stadt oder Raumansicht) nach der Einstellung ein (<see cref="Fenster.BloomAn"/>,
     /// <see cref="Fenster.BloomStaerke"/>). „Screen“ als Mischung hellt nur auf und überstrahlt nie über Weiß.
     /// </summary>
-    internal static void BloomAnwenden(Godot.Environment umgebung)
+    internal static void BloomAnwenden(Godot.Environment umgebung, bool durchPixelGluehen = false)
     {
         var anteil = Fenster.BloomStaerke / 100f;
-        umgebung.GlowEnabled = Fenster.BloomAn && Fenster.BloomStaerke > 0;
+        umgebung.GlowEnabled = Fenster.BloomAn && Fenster.BloomStaerke > 0 && !durchPixelGluehen;
         umgebung.GlowBlendMode = Godot.Environment.GlowBlendModeEnum.Screen;
         umgebung.GlowHdrThreshold = BloomSchwelle;
         umgebung.GlowHdrScale = BloomUebergang;
@@ -354,7 +354,7 @@ public partial class Stadtansicht
     /// <summary>Stadt und Raumansicht übernehmen die Einstellung sofort, wenn sie sich ändert.</summary>
     private void BloomNachfuehren()
     {
-        BloomAnwenden(_umgebung.Environment);
+        BloomAnwenden(_umgebung.Environment, Fenster.PixelGroesse > 1 && Fenster.PixelGluehenAn); // im Pixel-Look ersetzt das Glühen den Bloom der Stadt (nicht in den Räumen)
         BloomAnwenden(_raumUmgebung);
     }
 

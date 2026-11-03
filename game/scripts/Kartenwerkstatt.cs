@@ -110,7 +110,7 @@ public partial class Kartenwerkstatt : Node
         _startoptionenErledigt = true;
         var lade = Ladebildschirm.Zeigen(GetTree(), optionen.GetValueOrDefault("kartenwerkstatt"));
         lade.Fortschritt(0.03f, "Der Entwurf wird ausgerollt …");
-        GetViewport().Disable3D = true; // erst die fertige Werkstatt zeichnen (ErsteBilderAbwarten)
+        _stadt.Welt3DSperren(true); // erst die fertige Werkstatt zeichnen (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
         string? meldung = null;
         var zurueck = _auftrag is null ? _probe : null; // zurück aus der Probepartie (oder über das Hauptmenü wieder hier): weiter wie vorher
@@ -190,7 +190,7 @@ public partial class Kartenwerkstatt : Node
     /// </summary>
     private async Task ErsteBilderAbwarten(Ladebildschirm lade, float von)
     {
-        GetViewport().Disable3D = false;
+        _stadt.Welt3DSperren(false);
         SetProcess(true);
         _stadt.SetProcess(true); // rechnen ja, Eingabe erst ohne Ladebildschirm
         var anfang = Time.GetTicksMsec();

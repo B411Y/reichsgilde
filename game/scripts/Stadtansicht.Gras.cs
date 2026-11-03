@@ -34,11 +34,13 @@ public partial class Stadtansicht
     private const int GrasRaster = KachelZellen + 3;
 
     /// <summary>Je Stufe der Einstellung: Büschel je m² beim Standard-Zoom und höchstens (nah), Höhe der Halme (Meter).</summary>
-    private static (float Dichte, float Hoechstens, float Hoehe) GrasWerte(Grasteppich g) => g switch
+    private static (float Dichte, float Hoechstens, float Hoehe) GrasWerte(Grasteppich g)
     {
-        Grasteppich.SehrDicht => (6f, 64f, 0.38f),
-        _ => (2.5f, 32f, 0.36f),
-    };
+        var (dichte, hoechstens, hoehe) = g switch { Grasteppich.SehrDicht => (6f, 64f, 0.38f), _ => (2.5f, 32f, 0.36f) };
+        // Pixel-Look: Halme kleiner als ein Weltpixel sind nur Rauschen – weniger Halme sehen gleich aus und sparen Zeichenarbeit (Stadtansicht.Pixel.cs)
+        var pixel = Fenster.PixelGroesse switch { 2 => 0.5f, 3 => 0.3f, _ => 1f };
+        return (dichte * pixel, hoechstens * pixel, hoehe);
+    }
 
     /// <summary>Die Netze der Felder (einmal gebaut, über Szenenwechsel gehalten wie die Shader).</summary>
     private static ArrayMesh[]? _grasNetze;
@@ -208,6 +210,7 @@ public partial class Stadtansicht
         stoff.SetShaderParameter("dichte", dichte);
         stoff.SetShaderParameter("dichte_max", hoechstens);
         stoff.SetShaderParameter("hoehe", hoehe);
+        stoff.SetShaderParameter("ruhig", Fenster.PixelGroesse > 1); // Pixel-Look: Halme wie der Boden beleuchtet, kein Flackern
     }
 
     // ═════════════════════════════════════════════════════════════════════════

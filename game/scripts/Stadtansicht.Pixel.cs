@@ -1,0 +1,304 @@
+using System.Globalization;
+using Godot;
+
+namespace Reichsgilde;
+
+/// <summary>
+/// Der <b>Pixel-Look</b> der Stadtansicht (Grafikoption, Nutzer 03.11.2026; Vorlage: Versuch Runde 4 „Pixel 2 fein“) – ein Teil der <c>partial class Stadtansicht</c>.
+/// Aus (Standard) bleibt alles wie es war. Bei Pixel 2 oder Pixel 3 (<see cref="Fenster.AktuellerPixelLook"/>) gilt:
+/// <list type="bullet">
+/// <item><b>Die Welt rechnet in einem SubViewport mit 1/N der Fensterauflösung</b> (<c>PixelWelt</c>, teilt sich die 3D-Welt des Fensters) und wird mit Nearest
+/// hochgezogen (ein <see cref="TextureRect"/> auf einer <see cref="CanvasLayer"/> unter der Oberfläche). Das Fenster selbst zeichnet dann keine 3D-Welt
+/// (<c>Viewport.Disable3D</c>); Oberfläche, Tafeln und Schrift bleiben in voller Auflösung.</item>
+/// <item><b>Die Spielkamera bleibt die Kamera der Logik.</b> Auswahl, Bauen, Kartenwerkstatt-Pinsel, Namen unter der Maus und Schatten der Figuren rechnen mit
+/// ihr, in Fensterkoordinaten, ganz wie sonst – es ist nichts umzurechnen. Eine zweite Kamera im SubViewport (<c>_pxKamera</c>) folgt ihr jedes Bild
+/// (<see cref="PixelBild"/>) und <b>rastet auf das Raster der Weltpixel</b> (Kamera-Snapping); den Rest des Rastens gleicht der Versatz des hochgezogenen Bildes aus –
+/// dann wandert nichts im Pixelraster, wenn die Kamera schiebt. Gesehen wird so viel wie mit der Logik-Kamera (auf ein Weltpixel genau). Die Raumkamera und die freie
+/// Kamera (<c>--freiekamera=1</c>) werden ohne Rasten übernommen.</item>
+/// <item><b>Beleuchtungsbild als zweiter Durchgang</b> (<c>PixelLicht</c>, Debug-Zeichnung „Beleuchtung“ mit weißen Flächen, gleiche Welt, gleiche Kamera, ohne das Nachbearbeitungs-Viereck):
+/// <c>pixel_farbe.gdshader</c> setzt daraus Stufenlicht, weiche Schattenkanten, Umrisse, Tiefendunst und Kontrast auf das Bild (ein Vollbild-Viereck vor der Kamera).
+/// Wasser, Feuer, Rauch, Regen und Nebel werden danach darüber gezeichnet. Das Glühen (<c>pixel_gluehen.gdshader</c>) rechnet im Maßstab des Weltbildes in einem dritten SubViewport
+/// (<c>PixelGlueh</c>) und wird weich auf Fenstergröße gezogen: nur ein Viertel (Pixel 2) bzw. ein Neuntel (Pixel 3) der Bildpunkte, 24 statt 72 Abtastungen je Punkt.</item>
+/// <item><b>Reihenfolge der Ansichten:</b> Godot zeichnet verschachtelte Ansichten innen vor außen. Darum liegt <c>PixelLicht</c> in <c>PixelWelt</c> und diese in <c>PixelGlueh</c>:
+/// Beleuchtung, dann Welt, dann Schein, dann das Fenster.</item>
+/// <item><b>Feste Zoomstufen</b> der Spielkamera (<see cref="PixelZoomStufe"/>), nur im Pixel-Look; sonst bleibt der Zoom stufenlos. Ruhiges Gras (<c>gras.gdshader</c>, Uniform <c>ruhig</c>) und
+/// weniger Halme (<see cref="GrasWerte"/>); die Vignette liegt in voller Auflösung auf der Welt-Ebene.</item>
+/// <item><b>Räume</b> (Raumkamera): Das Bild wird nur niedrig aufgelöst und hart hochgezogen; Stufenlicht, Umrisse und Glühen entfallen (kein Beleuchtungsbild, das spart die zweite
+/// Zeichnung der vielen Raumlichter).</item>
+/// </list>
+/// Das Fenster schaltet das 3D-Bild beim Laden ebenfalls ab: Darüber läuft <see cref="Welt3DSperren"/>, damit der Pixel-Look dabei nicht gegen sich selbst arbeitet.
+/// Startoptionen: <c>--pixellook=0|2|3</c>, <c>--pixelgluehen=0|1</c> (Fenster.Pixel.cs), <c>--pixelmessung=&lt;s&gt;</c> (Zeiten der Ansichten im Log, dann beenden).
+/// </summary>
+public partial class Stadtansicht
+{
+    /// <summary>Ebene (Bit 30), auf der nur das Nachbearbeitungs-Viereck liegt: Die Beleuchtungskamera sieht sie nicht.</summary>
+    private const uint PixelFlaechenEbene = 1u << 30;
+
+    private SubViewport? _pxWelt, _pxLicht, _pxGlueh;
+    private Camera3D _pxKamera = null!, _pxLichtKamera = null!;
+    private MeshInstance3D _pxFlaeche = null!;
+    private ShaderMaterial _pxFarbe = null!, _pxGluehStoff = null!;
+    private CanvasLayer _pxEbene = null!;
+    private TextureRect _pxAnzeige = null!, _pxGluehAnzeige = null!;
+    private ColorRect _pxVignette = null!;
+    private bool _weltGesperrt;
+    private double _pxMessSekunden, _pxMessLauf; // _pxMessSekunden: 0 = noch nicht geprüft, −1 = keine Messung
+    private readonly List<(double Fenster, double Welt, double Licht, double Glueh, double Cpu)> _pxMessung = new();
+
+    /// <summary>Feste Zoomstufen der Spielkamera im Pixel-Look (sichtbare Höhe in Metern); Faktor etwa 1,4, die letzte Stufe ist der größte erlaubte Zoom.</summary>
+    private static readonly float[] PixelZoomStufen = { 25f, 35f, 50f, 70f, 100f, 140f };
+
+    /// <summary>Sperrt oder gibt das 3D-Bild frei (Ladebildschirm der Hauptszene und der Kartenwerkstatt). Ersetzt dort <c>GetViewport().Disable3D</c>.</summary>
+    public void Welt3DSperren(bool sperre)
+    {
+        _weltGesperrt = sperre;
+        GetViewport().Disable3D = sperre || Fenster.PixelGroesse > 1;
+        if (_pxWelt is not null) PixelBild();
+    }
+
+    /// <summary>Die nächste Zoomstufe: <paramref name="hinein"/> zur nächsten kleineren, sonst zur nächsten größeren (von einem Zoom zwischen den Stufen aus die benachbarte).</summary>
+    private static float PixelZoomStufe(float jetzt, bool hinein, float min, float max)
+    {
+        var stufen = PixelZoomStufen.Where(s => s >= min - 0.01f && s < max - 0.01f).Append(max).ToArray();
+        if (hinein) return stufen.Where(s => s < jetzt - 0.5f).DefaultIfEmpty(stufen[0]).Max();
+        return stufen.Where(s => s > jetzt + 0.5f).DefaultIfEmpty(stufen[^1]).Min();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  Aufbau
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void PixelBauen()
+    {
+        if (_pxWelt is not null) return;
+        SubViewport Ansicht(string name, bool dreid) => new()
+        {
+            Name = name, Size = new Vector2I(64, 64), RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled, Msaa3D = Viewport.Msaa.Disabled,
+            ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Disabled, UseTaa = false, TransparentBg = false, GuiDisableInput = true, Disable3D = !dreid,
+        };
+        // innen vor außen: PixelLicht in PixelWelt in PixelGlueh (siehe Klassenkopf)
+        _pxGlueh = Ansicht("PixelGlueh", false);
+        _pxWelt = Ansicht("PixelWelt", true);
+        _pxLicht = Ansicht("PixelLicht", true);
+        _pxLicht.DebugDraw = Viewport.DebugDrawEnum.Lighting;
+        AddChild(_pxGlueh);
+        _pxGlueh.AddChild(_pxWelt);
+        _pxWelt.AddChild(_pxLicht);
+
+        _pxKamera = new Camera3D { Name = "PixelKamera", Near = 1f, Far = 600f };
+        _pxWelt.AddChild(_pxKamera);
+        _pxLichtKamera = new Camera3D { Name = "PixelLichtKamera", Near = 1f, Far = 600f };
+        _pxLicht.AddChild(_pxLichtKamera);
+        _pxKamera.MakeCurrent();
+        _pxLichtKamera.MakeCurrent();
+
+        // Nachbearbeitung: ein Vollbild-Viereck vor der Kamera; kleinste Zeichenreihenfolge, damit Wasser, Feuer und Nebel danach darüber liegen
+        _pxFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_farbe.gdshader"), RenderPriority = -128 };
+        _pxFarbe.SetShaderParameter("licht", _pxLicht.GetTexture());
+        _pxFlaeche = new MeshInstance3D
+        {
+            Name = "PixelFlaeche", Mesh = new QuadMesh { Size = new Vector2(2, 2), FlipFaces = true }, MaterialOverride = _pxFarbe,
+            ExtraCullMargin = 16384f, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Layers = PixelFlaechenEbene,
+        };
+        _pxKamera.AddChild(_pxFlaeche);
+
+        // Schein: im Maßstab des Weltbildes gerechnet (nächster SubViewport um die Welt), später weich hochgezogen
+        _pxGluehStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_gluehen.gdshader") };
+        _pxGluehStoff.SetShaderParameter("welt", _pxWelt.GetTexture());
+        _pxGluehStoff.SetShaderParameter("licht", _pxLicht.GetTexture());
+        var gluehRahmen = new ColorRect { Name = "Schein", Material = _pxGluehStoff, Color = Colors.White, MouseFilter = Control.MouseFilterEnum.Ignore };
+        gluehRahmen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _pxGlueh.AddChild(gluehRahmen);
+        _pxGlueh.MoveChild(gluehRahmen, 0);
+
+        // Anzeige: unter der Oberfläche (CanvasLayer 1) und über nichts anderem
+        _pxEbene = new CanvasLayer { Name = "PixelWelt", Layer = -1, Visible = false };
+        AddChild(_pxEbene);
+        _pxAnzeige = new TextureRect
+        {
+            Texture = _pxWelt.GetTexture(), TextureFilter = CanvasItem.TextureFilterEnum.Nearest, StretchMode = TextureRect.StretchModeEnum.Scale,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _pxAnzeige.SetAnchorsPreset(Control.LayoutPreset.TopLeft);
+        _pxEbene.AddChild(_pxAnzeige);
+        _pxGluehAnzeige = new TextureRect
+        {
+            Texture = _pxGlueh.GetTexture(), TextureFilter = CanvasItem.TextureFilterEnum.Linear, StretchMode = TextureRect.StretchModeEnum.Scale,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+            Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add },
+        };
+        _pxGluehAnzeige.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _pxAnzeige.AddChild(_pxGluehAnzeige);
+        _pxVignette = new ColorRect
+        {
+            Name = "Vignette", Color = Colors.White, MouseFilter = Control.MouseFilterEnum.Ignore,
+            Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_vignette.gdshader") },
+        };
+        _pxVignette.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _pxEbene.AddChild(_pxVignette);
+
+        foreach (var a in new[] { _pxWelt, _pxLicht, _pxGlueh }) RenderingServer.ViewportSetMeasureRenderTime(a.GetViewportRid(), true);
+        Fenster.PixelGpuZeit = () => (float)(RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxWelt.GetViewportRid())
+                                            + RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxLicht.GetViewportRid())
+                                            + RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxGlueh.GetViewportRid()));
+    }
+
+    /// <summary>Bei jeder Änderung der Grafikeinstellungen (aus <see cref="GrafikNachfuehren"/>): bauen, wenn der Pixel-Look neu an ist; Werte des Fensters in die Ansichten übernehmen.</summary>
+    private void PixelNachfuehren()
+    {
+        if (Fenster.PixelGroesse > 1) PixelBauen();
+        if (_pxWelt is null) return;
+        var wurzel = GetViewport();
+        foreach (var a in new[] { _pxWelt, _pxLicht! })
+        {
+            // Schatten und Detailstufe wie im Fenster; Kantenglättung bleibt aus (harte Pixel), das Raster ist das Bild
+            a.MeshLodThreshold = wurzel.MeshLodThreshold;
+            a.PositionalShadowAtlasSize = wurzel.PositionalShadowAtlasSize;
+            a.PositionalShadowAtlas16Bits = wurzel.PositionalShadowAtlas16Bits;
+            a.PositionalShadowAtlasQuad0 = wurzel.PositionalShadowAtlasQuad0;
+            a.PositionalShadowAtlasQuad1 = wurzel.PositionalShadowAtlasQuad1;
+            a.PositionalShadowAtlasQuad2 = wurzel.PositionalShadowAtlasQuad2;
+            a.PositionalShadowAtlasQuad3 = wurzel.PositionalShadowAtlasQuad3;
+            a.UseOcclusionCulling = wurzel.UseOcclusionCulling;
+        }
+        BloomNachfuehren(); // das Glühen ersetzt den Bloom der Stadt (Stadtansicht.Licht.cs)
+        PixelBild();
+    }
+
+    /// <summary>Beim Verlassen der Stadt: das Fenster zeichnet wieder 3D, die Zeit der Ansichten fällt aus der Messung.</summary>
+    private void PixelAufgeben()
+    {
+        if (_pxWelt is null) return;
+        Fenster.PixelGpuZeit = null;
+        GetViewport().Disable3D = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  Jedes Bild
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Nach allem anderen im Bild (aus <see cref="_Process"/>): Ansichten ein- oder ausschalten, die Kamera übernehmen und rasten, Größe und Versatz des Bildes setzen,
+    /// Lichtskala und Dunstfarbe nach Tageszeit.
+    /// </summary>
+    private void PixelBild()
+    {
+        var gewuenscht = Fenster.PixelGroesse > 1;
+        if (_pxMessSekunden >= 0) PixelMessen(GetViewport()); // --pixelmessung=<s>, auch ohne Pixel-Look (Vergleichswert)
+        if (_pxWelt is null)
+        {
+            if (!gewuenscht) return;
+            PixelNachfuehren();
+            return;
+        }
+        var wurzel = GetViewport();
+        var kamera = wurzel.GetCamera3D();
+        wurzel.Disable3D = _weltGesperrt || gewuenscht; // das Fenster zeichnet im Pixel-Look keine 3D-Welt (die Ladebildschirme sperren sie zusätzlich)
+        var laeuft = gewuenscht && !_weltGesperrt && kamera is not null && kamera != _pxKamera;
+        var raum = _raum is not null;
+        var licht = laeuft && !raum;
+        var schein = licht && Fenster.PixelGluehenAn;
+        _pxEbene.Visible = gewuenscht;
+        _pxWelt!.RenderTargetUpdateMode = laeuft ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
+        _pxLicht!.RenderTargetUpdateMode = licht ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
+        _pxGlueh!.RenderTargetUpdateMode = schein ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
+        _pxFlaeche.Visible = licht;
+        _pxGluehAnzeige.Visible = schein;
+        _pxVignette.Visible = gewuenscht;
+        if (!laeuft || kamera is null) return;
+
+        // Größen: Weltpixel = n × n Fensterpixel. Die Oberfläche kann skaliert sein (ContentScaleFactor): Bildschirmpixel und Zeichenfläche sind zu trennen.
+        var n = Fenster.PixelGroesse;
+        var fenster = GetWindow().Size;
+        var zeichenflaeche = wurzel.GetVisibleRect().Size;
+        var faktor = fenster.Y / Mathf.Max(zeichenflaeche.Y, 1f); // Bildschirmpixel je Einheit der Zeichenfläche
+        var ortho = kamera.Projection == Camera3D.ProjectionType.Orthogonal;
+        var gross = new Vector2I(Mathf.CeilToInt(fenster.X / (float)n) + (ortho ? 2 : 0), Mathf.CeilToInt(fenster.Y / (float)n) + (ortho ? 2 : 0));
+        foreach (var a in new[] { _pxWelt, _pxLicht, _pxGlueh })
+            if (a.Size != gross) a.Size = gross;
+
+        var ziel = kamera.GlobalTransform;
+        var anzeigeGroesse = new Vector2(gross.X, gross.Y) * n;
+        var anzeigeOrt = (new Vector2(fenster.X, fenster.Y) - anzeigeGroesse) / 2f;
+        var groesse = kamera.Size;
+        if (ortho)
+        {
+            // Kamera-Snapping: in Blickrichtung auf das Raster der Weltpixel rasten (Meter je Weltpixel = sichtbare Höhe · n / Fensterhöhe)
+            var ps = kamera.Size * n / fenster.Y;
+            var basis = ziel.Basis.Orthonormalized();
+            var lokal = basis.Transposed() * ziel.Origin;
+            var einrast = new Vector2(Mathf.Round(lokal.X / ps), Mathf.Round(lokal.Y / ps)) * ps;
+            var rest = new Vector2(lokal.X, lokal.Y) - einrast; // Meter
+            ziel = new Transform3D(basis, basis * new Vector3(einrast.X, einrast.Y, lokal.Z));
+            groesse = ps * gross.Y;
+            anzeigeOrt += new Vector2(-rest.X, rest.Y) / ps * n; // den Rest gleicht der Versatz des hochgezogenen Bildes aus
+        }
+        PixelKameraSetzen(_pxKamera, kamera, ziel, groesse, true);
+        PixelKameraSetzen(_pxLichtKamera, kamera, ziel, groesse, false);
+        _pxAnzeige.Position = anzeigeOrt / faktor;
+        _pxAnzeige.Size = anzeigeGroesse / faktor;
+
+        // Schalter des Shaders, die von Kamera und Tageszeit abhängen
+        _pxFarbe.SetShaderParameter("ortho_groesse", ortho ? groesse : 0f);
+        _pxFarbe.SetShaderParameter("fov_faktor", 2f * Mathf.Tan(Mathf.DegToRad(kamera.Fov) / 2f));
+        _pxFarbe.SetShaderParameter("dunst_bezug", KameraAbstand);
+        _pxFarbe.SetShaderParameter("lichtskala", PixelLichtskala());
+        _pxFarbe.SetShaderParameter("dunst_farbe", new Vector3(0.55f, 0.6f, 0.68f).Lerp(new Vector3(0.10f, 0.11f, 0.16f), NebelDunkel()));
+        _pxGluehStoff.SetShaderParameter("welt_groesse", new Vector2(gross.X, gross.Y));
+    }
+
+    /// <summary>Überträgt die Kamera der Logik auf eine Kamera im SubViewport (Projektion, Entfernungen, Umgebung, Sichtebenen).</summary>
+    private void PixelKameraSetzen(Camera3D ziel, Camera3D quelle, Transform3D lage, float groesse, bool hauptbild)
+    {
+        ziel.GlobalTransform = lage;
+        ziel.Projection = quelle.Projection;
+        ziel.Size = groesse;
+        ziel.Fov = quelle.Fov;
+        ziel.Near = quelle.Near;
+        ziel.Far = quelle.Far;
+        ziel.KeepAspect = quelle.KeepAspect;
+        ziel.Environment = quelle.Environment;
+        ziel.Attributes = null; // keine Miniatur-Unschärfe im Pixel-Look: weiche Ränder passen nicht zu harten Pixeln
+        ziel.CullMask = hauptbild ? quelle.CullMask | PixelFlaechenEbene : quelle.CullMask & ~PixelFlaechenEbene;
+    }
+
+    /// <summary>
+    /// Wie hell das volle Licht gerade ist (1 = Mittag): Sonne (oder Mond) plus Umgebungslicht im Verhältnis zum Tag. Die Lichtstufen des Shaders sind auf den Tag
+    /// abgestimmt; ohne diesen Faktor fiele abends alles in die dunkelste Stufe.
+    /// </summary>
+    private float PixelLichtskala()
+    {
+        static float Hell(Color c) => 0.2126f * c.R + 0.7152f * c.G + 0.0722f * c.B;
+        var umgebung = _umgebung.Environment;
+        var sonne = _sonne.Visible ? _sonne.LightEnergy * Hell(_sonne.LightColor) : 0f;
+        var licht = sonne + umgebung.AmbientLightEnergy * Hell(umgebung.AmbientLightColor);
+        return Mathf.Clamp(licht / 1.55f, 0.15f, 1f);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  Messung (--pixelmessung=<Sekunden>)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void PixelMessen(Viewport wurzel)
+    {
+        if (_pxMessSekunden == 0)
+        {
+            if (!OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--pixelmessung="))) { _pxMessSekunden = -1; return; }
+            var wert = OS.GetCmdlineUserArgs().First(a => a.StartsWith("--pixelmessung=")).Split('=')[1];
+            _pxMessSekunden = double.TryParse(wert, NumberStyles.Float, CultureInfo.InvariantCulture, out var s) && s > 0 ? s : 10;
+            RenderingServer.ViewportSetMeasureRenderTime(wurzel.GetViewportRid(), true);
+        }
+        if (_pxMessSekunden < 0) return;
+        _pxMessLauf += GetProcessDeltaTime();
+        if (_pxMessLauf < 3) return; // erst einlaufen lassen (Shader, Gras)
+        double Gpu(Viewport? v) => v is null ? 0 : RenderingServer.ViewportGetMeasuredRenderTimeGpu(v.GetViewportRid());
+        double Cpu(Viewport? v) => v is null ? 0 : RenderingServer.ViewportGetMeasuredRenderTimeCpu(v.GetViewportRid());
+        _pxMessung.Add((Gpu(wurzel), Gpu(_pxWelt), Gpu(_pxLicht), Gpu(_pxGlueh), Cpu(wurzel) + Cpu(_pxWelt) + Cpu(_pxLicht)));
+        if (_pxMessLauf < 3 + _pxMessSekunden) return;
+        var m = _pxMessung;
+        GD.Print(string.Create(CultureInfo.InvariantCulture,
+            $"[pixelmessung] look={Fenster.AktuellerPixelLook} gluehen={Fenster.PixelGluehenAn} bilder={m.Count} fenster={m.Average(x => x.Fenster):F2} ms, welt={m.Average(x => x.Welt):F2} ms, licht={m.Average(x => x.Licht):F2} ms, " +
+            $"glueh={m.Average(x => x.Glueh):F2} ms, summe={m.Average(x => x.Fenster + x.Welt + x.Licht + x.Glueh):F2} ms, cpu={m.Average(x => x.Cpu):F2} ms, fps={Engine.GetFramesPerSecond():F0}"));
+        GetTree().Quit();
+    }
+}

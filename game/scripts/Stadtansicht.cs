@@ -1012,6 +1012,12 @@ public partial class Stadtansicht : Node3D
 
     public override void _Process(double delta)
     {
+        ProzessBild(delta);
+        PixelBild(); // nach allem anderen: die Kamera des Pixel-Looks folgt der Spielkamera (Stadtansicht.Pixel.cs)
+    }
+
+    private void ProzessBild(double delta)
+    {
         var frei = FreieKameraBild(); // --freiekamera=1: die Spielkamera folgt der freien (Stadtansicht.FreieKamera.cs)
         SchattenNachfuehren(); // Zoom, Fenstergröße oder Schattenqualität geändert? (Stadtansicht.Licht.cs)
         OberflaecheBild();     // umgefärbte Materialien der Oberflächendetails nachziehen (Stadtansicht.Oberflaechendetails.cs)
@@ -1134,7 +1140,8 @@ public partial class Stadtansicht : Node3D
     {
         _kamerafahrt?.Kill(); // Mausrad unterbricht eine laufende Kamerafahrt
         var (min, max) = _innen is null ? (KameraMinZoom, KameraGroessterZoom()) : (InnenMinZoom, InnenMaxZoom);
-        _kamera.Size = Mathf.Clamp(_kamera.Size * faktor, min, max);
+        // Pixel-Look: feste Zoomstufen, damit das Pixelraster beim Zoomen nicht schwimmt (Stadtansicht.Pixel.cs); sonst stufenlos
+        _kamera.Size = _innen is null && Fenster.PixelGroesse > 1 ? PixelZoomStufe(_kamera.Size, faktor < 1f, min, max) : Mathf.Clamp(_kamera.Size * faktor, min, max);
     }
 
     /// <summary>Das ausgewählte Gebäude (setzt die Hauptszene) – sein Name bleibt sichtbar.</summary>
