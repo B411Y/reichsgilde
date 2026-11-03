@@ -42,6 +42,7 @@ public partial class Stadtansicht
     private TextureRect _pxAnzeige = null!, _pxGluehAnzeige = null!;
     private ColorRect _pxVignette = null!;
     private bool _weltGesperrt;
+    private Func<float>? _pxZeitFunktion;
     private double _pxMessSekunden, _pxMessLauf; // _pxMessSekunden: 0 = noch nicht geprüft, −1 = keine Messung
     private readonly List<(double Fenster, double Welt, double Licht, double Glueh, double Cpu)> _pxMessung = new();
 
@@ -138,9 +139,10 @@ public partial class Stadtansicht
         _pxEbene.AddChild(_pxVignette);
 
         foreach (var a in new[] { _pxWelt, _pxLicht, _pxGlueh }) RenderingServer.ViewportSetMeasureRenderTime(a.GetViewportRid(), true);
-        Fenster.PixelGpuZeit = () => (float)(RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxWelt.GetViewportRid())
+        _pxZeitFunktion = () => (float)(RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxWelt.GetViewportRid())
                                             + RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxLicht.GetViewportRid())
                                             + RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxGlueh.GetViewportRid()));
+        Fenster.PixelGpuZeit = _pxZeitFunktion;
     }
 
     /// <summary>Bei jeder Änderung der Grafikeinstellungen (aus <see cref="GrafikNachfuehren"/>): bauen, wenn der Pixel-Look neu an ist; Werte des Fensters in die Ansichten übernehmen.</summary>
@@ -169,7 +171,7 @@ public partial class Stadtansicht
     private void PixelAufgeben()
     {
         if (_pxWelt is null) return;
-        Fenster.PixelGpuZeit = null;
+        if (Fenster.PixelGpuZeit == _pxZeitFunktion) Fenster.PixelGpuZeit = null; // nur die eigene Funktion (bei Szenenwechsel kann die neue Stadt schon eine gesetzt haben)
         GetViewport().Disable3D = false;
     }
 

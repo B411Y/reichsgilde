@@ -69,7 +69,7 @@ public partial class Stadtansicht
     private bool _grasMakroStark = true;
 
     /// <summary>Wofür die Felder im Bild zuletzt gewählt wurden (Kamera, Zoom, Bildgröße, Netz); null = neu wählen.</summary>
-    private (Vector3 Ort, Vector3 Blick, float Zoom, Vector2 Bild, int Netz)? _grasBlickFuer;
+    private (Vector3 Ort, Vector3 Blick, float Zoom, Vector2 Bild, int Netz, int Pixel)? _grasBlickFuer;
 
     /// <summary>Die Äcker, über denen kein Gras steht: je Knoten der Äcker (im Spiel einer, in der Werkstatt einer je Feldfläche) die Stücke.</summary>
     private readonly Dictionary<Node3D, Feldparzelle[]> _grasAecker = new();
@@ -518,7 +518,7 @@ public partial class Stadtansicht
         var netz = 0;
         while (netz < GrasNetzDichten.Length - 1 && GrasNetzDichten[netz] < ziel) netz++;
         var t = _kamera.GlobalTransform;
-        var stand = (Ort: t.Origin.Snapped(Vector3.One * 0.5f), Blick: t.Basis.Z.Snapped(Vector3.One * 0.002f), Zoom: Mathf.Snapped(_kamera.Size, 0.25f), Bild: bildgroesse, Netz: netz);
+        var stand = (Ort: t.Origin.Snapped(Vector3.One * 0.5f), Blick: t.Basis.Z.Snapped(Vector3.One * 0.002f), Zoom: Mathf.Snapped(_kamera.Size, 0.25f), Bild: bildgroesse, Netz: netz, Pixel: Fenster.PixelGroesse);
         if (_grasBlickFuer == stand) return;
         _grasBlickFuer = stand;
         var ecken = new[] { Vector2.Zero, new Vector2(bildgroesse.X, 0), bildgroesse, new Vector2(0, bildgroesse.Y) };
