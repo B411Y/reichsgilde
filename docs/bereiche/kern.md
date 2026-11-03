@@ -249,7 +249,7 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Messung (Werkzeug) | `messen jahreszeiten` schlüsselt die Rechnung des Spielers je Jahreszeit auf (alle Posten, Rest, Einkauf je Zutat mit Preis, Waren, Stufe, Schiffe, Rechnung der Betriebe ohne Schiffe) und zählt die Fahrten aller Schiffe (erwartet gegen Ertrag, nach Jahreszeit, Ziel, Stunde, Eis, Festmarkt, Schiffen vor sich); neue Schalter `--ohne-schiffe`, `--ohne-verkehr`, `--ohne-folge=winternachfrage:Ware`. `Messpartie.Spielen` hat einen Rückruf je Minute. | 2.11.2026 |
 | Prüfung | Unabhängiger Prüfer über dbc135c4..154c0024: 0 hoch, 3 mittel – gleichzeitig ausgelaufene Schiffe zählten sich in der Messung gegenseitig als „schon unterwegs“ (jetzt beim Losschicken gezählt, Zahlen neu gemessen), Buchungen nach dem Kontoabschluss standen im falschen Jahr (Rest jetzt 0), Doku fehlte (nachgetragen); niedrig behoben: Fahrtende am Fahrtenzähler, Unterhalt eines ausgeschiedenen Besitzers, Tests (andere Stadt, Lagerauftrag, Vorschlag gegen Rechnung, Schalter ausdrücklich gesetzt), Annahmen im Kommentar; offen: Tooltip der Hafentafel („(von Kern)“ in `oberflaeche.md`), Reihenfolge der Häuser (Designfrage unter Offen). | 2.11.2026 |
 
-### Hafen ruht (PR #…)
+### Hafen ruht (PR #293)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

@@ -216,7 +216,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Zierschiff am Hafen (Branch `phase5/zierschiff`)
+### Zierschiff am Hafen (PR #293)
 
 | Frage | Entscheidung |
 |---|---|
