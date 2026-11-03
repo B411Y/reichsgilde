@@ -1484,9 +1484,14 @@
     },
     "standardhoehe": 10,
     "stillstandMinuten": 300,
-    "reparatur": 0,
+    "reparatur": 100,
+    "reparaturAnteil": [0.10, 0.25],
+    "lagerAnteil": [0.10, 0.40],
+    "waechterFaktor": 0.67,
     "instandMinuten": 1140,
-    "wohnhausReparatur": 0
+    "wohnhausReparatur": 0,
+    "wohnhausAnteil": [0.5, 1.0],
+    "sprung": { "abstand": 6, "chanceJeStunde": 0.15, "waechterFaktor": 0.5, "dauerFaktor": 0.5, "schwereFaktor": 0.5 }
   },
   "stadt": { "einwohnerGrund": 100, "einwohnerJeHaus": 25, "bezugHaeuser": 4 },
   "liegenschaften": [

@@ -128,6 +128,9 @@ public sealed partial class Stadtwirtschaft
     public double Betriebswert(Betrieb betrieb) =>
         Wert(betrieb.Name, betrieb.Art) is var wert and > 0 ? wert + Werkstaetten.Einrichtungswert(betrieb) : 0;
 
+    /// <summary>Bauwert eines Betriebs: Kaufpreis der Stufe 1 plus Ausbauten, ohne Einrichtung (Grundlage der Reparatur nach einem Blitzschlag). Pacht: 0.</summary>
+    internal double Bauwert(Betrieb betrieb) => Wert(betrieb.Name, betrieb.Art);
+
     private double Wert(string name, Betriebsart art)
     {
         var (grundart, ausbauten) = Grundart(art);

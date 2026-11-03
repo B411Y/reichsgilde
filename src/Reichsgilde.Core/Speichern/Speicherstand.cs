@@ -148,6 +148,42 @@ public sealed record WirtschaftStand
 
     /// <summary>Gründe der Meinungen aus Taten (PR #231). Null: alter Spielstand – die Gunst der Ratsherren (<see cref="RatStand.Gunst"/>) wird zum Grund „Geschenke“.</summary>
     public MeinungenStand? Meinungen { get; init; }
+
+    /// <summary>
+    /// Blitzeinschläge und übergesprungene Feuer (Blitzschaden, 3.11.2026). Null: alter Spielstand – mit Daten 68/69 rechnet der Kern sie aus
+    /// dem Wetterplan nach, ältere beginnen ohne. Ohne Blitzwesen (Daten ohne „blitz“) nicht geschrieben – so bleibt ein alter Spielstand Byte für
+    /// Byte wie auf main (<c>AlterSpielstandSollwertTests</c>).
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public BlitzStand? Blitz { get; init; }
+}
+
+/// <summary>Die Einschläge des Blitzwesens (siehe <see cref="Reichsgilde.Core.Gefahren.Blitzwesen"/>).</summary>
+public sealed record BlitzStand
+{
+    /// <summary>Einschläge des laufenden Jahres und noch brennende des Vorjahres, samt übergesprungener Feuer – der jüngste zuletzt.</summary>
+    public List<BlitzeinschlagStand> Einschlaege { get; init; } = new();
+
+    /// <summary>Gewürfelte Sprünge, die erst noch kommen (ihr Schaden ist noch nicht gebucht).</summary>
+    public List<BlitzeinschlagStand> Spruenge { get; init; } = new();
+}
+
+/// <summary>Ein Einschlag: Zeit, Ziel (Betrieb per Name, Bewohner per Kontonummer), Schwere und Ursache.</summary>
+public sealed record BlitzeinschlagStand
+{
+    public long Minute { get; init; }
+    public long BrandEnde { get; init; }
+    public string Kennung { get; init; } = "";
+    public string Name { get; init; } = "";
+    public double X { get; init; }
+    public double Z { get; init; }
+    public double Hoehe { get; init; }
+    public double Boden { get; init; }
+    public string? Betrieb { get; init; }
+    public int? Bewohner { get; init; }
+    public double Schwere { get; init; }
+    public Reichsgilde.Core.Gefahren.Brandursache Ursache { get; init; }
+    public string? Von { get; init; }
 }
 
 /// <summary>Die Stadtkasse (siehe <see cref="Reichsgilde.Core.Politik.Stadtkasse"/>).</summary>
