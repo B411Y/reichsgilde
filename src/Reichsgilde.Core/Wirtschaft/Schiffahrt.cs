@@ -26,7 +26,8 @@ public sealed record Hafenplatz(string Kennung, string Name, Kartenort Liegeplat
 ///   • In der fernen Stadt: alles verkaufen, die Rückfracht kaufen, so weit das Geld reicht; dann die Liegezeit.
 ///   • Daheim: Die Rückfracht geht ins Lager des Betriebs (was nicht passt, auf den Markt) oder ohne Betrieb auf den Markt.
 ///   • Zum Jahresende: Unterhalt je Schiff (Fixkosten).
-/// Das Wetter wirkt nicht (Entscheidung zu PR #195).
+/// Das Wetter wirkt nicht (Entscheidung zu PR #195). Im strengen Winter friert der Fluss zu (Datenversion 69, <see cref="Jahreszeitenwesen"/>): Dann nimmt
+/// der Hafen keine Aufträge an, und jedes Schiff, das nicht am Kai liegt, ruht – seine Zeiten rücken Minute für Minute mit.
 /// </summary>
 public sealed class Schiffahrt
 {
@@ -213,6 +214,7 @@ public sealed class Schiffahrt
 
         var hin = schiff.Zustand == SchiffZustand.Hinfahrt;
         var dauer = Math.Max(1, schiff.Ende - schiff.Beginn);
+        if (_w.Jahreszeiten.FlussZugefroren) minute = Math.Floor(minute); // im Eis steht das Schiff (seine Zeiten rücken minutenweise mit), ohne Ruckeln
         var fortschritt = Math.Clamp((minute - schiff.Beginn) / dauer, 0, 1);
         var flussauf = stadt.Daten.IstFlussauf;
         var route = Route(hafen.Kennung, flussauf);
@@ -298,6 +300,8 @@ public sealed class Schiffahrt
         if (Schiff(schiffName) is not { } schiff) return $"Ein Schiff „{schiffName}“ gibt es nicht.";
         if (schiff.Besitzer != konto) return $"{schiff.Name} gehört nicht {konto.Inhaber}.";
         if (schiff.Zustand != SchiffZustand.AmKai) return $"{schiff.Name} ist unterwegs – erst wenn es wieder am Kai liegt.";
+        if (_w.Jahreszeiten.FlussZugefroren)
+            return $"Der {_w.Jahreszeiten.Flussname} ist zugefroren – der Hafen ist geschlossen, bis das Eis bricht.";
         if (Stadt(a.Ziel) is not { } stadt) return $"Eine ferne Stadt „{a.Ziel}“ gibt es nicht.";
         if (a.Hinfracht.Concat(a.Rueckfracht).Any(x => x.Value < 0)) return "Mengen dürfen nicht negativ sein.";
         var hin = a.Hinfracht.Where(x => x.Value > 0).ToList();

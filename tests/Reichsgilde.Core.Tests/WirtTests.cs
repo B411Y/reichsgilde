@@ -9,10 +9,10 @@ using Reichsgilde.Core.Wirtschaft;
 /// <summary>Tests für den Wirt: Gäste und Ausschank, Vorrat, Barde, Würfeltisch, Stammtisch, dunkle Ecke.</summary>
 static class WirtTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten())); // ohne Schlamm und Festmarkt im Frühling 1400
 
     /// <summary>Daten, in denen die dunkle Ecke jedes Gerücht hört – damit der Test nicht vom Zufall abhängt.</summary>
-    static readonly Lazy<Wirtschaftsdaten> HellhoerigeEcke = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+    static readonly Lazy<Wirtschaftsdaten> HellhoerigeEcke = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten()
         .Replace("\"dunkleEcke\": { \"chance\": 0.2 }", "\"dunkleEcke\": { \"chance\": 1.0 }")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
@@ -60,7 +60,7 @@ static class WirtTests
             Pruefe.Gleich(1, d.Waren["Schädelbrand"].Zutaten["Holzzapfen"]);
             Pruefe.Gleich(1, d.Waren["Kräuterlikör"].Zutaten["Kräuter"]);
             Pruefe.Wahr(!d.Gastwirtschaft!.Ausschank.Contains("Weingeist"), "Weingeist ist Zwischenware, kein Ausschank");
-            var json = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"ausschank\": [ \"Körnermahlzeit\"", "\"ausschank\": [ \"Bratwurst\"");
+            var json = Datenpfad.OhneJahreszeiten().Replace("\"ausschank\": [ \"Körnermahlzeit\"", "\"ausschank\": [ \"Bratwurst\"");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(json), "„Bratwurst“ gibt es nicht");
         }),
 
@@ -247,7 +247,7 @@ static class WirtTests
             Pruefe.Wahr(!g.BardeSpielt(s) && !g.WuerfeltischBesetzt(s) && !g.StammtischBesetzt(s), "leere Schänke");
 
             var ohne = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
-                wirtschaftsdaten: Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"gastwirtschaft\":", "\"gastwirtschaftAlt\":")));
+                wirtschaftsdaten: Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten().Replace("\"gastwirtschaft\":", "\"gastwirtschaftAlt\":")));
             var (w2, _, s2) = Wirt(ohne);
             BisUhrzeit(ohne, 18);
             Pruefe.Wahr(!w2.Gastwirtschaft.IstAktiv, "Gastwirtschaft aktiv");

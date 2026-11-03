@@ -9,14 +9,14 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class SchankplaetzeTests
 {
-    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten())); // ohne Schlamm und Festmarkt im Frühling 1400
 
     /// <summary>Die Daten ohne Sitzplätze – so rechnen alte Spielstände mit ihren eigenen Daten.</summary>
-    static readonly Lazy<Wirtschaftsdaten> OhnePlaetze = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+    static readonly Lazy<Wirtschaftsdaten> OhnePlaetze = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten()
         .Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ],", "")));
 
     /// <summary>Die Daten mit Einwohner-Plätzen gleich den Sitzplätzen (einwohnerBezug 0): Nur so wird es für die Einwohner knapp – mit 17 nie.</summary>
-    static readonly Lazy<Wirtschaftsdaten> EinwohnerEng = new(() => Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft())
+    static readonly Lazy<Wirtschaftsdaten> EinwohnerEng = new(() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten()
         .Replace("\"einwohnerBezug\": 17,", "\"einwohnerBezug\": 0,")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
@@ -54,7 +54,7 @@ static class SchankplaetzeTests
     {
         ("Sitzplätze: Daten 20/30/40 je Stufe (Datenversion 67); ohne Angabe ohne Grenze; Werte unter 1 lehnt die Prüfung ab", () =>
         {
-            Pruefe.Gleich(68, Daten.Value.Version);
+            Pruefe.Gleich(69, Daten.Value.Version);
             Pruefe.Wahr(Daten.Value.Gastwirtschaft!.SitzplaetzeJeStufe.SequenceEqual(new[] { 20, 30, 40 }), "sitzplaetzeJeStufe");
             var sim = NeueSimulation();
             var (w, _, s) = Wirt(sim);
@@ -69,7 +69,7 @@ static class SchankplaetzeTests
             var alt = NeueSimulation(OhnePlaetze.Value);
             var (w2, _, s2) = Wirt(alt);
             Pruefe.Wahr(w2.Gastwirtschaft.Sitzplaetze(s2) is null && w2.Gastwirtschaft.Platzbelegung(s2) is null, "ohne Daten keine Grenze");
-            var falsch = File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ]", "\"sitzplaetzeJeStufe\": [ 20, 0, 40 ]");
+            var falsch = Datenpfad.OhneJahreszeiten().Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ]", "\"sitzplaetzeJeStufe\": [ 20, 0, 40 ]");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(falsch), "sitzplaetzeJeStufe");
         }),
 
@@ -104,7 +104,7 @@ static class SchankplaetzeTests
         {
             // Ohne Kopplung an die Einwohner: Die Gäste der Stunde hängen dann nur an der Anziehung, nicht daran, wie viele Einwohner Platz fanden.
             static string OhneKopplung(string json) => json.Replace("\"kopplung\": { \"schaenke\": 1.0", "\"kopplung\": { \"schaenke\": 0.0");
-            var sim = NeueSimulation(Wirtschaftsdaten.AusJson(OhneKopplung(File.ReadAllText(Datenpfad.Wirtschaft()))));
+            var sim = NeueSimulation(Wirtschaftsdaten.AusJson(OhneKopplung(Datenpfad.OhneJahreszeiten())));
             var (w, k, gasthaus) = Wirt(sim, Betriebsart.Gasthaus, "Familie Fass");   // Anziehung 2, 40 Plätze
             var (_, _, schaenke) = Wirt(sim, name: "Familie Krug");                  // Anziehung 1, 20 Plätze
             var g = w.Gastwirtschaft;
@@ -115,7 +115,7 @@ static class SchankplaetzeTests
             Pruefe.Gleich(0, gh.Voll + sch.Voll);
 
             // Mit nur 2 Plätzen im Gasthaus: Was nicht hineinpasst, sitzt in der Schänke (abends ≈ 9,4 + 5,7 < 20) – nichts fällt aus, die Gäste der Stadt bleiben.
-            var eng = Wirtschaftsdaten.AusJson(OhneKopplung(File.ReadAllText(Datenpfad.Wirtschaft())).Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ]", "\"sitzplaetzeJeStufe\": [ 20, 30, 2 ]"));
+            var eng = Wirtschaftsdaten.AusJson(OhneKopplung(Datenpfad.OhneJahreszeiten()).Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ]", "\"sitzplaetzeJeStufe\": [ 20, 30, 2 ]"));
             var sim2 = NeueSimulation(eng);
             var (w2, k2, gasthaus2) = Wirt(sim2, Betriebsart.Gasthaus, "Familie Fass");
             var (_, _, schaenke2) = Wirt(sim2, name: "Familie Krug");
@@ -142,7 +142,7 @@ static class SchankplaetzeTests
             var ohne = w2.Gastwirtschaft.BardeNutzen(s2);
             Pruefe.Wahr(mit < ohne && mit > 0, $"mit Plätzen {mit:0}, ohne {ohne:0}");
             // Mit 10 Plätzen: abends höchstens 10, nachmittags ≈ 8,6
-            var zehn = Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ]", "\"sitzplaetzeJeStufe\": [ 10, 30, 40 ]"));
+            var zehn = Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten().Replace("\"sitzplaetzeJeStufe\": [ 20, 30, 40 ]", "\"sitzplaetzeJeStufe\": [ 10, 30, 40 ]"));
             var sim3 = NeueSimulation(zehn);
             var (w3, _, s3) = Wirt(sim3);
             Pruefe.Ungefaehr(120.0 * 6 / 14 + 4 * 10, w3.Gastwirtschaft.ErwarteteGaeste(s3), 1e-9);

@@ -50,17 +50,19 @@ static class GleichheitTests
     /// <summary>
     /// Lauf C lädt vor diesen Minuten neu (dazu direkt nach jedem Löschen): mitten im Jahr, mitten in der Gaunernacht (zwischen zwei
     /// Nachtversuchen – bis PR #251 fehlte dort der Erfolg je Auftrag im Spielstand, 4711 lief im Jahr 3 auseinander), zum Jahresbeginn, am Abend.
-    /// Dazu mitten in einem Brand nach Blitzschlag (Datenversion 68; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
+    /// Dazu mitten im Eis des strengen Winters 1407 (Startwert 1400: der Grenzfluss ist von 7 bis 19 Uhr zu, Datenversion 69)
+    /// und mitten in einem Brand nach Blitzschlag (Datenversion 68; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
     /// 18:23 Uhr), bei 2027 in Minute 6380 (Jahr 5, 15:20) und 10231 (Jahr 8, 22:31 – es brennt über den Jahreswechsel, geladen wird um 4:01 im Jahr 9).
     /// Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
     /// </summary>
-    static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(8, 19, 0), Minute(9, 4, 1) };
+    static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(7, 12, 30), Minute(8, 19, 0), Minute(9, 4, 1) };
 
     /// <summary>Wann der Zweitbetrieb abgegeben (gelöscht) und wieder erworben (eingefügt) wird.</summary>
     static readonly int[] Abgabejahre = { 3, 7 };
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze);
+    /// <param name="Erloschen">Ab welchem Jahr (0 = erstes) das Haus des Spielers nicht mehr aktiv ist (gestorben ohne Erben, bankrott) – sonst null.</param>
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -126,6 +128,13 @@ static class GleichheitTests
 
     static void Pruefen(Partie p)
     {
+        // Der Winterfall: Startwert 1400 hat 1407 einen strengen Winter mit Eis (Köln 1401: 1403) – sonst prüft der Test die Jahreszeiten nicht.
+        if (p.Startwert is 1400 or 1401)
+        {
+            var winter = new Stadtwirtschaft(Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()), Partieeinstellungen.Standard.StartStatut, p.Startwert)
+                .Jahreszeiten.WinterVon(p.Startwert == 1400 ? 1407 : 1403);
+            Pruefe.Wahr(winter is { Streng: true }, $"Startwert {p.Startwert}: kein strenger Winter im Testzeitraum – Winterfall anpassen");
+        }
         var a = Spielen(p, laden: false);
         var b = MitKultur("de-DE", () => Spielen(p, laden: false));
         var c = Spielen(p, laden: true);
@@ -141,7 +150,9 @@ static class GleichheitTests
             string.Join(", ", a.Befehle.GroupBy(z => z[(z.IndexOf(' ') + 1)..]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"));
         foreach (var art in new[] { "Handelsauftrag", "BetriebVerkaufen", "LiegenschaftErwerben" })
             Pruefe.Wahr(a.Befehle.Any(z => z.Contains($" {art} ok")), $"Kein erfolgreicher Befehl {art} im Skript – Skript anpassen ({Erfolge(art)})");
-        var abgaben = Abgabejahre.Count(j => j < p.Jahre);
+        // Abgeben kann nur ein Haus, das noch lebt (Startwert 2027 mit den Festmärkten für Fertigwaren: Der Patriarch stirbt Ende 1406 ohne Erben)
+        var abgaben = Abgabejahre.Count(j => j < p.Jahre && j < (a.Erloschen ?? int.MaxValue));
+        Pruefe.Wahr(abgaben >= 1, $"Das Haus des Spielers erlischt vor dem ersten Abgabejahr (Jahr {a.Erloschen}) – Skript oder Startwert anpassen");
         Pruefe.Wahr(a.Befehle.Count(z => z.Contains(" BetriebVerkaufen ok")) == abgaben
                     && a.Befehle.Count(z => z.Contains(" LiegenschaftErwerben ok")) >= abgaben + 1,
             $"Löschen und Einfügen in jedem Abgabejahr ({Erfolge("BetriebVerkaufen")}, {Erfolge("LiegenschaftErwerben")})");
@@ -185,6 +196,7 @@ static class GleichheitTests
         BlitzeZaehlen(sim);
         var befehle = new List<string>();
         var jahre = new List<string>();
+        int? erloschen = null;
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
@@ -207,9 +219,13 @@ static class GleichheitTests
                 sim.RatssitzungWeiter();
             }
             Pruefe.Gleich(t + 1, sim.Zeit.VergangeneMinuten, "Die Uhr läuft mit dem Skript");
-            if (sim.Zeit.Jahr != jahr) jahre.Add(Pruefsumme(sim));
+            if (sim.Zeit.Jahr != jahr)
+            {
+                jahre.Add(Pruefsumme(sim));
+                if (erloschen is null && !spieler.IstAktiv) erloschen = jahre.Count;
+            }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen);
     }
 
     /// <summary>Wie ein Spieler, der speichert und gleich wieder lädt – mit allem, was die Oberfläche danach wieder einstellt.</summary>

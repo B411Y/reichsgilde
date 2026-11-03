@@ -6,7 +6,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>Tests für Lager, Karren, Eskorten und Banditenüberfälle.</summary>
 static class LogistikTests
 {
-    static Wirtschaftsdaten Daten() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
+    static Wirtschaftsdaten Daten() => Wirtschaftsdaten.AusJson(Datenpfad.OhneJahreszeiten()); // feste Fahrzeiten ohne Schlamm (Frühling 1400)
 
     static Simulation NeueSimulation(Fronstatut statut = Fronstatut.FreieStadt, int startwert = 1400, Spielzeit? zeit = null) =>
         new(Partieeinstellungen.Standard with { StartStatut = statut, Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
