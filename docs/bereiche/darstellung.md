@@ -231,9 +231,9 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Zoom | Stadtansicht drei Stufen: weit 140 m und mittel 70 m mit Pixel 2, nah 35 m mit Pixel 3; Innenräume Pixel 3 | 03.11.2026 |
 | Oberfläche | Tafeln, Schrift und Gebäudenamen in voller Auflösung, scharf; die Oberfläche bleibt kolorierter Holzschnitt (Ausnahme Charakterzug-Medaillons) | 03.11.2026 |
 | Modelle | Bleiben schlicht mit Oberflächenstruktur (Mauerwerk, Maserung, Ziegel), kein Holzschnitt-Shader; neue Modelle und Texturen im Klicktest mit Pixel-Look prüfen | 03.11.2026 |
-| Alter Look | Bleibt als abschaltbare Grafikoption „Pixel-Look aus“; der Pixel-Look ist seit PR #NNN der Standard (Einzelheiten unter „Pixel-Look als Standard, drei Zoomstufen (PR #NNN)“ und „Pixel-Look (PR #295)“) | 03.11.2026 |
+| Alter Look | Bleibt als abschaltbare Grafikoption „Pixel-Look aus“; der Pixel-Look ist seit PR #298 der Standard (Einzelheiten unter „Pixel-Look als Standard, drei Zoomstufen (PR #298)“ und „Pixel-Look (PR #295)“) | 03.11.2026 |
 
-### Pixel-Look als Standard, drei Zoomstufen (PR #NNN)
+### Pixel-Look als Standard, drei Zoomstufen (PR #298)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -248,11 +248,11 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Option | Grafikoption „Pixel-Look“ (damals Aus, Pixel 2, Pixel 3; seit PR #NNN ein Schalter, Standard an) mit Schalter „Glühen“, unter Grafik → Erweitert → Stimmung; nicht Teil der Voreinstellungen; alle übrigen Werte fest wie „Pixel 2 fein“ (Umrisse, weiche Schatten, Dunst, Kontrast 1,12, Vignette 0,18, Düsternis 12 %, ruhiges Gras) | 03.11.2026 |
+| Option | Grafikoption „Pixel-Look“ (damals Aus, Pixel 2, Pixel 3; seit PR #298 ein Schalter, Standard an) mit Schalter „Glühen“, unter Grafik → Erweitert → Stimmung; nicht Teil der Voreinstellungen; alle übrigen Werte fest wie „Pixel 2 fein“ (Umrisse, weiche Schatten, Dunst, Kontrast 1,12, Vignette 0,18, Düsternis 12 %, ruhiges Gras) | 03.11.2026 |
 | Aufbau | Die Welt rechnet in drei verschachtelten SubViewports (Beleuchtung in Welt in Schein), das Fenster zeichnet kein 3D; die Spielkamera bleibt die Kamera der Logik, darum ist beim Auswählen, Bauen und in der Kartenwerkstatt nichts umzurechnen; eine zweite Kamera folgt ihr mit Snapping, der Rest als Versatz des Bildes | 03.11.2026 |
 | Leistung | Glühen im Maßstab des Weltbildes (8 statt 12 Abtastwerte je Ring, 1/4 bzw. 1/9 der Bildpunkte): 0,2–0,5 ms. Halmzahl halb bzw. 30 %. GPU-Zeit auf der T400 (Köln, 1600 × 900, Hoch): aus 41 ms, Pixel 2 rund 29 ms, Pixel 3 rund 21 ms; das Beleuchtungsbild kostet davon rund ein Drittel (9 bzw. 7 ms). Messungen schwanken, sobald ein anderer Prozess die Grafikkarte nutzt (Pixel 2 einmal 48 ms) | 03.11.2026 |
-| Zoom | Nur im Pixel-Look feste Stufen 25/35/50/70/100/140 (seit PR #NNN drei: 35/70/140); sonst stufenlos wie bisher | 03.11.2026 |
-| Räume und freie Kamera | Räume: damals nur grobe Pixel ohne Stufenlicht, Umrisse und Glühen (seit PR #NNN mit); Raum- und freie Kamera ohne Snapping | 03.11.2026 |
+| Zoom | Nur im Pixel-Look feste Stufen 25/35/50/70/100/140 (seit PR #298 drei: 35/70/140); sonst stufenlos wie bisher | 03.11.2026 |
+| Räume und freie Kamera | Räume: damals nur grobe Pixel ohne Stufenlicht, Umrisse und Glühen (seit PR #298 mit); Raum- und freie Kamera ohne Snapping | 03.11.2026 |
 | Namen und Nacht | Gebäudenamen (Label3D mit Kennung) werden im Pixel-Look nicht in die Welt gezeichnet, sondern als Control-Beschriftungen in voller Auflösung an der Projektion der Schildposition (Kamera der Logik); Lichtskala nie unter 0,34, Kontrast und Düsternis klingen mit dem Tageslicht ab: Abend und Nacht etwa so hell wie ohne Pixel-Look (Mittelwert 29 gegen 25 von 255), Fenster und Feuer leuchten | 03.11.2026 |
 | Dunstfarbe | Der Tiefendunst hat keine feste helle Farbe mehr: Er folgt der Lichtskala (abends und nachts so dunkel wie die Stadt) und zur Hälfte dem Farbton des Lichts; vorher lag abends ein grauer Schleier über der dunklen Stadt (`PixelDunstFarbe`). Der Fluss ist am Abend auch ohne Pixel-Look rotbraun (Spiegelung des Abendhimmels), das ist Absicht | 03.11.2026 |
 | Regen und Lichtschein | Regen und Schnee liegen im Pixel-Look auf einer eigenen Sichtebene (Bit 29), die das Beleuchtungsbild nicht sieht: Die Debug-Zeichnung „Beleuchtung“ zeichnet jedes Teilchen als undurchsichtiges Rechteck und machte daraus dunkle Rechtecke vor Dächern und Fassaden. Das Stufenlicht hat weiche Stufen (glatter Anstieg in der oberen Hälfte jeder Stufe) und lässt Licht über dem vollen Sonnenlicht (Laternen, Fackeln) ungestuft: kein harter Kranz mit Schattenring | 03.11.2026 |
