@@ -18,9 +18,17 @@ Gilt für die Hauptsitzung, die als **Teamleiter** Mitglieder startet. Die Regel
 - **Doku-Ablage:** Spielbuch-Kapitel liegen unter `docs/spielbuch/`, ältere Entscheidungen unter `docs/bereiche/archiv/`. Beim Einmergen älterer Branches gehört Neues, das noch in die alte README-Spielbuch-Struktur oder ans Ende einer Bereichsdatei kam, an den neuen Ort (Kapitel bzw. Abschnitt „Entscheidungen“ der aktuellen Datei).
 - **Reihenfolge:** Zuerst baut kern Befehl, Abfragen und Tests und meldet die genauen Signaturen. Das Integrations-Mitglied mergt das in den Funktions-Branch. Erst danach starten die anderen und zweigen vom Funktions-Branch ab.
 - **Getrennte Ordner:** Jedes Mitglied hat einen eigenen Worktree `../rg-<name>` und einen eigenen Unterordner im Notizordner (`<Notizordner>/<name>/`). Ein gemeinsamer Ordner führt zu überschriebenen Dateien.
-- **Modelle:** kern und spiel-ki Opus (Simulation, Spielstände und Tests vertragen keine Fehler). Oberfläche und Darstellung Sonnet (sie folgen vorhandenen Mustern; Tests, CI und Klicktest fangen Fehler ab). Kleinkram (Doku-Korrektur, main einmergen, CI abwarten) und Codesuche vor den Designfragen Haiku. Wird die Arbeit eines Bereichs mit einem kleineren Modell schlechter, kommt er zurück auf Opus.
-- **Aufwand** (Entscheidung des Nutzers, 25.10.2026, erweitert 28.10.2026; beim Start mit `effort` setzen): Kern, Spiel-KI, Spielstand, 3D-Modelle (Blender) und Shader **extra hoch** (`xhigh`); übrige Grafik (Wege, Texturen, Kartenskripte) **hoch**; einfache Oberfläche, Doku und Aufräumen **mittel**. **Maximal** nur für einzelne festgefahrene Fehlersuchen. Der Teamleiter läuft auf mittel; der Nutzer stellt ihn bei Designfragen oder Fehlersuche selbst höher.
-- **Hilfsagent Strata** (Entscheidung des Nutzers, 26.10.2026; Gemini am 29.10.2026 gestrichen): **Strata** (lokales Modell) für Hilfsarbeiten: Texte und Namen, Bilder vorsortieren, Protokolle zusammenfassen, Einzeiler. Kern, Spiel-KI, Spielstand, schwierige Grafik und alle Entscheidungen bleiben bei Claude. Strata läuft als Hintergrundbefehl, bearbeitet nur Dateien (keine Befehle ohne Rückfrage, kein push); das Integrations-Mitglied baut, testet, committet, prüft und nennt im PR-Text, was von Strata stammt (Aufruf in `.claude/agents/integration.md`). Bild-KI läuft nur lokal auf dem Grafik-PC (ComfyUI, Qwen-Image).
+- **Modell und Aufwand** (Entscheidung des Nutzers, 02.11.2026; beim Start immer ausdrücklich `model` und `effort` angeben):
+
+| Bereich | model | effort |
+|---|---|---|
+| kern, spiel-ki, Spielstand | opus | medium |
+| 3D-Modelle (Blender), Shader | sonnet | medium |
+| Darstellung, Oberfläche, Leveldesign, Sound | sonnet | medium |
+| Integration (PR bauen, Klicktest) | sonnet | medium |
+| Kleinkram (main einmergen, CI abwarten, Doku, Codesuche), Texte, Namen, Logs zusammenfassen | haiku | medium |
+
+- **Zusatzregeln:** Prüfer und Unter-Agenten bekommen das Modell des Bereichs, den sie prüfen bzw. betreuen, mit Aufwand mittel. Ausnahme: Charakter-Köpfe sonnet, xhigh (derzeit pausiert). Ultracode nur auf das Schlüsselwort des Nutzers. Wird ein Bereich schlechter, meldet der Teamleiter das dem Nutzer und stuft nicht selbst hoch. Strata wird nicht mehr genutzt. Der Teamleiter läuft auf mittel; der Nutzer stellt ihn bei Designfragen oder Fehlersuche selbst höher. Bild-KI läuft nur lokal auf dem Grafik-PC.
 
 ## Unterwegs
 
@@ -28,7 +36,7 @@ Gilt für die Hauptsitzung, die als **Teamleiter** Mitglieder startet. Die Regel
 - **Nachrichten:** Vorschläge an ein anderes Mitglied gehen **über den Teamleiter**, nicht direkt untereinander. Zwischenmeldungen nur bei einer Blockade oder einer fertigen Schnittstelle, so kurz wie möglich.
 - **Abschlussbericht in fünf Zeilen** (Wunsch des Nutzers, 25.10.2026, Tokens sparen): 1. Branch und Commit, 2. was gebaut ist (ein Satz), 3. Tests und Klicktest (Zahlen, Fehler), 4. selbst getroffene Entscheidungen und Offenes, 5. Ordner mit den Bildern. Einzelheiten stehen in Doku und Commit; bei Bedarf nachfragen.
 - **Leerlauf prüfen:** Solange ein Team läuft, alle 30 Minuten prüfen, ob ein Mitglied untätig ist, obwohl seine Ausgabe fertig ist.
-- **Prüf-Agent bei Kern-PRs** (28.10.2026): Vor „bereit“ liest ein unabhängiger `pruefer` (extra hoch) den Diff von Kern, Spiel-KI und Tests – er bekommt nur Code und Prüfauftrag, nicht die Einschätzung des Mitglieds. Befunde behebt das Mitglied vor dem Merge.
+- **Prüf-Agent bei Kern-PRs** (28.10.2026): Vor „bereit“ liest ein unabhängiger `pruefer` (Modell des geprüften Bereichs, Aufwand mittel) den Diff von Kern, Spiel-KI und Tests – er bekommt nur Code und Prüfauftrag, nicht die Einschätzung des Mitglieds. Befunde behebt das Mitglied vor dem Merge.
 
 ## Sorgfalt
 
