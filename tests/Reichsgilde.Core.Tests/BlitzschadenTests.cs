@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 /// Blitzschaden (Variante B, Nutzer 3.11.2026): Werkstatt zahlt eine Reparatur nach dem Bauwert und verliert einen Teil des Lagers, das Wohnhaus
 /// zahlt eine Reparatur nach der Formel der Brandstiftung – je nach Schwere (aus der gewürfelten Brenndauer). Wächter löschen mit, das Löschfass
 /// senkt den Schaden. Das Feuer springt höchstens einmal aufs Nachbarhaus. Die Einschläge stehen im Spielstand (auch der Entwicklerblitz, auch
-/// nach einem Umbau dasselbe Haus); alte Stände ohne Feld: Daten 68 rechnen nach, ältere beginnen ohne Einschläge.
+/// nach einem Umbau dasselbe Haus); alte Stände ohne Feld: Daten 68 bis 70 rechnen nach, ältere beginnen ohne Einschläge.
 /// </summary>
 static class BlitzschadenTests
 {
@@ -87,7 +87,7 @@ static class BlitzschadenTests
             Pruefe.Gleich((0.10, 0.40), (d.LagerAnteil[0], d.LagerAnteil[1]));
             Pruefe.Gleich(0.67, d.WaechterFaktor);
             Pruefe.Gleich((6.0, 0.15), (d.Sprung!.Abstand, d.Sprung.ChanceJeStunde));
-            // Vorgaben (Daten bis 69 haben die Felder nicht): ohne Wirkung
+            // Vorgaben (Daten bis 70 haben die Felder nicht): ohne Wirkung
             var alt = new BlitzDaten();
             Pruefe.Gleich((0.0, 0.0, 0.0, 1.0), (alt.ReparaturAnteil[1], alt.LagerAnteil[1], alt.WohnhausAnteil[1], alt.WaechterFaktor));
             Pruefe.Wahr(alt.Sprung is null, "ohne Sprung");
@@ -297,7 +297,7 @@ static class BlitzschadenTests
             Pruefe.Wahr(geladen.Wirtschaft.Blitz.WohnhausBrand(g.Ziel.Bewohner!) == g, "WohnhausBrand nach dem Laden");
         }),
 
-        ("Blitzschaden: Alter Spielstand ohne Feld – Daten 68 rechnen nach wie bisher, Daten 67 beginnen ohne Einschläge (keine Geisterfeuer)", () =>
+        ("Blitzschaden: Alter Spielstand ohne Feld – Daten 68 bis 70 rechnen nach wie bisher, Daten 67 beginnen ohne Einschläge (keine Geisterfeuer)", () =>
         {
             // Ein Gewitter mit Chance 1, Spielstand mitten im Brand – dann das Feld „Blitz“ entfernen
             var daten = Mit(Gewitter1, SpringtNie);
@@ -316,8 +316,11 @@ static class BlitzschadenTests
                 knoten["Daten"]!["Version"] = version;
                 return knoten.ToJsonString();
             }
-            var (neu, _) = Speicherung.Laden(OhneFeld(68));
-            Pruefe.Wahr(neu.Wirtschaft!.Blitz.Einschlaege.SingleOrDefault() is { } n && n.Minute == e.Minute && n.BrandEnde == e.BrandEnde, "Daten 68: nachgerechnet");
+            foreach (var version in new[] { 68, 69, 70 }) // 69 Jahreszeiten, 70 Hafen ruht – beide ohne Feld „Blitz“
+            {
+                var (neu, _) = Speicherung.Laden(OhneFeld(version));
+                Pruefe.Wahr(neu.Wirtschaft!.Blitz.Einschlaege.SingleOrDefault() is { } n && n.Minute == e.Minute && n.BrandEnde == e.BrandEnde, $"Daten {version}: nachgerechnet");
+            }
             var (alt, _) = Speicherung.Laden(OhneFeld(67));
             Pruefe.Gleich(0, alt.Wirtschaft!.Blitz.Einschlaege.Count, "Daten 67: keine Einschläge");
             BisMinute(alt, gewitter + 60);

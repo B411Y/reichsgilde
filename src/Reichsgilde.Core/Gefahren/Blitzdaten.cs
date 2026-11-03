@@ -6,7 +6,7 @@ namespace Reichsgilde.Core.Gefahren;
 /// Reparatur nach ihrem Bauwert und verliert einen Teil ihres Lagers; ein Wohnhaus verliert bis zur Instandsetzung sein Ansehen und zahlt eine
 /// Reparatur nach der Formel der Brandstiftung. Wie schwer, folgt aus der gewürfelten Brenndauer (<see cref="Gefahren.Blitzwesen.Schwere"/>).
 /// Das Feuer kann auf ein Nachbarhaus überspringen (<see cref="Sprung"/>).
-/// Alle neuen Werte haben Vorgaben ohne Wirkung: Spielstände mit älteren Daten (bis Datenversion 69) rechnen wie bisher.
+/// Alle neuen Werte haben Vorgaben ohne Wirkung: Spielstände mit älteren Daten (bis Datenversion 70) rechnen wie bisher.
 /// </summary>
 public sealed class BlitzDaten
 {
@@ -33,7 +33,7 @@ public sealed class BlitzDaten
     public int StillstandMinuten { get; init; } = 300;
 
     /// <summary>
-    /// Werkstatt: Reparatur für den Besitzer mindestens so viele Gulden (bis Datenversion 69 der feste Betrag, dort 0). Sonst gilt
+    /// Werkstatt: Reparatur für den Besitzer mindestens so viele Gulden (bis Datenversion 70 der feste Betrag, dort 0). Sonst gilt
     /// <see cref="ReparaturAnteil"/> vom Bauwert.
     /// </summary>
     public double Reparatur { get; init; }
@@ -56,7 +56,7 @@ public sealed class BlitzDaten
     /// <summary>Wohnhaus: So lange (Spielminuten nach dem Ende des Feuers) wird instand gesetzt; bis dahin fehlt das Ansehen des Hauses.</summary>
     public int InstandMinuten { get; init; } = Zeit.Spielzeit.MinutenProTag;
 
-    /// <summary>Wohnhaus: Reparatur für den Bewohner mindestens so viele Gulden (bis Datenversion 69 der feste Betrag, dort 0).</summary>
+    /// <summary>Wohnhaus: Reparatur für den Bewohner mindestens so viele Gulden (bis Datenversion 70 der feste Betrag, dort 0).</summary>
     public double WohnhausReparatur { get; init; }
 
     /// <summary>
@@ -65,7 +65,7 @@ public sealed class BlitzDaten
     /// </summary>
     public double[] WohnhausAnteil { get; init; } = { 0, 0 };
 
-    /// <summary>Überspringen auf Nachbarhäuser (Nutzer 3.11.2026). Null = es springt nicht (Daten bis 69).</summary>
+    /// <summary>Überspringen auf Nachbarhäuser (Nutzer 3.11.2026). Null = es springt nicht (Daten bis 70).</summary>
     public BlitzSprungDaten? Sprung { get; init; }
 
     public void Pruefen(List<string> f)

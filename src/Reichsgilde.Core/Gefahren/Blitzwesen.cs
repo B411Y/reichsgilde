@@ -80,7 +80,7 @@ public sealed record Blitzeinschlag(long Minute, long BrandEnde, Blitzziel Ziel)
 ///
 /// <b>Zufall und Spielstand:</b> Jeder Wurf kommt aus einer <see cref="Zufallsquelle"/>, deren Startwert aus dem Startwert der Partie und der
 /// Minute des Gewitters folgt (wie der <see cref="Wetterplan"/>). So verbraucht der Blitz keinen Wurf eines anderen Generators. Die Einschläge und
-/// die anstehenden Sprünge stehen im Spielstand (<see cref="BlitzStand"/>) und werden beim Laden übernommen. Nur Spielstände mit Daten 68/69 ohne
+/// die anstehenden Sprünge stehen im Spielstand (<see cref="BlitzStand"/>) und werden beim Laden übernommen. Nur Spielstände mit Daten 68 bis 70 ohne
 /// dieses Feld rechnen sie wie früher aus dem Wetterplan nach; ältere beginnen ohne Einschläge.
 /// </summary>
 public sealed class Blitzwesen
@@ -368,7 +368,7 @@ public sealed class Blitzwesen
 
     /// <summary>
     /// Der Blitz schlägt ein. Mit <paramref name="wirken"/> (im Lauf der Partie) bekommt das Gebäude seinen Schaden und es gibt eine Meldung;
-    /// ohne (beim Nachrechnen für Spielstände mit Daten 68/69) wird der Einschlag nur gemerkt – der Schaden steht dann schon im Spielstand.
+    /// ohne (beim Nachrechnen für Spielstände mit Daten 68 bis 70) wird der Einschlag nur gemerkt – der Schaden steht dann schon im Spielstand.
     /// <paramref name="dauer"/> ist die gewürfelte Dauer (ohne Wächter); <paramref name="zufall"/> würfelt danach die Sprünge.
     /// </summary>
     private Blitzeinschlag Einschlagen(Blitzziel ziel, long minute, int dauer, Zufallsquelle zufall, bool wirken, long nachrechnenBis = 0)

@@ -150,7 +150,7 @@ public sealed record WirtschaftStand
     public MeinungenStand? Meinungen { get; init; }
 
     /// <summary>
-    /// Blitzeinschläge und übergesprungene Feuer (Blitzschaden, 3.11.2026). Null: alter Spielstand – mit Daten 68/69 rechnet der Kern sie aus
+    /// Blitzeinschläge und übergesprungene Feuer (Blitzschaden, 3.11.2026). Null: alter Spielstand – mit Daten 68 bis 70 rechnet der Kern sie aus
     /// dem Wetterplan nach, ältere beginnen ohne. Ohne Blitzwesen (Daten ohne „blitz“) nicht geschrieben – so bleibt ein alter Spielstand Byte für
     /// Byte wie auf main (<c>AlterSpielstandSollwertTests</c>).
     /// </summary>
