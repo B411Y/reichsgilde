@@ -34,6 +34,9 @@ public partial class Stadtansicht
     /// <summary>Ebene (Bit 30), auf der nur das Nachbearbeitungs-Viereck liegt: Die Beleuchtungskamera sieht sie nicht.</summary>
     private const uint PixelFlaechenEbene = 1u << 30;
 
+    /// <summary>Ebene (Bit 29) für Regen und Schnee im Pixel-Look: Das Beleuchtungsbild zeichnet jedes Teilchen als undurchsichtiges Rechteck (Debug-Zeichnung „Beleuchtung“ kennt keine Durchsicht) – es sieht diese Ebene nicht.</summary>
+    private const uint PixelTeilchenEbene = 1u << 29;
+
     private SubViewport? _pxWelt, _pxLicht, _pxGlueh;
     private Camera3D _pxKamera = null!, _pxLichtKamera = null!;
     private MeshInstance3D _pxFlaeche = null!;
@@ -210,6 +213,9 @@ public partial class Stadtansicht
         _pxGluehAnzeige.Visible = schein;
         _pxVignette.Visible = gewuenscht;
         PixelNamen(gewuenscht && laeuft && !raum ? kamera : null);
+        var teilchen = licht ? PixelTeilchenEbene : 1u; // nur wenn das Beleuchtungsbild läuft, sonst sehen Fenster- und Raumkamera die Teilchen wie sonst
+        if (_regen is not null && _regen.Layers != teilchen) _regen.Layers = teilchen;
+        if (_schnee is not null && _schnee.Layers != teilchen) _schnee.Layers = teilchen;
         if (!laeuft || kamera is null) return;
 
         // Größen: Weltpixel = n × n Fensterpixel. Die Oberfläche kann skaliert sein (ContentScaleFactor): Bildschirmpixel und Zeichenfläche sind zu trennen.
@@ -250,7 +256,7 @@ public partial class Stadtansicht
         var skala = PixelLichtskala();
         _pxFarbe.SetShaderParameter("lichtskala", skala);
         _pxFarbe.SetShaderParameter("tag", Mathf.SmoothStep(PixelLichtBoden, 0.85f, skala));
-        _pxFarbe.SetShaderParameter("dunst_farbe", new Vector3(0.55f, 0.6f, 0.68f).Lerp(new Vector3(0.10f, 0.11f, 0.16f), NebelDunkel()));
+        _pxFarbe.SetShaderParameter("dunst_farbe", PixelDunstFarbe(skala));
         _pxGluehStoff.SetShaderParameter("welt_groesse", new Vector2(gross.X, gross.Y));
     }
 
@@ -306,7 +312,7 @@ public partial class Stadtansicht
         ziel.KeepAspect = quelle.KeepAspect;
         ziel.Environment = quelle.Environment;
         ziel.Attributes = null; // keine Miniatur-Unschärfe im Pixel-Look: weiche Ränder passen nicht zu harten Pixeln
-        ziel.CullMask = hauptbild ? quelle.CullMask | PixelFlaechenEbene : quelle.CullMask & ~PixelFlaechenEbene;
+        ziel.CullMask = hauptbild ? quelle.CullMask | PixelFlaechenEbene | PixelTeilchenEbene : quelle.CullMask & ~(PixelFlaechenEbene | PixelTeilchenEbene);
     }
 
     /// <summary>
@@ -315,6 +321,21 @@ public partial class Stadtansicht
     /// </summary>
     /// <summary>Kleinste Lichtskala: Nachts bleiben die Flächen sichtbar (Boden und Wände etwa so hell wie ohne Pixel-Look), Fenster und Feuer leuchten darüber.</summary>
     private const float PixelLichtBoden = 0.34f;
+
+    /// <summary>
+    /// Farbe des Tiefendunsts: ein helles Blaugrau am Tag, abends und nachts <b>so hell wie das Licht</b> (Lichtskala) und zur Hälfte im Farbton des Lichts
+    /// (Umgebungslicht plus etwas Sonne). Eine feste helle Farbe legte abends einen grauen Schleier über die dunkle Stadt und färbte sie um.
+    /// </summary>
+    private Vector3 PixelDunstFarbe(float skala)
+    {
+        var umgebung = _umgebung.Environment;
+        var licht = umgebung.AmbientLightColor * umgebung.AmbientLightEnergy + (_sonne.Visible ? _sonne.LightColor * _sonne.LightEnergy * 0.35f : Colors.Black);
+        var hell = Mathf.Max(0.2126f * licht.R + 0.7152f * licht.G + 0.0722f * licht.B, 0.001f);
+        var ton = new Vector3(licht.R, licht.G, licht.B) / hell; // Farbton bei Helligkeit 1
+        var tag = new Vector3(0.55f, 0.6f, 0.68f);
+        var farbe = tag.Lerp(tag * ton, 0.5f) * Mathf.Clamp(skala, 0.1f, 1f) * Mathf.Lerp(0.3f, 1f, Mathf.SmoothStep(PixelLichtBoden, 0.85f, skala)); // abends noch dunkler als das Licht: die Stadt ist dunkler als ihr Licht allein
+        return farbe.Lerp(new Vector3(0.04f, 0.045f, 0.065f), NebelDunkel());
+    }
 
     private float PixelLichtskala()
     {
