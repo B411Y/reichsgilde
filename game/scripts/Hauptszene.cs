@@ -502,7 +502,7 @@ public partial class Hauptszene : Node
         _verkauf.Gemeldet += Protokollieren;
         _wohnhaus.Gemeldet += Protokollieren;
         _hafenTafel.Gemeldet += Protokollieren;
-        _hafenTafel.MarktGewuenscht += MarktOeffnen; // Hafen ruht: am Hafen mit dem Markt der Stadt handeln
+        _hafenTafel.MarktGewuenscht += () => { _hafenTafel.Hide(); MarktOeffnen(); }; // Hafen ruht: am Hafen mit dem Markt der Stadt handeln
         if (optionen.TryGetValue("auswahl", out var vorauswahl) && vorauswahl.StartsWith("weg:"))
         {
             // --auswahl=weg:<nr>[,<stelle>]: die Wegtafel (Belag, Ausbau, Antrag) für einen Weg der Karte öffnen
