@@ -101,6 +101,14 @@ public sealed class PiratenDaten
 /// <summary>Alle Stellschrauben des Schiffshandels (Abschnitt „schiffshandel“).</summary>
 public sealed class SchiffshandelDaten
 {
+    /// <summary>
+    /// Läuft der Schiffshandel (Datenversion 70, „Hafen ruht“; Nutzerentscheidung vom 03.11.2026)? Mit false kauft und schickt niemand
+    /// Schiffe, auch die KI nicht; der Hafen bleibt ein zweiter Ort zum Handeln mit dem Markt der Stadt (<see cref="Schiffahrt.HafenMarkt"/>)
+    /// und ist zu, solange der Fluss zugefroren ist (<see cref="Schiffahrt.HafenOffen"/>). Der Code bleibt für ein späteres Add-on. Ohne
+    /// Angabe true – so rechnen alte Spielstände mit ihren mitgespeicherten Daten weiter wie bisher.
+    /// </summary>
+    public bool Aktiv { get; init; } = true;
+
     public Dictionary<string, SchiffstypDaten> Schiffe { get; init; } = new();
 
     /// <summary>Die fernen Städte (Namen je Karte später in der Kartenwerkstatt, Schritt 6).</summary>

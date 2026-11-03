@@ -42,8 +42,42 @@ public sealed class Schiffahrt
 
     public SchiffshandelDaten? Daten { get; }
 
-    /// <summary>Gibt es Schiffshandel? Der Abschnitt in den Daten, eine Karte und mindestens ein Hafen an einem Fluss.</summary>
-    public bool IstAktiv => Daten is not null && Haefen.Count > 0;
+    /// <summary>
+    /// Gibt es Schiffshandel? Der Abschnitt in den Daten, der Schalter <see cref="SchiffshandelDaten.Aktiv"/>, eine Karte und mindestens ein
+    /// Hafen an einem Fluss. Nur dann kaufen und schicken Spieler und KI Schiffe.
+    /// </summary>
+    public bool IstAktiv => Daten is { Aktiv: true } && Haefen.Count > 0;
+
+    /// <summary>
+    /// Ruht der Schiffshandel (Schalter <c>schiffshandel.aktiv</c> aus, Datenversion 70)? Dann gibt es keine Schiffe; der Hafen ist nur ein
+    /// zweiter Ort zum Handeln mit dem Markt der Stadt.
+    /// </summary>
+    public bool Ruht => Daten is { Aktiv: false };
+
+    /// <summary>Hat die Karte einen Hafen an einem Fluss (mit dem Abschnitt „schiffshandel“) – ob der Schiffshandel läuft oder ruht?</summary>
+    public bool HatHafen => Daten is not null && Haefen.Count > 0;
+
+    /// <summary>
+    /// Ist der Hafen offen? Es gibt ihn (<see cref="HatHafen"/>), und der Fluss ist nicht zugefroren (strenger Winter, <see cref="Jahreszeitenwesen.FlussZugefroren"/>).
+    /// Für die Oberfläche (Handel am Hafen) und die Darstellung (Zierschiff legt nur an, wenn offen).
+    /// </summary>
+    public bool HafenOffen => HatHafen && !_w.Jahreszeiten.FlussZugefroren;
+
+    /// <summary>
+    /// Der Markt, mit dem man am Hafen handelt: derselbe wie am Marktplatz – dieselben Waren, gemeinsamer Vorrat, gemeinsame Preise (Hafen ruht,
+    /// Datenversion 70). Der Hafen ist ein zweiter Ort zum Handeln, kein eigener Markt.
+    /// </summary>
+    public Markt HafenMarkt => _w.Markt;
+
+    /// <summary>So viele Schiffe hat das Laden verworfen, weil der Schiffshandel in den Daten ruht (Spielstand mit Schiffen, Daten ohne Schiffshandel).</summary>
+    public int BeimLadenVerworfen { get; private set; }
+
+    /// <summary>Warum es keinen Schiffshandel gibt – oder null, wenn er läuft.</summary>
+    private string? KeinSchiffshandel() =>
+        Daten is null ? "In dieser Stadt gibt es keinen Schiffshandel."
+        : Haefen.Count == 0 ? "Die Stadt hat keinen Hafen an einem Fluss."
+        : !Daten.Aktiv ? "Der Schiffshandel ruht – am Hafen handelt man nur mit dem Markt der Stadt."
+        : null;
 
     internal Schiffahrt(Stadtwirtschaft w, SchiffshandelDaten? daten)
     {
@@ -283,11 +317,11 @@ public sealed class Schiffahrt
     /// <param name="typ">Schiffstyp; "" = der erste in den Daten.</param>
     public string? KaufVerboten(Konto konto, string hafen = "", string typ = "")
     {
-        if (Daten is null) return "In dieser Stadt gibt es keinen Schiffshandel.";
-        if (Haefen.Count == 0) return "Die Stadt hat keinen Hafen an einem Fluss.";
+        if (KeinSchiffshandel() is { } nein) return nein;
+        var daten = Daten!; // (ohne Daten gibt es keinen Schiffshandel, siehe oben)
         if (hafen != "" && Hafen(hafen) is null) return $"Einen Hafen „{hafen}“ gibt es nicht.";
-        if (typ != "" && !Daten.Schiffe.ContainsKey(typ)) return $"Den Schiffstyp „{typ}“ gibt es nicht.";
-        var preis = Daten.Schiffe[typ != "" ? typ : Daten.Schiffe.Keys.First()].Preis;
+        if (typ != "" && !daten.Schiffe.ContainsKey(typ)) return $"Den Schiffstyp „{typ}“ gibt es nicht.";
+        var preis = daten.Schiffe[typ != "" ? typ : daten.Schiffe.Keys.First()].Preis;
         if (konto.Vermoegen < preis)
             return $"Ein Schiff kostet {Zahlenformat.Ganz(preis)} {_w.Daten.Allgemein.Waehrung} – es fehlen {Zahlenformat.Ganz(preis - konto.Vermoegen)}.";
         return null;
@@ -296,7 +330,7 @@ public sealed class Schiffahrt
     /// <summary>Warum dieser Auftrag nicht geht – oder null. Dieselbe Prüfung wie beim Befehl (für die Oberfläche vorab).</summary>
     public string? AuftragVerboten(Konto konto, string schiffName, Schiffsauftrag a)
     {
-        if (!IstAktiv) return "In dieser Stadt gibt es keinen Schiffshandel.";
+        if (KeinSchiffshandel() is { } nein) return nein;
         if (Schiff(schiffName) is not { } schiff) return $"Ein Schiff „{schiffName}“ gibt es nicht.";
         if (schiff.Besitzer != konto) return $"{schiff.Name} gehört nicht {konto.Inhaber}.";
         if (schiff.Zustand != SchiffZustand.AmKai) return $"{schiff.Name} ist unterwegs – erst wenn es wieder am Kai liegt.";
@@ -338,7 +372,8 @@ public sealed class Schiffahrt
     /// <summary>Führt einen Befehl des Schiffshandels aus (aufgerufen von <see cref="Stadtwirtschaft.Ausfuehren"/>).</summary>
     internal Befehlsergebnis Ausfuehren(Konto konto, SchiffahrtBefehl befehl)
     {
-        if (Daten is null || !IstAktiv) return Befehlsergebnis.Abgelehnt(Daten is null ? "In dieser Stadt gibt es keinen Schiffshandel." : "Die Stadt hat keinen Hafen an einem Fluss.");
+        if (KeinSchiffshandel() is { } nein) return Befehlsergebnis.Abgelehnt(nein);
+        if (Daten is null) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keinen Schiffshandel."); // (nie: schon oben)
         var waehrung = _w.Daten.Allgemein.Waehrung;
         switch (befehl)
         {
@@ -480,7 +515,7 @@ public sealed class Schiffahrt
     /// <summary>Eine volle Stunde: Die Märkte der fernen Städte erholen sich.</summary>
     internal void Stunde()
     {
-        if (Daten is null) return;
+        if (Daten is not { Aktiv: true }) return; // ruht der Schiffshandel, handelt niemand mit den fernen Städten
         foreach (var stadt in _staedte) stadt.Erholen(Daten.ErholungJeStunde);
     }
 
@@ -657,6 +692,12 @@ public sealed class Schiffahrt
         _getauft = s.Getauft;
         foreach (var stadt in _staedte)
             if (s.Druck.TryGetValue(stadt.Name, out var druck)) stadt.Wiederherstellen(druck);
+        if (!Daten.Aktiv)
+        {
+            // Spielstand mit Schiffen, aber Daten, in denen der Schiffshandel ruht (nur von Hand gemischt): die Schiffe samt Ladung verwerfen.
+            BeimLadenVerworfen = s.Schiffe.Count;
+            return;
+        }
         foreach (var ss in s.Schiffe)
         {
             if (!Daten.Schiffe.TryGetValue(ss.Typ, out var typ))
