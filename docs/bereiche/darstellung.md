@@ -229,6 +229,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zoom | Nur im Pixel-Look feste Stufen 25/35/50/70/100/140; sonst stufenlos wie bisher | 03.11.2026 |
 | Räume und freie Kamera | Räume: nur grobe Pixel ohne Stufenlicht, Umrisse und Glühen (spart das Beleuchtungsbild); Raum- und freie Kamera ohne Snapping | 03.11.2026 |
 | Namen und Nacht | Gebäudenamen (Label3D mit Kennung) werden im Pixel-Look nicht in die Welt gezeichnet, sondern als Control-Beschriftungen in voller Auflösung an der Projektion der Schildposition (Kamera der Logik); Lichtskala nie unter 0,34, Kontrast und Düsternis klingen mit dem Tageslicht ab: Abend und Nacht etwa so hell wie ohne Pixel-Look (Mittelwert 29 gegen 25 von 255), Fenster und Feuer leuchten | 03.11.2026 |
+| Dunstfarbe | Der Tiefendunst hat keine feste helle Farbe mehr: Er folgt der Lichtskala (abends und nachts so dunkel wie die Stadt) und zur Hälfte dem Farbton des Lichts; vorher lag abends ein grauer Schleier über der dunklen Stadt (`PixelDunstFarbe`). Der Fluss ist am Abend auch ohne Pixel-Look rotbraun (Spiegelung des Abendhimmels), das ist Absicht | 03.11.2026 |
 | Versuchsszene | `Pixeltest` bleibt auf dem Versuchszweig `versuch/pixel-look`, kommt nicht ins Spiel | 03.11.2026 |
 | Bloom, Unschärfe | Im Pixel-Look ersetzt das Glühen den Bloom der Stadt (in den Räumen bleibt er); keine Miniatur-Unschärfe | 03.11.2026 |
 ### Zierschiff am Hafen (PR #293)
