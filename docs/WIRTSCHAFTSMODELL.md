@@ -2065,7 +2065,7 @@ Die Einwohner-Grenze kann mit Bezug 17 nicht erreicht werden (Greybox 121–123 
 
 Messdateien `schaenke-{plaetze3,ohne}.json`, `bericht-{main,branch3}-{greybox,koeln}.json` im Messordner des Auftrags (nicht im Repository).
 
-## Jahreszeiten (Datenversion 69)
+## Jahreszeiten (Datenversion 69, PR #292)
 
 Entscheidung des Nutzers vom 31.10.2026 (Weg B): Ein Spieltag bleibt ein Jahr, die Jahreszeit des Jahres wirkt auf die Wirtschaft. Abschnitt `jahreszeiten`, Teilsystem `Jahreszeitenwesen`; ohne Abschnitt rechnet alles bitgleich wie Datenversion 68. Spielbuch: [Jahreszeiten](spielbuch/jahreszeiten.md).
 

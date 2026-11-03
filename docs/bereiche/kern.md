@@ -287,7 +287,7 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Zweite Prüfung | Unabhängiger Prüfer (extra hoch) über 2b086d90..0abcbf14: 1 hoch – mit Bezug 17 kann die Einwohner-Grenze nie greifen (⌈20 N ÷ 17⌉ > N), Kommentar und Doku behaupteten eine wirkende Grenze; gewählt Option A: 17 bleibt, Doku ehrlich („greift mit den Spieldaten nie“) –, 6 niedrig: Schwelle im Schankschluss-Test wieder 20 wie auf main, Test „mit den Spieldaten“ prüft jetzt die Eigenschaft Grenze > Einwohner, Messspalte vergleicht ohne Plätze mit derselben Grenze, Zahlen (Einwohner, Nachmittag statt Abend), Herkunft der Messdateien genannt; fehlender Schlüssel = 0 bleibt (Datenversion 67 hat ihn immer). Ohne Befund: Formel und Rundung, Einwohnerzahl zur richtigen Zeit, Determinismus, Bitgleichheit, Messdateien, „voll nur ohne genug Ware“ in allen 127 vollen Stunden der Probe bestätigt. | 2.11.2026 |
 | Merge mit main (#286) und Prüfung | Datenversion 67, weil main mit der Karren-Höchstzahl schon 66 hat; „bis Datenversion 65“ heißt jetzt „bis 66“. Unabhängiger Prüfer über den Diff gegen main b8f6e190: kein Fehler in Logik, Determinismus oder Spielständen; behoben: beim Ausweichen prüft `Platznehmen` die Ware des Ziels bei jedem Gast (eine Schänke kann in derselben Stunde leer werden – vorher zählte der Gast dann doppelt, als „kein Platz“ und dort als „ohne Ware“; ändert nur diesen seltenen Fall, die Messung oben lief vorher), in der Verwaltung „heute kein Platz“ statt „abgewiesen“ (das Wort hat im Gästebuch schon „ohne Ware“), Doppelzeile im Kopf und Reihenfolge der Abschnitte. | 2.11.2026 |
 
-### Jahreszeiten mit Folgen (PR #…)
+### Jahreszeiten mit Folgen (PR #292)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -306,7 +306,7 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Prüfung | Unabhängiger Prüfer (extra hoch) über 2b086d90..e2ae4368: 0 hoch, 2 mittel – Fahrzeit-Cache in der Minute des Zufrierens vom Bildtakt abhängig (behoben: die gemerkten Fahrzeiten gelten je Jahreszeit und Eis), Bereichsdateien fehlten (nachgetragen); niedrig behoben: Schiff im Eis ruckelte im Bild, leerer Flussname, Festmarkt bis 23 Uhr ohne Ende-Meldung, Reihenfolge der Abfragen, Kommentare, `Datenpfad.OhneJahreszeiten` wirft bei unbekanntem Muster. Offen gelassen (niedrig): Faktoren nach dem Laden genau in einer Grenzminute (wie Rats- und Einwohnerfaktor), `GesparteMinuten` mit Schlamm der Jahreszeit, Grammatik bei weiblichen Flussnamen, Commit 3b510002 baut allein nicht (der KI-Aufruf kommt im nächsten). | 2.11.2026 |
 | Zweite Prüfung | Unabhängiger Prüfer (extra hoch) über 7eccc4ec..78d21077 (Typgrenze, Ausbau-Aufbau, Merge des Schänken-Stands): 0 hoch, 3 mittel – Kräuterschnaps (Heilmittel) fehlte bei den Fertigwaren (jetzt dabei), Doku passte nicht zu Code und Merge-Stand (neu gemessen, nachgezogen), eine Zeile der Sitzplätze war durch den Merge unter die Jahreszeiten gerutscht (zurück) –; niedrig behoben: veraltete Kommentare, Meldung mit den Wörtern der Oberfläche und doppelte Typen geprüft, Tests für leere Liste und Meldungstext, Einwohner-Test ohne Jahreszeiten, Schalter der Messung geprüft. Dazu Gleichheitstest: Startwert 2027 verliert mit den Fertigwaren Ende 1406 den Patriarchen ohne Erben, das Skript verlangt die Abgabe nur, solange das Haus lebt. | 2.11.2026 |
 
-### Schiffsverkehr in der Schiffsrechnung (PR #…)
+### Schiffsverkehr in der Schiffsrechnung (PR #292)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

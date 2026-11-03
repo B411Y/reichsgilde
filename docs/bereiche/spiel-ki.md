@@ -106,14 +106,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Regel der KI | `KiRivale.MaxKarren(ort)` = Grenze des Kerns, ohne sie das Profil (3). Den vierten und fünften Karren kauft die KI wie jeden: zum Jahresende ab 20 % Stillstand, wenn er sich in der Frist bezahlt macht (`BesterKarrenplan`); getauscht wird erst an der Grenze von 5. Die Schätzung beim Pachten (`UmlandSchaetzen`) rechnet weiter mit höchstens 3 Karren (Profil), auch wo der Kern 5 erlaubt – mit 5 pachtete die KI den Eichenforst wieder (Befund H1 der Prüfung, Messung unten). | 2.11.2026 |
 | Alte Regel | Ohne Fahrzeit nach Weglänge (keine Karte, kein Weg) kauft die KI wie bisher Ochsen- bzw. Handkarren ohne Amortisation und höchstens bis zur Grenze des Profils (3), auch wenn der Kern 5 erlaubt (Befund N2 der Prüfung). | 2.11.2026 |
 
-### Jahreszeiten (PR #…, von kern gebaut)
+### Jahreszeiten (PR #292, von kern gebaut)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Schiffe im Eis | `SchiffeBleibenImHafen`: Ist der Fluss zu oder für heute angekündigt (`EisDroht`, die Stunde steht in der Meldung zum Jahresbeginn), schickt die KI kein Schiff los; nach dem Eisgang wieder. | 2.11.2026 |
 | Vorrat vor dem Winter | `WinterVorrat` (`ki.jahreszeiten.vorratAbStunde` 17): Im Herbst ab 17 Uhr füllt der Verwalter eines KI-Hauses Zutaten mit Winternachfrage oder Ernte (Holz, Gerste, Roggen, Kräuter) bis zur Lagergrenze – über `Karren.Vorratsziel`, zum Marktpreis, im Rahmen von `zutatenAnteilKasse`. Reine Rechnung aus Uhr und Daten. Der Verwalter des Spielers tut das nicht (Designfrage beim Teamleiter). | 2.11.2026 |
 
-### Ware der Schänke nach dem Ausschank (PR #…)
+### Ware der Schänke nach dem Ausschank (PR #292)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -202,7 +202,7 @@ Gemessen auf main `ec36ff33` + dieser Branch (`adfd5f2d`), wie oben (`messen ber
 
 Die Holzschläge stehen mit dem vierten (und fünften) Karren gut 8 Punkte weniger still und verdienen mehr; die KI kauft die Karren nur nach Stillstand. Das Vermögen der KI-Häuser ändert sich im Rahmen des Fehlers (± 1.700), „Schwer“ zieht die KI nicht öfter davon als mit 3 Karren. Ein erster Lauf mit der Schätzung beim Pachten für 5 Karren pachtete den Holzschlag im Eichenforst wieder (204 statt 12 Betriebsjahre, 43 % Stillstand) und ließ in „Schwer“ 34 von 140 KI-Häusern davonziehen; deshalb schätzt die KI das Pachten weiter mit 3 Karren (Befund H1 der Prüfung). Die Nachtfahrt ist damit nicht nötig.
 
-### Ware der Schänke nach dem Ausschank – Kurzprobe (PR #…)
+### Ware der Schänke nach dem Ausschank – Kurzprobe (PR #292)
 
 Gemessen auf main `6f80481b` + Branch phase5/jahreszeiten `e666edf6`, nur Köln, nur Wirt, **4 Startwerte** (Richtungsprobe, Fehler des Mittels weit über den Unterschieden): `messen jahreszeiten 20 4 --karten=koeln --beruf=Wirt --parallel=4` mit/ohne `--ohne-jahreszeiten` und `--ki-schaenke[=0.75]`. Reinvermögen J20 des Spielers, Gewinn der Betriebe (ohne Schiffe) über 20 Jahre, hergestellt je Jahr (Körnermahlzeit / Dünnbier / Starkbier):
 
