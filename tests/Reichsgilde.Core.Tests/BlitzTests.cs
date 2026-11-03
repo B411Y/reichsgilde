@@ -11,7 +11,7 @@ using Reichsgilde.Core.Zeit;
 /// <summary>
 /// Blitzschlag im Gewitter (Wunsch des Nutzers vom 2.11.2026, Datenversion 68): der Wetterplan im Kern (würfelt wie vorher die Darstellung),
 /// Einschlag mitten im Gewitter, Ziele nach Höhe und Anhöhe, Brand 1–3 Stunden, Schaden als Platzhalter (Werkstatt steht still, Wohnhaus
-/// ohne Ansehen), Nachrechnen nach dem Laden ohne Spielstandfeld, Entwicklerbefehl.
+/// ohne Ansehen; der Schaden seit dem Blitzschaden in BlitzschadenTests), Laden mitten im Brand, Entwicklerbefehl.
 /// </summary>
 static class BlitzTests
 {
@@ -204,7 +204,7 @@ static class BlitzTests
             Pruefe.Wahr(!sim.Bote.SofortAusfuehren(spieler, new EntwicklerBlitz("haus")).Erfolg, "brennt schon");
         }),
 
-        ("Blitz: Nach Speichern und Laden mitten im Brand rechnet der Kern das Feuer nach – gleicher Einschlag, gleiche Prüfsumme danach", () =>
+        ("Blitz: Nach Speichern und Laden mitten im Brand übernimmt der Kern das Feuer aus dem Spielstand – gleicher Einschlag, gleiche Prüfsumme danach", () =>
         {
             // Das erste Gewitter trifft eine Werkstatt – der Schaden darf nach dem Laden nicht noch einmal wirken
             var (sim, spieler, gewitter) = PartieMitWerkstattTreffer(MitChance(1));
