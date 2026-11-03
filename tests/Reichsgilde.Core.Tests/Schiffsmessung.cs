@@ -17,7 +17,7 @@ static class Schiffsmessung
         var jahre = args.Length > 0 ? int.Parse(args[0]) : 30;
         var startwerte = args.Length > 1 ? int.Parse(args[1]) : 20;
         var kartenname = args.Length > 2 ? args[2] : "probestadt";
-        var json = File.ReadAllText(Datenpfad.Wirtschaft());
+        var json = Datenpfad.MitSchiffshandel(); // „mit“ = Schiffshandel an (Datenversion 70: in den Spieldaten ruht er)
         var mit = Wirtschaftsdaten.AusJson(json);
         var knoten = JsonNode.Parse(json)!.AsObject();
         knoten.Remove("schiffshandel");

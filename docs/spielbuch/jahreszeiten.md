@@ -22,6 +22,7 @@ Etwa jeder dritte Winter ist **streng** (der Rhein fror um 1400 in harten Winter
 - Solange der Fluss zu ist, **nimmt der Hafen keine Aufträge an**, und **alle Schiffe ruhen** – auch die auf dem Fluss und in der fernen Stadt. Sie kommen um die Eiszeit später heim. Den Unterhalt zahlen sie trotzdem.
 - Die **Fähre** liegt fest: Ein Karren, der über sie muss, wartet 120 statt 30 Minuten.
 - Bricht das Eis, meldet das Spiel den Eisgang, und Hafen und Fähre arbeiten wieder.
+- Ruht der Schiffshandel (Datenversion 70), gibt es keine Schiffe; der Hafen ist dann nur ein zweiter Ort zum Handeln mit dem Markt der Stadt und im ganzen Winter geschlossen (Eisschollen); der Marktplatz bleibt offen.
 
 Wer im strengen Winter ein Schiff losschickt, bevor der Fluss zufriert, riskiert, dass es im Eis festsitzt.
 

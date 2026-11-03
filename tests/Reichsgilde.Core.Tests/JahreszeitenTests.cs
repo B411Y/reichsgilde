@@ -13,7 +13,7 @@ using Reichsgilde.Core.Zeit;
 /// </summary>
 static class JahreszeitenTests
 {
-    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<string> Json = new(() => Datenpfad.MitSchiffshandel()); // mit Schiffen im Eis (Datenversion 70: in den Spieldaten ruht der Schiffshandel)
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
     static readonly Lazy<Wirtschaftsdaten> OhneJahreszeiten = new(() => Wirtschaftsdaten.AusJson(OhneAbschnitt(Json.Value, "jahreszeiten")));
 

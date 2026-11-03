@@ -113,10 +113,19 @@ public partial class Hauptszene
     private void HafenKnopfAnzeigen(Stadtwirtschaft w)
     {
         if (_leisteHafen is not { } knopf || _leisteHafenZustand is not { } zustand) return;
-        var sichtbar = w.Schiffahrt.IstAktiv;
+        var sichtbar = w.Schiffahrt.HatHafen; // auch wenn der Schiffshandel ruht: dann ein zweiter Ort zum Handeln mit dem Markt
         if (knopf.Visible != sichtbar) knopf.Visible = sichtbar;
         if (!sichtbar || _spieler is null) return;
         if (knopf.ButtonPressed != _hafenTafel.Visible) knopf.SetPressedNoSignal(_hafenTafel.Visible);
+        if (w.Schiffahrt.Ruht)
+        {
+            var offen = w.Schiffahrt.HafenOffen;
+            var zu = offen ? "offen" : w.Jahreszeiten.FlussZugefroren ? "zugefroren" : "Winter: zu";
+            if (zustand.Text != zu) zustand.Text = zu;
+            var hinweis = offen ? "Hafen: Handel mit dem Markt der Stadt (dieselben Waren und Preise)" : "Hafen: im Winter geschlossen (Eisschollen) – gehandelt wird auf dem Marktplatz";
+            if (knopf.TooltipText != hinweis) knopf.TooltipText = hinweis;
+            return;
+        }
         var schiffe = w.Schiffahrt.SchiffeVon(_spieler).ToList();
         var unterwegs = schiffe.Count(s => s.IstUnterwegs);
         var text = schiffe.Count == 0 ? "kein Schiff" : unterwegs == 0 ? $"{schiffe.Count} am Kai" : $"{unterwegs} von {schiffe.Count} unterwegs";

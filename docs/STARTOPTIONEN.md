@@ -10,6 +10,7 @@ Startoptionen (nach `--`):
 - `--freiekamera=1` (freie Kamera statt der Spielkamera ab Start, ohne Tastendruck: rechte Maustaste halten = umsehen, W/A/S/D fahren in Blickrichtung, Q/E runter/hoch, Shift viermal so schnell, Mausrad Tempo, F2 blendet die Hilfe oben rechts aus; sie beginnt im Blick der Spielkamera, also mit `--blick`; Klicks auf Gebäude gehen weiter. Gras, Figuren und Feinheiten folgen dem Punkt, auf den sie blickt; gilt auch in der Kartenwerkstatt; `game/scripts/FreieKamera.cs`, `docs/wasser/phase3.md`). Dazu `--freiekamera-start=<x>,<y>,<z>:<zx>,<zy>,<zz>` (Ort und Blickziel in Metern, für Bildschirmfotos; die Höhe des Bodens steht im Log unter `[freiekamera] Ort …`)
 - `--tiptest=1` (ein Knopf „Tooltip-Test“ in der Bildmitte mit einem Tooltip voller Verweise und vier Testbegriffen, falls das Lexikon keine liefert); `--verweistest=1` (schreibt Beispielsätze mit automatischen Lexikon-Verweisen ins Log); `--tooltipfest=<Sekunden|taste>` (Zeit bis zum Festkleben bzw. nur mit Taste, gilt nur für diesen Start)
 - `--startstunde=<Stunde>` (4–22; ohne Angabe beginnt die Partie um 4 Uhr zur Zunftglocke)
+- `--startrunde=<n>` (die Partie beginnt in der n-ten Runde statt der ersten, z. B. `4` = Winter, `1`–`4` = Frühling bis Winter; nur für Bilder, zusammen mit `--startstunde`)
 - `--glaube=<Katholisch|Evangelisch|Naturglaube>` (Konfession des eigenen Hauses bei einer neuen Partie)
 - `--tempo=<1–32>`
 - `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom|wohnhaus:<Inhaber>`

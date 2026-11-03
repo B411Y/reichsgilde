@@ -47,6 +47,19 @@ static class Datenpfad
         return ohne;
     }
 
+    /// <summary>
+    /// Die Daten mit laufendem Schiffshandel (<c>schiffshandel.aktiv: true</c> statt false, Datenversion 70 „Hafen ruht“) – für die Tests der
+    /// Schiffe, die so weiter wie vor dem Schalter rechnen. Den ruhenden Hafen prüft HafenRuhtTests.
+    /// </summary>
+    public static string MitSchiffshandel(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        const string aus = "\"schiffshandel\": {\n    \"aktiv\": false,", an = "\"schiffshandel\": {\n    \"aktiv\": true,";
+        if (json.Contains(an, StringComparison.Ordinal)) return json;
+        return json.Contains(aus, StringComparison.Ordinal) ? json.Replace(aus, an)
+            : throw new InvalidDataException("Schalter „schiffshandel.aktiv“ steht nicht wie erwartet in den Daten – Datenpfad.MitSchiffshandel anpassen.");
+    }
+
     /// <summary>Die Karte game/karten/&lt;kennung&gt;.json (neben game/daten/).</summary>
     public static string Karte(string kennung) =>
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Wirtschaft()))!, "karten", kennung + ".json");

@@ -1222,6 +1222,49 @@ Die neue Karte allein ändert fast nichts (−1 … 0 %). Mit Schiffshandel: 49 
 
 **Schiffsverkehr (Datenversion 69, `schiffshandel.verkehrBeachten`):** Die Rechnung einer Fahrt (Tafel und KI, `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt`) zählt die Schiffe, die schon unterwegs sind: Hinfracht und geplante Rückfracht der Schiffe auf dem Weg zur selben Stadt als dort schon verkauft bzw. gekauft, die Rückfracht aller Schiffe, die noch heimkommen (ohne Aufträge ins Lager eines Betriebs), als daheim schon verkauft – `vorher` in `Erloes`, `Kosten` und `Verkaufswert`. Ohne den Schalter (alte Spielstände mit ihren Daten) plant jedes Schiff, als wäre es allein. Anlass und Messung: „Jahreszeiten“, Abschnitt „Wirt in Köln: Kosten und Schiffsverkehr“.
 
+**Hafen ruht (Datenversion 70, `schiffshandel.aktiv: false`; Nutzerentscheidung vom 03.11.2026):** Der Schiffshandel ist aus dem laufenden Spiel genommen, der Code bleibt für ein späteres Add-on. Niemand kauft oder schickt Schiffe (Befehle abgelehnt mit „Der Schiffshandel ruht …“), die KI plant keine (ihre Schiffszüge hängen an `Schiffahrt.IstAktiv`), die fernen Märkte erholen sich nicht mehr (es handelt ja niemand), der Zöllner hat keinen Nutzen, „Hafen erweitern“ wird abgelehnt. Der Hafen bleibt ein zweiter Ort zum Handeln mit dem Markt der Stadt – dieselben Waren, gemeinsamer Vorrat und gemeinsame Preise (`Schiffahrt.HafenMarkt` = `Stadtwirtschaft.Markt`), kein eigener Markt; im ganzen Winter zu (Eisschollen, auch im milden Winter und im Eis; `HafenOffen`, nur mit Abschnitt `jahreszeiten`) – der Marktplatz bleibt offen. Am Rechenweg der Wirtschaft ändert der Hafen als Handelsort nichts: Die Karren fahren weiter zum nächsten Marktplatz. Ohne Angabe gilt `aktiv: true` – alte Spielstände bringen ihre Daten mit und rechnen wie bisher (Test „Schalter an … bitgleich mit dem Kern vor dem Schalter“: drei Jahre Greybox mit Schiff, SHA-256 je Jahr gegen phase5/jahreszeiten `0512c835`). Messung: `messen jahreszeiten … --mit-schiffshandel` rechnet wie vorher, ohne den Schalter wie jetzt; Kurzprobe unten.
+
+**Kurzprobe** (NAS, `messen jahreszeiten 20 4`, Greybox und Köln, je 4 Startwerte, Spieler J20 und Ø KI-Häuser J20; gemessen auf main 6f80481b + phase5/jahreszeiten 0512c835 + dieser Branch daec02c5; „an“ = `--mit-schiffshandel`, bitgleich mit vorher). Nur Richtung, Streuung bei 4 Startwerten groß; volle Messung mit 80 Startwerten auf dem Grafik-PC steht aus.
+
+| Karte, Aufbau | Spieler an | Spieler aus | | KI an | KI aus | |
+|---|---|---|---|---|---|---|
+| Greybox, Ausbau | 67.460 | 63.360 | −6,1 % | 80.426 | 69.762 | −13,3 % |
+| Greybox, Schmied | 38.117 | 35.229 | −7,6 % | 83.104 | 70.198 | −15,5 % |
+| Greybox, Wirt | 31.336 | 34.063 | +8,7 % | 78.048 | 74.752 | −4,2 % |
+| Köln, Ausbau | 60.191 | 55.700 | −7,5 % | 76.173 | 69.281 | −9,0 % |
+| Köln, Schmied | 33.703 | 36.129 | +7,2 % | 75.960 | 69.975 | −7,9 % |
+| Köln, Wirt | 25.677 | 28.310 | +10,3 % | 74.818 | 69.291 | −7,4 % |
+
+Keine Bankrotte. Erwartet: Ohne die Rückfracht der Schiffe werden Rohstoffe daheim teurer und die Exportnachfrage fehlt (siehe Befund PR #199: Schiffshandel hob auch Häuser ohne Schiff um 21–26 %) – die KI-Häuser verlieren 4–16 %, die Werkstatt-Spieler je nach Karte; der Wirt gewinnt (er verlor bisher an eigenen Schiffen, „Wirt in Köln“).
+
+**Volle Messung** (Grafik-PC, `messen jahreszeiten 20 80` gegen `--mit-schiffshandel`, Commit 9a8d18aa): Spieler J20 Greybox Ausbau 65.959 → 54.231, Schmied 39.255 → 32.415, Wirt 34.913 → 31.152; Köln Ausbau 58.731 → 52.666, Schmied 34.117 → 28.432, Wirt 30.451 → 28.104 (−8 bis −18 %); KI-Häuser Greybox 78–79 → 68–72 Tsd., Köln 70,5 → 64,7–66,1 Tsd. (−7 bis −13 %); keine Bankrotte.
+
+**Landhandel (Ausgleich, Nutzer: Option A; Abschnitt `schiffshandel.landhandel`, Datenversion bleibt 70):** Die Zerlegung (NAS, 8 Startwerte, `--preise-alle`: mittlerer Preisfaktor je Ware über die Partie) zeigt, dass ohne Schiffe kaum Rohstoffe fehlen: Eisen, Silber, Holz, Holzzapfen und Getreide sind höchstens 1 % teurer, Bruchstein und Granit 1 %; spürbar nur Wachs und Jasmin (+5 %), Kräuter und Gold (+2–3 %), die Weidenmünd lieferte. Der größere Teil ist die **Ausfuhr**: Die Waren, die die fernen Städte kauften, sind ohne Schiffe 2–4,5 % billiger (Armbrust −4,5, Körnermahlzeit −4,3, Silberkette und Silberring −3,5, Dolch, Werkzeug, Dünnbier, Starkbier, Kerze je −3, Rosenwasser, Grabstein, Mühlstein −2 %), weil die Häuser sie jetzt daheim verkaufen (6–11 Stück mehr im Jahr am Markt). Dazu fehlt der KI der Ertrag ihrer eigenen Schiffe – den kann nur ein höherer Preis ihrer Waren ersetzen. Darum hebt der Landhandel vor allem die Nachfrage der Ausfuhrwaren (Händler kaufen sie für die fernen Städte und bringen sie über Land) und etwas die Grundversorgung der Rückfrachtwaren (Fuhrleute bringen sie):
+
+| Ware | Faktor |
+|---|---|
+| Angebot (× Grundversorgung) | Wachs, Jasmin 1,1 · Gold 1,06 · Bruchstein 1,03 · Granit 1,02 |
+| Nachfrage, Schmiede | Armbrust, Silberkette, Silberring, Werkzeug 1,08 · Dolch 1,06 · Goldkette 1,05 |
+| Nachfrage, Wirt und Kerzen | Körnermahlzeit, Dünnbier, Starkbier, Kerze 1,09 |
+| Nachfrage, Tinkturen | Rosenwasser 1,1 · Moschusduft, Fechterduft 1,08 |
+| Nachfrage, Steinmetz | Grabstein, Mühlstein 1,12 · Taufbecken, Steinfigur 1,1 |
+
+Die Steinmetz- und Duftwaren liegen höher, weil vor allem die KI-Häuser (Maurerei, Tinkturei) sie machen und ihnen der Schiffsertrag fehlt; Eisen, Silber und Holz bleiben unberührt – mehr Grundversorgung drückte die Preise der Gruben und Holzfäller der KI. Dolch nur 1,06 – mit 1,08 rutscht die passiv gespielte Siederei mit Giftdolch (Test) im zweiten Jahr ins Minus, sie kauft Dolche als Zutat; Kräuter ohne Faktor (ohne Schiffe nur 2,7 % teurer) – mit 1,06 verschob sich die Umland-Schätzung der KI für den Kräutergarten (Test). Regel: `Marktstand.LandhandelAngebot` (auf `Grundversorgung`) und `LandhandelNachfrage` (auf `Nachfrage`), gesetzt von `Schiffahrt.MarktSetzen` aus `EinwohnerZaehlen`, nur wenn der Schiffshandel ruht und die Karte einen Hafen hat (`LandhandelWirkt`); sonst bleiben beide 1. Mit `--mit-schiffshandel` rechnet alles bitgleich wie vorher (Sollwerttest in `HafenRuhtTests`); eine Stadt ohne Hafen hatte nie Schiffe und bekommt auch keinen Landhandel.
+
+**Probe** (NAS, `messen jahreszeiten 20 8`, beide Karten, gemessen auf main 66908ff9 + dieser Branch; „an“ = `--mit-schiffshandel`, dieselben Startwerte). Bei 8 Startwerten streut der Spieler um ±5–17 % (Fehler des Mittels je Gruppe), die KI um ±3–5 % – die Werte der Spieler sind nur Richtung; die volle Messung macht der Grafik-PC.
+
+| Karte, Aufbau | Spieler an | ruht, ohne Landhandel | ruht, mit Landhandel | KI an | KI ohne | KI mit |
+|---|---|---|---|---|---|---|
+| Greybox, Ausbau | 59.622 | −3,5 % | +9,7 % | 77.112 | −10,1 % | −2,5 % |
+| Greybox, Schmied | 36.589 | −4,1 % | +1,4 % | 78.709 | −11,7 % | −3,0 % |
+| Greybox, Wirt | 31.953 | +9,6 % | +18,7 % | 75.041 | −6,0 % | +4,9 % |
+| Köln, Ausbau | 59.312 | −5,3 % | +11,2 % | 73.705 | −8,3 % | −2,4 % |
+| Köln, Schmied | 35.844 | −5,5 % | −4,1 % | 74.004 | −8,5 % | −3,8 % |
+| Köln, Wirt | 27.924 | −10,4 % | −4,1 % | 71.291 | −6,1 % | −1,2 % |
+| Mittel | | −3,2 % | +5,5 % | | −8,4 % | −1,3 % |
+
+Keine Bankrotte. Die KI liegt mit dem Landhandel im Mittel bei −1 % (vorher −8 %, wie in der vollen Messung). Beim Spieler unterschätzt die Probe den Verlust ohne Ausgleich (−3 % statt −14 % mit 80 Startwerten); rechnet man ihre Wirkung (+9 Punkte) auf die volle Messung, landet er bei etwa −5 %. Wie groß die Streuung ist, zeigen die Vorproben mit fast gleichen Werten: Schmiedewaren 1,08 mit Dolch 1,08 und Kräuter 1,06 ergaben Spieler +13,7 %, KI −1,1 %; Schmiedewaren 1,07 Spieler +3,6 %, KI −2,8 %. Ob ±5 % halten, zeigt erst die volle Messung; liegt der Spieler darunter, sind die Faktoren der Schmiede- und Wirtswaren die Stellschraube (die KI hängt mehr an den Steinmetz- und Duftwaren).
+
 ## Stadtkasse, Ämter und neue Anträge (PR #200)
 
 **Regeln** (Abschnitt `politik.kasse`, `politik.bauvorhaben`, `politik.fest`, `politik.befugnisse`; Datenversion 54):
@@ -2177,3 +2220,42 @@ Mitten in jedem Gewitter schlägt der Blitz mit `blitz.chance` = 0,25 in ein Geb
 | Köln | 17 (0–3, Mittel 1,7) | 5 | 6 | 6 | 0 | 1 (Werkstatt) |
 
 Zusammen: Kirchen und Dom 24 % der Einschläge (zum Quadrat waren es 69 %, 18 von 26), Wohnhäuser 44 %. Das Vermögen ändert sich nur in den drei Partien mit einem Treffer in ein Haus, und dort als Rauschen in beide Richtungen (Spieler −2.489 bis +11.082, KI −13.429 bis +26.121): Für die Wirtschaft ist der Blitz praktisch ohne Wirkung.
+
+### Blitzschaden und Übersprung (PR #294, 3.11.2026)
+
+Variante B des Entwurfs (Nutzer 3.11.2026): **Schwere** = (gewürfelte Brenndauer − 60) ÷ 120, also 0 bei einer Stunde, 1 bei drei – kein neuer Wurf. Werte in `blitz` (alle einstellbar; Vorgaben ohne Wirkung, darum rechnen Spielstände mit Daten bis 70 wie bisher; der Branch setzt Datenversion 71):
+
+| Wert | Wirkung |
+|---|---|
+| Werkstatt | Stillstand 300 Arbeitsminuten wie bisher; Reparatur max(`reparatur` = 100, `reparaturAnteil` [0,10; 0,25] nach Schwere × Bauwert) × Brandschutz (Löschfass) – Gießerei 350–875, Schmiede 600–1.500, Goldschmiede 1.100–2.750 Gulden; Umland (Pacht) 100. `lagerAnteil` [0,10; 0,40] jeder Ware verbrennt (ganze Stück, abgerundet). Karren und Geld bleiben. |
+| Wohnhaus | Ansehen fehlt bis Ende + 1.140 Minuten wie bisher; Reparatur max(`wohnhausReparatur` = 0, `wohnhausAnteil` [0,5; 1] × Brandschaden der Brandstiftung (20 % vom Ausbaupreis, mindestens 100)) × Brandschutz-Einrichtung. |
+| Wächter | Wächter bzw. Hauswächter: Brenndauer und Schwere × `waechterFaktor` 0,67. |
+| Übersprung | `sprung`: Nachbarn mit Grundflächen höchstens `abstand` 6 m auseinander (Kante zu Kante, Grundfläche mit Vorplatz); zur Mitte jeder vollen Brandstunde je Nachbar `chanceJeStunde` 0,15 × Brandschutz × (`waechterFaktor` 0,5 mit Wächter); Dauer × `dauerFaktor` 0,5, Schwere × `schwereFaktor` 0,5; höchstens ein Sprung (das übergesprungene Feuer würfelt nicht). |
+| Kein | Ausbrennen, Blitzableiter, Wirkung von Kirche und Rathaus (eigener PR). KI-Häuser nach derselben Regel. |
+
+**Kurzmessung** (gemessen auf main 6f80481b + dieser Branch 2a50321f; `messen blitz 20 4`: je Karte und Beruf 4 Startwerte 101–404, 20 Jahre, Spieler mit einem Betrieb von der KI geführt; „ohne“ = dieselben Partien mit den Werten von Datenversion 68 – der Blitz würfelt mit eigener Quelle, darum sind die Einschläge in beiden gleich):
+
+| Karte | Beruf | Einschläge/Partie | Sprünge/Partie | Treffer Haus Spieler / KI je Partie (mit, inkl. Sprung) | Reparatur/Partie | Spieler J20 mit / ohne | KI J20 mit / ohne |
+|---|---|---|---|---|---|---|---|
+| Greybox | Schmied | 1,00 | 0,75 | 0,25 / 0,25 | 121 | 37.573 / 35.740 | 78.971 / 75.789 |
+| Greybox | Wirt | 1,00 | 0,75 | 0,25 / 0,25 | 121 | 38.850 / 38.403 | 88.284 / 90.431 |
+| Köln | Schmied | 1,00 | 0,50 | 0 / 0 | 0 | 35.841 / 35.841 | 72.108 / 72.108 |
+| Köln | Wirt | 1,00 | 0,25 | 0 / 0 | 0 | 39.469 / 39.469 | 71.815 / 71.815 |
+
+Größenordnung: ein Treffer in ein Haus kostet einige hundert Gulden (hier ein Wohnhaus und eine KI-Werkstatt, zusammen 484 Gulden in einer Partie) bei 36.000–90.000 Gulden Vermögen nach 20 Jahren – unter 2 %; die Unterschiede im Vermögen sind Rauschen in beide Richtungen (die Partie läuft nach dem ersten Treffer anders). Sprünge sind häufiger als gedacht (0,25–0,75 je Partie, meist auf Bürger- und Kulissenhäuser, weil die Grundflächen mit Vorplatz dicht aneinander liegen).
+**Messung** (Grafik-PC, `messen blitz 20 80`, 80 Startwerte je Karte und Beruf, 20 Jahre, gemessen auf main 6f80481b + dieser Branch c2765c3a, Datenversion 68; die Blitzwerte sind seitdem unverändert):
+
+| Größe | Ergebnis je Partie |
+|---|---|
+| Einschläge | 1,28 |
+| Sprünge | 0,56–0,75 |
+| Reparatur | 103–143 Gulden |
+| verbrannte Ware | etwa 1 Stück |
+| Treffer Haus Spieler / KI, Köln | 0,00 / 0,25–0,28 |
+| Reinvermögen J20 mit gegen ohne Schaden | Spieler unter 1 % Unterschied |
+
+Der Blitzschaden ist damit eine spürbare, aber seltene Störung: einmal in rund 20 Jahren ein Einschlag in der Stadt, das Vermögen ändert sich kaum. In Köln trifft es das Haus des Spielers in 80 Partien nie, die KI-Häuser zusammen etwa jede vierte Partie.
+
+**Warum der Spieler in Köln nie getroffen wird:** Zufall bei kleinem Anteil, kein Fehler und keine Lage. Werkstatt und Wohnhaus des Spielers (Rheingasse am Heumarkt, Boden 0,1–0,2 m, 1,6 m unter dem Mittel der Stadt) wiegen zusammen 15,5 von 1.319 (1,18 % je Einschlag, über Sprünge etwa 0,3 % dazu) – so viel wie das Paar eines KI-Hauses (15,4–17,8). Die sieben KI-Häuser haben zusammen siebenmal so viel (8,3 %), den Rest ziehen Dom und die fünf Kirchen (40–50 m, zusammen fast ein Fünftel) und die 79 Einwohner- und Bürgerhäuser (etwa die Hälfte). Der Blitz würfelt mit eigener Quelle aus Startwert und Minute, darum sind die Einschläge für Schmied und Wirt, „mit“ und „ohne“ derselben Startwerte gleich: Es sind nur 80 unabhängige Partien mit rund 102 Einschlägen, erwartet etwa 1,5 Treffer beim Spieler, 0 kommt mit etwa 20 % vor. Nachgerechnet (Würfe wie im Kern, Ziele vom Start): Köln direkt Spieler 0, KI 12 (0,15 je Partie, der Rest der 0,25–0,28 kommt über Sprünge); Greybox (62 Ziele, Spieler 3,2 %) direkt Spieler 3, KI 6.
+
+**Probe mit „Hafen ruht“** (NAS, `messen blitz 20 4`, gemessen auf main 3f2bdf8c + dieser Branch e776abd7, Datenversion 71): dieselben Einschläge und Sprünge wie in der Kurzmessung (1,00 Einschläge, Sprünge Greybox 0,75, Köln 0,25 je Partie), Treffer Greybox Spieler und KI je 0,25, Köln 0, Reparatur Greybox 121 Gulden je Partie, höchstens 0,5 Stück Ware verbrannt. Der ruhende Schiffshandel ändert am Blitz nichts; das Vermögen streut wie zuvor in beide Richtungen.

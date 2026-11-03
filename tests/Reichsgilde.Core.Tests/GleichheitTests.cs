@@ -53,7 +53,8 @@ static class GleichheitTests
     /// Dazu mitten im Eis des strengen Winters 1407 (Startwert 1400: der Grenzfluss ist von 7 bis 19 Uhr zu, Datenversion 69)
     /// und mitten in einem Brand nach Blitzschlag (Datenversion 68; jedes Feuer brennt mindestens eine Stunde): bei 4711 in Minute 863 (Jahr 0,
     /// 18:23 Uhr), bei 2027 in Minute 6380 (Jahr 5, 15:20) und 10231 (Jahr 8, 22:31 – es brennt über den Jahreswechsel, geladen wird um 4:01 im Jahr 9).
-    /// Welche Feuer brennen, steht nicht im Spielstand; der Kern rechnet es nach dem Laden nach.
+    /// Die Einschläge (samt übergesprungener Feuer und anstehender Sprünge) stehen seit dem Blitzschaden (3.11.2026) im Spielstand; an jedem
+    /// Ladepunkt vergleicht der Test zusätzlich Lager und Vermögen der Häuser, deren Gebäude gerade brennt (<see cref="Brandlage"/>).
     /// </summary>
     static readonly long[] Ladepunkte = { Minute(0, 18, 50), Minute(1, 12, 20), Minute(2, 21, 37), Minute(5, 4), Minute(5, 4, 1), Minute(5, 15, 50), Minute(7, 12, 30), Minute(8, 19, 0), Minute(9, 4, 1) };
 
@@ -62,7 +63,7 @@ static class GleichheitTests
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
     /// <param name="Erloschen">Ab welchem Jahr (0 = erstes) das Haus des Spielers nicht mehr aktiv ist (gestorben ohne Erben, bankrott) – sonst null.</param>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen);
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -142,6 +143,7 @@ static class GleichheitTests
         Vergleichen("Lauf B (de-DE)", a, b);
         Vergleichen("Lauf C (Speichern und Laden)", a, c);
         Pruefe.Gleich(string.Join("\n", a.Blitze), string.Join("\n", c.Blitze), "Blitzschläge (Minute, Ziel, Schaden) mit Speichern und Laden");
+        Pruefe.Gleich(string.Join("\n", a.Braende), string.Join("\n", c.Braende), "Lager und Vermögen der brennenden Häuser an den Ladepunkten");
         // Ein Blitzfall (Datenversion 68): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
         if (p.Startwert is 4711 or 2027) Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
 
@@ -164,6 +166,7 @@ static class GleichheitTests
         Zeilen[p.Startwert] = zeilen;
         DateiSchreiben();
         Console.WriteLine($"          Prüfsumme Startwert {p.Startwert}: {a.Ende}");
+        if (a.Braende.Count > 0) Console.WriteLine($"          Brennende Häuser an Ladepunkten: {string.Join(" | ", a.Braende.Select(z => z.Split(' ')[1] + " " + z.Split(' ')[2]))}");
     }
 
     static void Vergleichen(string name, Lauf a, Lauf x)
@@ -192,7 +195,11 @@ static class GleichheitTests
 
         var skript = new Befehlsskript(sim.Wirtschaft!.Betriebe.First(b => b.Konto == spieler).Name);
         var blitze = new List<string>(); // Minute und Text jeder Meldung „Blitzschlag!“ (Ziel und Schaden stehen darin)
-        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m => { if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}"); };
+        void BlitzeZaehlen(Simulation s) => s.Wirtschaft!.Meldung += m =>
+        {
+            if (m.StartsWith("Blitzschlag!", StringComparison.Ordinal) || m.StartsWith("Funkenflug!", StringComparison.Ordinal)) blitze.Add($"{s.Zeit.VergangeneMinuten} {m}");
+        };
+        var braende = new List<string>(); // an jedem Ladepunkt: Lager und Vermögen der Häuser, deren Gebäude brennt (Lauf C: nach dem Laden)
         BlitzeZaehlen(sim);
         var befehle = new List<string>();
         var jahre = new List<string>();
@@ -200,6 +207,7 @@ static class GleichheitTests
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
+            if (Ladepunkte.Contains(t)) braende.AddRange(Brandlage(sim.Wirtschaft!, t));
             foreach (var befehl in skript.Befehle(t, sim.Wirtschaft!, spieler))
             {
                 var ergebnis = sim.Wirtschaft!.Ausfuehren(spieler, befehl);
@@ -225,7 +233,20 @@ static class GleichheitTests
                 if (erloschen is null && !spieler.IstAktiv) erloschen = jahre.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende);
+    }
+
+    /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>
+    static IEnumerable<string> Brandlage(Stadtwirtschaft w, long t)
+    {
+        foreach (var e in w.Blitz.Einschlaege.Concat(w.Blitz.Anstehend))
+        {
+            if (e.Ziel.Besitzer is not { } k || e.BrandEnde <= t) continue;
+            var lager = e.Ziel.Betrieb is { } b
+                ? string.Join(",", b.Lager.OrderBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{x.Key}={x.Value}"))
+                : "-";
+            yield return $"{t} {e.Ziel.Kennung} {e.Ursache} {e.Minute}-{e.BrandEnde} lager {lager} vermoegen {k.Vermoegen.ToString("R", CultureInfo.InvariantCulture)}";
+        }
     }
 
     /// <summary>Wie ein Spieler, der speichert und gleich wieder lädt – mit allem, was die Oberfläche danach wieder einstellt.</summary>
@@ -318,15 +339,15 @@ static class GleichheitTests
                 foreach (var waehler in w.Rat.Waehler(bewerbung).Where(a => a.Ratsherr is not null).Take(3))
                     liste.Add(new Schenken(waehler.Ratsherr!.Name, 250));
 
-            // Löschen und danach Einfügen: den Zweitbetrieb ab 12 Uhr abgeben, sobald es geht (kein Karren unterwegs), und eine Stunde
-            // später wieder erwerben (Lauf C lädt direkt nach dem Löschen)
+            // Löschen und danach Einfügen: den Zweitbetrieb ab 12 Uhr abgeben, sobald es geht (kein Karren unterwegs), und zehn Minuten
+            // später wieder erwerben (Lauf C lädt direkt nach dem Löschen; nach einer Stunde hatte bei 2027 mit dem Landhandel im Jahr 7 schon die KI zugegriffen)
             if (_zweitbetrieb is not null && Abgabejahre.Contains(jahr) && _abgegebenIm != jahr && uhr >= Minute(0, 12)
                 && w.Betriebe.FirstOrDefault(b => b.Name == _zweitbetrieb && b.Konto == spieler) is { } abgeben
                 && w.VerkaufVerboten(spieler, abgeben) is null)
             {
                 liste.Add(new BetriebVerkaufen(_zweitbetrieb));
                 _abgegebenIm = jahr;
-                _wiederUm = t + 60;
+                _wiederUm = t + 10;
             }
             if (t == _wiederUm && _zweitbetrieb is not null)
             {

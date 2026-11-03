@@ -758,8 +758,8 @@ public partial class Stadtansicht
     private static long? WohnhausBrandStart(Konto k, Stadtwirtschaft w, long jetzt)
     {
         if (k.WohnhausInstandBis is not { } bis || bis <= jetzt) return null;
-        if (w.Blitz.Einschlaege.LastOrDefault(e => e.Ziel.Bewohner == k && w.Blitz.Daten is { } d && e.BrandEnde + d.InstandMinuten == bis) is { } blitz)
-            return blitz.Minute; // Blitzschlag: instand gesetzt wird ab dem Ende des Feuers
+        if (w.Blitz.WohnhausBrand(k) is { } blitz)
+            return blitz.Minute; // Blitzschlag oder Übersprung (steht im Spielstand): instand gesetzt wird ab dem Ende des Feuers
         var dauer = w.Gauner.IstAktiv && w.Gauner.Daten.Wohnhaus is { } wh ? wh.Brand.InstandMinuten : Spielzeit.MinutenProTag;
         return bis - dauer;
     }

@@ -231,6 +231,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Namen und Nacht | Gebäudenamen (Label3D mit Kennung) werden im Pixel-Look nicht in die Welt gezeichnet, sondern als Control-Beschriftungen in voller Auflösung an der Projektion der Schildposition (Kamera der Logik); Lichtskala nie unter 0,34, Kontrast und Düsternis klingen mit dem Tageslicht ab: Abend und Nacht etwa so hell wie ohne Pixel-Look (Mittelwert 29 gegen 25 von 255), Fenster und Feuer leuchten | 03.11.2026 |
 | Versuchsszene | `Pixeltest` bleibt auf dem Versuchszweig `versuch/pixel-look`, kommt nicht ins Spiel | 03.11.2026 |
 | Bloom, Unschärfe | Im Pixel-Look ersetzt das Glühen den Bloom der Stadt (in den Räumen bleibt er); keine Miniatur-Unschärfe | 03.11.2026 |
+### Zierschiff am Hafen (PR #293)
+
+| Frage | Entscheidung |
+|---|---|
+| Wann fährt es? | Nur bei `Schiffahrt.Ruht` und `HafenOffen` (nie im Winter). Zwei Besuche je Spieljahr, Ankunft 05:10–06:10 bzw. 14:40–15:40 Uhr, Liegezeit 1–2,5 Spielstunden. Beide enden vor 19:30 Uhr: Es liegt nie über Nacht und fährt nie im Dunkeln (natürlicher als ein Schiff im Dunkeln ohne Laterne). |
+| Woher die Zeiten? | Reine Funktion der Spielminute (Streuzahl aus der Fensternummer, Ganzzahlen), keine Uhrzeit, kein Zufall des Kerns, nichts im Spielstand: Laden und Speichern geben dasselbe Bild. |
+| Wird der Hafen zu, während es liegt? | Es legt sofort ab und fährt seine Route zu Ende (sonst schlösse der Hafen zu Winterbeginn mit ihm im Bild); im Spiel kommt das nicht vor, weil beide Besuche vor dem Jahresende enden. |
+| Weg und Modell | Erster Hafen der Karte, Routen des Kerns (`Route`), Modell und Pose der Handelsschiffe (jetzt gemeinsame Hilfen). Hausfarbe fest (rotbraun), keine Klickfläche, 2,5 m weiter draußen am Kai (der Steg des Hafenmodells ragt ins Wasser). Ohne Hafen oder Route kein Schiff (Probestadt ohne Fluss). |
+| Außerhalb des Bereichs | `Hauptszene.cs` (oberflaeche): Startoption `--startrunde=<n>` für Bilder im Winter, in `docs/STARTOPTIONEN.md` eingetragen. |
 
 ### Fels-Material und Gesteinsvorlagen (Felspinsel F2, PR #284)
 
