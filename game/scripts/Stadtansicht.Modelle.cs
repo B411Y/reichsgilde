@@ -145,6 +145,7 @@ public partial class Stadtansicht
             }
         }
         TraufenMelden(modell, fenster); // Tropfen an der Dachkante bei Regen, Schutz der Wände unter Traufe und Fensterbänken (Stadtansicht.Traufen.cs)
+        BaumMarkerEinsetzen(modell, modell); // Kit-Bäume an den Markern „Baum_…“ (Stadtansicht.Natur.cs)
         KronenMelden(modell); // Laubkrone im Sommer, kahle Äste im Winter (Stadtansicht.Natur.cs)
         if (!zustand.Leerstand) NachtlichterAnbringen(modell); // Feuerkörbe, Wandlaternen, Ewiges Licht an den Ankern (Stadtansicht.Nachtlichter.cs)
         if (!zustand.Leerstand && ankerKennung is not null) KamineAnbringen(modell, datei, ankerKennung); // Rauch aus den Schornsteinen (Stadtansicht.Feuer.cs)
