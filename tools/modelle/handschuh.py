@@ -13,8 +13,7 @@ Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche 
 Haltung: zeigende Hand, Zeigefinger gestreckt und leicht abgespreizt genau zur Spitze (Hotspot), Mittel-, Ring- und kleiner
 Finger etwa zu 20 % einer Faust eingerollt, Daumen locker angelegt.
 
-Ausgabe nach <Ordner>/: png/<größe>/stufeN_<name>_<zustand>.png (32, 48, 64 Pixel; gerendert in halber Größe und mit
-nearest verdoppelt = Pixel-Look), fein/<größe>/… (ohne Verdopplung), gross/… (384 Pixel), hotspots.txt, uebersicht.png.
+Ausgabe nach <Ordner>/: fein/<größe>/stufeN_<name>_<zustand>.png (32, 48, 64 Pixel, volle Auflösung = Standard), gross/… (384 Pixel), hotspots.txt, uebersicht.png.
 Der Hotspot ist die Spitze des Zeigefingers (beim Türring die Ringmitte).
 """
 
@@ -35,6 +34,8 @@ NEIGUNG = 34.0          # Kamera schaut um so viel schräg von vorn
 SUPER = 384             # Rendergröße; alle Zielgrößen entstehen daraus durch Mittelung
 GROESSEN = (32, 48, 64)
 KONTUR = (0.06, 0.04, 0.03)
+FUGE = (0.12, 0.065, 0.03)     # Fugen zwischen den Fingern: dunkelbraun statt schwarz
+FUGE_DECK = 0.55               # halbe Deckkraft
 
 # Stufen: Ledertöne direkt als Basisfarbe (linear, gedeckt)
 STUFEN = [
@@ -403,7 +404,7 @@ def sweep(b, name, kette, von=0, bis=None, skal=1.0, flach=0.80, spitze=True, wu
 def stulpe_r(ly, r_a, r_e, y):
     """Halbachse der Stulpe in der Tiefe y: am Handgelenk eng, nach hinten weich ausgestellt (kein Trichter)."""
     t = min(max((0.08 - y) / (ly + 0.08), 0.0), 1.0)
-    return r_a + (r_e - r_a) * (0.55 * t + 0.45 * t ** 2.4)
+    return r_a + (r_e - r_a) * (0.60 * t * (2 - t) + 0.40 * t ** 2.2)
 
 
 def stulpe_bauen(b, ly, r_a, r_e):
@@ -417,16 +418,16 @@ def stulpe_bauen(b, ly, r_a, r_e):
         gr.append([])
         for j in range(seg):
             w = 2 * math.pi * j / seg
-            wel = 1 + 0.045 * t * math.sin(5 * w + 0.6) + 0.02 * t * math.sin(9 * w)
+            wel = 1 + 0.06 * t * math.sin(5 * w + 0.6) + 0.025 * t * math.sin(9 * w + 1.3 * t)
             r = stulpe_r(ly, r_a, r_e, y) * wel
-            gr[-1].append(B.verts.new(Vector((r * math.cos(w), y, r * math.sin(w) * 0.62))))
+            gr[-1].append(B.verts.new(Vector((r * math.cos(w), y, r * math.sin(w) * 0.70))))
     for k in range(len(gr) - 1):
         for j in range(seg):
             try:
                 B.faces.new((gr[k][j], gr[k + 1][j], gr[k + 1][(j + 1) % seg], gr[k][(j + 1) % seg]))
             except ValueError:
                 pass
-    stulpenband(b, "leder", ly, r_a, r_e, -ly + 0.012, dicke=0.03)       # aufgerollte Lippe
+    stulpenband(b, "leder", ly, r_a, r_e, -ly + 0.012, dicke=0.05)       # aufgerollte Lippe
     b.kegel("innen", (0, -ly + 0.015, 0), (0, -ly + 0.03, 0), stulpe_r(ly, r_a, r_e, -ly) - 0.03, stulpe_r(ly, r_a, r_e, -ly) - 0.03, seg=32)
 
 
@@ -438,7 +439,7 @@ def hand_bauen(stufe, griff, st):
     b.kugel("leder", (0, 0.5, 0), 1.0, (PALME[0], PALME[1], PALME[2]), seg=24)
     b.kugel("leder", (-0.27, 0.27, 0.02), 1.0, (0.20, 0.27, 0.12), Matrix.Rotation(math.radians(-25), 3, "Z"), seg=16)
     ly = s["stulpe"]
-    r_a, r_e = 0.29, 0.37
+    r_a, r_e = 0.34, 0.45
     stulpe_bauen(b, ly, r_a, r_e)
     # Finger
     fin = {}
@@ -478,6 +479,8 @@ def hand_bauen(stufe, griff, st):
             x = x0 + (x1 - x0) * t
             pf.append(Vector((x, y, palmenhoehe(x, y) + 0.004)))
         rippen.append(pf)
+    if stufe != 2:
+        stulpen_stiche(b, "garn", ly, r_a, r_e, -ly + 0.075, 0.07, (0.04, 0.012, 0.012))      # Saumnaht (Stufe 2 hat eigene)
     stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e)
     return b
 
@@ -485,17 +488,17 @@ def hand_bauen(stufe, griff, st):
 def stulpenpunkt(ly, r_a, r_e, y, w):
     """Punkt auf der Stulpe bei der Tiefe y (negativ = nach hinten), Winkel w; obere Hälfte w in 0..pi."""
     r = stulpe_r(ly, r_a, r_e, y)
-    return Vector((r * math.cos(w), y, r * math.sin(w) * 0.62 + (0.0)))
+    return Vector((r * math.cos(w), y, r * math.sin(w) * 0.70 + (0.0)))
 
 
 def stulpenband(b, name, ly, r_a, r_e, y, hoch=True, dicke=0.022, seg=44, dz=0.0):
     r = stulpe_r(ly, r_a, r_e, y)
-    b.torus(name, (0, y, dz), r + dicke * 0.3, dicke, skal=(1, 0.62, 1), dreh=Matrix.Rotation(math.pi / 2, 3, "X"), seg=seg, ring=7)
+    b.torus(name, (0, y, dz), r + dicke * 0.3, dicke, skal=(1, 0.70, 1), dreh=Matrix.Rotation(math.pi / 2, 3, "X"), seg=seg, ring=7)
 
 
 def stulpen_stiche(b, name, ly, r_a, r_e, y, abstand, groesse, rng=None, hub=0.0):
     r = stulpe_r(ly, r_a, r_e, y)
-    pfad = [Vector((r * math.cos(w), y, r * math.sin(w) * 0.62 + 0.012)) for w in np.linspace(0.0, math.pi, 26)]
+    pfad = [Vector((r * math.cos(w), y, r * math.sin(w) * 0.70 + 0.012)) for w in np.linspace(0.0, math.pi, 26)]
     b.naht(name, pfad, abstand, groesse, hub, rng)
 
 
@@ -580,7 +583,7 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
                 for k in range(n):
                     w = 2 * math.pi * (k + 0.5 * lage) / n + rng.uniform(-0.04, 0.04)
                     r2 = rr + 0.03 + 0.01 * lage
-                    p = Vector((r2 * math.cos(w), y0 + dy + rng.uniform(-0.03, 0.03), r2 * math.sin(w) * 0.62))
+                    p = Vector((r2 * math.cos(w), y0 + dy + rng.uniform(-0.03, 0.03), r2 * math.sin(w) * 0.70))
                     nm = "pelz_dunkel" if (k % 9 == 4 and lage == 1) else "pelz_hell"
                     b.kugel(nm, p, rad * rng.uniform(0.9, 1.1), (1.0, 1.25, 1.0), seg=9)
             # Gold: Ringe an jedem Fingerglied, Goldkappen auf den Fingerspitzen, Steinring am kleinen Finger
@@ -877,11 +880,12 @@ def fugen(gross, ids, ziel):
             ziel_m |= verschieben(m, dy, dx)
     k = SUPER / ziel
     r = max(1, int(round(k * 0.42)))
-    linie = aufweiten(rand, r) | aufweiten(rand_hr, max(1, r // 2))
+    linie = aufweiten(rand, max(1, int(r * 0.6))) | aufweiten(rand_hr, 1)
     licht = verschieben(linie, r + 1, r + 1) & ~linie & (f > 0)
     out = gross.copy()
     al = out[..., 3] > 0.5
-    out[linie & al, :3] *= 0.16
+    weich = np.array(FUGE, dtype=np.float32)
+    out[linie & al, :3] = out[linie & al, :3] * (1 - FUGE_DECK) + weich * FUGE_DECK
     l2 = licht & al
     out[l2, :3] = np.clip(out[l2, :3] * 1.32 + 0.05, 0, 1)
     return out
@@ -899,7 +903,7 @@ def fugen_klein(a, ids, n):
         m |= (low > 0) & (nb > 0) & (low != nb)
     out = a.copy()
     sel = m & (out[..., 3] > 0.5)
-    out[sel, :3] *= 0.52
+    out[sel, :3] *= 0.74
     return out
 
 
@@ -936,7 +940,7 @@ def alles(aus, stufen, mit_uebersicht=True):
     klein = {}
     for name, (gross, ids) in ergebnis.items():
         for g in GROESSEN:
-            for chunk_, ordner in ((2, "png"), (1, "fein")):
+            for chunk_, ordner in ((1, "fein"),):
                 low = g // chunk_
                 a = kontur(fugen_klein(mitteln(fugen(gross, ids, low), SUPER // low), ids, SUPER // low))
                 fin = np.repeat(np.repeat(a, chunk_, 0), chunk_, 1)
@@ -1024,7 +1028,7 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     spielbild_pfad = spielbild_pfad or os.environ.get("SPIELBILD", "")
     ns = len(stufen)
 
-    def sp(st, z, g, ordner="png"):
+    def sp(st, z, g, ordner="fein"):
         if z in ZUSAETZE:
             return klein[(z, g, ordner)]
         return klein[(f"stufe{st}_{STUFEN[st - 1]['name']}_{z}", g, ordner)]
@@ -1038,8 +1042,8 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     bloecke = [stufen[:(ns + 1) // 2], stufen[(ns + 1) // 2:]]
     hoehe_b = max(len(x) for x in bloecke) * zb + 24
     # Teil C: Originalgröße auf drei Hintergründen
-    zeilen_c = [(32, "normal", "png"), (32, "normal", "fein"), (48, "normal", "png"), (48, "normal", "fein"),
-                (48, "klick", "png"), (48, "tuer_schloss", "png"), (48, "tuer_ring", "png")]
+    zeilen_c = [(32, "normal", "fein"), (48, "normal", "fein"), (64, "normal", "fein"),
+                (48, "klick", "fein"), (48, "tuer_schloss", "fein"), (48, "tuer_ring", "fein")]
     hoehe_c = len(zeilen_c) * 56 + 20
     H = hoehe_a + hoehe_b + hoehe_c
     c = np.zeros((H, breite, 4), dtype=np.float32)
