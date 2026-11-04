@@ -91,6 +91,12 @@ const float SCHATTEN_DUNKEL = 0.36;
 const float WEG_UEBERHANG = 0.4;
 // Schritt 5i (Hoch): so viel kräftiger wirken die Normalen der Texturen
 const float NORMAL_STAERKE = 1.7;
+// Sanfte Hänge im Licht betonen (Gelände A, 04.11.2026): Die Neigung des Geländes wird bis zum HANG_FAKTOR-Fachen verstärkt, aber höchstens um
+// HANG_PLUS (Sinus des Winkels, 0,12 = rund 7 Grad); über HANG_BIS blendet die Verstärkung aus, steile Hänge und Felsen bleiben, wie sie sind.
+// Ebener Boden (Neigung 0) bleibt unverändert. Wirkt nur auf das Licht, nicht auf die Mischung der Stoffe.
+const float HANG_FAKTOR = 3.0;
+const float HANG_PLUS = 0.12;
+const vec2 HANG_BIS = vec2(0.25, 0.5);
 // Höhe der Straße über dem Boden (Meter): ein Randstein, Hoch (siehe boden_pom)
 const float PFLASTER_ABSATZ = 0.14;
 
@@ -106,6 +112,16 @@ global uniform vec3 boden_blick;
 varying vec2 welt;
 varying vec3 welt_n;
 varying float land;
+
+// Die Geländenormale n mit betonter Neigung (siehe HANG_FAKTOR)
+vec3 hang_betont(vec3 n) {
+	vec2 h = n.xz;
+	float l = length(h);
+	if (l < 0.0005) return n;
+	float neu = min(l + min(l * (HANG_FAKTOR - 1.0), HANG_PLUS) * (1.0 - smoothstep(HANG_BIS.x, HANG_BIS.y, l)), 0.99);
+	vec2 r = h / l * neu;
+	return vec3(r.x, sqrt(1.0 - neu * neu), r.y);
+}
 
 void vertex() {
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
@@ -899,9 +915,11 @@ void fragment() {
 	ROUGHNESS = clamp(rau, 0.0, 1.0);
 #if BODEN_STUFE >= 2
 	if (!nr_da) hoehe += fh.a * 0.025;
+	nw = normalize(nw + (hang_betont(n) - n));
 	NORMAL = normalize((VIEW_MATRIX * vec4(nw, 0.0)).xyz);
 	{
 #else
+	NORMAL = normalize((VIEW_MATRIX * vec4(hang_betont(n), 0.0)).xyz);
 	if (wege_an) {
 #endif
 		// Höhe als Unebenheit im Licht (Bump-Mapping über Ableitungen, Mikkelsen 2010)
