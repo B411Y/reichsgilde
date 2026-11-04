@@ -122,57 +122,74 @@ public partial class Stadtansicht
     /// <summary>Wiederholung des Wolkenmusters (Meter); das Decal ist doppelt so groß und zeigt es 2 × 2-mal.</summary>
     private const float WolkenPeriode = 512f;
 
-    /// <summary>Wie weit die Wolken je echter Sekunde ziehen (Meter) und wie dunkel ihr Schatten höchstens macht (Anteil).</summary>
-    private const float WolkenTempo = 2.5f, WolkenDunkel = 0.42f;
+    /// <summary>
+    /// Wie weit die Wolken je echter Sekunde ziehen (Meter, bei leichtem Wind; mit Wind schneller), wie dunkel ihr Schatten höchstens macht (Anteil),
+    /// wie viel der Fläche bei klarem Himmel und bei wechselnd bewölktem Himmel im Schatten liegt und wie weich die Ränder sind (Rauschwert).
+    /// </summary>
+    private const float WolkenTempo = 5f, WolkenDunkel = 0.55f, WolkenAnteilKlar = 0.05f, WolkenAnteilWolkig = 0.5f, WolkenRand = 0.025f;
 
     /// <summary>
-    /// Ein Decal über der ganzen Stadt: Es färbt alles darunter (Boden, Dächer, Wände, Figuren) zum Schwarz hin, so weit die Wolke dicht
-    /// ist. Die Flecken kommen aus nahtlosem Rauschen (wiederholt sich ohne Kante) und sind in die Textur 2 × 2-mal gelegt; das Decal
-    /// folgt der Kamera in Schritten einer Periode – so sieht man nie seinen Rand und das Muster springt nie.
+    /// Zwei Decals über der ganzen Stadt: Sie färben alles darunter (Boden, Dächer, Wände, Figuren) zum Schwarz hin, so weit die Wolke dicht
+    /// ist. „Wenig“ zeigt nur die dichtesten Flecken (klarer Himmel), „viel“ dieselben und viele mehr (wechselnd bewölkt); das Wetter blendet
+    /// stetig von einem zum anderen. Die Flecken sind rund 30 m groß (bei Zoom 35 und 70 mehrere im Bild) mit scharfem Rand und kommen aus
+    /// nahtlosem Rauschen (wiederholt sich ohne Kante), 2 × 2-mal in die Textur gelegt; die Decals folgen der Kamera in Schritten einer
+    /// Periode – so sieht man nie ihren Rand und das Muster springt nie.
     /// </summary>
     private void WolkenEinrichten()
     {
         var rauschen = new FastNoiseLite
         {
-            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth, Seed = 1480, Frequency = 0.012f,
-            FractalType = FastNoiseLite.FractalTypeEnum.Fbm, FractalOctaves = 4, FractalGain = 0.5f,
+            NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth, Seed = 1480, Frequency = 0.03f,
+            FractalType = FastNoiseLite.FractalTypeEnum.Fbm, FractalOctaves = 3, FractalGain = 0.5f,
         };
         const int seite = 256;
         var kachel = rauschen.GetSeamlessImage(seite, seite);
-        var bild = Image.CreateEmpty(2 * seite, 2 * seite, false, Image.Format.Rgba8);
+        var werte = new float[seite * seite];
         for (var y = 0; y < seite; y++)
-            for (var x = 0; x < seite; x++)
-            {
-                // Nur die dichten Stellen werden Wolke, weich auslaufend; dazwischen bleibt freier Himmel
-                var dichte = Mathf.SmoothStep(0.48f, 0.72f, kachel.GetPixel(x, y).R);
-                var farbe = new Color(0, 0, 0, dichte);
-                bild.SetPixel(x, y, farbe);
-                bild.SetPixel(x + seite, y, farbe);
-                bild.SetPixel(x, y + seite, farbe);
-                bild.SetPixel(x + seite, y + seite, farbe);
-            }
+            for (var x = 0; x < seite; x++) werte[y * seite + x] = kachel.GetPixel(x, y).R;
+        var sortiert = (float[])werte.Clone();
+        Array.Sort(sortiert);
+        _wolken = WolkenDecal("Wolkenschatten", werte, sortiert, WolkenAnteilKlar);
+        _wolkenViel = WolkenDecal("Wolkenschatten viel", werte, sortiert, WolkenAnteilWolkig);
+        // Die Wolken ziehen mit dem Wind der Fahnen (globale Shader-Uniform in project.godot; RenderingServer gibt sie nur im Editor heraus).
+        if (ProjectSettings.GetSetting("shader_globals/wind_richtung").AsGodotDictionary() is { } wind && wind.TryGetValue("value", out var richtung))
+            _windRichtung = richtung.AsVector2().Normalized();
+    }
+
+    /// <summary>Ein Wolken-Decal, in dem der Anteil <paramref name="anteil"/> der Fläche (die höchsten Rauschwerte) Wolke ist, mit schmalem Rand.</summary>
+    private Decal WolkenDecal(string name, float[] werte, float[] sortiert, float anteil)
+    {
+        const int seite = 256;
+        var schwelle = sortiert[Mathf.Clamp((int)((1f - anteil) * (sortiert.Length - 1)), 0, sortiert.Length - 1)];
+        var daten = new byte[seite * seite * 4]; // Rgba8, Schwarz mit Deckkraft im Alpha
+        for (var i = 0; i < werte.Length; i++) daten[i * 4 + 3] = (byte)Mathf.RoundToInt(255f * Mathf.SmoothStep(schwelle - WolkenRand, schwelle + WolkenRand, werte[i]));
+        var kachel = Image.CreateFromData(seite, seite, false, Image.Format.Rgba8, daten);
+        var bild = Image.CreateEmpty(2 * seite, 2 * seite, false, Image.Format.Rgba8);
+        var feld = new Rect2I(0, 0, seite, seite);
+        for (var y = 0; y < 2; y++)
+            for (var x = 0; x < 2; x++) bild.BlitRect(kachel, feld, new Vector2I(x * seite, y * seite));
         bild.GenerateMipmaps();
-        _wolken = new Decal
+        var decal = new Decal
         {
-            Name = "Wolkenschatten",
+            Name = name,
             Size = new Vector3(2 * WolkenPeriode, 160, 2 * WolkenPeriode),
             TextureAlbedo = ImageTexture.CreateFromImage(bild),
             AlbedoMix = 1,
             UpperFade = 0, LowerFade = 0, NormalFade = 0,
             Visible = false,
         };
-        AddChild(_wolken);
-        // Die Wolken ziehen mit dem Wind der Fahnen (globale Shader-Uniform in project.godot; RenderingServer gibt sie nur im Editor heraus).
-        if (ProjectSettings.GetSetting("shader_globals/wind_richtung").AsGodotDictionary() is { } wind && wind.TryGetValue("value", out var richtung))
-            _windRichtung = richtung.AsVector2().Normalized();
+        AddChild(decal);
+        return decal;
     }
+
+    private Decal _wolkenViel = null!;
 
     private Vector2 _windRichtung = new(1, 0);
 
     private void WolkenBewegen(double delta)
     {
         var zeigen = Fenster.WolkenschattenAn && _raum is null && _sonne.Visible && _sonne.LightEnergy > 0.05f;
-        if (_wolken.Visible != zeigen) _wolken.Visible = zeigen;
+        if (_wolken.Visible != zeigen) { _wolken.Visible = zeigen; _wolkenViel.Visible = zeigen; }
         if (!zeigen) return;
         if (_simulation is not { Takt.IstPausiert: true })
         {
@@ -183,17 +200,24 @@ public partial class Stadtansicht
         var ziel = _kameraDrehung.Position;
         var x = _wolkenVersatz.X + Mathf.Round((ziel.X - _wolkenVersatz.X) / WolkenPeriode) * WolkenPeriode;
         var z = _wolkenVersatz.Y + Mathf.Round((ziel.Z - _wolkenVersatz.Y) / WolkenPeriode) * WolkenPeriode;
-        _wolken.Position = new Vector3(x, 40, z);
-        // Nur die Sonne wirft Wolkenschatten: morgens und abends schwächer, nachts keine (der Mond ist zu schwach dafür)
-        var sonne = _sonne.LightColor.R > _sonne.LightColor.B ? Mathf.Clamp(_sonne.LightEnergy / 1.2f, 0, 1) : 0; // der Mond ist bläulich
-        // Wechselnd bewölkt: mehr Wolken; ganz bedeckt: keine einzelnen Schatten mehr (die Sonne ist dann ohnehin gedämpft, Stadtansicht.Wetter.cs)
+        _wolken.Position = _wolkenViel.Position = new Vector3(x, 40, z);
+        // Nur die Sonne wirft Wolkenschatten, und zwar die des klaren Himmels: nachts keine (der Mond ist bläulich und zu schwach), bei wechselnder
+        // Bewölkung zählt nicht die vom Wetter gedämpfte Sonne, sondern die Sonne über den Wolken (Stadtansicht.Wetter.cs dämpft sie erst danach)
+        var quelle = _gezeigteStimmung;
+        var sonne = quelle is { } q ? (q.Farbe.R > q.Farbe.B ? Mathf.Clamp(q.Staerke / SonnenMaximum, 0, 1) : 0)
+                                    : (_sonne.LightColor.R > _sonne.LightColor.B ? Mathf.Clamp(_sonne.LightEnergy / SonnenMaximum, 0, 1) : 0);
+        // Wolken: klar = wenige Flecken, wechselnd bewölkt = viele; ganz bedeckt oder neblig: keine einzelnen Schatten mehr (die Sonne fehlt)
         var wolken = _wetter.Wolken;
-        sonne *= (1 + 0.6f * Mathf.SmoothStep(0.1f, 0.6f, wolken)) * (1 - 0.8f * Mathf.SmoothStep(0.6f, 0.95f, wolken));
+        var viel = Mathf.SmoothStep(0.1f, 0.6f, wolken);
+        sonne *= 1f - Mathf.SmoothStep(0.65f, 0.85f, wolken);
+        sonne *= 1f - _wetter.Nebel;
         // Tief stehende Sonne: Das Decal wirft seine Flecken senkrecht auf den Boden, die Sonnenschatten der Bäume und Türme liegen aber lang und schräg daneben – die Flecken
         // lasen sich als zweiter, versetzter, weicher Schatten. Darum erst ab etwa 16° Sonnenhöhe, voll ab 34° (Morgen und Abend ohne, Mittag im Winter fast voll).
         var hoehe = Mathf.RadToDeg(Mathf.Asin(Mathf.Clamp(_sonne.GlobalBasis.Z.Y, -1f, 1f)));
         sonne *= Mathf.SmoothStep(16f, 34f, hoehe);
-        _wolken.Modulate = new Color(1, 1, 1, Mathf.Min(WolkenDunkel * sonne, 0.6f));
+        var dunkel = WolkenDunkel * sonne;
+        _wolken.Modulate = new Color(1, 1, 1, dunkel * (1f - viel));
+        _wolkenViel.Modulate = new Color(1, 1, 1, dunkel * viel);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
