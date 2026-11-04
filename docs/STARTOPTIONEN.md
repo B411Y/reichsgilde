@@ -95,7 +95,7 @@ Startoptionen (nach `--`):
 - `--tiltshift=<Aus|Leicht|Stark>`
 - `--wolken=<An|Aus>`
 - `--dunst=<Aus|Niedrig|Hoch>`
-- `--pixellook=<0|2|3>` (Pixel-Look der Stadtansicht nur für diesen Start: `0` aus (Standard), `2` oder `3` = die Welt mit 1/2 bzw. 1/3 der Auflösung gerechnet und hart hochgezogen; auch `Aus`, `Pixel2`, `Pixel3`; `Stadtansicht.Pixel.cs`) und `--pixelgluehen=<0|1>` (Glühen an oder aus). `--pixelmessung=<s>` misst die Zeiten der Ansichten (Fenster, Welt, Beleuchtung, Glühen) über so viele Sekunden, schreibt `[pixelmessung] …` ins Log und beendet; geht auch ohne Pixel-Look als Vergleich. In der Kartenwerkstatt gilt nur die gespeicherte Wahl (sie liest die Grafik-Startoptionen nicht).
+- `--pixellook=<0|1>` (Pixel-Look der Stadtansicht nur für diesen Start: `1` an (Standard), `0` aus = der gemalte Look mit stufenlosem Zoom; die früheren Werte `2`, `3`, `Pixel2`, `Pixel3` gelten als an, `Aus` als aus; `Stadtansicht.Pixel.cs`) und `--pixelgluehen=<0|1>` (Glühen an oder aus). `--pixelmessung=<s>` misst die Zeiten der Ansichten (Fenster, Welt, Beleuchtung, Glühen) über so viele Sekunden, schreibt `[pixelmessung] …` ins Log und beendet; geht auch ohne Pixel-Look als Vergleich. In der Kartenwerkstatt gilt nur die gespeicherte Wahl (sie liest die Grafik-Startoptionen nicht).
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
 - `--wasserstufe=<niedrig|mittel|hoch|ultra>` (Grafikstufe des Wassers statt der aus der Voreinstellung, nur für diesen Start; `docs/wasser/phase3.md`)
 - `--wetter=<klar|wolkig|regen|sturm|gewitter|schnee|nebel>` (Wetterlage fest vorgeben, nur Darstellung; ohne Aussicht in der Wetterzeile)

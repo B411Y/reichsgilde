@@ -3,25 +3,29 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Der Pixel-Look (Nutzer 03.11.2026, Versuch Runde 4 „Pixel 2 fein“) – ein Teil der <c>partial class Fenster</c>: aus (Standard, der gemalt-realistische
-/// Look), Pixel 2 oder Pixel 3 (die Welt der Stadtansicht wird mit 1/2 bzw. 1/3 der Fensterauflösung gerechnet und hart hochgezogen) und „Glühen“
-/// (weicher Schein um Fenster, Feuer und Laternen). Alle übrigen Werte stehen fest im Shader (Stadtansicht.Pixel.cs, <c>pixel_farbe.gdshader</c>).
-/// Die Wahl gehört nicht zu den Voreinstellungen von Niedrig bis Ultra: Sie ändert den Stil, nicht die Güte.
+/// Der Pixel-Look (Nutzer 03.11.2026, Versuch Runde 4 „Pixel 2 fein“; seit PR „drei Zoomstufen“ Standard) – ein Teil der <c>partial class Fenster</c>: ein Schalter an/aus
+/// (Standard an; aus = der gemalt-realistische Look mit stufenlosem Zoom) und „Glühen“ (weicher Schein um Fenster, Feuer und Laternen). Die Größe der Weltpixel
+/// wählt die Stadtansicht je Zoomstufe selbst (weit und mittel 2 × 2 Fensterpixel, nah und Innenräume 3 × 3; Stadtansicht.Pixel.cs).
+/// Alle übrigen Werte stehen fest im Shader (<c>pixel_farbe.gdshader</c>). Die Wahl gehört nicht zu den Voreinstellungen von Niedrig bis Ultra: Sie ändert den Stil, nicht die Güte.
 /// </summary>
 public partial class Fenster
 {
-    public static PixelLook AktuellerPixelLook { get; private set; } = PixelLook.Aus;
+    /// <summary>Pixel-Look an (Standard). Aus: der gemalt-realistische Look.</summary>
+    public static bool PixelLookAn { get; private set; } = true;
 
-    /// <summary>Glühen im Pixel-Look (gerechnet im Low-Res-Maßstab, sehr billig); wirkt nur bei Pixel 2 und Pixel 3.</summary>
+    /// <summary>Glühen im Pixel-Look (gerechnet im Low-Res-Maßstab, sehr billig); wirkt nur bei eingeschaltetem Pixel-Look.</summary>
     public static bool PixelGluehenAn { get; private set; } = true;
 
-    /// <summary>Wie viele Fensterpixel ein Weltpixel breit sind: 1 = Pixel-Look aus.</summary>
-    public static int PixelGroesse => AktuellerPixelLook switch { PixelLook.Pixel2 => 2, PixelLook.Pixel3 => 3, _ => 1 };
+    /// <summary>Die Pixelgröße, die die Stadtansicht gerade wählt (2 oder 3, je Zoomstufe); nur sie schreibt.</summary>
+    internal static int PixelGroesseGewaehlt { get; set; } = 2;
 
-    public static void PixelLookSetzen(PixelLook look, bool speichern = true)
+    /// <summary>Wie viele Fensterpixel ein Weltpixel breit sind: 1 = Pixel-Look aus.</summary>
+    public static int PixelGroesse => PixelLookAn ? PixelGroesseGewaehlt : 1;
+
+    public static void PixelLookSetzen(bool an, bool speichern = true)
     {
-        AktuellerPixelLook = look;
-        if (speichern) Speichern("pixellook", look.ToString());
+        PixelLookAn = an;
+        if (speichern) Speichern("pixellook_an", an);
         Melden();
     }
 
@@ -32,26 +36,19 @@ public partial class Fenster
         Melden();
     }
 
-    /// <summary>Liest die Wahl beim Start (aus <c>GrafikLaden</c>): ohne gespeicherten Wert aus.</summary>
+    /// <summary>Lädt die Wahl; ohne gespeicherten Wert (neue Spieler, ältere Einstellungsdateien) ist der Pixel-Look an. Der frühere Schlüssel „pixellook“ (Aus/Pixel2/Pixel3) gilt nicht mehr.</summary>
     private static void PixelLaden(ConfigFile datei, bool geladen)
     {
-        var text = geladen ? datei.GetValue("anzeige", "pixellook", PixelLook.Aus.ToString()).AsString() : PixelLook.Aus.ToString();
-        AktuellerPixelLook = Enum.TryParse<PixelLook>(text, out var look) && Enum.IsDefined(look) ? look : PixelLook.Aus;
+        PixelLookAn = !geladen || datei.GetValue("anzeige", "pixellook_an", true).AsBool();
         PixelGluehenAn = !geladen || datei.GetValue("anzeige", "pixelgluehen", true).AsBool();
     }
 
-    /// <summary>Startoptionen <c>--pixellook=0|2|3</c> (auch aus/Pixel2/Pixel3) und <c>--pixelgluehen=0|1</c>: nur für diesen Start (Aufruf aus <c>StartoptionenAnwenden</c>).</summary>
+    /// <summary>Startoptionen <c>--pixellook=0|1</c> (die früheren Werte 2 und 3 und Pixel2/Pixel3 gelten als „an“, Aus/aus als „aus“) und <c>--pixelgluehen=0|1</c>: nur für diesen Start (Aufruf aus <c>StartoptionenAnwenden</c>).</summary>
     private static void PixelStartoptionen(Dictionary<string, string> optionen)
     {
         if (optionen.TryGetValue("pixellook", out var wert))
-        {
-            var look = wert switch { "0" => PixelLook.Aus, "2" => PixelLook.Pixel2, "3" => PixelLook.Pixel3, _ => Enum.TryParse<PixelLook>(wert, true, out var l) ? l : AktuellerPixelLook };
-            PixelLookSetzen(look, speichern: false);
-        }
+            PixelLookSetzen(!(wert == "0" || wert.Equals("Aus", StringComparison.OrdinalIgnoreCase) || wert.Equals("false", StringComparison.OrdinalIgnoreCase)), speichern: false);
         if (optionen.TryGetValue("pixelgluehen", out var gluehen))
             PixelGluehenSetzen(!gluehen.Equals("Aus", StringComparison.OrdinalIgnoreCase) && gluehen != "0", speichern: false);
     }
 }
-
-/// <summary>Pixel-Look der Welt: Aus (gemalt-realistisch), Pixel 2 (Weltpixel = 2 × 2 Fensterpixel), Pixel 3 (3 × 3).</summary>
-public enum PixelLook { Aus, Pixel2, Pixel3 }

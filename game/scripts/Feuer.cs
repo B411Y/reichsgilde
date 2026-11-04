@@ -59,6 +59,26 @@ public partial class Feuer : Node3D
     /// </summary>
     public static float AusblendenZuschlag { get; set; }
 
+    /// <summary>
+    /// Sichtebene der durchsichtigen Flächen (Flamme, Rauch, Glutbett). Im Pixel-Look zeichnet das Beleuchtungsbild jede Fläche undurchsichtig (Debug-Zeichnung kennt keine
+    /// Durchsicht) und legt Rechtecke um die Fackeln; dann stehen sie auf einer Ebene, die diese Kamera nicht sieht (<see cref="EbeneSetzen"/>, Stadtansicht.Pixel.cs).
+    /// </summary>
+    public static uint Ebene { get; private set; } = 1u;
+
+    /// <summary>Stellt die Sichtebene aller Feuer um (neue Feuer übernehmen sie beim Bau).</summary>
+    public static void EbeneSetzen(SceneTree baum, uint ebene)
+    {
+        if (ebene == Ebene) return;
+        Ebene = ebene;
+        foreach (var f in baum.GetNodesInGroup("feuer")) (f as Feuer)?.EbeneAnwenden();
+    }
+
+    private void EbeneAnwenden()
+    {
+        foreach (var m in _flammen) m.Layers = Ebene;
+        foreach (var m in _rauch) m.Layers = Ebene;
+    }
+
     private static ulong _letzterRahmen = ulong.MaxValue;
     private static readonly List<ShaderMaterial> _zeitMaterialien = new();
     private static readonly List<ShaderMaterial> _umgebungMaterialien = new();
@@ -106,6 +126,8 @@ public partial class Feuer : Node3D
         if (Art.Form == FeuerForm.Glut) GlutBauen(Art);
         if (MitLicht && Art.LichtEnergie > 0f) LichtBauen(Art);
         if (_rauchStaerke < 1f) RauchStaerke = _rauchStaerke;
+        AddToGroup("feuer");
+        if (Ebene != 1u) EbeneAnwenden();
         if (!_flammeAn) FlammeAn = false;
         // Nur Feuer mit eigenem Licht brauchen jedes Bild Rechenzeit; die Flammen laufen über die gemeinsame Uhr
         SetProcess(_licht is not null);
