@@ -9,7 +9,7 @@ Licht von oben links, Standard-Farbverwaltung (kein Farbstich), Hintergrund durc
 Stufen (gleiche Hand, steigende Wertigkeit): 1 Gemeiner (grobes Arbeitsleder, Flicken), 2 Bürger (helles Leder, saubere Naht),
 3 Patrizier (feines Leder, verzierte Stulpe), 4 Edler (dunkles Leder, Goldborte, schlichter Ring), 5 Freiherr (Samt mit
 Goldstickerei, Siegelring), 6 Reichsgraf (Königsblauer Samt statt Burgunder, dicker Hermelinpelz an der Stulpe, Goldringe an allen Fingern, Goldkappen).
-Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche Form) und tuer_ring (Eisen-Türring).
+Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche Form), tuer_schloss (Eisenbeschlag mit Schlüsselloch und Klinke) und tuer_ring (Eisen-Türring). Fingerfugen: zweiter Durchgang mit Teile-Nummern, dunkle Linie und Randlicht je Finger.
 Haltung: zeigende Hand, Zeigefinger gestreckt und leicht abgespreizt genau zur Spitze (Hotspot), Mittel-, Ring- und kleiner
 Finger etwa zu 20 % einer Faust eingerollt, Daumen locker angelegt.
 
@@ -46,6 +46,7 @@ STUFEN = [
     dict(name="reichsgraf", leder=(0.02, 0.05, 0.40), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
 ]
 ZUSTAENDE = ("normal", "klick")
+ZUSAETZE = ("tuer_schloss", "tuer_ring")      # unabhängig von der Stufe, nur einmal gebaut
 
 GOLD = (0.95, 0.66, 0.16)
 
@@ -160,12 +161,26 @@ def stoffe_fuer(stufe, warm):
     st["pelz_hell"] = stoff("PelzHell", (0.95, 0.93, 0.88) if stufe == 6 else (0.82, 0.76, 0.62), 1.0, 0, 0, 0, 0.08 if stufe == 6 else 0.18)
     st["pelz_dunkel"] = stoff("PelzDunkel", (0.03, 0.025, 0.03) if stufe == 6 else (0.40, 0.31, 0.22), 1.0, 0, 0, 0, 0.18)
     st["eisen"] = stoff("Eisen", (0.34, 0.34, 0.37), 0.42, 0.9, 0.4, 30, 0.1)
+    st["eisen_dunkel"] = stoff("EisenDunkel", (0.17, 0.17, 0.19), 0.50, 0.85, 0.5, 26, 0.12)
+    st["messing"] = stoff("Messing", (0.80, 0.55, 0.14), 0.32, 1.0, 0.0)
+    st["loch"] = stoff("Loch", (0.004, 0.004, 0.005), 1.0, 0.0)
     return st
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Geometrie: je Stoff ein bmesh, am Ende je ein Objekt
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Teile für die Fugenlinien (Objekt-Index): Handrücken/Stulpe = 1, je Finger eigene Nummer, alles andere (Nähte, Ringe, Zierrat) = 99
+TEILE = {"zeige": 2, "mittel": 3, "ring": 4, "klein": 5, "daumen": 6, "platte": 1, "griff": 2, "rose": 3}
+ZIERRAT = 99
+
+
+def teil_id(name):
+    if "@" in name:
+        return TEILE.get(name.split("@")[1], ZIERRAT)
+    return 1 if name == "leder" else ZIERRAT
+
 
 class Bau:
     def __init__(self, stoffe):
@@ -263,6 +278,7 @@ class Bau:
         rot = Matrix.Rotation(math.radians(drehung), 4, "Z")
         objs = []
         for name, bm in self.bm.items():
+            stoff_name = name.split("@")[0]
             bm.transform(rot)
             for f in bm.faces:
                 f.smooth = True
@@ -271,7 +287,8 @@ class Bau:
             self.punkte.extend(v.co.copy() for v in bm.verts)
             bm.free()
             o = bpy.data.objects.new(name, me)
-            o.data.materials.append(self.st[name])
+            o.data.materials.append(self.st[stoff_name])
+            o.pass_index = teil_id(name)
             sz.collection.objects.link(o)
             objs.append(o)
         self.tipp = rot @ self.tipp if self.tipp is not None else None
@@ -293,10 +310,10 @@ def palmenhoehe(x, y):
 # Finger: (Wurzel, Längen der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen, Seitenknick je Glied)
 # Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.110, 0.080), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
-    "mittel": ((-0.105, 0.86, 0.03), (0.44, 0.28, 0.21), (0.116, 0.085), -11, (-28, -42, -30), (-32, -66, -50), (0, -1, -1)),
-    "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.110, 0.080), 8, (-40, -58, -40), (-30, -64, -48), (0, 3, 4)),
-    "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.096, 0.070), 18, (-48, -68, -48), (-28, -60, -46), (0, 4, 5)),
+    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.086, 0.064), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
+    "mittel": ((-0.105, 0.86, 0.02), (0.44, 0.28, 0.21), (0.088, 0.065), -4, (-5, -30, -36), (-32, -66, -50), (0, -1, -1)),
+    "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.085, 0.062), 11, (-28, -56, -44), (-30, -64, -48), (0, 3, 4)),
+    "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.075, 0.055), 21, (-34, -60, -48), (-28, -60, -46), (0, 4, 5)),
 }
 # Daumen in drei Gliedern: vom Handballen weg abgespreizt, dann Endglied leicht nach vorn und oben (Zeigerichtung, überstreckt), nicht unter die Hand
 DAUMEN = ((-0.36, 0.22, -0.01), (0.26, 0.25, 0.20), (0.150, 0.100), -92, (0, 6, 14), (-8, -22, -22), (0, 8, 14))
@@ -431,9 +448,11 @@ def hand_bauen(stufe, griff, st):
     dau = glieder(DAUMEN[0], DAUMEN[1], DAUMEN[2], DAUMEN[3] + (25 if griff else 0), DAUMEN[5] if griff else DAUMEN[4], DAUMEN[6])
     alle = list(fin.values()) + [dau]
     mitte = {}
+    namen = {id(k): n for n, k in fin.items()}
+    namen[id(dau)] = "daumen"
     for kette in alle:
         flach = 0.9 if kette is dau else 0.80
-        mitte[id(kette)] = sweep(b, "leder", kette, flach=flach)
+        mitte[id(kette)] = sweep(b, "leder@" + namen[id(kette)], kette, flach=flach)
     z_ = fin["zeige"][-1]
     b.tipp = z_[1] + z_[4] * z_[3] * 0.9
     # Falten an den Knöcheln: je Gelenk zwei dünne dunkle Wülste quer über dem Rücken
@@ -596,6 +615,68 @@ def ring_bauen(st):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  Türschloss mit Klinke (zweite Alternative für „Haus betreten“)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def prisma(b, name, pts, z0, z1):
+    """Gerade Platte über einem Umriss (Punkte gegen den Uhrzeigersinn)."""
+    B = b._b(name)
+    u = [B.verts.new(Vector((x, y, z0))) for x, y in pts]
+    o = [B.verts.new(Vector((x, y, z1))) for x, y in pts]
+    n = len(pts)
+    B.faces.new(o)
+    B.faces.new(u[::-1])
+    for i in range(n):
+        B.faces.new((u[i], u[(i + 1) % n], o[(i + 1) % n], o[i]))
+
+
+def spitzbogen_umriss(halb=0.31, unten=0.04, schulter=0.74, spitze=1.04, fase=0.07, n=9):
+    """Umriss einer Beschlagplatte: unten abgefast, oben als Spitzbogen."""
+    pts = [(-halb + fase, unten), (halb - fase, unten), (halb, unten + fase), (halb, schulter)]
+    for k in range(1, n):
+        t = k / n
+        pts.append((halb * (1 - t) ** 1.0, schulter + (spitze - schulter) * (1 - (1 - t) ** 2.3)))
+    pts.append((0.0, spitze))
+    for k in range(n - 1, 0, -1):
+        t = k / n
+        pts.append((-halb * (1 - t) ** 1.0, schulter + (spitze - schulter) * (1 - (1 - t) ** 2.3)))
+    pts += [(-halb, schulter), (-halb, unten + fase)]
+    return pts
+
+
+def schloss_bauen(st):
+    """Eisenbeschlag mit Schlüsselloch und geschwungener Klinke: dunkles Eisen, Messingnieten, -ring und -knauf.
+    Hotspot = Mitte des Schlüssellochs."""
+    b = Bau(st)
+    umriss = spitzbogen_umriss()
+    prisma(b, "eisen_dunkel@platte", umriss, -0.02, 0.07)
+    # Randleiste (aufgesetzter Rahmen) etwas kleiner und höher
+    innen = [(x * 0.80, 0.52 + (y - 0.52) * 0.86) for x, y in umriss]
+    prisma(b, "eisen_dunkel@platte", innen, 0.07, 0.10)
+    # Messingnieten an den Ecken und an der Spitze
+    for x, y in ((-0.22, 0.12), (0.22, 0.12), (-0.22, 0.60), (0.22, 0.60)):
+        b.kugel("messing", (x, y, 0.115), 0.042, (1, 1, 0.8), seg=10)
+    # Schlüsselloch: Messingring, schwarzes Loch (Kreis + Schlitz)
+    kx, ky = 0.0, 0.76
+    b.torus("messing", (kx, ky, 0.105), 0.115, 0.034, seg=24, ring=6)
+    b.kegel("loch", (kx, ky, 0.100), (kx, ky, 0.125), 0.088, 0.088, seg=20)
+    b.quader("loch", (kx, ky - 0.13, 0.112), (0.06, 0.22, 0.026))
+    b.tipp = Vector((kx, ky, 0.125))
+    # Klinke: Rose (Messingscheibe) auf der Platte, dicker Hebel nach rechts, am Ende nach oben geschwungen mit Messingknauf
+    rx, ry = 0.0, 0.30
+    b.kegel("messing@rose", (rx, ry, 0.10), (rx, ry, 0.17), 0.125, 0.105, seg=24)
+    b.kugel("eisen_dunkel@rose", (rx, ry, 0.19), 0.07, (1, 1, 0.7), seg=12)
+    pfad = [Vector(v) for v in ((rx, ry, 0.20), (0.17, ry - 0.045, 0.23), (0.36, ry - 0.02, 0.25), (0.52, ry + 0.09, 0.25), (0.57, ry + 0.25, 0.24))]
+    kette = []
+    for a, c in zip(pfad[:-1], pfad[1:]):
+        d = (c - a).normalized()
+        kette.append((a, c, 0.075, 0.07, d))
+    sweep(b, "eisen@griff", kette, flach=0.9, spitze=False, wulst=0.0, seg=12)
+    b.kugel("messing@griff", pfad[-1] + Vector((0, 0.02, 0.0)), 0.098, (1, 1.05, 0.95), seg=14)
+    return b
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  Rendern und Nachbearbeitung
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -709,49 +790,155 @@ def szene_aufbauen(art, stufe, warm):
     st = stoffe_fuer(stufe, warm)
     if art == "ring":
         b = ring_bauen(st)
+    elif art == "schloss":
+        b = schloss_bauen(st)
     else:
         b = hand_bauen(stufe, art == "griff", st)
-    objs = b.fertig(DREHUNG if art != "ring" else 0.0)
+    objs = b.fertig(DREHUNG if art not in ("ring", "schloss") else 0.0)
     return b, objs
+
+
+def id_aufnehmen(tmp):
+    """Zweite Aufnahme: jeder Teil (Finger, Handrücken, Beschlagteil) als eigene Zahl, ohne Kantenglättung."""
+    sz = bpy.context.scene
+    m = bpy.data.materials.new("IdFarbe")
+    m.use_nodes = True
+    nt = m.node_tree
+    for n in list(nt.nodes):
+        nt.nodes.remove(n)
+    oi = nt.nodes.new("ShaderNodeObjectInfo")
+    teil = nt.nodes.new("ShaderNodeMath")
+    teil.operation = "DIVIDE"
+    teil.inputs[1].default_value = 100.0
+    nt.links.new(oi.outputs["Object Index"], teil.inputs[0])
+    kom = nt.nodes.new("ShaderNodeCombineXYZ")
+    for k in ("X", "Y", "Z"):
+        nt.links.new(teil.outputs["Value"], kom.inputs[k])
+    em = nt.nodes.new("ShaderNodeEmission")
+    nt.links.new(kom.outputs["Vector"], em.inputs["Color"])
+    ausg = nt.nodes.new("ShaderNodeOutputMaterial")
+    nt.links.new(em.outputs["Emission"], ausg.inputs["Surface"])
+    vl = bpy.context.view_layer
+    vl.material_override = m
+    zier = [o for o in sz.objects if o.pass_index == ZIERRAT]
+    for o in zier:
+        o.hide_render = True                    # Nähte, Ringe, Pelz usw. zählen nicht als eigener Teil
+    alt = (sz.cycles.samples, sz.cycles.filter_width)
+    sz.cycles.samples = 1
+    sz.cycles.filter_width = 0.01
+    a = aufnehmen(tmp)
+    sz.cycles.samples, sz.cycles.filter_width = alt
+    vl.material_override = None
+    for o in zier:
+        o.hide_render = False
+    v = a[..., 0]
+    lin = np.where(v <= 0.04045, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
+    ids = np.rint(lin * 100).astype(np.int32)
+    ids[a[..., 3] < 0.5] = 0
+    return ids
+
+
+def verschieben(m, dy, dx):
+    """Bild um (dy, dx) verschieben, Rand mit 0 (bzw. False) füllen."""
+    out = np.zeros_like(m)
+    H, W = m.shape[:2]
+    ys, yd = (slice(0, H - dy), slice(dy, H)) if dy >= 0 else (slice(-dy, H), slice(0, H + dy))
+    xs, xd = (slice(0, W - dx), slice(dx, W)) if dx >= 0 else (slice(-dx, W), slice(0, W + dx))
+    out[yd, xd] = m[ys, xs]
+    return out
+
+
+def aufweiten(m, r):
+    """Maske um r Pixel verbreitern (Quadrat)."""
+    out = m.copy()
+    for k in range(1, r + 1):
+        for dy, dx in ((k, 0), (-k, 0), (0, k), (0, -k)):
+            out |= verschieben(m, dy, dx)
+    # Rest in Diagonalen, damit die Linie auch schräg gleichmäßig dick wird
+    if r >= 2:
+        h = out.copy()
+        for dy, dx in ((1, 1), (-1, -1), (1, -1), (-1, 1)):
+            out |= verschieben(h, dy, dx)
+    return out
+
+
+def fugen(gross, ids, ziel):
+    """Dunkle Fuge zwischen den einzelnen Fingern (und Handrücken) samt Randlicht an der beleuchteten Seite (oben links).
+    `ziel` = Breite des Zielbildes in Pixeln; die Linie ist etwa ein drittel Zielpixel breit."""
+    f = ids
+    rand = np.zeros(f.shape, dtype=bool)        # Finger gegen Finger
+    rand_hr = np.zeros(f.shape, dtype=bool)     # Finger gegen Handrücken: dünner
+    for dy, dx in ((0, 1), (1, 0)):
+        nb = verschieben(f, -dy, -dx)
+        diff = (f > 0) & (nb > 0) & (f != nb)
+        hr = diff & ((f == 1) | (nb == 1))
+        for m, ziel_m in ((diff & ~hr, rand), (hr, rand_hr)):
+            ziel_m |= m
+            ziel_m |= verschieben(m, dy, dx)
+    k = SUPER / ziel
+    r = max(1, int(round(k * 0.42)))
+    linie = aufweiten(rand, r) | aufweiten(rand_hr, max(1, r // 2))
+    licht = verschieben(linie, r + 1, r + 1) & ~linie & (f > 0)
+    out = gross.copy()
+    al = out[..., 3] > 0.5
+    out[linie & al, :3] *= 0.16
+    l2 = licht & al
+    out[l2, :3] = np.clip(out[l2, :3] * 1.32 + 0.05, 0, 1)
+    return out
+
+
+def fugen_klein(a, ids, n):
+    """Im Zielbild selbst: Pixel, die gegen einen Nachbarn oben oder links einen anderen Teil berühren, werden abgedunkelt
+    (Schattenseite unten rechts). So bleibt jede Fingerfuge auch bei zwei Pixeln Fingerbreite als Linie sichtbar."""
+    low = ids[n // 2::n, n // 2::n]
+    h, w = a.shape[:2]
+    low = low[:h, :w]
+    m = np.zeros(low.shape, dtype=bool)
+    for dy, dx in ((0, 1), (1, 0)):
+        nb = verschieben(low, dy, dx)
+        m |= (low > 0) & (nb > 0) & (low != nb)
+    out = a.copy()
+    sel = m & (out[..., 3] > 0.5)
+    out[sel, :3] *= 0.52
+    return out
 
 
 def alles(aus, stufen, mit_uebersicht=True):
     tmp = os.path.join(aus, "_tmp.png")
     os.makedirs(aus, exist_ok=True)
-    # gemeinsamer Bildausschnitt für alle Hand-Bilder (größte Hand = Stufe 6, offen und greifend)
-    pts = []
-    for art in ("normal",):
-        b, _ = szene_aufbauen(art, 6, False)
-        pts += b.punkte
-    rahmen_hand = ausschnitt_aus(pts)
-    # etwas Luft für die Konturen und die Verschiebung durch den Klick-Zustand
+    # gemeinsamer Bildausschnitt für alle Hand-Bilder (größte Hand = Stufe 6)
+    b, _ = szene_aufbauen("normal", 6, False)
+    rahmen_hand = ausschnitt_aus(b.punkte)
     b, _ = szene_aufbauen("ring", 1, False)
     rahmen_ring = ausschnitt_aus(b.punkte)
+    b, _ = szene_aufbauen("schloss", 1, False)
+    rahmen_schloss = ausschnitt_aus(b.punkte)
     ergebnis = {}
     hot = {}
     for stufe in stufen:
         s = STUFEN[stufe - 1]
-        for zustand in ZUSTAENDE + ("tuer_ring",):
-            if zustand == "tuer_ring" and stufe != stufen[0]:
+        for zustand in ZUSTAENDE + ZUSAETZE:
+            if zustand in ZUSAETZE and stufe != stufen[0]:
                 continue
-            art = {"normal": "normal", "klick": "normal", "tuer_griff": "griff", "tuer_ring": "ring"}[zustand]
+            art = {"normal": "normal", "klick": "normal", "tuer_schloss": "schloss", "tuer_ring": "ring"}[zustand]
             b, _ = szene_aufbauen(art, stufe, zustand == "klick")
-            kamera_setzen(rahmen_ring if art == "ring" else rahmen_hand)
+            kamera_setzen({"ring": rahmen_ring, "schloss": rahmen_schloss}.get(art, rahmen_hand))
             hs = hotspot_norm(b.tipp)
             gross = aufnehmen(tmp)
-            name = f"stufe{stufe}_{s['name']}_{zustand}" if zustand != "tuer_ring" else "tuer_ring"
-            ergebnis[name] = gross
+            ids = id_aufnehmen(tmp)
+            name = f"stufe{stufe}_{s['name']}_{zustand}" if zustand not in ZUSAETZE else zustand
+            ergebnis[name] = (gross, ids)
             hot[name] = hs
-            png_schreiben(os.path.join(aus, "gross", name + ".png"), srgb8(np.concatenate([gross[..., :3], gross[..., 3:]], -1)))
+            png_schreiben(os.path.join(aus, "gross", name + ".png"), srgb8(fugen(gross, ids, 96)))
     if os.path.exists(tmp):
         os.remove(tmp)
     # Zielgrößen
     klein = {}
-    for name, gross in ergebnis.items():
+    for name, (gross, ids) in ergebnis.items():
         for g in GROESSEN:
             for chunk_, ordner in ((2, "png"), (1, "fein")):
                 low = g // chunk_
-                a = kontur(mitteln(gross, SUPER // low))
+                a = kontur(fugen_klein(mitteln(fugen(gross, ids, low), SUPER // low), ids, SUPER // low))
                 fin = np.repeat(np.repeat(a, chunk_, 0), chunk_, 1)
                 klein[(name, g, ordner)] = fin
                 png_schreiben(os.path.join(aus, ordner, str(g), name + ".png"), srgb8(fin))
@@ -838,8 +1025,8 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     ns = len(stufen)
 
     def sp(st, z, g, ordner="png"):
-        if z == "tuer_ring":
-            return klein[("tuer_ring", g, ordner)]
+        if z in ZUSAETZE:
+            return klein[(z, g, ordner)]
         return klein[(f"stufe{st}_{STUFEN[st - 1]['name']}_{z}", g, ordner)]
     # Teil A: alle Stufen groß (4-fach von 64 px = 256), normal
     ca = 4 * 64 + 16
@@ -847,12 +1034,12 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     hoehe_a = 4 * 64 + 40
     # Teil B: je Stufe die Zustände (3-fach von 48 px) in zwei Blöcken
     zb = 3 * 48 + 6
-    zus = ("normal", "klick", "tuer_ring")
+    zus = ("normal", "klick") + ZUSAETZE
     bloecke = [stufen[:(ns + 1) // 2], stufen[(ns + 1) // 2:]]
     hoehe_b = max(len(x) for x in bloecke) * zb + 24
     # Teil C: Originalgröße auf drei Hintergründen
     zeilen_c = [(32, "normal", "png"), (32, "normal", "fein"), (48, "normal", "png"), (48, "normal", "fein"),
-                (48, "klick", "png"), (48, "tuer_ring", "png")]
+                (48, "klick", "png"), (48, "tuer_schloss", "png"), (48, "tuer_ring", "png")]
     hoehe_c = len(zeilen_c) * 56 + 20
     H = hoehe_a + hoehe_b + hoehe_c
     c = np.zeros((H, breite, 4), dtype=np.float32)
@@ -866,7 +1053,7 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     for bi, bl in enumerate(bloecke):
         for r, st in enumerate(bl):
             for zi, z in enumerate(zus):
-                einsetzen(c, sp(st, z, 48), 40 + bi * (breite // 2) + zi * (zb + 6), y + 12 + r * zb, 3)
+                einsetzen(c, sp(st, z, 48), 40 + bi * (breite // 2) + zi * (zb + 2), y + 12 + r * zb, 3)
             ziffer(c, str(st), 12 + bi * (breite // 2), y + 12 + r * zb + 60, (0.2, 0.1, 0.05))
     y = hoehe_a + hoehe_b
     kachel = breite // 3
@@ -874,7 +1061,7 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     for k, bg in enumerate(hintergruende):
         c[y:y + hoehe_c, k * kachel:(k + 1) * kachel, :3] = bg
         for r, (g, z, o) in enumerate(zeilen_c):
-            for i, st in enumerate(stufen if z != "tuer_ring" else stufen[:1]):
+            for i, st in enumerate(stufen if z not in ZUSAETZE else stufen[:1]):
                 einsetzen(c, sp(st, z, g, o), k * kachel + 14 + i * 60, y + 10 + r * 56, 1)
     png_schreiben(os.path.join(aus, "uebersicht.png"), srgb8(c))
 
