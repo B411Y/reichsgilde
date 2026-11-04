@@ -6,6 +6,8 @@
 // Rotation.Y), COLOR.rgb = leichter Farbstich der Variante um 1, COLOR.a = halbe Breite des Stücks geteilt durch 16.
 shader_type spatial;
 render_mode cull_disabled;
+// Am Rand der Feldfläche läuft der Acker in einen Feldrain aus (UV2.y = Abstand zum Rand in Metern): erst nackte Erde und Gras, dann geht die Fläche
+// mit unregelmäßiger Kante durchsichtig in die Wiese darunter über.
 
 // Farbe der Frucht im Sommer, Farbe der Erde dazwischen und wie dicht der Bewuchs steht (1: Reihen ganz geschlossen, 0: nackte Erde)
 uniform vec3 farbe : source_color = vec3(0.70, 0.62, 0.30);
@@ -73,6 +75,12 @@ void fragment() {
 	}
 	// Schnee: in den Furchen bleibt er länger liegen als auf den Kämmen
 	float schnee = clamp(schnee_decke(welt.xz, 1.0) * (1.0 - 0.35 * max(welle, 0.0)), 0.0, 1.0);
+	// Feldrain: außen Gras und Erde statt Frucht, ganz außen durchsichtig (Kante mit Rauschen, nie eine Linie)
+	float rd = UV2.y + (rausch(welt.xz * 1.1) - 0.5) * 0.9 + (koernung - 0.5) * 0.25;
+	float rain = 1.0 - smoothstep(0.35, 1.9, rd);
+	vec3 rainfarbe = mix(boden * 0.9, vec3(0.27, 0.33, 0.15) * (0.85 + 0.3 * schollen), smoothstep(0.1, 0.9, schollen + 0.25 * rain));
+	grund = mix(grund, rainfarbe, rain * 0.85);
+	float deckung = smoothstep(0.0, 0.85, rd);
 	grund = mix(grund, vec3(0.68, 0.7, 0.75), schnee);
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
@@ -81,6 +89,7 @@ void fragment() {
 	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(quer, 0.0)).xyz * neigung);
 
 	ALBEDO = grund;
+	ALPHA = deckung;
 	ROUGHNESS = mix(rau, 0.7, schnee);
 	SPECULAR = 0.2;
 }

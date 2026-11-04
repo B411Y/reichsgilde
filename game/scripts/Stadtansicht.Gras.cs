@@ -72,7 +72,7 @@ public partial class Stadtansicht
     private (Vector3 Ort, Vector3 Blick, float Zoom, Vector2 Bild, int Netz, bool Pixel)? _grasBlickFuer;
 
     /// <summary>Die Äcker, über denen kein Gras steht: je Knoten der Äcker (im Spiel einer, in der Werkstatt einer je Feldfläche) die Stücke.</summary>
-    private readonly Dictionary<Node3D, Feldparzelle[]> _grasAecker = new();
+    private readonly Dictionary<Node3D, (Vector2 Mitte, float Drehung, Vector2 Halb)[]> _grasAecker = new();
 
     private static bool GrasAn => Fenster.AktuellerGrasteppich != Grasteppich.Aus;
 
@@ -114,11 +114,11 @@ public partial class Stadtansicht
         GrasBereichNeu(new Rect2((float)(g.X - g.HalbX) - 1, (float)(g.Z - g.HalbZ) - 1, (float)g.HalbX * 2 + 2, (float)g.HalbZ * 2 + 2));
 
     /// <summary>Äcker sind gebaut worden (Stadtansicht.Rand.cs): Dort wächst kein Gras.</summary>
-    private void GrasAeckerMelden(Node3D knoten, IReadOnlyList<Feldparzelle> parzellen)
+    private void GrasAeckerMelden(Node3D knoten, IReadOnlyList<(Vector2 Mitte, float Drehung, Vector2 Halb)> stuecke)
     {
-        if (parzellen.Count == 0) return;
-        _grasAecker[knoten] = parzellen.ToArray();
-        GrasBereichNeu(AeckerRahmen(parzellen));
+        if (stuecke.Count == 0) return;
+        _grasAecker[knoten] = stuecke.ToArray();
+        GrasBereichNeu(AeckerRahmen(stuecke));
     }
 
     /// <summary>Die Äcker unter diesem Knoten sind weg (Werkstatt).</summary>
@@ -127,13 +127,13 @@ public partial class Stadtansicht
         if (_grasAecker.Remove(knoten, out var alt)) GrasBereichNeu(AeckerRahmen(alt));
     }
 
-    private static Rect2 AeckerRahmen(IReadOnlyList<Feldparzelle> parzellen)
+    private static Rect2 AeckerRahmen(IReadOnlyList<(Vector2 Mitte, float Drehung, Vector2 Halb)> stuecke)
     {
-        var r = new Rect2((float)parzellen[0].X, (float)parzellen[0].Z, 0, 0);
-        foreach (var p in parzellen)
+        var r = new Rect2(stuecke[0].Mitte, Vector2.Zero);
+        foreach (var p in stuecke)
         {
-            var halb = (float)Math.Max(p.Laenge, p.Breite) / 2 + 1;
-            r = r.Merge(new Rect2((float)p.X - halb, (float)p.Z - halb, 2 * halb, 2 * halb));
+            var halb = Mathf.Max(p.Halb.X, p.Halb.Y) * 1.42f + 1; // auch gedreht noch im Rahmen
+            r = r.Merge(new Rect2(p.Mitte - new Vector2(halb, halb), new Vector2(2 * halb, 2 * halb)));
         }
         return r;
     }
@@ -276,8 +276,7 @@ public partial class Stadtansicht
         foreach (var (knoten, teile) in _grasAecker)
         {
             if (!IsInstanceValid(knoten) || knoten.IsQueuedForDeletion()) continue;
-            foreach (var p in teile)
-                liste.Add((new Vector2((float)p.X, (float)p.Z), Mathf.DegToRad((float)p.Drehung), new Vector2((float)p.Breite / 2, (float)p.Laenge / 2)));
+            liste.AddRange(teile);
         }
         if (_simulation?.Wirtschaft is { } w && w.Bauen.IstAktiv)
             foreach (var g in w.Bauen.Grundstuecke)

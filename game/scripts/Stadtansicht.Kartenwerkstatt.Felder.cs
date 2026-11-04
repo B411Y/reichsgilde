@@ -40,12 +40,12 @@ public partial class Stadtansicht
             _wsFelderKnoten = new Node3D { Name = "Felder" };
             AddChild(_wsFelderKnoten);
         }
-        var parzellen = _entwurf.FelderVon(f, frei);
+        var parzellen = _entwurf.FelderVon(f, frei, bisZumRand: true);
         var knoten = new Node3D { Name = "Acker_" + f.Bezeichnung };
         _wsFelderKnoten.AddChild(knoten);
         _wsFelder[f] = knoten;
         _wsFeldAnzahl[f] = parzellen.Count;
-        FeldNetzeBauen(parzellen, knoten);
+        FeldNetzeBauen(parzellen, new[] { f.AlsFeldflaeche().Flaeche.ToArray() }, knoten);
     }
 
     private void FeldEntfernen(EntwurfFeld f)
