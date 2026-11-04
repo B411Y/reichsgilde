@@ -38,6 +38,10 @@ public partial class Stadtansicht
         public (Fahrprofil Hin, Fahrprofil Zurueck)? ZugProfile { get; set; }
         /// <summary>Wie schnell der Karren im letzten Bild fuhr (Meter je echter Sekunde): treibt Räder und Schritte.</summary>
         public float Geschwindigkeit { get; set; }
+        /// <summary>Hufklang (Stadtansicht.KarrenKlang.cs): der Untergrund unter dem Karren, wann er zuletzt gelesen wurde (echte Sekunden) und der Betrieb für das Protokoll.</summary>
+        public KlangKarren.Untergrund KlangBoden { get; set; } = KlangKarren.Untergrund.Erde;
+        public double KlangGelesen { get; set; } = double.NegativeInfinity;
+        public string KlangName { get; set; } = "";
         /// <summary>Messung der sichtbaren Hinfahrt: Spielminute des Starts (−1 keine läuft, −2 ungültig: der Karren war aus dem Bild oder wurde abgeglichen) und die gezeigte Strecke in Metern.</summary>
         public double HinStart { get; set; } = -1;
         public float HinStrecke { get; set; }
@@ -45,7 +49,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Was an einer Karrenart verschieden ist: das Modell, der Weg einer Schleife „Fahren“ und der Anker für den Menschen.</summary>
-    private sealed record KarrenArt(string Datei, float Weg, string Anker, string FigurFahren, string FigurStehen);
+    private sealed record KarrenArt(string Datei, float Weg, string Anker, string FigurFahren, string FigurStehen, bool Pferd = false);
 
     /// <summary>
     /// Die drei Karrenarten, nach <see cref="Karren.Typ"/>. <c>Weg</c> ist die Strecke, die eine Schleife „Fahren“ zurücklegt (Räder genau einmal herum,
@@ -55,7 +59,7 @@ public partial class Stadtansicht
     {
         ["Handkarren"] = new("fahrzeuge/karren_hand", 2f * Mathf.Pi * 0.45f, "Anker_Zieher", "Ziehen", "Stehen"),
         ["Ochsenkarren"] = new("fahrzeuge/karren_ochse", 2f * Mathf.Pi * 0.72f, "Anker_Treiber", "Gehen", "Stehen"),
-        ["Kriegskarren"] = new("fahrzeuge/karren_krieg", 2f * Mathf.Pi * 0.6f, "Anker_Kutscher", "Kutschieren", "Kutschieren"),
+        ["Kriegskarren"] = new("fahrzeuge/karren_krieg", 2f * Mathf.Pi * 0.6f, "Anker_Kutscher", "Kutschieren", "Kutschieren", Pferd: true),
     };
 
     /// <summary>Schneller als so viele Schleifen „Fahren“ je Sekunde dreht kein Rad: bei hohem Tempo rutschen sie lieber, als zu flimmern.</summary>
@@ -112,7 +116,7 @@ public partial class Stadtansicht
         wurzel.AddChild(eskorte);
         var ansicht = new KarrenAnsicht
         {
-            Wurzel = wurzel, Art = art, Spieler = spieler, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer,
+            Wurzel = wurzel, Art = art, Spieler = spieler, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer, KlangName = $"{karren.Heimat.Name} {karren.Typ} {nummer + 1}",
         };
         ansicht.Fahrer = KarrenFahrerEinsetzen(ansicht, modell, karren, besitzer);
         return ansicht;
