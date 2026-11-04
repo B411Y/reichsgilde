@@ -10,7 +10,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class FahrwegeAmBauortTests
 {
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Kriegskarren" };
+    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     static (Stadtwirtschaft W, Konto K, Stadtkarte Karte) Partie(string kennung, string? json = null)
     {

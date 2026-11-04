@@ -129,7 +129,7 @@ public sealed partial class KiRivale
     /// beim Karrenkauf:
     ///   • mehr Lager je Ware: jeder Karren lädt mehr (Durchfluss mit dem größeren Lager), der Stillstand fällt auf
     ///     <c>vorher ^ (Durchfluss nachher ÷ vorher)</c>, Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres – am Kölner Holzschlag
-    ///     (nur Holz, Lager 40) fasst jeder Kriegskarren dann 60 statt 40;
+    ///     (nur Holz, Lager 40) fasst jeder Pferdekarren dann 60 statt 40;
     ///   • alles andere bringt nur für den Teil der Förderung etwas, der auch weggefahren wird: × (1 − Stillstand).
     /// </summary>
     internal double EigenschaftWert(Betrieb b, string kennung)

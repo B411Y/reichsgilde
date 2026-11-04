@@ -63,7 +63,7 @@ static class FahrzeitWeglaengeTests
         return (sim, spieler, sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler));
     }
 
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Kriegskarren" };
+    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     /// <summary>Ein Spielstand von vor Datenversion 65 (Greybox, Herbst 1406, mit festen Fahrzeiten gespeichert; siehe UhrumstellungTests).</summary>
     static readonly Lazy<string> AlterStand = new(() =>
@@ -80,7 +80,7 @@ static class FahrzeitWeglaengeTests
         {
             var d = Daten.Value;
             Pruefe.Gleich(71, d.Version);
-            Pruefe.Gleich((1.0, 0.8, 1.3), (d.Logistik.Karren["Handkarren"].Tempo, d.Logistik.Karren["Ochsenkarren"].Tempo, d.Logistik.Karren["Kriegskarren"].Tempo));
+            Pruefe.Gleich((1.0, 0.8, 1.3), (d.Logistik.Karren["Handkarren"].Tempo, d.Logistik.Karren["Ochsenkarren"].Tempo, d.Logistik.Karren["Pferdekarren"].Tempo));
             Pruefe.Ungefaehr(MeterJeMinuteBei1, Taktgeber.SekundenJeSpielminute, 1e-12);
             Pruefe.Ungefaehr(0.8 * MeterJeMinuteBei1, d.Logistik.Karren["Ochsenkarren"].MeterJeMinute, 1e-12);
             Pruefe.Gleich((10, 360), (d.Logistik.Weglaenge!.MindestMinuten, d.Logistik.Weglaenge.HoechstMinuten));
@@ -104,7 +104,7 @@ static class FahrzeitWeglaengeTests
                 Pruefe.Gleich(NachFormel(w, werkstatt, typ, false), w.Fahrzeit(werkstatt, typ, zumMarkt: false), typ + " zurück");
             }
             Pruefe.Wahr(w.Fahrzeit(werkstatt, "Ochsenkarren", true) > w.Fahrzeit(werkstatt, "Handkarren", true)
-                        && w.Fahrzeit(werkstatt, "Handkarren", true) > w.Fahrzeit(werkstatt, "Kriegskarren", true), "Ochse > Hand > Pferd");
+                        && w.Fahrzeit(werkstatt, "Handkarren", true) > w.Fahrzeit(werkstatt, "Pferdekarren", true), "Ochse > Hand > Pferd");
             var karren = werkstatt.Karren[0];
             Pruefe.Gleich("Handkarren", karren.Typ);
             Pruefe.Gleich(w.Fahrzeit(werkstatt, "Handkarren", true), w.Fahrzeit(karren, true));
