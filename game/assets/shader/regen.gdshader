@@ -1,7 +1,8 @@
-// Regentropfen (Stadtansicht.Wetter.cs, GpuParticles3D): Jeder Tropfen ist ein Strich in Fallrichtung, der auf dem Bildschirm in Richtung der
+// Regentropfen (Stadtansicht.Wetter.cs, MultiMeshInstance3D): Jeder Tropfen ist ein Strich in Fallrichtung, der auf dem Bildschirm in Richtung der
 // Fallbewegung liegt (also mit dem Wind schräg) und zur Kamera zeigt. Länge, Dicke und Durchsicht hat jeder Tropfen aus seiner Nummer
 // (INSTANCE_ID); das untere Ende (Kopf) ist hell, der Schweif läuft weich aus – wie ein Tropfen, der im Belichtungsbild einen Strich zieht.
-// Die Fallrichtung kommt als Uniform (dieselbe wie im Partikelmaterial).
+// Der Ort jedes Tropfens kommt aus seiner Nummer und wenigen Uniforms (wie in schnee.gdshader): Die Tropfen liegen als Bruchteil eines Kastens um den
+// Blickpunkt, umlaufend – bei jedem Zoom und jeder Kamerabewegung ist der Kasten sofort gleichmäßig gefüllt. Die Fallrichtung kommt als Uniform.
 //
 // Wichtig (PR #237): Ein Strich darf nie NaN oder einen negativen Wert ausgeben. Solche Bildpunkte werden von Bloom und Miniatur-Unschärfe
 // weitergereicht und verschmiert – Bloom malt dann eine weiße Fläche, die Unschärfe dicke schwarze Flecken, ohne beides bleiben schwarze Striche
@@ -16,6 +17,13 @@ uniform vec4 farbe : source_color = vec4(0.78, 0.82, 0.9, 1.0);
 uniform vec3 richtung = vec3(0.0, -1.0, 0.0);
 // Stärke des Regens 0–1 (stärkerer Regen: längere, deutlichere Striche)
 uniform float staerke = 0.5;
+// Maßstab der Ansicht (Zoom / 95)
+uniform float massstab = 1.0;
+// Mitte des Kastens (Welt), Drehung um die Hochachse, ganze Kantenlängen (Meter), Verschiebung als Bruchteil des Kastens (umlaufend 0–1)
+uniform vec3 mitte = vec3(0.0);
+uniform float drehung = 0.0;
+uniform vec3 ganz = vec3(100.0, 15.0, 100.0);
+uniform vec3 versatz = vec3(0.0);
 
 varying float v_alpha;
 
@@ -26,12 +34,17 @@ float h(float n) {
 void vertex() {
 	float id = float(INSTANCE_ID);
 	float h1 = h(id), h2 = h(id + 17.0), h3 = h(id + 41.0);
-	float s = length(MODEL_MATRIX[0].xyz);   // Maßstab des Partikels (wächst mit dem Zoom)
+	float s = massstab;
+	vec3 u = fract(vec3(0.5) + id * vec3(0.8191725134, 0.6710436067, 0.5497004779) + 0.3 * (vec3(h1, h2, h3) - 0.5));
+	u = fract(u + versatz);
+	vec3 lok = (u - 0.5) * ganz;
+	float cd = cos(drehung), sd = sin(drehung);
+	vec3 ort = mitte + vec3(cd * lok.x + sd * lok.z, lok.y, -sd * lok.x + cd * lok.z);
 	float laenge = (0.8 + 1.5 * h1) * (0.8 + 0.4 * staerke) * s;
 	float px = 2.0 / PROJECTION_MATRIX[1][1] / VIEWPORT_SIZE.y;   // Meter je Bildpunkt (Kamera ohne Perspektive)
 	float breite = max((0.03 + 0.03 * h2) * s, px * (1.6 + 0.5 * h2));   // nie dünner als ~1,6 Bildpunkte, sonst zerfällt der Strich in Punkte
 	laenge = max(laenge, px * 8.0);
-	vec3 mitte = (VIEW_MATRIX * vec4(MODEL_MATRIX[3].xyz, 1.0)).xyz;
+	vec3 vm = (VIEW_MATRIX * vec4(ort, 1.0)).xyz;
 	vec3 d = (VIEW_MATRIX * vec4(richtung, 0.0)).xyz;
 	// auf dem Bildschirm in Fallrichtung (Länge verkürzt sich mit der Schrägsicht, aber nie unter ein Drittel)
 	vec2 a = normalize(d.xy + vec2(0.0001, 0.0));
@@ -39,8 +52,9 @@ void vertex() {
 	vec2 q = vec2(-a.y, a.x);
 	// UV.y: 0 oben (Schweif), 1 unten (Kopf); das Quad ist 1 × 1 groß
 	vec2 p = q * VERTEX.x * breite + a * (-VERTEX.y) * laenge * kurz;
-	POSITION = PROJECTION_MATRIX * vec4(mitte + vec3(p, 0.0), 1.0);
-	v_alpha = (0.4 + 0.6 * h3) * (0.7 + 0.5 * staerke);
+	POSITION = PROJECTION_MATRIX * vec4(vm + vec3(p, 0.0), 1.0);
+	// oben und unten im Kasten weich aus- und einblenden (dort wird umgelaufen)
+	v_alpha = (0.4 + 0.6 * h3) * (0.7 + 0.5 * staerke) * smoothstep(0.0, 0.04, u.y) * (1.0 - smoothstep(0.94, 1.0, u.y));
 }
 
 void fragment() {
