@@ -189,6 +189,10 @@ public partial class Stadtansicht
         // Wechselnd bewölkt: mehr Wolken; ganz bedeckt: keine einzelnen Schatten mehr (die Sonne ist dann ohnehin gedämpft, Stadtansicht.Wetter.cs)
         var wolken = _wetter.Wolken;
         sonne *= (1 + 0.6f * Mathf.SmoothStep(0.1f, 0.6f, wolken)) * (1 - 0.8f * Mathf.SmoothStep(0.6f, 0.95f, wolken));
+        // Tief stehende Sonne: Das Decal wirft seine Flecken senkrecht auf den Boden, die Sonnenschatten der Bäume und Türme liegen aber lang und schräg daneben – die Flecken
+        // lasen sich als zweiter, versetzter, weicher Schatten. Darum erst ab etwa 16° Sonnenhöhe, voll ab 34° (Morgen und Abend ohne, Mittag im Winter fast voll).
+        var hoehe = Mathf.RadToDeg(Mathf.Asin(Mathf.Clamp(_sonne.GlobalBasis.Z.Y, -1f, 1f)));
+        sonne *= Mathf.SmoothStep(16f, 34f, hoehe);
         _wolken.Modulate = new Color(1, 1, 1, Mathf.Min(WolkenDunkel * sonne, 0.6f));
     }
 
