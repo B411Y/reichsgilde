@@ -3,15 +3,15 @@
     blender -b --python tools/modelle/handschuh.py -- --aus=<Ordner> [--stufen=1,2,3] [--ohne-uebersicht]
 
 Alles ist eigener Entwurf (Skript, deterministisch, kein Zufall außer dem festen Samen für den Pelz); von „Die Gilde 1“ kommt
-nur die Idee eines Handschuh-Zeigers. Gebaut wird eine offene rechte Hand von oben (Handrücken sichtbar), Finger leicht
-gespreizt; die ganze Hand ist um 38 Grad nach links oben gedreht, der Zeigefinger führt. Leichter Blick von schräg oben,
+nur die Idee eines Handschuh-Zeigers. Gebaut wird eine offene rechte Hand von oben (Handrücken sichtbar), Finger eingerollt; die ganze Hand ist um 40 Grad nach links oben gedreht, der Zeigefinger führt. Leichter Blick von schräg oben,
 Licht von oben links, Standard-Farbverwaltung (kein Farbstich), Hintergrund durchsichtig.
 
 Stufen (gleiche Hand, steigende Wertigkeit): 1 Gemeiner (grobes Arbeitsleder, Flicken), 2 Bürger (helles Leder, saubere Naht),
 3 Patrizier (feines Leder, verzierte Stulpe), 4 Edler (dunkles Leder, Goldborte, schlichter Ring), 5 Freiherr (Samt mit
-Goldstickerei, Siegelring), 6 Reichsgraf (wie 5, dazu Pelz an der Stulpe und mehr Gold).
-Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche Form), tuer_griff (die Hand greift/zieht:
-Finger gekrümmt) und tuer_ring (schlichter Eisen-Türring als Alternative).
+Goldstickerei, Siegelring), 6 Reichsgraf (Königsblauer Samt statt Burgunder, dicker Hermelinpelz an der Stulpe, Goldringe an allen Fingern, Goldkappen).
+Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche Form) und tuer_ring (Eisen-Türring).
+Haltung: zeigende Hand, Zeigefinger gestreckt und leicht abgespreizt genau zur Spitze (Hotspot), Mittel-, Ring- und kleiner
+Finger etwa zu 20 % einer Faust eingerollt, Daumen locker angelegt.
 
 Ausgabe nach <Ordner>/: png/<größe>/stufeN_<name>_<zustand>.png (32, 48, 64 Pixel; gerendert in halber Größe und mit
 nearest verdoppelt = Pixel-Look), fein/<größe>/… (ohne Verdopplung), gross/… (384 Pixel), hotspots.txt, uebersicht.png.
@@ -43,9 +43,9 @@ STUFEN = [
     dict(name="patrizier", leder=(0.40, 0.21, 0.10), rau=0.38, bump=0.28, var=0.08, stulpe=0.58),
     dict(name="edler", leder=(0.085, 0.052, 0.040), rau=0.32, bump=0.28, var=0.05, stulpe=0.58),
     dict(name="freiherr", leder=(0.20, 0.014, 0.038), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
-    dict(name="reichsgraf", leder=(0.20, 0.014, 0.038), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
+    dict(name="reichsgraf", leder=(0.02, 0.05, 0.40), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
 ]
-ZUSTAENDE = ("normal", "klick", "tuer_griff")
+ZUSTAENDE = ("normal", "klick")
 
 GOLD = (0.95, 0.66, 0.16)
 
@@ -157,8 +157,8 @@ def stoffe_fuer(stufe, warm):
     st["gold"] = stoff("Gold", g, 0.30, 1.0, 0.0, glut=glut and (1.0, 0.7, 0.2, 0.06))
     st["rot"] = stoff("Rotband", (0.30, 0.04, 0.04), 0.75, 0, 0.3, 80)
     st["stein"] = stoff("Stein", (0.55, 0.02, 0.04), 0.12, 0.0, glut=(0.7, 0.0, 0.03, 0.5))
-    st["pelz_hell"] = stoff("PelzHell", (0.82, 0.76, 0.62), 1.0, 0, 0, 0, 0.18)
-    st["pelz_dunkel"] = stoff("PelzDunkel", (0.40, 0.31, 0.22), 1.0, 0, 0, 0, 0.18)
+    st["pelz_hell"] = stoff("PelzHell", (0.95, 0.93, 0.88) if stufe == 6 else (0.82, 0.76, 0.62), 1.0, 0, 0, 0, 0.08 if stufe == 6 else 0.18)
+    st["pelz_dunkel"] = stoff("PelzDunkel", (0.03, 0.025, 0.03) if stufe == 6 else (0.40, 0.31, 0.22), 1.0, 0, 0, 0, 0.18)
     st["eisen"] = stoff("Eisen", (0.34, 0.34, 0.37), 0.42, 0.9, 0.4, 30, 0.1)
     return st
 
@@ -292,12 +292,12 @@ def palmenhoehe(x, y):
 
 # Finger: (x, y, z der Wurzel, Länge der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen)
 FINGER = {
-    "zeige": ((-0.32, 0.76, 0.0), (0.36, 0.24, 0.20), (0.118, 0.094), -24, (-5, -8, -9), (-28, -62, -48)),
-    "mittel": ((-0.105, 0.86, 0.0), (0.39, 0.26, 0.21), (0.120, 0.096), -8, (-4, -8, -9), (-32, -66, -50)),
-    "ring": ((0.105, 0.86, 0.0), (0.36, 0.24, 0.20), (0.114, 0.090), 8, (-4, -8, -9), (-30, -64, -48)),
-    "klein": ((0.30, 0.78, 0.0), (0.28, 0.18, 0.16), (0.100, 0.078), 23, (-4, -8, -9), (-28, -60, -46)),
+    "zeige": ((-0.31, 0.74, 0.0), (0.46, 0.30, 0.24), (0.108, 0.086), -10, (2, -2, -2), (-28, -62, -48)),
+    "mittel": ((-0.105, 0.86, 0.0), (0.39, 0.26, 0.21), (0.120, 0.096), 5, (-22, -34, -28), (-32, -66, -50)),
+    "ring": ((0.105, 0.86, 0.0), (0.36, 0.24, 0.20), (0.114, 0.090), 10, (-24, -36, -30), (-30, -64, -48)),
+    "klein": ((0.30, 0.78, 0.0), (0.28, 0.18, 0.16), (0.100, 0.078), 16, (-26, -38, -32), (-28, -60, -46)),
 }
-DAUMEN = ((-0.36, 0.22, -0.01), (0.31, 0.25), (0.140, 0.105), -58, (-3, -9), (-8, -22))
+DAUMEN = ((-0.36, 0.22, -0.01), (0.27, 0.22), (0.135, 0.100), -34, (-6, -14), (-8, -22))
 
 
 def glieder(wurzel, laengen, radien, spreiz, neigung):
@@ -459,29 +459,29 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
         b.quader("gold", p0 + d * 0.15 + Vector((0, 0, r0 * 1.0)), (0.10, 0.12, 0.04), q)
         b.kugel("stein", p0 + d * 0.15 + Vector((0, 0, r0 * 1.0 + 0.022)), 0.034, (1, 1.1, 0.7), q, seg=10)
         if stufe == 6:
-            # Pelz an der Stulpe
+            # Hermelinpelz an der Stulpe: dick, hell, mit dunklen Schwänzchen; steht über den Rand
             y0 = -ly - 0.02
             t = (0.08 - y0) / (ly + 0.08)
             rr = r_a + (r_e - r_a) * t
-            for lage, (off, n, rad) in enumerate(((0.0, 38, 0.095), (0.11, 34, 0.085))):
+            for lage, (dy, n, rad) in enumerate(((0.0, 56, 0.095), (0.12, 50, 0.09))):
                 for k in range(n):
                     w = 2 * math.pi * (k + 0.5 * lage) / n + rng.uniform(-0.04, 0.04)
-                    r2 = rr + 0.02 - 0.0 * off
-                    p = Vector((r2 * math.cos(w), y0 + off * 0.0 + rng.uniform(-0.04, 0.04) + 0.12 * lage * (-1) * 0 + off * 0.9 - off * 0.9,
-                                r2 * math.sin(w) * 0.62))
-                    p.y = y0 + (0.10 if lage else 0.0) + rng.uniform(-0.035, 0.035)
-                    nm = "pelz_hell" if (k % 3) else "pelz_dunkel"
-                    rv = rad * rng.uniform(0.85, 1.15)
-                    b.kugel(nm, p, rv, (1.0, 1.2, 1.0), seg=9)
-            # Gold: Knochenspangen an den Fingerwurzeln, Ring am kleinen Finger mit Stein, zweiter Goldring
+                    r2 = rr + 0.03 + 0.01 * lage
+                    p = Vector((r2 * math.cos(w), y0 + dy + rng.uniform(-0.03, 0.03), r2 * math.sin(w) * 0.62))
+                    nm = "pelz_dunkel" if (k % 9 == 4 and lage == 1) else "pelz_hell"
+                    b.kugel(nm, p, rad * rng.uniform(0.9, 1.1), (1.0, 1.25, 1.0), seg=9)
+            # Gold: Ringe an jedem Fingerglied, Goldkappen auf den Fingerspitzen, Steinring am kleinen Finger
             for kette in (fin["zeige"], fin["mittel"], fin["ring"], fin["klein"]):
-                p0, p1, r0, r1, d = kette[0]
-                b.kugel("gold", p0 + Vector((0, 0.04, r0 * 0.9)), 0.03, seg=9)
+                for gl in kette[:2]:
+                    p0, p1, r0, r1, d = gl
+                    ring(b, p0 + d * (p1 - p0).length * 0.5, d, r1 * 1.05, "gold", 0.07)
+                p0, p1, r0, r1, d = kette[-1]
+                b.kegel("gold", p0 + d * 0.0, p1, r0 * 1.06, r1 * 1.06, seg=14, kappen=False)
+                b.kugel("gold", p1, r1 * 1.06, seg=14)
             p0, p1, r0, r1, d = fin["klein"][0]
-            ring(b, p0 + d * 0.11, d, r0 * 1.04, "gold", 0.05)
-            b.kugel("stein", p0 + d * 0.11 + Vector((0, 0, r0 * 1.05)), 0.035, (1, 1, 0.8), seg=10)
-            p0, p1, r0, r1, d = fin["mittel"][0]
-            ring(b, p0 + d * 0.14, d, r0 * 1.04, "gold", 0.045)
+            b.kugel("stein", p0 + d * 0.11 + Vector((0, 0, r0 * 1.1)), 0.04, (1, 1, 0.8), seg=10)
+            p0, p1, r0, r1, d = dau[0]
+            ring(b, p0 + d * 0.18, d, r0 * 1.04, "gold", 0.07)
             stulpenband(b, "gold", ly, r_a, r_e, -ly + 0.3, dicke=0.01)
 
 
@@ -491,14 +491,15 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
 
 def ring_bauen(st):
     b = Bau(st)
-    b.kegel("eisen", (0, 0.30, -0.02), (0, 0.30, 0.05), 0.34, 0.31, seg=28)                # Befestigungsplatte
-    b.torus("eisen", (0, 0.30, 0.05), 0.29, 0.022, seg=28, ring=6)                         # Plattenrand
+    # Platte klein und oben, damit das Ringloch frei bleibt (auch bei 32 px kein Fleck)
+    b.kegel("eisen", (0, 0.50, -0.02), (0, 0.50, 0.05), 0.22, 0.20, seg=28)                # Befestigungsplatte
+    b.torus("eisen", (0, 0.50, 0.05), 0.18, 0.02, seg=28, ring=6)                          # Plattenrand
     for k in range(3):
         w = math.pi / 2 + k * 2 * math.pi / 3
-        b.kugel("eisen", (0.21 * math.cos(w), 0.30 + 0.21 * math.sin(w), 0.075), 0.04, seg=8)
-    b.kugel("eisen", (0, 0.24, 0.12), 0.10, seg=12)                                        # Zapfen, an dem der Ring hängt
-    b.torus("eisen", (0, -0.06, 0.21), 0.37, 0.085, dreh=Matrix.Rotation(math.radians(-12), 3, "X"), seg=48, ring=10)
-    b.tipp = Vector((0, -0.06, 0.21))
+        b.kugel("eisen", (0.12 * math.cos(w), 0.50 + 0.12 * math.sin(w), 0.075), 0.035, seg=8)
+    b.kugel("eisen", (0, 0.42, 0.12), 0.09, seg=12)                                        # Zapfen, an dem der Ring hängt
+    b.torus("eisen", (0, 0.02, 0.21), 0.40, 0.07, dreh=Matrix.Rotation(math.radians(-8), 3, "X"), seg=48, ring=10)
+    b.tipp = Vector((0, 0.02, 0.21))
     return b
 
 
@@ -627,7 +628,7 @@ def alles(aus, stufen, mit_uebersicht=True):
     os.makedirs(aus, exist_ok=True)
     # gemeinsamer Bildausschnitt für alle Hand-Bilder (größte Hand = Stufe 6, offen und greifend)
     pts = []
-    for art in ("normal", "griff"):
+    for art in ("normal",):
         b, _ = szene_aufbauen(art, 6, False)
         pts += b.punkte
     rahmen_hand = ausschnitt_aus(pts)
@@ -754,12 +755,12 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     hoehe_a = 4 * 64 + 40
     # Teil B: je Stufe die Zustände (3-fach von 48 px) in zwei Blöcken
     zb = 3 * 48 + 6
-    zus = ("normal", "klick", "tuer_griff", "tuer_ring")
+    zus = ("normal", "klick", "tuer_ring")
     bloecke = [stufen[:(ns + 1) // 2], stufen[(ns + 1) // 2:]]
     hoehe_b = max(len(x) for x in bloecke) * zb + 24
     # Teil C: Originalgröße auf drei Hintergründen
     zeilen_c = [(32, "normal", "png"), (32, "normal", "fein"), (48, "normal", "png"), (48, "normal", "fein"),
-                (48, "klick", "png"), (48, "tuer_griff", "png"), (48, "tuer_ring", "png")]
+                (48, "klick", "png"), (48, "tuer_ring", "png")]
     hoehe_c = len(zeilen_c) * 56 + 20
     H = hoehe_a + hoehe_b + hoehe_c
     c = np.zeros((H, breite, 4), dtype=np.float32)
