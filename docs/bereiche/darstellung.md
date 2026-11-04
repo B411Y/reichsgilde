@@ -501,3 +501,14 @@ Auftrag des Teamleiters 1.11.2026.
 | Einrasten | Nur in der Werkstatt, nur Darstellung (keine Kernänderung): Punkte von Wegen, Ecken von Flächen und Mauern auf das 2-m-Raster, solange es sichtbar ist; Alt frei; Umschalt Winkelfang in 45°-Schritten (Wege und Mauern). Hof, Tor, Halteplatz und Weg fangen wie bisher vor dem Raster. Kurven bleiben, wie sie sind (die Stützpunkte rasten). Gebäude und Pflanzen der Werkstatt bleiben auf 1 m | 04.11.2026 |
 | Im Spiel | Es gibt keine Wege zu zeichnen (`Wegebau` ändert nur den Belag); Gebäude, Bauplätze und Felder rasten schon im Kern, das Raster zeigt es nur | 04.11.2026 |
 | Leistung | Köln, Baumodus, Vulkan auf der Grafikkarte, Pixel-Look, 20 s: mit Raster 26,2 Bilder/s, 1-%-Tief 17,0, GPU 11,8 ms; ohne 25,9, 16,3, 11,9 ms (CPU-gebunden auf dem belasteten Rechner); rund 60 Zeichenaufrufe mehr | 04.11.2026 |
+
+### Boden Stufe 1: Gras wächst weich an Feldern und Gebäuden (Branch phase5/boden-gras-weich)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weicher Rand | Gras dünnt am Rand von Gebäuden, Grundstücken und Betriebsplätzen über 1,4 m mit Rauschen aus (`GrasRandFaktor`, `GrasRandRauschen`); drinnen weiter 0. Kern: `Naturfreiraum.GebaeudeAbstand` mit Test | 04.11.2026 |
+| Felder | Die Aussparung folgt der ausgefransten `Feldmaske` (`GrasFeldFaktor`, Abstand mit Rauschen wie im Acker-Shader); die alten Stückrechtecke sind aus den Sperrflächen raus | 04.11.2026 |
+| Grasplatten | Die Fläche „Gras“ ist aus Bauernhof, Klosterhof, Duftgarten, Kräutergarten, Wachturm und Weide (`umland_stellen`) entfernt; „Erde hell“ (Höfe, Wege) bleibt bis Stufe 2. Der Teppich wächst dort, wo das Modell nichts hat (Fußabdruck aus den Dreiecken, `Stadtansicht.GrasFuss.cs`) | 04.11.2026 |
+| Nicht angefasst | Steinbruch, Grube, Holzschlag (nur „Erde hell“) und der Grasstreifen im Prediger-Modell; Stufe 2 | 04.11.2026 |
+| Graue Fläche an der Mühle | Im Greybox-Bauernhof nicht mehr zu sehen: Nach dem Entfernen der Grasplatte des Modells (26 × 20 m, größer als der Hof) bleibt nur der Hof „Erde hell“ (10 × 9 m); die graue Fläche im Nutzerbild war sehr wahrscheinlich diese Platte (Kartenraster und Wegeschicht zeigen dort keinen Belag). Der Hof „Erde hell“ (10 × 9 m) bleibt | 04.11.2026 |
+
