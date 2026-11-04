@@ -97,6 +97,7 @@ Startoptionen (nach `--`):
 - `--tiltshift=<Aus|Leicht|Stark>`
 - `--wolken=<An|Aus>`
 - `--dunst=<Aus|Niedrig|Hoch>`
+- `--zeiger=<0|1>` (eigener Mauszeiger nur für diesen Start aus/an, Standard an) und `--zeigerstufe=<1..6>` (Handschuh dieser Stufe statt der des Standes: 1 Gemeiner bis 6 Reichsgraf; im Log `[zeiger] Stufe … normal|klick|schloss … px`; `game/scripts/Mauszeiger.cs`)
 - `--pixellook=<0|1>` (Pixel-Look der Stadtansicht nur für diesen Start: `1` an (Standard), `0` aus = der gemalte Look mit stufenlosem Zoom; die früheren Werte `2`, `3`, `Pixel2`, `Pixel3` gelten als an, `Aus` als aus; `Stadtansicht.Pixel.cs`) und `--pixelgluehen=<0|1>` (Glühen an oder aus). `--pixelmessung=<s>` misst die Zeiten der Ansichten (Fenster, Welt, Beleuchtung, Glühen) über so viele Sekunden, schreibt `[pixelmessung] …` ins Log und beendet; geht auch ohne Pixel-Look als Vergleich. In der Kartenwerkstatt gilt nur die gespeicherte Wahl (sie liest die Grafik-Startoptionen nicht).
 - `--wettereffekte=<Niedrig|Mittel|Hoch>` (wie viel Regen, Schnee, Nässe und Blitz zu sehen ist)
 - `--wasserstufe=<niedrig|mittel|hoch|ultra>` (Grafikstufe des Wassers statt der aus der Voreinstellung, nur für diesen Start; `docs/wasser/phase3.md`)

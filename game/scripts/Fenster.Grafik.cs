@@ -133,6 +133,7 @@ public partial class Fenster
         SchaerfeSetzen(Wert("schaerfe", StandardSchaerfe).AsInt32(), false);
         FahnenSetzen(Wert("fahnen", true).AsBool(), false);
         OberflaechengroesseSetzen(Wert("uigroesse", 100).AsInt32(), false);
+        ZeigerLaden(datei, geladen); // eigener Mauszeiger, Standard an (Fenster.Zeiger.cs)
         PixelLaden(datei, geladen); // Pixel-Look, Standard aus (Fenster.Pixel.cs)
         FarbfilterSetzen(Art("farbfilter", Farbfilter.Aus), false);
         // Bodenqualität (ab Schritt 5h) und Grasteppich (ab 5i): Fehlen sie in einer älteren Datei, die der Stufe, die die übrigen Regler zeigen –
@@ -718,6 +719,7 @@ public partial class Fenster
         if (optionen.TryGetValue("fahnen", out var fahnen)) FahnenSetzen(An(fahnen), speichern: false);
         if (Zahl("uigroesse", out var uigroesse)) OberflaechengroesseSetzen(uigroesse, speichern: false);
         if (Art<Farbfilter>("farbfilter", out var farbfilter)) FarbfilterSetzen(farbfilter, speichern: false);
+        ZeigerStartoptionen(optionen); // --zeiger=0|1, --zeigerstufe=1..6 (Fenster.Zeiger.cs)
         PixelStartoptionen(optionen); // --pixellook=0|2|3, --pixelgluehen=0|1 (Fenster.Pixel.cs)
         if (optionen.GetValueOrDefault("automatisch") == "1") AutomatischWaehlen();
         if (Zahl("messung", out var messung) && messung > 0) MessungStarten(messung);

@@ -180,6 +180,7 @@ public partial class Hauptszene : Node
     public override void _Ready()
     {
         _stadt = GetNode<Stadtansicht>("%Stadt");
+        AddChild(new Mauszeiger { Stadt = _stadt, StandAbfrage = () => _spieler?.Stand }); // Lederhandschuh nach Stand (Mauszeiger.cs)
         // Oben, unten links und die Leiste zuerst: Schon beim Aufbau der Partie kommen Meldungen.
         KopfBauen();
         MeldungenBauen();

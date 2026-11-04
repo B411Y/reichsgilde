@@ -309,3 +309,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Anzeige | Betriebsverwaltung (`GaststubeAktualisieren`) unter „Erwartet ≈ … Gäste“: „Plätze: belegt / frei (von n)“ aus `Gastwirtschaft.Platzbelegung` (Schätzung der laufenden Stunde), dahinter „heute kein Platz: n“ aus `Gaestebuch.Voll` nur, wenn größer 0, mit „(davon m ohne Platz in der ganzen Stadt)“ aus `Ausgefallen`. Nur Gäste-Plätze, keine Einwohner-Grenze (greift mit den Spieldaten nie). Tooltip in einfacher Sprache am Gästetext | 02.11.2026 |
+
+### Mauszeiger (PR #308)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zeiger | Lederhandschuh aus Blender (`tools/modelle/handschuh.py`), feine Pixel, 6 Stufen nach `Konto.Stand`, je „normal“ und „klick“ (wärmer), dazu Bronze-Türschloss mit S-Griff; 32/48/64 Pixel nach Fensterhöhe und Oberflächengröße (Standard 48 bei 1080p). Freigabe des Nutzers. | 04.11.2026 |
+| Zustände | „klick“ über Gebäude, Figuren, Bauplatz im Baumodus und freigegebenen Knöpfen; Schloss über Gebäuden mit Innenraum (`HatInnenansicht`), nur außerhalb von Räumen. Karren sind nicht einzeln wählbar, darum ohne eigenen Zustand. | 04.11.2026 |
+| Einstellung | „Eigener Mauszeiger“ (Barrierefreiheit, Standard an) mit Tooltip; Startoptionen `--zeiger`, `--zeigerstufe`. Hauptmenü und Kartenwerkstatt zeigen Stufe 1; die Werkstatt hat keinen eigenen Pinsel-Zeiger. | 04.11.2026 |

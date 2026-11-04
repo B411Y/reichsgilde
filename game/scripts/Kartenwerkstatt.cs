@@ -103,6 +103,7 @@ public partial class Kartenwerkstatt : Node
     public override async void _Ready()
     {
         _stadt = GetNode<Stadtansicht>("%Stadt");
+        AddChild(new Mauszeiger()); // Handschuh, auf Knöpfen „klick“; die Werkstatt hat keinen eigenen Pinsel-Zeiger (Mauszeiger.cs)
         _stadt.OhneHintergrund = true;
         Ruhen(true);
         _stadt.Ruhen(true);
