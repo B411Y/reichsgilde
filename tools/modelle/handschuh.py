@@ -290,25 +290,28 @@ def palmenhoehe(x, y):
     return PALME[2] * math.sqrt(max(t, 0.0))
 
 
-# Finger: (x, y, z der Wurzel, Länge der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen)
+# Finger: (Wurzel, Längen der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen, Seitenknick je Glied)
+# Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.0), (0.46, 0.30, 0.24), (0.118, 0.094), -12, (7, 0, -4), (-28, -62, -48)),
-    "mittel": ((-0.105, 0.86, 0.0), (0.38, 0.24, 0.20), (0.120, 0.096), 7, (-30, -26, -22), (-32, -66, -50)),
-    "ring": ((0.105, 0.86, 0.0), (0.34, 0.22, 0.19), (0.114, 0.090), 6, (-50, -62, -45), (-30, -64, -48)),
-    "klein": ((0.30, 0.78, 0.0), (0.26, 0.17, 0.15), (0.100, 0.078), 8, (-55, -64, -45), (-28, -60, -46)),
+    "zeige": ((-0.31, 0.74, 0.03), (0.48, 0.30, 0.23), (0.110, 0.080), -24, (8, -4, -10), (-28, -62, -48), (0, -3, -5)),
+    "mittel": ((-0.105, 0.87, 0.03), (0.47, 0.29, 0.22), (0.116, 0.085), 9, (-12, -30, -30), (-32, -66, -50), (0, 2, 3)),
+    "ring": ((0.105, 0.86, 0.03), (0.41, 0.26, 0.20), (0.110, 0.080), 14, (-14, -30, -30), (-30, -64, -48), (0, 3, 4)),
+    "klein": ((0.30, 0.78, 0.03), (0.30, 0.19, 0.16), (0.096, 0.070), 21, (-18, -30, -30), (-28, -60, -46), (0, 4, 5)),
 }
-DAUMEN = ((-0.36, 0.22, -0.01), (0.30, 0.24), (0.150, 0.112), -66, (-4, -10), (-8, -22))
+DAUMEN = ((-0.36, 0.22, -0.01), (0.30, 0.24), (0.150, 0.108), -66, (-4, -10), (-8, -22), (0, -4))
 
 
-def glieder(wurzel, laengen, radien, spreiz, neigung):
+def glieder(wurzel, laengen, radien, spreiz, neigung, knick=None):
     """[(p0, p1, r0, r1, Richtung)] für eine Kette aus Gliedern."""
     p = Vector(wurzel)
     neig = 0.0
+    sp = spreiz
     out = []
     n = len(laengen)
     for i, (L, nk) in enumerate(zip(laengen, neigung)):
         neig += nk
-        ya, pa = math.radians(spreiz), math.radians(neig)
+        sp += knick[i] if knick else 0.0
+        ya, pa = math.radians(sp), math.radians(neig)
         d = Vector((math.sin(ya) * math.cos(pa), math.cos(ya) * math.cos(pa), math.sin(pa)))
         r0 = radien[0] + (radien[1] - radien[0]) * i / n
         r1 = radien[0] + (radien[1] - radien[0]) * (i + 1) / n
@@ -317,40 +320,134 @@ def glieder(wurzel, laengen, radien, spreiz, neigung):
     return out
 
 
+def catmull(pts, n=6):
+    """Glatte Kurve durch die Gelenkpunkte; liefert (Punkt, Gelenknummer-Bruchteil)."""
+    P = [pts[0]] + list(pts) + [pts[-1]]
+    out = []
+    for i in range(1, len(P) - 2):
+        p0, p1, p2, p3 = P[i - 1], P[i], P[i + 1], P[i + 2]
+        for k in range(n):
+            t = k / n
+            q = 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3)
+            out.append((q, (i - 1) + t))
+    out.append((P[-2], len(P) - 3))
+    return out
+
+
+def sweep(b, name, kette, von=0, bis=None, skal=1.0, flach=0.80, spitze=True, wulst=0.10, seg=14):
+    """Finger als gezogener, abgeflachter Querschnitt: schmaler zur Spitze, Knöchelwülste an den Gelenken,
+    runde Kuppe. Gibt die Mittellinie als [(p, side, up, w, h)] zurück."""
+    bis = len(kette) if bis is None else bis
+    pts = [kette[von][0]] + [g[1] for g in kette[von:bis]]
+    rad = [g[2] for g in kette[von:bis]] + [kette[bis - 1][3]]
+    kurve = catmull(pts)
+    z = Vector((0, 0, 1))
+    rahmen = []
+    for i, (p, u) in enumerate(kurve):
+        q = kurve[min(i + 1, len(kurve) - 1)][0] - kurve[max(i - 1, 0)][0]
+        d = q.normalized()
+        side = d.cross(z)
+        side = side.normalized() if side.length > 1e-4 else Vector((1, 0, 0))
+        up = side.cross(d)
+        k = int(u)
+        r = rad[min(k, len(rad) - 1)] if k >= len(rad) - 1 else rad[k] + (rad[k + 1] - rad[k]) * (u - k)
+        # Knöchelwulst an den Gelenken (nicht am Ansatz)
+        for j in range(1, len(rad) - 1):
+            r *= 1 + wulst * math.exp(-((u - j) / 0.22) ** 2)
+        # leicht eingezogen zwischen den Gelenken
+        r *= 1 - 0.03 * math.sin(math.pi * ((u % 1.0)))
+        rahmen.append((p, side, up, r * skal, r * skal * flach, d))
+    ringe = [list(x) for x in rahmen]
+    if spitze:
+        p, side, up, w, h, d = rahmen[-1]
+        for j in range(1, 5):
+            a = j / 4 * math.pi / 2
+            f = max(math.cos(a), 0.12)
+            ringe.append([p + d * (w * 0.95 * math.sin(a)), side, up, w * f, h * f, d])
+    B = b._b(name)
+    gr = []
+    for (p, side, up, w, h, d) in ringe:
+        gr.append([B.verts.new(p + side * math.cos(2 * math.pi * j / seg) * w + up * math.sin(2 * math.pi * j / seg) * h) for j in range(seg)])
+    for i in range(len(gr) - 1):
+        for j in range(seg):
+            try:
+                B.faces.new((gr[i][j], gr[i + 1][j], gr[i + 1][(j + 1) % seg], gr[i][(j + 1) % seg]))
+            except ValueError:
+                pass
+    for ring_ in (gr[0][::-1], gr[-1]):
+        try:
+            B.faces.new(ring_)
+        except ValueError:
+            pass
+    return [(r[0], r[1], r[2], r[3], r[4]) for r in rahmen]
+
+
+def stulpe_r(ly, r_a, r_e, y):
+    """Halbachse der Stulpe in der Tiefe y: am Handgelenk eng, nach hinten weich ausgestellt (kein Trichter)."""
+    t = min(max((0.08 - y) / (ly + 0.08), 0.0), 1.0)
+    return r_a + (r_e - r_a) * (0.55 * t + 0.45 * t ** 2.4)
+
+
+def stulpe_bauen(b, ly, r_a, r_e):
+    """Weicher Lederkragen: Ringe mit leicht welligem Rand, aufgerollte Lippe, Futter am Ende."""
+    B = b._b("leder")
+    ys = [0.08 - (ly + 0.08) * k / 14 for k in range(15)]
+    seg = 40
+    gr = []
+    for k, y in enumerate(ys):
+        t = k / 14
+        gr.append([])
+        for j in range(seg):
+            w = 2 * math.pi * j / seg
+            wel = 1 + 0.045 * t * math.sin(5 * w + 0.6) + 0.02 * t * math.sin(9 * w)
+            r = stulpe_r(ly, r_a, r_e, y) * wel
+            gr[-1].append(B.verts.new(Vector((r * math.cos(w), y, r * math.sin(w) * 0.62))))
+    for k in range(len(gr) - 1):
+        for j in range(seg):
+            try:
+                B.faces.new((gr[k][j], gr[k + 1][j], gr[k + 1][(j + 1) % seg], gr[k][(j + 1) % seg]))
+            except ValueError:
+                pass
+    stulpenband(b, "leder", ly, r_a, r_e, -ly + 0.012, dicke=0.03)       # aufgerollte Lippe
+    b.kegel("innen", (0, -ly + 0.015, 0), (0, -ly + 0.03, 0), stulpe_r(ly, r_a, r_e, -ly) - 0.03, stulpe_r(ly, r_a, r_e, -ly) - 0.03, seg=32)
+
+
 def hand_bauen(stufe, griff, st):
     b = Bau(st)
     rng = random.Random(1480 + stufe)
     s = STUFEN[stufe - 1]
-    # Palme
+    # Palme (Handrücken leicht gewölbt) und Daumenballen
     b.kugel("leder", (0, 0.5, 0), 1.0, (PALME[0], PALME[1], PALME[2]), seg=24)
-    # Stulpe: Kegelstumpf nach hinten (-Y), oben elliptisch abgeflacht
+    b.kugel("leder", (-0.27, 0.27, 0.02), 1.0, (0.20, 0.27, 0.12), Matrix.Rotation(math.radians(-25), 3, "Z"), seg=16)
     ly = s["stulpe"]
     r_a, r_e = 0.30, 0.44
-    bmesh.ops.create_cone(b._b("leder"), cap_ends=False, cap_tris=False, segments=32, radius1=r_a, radius2=r_e, depth=ly + 0.08,
-                          matrix=Matrix.Translation((0, 0.08 - (ly + 0.08) / 2, 0)) @ Matrix.Rotation(math.pi / 2, 4, "X")
-                          @ Matrix.Diagonal((1, 0.62, 1, 1)))
-    # Futter am Ende
-    b.kegel("innen", (0, -ly + 0.015, 0), (0, -ly + 0.03, 0), r_e - 0.03, r_e - 0.03, seg=32, plattung=1.0)
+    stulpe_bauen(b, ly, r_a, r_e)
     # Finger
     fin = {}
-    for name, (w, la, ra, sp, nn, ng) in FINGER.items():
-        fin[name] = glieder(w, la, ra, sp, ng if griff else nn)
-    dau = glieder(DAUMEN[0], DAUMEN[1], DAUMEN[2], DAUMEN[3] + (25 if griff else 0), DAUMEN[5] if griff else DAUMEN[4])
+    for name, (w, la, ra, sp, nn, ng, kn) in FINGER.items():
+        fin[name] = glieder(w, la, ra, sp, ng if griff else nn, kn)
+        b.kugel("leder", Vector(w) + Vector((0, 0.0, 0.03)), ra[0] * 1.02, (1.0, 0.85, 0.8), seg=12)       # Knöchel am Ansatz
+    dau = glieder(DAUMEN[0], DAUMEN[1], DAUMEN[2], DAUMEN[3] + (25 if griff else 0), DAUMEN[5] if griff else DAUMEN[4], DAUMEN[6])
     alle = list(fin.values()) + [dau]
+    mitte = {}
     for kette in alle:
-        for i, (p0, p1, r0, r1, d) in enumerate(kette):
-            b.kegel("leder", p0, p1, r0, r1, seg=14, kappen=False, plattung=1.0)
-            b.kugel("leder", p1, r1, seg=14)
-        b.kugel("leder", kette[0][0], kette[0][2], seg=14)
+        flach = 0.9 if kette is dau else 0.80
+        mitte[id(kette)] = sweep(b, "leder", kette, flach=flach)
     z_ = fin["zeige"][-1]
-    b.tipp = z_[1] + z_[4] * z_[3]
-    # Falten an den Knöcheln (zwei dünne dunkle Wülste quer über jedem Gelenk)
+    b.tipp = z_[1] + z_[4] * z_[3] * 0.9
+    # Falten an den Knöcheln: je Gelenk zwei dünne dunkle Wülste quer über dem Rücken
     for kette in alle:
         for i, (p0, p1, r0, r1, d) in enumerate(kette[:-1]):
             q = Vector((0, 1, 0)).rotation_difference(d)
-            for dd in (-0.025, 0.012):
-                c = p1 + d * dd + Vector((0, 0, r1 * 0.78))
-                b.kugel("dunkel", c, r1 * 0.9, (1.0, 0.09, 0.13), q.to_matrix(), seg=10)
+            for dd in (-0.03, 0.0, 0.03):
+                c = p1 + d * dd + Vector((0, 0, r1 * 0.80 * 0.95 * 1.08))
+                b.kugel("dunkel", c, r1 * 0.85, (1.0, 0.07, 0.10), q.to_matrix(), seg=10)
+    # Nähte an den Fingerseiten
+    for kette in alle:
+        m = mitte[id(kette)]
+        for sg in (-1, 1):
+            pf = [p + side * (w * 0.97 * sg) + up * (h * 0.0) for (p, side, up, w, h) in m[2:-1]]
+            b.naht("garn", pf, 0.05, (0.026, 0.009, 0.009))
     # Rückennähte: drei Rippen vom Handgelenk zu den Fingerwurzeln
     rippen = []
     for x0, x1 in ((-0.20, -0.15), (0.0, 0.0), (0.2, 0.17)):
@@ -367,20 +464,17 @@ def hand_bauen(stufe, griff, st):
 
 def stulpenpunkt(ly, r_a, r_e, y, w):
     """Punkt auf der Stulpe bei der Tiefe y (negativ = nach hinten), Winkel w; obere Hälfte w in 0..pi."""
-    t = (0.08 - y) / (ly + 0.08)
-    r = r_a + (r_e - r_a) * t
+    r = stulpe_r(ly, r_a, r_e, y)
     return Vector((r * math.cos(w), y, r * math.sin(w) * 0.62 + (0.0)))
 
 
 def stulpenband(b, name, ly, r_a, r_e, y, hoch=True, dicke=0.022, seg=44, dz=0.0):
-    t = (0.08 - y) / (ly + 0.08)
-    r = r_a + (r_e - r_a) * t
+    r = stulpe_r(ly, r_a, r_e, y)
     b.torus(name, (0, y, dz), r + dicke * 0.3, dicke, skal=(1, 0.62, 1), dreh=Matrix.Rotation(math.pi / 2, 3, "X"), seg=seg, ring=7)
 
 
 def stulpen_stiche(b, name, ly, r_a, r_e, y, abstand, groesse, rng=None, hub=0.0):
-    t = (0.08 - y) / (ly + 0.08)
-    r = r_a + (r_e - r_a) * t
+    r = stulpe_r(ly, r_a, r_e, y)
     pfad = [Vector((r * math.cos(w), y, r * math.sin(w) * 0.62 + 0.012)) for w in np.linspace(0.0, math.pi, 26)]
     b.naht(name, pfad, abstand, groesse, hub, rng)
 
@@ -432,7 +526,7 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
         stulpenband(b, "gold", ly, r_a, r_e, -ly + 0.12, dicke=0.011)
         # schlichter Ring am Ringfinger
         p0, p1, r0, r1, d = ring_gl
-        ring(b, p0 + d * 0.15, d, r0 * 1.03, "gold", 0.055)
+        ring(b, p0 + d * 0.15, d, r0 * 0.97, "gold", 0.055)
     else:
         # 5 und 6: Samt mit Goldstickerei
         for r_ in rippen:
@@ -450,19 +544,18 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
             b.perlen("gold", pf, 0.04, 0.011)
         # Goldlinie über den Fingern
         for kette in (fin["zeige"], fin["mittel"], fin["ring"], fin["klein"]):
-            pf = [p + Vector((0, 0, rr * 0.98)) for (p, q_, rr, r1, d) in kette] + [kette[-1][1] + Vector((0, 0, kette[-1][3] * 0.9))]
+            pf = [p + Vector((0, 0, rr * 0.80 * 1.0)) for (p, q_, rr, r1, d) in kette] + [kette[-1][1] + Vector((0, 0, kette[-1][3] * 0.72))]
             b.perlen("gold", pf, 0.045, 0.009)
         # Siegelring am Ringfinger
         p0, p1, r0, r1, d = ring_gl
-        ring(b, p0 + d * 0.15, d, r0 * 1.03, "gold", 0.06)
+        ring(b, p0 + d * 0.15, d, r0 * 0.97, "gold", 0.06)
         q = Vector((0, 1, 0)).rotation_difference(d).to_matrix()
         b.quader("gold", p0 + d * 0.15 + Vector((0, 0, r0 * 1.0)), (0.10, 0.12, 0.04), q)
         b.kugel("stein", p0 + d * 0.15 + Vector((0, 0, r0 * 1.0 + 0.022)), 0.034, (1, 1.1, 0.7), q, seg=10)
         if stufe == 6:
             # Hermelinpelz an der Stulpe: dick, hell, mit dunklen Schwänzchen; steht über den Rand
             y0 = -ly - 0.02
-            t = (0.08 - y0) / (ly + 0.08)
-            rr = r_a + (r_e - r_a) * t
+            rr = stulpe_r(ly, r_a, r_e, y0)
             for lage, (dy, n, rad) in enumerate(((0.0, 56, 0.095), (0.12, 50, 0.09))):
                 for k in range(n):
                     w = 2 * math.pi * (k + 0.5 * lage) / n + rng.uniform(-0.04, 0.04)
@@ -474,10 +567,8 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
             for kette in (fin["zeige"], fin["mittel"], fin["ring"], fin["klein"]):
                 for gl in kette[:2]:
                     p0, p1, r0, r1, d = gl
-                    ring(b, p0 + d * (p1 - p0).length * 0.5, d, r1 * 1.05, "gold", 0.07)
-                p0, p1, r0, r1, d = kette[-1]
-                b.kegel("gold", p0 + d * 0.0, p1, r0 * 1.06, r1 * 1.06, seg=14, kappen=False)
-                b.kugel("gold", p1, r1 * 1.06, seg=14)
+                    ring(b, p0 + d * (p1 - p0).length * 0.5, d, r1 * 0.93, "gold", 0.07)
+                sweep(b, "gold", kette, von=len(kette) - 1, skal=1.07, wulst=0.0)
             p0, p1, r0, r1, d = fin["klein"][0]
             b.kugel("stein", p0 + d * 0.11 + Vector((0, 0, r0 * 1.1)), 0.04, (1, 1, 0.8), seg=10)
             p0, p1, r0, r1, d = dau[0]
