@@ -59,7 +59,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Richtung der Streifen einer neuen Feldfläche: parallel zu ihrer längsten Kante (Grad wie <c>Rotation.Y</c>, 0 bis unter 180) – so
+    /// Die Richtung der Streifen einer neuen Feldfläche: parallel zu ihrer längsten Kante, auf die nächste Weltachse gerundet (0 oder 90 Grad wie <c>Rotation.Y</c>) – so
     /// laufen die Furchen längs des Feldes, wie ein Bauer sie pflügt.
     /// </summary>
     internal static double FeldRichtungVon(IReadOnlyList<Kartenort> ecken)
@@ -73,7 +73,7 @@ public partial class Stadtansicht
             laengste = laenge;
             richtung = Math.Atan2(b.X - a.X, b.Z - a.Z) * 180 / Math.PI; // die lokale z-Achse zeigt bei Drehung t nach (sin t, cos t)
         }
-        return Math.Round(((richtung % 180) + 180) % 180);
+        return FeldVerteilung.Achsrichtung(richtung) % 180; // 0 oder 90: Furchen laufen an den Weltachsen wie die Gebäude
     }
 
     /// <summary>Boden, Dunst und Kartenrand nach einer Änderung am Kopf der Karte neu (aus <see cref="Nachziehen"/>).</summary>

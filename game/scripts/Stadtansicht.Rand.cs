@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Godot;
 using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
@@ -335,6 +336,9 @@ public partial class Stadtansicht
     /// </summary>
     private const float FeldZelle = 3f, FeldHoeheAmHang = 0.1f;
 
+    /// <summary>Abstand der Furchen (Meter, Halbstreifen: halb so breit; acker.gdshader <c>abstand</c>) und Höhe der Kämme über den Furchen (<c>kamm</c>).</summary>
+    private const float FeldFurchenAbstand = 0.8f, FeldKammHoehe = 0.14f;
+
     /// <summary>
     /// Baut die Äcker unter <paramref name="eltern"/>: je Frucht ein Netz mit dem Material der Frucht. Die Stücke des Kerns (mit „bis zum Rand“,
     /// <see cref="FeldVerteilung.Flaeche"/>) liegen zum Teil über den Rand ihrer Feldfläche hinaus; jede Zelle (auf Gelände bis <see cref="FeldZelle"/> m,
@@ -347,14 +351,13 @@ public partial class Stadtansicht
     {
         var polygone = umrisse.Select(u => u.Where(p => p is { Length: 2 }).Select(p => new Vector2((float)p[0], (float)p[1])).ToArray()).Where(u => u.Length >= 3).ToList();
         var rahmen = polygone.Select(pg => { var r = new Rect2(pg[0], Vector2.Zero); foreach (var q in pg) r = r.Expand(q); return r; }).ToList();
+        var maske = new Feldmaske(parzellen, polygone); // wo wirklich Acker liegt und der Abstand zu seinem Rand
         var sperr = new List<(Vector2 Mitte, float Drehung, Vector2 Halb)>(); // wo kein Gras steht (Stadtansicht.Gras.cs)
         foreach (var gruppe in parzellen.GroupBy(p => p.Frucht))
         {
-            var ecken = new List<Vector3>();
-            var uv = new List<Vector2>();
-            var uv2 = new List<Vector2>();
-            var farben = new List<Color>();
-            var indizes = new List<int>();
+            // Erst werden die Teile (Vielecke in der Welt) gesammelt, danach rechnen alle Prozessorkerne ihre Ecken (Abstand zum Rand, Höhe, Normale): Das war der Löwenanteil der Ladezeit.
+            var teile = new List<(Vector2[] Stueck, int Nr)>();
+            var infos = new List<(Vector2 Mitte, float Winkel, Basis Zurueck, Color Farbstich)>();
             foreach (var p in gruppe)
             {
                 var (b, l) = ((float)p.Breite / 2, (float)p.Laenge / 2);
@@ -365,56 +368,121 @@ public partial class Stadtansicht
                 // Farbstich aus Ort und Variante: gleiche Karte, gleiche Äcker (kein Zufall je Start)
                 var stich = 0.94f + 0.04f * ((p.Variante - 1) % 4) + 0.02f * Mathf.PosMod((float)(p.X * 0.071 - p.Z * 0.053), 1f);
                 var farbstich = new Color(stich, stich, stich * (p.Variante % 2 == 0 ? 1.02f : 0.97f), Mathf.Min(1f, b / 16f)); // Alpha: halbe Breite für die Furchen am Rand
-                // Auf flachem Boden eine Zelle je Stück; auf Gelände ein Gitter mit Zellen bis FeldZelle Meter, jede Ecke auf dem Boden
-                var (nx, nz) = BodenBewegt ? (Mathf.Max(1, Mathf.CeilToInt(2 * b / FeldZelle)), Mathf.Max(1, Mathf.CeilToInt(2 * l / FeldZelle))) : (1, 1);
-                var (minL, maxL) = (new Vector2(float.MaxValue, float.MaxValue), new Vector2(float.MinValue, float.MinValue));
+                var nr = infos.Count;
+                infos.Add((mitte, winkel, zurueck, farbstich));
+
+                void Teil(Vector2[] stueck) => teile.Add((stueck, nr));
+                Vector2 Welt(float lx, float lz) { var w = basis * new Vector3(lx, 0, lz); return mitte + new Vector2(w.X, w.Z); }
+
+                // Quer zum Stück liegt an jeder Furche und jedem Kamm eine Kante (Halbstreifen, acker.gdshader hebt die Kämme); auf Gelände längs Zellen bis FeldZelle Meter.
+                // Grobe Zellen (mehrere Halbstreifen, bis FeldZelle breit) werden an den Rand der Feldflächen zugeschnitten; was ganz drin liegt, teilt sich ohne Schnitt.
+                var anzahl = Mathf.Max(1, Mathf.RoundToInt(2 * b / FeldFurchenAbstand));
+                var halbe = 2 * anzahl;
+                var breiteHalb = 2 * b / halbe;
+                var gruppeBreite = Mathf.Max(1, Mathf.RoundToInt(FeldZelle / breiteHalb));
+                var nz = BodenBewegt ? Mathf.Max(1, Mathf.CeilToInt(2 * l / FeldZelle)) : 1;
                 for (var iz = 0; iz < nz; iz++)
-                    for (var ix = 0; ix < nx; ix++)
+                {
+                    var (v0, v1) = (-l + 2 * l * iz / nz, -l + 2 * l * (iz + 1) / nz);
+                    for (var i0 = 0; i0 < halbe; i0 += gruppeBreite)
                     {
-                        var zelle = new Vector2[4];
-                        var lokal = new[] { (ix, iz), (ix + 1, iz), (ix + 1, iz + 1), (ix, iz + 1) };
-                        for (var k = 0; k < 4; k++)
+                        var i1 = Mathf.Min(halbe, i0 + gruppeBreite);
+                        var (u0, u1) = (-b + breiteHalb * i0, i1 == halbe ? b : -b + breiteHalb * i1);
+                        var zelle = new[] { Welt(u0, v0), Welt(u1, v0), Welt(u1, v1), Welt(u0, v1) };
+                        foreach (var (stueck, ganz) in FeldZelleZuschneiden(zelle, polygone, rahmen))
                         {
-                            var e = new Vector2(-b + 2 * b * lokal[k].Item1 / nx, -l + 2 * l * lokal[k].Item2 / nz);
-                            var welt = basis * new Vector3(e.X, 0, e.Y);
-                            zelle[k] = mitte + new Vector2(welt.X, welt.Z);
-                        }
-                        foreach (var stueck in FeldZelleZuschneiden(zelle, polygone, rahmen))
-                        {
-                            var dreiecke = Geometry2D.TriangulatePolygon(stueck);
-                            if (dreiecke.Length < 3) continue;
-                            var anfang = ecken.Count;
-                            foreach (var q in stueck)
+                            if (ganz)
                             {
-                                var rand = FeldRandabstand(q, polygone);
-                                ecken.Add(new Vector3(q.X, BodenHoehe(q.X, q.Y) + (BodenBewegt ? FeldHoeheAmHang : FeldHoehe), q.Y));
-                                var e3 = zurueck * new Vector3(q.X - mitte.X, 0, q.Y - mitte.Y);
-                                uv.Add(new Vector2(e3.X, e3.Z));
-                                uv2.Add(new Vector2(winkel, rand));
-                                farben.Add(farbstich);
-                                minL = new Vector2(Mathf.Min(minL.X, e3.X), Mathf.Min(minL.Y, e3.Z));
-                                maxL = new Vector2(Mathf.Max(maxL.X, e3.X), Mathf.Max(maxL.Y, e3.Z));
+                                for (var i = i0; i < i1; i++)
+                                {
+                                    var (ua, ub) = (-b + breiteHalb * i, i + 1 == halbe ? b : -b + breiteHalb * (i + 1));
+                                    Teil(new[] { Welt(ua, v0), Welt(ub, v0), Welt(ub, v1), Welt(ua, v1) });
+                                }
+                                continue;
                             }
-                            for (var t = 0; t + 2 < dreiecke.Length; t += 3)
+                            // zugeschnittenes Stück: in die Halbstreifen teilen, die es berührt
+                            var lokal = stueck.Select(q => { var e3 = zurueck * new Vector3(q.X - mitte.X, 0, q.Y - mitte.Y); return new Vector2(e3.X, e3.Z); }).ToArray();
+                            var (lo, hi) = (lokal.Min(q => q.X), lokal.Max(q => q.X));
+                            var (ia, ib) = (Mathf.Clamp(Mathf.FloorToInt((lo + b) / breiteHalb), i0, i1 - 1), Mathf.Clamp(Mathf.FloorToInt((hi + b) / breiteHalb), i0, i1 - 1));
+                            if (ia == ib) { Teil(stueck); continue; }
+                            for (var i = ia; i <= ib; i++)
                             {
-                                int i0 = anfang + dreiecke[t], i1 = anfang + dreiecke[t + 1], i2 = anfang + dreiecke[t + 2];
-                                var gegen = (new Vector2(ecken[i1].X, ecken[i1].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)).Cross(new Vector2(ecken[i2].X, ecken[i2].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)) >= 0;
-                                indizes.AddRange(gegen ? new[] { i0, i1, i2 } : new[] { i0, i2, i1 }); // Vorderseite nach oben
+                                var (ua, ub) = (i == i0 ? -1e4f : -b + breiteHalb * i, i == i1 - 1 ? 1e4f : -b + breiteHalb * (i + 1));
+                                var streifen = new[] { new Vector2(ua, -1e4f), new Vector2(ub, -1e4f), new Vector2(ub, 1e4f), new Vector2(ua, 1e4f) };
+                                foreach (var teil in Geometry2D.IntersectPolygons(lokal, streifen))
+                                    if (teil.Length >= 3 && !Geometry2D.IsPolygonClockwise(teil)) Teil(teil.Select(q => Welt(q.X, q.Y)).ToArray());
                             }
                         }
                     }
-                if (minL.X <= maxL.X) // das Stück nach dem Zuschneiden: ein gedrehtes Rechteck für den Grasteppich
-                {
-                    var mitteL = (minL + maxL) / 2;
-                    var weltM = basis * new Vector3(mitteL.X, 0, mitteL.Y);
-                    sperr.Add((mitte + new Vector2(weltM.X, weltM.Z), winkel, (maxL - minL) / 2));
                 }
             }
-            if (ecken.Count == 0) continue;
+            if (teile.Count == 0) continue;
+            var hoehe0 = BodenHoehe(0, 0); BodenNormale(0, 0); // Gelände einmal im Hauptfaden anfragen (rechnet seine Höhen bei Bedarf), danach lesen es alle Fäden nur
+            var fuss = BodenBewegt ? FeldHoeheAmHang : FeldHoehe;
+            var teilDaten = new (Vector3[] Ecken, Vector3[] Normalen, Vector2[] Uv, Vector2[] Uv2, int[] Indizes)[teile.Count];
+            Parallel.For(0, teile.Count, t =>
+            {
+                var (stueck, nr) = teile[t];
+                var (mitte, winkel, zurueck, farbstich) = infos[nr];
+                var e = new Vector3[stueck.Length];
+                var nm = new Vector3[stueck.Length];
+                var u = new Vector2[stueck.Length];
+                var u2 = new Vector2[stueck.Length];
+                for (var i = 0; i < stueck.Length; i++)
+                {
+                    var q = stueck[i];
+                    e[i] = new Vector3(q.X, BodenHoehe(q.X, q.Y) + fuss, q.Y);
+                    nm[i] = BodenNormale(q.X, q.Y);
+                    var e3 = zurueck * new Vector3(q.X - mitte.X, 0, q.Y - mitte.Y);
+                    u[i] = new Vector2(e3.X, e3.Z);
+                    u2[i] = new Vector2(winkel, Mathf.Clamp(maske.Abstand(q.X, q.Y), 0f, FeldRandMax));
+                }
+                teilDaten[t] = (e, nm, u, u2, stueck.Length == 4 ? new[] { 0, 1, 2, 0, 2, 3 } : Array.Empty<int>());
+            });
+            var ecken = new List<Vector3>();
+            var normalen = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var uv2 = new List<Vector2>();
+            var farben = new List<Color>();
+            var indizes = new List<int>();
+            var grenzen = new (Vector2 Min, Vector2 Max)[infos.Count];
+            for (var i = 0; i < grenzen.Length; i++) grenzen[i] = (new Vector2(float.MaxValue, float.MaxValue), new Vector2(float.MinValue, float.MinValue));
+            for (var t = 0; t < teile.Count; t++)
+            {
+                var (e, nm, u, u2, idx) = teilDaten[t];
+                var nr = teile[t].Nr;
+                var anfang = ecken.Count;
+                if (idx.Length == 0) // kein Viereck: Godot zerlegt das Vieleck (Hauptfaden)
+                {
+                    idx = Geometry2D.TriangulatePolygon(teile[t].Stueck);
+                    if (idx.Length < 3) continue;
+                }
+                ecken.AddRange(e); normalen.AddRange(nm); uv.AddRange(u); uv2.AddRange(u2);
+                for (var i = 0; i < e.Length; i++)
+                {
+                    farben.Add(infos[nr].Farbstich);
+                    grenzen[nr] = (new Vector2(Mathf.Min(grenzen[nr].Min.X, u[i].X), Mathf.Min(grenzen[nr].Min.Y, u[i].Y)), new Vector2(Mathf.Max(grenzen[nr].Max.X, u[i].X), Mathf.Max(grenzen[nr].Max.Y, u[i].Y)));
+                }
+                for (var k = 0; k + 2 < idx.Length; k += 3)
+                {
+                    int i0 = anfang + idx[k], i1 = anfang + idx[k + 1], i2 = anfang + idx[k + 2];
+                    var gegen = (new Vector2(ecken[i1].X, ecken[i1].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)).Cross(new Vector2(ecken[i2].X, ecken[i2].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)) >= 0;
+                    indizes.AddRange(gegen ? new[] { i0, i1, i2 } : new[] { i0, i2, i1 });
+                }
+            }
+            for (var nr = 0; nr < grenzen.Length; nr++) // das Stück nach dem Zuschneiden: ein gedrehtes Rechteck für den Grasteppich
+            {
+                var (minL, maxL) = grenzen[nr];
+                if (minL.X > maxL.X) continue;
+                var (mitte, winkel, _, _) = infos[nr];
+                var mitteL = (minL + maxL) / 2;
+                var weltM = new Basis(Vector3.Up, winkel) * new Vector3(mitteL.X, 0, mitteL.Y);
+                sperr.Add((mitte + new Vector2(weltM.X, weltM.Z), winkel, (maxL - minL) / 2));
+            }
             var arrays = new Godot.Collections.Array();
             arrays.Resize((int)Mesh.ArrayType.Max);
             arrays[(int)Mesh.ArrayType.Vertex] = ecken.ToArray();
-            arrays[(int)Mesh.ArrayType.Normal] = ecken.Select(e => BodenNormale(e.X, e.Z)).ToArray();
+            arrays[(int)Mesh.ArrayType.Normal] = normalen.ToArray();
             arrays[(int)Mesh.ArrayType.TexUV] = uv.ToArray();
             arrays[(int)Mesh.ArrayType.TexUV2] = uv2.ToArray();
             arrays[(int)Mesh.ArrayType.Color] = farben.ToArray();
@@ -427,13 +495,14 @@ public partial class Stadtansicht
             });
         }
         GrasAeckerMelden(eltern, sperr); // über Äckern kein Grasteppich (Stadtansicht.Gras.cs)
+        FeldPflanzenSetzen(parzellen, maske, eltern); // Pflanzen in den Reihen (Stadtansicht.Feldpflanzen.cs)
     }
 
     /// <summary>
     /// Die Zelle (vier Ecken in der Welt) gerade an den Rand der Feldflächen geschnitten: die Teile in der Fläche, jedes ein Vieleck. Eine Zelle, die
     /// ganz in einer Fläche liegt (alle Ecken drin, keine Ecke der Fläche in der Zelle), bleibt unverändert.
     /// </summary>
-    private static IEnumerable<Vector2[]> FeldZelleZuschneiden(Vector2[] zelle, List<Vector2[]> polygone, List<Rect2> rahmen)
+    private static IEnumerable<(Vector2[] Teil, bool Ganz)> FeldZelleZuschneiden(Vector2[] zelle, List<Vector2[]> polygone, List<Rect2> rahmen)
     {
         var box = new Rect2(zelle[0], Vector2.Zero);
         foreach (var q in zelle) box = box.Expand(q);
@@ -441,23 +510,13 @@ public partial class Stadtansicht
         {
             if (!rahmen[i].Intersects(box, true)) continue;
             var pg = polygone[i];
-            if (zelle.All(q => Geometry2D.IsPointInPolygon(q, pg)) && !pg.Any(q => box.HasPoint(q))) { yield return zelle; yield break; }
+            if (zelle.All(q => Geometry2D.IsPointInPolygon(q, pg)) && !pg.Any(q => box.HasPoint(q))) { yield return (zelle, true); yield break; }
             foreach (var teil in Geometry2D.IntersectPolygons(zelle, pg))
-                if (teil.Length >= 3 && !Geometry2D.IsPolygonClockwise(teil)) yield return teil; // Löcher (im Uhrzeigersinn) zeichnet niemand
+                if (teil.Length >= 3 && !Geometry2D.IsPolygonClockwise(teil)) yield return (teil, false); // Löcher (im Uhrzeigersinn) zeichnet niemand
         }
     }
 
-    /// <summary>Abstand eines Punktes zum nächsten Rand einer Feldfläche in Metern (höchstens <see cref="FeldRandMax"/>).</summary>
-    private static float FeldRandabstand(Vector2 q, List<Vector2[]> polygone)
-    {
-        var d = FeldRandMax;
-        foreach (var pg in polygone)
-            for (int i = 0, j = pg.Length - 1; i < pg.Length; j = i++)
-                d = Mathf.Min(d, AbstandZurStrecke(q, pg[j], pg[i]));
-        return d;
-    }
-
-    /// <summary>Weiter als so viel (Meter) vom Rand weg zählt der Abstand nicht mehr (der Feldrain im Shader ist schmaler).</summary>
+    /// <summary>Weiter als so viel (Meter) vom Rand des Ackers (<see cref="Feldmaske"/>) weg zählt der Abstand nicht mehr (der Feldrain im Shader ist schmaler).</summary>
     private const float FeldRandMax = 4f;
 
     /// <summary>Die Äcker der Karte im Spiel (Kern: <see cref="FeldVerteilung.Alle"/>), alle in einem Knoten.</summary>

@@ -226,8 +226,12 @@ static class KartengrenzenTests
             e.FeldFruechteSetzen(feld, new Dictionary<string, double> { ["flachs"] = 1, ["roggen"] = 0 });
             Pruefe.Wahr(e.FelderVon(feld, e.Freiraum()).All(a => a.Frucht == "flachs") && feld.Fruechte.Count == 1, "nur Flachs");
             Pruefe.WirftMitMeldung(() => e.FeldFruechteSetzen(feld, new Dictionary<string, double> { ["mais"] = 1 }), "mais");
+            // Schiefe Richtungen laufen an den Weltachsen (Nutzer, 04.11.2026): auf das nächste Vielfache von 90 Grad gerundet
             e.FeldRichtungSetzen(feld, 30);
-            Pruefe.Wahr(e.FelderVon(feld, e.Freiraum()).All(a => a.Drehung == 30), "gedreht");
+            Pruefe.Wahr(e.FelderVon(feld, e.Freiraum()).All(a => a.Drehung == 0), "30 Grad läuft an der Achse 0");
+            e.FeldRichtungSetzen(feld, 85);
+            Pruefe.Wahr(e.FelderVon(feld, e.Freiraum()).All(a => a.Drehung == 90), "85 Grad läuft an der Achse 90");
+            Pruefe.Gleich((0.0, 90.0, 180.0, 270.0, 0.0), (FeldVerteilung.Achsrichtung(-10), FeldVerteilung.Achsrichtung(95), FeldVerteilung.Achsrichtung(177.3), FeldVerteilung.Achsrichtung(266.8), FeldVerteilung.Achsrichtung(358)));
             e.FeldStreifenSetzen(feld, 1, 500);
             Pruefe.Gleich((FeldVerteilung.StreifenMin, FeldVerteilung.LaengeMax), (feld.Streifen, feld.Laenge));
             Pruefe.Gleich(0, e.AussparungAnlegen(feld, Rechteck(-400, -400, -350, -350)));
