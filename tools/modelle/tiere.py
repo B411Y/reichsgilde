@@ -1,9 +1,9 @@
-"""Tiere der Stadt und des Umlands: Krähe, Huhn (drei Farben), Hahn, Hund und Katze mit Skelett und Bewegungen.
+"""Tiere der Stadt und des Umlands: Krähe, Huhn (drei Farben), Hahn, Hund und Katze (je drei Farben) mit Skelett und Bewegungen.
 
     blender -b --python tools/modelle/tiere.py -- [--schnell] [--ohne-bilder] [--nur=hund,katze]
 
 Schreibt game/assets/modelle/tiere/vogel_kraehe.glb, tier_huhn_braun.glb, tier_huhn_weiss.glb, tier_huhn_gesprenkelt.glb,
-tier_hahn.glb, tier_hund.glb, tier_katze.glb und die Vorschau docs/modelle/tiere.png. Die Krähe baut voegel.py (Rumpf, Flügel,
+tier_hahn.glb, tier_hund(_schwarz,_hell).glb, tier_katze(_schwarz,_gefleckt).glb und die Vorschau docs/modelle/tiere.png. Die Krähe baut voegel.py (Rumpf, Flügel,
 Skelett wie Taube und Spatz); hier steht nur ihr Aufruf. Alles andere ist hier gebaut, im selben Stil wie die Vögel:
 kantige Körper aus Ringen, jede Fläche einer Farbe (Gefieder, Fell, Streifen), Ursprung zwischen den Füßen, Blender Z oben,
 Blick nach -Y (im Spiel Y oben, Blick nach +Z), Meter-Maßstab, jedes Tier etwa 1,2- bis 1,5-fach vergrößert wie die Tauben.
@@ -33,15 +33,47 @@ bs.FARBEN.update({
     "Huhn weiss": (0.90, 0.88, 0.82), "Huhn weiss schatten": (0.78, 0.75, 0.68), "Huhn weiss hell": (0.95, 0.94, 0.90),
     "Huhn grau": (0.40, 0.33, 0.27), "Huhn grau hell": (0.56, 0.48, 0.39), "Huhn grau dunkel": (0.22, 0.18, 0.15),
     "Hahn rot": (0.62, 0.23, 0.09), "Hahn dunkel": (0.27, 0.11, 0.06), "Hahn gold": (0.88, 0.60, 0.14),
-    "Hahn gruen": (0.07, 0.24, 0.20), "Hahn kastanie": (0.45, 0.17, 0.07),
+    "Hahn gruen": (0.04, 0.15, 0.12), "Hahn kastanie": (0.45, 0.17, 0.07), "Hahn schwarz": (0.06, 0.12, 0.09),
     "Kamm": (0.76, 0.10, 0.10), "Huhn Bein": (0.84, 0.69, 0.28), "Huhn Schnabel": (0.86, 0.66, 0.24),
     "Hund": (0.58, 0.40, 0.22), "Hund dunkel": (0.34, 0.22, 0.12), "Hund hell": (0.84, 0.74, 0.56),
-    "Hund Nase": (0.10, 0.08, 0.07), "Hund Ohr": (0.30, 0.19, 0.11),
+    "Hund Nase": (0.10, 0.08, 0.07), "Hund Ohr": (0.42, 0.27, 0.15),
+    "Hund schwarz": (0.14, 0.13, 0.12), "Hund schwarz dunkel": (0.07, 0.065, 0.06), "Hund schwarz hell": (0.31, 0.27, 0.22),
+    "Hund schwarz Ohr": (0.10, 0.09, 0.085), "Hund schwarz Nase": (0.05, 0.05, 0.055),
+    "Hund hell Fell": (0.88, 0.79, 0.60), "Hund hell dunkel": (0.72, 0.60, 0.42), "Hund hell hell": (0.96, 0.92, 0.82),
+    "Hund hell Ohr": (0.74, 0.60, 0.41),
     "Katze": (0.62, 0.44, 0.26), "Katze dunkel": (0.40, 0.26, 0.14), "Katze hell": (0.90, 0.84, 0.74),
     "Katze Nase": (0.80, 0.50, 0.50), "Katze Auge": (0.60, 0.70, 0.20), "Pupille": (0.04, 0.04, 0.04),
+    "Katze schwarz": (0.09, 0.09, 0.10), "Katze schwarz dunkel": (0.045, 0.045, 0.05), "Katze schwarz hell": (0.15, 0.15, 0.16),
+    "Katze schwarz Nase": (0.30, 0.22, 0.23), "Katze schwarz Auge": (0.90, 0.76, 0.10),
+    "Katze weiss": (0.92, 0.90, 0.85), "Katze weiss hell": (0.96, 0.95, 0.91), "Katze Fleck": (0.07, 0.07, 0.08),
 })
 
 FPS = 24
+
+# Farbvarianten der Vierbeiner: Name des Grundstoffs -> Name des Stoffs der Variante (Knochen, Netz und Bewegungen bleiben gleich)
+VARIANTEN = {
+    ("hund", "schwarz"): {"Hund": "Hund schwarz", "Hund dunkel": "Hund schwarz dunkel", "Hund hell": "Hund schwarz hell",
+                          "Hund Ohr": "Hund schwarz Ohr", "Hund Nase": "Hund schwarz Nase"},
+    ("hund", "hell"): {"Hund": "Hund hell Fell", "Hund dunkel": "Hund hell dunkel", "Hund hell": "Hund hell hell",
+                       "Hund Ohr": "Hund hell Ohr"},
+    ("katze", "schwarz"): {"Katze": "Katze schwarz", "Katze dunkel": "Katze schwarz dunkel", "Katze hell": "Katze schwarz hell",
+                           "Katze Nase": "Katze schwarz Nase", "Katze Auge": "Katze schwarz Auge"},
+    ("katze", "gefleckt"): {"Katze": "Katze weiss", "Katze hell": "Katze weiss hell", "Katze dunkel": "Katze Fleck"},
+}
+
+
+class Abbild:
+    """Stoffe mit Ersatznamen: st["Hund"] liefert bei einer Variante den Stoff der Variante."""
+
+    def __init__(self, st, karte):
+        self.st, self.karte = st, karte
+
+    def __getitem__(self, name):
+        return self.st[self.karte.get(name, name)]
+
+
+def mit_variante(st, art, variante):
+    return Abbild(st, VARIANTEN[(art, variante)]) if variante else st
 
 
 def aus(grad):
@@ -216,6 +248,8 @@ def huhn_bauen(art, st, ske):
         def leib(i, kk, s, c):
             if i <= 2 and s < 0.5:
                 return "Hahn dunkel"                         # dunkle Brust
+            if i >= 8:
+                return "Hahn schwarz"                        # Rücken hinten geht in den Schwanz über
             return bauch if s < -0.35 else (farbe2 if (i * 5 + kk * 3) % 7 == 0 else farbe)
     else:
         def leib(i, kk, s, c):
@@ -271,7 +305,7 @@ def huhn_bauen(art, st, ske):
             # drei lange, nach hinten fallende Sichelfedern (je eine Kette aus drei Federn) und ein Fächer kastanienbrauner Federn dahinter
             for x, wi in ((-0.1, 48), (-0.05, 56), (0.05, 56), (0.1, 48)):
                 feder(n, st, w, Vector((x * 2, math.cos(math.radians(wi)), math.sin(math.radians(wi)))), 0.22 * k, 0.05 * k,
-                      "Hahn kastanie")
+                      "Hahn schwarz")
             for x, hoehe in ((-0.045, 0.0), (0.0, 0.03), (0.045, 0.0)):
                 p = w + Vector((x * k, 0.02 * k, hoehe * k))
                 for seg, (wi, laenge, br) in enumerate(((64, 0.17, 0.034), (26, 0.17, 0.036), (-14, 0.15, 0.03))):
@@ -410,7 +444,8 @@ def vierbeiner_skelett(art):
     return skelett(L)
 
 
-def hund_bauen(st, ske):
+def hund_bauen(st, ske, variante=None):
+    st = mit_variante(st, "hund", variante)
     k = TIERE4["hund"]["sf"]
     t = fg.Teile("Hund")
 
@@ -437,9 +472,11 @@ def hund_bauen(st, ske):
         n.quader(V(0, -0.615, 0.568), (0.052 * k, 0.03 * k, 0.036 * k), st["Hund Nase"])
         for s in (-1, 1):
             n.quader(V(s * 0.062, -0.485, 0.625), (0.016 * k, 0.034 * k, 0.03 * k), st["Auge"])
-            # Schlappohr: hängende Platte an der Kopfseite, nach außen geneigt
-            platte(n, st, [V(s * 0.07, -0.43, 0.655), V(s * 0.075, -0.37, 0.65), V(s * 0.115, -0.36, 0.52), V(s * 0.105, -0.42, 0.53)],
-                   (s, 0.1, 0.1), "Hund Ohr", 0.016 * k)
+            # Schlappohr: ein flacher, nach unten schmaler werdender Lappen, der außen am Kopf hängt und unten leicht abstehen
+            rohr(n, st, [(V(s * 0.072, -0.405, 0.655), 0.010 * k, 0.040 * k), (V(s * 0.092, -0.400, 0.600), 0.013 * k, 0.050 * k),
+                         (V(s * 0.112, -0.395, 0.540), 0.012 * k, 0.048 * k), (V(s * 0.126, -0.390, 0.490), 0.009 * k, 0.034 * k),
+                         (V(s * 0.132, -0.388, 0.455), 0.004 * k, 0.014 * k)], 6,
+                 lambda i, kk, ss, c: "Hund Ohr", kappen=(True, True))
     with t.an("Schwanz") as n:
         rohr(n, st, [(V(0, 0.32, 0.45), 0.048 * k, 0.048 * k), (V(0, 0.41, 0.49), 0.044 * k, 0.044 * k)], 5,
              lambda i, kk, s, c: "Hund", kappen=(False, False))
@@ -466,12 +503,22 @@ def beine_bauen(t, st, art, V, k, farbe, pfote, strumpf):
                  6, lambda i, kk, ss, c: farbe, kappen=(False, False))
         with t.an(f"Bein_{b}_u") as n:
             z0 = hoeh - d["oben"]
-            rohr(n, st, [(V(x, y, z0), 0.034 * k * dick, 0.036 * k * dick), (V(x, y, 0.03), 0.027 * k * dick, 0.03 * k * dick)], 6,
-                 lambda i, kk, ss, c: pfote if False else farbe, kappen=(False, False))
-            n.quader(V(x, y - 0.02, 0.016), (0.055 * k * dick, 0.085 * k * dick, 0.032 * k), st[pfote])
+            if hinten and art == "hund":
+                # Sprunggelenk: das Schienbein läuft nach hinten, die Mittelfußpartie wieder leicht nach vorn zur Pfote
+                zs = z0 - d["unten"] * 0.52
+                rohr(n, st, [(V(x, y, z0), 0.034 * k * dick, 0.036 * k * dick), (V(x, y + 0.045, zs), 0.032 * k * dick, 0.034 * k * dick),
+                             (V(x, y + 0.012, 0.03), 0.026 * k * dick, 0.03 * k * dick)], 6, lambda i, kk, ss, c: farbe, kappen=(False, False))
+                n.quader(V(x, y + 0.045, zs), (0.05 * k * dick, 0.05 * k * dick, 0.05 * k * dick), st[farbe])        # Knick des Sprunggelenks
+                n.quader(V(x, y - 0.008, 0.016), (0.055 * k * dick, 0.085 * k * dick, 0.032 * k), st[pfote])
+            else:
+                rohr(n, st, [(V(x, y, z0), 0.034 * k * dick, 0.036 * k * dick), (V(x, y, 0.03), 0.027 * k * dick, 0.03 * k * dick)], 6,
+                     lambda i, kk, ss, c: pfote if False else farbe, kappen=(False, False))
+                n.quader(V(x, y - 0.02, 0.016), (0.055 * k * dick, 0.085 * k * dick, 0.032 * k), st[pfote])
 
 
-def katze_bauen(st, ske):
+def katze_bauen(st, ske, variante=None):
+    st = mit_variante(st, "katze", variante)
+    gefleckt = variante == "gefleckt"
     k = TIERE4["katze"]["sf"]
     t = fg.Teile("Katze")
 
@@ -483,6 +530,8 @@ def katze_bauen(st, ske):
             return "Katze hell"
         if i <= 1:
             return "Katze hell"                                   # weiße Brust
+        if gefleckt:                                              # weiß mit schwarzen Flecken (Blöcke aus Ringen und Flächen)
+            return "Katze dunkel" if s > -0.35 and ((i // 2) * 3 + kk * 5) % 7 < 2 else "Katze"
         if s > -0.1 and i % 3 == 0 and i < 17:
             return "Katze dunkel"                                 # Tigerstreifen quer über den Rücken
         return "Katze"
@@ -492,24 +541,27 @@ def katze_bauen(st, ske):
                                              (V(0, 0.15, 0.215), 0.068 * k, 0.088 * k), (V(0, 0.22, 0.225), 0.04 * k, 0.05 * k)])), 8, leib)
     with t.an("Kopf") as n:
         rohr(n, st, [(V(0, -0.15, 0.255), 0.05 * k, 0.055 * k), (V(0, -0.20, 0.29), 0.045 * k, 0.05 * k)], 7,
-             lambda i, kk, s, c: "Katze hell" if s < -0.2 else "Katze", kappen=(False, False))
+             lambda i, kk, s, c: "Katze hell" if s < -0.2 else ("Katze dunkel" if gefleckt and c > 0.2 and s > 0.1 else "Katze"),
+             kappen=(False, False))
         rohr(n, st, [(V(0, -0.20, 0.30), 0.058 * k, 0.052 * k), (V(0, -0.235, 0.30), 0.062 * k, 0.054 * k),
                      (V(0, -0.275, 0.292), 0.04 * k, 0.04 * k)], 7,
-             lambda i, kk, s, c: "Katze hell" if s < -0.3 or i == 1 and abs(c) < 0.5 and s < 0.3 else "Katze", kappen=(False, True))
+             lambda i, kk, s, c: ("Katze dunkel" if gefleckt and c > 0.3 and s > 0.0 and i == 0 else
+                                  "Katze hell" if s < -0.3 or i == 1 and abs(c) < 0.5 and s < 0.3 else "Katze"), kappen=(False, True))
         n.quader(V(0, -0.285, 0.295), (0.022 * k, 0.012 * k, 0.016 * k), st["Katze Nase"])
         for s in (-1, 1):
             n.quader(V(s * 0.04, -0.26, 0.315), (0.012 * k, 0.026 * k, 0.026 * k), st["Katze Auge"])
             n.quader(V(s * 0.046, -0.26, 0.315), (0.008 * k, 0.012 * k, 0.026 * k), st["Pupille"])
-            platte(n, st, [V(s * 0.025, -0.20, 0.33), V(s * 0.065, -0.20, 0.335), V(s * 0.055, -0.20, 0.395)], (0, 1, 0), "Katze", 0.012 * k)
+            platte(n, st, [V(s * 0.025, -0.20, 0.33), V(s * 0.065, -0.20, 0.335), V(s * 0.055, -0.20, 0.395)], (0, 1, 0),
+                   "Katze dunkel" if gefleckt and s > 0 else "Katze", 0.012 * k)
             platte(n, st, [V(s * 0.033, -0.207, 0.338), V(s * 0.055, -0.207, 0.338), V(s * 0.05, -0.207, 0.375)], (0, 1, 0), "Katze Nase", 0.004 * k)
     with t.an("Schwanz") as n:
         rohr(n, st, [(V(0, 0.21, 0.225), 0.03 * k, 0.03 * k), (V(0, 0.29, 0.235), 0.028 * k, 0.028 * k),
                      (V(0, 0.36, 0.26), 0.026 * k, 0.026 * k)], 5,
-             lambda i, kk, s, c: "Katze dunkel" if i % 2 == 0 else "Katze", kappen=(False, False))
+             lambda i, kk, s, c: "Katze" if gefleckt else ("Katze dunkel" if i % 2 == 0 else "Katze"), kappen=(False, False))
     with t.an("Schwanz2") as n:
         rohr(n, st, [(V(0, 0.36, 0.26), 0.026 * k, 0.026 * k), (V(0, 0.42, 0.30), 0.024 * k, 0.024 * k),
                      (V(0, 0.45, 0.36), 0.02 * k, 0.02 * k)], 5,
-             lambda i, kk, s, c: "Katze dunkel" if i % 2 == 1 else "Katze", kappen=(False, True))
+             lambda i, kk, s, c: "Katze dunkel" if gefleckt or i % 2 == 1 else "Katze", kappen=(False, True))
     beine_bauen(t, st, "katze", V, k, "Katze", "Katze hell", "Katze dunkel")
     return t.objekt(ske)
 
@@ -661,10 +713,12 @@ def bewegungen(ob, bewegungen_, pose, ruhe, einmal=("Sprung",)):
 def alle_tiere():
     """[(Dateiname, Art, Familie)] in der Reihenfolge der Ausgabe."""
     return ([("vogel_kraehe", "kraehe", "vogel")] + [("tier_" + a, a, "huhn") for a in HUEHNER] +
-            [("tier_hund", "hund", "vier"), ("tier_katze", "katze", "vier")])
+            [("tier_hund", "hund", "vier"), ("tier_katze", "katze", "vier")] +
+            [("tier_hund_schwarz", "hund", "vier"), ("tier_hund_hell", "hund", "vier"),
+             ("tier_katze_schwarz", "katze", "vier"), ("tier_katze_gefleckt", "katze", "vier")])
 
 
-def bauen(art, familie, st):
+def bauen(art, familie, st, variante=None):
     """Skelett und Netz in die aktuelle Szene; gibt (Skelett, Netz) zurück."""
     if familie == "vogel":
         ske = vg.skelett(art)
@@ -673,7 +727,7 @@ def bauen(art, familie, st):
         ske = huhn_skelett(art)
         return ske, huhn_bauen(art, st, ske)
     ske = vierbeiner_skelett(art)
-    return ske, (hund_bauen(st, ske) if art == "hund" else katze_bauen(st, ske))
+    return ske, (hund_bauen(st, ske, variante) if art == "hund" else katze_bauen(st, ske, variante))
 
 
 def pose_fuer(ske, art, familie, name, ph):
@@ -703,7 +757,7 @@ def main():
             continue
         bs.neue_szene()
         st = bs.Stoffe()
-        ske, netz = bauen(art, familie, st)
+        ske, netz = bauen(art, familie, st, datei.split("_", 2)[2] if datei.count("_") >= 2 else None)
         anlegen(ske, art, familie)
         netz.data.calc_loop_triangles()
         bew = ([a.name for a in __import__("bpy").data.actions])
