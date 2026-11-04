@@ -236,7 +236,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Passanten: Straßenvolk in großen Städten (Branch phase5/mehr-passanten, PR folgt)
+### Passanten: Straßenvolk in großen Städten (PR #317)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
