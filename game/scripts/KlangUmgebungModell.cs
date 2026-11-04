@@ -391,7 +391,7 @@ public static class KlangUmgebungModell
             (h, b, tag) => Math.Max(1f - Glatt(5.0f, 5.4f, b), Glatt(20.5f, 21.0f, b)) * (1f - tag)),
         new("Amsel", "Amselstrophe am Abend", "amsel", 5, 8, 25, -14, -20, 90, 110, false,
             (h, b, tag) => Trapez(b, 17.5f, 18.2f, 20.0f, 20.8f)),
-        new("Pferd", "Pferd in der Gasse (Hufe auf Erde, Atmen), 8–20 Uhr", "pferd", 3, 40, 120, -4, -10, 70, 100, false,
+        new("Pferd", "Pferd in der Gasse (Hufe im Schritt auf Pflaster, leises Schnauben, selten fernes Wiehern), 8–20 Uhr", "pferd", 6, 60, 150, -12, -18, 70, 100, false,
             (h, b, tag) => Trapez(h, 7.5f, 8.0f, 19.5f, 20.0f)),
         new("Gefluegel", "Gänse und Hühner, 7–19 Uhr", "gefluegel", 4, 45, 150, -14, -20, 70, 100, false,
             (h, b, tag) => Trapez(h, 6.5f, 7.0f, 18.5f, 19.0f)),

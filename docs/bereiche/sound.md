@@ -183,3 +183,12 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 |---|---|
 | Klang | `glocken/glocke_sturm.ogg` (50 s, nahtlose Schleife): **Klangprobe A** (Wahl des Nutzers, 2.11.2026) – ein Schlag der großen Glocke Noteman (klankbeeld, CC BY 4.0, Namensnennung in `HERKUNFT.md` und im Protokoll), über 1,8 kHz gedämpft, abwechselnd um den Faktor 1,12 und 1,06 höher gesetzt (tiefer als die erste Fassung mit 1,5), ein Schlag alle 1,15–1,3 s; Werkzeug `tools/ton/glocke_sturm_bauen.py` (Blender, audaspace + numpy). Verworfen: die erste, hochgesetzte Noteman-Fassung (zu penetrant) und Klangprobe B aus dem Geläut des Kölner Doms (CC0). |
 | Wo, wann | Die nächste Kirche (Kirche, Dom, Kölner Dom; sonst der Markt) in 25 m Höhe, 5–9 s nach dem Einschlag, nur wenn es dann noch brennt; läutet als Schleife, bis kein Blitzfeuer mehr brennt, und klingt dann in 4 s aus. 3D (`AudioStreamPlayer3D` an der Stadt, Bus Umgebung, −4 dB, bis 45 m voll, dann leiser mit der Entfernung, Reichweite 1.000 m); verstummt beim Verlassen der Partie und beim Laden; nur ein Läuten zugleich. |
+
+### Pferdeklang ersetzt (nach Nutzerurteil, PR #…)
+
+| Frage | Entscheidung |
+|---|---|
+| Vorher | Drei 3,5-s-Ausschnitte aus „Paso Fino Horse“ (173159), vermutlich eine laute, nahe Aufnahme mit starkem Grundrauschen und Wiehern, auf −20 LUFS hochgezogen; die Rufart stand mit −4 dB nah und −10 dB fern 8–11 dB über allen anderen Tieren, Mittel 120 s. |
+| Jetzt | `rufe/pferd_1..6.ogg`: drei Stücke Hufe im Schritt auf Pflaster (437103 craigsmith), zwei leise Schnauber (437111 craigsmith), ein fernes weiches Wiehern (636554 L.Finck), alle CC0; −24 LUFS (Wiehern −26), Spitze höchstens −3 dBTP. |
+| Abspielwerte | `KlangUmgebungModell`: 6 Varianten, Pegel nah −12 dB, fern −18 dB, Mindestabstand 60 s, Mittel 150 s (vorher 3, −4, −10, 40, 120). Das wenig erwartbare Wiehern ist eine von sechs Dateien. |
+| Hörproben | Pflaster (eingebaut), Erde (479698 und 538697) und nur Schnauben/Wiehern lagen dem Teamleiter vor; Wahl des Nutzers steht aus. |

@@ -32,15 +32,6 @@
    "lizenz": "CC0 1.0",
    "lizenz_geprueft": "2026-10-30"
   },
-  "173159": {
-   "urheber": "AlecCorday",
-   "titel": "Paso Fino Horse",
-   "seite": "https://freesound.org/people/AlecCorday/sounds/173159/",
-   "vorschau": "https://cdn.freesound.org/previews/173/173159_1591616-hq.ogg",
-   "sha256": "a63618b798b572686273a16164bb7d968e971fae85ee46029b25a367b227bbbd",
-   "lizenz": "CC0 1.0",
-   "lizenz_geprueft": "2026-10-30"
-  },
   "149192": {
    "urheber": "videog",
    "titel": "geese honking",
@@ -364,6 +355,33 @@
    "sha256": "396f9819337d99a637d7e0793e109afc1026ab2d4e158495f5e6e34b4cf7f250",
    "lizenz": "CC0 1.0",
    "lizenz_geprueft": "2026-10-31"
+  },
+  "437103": {
+   "urheber": "craigsmith",
+   "titel": "G38-10-Horse Walks on Pavement.wav",
+   "seite": "https://freesound.org/people/craigsmith/sounds/437103/",
+   "vorschau": "https://cdn.freesound.org/previews/437/437103_2524442-hq.ogg",
+   "sha256": "ceb143cb9707f5ebb9dce7286d58c1b027fd65ac94cb34ed668abfffc16a008f",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-11-04"
+  },
+  "437111": {
+   "urheber": "craigsmith",
+   "titel": "G38-16-Four Horse Snorts.wav",
+   "seite": "https://freesound.org/people/craigsmith/sounds/437111/",
+   "vorschau": "https://cdn.freesound.org/previews/437/437111_2524442-hq.ogg",
+   "sha256": "d2a839381d6c1a5dacb339ac50c13b2aa9714deb8b50c31ec909b6bba1d7735e",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-11-04"
+  },
+  "636554": {
+   "urheber": "L.Finck",
+   "titel": "Whinnying horse-far away.WAV",
+   "seite": "https://freesound.org/people/L.Finck/sounds/636554/",
+   "vorschau": "https://cdn.freesound.org/previews/636/636554_14042309-hq.ogg",
+   "sha256": "8a9b5a961814a9ee0a599713161cb0675951a663bcd81a4d3c522ef13f5b02d9",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-11-04"
   }
  },
  "dateien": [
@@ -659,32 +677,80 @@
   {
    "name": "pferd_1",
    "art": "ruf",
-   "quelle": "173159",
-   "von": 1.0,
-   "bis": 4.5,
+   "quelle": "437103",
+   "von": 15.6,
+   "bis": 20.4,
    "hp": 120,
    "ein": 0.3,
-   "aus": 0.6
+   "aus": 0.6,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "Hufe im Schritt auf Pflaster (Craig Smith, 437103)"
   },
   {
    "name": "pferd_2",
    "art": "ruf",
-   "quelle": "173159",
-   "von": 5.0,
-   "bis": 8.5,
+   "quelle": "437103",
+   "von": 21.0,
+   "bis": 25.8,
    "hp": 120,
    "ein": 0.3,
-   "aus": 0.6
+   "aus": 0.6,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "Hufe im Schritt auf Pflaster (437103)"
   },
   {
    "name": "pferd_3",
    "art": "ruf",
-   "quelle": "173159",
-   "von": 10.0,
-   "bis": 13.5,
+   "quelle": "437103",
+   "von": 26.4,
+   "bis": 31.2,
    "hp": 120,
    "ein": 0.3,
-   "aus": 0.6
+   "aus": 0.6,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "Hufe im Schritt auf Pflaster (437103)"
+  },
+  {
+   "name": "pferd_4",
+   "art": "ruf",
+   "quelle": "437111",
+   "von": 1.8,
+   "bis": 3.0,
+   "hp": 120,
+   "ein": 0.15,
+   "aus": 0.5,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "leises Schnauben (437111)"
+  },
+  {
+   "name": "pferd_5",
+   "art": "ruf",
+   "quelle": "437111",
+   "von": 6.0,
+   "bis": 7.4,
+   "hp": 120,
+   "ein": 0.15,
+   "aus": 0.5,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "leises Schnauben (437111)"
+  },
+  {
+   "name": "pferd_6",
+   "art": "ruf",
+   "quelle": "636554",
+   "von": 4.3,
+   "bis": 6.3,
+   "hp": 200,
+   "ein": 0.3,
+   "aus": 0.6,
+   "ziel_lufs": -26,
+   "spitze": -3.0,
+   "zweck": "fernes, weiches Wiehern (L.Finck, 636554)"
   },
   {
    "name": "gefluegel_1",
