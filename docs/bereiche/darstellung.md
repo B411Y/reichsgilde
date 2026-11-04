@@ -426,7 +426,7 @@ Auftrag des Teamleiters 1.11.2026.
 | Plätze im Bild | Tooltip eines Gastes in der Schankstube nennt `Gastwirtschaft.Platzbelegung` („Plätze: x belegt / y frei“) und `Gaestebuch.Voll` („heute kein Platz für n Gäste“, ein Spieljahr ist ein Spieltag). Die Gäste selbst setzte das Modell-Raumgerüst schon aus `GaesteJetzt`; `GaesteSchaetzung` in `Stadtansicht.Innenraeume.cs` (nur noch der Ersatzraum ohne Modell) rechnet jetzt ebenfalls mit `Platzbelegung`. | 02.11.2026 |
 | Startoption | `--vorrat=Ware:Menge,…` (mit `--entwickler=1`) legt Ware ins Lager der ersten eigenen Werkstatt, damit eine Schänke im Klicktest Gäste hat. | 02.11.2026 |
 
-### Tiere: Hühner, Hunde, Katzen und Krähen (Branch phase5/tiere, PR folgt)
+### Tiere: Hühner, Hunde, Katzen und Krähen (Branch phase5/tiere)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
