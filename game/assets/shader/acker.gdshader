@@ -38,7 +38,8 @@ void vertex() {
 	float pixel = groesse / VIEWPORT_SIZE.y;
 	kammf = 1.0 - smoothstep(0.16, 0.30, pixel);
 	float f = fract(furchenphase(UV.x, COLOR.a * 16.0));
-	VERTEX.y += kammhoehe * kammf * (1.0 - abs(2.0 * f - 1.0));
+	// zum Rand der Feldfläche (UV2.y = Abstand in Metern) werden die Kämme flacher und laufen aus (die Pflanzen folgen, feldpflanzen.gdshader)
+	VERTEX.y += kammhoehe * kammf * (1.0 - abs(2.0 * f - 1.0)) * (1.0 - 0.85 * (1.0 - smoothstep(0.1, 1.9, UV2.y)));
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
@@ -71,21 +72,21 @@ void fragment() {
 	float flecken = rausch(welt.xz * 0.11);
 	float schollen = rausch(welt.xz * 0.8);
 	float koernung = rausch(welt.xz * 5.5);
-	float unruhe = 0.5 * flecken + 0.3 * schollen + 0.2 * koernung;
+	float unruhe = 0.55 * flecken + 0.32 * schollen + 0.13 * koernung; // wenig Feinkörnung: sie flimmert im Pixel-Look als Rauschen
 
 	// Der Bewuchs sitzt auf den Kämmen, in den Furchen schaut die Erde heraus; Flecken lassen ihn dichter oder lichter stehen
 	vec4 j = jahreszeit_anteile;
 	vec3 reif = farbe * COLOR.rgb;
 	vec3 saat = mix(reif, vec3(0.34, 0.5, 0.2) * COLOR.rgb, 0.85);                          // Frühling: junge Saat
-	vec3 stoppel = vec3(0.66, 0.58, 0.38) * COLOR.rgb * (0.88 + 0.24 * rausch(welt.xz * 9.0)); // Herbst: Stoppeln, fein gestreut
+	vec3 stoppel = vec3(0.78, 0.67, 0.40) * COLOR.rgb * (0.94 + 0.12 * rausch(welt.xz * 6.0)); // Herbst: helles Stroh, fein gestreut
 	vec3 frucht = (saat * j.x + reif * j.y + stoppel * j.z + reif * j.w) / max(j.x + j.y + j.z + j.w, 0.0001);
-	float bew = bewuchs * (0.72 * j.x + j.y + 0.6 * j.z + j.w);
-	float dicht = clamp(bew + furchen * 0.26 * welle + 0.55 * (unruhe - 0.5), 0.0, 1.0);
+	float bew = bewuchs * (0.72 * j.x + 1.15 * j.y + 0.8 * j.z + j.w);
+	float dicht = clamp(bew + furchen * 0.18 * welle + 0.4 * (unruhe - 0.5), 0.0, 1.0);
 	vec3 boden = mix(erde * 0.85, erde * 1.15, schollen);
 	vec3 grund = mix(boden, frucht, dicht);
 	// Furchen im Licht: Kämme etwas heller, Furchen dunkler
-	grund *= 1.0 + furchen * 0.12 * welle;
-	grund *= 0.90 + 0.20 * unruhe;
+	grund *= 1.0 + furchen * 0.08 * welle;
+	grund *= 0.94 + 0.12 * unruhe;
 	grund = mix(grund, boden * 0.85, j.w);
 	float rau = 1.0;
 	if (wetter_naesse > 0.001) {
@@ -95,11 +96,14 @@ void fragment() {
 	// Schnee: in den Furchen bleibt er länger liegen als auf den Kämmen
 	float schnee = clamp(schnee_decke(welt.xz, 1.0) * (1.0 - 0.35 * max(welle, 0.0)), 0.0, 1.0);
 	// Feldrain: außen Gras und Erde statt Frucht, ganz außen durchsichtig (Kante mit Rauschen, nie eine Linie)
-	float rd = UV2.y + (rausch(welt.xz * 1.1) - 0.5) * 0.9 + (koernung - 0.5) * 0.25;
-	float rain = 1.0 - smoothstep(0.35, 1.9, rd);
-	vec3 rainfarbe = mix(boden * 0.9, vec3(0.27, 0.33, 0.15) * (0.85 + 0.3 * schollen), smoothstep(0.1, 0.9, schollen + 0.25 * rain));
-	grund = mix(grund, rainfarbe, rain * 0.85);
-	float deckung = smoothstep(0.0, 0.85, rd);
+	// Der Abstand wird von zwei Rauschen verschoben (groß: Buchten, klein: Fransen): Die Fläche läuft in Wiese und Erde aus, ohne gerade Linie.
+	// Die Kante des Netzes (UV2.y = 0) ist dabei immer ganz durchsichtig: Das Rauschen streckt und staucht nur den Weg dorthin.
+	float nah = clamp(UV2.y * 2.0, 0.0, 1.0);
+	float rd = UV2.y * (0.55 + 0.9 * rausch(welt.xz * 0.3)) + (rausch(welt.xz * 1.3) - 0.5) * 0.8 * nah + (koernung - 0.5) * 0.15 * nah;
+	float rain = 1.0 - smoothstep(0.2, 2.0, rd);
+	vec3 rainfarbe = mix(boden * 0.95, vec3(0.28, 0.35, 0.16) * (0.85 + 0.3 * schollen), smoothstep(0.2, 0.8, schollen + 0.3 * rain));
+	grund = mix(grund, rainfarbe, rain * 0.8);
+	float deckung = smoothstep(0.0, 1.5, rd);
 	grund = mix(grund, vec3(0.68, 0.7, 0.75), schnee);
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
