@@ -229,9 +229,9 @@ public partial class Kartenwerkstatt
         {
             Werkstattwerkzeug.Baustein => "Klick setzt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Pflanze => "Klick setzt die Pflanze · Q/E dreht · Esc oder Rechtsklick: fertig",
-            Werkstattwerkzeug.Weg => "Punkte klicken · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · Ring: rastet ein (weiß Weg, orange Hof, blau Tor, grün Halteplatz)",
+            Werkstattwerkzeug.Weg => "Punkte klicken (rasten aufs Raster, Alt: frei, Umschalt: 45°-Winkel, V: Raster aus/an) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · Ring: rastet ein (weiß Weg, orange Hof, blau Tor, grün Halteplatz)",
             Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung =>
-                "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
+                "Ecken klicken (rasten aufs Raster, Alt: frei, V: Raster aus/an) · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Pinsel => "Mit gedrückter Maus malen – Loslassen streut Pflanzen · Radius, Dichte und Arten rechts · Esc bricht ab",
             Werkstattwerkzeug.Radierer => "Mit gedrückter Maus über einzelne Pflanzen fahren – Loslassen löscht sie (die Natur der Flächen bleibt) · Esc bricht ab",
             Werkstattwerkzeug.Gelaende => "Mit gedrückter Maus malen – Radius, Stärke, Kante und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück"
@@ -244,7 +244,7 @@ public partial class Kartenwerkstatt
                 _ => "Mit gedrückter Maus radieren – Radius und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
             },
             Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
-            Werkstattwerkzeug.Mauer => "Ecken klicken (1-m-Raster, Alt: frei) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
+            Werkstattwerkzeug.Mauer => "Ecken klicken (Raster 2 m bzw. 1 m ohne Raster, Alt: frei, Umschalt: 45°-Winkel) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Fluss => "Punkte klicken, in Fließrichtung (Pfeile) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab",
             Werkstattwerkzeug.See => "Ecken klicken · Doppelklick, Enter oder Klick auf die erste Ecke schließt · Rücktaste: letzte Ecke weg · Esc bricht ab",
             Werkstattwerkzeug.Faehre => "Zwei Klicks: die Anleger an beiden Ufern (rasten an Wegen ein, der Ring zeigt wo) · Esc: erster Klick zurück · Rechtsklick: fertig",

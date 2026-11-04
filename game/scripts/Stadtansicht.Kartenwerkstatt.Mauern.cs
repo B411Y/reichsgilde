@@ -135,7 +135,7 @@ public partial class Stadtansicht
         if (maus is { } m)
         {
             schliesst = punkte.Count >= 3 && _kamera.UnprojectPosition(AufBoden(new Vector3(punkte[0].X, 0, punkte[0].Y))).DistanceTo(GetViewport().GetMousePosition()) <= 10;
-            if (!schliesst) punkte.Add(Mauerpunkt(m));
+            if (!schliesst) punkte.Add(Mauerecke(m));
         }
         if (punkte.Count >= 2) PlanVorschau(PlanVon(punkte, schliesst, Array.Empty<(string, Vector2)>()));
         VorschauPunkte(_wsPunkte, Colors.White);
@@ -148,6 +148,9 @@ public partial class Stadtansicht
         var (x, z) = Einrasten(p.X, p.Y);
         return new Vector2((float)x, (float)z);
     }
+
+    /// <summary>Eine neue Ecke der Mauer: bei sichtbarem Raster auf dem Raster der Karte (2 m), sonst wie <see cref="Mauerpunkt"/>; mit Alt frei, mit Umschalt im 45°-Winkel zur letzten Ecke.</summary>
+    private Vector2 Mauerecke(Vector2 p) => Winkelfang(RasterAn && !Input.IsKeyPressed(Key.Alt) ? RasterEinrasten(p) : Mauerpunkt(p));
 
     /// <summary>Legt die gezeichnete Mauer an (ein Schritt) und wählt sie: <paramref name="geschlossen"/> nach einem Klick auf die erste Ecke.</summary>
     private void MauerFertig(bool geschlossen)
@@ -233,7 +236,7 @@ public partial class Stadtansicht
         }
         else
         {
-            t.Ort = Mauerpunkt(maus);
+            t.Ort = Mauerecke(maus);
             if (t.Art == Ziehart.Griff) ecken[t.Index] = t.Ort;
             else ecken.Insert(t.Index, t.Ort);
             tore = ToreNachher(m, ecken, t.Art == Ziehart.Griff).Select((ort, i) => (tore[i].Name, ort)).ToList();

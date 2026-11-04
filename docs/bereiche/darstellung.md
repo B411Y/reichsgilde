@@ -491,3 +491,13 @@ Auftrag des Teamleiters 1.11.2026.
 | Gelände-Kontrast (C) | Sonne mittags 1,33 statt 1,2, Umgebungslicht am Tag 0,58 statt 0,70 (Konstanten in `Stadtansicht.Licht.cs`); ein waagerechter Boden bei hoher Sonne bleibt gleich hell, Schatten und Schrägen werden dunkler. Nacht, Dämmerung und Innenräume unverändert (Raumlicht ist getrennt). | 04.11.2026 |
 | Hänge (A) | `hang_betont` im Bodenshader: Neigung der Geländenormale nur für das Licht um Faktor 3 betont, höchstens +0,12 im Sinus (rund 7°), über 0,25 bis 0,5 Neigung ausblendend; ebener Boden unverändert. | 04.11.2026 |
 | Nicht gemessen | Bildzeit: ein zusätzliches Decal und 2 × 256² Alpha beim Start; wegen anderer laufender Läufe keine ruhige Messung. Das Relief in Köln ist ohnehin sehr flach (1 bis 4 %), der Hang am Ostrand wirkt nur leicht; echte Hügel wären Sache des Leveldesigns (Weg D). | 04.11.2026 |
+
+### Raster als Hilfslinien mit Einrasten (Branch phase5/raster-hilfslinien)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anzeige | Nur Baumodus (ohne Wege-Modus) und Kartenwerkstatt: feine Linien alle 2 m, kräftige alle 10 m, auf dem Gelände (der Höhe folgend), nur um die Maus bzw. den Umriss, zum Rand ausblendend (Radius 20 bis 48 m nach Zoom). Breite 1,3 Weltpixel des Pixel-Looks; weit herausgezoomt (über 0,45 m je Linie) aus. Kein Shader, kein Asset | 04.11.2026 |
+| Taste | **V** blendet das Raster ein und aus (Standard an, Startoption `--raster=0\|1`); G ist der Wege-Modus, T das Festheften der Tooltips. Keine Einstellung in der Einstellungstafel (nicht gespeichert, gilt je Sitzung) | 04.11.2026 |
+| Einrasten | Nur in der Werkstatt, nur Darstellung (keine Kernänderung): Punkte von Wegen, Ecken von Flächen und Mauern auf das 2-m-Raster, solange es sichtbar ist; Alt frei; Umschalt Winkelfang in 45°-Schritten (Wege und Mauern). Hof, Tor, Halteplatz und Weg fangen wie bisher vor dem Raster. Kurven bleiben, wie sie sind (die Stützpunkte rasten). Gebäude und Pflanzen der Werkstatt bleiben auf 1 m | 04.11.2026 |
+| Im Spiel | Es gibt keine Wege zu zeichnen (`Wegebau` ändert nur den Belag); Gebäude, Bauplätze und Felder rasten schon im Kern, das Raster zeigt es nur | 04.11.2026 |
+| Leistung | Köln, Baumodus, Vulkan auf der Grafikkarte, Pixel-Look, 20 s: mit Raster 26,2 Bilder/s, 1-%-Tief 17,0, GPU 11,8 ms; ohne 25,9, 16,3, 11,9 ms (CPU-gebunden auf dem belasteten Rechner); rund 60 Zeichenaufrufe mehr | 04.11.2026 |
