@@ -256,3 +256,12 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Messung | Kurz, main 6f80481b + 2a50321f, 4 Startwerte × Greybox/Köln × Schmied/Wirt, 20 Jahre: 1 Einschlag und 0,25–0,75 Sprünge je Partie, ein Treffer in ein Haus kostet einige hundert Gulden (< 2 % des Vermögens), Vermögen nur verrauscht (WIRTSCHAFTSMODELL „Blitzschaden und Übersprung“). | 3.11.2026 |
 | Messung (Grafik-PC) | `messen blitz 20 80`, main 6f80481b + c2765c3a: 1,28 Einschläge und 0,56–0,75 Sprünge je Partie, Reparatur 103–143 Gulden, etwa 1 Stück verbrannt, Spielervermögen unter 1 % verändert. Köln: Spieler nie getroffen (0,00), KI 0,25–0,28 – Zufall bei 1,18 % Anteil je Einschlag und nur 80 unabhängigen Partien (Einschläge gleich für beide Berufe und mit/ohne), kein Fehler (WIRTSCHAFTSMODELL „Blitzschaden und Übersprung“). Nichts geändert. | 3.11.2026 |
 | Außerhalb des Bereichs | `game/scripts/Stadtansicht.Feuer.cs` (Wohnhausbrand über `WohnhausBrand`), `Stadtansicht.Blitzbrand.cs` (Übersprung ohne Strahl und Löschkette), `Hauptszene.Blitz.cs` („Funkenflug!“ am eigenen Haus als Warnung) – je eine bis drei Zeilen. | 3.11.2026 |
+
+### Pferdekarren statt Kriegskarren (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Name | Der „Kriegskarren“ heißt „Pferdekarren“ (Nutzer), nur der Name: Werte gleich (3 × 25, 900 Gulden, 1,3 m/s). Überall außer im Archiv umbenannt; das Modell `karren_krieg` behält seinen Dateinamen. | 4.11.2026 |
+| Kennung und Spielstand | Die Kennung ist zugleich der Anzeigename, darum mit umbenannt statt eines eigenen Anzeigenamens. Alte Spielstände bringen ihre Daten mit „Kriegskarren“ mit und würden sonst so heißen (und die Lexikonwerte fänden den Pferdekarren nicht): `LogistikDaten.AlteKarrenarten` stellt beim Laden Daten, Karrenart und Karrennamen um, `KarrenKaufen` übersetzt alte Befehle. Spielstandformat bleibt. | 4.11.2026 |
+| Datenversion | Bleibt 71: kein Wert und kein Feld ändert sich, nur ein Schlüssel; alte Spielstände stellt der Lade-Alias um. Reihenfolge nach Kennung (KI: `OrderBy(Key)`) jetzt Hand, Ochse, Pferd statt Hand, Krieg, Ochse – die KI entscheidet bei Gleichstand nach Preis, Tests und Gleichheitstest unverändert grün. | 4.11.2026 |
+
