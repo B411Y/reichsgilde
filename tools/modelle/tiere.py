@@ -302,16 +302,17 @@ def huhn_bauen(art, st, ske):
     with t.an("Schwanz") as n:
         w = V(0, 0.22, 0.07)
         if hahn:
-            # drei lange, nach hinten fallende Sichelfedern (je eine Kette aus drei Federn) und ein Fächer kastanienbrauner Federn dahinter
-            for x, wi in ((-0.1, 48), (-0.05, 56), (0.05, 56), (0.1, 48)):
-                feder(n, st, w, Vector((x * 2, math.cos(math.radians(wi)), math.sin(math.radians(wi)))), 0.22 * k, 0.05 * k,
-                      "Hahn schwarz")
-            for x, hoehe in ((-0.045, 0.0), (0.0, 0.03), (0.045, 0.0)):
-                p = w + Vector((x * k, 0.02 * k, hoehe * k))
-                for seg, (wi, laenge, br) in enumerate(((64, 0.17, 0.034), (26, 0.17, 0.036), (-14, 0.15, 0.03))):
+            # dichter, buschiger Fächer aus neun schmalen Sichelfedern (je eine Kette aus drei Gliedern): eng gebogen, kürzer als zuvor,
+            # die äußeren fallen im Bogen nach außen; die Wurzeln sitzen eng am Rücken
+            for i in range(9):
+                u = (i - 4) / 4.0                                    # -1 links … +1 rechts
+                p = w + Vector((u * 0.04 * k, 0.012 * k - abs(u) * 0.01 * k, abs(u) * -0.006 * k))
+                stoff = "Hahn gruen" if i % 2 == 0 else "Hahn schwarz"
+                hoch = 1.0 - 0.35 * abs(u)                         # die mittleren Federn stehen höher
+                for seg, (wi, laenge, br) in enumerate(((66 * hoch + 10, 0.105, 0.021), (30 * hoch - 4, 0.105, 0.022), (-8 * hoch - 30, 0.095, 0.018))):
                     wink = math.radians(wi)
-                    ri = Vector((x * 0.8, math.cos(wink), math.sin(wink)))
-                    feder(n, st, p, ri, laenge * k, br * k, "Hahn gruen", dicke=0.006 * k)
+                    ri = Vector((u * (0.28 + 0.34 * seg), math.cos(wink), math.sin(wink)))
+                    feder(n, st, p, ri, laenge * k, br * k, stoff, dicke=0.006 * k)
                     p = p + ri.normalized() * laenge * k * 0.95
         else:
             for x, wi in ((-0.5, 38), (-0.25, 48), (0.0, 55), (0.25, 48), (0.5, 38)):
