@@ -40,7 +40,7 @@ static class KiUmlandTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("KI-Umland: Im gebremsten Holzschlag (Köln, „Schwer“, ein Jahr) wählt der Vorarbeiter „Ordnungsliebend“ (mehr Lager: jeder Kriegskarren lädt 60 statt 40) – gerechnet wie beim Karrenkauf", () =>
+        ("KI-Umland: Im gebremsten Holzschlag (Köln, „Schwer“, ein Jahr) wählt der Vorarbeiter „Ordnungsliebend“ (mehr Lager: jeder Pferdekarren lädt 60 statt 40) – gerechnet wie beim Karrenkauf", () =>
         {
             var pfad = Datenpfad.Karte("koeln");
             var haeuser = JsonNode.Parse(File.ReadAllText(pfad))!["start"]!["haeuser"]!.AsArray().Count;

@@ -84,14 +84,14 @@ static class KiKarrenwahlTests
                 Pruefe.Wahr(ki.KarrenwahlNachDurchfluss(b), $"{name}: Fahrzeit nach Weglänge");
                 foreach (var typ in w.Daten.Logistik.Karren.Keys)
                     Nahe(Fluss(w, b, typ), ki.Durchfluss(b, typ), 1e-12, $"{name} {typ}");
-                Pruefe.Wahr(ki.Durchfluss(b, "Kriegskarren") > ki.Durchfluss(b, "Ochsenkarren") && ki.Durchfluss(b, "Ochsenkarren") > ki.Durchfluss(b, "Handkarren"),
+                Pruefe.Wahr(ki.Durchfluss(b, "Pferdekarren") > ki.Durchfluss(b, "Ochsenkarren") && ki.Durchfluss(b, "Ochsenkarren") > ki.Durchfluss(b, "Handkarren"),
                     $"{name}: Pferd > Ochse > Hand");
             }
-            // Holz ist eine Ware: Das Lager fasst 40 – mehr lädt auch der Kriegskarren (75) nicht. Zwei Waren: 80, der Kriegskarren fährt voll.
+            // Holz ist eine Ware: Das Lager fasst 40 – mehr lädt auch der Pferdekarren (75) nicht. Zwei Waren: 80, der Pferdekarren fährt voll.
             var (k1, holz) = Von(w, Holzschlag);
             var (k2, hof) = Von(w, Bauernhof);
-            Pruefe.Ungefaehr(40.0 / (w.Fahrzeit(holz, "Kriegskarren", true) + w.Fahrzeit(holz, "Kriegskarren", false)), k1.Durchfluss(holz, "Kriegskarren"), 1e-12);
-            Pruefe.Ungefaehr(75.0 / (w.Fahrzeit(hof, "Kriegskarren", true) + w.Fahrzeit(hof, "Kriegskarren", false)), k2.Durchfluss(hof, "Kriegskarren"), 1e-12);
+            Pruefe.Ungefaehr(40.0 / (w.Fahrzeit(holz, "Pferdekarren", true) + w.Fahrzeit(holz, "Pferdekarren", false)), k1.Durchfluss(holz, "Pferdekarren"), 1e-12);
+            Pruefe.Ungefaehr(75.0 / (w.Fahrzeit(hof, "Pferdekarren", true) + w.Fahrzeit(hof, "Pferdekarren", false)), k2.Durchfluss(hof, "Pferdekarren"), 1e-12);
         }),
 
         ("KI-Karrenwahl: Stillstand nachher = Stillstand vorher ^ (Durchfluss nachher ÷ vorher); Mehrgewinn = gesparter Anteil × Wert eines vollen Arbeitsjahres", () =>
@@ -114,21 +114,21 @@ static class KiKarrenwahlTests
             }
         }),
 
-        ("KI-Karrenwahl: Ein Kölner Holzschlag mit einem Ochsen, der die Hälfte der Arbeitszeit stillstand, bekommt einen Kriegskarren statt eines zweiten Ochsen", () =>
+        ("KI-Karrenwahl: Ein Kölner Holzschlag mit einem Ochsen, der die Hälfte der Arbeitszeit stillstand, bekommt einen Pferdekarren statt eines zweiten Ochsen", () =>
         {
             var (_, w) = Koeln();
             var (ki, b) = Von(w, Holzschlag);
             var plan = ki.BesterKarrenplan(b, 0.5);
             Pruefe.Wahr(plan is not null, "ein Plan");
-            Pruefe.Gleich("Kriegskarren", plan!.Value.Typ);
+            Pruefe.Gleich("Pferdekarren", plan!.Value.Typ);
             Pruefe.Gleich(null, plan.Value.Tausch);
             // bester Wert: Mehrgewinn − Kosten ÷ Amortisationsjahre, vor dem Ochsen und dem Handkarren
             double Wert(KiRivale.Karrenplan p) => p.Mehrgewinn - p.Kosten / ki.Amortisationsjahre;
-            foreach (var p in ki.Karrenplaene(b, 0.5).Where(p => p.Typ != "Kriegskarren"))
+            foreach (var p in ki.Karrenplaene(b, 0.5).Where(p => p.Typ != "Pferdekarren"))
                 Pruefe.Wahr(Wert(p) < Wert(plan.Value), $"{p.Typ}: {Wert(p):0} gegen {Wert(plan.Value):0}");
         }),
 
-        ("KI-Karrenwahl: An der Grenze von drei Karren tauscht die KI einen Ochsen des Bauernhofs gegen einen Kriegskarren (Preis − Erlös des alten)", () =>
+        ("KI-Karrenwahl: An der Grenze von drei Karren tauscht die KI einen Ochsen des Bauernhofs gegen einen Pferdekarren (Preis − Erlös des alten)", () =>
         {
             var (_, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Bauernhof);
@@ -139,14 +139,14 @@ static class KiKarrenwahlTests
             Pruefe.Wahr(plaene.Count > 0 && plaene.All(p => p.Tausch is not null), "an der Grenze nur Tausch");
             Pruefe.Wahr(plaene.All(p => ki.Durchfluss(b, p.Typ) > ki.Durchfluss(b, b.Karren[p.Tausch!.Value].Typ)), "nur gegen einen schnelleren");
             var plan = ki.BesterKarrenplan(b, 0.25)!.Value;
-            Pruefe.Gleich("Kriegskarren", plan.Typ);
+            Pruefe.Gleich("Pferdekarren", plan.Typ);
             Pruefe.Gleich("Ochsenkarren", b.Karren[plan.Tausch!.Value].Typ);
             Pruefe.Ungefaehr(900 - 400 * w.Daten.Logistik.KarrenVerkaufAnteil, plan.Kosten, 1e-9);
             Pruefe.Wahr(plan.Kosten <= plan.Mehrgewinn * ki.Amortisationsjahre, "macht sich in der Frist bezahlt");
-            // ausgeführt: weiter drei Karren, einer davon der neue Kriegskarren
+            // ausgeführt: weiter drei Karren, einer davon der neue Pferdekarren
             ki.KarrenNachDurchfluss(b, 0.25);
             Pruefe.Gleich(3, b.Karren.Count);
-            Pruefe.Gleich(1, b.Karren.Count(k => k.Typ == "Kriegskarren"));
+            Pruefe.Gleich(1, b.Karren.Count(k => k.Typ == "Pferdekarren"));
             Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("tauscht") && e.Contains("der Arbeitszeit still")), string.Join(" | ", ki.Entscheidungen));
         }),
 
@@ -158,14 +158,14 @@ static class KiKarrenwahlTests
             b.KarrenHinzufuegen("Ochsenkarren");
             Pruefe.Gleich("Ochsenkarren, Handkarren, Ochsenkarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
             var plan = ki.BesterKarrenplan(b, 0.25)!.Value;
-            Pruefe.Gleich(("Kriegskarren", 1), (plan.Typ, plan.Tausch!.Value)); // der Handkarren zuerst
+            Pruefe.Gleich(("Pferdekarren", 1), (plan.Typ, plan.Tausch!.Value)); // der Handkarren zuerst
             Unterwegs(b.Karren[1], true);
             Pruefe.Gleich(1, ki.BesterKarrenplan(b, 0.25)!.Value.Tausch); // kein schlechterer Tausch, nur weil der Handkarren fort ist
             ki.KarrenNachDurchfluss(b, 0.25);
             Pruefe.Gleich("Ochsenkarren, Handkarren, Ochsenkarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
             Unterwegs(b.Karren[1], false);
             ki.KarrenNachDurchfluss(b, 0.25);
-            Pruefe.Gleich("Ochsenkarren, Ochsenkarren, Kriegskarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
+            Pruefe.Gleich("Ochsenkarren, Ochsenkarren, Pferdekarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
             // drei gleiche: der erste ist unterwegs – getauscht wird der zweite, der am Hof steht
             var (_, w2) = Koeln(DreiImUmland.Value);
             var (ki2, b2) = Von(w2, Bauernhof);
@@ -205,17 +205,17 @@ static class KiKarrenwahlTests
             Pruefe.Wahr(sim.Zeit.Jahr == jahr + 1, "im Lauf des Jahres getauscht");
             Pruefe.Wahr(sim.Zeit.UhrzeitInMinuten < 23 * 60, $"um {sim.Zeit.UhrzeitText}");
             Pruefe.Gleich(3, b.Karren.Count);
-            Pruefe.Gleich(1, b.Karren.Count(k => k.Typ == "Kriegskarren"));
+            Pruefe.Gleich(1, b.Karren.Count(k => k.Typ == "Pferdekarren"));
             Pruefe.Wahr(!ki.TauschBereit(b), "der neue Karren sperrt den nächsten Tausch");
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("tauscht einen Ochsenkarren gegen einen Kriegskarren")), string.Join(" | ", ki.Entscheidungen));
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("tauscht einen Ochsenkarren gegen einen Pferdekarren")), string.Join(" | ", ki.Entscheidungen));
         }),
 
         ("KI-Karrenwahl: Ein Tausch, der sich erst nach der Frist bezahlt macht, unterbleibt – die KI behält ihre drei Karren", () =>
         {
             var (_, w) = Koeln(DreiImUmland.Value);
             var (ki, b) = Von(w, Holzschlag);
-            b.KarrenHinzufuegen("Kriegskarren");
-            b.KarrenHinzufuegen("Kriegskarren");
+            b.KarrenHinzufuegen("Pferdekarren");
+            b.KarrenHinzufuegen("Pferdekarren");
             // ein Ochse und zwei Pferde: Der Ochse gegen ein Pferd spart bei 21 % Stillstand ≈ 127 Gulden im Jahr (700 Gulden, 5,5 Jahre – noch in
             // der Frist von 6), bei 5 % kaum etwas
             foreach (var stillstand in new[] { 0.21, 0.05 })
@@ -223,13 +223,13 @@ static class KiKarrenwahlTests
                 var plaene = ki.Karrenplaene(b, stillstand).ToList();
                 Pruefe.Gleich(1, plaene.Count); // nur der Ochse ist langsamer als ein Pferd
                 var p = plaene[0];
-                Pruefe.Gleich(("Kriegskarren", "Ochsenkarren"), (p.Typ, b.Karren[p.Tausch!.Value].Typ));
+                Pruefe.Gleich(("Pferdekarren", "Ochsenkarren"), (p.Typ, b.Karren[p.Tausch!.Value].Typ));
                 var lohnt = p.Kosten <= p.Mehrgewinn * ki.Amortisationsjahre;
                 Pruefe.Gleich(lohnt ? p : null, ki.BesterKarrenplan(b, stillstand), $"{stillstand}: {p.Kosten:0} Gulden für {p.Mehrgewinn:0} im Jahr");
                 Pruefe.Gleich(stillstand > 0.1, lohnt, $"{stillstand}: lohnt");
             }
             ki.KarrenNachDurchfluss(b, 0.05);
-            Pruefe.Gleich("Ochsenkarren, Kriegskarren, Kriegskarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
+            Pruefe.Gleich("Ochsenkarren, Pferdekarren, Pferdekarren", string.Join(", ", b.Karren.Select(k => k.Typ)));
         }),
 
         ("KI-Karrenwahl: An der Höchstdauer fährt das Pferd nicht schneller als der Ochse – für eine Ware nimmt die KI dann den billigeren Ochsen", () =>
@@ -239,7 +239,7 @@ static class KiKarrenwahlTests
             var (ki, b) = Von(w, Holzschlag);
             foreach (var typ in w.Daten.Logistik.Karren.Keys)
                 Pruefe.Gleich((100, 100), (w.Fahrzeit(b, typ, true), w.Fahrzeit(b, typ, false)), typ);
-            Pruefe.Ungefaehr(ki.Durchfluss(b, "Ochsenkarren"), ki.Durchfluss(b, "Kriegskarren"), 1e-12); // beide 40 Stück (Lager) in 200 Minuten
+            Pruefe.Ungefaehr(ki.Durchfluss(b, "Ochsenkarren"), ki.Durchfluss(b, "Pferdekarren"), 1e-12); // beide 40 Stück (Lager) in 200 Minuten
             Pruefe.Gleich("Ochsenkarren", ki.BesterKarrenplan(b, 0.5)!.Value.Typ);
         }),
 
@@ -260,7 +260,7 @@ static class KiKarrenwahlTests
             var (_, w) = Koeln(daten);
             var (ki, b) = Von(w, Holzschlag);
             Pruefe.Wahr(!ki.KarrenwahlNachDurchfluss(b), "alte Daten");
-            Pruefe.Gleich(w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Kriegskarren", true));
+            Pruefe.Gleich(w.Fahrzeit(b, "Handkarren", true), w.Fahrzeit(b, "Pferdekarren", true));
         }),
 
         ("KI-Karrenwahl: Köln mit alten Daten, ein Jahr „Schwer“ – der Holzschlag bekommt wie bisher einen zweiten Ochsen, getauscht wird nie", () =>
@@ -275,7 +275,7 @@ static class KiKarrenwahlTests
             Pruefe.Wahr(w.Rivalen.SelectMany(r => r.Entscheidungen).All(e => !e.Contains("tauscht")), "kein Tausch");
         }),
 
-        ("KI-Karrenwahl: Köln, ein Jahr „Schwer“ – gekauft wird nur nach Stillstand, nie mehr als die Grenze (Stadt 3, Umland 5); der Holzschlag bekommt den Kriegskarren", () =>
+        ("KI-Karrenwahl: Köln, ein Jahr „Schwer“ – gekauft wird nur nach Stillstand, nie mehr als die Grenze (Stadt 3, Umland 5); der Holzschlag bekommt den Pferdekarren", () =>
         {
             var (sim, w) = Koeln();
             var vorher = w.Betriebe.ToDictionary(b => b.Name, b => b.Karren.Select(k => k.Typ).ToList());
@@ -293,7 +293,7 @@ static class KiKarrenwahlTests
             Pruefe.Wahr(gekauft > 0, "im ersten Jahr stehen die Kölner Umlandbetriebe mit einem Ochsen oft still");
             var holz = w.Betriebe.Single(b => b.Name == Holzschlag);
             Pruefe.Gleich(2, holz.Karren.Count);
-            Pruefe.Gleich("Kriegskarren", holz.Karren[1].Typ);
+            Pruefe.Gleich("Pferdekarren", holz.Karren[1].Typ);
         }),
     };
 }
