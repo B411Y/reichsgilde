@@ -38,9 +38,9 @@ bs.FARBEN.update({
     "Wachshaut": (0.88, 0.87, 0.84),
     "Schnabel": (0.82, 0.62, 0.30),
     "Fuss": (0.78, 0.42, 0.40),
-    "Kraehe": (0.29, 0.29, 0.35),                    # Rücken und Kopf: Schwarz mit bläulichem Glanz
-    "Kraehe dunkel": (0.13, 0.13, 0.17),             # Schwungfedern, Schwanz, Schnabel, Füße
-    "Kraehe Bauch": (0.22, 0.22, 0.27),
+    "Kraehe": (0.37, 0.39, 0.52),                    # Rücken und Kopf: Schwarz mit deutlichem Blauschimmer
+    "Kraehe dunkel": (0.21, 0.22, 0.31),             # Schwungfedern, Schwanz, Schnabel, Füße
+    "Kraehe Bauch": (0.30, 0.31, 0.41),
 })
 
 FPS = 24
