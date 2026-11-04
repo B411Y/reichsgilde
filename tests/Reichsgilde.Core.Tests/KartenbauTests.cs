@@ -168,12 +168,12 @@ static class KartenbauTests
             var bausteine = json["bausteine"]!.AsArray();
             bausteine.Single(b => (string?)b!["kennung"] == "rathaus")!["modell"] = "gebaeude/gibt_es_nicht";
             bausteine.Single(b => (string?)b!["kennung"] == "weide")!["knoten"] = "Kuhstall";
-            bausteine.Single(b => (string?)b!["kennung"] == "tanne")!["varianten"] = 9;
+            bausteine.Single(b => (string?)b!["kennung"] == "tanne")!["varianten"] = 19;
             var befunde = Katalogpruefung.Pruefen(Gebaeudekatalog.AusJson(json.ToJsonString()), Modellordner);
             var fehler = befunde.Where(b => b.Schwere == Schwere.Fehler).Select(b => b.Text).ToList();
             Pruefe.Wahr(fehler.Any(f => f.StartsWith("rathaus: Die Modelldatei gebaeude/gibt_es_nicht.glb fehlt")), string.Join("\n", fehler));
             Pruefe.Wahr(fehler.Any(f => f.Contains("„Kuhstall“ fehlt")), string.Join("\n", fehler));
-            Pruefe.Wahr(fehler.Any(f => f.Contains("„Tanne9“ fehlt")), string.Join("\n", fehler));
+            Pruefe.Wahr(fehler.Any(f => f.Contains("„Kiefer19“ fehlt")), string.Join("\n", fehler));
         }),
 
         ("Modelldatei: Anker wie die Stadtansicht (Halteplatz der Grube, Gatter der Weide) und Ausdehnung eines Knotens", () =>
