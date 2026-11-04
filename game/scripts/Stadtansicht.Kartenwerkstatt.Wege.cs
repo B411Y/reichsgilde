@@ -224,6 +224,17 @@ public partial class Stadtansicht
     /// </summary>
     private Wegfang? Fangen(Vector2 p, EntwurfWeg? ausser = null) => _entwurf?.Einrasten(p.X, p.Y, ausser);
 
+    /// <summary>
+    /// Ein Punkt eines Weges nach dem Anfang: in einem Tor das Tor; rückt ihn das Raster aus dem Fangradius eines möglichen Endes (Hof, Weg, Halteplatz), bleibt er, wo er ist (das Ende
+    /// rastet der Kern beim Anlegen ein); sonst auf dem Raster (Alt frei) und mit Umschalt im 45°-Winkel zum letzten Punkt (Stadtansicht.Raster.cs).
+    /// </summary>
+    private Vector2 WegPunktRaster(Vector2 p)
+    {
+        if (Zwischenpunkt(p) is { } t) return V2(t.Ort);
+        var gerastet = Winkelfang(RasterEinrasten(p));
+        return Fangen(p) is not null && Fangen(gerastet) is null ? p : gerastet; // ein mögliches Ende nicht vom Ziel wegrücken
+    }
+
     /// <summary>Wo ein Punkt zwischen Anfang und Ende einrastet: nur in der Mitte eines Tores (null: bleibt, wo er ist).</summary>
     private Wegfang? Zwischenpunkt(Vector2 p) => _entwurf?.TorEinrasten(p.X, p.Y);
 
@@ -261,7 +272,7 @@ public partial class Stadtansicht
         {
             var fang = Fangen(m);
             if (fang is { } f) FangmarkeZeigen(V2(f.Ort), Fangfarbe(f.Ziel));
-            punkte.Add(fang is { } g ? V2(g.Ort) : m);
+            punkte.Add(fang is { } g ? V2(g.Ort) : _wsPunkte.Count == 0 ? RasterEinrasten(m) : WegPunktRaster(m));
         }
         var breite = (float)Kartenweg.Standardbreite(WerkstattWegklasse);
         if (punkte.Count >= 2)
@@ -416,7 +427,7 @@ public partial class Stadtansicht
                 var ende = t.Art == Ziehart.Griff && (t.Index == 0 || t.Index == punkte.Count - 1);
                 var fang = ende ? Fangen(m, w) : Zwischenpunkt(m);
                 if (fang is { } f) FangmarkeZeigen(V2(f.Ort), Fangfarbe(f.Ziel));
-                t.Ort = fang is { } g ? V2(g.Ort) : m;
+                t.Ort = fang is { } g ? V2(g.Ort) : RasterEinrasten(m);
                 if (t.Art == Ziehart.Griff) punkte[t.Index] = t.Ort;
                 else punkte.Insert(t.Index, t.Ort);
                 var verlauf = Wegkurve.Verlauf(punkte.Select(p => new double[] { p.X, p.Y }).ToList(), w.IstGlatt).Punkte;

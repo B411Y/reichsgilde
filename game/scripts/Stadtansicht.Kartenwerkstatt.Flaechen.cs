@@ -189,7 +189,7 @@ public partial class Stadtansicht
     /// <summary>Eine Ecke an der Maus: bei Bauzonen auf dem Raster der Karte, sonst, wo sie ist (der Kern rundet auf 5 cm).</summary>
     private Vector2 Eckpunkt(EntwurfFlaeche? f, Vector2 p) => f is EntwurfBauzone || (f is null && Kartenwerkzeug == Werkstattwerkzeug.Bauzone)
         ? new Vector2((float)Kartenraster.Runden(p.X, _entwurf!.Raster), (float)Kartenraster.Runden(p.Y, _entwurf.Raster))
-        : p;
+        : RasterEinrasten(p); // übrige Flächen: auf das Raster, solange es an ist (Alt: frei, Stadtansicht.Raster.cs)
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Zeichnen von Wegen und Flächen: Punkte sammeln
@@ -217,9 +217,9 @@ public partial class Stadtansicht
         // ein Punkt dazwischen, der neben einer Gasse liegt, bleibt, wo er ist
         var p = Kartenwerkzeug switch
         {
-            Werkstattwerkzeug.Weg when _wsPunkte.Count == 0 => Fangen(b) is { } f ? V2(f.Ort) : b,
-            Werkstattwerkzeug.Weg => Zwischenpunkt(b) is { } t ? V2(t.Ort) : b,
-            Werkstattwerkzeug.Mauer => Mauerpunkt(b),
+            Werkstattwerkzeug.Weg when _wsPunkte.Count == 0 => Fangen(b) is { } f ? V2(f.Ort) : RasterEinrasten(b),
+            Werkstattwerkzeug.Weg => WegPunktRaster(b),
+            Werkstattwerkzeug.Mauer => Mauerecke(b),
             Werkstattwerkzeug.Fluss => b,
             _ => Eckpunkt(null, b),
         };

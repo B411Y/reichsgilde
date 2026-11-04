@@ -925,6 +925,7 @@ public partial class Stadtansicht
         FelsGizmoAktualisieren(); // Stadtansicht.Felsgizmo.cs
         GriffeSkalieren();
         var maus = _wsOrt ?? MausBoden();
+        RasterBild(maus); // Raster-Hilfslinien um die Maus (Stadtansicht.Raster.cs)
         VorschauLeeren();
         if (_wsZiehen is { Aktiv: true } z)
         {
