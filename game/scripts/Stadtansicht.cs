@@ -1153,6 +1153,9 @@ public partial class Stadtansicht : Node3D
     /// <summary>Das Gebäude unter der Maus (null über Tafeln oder freiem Gelände).</summary>
     private string? _unterDerMaus;
 
+    /// <summary>Kennung des Gebäudes oder der Figur unter der Maus (null über Tafeln oder freiem Gelände); der Mauszeiger (Mauszeiger.cs) liest sie.</summary>
+    public string? KennungUnterDerMaus => _unterDerMaus;
+
     /// <summary>
     /// Namen in der Stadt nur, wo man sie braucht: unter der Maus, beim ausgewählten Gebäude und – solange Alt
     /// gedrückt ist – überall. Im Innenraum keine (dort zeigen Schilder und Infotafel, was los ist).

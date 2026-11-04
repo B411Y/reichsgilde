@@ -102,6 +102,7 @@ public partial class Hauptmenue : Node
         var drehen = new Godot.Timer { WaitTime = 9, Autostart = true };
         drehen.Timeout += () => stadt.Drehen(1);
         AddChild(drehen);
+        AddChild(new Mauszeiger()); // Lederhandschuh, Stufe 1 (Mauszeiger.cs)
 
         var oberflaeche = new CanvasLayer();
         AddChild(oberflaeche);

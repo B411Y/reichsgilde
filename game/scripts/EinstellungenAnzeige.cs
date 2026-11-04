@@ -10,7 +10,7 @@ namespace Reichsgilde;
 /// Detailstufe, Boden, Gras, Umgebungsverdeckung, indirektes Licht, globale Beleuchtung (SDFGI, mit den Unterschaltern Innenräume und Außenansicht), Unschärfe, Wolken, Dunst, Wetter, Farbstimmung und unter Windows die Grafikschnittstelle,
 /// siehe <see cref="Grafikschnittstelle"/>); der Zustand wird in <c>user://einstellungen.cfg</c> (Abschnitt „oberflaeche“) gemerkt.
 /// <b>Ton</b> (Lautstärke je Bus, Stumm, Ansagen, Ton im Hintergrund stumm; siehe <see cref="KlangDienst"/>), <b>Spiel</b> (Ratssitzung zeigen) und
-/// <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Fahnen bewegen, Tooltips festheften).
+/// <b>Barrierefreiheit</b> (Größe der Oberfläche, Farbfilter, Fahnen bewegen, eigener Mauszeiger, Tooltips festheften).
 /// Erklärtexte stehen nicht im Fenster, sondern in den Tooltips der Zeilen (sie nennen bei Auswahllisten alle Stufen und heben die gewählte hervor);
 /// ein Dropdown-Eintrag oder Schalter, der viel Grafikleistung kostet, trägt das Flammenzeichen (<see cref="Oberflaechenstil.LeistungsSymbol"/>).
 /// Erreichbar aus dem Hauptmenü und aus dem Spielmenü (Esc). Jede Änderung wirkt sofort und wird gespeichert (siehe <see cref="Fenster"/>).
@@ -251,7 +251,7 @@ public sealed class EinstellungenAnzeige
     private readonly OptionButton? _schnittstelle;
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
-    private readonly CheckButton _fahnen;
+    private readonly CheckButton _fahnen, _zeiger;
     private readonly HSlider _groesse;
     private readonly Label _groesseWert;
     private bool _groesseZiehen;
@@ -606,6 +606,12 @@ public sealed class EinstellungenAnzeige
             Fenster.FahnenSetzen(an);
             Auffrischen();
         });
+        _zeiger = Schalter(s, "Eigener Mauszeiger", () => "Ein Lederhandschuh statt des Zeigers des Betriebssystems. Die Handschuhe werden mit dem Stand des Hauses edler (Gemeiner bis Reichsgraf); " +
+                                                          "über Anklickbarem wird er wärmer, über einem Haus, das ihr betreten könnt, wird er zum Türschloss. Aus: der Zeiger eures Systems.", an =>
+        {
+            Fenster.EigenerZeigerSetzen(an);
+            Auffrischen();
+        });
         Abschnitt(s, "Tooltips festheften");
         var tooltipText = () => "Ein Tooltip zeigt oben rechts einen Kreis, der sich füllt, solange die Maus auf ihm oder seiner Stelle ruht. Ist er voll, bleibt der Tooltip als kleines Fenster stehen " +
                                 "(das Kreuz oben rechts schließt es, Esc das oberste). T oder die mittlere Maustaste heftet sofort fest. Verweise im Text (unterstrichen) öffnen weitere Tooltips.";
@@ -759,6 +765,7 @@ public sealed class EinstellungenAnzeige
         }
 
         _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
+        _zeiger.SetPressedNoSignal(Fenster.EigenerZeigerAn);
         if (!_groesseZiehen) WertSetzen(_groesse, _groesseWert, Fenster.Oberflaechengroesse, " %");
         _farbfilter.Select(Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter));
         _tooltipZeit.SetValueNoSignal(Fenster.TooltipFestZeit * 2);
