@@ -220,6 +220,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Schnee fällt, Sturm-Regen weniger schräg (04.11.2026)
+
+| Entscheidung | Wert |
+|---|---|
+| Schräge des Regens je Wetterart | Regen (Wind 0,5) senkrecht, Gewitter (0,75) und Sturm (1) gleich leicht schräg 18° (tan 0,325); dazwischen weich. Vorher quadratisch mit dem Wind: 8° / 18° / 31°. Der Wind selbst (Fahnen, Gras, Wolken, Seegang, Ton) bleibt unverändert |
+| Fallgeschwindigkeit der Flocken | 0,8–1,4 → 2,0–3,0 (mal Zoommaßstab), Lebensdauer 9 → 5 s, Streuung 25° → 8°, Windneigung 1,2 → 0,4 |
+| Pendeln der Flocken (`schnee.gdshader`) | Weite 0,3–0,8 → 0,1–0,3, Auf und ab 0,12 → 0,03, Böen 0,9 → 0,3; Wirbel (Stufe Hoch) schwächer (Stärke 0,4 + Wind, Einfluss max. 0,08 + 0,08 · Wind) |
+
 ### Grafikstil: Pixel-Look (Nutzer 03.11.2026)
 
 Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutzer, 20.10.2026).
@@ -233,6 +241,14 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Oberfläche | Tafeln, Schrift und Gebäudenamen in voller Auflösung, scharf; die Oberfläche bleibt kolorierter Holzschnitt (Ausnahme Charakterzug-Medaillons) | 03.11.2026 |
 | Modelle | Bleiben schlicht mit Oberflächenstruktur (Mauerwerk, Maserung, Ziegel), kein Holzschnitt-Shader; neue Modelle und Texturen im Klicktest mit Pixel-Look prüfen | 03.11.2026 |
 | Alter Look | Bleibt als abschaltbare Grafikoption „Pixel-Look aus“; der Pixel-Look ist seit PR #298 der Standard (Einzelheiten unter „Pixel-Look als Standard, drei Zoomstufen (PR #298)“ und „Pixel-Look (PR #295)“) | 03.11.2026 |
+
+### Pixel-Look: Lichtschein, doppelte Schatten, Bodenschleier (Branch fix/pixel-lichtring)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dunkler Ring um Fackeln und Laternen | Ursache: Das Stufenlicht rechnet `f = Stufe / Beleuchtung` und hob das dunkle Umfeld nachts bis 1,8-fach an (der Nebel im Bild ist nicht proportional zur Beleuchtung), im äußeren Schein fiel `f` auf etwa 1 ab, weiter innen stieg es wieder: ein dunkler Ring zwischen zwei aufgehellten Zonen (mit `--nachtnebel=aus` und ohne Stufenlicht gab es ihn nicht). Jetzt wird nachts im schwachen Licht (unter etwa der vollen Stufe) gar nicht gestuft (`f` → 1, Gewicht `1 - tag`), der Schein fällt weich nach außen ab; am Tag unverändert | 04.11.2026 |
+| Doppelte Schatten morgens | Ursache: der Wolkenschatten (Decal, wirft seine Flecken senkrecht nach unten) lag bei tiefer Sonne als weicher, versetzter zweiter Schatten neben den langen Sonnenschatten (auch mit Pixel-Look aus, mit `--wolken=0` weg). Das Decal blendet jetzt nach Sonnenhöhe ein: unter 16° gar nicht, voll ab 34° | 04.11.2026 |
+| Bodenschleier (Höhenlinien) | Ursache: die feine Stufung an Schattenkanten schaltete hart bei einem Kontrast von 0,18 und zeichnete auf Erde und Pfaden (Ultra: Unebenheit der Normalkarte im Licht) Höhenlinien nach. Jetzt weich übergeblendet und erst bei echtem Schattenkontrast (0,4 bis 0,7 der vollen Stufe). Dazu zeichnen helle Innenkanten nur dort, wo auch die Tiefe knickt (Laplace der Tiefe), nicht an Normalkarten-Knicken flachen Bodens | 04.11.2026 |
 
 ### Pixel-Look als Standard, drei Zoomstufen (PR #298)
 
