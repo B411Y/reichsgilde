@@ -224,6 +224,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Bauzonen glühen nicht, Beschriftungen scharf (PR #314)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache Glühen | Das Glühen hält alles für Licht, was im Bild heller ist als im Beleuchtungsbild (Verhältnis über 1,3). Bauzonen, Raster und Umrisse sind durchsichtig und unbeleuchtet: Die Debug-Zeichnung „Beleuchtung“ zeigt sie nur als dunklen Boden (und zeichnet durchsichtige Flächen undurchsichtig), also glühten sie nachts. | 04.11.2026 |
+| Lösung | Jedes durchsichtige, unbeleuchtete Netz (`MaterialOverride` ist ein `StandardMaterial3D`, unbeleuchtet, Alpha, Mix) bekommt einen **Lichtzwilling** (`PixelHilfeZwilling`): gleiches Netz, weiß, von einem eigenen starken `DirectionalLight3D` an der Beleuchtungskamera getroffen, das nur die Ebene 28 beleuchtet. Das Original liegt bei laufendem Beleuchtungsbild auf Ebene 29 (wie die Teilchen), nur der Zwilling auf Ebene 28; so ist die Fläche im Beleuchtungsbild hell, das Verhältnis liegt unter 1, nichts glüht. Das Bild der Zonen bleibt unverändert (nachts so hell wie ihre Farbe). Neue Netze erfasst `SceneTree.NodeAdded` (Warteschlange, im Hauptfaden abgearbeitet: Die Stadt lädt in Fäden); das Raster tauscht sein Netz jedes Bild, `PixelBild` gleicht das des Zwillings an. Gescheitert (beim Probieren): weißes unbeleuchtetes Netz, Leuchtkraft (Emission) – das Beleuchtungsbild kennt beides nicht. | 04.11.2026 |
+| Beschriftungen | `PixelNamen` setzt jetzt **alle** Label3D aus `Beschriftung(...)` als Control in voller Auflösung über das Pixelbild (vorher nur die mit Kennung): Namen der Bauzonen, Hinweise am Bauumriss („Hier ist keine Bauzone“ …), Bauplatz-Hinweise der Restflächen, Beschriftungen der Kartenwerkstatt (Wege, Mauern, Flächen, Gewässer). Sichtbar ist, was `IsVisibleInTree` ist; Umbruch (`Width`), Zeilenabstand und fehlende Schrift (Standardschrift) werden übernommen. Räume und Rat zeichnen ihre Schilder weiter in der Welt. | 04.11.2026 |
+| Offen | Durchsichtige Netze ohne `MaterialOverride` (Einzelflächen einer `ImmediateMesh`-Vorschau der Kartenwerkstatt) und `MaterialOverlay` auf Modellen (Fehlerüberzug) bekommen keinen Zwilling. | 04.11.2026 |
+
 ### Umland: importierte Bäume und Steine, Felder mit geraden Rändern (Branch phase5/umland-optik, PR folgt)
 
 | Thema | Entscheidung | Datum |
