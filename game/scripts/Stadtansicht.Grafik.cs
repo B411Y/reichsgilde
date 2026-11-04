@@ -126,7 +126,7 @@ public partial class Stadtansicht
     /// Wie weit die Wolken je echter Sekunde ziehen (Meter, bei leichtem Wind; mit Wind schneller), wie dunkel ihr Schatten höchstens macht (Anteil),
     /// wie viel der Fläche bei klarem Himmel und bei wechselnd bewölktem Himmel im Schatten liegt und wie weich die Ränder sind (Rauschwert).
     /// </summary>
-    private const float WolkenTempo = 5f, WolkenDunkel = 0.55f, WolkenAnteilKlar = 0.05f, WolkenAnteilWolkig = 0.5f, WolkenRand = 0.025f;
+    private const float WolkenTempo = 5f, WolkenDunkel = 0.40f, WolkenAnteilKlar = 0.05f, WolkenAnteilWolkig = 0.5f, WolkenRand = 0.09f;
 
     /// <summary>
     /// Zwei Decals über der ganzen Stadt: Sie färben alles darunter (Boden, Dächer, Wände, Figuren) zum Schwarz hin, so weit die Wolke dicht
