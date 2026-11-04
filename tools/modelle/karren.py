@@ -1,4 +1,4 @@
-"""Karren mit Zugtieren und Bewegungen: Handkarren, Ochsenkarren, Kriegskarren.
+"""Karren mit Zugtieren und Bewegungen: Handkarren, Ochsenkarren, Pferdekarren.
 
     blender -b --python tools/modelle/karren.py        oder
     python tools/modelle/karren.py [--schnell] [--ohne-bilder]
@@ -10,9 +10,9 @@ des Wagens auf dem Boden):
     Skelett         Wurzel (Wagenkasten, wippt), je Radachse ein Knochen (dreht um die Achse), bei Zugtieren je Tier
                     Rumpf, Kopf, vier Beine, Schwanz. Jeder Teil hängt starr an einem Knochen.
     Karren          Wagen mit Rädern und Deichsel bzw. Holmen
-    Ochse / Pferd1, Pferd2   Zugtiere (Ochsenkarren / Kriegskarren)
+    Ochse / Pferd1, Pferd2   Zugtiere (Ochsenkarren / Pferdekarren)
     Ladung1–3       Kisten, Säcke, Fässer – so viele sichtbar, wie Sorten geladen sind (Handkarren 1, Ochsenkarren 2,
-                    Kriegskarren 3); standardmäßig aus
+                    Pferdekarren 3); standardmäßig aus
     Plane           Plane über der Ladung in der Hausfarbe (Besitzer), mit der Ladung an- und auszuschalten
     Anker_Zieher (Handkarren: zwischen den Holmen), Anker_Treiber (neben dem Ochsen), Anker_Kutscher (auf dem Bock)
                     – dort stellt das Spiel die Passanten-Figur hin (Bewegung „Ziehen“, „Gehen“ bzw. „Kutschieren“)

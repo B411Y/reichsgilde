@@ -96,8 +96,8 @@ static class KiJahreszeitenTests
             int Holz(long minute)
             {
                 var (sim, w, k, _) = KiHaus(minute);
-                // Ein Kriegskarren (drei Ladeflächen zu 25): Ohne Leute ist der übliche Vorrat Holz für 10 Schemel (20 Stück), im späten Herbst 40.
-                var t = w.BetriebEroeffnen("Tischlerei Vorrat", Betriebsart.Tischlerei, k, startkarren: "Kriegskarren");
+                // Ein Pferdekarren (drei Ladeflächen zu 25): Ohne Leute ist der übliche Vorrat Holz für 10 Schemel (20 Stück), im späten Herbst 40.
+                var t = w.BetriebEroeffnen("Tischlerei Vorrat", Betriebsart.Tischlerei, k, startkarren: "Pferdekarren");
                 var karren = t.Karren[0];
                 // leeres Lager: Der Verwalter fährt gleich los und kauft ein; gezählt wird, was er vom Markt mitbringt
                 for (var i = 0; i < 120 && karren.Zustand != KarrenZustand.ZumBetrieb; i++) sim.Tick();

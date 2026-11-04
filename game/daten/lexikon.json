@@ -237,7 +237,7 @@
   "kennung": "karren",
   "titel": "Karren",
   "gruppe": "Wirtschaft",
-  "text": "Karren bringen Waren zwischen Betrieb und Markt. Es gibt den Handkarren ({wert:karren_preis_handkarren} {wert:waehrung}, {wert:karren_last_handkarren} Stück), den Ochsenkarren ({wert:karren_preis_ochsenkarren}, {wert:karren_last_ochsenkarren}) und den Kriegskarren ({wert:karren_preis_kriegskarren}, {wert:karren_last_kriegskarren}). Jede Ladefläche trägt eine Warensorte. Ein Karren bringt beim Verkauf {wert:karren_verkauf_anteil} seines Preises, nur solange er am Betrieb steht. Unterwegs drohen [[banditen]]; eine [[eskorte]] hilft. Das Tempo hängt vom [[belag]] ab."
+  "text": "Karren bringen Waren zwischen Betrieb und Markt. Es gibt den Handkarren ({wert:karren_preis_handkarren} {wert:waehrung}, {wert:karren_last_handkarren} Stück), den Ochsenkarren ({wert:karren_preis_ochsenkarren}, {wert:karren_last_ochsenkarren}) und den Pferdekarren ({wert:karren_preis_pferdekarren}, {wert:karren_last_pferdekarren}). Jede Ladefläche trägt eine Warensorte. Ein Karren bringt beim Verkauf {wert:karren_verkauf_anteil} seines Preises, nur solange er am Betrieb steht. Unterwegs drohen [[banditen]]; eine [[eskorte]] hilft. Das Tempo hängt vom [[belag]] ab."
  },
  {
   "kennung": "eskorte",

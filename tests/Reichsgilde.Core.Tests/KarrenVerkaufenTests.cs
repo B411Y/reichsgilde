@@ -132,14 +132,14 @@ static class KarrenVerkaufenTests
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: 50_000);
             var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k); // ohne Personal: keine Ware, keine Zutaten – kein Karren fährt
             w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Ochsenkarren"));
-            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Kriegskarren"));
+            w.Ausfuehren(k, new KarrenKaufen(grube.Name, "Pferdekarren"));
             var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9)); // stellt niemanden ein, kauft und baut nichts
             Jahr(sim, danach: 1);
             Pruefe.Gleich(3, grube.Karren.Count); // das erste Jahr zählt nicht ganz
             Jahr(sim, danach: 1);
             Pruefe.Gleich("Ochsenkarren 1,Ochsenkarren 2", string.Join(",", grube.Karren.Select(x => x.Name)));
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Kriegskarren 3") && e.Contains("nicht gefahren")), "Begründung");
-            Pruefe.Ungefaehr(450, k.Laufend.Verkaeufe, 1e-9); // Kriegskarren 900 × 0,5 – schon im neuen Jahr gebucht
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Pferdekarren 3") && e.Contains("nicht gefahren")), "Begründung");
+            Pruefe.Ungefaehr(450, k.Laufend.Verkaeufe, 1e-9); // Pferdekarren 900 × 0,5 – schon im neuen Jahr gebucht
             Jahr(sim, danach: 1);
             Jahr(sim, danach: 1);
             Pruefe.Gleich("Ochsenkarren 1", string.Join(",", grube.Karren.Select(x => x.Name)));
@@ -164,13 +164,13 @@ static class KarrenVerkaufenTests
             var w = sim.Wirtschaft!;
             var k = w.KontoEroeffnen("Haus Lind", startvermoegen: -3_000); // verschuldet
             var grube = w.BetriebEroeffnen("Grube", Betriebsart.Mine, k);
-            grube.KarrenHinzufuegen("Kriegskarren"); // geschenkt – das Haus hat kein Geld
+            grube.KarrenHinzufuegen("Pferdekarren"); // geschenkt – das Haus hat kein Geld
             Jahr(sim, danach: 1);
             Pruefe.Wahr(k.Schuldenjahre > 0, $"gemahnt (Reinvermögen {k.Reinvermoegen})");
             var ki = w.KiAnmelden(k, new KiProfil(Reserve: 1e9));
             for (var i = 0; i < 6 * 60 && grube.Karren.Count == 2; i++) sim.Tick();
             Pruefe.Gleich("Ochsenkarren 1", string.Join(",", grube.Karren.Select(x => x.Name)));
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Kriegskarren 2") && e.Contains("Kämmerer")), "Begründung");
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains("verkauft Pferdekarren 2") && e.Contains("Kämmerer")), "Begründung");
             for (var i = 0; i < 6 * 60; i++) sim.Tick();
             Pruefe.Gleich(1, grube.Karren.Count);
         }),

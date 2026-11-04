@@ -243,7 +243,7 @@ static class LogistikTests
             var w = NeueSimulation().Wirtschaft!;
             var k = w.KontoEroeffnen("Spieler");
             var mine = w.BetriebEroeffnen("M", Betriebsart.Mine, k);
-            mine.KarrenKaufen("Kriegskarren");
+            mine.KarrenKaufen("Pferdekarren");
             Pruefe.Gleich(2, mine.Karren.Count);
             Pruefe.Gleich(w.Daten.Allgemein.Startvermoegen - 900, k.Vermoegen);
             Pruefe.Gleich(900.0, k.Laufend.Investitionen);
