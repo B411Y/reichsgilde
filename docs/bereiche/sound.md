@@ -184,7 +184,7 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Klang | `glocken/glocke_sturm.ogg` (50 s, nahtlose Schleife): **Klangprobe A** (Wahl des Nutzers, 2.11.2026) – ein Schlag der großen Glocke Noteman (klankbeeld, CC BY 4.0, Namensnennung in `HERKUNFT.md` und im Protokoll), über 1,8 kHz gedämpft, abwechselnd um den Faktor 1,12 und 1,06 höher gesetzt (tiefer als die erste Fassung mit 1,5), ein Schlag alle 1,15–1,3 s; Werkzeug `tools/ton/glocke_sturm_bauen.py` (Blender, audaspace + numpy). Verworfen: die erste, hochgesetzte Noteman-Fassung (zu penetrant) und Klangprobe B aus dem Geläut des Kölner Doms (CC0). |
 | Wo, wann | Die nächste Kirche (Kirche, Dom, Kölner Dom; sonst der Markt) in 25 m Höhe, 5–9 s nach dem Einschlag, nur wenn es dann noch brennt; läutet als Schleife, bis kein Blitzfeuer mehr brennt, und klingt dann in 4 s aus. 3D (`AudioStreamPlayer3D` an der Stadt, Bus Umgebung, −4 dB, bis 45 m voll, dann leiser mit der Entfernung, Reichweite 1.000 m); verstummt beim Verlassen der Partie und beim Laden; nur ein Läuten zugleich. |
 
-### Pferdeklang: Schnauben in der Stadt, Hufe am Karren nach Untergrund (Nutzer, 04.11.2026, PR #…)
+### Pferdeklang: Schnauben in der Stadt, Hufe am Karren nach Untergrund (Nutzer, 04.11.2026, PR #304)
 
 | Frage | Entscheidung |
 |---|---|
