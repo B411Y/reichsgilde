@@ -269,7 +269,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Kennung und Spielstand | Die Kennung ist zugleich der Anzeigename, darum mit umbenannt statt eines eigenen Anzeigenamens. Alte Spielstände bringen ihre Daten mit „Kriegskarren“ mit und würden sonst so heißen (und die Lexikonwerte fänden den Pferdekarren nicht): `LogistikDaten.AlteKarrenarten` stellt beim Laden Daten, Karrenart und Karrennamen um, `KarrenKaufen` übersetzt alte Befehle. Spielstandformat bleibt. | 4.11.2026 |
 | Datenversion | Bleibt 71: kein Wert und kein Feld ändert sich, nur ein Schlüssel; alte Spielstände stellt der Lade-Alias um. Reihenfolge nach Kennung (KI: `OrderBy(Key)`) jetzt Hand, Ochse, Pferd statt Hand, Krieg, Ochse – die KI entscheidet bei Gleichstand nach Preis, Tests und Gleichheitstest unverändert grün. | 4.11.2026 |
 
-### Bauzonen aus dem Raster für jede Karte (PR #…)
+### Bauzonen aus dem Raster für jede Karte (PR #310)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
