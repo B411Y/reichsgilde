@@ -14,12 +14,16 @@ static class BalancingberichtNeuTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Bericht: Passiver Spieler arbeitet mit den Startgesellen; Stadtkasse und Steuer je Jahr gemessen", () =>
+        ("Bericht: Passiver Spieler arbeitet mit seinem Startlehrling (Datenversion 72: einer); Stadtkasse und Steuer je Jahr gemessen", () =>
         {
             var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 2, Bezug: Bezugsart.Passiv), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
-            Pruefe.Gleich(2, r.Spieler.StartArbeiter);
-            Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Betriebe == 1 && j.Gewinn > 0), "die Werkstatt verdient ohne Führung");
+            Pruefe.Gleich(1, r.Spieler.StartArbeiter);
+            // Mit einem Lehrling (Datenversion 72) verdient die Werkstatt ohne Führung im ersten Jahr noch (Greybox +202), im zweiten nicht mehr
+            // (−247) – wer nicht einstellt, zehrt langsam vom Startgeld, geht aber nicht bankrott.
+            Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Betriebe == 1) && r.Spieler.Jahre[0].Gewinn > 0, "die Werkstatt verdient im ersten Jahr ohne Führung: "
+                + string.Join(" / ", r.Spieler.Jahre.Select(j => $"{j.Gewinn:0} {j.Rein:0}")));
+            Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Rein > 3_000), "kein Absturz ohne Führung");
             Pruefe.Wahr(r.Haeuser.All(h => h.Jahre[^1].Steuer > 0), "jedes Haus zahlt Umsatzsteuer");
             Pruefe.Gleich(2, r.Kassenstand.Count);
             Pruefe.Gleich(2, r.Steuersatz.Count);

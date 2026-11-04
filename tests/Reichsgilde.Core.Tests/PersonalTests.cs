@@ -140,16 +140,17 @@ static class PersonalTests
             Pruefe.Gleich(1, g.Belegt);
         }),
 
-        ("Personal: Die Partie beginnt mit Anfängern – Spieler und KI-Häuser mit zwei Lehrlingen, die Grube („Schwer“) mit drei Knechten", () =>
+        ("Personal: Die Partie beginnt mit Anfängern – Spieler und KI-Häuser mit einem Lehrling, die Grube („Schwer“) mit einem Knecht (Datenversion 72; die KI füllt sie gleich auf drei)", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { StartStatut = Fronstatut.FreieStadt, Schwierigkeit = Schwierigkeit.Schwer },
                 Daten.Value, new NeuePartie());
             var w = sim.Wirtschaft!;
             var eigene = w.Betriebe.Single(b => b.Konto == spieler);
-            Pruefe.Gleich(2, eigene.Belegung.GetValueOrDefault("Lehrling"));
+            Pruefe.Gleich(1, eigene.Belegung.GetValueOrDefault("Lehrling"));
             foreach (var b in w.Betriebe.Where(b => b.Konto != spieler && b.Belegt > 0))
                 Pruefe.Wahr(b.Arbeiter.All(a => w.Personal.IstAnfaenger(a)), $"{b.Name}: {string.Join(", ", b.Belegung.Keys)}");
             Pruefe.Gleich(3, w.Betriebe.Single(b => b.Name == "Grube Eisenbart").Belegung.GetValueOrDefault("Knecht"));
+            Pruefe.Wahr(w.Rivalen.Any(r => r.Entscheidungen.Any(e => e.Contains(": Grube Eisenbart stellt 2× Knecht ein"))), "aufgestellt mit einem Knecht");
         }),
 
         ("Personal: Erfahrung aus Arbeitsstunden – ein Lehrling sammelt im Jahr 0,67 × 12 ≈ 8 Stunden, ein Geselle 12; bei Stillstand nichts", () =>
