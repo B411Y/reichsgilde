@@ -37,7 +37,6 @@ def bauen():
     st = bs.Stoffe()
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
-    lb.flaeche(haus, st, lb.rechteck(-11, -9, 11, 9), 0.008, "Gras")
     lb.flaeche(haus, st, lb.rechteck(-0.7, -9.0, 0.7, 2.0), 0.014, "Erde hell")          # Kreuzweg
     lb.flaeche(haus, st, lb.rechteck(-6.0, -3.3, 6.0, -2.7), 0.016, "Erde hell")
     lb.flaeche(haus, st, lb.rechteck(-8.0, 1.6, 8.0, 2.4), 0.012, "Erde hell")

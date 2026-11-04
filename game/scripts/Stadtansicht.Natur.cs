@@ -43,7 +43,11 @@ public partial class Stadtansicht
             netz = (kasten.FindChild(knoten, true, false) as MeshInstance3D)?.Mesh;
             kasten.Free();
             if (netz is null) { if (pflicht) GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb hat keinen Knoten „{knoten}“."); }
-            else LaubMelden(netz);
+            else
+            {
+                LaubMelden(netz);
+                if (IstBaumDatei(datei) && datei.Contains("kit")) BaumWindStoffe(netz); // die Kit-Bäume wiegen sich im Wind (baum_wind.gdshader)
+            }
         }
         return _naturNetze[(datei, knoten)] = netz;
     }
@@ -226,7 +230,8 @@ public partial class Stadtansicht
             if (netz.SurfaceGetMaterial(i) is BaseMaterial3D stoff) LaubMelden(stoff);
     }
 
-    private void LaubFaerben(BaseMaterial3D stoff, Color sommer) =>
+    private void LaubFaerben(BaseMaterial3D stoff, Color sommer)
+    {
         stoff.AlbedoColor = _jahreszeit switch
         {
             Jahreszeit.Fruehling => sommer.Lerp(FruehlingsGruen, 0.35f),
@@ -234,6 +239,44 @@ public partial class Stadtansicht
             Jahreszeit.Winter => Winterlaub[stoff.ResourceName],
             _ => sommer,
         };
+        // die Windfassungen dieses Laubs (Kit-Bäume) mitfärben
+        if (_baumWindStoffe.TryGetValue(stoff, out var fassungen))
+            foreach (var f in fassungen) f.SetShaderParameter("farbe", stoff.AlbedoColor);
+    }
+
+    /// <summary>Die Windfassungen (<c>baum_wind.gdshader</c>) je Ausgangsmaterial des Kit-Laubs: <see cref="LaubFaerben"/> färbt sie mit der Jahreszeit um.</summary>
+    private readonly Dictionary<BaseMaterial3D, List<ShaderMaterial>> _baumWindStoffe = new();
+
+    /// <summary>
+    /// Tauscht die Materialien eines Kit-Baum-Netzes gegen Windfassungen (<c>baum_wind.gdshader</c>): dieselbe Textur, Farbe und Rauheit, dazu Stamm steif,
+    /// Krone schwankt, Blätter und Nadeln flattern (Stärke aus <c>wetter_wind</c>, je Baum eigene Phase aus dem Ort). Nur je Netz einmal (das Netz ist zwischengespeichert).
+    /// Die Höhe des Baums im Modell steuert, wie viel von der Krone schwankt.
+    /// </summary>
+    private void BaumWindStoffe(Mesh netz)
+    {
+        var shader = GD.Load<Shader>("res://assets/shader/baum_wind.gdshader");
+        var hoehe = Mathf.Max(netz.GetAabb().End.Y, 1f);
+        for (var i = 0; i < netz.GetSurfaceCount(); i++)
+        {
+            if (netz.SurfaceGetMaterial(i) is not BaseMaterial3D quelle) continue;
+            var m = new ShaderMaterial { Shader = shader, ResourceName = quelle.ResourceName };
+            m.SetShaderParameter("farbe", quelle.AlbedoColor);
+            if (quelle.AlbedoTexture is { } tex) m.SetShaderParameter("albedo_tex", tex);
+            m.SetShaderParameter("normale", quelle.NormalEnabled && quelle.NormalTexture is not null);
+            if (quelle.NormalTexture is { } nt) m.SetShaderParameter("normal_tex", nt);
+            m.SetShaderParameter("normal_staerke", quelle.NormalScale);
+            m.SetShaderParameter("rauheit", quelle.Roughness);
+            m.SetShaderParameter("maske", quelle.Transparency == BaseMaterial3D.TransparencyEnum.AlphaScissor);
+            m.SetShaderParameter("schwelle", quelle.AlphaScissorThreshold);
+            m.SetShaderParameter("eckenfarbe", quelle.VertexColorUseAsAlbedo);
+            m.SetShaderParameter("eckenfarbe_srgb", quelle.VertexColorIsSrgb);
+            m.SetShaderParameter("hoehe", hoehe);
+            m.SetShaderParameter("flattern", quelle.Transparency == BaseMaterial3D.TransparencyEnum.AlphaScissor ? 1f : 0f); // Blätter und Nadeln
+            netz.SurfaceSetMaterial(i, m);
+            if (!_baumWindStoffe.TryGetValue(quelle, out var liste)) _baumWindStoffe[quelle] = liste = new();
+            liste.Add(m);
+        }
+    }
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Kronen im Winter
@@ -282,6 +325,7 @@ public partial class Stadtansicht
 
         var winter = jahreszeit == Jahreszeit.Winter;
         foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur (Oberflächendetails)
+        FuellungJahreszeit(winter); // Restflächen (Stadtansicht.Restflaechen.cs)
         _kronen.RemoveAll(k => !IsInstanceValid(k.Knoten));
         foreach (var (knoten, aeste) in _kronen) knoten.Visible = aeste == winter;
         _markerBaeume.RemoveAll(b => !IsInstanceValid(b.Knoten));

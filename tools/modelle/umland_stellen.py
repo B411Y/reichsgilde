@@ -33,7 +33,6 @@ def bauen():
     weide, feld, wald = bs.Netz("Weide"), bs.Netz("Feld"), bs.Netz("Wald")
 
     # ── Weide ─────────────────────────────────────────────────────────────────
-    lb.flaeche(weide, st, lb.rechteck(-7, -5, 7, 5), 0.01, "Gras")
     bs.zaun(weide, st, [(-1.0, -5.0), (-7.0, -5.0), (-7.0, 5.0), (7.0, 5.0), (7.0, -5.0), (1.0, -5.0)], hoehe=1.0,
             abstand=2.0)
     weide.stab((1.0, -5.0, 0.3), (-0.4, -6.0, 0.3), 0.08, 0.06, st["Holz alt"], quer=(0, 0, 1))

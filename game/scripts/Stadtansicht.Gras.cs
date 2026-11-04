@@ -74,6 +74,9 @@ public partial class Stadtansicht
     /// <summary>Die Äcker, über denen kein Gras steht: je Knoten der Äcker (im Spiel einer, in der Werkstatt einer je Feldfläche) die Stücke.</summary>
     private readonly Dictionary<Node3D, (Vector2 Mitte, float Drehung, Vector2 Halb)[]> _grasAecker = new();
 
+    /// <summary>Die ausgefranste Feldmaske zu jedem Knoten der Äcker (<see cref="Feldmaske"/>): Das Gras dünnt am Feldrain aus, wie der Acker dort ausläuft.</summary>
+    private readonly Dictionary<Node3D, Feldmaske> _grasMasken = new();
+
     private static bool GrasAn => Fenster.AktuellerGrasteppich != Grasteppich.Aus;
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -114,16 +117,18 @@ public partial class Stadtansicht
         GrasBereichNeu(new Rect2((float)(g.X - g.HalbX) - 1, (float)(g.Z - g.HalbZ) - 1, (float)g.HalbX * 2 + 2, (float)g.HalbZ * 2 + 2));
 
     /// <summary>Äcker sind gebaut worden (Stadtansicht.Rand.cs): Dort wächst kein Gras.</summary>
-    private void GrasAeckerMelden(Node3D knoten, IReadOnlyList<(Vector2 Mitte, float Drehung, Vector2 Halb)> stuecke)
+    private void GrasAeckerMelden(Node3D knoten, IReadOnlyList<(Vector2 Mitte, float Drehung, Vector2 Halb)> stuecke, Feldmaske maske)
     {
         if (stuecke.Count == 0) return;
         _grasAecker[knoten] = stuecke.ToArray();
+        _grasMasken[knoten] = maske;
         GrasBereichNeu(AeckerRahmen(stuecke));
     }
 
     /// <summary>Die Äcker unter diesem Knoten sind weg (Werkstatt).</summary>
     private void GrasAeckerWeg(Node3D knoten)
     {
+        _grasMasken.Remove(knoten);
         if (_grasAecker.Remove(knoten, out var alt)) GrasBereichNeu(AeckerRahmen(alt));
     }
 
@@ -236,13 +241,14 @@ public partial class Stadtansicht
         else if (_karte is not null && _wirtschaft is null) wasser.Seen.AddRange(_karte.Bauzonen.Select(z => z.Flaeche.Select(e => new Vector2((float)e[0], (float)e[1])).ToArray()));
         wasser.Seen.RemoveAll(v => v.Length < 3);
         var flaechen = GrasSperrflaechen();
+        var masken = _grasMasken.Where(m => IsInstanceValid(m.Key) && !m.Key.IsQueuedForDeletion()).Select(m => m.Value).ToArray();
         // die Höhen der Rasterpunkte je Kachel am Stück (der Kern rechnet das Bett der Wege dabei nach, das geht nicht parallel)
         var hoehen = liste.Select(k => BodenBewegt ? _gelaende!.Ausschnitt(k.I * KachelZellen - 1, k.J * KachelZellen - 1, GrasRaster, GrasRaster) : null).ToArray();
         var ergebnis = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
         var stadt = liste.Select(k => _grasStadt.GetValueOrDefault(k)).ToArray();
         var stark = _grasMakroStark = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch;
         var felsKarte = _felsbodenAn == true; // nur Karten mit Felsen: die Wiese um und zwischen den Flecken wird steinig (Stadtansicht.Felsboden.cs)
-        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, stark, felsKarte));
+        Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, masken, stark, felsKarte));
         for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnis[n]);
         _grasBlickFuer = null;
         if (alles) GD.Print($"Grasteppich: {_grasKacheln.Count} Kacheln, {_grasKacheln.Values.Sum(k => k.Felder.Length)} Felder mit Gras, {uhr.ElapsedMilliseconds} ms");
@@ -258,26 +264,20 @@ public partial class Stadtansicht
     {
         if (_entwurf is not null) return _entwurf.Freiraum(Modellmass);
         if (_karte is not { } karte) return null;
-        if (_wirtschaft is null) return Naturfreiraum.Aus(karte, Modellmass);
+        if (_wirtschaft is null) return new Naturfreiraum(Array.Empty<(IReadOnlyList<double[]>, double)>(), GrasHindernisse(karte.Gebaeude), Array.Empty<IReadOnlyList<double[]>>(), Array.Empty<IReadOnlyList<double[]>>());
         var stehen = _betriebe.Keys.Select(b => b.Name).Concat(_leereHaeuser.Keys).Select(n => PlatzVon(n)?.Gebaeude).OfType<Kartengebaeude>().ToHashSet();
-        var gebaeude = karte.Gebaeude
-            .Where(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz) || stehen.Contains(g))
-            .Select(g => Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab, Modellmass)).OfType<Naturhindernis>();
+        var gebaeude = GrasHindernisse(karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Werkstattplatz or Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz) || stehen.Contains(g))).ToList();
         return new Naturfreiraum(Array.Empty<(IReadOnlyList<double[]>, double)>(), gebaeude, Array.Empty<IReadOnlyList<double[]>>(), Array.Empty<IReadOnlyList<double[]>>());
     }
 
     /// <summary>
-    /// Wo kein Gras steht, obwohl Wiese gemalt ist (als gedrehte Rechtecke: Mitte, Drehung wie <c>Rotation.Y</c>, halbe Breite und Tiefe): die Äcker
-    /// und im Spiel die Grundstücke (Häuser, Baustellen, neue Werkstätten – nicht der leere Bauplatz) mit ihrem Vorplatz und die Einwohnerhäuser.
+    /// Wo kaum Gras steht, obwohl Wiese gemalt ist (als gedrehte Rechtecke: Mitte, Drehung wie <c>Rotation.Y</c>, halbe Breite und Tiefe): im Spiel die
+    /// Grundstücke (Häuser, Baustellen, neue Werkstätten – nicht der leere Bauplatz) mit ihrem Vorplatz und die Einwohnerhäuser. Das Gras endet dort weich
+    /// (<see cref="GrasRandFaktor"/>). Die Äcker sind keine Rechtecke mehr, sie haben ihre Feldmaske (<see cref="_grasMasken"/>).
     /// </summary>
     private List<(Vector2 Mitte, float Drehung, Vector2 Halb)> GrasSperrflaechen()
     {
         var liste = new List<(Vector2, float, Vector2)>();
-        foreach (var (knoten, teile) in _grasAecker)
-        {
-            if (!IsInstanceValid(knoten) || knoten.IsQueuedForDeletion()) continue;
-            liste.AddRange(teile);
-        }
         if (_simulation?.Wirtschaft is { } w && w.Bauen.IstAktiv)
             foreach (var g in w.Bauen.Grundstuecke)
             {
@@ -288,6 +288,32 @@ public partial class Stadtansicht
         if (_wirtschaft is not null)
             foreach (var p in _gebautePlaetze) liste.Add((new Vector2(p.Mitte.X, p.Mitte.Z), p.Drehung, p.Groesse / 2));
         return liste;
+    }
+
+    /// <summary>Breite (Meter) des weichen Übergangs am Rand von Gebäuden, Grundstücken und Höfen.</summary>
+    private const float GrasRandBreite = 1.4f;
+
+    /// <summary>
+    /// Wie viel Gras am Rand eines Gebäudes oder Grundstücks steht, nach dem Abstand dazu (Meter; drinnen negativ): an der Wand fast nichts, nach
+    /// <see cref="GrasRandBreite"/> Metern volle Dichte. Der Verlauf beginnt kurz drinnen, damit zwischen Mauer und Halmen keine kahle Fuge bleibt.
+    /// </summary>
+    private static float GrasRandFaktor(float abstand) => Mathf.SmoothStep(-0.15f, GrasRandBreite, abstand);
+
+    /// <summary>Ein Rauschen für den Abstand (± 0,45 m, Wellen von gut 2 m): Der Rand franst aus, statt als gerade Linie zu laufen.</summary>
+    private static float GrasRandRauschen(float x, float z) => (Rausch(x * 0.47f + 3.1f, z * 0.47f + 8.3f) - 0.5f) * 0.9f;
+
+    /// <summary>
+    /// Wie viel Gras am Feldrain steht: Wie im Acker-Shader (acker.gdshader) wird der Abstand zum Rand der Feldfläche mit einem Rauschen verschoben, ab dem
+    /// der Acker die Zellen füllt (0 bis 1 m); das Gras nimmt im selben Maß ab. Am äußeren Rand des Ackers ist das Gras also noch voll da und mischt sich mit
+    /// dem Randgras des Feldrains (<see cref="FeldPflanzenBauer.Feldrain"/>).
+    /// </summary>
+    private static float GrasFeldFaktor(Feldmaske[] masken, float x, float z)
+    {
+        var abstand = float.NegativeInfinity;
+        foreach (var m in masken) abstand = Mathf.Max(abstand, m.Abstand(x, z));
+        if (abstand < -1.2f) return 1f; // weit vom Feld (auch: außerhalb aller Raster)
+        var rd = abstand + (Rausch(x * 0.35f + 11.2f, z * 0.35f + 5.7f) - 0.5f) * 0.9f + (Rausch(x * 0.8f + 2.5f, z * 0.8f + 9.1f) - 0.5f) * 0.35f;
+        return 1f - Mathf.SmoothStep(0f, 1.1f, rd);
     }
 
     /// <summary>Das Wasser als Stücke der Flüsse und Bäche (mit halber Breite) und Umrisse der Seen – wie im Freiraum der Natur.</summary>
@@ -321,7 +347,7 @@ public partial class Stadtansicht
     /// </summary>
     private static (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder) GrasKachelRechnen(int ti, int tj, float[]? hoehen, byte[]? stadt, Bodenraster? raster,
         Naturfreiraum? frei, (List<(Vector2 Von, Vector2 Bis, float Halb)> Fluesse, List<Vector2[]> Seen) wasser,
-        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, bool stark, bool felsKarte)
+        List<(Vector2 Mitte, float Drehung, Vector2 Halb)> flaechen, Feldmaske[] masken, bool stark, bool felsKarte)
     {
         const int n = BodenBild;
         var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
@@ -356,7 +382,8 @@ public partial class Stadtansicht
                 if (naehe is not null) d *= 1f - 0.9f * Mathf.SmoothStep(0.3f, 0.8f, naehe[b * n + a]); // steiniger Boden: Kies, Erde und Fels statt Wiese
                 // Pflaster als Grund (Punkt k des groben Bildes liegt bei Kachel + k − 0,5 m, also gut einen halben Meter neben diesem): wie im Shader
                 if (stadt is not null) d *= 1f - Mathf.SmoothStep(0.3f, 0.6f, stadt[(Math.Min(b, SchichtInfoBild - 1) * SchichtInfoBild + Math.Min(a, SchichtInfoBild - 1)) * 4 + 2] / 255f);
-                if (d > 0f && frei is not null && frei.AufGebaeude(x, z, 0.4)) d = 0f;
+                if (d > 0f && frei is not null) d *= GrasRandFaktor((float)frei.GebaeudeAbstand(x, z, GrasRandBreite + 0.5) + GrasRandRauschen(x, z)); // Gebäude: das Gras dünnt zur Wand hin aus
+                if (d > 0f && masken.Length > 0) d *= GrasFeldFaktor(masken, x, z); // Äcker: das Gras wächst bis in den Feldrain
                 daten[o] = d;
                 daten[o + 1] = h;
                 daten[o + 2] = normale.X;
@@ -382,15 +409,23 @@ public partial class Stadtansicht
                 for (var a = a0; a <= a1; a++)
                     if (daten[(b * n + a) * 4] > 0f && drin(new Vector2(i0 + a, j0 + b))) daten[(b * n + a) * 4] = 0f;
         }
-        foreach (var (mitte, drehung, halb) in flaechen) // zurückgedreht in ihr Rechteck, 0,3 m Zugabe
+        foreach (var (mitte, drehung, halb) in flaechen) // zurückgedreht in ihr Rechteck, das Gras dünnt am Rand aus
         {
-            var r = halb.Length() + 0.3f;
+            var r = halb.Length() + GrasRandBreite + 0.5f;
             var zurueck = new Basis(Vector3.Up, -drehung);
-            Loeschen(mitte - new Vector2(r, r), mitte + new Vector2(r, r), p =>
-            {
-                var l = zurueck * new Vector3(p.X - mitte.X, 0, p.Y - mitte.Y);
-                return Mathf.Abs(l.X) <= halb.X + 0.3f && Mathf.Abs(l.Z) <= halb.Y + 0.3f;
-            });
+            var (a0, a1) = (Math.Max(0, (int)MathF.Floor(mitte.X - r) - i0), Math.Min(n - 1, (int)MathF.Ceiling(mitte.X + r) - i0));
+            var (b0, b1) = (Math.Max(0, (int)MathF.Floor(mitte.Y - r) - j0), Math.Min(n - 1, (int)MathF.Ceiling(mitte.Y + r) - j0));
+            for (var b = b0; b <= b1; b++)
+                for (var a = a0; a <= a1; a++)
+                {
+                    var o = (b * n + a) * 4;
+                    if (daten[o] <= 0f) continue;
+                    var (px, pz) = ((float)(i0 + a), (float)(j0 + b));
+                    var l = zurueck * new Vector3(px - mitte.X, 0, pz - mitte.Y);
+                    var (ax, az) = (Mathf.Abs(l.X) - halb.X, Mathf.Abs(l.Z) - halb.Y);
+                    var abstand = ax > 0 && az > 0 ? MathF.Sqrt(ax * ax + az * az) : Mathf.Max(ax, az);
+                    daten[o] *= GrasRandFaktor(abstand + GrasRandRauschen(px, pz));
+                }
         }
         foreach (var (von, bis, halb) in wasser.Fluesse) // Flüsse und Bäche als Stücke mit halber Breite
         {

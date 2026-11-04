@@ -494,7 +494,7 @@ public partial class Stadtansicht
                 Name = "Acker_" + gruppe.Key, Mesh = netz, MaterialOverride = FeldStoff(gruppe.Key), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             });
         }
-        GrasAeckerMelden(eltern, sperr); // über Äckern kein Grasteppich (Stadtansicht.Gras.cs)
+        GrasAeckerMelden(eltern, sperr, maske); // über Äckern kein Grasteppich (Stadtansicht.Gras.cs)
         FeldPflanzenSetzen(parzellen, maske, eltern); // Pflanzen in den Reihen (Stadtansicht.Feldpflanzen.cs)
     }
 
