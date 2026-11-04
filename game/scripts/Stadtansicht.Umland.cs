@@ -53,6 +53,15 @@ public partial class Stadtansicht
             var kasten = LageUnter(wurzel, teil) * teil.GetAabb();
             masse = masse is { } m ? m.Merge(kasten) : kasten;
         }
+        // Bäume an Markern (Stadtansicht.Natur.cs) gehören zum Modell: Klickfläche und Freiraum der Natur reichen bis unter ihre Kronen
+        foreach (var marker in wurzel.FindChildren("*Baum_*", nameof(Node3D), true, false).OfType<Node3D>())
+        {
+            if (marker is MeshInstance3D) continue;
+            var lage = LageUnter(wurzel, marker);
+            var radius = 2.2f * lage.Basis.Scale.X;
+            var kasten = new Aabb(lage.Origin - new Vector3(radius, 0, radius), new Vector3(2 * radius, 1, 2 * radius));
+            masse = masse is { } m ? m.Merge(kasten) : kasten;
+        }
         return masse ?? new Aabb();
     }
 
@@ -145,7 +154,7 @@ public partial class Stadtansicht
     /// Die Arbeitsstellen der Einwohner (Bausteine der Art „umlandstelle“): Weide (Koppel, Gatter, Tränke), Feld (Furchen, Vogelscheuche) und Wald
     /// (Tannen, Linde, Reisig) sind Knoten eines Baukastens (<c>umland_stellen.glb</c>); jeder steht an seiner Lage in der Karte, die Vorderseite
     /// (+Z, dort liegt „Anker_Tuer“, das Gatter) zum Weg. Das Gatter hängt mit einem Fußweg am nächsten Weg, im Netz geht es weiter bis zur Mitte
-    /// der Stelle. Die Bäume des Waldes kommen aus dem Modell; um die Stelle wächst sonst nichts (<see cref="Naturfreiraum"/>).
+    /// der Stelle. Die Bäume des Waldes sind Marker des Baukastens (Kit-Bäume, <see cref="BaumMarkerEinsetzen"/>); um die Stelle wächst sonst nichts (<see cref="Naturfreiraum"/>).
     /// </summary>
     private void UmlandstellenBauen(Stadtkarte karte)
     {
@@ -179,6 +188,7 @@ public partial class Stadtansicht
             // auch die Kinder kommen mit (der Wald trägt „Laubkrone_Wald“ und „Winteraeste_Wald“), nicht nur sein Netz
             foreach (var kind in teil.GetChildren().OfType<MeshInstance3D>())
                 stelleKnoten.AddChild(new MeshInstance3D { Name = kind.Name, Mesh = kind.Mesh, Transform = kind.Transform });
+            BaumMarkerEinsetzen(kasten, stelleKnoten, knotenName + "_Baum_"); // die Bäume des Waldes: Marker „Wald_Baum_…“ im Baukasten
             AddChild(stelleKnoten);
             KronenMelden(stelleKnoten);
             _umlandstellen[g.Name] = g;
