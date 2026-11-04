@@ -23,6 +23,7 @@ namespace Reichsgilde;
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
 ///   --startrunde=4     Partie beginnt in der 4. Runde (Winter), nur für Bilder
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
+///   --lichtlauf=1      Sonnen- und Mondstand je Jahreszeit alle halbe Stunde ins Log (Zeilen [lichtlauf]; Stadtansicht.Licht.cs)
 ///   --nachtnebel=aus   Nebel in der Nacht aus (wie Lösung A vom 29.10.2026; Standard an) – nur Darstellung (Stadtansicht.Bodennebel.cs)
 ///   --morgennebel=1    Nebel des Spieltags fest vorgeben (0–1, sonst gewürfelt nach Jahreszeit und Nacht) – nur Darstellung
 ///   --tempo=8          Anfangstempo
@@ -539,6 +540,8 @@ public partial class Hauptszene : Node
                                   optionen.GetValueOrDefault("blitz") == "1");
         if (optionen.TryGetValue("lichtuhr", out var lichtUhr) && float.TryParse(lichtUhr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lichtStunde))
             _stadt.LichtUhrVorgeben(lichtStunde); // --lichtuhr=3.5: Licht und Himmel zeigen 3:30 Uhr (Stadtansicht.Licht.cs)
+        if (optionen.GetValueOrDefault("lichtlauf") == "1")
+            Stadtansicht.LichtLaufAusgeben(); // --lichtlauf=1: Sonnen- und Mondstand je Jahreszeit ins Log (Stadtansicht.Licht.cs)
         if (optionen.TryGetValue("wetterspaeter", out var spaeter) && spaeter.Split('@') is [var spaeterLage, var spaeterSekunden]
             && Enum.TryParse<Wetterlage>(spaeterLage, true, out var spaeterWetter) && double.TryParse(spaeterSekunden, System.Globalization.CultureInfo.InvariantCulture, out var sek))
             _stadt.WetterVorgebenNach(spaeterWetter, sek); // --wetterspaeter=regen@20: Wetter schlägt nach 20 s um (Stadtansicht.Wetter.cs)
