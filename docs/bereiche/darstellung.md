@@ -221,7 +221,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
-### Bauzonen glühen nicht, Beschriftungen scharf (Branch fix/bauzonen-glimmen-schrift)
+### Bauzonen glühen nicht, Beschriftungen scharf (PR #314)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
