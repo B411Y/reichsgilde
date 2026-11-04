@@ -12,8 +12,8 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Abstand der Kaiseite der Schiffe von der Uferkante (m): Seekante des Stegkopfes (10,4 m) mit seinen Reibepfählen plus 0,2 m Luft; wie Anker_Kai des Schiffs.</summary>
-    private const float StegAbstand = 10.6f;
+    /// <summary>Abstand der Kaiseite der Schiffe von der Uferkante (m): Seekante des Stegkopfes (10,4 m) mit seinen Reibepfählen (bis 10,7 m) plus 0,3 m Luft.</summary>
+    private const float StegAbstand = 11.0f;
 
     /// <summary>Auf so vielen Metern vor dem Liegeplatz biegt die Route der Anfahrt zum Steg hin ab (und dreht das Schiff längsseits).</summary>
     private const float StegAnlauf = 45f;
