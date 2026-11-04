@@ -786,6 +786,7 @@ public partial class Stadtansicht : Node3D
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
         JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
         VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
+        TiereAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Hühner, Hunde, Katzen: Stadtansicht.Tiere.cs
 
         if (_simulation.Wirtschaft is not { } w) return;
         var arbeitszeit = w.IstArbeitszeit(zeit);
