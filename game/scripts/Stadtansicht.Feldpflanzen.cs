@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Godot;
 using Reichsgilde.Core.Bauen;
 
@@ -7,8 +8,7 @@ namespace Reichsgilde;
 /// Pflanzen in den Reihen der Äcker (Teil der <c>partial class Stadtansicht</c>): Auf jedem Furchenkamm (Geometrie in <see cref="FeldNetzeBauen"/>) stehen Büschel
 /// aus sieben Halmen. Reine Darstellung: Die Stücke kommen vom Kern (<see cref="FeldVerteilung"/>), Höhe und Farbe nach Jahreszeit rechnet
 /// <c>feldpflanzen.gdshader</c> aus den globalen Jahreszeit-Anteilen (Frühling Saat, Sommer hohe Frucht, Herbst Stoppeln oder noch stehend, Winter Stümpfe).
-/// Gebaut wird nach und nach (<see cref="FeldPflanzenBauer"/>): je Frucht und Zelle von <see cref="FeldPflanzenZelle"/> m ein MultiMesh, die Zellen nahe der Kamera zuerst,
-/// höchstens ein paar Millisekunden je Bild – so wächst die Ladezeit nicht, und Godot zeichnet nur die Zellen im Bild.
+/// Gebaut wird beim Laden (<see cref="FeldPflanzenBauer"/>, parallel gerechnet): je Frucht und Zelle von <see cref="FeldPflanzenZelle"/> m ein MultiMesh – Godot zeichnet nur die Zellen im Bild.
 /// </summary>
 public partial class Stadtansicht
 {
@@ -89,83 +89,71 @@ public partial class Stadtansicht
     }
 
     /// <summary>Meldet die Stücke (Äcker des Kerns) und die Umrisse der Feldflächen dem Bauer, der die Pflanzen nach und nach setzt.</summary>
-    private void FeldPflanzenSetzen(IReadOnlyList<Feldparzelle> parzellen, List<Vector2[]> polygone, Node3D eltern)
+    private void FeldPflanzenSetzen(IReadOnlyList<Feldparzelle> parzellen, Feldmaske maske, Node3D eltern)
     {
         if (parzellen.Count == 0) return;
-        eltern.AddChild(new FeldPflanzenBauer(parzellen, polygone, (x, z) => BodenHoehe(x, z), (BodenBewegt ? FeldHoeheAmHang : FeldHoehe) - 0.02f, PflanzenStoff, PflanzenNetz())
+        eltern.AddChild(new FeldPflanzenBauer(parzellen, maske, (x, z) => BodenHoehe(x, z), (BodenBewegt ? FeldHoeheAmHang : FeldHoehe) - 0.02f, PflanzenStoff, PflanzenNetz())
         { Name = "Pflanzen" });
     }
 }
 
-/// <summary>Baut die Pflanzen der Äcker eines Knotens Zelle für Zelle (nächste zur Kamera zuerst, höchstens <see cref="Millisekunden"/> je Bild).</summary>
+/// <summary>
+/// Baut die Pflanzen der Äcker eines Knotens ganz im Aufbau (Ladebildschirm): Die Büschel aller Stücke werden auf allen Prozessorkernen gerechnet (reine Zahlen,
+/// <see cref="Parallel"/>), danach legt der Hauptfaden je Frucht und Zelle ein MultiMesh an – beim ersten Bild stehen alle Pflanzen. Am Rand der Feldfläche
+/// (<see cref="Feldrain"/> Meter) laufen sie aus: spärlicher, kleiner, heller und mit Randgras und Unkraut dazwischen, ein Teil davon schon außerhalb der Fläche.
+/// Instanzfarbe: RGB Farbstich, A = (Frucht steht im Herbst noch + Randanteil 0–1) / 2, Randanteil 0,995 = reines Unkraut (feldpflanzen.gdshader).
+/// </summary>
 public partial class FeldPflanzenBauer : Node3D
 {
-    private const double Millisekunden = 2.5;
+    /// <summary>Breite des Randstreifens in Metern: darin laufen Kämme, Furchen und Pflanzen aus (acker.gdshader hat dieselbe Breite).</summary>
+    public const float Feldrain = 1.9f;
+
+    private const float Zelle = 24f, Reihe = 0.55f;
 
     private readonly IReadOnlyList<Feldparzelle> _parzellen;
-    private readonly List<Vector2[]> _polygone;
+    private readonly Feldmaske _maske;
     private readonly Func<float, float, float> _hoehe;
     private readonly float _fuss;
     private readonly Func<string, ShaderMaterial> _stoff;
     private readonly Mesh _netz;
-    /// <summary>Was noch fehlt: (Frucht, Zelle) → Nummern der Stücke, die in die Zelle reichen.</summary>
-    private readonly Dictionary<(string Frucht, int I, int J), List<int>> _offen = new();
-    private int _zellen, _buescheln;
-    private ulong _anfang = Time.GetTicksMsec();
 
-    public FeldPflanzenBauer() { _parzellen = Array.Empty<Feldparzelle>(); _polygone = new(); _hoehe = (_, _) => 0; _stoff = _ => new ShaderMaterial(); _netz = new ArrayMesh(); }
+    public FeldPflanzenBauer() { _parzellen = Array.Empty<Feldparzelle>(); _maske = new Feldmaske(Array.Empty<Feldparzelle>(), Array.Empty<Vector2[]>()); _hoehe = (_, _) => 0; _stoff = _ => new ShaderMaterial(); _netz = new ArrayMesh(); }
 
-    public FeldPflanzenBauer(IReadOnlyList<Feldparzelle> parzellen, List<Vector2[]> polygone, Func<float, float, float> hoehe, float fuss, Func<string, ShaderMaterial> stoff, Mesh netz)
+    public FeldPflanzenBauer(IReadOnlyList<Feldparzelle> parzellen, Feldmaske maske, Func<float, float, float> hoehe, float fuss, Func<string, ShaderMaterial> stoff, Mesh netz)
     {
-        (_parzellen, _polygone, _hoehe, _fuss, _stoff, _netz) = (parzellen, polygone, hoehe, fuss, stoff, netz);
-        const float z = 24f;
-        for (var n = 0; n < parzellen.Count; n++)
-        {
-            var p = parzellen[n];
-            var basis = new Basis(Vector3.Up, Mathf.DegToRad((float)p.Drehung));
-            var (b, l) = ((float)p.Breite / 2, (float)p.Laenge / 2);
-            var (min, max) = (new Vector2(float.MaxValue, float.MaxValue), new Vector2(float.MinValue, float.MinValue));
-            foreach (var e in new[] { new Vector3(-b, 0, -l), new Vector3(b, 0, -l), new Vector3(b, 0, l), new Vector3(-b, 0, l) })
-            {
-                var w = basis * e;
-                var q = new Vector2((float)p.X + w.X, (float)p.Z + w.Z);
-                min = new Vector2(Mathf.Min(min.X, q.X), Mathf.Min(min.Y, q.Y));
-                max = new Vector2(Mathf.Max(max.X, q.X), Mathf.Max(max.Y, q.Y));
-            }
-            for (var j = Mathf.FloorToInt(min.Y / z); j <= Mathf.FloorToInt(max.Y / z); j++)
-                for (var i = Mathf.FloorToInt(min.X / z); i <= Mathf.FloorToInt(max.X / z); i++)
-                {
-                    if (!_offen.TryGetValue((p.Frucht, i, j), out var liste)) _offen[(p.Frucht, i, j)] = liste = new();
-                    liste.Add(n);
-                }
-        }
+        (_parzellen, _maske, _hoehe, _fuss, _stoff, _netz) = (parzellen, maske, hoehe, fuss, stoff, netz);
     }
 
-    public override void _Process(double delta)
+    public override void _Ready()
     {
-        if (_offen.Count == 0)
+        var anfang = Time.GetTicksMsec();
+        var uhr = Ladezeit.Uhr();
+        _hoehe(0, 0); // Gelände einmal im Hauptfaden anfragen (rechnet seine Höhen bei Bedarf), danach liest es jeder Faden nur
+        var je = new Dictionary<(string Frucht, int I, int J), List<float>>[_parzellen.Count];
+        Parallel.For(0, _parzellen.Count, n => je[n] = Stueck(n));
+        var alle = new SortedDictionary<(string Frucht, int I, int J), List<float>>();
+        foreach (var d in je)
+            foreach (var (schluessel, liste) in d)
+            {
+                if (!alle.TryGetValue(schluessel, out var l)) alle[schluessel] = l = new();
+                l.AddRange(liste);
+            }
+        var buescheln = 0;
+        foreach (var ((frucht, zi, zj), puffer) in alle)
         {
-            GD.Print($"[felder] Pflanzen fertig: {_zellen} Zellen, {_buescheln} Büschel, {Time.GetTicksMsec() - _anfang} ms nach dem Start");
-            SetProcess(false);
-            return;
+            var vielfach = new MultiMesh
+            {
+                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = _netz, InstanceCount = puffer.Count / 16,
+            };
+            vielfach.Buffer = puffer.ToArray();
+            buescheln += puffer.Count / 16;
+            AddChild(new MultiMeshInstance3D
+            {
+                Name = $"Pflanzen_{frucht}_{zi}_{zj}", Multimesh = vielfach, MaterialOverride = _stoff(frucht), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
         }
-        var start = Time.GetTicksUsec();
-        var kamera = GetViewport()?.GetCamera3D();
-        var fokus = Vector2.Zero;
-        if (kamera is not null)
-        {
-            var o = kamera.GlobalPosition;
-            var v = -kamera.GlobalTransform.Basis.Z;
-            var t = v.Y < -0.05f ? -o.Y / v.Y : 0f;
-            fokus = new Vector2(o.X + v.X * t, o.Z + v.Z * t);
-        }
-        while (_offen.Count > 0 && (Time.GetTicksUsec() - start) / 1000.0 < Millisekunden)
-        {
-            var naechste = _offen.Keys.MinBy(k => (new Vector2((k.I + 0.5f) * 24f, (k.J + 0.5f) * 24f) - fokus).LengthSquared());
-            var liste = _offen[naechste];
-            _offen.Remove(naechste);
-            Zelle(naechste.Frucht, naechste.I, naechste.J, liste);
-        }
+        Ladezeit.Dazu("Feldpflanzen", uhr);
+        GD.Print($"[felder] Pflanzen fertig: {alle.Count} Zellen, {buescheln} Büschel, {Time.GetTicksMsec() - anfang} ms im Aufbau");
     }
 
     private static uint Hash(uint a, uint b, uint c)
@@ -177,76 +165,74 @@ public partial class FeldPflanzenBauer : Node3D
 
     private static float Zufall(uint h) => (h & 0xFFFFFF) / 16777216f;
 
-    /// <summary>Eine Zelle einer Frucht: die Büschel aller Stücke darin, auf den Kämmen, nur in der Feldfläche und weg vom Rand.</summary>
-    private void Zelle(string frucht, int zi, int zj, List<int> stuecke)
+    /// <summary>Weiches Wertrauschen 0–1 über der Welt (für die unregelmäßige Kante des Randes).</summary>
+    private static float Rausch(float x, float z)
     {
-        const float z = 24f;
-        var puffer = new List<float>();
-        foreach (var n in stuecke)
-        {
-            var p = _parzellen[n];
-            var (b, l) = ((float)p.Breite / 2, (float)p.Laenge / 2);
-            var basis = new Basis(Vector3.Up, Mathf.DegToRad((float)p.Drehung));
-            var anzahl = Mathf.Max(1, Mathf.RoundToInt(2 * b / 0.8f));
-            var reihe = 2 * b / anzahl;
-            var stehend = frucht == "brache" || p.Variante % 2 == 0 ? 1f : 0f;
-            var stich = 0.94f + 0.04f * ((p.Variante - 1) % 4);
-            var seed = (uint)(int)(p.X * 10) * 31u + (uint)(int)(p.Z * 10);
-            var schritte = (int)(2 * l / FeldAbstand);
-            for (var k = 0; k < anzahl; k++)
-                for (var m = 0; m <= schritte; m++)
-                {
-                    var h1 = Hash(seed, (uint)k, (uint)m);
-                    var u = -b + (k + 0.5f) * reihe + (Zufall(h1) - 0.5f) * 0.1f;
-                    var v = -l + m * FeldAbstand + (Zufall(h1 >> 3) - 0.5f) * 0.2f;
-                    if (v > l) continue;
-                    var w = basis * new Vector3(u, 0, v);
-                    var (x, zz) = ((float)p.X + w.X, (float)p.Z + w.Z);
-                    if (Mathf.FloorToInt(x / z) != zi || Mathf.FloorToInt(zz / z) != zj) continue;
-                    if (!Innen(x, zz, 0.9f + 0.6f * Zufall(h1 >> 6))) continue;
-                    var s = 0.85f + 0.4f * Zufall(h1 >> 9);
-                    var dreh = Mathf.Tau * Zufall(h1 >> 12);
-                    var (c, sn) = (Mathf.Cos(dreh) * s, Mathf.Sin(dreh) * s);
-                    var y = _hoehe(x, zz) + _fuss;
-                    var helle = stich * (0.9f + 0.2f * Zufall(h1 >> 15));
-                    // Transform3D als zwölf Zahlen (Zeilen der Basis mit dem Ort) und die Farbe
-                    puffer.AddRange(new[] { c, 0, sn, x, 0, s, 0, y, -sn, 0, c, zz, helle, helle, helle * (p.Variante % 2 == 0 ? 1.02f : 0.97f), stehend });
-                }
-        }
-        if (puffer.Count == 0) return;
-        var vielfach = new MultiMesh
-        {
-            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = _netz, InstanceCount = puffer.Count / 16,
-        };
-        vielfach.Buffer = puffer.ToArray();
-        _zellen++;
-        _buescheln += puffer.Count / 16;
-        AddChild(new MultiMeshInstance3D
-        {
-            Name = $"Pflanzen_{frucht}_{zi}_{zj}", Multimesh = vielfach, MaterialOverride = _stoff(frucht), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-        });
+        var (i, j) = (Mathf.FloorToInt(x), Mathf.FloorToInt(z));
+        var (fx, fz) = (x - i, z - j);
+        (fx, fz) = (fx * fx * (3 - 2 * fx), fz * fz * (3 - 2 * fz));
+        float W(int a, int b) => Zufall(Hash((uint)a, (uint)b, 77u));
+        return Mathf.Lerp(Mathf.Lerp(W(i, j), W(i + 1, j), fx), Mathf.Lerp(W(i, j + 1), W(i + 1, j + 1), fx), fz);
     }
 
-    private const float FeldAbstand = 0.55f;
-
-    /// <summary>Liegt der Punkt in einer Feldfläche und mindestens <paramref name="rand"/> Meter vom Rand entfernt?</summary>
-    private bool Innen(float x, float z, float rand)
+    /// <summary>Die Büschel eines Stücks je Zelle: Frucht auf den Kämmen (ausgedünnt zum Rand), dazwischen Randgras und Unkraut am Rand.</summary>
+    private Dictionary<(string, int, int), List<float>> Stueck(int n)
     {
-        var q = new Vector2(x, z);
-        foreach (var pg in _polygone)
+        var ergebnis = new Dictionary<(string, int, int), List<float>>();
+        var p = _parzellen[n];
+        var (b, l) = ((float)p.Breite / 2, (float)p.Laenge / 2);
+        var basis = new Basis(Vector3.Up, Mathf.DegToRad((float)p.Drehung));
+        var anzahl = Mathf.Max(1, Mathf.RoundToInt(2 * b / 0.8f));
+        var reihe = 2 * b / anzahl;
+        var stehend = p.Frucht == "brache" || p.Variante % 2 == 0 ? 1f : 0f;
+        var stich = 0.97f + 0.025f * ((p.Variante - 1) % 4);
+        var seed = (uint)(int)(p.X * 10) * 31u + (uint)(int)(p.Z * 10);
+        var schritte = (int)(2 * l / Reihe);
+
+        void Dazu(float x, float zz, float s, float dreh, float helle, float rest)
         {
-            var innen = false;
-            var d = float.MaxValue;
-            for (int i = 0, j = pg.Length - 1; i < pg.Length; j = i++)
-            {
-                var (a, c) = (pg[j], pg[i]);
-                if ((c.Y > z) != (a.Y > z) && x < (a.X - c.X) * (z - c.Y) / (a.Y - c.Y) + c.X) innen = !innen;
-                var ac = a - c;
-                var t = Mathf.Clamp((q - c).Dot(ac) / Mathf.Max(ac.LengthSquared(), 1e-6f), 0f, 1f);
-                d = Mathf.Min(d, (q - (c + ac * t)).LengthSquared());
-            }
-            if (innen && d >= rand * rand) return true;
+            var schluessel = (p.Frucht, Mathf.FloorToInt(x / Zelle), Mathf.FloorToInt(zz / Zelle));
+            if (!ergebnis.TryGetValue(schluessel, out var puffer)) ergebnis[schluessel] = puffer = new();
+            var (c, sn) = (Mathf.Cos(dreh) * s, Mathf.Sin(dreh) * s);
+            var y = _hoehe(x, zz) + _fuss;
+            // Transform3D als zwölf Zahlen (Zeilen der Basis mit dem Ort) und die Farbe
+            puffer.AddRange(new[] { c, 0, sn, x, 0, s, 0, y, -sn, 0, c, zz, helle, helle, helle * (p.Variante % 2 == 0 ? 1.02f : 0.97f), (stehend + rest) / 2f });
         }
-        return false;
+
+        for (var k = -1; k <= anzahl; k++) // eine Reihe und ein Schritt über das Stück hinaus: Unkraut wächst auch knapp außerhalb des Randes
+            for (var m = -1; m <= schritte + 1; m++)
+            {
+                var h1 = Hash(seed, (uint)k, (uint)m);
+                // Frucht auf dem Kamm
+                var v = -l + m * Reihe + (Zufall(h1 >> 3) - 0.5f) * 0.2f;
+                if (k >= 0 && k < anzahl && m >= 0 && v <= l)
+                {
+                    var u = -b + (k + 0.5f) * reihe + (Zufall(h1) - 0.5f) * 0.1f;
+                    var w = basis * new Vector3(u, 0, v);
+                    var (x, zz) = ((float)p.X + w.X, (float)p.Z + w.Z);
+                    var d = _maske.Abstand(x, zz);
+                    if (d > 0.2f)
+                    {
+                        // Rand: weiche, unregelmäßige Kante – Dichte und Größe wachsen mit dem Abstand, Rauschen verschiebt die Grenze von Ort zu Ort
+                        var rand = 1f - Mathf.SmoothStep(0.1f, Feldrain, d); // 1 am Rand, 0 innen (wie acker.gdshader für die Kämme)
+                        var t = Mathf.SmoothStep(0.15f, Feldrain, d + (Rausch(x * 0.45f, zz * 0.45f) - 0.5f) * 1.6f);
+                        if (Zufall(h1 >> 6) < Mathf.Lerp(0.1f, 1f, t))
+                            Dazu(x, zz, (0.85f + 0.4f * Zufall(h1 >> 9)) * Mathf.Lerp(0.55f, 1f, t), Mathf.Tau * Zufall(h1 >> 12), stich * (0.96f + 0.08f * Zufall(h1 >> 15)), Mathf.Min(rand, 0.97f));
+                    }
+                }
+                // Randgras und Unkraut: zwischen den Reihen, innen im Randstreifen und knapp außerhalb der Fläche
+                var h2 = Hash(seed ^ 0x9E3779B9u, (uint)k, (uint)m);
+                var v2 = -l + (m + 0.5f) * Reihe + (Zufall(h2 >> 3) - 0.5f) * 0.3f;
+                if (v2 > l + Reihe) continue;
+                var u2 = -b + (k + (Zufall(h2) > 0.5f ? 0.15f : 0.85f)) * reihe + (Zufall(h2 >> 5) - 0.5f) * 0.3f;
+                var w2 = basis * new Vector3(u2, 0, v2);
+                var (x2, z2) = ((float)p.X + w2.X, (float)p.Z + w2.Z);
+                var d2 = _maske.Abstand(x2, z2);
+                if (d2 < -0.6f || d2 > Feldrain + 0.4f) continue;
+                var dichte = (1f - Mathf.SmoothStep(-0.6f, Feldrain, d2)) * (0.25f + 0.55f * Rausch(x2 * 0.6f + 31f, z2 * 0.6f));
+                if (Zufall(h2 >> 8) >= dichte) continue;
+                Dazu(x2, z2, 0.55f + 0.5f * Zufall(h2 >> 11), Mathf.Tau * Zufall(h2 >> 14), 0.9f + 0.2f * Zufall(h2 >> 17), 0.995f);
+            }
+        return ergebnis;
     }
 }
