@@ -42,6 +42,9 @@ public partial class Stadtansicht
         public KlangKarren.Untergrund KlangBoden { get; set; } = KlangKarren.Untergrund.Erde;
         public double KlangGelesen { get; set; } = double.NegativeInfinity;
         public string KlangName { get; set; } = "";
+        public string KlangWo { get; set; } = "";
+        public Vector3[]? KlangProbeWeg { get; set; }
+        public string KlangProbeText { get; set; } = "";
         /// <summary>Messung der sichtbaren Hinfahrt: Spielminute des Starts (−1 keine läuft, −2 ungültig: der Karren war aus dem Bild oder wurde abgeglichen) und die gezeigte Strecke in Metern.</summary>
         public double HinStart { get; set; } = -1;
         public float HinStrecke { get; set; }
@@ -280,6 +283,7 @@ public partial class Stadtansicht
         // und auf der Rückfahrt kommt der erste zuerst an.
         // Der Weg führt zu dem Platz, zu dem der Betrieb gehört (wie im Kern), und endet am Halt am Rand seines Pflasters
         var weg = KarrenWeg(ansicht);
+        if (KarrenKlangTest) gezeigt.KlangProbeWeg = weg; // nur mit --karrenklangtest=1 (Stadtansicht.KarrenKlang.cs)
         var laenge = WegLaenge(weg);
         var versatz = laenge > 0 ? nummer * KarrenAbstand / laenge : 0f;
         // Am Markt halten die Karren ebenfalls in der Reihe: der letzte ganz vorn, die übrigen je einen Abstand dahinter

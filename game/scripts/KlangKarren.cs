@@ -20,7 +20,7 @@ public sealed class KlangKarren
     public const float VollBis = 10f;
 
     /// <summary>Pegel der Hufe im Nahbereich (dB, die Dateien liegen bei −26 LUFS): dezent wie die übrigen Rufe der Umgebung.</summary>
-    public const float BasisDb = -8f;
+    public const float BasisDb = -5f;
 
     /// <summary>So lange (Sekunden) blenden Hufe ein und aus, auch beim Wechsel des Untergrunds.</summary>
     private const float Blende = 0.6f;
@@ -36,7 +36,7 @@ public sealed class KlangKarren
     public static float ZoomDb(float zoom) => -10f * Mathf.Clamp((zoom - 25f) / 115f, 0f, 1f);
 
     /// <summary>Ein Karren, der fahren und hörbar sein könnte: Schlüssel, Ort (Welt), Abstand zum Blickpunkt und der Untergrund unter ihm.</summary>
-    public readonly record struct Kandidat(object Schluessel, string Name, Vector3 Ort, float Abstand, Untergrund Boden);
+    public readonly record struct Kandidat(object Schluessel, string Name, Vector3 Ort, float Abstand, Untergrund Boden, string Wo = "");
 
     private sealed class Platz
     {
@@ -45,7 +45,7 @@ public sealed class KlangKarren
         public Untergrund Boden, Spielt;
         public float Verstaerkung; // 0 bis 1
         public bool Gewollt;
-        public string Name = "";
+        public string Name = "", Wo = "";
     }
 
     private readonly Platz[] _plaetze = new Platz[MaxGleichzeitig];
@@ -100,11 +100,12 @@ public sealed class KlangKarren
                 p.Schluessel = frei[0].Schluessel;
                 p.Name = frei[0].Name;
                 p.Boden = frei[0].Boden;
+                p.Wo = frei[0].Wo;
                 p.Verstaerkung = 0;
                 p.Gewollt = true;
                 Starten(p);
                 Zuweisen(p, frei[0]);
-                Melden($"{p.Name}: Hufe auf {Boden(p.Boden)} beginnen, Abstand {frei[0].Abstand:0} m");
+                Melden($"{p.Name}: Hufe auf {Boden(p.Boden)} beginnen, Abstand {frei[0].Abstand:0} m, {frei[0].Wo}");
                 frei.RemoveAt(0);
             }
         }
@@ -134,7 +135,7 @@ public sealed class KlangKarren
         {
             if (k.Boden != p.Boden)
             {
-                Melden($"{p.Name}: Untergrund {Boden(p.Boden)} -> {Boden(k.Boden)}");
+                Melden($"{p.Name}: Untergrund {Boden(p.Boden)} -> {Boden(k.Boden)}, {k.Wo}");
                 p.Boden = k.Boden;
             }
             p.Spieler.GlobalPosition = hoerer + (k.Ort - blickpunkt);
