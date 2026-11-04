@@ -145,8 +145,27 @@ public partial class Stadtansicht
         foreach (var datei in rezepte.Baukaesten)
         {
             var pfad = $"res://assets/modelle/{datei}.glb";
-            if (!_modellSzenen.ContainsKey(datei) && ResourceLoader.Exists(pfad)) ResourceLoader.LoadThreadedRequest(pfad);
+            if (_modellSzenen.ContainsKey(datei) || !ResourceLoader.Exists(pfad)) continue;
+            ResourceLoader.LoadThreadedRequest(pfad);
+            _fuellVorgeladen.Add(datei);
         }
+    }
+
+    /// <summary>Die Baukästen, die <see cref="RestflaechenVorladen"/> angefordert hat.</summary>
+    private readonly List<string> _fuellVorgeladen = new();
+
+    /// <summary>
+    /// Holt die vorgeladenen Baukästen ab (<see cref="ResourceLoader.LoadThreadedGet"/>) und merkt sie für <see cref="Modell"/>. Jede Anforderung muss abgeholt werden, auch wenn die Karte
+    /// nichts daraus braucht – sonst bliebe sie beim Beenden als Leck stehen („ObjectDB instances were leaked“, Rauchtest der CI).
+    /// </summary>
+    private void FuellVorgeladenAbholen()
+    {
+        foreach (var datei in _fuellVorgeladen)
+        {
+            var szene = ResourceLoader.LoadThreadedGet($"res://assets/modelle/{datei}.glb") as PackedScene; // immer abholen, auch wenn Modell() die Datei schon geholt hat
+            if (!_modellSzenen.ContainsKey(datei)) _modellSzenen[datei] = szene;
+        }
+        _fuellVorgeladen.Clear();
     }
 
     /// <summary>Beim Aufbau der Karte (nach der Natur): setzt die Füllung aller Restflächen.</summary>
@@ -167,6 +186,7 @@ public partial class Stadtansicht
                 kaesten.Add((kasten, formate.TryGetValue(kasten.Format, out var teile) ? KastenFuellen(teile, karte.Kennung, r.Kennung, kasten) : new List<Fuellteil>()));
             _fuellFlaechen[r.Kennung] = kaesten;
         }
+        FuellVorgeladenAbholen();
         var logik = uhr.ElapsedMilliseconds;
         FuellungAufbauen(karte);
         var (nk, nt) = FuellZahlen;
