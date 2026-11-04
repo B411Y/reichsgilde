@@ -132,7 +132,7 @@ public partial class Stadtansicht
         var bogen = Mathf.Clamp((stunde - 5.5f) / 14.5f, 0f, 1f);
         var sonnenhoehe = Mathf.Sin(bogen * Mathf.Pi);
         var sonnenSicht = Mathf.SmoothStep(5.5f, 6.5f, stunde) * (1 - Mathf.SmoothStep(19f, 19.9f, stunde));
-        var sonnenStaerke = sonnenSicht * (0.25f + 0.95f * Mathf.Sqrt(sonnenhoehe));
+        var sonnenStaerke = sonnenSicht * (SonnenGrund + SonnenSpanne * Mathf.Sqrt(sonnenhoehe));
 
         // Mond: läuft von 20 Uhr bis 05:45 von Osten nach Westen. u zählt die Nachtstunden: 20 Uhr = 0, 22 Uhr = 2 –
         // und 05 Uhr ebenfalls 2, damit der Mond nach dem Sprung über den Jahreswechsel (23 → 04 Uhr, beide im Bezugstag Nacht) dort steht, wo er vorher stand.
@@ -179,8 +179,15 @@ public partial class Stadtansicht
         var fenster = stunde >= 12 ? Mathf.SmoothStep(19.3f, 20.9f, stunde) : 1 - Mathf.SmoothStep(5.3f, 6.6f, stunde);
 
         return new Lichtstimmung(richtung, farbe, staerke, schatten, Himmelsfarbe(stunde * 60), umgebung,
-                                 0.18f + 0.52f * hell + 0.2f * luecke, hell, fenster);
+                                 0.18f + UmgebungTag * hell + 0.2f * luecke, hell, fenster);
     }
+
+    /// <summary>
+    /// Stärke der Sonne: <see cref="SonnenGrund"/> + <see cref="SonnenSpanne"/> · √Sonnenhöhe (mittags der Höchstwert <see cref="SonnenMaximum"/>); Umgebungslicht
+    /// am Tag (<see cref="UmgebungTag"/>, mittags 0,18 + dieser Wert). Gelände-Kontrast 04.11.2026: Sonne 1,2 → 1,33 und Umgebungslicht 0,70 → 0,58,
+    /// damit Schatten und Hänge mehr Kontrast haben; ein waagerechter Boden bei hoher Sonne bleibt dabei gleich hell (1,04 + 0,70 gegen 1,15 + 0,58).
+    /// </summary>
+    private const float SonnenGrund = 0.25f, SonnenSpanne = 1.08f, UmgebungTag = 0.40f, SonnenMaximum = SonnenGrund + SonnenSpanne;
 
     /// <summary>Wie hoch die Sonne mittags über dem Horizont steht (Grad), je Jahreszeit: im Winter flach, im Sommer hoch (Köln: Tag-und-Nacht-Gleiche etwa 39°, hier etwas höher, damit die Stadt hell bleibt).</summary>
     private static float SonnenHoechststand(Jahreszeit jahreszeit) => jahreszeit switch
