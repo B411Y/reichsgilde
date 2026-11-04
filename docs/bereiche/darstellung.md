@@ -219,6 +219,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Schnee fällt, Sturm-Regen weniger schräg (04.11.2026)
+
+| Entscheidung | Wert |
+|---|---|
+| Schräge des Regens je Wetterart | Regen (Wind 0,5) senkrecht, Gewitter (0,75) und Sturm (1) gleich leicht schräg 18° (tan 0,325); dazwischen weich. Vorher quadratisch mit dem Wind: 8° / 18° / 31°. Der Wind selbst (Fahnen, Gras, Wolken, Seegang, Ton) bleibt unverändert |
+| Fallgeschwindigkeit der Flocken | 0,8–1,4 → 2,0–3,0 (mal Zoommaßstab), Lebensdauer 9 → 5 s, Streuung 25° → 8°, Windneigung 1,2 → 0,4 |
+| Pendeln der Flocken (`schnee.gdshader`) | Weite 0,3–0,8 → 0,1–0,3, Auf und ab 0,12 → 0,03, Böen 0,9 → 0,3; Wirbel (Stufe Hoch) schwächer (Stärke 0,4 + Wind, Einfluss max. 0,08 + 0,08 · Wind) |
+
 ### Grafikstil: Pixel-Look (Nutzer 03.11.2026)
 
 Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutzer, 20.10.2026).

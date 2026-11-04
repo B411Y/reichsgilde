@@ -202,7 +202,7 @@ public partial class Stadtansicht
         {
             EmissionShape = ParticleProcessMaterial.EmissionShapeEnum.Box,
             Direction = Vector3.Down,
-            Spread = 25,
+            Spread = 8,
             Gravity = Vector3.Zero,
             ScaleMin = 0.6f,
             ScaleMax = 1.3f,
@@ -213,8 +213,8 @@ public partial class Stadtansicht
         {
             Name = "Schnee",
             Amount = 6000,
-            Lifetime = 9.0,
-            Preprocess = 9.0,
+            Lifetime = 5.0,
+            Preprocess = 5.0,
             LocalCoords = false,
             Emitting = false,
             Visible = false,
@@ -568,26 +568,28 @@ public partial class Stadtansicht
 
         // Wind treibt Regen und Schnee schräg; Größe und Geschwindigkeit mit dem Zoom
         var wind = new Vector3(_windRichtung.X, 0, _windRichtung.Y) * _wetter.Wind;
-        // Der Regen fällt nach dem Wind: bei Windstille senkrecht, mit der Windstärke zunehmend schräg (quadratisch: leichter Wind kaum,
-        // Sturm deutlich). Wind 0,5 (Regen) = 8°, 0,75 (Gewitter) = 18°, 1 (Sturm) = 31°. Die Tropfen der Traufen fallen immer senkrecht (Stadtansicht.Traufen.cs).
-        _regenStoff.Direction = (Vector3.Down + wind * (0.6f * _wetter.Wind)).Normalized();
+        // Schräge des Regens je Wetterart (Nutzer 04.11.2026): Regen (Wind 0,5) senkrecht, Gewitter (0,75) und Sturm (1) gleich leicht schräg (18°),
+        // dazwischen weich. Der Wind selbst bleibt unverändert (Fahnen, Gras, Wolken, Seegang). Die Tropfen der Traufen fallen immer senkrecht.
+        var schraege = Mathf.Clamp((_wetter.Wind - 0.5f) / 0.25f, 0f, 1f) * 0.325f; // tan 18°
+        var windRichtung = wind.LengthSquared() > 1e-6f ? wind.Normalized() : Vector3.Zero;
+        _regenStoff.Direction = (Vector3.Down + windRichtung * schraege).Normalized();
         _regenFarbe.SetShaderParameter("richtung", _regenStoff.Direction);
         _regenStoff.InitialVelocityMin = 14f * k;
         _regenStoff.InitialVelocityMax = 17f * k;
         _regenStoff.ScaleMin = 0.85f * k;
         _regenStoff.ScaleMax = 1.15f * k;
         _regenFarbe.SetShaderParameter("staerke", _wetter.Regen);
-        _schneeStoff.Direction = (Vector3.Down + wind * 1.2f).Normalized();
-        // langsam fallen; die Flocken wachsen nur mit der Wurzel des Zooms (k hoch 0,6): nah deutlich größer als ein Pixel, weit nicht zu dicht
-        _schneeStoff.InitialVelocityMin = 0.8f * k;
-        _schneeStoff.InitialVelocityMax = 1.4f * k;
+        _schneeStoff.Direction = (Vector3.Down + wind * 0.4f).Normalized();
+        // stetig sichtbar fallen (2–3 statt 0,8–1,4, Nutzer 04.11.2026); die Flocken wachsen nur mit der Wurzel des Zooms (k hoch 0,6): nah deutlich größer als ein Pixel, weit nicht zu dicht
+        _schneeStoff.InitialVelocityMin = 2.0f * k;
+        _schneeStoff.InitialVelocityMax = 3.0f * k;
         var gr = Mathf.Pow(k, 0.6f);
         _schneeStoff.ScaleMin = 0.6f * gr;
         _schneeStoff.ScaleMax = 1.5f * gr;
         _schneeFarbe.SetShaderParameter("massstab", k);
-        _schneeStoff.TurbulenceNoiseStrength = 0.6f + 2f * _wetter.Wind;
+        _schneeStoff.TurbulenceNoiseStrength = 0.4f + 1f * _wetter.Wind;
         _schneeStoff.TurbulenceInfluenceMin = 0.05f;
-        _schneeStoff.TurbulenceInfluenceMax = 0.12f + 0.15f * _wetter.Wind;
+        _schneeStoff.TurbulenceInfluenceMax = 0.08f + 0.08f * _wetter.Wind;
     }
 
     private float PartikelHelligkeit() => Mathf.Clamp(_umgebung.Environment.AmbientLightEnergy * 1.1f + _sonne.LightEnergy * 0.25f, 0.18f, 1f);
