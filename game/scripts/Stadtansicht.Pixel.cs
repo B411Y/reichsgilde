@@ -296,6 +296,11 @@ public partial class Stadtansicht
             if (netz.Layers != teilchen) netz.Layers = teilchen;
             if (zwilling.Mesh != netz.Mesh) zwilling.Mesh = netz.Mesh; // das Raster tauscht sein Netz aus
         }
+        // ebenso die Nebelschichten des Bodennebels (Stadtansicht.Bodennebel.cs): Das Beleuchtungsbild zeichnete sie undurchsichtig und beleuchtet, mit dem Schatten der Sonne in ihrer
+        // Höhe, nicht auf dem Boden – wo ein Fetzen lag, stand im Stufenlicht ein zweiter, versetzter Schatten neben dem echten (besonders sichtbar bei Schnee am Mittag)
+        if (_nebelSchichten.Count > 0)
+            foreach (var (netz, _) in _nebelSchichten)
+                if (netz.Layers != teilchen) netz.Layers = teilchen;
         Feuer.EbeneSetzen(GetTree(), teilchen);
         if (!laeuft || kamera is null) return;
 

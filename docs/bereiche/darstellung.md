@@ -280,6 +280,15 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Modelle | Bleiben schlicht mit Oberflächenstruktur (Mauerwerk, Maserung, Ziegel), kein Holzschnitt-Shader; neue Modelle und Texturen im Klicktest mit Pixel-Look prüfen | 03.11.2026 |
 | Alter Look | Bleibt als abschaltbare Grafikoption „Pixel-Look aus“; der Pixel-Look ist seit PR #298 der Standard (Einzelheiten unter „Pixel-Look als Standard, drei Zoomstufen (PR #298)“ und „Pixel-Look (PR #295)“) | 03.11.2026 |
 
+### Doppelschatten am Mittag, Sonnen- und Mondlauf (Branch fix/licht-mittag-sonnenlauf)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Doppelschatten am hohen Mittag | Ursache (Bausteine einzeln abgeschaltet, Greybox Winter, Schnee, 13 Uhr, Pixel-Look): die **Nebelschichten des Bodennebels** (`Stadtansicht.Bodennebel.cs`, bei Schnee und Nebel auch mittags da). Das Beleuchtungsbild des Pixel-Looks (Debug-Zeichnung, kennt keine Durchsicht) zeichnete sie undurchsichtig und beleuchtet; ihr Licht samt Sonnenschatten gilt in ihrer Höhe über dem Boden, der Schatten sitzt dort versetzt. Das Stufenlicht (`f = Stufe / Beleuchtung`) legte ihn als zweiten, weicheren Schatten neben den echten, mit Fetzenrand. Ohne Bodennebel (Nebelschichten ausgeblendet) war er weg, ohne Wolkenschatten (`--wolken=aus`), ohne Höhennebel und ohne Sonnenstreuung im Nebel blieb er. Jetzt liegen die Nebelschichten wie Regen und Schnee auf der Teilchen-Ebene (`PixelTeilchenEbene`), die das Beleuchtungsbild nicht sieht (`PixelBild`, Stadtansicht.Pixel.cs). Der Morgen-Doppelschatten aus PR #299 (Wolkenschatten bei tiefer Sonne) bleibt behoben; bei Nebel am Morgen kann der Fehler derselbe gewesen sein (nicht einzeln geprüft) | 04.11.2026 |
+| Sonnenlauf | Die Sonne lief schon über den ganzen hellen Tag (Aufgang bis Untergang der Jahreszeit, nichts klemmt): in allen vier Jahreszeiten kein Stillstand von Halbstunde zu Halbstunde (Log `--lichtlauf=1`) | 04.11.2026 |
+| Mondlauf (Ursache des stehenden Schattens) | Der Mond lief auf dem Bezugstag und war ab Bezug 22 Uhr am Ende seines Bogens (`u` bei 2): im Winter (dunkel ab 16:35) stand er von etwa 17:30 bis zum Morgen auf derselben Stelle, im Herbst und Frühling ebenso, im Sommer nur 22:00 bis 23:00. Jetzt läuft er gleichmäßig über die **spielbare Nacht** (`MondFortschritt`: Sonnenuntergang bis 23:00 und 04:00 bis Morgendämmerung, die fünf übersprungenen Stunden zählen nicht, darum steht er um 23:00 und 04:00 an derselben Stelle); Ein- und Ausblenden bleiben am Bezugstag | 04.11.2026 |
+| Prüfung | `--lichtlauf=1` schreibt je Jahreszeit alle halbe Stunde Quelle, Stärke, Höhe und Himmelsrichtung ins Log (`[lichtlauf]`); vorher 16 von 38 Halbstunden im Winter ohne Bewegung, nachher keine | 04.11.2026 |
+
 ### Pixel-Look: Lichtschein, doppelte Schatten, Bodenschleier (Branch fix/pixel-lichtring)
 
 | Thema | Entscheidung | Datum |

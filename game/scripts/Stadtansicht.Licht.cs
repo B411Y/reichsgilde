@@ -154,7 +154,7 @@ public partial class Stadtansicht
         }
         else
         {
-            var mondbogen = Mathf.Clamp(u / 2.75f, 0f, 1f);
+            var mondbogen = MondFortschritt(uhrStunde, jahreszeit);
             richtung = Drehung(18 + 30 * Mathf.Sin(mondbogen * Mathf.Pi), 90 - mondbogen * 180);
             farbe = new Color(0.62f, 0.72f, 1f);
             staerke = mondStaerke;
@@ -227,6 +227,52 @@ public partial class Stadtansicht
         if (stunde < untergang) return Mathf.Lerp(18f, 19.5f, (stunde - abendrot) / (untergang - abendrot));
         if (stunde < dunkel) return Mathf.Lerp(19.5f, 21f, (stunde - untergang) / (dunkel - untergang));
         return Mathf.Min(22f, 21f + (stunde - dunkel));
+    }
+
+    /// <summary>
+    /// Wie weit der Mond auf seinem Bogen ist (0 = Aufgang im Osten, 1 = Untergang im Westen): gleichmäßig über die <b>spielbare</b> Nacht der Jahreszeit – vom Sonnenuntergang bis
+    /// 23:00 Uhr und, nach dem Sprung über den Jahreswechsel, von 04:00 Uhr bis zum Beginn der Morgendämmerung (<see cref="Reichsgilde.Core.Zeit.Sonnenzeiten"/>, <see cref="Spielzeit"/>).
+    /// Die fünf Stunden dazwischen gibt es im Spiel nicht und zählen nicht: Der Mond steht um 23:00 und um 04:00 an derselben Stelle. Bis November 2026 lief er auf dem Bezugstag und
+    /// stand ab Bezug 22 Uhr still – im Winter (Dunkelheit ab 16:35) also fast die ganze Nacht an derselben Stelle, der Schatten bewegte sich nicht mehr. Am Tag gilt 1 (der Mond ist dann aus);
+    /// Uhrzeiten vor 04:00 (<c>--lichtuhr</c>) zählen wie 04:00.
+    /// </summary>
+    private static float MondFortschritt(float uhrStunde, Jahreszeit jahreszeit)
+    {
+        var lauf = Reichsgilde.Core.Zeit.Sonnenzeiten.Fuer(jahreszeit);
+        float untergang = lauf.Untergang / 60f, daemmerung = lauf.Daemmerung / 60f;
+        float tagesbeginn = Reichsgilde.Core.Zeit.Spielzeit.TagesbeginnMinute / 60f, tagesende = Reichsgilde.Core.Zeit.Spielzeit.TagesendeMinute / 60f;
+        var abend = Mathf.Max(0f, tagesende - untergang); // Stunden von Sonnenuntergang bis Tagesende
+        var morgen = Mathf.Max(0f, daemmerung - tagesbeginn); // Stunden von Tagesbeginn bis Morgendämmerung
+        if (abend + morgen <= 0f) return 1f;
+        float vergangen;
+        if (uhrStunde >= untergang) vergangen = Mathf.Min(uhrStunde, tagesende) - untergang;
+        else if (uhrStunde < daemmerung) vergangen = abend + Mathf.Clamp(uhrStunde - tagesbeginn, 0f, morgen);
+        else return 1f;
+        return Mathf.Clamp(vergangen / (abend + morgen), 0f, 1f);
+    }
+
+    /// <summary>
+    /// Startoption <c>--lichtlauf=1</c>: schreibt für jede Jahreszeit alle halbe Stunde von 04:00 bis 23:00 Uhr eine Zeile <c>[lichtlauf] …</c> ins Log – Sonne oder Mond,
+    /// Stärke, Höhe über dem Horizont und Himmelsrichtung (Azimut, 90 = Osten, 180 = Süden) – und beendet das Spiel nicht. Zum Prüfen, dass das Licht dem Zeitstrahl über den
+    /// ganzen Tag und die ganze Nacht folgt und nirgends stehen bleibt.
+    /// </summary>
+    public static void LichtLaufAusgeben()
+    {
+        foreach (var jahreszeit in new[] { Jahreszeit.Fruehling, Jahreszeit.Sommer, Jahreszeit.Herbst, Jahreszeit.Winter })
+        {
+            var lauf = Reichsgilde.Core.Zeit.Sonnenzeiten.Fuer(jahreszeit);
+            GD.Print($"[lichtlauf] {jahreszeit}: Aufgang {lauf.Aufgang / 60}:{lauf.Aufgang % 60:00}, Untergang {lauf.Untergang / 60}:{lauf.Untergang % 60:00}, Dunkel {lauf.Dunkel / 60}:{lauf.Dunkel % 60:00}");
+            for (var minute = 4 * 60; minute <= 23 * 60; minute += 30)
+            {
+                var stimmung = StimmungUm(minute / 60f, jahreszeit);
+                var z = new Basis(stimmung.Richtung).Z;
+                var hoehe = Mathf.RadToDeg(Mathf.Asin(Mathf.Clamp(z.Y, -1f, 1f)));
+                var azimut = Mathf.PosMod(Mathf.RadToDeg(Mathf.Atan2(z.X, z.Z)), 360f);
+                var quelle = stimmung.Farbe.R > stimmung.Farbe.B ? "Sonne" : "Mond ";
+                GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                    $"[lichtlauf] {jahreszeit,-8} {minute / 60:00}:{minute % 60:00} {quelle} Staerke {stimmung.Staerke:0.00} Hoehe {hoehe,5:0.0} Azimut {azimut,6:0.0}"));
+            }
+        }
     }
 
     /// <summary>Drehung des gerichteten Lichts: <paramref name="hoehe"/> Grad über dem Horizont, aus der Himmelsrichtung <paramref name="richtung"/> (90 = Osten).</summary>
