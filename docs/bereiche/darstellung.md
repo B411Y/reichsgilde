@@ -502,7 +502,7 @@ Auftrag des Teamleiters 1.11.2026.
 | Im Spiel | Es gibt keine Wege zu zeichnen (`Wegebau` ändert nur den Belag); Gebäude, Bauplätze und Felder rasten schon im Kern, das Raster zeigt es nur | 04.11.2026 |
 | Leistung | Köln, Baumodus, Vulkan auf der Grafikkarte, Pixel-Look, 20 s: mit Raster 26,2 Bilder/s, 1-%-Tief 17,0, GPU 11,8 ms; ohne 25,9, 16,3, 11,9 ms (CPU-gebunden auf dem belasteten Rechner); rund 60 Zeichenaufrufe mehr | 04.11.2026 |
 
-### Boden Stufe 1: Gras wächst weich an Feldern und Gebäuden (Branch phase5/boden-gras-weich)
+### Boden Stufe 1: Gras wächst weich an Feldern und Gebäuden (PR #313)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
