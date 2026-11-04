@@ -70,7 +70,8 @@ void vertex() {
 	// zum Rand hin mischt sich Wiesengrün hinein, das Unkraut ist ganz Wiese (im Herbst fahl, im Winter braun)
 	vec3 wiese = mix(vec3(0.24, 0.31, 0.12), vec3(0.36, 0.33, 0.18), j.z) * (0.85 + 0.25 * t);
 	wiese = mix(wiese, vec3(0.42, 0.37, 0.25), j.w);
-	c = mix(c, wiese, unkraut ? 1.0 : rand * 0.55);
+	// (Ähren und Spitzen werden zum Rand hin nicht heller: sie sind es, die sonst als gelber Schleier über die Wiese hinausleuchten)
+	c = mix(c, wiese, unkraut ? 1.0 : smoothstep(0.0, 0.7, rand));
 	farbton = mix(c, vec3(0.66, 0.68, 0.73), clamp(schnee * 0.8, 0.0, 1.0)) * COLOR.rgb;
 
 	// Stoppeln, Saat und Winterstümpfe sind klein: weniger Büschel genügen (spart Zeichenarbeit)

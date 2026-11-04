@@ -7,7 +7,7 @@
 shader_type spatial;
 render_mode cull_disabled;
 // Am Rand der Feldfläche läuft der Acker in einen Feldrain aus (UV2.y = Abstand zum Rand in Metern): erst nackte Erde und Gras, dann geht die Fläche
-// mit unregelmäßiger Kante durchsichtig in die Wiese darunter über.
+// mit zerfransten Zellen (kein Alpha-Verlauf) in die Wiese darunter über.
 
 // Farbe der Frucht im Sommer, Farbe der Erde dazwischen und wie dicht der Bewuchs steht (1: Reihen ganz geschlossen, 0: nackte Erde)
 uniform vec3 farbe : source_color = vec3(0.70, 0.62, 0.30);
@@ -39,7 +39,7 @@ void vertex() {
 	kammf = 1.0 - smoothstep(0.16, 0.30, pixel);
 	float f = fract(furchenphase(UV.x, COLOR.a * 16.0));
 	// zum Rand der Feldfläche (UV2.y = Abstand in Metern) werden die Kämme flacher und laufen aus (die Pflanzen folgen, feldpflanzen.gdshader)
-	VERTEX.y += kammhoehe * kammf * (1.0 - abs(2.0 * f - 1.0)) * (1.0 - 0.85 * (1.0 - smoothstep(0.1, 1.9, UV2.y)));
+	VERTEX.y += kammhoehe * kammf * (1.0 - abs(2.0 * f - 1.0)) * (1.0 - 0.85 * (1.0 - smoothstep(0.1, 1.0, UV2.y)));
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
@@ -95,15 +95,17 @@ void fragment() {
 	}
 	// Schnee: in den Furchen bleibt er länger liegen als auf den Kämmen
 	float schnee = clamp(schnee_decke(welt.xz, 1.0) * (1.0 - 0.35 * max(welle, 0.0)), 0.0, 1.0);
-	// Feldrain: außen Gras und Erde statt Frucht, ganz außen durchsichtig (Kante mit Rauschen, nie eine Linie)
-	// Der Abstand wird von zwei Rauschen verschoben (groß: Buchten, klein: Fransen): Die Fläche läuft in Wiese und Erde aus, ohne gerade Linie.
-	// Die Kante des Netzes (UV2.y = 0) ist dabei immer ganz durchsichtig: Das Rauschen streckt und staucht nur den Weg dorthin.
+	// Feldrain (0,8 bis 1,2 m): Der Rand entsteht durch Struktur, nicht durch Durchsichtigkeit. Der Abstand (UV2.y) wird von Rauschen verschoben (groß: Buchten,
+	// mittel: Flecken); dann entscheidet je kleiner Zelle (etwa 0,2 m, im Pixel-Look ein paar Bildpunkte) eine Schwelle hart, ob dort noch Acker liegt oder schon
+	// Wiese: kein Mischen der Farben, kein Alpha-Verlauf (ALPHA_SCISSOR_THRESHOLD: ganz da oder ganz weg). Die Ackerfarbe innen bleibt unverändert kräftig.
 	float nah = clamp(UV2.y * 2.0, 0.0, 1.0);
-	float rd = UV2.y * (0.55 + 0.9 * rausch(welt.xz * 0.3)) + (rausch(welt.xz * 1.3) - 0.5) * 0.8 * nah + (koernung - 0.5) * 0.15 * nah;
-	float rain = 1.0 - smoothstep(0.2, 2.0, rd);
-	vec3 rainfarbe = mix(boden * 0.95, vec3(0.28, 0.35, 0.16) * (0.85 + 0.3 * schollen), smoothstep(0.2, 0.8, schollen + 0.3 * rain));
-	grund = mix(grund, rainfarbe, rain * 0.8);
-	float deckung = smoothstep(0.0, 1.5, rd);
+	float rd = UV2.y + (rausch(welt.xz * 0.35) - 0.5) * 0.9 * nah + (rausch(welt.xz * 1.6) - 0.5) * 0.5 * nah;
+	float zelle = hash(floor(welt.xz * 5.0)); // harte Zellen, eine je 0,2 m
+	float anteil = smoothstep(0.0, 1.0, rd);   // Anteil der Zellen, die noch Acker sind
+	float deckung = step(zelle, anteil * 1.05 - 0.02);
+	// kurz vor der Kante dunkelt die Erde zu Wiesenfarbe ab (hart nach Zellen, nicht heller als die Wiese)
+	float wiesezelle = step(0.55, hash(floor(welt.xz * 5.0) + 7.0)) * (1.0 - smoothstep(0.3, 0.8, rd));
+	grund = mix(grund, vec3(0.24, 0.31, 0.12) * (0.85 + 0.3 * schollen), wiesezelle);
 	grund = mix(grund, vec3(0.68, 0.7, 0.75), schnee);
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
@@ -113,6 +115,7 @@ void fragment() {
 
 	ALBEDO = grund;
 	ALPHA = deckung;
+	ALPHA_SCISSOR_THRESHOLD = 0.5;
 	ROUGHNESS = mix(rau, 0.7, schnee);
 	SPECULAR = 0.2;
 }

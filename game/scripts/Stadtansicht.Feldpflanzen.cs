@@ -106,7 +106,7 @@ public partial class Stadtansicht
 public partial class FeldPflanzenBauer : Node3D
 {
     /// <summary>Breite des Randstreifens in Metern: darin laufen Kämme, Furchen und Pflanzen aus (acker.gdshader hat dieselbe Breite).</summary>
-    public const float Feldrain = 1.9f;
+    public const float Feldrain = 1.0f;
 
     private const float Zelle = 24f, Reihe = 0.55f;
 
@@ -215,7 +215,7 @@ public partial class FeldPflanzenBauer : Node3D
                     {
                         // Rand: weiche, unregelmäßige Kante – Dichte und Größe wachsen mit dem Abstand, Rauschen verschiebt die Grenze von Ort zu Ort
                         var rand = 1f - Mathf.SmoothStep(0.1f, Feldrain, d); // 1 am Rand, 0 innen (wie acker.gdshader für die Kämme)
-                        var t = Mathf.SmoothStep(0.15f, Feldrain, d + (Rausch(x * 0.45f, zz * 0.45f) - 0.5f) * 1.6f);
+                        var t = Mathf.SmoothStep(0.15f, Feldrain, d + (Rausch(x * 0.45f, zz * 0.45f) - 0.5f) * 1.0f);
                         if (Zufall(h1 >> 6) < Mathf.Lerp(0.1f, 1f, t))
                             Dazu(x, zz, (0.85f + 0.4f * Zufall(h1 >> 9)) * Mathf.Lerp(0.55f, 1f, t), Mathf.Tau * Zufall(h1 >> 12), stich * (0.96f + 0.08f * Zufall(h1 >> 15)), Mathf.Min(rand, 0.97f));
                     }
