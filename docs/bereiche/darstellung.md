@@ -12,7 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume haben keine Fernfassung (LOD), im dichten Wald kostet das Leistung (siehe Messung im PR); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
+- (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume haben keine Fernfassung (LOD) und kosten im Wald spürbar GPU-Zeit (RTX 2000 Ada, Köln, Tannenwald, Zoom 60, Pixel-Look, Hoch: vorher 27 bis 52 ms Bildzeit bei 4 bis 8 ms GPU, nachher 40,7 ms bei 18 ms GPU; die Messung lief neben fremden Klicktests, die Bildzeit der Vorher-Läufe schwankte stark); Hebel: Fernfassung, Schatten der Kit-Bäume nur nah, weniger Blattkarten; `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
 - (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
 - (Pixel-Look) Hoher Lichtwechsel (Blitz, Fackeln) nicht gesondert abgestimmt; Lichtskala nach Tageslicht grob geeicht (Boden 0,34, Kontrast und Düsternis wirken nachts nicht); Schilder in Räumen und Baumodus-Text bleiben gepixelt; Kartenwerkstatt liest die Grafik-Startoptionen nicht (nur die gespeicherte Wahl)
@@ -230,6 +230,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Felder, Rand | `FeldVerteilung.Flaeche(…, bisZumRand: true)` (nur Darstellung; ohne Schalter wie bisher): Auch Stücke, die nur zum Teil in der Fläche liegen, zählen; Wege, Gebäude und Aussparungen schneiden weiter ganze Zellen weg. `Stadtansicht.FeldNetzeBauen` schneidet jede Zelle mit `Geometry2D.IntersectPolygons` gerade an den Rand der Fläche und zerlegt sie in Dreiecke | 04.11.2026 |
 | Feldrain | `acker.gdshader`: Der Abstand zum Rand (UV2.y, bis 4 m) lässt die Frucht in Erde und Gras auslaufen und macht die Fläche am Rand mit unregelmäßiger Kante durchsichtig (Wiese darunter) | 04.11.2026 |
 | Gras | `GrasAeckerMelden` bekommt je Stück das gedrehte Rechteck um den zugeschnittenen Teil statt des ganzen Stücks | 04.11.2026 |
+| Nicht ersetzt | Die Kegel-Tannen und runden Bäume an Holzfällerhütten (`holzschlag.glb`, mit dem Haus in einem Netz), in der Umlandstelle „Wald“ (`umland_stellen.glb`) und am Klosterhof stecken im Modell selbst: nur durch neue Modelle (Modell-Agent, Freigabe des Nutzers) | 04.11.2026 |
 | Außerhalb des Bereichs | Kern: `Baustein.Massstab`, `NaturVerteilung`, `FeldVerteilung.Flaeche`/`Alle`, `Kartenentwurf.FelderVon` (je ein Schalter bzw. Faktor); `game/daten/katalog.json`; Tests angepasst (`KartenformatTests`, `KartenbauTests`, `KartenwerkstattWegeTests`) und `FeldRandTests` neu | 04.11.2026 |
 
 ### Grafikstil: Pixel-Look (Nutzer 03.11.2026)
