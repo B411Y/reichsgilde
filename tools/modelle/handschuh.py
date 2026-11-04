@@ -293,12 +293,13 @@ def palmenhoehe(x, y):
 # Finger: (Wurzel, Längen der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen, Seitenknick je Glied)
 # Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.03), (0.48, 0.30, 0.23), (0.110, 0.080), -24, (8, -4, -10), (-28, -62, -48), (0, -3, -5)),
-    "mittel": ((-0.105, 0.87, 0.03), (0.47, 0.29, 0.22), (0.116, 0.085), 9, (-12, -30, -30), (-32, -66, -50), (0, 2, 3)),
-    "ring": ((0.105, 0.86, 0.03), (0.41, 0.26, 0.20), (0.110, 0.080), 14, (-14, -30, -30), (-30, -64, -48), (0, 3, 4)),
-    "klein": ((0.30, 0.78, 0.03), (0.30, 0.19, 0.16), (0.096, 0.070), 21, (-18, -30, -30), (-28, -60, -46), (0, 4, 5)),
+    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.110, 0.080), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
+    "mittel": ((-0.105, 0.86, 0.03), (0.44, 0.28, 0.21), (0.116, 0.085), -11, (-2, -4, -8), (-32, -66, -50), (0, -1, -1)),
+    "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.110, 0.080), 8, (-30, -50, -42), (-30, -64, -48), (0, 3, 4)),
+    "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.096, 0.070), 18, (-34, -52, -42), (-28, -60, -46), (0, 4, 5)),
 }
-DAUMEN = ((-0.36, 0.22, -0.01), (0.30, 0.24), (0.150, 0.108), -66, (-4, -10), (-8, -22), (0, -4))
+# Daumen in drei Gliedern: vom Handballen weg abgespreizt, dann im Bogen nach innen (zu den Fingern) gekrümmt
+DAUMEN = ((-0.36, 0.22, -0.01), (0.26, 0.25, 0.20), (0.150, 0.100), -78, (-6, -8, -10), (-8, -22, -22), (0, 22, 26))
 
 
 def glieder(wurzel, laengen, radien, spreiz, neigung, knick=None):
@@ -420,7 +421,7 @@ def hand_bauen(stufe, griff, st):
     b.kugel("leder", (0, 0.5, 0), 1.0, (PALME[0], PALME[1], PALME[2]), seg=24)
     b.kugel("leder", (-0.27, 0.27, 0.02), 1.0, (0.20, 0.27, 0.12), Matrix.Rotation(math.radians(-25), 3, "Z"), seg=16)
     ly = s["stulpe"]
-    r_a, r_e = 0.30, 0.44
+    r_a, r_e = 0.29, 0.37
     stulpe_bauen(b, ly, r_a, r_e)
     # Finger
     fin = {}
@@ -565,7 +566,7 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
                     b.kugel(nm, p, rad * rng.uniform(0.9, 1.1), (1.0, 1.25, 1.0), seg=9)
             # Gold: Ringe an jedem Fingerglied, Goldkappen auf den Fingerspitzen, Steinring am kleinen Finger
             for kette in (fin["zeige"], fin["mittel"], fin["ring"], fin["klein"]):
-                for gl in kette[:2]:
+                for gl in (kette[1:2] if kette is fin["zeige"] else kette[:2]):
                     p0, p1, r0, r1, d = gl
                     ring(b, p0 + d * (p1 - p0).length * 0.5, d, r1 * 0.93, "gold", 0.07)
                 sweep(b, "gold", kette, von=len(kette) - 1, skal=1.07, wulst=0.0)
