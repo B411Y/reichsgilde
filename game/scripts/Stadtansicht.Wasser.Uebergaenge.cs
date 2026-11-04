@@ -604,7 +604,7 @@ public partial class Stadtansicht
     {
         foreach (var h in _haefen)
             if (IsInstanceValid(h.Wurzel) && h.Wurzel.Name == "Hafen_" + hafen)
-                foreach (var kahn in h.Kaehne) kahn.Visible = zeigen;
+                foreach (var kahn in h.Kaehne) kahn.Visible = zeigen && !_stege.ContainsKey(hafen); // mit Steg (Stadtansicht.Hafensteg.cs) bleiben die Kähne weg
     }
 
     /// <summary>Der Spiegel am Ort: im Fluss oder See, sonst im Hafenbecken (das zählt im Kern nicht als Gewässer); null an Land.</summary>
