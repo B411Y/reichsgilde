@@ -110,6 +110,8 @@ public partial class FeldPflanzenBauer : Node3D
     private readonly Mesh _netz;
     /// <summary>Was noch fehlt: (Frucht, Zelle) → Nummern der Stücke, die in die Zelle reichen.</summary>
     private readonly Dictionary<(string Frucht, int I, int J), List<int>> _offen = new();
+    private int _zellen, _buescheln;
+    private ulong _anfang = Time.GetTicksMsec();
 
     public FeldPflanzenBauer() { _parzellen = Array.Empty<Feldparzelle>(); _polygone = new(); _hoehe = (_, _) => 0; _stoff = _ => new ShaderMaterial(); _netz = new ArrayMesh(); }
 
@@ -141,7 +143,12 @@ public partial class FeldPflanzenBauer : Node3D
 
     public override void _Process(double delta)
     {
-        if (_offen.Count == 0) { SetProcess(false); return; }
+        if (_offen.Count == 0)
+        {
+            GD.Print($"[felder] Pflanzen fertig: {_zellen} Zellen, {_buescheln} Büschel, {Time.GetTicksMsec() - _anfang} ms nach dem Start");
+            SetProcess(false);
+            return;
+        }
         var start = Time.GetTicksUsec();
         var kamera = GetViewport()?.GetCamera3D();
         var fokus = Vector2.Zero;
@@ -212,6 +219,8 @@ public partial class FeldPflanzenBauer : Node3D
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = _netz, InstanceCount = puffer.Count / 16,
         };
         vielfach.Buffer = puffer.ToArray();
+        _zellen++;
+        _buescheln += puffer.Count / 16;
         AddChild(new MultiMeshInstance3D
         {
             Name = $"Pflanzen_{frucht}_{zi}_{zj}", Multimesh = vielfach, MaterialOverride = _stoff(frucht), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,

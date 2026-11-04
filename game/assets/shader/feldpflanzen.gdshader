@@ -20,7 +20,6 @@ uniform float anteil = 1.0;
 uniform float kammhoehe = 0.14;
 
 varying vec3 farbton;
-varying float schnee_v;
 
 float h21(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -44,32 +43,33 @@ void vertex() {
 	// Höhe nach Jahreszeit (Anteile Frühling, Sommer, Herbst, Winter); im Herbst steht die Frucht noch oder ist schon geschnitten
 	vec4 j = jahreszeit_anteile;
 	float stehend = COLOR.a;
-	float hs = j.x * (0.12 + 0.05 * z2) + j.y + j.z * mix(0.09, 1.0, stehend) + j.w * 0.05;
+	float hs = j.x * (0.26 + 0.08 * z2) + j.y + j.z * mix(0.11, 1.0, stehend) + j.w * 0.07;
 	float schnee = schnee_decke(o.xz, 1.0);
 	hs *= 1.0 - 0.85 * schnee * (1.0 - j.y);
 	float h = hoehe * hs * mix(0.8, 1.15, z2);
 
 	// Farbe: Fuß dunkler und grüner, oben Ähre bzw. Blüte
 	float t = UV.x;
-	vec3 stoppel = vec3(0.62, 0.54, 0.34);
-	vec3 sommer = mix(farbe * vec3(0.78, 0.86, 0.6), spitze, smoothstep(0.55, 0.85, t));
-	vec3 herbst = mix(stoppel * 0.9, mix(farbe * 0.8, spitze * 0.82, smoothstep(0.55, 0.85, t)), stehend);
-	vec3 saat = mix(jung * 0.8, jung * 1.15, t);
-	vec3 winter = vec3(0.38, 0.32, 0.22);
+	vec3 stoppel = vec3(0.70, 0.60, 0.38);
+	vec3 sommer = mix(farbe * vec3(1.15, 1.1, 0.85), spitze * 1.25, smoothstep(0.12, 0.6, t));
+	vec3 herbst = mix(stoppel * 1.1, mix(farbe * 1.0, spitze * 1.05, smoothstep(0.12, 0.6, t)), stehend);
+	vec3 saat = mix(jung * 1.2, jung * 1.6, t);
+	vec3 winter = vec3(0.46, 0.39, 0.27);
 	vec3 c = saat * j.x + sommer * j.y + herbst * j.z + winter * j.w;
 	farbton = mix(c, vec3(0.66, 0.68, 0.73), clamp(schnee * 0.8, 0.0, 1.0)) * COLOR.rgb;
-	schnee_v = schnee;
 
-	if (z1 >= zoom * anteil || h < 0.02) {
-		VERTEX = vec3(0.0);
-		return;
+	// Stoppeln, Saat und Winterstümpfe sind klein: weniger Büschel genügen (spart Zeichenarbeit)
+	float dj = j.x * 0.8 + j.y + j.z * mix(0.4, 1.0, stehend) + j.w * 0.3;
+	if (z1 >= zoom * anteil * dj || h < 0.02) {
+		VERTEX = vec3(0.0); // nicht da: alle Ecken auf einen Punkt (keine Fläche, nichts zu zeichnen)
+	} else {
+		// Wind: die Spitzen neigen sich in Windrichtung, in Wellen über das Feld
+		float welle = 0.6 + 0.4 * sin(TIME * 1.7 + o.x * 0.35 + o.z * 0.27 + z2 * 6.0);
+		vec3 weh = vec3(wind_richtung.x, 0.0, wind_richtung.y) * (0.03 + 0.14 * wetter_wind) * welle * h * t * t;
+		vec3 lokal = transpose(mat3(MODEL_MATRIX)) * weh / (s * s);
+		VERTEX = vec3(VERTEX.x * breite, VERTEX.y * h + kammhoehe * kammf / s, VERTEX.z * breite) + lokal;
+		NORMAL = normalize(vec3(NORMAL.x * 0.3, 1.0, NORMAL.z * 0.3));
 	}
-	// Wind: die Spitzen neigen sich in Windrichtung, in Wellen über das Feld
-	float welle = 0.6 + 0.4 * sin(TIME * 1.7 + o.x * 0.35 + o.z * 0.27 + z2 * 6.0);
-	vec3 weh = vec3(wind_richtung.x, 0.0, wind_richtung.y) * (0.03 + 0.14 * wetter_wind) * welle * h * t * t;
-	vec3 lokal = transpose(mat3(MODEL_MATRIX)) * weh / (s * s);
-	VERTEX = vec3(VERTEX.x * breite, VERTEX.y * h + kammhoehe * kammf / s, VERTEX.z * breite) + lokal;
-	NORMAL = normalize(vec3(NORMAL.x * 0.3, 1.0, NORMAL.z * 0.3));
 }
 
 void fragment() {
