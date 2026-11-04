@@ -68,6 +68,10 @@ Klicks auf Gebäude gehen wie gewohnt. Mausrad, Q/E und das Ziehen mit der recht
 > [!TIP]
 > Die Betriebsleiste ist der schnellste Weg zu deinen Werkstätten: Ein Klick auf den Knopf fährt die Kamera hin, du musst nicht erst suchen.
 
+## Der Mauszeiger
+
+Der Zeiger ist ein **Lederhandschuh**, der mit dem **Stand deines Hauses** edler wird: grobes Arbeitsleder beim Gemeinen, heller Handschuh beim Bürger, verzierte Stulpe beim Patrizier, Goldborte beim Edlen, Samt mit Siegelring beim Freiherrn, Samt mit Hermelin beim Reichsgrafen. Beim Aufstieg wechselt der Handschuh gleich. Über **Anklickbarem** (Gebäude, Figuren, Knöpfe, Bauplatz im Baumodus) wird er **wärmer**; über einem Haus, das du mit Doppelklick **betreten** kannst, wird er zum **Türschloss** mit S-Griff aus Bronze. Die Größe (32, 48 oder 64 Pixel) folgt der Fensterhöhe und der Größe der Oberfläche. In den **Einstellungen** (Barrierefreiheit) lässt sich „Eigener Mauszeiger“ ausschalten, dann gilt der Zeiger deines Systems.
+
 ## Bauen
 
 Das Baumenü öffnest du mit dem Knopf **+ Bauen** oder der Taste **B**. Es hat zwei Reiter: **Gebäude** und **Wege (G)**.
