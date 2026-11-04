@@ -37,7 +37,6 @@ def bauen():
     st = bs.Stoffe()
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
-    lb.flaeche(haus, st, [(-10, -8), (10, -8), (10, 8), (-10, 8)], 0.008, "Gras")
     lb.flaeche(haus, st, lb.rechteck(-4.0, -7.6, -3.2, 3.4), 0.014, "Erde hell")             # Wege
     lb.flaeche(haus, st, lb.rechteck(-3.2, -5.2, 9.0, -4.6), 0.014, "Erde hell")
     # Beete mit Holzeinfassung
