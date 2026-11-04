@@ -64,6 +64,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Raster-Bauzonen) Wird eine berechnete Zone in der Werkstatt von Hand verändert, bleibt sie „berechnet“ und fällt bei der nächsten Rechnung weg. Empfehlung: Beim Bearbeiten einer Ecke `Berechnet` löschen (dann ist sie eine Hand-Zone und geht vor).
 - (Raster-Bauzonen) Die Messstadt hat noch ihre vier Hand-Zonen (Messkarte, bewusst nicht umgestellt).
 - (Raster-Bauzonen, Designfrage) Restflächen „klein“ unter 24 Feldern, in die ein Gebäude passt (z. B. 20 Felder = 4 × 5 Wohnhaus): Bleiben sie Garten oder wird die Mindestgröße einer Zone 20 bzw. „passt ein Wohnhaus“? Empfehlung: so lassen (24 wie bisher in Köln), erst nach der Darstellung der Gärten entscheiden.
+- (Nutzer, Startlehrling) Soll die KI zum Start ebenso mit einem Lehrling arbeiten (z. B. erst ab dem zweiten Spieltag einstellen, Bereich spiel-ki)? Heute stellt sie beim Anmelden nach. Empfehlung: nein – gleiche Mittel genügen, der Mensch kann ebenso sofort und kostenlos einstellen.
+- (Nutzer, Startlehrling, an Oberfläche) Hinweis zum Start „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein“ (Brief oder Meldung). Empfehlung: ja, sonst bleibt ein neuer Spieler bei halber Leistung.
+- (Nutzer, Startlehrling) Weitere Gegenmaßnahmen nur nach der vollen Messung: Handgeld beim Einstellen (bremst vor allem die KI; Empfehlung nein), mehr Startgeld oder billigerer Lehrling (Empfehlung nein, kein Bankrott), Lernzeit unverändert.
 
 ## Entscheidungen
 
@@ -281,3 +284,11 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Greybox | Umbau `greybox-raster`: sieben Lage-Gebiete um die alten Zonen (der Mischwald im Westen bleibt Wald), 11 Hand-Zonen → 9 berechnete; jedes alte Feld bleibt Zone derselben Lage (Kern 268 → 335, Mauerring 130 → 156, Vorstadt 442 → 781 Felder). Der Probeplan bekommt die neuen Zonennamen. | 04.11. |
 | Probestadt | Drei Lage-Gebiete (Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt bis zu den Feldwegen): Vorstadt 4.104 → 4.562 Felder, neu Kern 1.162 und Mauerring 464; die Reserve Stadthof passt jetzt (4 von 4, vorher 0). | 04.11. |
 | Köln-Felder | Das Kölner Stadtskript hat die sechs achsparallelen Felder aus `koeln.json` (PR „Felder an den Weltachsen“) übernommen, damit ein Neubau sie nicht zurücksetzt. | 04.11. |
+
+### Ein Lehrling zum Start (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Startpersonal | Jeder Startbetrieb beginnt mit einem Anfänger (Nutzer): Spieler und KI-Häuser gleich, bei „Schwer“ auch der Umlandbetrieb der KI (vorher 2 in der Stadt, 3 im Umland). Wert in den Daten: `personal.startJeBetrieb` = 1, Datenversion 72; ohne Angabe wie bisher. | 04.11. |
+| KI | Unverändert: Die KI füllt freie Plätze in ihrer ersten Stunde, schon beim Anmelden – für KI-Häuser und KI-geführte Spieler ist die Partie bitgleich mit vorher (Kurzmessung). Ob die KI langsamer anlaufen soll, ist offen (unten). | 04.11. |
+| Gegenmaßnahmen | Keine: kein Bankrott, kein Kredit; ein passiver Spieler verliert in 20 Jahren etwa die Hälfte (Greybox 28.802 → 15.018), bleibt aber zahlungsfähig. | 04.11. |
