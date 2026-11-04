@@ -97,6 +97,8 @@ Das Baumenü öffnest du mit dem Knopf **+ Bauen** oder der Taste **B**. Es hat 
 > [!NOTE]
 > Gebaut wird nur in den farbigen **Bauzonen** und auf **Bauplätzen**, mit der Vorderseite an einer Straße. Ein kurzer Rechtsklick bricht ab; wer die rechte Taste **gedrückt hält und zieht**, verschiebt auch im Baumodus weiter die Karte.
 
+**Raster:** Im Baumodus liegen feine Linien alle 2 m und kräftigere alle 10 m auf dem Gelände, rund um die Maus bzw. den Umriss; nach außen blenden sie aus. Sie sind nur eine Hilfe: Gebaut wird ohnehin auf dem 2-m-Raster und in Vierteldrehungen, der Umriss zeigt also genau, wo das Gebäude landet. **V** blendet das Raster ein und aus (Standard: an; Startoption `--raster=0` schaltet es ab).
+
 ### Wege-Modus
 
 Mit **G** schaltest du im Baumenü auf den Reiter **Wege**. Ist das Baumenü zu, öffnet G es gleich auf diesem Reiter; noch einmal G schaltet zurück zu den Gebäuden.
@@ -171,6 +173,7 @@ Die Buchstaben-Kürzel wirken nur im laufenden Spiel und nicht zusammen mit **St
 | **L** | Lexikon |
 | **B** | Bauen |
 | **G** | Wege-Modus im Baumenü |
+| **V** | Raster-Hilfslinien ein/aus (Baumodus und Kartenwerkstatt) |
 | **X** | alle Fenster schließen |
 | **T** | Tooltip festheften |
 

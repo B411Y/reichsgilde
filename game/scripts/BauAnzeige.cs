@@ -193,7 +193,7 @@ public partial class BauAnzeige : PanelContainer
         Hauptmenue.Text(_inhalt, "Bauen", 22, Gold, zentriert: true);
         Umschalter();
         Hauptmenue.Text(_inhalt, $"Vermögen: {Zahlenformat.Ganz(_spieler!.Vermoegen)} {waehrung}", 15, Hell).TooltipText = "Euer Bargeld: Bauen kostet sofort, die Baustelle braucht dann Zeit.";
-        Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m, mit der Vorderseite an einer Straße.",
+        Hauptmenue.Text(_inhalt, "Wählt ein Gebäude, dann zeigt ein Umriss an der Maus, wo es steht. Gebaut wird nur in den farbigen Bauzonen und auf Bauplätzen – am Raster von 2 m (V blendet die Rasterlinien ein und aus), mit der Vorderseite an einer Straße.",
             13, Grau, umbruchBreite: Breite);
 
         // Legende: die Farben der Bauzonen in der Stadt (die Zeile „FahrwegAmpeln.Count == 0 → return“ aus #282 gehörte nur in FahrwegZeigen:
