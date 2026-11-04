@@ -1085,13 +1085,14 @@ public sealed partial class Stadtwirtschaft
 
     private Befehlsergebnis KarrenKaufenAusfuehren(Betrieb betrieb, KarrenKaufen befehl)
     {
-        if (!Daten.Logistik.Karren.TryGetValue(befehl.Typ, out var daten))
+        var typ = LogistikDaten.Karrenart(befehl.Typ); // alte Kennung aus Protokoll, Warteschlange oder Startoption (Kriegskarren → Pferdekarren)
+        if (!Daten.Logistik.Karren.TryGetValue(typ, out var daten))
             return Befehlsergebnis.Abgelehnt($"Den Karrentyp „{befehl.Typ}“ gibt es nicht.");
         if (KarrenKaufVerboten(betrieb) is { } grenze) return Befehlsergebnis.Abgelehnt(grenze);
         if (betrieb.Konto.Vermoegen < daten.Preis)
             return Befehlsergebnis.Abgelehnt(
-                $"Für einen {befehl.Typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
-        var karren = betrieb.KarrenKaufen(befehl.Typ);
+                $"Für einen {typ} fehlen {Zahlenformat.Ganz(daten.Preis - betrieb.Konto.Vermoegen)} {Daten.Allgemein.Waehrung}.");
+        var karren = betrieb.KarrenKaufen(typ);
         return Befehlsergebnis.Ok($"{karren.Name} für {betrieb.Name} gekauft ({Zahlenformat.Ganz(daten.Preis)} {Daten.Allgemein.Waehrung}).");
     }
 

@@ -81,7 +81,7 @@ static class KarrenHoechstzahlTests
             holz.Konto.Entwicklerhilfe(20_000);
             Pruefe.Gleich(5, ki.MaxKarren(Arbeitsort.Umland));
             Pruefe.Gleich(3, ki.MaxKarren(Arbeitsort.Werkstatt));
-            while (holz.Karren.Count < 3) holz.KarrenKaufen("Kriegskarren");
+            while (holz.Karren.Count < 3) holz.KarrenKaufen("Pferdekarren");
             // bei 25 % Stillstand: unter der Grenze nur Käufe (je Art einer)
             var plaene = ki.Karrenplaene(holz, 0.25).ToList();
             Pruefe.Wahr(plaene.All(p => p.Tausch is null) && plaene.Count == w.Daten.Logistik.Karren.Count, "Käufe");
@@ -90,7 +90,7 @@ static class KarrenHoechstzahlTests
             Pruefe.Wahr(bester!.Value.Kosten <= bester.Value.Mehrgewinn * ki.Amortisationsjahre, "in der Frist bezahlt");
             // unter 20 % kauft die KI zum Jahresende nichts (KarrenNachkaufen), und ein Plan ohne Mehrgewinn wird nie gewählt
             Pruefe.Gleich(null, ki.BesterKarrenplan(holz, 0.0));
-            while (holz.Karren.Count < 5) holz.KarrenKaufen("Kriegskarren");
+            while (holz.Karren.Count < 5) holz.KarrenKaufen("Pferdekarren");
             Pruefe.Wahr(ki.Karrenplaene(holz, 0.25).All(p => p.Tausch is not null), "an der Grenze nur Tausch");
         }),
     };
