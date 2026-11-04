@@ -36,6 +36,15 @@ public partial class Stadtansicht
     /// <summary>Ebene (Bit 29) für Regen und Schnee im Pixel-Look: Das Beleuchtungsbild zeichnet jedes Teilchen als undurchsichtiges Rechteck (Debug-Zeichnung „Beleuchtung“ kennt keine Durchsicht) – es sieht diese Ebene nicht.</summary>
     private const uint PixelTeilchenEbene = 1u << 29;
 
+    /// <summary>Ebene (Bit 28) der Lichtzwillinge: Nur das Beleuchtungsbild sieht sie (siehe <see cref="PixelHilfeZwilling"/>).</summary>
+    private const uint PixelHilfeEbene = 1u << 28;
+
+    private ShaderMaterial? _pxHilfeStoff;
+    private DirectionalLight3D? _pxHilfeLicht;
+    private readonly List<(MeshInstance3D Netz, MeshInstance3D Zwilling)> _pxHilfeNetze = new();
+    private SceneTree? _pxBaum;
+    private readonly System.Collections.Concurrent.ConcurrentQueue<ulong> _pxNeueNetze = new();
+
     private SubViewport? _pxWelt, _pxLicht, _pxGlueh;
     private Camera3D _pxKamera = null!, _pxLichtKamera = null!;
     private MeshInstance3D _pxFlaeche = null!;
@@ -163,6 +172,49 @@ public partial class Stadtansicht
                                             + RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxLicht.GetViewportRid())
                                             + RenderingServer.ViewportGetMeasuredRenderTimeGpu(_pxGlueh.GetViewportRid()));
         Fenster.PixelGpuZeit = _pxZeitFunktion;
+
+        // Hilfs-Overlays (Bauzonen, Raster, Umrisse): jedes durchsichtige, unbeleuchtete Netz bekommt einen Lichtzwilling, auch die schon vorhandenen
+        // Zwilling: beleuchtet (unbeleuchtete und leuchtende Flächen zeigt das Beleuchtungsbild nur als dunklen Boden), die Normale zeigt zur Kamera, dazu ein starkes Licht entlang der Blickrichtung,
+        // das nur die Zwillingsebene trifft
+        _pxHilfeStoff = new ShaderMaterial { Shader = new Shader { Code = "shader_type spatial; render_mode cull_disabled; void fragment() { ALBEDO = vec3(1.0); NORMAL = vec3(0.0, 0.0, 1.0); ROUGHNESS = 1.0; SPECULAR = 0.0; }" } };
+        _pxHilfeLicht = new DirectionalLight3D { Name = "Hilfslicht", LightEnergy = 8f, LightCullMask = PixelHilfeEbene, ShadowEnabled = false, LightSpecular = 0f };
+        _pxLichtKamera.AddChild(_pxHilfeLicht);
+        _pxBaum = GetTree();
+        _pxBaum.NodeAdded += PixelKnotenHinzu;
+        foreach (var m in GetTree().Root.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()) PixelHilfeZwilling(m);
+    }
+
+    /// <summary>Jeder neue Netzknoten kommt in die Warteschlange (die Stadt lädt in Fäden, dieser Aufruf kann aus jedem Faden kommen); <see cref="PixelBild"/> arbeitet sie im Hauptfaden ab.</summary>
+    private void PixelKnotenHinzu(Node knoten)
+    {
+        if (knoten is MeshInstance3D m) _pxNeueNetze.Enqueue(m.GetInstanceId());
+    }
+
+    private void PixelNeueNetze()
+    {
+        var n = 0;
+        while (n++ < 400 && _pxNeueNetze.TryDequeue(out var id))
+            if (InstanceFromId(id) is MeshInstance3D m && m.IsInsideTree()) PixelHilfeZwilling(m);
+    }
+
+    /// <summary>
+    /// Bauzonen, Raster, Umrisse und andere Hilfsflächen sind durchsichtig und unbeleuchtet. Das Glühen hält alles für Licht, was im Bild heller ist als im Beleuchtungsbild
+    /// (<c>pixel_gluehen.gdshader</c>) – und das Beleuchtungsbild zeigt unbeleuchtete Flächen nur wie dunklen Boden. Darum bekommt jedes solche Netz einen <b>Zwilling</b> (gleiches Netz, undurchsichtig, weiß, von einem eigenen starken Licht beleuchtet, das nur diese Ebene trifft), den nur das Beleuchtungsbild sieht (Ebene <see cref="PixelHilfeEbene"/>): dort sind die Flächen hell, das Verhältnis liegt unter 1, nichts glüht.
+    /// Die Flächen selbst bleiben, wie sie sind (nachts so hell wie ihre Farbe).
+    /// </summary>
+    private void PixelHilfeZwilling(MeshInstance3D m)
+    {
+        if (_pxHilfeStoff is null || !IsInstanceValid(m) || m.Layers != 1 || m.HasMeta("pxzwilling") || m.HasMeta("pxistzwilling")) return;
+        if (m.MaterialOverride is not StandardMaterial3D { ShadingMode: BaseMaterial3D.ShadingModeEnum.Unshaded, Transparency: not BaseMaterial3D.TransparencyEnum.Disabled, BlendMode: BaseMaterial3D.BlendModeEnum.Mix }) return;
+        m.SetMeta("pxzwilling", true);
+        var zwilling = new MeshInstance3D
+        {
+            Name = "Lichtzwilling", Mesh = m.Mesh, MaterialOverride = _pxHilfeStoff, Layers = PixelHilfeEbene,
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, GIMode = GeometryInstance3D.GIModeEnum.Disabled,
+        };
+        zwilling.SetMeta("pxistzwilling", true);
+        m.AddChild(zwilling);
+        _pxHilfeNetze.Add((m, zwilling));
     }
 
     /// <summary>Bei jeder Änderung der Grafikeinstellungen (aus <see cref="GrafikNachfuehren"/>): bauen, wenn der Pixel-Look neu an ist; Werte des Fensters in die Ansichten übernehmen.</summary>
@@ -191,6 +243,7 @@ public partial class Stadtansicht
     private void PixelAufgeben()
     {
         if (_pxWelt is null) return;
+        if (_pxBaum is not null && IsInstanceValid(_pxBaum)) _pxBaum.NodeAdded -= PixelKnotenHinzu;
         if (Fenster.PixelGpuZeit == _pxZeitFunktion) Fenster.PixelGpuZeit = null; // nur die eigene Funktion (bei Szenenwechsel kann die neue Stadt schon eine gesetzt haben)
         GetViewport().Disable3D = false;
     }
@@ -228,6 +281,7 @@ public partial class Stadtansicht
         _pxFlaeche.Visible = licht;
         _pxGluehAnzeige.Visible = schein;
         _pxVignette.Visible = gewuenscht;
+        PixelNeueNetze();
         PixelNamen(gewuenscht && laeuft && !raum ? kamera : null);
         var teilchen = licht ? PixelTeilchenEbene : 1u; // nur wenn das Beleuchtungsbild läuft, sonst sehen Fenster- und Raumkamera die Teilchen wie sonst
         if (_regen is not null && _regen.Layers != teilchen) _regen.Layers = teilchen;
@@ -235,6 +289,13 @@ public partial class Stadtansicht
         // ebenso alle anderen durchsichtigen Flächen: Traufentropfen und -spritzer, Lichtflecken und -schein, Flammen und Rauch (sonst dunkle Rechtecke im Beleuchtungsbild)
         foreach (VisualInstance3D? knoten in new VisualInstance3D?[] { _traufTropfen, _traufRinge, _fleckBoden, _fleckSchein })
             if (knoten is not null && knoten.Layers != teilchen) knoten.Layers = teilchen;
+        // Hilfsflächen mit Lichtzwilling: das Beleuchtungsbild zeichnet durchsichtige Flächen undurchsichtig und verdeckte den Zwilling, es sieht sie darum nicht (wie die Teilchen)
+        _pxHilfeNetze.RemoveAll(h => !IsInstanceValid(h.Netz) || !IsInstanceValid(h.Zwilling));
+        foreach (var (netz, zwilling) in _pxHilfeNetze)
+        {
+            if (netz.Layers != teilchen) netz.Layers = teilchen;
+            if (zwilling.Mesh != netz.Mesh) zwilling.Mesh = netz.Mesh; // das Raster tauscht sein Netz aus
+        }
         Feuer.EbeneSetzen(GetTree(), teilchen);
         if (!laeuft || kamera is null) return;
 
@@ -281,7 +342,8 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Gebäudenamen (Label3D mit Kennung) bleiben im Pixel-Look lesbar: Die 3D-Schilder werden nicht gezeichnet (Sichtebene 0), stattdessen stehen
+    /// Alle Beschriftungen (Label3D aus <c>Beschriftung(...)</c>: Gebäudenamen, Namen der Bauzonen, Bauplatz-Hinweise, Fehler am Ort wie „Hier ist keine Bauzone“, Beschriftungen der Kartenwerkstatt)
+    /// bleiben im Pixel-Look gestochen scharf: Die 3D-Schilder werden nicht gezeichnet (Sichtebene 0), stattdessen stehen
     /// Control-Beschriftungen in voller Auflösung über dem Pixelbild, an der Stelle, auf die die Kamera der Logik das Schild projiziert (das Pixelbild
     /// zeigt dieselbe Stelle auf ein Weltpixel genau). Größe wie das Schild: Schrift · Pixelgröße des Schildes (0,04 m) · Bildhöhe / Bezugszoom.
     /// <paramref name="kamera"/> null: kein Pixel-Look bzw. Raum – die Schilder kehren in die Welt zurück.
@@ -292,10 +354,10 @@ public partial class Stadtansicht
         var zahl = 0;
         foreach (var label in _beschriftungen)
         {
-            if (!label.HasMeta("kennung")) continue;
+            if (!IsInstanceValid(label)) continue;
             var ziel = anzeigen ? 0u : 1u;
             if (label.Layers != ziel) label.Layers = ziel;
-            if (!anzeigen || !label.Visible || kamera!.IsPositionBehind(label.GlobalPosition)) continue;
+            if (!anzeigen || !label.IsVisibleInTree() || label.Text.Length == 0 || kamera!.IsPositionBehind(label.GlobalPosition)) continue;
             _pxNamenEbene ??= new CanvasLayer { Name = "PixelNamen", Layer = 0 };
             if (_pxNamenEbene.GetParent() is null) AddChild(_pxNamenEbene);
             if (zahl == _pxNamen.Count)
@@ -310,11 +372,17 @@ public partial class Stadtansicht
             var groesse = Mathf.Max(6, Mathf.RoundToInt(label.FontSize * massstab));
             l.Text = label.Text;
             l.Visible = true;
-            l.AddThemeFontOverride("font", label.Font);
+            if (label.Font is not null) l.AddThemeFontOverride("font", label.Font);
+            else l.RemoveThemeFontOverride("font");
             l.AddThemeFontSizeOverride("font_size", groesse);
             l.AddThemeColorOverride("font_color", label.Modulate);
             l.AddThemeColorOverride("font_outline_color", label.OutlineModulate);
             l.AddThemeConstantOverride("outline_size", Mathf.RoundToInt(label.OutlineSize * massstab));
+            l.AddThemeConstantOverride("line_spacing", Mathf.RoundToInt(label.LineSpacing * massstab));
+            var umbruch = label.AutowrapMode != TextServer.AutowrapMode.Off; // Hinweise mit fester Breite (Label3D.Width in Schrifteinheiten) brechen um
+            l.AutowrapMode = label.AutowrapMode;
+            l.CustomMinimumSize = umbruch ? new Vector2(Mathf.Round(label.Width * massstab), 0) : Vector2.Zero;
+            l.Size = new Vector2(umbruch ? l.CustomMinimumSize.X : 0, 0);
             l.Position = (kamera!.UnprojectPosition(label.GlobalPosition) - l.GetCombinedMinimumSize() / 2f).Round();
         }
         for (var i = zahl; i < _pxNamen.Count; i++) _pxNamen[i].Visible = false;
@@ -332,7 +400,7 @@ public partial class Stadtansicht
         ziel.KeepAspect = quelle.KeepAspect;
         ziel.Environment = quelle.Environment;
         ziel.Attributes = null; // keine Miniatur-Unschärfe im Pixel-Look: weiche Ränder passen nicht zu harten Pixeln
-        ziel.CullMask = hauptbild ? quelle.CullMask | PixelFlaechenEbene | PixelTeilchenEbene : quelle.CullMask & ~(PixelFlaechenEbene | PixelTeilchenEbene);
+        ziel.CullMask = hauptbild ? quelle.CullMask | PixelFlaechenEbene | PixelTeilchenEbene : (quelle.CullMask & ~(PixelFlaechenEbene | PixelTeilchenEbene)) | PixelHilfeEbene;
     }
 
     /// <summary>
