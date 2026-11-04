@@ -20,6 +20,8 @@ public partial class Stadtansicht
         public required Node3D Knoten { get; init; }
         public AnimationPlayer? Spieler { get; init; }
         public required bool Taube { get; init; }
+        /// <summary>Krähe (dritte Art, Stadtansicht.Tiere.cs): größer und schneller als eine Taube.</summary>
+        public bool Kraehe { get; init; }
         public Vogelzustand Zustand { get; set; } = Vogelzustand.Sitzt;
         public Vector3 Von { get; set; }
         /// <summary>Landeplatz (auch beim Trippeln auf dem First); zählt für die Belegung der Plätze schon während des Flugs.</summary>
@@ -39,6 +41,11 @@ public partial class Stadtansicht
     {
         public List<Vogel> Voegel { get; } = new();
         public required bool Tauben { get; init; }
+        /// <summary>Krähenschwarm (dann ist <see cref="Tauben"/> falsch): bevorzugt die höchsten Plätze (Türme, Mauerkronen); im Sommer sind weniger da.</summary>
+        public bool Kraehen { get; init; }
+        /// <summary>Krähen: ab welchem Anteil Herbst/Winter (0–1, siehe <see cref="KraehenAnteil"/>) dieser Schwarm da ist.</summary>
+        public float Schwelle { get; init; }
+        public bool Da { get; set; } = true;
         /// <summary>Mitte des Heimatgebiets und sein Halbmesser (Meter).</summary>
         public required Vector3 Heimat { get; init; }
         public required float Reichweite { get; init; }
@@ -84,15 +91,23 @@ public partial class Stadtansicht
         var draussen = VogelplaetzeDraussen();
         for (var i = 0; i < draussen.Count; i++)
             SchwarmAnlegen(i % 3 == 0, draussen[i], 30);
+        // Krähen (dritte Art): zwei Schwärme an Türmen und Mauern der Stadt, dazu einer an jeder zweiten Stelle im Umland (Felder, Höfe);
+        // die Hälfte davon nur im Herbst und Winter
+        if (TiereAus) return;
+        SchwarmAnlegen(false, _markt, StadtReichweite, kraehen: true, schwelle: 0f);
+        SchwarmAnlegen(false, _markt, StadtReichweite, kraehen: true, schwelle: 0.5f);
+        for (var i = 1; i < draussen.Count; i += 2)
+            SchwarmAnlegen(false, draussen[i], 40, kraehen: true, schwelle: (i / 2) % 2 == 0 ? 0f : 0.5f);
     }
 
-    private void SchwarmAnlegen(bool tauben, Vector3 heimat, float reichweite)
+    private void SchwarmAnlegen(bool tauben, Vector3 heimat, float reichweite, bool kraehen = false, float schwelle = 0f)
     {
-        if (Modell(tauben ? "tiere/vogel_taube" : "tiere/vogel_spatz") is not { } szene || _vogelEbene is null) return;
-        var schwarm = new Schwarm { Tauben = tauben, Heimat = heimat, Reichweite = reichweite, Warten = _vogelZufall.RandfRange(2, 20) };
+        if (Modell(kraehen ? "tiere/vogel_kraehe" : tauben ? "tiere/vogel_taube" : "tiere/vogel_spatz") is not { } szene || _vogelEbene is null) return;
+        var schwarm = new Schwarm { Tauben = tauben, Kraehen = kraehen, Schwelle = schwelle, Heimat = heimat, Reichweite = reichweite, Warten = _vogelZufall.RandfRange(2, 20) };
         var anzahl = _vogelZufall.RandiRange(3, 5);
         var plaetze = DachplaetzeVerteilen(schwarm, Enumerable.Repeat(heimat, anzahl).ToList());
         anzahl = Math.Max(1, plaetze.Count(p => p is not null));
+        if (kraehen && anzahl < 2) return; // wo nur ein Platz frei ist, gäbe es keinen Schwarm
         plaetze = plaetze.Where(p => p is not null).DefaultIfEmpty(heimat).ToList();
         for (var i = 0; i < anzahl; i++)
         {
@@ -102,7 +117,7 @@ public partial class Stadtansicht
             if (spieler is not null)
                 foreach (var name in spieler.GetAnimationList())
                     spieler.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
-            var vogel = new Vogel { Knoten = knoten, Spieler = spieler, Taube = tauben };
+            var vogel = new Vogel { Knoten = knoten, Spieler = spieler, Taube = tauben, Kraehe = kraehen };
             var platz = plaetze[i] ?? heimat;
             vogel.Von = vogel.Nach = platz;
             knoten.Position = platz;
@@ -111,6 +126,7 @@ public partial class Stadtansicht
             schwarm.Voegel.Add(vogel);
         }
         _schwaerme.Add(schwarm);
+        if (kraehen) GD.Print($"[tiere] Krähenschwarm bei {heimat.X:0.0}, {heimat.Z:0.0} (Reichweite {reichweite:0}, {schwarm.Voegel.Count} Vögel, Schwelle {schwelle:0.0}), erster Vogel bei {schwarm.Voegel[0].Knoten.Position.X:0.0}, {schwarm.Voegel[0].Knoten.Position.Y:0.0}, {schwarm.Voegel[0].Knoten.Position.Z:0.0}");
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -257,6 +273,8 @@ public partial class Stadtansicht
     {
         var plaetze = new List<Vector3?>();
         var frei = _dachpunkte.Where(d => d.DistanceTo(eigener.Heimat with { Y = d.Y }) < eigener.Reichweite && Belegung(d, eigener) == 0).ToList();
+        if (eigener.Kraehen && frei.Count > 6)
+            frei = frei.OrderByDescending(d => d.Y).Take(Math.Max(6, frei.Count * 2 / 5)).ToList(); // Krähen: Türme, hohe Firste, Mauerkronen
         foreach (var start in von)
         {
             var offen = frei.Where(d => plaetze.All(p => p is not { } q || q.DistanceTo(d) >= VogelPlatzUmkreis)).ToList();
@@ -353,6 +371,7 @@ public partial class Stadtansicht
         var nacht = _daemmerung >= VogelNachtAb;
         foreach (var s in _schwaerme)
         {
+            if (s.Kraehen && KraehenSchwarmSchalten(s)) continue;
             var fliegt = s.Voegel.Any(v => v.Zustand == Vogelzustand.Fliegt);
             if (!fliegt)
             {
@@ -360,7 +379,7 @@ public partial class Stadtansicht
                 var erschreckt = s.AmBoden && s.Voegel.Any(v => PassantNahe(v.Knoten.Position, VogelScheu));
                 if (erschreckt || (s.AmBoden && nacht)) SchwarmFliegt(s, boden: false, erschreckt);
                 else if (s.Warten <= 0 && !(nacht && !s.AmBoden && _vogelZufall.Randf() < 0.9f))
-                    SchwarmFliegt(s, boden: !nacht && !s.AmBoden && _vogelZufall.Randf() < (s.Tauben ? 0.5f : 0.6f));
+                    SchwarmFliegt(s, boden: !nacht && !s.AmBoden && _vogelZufall.Randf() < (s.Kraehen ? (InDerStadt(s.Heimat) ? 0.15f : 0.7f) : s.Tauben ? 0.5f : 0.6f));
                 else if (s.Warten <= 0) s.Warten = _vogelZufall.RandfRange(20, 60); // nachts meist sitzen bleiben
             }
             foreach (var v in s.Voegel) VogelBewegen(s, v, dt);
@@ -429,7 +448,7 @@ public partial class Stadtansicht
         }
         else
             // Spatzen fliegen weitere, höhere Bögen
-            mitte.Add(von.Lerp(nach, 0.5f) with { Y = Mathf.Max(von.Y, nach.Y) + 1.5f + Waagerecht(von, nach) * (v.Taube ? 0.15f : 0.22f) });
+            mitte.Add(von.Lerp(nach, 0.5f) with { Y = Mathf.Max(von.Y, nach.Y) + 1.5f + Waagerecht(von, nach) * (v.Taube || v.Kraehe ? 0.15f : 0.22f) });
         var ab = ((mitte[0] - von) with { Y = 0 }).Normalized();
         var an = ((nach - mitte[^1]) with { Y = 0 }).Normalized();
         var bahn = new List<Vector3> { von, von + Vector3.Up * 1.2f + ab * 0.5f };
@@ -439,7 +458,7 @@ public partial class Stadtansicht
         v.Bahn = bahn.ToArray();
         v.BahnWeg = new float[v.Bahn.Length];
         for (var i = 1; i < v.Bahn.Length; i++) v.BahnWeg[i] = v.BahnWeg[i - 1] + v.Bahn[i - 1].DistanceTo(v.Bahn[i]);
-        v.Dauer = Mathf.Max(1.5f / tempo, v.BahnWeg[^1] / ((v.Taube ? 7f : 6f) * tempo));
+        v.Dauer = Mathf.Max(1.5f / tempo, v.BahnWeg[^1] / (Flugtempo(v) * tempo));
     }
 
     /// <summary>
@@ -492,7 +511,7 @@ public partial class Stadtansicht
                 {
                     // auf dem First zum Nachbarplatz trippeln
                     var weg = v.Nach - v.Knoten.Position;
-                    var schritt = (v.Taube ? 0.35f : 0.5f) * dt;
+                    var schritt = Schritttempo(v) * dt;
                     v.Knoten.Position = weg.Length() > schritt ? v.Knoten.Position + weg.Normalized() * schritt : v.Nach;
                     if (v.Knoten.Position == v.Nach) v.Bewegungsrest = 0;
                 }
@@ -500,7 +519,7 @@ public partial class Stadtansicht
                 {
                     v.Nach = neben;
                     Ausrichten(v, neben - v.Knoten.Position);
-                    Bewegen(v, "Gehen", v.Knoten.Position.DistanceTo(neben) / (v.Taube ? 0.35f : 0.5f) + 0.5f);
+                    Bewegen(v, "Gehen", v.Knoten.Position.DistanceTo(neben) / Schritttempo(v) + 0.5f);
                 }
                 else if (v.Bewegungsrest <= 0)
                 {
@@ -514,7 +533,7 @@ public partial class Stadtansicht
                 if (v.Bewegung == "Gehen" && v.Bewegungsrest > 0)
                 {
                     var weg = (v.Nach - v.Knoten.Position) with { Y = 0 };
-                    var schritt = (v.Taube ? 0.35f : 0.5f) * dt;
+                    var schritt = Schritttempo(v) * dt;
                     if (weg.Length() > schritt) v.Knoten.Position += weg.Normalized() * schritt;
                 }
                 else if (v.Bewegungsrest <= 0)
