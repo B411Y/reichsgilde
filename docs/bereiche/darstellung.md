@@ -12,6 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume haben keine Fernfassung (LOD), im dichten Wald kostet das Leistung (siehe Messung im PR); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
 - (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
 - (Pixel-Look) Hoher Lichtwechsel (Blitz, Fackeln) nicht gesondert abgestimmt; Lichtskala nach Tageslicht grob geeicht (Boden 0,34, Kontrast und Düsternis wirken nachts nicht); Schilder in Räumen und Baumodus-Text bleiben gepixelt; Kartenwerkstatt liest die Grafik-Startoptionen nicht (nur die gespeicherte Wahl)
@@ -218,6 +219,18 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels R4) Leistung der elf neuen Formen (bis 11.000 Dreiecke je Stück auf der feinen Stufe, Atlas 4096 × 2048 je zwei Karten) ist nicht gemessen; Messung gehört zu R6 (Befehl an „main“, Grafik-PC).
 
 ## Entscheidungen
+
+### Umland: importierte Bäume und Steine, Felder mit geraden Rändern (Branch phase5/umland-optik, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bäume | Die Arten `tanne`, `eiche` und `buche` zeigen im Katalog (`game/daten/katalog.json`) die Kit-Modelle aus dem importierten und bearbeiteten Quaternius-Paket (CC0): Tanne = `Kiefer` (5 Varianten), Eiche und Buche = `Laubbaum` (3 Varianten, mit kahler Winterfassung) aus `natur/natur_kit_baeume`. Die Kartendaten bleiben gleich (Art, Dichte, Gruppen); die Kegel-Tannen und runden Laubbäume aus `natur_baeume` stehen nicht mehr in Karten. Kopfweide und die Büsche bleiben die eigenen Modelle (das Kit hat keine) | 04.11.2026 |
+| Steine | `felsbrocken` und `findling` = `KitFels` (3 Varianten), `kiesel` = `KitKiesel` (11 Varianten) aus `natur/natur_kit_steine` (CC0). `lesesteinhaufen` bleibt (das Kit hat keinen Haufen) | 04.11.2026 |
+| Größe | Neues Feld `massstab` am Baustein (Kern, Vorgabe 1, nicht im Spielstand, wenn 1): gleicht die Größe des Kit-Modells dem Namen an (Findling 1,5, Felsbrocken 0,8, Kiesel 1,8, Eiche 1,1, Buche 0,95). `NaturVerteilung` rechnet ihn in `Pflanzenlage.Massstab` ein, Spiel und Werkstatt zeichnen gleich. Drehung und Größe bleiben deterministisch aus dem Startwert der Fläche | 04.11.2026 |
+| Felder, Rand | `FeldVerteilung.Flaeche(…, bisZumRand: true)` (nur Darstellung; ohne Schalter wie bisher): Auch Stücke, die nur zum Teil in der Fläche liegen, zählen; Wege, Gebäude und Aussparungen schneiden weiter ganze Zellen weg. `Stadtansicht.FeldNetzeBauen` schneidet jede Zelle mit `Geometry2D.IntersectPolygons` gerade an den Rand der Fläche und zerlegt sie in Dreiecke | 04.11.2026 |
+| Feldrain | `acker.gdshader`: Der Abstand zum Rand (UV2.y, bis 4 m) lässt die Frucht in Erde und Gras auslaufen und macht die Fläche am Rand mit unregelmäßiger Kante durchsichtig (Wiese darunter) | 04.11.2026 |
+| Gras | `GrasAeckerMelden` bekommt je Stück das gedrehte Rechteck um den zugeschnittenen Teil statt des ganzen Stücks | 04.11.2026 |
+| Außerhalb des Bereichs | Kern: `Baustein.Massstab`, `NaturVerteilung`, `FeldVerteilung.Flaeche`/`Alle`, `Kartenentwurf.FelderVon` (je ein Schalter bzw. Faktor); `game/daten/katalog.json`; Tests angepasst (`KartenformatTests`, `KartenbauTests`, `KartenwerkstattWegeTests`) und `FeldRandTests` neu | 04.11.2026 |
 
 ### Grafikstil: Pixel-Look (Nutzer 03.11.2026)
 
