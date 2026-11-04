@@ -2260,7 +2260,7 @@ Der Blitzschaden ist damit eine spürbare, aber seltene Störung: einmal in rund
 
 **Probe mit „Hafen ruht“** (NAS, `messen blitz 20 4`, gemessen auf main 3f2bdf8c + dieser Branch e776abd7, Datenversion 71): dieselben Einschläge und Sprünge wie in der Kurzmessung (1,00 Einschläge, Sprünge Greybox 0,75, Köln 0,25 je Partie), Treffer Greybox Spieler und KI je 0,25, Köln 0, Reparatur Greybox 121 Gulden je Partie, höchstens 0,5 Stück Ware verbrannt. Der ruhende Schiffshandel ändert am Blitz nichts; das Vermögen streut wie zuvor in beide Richtungen.
 
-## Ein Lehrling zum Start (Datenversion 72, 4.11.2026)
+## Ein Lehrling zum Start (PR #318, Datenversion 72, 4.11.2026)
 
 **Regel** (Entscheidung des Nutzers, 4.11.2026): Zum Beginn der Partie hat jeder Startbetrieb **einen Anfänger** – beim Spieler und bei den KI-Häusern gleich (Mehrspieler-Fairness), bei „Schwer“ auch der Umlandbetrieb der KI (ein Knecht bzw. Ork statt drei). Vorher waren es zwei Anfänger in der Stadt und drei im Umland, fest in `Partieaufbau`. Jetzt steht die Zahl in den Daten: `personal.startJeBetrieb` = 1 (`Personalwesen.StartAnzahl`, höchstens die Plätze des Betriebs; ohne Angabe wie bis Datenversion 71). Weitere Lehrlinge stellt jeder selbst ein – das kostet nichts und wirkt sofort, der Lohn (120 Gulden im Jahr) kommt am Jahresende. Startgeld, Löhne, Erfahrung und Briefe bleiben.
 

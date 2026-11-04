@@ -285,7 +285,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Probestadt | Drei Lage-Gebiete (Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt bis zu den Feldwegen): Vorstadt 4.104 → 4.562 Felder, neu Kern 1.162 und Mauerring 464; die Reserve Stadthof passt jetzt (4 von 4, vorher 0). | 04.11. |
 | Köln-Felder | Das Kölner Stadtskript hat die sechs achsparallelen Felder aus `koeln.json` (PR „Felder an den Weltachsen“) übernommen, damit ein Neubau sie nicht zurücksetzt. | 04.11. |
 
-### Ein Lehrling zum Start (PR #…)
+### Ein Lehrling zum Start (PR #318)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
