@@ -151,7 +151,6 @@
         {"m": "ding", "k": "Werkbank1", "x": -1.5, "z": -2.3, "dreh": 0, "groesse": 1},
         {"m": "holz", "k": "Stumpf1", "x": 0.8, "z": -2.3, "dreh": 0, "groesse": 0.9},
         {"m": "ding", "k": "KitAmboss1", "x": 0.8, "z": -2.3, "dreh": 0, "groesse": 1.0},
-        {"m": "dorf", "k": "Handwagen1", "x": 2.3, "z": 0.0, "dreh": 0, "groesse": 1},
         {"art": "reihe", "m": "ding", "k": "Fass1", "von": [-2.5, 1.0], "bis": [-0.5, 1.0], "schritt": 0.8, "groesse": 1},
         {"m": "ding", "k": "Kiste1", "x": -0.3, "z": 0.4, "dreh": 10, "groesse": 0.8},
         {"m": "ding", "k": "Sack1", "x": 0.5, "z": 2.2, "dreh": 0, "groesse": 0.9},

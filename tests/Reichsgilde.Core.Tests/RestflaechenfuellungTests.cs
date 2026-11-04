@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Reichsgilde.Core.Bauen;
 
 /// <summary>
@@ -119,6 +120,28 @@ static class RestflaechenfuellungTests
                 var (i, j) = ((int)Math.Floor(haus.Punkt[0] / Restflaechenfuellung.Raster), (int)Math.Floor(haus.Punkt[1] / Restflaechenfuellung.Raster));
                 Pruefe.Wahr(Restflaechenfuellung.Bebaut(new Fuellkasten(i, j, 1, 1), frei), kennung + ": ein Kasten mitten im Haus ist bebaut");
             }
+        }),
+
+        ("Restflächenfüllung: die Rezepte (restflaechen.json) haben je Thema alle Formate, und die Nachbarn nennen nur bekannte Themen", () =>
+        {
+            var pfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json");
+            var wurzel = JsonNode.Parse(File.ReadAllText(pfad))!;
+            var themen = wurzel["themen"]!.AsObject().Select(t => t.Key).ToList();
+            Pruefe.Wahr(themen.Count >= 3, "mindestens drei Themen");
+            var formate = Restflaechenfuellung.Formate.Select(f => $"{Math.Min(f.Breite, f.Tiefe)}x{Math.Max(f.Breite, f.Tiefe)}").Distinct().OrderBy(f => f, StringComparer.Ordinal).ToList();
+            foreach (var thema in themen)
+            {
+                var vorhanden = wurzel["themen"]![thema]!["formate"]!.AsObject().Select(f => f.Key).OrderBy(f => f, StringComparer.Ordinal).ToList();
+                // die Rezepte decken die acht Grundformate ab (gedreht gilt gleich: 5x1 = 1x5)
+                foreach (var f in formate) Pruefe.Wahr(vorhanden.Contains(f), $"{thema}: Rezept für {f}");
+                foreach (var teil in wurzel["themen"]![thema]!["formate"]!.AsObject().SelectMany(f => f.Value!.AsArray()))
+                    Pruefe.Wahr(wurzel["modelle"]![teil!["m"]!.GetValue<string>()] is not null, $"{thema}: Baukasten „{teil["m"]}“ ist in „modelle“ benannt");
+            }
+            foreach (var (art, gewichte) in wurzel["nachbarn"]!.AsObject())
+                foreach (var (thema, _) in gewichte!.AsObject())
+                    Pruefe.Wahr(themen.Contains(thema), $"Nachbarart {art}: Thema {thema} gibt es");
+            foreach (var art in new[] { Restflaechenfuellung.Wohnen, Restflaechenfuellung.Werkstatt, Restflaechenfuellung.Kirche, Restflaechenfuellung.Rand, Restflaechenfuellung.Sonst })
+                Pruefe.Wahr(wurzel["nachbarn"]![art] is not null, $"Gewichte für die Nachbarart {art}");
         }),
 
         ("Restflächenfüllung: die Nachbarart ist fest und kommt aus der erlaubten Menge (Köln und Greybox)", () =>
