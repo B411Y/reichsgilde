@@ -502,7 +502,7 @@ Auftrag des Teamleiters 1.11.2026.
 | Im Spiel | Es gibt keine Wege zu zeichnen (`Wegebau` ändert nur den Belag); Gebäude, Bauplätze und Felder rasten schon im Kern, das Raster zeigt es nur | 04.11.2026 |
 | Leistung | Köln, Baumodus, Vulkan auf der Grafikkarte, Pixel-Look, 20 s: mit Raster 26,2 Bilder/s, 1-%-Tief 17,0, GPU 11,8 ms; ohne 25,9, 16,3, 11,9 ms (CPU-gebunden auf dem belasteten Rechner); rund 60 Zeichenaufrufe mehr | 04.11.2026 |
 
-### Hafensteg und Eis ohne Schlieren (Branch phase5/hafen-steg)
+### Hafensteg und Eis ohne Schlieren (PR #315)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
