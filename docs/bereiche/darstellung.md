@@ -216,6 +216,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels R5) „Hang mitformen“ gilt nur für den Stempel, nicht fürs Streuen, und die Vorschau zeigt den Hang nicht (nur die Stücke). Die Rampe hinter der Wand (knapp 70°) zeigt den Fels im Boden grau und glatt (dasselbe wie der R1-Punkt „über 60°“); von hinten wirkt das wie ein Schuttberg. Mögliche Hebel: Hang-Fels auf Hoch dreiseitig, oder die Rampe auf zwei Stufen (Absatz) legen.
 - (Fels R4) Die Formen mit offener Rückseite (Wände, Pfeilerbündel) stehen von hinten hohl, wenn kein Hang dahinter liegt: Die Spielkamera dreht in 90°-Schritten. Darum hat die Gruppe „Große Wand“ keine mittleren Wände davor; einzeln gestempelt, brauchen sie „Hang mitformen“ oder ein Modell mit geschlossener Rückseite.
 - (Fels R4) Leistung der elf neuen Formen (bis 11.000 Dreiecke je Stück auf der feinen Stufe, Atlas 4096 × 2048 je zwei Karten) ist nicht gemessen; Messung gehört zu R6 (Befehl an „main“, Grafik-PC).
+- (von Darstellung, Ton) Die Rufarten „Hahn“ und „Gefluegel“ in `KlangUmgebungModell.cs` haben nur eine Seite (Pan), keinen Ort: Sie lassen sich nicht an die Hühnerhöfe der Tiere binden, ohne die Klangtabelle um Orte zu erweitern; ein Hahn kräht also auch, wenn kein Hof im Bild ist. Falls gewünscht: Sound-Auftrag „Ruf am Ort des nächsten Hühnerhofs“ (Hof-Orte kämen aus `_huehnerHoefe`); die Katze hat noch keinen Ruf.
 
 ## Entscheidungen
 
@@ -424,3 +425,13 @@ Auftrag des Teamleiters 1.11.2026.
 |---|---|---|
 | Plätze im Bild | Tooltip eines Gastes in der Schankstube nennt `Gastwirtschaft.Platzbelegung` („Plätze: x belegt / y frei“) und `Gaestebuch.Voll` („heute kein Platz für n Gäste“, ein Spieljahr ist ein Spieltag). Die Gäste selbst setzte das Modell-Raumgerüst schon aus `GaesteJetzt`; `GaesteSchaetzung` in `Stadtansicht.Innenraeume.cs` (nur noch der Ersatzraum ohne Modell) rechnet jetzt ebenfalls mit `Platzbelegung`. | 02.11.2026 |
 | Startoption | `--vorrat=Ware:Menge,…` (mit `--entwickler=1`) legt Ware ins Lager der ersten eigenen Werkstatt, damit eine Schänke im Klicktest Gäste hat. | 02.11.2026 |
+
+### Tiere: Hühner, Hunde, Katzen und Krähen (Branch phase5/tiere, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Nur Darstellung (`Stadtansicht.Tiere.cs`, Krähen in `Stadtansicht.Voegel.cs`), nichts im Kern, nichts im Spielstand. Weit herausgezoomt (ab 100 m sichtbarer Höhe, also die dritte Pixel-Zoomstufe) und im Innenraum aus; außerhalb des Bildes stehen die Animationen still. Die Tiere sind normale 3D-Knoten, vom Pixel-Look nicht betroffen. | 04.11.2026 |
+| Hühner | 3–6 Hennen (braun, weiß, gesprenkelt gemischt) und ein Hahn je Hof, auf jedem Bauernhof und Klosterhof der Karte (am Halteplatz der Karren) und an zwei Stadthöfen: Hof der ersten zwei Schänken, sonst (Bäcker gibt es im Spiel nicht, die Schänken stehen beim Start oft noch nicht) ein ruhiger Winkel an einer Hauswand abseits des Marktes. Zahl und Farben aus der Lage des Hofs gesät (bei jedem Laden gleich). Nachts, bei Regen ab 0,2, Schnee und Schneedecke gehen sie zur Hofmitte und verschwinden (Stall), morgens kommen sie einzeln heraus. Passanten scheuchen sie (2,3 m). | 04.11.2026 |
+| Hunde und Katzen | Zwei Hunde und zwei Katzen je Stadt (Fell je Tier eine der drei Farbvarianten, aus der Lage des Marktes gewählt), jedes nur zeitweise da (taucht außerhalb des Bildes auf und ab), Wege im Gassennetz, Katzen gern zu Plätzen vor Hauswänden (aus den Gebäudehüllen neben den Gassen, alle 150 s neu gerechnet) und seitlich ausweichend, Hunde nicht. Nachts liegen die Hunde, sitzen die Katzen, selten ein Weg. Auf Mauerkronen laufen die Katzen nicht (die Sprung-Animation ist ungenutzt). | 04.11.2026 |
+| Krähen | Dritte Art der Schwarmlogik: zwei Schwärme an Türmen und Mauern der Stadt, im Umland einer an jeder zweiten Stelle (nie ein Schwarm aus nur einem Vogel); die Hälfte nur im Herbst und Winter (`KraehenAnteil`: Winter 1, Herbst 0,7, Frühling 0,2, Sommer 0). Die obersten 40 % der Landeplätze, am Boden nur im Umland. Eine eigene Aufhellung ist nach dem helleren Modell (Blauschimmer) nicht nötig. | 04.11.2026 |
+| Startoption | `--tiertest=1`: Hunde und Katzen erscheinen gleich, nahe dem Markt, auch im Bild. | 04.11.2026 |
