@@ -9,7 +9,7 @@ Licht von oben links, Standard-Farbverwaltung (kein Farbstich), Hintergrund durc
 Stufen (gleiche Hand, steigende Wertigkeit): 1 Gemeiner (grobes Arbeitsleder, Flicken), 2 Bürger (helles Leder, saubere Naht),
 3 Patrizier (feines Leder, verzierte Stulpe), 4 Edler (dunkles Leder, Goldborte, schlichter Ring), 5 Freiherr (Samt mit
 Goldstickerei, Siegelring), 6 Reichsgraf (Königsblauer Samt statt Burgunder, dicker Hermelinpelz an der Stulpe, Goldringe an allen Fingern, Goldkappen).
-Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche Form), tuer_schloss (Eisenbeschlag mit Schlüsselloch und Klinke) und tuer_ring (Eisen-Türring). Fingerfugen: zweiter Durchgang mit Teile-Nummern, dunkle Linie und Randlicht je Finger.
+Zustände: normal, klick (wärmerer, hellerer Ton und etwas mehr Glanz, gleiche Form), tuer_schloss (Bronze-Türschild mit Schlüsselloch und Klinke), tuer_schloss_eisen (dasselbe in dunklem Eisen mit Messing) und tuer_ring (Eisen-Türring). Fingerfugen: zweiter Durchgang mit Teile-Nummern, dunkle Linie und Randlicht je Finger.
 Haltung: zeigende Hand, Zeigefinger gestreckt und leicht abgespreizt genau zur Spitze (Hotspot), Mittel-, Ring- und kleiner
 Finger etwa zu 20 % einer Faust eingerollt, Daumen locker angelegt.
 
@@ -47,7 +47,7 @@ STUFEN = [
     dict(name="reichsgraf", leder=(0.02, 0.05, 0.40), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
 ]
 ZUSTAENDE = ("normal", "klick")
-ZUSAETZE = ("tuer_schloss", "tuer_ring")      # unabhängig von der Stufe, nur einmal gebaut
+ZUSAETZE = ("tuer_schloss", "tuer_schloss_eisen", "tuer_ring")      # unabhängig von der Stufe, nur einmal gebaut
 
 GOLD = (0.95, 0.66, 0.16)
 
@@ -164,6 +164,10 @@ def stoffe_fuer(stufe, warm):
     st["eisen"] = stoff("Eisen", (0.34, 0.34, 0.37), 0.42, 0.9, 0.4, 30, 0.1)
     st["eisen_dunkel"] = stoff("EisenDunkel", (0.17, 0.17, 0.19), 0.50, 0.85, 0.5, 26, 0.12)
     st["messing"] = stoff("Messing", (0.80, 0.55, 0.14), 0.32, 1.0, 0.0)
+    st["eisen_schmied"] = stoff("EisenSchmied", (0.075, 0.075, 0.085), 0.55, 0.85, 0.5, 30, 0.12)
+    st["bronze"] = stoff("Bronze", (0.46, 0.26, 0.085), 0.42, 1.0, 0.45, 26, 0.14)
+    st["bronze_dunkel"] = stoff("BronzeDunkel", (0.17, 0.09, 0.035), 0.60, 0.9, 0.5, 30, 0.12)
+    st["bronze_hell"] = stoff("BronzeHell", (0.66, 0.40, 0.13), 0.34, 1.0, 0.0)
     st["loch"] = stoff("Loch", (0.004, 0.004, 0.005), 1.0, 0.0)
     return st
 
@@ -311,7 +315,7 @@ def palmenhoehe(x, y):
 # Finger: (Wurzel, Längen der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen, Seitenknick je Glied)
 # Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.086, 0.064), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
+    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.106, 0.060), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
     "mittel": ((-0.105, 0.86, 0.02), (0.44, 0.28, 0.21), (0.088, 0.065), -4, (-5, -30, -36), (-32, -66, -50), (0, -1, -1)),
     "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.085, 0.062), 11, (-28, -56, -44), (-30, -64, -48), (0, 3, 4)),
     "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.075, 0.055), 21, (-34, -60, -48), (-28, -60, -46), (0, 4, 5)),
@@ -647,35 +651,57 @@ def spitzbogen_umriss(halb=0.31, unten=0.04, schulter=0.74, spitze=1.04, fase=0.
     return pts
 
 
-def schloss_bauen(st):
-    """Eisenbeschlag mit Schlüsselloch und geschwungener Klinke: dunkles Eisen, Messingnieten, -ring und -knauf.
-    Hotspot = Mitte des Schlüssellochs."""
+def lilie(b, rolle, x, y, nach_oben, flaeche):
+    """Lilienende (flach auf der Platte): mittleres Blatt, zwei nach außen gerollte Seitenblätter, Band am Fuß.
+    nach_oben = +1 am oberen, -1 am unteren Ende; (x, y) = Ansatz der Lilie."""
+    s = nach_oben
+    z = 0.085
+    b.kugel(rolle, (x, y + s * 0.11, z), 1.0, (0.062, 0.135, 0.040), seg=12)
+    for sg in (-1, 1):
+        dreh = Matrix.Rotation(math.radians(-sg * s * 38), 3, "Z")
+        b.kugel(rolle, (x + sg * 0.085, y + s * 0.085, z - 0.005), 1.0, (0.045, 0.105, 0.036), dreh, seg=12)
+        b.kugel(rolle, (x + sg * 0.135, y + s * 0.15, z - 0.01), 0.034, (1, 1, 0.9), seg=10)        # eingerolltes Ende
+    b.quader(rolle, (x, y, 0.09), (0.25, 0.034, 0.05))                                              # Band
+    b.kugel(rolle, (x, y + s * 0.025, 0.12), 0.026, seg=8)
+
+
+def schloss_bauen(st, eisen=False):
+    """Türschild mit Schlüsselloch und geschmiedeter Klinke, hoch und schmal. Bronze (Platte dunkel, Fläche gehämmert,
+    Rose und Nieten heller) oder dunkles Eisen mit Messing. Hotspot = Mitte des Schlüssellochs (Bartschlüssel-Form)."""
     b = Bau(st)
-    umriss = spitzbogen_umriss()
-    prisma(b, "eisen_dunkel@platte", umriss, -0.02, 0.07)
-    # Randleiste (aufgesetzter Rahmen) etwas kleiner und höher
-    innen = [(x * 0.80, 0.52 + (y - 0.52) * 0.86) for x, y in umriss]
-    prisma(b, "eisen_dunkel@platte", innen, 0.07, 0.10)
-    # Messingnieten an den Ecken und an der Spitze
-    for x, y in ((-0.22, 0.12), (0.22, 0.12), (-0.22, 0.60), (0.22, 0.60)):
-        b.kugel("messing", (x, y, 0.115), 0.042, (1, 1, 0.8), seg=10)
-    # Schlüsselloch: Messingring, schwarzes Loch (Kreis + Schlitz)
-    kx, ky = 0.0, 0.76
-    b.torus("messing", (kx, ky, 0.105), 0.115, 0.034, seg=24, ring=6)
-    b.kegel("loch", (kx, ky, 0.100), (kx, ky, 0.125), 0.088, 0.088, seg=20)
-    b.quader("loch", (kx, ky - 0.13, 0.112), (0.06, 0.22, 0.026))
+    grund, flaeche, griff, zier = ("eisen_schmied", "eisen_dunkel", "eisen_dunkel", "messing") if eisen else ("bronze_dunkel", "bronze", "bronze", "bronze_hell")
+    hb, y0, y1 = 0.15, 0.10, 1.26                    # halbe Schaftbreite, Unter- und Oberkante
+    # Umriss: schmaler Schaft, an beiden Enden ausgestellt wie ein Lilienfuß
+    umriss = [(-hb, y0 + 0.17), (-0.20, y0 + 0.08), (-0.13, y0 + 0.01), (0.13, y0 + 0.01), (0.20, y0 + 0.08), (hb, y0 + 0.17),
+              (hb, y1 - 0.17), (0.20, y1 - 0.08), (0.13, y1 - 0.01), (-0.13, y1 - 0.01), (-0.20, y1 - 0.08), (-hb, y1 - 0.17)]
+    prisma(b, grund + "@platte", umriss, -0.02, 0.07)
+    # aufgesetzte Fläche (gehämmert), darum bleibt ein dunkler Rand
+    prisma(b, flaeche + "@platte", [(-0.092, 0.34), (0.092, 0.34), (0.092, 1.02), (-0.092, 1.02)], 0.07, 0.095)
+    lilie(b, zier + "@platte", 0.0, y1 - 0.10, 1, flaeche)
+    lilie(b, zier + "@platte", 0.0, y0 + 0.10, -1, flaeche)
+    # Nieten
+    for x, y in ((-0.125, 0.30), (0.125, 0.30), (-0.125, 0.78), (0.125, 0.78), (-0.125, 1.07), (0.125, 1.07)):
+        b.kugel(zier + "@platte", (x, y, 0.085), 0.026, (1, 1, 0.8), seg=8)
+    # Schlüsselloch: Bartschlüssel-Form (Kreis oben, Schlitz unten) in einer Messing-/Bronzeumrandung
+    kx, ky = 0.0, 0.62
+    b.kegel(zier + "@platte", (kx, ky, 0.093), (kx, ky, 0.112), 0.105, 0.095, seg=24)
+    b.kegel("loch", (kx, ky + 0.012, 0.110), (kx, ky + 0.015, 0.128), 0.064, 0.064, seg=20)
+    b.quader("loch", (kx, ky - 0.075, 0.119), (0.05, 0.15, 0.022))
     b.tipp = Vector((kx, ky, 0.125))
-    # Klinke: Rose (Messingscheibe) auf der Platte, dicker Hebel nach rechts, am Ende nach oben geschwungen mit Messingknauf
-    rx, ry = 0.0, 0.30
-    b.kegel("messing@rose", (rx, ry, 0.10), (rx, ry, 0.17), 0.125, 0.105, seg=24)
-    b.kugel("eisen_dunkel@rose", (rx, ry, 0.19), 0.07, (1, 1, 0.7), seg=12)
-    pfad = [Vector(v) for v in ((rx, ry, 0.20), (0.17, ry - 0.045, 0.23), (0.36, ry - 0.02, 0.25), (0.52, ry + 0.09, 0.25), (0.57, ry + 0.25, 0.24))]
-    kette = []
-    for a, c in zip(pfad[:-1], pfad[1:]):
-        d = (c - a).normalized()
-        kette.append((a, c, 0.075, 0.07, d))
-    sweep(b, "eisen@griff", kette, flach=0.9, spitze=False, wulst=0.0, seg=12)
-    b.kugel("messing@griff", pfad[-1] + Vector((0, 0.02, 0.0)), 0.098, (1, 1.05, 0.95), seg=14)
+    # Klinke: Rose am oberen Ende, kräftig geschmiedeter Arm waagerecht zur Seite, Ende im Bogen nach unten und vorn
+    rx, ry = 0.0, 0.915
+    b.kegel(zier + "@rose", (rx, ry, 0.095), (rx, ry, 0.165), 0.125, 0.100, seg=24)
+    b.kugel(griff + "@rose", (rx, ry, 0.175), 0.075, (1, 1, 0.75), seg=12)
+    pfad = [Vector(v) for v in ((0.02, ry, 0.21), (0.20, ry + 0.015, 0.24), (0.42, ry + 0.045, 0.26), (0.62, ry + 0.015, 0.275),
+                                (0.75, ry - 0.115, 0.30), (0.77, ry - 0.255, 0.33))]
+    radien = [0.088, 0.086, 0.080, 0.072, 0.062]
+    kette = [(a, c, radien[i], radien[i] * 0.95, (c - a).normalized()) for i, (a, c) in enumerate(zip(pfad[:-1], pfad[1:]))]
+    sweep(b, griff + "@griff", kette, flach=0.95, spitze=False, wulst=0.0, seg=12)
+    p = pfad[-1]
+    b.kugel(zier + "@griff", p + Vector((0, -0.02, 0.0)), 0.075, (1.0, 1.15, 0.9), seg=14)         # Endknauf
+    for t in (0.24, 0.62):                                                                           # Schmiedebünde am Arm
+        q = pfad[0] + (pfad[3] - pfad[0]) * t
+        b.torus(zier + "@griff", q, 0.083, 0.015, dreh=Matrix.Rotation(math.radians(90), 3, "Y"), seg=16, ring=6)
     return b
 
 
@@ -793,11 +819,11 @@ def szene_aufbauen(art, stufe, warm):
     st = stoffe_fuer(stufe, warm)
     if art == "ring":
         b = ring_bauen(st)
-    elif art == "schloss":
-        b = schloss_bauen(st)
+    elif art in ("schloss", "schloss_eisen"):
+        b = schloss_bauen(st, art == "schloss_eisen")
     else:
         b = hand_bauen(stufe, art == "griff", st)
-    objs = b.fertig(DREHUNG if art not in ("ring", "schloss") else 0.0)
+    objs = b.fertig(DREHUNG if art not in ("ring", "schloss", "schloss_eisen") else 0.0)
     return b, objs
 
 
@@ -924,9 +950,9 @@ def alles(aus, stufen, mit_uebersicht=True):
         for zustand in ZUSTAENDE + ZUSAETZE:
             if zustand in ZUSAETZE and stufe != stufen[0]:
                 continue
-            art = {"normal": "normal", "klick": "normal", "tuer_schloss": "schloss", "tuer_ring": "ring"}[zustand]
+            art = {"normal": "normal", "klick": "normal", "tuer_schloss": "schloss", "tuer_schloss_eisen": "schloss_eisen", "tuer_ring": "ring"}[zustand]
             b, _ = szene_aufbauen(art, stufe, zustand == "klick")
-            kamera_setzen({"ring": rahmen_ring, "schloss": rahmen_schloss}.get(art, rahmen_hand))
+            kamera_setzen({"ring": rahmen_ring, "schloss": rahmen_schloss, "schloss_eisen": rahmen_schloss}.get(art, rahmen_hand))
             hs = hotspot_norm(b.tipp)
             gross = aufnehmen(tmp)
             ids = id_aufnehmen(tmp)
@@ -1043,7 +1069,7 @@ def from_scratch_uebersicht(aus, stufen, klein, spielbild_pfad=None):
     hoehe_b = max(len(x) for x in bloecke) * zb + 24
     # Teil C: Originalgröße auf drei Hintergründen
     zeilen_c = [(32, "normal", "fein"), (48, "normal", "fein"), (64, "normal", "fein"),
-                (48, "klick", "fein"), (48, "tuer_schloss", "fein"), (48, "tuer_ring", "fein")]
+                (48, "klick", "fein"), (48, "tuer_schloss", "fein"), (48, "tuer_schloss_eisen", "fein"), (48, "tuer_ring", "fein")]
     hoehe_c = len(zeilen_c) * 56 + 20
     H = hoehe_a + hoehe_b + hoehe_c
     c = np.zeros((H, breite, 4), dtype=np.float32)
