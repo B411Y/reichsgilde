@@ -309,6 +309,8 @@ public partial class Stadtansicht
             }
 
         Profil(0);
+        StatistenAktualisieren(minuteGenau, sekunden, einwohnerschaft); // Straßenvolk der großen Städte (Stadtansicht.Statisten.cs)
+        Profil(0);
         AusweichenRechnen((float)sekunden, minuteGenau); // Schicht 4 für das nächste Bild (Stadtansicht.Passantenausweichen.cs)
         Profil(6); // Ausweichen
         if (NaeheMessen) { NaeheZaehlen(sekunden); MarktMessen(sekunden); }
@@ -337,7 +339,7 @@ public partial class Stadtansicht
             var tempi = laufend.Count == 0 ? "" : $"Gehtempo Ø {laufend.Average():0.0} m/s, höchstens {laufend.Max():0.0} m/s, ";
             if (NaeheMessen) { NaeheMelden(); MarktMelden(); } // Stadtansicht.Passantenausweichen.cs, Stadtansicht.Marktbummel.cs
             if (ProfilMessen) ProfilMelden();
-            GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, " +
+            GD.Print($"Passanten: {_passanten.Count} Figuren, {_passanten.Values.Count(p => p.Knoten.Visible)} sichtbar, Uhr {(int)(_simulation.Zeit.UhrzeitInMinuten / 60):00}:{(int)(_simulation.Zeit.UhrzeitInMinuten % 60):00}, Statisten {_statistenAktiv} (im Bild {_statistenImBild}, Ziel {_statistenZiel:0}, Gasse im Bild {_sichtLaenge:0} m, {_statistenZeit / Math.Max(1, _statistenBilder):0.00} ms je Bild), " +
                      $"{_passantenBewegtSumme / (double)_passantenBilder:0} bewegt je Bild, {tempi}" +
                      $"{_passantenZeit / _passantenBilder:0.00} ms je Bild (schlimmstes {_passantenSchlimmstes:0.0} ms), {Engine.GetFramesPerSecond()} Bilder/s " +
                      $"({_messUhr.Elapsed.TotalMilliseconds / _passantenBilder:0} ms Bildzeit), " +
@@ -346,6 +348,7 @@ public partial class Stadtansicht
                                      $"am Markt stehend {_passanten.Values.Count(q => q.Stand is { Ort.Ort: Stadtort.Markt } && q.Knoten.Visible)}, bummelnd {_passanten.Values.Count(q => q.ImBummel)}"));
             (_flaechenWege, _flaechenZeit, _bummelGaenge, _bummelVersuche, _flaecheBildVorher) = (0, 0, 0, 0, 0);
             _passantenZeit = 0;
+            (_statistenZeit, _statistenBilder) = (0, 0);
             _passantenSchlimmstes = 0;
             _passantenBilder = 0;
             _passantenBewegtSumme = 0;
