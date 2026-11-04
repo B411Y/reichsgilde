@@ -10,8 +10,8 @@ namespace Reichsgilde;
 /// wechselt oder sich der Zoom ändert (kein Flimmern, kaum Kosten).
 /// <list type="bullet">
 /// <item><b>Taste V</b> blendet das Raster ein und aus (<see cref="RasterAn"/>, Standard: an); Startoption <c>--raster=0|1</c>.</item>
-/// <item><b>Linienbreite</b> richtet sich nach der Weltpixelgröße des Pixel-Looks (<see cref="Fenster.PixelGroesse"/>): etwa 1,3 Weltpixel, damit
-/// die Linien auch bei Kamerabewegung nicht zerfallen. Ist die Karte so weit herausgezoomt, dass die Linien zu dicht würden, bleibt das Raster aus.</item>
+/// <item><b>Linienbreite</b> richtet sich nach der Weltpixelgröße des Pixel-Looks (<see cref="Fenster.PixelGroesse"/>): genau 1 Weltpixel (beide Stärken), damit
+/// die Linien im Pixel-Look nicht flimmern; der Unterschied liegt nur in der Deckkraft (0,15 und 0,30). In Bauzonen entfallen die feinen Linien (die Zone hat ihr eigenes Gitter). Ist die Karte so weit herausgezoomt, dass die Linien zu dicht würden, bleibt das Raster aus.</item>
 /// <item><b>Einrasten</b> in der Kartenwerkstatt (<see cref="RasterEinrasten"/>): Ecken von Wegen, Flächen und Mauern rasten auf das Raster,
 /// solange das Raster an ist und Alt nicht gehalten wird; mit Umschalt rasten Wege und Mauern zusätzlich in 45°-Schritten zum letzten Punkt
 /// (<see cref="Winkelfang"/>). Im Spiel gibt es nichts zu zeichnen: Gebäude, Bauplätze und Felder rasten schon im Kern auf 2 m und 90°
@@ -28,7 +28,7 @@ public partial class Stadtansicht
     private Vector2 _rasterLetzte;
     private bool _rasterLetzteGesetzt;
 
-    private static readonly Color RasterFein = new(0.97f, 0.94f, 0.82f, 0.42f), RasterStark = new(1.0f, 0.93f, 0.62f, 0.85f);
+    private static readonly Color RasterFein = new(0.93f, 0.90f, 0.78f, 0.15f), RasterStark = new(0.98f, 0.92f, 0.68f, 0.30f);
 
     /// <summary>Soll das Raster gerade gezeigt werden (Baumodus ohne Wege-Modus, oder Kartenwerkstatt)?</summary>
     private bool RasterGefragt => RasterAn && _raum is null && _innen is null && (_entwurf is not null || (_baumodus && !_wegeModus));
@@ -69,8 +69,8 @@ public partial class Stadtansicht
         if (wunsch is { } w) { _rasterLetzte = w; _rasterLetzteGesetzt = true; }
         else if (!_rasterLetzteGesetzt) { _rasterLetzte = new Vector2(_kameraDrehung.Position.X, _kameraDrehung.Position.Z); _rasterLetzteGesetzt = true; }
 
-        var breite = MeterJePixel * Fenster.PixelGroesse * 1.3f; // Meter je Linie: gut 1 Weltpixel
-        if (breite > 0.45f) // zu weit heraus: die Linien lägen dicht an dicht
+        var breite = MeterJePixel * Fenster.PixelGroesse; // Meter je Linie: genau 1 Weltpixel
+        if (breite > 0.35f) // zu weit heraus: die Linien lägen dicht an dicht
         {
             if (_rasterNetz is not null) _rasterNetz.Visible = false;
             return;
@@ -122,7 +122,8 @@ public partial class Stadtansicht
             var halbe = Mathf.Sqrt(radius * radius - versatz * versatz);
             var mitte = querZuX ? cz : cx;
             var (von, bis) = (Mathf.Floor((mitte - halbe) / raster) * raster, Mathf.Ceil((mitte + halbe) / raster) * raster);
-            var w = (stark ? breite * 1.8f : breite) / 2f;
+            var w = breite / 2f; // beide Stärken 1 Weltpixel breit, die starke nur deckender
+            var zonen = _baumodus && _bauzonen is { Visible: true } && _entwurf is null ? _karte?.Bauzonen : null;
             var farbe = stark ? RasterStark : RasterFein;
             for (var s = von; s < bis - 0.001f; s += raster)
             {
@@ -132,6 +133,12 @@ public partial class Stadtansicht
                 float Alpha(float t) => farbe.A * Ausblenden(querZuX ? new Vector2(feste - cx, t - cz).Length() : new Vector2(t - cx, feste - cz).Length(), radius);
                 var (alphaA, alphaB) = (Alpha(a), Alpha(b));
                 if (alphaA < 0.01f && alphaB < 0.01f) continue;
+                // In Bauzonen zeichnen die Zonen ihr 2-m-Gitter selbst: die feinen Linien entfallen dort, die 10-m-Linien bleiben, blasser
+                if (zonen is not null)
+                {
+                    var (mx2, mz2) = querZuX ? (feste, (a + b) / 2f) : ((a + b) / 2f, feste);
+                    if (zonen.Any(z => z.Enthaelt(mx2, mz2))) { if (!stark) continue; alphaA *= 0.5f; alphaB *= 0.5f; }
+                }
                 Vector3 Hoch(Vector3 p) => new(p.X, BodenHoehe(p.X, p.Z) + anheben, p.Z);
                 var q = new[] { Hoch(P(a, -w)), Hoch(P(a, w)), Hoch(P(b, w)), Hoch(P(b, -w)) };
                 var c = new[] { new Color(farbe, alphaA), new Color(farbe, alphaA), new Color(farbe, alphaB), new Color(farbe, alphaB) };
