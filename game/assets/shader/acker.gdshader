@@ -14,15 +14,31 @@ uniform vec3 farbe : source_color = vec3(0.70, 0.62, 0.30);
 uniform vec3 erde : source_color = vec3(0.34, 0.25, 0.16);
 uniform float bewuchs : hint_range(0.0, 1.0) = 0.8;
 // Abstand der Furchen in Metern und wie stark sie in Licht und Farbe zählen
-uniform float abstand = 1.5;
+uniform float abstand = 0.8;
+// Höhe der Furchenkämme über den Furchen in Metern (echte Geometrie, Stadtansicht.Rand.cs, FeldFurchenAbstand und FeldKammHoehe); aus der Ferne, wo ein
+// Kamm nur noch ein, zwei Bildpunkte breit wäre, sinken die Kämme in die Fläche (kammf) – wie das gemalte Muster (fern) verschwinden sie sanft
+uniform float kammhoehe = 0.14;
 uniform float furchen : hint_range(0.0, 1.0) = 1.0;
 // Die Jahreszeit kommt aus jahreszeit_anteile (wetter.gdshaderinc): Frühling junge grüne Saat, Sommer reife Frucht, Herbst Stoppeln,
 // Winter brach und dunkel, mit Schnee; dazu Nässe.
 #include "res://assets/shader/wetter.gdshaderinc"
 
 varying vec3 welt;
+varying float kammf;
+
+// Phase quer zum Stück: ganze Zahlen = Furchen (die erste und letzte genau an den Kanten), halbe = Kämme
+float furchenphase(float ux, float halb) {
+	float anzahl = max(1.0, round(2.0 * halb / abstand));
+	return (ux + halb) / (2.0 * halb / anzahl);
+}
 
 void vertex() {
+	// Die Kämme sind Geometrie: Das Netz hat an jeder Furche und jedem Kamm eine Kante (Stadtansicht.Rand.cs), hier steigt der Kamm
+	float groesse = 2.0 / abs(PROJECTION_MATRIX[1][1]); // orthografisch: sichtbare Höhe in Metern (unter Vulkan gespiegelt: abs)
+	float pixel = groesse / VIEWPORT_SIZE.y;
+	kammf = 1.0 - smoothstep(0.16, 0.30, pixel);
+	float f = fract(furchenphase(UV.x, COLOR.a * 16.0));
+	VERTEX.y += kammhoehe * kammf * (1.0 - abs(2.0 * f - 1.0));
 	welt = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
@@ -41,20 +57,16 @@ float rausch(vec2 p) {
 }
 
 void fragment() {
-	// Furchen quer zum Stück: ganze Zahl an Furchen je Stück, die erste und letzte genau an den Kanten
+	// Furchen quer zum Stück (wie die Kämme der Geometrie): −1 Furche, +1 Kamm, je Furche verschieden stark gefärbt
 	float halb = COLOR.a * 16.0;
-	float anzahl = max(1.0, round(2.0 * halb / abstand));
-	float phase0 = (UV.x + halb) / (2.0 * halb / anzahl);
-	// Unregelmäßig wie von Hand gepflügt: Die Furchen schlängeln sich leicht (Verschiebung längs des Stücks und je Furche), jede Furche hat ihre
-	// eigene Stärke und die Stärke schwankt längs des Stücks – kein Wellblech aus gleichen Streifen
+	float phase0 = furchenphase(UV.x, halb);
 	float nr = floor(phase0 + 0.5);
-	float schlaengel = (rausch(vec2(UV.y * 0.05 + nr * 3.1, nr * 1.7)) - 0.5) * 0.55 + (rausch(welt.xz * 0.3) - 0.5) * 0.25;
-	float phase = phase0 + schlaengel;
-	float staerke = (0.45 + 0.9 * hash(vec2(nr, floor(UV.y * 0.04) + UV2.x))) * (0.7 + 0.6 * rausch(vec2(UV.y * 0.08, nr)));
+	float staerke = 0.75 + 0.5 * hash(vec2(nr, floor(UV.y * 0.04) + UV2.x));
 	// Aus der Ferne, wo eine Furche nur noch ein, zwei Bildpunkte breit ist, verschwinden die Streifen (sonst flimmern sie als Moiré)
 	float fern = 1.0 - smoothstep(0.18, 0.45, fwidth(phase0));
-	float welle = -cos(phase * TAU) * fern * clamp(staerke, 0.0, 1.4);  // −1 Furche, +1 Kamm, je Furche verschieden stark
-	welle = sign(welle) * pow(abs(welle), 1.3);                          // weichere Kanten: flache Kämme, schmale Furchen
+	float f0 = fract(phase0);
+	float welle = (1.0 - abs(2.0 * f0 - 1.0)) * 2.0 - 1.0;
+	welle *= fern * staerke;
 	// Flecken (groß), Schollen (mittel) und Körnung (fein) in Weltkoordinaten: über Stückgrenzen hinweg ohne Naht
 	float flecken = rausch(welt.xz * 0.11);
 	float schollen = rausch(welt.xz * 0.8);
@@ -92,7 +104,7 @@ void fragment() {
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
 	vec3 quer = vec3(cos(UV2.x), 0.0, -sin(UV2.x));
-	float neigung = -sin(phase * TAU) * fern * furchen * 0.38 * clamp(staerke, 0.0, 1.4) + (koernung - 0.5) * 0.12;
+	float neigung = -(f0 < 0.5 ? 1.0 : -1.0) * kammf * furchen * kammhoehe / (0.5 * abstand) + (koernung - 0.5) * 0.12;
 	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(quer, 0.0)).xyz * neigung);
 
 	ALBEDO = grund;
