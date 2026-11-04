@@ -7,7 +7,8 @@ Schreibt game/assets/modelle/umland/klosterhof.glb und Bilder nach docs/modelle/
 
 Objekte im GLB (siehe landbau.py):
     Haus        Zellenhaus aus Bruchstein mit Schieferdach und Dachreiter (Glocke), Gemüsebeete, Bienenstand
-                mit Pultdach, Wegkreuz, Trockenmauer, Linde
+                mit Pultdach, Wegkreuz, Trockenmauer
+    Baum_Laubbaum<n>_01   Marker für die Linde links vorn: Das Spiel setzt einen Laubbaum des Kits ein (lb.baum_marker)
     Arbeit      Kohl in den Beeten, sechs Bienenkörbe, Leine mit Lumpen zum Trocknen, Lumpenbündel, Wachsblöcke
     Fahne       am Zellenhaus
     Leerstand   Bretter vor Tür und Fenstern, Unkraut in den Beeten
@@ -56,7 +57,7 @@ def bauen():
     for x in (-1.6, 1.6):                                                    # Torpfeiler
         haus.quader((x, -8.6, 0.75), (0.6, 0.6, 1.5), st["Bruchstein"])
         haus.quader((x, -8.6, 1.56), (0.7, 0.7, 0.12), st["Sandstein"])
-    bs.linde(haus, st, Vector((-8.4, -5.6, 0)), hoehe=6.4, r=2.2, saat=5)
+    baeume = [lb.baum_marker("Laubbaum", (-8.4, -5.6), 6.6, saat=5)]                 # Marker „Baum_…“: im Spiel ein Kit-Laubbaum
 
     # ── Zellenhaus hinten ─────────────────────────────────────────────────────
     h = lb.huette(haus, st, -6.4, 4.4, 3.2, 7.8, 3.0, wand="stein", deckung=bs.SCHIEFER, neigung=45,
@@ -105,7 +106,7 @@ def bauen():
     lb.unkraut(leer, st, [(7.0, -1.6), (9.0, -2.2), (-8.0, 1.0), (0.4, -7.0), (-3.0, 2.0), (3.0, 2.2)], saat=11)
 
     anker = [bs.anker("Anker_Tuer", tuple(h["tuer"])), bs.anker("Anker_Karren", (0.0, -8.2, 0.0))]
-    return lb.knoten(haus, arbeit, fahne, leer, anker)
+    return lb.knoten(haus, arbeit, fahne, leer, anker + baeume)
 
 
 def main():

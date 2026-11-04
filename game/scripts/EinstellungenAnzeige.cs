@@ -489,7 +489,7 @@ public sealed class EinstellungenAnzeige
                                      Fenster.PixelGluehenSetzen(an);
                                      Auffrischen();
                                  }, einzug: Einzug);
-        _wolken = Schalter(e, "Wolkenschatten", () => "Schatten einzelner Wolken ziehen langsam mit dem Wind über Felder, Gassen und Dächer – nur bei Sonne.",
+        _wolken = Schalter(e, "Wolkenschatten (Sonne)", () => "Dunkle Flecken, die der Wind über Felder, Gassen und Dächer treibt: die Schatten einzelner Wolken, kein Nebel. Man sieht sie nur bei Sonne – klar wenige, bei wechselnder Bewölkung viele, bei dichter Bewölkung, im Nebel, nachts und bei tiefer Sonne keine.",
                            an =>
                            {
                                Fenster.WolkenschattenSetzen(an);
