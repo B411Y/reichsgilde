@@ -232,6 +232,9 @@ public sealed partial class Kartenentwurf
     private readonly List<EntwurfFels> _felsen;
     private readonly EntwurfGrundgestein _grundgestein;
 
+    /// <summary>Lage-Gebiete (<c>lagen</c>) und Restflächen (<c>restflaechen</c>) der Bauzonen aus dem Raster, Kartenentwurf.Raster.cs.</summary>
+    private readonly EntwurfRasterzonen _rasterzonen;
+
     /// <summary>Das Höhenraster (Feld <c>hoehen</c>) und das Gelände mit dem Bett der Wege und Mauern (Kartenentwurf.Gelaende.cs).</summary>
     private readonly Hoehenraster _hoehen;
     private readonly Gelaendeform _gelaende;
@@ -266,8 +269,9 @@ public sealed partial class Kartenentwurf
     private Kartenentwurf(JsonObject daten, List<EntwurfGebaeude> gebaeude, Stadtkarte teile, Gebaeudekatalog katalog,
         List<EntwurfWeg> wege, List<EntwurfBauzone> bauzonen, List<EntwurfNaturflaeche> naturflaechen, List<EntwurfPflanze> pflanzen,
         List<EntwurfMauer> mauern, EntwurfStart start, List<EntwurfFeld> felder, Hoehenraster hoehen, List<EntwurfTeil> gewaesser, List<EntwurfFaehre> faehren,
-        Bodenraster boden, List<EntwurfFels> felsen, string? grundgestein)
+        Bodenraster boden, List<EntwurfFels> felsen, string? grundgestein, EntwurfRasterzonen? rasterzonen = null)
     {
+        _rasterzonen = rasterzonen ?? new EntwurfRasterzonen();
         (_daten, _gebaeude, _teile, Katalog) = (daten, gebaeude, teile, katalog);
         (_felsen, _grundgestein) = (felsen, new EntwurfGrundgestein { Gestein = grundgestein });
         (_gewaesser, _faehren) = (gewaesser, faehren);
@@ -507,10 +511,15 @@ public sealed partial class Kartenentwurf
         if (daten["felsen"] is not (null or JsonObject)) throw new KartenFehler(new[] { "felsen ist kein Objekt." });
         var felsen = Teilleser.Liste<Felsstueck>(daten["felsen"]?["stuecke"], "Felsstück").Select(x => EntwurfFels.Aus(x.Wert, x.Vorlage)).ToList();
         var grundgestein = Teilleser.Einzeln<string>(daten["felsen"]?["grundgestein"], "felsen.grundgestein");
+        var rasterzonen = new EntwurfRasterzonen
+        {
+            Lagen = EntwurfRasterzonen.LagenAus(daten["lagen"]),
+            Restflaechen = Teilleser.Liste<Restflaeche>(daten["restflaechen"], "Restfläche").Select(x => x.Wert).ToList(),
+        };
 
         // Die übrigen Teile mit dem Leser der Stadtkarte (ohne Prüfung)
         var rest = daten.DeepClone().AsObject();
-        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "natur", "felsen", "mauern", "start", "hoehen", "boden", "wasser", "uebergaenge" }) rest.Remove(k);
+        foreach (var k in new[] { "gebaeude", "wege", "bauzonen", "lagen", "restflaechen", "natur", "felsen", "mauern", "start", "hoehen", "boden", "wasser", "uebergaenge" }) rest.Remove(k);
         Stadtkarte teile;
         try
         {
@@ -521,7 +530,7 @@ public sealed partial class Kartenentwurf
         {
             throw new KartenFehler(new[] { $"Die Karte ist nicht lesbar ({ex.Path}): {ex.Message}" });
         }
-        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren, boden, felsen, grundgestein);
+        return new Kartenentwurf(MitAbschnitten(daten), gebaeude, teile, katalog, wege, bauzonen, flaechen, pflanzen, mauern, start, felder, hoehen, gewaesser, faehren, boden, felsen, grundgestein, rasterzonen);
     }
 
     /// <summary>
@@ -530,8 +539,8 @@ public sealed partial class Kartenentwurf
     /// </summary>
     private static readonly string[] Reihenfolge =
     {
-        "format", "kennung", "stadt", "vorlage", "beschreibung", "spielbar", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "natur",
-        "felsen", "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen", "boden",
+        "format", "kennung", "stadt", "vorlage", "beschreibung", "spielbar", "einheit", "achsen", "raster", "groesse", "mitte", "rand", "gebaeude", "mauern", "wege", "bauzonen", "lagen",
+        "restflaechen", "natur", "felsen", "wasser", "gelaende", "haefen", "uebergaenge", "start", "kamera", "vorkommen", "fiktion", "probeplan", "hoehen", "boden",
     };
 
     /// <summary>
@@ -542,7 +551,7 @@ public sealed partial class Kartenentwurf
     private static JsonObject MitAbschnitten(JsonObject daten)
     {
         var liste = daten.Select(e => (e.Key, Wert: e.Value?.DeepClone())).ToList();
-        foreach (var fehlt in new[] { "spielbar", "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "natur", "felsen", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
+        foreach (var fehlt in new[] { "spielbar", "groesse", "mitte", "rand", "mauern", "wege", "bauzonen", "lagen", "restflaechen", "natur", "felsen", "wasser", "uebergaenge", "start", "kamera", "hoehen", "boden" }
                      .Where(k => !daten.ContainsKey(k)))
         {
             var davor = Reihenfolge.TakeWhile(k => k != fehlt).ToHashSet();
@@ -599,6 +608,12 @@ public sealed partial class Kartenentwurf
                     continue;
                 case "wasser":
                     if (_gewaesser.Count > 0) aus[k] = Liste(_gewaesser); // leer fällt es weg wie beim Werkzeug
+                    continue;
+                case "lagen":
+                    if (_rasterzonen.Lagen.Count > 0) aus[k] = EntwurfRasterzonen.LagenJson(_rasterzonen.Lagen); // leer fällt es weg
+                    continue;
+                case "restflaechen":
+                    if (_rasterzonen.Restflaechen.Count > 0) aus[k] = EntwurfRasterzonen.RestJson(_rasterzonen.Restflaechen);
                     continue;
                 case "uebergaenge":
                     if (_faehren.Count > 0) aus[k] = Liste(_faehren);
@@ -837,6 +852,7 @@ public sealed partial class Kartenentwurf
         if (t is EntwurfKopf) return ReferenceEquals(t, _kopf) ? 0 : -1;
         if (t is EntwurfGelaende) return ReferenceEquals(t, _gelaendeTeil) ? 0 : -1;
         if (t is EntwurfGrundgestein) return ReferenceEquals(t, _grundgestein) ? 0 : -1;
+        if (t is EntwurfRasterzonen) return ReferenceEquals(t, _rasterzonen) ? 0 : -1;
         var l = Liste(t);
         for (var i = 0; i < l.Count; i++)
             if (ReferenceEquals(l[i], t)) return i;
@@ -867,7 +883,7 @@ public sealed partial class Kartenentwurf
     private void Vormerken(Kartenaenderung a)
     {
         _befunde = null;
-        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone) _kapazitaet = null;
+        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) _kapazitaet = null;
         StartwegeVormerken(a);
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken

@@ -172,6 +172,13 @@ public sealed class Bauzone
     /// <summary>Der Wert von <see cref="Nur"/> für Werkstatt-Bauplätze.</summary>
     public const string NurWerkstatt = "werkstatt";
 
+    /// <summary>
+    /// Aus dem 2-m-Raster berechnet (<c>"berechnet": true</c>, seit 4.11.2026; Kartenwerkstatt/Rasterbauzonen.cs) – eine neue Rechnung ersetzt
+    /// sie. Ohne Angabe (alte Karten, Werkstatt-Bauplätze) ist die Zone von Hand gezeichnet und bleibt. Für das Spiel ohne Bedeutung.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Berechnet { get; init; }
+
     /// <summary>Darf hier nur eine Werkstatt stehen?</summary>
     [JsonIgnore]
     public bool NurWerkstaetten => Nur == NurWerkstatt;
@@ -191,6 +198,32 @@ public sealed class Bauzone
         }
         return best;
     }
+}
+
+/// <summary>
+/// Eine Restfläche (seit 4.11.2026, Kartenwerkstatt/Rasterbauzonen.cs): freie Rasterfelder in der Stadt, die keine Bauzone wurden – zu klein für
+/// ein Gebäude (<see cref="Klein"/>) oder ohne Karrenstraße in der Nähe (<see cref="Abseits"/>, z. B. ein Hof hinter einer Häuserreihe). Die
+/// Darstellung kann sie mit Gärten, Höfen und Kleinkram füllen; das Bauwesen kennt sie nicht (gebaut wird dort nicht).
+/// </summary>
+public sealed class Restflaeche
+{
+    public const string Klein = "klein";
+    public const string Abseits = "abseits";
+
+    /// <summary>„R1“, „R2“ … in der Reihenfolge der Rechnung.</summary>
+    public string Kennung { get; init; } = "";
+
+    /// <summary>Die Lage, in der sie liegt (Kern, Mauerring, Vorstadt).</summary>
+    public Lage Art { get; init; }
+
+    /// <summary>Warum sie keine Bauzone ist: <see cref="Klein"/> oder <see cref="Abseits"/>.</summary>
+    public string Grund { get; init; } = Klein;
+
+    /// <summary>Anzahl der 2-m-Rasterfelder (Fläche = Felder · 4 m²).</summary>
+    public int Felder { get; init; }
+
+    /// <summary>Umriss als Vieleck auf dem 2-m-Raster, je Punkt [x, z].</summary>
+    public List<double[]> Flaeche { get; init; } = new();
 }
 
 /// <summary>
@@ -506,6 +539,13 @@ public sealed class Stadtkarte
     public List<Kartenmauer> Mauern { get; init; } = new();
     public List<Kartenweg> Wege { get; init; } = new();
     public List<Bauzone> Bauzonen { get; init; } = new();
+
+    /// <summary>
+    /// Freie Rasterstücke der Stadt, die keine Bauzone wurden (<see cref="Restflaeche"/>, seit 4.11.2026) – null: keine (alte Karten). Nur für
+    /// die Darstellung (Gärten, Höfe); steht so im Spielstand, ohne Restflächen fehlt das Feld.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<Restflaeche>? Restflaechen { get; init; }
     public Kartennatur Natur { get; init; } = new();
     public List<Gewaesser> Wasser { get; init; } = new();
     public List<Gelaende> Gelaende { get; init; } = new();
