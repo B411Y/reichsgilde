@@ -1,0 +1,226 @@
+{
+  "version": 1,
+  "_hinweis": "Rezepte der Restflächen-Füllung (nur Darstellung, Stadtansicht.Restflaechen.cs). Maße in Metern im Kasten: x entlang der langen Seite, z quer, Mitte = 0; ein Feld = 2 m. Formate: 1x1 2x2 m, 1x2 4x2, 2x2 4x4, 1x3 6x2, 1x4 8x2, 1x5 10x2, 2x3 6x4, 3x3 6x6 (Hochkant wird gedreht). Gedrehte Kästen und 180°-Wenden würfelt die Stadtansicht je Ort.",
+  "modelle": {"dorf": "props/props_dorf", "ding": "props/props_gegenstaende", "boden": "natur/natur_boden", "kitboden": "natur/natur_kit_boden", "busch": "natur/natur_buesche", "holz": "natur/natur_holz", "stein": "natur/natur_steine", "kitstein": "natur/natur_kit_steine", "baum": "natur/natur_baeume"},
+  "nachbarn": {
+    "wohnen": {"garten": 70, "werkhof": 10, "randgestruepp": 20},
+    "werkstatt": {"werkhof": 65, "garten": 10, "randgestruepp": 25},
+    "kirche": {"garten": 55, "randgestruepp": 45},
+    "rand": {"randgestruepp": 75, "garten": 10, "werkhof": 15},
+    "sonst": {"garten": 35, "werkhof": 25, "randgestruepp": 40}
+  },
+  "themen": {
+    "garten": { "name": "Wohngarten", "formate": {
+      "1x1": [
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-0.6, -0.5, 0.5, 0.6], "abstand": 0.9, "groesse": 1},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-1, -0.95], "bis": [1, -0.95], "schritt": 2.0, "groesse": 1},
+        {"m": "ding", "k": "Eimer1", "x": 0.8, "z": 0.75, "dreh": 30, "groesse": 1}
+      ],
+      "1x2": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-2, -0.95], "bis": [2, -0.95], "schritt": 2.0, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-1.7, -0.45, -0.3, 0.35], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [0.4, -0.45, 1.4, 0.35], "abstand": 0.9, "groesse": 1},
+        {"m": "ding", "k": "Eimer1", "x": 1.75, "z": 0.7, "dreh": -20, "groesse": 1},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-1.9, 0.6, 0.0, 0.9], "anzahl": 3, "groesse": 1, "winter": "weg"}
+      ],
+      "2x2": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-2, -1.95], "bis": [2, -1.95], "schritt": 2.0, "groesse": 1},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-1.95, -2], "bis": [-1.95, 2], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-1.4, -1.3, 1.4, -0.4], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [-1.4, 0.5, 0.4, 1.4], "abstand": 0.9, "groesse": 1},
+        {"art": "reihe", "m": "kitstein", "k": "Trittstein1", "von": [-1.4, 0.0], "bis": [1.4, 0.0], "schritt": 1.0, "groesse": 0.55},
+        {"m": "ding", "k": "Eimer1", "x": 1.4, "z": 1.3, "dreh": 40, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 1.6, "z": 0.8, "dreh": 10, "groesse": 0.8}
+      ],
+      "1x3": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-3, -0.95], "bis": [3, -0.95], "schritt": 2.0, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-2.6, -0.45, -1.0, 0.4], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [-0.5, -0.45, 1.0, 0.4], "abstand": 0.9, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [1.5, -0.45, 2.3, 0.4], "abstand": 0.85, "groesse": 1},
+        {"m": "ding", "k": "Eimer1", "x": 2.7, "z": 0.7, "dreh": 20, "groesse": 1},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-2.8, 0.65, 0.8, 0.9], "anzahl": 4, "groesse": 1, "winter": "weg"}
+      ],
+      "1x4": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-4, -0.95], "bis": [4, -0.95], "schritt": 2.0, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-3.6, -0.4, -2.0, 0.4], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [-1.5, -0.4, 0.0, 0.4], "abstand": 0.9, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [0.5, -0.4, 2.0, 0.4], "abstand": 0.85, "groesse": 1},
+        {"m": "ding", "k": "Strohpuppe1", "x": 3.1, "z": 0.0, "dreh": 15, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 3.5, "z": 0.8, "dreh": 0, "groesse": 0.8},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-3.8, 0.65, 2.4, 0.9], "anzahl": 5, "groesse": 1, "winter": "weg"}
+      ],
+      "1x5": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-5, -0.95], "bis": [5, -0.95], "schritt": 2.0, "groesse": 1},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-5, 0.95], "bis": [-3, 0.95], "schritt": 2.0, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-4.5, -0.4, -3.0, 0.4], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [-2.5, -0.4, -1.0, 0.4], "abstand": 0.9, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-0.5, -0.4, 1.0, 0.4], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [1.5, -0.4, 3.0, 0.4], "abstand": 0.85, "groesse": 1},
+        {"m": "ding", "k": "Strohpuppe1", "x": 4.1, "z": 0.0, "dreh": -10, "groesse": 1},
+        {"m": "ding", "k": "Fass1", "x": 4.6, "z": 0.7, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Eimer1", "x": 3.3, "z": 0.75, "dreh": 60, "groesse": 1},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-3.0, 0.65, 2.5, 0.9], "anzahl": 5, "groesse": 1, "winter": "weg"}
+      ],
+      "2x3": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-3, -1.95], "bis": [3, -1.95], "schritt": 2.0, "groesse": 1},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-2.95, -2], "bis": [-2.95, 2], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [2.95, -2], "bis": [2.95, 2], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-2.4, -1.4, -0.6, -0.5], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [0.6, -1.4, 2.4, -0.5], "abstand": 0.9, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-2.4, 0.6, -0.6, 1.5], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [0.6, 0.6, 1.6, 1.5], "abstand": 0.85, "groesse": 1},
+        {"art": "reihe", "m": "kitstein", "k": "Trittstein1", "von": [0, -1.6], "bis": [0, 1.6], "schritt": 1.0, "groesse": 0.55, "dreh": 90},
+        {"m": "ding", "k": "Strohpuppe1", "x": 2.3, "z": 1.4, "dreh": 20, "groesse": 1},
+        {"m": "ding", "k": "Eimer1", "x": -2.5, "z": 0.0, "dreh": 40, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 1.4, "z": 0.0, "dreh": 0, "groesse": 0.8}
+      ],
+      "3x3": [
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-3, -2.95], "bis": [3, -2.95], "schritt": 2.0, "groesse": 1},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-2.95, -3], "bis": [-2.95, 3], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [2.95, -3], "bis": [2.95, 3], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [-3, 2.95], "bis": [-1, 2.95], "schritt": 2.0, "groesse": 1},
+        {"art": "reihe", "m": "dorf", "k": ["Zaun1", "Zaun2"], "von": [1, 2.95], "bis": [3, 2.95], "schritt": 2.0, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-2.4, -2.4, -0.6, -0.8], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": ["Kraut1", "Kraut3"], "flaeche": [0.6, -2.4, 2.4, -0.8], "abstand": 0.9, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [-2.4, 0.8, -0.6, 2.2], "abstand": 0.85, "groesse": 1},
+        {"art": "raster", "m": "kitboden", "k": "Kraut1", "flaeche": [0.6, 0.8, 2.4, 2.2], "abstand": 0.85, "groesse": 1},
+        {"art": "reihe", "m": "kitstein", "k": "Trittstein1", "von": [0, -2.5], "bis": [0, 2.5], "schritt": 1.0, "groesse": 0.55, "dreh": 90},
+        {"art": "reihe", "m": "kitstein", "k": "Trittstein1", "von": [-2.5, 0], "bis": [2.5, 0], "schritt": 1.0, "groesse": 0.55},
+        {"m": "ding", "k": "Strohpuppe1", "x": 0.0, "z": 0.0, "dreh": 0, "groesse": 1.0},
+        {"m": "ding", "k": "Fass1", "x": -2.5, "z": -0.2, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Eimer1", "x": 2.5, "z": 0.3, "dreh": 50, "groesse": 1},
+        {"m": "ding", "k": "Hocker1", "x": -1.4, "z": 0.4, "dreh": 20, "groesse": 1},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-0.5, -2.5, 0.5, -0.9], "anzahl": 3, "groesse": 1, "winter": "weg"}
+      ]
+    } },
+    "werkhof": { "name": "Werkhof", "formate": {
+      "1x1": [
+        {"m": "ding", "k": "Fass1", "x": -0.4, "z": -0.35, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Kiste4", "x": 0.5, "z": 0.4, "dreh": 25, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": -0.5, "z": 0.55, "dreh": -20, "groesse": 0.9}
+      ],
+      "1x2": [
+        {"m": "holz", "k": "Reisighaufen1", "x": -1.2, "z": 0.0, "dreh": 20, "groesse": 0.9},
+        {"m": "ding", "k": "Fass1", "x": 0.5, "z": -0.4, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Fass1", "x": 1.2, "z": 0.35, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Kiste4", "x": 0.2, "z": 0.5, "dreh": -15, "groesse": 1}
+      ],
+      "2x2": [
+        {"m": "ding", "k": "Werkbank1", "x": 0.0, "z": -1.35, "dreh": 0, "groesse": 1},
+        {"m": "holz", "k": "Stumpf1", "x": -1.2, "z": 0.7, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Fass1", "x": 1.3, "z": 0.5, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Fass1", "x": 1.4, "z": 1.3, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 0.0, "z": 1.2, "dreh": 30, "groesse": 0.9},
+        {"m": "ding", "k": "Eimer1", "x": 0.3, "z": 0.3, "dreh": 0, "groesse": 1}
+      ],
+      "1x3": [
+        {"m": "dorf", "k": "Handwagen1", "x": -1.6, "z": 0.0, "dreh": 90, "groesse": 1},
+        {"m": "ding", "k": "Fass1", "x": 0.9, "z": -0.45, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Fass1", "x": 1.7, "z": -0.35, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Kiste4", "x": 1.4, "z": 0.5, "dreh": 20, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 2.4, "z": 0.2, "dreh": 0, "groesse": 0.9}
+      ],
+      "1x4": [
+        {"m": "ding", "k": "Fassgestell1", "x": -2.8, "z": -0.35, "dreh": 0, "groesse": 1},
+        {"art": "reihe", "m": "ding", "k": "Fass1", "von": [-1.5, -0.5], "bis": [0.5, -0.5], "schritt": 0.8, "groesse": 1},
+        {"m": "ding", "k": "Kiste1", "x": 1.3, "z": -0.1, "dreh": 10, "groesse": 0.8},
+        {"m": "ding", "k": "Kiste4", "x": 2.5, "z": 0.45, "dreh": -10, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 3.4, "z": 0.0, "dreh": 0, "groesse": 0.9},
+        {"m": "holz", "k": "Reisighaufen1", "x": -1.0, "z": 0.55, "dreh": 0, "groesse": 0.9}
+      ],
+      "1x5": [
+        {"m": "ding", "k": "Werkbank1", "x": -3.7, "z": -0.35, "dreh": 0, "groesse": 1},
+        {"m": "holz", "k": "Stumpf1", "x": -2.2, "z": 0.4, "dreh": 0, "groesse": 0.9},
+        {"art": "reihe", "m": "ding", "k": "Fass1", "von": [-1.2, -0.5], "bis": [1.0, -0.5], "schritt": 0.85, "groesse": 1},
+        {"m": "ding", "k": "Kiste1", "x": 2.2, "z": 0.0, "dreh": 10, "groesse": 0.8},
+        {"m": "ding", "k": "Kiste4", "x": 3.0, "z": 0.5, "dreh": -20, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 3.7, "z": -0.4, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Sack1", "x": 4.3, "z": 0.5, "dreh": 40, "groesse": 1},
+        {"m": "holz", "k": "Reisighaufen1", "x": 0.4, "z": 0.55, "dreh": 0, "groesse": 0.8}
+      ],
+      "2x3": [
+        {"m": "ding", "k": "Werkbank1", "x": -1.5, "z": -1.4, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Schleifstein1", "x": 0.4, "z": -1.5, "dreh": 0, "groesse": 1},
+        {"m": "dorf", "k": "Handwagen1", "x": 2.0, "z": 0.5, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Kiste1", "x": -2.1, "z": 0.9, "dreh": 15, "groesse": 0.8},
+        {"m": "ding", "k": "Kiste4", "x": -0.9, "z": 1.2, "dreh": 0, "groesse": 1},
+        {"m": "holz", "k": "Reisighaufen1", "x": 0.0, "z": 0.3, "dreh": 0, "groesse": 0.8},
+        {"m": "ding", "k": "Fass1", "x": 1.0, "z": -1.4, "dreh": 0, "groesse": 1}
+      ],
+      "3x3": [
+        {"m": "ding", "k": "Werkbank1", "x": -1.5, "z": -2.3, "dreh": 0, "groesse": 1},
+        {"m": "holz", "k": "Stumpf1", "x": 0.8, "z": -2.3, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "KitAmboss1", "x": 0.8, "z": -2.3, "dreh": 0, "groesse": 1.0},
+        {"m": "dorf", "k": "Handwagen1", "x": 2.3, "z": 0.0, "dreh": 0, "groesse": 1},
+        {"art": "reihe", "m": "ding", "k": "Fass1", "von": [-2.5, 1.0], "bis": [-0.5, 1.0], "schritt": 0.8, "groesse": 1},
+        {"m": "ding", "k": "Kiste1", "x": -0.3, "z": 0.4, "dreh": 10, "groesse": 0.8},
+        {"m": "ding", "k": "Sack1", "x": 0.5, "z": 2.2, "dreh": 0, "groesse": 0.9},
+        {"m": "holz", "k": "Reisighaufen1", "x": -1.5, "z": 2.3, "dreh": 0, "groesse": 0.9},
+        {"m": "holz", "k": "Stumpf1", "x": -0.5, "z": -1.0, "dreh": 0, "groesse": 0.9}
+      ]
+    } },
+    "randgestruepp": { "name": "Randgestrüpp", "formate": {
+      "1x1": [
+        {"m": "busch", "k": "Holunder1", "x": 0.1, "z": -0.1, "dreh": 30, "groesse": 0.7, "schatten": true},
+        {"art": "streu", "m": "boden", "k": "Brennnessel1", "flaeche": [-0.9, -0.9, 0.9, 0.9], "anzahl": 2, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-0.9, -0.9, 0.9, 0.9], "anzahl": 3, "groesse": 1}
+      ],
+      "1x2": [
+        {"m": "busch", "k": "Brombeere1", "x": -0.8, "z": -0.1, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"art": "streu", "m": "boden", "k": "Brennnessel1", "flaeche": [0.3, -0.8, 1.8, 0.8], "anzahl": 3, "groesse": 1},
+        {"m": "stein", "k": "Lesesteinhaufen1", "x": 1.2, "z": 0.3, "dreh": 10, "groesse": 0.7},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-1.8, -0.9, 1.8, 0.9], "anzahl": 4, "groesse": 1}
+      ],
+      "2x2": [
+        {"m": "busch", "k": "Hasel1", "x": -0.8, "z": -0.9, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"m": "busch", "k": "Brombeere1", "x": 1.0, "z": 0.9, "dreh": 40, "groesse": 0.7, "schatten": true},
+        {"m": "busch", "k": "Ginster1", "x": 1.2, "z": -1.2, "dreh": 0, "groesse": 1.0},
+        {"m": "stein", "k": "Findling1", "x": -1.2, "z": 1.1, "dreh": 70, "groesse": 0.4, "schatten": true},
+        {"art": "streu", "m": "boden", "k": "Wildblumen1", "flaeche": [-1.8, -0.2, 0.2, 1.8], "anzahl": 3, "groesse": 1, "winter": "weg"},
+        {"art": "streu", "m": "boden", "k": "Brennnessel1", "flaeche": [-1.8, -1.8, 1.8, 1.8], "anzahl": 5, "groesse": 1}
+      ],
+      "1x3": [
+        {"m": "busch", "k": "Hasel1", "x": -2.0, "z": -0.3, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"m": "busch", "k": "Holunder1", "x": 0.0, "z": 0.0, "dreh": 0, "groesse": 0.75, "schatten": true},
+        {"m": "busch", "k": "Brombeere1", "x": 2.0, "z": -0.2, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"art": "streu", "m": "boden", "k": ["Brennnessel1", "Gras1"], "flaeche": [-2.9, -0.9, 2.9, 0.9], "anzahl": 6, "groesse": 1},
+        {"art": "streu", "m": "holz", "k": "Totholz1", "flaeche": [-1.0, 0.2, 1.0, 0.8], "anzahl": 1, "groesse": 0.45}
+      ],
+      "1x4": [
+        {"art": "reihe", "m": "busch", "k": ["Hasel1", "Holunder1", "Brombeere1"], "von": [-3.2, -0.4], "bis": [3.2, -0.4], "schritt": 2.2, "groesse": 0.8, "schatten": true},
+        {"art": "streu", "m": "boden", "k": ["Brennnessel1", "Gras1"], "flaeche": [-3.9, 0.1, 3.9, 0.9], "anzahl": 8, "groesse": 1},
+        {"m": "holz", "k": "Reisighaufen1", "x": 2.6, "z": 0.55, "dreh": 0, "groesse": 0.8},
+        {"art": "streu", "m": "boden", "k": "Pilze1", "flaeche": [-1.0, 0.2, 1.0, 0.8], "anzahl": 1, "groesse": 1}
+      ],
+      "1x5": [
+        {"art": "reihe", "m": "busch", "k": ["Holunder1", "Hasel1", "Brombeere1"], "von": [-4.2, -0.4], "bis": [4.2, -0.4], "schritt": 2.1, "groesse": 0.8, "schatten": true},
+        {"m": "busch", "k": "Wacholder1", "x": 4.5, "z": 0.4, "dreh": 0, "groesse": 0.9},
+        {"m": "stein", "k": "Lesesteinhaufen1", "x": -3.0, "z": 0.45, "dreh": 0, "groesse": 0.6},
+        {"art": "streu", "m": "boden", "k": ["Brennnessel1", "Gras1"], "flaeche": [-4.9, 0.1, 4.9, 0.9], "anzahl": 9, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": "Wildblumen1", "flaeche": [-1.0, 0.3, 2.0, 0.9], "anzahl": 2, "groesse": 1, "winter": "weg"}
+      ],
+      "2x3": [
+        {"m": "busch", "k": "Holunder1", "x": -1.8, "z": -0.9, "dreh": 0, "groesse": 0.9, "schatten": true},
+        {"m": "busch", "k": "Hasel1", "x": 1.8, "z": -1.0, "dreh": 0, "groesse": 0.85, "schatten": true},
+        {"m": "busch", "k": "Brombeere1", "x": 0.0, "z": 1.2, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"m": "holz", "k": "Totholz1", "x": -1.0, "z": 0.3, "dreh": 20, "groesse": 0.5},
+        {"art": "streu", "m": "boden", "k": "Pilze1", "flaeche": [-2.5, 0.3, 0.0, 1.7], "anzahl": 2, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": ["Brennnessel1", "Gras1"], "flaeche": [-2.8, -1.8, 2.8, 1.8], "anzahl": 9, "groesse": 1}
+      ],
+      "3x3": [
+        {"m": "busch", "k": "Holunder1", "x": -2.2, "z": -2.0, "dreh": 0, "groesse": 1.0, "schatten": true},
+        {"m": "busch", "k": "Hasel1", "x": 1.8, "z": -2.3, "dreh": 0, "groesse": 1.0, "schatten": true},
+        {"m": "busch", "k": "Brombeere1", "x": 2.2, "z": 1.8, "dreh": 0, "groesse": 0.9, "schatten": true},
+        {"m": "busch", "k": "Hasel1", "x": -2.0, "z": 1.9, "dreh": 0, "groesse": 0.9, "schatten": true},
+        {"m": "busch", "k": "Ginster1", "x": 0.2, "z": -0.4, "dreh": 0, "groesse": 1.0},
+        {"m": "stein", "k": "Findling1", "x": 0.2, "z": 2.0, "dreh": 40, "groesse": 0.35, "schatten": true},
+        {"m": "stein", "k": "Lesesteinhaufen1", "x": -0.2, "z": -2.5, "dreh": 0, "groesse": 0.7},
+        {"m": "holz", "k": "Totholz1", "x": -0.6, "z": 0.5, "dreh": 35, "groesse": 0.55},
+        {"m": "holz", "k": "Reisighaufen1", "x": 1.4, "z": 0.2, "dreh": 0, "groesse": 0.9},
+        {"art": "streu", "m": "boden", "k": ["Farn1", "Pilze1"], "flaeche": [-2.5, -0.5, 0.5, 0.8], "anzahl": 3, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": ["Brennnessel1", "Gras1"], "flaeche": [-2.8, -2.8, 2.8, 2.8], "anzahl": 14, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": "Wildblumen1", "flaeche": [0.5, -1.5, 2.5, 0.0], "anzahl": 2, "groesse": 1, "winter": "weg"}
+      ]
+    } }
+  }
+}
