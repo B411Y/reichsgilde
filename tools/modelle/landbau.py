@@ -17,7 +17,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
-from bausteine import Matrix, Oeffnung, Vector  # noqa: E402
+from bausteine import Matrix, Oeffnung, Vector, bpy  # noqa: E402
 
 bs.FARBEN.update({
     "Erde": (0.36, 0.27, 0.18),            # Beete, Acker
@@ -173,6 +173,26 @@ def tanne(netz, st, fuss, hoehe=8.0, r=2.0, saat=0):
     for i, (f_r, f_z0, f_z1) in enumerate(((1.0, 0.16, 0.62), (0.78, 0.38, 0.84), (0.52, 0.6, 1.0))):
         kegel(netz, (x, y), r * f_r * zufall.uniform(0.92, 1.08), hoehe * f_z0, hoehe * f_z1,
               st["Tanne"], st["Tanne hell"], n=7, dreh=zufall.uniform(0, 1) + i * 0.4)
+
+
+# Höhen der Kit-Bäume in natur_kit_baeume.glb (kit_import.py: KIEFERN, LAUBBAEUME) – daraus der Maßstab eines Markers
+KIT_HOEHEN = {"Kiefer": (7.5, 8.0, 10.5, 7.5, 7.5), "Laubbaum": (8.0, 9.5, 8.5)}
+
+
+def baum_marker(art, fuss, hoehe, saat=0, praefix="Baum_", nr=1):
+    """Baum als Marker statt als Netz: ein leerer Knoten „<praefix><Art><Variante>_<nr>“ (z. B. „Baum_Kiefer3_02“) mit Ort, Drehung
+    und Maßstab. Das Spiel setzt dort einen Kit-Baum aus natur_kit_baeume.glb ein (MultiMesh, im Winter kahl, siehe
+    Stadtansicht.Natur.cs, BaumMarkerEinsetzen). `art`: „Kiefer“ oder „Laubbaum“; `hoehe`: gewünschte Höhe in Metern; die Variante
+    wählt `saat`. Der Marker kommt in die Objektliste des Modells (wie ein Anker)."""
+    zufall = random.Random(saat)
+    var = zufall.randrange(len(KIT_HOEHEN[art]))
+    obj = bpy.data.objects.new(f"{praefix}{art}{var + 1}_{nr:02d}", None)
+    obj.empty_display_type = "PLAIN_AXES"
+    obj.location = Vector((fuss[0], fuss[1], 0.0))
+    obj.rotation_euler = (0, 0, zufall.uniform(0, 2 * math.pi))
+    obj.scale = (hoehe / KIT_HOEHEN[art][var],) * 3
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
 
 
 def felsbrocken(netz, st, mitte, r, h, saat=0, n=7, stoff="Fels", stoff2="Fels dunkel",
