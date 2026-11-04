@@ -315,7 +315,7 @@ def palmenhoehe(x, y):
 # Finger: (Wurzel, Längen der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen, Seitenknick je Glied)
 # Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.106, 0.060), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
+    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.124, 0.062), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
     "mittel": ((-0.105, 0.86, 0.02), (0.44, 0.28, 0.21), (0.088, 0.065), -4, (-5, -30, -36), (-32, -66, -50), (0, -1, -1)),
     "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.085, 0.062), 11, (-28, -56, -44), (-30, -64, -48), (0, 3, 4)),
     "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.075, 0.055), 21, (-34, -60, -48), (-28, -60, -46), (0, 4, 5)),
@@ -688,17 +688,17 @@ def schloss_bauen(st, eisen=False):
     b.kegel("loch", (kx, ky + 0.012, 0.110), (kx, ky + 0.015, 0.128), 0.064, 0.064, seg=20)
     b.quader("loch", (kx, ky - 0.075, 0.119), (0.05, 0.15, 0.022))
     b.tipp = Vector((kx, ky, 0.125))
-    # Klinke: Rose am oberen Ende, kräftig geschmiedeter Arm waagerecht zur Seite, Ende im Bogen nach unten und vorn
+    # Klinke: Rose am oberen Ende, kräftig geschmiedeter Arm waagerecht zur Seite, fast gerade, Ende nur leicht geneigt, kleiner Endknauf
     rx, ry = 0.0, 0.915
     b.kegel(zier + "@rose", (rx, ry, 0.095), (rx, ry, 0.165), 0.125, 0.100, seg=24)
     b.kugel(griff + "@rose", (rx, ry, 0.175), 0.075, (1, 1, 0.75), seg=12)
-    pfad = [Vector(v) for v in ((0.02, ry, 0.21), (0.20, ry + 0.015, 0.24), (0.42, ry + 0.045, 0.26), (0.62, ry + 0.015, 0.275),
-                                (0.75, ry - 0.115, 0.30), (0.77, ry - 0.255, 0.33))]
-    radien = [0.088, 0.086, 0.080, 0.072, 0.062]
+    pfad = [Vector(v) for v in ((0.02, ry, 0.21), (0.22, ry, 0.235), (0.44, ry - 0.005, 0.255), (0.64, ry - 0.02, 0.27),
+                                (0.80, ry - 0.05, 0.285))]
+    radien = [0.088, 0.084, 0.078, 0.070]
     kette = [(a, c, radien[i], radien[i] * 0.95, (c - a).normalized()) for i, (a, c) in enumerate(zip(pfad[:-1], pfad[1:]))]
     sweep(b, griff + "@griff", kette, flach=0.95, spitze=False, wulst=0.0, seg=12)
     p = pfad[-1]
-    b.kugel(zier + "@griff", p + Vector((0, -0.02, 0.0)), 0.075, (1.0, 1.15, 0.9), seg=14)         # Endknauf
+    b.kugel(zier + "@griff", p, 0.068, (1.0, 1.0, 0.95), seg=14)                                    # Endknauf
     for t in (0.24, 0.62):                                                                           # Schmiedebünde am Arm
         q = pfad[0] + (pfad[3] - pfad[0]) * t
         b.torus(zier + "@griff", q, 0.083, 0.015, dreh=Matrix.Rotation(math.radians(90), 3, "Y"), seg=16, ring=6)
