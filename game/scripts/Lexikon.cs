@@ -289,7 +289,7 @@ public static class Lexikon
                 : null,
             ["meister_umbau_stunden"] = (d, _) => d.Meistergrade is { } m ? (m.UmbauMinuten / 60.0).ToString("0.#") : null,
         };
-        foreach (var art in new[] { "Handkarren", "Ochsenkarren", "Kriegskarren" })
+        foreach (var art in new[] { "Handkarren", "Ochsenkarren", "Pferdekarren" })
         {
             var schluessel = art.ToLowerInvariant();
             var name = art;

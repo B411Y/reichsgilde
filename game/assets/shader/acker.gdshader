@@ -6,6 +6,8 @@
 // Rotation.Y), COLOR.rgb = leichter Farbstich der Variante um 1, COLOR.a = halbe Breite des Stücks geteilt durch 16.
 shader_type spatial;
 render_mode cull_disabled;
+// Am Rand der Feldfläche läuft der Acker in einen Feldrain aus (UV2.y = Abstand zum Rand in Metern): erst nackte Erde und Gras, dann geht die Fläche
+// mit unregelmäßiger Kante durchsichtig in die Wiese darunter über.
 
 // Farbe der Frucht im Sommer, Farbe der Erde dazwischen und wie dicht der Bewuchs steht (1: Reihen ganz geschlossen, 0: nackte Erde)
 uniform vec3 farbe : source_color = vec3(0.70, 0.62, 0.30);
@@ -42,10 +44,17 @@ void fragment() {
 	// Furchen quer zum Stück: ganze Zahl an Furchen je Stück, die erste und letzte genau an den Kanten
 	float halb = COLOR.a * 16.0;
 	float anzahl = max(1.0, round(2.0 * halb / abstand));
-	float phase = (UV.x + halb) / (2.0 * halb / anzahl);
+	float phase0 = (UV.x + halb) / (2.0 * halb / anzahl);
+	// Unregelmäßig wie von Hand gepflügt: Die Furchen schlängeln sich leicht (Verschiebung längs des Stücks und je Furche), jede Furche hat ihre
+	// eigene Stärke und die Stärke schwankt längs des Stücks – kein Wellblech aus gleichen Streifen
+	float nr = floor(phase0 + 0.5);
+	float schlaengel = (rausch(vec2(UV.y * 0.05 + nr * 3.1, nr * 1.7)) - 0.5) * 0.55 + (rausch(welt.xz * 0.3) - 0.5) * 0.25;
+	float phase = phase0 + schlaengel;
+	float staerke = (0.45 + 0.9 * hash(vec2(nr, floor(UV.y * 0.04) + UV2.x))) * (0.7 + 0.6 * rausch(vec2(UV.y * 0.08, nr)));
 	// Aus der Ferne, wo eine Furche nur noch ein, zwei Bildpunkte breit ist, verschwinden die Streifen (sonst flimmern sie als Moiré)
-	float fern = 1.0 - smoothstep(0.18, 0.45, fwidth(phase));
-	float welle = -cos(phase * TAU) * fern;         // −1 Furche (auch an den Kanten), +1 Kamm
+	float fern = 1.0 - smoothstep(0.18, 0.45, fwidth(phase0));
+	float welle = -cos(phase * TAU) * fern * clamp(staerke, 0.0, 1.4);  // −1 Furche, +1 Kamm, je Furche verschieden stark
+	welle = sign(welle) * pow(abs(welle), 1.3);                          // weichere Kanten: flache Kämme, schmale Furchen
 	// Flecken (groß), Schollen (mittel) und Körnung (fein) in Weltkoordinaten: über Stückgrenzen hinweg ohne Naht
 	float flecken = rausch(welt.xz * 0.11);
 	float schollen = rausch(welt.xz * 0.8);
@@ -73,14 +82,21 @@ void fragment() {
 	}
 	// Schnee: in den Furchen bleibt er länger liegen als auf den Kämmen
 	float schnee = clamp(schnee_decke(welt.xz, 1.0) * (1.0 - 0.35 * max(welle, 0.0)), 0.0, 1.0);
+	// Feldrain: außen Gras und Erde statt Frucht, ganz außen durchsichtig (Kante mit Rauschen, nie eine Linie)
+	float rd = UV2.y + (rausch(welt.xz * 1.1) - 0.5) * 0.9 + (koernung - 0.5) * 0.25;
+	float rain = 1.0 - smoothstep(0.35, 1.9, rd);
+	vec3 rainfarbe = mix(boden * 0.9, vec3(0.27, 0.33, 0.15) * (0.85 + 0.3 * schollen), smoothstep(0.1, 0.9, schollen + 0.25 * rain));
+	grund = mix(grund, rainfarbe, rain * 0.85);
+	float deckung = smoothstep(0.0, 0.85, rd);
 	grund = mix(grund, vec3(0.68, 0.7, 0.75), schnee);
 
 	// Unebenheit im Licht: Der Kamm neigt die Fläche quer zu den Furchen (Richtung quer über das Stück in Weltkoordinaten)
 	vec3 quer = vec3(cos(UV2.x), 0.0, -sin(UV2.x));
-	float neigung = -sin(phase * TAU) * fern * furchen * 0.38 + (koernung - 0.5) * 0.12;
+	float neigung = -sin(phase * TAU) * fern * furchen * 0.38 * clamp(staerke, 0.0, 1.4) + (koernung - 0.5) * 0.12;
 	NORMAL = normalize(NORMAL + (VIEW_MATRIX * vec4(quer, 0.0)).xyz * neigung);
 
 	ALBEDO = grund;
+	ALPHA = deckung;
 	ROUGHNESS = mix(rau, 0.7, schnee);
 	SPECULAR = 0.2;
 }

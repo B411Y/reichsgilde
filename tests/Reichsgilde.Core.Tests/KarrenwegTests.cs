@@ -17,7 +17,7 @@ static class KarrenwegTests
     static string Spielordner => Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft()))!;
     static readonly Lazy<Gebaeudekatalog> Katalog = new(() => Gebaeudekatalog.AusDatei(Path.Combine(Spielordner, "daten", "katalog.json")));
     static readonly string[] Karten = { "greybox", "koeln", "probestadt" };
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Kriegskarren" };
+    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     /// <summary>Die Startpartie einer Karte mit allen KI-Häusern („Schwer“: mit Werkstatt und Umlandbetrieb, so sind auch die Umlandwege dabei).</summary>
     static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null)

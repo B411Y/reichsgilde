@@ -12,6 +12,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume kosten im Wald etwa +2,5 ms GPU gegenüber den alten (Schatten davon 2,4 ms; weiterer Hebel: Schatten der Kit-Bäume nur bei nahem Zoom, Fernfassung mit weniger Blattkarten); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
 - (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
 - (Pixel-Look) Hoher Lichtwechsel (Blitz, Fackeln) nicht gesondert abgestimmt; Lichtskala nach Tageslicht grob geeicht (Boden 0,34, Kontrast und Düsternis wirken nachts nicht); Schilder in Räumen und Baumodus-Text bleiben gepixelt; Kartenwerkstatt liest die Grafik-Startoptionen nicht (nur die gespeicherte Wahl)
@@ -216,8 +217,31 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Fels R5) „Hang mitformen“ gilt nur für den Stempel, nicht fürs Streuen, und die Vorschau zeigt den Hang nicht (nur die Stücke). Die Rampe hinter der Wand (knapp 70°) zeigt den Fels im Boden grau und glatt (dasselbe wie der R1-Punkt „über 60°“); von hinten wirkt das wie ein Schuttberg. Mögliche Hebel: Hang-Fels auf Hoch dreiseitig, oder die Rampe auf zwei Stufen (Absatz) legen.
 - (Fels R4) Die Formen mit offener Rückseite (Wände, Pfeilerbündel) stehen von hinten hohl, wenn kein Hang dahinter liegt: Die Spielkamera dreht in 90°-Schritten. Darum hat die Gruppe „Große Wand“ keine mittleren Wände davor; einzeln gestempelt, brauchen sie „Hang mitformen“ oder ein Modell mit geschlossener Rückseite.
 - (Fels R4) Leistung der elf neuen Formen (bis 11.000 Dreiecke je Stück auf der feinen Stufe, Atlas 4096 × 2048 je zwei Karten) ist nicht gemessen; Messung gehört zu R6 (Befehl an „main“, Grafik-PC).
+- (von Darstellung, Ton) Die Rufarten „Hahn“ und „Gefluegel“ in `KlangUmgebungModell.cs` haben nur eine Seite (Pan), keinen Ort: Sie lassen sich nicht an die Hühnerhöfe der Tiere binden, ohne die Klangtabelle um Orte zu erweitern; ein Hahn kräht also auch, wenn kein Hof im Bild ist. Falls gewünscht: Sound-Auftrag „Ruf am Ort des nächsten Hühnerhofs“ (Hof-Orte kämen aus `_huehnerHoefe`); die Katze hat noch keinen Ruf.
 
 ## Entscheidungen
+
+### Umland: importierte Bäume und Steine, Felder mit geraden Rändern (Branch phase5/umland-optik, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bäume | Die Arten `tanne`, `eiche` und `buche` zeigen im Katalog (`game/daten/katalog.json`) die Kit-Modelle aus dem importierten und bearbeiteten Quaternius-Paket (CC0): Tanne = `Kiefer` (5 Varianten), Eiche und Buche = `Laubbaum` (3 Varianten, mit kahler Winterfassung) aus `natur/natur_kit_baeume`. Die Kartendaten bleiben gleich (Art, Dichte, Gruppen); die Kegel-Tannen und runden Laubbäume aus `natur_baeume` stehen nicht mehr in Karten. Kopfweide und die Büsche bleiben die eigenen Modelle (das Kit hat keine) | 04.11.2026 |
+| Steine | `felsbrocken` und `findling` = `KitFels` (3 Varianten), `kiesel` = `KitKiesel` (11 Varianten) aus `natur/natur_kit_steine` (CC0). `lesesteinhaufen` bleibt (das Kit hat keinen Haufen) | 04.11.2026 |
+| Größe | Neues Feld `massstab` am Baustein (Kern, Vorgabe 1, nicht im Spielstand, wenn 1): gleicht die Größe des Kit-Modells dem Namen an (Findling 1,5, Felsbrocken 0,8, Kiesel 1,8, Eiche 1,1, Buche 0,95). `NaturVerteilung` rechnet ihn in `Pflanzenlage.Massstab` ein, Spiel und Werkstatt zeichnen gleich. Drehung und Größe bleiben deterministisch aus dem Startwert der Fläche | 04.11.2026 |
+| Felder, Rand | `FeldVerteilung.Flaeche(…, bisZumRand: true)` (nur Darstellung; ohne Schalter wie bisher): Auch Stücke, die nur zum Teil in der Fläche liegen, zählen; Wege, Gebäude und Aussparungen schneiden weiter ganze Zellen weg. `Stadtansicht.FeldNetzeBauen` schneidet jede Zelle mit `Geometry2D.IntersectPolygons` gerade an den Rand der Fläche und zerlegt sie in Dreiecke | 04.11.2026 |
+| Feldrain | `acker.gdshader`: Der Abstand zum Rand (UV2.y, bis 4 m) lässt die Frucht in Erde und Gras auslaufen und macht die Fläche am Rand mit unregelmäßiger Kante durchsichtig (Wiese darunter) | 04.11.2026 |
+| Leistung Bäume | Ursache war, dass alle Kit-Bäume der Karte ein einziges MultiMesh bildeten und Godot es nicht stückweise wegließ (alle 500–1000-Dreiecke-Bäume mit Alphamaske in jedem Bild, im Licht- und Schattendurchgang). Jetzt je Art und Zelle von 48 m ein MultiMesh (`NaturZelle`, nur Bäume). Messung Köln-Tannenwald, Zoom 60, Pixel-Look, Hoch, RTX 2000 Ada, GPU-Zeit: vorher 5,7 / 6,1 ms; Kit-Bäume als ein MultiMesh 20,3; ohne Schatten 10,6; ohne Alpha 8,5; halbe Instanzen 9,3; ohne Kit-Bäume 5,5; Pixel-Look aus nachher 11,1 gegen vorher 6,6; in Zellen 8,6 / 8,6, in Zellen ohne Schatten 6,2 | 04.11.2026 |
+| Furchen | `acker.gdshader`: schlängelnde Furchen (Verschiebung längs des Stücks, je Furche eigene Stärke, flachere Kämme) statt gleichmäßiger Streifen | 04.11.2026 |
+| Gras | `GrasAeckerMelden` bekommt je Stück das gedrehte Rechteck um den zugeschnittenen Teil statt des ganzen Stücks | 04.11.2026 |
+| Bäume in Umlandmodellen | Gebaut (PR #306): Holzschlag (zehn Kiefern), Wald der Einwohner (sieben Kiefern, ein Laubbaum) und Klosterhof (Laubbaum) haben ihre Kegel-Tannen und runden Kronen verloren; an ihrer Stelle stehen im Modell Marker (leere Knoten `Baum_<Art><Variante>_<Nr>`, im Wald `Wald_Baum_…`, `landbau.baum_marker`), die `Stadtansicht.BaumMarkerEinsetzen` mit Kit-Bäumen besetzt (je Art ein MultiMesh unterm Modell, im Winter kahle Fassung; Klickfläche und Freiraum der Natur rechnen die Marker mit). Haus, Holzstapel und Stümpfe unverändert. Weg (b) statt Kit-Bäume im Netz: die Bäume wechseln im Winter (kahle Fassung), kosten kein eigenes Material im Modell und teilen die Netze der Natur. Messung Köln, Zoom 35, Pixel-Look, Hoch, RTX 2000 Ada, GPU-Zeit vorher/nachher: Holzschlag 3,9 / 4,6 ms, Wald 4,7 / 3,5 ms (Rauschen, kein Unterschied). Die Vorschaubilder in `docs/modelle/` zeigen die Marker nicht (ohne Bäume) und wurden nicht neu gerendert | 04.11.2026 |
+| Außerhalb des Bereichs | Kern: `Baustein.Massstab`, `NaturVerteilung`, `FeldVerteilung.Flaeche`/`Alle`, `Kartenentwurf.FelderVon` (je ein Schalter bzw. Faktor); `game/daten/katalog.json`; Tests angepasst (`KartenformatTests`, `KartenbauTests`, `KartenwerkstattWegeTests`) und `FeldRandTests` neu | 04.11.2026 |
+### Schnee fällt, Sturm-Regen weniger schräg (04.11.2026)
+
+| Entscheidung | Wert |
+|---|---|
+| Schräge des Regens je Wetterart | Regen (Wind 0,5) senkrecht, Gewitter (0,75) und Sturm (1) gleich leicht schräg 18° (tan 0,325); dazwischen weich. Vorher quadratisch mit dem Wind: 8° / 18° / 31°. Der Wind selbst (Fahnen, Gras, Wolken, Seegang, Ton) bleibt unverändert |
+| Fallgeschwindigkeit der Flocken | 0,8–1,4 → 2,0–3,0 (mal Zoommaßstab), Lebensdauer 9 → 5 s, Streuung 25° → 8°, Windneigung 1,2 → 0,4 |
+| Pendeln der Flocken (`schnee.gdshader`) | Weite 0,3–0,8 → 0,1–0,3, Auf und ab 0,12 → 0,03, Böen 0,9 → 0,3; Wirbel (Stufe Hoch) schwächer (Stärke 0,4 + Wind, Einfluss max. 0,08 + 0,08 · Wind) |
 
 ### Grafikstil: Pixel-Look (Nutzer 03.11.2026)
 
@@ -432,3 +456,23 @@ Auftrag des Teamleiters 1.11.2026.
 |---|---|---|
 | Plätze im Bild | Tooltip eines Gastes in der Schankstube nennt `Gastwirtschaft.Platzbelegung` („Plätze: x belegt / y frei“) und `Gaestebuch.Voll` („heute kein Platz für n Gäste“, ein Spieljahr ist ein Spieltag). Die Gäste selbst setzte das Modell-Raumgerüst schon aus `GaesteJetzt`; `GaesteSchaetzung` in `Stadtansicht.Innenraeume.cs` (nur noch der Ersatzraum ohne Modell) rechnet jetzt ebenfalls mit `Platzbelegung`. | 02.11.2026 |
 | Startoption | `--vorrat=Ware:Menge,…` (mit `--entwickler=1`) legt Ware ins Lager der ersten eigenen Werkstatt, damit eine Schänke im Klicktest Gäste hat. | 02.11.2026 |
+
+### Tiere: Hühner, Hunde, Katzen und Krähen (PR #302)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Nur Darstellung (`Stadtansicht.Tiere.cs`, Krähen in `Stadtansicht.Voegel.cs`), nichts im Kern, nichts im Spielstand. Weit herausgezoomt (ab 100 m sichtbarer Höhe, also die dritte Pixel-Zoomstufe) und im Innenraum aus; außerhalb des Bildes stehen die Animationen still. Die Tiere sind normale 3D-Knoten, vom Pixel-Look nicht betroffen. | 04.11.2026 |
+| Hühner | 3–6 Hennen (braun, weiß, gesprenkelt gemischt) und ein Hahn je Hof, auf jedem Bauernhof und Klosterhof der Karte (am Halteplatz der Karren) und an zwei Stadthöfen: Hof der ersten zwei Schänken, sonst (Bäcker gibt es im Spiel nicht, die Schänken stehen beim Start oft noch nicht) ein ruhiger Winkel an einer Hauswand abseits des Marktes. Zahl und Farben aus der Lage des Hofs gesät (bei jedem Laden gleich). Nachts, bei Regen ab 0,2, Schnee und Schneedecke gehen sie zur Hofmitte und verschwinden (Stall), morgens kommen sie einzeln heraus. Passanten scheuchen sie (2,3 m). | 04.11.2026 |
+| Hunde und Katzen | Zwei Hunde und zwei Katzen je Stadt (Fell je Tier eine der drei Farbvarianten, aus der Lage des Marktes gewählt), jedes nur zeitweise da (taucht außerhalb des Bildes auf und ab), Wege im Gassennetz, Katzen gern zu Plätzen vor Hauswänden (aus den Gebäudehüllen neben den Gassen, alle 150 s neu gerechnet) und seitlich ausweichend, Hunde nicht. Nachts liegen die Hunde, sitzen die Katzen, selten ein Weg. Auf Mauerkronen laufen die Katzen nicht (die Sprung-Animation ist ungenutzt). | 04.11.2026 |
+| Krähen | Dritte Art der Schwarmlogik: zwei Schwärme an Türmen und Mauern der Stadt, im Umland einer an jeder zweiten Stelle (nie ein Schwarm aus nur einem Vogel); die Hälfte nur im Herbst und Winter (`KraehenAnteil`: Winter 1, Herbst 0,7, Frühling 0,2, Sommer 0). Die obersten 40 % der Landeplätze, am Boden nur im Umland. Eine eigene Aufhellung ist nach dem helleren Modell (Blauschimmer) nicht nötig. | 04.11.2026 |
+| Startoption | `--tiertest=1`: Hunde und Katzen erscheinen gleich, nahe dem Markt, auch im Bild. | 04.11.2026 |
+| Leistung | `--tiere=0` schaltet alle Tiere ab. Messung (`--messung=15`, Greybox, Bauernhof im Bild, Vulkan RTX 2000 Ada, bei laufenden Läufen anderer Mitglieder auf demselben Rechner): ohne Tiere 22,0 und 23,5 ms Bildzeit, mit Tieren 30,8 und 20,6 ms – die Schwankung ist größer als ein messbarer Unterschied; die Tiere sind wenige Skelette, nur im Bild bewegt. Eine saubere Messung auf ruhigem Rechner steht aus. | 04.11.2026 |
+
+### Wolkenschatten sichtbar, Gelände mit mehr Licht und Schatten (Branch phase5/wolken-gelaende)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wolkenschatten (Sonne) | Zwei Decals „wenig“ (5 % der Fläche) und „viel“ (50 %), das Wetter blendet stetig (`Wolken` 0,1 → 0,6); Flecken rund 30 m (Frequenz 0,03 statt 0,012, drei Oktaven), Rand mittelweich (± 0,09 Rauschwert statt 0,48 bis 0,72), Dunkelheit 0,40 statt 0,42, Tempo 5 statt 2,5 m/s (mal `0,4 + 2,4 · Wind`). Die Stärke folgt der Sonne über den Wolken (`_gezeigteStimmung`), nicht der vom Wetter gedämpften; ab `Wolken` 0,65 bis 0,85 und im Nebel ausblendend; die Ausblendung unter 16° Sonnenhöhe (#299) bleibt. Einstellung heißt „Wolkenschatten (Sonne)“, Tooltip sagt „kein Nebel“ (Datei `EinstellungenAnzeige.cs`, Oberfläche, nur Text). | 04.11.2026 |
+| Gelände-Kontrast (C) | Sonne mittags 1,33 statt 1,2, Umgebungslicht am Tag 0,58 statt 0,70 (Konstanten in `Stadtansicht.Licht.cs`); ein waagerechter Boden bei hoher Sonne bleibt gleich hell, Schatten und Schrägen werden dunkler. Nacht, Dämmerung und Innenräume unverändert (Raumlicht ist getrennt). | 04.11.2026 |
+| Hänge (A) | `hang_betont` im Bodenshader: Neigung der Geländenormale nur für das Licht um Faktor 3 betont, höchstens +0,12 im Sinus (rund 7°), über 0,25 bis 0,5 Neigung ausblendend; ebener Boden unverändert. | 04.11.2026 |
+| Nicht gemessen | Bildzeit: ein zusätzliches Decal und 2 × 256² Alpha beim Start; wegen anderer laufender Läufe keine ruhige Messung. Das Relief in Köln ist ohnehin sehr flach (1 bis 4 %), der Hang am Ostrand wirkt nur leicht; echte Hügel wären Sache des Leveldesigns (Weg D). | 04.11.2026 |

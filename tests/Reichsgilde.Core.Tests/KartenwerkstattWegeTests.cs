@@ -338,7 +338,7 @@ static class KartenwerkstattWegeTests
                     Pruefe.Wahr(Naturhindernis.Von(g.Baustein, g.Punkt[0], g.Punkt[1], g.Drehung, g.Massstab) is not { } h || !h.Enthaelt(p.X, p.Z, Naturfreiraum.Abstand),
                         $"{p.Art.Kennung} bei ({p.X:0.0} | {p.Z:0.0}) auf {g.Kennung}");
                 Pruefe.Wahr(karte.Bauzonen.All(z => z.Abstand(p.X, p.Z) >= Naturfreiraum.Abstand), $"{p.Art.Kennung} auf einer Bauzone");
-                Pruefe.Wahr(p.Massstab >= 0.85 && p.Massstab <= 1.15 && p.Drehung >= 0 && p.Drehung < 360, "Größe und Drehung");
+                Pruefe.Wahr(p.Massstab >= 0.85 * p.Art.Massstab - 1e-9 && p.Massstab <= 1.15 * p.Art.Massstab + 1e-9 && p.Drehung >= 0 && p.Drehung < 360, "Größe und Drehung");
                 Pruefe.Wahr(p.Variante >= 1 && p.Variante <= Math.Max(1, p.Art.Varianten), "Variante");
             }
             // Je Fläche: nur ihre Arten; der Tannenwald nur Tannen, der Mischwald mit Eichen und Buchen

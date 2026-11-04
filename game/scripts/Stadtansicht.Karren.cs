@@ -4,7 +4,7 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Ochsenkarren und Kriegskarren als Modelle aus Blender
+/// Karren (Teil der <c>partial class Stadtansicht</c>): Handkarren, Ochsenkarren und Pferdekarren als Modelle aus Blender
 /// (<c>karren_hand.glb</c>, <c>karren_ochse.glb</c>, <c>karren_krieg.glb</c>, Fahrtrichtung +Z) mit Skelett und den Bewegungen „Fahren“ und „Stehen“.
 ///
 /// Die Darstellung rechnet nichts aus, sie liest nur den <see cref="Karren"/> des Kerns: Zustand (fährt oder steht), Ladung (wie viele Sorten)
@@ -38,6 +38,13 @@ public partial class Stadtansicht
         public (Fahrprofil Hin, Fahrprofil Zurueck)? ZugProfile { get; set; }
         /// <summary>Wie schnell der Karren im letzten Bild fuhr (Meter je echter Sekunde): treibt Räder und Schritte.</summary>
         public float Geschwindigkeit { get; set; }
+        /// <summary>Hufklang (Stadtansicht.KarrenKlang.cs): der Untergrund unter dem Karren, wann er zuletzt gelesen wurde (echte Sekunden) und der Betrieb für das Protokoll.</summary>
+        public KlangKarren.Untergrund KlangBoden { get; set; } = KlangKarren.Untergrund.Erde;
+        public double KlangGelesen { get; set; } = double.NegativeInfinity;
+        public string KlangName { get; set; } = "";
+        public string KlangWo { get; set; } = "";
+        public Vector3[]? KlangProbeWeg { get; set; }
+        public string KlangProbeText { get; set; } = "";
         /// <summary>Messung der sichtbaren Hinfahrt: Spielminute des Starts (−1 keine läuft, −2 ungültig: der Karren war aus dem Bild oder wurde abgeglichen) und die gezeigte Strecke in Metern.</summary>
         public double HinStart { get; set; } = -1;
         public float HinStrecke { get; set; }
@@ -45,17 +52,17 @@ public partial class Stadtansicht
     }
 
     /// <summary>Was an einer Karrenart verschieden ist: das Modell, der Weg einer Schleife „Fahren“ und der Anker für den Menschen.</summary>
-    private sealed record KarrenArt(string Datei, float Weg, string Anker, string FigurFahren, string FigurStehen);
+    private sealed record KarrenArt(string Datei, float Weg, string Anker, string FigurFahren, string FigurStehen, bool Pferd = false);
 
     /// <summary>
     /// Die drei Karrenarten, nach <see cref="Karren.Typ"/>. <c>Weg</c> ist die Strecke, die eine Schleife „Fahren“ zurücklegt (Räder genau einmal herum,
-    /// 2π · Radhalbmesser aus <c>tools/modelle/karren.py</c>): 2,83 m beim Handkarren, 4,52 m beim Ochsenkarren, 3,77 m beim Kriegskarren.
+    /// 2π · Radhalbmesser aus <c>tools/modelle/karren.py</c>): 2,83 m beim Handkarren, 4,52 m beim Ochsenkarren, 3,77 m beim Pferdekarren.
     /// </summary>
     private static readonly Dictionary<string, KarrenArt> KarrenArten = new()
     {
         ["Handkarren"] = new("fahrzeuge/karren_hand", 2f * Mathf.Pi * 0.45f, "Anker_Zieher", "Ziehen", "Stehen"),
         ["Ochsenkarren"] = new("fahrzeuge/karren_ochse", 2f * Mathf.Pi * 0.72f, "Anker_Treiber", "Gehen", "Stehen"),
-        ["Kriegskarren"] = new("fahrzeuge/karren_krieg", 2f * Mathf.Pi * 0.6f, "Anker_Kutscher", "Kutschieren", "Kutschieren"),
+        ["Pferdekarren"] = new("fahrzeuge/karren_krieg", 2f * Mathf.Pi * 0.6f, "Anker_Kutscher", "Kutschieren", "Kutschieren", Pferd: true),
     };
 
     /// <summary>Schneller als so viele Schleifen „Fahren“ je Sekunde dreht kein Rad: bei hohem Tempo rutschen sie lieber, als zu flimmern.</summary>
@@ -67,7 +74,7 @@ public partial class Stadtansicht
     /// <summary>So weit (in Metern) darf ein Karren außerhalb des Bildes stehen und wird noch animiert (seine Tiere sind rund 5 m lang).</summary>
     private const float KarrenRandMeter = 6f;
 
-    /// <summary>So weit (Meter) stehen wartende Karren hintereinander: ein Ochsenkarren ist mit Ochse 5 m lang, ein Kriegskarren mit zwei Pferden 6 m.</summary>
+    /// <summary>So weit (Meter) stehen wartende Karren hintereinander: ein Ochsenkarren ist mit Ochse 5 m lang, ein Pferdekarren mit zwei Pferden 6 m.</summary>
     private const float KarrenAbstand = 7f;
 
     /// <summary>So weit (Meter) neben der Mitte des Weges fahren die Karren: auf ihrer rechten Seite (Rechtsverkehr, Schritt 5d).</summary>
@@ -112,7 +119,7 @@ public partial class Stadtansicht
         wurzel.AddChild(eskorte);
         var ansicht = new KarrenAnsicht
         {
-            Wurzel = wurzel, Art = art, Spieler = spieler, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer,
+            Wurzel = wurzel, Art = art, Spieler = spieler, Ladung = ladung.ToArray(), Plane = plane, Eskorte = eskorte, Versatz = nummer, KlangName = $"{karren.Heimat.Name} {karren.Typ} {nummer + 1}",
         };
         ansicht.Fahrer = KarrenFahrerEinsetzen(ansicht, modell, karren, besitzer);
         return ansicht;
@@ -276,6 +283,7 @@ public partial class Stadtansicht
         // und auf der Rückfahrt kommt der erste zuerst an.
         // Der Weg führt zu dem Platz, zu dem der Betrieb gehört (wie im Kern), und endet am Halt am Rand seines Pflasters
         var weg = KarrenWeg(ansicht);
+        if (KarrenKlangTest) gezeigt.KlangProbeWeg = weg; // nur mit --karrenklangtest=1 (Stadtansicht.KarrenKlang.cs)
         var laenge = WegLaenge(weg);
         var versatz = laenge > 0 ? nummer * KarrenAbstand / laenge : 0f;
         // Am Markt halten die Karren ebenfalls in der Reihe: der letzte ganz vorn, die übrigen je einen Abstand dahinter

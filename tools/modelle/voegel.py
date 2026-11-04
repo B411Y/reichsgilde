@@ -38,6 +38,9 @@ bs.FARBEN.update({
     "Wachshaut": (0.88, 0.87, 0.84),
     "Schnabel": (0.82, 0.62, 0.30),
     "Fuss": (0.78, 0.42, 0.40),
+    "Kraehe": (0.37, 0.39, 0.52),                    # Rücken und Kopf: Schwarz mit deutlichem Blauschimmer
+    "Kraehe dunkel": (0.21, 0.22, 0.31),             # Schwungfedern, Schwanz, Schnabel, Füße
+    "Kraehe Bauch": (0.30, 0.31, 0.41),
 })
 
 FPS = 24
@@ -46,7 +49,11 @@ ARTEN = {
                   hals="Taube Hals", bauch="Taube", bein=0.05),
     "spatz": dict(g=1.6, laenge=0.15, r=0.042, kopf=0.026, fluegel=0.12, farbe="Spatz", dunkel="Spatz dunkel",
                   hals="Spatz dunkel", bauch="Spatz hell", bein=0.03),
+    # Krähe: schwarz, größer als die Taube, kräftiger Schnabel, lange Flügel mit gefingerten Spitzen (Datei vogel_kraehe.glb)
+    "kraehe": dict(g=1.6, laenge=0.37, r=0.085, kopf=0.05, fluegel=0.4, farbe="Kraehe", dunkel="Kraehe dunkel",
+                   hals="Kraehe", bauch="Kraehe Bauch", bein=0.075, fuss="Kraehe dunkel"),
 }
+ARTEN_STADT = ("taube", "spatz")                                      # schreibt main(); die Krähe schreibt tiere.py
 BEWEGUNGEN = {"Fliegen": 0.35, "Gleiten": 1.5, "Sitzen": 3.0, "Picken": 1.0, "Putzen": 2.0, "Gehen": 0.6}
 ABSCHLAG = 0.6                                                         # Anteil des Abschlags an einem Flügelschlag
 
@@ -100,15 +107,21 @@ def vogel(art, st, ske):
         nt.ast(n, st, (0, l * 0.15, z), (0, l * 0.32, z + r * 0.1), r * 0.75, r * 0.3, stoff=d["dunkel"], n=7)
         nt.ast(n, st, (0, -l * 0.28, z + r * 0.35), (0, -l * 0.3, z + r * 0.75), r * 0.5, r * 0.4, stoff=d["hals"], n=7)
         for s in (-1, 1):                                              # Füße
-            n.stab((s * r * 0.35, -l * 0.02, z - r * 0.6), (s * r * 0.35, -l * 0.04, 0.01), r * 0.12, r * 0.12, st["Fuss"])
-            n.quader((s * r * 0.35, -l * 0.08, 0.008), (r * 0.25, r * 0.6, 0.016), st["Fuss"])
+            n.stab((s * r * 0.35, -l * 0.02, z - r * 0.6), (s * r * 0.35, -l * 0.04, 0.01), r * 0.12, r * 0.12, st[d.get("fuss", "Fuss")])
+            n.quader((s * r * 0.35, -l * 0.08, 0.008), (r * 0.25, r * 0.6, 0.016), st[d.get("fuss", "Fuss")])
     with t.an("Kopf") as n:
         km = Vector((0, -l * 0.31, z + r * 0.75 + d["kopf"]))
         nt.krone(n, st, km, d["kopf"], d["kopf"], saat=1,
                  stoffe=("Spatz Kappe", d["farbe"]) if art == "spatz" else (d["farbe"], d["farbe"]), n=6, flach_unten=0.6)
-        nt.ast(n, st, km + Vector((0, -d["kopf"] * 0.85, -d["kopf"] * 0.1)),
-               km + Vector((0, -d["kopf"] * 1.7, -d["kopf"] * 0.3)), d["kopf"] * 0.3, d["kopf"] * 0.05,
-               stoff="Schnabel" if art == "spatz" else "Taube dunkel", n=4)
+        if art == "kraehe":                                            # kräftiger, langer Schnabel mit leichter Krümmung
+            nt.ast(n, st, km + Vector((0, -d["kopf"] * 0.7, -d["kopf"] * 0.05)),
+                   km + Vector((0, -d["kopf"] * 1.7, -d["kopf"] * 0.12)), d["kopf"] * 0.42, d["kopf"] * 0.3, stoff="Kraehe dunkel", n=5)
+            nt.ast(n, st, km + Vector((0, -d["kopf"] * 1.7, -d["kopf"] * 0.12)),
+                   km + Vector((0, -d["kopf"] * 2.4, -d["kopf"] * 0.38)), d["kopf"] * 0.3, d["kopf"] * 0.04, stoff="Kraehe dunkel", n=5)
+        else:
+            nt.ast(n, st, km + Vector((0, -d["kopf"] * 0.85, -d["kopf"] * 0.1)),
+                   km + Vector((0, -d["kopf"] * 1.7, -d["kopf"] * 0.3)), d["kopf"] * 0.3, d["kopf"] * 0.05,
+                   stoff="Schnabel" if art == "spatz" else "Taube dunkel", n=4)
         for s in (-1, 1):
             # Auge: Taube mit orangem Ring um die dunkle Pupille, Spatz nur dunkel
             if art == "taube":
@@ -119,13 +132,13 @@ def vogel(art, st, ske):
             else:
                 n.quader(km + Vector((s * d["kopf"] * 0.75, -d["kopf"] * 0.35, d["kopf"] * 0.2)),
                          (d["kopf"] * 0.2, d["kopf"] * 0.25, d["kopf"] * 0.25), st["Auge"])
-                # helle Wange unter dem Auge
-                n.quader(km + Vector((s * d["kopf"] * 0.74, -d["kopf"] * 0.2, -d["kopf"] * 0.35)),
-                         (d["kopf"] * 0.2, d["kopf"] * 0.5, d["kopf"] * 0.35), st["Spatz hell"])
+                if art == "spatz":                                     # helle Wange unter dem Auge
+                    n.quader(km + Vector((s * d["kopf"] * 0.74, -d["kopf"] * 0.2, -d["kopf"] * 0.35)),
+                             (d["kopf"] * 0.2, d["kopf"] * 0.5, d["kopf"] * 0.35), st["Spatz hell"])
         if art == "spatz":                                             # Kehlfleck
             n.quader(km + Vector((0, -d["kopf"] * 0.6, -d["kopf"] * 0.95)), (d["kopf"] * 0.8, d["kopf"] * 0.3, d["kopf"] * 0.6),
                      st["Spatz dunkel"])
-        else:                                                          # Wachshaut am Schnabelansatz
+        elif art == "taube":                                           # Wachshaut am Schnabelansatz
             n.quader(km + Vector((0, -d["kopf"] * 1.0, 0)), (d["kopf"] * 0.4, d["kopf"] * 0.3, d["kopf"] * 0.25), st["Wachshaut"])
     for s, seite in ((1, "L"), (-1, "R")):
         with t.an(f"Fluegel_{seite}") as n:
@@ -146,7 +159,7 @@ def vogel(art, st, ske):
                 n.vieleck_nach([e + Vector((0, 0, 0.002 + 0.001 * k)) for e in feder], (0, 0, 1), st[d["dunkel"]])
                 n.vieleck_nach([e - Vector((0, 0, 0.008 + 0.001 * k)) for e in feder], (0, 0, -1), st[d["dunkel"]])
             # Binden quer über den inneren Flügel: Taube zwei dunkle, Spatz eine helle
-            binden = ((0.08, 0.14), (0.18, 0.24)) if art == "taube" else ((0.02, 0.06),)
+            binden = {"taube": ((0.08, 0.14), (0.18, 0.24)), "spatz": ((0.02, 0.06),)}.get(art, ())
             for b0, b1 in binden:
                 band = [f(0.05, b0, 0.0015), f(0.45, b0 - 0.02, 0.0015), f(0.45, b1 - 0.02, 0.0015), f(0.05, b1, 0.0015)]
                 n.vieleck_nach(band, (0, 0, 1), st["Taube dunkel" if art == "taube" else "Spatz hell"])
@@ -155,7 +168,7 @@ def vogel(art, st, ske):
         def q(x, y, h=0.0):
             return Vector((x * r, y * l, z + r * (0.12 + (y - 0.28) * 0.3) + h))
         ecken = [q(-0.35, 0.28), q(0.35, 0.28), q(0.6, 0.6), q(0, 0.66), q(-0.6, 0.6)]
-        schwanz = d["farbe"] if art == "taube" else "Spatz dunkel"
+        schwanz = {"taube": d["farbe"], "spatz": "Spatz dunkel"}.get(art, d["dunkel"])
         n.vieleck_nach(ecken, (0, 0, 1), st[schwanz])
         n.vieleck_nach([e - Vector((0, 0, 0.006)) for e in ecken], (0, 0, -1), st[schwanz])
         if art == "taube":
@@ -215,7 +228,7 @@ def haltung(art, name, phase):
             r["Kopf"] = (-30 * p, 0, 110 * p)
             r["Fluegel_L"] = (-6 + 16 * p, 0, eingeklappt - 18 * p)       # nur der linke Flügel hebt sich
         elif name == "Gehen":
-            if art == "taube":
+            if art in ("taube", "kraehe"):
                 r["Kopf"] = (12 * s, 0, 0)
                 r["Koerper"] = (0, 2 * c, 0)
             else:
@@ -256,7 +269,7 @@ def bewegungen_anlegen(ob, art):
 
 def main():
     schnell = "--schnell" in sys.argv
-    for art in ARTEN:
+    for art in ARTEN_STADT:
         bs.neue_szene()
         st = bs.Stoffe()
         ske = skelett(art)
@@ -277,7 +290,7 @@ def vorschau(schnell):
     sichtbar = []
     reihe = [("Sitzen", 0.25), ("Picken", 0.25), ("Putzen", 0.25), ("Gehen", 0.25), ("Fliegen", 0.0), ("Fliegen", ABSCHLAG),
              ("Fliegen", 0.8), ("Gleiten", 0.0)]
-    for z, art in enumerate(ARTEN):
+    for z, art in enumerate(ARTEN_STADT):
         for k, (name, phase) in enumerate(reihe):
             ske = skelett(art)
             o = vogel(art, st, ske)
