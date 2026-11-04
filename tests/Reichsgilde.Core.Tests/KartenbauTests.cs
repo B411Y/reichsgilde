@@ -66,21 +66,21 @@ static class KartenbauTests
 
         ("Kapazität aller Karten: dieselben Plätze wie vor der Beschleunigung (27.10.2026) – Anzahl, Felder und eine Prüfsumme ihrer Lage", () =>
         {
-            foreach (var (karte, befunde, plaetze, felder, summe) in new[]
+            var erwartet = new[]
             {
                 // Köln seit den drei Marktplätzen (31.10.2026) neu, vorher 86 / 1.980 / −1.223.276; seit der gemeinsamen Strecke (Startgrundstücke 36 m vom Platz) die Prüfsumme neu, vorher −11.184.073;
                 // seit den Märkten an den Enden der Mauer und in Deutz die Prüfsumme neu, vorher −12.931.232; seit der Hausreihe vor dem Tor (1.11.2026) die
-                // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; seit den Häusern in der Deutzer Südhälfte (1.11.2026) noch einmal, vorher −6.192.870; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343
-                ("koeln", 0, 84, 1976, -5342922L), ("greybox", 4, 23, 714, -2170301L), ("probestadt", 0, 80, 1752, 7598432L), ("messstadt", 0, 80, 1752, 6597050L),
-            })
+                // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; seit den Häusern in der Deutzer Südhälfte (1.11.2026) noch einmal, vorher −6.192.870; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343;
+                // seit den Bauzonen aus dem Raster (4.11.2026; Köln unverändert) Greybox vorher 4 / 23 / 714 / −2.170.301, Probestadt vorher 0 / 80 / 1.752 / 7.598.432
+                ("koeln", 0, 84, 1976, -5342922L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 80, 1752, 6597050L),
+            };
+            var gemessen = erwartet.Select(x =>
             {
-                var k = Kapazitaetspruefung.Pruefen(Oeffnen(karte));
-                Pruefe.Gleich(befunde, k.Befunde.Count, karte);
-                Pruefe.Gleich(plaetze, k.Plaetze.Count, karte);
-                Pruefe.Gleich(felder, k.Plaetze.Sum(p => p.Felder.Count), karte);
+                var k = Kapazitaetspruefung.Pruefen(Oeffnen(x.Item1));
                 // Reihenfolge und Lage: jeder Platz gewichtet mit seiner Stelle
-                Pruefe.Gleich(summe, k.Plaetze.Select((p, n) => (long)(n + 1) * p.Felder.Sum(f => f.I * 7 + f.J * 13)).Sum(), karte);
-            }
+                return (x.Item1, k.Befunde.Count, k.Plaetze.Count, k.Plaetze.Sum(p => p.Felder.Count), k.Plaetze.Select((p, n) => (long)(n + 1) * p.Felder.Sum(f => f.I * 7 + f.J * 13)).Sum());
+            }).ToList();
+            Pruefe.Gleich(string.Join("\n", erwartet), string.Join("\n", gemessen));
         }),
 
         ("Kapazität: Köln prüft sie als Fehler, die Greybox gar nicht (dort der Probeplan), neue Karten als Hinweis", () =>

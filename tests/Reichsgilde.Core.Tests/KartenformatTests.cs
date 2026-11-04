@@ -216,7 +216,7 @@ static class KartenformatTests
             var (geladen, _) = Speicherung.Laden(alt, Greybox());
             var w = geladen.Wirtschaft!;
             Pruefe.Gleich(2, w.Karte!.Format);
-            Pruefe.Gleich(11, w.Karte.Bauzonen.Count);
+            Pruefe.Gleich(Greybox().Bauzonen.Count, w.Karte.Bauzonen.Count); // die Zonen der Kartendatei (seit 4.11.2026 aus dem Raster: 9)
             Pruefe.Gleich(string.Join(" | ", sim.Wirtschaft!.Bauen.Grundstuecke.Select(g => $"{g.Kennung} {g.Grundriss} {g.Besitzer?.Inhaber}")),
                           string.Join(" | ", w.Bauen.Grundstuecke.Select(g => $"{g.Kennung} {g.Grundriss} {g.Besitzer?.Inhaber}")));
             var koeln = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));

@@ -215,7 +215,7 @@ static class KartenwerkstattWegeTests
             var e = Oeffnen("greybox");
             var vorher = e.ZuJson();
             var z = e.BauzoneAnlegen(Lage.Vorstadt, new[] { O(-150.7, 41.2), O(-139.2, 41.2), O(-139.2, 52.9), O(-150.7, 52.9), O(-150.7, 41.2) });
-            Pruefe.Gleich("V4", z.Kennung, "kleinste freie Nummer der Vorstadt (in der Greybox fehlt V4)");
+            Pruefe.Gleich("V7", z.Kennung, "kleinste freie Nummer der Vorstadt (die Greybox hat V1–V6 aus dem Raster)");
             Pruefe.Wahr(z.Ecken.SequenceEqual(new[] { O(-150, 42), O(-140, 42), O(-140, 52), O(-150, 52) }), "Ecken auf dem 2-m-Raster, die letzte nicht doppelt: " + string.Join(" ", z.Ecken));
             e.EckeVerschieben(z, 2, -137.1, 55);
             Pruefe.Gleich(O(-138, 56), z.Ecken[2]);
@@ -245,7 +245,7 @@ static class KartenwerkstattWegeTests
             var karte = Stadtkarte.AusJson(e.ZuJson(), Katalog.Value);
             var eichenhain = karte.Natur.Flaechen.Single(f => f.Name == "Eichenhain");
             Pruefe.Gleich((5.0, 77, "streu"), (eichenhain.Dichte, eichenhain.Startwert, eichenhain.Art));
-            Pruefe.Gleich(Lage.Umland, karte.Bauzonen.Single(b => b.Kennung == "V4").Art);
+            Pruefe.Gleich(Lage.Umland, karte.Bauzonen.Single(b => b.Kennung == z.Kennung).Art);
 
             e.FlaecheLoeschen(z);
             e.FlaecheLoeschen(n);
@@ -260,7 +260,8 @@ static class KartenwerkstattWegeTests
             var p = e.PflanzeSetzen("eiche", -300, -300, 30, 1.1, 2);
             var json = e.ZuJson();
             var reihenfolge = JsonNode.Parse(json)!.AsObject().Select(x => x.Key).ToList();
-            Pruefe.Gleich(reihenfolge.IndexOf("bauzonen") + 1, reihenfolge.IndexOf("natur"), "natur hinter bauzonen: " + string.Join(",", reihenfolge));
+            // hinter den Bauzonen und den Restflächen aus dem Raster (seit 4.11.2026)
+            Pruefe.Gleich(Math.Max(reihenfolge.IndexOf("bauzonen"), reihenfolge.IndexOf("restflaechen")) + 1, reihenfolge.IndexOf("natur"), "natur hinter bauzonen: " + string.Join(",", reihenfolge));
             Pruefe.Wahr(json.Contains("\"pflanzen\": [{\"katalog\": \"eiche\", \"punkt\": [-300, -300], \"drehung\": 30, \"massstab\": 1.1, \"variante\": 2}]"), json[json.IndexOf("\"natur\"")..][..200]);
             e.Rueckgaengig();
             Pruefe.Gleich(vorher, e.ZuJson());

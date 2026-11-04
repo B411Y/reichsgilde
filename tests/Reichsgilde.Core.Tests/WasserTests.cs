@@ -300,6 +300,7 @@ static class WasserTests
             // Probestadt: ein Bach quert die Hauptstraße zwischen der Werkstatt des Spielers (−30 | −10) und dem Markt
             var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             e.FlussAnlegen(new[] { O(-20, -8), O(-20, 8) }, "bach", 3);
+            e.BauzonenAusRaster();   // der Bach läuft durch die Kernlage: die Zonen aus dem Raster weichen ihm aus
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var w = sim.Wirtschaft!;
             var west = w.Betriebe.Single(b => b.Konto == spieler);
@@ -313,6 +314,7 @@ static class WasserTests
             var b = new Probestadt().Bauen(Katalog.Value, Daten.Value);
             var fluss = b.FlussAnlegen(new[] { O(-20, -8), O(-20, 8) }, "bach", 3);
             b.FlussTiefeSetzen(fluss, -1, 1);
+            b.BauzonenAusRaster();
             var (simB, spielerB) = b.Ausprobieren(Daten.Value, "Schmied");
             var westB = simB.Wirtschaft!.Betriebe.Single(x => x.Konto == spielerB);
             var (hinB, zurueckB) = simB.Wirtschaft.Fahrten(westB)!.Value;

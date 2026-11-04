@@ -35,10 +35,13 @@ static class FreieStartplaetzeTests
         ("Freie Startplätze: ein schräger Wohnhausplatz ergibt keinen Fehler (Probestadt, Stelle und ganze Karte)", () =>
         {
             var e = Oeffnen("probestadt");
+            // Seit 4.11.2026 liegen die Bauzonen aus dem Raster genau 2 m neben den Plätzen: Gedreht ragt der Platz in diesen Rand (Regel
+            // „zone-gebaeude“) – nach dem Drehen rechnet man die Zonen neu (wie das Kartenskript), dann ist die Karte wieder ohne Fehler.
             var stelle = Kartenpruefung.PruefeStelle(e, "wohnhausplatz", 0, -35, 205, kennung: "Wohnhausplatz2");
-            Pruefe.Wahr(Fehler(stelle).Count == 0, "schräg an seiner Stelle\n  " + Liste(stelle));
+            Pruefe.Wahr(Fehler(stelle).All(b => b.Regel == "zone-gebaeude"), "schräg an seiner Stelle\n  " + Liste(stelle));
             e.Versetzen("Wohnhausplatz2", 0, -35, 205);
             Pruefe.Gleich(205.0, e.Gebaeude.Single(g => g.Kennung == "Wohnhausplatz2").Drehung);
+            e.BauzonenAusRaster();
             Pruefe.Wahr(!e.HatFehler, "Probestadt mit schrägem Wohnhausplatz des Spielers\n  " + Liste(Fehler(e.Befunde)));
         }),
 
