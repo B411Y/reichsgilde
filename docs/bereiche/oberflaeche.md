@@ -310,7 +310,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Anzeige | Betriebsverwaltung (`GaststubeAktualisieren`) unter „Erwartet ≈ … Gäste“: „Plätze: belegt / frei (von n)“ aus `Gastwirtschaft.Platzbelegung` (Schätzung der laufenden Stunde), dahinter „heute kein Platz: n“ aus `Gaestebuch.Voll` nur, wenn größer 0, mit „(davon m ohne Platz in der ganzen Stadt)“ aus `Ausgefallen`. Nur Gäste-Plätze, keine Einwohner-Grenze (greift mit den Spieldaten nie). Tooltip in einfacher Sprache am Gästetext | 02.11.2026 |
 
-### Mauszeiger (PR #…)
+### Mauszeiger (PR #308)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
