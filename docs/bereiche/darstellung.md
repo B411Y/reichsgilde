@@ -238,6 +238,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Gras | `GrasAeckerMelden` bekommt je Stück das gedrehte Rechteck um den zugeschnittenen Teil statt des ganzen Stücks | 04.11.2026 |
 | Bäume in Umlandmodellen | Gebaut (PR #306): Holzschlag (zehn Kiefern), Wald der Einwohner (sieben Kiefern, ein Laubbaum) und Klosterhof (Laubbaum) haben ihre Kegel-Tannen und runden Kronen verloren; an ihrer Stelle stehen im Modell Marker (leere Knoten `Baum_<Art><Variante>_<Nr>`, im Wald `Wald_Baum_…`, `landbau.baum_marker`), die `Stadtansicht.BaumMarkerEinsetzen` mit Kit-Bäumen besetzt (je Art ein MultiMesh unterm Modell, im Winter kahle Fassung; Klickfläche und Freiraum der Natur rechnen die Marker mit). Haus, Holzstapel und Stümpfe unverändert. Weg (b) statt Kit-Bäume im Netz: die Bäume wechseln im Winter (kahle Fassung), kosten kein eigenes Material im Modell und teilen die Netze der Natur. Messung Köln, Zoom 35, Pixel-Look, Hoch, RTX 2000 Ada, GPU-Zeit vorher/nachher: Holzschlag 3,9 / 4,6 ms, Wald 4,7 / 3,5 ms (Rauschen, kein Unterschied). Die Vorschaubilder in `docs/modelle/` zeigen die Marker nicht (ohne Bäume) und wurden nicht neu gerendert | 04.11.2026 |
 | Außerhalb des Bereichs | Kern: `Baustein.Massstab`, `NaturVerteilung`, `FeldVerteilung.Flaeche`/`Alle`, `Kartenentwurf.FelderVon` (je ein Schalter bzw. Faktor); `game/daten/katalog.json`; Tests angepasst (`KartenformatTests`, `KartenbauTests`, `KartenwerkstattWegeTests`) und `FeldRandTests` neu | 04.11.2026 |
+### Niederschlag bei jedem Zoom gleich, Schnee wie Federn, Bäume im Wind (Branch fix/wetter-zoom-feder-wind)
+
+Ursache der Flecken: Regen und Schnee waren `GPUParticles3D` mit Lebensdauer (Regen 1 s, Schnee 5 s) und `LocalCoords = false`; neu geboren wurden sie im Kasten von damals, vorhandene blieben dort, wo sie waren. Nach schnellem Zoom oder Schwenk hing der neue, größere Kasten an wenigen Inseln aus dem alten, bis alle Teilchen einmal erneuert waren.
+
+| Entscheidung | Wert |
+|---|---|
+| Niederschlag ohne Zustand | `MultiMeshInstance3D` aus Quads, der Ort jeder Flocke kommt im Vertex-Shader aus `INSTANCE_ID` als umlaufender Bruchteil des Kastens; Mitte, Größe, Drehung und Versatz (Kamerabewegung, Wind, Fall) kommen jedes Bild als Uniforms. Zoom und Schwenk füllen den Kasten sofort gleichmäßig (Zahlenfolge R3 mit Streuung, nicht Zufallshaufen). Menge und Größe wie vorher (mal k), Ein- und Ausblenden an Ober- und Unterkante des Kastens |
+| Regen | wie #300: senkrecht, ab Gewitter 18° (Richtung als Uniform, Versatz folgt der Fallrichtung) |
+| Schnee wie Feder | Seitenschwung 0,8–1,8 m (mal k) mit eigener Richtung, Phase, Takt (2–4 s) und Neigung (Flocke kippt und wird flach); Fallgeschwindigkeit `1 + 0,6 cos 2θ`: an den Umkehrpunkten langsam, in der Mitte schnell, nie unter 0,4, also nie Stillstand oder Aufstieg; Flockengröße 1,2 × alt, Bildpunkt-Mindestgröße 2,4 |
+| Bäume im Wind | `baum_wind.gdshader` ersetzt die Materialien der Kit-Bäume (Rinde, Laub, Nadeln, Totholz; auch Winterfassung und Marker-Bäume): Neigung und Wiegen mit `wetter_wind` (Stärke ~ 0,006 + 0,085 · Wind² der Baumhöhe, Krone quadratisch mit der Höhe), feines Flattern nur bei Blättern und Nadeln, je Baum eigene Phase aus dem Ort. Die Jahreszeitfarbe des Laubs geht über `LaubFaerben` an die neuen Materialien. Die Büsche und eigenen Bäume (`natur_baeume`) wiegen sich bereits über `wetter_laub` (Materialart Laub) |
+
 ### Schnee fällt, Sturm-Regen weniger schräg (04.11.2026)
 
 | Entscheidung | Wert |
