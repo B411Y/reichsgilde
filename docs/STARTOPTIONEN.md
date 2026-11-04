@@ -93,6 +93,7 @@ Startoptionen (nach `--`):
 - `--natur=<25–100>`
 - `--passanten=<25–100>`
 - `--feinheiten=<Nah|Mittel|Weit>`
+- `--fuellung=0` (keine Füllung der Restflächen: Gärten, Werkhöfe und Gestrüpp auf den freien Rasterfeldern der Stadt; Standard an; für Vorher-Nachher-Bilder und Messungen; `Stadtansicht.Restflaechen.cs`)
 - `--boden=<Niedrig|Mittel|Hoch>` (Bodenqualität: Mischung der Bodentexturen, Normalen, Grasbüschel)
 - `--gras=<Aus|Dicht|SehrDicht>` (Grasteppich: 3D-Halme auf der Wiese, nur für diesen Start)
 - `--tiltshift=<Aus|Leicht|Stark>`

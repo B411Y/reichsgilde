@@ -123,6 +123,7 @@ public partial class Stadtansicht
     {
         if (_karteGebaut) yield break;
         _karteGebaut = true;
+        if (karte is not null) RestflaechenVorladen(karte); // Baukästen im Hintergrund laden (Stadtansicht.Restflaechen.cs)
         _karte = karte;
         if (karte is null)
         {
@@ -161,6 +162,7 @@ public partial class Stadtansicht
         Ladezeit.Marke("Szene: Umland und Anschlüsse");
         yield return new Ladeschritt(0.58f, "Bäume werden gepflanzt …");
         NaturAusKarte(karte); // Stadtansicht.Natur.cs
+        RestflaechenAusKarte(karte); // Stadtansicht.Restflaechen.cs: Gärten, Werkhöfe und Gestrüpp auf den freien Flächen
         FelsenAusKarte(karte); // Stadtansicht.Felsen.cs
         KulisseAusKarte(karte); // Stadtansicht.Kulisse.cs
         Ladezeit.Marke("Szene: Natur");
