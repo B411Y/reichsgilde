@@ -60,6 +60,10 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Hafen ruht) Soll der Hafen ein eigenes Ziel der Karren werden? Sie fahren zum näheren Handelsort, im Eis nur zum Marktplatz.
 - (Hafen ruht) Schmied in der Greybox −9 % gegenüber Schiffshandel (Köln im Ziel); ggf. Landhandel-Nachfrage der Schmiedewaren nachstellen.
 - (Fels) Ein von Hand falsch langes `achsen` (nicht drei Zahlen) fällt still weg; ein Prüfhinweis fehlt (der Entwurf kennt den Rohwert nicht).
+- (Raster-Bauzonen, an Oberfläche/Darstellung) Kartenwerkstatt: Knopf „Bauzonen berechnen“ (`Kartenentwurf.BauzonenAusRaster()`, ein Schritt mit Rückgängig), Werkzeug für die Lage-Gebiete (`LagenSetzen`) und Anzeige der Restflächen; heute rechnet nur das Kartenskript (`bauzonen <karte>`).
+- (Raster-Bauzonen) Wird eine berechnete Zone in der Werkstatt von Hand verändert, bleibt sie „berechnet“ und fällt bei der nächsten Rechnung weg. Empfehlung: Beim Bearbeiten einer Ecke `Berechnet` löschen (dann ist sie eine Hand-Zone und geht vor).
+- (Raster-Bauzonen) Die Messstadt hat noch ihre vier Hand-Zonen (Messkarte, bewusst nicht umgestellt).
+- (Raster-Bauzonen, Designfrage) Restflächen „klein“ unter 24 Feldern, in die ein Gebäude passt (z. B. 20 Felder = 4 × 5 Wohnhaus): Bleiben sie Garten oder wird die Mindestgröße einer Zone 20 bzw. „passt ein Wohnhaus“? Empfehlung: so lassen (24 wie bisher in Köln), erst nach der Darstellung der Gärten entscheiden.
 
 ## Entscheidungen
 
@@ -265,3 +269,15 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Kennung und Spielstand | Die Kennung ist zugleich der Anzeigename, darum mit umbenannt statt eines eigenen Anzeigenamens. Alte Spielstände bringen ihre Daten mit „Kriegskarren“ mit und würden sonst so heißen (und die Lexikonwerte fänden den Pferdekarren nicht): `LogistikDaten.AlteKarrenarten` stellt beim Laden Daten, Karrenart und Karrennamen um, `KarrenKaufen` übersetzt alte Befehle. Spielstandformat bleibt. | 4.11.2026 |
 | Datenversion | Bleibt 71: kein Wert und kein Feld ändert sich, nur ein Schlüssel; alte Spielstände stellt der Lade-Alias um. Reihenfolge nach Kennung (KI: `OrderBy(Key)`) jetzt Hand, Ochse, Pferd statt Hand, Krieg, Ochse – die KI entscheidet bei Gleichstand nach Preis, Tests und Gleichheitstest unverändert grün. | 4.11.2026 |
 
+### Bauzonen aus dem Raster für jede Karte (PR #310)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Variante A (Nutzer, C+A freigegeben): die Köln-Rechnung „frei heißt bebaubar“ als `Kartenentwurf.BauzonenAusRaster` im Kern (`Kartenwerkstatt/Rasterbauzonen.cs`). Köln, Greybox und Probestadt rechnen damit; gerechnet wird beim Kartenbau, nie in der Partie. Bauwesen, Befehle, Spielstand und Mehrspieler unverändert; Datenversion bleibt (wirtschaft.json unberührt). | 04.11. |
+| Lage | Grobe Lage-Gebiete `lagen` in der Karte (erstes Gebiet gilt, Art auch „keine“) oder eine Regel des Stadtskripts (`Rastervorgaben.LageVon`, Köln). Keine automatische Regel „Umkreis um den Markt“ – die Gebiete zeichnet man von Hand. | 04.11. |
+| Hand-Zonen | Zonen ohne `"berechnet": true` sind von Hand gezeichnet, bleiben bei jeder Rechnung, gehen vor (Felder darauf und daran bleiben frei) und stehen hinter den berechneten (Köln: 7 Werkstatt-Bauplätze). | 04.11. |
+| Abstände | Wege halbe Breite + 0,5 m, Gebäude 2 m, Mauer und Ufer 2 m wie die Prüfung (genau 2 m ist frei); Köln behält 3 m zu Mauer und Ufer und seinen Bereich x −340 … 250 – so bleiben seine 57 Zonen gleich. Hang bis 7 % (8-×-8-m-Fenster), Feld ≤ 30 m und Zone ≤ 7,5 m von einer Karrenstraße, mindestens 24 Felder. | 04.11. |
+| Restflächen | Freie Felder in Kern, Mauerring und Vorstadt, die keine Zone wurden, als `restflaechen` (Kennung R…, Lage, Grund `klein` unter 24 Feldern oder `abseits`, Felder, Umriss); im Umland keine. Nur Daten für die Darstellung, in `Stadtkarte.Restflaechen`. | 04.11. |
+| Greybox | Umbau `greybox-raster`: sieben Lage-Gebiete um die alten Zonen (der Mischwald im Westen bleibt Wald), 11 Hand-Zonen → 9 berechnete; jedes alte Feld bleibt Zone derselben Lage (Kern 268 → 335, Mauerring 130 → 156, Vorstadt 442 → 781 Felder). Der Probeplan bekommt die neuen Zonennamen. | 04.11. |
+| Probestadt | Drei Lage-Gebiete (Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt bis zu den Feldwegen): Vorstadt 4.104 → 4.562 Felder, neu Kern 1.162 und Mauerring 464; die Reserve Stadthof passt jetzt (4 von 4, vorher 0). | 04.11. |
+| Köln-Felder | Das Kölner Stadtskript hat die sechs achsparallelen Felder aus `koeln.json` (PR „Felder an den Weltachsen“) übernommen, damit ein Neubau sie nicht zurücksetzt. | 04.11. |

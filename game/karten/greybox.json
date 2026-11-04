@@ -136,24 +136,66 @@
   {"name": "Weinmarktgässchen", "klasse": "gasse", "linie": [[-23, 22.5], [-13.8, 22.5], [-13.8, 6]], "gefahr": 1, "breite": 2.4}
  ],
  "bauzonen": [
-  {"kennung": "K1", "art": "kern", "flaeche": [[4, 22], [36, 22], [36, 36], [4, 36]]},
-  {"kennung": "K2", "art": "kern", "flaeche": [[-12, 14], [8, 14], [8, 22], [4, 22], [4, 36], [-12, 36]]},
-  {"kennung": "K3", "art": "kern", "flaeche": [[-36, 26], [-12, 26], [-12, 36], [-36, 36]]},
-  {"kennung": "V1", "art": "vorstadt", "flaeche": [[-118, -12], [-92, -12], [-92, 2], [-118, 2]]},
-  {"kennung": "V2", "art": "vorstadt", "flaeche": [[-120, 10], [-104, 10], [-104, 24], [-120, 24]]},
-  {"kennung": "V3", "art": "vorstadt", "flaeche": [[-96, 10], [-80, 10], [-80, 24], [-96, 24]]},
-  {"kennung": "V5", "art": "vorstadt", "flaeche": [[-112, 28], [-102, 28], [-102, 36], [-112, 36]]},
-  {"kennung": "M1", "art": "mauerring", "flaeche": [[-80, -58], [-66, -58], [-66, -44], [-62, -44], [-62, -26], [-80, -26]]},
-  {"kennung": "V6", "art": "vorstadt", "flaeche": [[-76, -66], [-66, -66], [-66, -58], [-76, -58]]},
-  {"kennung": "V7", "art": "vorstadt", "flaeche": [[-42, -62], [-34, -62], [-34, -66], [-16, -66], [-16, -52], [-42, -52]]},
+  {"kennung": "K1", "art": "kern", "flaeche": [[-36, -36], [-14, -36], [-14, -30], [-28, -30], [-28, -28], [-30, -28], [-30, -20], [-36, -20]], "berechnet": true},
+  {"kennung": "K2", "art": "kern", "flaeche": [[-36, 26], [-12, 26], [-12, 14], [8, 14], [8, 22], [32, 22], [32, 4], [36, 4], [36, 36], [-36, 36]], "berechnet": true},
   {
-   "kennung": "V8",
+   "kennung": "M1",
+   "art": "mauerring",
+   "flaeche": [[-82, -58], [-66, -58], [-66, -54], [-64, -54], [-64, -44], [-62, -44], [-62, -32], [-60, -32], [-60, -26], [-70, -26], [-70, -24], [-80, -24], [-80, -32], [-82, -32]],
+   "berechnet": true
+  },
+  {"kennung": "V1", "art": "vorstadt", "flaeche": [[-120, 10], [-104, 10], [-104, 24], [-102, 24], [-102, 36], [-104, 36], [-104, 38], [-120, 38]], "berechnet": true},
+  {"kennung": "V2", "art": "vorstadt", "flaeche": [[-118, -14], [-88, -14], [-88, 2], [-118, 2]], "berechnet": true},
+  {
+   "kennung": "V3",
    "art": "vorstadt",
    "flaeche": [
-    [-56, -78], [-48, -78], [-48, -82], [-40, -82], [-40, -84], [-32, -84], [-32, -96], [-16, -96], [-16, -82], [-32, -82], [-32, -74], [-40, -74], [-40, -72], [-48, -72], [-48, -68],
-    [-56, -68]
-   ]
+    [-98, 10], [-78, 10], [-78, 18], [-80, 18], [-80, 34], [-78, 34], [-78, 38], [-84, 38], [-84, 36], [-86, 36], [-86, 34], [-90, 34], [-90, 36], [-94, 36], [-94, 28], [-96, 28],
+    [-96, 14], [-98, 14]
+   ],
+   "berechnet": true
+  },
+  {"kennung": "V4", "art": "vorstadt", "flaeche": [[-78, -68], [-64, -68], [-64, -60], [-66, -60], [-66, -58], [-78, -58]], "berechnet": true},
+  {
+   "kennung": "V5",
+   "art": "vorstadt",
+   "flaeche": [
+    [-58, -92], [-56, -92], [-56, -94], [-50, -94], [-50, -96], [-46, -96], [-46, -98], [-14, -98], [-14, -88], [-16, -88], [-16, -80], [-20, -80], [-20, -78], [-26, -78], [-26, -76],
+    [-30, -76], [-30, -74], [-36, -74], [-36, -72], [-40, -72], [-40, -70], [-46, -70], [-46, -68], [-50, -68], [-50, -66], [-54, -66], [-54, -64], [-58, -64]
+   ],
+   "berechnet": true
+  },
+  {
+   "kennung": "V6",
+   "art": "vorstadt",
+   "flaeche": [
+    [-58, -56], [-54, -56], [-54, -58], [-50, -58], [-50, -60], [-44, -60], [-44, -62], [-40, -62], [-40, -64], [-34, -64], [-34, -66], [-30, -66], [-30, -68], [-24, -68], [-24, -70],
+    [-20, -70], [-20, -72], [-16, -72], [-16, -70], [-14, -70], [-14, -52], [-52, -52], [-52, -50], [-56, -50], [-56, -52], [-58, -52]
+   ],
+   "berechnet": true
   }
+ ],
+ "lagen": [
+  {"art": "mauerring", "name": "Hof vor der Westmauer", "flaeche": [[-82, -58], [-60, -58], [-60, -24], [-82, -24]]},
+  {"art": "kern", "name": "innerhalb der Ringgasse", "flaeche": [[-38, -38], [38, -38], [38, 38], [-38, 38]]},
+  {"art": "mauerring", "name": "zwischen Ringgasse und Mauer", "flaeche": [[-50, -50], [50, -50], [50, 50], [-50, 50]]},
+  {"art": "vorstadt", "name": "an der Weststraße, Nordseite", "flaeche": [[-118, -14], [-78, -14], [-78, 6], [-118, 6]]},
+  {"art": "vorstadt", "name": "an der Weststraße, Südseite", "flaeche": [[-120, 6], [-78, 6], [-78, 38], [-120, 38]]},
+  {"art": "vorstadt", "name": "am Abzweig zum Felsenhang", "flaeche": [[-78, -68], [-64, -68], [-64, -56], [-78, -56]]},
+  {"art": "vorstadt", "name": "am Weg zum Felsenhang", "flaeche": [[-58, -98], [-14, -98], [-14, -50], [-58, -50]]}
+ ],
+ "restflaechen": [
+  {"kennung": "R1", "art": "kern", "grund": "klein", "felder": 15, "flaeche": [[-36, -8], [-30, -8], [-30, 2], [-36, 2]]},
+  {"kennung": "R2", "art": "kern", "grund": "klein", "felder": 16, "flaeche": [[32, -20], [36, -20], [36, -4], [32, -4]]},
+  {"kennung": "R3", "art": "mauerring", "grund": "klein", "felder": 5, "flaeche": [[-48, -48], [-46, -48], [-46, -38], [-48, -38]]},
+  {"kennung": "R4", "art": "mauerring", "grund": "klein", "felder": 4, "flaeche": [[-48, 10], [-40, 10], [-40, 12], [-48, 12]]},
+  {"kennung": "R5", "art": "mauerring", "grund": "klein", "felder": 13, "flaeche": [[-48, 34], [-40, 34], [-40, 38], [-46, 38], [-46, 48], [-48, 48]]},
+  {"kennung": "R6", "art": "mauerring", "grund": "klein", "felder": 12, "flaeche": [[28, 40], [34, 40], [34, 48], [28, 48]]},
+  {"kennung": "R7", "art": "mauerring", "grund": "klein", "felder": 9, "flaeche": [[40, -38], [46, -38], [46, -48], [48, -48], [48, -36], [40, -36]]},
+  {"kennung": "R8", "art": "mauerring", "grund": "klein", "felder": 18, "flaeche": [[42, 36], [48, 36], [48, 48], [42, 48]]},
+  {"kennung": "R9", "art": "vorstadt", "grund": "klein", "felder": 4, "flaeche": [[-82, -14], [-80, -14], [-80, -6], [-82, -6]]},
+  {"kennung": "R10", "art": "vorstadt", "grund": "klein", "felder": 3, "flaeche": [[-80, -4], [-78, -4], [-78, 2], [-80, 2]]},
+  {"kennung": "R11", "art": "vorstadt", "grund": "klein", "felder": 11, "flaeche": [[-58, -98], [-46, -98], [-46, -96], [-50, -96], [-50, -94], [-56, -94], [-56, -92], [-58, -92]]}
  ],
  "natur": {
   "flaechen": [
@@ -547,27 +589,27 @@
   "Der Grenzfluss (PR #199) läuft über die ganze Breite der Karte; an beiden Enden beginnen die Schiffsrouten zu den fernen Städten. Der Kiesplatz östlich des Hafens ist der Platz der Zollstelle."
  ],
  "probeplan": [
-  {"art": "Werkstatt", "zone": "V1", "punkt": [-110, -5], "groesse": [16, 14], "drehung": 0},
-  {"art": "Wohnhaus", "zone": "V1", "punkt": [-96, -3], "groesse": [8, 10], "drehung": 0},
-  {"art": "Werkstatt", "zone": "V2", "punkt": [-112, 17], "groesse": [16, 14], "drehung": 180},
+  {"art": "Werkstatt", "zone": "V2", "punkt": [-110, -5], "groesse": [16, 14], "drehung": 0},
+  {"art": "Wohnhaus", "zone": "V2", "punkt": [-96, -3], "groesse": [8, 10], "drehung": 0},
+  {"art": "Werkstatt", "zone": "V1", "punkt": [-112, 17], "groesse": [16, 14], "drehung": 180},
   {"art": "Werkstatt", "zone": "V3", "punkt": [-88, 17], "groesse": [16, 14], "drehung": 180},
-  {"art": "Wohnhaus", "zone": "V5", "punkt": [-107, 32], "groesse": [8, 10], "drehung": 90},
+  {"art": "Wohnhaus", "zone": "V1", "punkt": [-107, 32], "groesse": [8, 10], "drehung": 90},
   {"art": "Stadthof", "zone": "M1", "punkt": [-73, -50], "groesse": [16, 14], "drehung": 90},
   {"art": "Stadthof", "zone": "M1", "punkt": [-69, -34], "groesse": [16, 14], "drehung": 90},
-  {"art": "Wohnhaus", "zone": "V6", "punkt": [-71, -62], "groesse": [8, 10], "drehung": 90},
-  {"art": "Werkstatt", "zone": "V7", "punkt": [-24, -59], "groesse": [16, 14], "drehung": 180},
-  {"art": "Wohnhaus", "zone": "V7", "punkt": [-38, -57], "groesse": [8, 10], "drehung": 180},
-  {"art": "Wohnhaus", "zone": "V8", "punkt": [-52, -73], "groesse": [8, 10], "drehung": 0},
-  {"art": "Wohnhaus", "zone": "V8", "punkt": [-44, -77], "groesse": [8, 10], "drehung": 0},
-  {"art": "Wohnhaus", "zone": "V8", "punkt": [-36, -79], "groesse": [8, 10], "drehung": 0},
-  {"art": "Werkstatt", "zone": "V8", "punkt": [-24, -89], "groesse": [16, 14], "drehung": 0},
-  {"art": "Werkstatt", "zone": "K1", "punkt": [12, 29], "groesse": [16, 14], "drehung": 0},
-  {"art": "Werkstatt", "zone": "K1", "punkt": [28, 29], "groesse": [16, 14], "drehung": 0},
+  {"art": "Wohnhaus", "zone": "V4", "punkt": [-71, -62], "groesse": [8, 10], "drehung": 90},
+  {"art": "Werkstatt", "zone": "V6", "punkt": [-24, -59], "groesse": [16, 14], "drehung": 180},
+  {"art": "Wohnhaus", "zone": "V6", "punkt": [-38, -57], "groesse": [8, 10], "drehung": 180},
+  {"art": "Wohnhaus", "zone": "V5", "punkt": [-52, -73], "groesse": [8, 10], "drehung": 0},
+  {"art": "Wohnhaus", "zone": "V5", "punkt": [-44, -77], "groesse": [8, 10], "drehung": 0},
+  {"art": "Wohnhaus", "zone": "V5", "punkt": [-36, -79], "groesse": [8, 10], "drehung": 0},
+  {"art": "Werkstatt", "zone": "V5", "punkt": [-24, -89], "groesse": [16, 14], "drehung": 0},
+  {"art": "Werkstatt", "zone": "K2", "punkt": [12, 29], "groesse": [16, 14], "drehung": 0},
+  {"art": "Werkstatt", "zone": "K2", "punkt": [28, 29], "groesse": [16, 14], "drehung": 0},
   {"art": "Werkstatt", "zone": "K2", "punkt": [-4, 29], "groesse": [16, 14], "drehung": 0},
   {"art": "Wohnhaus", "zone": "K2", "punkt": [3, 18], "groesse": [8, 10], "drehung": 90},
-  {"art": "Wohnhaus", "zone": "K3", "punkt": [-32, 31], "groesse": [8, 10], "drehung": 0},
-  {"art": "Wohnhaus", "zone": "K3", "punkt": [-24, 31], "groesse": [8, 10], "drehung": 0},
-  {"art": "Wohnhaus", "zone": "K3", "punkt": [-16, 31], "groesse": [8, 10], "drehung": 0}
+  {"art": "Wohnhaus", "zone": "K2", "punkt": [-32, 31], "groesse": [8, 10], "drehung": 0},
+  {"art": "Wohnhaus", "zone": "K2", "punkt": [-24, 31], "groesse": [8, 10], "drehung": 0},
+  {"art": "Wohnhaus", "zone": "K2", "punkt": [-16, 31], "groesse": [8, 10], "drehung": 0}
  ],
  "hoehen": {
   "abstand": 2,

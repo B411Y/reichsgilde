@@ -79,10 +79,35 @@
   {"name": "Weg zum Hafen", "klasse": "feldweg", "linie": [[-130, 97], [-90, 97]], "gefahr": 1, "breite": 3}
  ],
  "bauzonen": [
-  {"kennung": "VON", "art": "vorstadt", "flaeche": [[76, -4], [184, -4], [184, -42], [76, -42]]},
-  {"kennung": "VOS", "art": "vorstadt", "flaeche": [[76, 4], [184, 4], [184, 42], [76, 42]]},
-  {"kennung": "VWN", "art": "vorstadt", "flaeche": [[-76, -4], [-184, -4], [-184, -42], [-76, -42]]},
-  {"kennung": "VWS", "art": "vorstadt", "flaeche": [[-76, 4], [-184, 4], [-184, 42], [-76, 42]]}
+  {
+   "kennung": "K1",
+   "art": "kern",
+   "flaeche": [
+    [-54, -40], [-16, -40], [-16, -28], [16, -28], [16, -40], [54, -40], [54, -4], [42, -4], [42, -20], [22, -20], [22, -4], [14, -4], [14, -14], [10, -14], [10, -26], [-10, -26],
+    [-10, -14], [-14, -14], [-14, -4], [-20, -4], [-20, -20], [-40, -20], [-40, -4], [-54, -4]
+   ],
+   "berechnet": true
+  },
+  {
+   "kennung": "K2",
+   "art": "kern",
+   "flaeche": [[-54, 4], [-40, 4], [-40, 20], [-20, 20], [-20, 4], [-14, 4], [-14, 14], [-10, 14], [-10, 28], [-16, 28], [-16, 40], [-54, 40]],
+   "berechnet": true
+  },
+  {"kennung": "K3", "art": "kern", "flaeche": [[10, 14], [14, 14], [14, 4], [22, 4], [22, 20], [42, 20], [42, 4], [54, 4], [54, 40], [16, 40], [16, 28], [10, 28]], "berechnet": true},
+  {"kennung": "M1", "art": "mauerring", "flaeche": [[-68, -52], [-50, -52], [-50, -44], [-60, -44], [-60, -4], [-68, -4]], "berechnet": true},
+  {"kennung": "M2", "art": "mauerring", "flaeche": [[-68, 4], [-60, 4], [-60, 44], [-50, 44], [-50, 52], [-68, 52]], "berechnet": true},
+  {"kennung": "M3", "art": "mauerring", "flaeche": [[50, -52], [68, -52], [68, -4], [60, -4], [60, -44], [50, -44]], "berechnet": true},
+  {"kennung": "M4", "art": "mauerring", "flaeche": [[50, 44], [60, 44], [60, 4], [68, 4], [68, 52], [50, 52]], "berechnet": true},
+  {"kennung": "V1", "art": "vorstadt", "flaeche": [[-188, -44], [-76, -44], [-76, -4], [-188, -4]], "berechnet": true},
+  {"kennung": "V2", "art": "vorstadt", "flaeche": [[-188, 4], [-76, 4], [-76, 44], [-188, 44]], "berechnet": true},
+  {"kennung": "V3", "art": "vorstadt", "flaeche": [[72, -46], [74, -46], [74, -44], [188, -44], [188, -4], [72, -4]], "berechnet": true},
+  {"kennung": "V4", "art": "vorstadt", "flaeche": [[72, 4], [188, 4], [188, 44], [74, 44], [74, 46], [72, 46]], "berechnet": true}
+ ],
+ "lagen": [
+  {"art": "kern", "name": "innerhalb der Ringstraße", "flaeche": [[-56, -42], [56, -42], [56, 42], [-56, 42]]},
+  {"art": "mauerring", "name": "zwischen Ringstraße und Mauer", "flaeche": [[-70, -56], [70, -56], [70, 56], [-70, 56]]},
+  {"art": "vorstadt", "name": "vor den Toren bis zu den Feldwegen", "flaeche": [[-190, -46], [190, -46], [190, 46], [-190, 46]]}
  ],
  "natur": {
   "flaechen": [

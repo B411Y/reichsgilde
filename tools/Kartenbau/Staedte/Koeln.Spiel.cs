@@ -127,15 +127,15 @@ public sealed partial class Koeln
         E.NaturflaecheAnlegen("wald", new[] { P(168, -199), P(300, -199), P(300, -100), P(192, -112) }, "Tannenwald");
         // Wiesen und Hecken um die Stadt (nicht innerhalb der Mauer)
         E.NaturflaecheAnlegen("streu", new[] { P(-399, -199), P(299, -199), P(299, 249), P(-399, 249) }, "Wiesen der Kölner Bucht");
-        // Äcker der Kölner Bucht
+        // Äcker der Kölner Bucht (seit 4.11.2026 achsparallele Rechtecke wie in koeln.json, Felder an den Weltachsen)
         foreach (var (name, ecken, richtung) in new[]
         {
-            ("Feld Aachen", new[] { P(-340, 30), P(-210, 28), P(-205, 100), P(-335, 110) }, 85.0),
-            ("Feld Venlo", new[] { P(-330, -70), P(-200, -72), P(-195, -10), P(-325, -12) }, 80.0),
-            ("Feld Neuss", new[] { P(-130, -195), P(-30, -195), P(-35, -155), P(-120, -158) }, 10.0),
-            ("Feld Bonn", new[] { P(-90, 160), P(-20, 165), P(-25, 240), P(-95, 235) }, 5.0),
-            ("Deutzer Feld", new[] { P(125, 60), P(210, 60), P(215, 150), P(130, 160) }, 0.0),
-            ("Feld Mülheim", new[] { P(75, -195), P(140, -195), P(140, -120), P(80, -125) }, 0.0),
+            ("Feld Aachen", new[] { P(-337.5, 29), P(-207.5, 29), P(-207.5, 105), P(-337.5, 105) }, 85.0),
+            ("Feld Venlo", new[] { P(-327.5, -71), P(-197.5, -71), P(-197.5, -11), P(-327.5, -11) }, 80.0),
+            ("Feld Neuss", new[] { P(-125, -195), P(-32.5, -195), P(-32.5, -156.5), P(-125, -156.5) }, 10.0),
+            ("Feld Bonn", new[] { P(-92.5, 162.5), P(-22.5, 162.5), P(-22.5, 237.5), P(-92.5, 237.5) }, 5.0),
+            ("Deutzer Feld", new[] { P(127.5, 60), P(212.5, 60), P(212.5, 155), P(127.5, 155) }, 0.0),
+            ("Feld Mülheim", new[] { P(77.5, -195), P(140, -195), P(140, -122.5), P(77.5, -122.5) }, 0.0),
         })
             E.FeldAnlegen(ecken, name, richtung);
     }

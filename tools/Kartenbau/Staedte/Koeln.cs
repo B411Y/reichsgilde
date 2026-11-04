@@ -94,8 +94,9 @@ public sealed partial class Koeln : Stadtskript
         Umland();
         Arbeitsstellen();
         KreuzungenVerbinden();
+        LagenVorbereiten();
+        WerkstattbauplaetzeAnlegen();   // von Hand gezeichnet, gehen vor
         Bauzonen();
-        WerkstattbauplaetzeAnlegen();
         Natur();
         Boden();
         Start();

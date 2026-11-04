@@ -81,9 +81,9 @@ static class GreyboxTests
                 Pruefe.Wahr(lage.Length <= 40, $"zu lang: {weg.Name} → {lage}");
             }
 
-            // Am Stück: die Werkstatt des Probeplans in V8 liegt am Weg zum Steinbruch am Felsenhang.
+            // Am Stück: die Werkstatt des Probeplans in V5 (bis 4.11.2026 V8) liegt am Weg zum Steinbruch am Felsenhang.
             var (_, w) = MitKarte();
-            var v8 = Probeplan().First(p => p.Art == "Werkstatt" && p.Zone == "V8");
+            var v8 = Probeplan().First(p => p.Art == "Werkstatt" && p.Zone == "V5");
             var name = w.Bauen.Vorschau(Reich(w, "Haus Esse"), v8.Befehl()).Betrieb!;
             Pruefe.Wahr(name.StartsWith("Gießerei ") && !name.Contains("Weg zu"), name);
         }),
@@ -93,7 +93,7 @@ static class GreyboxTests
             var k = Karte();
             Pruefe.Gleich("greybox", k.Kennung);
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
-            Pruefe.Gleich(11, k.Bauzonen.Count); // dazu K1–K3 auf den Plätzen der früheren Werkstätten zum Kauf (PR #162)
+            Pruefe.Gleich(9, k.Bauzonen.Count); // seit 4.11.2026 aus dem Raster (vorher 11 von Hand); alle Felder der alten Zonen sind weiter Zone
             Pruefe.Gleich(Lage.Mauerring, k.Bauzonen.Single(z => z.Kennung == "M1").Art); // vor der Westmauer, bewusst Mauerring (siehe „fiktion“)
             Pruefe.Wahr(k.GebaeudeDerArt(Bausteinart.Werkstattplatz).All(f => f.Grundriss is not null), "jeder Werkstattplatz hat eine Fläche");
 
@@ -158,8 +158,8 @@ static class GreyboxTests
             // Werkstatt an einer Gasse: Die Karrenstraßen vor der Werkstatt in V1 (Weststraße und Weg zum Holzschlag) werden probehalber
             // zu Gassen – dann darf die Werkstatt des Probeplans dort nicht mehr stehen, das Wohnhaus daneben schon.
             var plan = Probeplan();
-            var werkstatt = plan.First(p => p.Art == "Werkstatt" && p.Zone == "V1");
-            var wohnhaus = plan.First(p => p.Art == "Wohnhaus" && p.Zone == "V1");
+            var werkstatt = plan.First(p => p.Art == "Werkstatt" && p.Zone == "V2");
+            var wohnhaus = plan.First(p => p.Art == "Wohnhaus" && p.Zone == "V2");
             var vorplatz = b.Grundriss(werkstatt.Befehl()).Felder(2, nurVorplatz: true).ToList();
             var strassen = Karte().Wege.Where(x => x.IstKarrenstrasse && vorplatz.Any(f => x.Abstand(f.X, f.Z) <= 7)).Select(x => x.Name).ToHashSet();
             var json = JsonNode.Parse(File.ReadAllText(Pfad))!;

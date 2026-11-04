@@ -52,6 +52,9 @@ public enum Kartenteil
 
     /// <summary>Das Grundgestein der Karte (Felspinsel F3; nur einmal je Karte).</summary>
     Grundgestein,
+
+    /// <summary>Lage-Gebiete und Restflächen der Bauzonen aus dem Raster (<see cref="EntwurfRasterzonen"/>; nur einmal je Karte).</summary>
+    Rasterzonen,
 }
 
 /// <summary>Ein bearbeitbarer Teil des Entwurfs (Gebäude, Weg, Bauzone, Naturfläche, Pflanze).</summary>
@@ -290,28 +293,32 @@ public sealed class EntwurfBauzone : EntwurfFlaeche
     /// <summary>Was hier nur gebaut werden darf (<see cref="Bauzone.Nur"/>: „werkstatt“) – null: alles, was die Lage erlaubt.</summary>
     public string? Nur { get; internal set; }
 
+    /// <summary>Aus dem Raster berechnet (<see cref="Bauzone.Berechnet"/>): Eine neue Rechnung (<see cref="Kartenentwurf.BauzonenAusRaster"/>) ersetzt sie.</summary>
+    public bool Berechnet { get; internal set; }
+
     internal override void VieleckSetzen(int aussparung, IEnumerable<Kartenort> ecken) => _ecken = ecken.ToList();
 
     internal static EntwurfBauzone Aus(Bauzone z, JsonObject? vorlage) =>
-        new() { Kennung = z.Kennung, Art = z.Art, Nur = z.Nur, _ecken = Orte(z.Flaeche), Vorlage = vorlage };
+        new() { Kennung = z.Kennung, Art = z.Art, Nur = z.Nur, Berechnet = z.Berechnet, _ecken = Orte(z.Flaeche), Vorlage = vorlage };
 
     /// <summary>Die Zone in den Typen der Stadtkarte.</summary>
-    public Bauzone AlsBauzone() => new() { Kennung = Kennung, Art = Art, Nur = Nur, Flaeche = Roh(_ecken) };
+    public Bauzone AlsBauzone() => new() { Kennung = Kennung, Art = Art, Nur = Nur, Berechnet = Berechnet, Flaeche = Roh(_ecken) };
 
-    internal override EntwurfTeil KopieTeil() => new EntwurfBauzone { Kennung = Kennung, Art = Art, Nur = Nur, _ecken = _ecken.ToList(), Vorlage = Vorlage };
+    internal override EntwurfTeil KopieTeil() =>
+        new EntwurfBauzone { Kennung = Kennung, Art = Art, Nur = Nur, Berechnet = Berechnet, _ecken = _ecken.ToList(), Vorlage = Vorlage };
 
     internal override void UebernimmTeil(EntwurfTeil werte)
     {
         var o = (EntwurfBauzone)werte;
-        (Kennung, Art, Nur, _ecken, Vorlage) = (o.Kennung, o.Art, o.Nur, o._ecken.ToList(), o.Vorlage);
+        (Kennung, Art, Nur, Berechnet, _ecken, Vorlage) = (o.Kennung, o.Art, o.Nur, o.Berechnet, o._ecken.ToList(), o.Vorlage);
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) =>
-        anderer is EntwurfBauzone o && Kennung == o.Kennung && Art == o.Art && Nur == o.Nur && _ecken.SequenceEqual(o._ecken);
+        anderer is EntwurfBauzone o && Kennung == o.Kennung && Art == o.Art && Nur == o.Nur && Berechnet == o.Berechnet && _ecken.SequenceEqual(o._ecken);
 
     internal override JsonObject AlsJson() => Zusammensetzen(Vorlage,
         ("kennung", Kennung), ("art", Art.ToString().ToLowerInvariant()), ("flaeche", JsonPunkte(_ecken)),
-        ("nur", Nur is null ? null : JsonValue.Create(Nur)));
+        ("nur", Nur is null ? null : JsonValue.Create(Nur)), ("berechnet", Berechnet ? JsonValue.Create(true) : null));
 }
 
 /// <summary>
