@@ -36,6 +36,7 @@ GROESSEN = (32, 48, 64)
 KONTUR = (0.06, 0.04, 0.03)
 FUGE = (0.12, 0.065, 0.03)     # Fugen zwischen den Fingern: dunkelbraun statt schwarz
 FUGE_DECK = 0.55               # halbe Deckkraft
+KNOECHEL_DECK = 0.27           # Knöchel-Fuge Finger/Handrücken: halbe Stärke von Runde 10 (dort 0,55), dünn
 
 # Stufen: Ledertöne direkt als Basisfarbe (linear, gedeckt)
 STUFEN = [
@@ -693,8 +694,11 @@ def schloss_bauen(st, eisen=False):
     b.kegel(zier + "@rose", (rx, ry, 0.095), (rx, ry, 0.165), 0.125, 0.100, seg=24)
     b.kugel(griff + "@rose", (rx, ry, 0.175), 0.075, (1, 1, 0.75), seg=12)
     # S-förmig: von der Rose waagerecht, erst sanft nach oben, dann nach unten, am Ende eingerollt mit kleinem Knauf
-    stuetz = [Vector(v) for v in ((0.02, ry, 0.21), (0.22, ry + 0.065, 0.235), (0.44, ry + 0.080, 0.255), (0.62, ry - 0.020, 0.27),
-                                  (0.78, ry - 0.125, 0.28), (0.92, ry - 0.150, 0.285), (1.02, ry - 0.105, 0.285))]
+    # Länge auf zwei Drittel gekürzt (x mal K), Höhenschwung etwas weniger, damit die S-Form bleibt
+    K, KY = 2 / 3, 0.85
+    roh = ((0.02, 0.0, 0.21), (0.22, 0.065, 0.235), (0.44, 0.080, 0.255), (0.62, -0.020, 0.27),
+           (0.78, -0.125, 0.28), (0.92, -0.150, 0.285), (1.02, -0.105, 0.285))
+    stuetz = [Vector((x * K if x > 0.05 else x, ry + dy * KY, z)) for x, dy, z in roh]
     n = len(stuetz) - 1
     radien = [0.088 - 0.022 * i / n for i in range(n + 1)]
     kette = [(stuetz[i], stuetz[i + 1], radien[i], radien[i + 1], (stuetz[i + 1] - stuetz[i]).normalized()) for i in range(n)]
@@ -914,6 +918,7 @@ def fugen(gross, ids, ziel, hand=True):
     linie = aufweiten(rand, max(1, int(r * 0.6)))
     if not hand:
         linie |= aufweiten(rand_hr, 1)
+    knoechel = aufweiten(rand_hr, 1) & ~linie if hand else None      # Runde 12: Knöchel nur angedeutet
     licht = verschieben(linie, r + 1, r + 1) & ~linie & (f > 0)
     out = gross.copy()
     al = out[..., 3] > 0.5
@@ -922,6 +927,9 @@ def fugen(gross, ids, ziel, hand=True):
     out[linie & al, :3] = out[linie & al, :3] * (1 - deck) + weich * deck
     l2 = licht & al
     out[l2, :3] = np.clip(out[l2, :3] * 1.32 + 0.05, 0, 1)
+    if hand:
+        kn = knoechel & al
+        out[kn, :3] = out[kn, :3] * (1 - KNOECHEL_DECK) + weich * KNOECHEL_DECK
     return out
 
 
@@ -932,15 +940,19 @@ def fugen_klein(a, ids, n, hand=True):
     h, w = a.shape[:2]
     low = low[:h, :w]
     m = np.zeros(low.shape, dtype=bool)
+    kn = np.zeros(low.shape, dtype=bool)
     for dy, dx in ((0, 1), (1, 0)):
         nb = verschieben(low, dy, dx)
         d = (low > 0) & (nb > 0) & (low != nb)
         if hand:
-            d &= (low != 1) & (nb != 1)              # nicht zwischen Finger und Handrücken
+            kn |= d & ((low == 1) | (nb == 1))       # Finger gegen Handrücken: nur leicht abdunkeln
+            d &= (low != 1) & (nb != 1)
         m |= d
     out = a.copy()
     sel = m & (out[..., 3] > 0.5)
     out[sel, :3] *= 0.82 if hand else 0.74
+    if hand:
+        out[kn & ~m & (out[..., 3] > 0.5), :3] *= 0.87
     return out
 
 
