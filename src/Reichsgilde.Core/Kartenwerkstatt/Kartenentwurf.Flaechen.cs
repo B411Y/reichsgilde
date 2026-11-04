@@ -441,7 +441,7 @@ public sealed partial class Kartenentwurf
     public Pflanzenlage? LageVon(EntwurfPflanze p) => NaturVerteilung.Einzeln(p.AlsPflanze(), Katalog);
 
     /// <summary>Die Äcker einer Feldfläche, wie das Spiel sie zeigt (deterministisch aus Fläche, Startwert und Freiraum, <see cref="FeldVerteilung"/>).</summary>
-    public List<Feldparzelle> FelderVon(EntwurfFeld f, Naturfreiraum frei) => FeldVerteilung.Flaeche(f.AlsFeldflaeche(), frei);
+    public List<Feldparzelle> FelderVon(EntwurfFeld f, Naturfreiraum frei, bool bisZumRand = false) => FeldVerteilung.Flaeche(f.AlsFeldflaeche(), frei, bisZumRand);
 
     /// <summary>Alle Äcker des Entwurfs, Feldfläche für Feldfläche.</summary>
     public List<Feldparzelle> FelderAlle(Func<Baustein, (double X, double Z)?>? modellmass = null)

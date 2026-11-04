@@ -50,6 +50,9 @@ public static class FeldVerteilung
     /// <summary>Mittlere Länge eines Ackerstücks ohne Angabe (Meter) und die Grenzen für die Einstellung.</summary>
     public const double LaengeVorgabe = 40, LaengeMin = 10, LaengeMax = 200;
 
+    /// <summary>Abstände (Meter) zur Mitte einer Zelle, an denen „bis zum Rand“ prüft (Zelle: 2 m lang).</summary>
+    private static readonly double[] RandProbe = { -0.9, 0, 0.9 };
+
     /// <summary>Kürzer bleibt kein Stück stehen (Meter).</summary>
     public const double KuerzestesStueck = 4;
 
@@ -60,14 +63,19 @@ public static class FeldVerteilung
     public const int Varianten = 4;
 
     /// <summary>Alle Äcker einer Stadtkarte, Fläche für Fläche in der Reihenfolge der Datei; <paramref name="modellmass"/> wie bei <see cref="Naturhindernis.Von"/>.</summary>
-    public static List<Feldparzelle> Alle(Stadtkarte karte, Func<Baustein, (double X, double Z)?>? modellmass = null)
+    public static List<Feldparzelle> Alle(Stadtkarte karte, Func<Baustein, (double X, double Z)?>? modellmass = null, bool bisZumRand = false)
     {
         var frei = Naturfreiraum.Aus(karte, modellmass);
-        return karte.Natur.Felder.SelectMany(f => Flaeche(f, frei)).ToList();
+        return karte.Natur.Felder.SelectMany(f => Flaeche(f, frei, bisZumRand)).ToList();
     }
 
-    /// <summary>Die Äcker einer Feldfläche (siehe Kopf der Datei): gleiche Fläche, gleicher Startwert, gleiche Hindernisse – gleiche Äcker.</summary>
-    public static List<Feldparzelle> Flaeche(Feldflaeche feld, Naturfreiraum frei)
+    /// <summary>
+    /// Die Äcker einer Feldfläche (siehe Kopf der Datei): gleiche Fläche, gleicher Startwert, gleiche Hindernisse – gleiche Äcker.
+    /// Mit <paramref name="bisZumRand"/> (nur für die Darstellung) zählt auch ein Stück, das nur zum Teil in der Fläche liegt: Es ist dann
+    /// größer als die Fläche, und die Darstellung schneidet es am Rand der Fläche gerade zu (statt Treppen aus ganzen Stücken). Wege, Gebäude
+    /// und Aussparungen schneiden weiter ganze Zellen weg; Frucht, Variante und Lage der Stücke bleiben dieselben; auch ein Rest von nur einer Zelle (2 m) bleibt stehen.
+    /// </summary>
+    public static List<Feldparzelle> Flaeche(Feldflaeche feld, Naturfreiraum frei, bool bisZumRand = false)
     {
         var liste = new List<Feldparzelle>();
         var aussen = feld.Flaeche.Where(p => p is { Length: 2 }).ToList();
@@ -76,6 +84,21 @@ public static class FeldVerteilung
         var loecher = feld.Aussparungen.Select(l => l.Where(p => p is { Length: 2 }).ToList()).Where(l => l.Count >= 3).ToList();
         bool Acker(double x, double z) =>
             Geometrie.ImVieleck(x, z, aussen) && !loecher.Any(l => Geometrie.ImVieleck(x, z, l)) && frei.Frei(x, z);
+        // Bis zum Rand: Ein Punkt in der Fläche muss Acker sein (frei, nicht in einer Aussparung); Punkte außerhalb zählen nicht mit.
+        // Die Zelle ist Acker, wenn mindestens ein Punkt in der Fläche liegt und keiner der Punkte darin gesperrt ist.
+        bool Zelle(IReadOnlyList<double> us, double v)
+        {
+            var innen = false;
+            foreach (var u in us)
+                foreach (var dv in RandProbe)
+                {
+                    var p = Kartengeometrie.Dreh(u, v + dv, feld.Richtung);
+                    if (!Geometrie.ImVieleck(p.X, p.Z, aussen)) continue;
+                    if (loecher.Any(l => Geometrie.ImVieleck(p.X, p.Z, l)) || !frei.Frei(p.X, p.Z)) return false;
+                    innen = true;
+                }
+            return innen;
+        }
 
         // Lokal: u quer zu den Streifen (lokal x), v entlang (lokal z). Welt = Dreh(u, v, richtung), zurück mit −richtung.
         var richtung = feld.Richtung;
@@ -106,9 +129,11 @@ public static class FeldVerteilung
 
             // 2. Welche Zellen sind Acker?
             var acker = new bool[zellen];
+            var querRand = new[] { links, links + w / 4, mitteU, rechts - w / 4, rechts };
             for (var z = 0; z < zellen; z++)
             {
                 var v = anfang + (z + 0.5) * schritt;
+                if (bisZumRand) { acker[z] = Zelle(querRand, v); continue; }
                 acker[z] = quer.All(u =>
                 {
                     var p = Kartengeometrie.Dreh(u, v, richtung);
@@ -124,7 +149,7 @@ public static class FeldVerteilung
                     var ende = z;
                     while (ende < bis && acker[ende]) ende++;
                     var laenge = (ende - z) * schritt;
-                    if (laenge >= KuerzestesStueck - 1e-9)
+                    if (laenge >= (bisZumRand ? Pruefschritt : KuerzestesStueck) - 1e-9) // bis zum Rand bleibt auch ein Rest von einer Zelle (am Rand fehlte sonst ein Streifen)
                     {
                         var mitteV = anfang + (z + ende) * schritt / 2;
                         var m = Kartengeometrie.Dreh(mitteU, mitteV, richtung);
