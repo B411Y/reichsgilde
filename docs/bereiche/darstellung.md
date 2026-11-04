@@ -525,6 +525,16 @@ Auftrag des Teamleiters 1.11.2026.
 | Im Spiel | Es gibt keine Wege zu zeichnen (`Wegebau` ändert nur den Belag); Gebäude, Bauplätze und Felder rasten schon im Kern, das Raster zeigt es nur | 04.11.2026 |
 | Leistung | Köln, Baumodus, Vulkan auf der Grafikkarte, Pixel-Look, 20 s: mit Raster 26,2 Bilder/s, 1-%-Tief 17,0, GPU 11,8 ms; ohne 25,9, 16,3, 11,9 ms (CPU-gebunden auf dem belasteten Rechner); rund 60 Zeichenaufrufe mehr | 04.11.2026 |
 
+### Boden Stufe 1: Gras wächst weich an Feldern und Gebäuden (PR #313)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Weicher Rand | Gras dünnt am Rand von Gebäuden, Grundstücken und Betriebsplätzen über 1,4 m mit Rauschen aus (`GrasRandFaktor`, `GrasRandRauschen`); drinnen weiter 0. Kern: `Naturfreiraum.GebaeudeAbstand` mit Test | 04.11.2026 |
+| Felder | Die Aussparung folgt der ausgefransten `Feldmaske` (`GrasFeldFaktor`, Abstand mit Rauschen wie im Acker-Shader); die alten Stückrechtecke sind aus den Sperrflächen raus | 04.11.2026 |
+| Grasplatten | Die Fläche „Gras“ ist aus Bauernhof, Klosterhof, Duftgarten, Kräutergarten, Wachturm und Weide (`umland_stellen`) entfernt; „Erde hell“ (Höfe, Wege) bleibt bis Stufe 2. Der Teppich wächst dort, wo das Modell nichts hat (Fußabdruck aus den Dreiecken, `Stadtansicht.GrasFuss.cs`) | 04.11.2026 |
+| Nicht angefasst | Steinbruch, Grube, Holzschlag (nur „Erde hell“) und der Grasstreifen im Prediger-Modell; Stufe 2 | 04.11.2026 |
+| Graue Fläche an der Mühle | Im Greybox-Bauernhof nicht mehr zu sehen: Nach dem Entfernen der Grasplatte des Modells (26 × 20 m, größer als der Hof) bleibt nur der Hof „Erde hell“ (10 × 9 m); die graue Fläche im Nutzerbild war sehr wahrscheinlich diese Platte (Kartenraster und Wegeschicht zeigen dort keinen Belag). Der Hof „Erde hell“ (10 × 9 m) bleibt | 04.11.2026 |
+
 ### Restflächen gefüllt, Paket 1 (PR folgt)
 
 | Thema | Entscheidung | Datum |

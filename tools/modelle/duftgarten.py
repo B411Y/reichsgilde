@@ -35,7 +35,6 @@ def bauen():
     st = bs.Stoffe()
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
-    lb.flaeche(haus, st, lb.rechteck(-10, -8, 10, 8), 0.008, "Gras")
     lb.flaeche(haus, st, lb.rechteck(-4.2, -8.0, -3.4, 4.6), 0.014, "Erde hell")
     lb.flaeche(haus, st, lb.rechteck(-3.4, 3.8, 9.4, 4.6), 0.014, "Erde hell")
     for x in REIHEN:

@@ -39,7 +39,6 @@ def bauen():
     st = bs.Stoffe()
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
-    lb.flaeche(haus, st, lb.rechteck(-6, -6, 6, 6), 0.008, "Gras")
     lb.flaeche(haus, st, [(-1.4, -6), (1.4, -6), (2.6, -0.8), (-2.6, -0.8)], 0.014, "Erde hell")
     oeffnungen = turm(haus, st)
     # Palisade: spitze Pfähle, vorn offen

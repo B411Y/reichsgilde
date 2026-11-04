@@ -49,6 +49,18 @@ public readonly record struct Naturhindernis(double X, double Z, double Drehung,
         return Math.Abs(lx) < HalbX + rand && Math.Abs(lz) < HalbZ + rand;
     }
 
+    /// <summary>Vorzeichenbehafteter Abstand zum Rand des Hindernisses (draußen positiv, drinnen negativ); die Ellipse als Näherung.</summary>
+    internal double Abstand(double px, double pz)
+    {
+        var w = Drehung * Math.PI / 180;
+        var (c, s) = (DetMathe.Cos(w), DetMathe.Sin(w));
+        var (dx, dz) = (px - X, pz - Z);
+        var (lx, lz) = (dx * c - dz * s, dx * s + dz * c);
+        if (Ellipse) return (Math.Sqrt(lx * lx / (HalbX * HalbX) + lz * lz / (HalbZ * HalbZ)) - 1) * Math.Min(HalbX, HalbZ);
+        var (ax, az) = (Math.Abs(lx) - HalbX, Math.Abs(lz) - HalbZ);
+        return ax > 0 && az > 0 ? Math.Sqrt(ax * ax + az * az) : Math.Max(ax, az); // an der Ecke der echte Abstand, sonst der größere Randabstand (drinnen negativ)
+    }
+
     /// <summary>Radius des Kreises um die Mitte, der das Hindernis mit Rand umschließt.</summary>
     internal double Umkreis(double rand) => Math.Sqrt((HalbX + rand) * (HalbX + rand) + (HalbZ + rand) * (HalbZ + rand));
 }
@@ -148,6 +160,20 @@ public sealed class Naturfreiraum
             if (Geometrie.AbstandZurStrecke(x, z, s.Ax, s.Az, s.Bx, s.Bz) < s.Halb - Abstand + rand) return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Der Abstand des Punkts zum nächsten Gebäude in Metern: draußen positiv, auf dem Gebäude negativ (Rechteck: der größere der beiden Randabstände, an
+    /// den Ecken der echte Abstand; Ellipse: Näherung). Höchstens <paramref name="hoechstens"/> (bis <see cref="Abstand"/>), weiter weg gibt es genau das.
+    /// Für den weichen Rand des Grases am Haus (Darstellung); <see cref="AufGebaeude"/> bleibt die harte Frage.
+    /// </summary>
+    public double GebaeudeAbstand(double x, double z, double hoechstens = Abstand)
+    {
+        hoechstens = Math.Min(hoechstens, Abstand);
+        if (Bei(_gebaeudeRaster, x, z) is not { } liste) return hoechstens;
+        var best = hoechstens;
+        foreach (var i in liste) best = Math.Min(best, _gebaeude[i].Abstand(x, z));
+        return best;
     }
 
     /// <summary>Liegt der Punkt auf einem Gebäude, mit <paramref name="rand"/> Metern Rand (Vorgabe <see cref="Abstand"/>)?</summary>
