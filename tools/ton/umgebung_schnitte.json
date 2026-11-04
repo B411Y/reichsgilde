@@ -382,6 +382,24 @@
    "sha256": "8a9b5a961814a9ee0a599713161cb0675951a663bcd81a4d3c522ef13f5b02d9",
    "lizenz": "CC0 1.0",
    "lizenz_geprueft": "2026-11-04"
+  },
+  "538697": {
+   "urheber": "bruno.auzet",
+   "titel": "horse snort.wav",
+   "seite": "https://freesound.org/people/bruno.auzet/sounds/538697/",
+   "vorschau": "https://cdn.freesound.org/previews/538/538697_11519060-hq.ogg",
+   "sha256": "09ff8a6edf396f061a70b049286bd5bbffb6e4640e8168cb0f8baf2afd8f8d24",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-11-04"
+  },
+  "479698": {
+   "urheber": "craigsmith",
+   "titel": "R13-26-Horse Muffled Hooves on Dirt.wav",
+   "seite": "https://freesound.org/people/craigsmith/sounds/479698/",
+   "vorschau": "https://cdn.freesound.org/previews/479/479698_2524442-hq.ogg",
+   "sha256": "8f244c1bce3845b3febc2c6722e753284b50e8a923e0ae30e9284ae84f4b22e3",
+   "lizenz": "CC0 1.0",
+   "lizenz_geprueft": "2026-11-04"
   }
  },
  "dateien": [
@@ -677,45 +695,6 @@
   {
    "name": "pferd_1",
    "art": "ruf",
-   "quelle": "437103",
-   "von": 15.6,
-   "bis": 20.4,
-   "hp": 120,
-   "ein": 0.3,
-   "aus": 0.6,
-   "ziel_lufs": -24,
-   "spitze": -3.0,
-   "zweck": "Hufe im Schritt auf Pflaster (Craig Smith, 437103)"
-  },
-  {
-   "name": "pferd_2",
-   "art": "ruf",
-   "quelle": "437103",
-   "von": 21.0,
-   "bis": 25.8,
-   "hp": 120,
-   "ein": 0.3,
-   "aus": 0.6,
-   "ziel_lufs": -24,
-   "spitze": -3.0,
-   "zweck": "Hufe im Schritt auf Pflaster (437103)"
-  },
-  {
-   "name": "pferd_3",
-   "art": "ruf",
-   "quelle": "437103",
-   "von": 26.4,
-   "bis": 31.2,
-   "hp": 120,
-   "ein": 0.3,
-   "aus": 0.6,
-   "ziel_lufs": -24,
-   "spitze": -3.0,
-   "zweck": "Hufe im Schritt auf Pflaster (437103)"
-  },
-  {
-   "name": "pferd_4",
-   "art": "ruf",
    "quelle": "437111",
    "von": 1.8,
    "bis": 3.0,
@@ -724,10 +703,23 @@
    "aus": 0.5,
    "ziel_lufs": -24,
    "spitze": -3.0,
-   "zweck": "leises Schnauben (437111)"
+   "zweck": "leises Schnauben (Craig Smith, 437111)"
   },
   {
-   "name": "pferd_5",
+   "name": "pferd_2",
+   "art": "ruf",
+   "quelle": "437111",
+   "von": 4.1,
+   "bis": 5.2,
+   "hp": 120,
+   "ein": 0.15,
+   "aus": 0.5,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "leises Schnauben (Craig Smith, 437111)"
+  },
+  {
+   "name": "pferd_3",
    "art": "ruf",
    "quelle": "437111",
    "von": 6.0,
@@ -737,7 +729,33 @@
    "aus": 0.5,
    "ziel_lufs": -24,
    "spitze": -3.0,
-   "zweck": "leises Schnauben (437111)"
+   "zweck": "leises Schnauben (Craig Smith, 437111)"
+  },
+  {
+   "name": "pferd_4",
+   "art": "ruf",
+   "quelle": "538697",
+   "von": 4.9,
+   "bis": 5.9,
+   "hp": 120,
+   "ein": 0.15,
+   "aus": 0.5,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "leises Schnauben (bruno.auzet, 538697)"
+  },
+  {
+   "name": "pferd_5",
+   "art": "ruf",
+   "quelle": "538697",
+   "von": 7.6,
+   "bis": 8.7,
+   "hp": 120,
+   "ein": 0.15,
+   "aus": 0.5,
+   "ziel_lufs": -24,
+   "spitze": -3.0,
+   "zweck": "leises Schnauben (bruno.auzet, 538697)"
   },
   {
    "name": "pferd_6",
@@ -751,6 +769,28 @@
    "ziel_lufs": -26,
    "spitze": -3.0,
    "zweck": "fernes, weiches Wiehern (L.Finck, 636554)"
+  },
+  {
+   "name": "hufe_pflaster",
+   "art": "schicht",
+   "ordner": "karren",
+   "quelle": "437103",
+   "von": 15.6,
+   "bis": 31.2,
+   "hp": 120,
+   "blende": 0.5,
+   "zweck": "Pferdekarren auf Pflaster: Hufe im Schritt (Craig Smith, 437103), Schleife"
+  },
+  {
+   "name": "hufe_erde",
+   "art": "schicht",
+   "ordner": "karren",
+   "quelle": "479698",
+   "von": 0.5,
+   "bis": 15.5,
+   "hp": 120,
+   "blende": 0.5,
+   "zweck": "Pferdekarren auf Erde, Kies, Pfad: gedämpfte Hufe (Craig Smith, 479698), Schleife"
   },
   {
    "name": "gefluegel_1",
