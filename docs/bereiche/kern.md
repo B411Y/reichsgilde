@@ -257,7 +257,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Messung (Grafik-PC) | `messen blitz 20 80`, main 6f80481b + c2765c3a: 1,28 Einschläge und 0,56–0,75 Sprünge je Partie, Reparatur 103–143 Gulden, etwa 1 Stück verbrannt, Spielervermögen unter 1 % verändert. Köln: Spieler nie getroffen (0,00), KI 0,25–0,28 – Zufall bei 1,18 % Anteil je Einschlag und nur 80 unabhängigen Partien (Einschläge gleich für beide Berufe und mit/ohne), kein Fehler (WIRTSCHAFTSMODELL „Blitzschaden und Übersprung“). Nichts geändert. | 3.11.2026 |
 | Außerhalb des Bereichs | `game/scripts/Stadtansicht.Feuer.cs` (Wohnhausbrand über `WohnhausBrand`), `Stadtansicht.Blitzbrand.cs` (Übersprung ohne Strahl und Löschkette), `Hauptszene.Blitz.cs` („Funkenflug!“ am eigenen Haus als Warnung) – je eine bis drei Zeilen. | 3.11.2026 |
 
-### Pferdekarren statt Kriegskarren (PR #…)
+### Pferdekarren statt Kriegskarren (PR #301)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
