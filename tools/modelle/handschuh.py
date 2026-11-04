@@ -294,12 +294,12 @@ def palmenhoehe(x, y):
 # Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
     "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.110, 0.080), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
-    "mittel": ((-0.105, 0.86, 0.03), (0.44, 0.28, 0.21), (0.116, 0.085), -11, (-2, -4, -8), (-32, -66, -50), (0, -1, -1)),
-    "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.110, 0.080), 8, (-30, -50, -42), (-30, -64, -48), (0, 3, 4)),
-    "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.096, 0.070), 18, (-34, -52, -42), (-28, -60, -46), (0, 4, 5)),
+    "mittel": ((-0.105, 0.86, 0.03), (0.44, 0.28, 0.21), (0.116, 0.085), -11, (-28, -42, -30), (-32, -66, -50), (0, -1, -1)),
+    "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.110, 0.080), 8, (-40, -58, -40), (-30, -64, -48), (0, 3, 4)),
+    "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.096, 0.070), 18, (-48, -68, -48), (-28, -60, -46), (0, 4, 5)),
 }
-# Daumen in drei Gliedern: vom Handballen weg abgespreizt, dann im Bogen nach innen (zu den Fingern) gekrümmt
-DAUMEN = ((-0.36, 0.22, -0.01), (0.26, 0.25, 0.20), (0.150, 0.100), -78, (-6, -8, -10), (-8, -22, -22), (0, 22, 26))
+# Daumen in drei Gliedern: vom Handballen weg abgespreizt, dann Endglied leicht nach vorn und oben (Zeigerichtung, überstreckt), nicht unter die Hand
+DAUMEN = ((-0.36, 0.22, -0.01), (0.26, 0.25, 0.20), (0.150, 0.100), -92, (0, 6, 14), (-8, -22, -22), (0, 8, 14))
 
 
 def glieder(wurzel, laengen, radien, spreiz, neigung, knick=None):
