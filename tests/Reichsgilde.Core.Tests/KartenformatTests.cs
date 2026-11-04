@@ -39,7 +39,7 @@ static class KartenformatTests
             Pruefe.Gleich("gebaeude/tischler", k.Werkstatt("Tischler")!.Modell);
             Pruefe.Gleich("gebaeude/stadthof", k.Wohnhaus(4)!.Modell);
             Pruefe.Gleich("gebaeude/einwohner_ratsherrenhaus", k.Einwohnerhaus("Ratsherrenhaus")!.Modell);
-            Pruefe.Gleich(3, k.Finde("tanne")!.Varianten);
+            Pruefe.Gleich(5, k.Finde("tanne")!.Varianten);
             Pruefe.Gleich(-2.85, k.Finde("dom")!.Versatz![1]);
             Pruefe.Wahr(k.Finde("schloss") is null, "unbekannte Kennung");
             // Jeder Beruf der Daten hat ein Werkstattmodell, jede Umland-Betriebsart einen Baustein.

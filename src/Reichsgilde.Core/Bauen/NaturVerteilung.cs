@@ -254,7 +254,7 @@ public static class NaturVerteilung
                     var drehung = zufall.NextDouble() * 360;
                     var groesse = 0.85 + zufall.NextDouble() * 0.3;
                     if (!mitteFrei || art is not { Art: Bausteinart.Natur } || !InFlaeche(x, z) || !frei.Frei(x, z)) continue;
-                    liste.Add(new Pflanzenlage(art, x, z, drehung, groesse, variante));
+                    liste.Add(new Pflanzenlage(art, x, z, drehung, groesse * art.Massstab, variante));
                 }
             }
         }
@@ -268,7 +268,7 @@ public static class NaturVerteilung
         var varianten = Math.Max(1, art.Varianten);
         var variante = p.Variante > 0 ? Math.Min(p.Variante, varianten)
             : (int)(Streuung((int)Math.Round(p.Punkt[0] * 100), (long)Math.Round(p.Punkt[1] * 100)) % (uint)varianten) + 1;
-        return new Pflanzenlage(art, p.Punkt[0], p.Punkt[1], p.Drehung, p.Massstab, variante);
+        return new Pflanzenlage(art, p.Punkt[0], p.Punkt[1], p.Drehung, p.Massstab * art.Massstab, variante);
     }
 
     /// <summary>
@@ -306,7 +306,7 @@ public static class NaturVerteilung
                 var variante = zufall.Next(Math.Max(1, art.Varianten)) + 1;
                 var drehung = zufall.NextDouble() * 360;
                 var groesse = 0.85 + zufall.NextDouble() * 0.3;
-                liste.Add(new Pflanzenlage(art, x, z, drehung, groesse, variante));
+                liste.Add(new Pflanzenlage(art, x, z, drehung, groesse * art.Massstab, variante));
                 belegt.Add((x, z));
                 break;
             }

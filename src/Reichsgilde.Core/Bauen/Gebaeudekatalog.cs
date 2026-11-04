@@ -95,6 +95,13 @@ public sealed class Baustein
     /// <summary>Natur: wie viele Varianten der Knoten hat („Tanne1“ … „Tanne3“). 1 = nur „Tanne1“.</summary>
     public int Varianten { get; init; } = 1;
 
+    /// <summary>
+    /// Natur: Faktor auf die Größe jeder Pflanze dieser Art (Darstellung). Gleicht Modelle an, die kleiner oder größer ausfallen als der Name sagt
+    /// (ein Findling aus dem Kit-Fels ist 1,5-fach). 1 = unverändert; steht dann nicht im Spielstand.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public double Massstab { get; init; } = 1;
+
     /// <summary>[Breite an der Vorderseite, Tiefe] in Metern, inklusive Vorplatz. Pflicht für alles außer Mauer und Natur.</summary>
     public double[]? Groesse { get; init; }
 
