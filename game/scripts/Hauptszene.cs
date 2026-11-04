@@ -581,7 +581,7 @@ public partial class Hauptszene : Node
                     if (!ergebnis.Erfolg) Protokollieren("--vorrat=" + eintrag + ": " + ergebnis.Meldung);
                 });
             }
-        if (optionen.GetValueOrDefault("umland") == "1") UmlandVorbereiten();
+        if (optionen.GetValueOrDefault("umland") is { } umlandWert && umlandWert != "") UmlandVorbereiten(umlandWert == "1" ? "Ochsenkarren" : umlandWert);
         RatStartoptionen(optionen); // --amt, --kasse, --antrag, --rathaus (Hauptszene.Rat.cs); vor den Tafeln, die ein Amt zeigen
         HafenStartoptionen(optionen); // --schiff, --schiffsauftrag, --hafen (Hauptszene.Hafen.cs)
         if (optionen.TryGetValue("rat", out var rat) && rat == "1")
@@ -846,7 +846,7 @@ public partial class Hauptszene : Node
     /// Nur für den Klicktest (--umland=1, PR #205): den günstigsten freien Umlandbetrieb erwerben (vorher zum Bürger aufsteigen, wenn nötig), ihm einen Ochsenkarren dazukaufen und
     /// seine Kurzübersicht zeigen – ohne Innenansicht stehen Karren, Eskorte und „Verkaufen“ dort unter „…“.
     /// </summary>
-    private void UmlandVorbereiten()
+    private void UmlandVorbereiten(string karrenTyp = "Ochsenkarren")
     {
         if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
         Betrieb? Erwerben()
@@ -868,7 +868,7 @@ public partial class Hauptszene : Node
             Protokollieren("--umland=1: Kein freier Umlandbetrieb zu haben (mehr Vermögen mit --vermoegen=30000).");
             return;
         }
-        _simulation.Bote.SofortAusfuehren(_spieler, new KarrenKaufen(umland.Name, "Ochsenkarren"));
+        _simulation.Bote.SofortAusfuehren(_spieler, new KarrenKaufen(umland.Name, karrenTyp));
         BetriebAuswaehlen(umland, hinfahren: true);
         _uebersicht.MehrOffen = true;
     }

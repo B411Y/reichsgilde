@@ -481,6 +481,7 @@ public partial class Stadtansicht : Node3D
         GrafikAufgeben();
         WetterAufgeben(); // die globalen Shader-Werte zurück auf Sommer und trocken (Stadtansicht.Wetter.cs)
         OberflaecheAufgeben();
+        _karrenKlang?.Beenden(); // Hufe der Pferdekarren (Stadtansicht.KarrenKlang.cs)
         GlobaleBeleuchtungAufgeben();
         FelsGelaendeAufgeben(); // das Höhenbild der Felsen (Stadtansicht.Felsgelaende.cs)
         if (_wirtschaft is not null)
@@ -818,6 +819,7 @@ public partial class Stadtansicht : Node3D
             }
         }
         if (_karren.Keys.Any(k => !k.Heimat.Karren.Contains(k))) KarrenOhneBetriebEntfernen(); // ein Karren ist verkauft
+        KarrenKlangAbgleichen(delta); // Hufe fahrender Pferdekarren nach Untergrund (Stadtansicht.KarrenKlang.cs)
         if (_domFenster is { } dom) // der Dom: schwacher Schein, zur Messe heller
             FenstergruppeSetzen(dom, _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm)
                 ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
