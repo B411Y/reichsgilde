@@ -80,6 +80,7 @@ public static class Speicherung
     public static (Simulation Simulation, Konto? Spieler) Laden(string json, Bauen.Stadtkarte? karte = null)
     {
         var stand = Lesen(json);
+        stand.Daten?.Logistik.AlteKarrenartenUmstellen(); // Spielstand von vor dem 04.11.2026: Kriegskarren → Pferdekarren
 
         if (stand.Daten is { } daten && daten.Pruefen() is { Count: > 0 } fehler)
             throw new SpielstandFehler("Die Wirtschaftsdaten im Spielstand sind fehlerhaft:\n  • " + string.Join("\n  • ", fehler));

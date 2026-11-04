@@ -88,7 +88,7 @@ public sealed partial class KiRivale
     /// Wie viele Stück ein Karren dieser Art je Minute seiner Fahrt bewegt: Ladung ÷ (Fahrzeit hin + zurück). Die Fahrzeit ist die des Kerns
     /// (<see cref="Stadtwirtschaft.Fahrzeit(Betrieb, string, bool)"/>: Weg, Tempo der Art, Steigung, Belag samt Wegebau, Furten, Mindest- und
     /// Höchstdauer). Ladung: was der Karren fasst, aber höchstens, was das Lager hergibt – Lager je Ware × Zahl der Waren (Umland: seine
-    /// Rohstoffe; Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Ein Holzschlag (nur Holz, Lager 40) füllt den Kriegskarren
+    /// Rohstoffe; Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Ein Holzschlag (nur Holz, Lager 40) füllt den Pferdekarren
     /// (75) also nie; ein Bauernhof mit Gerste und Roggen schon.
     /// </summary>
     internal double Durchfluss(Betrieb b, string typ) => Durchfluss(b, typ, b.LagerKapazitaetJeWare);

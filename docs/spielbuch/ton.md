@@ -63,7 +63,7 @@ In der Partie hört man die Stadt – und zwar **nur, wo auch Menschen sind**, u
 | Jemand geht im Umkreis | Schritte, am Ort dieser Figur im Bild; je mehr gehen, desto öfter |
 | Schänke offen (8–22 Uhr) mit Gästen | von draußen gedämpft wie durch die Tür; dicht davor und herangezoomt heller und lauter; **in der Schankstube selbst** (Innenansicht) laut und lebendig, nach der Zahl der Gäste |
 | Schmiede oder Steinmetzhütte arbeitet (8–20 Uhr) | fernes Hämmern aus der Richtung des Betriebs |
-| Ein Pferdekarren (Kriegskarren) fährt in Hörweite (nur im Freien, höchstens drei zugleich, die nächsten zuerst) | Hufe im Schritt am Ort des Karrens, mit Abstand und Seite: auf **Pflaster** hart, auf Kies, Fahrweg, Pfad und abseits der Wege gedämpft wie auf Erde; Ochsen- und Handkarren fahren ohne Hufe |
+| Ein Pferdekarren fährt in Hörweite (nur im Freien, höchstens drei zugleich, die nächsten zuerst) | Hufe im Schritt am Ort des Karrens, mit Abstand und Seite: auf **Pflaster** hart, auf Kies, Fahrweg, Pfad und abseits der Wege gedämpft wie auf Erde; Ochsen- und Handkarren fahren ohne Hufe |
 | Tagsüber in den Gassen | selten leises Schnauben eines Pferdes, ganz selten fernes Wiehern (Hufe gehören dem fahrenden Karren) |
 | Fokus auf Wiese, Feld, Wald | Stadt verklingt; Vögel, Grillen (Sommer, abends), Krähen (Winter, Herbst), Laubrauschen im Wald, im Wind stärker |
 | am Wasser (Fluss, Bach, Teich) | Plätschern; im Frühling abends und nachts Frösche |

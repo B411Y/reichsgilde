@@ -10,7 +10,7 @@ using Reichsgilde.Core.Wirtschaft;
 /// </summary>
 static class FahrzeitAmBauortTests
 {
-    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Kriegskarren" };
+    static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     /// <summary>Die Wirtschaftsdaten mit Bauzeit 0 für Werkstätten: Die Werkstatt steht sofort, ohne ein Jahr zu spielen.</summary>
     static readonly Lazy<string> DatenSofort = new(() =>
@@ -94,7 +94,7 @@ static class FahrzeitAmBauortTests
             var betrieb = wa.Betriebe.Single(b => b.Name == wa.Bauen.Grundstuecke.Last(g => g.Art == Grundstuecksart.Werkstatt).Betrieb);
             Pruefe.Gleich(((int?)wa.Fahrzeit(betrieb, "Handkarren", true), (int?)wa.Fahrzeit(betrieb, "Ochsenkarren", false)), vorher);
             // ohne Weglänge hängt die Zeit nicht an der Karrenart
-            Pruefe.Gleich(wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Kriegskarren"));
+            Pruefe.Gleich(wa.FahrzeitAmBauort(ort, "Handkarren"), wa.FahrzeitAmBauort(ort, "Pferdekarren"));
             // Die Zeit allein sagt in der Greybox wenig (Belag am Start überall 1: jede Strecke 30 Minuten, Befund der Prüfung) – darum die Strecke
             // selbst: vor dem Bau dieselben Stücke wie nach dem Bau, an drei Bauorten von nah bis fern
             var orte = wa.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Cast<WerkstattBauen>()

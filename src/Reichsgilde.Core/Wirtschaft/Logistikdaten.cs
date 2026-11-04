@@ -253,6 +253,31 @@ public sealed class LogistikDaten
     public double KarrenVerkaufAnteil { get; init; } = 0.5;
 
     public Dictionary<string, KarrenDaten> Karren { get; init; } = new();
+
+    /// <summary>
+    /// Umbenannte Karrenarten (alte Kennung → neue), damit ältere Spielstände, Befehlsprotokolle und Startoptionen weiter passen:
+    /// Der „Kriegskarren“ heißt seit 04.11.2026 „Pferdekarren“ (Wunsch des Nutzers, nur der Name, gleiche Werte).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> AlteKarrenarten = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["Kriegskarren"] = "Pferdekarren",
+    };
+
+    /// <summary>Die heutige Kennung einer Karrenart (eine alte wird übersetzt, sonst bleibt sie, wie sie ist).</summary>
+    public static string Karrenart(string typ) => AlteKarrenarten.GetValueOrDefault(typ, typ);
+
+    /// <summary>
+    /// Daten aus einem älteren Spielstand: alte Kennungen in <see cref="Karren"/> auf die heutigen umstellen. Die Reihenfolge der Einträge
+    /// bleibt; ohne alte Kennung ändert sich nichts.
+    /// </summary>
+    internal void AlteKarrenartenUmstellen()
+    {
+        if (!Karren.Keys.Any(AlteKarrenarten.ContainsKey)) return;
+        var eintraege = Karren.ToList();
+        Karren.Clear();
+        foreach (var (typ, daten) in eintraege) Karren[Karrenart(typ)] = daten;
+    }
+
     public Dictionary<string, EskorteDaten> Eskorten { get; init; } = new();
     public UeberfallDaten Ueberfall { get; init; } = new();
     public List<BandeDaten> Banden { get; init; } = new();

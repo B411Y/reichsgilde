@@ -5,7 +5,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Hufklang der Pferdekarren (ein Teil der <c>partial class Stadtansicht</c>, Klang in <see cref="KlangKarren"/>; Entscheidung des Nutzers, 04.11.2026):
-/// Nur fahrende Pferdekarren (heute der Kriegskarren, <see cref="KarrenArt.Pferd"/>) klingen. Der Untergrund kommt aus dem Wegenetz des Kerns
+/// Nur fahrende Pferdekarren (der Pferdekarren, <see cref="KarrenArt.Pferd"/>) klingen. Der Untergrund kommt aus dem Wegenetz des Kerns
 /// (<c>Wegebau.WegstelleBei</c>, <c>BelagBei</c>, nur gelesen): Pflaster gibt harte Hufe, Kies, Fahrweg, Trampelpfad und alles abseits der Wege (Wiese,
 /// Feldweg, Furt) gedämpfte. Ochsen- und Handkarren bleiben ohne Hufe. Gehört wird nur im Freien (nicht in Innenansichten) und nur der Nächsten drei.
 /// </summary>

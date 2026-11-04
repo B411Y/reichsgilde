@@ -109,7 +109,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 |---|---|---|---|
 | Handkarren | 1 × 15 | 150 | Gießerei |
 | Ochsenkarren | 2 × 20 | 400 | Mine |
-| Kriegskarren | 3 × 25 | 900 | – |
+| Pferdekarren | 3 × 25 | 900 | – |
 
 - Ladeflächen sind frei belegbar (ein Ochsenkarren kann 40 Eisen laden).
 - Fahrzeit vom Betrieb zum (nächsten) Marktplatz: seit Datenversion 65 **Weglänge ÷ Tempo der Karrenart** (Ochse 0,8, Handkarren 1,0, Pferd 1,3 m/s bei Tempo 1; mindestens 10, höchstens 360 Minuten, siehe „Fahrzeit nach Weglänge“); ohne Karte, Platz oder Weg **30 Minuten** in der Stadt, **120 Minuten** ins Umland.
@@ -120,7 +120,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
   - Die Zutaten reichen für weniger als 5 Stück.
   - Ware wartet seit 4 Stunden.
 - Ins Umland fährt der Karren nachts (21–06 Uhr) nur, wenn es ausdrücklich erlaubt ist.
-- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Ochsenkarren 200, Kriegskarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
+- **Verkaufen** (PR #205): ein eigener Karren am Betrieb bringt `logistik.karrenVerkaufAnteil` (0,5) des Kaufpreises – Handkarren 75, Ochsenkarren 200, Pferdekarren 450 Gulden; unterwegs geht es nicht. Siehe „Karren verkaufen (PR #205)“ unten.
 
 ### Eskorten und Überfälle
 | Eskorte | Kosten je beladener Fahrt | Schutz |
@@ -154,7 +154,7 @@ Rezepte nach dem Original, Zahlen eigene Festlegung. Der Balancing-Rechner kauft
 | Handkarren | keine | −215 | 51 |
 
 **Spielerische Folge:**
-- Welche Eskorte sich lohnt, hängt vom Karren ab. Beim Handkarren lohnt keine, beim Ochsenkarren die normale, beim Kriegskarren die schwere.
+- Welche Eskorte sich lohnt, hängt vom Karren ab. Beim Handkarren lohnt keine, beim Ochsenkarren die normale, beim Pferdekarren die schwere.
 - Mit einem Handkarren kommt die Mine mit dem Abtransport nicht nach.
 
 ### Neue Referenzwerte mit Logistik (automatische Tests, Mittel über 20 Jahre)
@@ -798,7 +798,7 @@ Eisenbart (Zwerg, Schmied – der einzige Startberuf mit Bonus) gewinnt am meist
 | Händlerspanne beim Einkauf | +10 % auf den Marktpreis (`handel.aufschlag`), Verhandeln −1,5 % je Stern |
 | Preiswirkung | je gekauftes Stück −1 im Angebotsfenster des Jahres (symmetrisch zum Verkauf) |
 | Marktzeit | 8–20 Uhr, maßgeblich ist die Ankunft des Karrens (Stadt 30 Min., Umland 120 Min.) |
-| Ladung | je Ladefläche eine Ware, Hin- und Rückweg getrennt (Handkarren 1 × 15, Ochsenkarren 2 × 20, Kriegskarren 3 × 25) |
+| Ladung | je Ladefläche eine Ware, Hin- und Rückweg getrennt (Handkarren 1 × 15, Ochsenkarren 2 × 20, Pferdekarren 3 × 25) |
 
 **Rechenbeispiel:** 10 Gold bei Grundpreis 60 (Preis 61,6) kosten von Hand ≈ 675 Gulden (Ø 67,5 je Stück); der Goldpreis steigt dadurch auf 63,2. Wer sofort wieder verkauft, bekommt nach Umsatzsteuer ≈ 600 – Spekulation lohnt nur, wenn der Preis inzwischen deutlich steigt (z. B. weil andere Häuser Gold brauchen und niemand verkauft).
 
@@ -1744,11 +1744,11 @@ Mittel über alle zehn Berufe gegen Menschen: Zwerg +7,8 → +9,1 %, Elb −3,3 
 
 Entscheidung des Nutzers (31.10.2026): Der Kern rechnet die Karren-Fahrzeit nach Weglänge und Karrenart, mit Steigung und Belag – Kern und Bild sollen übereinstimmen, die Ware kommt, wenn der Karren sichtbar ankommt. Vorher: fest 30 bzw. 120 Minuten, in Köln fuhr der Karren sichtbar 4- bis 15-mal so lange.
 
-**Regel (Datenversion 65):** `logistik.karren.<Art>.tempo` (Meter je Sekunde bei Tempo 1: Handkarren 1,0, Ochsenkarren 0,8, Kriegskarren 1,3), `logistik.weglaenge` (mindestMinuten 10, hoechstMinuten 360), `wegebau.ausbauHoechstens` 1,15. Fahrzeit = Σ Länge × Zeitfaktor ÷ (Tempo × 900/1140 m je Spielminute) + Furt (5) und Fähre (30), auf ganze Minuten, zwischen 10 und 360. Zeitfaktor = Steigung (ab 6 % je Prozentpunkt 5 % länger, höchstens ×3) × Belag (Bezugstempo ÷ Tempo des Stücks, nie unter 1 ÷ 1,15: Pflaster ×0,87 statt ×0,85, Kies ×0,89, Trampelpfad ×1,21). Die Umrechnung nimmt die Standard-Rundendauer (15 Minuten), nicht die eingestellte. Ohne Karte, Platz oder Weg die feste Zeit; Daten ohne `weglaenge` (alle Spielstände bis Datenversion 64 bringen ihre Daten mit) fahren genau wie vorher. Mindestdauer: Anspannen und Einreihen, wirkt erst unter 8 m Weg. Höchstdauer: Ein Karren soll an einem Arbeitstag (8–20 Uhr) wenigstens einmal hin und zurück kommen; darüber fährt er im Bild trotzdem in seinem Tempo weiter (das Profil wird nie gestaucht, Darstellung 31.10.2026), kommt nach dem Verkauf an und kehrt sofort um. Die KI rechnet die Ersparnis eines Wegausbaus mit denselben Zeiten (an der Höchstdauer spart ein Ausbau nichts).
+**Regel (Datenversion 65):** `logistik.karren.<Art>.tempo` (Meter je Sekunde bei Tempo 1: Handkarren 1,0, Ochsenkarren 0,8, Pferdekarren 1,3), `logistik.weglaenge` (mindestMinuten 10, hoechstMinuten 360), `wegebau.ausbauHoechstens` 1,15. Fahrzeit = Σ Länge × Zeitfaktor ÷ (Tempo × 900/1140 m je Spielminute) + Furt (5) und Fähre (30), auf ganze Minuten, zwischen 10 und 360. Zeitfaktor = Steigung (ab 6 % je Prozentpunkt 5 % länger, höchstens ×3) × Belag (Bezugstempo ÷ Tempo des Stücks, nie unter 1 ÷ 1,15: Pflaster ×0,87 statt ×0,85, Kies ×0,89, Trampelpfad ×1,21). Die Umrechnung nimmt die Standard-Rundendauer (15 Minuten), nicht die eingestellte. Ohne Karte, Platz oder Weg die feste Zeit; Daten ohne `weglaenge` (alle Spielstände bis Datenversion 64 bringen ihre Daten mit) fahren genau wie vorher. Mindestdauer: Anspannen und Einreihen, wirkt erst unter 8 m Weg. Höchstdauer: Ein Karren soll an einem Arbeitstag (8–20 Uhr) wenigstens einmal hin und zurück kommen; darüber fährt er im Bild trotzdem in seinem Tempo weiter (das Profil wird nie gestaucht, Darstellung 31.10.2026), kommt nach dem Verkauf an und kehrt sofort um. Die KI rechnet die Ersparnis eines Wegausbaus mit denselben Zeiten (an der Höchstdauer spart ein Ausbau nichts).
 
 **Fahrzeiten** (`messen karren`, Start „Schwer“ mit allen KI-Häusern; eben, Minuten je Weg):
 
-| Karte, Arbeitsort | Betriebe | Länge Ø (min–max) | fest | Handkarren | Ochsenkarren | Kriegskarren | an der Höchstdauer |
+| Karte, Arbeitsort | Betriebe | Länge Ø (min–max) | fest | Handkarren | Ochsenkarren | Pferdekarren | an der Höchstdauer |
 |---|---|---|---|---|---|---|---|
 | Greybox, Werkstatt | 4 | 39 m (22–89) | 30 | 50 (28–113) | 62 | 38 | 0 von 24 Fahrten |
 | Greybox, Umland | 3 | 116 m (98–136) | 120 | 147 | 184 (155–216) | 113 | 0 von 18 |
