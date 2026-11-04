@@ -42,7 +42,7 @@ NATUR = ["natur_baeume", "natur_buesche", "natur_boden", "natur_steine", "natur_
 MARKT = ["markt"]             # ein Skript, schreibt marktplatz.glb (Platz und Anker) und marktstaende.glb (Baukasten)
 LICHTER = ["lichter"]         # ein Skript, schreibt lichter.glb: Handlaterne, Fackel, Wandlaterne, Feuerkorb, Ewiges Licht (Baukasten)
 KARREN = ["karren"]           # ein Skript, schreibt karren_hand/ochse/krieg.glb mit Zugtieren und Bewegungen
-VOEGEL = ["voegel"]           # ein Skript, schreibt vogel_taube/spatz.glb mit Skelett und Bewegungen
+VOEGEL = ["voegel", "tiere"]           # ein Skript, schreibt vogel_taube/spatz.glb mit Skelett und Bewegungen
 FIGUREN = ["figuren"]         # ein Skript, schreibt figur_mensch/zwerg/elb/halbling.glb mit Skelett und Bewegungen
 WASSER = ["wasser", "hafenbauten"]     # wasser: Brücken, Fähre, Hafen, Steine; hafenbauten: Schiff, Kran, Schuppen, Zoll
 
