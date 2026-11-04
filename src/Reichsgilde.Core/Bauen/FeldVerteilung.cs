@@ -6,7 +6,7 @@ namespace Reichsgilde.Core.Bauen;
 //  Wo die Äcker liegen: Feldflächen der Karte in Ackerstreifen geteilt (Kartenwerkstatt, Schritt 5a)
 //
 //  Wie NaturVerteilung rechnet der Kern die Lagen, damit Kartenwerkstatt und Spiel dieselben Äcker zeigen:
-//    • Die Fläche wird in parallele Streifen geteilt (Breite „streifen“, Richtung „richtung“). Die Streifen liegen auf einem festen Raster um
+//    • Die Fläche wird in parallele Streifen geteilt (Breite „streifen“, Richtung „richtung“, auf die nächste Weltachse gerundet: Furchen laufen wie Gebäude und Bauplätze nord–südlich oder ost–westlich). Die Streifen liegen auf einem festen Raster um
 //      den Ursprung – eine verschobene Ecke verschiebt keine Streifen.
 //    • Jeder Streifen wird über seine ganze Länge in Stücke geschnitten (je 60–140 % von „laenge“), jedes Stück bekommt eine Frucht nach
 //      Gewicht und eine Variante (1–4, für leichte Unterschiede im Bild) – aus dem Startwert und der Nummer des Streifens.
@@ -82,6 +82,9 @@ public static class FeldVerteilung
         var fruechte = feld.Fruechte.Where(f => f.Value > 0 && Fruechte.ContainsKey(f.Key)).ToList();
         if (aussen.Count < 3 || fruechte.Count == 0 || feld.Streifen <= 0 || feld.Laenge <= 0) return liste;
         var loecher = feld.Aussparungen.Select(l => l.Where(p => p is { Length: 2 }).ToList()).Where(l => l.Count >= 3).ToList();
+        // Die Streifen laufen immer an den Weltachsen (Nord–Süd oder Ost–West), wie die Gebäude und Bauplätze der Karte: die Richtung der Fläche
+        // wird auf das nächste Vielfache von 90° gerundet (Nutzer, 04.11.2026).
+        var richtung = Achsrichtung(feld.Richtung);
         bool Acker(double x, double z) =>
             Geometrie.ImVieleck(x, z, aussen) && !loecher.Any(l => Geometrie.ImVieleck(x, z, l)) && frei.Frei(x, z);
         // Bis zum Rand: Ein Punkt in der Fläche muss Acker sein (frei, nicht in einer Aussparung); Punkte außerhalb zählen nicht mit.
@@ -92,7 +95,7 @@ public static class FeldVerteilung
             foreach (var u in us)
                 foreach (var dv in RandProbe)
                 {
-                    var p = Kartengeometrie.Dreh(u, v + dv, feld.Richtung);
+                    var p = Kartengeometrie.Dreh(u, v + dv, richtung);
                     if (!Geometrie.ImVieleck(p.X, p.Z, aussen)) continue;
                     if (loecher.Any(l => Geometrie.ImVieleck(p.X, p.Z, l)) || !frei.Frei(p.X, p.Z)) return false;
                     innen = true;
@@ -101,7 +104,6 @@ public static class FeldVerteilung
         }
 
         // Lokal: u quer zu den Streifen (lokal x), v entlang (lokal z). Welt = Dreh(u, v, richtung), zurück mit −richtung.
-        var richtung = feld.Richtung;
         var lokal = aussen.Select(p => Kartengeometrie.Dreh(p[0], p[1], -richtung)).ToList();
         var (u0, u1, v0, v1) = (lokal.Min(p => p.X), lokal.Max(p => p.X), lokal.Min(p => p.Z), lokal.Max(p => p.Z));
         var w = feld.Streifen;
@@ -160,6 +162,9 @@ public static class FeldVerteilung
         }
         return liste;
     }
+
+    /// <summary>Die Richtung der Streifen auf die nächste Weltachse gerundet (0, 90, 180 oder 270 Grad).</summary>
+    public static double Achsrichtung(double grad) => Kartengeometrie.Mod(Math.Round(grad / 90) * 90, 360);
 
     private static string NachGewicht(List<KeyValuePair<string, double>> fruechte, Random zufall)
     {
