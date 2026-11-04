@@ -692,16 +692,20 @@ def schloss_bauen(st, eisen=False):
     rx, ry = 0.0, 0.915
     b.kegel(zier + "@rose", (rx, ry, 0.095), (rx, ry, 0.165), 0.125, 0.100, seg=24)
     b.kugel(griff + "@rose", (rx, ry, 0.175), 0.075, (1, 1, 0.75), seg=12)
-    pfad = [Vector(v) for v in ((0.02, ry, 0.21), (0.22, ry, 0.235), (0.44, ry - 0.005, 0.255), (0.64, ry - 0.02, 0.27),
-                                (0.80, ry - 0.05, 0.285))]
-    radien = [0.088, 0.084, 0.078, 0.070]
-    kette = [(a, c, radien[i], radien[i] * 0.95, (c - a).normalized()) for i, (a, c) in enumerate(zip(pfad[:-1], pfad[1:]))]
+    # S-förmig: von der Rose waagerecht, erst sanft nach oben, dann nach unten, am Ende eingerollt mit kleinem Knauf
+    stuetz = [Vector(v) for v in ((0.02, ry, 0.21), (0.22, ry + 0.065, 0.235), (0.44, ry + 0.080, 0.255), (0.62, ry - 0.020, 0.27),
+                                  (0.78, ry - 0.125, 0.28), (0.92, ry - 0.150, 0.285), (1.02, ry - 0.105, 0.285))]
+    n = len(stuetz) - 1
+    radien = [0.088 - 0.022 * i / n for i in range(n + 1)]
+    kette = [(stuetz[i], stuetz[i + 1], radien[i], radien[i + 1], (stuetz[i + 1] - stuetz[i]).normalized()) for i in range(n)]
     sweep(b, griff + "@griff", kette, flach=0.95, spitze=False, wulst=0.0, seg=12)
-    p = pfad[-1]
-    b.kugel(zier + "@griff", p, 0.068, (1.0, 1.0, 0.95), seg=14)                                    # Endknauf
-    for t in (0.24, 0.62):                                                                           # Schmiedebünde am Arm
-        q = pfad[0] + (pfad[3] - pfad[0]) * t
-        b.torus(zier + "@griff", q, 0.083, 0.015, dreh=Matrix.Rotation(math.radians(90), 3, "Y"), seg=16, ring=6)
+    kurve = [q for q, _ in catmull(stuetz, 5)]
+    p = kurve[-1]
+    b.kugel(zier + "@griff", p, 0.066, (1.0, 1.0, 0.95), seg=14)                                    # Endknauf
+    for t in (4, 17):                                                                                # Schmiedebünde am Arm
+        i = min(t, n - 2)
+        d = (kurve[i + 1] - kurve[i]).normalized()
+        b.torus(zier + "@griff", kurve[i], 0.080, 0.014, dreh=d.to_track_quat("Z", "Y").to_matrix().to_4x4(), seg=16, ring=6)
     return b
 
 
@@ -891,7 +895,7 @@ def aufweiten(m, r):
     return out
 
 
-def fugen(gross, ids, ziel):
+def fugen(gross, ids, ziel, hand=True):
     """Dunkle Fuge zwischen den einzelnen Fingern (und Handrücken) samt Randlicht an der beleuchteten Seite (oben links).
     `ziel` = Breite des Zielbildes in Pixeln; die Linie ist etwa ein drittel Zielpixel breit."""
     f = ids
@@ -906,18 +910,22 @@ def fugen(gross, ids, ziel):
             ziel_m |= verschieben(m, dy, dx)
     k = SUPER / ziel
     r = max(1, int(round(k * 0.42)))
-    linie = aufweiten(rand, max(1, int(r * 0.6))) | aufweiten(rand_hr, 1)
+    # Hand: keine Linie zwischen Finger und Handrücken (Knöchel), nur zwischen den Fingern; Beschläge behalten ihre Fugen
+    linie = aufweiten(rand, max(1, int(r * 0.6)))
+    if not hand:
+        linie |= aufweiten(rand_hr, 1)
     licht = verschieben(linie, r + 1, r + 1) & ~linie & (f > 0)
     out = gross.copy()
     al = out[..., 3] > 0.5
     weich = np.array(FUGE, dtype=np.float32)
-    out[linie & al, :3] = out[linie & al, :3] * (1 - FUGE_DECK) + weich * FUGE_DECK
+    deck = FUGE_DECK * (0.6 if hand else 1.0)       # an der Hand dezenter
+    out[linie & al, :3] = out[linie & al, :3] * (1 - deck) + weich * deck
     l2 = licht & al
     out[l2, :3] = np.clip(out[l2, :3] * 1.32 + 0.05, 0, 1)
     return out
 
 
-def fugen_klein(a, ids, n):
+def fugen_klein(a, ids, n, hand=True):
     """Im Zielbild selbst: Pixel, die gegen einen Nachbarn oben oder links einen anderen Teil berühren, werden abgedunkelt
     (Schattenseite unten rechts). So bleibt jede Fingerfuge auch bei zwei Pixeln Fingerbreite als Linie sichtbar."""
     low = ids[n // 2::n, n // 2::n]
@@ -926,10 +934,13 @@ def fugen_klein(a, ids, n):
     m = np.zeros(low.shape, dtype=bool)
     for dy, dx in ((0, 1), (1, 0)):
         nb = verschieben(low, dy, dx)
-        m |= (low > 0) & (nb > 0) & (low != nb)
+        d = (low > 0) & (nb > 0) & (low != nb)
+        if hand:
+            d &= (low != 1) & (nb != 1)              # nicht zwischen Finger und Handrücken
+        m |= d
     out = a.copy()
     sel = m & (out[..., 3] > 0.5)
-    out[sel, :3] *= 0.74
+    out[sel, :3] *= 0.82 if hand else 0.74
     return out
 
 
@@ -959,16 +970,18 @@ def alles(aus, stufen, mit_uebersicht=True):
             name = f"stufe{stufe}_{s['name']}_{zustand}" if zustand not in ZUSAETZE else zustand
             ergebnis[name] = (gross, ids)
             hot[name] = hs
-            png_schreiben(os.path.join(aus, "gross", name + ".png"), srgb8(fugen(gross, ids, 96)))
+            hand = art == "normal"
+            ergebnis[name] = (gross, ids, hand)
+            png_schreiben(os.path.join(aus, "gross", name + ".png"), srgb8(fugen(gross, ids, 96, hand)))
     if os.path.exists(tmp):
         os.remove(tmp)
     # Zielgrößen
     klein = {}
-    for name, (gross, ids) in ergebnis.items():
+    for name, (gross, ids, hand) in ergebnis.items():
         for g in GROESSEN:
             for chunk_, ordner in ((1, "fein"),):
                 low = g // chunk_
-                a = kontur(fugen_klein(mitteln(fugen(gross, ids, low), SUPER // low), ids, SUPER // low))
+                a = kontur(fugen_klein(mitteln(fugen(gross, ids, low, hand), SUPER // low), ids, SUPER // low, hand))
                 fin = np.repeat(np.repeat(a, chunk_, 0), chunk_, 1)
                 klein[(name, g, ordner)] = fin
                 png_schreiben(os.path.join(aus, ordner, str(g), name + ".png"), srgb8(fin))
