@@ -31,7 +31,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 DREHUNG = 38.0          # Grad nach links oben (gegen den Uhrzeigersinn von oben gesehen)
-NEIGUNG = 22.0          # Kamera schaut um so viel schräg von vorn
+NEIGUNG = 34.0          # Kamera schaut um so viel schräg von vorn
 SUPER = 384             # Rendergröße; alle Zielgrößen entstehen daraus durch Mittelung
 GROESSEN = (32, 48, 64)
 KONTUR = (0.06, 0.04, 0.03)
@@ -292,12 +292,12 @@ def palmenhoehe(x, y):
 
 # Finger: (x, y, z der Wurzel, Länge der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen)
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.0), (0.46, 0.30, 0.24), (0.108, 0.086), -10, (2, -2, -2), (-28, -62, -48)),
-    "mittel": ((-0.105, 0.86, 0.0), (0.39, 0.26, 0.21), (0.120, 0.096), 5, (-22, -34, -28), (-32, -66, -50)),
-    "ring": ((0.105, 0.86, 0.0), (0.36, 0.24, 0.20), (0.114, 0.090), 10, (-24, -36, -30), (-30, -64, -48)),
-    "klein": ((0.30, 0.78, 0.0), (0.28, 0.18, 0.16), (0.100, 0.078), 16, (-26, -38, -32), (-28, -60, -46)),
+    "zeige": ((-0.31, 0.74, 0.0), (0.46, 0.30, 0.24), (0.118, 0.094), -12, (7, 0, -4), (-28, -62, -48)),
+    "mittel": ((-0.105, 0.86, 0.0), (0.38, 0.24, 0.20), (0.120, 0.096), 7, (-30, -26, -22), (-32, -66, -50)),
+    "ring": ((0.105, 0.86, 0.0), (0.34, 0.22, 0.19), (0.114, 0.090), 6, (-50, -62, -45), (-30, -64, -48)),
+    "klein": ((0.30, 0.78, 0.0), (0.26, 0.17, 0.15), (0.100, 0.078), 8, (-55, -64, -45), (-28, -60, -46)),
 }
-DAUMEN = ((-0.36, 0.22, -0.01), (0.27, 0.22), (0.135, 0.100), -34, (-6, -14), (-8, -22))
+DAUMEN = ((-0.36, 0.22, -0.01), (0.30, 0.24), (0.150, 0.112), -66, (-4, -10), (-8, -22))
 
 
 def glieder(wurzel, laengen, radien, spreiz, neigung):
