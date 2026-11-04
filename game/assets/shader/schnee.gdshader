@@ -1,4 +1,4 @@
-// Schneeflocken (Stadtansicht.Wetter.cs, GpuParticles3D): weiche runde Flocken, die zur Kamera zeigen, im Fallen hin und her pendeln,
+// Schneeflocken (Stadtansicht.Wetter.cs, GpuParticles3D): weiche runde Flocken, die zur Kamera zeigen, im Fallen nur wenig hin und her pendeln,
 // sich langsam drehen und von Böen (wetter_wind) seitlich getragen werden. Jede Flocke hat über ihre Nummer (INSTANCE_ID) ihren eigenen
 // Takt, ihre eigene Größe und Drehrichtung. Das Pendeln rechnet hier und nicht im Partikelmaterial, damit es in jeder Grafikstufe gilt.
 shader_type spatial;
@@ -22,14 +22,14 @@ void vertex() {
 	float t = TIME;
 	float phase = h1 * 6.2832;
 	// Pendeln: zwei Schwingungen quer, eine kleine auf und ab; je Flocke andere Weite und anderer Takt
-	float weite = (0.3 + 0.5 * h2) * massstab;
+	float weite = (0.1 + 0.2 * h2) * massstab;
 	vec3 weg = vec3(
 		sin(t * (0.8 + 0.7 * h2) + phase),
-		sin(t * 1.6 + phase * 2.0) * 0.12,
+		sin(t * 1.6 + phase * 2.0) * 0.03,
 		cos(t * (0.6 + 0.6 * h3) + phase * 1.7)) * weite;
 	// Böen tragen alle Flocken zugleich, jede etwas anders
 	float boe = sin(t * 0.45 + MODEL_MATRIX[3].x * 0.04 + h1 * 2.0) * 0.5 + 0.5;
-	weg.x += wetter_wind * boe * 0.9 * massstab * sin(t * 1.3 + phase);
+	weg.x += wetter_wind * boe * 0.3 * massstab * sin(t * 1.3 + phase);
 	vec3 ort = MODEL_MATRIX[3].xyz + weg;
 	// zur Kamera gedreht, Größe aus dem Partikel (Maßstab der Flocke) behalten
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], vec4(ort, 1.0));
