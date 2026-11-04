@@ -6,7 +6,8 @@
 Schreibt game/assets/modelle/umland/holzschlag.glb und Bilder nach docs/modelle/.
 
 Objekte im GLB (siehe landbau.py):
-    Haus        Blockhütte mit Schindeldach, Tannen am Rand, Baumstümpfe, Reisighaufen
+    Haus        Blockhütte mit Schindeldach, Baumstümpfe, Reisighaufen
+    Baum_Kiefer<n>_<nr>   zehn Marker am Rand: Das Spiel setzt dort Kiefern des Kits ein (lb.baum_marker)
     Arbeit      Holzpolter, Sägebock mit Stamm und Säge, Hackklotz mit Axt, Scheitholzstapel, gefällte Tanne
     Fahne       an der Hütte
     Leerstand   Bretter vor Tür und Fenstern, Unkraut zwischen den Stümpfen
@@ -34,11 +35,12 @@ def bauen():
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
     # ── Boden, Wald, Stümpfe ──────────────────────────────────────────────────
+    baeume = []                                                  # Kiefern als Marker „Baum_…“ (das Spiel setzt Kit-Bäume ein)
     lb.flaeche(haus, st, [(-11, -9), (11, -9), (11, 2.5), (4, 4.0), (-4, 3.4), (-11, 2.0)], 0.012, "Erde hell")
     for i, (x, y, hoehe) in enumerate(((-8.8, 6.9, 9.0), (-5.9, 6.2, 7.6), (-2.8, 7.0, 9.6), (0.6, 6.6, 8.2),
                                        (3.9, 7.0, 9.2), (6.9, 6.4, 7.8), (8.9, 7.0, 8.8), (-8.4, 3.8, 6.4),
                                        (8.9, 3.6, 6.8), (-1.4, 4.8, 6.2))):
-        lb.tanne(haus, st, (x, y), hoehe=hoehe, r=1.25 + hoehe * 0.06, saat=i)
+        baeume.append(lb.baum_marker("Kiefer", (x, y), hoehe, saat=i, nr=i + 1))
     for x, y, r in ((-1.0, 1.4, 0.38), (2.4, 2.6, 0.45), (5.2, 1.2, 0.36), (-3.6, 2.4, 0.42), (0.8, -1.6, 0.34),
                     (3.4, -0.2, 0.4), (7.6, 2.6, 0.38)):
         lb.stumpf(haus, st, (x, y), r=r, h=0.45 + r * 0.4)
@@ -71,7 +73,7 @@ def bauen():
                           (-4.0, -3.4), (-1.0, -7.0), (8.0, -3.0), (3.8, 0.3)], saat=5)
 
     anker = [bs.anker("Anker_Tuer", tuple(h["tuer"])), bs.anker("Anker_Karren", (5.0, -8.0, 0.0))]
-    return lb.knoten(haus, arbeit, fahne, leer, anker)
+    return lb.knoten(haus, arbeit, fahne, leer, anker + baeume)
 
 
 def saegebock(netz, st, fuss):
