@@ -98,9 +98,15 @@ void fragment() {
 			float ln = licht_l(u);
 			sum += ln; cnt += 1.0; lmin = min(lmin, ln); lmax = max(lmax, ln);
 		}
-		if (lmax - lmin > 0.18 * hl) lq = stufe_von(sum / cnt, n * 2.0 - 1.0, dk, hl);
+		// Feiner gestuft nur an echten Schattenkanten, und stufenlos übergeblendet: ein harter Schalter bei 0,18 zeichnete auf Erde und Pfaden (Normalkarte) helle
+		// Höhenlinien nach, wo die Unebenheit des Bodens die Schwelle gerade überschritt (Ultra: Boden mit Unebenheit im Licht)
+		float kante = smoothstep(0.4, 0.7, (lmax - lmin) / hl);
+		if (kante > 0.0) lq = mix(lq, stufe_von(sum / cnt, n * 2.0 - 1.0, dk, hl), kante);
 		float f = lq / max(l, 0.04 * lichtskala);
 		f = min(f, mix(1.8, 1.0, smoothstep(0.5, 0.9, lum(c))));   // leuchtende Flächen (Fenster, Feuer) nicht hochziehen
+		// Nachts im schwachen Licht (Umgebung, äußerer Schein von Fackel und Laterne) gar nicht stufen: Dort ist das Bild nicht proportional zur Beleuchtung (Nebel, Dunst),
+		// und f fiele zwischen dem aufgehellten Dunkel (bis 1,8) und dem Schein als dunkler Ring ab. Der Schein fällt so weich nach außen ab; am Tag bleibt alles wie bisher.
+		f = mix(f, 1.0, (1.0 - tag) * (1.0 - smoothstep(0.45, 1.0, l / hl)));
 		f = mix(f, 1.0, smoothstep(hl, hl * 1.6, l));   // heller als volles Sonnenlicht: Punktlichter (Laterne, Fackel) fallen ungestuft und weich ab
 		c *= f;
 	}
@@ -109,6 +115,17 @@ void fragment() {
 	{
 		vec2 rich[4] = vec2[](vec2(1, 0), vec2(-1, 0), vec2(0, 1), vec2(0, -1));
 		vec3 p0 = vp.xyz;
+		// Flacher Boden: Die Normalkarte (Erde, Pfade) knickt die Normalen, die Geometrie darunter nicht. Innenkanten gibt es nur, wo auch die Tiefe knickt (Laplace der Tiefe
+		// über die vier Nachbarn, in Metern je Weltpixel gemessen); sonst zeichneten Ultra-Böden helle Höhenlinien.
+		float wp = (ortho ? ortho_groesse : z0 * fov_faktor) / VIEWPORT_SIZE.y; // Meter je Weltpixel
+		float lap = 0.0; int zahl = 0;
+		for (int j = 0; j < 4; j++) {
+			vec2 u = uv + rich[j] * px;
+			float dj = texture(tiefe, u).x;
+			if (dj <= 0.000001) continue;
+			lap += linear_tief(dj, INV_PROJECTION_MATRIX, u) - z0; zahl++;
+		}
+		bool flach = zahl == 4 && abs(lap) < 0.3 * wp;
 		float aussen = 0.0, innen = 0.0;
 		for (int i = 0; i < 4; i++) {
 			vec2 u = uv + rich[i] * px;
@@ -127,7 +144,7 @@ void fragment() {
 				vec3 n = texture(normalen, u).xyz * 2.0 - 1.0;
 				if (dot(n0, n) < UMRISS_KNICK) {
 					vec3 dp = ansichtsort(dn, INV_PROJECTION_MATRIX, u) - p0;
-					if (dot(dp, n0) < -0.004 * bezug * 0.05) innen = 1.0;   // Nachbar liegt hinter der Fläche: konvex
+					if (dot(dp, n0) < -0.004 * bezug * 0.05 && !flach) innen = 1.0;   // Nachbar liegt hinter der Fläche: konvex
 				}
 			}
 		}
