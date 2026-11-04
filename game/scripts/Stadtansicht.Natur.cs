@@ -58,6 +58,9 @@ public partial class Stadtansicht
     /// <summary>
     /// Packt alles Vorgemerkte in je ein MultiMesh je Art. Bodenpflanzen werfen keinen Schatten (zu klein, die Karte der Sonne wäre vergeudet).
     /// </summary>
+    /// <summary>Kantenlänge der Zellen (Meter), in die die Natur je Art geteilt wird (siehe <see cref="NaturAufbauen"/>).</summary>
+    private const float NaturZelle = 48f;
+
     private void NaturAufbauen()
     {
         var natur = new Node3D { Name = "Natur" };
@@ -73,22 +76,35 @@ public partial class Stadtansicht
                 var j = mischer.Next(i + 1);
                 (lagen[i], lagen[j]) = (lagen[j], lagen[i]);
             }
-            var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = lagen.Count };
-            for (var i = 0; i < lagen.Count; i++) vielfach.SetInstanceTransform(i, lagen[i]);
-            // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
-            if ((IstBaumDatei(datei) || datei is "natur/natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
+            // Bäume: je Art und Zelle von NaturZelle Metern ein MultiMesh: Godot lässt ein MultiMesh als Ganzes weg, wenn seine Zelle nicht im Bild (oder im Schattenbereich)
+            // liegt. Ein einziges für die ganze Karte zeichnete mit jedem Bild alle Bäume – bei den Kit-Bäumen (500–1000 Dreiecke) viele tausend.
+            var zellGroesse = IstBaumDatei(datei) ? NaturZelle : 1e6f; // nur Bäume (teure Netze); kleine Teile bleiben ein MultiMesh
+            var zellen = new Dictionary<(int, int), List<Transform3D>>();
+            foreach (var lage in lagen)
             {
-                _naturWinter.Add((vielfach, netz, winter));
-                if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
+                var zelle = (Mathf.FloorToInt(lage.Origin.X / zellGroesse), Mathf.FloorToInt(lage.Origin.Z / zellGroesse));
+                if (!zellen.TryGetValue(zelle, out var liste)) zellen[zelle] = liste = new();
+                liste.Add(lage);
             }
-            var teil = new MultiMeshInstance3D
+            foreach (var ((zx, zz), liste) in zellen.OrderBy(z => z.Key.Item1).ThenBy(z => z.Key.Item2))
             {
-                Name = knoten,
-                Multimesh = vielfach,
-                CastShadow = IstBodenDatei(datei) ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
-            };
-            natur.AddChild(teil);
-            NaturDetailMelden(teil, datei); // Natur-Dichte und Sichtweite der Feinheiten (Stadtansicht.Grafik.cs)
+                var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = liste.Count };
+                for (var i = 0; i < liste.Count; i++) vielfach.SetInstanceTransform(i, liste[i]);
+                // Bäume und Büsche haben eine kahle Fassung „<Name>_Winter“ (Tanne, Ginster und Wacholder nicht): im Winter tauscht JahreszeitSetzen das Netz
+                if ((IstBaumDatei(datei) || datei is "natur/natur_buesche") && NaturNetz(datei, knoten + "_Winter", pflicht: false) is { } winter)
+                {
+                    _naturWinter.Add((vielfach, netz, winter));
+                    if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
+                }
+                var teil = new MultiMeshInstance3D
+                {
+                    Name = $"{knoten}_{zx}_{zz}",
+                    Multimesh = vielfach,
+                    CastShadow = IstBodenDatei(datei) ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On,
+                };
+                natur.AddChild(teil);
+                NaturDetailMelden(teil, datei); // Natur-Dichte und Sichtweite der Feinheiten (Stadtansicht.Grafik.cs)
+            }
         }
         _naturLagen.Clear();
     }
