@@ -46,10 +46,6 @@ public sealed partial class Koeln
         Werkstattbauplaetze.Any(b => Kartengeometrie.AbstandVielecke(umriss, Umriss(b)) < 2
                                      || Kartengeometrie.ImVieleck(Kartengeometrie.Mitte(umriss), Umriss(b)));
 
-    /// <summary>Liegt der Punkt auf einem Werkstatt-Bauplatz? (Die Rasterzonen lassen ihn aus.)</summary>
-    private static bool AufBauplatz(Kartenort p) =>
-        Werkstattbauplaetze.Any(b => p.X > b.X0 - 1e-6 && p.X < b.X1 + 1e-6 && p.Z > b.Z0 - 1e-6 && p.Z < b.Z1 + 1e-6);
-
     /// <summary>
     /// Die Ruine „Haus zum schwarzen Raben“ (L3) stand bis 1.11.2026 im Südosten von Deutz (196 | 27), wo jetzt Bauplätze liegen; sie rückt vor das
     /// Deutzer Südtor an die Siegburger Straße: die erste freie Stelle ab 10 m, die Vorderseite zur Straße.
@@ -73,7 +69,7 @@ public sealed partial class Koeln
         throw new InvalidOperationException("Ruine L3: keine freie Stelle an der Siegburger Straße.");
     }
 
-    /// <summary>Die Werkstatt-Bauplätze als eigene Bauzonen (nach den Zonen aus dem Raster, deren Kennungen so gleich bleiben).</summary>
+    /// <summary>Die Werkstatt-Bauplätze als eigene, von Hand gezeichnete Bauzonen (vor der Rechnung: die Rasterzonen lassen sie aus und stehen davor).</summary>
     private void WerkstattbauplaetzeAnlegen()
     {
         foreach (var b in Werkstattbauplaetze)

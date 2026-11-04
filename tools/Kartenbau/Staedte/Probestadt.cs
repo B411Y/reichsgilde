@@ -14,8 +14,10 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //    • Mauerring 140 × 110 m mit Westtor und Osttor, die Hauptstraße von Tor zu Tor über den Markt, eine Ringstraße 13 m innerhalb der Mauer.
 //    • Am Markt Rathaus und Kirche, an der Hauptstraße vier Werkstattplätze, an der Ringstraße innen sechs Wohnhausplätze, außen (zur Mauer)
 //      die Einwohnerplätze am Ring; zehn Einwohnerplätze der Vorstadt am Feldweg im Nordosten.
-//    • Vor jedem Tor die Landstraße und beiderseits ein Feldweg; dazwischen vier Bauzonen der Vorstadt (Platz für eine Partie mit 8 Häusern,
-//      siehe Kapazitätsprüfung).
+//    • Vor jedem Tor die Landstraße und beiderseits ein Feldweg; dazwischen die Vorstadt (Platz für eine Partie mit 8 Häusern, siehe
+//      Kapazitätsprüfung).
+//    • Bauzonen (seit 4.11.2026): aus dem 2-m-Raster gerechnet (Kartenentwurf.BauzonenAusRaster) – von Hand stehen nur drei Lage-Gebiete:
+//      Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt vor den Toren bis zu den Feldwegen. Dazu die Restflächen.
 //    • Wald im Nordwesten und Südosten, ein Waldweg als weiche Kurve; im Randstreifen (300 m) Felder und Waldstücke aus dem Rand-Vorschlag.
 //    • Start: der Spieler und zwei KI-Häuser (Tischlerei, Gießerei).
 //    • Gelände: die Stadt flach, nach Osten ein sanfter Hang hinauf (die östliche Vorstadt steigt bis 4 % an), im Randstreifen Hügel bis 25 m
@@ -91,15 +93,13 @@ public sealed class Probestadt : Stadtskript
         // Einwohnerplätze der Vorstadt (das Spiel stellt einen Teil der Einwohnerhäuser vor die Mauer): am Feldweg Ost-Nord, nach Norden
         Haeuserreihe("einwohnerplatz_vorstadt", P(Ende - 6, -FeldwegZ), P(MauerX + 6, -FeldwegZ), links: false, 2, luecke: 1.5, hoechstens: 10);
 
-        // ── Bauzonen der Vorstadt zwischen Landstraße und Feldweg ────────────
-        foreach (var seite in new[] { 1, -1 })
-            foreach (var nord in new[] { -1, 1 })
-            {
-                var (x0, x1) = (seite * (MauerX + 6), seite * (Ende - 6));
-                var (z0, z1) = (nord * 4.0, nord * (FeldwegZ - 4));
-                E.BauzoneAnlegen(Lage.Vorstadt, new[] { P(x0, z0), P(x1, z0), P(x1, z1), P(x0, z1) },
-                    $"V{(seite > 0 ? "O" : "W")}{(nord < 0 ? "N" : "S")}");
-            }
+        // ── Lage-Gebiete; die Bauzonen rechnet am Schluss das Raster (alles, was frei ist) ──
+        E.LagenSetzen(new[]
+        {
+            new Lagegebiet(Lage.Kern, Rechteck(-(MauerX - Ring), -(MauerZ - Ring), MauerX - Ring, MauerZ - Ring), "innerhalb der Ringstraße"),
+            new Lagegebiet(Lage.Mauerring, Rechteck(-MauerX, -MauerZ, MauerX, MauerZ), "zwischen Ringstraße und Mauer"),
+            new Lagegebiet(Lage.Vorstadt, Rechteck(-Ende, -FeldwegZ, Ende, FeldwegZ), "vor den Toren bis zu den Feldwegen"),
+        });
 
         // ── Natur ────────────────────────────────────────────────────────────
         E.NaturflaecheAnlegen("wald", new[] { P(-195, -145), P(-60, -145), P(-60, -72), P(-120, -60), P(-195, -60) }, "Wald im Nordwesten");
@@ -158,5 +158,10 @@ public sealed class Probestadt : Stadtskript
         Textur(Bodentextur.Mist, new[] { P(238, -60) }, radius: 6, kante: 0.5);
 
         E.KameraStartSetzen(P(0, 0), 110);
+
+        // ── Bauzonen aus dem Raster (nach Wegen, Gebäuden, Mauer, Wasser und Gelände) ──
+        E.BauzonenAusRaster();
     }
+
+    private static Kartenort[] Rechteck(double x0, double z0, double x1, double z1) => new[] { P(x0, z0), P(x1, z0), P(x1, z1), P(x0, z1) };
 }

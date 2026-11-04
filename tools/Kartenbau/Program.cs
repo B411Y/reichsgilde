@@ -36,6 +36,7 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- hafen <karte> <x,z> <drehung> [--name=]   einen Hafenplatz (Rückseite zum Wasser)
 //    dotnet run --project tools/Kartenbau -- belag <karte> <weg> <stufe> [<von> <bis>]   Startbelag eines Weges (ganz oder von–bis Meter)
 //    dotnet run --project tools/Kartenbau -- umbauen <umbau>                     ein Umbauskript (Umbauten/) auf seine Karte anwenden
+//    dotnet run --project tools/Kartenbau -- bauzonen <karte>                     die Bauzonen aus dem Raster neu rechnen (nach den Lage-Gebieten „lagen“)
 //  <karte> ist die Kennung einer Karte in game/karten/ (greybox, koeln …), <datei> ein Pfad zu einer .json-Datei.
 //  Rückgabe: 0 = in Ordnung, 1 = die Karte hat Fehler, 2 = falscher Aufruf (oder die Datei gibt es schon).
 //
@@ -96,6 +97,7 @@ public static class Program
                 "belag" when ziel is not null && worte.Count is 4 or 6 && Zahlen(worte.Skip(4)) is { Count: 0 or 2 } bereich =>
                     Befehle.Belag(ordner, ziel, worte[2], worte[3], bereich.Count == 2 ? (bereich[0], bereich[1]) : null, Console.Out),
                 "umbauen" when ziel is not null => Befehle.Umbauen(ordner, ziel, Console.Out),
+                "bauzonen" when ziel is not null => Befehle.Bauzonen(ordner, ziel, Console.Out),
                 _ => Hilfe(),
             };
         }
@@ -307,6 +309,9 @@ public static class Program
                                                   Startbelag eines Weges: trampelpfad, fahrweg, kies, pflaster oder vorgabe (nach der Klasse);
                                                   <weg> ist der Name (Leerzeichen als _) oder die Nummer, von–bis in Metern entlang des Weges
               umbauen <umbau>                     ein Umbauskript (tools/Kartenbau/Umbauten) auf seine Karte anwenden
+              bauzonen <karte>                    die Bauzonen aus dem 2-m-Raster neu rechnen (frei heißt bebaubar, die Lage aus den
+                                                  Lage-Gebieten „lagen“); von Hand gezeichnete Zonen bleiben, dazu die Restflächen.
+                                                  Köln rechnet sein Stadtskript (bauen koeln)
 
             <karte> ist eine Kennung aus game/karten/ (z. B. greybox, koeln), <datei> ein Pfad zu einer .json-Datei.
             """);
@@ -710,6 +715,33 @@ public static class Befehle
         return Schreiben(e, PfadVon(o, umbau.Karte), o.Vorschauen, true, aus, o);
     }
 
+    /// <summary>
+    /// Rechnet die Bauzonen einer Karte aus dem Raster neu (<see cref="Kartenentwurf.BauzonenAusRaster"/> mit den Vorgaben) und schreibt sie.
+    /// Ohne Lage-Gebiete nicht (2): Dann entstünde keine Zone, und Köln hat seine Lage-Regel im Stadtskript.
+    /// </summary>
+    public static int Bauzonen(Projektordner o, string karte, TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        if (e.Lagen.Count == 0)
+        {
+            aus.WriteLine($"{e.Kennung}: Die Karte hat keine Lage-Gebiete („lagen“) – nichts gerechnet. Köln: bauen koeln --ueberschreiben.");
+            return 2;
+        }
+        BauzonenRechnen(e, aus);
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary>Die Rechnung mit Bericht (Zonen je Lage, Restflächen) und dem Probeplan auf die neuen Zonen (für Befehl und Umbauten).</summary>
+    public static Rasterergebnis BauzonenRechnen(Kartenentwurf e, TextWriter aus, Rastervorgaben? vorgaben = null)
+    {
+        var ergebnis = e.BauzonenAusRaster(vorgaben);
+        foreach (var (lage, zonen, felder) in ergebnis.JeLage) aus.WriteLine($"   Bauzonen {lage}: {zonen} Zonen, {felder} Felder");
+        aus.WriteLine($"   Restflächen: {ergebnis.Restflaechen.Count} ({ergebnis.Restflaechen.Sum(r => r.Felder)} Felder)");
+        foreach (var p in e.ProbeplanZonenZuordnen()) aus.WriteLine($"   Probeplan {p.Art} bei {p.Punkt}: in keiner Zone");
+        return ergebnis;
+    }
+
     /// <summary>Schreibt die Vorschaubilder und gibt ihre Pfade zurück.</summary>
     public static List<string> VorschauSchreiben(Kartenentwurf e, string ordner, bool belegung)
     {
@@ -754,6 +786,9 @@ public static class Befehle
             aus.WriteLine($"   Bauzonen {g.Key.ToString().ToLowerInvariant()}: {g.Count()}, {Tausend(flaeche)} m², " +
                           $"{Tausend((int)(flaeche / (e.Raster * e.Raster)))} Rasterfelder");
         }
+        if (e.Restflaechen.Count > 0)
+            aus.WriteLine($"   Restflächen: {e.Restflaechen.Count}, {Tausend(e.Restflaechen.Sum(r => r.Felder) * e.Raster * e.Raster)} m² (" +
+                          string.Join(", ", e.Restflaechen.GroupBy(r => r.Grund).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Count()} {g.Key}")) + ")");
         var fehler = befunde.Where(b => b.Schwere == Schwere.Fehler).ToList();
         foreach (var b in fehler) aus.WriteLine($"FEHLER: {b.Text}");
         aus.WriteLine($"{e.Kennung}: {fehler.Count} Fehler, {befunde.Count - fehler.Count} Hinweise");
