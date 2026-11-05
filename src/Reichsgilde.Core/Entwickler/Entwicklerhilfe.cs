@@ -64,6 +64,7 @@ public sealed class Entwicklerhilfe
             case EntwicklerFeuer f: return MitBetrieb(f.Betrieb, Feuer);
             case EntwicklerHausbrand hb: return MitHaus(absender, hb.Haus, Hausbrand);
             case EntwicklerBlitz bl: return _w.Blitz.Entwicklerblitz(bl.Gebaeude, absender);
+            case EntwicklerDiebeshaus dh: return MitHaus(absender, dh.Haus, Diebeshaus);
             case EntwicklerWare ware: return MitBetrieb(ware.Betrieb, b => Ware(b, ware.Ware, ware.Menge));
             case EntwicklerZutaten z: return MitBetrieb(z.Betrieb, Zutaten);
             default: return Befehlsergebnis.Abgelehnt($"Den Entwicklerbefehl {befehl.GetType().Name} kennt der Kern nicht.");
@@ -124,6 +125,17 @@ public sealed class Entwicklerhilfe
             return Befehlsergebnis.Abgelehnt($"{person.Name} ist das Oberhaupt von {k.Inhaber} selbst.");
         _w.Meinungen.EntwicklerGrundSetzen(person, k, wert);
         return Befehlsergebnis.Ok($"{person.Name} denkt jetzt {Zahlenformat.Ganz(_w.Meinungen.Meinung(person, k))} über {k.Inhaber}.");
+    }
+
+    private Befehlsergebnis Diebeshaus(Konto k)
+    {
+        if (!_w.Diebe.IstAktiv) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Diebe.");
+        if (!k.IstAktiv) return Befehlsergebnis.Abgelehnt($"{k.Inhaber} ist nicht mehr im Spiel.");
+        var versteck = _w.Betriebe.FirstOrDefault(b => b.Konto == k && _w.Diebe.IstDiebesbetrieb(b))
+                       ?? _w.BetriebEroeffnen($"Unterschlupf {k.Inhaber}", Betriebsart.Unterschlupf, k, startkarren: "");
+        var frei = versteck.Plaetze - versteck.Belegt;
+        if (frei > 0) _w.Einstellen(versteck, "Geselle", frei);
+        return Befehlsergebnis.Ok($"{versteck.Name} hat {versteck.Belegt} Diebe.");
     }
 
     // ── Familie ─────────────────────────────────────────────────────────────
