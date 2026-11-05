@@ -215,18 +215,22 @@ public partial class Stadtansicht
     //  Rechenzeit: nur Figuren im Bild, ganz herausgezoomt seltener
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Unter so vielen Pixeln je Meter (Bildhöhe ÷ Kamerahöhe) bewegen sich die Figuren nur jedes zweite Bild …</summary>
-    private const float FigurenHalbeRateUnter = 12f;
-    /// <summary>… und darunter nur jedes dritte. Bei 900 Pixeln Bildhöhe: ab Zoom 75 bzw. 129.</summary>
-    private const float FigurenDrittelRateUnter = 7f;
+    /// <summary>Ab dieser sichtbaren Höhe (Meter) bewegen sich die Figuren nur jedes zweite Bild (Zoomstufe 70) …</summary>
+    private const float FigurenHalbeRateAb = 60f;
+    /// <summary>… und ab dieser nur jedes dritte (Zoomstufe 140); die nahe Stufe 35 bewegt jedes Bild. Die Figuren sind nach ihrer Nummer gestaffelt, nie alle im selben Bild.</summary>
+    private const float FigurenDrittelRateAb = 120f;
 
     /// <summary>Langsame Schleifen bekommen nur jedes dritte Bild eine neue Pose (bei 60 Bildern je Sekunde noch 20 – das Atmen sieht gleich aus).</summary>
     private const int LangsamTeiler = 3;
+
+    /// <summary>Bis zu dieser sichtbaren Höhe (Meter, nahe Zoomstufe 35 m) werfen Passanten Schatten; bei 70 und 140 m nicht (zu klein, um sie zu sehen, aber teuer im Schattendurchgang).</summary>
+    private const float PassantenSchattenBisZoom = 50f;
 
     private readonly Plane[] _bildEbenen = new Plane[6];
     private Transform3D _stadtLage = Transform3D.Identity;
     private bool _stadtVerdeckt;
     private int _figurenBild, _figurenTeiler = 1;
+    private bool _passantenSchatten = true;
     private double _figurenZeit;
     private int _figurenBewegt;
 
@@ -235,11 +239,20 @@ public partial class Stadtansicht
     {
         var ebenen = _kamera.GetFrustum();
         for (var i = 0; i < _bildEbenen.Length && i < ebenen.Count; i++) _bildEbenen[i] = ebenen[i];
-        var pixelJeMeter = GetViewport().GetVisibleRect().Size.Y / _kamera.Size;
-        _figurenTeiler = pixelJeMeter < FigurenDrittelRateUnter ? 3 : pixelJeMeter < FigurenHalbeRateUnter ? 2 : 1;
+        _figurenTeiler = _kamera.Size >= FigurenDrittelRateAb ? 3 : _kamera.Size >= FigurenHalbeRateAb ? 2 : 1;
+        var schatten = _kamera.Size <= PassantenSchattenBisZoom;
+        if (schatten != _passantenSchatten) { _passantenSchatten = schatten; foreach (var p in _passanten.Values) if (p.Figur is { } f) FigurSchatten(f, schatten); }
         _stadtLage = GlobalTransform;
         _stadtVerdeckt = _raum is not null; // in der Raumansicht sieht man die Stadt nicht
         _figurenBild++;
+    }
+
+    /// <summary>Schaltet den Schattenwurf aller Teile einer Figur (nur Passanten, je nach Zoomstufe, <see cref="PassantenSchattenBisZoom"/>).</summary>
+    private static void FigurSchatten(Figur f, bool an)
+    {
+        var einstellung = an ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off;
+        foreach (var teil in f.Teile)
+            if (IsInstanceValid(teil)) teil.CastShadow = einstellung;
     }
 
     /// <summary>Liegt der Punkt (in Koordinaten der Stadt) im Bild – mit 1,5 m Rand, damit auch Kopf und Füße am Rand mitzählen?</summary>
