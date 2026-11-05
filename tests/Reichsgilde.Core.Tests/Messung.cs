@@ -43,6 +43,9 @@ static class Messung
         // Blitzschaden und Übersprung (3.11.2026): … -- messen blitz [Jahre] [Startwerte] [--karten=…] [--berufe=…] – siehe Blitzmessung.cs
         if (args.Length > 0 && args[0] == "blitz")
             return Blitzmessung.Erstellen(args[1..]);
+        // Mehr Bürger in großen Städten (Spiel-KI, 5.11.2026): … -- messen buerger [Jahre] [Startwerte] [--karten=…] – siehe Buergermessung.cs
+        if (args.Length > 0 && args[0] == "buerger")
+            return Buergermessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

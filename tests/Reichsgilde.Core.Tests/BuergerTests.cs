@@ -139,7 +139,9 @@ static class BuergerTests
             sim.Tick();
             Bis(sim, 11);
             var ew = Einwohner(sim);
-            foreach (var e in ew.Einwohner.Where(e => e.Handlung == Handlung.Arbeiten && e.Ort != Stadtort.Kirche))
+            // Knechte und Mägde machen nach dem Tagesplan auch Besorgungen am Markt (BuergerDichteTests).
+            foreach (var e in ew.Einwohner.Where(e => e.Handlung == Handlung.Arbeiten && e.Ort != Stadtort.Kirche
+                                                      && !(e.Ort == Stadtort.Markt && ew.Daten.Rollen[e.Rolle].Dienst)))
                 Pruefe.Gleich(ew.Daten.Rollen[e.Rolle].Arbeitsort, e.Ort, $"Arbeitsort von {e.Name} ({e.Rolle})");
             Pruefe.Wahr(ew.Am(Stadtort.Rathaus).Any(e => e.Herkunft == Herkunft.Ratsherr), "Um 11 Uhr sitzt ein Ratsherr im Rathaus");
         }),
@@ -293,7 +295,7 @@ static class BuergerTests
                         Pruefe.Gleich(rolle.Stelle, e.Stelle);
                         stellen.Add(e.Stelle);
                     }
-                    if (rolle.Dienst)
+                    if (rolle.Dienst && e.Ort == Stadtort.Heim) // sonst Besorgungen am Markt (Tagesplan)
                     {
                         Pruefe.Wahr(e.Haus != e.Wohnhaus && ew.Wohnhaeuser.First(h => h.Nummer == e.Haus).Art != Hausart.Wohnhaus,
                                     $"{e.Name} dient in einem fremden, besseren Haus");

@@ -44,6 +44,7 @@ static class HafenRuhtTests
         var blitz = knoten["blitz"]!.AsObject();
         foreach (var feld in new[] { "reparaturAnteil", "lagerAnteil", "waechterFaktor", "wohnhausAnteil", "sprung" }) blitz.Remove(feld);
         blitz["reparatur"] = 0;
+        foreach (var feld in Buergermessung.NeueFelder) knoten["buerger"]!.AsObject().Remove(feld); // Bürgerdichte (5.11.2026) wie vor dem Schalter
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
