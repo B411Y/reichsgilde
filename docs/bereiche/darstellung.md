@@ -334,7 +334,7 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Entladen (Zierschiff) | reine Funktion von Spielminute und Besuch (`ZierLadungsstand`): kommt mit 18 Stücken an; von 5 bis 65 % der Liegezeit wird Stück für Stück ausgeblendet (Ladung_18 zuerst); abgeladene Stücke erscheinen als Stapel auf dem Kopf des Stegs östlich der Laufplanke (Kopien der Stücke, 8 Plätze, zwei weitere Lagen darüber) und verschwinden von 70 bis 98 % in umgekehrter Reihenfolge; ab 72 % lädt es die Rückfracht (Ladung_1 aufwärts) |
 | Rückfracht | **kleiner als die Hinfracht (2–6 Stücke, aus der Besuchsnummer)** statt leer oder voll: Ein leeres Schiff wirkt tot, ein volles unglaubwürdig; ein Oberländer fuhr flussauf mit Tuch und Hering, nur weniger als er brachte (Stapelrecht). Die Stücke 1 bis 6 liegen an den Enden des Raums |
 | Besuchsnummer | `ZierFahrplan` liefert `LiegeBeginn` jetzt in allen drei Phasen (vorher nur beim Liegen), damit die Rückfracht beim Abfahren dieselbe ist |
-| Offen | Stufe 2 (Kran hebt die Stücke), Stufe 3 (Träger mit Bürgern), Niederländer, Nachen, Treidelpferde |
+| Offen | Stufe 3 (Träger mit Bürgern), Niederländer, Nachen, Treidelpferde |
 
 ### Zierschiff am Hafen (PR #293)
 
@@ -595,6 +595,17 @@ Auftrag des Teamleiters 1.11.2026.
 | Testhilfe | `--diebtest=1|festnahme|klick|klickfremd|klickfest` mit `--entwickler=1` (Eintrag in `docs/STARTOPTIONEN.md`); im Protokoll Zeilen `[taschendieb]`, farbige Punkte über den Gestalten (gelb eigen, blau fremd, rot Gefasster, grün Gardist) | 05.11.2026 |
 | Gleichheit | Die Darstellung liest nur (`GriffeDieserStunde`, `Vorfaelle.Neu`); Wirtschaft unverändert, Gleichheitstest grün | 05.11.2026 |
 
+### Kran entlädt das Schiff Stück für Stück (PR #327)
+
+| Frage | Entscheidung | Datum |
+|---|---|---|
+| Ablauf eines Hubs | `Stadtansicht.Kranladen.cs`, reine Funktion des Liegeanteils: Haken schwenkt und steigt über das Stück (0–25 %), senkt sich (–42 %), das Stück hängt am Haken (die Kopie aus dem Stapel am Steg, das Schiffsstück ist aus), hebt (–58 %), schwenkt über den Stapelplatz (–82 %), senkt sich und setzt ab (–100 %). Das Kranhaus dreht sich, der Ausleger zeigt immer auf den Haken; das Seil hängt an einer Laufkatze am Ausleger in dessen Abstand. Das Tretrad dreht sich nur, solange sich der Haken hebt oder senkt (Winkel = Hakenhöhe, ohne Zähler) | 05.11.2026 |
+| Zeitplan | 18 Hübe in 5–65 % der Liegezeit (je 2–5 Spielminuten, bei normalem Tempo 2–4 Sekunden), Rückfracht in 72–92 % umgekehrt vom Stapel aufs Schiff (je Hub so lang wie beim Entladen); Pause dazwischen (der Haken steigt), Rückkehr in die Ruhe vor dem Ablegen. Bei hohem Tempo laufen die Hübe schneller durch; übersprungene Hübe zeigen das richtige Standbild (Stück auf dem Stapel, am Haken oder an Bord) ohne Sprung am Haken. Der Träger-Abbau der Stapel (70–98 %) lässt die Rückfracht-Stücke stehen, bis der Kran sie hebt |
+| Kran und Liegeplatz | Ein Drehkran an einem Punkt erreicht von der Plattform aus nur eine Kreisbahn der Spitze: Das Schiff (Ladung über 11 m längs) lag nur mit einem Stück in Reichweite. **Das Zierschiff liegt jetzt 5 m längs zum Kran hin versetzt** (`ZierLaengs`, die Laufplanke bleibt auf dem Kopf; der Bug ragt über das Stegende hinaus) und der **Ausleger ist länger** (Spitze 11,2 m von der Drehachse statt 7,7 m, `AUSLEGER` in `hafensteg.py`); Kranplattform und Stapelplatz blieben, wo sie waren. Das Modell des Stegs hat keine Last mehr am Haken (`kranhaus(..., last=False)`), Seil und Haken hängt das Spiel selbst ein |
+| Mast | Der Ausleger schwenkt auf Höhe des Mastes und käme nicht vorbei (ein Hub über höher als 11 m wäre unglaubwürdig, der Ausleger ist Teil des Modells). Gewählt: **der Mast wird im Hafen gelegt**, wie bei Oberländern unter Brücken üblich. Im Schiffsmodell sind `Mast` (mit Rah, Drehpunkt am Fuß) und `Takelage` (Wanten, Stagen) eigene Knoten; `ZierMastSetzen` kippt `Mast`, `Segel_Gerefft` und `Fahne` in 0,5–4,5 % der Liegezeit um den Fuß nach vorn aufs Deck (Takelage aus), vor dem Ablegen (94–98 %) wieder auf. Andere Wege verworfen: Mast stehen lassen und seitlich ausweichen (der Ausleger ist immer in Mastreichweite), Liegeplatz ohne Mast im Schwenkbereich (die Ladung liegt beidseits des Mastes) |
+| Stapelplatz | Verlegt von hinter dem Kranhaus (x 4,3–8,5, dort teils verdeckt und auf dem Landeplatz der Laufplanke) auf den Kopf westlich der Laufplanke, links und rechts vom Fuß der Rampe (x −3 bis 2,7, Steg-Koordinaten): in der Standardansicht frei sichtbar, Reichweite des Auslegers höchstens 9,7 m (Spitze 11,2 m). Ruhestellung des Hakens über dem Stapelplatz |
+| Startoption | `--zierminute=<Minute>[,<Rate>]`: das Zierschiff zeigt eine feste Spielminute seit Spielbeginn (ab dem ersten Bild, danach Rate Minuten je Sekunde; Zeitlupe), nur für Bilder. Fahrplan 1. Besuch: Ankunft Minute 130, Liegen 67 Minuten |
+| Offen | Handelsschiffe heben nicht mit dem Kran (nur das Zierschiff); Stufe 3 (Träger) trägt den Stapel weg, bis dahin verschwindet er |
 ### Torwache (PR #328)
 
 | Thema | Entscheidung | Datum |

@@ -10,7 +10,8 @@ fast kiellos mit flachem Boden, Rumpf aus überlappenden Planken (Klinker), schm
 Spiegel mit kleinem Achterdeck und einer Hütte (Satteldach), ein Mast mit einem Rahsegel, Heckruder mit Pinne.
 X ist die Längsachse, der Bug liegt bei +X, die Seite zum Kai bei −Y (im Spiel +Z). Ursprung auf der Wasserlinie in der Mitte.
 
-    Schiff         Rumpf (Klinkerplanken, Dollbord in Steghöhe), Boden, Spanten, Achterdeck, Hütte, Mast mit Rah und Wanten, Ruder, Pinne.
+    Schiff         Rumpf (Klinkerplanken, Dollbord in Steghöhe), Boden, Spanten, Achterdeck, Hütte, Mastfuß, Ruder, Pinne.
+    Mast           Mast mit Rah (ohne Fuß); Drehpunkt (2,9; 0; Dollbord + 0,25) – im Hafen am Kran legt das Spiel ihn nach vorn.   Takelage  Wanten, Stagen, Webeleinen.
     Segel_Gesetzt  das Rahsegel, voll (Wind von achtern) – zur Fahrt;   Segel_Gerefft  dasselbe an der Rah aufgetucht – im Hafen.
     Laufplanke     Ursprung am Dollbord mittschiffs (Kaiseite), führt 2,6 m nach −Y und fällt 0,16 m (auf das Deck des Stegs).
     Ladung_1–18    Einzelstücke (Fass, Kiste, Sack, Tuchballen) im Raum; das Spiel blendet so viele ein, wie geladen ist.
@@ -99,6 +100,9 @@ def stationen():
     return sorted(xs)
 
 
+_MASTTEILE = []
+
+
 def rumpf(st):
     netz = bs.Netz("Schiff")
     xs = stationen()
@@ -181,24 +185,29 @@ def rumpf(st):
     for x in (-5.9, 0.3, 7.6):
         w_, _, _, g_ = profil(x)
         netz.stab((x, -(w_ - 0.1), g_ - 0.14), (x, w_ - 0.1, g_ - 0.14), 0.3, 0.1, st["Holz"], quer=(0, 0, 1))
-    # Mast, Rah, Wanten, Stagen
-    netz.stab((MAST, 0, BODEN), (MAST, 0, BORD + MAST_HOCH), 0.28, 0.28, st["Holz"])
-    netz.quader((MAST, 0, BORD + MAST_HOCH - 0.6), (0.38, 0.38, 0.4), st["Holz alt"])
+    # Mast, Rah, Wanten, Stagen: Mast (mit Rah) und Takelage sind eigene Knoten, damit das Spiel im Hafen den Mast legen kann (Kran, Stadtansicht.Kranladen.cs);
+    # im Rumpf bleibt der Mastfuß mit einem Stumpf des Mastes
+    netz.stab((MAST, 0, BODEN), (MAST, 0, BORD + 0.25), 0.28, 0.28, st["Holz"])
     netz.quader((MAST + 0.1, 0, BORD + 0.25), (0.8, 0.6, 0.5), st["Holz alt"], ohne=("-z",))   # Mastfuß-Block
-    netz.stab((MAST + 0.2, -4.0, BORD + RAH), (MAST + 0.2, 4.0, BORD + RAH), 0.15, 0.15, st["Holz"], quer=(1, 0, 0))
-    netz.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (HALB - 0.2, 0, gb_ + 0.55), 0.04, 0.04, st["Seil"])       # Vorstag
-    netz.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (-HALB + 0.8, 0, g + 0.2), 0.04, 0.04, st["Seil"])          # Achterstag
+    mast = bs.Netz("Mast")
+    mast.stab((MAST, 0, BORD + 0.25), (MAST, 0, BORD + MAST_HOCH), 0.28, 0.28, st["Holz"])
+    mast.quader((MAST, 0, BORD + MAST_HOCH - 0.6), (0.38, 0.38, 0.4), st["Holz alt"])
+    mast.stab((MAST + 0.2, -4.0, BORD + RAH), (MAST + 0.2, 4.0, BORD + RAH), 0.15, 0.15, st["Holz"], quer=(1, 0, 0))
+    tak = bs.Netz("Takelage")
+    tak.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (HALB - 0.2, 0, gb_ + 0.55), 0.04, 0.04, st["Seil"])       # Vorstag
+    tak.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (-HALB + 0.8, 0, g + 0.2), 0.04, 0.04, st["Seil"])          # Achterstag
     w_, _, _, g_ = profil(MAST)
     for s in (-1, 1):
         for dx in (-0.55, 0.45):
-            netz.stab((MAST + dx, s * (w_ - 0.12), g_ + 0.04), (MAST + dx * 0.2, s * 0.14, BORD + MAST_HOCH - 0.5 - abs(dx)), 0.04, 0.04,
-                      st["Seil"], quer=(1, 0, 0))
-        netz.stab((MAST + 0.2, s * 3.9, BORD + RAH), (MAST - 3.2, s * (w_ - 0.15), g_ + 0.05), 0.035, 0.035, st["Seil"], quer=(1, 0, 0))
+            tak.stab((MAST + dx, s * (w_ - 0.12), g_ + 0.04), (MAST + dx * 0.2, s * 0.14, BORD + MAST_HOCH - 0.5 - abs(dx)), 0.04, 0.04,
+                     st["Seil"], quer=(1, 0, 0))
+        tak.stab((MAST + 0.2, s * 3.9, BORD + RAH), (MAST - 3.2, s * (w_ - 0.15), g_ + 0.05), 0.035, 0.035, st["Seil"], quer=(1, 0, 0))
         for k in range(1, 9):                                         # Webeleinen zwischen den Wanten
             t = k / 9
             za = g_ + 0.04 + (BORD + MAST_HOCH - 0.5 - 0.55 - g_ - 0.04) * t
             ya = s * (w_ - 0.12) * (1 - t) + s * 0.14 * t
-            netz.stab((MAST - 0.55 * (1 - t) - 0.1 * t, ya, za), (MAST + 0.45 * (1 - t) + 0.09 * t, ya, za), 0.03, 0.03, st["Seil"])
+            tak.stab((MAST - 0.55 * (1 - t) - 0.1 * t, ya, za), (MAST + 0.45 * (1 - t) + 0.09 * t, ya, za), 0.03, 0.03, st["Seil"])
+    _MASTTEILE[:] = [mast, tak]
     # Hütte achtern: kleines Haus aus Brettern mit Satteldach (Schindeln), Tür nach vorn, zwei Luken
     x0, x1 = HUETTE
     zh = BORD + 0.95
@@ -337,7 +346,8 @@ def ladung(st):
 
 
 def bauen(st):
-    teile = [rumpf(st), segel_gesetzt(st), segel_gerefft(st), wimpel(st)] + ladung(st)
+    rumpf_obj = rumpf(st)
+    teile = [rumpf_obj] + [n.objekt() for n in _MASTTEILE] + [segel_gesetzt(st), segel_gerefft(st), wimpel(st)] + ladung(st)
     planke = laufplanke(st)
     w, _, _, g = profil(ANKER_X)
     planke.location = (ANKER_X, -w, g)
