@@ -137,9 +137,10 @@ def kran_haus(st):
     return netz.objekt()
 
 
-def kranhaus(st, ausleger=3.6):
+def kranhaus(st, ausleger=3.6, last=True):
     """Drehbares Kranhaus, lokal: Ursprung auf dem Sockel in der Drehachse, Ausleger nach +Y (zum Wasser);
-    `ausleger` = wie weit die Spitze vor die Vorderwand ragt (3,6 m beim Kran am Kai, länger am Steg über dem Schiff)."""
+    `ausleger` = wie weit die Spitze vor die Vorderwand ragt (3,6 m beim Kran am Kai, länger am Steg über dem Schiff);
+    `last` = False lässt Seil, Haken und Last weg (am Steg hängt das Spiel Seil und Haken selbst an den Ausleger und hebt die Ladung des Schiffs)."""
     netz = bs.Netz("Kranhaus")
     x, y0, y1, h = KH_X, KH_Y0, KH_Y1, KH_WAND
     ws.kasten(netz, st, -x - 0.1, x + 0.1, y0 - 0.1, y1 + 0.1, 0.0, 0.22, "Holz", ohne=("-z",))       # Schwellenkranz
@@ -174,12 +175,13 @@ def kranhaus(st, ausleger=3.6):
                   quer=(1, 0, 0))
     ws.walze(netz, st, spitze.y + 0.05, spitze.z - 0.05, 0.18, -0.12, 0.12, "Eisen", n=8)
     netz.stab(spitze + Vector((0, 0.05, 0.13)), (0, y1 - 0.3, h + 0.55), 0.04, 0.04, st["Seil"])
-    haken = Vector((0, spitze.y + 0.2, 1.6))
-    netz.stab(spitze + Vector((0, 0.22, -0.1)), haken, 0.04, 0.04, st["Seil"])
-    netz.quader(haken + Vector((0, 0, -0.08)), (0.08, 0.06, 0.18), st["Eisen"])
-    for s in (-1, 1):
-        netz.stab(haken + Vector((s * 0.03, 0, -0.15)), haken + Vector((s * 0.35, 0, -0.65)), 0.03, 0.03, st["Seil"])
-    lb.kiste(netz, st, haken + Vector((0, 0, -1.25)), (0.75, 0.75, 0.6), dreh=0.3)
+    if last:
+        haken = Vector((0, spitze.y + 0.2, 1.6))
+        netz.stab(spitze + Vector((0, 0.22, -0.1)), haken, 0.04, 0.04, st["Seil"])
+        netz.quader(haken + Vector((0, 0, -0.08)), (0.08, 0.06, 0.18), st["Eisen"])
+        for s in (-1, 1):
+            netz.stab(haken + Vector((s * 0.03, 0, -0.15)), haken + Vector((s * 0.35, 0, -0.65)), 0.03, 0.03, st["Seil"])
+        lb.kiste(netz, st, haken + Vector((0, 0, -1.25)), (0.75, 0.75, 0.6), dreh=0.3)
     o = netz.objekt()
     o.location = K_MITTE + Vector((0, 0, KAI + SOCKEL))
     return o
