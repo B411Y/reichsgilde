@@ -252,6 +252,8 @@ public sealed class EinstellungenAnzeige
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
     private readonly CheckButton _fahnen, _zeiger;
+    private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Stufen + 1];
+    private readonly Label _zeigerName;
     private readonly HSlider _groesse;
     private readonly Label _groesseWert;
     private bool _groesseZiehen;
@@ -647,6 +649,27 @@ public sealed class EinstellungenAnzeige
             Fenster.EigenerZeigerSetzen(an);
             Auffrischen();
         });
+        var zeigerZeile = Zeile(s, "Handschuh", () => "Welcher Handschuh euer Zeiger ist. „Auto“ folgt dem Stand des Hauses (Gemeiner bis Reichsgraf); jeder der sechs lässt sich auch fest wählen, " +
+                                                      "unabhängig vom eigenen Stand – das ist reine Zierde. Gilt nur beim eigenen Mauszeiger, auch im Hauptmenü und in der Kartenwerkstatt.\n\n" +
+                                                      string.Join("\n", ZeigerWahlNamen().Select((n, i) => i == Fenster.ZeigerStufe ? $"» {n} (gewählt)" : n)), einzug: Einzug);
+        for (var nummer = 0; nummer <= Mauszeiger.Stufen; nummer++)
+        {
+            var wahl = nummer;
+            var kachel = new Button
+            {
+                ToggleMode = true, FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(56, 56), ExpandIcon = false,
+                Icon = wahl == 0 ? null : Mauszeiger.Vorschau(wahl), Text = wahl == 0 ? "Auto" : "",
+            };
+            kachel.AddThemeConstantOverride("icon_max_width", 48);
+            kachel.Pressed += () =>
+            {
+                Fenster.ZeigerStufeSetzen(wahl);
+                Auffrischen();
+            };
+            zeigerZeile.AddChild(kachel);
+            _zeigerKacheln[nummer] = kachel;
+        }
+        _zeigerName = Hinweis(s, "");
         Abschnitt(s, "Tooltips festheften");
         var tooltipText = () => "Ein Tooltip zeigt oben rechts einen Kreis, der sich füllt, solange die Maus auf ihm oder seiner Stelle ruht. Ist er voll, bleibt der Tooltip als kleines Fenster stehen " +
                                 "(das Kreuz oben rechts schließt es, Esc das oberste). T oder die mittlere Maustaste heftet sofort fest. Verweise im Text (unterstrichen) öffnen weitere Tooltips.";
@@ -801,6 +824,12 @@ public sealed class EinstellungenAnzeige
 
         _fahnen.SetPressedNoSignal(Fenster.FahnenBewegen);
         _zeiger.SetPressedNoSignal(Fenster.EigenerZeigerAn);
+        for (var nummer = 0; nummer < _zeigerKacheln.Length; nummer++)
+        {
+            _zeigerKacheln[nummer].SetPressedNoSignal(nummer == Fenster.ZeigerStufe);
+            _zeigerKacheln[nummer].Disabled = !Fenster.EigenerZeigerAn;
+        }
+        _zeigerName.Text = "Handschuh: " + ZeigerWahlNamen().ElementAt(Fenster.ZeigerStufe);
         if (!_groesseZiehen) WertSetzen(_groesse, _groesseWert, Fenster.Oberflaechengroesse, " %");
         _farbfilter.Select(Array.FindIndex(Farbfilterarten, f => f.Art == Fenster.AktuellerFarbfilter));
         _tooltipZeit.SetValueNoSignal(Fenster.TooltipFestZeit * 2);
@@ -958,6 +987,9 @@ public sealed class EinstellungenAnzeige
         regler.SetValueNoSignal(zahl);
         wert.Text = $"{zahl}{einheit}";
     }
+
+    /// <summary>„Nach Stand (automatisch)“ und die sechs Handschuhe (Index = <see cref="Fenster.ZeigerStufe"/>).</summary>
+    private static IEnumerable<string> ZeigerWahlNamen() => new[] { "Nach Stand (automatisch)" }.Concat(Mauszeiger.StufenNamen);
 
     private static int IndexVon<T>(T[] liste, Func<T, bool> passt) => Math.Max(0, Array.FindIndex(liste, e => passt(e)));
 
