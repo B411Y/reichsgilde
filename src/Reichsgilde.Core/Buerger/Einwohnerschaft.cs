@@ -27,6 +27,10 @@ public sealed class Einwohnerschaft
     private readonly Stadtwirtschaft _w;
     private readonly BuergerDaten? _d;
     private Zufallsquelle _zufall;
+    /// <summary>Eigener Generator der Einwohner, die nicht für die Wirtschaft zählen (Bürgerdichte) – so bleibt der Lauf von <see cref="_zufall"/> wie ohne sie.</summary>
+    private Zufallsquelle _zufallExtra;
+    /// <summary>Der Generator für den Einwohner, der gerade würfelt (<see cref="Wuerfel"/>); außerhalb solcher Stellen immer <see cref="_zufall"/>.</summary>
+    private Zufallsquelle _z;
     private readonly List<Einwohner> _einwohner = new();
     private readonly List<Stadthaus> _haeuser = new();
     private bool _gegruendet;
@@ -55,6 +59,8 @@ public sealed class Einwohnerschaft
         _w = w;
         _d = daten;
         _zufall = new Zufallsquelle(unchecked(zufallsstartwert * 71 + 53));
+        _zufallExtra = new Zufallsquelle(unchecked(zufallsstartwert * 97 + 31));
+        _z = _zufall;
     }
 
     public bool IstAktiv => _d is not null;
@@ -134,14 +140,15 @@ public sealed class Einwohnerschaft
             {
                 var e = _einwohner[i];
                 if (e.Herkunft != Herkunft.Stadt) continue; // Ratsherren und Kandidaten leben nach den Regeln von Rat und Familienbuch
-                if (_zufall.NextDouble() >= _w.Familien.Sterberisiko(e.Volk, e.Alter(neuesJahr - 1))) continue;
-                var neu = NeuerStadtbewohner(neuesJahr, zuzug: true); // an derselben Stelle – die Reihenfolge bleibt
-                neu.Wohnhaus = e.Wohnhaus; // der Zuzügler bezieht die Kammer des Verstorbenen
-                neu.ZaehltFuerWirtschaft = e.ZaehltFuerWirtschaft; // … und zählt wie er
+                _z = Wuerfel(e);
+                if (_z.NextDouble() >= _w.Familien.Sterberisiko(e.Volk, e.Alter(neuesJahr - 1))) continue;
+                var neu = NeuerStadtbewohner(neuesJahr, zuzug: true, zaehlt: e.ZaehltFuerWirtschaft); // an derselben Stelle – die Reihenfolge bleibt
+                neu.Wohnhaus = e.Wohnhaus; // der Zuzügler bezieht die Kammer des Verstorbenen und zählt wie er
                 _einwohner[i] = neu;
                 _verstorben++;
                 _zugezogen++;
             }
+        _z = _zufall;
         // Das Übliche am Markt: Einkaufsstunden des ganzen Tages (der Ring umfasst genau die 19 Stunden).
         if (Daten.Kopplung.Markt > 0)
         {
@@ -149,7 +156,11 @@ public sealed class Einwohnerschaft
             Lernen(ref _einkaufErwartet, ref _einkaufTage, tag);
         }
         foreach (var e in _einwohner)
+        {
+            _z = Wuerfel(e);
             Ausschlafen(e);
+        }
+        _z = _zufall;
         _betendeHeute = 0;
     }
 
@@ -572,11 +583,23 @@ public sealed class Einwohnerschaft
     {
         var d = Daten;
         var plan = Haushaltsplan();
-        var anzahl = plan?.Sum() ?? d.JeHaus * _w.Konten.Count;
-        for (var i = 0; i < anzahl; i++)
-            _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false));
-        HaushalteBilden(plan);
-        WirtschaftlicheAuswahl(d.JeHaus * _w.Konten.Count);
+        var zaehlend = d.JeHaus * _w.Konten.Count;
+        for (var i = 0; i < zaehlend; i++)
+            _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false, zaehlt: true));
+        if (plan is null)
+            HaushalteBilden(null);
+        else
+        {
+            // Wirtschaftsgewicht: Die Zählenden würfeln genau wie vor der Bürgerdichte (auch die Größen der Haushalte, als Leerwürfe),
+            // die übrigen mit ihrem eigenen Generator – der Lauf der Wirtschaft bleibt so Wurf für Wurf derselbe.
+            for (int i = 0, offen = 0; i < zaehlend; i++, offen--)
+                if (offen == 0) offen = d.HaushaltVon + _zufall.Next(d.HaushaltBis - d.HaushaltVon + 1);
+            _z = _zufallExtra;
+            for (var i = zaehlend; i < plan.Sum(); i++)
+                _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false, zaehlt: false));
+            _z = _zufall;
+            HaushalteBilden(plan);
+        }
 
         if (d.MitRatsherren && _w.Rat.IstAktiv)
             foreach (var r in _w.Rat.Ratsherren)
@@ -620,23 +643,17 @@ public sealed class Einwohnerschaft
         var frei = Hausplaetze - gross;
         if (frei * (d.JeHausplatz + 1) < d.JeHaus * _w.Konten.Count) return null; // reicht sicher nicht: wie bisher
         var plan = new List<int>(frei);
-        for (var i = 0; i < frei; i++) plan.Add(Math.Max(1, d.JeHausplatz - 1 + _zufall.Next(3)));
+        for (var i = 0; i < frei; i++) plan.Add(Math.Max(1, d.JeHausplatz - 1 + _zufallExtra.Next(3)));
         return plan.Sum() >= d.JeHaus * _w.Konten.Count ? plan : null;
     }
 
     /// <summary>
     /// Wirtschaftsgewicht: Für Markt, Warenkorb, Schänke, Messe und Taschendiebe zählen von den gewöhnlichen Einwohnern nur so viele, wie es nach
-    /// der alten Regel gäbe (jeHaus × Häuser), gleichmäßig über die Liste – also über alle Haushalte – verteilt. Die übrigen sind echte Figuren
-    /// mit demselben Tagesablauf, gehen aber in keine Zählung ein. So schwanken die Kopplungen wie vorher: Mit doppelt so vielen Einwohnern
-    /// wurde der Spieler mit einem Betrieb in Köln sonst 10–20 % reicher (Messung 5.11.2026, Gegenprobe jeHaus 50).
-    /// Ratsherren und Kandidaten zählen immer.
+    /// der alten Regel gäbe (jeHaus × Häuser). Sie entstehen und würfeln genau wie vor der Bürgerdichte; die übrigen sind echte Figuren mit
+    /// demselben Tagesablauf und eigenem Generator, gehen aber in keine Zählung ein. Mit Zählung aller wurde der Spieler mit einem Betrieb in
+    /// Köln 10–20 % reicher (Messung 5.11.2026, Gegenprobe jeHaus 50); so bleibt die Wirtschaft bitgleich (Test). Ratsherren und Kandidaten zählen immer.
     /// </summary>
-    private void WirtschaftlicheAuswahl(int zaehlen)
-    {
-        var stadt = _einwohner.Where(e => e.Herkunft == Herkunft.Stadt).ToList();
-        for (var i = 0; i < stadt.Count; i++)
-            stadt[i].ZaehltFuerWirtschaft = stadt.Count <= zaehlen || (long)i * zaehlen / stadt.Count != (long)(i + 1) * zaehlen / stadt.Count;
-    }
+    private Zufallsquelle Wuerfel(Einwohner e) => e.ZaehltFuerWirtschaft ? _zufall : _zufallExtra;
 
     /// <summary>Die Brautschau ändert sich (Heirat, Weggang, Nachrücker) – die Einwohnerliste folgt ihr.</summary>
     private void KandidatenAbgleichen()
@@ -664,24 +681,25 @@ public sealed class Einwohnerschaft
         }
     }
 
-    private Einwohner NeuerStadtbewohner(int jahr, bool zuzug)
+    /// <summary>Ein neuer gewöhnlicher Einwohner; würfelt mit <see cref="_z"/> (der Aufrufer wählt den Generator nach <paramref name="zaehlt"/>).</summary>
+    private Einwohner NeuerStadtbewohner(int jahr, bool zuzug, bool zaehlt)
     {
         var d = Daten;
         var volk = Gewichtet(d.Voelker.Where(v => v.Value > 0).Select(v => (v.Key, v.Value)));
-        var geschlecht = _zufall.NextDouble() < 0.5 ? Geschlecht.Mann : Geschlecht.Frau;
+        var geschlecht = _z.NextDouble() < 0.5 ? Geschlecht.Mann : Geschlecht.Frau;
 
         var vd = _w.Familien.IstAktiv ? _w.Familien.VolkDaten(volk) : null;
         var von = vd?.Volljaehrig ?? 16;
         var sterbealter = vd?.Sterbealter ?? 64;
         // Zuzügler sind eher jung; bei Spielstart ist die Stadt durchmischt.
         var bis = von + (int)((sterbealter - von) * (zuzug ? 0.5 : 0.85));
-        var alter = von + _zufall.Next(Math.Max(1, bis - von + 1));
+        var alter = von + _z.Next(Math.Max(1, bis - von + 1));
 
         var nummer = _naechsteNummer++;
-        var (vorname, familienname) = Namen(vd, geschlecht, nummer);
+        var (vorname, familienname) = Namen(vd, geschlecht, nummer, zaehlt);
         var glaube = Glaubenswurf(volk);
         var rolle = Gewichtet(d.Rollen.Where(r => r.Value.Gewicht > 0).Select(r => (r.Key, r.Value.Gewicht)));
-        var e = new Einwohner(nummer, Herkunft.Stadt, "", vorname, familienname, volk, geschlecht, jahr - alter, glaube, rolle);
+        var e = new Einwohner(nummer, Herkunft.Stadt, "", vorname, familienname, volk, geschlecht, jahr - alter, glaube, rolle) { ZaehltFuerWirtschaft = zaehlt };
         Ausschlafen(e);
         return e;
     }
@@ -695,7 +713,7 @@ public sealed class Einwohnerschaft
         var d = Daten;
         var offen = 0;
         var haushalt = 0;
-        foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Stadt))
+        foreach (var e in Verzahnt(_einwohner.Where(e => e.Herkunft == Herkunft.Stadt).ToList()))
         {
             if (offen == 0)
             {
@@ -708,6 +726,20 @@ public sealed class Einwohnerschaft
         }
         for (var i = 0; i < d.Buergerhaeuser; i++)
             NeuesHaus(Hausart.Buergerhaus);
+    }
+
+    /// <summary>Zählende und übrige gleichmäßig gemischt (wie Bresenham), damit in jedem Haus beide wohnen; ohne übrige die Liste selbst.</summary>
+    private static IEnumerable<Einwohner> Verzahnt(List<Einwohner> stadt)
+    {
+        var zaehlend = stadt.Where(e => e.ZaehltFuerWirtschaft).ToList();
+        var uebrig = stadt.Where(e => !e.ZaehltFuerWirtschaft).ToList();
+        if (uebrig.Count == 0) return stadt;
+        var reihe = new List<Einwohner>(stadt.Count);
+        int z = 0, u = 0;
+        for (long k = 0; k < stadt.Count; k++)
+            if (z < zaehlend.Count && ((k + 1) * zaehlend.Count / stadt.Count > k * zaehlend.Count / stadt.Count || u >= uebrig.Count)) reihe.Add(zaehlend[z++]);
+            else reihe.Add(uebrig[u++]);
+        return reihe;
     }
 
     private int NeuesHaus(Hausart art)
@@ -732,16 +764,17 @@ public sealed class Einwohnerschaft
     }
 
     /// <summary>Name aus den Namenslisten des Volkes – kein ganzer Name doppelt, kein Familienname eines Hauses.</summary>
-    private (string Vorname, string Familienname) Namen(VolkDaten? vd, Geschlecht geschlecht, int nummer)
+    private (string Vorname, string Familienname) Namen(VolkDaten? vd, Geschlecht geschlecht, int nummer, bool zaehlt = true)
     {
         if (vd is null) return ("Einwohner", nummer.ToString());
         var vornamen = geschlecht == Geschlecht.Frau ? vd.VornamenFrau : vd.VornamenMann;
         var haeuser = _w.Konten.Select(k => _w.Familien.Von(k)?.Nachname).Where(n => n is not null).ToHashSet();
-        var namen = _einwohner.Select(e => e.Name).ToHashSet();
+        // Wer zählt, prüft nur gegen die Zählenden (wie vor der Bürgerdichte, sonst würfelte er anders); die übrigen gegen alle.
+        var namen = _einwohner.Where(e => !zaehlt || e.ZaehltFuerWirtschaft).Select(e => e.Name).ToHashSet();
         (string, string) wahl = default;
         for (var versuch = 0; versuch < 10; versuch++)
         {
-            wahl = (vornamen[_zufall.Next(vornamen.Count)], vd.Familiennamen[_zufall.Next(vd.Familiennamen.Count)]);
+            wahl = (vornamen[_z.Next(vornamen.Count)], vd.Familiennamen[_z.Next(vd.Familiennamen.Count)]);
             if (!haeuser.Contains(wahl.Item2) && !namen.Contains($"{wahl.Item1} {wahl.Item2}")) break;
         }
         return wahl;
@@ -759,7 +792,7 @@ public sealed class Einwohnerschaft
     private T Gewichtet<T>(IEnumerable<(T Wert, double Gewicht)> eintraege) where T : notnull
     {
         var liste = eintraege.OrderBy(x => x.Wert.ToString(), StringComparer.Ordinal).ToList();
-        var wurf = _zufall.NextDouble() * liste.Sum(x => x.Gewicht);
+        var wurf = _z.NextDouble() * liste.Sum(x => x.Gewicht);
         foreach (var (wert, gewicht) in liste)
         {
             wurf -= gewicht;
@@ -772,7 +805,7 @@ public sealed class Einwohnerschaft
     {
         var streuung = Daten.StartStreuung;
         foreach (var b in Enum.GetValues<Beduerfnis>())
-            e.Setzen(b, Daten.Beduerfnisse[b].Start + (streuung > 0 ? streuung * (2 * _zufall.NextDouble() - 1) : 0));
+            e.Setzen(b, Daten.Beduerfnisse[b].Start + (streuung > 0 ? streuung * (2 * _z.NextDouble() - 1) : 0));
         e.Handlung = Handlung.Ruhen;
         e.Ort = Stadtort.Heim;
         e.Betrieb = null;
@@ -822,7 +855,7 @@ public sealed class Einwohnerschaft
                 if (!Moeglich(h, stunde, schaenken)) continue;
                 var nutzen = Nutzen(e, h, h == Handlung.Beten ? messe : 1);
                 if (h == e.Handlung) nutzen += d.Beharrung;
-                if (d.Rauschen > 0) nutzen *= 1 + d.Rauschen * (2 * _zufall.NextDouble() - 1);
+                if (d.Rauschen > 0) nutzen *= 1 + d.Rauschen * (2 * Wuerfel(e).NextDouble() - 1);
                 if (nutzen > besterNutzen)
                 {
                     beste = h;
@@ -863,7 +896,7 @@ public sealed class Einwohnerschaft
             var ohnePlan = new Aufenthalt(ort, betrieb, haus, stelle);
             var vorherOhnePlan = OhnePlan(e, vorherHandlung[i], zeit.Jahr, stunde - 1, vorher);
             // … mit seinem Weg: Er würfelt genau wie früher, damit der Generator der Bürger denselben Lauf nimmt.
-            var wegOhnePlan = ohnePlan != vorherOhnePlan ? NeuerWeg(vorherOhnePlan, ohnePlan, zeit.VergangeneMinuten) : null;
+            var wegOhnePlan = ohnePlan != vorherOhnePlan ? NeuerWeg(vorherOhnePlan, ohnePlan, zeit.VergangeneMinuten, Wuerfel(e)) : null;
             e.PassantOhnePlan = ort is Stadtort.Markt or Stadtort.Gasse
                                 || wegOhnePlan is not null && ohnePlan.Ort != Stadtort.Umland && vorherOhnePlan.Ort != Stadtort.Umland;
             // Dann der Tagesplan: Rast oder Besorgung am Markt statt drinnen.
@@ -936,14 +969,14 @@ public sealed class Einwohnerschaft
     }
 
     /// <summary>Ein Weg beginnt kurz nach der vollen Stunde (0–<c>wege.verzoegerung</c> Minuten) und dauert je nach Ziel: in der Stadt <c>stadt</c> ± <c>streuung</c>, zum Tor <c>tor</c>, ins Umland <c>umland</c> (heute 30 ± 10, 40, 50 Minuten).</summary>
-    private Weg NeuerWeg(Aufenthalt von, Aufenthalt nach, long stunde)
+    private Weg NeuerWeg(Aufenthalt von, Aufenthalt nach, long stunde, Zufallsquelle zufall)
     {
         var w = Daten.Wege;
-        var abmarsch = stunde + (w.Verzoegerung > 0 ? _zufall.Next(w.Verzoegerung + 1) : 0);
+        var abmarsch = stunde + (w.Verzoegerung > 0 ? zufall.Next(w.Verzoegerung + 1) : 0);
         int dauer;
         if (von.Ort == Stadtort.Umland || nach.Ort == Stadtort.Umland) dauer = w.Umland;
         else if (von.Ort == Stadtort.Tor || nach.Ort == Stadtort.Tor) dauer = w.Tor;
-        else dauer = w.Stadt - w.Streuung + _zufall.Next(2 * w.Streuung + 1);
+        else dauer = w.Stadt - w.Streuung + zufall.Next(2 * w.Streuung + 1);
         return new Weg(von, nach, abmarsch, abmarsch + dauer);
     }
 
@@ -1003,6 +1036,7 @@ public sealed class Einwohnerschaft
     internal EinwohnerschaftStand Sichern() => new()
     {
         ZufallWuerfe = _zufall.Wuerfe,
+        ZufallExtraWuerfe = _zufallExtra.Wuerfe == 0 ? null : _zufallExtra.Wuerfe,
         Gegruendet = _gegruendet,
         NaechsteNummer = _naechsteNummer,
         Verstorben = _verstorben,
@@ -1048,6 +1082,8 @@ public sealed class Einwohnerschaft
     internal void Wiederherstellen(EinwohnerschaftStand s)
     {
         _zufall = new Zufallsquelle(_zufall.Startwert, s.ZufallWuerfe);
+        _zufallExtra = new Zufallsquelle(_zufallExtra.Startwert, s.ZufallExtraWuerfe ?? 0);
+        _z = _zufall;
         _gegruendet = s.Gegruendet;
         _naechsteNummer = s.NaechsteNummer;
         _verstorben = s.Verstorben;
@@ -1121,6 +1157,9 @@ public sealed class Einwohnerschaft
 public sealed record EinwohnerschaftStand
 {
     public long ZufallWuerfe { get; init; }
+    /// <summary>Würfe des Generators der nicht zählenden Einwohner (Bürgerdichte; null = 0, auch in älteren Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public long? ZufallExtraWuerfe { get; init; }
     public bool Gegruendet { get; init; }
     public int NaechsteNummer { get; init; } = 1;
     public int Verstorben { get; init; }

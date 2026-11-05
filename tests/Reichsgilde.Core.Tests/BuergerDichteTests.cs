@@ -170,25 +170,37 @@ static class BuergerDichteTests
             Pruefe.Wahr(amMarktB > 1.5 * amMarktA, $"Mit Tagesplan sollten tagsüber viel mehr am Markt sein ({amMarktB} gegen {amMarktA})");
         }),
 
-        ("Tagesplan: Berührt die Wirtschaft nicht – Greybox, zwei Jahre mit und ohne Tagesplan: Vermögen, Marktnachfrage, Gäste und Passanten gleich", () =>
+        ("Bürgerdichte und Tagesplan berühren die Wirtschaft nicht – Köln und Greybox, zwei Jahre mit und ohne: Vermögen, Nachfrage, Passanten gleich", () =>
         {
-            var (simA, a) = Partie(Daten(b => { b.Remove("jeHausplatz"); b.Remove("tagesplan"); }), "greybox", startwert: 4711);
-            var (simB, b2) = Partie(Daten(b => b.Remove("jeHausplatz")), "greybox", startwert: 4711);
-            var anders = 0;
-            for (var minute = 0; minute < 2 * Spielzeit.MinutenProTag; minute++)
+            foreach (var karte in new[] { "koeln", "greybox" })
             {
-                simA.Tick();
-                simB.Tick();
-                if (simA.Zeit.UhrzeitInMinuten % 60 != 1) continue;
-                Pruefe.Gleich(a.Einwohnerschaft.Passanten.Count(), b2.Einwohnerschaft.Passanten.Count(), $"Passanten um {simA.Zeit.UhrzeitText}");
-                Pruefe.Gleich(a.Einwohnerschaft.Marktfaktor, b2.Einwohnerschaft.Marktfaktor, $"Marktfaktor um {simA.Zeit.UhrzeitText}");
-                anders += a.Einwohnerschaft.Einwohner.Zip(b2.Einwohnerschaft.Einwohner).Count(x => x.First.Ort != x.Second.Ort);
+                var (simA, a) = Partie(Daten(OhneNeues), karte, startwert: 4711);
+                var (simB, b2) = Partie(Daten(), karte, startwert: 4711);
+                Pruefe.Wahr(b2.Einwohnerschaft.Einwohner.Count > a.Einwohnerschaft.Einwohner.Count + 40, $"{karte}: mit Bürgerdichte mehr Einwohner");
+                var anders = 0;
+                for (var minute = 0; minute < 2 * Spielzeit.MinutenProTag; minute++)
+                {
+                    simA.Tick();
+                    simB.Tick();
+                    if (simA.Zeit.UhrzeitInMinuten % 60 != 1) continue;
+                    Pruefe.Gleich(a.Einwohnerschaft.Passanten.Count(), b2.Einwohnerschaft.Passanten.Count(), $"{karte}: Passanten um {simA.Zeit.UhrzeitText}");
+                    Pruefe.Gleich(a.Einwohnerschaft.Marktfaktor, b2.Einwohnerschaft.Marktfaktor, $"{karte}: Marktfaktor um {simA.Zeit.UhrzeitText}");
+                    Pruefe.Gleich(a.Einwohnerschaft.Einkaufende, b2.Einwohnerschaft.Einkaufende, $"{karte}: Einkaufende um {simA.Zeit.UhrzeitText}");
+                    var zaehlend = b2.Einwohnerschaft.Einwohner.Where(e => e.ZaehltFuerWirtschaft).ToList();
+                    Pruefe.Gleich(a.Einwohnerschaft.Einwohner.Count, zaehlend.Count, $"{karte}: Zählende");
+                    for (var i = 0; i < zaehlend.Count; i++)
+                    {
+                        Pruefe.Gleich(a.Einwohnerschaft.Einwohner[i].Name, zaehlend[i].Name, $"{karte}: Name");
+                        Pruefe.Gleich(a.Einwohnerschaft.Einwohner[i].Handlung, zaehlend[i].Handlung, $"{karte}: Handlung von {zaehlend[i].Name}");
+                        if (a.Einwohnerschaft.Einwohner[i].Ort != zaehlend[i].Ort) anders++;
+                    }
+                }
+                Pruefe.Wahr(anders > 100, $"{karte}: Der Tagesplan sollte Orte ändern (waren {anders})");
+                for (var i = 0; i < a.Konten.Count; i++)
+                    Pruefe.Gleich(a.Konten[i].Vermoegen, b2.Konten[i].Vermoegen, $"{karte}: Vermögen von {a.Konten[i].Inhaber}");
+                foreach (var (sa, sb) in a.Markt.Staende.Zip(b2.Markt.Staende))
+                    Pruefe.Gleich(sa.Nachfrage, sb.Nachfrage, $"{karte}: Nachfrage {sa.Ware}");
             }
-            Pruefe.Wahr(anders > 100, $"Der Tagesplan sollte Orte ändern (waren {anders})");
-            for (var i = 0; i < a.Konten.Count; i++)
-                Pruefe.Gleich(a.Konten[i].Vermoegen, b2.Konten[i].Vermoegen, $"Vermögen von {a.Konten[i].Inhaber}");
-            foreach (var (sa, sb) in a.Markt.Staende.Zip(b2.Markt.Staende))
-                Pruefe.Gleich(sa.Nachfrage, sb.Nachfrage, $"Nachfrage {sa.Ware}");
         }),
 
         ("Tagesplan: Der Wurf ist fest (gleiche Eingaben, gleiche Zahl), liegt in [0, 1) und trifft den Anteil", () =>

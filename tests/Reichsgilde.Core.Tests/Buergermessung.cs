@@ -32,6 +32,7 @@ static class Buergermessung
         public readonly double[] Stadt = new double[24], Umland = new double[24];
         public readonly double[,] Orte = new double[24, 9];
         public double Marktfaktor;
+        public readonly Dictionary<string, (double Summe, int Anzahl)> Warenkorb = new(StringComparer.Ordinal);
         public int Marktstunden, OhnePlatz;
         public double Sekunden;
     }
@@ -102,6 +103,15 @@ static class Buergermessung
             Console.WriteLine($"{g.Key.Karte} | {g.Key.Aufbau} | {g.Key.Variante} | {rein.Average():0} (± {fehler:0}) | {ki:0} | {bj:0.0} ({buerger.Count(b => b is not null)}/{buerger.Count}) | {ziel}/{buerger.Count} | " +
                               $"{mf:0.000} | {op:0.0} | {liste.Average(x => x.Z.Sekunden):0.0}");
         }
+        Console.WriteLine();
+        Console.WriteLine("Karte | Variante | Warenkorbfaktor Ø je Warengruppe (9–20 Uhr)");
+        foreach (var g in ergebnisse.Where(x => x.Value.P.Fehler is null).GroupBy(x => (x.Key.Item3.Karte, Variante: x.Key.Item1))
+                     .OrderBy(x => x.Key.Karte, StringComparer.Ordinal).ThenBy(x => x.Key.Variante, StringComparer.Ordinal))
+        {
+            var korbGruppen = g.SelectMany(x => x.Value.Z.Warenkorb.Keys).Distinct().Order(StringComparer.Ordinal);
+            Console.WriteLine($"{g.Key.Karte} | {g.Key.Variante} | " + string.Join(", ", korbGruppen.Select(gr =>
+                $"{gr} {g.Sum(x => x.Value.Z.Warenkorb.GetValueOrDefault(gr).Summe) / Math.Max(1, g.Sum(x => x.Value.Z.Warenkorb.GetValueOrDefault(gr).Anzahl)):0.000}")));
+        }
         if (einzeln)
         {
             Console.WriteLine();
@@ -141,7 +151,17 @@ static class Buergermessung
         if (!e.IstAktiv || e.Einwohner.Count == 0) return;
         var stunde = w.Uhr.UhrzeitInMinuten / 60;
         if (stunde == 5) { z.Tage++; z.Einwohner = e.Einwohner.Count; }
-        if (stunde is >= 9 and <= 20) { z.Marktfaktor += e.Marktfaktor; z.Marktstunden++; }
+        if (stunde is >= 9 and <= 20)
+        {
+            z.Marktfaktor += e.Marktfaktor;
+            z.Marktstunden++;
+            foreach (var s in w.Markt.Staende)
+                if (e.Warengruppe(s.Ware) is { } gruppe)
+                {
+                    var (summe, anzahl) = z.Warenkorb.GetValueOrDefault(gruppe);
+                    z.Warenkorb[gruppe] = (summe + e.Warenkorbfaktor(s.Ware), anzahl + 1);
+                }
+        }
         if (stunde is >= 13 and <= 22) z.OhnePlatz += e.OhneSchankplatz;
     }
 
