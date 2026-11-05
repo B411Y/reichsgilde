@@ -13,7 +13,10 @@ Inhalt je Datei (Blender: Z oben, Blick nach -Y; im Spiel Y oben, Blick nach +Z)
     Koerper_Frau    Kleid bis über die Knöchel, Zopf
     Trachtteile     Strohhut, Barett, Kapuze, Haube, Schleier, Schuerze, Kiepe, Buendel, Tasche, Stab, Hacke, Hammer,
                     Hobel, Saege, Drechseleisen, Schlaegel, Meissel, Stoessel, Kelle, Flakon, Krug, Laute, Feder, Sieb,
-                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert, Rechenpfennig, Muenze
+                    Dochtstab, Dietrich, Muenzbeutel, Lappen, Uebungsschwert, Rechenpfennig, Muenze, Eisenhut, Waffenrock,
+                    Hellebarde (Wachen-Tracht der Torwächter, 05.11.2026: Eisenhut am Kopf, Zone 0 Eisen; Waffenrock als
+                    Brust- und Rückenstück an Rücken und Wurzel, Grundfläche Zone 1 Gewand mit weißem Mittelstreifen in Zone 0;
+                    Hellebarde am linken Unterarm, in „Stehen“ senkrecht, Schaft Holz, Kopf Eisen)
                     – standardmäßig aus, das Spiel blendet sie je Rolle ein (wie heute `TrachtVon`; das Werkzeug bei der
                     passenden Bewegung: Hammer beim Hämmern, Hobel beim Hobeln, Säge beim Sägen, Drechseleisen beim Drechseln,
                     Schlägel und Meißel beim Behauen und Bildhauen, Stößel beim Mörsern, Kelle beim Rühren, Flakon beim
@@ -101,6 +104,8 @@ bs.FARBEN.update({
     "Schwertholz": (0.70, 0.58, 0.40),     # Klinge des hölzernen Übungsschwerts (Esche)
     "Rechenpfennig": (0.80, 0.64, 0.30),   # Rechenpfennig aus Messing
     "Postenblatt": (0.86, 0.82, 0.70),     # Blatt mit den Posten beim Rechnen
+    "Waffeneisen": (0.30, 0.31, 0.33),     # Eisenhut und Hellebardenkopf der Torwache: dunkles, mattes Grau (Zone 0)
+    "Wappenweiss": (0.90, 0.88, 0.80),     # weißer Mittelstreifen des Waffenrocks: gebrochenes Weiß (Zone 0)
 })
 
 FPS = 24
@@ -118,7 +123,8 @@ VOELKER = {
 ZONEN = {"Gewand": 1, "Beinkleid": 2, "Haut": 3, "Haar": 4, "Kopfbedeckung": 5}   # alle übrigen Stoffe: Zone 0
 TRACHT = ["Strohhut", "Barett", "Kapuze", "Haube", "Schleier", "Schuerze", "Kiepe", "Buendel", "Tasche", "Stab", "Hacke", "Hammer",
           "Hobel", "Saege", "Drechseleisen", "Schlaegel", "Meissel", "Stoessel", "Kelle", "Flakon", "Krug", "Laute", "Feder", "Sieb",
-          "Dochtstab", "Dietrich", "Muenzbeutel", "Lappen", "Uebungsschwert", "Rechenpfennig", "Muenze"]
+          "Dochtstab", "Dietrich", "Muenzbeutel", "Lappen", "Uebungsschwert", "Rechenpfennig", "Muenze",
+          "Eisenhut", "Waffenrock", "Hellebarde"]
 HAMMER = 0.3          # vom Mittelpunkt der Hand bis zur Mitte des Hammerkopfs, in Verlängerung des Unterarms
 # Wo die Hände bei der Arbeit sind (Meter vor dem Fußpunkt der Figur, Höhe über dem Boden) – passend zu den Ankern
 # im Innenraum: Amboss 0,68 m vor der Figur, Bahn 0,86 m hoch; Hebel des Blasebalgs 0,42 m vor ihr, 1,36 m hoch;
@@ -333,6 +339,26 @@ def koerper(teile, st, p, frau, zwerg):
                           (kopf_m - r * 0.3, r * 0.82, r * 0.55, -r * 0.55)], "Haar", n=6)
 
 
+def krempe(netz, m, profil, dicke, n=12, dy=0.0):
+    """Abfallende Krempe aus Kegelmänteln: `profil` [(z, Halbmesser), …] von innen nach außen; oben, unten und der Rand."""
+    def ring(z, rr):
+        return [Vector((rr * math.cos(2 * math.pi * k / n), dy + rr * math.sin(2 * math.pi * k / n), z)) for k in range(n)]
+    for (z0, r0), (z1, r1) in zip(profil, profil[1:]):
+        for sicht in (1, -1):
+            a, b = ring(z0 - (0 if sicht == 1 else dicke), r0), ring(z1 - (0 if sicht == 1 else dicke), r1)
+            for k in range(n):
+                j = (k + 1) % n
+                w = 2 * math.pi * (k + 0.5) / n
+                nv = Vector((math.cos(w) * (z0 - z1), math.sin(w) * (z0 - z1), r1 - r0)) * sicht
+                netz.vieleck_nach([a[k], a[j], b[j], b[k]], nv, m)
+    z, rr = profil[-1]
+    a, b = ring(z, rr), ring(z - dicke, rr)
+    for k in range(n):
+        j = (k + 1) % n
+        w = 2 * math.pi * (k + 0.5) / n
+        netz.vieleck_nach([a[k], a[j], b[j], b[k]], (math.cos(w), math.sin(w), 0), m)
+
+
 def tracht(name, st, p):
     """Ein Trachtteil (eigenes Objekt, starr an einem Knochen)."""
     t = Teile(name)
@@ -433,6 +459,72 @@ def tracht(name, st, p):
             n.quader((xr, 0.0, hand_z - 0.09), (0.036, 0.2, 0.03), st["Holz alt"])               # Parierstange
             n.prisma([(-0.024, hand_z - 0.105), (0.024, hand_z - 0.105), (0.02, spitze + 0.07), (0.0, spitze),
                       (-0.02, spitze + 0.07)], xr - 0.009, xr + 0.009, st["Schwertholz"])
+    elif name == "Eisenhut":
+        # Kesselhut: Kuppe über dem Haar, breite, leicht abfallende Krempe (Kopfhöhe wie bei Strohhut und Barett)
+        with t.an("Kopf") as n:
+            z0 = kopf_m + r * 0.42
+            ringe(n, st, [(z0, r * 1.16, r * 1.14, r * 0.03), (kopf_m + r * 0.85, r * 1.14, r * 1.12, r * 0.03),
+                          (kopf_m + r * 1.3, r * 0.94, r * 0.92, r * 0.03), (kopf_m + r * 1.62, r * 0.52, r * 0.5, r * 0.03),
+                          (kopf_m + r * 1.78, r * 0.12, r * 0.12, r * 0.03)], "Waffeneisen", n=12)
+            krempe(n, st["Waffeneisen"], [(z0, r * 1.16), (z0 - r * 0.06, r * 1.5), (z0 - r * 0.17, r * 1.82)], 0.012, 12, dy=r * 0.03)
+    elif name == "Waffenrock":
+        # Wappenrock: Brust- und Rückenstück mit Schulterstegen (Rücken), darunter bis zur Mitte des Oberschenkels (Wurzel);
+        # Seiten offen. Mittelstreifen weiß (Zone 0), Rest Gewand (Zone 1).
+        hem = (hu + kn) / 2 - 0.02
+        mitte = taille - (taille - hem) * 0.5
+        oben = [(sc - 0.005, sb * 0.85, tf * 0.95 + 0.02, 0.45), (sc - 0.2, sb * 1.0, tf * 1.01 + 0.02, 0.4),
+                (taille, hb * 1.25, tf * 0.95 + 0.02, 0.3)]
+        unten = [(taille, hb * 1.25, tf * 0.95 + 0.02, 0.3), (mitte, hb * 1.4, tf * 1.2 + 0.035, 0.18),
+                 (hem, hb * 1.6, tf * 1.4 + 0.04, 0.12)]
+        spalten = [-1.0, -0.62, -0.3, 0.3, 0.62, 1.0]
+
+        def punkt(reihe, fx, vorn):
+            z, w, y, c = reihe
+            return Vector((fx * w, (-1 if vorn else 1) * y * (1 - c * fx * fx), z))
+
+        for knochen, reihen in (("Ruecken", oben), ("Wurzel", unten)):
+            with t.an(knochen) as n:
+                for vorn in (True, False):
+                    for a, b in zip(reihen, reihen[1:]):
+                        for k in range(len(spalten) - 1):
+                            quad = [punkt(a, spalten[k], vorn), punkt(a, spalten[k + 1], vorn),
+                                    punkt(b, spalten[k + 1], vorn), punkt(b, spalten[k], vorn)]
+                            n.vieleck_nach(quad, (0, -1 if vorn else 1, 0), st["Wappenweiss" if k == 2 else "Gewand"])
+                if knochen == "Ruecken":
+                    for sx in (-1, 1):       # Schulterstege über den Schultern, der Hals bleibt frei
+                        quad = [punkt(oben[0], sx * 0.45, True), punkt(oben[0], sx * 1.0, True),
+                                punkt(oben[0], sx * 1.0, False), punkt(oben[0], sx * 0.45, False)]
+                        n.vieleck_nach(quad, (0, 0, 1), st["Gewand"])
+    elif name == "Hellebarde":
+        # Am linken Unterarm; die Schaftachse steht in der Pose „Stehen“ (Phase 0) senkrecht und knapp über dem Boden.
+        # Die Geometrie wird dazu mit der Umkehrung der Armhaltung in die Ruhelage zurückgerechnet.
+        t.netz.alle = True                # dreht sich mit dem Arm
+        pose, hoch = haltung("Stehen", 0.0, p)
+        lage = unterarm_lage(p, pose, hoch, "L")
+        hand = lage @ hand_ruhe(p, "L")
+        rueck = lage.inverted()
+        hoehe = sc + p["hals"] + 2 * r
+        sk = 1.2 * (0.6 + 0.4 * hoehe / 1.76)
+        zb = 0.03
+        zt = zb + 1.1 * hoehe
+        M = rueck @ Matrix.Translation((hand.x, hand.y, 0.0))        # Welt (Schaftachse bei x=y=0) → Ruhelage
+        with t.an("Unterarm_L") as n:
+            drehteil(n, M @ Vector((0, 0, zb)), M.to_3x3() @ Vector((0, 0, 1)), zt - zb, 0.017, 0.017, st["Holz"], n=8)
+            drehteil(n, M @ Vector((0, 0, zb - 0.02)), M.to_3x3() @ Vector((0, 0, 1)), 0.1, 0.007, 0.022, st["Waffeneisen"], n=8)
+            hals = 0.2 * sk                       # Schaftfedern (Eisenstreifen) unter der Tülle, Tülle, Spitze
+            for sx in (-1, 1):
+                n.stab(M @ Vector((sx * 0.019, 0, zt - 0.3 * sk)), M @ Vector((sx * 0.019, 0, zt - 0.1 * sk)), 0.012, 0.006,
+                       st["Waffeneisen"], quer=M.to_3x3() @ Vector((1, 0, 0)))
+            drehteil(n, M @ Vector((0, 0, zt - hals)), M.to_3x3() @ Vector((0, 0, 1)), hals, 0.022, 0.025, st["Waffeneisen"], n=8,
+                     deckel=(False, False))
+            drehteil(n, M @ Vector((0, 0, zt)), M.to_3x3() @ Vector((0, 0, 1)), 0.3 * sk, 0.022, 0.002, st["Waffeneisen"], n=4)
+            drehen = Matrix.Rotation(math.radians(90), 4, "Z")      # Profil (y, z) = (−x, z), ausgezogen entlang der Tiefe (y)
+            platte = M @ Matrix.Translation((0, 0, zt)) @ drehen
+            beil = [(-0.02, 0.07), (-0.08, 0.12), (-0.16, 0.11), (-0.205, 0.02), (-0.19, -0.1), (-0.14, -0.17), (-0.08, -0.1),
+                    (-0.02, -0.08)]
+            haken = [(0.02, 0.05), (0.11, 0.045), (0.17, -0.015), (0.16, -0.06), (0.1, -0.005), (0.02, -0.04)]
+            for form in (beil, haken):
+                n.prisma([(y * sk, z * sk) for y, z in form], -0.007, 0.007, st["Waffeneisen"], matrix=platte)
     return t
 
 
@@ -2652,6 +2744,7 @@ def kopie(ske, objekte, ort, dreh=0.0):
     return neu, teile
 
 
+WACHE = ["Eisenhut", "Waffenrock", "Hellebarde"]
 TRACHTEN_BILD = [   # Volk, Frau, Teile, Gewand, Kopfbedeckung – wie die Rollen im Spiel
     ("mensch", False, ["Barett"], (0.55, 0.12, 0.12), (0.12, 0.11, 0.12)),          # Ratsherr
     ("mensch", True, ["Haube", "Schuerze"], (0.58, 0.45, 0.30), (0.78, 0.74, 0.64)),  # Magd
@@ -2663,6 +2756,10 @@ TRACHTEN_BILD = [   # Volk, Frau, Teile, Gewand, Kopfbedeckung – wie die Rolle
     ("elb", True, ["Schleier"], (0.12, 0.11, 0.12), (0.92, 0.92, 0.88)),             # Nonne
     ("halbling", False, ["Strohhut", "Hacke"], (0.58, 0.50, 0.36), (0.78, 0.66, 0.40)),  # Feldarbeiter
     ("halbling", True, ["Buendel", "Haube"], (0.42, 0.30, 0.20), (0.78, 0.74, 0.64)),  # Holzsammlerin
+    ("mensch", False, WACHE, (0.62, 0.13, 0.11), None),                              # Torwächter (Stadtfarben rot)
+    ("zwerg", False, WACHE, (0.62, 0.13, 0.11), None),
+    ("elb", True, WACHE, (0.62, 0.13, 0.11), None),
+    ("halbling", False, WACHE, (0.62, 0.13, 0.11), None),
 ]
 
 
@@ -2688,7 +2785,7 @@ def vorschau_figuren(schnell):
             umfaerben(k, {"Gewand": gewand, "Kopfbedeckung": kopf, "Haut": HAUT[volk], "Haar": HAAR[i % len(HAAR)],
                           "Beinkleid": BEINKLEID[i % len(BEINKLEID)]})
         alle += kopien
-    bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=9.2, schnell=schnell)
+    bs.vorschau_buehne(None, ziel_hoehe=0.9, ausschnitt=9.2 * len(TRACHTEN_BILD) / 10, schnell=schnell)
     print(bs.rendern("figuren", lambda o: o in alle))
 
 
