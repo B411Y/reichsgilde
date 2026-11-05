@@ -1,29 +1,13 @@
-"""Hafenbauten: Flussschiff, Tretradkran, Lagerschuppen und Zollstelle (Greybox mit Fluss und Hafen, PR #199).
+"""Hafenbauten: Tretradkran, Lagerschuppen und Zollstelle (Greybox mit Fluss und Hafen, PR #199).
 
     blender -b --python tools/modelle/hafenbauten.py -- [--schnell] [--ohne-bilder] [--nur=wasser_kran]
 
-Schreibt nach game/assets/modelle/wasser/ vier Dateien und je ein Vorschaubild docs/modelle/<name>.png:
-    wasser_schiff.glb     Schiff, Segel_Gesetzt, Segel_Gerefft, Laufplanke, Ladung_1–6, Fahne und die Anker
+Schreibt nach game/assets/modelle/wasser/ drei Dateien (das Schiff „Oberländer“ steht in oberlaender.py) und je ein Vorschaubild docs/modelle/<name>.png:
     wasser_kran.glb       Haus, Kranhaus (Kind Tretrad) und die Anker
     wasser_schuppen.glb   Haus und die Anker
     wasser_zoll.glb       Haus und die Anker
 Die Teile, Grundformen und die Vorschau-Bühne kommen aus wasser.py; Höhen wie dort: z = 0 ist die Uferkante, das Wasser der
 Vorschau liegt bei WASSER = −1,0 m, Kaimauern reichen bis FUSS = −4,5 m.
-
-Flussschiff (Lastkahn, 20 m × 4,2 m) – X ist die Längsachse, der Bug liegt bei +X, die Seite zum Kai bei −Y (im Spiel +Z).
-Ursprung auf der Wasserlinie in der Mitte: Das Spiel setzt das Schiff mit y = 0 auf den Wasserspiegel.
-    Schiff         Rumpf (geteert, Setzbord, Barkholz), Laderaum, Vor- und Achterdeck, Kajüte achtern, Mast mit Rah und Stagen,
-                   Steuerruder mit Pinne.
-    Segel_Gesetzt  das Rahsegel, voll (Wind von achtern) – zur Fahrt;   Segel_Gerefft  dasselbe an der Rah aufgetucht – im Hafen.
-                   Das Spiel zeigt genau eines von beiden.
-    Laufplanke     Ursprung am Dollbord mittschiffs (Kaiseite), führt 2,6 m nach −Y und fällt 0,16 m (auf das Deck des Stegs, 0,2 m unter der Uferkante); im Spiel nur
-                   am Kai einblenden.
-    Ladung_1–6     Ladung im Raum von achtern nach vorn: Fässer, Kisten, Säcke unter Plane, Wollballen, Fässer, Kisten. Das Spiel
-                   blendet so viele ein, wie das Schiff geladen hat.
-    Fahne          Wimpel in der Hausfarbe am Masttopp (Stange „Holz“, Tuch „Hausfarbe“ wie die Fahnen der Häuser; flattert im Wind).
-    Anker_Bug (Blick +X), Anker_Heck (Blick −X) auf der Wasserlinie an den Steven; Anker_Kai auf der Wasserlinie 0,3 m vor der
-    Bordwand mittschiffs zum Kai (Blick zum Schiff): an diese Stelle gehört die Kaikante; Anker_Planke am Ende der Laufplanke (auf
-    Deckhöhe des Stegs, Blick zum Schiff); Anker_Schiffer an der Pinne (Blick +X).
 
 Tretradkran (Grundfläche 8 × 8 m, am Ufer: Land bei −Y, Uferkante bei y = 4, im Spiel z = −4) – Kai aus Bohlen mit Spundwand
 wie beim Hafen, darauf ein achteckiger Sockel aus Bruchstein mit Stufen.
@@ -66,17 +50,6 @@ WASSER, FUSS, KAI = ws.WASSER, ws.FUSS, ws.KAI
 with open(os.path.join(bs.WURZEL, "game", "daten", "materialbibliothek.json"), encoding="utf-8") as _f:
     BEHALTEN = set(bs.BENANNTE_STOFFE) | set(json.load(_f)["namen"]) | {"Holz"}
 
-# Schiff
-S_LAENGE, S_BREITE = 20.0, 4.2
-S_BORD = 0.85           # Dollbord mittschiffs über der Wasserlinie
-S_TIEF = 0.7            # Tiefgang
-S_BODEN = 0.22          # Wegerung (Plankenboden im Laderaum) über der Wasserlinie: kein Wasser im Rumpf
-S_SPRUNG = 0.55         # wie weit die Enden höher liegen
-S_MAST = 3.6            # Mast (x)
-MAST_HOCH = 10.5        # über dem Dollbord
-RAH = 8.6               # Höhe der Rah über dem Dollbord
-PLANKE = 2.6
-
 # Kran und Zoll: Uferkante bei y = 4
 K_UFER = 4.0
 K_MITTE = Vector((0.0, 1.0, 0.0))    # Drehachse des Kranhauses
@@ -95,227 +68,6 @@ def kind(eltern, o, ort):
     o.matrix_parent_inverse = Matrix.Identity(4)
     o.location = Vector(ort)
     return o
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Flussschiff
-# ─────────────────────────────────────────────────────────────────────────────
-
-def ringe_schiff(stationen=16):
-    """Stationen des Rumpfs: (x, halbe Breite am Dollbord, halbe Breite am Boden, Höhe Boden, Höhe Dollbord).
-    Flacher Boden, löffelförmig hochgezogene Enden, der Bug etwas schärfer als das Heck."""
-    ringe = []
-    for i in range(stationen + 1):
-        t = -1 + 2 * i / stationen
-        a = abs(t)
-        voll = 0.4 if t > 0 else 0.5                  # ab hier läuft der Rumpf zum Ende hin zusammen
-        f = max(0.0, a - voll) / (1 - voll)
-        w = S_BREITE / 2 * (1 - f ** 2 * (0.72 if t > 0 else 0.6))
-        zb = -S_TIEF + (S_TIEF + S_BORD * 0.55) * (max(0.0, a - 0.55) / 0.45) ** 2
-        ringe.append((t * S_LAENGE / 2, w, w * 0.8, zb, S_BORD + S_SPRUNG * a ** 2.2))
-    return ringe
-
-
-def schiff_rumpf(st):
-    netz = bs.Netz("Schiff")
-    ringe = ringe_schiff()
-    boden = S_BODEN
-    mitte = Vector((0, 0, S_BORD))
-
-    def flur(ring):
-        _, w, b_, z, g = ring
-        fz = max(boden, z + 0.06)
-        return fz, b_ + (w - b_) * (fz - z) / (g - z) - 0.08
-
-    n = len(ringe) - 1
-    for i, ((xa, wa, ba, za, ga), (xb, wb, bb, zb_, gb)) in enumerate(zip(ringe, ringe[1:])):
-        (fza, fa_), (fzb, fb_) = flur(ringe[i]), flur(ringe[i + 1])
-        ende = i in (0, 1, n - 2, n - 1)
-        for s in (-1, 1):
-            seite = [Vector(p) for p in ((xa, s * ba, za), (xb, s * bb, zb_), (xb, s * wb, gb), (xa, s * wa, ga))]
-            richtung = sum(seite, Vector()) / 4 - mitte
-            # geteerter Rumpf bis 0,3 m unter dem Dollbord, darüber das Setzbord in Holz
-            ua, ub = seite[0].lerp(seite[3], 0.78), seite[1].lerp(seite[2], 0.78)
-            netz.vieleck_nach([seite[0], seite[1], ub, ua], richtung, st["Teerholz"])
-            netz.vieleck_nach([ua, ub, seite[2], seite[3]], richtung, st["Holz"])
-            # Barkholz: kräftige Leiste an der Grenze von Teer und Setzbord
-            ws.klotz(netz, st["Holz alt"], [ua, ub, ub + Vector((0, s * 0.07, 0)), ua + Vector((0, s * 0.07, 0)),
-                                            ua + Vector((0, 0, 0.12)), ub + Vector((0, 0, 0.12)),
-                                            ub + Vector((0, s * 0.07, 0.12)), ua + Vector((0, s * 0.07, 0.12))], ohne=("-z",))
-            if not ende:                                          # Innenseite und Dollbord
-                ia, ib = (xa, s * (wa - 0.08), ga - 0.02), (xb, s * (wb - 0.08), gb - 0.02)
-                netz.vieleck_nach([(xa, s * fa_, fza), (xb, s * fb_, fzb), ib, ia], (0, -s, 0.3), st["Holz"])
-            netz.vieleck_nach([(xa, s * wa, ga), (xb, s * wb, gb), (xb, s * (wb - 0.08), gb), (xa, s * (wa - 0.08), ga)],
-                              (0, 0, 1), st["Holz alt"])
-        if ende:                                                  # Vor- und Achterdeck
-            netz.vieleck_nach([(xa, -wa + 0.08, ga - 0.03), (xb, -wb + 0.08, gb - 0.03), (xb, wb - 0.08, gb - 0.03),
-                               (xa, wa - 0.08, ga - 0.03)], (0, 0, 1), st["Bretter"])
-        else:
-            netz.vieleck_nach([(xa, -fa_, fza), (xb, -fb_, fzb), (xb, fb_, fzb), (xa, fa_, fza)], (0, 0, 1), st["Bretter"])
-    for i in (2, n - 2):                                          # Schotten am Laderaum
-        x, w, b_, z, g = ringe[i]
-        fz, f = flur(ringe[i])
-        netz.vieleck_nach([(x, -f, fz), (x, f, fz), (x, w - 0.08, g - 0.03), (x, -(w - 0.08), g - 0.03)], (-x, 0, 0), st["Holz alt"])
-    for x, w, b_, z, g in (ringe[0], ringe[-1]):                  # Steven
-        netz.vieleck_nach([(x, -b_, z), (x, b_, z), (x, w, g), (x, -w, g)], (x, 0, 0), st["Teerholz"])
-        s = 1 if x > 0 else -1
-        netz.stab((x + s * 0.02, 0, z), (x + s * 0.1, 0, g + 0.35), 0.16, 0.18, st["Holz alt"])
-    # Spanten im Laderaum (jeder zweite Meter), Ducht am Mast
-    for i in range(3, n - 2):
-        x, w, b_, z, g = ringe[i]
-        fz, f = flur(ringe[i])
-        for s in (-1, 1):
-            netz.stab((x, s * (f + 0.02), fz), (x, s * (w - 0.12), g - 0.06), 0.12, 0.1, st["Holz alt"], quer=(1, 0, 0))
-    netz.stab((S_MAST, -S_BREITE / 2 + 0.1, S_BORD - 0.12), (S_MAST, S_BREITE / 2 - 0.1, S_BORD - 0.12), 0.3, 0.1,
-              st["Holz"], quer=(0, 0, 1))
-    # Mast, Rah, Stagen und Wanten
-    netz.stab((S_MAST, 0, boden), (S_MAST, 0, S_BORD + MAST_HOCH), 0.24, 0.24, st["Holz"])
-    netz.quader((S_MAST, 0, S_BORD + MAST_HOCH - 0.6), (0.34, 0.34, 0.4), st["Holz alt"])          # Mastkorb (Eselshaupt)
-    netz.stab((S_MAST + 0.2, -3.6, S_BORD + RAH), (S_MAST + 0.2, 3.6, S_BORD + RAH), 0.14, 0.14, st["Holz"], quer=(1, 0, 0))
-    bug, heck = ringe[-1], ringe[0]
-    netz.stab((S_MAST, 0, S_BORD + MAST_HOCH - 0.4), (bug[0] - 0.3, 0, bug[4] + 0.2), 0.035, 0.035, st["Seil"])
-    for s in (-1, 1):
-        for dx in (-0.6, 0.5):
-            netz.stab((S_MAST + dx, s * (S_BREITE / 2 - 0.1), S_BORD + 0.05), (S_MAST + dx * 0.2, s * 0.12, S_BORD + MAST_HOCH - 0.5 - abs(dx)),
-                      0.035, 0.035, st["Seil"], quer=(1, 0, 0))
-        netz.stab((S_MAST + 0.2, s * 3.5, S_BORD + RAH), (S_MAST - 3.0, s * (S_BREITE / 2 - 0.15), S_BORD + 0.1), 0.03, 0.03,
-                  st["Seil"], quer=(1, 0, 0))                                                    # Brassen
-    # Kajüte achtern mit Schindeldach, Tür nach vorn
-    xk0, xk1 = -S_LAENGE / 2 + 1.6, -S_LAENGE / 2 + 4.4
-    zk = flur(ringe[2])[0]
-    ws.kasten(netz, st, xk0, xk1, -1.3, 1.3, zk, S_BORD + 1.0, "Holz alt", ohne=("-z", "+z"))
-    bs.satteldach(netz, st, xk0, xk1, -1.3, 1.3, S_BORD + 1.0, 26, traufe=0.18, ortgang=0.15, enden="Holz alt", **bs.SCHINDEL)
-    hoch = 1.3 * math.tan(math.radians(26))
-    for x, seite in ((xk0, "links"), (xk1, "rechts")):
-        bs.platte(netz, bs.wandmatrix((x, 0, S_BORD + 1.0), seite), [(-1.3, 0), (1.3, 0), (0, hoch)], 0, 0.1, st["Holz alt"])
-    ws.kasten(netz, st, xk1, xk1 + 0.03, -0.35, 0.35, S_BORD - 0.1, S_BORD + 0.85, "Loch", ohne=("-z",))
-    for s in (-1, 1):                                             # Luken an den Seiten
-        ws.kasten(netz, st, (xk0 + xk1) / 2 - 0.25, (xk0 + xk1) / 2 + 0.25, s * 1.3 - 0.015, s * 1.3 + 0.015,
-                  S_BORD + 0.35, S_BORD + 0.7, "Loch", ohne=("-z",))
-    # Ruder am Heck mit Pinne über die Kajüte hinweg
-    x_h, _, _, z_h, g_h = heck
-    netz.stab((x_h - 0.05, 0, g_h + 0.2), (x_h - 1.3, 0, -0.9), 0.9, 0.1, st["Teerholz"], quer=(0, 1, 0))
-    netz.stab((x_h - 0.1, 0, g_h + 0.4), (x_h - 0.2, 0, -0.2), 0.14, 0.14, st["Holz"])
-    netz.stab((x_h - 0.15, 0, g_h + 0.35), (x_h + 1.4, 0, g_h + 0.55), 0.08, 0.08, st["Holz"])
-    # Anker am Bug, Poller an Bug und Heck
-    netz.stab((bug[0] - 0.6, 0.7, bug[4] - 0.2), (bug[0] - 0.6, 0.7, bug[4] + 0.15), 0.1, 0.5, st["Eisen"], quer=(1, 0, 0))
-    for x in (bug[0] - 1.2, heck[0] + 1.2):
-        r = next(r for r in ringe if abs(r[0] - x) < S_LAENGE / 16 + 0.01)
-        for s in (-1, 1):
-            lb.saeule(netz, st, (x, s * 0.6, 0), 0.1, r[4] - 0.03, r[4] + 0.35, "Holz", n=6)
-    return netz.objekt()
-
-
-def segel_gesetzt(st):
-    """Rahsegel, vom Wind von achtern nach vorn gewölbt (3 × 3 Felder), mit Schoten zum Dollbord."""
-    netz = bs.Netz("Segel_Gesetzt", alle=True)
-    oben, unten, halb = S_BORD + RAH - 0.1, S_BORD + 2.2, 3.3
-    nu, nv = 4, 3
-
-    def p(i, j):
-        u, v = -1 + 2 * i / nu, j / nv                            # u quer, v von unten (0) nach oben (1)
-        bauch = 0.9 * (1 - u * u) * math.sin(math.pi * (0.15 + 0.85 * (1 - v)))
-        breite = halb * (1 - 0.05 * (1 - v))
-        return Vector((S_MAST + 0.3 + bauch, u * breite, unten + (oben - unten) * v))
-    for i in range(nu):
-        for j in range(nv):
-            q = [p(i, j), p(i + 1, j), p(i + 1, j + 1), p(i, j + 1)]
-            beide_seiten(netz, q, (1, 0, 0), st["Segeltuch"])
-    for s in (-1, 1):                                             # Schoten
-        netz.stab(p(0 if s < 0 else nu, 0), (S_MAST - 2.2, s * (S_BREITE / 2 - 0.15), S_BORD + 0.1), 0.03, 0.03, st["Seil"],
-                  quer=(1, 0, 0))
-    for i in range(1, nu):                                        # Nähte der Tuchbahnen
-        for j in range(nv):
-            ws.linie(netz, st, p(i, j), p(i, j + 1), (1, 0, 0), "Seil", breite=0.035, abstand=0.012)
-    return netz.objekt()
-
-
-def segel_gerefft(st):
-    netz = bs.Netz("Segel_Gerefft")
-    z = S_BORD + RAH - 0.22
-    netz.prisma([(0.2 * math.cos(2 * math.pi * k / 6), z + 0.16 * math.sin(2 * math.pi * k / 6)) for k in range(6)],
-                -3.3, 3.3, st["Segeltuch"], matrix=Matrix.Translation((S_MAST + 0.25, 0, 0)) @ Matrix.Rotation(math.radians(90), 4, "Z"))
-    for y in (-2.4, -0.8, 0.8, 2.4):                              # Zeisinge um das aufgetuchte Segel
-        netz.quader((S_MAST + 0.25, y, z), (0.44, 0.06, 0.36), st["Seil"])
-    return netz.objekt()
-
-
-def laufplanke(st):
-    """Ursprung am Dollbord mittschiffs auf der Kaiseite; die Planke liegt nach −Y und fällt 0,16 m (auf das Deck des Stegs)."""
-    netz = bs.Netz("Laufplanke")
-    a, b = Vector((0, 0.15, 0.04)), Vector((0, -PLANKE, -0.12))
-    netz.stab(a, b, 0.55, 0.06, st["Bretter"], quer=(0, 0, 1))
-    k = 1
-    while k * 0.4 < PLANKE:                                       # Trittleisten
-        p = a.lerp(b, k * 0.4 / (PLANKE + 0.15)) + Vector((0, 0, 0.04))
-        netz.quader(p, (0.5, 0.05, 0.03), st["Holz"], ohne=("-z",))
-        k += 1
-    return netz.objekt()
-
-
-def ladung(st):
-    """Sechs Ladungsplätze im Raum von achtern nach vorn."""
-    boden = S_BODEN
-    objekte = []
-    plaetze = [(-4.4, "fass"), (-2.6, "kiste"), (-0.8, "sack"), (1.0, "ballen"), (5.3, "fass"), (7.0, "kiste")]
-    for k, (x, art) in enumerate(plaetze, 1):
-        netz = bs.Netz(f"Ladung_{k}")
-        zf = nt.zufall(k * 13)
-        if art == "fass":
-            for dx in (-0.36, 0.36):
-                for y in (-0.75, 0.0, 0.75):
-                    bs.fass(netz, st, Vector((x + dx, y, boden)), r=0.32, h=0.85, reifen=(0.18 + 0.01 * k, 0.72))
-            bs.fass(netz, st, Vector((x, -0.37, boden + 0.85)), r=0.3, h=0.8)
-            bs.fass(netz, st, Vector((x, 0.37, boden + 0.85)), r=0.3, h=0.8)
-        elif art == "kiste":
-            for dx, y, dz, dreh in ((-0.44, -0.6, 0, 0.05), (0.46, -0.55, 0, -0.08), (-0.45, 0.6, 0, 0.1), (0.45, 0.62, 0, 0.0),
-                                    (0.0, -0.5, 0.66, 0.2), (0.05, 0.45, 0.67, -0.12)):
-                lb.kiste(netz, st, (x + dx, y, boden + dz), (0.78, 0.9, 0.65), dreh=dreh)
-        elif art == "sack":
-            for dx in (-0.45, 0.0, 0.45):
-                for y in (-0.8, -0.27, 0.27, 0.8):
-                    lb.saeule(netz, st, (x + dx + zf.uniform(-0.05, 0.05), y, boden), 0.22, 0, 0.42 + 0.03 * ((round(dx / 0.45) + round(y / 0.53)) % 2), "Sack", n=6)
-            # Plane darüber, an den Seiten herabhängend
-            z = boden + 0.62
-            netz.vieleck_nach([(x - 0.8, -1.2, z), (x + 0.8, -1.2, z), (x + 0.8, 1.2, z), (x - 0.8, 1.2, z)], (0, 0, 1), st["Segeltuch"])
-            for s in (-1, 1):
-                netz.vieleck_nach([(x - 0.8, s * 1.2, z), (x + 0.8, s * 1.2, z), (x + 0.8, s * 1.3, boden + 0.15),
-                                   (x - 0.8, s * 1.3, boden + 0.15)], (0, s, 0.4), st["Segeltuch"])
-                netz.vieleck_nach([(x + s * 0.8, -1.2, z), (x + s * 0.8, 1.2, z), (x + s * 0.9, 1.25, boden + 0.15),
-                                   (x + s * 0.9, -1.25, boden + 0.15)], (s, 0, 0.4), st["Segeltuch"])
-        else:                                                     # Wollballen, verschnürt
-            for dx, y, dz in ((-0.4, -0.6, 0), (0.4, -0.6, 0), (-0.4, 0.6, 0), (0.4, 0.6, 0), (0.0, 0.0, 0.62)):
-                mitte = (x + dx, y, boden + dz)
-                lb.kiste(netz, st, mitte, (0.75, 1.05, 0.6), stoff="Wolle", dreh=zf.uniform(-0.1, 0.1))
-                netz.quader((mitte[0], mitte[1], mitte[2] + 0.31), (0.06, 1.07, 0.02), st["Seil"])
-        objekte.append(netz.objekt())
-    return objekte
-
-
-def wimpel(st):
-    """Wimpel am Masttopp: kurze Stange, langes Tuch in der Hausfarbe mit Schwalbenschwanz, weht nach achtern (−X)."""
-    netz = bs.Netz("Fahne")
-    z0 = S_BORD + MAST_HOCH
-    netz.stab((S_MAST, 0, z0 - 0.1), (S_MAST, 0, z0 + 1.3), 0.06, 0.06, st["Holz"])
-    netz.quader((S_MAST, 0, z0 + 1.35), (0.12, 0.12, 0.12), st["Eisen"])
-    tuch = [(0, 0), (2.4, 0.02), (1.9, 0.24), (2.4, 0.48), (0, 0.5)]
-    netz.prisma(tuch, -0.015, 0.015, st["Hausfarbe"],
-                matrix=Matrix.Translation((S_MAST - 0.04, 0, z0 + 0.7)) @ Matrix.Rotation(math.radians(90), 4, "Z"))
-    return netz.objekt()
-
-
-def schiff_bauen(st):
-    teile = [schiff_rumpf(st), segel_gesetzt(st), segel_gerefft(st), wimpel(st)] + ladung(st)
-    ringe = ringe_schiff()
-    planke = laufplanke(st)
-    planke.location = (0.3, -(ringe[8][1]), ringe[8][4])
-    teile.append(planke)
-    x_h, g_h = ringe[0][0], ringe[0][4]
-    anker = [bs.anker("Anker_Bug", (S_LAENGE / 2 + 0.1, 0, 0), 270), bs.anker("Anker_Heck", (-S_LAENGE / 2 - 0.1, 0, 0), 90),
-             bs.anker("Anker_Kai", (0.3, -S_BREITE / 2 - 0.3, 0), 0),
-             bs.anker("Anker_Planke", (0.3, -S_BREITE / 2 - PLANKE, S_BORD - 0.05), 0),
-             bs.anker("Anker_Schiffer", (x_h + 1.1, 0.35, g_h - 0.03), 270)]
-    return teile + anker
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -676,20 +428,6 @@ def ufer_gelaende(versatz):
         bpy.data.objects[n].location.y += versatz
 
 
-def vorschau_schiff(objekte, schnell):
-    import bpy
-    ws.buehne(24.0, 2.5, schnell)
-    ws.gelaende([(-60, -3.0), (60, -3.0)], (-60, 60, 0.0), achse="y")
-    zeigen = {o for o in objekte if o.name != "Segel_Gerefft"} | {k for o in objekte for k in o.children_recursive}
-    ws.stempel("Flussschiff: Segel gesetzt, Ladung 1–6, Laufplanke, Wimpel")
-    a = bs.rendern("_wasser_schiff_a", lambda o: o in zeigen)
-    zeigen = {o for o in objekte if o.name not in ("Segel_Gesetzt", "Fahne") and not o.name.startswith("Ladung_")}
-    ws.stempel("im Hafen: Segel gerefft, leer")
-    b = bs.rendern("_wasser_schiff_b", lambda o: o in zeigen, 2)
-    del bpy
-    return ws.nebeneinander("wasser_schiff", [a, b])
-
-
 def vorschau_ufer(name, ausschnitt, ziel):
     def vorschau(objekte, schnell):
         ws.buehne(ausschnitt, ziel, schnell)
@@ -709,7 +447,6 @@ def vorschau_land(name, ausschnitt, ziel):
 
 
 DATEIEN = [
-    ("wasser_schiff", schiff_bauen, vorschau_schiff),
     ("wasser_kran", kran_bauen, vorschau_ufer("wasser_kran", 16.0, 3.0)),
     ("wasser_schuppen", schuppen_bauen, vorschau_land("wasser_schuppen", 17.0, 3.0)),
     ("wasser_zoll", zoll_bauen, vorschau_ufer("wasser_zoll", 15.0, 3.5)),
