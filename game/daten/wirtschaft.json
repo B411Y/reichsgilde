@@ -2023,6 +2023,8 @@
   },
   "buerger": {
     "jeHaus": 25,
+    "jeHausplatz": 6,
+    "tagesplan": { "von": 8, "bis": 20, "rastDraussen": 0.7, "besorgungen": 0.5 },
     "mitRatsherren": true,
     "mitKandidaten": true,
     "voelker": { "Mensch": 5, "Halbling": 2, "Zwerg": 2, "Elb": 1 },
