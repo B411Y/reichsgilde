@@ -408,6 +408,7 @@ public partial class Stadtansicht
         var bilder = Math.Max(_profilBilder, 1);
         GD.Print("[passantenprofil] ms je Bild: " + string.Join(", ", Enumerable.Range(1, 8).Select(i => $"{ProfilNamen[i]} {_profilMs[i] / bilder:0.00} (höchstens {_profilMax[i]:0.0})")) +
                  $", Wege über die Fläche höchstens {_flaecheBildMax:0.0} ms in einem Bild (einzeln {_flaecheEinzelMax:0.0}), ein Weg im Gassennetz höchstens {_netzMax:0.0} ms, eine Mittellinie mit Bodenmetern höchstens {_bodenMax:0.0} ms" +
+                 $", Marktflächen-Rechnung ms (Netz gesamt {_maerkte.Sum(m => m.Flaeche?.NetzMs ?? 0):0}, Sicht {_maerkte.Sum(m => m.Flaeche?.SichtMs ?? 0):0}, Sperren {_maerkte.Sum(m => m.Flaeche?.SperrMs ?? 0):0}, Raster {_maerkte.Sum(m => m.Flaeche?.RasterMs ?? 0):0}), Marktwege über das Netz {_maerkte.Sum(m => m.Flaeche?.Netzwege ?? 0)}, Rückfall aufs Raster {_maerkte.Sum(m => m.Flaeche?.NetzRueckfaelle ?? 0)} ({string.Join(", ", _maerkte.Where(m => m.Flaeche is not null).SelectMany(m => m.Flaeche!.NetzGruende).GroupBy(g => g.Key).Select(g => $"{g.Key} {g.Sum(x => x.Value)}"))})" +
                  $", Figuren {_passanten.Count}, laufend {_passanten.Values.Count(q => q.Stand is null && q.Knoten.Visible)}, sichtbar {_passanten.Values.Count(q => q.Knoten.Visible)}");
         Array.Clear(_profilMs);
         Array.Clear(_profilMax);

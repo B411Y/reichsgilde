@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Reichsgilde;
 
 /// <summary>
@@ -55,9 +57,9 @@ public sealed class Marktflaeche
 
     public float Halb => _halb;
 
-    public void Kreis(float x, float z, float radius) { _kreise.Add((x, z, radius)); _abstand = Array.Empty<float>(); _gemerkt.Clear(); }
+    public void Kreis(float x, float z, float radius) { _kreise.Add((x, z, radius)); _abstand = Array.Empty<float>(); _gemerkt.Clear(); _netze.Clear(); }
 
-    public void Rechteckig(Rechteck r) { _rechtecke.Add(r); _abstand = Array.Empty<float>(); _gemerkt.Clear(); }
+    public void Rechteckig(Rechteck r) { _rechtecke.Add(r); _abstand = Array.Empty<float>(); _gemerkt.Clear(); _netze.Clear(); }
 
     /// <summary>Ein Stand: Hindernis und für die Messung gemerkt.</summary>
     public void Stand(Rechteck r) { Rechteckig(r); Staende.Add(r); }
@@ -142,6 +144,27 @@ public sealed class Marktflaeche
     }
 
     /// <summary>
+    /// Stehende: nicht mitten durch (außer jemand steht am Anfang oder Ziel selbst – der Nachbar am Stand, der Partner im Gespräch); einmal je Person
+    /// genau gerechnet (nächster Punkt der Strecke), nicht je Abtastpunkt. Wahr, wenn niemand der Strecke zu nahe steht.
+    /// </summary>
+    private bool PersonenFrei((float X, float Z) a, (float X, float Z) b, float frei)
+    {
+        if (_personen.Count == 0 || frei < PersonFreiAb || _einfach) return true;
+        var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+        var laenge = MathF.Sqrt(dx * dx + dz * dz);
+        if (laenge < 1e-5f) return true;
+        foreach (var (px, pz) in _personen)
+        {
+            var (ax, az, bx, bz) = (px - a.X, pz - a.Z, px - b.X, pz - b.Z);
+            if (ax * ax + az * az < PersonAmEnde * PersonAmEnde || bx * bx + bz * bz < PersonAmEnde * PersonAmEnde) continue;
+            var t = Math.Clamp((ax * dx + az * dz) / (laenge * laenge), 0, 1);
+            var (ex, ez) = (ax - dx * t, az - dz * t);
+            if (ex * ex + ez * ez < PersonAbstand * PersonAbstand) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Steht nichts auf der geraden Linie von a nach b, das näher als <paramref name="frei"/> Meter heranreicht (und bleibt sie auf dem Pflaster)?
     /// Abgetastet alle halbe Zelle; nahe an einem Ende, das selbst dichter an einem Hindernis liegt (ein Platz am Stand), genügt dessen Abstand.
     /// </summary>
@@ -150,17 +173,7 @@ public sealed class Marktflaeche
         var (dx, dz) = (b.X - a.X, b.Z - a.Z);
         var laenge = MathF.Sqrt(dx * dx + dz * dz);
         if (laenge < 1e-5f) return true;
-        // Stehende: nicht mitten durch (außer jemand steht am Anfang oder Ziel selbst – der Nachbar am Stand, der Partner im Gespräch); einmal je Person
-        // genau gerechnet (nächster Punkt der Strecke), nicht je Abtastpunkt
-        if (_personen.Count > 0 && frei >= PersonFreiAb && !_einfach)
-            foreach (var (px, pz) in _personen)
-            {
-                var (ax, az, bx, bz) = (px - a.X, pz - a.Z, px - b.X, pz - b.Z);
-                if (ax * ax + az * az < PersonAmEnde * PersonAmEnde || bx * bx + bz * bz < PersonAmEnde * PersonAmEnde) continue;
-                var t = Math.Clamp((ax * dx + az * dz) / (laenge * laenge), 0, 1);
-                var (ex, ez) = (ax - dx * t, az - dz * t);
-                if (ex * ex + ez * ez < PersonAbstand * PersonAbstand) return false;
-            }
+        if (!PersonenFrei(a, b, frei)) return false;
         var (startFrei, zielFrei) = (Frei(a.X, a.Z), Frei(b.X, b.Z));
         // In Sprüngen so groß wie die Luft über dem Nötigen (der Abstand ändert sich je Meter höchstens um einen Meter, so wird nichts übersprungen),
         // mindestens 2 cm
@@ -247,6 +260,21 @@ public sealed class Marktflaeche
     {
         Bereit();
         if (Sichtlinie(von, nach, frei)) return new() { von, nach };
+        var t0 = Stopwatch.GetTimestamp();
+        if (frei >= NetzAb && !NetzAus)
+        {
+            var ueberNetz = NetzPfad(von, nach, frei);
+            NetzMs += Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+            if (ueberNetz is not null) { Netzwege++; return ueberNetz; }
+            NetzRueckfaelle++;
+        }
+        t0 = Stopwatch.GetTimestamp();
+        try { return PfadAufDemRaster(von, nach, frei); }
+        finally { RasterMs += Stopwatch.GetElapsedTime(t0).TotalMilliseconds; }
+    }
+
+    private List<(float X, float Z)>? PfadAufDemRaster((float X, float Z) von, (float X, float Z) nach, float frei)
+    {
         var start = FreieZelle(von, frei);
         var ziel = FreieZelle(nach, frei);
         if (start < 0 || ziel < 0) return null;
@@ -470,6 +498,7 @@ public sealed class Marktflaeche
     {
         _personen.Clear();
         _personen.AddRange(stehende);
+        _personenStand++;
         if (_personKosten.Length != _n * _n) _personKosten = new float[_n * _n];
         else Array.Clear(_personKosten);
         var r = (int)MathF.Ceiling(PersonUmkreis / Zelle);
@@ -521,6 +550,291 @@ public sealed class Marktflaeche
             if (kosten < besteKosten - 1e-4f) (beste, besteKosten) = (stufe, kosten);
         }
         return beste;
+    }
+
+    // ── Wegenetz: einmal vorbereitet, je Weg nur zusammengesetzt (Darstellung, 5.11.2026) ──
+
+    /// <summary>Ab diesem Abstand (Meter) laufen Wege über das vorbereitete Netz; der knappe Rückfallweg (0,6 m) bleibt die Rastersuche.</summary>
+    public const float NetzAb = 1f;
+    /// <summary>Zum Vergleichen (Startoption <c>--passantennetz=aus</c>): Wege nur auf dem Raster suchen wie vor dem Netz.</summary>
+    public static bool NetzAus;
+    /// <summary>Wie viele Wege über das Netz gingen und wie oft es keinen gab (dann suchte das Raster, einige Millisekunden).</summary>
+    public int Netzwege { get; private set; }
+    public int NetzRueckfaelle { get; private set; }
+    /// <summary>Rechenzeit (ms) seit dem Start: Wege über das Netz (gesamt), davon Sicht vom Anfang und Ende aus (neue Punkte) und Sperren der Kanten bei Stehenden; Rastersuche (Rückfall oder ohne Netz).</summary>
+    public double NetzMs, SichtMs, SperrMs, RasterMs;
+    public string NetzGrund { get; private set; } = "";
+    /// <summary>Wie oft aus welchem Grund das Netz keinen Weg gab (für das Protokoll).</summary>
+    public Dictionary<string, int> NetzGruende { get; } = new();
+    private List<(float X, float Z)>? Keiner(string grund)
+    {
+        NetzGrund = grund;
+        var kurz = grund.Split(' ')[0];
+        NetzGruende[kurz] = NetzGruende.GetValueOrDefault(kurz) + 1;
+        return null;
+    }
+
+    private sealed class Netz
+    {
+        public (float X, float Z)[] Knoten = Array.Empty<(float, float)>();
+        public List<(int K, float D, int E)>[] Nachbarn = Array.Empty<List<(int, float, int)>>();
+        /// <summary>Die Kanten (Knotenpaare) und ob gerade jemand zu nah an ihnen steht (Stand der Stehenden: <see cref="Stand"/>).</summary>
+        public List<(int A, int B)> Kanten = new();
+        public bool[] Gesperrt = Array.Empty<bool>();
+        public int Stand = -1;
+        /// <summary>Von einem Punkt (auf 5 cm gerundet) aus sichtbare Knoten samt Entfernung; gemerkt, denn Anfang und Ende sind meist dieselben Stellen.</summary>
+        public readonly Dictionary<(int, int), (int K, float D)[]> Sichtbar = new();
+        public float[] Strecke = Array.Empty<float>(), Ziel = Array.Empty<float>();
+        public int[] Her = Array.Empty<int>();
+    }
+
+    private readonly Dictionary<int, Netz> _netze = new();
+    private int _personenStand;
+
+    /// <summary>Welche Kanten gerade zu nah an jemandem vorbeiführen (einmal je Wechsel der Stehenden, nicht je Weg).</summary>
+    private void KantenSperren(Netz netz, float frei)
+    {
+        if (netz.Stand == _personenStand) return;
+        netz.Stand = _personenStand;
+        var t0 = Stopwatch.GetTimestamp();
+        try
+        {
+            for (var e = 0; e < netz.Kanten.Count; e++)
+                netz.Gesperrt[e] = _personen.Count > 0 && frei >= PersonFreiAb && !PersonenFreiOhneEnden(netz.Knoten[netz.Kanten[e].A], netz.Knoten[netz.Kanten[e].B]);
+        }
+        finally { SperrMs += Stopwatch.GetElapsedTime(t0).TotalMilliseconds; }
+    }
+
+    /// <summary>Niemand steht der Strecke näher als <see cref="PersonAbstand"/> (ohne Ausnahme für die Enden: Knoten liegen nie an Zielen).</summary>
+    private bool PersonenFreiOhneEnden((float X, float Z) a, (float X, float Z) b)
+    {
+        var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+        var l2 = dx * dx + dz * dz;
+        foreach (var (px, pz) in _personen)
+        {
+            var (ax, az) = (px - a.X, pz - a.Z);
+            var t = l2 > 1e-9f ? Math.Clamp((ax * dx + az * dz) / l2, 0, 1) : 0;
+            var (ex, ez) = (ax - dx * t, az - dz * t);
+            if (ex * ex + ez * ez < PersonAbstand * PersonAbstand) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Bereitet das Wegenetz für diesen Abstand vor (sonst beim ersten Weg): Knoten rings um jedes Hindernis, Kanten zwischen allen, die sich sehen.</summary>
+    public void Vorbereiten(float frei) => NetzFuer(frei);
+
+    /// <summary>Wie viele Knoten das Netz für diesen Abstand hat (zum Prüfen).</summary>
+    public int Knotenzahl(float frei) => NetzFuer(frei).Knoten.Length;
+
+    private Netz NetzFuer(float frei)
+    {
+        var schluessel = (int)MathF.Round(frei * 100);
+        if (_netze.TryGetValue(schluessel, out var vorhanden)) return vorhanden;
+        Bereit();
+        const float Zugabe = 0.05f;
+        var knoten = new List<(float X, float Z)>();
+        void Pruefen(float x, float z)
+        {
+            if (Auf(x, z, 0.1f) && Frei(x, z) >= frei + 0.02f) knoten.Add((x, z));
+        }
+        // Kreise: zwölf Ecken, die so weit außen liegen, dass auch die Seiten dazwischen noch den Abstand halten
+        foreach (var (kx, kz, r) in _kreise)
+        {
+            var rho = (r + frei + Zugabe) / MathF.Cos(MathF.PI / 12);
+            for (var k = 0; k < 12; k++) Pruefen(kx + MathF.Cos(k * MathF.PI / 6) * rho, kz + MathF.Sin(k * MathF.PI / 6) * rho);
+        }
+        // Rechtecke: um jede Ecke ein Viertelkreis aus drei Punkten
+        foreach (var r in _rechtecke)
+        {
+            var rho = (frei + Zugabe) / MathF.Cos(MathF.PI / 8);
+            foreach (var (sx, sv) in new[] { (1f, 1f), (-1f, 1f), (-1f, -1f), (1f, -1f) })
+                foreach (var w in new[] { 0f, MathF.PI / 4, MathF.PI / 2 })
+                {
+                    var (u, v) = (sx * (r.HalbU + MathF.Cos(w) * rho), sv * (r.HalbV + MathF.Sin(w) * rho));
+                    Pruefen(r.X + u * r.Ux - v * r.Uz, r.Z + u * r.Uz + v * r.Ux);
+                }
+        }
+        var netz = new Netz { Knoten = knoten.ToArray() };
+        var n = netz.Knoten.Length;
+        netz.Nachbarn = new List<(int, float, int)>[n];
+        for (var i = 0; i < n; i++) netz.Nachbarn[i] = new();
+        for (var i = 0; i < n; i++)
+            for (var j = i + 1; j < n; j++)
+            {
+                var (a, b) = (netz.Knoten[i], netz.Knoten[j]);
+                if (!RasterSicht(a, b, frei - 0.005f, float.MaxValue, float.MaxValue)) continue;
+                var d = MathF.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
+                netz.Nachbarn[i].Add((j, d, netz.Kanten.Count));
+                netz.Nachbarn[j].Add((i, d, netz.Kanten.Count));
+                netz.Kanten.Add((i, j));
+            }
+        netz.Gesperrt = new bool[netz.Kanten.Count];
+        netz.Strecke = new float[n];
+        netz.Ziel = new float[n];
+        netz.Her = new int[n];
+        Array.Fill(netz.Ziel, float.MaxValue);
+        _netze[schluessel] = netz;
+        return netz;
+    }
+
+    /// <summary>Abstand (Frei) aus dem Raster, zwischen den Zellmitten bilinear – genauer als die nächste Zelle (Fehler nur im Zentimeterbereich).</summary>
+    private float RasterFrei(float x, float z)
+    {
+        var (u, v) = Lokal(x, z);
+        var (fu, fv) = ((u + _halb) / Zelle - 0.5f, (v + _halb) / Zelle - 0.5f);
+        var (i0, j0) = ((int)MathF.Floor(fu), (int)MathF.Floor(fv));
+        var (tu, tv) = (fu - i0, fv - j0);
+        int Klemmen(int k) => Math.Clamp(k, 0, _n - 1);
+        float W(int i, int j) => _abstand[Klemmen(j) * _n + Klemmen(i)];
+        var oben = W(i0, j0) * (1 - tu) + W(i0 + 1, j0) * tu;
+        var unten = W(i0, j0 + 1) * (1 - tu) + W(i0 + 1, j0 + 1) * tu;
+        return oben * (1 - tv) + unten * tv;
+    }
+
+    /// <summary>
+    /// Wie <see cref="Sichtlinie"/>, aber nur über das Raster (alle 10 cm ein Blick in die Tabelle, ohne Stehende): wenige Mikrosekunden statt eines Vielfachen.
+    /// Die Enden dürfen, wie dort, dichter am Hindernis liegen (<paramref name="startFrei"/>, <paramref name="zielFrei"/>; groß, wenn sie es nicht tun).
+    /// </summary>
+    private bool RasterSicht((float X, float Z) a, (float X, float Z) b, float frei, float startFrei, float zielFrei)
+    {
+        var (dx, dz) = (b.X - a.X, b.Z - a.Z);
+        var laenge = MathF.Sqrt(dx * dx + dz * dz);
+        if (laenge < 1e-5f) return true;
+        var schritte = Math.Max(1, (int)MathF.Ceiling(laenge / 0.1f));
+        for (var k = 0; k <= schritte; k++)
+        {
+            var t = (float)k / schritte;
+            var (x, z) = (a.X + dx * t, a.Z + dz * t);
+            if (!Auf(x, z, -0.05f)) return false;
+            var s = t * laenge;
+            var noetig = frei;
+            if (s < frei + Zelle) noetig = MathF.Min(noetig, startFrei - 0.05f);
+            if (laenge - s < frei + Zelle) noetig = MathF.Min(noetig, zielFrei - 0.05f);
+            if (RasterFrei(x, z) < noetig) return false;
+        }
+        return true;
+    }
+
+    /// <summary>So viele sichtbare Knoten braucht ein Weg an seinem Anfang und Ende höchstens.</summary>
+    private const int NaechsteKnoten = 16;
+
+    private (int K, float D)[] SichtbareKnoten(Netz netz, (float X, float Z) p, float frei)
+    {
+        var schluessel = ((int)MathF.Round(p.X * 20), (int)MathF.Round(p.Z * 20));
+        if (netz.Sichtbar.TryGetValue(schluessel, out var liste)) return liste;
+        if (netz.Sichtbar.Count >= 4000) netz.Sichtbar.Clear();
+        var t0 = Stopwatch.GetTimestamp();
+        var eigen = Frei(p.X, p.Z);
+        // Nur die nächsten sichtbaren Knoten (höchstens NaechsteKnoten), von nah nach fern geprüft: Die anderen erreicht der Weg über die
+        // Kanten, und das Straffziehen holt die Abkürzung zu fernen Knoten wieder heraus.
+        var n = netz.Knoten.Length;
+        var entfernung = new float[n];
+        var reihe = new int[n];
+        for (var k = 0; k < n; k++)
+        {
+            var q = netz.Knoten[k];
+            entfernung[k] = (p.X - q.X) * (p.X - q.X) + (p.Z - q.Z) * (p.Z - q.Z);
+            reihe[k] = k;
+        }
+        Array.Sort(entfernung, reihe);
+        var ergebnis = new List<(int, float)>();
+        for (var i = 0; i < n && ergebnis.Count < NaechsteKnoten; i++)
+        {
+            var k = reihe[i];
+            if (!RasterSicht(p, netz.Knoten[k], frei - 0.005f, eigen, float.MaxValue)) continue;
+            ergebnis.Add((k, MathF.Sqrt(entfernung[i])));
+        }
+        SichtMs += Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+        return netz.Sichtbar[schluessel] = ergebnis.ToArray();
+    }
+
+    /// <summary>
+    /// Ein Weg über das vorbereitete Netz: von <paramref name="von"/> zu den Knoten, die man sieht, dann der kürzeste Weg von Knoten zu Knoten (Dijkstra, die
+    /// Kanten sind fertig), zuletzt zu <paramref name="nach"/>; danach straff gezogen. Das erste und das letzte Stück prüft die genaue Sichtlinie (Enden nahe an
+    /// Ständen), jedes Stück die Stehenden. Null, wenn das Netz keinen Weg hat oder eine Prüfung scheitert – dann sucht das Raster.
+    /// </summary>
+    private List<(float X, float Z)>? NetzPfad((float X, float Z) von, (float X, float Z) nach, float frei)
+    {
+        var netz = NetzFuer(frei);
+        if (netz.Knoten.Length == 0) return null;
+        var anfang = SichtbareKnoten(netz, von, frei);
+        var ende = SichtbareKnoten(netz, nach, frei);
+        // Sieht ein Ende keinen Knoten (mitten zwischen Ständen, im Gedränge der Hindernisse): erst zur nächsten freien Zelle, von dort aus weiter
+        (float X, float Z)? vorn = null, hinten = null;
+        if (anfang.Length == 0 && FreieZelle(von, frei) is var zv and >= 0)
+        {
+            vorn = Mitte(zv % _n, zv / _n);
+            anfang = SichtbareKnoten(netz, vorn.Value, frei);
+        }
+        if (ende.Length == 0 && FreieZelle(nach, frei) is var zn and >= 0)
+        {
+            hinten = Mitte(zn % _n, zn / _n);
+            ende = SichtbareKnoten(netz, hinten.Value, frei);
+        }
+        if (anfang.Length == 0 || ende.Length == 0) return Keiner($"keinKnoten {anfang.Length}/{ende.Length}");
+        var (a0, z0) = (vorn ?? von, hinten ?? nach);
+        var (vorlauf, nachlauf) = (vorn is { } v ? MathF.Sqrt((v.X - von.X) * (v.X - von.X) + (v.Z - von.Z) * (v.Z - von.Z)) : 0f,
+                                   hinten is { } h ? MathF.Sqrt((h.X - nach.X) * (h.X - nach.X) + (h.Z - nach.Z) * (h.Z - nach.Z)) : 0f);
+        Array.Fill(netz.Strecke, float.MaxValue);
+        _offen.Clear();
+        KantenSperren(netz, frei);
+        var (anfangDa, endeDa) = (false, false);
+        // Knoten, bei denen jemand auf dem Weg dorthin steht, fallen weg (die erste und die letzte Strecke zählen mit den Ausnahmen der Enden)
+        foreach (var (k, d) in anfang)
+        {
+            if (!PersonenFrei(a0, netz.Knoten[k], frei)) continue;
+            netz.Strecke[k] = d + vorlauf; netz.Her[k] = -1; _offen.Enqueue(k, d + vorlauf); anfangDa = true;
+        }
+        foreach (var (k, d) in ende)
+        {
+            if (!PersonenFrei(netz.Knoten[k], z0, frei)) continue;
+            netz.Ziel[k] = d + nachlauf; endeDa = true;
+        }
+        if (!anfangDa || !endeDa)
+        {
+            foreach (var (k, _) in ende) netz.Ziel[k] = float.MaxValue;
+            return Keiner("Stehende");
+        }
+        var (beste, besterKnoten) = (float.MaxValue, -1);
+        while (_offen.TryDequeue(out var k, out var prio))
+        {
+            if (prio > netz.Strecke[k] + 1e-4f) continue; // veralteter Eintrag
+            if (prio >= beste) break;
+            if (netz.Ziel[k] < float.MaxValue && prio + netz.Ziel[k] < beste) (beste, besterKnoten) = (prio + netz.Ziel[k], k);
+            foreach (var (nk, d, e) in netz.Nachbarn[k])
+            {
+                if (netz.Gesperrt[e]) continue;
+                var neu = prio + d;
+                if (neu >= netz.Strecke[nk] || neu >= beste) continue;
+                (netz.Strecke[nk], netz.Her[nk]) = (neu, k);
+                _offen.Enqueue(nk, neu);
+            }
+        }
+        foreach (var (k, _) in ende) netz.Ziel[k] = float.MaxValue;
+        if (besterKnoten < 0) return Keiner("keinWeg");
+        var roh = new List<(float X, float Z)> { nach };
+        if (hinten is { } hp) roh.Add(hp);
+        for (var k = besterKnoten; k >= 0; k = netz.Her[k]) roh.Add(netz.Knoten[k]);
+        if (vorn is { } vp) roh.Add(vp);
+        roh.Add(von);
+        roh.Reverse();
+        // straff: vom Eckpunkt zum fernsten, den man (im Raster) sieht
+        var aus = new List<(float X, float Z)> { roh[0] };
+        for (var anker = 0; anker < roh.Count - 1;)
+        {
+            var naechster = anker + 1;
+            for (var j = roh.Count - 1; j > anker + 1; j--)
+                if (RasterSicht(roh[anker], roh[j], frei - 0.005f, anker == 0 ? Frei(von.X, von.Z) : float.MaxValue, j == roh.Count - 1 ? Frei(nach.X, nach.Z) : float.MaxValue)
+                    && PersonenFrei(roh[anker], roh[j], frei)) { naechster = j; break; }
+            anker = naechster;
+            aus.Add(roh[anker]);
+        }
+        // Prüfung: erstes und letztes Stück genau, alle Stücke gegen Stehende
+        for (var i = 0; i + 1 < aus.Count; i++)
+        {
+            if ((i == 0 || i + 2 == aus.Count) ? !Sichtlinie(aus[i], aus[i + 1], frei - 0.03f) : !PersonenFrei(aus[i], aus[i + 1], frei)) return Keiner(i == 0 || i + 2 == aus.Count ? "PrüfungEnde" : "PrüfungMitte");
+        }
+        return aus;
     }
 
     private readonly Dictionary<(int, int, int, int, int, int), List<(float X, float Z)>?> _gemerkt = new();
