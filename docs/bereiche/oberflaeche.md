@@ -28,6 +28,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Schänke: „Plätze: belegt / frei“ und „heute kein Platz“ auch auf die Infotafel im Gastraum (steht bisher nur in der Betriebsverwaltung).
 - (von Kern) Jahreszeiten mit Folgen (Datenversion 69, `Stadtwirtschaft.Jahreszeiten`): Die Meldungen kommen schon (Jahresbeginn, Festmarkt, „Der Rhein ist zugefroren!“, Eisgang), die Hafentafel zeigt den Grund aus `AuftragVerboten`. Möglich: im Zeitstrahl ein Zeichen für Eis (`FlussZugefroren`, `EisDroht`) und Festmarkt (`FestmarktJetzt`); in der Markttafel bei der Nachfrage den Faktor der Jahreszeit (`Marktstand.Jahreszeitfaktor`, `Angebotsfaktor`); im Tooltip eines Betriebs im Umland die Leistung der Jahreszeit (`Arbeitsfaktor`); in der Wegtafel das Tempo mit Schlamm (`Schlamm(Belagstufe)`).
 - (von Kern) Hafentafel und Schiffsverkehr (`schiffshandel.verkehrBeachten`, Datenversion 69): Der erwartete Gewinn aus `Kalkulation.Schiffsfahrt`/`BesteSchiffsfahrt` rechnet jetzt mit den Schiffen, die schon zur selben Stadt bzw. heim unterwegs sind; Tooltip („zu heutigen Preisen“) und die Preiszeilen „dort/hier“ zeigen den Preis ohne sie. Vorschlag: eine Zeile im Tooltip, z. B. „mit den Schiffen, die schon nach Weidenmünd unterwegs sind bzw. heimkommen“ (eine öffentliche Abfrage der Stückzahlen baut der Kern auf Wunsch).
+- Benachrichtigungen Stufe 2 (kern + oberflaeche): Der Kern meldet strukturierte Ereignisse (Art, Betroffener, Ort, Familienmitglied); dann fallen `game/daten/meldungen.json` und die Textmuster weg, Briefe bekommen Porträts und Sprung zu Haus oder Person (Krankheit des Oberhaupts als Brief statt Siegel, die Spitzel- und Unterwelt-Filter ohne Textsuche), und der Verlauf kann mit dem Spielstand gespeichert werden (Datenversion). Stufe 3: Entscheidungen mit Wahl, im Mehrspieler als Frist.
+- Benachrichtigungen: Ton von `siegel_neu_*` und `pergament_*` ist rechnerisch erzeugt und noch nicht abgehört (Hörurteil des Nutzers); ein Siegel-Tooltip zeigt nur die neueste Meldung; `Meldungsmessung.Einordnen` (Test) und `Meldungsordnung` führen noch dieselben Textmuster doppelt (die Messung könnte die neue Klasse nutzen).
+- Benachrichtigungen: Das ✕ des Fensterrahmens ist hell und bekommt im Brief eine dunkle Platte; ein gemeinsames Pergament-Fenster für andere Tafeln (Oberflächen-Stil Schriftrolle) fehlt noch.
 
 ## Entscheidungen
 
@@ -325,3 +328,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hinweis | Seit #318 beginnt jeder Betrieb mit einem Lehrling. Bei einer neuen Partie (nicht nach dem Laden, nicht in der Probepartie) steht einmalig eine Tafel in den Meldungen unten links (`Hauptszene.Starthinweis.cs`): „In Eurer Werkstatt arbeitet nur ein Lehrling …“, Knöpfe „Zum Personalbuch“ (geht hinein, öffnet die Personal-Tafel) und „Später“. Bleibt wie eine Warnung stehen, bis sie geschlossen wird | 05.11.2026 |
 | Merken | Nichts im Spielstand: „neue Partie“ heißt Spielzeit 0. Keine Einstellung zum Abschalten, weil es kein Tipp-System gibt; ohne Startoptionen von selbst, sonst `--starthinweis=1` | 05.11.2026 |
 | Umzug | Zieht mit den Meldungen ins geplante Benachrichtigungssystem um (eine Methode, ein Aufruf in `PartieStarten`) | 05.11.2026 |
+
+### Benachrichtigungen Stufe 1: Siegel und Briefe (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ort | Alle Meldungen kommen nach rechts unten (auch „✗“); die Zeile unten links entfällt. Siegel-Ecke über der Betriebsleiste (über der Raumleiste im Innenraum), Brief-Fenster darüber; Tafeln rechts lassen den Platz frei (`Rollbereich.EckeHoehe`). Nichts pausiert. | 05.11.2026 |
+| Stufen | Aus, Verlauf, Siegel, Brief; Wahl je Art im Reiter „Meldungen“ der Einstellungen (Abschnitt `[meldungen]` in `einstellungen.cfg`), gilt für Eigen und Stadt, Fremdes bleibt im Verlauf. | 05.11.2026 |
+| Zuordnung | `game/daten/meldungen.json` (Arten, Themen, Textmuster, Vorgabe je Betroffenheit, Absender, Ziel, Sammelregel) und `game/scripts/Meldungsordnung.cs` (ohne Godot, `MeldungsordnungTests`). | 05.11.2026 |
+| Bündeln | Jahreswechsel: ein Brief „Jahresbericht“ (Gericht, Rat, Steuer, Stand, Personal, Bank, Spitzel), einzeln nur Todesfall und eigene Anklage. Stillstand: ein Siegel je Betrieb nach 60 Spielminuten. Nacht (20–23 Uhr und Nachtgeschehen der Jahresabrechnung): ein Brief „Die Nacht“. Rivalen nur Verlauf. Fremde Unterwelt und fremde Spitzelberichte verworfen (`Gauner.DiesesJahr[^1].Fuer`, Auftraggeber). | 05.11.2026 |
+| Verlauf | Reiter „Verlauf“ im Bericht (Enum-Name bleibt `Protokoll`): alle Meldungen der Sitzung über die Jahre (3000), Filter Alles, Mein Haus, Rivalen; nicht im Spielstand. | 05.11.2026 |
+| Start-Hinweis | Der Hinweis zum Personalbuch (PR #321) kommt als Brief mit Knopf „Zum Personalbuch“. | 05.11.2026 |
+| Gestaltung | Siegel und Brief zeichnet der Code (schwarzer Umriss, Farbe leicht versetzt, Schraffur); „Siegel und Briefe bewegen“ schaltet Einblenden und Pulsieren ab. Startoptionen `--meldungen=demo|brief|jahr`. | 05.11.2026 |
+| Messung nachher | Siegel plus Briefe etwa 9 je Spieljahr statt gut 80 Zeilen (Messung `messen meldungen`, Mittel); Bündelung und Filter wirken zusätzlich. | 05.11.2026 |

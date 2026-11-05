@@ -121,7 +121,7 @@ public sealed partial class BriefAnzeige : PanelContainer
         // Kopf: Absender klein, rechts Platz für das ✕ des Fensterrahmens
         var kopf = new HBoxContainer();
         _inhalt.AddChild(kopf);
-        var von = Hauptmenue.Text(kopf, "Von " + b.Absender, 13, Blass);
+        var von = Hauptmenue.Text(kopf, "Absender: " + b.Absender, 13, Blass);
         von.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         kopf.AddChild(new Control { CustomMinimumSize = new Vector2(34, 0) });
 

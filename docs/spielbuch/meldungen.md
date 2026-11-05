@@ -13,7 +13,7 @@ Was in der Stadt und im Haus geschieht, erfahrt ihr als **Siegel** in der Ecke u
 
 **Siegel.** Die Farbe zeigt das Thema (rot Gefahr, blau Handel und Betrieb, grün Familie, gold Rat und Stand, grau Stadt und Wetter, ocker abgelehnte Befehle), das Zeichen in der Mitte ebenso. Mehrere Meldungen desselben Themas stapeln sich zu **einem** Siegel mit Zähler. Ein neues Siegel hat einen eigenen Ton (weicher Wachsklopfer). Ein Linksklick öffnet den Brief mit allen Meldungen des Stapels, ein Rechtsklick legt das Siegel beiseite. Abgelehnte Befehle verschwinden nach 25 Sekunden von selbst; alle anderen Siegel bleiben, bis ihr sie lest. Mehr als sieben Siegel passen nicht; das älteste weicht, es steht weiter im Verlauf. Tafeln, die rechts aufgehen, lassen den Platz der Ecke frei.
 
-**Brief.** Pergament mit Absender („Von: Der Büttel“), Titel auf einem Farbband, den Zeilen und dem Siegel am Fuß. Kommen mehrere Briefe, bilden sie einen Stapel („Brief 2 von 3“, Pfeile zum Blättern); „Weglegen“ oder ✕ legt den Stapel weg. Der Knopf unten führt, soweit der Text es hergibt, zum Betrieb, ins Familienbuch, in die Ratskammer oder zur Jahresrechnung. Ein Brief kommt mit Pergamentrascheln, bei Gefahr dazu eine leise Glocke.
+**Brief.** Pergament mit Absender („Absender: Der Büttel“), Titel auf einem Farbband, den Zeilen und dem Siegel am Fuß. Kommen mehrere Briefe, bilden sie einen Stapel („Brief 2 von 3“, Pfeile zum Blättern); „Weglegen“ oder ✕ legt den Stapel weg. Der Knopf unten führt, soweit der Text es hergibt, zum Betrieb, ins Familienbuch, in die Ratskammer oder zur Jahresrechnung. Ein Brief kommt mit Pergamentrascheln, bei Gefahr dazu eine leise Glocke.
 
 ## Was gebündelt wird
 

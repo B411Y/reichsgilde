@@ -53,3 +53,8 @@ Der Urheber hat auf alle Rechte an dem Werk verzichtet, soweit das Gesetz es zul
 Das Werk darf kopiert, verändert, verbreitet und auch kommerziell genutzt werden, ohne um Erlaubnis zu fragen.
 
 Herkunft je Datei: `docs/assets/protokoll.csv`.
+
+## Eigene Töne (nicht Kenney)
+
+`siegel_neu_1.wav`, `siegel_neu_2.wav`, `pergament_1.wav`, `pergament_2.wav` (Benachrichtigungen, 05.11.2026) sind **rein rechnerisch erzeugt** mit `tools/ton/meldungstoene.py`
+(keine Aufnahme, keine KI, keine fremde Quelle). Lizenz: Alle Rechte vorbehalten (Inhalte des Projekts, `LICENSE-INHALTE.md`); Beschreibung in `docs/assets/prompts/meldungstoene.md`.
