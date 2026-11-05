@@ -13,6 +13,8 @@ using Reichsgilde.Core.Wirtschaft;
 //
 //  Je Karte drei Aufbauten mit allen KI-Häusern der Karte: der Spieler als Wirt mit einem Betrieb (KI geführt, ohne Expansion),
 //  als ausbauender Wirt (KI mit dem Profil der KI-Häuser) und als Schmied mit einem Betrieb (wie Teil 3 des Balancing-Berichts).
+//  --passiv: dazu der Schmied ohne jede Führung (stellt nie ein, handelt nicht – wie ein Spieler, der nichts tut; Startpersonal, 4.11.2026);
+//  --nur-passiv: nur dieser Aufbau.
 //  Gemessen: Reinvermögen von Spieler und KI-Häusern, Jahr bis Bürger, Umsatz der Schänken (Ausschank und Würfelgeld) des Spielers
 //  und der KI-Häuser, Gäste, „voll“ (Gäste, die in ihrer Schänke keinen Platz fanden) und „ausgefallen“ (nirgends Platz),
 //  dazu je Stunde, wie oft eine Schänke voll war und wie oft mehr Einwohner darin saßen, als sie Einwohner-Plätze hat (mit Bezug 17 nie).
@@ -42,6 +44,8 @@ static class Schaenkenmessung
         var karten = (Schalter("karten") ?? "greybox,koeln").Split(',');
         var parallel = int.Parse(Schalter("parallel") ?? "2");
         var ohnePlaetze = args.Contains("--ohne-plaetze");
+        var nurPassiv = args.Contains("--nur-passiv");
+        var passiv = nurPassiv || args.Contains("--passiv");
         var q = new Messquellen(anpassen: ohnePlaetze ? OhnePlaetze : null);
         var daten = Wirtschaftsdaten.AusJson(q.Wirtschaft);
 
@@ -49,9 +53,13 @@ static class Schaenkenmessung
         foreach (var karte in karten)
             for (var s = 1; s <= startwerte; s++)
             {
-                aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt"));
-                aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt", Bezug: Bezugsart.WieKi));
-                aufbauten.Add(new Messaufbau(karte, s * 101, jahre));
+                if (!nurPassiv)
+                {
+                    aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt"));
+                    aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Beruf: "Wirt", Bezug: Bezugsart.WieKi));
+                    aufbauten.Add(new Messaufbau(karte, s * 101, jahre));
+                }
+                if (passiv) aufbauten.Add(new Messaufbau(karte, s * 101, jahre, Bezug: Bezugsart.Passiv));
             }
         Console.Error.WriteLine($"Schänkenmessung: {aufbauten.Count} Partien zu {jahre} Jahren, {parallel} parallel{(ohnePlaetze ? ", ohne Sitzplätze" : "")} …");
         var ergebnisse = new ConcurrentDictionary<Messaufbau, (Partieergebnis P, Zaehler Z)>();
@@ -73,7 +81,7 @@ static class Schaenkenmessung
         Console.WriteLine("Karte | Aufbau | Spieler J" + jahre + " | KI-Häuser J" + jahre + " | Bürger Ø Jahr (im Ziel 8–12) | bankrott | Umsatz Schänke Spieler/Jahr | " +
                           "Umsatz Schänken KI/Jahr | Gäste/Jahr | ohne Ware/Jahr | voll/Jahr | ausgefallen/Jahr (Anteil) | Stunden voll | Stunden über Plätzen | Einwohner über Plätzen (max)");
         foreach (var g in ergebnisse.Where(x => x.Value.P.Fehler is null)
-                     .GroupBy(x => (x.Key.Karte, Aufbau: $"{x.Key.Beruf} {(x.Key.Bezug == Bezugsart.WieKi ? "ausbauend" : "ein Betrieb")}"))
+                     .GroupBy(x => (x.Key.Karte, Aufbau: $"{x.Key.Beruf} {(x.Key.Bezug switch { Bezugsart.WieKi => "ausbauend", Bezugsart.Passiv => "passiv", _ => "ein Betrieb" })}"))
                      .OrderBy(x => x.Key.Karte, StringComparer.Ordinal).ThenBy(x => x.Key.Aufbau, StringComparer.Ordinal))
         {
             var liste = g.OrderBy(x => x.Key.Startwert).Select(x => x.Value).ToList();

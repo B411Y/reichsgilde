@@ -17,11 +17,16 @@ static class GaunerNachtSpeicherTests
     {
         ("Gleichlauf: Gespeichert um 22 Uhr, laufen Original und Kopie über die Nacht gleich (Erfolg des Gaunerauftrags im Spielstand)", () =>
         {
-            // Startwert 9: Ein Dieb bricht in dieser Nacht ein; vor PR M2 legte die Kopie um 23 Uhr eine Spur mehr an.
-            var (original, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 9, Siegbedingung = Siegbedingung.Endlos },
-                Daten.Value, new NeuePartie());
-            for (var i = 0; i < Spielzeit.MinutenProTag - 50; i++) original.Tick();
-            var json = Speicherung.Speichern(original, spieler, Zeitpunkt);
+            // Der erste Startwert ab 9, bei dem ein Dieb in dieser Nacht schon Erfolg hatte (bis Datenversion 71 war es 9; mit einem Lehrling
+            // zum Start, Datenversion 72, verschiebt sich der Zufall); vor PR M2 legte die Kopie um 23 Uhr eine Spur mehr an.
+            Simulation original = null!; Konto spieler = null!; var json = "";
+            for (var startwert = 9; startwert < 60 && !json.Contains("\"Erfolgreich\": true"); startwert++)
+            {
+                (original, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = startwert, Siegbedingung = Siegbedingung.Endlos },
+                    Daten.Value, new NeuePartie());
+                for (var i = 0; i < Spielzeit.MinutenProTag - 50; i++) original.Tick();
+                json = Speicherung.Speichern(original, spieler, Zeitpunkt);
+            }
             Pruefe.Wahr(json.Contains("\"Erfolgreich\": true"), "Der Test braucht einen Auftrag, der in dieser Nacht schon Erfolg hatte (Daten geändert?).");
             var (kopie, kopieSpieler) = Speicherung.Laden(json);
             for (var i = 0; i < 100; i++) { original.Tick(); kopie.Tick(); }

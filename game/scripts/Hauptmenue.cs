@@ -657,7 +657,7 @@ public partial class Hauptmenue : Node
         _schwierigkeitHinweis.Text = (Schwierigkeit)_schwierigkeit.GetSelectedId() switch
         {
             Schwierigkeit.Schwer => "Die KI-Häuser starten mit Vorsprung: Werkstatt und Umlandbetrieb (Grube, Holzschlag, Steinbruch).",
-            _ => "Alle Häuser starten gleich: eine Werkstatt mit zwei Gesellen. Die Umlandbetriebe der KI stehen frei zur Pacht.",
+            _ => "Alle Häuser starten gleich: eine Werkstatt mit einem Lehrling. Die Umlandbetriebe der KI stehen frei zur Pacht.",
         };
 
     /// <summary>Endjahr bzw. Zielvermögen nur zeigen, wenn die gewählte Siegbedingung sie braucht.</summary>
