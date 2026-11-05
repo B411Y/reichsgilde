@@ -170,6 +170,9 @@ public partial class Stadtansicht
         BodenmeterFuellen();            // angefangene Tabellen der Bodenmeter weiterrechnen, solange Zeit ist
         Profil(1);
         var einwohner = einwohnerschaft.Einwohner;
+        // In großen Städten (Bürgerdichte, Köln über 400 Einwohner) laufen Figuren außerhalb des Bildes nur jedes sechste Bild weiter
+        var viele = einwohner.Count > VieleFiguren;
+        var ausserhalbJedes = viele ? 2 * AusserhalbJedes : AusserhalbJedes;
         foreach (var e in einwohner)
         {
             if (!_passanten.TryGetValue(e.Nummer, out var p))
@@ -280,7 +283,7 @@ public partial class Stadtansicht
                 AmOrtStellen(p, e, ort, weg, minuteGenau, losgegangen);
                 Profil(2); // am Ort stellen (auch Bummeln)
             }
-            else if (p.Stand is null && p.Knoten.Visible && !p.WartetDrinnen && (p.Nummer + _figurenBild) % AusserhalbJedes != 0 && !ImBild(p.Knoten.Position))
+            else if (p.Stand is null && p.Knoten.Visible && !p.WartetDrinnen && (p.Nummer + _figurenBild) % ausserhalbJedes != 0 && !ImBild(p.Knoten.Position))
             {
                 // Außerhalb des Bildes (mit 1,5 m Rand) läuft sie nur jedes dritte Bild weiter – ihre Lage folgt dem Plan, nichts geht verloren, und ehe sie
                 // ins Bild kommt, ist sie wieder jedes Bild dran (1.11.2026: Laufen war in Köln der größte Posten)
@@ -289,6 +292,12 @@ public partial class Stadtansicht
             {
                 Laufen(p, e.Nummer, minuteGenau, ticksJeSekunde);
                 Profil(3); // laufen
+            }
+            // In großen Städten ist das Modell weit außerhalb des Bildes ausgeblendet (kein Schatten, kein Zeichnen); die Figur selbst läuft weiter
+            if (p.Figur is { } modell && (!viele || p.Knoten.Visible))
+            {
+                var zeigen = !viele || ImBild(p.Knoten.Position, 30f);
+                if (modell.Modell.Visible != zeigen) modell.Modell.Visible = zeigen;
             }
             PassantLichtStellen(p, e); // Laterne oder Fackel im Dunkeln (Stadtansicht.Nachtlichter.cs)
             Profil(4); // Licht
@@ -359,6 +368,9 @@ public partial class Stadtansicht
 
     /// <summary>Laufende außerhalb des Bildes werden nur jedes so vielte Bild weitergestellt (über die Nummer verteilt).</summary>
     private const int AusserhalbJedes = 3;
+
+    /// <summary>Ab so vielen Einwohnern rechnet die Darstellung sparsamer: außerhalb des Bildes seltener laufen, kein Ausweichen, kein Bummeln.</summary>
+    private const int VieleFiguren = 300;
 
     // ── Profil der Rechenzeit (Startoption --passantenprofil=1, nur Protokoll) ──
     private static readonly bool ProfilMessen = Wasserarten.Startoption("passantenprofil") is "1" or "an" or "ja";
@@ -620,6 +632,8 @@ public partial class Stadtansicht
     {
         var anteil = (float)Math.Clamp((minuteGenau - p.LaufStart) / Math.Max(p.LaufEnde - p.LaufStart, 1e-9), 0, 1);
         if (SpurAlt) return Mathf.Clamp(anteil * p.Laenge - p.Rueckstand, 0, p.Laenge);
+        // In großen Städten (Bürgerdichte) geht, wer weit außerhalb des Bildes ist und noch keine fertige Tabelle hat, nach den Metern des Pfades
+        if (_passanten.Count > VieleFiguren && p.Mitte is not { Fertig: true } && !NaheBild(p)) return Mathf.Clamp(anteil * p.Laenge - p.Rueckstand, 0, p.Laenge);
         var mitte = MitteVon(p);
         if (SpurV1) return Mathf.Clamp(anteil * mitte.Laenge, 0, mitte.Laenge);
         var boden = Mathf.Clamp(anteil * mitte.Bodenlaenge - p.Rueckstand, 0, mitte.Bodenlaenge);
@@ -652,6 +666,10 @@ public partial class Stadtansicht
         return p.Mitte = mitte;
     }
 
+    /// <summary>Ist die Figur, ihr Start oder ihr Ziel nahe am Bild (40 m Rand)? Sonst darf sie in großen Städten vereinfacht laufen.</summary>
+    private bool NaheBild(Passant p) =>
+        ImBild(p.Knoten.Position, 40f) || p.Pfad.Length > 0 && (ImBild(p.Pfad[0], 40f) || ImBild(p.Pfad[^1], 40f));
+
     /// <summary>Rechnet höchstens <paramref name="schritte"/> weitere Einträge der Tabelle; true, wenn sie danach fertig ist.</summary>
     private static bool BodenFuellen(PfadMitte mitte, int schritte)
     {
@@ -677,9 +695,11 @@ public partial class Stadtansicht
         if (_bodenOffen.Count == 0) return;
         _bodenOffen.RemoveAll(q => q.Mitte is not { } m || m.Fertig || !ReferenceEquals(m.Pfad, q.Pfad));
         if (_bodenOffen.Count > 1) _bodenOffen.Sort((a, b) => a.LaufStart.CompareTo(b.LaufStart));
+        var viele = _passanten.Count > VieleFiguren;
         foreach (var q in _bodenOffen)
         {
             if (!WegsucheFrei()) break;
+            if (viele && !NaheBild(q)) continue; // weit außerhalb des Bildes erst, wenn man hinsieht (Bürgerdichte)
             var uhr = Stopwatch.StartNew();
             BodenFuellen(q.Mitte!, BodenStueck);
             WegsucheZaehlen(uhr.Elapsed.TotalMilliseconds);

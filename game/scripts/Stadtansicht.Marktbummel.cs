@@ -176,6 +176,12 @@ public partial class Stadtansicht
     /// </summary>
     private bool PlatzNachplanen(Passant p, double minuteGenau)
     {
+        // In großen Städten (Bürgerdichte): Liegt der ganze Weg weit außerhalb des Bildes, bleibt es bei der rohen Linie über den Platz – das sieht keiner
+        if (_passanten.Count > VieleFiguren && !p.Pfad.Any(q => ImBild(q, 40f)))
+        {
+            p.PlatzOffen = false;
+            return true;
+        }
         // wer schon geht und nur noch 15 m vor einem Platz ist, bekommt den Weg auf jeden Fall (sonst ginge sie die rohe Linie durch Stände)
         if (!WegsucheFrei() && !(p.Stand is null && p.Knoten.Visible && _maerkte.Any(m => m.Halb > 0 && m.Abstand(p.Knoten.Position) < 15))) return false;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
@@ -436,6 +442,8 @@ public partial class Stadtansicht
             }
         }
         if (minuteGenau < p.BummelBis) return false;
+        // In großen Städten bummelt außerhalb des Bildes niemand weiter (er bleibt an seiner Stelle, bis man hinsieht – Bürgerdichte)
+        if (_passanten.Count > VieleFiguren && !ImBild(p.Knoten.Position, 12f)) return false;
         return BummelLosgehen(p, e, stelle, minuteGenau);
     }
 
