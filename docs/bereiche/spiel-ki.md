@@ -135,6 +135,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Darstellung | Ab 300 Einwohnern rechnet die Darstellung außerhalb des Bildes sparsamer (`VieleFiguren`, kleine Änderung im Bereich darstellung: `Stadtansicht.Passanten.cs`, `.Figuren.cs`, `.Marktbummel.cs`, `.Passantenausweichen.cs`). Das Ziel „+2 ms“ wird damit noch nicht erreicht (Messung unten); weitere Hebel bei darstellung. | 5.11.2026 |
 | Tests | `BuergerDichteTests` (9): ohne Karte bzw. ohne Feld alte Zahl; Köln/Greybox ein Haus je Platz mit 5–7 Bewohnern; Zählende genau jeHaus × Häuser, auch nach Jahren; Tagesplan ändert nur den Ort (8–20 Uhr, Heim → Markt); tagsüber mehr am Markt, ab 20 Uhr niemand draußen rastend; Wurf fest und gleichverteilt; Köln und Greybox zwei Jahre mit und ohne – Vermögen, Nachfrage, Passanten, Handlungen gleich; Speichern/Laden mittags. Angepasst: zwei Prüfungen in `BuergerTests` (Dienst darf am Markt sein), `HafenRuhtTests` nimmt die neuen Felder heraus (Sollwerte vor dem Schalter). | 5.11.2026 |
 
+### Torwache (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anlass | Vorschlag „Wachen und Diebe“, Paket P1, vom Nutzer am 5.11.2026 mit allen Empfehlungen freigegeben: Torwächter als neue Einwohner-Rolle, echte anklickbare Figuren mit Namen, ohne Gewicht für die Wirtschaft; niemand bezahlt sie; Einfluss der Spieler nur wie bisher über den Stadthauptmann. | 5.11.2026 |
+| Regel | Je Tor zwei Mannschaften zu je 2 Wächtern; Frühschicht vom Tagesbeginn bis 14 Uhr, Spätschicht ab 14 Uhr (Anmarsch 13:45–14:00, Abmarsch der Frühschicht 14:00–14:15, je Platz 3 min versetzt), ab 20 Uhr bleibt einer. Mannschaften tauschen täglich. Ruhestand am Jahresende, wenn älter als volljährig + 60 % der Jahre bis zum Sterbealter. Alles fest aus der Uhr bzw. eigenem Generator. | 5.11.2026 |
+| Daten | `buerger.torwache` (`jeTorTag` 2, `jeTorNacht` 1, `wechsel` 14, `nachtAb` 20, `weg` 15) und Rolle „Torwächter“ (Gewicht 0, Arbeitsort Tor) im eigenen Abschnitt, **keine Datenversion**: ohne den Abschnitt keine Torwache. Alte Spielstände laden mit ihren mitgespeicherten Daten, also ohne Torwache. | 5.11.2026 |
+| Wirtschaft | Nicht in `Einwohner`, keine Nummer aus der Zählung, eigener Generator: bitgleich (Test `BuergerTorwacheTests`: ganzer Spielstand ohne die Torwache gleich, Köln und Greybox, drei Jahre). Keine Messung nötig. | 5.11.2026 |
+| Tests | `BuergerTorwacheTests` (7): Zahl je Karte (Köln 40, Greybox 12, ohne Karte/Daten 0); Namen eindeutig, nicht in der Einwohnerliste, per Nummer auffindbar; Schichtplan über einen Tag und Tausch am nächsten; Anteil des Weges; Wirtschaft bitgleich; Spielstand und Ruhestand nach 30 Jahren; Datenprüfung. | 5.11.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
