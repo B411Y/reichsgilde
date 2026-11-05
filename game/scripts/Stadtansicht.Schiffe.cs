@@ -123,7 +123,7 @@ public partial class Stadtansicht
         HafenstegeSichern(w);
         if (w.Schiffahrt.Ruht && _schiffe.Count == 0)
         {
-            ZierschiffAktualisieren(w, minute, delta); // Stadtansicht.Zierschiff.cs
+            ZierschiffAktualisieren(w, ZierMinuteGezeigt(minute), delta); // Stadtansicht.Zierschiff.cs
             return;
         }
         if (!w.Schiffahrt.IstAktiv && _schiffe.Count == 0) return;
