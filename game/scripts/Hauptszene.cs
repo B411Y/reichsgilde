@@ -44,6 +44,7 @@ namespace Reichsgilde;
 ///   --innenblick=L1    mit --innen: gleich auf diesem Blickpunkt des Raums stehen (0 = Mitte, L1, L2, R1, R2, O1, U1 – was das Modell hat)
 ///   --tafel=personal   mit --innen: gleich eine Tafel der Bedienung öffnen (personal, produktion, lager, karren, einrichten, wache, bank)
 ///   --baum=wohnhaus    den Talentbaum der Einrichtung gleich öffnen, von außen (=wohnhaus oder =betrieb für die eigene Werkstatt; mit --vermoegen=5000)
+///   --starthinweis=1   den Start-Hinweis zum Personalbuch zeigen (nur bei neuer Partie; ohne Startoptionen kommt er von selbst)
 ///   --arbeiter=1,2     mit --innen: diese Arbeiter im Raum auswählen (Nummern wie im Personalbuch)
 ///   --einrichtung=Werkzeug1,Regale  der eigenen Werkstatt gleich diese Einrichtung kaufen (mit --vermoegen=5000)
 ///   --einstellen=Lehrling,Geselle   der eigenen Werkstatt gleich diese Arbeiter einstellen
@@ -671,6 +672,7 @@ public partial class Hauptszene : Node
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
             HilfeOeffnen();
+        StartHinweisZeigen(optionen); // einmaliger Hinweis zum Personalbuch (Hauptszene.Starthinweis.cs)
         if (optionen.TryGetValue("baum", out var baumWahl)) // Talentbaum der Einrichtung von außen: wohnhaus oder betrieb (eigene Werkstatt)
         {
             if (baumWahl == "wohnhaus") _wohnhausBaum.Oeffnen();

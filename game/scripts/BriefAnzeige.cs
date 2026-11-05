@@ -182,6 +182,7 @@ public sealed partial class BriefAnzeige : PanelContainer
     private static string ZielText(Brief b) => b.Ziel switch
     {
         "betrieb" when b.Betrieb is not null => "Zu " + b.Betrieb,
+        "personal" => "Zum Personalbuch",
         "familie" => "Familienbuch",
         "rat" => "Ratskammer",
         "bericht" => "Jahresrechnung",

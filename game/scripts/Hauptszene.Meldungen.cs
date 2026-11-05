@@ -217,6 +217,10 @@ public partial class Hauptszene
                 break;
             case "familie": FamilieOeffnen(); break;
             case "rat": RatOeffnen(); break;
+            case "personal":
+                if (_simulation.Wirtschaft?.Betriebe.FirstOrDefault(x => x.Name == b.Betrieb && x.Konto == _spieler) is { } werkstatt && _stadt.InnenansichtBetreten(werkstatt))
+                    InnenTafelOeffnen("personal");
+                break;
             case "bericht": BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung); break;
         }
     }
@@ -291,6 +295,18 @@ public partial class Hauptszene
         _stillstaende[betrieb] = (_simulation.Zeit.VergangeneMinuten - 3 * 60, "Es fehlt Holz – die Arbeit ruht.", 2, true);
         _meldungsUhr = 1;
         MeldungenAltern(0);
+        if (wahl == "jahr") // Jahresbericht vorführen: Posten wie am Jahreswechsel (Gericht, Rat, Steuer, Stand) sammeln und ausgeben
+        {
+            foreach (var (art, text) in new[]
+            {
+                ("Rat", $"Wahl {jahr} – Marktmeister: {_spieler.Inhaber} löst Bertram Kesselflick ab (5 Stimmen gegen 3)."),
+                ("Steuer", $"Ratssitzung {jahr}: Antrag von {_spieler.Inhaber} – Steuer auf 12 % – ANGENOMMEN (5 dafür, 2 dagegen)."),
+                ("Gericht", $"Gerichtstag {jahr}: {_spieler.Inhaber} wird freigesprochen (Anklage: Haus Lyskirchen; 4 von 5 Richtern: unschuldig)."),
+                ("Stand", $"Anna {name} legt die Meisterprüfung ab und ist nun Meisterin (Gebühr 120 Gulden)."),
+            })
+                _jahresSammler.Add(new Meldungsposten { Zeit = _simulation.Zeit.UhrzeitText, Jahr = jahr, Text = text, Original = text, Art = Ordnung.Art(art), Bezug = Betroffenheit.Eigen, Stufe = Meldestufe.Brief });
+            JahresberichtAusgeben(jahr);
+        }
         if (wahl == "brief")
         {
             Protokollieren($"Trauer im Haus {name}: Großvater {name} ist gestorben. Das Haus trauert, der Rat bekundet sein Beileid.");
