@@ -43,8 +43,8 @@ DICKE = 0.030           # Aufdickung des Leders in Modelleinheiten (3 mm)
 POSE = {
     "zeige": dict(beugen=(2, 3, 2), spreizen=3),
     "mittel": dict(beugen=(25, 30, 15), spreizen=0),
-    "ring": dict(beugen=(35, 40, 20), spreizen=-1),
-    "klein": dict(beugen=(45, 45, 25), spreizen=-2),
+    "ring": dict(beugen=(35, 40, 20), spreizen=0),
+    "klein": dict(beugen=(52, 50, 28), spreizen=3),
     "daumen": dict(spreizen=20, beugen=(6, 10, 10)),
 }
 # Fingerform (Runde 15): Längenfaktor und Dickenfaktor je Finger; der Zeigefinger ist am längsten
@@ -328,7 +328,7 @@ def netz_dicken(h):
         kopf0 = kette[0][0]
         a0 = kette[0][1] - kopf0
         d0 = (pp - kopf0) @ a0 / np.linalg.norm(a0)
-        dz[ids] += 0.012 * np.exp(-(d0 / 0.075) ** 2) * np.clip(ruecken[ids], 0, 1)
+        dz[ids] += 0.007 * np.exp(-(d0 / 0.075) ** 2) * np.clip(ruecken[ids], 0, 1)
     # ── Handrücken und Handballen: weiche Falten ──
     from mathutils import noise
     pl = np.where(teil == 0)[0]
@@ -778,6 +778,36 @@ def hand_bauen(stufe, h, st):
 
 _stoff_alt = H.stoff
 
+# Runde 16: Knöchel-Fuge nur noch halb so stark; Stufe 3 in gefärbtem Leder, Waldgrün
+H.KNOECHEL_DECK = 0.135
+H.STUFEN[2]["leder"] = (0.045, 0.19, 0.07)
+H.STUFEN[2]["rau"] = 0.5
+
+
+def _fugen_klein_weich(a, ids, n, hand=True):
+    """Wie H.fugen_klein, aber das Abdunkeln Finger gegen Handrücken (Knöchel) nur halb so stark."""
+    low = ids[n // 2::n, n // 2::n]
+    h_, w_ = a.shape[:2]
+    low = low[:h_, :w_]
+    m = np.zeros(low.shape, dtype=bool)
+    kn = np.zeros(low.shape, dtype=bool)
+    for dy, dx in ((0, 1), (1, 0)):
+        nb = H.verschieben(low, dy, dx)
+        d = (low > 0) & (nb > 0) & (low != nb)
+        if hand:
+            kn |= d & ((low == 1) | (nb == 1))
+            d &= (low != 1) & (nb != 1)
+        m |= d
+    out = a.copy()
+    sel = m & (out[..., 3] > 0.5)
+    out[sel, :3] *= 0.82 if hand else 0.74
+    if hand:
+        out[kn & ~m & (out[..., 3] > 0.5), :3] *= 0.935
+    return out
+
+
+H.fugen_klein = _fugen_klein_weich
+
 
 def _stoff_kraeftig(name, farbe, rau=0.6, metall=0.0, bump=0.0, korn=70.0, var=0.0, sheen=0.0, glanz=0.0, glut=None, korn_art="voronoi"):
     """Leder: gröbere, tiefere Narbung und mehr Fleckigkeit (Runde 15); Samt und alles andere unverändert."""
@@ -794,6 +824,8 @@ H.stoff = _stoff_kraeftig
 def szene_aufbauen(h, stufe, warm):
     H.neue_szene()
     st = H.stoffe_fuer(stufe, warm)
+    if stufe == 3:
+        st["rot"] = H.stoff("Gruenband", (0.016, 0.085, 0.032), 0.72, 0, 0.45, 80)       # Stulpe: dunkleres Grün
     # das Handnetz muss nach neue_szene (liest Werkzeug-Daten zurück) neu als Mesh bestehen
     b = hand_bauen(stufe, h, st)
     objs = b.fertig(H.DREHUNG)
