@@ -63,6 +63,8 @@ public enum Herkunft
     Ratsherr,
     /// <summary>Ein Heiratskandidat aus der Brautschau; Heirat und Weggang regelt weiter das Familienbuch.</summary>
     Kandidat,
+    /// <summary>Ein Torwächter der Stadt (<see cref="Buerger.Torwache"/>): echte Figur mit Namen, ohne Gewicht für die Wirtschaft.</summary>
+    Torwache,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,6 +214,44 @@ public sealed class TagesplanDaten
     }
 }
 
+/// <summary>
+/// Torwache der Stadt (Abschnitt „buerger.torwache“, Spiel-KI 5.11.2026, P1 „Wachen und Diebe“): je Tor der Karte zwei Mannschaften zu je
+/// <see cref="JeTorTag"/> Wächtern, die sich täglich mit Früh- und Spätschicht abwechseln. Nur Bild und Auskunft – ohne Gewicht für die Wirtschaft,
+/// ohne Sold. Fehlt der Abschnitt, gibt es keine Torwache (wie bis Datenversion 72).
+/// </summary>
+public sealed class TorwacheDaten
+{
+    /// <summary>Rolle der Torwächter (Schlüssel unter „rollen“, Gewicht 0 – kein gewöhnlicher Einwohner bekommt sie).</summary>
+    public const string Rolle = "Torwächter";
+
+    /// <summary>Wächter je Tor am Tag (je Schicht).</summary>
+    public int JeTorTag { get; init; } = 2;
+
+    /// <summary>Wie viele davon ab <see cref="NachtAb"/> Uhr bleiben.</summary>
+    public int JeTorNacht { get; init; } = 1;
+
+    /// <summary>Stunde des Schichtwechsels (Uhrzeit): Die Spätschicht löst die Frühschicht ab.</summary>
+    public int Wechsel { get; init; } = 14;
+
+    /// <summary>Ab dieser Stunde steht nur noch die Nachtwache am Tor.</summary>
+    public int NachtAb { get; init; } = 20;
+
+    /// <summary>Minuten für den Weg zwischen Stadt und Tor beim Schichtwechsel.</summary>
+    public int Weg { get; init; } = 15;
+
+    public void Pruefen(List<string> f, string p, BuergerDaten b)
+    {
+        var erste = Spielzeit.TagesbeginnMinute / 60;
+        var ende = Spielzeit.TagesendeMinute / 60;
+        if (JeTorTag is < 1 or > 4) f.Add($"{p}.jeTorTag muss zwischen 1 und 4 liegen.");
+        if (JeTorNacht < 1 || JeTorNacht > JeTorTag) f.Add($"{p}.jeTorNacht muss zwischen 1 und jeTorTag liegen.");
+        if (Wechsel <= erste || NachtAb <= Wechsel || NachtAb >= ende) f.Add($"{p}: {erste} < wechsel < nachtAb < {ende}.");
+        if (Weg is < 1 or > 59) f.Add($"{p}.weg muss zwischen 1 und 59 Minuten liegen.");
+        if (!b.Rollen.TryGetValue(Rolle, out var r)) f.Add($"{p}: Die Rolle „{Rolle}“ fehlt unter „rollen“.");
+        else if (r.Gewicht != 0) f.Add($"{p}: Die Rolle „{Rolle}“ braucht Gewicht 0 (kein gewöhnlicher Einwohner wird Torwächter).");
+    }
+}
+
 /// <summary>Wie ein Bedürfnis über den Tag wächst.</summary>
 public sealed class BeduerfnisDaten
 {
@@ -254,6 +294,9 @@ public sealed class BuergerDaten
 
     /// <summary>Wo die Einwohner tagsüber ihre Stunden verbringen (null = drinnen, wie bis Datenversion 72).</summary>
     public TagesplanDaten? Tagesplan { get; init; }
+
+    /// <summary>Torwache an den Stadttoren (null = keine, wie bis Datenversion 72).</summary>
+    public TorwacheDaten? Torwache { get; init; }
 
     /// <summary>Sind die Ratsherren als Einwohner in der Stadt unterwegs?</summary>
     public bool MitRatsherren { get; init; } = true;
@@ -319,6 +362,7 @@ public sealed class BuergerDaten
         if (JeHaus < 0 || JeHaus > 100) f.Add($"{p}.jeHaus muss zwischen 0 und 100 liegen.");
         if (JeHausplatz < 0 || JeHausplatz > 20) f.Add($"{p}.jeHausplatz muss zwischen 0 und 20 liegen.");
         Tagesplan?.Pruefen(f, $"{p}.tagesplan");
+        Torwache?.Pruefen(f, $"{p}.torwache", this);
         if (Voelker.Count == 0 || Voelker.Values.Any(g => g < 0) || Voelker.Values.Sum() <= 0)
             f.Add($"{p}.voelker braucht mindestens ein Volk mit Gewicht über 0, keine negativen Gewichte.");
         foreach (var volk in Voelker.Keys.Concat(Gewichte.Keys).Where(v => v is Volk.Ork or Volk.Oger).Distinct())

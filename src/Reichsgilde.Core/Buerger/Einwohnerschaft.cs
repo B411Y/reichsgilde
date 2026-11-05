@@ -61,7 +61,11 @@ public sealed class Einwohnerschaft
         _zufall = new Zufallsquelle(unchecked(zufallsstartwert * 71 + 53));
         _zufallExtra = new Zufallsquelle(unchecked(zufallsstartwert * 97 + 31));
         _z = _zufall;
+        Torwache = new Torwache(w, this, zufallsstartwert);
     }
+
+    /// <summary>Die Torwächter der Stadt – nicht in <see cref="Einwohner"/>, ohne Gewicht für die Wirtschaft (<see cref="Buerger.Torwache"/>).</summary>
+    public Torwache Torwache { get; }
 
     public bool IstAktiv => _d is not null;
     public BuergerDaten Daten => _d ?? throw new InvalidOperationException("Es gibt keine Einwohner (buerger fehlt in den Daten).");
@@ -94,7 +98,8 @@ public sealed class Einwohnerschaft
     /// <summary>Wer in diesem Haus wohnt.</summary>
     public IEnumerable<Einwohner> Bewohner(int haus) => _einwohner.Where(e => e.Wohnhaus == haus);
 
-    public Einwohner? Nummer(int nummer) => _einwohner.FirstOrDefault(e => e.Nummer == nummer);
+    /// <summary>Der Einwohner mit dieser Nummer – auch ein Torwächter (die stehen nicht in <see cref="Einwohner"/>).</summary>
+    public Einwohner? Nummer(int nummer) => _einwohner.FirstOrDefault(e => e.Nummer == nummer) ?? Torwache.Nummer(nummer)?.Person;
 
     /// <summary>Durchschnittliche Stimmung der Stadt (100 = alle zufrieden).</summary>
     public double Stimmung => _einwohner.Count == 0 ? 100 : _einwohner.Average(e => e.Stimmung);
@@ -123,10 +128,12 @@ public sealed class Einwohnerschaft
             if (_w.Konten.Count == 0) return; // ohne Häuser (z. B. Tests) wartet die Stadt noch
             Gruenden(zeit.Jahr);
             Planen(zeit);
+            Torwache.Gruenden(zeit.Jahr); // nach allen Einwohnern, mit eigenem Generator
             return;
         }
         if (zeit.MinuteImTag % 60 == 0)
             Planen(zeit);
+        Torwache.Minute();
     }
 
     /// <summary>Jahresende = Ende des Spieltags: Gewöhnliche Einwohner altern und sterben; neue ziehen zu; alle schlafen aus.</summary>
@@ -162,6 +169,7 @@ public sealed class Einwohnerschaft
         }
         _z = _zufall;
         _betendeHeute = 0;
+        Torwache.Jahresende(neuesJahr);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -1077,6 +1085,7 @@ public sealed class Einwohnerschaft
             Wirtschaft = e.ZaehltFuerWirtschaft ? null : false, // nur die Ausnahme steht im Spielstand
             Beduerfnisse = e.Beduerfnisse.ToList(),
         }).ToList(),
+        Torwache = Torwache.Sichern(),
     };
 
     internal void Wiederherstellen(EinwohnerschaftStand s)
@@ -1135,6 +1144,7 @@ public sealed class Einwohnerschaft
         if (_gegruendet && _haeuser.Count == 0)
             HaeuserNachruesten();
         MarktSetzen(); // der Faktor steckt nicht im Marktstand-Spielstand – aus Ring und Üblichem neu setzen
+        Torwache.Wiederherstellen(s.Torwache, _gegruendet, _w.Uhr.Jahr);
     }
 
     /// <summary>Spielstand aus der Zeit vor den Wohnhäusern: Häuser jetzt verteilen (einmalig, danach wie immer).</summary>
@@ -1182,6 +1192,9 @@ public sealed record EinwohnerschaftStand
     public List<double> PassantenErwartet { get; init; } = new();
     public List<int> PassantenGelernt { get; init; } = new();
     public List<EinwohnerStand> Einwohner { get; init; } = new();
+    /// <summary>Die Torwächter (null ohne Torwache und in Spielständen von vor der Torwache).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public TorwacheStand? Torwache { get; init; }
 }
 
 public sealed record EinwohnerStand
