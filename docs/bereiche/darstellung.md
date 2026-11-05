@@ -591,7 +591,7 @@ Auftrag des Teamleiters 1.11.2026.
 | Seltener | Pose bei Zoom ≥ 60 jedes 2., ≥ 120 jedes 3. Bild; volle Laufrechnung im Bild bei 70 jedes 3., bei 140 jedes 4. Bild, dazwischen Weiterschieben mit der letzten Geschwindigkeit | 05.11.2026 |
 | Gebündelt | Nicht gemacht: Skelettfiguren gehen nicht in ein MultiMesh | 05.11.2026 |
 
-### Marktwege vorab berechnet (PR #…)
+### Marktwege vorab berechnet (PR #331)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
