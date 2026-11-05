@@ -647,6 +647,7 @@ public partial class Hauptszene : Node
             else _bauFrage.OeffnenLeerstand(leerKonto, leerstand == "abreissen"); // mit --auswahl=wohnhaus:<Inhaber>, Leerzeichen als _
         }
         WegBefehleStarten(optionen);
+        DiebtestStarten(optionen); // --diebtest (Hauptszene.Diebtest.cs)
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
         if (optionen.TryGetValue("klangtest", out var klangtest) && klangtest == "1") KlangOberflaeche.Testen(this); // spielt alle Oberflächenklänge, Ergebnis im Log
@@ -1515,6 +1516,7 @@ public partial class Hauptszene : Node
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)
+            _ when _stadt.DiebText(_auswahlKennung) is { } gestalt => gestalt, // Taschendiebe am Markt (Darstellung)
             _ when schiff is not null => FremdesSchiffText(schiff, w), // Schiff eines anderen Hauses (Hauptszene.Hafen.cs)
             _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
             _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)

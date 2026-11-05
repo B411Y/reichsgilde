@@ -81,6 +81,12 @@ public sealed record EntwicklerHausbrand(string? Haus = null) : EntwicklerBefehl
 /// </summary>
 public sealed record EntwicklerBlitz(string? Gebaeude = null) : EntwicklerBefehl;
 
+/// <summary>
+/// Ein Versteck der Diebe (Unterschlupf) für dieses Haus eröffnen, falls es noch keines hat, und mit Gesellen füllen – ohne Kosten. Zum Ausprobieren
+/// der Taschendiebe am Markt (Startoption <c>--diebtest=1</c>); der Betrieb hat keinen Platz auf der Karte, die Diebe sind trotzdem am Markt.
+/// </summary>
+public sealed record EntwicklerDiebeshaus(string? Haus = null) : EntwicklerBefehl;
+
 // ── Wirtschaft ──────────────────────────────────────────────────────────────
 
 /// <summary>Ware ins Lager des Betriebs legen (negativ: herausnehmen, höchstens was da ist) – ohne Kosten, auch über die Lagergrenze.</summary>
