@@ -135,8 +135,9 @@ public static class Partieaufbau
         if (w.Familien.IstAktiv)
             w.Familien.Gruenden(spieler, neu.Volk, neu.Geschlecht, neu.Vorname, glaube: neu.Glaube, aussehen: neu.Aussehen);
         // Erst nach der Familie, damit die Arbeiter das Volk des Hauses kennen (Einstellen würfelt nicht mit dem Zufall der Partie).
-        // Mit „personal“ (PR #224) beginnt jedes Haus mit zwei Anfängern (Lehrlingen), sonst mit zwei Gesellen wie früher.
-        w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), 2);
+        // Mit „personal“ (PR #224) beginnt jedes Haus mit Anfängern (Lehrlingen), sonst mit zwei Gesellen wie früher; wie viele, sagt
+        // personal.startJeBetrieb (ab Datenversion 72: einer, für Spieler und KI-Häuser gleich).
+        w.Einstellen(werkstatt, w.Personal.AnfaengerFuer(startArt, "Geselle"), w.Personal.StartAnzahl(startArt, 2));
         foreach (var h in haeuser)
             HausAufstellen(w, daten, karte, h, KontoVon(h), orks ? "Ork" : null, neu.Rivale, einstellungen.Schwierigkeit);
         w.EinwohnerZaehlen(); // die Nachfrage der Stadt nach ihren Häusern – schon vor der ersten Minute
@@ -147,9 +148,10 @@ public static class Partieaufbau
 
     /// <summary>
     /// Ein KI-Haus mit seinen Startbetrieben, ab jetzt von der KI geführt. Der Name eines Betriebs steht am Platz der Karte, ohne Karte im Ersatz.
-    /// <see cref="Schwierigkeit.Normal"/>: nur die erste Werkstatt in der Stadt („Gießerei Eisenbart“ mit zwei Anfängern) – wie der Spieler;
+    /// <see cref="Schwierigkeit.Normal"/>: nur die erste Werkstatt in der Stadt („Gießerei Eisenbart“ mit einem Lehrling) – wie der Spieler;
     /// die übrigen Startbetriebe stehen frei zur Pacht bzw. zum Kauf (<see cref="Stadtwirtschaft.StartbetriebFreigeben"/>).
-    /// <see cref="Schwierigkeit.Schwer"/>: alle Startbetriebe, dazu „Grube Eisenbart“ mit drei Umlandkräften.
+    /// <see cref="Schwierigkeit.Schwer"/>: alle Startbetriebe, dazu „Grube Eisenbart“ mit Umlandkräften (ab Datenversion 72 auch dort eine,
+    /// vorher drei). Wie viele Leute jeder Startbetrieb hat, sagt <see cref="PersonalDaten.StartJeBetrieb"/>.
     /// </summary>
     private static void HausAufstellen(Stadtwirtschaft w, Wirtschaftsdaten daten, Stadtkarte? karte, Starthaus h, Konto konto, string? umlandKraft,
         KiCharakter charakter, Schwierigkeit schwierigkeit)
@@ -170,9 +172,9 @@ public static class Partieaufbau
             var betrieb = w.BetriebEroeffnen(name, b.Art, konto);
             if (b.Produkt is { } produkt) betrieb.Produkt = produkt;
             if (art.InDerStadt)
-                w.Einstellen(betrieb, w.Personal.AnfaengerFuer(b.Art, "Geselle"), 2);
+                w.Einstellen(betrieb, w.Personal.AnfaengerFuer(b.Art, "Geselle"), w.Personal.StartAnzahl(b.Art, 2));
             else
-                w.Einstellen(betrieb, umlandKraft ?? w.Personal.AnfaengerFuer(b.Art, "Altknecht"), 3);
+                w.Einstellen(betrieb, umlandKraft ?? w.Personal.AnfaengerFuer(b.Art, "Altknecht"), w.Personal.StartAnzahl(b.Art, 3));
         }
         w.KiAnmelden(konto, ProfilFuer(charakter));
     }
