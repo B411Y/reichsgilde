@@ -32,10 +32,12 @@ internal static class Ueberfall
         var wer = $"{(bande.Wild ? "Eine wilde " : "Eine Bande „")}{bande.Name}{(bande.Wild ? "" : "“")} ({bande.ZusammensetzungText})";
         var wo = karren.Zustand == KarrenZustand.ZumMarkt ? $"auf dem Weg von {karren.Heimat.Name} zum Markt" : $"auf dem Rückweg nach {karren.Heimat.Name}";
 
-        if (w.Zufall.NextDouble() < erfolgschance)
+        var erfolg = w.Zufall.NextDouble() < erfolgschance;
+        double wert = 0;
+        if (erfolg)
         {
             var verloren = karren.LadungVerlieren();
-            var wert = verloren.Sum(v => w.Markt[v.Key].Preis * v.Value);
+            wert = verloren.Sum(v => w.Markt[v.Key].Preis * v.Value);
             karren.Heimat.Konto.Raub(wert);
             var beute = string.Join(" und ", verloren.Select(v => $"{v.Value} {v.Key}"));
             w.Melden($"Überfall {wo}: {wer} erbeutet {beute} (Wert {Zahlenformat.Ganz(wert)} {w.Daten.Allgemein.Waehrung}).");
@@ -44,6 +46,13 @@ internal static class Ueberfall
         {
             w.Melden($"Überfall {wo}: Die Eskorte schlägt {wer.Replace("Eine ", "eine ")} in die Flucht.");
         }
+        // Für die Darstellung (liest nur): eine Bande der Landstraße, kein Haus dahinter.
+        w.Gauner.Vorfaelle.Eintragen(new Gauner.Vorfall
+        {
+            Art = Gauner.Vorfallart.Ueberfall, Ort = Gauner.Vorfallort.Landstrasse, Ziel = karren.Name, Erfolg = erfolg, Wert = wert,
+            Bande = bande.Name, Opfer = karren.Heimat.Konto, Betrieb = karren.Heimat.Name, Karren = karren.Name,
+            Wache = eskorte.Wache ? w.Wache.Geleitgeber : null,
+        }, stundenende: false);
     }
 
     private static BandeDaten BandeWaehlen(IReadOnlyList<BandeDaten> banden, Zufallsquelle zufall)
