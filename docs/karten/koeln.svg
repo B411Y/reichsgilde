@@ -1063,9 +1063,6 @@
 <polygon points="58,-62 58,-46 44,-46 44,-62" fill="#B7C79A" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="44" cy="-54" r="0.9" fill="#A3262A"/>
 <text x="51" y="-53" font-size="3" text-anchor="middle" fill="#1F2326">Rheinhafen</text>
-<polygon points="58,-42 58,-34 50,-34 50,-42" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
-<circle cx="50" cy="-38" r="0.9" fill="#A3262A"/>
-<text x="54" y="-37" font-size="3" text-anchor="middle" fill="#1F2326">Rheinkran</text>
 <polygon points="58,-28 58,-20 50,-20 50,-28" fill="#8E8F88" stroke="#1F2326" stroke-width="0.3"/>
 <circle cx="50" cy="-24" r="0.9" fill="#A3262A"/>
 <text x="54" y="-23" font-size="3" text-anchor="middle" fill="#1F2326">Zollstelle</text>
