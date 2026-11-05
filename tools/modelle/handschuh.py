@@ -3,7 +3,7 @@
     blender -b --python tools/modelle/handschuh.py -- --aus=<Ordner> [--stufen=1,2,3] [--ohne-uebersicht]
 
 Alles ist eigener Entwurf (Skript, deterministisch, kein Zufall außer dem festen Samen für den Pelz); von „Die Gilde 1“ kommt
-nur die Idee eines Handschuh-Zeigers. Gebaut wird eine offene rechte Hand von oben (Handrücken sichtbar), Finger eingerollt; die ganze Hand ist um 40 Grad nach links oben gedreht, der Zeigefinger führt. Leichter Blick von schräg oben,
+nur die Idee eines Handschuh-Zeigers. Gebaut wird eine offene rechte Hand von oben (Handrücken sichtbar), Finger parallel und gestaffelt, Daumen nach links abgespreizt; die ganze Hand ist um 38 Grad gedreht (Finger steil nach links oben, etwa 50 Grad auf dem Bild). Kamera nur 14 Grad geneigt,
 Licht von oben links, Standard-Farbverwaltung (kein Farbstich), Hintergrund durchsichtig.
 
 Stufen (gleiche Hand, steigende Wertigkeit): 1 Gemeiner (grobes Arbeitsleder, Flicken), 2 Bürger (helles Leder, saubere Naht),
@@ -30,7 +30,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 DREHUNG = 38.0          # Grad nach links oben (gegen den Uhrzeigersinn von oben gesehen)
-NEIGUNG = 34.0          # Kamera schaut um so viel schräg von vorn
+NEIGUNG = 14.0          # Kamera schaut nur leicht schräg: Handrücken fast frontal (Runde 13, vorher 34)
 SUPER = 384             # Rendergröße; alle Zielgrößen entstehen daraus durch Mittelung
 GROESSEN = (32, 48, 64)
 KONTUR = (0.06, 0.04, 0.03)
@@ -40,12 +40,12 @@ KNOECHEL_DECK = 0.27           # Knöchel-Fuge Finger/Handrücken: halbe Stärke
 
 # Stufen: Ledertöne direkt als Basisfarbe (linear, gedeckt)
 STUFEN = [
-    dict(name="gemeiner", leder=(0.26, 0.17, 0.095), rau=0.95, bump=1.0, var=0.30, stulpe=0.46),
-    dict(name="buerger", leder=(0.58, 0.38, 0.19), rau=0.62, bump=0.5, var=0.14, stulpe=0.52),
-    dict(name="patrizier", leder=(0.40, 0.21, 0.10), rau=0.38, bump=0.28, var=0.08, stulpe=0.58),
-    dict(name="edler", leder=(0.085, 0.052, 0.040), rau=0.32, bump=0.28, var=0.05, stulpe=0.58),
-    dict(name="freiherr", leder=(0.20, 0.014, 0.038), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
-    dict(name="reichsgraf", leder=(0.02, 0.05, 0.40), rau=0.88, bump=0.10, var=0.06, stulpe=0.6, samt=True),
+    dict(name="gemeiner", leder=(0.26, 0.17, 0.095), rau=0.95, bump=1.0, var=0.30, stulpe=0.34),
+    dict(name="buerger", leder=(0.58, 0.38, 0.19), rau=0.62, bump=0.5, var=0.14, stulpe=0.38),
+    dict(name="patrizier", leder=(0.40, 0.21, 0.10), rau=0.38, bump=0.28, var=0.08, stulpe=0.40),
+    dict(name="edler", leder=(0.085, 0.052, 0.040), rau=0.32, bump=0.28, var=0.05, stulpe=0.40),
+    dict(name="freiherr", leder=(0.20, 0.014, 0.038), rau=0.88, bump=0.10, var=0.06, stulpe=0.42, samt=True),
+    dict(name="reichsgraf", leder=(0.02, 0.05, 0.40), rau=0.88, bump=0.10, var=0.06, stulpe=0.42, samt=True),
 ]
 ZUSTAENDE = ("normal", "klick")
 ZUSAETZE = ("tuer_schloss", "tuer_schloss_eisen", "tuer_ring")      # unabhängig von der Stufe, nur einmal gebaut
@@ -305,7 +305,7 @@ class Bau:
 #  Die Hand
 # ─────────────────────────────────────────────────────────────────────────────
 
-PALME = (0.44, 0.46, 0.17)       # Halbachsen, Mittelpunkt bei y = 0,5
+PALME = (0.345, 0.46, 0.15)       # Halbachsen, Mittelpunkt bei y = 0,5
 
 
 def palmenhoehe(x, y):
@@ -316,13 +316,13 @@ def palmenhoehe(x, y):
 # Finger: (Wurzel, Längen der Glieder, Radius von/bis, Spreizung in Grad, Neigung je Glied normal, Neigung je Glied beim Greifen, Seitenknick je Glied)
 # Mittelfinger am längsten, kleiner Finger deutlich kürzer; die drei hinteren Finger fächern gestaffelt auf und sind nur locker gekrümmt.
 FINGER = {
-    "zeige": ((-0.31, 0.74, 0.03), (0.50, 0.31, 0.23), (0.124, 0.062), -22, (4, -3, -6), (-28, -62, -48), (0, -1, -2)),
-    "mittel": ((-0.105, 0.86, 0.02), (0.44, 0.28, 0.21), (0.088, 0.065), -4, (-5, -30, -36), (-32, -66, -50), (0, -1, -1)),
-    "ring": ((0.105, 0.86, 0.03), (0.38, 0.25, 0.19), (0.085, 0.062), 11, (-28, -56, -44), (-30, -64, -48), (0, 3, 4)),
-    "klein": ((0.30, 0.78, 0.03), (0.28, 0.18, 0.15), (0.075, 0.055), 21, (-34, -60, -48), (-28, -60, -46), (0, 4, 5)),
+    "zeige": ((-0.250, 0.74, 0.03), (0.60, 0.36, 0.27), (0.108, 0.058), -3, (2, -2, -4), (-28, -62, -48), (0, 0, 0)),
+    "mittel": ((-0.083, 0.82, 0.02), (0.46, 0.27, 0.17), (0.080, 0.058), -1, (-2, -8, -10), (-32, -66, -50), (0, 0, 0)),
+    "ring": ((0.083, 0.80, 0.03), (0.34, 0.22, 0.14), (0.077, 0.055), 1, (-3, -10, -12), (-30, -64, -48), (0, 0, 0)),
+    "klein": ((0.245, 0.72, 0.03), (0.24, 0.16, 0.11), (0.068, 0.049), 3, (-4, -10, -12), (-28, -60, -46), (0, 0, 0)),
 }
 # Daumen in drei Gliedern: vom Handballen weg abgespreizt, dann Endglied leicht nach vorn und oben (Zeigerichtung, überstreckt), nicht unter die Hand
-DAUMEN = ((-0.36, 0.22, -0.01), (0.26, 0.25, 0.20), (0.150, 0.100), -92, (0, 6, 14), (-8, -22, -22), (0, 8, 14))
+DAUMEN = ((-0.30, 0.24, -0.01), (0.30, 0.26, 0.20), (0.125, 0.085), -24, (0, 3, 6), (-8, -22, -22), (0, -3, -4))
 
 
 def glieder(wurzel, laengen, radien, spreiz, neigung, knick=None):
@@ -442,9 +442,9 @@ def hand_bauen(stufe, griff, st):
     s = STUFEN[stufe - 1]
     # Palme (Handrücken leicht gewölbt) und Daumenballen
     b.kugel("leder", (0, 0.5, 0), 1.0, (PALME[0], PALME[1], PALME[2]), seg=24)
-    b.kugel("leder", (-0.27, 0.27, 0.02), 1.0, (0.20, 0.27, 0.12), Matrix.Rotation(math.radians(-25), 3, "Z"), seg=16)
+    b.kugel("leder", (-0.24, 0.27, 0.02), 1.0, (0.18, 0.26, 0.11), Matrix.Rotation(math.radians(-25), 3, "Z"), seg=16)
     ly = s["stulpe"]
-    r_a, r_e = 0.34, 0.45
+    r_a, r_e = 0.27, 0.33
     stulpe_bauen(b, ly, r_a, r_e)
     # Finger
     fin = {}
@@ -601,7 +601,7 @@ def stufen_deko(b, stufe, griff, rng, rippen, fin, dau, ly, r_a, r_e):
             b.kugel("stein", p0 + d * 0.11 + Vector((0, 0, r0 * 1.1)), 0.04, (1, 1, 0.8), seg=10)
             p0, p1, r0, r1, d = dau[0]
             ring(b, p0 + d * 0.18, d, r0 * 1.04, "gold", 0.07)
-            stulpenband(b, "gold", ly, r_a, r_e, -ly + 0.3, dicke=0.01)
+            stulpenband(b, "gold", ly, r_a, r_e, -ly + 0.24, dicke=0.01)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
