@@ -295,6 +295,14 @@ public partial class Stadtansicht
                 // Außerhalb des Bildes (mit 1,5 m Rand) läuft sie nur jedes dritte Bild weiter – ihre Lage folgt dem Plan, nichts geht verloren, und ehe sie
                 // ins Bild kommt, ist sie wieder jedes Bild dran (1.11.2026: Laufen war in Köln der größte Posten)
             }
+            else if (_figurenTeiler > 1 && p.Stand is null && p.Knoten.Visible && !p.WartetDrinnen && p.Pfad.Length > 0 && (p.Nummer + _figurenBild) % (_figurenTeiler + 1) != 0
+                     && ImBild(p.Knoten.Position))
+            {
+                // Weit herausgezoomt (Zoomstufe 70 und 140): Die volle Rechnung (Spur, Ecken, Platz) nur jedes dritte oder vierte Bild, gestaffelt nach der Nummer;
+                // dazwischen schiebt die Figur sich mit ihrer letzten Geschwindigkeit weiter (Höhe und Blick bleiben) – im nächsten vollen Bild gilt wieder der Plan, es driftet nichts
+                if (p.Geschwindigkeit != Vector3.Zero) p.Knoten.Position += p.Geschwindigkeit * (float)sekunden;
+                Profil(3);
+            }
             else
             {
                 Laufen(p, e.Nummer, minuteGenau, ticksJeSekunde);
