@@ -78,6 +78,21 @@ static class BuergerDichteTests
             Pruefe.Wahr(n > 2 * Gewoehnliche(greybox), $"Köln ({n}) sollte mehr als doppelt so viele haben wie die Greybox ({Gewoehnliche(greybox)})");
         }),
 
+        ("Wirtschaftsgewicht: Die gewöhnlichen Einwohner wiegen im Warenkorb zusammen jeHaus × Häuser, wie vor der Bürgerdichte (Köln, Greybox; ohne Karte 1)", () =>
+        {
+            foreach (var karte in new[] { "koeln", "greybox" })
+            {
+                var (_, w) = Partie(Daten(), karte);
+                var ew = w.Einwohnerschaft;
+                var stadt = ew.Einwohner.Where(e => e.Herkunft == Herkunft.Stadt).ToList();
+                Pruefe.Ungefaehr(ew.Daten.JeHaus * w.Konten.Count, stadt.Sum(ew.Wirtschaftsgewicht), 1e-9);
+                Pruefe.Wahr(stadt.All(e => ew.Wirtschaftsgewicht(e) < 1), $"{karte}: Gewicht unter 1");
+                Pruefe.Wahr(ew.Einwohner.Where(e => e.Herkunft != Herkunft.Stadt).All(e => ew.Wirtschaftsgewicht(e) == 1), $"{karte}: Ratsherren und Kandidaten wiegen 1");
+            }
+            var (_, ohne) = Partie(Daten(), karte: null);
+            Pruefe.Wahr(ohne.Einwohnerschaft.Einwohner.All(e => ohne.Einwohnerschaft.Wirtschaftsgewicht(e) == 1), "Ohne Karte wiegt jeder 1");
+        }),
+
         ("Bürgerdichte: Je freiem Hausplatz genau ein einfaches Wohnhaus mit jeHausplatz ± 1 Bewohnern (Köln, Greybox)", () =>
         {
             foreach (var karte in new[] { "koeln", "greybox" })

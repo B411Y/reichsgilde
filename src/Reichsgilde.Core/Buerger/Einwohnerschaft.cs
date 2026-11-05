@@ -373,7 +373,20 @@ public sealed class Einwohnerschaft
         }
     }
 
-    private bool _passantAusAltemStand; // geladen aus einem Spielstand ohne PassantOhnePlan (bis zur nächsten Planung)
+    private bool _passantAusAltemStand;
+
+    /// <summary>Schlüssel im Warenkorb-Ring für die Summe der Wirtschaftsgewichte der Einkaufenden (nur mit Gewicht unter 1).</summary>
+    private const string GewichtSchluessel = "#";
+
+    /// <summary>
+    /// Wirtschaftsgewicht eines gewöhnlichen Einwohners: jeHaus × Häuser ÷ gewöhnliche Einwohner beim Gründen (Köln etwa 0,5), sonst 1.
+    /// Mehr Figuren in großen Städten verschieben so nicht den Warenkorb: Die gewöhnlichen Einwohner wiegen zusammen so viel wie vorher,
+    /// neben den Ratsherren und Kandidaten (Gewicht 1). Die übrigen Kopplungen rechnen mit dem Verhältnis zum Üblichen und brauchen es nicht.
+    /// </summary>
+    private double _gewichtStadt = 1;
+
+    /// <summary>Wie stark dieser Einwohner in den Warenkorb der Stadt eingeht (siehe <see cref="_gewichtStadt"/>).</summary>
+    public double Wirtschaftsgewicht(Einwohner e) => e.Herkunft == Herkunft.Stadt ? _gewichtStadt : 1; // geladen aus einem Spielstand ohne PassantOhnePlan (bis zur nächsten Planung)
 
     /// <summary>Wie viele Passanten zu dieser Uhrzeit üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
     public double PassantenErwartet(int stunde) => _passantenErwartet[stunde];
@@ -441,8 +454,12 @@ public sealed class Einwohnerschaft
         korb.Clear();
         if (Daten.Warenkorb is not null)
             foreach (var e in _einwohner.Where(e => e.Handlung == Handlung.Einkaufen))
+            {
+                var gewicht = Wirtschaftsgewicht(e);
                 foreach (var (schluessel, neigung) in Neigungen(e))
-                    korb[schluessel] = korb.GetValueOrDefault(schluessel) + neigung;
+                    korb[schluessel] = korb.GetValueOrDefault(schluessel) + neigung * gewicht;
+                if (_gewichtStadt != 1) korb[GewichtSchluessel] = korb.GetValueOrDefault(GewichtSchluessel) + gewicht;
+            }
         _einkaufFach = (_einkaufFach + 1) % _einkaeufe.Length;
         MarktSetzen();
     }
@@ -528,6 +545,7 @@ public sealed class Einwohnerschaft
         foreach (var fach in _korb)
             foreach (var (schluessel, x) in fach)
                 summe[schluessel] = summe.GetValueOrDefault(schluessel) + x;
+        if (summe.Remove(GewichtSchluessel, out var gewichte) && gewichte > 0) kaeufer = gewichte; // Einkaufende nach Wirtschaftsgewicht
         var waren = WarenImKorb().Select(x => (Ware: x.Key, Roh: summe.GetValueOrDefault(x.Value.Korb, kaeufer) / kaeufer, x.Value.Wert))
             .Where(x => x.Wert > 0).ToList();
         if (waren.Count == 0) return;
@@ -559,6 +577,7 @@ public sealed class Einwohnerschaft
         var d = Daten;
         var plan = Haushaltsplan();
         var anzahl = plan?.Sum() ?? d.JeHaus * _w.Konten.Count;
+        if (plan is not null) _gewichtStadt = (double)(d.JeHaus * _w.Konten.Count) / anzahl;
         for (var i = 0; i < anzahl; i++)
             _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false));
         HaushalteBilden(plan);
@@ -986,6 +1005,7 @@ public sealed class Einwohnerschaft
         Warenkorb = Daten.Warenkorb is null ? null : _korb.Select(k => new Dictionary<string, double>(k)).ToList(),
         EinkaufFach = _einkaufFach,
         EinkaufErwartet = _einkaufErwartet,
+        GewichtStadt = _gewichtStadt == 1 ? null : _gewichtStadt,
         Gelernt = _einkehrTage.Append(_messeTage).Append(_einkaufTage).ToList(),
         PassantenErwartet = _passantenErwartet.ToList(),
         PassantenGelernt = _passantenTage.ToList(),
@@ -1035,6 +1055,7 @@ public sealed class Einwohnerschaft
                 foreach (var (schluessel, x) in wk[i]) _korb[i][schluessel] = x;
         }
         _einkaufErwartet = s.EinkaufErwartet;
+        _gewichtStadt = s.GewichtStadt ?? 1;
         // Ältere Spielstände ohne Zähler: Wer schon etwas gelernt hat, gilt als eingeschwungen.
         int Tage(int i, double erwartet) => i < s.Gelernt.Count ? s.Gelernt[i] : erwartet > 0 ? 100 : 0;
         for (var i = 0; i < _einkehrTage.Length; i++) _einkehrTage[i] = Tage(i, _einkehrErwartet[i]);
@@ -1106,6 +1127,9 @@ public sealed record EinwohnerschaftStand
     /// <summary>Warenkorb je Stunde der letzten 19 Stunden (Ring, Schlüssel „Beruf|Preisklasse“) – null ohne Warenkorb oder in älteren Spielständen.</summary>
     public List<Dictionary<string, double>>? Warenkorb { get; init; }
     public double EinkaufErwartet { get; init; }
+    /// <summary>Wirtschaftsgewicht der gewöhnlichen Einwohner (null = 1: ohne Haushalte je Hausplatz und in älteren Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? GewichtStadt { get; init; }
     /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>
     public List<int> Gelernt { get; init; } = new();
     /// <summary>Üblich Passanten je Uhrzeit 0–23 und wie oft gelernt (leer in älteren Spielständen).</summary>
