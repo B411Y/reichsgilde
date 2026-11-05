@@ -221,7 +221,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Restflächen) Paket 2 und 3 der Füllung: Kit-Import der Fantasy-Props (CC0) und neue Props über den Modell-Agenten für Kirchhof, Holzplatz, Heuschober, Steinmetzplatz, Bildstock (Paket 2), Hof mit Hühnern, Pferch, Wasserstelle (Paket 3; die Hühner sind animierte Szenen mit Knochen, keine MultiMesh-Teile, ein Hof braucht Standbild-Hühner oder die Hof-Logik aus `Stadtansicht.Tiere.cs`); die Rezepte kommen einfach in `game/daten/restflaechen.json` dazu (neues Thema = Eintrag unter `themen` und Zeile unter `nachbarn`)
 - (Restflächen) Zeichenaufrufe: jede Zelle und Art kostet einen Zeichenaufruf je Fläche des Netzes; die Quaternius-Props haben 2–4 Flächen. Damit die Füllung auch in den Zoomstufen 70 und 140 m erscheinen kann, müssten die Sätze je Format als ein Netz gebaut sein (Blender, ein Knoten je Anordnung, wenige Materialien); das gehört in Paket 2
 - (Restflächen) Die Kartenwerkstatt zeigt die Füllung nicht; `FuellungAufbauen(karte)` baut ohne neues Würfeln neu, sobald die Werkstatt eine Restfläche oder ein Gebäude ändert (heute ruft das nur der Kartenaufbau). Die Füllung dreht sich nicht zur Gasse (nur Würfel je Kasten); Wäscheleine und Hühnerstall fehlen (kein Prop)
-- (Passanten) Köln 12 Uhr: Der größte Rest sind die Wege über die Marktfläche (`UeberDenPlatz`, rund 4–5 ms je Weg, 60–80 je 10 s zur Stunde); sie gelten dem sichtbaren Platz und lassen sich nur durch eine billigere Flächensuche senken. Außerdem stehen nach 22 Uhr bei Tempo 2 noch Leute mit Laterne am Markt, die der Kern schon daheim hat (Gehtempo hinkt nach). Figuren gebündelt (MultiMesh) zu zeichnen geht mit Skelett nicht; nur per Animationstextur im Shader (Backen in Blender, ein MultiMesh je Tracht, Schatten und Anklicken neu) – groß, nicht angefangen.
+- (Passanten) Köln 12 Uhr: Die Wege über die Marktfläche laufen jetzt über ein vorbereitetes Wegenetz (siehe „Marktwege vorab berechnet“); Rest je Weg gut 1 ms, davon der größte Teil die Sicht neuer Anfangs- und Endpunkte auf die Knoten. Außerdem stehen nach 22 Uhr bei Tempo 2 noch Leute mit Laterne am Markt, die der Kern schon daheim hat (Gehtempo hinkt nach). Figuren gebündelt (MultiMesh) zu zeichnen geht mit Skelett nicht; nur per Animationstextur im Shader (Backen in Blender, ein MultiMesh je Tracht, Schatten und Anklicken neu) – groß, nicht angefangen.
 
 ## Entscheidungen
 
@@ -590,3 +590,15 @@ Auftrag des Teamleiters 1.11.2026.
 | Schatten | Passanten werfen nur bei Zoom ≤ 50 m (Stufe 35) Schatten; bei 70 und 140 keine (rund 250 Zeichenaufrufe weniger bei 70) | 05.11.2026 |
 | Seltener | Pose bei Zoom ≥ 60 jedes 2., ≥ 120 jedes 3. Bild; volle Laufrechnung im Bild bei 70 jedes 3., bei 140 jedes 4. Bild, dazwischen Weiterschieben mit der letzten Geschwindigkeit | 05.11.2026 |
 | Gebündelt | Nicht gemacht: Skelettfiguren gehen nicht in ein MultiMesh | 05.11.2026 |
+
+### Marktwege vorab berechnet (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Jeder Weg über die Marktfläche war eine A*-Suche auf dem 25-cm-Raster (bis 4000 Zellen, mit Belegung und Stehenden als Zellkosten): 4,5–5 ms im Mittel, einzeln bis 77 ms, zur vollen Stunde 60–120 Suchen in 10 s | 05.11.2026 |
+| Wegenetz | `Marktflaeche.Vorbereiten` beim Laden: Knoten rings um jedes Hindernis (12 je Kreis, 3 je Standecke, 1,15 m Abstand), Kanten zwischen allen, die sich im Raster sehen. Ein Weg: nächste sichtbare Knoten (höchstens 16, gemerkt je Punkt) von Anfang und Ende, Dijkstra auf den fertigen Kanten, straff ziehen, erstes und letztes Stück mit der genauen Sichtlinie prüfen. Kanten nahe Stehenden sind je Sekunde gesperrt. Scheitert etwas, sucht wie früher das Raster (Rückfall, im Profil gezählt) | 05.11.2026 |
+| Gleich geblieben | Fächerung je Figur (`Gefaechert`, Seite aus der Nummer), Seitenwahl nach Belegung, Ausweichen, Bürger-Ziele aus dem Kern; die Wege sehen gleich aus (Vergleichsbild `wege_vergleich.png`) | 05.11.2026 |
+| Neue Stände | Ein neues Hindernis (`Kreis`, `Rechteckig`, `Stand`) verwirft das Netz; es entsteht beim nächsten Weg neu. Stände, die nur Auslagen zeigen oder verbergen, ändern die Fläche nicht | 05.11.2026 |
+| Budget | Kein eigenes Budget je Bild: Mit dem Netz kostet ein Weg gut 1 ms statt 5, die Spitze zur vollen Stunde fällt von 77 auf etwa 15 ms; nur ein Rückfall aufs Raster (2–4 %) kostet noch 10–15 ms | 05.11.2026 |
+| Vergleich | `--passantennetz=aus` (Rastersuche wie vorher), Profilzeile nennt Rechenzeit nach Netz, Sicht, Sperren, Raster und die Gründe der Rückfälle | 05.11.2026 |
+
