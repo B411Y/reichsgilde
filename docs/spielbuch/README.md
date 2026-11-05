@@ -8,6 +8,7 @@ Alles, was das Spiel kann, im Detail – ein Kapitel je Thema. Die Kurzfassung s
 - [Bauen und Leerstand](bauen-und-leerstand.md) – Bauzonen, Neubau, leere Häuser kaufen und abreißen
 - [Partie und Spieltag](partie-und-spieltag.md) – Hauptmenü, Spieltag 4–23 Uhr, Speichern, Aktionspunkte
 - [Einstellungen](einstellungen.md) – Voreinstellungen, Leistung, Bild, Stimmung, Barrierefreiheit, Spiel
+- [Meldungen](meldungen.md) – Siegel in der Ecke, Briefe, Verlauf, Einstellung je Art, Jahresbericht und „Die Nacht“
 - [Ton und Ansagen](ton.md) – Haushofmeister: die 20 Ereignisse, Vorrang, Pause, Abschalten; Geräusche der Stadt nach Tageszeit und Zoom
 - [Wirtschaft und Handel](wirtschaft-und-handel.md) – Markt, Betriebe, Karren, Handel von Hand, Hafen und Schiffe, Expansion, Meistergrade
 - [Jahreszeiten](jahreszeiten.md) – Winter mit Brennholz und Eis auf dem Fluss, Ernte im Herbst, Schlamm im Frühling, Festmärkte

@@ -44,6 +44,9 @@ static class Messung
         // Blitzschaden und Übersprung (3.11.2026): … -- messen blitz [Jahre] [Startwerte] [--karten=…] [--berufe=…] – siehe Blitzmessung.cs
         if (args.Length > 0 && args[0] == "blitz")
             return Blitzmessung.Erstellen(args[1..]);
+        // Mehr Bürger in großen Städten (Spiel-KI, 5.11.2026): … -- messen buerger [Jahre] [Startwerte] [--karten=…] – siehe Buergermessung.cs
+        if (args.Length > 0 && args[0] == "buerger")
+            return Buergermessung.Erstellen(args[1..]);
         // Meldungen je Spieljahr nach Art, Bezug und Stufe (Vorarbeit Benachrichtigungen, 5.11.2026): … -- messen meldungen [Jahre] [Startwerte]
         // [--karten=…] [--rollen=Wirt,Schmied,Ausbau] [--muster=datei] – siehe Meldungsmessung.cs
         if (args.Length > 0 && args[0] == "meldungen")

@@ -46,6 +46,7 @@ static class HafenRuhtTests
         blitz["reparatur"] = 0;
         // Ein Lehrling zum Start (Datenversion 72) wie vor dem Schalter abschalten: ohne die Angabe zwei in der Stadt, drei im Umland
         knoten["personal"]!.AsObject().Remove("startJeBetrieb");
+        foreach (var feld in Buergermessung.NeueFelder) knoten["buerger"]!.AsObject().Remove(feld); // Bürgerdichte (5.11.2026) wie vor dem Schalter
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },

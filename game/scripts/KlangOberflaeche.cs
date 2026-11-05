@@ -11,14 +11,15 @@ namespace Reichsgilde;
 ///   • <see cref="Einrichten"/> hängt sich an <see cref="SceneTree.NodeAdded"/> und gibt jedem Knopf seinen Klick (Reiter einer Knopfgruppe:
 ///     Blättern; Knöpfe mit dem Hinweis <c>klang</c> = „still“ spielen selbst (Pause und Tempo, auch per Taste)),
 ///   • <see cref="Fensterrahmen"/> spielt Öffnen und Schließen jedes Fensters,
-///   • <c>Hauptszene.Protokollieren</c> ruft <see cref="Meldung"/>: abgelehnt „✗“ = Holzklopfer, Gefahr „⚠“ = Glocke, Kauf oder Zahlung = Münzen,
+///   • <c>Hauptszene.Protokollieren</c> ruft <see cref="Meldung"/>: abgelehnt „✗“ = Holzklopfer, Gefahr „⚠“ = Glocke, Kauf oder Zahlung = Münzen;
+///     neue Siegel und Briefe der Benachrichtigungen spielen <see cref="Ereignis.MeldungSiegel"/> und <see cref="Ereignis.MeldungBrief"/>,
 ///   • Bauen, Siegel (Rat) und Tempo rufen <see cref="Spielen"/> an ihrer Stelle.
 /// Eine Sperre je Ereignis verhindert Gepolter, wenn viele Tafeln auf einmal auf- oder zugehen; die ersten Sekunden nach dem Start sind still.
 /// Hover bleibt bewusst stumm (die Knöpfe wechseln ohnehin die Farbe).
 /// </summary>
 public static class KlangOberflaeche
 {
-    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo }
+    public enum Ereignis { Klick, Reiter, FensterAuf, FensterZu, Muenzen, Fehler, Meldung, Siegel, Bauen, Tempo, MeldungSiegel, MeldungBrief }
 
     public const string Ordner = "res://assets/audio/geraeusche/oberflaeche/";
     /// <summary>Sekunden nach dem Start, in denen nichts spielt (Fenster, die beim Aufbau auf- und zugehen).</summary>
@@ -39,6 +40,9 @@ public static class KlangOberflaeche
         [Ereignis.Siegel] = (new[] { "drop_leather", "book_place_1", "book_place_2" }, -5f, 0.9f, 0.03f),
         [Ereignis.Bauen] = (new[] { "impact_plank_medium_000", "impact_plank_medium_001", "impact_plank_medium_002", "chop" }, -5f, 1.0f, 0.05f),
         [Ereignis.Tempo] = (new[] { "metal_click", "metal_latch" }, -9f, 1.0f, 0.04f),
+        // Benachrichtigungen (Stufe 1): ein neues Siegel in der Ecke und ein Brief, der kommt oder aufgeschlagen wird – rechnerisch erzeugt (tools/ton/meldungstoene.py, .wav)
+        [Ereignis.MeldungSiegel] = (new[] { "siegel_neu_1", "siegel_neu_2" }, -7f, 1.0f, 0.04f),
+        [Ereignis.MeldungBrief] = (new[] { "pergament_1", "pergament_2" }, -9f, 1.0f, 0.03f),
     };
 
     /// <summary>Dateien (ohne .ogg, in <see cref="Ordner"/>), Lautstärke in dB und Tonhöhe eines Ereignisses – für den Reiter „Klänge“ des Entwicklerfensters.</summary>
@@ -98,7 +102,7 @@ public static class KlangOberflaeche
         var geladen = 0;
         foreach (var datei in dateien)
         {
-            var pfad = Ordner + datei + ".ogg";
+            var pfad = Ordner + datei + (ResourceLoader.Exists(Ordner + datei + ".wav") ? ".wav" : ".ogg");
             if (ResourceLoader.Load(pfad) is AudioStream ton)
             {
                 zufall.AddStream(-1, ton, 1f);
@@ -117,10 +121,10 @@ public static class KlangOberflaeche
     /// Klang zu einer Meldung der Stadt: „✗“ (abgelehnt) = dumpfer Holzklopfer, „⚠“ (Gefahr) = kleine Glocke, ein gelungener Kauf, Verkauf
     /// oder eine Zahlung (Satz mit Betrag in <paramref name="waehrung"/> und Kauf-Verb) = Münzen. Alles andere bleibt still.
     /// </summary>
-    public static void Meldung(string meldung, string waehrung)
+    public static void Meldung(string meldung, string waehrung, bool glocke = true)
     {
         if (meldung.StartsWith('✗')) Spielen(Ereignis.Fehler);
-        else if (meldung.StartsWith('⚠')) Spielen(Ereignis.Meldung);
+        else if (meldung.StartsWith('⚠')) { if (glocke) Spielen(Ereignis.Meldung); }
         else if (IstZahlung(meldung, waehrung)) Spielen(Ereignis.Muenzen);
     }
 
