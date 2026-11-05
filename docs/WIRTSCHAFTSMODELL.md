@@ -16,7 +16,7 @@ An diesen Zielen werden alle Zahlen gemessen. Ändert sich eine Zahl, muss das Z
 
 | # | Ziel | Entwurf 1 erfüllt? | Stand nach Balancing 1 (PR #177) |
 |---|---|---|---|
-| Z1 | **Erstes Jahr** (neu gefasst am 28.10.2026, PR #224, Entscheidung des Nutzers: das Ziel fürs erste Jahr senken statt mehr Startgeld): Eine Gießerei mit den **2 Lehrlingen** des Starts ist bei ausgeglichenem Markt profitabel, mit etwa **900–1.300** Gulden pro Jahr. Mit 2 Gesellen (nach etwa 3 Jahren) wie bisher etwa **1.300–1.700** (angehoben am 22.10.2026, PR #177 – vorher 600–900; passt zu Z2) | ✔ 627 (1 Rivale) bis 878 (kein Rivale), damals Ziel 600–900 | ✔ 1.317 (1 Rivale) bis 1.551 (kein Rivale); PR #224: 2 Lehrlinge 1.094 (kein Rivale) |
+| Z1 | **Erstes Jahr** (neu gefasst am 28.10.2026, PR #224, Entscheidung des Nutzers: das Ziel fürs erste Jahr senken statt mehr Startgeld): Eine Gießerei mit **2 Lehrlingen** (bis Datenversion 71 die des Starts; seit 72 beginnt sie mit einem, der zweite ist sofort und kostenlos eingestellt) ist bei ausgeglichenem Markt profitabel, mit etwa **900–1.300** Gulden pro Jahr. Mit 2 Gesellen (nach etwa 3 Jahren) wie bisher etwa **1.300–1.700** (angehoben am 22.10.2026, PR #177 – vorher 600–900; passt zu Z2) | ✔ 627 (1 Rivale) bis 878 (kein Rivale), damals Ziel 600–900 | ✔ 1.317 (1 Rivale) bis 1.551 (kein Rivale); PR #224: 2 Lehrlinge 1.094 (kein Rivale) |
 | Z2 | Den Titel **Bürger** (10.000 Gulden Vermögen) erreicht man mit einem einzigen Betrieb nach **8–12 Jahren** (bei 15 Min./Jahr also 2–3 Stunden Spielzeit). Wer expandiert, schafft es schneller. | ✔ 10 Jahre | ✔ Schmied Ø 8,2 Jahre mit Einrichtungskauf, Greybox 80 von 120 Partien im Ziel, die übrigen schneller (Messung 2 ohne Einrichtung: 9,8; Messung 1: 18,2) |
 | Z3 | Konkurrenz ist spürbar: Mehr Anbieter drücken den Preis allmählich, ohne dass er sofort einbricht. Bei Überangebot lohnt es sich, auf ein anderes Produkt auszuweichen. | ✔ Silberring 878 → 627 → 437 → 163 bei 0/30/60/120 Konkurrenzstück | ✔ Preisformel unverändert; zwei Gießereien je 1.317 statt 1.551 allein |
 | Z4 | Ein einzelner Spieler kann den Markt allein nicht beherrschen, weil die Stadt viele andere Anbieter hat | ✔ eine Werkstatt deckt ca. 20 % der Nachfrage | ✔ unverändert (bei vier Häusern Einwohnerfaktor 1) |
@@ -2259,3 +2259,26 @@ Der Blitzschaden ist damit eine spürbare, aber seltene Störung: einmal in rund
 **Warum der Spieler in Köln nie getroffen wird:** Zufall bei kleinem Anteil, kein Fehler und keine Lage. Werkstatt und Wohnhaus des Spielers (Rheingasse am Heumarkt, Boden 0,1–0,2 m, 1,6 m unter dem Mittel der Stadt) wiegen zusammen 15,5 von 1.319 (1,18 % je Einschlag, über Sprünge etwa 0,3 % dazu) – so viel wie das Paar eines KI-Hauses (15,4–17,8). Die sieben KI-Häuser haben zusammen siebenmal so viel (8,3 %), den Rest ziehen Dom und die fünf Kirchen (40–50 m, zusammen fast ein Fünftel) und die 79 Einwohner- und Bürgerhäuser (etwa die Hälfte). Der Blitz würfelt mit eigener Quelle aus Startwert und Minute, darum sind die Einschläge für Schmied und Wirt, „mit“ und „ohne“ derselben Startwerte gleich: Es sind nur 80 unabhängige Partien mit rund 102 Einschlägen, erwartet etwa 1,5 Treffer beim Spieler, 0 kommt mit etwa 20 % vor. Nachgerechnet (Würfe wie im Kern, Ziele vom Start): Köln direkt Spieler 0, KI 12 (0,15 je Partie, der Rest der 0,25–0,28 kommt über Sprünge); Greybox (62 Ziele, Spieler 3,2 %) direkt Spieler 3, KI 6.
 
 **Probe mit „Hafen ruht“** (NAS, `messen blitz 20 4`, gemessen auf main 3f2bdf8c + dieser Branch e776abd7, Datenversion 71): dieselben Einschläge und Sprünge wie in der Kurzmessung (1,00 Einschläge, Sprünge Greybox 0,75, Köln 0,25 je Partie), Treffer Greybox Spieler und KI je 0,25, Köln 0, Reparatur Greybox 121 Gulden je Partie, höchstens 0,5 Stück Ware verbrannt. Der ruhende Schiffshandel ändert am Blitz nichts; das Vermögen streut wie zuvor in beide Richtungen.
+
+## Ein Lehrling zum Start (PR #318, Datenversion 72, 4.11.2026)
+
+**Regel** (Entscheidung des Nutzers, 4.11.2026): Zum Beginn der Partie hat jeder Startbetrieb **einen Anfänger** – beim Spieler und bei den KI-Häusern gleich (Mehrspieler-Fairness), bei „Schwer“ auch der Umlandbetrieb der KI (ein Knecht bzw. Ork statt drei). Vorher waren es zwei Anfänger in der Stadt und drei im Umland, fest in `Partieaufbau`. Jetzt steht die Zahl in den Daten: `personal.startJeBetrieb` = 1 (`Personalwesen.StartAnzahl`, höchstens die Plätze des Betriebs; ohne Angabe wie bis Datenversion 71). Weitere Lehrlinge stellt jeder selbst ein – das kostet nichts und wirkt sofort, der Lohn (120 Gulden im Jahr) kommt am Jahresende. Startgeld, Löhne, Erfahrung und Briefe bleiben.
+
+**Die KI stellt sofort nach:** `KiAnmelden` ruft gleich die erste Stunde der KI, und `PersonalBesetzen` füllt jeden freien Platz mit einem Anfänger, solange das Bargeld über der halben Reserve bleibt (4.000 − 750 ≫ 120). Die KI-Häuser haben damit schon vor der ersten Spielminute wieder volle Werkstätten. Weil `Steckbrief` beim Einstellen nicht mit dem Zufall der Partie würfelt, ist die Partie danach **bitgleich** mit der alten Aufstellung – für die KI-Häuser und für jeden von der KI geführten Spieler. Spürbar ist die Regel nur für den Menschen, der selbst einstellen muss.
+
+**Kurzmessung** (NAS, `messen schaenke 20 8 --karten=greybox,koeln --passiv`, 8 Startwerte 101–808 je Karte, 20 Jahre, alle KI-Häuser der Karte; gemessen auf main 5e80fb5e + dieser Branch 07efcb69; vorher = main 5e80fb5e mit dem Messschalter `--passiv` dieses Branches). Reinvermögen im Jahr 20 (Mittel), keine Partie mit Fehler, **kein Bankrott**:
+
+| Karte | Aufbau | Spieler vorher | Spieler nachher | KI-Häuser vorher | KI-Häuser nachher | Bürger Ø Jahr vorher → nachher |
+|---|---|---|---|---|---|---|
+| Greybox | Schmied, ein Betrieb (KI geführt) | 36.804 | 36.804 | 77.022 | 77.022 | 9,1 → 9,1 |
+| Greybox | Wirt, ein Betrieb | 35.668 | 35.668 | 78.184 | 78.184 | 8,6 → 8,6 |
+| Greybox | Wirt, ausbauend | 68.961 | 68.961 | 78.285 | 78.285 | 12,1 → 12,1 |
+| Greybox | Schmied passiv (stellt nie ein) | 28.802 | **15.018** | 85.409 | 82.117 | 7,4 (2/8) → 12,1 (6/8) |
+| Köln | Schmied, ein Betrieb | 32.691 | 32.691 | 71.651 | 71.651 | 9,0 → 9,0 |
+| Köln | Wirt, ein Betrieb | 28.110 | 28.110 | 70.347 | 70.347 | 9,0 → 9,0 |
+| Köln | Wirt, ausbauend | 39.271 | 39.271 | 69.239 | 69.239 | 10,8 → 10,8 |
+| Köln | Schmied passiv | 27.152 | **14.454** | 73.321 | 71.322 | 7,5 (5/8) → 13,0 (1/8) |
+
+Dateien: `docs/messungen/schaenke-2026-11-04-startlehrling-{vorher,passiv-vorher,nachher}.json`. Der passive Schmied (Bezug „Passiv“: führt nichts, stellt nie ein) verliert mit einem Lehrling fast die Hälfte; seine Werkstatt verdient im ersten Jahr noch (Greybox +202 Gulden), ab dem zweiten nicht mehr (−247), das Startgeld reicht aber über die 20 Jahre (Test „Bericht: Passiver Spieler …“). Die Bürger-Jahre zählen nur die Partien, die Bürger werden (in Klammern). Wer einmal einstellt, steht wie vorher.
+
+**Gegenmaßnahmen:** keine umgesetzt – kein Bankrott, kein Kredit nötig. Vorschläge an den Nutzer (nach der vollen Messung) in `docs/bereiche/kern.md`, „Offen“.

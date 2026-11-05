@@ -24,7 +24,7 @@ public enum Siegbedingung
 /// <summary>Wie die KI-Häuser anfangen (Entscheidung des Nutzers zu PR #177). Beim Start der Partie wählbar.</summary>
 public enum Schwierigkeit
 {
-    /// <summary>Alle Häuser starten wie der Spieler: eine Werkstatt ihres Berufs mit zwei Gesellen, kein Umlandbetrieb.</summary>
+    /// <summary>Alle Häuser starten wie der Spieler: eine Werkstatt ihres Berufs mit einem Lehrling (personal.startJeBetrieb), kein Umlandbetrieb.</summary>
     Normal,
 
     /// <summary>Die KI-Häuser starten mit allen Betrieben ihrer Startbelegung (Werkstatt und Umlandbetrieb) – der Start vor PR #177.</summary>

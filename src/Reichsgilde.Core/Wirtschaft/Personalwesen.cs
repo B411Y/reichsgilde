@@ -53,6 +53,12 @@ public sealed class Personalwesen
     public string AnfaengerFuer(Betriebsart art, string sonst) => _w.Daten.Laufbahn(art)?.Anfaenger ?? sonst;
 
     /// <summary>
+    /// So viele Leute stellt ein Startbetrieb zum Beginn der Partie ein (<see cref="PersonalDaten.StartJeBetrieb"/>, für alle Häuser gleich);
+    /// ohne die Angabe <paramref name="sonst"/> (bisher zwei in der Stadt, drei im Umland). Nie mehr, als der Betrieb Plätze hat.
+    /// </summary>
+    public int StartAnzahl(Betriebsart art, int sonst) => Math.Min(Daten?.StartJeBetrieb ?? sonst, _w.Daten.Plaetze(art));
+
+    /// <summary>
     /// Darf dieser Betrieb eine Arbeitskraft dieser Art neu einstellen (Befehle <see cref="PersonalSetzen"/> und <see cref="ArbeiterEinstellen"/>)?
     /// Nur Anfänger seiner Laufbahn und Arbeitskräfte ohne Stufen (Unfreie, Orks – das Statut prüft der Betrieb). null: Es geht.
     /// </summary>
