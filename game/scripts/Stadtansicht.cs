@@ -484,6 +484,7 @@ public partial class Stadtansicht : Node3D
         _karrenKlang?.Beenden(); // Hufe der Pferdekarren (Stadtansicht.KarrenKlang.cs)
         GlobaleBeleuchtungAufgeben();
         FelsGelaendeAufgeben(); // das Höhenbild der Felsen (Stadtansicht.Felsgelaende.cs)
+        if (_diebBuch is not null) _diebBuch.Neu -= DiebVorfallNeu; // Taschendiebe (Stadtansicht.Taschendiebe.cs)
         if (_wirtschaft is not null)
         {
             _wirtschaft.BetriebAbgegeben -= BetriebEntfernen;

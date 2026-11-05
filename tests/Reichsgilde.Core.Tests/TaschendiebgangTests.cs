@@ -59,5 +59,53 @@ static class TaschendiebgangTests
             Pruefe.Wahr(w.Diebe.AnwesenheitJetzt(versteck).Any(s => s.Ort == Diebesort.Markt), "Niemand am Markt");
             Pruefe.Wahr(w.Diebe.GriffeDieserStunde(versteck).Count >= 2, "Keine Griffe");
         }),
+
+        ("Entwicklerbefehl Diebeshaus: ist der Name des Verstecks schon vergeben, lehnt der Kern ab statt zu werfen", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie());
+            var w = sim.Wirtschaft!;
+            sim.EntwicklerErlaubt = true;
+            var fremd = w.KontoEroeffnen("Haus Gast", startvermoegen: 1000);
+            w.BetriebEroeffnen($"Unterschlupf {fremd.Inhaber}", Betriebsart.Unterschlupf, spieler, startkarren: ""); // der Name gehört schon einem anderen
+            var e = sim.Bote.SofortAusfuehren(spieler, new EntwicklerDiebeshaus(fremd.Inhaber));
+            Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("gibt es schon", StringComparison.Ordinal), "Nicht abgelehnt: " + e.Meldung);
+        }),
+
+        ("Taschendiebgang: Jeder Griff des Kerns wird gezeigt, keiner springt ins Bild – auch über den Stundenwechsel (Kernformel, ein Tag)", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie());
+            var w = sim.Wirtschaft!;
+            for (var i = 0; i < 300; i++) sim.Tick(); // 09:00
+            sim.EntwicklerErlaubt = true;
+            Pruefe.Wahr(sim.Bote.SofortAusfuehren(spieler, new EntwicklerDiebeshaus()).Erfolg, "Diebeshaus");
+            var versteck = w.Betriebe.First(b => b.Konto == spieler && w.Diebe.IstDiebesbetrieb(b));
+            var gesehen = new HashSet<(int, long)>();
+            var gezeigt = new HashSet<(int, long)>();
+            var erste = new Dictionary<(int, long), double>();
+            for (var t = 0; t < 600; t++)
+            {
+                sim.Tick();
+                var jetzt = (double)sim.Zeit.VergangeneMinuten;
+                foreach (var g in w.Diebe.GriffeDieserStunde(versteck))
+                {
+                    var minute = sim.Zeit.VergangeneMinuten + (g.Uhrzeit - sim.Zeit.UhrzeitInMinuten);
+                    var schluessel = (g.Dieb.Nummer, minute);
+                    // gemeldet gilt ein Griff erst, wenn der Dieb in dem Moment noch im Haus ist, in dem sein Vorlauf beginnt (wer zum Stundenende gefasst wird, ist ein Fall der Festnahme)
+                    if (Taschendiebgang.Zeigen(jetzt, minute, true)) { gesehen.Add(schluessel); erste.TryAdd(schluessel, jetzt); }
+                    if (gezeigt.Contains(schluessel) || !Taschendiebgang.Zeigen(jetzt, minute, true)) continue;
+                    var vorlauf = Taschendiebgang.StartVorlauf(jetzt, minute, true, out var nah);
+                    // später als der volle Vorlauf bekannt: Der Dieb beginnt dicht beim Opfer, nicht am Rand des Marktes
+                    if (vorlauf < Taschendiebgang.VorlaufEigen - 0.5) Pruefe.Wahr(nah < Taschendiebgang.EntfernungEigenMin, $"Griff {minute}: Dieb beginnt {nah} m entfernt, springt ins Bild");
+                    Taschendiebgang.AbschnittBei(jetzt, minute, true, vorlauf, out var anteil);
+                    Pruefe.Wahr(anteil <= 1, "Anteil");
+                    gezeigt.Add(schluessel);
+                }
+            }
+            Pruefe.Wahr(gesehen.Count >= 20, $"Zu wenige Griffe im Test: {gesehen.Count}");
+            foreach (var g in gesehen) Pruefe.Wahr(gezeigt.Contains(g), $"Griff {g} des Kerns wurde nicht gezeigt (zuerst gesehen bei {erste[g]})");
+            // Der alte Fehler: zwei Griffe desselben Diebes in kurzem Abstand (Szene je Dieb ließ den zweiten fallen) – so etwas gibt es und es wird gezeigt
+            var dicht = gezeigt.GroupBy(g => g.Item1).Sum(grp => grp.Select(x => x.Item2).OrderBy(x => x).Zip(grp.Select(x => x.Item2).OrderBy(x => x).Skip(1), (a, b) => b - a).Count(d => d < Taschendiebgang.VorlaufEigen));
+            Pruefe.Wahr(dicht > 0, "Kein Paar dicht beieinander liegender Griffe im Testtag");
+        }),
     };
 }

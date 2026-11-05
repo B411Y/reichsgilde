@@ -131,8 +131,13 @@ public sealed class Entwicklerhilfe
     {
         if (!_w.Diebe.IstAktiv) return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es keine Diebe.");
         if (!k.IstAktiv) return Befehlsergebnis.Abgelehnt($"{k.Inhaber} ist nicht mehr im Spiel.");
-        var versteck = _w.Betriebe.FirstOrDefault(b => b.Konto == k && _w.Diebe.IstDiebesbetrieb(b))
-                       ?? _w.BetriebEroeffnen($"Unterschlupf {k.Inhaber}", Betriebsart.Unterschlupf, k, startkarren: "");
+        var versteck = _w.Betriebe.FirstOrDefault(b => b.Konto == k && _w.Diebe.IstDiebesbetrieb(b));
+        if (versteck is null)
+        {
+            var name = $"Unterschlupf {k.Inhaber}";
+            if (_w.Betriebe.Any(b => b.Name == name)) return Befehlsergebnis.Abgelehnt($"Einen Betrieb „{name}“ gibt es schon.");
+            versteck = _w.BetriebEroeffnen(name, Betriebsart.Unterschlupf, k, startkarren: "");
+        }
         var frei = versteck.Plaetze - versteck.Belegt;
         if (frei > 0) _w.Einstellen(versteck, "Geselle", frei);
         return Befehlsergebnis.Ok($"{versteck.Name} hat {versteck.Belegt} Diebe.");

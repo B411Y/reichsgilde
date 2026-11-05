@@ -52,6 +52,11 @@ public partial class Stadtansicht
         public Vector3 OpferOrt { get; set; }
         public Vector3[]? Weg { get; set; }
         public float WegLaenge { get; set; }
+        /// <summary>Wie lange vor dem Griff die Szene beginnt (kürzer, wenn der Griff erst spät bekannt wurde, <see cref="Taschendiebgang.StartVorlauf"/>).</summary>
+        public double Vorlauf { get; init; }
+        /// <summary>Das Opfer, wenn es steht: seine Lage vor dem Zucken (Rempeln), damit es danach wieder so steht.</summary>
+        public Vector3? OpferRotation { get; set; }
+        public bool Gezuckt { get; set; }
     }
 
     /// <summary>Eine Festnahme in Arbeit.</summary>
@@ -68,9 +73,8 @@ public partial class Stadtansicht
         public required double FuehrDauer { get; init; }
     }
 
-    private readonly Dictionary<(string Haus, int Nummer), Diebfigur> _diebe = new();
     private readonly Dictionary<string, Diebfigur> _diebfiguren = new();
-    private readonly Dictionary<(string Haus, int Nummer), Griffszene> _griffszenen = new();
+    private readonly Dictionary<(string Haus, int Nummer, long Minute), Griffszene> _griffszenen = new();
     private readonly HashSet<(string, int, long)> _griffErledigt = new();
     private readonly List<Festnahmeszene> _festnahmen = new();
     private readonly List<Vorfall> _diebVorfaelle = new();
@@ -82,6 +86,14 @@ public partial class Stadtansicht
     private StandardMaterial3D? _beutelStoff;
     /// <summary>Mit <c>--diebtest</c> schreibt die Stadt Zeilen <c>[taschendieb]</c> ins Protokoll (Griffe, Festnahmen).</summary>
     private static readonly bool DiebLog = Wasserarten.Startoption("diebtest") is { Length: > 0 } and not "0";
+    /// <summary>Mit <c>--diebtest</c> nur der Markt, auf den die Kamera blickt (damit die Bilder die Szenen zeigen).</summary>
+    private bool DiebTestPlatz(MarktplatzAnsicht platz) => new Vector2(platz.Mitte.X, platz.Mitte.Z).DistanceTo(new Vector2(BlickpunktAmBoden().X, BlickpunktAmBoden().Z)) < platz.Halb + 12;
+    private ulong _diebBildLog;
+    /// <summary>Test (<c>--diebtest=bildfolge</c>): Die Zeit hält 5 s lang bei einem eigenen Dieb an – kurz vor dem Griff, mitten im Griff, kurz danach – für drei Bilder.</summary>
+    public bool Bildfolge { get; set; }
+    private int _haltStufe;
+    private ulong _haltBis;
+    private Griffszene? _haltSzene;
     private static void DiebMelden(string text) { if (DiebLog) GD.Print("[taschendieb] " + text); }
 
     /// <summary>Test (Startoption <c>--diebtest=festnahme</c>): eine Festnahme zeigen, sobald Passanten am Markt sind.</summary>
@@ -103,6 +115,7 @@ public partial class Stadtansicht
             _diebBuch = w.Gauner.Vorfaelle;
             _diebBuch.Neu += DiebVorfallNeu;
         }
+        if (_haltBis > 0 && Time.GetTicksMsec() > _haltBis) { _haltBis = 0; _simulation.Takt.IstPausiert = false; }
         var gezeigt = Fenster.PassantenMenge > 0 && _raum is null && _maerkte.Count > 0;
         var jetzt = zeit.VergangeneMinuten + bruchteil;
         var pausiert = _simulation.Takt.IstPausiert;
@@ -111,8 +124,8 @@ public partial class Stadtansicht
         if (!gezeigt)
         {
             _diebVorfaelle.Clear();
-            foreach (var d in _diebfiguren.Values) DiebVerstecken(d);
-            foreach (var f in _festnahmen) f.WacheKnoten.Visible = false;
+            foreach (var f in _festnahmen) { f.WacheKnoten.QueueFree(); DiebEntfernen(f.Dieb); }
+            foreach (var g in _griffszenen.Values) DiebEntfernen(g.Dieb);
             _griffszenen.Clear();
             _festnahmen.Clear();
             return;
@@ -140,14 +153,12 @@ public partial class Stadtansicht
                         _diebGriffe.Add((b, g, zeit.VergangeneMinuten + (g.Uhrzeit - zeit.UhrzeitInMinuten)));
             foreach (var (haus, griff, minute) in _diebGriffe)
             {
-                var schluessel = (haus.Name, griff.Dieb.Nummer);
                 var kennung = (haus.Name, griff.Dieb.Nummer, (long)minute);
                 var eigen = haus.Konto == _spielerKonto;
-                if (_griffszenen.ContainsKey(schluessel) || _griffErledigt.Contains(kennung)) continue;
-                if (jetzt < minute - Taschendiebgang.Vorlauf(eigen) || jetzt >= minute + Taschendiebgang.GriffDauer) continue;
-                var neu = GriffszeneBauen(haus, griff, minute, eigen);
+                if (_griffErledigt.Contains(kennung) || !Taschendiebgang.Zeigen(jetzt, minute, eigen)) continue;
+                var neu = GriffszeneBauen(haus, griff, minute, eigen, jetzt);
                 if (neu is not null || jetzt >= minute - 1) _griffErledigt.Add(kennung); // ohne Opfer weiter versuchen, bis der Griff dran wäre
-                if (neu is { } szene0) { _griffszenen[schluessel] = szene0; DiebMelden($"Griff {(eigen ? "eigener" : "fremder")} Dieb {griff.Dieb.Nummer} um {new Spielzeit((long)minute).UhrzeitText}, Opfer {szene0.Opfer}, Weg {Gassennetz.Laenge(szene0.Hin):0.0} m"); }
+                if (neu is { } szene0) { _griffszenen[kennung] = szene0; DiebMelden($"Griff {(eigen ? "eigener" : "fremder")} Dieb {griff.Dieb.Nummer} um {new Spielzeit((long)minute).UhrzeitText}, Vorlauf {szene0.Vorlauf:0.0} min, Opfer {szene0.Opfer}, Weg {Gassennetz.Laenge(szene0.Hin):0.0} m"); }
                 else if (jetzt >= minute - 1) DiebMelden($"Griff um {new Spielzeit((long)minute).UhrzeitText}: kein Opfer am Markt");
             }
             if (_griffErledigt.Count > 400) _griffErledigt.Clear();
@@ -155,7 +166,7 @@ public partial class Stadtansicht
 
         var sekundenJeMinute = _simulation.Takt.RundenDauerSekunden / Spielzeit.MinutenProTag;
         foreach (var (schluessel, szene) in _griffszenen.ToList())
-            if (!GriffSetzen(szene, jetzt, sekundenJeMinute, sekunden)) { DiebVerstecken(szene.Dieb); _griffszenen.Remove(schluessel); }
+            if (!GriffSetzen(szene, jetzt, sekundenJeMinute, sekunden)) { DiebEntfernen(szene.Dieb); _griffszenen.Remove(schluessel); }
 
         while (_diebVorfaelle.Count > 0)
         {
@@ -167,7 +178,7 @@ public partial class Stadtansicht
         for (var i = _festnahmen.Count - 1; i >= 0; i--)
             if (!FestnahmeSetzen(_festnahmen[i], jetzt, sekundenJeMinute, sekunden))
             {
-                DiebVerstecken(_festnahmen[i].Dieb);
+                DiebEntfernen(_festnahmen[i].Dieb);
                 _festnahmen[i].WacheKnoten.QueueFree();
                 _festnahmen.RemoveAt(i);
             }
@@ -185,6 +196,13 @@ public partial class Stadtansicht
     private void DiebVorfallNeu(Vorfall v)
     {
         if (v.Art == Vorfallart.Taschendiebstahl) _diebVorfaelle.Add(v);
+    }
+
+    /// <summary>Gibt eine Gestalt frei (Knoten und Figur) und nimmt sie aus der Liste – wer anklickbar sein soll, ist in <see cref="_diebfiguren"/>.</summary>
+    private void DiebEntfernen(Diebfigur d)
+    {
+        _diebfiguren.Remove(d.Kennung);
+        if (IsInstanceValid(d.Knoten)) d.Knoten.QueueFree();
     }
 
     private void DiebVerstecken(Diebfigur d)
@@ -246,7 +264,7 @@ public partial class Stadtansicht
         {
             if (!p.Knoten.Visible) continue;
             var ort = p.Knoten.GlobalPosition;
-            if (_maerkte.FirstOrDefault(m => m.Flaeche is not null && m.Auf(ort)) is { } platz) liste.Add((nr, ort, platz, 0));
+            if (_maerkte.FirstOrDefault(m => m.Flaeche is not null && m.Auf(ort)) is { } platz && (!DiebLog || DiebTestPlatz(platz))) liste.Add((nr, ort, platz, 0));
         }
         for (var i = 0; i < liste.Count; i++)
         {
@@ -303,29 +321,26 @@ public partial class Stadtansicht
     //  Der Griff
     // ═════════════════════════════════════════════════════════════════════════
 
-    private Griffszene? GriffszeneBauen(Betrieb haus, Taschengriff griff, double minute, bool eigen)
+    private Griffszene? GriffszeneBauen(Betrieb haus, Taschengriff griff, double minute, bool eigen, double jetzt)
     {
         var leute = Marktleute();
         if (leute.Count == 0) return null; // niemand zum Bestehlen: nichts zeigen
         var streu = Taschendiebgang.Streu(griff.Dieb.Nummer + haus.Name.Length * 131, (long)minute, 1);
         var gedraenge = leute.OrderByDescending(l => l.Nah).ThenBy(l => l.Nummer).Take(5).ToList();
         var opfer = gedraenge[(int)(streu % (uint)gedraenge.Count)];
-        var start = eigen
+        var vorlauf = Taschendiebgang.StartVorlauf(jetzt, minute, eigen, out var nah);
+        var voll = vorlauf >= Taschendiebgang.Vorlauf(eigen) - 0.5; // sonst taucht der Dieb dicht beim Opfer aus dem Gedränge auf (kein Sprung ins Bild)
+        var start = eigen && voll
             ? RandPunkt(opfer.Platz, opfer.Ort, streu, Taschendiebgang.EntfernungEigenMin, Taschendiebgang.EntfernungEigenMax)
-            : PunktUm(opfer.Platz, opfer.Ort, Taschendiebgang.EntfernungFremd, streu);
+            : PunktUm(opfer.Platz, opfer.Ort, voll ? Taschendiebgang.EntfernungFremd : nah, streu);
         if (start is not { } s) return null;
-        var schluessel = (haus.Name, griff.Dieb.Nummer);
-        if (!_diebe.TryGetValue(schluessel, out var dieb))
-        {
-            var nummer = 20000 + haus.Name.Sum(c => c) % 1000 * 100 + griff.Dieb.Nummer;
-            dieb = DiebfigurBauen($"dieb:{++_diebZaehler}", MarktDiebAussehen(nummer, griff.Dieb.Arbeitskraft), nummer, eigen, griff.Dieb, haus.Name, null);
-            _diebe[schluessel] = dieb;
-        }
+        var nummer = 20000 + haus.Name.Sum(c => c) % 1000 * 100 + griff.Dieb.Nummer;
+        var dieb = DiebfigurBauen($"dieb:{++_diebZaehler}", MarktDiebAussehen(nummer, griff.Dieb.Arbeitskraft), nummer, eigen, griff.Dieb, haus.Name, null);
         var richtung = new Vector3(s.X - opfer.Ort.X, 0, s.Z - opfer.Ort.Z);
         richtung = richtung.LengthSquared() < 1e-4f ? Vector3.Back : richtung.Normalized();
         return new Griffszene
         {
-            Dieb = dieb, Griff = minute, Eigen = eigen, Opfer = opfer.Nummer, Platz = opfer.Platz, OpferOrt = opfer.Ort,
+            Dieb = dieb, Griff = minute, Eigen = eigen, Vorlauf = vorlauf, Opfer = opfer.Nummer, Platz = opfer.Platz, OpferOrt = opfer.Ort,
             Hin = WegAuf(opfer.Platz, s, opfer.Ort, opfer.Platz.Hoehe), Hinten = richtung,
         };
     }
@@ -334,7 +349,7 @@ public partial class Stadtansicht
     private bool GriffSetzen(Griffszene s, double jetzt, double sekundenJeMinute, double sekunden)
     {
         var d = s.Dieb;
-        var abschnitt = Taschendiebgang.AbschnittBei(jetzt, s.Griff, s.Eigen, out var anteil);
+        var abschnitt = Taschendiebgang.AbschnittBei(jetzt, s.Griff, s.Eigen, s.Vorlauf, out var anteil);
         if (abschnitt == Taschendiebgang.Abschnitt.Nachher) return false;
         if (abschnitt == Taschendiebgang.Abschnitt.Vorher) { DiebVerstecken(d); return true; }
         if (_passanten.TryGetValue(s.Opfer, out var opfer) && opfer.Knoten.Visible) s.OpferOrt = opfer.Knoten.GlobalPosition;
@@ -350,22 +365,24 @@ public partial class Stadtansicht
                 var laenge = Gassennetz.Laenge(s.Hin);
                 var basis = Gassennetz.PunktAuf(s.Hin, (float)anteil);
                 ort = anteil > 0.7 ? basis.Lerp(hinter, (float)((anteil - 0.7) / 0.3)) : basis;
-                tempo = (float)(laenge / (Taschendiebgang.Vorlauf(s.Eigen) * sekundenJeMinute));
+                tempo = (float)(laenge / (s.Vorlauf * sekundenJeMinute));
                 bewegung = "Gehen";
                 d.Zustand = "schleicht sich an einen Passanten heran";
                 break;
             }
             case Taschendiebgang.Abschnitt.Griff:
             {
-                neigung = Taschendiebgang.Neigung(anteil);
-                ort = hinter - s.Hinten * (float)(Taschendiebgang.Anrempeln * neigung);
-                bewegung = "Stehen";
+                neigung = Taschendiebgang.Neigung(anteil) * 1.4;
+                ort = hinter - s.Hinten * (float)(Taschendiebgang.Anrempeln * Taschendiebgang.Neigung(anteil));
+                bewegung = "Knacken"; // die Hand arbeitet vor dem Körper (Dietrich in der Hand), liest sich als Griff in die Gürteltasche
                 tempo = 0;
+                OpferZucken(s, anteil);
                 d.Zustand = "rempelt jemanden an und greift in die Tasche";
                 break;
             }
             default:
             {
+                OpferZucken(s, 2);
                 if (s.Weg is null)
                 {
                     var ziel = s.Eigen
@@ -384,7 +401,51 @@ public partial class Stadtansicht
         ort = AufBoden(ort);
         var blick = abschnitt == Taschendiebgang.Abschnitt.Griff ? new Vector3(s.OpferOrt.X - ort.X, 0, s.OpferOrt.Z - ort.Z) : ort - d.Letzte;
         DiebStellen(d, ort, blick, bewegung, tempo, sekunden, neigung, abschnitt != Taschendiebgang.Abschnitt.Anschleichen);
+        if (Bildfolge && s.Eigen && _haltBis == 0 && _haltStufe < 3 && (_haltSzene is null || _haltSzene == s))
+        {
+            var da = _haltStufe switch
+            {
+                0 => abschnitt == Taschendiebgang.Abschnitt.Anschleichen && anteil >= 0.8,
+                1 => abschnitt == Taschendiebgang.Abschnitt.Griff && anteil >= 0.5,
+                _ => abschnitt == Taschendiebgang.Abschnitt.Abgang && anteil >= 0.15,
+            };
+            if (da)
+            {
+                _haltSzene = s;
+                _haltBis = Time.GetTicksMsec() + 6000;
+                _simulation!.Takt.IstPausiert = true;
+                GD.Print($"[taschendieb] Halt {_haltStufe} {Time.GetUnixTimeFromSystem():0.0}");
+                _haltStufe++;
+            }
+        }
+        if (DiebLog && s.Eigen && Time.GetTicksMsec() - _diebBildLog > 250)
+        {
+            _diebBildLog = Time.GetTicksMsec();
+            var px = StadtKamera.UnprojectPosition(ort + new Vector3(0, 0.9f, 0));
+            GD.Print($"[taschendieb] Bild {Time.GetUnixTimeFromSystem():0.00} {abschnitt} {anteil:0.00} bei {px.X:0}|{px.Y:0}");
+        }
         return true;
+    }
+
+    /// <summary>
+    /// Das Opfer zuckt beim Rempeln und dreht sich ein Stück zum Dieb um – nur wenn es steht (ein Gehender folgt seinem eigenen Weg). Danach, bei
+    /// <paramref name="anteil"/> über 1, steht es wieder wie vorher.
+    /// </summary>
+    private void OpferZucken(Griffszene s, double anteil)
+    {
+        if (!_passanten.TryGetValue(s.Opfer, out var p) || p.Stand is null) return;
+        if (anteil >= 1)
+        {
+            if (s.Gezuckt && s.OpferRotation is { } alt) p.Knoten.Rotation = alt;
+            s.Gezuckt = false;
+            return;
+        }
+        s.OpferRotation ??= p.Knoten.Rotation;
+        if (anteil < 0.45) return;
+        s.Gezuckt = true;
+        var zum = new Vector3(s.Dieb.Knoten.Position.X - p.Knoten.Position.X, 0, s.Dieb.Knoten.Position.Z - p.Knoten.Position.Z);
+        var ziel = zum.LengthSquared() > 1e-4f ? Mathf.Atan2(zum.X, zum.Z) : s.OpferRotation!.Value.Y;
+        p.Knoten.Rotation = new Vector3(0, Mathf.LerpAngle(s.OpferRotation!.Value.Y, ziel, 0.6f), 0);
     }
 
     /// <summary>Lage, Blick, Bewegung und Neigung einer Gestalt setzen und die Figur im Bild weiterbewegen.</summary>
