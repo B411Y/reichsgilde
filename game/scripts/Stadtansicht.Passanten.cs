@@ -1212,7 +1212,9 @@ public partial class Stadtansicht
         var minute = zeit.VergangeneMinuten + _simulation.Takt.AngebrocheneMinute;
         var tun = e.Handlung switch
         {
+            Handlung.Ruhen when e.Ort == Stadtort.Markt => "hält ein Schwätzchen", // Tagesplan der Bürger-KI: Rast am Markt
             Handlung.Ruhen => "ruht sich aus",
+            Handlung.Arbeiten when e.Ort == Stadtort.Markt && ew.Daten.Rollen.TryGetValue(e.Rolle, out var rolle) && rolle.Dienst => "macht Besorgungen",
             Handlung.Arbeiten => "arbeitet",
             Handlung.Einkaufen => "kauft ein",
             Handlung.Einkehren => "kehrt ein",
