@@ -67,6 +67,12 @@ public sealed class Einwohner
     /// </summary>
     public bool PassantOhnePlan { get; internal set; }
 
+    /// <summary>
+    /// Zählt er für die Wirtschaft (Markt, Warenkorb, Schänke, Messe, Taschendiebe)? In großen Städten nur so viele gewöhnliche Einwohner,
+    /// wie es nach „jeHaus“ gäbe (<see cref="Einwohnerschaft"/>, Wirtschaftsgewicht); die übrigen sind nur echte Figuren.
+    /// </summary>
+    public bool ZaehltFuerWirtschaft { get; internal set; } = true;
+
     /// <summary>Wo er sich gerade aufhält bzw. wohin er unterwegs ist – alles in einem Wert.</summary>
     public Aufenthalt Aufenthalt => new(Ort, Betrieb, Haus, Stelle);
 

@@ -137,6 +137,7 @@ public sealed class Einwohnerschaft
                 if (_zufall.NextDouble() >= _w.Familien.Sterberisiko(e.Volk, e.Alter(neuesJahr - 1))) continue;
                 var neu = NeuerStadtbewohner(neuesJahr, zuzug: true); // an derselben Stelle – die Reihenfolge bleibt
                 neu.Wohnhaus = e.Wohnhaus; // der Zuzügler bezieht die Kammer des Verstorbenen
+                neu.ZaehltFuerWirtschaft = e.ZaehltFuerWirtschaft; // … und zählt wie er
                 _einwohner[i] = neu;
                 _verstorben++;
                 _zugezogen++;
@@ -157,7 +158,7 @@ public sealed class Einwohnerschaft
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Wer in der Stunde, die gerade endet, in dieser Schänke saß (die Planung der nächsten Stunde folgt erst danach).</summary>
-    public int Einkehrende(Betrieb schaenke) => _einwohner.Count(e => e.Ort == Stadtort.Schaenke && e.Betrieb == schaenke.Name);
+    public int Einkehrende(Betrieb schaenke) => _einwohner.Count(e => e.ZaehltFuerWirtschaft && e.Ort == Stadtort.Schaenke && e.Betrieb == schaenke.Name);
 
     /// <summary>Wie viele Einwohner zu dieser Uhrzeit üblicherweise in den Schänken sitzen (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
     public double EinkehrErwartet(int stunde) => _einkehrErwartet[stunde];
@@ -203,10 +204,21 @@ public sealed class Einwohnerschaft
     {
         var g = _w.Gastwirtschaft;
         var mitPlaetzen = g.IstAktiv && schaenken.Any(b => g.Sitzplaetze(b) is not null);
-        return Quote(_einwohner.Where(e => e.Handlung == Handlung.Einkehren).ToList(), schaenken, g.Anziehung,
+        // Erst die, die für die Wirtschaft zählen – mit den Plätzen nach ihrer Zahl, genau wie vor der Bürgerdichte –, dann die übrigen
+        // in die restlichen Plätze. So verteilen sich die Zählenden wieder als feste Quote nach der Anziehung.
+        var zaehlend = _einwohner.Count(e => e.ZaehltFuerWirtschaft);
+        var ohnePlatz = Quote(_einwohner.Where(e => e.ZaehltFuerWirtschaft && e.Handlung == Handlung.Einkehren).ToList(), schaenken, g.Anziehung,
                      Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n,
-                     mitPlaetzen ? b => g.EinwohnerPlaetze(b, _einwohner.Count) ?? int.MaxValue : null,
+                     mitPlaetzen ? b => g.EinwohnerPlaetze(b, zaehlend) ?? int.MaxValue : null,
                      Dringlichkeit);
+        var uebrige = _einwohner.Where(e => !e.ZaehltFuerWirtschaft && e.Handlung == Handlung.Einkehren).ToList();
+        if (uebrige.Count == 0) return ohnePlatz;
+        var belegt = schaenken.ToDictionary(b => b.Name, b => _einwohner.Count(e => e.ZaehltFuerWirtschaft && e.Handlung == Handlung.Einkehren
+                                                                              && !ohnePlatz.Contains(e) && e.Stammschaenke == b.Name));
+        ohnePlatz.AddRange(Quote(uebrige, schaenken, g.Anziehung, Stadtort.Schaenke, e => e.Stammschaenke, (e, n) => e.Stammschaenke = n,
+                     mitPlaetzen ? b => Math.Max(0, (g.EinwohnerPlaetze(b, _einwohner.Count) ?? int.MaxValue) - belegt[b.Name]) : null,
+                     Dringlichkeit));
+        return ohnePlatz;
     }
 
     /// <summary>
@@ -235,9 +247,11 @@ public sealed class Einwohnerschaft
     private void KirchenVerteilen(List<Betrieb> kirchen)
     {
         if (kirchen.Count == 0) return;
-        foreach (var gruppe in _einwohner.Where(e => e.Handlung == Handlung.Beten).GroupBy(e => e.Glaube).OrderBy(g => g.Key))
-            Quote(gruppe.ToList(), EigeneKirchen(gruppe.Key, kirchen), _w.Kirchenwesen.Anziehung,
-                  Stadtort.Kirche, e => e.Stammkirche, (e, n) => e.Stammkirche = n);
+        // Wie bei den Schänken: erst die Zählenden (feste Quote wie vor der Bürgerdichte), dann die übrigen
+        foreach (var zaehlt in new[] { true, false })
+            foreach (var gruppe in _einwohner.Where(e => e.ZaehltFuerWirtschaft == zaehlt && e.Handlung == Handlung.Beten).GroupBy(e => e.Glaube).OrderBy(g => g.Key))
+                Quote(gruppe.ToList(), EigeneKirchen(gruppe.Key, kirchen), _w.Kirchenwesen.Anziehung,
+                      Stadtort.Kirche, e => e.Stammkirche, (e, n) => e.Stammkirche = n);
     }
 
     /// <summary>Kirchen dieser Konfession (eine Kirche ohne Familie nimmt jeden auf); gibt es keine, alle Kirchen.</summary>
@@ -330,7 +344,7 @@ public sealed class Einwohnerschaft
     }
 
     /// <summary>Wer in der Stunde, die gerade endet, in einer Kirche war (auch im Dom).</summary>
-    public int Betende => _einwohner.Count(e => e.Ort == Stadtort.Kirche);
+    public int Betende => _einwohner.Count(e => e.ZaehltFuerWirtschaft && e.Ort == Stadtort.Kirche);
 
     /// <summary>Wie viele Gebetsstunden der Einwohner bis zur Messe üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
     public double MesseErwartet => _messeErwartet;
@@ -364,7 +378,7 @@ public sealed class Einwohnerschaft
         {
             // Gezählt wird nach dem Ort ohne Tagesplan (wer nur rastet oder Besorgungen macht, zählte vorher nicht): Der Tagesplan
             // ist nur fürs Auge und verschiebt weder die Beute der Diebe noch, wen sie bestehlen.
-            if (!_passantAusAltemStand) return _einwohner.Where(e => e.PassantOhnePlan);
+            if (!_passantAusAltemStand) return _einwohner.Where(e => e.PassantOhnePlan && e.ZaehltFuerWirtschaft);
             // Spielstand von vor dem Tagesplan, bis zur nächsten vollen Stunde: Alle Orte sind noch ohne Tagesplan – die alte Zählung.
             var stundenbeginn = _w.Uhr.VergangeneMinuten - 60;
             return _einwohner.Where(e => e.Ort is Stadtort.Markt or Stadtort.Gasse
@@ -373,20 +387,7 @@ public sealed class Einwohnerschaft
         }
     }
 
-    private bool _passantAusAltemStand;
-
-    /// <summary>Schlüssel im Warenkorb-Ring für die Summe der Wirtschaftsgewichte der Einkaufenden (nur mit Gewicht unter 1).</summary>
-    private const string GewichtSchluessel = "#";
-
-    /// <summary>
-    /// Wirtschaftsgewicht eines gewöhnlichen Einwohners: jeHaus × Häuser ÷ gewöhnliche Einwohner beim Gründen (Köln etwa 0,5), sonst 1.
-    /// Mehr Figuren in großen Städten verschieben so nicht den Warenkorb: Die gewöhnlichen Einwohner wiegen zusammen so viel wie vorher,
-    /// neben den Ratsherren und Kandidaten (Gewicht 1). Die übrigen Kopplungen rechnen mit dem Verhältnis zum Üblichen und brauchen es nicht.
-    /// </summary>
-    private double _gewichtStadt = 1;
-
-    /// <summary>Wie stark dieser Einwohner in den Warenkorb der Stadt eingeht (siehe <see cref="_gewichtStadt"/>).</summary>
-    public double Wirtschaftsgewicht(Einwohner e) => e.Herkunft == Herkunft.Stadt ? _gewichtStadt : 1; // geladen aus einem Spielstand ohne PassantOhnePlan (bis zur nächsten Planung)
+    private bool _passantAusAltemStand; // geladen aus einem Spielstand ohne PassantOhnePlan (bis zur nächsten Planung)
 
     /// <summary>Wie viele Passanten zu dieser Uhrzeit üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
     public double PassantenErwartet(int stunde) => _passantenErwartet[stunde];
@@ -422,7 +423,7 @@ public sealed class Einwohnerschaft
     }
 
     /// <summary>Wer in der Stunde, die gerade endet, am Markt einkaufte.</summary>
-    public int Einkaufende => _einwohner.Count(e => e.Handlung == Handlung.Einkaufen);
+    public int Einkaufende => _einwohner.Count(e => e.ZaehltFuerWirtschaft && e.Handlung == Handlung.Einkaufen);
 
     /// <summary>Einkaufsstunden der Einwohner in den letzten 19 Spielstunden (gleitend, wie das Verkaufsfenster des Marktes).</summary>
     public int EinkaeufeImFenster => _einkaeufe.Sum();
@@ -453,13 +454,9 @@ public sealed class Einwohnerschaft
         var korb = _korb[_einkaufFach];
         korb.Clear();
         if (Daten.Warenkorb is not null)
-            foreach (var e in _einwohner.Where(e => e.Handlung == Handlung.Einkaufen))
-            {
-                var gewicht = Wirtschaftsgewicht(e);
+            foreach (var e in _einwohner.Where(e => e.ZaehltFuerWirtschaft && e.Handlung == Handlung.Einkaufen))
                 foreach (var (schluessel, neigung) in Neigungen(e))
-                    korb[schluessel] = korb.GetValueOrDefault(schluessel) + neigung * gewicht;
-                if (_gewichtStadt != 1) korb[GewichtSchluessel] = korb.GetValueOrDefault(GewichtSchluessel) + gewicht;
-            }
+                    korb[schluessel] = korb.GetValueOrDefault(schluessel) + neigung;
         _einkaufFach = (_einkaufFach + 1) % _einkaeufe.Length;
         MarktSetzen();
     }
@@ -545,7 +542,6 @@ public sealed class Einwohnerschaft
         foreach (var fach in _korb)
             foreach (var (schluessel, x) in fach)
                 summe[schluessel] = summe.GetValueOrDefault(schluessel) + x;
-        if (summe.Remove(GewichtSchluessel, out var gewichte) && gewichte > 0) kaeufer = gewichte; // Einkaufende nach Wirtschaftsgewicht
         var waren = WarenImKorb().Select(x => (Ware: x.Key, Roh: summe.GetValueOrDefault(x.Value.Korb, kaeufer) / kaeufer, x.Value.Wert))
             .Where(x => x.Wert > 0).ToList();
         if (waren.Count == 0) return;
@@ -577,10 +573,10 @@ public sealed class Einwohnerschaft
         var d = Daten;
         var plan = Haushaltsplan();
         var anzahl = plan?.Sum() ?? d.JeHaus * _w.Konten.Count;
-        if (plan is not null) _gewichtStadt = (double)(d.JeHaus * _w.Konten.Count) / anzahl;
         for (var i = 0; i < anzahl; i++)
             _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false));
         HaushalteBilden(plan);
+        WirtschaftlicheAuswahl(d.JeHaus * _w.Konten.Count);
 
         if (d.MitRatsherren && _w.Rat.IstAktiv)
             foreach (var r in _w.Rat.Ratsherren)
@@ -626,6 +622,20 @@ public sealed class Einwohnerschaft
         var plan = new List<int>(frei);
         for (var i = 0; i < frei; i++) plan.Add(Math.Max(1, d.JeHausplatz - 1 + _zufall.Next(3)));
         return plan.Sum() >= d.JeHaus * _w.Konten.Count ? plan : null;
+    }
+
+    /// <summary>
+    /// Wirtschaftsgewicht: Für Markt, Warenkorb, Schänke, Messe und Taschendiebe zählen von den gewöhnlichen Einwohnern nur so viele, wie es nach
+    /// der alten Regel gäbe (jeHaus × Häuser), gleichmäßig über die Liste – also über alle Haushalte – verteilt. Die übrigen sind echte Figuren
+    /// mit demselben Tagesablauf, gehen aber in keine Zählung ein. So schwanken die Kopplungen wie vorher: Mit doppelt so vielen Einwohnern
+    /// wurde der Spieler mit einem Betrieb in Köln sonst 10–20 % reicher (Messung 5.11.2026, Gegenprobe jeHaus 50).
+    /// Ratsherren und Kandidaten zählen immer.
+    /// </summary>
+    private void WirtschaftlicheAuswahl(int zaehlen)
+    {
+        var stadt = _einwohner.Where(e => e.Herkunft == Herkunft.Stadt).ToList();
+        for (var i = 0; i < stadt.Count; i++)
+            stadt[i].ZaehltFuerWirtschaft = stadt.Count <= zaehlen || (long)i * zaehlen / stadt.Count != (long)(i + 1) * zaehlen / stadt.Count;
     }
 
     /// <summary>Die Brautschau ändert sich (Heirat, Weggang, Nachrücker) – die Einwohnerliste folgt ihr.</summary>
@@ -1005,7 +1015,6 @@ public sealed class Einwohnerschaft
         Warenkorb = Daten.Warenkorb is null ? null : _korb.Select(k => new Dictionary<string, double>(k)).ToList(),
         EinkaufFach = _einkaufFach,
         EinkaufErwartet = _einkaufErwartet,
-        GewichtStadt = _gewichtStadt == 1 ? null : _gewichtStadt,
         Gelernt = _einkehrTage.Append(_messeTage).Append(_einkaufTage).ToList(),
         PassantenErwartet = _passantenErwartet.ToList(),
         PassantenGelernt = _passantenTage.ToList(),
@@ -1031,6 +1040,7 @@ public sealed class Einwohnerschaft
             Stammschaenke = e.Stammschaenke,
             Stammkirche = e.Stammkirche,
             PassantOhnePlan = Daten.Tagesplan is null ? null : e.PassantOhnePlan, // ohne Tagesplan rechnet das Laden es wie früher aus
+            Wirtschaft = e.ZaehltFuerWirtschaft ? null : false, // nur die Ausnahme steht im Spielstand
             Beduerfnisse = e.Beduerfnisse.ToList(),
         }).ToList(),
     };
@@ -1055,7 +1065,6 @@ public sealed class Einwohnerschaft
                 foreach (var (schluessel, x) in wk[i]) _korb[i][schluessel] = x;
         }
         _einkaufErwartet = s.EinkaufErwartet;
-        _gewichtStadt = s.GewichtStadt ?? 1;
         // Ältere Spielstände ohne Zähler: Wer schon etwas gelernt hat, gilt als eingeschwungen.
         int Tage(int i, double erwartet) => i < s.Gelernt.Count ? s.Gelernt[i] : erwartet > 0 ? 100 : 0;
         for (var i = 0; i < _einkehrTage.Length; i++) _einkehrTage[i] = Tage(i, _einkehrErwartet[i]);
@@ -1078,6 +1087,7 @@ public sealed class Einwohnerschaft
                 Stammschaenke = x.Stammschaenke,
                 Stammkirche = x.Stammkirche,
                 PassantOhnePlan = x.PassantOhnePlan ?? false,
+                ZaehltFuerWirtschaft = x.Wirtschaft ?? true,
             };
             if (x.PassantOhnePlan is null) _passantAusAltemStand = true;
             for (var i = 0; i < x.Beduerfnisse.Count && i < e.Beduerfnisse.Count; i++)
@@ -1127,9 +1137,6 @@ public sealed record EinwohnerschaftStand
     /// <summary>Warenkorb je Stunde der letzten 19 Stunden (Ring, Schlüssel „Beruf|Preisklasse“) – null ohne Warenkorb oder in älteren Spielständen.</summary>
     public List<Dictionary<string, double>>? Warenkorb { get; init; }
     public double EinkaufErwartet { get; init; }
-    /// <summary>Wirtschaftsgewicht der gewöhnlichen Einwohner (null = 1: ohne Haushalte je Hausplatz und in älteren Spielständen).</summary>
-    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-    public double? GewichtStadt { get; init; }
     /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>
     public List<int> Gelernt { get; init; } = new();
     /// <summary>Üblich Passanten je Uhrzeit 0–23 und wie oft gelernt (leer in älteren Spielständen).</summary>
@@ -1162,6 +1169,9 @@ public sealed record EinwohnerStand
     /// <summary>Passant für die Taschendiebe nach der Rechnung ohne Tagesplan (null ohne Tagesplan und in Spielständen von vor dem Tagesplan).</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public bool? PassantOhnePlan { get; init; }
+    /// <summary>False, wenn er nicht für die Wirtschaft zählt (Bürgerdichte); null = zählt (auch in älteren Spielständen).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Wirtschaft { get; init; }
     /// <summary>Dringlichkeit je Bedürfnis in der Reihenfolge von <see cref="Beduerfnis"/>.</summary>
     public List<double> Beduerfnisse { get; init; } = new();
 }

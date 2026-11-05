@@ -78,19 +78,25 @@ static class BuergerDichteTests
             Pruefe.Wahr(n > 2 * Gewoehnliche(greybox), $"Köln ({n}) sollte mehr als doppelt so viele haben wie die Greybox ({Gewoehnliche(greybox)})");
         }),
 
-        ("Wirtschaftsgewicht: Die gewöhnlichen Einwohner wiegen im Warenkorb zusammen jeHaus × Häuser, wie vor der Bürgerdichte (Köln, Greybox; ohne Karte 1)", () =>
+        ("Wirtschaftsgewicht: Für die Wirtschaft zählen genau jeHaus × Häuser gewöhnliche Einwohner, über alle Haushalte verteilt; Ratsherren und Kandidaten immer; ohne Karte alle", () =>
         {
             foreach (var karte in new[] { "koeln", "greybox" })
             {
-                var (_, w) = Partie(Daten(), karte);
+                var (sim, w) = Partie(Daten(), karte);
                 var ew = w.Einwohnerschaft;
                 var stadt = ew.Einwohner.Where(e => e.Herkunft == Herkunft.Stadt).ToList();
-                Pruefe.Ungefaehr(ew.Daten.JeHaus * w.Konten.Count, stadt.Sum(ew.Wirtschaftsgewicht), 1e-9);
-                Pruefe.Wahr(stadt.All(e => ew.Wirtschaftsgewicht(e) < 1), $"{karte}: Gewicht unter 1");
-                Pruefe.Wahr(ew.Einwohner.Where(e => e.Herkunft != Herkunft.Stadt).All(e => ew.Wirtschaftsgewicht(e) == 1), $"{karte}: Ratsherren und Kandidaten wiegen 1");
+                Pruefe.Gleich(ew.Daten.JeHaus * w.Konten.Count, stadt.Count(e => e.ZaehltFuerWirtschaft), karte);
+                Pruefe.Wahr(ew.Einwohner.Where(e => e.Herkunft != Herkunft.Stadt).All(e => e.ZaehltFuerWirtschaft), $"{karte}: Ratsherren und Kandidaten zählen");
+                var haeuserMit = stadt.Where(e => e.ZaehltFuerWirtschaft).Select(e => e.Wohnhaus).Distinct().Count();
+                Pruefe.Wahr(haeuserMit >= ew.Wohnhaeuser.Count(h => h.Art == Hausart.Wohnhaus) * 0.9, $"{karte}: Zählende in fast allen Häusern ({haeuserMit})");
+                // Nach Jahren mit Sterben und Zuzug bleibt die Zahl
+                for (var i = 0; i < 3 * Spielzeit.MinutenProTag; i++) sim.Tick();
+                Pruefe.Gleich(ew.Daten.JeHaus * w.Konten.Count, ew.Einwohner.Count(e => e.Herkunft == Herkunft.Stadt && e.ZaehltFuerWirtschaft), $"{karte} nach drei Jahren");
+                // Zählungen der Kopplung nur über die Zählenden
+                Pruefe.Gleich(ew.Einwohner.Count(e => e.ZaehltFuerWirtschaft && e.Handlung == Handlung.Einkaufen), ew.Einkaufende, $"{karte}: Einkaufende");
             }
             var (_, ohne) = Partie(Daten(), karte: null);
-            Pruefe.Wahr(ohne.Einwohnerschaft.Einwohner.All(e => ohne.Einwohnerschaft.Wirtschaftsgewicht(e) == 1), "Ohne Karte wiegt jeder 1");
+            Pruefe.Wahr(ohne.Einwohnerschaft.Einwohner.All(e => e.ZaehltFuerWirtschaft), "Ohne Karte zählen alle");
         }),
 
         ("Bürgerdichte: Je freiem Hausplatz genau ein einfaches Wohnhaus mit jeHausplatz ± 1 Bewohnern (Köln, Greybox)", () =>

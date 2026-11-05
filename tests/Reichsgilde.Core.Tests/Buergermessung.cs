@@ -50,6 +50,9 @@ static class Buergermessung
             ["neu"] = () => new Messquellen(),
             // Gegenprobe für das Rauschen: wie „alt“, aber 26 statt 25 Einwohner je Haus – ein anderer Lauf der Bürger-KI bei fast gleicher Stadt
             ["alt26"] = () => new Messquellen(anpassen: json => Alt(json).Replace("\"jeHaus\":25", "\"jeHaus\":26")),
+            // Diagnose: doppelt so viele Einwohner nach der alten Regel (ohne Tagesplan) bzw. nur die Haushalte je Hausplatz (ohne Tagesplan)
+            ["alt50"] = () => new Messquellen(anpassen: json => Alt(json).Replace("\"jeHaus\":25", "\"jeHaus\":50")),
+            ["ohneplan"] = () => new Messquellen(anpassen: json => { var k = JsonNode.Parse(json)!.AsObject(); k["buerger"]!.AsObject().Remove("tagesplan"); return k.ToJsonString(); }),
         };
         var quellen = (Schalter("varianten") ?? "alt,neu").Split(',').ToDictionary(v => v, v => alle[v](), StringComparer.Ordinal);
         var einzeln = args.Contains("--einzeln");
