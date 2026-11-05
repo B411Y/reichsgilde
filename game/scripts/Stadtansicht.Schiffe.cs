@@ -120,6 +120,7 @@ public partial class Stadtansicht
     /// <summary>Jedes Bild: Schiffe der Häuser anlegen, verkaufte entfernen, alle an ihren Ort setzen (aus <see cref="Aktualisieren"/>).</summary>
     private void SchiffeAktualisieren(Stadtwirtschaft w, double minute, double delta)
     {
+        HafenstegeSichern(w);
         if (w.Schiffahrt.Ruht && _schiffe.Count == 0)
         {
             ZierschiffAktualisieren(w, minute, delta); // Stadtansicht.Zierschiff.cs
@@ -184,12 +185,8 @@ public partial class Stadtansicht
         float drehung;
         if (liegt && w.Schiffahrt.Hafen(schiff.Hafen) is { } hafen)
         {
-            // Längsseits am Kai: die Kaiseite (+Z) zur Kaimauer, Anker_Kai auf der Kaikante; das Päckchen liegt weiter draußen
-            var nach = new Vector3((float)hafen.RichtungX, 0, (float)hafen.RichtungZ);
-            var kante = new Vector3((float)hafen.Liegeplatz.X, 0, (float)hafen.Liegeplatz.Z) - nach * (float)Schiffahrt.LiegeplatzAbstand;
-            drehung = Mathf.Atan2(-nach.X, -nach.Z);
-            var anker = new Basis(Vector3.Up, drehung) * new Vector3(ansicht.AnkerKai.X, 0, ansicht.AnkerKai.Z);
-            ziel = kante - anker + nach * (paeckchen * SchiffPaeckchen);
+            // Längsseits am Steg (Stadtansicht.Hafensteg.cs): die Kaiseite (+Z) zum Kopf des Stegs, Anker_Kai vor der Kaimauer; das Päckchen liegt weiter draußen
+            (ziel, drehung) = StegLiegeplatz(hafen, ansicht, StegAbstand + paeckchen * SchiffPaeckchen);
         }
         else
         {
