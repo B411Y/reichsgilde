@@ -58,6 +58,7 @@ public sealed class Unterwelt
     private double _chanceFaktor = 1;
     private bool _letzterVersuch = true, _bisherErfolg, _versuchErfolg;
     private readonly List<bool> _erfolgreich = new(); // je Auftrag in _auftraege: schon ein Erfolg in dieser Nacht?
+    private int? _versuch; // nur für die Liste der Vorfälle: der laufende Versuch der Nacht (sonst null, nicht im Spielstand)
 
     private readonly Stadtwirtschaft _w;
     private readonly GaunerDaten? _d;
@@ -78,6 +79,9 @@ public sealed class Unterwelt
     public IReadOnlyList<Nachtereignis> DiesesJahr => _diesesJahr;
     public IReadOnlyList<Nachtereignis> LetztesJahr => _letztesJahr;
 
+    /// <summary>Die Liste der Vorfälle (Banden, Diebe, Überfälle) des laufenden und des letzten Tags – für die Darstellung, nicht im Spielstand.</summary>
+    public Vorfallbuch Vorfaelle { get; }
+
     /// <summary>Die Banden haben ihre Aufträge ausgeführt (für Oberflächen, die sich dann neu aufbauen).</summary>
     public event Action? NachtVorbei;
 
@@ -90,6 +94,7 @@ public sealed class Unterwelt
         _w = w;
         _d = daten;
         _zufall = new Zufallsquelle(unchecked(zufallsstartwert * 29 + 11));
+        Vorfaelle = new Vorfallbuch(w);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -459,6 +464,7 @@ public sealed class Unterwelt
                 // Gaunerei je Nachtstunde: jeder Versuch mit einem Teil der Chance; eine Spur je Erfolg, ohne jeden Erfolg eine für den Versuch
                 _chanceFaktor = d.VersuchFaktor;
                 _letzterVersuch = letzter;
+                _versuch = versuch;
                 _bisherErfolg = _erfolgreich[i];
                 _versuchErfolg = false;
                 switch (a.Art)
@@ -472,7 +478,7 @@ public sealed class Unterwelt
                 _erfolgreich[i] |= _versuchErfolg;
                 // Zurück auf „kein Nachtversuch“: Zwischen zwei Versuchen gilt das immer, deshalb steht davon nichts im Spielstand. Auch
                 // _bisherErfolg, sonst sähe eine Tat außerhalb der Versuche (Überfall, Entführung, Brand) den Erfolg eines anderen Auftrags.
-                (_chanceFaktor, _letzterVersuch, _bisherErfolg) = (1, true, false);
+                (_chanceFaktor, _letzterVersuch, _bisherErfolg, _versuch) = (1, true, false, null);
                 // Eine Sabotage wirkt höchstens einmal je Nacht (wie der Brand am Wohnhaus): Die Werkstatt brennt schon (PR #219).
                 erledigt = letzter || (a.Art == Gaunerstueck.Sabotage && _erfolgreich[i]);
             }
@@ -645,16 +651,22 @@ public sealed class Unterwelt
         }
         else
             oeffentlich = $"Hinterhalt auf {karren.Name} von {karren.Heimat.Name} – die Eskorte schlägt die Wegelagerer in die Flucht.";
-        Spur(new Gaunerauftrag(h.Auftraggeber, h.Ziel, Gaunerstueck.Ueberfall, karren.Heimat.Name), Vergehen.Raub, karren.Heimat.Name, wert, null, erfolg, oeffentlich);
+        Spur(new Gaunerauftrag(h.Auftraggeber, h.Ziel, Gaunerstueck.Ueberfall, karren.Heimat.Name), Vergehen.Raub, karren.Heimat.Name, wert, null, erfolg, oeffentlich,
+            karren: karren, geleit: eskorte.Wache ? _w.Wache.Geleitgeber : null);
         return true;
     }
 
     /// <summary>Spur fürs Gericht, öffentliche Nachricht – und vielleicht ein Zeuge, der den Auftraggeber erkannt hat.</summary>
-    private void Spur(Gaunerauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich, bool wohnhaus = false)
+    private void Spur(Gaunerauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich, bool wohnhaus = false,
+        Karren? karren = null, Konto? geleit = null)
     {
         _versuchErfolg = erfolg;
         // Gaunerei je Nachtstunde: Ein misslungener Versuch fällt nur auf, wenn die ganze Nacht nichts gelang (dann eine Spur, im letzten Versuch).
-        if (!erfolg && !(_letzterVersuch && !_bisherErfolg)) return;
+        if (!erfolg && !(_letzterVersuch && !_bisherErfolg))
+        {
+            VorfallEintragen(a, b, erfolg, betrag, false, null, karren, geleit);
+            return;
+        }
         _letzterAngriff[betroffener] = _w.Jahr;
         var spur = _w.Justiz.TatMelden(a.Auftraggeber, vergehen, betroffener, betrag);
         var zeuge = _zufall.NextDouble() < (wohnhaus ? ZeugenchanceWohnhaus(a.Ziel, erfolg, a.Auftraggeber) : Zeugenchance(b, erfolg, a.Auftraggeber));
@@ -663,7 +675,31 @@ public sealed class Unterwelt
             _w.Justiz.BeweisGeben(a.Ziel, spur);
             oeffentlich += $" Ein Zeuge hat Leute von {a.Auftraggeber.Inhaber} erkannt!";
         }
+        VorfallEintragen(a, b, erfolg, betrag, zeuge, zeuge && spur is not null ? a.Ziel : null, karren, geleit);
         Ereignis(null, oeffentlich);
+    }
+
+    /// <summary>Den Versuch einer Bande in die Liste der Vorfälle schreiben (liest nur, würfelt nichts).</summary>
+    private void VorfallEintragen(Gaunerauftrag a, Betrieb? b, bool erfolg, double wert, bool zeuge, Konto? beweis, Karren? karren, Konto? geleit)
+    {
+        var (art, ort) = a.Art switch
+        {
+            Gaunerstueck.Diebstahl => (Vorfallart.Einbruch, Vorfallort.Betrieb),
+            Gaunerstueck.Sabotage => (Vorfallart.Brandanschlag, Vorfallort.Betrieb),
+            Gaunerstueck.Hauseinbruch => (Vorfallart.Hauseinbruch, Vorfallort.Wohnhaus),
+            Gaunerstueck.Brandstiftung => (Vorfallart.Hausbrand, Vorfallort.Wohnhaus),
+            Gaunerstueck.Kroetenschleim => (Vorfallart.Giftanschlag, Vorfallort.Wohnhaus),
+            _ => (Vorfallart.Ueberfall, Vorfallort.Landstrasse),
+        };
+        Vorfaelle.Eintragen(new Vorfall
+        {
+            Art = art, Ort = ort, Erfolg = erfolg, Wert = erfolg ? wert : 0, Versuch = _versuch,
+            Ziel = ort switch { Vorfallort.Betrieb => b!.Name, Vorfallort.Wohnhaus => WohnhausVon(a.Ziel), _ => karren?.Name ?? a.Betrieb ?? "" },
+            Taeterhaus = a.Auftraggeber, Bande = "Bande",
+            Opfer = a.Ziel, Betrieb = ort == Vorfallort.Betrieb ? b!.Name : karren?.Heimat.Name, Karren = karren?.Name,
+            Zeuge = zeuge, Beweis = beweis, Wache = geleit,
+            Waechter = ort == Vorfallort.Betrieb ? b!.Waechter : ort == Vorfallort.Wohnhaus && a.Ziel.Hauswaechter,
+        }, stundenende: _versuch is not null);
     }
 
     /// <summary>Ein Betrieb wurde angegriffen (auch von Dieben) – die Stadt redet davon, die KI stellt Wächter ein.</summary>
