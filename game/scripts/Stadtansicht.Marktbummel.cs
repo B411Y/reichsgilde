@@ -82,6 +82,8 @@ public partial class Stadtansicht
             if (form == "Stand_Karren") { Umriss(0, 0, 1.35f, 0.92f); Umriss(-1.83f, 0, 0.55f, 0.55f); }
             else Umriss(0, 0.1f, 1.45f, 0.9f); // vorn bis 1,0 m: der angelehnte Mühlstein der Steinauslage
         }
+        Marktflaeche.NetzAus = Wasserarten.Startoption("passantennetz") is "aus";
+        if (!Marktflaeche.NetzAus) flaeche.Vorbereiten(FlaecheFrei); // das Wegenetz einmal beim Laden (Marktflaeche.NetzPfad), nicht beim ersten Weg
         platz.Flaeche = flaeche;
 
         // Gesprächsgruppen: um die Mitte jeder Plauderrunde vier Plätze, in der Reihenfolge, in der sie sich füllen (zwei gegenüber, dann dazwischen)
