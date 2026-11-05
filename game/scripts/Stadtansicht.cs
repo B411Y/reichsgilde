@@ -827,6 +827,7 @@ public partial class Stadtansicht : Node3D
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         NachtwaechterAktualisieren(w, zeit, bruchteil, delta); // Wachleute auf Streife (Stadtansicht.Nachtlichter.cs)
         TorwacheAktualisieren(w, zeit, bruchteil, delta); // Torwächter am Tor, Schichtwechsel (Stadtansicht.Torwache.cs)
+        TaschendiebeAktualisieren(w, zeit, bruchteil, delta); // Taschendiebe und Festnahmen am Markt (Stadtansicht.Taschendiebe.cs)
         BlitzbrandAktualisieren(w, zeit.VergangeneMinuten, bruchteil, delta); // Blitzschlag: Strahl, Feuer, Ruß, Löschkette (Stadtansicht.Blitzbrand.cs)
         FeuerAktualisieren(w, zeit, bruchteil, delta); // Kaminrauch und brennende Häuser (Stadtansicht.Feuer.cs)
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
@@ -1179,6 +1180,7 @@ public partial class Stadtansicht : Node3D
     /// <summary>Welches Gebäude liegt an dieser Bildschirmstelle? (Strahl aus der Kamera, trifft die Klickflächen)</summary>
     private string? KennungBei(Vector2 bildschirm)
     {
+        if (DiebBei(bildschirm) is { } gestalt) return gestalt; // Taschendiebe (Stadtansicht.Taschendiebe.cs)
         if (PassantBei(bildschirm) is { } einwohner) return einwohner; // Figuren vor Gebäuden (Stadtansicht.Passanten.cs)
         var kamera = _raum is not null ? _raumKamera : StadtKamera;
         var von = kamera.ProjectRayOrigin(bildschirm);
