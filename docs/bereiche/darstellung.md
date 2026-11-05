@@ -582,7 +582,7 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung | Köln (30 Flächen, 206 Kästen, rund 3.100 Teile, 283 MultiMeshes in 64-m-Zellen), Vulkan auf der Grafikkarte, Pixel-Look: Aufbau beim Laden rund 175 ms (55–70 ms Rechnung, 100–120 ms MultiMeshes; die Baukästen laden im Hintergrund, ohne das +1,1 s). Nahe Zoomstufe: +110 (Blick auf einen Garten) bis +160 Zeichenaufrufe (Blick auf einen Werkhof mit 88 Feldern), in den Stufen 70 und 140 m 0 (ausgeblendet). **Das Ziel +0,4 ms ist in der nahen Stufe wohl verfehlt:** die einzige ruhige Messung (Last 2,5, Zoom 25, 96-m-Zellen, noch ohne Zoomgrenze und mit Schatten an Werkbank und Wagen) gab Bildzeit +0,9 ms (Median 25,4 → 26,3), GPU +0,75 ms bei +114 Zeichenaufrufen; alle späteren Läufe liefen auf einer mit Last 5–30 überlasteten NAS (Bildzeit 29–78 ms, nicht zu lesen), die Zeichenaufrufe sind davon unabhängig. Nachmessen bei ruhiger NAS (`--messung=20 --vsync=Aus --blick=8,62,35` mit `--fuellung=0|1`); Hebel für Paket 2: Sätze als ein Netz je Format (siehe Offen) | 04.11.2026 |
 | Bilder | Vorher-nachher Köln (R2 Garten, R12 Werkhof, R5 Randgestrüpp, R25 großer Werkhof), Greybox (R1, R8), Winter (R2): `/tmp/…/restflaechen/p1/`, Vulkan auf der Grafikkarte, Pixel-Look | 04.11.2026 |
 
-### Torwache (PR folgt)
+### Torwache (PR #328)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

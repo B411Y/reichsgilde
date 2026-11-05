@@ -135,7 +135,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Darstellung | Ab 300 Einwohnern rechnet die Darstellung außerhalb des Bildes sparsamer (`VieleFiguren`, kleine Änderung im Bereich darstellung: `Stadtansicht.Passanten.cs`, `.Figuren.cs`, `.Marktbummel.cs`, `.Passantenausweichen.cs`). Das Ziel „+2 ms“ wird damit noch nicht erreicht (Messung unten); weitere Hebel bei darstellung. | 5.11.2026 |
 | Tests | `BuergerDichteTests` (9): ohne Karte bzw. ohne Feld alte Zahl; Köln/Greybox ein Haus je Platz mit 5–7 Bewohnern; Zählende genau jeHaus × Häuser, auch nach Jahren; Tagesplan ändert nur den Ort (8–20 Uhr, Heim → Markt); tagsüber mehr am Markt, ab 20 Uhr niemand draußen rastend; Wurf fest und gleichverteilt; Köln und Greybox zwei Jahre mit und ohne – Vermögen, Nachfrage, Passanten, Handlungen gleich; Speichern/Laden mittags. Angepasst: zwei Prüfungen in `BuergerTests` (Dienst darf am Markt sein), `HafenRuhtTests` nimmt die neuen Felder heraus (Sollwerte vor dem Schalter). | 5.11.2026 |
 
-### Torwache (PR folgt)
+### Torwache (PR #328)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
