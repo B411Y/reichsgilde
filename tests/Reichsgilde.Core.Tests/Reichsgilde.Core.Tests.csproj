@@ -18,6 +18,8 @@
   <ItemGroup>
     <!-- Die Erkennung der Haushofmeister-Ansagen liegt im Spielordner, kennt aber Godot nicht – so lässt sie sich mit echten Kernmeldungen prüfen (AnsagenErkennungTests.cs) -->
     <Compile Include="..\..\game\scripts\KlangAnsagenErkennung.cs" Link="Ansagen\KlangAnsagenErkennung.cs" />
+    <!-- Die Zuordnung der Textmeldungen zu Arten und Stufen (Benachrichtigungen Stufe 1) kennt ebenfalls kein Godot – MeldungsordnungTests.cs -->
+    <Compile Include="..\..\game\scripts\Meldungsordnung.cs" Link="Ansagen\Meldungsordnung.cs" />
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
     <Compile Include="..\..\game\scripts\Gehtempo.cs" Link="Gehtempo\Gehtempo.cs" />
     <!-- Die Spuren der Passanten (Rechtsverkehr, Schwanken, weiche Übergänge) – PassantenspurTests.cs -->

@@ -4,7 +4,7 @@ Lautstärken, Stumm und die Klänge der Oberfläche stehen bei den [Einstellunge
 
 ## Der Haushofmeister
 
-Bei wichtigen Ereignissen **deines Hauses** spricht ein alter, ruhiger Haushofmeister einen kurzen Satz, zum Beispiel „Mein Herr, ein Glied Eures Hauses ist verschieden.“ Spielst du eine Frau (das Oberhaupt ist eine Frau), heißt es „Meine Herrin …“. Die Sätze nennen nie einen Namen; wer betroffen ist, steht wie immer in der Textmeldung unten links. Ereignisse fremder Häuser sagt er nie an (auch nicht im Mehrspielerspiel); nur die Pest in der Stadt trifft alle.
+Bei wichtigen Ereignissen **deines Hauses** spricht ein alter, ruhiger Haushofmeister einen kurzen Satz, zum Beispiel „Mein Herr, ein Glied Eures Hauses ist verschieden.“ Spielst du eine Frau (das Oberhaupt ist eine Frau), heißt es „Meine Herrin …“. Die Sätze nennen nie einen Namen; wer betroffen ist, steht wie immer in der Meldung (Siegel oder Brief unten rechts, siehe [Meldungen](meldungen.md)). Ereignisse fremder Häuser sagt er nie an (auch nicht im Mehrspielerspiel); nur die Pest in der Stadt trifft alle.
 
 - **Abschalten:** Einstellungen, Reiter Ton, Schalter **Ansagen des Haushofmeisters**. Die Lautstärke hat der Regler **Stimmen**.
 - **Nie zwei auf einmal:** Es spricht immer nur eine Ansage. Danach ist **20 Sekunden** Pause (echte Zeit, unabhängig vom Spieltempo). Kommen in der Pause weitere Ereignisse, wartet nur die **wichtigste**; was überholt ist oder länger als 45 Sekunden wartet, verfällt. Eine laufende Ansage wird nicht unterbrochen.
