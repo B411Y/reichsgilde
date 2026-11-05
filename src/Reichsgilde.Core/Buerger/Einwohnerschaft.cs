@@ -362,12 +362,18 @@ public sealed class Einwohnerschaft
     {
         get
         {
+            // Gezählt wird nach dem Ort ohne Tagesplan (wer nur rastet oder Besorgungen macht, zählte vorher nicht): Der Tagesplan
+            // ist nur fürs Auge und verschiebt weder die Beute der Diebe noch, wen sie bestehlen.
+            if (!_passantAusAltemStand) return _einwohner.Where(e => e.PassantOhnePlan);
+            // Spielstand von vor dem Tagesplan, bis zur nächsten vollen Stunde: Alle Orte sind noch ohne Tagesplan – die alte Zählung.
             var stundenbeginn = _w.Uhr.VergangeneMinuten - 60;
             return _einwohner.Where(e => e.Ort is Stadtort.Markt or Stadtort.Gasse
                                          || e.Weg is { } w && w.Abmarsch >= stundenbeginn
                                             && w.Von.Ort != Stadtort.Umland && w.Nach.Ort != Stadtort.Umland);
         }
     }
+
+    private bool _passantAusAltemStand; // geladen aus einem Spielstand ohne PassantOhnePlan (bis zur nächsten Planung)
 
     /// <summary>Wie viele Passanten zu dieser Uhrzeit üblich sind (gleitender Mittelwert; 0 = noch keine Erfahrung).</summary>
     public double PassantenErwartet(int stunde) => _passantenErwartet[stunde];
@@ -551,10 +557,11 @@ public sealed class Einwohnerschaft
     private void Gruenden(int jahr)
     {
         var d = Daten;
-        var anzahl = d.JeHaus * _w.Konten.Count;
+        var plan = Haushaltsplan();
+        var anzahl = plan?.Sum() ?? d.JeHaus * _w.Konten.Count;
         for (var i = 0; i < anzahl; i++)
             _einwohner.Add(NeuerStadtbewohner(jahr, zuzug: false));
-        HaushalteBilden();
+        HaushalteBilden(plan);
 
         if (d.MitRatsherren && _w.Rat.IstAktiv)
             foreach (var r in _w.Rat.Ratsherren)
@@ -574,6 +581,32 @@ public sealed class Einwohnerschaft
 
         KandidatenAbgleichen();
         _gegruendet = true;
+    }
+
+    /// <summary>
+    /// Hausplätze der Karte für Einwohner: Einwohnerplätze und Kulissenhäuser (die Darstellung stellt auf jeden ein Wohnhaus, siehe
+    /// Stadtansicht.Wohnviertel.cs). Ohne Karte 0.
+    /// </summary>
+    public int Hausplaetze => _w.Karte is { } k
+        ? k.GebaeudeDerArt(Bauen.Bausteinart.Einwohnerplatz).Count() + k.GebaeudeDerArt(Bauen.Bausteinart.Kulisse).Count()
+        : 0;
+
+    /// <summary>
+    /// Mit Karte und <see cref="BuergerDaten.JeHausplatz"/>: ein Haushalt je freiem Hausplatz (ohne die Plätze der Ratsherren- und Bürgerhäuser,
+    /// die zuerst in der Stadt stehen), jeder mit jeHausplatz − 1 bis jeHausplatz + 1 Personen. Null – also <see cref="BuergerDaten.JeHaus"/> je
+    /// Haus in Haushalten zu haushaltVon–haushaltBis wie bisher –, wenn das Feld fehlt, es keine Karte gibt oder die Plätze weniger Einwohner
+    /// fassen als jeHaus × Häuser (dann wächst die Vorstadt wie bisher).
+    /// </summary>
+    private List<int>? Haushaltsplan()
+    {
+        var d = Daten;
+        if (d.JeHausplatz <= 0 || Hausplaetze == 0) return null;
+        var gross = d.Buergerhaeuser + (d.MitRatsherren && _w.Rat.IstAktiv ? _w.Rat.Ratsherren.Count : 0);
+        var frei = Hausplaetze - gross;
+        if (frei * (d.JeHausplatz + 1) < d.JeHaus * _w.Konten.Count) return null; // reicht sicher nicht: wie bisher
+        var plan = new List<int>(frei);
+        for (var i = 0; i < frei; i++) plan.Add(Math.Max(1, d.JeHausplatz - 1 + _zufall.Next(3)));
+        return plan.Sum() >= d.JeHaus * _w.Konten.Count ? plan : null;
     }
 
     /// <summary>Die Brautschau ändert sich (Heirat, Weggang, Nachrücker) – die Einwohnerliste folgt ihr.</summary>
@@ -624,17 +657,21 @@ public sealed class Einwohnerschaft
         return e;
     }
 
-    /// <summary>Teilt die gewöhnlichen Einwohner in Haushalte zu je 4–6 Personen (einfache Wohnhäuser) und legt die Bürgerhäuser an.</summary>
-    private void HaushalteBilden()
+    /// <summary>
+    /// Teilt die gewöhnlichen Einwohner in Haushalte (einfache Wohnhäuser) – nach dem <paramref name="plan"/> (ein Haushalt je Hausplatz) oder zu je
+    /// haushaltVon–haushaltBis Personen – und legt die Bürgerhäuser an.
+    /// </summary>
+    private void HaushalteBilden(List<int>? plan)
     {
         var d = Daten;
         var offen = 0;
+        var haushalt = 0;
         foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Stadt))
         {
             if (offen == 0)
             {
                 NeuesHaus(Hausart.Wohnhaus);
-                offen = d.HaushaltVon + _zufall.Next(d.HaushaltBis - d.HaushaltVon + 1);
+                offen = plan is not null ? plan[haushalt++] : d.HaushaltVon + _zufall.Next(d.HaushaltBis - d.HaushaltVon + 1);
             }
             e.Wohnhaus = _haeuser[^1].Nummer;
             e.Haus = e.Wohnhaus;
@@ -713,6 +750,7 @@ public sealed class Einwohnerschaft
         e.Stelle = null;
         e.Haus = e.Wohnhaus;
         e.Weg = null; // über Nacht zu Hause
+        e.PassantOhnePlan = false;
         e.Stammschaenke = null;
         e.Stammkirche = null;
     }
@@ -736,6 +774,8 @@ public sealed class Einwohnerschaft
         // Die Messe wird zur vollen Stunde MesseUm abgerechnet – für die Stunde davor (z. B. 9–10 Uhr bei Messe um 10).
         var messe = _w.Kirchenwesen.IstAktiv && stunde + 1 == _w.Kirchenwesen.Daten.MesseUm ? d.Messe : 1;
 
+        _passantAusAltemStand = false;
+        var vorherHandlung = _einwohner.Select(e => e.Handlung).ToArray(); // für den Ort der Vorstunde ohne Tagesplan
         // Die zweitbeste Handlung ohne Einkehren: Sie tut, wer in keiner Schänke mehr Platz findet (Sitzplätze, Datenversion 67).
         var ersatz = new Dictionary<Einwohner, Handlung>(ReferenceEqualityComparer.Instance);
         foreach (var e in _einwohner)
@@ -782,19 +822,89 @@ public sealed class Einwohnerschaft
             foreach (var (b, x) in d.Handlungen[e.Handlung].Stillt)
                 e.Setzen(b, e.Wert(b) - x * (e.Handlung == Handlung.Beten ? messe : 1));
 
-        foreach (var e in _einwohner)
+        for (var i = 0; i < _einwohner.Count; i++)
         {
+            var e = _einwohner[i];
             var vorher = e.Aufenthalt;
             var beste = e.Handlung;
-            (e.Ort, e.Betrieb) = Ort(e, beste, schaenken, kirchen);
-            e.Haus = e.Ort == Stadtort.Heim ? (beste == Handlung.Arbeiten && IstDienst(e) ? Dienstherr(e) : e.Wohnhaus) : 0;
-            e.Stelle = e.Ort == Stadtort.Umland && d.Rollen.TryGetValue(e.Rolle, out var rolle) ? rolle.Stelle : null;
-            if (e.Aufenthalt != vorher)
-                e.Weg = NeuerWeg(vorher, e.Aufenthalt, zeit.VergangeneMinuten);
+            // Erst der Ort ohne Tagesplan (so rechnete die Bürger-KI bis Datenversion 72) …
+            var (ort, betrieb) = Ort(e, beste, schaenken, kirchen);
+            var haus = ort == Stadtort.Heim ? (beste == Handlung.Arbeiten && IstDienst(e) ? Dienstherr(e) : e.Wohnhaus) : 0;
+            var stelle = ort == Stadtort.Umland && d.Rollen.TryGetValue(e.Rolle, out var rolle) ? rolle.Stelle : null;
+            var ohnePlan = new Aufenthalt(ort, betrieb, haus, stelle);
+            var vorherOhnePlan = OhnePlan(e, vorherHandlung[i], zeit.Jahr, stunde - 1, vorher);
+            // … mit seinem Weg: Er würfelt genau wie früher, damit der Generator der Bürger denselben Lauf nimmt.
+            var wegOhnePlan = ohnePlan != vorherOhnePlan ? NeuerWeg(vorherOhnePlan, ohnePlan, zeit.VergangeneMinuten) : null;
+            e.PassantOhnePlan = ort is Stadtort.Markt or Stadtort.Gasse
+                                || wegOhnePlan is not null && ohnePlan.Ort != Stadtort.Umland && vorherOhnePlan.Ort != Stadtort.Umland;
+            // Dann der Tagesplan: Rast oder Besorgung am Markt statt drinnen.
+            var jetzt = ort == Stadtort.Heim && Draussen(e, beste, zeit.Jahr, stunde) ? new Aufenthalt(Stadtort.Markt, null, 0, null) : ohnePlan;
+            (e.Ort, e.Betrieb, e.Haus, e.Stelle) = (jetzt.Ort, jetzt.Betrieb, jetzt.Haus, jetzt.Stelle);
+            if (jetzt != vorher)
+                e.Weg = wegOhnePlan is not null && wegOhnePlan.Von == vorher && wegOhnePlan.Nach == jetzt
+                    ? wegOhnePlan
+                    : FesterWeg(vorher, jetzt, zeit.VergangeneMinuten, e.Nummer, zeit.Jahr, stunde);
         }
     }
 
     private bool IstDienst(Einwohner e) => Daten.Rollen.TryGetValue(e.Rolle, out var r) && r.Dienst;
+
+    /// <summary>
+    /// Tagesplan: Verbringt er diese Stunde draußen auf dem Markt, statt drinnen? Wer tagsüber ruht, rastet mit dem Anteil
+    /// <see cref="TagesplanDaten.RastDraussen"/> am Markt; Knechte und Mägde im Dienst machen mit dem Anteil <see cref="TagesplanDaten.Besorgungen"/>
+    /// Besorgungen. Wer an der Reihe ist, folgt fest aus Nummer, Tag und Doppelstunde – ohne den Generator der Bürger, gleich auf jedem Rechner.
+    /// </summary>
+    private bool Draussen(Einwohner e, Handlung handlung, int tag, int stunde)
+    {
+        if (Daten.Tagesplan is not { } t || stunde < t.Von || stunde >= t.Bis) return false;
+        var anteil = handlung switch
+        {
+            Handlung.Ruhen => t.RastDraussen,
+            Handlung.Arbeiten when IstDienst(e) => t.Besorgungen,
+            _ => 0,
+        };
+        return anteil > 0 && Wurf(e.Nummer, tag, stunde / 2) < anteil; // je zwei Stunden ein Wurf: wer rastet, bleibt eine Weile
+    }
+
+    /// <summary>
+    /// Wo er in der Vorstunde ohne Tagesplan gewesen wäre: Stand er nur nach dem Tagesplan am Markt, war er „eigentlich“ daheim bzw. im Dienst.
+    /// Das folgt eindeutig aus seiner Handlung der Vorstunde (ruhen und dienen geschieht ohne Tagesplan immer im Haus).
+    /// </summary>
+    private Aufenthalt OhnePlan(Einwohner e, Handlung handlung, int tag, int stunde, Aufenthalt war)
+    {
+        if (war.Ort != Stadtort.Markt || !Draussen(e, handlung, tag, stunde)) return war;
+        return new Aufenthalt(Stadtort.Heim, null, handlung == Handlung.Arbeiten && IstDienst(e) ? Dienstherr(e) : e.Wohnhaus, null);
+    }
+
+    /// <summary>
+    /// Ein Weg, den es nur durch den Tagesplan gibt: Abmarsch und Dauer wie bei <see cref="NeuerWeg"/>, aber fest aus Nummer, Tag und Stunde
+    /// statt aus dem Generator der Bürger (der bleibt für die Wirtschaft unberührt).
+    /// </summary>
+    private Weg FesterWeg(Aufenthalt von, Aufenthalt nach, long stunde, int nummer, int tag, int uhr)
+    {
+        var w = Daten.Wege;
+        var abmarsch = stunde + (int)(Wurf(nummer, tag, 100 + uhr) * (w.Verzoegerung + 1));
+        int dauer;
+        if (von.Ort == Stadtort.Umland || nach.Ort == Stadtort.Umland) dauer = w.Umland;
+        else if (von.Ort == Stadtort.Tor || nach.Ort == Stadtort.Tor) dauer = w.Tor;
+        else dauer = w.Stadt - w.Streuung + (int)(Wurf(nummer, tag, 200 + uhr) * (2 * w.Streuung + 1));
+        return new Weg(von, nach, abmarsch, abmarsch + dauer);
+    }
+
+    /// <summary>Eine feste Zahl in [0, 1) aus Nummer, Tag und Stunde (ganzzahliges Mischen, kein Zufall, keine Gleitkomma-Funktion).</summary>
+    internal static double Wurf(int nummer, int tag, int stunde)
+    {
+        unchecked
+        {
+            var x = (uint)nummer * 2654435761u ^ (uint)tag * 40503u ^ (uint)stunde * 2246822519u;
+            x ^= x >> 15;
+            x *= 2246822519u;
+            x ^= x >> 13;
+            x *= 3266489917u;
+            x ^= x >> 16;
+            return (x >> 8) / (double)(1 << 24);
+        }
+    }
 
     /// <summary>Ein Weg beginnt kurz nach der vollen Stunde (0–<c>wege.verzoegerung</c> Minuten) und dauert je nach Ziel: in der Stadt <c>stadt</c> ± <c>streuung</c>, zum Tor <c>tor</c>, ins Umland <c>umland</c> (heute 30 ± 10, 40, 50 Minuten).</summary>
     private Weg NeuerWeg(Aufenthalt von, Aufenthalt nach, long stunde)
@@ -900,6 +1010,7 @@ public sealed class Einwohnerschaft
             Weg = e.Weg,
             Stammschaenke = e.Stammschaenke,
             Stammkirche = e.Stammkirche,
+            PassantOhnePlan = Daten.Tagesplan is null ? null : e.PassantOhnePlan, // ohne Tagesplan rechnet das Laden es wie früher aus
             Beduerfnisse = e.Beduerfnisse.ToList(),
         }).ToList(),
     };
@@ -945,7 +1056,9 @@ public sealed class Einwohnerschaft
                 Weg = x.Weg,
                 Stammschaenke = x.Stammschaenke,
                 Stammkirche = x.Stammkirche,
+                PassantOhnePlan = x.PassantOhnePlan ?? false,
             };
+            if (x.PassantOhnePlan is null) _passantAusAltemStand = true;
             for (var i = 0; i < x.Beduerfnisse.Count && i < e.Beduerfnisse.Count; i++)
                 e.Setzen((Beduerfnis)i, x.Beduerfnisse[i]);
             _einwohner.Add(e);
@@ -960,7 +1073,7 @@ public sealed class Einwohnerschaft
     /// <summary>Spielstand aus der Zeit vor den Wohnhäusern: Häuser jetzt verteilen (einmalig, danach wie immer).</summary>
     private void HaeuserNachruesten()
     {
-        HaushalteBilden();
+        HaushalteBilden(plan: null);
         foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Ratsherr))
             e.Wohnhaus = NeuesHaus(Hausart.Ratsherrenhaus);
         foreach (var e in _einwohner.Where(e => e.Herkunft == Herkunft.Kandidat))
@@ -1022,6 +1135,9 @@ public sealed record EinwohnerStand
     public Weg? Weg { get; init; }
     public string? Stammschaenke { get; init; }
     public string? Stammkirche { get; init; }
+    /// <summary>Passant für die Taschendiebe nach der Rechnung ohne Tagesplan (null ohne Tagesplan und in Spielständen von vor dem Tagesplan).</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PassantOhnePlan { get; init; }
     /// <summary>Dringlichkeit je Bedürfnis in der Reihenfolge von <see cref="Beduerfnis"/>.</summary>
     public List<double> Beduerfnisse { get; init; } = new();
 }

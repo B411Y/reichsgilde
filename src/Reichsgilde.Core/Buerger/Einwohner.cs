@@ -61,6 +61,12 @@ public sealed class Einwohner
     /// <summary>Der letzte Weg: von wo nach wo, mit Abmarsch und Ankunft. Null, solange er noch nicht gegangen ist (morgens zu Hause).</summary>
     public Weg? Weg { get; internal set; }
 
+    /// <summary>
+    /// Zählt er in dieser Stunde als Passant für die Taschendiebe – nach der Rechnung ohne Tagesplan (am Markt, in der Gasse oder in dieser
+    /// Stunde in der Stadt losgegangen)? Gesetzt bei jeder Planung zur vollen Stunde.
+    /// </summary>
+    public bool PassantOhnePlan { get; internal set; }
+
     /// <summary>Wo er sich gerade aufhält bzw. wohin er unterwegs ist – alles in einem Wert.</summary>
     public Aufenthalt Aufenthalt => new(Ort, Betrieb, Haus, Stelle);
 
