@@ -36,8 +36,11 @@ public partial class Stadtansicht
     {
         if (SpurV1 || sekunden <= 0) return;
         _ausweichListe.Clear();
+        // In großen Städten weicht nur aus, wer im Bild oder nahe daran ist (12 m Rand) – sonst sieht es keiner (Bürgerdichte)
+        var nurImBild = _passanten.Count > VieleFiguren;
         foreach (var p in _passanten.Values)
-            if ((p.Knoten.Visible || p.WartetDrinnen && p.Stand is null) && (p.Stand is not null || p.Pfad.Length > 0)) _ausweichListe.Add(p);
+            if ((p.Knoten.Visible || p.WartetDrinnen && p.Stand is null) && (p.Stand is not null || p.Pfad.Length > 0)
+                && (!nurImBild || ImBild(p.Knoten.Position, 12f))) _ausweichListe.Add(p);
         if (_ausweichFiguren.Length < _ausweichListe.Count) _ausweichFiguren = new Passantenausweichen.Figur[_ausweichListe.Count * 2];
         for (var i = 0; i < _ausweichListe.Count; i++)
         {

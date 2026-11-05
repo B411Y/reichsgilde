@@ -183,6 +183,35 @@ public sealed class WegeDaten
     public int Verzoegerung { get; init; } = 9;
 }
 
+/// <summary>
+/// Tagesplan (Abschnitt „buerger.tagesplan“, Spiel-KI 5.11.2026): Wo ein Einwohner tagsüber seine Stunde verbringt, wenn er sie sonst drinnen
+/// verbrächte. Er ändert nur den Ort, nie die Handlung – darum bleiben Einkäufe, Gäste der Schänken und Betende, wie sie waren.
+/// Wer welche Stunde draußen ist, folgt fest aus Nummer, Tag und Stunde (ohne Würfel, gleich auf jedem Rechner).
+/// </summary>
+public sealed class TagesplanDaten
+{
+    /// <summary>Erste Stunde (Uhrzeit), ab der der Tagesplan gilt …</summary>
+    public int Von { get; init; } = 8;
+
+    /// <summary>… und die Stunde, ab der wieder alle drinnen ruhen.</summary>
+    public int Bis { get; init; } = 20;
+
+    /// <summary>Anteil der Ruhestunden am Tag, die ein Einwohner draußen rastet (auf dem Markt: Schwätzchen, Brunnen, Bank) statt zu Hause.</summary>
+    public double RastDraussen { get; init; }
+
+    /// <summary>Anteil der Dienststunden (Knecht, Magd), in denen er Besorgungen auf dem Markt macht statt im Haus der Herrschaft zu arbeiten.</summary>
+    public double Besorgungen { get; init; }
+
+    public void Pruefen(List<string> f, string p)
+    {
+        var erste = Spielzeit.TagesbeginnMinute / 60;
+        var ende = Spielzeit.TagesendeMinute / 60;
+        if (Von < erste || Bis > ende || Von >= Bis) f.Add($"{p}: von ≥ {erste}, bis ≤ {ende}, von vor bis.");
+        if (RastDraussen is < 0 or > 1) f.Add($"{p}.rastDraussen muss zwischen 0 und 1 liegen.");
+        if (Besorgungen is < 0 or > 1) f.Add($"{p}.besorgungen muss zwischen 0 und 1 liegen.");
+    }
+}
+
 /// <summary>Wie ein Bedürfnis über den Tag wächst.</summary>
 public sealed class BeduerfnisDaten
 {
@@ -215,6 +244,16 @@ public sealed class BuergerDaten
 {
     /// <summary>Gewöhnliche Einwohner je Haus (Spieler und KI), festgelegt beim Spielstart.</summary>
     public int JeHaus { get; init; } = 25;
+
+    /// <summary>
+    /// Gewöhnliche Einwohner je Hausplatz der Karte (Einwohnerplätze und Kulissenhäuser, ohne die Plätze der Ratsherren- und Bürgerhäuser),
+    /// festgelegt beim Spielstart: Eine große Stadt hat mehr Häuser und damit mehr Einwohner. Es gilt die größere Zahl aus beiden Regeln
+    /// (<see cref="JeHaus"/> × Häuser bzw. jeHausplatz × Hausplätze). 0 = nur je Haus (wie bis Datenversion 72; ohne Karte immer so).
+    /// </summary>
+    public int JeHausplatz { get; init; }
+
+    /// <summary>Wo die Einwohner tagsüber ihre Stunden verbringen (null = drinnen, wie bis Datenversion 72).</summary>
+    public TagesplanDaten? Tagesplan { get; init; }
 
     /// <summary>Sind die Ratsherren als Einwohner in der Stadt unterwegs?</summary>
     public bool MitRatsherren { get; init; } = true;
@@ -278,6 +317,8 @@ public sealed class BuergerDaten
     {
         const string p = "buerger";
         if (JeHaus < 0 || JeHaus > 100) f.Add($"{p}.jeHaus muss zwischen 0 und 100 liegen.");
+        if (JeHausplatz < 0 || JeHausplatz > 20) f.Add($"{p}.jeHausplatz muss zwischen 0 und 20 liegen.");
+        Tagesplan?.Pruefen(f, $"{p}.tagesplan");
         if (Voelker.Count == 0 || Voelker.Values.Any(g => g < 0) || Voelker.Values.Sum() <= 0)
             f.Add($"{p}.voelker braucht mindestens ein Volk mit Gewicht über 0, keine negativen Gewichte.");
         foreach (var volk in Voelker.Keys.Concat(Gewichte.Keys).Where(v => v is Volk.Ork or Volk.Oger).Distinct())

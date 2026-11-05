@@ -243,12 +243,15 @@ public partial class Stadtansicht
     }
 
     /// <summary>Liegt der Punkt (in Koordinaten der Stadt) im Bild – mit 1,5 m Rand, damit auch Kopf und Füße am Rand mitzählen?</summary>
-    private bool ImBild(Vector3 punkt)
+    private bool ImBild(Vector3 punkt) => ImBild(punkt, 1.5f);
+
+    /// <summary>Wie <see cref="ImBild(Vector3)"/>, mit einem Rand von <paramref name="rand"/> Metern um das Bild.</summary>
+    private bool ImBild(Vector3 punkt, float rand)
     {
         if (_stadtVerdeckt) return false;
         punkt = _stadtLage * punkt;
         foreach (var ebene in _bildEbenen)
-            if (ebene.DistanceTo(punkt) > 1.5f) return false; // Die Ebenen zeigen nach außen
+            if (ebene.DistanceTo(punkt) > rand) return false; // Die Ebenen zeigen nach außen
         return true;
     }
 

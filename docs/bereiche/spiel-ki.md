@@ -123,6 +123,18 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Tests | Neu `KiSchaenkeWareTests` (5): ohne Teil gleich `GewinnJeArbeitsminute`; mehr Gäste als Stück = Ausschankpreis; Anteil unter 1 gemischt, Anteil 0 = Marktpreis; Körnermahlzeit am Markt teuer → ohne Teil stellt die KI vom Dünnbier um, mit bleibt sie; Prüfung des Werts. | 3.11.2026 |
 | Ergebnis | Gemessen, bleibt aus (Nutzer, 3.11.2026): volle Messung auf dem Grafik-PC (Datenversion 69, 80 Startwerte, Jahr 20, beide Karten, main `6f80481b` + Branch phase5/jahreszeiten `0512c835`) mit `--ki-schaenke` (Anteil 1) und `--ki-schaenke=0.75` – der Wirt ist absolut rund 3.000 Gulden ärmer als ohne den Schalter. `ki.schaenke` kommt nicht in `wirtschaft.json`; der Code bleibt, weil er ohne den Teil bitgleich rechnet. | 3.11.2026 |
 
+### Bürgerdichte und Tagesplan (PR #323)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Anlass | Nutzer 5.11.2026 zu PR #317 (namenlose Statisten): „Die Passanten müssen schon echt sein, genauso anklickbar wie die anderen. Köln ist größer als die Greybox, da müssen auch mehr Leute sein.“ Befund: 25 Einwohner je Haus, Köln 223 für die ganze Stadt, am Heumarkt 1–4 Figuren. Ursachen: die Zahl hing nur an den Häusern (Köln hat 82 Hausplätze, bewohnt waren rund 40), tagsüber ruhten viele daheim (10 und 15 Uhr 40 von 223) und Knechte/Mägde dienten drinnen; mittags sitzt ein Fünftel in der Schänke, die übrigen laufen zur halben Stunde meist irgendwo durch die große Stadt. | 5.11.2026 |
+| Zahl | `buerger.jeHausplatz` (6): Mit Karte ein Haushalt je freiem Hausplatz (Einwohnerplätze + Kulissenhäuser − Ratsherren- und Bürgerhäuser) mit 5–7 Personen. Köln 82 Plätze → rund 395 gewöhnliche, 418 Einwohner insgesamt (vorher 223); Greybox 40 → 167 (123). Ohne Karte oder wenn die Plätze weniger fassen als jeHaus × Häuser: alte Regel. Kein neues Wohnhaus teilt sich mehr den letzten Vorstadtplatz. | 5.11.2026 |
+| Tagesplan | `buerger.tagesplan` (8–20 Uhr, `rastDraussen` 0,7, `besorgungen` 0,5): Wer ruht, rastet am nächsten Markt; Knechte und Mägde machen dort Besorgungen. Fest aus Nummer, Tag und Doppelstunde (`Wurf`), ohne Generator. Nur der Ort ändert sich, die Handlung nie. Auswahltafel: „hält ein Schwätzchen“, „macht Besorgungen“ (kleine Änderung in `Stadtansicht.Passanten.cs`, Bereich darstellung). | 5.11.2026 |
+| Wirtschaftsgewicht | Erste Fassung (alle zählen, Warenkorb anteilig gewichtet) machte den Spieler mit einem Betrieb in Köln 10–20 % reicher; die Gegenprobe `jeHaus` 50 nach alter Regel zeigte dasselbe – schon die Zahl wirkt über die Kopplungen. Jetzt zählen für Markt, Warenkorb, Schänke, Messe und Taschendiebe nur jeHaus × Häuser gewöhnliche Einwohner (`ZaehltFuerWirtschaft`); sie entstehen und würfeln wie vorher, die übrigen mit eigenem Generator. Ergebnis bitgleich (Test, Messung). | 5.11.2026 |
+| Daten | Neue Felder nur im eigenen Abschnitt `buerger`, **keine Datenversion** nötig: Ohne die Felder rechnet alles wie bisher; alte Spielstände laden mit ihren mitgespeicherten Daten und Einwohnern unverändert (neue Felder im Spielstand fehlen dort und gelten als „wie vorher“). | 5.11.2026 |
+| Darstellung | Ab 300 Einwohnern rechnet die Darstellung außerhalb des Bildes sparsamer (`VieleFiguren`, kleine Änderung im Bereich darstellung: `Stadtansicht.Passanten.cs`, `.Figuren.cs`, `.Marktbummel.cs`, `.Passantenausweichen.cs`). Das Ziel „+2 ms“ wird damit noch nicht erreicht (Messung unten); weitere Hebel bei darstellung. | 5.11.2026 |
+| Tests | `BuergerDichteTests` (9): ohne Karte bzw. ohne Feld alte Zahl; Köln/Greybox ein Haus je Platz mit 5–7 Bewohnern; Zählende genau jeHaus × Häuser, auch nach Jahren; Tagesplan ändert nur den Ort (8–20 Uhr, Heim → Markt); tagsüber mehr am Markt, ab 20 Uhr niemand draußen rastend; Wurf fest und gleichverteilt; Köln und Greybox zwei Jahre mit und ohne – Vermögen, Nachfrage, Passanten, Handlungen gleich; Speichern/Laden mittags. Angepasst: zwei Prüfungen in `BuergerTests` (Dienst darf am Markt sein), `HafenRuhtTests` nimmt die neuen Felder heraus (Sollwerte vor dem Schalter). | 5.11.2026 |
+
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
@@ -225,3 +237,33 @@ $P                     --ki-schaenke          --datei=schaenke1-mit.json
 $P --ohne-jahreszeiten --ki-schaenke=0.75     --datei=schaenke75-ohne.json
 $P                     --ki-schaenke=0.75     --datei=schaenke75-mit.json
 ```
+
+### Bürgerdichte und Tagesplan (PR #323)
+
+Gemessen auf main `3518c72f` + dieser PR: `messen buerger 20 8` (Köln und Greybox, alle KI-Häuser, Spieler KI-geführt: Schmied und Wirt mit einem Betrieb, Ausbau = Schmied wie ein KI-Haus; „alt“ = Abschnitt `buerger` ohne `jeHausplatz` und `tagesplan`). Reinvermögen Jahr 20 (± Fehler des Mittels), Jahr bis 10.000 Gulden:
+
+| Karte | Aufbau | alt | neu | Bürger Ø Jahr alt / neu |
+|---|---|---|---|---|
+| Greybox | Schmied | 36.804 (± 3.008) | 36.804 (± 3.008) | 9,1 / 9,1 |
+| Greybox | Wirt | 35.668 (± 2.574) | 35.668 (± 2.574) | 8,6 / 8,6 |
+| Greybox | Ausbau | 63.712 (± 3.496) | 63.712 (± 3.496) | 12,3 / 12,3 |
+| Köln | Schmied | 32.691 (± 2.962) | 32.691 (± 2.962) | 9,0 / 9,0 |
+| Köln | Wirt | 28.110 (± 2.298) | 28.110 (± 2.298) | 9,0 / 9,0 |
+| Köln | Ausbau | 63.234 (± 9.569) | 63.234 (± 9.569) | 10,6 / 10,6 |
+
+Wert für Wert gleich, auch KI-Häuser, Marktfaktor und Warenkorb. Zur Einordnung die verworfenen Fassungen (Köln, Schmied / Wirt): alle zählen 38.248 / 32.571, dazu anteiliges Gewicht im Warenkorb 37.648 / 32.127, feste Auswahl ohne eigenen Generator 36.676 / 29.631; Gegenprobe `jeHaus` 50 nach alter Regel 39.163 / 30.929, `jeHaus` 26 32.462 / 29.907 (Rauschen eines anderen Laufs der Bürger: je Startwert bis ± 12.000).
+
+Einwohner und wer zur halben Stunde in der Stadt zu sehen ist (Markt, Gasse, Tor, unterwegs in der Stadt; Mittel über 8 Startwerte × 3 Aufbauten × 20 Tage):
+
+| Karte | | Einwohner | 8 Uhr | 10 Uhr | 12 Uhr | 15 Uhr | 18 Uhr | 20 Uhr | 22 Uhr | davon am Markt 10 / 15 / 18 Uhr |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Köln | vorher | 223 | 206 | 122 | 127 | 123 | 151 | 123 | 94 | 39 / 35 / 35 |
+| Köln | nachher | 418 | 387 | 268 | 240 | 264 | 300 | 240 | 177 | 153 / 119 / 97 |
+| Greybox | vorher | 123 | 114 | 65 | 65 | 66 | 77 | 58 | 27 | 20 / 17 / 21 |
+| Greybox | nachher | 167 | 155 | 105 | 97 | 105 | 115 | 92 | 36 | 59 / 49 / 48 |
+
+Rechenzeit Kern (Köln, ein Lauf über 6 Jahre, eingeschwungen): 2,7 s gegen 2,8 s, also rund 0,9 ms mehr je voller Stunde (die Planung), im Mittel 0,015 ms je Takt.
+
+Bilder (Vulkan auf der Grafikkarte, Pixel-Look, Köln, Alter Markt am Dom, Zoom 35 und 70, Tempo 2, vier Spielstunden Vorlauf; Ordner im Scratchpad des Auftrags, `buerger/`): Figuren im Bild bei Zoom 35 etwa 9 Uhr 11 → 10 (die Darstellung holt nach dem Start noch Wege nach), 12 Uhr 22 → 45, 18 Uhr 8 → 30, 19 Uhr 5 → 35, 22 Uhr 0 → 15 (Nachzügler mit Laterne, siehe darstellung.md). Der Heumarkt liegt am Südrand: Wer dort wohnt, geht zum nächsten Markt, die meisten zum Alten Markt.
+
+Darstellung (Köln, 12 Uhr, Zoom 70, Tempo 1, NAS mit RTX 2000): Passanten 5,4 → 10,8 ms je Bild, mit der Sparstufe ab 300 Einwohnern 9,6 ms; Bildzeit 46 → 76 ms, mit Sparstufe 64 ms. **Das Ziel „höchstens +2 ms“ ist in der Darstellung nicht erreicht** – Hebel siehe `docs/bereiche/darstellung.md`, „Offen“; wer es leichter will, senkt `buerger.jeHausplatz` (wirkt nicht auf die Wirtschaft).
