@@ -322,7 +322,7 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Regen und Lichtschein | Regen und Schnee liegen im Pixel-Look auf einer eigenen Sichtebene (Bit 29), die das Beleuchtungsbild nicht sieht: Die Debug-Zeichnung „Beleuchtung“ zeichnet jedes Teilchen als undurchsichtiges Rechteck und machte daraus dunkle Rechtecke vor Dächern und Fassaden. Das Stufenlicht hat weiche Stufen (glatter Anstieg in der oberen Hälfte jeder Stufe) und lässt Licht über dem vollen Sonnenlicht (Laternen, Fackeln) ungestuft: kein harter Kranz mit Schattenring | 03.11.2026 |
 | Versuchsszene | `Pixeltest` bleibt auf dem Versuchszweig `versuch/pixel-look`, kommt nicht ins Spiel | 03.11.2026 |
 | Bloom, Unschärfe | Im Pixel-Look ersetzt das Glühen den Bloom der Stadt (in den Räumen bleibt er); keine Miniatur-Unschärfe | 03.11.2026 |
-### Rheinschiff Oberländer und Entladen Stufe 1 (PR #PR)
+### Rheinschiff Oberländer und Entladen Stufe 1 (PR #324)
 
 | Frage | Entscheidung |
 |---|---|
