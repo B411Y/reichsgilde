@@ -31,10 +31,23 @@ public partial class Stadtansicht
             if (ModellEinsetzen("wasser/wasser_hafensteg", this, Vector3.Zero, new ModellZustand()) is not { } steg) continue;
             steg.Wurzel.Name = "Hafensteg_" + hafen.Kennung;
             // Wasser des Modells bei −Z: Drehung wie beim Schiff, Höhe = Boden an der Uferkante (der Kai des Hafenmodells)
-            steg.Wurzel.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(-nach.X, -nach.Z)), new Vector3(kante.X, BodenHoehe(kante.X, kante.Z), kante.Z));
+            steg.Wurzel.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(-nach.X, -nach.Z)), new Vector3(kante.X, StegHoehe(hafen, kante), kante.Z));
             _stege[hafen.Kennung] = steg.Wurzel;
             HafenKaehneZeigen(hafen.Kennung, false); // die Kähne weichen dem Steg
         }
+    }
+
+    /// <summary>
+    /// Höhe des Modellnullpunkts (Uferkante, Kai 0,25 m darüber, Wasser 1 m darunter): die des Hafenmodells, damit Kai und Steg zusammenpassen; fehlt es, der Wasserspiegel
+    /// am Kopf plus 1 m, sonst der Boden an der Kante. (Der Boden an der Kante selbst fällt zum Fluss ab und läge im Wasser.)
+    /// </summary>
+    private float StegHoehe(Hafenplatz hafen, Vector3 kante)
+    {
+        foreach (var h in _haefen)
+            if (IsInstanceValid(h.Wurzel) && h.Wurzel.Name == "Hafen_" + hafen.Kennung) return h.Wurzel.GlobalPosition.Y;
+        var nach = new Vector3((float)hafen.RichtungX, 0, (float)hafen.RichtungZ);
+        if (SpiegelMitBecken(kante.X + nach.X * 5f, kante.Z + nach.Z * 5f) is { } spiegel) return (float)spiegel + 1.0f;
+        return BodenHoehe(kante.X, kante.Z);
     }
 
     /// <summary>Die Uferkante des Hafens (Kaikante), von der aus die Schiffe liegen.</summary>

@@ -16,14 +16,14 @@ Ursprung auf der Wasserlinie in der Mitte: Das Spiel setzt das Schiff mit y = 0 
                    Steuerruder mit Pinne.
     Segel_Gesetzt  das Rahsegel, voll (Wind von achtern) – zur Fahrt;   Segel_Gerefft  dasselbe an der Rah aufgetucht – im Hafen.
                    Das Spiel zeigt genau eines von beiden.
-    Laufplanke     Ursprung am Dollbord mittschiffs (Kaiseite), führt 2,6 m nach −Y und steigt 0,35 m (auf den Kai); im Spiel nur
+    Laufplanke     Ursprung am Dollbord mittschiffs (Kaiseite), führt 2,6 m nach −Y und fällt 0,16 m (auf das Deck des Stegs, 0,2 m unter der Uferkante); im Spiel nur
                    am Kai einblenden.
     Ladung_1–6     Ladung im Raum von achtern nach vorn: Fässer, Kisten, Säcke unter Plane, Wollballen, Fässer, Kisten. Das Spiel
                    blendet so viele ein, wie das Schiff geladen hat.
     Fahne          Wimpel in der Hausfarbe am Masttopp (Stange „Holz“, Tuch „Hausfarbe“ wie die Fahnen der Häuser; flattert im Wind).
     Anker_Bug (Blick +X), Anker_Heck (Blick −X) auf der Wasserlinie an den Steven; Anker_Kai auf der Wasserlinie 0,3 m vor der
     Bordwand mittschiffs zum Kai (Blick zum Schiff): an diese Stelle gehört die Kaikante; Anker_Planke am Ende der Laufplanke (auf
-    Kaihöhe, Blick zum Schiff); Anker_Schiffer an der Pinne (Blick +X).
+    Deckhöhe des Stegs, Blick zum Schiff); Anker_Schiffer an der Pinne (Blick +X).
 
 Tretradkran (Grundfläche 8 × 8 m, am Ufer: Land bei −Y, Uferkante bei y = 4, im Spiel z = −4) – Kai aus Bohlen mit Spundwand
 wie beim Hafen, darauf ein achteckiger Sockel aus Bruchstein mit Stufen.
@@ -241,9 +241,9 @@ def segel_gerefft(st):
 
 
 def laufplanke(st):
-    """Ursprung am Dollbord mittschiffs auf der Kaiseite; die Planke liegt nach −Y und steigt 0,35 m."""
+    """Ursprung am Dollbord mittschiffs auf der Kaiseite; die Planke liegt nach −Y und fällt 0,16 m (auf das Deck des Stegs)."""
     netz = bs.Netz("Laufplanke")
-    a, b = Vector((0, 0.15, 0.04)), Vector((0, -PLANKE, 0.35 + 0.04))
+    a, b = Vector((0, 0.15, 0.04)), Vector((0, -PLANKE, -0.12))
     netz.stab(a, b, 0.55, 0.06, st["Bretter"], quer=(0, 0, 1))
     k = 1
     while k * 0.4 < PLANKE:                                       # Trittleisten
@@ -313,7 +313,7 @@ def schiff_bauen(st):
     x_h, g_h = ringe[0][0], ringe[0][4]
     anker = [bs.anker("Anker_Bug", (S_LAENGE / 2 + 0.1, 0, 0), 270), bs.anker("Anker_Heck", (-S_LAENGE / 2 - 0.1, 0, 0), 90),
              bs.anker("Anker_Kai", (0.3, -S_BREITE / 2 - 0.3, 0), 0),
-             bs.anker("Anker_Planke", (0.3, -S_BREITE / 2 - PLANKE, S_BORD + 0.39), 0),
+             bs.anker("Anker_Planke", (0.3, -S_BREITE / 2 - PLANKE, S_BORD - 0.05), 0),
              bs.anker("Anker_Schiffer", (x_h + 1.1, 0.35, g_h - 0.03), 270)]
     return teile + anker
 
@@ -385,8 +385,9 @@ def kran_haus(st):
     return netz.objekt()
 
 
-def kranhaus(st):
-    """Drehbares Kranhaus, lokal: Ursprung auf dem Sockel in der Drehachse, Ausleger nach +Y (zum Wasser)."""
+def kranhaus(st, ausleger=3.6):
+    """Drehbares Kranhaus, lokal: Ursprung auf dem Sockel in der Drehachse, Ausleger nach +Y (zum Wasser);
+    `ausleger` = wie weit die Spitze vor die Vorderwand ragt (3,6 m beim Kran am Kai, länger am Steg über dem Schiff)."""
     netz = bs.Netz("Kranhaus")
     x, y0, y1, h = KH_X, KH_Y0, KH_Y1, KH_WAND
     ws.kasten(netz, st, -x - 0.1, x + 0.1, y0 - 0.1, y1 + 0.1, 0.0, 0.22, "Holz", ohne=("-z",))       # Schwellenkranz
@@ -413,7 +414,7 @@ def kranhaus(st):
     for y, seite in ((y0, "vorne"), (y1, "hinten")):
         bs.platte(netz, bs.wandmatrix((0, y, h), seite), [(-x, 0), (x, 0), (0, hoch)], 0, 0.12, st["Bretter"])
     # Ausleger: liegt auf dem Rähm, ragt durch den Giebel zum Wasser, Strebe vom Rähm, Seil über die Rolle zur Trommel
-    fuss, spitze = Vector((0, y0 + 0.6, h + 0.35)), Vector((0, y1 + 3.6, h + 1.7))
+    fuss, spitze = Vector((0, y0 + 0.6, h + 0.35)), Vector((0, y1 + ausleger, h + 1.7))
     netz.stab(fuss, spitze, 0.3, 0.26, st["Holz"], quer=(1, 0, 0))
     netz.stab((0, y1 + 0.15, h - 0.6), fuss.lerp(spitze, 0.72), 0.2, 0.18, st["Holz"], quer=(1, 0, 0))
     for s in (-1, 1):                                             # Zangen am Kopf

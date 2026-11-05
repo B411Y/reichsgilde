@@ -291,7 +291,6 @@ public sealed partial class Koeln : Stadtskript
         // dort liegt jetzt ein Startgrundstück am Nordplatz; seit 1.11.2026 alle drei 6 m weiter südlich, damit das Grundstück mit dem Platz
         // nach Süden rücken kann), das Stapelhaus am Ufer
         Haus("hafenplatz", "Rheinhafen", 51, -54, 270, "Rheinhafen");
-        Haus("hafenkran", "Rheinkran", 54, -38, 270, "Rheinkran");
         Haus("zollstelle", "Zollstelle", 54, -24, 270, "Zollstelle");
         Haus("lagerschuppen", "Stapelhaus", 50, 28, 270, "Stapelhaus");
 

@@ -7,7 +7,7 @@ Schreibt nach game/assets/modelle/wasser/ fünf Dateien und Vorschaubilder docs/
     wasser_holzbruecke.glb   Holz_Joch, Holz_Ende, Holz_Gelaender
     wasser_steinbruecke.glb  Stein_Bogen, Stein_Pfeiler, Stein_Rampe, Stein_Bruestung
     wasser_faehre.glb        Faehre (Kinder Klappe_A, Klappe_B), Anlegesteg
-    wasser_hafen.glb         Hafen, Tretrad, Ausleger, Ware, Kahn1, Kahn2 und die Anker
+    wasser_hafen.glb         Hafen, Ware, Kahn1, Kahn2 und die Anker
     wasser_steine.glb        Furt1–3, Ufersteine1–3
 
 Höhen: z = 0 ist die Uferkante (das Gelände am Ufer). Wo der Wasserspiegel liegt, bestimmt die Karte; die Vorschau und die
@@ -54,12 +54,12 @@ Fähre – X ist die Fahrtrichtung über den Fluss (wie bei den Brücken), +Y st
 
 Hafen – Blender: Land bei −Y (Weg von vorn), Wasser bei +Y; im Spiel Wasser bei −Z. Ursprung in der Mitte der Landfläche
 16 × 14 m; die Uferkante (Vorderkante der Spundwand) liegt bei y = 7 (im Spiel z = −7), Anker_Ufer in ihrer Mitte, Blick
-aufs Wasser. Kai (Bohlen auf 0,25 m) von y = 2 bis 7, Spundwand mit Pfählen, Poller, Leiter, Lagerschuppen, Tretradkran.
-    Hafen     alles Feste (Tür und Läden des Schuppens in Holz: der Hafen gehört der Stadt);  Tretrad  Ursprung in der
-    Radachse (dreht um X);  Ausleger  Ursprung in der Kranachse (dreht um die Hochachse);  Ware  Fässer, Kisten, Säcke auf
+aufs Wasser. Kai (Bohlen auf 0,25 m) von y = 2 bis 7, Spundwand mit Pfählen, Poller, Leiter, Lagerschuppen. Der Tretradkran steht nicht mehr am Kai, sondern am Hafensteg
+(hafensteg.py), wo die Schiffe liegen.
+    Hafen     alles Feste (Tür und Läden des Schuppens in Holz: der Hafen gehört der Stadt); Ware  Fässer, Kisten, Säcke auf
     dem Kai;  Kahn1 (10 m, mit Hütte), Kahn2 (7 m, um 180° gedreht, Bug an Bug)  Ursprung auf ihrer Wasserlinie, liegen auf
     WASSER vor dem Kai – das Spiel kann sie auf den Wasserspiegel der Karte heben oder senken (die Festmacher gehen mit).
-    Anker_Ufer, Anker_Tuer (Schuppen), Anker_Karren (Hof), Anker_Anleger_1/2 (Kai vor den Kähnen), Anker_Tretrad (im Rad).
+    Anker_Ufer, Anker_Tuer (Schuppen), Anker_Karren (Hof), Anker_Anleger_1/2 (Kai vor den Kähnen).
 
 Steine (Streu-Teile, je 4 m lang entlang X):
     Furt1–3        Trittsteine, Schotterbank, gesetzte Steinfurt. Ursprung auf dem Wasserspiegel; die Steine ragen
@@ -646,9 +646,6 @@ def kahn_seil(netz, st, von, nach):
 # ─────────────────────────────────────────────────────────────────────────────
 
 POLLER = [(-6.6, UFER - 0.45), (-1.4, UFER - 0.45), (1.8, UFER - 0.45), (6.8, UFER - 0.45)]
-KRAN = Vector((3.6, 6.55, KAI))       # Fuß der Kransäule (Kaiserstiel)
-RAD = Vector((3.6, 4.15, 2.55))       # Achse des Tretrads
-RAD_R = 2.0
 
 
 def hafen(st):
@@ -681,75 +678,7 @@ def hafen(st):
     netz.stab((-1.8, -1.9, 4.2), (-0.6, -1.9, 4.2), 0.16, 0.16, st["Holz"])
     walze(netz, st, -1.9, 4.05, 0.08, -0.85, -0.7, "Eisen", n=6)
     netz.stab((-0.78, -1.9, 4.0), (-0.78, -1.9, 2.4), 0.03, 0.03, st["Seil"])
-    # Tretradkran: Böcke für die Radachse, Kaiserstiel mit Streben, Seil von der Trommel zur Säule
-    for x in (RAD.x - 1.0, RAD.x + 1.0):
-        for dy, dicke in ((-1.5, 0.18), (1.5, 0.16)):
-            netz.stab((x, RAD.y + dy, KAI), (x, RAD.y, RAD.z + 0.18), 0.18, dicke, st["Holz"], quer=(1, 0, 0))
-        netz.stab((x, RAD.y - 1.6, KAI + 0.1), (x, RAD.y + 1.6, KAI + 0.1), 0.2, 0.2, st["Holz"], quer=(1, 0, 0))
-        kasten(netz, st, x - 0.12, x + 0.12, RAD.y - 0.2, RAD.y + 0.2, RAD.z - 0.1, RAD.z + 0.25, "Holz alt")
-    pfahl(netz, st, KRAN.x, KRAN.y, KAI, 5.6, r=0.22, n=8, kopf="Holz")
-    for dx, dy in ((-1.2, 0.0), (1.2, 0.0), (0.0, -1.0)):
-        netz.stab((KRAN.x + dx, KRAN.y + dy, KAI), (KRAN.x + dx * 0.12, KRAN.y + dy * 0.12, 2.2), 0.14, 0.14, st["Holz"])
-    trommel = Vector((RAD.x - 1.22, RAD.y + 0.15, RAD.z + 0.29))
-    netz.stab(trommel, (KRAN.x, KRAN.y - 0.15, 5.5), 0.04, 0.04, st["Seil"])
     o = netz.objekt()
-    return o
-
-
-def tretrad(st):
-    """Tretrad: zwei Kränze, Speichen, Trittbretter innen, Achse mit Seiltrommel. Ursprung in der Achse (dreht um X)."""
-    netz = bs.Netz("Tretrad", alle=True)
-    n, r, b = 16, RAD_R, 0.65
-    for x in (-b, b):
-        for k in range(n):
-            w0, w1 = 2 * math.pi * k / n, 2 * math.pi * (k + 1) / n
-            d = 0.05 + 0.003 * (k % 2)                            # abwechselnd dicker: Nachbarn nicht in einer Ebene
-            for ra, rb, normale in ((r, r, 1), (r - 0.14, r - 0.14, -1)):
-                p = [(x - d, ra * math.cos(w0), ra * math.sin(w0)), (x + d, ra * math.cos(w0), ra * math.sin(w0)),
-                     (x + d, rb * math.cos(w1), rb * math.sin(w1)), (x - d, rb * math.cos(w1), rb * math.sin(w1))]
-                wm = (w0 + w1) / 2
-                netz.vieleck_nach(p, (0, normale * math.cos(wm), normale * math.sin(wm)), st["Holz"])
-            for sx in (-1, 1):
-                p = [(x + sx * d, r * math.cos(w0), r * math.sin(w0)), (x + sx * d, r * math.cos(w1), r * math.sin(w1)),
-                     (x + sx * d, (r - 0.14) * math.cos(w1), (r - 0.14) * math.sin(w1)),
-                     (x + sx * d, (r - 0.14) * math.cos(w0), (r - 0.14) * math.sin(w0))]
-                netz.vieleck_nach(p, (sx, 0, 0), st["Holz"])
-        for k in range(8):                                        # Speichen, abwechselnd dicker (sonst eine Ebene)
-            w = 2 * math.pi * (k + 0.5) / 8
-            netz.stab((x, 0.18 * math.cos(w), 0.18 * math.sin(w)), (x, (r - 0.1) * math.cos(w), (r - 0.1) * math.sin(w)),
-                      0.08, 0.08 + 0.012 * (k % 2), st["Holz"], quer=(1, 0, 0))
-        netz.prisma([(0.2 * math.cos(2 * math.pi * k / 8), 0.2 * math.sin(2 * math.pi * k / 8)) for k in range(8)],
-                    x - 0.07, x + 0.07, st["Holz alt"])           # Nabe
-    for k in range(n):                                            # Trittbretter: y lokal = nach außen, z = entlang des Kranzes
-        w = 2 * math.pi * (k + 0.5) / n
-        t = Matrix.Translation((0, (r - 0.165) * math.cos(w), (r - 0.165) * math.sin(w))) @ Matrix.Rotation(w, 4, "X")
-        netz.quader((0, 0, 0), (2 * b - 0.1, 0.05, 0.3), st["Bretter"], matrix=t)
-    walze(netz, st, 0, 0, 0.13, -1.4, 1.15, "Holz")
-    walze(netz, st, 0, 0, 0.3, -1.32, -1.12, "Holz", n=10)
-    walze(netz, st, 0, 0, 0.32, -1.29, -1.15, "Seil", n=10)
-    o = netz.objekt()
-    o.location = RAD
-    return o
-
-
-def ausleger(st):
-    """Ausleger des Krans mit Strebe, Rolle, Seil, Haken und einem Fass als Last. Ursprung in der Kranachse am Kai."""
-    netz = bs.Netz("Ausleger")
-    fuss, spitze = Vector((0, -0.2, 5.0 - KAI)), Vector((0, 2.6, 6.35 - KAI))
-    netz.stab(fuss, spitze, 0.22, 0.2, st["Holz"], quer=(1, 0, 0))
-    netz.stab((0, 0.2, 2.9 - KAI), fuss.lerp(spitze, 0.55), 0.16, 0.14, st["Holz"], quer=(1, 0, 0))
-    for s in (-1, 1):
-        netz.stab((s * 0.26, -0.1, 5.2 - KAI), (s * 0.26, -0.1, 4.4 - KAI), 0.08, 0.08, st["Holz alt"])
-    walze(netz, st, spitze.y, spitze.z - 0.05, 0.14, -0.06, 0.06, "Eisen", n=6)
-    netz.stab(fuss + Vector((0, 0.1, 0.18)), spitze + Vector((0, 0, 0.1)), 0.04, 0.04, st["Seil"])
-    haken = Vector((0, spitze.y + 0.1, 1.9 - KAI))
-    netz.stab(spitze + Vector((0, 0.12, -0.1)), haken, 0.04, 0.04, st["Seil"])
-    netz.quader(haken + Vector((0, 0, -0.08)), (0.08, 0.06, 0.18), st["Eisen"])
-    for s in (-1, 1):
-        netz.stab(haken + Vector((s * 0.03, 0, -0.15)), haken + Vector((s * 0.3, 0, -0.6)), 0.03, 0.03, st["Seil"])
-    bs.fass(netz, st, haken + Vector((0, 0, -1.4)), r=0.32, h=0.85)
-    o = netz.objekt()
-    o.location = KRAN
     return o
 
 
@@ -792,11 +721,10 @@ def kaehne(st):
 
 
 def hafen_bauen(st):
-    teile = [hafen(st), tretrad(st), ausleger(st), ware(st)] + kaehne(st)
+    teile = [hafen(st), ware(st)] + kaehne(st)
     anker = [bs.anker("Anker_Ufer", (0, UFER, KAI), 0), bs.anker("Anker_Tuer", (-5.55, -4.95, 0), 0),
              bs.anker("Anker_Karren", (2.4, 0.2, 0), 0),
-             bs.anker("Anker_Anleger_1", (-3.6, UFER - 0.6, KAI), 0), bs.anker("Anker_Anleger_2", (6.0, UFER - 0.6, KAI), 0),
-             bs.anker("Anker_Tretrad", (RAD.x, RAD.y, RAD.z - RAD_R + 0.17), 90)]
+             bs.anker("Anker_Anleger_1", (-3.6, UFER - 0.6, KAI), 0), bs.anker("Anker_Anleger_2", (6.0, UFER - 0.6, KAI), 0)]
     return teile + anker
 
 
