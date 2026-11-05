@@ -676,10 +676,8 @@ def deko(b, h, stufe, S, rng, ribs):
         sband("dunkel", vo - 0.02, 0.016)
     elif stufe == 3:
         mitte = vo - S.laenge * 0.45
-        sband("gold", mitte + 0.07, 0.011)
-        sband("gold", mitte - 0.07, 0.011)
         sband("rot", mitte, 0.042)
-        sband("gold", hi + 0.025, 0.016)
+        sband("gold", hi + 0.025, 0.012)       # Runde 17: nur ein schmales Messingband (vorher drei) gegen die unruhige Stulpe
         for w in np.linspace(0.12, math.pi - 0.12, 13):
             b.kugel("garn", S.punkt(mitte, w, 0.044), 0.016, seg=8)
     elif stufe == 4:
