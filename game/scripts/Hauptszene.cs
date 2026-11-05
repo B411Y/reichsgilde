@@ -546,6 +546,8 @@ public partial class Hauptszene : Node
         if (optionen.TryGetValue("zierminute", out var zierMinute) && zierMinute.Split(',') is var zierTeile
             && double.TryParse(zierTeile[0], System.Globalization.CultureInfo.InvariantCulture, out var zierStart))
             _stadt.ZierMinuteVorgeben(zierStart, zierTeile.Length > 1 && double.TryParse(zierTeile[1], System.Globalization.CultureInfo.InvariantCulture, out var zierRate) ? zierRate : 0);
+        if (optionen.TryGetValue("zierschiff", out var zierTyp) && zierTyp is "ober" or "nieder")
+            _stadt.ZierTypVorgeben(zierTyp == "nieder"); // --zierschiff=ober|nieder: der Typ des Zierschiffs (Stadtansicht.Zierschiff.cs)
         if (optionen.GetValueOrDefault("lichtlauf") == "1")
             Stadtansicht.LichtLaufAusgeben(); // --lichtlauf=1: Sonnen- und Mondstand je Jahreszeit ins Log (Stadtansicht.Licht.cs)
         if (optionen.TryGetValue("wetterspaeter", out var spaeter) && spaeter.Split('@') is [var spaeterLage, var spaeterSekunden]

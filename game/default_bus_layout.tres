@@ -1,31 +1,5 @@
 [gd_resource type="AudioBusLayout" format=3 uid="uid://ewxtu1tm8hi6"]
 
-[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_draussen"]
-resource_name = "Tiefpass"
-cutoff_hz = 20500.0
-db = 3
-
-[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_stadt"]
-resource_name = "Tiefpass"
-cutoff_hz = 20500.0
-db = 1
-
-[sub_resource type="AudioEffectPanner" id="Panner_nah"]
-resource_name = "Panner"
-
-[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_nah"]
-resource_name = "Tiefpass"
-cutoff_hz = 20500.0
-db = 1
-
-[sub_resource type="AudioEffectPanner" id="Panner_fern"]
-resource_name = "Panner"
-
-[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_fern"]
-resource_name = "Tiefpass"
-cutoff_hz = 2500.0
-db = 1
-
 [sub_resource type="AudioEffectPanner" id="Panner_schenke"]
 resource_name = "Panner"
 
@@ -65,9 +39,32 @@ db = 1
 
 [sub_resource type="AudioEffectHardLimiter" id="Begrenzer_donner"]
 resource_name = "Begrenzer"
-pre_gain_db = 0.0
-ceiling_db = -0.3
-release = 0.1
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_draussen"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 3
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_stadt"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 1
+
+[sub_resource type="AudioEffectPanner" id="Panner_nah"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_nah"]
+resource_name = "Tiefpass"
+cutoff_hz = 20500.0
+db = 1
+
+[sub_resource type="AudioEffectPanner" id="Panner_fern"]
+resource_name = "Panner"
+
+[sub_resource type="AudioEffectLowPassFilter" id="Tiefpass_fern"]
+resource_name = "Tiefpass"
+cutoff_hz = 2500.0
+db = 1
 
 [resource]
 bus/1/name = &"Musik"

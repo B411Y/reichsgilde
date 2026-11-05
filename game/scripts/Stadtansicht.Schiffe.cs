@@ -40,11 +40,15 @@ public partial class Stadtansicht
         public float Spiegel { get; set; }
         public bool Hervorgehoben { get; set; }
         public int Nummer { get; init; }
+        /// <summary>Drehpunkt des Mastes im Modell (Fuß am Dollbord), um den der Mast im Hafen gelegt wird (Stadtansicht.Kranladen.cs).</summary>
+        public Vector3 MastFuss { get; init; } = new(2.9f, 1.1f, 0);
     }
 
     private readonly Dictionary<Schiff, SchiffAnsicht> _schiffe = new(ReferenceEqualityComparer.Instance);
 
     private const string SchiffModell = "wasser/wasser_schiff";
+    private const string NiederlaenderModell = "wasser/wasser_niederlaender";
+    private const string NachenModell = "wasser/wasser_nachen";
 
     /// <summary>So weit (Meter) liegen zwei Schiffe im Päckchen auseinander: Breite des Rumpfs (4,4 m) und etwas Luft für die Fender.</summary>
     private const float SchiffPaeckchen = 4.8f;
@@ -67,12 +71,12 @@ public partial class Stadtansicht
     private SchiffAnsicht SchiffErzeugen(Schiff schiff, int nummer) => SchiffErzeugen(schiff.Name, Besitzerfarbe(schiff.Besitzer), nummer, true);
 
     /// <summary>Ein Schiff anlegen; <paramref name="klickbar"/> ist es nur bei den Schiffen des Handels, nicht beim Zierschiff.</summary>
-    private SchiffAnsicht SchiffErzeugen(string name, Color farbe, int nummer, bool klickbar)
+    private SchiffAnsicht SchiffErzeugen(string name, Color farbe, int nummer, bool klickbar, string modellName = SchiffModell)
     {
         var wurzel = new Node3D { Name = "Schiff_" + name.Replace(" ", "_") };
         AddChild(wurzel);
         // Hausfarbe und Wimpel (flattert); Segel, Planke und Ladung schaltet SchiffBewegen
-        var modell = ModellEinsetzen(SchiffModell, wurzel, Vector3.Zero, new ModellZustand(Besitzer: farbe))?.Wurzel;
+        var modell = ModellEinsetzen(modellName, wurzel, Vector3.Zero, new ModellZustand(Besitzer: farbe))?.Wurzel;
         var ladung = new List<MeshInstance3D>();
         MeshInstance3D? gesetzt = null, gerefft = null;
         Node3D? planke = null;
@@ -98,6 +102,7 @@ public partial class Stadtansicht
         var ansicht = new SchiffAnsicht
         {
             Wurzel = wurzel, SegelGesetzt = gesetzt, SegelGerefft = gerefft, Planke = planke, Ladung = ladung.ToArray(), AnkerKai = ankerKai, Nummer = nummer,
+            MastFuss = modellName == NiederlaenderModell ? new Vector3(0.8f, 1.05f, 0) : new Vector3(2.9f, 1.1f, 0),
         };
         ansicht.Schiffer = SchifferEinsetzen(modell, name, farbe);
         return ansicht;
@@ -121,6 +126,7 @@ public partial class Stadtansicht
     private void SchiffeAktualisieren(Stadtwirtschaft w, double minute, double delta)
     {
         HafenstegeSichern(w);
+        NachenAktualisieren(w, minute, delta); // Stadtansicht.Nachen.cs
         if (w.Schiffahrt.Ruht && _schiffe.Count == 0)
         {
             ZierschiffAktualisieren(w, ZierMinuteGezeigt(minute), delta); // Stadtansicht.Zierschiff.cs
