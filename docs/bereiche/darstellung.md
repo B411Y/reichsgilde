@@ -221,7 +221,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Restflächen) Paket 2 und 3 der Füllung: Kit-Import der Fantasy-Props (CC0) und neue Props über den Modell-Agenten für Kirchhof, Holzplatz, Heuschober, Steinmetzplatz, Bildstock (Paket 2), Hof mit Hühnern, Pferch, Wasserstelle (Paket 3; die Hühner sind animierte Szenen mit Knochen, keine MultiMesh-Teile, ein Hof braucht Standbild-Hühner oder die Hof-Logik aus `Stadtansicht.Tiere.cs`); die Rezepte kommen einfach in `game/daten/restflaechen.json` dazu (neues Thema = Eintrag unter `themen` und Zeile unter `nachbarn`)
 - (Restflächen) Zeichenaufrufe: jede Zelle und Art kostet einen Zeichenaufruf je Fläche des Netzes; die Quaternius-Props haben 2–4 Flächen. Damit die Füllung auch in den Zoomstufen 70 und 140 m erscheinen kann, müssten die Sätze je Format als ein Netz gebaut sein (Blender, ein Knoten je Anordnung, wenige Materialien); das gehört in Paket 2
 - (Restflächen) Die Kartenwerkstatt zeigt die Füllung nicht; `FuellungAufbauen(karte)` baut ohne neues Würfeln neu, sobald die Werkstatt eine Restfläche oder ein Gebäude ändert (heute ruft das nur der Kartenaufbau). Die Füllung dreht sich nicht zur Gasse (nur Würfel je Kasten); Wäscheleine und Hühnerstall fehlen (kein Prop)
-- (von Spiel-KI) Bürgerdichte (PR #323): Köln hat jetzt 418 statt 223 Einwohner, tagsüber rund doppelt so viele draußen. Die Passanten kosten in Köln (12 Uhr, Tempo 1, NAS) 9,6 statt 5,4 ms je Bild, die Bildzeit 64 statt 46 ms – trotz der ersten Sparstufe ab 300 Einwohnern (`VieleFiguren`: außerhalb des Bildes seltener laufen, kein Ausweichen und Bummeln, roher Weg über ferne Plätze, Pfadmeter statt Bodenmeter, Modell ausgeblendet). Weitere Hebel: Wegplanung und Mittellinie erst, wenn ein Weg ins Bild kommt; Schatten der Figuren nur bei nahem Zoom; Figuren gebündelt zeichnen. Außerdem stehen nach 22 Uhr bei Tempo 2 noch Leute mit Laterne am Markt, die der Kern schon daheim hat (Gehtempo hinkt nach).
+- (Passanten) Köln 12 Uhr: Der größte Rest sind die Wege über die Marktfläche (`UeberDenPlatz`, rund 4–5 ms je Weg, 60–80 je 10 s zur Stunde); sie gelten dem sichtbaren Platz und lassen sich nur durch eine billigere Flächensuche senken. Außerdem stehen nach 22 Uhr bei Tempo 2 noch Leute mit Laterne am Markt, die der Kern schon daheim hat (Gehtempo hinkt nach). Figuren gebündelt (MultiMesh) zu zeichnen geht mit Skelett nicht; nur per Animationstextur im Shader (Backen in Blender, ein MultiMesh je Tracht, Schatten und Anklicken neu) – groß, nicht angefangen.
 
 ## Entscheidungen
 
@@ -323,6 +323,18 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Regen und Lichtschein | Regen und Schnee liegen im Pixel-Look auf einer eigenen Sichtebene (Bit 29), die das Beleuchtungsbild nicht sieht: Die Debug-Zeichnung „Beleuchtung“ zeichnet jedes Teilchen als undurchsichtiges Rechteck und machte daraus dunkle Rechtecke vor Dächern und Fassaden. Das Stufenlicht hat weiche Stufen (glatter Anstieg in der oberen Hälfte jeder Stufe) und lässt Licht über dem vollen Sonnenlicht (Laternen, Fackeln) ungestuft: kein harter Kranz mit Schattenring | 03.11.2026 |
 | Versuchsszene | `Pixeltest` bleibt auf dem Versuchszweig `versuch/pixel-look`, kommt nicht ins Spiel | 03.11.2026 |
 | Bloom, Unschärfe | Im Pixel-Look ersetzt das Glühen den Bloom der Stadt (in den Räumen bleibt er); keine Miniatur-Unschärfe | 03.11.2026 |
+### Rheinschiff Oberländer und Entladen Stufe 1 (PR #324)
+
+| Frage | Entscheidung |
+|---|---|
+| Modell | Neuanfang per Skript `tools/modelle/oberlaender.py` (ersetzt den Lastkahn, gleiche Datei `wasser_schiff.glb`, gleiche Knoten und Anker): 22 × 4,4 m (Maße plausibel, nicht belegt), flacher Boden, 8 Plankengänge je Seite als Klinker (unten vorstehend, oben ein Schattenstreifen), schmaler hochgezogener Bug, Spiegel, Achterdeck, Hütte mit Satteldach, ein Mast mit Rahsegel, Heckruder mit Pinne, Dollbord 0,85 m (Steghöhe). Rund 7.300 Dreiecke (Schiff 6.300, Ladung 700, Segel, Planke): unter der Vorgabe 12–16 k, weil mehr Dreiecke im Pixel-Look nichts mehr zeigen. Der Niederländer und der Nachen folgen später |
+| Ladung | `Ladung_1` … `Ladung_18` als einzelne Knoten (Fass, Kiste, drei Säcke, Tuchballen). Nummern: 15–18 liegen oben auf, 1–14 unten; je größer die Nummer, desto näher an der Laufplanke. Ausgeblendet wird von der höchsten Nummer abwärts |
+| Handelsschiffe | zeigen so viele der 18 Stücke wie der Anteil von `Geladen`, wie bisher (`SchiffLadungsknoten` 6 → 18) |
+| Entladen (Zierschiff) | reine Funktion von Spielminute und Besuch (`ZierLadungsstand`): kommt mit 18 Stücken an; von 5 bis 65 % der Liegezeit wird Stück für Stück ausgeblendet (Ladung_18 zuerst); abgeladene Stücke erscheinen als Stapel auf dem Kopf des Stegs östlich der Laufplanke (Kopien der Stücke, 8 Plätze, zwei weitere Lagen darüber) und verschwinden von 70 bis 98 % in umgekehrter Reihenfolge; ab 72 % lädt es die Rückfracht (Ladung_1 aufwärts) |
+| Rückfracht | **kleiner als die Hinfracht (2–6 Stücke, aus der Besuchsnummer)** statt leer oder voll: Ein leeres Schiff wirkt tot, ein volles unglaubwürdig; ein Oberländer fuhr flussauf mit Tuch und Hering, nur weniger als er brachte (Stapelrecht). Die Stücke 1 bis 6 liegen an den Enden des Raums |
+| Besuchsnummer | `ZierFahrplan` liefert `LiegeBeginn` jetzt in allen drei Phasen (vorher nur beim Liegen), damit die Rückfracht beim Abfahren dieselbe ist |
+| Offen | Stufe 2 (Kran hebt die Stücke), Stufe 3 (Träger mit Bürgern), Niederländer, Nachen, Treidelpferde |
+
 ### Zierschiff am Hafen (PR #293)
 
 | Frage | Entscheidung |
@@ -581,3 +593,11 @@ Auftrag des Teamleiters 1.11.2026.
 | Tracht | Waffenrock (Zone Gewand, `Stadtrot`, weißer Mittelstreifen im Modell), Eisenhut, Hellebarde (linke Hand, immer sichtbar), Beinkleid dunkel (0,20/0,19/0,21); Volk, Geschlecht und graues Haar im Alter aus der Person. Fehlt ein Teil im Modell, bleibt er weg | 05.11.2026 |
 | Anklicken | Wie Passanten (`einwohner:<Nummer>`, Hervorheben, Auswahltafel). Text für `Herkunft.Torwache`: „Torwächter(in) · Volk, Alter · Stadtwache am <Tor>“ und „Steht Wache am …“ / „Kommt zur Ablösung ans …“ / „Geht nach der Wache heim“ / „Hat dienstfrei“; keine Wohnhaus- und keine Stimmungszeile | 05.11.2026 |
 | Leistung | Figuren entstehen erst, wenn ein Wächter im Dienst und sein Tor im Bild ist (Rand 22 m; höchstens 2 neue je Bild); Tore außerhalb des Bildes sind nach einer Entfernungsprüfung erledigt; `Menge der Passanten` gilt auch für sie; Pose über `FigurImBildBewegen` (dieselbe Sparstufe). Messung der eigenen Rechenzeit: `--torwachemessung=1` oder `--messung=…` schreibt `[torwache] Rechenzeit …` alle 600 Bilder: 0,08–0,10 ms je Bild mit ein bis zwei sichtbaren Wächtern (Köln, RTX 2000 Ada). `--torwache=0` schaltet sie ab (zum Vergleichen) | 05.11.2026 |
+### Passanten sparsamer gezeichnet (PR #326)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fernfiguren | In großen Städten läuft eine Figur weiter als 40 m vom Bild nur als Punkt auf der Pfadlinie (`LaufenGrob`); Mittellinie und Bodenmeter erst im Vorlauf bei 90 m; Nah-Prüfung einmal je Bild | 05.11.2026 |
+| Schatten | Passanten werfen nur bei Zoom ≤ 50 m (Stufe 35) Schatten; bei 70 und 140 keine (rund 250 Zeichenaufrufe weniger bei 70) | 05.11.2026 |
+| Seltener | Pose bei Zoom ≥ 60 jedes 2., ≥ 120 jedes 3. Bild; volle Laufrechnung im Bild bei 70 jedes 3., bei 140 jedes 4. Bild, dazwischen Weiterschieben mit der letzten Geschwindigkeit | 05.11.2026 |
+| Gebündelt | Nicht gemacht: Skelettfiguren gehen nicht in ein MultiMesh | 05.11.2026 |

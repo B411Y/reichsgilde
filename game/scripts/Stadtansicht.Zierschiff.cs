@@ -44,9 +44,11 @@ public partial class Stadtansicht
         var anfang = ankunft - fahrt;
         var ablegen = ankunft + liegen;
         if (im < anfang || im >= ablegen + fahrt) return (ZierPhase.Fern, 0, vonAuf, nachAuf, 0);
-        if (im < ankunft) return (ZierPhase.Anfahrt, (im - anfang) / fahrt, vonAuf, nachAuf, 0);
-        if (im < ablegen) return (ZierPhase.Liegen, (im - ankunft) / liegen, vonAuf, nachAuf, fenster * ZierFenster + ankunft);
-        return (ZierPhase.Abfahrt, (im - ablegen) / fahrt, vonAuf, nachAuf, 0);
+        // LiegeBeginn (Minute der Ankunft) kennzeichnet den Besuch: Aus ihm ergibt sich die Rückfracht (ZierRueckfracht), in allen drei Phasen gleich
+        var besuch = (double)(fenster * ZierFenster + ankunft);
+        if (im < ankunft) return (ZierPhase.Anfahrt, (im - anfang) / fahrt, vonAuf, nachAuf, besuch);
+        if (im < ablegen) return (ZierPhase.Liegen, (im - ankunft) / liegen, vonAuf, nachAuf, besuch);
+        return (ZierPhase.Abfahrt, (im - ablegen) / fahrt, vonAuf, nachAuf, besuch);
     }
 
     private SchiffAnsicht? _zierschiff;
@@ -76,13 +78,13 @@ public partial class Stadtansicht
                     if (_zierAbbruch is { } beginn)
                     {
                         phase = ZierPhase.Abfahrt;
-                        plan = (phase, Math.Clamp((minute - beginn) / fahrt, 0, 1), plan.VonFlussauf, plan.NachFlussauf, 0);
+                        plan = (phase, Math.Clamp((minute - beginn) / fahrt, 0, 1), plan.VonFlussauf, plan.NachFlussauf, plan.LiegeBeginn);
                     }
                     else phase = ZierPhase.Fern;
                 }
                 else if (offen || phase == ZierPhase.Fern) _zierAbbruch = null;
                 else if (_zierAbbruch is null) phase = ZierPhase.Fern; // geschlossen, es fuhr schon: nicht neu erscheinen
-                if (phase != ZierPhase.Fern) fern = !ZierschiffSetzen(w, hafen, phase, plan.Anteil, plan.VonFlussauf, plan.NachFlussauf, delta);
+                if (phase != ZierPhase.Fern) fern = !ZierschiffSetzen(w, hafen, phase, plan.Anteil, plan.VonFlussauf, plan.NachFlussauf, plan.LiegeBeginn, delta);
             }
         }
         if (fern && _zierschiff is { } s && s.Wurzel.Visible)
@@ -90,6 +92,7 @@ public partial class Stadtansicht
             s.Wurzel.Visible = false;
             s.Sichtbar = false;
         }
+        if (fern) ZierStapelZeigen(0);
         // Die Kähne des Hafenmodells weichen, solange das Zierschiff am Kai liegt (oder fährt)
         if (hafen is not null)
         {
@@ -103,7 +106,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Setzt das Zierschiff für die Phase; gibt zurück, ob es sichtbar ist (am Ende der Route hinter dem Kartenrand nicht).</summary>
-    private bool ZierschiffSetzen(Stadtwirtschaft w, Hafenplatz hafen, ZierPhase phase, double anteil, bool vonAuf, bool nachAuf, double delta)
+    private bool ZierschiffSetzen(Stadtwirtschaft w, Hafenplatz hafen, ZierPhase phase, double anteil, bool vonAuf, bool nachAuf, double besuch, double delta)
     {
         _zierschiff ??= SchiffErzeugen("Zierschiff", new Color(0.62f, 0.2f, 0.16f), 7, false);
         var ansicht = _zierschiff;
@@ -126,6 +129,7 @@ public partial class Stadtansicht
             {
                 ansicht.Wurzel.Visible = false;
                 ansicht.Sichtbar = false;
+                ZierStapelZeigen(0);
                 return false;
             }
             var (ort, rx, rz) = ZierAufRoute(route, stelle);
@@ -144,7 +148,109 @@ public partial class Stadtansicht
         ansicht.Wurzel.Visible = true;
         SchiffPoseSetzen(ansicht, ziel, drehung, delta);
         SchiffSegelUndPlanke(ansicht, phase != ZierPhase.Liegen, phase == ZierPhase.Liegen);
+        ZierLadungSetzen(ansicht, hafen, phase, anteil, besuch);
         return true;
+    }
+
+    // ── Entladen, Stufe 1 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    // Das Schiff kommt voll beladen an. Während der Liegezeit (Anteil a von 0 bis 1) wird Stück für Stück entladen, in fester Reihenfolge (Ladung_18 zuerst,
+    // dann abwärts; die Nummern sind so gelegt, dass oben Gestapeltes und das bei der Laufplanke zuerst geht). Jedes abgeladene Stück erscheint als Stapel auf
+    // dem Kopf des Stegs und verschwindet gegen Ende der Liegezeit wieder (bis Träger die Ware wegtragen, Stufe 3). Danach lädt das Schiff eine kleinere
+    // Rückfracht (ZierRueckfracht Stücke: Ladung_1 aufwärts, also an den Enden des Raums) und fährt damit ab. Alles reine Funktion von Spielzeit und Besuch.
+
+    private const double ZierEntladeAb = 0.05, ZierEntladeBis = 0.65, ZierStapelWeg0 = 0.70, ZierStapelWeg1 = 0.98, ZierLadeAb = 0.72, ZierLadeBis = 0.92;
+
+    /// <summary>Wie viele Stücke das Zierschiff zurückfährt (2 bis 6), aus der Nummer des Besuchs.</summary>
+    private static int ZierRueckfracht(double besuch)
+    {
+        var z = (uint)((long)besuch * 2246822519L + 3266489917L);
+        z ^= z >> 15; z *= 0x2C1B3C6Du; z ^= z >> 12;
+        return 2 + (int)(z % 5);
+    }
+
+    /// <summary>
+    /// Wie viele Stücke liegen an Bord, und wie viele sind abgeladen und stehen als Stapel am Steg? <paramref name="voll"/> = Stücke des Schiffs.
+    /// Reine Funktion der Phase und des Liegeanteils.
+    /// </summary>
+    private static (int AnBord, int Stapel) ZierLadungsstand(ZierPhase phase, double anteil, double besuch, int voll)
+    {
+        var rueck = Math.Min(ZierRueckfracht(besuch), voll);
+        if (phase == ZierPhase.Anfahrt) return (voll, 0);
+        if (phase == ZierPhase.Abfahrt) return (rueck, 0);
+        var ab = (int)Math.Floor(Math.Clamp((anteil - ZierEntladeAb) / (ZierEntladeBis - ZierEntladeAb), 0, 1) * voll + 1e-9);
+        var geladen = (int)Math.Floor(Math.Clamp((anteil - ZierLadeAb) / (ZierLadeBis - ZierLadeAb), 0, 1) * rueck + 1e-9);
+        var weg = (int)Math.Floor(Math.Clamp((anteil - ZierStapelWeg0) / (ZierStapelWeg1 - ZierStapelWeg0), 0, 1) * ab + 1e-9);
+        if (anteil >= ZierStapelWeg1) weg = ab;
+        return (ab >= voll ? geladen : voll - ab, ab - weg);
+    }
+
+    private void ZierLadungSetzen(SchiffAnsicht ansicht, Hafenplatz hafen, ZierPhase phase, double anteil, double besuch)
+    {
+        var voll = ansicht.Ladung.Length;
+        if (voll == 0) return;
+        var (anBord, stapel) = ZierLadungsstand(phase, anteil, besuch, voll);
+        // An Bord zeigt man bei Anfahrt/Entladen die niedrigsten Nummern (die höchsten gehen zuerst), bei der Rückfracht ebenso Ladung_1 aufwärts
+        if (anBord != ansicht.GezeigteLadung)
+        {
+            ansicht.GezeigteLadung = anBord;
+            for (var i = 0; i < voll; i++) ansicht.Ladung[i].Visible = i < anBord;
+        }
+        ZierStapelBauen(ansicht, hafen);
+        ZierStapelZeigen(stapel);
+    }
+
+    private readonly List<Node3D> _zierStapel = new();
+    private int _zierStapelGezeigt = -1;
+
+    /// <summary>Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 4 Spalten × 2 Reihen östlich der Laufplanke, dann zwei Lagen darüber.</summary>
+    private static (float X, float Z, int Lage, int Grund) ZierStapelPlatz(int k)
+    {
+        var nummer = k < 8 ? k : (k < 16 ? k - 8 : k - 16);
+        var lage = k < 8 ? 0 : (k < 16 ? 1 : 2);
+        var grund = new[] { 0, 5, 2, 7, 1, 4, 3, 6 }[nummer]; // gemischt, damit gleiche Stücke nicht nebeneinander stehen
+        var spalte = grund % 4;
+        var reihe = grund / 4;
+        return (4.3f + 1.4f * spalte + 0.12f * MathF.Sin(k * 2.3f), -(8.65f + 1.1f * reihe) + 0.08f * MathF.Cos(k * 1.7f), lage, nummer);
+    }
+
+    /// <summary>Höhe des Stegdecks im Steg-Modell (Kai 0,25 m, Deck 0,45 m darunter).</summary>
+    private const float StegDeck = -0.2f;
+
+    /// <summary>Legt einmal je Zierschiff die Stapel an: Kopien der Ladungsstücke des Schiffs als Kinder des Stegs.</summary>
+    private void ZierStapelBauen(SchiffAnsicht ansicht, Hafenplatz hafen)
+    {
+        if (_zierStapel.Count > 0 && IsInstanceValid(_zierStapel[0])) return;
+        if (!_stege.TryGetValue(hafen.Kennung, out var steg) || !IsInstanceValid(steg)) return;
+        _zierStapel.Clear();
+        var voll = ansicht.Ladung.Length;
+        var hoehe = new float[8];
+        for (var k = 0; k < voll; k++)
+        {
+            var quelle = ansicht.Ladung[voll - 1 - k]; // das k-te abgeladene Stück ist Ladung_(voll-k)
+            if (quelle.Duplicate() is not MeshInstance3D kopie || quelle.Mesh is null) continue;
+            var box = quelle.Mesh.GetAabb();
+            var (x, z, lage, grund) = ZierStapelPlatz(k);
+            kopie.Name = "Stapel_" + (k + 1);
+            kopie.Visible = false;
+            steg.AddChild(kopie);
+            var oben = lage == 0 ? 0 : hoehe[grund];
+            // leicht verdreht, wie hingestellt: um die Mitte des Stücks drehen
+            var dreh = 0.22f * MathF.Sin(k * 1.9f + 0.5f);
+            var mitte = new Vector3(box.Position.X + box.Size.X / 2, 0, box.Position.Z + box.Size.Z / 2);
+            kopie.Rotation = new Vector3(0, dreh, 0);
+            kopie.Position = new Vector3(x, StegDeck + oben - box.Position.Y, z) - new Basis(Vector3.Up, dreh) * mitte;
+            hoehe[grund] = oben + box.Size.Y;
+            _zierStapel.Add(kopie);
+        }
+        _zierStapelGezeigt = -1;
+    }
+
+    private void ZierStapelZeigen(int anzahl)
+    {
+        if (anzahl == _zierStapelGezeigt || _zierStapel.Count == 0) return;
+        _zierStapelGezeigt = anzahl;
+        for (var i = 0; i < _zierStapel.Count; i++)
+            if (IsInstanceValid(_zierStapel[i])) _zierStapel[i].Visible = i < anzahl;
     }
 
     /// <summary>Der Punkt in diesem Abstand vom Anfang der Route und die Richtung dort (vom Anfang weg); wie im Kern, der es nicht öffentlich macht.</summary>

@@ -192,7 +192,7 @@ public partial class Stadtansicht
         p.PlatzOffen = false;
         if (alt > 0.01f && p.LaufEnde > p.LaufStart)
             p.LaufEnde = p.LaufStart + (p.LaufEnde - p.LaufStart) * p.Laenge / alt; // gleiches Tempo; wer schon geht, bleibt an seiner Stelle
-        if (!SpurAlt && p.Pfad.Length > 0) MitteAnlegen(p); // Bodenmeter über die nächsten Bilder verteilt (BodenmeterFuellen)
+        if (!SpurAlt && p.Pfad.Length > 0 && (_passanten.Count <= VieleFiguren || VorBild(p))) MitteAnlegen(p); // Bodenmeter über die nächsten Bilder verteilt (BodenmeterFuellen); in großen Städten erst im Vorlauf
         _wegsucheMs += uhr.Elapsed.TotalMilliseconds;
         return true;
     }

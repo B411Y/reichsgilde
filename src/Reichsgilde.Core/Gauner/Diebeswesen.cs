@@ -172,6 +172,11 @@ public enum Diebestaetigkeit
 /// <param name="Auftrag">Nur bei <see cref="Diebesort.Auftrag"/>: was er heute Nacht tut.</param>
 public sealed record Diebesstand(Arbeiter Arbeiter, Diebesort Ort, Diebestaetigkeit Taetigkeit, bool Meisterdieb, Diebesstueck? Auftrag);
 
+/// <summary>Ein Griff eines Taschendiebs – nur fürs Bild (<see cref="Diebeswesen.GriffeDieserStunde"/>).</summary>
+/// <param name="Uhrzeit">Minute nach Mitternacht, zu der er zugreift.</param>
+/// <param name="Wert">Richtwert der Beute in Gulden (nicht die Rechnung).</param>
+public sealed record Taschengriff(Arbeiter Dieb, int Uhrzeit, double Wert);
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  Teilsystem
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,7 +204,7 @@ public sealed class Diebeswesen
     private readonly Dictionary<Konto, Diebesbuch> _vorjahr = new();
 
     // Nur für die Anwesenheit: welche Aufträge die Leute welches Verstecks in dieser Nacht ausgeführt haben (nicht gespeichert).
-    private readonly Dictionary<string, List<Diebesstueck>> _heuteNacht = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<Diebesauftrag>> _heuteNacht = new(StringComparer.Ordinal);
     private int _heuteNachtJahr = -1;
 
     public Diebeswesen(Stadtwirtschaft w, DiebDaten? daten, int zufallsstartwert)
@@ -400,9 +405,8 @@ public sealed class Diebeswesen
         if (uhr >= Spielzeit.TagesbeginnMinute + Unterwelt.Nachtstunde && _heuteNachtJahr == _w.Uhr.Jahr
             && _heuteNacht.TryGetValue(b.Name, out var auftraege))
         {
-            var reihe = uebrige.OrderBy(a => _w.Personal.IstAnfaenger(a) ? 1 : 0).ThenBy(a => a.Nummer).ToList();
-            if (meister is not null) reihe.Add(meister);
-            for (var i = 0; i < Math.Min(auftraege.Count, reihe.Count); i++) unterwegs[reihe[i]] = auftraege[i];
+            var reihe = Nachtreihe(b);
+            for (var i = 0; i < Math.Min(auftraege.Count, reihe.Count); i++) unterwegs[reihe[i]] = auftraege[i].Art;
         }
 
         var amMarkt = b.IstArbeitszeit(uhr) && b.Konto.IstAktiv && b.UmbauMinuten == 0 && b.SabotageMinuten == 0;
@@ -440,6 +444,57 @@ public sealed class Diebeswesen
         return liste;
     }
 
+    /// <summary>In dieser Reihe ziehen die Leute eines Verstecks nachts los: Gesellen vor Lehrlingen, dann nach Nummer, der Meisterdieb zuletzt.</summary>
+    private List<Arbeiter> Nachtreihe(Betrieb b)
+    {
+        var meister = Meisterdieb(b);
+        var reihe = b.Arbeiter.Where(a => a != meister).OrderBy(a => _w.Personal.IstAnfaenger(a) ? 1 : 0).ThenBy(a => a.Nummer).ToList();
+        if (meister is not null) reihe.Add(meister);
+        return reihe;
+    }
+
+    /// <summary>Wer diesen Auftrag heute Nacht ausführt – derselbe, den <see cref="AnwesenheitJetzt"/> unterwegs zeigt. Null, wenn der
+    /// Auftrag erst nach 20 Uhr kam, nach dem Laden mitten in der Nacht oder wenn nicht genug Leute da sind.</summary>
+    private (Betrieb? Versteck, Arbeiter? Arbeiter) Taeter(Diebesauftrag a)
+    {
+        if (Versteck(a.Dieb) is not { } v) return (null, null);
+        if (!_heuteNacht.TryGetValue(v.Name, out var auftraege)) return (v, null);
+        var i = auftraege.FindIndex(x => ReferenceEquals(x, a));
+        var reihe = Nachtreihe(v);
+        return (v, i >= 0 && i < reihe.Count ? reihe[i] : null);
+    }
+
+    // ── Taschendiebe: Griffe fürs Bild (ohne Zufall, ändert nichts) ─────────
+
+    /// <summary>
+    /// Die Griffe der Taschendiebe dieses Betriebs in der laufenden Stunde – nur fürs Bild. Die Rechnung kennt keine einzelnen Griffe:
+    /// Die Beute kommt am Ende der Stunde als Summe. Jeder Dieb, den <see cref="AnwesenheitJetzt"/> am Markt zeigt, greift 2 bis 4 Mal,
+    /// je Griff in einem eigenen Abschnitt der Stunde. Anzahl und Minute folgen einer festen Formel aus Arbeiter-Nummer, Stunde und Tag
+    /// (ohne Zufall – jeder Rechner zeigt dasselbe). Der Wert ist ein Richtwert (Beute eines Gesellen in der Stunde ÷ Griffe).
+    /// Wer gefasst wird, steht danach in den <see cref="Unterwelt.Vorfaelle"/>.
+    /// </summary>
+    public IReadOnlyList<Taschengriff> GriffeDieserStunde(Betrieb b)
+    {
+        var markt = AnwesenheitJetzt(b).Where(s => s.Ort == Diebesort.Markt).ToList();
+        if (markt.Count == 0) return Array.Empty<Taschengriff>();
+        var h = _w.Uhr.UhrzeitInMinuten / 60;
+        var tag = _w.Uhr.Jahr - Spielzeit.StartJahr;
+        var jeStunde = WertJeMinute(b.Stufe) * 60;
+        var griffe = new List<Taschengriff>();
+        foreach (var s in markt)
+        {
+            var nr = s.Arbeiter.Nummer;
+            var n = Taschengriffe(nr, h, tag);
+            var abschnitt = 60 / n;
+            for (var k = 0; k < n; k++)
+                griffe.Add(new Taschengriff(s.Arbeiter, h * 60 + k * abschnitt + (nr * 13 + h * 7 + k * 11 + tag * 5) % abschnitt, jeStunde / n));
+        }
+        return griffe.OrderBy(g => g.Uhrzeit).ThenBy(g => g.Dieb.Nummer).ToList();
+    }
+
+    /// <summary>Wie oft dieser Dieb in dieser Stunde greift: 2, 3 oder 4 (feste Formel aus Nummer, Stunde und Tag).</summary>
+    public static int Taschengriffe(int nummer, int stunde, int tag) => 2 + (nummer * 7 + stunde * 3 + tag) % 3;
+
     // ── Taschendiebe (jede volle Stunde) ────────────────────────────────────
 
     internal void Stunde(Spielzeit zeit)
@@ -465,6 +520,7 @@ public sealed class Diebeswesen
             // Einer wird erwischt: Er kommt in den Turm – und ein Bürger, der ihn erkannt hat, erzählt einem Haus, wem er dient.
             var kraft = b.Arbeiter.Where(_w.Personal.IstAnfaenger).Select(a => a.Arbeitskraft).FirstOrDefault() // ein Anfänger zuerst
                         ?? b.Belegung.OrderByDescending(x => x.Value).ThenBy(x => x.Key, StringComparer.Ordinal).First().Key;
+            var gefasst = b.Arbeiter.LastOrDefault(a => a.Arbeitskraft == kraft); // diesen nimmt Einstellen heraus (der zuletzt eingestellte dieser Art)
             b.Einstellen(kraft, b.Belegung[kraft] - 1, _w.Statut);
             _diesesJahr[k] = DiesesJahr(k) with { Faenge = DiesesJahr(k).Faenge + 1 };
             // Gibt es eine Wache, hat sie ihn gefasst (Kopfgeld) – sonst erkennt ihn ein Bürger und erzählt es einem Haus.
@@ -474,8 +530,19 @@ public sealed class Diebeswesen
             // Bürger-KI: Mit Kopplung ist der Bestohlene ein echter Einwohner (sonst ein namenloser „Bürger am Markt").
             var opfer = _w.Einwohnerschaft.Bestohlen();
             var opferName = opfer is null ? "Bürger am Markt" : $"{opfer.Name} ({_w.Einwohnerschaft.RollenName(opfer)})";
+            Konto? beweis = null;
             if (_w.Justiz.IstAktiv && _w.Justiz.TatMelden(k, Vergehen.Taschendiebstahl, opferName, beute) is { } spur && wisser is not null)
+            {
                 _w.Justiz.BeweisGeben(wisser, spur);
+                beweis = wisser;
+            }
+            _w.Gauner.Vorfaelle.Eintragen(new Vorfall
+            {
+                Art = Vorfallart.Taschendiebstahl, Ort = Vorfallort.Markt, Ziel = "Markt", Erfolg = false, Wert = beute,
+                Taeterhaus = k, Taeterbetrieb = b.Name, TaeterArbeiter = gefasst?.Nummer, TaeterName = gefasst?.Name,
+                OpferEinwohner = opfer?.Nummer, OpferName = opferName,
+                Zeuge = wache is null && wisser is not null, Wache = wache, Beweis = beweis,
+            }, stundenende: true);
             _w.Gauner.Melden(null, $"Am Markt wird ein Taschendieb erwischt – ein {kraft} aus {b.Name}" +
                                    (opfer is null ? "." : $", die Hand in der Tasche von {opferName}.") +
                                    (wache is not null ? $" Die Wache von {wache.Inhaber} hat ihn gefasst."
@@ -594,6 +661,7 @@ public sealed class Diebeswesen
     {
         var versuche = _w.Gauner.IstAktiv ? _w.Gauner.Daten.NachtVersuche : 1;
         var letzter = versuch >= versuche - 1;
+        _versuch = versuch;
         if (versuch == 0)
         {
             _heuteNacht.Clear();
@@ -604,7 +672,7 @@ public sealed class Diebeswesen
         if (versuch == 0)
             foreach (var a in _auftraege)
                 if (a.Dieb.IstAktiv && a.Ziel.IstAktiv && Versteck(a.Dieb) is { } v)
-                    (_heuteNacht.TryGetValue(v.Name, out var liste) ? liste : _heuteNacht[v.Name] = new()).Add(a.Art);
+                    (_heuteNacht.TryGetValue(v.Name, out var liste) ? liste : _heuteNacht[v.Name] = new()).Add(a);
         while (_erfolgreich.Count < _auftraege.Count) _erfolgreich.Add(false);
         for (var i = 0; i < _auftraege.Count; i++)
         {
@@ -641,6 +709,7 @@ public sealed class Diebeswesen
     private double _chanceFaktor = 1;
     private bool _letzterVersuch = true, _bisherErfolg, _versuchErfolg;
     private readonly List<bool> _erfolgreich = new();
+    private int _versuch; // nur für die Liste der Vorfälle: der laufende Versuch der Nacht (nicht im Spielstand)
 
     private void Einbruch(Diebesauftrag a)
     {
@@ -699,6 +768,7 @@ public sealed class Diebeswesen
                 gefunden++;
             }
         }
+        VorfallEintragen(a, null, gefunden > 0, 0, false, gefunden > 0 ? a.Dieb : null);
         _w.Gauner.Melden(a.Dieb, gefunden > 0
             ? $"Eure Leute haben {a.Ziel.Inhaber} ausgespäht: {gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}."
             : $"Eure Leute haben {a.Ziel.Inhaber} ausgespäht – ohne Neues zu finden.");
@@ -715,14 +785,19 @@ public sealed class Diebeswesen
         {
             _briefe.Add(new Diebesbrief(Diebesbriefart.Loesegeld, a.Dieb, a.Ziel, a.Betrag, _w.Jahr, p.Nummer));
             // Der Lösegeldbrief verrät, an wen zu zahlen ist – er ist ein Beweis.
+            Konto? beweis = null;
             if (_w.Justiz.TatMelden(a.Dieb, Vergehen.Entfuehrung, a.Ziel.Inhaber, a.Betrag) is { } spur)
+            {
                 _w.Justiz.BeweisGeben(a.Ziel, spur);
+                beweis = a.Ziel;
+            }
+            VorfallEintragen(a, null, true, a.Betrag, false, beweis, p.Vorname);
             _w.Gauner.Melden(null, $"Entführung! {p.Vorname} aus dem Haus {a.Ziel.Inhaber} ist verschwunden. Ein Brief von {a.Dieb.Inhaber} " +
                                    $"verlangt {Zahlenformat.Ganz(a.Betrag)} {waehrung} Lösegeld bis Ende nächsten Jahres.");
             return;
         }
         Spur(a, Vergehen.Entfuehrung, a.Ziel.Inhaber, a.Betrag, null, false,
-            $"Im Haus {a.Ziel.Inhaber} wurde ein Entführungsversuch vereitelt – {p.Vorname} konnte fliehen.");
+            $"Im Haus {a.Ziel.Inhaber} wurde ein Entführungsversuch vereitelt – {p.Vorname} konnte fliehen.", p.Vorname);
     }
 
     private void Brand(Diebesauftrag a)
@@ -746,10 +821,14 @@ public sealed class Diebeswesen
     }
 
     /// <summary>Spur fürs Gericht, öffentliche Nachricht – und vielleicht ein Zeuge.</summary>
-    private void Spur(Diebesauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich)
+    private void Spur(Diebesauftrag a, Vergehen vergehen, string betroffener, double betrag, Betrieb? b, bool erfolg, string oeffentlich, string? opferName = null)
     {
         _versuchErfolg = erfolg;
-        if (!erfolg && !(_letzterVersuch && !_bisherErfolg)) return; // ein misslungener Versuch fällt nur auf, wenn die ganze Nacht nichts gelang
+        if (!erfolg && !(_letzterVersuch && !_bisherErfolg)) // ein misslungener Versuch fällt nur auf, wenn die ganze Nacht nichts gelang
+        {
+            VorfallEintragen(a, b, erfolg, betrag, false, null, opferName);
+            return;
+        }
         if (b is not null) _w.Gauner.AngriffMerken(b.Name);
         var spur = _w.Justiz.TatMelden(a.Dieb, vergehen, betroffener, betrag);
         var zeuge = _zufall.NextDouble() < Zeugenchance(a.Art, b, erfolg, a.Dieb);
@@ -758,7 +837,29 @@ public sealed class Diebeswesen
             _w.Justiz.BeweisGeben(a.Ziel, spur);
             oeffentlich += $" Ein Zeuge hat Leute von {a.Dieb.Inhaber} erkannt!";
         }
+        VorfallEintragen(a, b, erfolg, betrag, zeuge, zeuge && spur is not null ? a.Ziel : null, opferName);
         _w.Gauner.Melden(null, oeffentlich);
+    }
+
+    /// <summary>Eine Tat der eigenen Leute in die Liste der Vorfälle schreiben (liest nur, würfelt nichts).</summary>
+    private void VorfallEintragen(Diebesauftrag a, Betrieb? b, bool erfolg, double wert, bool zeuge, Konto? beweis, string? opferName = null)
+    {
+        var (art, ort) = a.Art switch
+        {
+            Diebesstueck.Einbruch => (Vorfallart.Einbruch, Vorfallort.Betrieb),
+            Diebesstueck.Brandstiftung => (Vorfallart.Brandanschlag, Vorfallort.Betrieb),
+            Diebesstueck.Entfuehrung => (Vorfallart.Entfuehrung, Vorfallort.Wohnhaus),
+            _ => (Vorfallart.Auskundschaften, Vorfallort.Wohnhaus),
+        };
+        var (versteck, taeter) = Taeter(a);
+        _w.Gauner.Vorfaelle.Eintragen(new Vorfall
+        {
+            Art = art, Ort = ort, Erfolg = erfolg, Wert = erfolg ? wert : 0, Versuch = _versuch,
+            Ziel = b?.Name ?? Unterwelt.WohnhausVon(a.Ziel),
+            Taeterhaus = a.Dieb, Taeterbetrieb = versteck?.Name, TaeterArbeiter = taeter?.Nummer, TaeterName = taeter?.Name,
+            Opfer = a.Ziel, Betrieb = b?.Name, OpferName = opferName,
+            Zeuge = zeuge, Beweis = beweis, Waechter = b?.Waechter ?? a.Ziel.Hauswaechter,
+        }, stundenende: true);
     }
 
     // ── Jahresende ──────────────────────────────────────────────────────────
