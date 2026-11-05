@@ -5,9 +5,9 @@ namespace Reichsgilde;
 /// <summary>
 /// <b>Start-Hinweis zum Personalbuch</b> – ein Teil der <c>partial class Hauptszene</c>. Seit PR #318 beginnt jeder Betrieb mit einem Lehrling
 /// (<c>personal.startJeBetrieb</c>); die KI stellt sofort nach, ein neuer Spieler übersieht es leicht. Deshalb steht bei einer <b>neuen Partie</b>
-/// einmalig eine Tafel in den Meldungen unten links (bleibt bis zum Klick stehen) mit einem Knopf, der in die Werkstatt zum Personalbuch führt.
+/// einmalig ein Brief (Benachrichtigungen, Stufe 1; bleibt, bis man ihn weglegt) mit einem Knopf, der in die Werkstatt zum Personalbuch führt.
 /// Nach dem Laden eines Spielstands erscheint sie nicht; gemerkt wird nichts. Ohne Startoptionen von selbst, sonst mit <c>--starthinweis=1</c>
-/// (Klicktests sollen gleiche Bilder liefern). Zieht später mit den Meldungen ins Benachrichtigungssystem um.
+/// (Klicktests sollen gleiche Bilder liefern).
 /// </summary>
 public partial class Hauptszene
 {
@@ -17,23 +17,13 @@ public partial class Hauptszene
         if (!gewollt || _probepartie || _simulation.Zeit.VergangeneMinuten != 0) return; // nur neue Partie
         if (_eigeneGiesserei is not { } betrieb || betrieb.Belegt > 1) return;
 
-        var tafel = Leistentafel(10, 6);
-        tafel.TooltipText = "Bleibt stehen, bis ihr sie schließt.";
-        var spalte = new VBoxContainer();
-        spalte.AddThemeConstantOverride("separation", 6);
-        tafel.AddChild(spalte);
-        Hauptmenue.Text(spalte, "Hinweis: In Eurer Werkstatt arbeitet nur ein Lehrling. Im Personalbuch könnt Ihr weitere einstellen.",
-            13, new Color(0.95f, 0.82f, 0.45f), umbruchBreite: 380);
-        var knoepfe = new HBoxContainer();
-        knoepfe.AddThemeConstantOverride("separation", 8);
-        spalte.AddChild(knoepfe);
-        Hauptmenue.Knopf(knoepfe, "Zum Personalbuch", () =>
+        // Als Brief (Benachrichtigungen Stufe 1): Absender der Haushofmeister, der Knopf öffnet das Personalbuch
+        var thema = Ordnung.Thema("handel");
+        BriefEinreihen(new Brief
         {
-            MeldungEntfernen(tafel);
-            if (_stadt.InnenansichtBetreten(betrieb)) InnenTafelOeffnen("personal");
+            Schluessel = "starthinweis", Titel = "Ein Lehrling genügt nicht", Absender = "Euer Haushofmeister", Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id,
+            Ziel = "personal", Betrieb = betrieb.Name,
+            Zeilen = { ("", "In Eurer Werkstatt arbeitet nur ein Lehrling. Im Personalbuch könnt Ihr weitere einstellen.", false) },
         });
-        Hauptmenue.Knopf(knoepfe, "Später", () => MeldungEntfernen(tafel));
-        _meldungen.AddChild(tafel);
-        _meldungsZeilen.Add((tafel, true, 0)); // bleibt stehen wie eine Warnung
     }
 }

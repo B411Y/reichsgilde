@@ -1,0 +1,767 @@
+{
+ "version": 1,
+ "hinweis": "Zuordnung der Textmeldungen des Kerns zu Arten und Stufen (Stufe 1 der Benachrichtigungen). Stufe 2 löst diese Textmuster durch strukturierte Ereignisse ab. Reihenfolge der Arten = Reihenfolge der Prüfung; das erste Treffer-Muster gewinnt. Stufen: aus, verlauf, siegel, brief.",
+ "themen": [
+  {
+   "id": "gefahr",
+   "name": "Gefahr",
+   "farbe": "#a8322a"
+  },
+  {
+   "id": "handel",
+   "name": "Handel und Betrieb",
+   "farbe": "#2f5f8f"
+  },
+  {
+   "id": "familie",
+   "name": "Familie",
+   "farbe": "#4a7a3a"
+  },
+  {
+   "id": "rat",
+   "name": "Rat und Stand",
+   "farbe": "#b8902c"
+  },
+  {
+   "id": "stadt",
+   "name": "Stadt und Wetter",
+   "farbe": "#7a7a72"
+  },
+  {
+   "id": "befehl",
+   "name": "Befehle",
+   "farbe": "#c0702a"
+  }
+ ],
+ "arten": [
+  {
+   "id": "Entwickler",
+   "name": "Entwicklerhilfe",
+   "thema": "stadt",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Entwicklerhilfe",
+   "absender": "Die Werkbank",
+   "erklaerung": "",
+   "muster": [
+    {
+     "beginnt": "Entwicklerhilfe"
+    }
+   ]
+  },
+  {
+   "id": "Fehler",
+   "name": "Abgelehnte Befehle",
+   "thema": "befehl",
+   "eigen": "siegel",
+   "stadt": "siegel",
+   "fremd": "siegel",
+   "titel": "Das geht nicht",
+   "absender": "Euer Haushofmeister",
+   "erklaerung": "Ein Befehl von euch wurde abgelehnt (kurz in der Ecke, mit dem Grund).",
+   "muster": [
+    {
+     "beginnt": "✗"
+    }
+   ]
+  },
+  {
+   "id": "Blitz",
+   "name": "Blitz und Brand",
+   "thema": "gefahr",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Alarm vom Turm",
+   "absender": "Der Turmwächter",
+   "erklaerung": "Blitzschlag, Funkenflug und Feuer in eurem Haus oder Betrieb.",
+   "ziel": "betrieb",
+   "muster": [
+    {
+     "beginnt": "Blitzschlag! "
+    },
+    {
+     "beginnt": "Funkenflug! "
+    },
+    {
+     "enthaelt": " brennt nicht mehr – "
+    },
+    {
+     "enthaelt": "nach dem Brand wieder instand gesetzt"
+    },
+    {
+     "enthaelt": "Nach dem Brand wird repariert"
+    }
+   ]
+  },
+  {
+   "id": "Stillstand",
+   "name": "Stillstand im Betrieb",
+   "thema": "handel",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Die Arbeit ruht",
+   "absender": "Euer Vorarbeiter",
+   "erklaerung": "Es fehlt eine Zutat oder das Lager ist voll. Gemeldet wird erst, wenn es etwa eine Spielstunde anhält; ein Siegel je Betrieb.",
+   "ziel": "betrieb",
+   "sammeln": "stillstand",
+   "muster": [
+    {
+     "endet": "die Arbeit ruht."
+    }
+   ]
+  },
+  {
+   "id": "Diebstahl",
+   "name": "Diebstahl und Überfall",
+   "thema": "gefahr",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Meldung der Wache",
+   "absender": "Der Büttel",
+   "erklaerung": "Einbrüche, Anschläge, Überfälle auf Karren. Was nachts geschieht, kommt morgens als ein Brief „Die Nacht“; abgewehrte Überfälle sind nur ein Siegel.",
+   "ziel": "betrieb",
+   "sammeln": "nacht",
+   "ausnahmen": [
+    {
+     "enthaelt": "in die Flucht",
+     "stufe": "siegel"
+    },
+    {
+     "enthaelt": "verscheucht",
+     "stufe": "siegel"
+    }
+   ],
+   "muster": [
+    {
+     "beginnt": "Eure "
+    },
+    {
+     "beginnt": "Einbruch"
+    },
+    {
+     "beginnt": "Anschlag auf "
+    },
+    {
+     "beginnt": "Brandanschlag "
+    },
+    {
+     "beginnt": "Feuer "
+    },
+    {
+     "beginnt": "Hinterhalt auf "
+    },
+    {
+     "beginnt": "Überfall "
+    },
+    {
+     "beginnt": "Entführung! "
+    },
+    {
+     "beginnt": "Gift im Haus "
+    },
+    {
+     "beginnt": "Giftanschlag "
+    },
+    {
+     "beginnt": "Krötenschleim "
+    },
+    {
+     "beginnt": "Der Krötenschleim "
+    },
+    {
+     "beginnt": "Ein Dolch "
+    },
+    {
+     "beginnt": "Der Dolch"
+    },
+    {
+     "beginnt": "Razzia "
+    },
+    {
+     "enthaelt": "wurde ein Fremder"
+    },
+    {
+     "enthaelt": "Taschendieb"
+    },
+    {
+     "enthaelt": "Erpresserbrief"
+    },
+    {
+     "enthaelt": "Schweigegeld"
+    },
+    {
+     "enthaelt": "Schutzgeld"
+    },
+    {
+     "enthaelt": "Lösegeld"
+    },
+    {
+     "enthaelt": "forderung von"
+    },
+    {
+     "enthaelt": " zu sprechen."
+    },
+    {
+     "enthaelt": "Hetzschrift"
+    },
+    {
+     "enthaelt": "ausgespäht"
+    },
+    {
+     "enthaelt": "Wegelagerer"
+    }
+   ]
+  },
+  {
+   "id": "Tod",
+   "name": "Todesfälle",
+   "thema": "familie",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Trauerbotschaft",
+   "absender": "Euer Haushofmeister",
+   "erklaerung": "Ein Todesfall in eurer Familie.",
+   "ziel": "familie",
+   "muster": [
+    {
+     "beginnt": "Trauer im Haus "
+    },
+    {
+     "enthaelt": " gestorben"
+    }
+   ]
+  },
+  {
+   "id": "Geburt",
+   "name": "Geburten",
+   "thema": "familie",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Freudenbotschaft",
+   "absender": "Euer Haushofmeister",
+   "erklaerung": "",
+   "ziel": "familie",
+   "muster": [
+    {
+     "beginnt": "Freude im Haus "
+    }
+   ]
+  },
+  {
+   "id": "Heirat",
+   "name": "Hochzeiten und Werbung",
+   "thema": "familie",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Hochzeitsbrief",
+   "absender": "Euer Haushofmeister",
+   "erklaerung": "",
+   "ziel": "familie",
+   "muster": [
+    {
+     "beginnt": "Hochzeit im Haus "
+    },
+    {
+     "enthaelt": "anderweitig geheiratet"
+    }
+   ]
+  },
+  {
+   "id": "Pest",
+   "name": "Pest in der Stadt",
+   "thema": "gefahr",
+   "eigen": "brief",
+   "stadt": "brief",
+   "fremd": "brief",
+   "titel": "Pestbote",
+   "absender": "Der Stadtarzt",
+   "erklaerung": "",
+   "muster": [
+    {
+     "beginnt": "Die Pest ist in der Stadt"
+    }
+   ]
+  },
+  {
+   "id": "Krankheit",
+   "name": "Krankheit",
+   "thema": "familie",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Nachricht vom Medicus",
+   "absender": "Der Medicus",
+   "erklaerung": "",
+   "ziel": "familie",
+   "muster": [
+    {
+     "enthaelt": " ist krank: "
+    },
+    {
+     "enthaelt": " hat die Pest! "
+    },
+    {
+     "endet": " überstanden."
+    }
+   ]
+  },
+  {
+   "id": "Familie",
+   "name": "Familie (Ausbildung, Charakter, Streit)",
+   "thema": "familie",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Neuigkeiten aus dem Haus",
+   "absender": "Euer Haushofmeister",
+   "erklaerung": "",
+   "ziel": "familie",
+   "muster": [
+    {
+     "enthaelt": "hat die Ausbildung abgeschlossen"
+    },
+    {
+     "enthaelt": "ist erwachsen geworden"
+    },
+    {
+     "beginnt": "Neuer Charakterzug"
+    },
+    {
+     "beginnt": "Streit im Haus "
+    }
+   ]
+  },
+  {
+   "id": "Stand",
+   "name": "Stand und Meisterprüfung",
+   "thema": "rat",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Brief der Zunft",
+   "absender": "Die Zunft",
+   "erklaerung": "",
+   "sammeln": "jahresbericht",
+   "muster": [
+    {
+     "enthaelt": [
+      " ist nun ",
+      "(Gebühr"
+     ]
+    },
+    {
+     "enthaelt": "erlernt das Handwerk"
+    },
+    {
+     "enthaelt": "legt die Meisterprüfung ab"
+    }
+   ]
+  },
+  {
+   "id": "Schulden",
+   "name": "Schulden und Kasse",
+   "thema": "gefahr",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Mahnung des Kämmerers",
+   "absender": "Der Kämmerer",
+   "erklaerung": "Der Kämmerer mahnt, die Kasse ist knapp, Bankrott droht.",
+   "ziel": "bericht",
+   "muster": [
+    {
+     "enthaelt": " ist bankrott!"
+    },
+    {
+     "enthaelt": "die Kasse ist knapp"
+    },
+    {
+     "beginnt": "Der Kämmerer mahnt"
+    }
+   ]
+  },
+  {
+   "id": "Bank",
+   "name": "Bank (Kredit, Tilgung, Pfändung)",
+   "thema": "handel",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Brief der Bank",
+   "absender": "Der Bankier",
+   "erklaerung": "",
+   "sammeln": "jahresbericht",
+   "muster": [
+    {
+     "enthaelt": [
+      " leiht ",
+      " Zins"
+     ]
+    },
+    {
+     "enthaelt": "den Kredit bei"
+    },
+    {
+     "enthaelt": "Ein Schuldner aus der Stadt"
+    },
+    {
+     "enthaelt": " Kredit"
+    },
+    {
+     "beginnt": "Der Büttel pfändet"
+    }
+   ]
+  },
+  {
+   "id": "Spitzel",
+   "name": "Spitzelberichte und Gerüchte",
+   "thema": "gefahr",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Bericht des Spitzels",
+   "absender": "Euer Spitzel",
+   "erklaerung": "Nur, wenn ihr den Spitzel ausgeschickt habt; Berichte anderer Häuser seht ihr nie.",
+   "sammeln": "jahresbericht",
+   "muster": [
+    {
+     "beginnt": "Der Spitzel von "
+    },
+    {
+     "beginnt": "In der dunklen Ecke "
+    }
+   ]
+  },
+  {
+   "id": "Gericht",
+   "name": "Gericht",
+   "thema": "rat",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Schreiben des Gerichts",
+   "absender": "Der Gerichtsschreiber",
+   "erklaerung": "Gerichtstag und Urteile am Jahresende gehören zum Jahresbericht; eine Anklage gegen euer Haus kommt einzeln.",
+   "ziel": "rat",
+   "sammeln": "jahresbericht",
+   "einzeln": [
+    " klagt "
+   ],
+   "muster": [
+    {
+     "beginnt": "Gerichtstag"
+    },
+    {
+     "enthaelt": " klagt "
+    },
+    {
+     "enthaelt": "Pranger"
+    },
+    {
+     "enthaelt": "Kerker"
+    },
+    {
+     "beginnt": "Der Gefängniswärter "
+    }
+   ]
+  },
+  {
+   "id": "Steuer",
+   "name": "Steuern",
+   "thema": "rat",
+   "eigen": "siegel",
+   "stadt": "siegel",
+   "fremd": "verlauf",
+   "titel": "Steuerbescheid",
+   "absender": "Der Kämmerer",
+   "erklaerung": "",
+   "ziel": "rat",
+   "sammeln": "jahresbericht",
+   "muster": [
+    {
+     "beginnt": "Ratssitzung ",
+     "enthaelt": [
+      "Steuer"
+     ]
+    },
+    {
+     "enthaelt": [
+      "Statut",
+      "Steuer"
+     ]
+    },
+    {
+     "enthaelt": [
+      "Kämmerer",
+      "Steuer"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Personal",
+   "name": "Personal",
+   "thema": "handel",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Nachricht aus der Werkstatt",
+   "absender": "Euer Vorarbeiter",
+   "erklaerung": "",
+   "ziel": "betrieb",
+   "sammeln": "jahresbericht",
+   "muster": [
+    {
+     "beginnt": "Unfall in "
+    },
+    {
+     "enthaelt": " kündigt – "
+    },
+    {
+     "enthaelt": "unter dem neuen Statut entlassen"
+    },
+    {
+     "enthaelt": [
+      " Nr. ",
+      " ist nun "
+     ]
+    },
+    {
+     "beginnt": "Ausbruch in "
+    },
+    {
+     "beginnt": "Aufstand in "
+    }
+   ]
+  },
+  {
+   "id": "Rat",
+   "name": "Rat und Wahlen",
+   "thema": "rat",
+   "eigen": "brief",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Schreiben des Rates",
+   "absender": "Der Ratsschreiber",
+   "erklaerung": "",
+   "ziel": "rat",
+   "sammeln": "jahresbericht",
+   "muster": [
+    {
+     "beginnt": "Ratssitzung "
+    },
+    {
+     "beginnt": "Wahl "
+    },
+    {
+     "enthaelt": " in den Rat nach"
+    },
+    {
+     "beginnt": "Der Rat "
+    },
+    {
+     "beginnt": "Am Stammtisch "
+    },
+    {
+     "enthaelt": "Statut"
+    }
+   ]
+  },
+  {
+   "id": "Jahreszeit",
+   "name": "Jahreszeit und Wetter",
+   "thema": "stadt",
+   "eigen": "siegel",
+   "stadt": "siegel",
+   "fremd": "siegel",
+   "titel": "Der Kalender",
+   "absender": "Der Ausrufer",
+   "erklaerung": "",
+   "muster": [
+    {
+     "beginnt": "Festmarkt: "
+    },
+    {
+     "enthaelt": " ist zugefroren!"
+    },
+    {
+     "beginnt": "Eisgang "
+    },
+    {
+     "regex": "^(Frühling|Sommer|Herbst|Winter) \\d{4}[:.]"
+    }
+   ]
+  },
+  {
+   "id": "Karren",
+   "name": "Handelsaufträge der Karren",
+   "thema": "handel",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Bote vom Markt",
+   "absender": "Der Fuhrmann",
+   "erklaerung": "",
+   "muster": [
+    {
+     "enthaelt": ") am Markt: "
+    },
+    {
+     "enthaelt": "Handelsauftrag verfällt"
+    }
+   ]
+  },
+  {
+   "id": "Schiff",
+   "name": "Schiffe",
+   "thema": "handel",
+   "eigen": "siegel",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Nachricht vom Hafen",
+   "absender": "Der Hafenmeister",
+   "erklaerung": "",
+   "muster": [
+    {
+     "enthaelt": " überfallen "
+    },
+    {
+     "enthaelt": " greifen "
+    },
+    {
+     "enthaelt": " ist zurück: "
+    },
+    {
+     "enthaelt": " bleibt am Kai"
+    },
+    {
+     "enthaelt": [
+      " kauft das ",
+      "„"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "Bau",
+   "name": "Bau und Wege",
+   "thema": "stadt",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Vom Bau",
+   "absender": "Der Baumeister",
+   "erklaerung": "",
+   "muster": [
+    {
+     "enthaelt": " baut "
+    },
+    {
+     "enthaelt": "fertig gebaut"
+    },
+    {
+     "enthaelt": " bezieht das neue "
+    },
+    {
+     "enthaelt": "abreißen"
+    },
+    {
+     "enthaelt": " ausbauen ("
+    },
+    {
+     "enthaelt": "Der Ausbau mit "
+    },
+    {
+     "beginnt": "Die Stadt hat gebaut"
+    }
+   ]
+  },
+  {
+   "id": "Kirche",
+   "name": "Kirche und Glaube",
+   "thema": "stadt",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Von der Kirche",
+   "absender": "Der Pfarrer",
+   "erklaerung": "",
+   "muster": [
+    {
+     "enthaelt": "Ablass"
+    },
+    {
+     "enthaelt": "Heiligenduft"
+    },
+    {
+     "enthaelt": " predigt "
+    },
+    {
+     "enthaelt": " tritt zum "
+    },
+    {
+     "enthaelt": " taufen."
+    }
+   ]
+  },
+  {
+   "id": "Besitz",
+   "name": "Kauf, Pacht, Verkauf",
+   "thema": "stadt",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Vom Besitz",
+   "absender": "Der Schreiber",
+   "erklaerung": "",
+   "muster": [
+    {
+     "enthaelt": "stehen nun zum Verkauf"
+    },
+    {
+     "enthaelt": " pachtet "
+    },
+    {
+     "enthaelt": " kündigt die Pacht"
+    },
+    {
+     "enthaelt": " verkauft "
+    },
+    {
+     "enthaelt": " kauft "
+    }
+   ]
+  },
+  {
+   "id": "KI-Zug",
+   "name": "Züge der Rivalen",
+   "thema": "stadt",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Vom Rivalen",
+   "absender": "Ein Bote",
+   "erklaerung": "Was die anderen Häuser tun. Steht immer nur im Verlauf, nie in der Ecke.",
+   "muster": []
+  },
+  {
+   "id": "Sonstiges",
+   "name": "Sonstiges",
+   "thema": "stadt",
+   "eigen": "verlauf",
+   "stadt": "verlauf",
+   "fremd": "verlauf",
+   "titel": "Nachricht",
+   "absender": "Ein Bote",
+   "erklaerung": "",
+   "muster": []
+  }
+ ]
+}

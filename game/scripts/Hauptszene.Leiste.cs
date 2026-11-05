@@ -56,7 +56,7 @@ public partial class Hauptszene
         _leisteBauen = Knopf("+ Bauen", "Wohnhaus oder Werkstatt bauen – auf Bauplätzen und in den Bauzonen (B)", BauenOeffnen);
         reihe.AddChild(new VSeparator());
         _leisteRat = Knopf("Rat", "Die Ratskammer: Ämter, Wahlen, Anträge (R). Das Rathaus selbst zeigt dazu Statut und Gericht.", RatOeffnen);
-        Knopf("Bericht", "Jahresrechnung, Rivalen, Umsätze und das Protokoll des Jahres", () => BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung));
+        Knopf("Bericht", "Jahresrechnung, Rivalen, Umsätze und der Verlauf aller Meldungen", () => BerichtOeffnen(BerichtAnzeige.Reiter.Jahresrechnung));
         Knopf("Lexikon", "Begriffe und Regeln des Spiels nachschlagen (L)", () => _lexikon.Oeffnen());
         if (Entwickler.Aktiv) // nur mit dem Haken „Entwickler-Optionen“ (Hauptszene.Entwickler.cs)
             Knopf("Entwickler", "Entwicklerfenster: Werte setzen, Zeit vorspulen, Wetter, Messwerte (F12)", () => _entwickler?.Umschalten());

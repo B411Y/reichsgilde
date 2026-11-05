@@ -28,6 +28,9 @@ public partial class Rollbereich : ScrollContainer
     /// <summary>Höhe, die oben für Kopfzeile und Zeitstrahl frei bleibt, und unten für die Betriebsleiste (Einheiten der Oberfläche).</summary>
     public const float KopfHoehe = 140, LeistenHoehe = 84;
 
+    /// <summary>Höhe der Siegel-Ecke unten rechts (0: keine Siegel). Die Tafeln rechts lassen den Platz frei, statt die Siegel zu verdecken (Benachrichtigungen).</summary>
+    public static float EckeHoehe { get; set; }
+
     /// <summary>
     /// Heftet eine Tafel rechts an den Rand, unter Kopfzeile und Zeitstrahl und über der Betriebsleiste (PR #197): Dort stehen die Tafeln, die
     /// ein Klick öffnet (Auswahl, Wohnhaus, Bericht, Bauen, Weg). Die Tafel muss schon eingehüllt sein (<see cref="Einhuellen"/>).
@@ -82,7 +85,7 @@ public partial class Rollbereich : ScrollContainer
 
         var fenster = GetViewportRect().Size;
         var rahmen = _tafel.GetThemeStylebox("panel").GetMinimumSize();
-        var platz = fenster - rahmen - new Vector2(2 * Abstand, 2 * Abstand + ObenFrei + UntenFrei);
+        var platz = fenster - rahmen - new Vector2(2 * Abstand, 2 * Abstand + ObenFrei + UntenFrei + (UntenFrei > 0 ? EckeHoehe : 0));
         var inhalt = _inhalt.GetCombinedMinimumSize();
         var balkenBreite = GetVScrollBar().GetCombinedMinimumSize().X;
         var balkenHoehe = GetHScrollBar().GetCombinedMinimumSize().Y;

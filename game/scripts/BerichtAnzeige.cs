@@ -7,8 +7,8 @@ namespace Reichsgilde;
 /// <summary>
 /// Der Bericht (Knopf „Bericht“ in der Betriebsleiste, PR #197): rechts eine Tafel mit vier Reitern – <b>Jahresrechnung</b> (dieses Jahr bisher und das
 /// Vorjahr, dazu der Knopf zum ganzen Jahresbericht), <b>Rivalen</b> (alle anderen Häuser mit Vermögen, Stand und letztem Zug), <b>Umsätze</b> (jeder
-/// eigene Betrieb mit Umsatz und Gewinn) und <b>Protokoll</b> (alle Meldungen des Jahres, die neueste oben – ein Klick auf eine Meldung unten links
-/// öffnet es). Reine Anzeige; zweimal je Sekunde neu beschriftet.
+/// eigene Betrieb mit Umsatz und Gewinn) und <b>Verlauf</b> (alle Meldungen der Sitzung über die Jahre, die neueste oben, mit Filter „Alles“, „Mein Haus“,
+/// „Rivalen“; Aufzählungspunkt in der Farbe des Themas). Reine Anzeige; zweimal je Sekunde neu beschriftet.
 /// </summary>
 public partial class BerichtAnzeige : PanelContainer
 {
@@ -28,11 +28,14 @@ public partial class BerichtAnzeige : PanelContainer
     private VBoxContainer _rivalen = null!;
     private VBoxContainer _umsaetze = null!;
     private VBoxContainer _protokoll = null!;
+    private VBoxContainer _verlaufListe = null!;
+    private int _verlaufFilter;
+    private readonly List<Button> _filterKnoepfe = new();
     private string _stand = "";
     private double _seitAufbau;
 
-    /// <summary>Liefert die Meldungen des laufenden Jahres (Uhrzeit, Text, Warnung), die neueste zuerst – die Hauptszene sammelt sie.</summary>
-    public Func<IReadOnlyList<(string Zeit, string Text, bool Warnung)>> Meldungen { get; set; } = () => Array.Empty<(string, string, bool)>();
+    /// <summary>Liefert den Verlauf (alle Meldungen der Sitzung), die neueste zuerst – die Hauptszene sammelt sie.</summary>
+    public Func<IReadOnlyList<Meldungsposten>> Meldungen { get; set; } = () => Array.Empty<Meldungsposten>();
 
     /// <summary>Der Spieler will den ganzen Jahresbericht des Vorjahres sehen (Fenster in der Bildmitte).</summary>
     public event Action? JahresberichtGewuenscht;
@@ -71,7 +74,29 @@ public partial class BerichtAnzeige : PanelContainer
         jahr.AddChild(_berichtKnopf);
         _rivalen = Seite("Rivalen");
         _umsaetze = Seite("Umsätze");
-        _protokoll = Seite("Protokoll");
+        _protokoll = Seite("Verlauf");
+        var filter = new HBoxContainer();
+        filter.AddThemeConstantOverride("separation", 6);
+        _protokoll.AddChild(filter);
+        var filterGruppe = new ButtonGroup();
+        var filterNamen = new (string Name, string Tipp)[]
+        {
+            ("Alles", "Alle Meldungen, auch die Züge der anderen Häuser."),
+            ("Mein Haus", "Nur, was euer Haus und die Stadt betrifft."),
+            ("Rivalen", "Was die anderen Häuser tun."),
+        };
+        for (var i = 0; i < filterNamen.Length; i++)
+        {
+            var nummer = i;
+            var knopf = new Button { Text = filterNamen[i].Name, ToggleMode = true, ButtonGroup = filterGruppe, FocusMode = FocusModeEnum.None, ButtonPressed = i == 0, TooltipText = filterNamen[i].Tipp };
+            knopf.AddThemeFontSizeOverride("font_size", 13);
+            knopf.Pressed += () => { _verlaufFilter = nummer; _stand = ""; };
+            filter.AddChild(knopf);
+            _filterKnoepfe.Add(knopf);
+        }
+        _verlaufListe = new VBoxContainer();
+        _verlaufListe.AddThemeConstantOverride("separation", 6);
+        _protokoll.AddChild(_verlaufListe);
 
         Rollbereich.Einhuellen(this);
         Fensterrahmen.Anmelden(this, "Bericht", festhaltbar: true);
@@ -126,7 +151,7 @@ public partial class BerichtAnzeige : PanelContainer
                 break;
             case Reiter.Protokoll:
                 var meldungen = Meldungen();
-                Neu(_protokoll, $"{meldungen.Count}:{(meldungen.Count > 0 ? meldungen[0].Text : "")}", () => ProtokollZeigen(meldungen));
+                Neu(_verlaufListe, $"{_verlaufFilter}:{meldungen.Count}:{(meldungen.Count > 0 ? meldungen[0].Text : "")}", () => ProtokollZeigen(meldungen));
                 break;
         }
     }
@@ -207,10 +232,43 @@ public partial class BerichtAnzeige : PanelContainer
         }
     }
 
-    private void ProtokollZeigen(IReadOnlyList<(string Zeit, string Text, bool Warnung)> meldungen)
+    private void ProtokollZeigen(IReadOnlyList<Meldungsposten> meldungen)
     {
-        if (meldungen.Count == 0) Hauptmenue.Text(_protokoll, "Noch keine Meldungen in diesem Jahr.", 13, Grau);
-        foreach (var (zeit, text, warnung) in meldungen.Take(200))
-            Hauptmenue.Text(_protokoll, $"{zeit}  {text}", 13, warnung ? Rot : null, umbruchBreite: Breite).TooltipText = warnung ? "Warnung: Hier braucht ein Betrieb oder das Haus eure Aufmerksamkeit." : "Meldung des Jahres mit der Uhrzeit, zu der sie geschah.";
+        var gefiltert = meldungen.Where(m => _verlaufFilter switch
+        {
+            1 => m.Bezug != Betroffenheit.Fremd,
+            2 => m.Bezug == Betroffenheit.Fremd,
+            _ => true,
+        }).Take(200).ToList();
+        if (gefiltert.Count == 0) Hauptmenue.Text(_verlaufListe, "Noch keine Meldungen.", 13, Grau);
+        foreach (var m in gefiltert)
+        {
+            var zeile = new HBoxContainer();
+            zeile.AddThemeConstantOverride("separation", 8);
+            _verlaufListe.AddChild(zeile);
+            var punkt = new Punkt { Farbe = Color.FromHtml(Meldungseinstellungen.Ordnung.Thema(m.Art.Thema).Farbe), CustomMinimumSize = new Vector2(10, 18), Hohl = m.Stufe == Meldestufe.Verlauf };
+            zeile.AddChild(punkt);
+            var text = Hauptmenue.Text(zeile, $"{m.Jahr} · {m.Zeit}  {m.Text}", 13, m.Warnung ? Rot : m.Bezug == Betroffenheit.Fremd ? Grau : null, umbruchBreite: Breite - 24);
+            text.TooltipText = $"{m.Art.Name} · " + m.Stufe switch
+            {
+                Meldestufe.Brief => "kam als Brief",
+                Meldestufe.Siegel => "kam als Siegel in die Ecke",
+                _ => "nur im Verlauf",
+            } + (m.Bezug == Betroffenheit.Fremd ? " · betrifft ein anderes Haus" : "");
+        }
+    }
+
+    /// <summary>Ein Aufzählungspunkt in der Farbe des Themas; ausgefüllt, wenn die Meldung als Siegel oder Brief kam, sonst nur ein Ring.</summary>
+    private sealed partial class Punkt : Control
+    {
+        public Color Farbe;
+        public bool Hohl;
+
+        public override void _Draw()
+        {
+            var mitte = new Vector2(5, 9);
+            if (!Hohl) DrawCircle(mitte + new Vector2(0.8f, 0.6f), 4, Farbe);
+            DrawArc(mitte, 4, 0, Mathf.Tau, 14, Hohl ? Farbe : new Color(0.05f, 0.04f, 0.03f), 1.3f, true);
+        }
     }
 }
