@@ -149,6 +149,27 @@ static class BuergerDichteTests
             Pruefe.Wahr(amMarktB > 1.5 * amMarktA, $"Mit Tagesplan sollten tagsüber viel mehr am Markt sein ({amMarktB} gegen {amMarktA})");
         }),
 
+        ("Tagesplan: Berührt die Wirtschaft nicht – Greybox, zwei Jahre mit und ohne Tagesplan: Vermögen, Marktnachfrage, Gäste und Passanten gleich", () =>
+        {
+            var (simA, a) = Partie(Daten(b => { b.Remove("jeHausplatz"); b.Remove("tagesplan"); }), "greybox", startwert: 4711);
+            var (simB, b2) = Partie(Daten(b => b.Remove("jeHausplatz")), "greybox", startwert: 4711);
+            var anders = 0;
+            for (var minute = 0; minute < 2 * Spielzeit.MinutenProTag; minute++)
+            {
+                simA.Tick();
+                simB.Tick();
+                if (simA.Zeit.UhrzeitInMinuten % 60 != 1) continue;
+                Pruefe.Gleich(a.Einwohnerschaft.Passanten.Count(), b2.Einwohnerschaft.Passanten.Count(), $"Passanten um {simA.Zeit.UhrzeitText}");
+                Pruefe.Gleich(a.Einwohnerschaft.Marktfaktor, b2.Einwohnerschaft.Marktfaktor, $"Marktfaktor um {simA.Zeit.UhrzeitText}");
+                anders += a.Einwohnerschaft.Einwohner.Zip(b2.Einwohnerschaft.Einwohner).Count(x => x.First.Ort != x.Second.Ort);
+            }
+            Pruefe.Wahr(anders > 100, $"Der Tagesplan sollte Orte ändern (waren {anders})");
+            for (var i = 0; i < a.Konten.Count; i++)
+                Pruefe.Gleich(a.Konten[i].Vermoegen, b2.Konten[i].Vermoegen, $"Vermögen von {a.Konten[i].Inhaber}");
+            foreach (var (sa, sb) in a.Markt.Staende.Zip(b2.Markt.Staende))
+                Pruefe.Gleich(sa.Nachfrage, sb.Nachfrage, $"Nachfrage {sa.Ware}");
+        }),
+
         ("Tagesplan: Der Wurf ist fest (gleiche Eingaben, gleiche Zahl), liegt in [0, 1) und trifft den Anteil", () =>
         {
             Pruefe.Gleich(Einwohnerschaft.Wurf(17, 1403, 5), Einwohnerschaft.Wurf(17, 1403, 5));
