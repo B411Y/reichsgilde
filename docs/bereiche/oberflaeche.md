@@ -317,3 +317,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zeiger | Lederhandschuh aus Blender (`tools/modelle/handschuh.py`), feine Pixel, 6 Stufen nach `Konto.Stand`, je „normal“ und „klick“ (wärmer), dazu Bronze-Türschloss mit S-Griff; 32/48/64 Pixel nach Fensterhöhe und Oberflächengröße (Standard 48 bei 1080p). Freigabe des Nutzers. | 04.11.2026 |
 | Zustände | „klick“ über Gebäude, Figuren, Bauplatz im Baumodus und freigegebenen Knöpfen; Schloss über Gebäuden mit Innenraum (`HatInnenansicht`), nur außerhalb von Räumen. Karren sind nicht einzeln wählbar, darum ohne eigenen Zustand. | 04.11.2026 |
 | Einstellung | „Eigener Mauszeiger“ (Barrierefreiheit, Standard an) mit Tooltip; Startoptionen `--zeiger`, `--zeigerstufe`. Hauptmenü und Kartenwerkstatt zeigen Stufe 1; die Werkstatt hat keinen eigenen Pinsel-Zeiger. | 04.11.2026 |
+
+### Start-Hinweis zum Personalbuch (PR „Hinweis zum Start – weitere Lehrlinge im Personalbuch“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Hinweis | Seit #318 beginnt jeder Betrieb mit einem Lehrling. Bei einer neuen Partie (nicht nach dem Laden, nicht in der Probepartie) steht einmalig eine Tafel in den Meldungen unten links (`Hauptszene.Starthinweis.cs`): „In Eurer Werkstatt arbeitet nur ein Lehrling …“, Knöpfe „Zum Personalbuch“ (geht hinein, öffnet die Personal-Tafel) und „Später“. Bleibt wie eine Warnung stehen, bis sie geschlossen wird | 05.11.2026 |
+| Merken | Nichts im Spielstand: „neue Partie“ heißt Spielzeit 0. Keine Einstellung zum Abschalten, weil es kein Tipp-System gibt; ohne Startoptionen von selbst, sonst `--starthinweis=1` | 05.11.2026 |
+| Umzug | Zieht mit den Meldungen ins geplante Benachrichtigungssystem um (eine Methode, ein Aufruf in `PartieStarten`) | 05.11.2026 |
