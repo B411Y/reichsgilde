@@ -56,7 +56,7 @@ public partial class Stadtansicht
 
     /// <summary>Wie eine Figur aussieht: Volk, Geschlecht, Farben und Tracht.</summary>
     private sealed record FigurAussehen(Volk Volk, bool Frau, Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopffarbe,
-        Kopfbedeckung Kopf = Kopfbedeckung.Keine, Last Last = Last.Keine, bool Schuerze = false, bool KiSchmied = false);
+        Kopfbedeckung Kopf = Kopfbedeckung.Keine, Last Last = Last.Keine, bool Schuerze = false, bool KiSchmied = false, bool Waffenrock = false);
 
     /// <summary>Datei, Hüft- und Kniehöhe (Meter) und Größe je Volk – Hüfte und Knie wie in <c>tools/modelle/figuren.py</c>.
     /// Orks und Oger haben noch kein eigenes Modell: vorerst ein größerer Mensch.</summary>
@@ -150,9 +150,9 @@ public partial class Stadtansicht
         var kopf = aussehen.Kopf switch
         {
             Kopfbedeckung.Strohhut => "Strohhut", Kopfbedeckung.Barett => "Barett", Kopfbedeckung.Kapuze => "Kapuze",
-            Kopfbedeckung.Haube => "Haube", Kopfbedeckung.Schleier => "Schleier", _ => "",
+            Kopfbedeckung.Haube => "Haube", Kopfbedeckung.Schleier => "Schleier", Kopfbedeckung.Eisenhut => "Eisenhut", _ => "",
         };
-        var last = aussehen.Last switch { Last.Kiepe => "Kiepe", Last.Buendel => "Buendel", Last.Tasche => "Tasche", _ => "" };
+        var last = aussehen.Last switch { Last.Kiepe => "Kiepe", Last.Buendel => "Buendel", Last.Tasche => "Tasche", Last.Hellebarde => "Hellebarde", _ => "" };
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
@@ -161,6 +161,7 @@ public partial class Stadtansicht
                 "Koerper_Mann" => !aussehen.Frau,
                 "Koerper_Frau" => aussehen.Frau,
                 "Schuerze" => aussehen.Schuerze,
+                "Waffenrock" => aussehen.Waffenrock, // Torwache (Stadtansicht.Torwache.cs); fehlt das Teil im Modell, bleibt es einfach weg
                 "Hacke" or "Stab" => true,
                 _ => WerkzeugNamen.Contains(name) || name == kopf || name == last,
             };
