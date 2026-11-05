@@ -9,7 +9,7 @@ using Reichsgilde.Core.Wirtschaft;
 //  Buergermessung – mehr Bürger in großen Städten (Messung, kein Test; Spiel-KI, 5.11.2026)
 //
 //  Aufruf:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- messen buerger [Jahre] [Startwerte]
-//                [--karten=greybox,koeln] [--parallel=n]
+//                [--karten=greybox,koeln] [--aufbauten=Schmied,Wirt,Ausbau] [--varianten=alt,neu,alt26] [--einzeln] [--parallel=n]
 //
 //  Je Karte, Aufbau (Schmied, Wirt: ein Betrieb; Ausbau: Schmied, geführt wie ein KI-Haus) und Startwert zwei Partien mit allen KI-Häusern:
 //  „alt“ (die Bürger-KI wie bis Datenversion 72: ohne „jeHausplatz“ und „tagesplan“) und „neu“ (die Daten, wie sie sind).
@@ -44,8 +44,17 @@ static class Buergermessung
         var startwerte = worte.Count > 1 ? int.Parse(worte[1]) : 8;
         var karten = (Schalter("karten") ?? "greybox,koeln").Split(',');
         var parallel = int.Parse(Schalter("parallel") ?? "2");
-        var quellen = new Dictionary<string, Messquellen>(StringComparer.Ordinal) { ["alt"] = new Messquellen(anpassen: Alt), ["neu"] = new Messquellen() };
-        var aufbauten = new (string Name, string Beruf, Bezugsart Bezug)[] { ("Schmied", "Schmied", Bezugsart.EinBetrieb), ("Wirt", "Wirt", Bezugsart.EinBetrieb), ("Ausbau", "Schmied", Bezugsart.WieKi) };
+        var alle = new Dictionary<string, Func<Messquellen>>(StringComparer.Ordinal)
+        {
+            ["alt"] = () => new Messquellen(anpassen: Alt),
+            ["neu"] = () => new Messquellen(),
+            // Gegenprobe für das Rauschen: wie „alt“, aber 26 statt 25 Einwohner je Haus – ein anderer Lauf der Bürger-KI bei fast gleicher Stadt
+            ["alt26"] = () => new Messquellen(anpassen: json => Alt(json).Replace("\"jeHaus\":25", "\"jeHaus\":26")),
+        };
+        var quellen = (Schalter("varianten") ?? "alt,neu").Split(',').ToDictionary(v => v, v => alle[v](), StringComparer.Ordinal);
+        var einzeln = args.Contains("--einzeln");
+        var aufbauten = new (string Name, string Beruf, Bezugsart Bezug)[] { ("Schmied", "Schmied", Bezugsart.EinBetrieb), ("Wirt", "Wirt", Bezugsart.EinBetrieb), ("Ausbau", "Schmied", Bezugsart.WieKi) }
+            .Where(a => Schalter("aufbauten") is not { } nur || nur.Split(',').Contains(a.Name)).ToArray();
 
         var laeufe = new List<(string Variante, string Name, Messaufbau A)>();
         foreach (var karte in karten)
@@ -70,7 +79,7 @@ static class Buergermessung
         });
         foreach (var (a, (r, _)) in ergebnisse.Where(x => x.Value.P.Fehler is not null).Take(5)) Console.Error.WriteLine($"FEHLER in {a}: {r.Fehler}");
 
-        Console.WriteLine($"Datenversion {Wirtschaftsdaten.AusJson(quellen["neu"].Wirtschaft).Version}, {jahre} Jahre, {startwerte} Startwerte, main {Balancingbericht.Git("rev-parse --short origin/main")}, Stand {Balancingbericht.Git("rev-parse --short HEAD")}");
+        Console.WriteLine($"Datenversion {Wirtschaftsdaten.AusJson(quellen.Values.First().Wirtschaft).Version}, {jahre} Jahre, {startwerte} Startwerte, main {Balancingbericht.Git("rev-parse --short origin/main")}, Stand {Balancingbericht.Git("rev-parse --short HEAD")}");
         Console.WriteLine();
         Console.WriteLine($"Karte | Aufbau | Variante | Spieler Rein J{jahre} (± Fehler) | KI Rein J{jahre} | Bürger (Rein 10.000) Ø Jahr | im Ziel 8–12 | Marktfaktor Ø | ohne Schankplatz/Tag | Sekunden/Partie");
         var gruppen = ergebnisse.Where(x => x.Value.P.Fehler is null)
@@ -89,6 +98,15 @@ static class Buergermessung
             var op = liste.Sum(x => (double)x.Z.OhnePlatz) / Math.Max(1, liste.Sum(x => x.Z.Tage));
             Console.WriteLine($"{g.Key.Karte} | {g.Key.Aufbau} | {g.Key.Variante} | {rein.Average():0} (± {fehler:0}) | {ki:0} | {bj:0.0} ({buerger.Count(b => b is not null)}/{buerger.Count}) | {ziel}/{buerger.Count} | " +
                               $"{mf:0.000} | {op:0.0} | {liste.Average(x => x.Z.Sekunden):0.0}");
+        }
+        if (einzeln)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Karte | Aufbau | Startwert | " + string.Join(" | ", quellen.Keys.Select(v => $"Spieler Rein {v}")));
+            foreach (var g in ergebnisse.Where(x => x.Value.P.Fehler is null).GroupBy(x => (x.Key.Item3.Karte, Aufbau: x.Key.Item2, x.Key.Item3.Startwert))
+                         .OrderBy(x => x.Key.Karte, StringComparer.Ordinal).ThenBy(x => x.Key.Aufbau, StringComparer.Ordinal).ThenBy(x => x.Key.Startwert))
+                Console.WriteLine($"{g.Key.Karte} | {g.Key.Aufbau} | {g.Key.Startwert} | " + string.Join(" | ", quellen.Keys.Select(v =>
+                    g.FirstOrDefault(x => x.Key.Item1 == v).Value.P is { } p ? p.Spieler.Im(jahre).Rein.ToString("0") : "–")));
         }
         Console.WriteLine();
         Console.WriteLine("Karte | Variante | Einwohner | in der Stadt zu sehen (Markt, Gasse, Tor, unterwegs) je Uhrzeit " + string.Join(" / ", Stunden.Select(s => s + " Uhr")) + " | im Umland 12 Uhr");
