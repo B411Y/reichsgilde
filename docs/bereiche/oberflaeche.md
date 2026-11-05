@@ -321,7 +321,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zustände | „klick“ über Gebäude, Figuren, Bauplatz im Baumodus und freigegebenen Knöpfen; Schloss über Gebäuden mit Innenraum (`HatInnenansicht`), nur außerhalb von Räumen. Karren sind nicht einzeln wählbar, darum ohne eigenen Zustand. | 04.11.2026 |
 | Einstellung | „Eigener Mauszeiger“ (Barrierefreiheit, Standard an) mit Tooltip; Startoptionen `--zeiger`, `--zeigerstufe`. Hauptmenü und Kartenwerkstatt zeigen Stufe 1; die Werkstatt hat keinen eigenen Pinsel-Zeiger. | 04.11.2026 |
 
-### Handschuh-Zeiger aus echter Hand, Wahl in den Einstellungen (PR #…)
+### Handschuh-Zeiger aus echter Hand, Wahl in den Einstellungen (PR #330)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
