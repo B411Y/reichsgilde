@@ -322,6 +322,18 @@ Ersetzt die Entscheidung „3D-Welt gemalt-realistisch, keine Pixel-Art“ (Nutz
 | Regen und Lichtschein | Regen und Schnee liegen im Pixel-Look auf einer eigenen Sichtebene (Bit 29), die das Beleuchtungsbild nicht sieht: Die Debug-Zeichnung „Beleuchtung“ zeichnet jedes Teilchen als undurchsichtiges Rechteck und machte daraus dunkle Rechtecke vor Dächern und Fassaden. Das Stufenlicht hat weiche Stufen (glatter Anstieg in der oberen Hälfte jeder Stufe) und lässt Licht über dem vollen Sonnenlicht (Laternen, Fackeln) ungestuft: kein harter Kranz mit Schattenring | 03.11.2026 |
 | Versuchsszene | `Pixeltest` bleibt auf dem Versuchszweig `versuch/pixel-look`, kommt nicht ins Spiel | 03.11.2026 |
 | Bloom, Unschärfe | Im Pixel-Look ersetzt das Glühen den Bloom der Stadt (in den Räumen bleibt er); keine Miniatur-Unschärfe | 03.11.2026 |
+### Rheinschiff Oberländer und Entladen Stufe 1 (PR #PR)
+
+| Frage | Entscheidung |
+|---|---|
+| Modell | Neuanfang per Skript `tools/modelle/oberlaender.py` (ersetzt den Lastkahn, gleiche Datei `wasser_schiff.glb`, gleiche Knoten und Anker): 22 × 4,4 m (Maße plausibel, nicht belegt), flacher Boden, 8 Plankengänge je Seite als Klinker (unten vorstehend, oben ein Schattenstreifen), schmaler hochgezogener Bug, Spiegel, Achterdeck, Hütte mit Satteldach, ein Mast mit Rahsegel, Heckruder mit Pinne, Dollbord 0,85 m (Steghöhe). Rund 7.300 Dreiecke (Schiff 6.300, Ladung 700, Segel, Planke): unter der Vorgabe 12–16 k, weil mehr Dreiecke im Pixel-Look nichts mehr zeigen. Der Niederländer und der Nachen folgen später |
+| Ladung | `Ladung_1` … `Ladung_18` als einzelne Knoten (Fass, Kiste, drei Säcke, Tuchballen). Nummern: 15–18 liegen oben auf, 1–14 unten; je größer die Nummer, desto näher an der Laufplanke. Ausgeblendet wird von der höchsten Nummer abwärts |
+| Handelsschiffe | zeigen so viele der 18 Stücke wie der Anteil von `Geladen`, wie bisher (`SchiffLadungsknoten` 6 → 18) |
+| Entladen (Zierschiff) | reine Funktion von Spielminute und Besuch (`ZierLadungsstand`): kommt mit 18 Stücken an; von 5 bis 65 % der Liegezeit wird Stück für Stück ausgeblendet (Ladung_18 zuerst); abgeladene Stücke erscheinen als Stapel auf dem Kopf des Stegs östlich der Laufplanke (Kopien der Stücke, 8 Plätze, zwei weitere Lagen darüber) und verschwinden von 70 bis 98 % in umgekehrter Reihenfolge; ab 72 % lädt es die Rückfracht (Ladung_1 aufwärts) |
+| Rückfracht | **kleiner als die Hinfracht (2–6 Stücke, aus der Besuchsnummer)** statt leer oder voll: Ein leeres Schiff wirkt tot, ein volles unglaubwürdig; ein Oberländer fuhr flussauf mit Tuch und Hering, nur weniger als er brachte (Stapelrecht). Die Stücke 1 bis 6 liegen an den Enden des Raums |
+| Besuchsnummer | `ZierFahrplan` liefert `LiegeBeginn` jetzt in allen drei Phasen (vorher nur beim Liegen), damit die Rückfracht beim Abfahren dieselbe ist |
+| Offen | Stufe 2 (Kran hebt die Stücke), Stufe 3 (Träger mit Bürgern), Niederländer, Nachen, Treidelpferde |
+
 ### Zierschiff am Hafen (PR #293)
 
 | Frage | Entscheidung |
