@@ -189,7 +189,12 @@ static class BuergerTorwacheTests
                     geladen.Tick();
                 }
             Pruefe.Wahr(a.Waechter.Count(t => !namen.Contains(t.Person.Name)) >= 5, "Nach 30 Jahren sollten neue Wächter da sein");
-            Pruefe.Wahr(a.Waechter.All(t => t.Person.Alter(sim.Zeit.Jahr) < 60 || t.Person.Volk == Volk.Elb), "Keine Greise am Tor");
+            foreach (var t in a.Waechter)
+            {
+                var vd = w.Familien.VolkDaten(t.Person.Volk);
+                var grenze = vd.Volljaehrig + (int)(((int)vd.Sterbealter - vd.Volljaehrig) * 0.6);
+                Pruefe.Wahr(t.Person.Alter(sim.Zeit.Jahr) <= grenze + 1, $"{t.Person.Name} ({t.Person.Volk}, {t.Person.Alter(sim.Zeit.Jahr)}) ist über dem Ruhestand {grenze}");
+            }
             for (var i = 0; i < a.Waechter.Count; i++)
                 Pruefe.Gleich(a.Waechter[i].Person.Name, b.Waechter[i].Person.Name, "auch nach dem Laden dieselben Neuen");
             Pruefe.Wahr(a.Waechter.Select(t => t.Person.Nummer).Distinct().Count() == a.Waechter.Count, "Nummern eindeutig");
