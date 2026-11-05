@@ -292,3 +292,10 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Startpersonal | Jeder Startbetrieb beginnt mit einem Anfänger (Nutzer): Spieler und KI-Häuser gleich, bei „Schwer“ auch der Umlandbetrieb der KI (vorher 2 in der Stadt, 3 im Umland). Wert in den Daten: `personal.startJeBetrieb` = 1, Datenversion 72; ohne Angabe wie bisher. | 04.11. |
 | KI | Unverändert: Die KI füllt freie Plätze in ihrer ersten Stunde, schon beim Anmelden – für KI-Häuser und KI-geführte Spieler ist die Partie bitgleich mit vorher (Kurzmessung). Ob die KI langsamer anlaufen soll, ist offen (unten). | 04.11. |
 | Gegenmaßnahmen | Keine: kein Bankrott, kein Kredit; ein passiver Spieler verliert in 20 Jahren etwa die Hälfte (Greybox 28.802 → 15.018), bleibt aber zahlungsfähig. | 04.11. |
+
+### Messhilfe Meldungen je Spieljahr (PR „Kern: Messhilfe – Meldungen je Spieljahr“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Messhilfe | `messen meldungen [Jahre] [Startwerte] [--karten=…] [--rollen=Wirt,Schmied,Ausbau] [--muster=datei]` zählt jede Meldung des Kerns nach Art (Text), Bezug (Eigen, Stadt, Fremd, eigener KI-Zug) und vorgeschlagener Stufe (Verlauf, Siegel, Brief, Entscheidung) je Spieljahr und Spielstunde. Nur lesen, Spiel unverändert. Vorarbeit für das Benachrichtigungssystem (Variante C). | 05.11. |
+| Ergebnis | main 45b24cf4, 20 Jahre × 8 Startwerte, Greybox und Köln: Siegel 6,2, Brief 2,6, Verlauf 87 je Jahr; Spitze am Jahreswechsel bis 59 Meldungen auf einmal; KI-Züge der Rivalen 42,5 und fremde Stillstände 15,9 je Jahr. | 05.11. |
