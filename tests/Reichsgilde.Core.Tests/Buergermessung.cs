@@ -21,7 +21,7 @@ using Reichsgilde.Core.Wirtschaft;
 static class Buergermessung
 {
     /// <summary>Die Felder, um die die neue Bürger-KI die Daten ergänzt – ohne sie rechnet sie wie vorher.</summary>
-    public static readonly string[] NeueFelder = { "jeHausplatz", "tagesplan" };
+    public static readonly string[] NeueFelder = { "jeHausplatz", "tagesplan", "torwache" };
 
     /// <summary>Die Uhrzeiten, zu denen gezählt wird (jeweils zur halben Stunde).</summary>
     static readonly int[] Stunden = { 8, 10, 12, 15, 18, 20, 22 };

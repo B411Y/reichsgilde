@@ -2026,6 +2026,7 @@
     "jeHaus": 25,
     "jeHausplatz": 6,
     "tagesplan": { "von": 8, "bis": 20, "rastDraussen": 0.7, "besorgungen": 0.5 },
+    "torwache": { "jeTorTag": 2, "jeTorNacht": 1, "wechsel": 14, "nachtAb": 20, "weg": 15 },
     "mitRatsherren": true,
     "mitKandidaten": true,
     "voelker": { "Mensch": 5, "Halbling": 2, "Zwerg": 2, "Elb": 1 },
@@ -2041,7 +2042,8 @@
       "Mönch": { "gewicht": 1, "arbeitsort": "Kirche", "frau": "Nonne", "ledig": false },
       "Witwer": { "gewicht": 1, "arbeitsort": "Heim", "frau": "Witwe", "ledig": false },
       "Ratsherr": { "gewicht": 0, "arbeitsort": "Rathaus", "frau": "Ratsfrau", "ledig": false },
-      "Bürgersohn": { "gewicht": 0, "arbeitsort": "Heim", "frau": "Bürgertochter" }
+      "Bürgersohn": { "gewicht": 0, "arbeitsort": "Heim", "frau": "Bürgertochter" },
+      "Torwächter": { "gewicht": 0, "arbeitsort": "Tor", "frau": "Torwächterin", "ledig": false }
     },
     "rolleRatsherr": "Ratsherr",
     "rolleKandidatAbBuerger": "Bürgersohn",
