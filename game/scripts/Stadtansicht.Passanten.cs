@@ -77,6 +77,11 @@ public partial class Stadtansicht
         public Weg? VonZeitFuer { get; set; }
         /// <summary>Eigenes Gehtempo in Metern je echter Sekunde bei Tempo 1 (<see cref="Reichsgilde.Gehtempo"/>).</summary>
         public float Gehtempo { get; init; }
+        /// <summary>Bild, für das <see cref="NaheWert"/> und <see cref="VorWert"/> (nah am Bild: 40 m, Vorlauf: 90 m) gerechnet sind.</summary>
+        public int NaheStempo { get; set; } = -1;
+        public Vector3[]? NaheFuer { get; set; }
+        public bool NaheWert { get; set; }
+        public bool VorWert { get; set; }
         /// <summary>Wann die Figur für den aktuellen Weg losgeht und ankommt (Spielminuten, mit Bruchteil).</summary>
         public double LaufStart { get; set; }
         public double LaufEnde { get; set; }
@@ -226,10 +231,12 @@ public partial class Stadtansicht
                 }
                 if (weiter is { } strecke && p.Pfad.Length > 0 && (figurImBild || NeuerWegImBild(p, minuteGenau))) Weitergehen(p, weg, altPfad, strecke, minuteGenau);
                 var bodenUhr = ProfilMessen ? Stopwatch.StartNew() : null;
-                if (!SpurAlt && p.Pfad.Length > 0) MitteAnlegen(p); // Mittellinie gleich hier, Bodenmeter über die nächsten Bilder verteilt (BodenmeterFuellen)
+                if (!SpurAlt && p.Pfad.Length > 0 && (!viele || VorBild(p))) MitteAnlegen(p); // Mittellinie gleich hier, Bodenmeter über die nächsten Bilder verteilt (BodenmeterFuellen); in großen Städten erst, wenn die Figur dem Bild nahe kommt (Vorlauf, siehe unten)
                 if (bodenUhr is not null) _bodenMax = Math.Max(_bodenMax, bodenUhr.Elapsed.TotalMilliseconds);
                 if (planUhr is not null) WegsucheZaehlen(planUhr.Elapsed.TotalMilliseconds);
             }
+            // Wer dem Bild näher kommt (90 m Rand), bekommt jetzt Mittellinie und verteilte Bodenmeter – bis sie 40 m vom Bild ist, ist die Tabelle fertig
+            if (viele && p.Stand is null && p.Pfad.Length > 0 && !(p.Mitte is { } vorhanden && ReferenceEquals(vorhanden.Pfad, p.Pfad)) && !SpurAlt && VorBild(p)) MitteAnlegen(p);
             Profil(1); // neue Wege planen
             // Ist der Kern längst fertig und sieht keiner hin (weder die Figur noch ihr Ziel), kommt sie unbemerkt an: nie sichtbar springen
             if (weg is not null && p.Stand is null && p.Knoten.Visible && p.Pfad.Length > 0 && minuteGenau >= weg.Ankunft + p.Verzoegerung && minuteGenau < p.LaufEnde
@@ -501,6 +508,8 @@ public partial class Stadtansicht
         p.Stand = null;
         _imDom.Remove(nummer);
         if (p.Pfad.Length == 0) { p.Knoten.Visible = false; return; }
+        // Große Stadt, weit vom Bild: nur ein Punkt entlang der groben Linie – keine Mittellinie, keine Spur, keine genaue Wegfindung (Schritt 1 der Passantenoptimierung)
+        if (!SpurAlt && !SpurV1 && _passanten.Count > VieleFiguren && !NaheBild(p)) { LaufenGrob(p, minuteGenau); return; }
         var mitte = SpurAlt ? null : MitteVon(p);
         var strecke = StreckeJetzt(p, minuteGenau); // Meter Mittellinie
         var laenge = mitte?.Laenge ?? p.Laenge;
@@ -666,9 +675,50 @@ public partial class Stadtansicht
         return p.Mitte = mitte;
     }
 
-    /// <summary>Ist die Figur, ihr Start oder ihr Ziel nahe am Bild (40 m Rand)? Sonst darf sie in großen Städten vereinfacht laufen.</summary>
-    private bool NaheBild(Passant p) =>
-        ImBild(p.Knoten.Position, 40f) || p.Pfad.Length > 0 && (ImBild(p.Pfad[0], 40f) || ImBild(p.Pfad[^1], 40f));
+    /// <summary>Ist die Figur, ihr Start oder ihr Ziel nahe am Bild (40 m Rand)? Sonst darf sie in großen Städten vereinfacht laufen. Einmal je Bild und Figur gerechnet.</summary>
+    private bool NaheBild(Passant p)
+    {
+        if (p.NaheStempo != _figurenBild || !ReferenceEquals(p.NaheFuer, p.Pfad)) NaheRechnen(p);
+        return p.NaheWert;
+    }
+
+    /// <summary>Wie <see cref="NaheBild"/> mit 90 m Rand: Vorlauf, in dem die Mittellinie und die Bodenmeter fertig werden, ehe die Figur nah ist.</summary>
+    private bool VorBild(Passant p)
+    {
+        if (p.NaheStempo != _figurenBild || !ReferenceEquals(p.NaheFuer, p.Pfad)) NaheRechnen(p);
+        return p.VorWert;
+    }
+
+    private void NaheRechnen(Passant p)
+    {
+        (p.NaheStempo, p.NaheFuer) = (_figurenBild, p.Pfad);
+        var lage = p.Knoten.Position;
+        // erst der billige Fall: im Bild mit 90 m Rand? sonst weder nah noch Vorlauf (Start und Ziel müssen dann auch außerhalb sein)
+        var vor = ImBild(lage, 90f) || p.Pfad.Length > 0 && (ImBild(p.Pfad[0], 90f) || ImBild(p.Pfad[^1], 90f));
+        p.VorWert = vor;
+        p.NaheWert = vor && (ImBild(lage, 40f) || p.Pfad.Length > 0 && (ImBild(p.Pfad[0], 40f) || ImBild(p.Pfad[^1], 40f)));
+    }
+
+    /// <summary>
+    /// Weit vom Bild (große Stadt): Die Figur steht auf der Linie des Pfades, wo ihr Plan sie hat (Meter des Pfades, nicht des Bodens), ohne Spur, Ausweichen und
+    /// Pose. Kommt sie dem Bild näher, übernimmt <see cref="Laufen"/> (die Mittellinie ist dann im Vorlauf angelegt); das geschieht 40 m vor dem Bildrand, wo
+    /// niemand den Unterschied von ein paar Dezimetern sieht.
+    /// </summary>
+    private void LaufenGrob(Passant p, double minuteGenau)
+    {
+        var anteilZeit = (float)Math.Clamp((minuteGenau - p.LaufStart) / Math.Max(p.LaufEnde - p.LaufStart, 1e-9), 0, 1);
+        var strecke = Mathf.Clamp(anteilZeit * p.Laenge - p.Rueckstand, 0, p.Laenge);
+        p.AmRand = Mathf.Min(strecke, p.Laenge - strecke);
+        var anteil = p.Laenge > 0 ? strecke / p.Laenge : 1;
+        var hier = Gassennetz.PunktAuf(p.Pfad, anteil, p.Laenge);
+        var weiter = Gassennetz.PunktAuf(p.Pfad, Mathf.Min(1, anteil + 2f / Mathf.Max(p.Laenge, 1)), p.Laenge);
+        var richtung = weiter - hier;
+        if (richtung.X * richtung.X + richtung.Z * richtung.Z > 1e-6f) p.Knoten.Rotation = new Vector3(0, Mathf.Atan2(richtung.X, richtung.Z), 0);
+        (p.VersatzJetzt, p.Geschwindigkeit, p.WartetDrinnen) = (Vector3.Zero, Vector3.Zero, false);
+        p.Knoten.Position = AufFuss(hier);
+        p.Knoten.Visible = true;
+        if (p.Figur is { } figur) BewegungSetzen(figur, p.Gebeugt ? "Gebeugt" : p.Traegt ? "Tragen" : "Gehen");
+    }
 
     /// <summary>Rechnet höchstens <paramref name="schritte"/> weitere Einträge der Tabelle; true, wenn sie danach fertig ist.</summary>
     private static bool BodenFuellen(PfadMitte mitte, int schritte)
@@ -699,7 +749,7 @@ public partial class Stadtansicht
         foreach (var q in _bodenOffen)
         {
             if (!WegsucheFrei()) break;
-            if (viele && !NaheBild(q)) continue; // weit außerhalb des Bildes erst, wenn man hinsieht (Bürgerdichte)
+            if (viele && !VorBild(q)) continue; // weit außerhalb des Bildes erst, wenn man hinsieht (Bürgerdichte)
             var uhr = Stopwatch.StartNew();
             BodenFuellen(q.Mitte!, BodenStueck);
             WegsucheZaehlen(uhr.Elapsed.TotalMilliseconds);
