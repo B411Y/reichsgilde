@@ -41,12 +41,14 @@ DICKE = 0.030           # Aufdickung des Leders in Modelleinheiten (3 mm)
 # Pose: Beugung je Gelenk in Grad (positiv = zur Handfläche), Spreizung in Grad (positiv = vom Mittelfinger weg)
 # Gelenke je Finger: Grundgelenk, Mittelgelenk, Endgelenk
 POSE = {
-    "zeige": dict(beugen=(5, 6, 4), spreizen=6),
-    "mittel": dict(beugen=(13, 17, 9), spreizen=1),
-    "ring": dict(beugen=(21, 27, 14), spreizen=-3),
-    "klein": dict(beugen=(28, 32, 17), spreizen=-8),
-    "daumen": dict(spreizen=30, beugen=(6, 10, 10)),
+    "zeige": dict(beugen=(2, 3, 2), spreizen=3),
+    "mittel": dict(beugen=(25, 30, 15), spreizen=0),
+    "ring": dict(beugen=(35, 40, 20), spreizen=-1),
+    "klein": dict(beugen=(45, 45, 25), spreizen=-2),
+    "daumen": dict(spreizen=20, beugen=(6, 10, 10)),
 }
+# Fingerform (Runde 15): Längenfaktor und Dickenfaktor je Finger; der Zeigefinger ist am längsten
+FORM = {"zeige": (1.16, 0.84), "mittel": (1.10, 0.86), "ring": (1.10, 0.86), "klein": (1.10, 0.88), "daumen": (1.04, 0.90)}
 FINGER_KNOCHEN = {"daumen": 1, "zeige": 2, "mittel": 3, "ring": 4, "klein": 5}
 TEIL_NUMMER = {"platte": 1, "zeige": 2, "mittel": 3, "ring": 4, "klein": 5, "daumen": 6}
 TEIL_NAMEN = ["platte", "zeige", "mittel", "ring", "klein", "daumen"]
@@ -225,6 +227,43 @@ def teile_bestimmen(h, pos):
         abst[:, j] = np.where(dahinter, dmin, 1e9)
     nah = abst.argmin(axis=1)
     return np.where(abst.min(axis=1) < 0.22, nah + 1, 0)
+
+
+def finger_formen(h):
+    """Finger schlanker und länger machen: je Ecke vom nächsten Fingerknochen weg (Dicke) und entlang der Kette nach vorn (Länge).
+    Die Knochenlinien (h.ketten) werden mit verschoben, damit Falten, Nähte und Ringe passen."""
+    teil = teile_bestimmen(h, h.P0)
+    namen = {1: "zeige", 2: "mittel", 3: "ring", 4: "klein", 5: "daumen"}
+    P = h.P0.copy()
+    for tn, fname in namen.items():
+        lang, dick = FORM[fname]
+        kette = h.ketten[fname]
+        ids = np.where(teil == tn)[0]
+        pp = h.P0[ids]
+        best_d = np.full(len(ids), 1e9)
+        best_g = np.zeros(len(ids), dtype=int)
+        best_t = np.zeros(len(ids))
+        best_c = np.zeros((len(ids), 3))
+        for g, (kopf, spitze) in enumerate(kette):
+            ab = spitze - kopf
+            t = np.clip(((pp - kopf) @ ab) / (ab @ ab), 0, 1)
+            c = kopf + t[:, None] * ab
+            d = np.linalg.norm(pp - c, axis=1)
+            sel = d < best_d
+            best_d[sel], best_g[sel], best_t[sel], best_c[sel] = d[sel], g, t[sel], c[sel]
+        extra = [(k[1] - k[0]) * (lang - 1.0) for k in kette]
+        schub = np.zeros((len(ids), 3))
+        for g in range(3):
+            m = best_g == g
+            vor = sum(extra[:g]) if g else np.zeros(3)
+            schub[m] = vor + extra[g] * best_t[m][:, None]
+        P[ids] = best_c + (pp - best_c) * dick + schub
+        neu, versch = [], np.zeros(3)
+        for g, (kopf, spitze) in enumerate(kette):
+            neu.append((kopf + versch, spitze + versch + extra[g]))
+            versch = versch + extra[g]
+        h.ketten[fname] = neu
+    h.P0 = P
 
 
 def netz_dicken(h):
@@ -672,13 +711,26 @@ def deko(b, h, stufe, S, rng, ribs):
         else:
             # Hermelinpelz an der Stulpe und ein einziger Siegelring am Zeigefinger
             y0 = hi - 0.01
-            for lage, (dy, n_, rad) in enumerate(((0.0, 84, 0.062), (0.085, 78, 0.06), (0.165, 72, 0.058))):
+            # Hermelin: weicher Wulst als Unterlage, darüber Zotteln (dünne Kegel nach außen und hinten), schwarze Schwanzspitzen
+            for dy in (0.0, 0.09):
+                cx, cz, ru_, rv_ = S.schnitt(y0 + dy)
+                band_um(b, "pelz_hell", Vector((cx, y0 + dy, cz)), Vector((1, 0, 0)), Vector((0, 0, 1)), Vector((0, 1, 0)), ru_ + 0.02, rv_ + 0.02, 0.055, seg=40, ring_=6)
+            for lage, (dy, n_, laenge) in enumerate(((0.0, 230, 0.085), (0.07, 210, 0.085), (0.14, 190, 0.08))):
                 for k in range(n_):
-                    w = 2 * math.pi * (k + 0.5 * lage) / n_ + rng.uniform(-0.03, 0.03)
-                    p = S.punkt(y0 + dy + rng.uniform(-0.025, 0.025), w, 0.025 + 0.008 * lage)
-                    schwanz = (k % 8 == 3 and lage == 1)
-                    nm = "pelz_dunkel" if schwanz else "pelz_hell"
-                    b.kugel(nm, p, rad * rng.uniform(0.85, 1.12) * (0.7 if schwanz else 1.0), (1.0, 1.0, 1.35 if schwanz else 1.2), seg=9)
+                    w = 2 * math.pi * (k + 0.37 * lage) / n_ + rng.uniform(-0.03, 0.03)
+                    yy = y0 + dy + rng.uniform(-0.03, 0.03)
+                    p0 = S.punkt(yy, w, 0.02)
+                    aussen_ = (S.punkt(yy, w, 1.0) - S.punkt(yy, w, 0.0)).normalized()
+                    rich = (aussen_ * 1.0 + Vector((0, -0.35, 0)) + Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25)))).normalized()
+                    l_ = laenge * rng.uniform(0.7, 1.15)
+                    b.kegel("pelz_hell", p0, p0 + rich * l_, 0.045, 0.012, seg=6)
+            for k in range(18):
+                w = 2 * math.pi * (k + rng.uniform(0, 0.8)) / 18
+                yy = y0 + rng.choice((0.04, 0.12, 0.2)) + rng.uniform(-0.02, 0.02)
+                p0 = S.punkt(yy, w, 0.03)
+                aussen_ = (S.punkt(yy, w, 1.0) - S.punkt(yy, w, 0.0)).normalized()
+                rich = (aussen_ * 1.0 + Vector((0, -0.4, 0))).normalized()
+                b.kegel("pelz_dunkel", p0, p0 + rich * 0.12, 0.04, 0.012, seg=6)
             mitte, a, seit, rueck, ru, rv = finger_ring(b, h, "zeige", 0, 0.5, "gold", 0.085)
             m3 = Matrix((seit, a, rueck)).transposed().to_3x3()
             b.quader("gold", mitte + rueck * (rv + 0.01), (0.10, 0.12, 0.04), m3)
@@ -723,6 +775,21 @@ def hand_bauen(stufe, h, st):
 # ─────────────────────────────────────────────────────────────────────────────
 #  Rendern
 # ─────────────────────────────────────────────────────────────────────────────
+
+_stoff_alt = H.stoff
+
+
+def _stoff_kraeftig(name, farbe, rau=0.6, metall=0.0, bump=0.0, korn=70.0, var=0.0, sheen=0.0, glanz=0.0, glut=None, korn_art="voronoi"):
+    """Leder: gröbere, tiefere Narbung und mehr Fleckigkeit (Runde 15); Samt und alles andere unverändert."""
+    if name == "Leder" and sheen == 0:
+        bump = min(1.0, bump * 1.9 + 0.25)
+        korn = 42.0
+        var = var * 1.5 + 0.03
+    return _stoff_alt(name, farbe, rau, metall, bump, korn, var, sheen, glanz, glut, korn_art)
+
+
+H.stoff = _stoff_kraeftig
+
 
 def szene_aufbauen(h, stufe, warm):
     H.neue_szene()
@@ -798,6 +865,7 @@ def main():
     stufen = [int(x) for x in a.get("stufen", "1,2,3,4,5,6").split(",")]
     gross_stufen = [int(x) for x in a.get("gross", "2,6").split(",")]
     h = hand_vorbereiten(POSE)
+    finger_formen(h)
     netz_dicken(h)
     print("Hand:", len(h.pos), "Ecken,", len(h.fl), "Flächen", flush=True)
     alles(aus, stufen, gross_stufen, h)
