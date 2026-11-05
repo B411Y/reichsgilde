@@ -58,6 +58,7 @@ Startoptionen (nach `--`):
 - `--hafen=1` (Hafentafel des ersten Hafens rechts öffnen, ohne `--blick` fährt die Kamera hin; `=<Kennung>` eines Hafens der Karte, z. B. `Hafen1`; `=staedte`: Reiter „Ferne Städte“). Ein ausgewähltes Schiff: `--auswahl=schiff:<Name>`
 - `--verkaufen=1` (Rückfrage zum Verkauf der eigenen Werkstatt; `=2` erwirbt vorher die günstigste freie Liegenschaft dazu (sonst: Wohnhaus ausbauen und aufsteigen) und lässt bis Mittag laufen, mit `--vermoegen=20000`)
 - `--bericht=1` (Jahresbericht in der Mitte); `--bericht=<jahresrechnung|rivalen|umsaetze|protokoll>` (die Tafel „Bericht“ rechts auf diesem Reiter)
+- `--starthinweis=1` (Start-Hinweis zum Personalbuch zeigen: eine Tafel unten links mit Knopf „Zum Personalbuch“; nur bei neuer Partie mit höchstens einem Arbeiter in der Werkstatt, ohne Startoptionen kommt er von selbst)
 - `--hilfe=1` (Hilfe zur Steuerung gleich zeigen; ohne Startoptionen erscheint sie beim allerersten Spiel von selbst)
 - `--lexikon=<1|kennung|suche:text>` (das Lexikon öffnen: `1` = Startseite, `<kennung>` = gleich bei diesem Begriff, z. B. `--lexikon=stand`, `suche:<text>` = mit diesem Suchtext, Leerzeichen als `_`)
 - `--lexikon-pruefen=1` (nur die Datei `game/daten/lexikon.json` prüfen und beenden: Verweise, Platzhalter, Kennungen; Rückgabewert 0 = in Ordnung, 1 = Fehler; Ausgabe auf der Konsole, z. B. `Godot --headless --path game -- --lexikon-pruefen=1`)
