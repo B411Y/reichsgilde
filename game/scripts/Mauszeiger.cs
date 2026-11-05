@@ -16,13 +16,27 @@ public partial class Mauszeiger : Node
 
     public enum Art { Normal, Klick, Schloss }
 
-    /// <summary>Handstufe fest (Startoption <c>--zeigerstufe</c>); 0 = nach dem Stand des Hauses.</summary>
+    /// <summary>Handstufe fest nur für diesen Start (Startoption <c>--zeigerstufe</c>, schlägt die Wahl in den Einstellungen); 0 = die Wahl der Einstellungen
+    /// (<see cref="Fenster.ZeigerStufe"/>), und deren 0 heißt: nach dem Stand des Hauses.</summary>
     public static int StufeFest { get; set; }
 
     private static readonly int[] Groessen = { 32, 48, 64 };
 
-    /// <summary>Zeigerpunkt (Fingerspitze) bei 32 Pixeln; bei 48 und 64 mal 1,5 bzw. 2 (Ausgabe von <c>handschuh.py hotspots</c>).</summary>
-    private static readonly Vector2I HandPunkt32 = new(6, 10), SchlossPunkt32 = new(11, 16);
+    /// <summary>Namen der sechs Handschuhe (Index 0 = Stufe 1), für die Wahl in den Einstellungen.</summary>
+    public static readonly string[] StufenNamen =
+    {
+        "Gemeiner – Arbeitsleder", "Bürger – helles Leder", "Patrizier – Braunleder mit Waldgrün",
+        "Edler – schwarzes Leder", "Freiherr – Purpursamt", "Reichsgraf – Königsblau mit Hermelin",
+    };
+
+    /// <summary>Zeigerpunkt der Hand (Fingerspitze) je Größe 32, 48, 64 (Ausgabe von <c>handschuh_mpfb.py</c>, Runde 16/17: nicht genau 1,5 bzw. 2 mal 32).</summary>
+    private static readonly Vector2I[] HandPunkte = { new(6, 6), new(9, 10), new(12, 13) };
+
+    /// <summary>Zeigerpunkt (Mitte des Schlüssellochs) des Türschlosses bei 32 Pixeln; bei 48 und 64 mal 1,5 bzw. 2.</summary>
+    private static readonly Vector2I SchlossPunkt32 = new(11, 16);
+
+    /// <summary>Das Bild eines Handschuhs (normal, 48 Pixel) für die Vorschau in den Einstellungen.</summary>
+    public static Texture2D? Vorschau(int stufe) => Bild(stufe, Art.Normal, 48);
 
     private static Mauszeiger? _aktiv;
     private static (int Stufe, Art Art, int Groesse, bool An)? _gesetzt;
@@ -57,7 +71,7 @@ public partial class Mauszeiger : Node
     private void Anwenden()
     {
         var an = Fenster.EigenerZeigerAn;
-        var stufe = StufeFest > 0 ? StufeFest : Math.Clamp((StandAbfrage?.Invoke() ?? 0) + 1, 1, Stufen);
+        var stufe = StufeFest > 0 ? StufeFest : Fenster.ZeigerStufe > 0 ? Fenster.ZeigerStufe : Math.Clamp((StandAbfrage?.Invoke() ?? 0) + 1, 1, Stufen);
         var art = an ? ArtErmitteln() : Art.Normal;
         var groesse = an ? GroesseWaehlen() : 0;
         if (_gesetzt == (stufe, art, groesse, an)) return;
@@ -69,8 +83,9 @@ public partial class Mauszeiger : Node
         }
         var bild = Bild(stufe, art, groesse);
         if (bild is null) return;
-        var punkt = art == Art.Schloss ? SchlossPunkt32 : HandPunkt32;
-        var hotspot = new Vector2(punkt.X, punkt.Y) * (groesse / 32f);
+        var hotspot = art == Art.Schloss
+            ? new Vector2(SchlossPunkt32.X, SchlossPunkt32.Y) * (groesse / 32f)
+            : new Vector2(HandPunkte[Array.IndexOf(Groessen, groesse)].X, HandPunkte[Array.IndexOf(Groessen, groesse)].Y);
         // Pfeil = der gewählte Zustand; „Zeigefinger“ (Knöpfe mit Handform) immer klick.
         Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
         var klick = art == Art.Normal ? Bild(stufe, Art.Klick, groesse) : bild;
