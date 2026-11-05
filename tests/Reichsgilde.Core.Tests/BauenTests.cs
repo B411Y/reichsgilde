@@ -111,7 +111,7 @@ static class BauenTests
             Pruefe.Gleich(2, k.Mauern.Count); // Stadtmauer und Deutzer Mauer
             Pruefe.Gleich(10, k.Mauern.Sum(m => m.Tore.Count)); // 7 in der Stadtmauer (fünf Tore, zwei Ufertore), 3 in Deutz
             Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Wasser.Any(x => x.Name == "Duffesbach") && k.Uebergaenge.Count == 1, "Rhein, Duffesbach, Fähre");
-            Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran") is not null, "Hafen und Kran am Ufer");
+            Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran") is null, "Hafen am Ufer; der Kran steht auf dem Hafensteg, nicht mehr als eigenes Gebäude");
             Pruefe.Wahr(k.Wasserplan.Bruecken.Any(b => b.WegName == "Rheinbrücke" && b.Art == Uebergangsart.Steinbruecke), "Rheinbrücke aus Stein");
             Pruefe.Wahr(k.Start is not null, "Köln hat eine Startbelegung");
             Pruefe.Gleich(7, k.Startbelegung.Haeuser.Count); // sieben KI-Häuser und der Spieler auf den acht Startgrundstücken
