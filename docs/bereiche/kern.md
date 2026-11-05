@@ -271,7 +271,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Messhilfe | `messen meldungen [Jahre] [Startwerte] [--karten=…] [--rollen=Wirt,Schmied,Ausbau] [--muster=datei]` zählt jede Meldung des Kerns nach Art (Text), Bezug (Eigen, Stadt, Fremd, eigener KI-Zug) und vorgeschlagener Stufe (Verlauf, Siegel, Brief, Entscheidung) je Spieljahr und Spielstunde. Nur lesen, Spiel unverändert. Vorarbeit für das Benachrichtigungssystem (Variante C). | 05.11. |
 | Ergebnis | main 45b24cf4, 20 Jahre × 8 Startwerte, Greybox und Köln: Siegel 6,2, Brief 2,6, Verlauf 87 je Jahr; Spitze am Jahreswechsel bis 59 Meldungen auf einmal; KI-Züge der Rivalen 42,5 und fremde Stillstände 15,9 je Jahr. | 05.11. |
 
-### Liste der Gauner-Vorfälle (Branch phase5/gauner-vorfaelle)
+### Liste der Gauner-Vorfälle (PR #325)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
