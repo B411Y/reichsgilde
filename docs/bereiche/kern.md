@@ -293,7 +293,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | KI | Unverändert: Die KI füllt freie Plätze in ihrer ersten Stunde, schon beim Anmelden – für KI-Häuser und KI-geführte Spieler ist die Partie bitgleich mit vorher (Kurzmessung). Ob die KI langsamer anlaufen soll, ist offen (unten). | 04.11. |
 | Gegenmaßnahmen | Keine: kein Bankrott, kein Kredit; ein passiver Spieler verliert in 20 Jahren etwa die Hälfte (Greybox 28.802 → 15.018), bleibt aber zahlungsfähig. | 04.11. |
 
-### Messhilfe Meldungen je Spieljahr (PR „Kern: Messhilfe – Meldungen je Spieljahr“)
+### Messhilfe Meldungen je Spieljahr (PR #320)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
