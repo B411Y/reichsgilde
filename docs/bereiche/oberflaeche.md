@@ -234,7 +234,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hauptszene in Abschnitten | `_Ready` baut die Tafeln, dann `PartieAufbauen` (async): Kern, Stadt in Abschnitten, `PartieStarten` (der frühere Rest von `_Ready`: Spielmenü, Ereignisse, Startoptionen), `ErsteBilderAbwarten`. Startoptionen, die eine fertige Stadt brauchen (`--blick`, `--innen`, `--wetter`), wirken dadurch wie bisher. Hauptmenue.cs/Hauptszene.cs: Änderung durch die Außenstelle im Auftrag. | 29.10.2026 |
 | Klicktest | `tools/klicktest/lauf.ps1`, Vulkan und D3D12 (RTX 4080), Köln: neue Partie, Spielstand, Kartenwerkstatt je 14 Bilder alle 0,5 s (Balken und Text laufen, Ausblenden, fertiges Bild vollständig mit Wohnhäusern und Nachtlicht), dazu Regen 8 s nach dem Start. Bilder: `C:\Reichsgilde_Austausch\aussenstelle\ladebild\` (`uebersicht-*.png`). | 29.10.2026 |
 
-### Holzschnitt-Platzhalter im Ladebildschirm (PR #322)
+### Holzschnitt-Platzhalter im Ladebildschirm (PR #…)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -242,7 +242,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wahl | Zufällig je Ladevorgang, nie dasselbe wie beim vorigen (`_letztesBild`, statisch). Fehlt die Datei, die Kartenvorschau wie zuvor. | 31.10.2026 |
 | Darstellung | Das Bild bleibt quadratisch (1 : 1, nie verzerrt), so groß es über Tipp und Balken passt (240–760 px); Holzrahmen (schwarzer Umriss) mit Pergamentblatt darin. Tipp und Balken sind etwas breiter als das Bild. Die Kartenvorschau ist **ersetzt, nicht kombiniert**: Sie ist kein Holzschnitt, 480 × 270 und kleiner als das Bild; die Stadt sieht der Spieler gleich danach. | 31.10.2026 |
 
-### Globale Beleuchtung (SDFGI) in den Einstellungen (PR #322)
+### Globale Beleuchtung (SDFGI) in den Einstellungen (PR #…)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
