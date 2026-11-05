@@ -321,6 +321,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Zustände | „klick“ über Gebäude, Figuren, Bauplatz im Baumodus und freigegebenen Knöpfen; Schloss über Gebäuden mit Innenraum (`HatInnenansicht`), nur außerhalb von Räumen. Karren sind nicht einzeln wählbar, darum ohne eigenen Zustand. | 04.11.2026 |
 | Einstellung | „Eigener Mauszeiger“ (Barrierefreiheit, Standard an) mit Tooltip; Startoptionen `--zeiger`, `--zeigerstufe`. Hauptmenü und Kartenwerkstatt zeigen Stufe 1; die Werkstatt hat keinen eigenen Pinsel-Zeiger. | 04.11.2026 |
 
+### Handschuh-Zeiger aus echter Hand, Wahl in den Einstellungen (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bilder | Neue Hände (`tools/modelle/handschuh_mpfb.py`, MPFB-Grundnetz CC0, Runde 16) ersetzen alle 36 Handbilder; Türschloss unverändert. Stufe 3 (Waldgrün): nur ein schmales Messingband an der Stulpe (vorher drei). Zeigerpunkte jetzt je Größe 6/6, 9/10, 12/13 (`Mauszeiger.HandPunkte`), nicht mehr 1,5- bzw. 2-mal 32. | 05.11.2026 |
+| Wahl | Reihe aus sieben Kacheln (Auto + 6) mit 48-Pixel-Vorschau unter „Eigener Mauszeiger“ (Barrierefreiheit); alle sechs unabhängig vom Stand wählbar (nur Zierde), gespeichert als `zeiger_stufe` im Abschnitt „anzeige“ der Einstellungsdatei (0 = automatisch), nicht im Spielstand. Kacheln nur aktiv bei eingeschaltetem Zeiger; Name der Wahl darunter, Tooltip der Zeile listet alle. `--zeigerstufe` schlägt die Wahl nur für diesen Start. | 05.11.2026 |
+
 ### Start-Hinweis zum Personalbuch (PR „Hinweis zum Start – weitere Lehrlinge im Personalbuch“)
 
 | Thema | Entscheidung | Datum |
