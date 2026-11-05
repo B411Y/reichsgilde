@@ -92,7 +92,7 @@ public partial class Stadtansicht
             s.Wurzel.Visible = false;
             s.Sichtbar = false;
         }
-        if (fern) ZierStapelZeigen(0);
+        if (fern) KranRuhe();
         // Die Kähne des Hafenmodells weichen, solange das Zierschiff am Kai liegt (oder fährt)
         if (hafen is not null)
         {
@@ -115,7 +115,7 @@ public partial class Stadtansicht
         if (phase == ZierPhase.Liegen)
         {
             // Längsseits am Steg, wie die Schiffe des Handels (SchiffBewegen)
-            (ziel, drehung) = StegLiegeplatz(hafen, ansicht, StegAbstand);
+            (ziel, drehung) = StegLiegeplatz(hafen, ansicht, StegAbstand, ZierLaengs);
         }
         else
         {
@@ -129,7 +129,7 @@ public partial class Stadtansicht
             {
                 ansicht.Wurzel.Visible = false;
                 ansicht.Sichtbar = false;
-                ZierStapelZeigen(0);
+                KranRuhe();
                 return false;
             }
             var (ort, rx, rz) = ZierAufRoute(route, stelle);
@@ -140,7 +140,7 @@ public partial class Stadtansicht
             if (stelle < StegAnlauf)
             {
                 var gleich = Mathf.SmoothStep(1f, 0f, (float)stelle / StegAnlauf);
-                var (liege, liegeDrehung) = StegLiegeplatz(hafen, ansicht, StegAbstand);
+                var (liege, liegeDrehung) = StegLiegeplatz(hafen, ansicht, StegAbstand, ZierLaengs);
                 ziel = ziel.Lerp(liege, gleich);
                 drehung = Mathf.LerpAngle(drehung, liegeDrehung, gleich);
             }
@@ -152,7 +152,7 @@ public partial class Stadtansicht
         return true;
     }
 
-    // ── Entladen, Stufe 1 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    // ── Entladen, Stufe 1 (Zeitplan; Stufe 2: der Kran hebt jedes Stück, Stadtansicht.Kranladen.cs) ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
     // Das Schiff kommt voll beladen an. Während der Liegezeit (Anteil a von 0 bis 1) wird Stück für Stück entladen, in fester Reihenfolge (Ladung_18 zuerst,
     // dann abwärts; die Nummern sind so gelegt, dass oben Gestapeltes und das bei der Laufplanke zuerst geht). Jedes abgeladene Stück erscheint als Stapel auf
     // dem Kopf des Stegs und verschwindet gegen Ende der Liegezeit wieder (bis Träger die Ware wegtragen, Stufe 3). Danach lädt das Schiff eine kleinere
@@ -188,21 +188,27 @@ public partial class Stadtansicht
     {
         var voll = ansicht.Ladung.Length;
         if (voll == 0) return;
-        var (anBord, stapel) = ZierLadungsstand(phase, anteil, besuch, voll);
+        ZierStapelBauen(ansicht, hafen);
+        ZierMastSetzen(ansicht, phase, anteil); // Stadtansicht.Kranladen.cs: im Hafen ist der Mast gelegt
+        int anBord;
+        if (phase == ZierPhase.Liegen) anBord = KranLadung(ansicht, anteil, besuch, voll); // Stadtansicht.Kranladen.cs: der Kran hebt jedes Stück
+        else
+        {
+            anBord = ZierLadungsstand(phase, anteil, besuch, voll).AnBord;
+            KranRuhe();
+        }
         // An Bord zeigt man bei Anfahrt/Entladen die niedrigsten Nummern (die höchsten gehen zuerst), bei der Rückfracht ebenso Ladung_1 aufwärts
         if (anBord != ansicht.GezeigteLadung)
         {
             ansicht.GezeigteLadung = anBord;
             for (var i = 0; i < voll; i++) ansicht.Ladung[i].Visible = i < anBord;
         }
-        ZierStapelBauen(ansicht, hafen);
-        ZierStapelZeigen(stapel);
     }
 
-    private readonly List<Node3D> _zierStapel = new();
+    private readonly List<ZierStueck> _zierStapel = new();
     private int _zierStapelGezeigt = -1;
 
-    /// <summary>Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 4 Spalten × 2 Reihen östlich der Laufplanke, dann zwei Lagen darüber.</summary>
+    /// <summary>Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 4 Spalten × 2 Reihen westlich der Laufplanke, links und rechts vom Fuß der Rampe (aus der Standardansicht frei zu sehen, nicht hinter dem Kranhaus), dann zwei Lagen darüber.</summary>
     private static (float X, float Z, int Lage, int Grund) ZierStapelPlatz(int k)
     {
         var nummer = k < 8 ? k : (k < 16 ? k - 8 : k - 16);
@@ -210,18 +216,19 @@ public partial class Stadtansicht
         var grund = new[] { 0, 5, 2, 7, 1, 4, 3, 6 }[nummer]; // gemischt, damit gleiche Stücke nicht nebeneinander stehen
         var spalte = grund % 4;
         var reihe = grund / 4;
-        return (4.3f + 1.4f * spalte + 0.12f * MathF.Sin(k * 2.3f), -(8.65f + 1.1f * reihe) + 0.08f * MathF.Cos(k * 1.7f), lage, nummer);
+        return (-3.0f + 1.9f * spalte + 0.12f * MathF.Sin(k * 2.3f), -(8.65f + 1.1f * reihe) + 0.08f * MathF.Cos(k * 1.7f), lage, nummer);
     }
 
     /// <summary>Höhe des Stegdecks im Steg-Modell (Kai 0,25 m, Deck 0,45 m darunter).</summary>
     private const float StegDeck = -0.2f;
 
-    /// <summary>Legt einmal je Zierschiff die Stapel an: Kopien der Ladungsstücke des Schiffs als Kinder des Stegs.</summary>
+    /// <summary>Legt einmal je Zierschiff die Stapel an: Kopien der Ladungsstücke des Schiffs als Kinder des Stegs (mit Seil und Haken des Krans).</summary>
     private void ZierStapelBauen(SchiffAnsicht ansicht, Hafenplatz hafen)
     {
-        if (_zierStapel.Count > 0 && IsInstanceValid(_zierStapel[0])) return;
+        if (_zierStapel.Count > 0 && IsInstanceValid(_zierStapel[0].Knoten)) return;
         if (!_stege.TryGetValue(hafen.Kennung, out var steg) || !IsInstanceValid(steg)) return;
         _zierStapel.Clear();
+        KranHakenBauen(steg);
         var voll = ansicht.Ladung.Length;
         var hoehe = new float[8];
         for (var k = 0; k < voll; k++)
@@ -236,11 +243,14 @@ public partial class Stadtansicht
             var oben = lage == 0 ? 0 : hoehe[grund];
             // leicht verdreht, wie hingestellt: um die Mitte des Stücks drehen
             var dreh = 0.22f * MathF.Sin(k * 1.9f + 0.5f);
-            var mitte = new Vector3(box.Position.X + box.Size.X / 2, 0, box.Position.Z + box.Size.Z / 2);
-            kopie.Rotation = new Vector3(0, dreh, 0);
-            kopie.Position = new Vector3(x, StegDeck + oben - box.Position.Y, z) - new Basis(Vector3.Up, dreh) * mitte;
+            var stueck = new ZierStueck
+            {
+                Knoten = kopie, Unten = new Vector3(x, StegDeck + oben, z), Dreh = dreh, Hoehe = box.Size.Y, NetzUnten = box.Position.Y,
+                Mitte = new Vector3(box.Position.X + box.Size.X / 2, 0, box.Position.Z + box.Size.Z / 2),
+            };
+            StueckSetzen(stueck, stueck.Unten, dreh);
             hoehe[grund] = oben + box.Size.Y;
-            _zierStapel.Add(kopie);
+            _zierStapel.Add(stueck);
         }
         _zierStapelGezeigt = -1;
     }
@@ -250,7 +260,7 @@ public partial class Stadtansicht
         if (anzahl == _zierStapelGezeigt || _zierStapel.Count == 0) return;
         _zierStapelGezeigt = anzahl;
         for (var i = 0; i < _zierStapel.Count; i++)
-            if (IsInstanceValid(_zierStapel[i])) _zierStapel[i].Visible = i < anzahl;
+            if (IsInstanceValid(_zierStapel[i].Knoten)) _zierStapel[i].Knoten.Visible = i < anzahl;
     }
 
     /// <summary>Der Punkt in diesem Abstand vom Anfang der Route und die Richtung dort (vom Anfang weg); wie im Kern, der es nicht öffentlich macht.</summary>

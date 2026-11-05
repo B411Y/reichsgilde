@@ -23,6 +23,7 @@ namespace Reichsgilde;
 ///   --startstunde=11   Partie beginnt um 11 Uhr statt um 04 Uhr (Zunftglocke)
 ///   --startrunde=4     Partie beginnt in der 4. Runde (Winter), nur für Bilder
 ///   --lichtuhr=3.5     Licht, Himmel und Fenster zeigen 3:30 Uhr (feste Uhrzeit, auch vor 4 Uhr; nur Darstellung)
+///   --zierminute=133.4,0.1  Zierschiff am Hafen zeigt diese Spielminute seit Spielbeginn, danach 0,1 Minuten je Sekunde (Zeitlupe; ohne Rate steht es; nur Darstellung, Stadtansicht.Kranladen.cs)
 ///   --lichtlauf=1      Sonnen- und Mondstand je Jahreszeit alle halbe Stunde ins Log (Zeilen [lichtlauf]; Stadtansicht.Licht.cs)
 ///   --nachtnebel=aus   Nebel in der Nacht aus (wie Lösung A vom 29.10.2026; Standard an) – nur Darstellung (Stadtansicht.Bodennebel.cs)
 ///   --morgennebel=1    Nebel des Spieltags fest vorgeben (0–1, sonst gewürfelt nach Jahreszeit und Nacht) – nur Darstellung
@@ -542,6 +543,9 @@ public partial class Hauptszene : Node
                                   optionen.GetValueOrDefault("blitz") == "1");
         if (optionen.TryGetValue("lichtuhr", out var lichtUhr) && float.TryParse(lichtUhr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lichtStunde))
             _stadt.LichtUhrVorgeben(lichtStunde); // --lichtuhr=3.5: Licht und Himmel zeigen 3:30 Uhr (Stadtansicht.Licht.cs)
+        if (optionen.TryGetValue("zierminute", out var zierMinute) && zierMinute.Split(',') is var zierTeile
+            && double.TryParse(zierTeile[0], System.Globalization.CultureInfo.InvariantCulture, out var zierStart))
+            _stadt.ZierMinuteVorgeben(zierStart, zierTeile.Length > 1 && double.TryParse(zierTeile[1], System.Globalization.CultureInfo.InvariantCulture, out var zierRate) ? zierRate : 0);
         if (optionen.GetValueOrDefault("lichtlauf") == "1")
             Stadtansicht.LichtLaufAusgeben(); // --lichtlauf=1: Sonnen- und Mondstand je Jahreszeit ins Log (Stadtansicht.Licht.cs)
         if (optionen.TryGetValue("wetterspaeter", out var spaeter) && spaeter.Split('@') is [var spaeterLage, var spaeterSekunden]
@@ -643,6 +647,7 @@ public partial class Hauptszene : Node
             else _bauFrage.OeffnenLeerstand(leerKonto, leerstand == "abreissen"); // mit --auswahl=wohnhaus:<Inhaber>, Leerzeichen als _
         }
         WegBefehleStarten(optionen);
+        DiebtestStarten(optionen); // --diebtest (Hauptszene.Diebtest.cs)
         if (optionen.TryGetValue("spulen", out var spulen) && int.TryParse(spulen, out var ticks)) _spulen = ticks;
         if (optionen.TryGetValue("speichern", out var speichern)) _speichernAls = speichern;
         if (optionen.TryGetValue("klangtest", out var klangtest) && klangtest == "1") KlangOberflaeche.Testen(this); // spielt alle Oberflächenklänge, Ergebnis im Log
@@ -1511,6 +1516,7 @@ public partial class Hauptszene : Node
             "Osttor" => "Osttor\n\nHier endet der Schutz der Mauern. Auf dem Weg ins Umland lauern Banditen aller Völker, "
                         + "wilde Ork-Rotten und Ogerhorden – nachts doppelt so häufig.",
             _ when _stadt.EinwohnerText(_auswahlKennung) is { } einwohner => einwohner, // Passanten (Darstellung)
+            _ when _stadt.DiebText(_auswahlKennung) is { } gestalt => gestalt, // Taschendiebe am Markt (Darstellung)
             _ when schiff is not null => FremdesSchiffText(schiff, w), // Schiff eines anderen Hauses (Hauptszene.Hafen.cs)
             _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
             _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)

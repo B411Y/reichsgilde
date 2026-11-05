@@ -12,8 +12,8 @@ Blender: Land bei −Y, Wasser bei +Y (im Spiel Wasser bei −Z). Ursprung auf d
                 (x −9…9, y 8,0…10,4). Bohlen auf Streckbalken und Jochen, Pfahlpaare im Wasser (bis −4,5 m), Saumbalken,
                 Reibepfähle an der Seeseite (keiner bei x = 0, dort liegt die Laufplanke), vier Poller, Festmacherringe.
     Kranplattform  6 m × 4,4 m auf der Landseite des Kopfes (x 3…9, y 3,6…8,0) mit dem Tretradkran (Kranhaus drehbar, Tretrad als Kind
-                „Tretrad“, das das Spiel dreht): Der Ausleger ragt über den Kopf bis über das Schiff (Spitze bei y ≈ 13,5), die
-                Last hängt am Seil über der Bordwand. Kisten und Fässer auf dem Kopf zwischen Rampe und Kran.
+                „Tretrad“, das das Spiel dreht): Der Ausleger ragt über den Kopf bis über das Schiff (Spitze bei y ≈ 17), ohne Seil und Last:
+                Das Spiel hängt Seil und Haken ein, dreht das Kranhaus und hebt die Ladung des Zierschiffs (Stadtansicht.Kranladen.cs). Kisten und Fässer auf dem Kopf zwischen Rampe und Kran.
     Anker_Ufer (Mitte der Uferkante, Blick aufs Wasser), Anker_Liegeplatz (Seekante des Kopfes in der Mitte, y = 10,4, Blick aufs
     Wasser: dort liegt die Bordwand des Schiffes, 0,4 m Abstand), Anker_Planke (auf dem Kopf, 1,2 m hinter der Seekante).
 Keine Hausfarbe, keine Zustände (gehört der Stadt); Prüfung mit `pruefen.py <glb> --wasser`.
@@ -41,7 +41,7 @@ KOPF_BIS = ZUGANG + 2 * KOPF_H    # Seekante des Kopfes = 10,4 m
 KOPF_X = 9.0                # halbe Länge des Kopfes
 PL_X0, PL_X1, PL_Y0 = 3.0, 9.0, 3.6   # Kranplattform (bis ZUGANG)
 KRAN_ORT = Vector((6.0, 5.8, DECK + 0.14))   # Drehachse des Kranhauses
-AUSLEGER = 5.8              # Spitze 5,8 m vor der Vorderwand: über dem Schiff
+AUSLEGER = 9.3              # Spitze 9,3 m vor der Vorderwand (11,2 m von der Drehachse): reicht über das Schiff, das 5 m längs versetzt liegt (Zierschiff)
 STAB = (-9.0, -7.5, -4.5, -1.5, 1.5, 4.5, 7.5, 9.0)   # Reibepfähle: keiner bei x = 0 (Laufplanke)
 
 
@@ -165,7 +165,7 @@ def hafensteg(st):
         ws.kasten(netz, st, x - 0.2, x + 0.2, KRAN_ORT.y - 2.2, KRAN_ORT.y + 2.1, DECK, KRAN_ORT.z, "Holz alt", ohne=("-z",))
     ware(netz, st)
     # Tretradkran: Kranhaus (drehbar) mit Tretrad als Kind
-    kh = hb.kranhaus(st, AUSLEGER)
+    kh = hb.kranhaus(st, AUSLEGER, last=False)
     kh.location = KRAN_ORT
     rad = hb.kind(kh, hb.kran_tretrad(st), hb.RAD_ACHSE)
     tretrad_anker = ws.anschluss(kh, "Anker_Tretrad", hb.RAD_ACHSE + Vector((-(hb.KH_X + 0.75), 0, -hb.RAD_R + 0.17)), 90)

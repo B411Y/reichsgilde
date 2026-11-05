@@ -33,6 +33,7 @@ public partial class Stadtansicht
             // Wasser des Modells bei −Z: Drehung wie beim Schiff, Höhe = Boden an der Uferkante (der Kai des Hafenmodells)
             steg.Wurzel.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(-nach.X, -nach.Z)), new Vector3(kante.X, StegHoehe(hafen, kante), kante.Z));
             _stege[hafen.Kennung] = steg.Wurzel;
+            if (hafen == w.Schiffahrt.Haefen[0]) KranHakenBauen(steg.Wurzel); // Seil und Haken des Krans (Stadtansicht.Kranladen.cs)
             HafenKaehneZeigen(hafen.Kennung, false); // die Kähne weichen dem Steg
         }
     }
@@ -54,12 +55,12 @@ public partial class Stadtansicht
     private static Vector3 HafenKante(Hafenplatz hafen) =>
         new Vector3((float)hafen.Liegeplatz.X, 0, (float)hafen.Liegeplatz.Z) - new Vector3((float)hafen.RichtungX, 0, (float)hafen.RichtungZ) * (float)Schiffahrt.LiegeplatzAbstand;
 
-    /// <summary>Wo und wie ein Schiff am Steg liegt: Mitte (Anker_Kai auf Kante plus <paramref name="aussen"/> m nach draußen) und Drehung um die Hochachse.</summary>
-    private static (Vector3 Ort, float Drehung) StegLiegeplatz(Hafenplatz hafen, SchiffAnsicht ansicht, float aussen)
+    /// <summary>Wo und wie ein Schiff am Steg liegt: Mitte (Anker_Kai auf Kante plus <paramref name="aussen"/> m nach draußen) und Drehung um die Hochachse; <paramref name="laengs"/> versetzt das Schiff in Stegrichtung (in Stegkoordinaten +X, zum Kran hin).</summary>
+    private static (Vector3 Ort, float Drehung) StegLiegeplatz(Hafenplatz hafen, SchiffAnsicht ansicht, float aussen, float laengs = 0f)
     {
         var nach = new Vector3((float)hafen.RichtungX, 0, (float)hafen.RichtungZ);
         var drehung = Mathf.Atan2(-nach.X, -nach.Z);
         var anker = new Basis(Vector3.Up, drehung) * new Vector3(ansicht.AnkerKai.X, 0, ansicht.AnkerKai.Z);
-        return (HafenKante(hafen) - anker + nach * aussen, drehung);
+        return (HafenKante(hafen) - anker + nach * aussen + new Basis(Vector3.Up, drehung) * new Vector3(laengs, 0, 0), drehung);
     }
 }
