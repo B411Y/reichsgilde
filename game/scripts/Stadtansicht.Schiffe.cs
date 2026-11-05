@@ -5,14 +5,14 @@ using Reichsgilde.Core.Wirtschaft;
 namespace Reichsgilde;
 
 /// <summary>
-/// Schiffe (Teil der <c>partial class Stadtansicht</c>, PR #199): die Flussschiffe aller Häuser als Modell <c>wasser_schiff.glb</c> (Lastkahn 20 × 4,2 m,
+/// Schiffe (Teil der <c>partial class Stadtansicht</c>, PR #199): die Flussschiffe aller Häuser als Modell <c>wasser_schiff.glb</c> (Rheinschiff „Oberländer“ 22 × 4,4 m,
 /// Bug +X, Kaiseite +Z, Ursprung auf der Wasserlinie).
 ///
 /// Die Darstellung rechnet nichts aus, sie liest nur den Kern: Wo das Schiff gerade ist und wohin es fährt, sagt <see cref="Schiffahrt.Lage"/> (mit dem
 /// Bruchteil der laufenden Minute, damit es gleitet). Am Kai liegt es längsseits, die Kaiseite an der Kaimauer (<c>Anker_Kai</c> auf der Kaikante); liegen
 /// mehrere Schiffe am selben Hafen, machen sie im Päckchen nebeneinander fest (das äußere an der Bordwand des inneren); die Kähne des Hafenmodells weichen,
 /// solange ein Schiff am Kai liegt. Segel gesetzt in Fahrt, gerefft am
-/// Kai; die Laufplanke nur am Kai und nur beim inneren Schiff; <c>Ladung_1</c>–<c>Ladung_6</c> nach dem Anteil der Ladung; der Wimpel in der Hausfarbe flattert
+/// Kai; die Laufplanke nur am Kai und nur beim inneren Schiff; <c>Ladung_1</c>–<c>Ladung_18</c> nach dem Anteil der Ladung; der Wimpel in der Hausfarbe flattert
 /// (<see cref="ModellFahneBelebt"/>). Der Schiffer steht am Heck (<c>Anker_Schiffer</c>). Ein Klick auf das Schiff wählt es (Kennung <c>schiff:&lt;Name&gt;</c>).
 ///
 /// Dazu bekommt das Hafenmodell eine Klickfläche (<c>hafen:&lt;Kennung&gt;</c>, Stadtansicht.Umland.cs) – Kran und Lagerschuppen in seiner Nähe ebenso –, die
@@ -46,11 +46,11 @@ public partial class Stadtansicht
 
     private const string SchiffModell = "wasser/wasser_schiff";
 
-    /// <summary>So weit (Meter) liegen zwei Schiffe im Päckchen auseinander: Breite des Rumpfs (4,2 m) und etwas Luft für die Fender.</summary>
-    private const float SchiffPaeckchen = 4.6f;
+    /// <summary>So weit (Meter) liegen zwei Schiffe im Päckchen auseinander: Breite des Rumpfs (4,4 m) und etwas Luft für die Fender.</summary>
+    private const float SchiffPaeckchen = 4.8f;
 
     /// <summary>Wie viele Knoten <c>Ladung_1</c> … das Modell hat (so viele Stapel zeigt ein volles Schiff).</summary>
-    private const int SchiffLadungsknoten = 6;
+    private const int SchiffLadungsknoten = 18;
 
     /// <summary>Kennung eines Schiffs für Klick und Auswahl.</summary>
     public static string SchiffKennung(Schiff s) => "schiff:" + s.Name;
@@ -89,10 +89,10 @@ public partial class Stadtansicht
             planke = modell.FindChild("Laufplanke", true, false) as Node3D;
             if (modell.FindChild("Anker_Kai", true, false) is Node3D kai) ankerKai = LageUnter(modell, kai).Origin;
         }
-        // Die Klickfläche umfasst den Rumpf (20 × 4,2 m) bis über das Dollbord; das Segel nicht, sonst verdeckt es den Hafen dahinter
+        // Die Klickfläche umfasst den Rumpf (22 × 4,4 m) bis über das Dollbord; das Segel nicht, sonst verdeckt es den Hafen dahinter
         if (klickbar)
         {
-            Klickflaeche("schiff:" + name, new Vector3(0, 1, 0), new Vector3(20, 3, 4.6f), wurzel);
+            Klickflaeche("schiff:" + name, new Vector3(0, 1, 0), new Vector3(22, 3, 4.8f), wurzel);
             Beschriftung(name, new Vector3(0, 14, 0), 40, wurzel, "schiff:" + name);
         }
         var ansicht = new SchiffAnsicht
