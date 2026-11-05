@@ -1102,8 +1102,8 @@ public partial class Stadtansicht
     // ── Tracht ──────────────────────────────────────────────────────────────
     // Kopfbedeckungen und Lasten sind Trachtteile der Figurmodelle (figur_<volk>.glb); das Spiel blendet sie je Rolle ein.
 
-    private enum Kopfbedeckung { Keine, Strohhut, Barett, Kapuze, Haube, Schleier }
-    private enum Last { Keine, Kiepe, Buendel, Tasche, Stab }
+    private enum Kopfbedeckung { Keine, Strohhut, Barett, Kapuze, Haube, Schleier, Eisenhut }
+    private enum Last { Keine, Kiepe, Buendel, Tasche, Stab, Hellebarde }
 
     /// <summary>Tracht einer Rolle: Gewandfarbe, Kopfbedeckung, was sie trägt, ob sie eine Schürze hat und gebeugt geht.</summary>
     private sealed record PassantenTracht(Color Gewand, Kopfbedeckung Kopf, Last Last, bool Schuerze = false, bool Gebeugt = false, Color? Kopffarbe = null);
@@ -1244,7 +1244,7 @@ public partial class Stadtansicht
     /// </summary>
     private string? PassantBei(Vector2 bildschirm)
     {
-        if (_raum is not null || _innen is not null || _passanten.Count == 0) return null;
+        if (_raum is not null || _innen is not null || _passanten.Count == 0 && _torposten.Count == 0) return null;
         // Wie viele Pixel ist eine Figur hoch? Die Kamerahöhe in Metern ist _kamera.Size.
         var pixelJeMeter = GetViewport().GetVisibleRect().Size.Y / _kamera.Size;
         var fang = Mathf.Max(8, 1.1f * pixelJeMeter);
@@ -1258,7 +1258,7 @@ public partial class Stadtansicht
             var abstand = StadtKamera.UnprojectPosition(mitte).DistanceTo(bildschirm);
             if (abstand < besterAbstand) { besterAbstand = abstand; beste = "einwohner:" + nummer; }
         }
-        return beste;
+        return TorwaechterBei(bildschirm, ref besterAbstand) ?? beste; // die Torwächter (Stadtansicht.Torwache.cs)
     }
 
     /// <summary>Hebt die Figur unter der Maus und die ausgewählte hell hervor (nur bei Änderung).</summary>
@@ -1269,6 +1269,8 @@ public partial class Stadtansicht
         var gewaehlt = EinwohnerNummer(Auswahl);
         foreach (var (nummer, p) in _passanten)
             if (p.Figur is { } figur) FigurHervorheben(figur, nummer == maus || nummer == gewaehlt);
+        foreach (var (nummer, wache) in _torposten)
+            if (wache.Figur is { } figur) FigurHervorheben(figur, nummer == maus || nummer == gewaehlt);
     }
 
     private static int? EinwohnerNummer(string? kennung) =>
@@ -1283,6 +1285,7 @@ public partial class Stadtansicht
         var zeit = _simulation.Zeit;
         var volk = e.Volk switch { Volk.Zwerg => "Zwerg", Volk.Elb => "Elb", Volk.Halbling => "Halbling", Volk.Ork => "Ork", Volk.Oger => "Oger", _ => "Mensch" };
         if (e.Geschlecht == Geschlecht.Frau) volk = e.Volk switch { Volk.Zwerg => "Zwergin", Volk.Elb => "Elbin", Volk.Halbling => "Halbling", _ => "Mensch" };
+        if (e.Herkunft == Herkunft.Torwache && ew.Torwache.Nummer(nummer) is { } torwache) return TorwaechterText(ew, torwache, volk, zeit.Jahr);
         var herkunft = e.Herkunft switch
         {
             Herkunft.Ratsherr => " · im Stadtrat",
