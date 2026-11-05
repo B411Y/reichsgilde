@@ -12,7 +12,7 @@ namespace Reichsgilde;
 /// <summary>
 /// Die Hauptszene: hält die Simulation und verbindet sie mit der Stadtansicht (3D)
 /// und der Oberfläche (PR #197): oben Kopfzeile und Zeitstrahl (Hauptszene.Kopf.cs), unten die Betriebsleiste (Hauptszene.Leiste.cs),
-/// unten links die Meldungen, die Hilfe (Hauptszene.Meldungen.cs), rechts eine Tafel nur, wenn man etwas anklickt (Auswahl, Wohnhaus, Bericht).
+/// unten rechts die Siegel-Ecke, die Hilfe (Hauptszene.Meldungen.cs), rechts eine Tafel nur, wenn man etwas anklickt (Auswahl, Wohnhaus, Bericht).
 ///
 /// Aufgabenteilung:
 ///   • Die SIMULATION (Reichsgilde.Core) entscheidet, was passiert.
@@ -53,7 +53,8 @@ namespace Reichsgilde;
 ///   --wohnhaus=haus    die Tafel des Wohnhauses gleich öffnen (Reiter haus, familie, handwerk, geld, hinterzimmer)
 ///   --hilfe=1          gleich zu Beginn die Hilfe zeigen
 ///   --lexikon=1        das Lexikon öffnen (=<kennung>: gleich bei diesem Begriff, =suche:<text>: mit diesem Suchtext); --lexikon-pruefen=1 prüft die Datei und beendet das Spiel
-///   --meldung=⚠_Text   eine Meldung unten links einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
+///   --meldung=⚠_Text   eine Meldung einstellen (zum Testen; Leerzeichen als _, mit ✗ oder ⚠ eine Warnung)
+///   --meldungen=demo   sechs Siegel in der Ecke unten rechts (Familie, Handel, Rat, Gefahr, Stadt, Befehl) und einen Stillstand; mit =brief dazu ein Brief
 ///   --karren=Ochsenkarren,Pferdekarren  der eigenen Gießerei gleich diese Karren dazukaufen (mit --vermoegen=5000; Handkarren, Ochsenkarren, Pferdekarren)
 ///   --schiff=1         am ersten Hafen gleich so viele Flussschiffe kaufen (mit --vermoegen=10000)
 ///   --schiffsauftrag=vorschlag  jedem eigenen Schiff am Kai den Vorschlag geben (=<Ziel>: den Vorschlag für diese ferne Stadt, z. B. Eisenfurt)
@@ -93,7 +94,7 @@ namespace Reichsgilde;
 ///   --tonemapping=<Bisher|Agx>, --helligkeit=, --kontrast=, --saettigung=<Prozent> Farbstimmung, --schaerfe=<0–100> Nachschärfen, --fahnen=<An|Aus>
 ///   --uigroesse=<75–200> Größe der Oberfläche in Prozent, --farbfilter=<Aus|Protanopie|Deuteranopie|Tritanopie>
 ///   (alle Grafikoptionen gelten nur für diesen Start und ändern die gespeicherte Wahl nicht)
-///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Grafik, GrafikErweitert, Ton, Spiel, Barrierefreiheit)
+///   --reiter=<Name>    mit --einstellungen=1: diesen Reiter zeigen (Grafik, GrafikErweitert, Ton, Spiel, Meldungen, Barrierefreiheit)
 ///   --automatisch=1    die Voreinstellung wie beim ersten Start automatisch wählen (misst ein paar Sekunden, speichert das Ergebnis)
 ///   --messung=<Sekunden> nach 8 Sekunden Vorlauf so lange Bildzeiten messen, je Sekunde und am Ende ins Protokoll schreiben, dann beenden
 ///   --laden=datei.json einen Spielstand aus dem Spielstand-Ordner laden
@@ -232,7 +233,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
-        _berichtTafel = new BerichtAnzeige { Meldungen = () => _jahresProtokoll };
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
         _hafenTafel = new HafenAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
@@ -421,8 +422,8 @@ public partial class Hauptszene : Node
             Protokollieren($"{KalenderTexte.Name(phase)} beginnt."); // die Uhrzeit steht schon vor jeder Meldung
         _simulation.JahrBeendet += jahr =>
         {
-            _jahresProtokoll.Clear(); // das Protokoll gilt für ein Jahr
             Protokollieren($"Jahresabrechnung {jahr} abgeschlossen. Es ist nun {_simulation.Zeit.DatumText}.");
+            JahresberichtAusgeben(jahr); // Gericht, Rat, Steuer … des Jahreswechsels als ein Brief (Hauptszene.Meldungen.cs)
             if (_ratskammer.Visible) _ratskammer.Aufbauen(); // neue Ämter, verblasste Gunst
             if (_familientafel.Visible) _familientafel.Aufbauen(); // ein Jahr älter, Geburten, Todesfälle
             if (_charakter.Visible) _charakter.Aufbauen();
@@ -667,6 +668,7 @@ public partial class Hauptszene : Node
         }
         EntwicklerBauen(optionen); // Fenster nur mit dem Haken „Entwickler-Optionen“ (Hauptszene.Entwickler.cs)
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
+        if (optionen.TryGetValue("meldungen", out var meldungenWahl)) MeldungenVorfuehren(meldungenWahl); // Siegel und Briefe zum Ansehen (Hauptszene.Meldungen.cs)
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
         if (optionen.GetValueOrDefault("hilfe") == "1" || (!Fenster.HilfeGesehen && OS.GetCmdlineUserArgs().Length == 0))
             HilfeOeffnen();
@@ -1212,7 +1214,9 @@ public partial class Hauptszene : Node
         foreach (var tafel in _innenTafeln) tafel.Aktualisieren(delta);
         _wohnhausBaum.Aktualisieren(delta);
         var innenTafelOffen = _innenTafeln.Any(t => t.Visible) || _wohnhausBaum.Visible || _sitzungsTafel.Laeuft; // die Meldungen schienen sonst durch die große Tafel
-        if (_meldungen.Visible == innenTafelOffen) _meldungen.Visible = !innenTafelOffen;
+        if (_ecke.Visible == innenTafelOffen) _ecke.Visible = !innenTafelOffen;
+        _ecke.Hoehe(_raumleiste.Visible ? Rollbereich.LeistenHoehe + 40 : Rollbereich.LeistenHoehe); // über der Raumleiste statt über der Betriebsleiste
+        _brief.AbstandUnten = _raumleiste.Visible ? 40 : 0;
         var mausPos = GetViewport().GetMousePosition();
         _stadt.UnterTafel = _innenTafeln.Any(t => t.Visible && t.Tafel.GetGlobalRect().HasPoint(mausPos))
             || (_wohnhausBaum.Visible && _wohnhausBaum.Tafel.GetGlobalRect().HasPoint(mausPos));

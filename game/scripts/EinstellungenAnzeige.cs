@@ -161,7 +161,7 @@ public sealed class EinstellungenAnzeige
     };
 
     /// <summary>Die Reiter in ihrer Reihenfolge (Name auch für die Startoption <c>--reiter</c>).</summary>
-    private static readonly string[] Reiternamen = { "Grafik", "Ton", "Spiel", "Barrierefreiheit" };
+    private static readonly string[] Reiternamen = { "Grafik", "Ton", "Spiel", "Meldungen", "Barrierefreiheit" };
 
     /// <summary>Namen der früheren Reiter, die <c>--reiter</c> weiter versteht: alle öffnen „Grafik“, die drei letzten dazu „Erweitert“.</summary>
     private static readonly string[] FrueherGrafik = { "Voreinstellung", "Leistung", "Bild", "Stimmung" };
@@ -261,6 +261,10 @@ public sealed class EinstellungenAnzeige
     private readonly CheckButton _tooltipTaste;
     // Spiel
     private readonly OptionButton _sitzung;
+    // Meldungen
+    private static readonly string[] StufenNamen = { "Aus", "Nur Verlauf", "Siegel", "Brief" };
+    private readonly List<(Meldeart Art, OptionButton Auswahl)> _meldungsWahl = new();
+    private readonly CheckButton _siegelBewegung;
 
     public EinstellungenAnzeige(Action zurueck)
     {
@@ -580,8 +584,39 @@ public sealed class EinstellungenAnzeige
         _tonHintergrund = Schalter(s, "Ton im Hintergrund stumm", () => "Verliert das Spiel den Fokus (ein anderes Fenster ist vorn), wird alles stumm; beim Zurückkehren ist der Ton wieder da.",
                                    an => KlangDienst.HintergrundStummSetzen(an));
 
-        // ── Barrierefreiheit ─────────────────────────────────────────────────
+        // ── Meldungen ────────────────────────────────────────────────────────
         s = _seiten[3];
+        Hinweis(s, "Was euch wie gemeldet wird: gar nicht, nur im Verlauf (Bericht), als Siegel in der Ecke unten rechts oder als Brief. Das gilt für euer Haus und die Stadt; was andere Häuser tun, steht immer nur im Verlauf.");
+        _siegelBewegung = Schalter(s, "Siegel und Briefe bewegen", () => "Aus: Neue Siegel erscheinen ohne Sprung, ungelesene pulsieren nicht und Briefe blenden nicht ein – für alle, denen die Bewegung im Bild unangenehm ist.",
+                                   an => Meldungseinstellungen.Bewegung = an);
+        foreach (var thema in Meldungseinstellungen.Ordnung.Themen)
+        {
+            var arten = Meldungseinstellungen.Ordnung.Arten.Where(a => a.Thema == thema.Id && a.Id != "Entwickler").ToList();
+            if (arten.Count == 0) continue;
+            Abschnitt(s, thema.Name);
+            foreach (var art in arten)
+            {
+                var a = art;
+                var namen = a.NurVerlauf ? StufenNamen.Take(2) : StufenNamen;
+                var tippZeile = Zeile(s, a.Name, () => (a.Erklaerung != "" ? a.Erklaerung + "\n\n" : "") + $"Vorgabe: {StufenNamen[(int)a.Eigen]}. " +
+                                   (a.Sammeln == "jahresbericht" ? "Zum Jahreswechsel zusammengefasst zu einem Brief „Jahresbericht“. " : a.Sammeln == "nacht" ? "Nachts: am Morgen ein Brief „Die Nacht“. " : ""), 260);
+                var auswahl = Auswahl(tippZeile, namen, nummer =>
+                {
+                    Meldungseinstellungen.Setzen(a.Id, (Meldestufe)nummer == a.Eigen ? null : (Meldestufe)nummer);
+                    Auffrischen();
+                });
+                _meldungsWahl.Add((a, auswahl));
+            }
+        }
+        var meldungenZurueck = Hauptmenue.Knopf(s, "Auf die Vorgabe zurücksetzen", () =>
+        {
+            Meldungseinstellungen.Zuruecksetzen();
+            Auffrischen();
+        });
+        meldungenZurueck.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+
+        // ── Barrierefreiheit ─────────────────────────────────────────────────
+        s = _seiten[4];
         Abschnitt(s, "Darstellung");
         (_groesse, _groesseWert, _) = Regler(s, "Größe der Oberfläche", 75, 200, 5, " %", wert =>
         {
@@ -771,6 +806,9 @@ public sealed class EinstellungenAnzeige
         _tooltipZeit.SetValueNoSignal(Fenster.TooltipFestZeit * 2);
         _tooltipZeitWert.Text = Fenster.TooltipFestZeit.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("de-DE")) + " s";
         _tooltipTaste.SetPressedNoSignal(Fenster.TooltipNurMitTaste);
+        _siegelBewegung.SetPressedNoSignal(Meldungseinstellungen.Bewegung);
+        foreach (var (art, auswahl) in _meldungsWahl)
+            auswahl.Select(Math.Min((int)Meldungseinstellungen.Wirksam(art), auswahl.ItemCount - 1));
         _tooltipZeit.Editable = !Fenster.TooltipNurMitTaste;
         _sitzung.Select(Array.FindIndex(Sitzungswahl, w => w.Wert == Fenster.Ratssitzung));
         for (var i = 0; i < _tonRegler.Count; i++)
