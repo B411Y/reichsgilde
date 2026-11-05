@@ -15,6 +15,7 @@ using Reichsgilde.Core.Wirtschaft;
 ///          … -- messen karren [Karte …]   (Fahrzeiten der Karren je Betrieb, siehe Karrenmessung.cs)
 ///          … -- messen bauorte [Karte …]   (Fahrzeit an jedem Werkstatt-Bauort, siehe Bauortmessung.cs)
 ///          … -- messen blitz 20 8 [--karten=…] [--berufe=…]   (Blitzschaden mit/ohne, Sprünge je Partie, siehe Blitzmessung.cs)
+///          … -- messen meldungen 20 8 [--karten=…] [--rollen=…]   (Meldungen je Spieljahr nach Art und Stufe, siehe Meldungsmessung.cs)
 /// </summary>
 static class Messung
 {
@@ -43,6 +44,10 @@ static class Messung
         // Blitzschaden und Übersprung (3.11.2026): … -- messen blitz [Jahre] [Startwerte] [--karten=…] [--berufe=…] – siehe Blitzmessung.cs
         if (args.Length > 0 && args[0] == "blitz")
             return Blitzmessung.Erstellen(args[1..]);
+        // Meldungen je Spieljahr nach Art, Bezug und Stufe (Vorarbeit Benachrichtigungen, 5.11.2026): … -- messen meldungen [Jahre] [Startwerte]
+        // [--karten=…] [--rollen=Wirt,Schmied,Ausbau] [--muster=datei] – siehe Meldungsmessung.cs
+        if (args.Length > 0 && args[0] == "meldungen")
+            return Meldungsmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();
