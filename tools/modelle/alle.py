@@ -44,7 +44,7 @@ LICHTER = ["lichter"]         # ein Skript, schreibt lichter.glb: Handlaterne, F
 KARREN = ["karren"]           # ein Skript, schreibt karren_hand/ochse/krieg.glb mit Zugtieren und Bewegungen
 VOEGEL = ["voegel", "tiere"]           # ein Skript, schreibt vogel_taube/spatz.glb mit Skelett und Bewegungen
 FIGUREN = ["figuren"]         # ein Skript, schreibt figur_mensch/zwerg/elb/halbling.glb mit Skelett und Bewegungen
-WASSER = ["wasser", "hafenbauten"]     # wasser: Brücken, Fähre, Hafen, Steine; hafenbauten: Schiff, Kran, Schuppen, Zoll
+WASSER = ["wasser", "hafenbauten", "oberlaender"]     # wasser: Brücken, Fähre, Hafen, Steine; hafenbauten: Kran, Schuppen, Zoll; oberlaender: Schiff
 
 
 def erzeugen(name, schalter):
