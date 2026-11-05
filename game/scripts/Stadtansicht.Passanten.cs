@@ -1212,9 +1212,11 @@ public partial class Stadtansicht
         var gebeugt = tracht.Gebeugt || alt;
         var ki = KiSchmiedFuer(e, tracht, gebeugt);
         if (ki) _kiPassanten.Add(e.Nummer);
+        var figur = FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
+        if (figur is not null && !_passantenSchatten) FigurSchatten(figur, false);
         return new Passant
         {
-            Knoten = knoten, Figur = FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer),
+            Knoten = knoten, Figur = figur,
             Gebeugt = gebeugt, Traegt = tracht.Last is Last.Kiepe or Last.Buendel,
             Nummer = e.Nummer, Versatz = ((e.Nummer * 37 % 9) - 4) * 0.22f, Gehtempo = GehtempoVon(e, gebeugt, tracht.Last is Last.Kiepe or Last.Buendel),
             Radius = KoerperRadius(e.Volk),

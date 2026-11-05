@@ -223,10 +223,14 @@ public partial class Stadtansicht
     /// <summary>Langsame Schleifen bekommen nur jedes dritte Bild eine neue Pose (bei 60 Bildern je Sekunde noch 20 – das Atmen sieht gleich aus).</summary>
     private const int LangsamTeiler = 3;
 
+    /// <summary>Bis zu dieser sichtbaren Höhe (Meter, nahe Zoomstufe 35 m) werfen Passanten Schatten; bei 70 und 140 m nicht (zu klein, um sie zu sehen, aber teuer im Schattendurchgang).</summary>
+    private const float PassantenSchattenBisZoom = 50f;
+
     private readonly Plane[] _bildEbenen = new Plane[6];
     private Transform3D _stadtLage = Transform3D.Identity;
     private bool _stadtVerdeckt;
     private int _figurenBild, _figurenTeiler = 1;
+    private bool _passantenSchatten = true;
     private double _figurenZeit;
     private int _figurenBewegt;
 
@@ -237,9 +241,19 @@ public partial class Stadtansicht
         for (var i = 0; i < _bildEbenen.Length && i < ebenen.Count; i++) _bildEbenen[i] = ebenen[i];
         var pixelJeMeter = GetViewport().GetVisibleRect().Size.Y / _kamera.Size;
         _figurenTeiler = pixelJeMeter < FigurenDrittelRateUnter ? 3 : pixelJeMeter < FigurenHalbeRateUnter ? 2 : 1;
+        var schatten = _kamera.Size <= PassantenSchattenBisZoom;
+        if (schatten != _passantenSchatten) { _passantenSchatten = schatten; foreach (var p in _passanten.Values) if (p.Figur is { } f) FigurSchatten(f, schatten); }
         _stadtLage = GlobalTransform;
         _stadtVerdeckt = _raum is not null; // in der Raumansicht sieht man die Stadt nicht
         _figurenBild++;
+    }
+
+    /// <summary>Schaltet den Schattenwurf aller Teile einer Figur (nur Passanten, je nach Zoomstufe, <see cref="PassantenSchattenBisZoom"/>).</summary>
+    private static void FigurSchatten(Figur f, bool an)
+    {
+        var einstellung = an ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off;
+        foreach (var teil in f.Teile)
+            if (IsInstanceValid(teil)) teil.CastShadow = einstellung;
     }
 
     /// <summary>Liegt der Punkt (in Koordinaten der Stadt) im Bild – mit 1,5 m Rand, damit auch Kopf und Füße am Rand mitzählen?</summary>
