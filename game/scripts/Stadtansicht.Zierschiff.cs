@@ -49,9 +49,6 @@ public partial class Stadtansicht
         return (ZierPhase.Abfahrt, (im - ablegen) / fahrt, vonAuf, nachAuf, 0);
     }
 
-    /// <summary>So viele Meter liegt das Zierschiff weiter draußen als die Handelsschiffe: Der Steg des Hafenmodells ragt ins Wasser, es soll nicht darauf liegen.</summary>
-    private const float ZierAbstand = 2.5f;
-
     private SchiffAnsicht? _zierschiff;
     private double? _zierAbbruch;
 
@@ -114,12 +111,8 @@ public partial class Stadtansicht
         float drehung;
         if (phase == ZierPhase.Liegen)
         {
-            // Längsseits am Kai, wie die Schiffe des Handels (SchiffBewegen)
-            var nach = new Vector3((float)hafen.RichtungX, 0, (float)hafen.RichtungZ);
-            var kante = new Vector3((float)hafen.Liegeplatz.X, 0, (float)hafen.Liegeplatz.Z) - nach * (float)Schiffahrt.LiegeplatzAbstand;
-            drehung = Mathf.Atan2(-nach.X, -nach.Z);
-            var anker = new Basis(Vector3.Up, drehung) * new Vector3(ansicht.AnkerKai.X, 0, ansicht.AnkerKai.Z);
-            ziel = kante - anker + nach * ZierAbstand;
+            // Längsseits am Steg, wie die Schiffe des Handels (SchiffBewegen)
+            (ziel, drehung) = StegLiegeplatz(hafen, ansicht, StegAbstand);
         }
         else
         {
@@ -139,6 +132,14 @@ public partial class Stadtansicht
             ziel = new Vector3((float)ort.X, 0, (float)ort.Z);
             if (anfahrt) (rx, rz) = (-rx, -rz); // zum Kai hin gegen die Richtung der Route
             drehung = Mathf.Atan2(-(float)rz, (float)rx);
+            // Die letzten Meter vor dem Liegeplatz biegt die Fahrt zum Steg hin ab: Das Schiff dreht längsseits und hält vor dem Kopf des Stegs, nicht durch ihn
+            if (stelle < StegAnlauf)
+            {
+                var gleich = Mathf.SmoothStep(1f, 0f, (float)stelle / StegAnlauf);
+                var (liege, liegeDrehung) = StegLiegeplatz(hafen, ansicht, StegAbstand);
+                ziel = ziel.Lerp(liege, gleich);
+                drehung = Mathf.LerpAngle(drehung, liegeDrehung, gleich);
+            }
         }
         ansicht.Wurzel.Visible = true;
         SchiffPoseSetzen(ansicht, ziel, drehung, delta);

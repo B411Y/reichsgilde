@@ -23,6 +23,12 @@ public sealed class PersonalDaten
     /// <summary>So viele Arbeiter der dritten Stufe darf ein Betrieb haben.</summary>
     public int VorarbeiterJeBetrieb { get; init; } = 1;
 
+    /// <summary>
+    /// So viele Anfänger hat jeder Startbetrieb zum Beginn der Partie – beim Spieler und bei den KI-Häusern gleich (Entscheidung des Nutzers,
+    /// 4.11.2026: ein Lehrling). null (Daten ohne die Angabe): wie bis Datenversion 71 zwei in der Stadt und drei im Umland.
+    /// </summary>
+    public int? StartJeBetrieb { get; init; }
+
     /// <summary>Die Laufbahnen; für einen Betrieb gilt die erste, deren Beruf und Ort passen (die letzte ohne Bedingung ist die Vorgabe).</summary>
     public List<LaufbahnDaten> Laufbahnen { get; init; } = new();
 
@@ -64,6 +70,7 @@ public sealed class PersonalDaten
             f.Add("personal.erfahrung: zwei Werte (zweite und dritte Stufe), größer 0 und steigend.");
         if (Briefe.Count != 2 || Briefe.Any(b => b < 0)) f.Add("personal.briefe: zwei Werte (zweite und dritte Stufe), nicht negativ.");
         if (VorarbeiterJeBetrieb < 0) f.Add("personal.vorarbeiterJeBetrieb darf nicht negativ sein.");
+        if (StartJeBetrieb is < 1) f.Add("personal.startJeBetrieb muss mindestens 1 sein.");
         if (EigenesVolk is < 0 or > 1) f.Add("personal.eigenesVolk muss zwischen 0 und 1 liegen.");
         if (Frauen is < 0 or > 1) f.Add("personal.frauen muss zwischen 0 und 1 liegen.");
         if (Laufbahnen.Count == 0) f.Add("personal.laufbahnen darf nicht leer sein.");

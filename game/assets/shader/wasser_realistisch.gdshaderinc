@@ -217,7 +217,7 @@ void vertex() {
 			eis_v *= 1.0 - loch_offen(wp.xz);
 		}
 		float unruhe_v = min(reich_v, 12.0) * 0.42 * rand_unruhe;
-		float zelle_v = clamp(reich_v * 0.75, 1.3, 3.6);
+		float zelle_v = clamp(eis_reichweite * 0.75, 1.3, 3.6); // wie zelle_m im Bildpunkt-Teil
 		float vor_kante = ufer - (eis_v * reich_v * (rand_unruhe < 0.99 ? 1.3 : 1.0) + (w_fbm(wp.xz * 0.045 + 17.0) - 0.5) * 2.0 * unruhe_v * smoothstep(0.0, 0.3, eis_v));
 		float ab = (zelle_v * 0.45 + 0.2) * smoothstep(0.0, 0.15, eis_v);
 		// Im Eisgang brechen die Platten auf und vergehen: die Wellen kommen zurück
@@ -445,7 +445,10 @@ void fragment() {
 				offen_hier = max(offen_hier, loch_offen(welt_xz));
 			}
 			float eis_hier = eis_art * (1.0 - offen_hier);
-			float zelle_m = clamp(reichweite * 0.75, 1.3, 3.6);
+			// Die Plattengröße hängt nur vom Gewässer ab, nicht vom stillen Wasser („still“ wechselt stetig): Änderte sich die Zellgröße von Ort zu Ort,
+			// verschöbe sich das Gitter bei jedem Schritt um ein Vielfaches (Ort / Zellgröße), und die Plattenkanten würden zu dichten Höhenlinien, dünnen
+			// hellen und dunklen Schlieren parallel zum Ufer vor Kaimauern (Nutzer 04.11.2026)
+			float zelle_m = clamp(eis_reichweite * 0.75, 1.3, 3.6);
 			// Die Kante zittert etwas (Ort leicht verzogen): keine geraden Linien
 			vec2 p = welt_xz + (vec2(w_rausch(welt_xz * 1.4), w_rausch(welt_xz * 1.4 + 9.2)) - 0.5) * min(zelle_m, 1.5) * 0.45;
 			vec2 c1;

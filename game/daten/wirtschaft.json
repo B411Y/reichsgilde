@@ -1,5 +1,5 @@
 {
-  "version": 71,
+  "version": 72,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1328,6 +1328,7 @@
     "erfahrung": [24, 84],
     "briefe": [150, 400],
     "vorarbeiterJeBetrieb": 1,
+    "startJeBetrieb": 1,
     "eigenesVolk": 0.6,
     "frauen": 0.15,
     "namen": {
