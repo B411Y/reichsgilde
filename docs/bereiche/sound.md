@@ -195,7 +195,7 @@ Urteil bitte zu: Lautstärke gegenüber den Ansagen, Wind natürlich?, hört man
 | Untergrund | Gelesen wird nur der Kern: `Wegebau.WegstelleBei` (nächster Weg, höchstens halbe Breite + 2,5 m daneben) und `BelagBei`; alle 0,25 s. **Pflaster** → `karren/hufe_pflaster.ogg` (Hufe auf Pflaster, 437103 craigsmith, 15,1 s); **Kies, Fahrweg, Trampelpfad** und alles abseits der Wege (Wiese, Feldweg ohne Weg der Karte, Furt) → `karren/hufe_erde.ogg` (gedämpfte Hufe auf Erde, 479698 craigsmith, 14,5 s). Abseits aller Wege bleibt der letzte Untergrund. Wechselt er, blendet der Klang aus und mit der anderen Datei wieder ein. Kies zählt zu Erde (weicher Schotter), eine Entscheidung dieses PR; leicht zu ändern in `UntergrundUnter`. |
 | Hörproben | Pflaster, Erde und nur Schnauben/Wiehern lagen dem Nutzer vor; Wahl am 04.11.2026 wie oben. Der Klang selbst wurde nicht angehört: Klicktest in Köln (Vulkan, Grafikkarte) mit Tonmitschnitt und Protokoll – Pferdekarren auf Fahrweg (Rheingasse) → Erde, nach dem Pflastern derselben Stelle → Pflaster; Umland-Pferdekarren auf der Bensberger Straße und der Deutzer Freiheit (Fahrweg) → Erde; Hörurteil des Nutzers steht aus. |
 
-### Töne der Benachrichtigungen (PR #…)
+### Töne der Benachrichtigungen (PR #322)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

@@ -6,7 +6,7 @@
 
 So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - **Neue Einträge unten im passenden Abschnitt anhängen.** Keine Nummern – die Reihenfolge ist die Zeit.
-- **Entscheidungen** als Unterabschnitt `### Thema (PR #…)` mit einer Tabelle `| Thema | Entscheidung | Datum |`.
+- **Entscheidungen** als Unterabschnitt `### Thema (PR #322)` mit einer Tabelle `| Thema | Entscheidung | Datum |`.
 - **Erledigtes:** die Zeile aus „Offen“ löschen. Was gemergt wurde, zeigt GitHub (Pull requests → Closed).
 - Ältere Entscheidungen bis 16.10.2026 stehen im Archiv `docs/ENTSCHEIDUNGEN.md`.
 
@@ -234,7 +234,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hauptszene in Abschnitten | `_Ready` baut die Tafeln, dann `PartieAufbauen` (async): Kern, Stadt in Abschnitten, `PartieStarten` (der frühere Rest von `_Ready`: Spielmenü, Ereignisse, Startoptionen), `ErsteBilderAbwarten`. Startoptionen, die eine fertige Stadt brauchen (`--blick`, `--innen`, `--wetter`), wirken dadurch wie bisher. Hauptmenue.cs/Hauptszene.cs: Änderung durch die Außenstelle im Auftrag. | 29.10.2026 |
 | Klicktest | `tools/klicktest/lauf.ps1`, Vulkan und D3D12 (RTX 4080), Köln: neue Partie, Spielstand, Kartenwerkstatt je 14 Bilder alle 0,5 s (Balken und Text laufen, Ausblenden, fertiges Bild vollständig mit Wohnhäusern und Nachtlicht), dazu Regen 8 s nach dem Start. Bilder: `C:\Reichsgilde_Austausch\aussenstelle\ladebild\` (`uebersicht-*.png`). | 29.10.2026 |
 
-### Holzschnitt-Platzhalter im Ladebildschirm (PR #…)
+### Holzschnitt-Platzhalter im Ladebildschirm (PR #322)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -242,7 +242,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wahl | Zufällig je Ladevorgang, nie dasselbe wie beim vorigen (`_letztesBild`, statisch). Fehlt die Datei, die Kartenvorschau wie zuvor. | 31.10.2026 |
 | Darstellung | Das Bild bleibt quadratisch (1 : 1, nie verzerrt), so groß es über Tipp und Balken passt (240–760 px); Holzrahmen (schwarzer Umriss) mit Pergamentblatt darin. Tipp und Balken sind etwas breiter als das Bild. Die Kartenvorschau ist **ersetzt, nicht kombiniert**: Sie ist kein Holzschnitt, 480 × 270 und kleiner als das Bild; die Stadt sieht der Spieler gleich danach. | 31.10.2026 |
 
-### Globale Beleuchtung (SDFGI) in den Einstellungen (PR #…)
+### Globale Beleuchtung (SDFGI) in den Einstellungen (PR #322)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -329,7 +329,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Merken | Nichts im Spielstand: „neue Partie“ heißt Spielzeit 0. Keine Einstellung zum Abschalten, weil es kein Tipp-System gibt; ohne Startoptionen von selbst, sonst `--starthinweis=1` | 05.11.2026 |
 | Umzug | Zieht mit den Meldungen ins geplante Benachrichtigungssystem um (eine Methode, ein Aufruf in `PartieStarten`) | 05.11.2026 |
 
-### Benachrichtigungen Stufe 1: Siegel und Briefe (PR #…)
+### Benachrichtigungen Stufe 1: Siegel und Briefe (PR #322)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
