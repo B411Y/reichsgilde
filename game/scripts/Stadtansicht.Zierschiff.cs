@@ -189,6 +189,7 @@ public partial class Stadtansicht
         var voll = ansicht.Ladung.Length;
         if (voll == 0) return;
         ZierStapelBauen(ansicht, hafen);
+        ZierMastSetzen(ansicht, phase, anteil); // Stadtansicht.Kranladen.cs: im Hafen ist der Mast gelegt
         int anBord;
         if (phase == ZierPhase.Liegen) anBord = KranLadung(ansicht, anteil, besuch, voll); // Stadtansicht.Kranladen.cs: der Kran hebt jedes Stück
         else
@@ -207,7 +208,7 @@ public partial class Stadtansicht
     private readonly List<ZierStueck> _zierStapel = new();
     private int _zierStapelGezeigt = -1;
 
-    /// <summary>Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 4 Spalten × 2 Reihen östlich der Laufplanke, dann zwei Lagen darüber.</summary>
+    /// <summary>Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 4 Spalten × 2 Reihen westlich der Laufplanke, links und rechts vom Fuß der Rampe (aus der Standardansicht frei zu sehen, nicht hinter dem Kranhaus), dann zwei Lagen darüber.</summary>
     private static (float X, float Z, int Lage, int Grund) ZierStapelPlatz(int k)
     {
         var nummer = k < 8 ? k : (k < 16 ? k - 8 : k - 16);
@@ -215,7 +216,7 @@ public partial class Stadtansicht
         var grund = new[] { 0, 5, 2, 7, 1, 4, 3, 6 }[nummer]; // gemischt, damit gleiche Stücke nicht nebeneinander stehen
         var spalte = grund % 4;
         var reihe = grund / 4;
-        return (4.3f + 1.4f * spalte + 0.12f * MathF.Sin(k * 2.3f), -(8.65f + 1.1f * reihe) + 0.08f * MathF.Cos(k * 1.7f), lage, nummer);
+        return (-3.0f + 1.9f * spalte + 0.12f * MathF.Sin(k * 2.3f), -(8.65f + 1.1f * reihe) + 0.08f * MathF.Cos(k * 1.7f), lage, nummer);
     }
 
     /// <summary>Höhe des Stegdecks im Steg-Modell (Kai 0,25 m, Deck 0,45 m darunter).</summary>

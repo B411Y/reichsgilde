@@ -56,6 +56,38 @@ public partial class Stadtansicht
         return f.Start + f.Rate * (Time.GetTicksMsec() - f.Seit) / 1000.0;
     }
 
+    // ── Mast legen ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    // Der Ausleger des Krans schwenkt auf Höhe des Mastes und käme nicht an ihm vorbei. Wie bei den Oberländern unter Brücken üblich, wird der Mast im Hafen
+    // gelegt: Gleich nach dem Anlegen (vor dem ersten Hub, 0,5–4,5 % der Liegezeit) kippt er um seinen Fuß nach vorn aufs Deck, mit Rah, gerefftem Segel und
+    // Wimpel; die Wanten und Stagen sind dann abgenommen. Vor dem Ablegen (94–98 %) wird er wieder aufgerichtet und aufgetakelt.
+    private const double MastLegenAb = 0.005, MastLegenBis = 0.045, MastAufAb = 0.94, MastAufBis = 0.98;
+    private static readonly Vector3 MastFuss = new(2.9f, 1.1f, 0);
+    private SchiffAnsicht? _mastAnsicht;
+    private Node3D? _mastKnoten, _takelage;
+    private Node3D[] _mastMit = System.Array.Empty<Node3D>();
+    private float _mastWinkel = -1;
+
+    private void ZierMastSetzen(SchiffAnsicht ansicht, ZierPhase phase, double a)
+    {
+        if (_mastAnsicht != ansicht)
+        {
+            _mastAnsicht = ansicht;
+            var w = ansicht.Wurzel;
+            _mastKnoten = w.FindChild("Mast", true, false) as Node3D;
+            _takelage = w.FindChild("Takelage", true, false) as Node3D;
+            _mastMit = new[] { _mastKnoten, ansicht.SegelGerefft, w.FindChild("Fahne", true, false) as Node3D }.OfType<Node3D>().ToArray();
+            _mastWinkel = -1;
+        }
+        if (_mastKnoten is null) return;
+        var t = phase != ZierPhase.Liegen ? 0f : Math.Min(Glatt((a - MastLegenAb) / (MastLegenBis - MastLegenAb)), 1 - Glatt((a - MastAufAb) / (MastAufBis - MastAufAb)));
+        if (Math.Abs(t - _mastWinkel) < 1e-4f) return;
+        _mastWinkel = t;
+        var drehen = new Transform3D(new Basis(Vector3.Back, -t * Mathf.Pi / 2), Vector3.Zero);
+        var um = new Transform3D(Basis.Identity, MastFuss) * drehen * new Transform3D(Basis.Identity, -MastFuss);
+        foreach (var n in _mastMit) n.Transform = um;
+        if (_takelage is not null) _takelage.Visible = t <= 0f;
+    }
+
     private static float Glatt(double x) { var t = (float)Math.Clamp(x, 0, 1); return t * t * (3 - 2 * t); }
 
     private static void StueckSetzen(ZierStueck s, Vector3 unten, float dreh)
@@ -103,7 +135,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Ruhestellung des Hakens: oben über dem Stapelplatz.</summary>
-    private static Vector3 KranRuheOrt() => new(6.4f, KranHochY, -9.2f);
+    private static Vector3 KranRuheOrt() => new(1.0f, KranHochY, -9.3f);
 
     /// <summary>Setzt Haken, Seil, Kranhausdrehung und Tretrad; <paramref name="dreh"/> = Drehung der Last (nur fürs Gehänge).</summary>
     private void KranHakenSetzen(Vector3 haken, float dreh)
