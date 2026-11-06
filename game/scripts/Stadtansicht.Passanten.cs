@@ -93,6 +93,8 @@ public partial class Stadtansicht
         public int AlteMarktstelle { get; set; } = -1;
         /// <summary>Laterne oder Fackel in der Hand, solange es dunkel ist (Stadtansicht.Nachtlichter.cs); null, bis die Figur das erste Mal im Dunkeln draußen ist.</summary>
         public Traglicht? Licht { get; set; }
+        /// <summary>Ist <see cref="Licht"/> eine Fackel (sonst eine Laterne)?</summary>
+        public bool LichtFackel { get; set; }
 
         // Markt v3 (Stadtansicht.Marktbummel.cs): von Ziel zu Ziel über den Platz
         /// <summary>Geht sie gerade auf dem Markt von einer Stelle zur nächsten (ein Weg der Darstellung, nicht des Kerns)?</summary>
@@ -287,7 +289,9 @@ public partial class Stadtansicht
             Profil(0);
             if (wo is { } ort)
             {
-                AmOrtStellen(p, e, ort, weg, minuteGenau, losgegangen);
+                // Am Hafen übernimmt die Hafenarbeit: tragen, warten, beaufsichtigen (Stadtansicht.Hafenarbeit.cs)
+                if (ort.Ort != Stadtort.Hafen || !HafenarbeitStellen(p, e, ort, minuteGenau, sekunden, ticksJeSekunde))
+                    AmOrtStellen(p, e, ort, weg, minuteGenau, losgegangen);
                 Profil(2); // am Ort stellen (auch Bummeln)
             }
             else if (p.Stand is null && p.Knoten.Visible && !p.WartetDrinnen && (p.Nummer + _figurenBild) % ausserhalbJedes != 0 && !ImBild(p.Knoten.Position))
@@ -811,7 +815,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Wo ein Einwohner draußen zu sehen ist. Drinnen (Heim, Schänke, Kirche, Rathaus) nicht.</summary>
-    private static bool Draussen(Aufenthalt a) => a.Ort is Stadtort.Markt or Stadtort.Gasse or Stadtort.Tor or Stadtort.Umland;
+    private static bool Draussen(Aufenthalt a) => a.Ort is Stadtort.Markt or Stadtort.Gasse or Stadtort.Tor or Stadtort.Umland or Stadtort.Hafen;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Orte und Strecken
@@ -841,6 +845,7 @@ public partial class Stadtansicht
             Stadtort.Tor when _tore.Count > 0 => _tore[0].Ort,
             Stadtort.Umland when a.Stelle is { } s && _umlandstellen.TryGetValue(s, out var u) => Punkt3(u.Punkt),
             Stadtort.Markt => MarktFuer(e)?.Mitte ?? _markt,
+            Stadtort.Hafen when HafenLandpunkt() is { } kai => kai, // Hafenarbeit (Stadtansicht.Hafenarbeit.cs)
             _ => _markt,
         };
         return _netz.KnotenBei(punkt);
@@ -984,6 +989,8 @@ public partial class Stadtansicht
                                                  + _tore[0].Aussen.Cross(Vector3.Up) * ((Teil(16) < 0.5f ? -1 : 1) * (3 + Teil(8) * 2)),
             // Umland: auf der Weide, zwischen den Furchen, bei Reisig und Stümpfen im Wald (UmlandPlatz)
             Stadtort.Umland when a.Stelle is { } s && _umlandstellen.ContainsKey(s) => UmlandPlatz(s, zahl).Ort,
+            // Hafen: auf dem Kai hinter dem Steg, von dort trägt er (Stadtansicht.Hafenarbeit.cs)
+            Stadtort.Hafen when HafenLandpunkt() is { } kai => kai + new Vector3(Teil(0) - 0.5f, 0, Teil(16) - 0.5f) * 1.6f,
             // Gasse: irgendwo auf einer Gasse in der Stadt
             _ => GassenLage(e, zeitpunkt)?.Punkt ?? _markt,
         });
@@ -1294,7 +1301,7 @@ public partial class Stadtansicht
             _ => "",
         };
         var minute = zeit.VergangeneMinuten + _simulation.Takt.AngebrocheneMinute;
-        var tun = e.Handlung switch
+        var tun = e.Ort == Stadtort.Hafen ? HafenTun(e) : e.Handlung switch // Hafenarbeit: tragen oder beaufsichtigen (Stadtansicht.Hafenarbeit.cs)
         {
             Handlung.Ruhen when e.Ort == Stadtort.Markt => "hält ein Schwätzchen", // Tagesplan der Bürger-KI: Rast am Markt
             Handlung.Ruhen => "ruht sich aus",
@@ -1336,6 +1343,7 @@ public partial class Stadtansicht
         Stadtort.Kirche => a.Betrieb is { } k ? (mitZu ? "zur " : "in der ") + k : (mitZu ? "zum Dom" : "im Dom"),
         Stadtort.Rathaus => mitZu ? "zum Rathaus" : "im Rathaus",
         Stadtort.Tor => (mitZu ? "zum " : "am ") + (_tore.Count > 0 ? _tore[0].Name : "Tor"),
+        Stadtort.Hafen => mitZu ? "zum Hafen" : a.Stelle == Hafenarbeit.StelleVorarbeiter ? "am Stegkopf" : "zwischen Steg und Lagerhaus",
         Stadtort.Umland => (mitZu ? "hinaus " : "draußen ") + (a.Stelle switch { "Weide" => mitZu ? "auf die Weide" : "auf der Weide", "Feld" => mitZu ? "aufs Feld" : "auf dem Feld", "Wald" => mitZu ? "in den Wald" : "im Wald", _ => "im Umland" }),
         _ => a.Ort.ToString(),
     };

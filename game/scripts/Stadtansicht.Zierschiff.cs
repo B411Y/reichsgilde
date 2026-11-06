@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Buerger;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -8,7 +9,7 @@ namespace Reichsgilde;
 /// Zierschiff (Teil der <c>partial class Stadtansicht</c>): Ruht der Schiffshandel (<see cref="Schiffahrt.Ruht"/>), legt am Hafen ab und zu ein Schiff an,
 /// liegt eine Weile und fährt wieder fort – nur zur Zierde, ohne Wirkung im Kern und ohne Eintrag im Spielstand.
 ///
-/// Der Fahrplan ist eine reine Funktion der Spielminute (<see cref="ZierFahrplan"/>): Jedes Spieljahr hat zwei Besuche (je ein Zeitfenster von 570 Minuten),
+/// Der Fahrplan ist eine reine Funktion der Spielminute (<see cref="Zierfahrplan.Plan"/> im Kern): Jedes Spieljahr hat zwei Besuche (je ein Zeitfenster von 570 Minuten),
 /// Ankunft, Liegezeit (60–150 Minuten, also 1–2,5 Spielstunden) und die Seite, von der es kommt und zu der es fährt, ergeben sich aus einer Streuzahl
 /// von Jahr und Fenster. Laden und Speichern zeigen darum dasselbe Bild. Beide Besuche enden spätestens gegen 19:30 Uhr, das Schiff liegt also nie über Nacht
 /// und fährt nie im Dunkeln. Die Wege sind <see cref="Schiffahrt.Route"/> des Hafens, das Schiff ist das Modell der Handelsschiffe (Stadtansicht.Schiffe.cs).
@@ -18,38 +19,9 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    private enum ZierPhase { Fern, Anfahrt, Liegen, Abfahrt }
-
-    /// <summary>Ein Fenster des Fahrplans in Spielminuten: zwei je Spieljahr.</summary>
-    private const int ZierFenster = Spielzeit.MinutenProTag / 2;
-
-    /// <summary>Wie lange die Fahrt zwischen Kartenrand und Kai dauert (Minuten): Routenlänge / 10 m, nicht unter 20 und nicht über 70.</summary>
-    private static int ZierFahrtMinuten(double routenLaenge) => (int)Math.Clamp(routenLaenge / 10, 20, 70);
-
-    /// <summary>
-    /// Der Fahrplan: Wo steht das Zierschiff zur Minute <paramref name="minute"/> (seit Spielbeginn, mit Bruchteil)? Rein aus den Argumenten berechnet.
-    /// <c>Anteil</c> ist der Fortschritt 0…1 in der Phase; <c>VonFlussauf</c> sagt, auf welcher Route es kommt, <c>NachFlussauf</c>, auf welcher es geht.
-    /// </summary>
-    private static (ZierPhase Phase, double Anteil, bool VonFlussauf, bool NachFlussauf, double LiegeBeginn) ZierFahrplan(double minute, int fahrt)
-    {
-        var fenster = (long)Math.Floor(minute / ZierFenster);
-        var im = minute - fenster * ZierFenster;
-        // Streuzahl aus der Nummer des Fensters (Jahr * 2 + Hälfte): gleiche Minute, gleiche Zahlen
-        var z = (uint)(fenster * 2654435761L + 40503) ^ 0x9E3779B9u;
-        z ^= z >> 15; z *= 0x2C1B3C6Du; z ^= z >> 12; z *= 0x297A2D39u; z ^= z >> 15;
-        var ankunft = 70 + (int)(z % 61);            // Minute im Fenster, zu der es anlegt (70–130); die Anfahrt beginnt vor 20 min nach dem Fensteranfang
-        var liegen = 60 + (int)((z >> 8) % 91);       // 60–150 min
-        var vonAuf = (z & 0x10000) != 0;
-        var nachAuf = (z & 0x20000) != 0;
-        var anfang = ankunft - fahrt;
-        var ablegen = ankunft + liegen;
-        if (im < anfang || im >= ablegen + fahrt) return (ZierPhase.Fern, 0, vonAuf, nachAuf, 0);
-        // LiegeBeginn (Minute der Ankunft) kennzeichnet den Besuch: bisher nur von der Anzeige der Phase gebraucht
-        var besuch = (double)(fenster * ZierFenster + ankunft);
-        if (im < ankunft) return (ZierPhase.Anfahrt, (im - anfang) / fahrt, vonAuf, nachAuf, besuch);
-        if (im < ablegen) return (ZierPhase.Liegen, (im - ankunft) / liegen, vonAuf, nachAuf, besuch);
-        return (ZierPhase.Abfahrt, (im - ablegen) / fahrt, vonAuf, nachAuf, besuch);
-    }
+    // Der Fahrplan (Fenster, Ankunft, Liegezeit, Seiten, Niederländer oder Oberländer) steht seit PR „Hafenarbeit“ im Kern (Zierfahrplan), damit die
+    // Tagelöhner am Hafen (Einwohnerschaft.Hafenarbeit) und das Bild dieselben Zeiten haben. Die Darstellung rechnet ihn nicht mehr selbst.
+    private const int ZierFenster = Zierfahrplan.Fenster;
 
     private SchiffAnsicht? _zierschiff;
     private SchiffAnsicht? _zierOber, _zierNieder;
@@ -63,7 +35,7 @@ public partial class Stadtansicht
     /// Welcher Typ kommt im Fenster <paramref name="fenster"/> (Stapelrecht, Köln 1259): gerade Fenster der Niederländer (er wird entladen, die Ware kommt auf den Stapel),
     /// ungerade der Oberländer (er lädt vom Stapel auf). Fest aus der Fensternummer, ohne Zufall.
     /// </summary>
-    private bool ZierIstNieder(long fenster) => _zierTypFest ?? (fenster % 2 == 0);
+    private bool ZierIstNieder(long fenster) => _zierTypFest ?? Zierfahrplan.IstNieder(fenster);
 
     /// <summary>Liegt nach dem Besuch im Fenster (oder vor dem Besuch im nächsten) ein Stapel am Steg? Nur wenn der letzte Besuch ein Niederländer war.</summary>
     private bool ZierStapelFern(double minute)
@@ -100,25 +72,25 @@ public partial class Stadtansicht
             var laengeAb = sf.RoutenLaenge(hafen.Kennung, false);
             if (laengeAuf > 0 || laengeAb > 0)
             {
-                var fahrt = ZierFahrtMinuten(Math.Max(laengeAuf, laengeAb));
-                var plan = ZierFahrplan(minute, fahrt);
+                var fahrt = Zierfahrplan.FahrtMinuten(Math.Max(laengeAuf, laengeAb));
+                var plan = Zierfahrplan.Plan(minute, fahrt);
                 var phase = plan.Phase;
                 var nieder = ZierIstNieder((long)Math.Floor(minute / ZierFenster));
                 // Wird der Hafen zu, während das Schiff schon liegt oder kommt: es legt sofort ab und fährt seine Route zu Ende. War es vorher nicht
                 // zu sehen (Partie oder Spielstand beginnt im Winter, Hafen zu), erscheint es gar nicht erst.
-                if (!offen && phase is ZierPhase.Anfahrt or ZierPhase.Liegen)
+                if (!offen && phase is Besuchsphase.Anfahrt or Besuchsphase.Liegen)
                 {
                     if (_zierAbbruch is null && _zierschiff is { Wurzel.Visible: true }) _zierAbbruch = minute;
                     if (_zierAbbruch is { } beginn)
                     {
-                        phase = ZierPhase.Abfahrt;
-                        plan = (phase, Math.Clamp((minute - beginn) / fahrt, 0, 1), plan.VonFlussauf, plan.NachFlussauf, plan.LiegeBeginn);
+                        phase = Besuchsphase.Abfahrt;
+                        plan = plan with { Phase = phase, Anteil = Math.Clamp((minute - beginn) / fahrt, 0, 1) };
                     }
-                    else phase = ZierPhase.Fern;
+                    else phase = Besuchsphase.Fern;
                 }
-                else if (offen || phase == ZierPhase.Fern) _zierAbbruch = null;
-                else if (_zierAbbruch is null) phase = ZierPhase.Fern; // geschlossen, es fuhr schon: nicht neu erscheinen
-                if (phase != ZierPhase.Fern) fern = !ZierschiffSetzen(w, hafen, phase, plan.Anteil, plan.VonFlussauf, plan.NachFlussauf, nieder, delta);
+                else if (offen || phase == Besuchsphase.Fern) _zierAbbruch = null;
+                else if (_zierAbbruch is null) phase = Besuchsphase.Fern; // geschlossen, es fuhr schon: nicht neu erscheinen
+                if (phase != Besuchsphase.Fern) fern = !ZierschiffSetzen(w, hafen, phase, plan.Anteil, plan.VonFlussauf, plan.NachFlussauf, nieder, delta, minute);
             }
         }
         if (fern)
@@ -129,7 +101,8 @@ public partial class Stadtansicht
                     s.Sichtbar = false;
                 }
         // Zwischen den Besuchen bleibt der Stapel des Niederländers am Steg stehen, bis der Oberländer ihn aufnimmt
-        if (fern) KranRuhe(hafen is not null && ZierStapelFern(minute) ? ZierVoll : 0, hafen);
+        // Mit Hafenarbeit ist der Stapel nur Puffer: Was der Plan sagt, steht dort; die Ware liegt sonst im Lager (Stadtansicht.Hafenarbeit.cs)
+        if (fern) KranRuhe(hafen is null ? 0 : HafenStapel(minute) ?? (ZierStapelFern(minute) ? ZierVoll : 0), hafen);
         // Die Kähne des Hafenmodells weichen, solange das Zierschiff am Kai liegt (oder fährt)
         if (hafen is not null)
         {
@@ -143,21 +116,21 @@ public partial class Stadtansicht
     }
 
     /// <summary>Setzt das Zierschiff für die Phase; gibt zurück, ob es sichtbar ist (am Ende der Route hinter dem Kartenrand nicht).</summary>
-    private bool ZierschiffSetzen(Stadtwirtschaft w, Hafenplatz hafen, ZierPhase phase, double anteil, bool vonAuf, bool nachAuf, bool nieder, double delta)
+    private bool ZierschiffSetzen(Stadtwirtschaft w, Hafenplatz hafen, Besuchsphase phase, double anteil, bool vonAuf, bool nachAuf, bool nieder, double delta, double minute)
     {
         var ansicht = _zierschiff = ZierSchiffHolen(nieder);
         var anderes = nieder ? _zierOber : _zierNieder;
         if (anderes is { Wurzel.Visible: true }) { anderes.Wurzel.Visible = false; anderes.Sichtbar = false; }
         Vector3 ziel;
         float drehung;
-        if (phase == ZierPhase.Liegen)
+        if (phase == Besuchsphase.Liegen)
         {
             // Längsseits am Steg, wie die Schiffe des Handels (SchiffBewegen)
             (ziel, drehung) = StegLiegeplatz(hafen, ansicht, StegAbstand, ZierLaengs);
         }
         else
         {
-            var anfahrt = phase == ZierPhase.Anfahrt;
+            var anfahrt = phase == Besuchsphase.Anfahrt;
             var route = w.Schiffahrt.Route(hafen.Kennung, anfahrt ? vonAuf : nachAuf);
             var laenge = w.Schiffahrt.RoutenLaenge(hafen.Kennung, anfahrt ? vonAuf : nachAuf);
             if (route.Count < 2 || laenge <= 0) { route = w.Schiffahrt.Route(hafen.Kennung, !vonAuf); laenge = w.Schiffahrt.RoutenLaenge(hafen.Kennung, !vonAuf); }
@@ -167,7 +140,7 @@ public partial class Stadtansicht
             {
                 ansicht.Wurzel.Visible = false;
                 ansicht.Sichtbar = false;
-                KranRuhe(ZierStapelZahl(nieder, phase), hafen);
+                KranRuhe(HafenStapel(minute) ?? ZierStapelZahl(nieder, phase), hafen);
                 return false;
             }
             var (ort, rx, rz) = ZierAufRoute(route, stelle);
@@ -185,8 +158,8 @@ public partial class Stadtansicht
         }
         ansicht.Wurzel.Visible = true;
         SchiffPoseSetzen(ansicht, ziel, drehung, delta);
-        SchiffSegelUndPlanke(ansicht, phase != ZierPhase.Liegen, phase == ZierPhase.Liegen);
-        ZierLadungSetzen(ansicht, hafen, phase, anteil, nieder);
+        SchiffSegelUndPlanke(ansicht, phase != Besuchsphase.Liegen, phase == Besuchsphase.Liegen);
+        ZierLadungSetzen(ansicht, hafen, phase, anteil, nieder, minute);
         return true;
     }
 
@@ -195,13 +168,14 @@ public partial class Stadtansicht
     // fährt leer ab. Ungerade Besuche kommt ein leerer Oberländer: Der Kran hebt den Stapel Stück für Stück an Bord, er fährt voll ab. Alles reine Funktion von
     // Spielzeit und Fensternummer; Zufall gibt es nicht (und der Kern weiß nichts davon).
 
-    private const double ZierEntladeAb = 0.05, ZierNiederEntladeBis = 0.88, ZierOberLadeAb = 0.08, ZierOberLadeBis = 0.90;
+    private const double ZierEntladeAb = Zierfahrplan.EntladeAb, ZierNiederEntladeBis = Zierfahrplan.NiederEntladeBis,
+                         ZierOberLadeAb = Zierfahrplan.OberLadeAb, ZierOberLadeBis = Zierfahrplan.OberLadeBis;
 
     /// <summary>Wie viele Stücke des Stapels stehen am Steg, wenn das Schiff dieser Art in dieser Phase fährt (Anfahrt, Abfahrt)?</summary>
-    private static int ZierStapelZahl(bool nieder, ZierPhase phase) => phase switch
+    private static int ZierStapelZahl(bool nieder, Besuchsphase phase) => phase switch
     {
-        ZierPhase.Anfahrt => nieder ? 0 : ZierVoll,
-        ZierPhase.Abfahrt => nieder ? ZierVoll : 0,
+        Besuchsphase.Anfahrt => nieder ? 0 : ZierVoll,
+        Besuchsphase.Abfahrt => nieder ? ZierVoll : 0,
         _ => 0,
     };
 
@@ -209,10 +183,10 @@ public partial class Stadtansicht
     /// Wie viele Stücke liegen an Bord, und wie viele stehen am Steg? <paramref name="voll"/> = Stücke des Schiffs.
     /// Reine Funktion von Art, Phase und Liegeanteil (die Liegephase nur als Rückfall, wenn der Kran fehlt).
     /// </summary>
-    private static (int AnBord, int Stapel) ZierLadungsstand(bool nieder, ZierPhase phase, double anteil, int voll)
+    private static (int AnBord, int Stapel) ZierLadungsstand(bool nieder, Besuchsphase phase, double anteil, int voll)
     {
-        if (phase == ZierPhase.Anfahrt) return nieder ? (voll, 0) : (0, voll);
-        if (phase == ZierPhase.Abfahrt) return nieder ? (0, voll) : (voll, 0);
+        if (phase == Besuchsphase.Anfahrt) return nieder ? (voll, 0) : (0, voll);
+        if (phase == Besuchsphase.Abfahrt) return nieder ? (0, voll) : (voll, 0);
         var t = nieder
             ? Math.Clamp((anteil - ZierEntladeAb) / (ZierNiederEntladeBis - ZierEntladeAb), 0, 1)
             : Math.Clamp((anteil - ZierOberLadeAb) / (ZierOberLadeBis - ZierOberLadeAb), 0, 1);
@@ -220,19 +194,23 @@ public partial class Stadtansicht
         return nieder ? (voll - n, n) : (n, voll - n);
     }
 
-    private void ZierLadungSetzen(SchiffAnsicht ansicht, Hafenplatz hafen, ZierPhase phase, double anteil, bool nieder)
+    private void ZierLadungSetzen(SchiffAnsicht ansicht, Hafenplatz hafen, Besuchsphase phase, double anteil, bool nieder, double minute)
     {
         var voll = ansicht.Ladung.Length;
         if (voll == 0) return;
         ZierStapelBauen(ZierSchiffHolen(true), hafen); // Der Stapel besteht aus Stücken des Niederländers (Oberländer: gleiche Arten je Nummer)
         ZierMastSetzen(ansicht, phase, anteil); // Stadtansicht.Kranladen.cs: im Hafen ist der Mast gelegt
         int anBord;
-        if (phase == ZierPhase.Liegen) anBord = KranLadung(ansicht, anteil, nieder, voll); // Stadtansicht.Kranladen.cs: der Kran hebt jedes Stück
+        // Mit Hafenarbeit (Träger, Stadtansicht.Hafenarbeit.cs) ist der Stapel Puffer; ohne (keine Daten, Winter, --zierschiff) wie bisher
+        var traeger = HafenPlanUm(minute) is { } hp && hp.Schicht.Entladen == nieder && _zierStapel.Count >= voll ? hp : null;
+        if (phase == Besuchsphase.Liegen)
+            anBord = traeger is not null ? KranLadungMitTraegern(ansicht, anteil, nieder, voll, traeger, minute) // Stadtansicht.Hafenarbeit.cs
+                                         : KranLadung(ansicht, anteil, nieder, voll); // Stadtansicht.Kranladen.cs: der Kran hebt jedes Stück
         else
         {
             var stand = ZierLadungsstand(nieder, phase, anteil, voll);
             anBord = stand.AnBord;
-            KranRuhe(stand.Stapel, hafen);
+            KranRuhe(traeger?.Schicht.StapelUm(minute) ?? stand.Stapel, hafen);
         }
         // An Bord zeigt man die niedrigsten Nummern (die höchsten gehen zuerst)
         if (anBord != ansicht.GezeigteLadung)

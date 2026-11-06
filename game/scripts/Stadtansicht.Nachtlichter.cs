@@ -388,12 +388,21 @@ public partial class Stadtansicht
     /// </summary>
     private void PassantLichtStellen(Passant p, Einwohner e)
     {
-        var soll = _lampenAn > TragenAb && p.Knoten.Visible && p.Figur is not null;
+        // Hafenarbeit (Stadtansicht.Hafenarbeit.cs): Träger haben die Hände voll und tragen kein Licht, der Vorarbeiter immer eine Laterne
+        var hafen = e.Ort == Stadtort.Hafen || p.Stand is { Ort.Ort: Stadtort.Hafen } ? HafenRolle(e) : 0;
+        var soll = _lampenAn > TragenAb && p.Knoten.Visible && p.Figur is not null && hafen != 1;
+        if (hafen == 2 && p.Licht is { } fackel && p.LichtFackel)
+        {
+            // Der Vorarbeiter bekommt statt seiner Fackel eine Laterne (er behält sie danach)
+            fackel.Anhang.QueueFree();
+            p.Licht = null;
+        }
         if (!soll && p.Licht is null) return;
         if (soll && p.Licht is null)
         {
-            var art = Streuung(e.Nummer, 313) % 3 == 0 ? Lichtart.Fackel : Lichtart.Handlaterne;
+            var art = hafen == 2 || Streuung(e.Nummer, 313) % 3 != 0 ? Lichtart.Handlaterne : Lichtart.Fackel;
             p.Licht = TraglichtBauen(p.Figur!, e.Volk, art, e.Nummer);
+            p.LichtFackel = art == Lichtart.Fackel;
             if (p.Licht is null) return;
         }
         TraglichtSchalten(p.Licht!, soll);

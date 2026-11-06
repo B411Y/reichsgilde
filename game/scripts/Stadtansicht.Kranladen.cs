@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Buerger;
 using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
@@ -27,7 +28,7 @@ public partial class Stadtansicht
     private const float KranGehaenge = 0.7f;
 
     /// <summary>Anteile eines Hubs (0…1): Anfahrt und Heben aus der Ruhe, Senken, Heben mit Last, Schwenken, Absetzen.</summary>
-    private const double KranAnfahrtBis = 0.25, KranSenkenBis = 0.42, KranHebenBis = 0.58, KranSchwenkenBis = 0.82;
+    private const double KranAnfahrtBis = 0.25, KranSenkenBis = Hafenarbeit.KranHebtBei, KranHebenBis = 0.58, KranSchwenkenBis = 0.82;
 
     private Node3D? _kranHaus, _kranRad, _kranHaken, _kranGehaenge, _kranKatze;
     private MeshInstance3D? _kranSeil;
@@ -67,7 +68,7 @@ public partial class Stadtansicht
     private Node3D[] _mastMit = System.Array.Empty<Node3D>();
     private float _mastWinkel = -1;
 
-    private void ZierMastSetzen(SchiffAnsicht ansicht, ZierPhase phase, double a)
+    private void ZierMastSetzen(SchiffAnsicht ansicht, Besuchsphase phase, double a)
     {
         if (_mastAnsicht != ansicht)
         {
@@ -79,7 +80,7 @@ public partial class Stadtansicht
             _mastWinkel = -1;
         }
         if (_mastKnoten is null) return;
-        var t = phase != ZierPhase.Liegen ? 0f : Math.Min(Glatt((a - MastLegenAb) / (MastLegenBis - MastLegenAb)), 1 - Glatt((a - MastAufAb) / (MastAufBis - MastAufAb)));
+        var t = phase != Besuchsphase.Liegen ? 0f : Math.Min(Glatt((a - MastLegenAb) / (MastLegenBis - MastLegenAb)), 1 - Glatt((a - MastAufAb) / (MastAufBis - MastAufAb)));
         if (Math.Abs(t - _mastWinkel) < 1e-4f) return;
         _mastWinkel = t;
         var drehen = new Transform3D(new Basis(Vector3.Back, -t * Mathf.Pi / 2), Vector3.Zero);
@@ -170,6 +171,7 @@ public partial class Stadtansicht
             KranHakenSetzen(KranRuheOrt(), 0);
         }
         _kranGehalten = -1;
+        KranLastenAus(); // Stadtansicht.Hafenarbeit.cs
         ZierStapelZeigen(stapel);
     }
 
