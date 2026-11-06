@@ -356,7 +356,7 @@ public sealed class Gassennetz
 
     private static (int, int) Ordnen(int a, int b) => a < b ? (a, b) : (b, a);
 
-    private static Vector3 NaechsterPunkt(Vector3 p, Vector3 a, Vector3 b)
+    public static Vector3 NaechsterPunkt(Vector3 p, Vector3 a, Vector3 b)
     {
         var ab = b - a;
         var t = ab.LengthSquared() > 0 ? Mathf.Clamp((p - a).Dot(ab) / ab.LengthSquared(), 0, 1) : 0;

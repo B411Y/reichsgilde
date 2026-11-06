@@ -14,8 +14,8 @@ namespace Reichsgilde;
 /// <item><b>Feste Lichter</b> hängen an Ankern der Gebäude: Feuerkörbe an <c>Anker_Feuer_&lt;n&gt;</c> (Torburgen, Wachturm, Schilderhäuschen),
 /// Wandlaternen an <c>Anker_Laterne</c> (Wirtshaus, Rathaus), das Ewige Licht an <c>Anker_EwigesLicht</c> (Dom, rot). Die Torfeuer sind
 /// ein <see cref="MultiMeshInstance3D"/> je Mauer, die übrigen Lichter Kinder ihres Ankers – so folgen sie dem Gebäude.</item>
-/// <item><b>Nachtwächter</b>: Die Wachleute auf Streife (<see cref="Wachwesen.AnwesenheitJetzt"/>, nur gelesen) gehen eine feste Runde durch das
-/// Gassennetz – vom Wachhaus über den Markt zum Tor und zurück – und tragen nachts eine Handlaterne.</item>
+/// <item><b>Nachtwächter</b>: Die Wachleute auf Streife (<see cref="Wachwesen.AnwesenheitJetzt"/>, nur gelesen) gehen eine feste Runde (Markt, Viertel oder Mauer, Stadtansicht.Streife.cs) durch das
+/// Gassennetz – vom Wachhaus über den Markt, durch die Gassen des Viertels oder an der Mauer entlang und zurück – und tragen nachts eine Handlaterne.</item>
 /// <item><b>Passanten</b> tragen im Dunkeln eine Handlaterne, jeder dritte eine Fackel (<see cref="PassantLichtStellen"/>).</item>
 /// <item><b>Flammen</b> (Phase 2 „Feuer und Flammen“, Nutzer 30.10.2026): Fackeln und Feuerkörbe brennen mit der echten Flamme (<see cref="Feuer"/>,
 /// Flipbook der Simulation; das modellierte Flammenstück der Datei entfällt), in Hand- und Wandlaternen brennt ein Flämmchen hinter einer
@@ -412,24 +412,23 @@ public partial class Stadtansicht
     //  Nachtwächter
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Ein Wachmann auf Streife: Figur, Laterne und die Runde, die er geht.</summary>
+    /// <summary>Ein Wachmann auf Streife: Figur und Laterne (die Runde wählt <see cref="StreifeWahl"/> je Schicht).</summary>
     private sealed class Wachgang
     {
         public required Node3D Knoten { get; init; }
         public required Figur? Figur { get; init; }
         public Traglicht? Licht { get; set; }
-        public Vector3[] Runde { get; init; } = Array.Empty<Vector3>();
-        public float Laenge { get; init; }
         public int Stempel { get; set; }
         public bool Sichtbar { get; set; }
     }
 
     private readonly Dictionary<(string Haus, int Nummer), Wachgang> _wachgaenge = new();
-    private readonly Dictionary<string, (Vector3[] Runde, float Laenge)?> _wachrunden = new();
     private readonly List<(Betrieb Haus, Wachstand Stand, int Reihe)> _streifen = new();
     private Node3D? _wachEbene;
     private long _wachAbfrage = -1;
     private int _wachStempel;
+    private long _wachLogMinute = -1;
+    private int _wachLogTakt = -1;
 
     /// <summary>Gehtempo der Nachtwächter in Metern je echter Sekunde (bei Tempo 1): gemächlich, sie schauen sich um (<see cref="Gehtempo.Streife"/>).</summary>
     private const float WachTempo = Gehtempo.Streife;
@@ -438,34 +437,10 @@ public partial class Stadtansicht
     private const float WachAbstand = 18f;
 
     /// <summary>
-    /// Die Runde eines Wachhauses, fest für alle Wachleute des Hauses: von der Tür über den Markt zu einem Tor der Stadt (je Haus ein anderes,
-    /// ohne Tor der Dom) und auf demselben Weg zurück. Gemerkt je Haus; null, wenn das Haus keine Tür hat oder das Netz keinen Weg kennt.
-    /// </summary>
-    private (Vector3[] Runde, float Laenge)? WachRunde(Betrieb haus)
-    {
-        if (_wachrunden.TryGetValue(haus.Name, out var bekannt)) return bekannt;
-        (Vector3[], float)? runde = null;
-        if (TuerAnker(haus.Name) is { } tuer && _netz.Knoten.Count > 0)
-        {
-            var ziel = _tore.Count > 0 ? _tore[(int)(Streuung(haus.Name.Length, haus.Name.Sum(c => c)) % (uint)_tore.Count)].Ort : _domTuer ?? _markt;
-            var hin = new List<Vector3> { tuer };
-            foreach (var teil in new[] { _netz.Pfad(_netz.KnotenBei(tuer), _netz.KnotenBei(_markt)), _netz.Pfad(_netz.KnotenBei(_markt), _netz.KnotenBei(ziel)) })
-                foreach (var punkt in teil)
-                    if (hin[^1].DistanceTo(punkt) > 0.05f) hin.Add(punkt);
-            if (hin.Count >= 2)
-            {
-                var ganz = hin.Concat(Enumerable.Reverse(hin).Skip(1)).ToArray();
-                runde = (ganz, Gassennetz.Laenge(ganz));
-            }
-        }
-        _wachrunden[haus.Name] = runde;
-        return runde;
-    }
-
-    /// <summary>
     /// Jedes Bild: Die Wachleute auf Streife (Kern: <see cref="Wachwesen.AnwesenheitJetzt"/>, einmal je Spielminute abgefragt) gehen ihre Runde.
     /// Die Schicht wechselt alle zwei Stunden (gerade Stunde): Wer neu auf Streife ist, bricht am Wachhaus auf, der Platz in der Reihe
-    /// verzögert ihn um <see cref="WachAbstand"/> Meter. Wo er auf der Runde steht, folgt nur aus der Spielzeit – bei Pause, Sprung oder Laden
+    /// verzögert ihn um <see cref="WachAbstand"/> Meter. Welche Runde er geht (Markt, Viertel, Mauer; bei verlegter Streife meist das Viertel des Hauptmanns),
+    /// wählt <see cref="StreifeWahl"/> fest aus Wachwechsel und Nummer (Stadtansicht.Streife.cs). Wo er auf der Runde steht, folgt nur aus der Spielzeit – bei Pause, Sprung oder Laden
     /// stimmt es also immer. Die Wachleute, die der Kern daheim hat, sind nicht zu sehen (Innenansicht des Wachhauses).
     /// </summary>
     private void NachtwaechterAktualisieren(Stadtwirtschaft w, Spielzeit zeit, double bruchteil, double delta)
@@ -479,9 +454,19 @@ public partial class Stadtansicht
             foreach (var haus in w.Betriebe.Where(w.Wache.IstWachbetrieb))
             {
                 var reihe = 0;
-                foreach (var stand in w.Wache.AnwesenheitJetzt(haus).Where(s => s.Ort == Wachort.Patrouille))
+                var anwesend = w.Wache.AnwesenheitJetzt(haus);
+                foreach (var stand in anwesend.Where(s => s.Ort == Wachort.Patrouille))
                     _streifen.Add((haus, stand, reihe++));
+                // Nur Test (--streifentest, --streifenviertel): auch ohne Streife (z. B. nachts bei einem einzigen Wachmann) geht der erste Wachmann los, damit Bilder möglich sind
+                StreifeProbeLesen();
+                if (reihe == 0 && (_streifeProbeArt is not null || _streifeProbeViertel is not null) && anwesend.FirstOrDefault(s => s.Ort == Wachort.Daheim) is { } probe)
+                    _streifen.Add((haus, probe, reihe++));
             }
+        }
+        if (StreifeLog && zeit.VergangeneMinuten / 20 != _wachLogMinute)
+        {
+            _wachLogMinute = zeit.VergangeneMinuten / 20;
+            GD.Print($"[streife] {zeit.UhrzeitText}: {_streifen.Count} Wachleute auf Streife, Wachhäuser {w.Betriebe.Count(w.Wache.IstWachbetrieb)}");
         }
         var sekunden = _simulation.Takt.IstPausiert ? 0 : delta;
         var gezeigt = Fenster.PassantenMenge > 0 && _raum is null;
@@ -492,10 +477,24 @@ public partial class Stadtansicht
         if (gezeigt)
             foreach (var (haus, stand, reihe) in _streifen)
             {
-                if (WachRunde(haus) is not { } runde) continue;
                 var schluessel = (haus.Name, stand.Arbeiter.Nummer);
+                var wahl = StreifeWahl(w, haus, stand.Arbeiter.Nummer, zeit.UhrzeitInMinuten / 120);
+                (Vector3[] Runde, float Laenge)? gefunden = null;
+                var art = Streifenart.Markt;
+                if (wahl is { } gewaehlt)
+                {
+                    art = gewaehlt.Art;
+                    gefunden = StreifeRunde(w, haus, art, gewaehlt.Viertel, out var geplant);
+                    if (gefunden is null && geplant && art != Streifenart.Markt) gefunden = StreifeRunde(w, haus, Streifenart.Markt, gewaehlt.Viertel, out _); // keine Runde dieser Art: dann über den Markt
+                }
+                if (gefunden is not { } runde)
+                {
+                    // noch nicht geplant (je Bild höchstens eine neue Runde) oder gar kein Weg: unsichtbar, aber nicht abgebaut
+                    if (_wachgaenge.TryGetValue(schluessel, out var wartet)) { wartet.Stempel = _wachStempel; if (wartet.Sichtbar) wartet.Knoten.Visible = wartet.Sichtbar = false; }
+                    continue;
+                }
                 if (!_wachgaenge.TryGetValue(schluessel, out var gang))
-                    _wachgaenge[schluessel] = gang = WachgangBauen(haus, stand, runde);
+                    _wachgaenge[schluessel] = gang = WachgangBauen(haus, stand);
                 gang.Stempel = _wachStempel;
                 var meter = (float)(vergangen * WachTempo * sekundenJeMinute) - reihe * WachAbstand;
                 var steht = meter < 0 || runde.Laenge < 1;
@@ -512,6 +511,7 @@ public partial class Stadtansicht
                     hier += new Vector3(-richtung.Z, 0, richtung.X) * 0.7f; // Rechtsverkehr wie die Passanten
                 }
                 gang.Knoten.Position = anteil < 0.002f ? hier : AufFuss(hier);
+                if (StreifeLog && (int)(Time.GetTicksMsec() / 4000) != _wachLogTakt) { _wachLogTakt = (int)(Time.GetTicksMsec() / 4000); GD.Print($"[streife] Wachmann {stand.Arbeiter.Nummer} ({art}) bei {hier.X:0}|{hier.Z:0}, Bild {StadtKamera.UnprojectPosition(gang.Knoten.Position + Vector3.Up).X:0}|{StadtKamera.UnprojectPosition(gang.Knoten.Position + Vector3.Up).Y:0}, {meter:0} von {runde.Laenge:0} m"); }
                 if (gang.Figur is { } figur)
                 {
                     BewegungSetzen(figur, "Gehen", WachTempo * (float)_simulation.Takt.Tempo / (GehenTempo * figur.Beinfaktor));
@@ -522,15 +522,24 @@ public partial class Stadtansicht
                 if (gang.Licht is { } licht) TraglichtSchalten(licht, an);
             }
 
-        foreach (var gang in _wachgaenge.Values)
+        // Wachleute, die nicht mehr auf Streife sind (Schichtwechsel, Abriss, Stadt nicht gezeigt), werden freigegeben und bei Bedarf neu gebaut
+        List<(string, int)>? frei = null;
+        foreach (var (schluessel, gang) in _wachgaenge)
             if (gang.Stempel != _wachStempel || !gezeigt)
             {
                 if (gang.Sichtbar) gang.Knoten.Visible = gang.Sichtbar = false;
                 if (gang.Licht is { } licht) TraglichtSchalten(licht, false);
+                (frei ??= new()).Add(schluessel);
+            }
+        if (frei is not null)
+            foreach (var schluessel in frei)
+            {
+                if (IsInstanceValid(_wachgaenge[schluessel].Knoten)) _wachgaenge[schluessel].Knoten.QueueFree();
+                _wachgaenge.Remove(schluessel);
             }
     }
 
-    private Wachgang WachgangBauen(Betrieb haus, Wachstand stand, (Vector3[] Runde, float Laenge) runde)
+    private Wachgang WachgangBauen(Betrieb haus, Wachstand stand)
     {
         _wachEbene ??= new Node3D { Name = "Nachtwaechter" };
         if (_wachEbene.GetParent() is null) AddChild(_wachEbene);
@@ -539,7 +548,7 @@ public partial class Stadtansicht
         _wachEbene.AddChild(knoten);
         return new Wachgang
         {
-            Knoten = knoten, Runde = runde.Runde, Laenge = runde.Laenge,
+            Knoten = knoten,
             Figur = FigurEinsetzen(knoten, WacheAussehen(nummer, stand.Arbeiter.Arbeitskraft, false), nummer),
         };
     }

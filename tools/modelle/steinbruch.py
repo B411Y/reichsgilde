@@ -41,8 +41,7 @@ def bauen():
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
     # ── Boden mit Splitt, Bruchwand ───────────────────────────────────────────
-    lb.flaeche(haus, st, [(-11, -9), (11, -9), (11, -0.8), (-11, -0.8)], 0.012, "Erde hell")
-    lb.flaeche(haus, st, [(-1.5, -5.5), (7.5, -6.5), (9.6, -1.4), (0.5, -1.0)], 0.02, "Splitt")
+    # Hof und Wege sind keine Platte: der Boden unter dem Modell wird im Spiel gestempelt (game/daten/bodenstempel.json, Stadtansicht.Bodenstempel.cs)
     for i, (y, h) in enumerate(STUFEN):
         x0, x1 = BX0 + 0.8 * i, BX1 - 0.3 * i
         # Stufe: helle Schnittflächen vorn und oben, dunkler Fels an den Seiten

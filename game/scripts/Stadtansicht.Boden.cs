@@ -21,8 +21,8 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Das Bodenraster, das die Ansicht zeichnet: im Spiel das der Karte, in der Werkstatt das des Entwurfs (null: keins).</summary>
-    private Bodenraster? BodenRaster => _entwurf?.Boden ?? _karte?.Boden;
+    /// <summary>Das Bodenraster, das die Ansicht zeichnet: im Spiel das der Karte samt den Bodenstempeln (Stadtansicht.Bodenstempel.cs), in der Werkstatt das des Entwurfs (null: keins).</summary>
+    private Bodenraster? BodenRaster => _entwurf?.Boden ?? _stempelBoden ?? _karte?.Boden;
 
     /// <summary>Ist irgendwo eine Textur gemalt? Sonst bleibt alles wie bisher.</summary>
     private bool BodenGemalt => BodenRaster is { IstLeer: false };

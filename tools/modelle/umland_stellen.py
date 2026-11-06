@@ -47,7 +47,7 @@ def bauen():
         bs.buschel(weide, st, Vector((x, y, 0.01)), groesse=0.5, stoff="Gras" if k % 2 else "Moos")
 
     # ── Feld ──────────────────────────────────────────────────────────────────
-    lb.flaeche(feld, st, lb.rechteck(-7, -4.5, 7, 4.5), 0.012, "Erde")
+    # Feld und Wald: keine Bodenplatte, der Boden wird im Spiel gestempelt (game/daten/bodenstempel.json)
     dreh = Matrix.Rotation(1.5708, 4, "Z")
     for i in range(6):
         x = -6.0 + i * 2.4
@@ -63,7 +63,6 @@ def bauen():
 
     # ── Wald ──────────────────────────────────────────────────────────────────
     baeume = []                                                           # Marker „Wald_Baum_…“ (Kit-Bäume im Spiel)
-    lb.flaeche(wald, st, [(-7.5, -6.5), (7.5, -6.5), (7.5, 6.5), (-7.5, 6.5)], 0.01, "Moos")
     for i, (x, y, h) in enumerate(((-5.0, -3.0, 8.0), (-1.0, -4.4, 10.0), (4.0, -4.0, 7.0), (5.4, 2.0, 9.0),
                                    (-4.0, 4.0, 9.0), (1.0, 5.0, 7.0), (-5.8, 1.0, 6.0))):
         baeume.append(lb.baum_marker("Kiefer", (x, y), h, saat=40 + i, praefix="Wald_Baum_", nr=i + 1))

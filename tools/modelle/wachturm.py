@@ -39,7 +39,7 @@ def bauen():
     st = bs.Stoffe()
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
-    lb.flaeche(haus, st, [(-1.4, -6), (1.4, -6), (2.6, -0.8), (-2.6, -0.8)], 0.014, "Erde hell")
+    # Hof und Wege sind keine Platte: der Boden unter dem Modell wird im Spiel gestempelt (game/daten/bodenstempel.json, Stadtansicht.Bodenstempel.cs)
     oeffnungen = turm(haus, st)
     # Palisade: spitze Pfähle, vorn offen
     for i, (a, b) in enumerate((((-4.6, -3.2), (-5.4, 5.4)), ((-5.4, 5.4), (5.4, 5.4)), ((5.4, 5.4), (4.6, -3.2)))):

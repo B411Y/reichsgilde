@@ -36,7 +36,7 @@ def bauen():
 
     # ── Boden, Wald, Stümpfe ──────────────────────────────────────────────────
     baeume = []                                                  # Kiefern als Marker „Baum_…“ (das Spiel setzt Kit-Bäume ein)
-    lb.flaeche(haus, st, [(-11, -9), (11, -9), (11, 2.5), (4, 4.0), (-4, 3.4), (-11, 2.0)], 0.012, "Erde hell")
+    # Hof und Wege sind keine Platte: der Boden unter dem Modell wird im Spiel gestempelt (game/daten/bodenstempel.json, Stadtansicht.Bodenstempel.cs)
     for i, (x, y, hoehe) in enumerate(((-8.8, 6.9, 9.0), (-5.9, 6.2, 7.6), (-2.8, 7.0, 9.6), (0.6, 6.6, 8.2),
                                        (3.9, 7.0, 9.2), (6.9, 6.4, 7.8), (8.9, 7.0, 8.8), (-8.4, 3.8, 6.4),
                                        (8.9, 3.6, 6.8), (-1.4, 4.8, 6.2))):

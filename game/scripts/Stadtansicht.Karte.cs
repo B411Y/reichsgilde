@@ -135,6 +135,7 @@ public partial class Stadtansicht
         yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
         LagenLesen(karte);
+        BodenstempelAusKarte(karte); // Höfe, Wege und Restflächen als Bodenart im Raster, vor dem Boden (Stadtansicht.Bodenstempel.cs)
         BodenLegen(karte);
         Ladezeit.Marke("Szene: Boden und Gelände");
         yield return new Ladeschritt(0.28f, "Die Stadtmauer wird hochgezogen …");
@@ -201,6 +202,7 @@ public partial class Stadtansicht
             var linie = mauer.Linie.Select(Punkt3).ToList();
             if (linie.Count < 2) continue;
             _mauerFlaechen.Add(linie.Select(p => new Vector2(p.X, p.Z)).ToArray());
+            _mauerLinien.Add((linie.ToArray(), mauer.Geschlossen)); // für den Mauerweg der Streife (Stadtansicht.Streife.cs)
             var mitte = linie.Aggregate(Vector3.Zero, (s, p) => s + p) / linie.Count;
             foreach (var tor in mauer.Tore)
             {

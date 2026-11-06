@@ -12,6 +12,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Streife) Flucht der Diebe: Kommt eine Streife einem sichtbaren Dieb zwischen zwei Versuchen nahe, soll er in eine Seitengasse ausweichen (Vorschlag Wachen und Diebe, nur Bild). Nicht gebaut: Die Szenen der Diebe sind reine Funktionen der Spielzeit entlang fester Wege; ein Ausweichen bräuchte eine zweite Bahn je Szene und den Abgleich mit der Streife je Bild. Wenn gewünscht, als eigenes Paket.
+
+- (Boden) Stempel in der Kartenwerkstatt (dort fehlen Höfe, Wege und Restflächen-Untergründe, die Modelle haben keine Platte mehr); Stempel für Stadthäuser (Vorplatz Pflaster) und ein Pinsel „Stempel anpassen“
 - (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume kosten im Wald etwa +2,5 ms GPU gegenüber den alten (Schatten davon 2,4 ms; weiterer Hebel: Schatten der Kit-Bäume nur bei nahem Zoom, Fernfassung mit weniger Blattkarten); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
 - (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
@@ -567,6 +570,16 @@ Auftrag des Teamleiters 1.11.2026.
 | Nicht angefasst | Steinbruch, Grube, Holzschlag (nur „Erde hell“) und der Grasstreifen im Prediger-Modell; Stufe 2 | 04.11.2026 |
 | Graue Fläche an der Mühle | Im Greybox-Bauernhof nicht mehr zu sehen: Nach dem Entfernen der Grasplatte des Modells (26 × 20 m, größer als der Hof) bleibt nur der Hof „Erde hell“ (10 × 9 m); die graue Fläche im Nutzerbild war sehr wahrscheinlich diese Platte (Kartenraster und Wegeschicht zeigen dort keinen Belag). Der Hof „Erde hell“ (10 × 9 m) bleibt | 04.11.2026 |
 
+### Boden Stufe 2: Bodenstempel statt Bodenplatten (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stempel | `Bodenraster.Stempeln` (Kern, mit Test): weicher Rand (Breite je Eintrag, Vorgabe 1,5 m, je zur Hälfte innen und außen), Rauschen verschiebt den Rand (Vorgabe 0,5 m), „Fleck“ lässt innen Wiese durchblicken; nimmt nur von der Wiese, Gemaltes gewinnt; die Vereinigung mehrerer Vielecke hat keine Naht (Umriss nur aus Kantenstücken, die nicht im Innern liegen). Nur Laufzeit, auf einer Kopie des Kartenrasters (`_stempelBoden`), einmal vor dem Bau des Bodens; Karte, Spielstand und Kartenwerkstatt unberührt | 06.11.2026 |
+| Daten | `game/daten/bodenstempel.json` je Modell (bei Baukästen `#Knoten`): Bauernhof Hof Erde, Klosterhof Wege Pflaster, Duft- und Kräutergarten Wege Kies, Wachturm Kies, Steinbruch Kies und Erde, Grube Erde, Holzschlag Waldboden und Erde, Feld Erde, Wald Waldboden und Moos. `untergruende` in `restflaechen.json`: Garten Erde mit Fleck, Werkhof Erde oder Kies (fester Würfel), Randgestrüpp nichts. Rand, Rauschen, Fleck und Stärke je Eintrag einstellbar (statt im Katalog: eigene Datei, nicht geschützt) | 06.11.2026 |
+| Modelle | Platten „Erde hell“ (Höfe, Wege), „Erde“ (Feld) und „Moos“ (Wald) und die Splitt-Fläche des Steinbruchs sind aus den neun Skripten entfernt, Modelle neu exportiert (Protokollzeile); Acker-Streifen mit Furchen im Bauernhof, Hafenbauten, Stadthof und der Grasstreifen im Prediger-Modell bleiben | 06.11.2026 |
+| Graue Fläche an der Mühle (Köln, „Bauernhof an der Mühle“) | Geklärt mit Bildern vor und nach Stufe 1 und 2: Die Karte hat dort nur Wiese. Die Fläche war der Fundament-Quader des Hofs (`SockelBauen`, Pflaster oben, 20 × 16 m, auf hängigem Gelände, weil der Boden dort mehr als 12 cm Unterschied hat), im Greybox dagegen die Gras-Platte des Modells (Stufe 1). Umlandplätze bekommen den Quader jetzt in festgetretener Erde (`erde`-Zweig in `SockelBauen`); ein hartkantiges Rechteck bleibt auf hängigem Gelände sichtbar, solange der Quader den Fußboden über dem Hang hält (Offen: Boden unter Umlandplätzen vom Leveldesign planieren lassen oder den Quader als weiche Böschung bauen) |
+| Stadt | Innerhalb der Mauer deckt der Stadtlehm (Wegeschicht, Stadtgrund) den Boden, dort sieht man Stempel (Restflächen) nicht; Stadthäuser bekommen noch keine Stempel (später) | 06.11.2026 |
+
 ### Restflächen gefüllt, Paket 1 (PR folgt)
 
 | Thema | Entscheidung | Datum |
@@ -623,6 +636,26 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung | Höchstens eine Szene je Vorfall (wenige je Nacht, 1 bis 3 Figuren, kein Licht, kein Schatten), große Städte (`VieleFiguren`) nur in Kameranähe; Figuren werden mit `QueueFree` freigegeben, nichts hängt am Spielstand | 06.11.2026 |
 | Testhilfe | `--diebtest=nacht|einbruch|bande|fremd|nachtfolge|bandefolge|klicknacht|klickbande|klickfremdnacht|echt` mit `--entwickler=1` und `--diebbild=<ordner>` (Eintrag in `docs/STARTOPTIONEN.md`); Zeilen `[nachtdieb]` | 06.11.2026 |
 | Gleichheit | Die Darstellung liest nur; Wirtschaft unverändert, Gleichheitstest grün | 06.11.2026 |
+
+### Streife je Viertel und auf der Mauer (Wachen und Diebe P5, Branch phase5/streife)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dateien | `Stadtansicht.Streife.cs` (Runden, Wahl, Testhilfe), `Streifengang.cs` (Wahl der Runde, reine Rechnung ohne Godot, vom Test mitübersetzt), Umbau von `NachtwaechterAktualisieren` in `Stadtansicht.Nachtlichter.cs`, `Gassennetz.NaechsterPunkt` öffentlich. Im Kern klein ergänzt: `Amtsbefugnisse.ViertelBei(x, z)` (dieselbe Regel wie `ViertelVon`, das sie jetzt benutzt), Tests in `StreifengangTests`. | 06.11.2026 |
+| Runden | Je Wachwechsel (Stunde / 2) und Nummer des Wachmanns eine von drei: Markt (Tür, nächster Markt, zurück), Viertel (3 Gassenpunkte im eigenen Viertel, innerhalb der Mauer, fest aus dem Namen des Hauses gewählt, ≥ 22 m auseinander) und Mauer (Gassenpunkte bis 12 m an der Mauer, je Mauerlinie getrennt, bis zu 4 Haltepunkte entlang der Mauer, Richtung fest aus dem Namen; bei einer offenen Mauer, wie die zwei in Köln, bis zu ihrem Ende und auf demselben Weg zurück, bei einer geschlossenen rundherum). Ohne Mauerweg (kein Haltepunkt-Trio in 160 m Nähe der Tür) tritt das Viertel an die Stelle der Mauer. Kein Zufall (`Streifengang.Waehlen`). „Auf der Mauer“ ist es am Boden an der Mauer: die Mauer hat keinen begehbaren Wehrgang. | 06.11.2026 |
+| Viertel des Hauptmanns | Hat der Stadthauptmann verlegt (`Befugnisse.Streife`), gehen drei von vier Wachleuten in dieses Viertel, einer über den Markt; die Mauer entfällt. Liegt das Viertel weiter als 60 m von der Tür, beginnt die Runde an seinem nächsten Gassenpunkt (der Wachmann ist dort stationiert; eine Schicht von zwei Stunden bringt ihn bei Tempo 1 nur etwa 140 m weit). Die Wahl (Art und Viertel) wird je Wachmann und Wachwechsel festgehalten: Ein Wechsel des Hauptmanns wirkt erst ab der nächsten Schicht. | 06.11.2026 |
+| Keine Regel | Die Wirkung bleibt im Kern wie heute (stadtweit, im Viertel des Hauptmanns doppelt); die Wege sind reine Darstellung. Nachts weiter Handlaterne. | 06.11.2026 |
+| Leistung | Runden je Haus, Art und Viertel einmal geplant und gemerkt (die Wege des Gassennetzes sind ohnehin gemerkt), höchstens eine Planung je Bild (neue Runde, Mauerknoten der Karte, Mauerweg-Prüfung je Haus; ein Wachmann ohne Runde wartet unsichtbar; Wahl je Schicht gemerkt, nichts davon je Bild), Marktrunde je Haus nur einmal, eine gescheiterte Runde wird nach etwa 15 s neu versucht, Wachleute, die nicht mehr auf Streife sind, werden freigegeben. Planung erst, wenn die Stadt gezeigt wird; Bewegen und Zeichnen wie bisher mit den Sparstufen der Figuren (`FigurImBildBewegen`, `Fenster.PassantenMenge`). Keine neuen Figuren: dieselben Wachleute wie bisher. | 06.11.2026 |
+| Testhilfe | `--streifentest=markt|viertel|mauer`, `--streifenviertel=nord|ost|sued|west` (nur Bild), Zeilen `[streife]` im Protokoll. Mit einem der beiden geht auch nachts bei nur einem Wachmann der erste los (der Kern ließe ihn nachts daheim). | 06.11.2026 |
+### Zeichen über den eigenen Dieben (Branch phase5/diebe-zeichen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Was | Eigene Taschendiebe (Tag), Einbrecher und Bandenmitglieder (Nacht) tragen einen kleinen Kapuzenkopf mit Augenmaske über dem Kopf (grau, 50 % durchsichtig; war zuerst eine goldene Raute, geändert 06.11.) (`Stadtansicht.Diebzeichen.cs`); fremde Diebe und Gefasste keines, sie bleiben „Verdächtige Gestalt“ (Mondrand bei Nacht). Keine Einstellung zum Abschalten. | 06.11.2026 |
+| Zeichnung | `Control` auf `CanvasLayer` (Ebene 0), gezeichnet in voller Auflösung über dem Pixelbild, Lage aus der Kamera der Logik (stimmt auch ohne Pixel-Look). Grau statt Hausfarbe (eine feste Farbe), Form selbst als Polygone im Code gezeichnet (Kapuze, Schultern, helles Gesicht, dunkle Augenmaske mit zwei Schlitzen), Teile ohne Überdeckung, damit die Durchsicht überall 50 % ist (eine CanvasGroup legte das ganze Bild lahm). Radius 0,4 m · Bildhöhe / Zoom, 7 bis 14 Bildpunkte: bei 35, 70 und 140 m lesbar. Nachts auf 72 % gedämpft, kein Licht. | 06.11.2026 |
+| Anklicken | `DiebBei` prüft zuerst das Zeichen (Rechteck des Zeichens + 3 Bildpunkte), dann wie bisher die Figur; Hover und Mauszeiger laufen über `KennungUnterDerMaus`. | 06.11.2026 |
+| Leistung | Geprüft werden nur die Einträge von `_diebfiguren` (eine Handvoll), nie die Passanten; neu gezeichnet nur, wenn sich Lage oder Zahl ändern. Gestalten ohne Sichtbarkeit (im Haus, vor dem Griff) haben kein Zeichen; Szenen und Figuren gibt weiter ihr Besitzer frei (kein neuer Knoten je Person). | 06.11.2026 |
+| Testhilfe | `--diebmarken=0` schaltet die farbigen Testpunkte von `--diebtest` aus (für Bilder). Die Probe „fremd“ darf an dieselbe Tür wie der eigene Dieb und beginnt 9 Minuten früher, damit eigene und fremde Gestalt nebeneinander zu sehen sind. | 06.11.2026 |
 
 ### Torwache (PR #328)
 
