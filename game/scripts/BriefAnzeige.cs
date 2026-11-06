@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
@@ -24,6 +25,12 @@ public sealed partial class BriefAnzeige : PanelContainer
 
     /// <summary>Der Spieler drückt den Knopf unten; die Hauptszene kennt das Ziel (Betrieb, Familienbuch …).</summary>
     public event Action<Brief>? ZielGewaehlt;
+
+    /// <summary>Der Spieler drückt „Hinsehen“ zu einer Meldung (Stufe 2): die Hauptszene fährt hin und öffnet Auswahl, Tafel oder Charakterfenster.</summary>
+    public event Action<Meldung>? Hinsehen;
+
+    /// <summary>Wohin „Hinsehen“ zu einer Meldung führt, als kurzer Text für den Tooltip (null: nirgends hin, kein Knopf). Setzt die Hauptszene.</summary>
+    public Func<Meldung, string?> HinsehenZiel { get; set; } = _ => null;
 
     /// <summary>Wurde der Stapel weggelegt (Schließen)?</summary>
     public event Action? Weggelegt;
@@ -136,12 +143,51 @@ public sealed partial class BriefAnzeige : PanelContainer
         titel.OffsetLeft = 12;
         band.AddChild(titel);
 
-        foreach (var (zeilenKopf, text, warnung) in b.Zeilen.Take(40))
+        // Porträt des Betroffenen (Stufe 2): links neben Name und Haus; ein Klick öffnet das Charakterfenster
+        if (b.Person is { } person && b.Buch is { } buch)
+        {
+            var reihe = new HBoxContainer();
+            reihe.AddThemeConstantOverride("separation", 10);
+            _inhalt.AddChild(reihe);
+            var rahmen = new PanelContainer();
+            rahmen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+            {
+                BgColor = Tinte, BorderColor = Tinte, BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
+            });
+            var bild = PortraetAnzeige.Neu(PortraetAnzeige.Klein);
+            bild.Zeigen(buch, person);
+            bild.TooltipText = "Klick: Charakterfenster";
+            rahmen.AddChild(bild);
+            reihe.AddChild(rahmen);
+            var namen = new VBoxContainer { SizeFlagsVertical = SizeFlags.ShrinkCenter };
+            namen.AddThemeConstantOverride("separation", 0);
+            reihe.AddChild(namen);
+            Hauptmenue.Text(namen, person.Name, 17, Tinte);
+            Hauptmenue.Text(namen, (person.Lebt ? "" : "† ") + "Haus " + person.Familienname, 13, Blass);
+        }
+
+        foreach (var (zeilenKopf, text, warnung, kern) in b.Zeilen.Take(40))
         {
             var zeile = new VBoxContainer();
             zeile.AddThemeConstantOverride("separation", 0);
             _inhalt.AddChild(zeile);
-            if (zeilenKopf != "") Hauptmenue.Text(zeile, zeilenKopf, 12, Blass);
+            // Kopf mit kleinem Knopf „Hinsehen“, wenn die Zeile zu einer Meldung mit Ziel gehört und der Brief mehrere Zeilen hat
+            var ziel = kern is not null && b.Zeilen.Count > 1 ? HinsehenZiel(kern) : null;
+            if (zeilenKopf != "" || ziel is not null)
+            {
+                var kopfzeile = new HBoxContainer();
+                kopfzeile.AddThemeConstantOverride("separation", 6);
+                zeile.AddChild(kopfzeile);
+                Hauptmenue.Text(kopfzeile, zeilenKopf, 12, Blass).SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                if (ziel is not null)
+                {
+                    var hin = new Button { Text = "Hinsehen", FocusMode = FocusModeEnum.None, TooltipText = ziel, Flat = true };
+                    hin.AddThemeFontSizeOverride("font_size", 12);
+                    hin.AddThemeColorOverride("font_color", Blass);
+                    hin.Pressed += () => Hinsehen?.Invoke(kern!);
+                    kopfzeile.AddChild(hin);
+                }
+            }
             Hauptmenue.Text(zeile, text, 16, warnung ? Rot : Tinte, umbruchBreite: Breite - 6);
         }
         if (b.Zeilen.Count > 40) Hauptmenue.Text(_inhalt, $"… und {b.Zeilen.Count - 40} weitere im Verlauf.", 13, Blass);
@@ -154,7 +200,16 @@ public sealed partial class BriefAnzeige : PanelContainer
         var knoepfe = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ShrinkCenter };
         knoepfe.AddThemeConstantOverride("separation", 8);
         fuss.AddChild(knoepfe);
-        var zielText = ZielText(b);
+        // „Hinsehen“: zur Meldung des Briefes (Haus, Betrieb, Ort oder Person); er ersetzt den Knopf „Zu <Betrieb>“
+        var hinsehen = b.Kern is { } k ? HinsehenZiel(k) : null;
+        if (hinsehen is not null)
+        {
+            var hin = new Button { Text = "Hinsehen", FocusMode = FocusModeEnum.None, TooltipText = hinsehen };
+            hin.AddThemeFontSizeOverride("font_size", 14);
+            hin.Pressed += () => Hinsehen?.Invoke(b.Kern!);
+            knoepfe.AddChild(hin);
+        }
+        var zielText = hinsehen is not null && b.Ziel == "betrieb" ? "" : ZielText(b);
         if (zielText != "")
         {
             var ziel = new Button { Text = zielText, FocusMode = FocusModeEnum.None };

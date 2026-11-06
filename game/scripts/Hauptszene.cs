@@ -234,7 +234,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
-        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf };
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, HinsehenZiel = HinsehenZiel, Hinsehen = MeldungAnsteuern };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
         _hafenTafel = new HafenAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
@@ -1122,12 +1122,10 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
-        w.Meldung += meldung => Protokollieren(BlitzMeldung(SchiffsMeldung(meldung))); // Überfälle auf eigene Schiffe und Blitzschlag ins eigene Haus als Warnung (Hauptszene.Hafen.cs, Hauptszene.Blitz.cs)
+        w.Gemeldet += Protokollieren; // mit Art, Haus und Ort; gelungene Brände und Überfälle gegen das eigene Haus als Warnung (Hauptszene.Meldungen.cs)
         AnsagenVerbinden(simulation, w, spieler);
-        // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
-        foreach (var rivale in w.Rivalen)
-            foreach (var zug in rivale.Entscheidungen.Reverse())
-                Protokollieren(zug);
+        // Was vorher geschah (die ersten Züge der KI beim Aufstellen, nach dem Laden die letzten Meldungen aus dem Spielstand), steht im Verlauf.
+        VerlaufAusSpielstand(w, spieler);
 
         _wohnhaus.Verbinden(simulation, spieler);
         _berichtTafel.Verbinden(simulation, spieler);
