@@ -12,6 +12,9 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
+- (Streife) Flucht der Diebe: Kommt eine Streife einem sichtbaren Dieb zwischen zwei Versuchen nahe, soll er in eine Seitengasse ausweichen (Vorschlag Wachen und Diebe, nur Bild). Nicht gebaut: Die Szenen der Diebe sind reine Funktionen der Spielzeit entlang fester Wege; ein Ausweichen bräuchte eine zweite Bahn je Szene und den Abgleich mit der Streife je Bild. Wenn gewünscht, als eigenes Paket.
+- (Streife) Die Streife springt, wenn der Stadthauptmann mitten in der Schicht die Streife verlegt (neue Runde ab der gleichen Meterzahl); weicher wäre ein Wechsel erst zum nächsten Wachwechsel.
+
 - (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume kosten im Wald etwa +2,5 ms GPU gegenüber den alten (Schatten davon 2,4 ms; weiterer Hebel: Schatten der Kit-Bäume nur bei nahem Zoom, Fernfassung mit weniger Blattkarten); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
 - (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
@@ -623,6 +626,17 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung | Höchstens eine Szene je Vorfall (wenige je Nacht, 1 bis 3 Figuren, kein Licht, kein Schatten), große Städte (`VieleFiguren`) nur in Kameranähe; Figuren werden mit `QueueFree` freigegeben, nichts hängt am Spielstand | 06.11.2026 |
 | Testhilfe | `--diebtest=nacht|einbruch|bande|fremd|nachtfolge|bandefolge|klicknacht|klickbande|klickfremdnacht|echt` mit `--entwickler=1` und `--diebbild=<ordner>` (Eintrag in `docs/STARTOPTIONEN.md`); Zeilen `[nachtdieb]` | 06.11.2026 |
 | Gleichheit | Die Darstellung liest nur; Wirtschaft unverändert, Gleichheitstest grün | 06.11.2026 |
+
+### Streife je Viertel und auf der Mauer (Wachen und Diebe P5, Branch phase5/streife)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dateien | `Stadtansicht.Streife.cs` (Runden, Wahl, Testhilfe), `Streifengang.cs` (Wahl der Runde, reine Rechnung ohne Godot, vom Test mitübersetzt), Umbau von `NachtwaechterAktualisieren` in `Stadtansicht.Nachtlichter.cs`, `Gassennetz.NaechsterPunkt` öffentlich. Im Kern klein ergänzt: `Amtsbefugnisse.ViertelBei(x, z)` (dieselbe Regel wie `ViertelVon`, das sie jetzt benutzt), Tests in `StreifengangTests`. | 06.11.2026 |
+| Runden | Je Wachwechsel (Stunde / 2) und Nummer des Wachmanns eine von drei: Markt (Tür, nächster Markt, zurück), Viertel (3 Gassenpunkte im eigenen Viertel, innerhalb der Mauer, fest aus dem Namen des Hauses gewählt, ≥ 22 m auseinander) und Mauer (Gassenpunkte bis 12 m an der Mauer, bis zu 4 Haltepunkte entlang der Mauer, Richtung fest aus dem Namen). Ohne Mauerweg (kein Haltepunkt-Trio in 160 m Nähe der Tür) tritt das Viertel an die Stelle der Mauer. Kein Zufall (`Streifengang.Waehlen`). „Auf der Mauer“ ist es am Boden an der Mauer: die Mauer hat keinen begehbaren Wehrgang. | 06.11.2026 |
+| Viertel des Hauptmanns | Hat der Stadthauptmann verlegt (`Befugnisse.Streife`), gehen drei von vier Wachleuten in dieses Viertel, einer über den Markt; die Mauer entfällt. Liegt das Viertel weiter als 60 m von der Tür, beginnt die Runde an seinem nächsten Gassenpunkt (der Wachmann ist dort stationiert; eine Schicht von zwei Stunden bringt ihn bei Tempo 1 nur etwa 140 m weit). Wechselt der Hauptmann mitten in der Schicht, springt die Runde. | 06.11.2026 |
+| Keine Regel | Die Wirkung bleibt im Kern wie heute (stadtweit, im Viertel des Hauptmanns doppelt); die Wege sind reine Darstellung. Nachts weiter Handlaterne. | 06.11.2026 |
+| Leistung | Runden je Haus, Art und Viertel einmal geplant und gemerkt (die Wege des Gassennetzes sind ohnehin gemerkt), höchstens eine neue Runde je Bild (ein Wachmann ohne Runde wartet unsichtbar), Planung erst, wenn die Stadt gezeigt wird; Bewegen und Zeichnen wie bisher mit den Sparstufen der Figuren (`FigurImBildBewegen`, `Fenster.PassantenMenge`). Keine neuen Figuren: dieselben Wachleute wie bisher. | 06.11.2026 |
+| Testhilfe | `--streifentest=markt|viertel|mauer`, `--streifenviertel=nord|ost|sued|west` (nur Bild), Zeilen `[streife]` im Protokoll. Mit einem der beiden geht auch nachts bei nur einem Wachmann der erste los (der Kern ließe ihn nachts daheim). | 06.11.2026 |
 
 ### Torwache (PR #328)
 
