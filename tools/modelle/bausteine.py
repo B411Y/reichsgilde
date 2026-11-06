@@ -1259,7 +1259,7 @@ def unterordner(name):
     if name.endswith("_innen"):
         return "innen"
     for anfang, ordner in (("natur_", "natur"), ("figur_", "figuren"), ("karren_", "fahrzeuge"), ("vogel_", "tiere"), ("tier_", "tiere"),
-                           ("wasser_", "wasser"), ("props_", "props"), ("kulisse_", "kulisse")):
+                           ("wasser_", "wasser"), ("props_", "props"), ("fuellung_", "props"), ("kulisse_", "kulisse")):
         if name.startswith(anfang):
             return ordner
     if name in REQUISITEN_MODELLE:
