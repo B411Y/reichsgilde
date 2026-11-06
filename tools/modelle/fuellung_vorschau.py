@@ -33,6 +33,85 @@ def _reihe(objekte, tiefe):
     return gesamt
 
 
+ATLAS = os.path.join(bs.WURZEL, "game", "assets", "texturen", "modelle", "modelle_farbe_hoehe.webp")
+
+
+def texturieren():
+    """Gleiche Texturen wie im Spiel (Material-Bibliothek, Stufe Hoch ohne Normalen): Jedes Material, dessen Name in
+    materialbibliothek.json steht, bekommt die Schicht aus dem Atlas (2 × 11 Schichten à 1024 px, Reihenfolge Zeile für Zeile),
+    mit der Modellfarbe gefärbt (Textur / mittlere Farbe, wie oberflaeche.gdshader), Höhe aus Alpha als Bump. Nur fürs Bild."""
+    import numpy as np
+    import OpenImageIO as oiio
+    tab = bs.bibliothek()
+    namen = tab["namen"]
+    schichten = {s["name"]: (i, s) for i, s in enumerate(tab["schichten"])}
+    benutzt = {}
+    for m in bpy.data.materials:
+        basis = m.name.split(".")[0]
+        if basis in namen and basis not in benutzt:
+            benutzt[basis] = m
+    if not benutzt:
+        return
+    atlas = oiio.ImageBuf(ATLAS)
+    px = atlas.get_pixels(oiio.FLOAT)
+    bilder = {}
+    mittel = {}
+    for m in bpy.data.materials:
+        basis = m.name.split(".")[0]
+        if basis not in namen or not m.use_nodes:
+            continue
+        i, schicht = schichten[namen[basis]]
+        if i not in bilder:
+            r, c = divmod(i, 2)
+            kachel = np.ascontiguousarray(px[r * 1024:(r + 1) * 1024, c * 1024:(c + 1) * 1024, :])
+            ordner = os.environ.get("FUELLUNG_KOPIE") or "/tmp"
+            datei = os.path.join(ordner, f"_schicht{i}.png")
+            buf = oiio.ImageBuf(oiio.ImageSpec(1024, 1024, 4, oiio.FLOAT))
+            buf.set_pixels(oiio.ROI(0, 1024, 0, 1024, 0, 1, 0, 4), kachel)
+            buf.write(datei)
+            img = bpy.data.images.load(datei)
+            img.colorspace_settings.name = "sRGB"
+            img.pack()
+            os.remove(datei)
+            lin = np.where(kachel[..., :3] <= 0.04045, kachel[..., :3] / 12.92, ((kachel[..., :3] + 0.055) / 1.055) ** 2.4)
+            bilder[i] = img
+            m_ = float(lin.mean())
+            mittel[i] = (m_, m_, m_)
+        nodes, links = m.node_tree.nodes, m.node_tree.links
+        bsdf = nodes.get("Principled BSDF")
+        farbe = tuple(bsdf.inputs["Base Color"].default_value)
+        koord = nodes.new("ShaderNodeTexCoord")
+        mapp = nodes.new("ShaderNodeMapping")
+        mapp.inputs["Scale"].default_value = (1 / schicht["kachel"],) * 3
+        tex = nodes.new("ShaderNodeTexImage")
+        tex.image = bilder[i]
+        tex.projection = "BOX"
+        tex.projection_blend = 0.25
+        tex.extension = "REPEAT"
+        sat = nodes.new("ShaderNodeHueSaturation")
+        sat.inputs["Saturation"].default_value = 0.55
+        teil = nodes.new("ShaderNodeVectorMath")
+        teil.operation = "DIVIDE"
+        teil.inputs[1].default_value = mittel[i]
+        mix = nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        mix.blend_type = "MULTIPLY"
+        mix.inputs[0].default_value = 1.0
+        mix_a, mix_b = [k for k in mix.inputs if k.type == "RGBA"][:2]
+        mix_a.default_value = farbe
+        bump = nodes.new("ShaderNodeBump")
+        bump.inputs["Strength"].default_value = 0.35
+        bump.inputs["Distance"].default_value = 0.02
+        links.new(koord.outputs["Object"], mapp.inputs["Vector"])
+        links.new(mapp.outputs["Vector"], tex.inputs["Vector"])
+        links.new(tex.outputs["Color"], sat.inputs["Color"])
+        links.new(sat.outputs["Color"], teil.inputs[0])
+        links.new(teil.outputs["Vector"], mix_b)
+        links.new([k for k in mix.outputs if k.type == "RGBA"][0], bsdf.inputs["Base Color"])
+        links.new(tex.outputs["Alpha"], bump.inputs["Height"])
+        links.new(bump.outputs["Normal"], bsdf.inputs["Normal"])
+
+
 def _beschriften(objekte, kam):
     schrift = bpy.data.fonts.load(SCHRIFT) if os.path.exists(SCHRIFT) else None
     mat = bpy.data.materials.new("_Beschriftung")
@@ -65,6 +144,7 @@ def _sonne_links():
     az = math.radians(-45)
     licht = Vector((math.cos(az - math.radians(55)), math.sin(az - math.radians(55)), 1.15)).normalized()
     bpy.data.objects["Sonne"].rotation_euler = (-licht).to_track_quat("-Z", "Y").to_euler()
+    bpy.data.objects["Sonne"].data.energy = 2.5
 
 
 def _rendern(pfad, sommer_und_winter):
@@ -95,6 +175,7 @@ def vorschau(name, sommer, winter):
     szene.render.resolution_percentage = 50 if schnell else 100
     bs.blick(0)
     _sonne_links()
+    texturieren()
     _beschriften(alle, szene.camera)
     os.makedirs(bs.VORSCHAU, exist_ok=True)
     pfad = os.path.join(bs.VORSCHAU, name + ".png")

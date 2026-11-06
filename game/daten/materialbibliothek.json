@@ -89,6 +89,24 @@
     "Wolle": "tuch",
     "Schnittstein": "quader",
     "Elbenstein": "quader",
-    "Elbendach": "kupfer"
+    "Elbendach": "kupfer",
+    "Erde": "lehmputz",
+    "Erde hell": "lehmputz",
+    "Meilererde": "lehmputz",
+    "Meilererde hell": "lehmputz",
+    "Mist": "stroh",
+    "Weide": "fachwerkholz",
+    "Kohl": "laub",
+    "Kraut": "laub",
+    "Salbei": "laub",
+    "Fenchel": "laub",
+    "Lauch": "laub",
+    "Bohne": "laub",
+    "Rasen": "laub",
+    "Schlacke": "fels",
+    "Schlacke rot": "fels",
+    "Leinen": "tuch",
+    "Leinen blau": "tuch",
+    "Leinen braun": "tuch"
   }
 }

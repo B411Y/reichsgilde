@@ -37,11 +37,12 @@ bs.FARBEN.update({
     "Schnee": (0.91, 0.93, 0.96),
     "Schnee schatten": (0.78, 0.82, 0.89),
     "Eis": (0.66, 0.77, 0.82),
-    "Mist": (0.25, 0.18, 0.12),
+    "Mist": (0.19, 0.135, 0.09),
     "Meilererde": (0.20, 0.15, 0.12),
-    "Meilererde hell": (0.26, 0.20, 0.15),
+    "Meilererde hell": (0.24, 0.185, 0.14),
+    "Rasen": (0.30, 0.36, 0.20),               # Grasnarbe auf Hügeln
     "Schlacke": (0.19, 0.19, 0.20),
-    "Schlacke rot": (0.34, 0.21, 0.17),
+    "Schlacke rot": (0.27, 0.19, 0.16),
     "Leinen": (0.78, 0.74, 0.62),
     "Leinen blau": (0.30, 0.36, 0.52),
     "Leinen braun": (0.46, 0.35, 0.25),
@@ -69,28 +70,62 @@ def fein(profil):
     return tuple(neu)
 
 
-def kuppel(netz, st, mitte, rx, ry, h, stoffe, profil=PROFIL_RUND, n=12, saat=0, jitter=0.1, krater=None, muster="zufall", verfeinert=True):
-    """Unregelmäßiger Haufen: Ringe aus n Ecken, Flächen wechseln durch `stoffe`. Gibt die Ringe zurück.
-    `krater` = (Anteil, Tiefe, Stoff): oben ein Loch statt der Kappe."""
+def _blob(x, y, p):
+    """Weiches Rauschen −1…1 (Summe dreier Sinuswellen) – für Flecken und Beulen ohne Zufallskanten."""
+    return (math.sin(1.9 * x + 2.3 * y + p) + math.sin(3.1 * x - 1.3 * y + 2 * p) + math.sin(0.9 * x + 3.7 * y - p)) / 3.0
+
+
+def kuppel(netz, st, mitte, rx, ry, h, stoffe, profil=PROFIL_RUND, n=12, saat=0, jitter=0.1, krater=None, muster="zufall", verfeinert=None):
+    """Haufen aus Ringen mit n Ecken. Ab n = 14 organisch: weiche Beulen (Sinuswellen statt Zufall je Ecke), Profil verfeinert, die
+    Flächen sind glatt schattiert (`netz.glatt`, siehe glaetten) und der Stoff wechselt in weichen Flecken. Darunter (kleine Kappen)
+    bleibt es eckig. `krater` = (Anteil, Tiefe, Stoff): oben ein Loch statt der Kappe. Gibt die Ringe zurück."""
     z = rng(saat)
     zs = rng(saat + 99)
-    x, y, z0 = mitte
+    glatt = n >= 14
+    if verfeinert is None:
+        verfeinert = glatt
     if verfeinert:
         profil = fein(profil)
+    if not hasattr(netz, "glatt"):
+        netz.glatt = []
+    x, y, z0 = mitte
+    p1, p2, p3 = (z.uniform(0, 6.28) for _ in range(3))
     ringe = []
     for fr, fz in profil:
         ring = []
         for k in range(n):
-            w = 2 * math.pi * (k + z.uniform(-0.15, 0.15)) / n
-            f = fr * (1 + z.uniform(-jitter, jitter))
-            hz = h * fz * (1 + z.uniform(-jitter, jitter) * 0.5) if fz else 0.0
+            if glatt:
+                w = 2 * math.pi * k / n
+                beule = 0.9 * math.sin(2 * w + p1) + 0.6 * math.sin(3 * w + p2) + 0.35 * math.sin(5 * w + p3)
+                f = fr * (1 + jitter * beule + z.uniform(-0.008, 0.008))
+                hz = h * fz * (1 + jitter * 0.8 * math.sin(3 * w + p3) + z.uniform(-0.01, 0.01)) if fz else 0.0
+            else:
+                w = 2 * math.pi * (k + z.uniform(-0.15, 0.15)) / n
+                f = fr * (1 + z.uniform(-jitter, jitter))
+                hz = h * fz * (1 + z.uniform(-jitter, jitter) * 0.5) if fz else 0.0
             ring.append(Vector((x + rx * f * math.cos(w), y + ry * f * math.sin(w), z0 + hz)))
         ringe.append(ring)
     innen = Vector((x, y, z0 + h * 0.3))
+
+    def stoff_bei(i, k, q):
+        if muster == "streifen":
+            return st[stoffe[k % len(stoffe)]]
+        if glatt:
+            c = sum(q, Vector()) / 4
+            t = min(0.999, max(0.0, _blob(c.x, c.y + c.z * 0.7, p1) * 0.75 + 0.5))
+            return st[stoffe[int(t * len(stoffe))]]
+        return st[zs.choice(stoffe)]
+
+    def flaeche(punkte, hinweis, m):
+        start = len(netz.flaechen)
+        netz.vieleck_nach(punkte, hinweis, m)
+        if glatt:
+            netz.glatt.extend(range(start, len(netz.flaechen)))
+
     for i in range(len(ringe) - 1):
         for k in range(n):
             q = [ringe[i][k], ringe[i][(k + 1) % n], ringe[i + 1][(k + 1) % n], ringe[i + 1][k]]
-            netz.vieleck_nach(q, sum(q, Vector()) / 4 - innen, st[stoffe[k % len(stoffe)] if muster == "streifen" else zs.choice(stoffe)])
+            flaeche(q, sum(q, Vector()) / 4 - innen, stoff_bei(i, k, q))
     if krater:
         anteil, tiefe, stoff = krater
         rand = ringe[-1]
@@ -98,17 +133,36 @@ def kuppel(netz, st, mitte, rx, ry, h, stoffe, profil=PROFIL_RUND, n=12, saat=0,
         tief = [mi + (p - mi) * anteil - Vector((0, 0, tiefe)) for p in rand]
         for k in range(n):
             q = [rand[k], rand[(k + 1) % n], tief[(k + 1) % n], tief[k]]
-            netz.vieleck_nach(q, mi - sum(q, Vector()) / 4 + Vector((0, 0, 0.3)), st[stoff])
+            flaeche(q, mi - sum(q, Vector()) / 4 + Vector((0, 0, 0.3)), st[stoff])
         netz.vieleck_nach(tief, (0, 0, 1), st[stoff])
     else:
-        netz.vieleck_nach(ringe[-1], (0, 0, 1), st[stoffe[0]])
+        flaeche(ringe[-1], (0, 0, 1), st[stoffe[0]])
     return ringe
 
 
-def schnee(netz, st, mitte, rx, ry, h, saat=0, n=11):
-    """Schneehaube: flache Kuppel, unten leicht bläulich."""
-    kuppel(netz, st, mitte, rx, ry, h, ("Schnee", "Schnee", "Schnee schatten"), profil=((1.0, 0.0), (0.93, 0.5), (0.62, 0.86), (0.26, 1.0)),
-           n=n, saat=saat, jitter=0.08)
+def glaetten(obj, netz):
+    """Glatte Schattierung für die Flächen aus kuppel: Ecken zusammenlegen (Netz teilt keine Ecken), Flächen auf glatt."""
+    flaechen = getattr(netz, "glatt", [])
+    if not flaechen:
+        return
+    import bmesh
+    me = obj.data
+    for i in flaechen:
+        if i < len(me.polygons):
+            me.polygons[i].use_smooth = True
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-4)
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+
+
+def schnee(netz, st, mitte, rx, ry, h, saat=0, n=None):
+    """Schneehaube: flache Kuppel, unten leicht bläulich; große Hauben weich, kleine Kappen eckig."""
+    n = 18 if max(rx, ry) >= 0.45 else 6
+    kuppel(netz, st, mitte, rx, ry, h, ("Schnee", "Schnee", "Schnee", "Schnee schatten"), profil=((1.0, 0.0), (0.93, 0.5), (0.62, 0.86), (0.26, 1.0)),
+           n=n, saat=saat, jitter=0.07)
 
 
 def schneestreifen(netz, st, x0, x1, y, z, breite, h):
@@ -116,6 +170,14 @@ def schneestreifen(netz, st, x0, x1, y, z, breite, h):
     b = breite / 2
     netz.prisma([(-b, 0), (-b * 0.8, h * 0.7), (-b * 0.35, h), (b * 0.35, h), (b * 0.8, h * 0.7), (b, 0)], x0, x1, st["Schnee"],
                 matrix=Matrix.Translation((0, y, z)))
+
+
+def gras(netz, st, fuss, groesse=0.2):
+    """Grasbüschel: fünf schmale Halme im Fächer, flach und hell (keine dunklen Spitzen wie bei buschel)."""
+    z = rng(int(abs(fuss.x) * 100 + abs(fuss.y) * 1000))
+    for k in range(5):
+        w = 2 * math.pi * k / 5 + z.uniform(0, 1)
+        nt.blatt(netz, st, Vector((fuss.x, fuss.y, fuss.z)), (math.cos(w), math.sin(w)), groesse * z.uniform(0.8, 1.2), groesse * 0.22, "Rasen", hoch=z.uniform(0.7, 1.1), dicke=0.006)
 
 
 def strich(netz, st, a, b, d, stoff):
@@ -155,25 +217,35 @@ def gabel(netz, st, spitze, richtung, laenge=1.5):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def flechtzaun(netz, st, laenge, saat, winter=False):
-    """Flechtzaun: Pfähle alle 0,5 m, Weidenruten abwechselnd vor und hinter den Pfählen."""
+    """Weidenflechtzaun: senkrechte Staken alle 40–50 cm (oben unterschiedlich hoch, 0,9–1,1 m), waagerechte Ruten im Wechsel vor und
+    hinter den Staken geflochten; Ruten beginnen und enden versetzt, oben fehlen Stücke (unregelmäßiger Abschluss)."""
     z = rng(saat)
-    anzahl = int(round(laenge / 0.5)) + 1
-    xs = [-laenge / 2 + laenge * i / (anzahl - 1) for i in range(anzahl)]
+    anzahl = int(round(laenge / 0.45)) + 1
+    xs = [-laenge / 2 + laenge * i / (anzahl - 1) + (z.uniform(-0.03, 0.03) if 0 < i < anzahl - 1 else 0.0) for i in range(anzahl)]
     for x in xs:
-        h = z.uniform(0.95, 1.08)
-        nt.ast(netz, st, (x + z.uniform(-0.012, 0.012), z.uniform(-0.012, 0.012), 0), (x, 0, h), 0.034, 0.026, stoff="Holz alt", n=5)
-    for lage in range(7):
-        zz = 0.1 + lage * 0.125 + z.uniform(-0.01, 0.01)
-        for i in range(anzahl - 1):
-            seite = 1 if (i + lage) % 2 == 0 else -1
-            dz = z.uniform(-0.012, 0.012)
-            netz.stab((xs[i] - 0.03, seite * 0.036, zz), (xs[i + 1] + 0.03, seite * 0.036, zz + dz), 0.05, 0.036, st["Weide"])
+        h = z.uniform(0.92, 1.1)
+        neig = z.uniform(-0.02, 0.02)
+        nt.ast(netz, st, (x, z.uniform(-0.01, 0.01), 0), (x + neig, 0, h), 0.03, 0.021, stoff="Holz alt", n=6)
+    lagen = 9
+    for lage in range(lagen):
+        zz = 0.08 + lage * 0.1
+        a = 0 if lage % 3 != 1 else z.choice((0, 1))
+        b = anzahl - 1 if lage % 3 != 2 else z.choice((anzahl - 1, anzahl - 2))
+        seite = 1 if lage % 2 == 0 else -1
+        r = z.uniform(0.017, 0.022)
+        punkte = []
+        for i in range(a, b + 1):
+            punkte.append(Vector((xs[i] + (-0.05 if i == a else 0.05 if i == b else 0.0), seite * 0.036 * (-1) ** (i - a), zz + z.uniform(-0.01, 0.01))))
+        for p, q in zip(punkte, punkte[1:]):
+            if lage >= 7 and z.random() < (0.3 if lage == 7 else 0.55):          # oben unregelmäßig
+                continue
+            nt.ast(netz, st, p, q, r, r * 0.92, stoff="Weide", n=5)
     if winter:
-        schneestreifen(netz, st, -laenge / 2 + 0.02, laenge / 2 - 0.02, 0, 0.88, 0.14, 0.07)
+        schneestreifen(netz, st, -laenge / 2 + 0.03, laenge / 2 - 0.03, 0, 0.87, 0.11, 0.06)
         for x in xs[::2]:
-            schnee(netz, st, (x, 0, 1.0), 0.05, 0.05, 0.05, saat=int(x * 10) + 40, n=5)
-        for s in (-1, 1):
-            schneestreifen(netz, st, -laenge / 2, laenge / 2, s * 0.1, 0.0, 0.14, 0.1)
+            schnee(netz, st, (x, 0, 0.98), 0.05, 0.05, 0.05, saat=int(abs(x) * 10) + 40)
+        for s_ in (-1, 1):
+            schneestreifen(netz, st, -laenge / 2, laenge / 2, s_ * 0.1, 0.0, 0.14, 0.09)
 
 
 def beet_grund(netz, st, laenge=2.0, breite=1.1, furchen=True):
@@ -288,7 +360,7 @@ def bohnenstange(netz, st, saat, winter=False):
                 q = p + Vector((0.05 * math.cos(w + 0.6), 0.05 * math.sin(w + 0.6), -0.02))
                 nt.ast(netz, st, q, q + Vector((0, 0, -0.15)), 0.014, 0.01, stoff="Bohnenhuelse", n=3)
     if winter:
-        schnee(netz, st, (0, 0, 0.03), 0.62, 0.62, 0.13, saat=saat, n=9)
+        schnee(netz, st, (0, 0, 0.06), 0.6, 0.6, 0.11, saat=saat)
         schnee(netz, st, (0, 0, 2.28), 0.05, 0.05, 0.05, saat=saat + 1, n=5)
 
 
@@ -344,14 +416,11 @@ def holzstapel(netz, st, spalten, reihen, tiefe, saat, dach=False, winter=False)
     hoehe = 0.095 + (reihen - 1) * d * 0.9 + 0.09
     for sx in (-1, 1):
         for sy in (-1, 1):
-            pfahl(netz, st, sx * (breite / 2 + 0.07), sy * (tiefe / 2 - 0.02), hoehe + 0.1, 0.045)
+            pfahl(netz, st, sx * (breite / 2 + 0.07), sy * (tiefe / 2 - 0.02), hoehe + (0.35 if dach else 0.1), 0.045)
     netz.stab((-breite / 2 - 0.12, tiefe / 2 + 0.03, 0.02), (breite / 2 + 0.12, tiefe / 2 + 0.03, 0.02), 0.04, 0.04, st["Holz alt"])
     if dach:
         t = Matrix.Translation((0, 0, hoehe + 0.3)) @ Matrix.Rotation(math.radians(9), 4, "X")
         netz.quader((0, 0, 0), (breite + 0.5, tiefe + 0.5, 0.05), st["Bretter"], t)
-        for sx in (-1, 1):
-            for sy in (-1, 1):
-                pfahl(netz, st, sx * (breite / 2 + 0.07), sy * (tiefe / 2 - 0.02), hoehe + 0.3 + (0.05 if sy > 0 else 0.0), 0.045)
     if winter:
         if dach:
             t = Matrix.Translation((0, 0, hoehe + 0.345)) @ Matrix.Rotation(math.radians(9), 4, "X")
@@ -377,7 +446,7 @@ def hackklotz(netz, st, saat, winter=False):
     netz.quader((0.19, 0, 0.7), (0.07, 0.05, 0.08), st["Eisen"])
     for k, (x, y0) in enumerate(((0.55, -0.6), (0.72, -0.1), (-0.6, -0.7))):                 # Scheite am Boden
         scheit(netz, st, x, 0.07, y0, y0 + 0.42, 0.07, z, k % 2 == 0)
-    for k in range(14):                                              # Späne
+    for k in range(0 if winter else 14):                             # Späne
         x, y = z.uniform(-0.8, 0.8), z.uniform(-0.8, 0.8)
         if math.hypot(x, y) < 0.3:
             continue
@@ -388,7 +457,9 @@ def hackklotz(netz, st, saat, winter=False):
         netz.vieleck_nach(p, (0, 0, 1), st["Spaene"])
     if winter:
         schnee(netz, st, (-0.06, 0.04, 0.55), 0.22, 0.2, 0.07, saat=saat, n=7)
-        schnee(netz, st, (0, 0, 0.0), 0.95, 0.95, 0.03, saat=saat + 2, n=10)
+        zs_ = rng(saat + 2)
+        netz.vieleck_nach([(0.95 * (1 + zs_.uniform(-0.12, 0.12)) * math.cos(2 * math.pi * k / 12), 0.95 * (1 + zs_.uniform(-0.12, 0.12)) * math.sin(2 * math.pi * k / 12), 0.014)
+                           for k in range(12)], (0, 0, 1), st["Schnee"])
 
 
 def scheitwand(netz, st, saat, winter=False):
@@ -409,48 +480,47 @@ def scheitwand(netz, st, saat, winter=False):
             pfahl(netz, st, sx * (breite / 2 + 0.07) if sx else 0.0, sy * (tiefe / 2 + 0.02), hoehe + 0.2, 0.05)
     for sy in (-1, 1):                                               # Rindenstücke als Abdeckung
         for k in range(3):
-            netz.stab((-breite / 2 - 0.1 + k * breite / 3, sy * 0.12, hoehe + 0.015), (-breite / 2 + 0.1 + (k + 1) * breite / 3, sy * 0.12, hoehe + 0.03),
-                      0.24, 0.03, st["Rinde"])
+            netz.stab((-breite / 2 - 0.1 + k * breite / 3, sy * (0.1 + 0.025 * k), hoehe + 0.015 + 0.012 * k),
+                      (-breite / 2 + 0.05 + (k + 1) * breite / 3, sy * (0.1 + 0.025 * k), hoehe + 0.03 + 0.012 * k), 0.2, 0.03, st["Rinde"])
     if winter:
         schneestreifen(netz, st, -breite / 2 - 0.1, breite / 2 + 0.1, 0, hoehe + 0.04, 0.5, 0.1)
 
 
 def kohlenmeiler(netz, st, saat):
+    """Kleiner Meiler (etwa 2,5 m Durchmesser): Erdhaufen mit Rauchloch, am Fuß Rasensoden, Leiter, Schürhaken, Reisig."""
     z = rng(saat)
-    rx = 2.0
-    ringe = kuppel(netz, st, (0, 0, 0), rx, rx, 1.45, ("Meilererde", "Meilererde", "Meilererde", "Meilererde", "Meilererde hell", "Kohle"),
-                   profil=((1.0, 0.0), (0.97, 0.2), (0.84, 0.5), (0.58, 0.8), (0.24, 0.96)), n=18, saat=saat, jitter=0.06, krater=(0.55, 0.2, "Kohle"))
-    n = 18
-    rund = rx  # Zuglöcher am Fuß: dunkle Soden
-    for k in range(0, n, 4):
+    rx = 1.25
+    ringe = kuppel(netz, st, (0, 0, 0), rx, rx, 1.1, ("Meilererde",) * 9 + ("Meilererde hell", "Kohle"),
+                   profil=((1.0, 0.0), (0.97, 0.2), (0.84, 0.5), (0.58, 0.8), (0.28, 0.95)), n=20, saat=saat, jitter=0.07,
+                   krater=(0.55, 0.14, "Kohle"))
+    n = 20
+    for k in range(0, n, 5):                                         # Zuglöcher: dunkle Soden am Hang
         p = ringe[2][k]
-        lb.kegel(netz, (p.x, p.y), 0.15, p.z - 0.04, p.z + 0.11, st["Loch"], n=4, dreh=z.uniform(0, 1))
-    for k in range(1, n, 3):                                         # Grasbüschel an den Rändern der Rasensoden
+        lb.kegel(netz, (p.x, p.y), 0.1, p.z - 0.03, p.z + 0.07, st["Loch"], n=4, dreh=z.uniform(0, 1))
+    for k in range(1, n, 4):                                         # Gras am Fuß
         p = ringe[0][k]
-        bs.buschel(netz, st, Vector((p.x * 1.02, p.y * 1.02, 0)), groesse=0.3, stoff="Gras")
-    bs.rund_oben(netz, st, (0, 0, ringe[-1][0].z - 0.2), 0.12, ringe[-1][0].z - 0.205, "Glut", n=6)
-    # Leiter an der Schauseite
-    w = math.radians(-60)
-    fuss = Vector((math.cos(w) * 2.7, math.sin(w) * 2.7, 0))
-    kopf = Vector((math.cos(w) * 1.05, math.sin(w) * 1.05, 1.4))
-    quer = Vector((-math.sin(w), math.cos(w), 0)) * 0.2
-    for s in (-1, 1):
-        netz.stab(fuss + quer * s, kopf + quer * s, 0.05, 0.05, st["Holz alt"])
-    for k in range(1, 6):
-        t = k / 6
-        p = fuss.lerp(kopf, t)
-        netz.stab(p - quer, p + quer, 0.04, 0.04, st["Holz alt"])
-    # Schürhaken und Reisigbündel
-    netz.stab((2.7, 1.1, 0.05), (1.6, 2.2, 0.05), 0.04, 0.04, st["Holz alt"])
-    netz.stab((2.7, 1.1, 0.07), (2.55, 0.95, 0.07), 0.03, 0.03, st["Eisen"])
-    for k in range(5):
-        halm(netz, st, (-2.9 - z.uniform(0, 0.3), 1.6 + 0.05 * k, 0.1 + 0.05 * (k % 2)), (-1.9 + z.uniform(-0.1, 0.1), 1.8 + 0.04 * k, 0.12), "Totholz", 0.035)
+        gras(netz, st, Vector((p.x * 1.02, p.y * 1.02, 0)), 0.22)
+    oben = ringe[-1][0].z - 0.14
+    bs.rund_oben(netz, st, (0, 0, oben), 0.09, oben - 0.004, "Glut", n=6)
+    w = math.radians(-60)                                            # Leiter an der Schauseite
+    fuss = Vector((math.cos(w) * 1.75, math.sin(w) * 1.75, 0))
+    kopf = Vector((math.cos(w) * 0.7, math.sin(w) * 0.7, 1.0))
+    quer = Vector((-math.sin(w), math.cos(w), 0)) * 0.16
+    for s_ in (-1, 1):
+        netz.stab(fuss + quer * s_, kopf + quer * s_, 0.04, 0.04, st["Holz alt"])
+    for k in range(1, 5):
+        p = fuss.lerp(kopf, k / 5)
+        netz.stab(p - quer, p + quer, 0.035, 0.035, st["Holz alt"])
+    netz.stab((1.7, 0.8, 0.05), (1.0, 1.55, 0.05), 0.04, 0.04, st["Holz alt"])                   # Schürhaken
+    netz.stab((1.7, 0.8, 0.07), (1.58, 0.68, 0.07), 0.03, 0.03, st["Eisen"])
+    for k in range(5):                                               # Reisigbündel
+        halm(netz, st, (-1.9 - z.uniform(0, 0.2), 0.9 + 0.05 * k, 0.1 + 0.05 * (k % 2)), (-1.2 + z.uniform(-0.1, 0.1), 1.1 + 0.04 * k, 0.12), "Totholz", 0.03)
 
 
 def schlackehaufen(netz, st, saat, winter=False):
     z = rng(saat)
-    ringe = kuppel(netz, st, (0, 0, 0), 1.15, 0.95, 0.62, ("Schlacke", "Schlacke rot", "Schlacke", "Fels dunkel"),
-                   profil=((1.0, 0.0), (0.9, 0.38), (0.6, 0.78), (0.28, 1.0)), n=13, saat=saat, jitter=0.18)
+    ringe = kuppel(netz, st, (0, 0, 0), 1.15, 0.95, 0.62, ("Schlacke",) * 6 + ("Schlacke rot",),
+                   profil=((1.0, 0.0), (0.9, 0.38), (0.6, 0.78), (0.28, 1.0)), n=20, saat=saat, jitter=0.12)
     for k in range(8):
         w = z.uniform(0, 6.28)
         r = z.uniform(0.15, 0.95)
@@ -466,8 +536,8 @@ def schlackehaufen(netz, st, saat, winter=False):
 
 def abfallhaufen(netz, st, saat, winter=False):
     z = rng(saat)
-    kuppel(netz, st, (0, 0, 0), 0.95, 0.8, 0.38, ("Erde", "Mist", "Erde hell", "Stroh"), profil=((1.0, 0.0), (0.88, 0.5), (0.5, 0.92), (0.2, 1.0)),
-           n=13, saat=saat, jitter=0.15)
+    kuppel(netz, st, (0, 0, 0), 0.95, 0.8, 0.38, ("Erde",) * 4 + ("Mist", "Erde hell"), profil=((1.0, 0.0), (0.88, 0.5), (0.5, 0.92), (0.2, 1.0)),
+           n=20, saat=saat, jitter=0.1)
 
     def hoehe(x, y):
         d = math.hypot(x / 0.95, y / 0.8)
@@ -539,18 +609,18 @@ def geruempel(netz, st, saat, winter=False):
         a0, a1 = 2 * math.pi * k / 8, 2 * math.pi * (k + 1) / 8
         pa = Vector((Rr * math.cos(a0), 0, Rr * math.sin(a0)))
         pb = Vector((Rr * math.cos(a1), 0, Rr * math.sin(a1)))
-        netz.stab(pa, pb, 0.09, 0.055, st["Holz alt"], matrix=T, quer=(math.cos((a0 + a1) / 2), 0, math.sin((a0 + a1) / 2)), mehr=0.01)
-        netz.stab(pa * 1.04, pb * 1.04, 0.095, 0.012, st["Eisen"], matrix=T, quer=(math.cos((a0 + a1) / 2), 0, math.sin((a0 + a1) / 2)), mehr=0.012) if k != 5 else None
+        netz.stab(pa, pb, 0.09, 0.055, st["Holz alt"], matrix=T, quer=(math.cos((a0 + a1) / 2), 0, math.sin((a0 + a1) / 2)))
+        netz.stab(pa * 1.06, pb * 1.06, 0.095, 0.02, st["Eisen"], matrix=T, quer=(math.cos((a0 + a1) / 2), 0, math.sin((a0 + a1) / 2))) if k != 5 else None
     for k in range(8):
         if k in (2, 6):
             continue                                                      # zwei Speichen gebrochen
         a = 2 * math.pi * k / 8 + 0.2
-        netz.stab(Vector((0.08 * math.cos(a), 0, 0.08 * math.sin(a))), Vector((Rr * 0.97 * math.cos(a), 0, Rr * 0.97 * math.sin(a))), 0.04, 0.04,
+        netz.stab(Vector((0.11 * math.cos(a), 0, 0.11 * math.sin(a))), Vector((Rr * 0.97 * math.cos(a), 0, Rr * 0.97 * math.sin(a))), 0.04, 0.04,
                   st["Holz alt"], matrix=T)
     for k in (2, 6):
         a = 2 * math.pi * k / 8 + 0.2
-        netz.stab(Vector((0.08 * math.cos(a), 0, 0.08 * math.sin(a))), Vector((0.2 * math.cos(a), 0, 0.2 * math.sin(a))), 0.04, 0.04, st["Holz alt"], matrix=T)
-    netz.prisma([(0.11 * math.cos(2 * math.pi * k / 8), 0.11 * math.sin(2 * math.pi * k / 8)) for k in range(8)], -0.07, 0.07, st["Holz"],
+        netz.stab(Vector((0.11 * math.cos(a), 0, 0.11 * math.sin(a))), Vector((0.2 * math.cos(a), 0, 0.2 * math.sin(a))), 0.04, 0.04, st["Holz alt"], matrix=T)
+    netz.prisma([(0.12 * math.cos(2 * math.pi * k / 8), 0.12 * math.sin(2 * math.pi * k / 8)) for k in range(8)], -0.07, 0.07, st["Holz"],
                 matrix=T @ Matrix.Rotation(math.radians(90), 4, "Z") @ Matrix.Rotation(math.radians(90), 4, "X"))
     # Bretter
     for (x, y, l, dreh, h) in ((0.9, -0.5, 1.3, 0.35, 0.0), (0.7, -0.7, 1.1, -0.2, 0.04), (-0.9, -0.6, 0.9, 1.2, 0.0)):
@@ -570,9 +640,9 @@ def geruempel(netz, st, saat, winter=False):
 def heuhaufen(netz, st, saat, winter=False):
     z = rng(saat)
     ringe = kuppel(netz, st, (0, 0, 0), 1.3, 1.15, 1.45, ("Heu", "Heu", "Stroh"),
-                   profil=((0.9, 0.0), (1.0, 0.25), (0.85, 0.58), (0.52, 0.86), (0.2, 1.0)), n=18, saat=saat, jitter=0.05, muster="streifen")
+                   profil=((0.9, 0.0), (1.0, 0.25), (0.85, 0.58), (0.52, 0.86), (0.2, 1.0)), n=20, saat=saat, jitter=0.06, muster="streifen")
     for k in range(20):                                              # Halmbüschel, die herausstehen
-        p = ringe[z.randrange(2, len(ringe) - 2)][z.randrange(18)]
+        p = ringe[z.randrange(2, len(ringe) - 2)][z.randrange(20)]
         w = math.atan2(p.y, p.x) + z.uniform(-0.4, 0.4)
         halm(netz, st, p, p + Vector((0.13 * math.cos(w), 0.13 * math.sin(w), z.uniform(-0.04, 0.08))), "Heu" if k % 2 else "Stroh")
     gabel(netz, st, (0.55, -0.55, 0.95), (0.55, -0.4, 1.0), 1.7)
@@ -616,14 +686,14 @@ def strohmiete(netz, st, saat, winter=False):
         w = math.pi * k / 8
         netz.stab((1.3 * math.cos(w), 1.3 * math.sin(w), 0.065 + 0.006 * k), (-1.3 * math.cos(w), -1.3 * math.sin(w), 0.065 + 0.006 * k), 0.14, 0.11, st["Holz alt"])
     ringe = kuppel(netz, st, (0, 0, 0.17), 1.25, 1.25, 2.5, ("Stroh", "Heu", "Stroh", "Strohkante"),
-                   profil=((0.92, 0.0), (1.0, 0.1), (1.0, 0.28), (0.9, 0.44), (0.62, 0.68), (0.3, 0.9), (0.12, 0.98)), n=16, saat=saat, jitter=0.03,
+                   profil=((0.92, 0.0), (1.0, 0.1), (1.0, 0.28), (0.9, 0.44), (0.62, 0.68), (0.3, 0.9), (0.12, 0.98)), n=20, saat=saat, jitter=0.03,
                    muster="streifen")
-    n = 16
-    for k in range(0, n, 4):                                         # Seile über den Haufen
+    n = 20
+    for k in range(0, n, 5):                                         # Seile über den Haufen
         for i in range(5, len(ringe) - 1):
             a, b = ringe[i][k] * 1.03, ringe[i + 1][k] * 1.03
             strich(netz, st, a + Vector((0, 0, 0.0)), b, 0.03, "Seil")
-    for k in range(40):                                              # Halmenden
+    for k in range(24):                                              # Halmenden
         i = z.randrange(2, 10)
         p = ringe[i][z.randrange(n)]
         w = math.atan2(p.y, p.x)
@@ -699,8 +769,8 @@ def pferch_huerde(netz, st, saat, winter=False):
 
 def misthaufen(netz, st, saat, winter=False):
     z = rng(saat)
-    ringe = kuppel(netz, st, (0, -0.1, 0), 1.25, 0.95, 0.78, ("Mist", "Mist", "Mist", "Mist", "Erde", "Stroh"), profil=((1.0, 0.0), (0.9, 0.35), (0.62, 0.78), (0.3, 1.0)),
-                   n=15, saat=saat, jitter=0.07)
+    ringe = kuppel(netz, st, (0, -0.1, 0), 1.25, 0.95, 0.78, ("Mist",) * 8, profil=((1.0, 0.0), (0.9, 0.35), (0.62, 0.78), (0.3, 1.0)),
+                   n=22, saat=saat, jitter=0.07)
     for k in range(22):
         w = z.uniform(0, 6.28)
         r = z.uniform(0.0, 1.0)
@@ -722,8 +792,8 @@ def misthaufen(netz, st, saat, winter=False):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def huegel(netz, st, rx, ry, h, saat, z0=0.0, dx=0.0, dy=0.0):
-    kuppel(netz, st, (dx, dy, z0), rx, ry, h, ("Gras", "Gras", "Gras", "Gras", "Gras", "Moos"), profil=((1.0, 0.0), (0.9, 0.5), (0.5, 0.92), (0.2, 1.0)), n=12, saat=saat,
-           jitter=0.07)
+    kuppel(netz, st, (dx, dy, z0), rx, ry, h, ("Rasen",) * 14 + ("Moos",), profil=((1.0, 0.0), (0.9, 0.5), (0.5, 0.92), (0.2, 1.0)),
+           n=18, saat=saat, jitter=0.09)
 
 
 def grabkreuz_holz(netz, st, saat, winter=False):
@@ -737,7 +807,7 @@ def grabkreuz_holz(netz, st, saat, winter=False):
                 m_enden=st["Holz alt"])
     netz.quader((0, -0.004, 1.28), (0.14, 0.012, 0.1), st["Fuge"], t)                              # Namenstäfelchen
     for k in range(3):
-        bs.buschel(netz, st, Vector((z.uniform(-0.3, 0.3), z.uniform(-0.9, 0.2), 0.08)), groesse=0.16, stoff="Gras")
+        gras(netz, st, Vector((z.uniform(-0.3, 0.3), z.uniform(-0.9, 0.2), 0.08)), 0.16)
     if winter:
         schnee(netz, st, (0, 0, 0.02), 0.52, 1.02, 0.17, saat=saat, n=10)
         netz.prisma([(-0.11, 0), (0.0, 0.1), (0.11, 0)], -0.24, 0.24, st["Schnee"], matrix=Matrix.Translation((0, y, 1.5)) @ Matrix.Rotation(math.radians(2.0), 4, "X"))
@@ -751,15 +821,15 @@ def grabkreuz_stein(netz, st, saat, winter=False):
     t = Matrix.Translation((0, y, 0)) @ Matrix.Rotation(math.radians(-1.8), 4, "X")
     netz.quader((0, 0, 0.1), (0.62, 0.34, 0.2), st["Sandstein"], t)
     netz.quader((0, 0, 0.3), (0.5, 0.26, 0.2), st["Sandstein"], t)
-    netz.quader((0, 0, 0.78), (0.17, 0.12, 0.76), st["Sandstein"], t)
+    netz.quader((0, 0, 0.78), (0.17, 0.106, 0.76), st["Sandstein"], t)
     netz.quader((0, 0, 1.0), (0.62, 0.12, 0.17), st["Sandstein"], t)
-    netz.quader((0, 0, 1.12), (0.24, 0.12, 0.06), st["Sandstein"], t)                               # Kopfstück
-    netz.quader((0, -0.062, 0.8), (0.05, 0.012, 0.35), st["Fuge"], t)                              # eingeritztes Kreuz
-    netz.quader((0, -0.062, 0.88), (0.2, 0.012, 0.04), st["Fuge"], t)
+    netz.quader((0, 0, 1.12), (0.24, 0.13, 0.06), st["Sandstein"], t)                               # Kopfstück
+    netz.quader((0, -0.05, 0.75), (0.05, 0.016, 0.3), st["Fuge"], t)                              # eingeritztes Kreuz
+    netz.quader((0, -0.0505, 0.84), (0.12, 0.016, 0.04), st["Fuge"], t)
     for xm, zm, w in ((-0.2, 0.06, 0.22), (0.22, 0.12, 0.14), (0.0, 0.58, 0.12)):                       # Moos
-        netz.quader((xm, -0.175 if zm < 0.3 else -0.065, zm), (w, 0.012, 0.09), st["Moos"], t)
+        netz.quader((xm, -0.172 if zm < 0.3 else -0.052, zm), (w, 0.02, 0.09), st["Moos"], t)
     for k in range(3):
-        bs.buschel(netz, st, Vector((z.uniform(-0.35, 0.35), z.uniform(-0.9, 0.2), 0.08)), groesse=0.16, stoff="Gras")
+        gras(netz, st, Vector((z.uniform(-0.35, 0.35), z.uniform(-0.9, 0.2), 0.08)), 0.16)
     if winter:
         schnee(netz, st, (0, 0, 0.02), 0.52, 1.02, 0.12, saat=saat, n=10)
         netz.quader((0, 0, 0.405), (0.54, 0.28, 0.03), st["Schnee"], t)
@@ -767,31 +837,63 @@ def grabkreuz_stein(netz, st, saat, winter=False):
         netz.quader((0, 0, 1.16), (0.26, 0.13, 0.03), st["Schnee"], t)
 
 
-def grabplatte(netz, st, saat, winter=False):
+def platte(netz, st, umriss, T, z0, z1, fase, stoff, saat=0):
+    """Platte über einem Umriss [(x, y), …] (gegen den Uhrzeigersinn) von z0 bis z1, oben um `fase` nach innen abgeschrägt.
+    Alle Punkte laufen durch die Matrix T (Schieflage). Gibt die Deckfläche (Ecken) zurück."""
     z = rng(saat)
-    t = Matrix.Translation((0, 0, 0.0)) @ Matrix.Rotation(math.radians(1.5), 4, "Y") @ Matrix.Rotation(math.radians(1.0), 4, "X")
-    netz.prisma([(-0.43, 0), (0.43, 0), (0.43, 0.1), (0.38, 0.14), (-0.38, 0.14), (-0.43, 0.1)], -0.95, 0.95, st["Sandstein"], matrix=t)
-    h = 0.1415
-    def streifen(xm, ym, sx, sy):
-        netz.quader((xm, ym, h + 0.002), (sx, sy, 0.004), st["Fuge"], t)
-    for ym in (-0.34, 0.34):                                        # Umschrift: Rahmen
-        streifen(0, ym, 1.7, 0.03)
-    for xm in (-0.8, 0.8):
-        streifen(xm, 0, 0.03, 0.7)
-    streifen(0, 0.0, 0.05, 0.4)                                     # Kreuz
-    streifen(0, 0.08, 0.26, 0.05)
-    for k in range(3):                                              # Schriftzeilen (angedeutet)
-        streifen(0.4, -0.15 + 0.15 * k, 0.4 - 0.08 * k, 0.03)
-    for k in range(3):
-        streifen(-0.4, -0.15 + 0.15 * k, 0.4 - 0.1 * (k % 2), 0.03)
-    for xm, ym, a, b in ((-0.7, -0.3, 0.3, 0.2), (0.75, 0.3, 0.2, 0.15)):                            # Moos
-        netz.vieleck_nach([t @ Vector((xm - a / 2, ym - b / 2, h + 0.006)), t @ Vector((xm + a / 2, ym - b / 2, h + 0.006)),
-                           t @ Vector((xm + a / 3, ym + b / 2, h + 0.006))], (0, 0, 1), st["Moos"])
-    for k in range(5):
+    c = Vector((sum(p[0] for p in umriss) / len(umriss), sum(p[1] for p in umriss) / len(umriss), 0))
+    unten = [T @ Vector((p[0], p[1], z0)) for p in umriss]
+    kante = [T @ Vector((p[0], p[1], z1)) for p in umriss]
+    innen = []
+    for p in umriss:
+        v = Vector((p[0], p[1], 0)) - c
+        f = max(0.0, 1 - (fase * z.uniform(0.7, 1.3)) / max(v.length, 0.05))
+        innen.append(T @ Vector((c.x + v.x * f, c.y + v.y * f, z1 + fase * z.uniform(0.6, 1.2))))
+    n = len(umriss)
+    mi = T @ Vector((c.x, c.y, (z0 + z1) / 2))
+    for i in range(n):
+        j = (i + 1) % n
+        q = [unten[i], unten[j], kante[j], kante[i]]
+        netz.vieleck_nach(q, sum(q, Vector()) / 4 - mi, st[stoff])
+        q = [kante[i], kante[j], innen[j], innen[i]]
+        netz.vieleck_nach(q, sum(q, Vector()) / 4 - mi + Vector((0, 0, 0.5)), st[stoff])
+    netz.vieleck_nach(innen, T.to_3x3() @ Vector((0, 0, 1)), st[stoff])
+    return innen
+
+
+def grabplatte(netz, st, saat, winter=False):
+    """Alte Grabplatte aus Sandstein, 0,8 × 1,8 m: Kanten und Ecken bestoßen, eine Ecke abgebrochen, eingesunken und schief, Ritzungen
+    verwittert, Moosflecken, ein Riss."""
+    z = rng(saat)
+    L, B, H = 0.9, 0.4, 0.1
+    T = Matrix.Translation((0, 0, -0.035)) @ Matrix.Rotation(math.radians(-3.2), 4, "Y") @ Matrix.Rotation(math.radians(2.4), 4, "X")
+    umriss = [(-L + 0.12, -B), (-0.3, -B + 0.012), (0.3, -B), (L - 0.06, -B + 0.004), (L, -B + 0.12), (L - 0.012, 0.1), (L, B - 0.05), (0.25, B - 0.008),
+              (-0.45, B), (-L + 0.16, B - 0.004), (-L, B - 0.06), (-L + 0.006, -B + 0.2)]
+    innen = platte(netz, st, umriss, T, 0.0, H, 0.035, "Sandstein", saat)
+    top = H + 0.03
+
+    def flach(punkte, hoch, stoff):
+        netz.vieleck_nach([T @ Vector((p[0], p[1], top + hoch)) for p in punkte], T.to_3x3() @ Vector((0, 0, 1)), st[stoff])
+
+    def band(x0, y0, x1, y1, breite, hoch):
+        d = Vector((x1 - x0, y1 - y0))
+        nx, ny = -d.y / d.length * breite / 2, d.x / d.length * breite / 2
+        flach([(x0 - nx, y0 - ny), (x1 - nx, y1 - ny), (x1 + nx, y1 + ny), (x0 + nx, y0 + ny)], hoch, "Fuge")
+    band(-0.62, 0.0, 0.18, 0.0, 0.04, 0.003)                                  # Kreuz: Längsbalken
+    band(-0.36, -0.15, -0.36, 0.15, 0.035, 0.0045)                            # Kreuz: Querbalken
+    band(-0.78, -0.31, -0.3, -0.31, 0.022, 0.002)                             # Umschrift, an Stellen verloren
+    band(0.0, -0.31, 0.5, -0.31, 0.022, 0.002)
+    band(-0.7, 0.31, -0.1, 0.31, 0.022, 0.002)
+    for k in range(4):                                                         # Schriftzeilen
+        band(0.28, -0.14 + 0.09 * k, 0.28 + (0.4 - 0.07 * (k % 3)), -0.14 + 0.09 * k, 0.03, 0.0025)
+    band(0.05, 0.38, 0.38, -0.25, 0.012, 0.006)                                # Riss
+    for xm, ym, a, b in ((-0.62, -0.3, 0.34, 0.2), (0.72, 0.28, 0.24, 0.17), (0.0, 0.3, 0.16, 0.1)):                  # Moos
+        flach([(xm - a / 2, ym - b / 2), (xm + a / 2, ym - b / 2.4), (xm + a / 3, ym + b / 2), (xm - a / 2.6, ym + b / 3)], 0.007, "Moos")
+    for k in range(6):
         a = z.uniform(0, 6.28)
-        bs.buschel(netz, st, Vector((1.1 * math.cos(a), 0.6 * math.sin(a), 0)), groesse=0.16, stoff="Gras")
+        gras(netz, st, Vector((1.05 * math.cos(a), 0.55 * math.sin(a), 0)), 0.16)
     if winter:
-        netz.prisma([(-0.4, 0), (-0.36, 0.035), (0.36, 0.035), (0.4, 0)], -0.9, 0.9, st["Schnee"], matrix=Matrix.Translation((0, 0, 0.14)) @ t.to_3x3().to_4x4())
+        platte(netz, st, [(p[0] * 0.93, p[1] * 0.9) for p in umriss], T, H + 0.035, H + 0.06, 0.02, "Schnee", saat + 1)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -827,7 +929,7 @@ def bildstock(netz, st, saat, winter=False):
         netz.quader((xm, -0.176 if zm > 0.55 else -0.31, zm if zm > 0.55 else 0.42), (w, 0.012, 0.1), st["Moos"])
     for k in range(5):
         a = z.uniform(0, 6.28)
-        bs.buschel(netz, st, Vector((0.8 * math.cos(a), 0.8 * math.sin(a), 0)), groesse=0.18, stoff="Gras")
+        gras(netz, st, Vector((0.8 * math.cos(a), 0.8 * math.sin(a), 0)), 0.18)
     if winter:
         netz.quader((0, 0, 0.145), (1.1, 1.1, 0.025), st["Schnee"])
         netz.quader((0, 0, 0.292), (0.85, 0.85, 0.025), st["Schnee"])
@@ -853,18 +955,18 @@ def wegkreuz_holz(netz, st, saat, winter=False):
     lb.saeule(netz, st, (0, -0.09, 0), 0.07, 1.98, 2.1, "Leder", n=6)
     netz.quader((0, -0.095, 1.62), (0.2, 0.05, 0.14), st["Leinen"])                                   # Tuch
     # Dach: Satteldach aus Schindeln über dem Balken
-    t = Matrix.Translation((0, 0, 2.5))
-    netz.prisma([(-0.38, 0), (0.38, 0), (0.0, 0.3)], -0.58, 0.58, st["Schindel"], matrix=t, m_enden=st["Holz alt"])
-    netz.quader((0, 0, 2.26), (0.9, 0.05, 0.28), st["Bretter"])
+    t = Matrix.Translation((0, 0, 2.42))
+    netz.prisma([(-0.3, 0), (0.3, 0), (0.0, 0.22)], -0.5, 0.5, st["Schindel"], matrix=t, m_enden=st["Holz alt"])
+    netz.quader((0, 0, 2.3), (0.8, 0.05, 0.2), st["Bretter"])
     for sx in (-1, 1):                                                                              # Konsolen unter dem Dach
-        netz.stab((sx * 0.4, -0.02, 2.12), (sx * 0.15, -0.02, 2.5), 0.05, 0.05, st["Holz alt"])
+        netz.stab((sx * 0.36, -0.02, 2.1), (sx * 0.14, -0.02, 2.42), 0.045, 0.045, st["Holz alt"])
     for k in range(4):
-        bs.buschel(netz, st, Vector((z.uniform(-0.8, 0.8), z.uniform(-0.8, 0.8), 0)), groesse=0.18, stoff="Gras")
+        gras(netz, st, Vector((z.uniform(-0.8, 0.8), z.uniform(-0.8, 0.8), 0)), 0.18)
     if winter:
         netz.quader((0, 0, 0.19), (0.95, 0.95, 0.03), st["Schnee"])
         netz.quader((0, 0, 0.375), (0.8, 0.8, 0.03), st["Schnee"])
-        netz.prisma([(-0.4, 0), (-0.28, 0.08), (0.28, 0.08), (0.4, 0)], -0.6, 0.6, st["Schnee"], matrix=Matrix.Translation((0, 0, 2.77)) @ Matrix.Rotation(0, 4, "Z"))
-        schneestreifen(netz, st, -0.6, 0.6, 0.0, 2.84, 0.1, 0.06)
+        netz.prisma([(-0.4, 0), (-0.28, 0.08), (0.28, 0.08), (0.4, 0)], -0.6, 0.6, st["Schnee"], matrix=Matrix.Translation((0, 0, 2.64)))
+        schneestreifen(netz, st, -0.5, 0.5, 0.0, 2.64, 0.08, 0.05)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -883,13 +985,17 @@ def knoten(teile):
     for name, bauer, args, kw, hat_winter in teile:
         n = bs.Netz(name)
         bauer(n, STOFFE, *args, **kw)
-        sommer.append(n.objekt())
+        o = n.objekt()
+        glaetten(o, n)
+        sommer.append(o)
         if hat_winter:
             w = bs.Netz(name + "_Winter")
             kw2 = dict(kw)
             kw2["winter"] = True
             bauer(w, STOFFE, *args, **kw2)
-            winter.append(w.objekt())
+            o = w.objekt()
+            glaetten(o, w)
+            winter.append(o)
     return sommer, winter
 
 
@@ -965,7 +1071,11 @@ def main():
         name = "fuellung_" + gruppe
         sommer, winter = knoten(teile)
         alle = sommer + winter
-        nt.bericht(name, alle)
+        bs.bericht(name, alle, einzeln=True)
+        for o in alle:
+            funde = bs.deckungsgleich([o])
+            if funde:
+                print(f"  DECKUNG {o.name}: {len(funde)}", [(tuple(round(c, 2) for c in f[0]), round(f[3], 3)) for f in funde[:3]])
         print("geschrieben:", bs.exportieren(name, alle))
         if "--ohne-bilder" in sys.argv:
             continue
