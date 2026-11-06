@@ -189,6 +189,7 @@ public partial class Stadtansicht
             LagenLesen(karte);
             // Mauern, ihr Pflaster und die Tore kommen aus dem Entwurf und folgen jeder Änderung (Stadtansicht.Kartenwerkstatt.Mauern.cs)
             _mauerFlaechen.Clear();
+            StreifeVergessen(); // Mauerlinien und gemerkte Runden der Streife (Stadtansicht.Streife.cs)
             _tore.Clear();
             var (x0, z0, x1, z1) = entwurf.Grenzen();
             _kartenRahmen = _kartenRahmen.Merge(new Rect2((float)x0, (float)z0, (float)(x1 - x0), (float)(z1 - z0))).Grow(30);

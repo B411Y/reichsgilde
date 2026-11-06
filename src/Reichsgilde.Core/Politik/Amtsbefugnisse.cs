@@ -152,14 +152,18 @@ public sealed class Amtsbefugnisse
     /// </summary>
     public Stadtviertel ViertelVon(Betrieb b)
     {
-        if (_w.Bauen.PlatzVon(b.Name) is { } platz && Mitte() is { } m)
-        {
-            var (dx, dz) = (platz.Punkt.X - m.X, platz.Punkt.Z - m.Z);
-            return Math.Abs(dx) > Math.Abs(dz) ? (dx > 0 ? Stadtviertel.Ost : Stadtviertel.West) : (dz < 0 ? Stadtviertel.Nord : Stadtviertel.Sued);
-        }
+        if (_w.Bauen.PlatzVon(b.Name) is { } platz && ViertelBei(platz.Punkt.X, platz.Punkt.Z) is { } viertel) return viertel;
         var summe = 0;
         foreach (var c in b.Name) summe += c;
         return (Stadtviertel)(summe % 4);
+    }
+
+    /// <summary>In welchem Viertel ein Punkt der Karte liegt (Koordinaten wie auf der Karte, Norden = −z); null ohne Karte. Dieselbe Regel wie <see cref="ViertelVon"/> – die Darstellung wählt damit die Gassen der Streife.</summary>
+    public Stadtviertel? ViertelBei(double x, double z)
+    {
+        if (Mitte() is not { } m) return null;
+        var (dx, dz) = (x - m.X, z - m.Z);
+        return Math.Abs(dx) > Math.Abs(dz) ? (dx > 0 ? Stadtviertel.Ost : Stadtviertel.West) : (dz < 0 ? Stadtviertel.Nord : Stadtviertel.Sued);
     }
 
     private (double X, double Z)? Mitte()
