@@ -237,7 +237,7 @@ public partial class Stadtansicht
         d.Beutel = new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.07f, Height = 0.12f }, MaterialOverride = _beutelStoff, Position = new Vector3(0.24f, 0.88f, 0.1f), Visible = false };
         knoten.AddChild(d.Beutel);
         if (d.Figur is { } figur && !_passantenSchatten) FigurSchatten(figur, false);
-        if (DiebLog) DiebMarke(knoten, fest is not null ? new Color(1, 0.1f, 0.1f) : eigen ? new Color(1, 0.8f, 0.1f) : new Color(0.2f, 0.6f, 1f));
+        if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, fest is not null ? new Color(1, 0.1f, 0.1f) : eigen ? new Color(1, 0.8f, 0.1f) : new Color(0.2f, 0.6f, 1f));
         _diebfiguren[kennung] = d;
         return d;
     }
@@ -533,7 +533,7 @@ public partial class Stadtansicht
         var dieb = DiebfigurBauen($"dieb:fest:{_festZaehler}", MarktDiebAussehen(nummer, "Geselle"), nummer, false, null, "", text);
         var knoten = new Node3D { Name = $"Festnahme_Wache_{_festZaehler}", Visible = false };
         _diebEbene!.AddChild(knoten);
-        if (DiebLog) DiebMarke(knoten, new Color(0.2f, 0.9f, 0.2f));
+        if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, new Color(0.2f, 0.9f, 0.2f));
         var figur = FigurEinsetzen(knoten, WacheAussehen(nummer + 500, "Geselle", false), nummer + 500);
         return new Festnahmeszene
         {
@@ -600,6 +600,7 @@ public partial class Stadtansicht
     private string? DiebBei(Vector2 bildschirm)
     {
         if (_raum is not null || _innen is not null || _diebfiguren.Count == 0) return null;
+        if (DiebzeichenBei(bildschirm) is { } zeichen) return zeichen; // das Zeichen über dem eigenen Dieb (Stadtansicht.Diebzeichen.cs)
         var fang = Mathf.Max(8, 1.1f * GetViewport().GetVisibleRect().Size.Y / _kamera.Size);
         string? beste = null;
         foreach (var d in _diebfiguren.Values)
