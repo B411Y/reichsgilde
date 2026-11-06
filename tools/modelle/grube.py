@@ -37,7 +37,7 @@ def bauen():
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
     # ── Hof und Felshang ──────────────────────────────────────────────────────
-    lb.flaeche(haus, st, [(-11, -9), (11, -9), (11, 1.0), (6, 3.2), (-5, 3.2), (-11, 1.5)], 0.012, "Erde hell")
+    # Hof und Wege sind keine Platte: der Boden unter dem Modell wird im Spiel gestempelt (game/daten/bodenstempel.json, Stadtansicht.Bodenstempel.cs)
     # Wand um den Stollen: oben zurückgeneigt, die Seiten verdecken die Felsen
     haus.prisma([(Y_HANG, 0), (Y_HANG + 3.2, 0), (Y_HANG + 3.2, 4.4), (Y_HANG + 0.9, 3.9)], SX - 2.2, SX + 2.2,
                 st["Fels dunkel"])

@@ -35,8 +35,7 @@ def bauen():
     st = bs.Stoffe()
     haus, arbeit, fahne, leer = bs.Netz("Haus"), bs.Netz("Arbeit"), bs.Netz("Fahne"), bs.Netz("Leerstand")
 
-    lb.flaeche(haus, st, lb.rechteck(-4.2, -8.0, -3.4, 4.6), 0.014, "Erde hell")
-    lb.flaeche(haus, st, lb.rechteck(-3.4, 3.8, 9.4, 4.6), 0.014, "Erde hell")
+    # Hof und Wege sind keine Platte: der Boden unter dem Modell wird im Spiel gestempelt (game/daten/bodenstempel.json, Stadtansicht.Bodenstempel.cs)
     for x in REIHEN:
         lb.beet(haus, st, x - 0.55, Y0, x + 0.55, Y1, z=0.16)
     # Laubengang hinten: Pfosten und Latten, davor Jasmin (Arbeit)
