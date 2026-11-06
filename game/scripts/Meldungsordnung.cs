@@ -202,7 +202,9 @@ public sealed class Meldungsordnung
         var art = kern is not null ? Einordnen(kern) : Einordnen(ohne);
         if (kern is not null && w.HausVon(kern) is { } haus)
         {
-            var eigen = haus == spieler;
+            // Betroffen ist das Haus des Kerns; eine öffentliche Meldung, die den Spieler selbst nennt (seine Anklage gegen ein anderes Haus,
+            // „Ein Zeuge hat Leute von … erkannt!“), bleibt wie in Stufe 1 seine eigene.
+            var eigen = haus == spieler || !kern.Vertraulich && (Nennt(w, spieler, ohne) || Nennt(w, spieler, text));
             return new Einstufung(art, eigen ? Betroffenheit.Eigen : Betroffenheit.Fremd, ohne, warnung, kern.Vertraulich && !eigen, false);
         }
         // Familienereignis oder Nachricht der Unterwelt an ein bestimmtes Haus: der Kern kennt das Haus
