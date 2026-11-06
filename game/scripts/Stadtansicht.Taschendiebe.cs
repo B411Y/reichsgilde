@@ -35,6 +35,10 @@ public partial class Stadtansicht
         public string Zustand { get; set; } = "";
         public string? Fest { get; init; }
         public MeshInstance3D? Beutel { get; set; }
+        /// <summary>Der Sack über der Schulter (nur nachts nach einem Einbruch mit Beute, Stadtansicht.Nachtdiebe.cs).</summary>
+        public MeshInstance3D? Sack { get; set; }
+        /// <summary>Text der Auswahltafel, wenn er sich mit der Zeit ändert (nächtliche Gestalten); sonst null.</summary>
+        public Func<Diebfigur, string>? Beschreibung { get; set; }
         public bool Sichtbar { get; set; }
         public Vector3 Letzte { get; set; }
     }
@@ -196,6 +200,7 @@ public partial class Stadtansicht
     private void DiebVorfallNeu(Vorfall v)
     {
         if (v.Art == Vorfallart.Taschendiebstahl) _diebVorfaelle.Add(v);
+        else if (Nachtgang.Zeigbar(v.Art)) _nachtVorfaelle.Add(v); // Einbruch und Banden bei Nacht (Stadtansicht.Nachtdiebe.cs)
     }
 
     /// <summary>Gibt eine Gestalt frei (Knoten und Figur) und nimmt sie aus der Liste – wer anklickbar sein soll, ist in <see cref="_diebfiguren"/>.</summary>
@@ -210,6 +215,7 @@ public partial class Stadtansicht
         if (!d.Sichtbar) return;
         d.Knoten.Visible = d.Sichtbar = false;
         if (d.Beutel is { } beutel) beutel.Visible = false;
+        if (d.Sack is { } sack) sack.Visible = false;
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -239,6 +245,7 @@ public partial class Stadtansicht
     /// <summary>Nur mit <c>--diebtest</c>, für Bilder: ein farbiger Punkt über dem Kopf (gelb eigener, blau fremder Dieb, rot Gefasster, grün Gardist), damit man sie im Gedränge findet.</summary>
     private static void DiebMarke(Node3D knoten, Color farbe) => knoten.AddChild(new MeshInstance3D
     {
+        Name = "Marke",
         Mesh = new SphereMesh { Radius = 0.14f, Height = 0.28f }, Position = new Vector3(0, 2.1f, 0),
         MaterialOverride = new StandardMaterial3D { AlbedoColor = farbe, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded },
     });
@@ -611,6 +618,7 @@ public partial class Stadtansicht
     {
         if (!kennung.StartsWith("dieb:", StringComparison.Ordinal)) return null;
         if (!_diebfiguren.TryGetValue(kennung, out var d)) return "Verdächtige Gestalt\n\nIm Gedränge verschwunden.";
+        if (d.Beschreibung is { } beschreibung) return beschreibung(d);
         if (d.Fest is { } fest) return fest;
         if (!d.Eigen || d.Arbeiter is not { } a)
             return "Verdächtige Gestalt\n\nIn dunklem Gewand, die Gugel tief im Gesicht, drängt sie sich durch die Leute am Markt. Wem sie dient, weiß niemand."

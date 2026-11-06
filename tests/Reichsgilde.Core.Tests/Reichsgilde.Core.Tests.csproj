@@ -23,6 +23,8 @@
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
     <Compile Include="..\..\game\scripts\Gehtempo.cs" Link="Gehtempo\Gehtempo.cs" />
     <Compile Include="..\..\game\scripts\Taschendiebgang.cs" Link="Gehtempo\Taschendiebgang.cs" />
+    <!-- Einbruch und Banden bei Nacht (Wachen und Diebe, Paket P4) – NachtgangTests.cs -->
+    <Compile Include="..\..\game\scripts\Nachtgang.cs" Link="Gehtempo\Nachtgang.cs" />
     <!-- Die Spuren der Passanten (Rechtsverkehr, Schwanken, weiche Übergänge) – PassantenspurTests.cs -->
     <Compile Include="..\..\game\scripts\Passantenspur.cs" Link="Gehtempo\Passantenspur.cs" />
     <!-- Ausweichen der Passanten (Schicht 4) und ihr Einstieg auf das nächste Wegstück – PassantenausweichenTests.cs, PassantenwegeTests.cs -->
