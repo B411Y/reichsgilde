@@ -46,8 +46,25 @@ public partial class Stadtansicht
     private void StreifeVergessen()
     {
         _mauerLinien.Clear();
-        _mauerKnoten = null;
+        _mauerGruppen = null;
         _streifenrunden.Clear();
+        _streifeFehl.Clear();
+        _streifeWahl.Clear();
+        _mauerWegHaus.Clear();
+    }
+
+    /// <summary>Fest gemerkte Wahl je Wachmann: gilt für den ganzen Wachwechsel (ein Wechsel des Hauptmanns wirkt erst ab der nächsten Schicht).</summary>
+    private readonly Dictionary<(string Haus, int Nummer), (int Wechsel, Streifenart Art, Stadtviertel Viertel)> _streifeWahl = new();
+    private readonly Dictionary<string, bool> _mauerWegHaus = new();
+    /// <summary>Runden, die nicht zu planen waren: erst nach dieser Bildnummer wieder versuchen (die Karte kann sich ändern).</summary>
+    private readonly Dictionary<(string, Streifenart, Stadtviertel), int> _streifeFehl = new();
+
+    /// <summary>Darf in diesem Bild noch geplant werden? Höchstens eine Planung (Runde, Mauerpunkte) je Bild; verbraucht das Budget.</summary>
+    private bool StreifeBudget()
+    {
+        if (_streifePlanBild == _figurenBild) return false;
+        _streifePlanBild = _figurenBild;
+        return true;
     }
 
     private void StreifeProbeLesen()
@@ -60,15 +77,30 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Art und Viertel der Runde für diesen Wachmann (null: keine Runde möglich). <paramref name="wechsel"/>: Stunde / 2 (Wachwechsel).
+    /// Art und Viertel der Runde für diesen Wachmann, einmal je Wachwechsel gemerkt (<paramref name="wechsel"/>: Stunde / 2). Null, solange das Budget des Bildes
+    /// aufgebraucht ist (die Prüfung, ob das Haus einen Mauerweg hat, wird einmal je Haus gerechnet und zählt zum Budget).
     /// </summary>
-    private (Streifenart Art, Stadtviertel Viertel) StreifeWahl(Stadtwirtschaft w, Betrieb haus, int nummer, int wechsel)
+    private (Streifenart Art, Stadtviertel Viertel)? StreifeWahl(Stadtwirtschaft w, Betrieb haus, int nummer, int wechsel)
     {
+        var schluessel = (haus.Name, nummer);
+        if (_streifeWahl.TryGetValue(schluessel, out var alt) && alt.Wechsel == wechsel) return (alt.Art, alt.Viertel);
         StreifeProbeLesen();
+        var mauer = false;
+        if (_streifeProbeArt is null)
+        {
+            if (!_mauerWegHaus.TryGetValue(haus.Name, out mauer))
+            {
+                if (!StreifeBudget()) return null;
+                mauer = TuerAnker(haus.Name) is { } t && MauerPunkte(t, "Mauer").Count >= 3;
+                _mauerWegHaus[haus.Name] = mauer;
+            }
+        }
         var eigenes = w.Befugnisse.ViertelVon(haus);
         var verlegt = _streifeProbeViertel ?? w.Befugnisse.Streife;
-        var art = _streifeProbeArt ?? Streifengang.Waehlen(wechsel, nummer, verlegt is not null, TuerAnker(haus.Name) is { } t && MauerWegVorhanden(t));
-        return (art, art == Streifenart.Viertel ? verlegt ?? eigenes : eigenes);
+        var art = _streifeProbeArt ?? Streifengang.Waehlen(wechsel, nummer, verlegt is not null, mauer);
+        var viertel = art == Streifenart.Viertel ? verlegt ?? eigenes : eigenes;
+        _streifeWahl[schluessel] = (wechsel, art, viertel);
+        return (art, viertel);
     }
 
     /// <summary>
@@ -77,11 +109,12 @@ public partial class Stadtansicht
     /// </summary>
     private (Vector3[] Runde, float Laenge)? StreifeRunde(Stadtwirtschaft w, Betrieb haus, Streifenart art, Stadtviertel viertel, out bool geplant)
     {
+        if (art != Streifenart.Viertel) viertel = Stadtviertel.Nord; // Markt- und Mauerrunde hängen nicht vom Viertel ab: je Haus nur eine
         var schluessel = (haus.Name, art, viertel);
         geplant = true;
         if (_streifenrunden.TryGetValue(schluessel, out var bekannt)) return bekannt;
-        if (_streifePlanBild == _figurenBild) { geplant = false; return null; } // höchstens eine neue Runde je Bild
-        _streifePlanBild = _figurenBild;
+        if (_streifeFehl.TryGetValue(schluessel, out var erstAb) && _figurenBild < erstAb) return null; // kürzlich gescheitert
+        if (!StreifeBudget()) { geplant = false; return null; } // höchstens eine Planung je Bild
         (Vector3[] Runde, float Laenge)? runde = null;
         if (TuerAnker(haus.Name) is { } tuer && _netz.Knoten.Count > 0)
         {
@@ -107,7 +140,8 @@ public partial class Stadtansicht
                 runde = (ganz, Gassennetz.Laenge(ganz));
             }
         }
-        _streifenrunden[schluessel] = runde;
+        if (runde is null) _streifeFehl[schluessel] = _figurenBild + 900; // später neu versuchen (etwa alle 15 s)
+        else _streifenrunden[schluessel] = runde;
         if (StreifeLog) GD.Print($"[streife] {haus.Name} ({w.Befugnisse.ViertelVon(haus)}): {art} {viertel}, " + (runde is { } r ? $"{r.Laenge / 2:0} m hin, Tür {TuerAnker(haus.Name)?.X:0}|{TuerAnker(haus.Name)?.Z:0}, Ziel {r.Runde[r.Runde.Length / 2].X:0}|{r.Runde[r.Runde.Length / 2].Z:0}" : "keine Runde"));
         return runde;
     }
@@ -151,53 +185,81 @@ public partial class Stadtansicht
     /// </summary>
     private List<Vector3> MauerPunkte(Vector3 tuer, string haus)
     {
-        var nahe = MauerKnoten();
-        if (nahe.Count == 0) return new List<Vector3>();
-        var erster = nahe.OrderBy(k => k.Ort.DistanceTo(tuer)).First();
-        if (erster.Ort.DistanceTo(tuer) > StreifeSchichtWeg) return new List<Vector3>();
-        var start = nahe.IndexOf(erster);
+        var gruppen = MauerGruppen();
+        if (gruppen.Count == 0) return new List<Vector3>();
+        // die Mauer, an der der der Tür nächste Gassenpunkt liegt
+        Gruppe? beste = null;
+        var bestIndex = -1;
+        var abstand = float.MaxValue;
+        foreach (var g in gruppen)
+            for (var i = 0; i < g.Knoten.Count; i++)
+            {
+                var d = g.Knoten[i].Ort.DistanceTo(tuer);
+                if (d < abstand) { abstand = d; beste = g; bestIndex = i; }
+            }
+        if (beste is null || abstand > StreifeSchichtWeg) return new List<Vector3>();
         var richtung = Streuung(haus.Length, haus.Sum(c => c)) % 2 == 0 ? 1 : -1;
-        var gewaehlt = new List<Vector3>();
-        for (var i = 0; i < nahe.Count && gewaehlt.Count < 4; i++)
+        var n = beste.Knoten.Count;
+        List<Vector3> Gehen(int r)
         {
-            var k = nahe[((start + richtung * i) % nahe.Count + nahe.Count) % nahe.Count].Ort;
-            if (gewaehlt.Count > 0 && gewaehlt[^1].DistanceTo(k) < HalteAbstand) continue;
-            if (k.DistanceTo(tuer) > StreifeSchichtWeg * 1.6f) break;
-            gewaehlt.Add(k);
+            var liste = new List<Vector3>();
+            for (var i = 0; i < n && liste.Count < 4; i++)
+            {
+                var index = bestIndex + r * i;
+                if (beste.Geschlossen) index = (index % n + n) % n;
+                else if (index < 0 || index >= n) break; // offene Mauer: am Ende ist Schluss, der Wachmann kehrt um (die Runde läuft hin und zurück)
+                var k = beste.Knoten[index].Ort;
+                if (liste.Count > 0 && liste[^1].DistanceTo(k) < HalteAbstand) continue;
+                if (k.DistanceTo(tuer) > StreifeSchichtWeg * 1.6f) break;
+                liste.Add(k);
+            }
+            return liste;
         }
+        var gewaehlt = Gehen(richtung);
+        if (gewaehlt.Count < 3 && !beste.Geschlossen) { var andere = Gehen(-richtung); if (andere.Count > gewaehlt.Count) gewaehlt = andere; }
         return gewaehlt;
     }
 
-    private List<(Vector3 Ort, float Lage)>? _mauerKnoten;
-
-    /// <summary>Gibt es für dieses Haus einen Mauerweg? Mindestens drei Haltepunkte im Abstand an der Mauer, der erste in <see cref="StreifeSchichtWeg"/> m von der Tür.</summary>
-    private bool MauerWegVorhanden(Vector3 tuer) => MauerPunkte(tuer, "Mauer").Count >= 3;
-
-    /// <summary>Alle Gassenpunkte innerhalb von <see cref="MauerAbstand"/> m einer Mauer, geordnet nach der Lage entlang der Mauer (Meter vom Anfang der Linie). Einmal gerechnet.</summary>
-    private List<(Vector3 Ort, float Lage)> MauerKnoten()
+    /// <summary>Die Gassenpunkte an einer Mauer, geordnet nach der Lage entlang der Linie.</summary>
+    private sealed class Gruppe
     {
-        if (_mauerKnoten is not null) return _mauerKnoten;
-        var liste = new List<(Vector3, float)>();
-        foreach (var (linie, geschlossen) in _mauerLinien)
+        public required bool Geschlossen { get; init; }
+        public List<(Vector3 Ort, float Lage)> Knoten { get; } = new();
+    }
+
+    private List<Gruppe>? _mauerGruppen;
+
+    /// <summary>
+    /// Alle Gassenpunkte innerhalb von <see cref="MauerAbstand"/> m einer Mauer, je Mauerlinie getrennt (jeder Punkt gehört nur der nächsten Linie) und nach der
+    /// Lage entlang der Linie geordnet. Einmal je Karte gerechnet (zählt zum Budget des Bildes, <see cref="StreifeBudget"/>, über den Aufrufer).
+    /// </summary>
+    private List<Gruppe> MauerGruppen()
+    {
+        if (_mauerGruppen is not null) return _mauerGruppen;
+        var gruppen = _mauerLinien.Select(l => new Gruppe { Geschlossen = l.Geschlossen }).ToList();
+        foreach (var k in _netz.Knoten)
         {
-            var strecken = linie.Length - 1 + (geschlossen ? 1 : 0);
-            foreach (var k in _netz.Knoten)
+            var beste = float.MaxValue;
+            var lage = 0f;
+            var wahl = -1;
+            for (var m = 0; m < _mauerLinien.Count; m++)
             {
-                var beste = float.MaxValue;
-                var lage = 0f;
+                var (linie, geschlossen) = _mauerLinien[m];
+                var strecken = linie.Length - 1 + (geschlossen ? 1 : 0);
                 var davor = 0f;
                 for (var i = 0; i < strecken; i++)
                 {
                     var (a, b) = (linie[i], linie[(i + 1) % linie.Length]);
                     var q = Gassennetz.NaechsterPunkt(k, a, b);
                     var d = new Vector2(q.X - k.X, q.Z - k.Z).Length();
-                    if (d < beste) { beste = d; lage = davor + a.DistanceTo(q); }
+                    if (d < beste) { beste = d; lage = davor + a.DistanceTo(q); wahl = m; }
                     davor += a.DistanceTo(b);
                 }
-                if (beste <= MauerAbstand && beste >= 1.2f) liste.Add((k, lage)); // nicht in der Mauer selbst (Tor, Torweg zählt nicht)
             }
+            if (wahl >= 0 && beste <= MauerAbstand && beste >= 1.2f) gruppen[wahl].Knoten.Add((k, lage)); // nicht in der Mauer selbst (Tor, Torweg zählt nicht)
         }
-        return _mauerKnoten = liste.OrderBy(x => x.Item2).ToList();
+        foreach (var g in gruppen) g.Knoten.Sort((x, y) => x.Lage.CompareTo(y.Lage));
+        return _mauerGruppen = gruppen.Where(g => g.Knoten.Count > 0).ToList();
     }
 
     private static List<Vector3> Nahgeordnet(Vector3 start, List<Vector3> punkte)

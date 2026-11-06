@@ -477,10 +477,16 @@ public partial class Stadtansicht
         if (gezeigt)
             foreach (var (haus, stand, reihe) in _streifen)
             {
-                var (art, viertel) = StreifeWahl(w, haus, stand.Arbeiter.Nummer, zeit.UhrzeitInMinuten / 120);
-                var gefunden = StreifeRunde(w, haus, art, viertel, out var geplant);
-                if (gefunden is null && geplant && art != Streifenart.Markt) gefunden = StreifeRunde(w, haus, Streifenart.Markt, viertel, out geplant); // keine Runde dieser Art: dann über den Markt
                 var schluessel = (haus.Name, stand.Arbeiter.Nummer);
+                var wahl = StreifeWahl(w, haus, stand.Arbeiter.Nummer, zeit.UhrzeitInMinuten / 120);
+                (Vector3[] Runde, float Laenge)? gefunden = null;
+                var art = Streifenart.Markt;
+                if (wahl is { } gewaehlt)
+                {
+                    art = gewaehlt.Art;
+                    gefunden = StreifeRunde(w, haus, art, gewaehlt.Viertel, out var geplant);
+                    if (gefunden is null && geplant && art != Streifenart.Markt) gefunden = StreifeRunde(w, haus, Streifenart.Markt, gewaehlt.Viertel, out _); // keine Runde dieser Art: dann über den Markt
+                }
                 if (gefunden is not { } runde)
                 {
                     // noch nicht geplant (je Bild höchstens eine neue Runde) oder gar kein Weg: unsichtbar, aber nicht abgebaut
@@ -516,11 +522,20 @@ public partial class Stadtansicht
                 if (gang.Licht is { } licht) TraglichtSchalten(licht, an);
             }
 
-        foreach (var gang in _wachgaenge.Values)
+        // Wachleute, die nicht mehr auf Streife sind (Schichtwechsel, Abriss, Stadt nicht gezeigt), werden freigegeben und bei Bedarf neu gebaut
+        List<(string, int)>? frei = null;
+        foreach (var (schluessel, gang) in _wachgaenge)
             if (gang.Stempel != _wachStempel || !gezeigt)
             {
                 if (gang.Sichtbar) gang.Knoten.Visible = gang.Sichtbar = false;
                 if (gang.Licht is { } licht) TraglichtSchalten(licht, false);
+                (frei ??= new()).Add(schluessel);
+            }
+        if (frei is not null)
+            foreach (var schluessel in frei)
+            {
+                if (IsInstanceValid(_wachgaenge[schluessel].Knoten)) _wachgaenge[schluessel].Knoten.QueueFree();
+                _wachgaenge.Remove(schluessel);
             }
     }
 
