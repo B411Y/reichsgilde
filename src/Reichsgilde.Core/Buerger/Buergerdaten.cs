@@ -52,6 +52,8 @@ public enum Stadtort
     Tor,
     /// <summary>Vor der Stadt (Felder, Weiden, Wald).</summary>
     Umland,
+    /// <summary>Am Hafen, bei der Hafenarbeit (<see cref="Buerger.Hafenarbeit"/>): Steg, Stapel und Lagerschuppen.</summary>
+    Hafen,
 }
 
 /// <summary>Woher ein Einwohner stammt.</summary>
@@ -252,6 +254,49 @@ public sealed class TorwacheDaten
     }
 }
 
+/// <summary>
+/// Hafenarbeit (Abschnitt „buerger.hafenarbeit“, Spiel-KI 6.11.2026, Entladen Stufe 3): Ruht der Schiffshandel und legt das Zierschiff an
+/// (<see cref="Zierfahrplan"/>), tragen 2–4 Tagelöhner die Ladung zwischen dem Stapel auf dem Steg und dem Lagerschuppen (Stapelhaus), solange
+/// es liegt: morgens vom Niederländer hinein, nachmittags zum Oberländer wieder heraus; ein Vorarbeiter beaufsichtigt. Nur Ort und Weg –
+/// keine Handlung, kein Lohn, keine Ware.
+/// Fehlt der Abschnitt, gibt es keine Hafenarbeit (der Stapel bleibt wie bis PR #332 zwischen den Besuchen am Steg stehen).
+/// </summary>
+public sealed class HafenarbeitDaten
+{
+    /// <summary>Rolle der Träger (Schlüssel unter „rollen“); sie muss am Markt arbeiten (dort stünden sie sonst).</summary>
+    public string Rolle { get; init; } = "Tagelöhner";
+
+    /// <summary>So viele Träger je Schicht mindestens …</summary>
+    public int TraegerVon { get; init; } = 2;
+
+    /// <summary>… und höchstens (fest aus Tag und Schicht gewählt).</summary>
+    public int TraegerBis { get; init; } = 4;
+
+    /// <summary>Stücke der Ladung (so viele hebt der Kran; die Darstellung zeigt dieselben).</summary>
+    public int Stuecke { get; init; } = 18;
+
+    /// <summary>Minuten für einen Gang: Stück aufnehmen, tragen, ablegen, zurück.</summary>
+    public int Runde { get; init; } = 6;
+
+    public void Pruefen(List<string> f, string p, BuergerDaten b)
+    {
+        if (!b.Rollen.TryGetValue(Rolle, out var r)) f.Add($"{p}: Die Rolle „{Rolle}“ fehlt unter „rollen“.");
+        else if (r.Arbeitsort != Stadtort.Markt) f.Add($"{p}: Die Rolle „{Rolle}“ muss am Markt arbeiten (arbeitsort Markt).");
+        if (TraegerVon < 1 || TraegerBis < TraegerVon || TraegerBis > 8) f.Add($"{p}: 1 ≤ traegerVon ≤ traegerBis ≤ 8.");
+        if (Stuecke is < 1 or > 40) f.Add($"{p}.stuecke muss zwischen 1 und 40 liegen.");
+        if (Runde is < 2 or > 30) f.Add($"{p}.runde muss zwischen 2 und 30 Minuten liegen.");
+        // Die Schichten müssen in den Spieltag passen (die Träger kommen frühestens zur ersten Stunde und gehen spätestens zur letzten)
+        if (TraegerVon >= 1 && TraegerBis >= TraegerVon && Stuecke >= 1 && Runde >= 1)
+            for (var fenster = 0L; fenster < 400; fenster++)
+            {
+                var s = Hafenarbeit.Planen(this, b.Wege, fenster, TraegerVon);
+                if (s.VonStunde >= Spielzeit.TagesbeginnMinute / 60 && s.BisStunde <= Spielzeit.TagesendeMinute / 60) continue;
+                f.Add($"{p}: Die Hafenarbeit im Fenster {fenster} passt nicht in den Spieltag (Stunden {s.VonStunde}–{s.BisStunde}).");
+                break;
+            }
+    }
+}
+
 /// <summary>Wie ein Bedürfnis über den Tag wächst.</summary>
 public sealed class BeduerfnisDaten
 {
@@ -297,6 +342,9 @@ public sealed class BuergerDaten
 
     /// <summary>Torwache an den Stadttoren (null = keine, wie bis Datenversion 72).</summary>
     public TorwacheDaten? Torwache { get; init; }
+
+    /// <summary>Hafenarbeit der Tagelöhner am Zierschiff (null = keine, wie bis PR #332).</summary>
+    public HafenarbeitDaten? Hafenarbeit { get; init; }
 
     /// <summary>Sind die Ratsherren als Einwohner in der Stadt unterwegs?</summary>
     public bool MitRatsherren { get; init; } = true;
@@ -363,6 +411,7 @@ public sealed class BuergerDaten
         if (JeHausplatz < 0 || JeHausplatz > 20) f.Add($"{p}.jeHausplatz muss zwischen 0 und 20 liegen.");
         Tagesplan?.Pruefen(f, $"{p}.tagesplan");
         Torwache?.Pruefen(f, $"{p}.torwache", this);
+        Hafenarbeit?.Pruefen(f, $"{p}.hafenarbeit", this);
         if (Voelker.Count == 0 || Voelker.Values.Any(g => g < 0) || Voelker.Values.Sum() <= 0)
             f.Add($"{p}.voelker braucht mindestens ein Volk mit Gewicht über 0, keine negativen Gewichte.");
         foreach (var volk in Voelker.Keys.Concat(Gewichte.Keys).Where(v => v is Volk.Ork or Volk.Oger).Distinct())

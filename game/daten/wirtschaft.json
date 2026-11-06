@@ -2027,6 +2027,7 @@
     "jeHausplatz": 6,
     "tagesplan": { "von": 8, "bis": 20, "rastDraussen": 0.7, "besorgungen": 0.5 },
     "torwache": { "jeTorTag": 2, "jeTorNacht": 1, "wechsel": 14, "nachtAb": 20, "weg": 15 },
+    "hafenarbeit": { "rolle": "Tagelöhner", "traegerVon": 2, "traegerBis": 4, "stuecke": 18, "runde": 6 },
     "mitRatsherren": true,
     "mitKandidaten": true,
     "voelker": { "Mensch": 5, "Halbling": 2, "Zwerg": 2, "Elb": 1 },

@@ -62,7 +62,11 @@ public sealed class Einwohnerschaft
         _zufallExtra = new Zufallsquelle(unchecked(zufallsstartwert * 97 + 31));
         _z = _zufall;
         Torwache = new Torwache(w, this, zufallsstartwert);
+        Hafenarbeit = new Hafenarbeit(w, this);
     }
+
+    /// <summary>Die Tagelöhner, die am Zierschiff die Ladung tragen – nur Ort und Weg, ohne Gewicht für die Wirtschaft (<see cref="Buerger.Hafenarbeit"/>).</summary>
+    public Hafenarbeit Hafenarbeit { get; }
 
     /// <summary>Die Torwächter der Stadt – nicht in <see cref="Einwohner"/>, ohne Gewicht für die Wirtschaft (<see cref="Buerger.Torwache"/>).</summary>
     public Torwache Torwache { get; }
@@ -885,6 +889,9 @@ public sealed class Einwohnerschaft
         foreach (var e in ohnePlatz) e.Handlung = ersatz[e];
         OhneSchankplatz = ohnePlatz.Count;
         KirchenVerteilen(kirchen);
+        // Hafenarbeit: Wer von den Arbeitenden in dieser Stunde am Hafen trägt (nur der Ort ändert sich, siehe unten)
+        var (hafenTraeger, hafenVorarbeiter) = Hafenarbeit.Waehlen(zeit, stunde, _einwohner);
+        var amHafen = new HashSet<Einwohner>(hafenTraeger, ReferenceEqualityComparer.Instance);
 
         // Erst jetzt stillt jeder, was er tut (vorher stand noch nicht fest, wer in der Schänke Platz findet). Jeder Einwohner liest beim
         // Wählen nur seine eigenen Bedürfnisse – darum rechnet das genau wie das Stillen gleich nach der Wahl.
@@ -909,12 +916,41 @@ public sealed class Einwohnerschaft
                                 || wegOhnePlan is not null && ohnePlan.Ort != Stadtort.Umland && vorherOhnePlan.Ort != Stadtort.Umland;
             // Dann der Tagesplan: Rast oder Besorgung am Markt statt drinnen.
             var jetzt = ort == Stadtort.Heim && Draussen(e, beste, zeit.Jahr, stunde) ? new Aufenthalt(Stadtort.Markt, null, 0, null) : ohnePlan;
+            // Und die Hafenarbeit: Statt am Markt trägt er am Hafen (der Weg ist fest, der Generator der Bürger bleibt unberührt).
+            var vorarbeiter = ReferenceEquals(e, hafenVorarbeiter);
+            if (amHafen.Contains(e)) jetzt = new Aufenthalt(Stadtort.Hafen, null, 0, Hafenarbeit.StelleTraeger);
+            else if (vorarbeiter) jetzt = new Aufenthalt(Stadtort.Hafen, null, 0, Hafenarbeit.StelleVorarbeiter);
             (e.Ort, e.Betrieb, e.Haus, e.Stelle) = (jetzt.Ort, jetzt.Betrieb, jetzt.Haus, jetzt.Stelle);
             if (jetzt != vorher)
                 e.Weg = wegOhnePlan is not null && wegOhnePlan.Von == vorher && wegOhnePlan.Nach == jetzt
                     ? wegOhnePlan
                     : FesterWeg(vorher, jetzt, zeit.VergangeneMinuten, e.Nummer, zeit.Jahr, stunde);
+            // Der Vorarbeiter kommt vor den Trägern (bricht zur vollen Stunde auf, kürzester Weg) und geht als Letzter (nach dem spätesten Abmarsch)
+            if (jetzt != vorher && e.Weg is { } hw && (vorarbeiter && vorher.Ort != Stadtort.Hafen || vorher.Stelle == Hafenarbeit.StelleVorarbeiter && vorher.Ort == Stadtort.Hafen))
+            {
+                var los = vorarbeiter ? zeit.VergangeneMinuten : zeit.VergangeneMinuten + d.Wege.Verzoegerung + 1;
+                e.Weg = new Weg(vorher, jetzt, los, los + (vorarbeiter ? Math.Max(1, d.Wege.Stadt - d.Wege.Streuung - 1) : hw.Dauer));
+            }
         }
+        HafenAbloesen(zeit, hafenTraeger, hafenVorarbeiter);
+    }
+
+    /// <summary>
+    /// Ablösung am Hafen mitten in der Schicht: Wer in dieser Stunde nicht mehr trägt (er geht beten oder einkehren), bricht erst auf, wenn der
+    /// Letzte, der neu dazukommt, angekommen ist – so steht der Steg nie leer. Nur der Weg verschiebt sich (die Darstellung); Ort und Handlung,
+    /// nach denen die Wirtschaft zählt, gelten ab der vollen Stunde wie ohne Hafen.
+    /// </summary>
+    private void HafenAbloesen(Spielzeit zeit, IReadOnlyList<Einwohner> traeger, Einwohner? vorarbeiter)
+    {
+        if (traeger.Count == 0 && vorarbeiter is null) return;
+        var jetzt = zeit.VergangeneMinuten;
+        var neu = traeger.Append(vorarbeiter).OfType<Einwohner>()
+            .Where(e => e.Weg is { } w && w.Abmarsch >= jetzt && w.Von.Ort != Stadtort.Hafen).ToList();
+        if (neu.Count == 0) return;
+        var da = neu.Max(e => e.Weg!.Ankunft);
+        foreach (var e in _einwohner)
+            if (e.Weg is { } w && w.Von.Ort == Stadtort.Hafen && w.Nach.Ort != Stadtort.Hafen && w.Abmarsch >= jetzt && w.Abmarsch < da)
+                e.Weg = new Weg(w.Von, w.Nach, da, da + w.Dauer);
     }
 
     private bool IstDienst(Einwohner e) => Daten.Rollen.TryGetValue(e.Rolle, out var r) && r.Dienst;
@@ -942,6 +978,15 @@ public sealed class Einwohnerschaft
     /// </summary>
     private Aufenthalt OhnePlan(Einwohner e, Handlung handlung, int tag, int stunde, Aufenthalt war)
     {
+        // Wer am Hafen trug, wäre ohne Hafenarbeit nach seiner Handlung gewesen: arbeitend am Markt (die Rolle der Träger arbeitet dort,
+        // siehe Datenprüfung), ruhend daheim, flanierend in den Gassen (nur diese drei behält die Hafenarbeit, siehe Hafenarbeit.Waehlen)
+        if (war.Ort == Stadtort.Hafen)
+            return handlung switch
+            {
+                Handlung.Ruhen => new Aufenthalt(Stadtort.Heim, null, e.Wohnhaus, null),
+                Handlung.Flanieren => new Aufenthalt(Stadtort.Gasse, null, 0, null),
+                _ => new Aufenthalt(Stadtort.Markt, null, 0, null),
+            };
         if (war.Ort != Stadtort.Markt || !Draussen(e, handlung, tag, stunde)) return war;
         return new Aufenthalt(Stadtort.Heim, null, handlung == Handlung.Arbeiten && IstDienst(e) ? Dienstherr(e) : e.Wohnhaus, null);
     }
@@ -1145,6 +1190,7 @@ public sealed class Einwohnerschaft
             HaeuserNachruesten();
         MarktSetzen(); // der Faktor steckt nicht im Marktstand-Spielstand – aus Ring und Üblichem neu setzen
         Torwache.Wiederherstellen(s.Torwache, _gegruendet, _w.Uhr.Jahr);
+        Hafenarbeit.Wiederherstellen(_w.Uhr, _einwohner);
     }
 
     /// <summary>Spielstand aus der Zeit vor den Wohnhäusern: Häuser jetzt verteilen (einmalig, danach wie immer).</summary>
