@@ -473,14 +473,14 @@ void fragment() {
         var eigeneZiele = new HashSet<Betrieb>();
         void Eintragen(bool eigen, bool bande, Func<Betrieb, bool> gilt, string name)
         {
-            var b = Naechster(b0 => gilt(b0) && !eigeneZiele.Contains(b0));
+            var b = Naechster(b0 => gilt(b0) && (!eigen || !eigeneZiele.Contains(b0))); // die fremde Gestalt darf an dieselbe Tür wie die eigene (wenige Türen in Bildnähe)
             if (b is null) return;
             eigeneZiele.Add(b);
             _nachtVorfaelle.Add(new Vorfall
             {
                 Art = Vorfallart.Einbruch, Ort = Vorfallort.Betrieb, Ziel = b.Name, Betrieb = b.Name, Erfolg = true, Wert = 40, Versuch = 0, Opfer = b.Konto,
                 Taeterhaus = eigen ? _spielerKonto : rivale, Taeterbetrieb = bande ? null : "Unterschlupf", TaeterName = bande ? null : name,
-                Bande = bande ? "Bande" : null, Minute = zeit.VergangeneMinuten, Jahr = zeit.Jahr, Uhrzeit = zeit.UhrzeitInMinuten,
+                Bande = bande ? "Bande" : null, Minute = zeit.VergangeneMinuten - (eigen ? 0 : 9), Jahr = zeit.Jahr, Uhrzeit = zeit.UhrzeitInMinuten,
             });
         }
         bool Fremd(Betrieb b) => b.Konto != _spielerKonto;
