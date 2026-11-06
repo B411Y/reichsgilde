@@ -131,7 +131,7 @@ public partial class Stadtansicht
     /// </summary>
     private MeshInstance3D? SockelBauen(Node3D eltern, Vector3 mitte, float drehung, Vector2 groesse, float tiefe, bool erde = false)
     {
-        if (tiefe < 0.12f || groesse == Vector2.Zero) return null;
+        if (tiefe < SockelMindestTiefe || groesse == Vector2.Zero) return null;
         const float einsatz = 0.35f;
         var hoehe = tiefe + einsatz;
         var sockel = new MeshInstance3D

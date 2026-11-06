@@ -26,6 +26,9 @@ public partial class Stadtansicht
     /// <summary>Die Kopie des Bodenrasters der Karte mit den Stempeln darin; null, wenn nichts gestempelt wurde (dann gilt das Raster der Karte).</summary>
     private Bodenraster? _stempelBoden;
 
+    /// <summary>Unter diesem Höhenunterschied (Meter) baut <see cref="SockelBauen"/> keinen Sockel – dort gibt es auch keine Erde darum.</summary>
+    internal const float SockelMindestTiefe = 0.12f;
+
     private static bool BodenstempelAus => Wasserarten.Startoption("bodenstempel") is "0" or "aus" or "nein";
 
     /// <summary>Ein Eintrag aus den Dateien: die Art des Stempels und seine Umrisse (leer bei den Restflächen, dort die Felder der Fläche).</summary>
@@ -53,6 +56,20 @@ public partial class Stadtansicht
         }
         else GD.PushWarning("Bodenstempel: " + pfad + " fehlt.");
         return _stempelModelle = modelle;
+    }
+
+    /// <summary>Wie weit (Meter, vom Ursprung des Modells, samt halbem Rand) die Stempel des Bausteins reichen – der Natur-Freiraum richtet sich auch danach, damit nichts in den Hof wächst.</summary>
+    private static (float X, float Z) StempelAusdehnung(Baustein b)
+    {
+        if (b.Modell is not { } datei) return (0, 0);
+        var tabelle = StempelModelle();
+        if (!tabelle.TryGetValue(datei + "#" + (b.Knoten ?? ""), out var angaben) && !tabelle.TryGetValue(datei, out angaben)) return (0, 0);
+        double x = 0, z = 0;
+        foreach (var a in angaben)
+            foreach (var f in a.Flaechen)
+                foreach (var (px, pz) in f)
+                    (x, z) = (Math.Max(x, Math.Abs(px) + a.Stempel.Rand / 2), Math.Max(z, Math.Abs(pz) + a.Stempel.Rand / 2));
+        return ((float)x, (float)z);
     }
 
     /// <summary>Übersetzt eine Liste von Stempeln aus der Datei; unbekannte Bodenarten werden gemeldet und ausgelassen.</summary>
@@ -112,7 +129,7 @@ public partial class Stadtansicht
         if (BodenBewegt)
             foreach (var g in karte.Gebaeude.Where(g => g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell?.StartsWith("wasser/") != true))
             {
-                if (FundamentVon(g) is { Hoehe: 0, Tiefe: 0 }) continue;
+                if (FundamentVon(g).Tiefe < SockelMindestTiefe) continue; // nur dort, wo SockelBauen wirklich einen Sockel baut
                 var ecken = FlaechenEcken(Punkt3(g.Punkt), DrehungVon(g), GroesseVon(g)).Select(e => (e.X, e.Z)).ToList();
                 kopie.Stempeln(new IReadOnlyList<(double X, double Z)>[] { ecken }, new Bodenstempel(Bodentextur.Erde, 0.9, 1.5, 0.4, 0, 5));
             }

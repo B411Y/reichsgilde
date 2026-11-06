@@ -182,7 +182,10 @@ public partial class Stadtansicht
     {
         if (b.Modell is not { } datei) return null;
         var masse = UmlandAnkerImModell(datei).Masse;
-        return (Mathf.Max(-masse.Position.X, masse.End.X), Mathf.Max(-masse.Position.Z, masse.End.Z));
+        var (hx, hz) = (Mathf.Max(-masse.Position.X, masse.End.X), Mathf.Max(-masse.Position.Z, masse.End.Z));
+        // die Modelle haben keine Bodenplatte mehr: Der gestempelte Hof gehört trotzdem dazu (Stadtansicht.Bodenstempel.cs)
+        var (sx, sz) = StempelAusdehnung(b);
+        return (Mathf.Max(hx, sx), Mathf.Max(hz, sz));
     }
 
     // ═════════════════════════════════════════════════════════════════════════
