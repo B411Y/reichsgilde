@@ -34,6 +34,9 @@ public sealed class Meldeart
     public string Sammeln { get; init; } = "";
     internal List<Muster> Muster { get; init; } = new();
     internal List<(Muster Muster, Meldestufe Hoechstens)> Ausnahmen { get; init; } = new();
+    /// <summary>Die Arten des Kerns (<see cref="Meldungsart"/>), die ohne Textmuster zu dieser Art gehören (Stufe 2, Feld <c>kern</c>).</summary>
+    public IReadOnlyList<Meldungsart> Kern { get; init; } = Array.Empty<Meldungsart>();
+
     /// <summary>Texte, die trotz <see cref="Sammeln"/> einzeln bleiben (z. B. eine Anklage gegen das eigene Haus).</summary>
     public IReadOnlyList<string> Einzeln { get; init; } = Array.Empty<string>();
 
@@ -139,9 +142,22 @@ public sealed class Meldungsordnung
                 Ausnahmen = a.TryGetProperty("ausnahmen", out var ausn)
                     ? ausn.EnumerateArray().Select(x => (MusterLesen(x), Stufe(x, "stufe"))).ToList() : new(),
                 Einzeln = a.TryGetProperty("einzeln", out var einz) ? einz.EnumerateArray().Select(x => x.GetString()!).ToList() : Array.Empty<string>(),
+                Kern = a.TryGetProperty("kern", out var kern)
+                    ? kern.EnumerateArray().Select(x => Enum.TryParse<Meldungsart>(x.GetString(), out var k) ? k
+                        : throw new FormatException($"meldungen.json: unbekannte Art des Kerns „{x.GetString()}“.")).ToList()
+                    : Array.Empty<Meldungsart>(),
             });
         }
         return new Meldungsordnung(themen, arten);
+    }
+
+    /// <summary>Die Art einer Meldung des Kerns: nach ihrer <see cref="Meldung.Art"/>, wenn eine Art sie unter <c>kern</c> nennt, sonst nach dem Text.</summary>
+    public Meldeart Einordnen(Meldung m)
+    {
+        if (m.Art != Meldungsart.Sonstiges)
+            foreach (var art in _arten)
+                if (art.Kern.Contains(m.Art)) return art;
+        return Einordnen(m.Text);
     }
 
     /// <summary>Die Art nach dem Text allein (ohne Kenntnis der Partie; Züge der Rivalen erkennt erst <see cref="Einstufen"/>).</summary>
@@ -169,16 +185,26 @@ public sealed class Meldungsordnung
         return stufe;
     }
 
-    /// <summary>Ordnet eine Meldung in der laufenden Partie ein (Art und Betroffenheit).</summary>
-    public Einstufung Einstufen(Stadtwirtschaft w, Konto spieler, string text)
+    /// <summary>
+    /// Ordnet eine Meldung in der laufenden Partie ein (Art und Betroffenheit). Mit <paramref name="kern"/> (Stufe 2) kommen Art und Haus vom Kern:
+    /// Nennt die Meldung ein Haus, ist sie Eigen oder Fremd, eine vertrauliche fremde wird verworfen. Ohne Haus (die Stadt, oder die Stelle meldet
+    /// noch nur Text) und für Meldungen der Oberfläche selbst entscheidet wie in Stufe 1 der Text. <paramref name="text"/> ist der Text wie gezeigt
+    /// (mit „⚠ “, wenn die Oberfläche warnt).
+    /// </summary>
+    public Einstufung Einstufen(Stadtwirtschaft w, Konto spieler, string text, Meldung? kern = null)
     {
         var warnung = text.StartsWith('✗') || text.StartsWith('⚠');
         var ohne = Ohne(text);
         // Züge der KI („Haus Brendel: …“): der Kern legt den Satz vor der Meldung in Entscheidungen[0] ab
         foreach (var r in w.Rivalen)
-            if (r.Entscheidungen.Count > 0 && ReferenceEquals(r.Entscheidungen[0], text))
+            if (r.Entscheidungen.Count > 0 && (ReferenceEquals(r.Entscheidungen[0], text) || kern is not null && ReferenceEquals(r.Entscheidungen[0], kern.Text)))
                 return new Einstufung(_kiZug, Betroffenheit.Fremd, ohne, false, false, true);
-        var art = Einordnen(ohne);
+        var art = kern is not null ? Einordnen(kern) : Einordnen(ohne);
+        if (kern is not null && w.HausVon(kern) is { } haus)
+        {
+            var eigen = haus == spieler;
+            return new Einstufung(art, eigen ? Betroffenheit.Eigen : Betroffenheit.Fremd, ohne, warnung, kern.Vertraulich && !eigen, false);
+        }
         // Familienereignis oder Nachricht der Unterwelt an ein bestimmtes Haus: der Kern kennt das Haus
         if (w.Familien.DiesesJahr is { Count: > 0 } fam && ReferenceEquals(fam[^1].Text, text))
             return new Einstufung(art, fam[^1].Konto == spieler ? Betroffenheit.Eigen : Betroffenheit.Fremd, ohne, warnung, false, false);

@@ -1,6 +1,6 @@
 {
  "version": 1,
- "hinweis": "Zuordnung der Textmeldungen des Kerns zu Arten und Stufen (Stufe 1 der Benachrichtigungen). Stufe 2 löst diese Textmuster durch strukturierte Ereignisse ab. Reihenfolge der Arten = Reihenfolge der Prüfung; das erste Treffer-Muster gewinnt. Stufen: aus, verlauf, siegel, brief.",
+ "hinweis": "Zuordnung der Textmeldungen des Kerns zu Arten und Stufen (Stufe 1 der Benachrichtigungen). Seit Stufe 2 meldet der Kern eine Art (Meldungsart); „kern“ nennt die Arten des Kerns, die ohne Textmuster zu dieser Art gehören. Meldungen ohne Art (Sonstiges) und Arten, die hier keiner nennt (Feuer, Überfall, Ratssitzung), ordnen weiter die Textmuster. Reihenfolge der Arten = Reihenfolge der Prüfung; das erste Treffer-Muster gewinnt. Stufen: aus, verlauf, siegel, brief.",
  "themen": [
   {
    "id": "gefahr",
@@ -98,6 +98,10 @@
   {
    "id": "Stillstand",
    "name": "Stillstand im Betrieb",
+   "kern": [
+    "LagerLeer",
+    "LagerVoll"
+   ],
    "thema": "handel",
    "eigen": "siegel",
    "stadt": "verlauf",
@@ -219,6 +223,10 @@
   {
    "id": "Tod",
    "name": "Todesfälle",
+   "kern": [
+    "TodOberhaupt",
+    "TodFamilie"
+   ],
    "thema": "familie",
    "eigen": "brief",
    "stadt": "verlauf",
@@ -239,6 +247,9 @@
   {
    "id": "Geburt",
    "name": "Geburten",
+   "kern": [
+    "Geburt"
+   ],
    "thema": "familie",
    "eigen": "brief",
    "stadt": "verlauf",
@@ -256,6 +267,9 @@
   {
    "id": "Heirat",
    "name": "Hochzeiten und Werbung",
+   "kern": [
+    "Heirat"
+   ],
    "thema": "familie",
    "eigen": "brief",
    "stadt": "verlauf",
@@ -276,6 +290,9 @@
   {
    "id": "Pest",
    "name": "Pest in der Stadt",
+   "kern": [
+    "Pest"
+   ],
    "thema": "gefahr",
    "eigen": "brief",
    "stadt": "brief",
@@ -292,6 +309,9 @@
   {
    "id": "Krankheit",
    "name": "Krankheit",
+   "kern": [
+    "Krankheit"
+   ],
    "thema": "familie",
    "eigen": "siegel",
    "stadt": "verlauf",
@@ -341,6 +361,10 @@
   {
    "id": "Stand",
    "name": "Stand und Meisterprüfung",
+   "kern": [
+    "StandAufstieg",
+    "Meisterpruefung"
+   ],
    "thema": "rat",
    "eigen": "brief",
    "stadt": "verlauf",
@@ -367,6 +391,10 @@
   {
    "id": "Schulden",
    "name": "Schulden und Kasse",
+   "kern": [
+    "Schulden",
+    "KasseKnapp"
+   ],
    "thema": "gefahr",
    "eigen": "brief",
    "stadt": "verlauf",
@@ -442,6 +470,9 @@
   {
    "id": "Gericht",
    "name": "Gericht",
+   "kern": [
+    "Anklage"
+   ],
    "thema": "rat",
    "eigen": "brief",
    "stadt": "verlauf",
@@ -544,6 +575,9 @@
   {
    "id": "Rat",
    "name": "Rat und Wahlen",
+   "kern": [
+    "Wahl"
+   ],
    "thema": "rat",
    "eigen": "brief",
    "stadt": "verlauf",
