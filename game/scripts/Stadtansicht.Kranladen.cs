@@ -171,6 +171,7 @@ public partial class Stadtansicht
             KranHakenSetzen(KranRuheOrt(), 0);
         }
         _kranGehalten = -1;
+        KranLastenAus(); // Stadtansicht.Hafenarbeit.cs
         ZierStapelZeigen(stapel);
     }
 
