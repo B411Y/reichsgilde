@@ -158,7 +158,7 @@ static class KartenbauTests
             Pruefe.Gleich(0, befunde.Count(b => b.Schwere == Schwere.Fehler), Liste(befunde));
             Pruefe.Gleich("hafenkran, zollstelle, grube, holzschlag, steinbruch, kraeutergarten, duftgarten, bauernhof, klosterhof, wachturm, weide, einwohner_wohnhaus, einwohner_ratsherrenhaus",
                 string.Join(", ", befunde.Select(b => b.Gebaeude[0])));
-            Pruefe.Wahr(befunde[2].Text.Contains("x -11 … 11, z -8,9 … 9 (22 × 17,9 m) – ragt bis 3 m über die Fläche (Umland: bekannt"), befunde[2].Text);
+            Pruefe.Wahr(befunde[2].Text.Contains("x -10,6 … 10,4, z -8,9 … 7,5 (21 × 16,4 m) – ragt bis 2,6 m über die Fläche (Umland: bekannt"), befunde[2].Text);
             Pruefe.Wahr(befunde[^1].Text.Contains("ragt bis 0,5 m"), befunde[^1].Text);
         }),
 

@@ -97,6 +97,7 @@ Startoptionen (nach `--`):
 - `--passanten=<25–100>`
 - `--feinheiten=<Nah|Mittel|Weit>`
 - `--fuellung=0` (keine Füllung der Restflächen: Gärten, Werkhöfe und Gestrüpp auf den freien Rasterfeldern der Stadt; Standard an; für Vorher-Nachher-Bilder und Messungen; `Stadtansicht.Restflaechen.cs`)
+- `--bodenstempel=0` (keine Bodenstempel: Höfe, Wege und Untergründe der Restflächen bleiben Wiese, nur für diesen Start und zum Vergleichen der Leistung; `Stadtansicht.Bodenstempel.cs`. Die Platten sind aus den Modellen, ohne Stempel fehlt der Hof ganz)
 - `--boden=<Niedrig|Mittel|Hoch>` (Bodenqualität: Mischung der Bodentexturen, Normalen, Grasbüschel)
 - `--gras=<Aus|Dicht|SehrDicht>` (Grasteppich: 3D-Halme auf der Wiese, nur für diesen Start)
 - `--tiltshift=<Aus|Leicht|Stark>`

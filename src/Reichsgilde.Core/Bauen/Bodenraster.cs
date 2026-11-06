@@ -38,7 +38,7 @@ public enum Bodentextur
 
 /// <summary>Das Bodenraster einer Karte (siehe Kopf der Datei). Leer = überall Wiese ohne Deko.</summary>
 [JsonConverter(typeof(BodenrasterJson))]
-public sealed class Bodenraster
+public sealed partial class Bodenraster
 {
     /// <summary>Abstand der Bodenpunkte in Metern.</summary>
     public const double Abstand = 1;
