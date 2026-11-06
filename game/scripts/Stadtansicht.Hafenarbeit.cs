@@ -193,11 +193,11 @@ public partial class Stadtansicht
         var land = HafenLandpunkt() ?? p.Knoten.Position;
         var bein = figur.Beinfaktor;
 
-        // Der Vorarbeiter: am Stegkopf, solange getragen wird, weist er an; danach zurück an den Kai
+        // Der Vorarbeiter: gleich nach seiner Ankunft an den Stegkopf, dort weist er an, solange getragen wird; danach zurück an den Kai
         if (e.Nummer == _hafenVorarbeiter)
         {
             LastAblegen(p, e.Nummer);
-            var arbeit = plan is { } pv && minute >= pv.Schicht.Beginn - 10 && minute <= pv.Schicht.Ende;
+            var arbeit = plan is { } pv && minute <= pv.Schicht.Ende;
             var ziel = arbeit ? StegPunkt(steg, VorarbeiterPlatz) : land;
             if (!HinGehen(p, figur, ziel, dminute, HafenGehen, ticksJeSekunde))
             {
