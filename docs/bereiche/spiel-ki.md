@@ -19,7 +19,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Mittagsandrang in der Schänke (PR #274): Um 12 Uhr, der ersten Stunde mit Einkehren, gehen fast alle Einwohner zugleich hin (bis 107 von 123 in der einen Schänke), abends um 21:45 bis 84. Eine Kapazität für Einwohner gibt es nicht. Designfrage beim Teamleiter, Empfehlung: Sitzplätze je Schänke nach Stufe im Abschnitt `buerger` (im Verhältnis von `anziehungJeStufe`, etwa 20/30/40); wer keinen Platz bekommt, nimmt die nächstbeste Handlung (mittags Arbeit, abends daheim); ohne Eintrag unbegrenzt wie heute. Vorher messen, wie sich die Gäste auf mehrere Schänken verteilen. Nur den Mittag zu dämpfen, verschiebt den Andrang auf 18 Uhr.
 - Die Schätzung „Stillstand vorher ^ (Durchfluss nachher ÷ vorher)“ ist im ersten Jahr zu optimistisch: Die Prüfung sah in Köln nach dem ersten Kauf 7–12 % geschätzt und 14–41 % im Folgejahr gemessen (Grube 18 %, Bauernhof 41 %) – das erste Jahr hat Anlaufverluste (leere Karren, Lager füllt sich). Die KI kauft dann im Jahr darauf nach; schlimmstenfalls einen Karren zu spät. Bei Gelegenheit das erste Jahr eines Betriebs nicht als Eichung nehmen.
 - (von Kern) Sitzplätze der Schänken (Datenversion 67): Die Einwohner finden in einer Schänke höchstens ⌈Plätze × Einwohner ÷ 17⌉ Plätze (`Gastwirtschaft.EinwohnerPlaetze`, `Einwohnerschaft.Quote` mit Grenze, Ersatzhandlung, Stillen nach der Verteilung; `OhneSchankplatz`). Entscheidung des Nutzers vom 2.11.2026; mit 17 und mindestens 20 Plätzen ist die Grenze immer größer als die Einwohnerzahl, greift also nie – die Kopplung wirkt wie bisher. Zur Kenntnis, nichts zu tun.
-- Hafenarbeit ohne Lohn (PR #NNN): Vorschlag, falls sie später wirken soll – je Träger und Besuch ein kleiner Tageslohn aus der Stadtkasse (etwa 2 Gulden, zusammen 4–8 je Besuch), der Vorarbeiter das Doppelte; Auskommen der Träger dafür in dieser Stunde gestillt. Braucht eine Messung (Stadtkasse) und eine Entscheidung des Teamleiters.
+- Hafenarbeit ohne Lohn (PR #334): Vorschlag, falls sie später wirken soll – je Träger und Besuch ein kleiner Tageslohn aus der Stadtkasse (etwa 2 Gulden, zusammen 4–8 je Besuch), der Vorarbeiter das Doppelte; Auskommen der Träger dafür in dieser Stunde gestillt. Braucht eine Messung (Stadtkasse) und eine Entscheidung des Teamleiters.
 
 ## Entscheidungen
 
@@ -146,7 +146,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Wirtschaft | Nicht in `Einwohner`, keine Nummer aus der Zählung, eigener Generator: bitgleich (Test `BuergerTorwacheTests`: ganzer Spielstand ohne die Torwache gleich, Köln und Greybox, drei Jahre). Keine Messung nötig. | 5.11.2026 |
 | Tests | `BuergerTorwacheTests` (7): Zahl je Karte (Köln 40, Greybox 12, ohne Karte/Daten 0); Namen eindeutig, nicht in der Einwohnerliste, per Nummer auffindbar; Schichtplan über einen Tag und Tausch am nächsten; Anteil des Weges; Wirtschaft bitgleich; Spielstand und Ruhestand nach 30 Jahren; Datenprüfung. | 5.11.2026 |
 
-### Hafenarbeit (PR #NNN)
+### Hafenarbeit (PR #334)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
