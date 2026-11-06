@@ -6,29 +6,30 @@ using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Tests der Ansagen des Haushofmeisters (Ton Schritt 3, Spielordner <c>KlangAnsagenErkennung.cs</c>, hier mitübersetzt): Die Erkennung hängt
-/// an den Wortlauten der Kernmeldungen. Diese Tests lassen <b>echte</b> Meldungen aus einer Partie erkennen (Entwicklerbefehle lösen Tod, Geburt,
-/// Krankheit, Heirat, Einbruch, Feuer, Hausbrand aus) – ändert jemand einen Satz im Kern, fällt es hier auf. Außerdem: fremde Häuser lösen nichts
-/// aus (Mehrspieler), und die Satzliste <c>game/daten/ansagen.json</c> ist vollständig (jedes Ereignis, Namen der Dateien, keine Namen im Satz).
+/// Tests der Ansagen des Haushofmeisters (Ton Schritt 3, Spielordner <c>KlangAnsagenErkennung.cs</c>, hier mitübersetzt): Die Erkennung liest seit den
+/// Benachrichtigungen Stufe 2 Art, Wichtigkeit und Haus der Meldung des Kerns (<c>Stadtwirtschaft.Gemeldet</c>), keinen Wortlaut mehr. Diese Tests lassen
+/// <b>echte</b> Meldungen aus einer Partie erkennen (Entwicklerbefehle lösen Tod, Geburt, Krankheit, Heirat, Einbruch, Feuer, Hausbrand aus). Außerdem:
+/// fremde Häuser lösen nichts aus (Mehrspieler), vereitelte Taten bleiben still, und die Satzliste <c>game/daten/ansagen.json</c> ist vollständig
+/// (jedes Ereignis, Namen der Dateien, keine Namen im Satz).
 /// </summary>
 static class AnsagenErkennungTests
 {
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft()));
 
-    static (Simulation Sim, Konto Spieler, Konto Rivale, List<string> Meldungen) Partie()
+    static (Simulation Sim, Konto Spieler, Konto Rivale, List<Meldung> Meldungen) Partie()
     {
         var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
             Daten.Value, new NeuePartie());
         for (var i = 0; i < 300; i++) sim.Tick();
         sim.EntwicklerErlaubt = true;
-        var meldungen = new List<string>();
-        sim.Wirtschaft!.Meldung += meldungen.Add;
+        var meldungen = new List<Meldung>();
+        sim.Wirtschaft!.Gemeldet += meldungen.Add;
         var rivale = sim.Wirtschaft.Konten.First(k => k != spieler && k.IstAktiv);
         return (sim, spieler, rivale, meldungen);
     }
 
     /// <summary>Führt den Befehl aus und gibt zurück, was der Haushofmeister des Spielers zu den entstandenen Meldungen ansagen würde.</summary>
-    static List<string> Angesagt(Simulation sim, Konto spieler, List<string> meldungen, Befehl befehl)
+    static List<string> Angesagt(Simulation sim, Konto spieler, List<Meldung> meldungen, Befehl befehl)
     {
         meldungen.Clear();
         var e = sim.Bote.SofortAusfuehren(spieler, befehl);
@@ -83,37 +84,35 @@ static class AnsagenErkennungTests
             Pruefe.Gleich(KlangAnsagenErkennung.Id.Feuer, KlangAnsagenErkennung.Erkennen(meldungen[0], sim.Wirtschaft, rivale));
         }),
 
-        ("Ansagen: Wortlaute der übrigen Kernmeldungen (Überfall, Kasse, Lager, Schulden, Anklage, Meisterprüfung, Pest) mit eigenen und fremden Namen", () =>
+        ("Ansagen: Art, Wichtigkeit und Haus der Meldung entscheiden (Überfall, Kasse, Lager, Schulden, Anklage, Meisterprüfung, Pest) – eigen, fremd, vereitelt", () =>
         {
             var (sim, spieler, rivale, _) = Partie();
             var w = sim.Wirtschaft!;
-            var b = w.Betriebe.First(x => x.Konto == spieler);
-            var fremd = w.Betriebe.First(x => x.Konto == rivale);
-            string? E(string text) => KlangAnsagenErkennung.Erkennen(text, w, spieler);
+            int Nr(Konto k) => w.Konten.ToList().IndexOf(k);
+            string? E(Meldungsart art, Konto? haus, Meldungswichtigkeit? wichtig = null) =>
+                KlangAnsagenErkennung.Erkennen(new Meldung(art, "beliebiger Text") { Haus = haus is null ? null : Nr(haus), Wichtigkeit = wichtig ?? Meldung.Vorgabe(art) }, w, spieler);
             // eigen
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.KasseKnapp, E($"{b.Name}: Verwalter kauft nur das Nötigste – die Kasse ist knapp."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.LagerLeer, E($"{b.Name}: Es fehlt Holz – die Arbeit ruht."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.LagerVoll, E($"{b.Name}: Das Lager für Holz ist voll – die Arbeit ruht."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Ueberfall, E($"Überfall auf dem Weg von {b.Name} zum Markt: Eine wilde Rotte (3 Räuber) erbeutet 4 Holz (Wert 40 Gulden)."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Ueberfall, E($"Überfall auf dem Rückweg nach {b.Name}: Eine Bande „Wölfe“ (3 Räuber) erbeutet 4 Holz (Wert 40 Gulden)."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Ueberfall, E($"Hinterhalt auf Karren 1 von {b.Name}: Wegelagerer erbeuten 4 Holz (Wert 40)."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Ueberfall, E($"Seeräuber überfallen Kogge (Elbe) ({spieler.Inhaber}) auf dem Weg nach Lübeck und erbeuten 4 Holz (Wert 40 Gulden)."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Schulden, E($"Der Kämmerer mahnt {spieler.Inhaber}: 500 Gulden Schulden."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Anklage, E($"{rivale.Inhaber} klagt {spieler.Inhaber} wegen Diebstahl an (2 Beweise). Es richten A, B."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.Meisterpruefung, E($"{spieler.Inhaber} legt die Meisterprüfung ab: Schmied im 2. Grad."));
-            Pruefe.Gleich(KlangAnsagenErkennung.Id.PestStadt, E("Die Pest ist in der Stadt! In diesem Jahr fehlen 20 % der Arbeitskräfte."));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.KasseKnapp, E(Meldungsart.KasseKnapp, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.LagerLeer, E(Meldungsart.LagerLeer, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.LagerVoll, E(Meldungsart.LagerVoll, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.Ueberfall, E(Meldungsart.Ueberfall, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.Schulden, E(Meldungsart.Schulden, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.Anklage, E(Meldungsart.Anklage, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.Meisterpruefung, E(Meldungsart.Meisterpruefung, spieler));
+            Pruefe.Gleich(KlangAnsagenErkennung.Id.PestStadt, E(Meldungsart.Pest, null));
             // fremd: nichts (außer der Pest, die die ganze Stadt trifft)
-            Pruefe.Wahr(E($"{fremd.Name}: Verwalter kauft nur das Nötigste – die Kasse ist knapp.") is null, "Fremde Kasse gemeldet.");
-            Pruefe.Wahr(E($"{fremd.Name}: Es fehlt Holz – die Arbeit ruht.") is null, "Fremdes Lager gemeldet.");
-            Pruefe.Wahr(E($"Überfall auf dem Weg von {fremd.Name} zum Markt: Eine wilde Rotte (3 Räuber) erbeutet 4 Holz (Wert 40 Gulden).") is null, "Fremder Überfall gemeldet.");
-            Pruefe.Wahr(E($"Der Kämmerer mahnt {rivale.Inhaber}: 500 Gulden Schulden.") is null, "Fremde Schulden gemeldet.");
-            Pruefe.Wahr(E($"{spieler.Inhaber} klagt {rivale.Inhaber} wegen Diebstahl an (2 Beweise). Es richten A, B.") is null, "Eigene Klage gegen andere gemeldet.");
-            Pruefe.Wahr(E($"{rivale.Inhaber} legt die Meisterprüfung ab: Schmied im 2. Grad.") is null, "Fremde Meisterprüfung gemeldet.");
-            // misslungene Taten und Gewöhnliches bleiben still
-            Pruefe.Wahr(E($"Einbruch in {b.Name} – doch das Lager war leer.") is null, "Leerer Einbruch gemeldet.");
-            Pruefe.Wahr(E($"Überfall auf dem Weg von {b.Name} zum Markt: Die Eskorte schlägt eine wilde Rotte (3 Räuber) in die Flucht.") is null, "Abgewehrter Überfall gemeldet.");
-            Pruefe.Wahr(E($"{b.Name}: Umbau (Stufe 2: Esse) – die Arbeit ruht.") is null, "Umbau gemeldet.");
-            Pruefe.Wahr(E("Es ist Mittag.") is null, "Gewöhnliche Meldung erkannt.");
+            foreach (var art in new[] { Meldungsart.KasseKnapp, Meldungsart.LagerLeer, Meldungsart.Ueberfall, Meldungsart.Schulden, Meldungsart.Anklage, Meldungsart.Meisterpruefung,
+                         Meldungsart.Geburt, Meldungsart.TodOberhaupt, Meldungsart.Feuer })
+            {
+                Pruefe.Wahr(E(art, rivale) is null, $"Fremdes Haus angesagt: {art}");
+                Pruefe.Wahr(E(art, null) is null, $"Ohne Haus angesagt: {art}");
+            }
+            // vereitelt, abgewehrt, leer: still
+            foreach (var art in new[] { Meldungsart.Feuer, Meldungsart.Diebstahl, Meldungsart.Ueberfall })
+                Pruefe.Wahr(E(art, spieler, Meldungswichtigkeit.Normal) is null, $"Misslungene Tat angesagt: {art}");
+            // eigene Ansage-Auslöser (Aufstieg, Wahl, Ratssitzung) und Sonstiges: nicht von hier
+            foreach (var art in new[] { Meldungsart.StandAufstieg, Meldungsart.Wahl, Meldungsart.Ratssitzung, Meldungsart.Sonstiges })
+                Pruefe.Wahr(E(art, spieler) is null, $"Doppelt angesagt: {art}");
         }),
 
         ("Ansagen: Satzliste – 20 Ereignisse, je 3 Sätze in beiden Fassungen, Dateinamen nach Schema, keine Namen, nur bekannte Kennungen", () =>

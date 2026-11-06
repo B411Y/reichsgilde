@@ -63,7 +63,8 @@ static class HafenRuhtTests
             while (sim.Zeit.Jahr == jahr) sim.Tick();
             var n = JsonNode.Parse(Speicherung.Speichern(sim, null, new DateTime(2026, 1, 1)))!.AsObject();
             foreach (var schluessel in n.Select(p => p.Key).ToList())
-                if (schluessel.Equals("daten", StringComparison.OrdinalIgnoreCase) || schluessel.Equals("karte", StringComparison.OrdinalIgnoreCase))
+                if (schluessel.Equals("daten", StringComparison.OrdinalIgnoreCase) || schluessel.Equals("karte", StringComparison.OrdinalIgnoreCase)
+                    || schluessel.Equals("meldungen", StringComparison.OrdinalIgnoreCase)) // der Verlauf der Meldungen (Stufe 2, 6.11.2026) – die Simulation liest ihn nie
                     n.Remove(schluessel);
             // Das Feld „Blitz“ (Einschläge im Spielstand, seit dem Blitzschaden) gab es vor dem Schalter nicht
             foreach (var schluessel in n.Select(p => p.Key).Where(k => k.Equals("wirtschaft", StringComparison.OrdinalIgnoreCase)).ToList())

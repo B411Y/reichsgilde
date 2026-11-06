@@ -13,7 +13,7 @@ static class MeldungsordnungTests
     static readonly Lazy<Meldungsordnung> Ordnung = new(() => Meldungsordnung.AusJson(File.ReadAllText(
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!, "game", "daten", "meldungen.json"))));
 
-    /// <summary>Drei Jahre Köln mit KI-Häusern (wie die Messung); jede Meldung wird im Augenblick der Meldung eingestuft (wie die Oberfläche).</summary>
+    /// <summary>Drei Jahre Köln mit KI-Häusern (wie die Messung); jede Meldung wird im Augenblick der Meldung eingestuft (wie die Oberfläche, mit der Meldung des Kerns).</summary>
     static List<(string Text, Einstufung E)> Partie()
     {
         var liste = new List<(string, Einstufung)>();
@@ -23,7 +23,7 @@ static class MeldungsordnungTests
             if (angemeldet) return;
             angemeldet = true;
             var spieler = w.Konten[0];
-            w.Meldung += m => liste.Add((m, Ordnung.Value.Einstufen(w, spieler, m)));
+            w.Gemeldet += m => liste.Add((m.Text, Ordnung.Value.Einstufen(w, spieler, m.Text, m))); // mit Art und Haus des Kerns (Stufe 2)
             foreach (var rivale in w.Rivalen)
                 foreach (var zug in rivale.Entscheidungen.Reverse()) liste.Add((zug, Ordnung.Value.Einstufen(w, spieler, zug)));
         });
