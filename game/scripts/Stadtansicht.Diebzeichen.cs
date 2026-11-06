@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Das <b>Zeichen über den eigenen Dieben</b> (Teil der <c>partial class Stadtansicht</c>; Wachen und Diebe, Nutzer 06.11.2026): Eigene Taschendiebe am Tag sowie eigene
-/// Einbrecher und Bandenmitglieder bei Nacht tragen über dem Kopf eine kleine goldene Raute mit Dietrich (Holzschnitt: schwarzer Umriss, Schraffur).
+/// Einbrecher und Bandenmitglieder bei Nacht tragen über dem Kopf eine kleiner grauer Kapuzenkopf mit Augenmaske (Holzschnitt: schwarzer Umriss, Schraffur).
 /// <list type="bullet">
 /// <item><b>Scharf</b>: Das Zeichen ist ein Control auf einer eigenen <see cref="CanvasLayer"/> (wie die Beschriftungen im Pixel-Look), also in voller Auflösung über der
 /// Welt; Größe nach dem Zoom (mindestens 12 Bildpunkte, damit es bei 140 m noch zu lesen ist). Es hängt an der Kamera der Logik und liegt damit auch ohne Pixel-Look richtig.</item>
@@ -21,8 +21,7 @@ public partial class Stadtansicht
     /// <summary>Die Zeichen dieses Bildes: Kennung der Gestalt, Mitte im Fenster, Radius in Bildpunkten.</summary>
     private readonly List<(string Kennung, Vector2 Mitte, float Radius)> _diebZeichen = new();
     private readonly List<(string Kennung, Vector2 Mitte, float Radius)> _diebZeichenGezeichnet = new();
-    private Color _diebZeichenFarbe = new(0.86f, 0.68f, 0.18f);
-
+    
     /// <summary>Jedes Bild, nach <c>Taschendiebe/NachtdiebeAktualisieren</c>: sammelt die Zeichen und zeichnet sie neu, wenn sie sich bewegt haben.</summary>
     private void DiebzeichenAktualisieren()
     {
@@ -59,25 +58,39 @@ public partial class Stadtansicht
         _zeichenFlaeche.QueueRedraw();
     }
 
-    /// <summary>Raute mit schwarzem Umriss, Schraffur unten rechts und einem kleinen Dietrich (Schaft mit Haken) in der Mitte.</summary>
+    /// <summary>
+    /// Ein Kopf mit Kapuze als Silhouette (grau, zur Hälfte durchsichtig): Die Kapuze umschließt das Gesicht, darunter der Schulteransatz, im hellen Gesicht eine
+    /// schmale dunkle Augenmaske mit zwei hellen Augenschlitzen. Die Teile (Kapuze, Schultern, Gesicht oben und unten, Maske) liegen nebeneinander, ohne sich zu
+    /// überdecken – sonst wäre die Durchsicht an den Überdeckungen schwächer. Maße in Radien <c>r</c> um die Mitte (Breite 2 r, Höhe 2,5 r).
+    /// </summary>
     private void DiebzeichenZeichnen()
     {
         if (_zeichenFlaeche is not { } f) return;
         var dunkel = Mathf.Lerp(0.72f, 1f, Mathf.SmoothStep(PixelLichtBoden, 0.85f, PixelLichtskala())); // nachts gedämpft, nie leuchtend
-        var gold = new Color(_diebZeichenFarbe.R * dunkel, _diebZeichenFarbe.G * dunkel, _diebZeichenFarbe.B * dunkel);
-        var tinte = new Color(0.07f, 0.05f, 0.04f);
+        Color Grau(float h) => new(h * dunkel, h * dunkel, h * dunkel, 0.5f); // halb durchsichtig
+        var kapuze = Grau(0.42f);
+        var rand = Grau(0.1f);
+        var gesicht = Grau(0.86f);
+        var maske = Grau(0.14f);
         foreach (var (_, m, r) in _diebZeichenGezeichnet)
         {
-            var hoch = r * 1.25f;
-            var raute = new[] { m + new Vector2(0, -hoch), m + new Vector2(r, 0), m + new Vector2(0, hoch), m + new Vector2(-r, 0) };
-            f.DrawColoredPolygon(raute, gold);
-            f.DrawLine(m + new Vector2(r * 0.15f, hoch * 0.55f), m + new Vector2(r * 0.6f, hoch * 0.1f), tinte with { A = 0.55f }, 1f); // Schraffur im Schatten
-            f.DrawLine(m + new Vector2(r * 0.05f, hoch * 0.8f), m + new Vector2(r * 0.75f, hoch * 0.2f), tinte with { A = 0.55f }, 1f);
-            f.DrawPolyline(new[] { raute[0], raute[1], raute[2], raute[3], raute[0] }, tinte, Mathf.Max(1.5f, r * 0.2f));
-            var w = Mathf.Max(1.5f, r * 0.18f);
-            f.DrawLine(m + new Vector2(-r * 0.12f, -hoch * 0.45f), m + new Vector2(-r * 0.12f, hoch * 0.4f), tinte, w); // Schaft des Dietrichs
-            f.DrawLine(m + new Vector2(-r * 0.12f, -hoch * 0.45f), m + new Vector2(r * 0.3f, -hoch * 0.45f), tinte, w);  // Haken
-            f.DrawLine(m + new Vector2(r * 0.3f, -hoch * 0.45f), m + new Vector2(r * 0.3f, -hoch * 0.15f), tinte, w);
+            Vector2[] P(params (float X, float Y)[] punkte) => punkte.Select(q => m + new Vector2(q.X * r, q.Y * r)).ToArray();
+            var haube = P((0, -1.25f), (0.5f, -1.0f), (0.78f, -0.5f), (0.74f, 0.0f), (0.5f, 0.35f), (0.2f, 0.3f), (0.42f, -0.02f), (0.42f, -0.52f), (0, -0.78f),
+                          (-0.42f, -0.52f), (-0.42f, -0.02f), (-0.2f, 0.3f), (-0.5f, 0.35f), (-0.74f, 0.0f), (-0.78f, -0.5f), (-0.5f, -1.0f));
+            var schultern = P((-0.5f, 0.35f), (-0.2f, 0.3f), (0.2f, 0.3f), (0.5f, 0.35f), (1.0f, 0.6f), (1.0f, 1.25f), (-1.0f, 1.25f), (-1.0f, 0.6f));
+            f.DrawColoredPolygon(haube, kapuze);
+            f.DrawColoredPolygon(schultern, kapuze);
+            f.DrawColoredPolygon(P((0, -0.78f), (0.42f, -0.52f), (0.42f, -0.42f), (-0.42f, -0.42f), (-0.42f, -0.52f)), gesicht);                        // Stirn
+            f.DrawColoredPolygon(P((-0.42f, -0.12f), (0.42f, -0.12f), (0.42f, -0.02f), (0.2f, 0.3f), (-0.2f, 0.3f), (-0.42f, -0.02f)), gesicht);        // Wangen und Kinn
+            f.DrawColoredPolygon(P((-0.42f, -0.42f), (0.42f, -0.42f), (0.42f, -0.31f), (-0.42f, -0.31f)), maske);                                       // Augenmaske oben
+            f.DrawColoredPolygon(P((-0.42f, -0.22f), (0.42f, -0.22f), (0.42f, -0.12f), (-0.42f, -0.12f)), maske);                                       // und unten
+            f.DrawColoredPolygon(P((-0.42f, -0.31f), (-0.28f, -0.31f), (-0.28f, -0.22f), (-0.42f, -0.22f)), maske);                                     // Maske zwischen den Schlitzen
+            f.DrawColoredPolygon(P((-0.1f, -0.31f), (0.1f, -0.31f), (0.1f, -0.22f), (-0.1f, -0.22f)), maske);
+            f.DrawColoredPolygon(P((0.28f, -0.31f), (0.42f, -0.31f), (0.42f, -0.22f), (0.28f, -0.22f)), maske);
+            f.DrawColoredPolygon(P((-0.28f, -0.31f), (-0.1f, -0.31f), (-0.1f, -0.22f), (-0.28f, -0.22f)), gesicht);                                     // die beiden Augenschlitze
+            f.DrawColoredPolygon(P((0.1f, -0.31f), (0.28f, -0.31f), (0.28f, -0.22f), (0.1f, -0.22f)), gesicht);
+            var aussen = P((0, -1.25f), (0.5f, -1.0f), (0.78f, -0.5f), (0.74f, 0.0f), (0.5f, 0.35f), (1.0f, 0.6f), (1.0f, 1.25f), (-1.0f, 1.25f), (-1.0f, 0.6f), (-0.5f, 0.35f), (-0.74f, 0.0f), (-0.78f, -0.5f), (-0.5f, -1.0f));
+            f.DrawPolyline(aussen.Append(aussen[0]).ToArray(), rand, Mathf.Max(1f, r * 0.12f));
         }
     }
 
