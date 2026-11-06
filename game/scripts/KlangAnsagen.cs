@@ -91,11 +91,11 @@ public static class KlangAnsagen
 
     // ── Auslöser ────────────────────────────────────────────────────────────
 
-    /// <summary>Eine Textmeldung des Kerns: sagt der Haushofmeister dazu etwas an, und betrifft sie das eigene Haus? (Aufruf aus <c>Hauptszene</c>.)</summary>
-    public static void Meldung(string text, Stadtwirtschaft wirtschaft, Konto spieler)
+    /// <summary>Eine Meldung des Kerns: sagt der Haushofmeister dazu etwas an, und betrifft sie das eigene Haus? (Aufruf aus <c>Hauptszene</c>.)</summary>
+    public static void Meldung(Meldung meldung, Stadtwirtschaft wirtschaft, Konto spieler)
     {
         if (!KlangDienst.AnsagenAn) return;
-        if (KlangAnsagenErkennung.Erkennen(text, wirtschaft, spieler) is { } kennung)
+        if (KlangAnsagenErkennung.Erkennen(meldung, wirtschaft, spieler) is { } kennung)
             Ansagen(kennung, KlangAnsagenErkennung.Herrin(wirtschaft, spieler));
     }
 
