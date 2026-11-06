@@ -289,7 +289,8 @@ public sealed class HafenarbeitDaten
             for (var fenster = 0L; fenster < 400; fenster++)
             {
                 var s = Hafenarbeit.Planen(this, b.Wege, fenster, TraegerVon);
-                if (s.VonStunde >= Spielzeit.TagesbeginnMinute / 60 && s.BisStunde <= Spielzeit.TagesendeMinute / 60) continue;
+                // bis höchstens zur letzten Planung (22 Uhr), sonst gingen sie nie mehr heim
+                if (s.VonStunde >= Spielzeit.TagesbeginnMinute / 60 && s.BisStunde <= Spielzeit.TagesendeMinute / 60 - 1) continue;
                 f.Add($"{p}: Die Hafenarbeit im Fenster {fenster} passt nicht in den Spieltag (Stunden {s.VonStunde}–{s.BisStunde}).");
                 break;
             }
@@ -415,6 +416,8 @@ public sealed class BuergerDaten
             f.Add($"{p}.voelker braucht mindestens ein Volk mit Gewicht über 0, keine negativen Gewichte.");
         foreach (var volk in Voelker.Keys.Concat(Gewichte.Keys).Where(v => v is Volk.Ork or Volk.Oger).Distinct())
             f.Add($"{p}: {volk.Mehrzahl()} haben kein Bürgerrecht und leben nicht als Einwohner in der Stadt.");
+        if (Rollen.Values.Any(r => r.Arbeitsort == Stadtort.Hafen))
+            f.Add($"{p}.rollen: Arbeitsort Hafen gibt es nicht (an den Hafen schickt nur die Hafenarbeit).");
         if (Rollen.Count == 0 || Rollen.Values.Any(r => r.Gewicht < 0) || Rollen.Values.Sum(r => r.Gewicht) <= 0)
             f.Add($"{p}.rollen braucht mindestens eine Rolle mit Gewicht über 0, keine negativen Gewichte.");
         if (!Rollen.Values.Any(r => r.Ledig && r.Gewicht > 0))

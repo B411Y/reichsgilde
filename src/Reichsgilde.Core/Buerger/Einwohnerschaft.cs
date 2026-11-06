@@ -937,21 +937,32 @@ public sealed class Einwohnerschaft
 
     /// <summary>
     /// Ablösung am Hafen mitten in der Schicht: Wer in dieser Stunde nicht mehr trägt (er geht beten oder einkehren), bricht erst auf, wenn der
-    /// Letzte, der neu dazukommt, angekommen ist, und er seinen letzten Gang zu Ende gebracht hat (eine Runde später) – so steht der Steg nie leer.
-    /// Nur der Weg verschiebt sich (die Darstellung); Ort und Handlung, nach denen die Wirtschaft zählt, gelten ab der vollen Stunde wie ohne Hafen.
+    /// Letzte, der neu dazukommt, angekommen ist und er seinen letzten Gang zu Ende gebracht hat (eine Runde später) – so steht der Steg nie leer.
+    /// Damit das in die Stunde passt, eilen die Neuen in dieser Stunde herbei (Abmarsch zur vollen Stunde, kürzester Stadtweg), und der Abgelöste
+    /// ist vor der nächsten vollen Stunde an seinem neuen Ort (sein Weg wird notfalls kürzer). Nur die Wege ändern sich (die Darstellung); Ort und
+    /// Handlung, nach denen die Wirtschaft zählt, gelten ab der vollen Stunde wie ohne Hafen.
     /// </summary>
     private void HafenAbloesen(Spielzeit zeit, IReadOnlyList<Einwohner> traeger, Einwohner? vorarbeiter)
     {
         if (traeger.Count == 0 && vorarbeiter is null) return;
         var runde = Hafenarbeit.SchichtInStunde(zeit.Jahr, zeit.UhrzeitInMinuten / 60)?.Runde ?? 0;
         var jetzt = zeit.VergangeneMinuten;
+        var gehen = _einwohner.Where(e => e.Weg is { } w && w.Von.Ort == Stadtort.Hafen && w.Nach.Ort != Stadtort.Hafen && w.Abmarsch >= jetzt).ToList();
+        if (gehen.Count == 0) return; // Schichtbeginn oder niemand abgelöst: Wege wie geplant
         var neu = traeger.Append(vorarbeiter).OfType<Einwohner>()
             .Where(e => e.Weg is { } w && w.Abmarsch >= jetzt && w.Von.Ort != Stadtort.Hafen).ToList();
         if (neu.Count == 0) return;
-        var da = neu.Max(e => e.Weg!.Ankunft) + runde + 2;
-        foreach (var e in _einwohner)
-            if (e.Weg is { } w && w.Von.Ort == Stadtort.Hafen && w.Nach.Ort != Stadtort.Hafen && w.Abmarsch >= jetzt && w.Abmarsch < da)
-                e.Weg = new Weg(w.Von, w.Nach, da, da + w.Dauer);
+        var eilen = Math.Max(1, Daten.Wege.Stadt - Daten.Wege.Streuung - 1);
+        foreach (var e in neu)
+            e.Weg = new Weg(e.Weg!.Von, e.Weg.Nach, jetzt, jetzt + eilen);
+        var naechsteStunde = jetzt + 60;
+        var da = Math.Min(jetzt + eilen + runde + 2, naechsteStunde - 15);
+        foreach (var e in gehen)
+        {
+            var w = e.Weg!;
+            if (w.Abmarsch >= da) continue;
+            e.Weg = new Weg(w.Von, w.Nach, da, da + Math.Min(w.Dauer, naechsteStunde - 1 - da));
+        }
     }
 
     private bool IstDienst(Einwohner e) => Daten.Rollen.TryGetValue(e.Rolle, out var r) && r.Dienst;
@@ -979,9 +990,9 @@ public sealed class Einwohnerschaft
     /// </summary>
     private Aufenthalt OhnePlan(Einwohner e, Handlung handlung, int tag, int stunde, Aufenthalt war)
     {
-        // Wer am Hafen trug, wäre ohne Hafenarbeit nach seiner Handlung gewesen: arbeitend am Markt (die Rolle der Träger arbeitet dort,
-        // siehe Datenprüfung), ruhend daheim, flanierend in den Gassen (nur diese drei behält die Hafenarbeit, siehe Hafenarbeit.Waehlen)
-        if (war.Ort == Stadtort.Hafen)
+        // Wer am Hafen trug, wäre ohne Hafenarbeit nach seiner Handlung gewesen: arbeitend oder einkaufend am Markt (arbeitend holt die
+        // Hafenarbeit nur Rollen mit Arbeitsort Markt, siehe Hafenarbeit.Frei), ruhend daheim, flanierend in den Gassen
+        if (war.Ort == Stadtort.Hafen && war.Stelle is Hafenarbeit.StelleTraeger or Hafenarbeit.StelleVorarbeiter)
             return handlung switch
             {
                 Handlung.Ruhen => new Aufenthalt(Stadtort.Heim, null, e.Wohnhaus, null),

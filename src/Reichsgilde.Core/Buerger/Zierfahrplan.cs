@@ -70,18 +70,4 @@ public static class Zierfahrplan
         if (im < ablegen) return new(Besuchsphase.Liegen, (im - ankunft) / liegen, vonAuf, nachAuf, besuch, fenster);
         return new(Besuchsphase.Abfahrt, (im - ablegen) / fahrt, vonAuf, nachAuf, besuch, fenster);
     }
-
-    /// <summary>Minute (seit Spielbeginn), zu der der Kran den Niederländer im Fenster fertig entladen hat (der letzte Hub ist abgesetzt).</summary>
-    public static long EntladenFertig(long fenster)
-    {
-        var (ankunft, liegen, _, _) = Streuung(fenster);
-        return Anfang(fenster) + ankunft + (int)Math.Ceiling(liegen * NiederEntladeBis);
-    }
-
-    /// <summary>Minute (seit Spielbeginn), zu der der Kran den Oberländer im Fenster zu beladen beginnt (der Stapel muss dann stehen).</summary>
-    public static long BeladenAb(long fenster)
-    {
-        var (ankunft, liegen, _, _) = Streuung(fenster);
-        return Anfang(fenster) + ankunft + (int)Math.Floor(liegen * OberLadeAb);
-    }
 }

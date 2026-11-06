@@ -157,7 +157,7 @@ static class BuergerHafenarbeitTests
                     Pruefe.Gleich(s.Traeger + 1, da.Count, $"{jahr}: Träger und Vorarbeiter eingeteilt");
                     Pruefe.Wahr(AmHafen(w).Count >= Math.Min(3, s.Traeger + 1), $"{jahr}: die meisten sind schon da ({AmHafen(w).Count}) {s.Beginn} {sim.Zeit.UhrzeitText} " + string.Join(" | ", da.Select(e => e.Nummer + " " + e.Weg)));
                     Pruefe.Wahr(da.All(e => e.Rolle == "Tagelöhner" && e.Handlung is Handlung.Arbeiten or Handlung.Ruhen or Handlung.Flanieren or Handlung.Einkaufen),
-                                "nur Tagelöhner, die nicht einkehren, beten oder einkaufen");
+                                "nur Tagelöhner, die nicht einkehren oder beten");
                     Pruefe.Wahr(da.All(e => e.Weg is { Nach.Ort: Stadtort.Hafen }), "mit Weg zum Hafen");
                     Pruefe.Wahr(da.All(Hafenarbeit.ArbeitetAmHafen), "arbeitet am Hafen");
                     Pruefe.Wahr(!ha.Traeger.Contains(va!), "der Vorarbeiter trägt nicht");
@@ -209,25 +209,56 @@ static class BuergerHafenarbeitTests
             }
         }),
 
-        ("Hafenarbeit: Solange getragen wird, sind in jeder Minute alle n Träger und der Vorarbeiter am Hafen (Ablösung wartet auf den Neuen) – Köln, sechs Tage", () =>
+        ("Hafenarbeit: Solange getragen wird, sind in jeder Minute alle n Träger und der Vorarbeiter am Hafen (Ablösung wartet auf den Neuen), und jeder Weg vom Hafen endet vor der nächsten vollen Stunde – Köln, drei Startwerte × drei Tage", () =>
         {
-            var (sim, w) = Partie(Daten(), "koeln", startwert: 99);
-            var besuche = 0;
-            for (var m = 0; m < 6 * Spielzeit.MinutenProTag; m++)
+            foreach (var startwert in new[] { 99, 655, 1441 })
             {
-                sim.Tick();
-                var jetzt = sim.Zeit.VergangeneMinuten;
-                foreach (var s in w.Einwohnerschaft.Hafenarbeit.Schichten(sim.Zeit.Jahr))
+                var (sim, w) = Partie(Daten(), "koeln", startwert);
+                var besuche = 0;
+                for (var m = 0; m < 3 * Spielzeit.MinutenProTag; m++)
                 {
-                    if (jetzt < s.Beginn || jetzt > s.Ende) continue;
-                    if (jetzt == (long)Math.Ceiling(s.Beginn)) besuche++;
-                    var traeger = w.Einwohnerschaft.Einwohner.Count(e => e.Wo(jetzt) is { Ort: Stadtort.Hafen, Stelle: Hafenarbeit.StelleTraeger });
-                    var vorarbeiter = w.Einwohnerschaft.Einwohner.Count(e => e.Wo(jetzt) is { Ort: Stadtort.Hafen, Stelle: Hafenarbeit.StelleVorarbeiter });
-                    Pruefe.Wahr(traeger >= s.Traeger, $"{sim.Zeit.Jahr} {sim.Zeit.UhrzeitText}: {traeger} von {s.Traeger} Trägern da");
-                    Pruefe.Wahr(vorarbeiter >= 1, $"{sim.Zeit.Jahr} {sim.Zeit.UhrzeitText}: kein Vorarbeiter da");
+                    sim.Tick();
+                    var jetzt = sim.Zeit.VergangeneMinuten;
+                    if (sim.Zeit.MinuteImTag % 60 == 0)
+                        foreach (var e in w.Einwohnerschaft.Einwohner)
+                            if (e.Weg is { Von.Ort: Stadtort.Hafen } hw && hw.Abmarsch >= jetzt)
+                                Pruefe.Wahr(hw.Ankunft < jetzt + 60, $"{startwert}, {sim.Zeit.Jahr} {sim.Zeit.UhrzeitText}: Weg vom Hafen von {e.Nummer} endet erst {hw.Ankunft - jetzt} min nach der vollen Stunde");
+                    foreach (var s in w.Einwohnerschaft.Hafenarbeit.Schichten(sim.Zeit.Jahr))
+                    {
+                        if (jetzt < s.Beginn || jetzt > s.Ende) continue;
+                        if (jetzt == (long)Math.Ceiling(s.Beginn)) besuche++;
+                        var traeger = w.Einwohnerschaft.Einwohner.Count(e => e.Wo(jetzt) is { Ort: Stadtort.Hafen, Stelle: Hafenarbeit.StelleTraeger });
+                        var vorarbeiter = w.Einwohnerschaft.Einwohner.Count(e => e.Wo(jetzt) is { Ort: Stadtort.Hafen, Stelle: Hafenarbeit.StelleVorarbeiter });
+                        Pruefe.Wahr(traeger >= s.Traeger, $"{startwert}, {sim.Zeit.Jahr} {sim.Zeit.UhrzeitText}: {traeger} von {s.Traeger} Trägern da");
+                        Pruefe.Wahr(vorarbeiter >= 1, $"{startwert}, {sim.Zeit.Jahr} {sim.Zeit.UhrzeitText}: kein Vorarbeiter da");
+                    }
+                }
+                Pruefe.Wahr(besuche >= 4, $"{startwert}: {besuche} Besuche mit Hafenarbeit");
+            }
+        }),
+
+        ("Hafenarbeit: Ist die Rolle der Träger eine, die nicht am Markt arbeitet (Knecht), holt die Hafenarbeit niemanden von der Arbeit – und die Wirtschaft bleibt gleich", () =>
+        {
+            var json = JsonNode.Parse(Text.Value)!.AsObject();
+            json["buerger"]!["hafenarbeit"]!["rolle"] = "Knecht";
+            var mitKnecht = Wirtschaftsdaten.AusJson(json.ToJsonString());
+            var (simA, a) = Partie(Daten(mitHafenarbeit: false), "koeln", startwert: 31);
+            var (simB, b) = Partie(mitKnecht, "koeln", startwert: 31);
+            var gesehen = 0;
+            for (var m = 0; m < Spielzeit.MinutenProTag; m++)
+            {
+                simA.Tick();
+                simB.Tick();
+                foreach (var e in b.Einwohnerschaft.Einwohner.Where(e => e.Ort == Stadtort.Hafen))
+                {
+                    gesehen++;
+                    Pruefe.Wahr(e.Rolle == "Knecht" && e.Handlung != Handlung.Arbeiten, $"{e.Nummer} ({e.Rolle}, {e.Handlung}) am Hafen");
                 }
             }
-            Pruefe.Wahr(besuche >= 8, $"{besuche} Besuche mit Hafenarbeit");
+            Pruefe.Wahr(gesehen > 0, "Knechte, die ruhen, tragen trotzdem");
+            for (var i = 0; i < a.Konten.Count; i++)
+                Pruefe.Gleich(a.Konten[i].Vermoegen, b.Konten[i].Vermoegen, $"Vermögen von {a.Konten[i].Inhaber}");
+            Pruefe.Gleich(OhneOrte(simA, a.Konten[0]), OhneOrte(simB, b.Konten[0]), "Spielstand");
         }),
 
         ("Hafenarbeit: Spielstand mitten in der Schicht geladen – dieselben Träger am Hafen, danach derselbe Lauf", () =>
@@ -248,6 +279,16 @@ static class BuergerHafenarbeitTests
                 geladen.Tick();
             }
             Pruefe.Gleich(string.Join(",", w.Einwohnerschaft.Einwohner.Select(e => e.Aufenthalt)), string.Join(",", g.Einwohnerschaft.Einwohner.Select(e => e.Aufenthalt)));
+            // genau zur vollen Stunde gespeichert (vor deren Planung): die Träger der Vorstunde
+            var (sim2, w2) = Partie(Daten(), "koeln");
+            var s2 = w2.Einwohnerschaft.Hafenarbeit.Schichten(sim2.Zeit.Jahr)[0];
+            BisMinute(sim2, (long)Spielzeit.MinutenProTag * 0 + s2.BisStunde * 60 - Spielzeit.TagesbeginnMinute - 1);
+            var vorher = string.Join(",", w2.Einwohnerschaft.Hafenarbeit.Traeger.Select(e => e.Nummer));
+            sim2.Tick();
+            Pruefe.Gleich(0, sim2.Zeit.MinuteImTag % 60, "volle Stunde");
+            var (geladen2, _) = Speicherung.Laden(Speicherung.Speichern(sim2, w2.Konten[0]), Stadtkarte.AusDatei(Datenpfad.Karte("koeln")));
+            Pruefe.Wahr(vorher.Length > 0, "es trugen welche");
+            Pruefe.Gleich(vorher, string.Join(",", geladen2.Wirtschaft!.Einwohnerschaft.Hafenarbeit.Traeger.Select(e => e.Nummer)), "zur vollen Stunde geladen");
         }),
 
         ("Hafenarbeit: ohne Abschnitt niemand am Hafen; Greybox hat sie genau, wenn sie einen Hafen hat", () =>
@@ -274,6 +315,9 @@ static class BuergerHafenarbeitTests
                 Pruefe.Wirft(() => Wirtschaftsdaten.AusJson(json.ToJsonString()));
             }
             Falsch(h => h["rolle"] = "Fährmann");
+            var mitHafenrolle = JsonNode.Parse(Text.Value)!.AsObject();
+            mitHafenrolle["buerger"]!["rollen"]!["Tagelöhner"]!["arbeitsort"] = "Hafen";
+            Pruefe.Wirft(() => Wirtschaftsdaten.AusJson(mitHafenrolle.ToJsonString()));
             Falsch(h => h["traegerVon"] = 0);
             Falsch(h => h["traegerBis"] = 1);
             Falsch(h => h["stuecke"] = 0);

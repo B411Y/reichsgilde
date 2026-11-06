@@ -39,8 +39,8 @@ public sealed record Hafenschicht(bool Entladen, long Fenster, double Beginn, do
 /// Ein Vorarbeiter (der älteste verfügbare Tagelöhner) beaufsichtigt am Stegkopf, trägt nicht, kommt früher und geht als Letzter.
 ///
 /// <b>Ohne Wirkung auf die Wirtschaft:</b> Hafenarbeit ändert nur Ort (<see cref="Stadtort.Hafen"/>, Stelle <see cref="StelleTraeger"/> bzw.
-/// <see cref="StelleVorarbeiter"/>) und Weg – nie die Handlung. Sie trifft nur Einwohner der Rolle, die gerade arbeiten, ruhen oder flanieren
-/// (dort zählt der Ort für nichts); wer einkehrt, betet oder einkauft, bleibt, wo er dafür ist. Bedürfnisse, Passanten der Diebe
+/// <see cref="StelleVorarbeiter"/>) und Weg – nie die Handlung. Sie trifft nur Einwohner der Rolle, die gerade ruhen, flanieren, einkaufen oder
+/// (bei Arbeitsort Markt) arbeiten – dort zählt der Ort für nichts; wer einkehrt oder betet, bleibt, wo er dafür ist. Bedürfnisse, Passanten der Diebe
 /// (<see cref="Einwohner.PassantOhnePlan"/>) und der Generator der Bürger rechnen wie ohne Hafen (Test: Spielstand ohne Orte und Wege bitgleich).
 /// Kein Lohn, keine Ware. Wer trägt, folgt fest aus Nummer, Tag und Besuch – ohne Würfel; der Zustand steckt in Ort und Weg der Einwohner und
 /// braucht kein eigenes Feld im Spielstand.
@@ -207,7 +207,9 @@ public sealed class Hafenarbeit
         _vorarbeiter = null;
         if (Daten is not { } d || SchichtInStunde(zeit.Jahr, stunde) is not { } s) return (_traeger, null);
         var frei = einwohner.Where(e => Frei(e, d.Rolle)).ToList();
+        // Ein neuer Vorarbeiter kommt möglichst nicht aus den Trägern (sonst fehlte einer, bis Ersatz da ist)
         _vorarbeiter = frei.FirstOrDefault(IstVorarbeiter)
+                       ?? frei.Where(e => e.Ort != Stadtort.Hafen).OrderBy(e => e.Geburtsjahr).ThenBy(e => e.Nummer).FirstOrDefault()
                        ?? frei.OrderBy(e => e.Geburtsjahr).ThenBy(e => e.Nummer).FirstOrDefault();
         var rest = frei.Where(e => !ReferenceEquals(e, _vorarbeiter)).OrderBy(e => Rang(e, s.Fenster)).ThenBy(e => e.Nummer).ToList();
         // Wer schon in der letzten Stunde trug, bleibt; frei gewordene Plätze füllen die nächsten nach dem Rang
@@ -223,7 +225,9 @@ public sealed class Hafenarbeit
         _traeger.Clear();
         _vorarbeiter = null;
         if (Daten is null) return;
-        if (SchichtInStunde(zeit.Jahr, zeit.UhrzeitInMinuten / 60) is not { } s) return;
+        // Ein Stand zur vollen Stunde enthält den Zustand vor deren Planung: dann gilt noch die Vorstunde
+        var stunde = (zeit.UhrzeitInMinuten - (zeit.MinuteImTag > 0 && zeit.MinuteImTag % 60 == 0 ? 1 : 0)) / 60;
+        if (SchichtInStunde(zeit.Jahr, stunde) is not { } s) return;
         _vorarbeiter = einwohner.FirstOrDefault(IstVorarbeiter);
         _traeger.AddRange(einwohner.Where(e => e.Ort == Stadtort.Hafen && !IstVorarbeiter(e))
             .OrderBy(e => Rang(e, s.Fenster)).ThenBy(e => e.Nummer));
