@@ -23,7 +23,7 @@ namespace Reichsgilde;
 public partial class Stadtansicht
 {
     /// <summary>Ein gesetztes Teil: Art (Datei, Knoten), Lage, ob es Schatten wirft, ob es ein Kleinteil ist und ob es im Winter fehlt.</summary>
-    private readonly record struct Fuellteil(string Datei, string Knoten, Transform3D Lage, bool Schatten, bool Klein, bool Sommer);
+    private readonly record struct Fuellteil(string Datei, string Knoten, Transform3D Lage, bool Schatten, bool Klein, bool Sommer, bool Gross);
 
     /// <summary>Ein Teil eines Rezepts, aus der Datei übersetzt (Maße in Metern im Kasten, x entlang der langen Seite).</summary>
     private sealed class Rezeptteil
@@ -34,7 +34,7 @@ public partial class Stadtansicht
         public float? Dreh;
         public float GroesseVon = 1, GroesseBis = 1, Schritt = 1, Abstand = 1;
         public int Anzahl = 1;
-        public bool Schatten, Klein, Sommer;
+        public bool Schatten, Klein, Sommer, Gross;
     }
 
     /// <summary>Die Rezepte: Nachbarart → Themen (nach Namen sortiert) mit Gewichten, Thema → Format → Teile, dazu die benutzten Baukästen.</summary>
@@ -43,6 +43,8 @@ public partial class Stadtansicht
         public readonly Dictionary<string, (string[] Themen, int[] Gewichte)> Nachbarn = new();
         public readonly Dictionary<string, Dictionary<string, List<Rezeptteil>>> Themen = new();
         public readonly SortedSet<string> Baukaesten = new(StringComparer.Ordinal);
+        /// <summary>Thema → größte Fläche (in Feldern), auf der es noch gewählt wird (der Bildstock steht nur an kleinen Ecken, nicht auf großen Plätzen).</summary>
+        public readonly Dictionary<string, int> HoechstensFelder = new();
         /// <summary>Thema → Varianten des Untergrunds (je Variante die Stempel, siehe Stadtansicht.Bodenstempel.cs); ein Thema ohne Eintrag lässt den Boden, wie er ist.</summary>
         public readonly Dictionary<string, List<List<StempelAngabe>>> Untergruende = new();
     }
@@ -55,9 +57,12 @@ public partial class Stadtansicht
     /// </summary>
     private const float FuellKleinBisZoom = 45f, FuellMittelBisZoom = 55f;
 
+    /// <summary>Große Teile (Heuschober, Holzstapel, Meiler, Bildstock; im Rezept <c>"gross": true</c>) bleiben bis zur mittleren Zoomstufe (70 m) sichtbar, in der weiten (140 m) nicht mehr.</summary>
+    private const float FuellGrossBisZoom = 75f;
+
     private Node3D? _fuellWurzel;
-    private readonly List<MultiMeshInstance3D> _fuellKlein = new(), _fuellMittel = new();
-    private (bool Klein, bool Mittel)? _fuellSichtbar;
+    private readonly List<MultiMeshInstance3D> _fuellKlein = new(), _fuellMittel = new(), _fuellGross = new();
+    private (bool Klein, bool Mittel, bool Gross)? _fuellSichtbar;
     private Node3D? _fuellSommer;
 
     /// <summary>Was zuletzt für die Karte gesetzt wurde: je Restfläche die Kästen mit ihren Teilen (für den Neuaufbau, wenn gebaut wurde).</summary>
@@ -91,6 +96,8 @@ public partial class Stadtansicht
                     formate[format] = teile!.AsArray().Select(t => TeilLesen(t!.AsObject(), modelle, r.Baukaesten)).ToList();
                 r.Themen[thema] = formate;
             }
+            if (wurzel["hoechstens_felder"] is JsonObject grenzen)
+                foreach (var (thema, felder) in grenzen) r.HoechstensFelder[thema] = felder!.GetValue<int>();
             if (wurzel["untergruende"] is JsonObject untergruende)
                 foreach (var (thema, varianten) in untergruende)
                     r.Untergruende[thema] = varianten!.AsArray().Select(v => StempelLesen(v!.AsArray(), wurzel["standard_untergrund"] as JsonObject)).ToList();
@@ -118,6 +125,7 @@ public partial class Stadtansicht
             Anzahl = t["anzahl"]?.GetValue<int>() ?? 1,
             Schatten = t["schatten"]?.GetValue<bool>() ?? false,
             Sommer = t["winter"]?.GetValue<string>() == "weg",
+            Gross = t["gross"]?.GetValue<bool>() ?? false,
         };
         if (t["flaeche"] is JsonArray { Count: >= 4 } f)
             (teil.FlaecheA, teil.FlaecheB) = (new Vector2(f[0]!.GetValue<float>(), f[1]!.GetValue<float>()), new Vector2(f[2]!.GetValue<float>(), f[3]!.GetValue<float>()));
@@ -189,6 +197,12 @@ public partial class Stadtansicht
                 kaesten.Add((kasten, formate.TryGetValue(kasten.Format, out var teile) ? KastenFuellen(teile, karte.Kennung, r.Kennung, kasten) : new List<Fuellteil>()));
             _fuellFlaechen[r.Kennung] = kaesten;
         }
+        if (Wasserarten.Startoption("fuellung") == "liste") // nur für Bilder: wo welches Thema liegt
+            foreach (var r in liste.Where(r => _fuellThemen.ContainsKey(r.Kennung)))
+            {
+                var felder = Restflaechenfuellung.Felder(r);
+                GD.Print($"[fuellliste] {_fuellThemen[r.Kennung]} {r.Kennung} {Restflaechenfuellung.Nachbarart(r, karte)} Felder {felder.Count} Mitte {felder.Average(f => (f.I + 0.5) * 2):F0},{felder.Average(f => (f.J + 0.5) * 2):F0}");
+            }
         FuellVorgeladenAbholen();
         var logik = uhr.ElapsedMilliseconds;
         FuellungAufbauen(karte);
@@ -201,8 +215,15 @@ public partial class Stadtansicht
     /// <summary>Das Thema einer Restfläche (Garten, Werkhof, Randgestrüpp): nach den Gewichten der Nachbarart und dem festen Würfel; null, wenn die Datei keins kennt.</summary>
     private static string? FuellThemaWaehlen(Restflaeche r, Stadtkarte karte, Fuellrezepte rezepte)
     {
+        if (Wasserarten.Startoption("fuellthema") is { } erzwungen && rezepte.Themen.ContainsKey(erzwungen)) return erzwungen; // nur für Bilder: jede Fläche bekommt dieses Thema
         if (rezepte.Nachbarn.GetValueOrDefault(Restflaechenfuellung.Nachbarart(r, karte)) is not { Themen: { Length: > 0 } namen } wahl) return null;
-        var nummer = Restflaechenfuellung.Waehlen(wahl.Gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
+        var gewichte = wahl.Gewichte;
+        if (rezepte.HoechstensFelder.Count > 0)
+        {
+            var felder = Restflaechenfuellung.Felder(r).Count;
+            gewichte = gewichte.Select((g, i) => rezepte.HoechstensFelder.TryGetValue(namen[i], out var grenze) && felder > grenze ? 0 : g).ToArray();
+        }
+        var nummer = Restflaechenfuellung.Waehlen(gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
         return nummer < 0 ? null : namen[nummer];
     }
 
@@ -227,7 +248,7 @@ public partial class Stadtansicht
                 var lokal = new Transform3D(new Basis(Vector3.Up, dreh).Scaled(Vector3.One * groesse), new Vector3(ort.X, 0, ort.Y));
                 var welt = kastenLage * lokal;
                 welt.Origin = new Vector3(welt.Origin.X, BodenHoehe(welt.Origin.X, welt.Origin.Z), welt.Origin.Z);
-                teile.Add(new Fuellteil(teil.Datei, name, welt, teil.Schatten, teil.Klein, teil.Sommer));
+                teile.Add(new Fuellteil(teil.Datei, name, welt, teil.Schatten, teil.Klein, teil.Sommer, teil.Gross));
             }
             float Gr(int lfd, float streuung) =>
                 Mathf.Lerp(teil.GroesseVon, teil.GroesseBis, (float)Restflaechenfuellung.Zufall(folge, lfd * 5 + 2)) * (1f + streuung * (float)(Restflaechenfuellung.Zufall(folge, lfd * 5 + 3) * 2 - 1));
@@ -288,6 +309,7 @@ public partial class Stadtansicht
         }
         _fuellKlein.Clear();
         _fuellMittel.Clear();
+        _fuellGross.Clear();
         _fuellSichtbar = null;
         _fuellWurzel = new Node3D { Name = "Restflaechenfuellung" };
         AddChild(_fuellWurzel);
@@ -296,8 +318,8 @@ public partial class Stadtansicht
         if (_fuellFlaechen.Count == 0) return;
 
         var frei = Naturfreiraum.Aus(karte, Modellmass);
-        var gruppen = new SortedDictionary<(string Datei, string Knoten, bool Schatten, bool Klein, bool Sommer, int Zx, int Zz), List<Transform3D>>(
-            Comparer<(string, string, bool, bool, bool, int, int)>.Create((a, b) => a.CompareTo(b)));
+        var gruppen = new SortedDictionary<(string Datei, string Knoten, bool Schatten, bool Klein, bool Sommer, bool Gross, int Zx, int Zz), List<Transform3D>>(
+            Comparer<(string, string, bool, bool, bool, bool, int, int)>.Create((a, b) => a.CompareTo(b)));
         var weggelassen = 0;
         foreach (var kaesten in _fuellFlaechen.Values)
             foreach (var (kasten, teile) in kaesten)
@@ -305,7 +327,7 @@ public partial class Stadtansicht
                 if (Restflaechenfuellung.Bebaut(kasten, frei)) { weggelassen++; continue; }
                 foreach (var t in teile)
                 {
-                    var schluessel = (t.Datei, t.Knoten, t.Schatten, t.Klein, t.Sommer, Mathf.FloorToInt(t.Lage.Origin.X / FuellZelle), Mathf.FloorToInt(t.Lage.Origin.Z / FuellZelle));
+                    var schluessel = (t.Datei, t.Knoten, t.Schatten, t.Klein, t.Sommer, t.Gross, Mathf.FloorToInt(t.Lage.Origin.X / FuellZelle), Mathf.FloorToInt(t.Lage.Origin.Z / FuellZelle));
                     if (!gruppen.TryGetValue(schluessel, out var liste)) gruppen[schluessel] = liste = new();
                     liste.Add(t.Lage);
                 }
@@ -320,7 +342,7 @@ public partial class Stadtansicht
             var geordnet = lagen.OrderBy(l => Restflaechenfuellung.Wuerfel("f", (int)(l.Origin.X * 10), (int)(l.Origin.Z * 10))).ToList();
             var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = geordnet.Count };
             for (var i = 0; i < geordnet.Count; i++) vielfach.SetInstanceTransform(i, geordnet[i]);
-            if (schluessel.Datei == "natur/natur_buesche" && NaturNetz(schluessel.Datei, schluessel.Knoten + "_Winter", pflicht: false) is { } winter)
+            if (HatWinterfassung(schluessel.Datei) && NaturNetz(schluessel.Datei, schluessel.Knoten + "_Winter", pflicht: false) is { } winter)
             {
                 _naturWinter.Add((vielfach, netz, winter));
                 if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
@@ -339,6 +361,7 @@ public partial class Stadtansicht
                 _naturDetails.Add(detail);
                 NaturDichteSetzen(detail);
             }
+            else if (schluessel.Gross) _fuellGross.Add(teil);
             else _fuellMittel.Add(teil);
         }
     }
@@ -352,7 +375,7 @@ public partial class Stadtansicht
         foreach (var gruppe in gebraucht.Distinct().GroupBy(g => g.Datei))
         {
             var namen = gruppe.Select(g => g.Knoten).ToList();
-            if (gruppe.Key == "natur/natur_buesche") namen.AddRange(namen.Select(n => n + "_Winter").ToList());
+            if (HatWinterfassung(gruppe.Key)) namen.AddRange(namen.Select(n => n + "_Winter").ToList());
             namen = namen.Where(n => !_naturNetze.ContainsKey((gruppe.Key, n))).Distinct().ToList();
             if (namen.Count == 0 || Modell(gruppe.Key)?.Instantiate<Node3D>() is not { } kasten) continue;
             foreach (var n in namen)
@@ -365,17 +388,22 @@ public partial class Stadtansicht
         }
     }
 
+    /// <summary>Baukästen, deren Teile eine kahle bzw. verschneite Fassung <c>&lt;Name&gt;_Winter</c> haben (das Netz wird mit der Jahreszeit getauscht).</summary>
+    private static bool HatWinterfassung(string datei) => datei is "natur/natur_buesche" or "natur/natur_baeume" || datei.StartsWith("props/fuellung_", StringComparison.Ordinal);
+
     /// <summary>Jedes Bild (aus <see cref="FeinheitenNachZoom"/>): Die Füllung nur in der nahen Zoomstufe zeigen (siehe <see cref="FuellKleinBisZoom"/>).</summary>
     private void FuellungNachZoom()
     {
         var innen = _raum is not null;
-        var sichtbar = (innen || _kamera.Size <= Math.Min(FuellKleinBisZoom, FeinheitenBisZoom(Fenster.AktuelleFeinheiten)), innen || _kamera.Size <= FuellMittelBisZoom);
+        var sichtbar = (innen || _kamera.Size <= Math.Min(FuellKleinBisZoom, FeinheitenBisZoom(Fenster.AktuelleFeinheiten)), innen || _kamera.Size <= FuellMittelBisZoom, innen || _kamera.Size <= FuellGrossBisZoom);
         if (_fuellSichtbar == sichtbar) return;
         _fuellSichtbar = sichtbar;
         foreach (var teil in _fuellKlein)
             if (IsInstanceValid(teil)) teil.Visible = sichtbar.Item1;
         foreach (var teil in _fuellMittel)
             if (IsInstanceValid(teil)) teil.Visible = sichtbar.Item2;
+        foreach (var teil in _fuellGross)
+            if (IsInstanceValid(teil)) teil.Visible = sichtbar.Item3;
     }
 
     /// <summary>Die Jahreszeit hat gewechselt: Blumen gibt es im Winter nicht (Büsche tauschen in <see cref="JahreszeitSetzen"/> gegen die kahle Fassung).</summary>

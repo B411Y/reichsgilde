@@ -156,5 +156,36 @@ static class RestflaechenfuellungTests
                 if (kennung == "koeln") Pruefe.Wahr(arten.Distinct().Count() >= 2, "Köln hat verschiedene Nachbarschaften: " + string.Join(",", arten));
             }
         }),
+
+        ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die neuen Themen Kirchhof, Holzplatz, Heuschober und Bildstock sind da, ihr Winterknoten auch", () =>
+        {
+            var pfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json");
+            var wurzel = JsonNode.Parse(File.ReadAllText(pfad))!;
+            var modelle = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(pfad))!, "assets", "modelle");
+            var namen = new Dictionary<string, HashSet<string>>();
+            HashSet<string> Knoten(string datei)
+            {
+                if (namen.TryGetValue(datei, out var vorhanden)) return vorhanden;
+                var bytes = File.ReadAllBytes(Path.Combine(modelle, datei + ".glb"));
+                var laenge = BitConverter.ToInt32(bytes, 12); // erster Block: JSON
+                var json = JsonNode.Parse(System.Text.Encoding.UTF8.GetString(bytes, 20, laenge))!;
+                return namen[datei] = json["nodes"]!.AsArray().Select(n => n!["name"]?.GetValue<string>() ?? "").ToHashSet();
+            }
+            foreach (var thema in new[] { "kirchhof", "holzplatz", "heuschober", "bildstock" })
+                Pruefe.Wahr(wurzel["themen"]![thema] is not null, $"Thema {thema} gibt es");
+            foreach (var (thema, inhalt) in wurzel["themen"]!.AsObject())
+                foreach (var (format, teile) in inhalt!["formate"]!.AsObject())
+                    foreach (var teil in teile!.AsArray())
+                    {
+                        var datei = wurzel["modelle"]![teil!["m"]!.GetValue<string>()]!.GetValue<string>();
+                        var gesucht = teil["k"] is JsonArray a ? a.Select(k => k!.GetValue<string>()).ToList() : new List<string> { teil["k"]!.GetValue<string>() };
+                        foreach (var k in gesucht)
+                        {
+                            Pruefe.Wahr(Knoten(datei).Contains(k), $"{thema} {format}: Knoten {k} in {datei}.glb");
+                            if (datei.StartsWith("props/fuellung_")) Pruefe.Wahr(Knoten(datei).Contains(k + "_Winter") || k == "Kohlenmeiler", $"{datei}: {k} hat eine Winterfassung");
+                        }
+                    }
+            Pruefe.Wahr(wurzel["hoechstens_felder"]!["bildstock"]!.GetValue<int>() > 0, "der Bildstock gilt nur für kleine Flächen");
+        }),
     };
 }

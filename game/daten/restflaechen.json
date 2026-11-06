@@ -1,17 +1,30 @@
 {
   "version": 1,
   "_hinweis": "Untergründe: \"untergruende\" gibt je Thema Varianten (je Variante die Bodenstempel, Felder siehe bodenstempel.json; der Stempel deckt alle Felder der Restfläche, die Variante wählt der feste Würfel; Randgestrüpp bleibt Wiese). Rezepte der Restflächen-Füllung (nur Darstellung, Stadtansicht.Restflaechen.cs). Maße in Metern im Kasten: x entlang der langen Seite, z quer, Mitte = 0; ein Feld = 2 m. Formate: 1x1 2x2 m, 1x2 4x2, 2x2 4x4, 1x3 6x2, 1x4 8x2, 1x5 10x2, 2x3 6x4, 3x3 6x6 (Hochkant wird gedreht). Gedrehte Kästen und 180°-Wenden würfelt die Stadtansicht je Ort.",
-  "modelle": {"dorf": "props/props_dorf", "ding": "props/props_gegenstaende", "boden": "natur/natur_boden", "kitboden": "natur/natur_kit_boden", "busch": "natur/natur_buesche", "holz": "natur/natur_holz", "stein": "natur/natur_steine", "kitstein": "natur/natur_kit_steine", "baum": "natur/natur_baeume"},
+  "modelle": {"dorf": "props/props_dorf", "ding": "props/props_gegenstaende", "boden": "natur/natur_boden", "kitboden": "natur/natur_kit_boden", "busch": "natur/natur_buesche", "holz": "natur/natur_holz", "stein": "natur/natur_steine", "kitstein": "natur/natur_kit_steine", "baum": "natur/natur_baeume", "kirchhof": "props/fuellung_kirchhof", "holzplatz": "props/fuellung_holzplatz", "heuschober": "props/fuellung_heuschober", "bildstock": "props/fuellung_bildstock", "kit": "props/props_fuellung_kit"},
   "nachbarn": {
-    "wohnen": {"garten": 70, "werkhof": 10, "randgestruepp": 20},
-    "werkstatt": {"werkhof": 65, "garten": 10, "randgestruepp": 25},
-    "kirche": {"garten": 55, "randgestruepp": 45},
-    "rand": {"randgestruepp": 75, "garten": 10, "werkhof": 15},
-    "sonst": {"garten": 35, "werkhof": 25, "randgestruepp": 40}
+    "wohnen": {"garten": 56, "werkhof": 8, "randgestruepp": 16, "bildstock": 8, "heuschober": 6, "holzplatz": 6},
+    "werkstatt": {"werkhof": 40, "garten": 8, "randgestruepp": 17, "holzplatz": 20, "heuschober": 10, "bildstock": 5},
+    "kirche": {"garten": 25, "randgestruepp": 20, "kirchhof": 45, "bildstock": 10},
+    "rand": {"randgestruepp": 45, "garten": 6, "werkhof": 9, "heuschober": 20, "holzplatz": 12, "bildstock": 8},
+    "sonst": {"garten": 25, "werkhof": 20, "randgestruepp": 25, "holzplatz": 8, "heuschober": 12, "bildstock": 10}
   },
+  "hoechstens_felder": {"bildstock": 4},
   "untergruende": {
     "garten": [
       [{"textur": "erde", "staerke": 0.75, "fleck": 0.6, "rand": 1.0, "rauschen": 0.3}]
+    ],
+    "kirchhof": [[]],
+    "holzplatz": [
+      [{"textur": "erde", "staerke": 0.92, "rand": 1.0, "rauschen": 0.3}],
+      [{"textur": "waldboden", "staerke": 0.8, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.9, "rand": 1.0, "rauschen": 0.3}]
+    ],
+    "heuschober": [
+      [{"textur": "erde", "staerke": 0.85, "fleck": 0.4, "rand": 1.0, "rauschen": 0.3}],
+      [{"textur": "lehm", "staerke": 0.8, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.8, "rand": 1.0, "rauschen": 0.3}]
+    ],
+    "bildstock": [
+      [{"textur": "kies", "staerke": 0.6, "fleck": 0.5, "rand": 0.8, "rauschen": 0.3}]
     ],
     "werkhof": [
       [{"textur": "erde", "staerke": 0.92, "rand": 1.0, "rauschen": 0.3}],
@@ -228,6 +241,196 @@
         {"art": "streu", "m": "boden", "k": ["Farn1", "Pilze1"], "flaeche": [-2.5, -0.5, 0.5, 0.8], "anzahl": 3, "groesse": 1},
         {"art": "streu", "m": "boden", "k": ["Brennnessel1", "Gras1"], "flaeche": [-2.8, -2.8, 2.8, 2.8], "anzahl": 14, "groesse": 1},
         {"art": "streu", "m": "boden", "k": "Wildblumen1", "flaeche": [0.5, -1.5, 2.5, 0.0], "anzahl": 2, "groesse": 1, "winter": "weg"}
+      ]
+    } },
+    "kirchhof": { "name": "Kirchhof", "formate": {
+      "1x1": [
+        {"m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "x": 0, "z": 0, "dreh": 0, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-0.9, -0.9, 0.9, 0.9], "anzahl": 3, "groesse": 1}
+      ],
+      "1x2": [
+        {"m": "kirchhof", "k": "GrabkreuzStein", "x": -1.0, "z": 0, "dreh": 0, "groesse": 1},
+        {"m": "kirchhof", "k": "GrabkreuzHolz", "x": 1.0, "z": 0.05, "dreh": 6, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-1.9, -0.9, 1.9, 0.9], "anzahl": 4, "groesse": 1}
+      ],
+      "1x3": [
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-2.4, 0], "bis": [2.4, 0], "schritt": 1.6, "groesse": 1},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-2.9, -0.9, 2.9, 0.9], "anzahl": 5, "groesse": 1}
+      ],
+      "1x4": [
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-3.2, 0], "bis": [3.2, 0], "schritt": 1.6, "groesse": 1},
+        {"art": "streu", "m": "kit", "k": "Mauerrest1", "flaeche": [3.3, -0.8, 3.9, 0.8], "anzahl": 3, "groesse": 2.4},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-3.9, -0.9, 3.9, 0.9], "anzahl": 6, "groesse": 1}
+      ],
+      "1x5": [
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-4.2, 0], "bis": [2.2, 0], "schritt": 1.6, "groesse": 1},
+        {"m": "ding", "k": "Bank1", "x": 3.6, "z": 0.45, "dreh": 0, "groesse": 1},
+        {"art": "streu", "m": "kit", "k": "Mauerrest2", "flaeche": [4.3, -0.8, 4.9, 0.8], "anzahl": 3, "groesse": 2.4},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-4.9, -0.9, 4.9, 0.9], "anzahl": 7, "groesse": 1}
+      ],
+      "2x2": [
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-2, -1.4], "bis": [2, -1.4], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"m": "kirchhof", "k": "Grabplatte", "x": 0, "z": 1.4, "dreh": 0, "groesse": 1},
+        {"m": "baum", "k": "Apfelbaum1", "x": 0.2, "z": 0.15, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-1.8, -1.8, 1.8, 1.8], "anzahl": 6, "groesse": 1}
+      ],
+      "2x3": [
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-3, -1.4], "bis": [3, -1.4], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"m": "kirchhof", "k": "GrabkreuzStein", "x": 0.0, "z": 1.3, "dreh": 90, "groesse": 1},
+        {"m": "kirchhof", "k": "Grabplatte", "x": 2.1, "z": 1.3, "dreh": 0, "groesse": 1},
+        {"m": "baum", "k": "Apfelbaum2", "x": -2.0, "z": 0.6, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"art": "streu", "m": "kit", "k": "Mauerrest3", "flaeche": [-2.8, 1.4, -1.0, 1.9], "anzahl": 3, "groesse": 2.4},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-2.8, -1.8, 2.8, 1.8], "anzahl": 8, "groesse": 1}
+      ],
+      "3x3": [
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-3, -2.3], "bis": [3, -2.3], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"art": "reihe", "m": "kirchhof", "k": ["GrabkreuzHolz", "GrabkreuzStein"], "von": [-3, 2.3], "bis": [3, 2.3], "schritt": 2.0, "groesse": 1, "dreh": 90},
+        {"m": "baum", "k": "Apfelbaum1", "x": 0, "z": 0.1, "dreh": 0, "groesse": 1.0, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": -2.2, "z": 0.1, "dreh": 90, "groesse": 1},
+        {"m": "ding", "k": "Bank1", "x": 2.2, "z": 0.1, "dreh": 90, "groesse": 1},
+        {"art": "streu", "m": "kit", "k": "Mauerrest4", "flaeche": [-2.8, -0.5, -1.9, 0.7], "anzahl": 3, "groesse": 2.4},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-2.8, -2.8, 2.8, 2.8], "anzahl": 12, "groesse": 1}
+      ]
+    } },
+    "holzplatz": { "name": "Holzplatz", "formate": {
+      "1x1": [
+        {"m": "holzplatz", "k": "Hackklotz", "x": 0, "z": 0, "dreh": 15, "groesse": 1},
+        {"art": "streu", "m": "holz", "k": "Totholz1", "flaeche": [-0.9, 0.5, 0.9, 0.9], "anzahl": 1, "groesse": 0.4}
+      ],
+      "1x2": [
+        {"m": "holzplatz", "k": "HolzstapelKlein", "x": -1.0, "z": 0, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Hackklotz", "x": 1.2, "z": 0.0, "dreh": 20, "groesse": 1}
+      ],
+      "1x3": [
+        {"m": "holzplatz", "k": "Scheitwand", "x": -1.4, "z": -0.5, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "HolzstapelKlein", "x": -1.3, "z": 0.55, "dreh": 0, "groesse": 0.7},
+        {"m": "holzplatz", "k": "Hackklotz", "x": 1.7, "z": 0.0, "dreh": 10, "groesse": 1},
+        {"m": "holz", "k": "Reisighaufen1", "x": 2.5, "z": 0.5, "dreh": 0, "groesse": 0.7}
+      ],
+      "1x4": [
+        {"art": "reihe", "m": "holzplatz", "k": "Scheitwand", "von": [-4, -0.55], "bis": [0.5, -0.55], "schritt": 2.25, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Hackklotz", "x": 1.7, "z": 0.1, "dreh": 5, "groesse": 1},
+        {"m": "holzplatz", "k": "HolzstapelKlein", "x": 3.2, "z": 0.05, "dreh": 0, "groesse": 1, "gross": true, "schatten": true}
+      ],
+      "1x5": [
+        {"art": "reihe", "m": "holzplatz", "k": "Scheitwand", "von": [-5, -0.55], "bis": [-0.5, -0.55], "schritt": 2.25, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "HolzstapelGross", "x": 1.6, "z": 0.1, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Hackklotz", "x": 3.6, "z": 0.0, "dreh": 15, "groesse": 1},
+        {"m": "holz", "k": "Reisighaufen1", "x": 4.4, "z": 0.45, "dreh": 0, "groesse": 0.7}
+      ],
+      "2x2": [
+        {"m": "holzplatz", "k": "Kohlenmeiler", "x": 0, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Hackklotz", "x": 1.5, "z": -1.4, "dreh": 0, "groesse": 0.7},
+        {"art": "streu", "m": "holz", "k": "Totholz1", "flaeche": [-1.8, 1.2, -0.6, 1.8], "anzahl": 2, "groesse": 0.4}
+      ],
+      "2x3": [
+        {"m": "holzplatz", "k": "Kohlenmeiler", "x": -1.3, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Scheitwand", "x": 1.9, "z": -1.4, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "HolzstapelGross", "x": 1.9, "z": 0.95, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Hackklotz", "x": -1.9, "z": 1.55, "dreh": 0, "groesse": 0.7}
+      ],
+      "3x3": [
+        {"m": "holzplatz", "k": "Kohlenmeiler", "x": -1.5, "z": -1.4, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "HolzstapelGross", "x": 1.7, "z": -2.1, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"art": "reihe", "m": "holzplatz", "k": "Scheitwand", "von": [-3, 2.5], "bis": [1.5, 2.5], "schritt": 2.25, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "holzplatz", "k": "Hackklotz", "x": 1.7, "z": 0.1, "dreh": 10, "groesse": 1},
+        {"m": "holzplatz", "k": "Geruempel", "x": 2.4, "z": 1.1, "dreh": 30, "groesse": 0.9},
+        {"art": "streu", "m": "holz", "k": "Reisighaufen1", "flaeche": [-2.8, 0.3, -0.6, 1.2], "anzahl": 1, "groesse": 0.8}
+      ]
+    } },
+    "heuschober": { "name": "Heuschober", "formate": {
+      "1x1": [
+        {"m": "heuschober", "k": "Strohballen", "x": 0, "z": 0, "dreh": 10, "groesse": 0.9}
+      ],
+      "1x2": [
+        {"m": "heuschober", "k": "Heuhaufen", "x": -0.9, "z": 0, "dreh": 0, "groesse": 0.75, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Strohballen", "x": 1.3, "z": 0.0, "dreh": 20, "groesse": 0.9}
+      ],
+      "1x3": [
+        {"m": "heuschober", "k": "Heuhaufen", "x": -1.8, "z": 0, "dreh": 0, "groesse": 0.75, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Strohballen", "x": 0.7, "z": 0.0, "dreh": 0, "groesse": 0.85},
+        {"m": "heuschober", "k": "Strohballen", "x": 1.85, "z": 0.05, "dreh": 20, "groesse": 0.85}
+      ],
+      "1x4": [
+        {"m": "heuschober", "k": "Heuhaufen", "x": -2.9, "z": 0, "dreh": 0, "groesse": 0.75, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Heuhaufen", "x": -0.9, "z": 0.0, "dreh": 0, "groesse": 0.7, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Strohballen", "x": 1.2, "z": 0, "dreh": 0, "groesse": 0.85},
+        {"m": "heuschober", "k": "Strohballen", "x": 2.3, "z": 0.1, "dreh": 15, "groesse": 0.85},
+        {"m": "dorf", "k": "Handwagen1", "x": 3.3, "z": 0.0, "dreh": 90, "groesse": 1}
+      ],
+      "1x5": [
+        {"m": "heuschober", "k": "Heuhaufen", "x": -3.9, "z": 0, "dreh": 0, "groesse": 0.75, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Heuhaufen", "x": -1.8, "z": 0.05, "dreh": 40, "groesse": 0.75, "gross": true, "schatten": true},
+        {"art": "reihe", "m": "heuschober", "k": "Strohballen", "von": [0.2, 0.0], "bis": [4.7, 0.05], "schritt": 1.15, "groesse": 0.85}
+      ],
+      "2x2": [
+        {"m": "heuschober", "k": "Heuhaufen", "x": 0, "z": 0, "dreh": 0, "groesse": 1.3, "gross": true, "schatten": true}
+      ],
+      "2x3": [
+        {"m": "heuschober", "k": "Strohmiete", "x": -1.6, "z": 0, "dreh": 0, "groesse": 1.0, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Heuhaufen", "x": 2.2, "z": 0.95, "dreh": 0, "groesse": 0.7, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Strohballen", "x": 1.4, "z": -1.25, "dreh": 0, "groesse": 0.8},
+        {"m": "heuschober", "k": "Strohballen", "x": 2.6, "z": -1.25, "dreh": 15, "groesse": 0.8}
+      ],
+      "3x3": [
+        {"m": "heuschober", "k": "Strohmiete", "x": -1.6, "z": -1.6, "dreh": 0, "groesse": 1.1, "gross": true, "schatten": true},
+        {"m": "heuschober", "k": "Heuhaufen", "x": 1.8, "z": -1.6, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"art": "reihe", "m": "heuschober", "k": "Strohballen", "von": [-3, 1.7], "bis": [0.5, 1.7], "schritt": 1.2, "groesse": 0.85},
+        {"m": "dorf", "k": "Handwagen1", "x": 2.0, "z": 1.7, "dreh": 90, "groesse": 1}
+      ]
+    } },
+    "bildstock": { "name": "Bildstock", "formate": {
+      "1x1": [
+        {"m": "bildstock", "k": "Bildstock", "x": 0, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-0.9, -0.9, 0.9, 0.9], "anzahl": 3, "groesse": 1, "winter": "weg"},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-0.9, -0.9, 0.9, 0.9], "anzahl": 2, "groesse": 1}
+      ],
+      "1x2": [
+        {"m": "bildstock", "k": "Bildstock", "x": -1.0, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": 1.0, "z": 0.5, "dreh": 0, "groesse": 1},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-1.9, -0.9, 1.9, 0.9], "anzahl": 4, "groesse": 1, "winter": "weg"}
+      ],
+      "1x3": [
+        {"m": "bildstock", "k": "Bildstock", "x": -2.0, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": 0.2, "z": 0.5, "dreh": 0, "groesse": 1},
+        {"m": "busch", "k": "Holunder1", "x": 2.2, "z": -0.1, "dreh": 0, "groesse": 0.7, "schatten": true},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-2.9, -0.9, 2.9, 0.9], "anzahl": 4, "groesse": 1, "winter": "weg"}
+      ],
+      "1x4": [
+        {"m": "bildstock", "k": "Bildstock", "x": -3.0, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": -0.8, "z": 0.5, "dreh": 0, "groesse": 1},
+        {"m": "busch", "k": "Holunder1", "x": 1.6, "z": -0.1, "dreh": 0, "groesse": 0.7, "schatten": true},
+        {"m": "busch", "k": "Hasel1", "x": 3.0, "z": 0.1, "dreh": 0, "groesse": 0.7, "schatten": true},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-3.9, -0.9, 3.9, 0.9], "anzahl": 5, "groesse": 1, "winter": "weg"}
+      ],
+      "1x5": [
+        {"m": "bildstock", "k": "WegkreuzHolz", "x": -4.0, "z": 0, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "bildstock", "k": "Bildstock", "x": -1.8, "z": 0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": 0.5, "z": 0.5, "dreh": 0, "groesse": 1},
+        {"m": "busch", "k": "Holunder1", "x": 2.6, "z": -0.1, "dreh": 0, "groesse": 0.7, "schatten": true},
+        {"m": "busch", "k": "Hasel1", "x": 4.1, "z": 0.1, "dreh": 0, "groesse": 0.7, "schatten": true},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-4.9, -0.9, 4.9, 0.9], "anzahl": 6, "groesse": 1, "winter": "weg"}
+      ],
+      "2x2": [
+        {"m": "bildstock", "k": "Bildstock", "x": 0, "z": -0.5, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": 0, "z": 1.3, "dreh": 0, "groesse": 1},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-1.8, -1.8, 1.8, 1.8], "anzahl": 5, "groesse": 1, "winter": "weg"},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-1.8, -1.8, 1.8, 1.8], "anzahl": 4, "groesse": 1}
+      ],
+      "2x3": [
+        {"m": "bildstock", "k": "WegkreuzHolz", "x": -1.6, "z": -0.4, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": 0.6, "z": 1.3, "dreh": 0, "groesse": 1},
+        {"m": "baum", "k": "Apfelbaum2", "x": 2.1, "z": -0.8, "dreh": 0, "groesse": 0.8, "schatten": true},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-2.8, -1.8, 2.8, 1.8], "anzahl": 6, "groesse": 1, "winter": "weg"},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-2.8, -1.8, 2.8, 1.8], "anzahl": 5, "groesse": 1}
+      ],
+      "3x3": [
+        {"m": "bildstock", "k": "Bildstock", "x": 0, "z": -0.6, "dreh": 0, "groesse": 1.0, "gross": true, "schatten": true},
+        {"m": "ding", "k": "Bank1", "x": -1.6, "z": 1.4, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Bank1", "x": 1.6, "z": 1.4, "dreh": 0, "groesse": 1},
+        {"m": "baum", "k": "Linde2", "x": -2.2, "z": -2.0, "dreh": 0, "groesse": 0.7, "schatten": true},
+        {"art": "streu", "m": "kitboden", "k": "KitBlumen1", "flaeche": [-2.8, -2.8, 2.8, 2.8], "anzahl": 9, "groesse": 1, "winter": "weg"},
+        {"art": "streu", "m": "boden", "k": "Gras1", "flaeche": [-2.8, -2.8, 2.8, 2.8], "anzahl": 8, "groesse": 1}
       ]
     } }
   }
