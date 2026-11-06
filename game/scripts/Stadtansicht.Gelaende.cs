@@ -129,7 +129,7 @@ public partial class Stadtansicht
     /// in den Boden hinein, auf der Fläche des Gebäudes. <paramref name="mitte"/> und <paramref name="drehung"/> sind lokal im Knoten <paramref name="eltern"/>.
     /// Merkt die Fläche für <see cref="FussHoehe"/>. Unter 12 cm Unterschied braucht es keinen Sockel (null).
     /// </summary>
-    private MeshInstance3D? SockelBauen(Node3D eltern, Vector3 mitte, float drehung, Vector2 groesse, float tiefe)
+    private MeshInstance3D? SockelBauen(Node3D eltern, Vector3 mitte, float drehung, Vector2 groesse, float tiefe, bool erde = false)
     {
         if (tiefe < 0.12f || groesse == Vector2.Zero) return null;
         const float einsatz = 0.35f;
@@ -143,8 +143,11 @@ public partial class Stadtansicht
             Rotation = new Vector3(0, drehung, 0),
         };
         eltern.AddChild(sockel);
+        // Höfe vor der Stadt (Boden Stufe 2): oben festgetretene Erde wie der Hof des Modells (Stadtansicht.Bodenstempel.cs), kein helles Pflaster – das war die
+        // graue Fläche um die Mühle auf hängigem Gelände
+        if (erde) sockel.MaterialOverride = Material(Weg);
         // oben liegt das Pflaster (nicht der helle Bruchstein): So sieht der Sockel wie ein gepflasterter Vorplatz aus
-        sockel.AddChild(new MeshInstance3D
+        else sockel.AddChild(new MeshInstance3D
         {
             Name = "Pflaster", Mesh = new PlaneMesh { Size = new Vector2(groesse.X - 0.15f, groesse.Y - 0.15f) }, MaterialOverride = Material(Pflaster),
             Position = new Vector3(0, hoehe / 2 + 0.02f, 0),
@@ -158,7 +161,8 @@ public partial class Stadtansicht
         var (hoehe, tiefe) = FundamentVon(g);
         if (hoehe == 0 && tiefe == 0) return;
         FundamentMerken(Punkt3(g.Punkt), DrehungVon(g), GroesseVon(g), hoehe);
-        SockelBauen(this, new Vector3((float)g.Punkt[0], hoehe, (float)g.Punkt[1]), DrehungVon(g), GroesseVon(g), tiefe);
+        SockelBauen(this, new Vector3((float)g.Punkt[0], hoehe, (float)g.Punkt[1]), DrehungVon(g), GroesseVon(g), tiefe,
+            erde: g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell?.StartsWith("wasser/") != true);
     }
 
     /// <summary>
