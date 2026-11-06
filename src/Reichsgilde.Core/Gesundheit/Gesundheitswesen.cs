@@ -204,7 +204,8 @@ public sealed class Gesundheitswesen
         var e = p.Krankheit;
         var bis = dauer == 1 ? "bis zum Jahresende" : $"bis Ende {e.Bis}";
         _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} ist krank: {e.Beschreibung} – {bis}" +
-                                    (e.SterbeChance > 0 ? $", gefährlich ({Zahlenformat.Ganz(e.SterbeChance * 100)} % tödlich)." : "."), Meldungsart.Krankheit, p);
+                                    (e.SterbeChance > 0 ? $", gefährlich ({Zahlenformat.Ganz(e.SterbeChance * 100)} % tödlich)." : "."), Meldungsart.Krankheit, p,
+                                    name == Erkrankung.PestName ? Meldungswichtigkeit.Hoch : null);
         return true;
     }
 

@@ -136,6 +136,7 @@ static class MeldungTests
             Pruefe.Gleich(Meldungswichtigkeit.Normal, krank.Wichtigkeit);
             var pest = Einzig(sim, spieler, meldungen, new EntwicklerKrankheit(kind.Nummer, "Pest"), Meldungsart.Krankheit);
             Pruefe.Gleich(kind, w.PersonVon(pest), "auch die Pest ist eine Krankheit der Person");
+            Pruefe.Gleich(Meldungswichtigkeit.Hoch, pest.Wichtigkeit, "die Pest im Haus ist wichtiger");
             var tod = Einzig(sim, spieler, meldungen, new EntwicklerTod(kind.Nummer), Meldungsart.TodFamilie);
             Pruefe.Gleich(kind, w.PersonVon(tod), "der Tote");
             Pruefe.Gleich(Meldungsort.Keiner, tod.Ort);
@@ -182,19 +183,23 @@ static class MeldungTests
             }
         }),
 
-        ("Meldungen: echte Partie (Köln, 3 Jahre) – die Ansagen nach Art sind für jedes Haus dieselben wie nach dem alten Wortlaut; Nachrichten an Auftraggeber vertraulich", () =>
+        ("Meldungen: echte Partien (Köln und Greybox, je 3 Jahre) – die Ansagen nach Art sind für jedes Haus dieselben wie nach dem alten Wortlaut; Nachrichten an Auftraggeber vertraulich", () =>
         {
             var gemeldet = new List<Meldung>();
             var abweichungen = new List<string>();
             var angesagt = 0;
+            foreach (var (karte, startwert) in new[] { ("koeln", 101), ("greybox", 4711) })
+            {
             var angemeldet = false;
-            var ergebnis = Messpartie.Spielen(Meldungsmessung.Aufbau("Ausbau", "koeln", 101, 3), new Messquellen(), jeMinute: w =>
+            var diese = new List<Meldung>();
+            var ergebnis = Messpartie.Spielen(Meldungsmessung.Aufbau("Ausbau", karte, startwert, 3), new Messquellen(), jeMinute: w =>
             {
                 if (angemeldet) return;
                 angemeldet = true;
                 w.Gemeldet += m =>
                 {
                     gemeldet.Add(m);
+                    diese.Add(m);
                     foreach (var k in w.Konten)
                     {
                         var alt = AlteAnsage(m.Text, w, k);
@@ -205,12 +210,15 @@ static class MeldungTests
                     }
                 };
             });
-            Pruefe.Wahr(ergebnis.Fehler is null, "Partie ohne Fehler: " + ergebnis.Fehler);
-            Pruefe.Wahr(gemeldet.Count > 100, $"genug Meldungen ({gemeldet.Count})");
+            Pruefe.Wahr(ergebnis.Fehler is null, $"Partie {karte} ohne Fehler: " + ergebnis.Fehler);
+            for (var i = 1; i < diese.Count; i++)
+                Pruefe.Wahr(diese[i].Minute >= diese[i - 1].Minute, $"Spielminuten steigen ({karte})");
+            }
+            Pruefe.Wahr(gemeldet.Count > 200, $"genug Meldungen ({gemeldet.Count})");
             Pruefe.Wahr(abweichungen.Count == 0, $"{abweichungen.Count} Abweichungen, etwa: {string.Join("\n    ", abweichungen.Take(5))}");
             Pruefe.Wahr(angesagt > 20, $"genug Ansagen verglichen ({angesagt})");
             var arten = gemeldet.Select(m => m.Art).Distinct().Count();
-            Pruefe.Wahr(arten >= 5, $"mehrere Arten kommen vor ({arten})");
+            Pruefe.Wahr(arten >= 6, $"mehrere Arten kommen vor ({arten})");
             // Nachrichten der Unterwelt an ihren Auftraggeber: vertraulich, mit Haus
             var geheim = gemeldet.Where(m => m.Text.StartsWith("Eure ", StringComparison.Ordinal)).ToList();
             Pruefe.Wahr(geheim.All(m => m.Vertraulich && m.Haus is not null), "„Eure …“ ist vertraulich und trägt das Haus");
@@ -221,8 +229,6 @@ static class MeldungTests
             // Betrieb als Ort: der Name ist ein Betrieb, der Stillstand nennt ihn vorn
             foreach (var m in gemeldet.Where(m => m.Art is Meldungsart.LagerLeer or Meldungsart.LagerVoll or Meldungsart.KasseKnapp))
                 Pruefe.Wahr(m.Ort == Meldungsort.Betrieb && m.Text.StartsWith(m.Ortsname + ": ", StringComparison.Ordinal), "Ort des Betriebs: " + m.Text);
-            for (var i = 1; i < gemeldet.Count; i++)
-                Pruefe.Wahr(gemeldet[i].Minute >= gemeldet[i - 1].Minute, "Spielminuten steigen");
         }),
 
         ("Meldungen: Verlauf im Spielstand – speichern, laden und gleich weiterspielen; ohne Feld oder alter Spielstand leer; höchstens 500, unbekannte Häuser fallen weg", () =>
@@ -271,6 +277,30 @@ static class MeldungTests
             Pruefe.Gleich(Stadtwirtschaft.MeldungsverlaufLaenge, w2.Meldungsverlauf.Count);
             Pruefe.Gleich("M101", w2.Meldungsverlauf[0].Text);
             Pruefe.Gleich(Meldungsart.Sonstiges, w2.Meldungsverlauf[^1].Art);
+        }),
+
+        ("Meldungen: Einstufung nach dem Haus des Kerns – eigen, fremd, vertraulich verworfen; die eigene Klage gegen ein anderes Haus bleibt eigen", () =>
+        {
+            var (sim, spieler, rivale, _) = Partie();
+            var w = sim.Wirtschaft!;
+            var ordnung = Meldungsordnung.AusJson(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!,
+                "game", "daten", "meldungen.json")));
+            int Nr(Konto k) => w.Konten.ToList().IndexOf(k);
+            Einstufung E(Meldung m) => ordnung.Einstufen(w, spieler, m.Text, m);
+            var b = w.Betriebe.First(x => x.Konto == spieler);
+            var eigen = E(new Meldung(Meldungsart.LagerLeer, $"{b.Name}: Es fehlt Holz – die Arbeit ruht.") { Haus = Nr(spieler), Ort = Meldungsort.Betrieb, Ortsname = b.Name });
+            Pruefe.Gleich(Betroffenheit.Eigen, eigen.Bezug);
+            Pruefe.Gleich("Stillstand", eigen.Art.Id, "Art aus dem Feld „kern“");
+            var tod = E(new Meldung(Meldungsart.TodFamilie, "Trauer im Haus X: jemand ist gestorben.") { Haus = Nr(rivale) });
+            Pruefe.Gleich(Betroffenheit.Fremd, tod.Bezug);
+            Pruefe.Gleich("Tod", tod.Art.Id);
+            var geheim = E(new Meldung(Meldungsart.Sonstiges, "Eure Diebe haben in X Ware erbeutet.") { Haus = Nr(rivale), Vertraulich = true });
+            Pruefe.Wahr(geheim.Verwerfen, "fremde vertrauliche Nachricht verworfen");
+            Pruefe.Wahr(!E(new Meldung(Meldungsart.Sonstiges, "Eure Diebe haben in X Ware erbeutet.") { Haus = Nr(spieler), Vertraulich = true }).Verwerfen, "eigene bleibt");
+            var klage = E(new Meldung(Meldungsart.Anklage, $"{spieler.Inhaber} klagt {rivale.Inhaber} wegen Diebstahl an (2 Beweise).") { Haus = Nr(rivale) });
+            Pruefe.Gleich(Betroffenheit.Eigen, klage.Bezug, "die eigene Klage");
+            Pruefe.Wahr(KlangAnsagenErkennung.Erkennen(new Meldung(Meldungsart.Anklage, "x") { Haus = Nr(rivale), Wichtigkeit = Meldungswichtigkeit.Hoch }, w, spieler) is null,
+                "angesagt wird sie nur dem Beklagten");
         }),
 
         ("Meldungen: derselbe Verlauf in zwei Läufen und mit deutscher Ländereinstellung (Mehrspieler)", () =>
