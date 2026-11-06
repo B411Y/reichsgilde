@@ -55,7 +55,7 @@ public partial class Stadtansicht
 
     /// <summary>Test (<c>--diebtest=nacht|einbruch|bande|fremd</c>): kurz nach 20 Uhr trägt die Stadt selbst einen Vorfall ins Bild ein (nur Bild, der Kern merkt nichts).</summary>
     public string? NachtProbe { get; set; }
-    private bool _nachtProbeGemacht;
+    private bool _nachtProbeGemacht, _nachtWarGezeigt;
     /// <summary>Test (<c>--diebtest=nachtfolge</c>): die Zeit hält dreimal 6 s bei einem eigenen Täter an (Anschleichen, Tür, Flucht).</summary>
     public bool NachtFolge { get; set; }
     /// <summary>Test (<c>--diebtest=klicknacht|klickbande|klickfremd</c>): die erste sichtbare Gestalt dieser Art wird angeklickt.</summary>
@@ -71,6 +71,7 @@ public partial class Stadtansicht
         var gezeigt = Fenster.PassantenMenge > 0 && _raum is null && _netz.Knoten.Count > 0;
         if (!gezeigt)
         {
+            _nachtWarGezeigt = false;
             _nachtVorfaelle.Clear();
             foreach (var s in _nachtszenen) NachtEntfernen(s);
             _nachtszenen.Clear();
@@ -80,6 +81,12 @@ public partial class Stadtansicht
         var sekunden = _simulation.Takt.IstPausiert ? 0 : delta;
         var sekundenJeMinute = _simulation.Takt.RundenDauerSekunden / Spielzeit.MinutenProTag;
 
+        if (!_nachtWarGezeigt)
+        {
+            // Wieder im Bild (Innenraum verlassen, Passanten wieder an, Laden): laufende Szenen der letzten Stunde neu aufbauen
+            _nachtWarGezeigt = true;
+            _nachtVorfaelle.AddRange(w.Gauner.Vorfaelle.Zwischen((long)jetzt - 60, (long)jetzt + 1).Where(v => Nachtgang.Zeigbar(v.Art) && !_nachtVorfaelle.Contains(v)));
+        }
         if (NachtProbe is { } probe && !_nachtProbeGemacht && zeit.UhrzeitInMinuten >= 20 * 60 + 2 && zeit.UhrzeitInMinuten < 22 * 60)
         {
             _nachtProbeGemacht = true;
@@ -90,6 +97,7 @@ public partial class Stadtansicht
         {
             var v = _nachtVorfaelle[0];
             _nachtVorfaelle.RemoveAt(0);
+            if (Nachtgang.Verfuegbar(v.Uhrzeit) <= 0) { NachtMelden($"{v.Art} um 23 Uhr: die Nacht ist vorbei, nichts zu zeigen"); continue; }
             if (jetzt - v.Minute > 60) { NachtMelden($"{v.Art} um {v.Uhrzeit / 60}:{v.Uhrzeit % 60:00} zu alt zum Zeigen"); continue; }
             if (NachtszeneBauen(w, v, jetzt) is { } neu)
             {
@@ -106,6 +114,11 @@ public partial class Stadtansicht
                 _nachtszenen.RemoveAt(i);
             }
 
+        // FigurHervorheben (Maus darüber, ausgewählt) ersetzt die Überlagerung und setzt sie danach auf null: Der Mondrand kommt zurück
+        foreach (var d in _diebfiguren.Values)
+            if (d.Figur is { Hervorgehoben: false } fig && d.Kennung.StartsWith("dieb:nacht:", StringComparison.Ordinal))
+                foreach (var teil in fig.Teile)
+                    if (IsInstanceValid(teil) && teil.MaterialOverlay is null) teil.MaterialOverlay = MondrandStoff();
         if (NachtKlick is { } art && _diebfiguren.Values.FirstOrDefault(d => d.Sichtbar && d.Kennung.StartsWith("dieb:nacht:", StringComparison.Ordinal)
                 && (art == "klickfremd" ? !d.Eigen : art == "klickbande" ? d.Eigen && d.Kennung.EndsWith(":b", StringComparison.Ordinal) : d.Eigen && !d.Kennung.EndsWith(":b", StringComparison.Ordinal))) is { } probeFigur)
         {
@@ -207,6 +220,7 @@ public partial class Stadtansicht
         // Wege: eigene Diebe kommen aus ihrem Versteck, die übrigen aus der Dunkelheit der Gassen. Der dunkelste Weg ist der Hinweg, der zweitdunkelste die Flucht.
         var wege = new List<Vector3[]>();
         if (eigen && !bande && v.Taeterbetrieb is { } versteck && TuerAnker(versteck) is { } start && NachtRoute(start, tuer) is { } r0) wege.Add(r0);
+        var hatVersteck = wege.Count > 0;
         var knoten = _netz.Knoten;
         var passend = Enumerable.Range(0, knoten.Count)
             .Where(i => { var d = new Vector2(knoten[i].X - tuer.X, knoten[i].Z - tuer.Z).Length(); return d is >= 22 and <= 48; })
@@ -216,6 +230,7 @@ public partial class Stadtansicht
         if (wege.Count == 0) return null;
         var gewertet = wege.Select(r => (Route: r, Licht: NachtLicht(Wegende(r, Nachtgang.AnschleichMeter + Nachtgang.NaeherMeter), lichter)))
             .OrderBy(x => x.Licht).ToList();
+        if (hatVersteck) gewertet = gewertet.OrderBy(x => ReferenceEquals(x.Route, wege[0]) ? 0 : 1).ThenBy(x => x.Licht).ToList(); // eigene Diebe kommen aus ihrem Versteck
         var hinRoute = Wegende(gewertet[0].Route, Nachtgang.AnschleichMeter + Nachtgang.NaeherMeter);
         var fluchtRoute = Wegende(gewertet[gewertet.Count > 1 ? 1 : 0].Route, Nachtgang.FluchtMeter).Reverse().ToArray();
         var laenge = Gassennetz.Laenge(hinRoute);
@@ -234,7 +249,7 @@ public partial class Stadtansicht
             Nachtgang.Dauer(Gassennetz.Laenge(hin), Gehtempo.MeterJeSpielminute(Gehtempo.Gebeugt, rundenDauer)),
             Nachtgang.Dauer(Gassennetz.Laenge(naeher), Gehtempo.MeterJeSpielminute(Gehtempo.Gebeugt, rundenDauer)),
             Nachtgang.Dauer(Gassennetz.Laenge(fluchtRoute), Gehtempo.MeterJeSpielminute(fluchtTempo, rundenDauer)),
-            betritt);
+            betritt).Stauchen(Nachtgang.Verfuegbar(v.Uhrzeit) - (anzahl - 1) * Nachtgang.BandeAbstand); // vor dem nächsten Versuch bzw. 22:59 fertig, bei jeder Rundenlänge
 
         var nr = ++_nachtZaehler;
         var leute = new List<Diebfigur>();
@@ -301,7 +316,8 @@ void fragment() {
     {
         var n = s.Leute.Count;
         var seit = jetzt - s.Start;
-        var ende = s.Plan.Gesamt + (n - 1) * Nachtgang.BandeAbstand;
+        var abstand = Nachtgang.BandeAbstand * s.Plan.Skala;
+        var ende = s.Plan.Gesamt + (n - 1) * abstand;
         if (seit >= ende) return false;
         var v = s.Vorfall;
         var seite = new Vector3(-s.Blick.Z, 0, s.Blick.X);
@@ -310,7 +326,7 @@ void fragment() {
         for (var i = 0; i < n; i++)
         {
             var d = s.Leute[i];
-            var tm = seit - i * Nachtgang.BandeAbstand;
+            var tm = seit - i * abstand;
             var abschnitt = Nachtgang.Bei(tm, s.Plan, out var anteil);
             var versatz = seite * ((i - (n - 1) / 2f) * 0.9f);
             var posten = n == 3 && i == n - 1; // der Letzte einer Dreierbande bleibt draußen und hält Ausschau

@@ -110,10 +110,37 @@ static class NachtgangTests
                 if (v.IstBande) Pruefe.Wahr(v.TaeterName is null && v.TaeterArbeiter is null, "Banden sind namenlos");
                 var anzahl = Nachtgang.Anzahl(v.IstBande, v.Minute, v.Ziel);
                 Pruefe.Wahr(v.IstBande ? anzahl is 2 or 3 : anzahl == 1, "Zahl der Täter");
+                // Die echte Minute des Kerns stimmt mit der Uhrzeit überein, außer um 23 Uhr (Eintrag zum Tageswechsel): dort gibt es nichts mehr zu zeigen
+                if (v.Uhrzeit >= Spielzeit.TagesendeMinute) Pruefe.Gleich(0.0, Nachtgang.Verfuegbar(v.Uhrzeit), "23 Uhr: Nacht vorbei");
+                else Pruefe.Gleich(v.Uhrzeit, new Spielzeit(v.Minute).UhrzeitInMinuten, "Minute und Uhrzeit des Vorfalls");
                 // Der Plan mit üblichen Wegen (14 m anschleichen, 3,5 m näher, 18 m Flucht bei 1 m je Minute) endet vor der nächsten Stunde
                 var plan = new Nachtgang.Plan(Nachtgang.Dauer(Nachtgang.AnschleichMeter, 0.8), Nachtgang.Dauer(Nachtgang.NaeherMeter, 0.8), Nachtgang.Dauer(Nachtgang.FluchtMeter, 1.0), Nachtgang.Betritt(v.Art, v.Erfolg));
                 Pruefe.Wahr(plan.Gesamt + (anzahl - 1) * Nachtgang.BandeAbstand < 75, $"{v.Art}: Szene dauert {plan.Gesamt} min");
             }
+        }),
+
+        ("Nachtgang: Mit dem echten Gehtempo endet jede Szene bei jeder Rundenlänge vor dem Tagesende (22:59) und vor dem nächsten Versuch", () =>
+        {
+            foreach (var runde in new[] { 60.0, 120, 300, 600, 900, 1800, 3600 })
+                foreach (var uhr in new[] { 20 * 60, 21 * 60, 22 * 60 })
+                    foreach (var betritt in new[] { true, false })
+                        foreach (var anzahl in new[] { 1, 2, 3 })
+                        {
+                            var plan = new Nachtgang.Plan(
+                                Nachtgang.Dauer(Nachtgang.AnschleichMeter, Gehtempo.MeterJeSpielminute(Gehtempo.Gebeugt, runde)),
+                                Nachtgang.Dauer(Nachtgang.NaeherMeter, Gehtempo.MeterJeSpielminute(Gehtempo.Gebeugt, runde)),
+                                Nachtgang.Dauer(Nachtgang.FluchtMeter, Gehtempo.MeterJeSpielminute(1.1, runde)), betritt)
+                                .Stauchen(Nachtgang.Verfuegbar(uhr) - (anzahl - 1) * Nachtgang.BandeAbstand);
+                            var ende = uhr + plan.Gesamt + (anzahl - 1) * Nachtgang.BandeAbstand * plan.Skala;
+                            Pruefe.Wahr(ende <= Spielzeit.TagesendeMinute - 1 + 1e-9, $"Runde {runde}s, {uhr / 60} Uhr, {anzahl} Mann: endet erst {ende}");
+                            Pruefe.Wahr(plan.Gesamt <= Nachtgang.HoechstDauer + 1e-9, "Höchstdauer");
+                            // kein Abschnitt fällt aus: Anteile bleiben gültig
+                            for (var t = 0.0; t < plan.Gesamt + 1; t += 0.5) Pruefe.Wahr(Nachtgang.Bei(t, plan, out var an) >= Nachtgang.Abschnitt.Vorher && an is >= 0 and <= 1, "Anteil");
+                        }
+            Pruefe.Gleich(0.0, Nachtgang.Verfuegbar(23 * 60), "23 Uhr");
+            Pruefe.Wahr(Nachtgang.Verfuegbar(22 * 60 + 40) < 20, "kurz vor Tagesende knapp");
+            var kurz = new Nachtgang.Plan(10, 4, 18, true);
+            Pruefe.Wahr(Math.Abs(kurz.Stauchen(1000).Gesamt - kurz.Gesamt) < 1e-9, "nie gedehnt");
         }),
 
         ("Nachtgang: Die Zahl der Täter hängt nicht an der Reihenfolge der Aufrufe (Darstellung ohne Zufallsquelle)", () =>

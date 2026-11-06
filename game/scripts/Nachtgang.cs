@@ -36,13 +36,35 @@ public static class Nachtgang
     /// <summary>Wo im Ablauf die Zeit liegt.</summary>
     public enum Abschnitt { Vorher, Anschleichen, Warten, Naehern, Arbeiten, Drinnen, Flucht, Nachher }
 
-    /// <summary>Die Dauern eines Täters: Anschleichen, Näherkommen und Flucht aus Weglänge und Tempo, dazu ob er einsteigt.</summary>
-    public readonly record struct Plan(double Anschleichen, double Naehern, double Flucht, bool Betritt)
+    /// <summary>
+    /// Die Dauern eines Täters: Anschleichen, Näherkommen und Flucht aus Weglänge und Tempo, dazu ob er einsteigt. <see cref="Skala"/> staucht Warten, Arbeiten
+    /// und Drinnen (1 = volle Länge); <see cref="Stauchen"/> setzt sie, wenn die Zeit bis zum Tagesende knapp ist.
+    /// </summary>
+    public readonly record struct Plan(double Anschleichen, double Naehern, double Flucht, bool Betritt, double Skala = 1)
     {
-        public double Drinnen => Betritt ? DrinnenDauer : 0;
+        public double Warten => WartenDauer * Skala;
+        public double Arbeiten => ArbeitDauer * Skala;
+        public double Drinnen => Betritt ? DrinnenDauer * Skala : 0;
         /// <summary>Alles zusammen (Minuten seit dem Vorfall bis zum Verschwinden).</summary>
-        public double Gesamt => Anschleichen + WartenDauer + Naehern + ArbeitDauer + Drinnen + Flucht;
+        public double Gesamt => Anschleichen + Warten + Naehern + Arbeiten + Drinnen + Flucht;
+        /// <summary>Der Plan so gestaucht, dass er höchstens <paramref name="verfuegbar"/> Minuten dauert (nie gedehnt).</summary>
+        public Plan Stauchen(double verfuegbar)
+        {
+            if (verfuegbar <= 0 || Gesamt <= verfuegbar) return this;
+            var k = verfuegbar / Gesamt;
+            return new Plan(Anschleichen * k, Naehern * k, Flucht * k, Betritt, Skala * k);
+        }
     }
+
+    /// <summary>
+    /// Wie viele Spielminuten eine Szene höchstens dauert: bis zur nächsten vollen Stunde (<see cref="HoechstDauer"/>), spätestens bis 22:59 (Tagesende).
+    /// Null, wenn die Nacht vorbei ist (Versuch um 23 Uhr: Der Kern trägt ihn zum Tageswechsel ein, danach gibt es keine Nacht mehr).
+    /// </summary>
+    public static double Verfuegbar(int uhrzeitMinuten) =>
+        uhrzeitMinuten >= Reichsgilde.Core.Zeit.Spielzeit.TagesendeMinute ? 0 : System.Math.Min(HoechstDauer, Reichsgilde.Core.Zeit.Spielzeit.TagesendeMinute - 1 - uhrzeitMinuten);
+
+    /// <summary>Eine Szene dauert höchstens so lange (Spielminuten), damit sie vor dem nächsten Versuch endet.</summary>
+    public const double HoechstDauer = 59;
 
     /// <summary>Wird ein Vorfall dieser Art nachts gezeigt? Taschendiebe (Paket P3) und der Überfall im Umland nicht.</summary>
     public static bool Zeigbar(Vorfallart art) => art is not (Vorfallart.Taschendiebstahl or Vorfallart.Ueberfall);
@@ -63,10 +85,10 @@ public static class Nachtgang
         if (seit < 0) return Abschnitt.Vorher;
         var t = seit;
         if (Teil(ref t, plan.Anschleichen, out anteil)) return Abschnitt.Anschleichen;
-        if (Teil(ref t, WartenDauer, out anteil)) return Abschnitt.Warten;
+        if (Teil(ref t, plan.Warten, out anteil)) return Abschnitt.Warten;
         if (Teil(ref t, plan.Naehern, out anteil)) return Abschnitt.Naehern;
-        if (Teil(ref t, ArbeitDauer, out anteil)) return Abschnitt.Arbeiten;
-        if (plan.Betritt && Teil(ref t, DrinnenDauer, out anteil)) return Abschnitt.Drinnen;
+        if (Teil(ref t, plan.Arbeiten, out anteil)) return Abschnitt.Arbeiten;
+        if (plan.Betritt && Teil(ref t, plan.Drinnen, out anteil)) return Abschnitt.Drinnen;
         if (Teil(ref t, plan.Flucht, out anteil)) return Abschnitt.Flucht;
         anteil = 1;
         return Abschnitt.Nachher;
