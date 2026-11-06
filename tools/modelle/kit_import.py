@@ -710,12 +710,23 @@ def props_dorf():
     return o
 
 
+def props_fuellung_kit():
+    """Kleine Kit-Teile für die Restflächen-Füllung (Paket 2): Mauerreste aus Ziegeln für Kirchhof und Bildstock."""
+    bs.neue_szene()
+    o = []
+    for i in range(1, 5):
+        o.append(laden("dorf", f"Prop_Brick{i}", f"Mauerrest{i}", ziel=700))
+    sauber(o)
+    return o
+
+
 BAUKAESTEN = {
     "natur": [("natur_kit_boden", natur_boden, dict(spalten=7, abstand=2.2, zeilenabstand=2.6, ziel_hoehe=0.5, ausschnitt=20)),
               ("natur_kit_steine", natur_steine, dict(spalten=7, abstand=2.2, zeilenabstand=2.6, ziel_hoehe=0.4, ausschnitt=20)),
               ("natur_kit_baeume", natur_baeume, dict(spalten=7, abstand=9, zeilenabstand=10, ziel_hoehe=5, ausschnitt=70))],
     "props": [("props_gegenstaende", props_gegenstaende, dict(spalten=8, abstand=3.4, zeilenabstand=3.4, ziel_hoehe=1, ausschnitt=27))],
     "dorf": [("props_dorf", props_dorf, dict(spalten=6, abstand=4.2, zeilenabstand=4.2, ziel_hoehe=1.5, ausschnitt=26))],
+    "fuellung": [("props_fuellung_kit", props_fuellung_kit, dict(spalten=6, abstand=2.4, zeilenabstand=2.6, ziel_hoehe=1, ausschnitt=18))],
 }
 
 
@@ -723,7 +734,7 @@ def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:] if not a.startswith("--")] if "--" in sys.argv else \
         [a for a in sys.argv[1:] if not a.startswith("--")]
     wahl = args[0] if args else "alle"
-    gruppen = ["natur", "props", "dorf"] if wahl == "alle" else [g for g in BAUKAESTEN if g == wahl or any(n == wahl for n, _, _ in BAUKAESTEN[g])]
+    gruppen = ["natur", "props", "dorf", "fuellung"] if wahl == "alle" else [g for g in BAUKAESTEN if g == wahl or any(n == wahl for n, _, _ in BAUKAESTEN[g])]
     for g in gruppen:
         for name, bauer, bild in BAUKAESTEN[g]:
             if wahl not in ("alle", g, name):

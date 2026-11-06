@@ -27,7 +27,7 @@ import natur as nt  # noqa: E402
 from bausteine import Matrix, Vector, bpy  # noqa: E402
 
 bs.FARBEN.update({
-    "Weide": (0.50, 0.40, 0.25),            # Flechtruten
+    "Fuellung Weide": (0.50, 0.40, 0.25),            # Flechtruten
     "Salbei": (0.50, 0.57, 0.44),
     "Fenchel": (0.40, 0.55, 0.30),
     "Lauch": (0.33, 0.48, 0.34),
@@ -43,13 +43,19 @@ bs.FARBEN.update({
     "Rasen": (0.30, 0.36, 0.20),               # Grasnarbe auf Hügeln
     "Schlacke": (0.19, 0.19, 0.20),
     "Schlacke rot": (0.27, 0.19, 0.16),
-    "Leinen": (0.78, 0.74, 0.62),
-    "Leinen blau": (0.30, 0.36, 0.52),
-    "Leinen braun": (0.46, 0.35, 0.25),
+    "Fuellung Leinen": (0.78, 0.74, 0.62),
+    "Fuellung Leinen blau": (0.30, 0.36, 0.52),
+    "Fuellung Leinen braun": (0.46, 0.35, 0.25),
     "Scherbe": (0.56, 0.32, 0.22),
     "Knochen": (0.80, 0.77, 0.67),
     "Spaene": (0.72, 0.60, 0.42),
+    "Sandstein alt": (0.50, 0.48, 0.44),       # verwittert, grau statt gelb
+    "Abfall grau": (0.30, 0.29, 0.28),
+    "Abfall braun": (0.24, 0.185, 0.13),
+    "Asche": (0.40, 0.39, 0.37),
 })
+for _n in ("Erde", "Erde hell", "Kohl", "Kraut"):                  # gleiche Farbe wie im Landbau, aber eigener Name: die Material-Bibliothek gibt den
+    bs.FARBEN.setdefault("Fuellung " + _n, bs.FARBEN[_n])           # gemeinsamen Namen Texturen, die an Höfen und Märkten nicht gewollt sind
 PROFIL_RUND = ((1.0, 0.0), (0.92, 0.45), (0.62, 0.82), (0.26, 1.0))
 
 
@@ -239,7 +245,7 @@ def flechtzaun(netz, st, laenge, saat, winter=False):
         for p, q in zip(punkte, punkte[1:]):
             if lage >= 7 and z.random() < (0.3 if lage == 7 else 0.55):          # oben unregelmäßig
                 continue
-            nt.ast(netz, st, p, q, r, r * 0.92, stoff="Weide", n=5)
+            nt.ast(netz, st, p, q, r, r * 0.92, stoff="Fuellung Weide", n=5)
     if winter:
         schneestreifen(netz, st, -laenge / 2 + 0.03, laenge / 2 - 0.03, 0, 0.87, 0.11, 0.06)
         for x in xs[::2]:
@@ -249,7 +255,7 @@ def flechtzaun(netz, st, laenge, saat, winter=False):
 
 
 def beet_grund(netz, st, laenge=2.0, breite=1.1, furchen=True):
-    netz.quader((0, 0, 0.07), (laenge - 0.06, breite - 0.06, 0.14), st["Erde"], ohne=("-z",))
+    netz.quader((0, 0, 0.07), (laenge - 0.06, breite - 0.06, 0.14), st["Fuellung Erde"], ohne=("-z",))
     for sy in (-1, 1):
         netz.quader((0, sy * (breite / 2 - 0.015), 0.1), (laenge, 0.03, 0.2), st["Holz alt"], ohne=("-z",))
     for sx in (-1, 1):
@@ -259,7 +265,7 @@ def beet_grund(netz, st, laenge=2.0, breite=1.1, furchen=True):
     if furchen:
         for y in (-0.3, 0.0, 0.3):
             netz.prisma([(y - 0.12, 0), (y - 0.07, 0.07), (y + 0.07, 0.07), (y + 0.12, 0)], -laenge / 2 + 0.05, laenge / 2 - 0.05,
-                        st["Erde hell"], matrix=Matrix.Translation((0, 0, 0.14)))
+                        st["Fuellung Erde hell"], matrix=Matrix.Translation((0, 0, 0.14)))
 
 
 def beet_kraut(netz, st, saat):
@@ -274,11 +280,11 @@ def beet_kraut(netz, st, saat):
                     nt.blatt(netz, st, p, (math.cos(w), math.sin(w)), z.uniform(0.2, 0.3), 0.1, "Salbei", hoch=0.4)
             elif ri == 1:                                                # Petersilie: dichter Busch
                 w0 = z.uniform(0, 3)
-                lb.kegel(netz, (p.x, p.y), 0.17, 0.2, 0.36, st["Kraut"], st["Laub hell"], n=7, dreh=w0)
-                lb.kegel(netz, (p.x, p.y), 0.1, 0.3, 0.46, st["Laub hell"], st["Kraut"], n=6, dreh=w0 + 1)
+                lb.kegel(netz, (p.x, p.y), 0.17, 0.2, 0.36, st["Fuellung Kraut"], st["Laub hell"], n=7, dreh=w0)
+                lb.kegel(netz, (p.x, p.y), 0.1, 0.3, 0.46, st["Laub hell"], st["Fuellung Kraut"], n=6, dreh=w0 + 1)
             else:                                                        # Dill: dünn und hoch mit gelber Dolde
                 nt.ast(netz, st, p, p + Vector((z.uniform(-0.03, 0.03), 0, 0.55)), 0.012, 0.008, stoff="Fenchel", n=3)
-                lb.kegel(netz, (p.x, p.y), 0.14, 0.28, 0.55, st["Fenchel"], st["Kraut"], n=6, dreh=z.uniform(0, 3))
+                lb.kegel(netz, (p.x, p.y), 0.14, 0.28, 0.55, st["Fenchel"], st["Fuellung Kraut"], n=6, dreh=z.uniform(0, 3))
                 nt.tupfen(netz, st, p + Vector((0, 0, 0.58)), 0.07, "Ginster", n=5)
 
 
@@ -289,13 +295,13 @@ def beet_kohl(netz, st, saat):
         for k in range(5):
             x = -0.9 + 0.45 * k + z.uniform(-0.04, 0.04)
             gross = 0.95 + z.uniform(0, 0.15)
-            nt.krone(netz, st, (x, y, 0.2 + 0.13 * gross), 0.17 * gross, 0.14 * gross, saat=saat + k * 3 + int(y * 10), stoffe=("Kohl", "Laub hell"),
+            nt.krone(netz, st, (x, y, 0.2 + 0.13 * gross), 0.17 * gross, 0.14 * gross, saat=saat + k * 3 + int(y * 10), stoffe=("Fuellung Kohl", "Laub hell"),
                      n=7, flach_unten=0.2)
             for a in range(5):
                 w = 2 * math.pi * a / 5 + z.uniform(0, 1)
                 nt.blatt(netz, st, Vector((x, y, 0.2)), (math.cos(w), math.sin(w)), 0.32 * gross, 0.2, "Laub", hoch=0.3)
     for k in range(4):                                                   # Jungpflanzen in der Mitte
-        lb.kegel(netz, (-0.65 + 0.43 * k, 0.0), 0.1, 0.2, 0.3, st["Kohl"], st["Laub"], n=5, dreh=k)
+        lb.kegel(netz, (-0.65 + 0.43 * k, 0.0), 0.1, 0.2, 0.3, st["Fuellung Kohl"], st["Laub"], n=5, dreh=k)
 
 
 def beet_lauch(netz, st, saat, winter=False, nur_pflanzen=False):
@@ -335,7 +341,7 @@ def beet_winter(netz, st, saat, art):
 def bohnenstange(netz, st, saat, winter=False):
     z = rng(saat)
     spitze = Vector((0, 0, 2.05))
-    kuppel(netz, st, (0, 0, 0), 0.6, 0.6, 0.1, ("Erde", "Erde hell"), n=8, saat=saat, jitter=0.12)
+    kuppel(netz, st, (0, 0, 0), 0.6, 0.6, 0.1, ("Fuellung Erde", "Fuellung Erde hell"), n=8, saat=saat, jitter=0.12)
     for k in range(4):
         w = 2 * math.pi * k / 4 + 0.4
         fuss = Vector((0.5 * math.cos(w), 0.5 * math.sin(w), 0.0))
@@ -371,7 +377,7 @@ def waescheleine(netz, st, saat):
         x = sx * L / 2
         nt.ast(netz, st, (x, 0, 0), (x, 0, 1.95), 0.052, 0.04, stoff="Holz alt", n=6)
         nt.ast(netz, st, (x, 0, 1.78), (x - sx * 0.1, 0, 2.05), 0.025, 0.02, stoff="Holz alt", n=4)       # Astgabel
-        kuppel(netz, st, (x, 0, 0), 0.2, 0.2, 0.06, ("Erde", "Erde hell"), n=6, saat=sx + 9)
+        kuppel(netz, st, (x, 0, 0), 0.2, 0.2, 0.06, ("Fuellung Erde", "Fuellung Erde hell"), n=6, saat=sx + 9)
 
     def zl(x):
         return 1.92 - 0.26 * (1 - (2 * x / L) ** 2)
@@ -381,11 +387,11 @@ def waescheleine(netz, st, saat):
         x0, x1 = -L / 2 + L * i / anz, -L / 2 + L * (i + 1) / anz
         strich(netz, st, (x0, 0, zl(x0)), (x1, 0, zl(x1)), 0.016, "Seil")
     stuecke = [
-        (-1.3, "Leinen", [(-0.17, 0), (0.17, 0), (0.46, 0.1), (0.48, 0.5), (0.3, 0.5), (0.2, 0.28), (0.2, 0.82), (-0.2, 0.82), (-0.2, 0.28),
+        (-1.3, "Fuellung Leinen", [(-0.17, 0), (0.17, 0), (0.46, 0.1), (0.48, 0.5), (0.3, 0.5), (0.2, 0.28), (0.2, 0.82), (-0.2, 0.82), (-0.2, 0.28),
                           (-0.3, 0.5), (-0.48, 0.5), (-0.46, 0.1)], 0.12),
-        (-0.55, "Leinen braun", [(-0.2, 0), (0.2, 0), (0.22, 0.85), (0.04, 0.85), (0.0, 0.4), (-0.04, 0.85), (-0.22, 0.85)], -0.08),
-        (0.25, "Leinen", [(-0.45, 0), (0.45, 0), (0.46, 0.78), (0.3, 0.86), (0.15, 0.78), (0.0, 0.88), (-0.15, 0.78), (-0.3, 0.86), (-0.46, 0.78)], 0.05),
-        (1.05, "Leinen blau", [(-0.22, 0), (0.22, 0), (0.27, 0.3), (0.36, 0.98), (-0.36, 0.98), (-0.27, 0.3)], -0.1),
+        (-0.55, "Fuellung Leinen braun", [(-0.2, 0), (0.2, 0), (0.22, 0.85), (0.04, 0.85), (0.0, 0.4), (-0.04, 0.85), (-0.22, 0.85)], -0.08),
+        (0.25, "Fuellung Leinen", [(-0.45, 0), (0.45, 0), (0.46, 0.78), (0.3, 0.86), (0.15, 0.78), (0.0, 0.88), (-0.15, 0.78), (-0.3, 0.86), (-0.46, 0.78)], 0.05),
+        (1.05, "Fuellung Leinen blau", [(-0.22, 0), (0.22, 0), (0.27, 0.3), (0.36, 0.98), (-0.36, 0.98), (-0.27, 0.3)], -0.1),
         (1.5, "Lumpen", [(-0.14, 0), (0.14, 0), (0.15, 0.38), (-0.15, 0.4)], 0.2),
     ]
     for x, stoff, umriss, yaw in stuecke:
@@ -490,13 +496,10 @@ def kohlenmeiler(netz, st, saat):
     """Kleiner Meiler (etwa 2,5 m Durchmesser): Erdhaufen mit Rauchloch, am Fuß Rasensoden, Leiter, Schürhaken, Reisig."""
     z = rng(saat)
     rx = 1.25
-    ringe = kuppel(netz, st, (0, 0, 0), rx, rx, 1.1, ("Meilererde",) * 9 + ("Meilererde hell", "Kohle"),
+    ringe = kuppel(netz, st, (0, 0, 0), rx, rx, 1.1, ("Meilererde",) * 9 + ("Meilererde hell",) * 2,
                    profil=((1.0, 0.0), (0.97, 0.2), (0.84, 0.5), (0.58, 0.8), (0.28, 0.95)), n=20, saat=saat, jitter=0.07,
-                   krater=(0.55, 0.14, "Kohle"))
+                   krater=(0.5, 0.12, "Meilererde"))
     n = 20
-    for k in range(0, n, 5):                                         # Zuglöcher: dunkle Soden am Hang
-        p = ringe[2][k]
-        lb.kegel(netz, (p.x, p.y), 0.1, p.z - 0.03, p.z + 0.07, st["Loch"], n=4, dreh=z.uniform(0, 1))
     for k in range(1, n, 4):                                         # Gras am Fuß
         p = ringe[0][k]
         gras(netz, st, Vector((p.x * 1.02, p.y * 1.02, 0)), 0.22)
@@ -535,13 +538,16 @@ def schlackehaufen(netz, st, saat, winter=False):
 
 
 def abfallhaufen(netz, st, saat, winter=False):
+    """Flacher, unruhiger Abfallhaufen: mehrere ineinander laufende Hügelchen, Asche, Erde und Mist grau und braun gemischt, keine glatte Kuppel."""
     z = rng(saat)
-    kuppel(netz, st, (0, 0, 0), 0.95, 0.8, 0.38, ("Erde",) * 4 + ("Mist", "Erde hell"), profil=((1.0, 0.0), (0.88, 0.5), (0.5, 0.92), (0.2, 1.0)),
-           n=20, saat=saat, jitter=0.1)
+    stoffe = ("Abfall grau",) * 2 + ("Abfall braun",) * 4 + ("Asche", "Abfall braun")
+    kuppel(netz, st, (0, 0, 0), 1.05, 0.82, 0.27, stoffe, profil=((1.0, 0.0), (0.9, 0.5), (0.6, 0.9), (0.3, 1.0)), n=20, saat=saat, jitter=0.22)
+    for k, (dx, dy, r, hh) in enumerate(((-0.45, 0.2, 0.42, 0.27), (0.4, -0.25, 0.4, 0.22), (0.05, 0.45, 0.3, 0.2), (-0.1, -0.35, 0.28, 0.2))):
+        kuppel(netz, st, (dx, dy, 0.0), r, r * 0.8, hh, stoffe, profil=((1.0, 0.0), (0.8, 0.6), (0.4, 1.0)), n=14, saat=saat + 5 + k, jitter=0.3)
 
     def hoehe(x, y):
-        d = math.hypot(x / 0.95, y / 0.8)
-        return max(0.0, 0.36 * (1 - d * d * 0.9))
+        d = math.hypot(x / 1.0, y / 0.8)
+        return max(0.0, 0.27 * (1 - d * d * 0.9))
     for k in range(7):                                               # Scherben
         x, y = z.uniform(-0.6, 0.6), z.uniform(-0.5, 0.5)
         zz = hoehe(x, y) + 0.02
@@ -558,14 +564,14 @@ def abfallhaufen(netz, st, saat, winter=False):
         zz = hoehe(x, y) + 0.025
         netz.vieleck_nach([(x - 0.14, y - 0.06, zz), (x + 0.12, y - 0.1, zz + 0.02), (x + 0.15, y + 0.09, zz), (x - 0.06, y + 0.12, zz + 0.03)],
                           (0, 0, 1), st["Lumpen"])
-    nt.blatt(netz, st, Vector((0.2, -0.3, hoehe(0.2, -0.3))), (1, 0.4), 0.22, 0.14, "Kohl", hoch=0.2)
+    nt.blatt(netz, st, Vector((0.2, -0.3, hoehe(0.2, -0.3))), (1, 0.4), 0.22, 0.14, "Fuellung Kohl", hoch=0.2)
     for k in range(6):
         x, y = z.uniform(-0.7, 0.7), z.uniform(-0.55, 0.55)
         if hoehe(x, y) > 0.02:
             w = z.uniform(0, 6.28)
             halm(netz, st, (x, y, hoehe(x, y)), (x + 0.3 * math.cos(w), y + 0.3 * math.sin(w), hoehe(x, y) + 0.1), "Stroh")
     if winter:
-        schnee(netz, st, (-0.1, 0.05, 0.12), 0.72, 0.6, 0.27, saat=saat, n=8)
+        schnee(netz, st, (-0.1, 0.05, 0.07), 0.85, 0.65, 0.15, saat=saat, n=8)
 
 
 def geruempel(netz, st, saat, winter=False):
@@ -757,7 +763,7 @@ def pferch_huerde(netz, st, saat, winter=False):
     netz.stab((-L / 2 + 0.05, -0.035, 0.15), (L / 2 - 0.05, -0.035, 0.9), 0.05, 0.035, st["Holz alt"])
     for k in range(8):                                              # senkrechte Weidenruten, abwechselnd davor und dahinter
         x = -L / 2 + 0.2 + k * (L - 0.4) / 7
-        strich(netz, st, (x, -0.02 if k % 2 else 0.065, 0.2), (x + z.uniform(-0.01, 0.01), -0.02 if k % 2 else 0.065, 0.97), 0.03, "Weide")
+        strich(netz, st, (x, -0.02 if k % 2 else 0.065, 0.2), (x + z.uniform(-0.01, 0.01), -0.02 if k % 2 else 0.065, 0.97), 0.03, "Fuellung Weide")
     for sx in (-1, 1):                                              # Fußstützen
         netz.stab((sx * (L / 2 - 0.05), 0, 0.012), (sx * (L / 2 - 0.05), 0.45, 0.012), 0.06, 0.05, st["Holz alt"])
         nt.ast(netz, st, (sx * (L / 2 - 0.05), 0.4, 0.02), (sx * (L / 2 - 0.02), 0.0, 0.35), 0.03, 0.025, stoff="Holz alt", n=4)
@@ -819,11 +825,11 @@ def grabkreuz_stein(netz, st, saat, winter=False):
     huegel(netz, st, 0.5, 1.0, 0.16, saat)
     y = 0.7
     t = Matrix.Translation((0, y, 0)) @ Matrix.Rotation(math.radians(-1.8), 4, "X")
-    netz.quader((0, 0, 0.1), (0.62, 0.34, 0.2), st["Sandstein"], t)
-    netz.quader((0, 0, 0.3), (0.5, 0.26, 0.2), st["Sandstein"], t)
-    netz.quader((0, 0, 0.78), (0.17, 0.106, 0.76), st["Sandstein"], t)
-    netz.quader((0, 0, 1.0), (0.62, 0.12, 0.17), st["Sandstein"], t)
-    netz.quader((0, 0, 1.12), (0.24, 0.13, 0.06), st["Sandstein"], t)                               # Kopfstück
+    netz.quader((0, 0, 0.1), (0.62, 0.34, 0.2), st["Sandstein alt"], t)
+    netz.quader((0, 0, 0.3), (0.5, 0.26, 0.2), st["Sandstein alt"], t)
+    netz.quader((0, 0, 0.78), (0.17, 0.106, 0.76), st["Sandstein alt"], t)
+    netz.quader((0, 0, 1.0), (0.62, 0.12, 0.17), st["Sandstein alt"], t)
+    netz.quader((0, 0, 1.12), (0.24, 0.13, 0.06), st["Sandstein alt"], t)                               # Kopfstück
     netz.quader((0, -0.05, 0.75), (0.05, 0.016, 0.3), st["Fuge"], t)                              # eingeritztes Kreuz
     netz.quader((0, -0.0505, 0.84), (0.12, 0.016, 0.04), st["Fuge"], t)
     for xm, zm, w in ((-0.2, 0.06, 0.22), (0.22, 0.12, 0.14), (0.0, 0.58, 0.12)):                       # Moos
@@ -869,7 +875,7 @@ def grabplatte(netz, st, saat, winter=False):
     T = Matrix.Translation((0, 0, -0.035)) @ Matrix.Rotation(math.radians(-3.2), 4, "Y") @ Matrix.Rotation(math.radians(2.4), 4, "X")
     umriss = [(-L + 0.12, -B), (-0.3, -B + 0.012), (0.3, -B), (L - 0.06, -B + 0.004), (L, -B + 0.12), (L - 0.012, 0.1), (L, B - 0.05), (0.25, B - 0.008),
               (-0.45, B), (-L + 0.16, B - 0.004), (-L, B - 0.06), (-L + 0.006, -B + 0.2)]
-    innen = platte(netz, st, umriss, T, 0.0, H, 0.035, "Sandstein", saat)
+    innen = platte(netz, st, umriss, T, 0.0, H, 0.035, "Sandstein alt", saat)
     top = H + 0.03
 
     def flach(punkte, hoch, stoff):
@@ -904,25 +910,25 @@ def bildstock(netz, st, saat, winter=False):
     z = rng(saat)
     netz.quader((0, 0, 0.07), (1.2, 1.2, 0.14), st["Bruchstein"], ohne=("-z",))
     netz.quader((0, 0, 0.21), (0.95, 0.95, 0.14), st["Bruchstein"])
-    netz.quader((0, 0, 0.4), (0.62, 0.62, 0.24), st["Sandstein"])                                     # Sockel
-    netz.quader((0, 0, 0.55), (0.7, 0.7, 0.06), st["Sandstein"])                                      # Sockelgesims
-    netz.quader((0, 0, 1.08), (0.34, 0.34, 1.0), st["Sandstein"])                                     # Schaft
+    netz.quader((0, 0, 0.4), (0.62, 0.62, 0.24), st["Sandstein alt"])                                     # Sockel
+    netz.quader((0, 0, 0.55), (0.7, 0.7, 0.06), st["Sandstein alt"])                                      # Sockelgesims
+    netz.quader((0, 0, 1.08), (0.34, 0.34, 1.0), st["Sandstein alt"])                                     # Schaft
     for sx in (-1, 1):                                                                              # Fasen am Schaft
         for sy in (-1, 1):
             netz.stab((sx * 0.175, sy * 0.175, 0.6), (sx * 0.175, sy * 0.175, 1.58), 0.03, 0.03, st["Haustein"])
-    netz.quader((0, 0, 1.62), (0.5, 0.5, 0.08), st["Sandstein"])                                      # Auflager des Gehäuses
+    netz.quader((0, 0, 1.62), (0.5, 0.5, 0.08), st["Sandstein alt"])                                      # Auflager des Gehäuses
     # Gehäuse mit Nische in der Vorderseite (−Y)
     g0, g1 = 1.66, 2.06
-    netz.quader((-0.19, 0, (g0 + g1) / 2), (0.12, 0.44, g1 - g0), st["Sandstein"])
-    netz.quader((0.19, 0, (g0 + g1) / 2), (0.12, 0.44, g1 - g0), st["Sandstein"])
-    netz.quader((0, 0.19, (g0 + g1) / 2), (0.26, 0.06, g1 - g0), st["Sandstein"])
-    netz.quader((0, -0.19, g0 + 0.04), (0.26, 0.06, 0.08), st["Sandstein"])
-    netz.quader((0, -0.19, g1 - 0.05), (0.26, 0.06, 0.1), st["Sandstein"])
+    netz.quader((-0.19, 0, (g0 + g1) / 2), (0.12, 0.44, g1 - g0), st["Sandstein alt"])
+    netz.quader((0.19, 0, (g0 + g1) / 2), (0.12, 0.44, g1 - g0), st["Sandstein alt"])
+    netz.quader((0, 0.19, (g0 + g1) / 2), (0.26, 0.06, g1 - g0), st["Sandstein alt"])
+    netz.quader((0, -0.19, g0 + 0.04), (0.26, 0.06, 0.08), st["Sandstein alt"])
+    netz.quader((0, -0.19, g1 - 0.05), (0.26, 0.06, 0.1), st["Sandstein alt"])
     netz.quader((0, 0.162, (g0 + g1) / 2), (0.26, 0.012, g1 - g0 - 0.1), st["Loch"])                  # dunkle Rückwand der Nische
-    lb.kegel(netz, (0, -0.02), 0.07, g0 + 0.09, g0 + 0.25, st["Stadtweiss"], st["Leinen blau"], n=6)  # Marienfigur: Gewand
+    lb.kegel(netz, (0, -0.02), 0.07, g0 + 0.09, g0 + 0.25, st["Stadtweiss"], st["Fuellung Leinen blau"], n=6)  # Marienfigur: Gewand
     lb.saeule(netz, st, (0, -0.02, 0), 0.04, g0 + 0.25, g0 + 0.31, "Stadtweiss", n=6)                  # Kopf
-    netz.quader((0, 0, g1 + 0.025), (0.62, 0.62, 0.05), st["Sandstein"])                              # Dachplatte
-    lb.kegel(netz, (0, 0), 0.43, g1 + 0.05, g1 + 0.4, st["Sandstein"], st["Haustein"], n=4, dreh=math.radians(45))   # Pyramidendach
+    netz.quader((0, 0, g1 + 0.025), (0.62, 0.62, 0.05), st["Sandstein alt"])                              # Dachplatte
+    lb.kegel(netz, (0, 0), 0.43, g1 + 0.05, g1 + 0.4, st["Sandstein alt"], st["Haustein"], n=4, dreh=math.radians(45))   # Pyramidendach
     netz.stab((0, 0, g1 + 0.38), (0, 0, g1 + 0.62), 0.04, 0.04, st["Eisen"])                          # Kreuz
     netz.stab((-0.07, 0, g1 + 0.54), (0.07, 0, g1 + 0.54), 0.035, 0.035, st["Eisen"])
     for xm, zm, w in ((0.13, 0.7, 0.12), (-0.1, 0.62, 0.08), (0.05, 0.3, 0.2)):                         # Moos vorn
@@ -953,7 +959,7 @@ def wegkreuz_holz(netz, st, saat, winter=False):
     netz.stab((-0.34, -0.09, 1.93), (0.34, -0.09, 1.93), 0.05, 0.045, st["Leder"])
     netz.stab((-0.03, -0.09, 1.55), (0.0, -0.09, 1.9), 0.035, 0.035, st["Leder"])
     lb.saeule(netz, st, (0, -0.09, 0), 0.07, 1.98, 2.1, "Leder", n=6)
-    netz.quader((0, -0.095, 1.62), (0.2, 0.05, 0.14), st["Leinen"])                                   # Tuch
+    netz.quader((0, -0.095, 1.62), (0.2, 0.05, 0.14), st["Fuellung Leinen"])                                   # Tuch
     # Dach: Satteldach aus Schindeln über dem Balken
     t = Matrix.Translation((0, 0, 2.42))
     netz.prisma([(-0.3, 0), (0.3, 0), (0.0, 0.22)], -0.5, 0.5, st["Schindel"], matrix=t, m_enden=st["Holz alt"])
