@@ -628,6 +628,16 @@ Auftrag des Teamleiters 1.11.2026.
 | Seltener | Pose bei Zoom ≥ 60 jedes 2., ≥ 120 jedes 3. Bild; volle Laufrechnung im Bild bei 70 jedes 3., bei 140 jedes 4. Bild, dazwischen Weiterschieben mit der letzten Geschwindigkeit | 05.11.2026 |
 | Gebündelt | Nicht gemacht: Skelettfiguren gehen nicht in ein MultiMesh | 05.11.2026 |
 
+### Niederländer, Stapelrecht und Nachen (PR #332)
+
+| Frage | Entscheidung | Datum |
+|---|---|---|
+| Niederländer | `tools/modelle/niederlaender.py`: 17 × 5,2 m (plausibel, nicht belegt), bauchig, Kiel, niedriger Dollbord (0,8 m), ein Rahsegel, Mast legbar, Ladung_1–18 einzeln. Das Skript setzt Maße, Querschnitt und Einbauten in `oberlaender.py` (neue Module-Konstanten `SCHOTTEN`, `SPANTEN`, `DUCHTEN`, `FUGEN`, `SCHIFFER_X`, Funktion `ladungsplan`; Ausgabe des Oberländers bleibt gleich) und ruft dessen Funktionen. Stückart je Nummer wie beim Oberländer, damit der Stapel am Steg für beide passt | 05.11.2026 |
+| Wechsel | Fenster der Fahrplans gerade = Niederländer, ungerade = Oberländer (`ZierIstNieder`), fest aus der Spielzeit, kein Zufall; `--zierschiff=ober\|nieder` erzwingt einen Typ. Der erste Besuch ist ein Niederländer |
+| Stapelrecht sichtbar | Niederländer kommt voll, der Kran hebt alles auf den Stapel (5–88 % der Liegezeit), er fährt leer ab, **der Stapel bleibt stehen** (auch zwischen den Besuchen, `ZierStapelFern`); der Oberländer kommt leer und lädt den Stapel in 8–90 % auf. Die frühere zufällige Rückfracht und das Verschwinden der Stapel entfallen (der Stapel war bis zu den Trägern, Stufe 3, ein Platzhalter) |
+| Nachen | `tools/modelle/nachen.py`, 5 × 1,3 m, Stakstange (`Stange` / `Stange_Liegend`), `Stadtansicht.Nachen.cs`: einer festgemacht neben dem Zugang, einer pendelt 8–20 Uhr auf der vom Schiff abgewandten Stegseite, Bahn nur auf geprüftem Wasser (mind. 12 m), bei Nacht und Winter fährt er heim; Köln und Greybox |
+| Kern | keine Änderung; `KartenformatTests` kennt die neuen Modelle als „nicht im Katalog“ (kleine Ergänzung der Ausnahmeliste) |
+| Offen | Nachen und Treideln: der Pendler hat keine Stakanimation (Stange steht still, Figur „Stehen“); Nachen-Bahn wird einmal je Hafen vermessen (Karte ändert sich nur beim Neuaufbau) |
 ### Marktwege vorab berechnet (PR #331)
 
 | Thema | Entscheidung | Datum |

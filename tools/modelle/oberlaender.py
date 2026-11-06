@@ -46,6 +46,12 @@ MAST_HOCH = 11.0        # über dem Dollbord
 RAH = 9.0               # Höhe der Rah über dem Dollbord
 PLANKE = 2.6
 HUETTE = (-9.4, -6.4)   # x-Bereich der Hütte
+# Lage der Einbauten im Rumpf; der Niederländer (niederlaender.py) setzt hier seine eigenen Werte
+SCHOTTEN = (-6.0, 7.8)                                  # Stirnwände des Raums
+SPANTEN = [-5.4 + 1.5 * i for i in range(9)]
+DUCHTEN = (-5.9, 0.3, 7.6)
+FUGEN = range(-6, 8)                                    # Quernähte der Wegerung
+SCHIFFER_X = None                                       # x des Schiffers (None: 1,1 m vor dem Heck)
 
 
 def glatt(t):
@@ -149,7 +155,7 @@ def rumpf(st):
                 netz.vieleck_nach([(xa, fa * t0, fza), (xb, fb * t0, fzb), (xb, fb * t1, fzb), (xa, fa * t1, fza)], (0, 0, 1),
                                   st["Bretter"] if (k + xs.index(xa) // 5) % 2 else st["Holz"])
     # Bodenfugen und Quernähte der Wegerung
-    for x in range(-6, 8):
+    for x in FUGEN:
         fz, f = flur(x + 0.0)
         ws.linie(netz, st, (x, -f, fz), (x, f, fz), (0, 0, 1), "Fuge", breite=0.03, abstand=0.004)
     # Achterdeck über dem hinteren Ende (hinter der Hütte), Spiegel, Vordersteven
@@ -166,7 +172,7 @@ def rumpf(st):
         netz.vieleck_nach([(-HALB - 0.02, -y0, z0), (-HALB - 0.02, y0, z0), (-HALB - 0.02, y1, z1), (-HALB - 0.02, -y1, z1)], (-1, 0, 0),
                           st[stoffe[k % 2]])
     # Schotten (Stirnwand des Raums) vorn und hinten
-    for x in (-6.0, 7.8):
+    for x in SCHOTTEN:
         fz, f = flur(x)
         w_, _, _, g_ = profil(x)
         netz.vieleck_nach([(x, -f, fz), (x, f, fz), (x, w_ - 0.09, g_ - 0.02), (x, -(w_ - 0.09), g_ - 0.02)], (-x, 0, 0), st["Holz alt"])
@@ -177,12 +183,12 @@ def rumpf(st):
     netz.stab((-HALB + 0.05, -1.3, g - 0.05), (-HALB + 0.05, -1.3, g + 0.35), 0.16, 0.16, st["Holz alt"])
     netz.stab((-HALB + 0.05, 1.3, g - 0.05), (-HALB + 0.05, 1.3, g + 0.35), 0.16, 0.16, st["Holz alt"])
     # Spanten und Duchten
-    for x in [-5.4 + 1.5 * i for i in range(9)]:
+    for x in SPANTEN:
         fz, f = flur(x)
         w_, _, _, g_ = profil(x)
         for s in (-1, 1):
             netz.stab((x, s * (f + 0.01), fz), (x, s * (w_ - 0.12), g_ - 0.05), 0.12, 0.08, st["Holz alt"], quer=(1, 0, 0))
-    for x in (-5.9, 0.3, 7.6):
+    for x in DUCHTEN:
         w_, _, _, g_ = profil(x)
         netz.stab((x, -(w_ - 0.1), g_ - 0.14), (x, w_ - 0.1, g_ - 0.14), 0.3, 0.1, st["Holz"], quer=(0, 0, 1))
     # Mast, Rah, Wanten, Stagen: Mast (mit Rah) und Takelage sind eigene Knoten, damit das Spiel im Hafen den Mast legen kann (Kran, Stadtansicht.Kranladen.cs);
@@ -230,7 +236,7 @@ def rumpf(st):
     netz.quader((xr - 0.45, 0, 0.05), (1.0, 0.1, 1.6), st["Teerholz"])
     for z in (-0.4, 0.5):
         netz.quader((xr + 0.02, 0, z), (0.5, 0.16, 0.08), st["Eisen"])
-    netz.stab((xr, 0.05, 1.62), (-HALB + 1.6, 0.2, 1.75), 0.08, 0.08, st["Holz"])
+    netz.stab((xr, 0.05, 1.62), (HUETTE[0], 0.2, 1.75), 0.08, 0.08, st["Holz"])
     # Anker am Bug, Poller
     netz.stab((HALB - 1.5, 0.75, profil(HALB - 1.5)[3] - 0.2), (HALB - 1.5, 0.75, profil(HALB - 1.5)[3] + 0.15), 0.1, 0.5, st["Eisen"], quer=(1, 0, 0))
     for x in (HALB - 2.4, -HALB + 2.4):
@@ -326,19 +332,27 @@ OBEN = [(-3.6, -0.85, "ballen"), (-0.2, -0.85, "ballen"), (-0.2, 0.85, "ballen")
 ANKER_X = 0.3
 
 
-def ladung(st):
+def ladungsplan(unten_reihen=None, oben_reihen=None, boden=None):
+    """Die nummerierten Plätze der Ladung (Liste von Wörterbüchern, Nummer = Index + 1): erst die unteren, dann die oberen Stücke;
+    wer weit von der Laufplanke liegt, bekommt die kleinere Nummer (wird zuletzt entladen)."""
+    unten_reihen = UNTEN if unten_reihen is None else unten_reihen
+    oben_reihen = OBEN if oben_reihen is None else oben_reihen
+    boden = BODEN if boden is None else boden
     plaetze = []
-    for x, a, b in UNTEN:
-        plaetze.append({"x": x, "y": -0.85, "art": a, "z": BODEN, "oben": False})
-        plaetze.append({"x": x, "y": 0.85, "art": b, "z": BODEN, "oben": False})
-    # Wer weit von der Laufplanke liegt, bekommt die kleinere Nummer (wird zuletzt entladen)
+    for x, a, b in unten_reihen:
+        plaetze.append({"x": x, "y": -0.85, "art": a, "z": boden, "oben": False})
+        plaetze.append({"x": x, "y": 0.85, "art": b, "z": boden, "oben": False})
     plaetze.sort(key=lambda p: -abs(p["x"] - ANKER_X) - 0.001 * abs(p["y"]))
     unten = {(p["x"], p["y"]): p for p in plaetze}
     hoehen = {"fass": 0.95, "kiste": 0.72, "sack": 0.95, "ballen": 0.62}
-    oben = [{"x": x, "y": y, "art": art, "z": BODEN + hoehen[unten[(x, y)]["art"]], "oben": True} for x, y, art in OBEN]
+    oben = [{"x": x, "y": y, "art": art, "z": boden + hoehen[unten[(x, y)]["art"]], "oben": True} for x, y, art in oben_reihen]
     oben.sort(key=lambda p: -abs(p["x"] - ANKER_X))
+    return plaetze + oben
+
+
+def ladung(st):
     objekte = []
-    for nr, p in enumerate(plaetze + oben, 1):
+    for nr, p in enumerate(ladungsplan(), 1):
         netz = bs.Netz(f"Ladung_{nr}")
         stueck(netz, st, p["art"], p["x"], p["y"], p["z"], nr)
         objekte.append(netz.objekt())
@@ -355,7 +369,7 @@ def bauen(st):
     anker = [bs.anker("Anker_Bug", (HALB + 0.1, 0, 0), 270), bs.anker("Anker_Heck", (-HALB - 0.1, 0, 0), 90),
              bs.anker("Anker_Kai", (ANKER_X, -BREITE / 2 - 0.3, 0), 0),
              bs.anker("Anker_Planke", (ANKER_X, -BREITE / 2 - PLANKE, BORD - 0.05), 0),
-             bs.anker("Anker_Schiffer", (-HALB + 1.1, 0.35, DECK), 270)]
+             bs.anker("Anker_Schiffer", (-HALB + 1.1 if SCHIFFER_X is None else SCHIFFER_X, 0.35, DECK), 270)]
     return teile + anker
 
 
