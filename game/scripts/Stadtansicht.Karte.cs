@@ -201,6 +201,7 @@ public partial class Stadtansicht
             var linie = mauer.Linie.Select(Punkt3).ToList();
             if (linie.Count < 2) continue;
             _mauerFlaechen.Add(linie.Select(p => new Vector2(p.X, p.Z)).ToArray());
+            _mauerLinien.Add((linie.ToArray(), mauer.Geschlossen)); // für den Mauerweg der Streife (Stadtansicht.Streife.cs)
             var mitte = linie.Aggregate(Vector3.Zero, (s, p) => s + p) / linie.Count;
             foreach (var tor in mauer.Tore)
             {
