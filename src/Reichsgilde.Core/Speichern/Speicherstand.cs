@@ -71,6 +71,44 @@ public sealed record Speicherstand
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
     public bool EntwicklerErlaubt { get; init; }
+
+    /// <summary>
+    /// Die letzten Meldungen (<see cref="Stadtwirtschaft.Meldungsverlauf"/>, Benachrichtigungen Stufe 2), die älteste zuerst. Ein eigener Abschnitt
+    /// neben „Wirtschaft“: Die Simulation liest ihn nie, sie schreibt nur hinein. Null in Spielständen von davor und solange nichts gemeldet ist –
+    /// dann beginnt der Verlauf leer.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public List<MeldungStand>? Meldungen { get; init; }
+}
+
+/// <summary>Eine Meldung (siehe <see cref="Meldung"/>): Art, Text, Spielminute; Haus als Kontonummer, Person als Personennummer. Leere Felder fehlen in der Datei.</summary>
+public sealed record MeldungStand
+{
+    public Meldungsart Art { get; init; }
+    public string Text { get; init; } = "";
+    public long Minute { get; init; }
+    public Meldungswichtigkeit Wichtigkeit { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Haus { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Person { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public Meldungsort Ort { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? Ortsname { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? X { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? Z { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Vertraulich { get; init; }
 }
 
 public sealed record WirtschaftStand

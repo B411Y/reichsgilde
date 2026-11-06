@@ -780,7 +780,7 @@ public sealed class Betrieb
     /// <summary>Eine Spielminute Arbeit. Wird nur während der Arbeitszeit aufgerufen.</summary>
     /// <param name="leistungsFaktor">Handwerkskunst des Oberhaupts, Krankenstand, Völkerbonus – gilt für Betriebe mit Ware.</param>
     /// <param name="volksFaktor">Nur der Völkerbonus – gilt auch für Betriebe ohne Ware (Diebe, Wache, Schreiber).</param>
-    internal void Arbeitsminute(Action<string> melden, double leistungsFaktor = 1, double volksFaktor = 1)
+    internal void Arbeitsminute(Action<Betrieb, Meldungsart, string> melden, double leistungsFaktor = 1, double volksFaktor = 1)
     {
         _lohnFaktorSumme += LohnFaktor; // für den Lohn am Jahresende: die Lohnstufe im Mittel der Arbeitszeit
         _lohnMinuten++;
@@ -801,7 +801,7 @@ public sealed class Betrieb
                 grund = "Nach dem Brand wird repariert – die Arbeit ruht.";
             }
             if (LeistungProMinute <= 0) return;
-            if (_letzterStillstand != grund) melden($"{Name}: {grund}");
+            if (_letzterStillstand != grund) melden(this, Meldungsart.Sonstiges, $"{Name}: {grund}");
             _letzterStillstand = grund;
             Stillstand = grund;
             // Weder ein gewollter Umbau noch die Reparatur nach einem Anschlag sagen etwas über zu knappe Karren oder Lager (PR #219:
@@ -864,11 +864,17 @@ public sealed class Betrieb
 
         // Stillstand nur einmal melden, nicht jede Minute.
         if (stillstand is not null && stillstand != _letzterStillstand)
-            melden($"{Name}: {stillstand}");
+            melden(this, StillstandArt(stillstand), $"{Name}: {stillstand}");
         _letzterStillstand = stillstand;
         Stillstand = stillstand;
         if (stillstand is not null) StillstandMinuten++;
     }
+
+    /// <summary>Die Meldungsart eines Stillstands: Zutat fehlt (<see cref="Meldungsart.LagerLeer"/>) oder Lager voll (<see cref="Meldungsart.LagerVoll"/>), siehe <see cref="Herstellen"/>.</summary>
+    private static Meldungsart StillstandArt(string grund) =>
+        grund.StartsWith("Es fehlt ", StringComparison.Ordinal) ? Meldungsart.LagerLeer
+        : grund.StartsWith("Das Lager ", StringComparison.Ordinal) ? Meldungsart.LagerVoll
+        : Meldungsart.Sonstiges;
 
     /// <summary>Werkstatt: so viel Arbeit an dieser Ware – fertige Stücke ins Lager. Gibt den Grund zurück, wenn sie stillsteht.</summary>
     private string? Herstellen(string ware, double leistung)
