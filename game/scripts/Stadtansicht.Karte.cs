@@ -135,6 +135,7 @@ public partial class Stadtansicht
         yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
         LagenLesen(karte);
+        BodenstempelAusKarte(karte); // Höfe, Wege und Restflächen als Bodenart im Raster, vor dem Boden (Stadtansicht.Bodenstempel.cs)
         BodenLegen(karte);
         Ladezeit.Marke("Szene: Boden und Gelände");
         yield return new Ladeschritt(0.28f, "Die Stadtmauer wird hochgezogen …");

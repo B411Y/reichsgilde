@@ -14,6 +14,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (Streife) Flucht der Diebe: Kommt eine Streife einem sichtbaren Dieb zwischen zwei Versuchen nahe, soll er in eine Seitengasse ausweichen (Vorschlag Wachen und Diebe, nur Bild). Nicht gebaut: Die Szenen der Diebe sind reine Funktionen der Spielzeit entlang fester Wege; ein Ausweichen bräuchte eine zweite Bahn je Szene und den Abgleich mit der Streife je Bild. Wenn gewünscht, als eigenes Paket.
 
+- (Boden) Stempel in der Kartenwerkstatt (dort fehlen Höfe, Wege und Restflächen-Untergründe, die Modelle haben keine Platte mehr); Stempel für Stadthäuser (Vorplatz Pflaster) und ein Pinsel „Stempel anpassen“
 - (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume kosten im Wald etwa +2,5 ms GPU gegenüber den alten (Schatten davon 2,4 ms; weiterer Hebel: Schatten der Kit-Bäume nur bei nahem Zoom, Fernfassung mit weniger Blattkarten); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
 - (Pixel-Look) Freie Kamera hinkt der Anzeige ein Bild nach (sie läuft nach dem Spiegeln); beim Zoomen mit Tween (Kamerafahrt) gibt es Zwischenstufen
@@ -568,6 +569,16 @@ Auftrag des Teamleiters 1.11.2026.
 | Grasplatten | Die Fläche „Gras“ ist aus Bauernhof, Klosterhof, Duftgarten, Kräutergarten, Wachturm und Weide (`umland_stellen`) entfernt; „Erde hell“ (Höfe, Wege) bleibt bis Stufe 2. Der Teppich wächst dort, wo das Modell nichts hat (Fußabdruck aus den Dreiecken, `Stadtansicht.GrasFuss.cs`) | 04.11.2026 |
 | Nicht angefasst | Steinbruch, Grube, Holzschlag (nur „Erde hell“) und der Grasstreifen im Prediger-Modell; Stufe 2 | 04.11.2026 |
 | Graue Fläche an der Mühle | Im Greybox-Bauernhof nicht mehr zu sehen: Nach dem Entfernen der Grasplatte des Modells (26 × 20 m, größer als der Hof) bleibt nur der Hof „Erde hell“ (10 × 9 m); die graue Fläche im Nutzerbild war sehr wahrscheinlich diese Platte (Kartenraster und Wegeschicht zeigen dort keinen Belag). Der Hof „Erde hell“ (10 × 9 m) bleibt | 04.11.2026 |
+
+### Boden Stufe 2: Bodenstempel statt Bodenplatten (PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Stempel | `Bodenraster.Stempeln` (Kern, mit Test): weicher Rand (Breite je Eintrag, Vorgabe 1,5 m, je zur Hälfte innen und außen), Rauschen verschiebt den Rand (Vorgabe 0,5 m), „Fleck“ lässt innen Wiese durchblicken; nimmt nur von der Wiese, Gemaltes gewinnt; die Vereinigung mehrerer Vielecke hat keine Naht (Umriss nur aus Kantenstücken, die nicht im Innern liegen). Nur Laufzeit, auf einer Kopie des Kartenrasters (`_stempelBoden`), einmal vor dem Bau des Bodens; Karte, Spielstand und Kartenwerkstatt unberührt | 06.11.2026 |
+| Daten | `game/daten/bodenstempel.json` je Modell (bei Baukästen `#Knoten`): Bauernhof Hof Erde, Klosterhof Wege Pflaster, Duft- und Kräutergarten Wege Kies, Wachturm Kies, Steinbruch Kies und Erde, Grube Erde, Holzschlag Waldboden und Erde, Feld Erde, Wald Waldboden und Moos. `untergruende` in `restflaechen.json`: Garten Erde mit Fleck, Werkhof Erde oder Kies (fester Würfel), Randgestrüpp nichts. Rand, Rauschen, Fleck und Stärke je Eintrag einstellbar (statt im Katalog: eigene Datei, nicht geschützt) | 06.11.2026 |
+| Modelle | Platten „Erde hell“ (Höfe, Wege), „Erde“ (Feld) und „Moos“ (Wald) und die Splitt-Fläche des Steinbruchs sind aus den neun Skripten entfernt, Modelle neu exportiert (Protokollzeile); Acker-Streifen mit Furchen im Bauernhof, Hafenbauten, Stadthof und der Grasstreifen im Prediger-Modell bleiben | 06.11.2026 |
+| Graue Fläche an der Mühle (Köln, „Bauernhof an der Mühle“) | Geklärt mit Bildern vor und nach Stufe 1 und 2: Die Karte hat dort nur Wiese. Die Fläche war der Fundament-Quader des Hofs (`SockelBauen`, Pflaster oben, 20 × 16 m, auf hängigem Gelände, weil der Boden dort mehr als 12 cm Unterschied hat), im Greybox dagegen die Gras-Platte des Modells (Stufe 1). Umlandplätze bekommen den Quader jetzt in festgetretener Erde (`erde`-Zweig in `SockelBauen`); ein hartkantiges Rechteck bleibt auf hängigem Gelände sichtbar, solange der Quader den Fußboden über dem Hang hält (Offen: Boden unter Umlandplätzen vom Leveldesign planieren lassen oder den Quader als weiche Böschung bauen) |
+| Stadt | Innerhalb der Mauer deckt der Stadtlehm (Wegeschicht, Stadtgrund) den Boden, dort sieht man Stempel (Restflächen) nicht; Stadthäuser bekommen noch keine Stempel (später) | 06.11.2026 |
 
 ### Restflächen gefüllt, Paket 1 (PR folgt)
 

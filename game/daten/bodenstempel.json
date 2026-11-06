@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "_hinweis": "Bodenstempel der Umlandmodelle (nur Darstellung, Stadtansicht.Bodenstempel.cs): Statt einer Platte im Modell drückt das Spiel beim Laden die Bodenart in das Geländeraster, nur dort, wo noch Wiese ist. Schlüssel = Modell des Bausteins (bei Baukästen mit '#Knoten'). Umrisse in Metern im Modell: x wie in Blender, z = -y (Vorderseite +z). Je Stempel: textur (erde, kies, pflaster, waldboden, moos ...), staerke 0..1 (wie viel der Wiese die Art im Innern ersetzt), rand (Breite des weichen Übergangs in Metern), rauschen (Metern, mit denen das Rauschen den Rand ausfranst), fleck 0..1 (Wiese blickt im Innern stellenweise durch). Reihenfolge zählt: spätere Stempel nehmen nur, was die früheren von der Wiese übrig lassen. 'flaechen' = Liste von Vielecken ([[x,z],...]) oder Rechtecken ([x0,z0,x1,z1]). Standard: rand 1.5, rauschen 0.5, fleck 0, staerke 1.",
+  "standard": {"rand": 1.5, "rauschen": 0.5, "fleck": 0, "staerke": 1},
+  "modelle": {
+    "umland/bauernhof": [
+      {"textur": "erde", "staerke": 0.95, "flaechen": [[-13, 0.6, -2.8, 10]]}
+    ],
+    "umland/klosterhof": [
+      {"textur": "pflaster", "staerke": 0.9, "rand": 0.5, "rauschen": 0.12, "flaechen": [[-0.7, -2.0, 0.7, 9.0], [-6.0, 2.7, 6.0, 3.3], [-8.0, -2.4, 8.0, -1.6]]}
+    ],
+    "umland/duftgarten": [
+      {"textur": "kies", "staerke": 0.9, "rand": 0.6, "rauschen": 0.12, "flaechen": [[-4.2, -4.6, -3.4, 8.0], [-3.4, -4.6, 9.4, -3.8]]}
+    ],
+    "umland/kraeutergarten": [
+      {"textur": "kies", "staerke": 0.9, "rand": 0.6, "rauschen": 0.12, "flaechen": [[-4.0, -3.4, -3.2, 7.6], [-3.2, 4.6, 9.0, 5.2]]}
+    ],
+    "umland/wachturm": [
+      {"textur": "kies", "staerke": 0.9, "rand": 1.2, "rauschen": 0.35, "flaechen": [[[-1.4, 6], [1.4, 6], [2.6, 0.8], [-2.6, 0.8]]]}
+    ],
+    "umland/steinbruch": [
+      {"textur": "kies", "staerke": 0.85, "rand": 1.2, "flaechen": [[[-1.5, 5.5], [7.5, 6.5], [9.6, 1.4], [0.5, 1.0]]]},
+      {"textur": "erde", "staerke": 0.9, "flaechen": [[-11, 0.8, 11, 9]]}
+    ],
+    "umland/grube": [
+      {"textur": "erde", "staerke": 0.9, "flaechen": [[[-11, 9], [11, 9], [11, -1], [6, -3.2], [-5, -3.2], [-11, -1.5]]]}
+    ],
+    "umland/holzschlag": [
+      {"textur": "waldboden", "staerke": 0.6, "fleck": 0.6, "flaechen": [[[-11, 9], [11, 9], [11, -2.5], [4, -4], [-4, -3.4], [-11, -2]]]},
+      {"textur": "erde", "staerke": 0.85, "flaechen": [[[-11, 9], [11, 9], [11, -2.5], [4, -4], [-4, -3.4], [-11, -2]]]}
+    ],
+    "umland/umland_stellen#Feld": [
+      {"textur": "erde", "staerke": 0.95, "rand": 1.0, "rauschen": 0.35, "flaechen": [[-7, -4.5, 7, 4.5]]}
+    ],
+    "umland/umland_stellen#Wald": [
+      {"textur": "waldboden", "staerke": 0.85, "fleck": 0.3, "rand": 2.0, "rauschen": 0.6, "flaechen": [[-7.5, -6.5, 7.5, 6.5]]},
+      {"textur": "moos", "staerke": 0.5, "fleck": 0.6, "rand": 2.0, "rauschen": 0.6, "flaechen": [[-7.5, -6.5, 7.5, 6.5]]}
+    ]
+  }
+}
