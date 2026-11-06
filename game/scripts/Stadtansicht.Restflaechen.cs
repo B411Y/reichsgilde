@@ -43,6 +43,8 @@ public partial class Stadtansicht
         public readonly Dictionary<string, (string[] Themen, int[] Gewichte)> Nachbarn = new();
         public readonly Dictionary<string, Dictionary<string, List<Rezeptteil>>> Themen = new();
         public readonly SortedSet<string> Baukaesten = new(StringComparer.Ordinal);
+        /// <summary>Thema → Varianten des Untergrunds (je Variante die Stempel, siehe Stadtansicht.Bodenstempel.cs); ein Thema ohne Eintrag lässt den Boden, wie er ist.</summary>
+        public readonly Dictionary<string, List<List<StempelAngabe>>> Untergruende = new();
     }
 
     private const float FuellZelle = 64f;
@@ -89,6 +91,9 @@ public partial class Stadtansicht
                     formate[format] = teile!.AsArray().Select(t => TeilLesen(t!.AsObject(), modelle, r.Baukaesten)).ToList();
                 r.Themen[thema] = formate;
             }
+            if (wurzel["untergruende"] is JsonObject untergruende)
+                foreach (var (thema, varianten) in untergruende)
+                    r.Untergruende[thema] = varianten!.AsArray().Select(v => StempelLesen(v!.AsArray(), wurzel["standard_untergrund"] as JsonObject)).ToList();
             return _fuellRezepte = r;
         }
         catch (Exception e) { GD.PushError("Restflächen: " + pfad + " ist kaputt: " + e.Message); return null; }
@@ -177,10 +182,8 @@ public partial class Stadtansicht
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         foreach (var r in liste)
         {
-            if (rezepte.Nachbarn.GetValueOrDefault(Restflaechenfuellung.Nachbarart(r, karte)) is not { Themen: { Length: > 0 } namen } wahl) continue;
-            var nummer = Restflaechenfuellung.Waehlen(wahl.Gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
-            if (nummer < 0 || !rezepte.Themen.TryGetValue(namen[nummer], out var formate)) continue;
-            _fuellThemen[r.Kennung] = namen[nummer];
+            if (FuellThemaWaehlen(r, karte, rezepte) is not { } thema || !rezepte.Themen.TryGetValue(thema, out var formate)) continue;
+            _fuellThemen[r.Kennung] = thema;
             var kaesten = new List<(Fuellkasten, List<Fuellteil>)>();
             foreach (var kasten in Restflaechenfuellung.Zerlegen(Restflaechenfuellung.Felder(r)))
                 kaesten.Add((kasten, formate.TryGetValue(kasten.Format, out var teile) ? KastenFuellen(teile, karte.Kennung, r.Kennung, kasten) : new List<Fuellteil>()));
@@ -193,6 +196,14 @@ public partial class Stadtansicht
         GD.Print($"Restflächen: {_fuellFlaechen.Count} Flächen, {nk} Kästen, {nt} Teile; Themen: "
             + string.Join(", ", _fuellThemen.GroupBy(t => t.Value).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"))
             + $"; {logik} ms Rechnung + {uhr.ElapsedMilliseconds - logik} ms Aufbau ({_fuellWurzel?.GetChildCount() ?? 0}+{_fuellSommer?.GetChildCount() ?? 0} MultiMeshes)");
+    }
+
+    /// <summary>Das Thema einer Restfläche (Garten, Werkhof, Randgestrüpp): nach den Gewichten der Nachbarart und dem festen Würfel; null, wenn die Datei keins kennt.</summary>
+    private static string? FuellThemaWaehlen(Restflaeche r, Stadtkarte karte, Fuellrezepte rezepte)
+    {
+        if (rezepte.Nachbarn.GetValueOrDefault(Restflaechenfuellung.Nachbarart(r, karte)) is not { Themen: { Length: > 0 } namen } wahl) return null;
+        var nummer = Restflaechenfuellung.Waehlen(wahl.Gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
+        return nummer < 0 ? null : namen[nummer];
     }
 
     /// <summary>Die Teile eines Kastens: Rezept des Themas für sein Format, gedreht und gewendet, in Weltlage.</summary>
