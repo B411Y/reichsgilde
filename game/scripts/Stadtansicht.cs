@@ -830,6 +830,7 @@ public partial class Stadtansicht : Node3D
         TorwacheAktualisieren(w, zeit, bruchteil, delta); // Torwächter am Tor, Schichtwechsel (Stadtansicht.Torwache.cs)
         TaschendiebeAktualisieren(w, zeit, bruchteil, delta); // Taschendiebe und Festnahmen am Markt (Stadtansicht.Taschendiebe.cs)
         NachtdiebeAktualisieren(w, zeit, bruchteil, delta); // Einbruch und Banden bei Nacht (Stadtansicht.Nachtdiebe.cs)
+        DiebzeichenAktualisieren(); // Zeichen über den eigenen Dieben (Stadtansicht.Diebzeichen.cs)
         BlitzbrandAktualisieren(w, zeit.VergangeneMinuten, bruchteil, delta); // Blitzschlag: Strahl, Feuer, Ruß, Löschkette (Stadtansicht.Blitzbrand.cs)
         FeuerAktualisieren(w, zeit, bruchteil, delta); // Kaminrauch und brennende Häuser (Stadtansicht.Feuer.cs)
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)

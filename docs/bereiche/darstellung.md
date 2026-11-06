@@ -636,6 +636,15 @@ Auftrag des Teamleiters 1.11.2026.
 | Keine Regel | Die Wirkung bleibt im Kern wie heute (stadtweit, im Viertel des Hauptmanns doppelt); die Wege sind reine Darstellung. Nachts weiter Handlaterne. | 06.11.2026 |
 | Leistung | Runden je Haus, Art und Viertel einmal geplant und gemerkt (die Wege des Gassennetzes sind ohnehin gemerkt), höchstens eine Planung je Bild (neue Runde, Mauerknoten der Karte, Mauerweg-Prüfung je Haus; ein Wachmann ohne Runde wartet unsichtbar; Wahl je Schicht gemerkt, nichts davon je Bild), Marktrunde je Haus nur einmal, eine gescheiterte Runde wird nach etwa 15 s neu versucht, Wachleute, die nicht mehr auf Streife sind, werden freigegeben. Planung erst, wenn die Stadt gezeigt wird; Bewegen und Zeichnen wie bisher mit den Sparstufen der Figuren (`FigurImBildBewegen`, `Fenster.PassantenMenge`). Keine neuen Figuren: dieselben Wachleute wie bisher. | 06.11.2026 |
 | Testhilfe | `--streifentest=markt|viertel|mauer`, `--streifenviertel=nord|ost|sued|west` (nur Bild), Zeilen `[streife]` im Protokoll. Mit einem der beiden geht auch nachts bei nur einem Wachmann der erste los (der Kern ließe ihn nachts daheim). | 06.11.2026 |
+### Zeichen über den eigenen Dieben (Branch phase5/diebe-zeichen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Was | Eigene Taschendiebe (Tag), Einbrecher und Bandenmitglieder (Nacht) tragen eine kleine Raute mit Dietrich über dem Kopf (`Stadtansicht.Diebzeichen.cs`); fremde Diebe und Gefasste keines, sie bleiben „Verdächtige Gestalt“ (Mondrand bei Nacht). Keine Einstellung zum Abschalten. | 06.11.2026 |
+| Zeichnung | `Control` auf `CanvasLayer` (Ebene 0), gezeichnet in voller Auflösung über dem Pixelbild, Lage aus der Kamera der Logik (stimmt auch ohne Pixel-Look). Gold statt Hausfarbe (eine feste Farbe, sonst wäre eigen/fremd bei dunklen Hausfarben nachts schwer zu trennen); schwarzer Umriss, Schraffur, Dietrich. Radius 0,4 m · Bildhöhe / Zoom, 7 bis 14 Bildpunkte: bei 35, 70 und 140 m lesbar. Nachts auf 72 % gedämpft, kein Licht. | 06.11.2026 |
+| Anklicken | `DiebBei` prüft zuerst das Zeichen (Rechteck der Raute + 3 Bildpunkte), dann wie bisher die Figur; Hover und Mauszeiger laufen über `KennungUnterDerMaus`. | 06.11.2026 |
+| Leistung | Geprüft werden nur die Einträge von `_diebfiguren` (eine Handvoll), nie die Passanten; neu gezeichnet nur, wenn sich Lage oder Zahl ändern. Gestalten ohne Sichtbarkeit (im Haus, vor dem Griff) haben kein Zeichen; Szenen und Figuren gibt weiter ihr Besitzer frei (kein neuer Knoten je Person). | 06.11.2026 |
+| Testhilfe | `--diebmarken=0` schaltet die farbigen Testpunkte von `--diebtest` aus (für Bilder). Die Probe „fremd“ darf an dieselbe Tür wie der eigene Dieb und beginnt 9 Minuten früher, damit eigene und fremde Gestalt nebeneinander zu sehen sind. | 06.11.2026 |
 
 ### Torwache (PR #328)
 
