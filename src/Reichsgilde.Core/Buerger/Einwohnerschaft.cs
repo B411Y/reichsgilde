@@ -937,17 +937,18 @@ public sealed class Einwohnerschaft
 
     /// <summary>
     /// Ablösung am Hafen mitten in der Schicht: Wer in dieser Stunde nicht mehr trägt (er geht beten oder einkehren), bricht erst auf, wenn der
-    /// Letzte, der neu dazukommt, angekommen ist – so steht der Steg nie leer. Nur der Weg verschiebt sich (die Darstellung); Ort und Handlung,
-    /// nach denen die Wirtschaft zählt, gelten ab der vollen Stunde wie ohne Hafen.
+    /// Letzte, der neu dazukommt, angekommen ist, und er seinen letzten Gang zu Ende gebracht hat (eine Runde später) – so steht der Steg nie leer.
+    /// Nur der Weg verschiebt sich (die Darstellung); Ort und Handlung, nach denen die Wirtschaft zählt, gelten ab der vollen Stunde wie ohne Hafen.
     /// </summary>
     private void HafenAbloesen(Spielzeit zeit, IReadOnlyList<Einwohner> traeger, Einwohner? vorarbeiter)
     {
         if (traeger.Count == 0 && vorarbeiter is null) return;
+        var runde = Hafenarbeit.SchichtInStunde(zeit.Jahr, zeit.UhrzeitInMinuten / 60)?.Runde ?? 0;
         var jetzt = zeit.VergangeneMinuten;
         var neu = traeger.Append(vorarbeiter).OfType<Einwohner>()
             .Where(e => e.Weg is { } w && w.Abmarsch >= jetzt && w.Von.Ort != Stadtort.Hafen).ToList();
         if (neu.Count == 0) return;
-        var da = neu.Max(e => e.Weg!.Ankunft);
+        var da = neu.Max(e => e.Weg!.Ankunft) + runde + 2;
         foreach (var e in _einwohner)
             if (e.Weg is { } w && w.Von.Ort == Stadtort.Hafen && w.Nach.Ort != Stadtort.Hafen && w.Abmarsch >= jetzt && w.Abmarsch < da)
                 e.Weg = new Weg(w.Von, w.Nach, da, da + w.Dauer);

@@ -188,9 +188,13 @@ public sealed class Hafenarbeit
     /// <summary>Seine Reihenfolge unter den Trägern eines Besuchs: fest aus Nummer, Tag und Fensterhälfte (kleiner = früher an der Reihe).</summary>
     private static double Rang(Einwohner e, long fenster) => Einwohnerschaft.Wurf(e.Nummer, (int)(fenster / 2), 600 + (int)(fenster % 2));
 
-    /// <summary>Kann er in dieser Stunde an den Hafen? Nur wer arbeitet, ruht oder flaniert – dort zählt der Ort für keine Wirtschaft.</summary>
-    private static bool Frei(Einwohner e, string rolle) =>
-        e.Rolle == rolle && e.Handlung is Handlung.Arbeiten or Handlung.Ruhen or Handlung.Flanieren or Handlung.Einkaufen;
+    /// <summary>
+    /// Kann er in dieser Stunde an den Hafen? Wer ruht, flaniert oder einkauft (dort zählt der Ort für keine Wirtschaft) und wer arbeitet, wenn seine
+    /// Rolle am Markt arbeitet (in einer Schänke oder Kirche zählte er, und <c>OhnePlan</c> bildet die Arbeit auf den Markt zurück).
+    /// </summary>
+    private bool Frei(Einwohner e, string rolle) =>
+        e.Rolle == rolle && (e.Handlung is Handlung.Ruhen or Handlung.Flanieren or Handlung.Einkaufen
+                             || e.Handlung == Handlung.Arbeiten && _ew.Daten.Rollen.TryGetValue(rolle, out var r) && r.Arbeitsort == Stadtort.Markt);
 
     /// <summary>
     /// Zur vollen Stunde (aus <see cref="Einwohnerschaft"/>, nach der Wahl der Handlungen; <see cref="Einwohner.Ort"/> ist noch der der letzten

@@ -263,7 +263,7 @@ public sealed class TorwacheDaten
 /// </summary>
 public sealed class HafenarbeitDaten
 {
-    /// <summary>Rolle der Träger (Schlüssel unter „rollen“); sie muss am Markt arbeiten (dort stünden sie sonst).</summary>
+    /// <summary>Rolle der Träger (Schlüssel unter „rollen“). Bei der Arbeit holt die Hafenarbeit sie nur, wenn die Rolle am Markt arbeitet (dort zählt der Ort für nichts).</summary>
     public string Rolle { get; init; } = "Tagelöhner";
 
     /// <summary>So viele Träger je Schicht mindestens …</summary>
@@ -276,12 +276,11 @@ public sealed class HafenarbeitDaten
     public int Stuecke { get; init; } = 18;
 
     /// <summary>Minuten für einen Gang: Stück aufnehmen, tragen, ablegen, zurück.</summary>
-    public int Runde { get; init; } = 6;
+    public int Runde { get; init; } = 12;
 
     public void Pruefen(List<string> f, string p, BuergerDaten b)
     {
-        if (!b.Rollen.TryGetValue(Rolle, out var r)) f.Add($"{p}: Die Rolle „{Rolle}“ fehlt unter „rollen“.");
-        else if (r.Arbeitsort != Stadtort.Markt) f.Add($"{p}: Die Rolle „{Rolle}“ muss am Markt arbeiten (arbeitsort Markt).");
+        if (!b.Rollen.ContainsKey(Rolle)) f.Add($"{p}: Die Rolle „{Rolle}“ fehlt unter „rollen“.");
         if (TraegerVon < 1 || TraegerBis < TraegerVon || TraegerBis > 8) f.Add($"{p}: 1 ≤ traegerVon ≤ traegerBis ≤ 8.");
         if (Stuecke is < 1 or > 40) f.Add($"{p}.stuecke muss zwischen 1 und 40 liegen.");
         if (Runde is < 2 or > 30) f.Add($"{p}.runde muss zwischen 2 und 30 Minuten liegen.");

@@ -86,6 +86,7 @@ static class BuergerHafenarbeitTests
             var zahlen = new HashSet<int>();
             var groessterStapel = 0;
             var nachlauf = 0.0;
+            const int fahrtVorlauf = 120;
             for (var jahr = Spielzeit.StartJahr; jahr < Spielzeit.StartJahr + 40; jahr++)
             {
                 var s = ha.Schichten(jahr);
@@ -120,7 +121,9 @@ static class BuergerHafenarbeitTests
                     Pruefe.Wahr(x.Gaenge.Count(g => g.Platz == 0) >= 18 / x.Traeger, "die Gänge sind verteilt");
                     for (var m = anlegen - 60.0; m <= x.Ende + 60; m += 0.5)
                         groessterStapel = Math.Max(groessterStapel, x.StapelUm(m));
-                    Pruefe.Gleich(0, x.StapelUm(anlegen - 1), $"{jahr}: vor dem Anlegen ist der Steg leer");
+                    // vor dem Niederländer ist der Steg leer; für den Oberländer tragen sie schon vor dem Anlegen heraus
+                    if (x.Entladen) Pruefe.Gleich(0, x.StapelUm(anlegen - 1), $"{jahr}: vor dem Anlegen ist der Steg leer");
+                    else Pruefe.Wahr(x.StapelUm(anlegen - fahrtVorlauf) == 0, $"{jahr}: lange vor dem Anlegen steht noch nichts da");
                     Pruefe.Gleich(0, x.StapelUm(x.Ende), $"{jahr}: danach ist der Steg leer");
                     Pruefe.Gleich(x.Entladen ? 18 : 0, x.SchuppenUm(x.Ende), "die Ware im Stapelhaus");
                     if (x.Entladen) nachlauf = Math.Max(nachlauf, x.Ende - (anlegen + liegen));
@@ -128,7 +131,7 @@ static class BuergerHafenarbeitTests
                 }
             }
             Pruefe.Wahr(zahlen.Count == 3, $"Mal 2, mal 3, mal 4 Träger ({string.Join(",", zahlen)})");
-            Pruefe.Wahr(groessterStapel <= 8, $"Der Stapel bleibt Puffer (höchstens {groessterStapel} Stücke, eine Lage)");
+            Pruefe.Wahr(groessterStapel is > 0 and <= 18, $"Der Stapel ist Puffer (höchstens {groessterStapel} Stücke)");
             Pruefe.Wahr(nachlauf <= 60, $"Nach dem Ablegen tragen sie höchstens eine Stunde nach ({nachlauf:0} min)");
         }),
 
@@ -271,7 +274,6 @@ static class BuergerHafenarbeitTests
                 Pruefe.Wirft(() => Wirtschaftsdaten.AusJson(json.ToJsonString()));
             }
             Falsch(h => h["rolle"] = "Fährmann");
-            Falsch(h => h["rolle"] = "Knecht");
             Falsch(h => h["traegerVon"] = 0);
             Falsch(h => h["traegerBis"] = 1);
             Falsch(h => h["stuecke"] = 0);
