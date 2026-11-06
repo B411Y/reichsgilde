@@ -108,6 +108,14 @@ public partial class Stadtansicht
             }
             modelle++;
         }
+        // Auf hängigem Gelände steht ein Sockel unter dem Platz (SockelBauen, Erde oben): Erde ins Gelände darum, damit der Sockel dort, wo er im Hang steckt, ohne Kante in den Boden übergeht
+        if (BodenBewegt)
+            foreach (var g in karte.Gebaeude.Where(g => g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell?.StartsWith("wasser/") != true))
+            {
+                if (FundamentVon(g) is { Hoehe: 0, Tiefe: 0 }) continue;
+                var ecken = FlaechenEcken(Punkt3(g.Punkt), DrehungVon(g), GroesseVon(g)).Select(e => (e.X, e.Z)).ToList();
+                kopie.Stempeln(new IReadOnlyList<(double X, double Z)>[] { ecken }, new Bodenstempel(Bodentextur.Erde, 0.9, 1.5, 0.4, 0, 5));
+            }
         if (!FuellungAus && FuellRezepte() is { Untergruende.Count: > 0 } rezepte)
             foreach (var r in karte.Restflaechen)
             {
