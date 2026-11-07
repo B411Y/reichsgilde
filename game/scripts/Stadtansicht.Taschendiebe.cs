@@ -394,8 +394,9 @@ public partial class Stadtansicht
         // Kommt eine Streife dem Dieb auf dem Weg zum Opfer nahe, weicht er aus – nicht in der Schlussphase (ab 60 % des Weges geht er auf die Stelle hinter dem Opfer zu)
         var hinLaenge = Gassennetz.Laenge(szene.Hin);
         var anfang = Math.Max(minute - vorlauf, jetzt);
-        szene.AusweichHin = AusweichenPlanen(szene.Hin, t => Taschendiebgang.AbschnittBei(t, minute, eigen, vorlauf, out var a) == Taschendiebgang.Abschnitt.Anschleichen && a <= 0.6 ? a * hinLaenge : null,
-            anfang, minute - vorlauf + 0.6 * vorlauf, 0, opfer.Platz, $"Dieb {griff.Dieb.Nummer} (Anschleichen)");
+        var minDauer = eigen ? Ausweichgang.MinDauer : Ausweichgang.MinDauerFremd;
+        szene.AusweichHin = AusweichenPlanen(szene.Hin, t => Taschendiebgang.AnschleichenAusweichAnteil(t, minute, eigen, vorlauf) * hinLaenge,
+            anfang, minute - vorlauf + Taschendiebgang.AusweichBisAnteil * vorlauf, 0, opfer.Platz, $"Dieb {griff.Dieb.Nummer} (Anschleichen)", minDauer);
         return szene;
     }
 
@@ -423,7 +424,7 @@ public partial class Stadtansicht
                 tempo = (float)(laenge / (s.Vorlauf * sekundenJeMinute));
                 bewegung = "Gehen";
                 d.Zustand = "schleicht sich an einen Passanten heran";
-                if (s.AusweichHin is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, out var ao, out var ab, out var abew, out var at))
+                if (s.AusweichHin is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, 0f, out var ao, out var ab, out var abew, out var at))
                     (ort, blickFest, bewegung, tempo, d.Zustand) = (ao, ab, abew, at, "weicht der Streife aus");
                 break;
             }
@@ -459,10 +460,11 @@ public partial class Stadtansicht
                     var abLaenge = s.WegLaenge;
                     var abBeginn = s.Griff + Taschendiebgang.GriffDauer;
                     var abDauer = Taschendiebgang.Abgang(s.Eigen);
-                    s.AusweichAb = AusweichenPlanen(s.Weg, t => t >= abBeginn && t < abBeginn + abDauer ? (t - abBeginn) / abDauer * abLaenge : null,
-                        Math.Max(abBeginn, jetzt), abBeginn + abDauer - 0.6, 0, s.Platz, $"Dieb (Abgang um {new Spielzeit((long)s.Griff).UhrzeitText})");
+                    s.AusweichAb = AusweichenPlanen(s.Weg, t => Taschendiebgang.AbgangAnteil(t, s.Griff, s.Eigen) * abLaenge,
+                        Math.Max(abBeginn, jetzt), abBeginn + abDauer - 0.6, 0, s.Platz, $"Dieb (Abgang um {new Spielzeit((long)s.Griff).UhrzeitText})",
+                        s.Eigen ? Ausweichgang.MinDauer : Ausweichgang.MinDauerFremd);
                 }
-                if (s.AusweichAb is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, out var ao, out var ab, out var abew, out var at))
+                if (s.AusweichAb is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, 0f, out var ao, out var ab, out var abew, out var at))
                     (ort, blickFest, bewegung, tempo, d.Zustand) = (ao, ab, abew, at, "weicht der Streife aus");
                 break;
             }

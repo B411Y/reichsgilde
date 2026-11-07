@@ -71,16 +71,18 @@ public partial class Stadtansicht
     /// Zeitraum, <paramref name="versatz"/> der Unterschied zur Spielminute (Spielminute = t + versatz). <paramref name="platz"/>: auf dem Pflaster des Marktes wählt es einen
     /// freien Punkt abseits, sonst (Gassen) eine Seitengasse oder den Schatten am Rand. Null, wenn keine sichtbare Streife nah genug kommt.
     /// </summary>
-    private Ausweichbahn? AusweichenPlanen(Vector3[] route, Func<double, double?> meterBei, double von, double bis, double versatz, MarktplatzAnsicht? platz, string was)
+    private Ausweichbahn? AusweichenPlanen(Vector3[] route, Func<double, double?> meterBei, double von, double bis, double versatz, MarktplatzAnsicht? platz, string was, double minDauer = Ausweichgang.MinDauer)
     {
-        if (_simulation is null || route.Length < 2 || bis - von < Ausweichgang.MinDauer) return null;
+        if (_simulation is null || route.Length < 2 || bis - von < minDauer - 1e-9) return null;
         var streifen = _wachgaenge.Values.Where(g => g.Sichtbar && g.Runde is not null).ToList();
         if (streifen.Count == 0) return null;
         var laenge = Gassennetz.Laenge(route);
         if (laenge < 1) return null;
         var sekundenJeMinute = _simulation.Takt.RundenDauerSekunden / Spielzeit.MinutenProTag;
         Vector3? Streife(Wachgang g, double t) => StreifeOrtBei(g, _ausweichUhr + (t + versatz - _ausweichJetzt), sekundenJeMinute);
-        Vector3? Dieb(double t) => meterBei(t) is { } m ? Gassennetz.PunktAuf(route, (float)(m / laenge), laenge) : null;
+        // am Rand des erlaubten Zeitraums fängt eine winzige Abweichung (Gleitkomma) die Zeit nicht mehr: ein Hauch nach innen genügt
+        double? MeterBei(double t) => meterBei(t) ?? meterBei(t - 1e-6) ?? meterBei(t + 1e-6);
+        Vector3? Dieb(double t) => MeterBei(t) is { } m ? Gassennetz.PunktAuf(route, (float)(m / laenge), laenge) : null;
         var naechsterAbstand = float.MaxValue;
         float Abstand(double t)
         {
@@ -91,12 +93,12 @@ public partial class Stadtansicht
             naechsterAbstand = Math.Min(naechsterAbstand, best);
             return best;
         }
-        if (Ausweichgang.Finden(von, bis, Abstand) is not { } fenster)
+        if (Ausweichgang.Finden(von, bis, Abstand, minDauer) is not { } fenster)
         {
             if (DiebLog) GD.Print($"[ausweichen] {was}: kein Ausweichen, die Streife kommt dem Dieb höchstens auf {(naechsterAbstand > 9000 ? "– (keine in Sicht)" : naechsterAbstand.ToString("0") + " m")} nah ({streifen.Count} Wachleute zu sehen)");
             return null;
         }
-        if (meterBei(fenster.Von) is not { } mA || meterBei(fenster.Naechste) is not { } mM || meterBei(fenster.Bis) is not { } mB) return null;
+        if (MeterBei(fenster.Von) is not { } mA || MeterBei(fenster.Naechste) is not { } mM || MeterBei(fenster.Bis) is not { } mB) return null;
         var am = Gassennetz.PunktAuf(route, (float)(mM / laenge), laenge);
         Vector3? streife = null;
         var streifeAbstand = float.MaxValue;
@@ -112,12 +114,26 @@ public partial class Stadtansicht
         else if (platz is null && GassenSeite(route, (float)mA, (float)mB, (float)mM, s) is { } gasse) { (seite, zumPunkt, mQ) = gasse; }
         else
         {
-            // keine Seitengasse und kein freier Punkt: in den Schatten am Rand der Gasse, rechtwinklig zum Weg, weg von der Streife
+            // keine Seitengasse und kein freier Punkt: in den Schatten am Rand der Gasse, rechtwinklig zum Weg, weg von der Streife (sonst auf die andere Seite);
+            // liegt der Punkt in einem Gebäude oder Stand, gibt es kein Ausweichen
             var vorn = Gassennetz.PunktAuf(route, Mathf.Min(1, (float)(mM / laenge) + 0.5f / laenge), laenge) - am;
             vorn.Y = 0;
             var quer = vorn.LengthSquared() > 1e-6f ? new Vector3(-vorn.Z, 0, vorn.X).Normalized() : Vector3.Right;
             if (quer.Dot(am - s) < 0) quer = -quer;
-            seite = am + quer * SchattenAbstand;
+            Vector3? gewaehlt = null;
+            foreach (var richtung in new[] { quer, -quer })
+            {
+                var p = am + richtung * SchattenAbstand;
+                if (!PunktFrei(p, platz) || !PunktFrei(am + richtung * (SchattenAbstand / 2), platz)) continue;
+                gewaehlt = p;
+                break;
+            }
+            if (gewaehlt is not { } schatten)
+            {
+                if (DiebLog) GD.Print($"[ausweichen] {was}: kein freier Platz zum Ausweichen bei {am.X:0}|{am.Z:0}");
+                return null;
+            }
+            seite = schatten;
             zumPunkt = new[] { am, seite };
         }
         var aus = Verbinden(RouteTeil(route, (float)mA, mQ), zumPunkt);
@@ -130,6 +146,33 @@ public partial class Stadtansicht
         {
             Fenster = fenster, Aus = aus, Zurueck = zurueck, AusLaenge = Gassennetz.Laenge(aus), ZurLaenge = Gassennetz.Laenge(zurueck), Seite = seite, Blick = weg,
         };
+    }
+
+    /// <summary>
+    /// Ist an diesem Punkt Platz für einen Dieb? Nicht in einem Gebäude (Klickfläche eines Betriebs oder Sonderbaus, 0,3 m Rand) und auf dem Markt nicht in einem Stand
+    /// (<c>Flaeche.Frei</c>). Nur zum Planen gebraucht, nie je Bild.
+    /// </summary>
+    private bool PunktFrei(Vector3 p, MarktplatzAnsicht? platz)
+    {
+        if (platz?.Flaeche is { } f && f.Auf(p.X, p.Z, 0f) && f.Frei(p.X, p.Z) < 0.8f) return false; // auf dem Pflaster: nicht in einem Stand; daneben (Gasse) zählt nur das Gebäude
+        return !InGebaeude(p, 0.3f);
+    }
+
+    private bool InGebaeude(Vector3 p, float rand)
+    {
+        bool Trifft(CollisionShape3D? form)
+        {
+            if (form is null || !IsInstanceValid(form) || form.Shape is not BoxShape3D kiste || form.GetParent() is not Node3D koerper || !koerper.IsInsideTree()) return false;
+            var lokal = koerper.GlobalTransform.AffineInverse() * ToGlobal(p);
+            var drin = Math.Abs(lokal.X) <= kiste.Size.X / 2 + rand && Math.Abs(lokal.Z) <= kiste.Size.Z / 2 + rand;
+            if (drin && DiebLog) GD.Print($"[ausweichen] Punkt {p.X:0.0}|{p.Z:0.0} liegt in {koerper.GetMeta("kennung", "?")} (Fläche {kiste.Size.X:0.0} x {kiste.Size.Z:0.0} x {kiste.Size.Y:0.0} bei {koerper.Position.X:0.0}|{koerper.Position.Z:0.0})");
+            return drin;
+        }
+        foreach (var b in _betriebe.Values)
+            if (Trifft(b.Aussenklick) || b.ZusatzKlicks.Any(Trifft)) return true;
+        foreach (var b in _sonderbauten.Values)
+            if (Trifft(b.Aussenklick) || b.ZusatzKlicks.Any(Trifft)) return true;
+        return false;
     }
 
     /// <summary>Hängt zwei Wege aneinander (der Anfang des zweiten ist das Ende des ersten).</summary>
@@ -200,9 +243,9 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Wo der Dieb zur Zeit <paramref name="t"/> auf seiner Ausweichbahn ist; false, wenn er nicht ausweicht (er geht seinen Weg). <paramref name="kniend"/>: nachts duckt er sich
-    /// am Seitenpunkt. <paramref name="tempo"/>: Meter je echter Sekunde bei Tempo 1, schon auf <c>GehenTempo</c> umgerechnet, wenn die Bewegung „Eilen“ ist.
+    /// am Seitenpunkt. <paramref name="seitlich"/>: Versatz (Meter) quer zur Blickrichtung am Seitenpunkt, damit Bandenmitglieder nebeneinanderstehen. <paramref name="tempo"/>: Meter je echter Sekunde bei Tempo 1, schon auf <c>GehenTempo</c> umgerechnet, wenn die Bewegung „Eilen“ ist.
     /// </summary>
-    private bool AusweichenStellen(Ausweichbahn b, double t, double sekundenJeMinute, bool kniend, out Vector3 ort, out Vector3 blick, out string bewegung, out float tempo)
+    private bool AusweichenStellen(Ausweichbahn b, double t, double sekundenJeMinute, bool kniend, float seitlich, out Vector3 ort, out Vector3 blick, out string bewegung, out float tempo)
     {
         (ort, blick, bewegung, tempo) = (default, default, "Gehen", 0f);
         var phase = Ausweichgang.Bei(b.Fenster, t, b.Hinweg, out var anteil);
@@ -222,6 +265,12 @@ public partial class Stadtansicht
             var mps = (float)(laenge / (minuten * sekundenJeMinute));
             bewegung = mps > Gehtempo.Gehen * 1.7 ? "Eilen" : "Gehen";
             tempo = bewegung == "Eilen" ? mps * GehenTempo / EilenTempo : mps; // DiebStellen teilt durch GehenTempo
+        }
+        if (seitlich != 0)
+        {
+            // Bandenmitglieder stehen nebeneinander am Seitenpunkt, nicht übereinander: der Versatz wächst beim Hinausgehen, bleibt beim Halt und schwindet beim Zurückgehen
+            var quer = new Vector3(-b.Blick.Z, 0, b.Blick.X);
+            ort += quer * seitlich * (phase == Ausweichgang.Phase.Hinaus ? (float)anteil : phase == Ausweichgang.Phase.Zurueck ? 1 - (float)anteil : 1f);
         }
         if (AusweichFolge && _haltBis == 0 && _ausweichHaltStufe < 3)
         {

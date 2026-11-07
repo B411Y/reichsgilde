@@ -63,6 +63,24 @@ public static class Taschendiebgang
         return Abschnitt.Nachher;
     }
 
+    /// <summary>Bis zu diesem Anteil des Weges zum Opfer darf ein Dieb der Streife ausweichen; danach geht er auf die Stelle hinter dem Opfer zu (zur Tat steht er immer am Ziel).</summary>
+    public const double AusweichBisAnteil = 0.6;
+
+    /// <summary>Wie weit (Meter-Anteil 0 bis 1 des Weges) der Dieb zur Zeit <paramref name="t"/> beim Anschleichen ist, solange er noch ausweichen darf; sonst null. Mit Toleranz am Rand (Gleitkomma).</summary>
+    public static double? AnschleichenAusweichAnteil(double t, double griff, bool eigen, double vorlauf)
+    {
+        var abschnitt = AbschnittBei(t, griff, eigen, vorlauf, out var a);
+        return abschnitt == Abschnitt.Anschleichen && a <= AusweichBisAnteil + 1e-6 ? System.Math.Min(a, AusweichBisAnteil) : null;
+    }
+
+    /// <summary>Wie weit (Anteil 0 bis 1) der Dieb zur Zeit <paramref name="t"/> im Abgang ist; sonst null.</summary>
+    public static double? AbgangAnteil(double t, double griff, bool eigen)
+    {
+        var anfang = griff + GriffDauer;
+        var dauer = Abgang(eigen);
+        return t >= anfang - 1e-9 && t < anfang + dauer ? System.Math.Clamp((t - anfang) / dauer, 0, 1) : null;
+    }
+
     /// <summary>Kürzester Vorlauf (Spielminuten): Auch ein Griff, den der Kern erst zum Stundenwechsel meldet, beginnt so weit vorher.</summary>
     public const double VorlaufKuerzest = 2;
 

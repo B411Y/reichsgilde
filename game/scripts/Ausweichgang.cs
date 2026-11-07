@@ -23,6 +23,9 @@ public static class Ausweichgang
     /// <summary>Das Ausweichen dauert mindestens so lange (Spielminuten; sonst wäre es ein Zucken) und höchstens so lange (geht die Streife nicht weiter, kehrt er dennoch zurück).</summary>
     public const double MinDauer = 4, MaxDauer = 14;
 
+    /// <summary>Fremde Diebe zeigen sich nur kurz (6 Minuten vor dem Griff, 6 danach): Für sie genügt ein kürzeres Ausweichen.</summary>
+    public const double MinDauerFremd = 2.5;
+
     /// <summary>Der Anteil der Zeit, die der Dieb am Seitenpunkt steht (der Rest verteilt sich nach den Weglängen auf Hin- und Rückweg).</summary>
     public const double HaltAnteil = 0.3;
 
@@ -36,12 +39,12 @@ public static class Ausweichgang
     /// Das erste Ausweichen im Zeitraum <paramref name="von"/> bis <paramref name="bis"/> (Spielminuten): Zu jeder ganzen Minute fragt es
     /// <paramref name="abstand"/> nach dem Abstand (Meter) des Diebes zur nächsten Streife (<c>float.MaxValue</c>, wenn keine zu zeigen ist). Kommt eine näher als
     /// <see cref="Radius"/>, beginnt das Fenster <see cref="Anlauf"/> Minuten vorher und endet <see cref="Nachlauf"/> Minuten nach der letzten Nähe des ersten
-    /// zusammenhängenden Zeitraums, mindestens <see cref="MinDauer"/>, höchstens <see cref="MaxDauer"/> lang, immer innerhalb des Zeitraums. Null, wenn die Streife
+    /// zusammenhängenden Zeitraums, mindestens <paramref name="minDauer"/> (Standard <see cref="MinDauer"/>), höchstens <see cref="MaxDauer"/> lang, immer innerhalb des Zeitraums. Null, wenn die Streife
     /// fern bleibt oder der Zeitraum zu kurz ist.
     /// </summary>
-    public static Fenster? Finden(double von, double bis, Func<double, float> abstand)
+    public static Fenster? Finden(double von, double bis, Func<double, float> abstand, double minDauer = MinDauer)
     {
-        if (bis - von < MinDauer) return null;
+        if (bis - von < minDauer - 1e-9) return null;
         double? erste = null;
         var letzte = 0.0;
         var naechste = 0.0;
@@ -61,10 +64,10 @@ public static class Ausweichgang
         var ta = System.Math.Max(von, anfang - Anlauf);
         var te = System.Math.Min(bis, letzte + Nachlauf);
         te = System.Math.Min(te, ta + MaxDauer);
-        if (te - ta < MinDauer)
+        if (te - ta < minDauer)
         {
-            te = System.Math.Min(bis, ta + MinDauer);
-            ta = System.Math.Max(von, te - MinDauer);
+            te = System.Math.Min(bis, ta + minDauer);
+            ta = System.Math.Max(von, te - minDauer);
         }
         return new Fenster(ta, te, System.Math.Clamp(naechste, ta, te));
     }

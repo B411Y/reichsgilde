@@ -53,6 +53,49 @@ static class AusweichgangTests
             Pruefe.Wahr(Ausweichgang.Finden(10, 10, _ => 3f) is null, "leer");
         }),
 
+        ("Ausweichgang: Fremde Diebe (kurzer Weg, 3,6 Minuten) bekommen ein kürzeres Ausweichen, eigene brauchen mindestens vier", () =>
+        {
+            // das erlaubte Fenster eines fremden Diebes beim Anschleichen: 60 % von 6 Minuten
+            var erlaubt = Taschendiebgang.AusweichBisAnteil * Taschendiebgang.VorlaufFremd;
+            Pruefe.Wahr(erlaubt < Ausweichgang.MinDauer, "kürzer als die Mindestdauer der Eigenen");
+            Pruefe.Wahr(Ausweichgang.Finden(100, 100 + erlaubt, _ => 5f) is null, "mit der Standard-Mindestdauer kein Ausweichen");
+            var f = Ausweichgang.Finden(100, 100 + erlaubt, _ => 5f, Ausweichgang.MinDauerFremd) ?? throw new Exception("kein Fenster für den Fremden");
+            Pruefe.Wahr(f.Von >= 100 - 1e-9 && f.Bis <= 100 + erlaubt + 1e-9, "im erlaubten Zeitraum");
+            Pruefe.Wahr(f.Bis - f.Von >= Ausweichgang.MinDauerFremd - 1e-6, "mindestens die Mindestdauer der Fremden");
+            Pruefe.Wahr(Ausweichgang.Finden(100, 101.5, _ => 5f, Ausweichgang.MinDauerFremd) is null, "auch für Fremde nicht kürzer als 2,5 Minuten");
+        }),
+
+        ("Ausweichgang: Am Rand des Weges zum Opfer (60 %) fällt das Ausweichen nicht wegen Gleitkomma weg", () =>
+        {
+            var ohne = 0;
+            var geprueft = 0;
+            foreach (var eigen in new[] { true, false })
+                for (var griff = 500; griff < 1100; griff += 7)
+                    for (var vorlauf = Taschendiebgang.VorlaufKuerzest; vorlauf <= Taschendiebgang.Vorlauf(eigen); vorlauf += 0.37)
+                    {
+                        var bis = griff - vorlauf + Taschendiebgang.AusweichBisAnteil * vorlauf;
+                        geprueft++;
+                        var a = Taschendiebgang.AnschleichenAusweichAnteil(bis, griff + 0.0, eigen, vorlauf);
+                        if (a is null) ohne++;
+                        else Pruefe.Wahr(a <= Taschendiebgang.AusweichBisAnteil + 1e-12, $"nie über 60 %: {a}");
+                        // kurz danach geht er auf die Stelle hinter dem Opfer zu: kein Ausweichen mehr
+                        Pruefe.Wahr(Taschendiebgang.AnschleichenAusweichAnteil(bis + 0.05 * vorlauf, griff, eigen, vorlauf) is null, "danach kein Ausweichen");
+                    }
+            Pruefe.Gleich(0, ohne, $"Ende des Fensters ohne Wert in {ohne} von {geprueft} Fällen");
+        }),
+
+        ("Ausweichgang: Der Abgang liefert seinen Anteil von 0 bis 1 und sonst nichts", () =>
+        {
+            foreach (var eigen in new[] { true, false })
+            {
+                var anfang = 600 + Taschendiebgang.GriffDauer;
+                Pruefe.Wahr(Taschendiebgang.AbgangAnteil(anfang - 0.1, 600, eigen) is null, "vor dem Abgang");
+                Pruefe.Wahr(Taschendiebgang.AbgangAnteil(anfang, 600, eigen) is { } a0 && a0 < 1e-9, "Anfang");
+                Pruefe.Wahr(Taschendiebgang.AbgangAnteil(anfang + Taschendiebgang.Abgang(eigen) - 0.01, 600, eigen) is > 0.9 and <= 1, "Ende");
+                Pruefe.Wahr(Taschendiebgang.AbgangAnteil(anfang + Taschendiebgang.Abgang(eigen), 600, eigen) is null, "danach");
+            }
+        }),
+
         ("Ausweichgang: Hinaus, Halt, Zurück folgen der Zeit; am Ende ist er zurück auf dem Weg", () =>
         {
             var f = new Ausweichgang.Fenster(100, 110, 105);
