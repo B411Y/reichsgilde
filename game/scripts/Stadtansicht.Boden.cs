@@ -60,8 +60,8 @@ public partial class Stadtansicht
         string[] shader = { "res://assets/shader/boden_niedrig.gdshader", "res://assets/shader/boden_mittel.gdshader", "res://assets/shader/boden.gdshader" };
         if (shader.Any(d => !ResourceLoader.Exists(d)) || !ResourceLoader.Exists(BodenTexturDatei)) return false;
         for (var i = 0; i < shader.Length; i++) _bodenShader[i] = GD.Load<Shader>(shader[i]);
-        _bodenTexturen = GD.Load<TextureLayered>(BodenTexturDatei);
-        if (ResourceLoader.Exists(BodenNormalenDatei)) _bodenNormalen = GD.Load<TextureLayered>(BodenNormalenDatei);
+        _bodenTexturen = Vorladen.Laden<TextureLayered>(BodenTexturDatei); // Vorladen.cs: beim Start im Hintergrund entpackt
+        if (ResourceLoader.Exists(BodenNormalenDatei)) _bodenNormalen = Vorladen.Laden<TextureLayered>(BodenNormalenDatei);
         _bodenStufe = Fenster.AktuelleBodenqualitaet;
         if (_bodenShader.Any(x => x is null) || _bodenTexturen is null)
         {
