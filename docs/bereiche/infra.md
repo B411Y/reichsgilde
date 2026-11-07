@@ -33,7 +33,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Gemini | Gemini (API und Antigravity-CLI `agy`) wird nicht mehr genutzt und steht nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata | 29.10.2026 |
+| Gemini | Gemini (API und Antigravity-CLI `agy`) wird nicht mehr genutzt und steht nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata (abgelöst am 07.11.2026, siehe unten) | 29.10.2026 |
 | Historie | Protokoll, Prompts, Herkunftsdateien und alte Bereichseinträge nennen Gemini weiter als Herkunft bestehender Assets | 29.10.2026 |
 | Bot-Token | `prs-aktuell.yml` pusht mit dem Repository-Geheimnis `BOT_TOKEN` (klassisches Token des Bot-Kontos, `repo` + `workflow`); dann starten die PR-Prüfungen von selbst und der eigene `build.yml`-Lauf entfällt | 29.10.2026 |
 | Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
@@ -72,3 +72,11 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Aufwand | Alle Mitglieder (Opus, Sonnet, Haiku, Prüfer, Unter-Agenten) laufen mit Aufwand hoch, höchstens 3 gleichzeitig; Ausnahme Charakter-Köpfe (sonnet, xhigh). Der Teamleiter bleibt auf mittel. Vorher (02.11.2026): alles mittel | 07.11.2026 |
+
+### Gemini wieder erlaubt (07.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Gemini | Gemini ist nicht verboten. Die Aussage vom 29.10. (PR #249) war als „erst mal die lokale KI nutzen“ gemeint, nicht als Verbot. Bilder, die der Nutzer mit Gemini erstellt oder überarbeitet, dürfen als Grundlage für Assets dienen; die Herkunft steht im Asset-Protokoll (`docs/assets/protokoll.csv`) | 07.11.2026 |
+| Verbindung | Das Team hat derzeit keine eigene Gemini-Verbindung (keine API, kein Agent-CLI); Gemini-Bilder liefert der Nutzer selbst | 07.11.2026 |
+| Standardweg | Für neue Bilder bleibt die lokale Bild-KI (ComfyUI, Qwen-Image) der Standardweg | 07.11.2026 |

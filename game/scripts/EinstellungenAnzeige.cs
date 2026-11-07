@@ -252,7 +252,7 @@ public sealed class EinstellungenAnzeige
     private readonly Label? _schnittstelleStand;
     // Barrierefreiheit
     private readonly CheckButton _fahnen, _zeiger;
-    private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Stufen + 1];
+    private readonly Button[] _zeigerKacheln = new Button[Mauszeiger.Haende + 1];
     private readonly Label _zeigerName;
     private readonly HSlider _groesse;
     private readonly Label _groesseWert;
@@ -649,10 +649,10 @@ public sealed class EinstellungenAnzeige
             Fenster.EigenerZeigerSetzen(an);
             Auffrischen();
         });
-        var zeigerZeile = Zeile(s, "Handschuh", () => "Welcher Handschuh euer Zeiger ist. „Auto“ folgt dem Stand des Hauses (Gemeiner bis Reichsgraf); jeder der sechs lässt sich auch fest wählen, " +
+        var zeigerZeile = Zeile(s, "Handschuh", () => "Welcher Handschuh euer Zeiger ist. „Auto“ folgt dem Stand des Hauses (Gemeiner bis Reichsgraf); jeder der sechs lässt sich auch fest wählen, dazu die Wache (Plattenhandschuh) und der Dieb (schwarzes Leder), " +
                                                       "unabhängig vom eigenen Stand – das ist reine Zierde. Gilt nur beim eigenen Mauszeiger, auch im Hauptmenü und in der Kartenwerkstatt.\n\n" +
                                                       string.Join("\n", ZeigerWahlNamen().Select((n, i) => i == Fenster.ZeigerStufe ? $"» {n} (gewählt)" : n)), einzug: Einzug);
-        for (var nummer = 0; nummer <= Mauszeiger.Stufen; nummer++)
+        for (var nummer = 0; nummer <= Mauszeiger.Haende; nummer++)
         {
             var wahl = nummer;
             var kachel = new Button
@@ -988,7 +988,7 @@ public sealed class EinstellungenAnzeige
         wert.Text = $"{zahl}{einheit}";
     }
 
-    /// <summary>„Nach Stand (automatisch)“ und die sechs Handschuhe (Index = <see cref="Fenster.ZeigerStufe"/>).</summary>
+    /// <summary>„Nach Stand (automatisch)“ die sechs Stände, Wache und Dieb (Index = <see cref="Fenster.ZeigerStufe"/>).</summary>
     private static IEnumerable<string> ZeigerWahlNamen() => new[] { "Nach Stand (automatisch)" }.Concat(Mauszeiger.StufenNamen);
 
     private static int IndexVon<T>(T[] liste, Func<T, bool> passt) => Math.Max(0, Array.FindIndex(liste, e => passt(e)));
