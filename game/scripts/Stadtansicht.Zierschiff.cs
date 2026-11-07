@@ -199,13 +199,11 @@ public partial class Stadtansicht
         var voll = ansicht.Ladung.Length;
         if (voll == 0) return;
         ZierStapelBauen(ZierSchiffHolen(true), hafen); // Der Stapel besteht aus Stücken des Niederländers (Oberländer: gleiche Arten je Nummer)
-        ZierMastSetzen(ansicht, phase, anteil); // Stadtansicht.Kranladen.cs: im Hafen ist der Mast gelegt
         int anBord;
         // Mit Hafenarbeit (Träger, Stadtansicht.Hafenarbeit.cs) ist der Stapel Puffer; ohne (keine Daten, Winter, --zierschiff) wie bisher
         var traeger = HafenPlanUm(minute) is { } hp && hp.Schicht.Entladen == nieder && _zierStapel.Count >= voll ? hp : null;
         if (phase == Besuchsphase.Liegen)
-            anBord = traeger is not null ? KranLadungMitTraegern(ansicht, anteil, nieder, voll, traeger, minute) // Stadtansicht.Hafenarbeit.cs
-                                         : KranLadung(ansicht, anteil, nieder, voll); // Stadtansicht.Kranladen.cs: der Kran hebt jedes Stück
+            anBord = KranLadung(ansicht, anteil, nieder, voll, traeger, minute); // Stadtansicht.Kranladen.cs: der Kran hebt Bündel zu je drei Stücken
         else
         {
             var stand = ZierLadungsstand(nieder, phase, anteil, voll);
@@ -223,14 +221,17 @@ public partial class Stadtansicht
     private readonly List<ZierStueck> _zierStapel = new();
     private int _zierStapelGezeigt = -1;
 
-    /// <summary>Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 4 Spalten × 2 Reihen westlich der Laufplanke, links und rechts vom Fuß der Rampe (aus der Standardansicht frei zu sehen, nicht hinter dem Kranhaus), dann zwei Lagen darüber.</summary>
+    /// <summary>
+    /// Plätze der abgeladenen Stücke auf dem Kopf des Stegs (Steg-Koordinaten, Land bei +Z): 3 Spalten × 2 Reihen westlich der Laufplanke, links und rechts vom Fuß der
+    /// Rampe (aus der Standardansicht frei zu sehen, nicht hinter dem Kranhaus), dann zwei Lagen darüber. Je drei Plätze nacheinander liegen nah beieinander
+    /// (ein Bündel des Krans, <see cref="Zierfahrplan.HubGroesse"/>): zwei in einer Spalte, eins in der nächsten.
+    /// </summary>
     private static (float X, float Z, int Lage, int Grund) ZierStapelPlatz(int k)
     {
-        var nummer = k < 8 ? k : (k < 16 ? k - 8 : k - 16);
-        var lage = k < 8 ? 0 : (k < 16 ? 1 : 2);
-        var grund = new[] { 0, 5, 2, 7, 1, 4, 3, 6 }[nummer]; // gemischt, damit gleiche Stücke nicht nebeneinander stehen
-        var spalte = grund % 4;
-        var reihe = grund / 4;
+        var nummer = k % 6;
+        var lage = k / 6;
+        var spalte = nummer / 2;
+        var reihe = nummer % 2;
         return (-3.0f + 1.9f * spalte + 0.12f * MathF.Sin(k * 2.3f), -(8.65f + 1.1f * reihe) + 0.08f * MathF.Cos(k * 1.7f), lage, nummer);
     }
 

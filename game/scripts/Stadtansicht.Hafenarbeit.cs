@@ -31,7 +31,7 @@ public partial class Stadtansicht
         public required Hafenschicht Schicht { get; init; }
         /// <summary>Je Gang (Index = Stück): Platz des Stapels, an dem der Träger nimmt (Entladen) bzw. ablegt (Beladen).</summary>
         public required int[] TraegerPlatz { get; init; }
-        /// <summary>Je Hub des Krans: Platz des Stapels, auf den er absetzt (Entladen) bzw. von dem er hebt (Beladen).</summary>
+        /// <summary>Je Stück eines Hubs des Krans (Bündel von <see cref="Zierfahrplan.HubGroesse"/> Stücken, Index = Stück): Platz des Stapels, auf den er absetzt (Entladen) bzw. von dem er hebt (Beladen).</summary>
         public required int[] KranPlatz { get; init; }
     }
 
@@ -50,9 +50,11 @@ public partial class Stadtansicht
         var kran = new int[s.Stuecke];
         foreach (var g in s.Gaenge)
         {
-            // Wer oben nimmt bzw. ablegt: der oberste Platz kurz davor
+            // Wer oben nimmt bzw. ablegt: der oberste Platz kurz davor. Der Kran setzt ein Bündel (Zierfahrplan.HubGroesse Stücke) zugleich ab bzw. hebt es zugleich:
+            // die Stücke eines Bündels bekommen die Plätze nebeneinander (Entladen: über dem Stand vor dem Absetzen, Beladen: die obersten drei)
+            var imBuendel = g.Stueck % Zierfahrplan.HubGroesse;
             traeger[g.Stueck] = s.Entladen ? Math.Max(0, s.StapelUm(g.VomStapel - 1e-6) - 1) : s.StapelUm(g.AufStapel - 1e-6);
-            kran[g.Stueck] = s.Entladen ? s.StapelUm(g.AufStapel - 1e-6) : Math.Max(0, s.StapelUm(g.VomStapel - 1e-6) - 1);
+            kran[g.Stueck] = s.Entladen ? s.StapelUm(g.AufStapel - 1e-6) + imBuendel : Math.Max(0, s.StapelUm(g.VomStapel - 1e-6) - 1 - imBuendel);
         }
         return _hafenPlan = new HafenPlan { Schicht = s, TraegerPlatz = traeger, KranPlatz = kran };
     }
@@ -352,96 +354,6 @@ public partial class Stadtansicht
             }
         }
         return _kranLasten[platz];
-    }
-
-    /// <summary>
-    /// Liegephase mit Hafenarbeit: wie <see cref="KranLadung"/>, aber der Stapel ist Puffer. Der Kran setzt jedes Stück oben auf den Stapel (Platz aus dem
-    /// Plan) bzw. hebt das oberste; welche Plätze belegt sind, sagt <see cref="Hafenschicht.StapelUm"/>. Das Stück am Haken ist eine eigene Kopie.
-    /// Gibt zurück, wie viele Stücke an Bord sichtbar sind.
-    /// </summary>
-    private int KranLadungMitTraegern(SchiffAnsicht ansicht, double a, bool nieder, int voll, HafenPlan plan, double minute)
-    {
-        var steg = _zierStapel.Count > 0 && IsInstanceValid(_zierStapel[0].Knoten) ? _zierStapel[0].Knoten.GetParent() as Node3D : null;
-        if (steg is null || _zierStapel.Count < voll || _kranHaken is null || !IsInstanceValid(_kranHaken)) return voll;
-        var w = (ZierNiederEntladeBis - ZierEntladeAb) / voll;
-        var wr = (ZierOberLadeBis - ZierOberLadeAb) / voll;
-        var ende1 = ZierEntladeAb + voll * w;
-        var ende2 = ZierOberLadeAb + voll * wr;
-        (Vector3 Oben, float Dreh) Schiff(int i) => KranSchiffStueck(ansicht, steg, i);
-        (Vector3 Oben, float Dreh) Platz(int k) => (_zierStapel[k].Oben, _zierStapel[k].Dreh);
-        Vector3 Hoch(Vector3 o) => new(o.X, KranHochY, o.Z);
-        Vector3 Tief(Vector3 o) => o + new Vector3(0, KranGehaenge, 0);
-        int KranPlatz(int hub) => Math.Clamp(plan.KranPlatz[Math.Min(hub, plan.KranPlatz.Length - 1)], 0, voll - 1);
-
-        var haken = KranRuheOrt();
-        var gehalten = -1;
-        float dreh0 = 0, dreh1 = 0, dreht = 0;
-        var haengt = false;
-        int anBord;
-        if (nieder)
-        {
-            if (a < ZierEntladeAb) anBord = voll;
-            else if (a < ende1)
-            {
-                var x = (a - ZierEntladeAb) / w;
-                var h = Math.Min((int)x, voll - 1);
-                var q = Schiff(voll - 1 - h);
-                var z = Platz(KranPlatz(h));
-                var start = h == 0 ? KranRuheOrt() : Tief(Platz(KranPlatz(h - 1)).Oben);
-                haken = KranHub(start, q.Oben, z.Oben, x - h, out haengt, out dreht);
-                (dreh0, dreh1) = (q.Dreh, z.Dreh);
-                if (haengt) gehalten = KranPlatz(h);
-                anBord = voll - (haengt ? h + 1 : h);
-            }
-            else
-            {
-                var letzt = Platz(KranPlatz(voll - 1)).Oben;
-                haken = KranWeg(Tief(letzt), Hoch(letzt), (a - ende1) / 0.02).Lerp(KranRuheOrt(), Glatt((a - 0.93) / 0.06));
-                anBord = 0;
-            }
-        }
-        else if (a < ZierOberLadeAb) anBord = 0;
-        else if (a < ende2)
-        {
-            var x = (a - ZierOberLadeAb) / wr;
-            var j = Math.Min((int)x, voll - 1);
-            var q = Platz(KranPlatz(j));
-            var z = Schiff(j);
-            var start = j == 0 ? KranRuheOrt() : Tief(Schiff(j - 1).Oben);
-            haken = KranHub(start, q.Oben, z.Oben, x - j, out haengt, out dreht);
-            (dreh0, dreh1) = (q.Dreh, z.Dreh);
-            if (haengt) gehalten = KranPlatz(j);
-            anBord = j;
-        }
-        else
-        {
-            var letzt = Schiff(voll - 1).Oben;
-            haken = KranWeg(Tief(letzt), Hoch(letzt), (a - ende2) / 0.02).Lerp(KranRuheOrt(), Glatt((a - 0.93) / 0.06));
-            anBord = voll;
-        }
-
-        // Stapel nach dem Plan; Stücke, die die alte Rechnung verschoben hatte, wieder an ihren Platz
-        if (_kranGehalten >= 0 && _kranGehalten < _zierStapel.Count) StueckSetzen(_zierStapel[_kranGehalten], _zierStapel[_kranGehalten].Unten, _zierStapel[_kranGehalten].Dreh);
-        _kranGehalten = -1;
-        var stapel = plan.Schicht.StapelUm(minute);
-        for (var k = 0; k < _zierStapel.Count; k++)
-        {
-            var sichtbar = k < stapel;
-            if (_zierStapel[k].Knoten.Visible != sichtbar) _zierStapel[k].Knoten.Visible = sichtbar;
-        }
-        _zierStapelGezeigt = -1;
-        var yaw = Mathf.LerpAngle(dreh0, dreh1, dreht);
-        for (var k = 0; k < _kranLasten.Count; k++)
-            if (k != gehalten && _kranLasten[k].Knoten.Visible) _kranLasten[k].Knoten.Visible = false;
-        if (gehalten >= 0 && KranLast(gehalten) is { } last)
-        {
-            last.Knoten.Visible = true;
-            StueckSetzen(last, haken - new Vector3(0, KranGehaenge + last.Hoehe, 0), yaw);
-            _kranGehaenge!.Rotation = new Vector3(0, yaw, 0);
-        }
-        _kranGehaenge!.Visible = gehalten >= 0;
-        KranHakenSetzen(haken, gehalten >= 0 ? yaw : 0);
-        return anBord;
     }
 
     /// <summary>Kein Stück am Haken (außerhalb der Liegephase): alle Kopien am Haken aus.</summary>

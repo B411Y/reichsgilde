@@ -40,8 +40,6 @@ public partial class Stadtansicht
         public float Spiegel { get; set; }
         public bool Hervorgehoben { get; set; }
         public int Nummer { get; init; }
-        /// <summary>Drehpunkt des Mastes im Modell (Fuß am Dollbord), um den der Mast im Hafen gelegt wird (Stadtansicht.Kranladen.cs).</summary>
-        public Vector3 MastFuss { get; init; } = new(2.9f, 1.1f, 0);
     }
 
     private readonly Dictionary<Schiff, SchiffAnsicht> _schiffe = new(ReferenceEqualityComparer.Instance);
@@ -102,10 +100,24 @@ public partial class Stadtansicht
         var ansicht = new SchiffAnsicht
         {
             Wurzel = wurzel, SegelGesetzt = gesetzt, SegelGerefft = gerefft, Planke = planke, Ladung = ladung.ToArray(), AnkerKai = ankerKai, Nummer = nummer,
-            MastFuss = modellName == NiederlaenderModell ? new Vector3(0.8f, 1.05f, 0) : new Vector3(2.9f, 1.1f, 0),
         };
         ansicht.Schiffer = SchifferEinsetzen(modell, name, farbe);
         return ansicht;
+    }
+
+    private ShaderMaterial? _verdraengerStoff;
+
+    /// <summary>
+    /// Der Wasserverdränger eines Schiffs oder Boots (Knoten <c>Verdraenger</c> im Modell, ein geschlossener Körper in Rumpfform): Er bekommt einen Stoff, der nichts
+    /// malt, aber Tiefe schreibt (<c>verdraenger.gdshader</c>), und wird vor allen Gewässern gezeichnet (Priorität −20, die Gewässer liegen bei −8 bis −6). Die
+    /// Wasserfläche besteht dann hinter ihm den Tiefentest nicht: Sie schneidet nicht durch den Rumpf, auch nicht bei Wellengang und im Pixel-Look. Er wirft keinen Schatten.
+    /// </summary>
+    private void WasserVerdraengerEinrichten(MeshInstance3D teil)
+    {
+        _verdraengerStoff ??= new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/verdraenger.gdshader"), RenderPriority = -20, ResourceName = "Verdraenger" };
+        teil.MaterialOverride = _verdraengerStoff;
+        teil.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
+        teil.Visible = true;
     }
 
     /// <summary>Der Schiffer am Heck (<c>Anker_Schiffer</c>, blickt mit −Z wie die Anker der Karren): ein Mensch im Gewand der gedämpften Hausfarbe.</summary>
