@@ -155,15 +155,104 @@ public partial class Stadtansicht
         return sockel;
     }
 
+    /// <summary>So weit (Meter) geht die Böschung eines Erdsockels höchstens ins Gelände hinaus; am Rand schwankt sie mit Rauschen um etwa ein Drittel.</summary>
+    private const float BoeschungBreite = 4.5f;
+
+    /// <summary>Ein Wert zwischen -1 und 1 aus Ort und Saat (Wertrauschen auf einem Netz von 3 m, glatt dazwischen) – nur für die Darstellung, nichts davon geht in den Kern.</summary>
+    private static float BoeschungRauschen(float x, float z, int saat)
+    {
+        static float Wert(int i, int j, int s)
+        {
+            var h = unchecked((uint)(i * 73856093 ^ j * 19349663 ^ s * 83492791));
+            h = (h ^ (h >> 13)) * 1274126177u;
+            return ((h ^ (h >> 16)) & 0xFFFF) / 32767.5f - 1f;
+        }
+        var (fx, fz) = (x / 3f, z / 3f);
+        var (i, j) = ((int)Mathf.Floor(fx), (int)Mathf.Floor(fz));
+        var (tx, tz) = (fx - i, fz - j);
+        (tx, tz) = (tx * tx * (3 - 2 * tx), tz * tz * (3 - 2 * tz));
+        var oben = Mathf.Lerp(Wert(i, j, saat), Wert(i + 1, j, saat), tx);
+        var unten = Mathf.Lerp(Wert(i, j + 1, saat), Wert(i + 1, j + 1, saat), tx);
+        return Mathf.Lerp(oben, unten, tz);
+    }
+
+    /// <summary>
+    /// Der Erdsockel eines Umlandplatzes am Hang als Böschung statt als Quader: oben eine ebene Fläche auf der Höhe des Fußbodens, ringsum ein Netz, das in einem
+    /// weichen Übergang (bis <see cref="BoeschungBreite"/> m, am Rand mit Rauschen) von dieser Höhe auf die des Bodens sinkt und knapp unter ihm endet. Wo der Boden
+    /// höher liegt, verdeckt er das Netz. Rein Darstellung: Boden, Wege und <see cref="FussHoehe"/> bleiben, wie sie sind. Die Punkte stehen in Weltkoordinaten, <paramref name="eltern"/> ist die Stadt (am Ursprung).
+    /// </summary>
+    private MeshInstance3D? BoeschungBauen(Node3D eltern, Vector3 mitte, float drehung, Vector2 groesse, float tiefe, int saat)
+    {
+        if (tiefe < SockelMindestTiefe || groesse == Vector2.Zero) return null;
+        const float schritt = 1f, unter = 0.04f;
+        var (halb, grad) = (groesse / 2f - new Vector2(0.075f, 0.075f), drehung * 180f / Mathf.Pi);
+        var (sinus, kosinus) = (Mathf.Sin(-drehung), Mathf.Cos(-drehung));
+        var rand = BoeschungBreite * 1.35f;
+        var zellen = (int)Mathf.Ceil((Mathf.Max(halb.X, halb.Y) * 1.42f + rand) / schritt);
+        // eine Stelle (x, z in Weltkoordinaten): wie weit sie ausserhalb des Rechtecks liegt, und die Höhe des Netzes dort
+        float Hoehe(float x, float z)
+        {
+            var (dx, dz) = (x - mitte.X, z - mitte.Z);
+            var (lx, lz) = (dx * kosinus - dz * sinus, dx * sinus + dz * kosinus); // ins Rechteck gedreht
+            var (ax, az) = (Mathf.Max(Mathf.Abs(lx) - halb.X, 0f), Mathf.Max(Mathf.Abs(lz) - halb.Y, 0f));
+            var abstand = Mathf.Sqrt(ax * ax + az * az);
+            if (abstand <= 0f) return mitte.Y;
+            // so breit, wie das Gefälle an der nächsten Stelle der Kante es braucht (etwa 1 : 2,5), höchstens BoeschungBreite: Wo der Boden fast ebenso hoch liegt, bleibt nur ein schmaler Saum
+            var (kx, kz) = (Mathf.Clamp(lx, -halb.X, halb.X), Mathf.Clamp(lz, -halb.Y, halb.Y));
+            var kante = BodenHoehe(mitte.X + kx * kosinus + kz * sinus, mitte.Z - kx * sinus + kz * kosinus);
+            var reichweite = Mathf.Clamp((mitte.Y - kante) * 2.5f + 1f, 1f, BoeschungBreite) * (1f + 0.3f * BoeschungRauschen(x, z, saat));
+            var s = Mathf.Clamp(abstand / reichweite, 0f, 1f);
+            var boden = BodenHoehe(x, z);
+            if (s >= 1f) return boden - unter;
+            s = s * s * (3f - 2f * s);
+            return Mathf.Lerp(mitte.Y, boden, s) - unter * s;
+        }
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        var hoehen = new float[2 * zellen + 1, 2 * zellen + 1];
+        var (ux, uz) = (mitte.X - zellen * schritt, mitte.Z - zellen * schritt);
+        for (var i = 0; i <= 2 * zellen; i++)
+            for (var j = 0; j <= 2 * zellen; j++)
+                hoehen[i, j] = Hoehe(ux + i * schritt, uz + j * schritt);
+        for (var i = 0; i < 2 * zellen; i++)
+            for (var j = 0; j < 2 * zellen; j++)
+            {
+                var (x0, z0, x1, z1) = (ux + i * schritt, uz + j * schritt, ux + (i + 1) * schritt, uz + (j + 1) * schritt);
+                var (a, b, c, d) = (hoehen[i, j], hoehen[i + 1, j], hoehen[i + 1, j + 1], hoehen[i, j + 1]);
+                // Zelle ganz im Boden (alles unter ihm, nirgends sichtbar) auslassen
+                if (a <= BodenHoehe(x0, z0) - unter + 0.001f && b <= BodenHoehe(x1, z0) - unter + 0.001f
+                    && c <= BodenHoehe(x1, z1) - unter + 0.001f && d <= BodenHoehe(x0, z1) - unter + 0.001f
+                    && a < mitte.Y - 0.001f && b < mitte.Y - 0.001f && c < mitte.Y - 0.001f && d < mitte.Y - 0.001f) continue;
+                var (pa, pb, pc, pd) = (new Vector3(x0, a, z0), new Vector3(x1, b, z0), new Vector3(x1, c, z1), new Vector3(x0, d, z1));
+                var (ua, ub, uc, ud) = (new Vector2(x0, z0) / 4f, new Vector2(x1, z0) / 4f, new Vector2(x1, z1) / 4f, new Vector2(x0, z1) / 4f);
+                // Diagonale wie im Boden (links oben nach rechts unten), im Uhrzeigersinn von oben gesehen = Vorderseite in Godot
+                foreach (var (p, uv) in new[] { (pa, ua), (pb, ub), (pc, uc), (pa, ua), (pc, uc), (pd, ud) })
+                {
+                    st.SetUV(uv);
+                    st.AddVertex(p);
+                }
+            }
+        st.GenerateNormals();
+        var netz = new MeshInstance3D { Name = "Boeschung", Mesh = st.Commit(), MaterialOverride = Material(Weg) };
+        eltern.AddChild(netz);
+        return netz;
+    }
+
     /// <summary>Ein Gebäude der Karte auf seinem Fundament: Sockel unter der Fläche (als Kind der Stadt) und die Fläche für <see cref="FussHoehe"/>.</summary>
     private void GebaeudeSockel(Kartengebaeude g)
     {
         var (hoehe, tiefe) = FundamentVon(g);
         if (hoehe == 0 && tiefe == 0) return;
         FundamentMerken(Punkt3(g.Punkt), DrehungVon(g), GroesseVon(g), hoehe);
-        SockelBauen(this, new Vector3((float)g.Punkt[0], hoehe, (float)g.Punkt[1]), DrehungVon(g), GroesseVon(g), tiefe,
-            erde: g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell?.StartsWith("wasser/") != true);
+        var erde = g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell?.StartsWith("wasser/") != true;
+        var mitte = new Vector3((float)g.Punkt[0], hoehe, (float)g.Punkt[1]);
+        if (erde && !SockelQuader)
+            BoeschungBauen(this, mitte, DrehungVon(g), GroesseVon(g), tiefe, (int)Restflaechenfuellung.Wuerfel(g.Kennung, 5));
+        else SockelBauen(this, mitte, DrehungVon(g), GroesseVon(g), tiefe, erde);
     }
+
+    /// <summary>Mit <c>--sockelquader=1</c> bleibt der alte Quader aus Erde unter Umlandplätzen (nur für Vergleiche).</summary>
+    private static bool SockelQuader => Wasserarten.Startoption("sockelquader") is "1" or "ja" or "an";
 
     /// <summary>
     /// Ein Gebäude in einer Gruppe, deren Ursprung die Mitte der Fläche ist (Wohnhaus, Baustelle, Bauplatz; die Gruppe steht schon auf der Höhe des
