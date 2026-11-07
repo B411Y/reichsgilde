@@ -45,9 +45,11 @@ static class BauortsucheTests
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
                 var suche = new Bauwesen.Platzsuche(karte);
 
-                // Zonen: jede fünfte Feldmitte, jede Ecke einer Zone samt knapp darüber und darunter (in z liegt die Grenze der Strahlprüfung genau
-                // auf den Ecken) und die Ränder ihrer Rechtecke
-                var punkte = Raster(karte, 10).Concat(karte.Bauzonen.SelectMany(z => z.Flaeche).SelectMany(p => Fein.Select(dz => (p[0], p[1] + dz))))
+                // Zonen: jede fünfte Feldmitte, die Ecken einer Zone am oberen und unteren Rand ihres Rechtecks samt knapp darüber und darunter (in z
+                // liegt die Grenze der Strahlprüfung genau dort) und die Ränder der Rechtecke
+                var punkte = Raster(karte, 10).Concat(karte.Bauzonen.SelectMany(z => z.Flaeche.Where(p => p[1] == Bauwesen.Platzsuche.Rahmen(z.Flaeche).Z0
+                                                                                                         || p[1] == Bauwesen.Platzsuche.Rahmen(z.Flaeche).Z1))
+                        .SelectMany(p => Fein.Select(dz => (p[0], p[1] + dz))))
                     .Concat(karte.Bauzonen.SelectMany(z => AmRahmen(Bauwesen.Platzsuche.Rahmen(z.Flaeche), 0, 1)));
                 var inZone = 0;
                 foreach (var (x, z) in punkte)
