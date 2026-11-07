@@ -21,6 +21,10 @@ dann mit Protokollzeile.
 Mit --stufen entstehen sechs Stufen nach Stand (Umfärben über Farbverläufe nach der Helligkeit, Ringe, Goldnaht, Borte,
 Schnalle aus Eisen, Silber oder Gold) als hand_<stufe>_normal|klick_<px>.png.
 
+Mit --gemini ORDNER werden acht fertig gezeichnete Handschuhe (1_gemeiner.png bis 6_reichsgraf.png, 7_wache.png, 8_dieb.png)
+deckungsgleich ausgerichtet (Fingerspitze und Schnalle), je einzeln gepixelt (Gold, Silber und Edelsteine als Akzente) und als
+hand_<1..6|wache|dieb>_normal|klick_<px>.png geschrieben.
+
 Ausgabe: zeiger_<px>.png, zeiger_<px>_klick.png, hotspots.txt (Fingerspitze = deckendes Pixel mit kleinstem x+y).
 """
 import argparse
@@ -60,12 +64,16 @@ def verengen(m, n=1):
     return ~verbreitern(~m, n)
 
 
-def freistellen(rgb):
-    """Gibt (rgb, maske) zurück, beschnitten auf den Handschuh. Maske True = Handschuh."""
-    hell = rgb.min(axis=2) > 215
+def freistellen(rgb, schwelle=215, erosion=2, beschneiden=True):
+    """Gibt (rgb, maske) zurück, beschnitten auf den Handschuh. Maske True = Handschuh.
+    schwelle: Helligkeit (kleinster Farbkanal), ab der ein Pixel als weißer Grund gilt (JPEG 215, sauberes PNG 250).
+    beschneiden=False: Bild in voller Größe behalten (für das Ausrichten mehrerer Stufen)."""
+    voll = rgb
+    hell = rgb.min(axis=2) > schwelle
     nichthell = ~hell
     ys, xs = np.where(nichthell)
     y0, y1, x0, x1 = max(ys.min() - 6, 0), min(ys.max() + 7, rgb.shape[0]), max(xs.min() - 6, 0), min(xs.max() + 7, rgb.shape[1])
+    y_0, y_1, x_0, x_1 = y0, y1, x0, x1
     # Bildrandpixel vom Rauschen freihalten: Auffüllen vom Rand der Beschneidung aus
     rgb = rgb[y0:y1, x0:x1]
     hell = hell[y0:y1, x0:x1]
@@ -81,10 +89,55 @@ def freistellen(rgb):
         grund = neu
     maske = ~grund
     # Löcher im Inneren, die nicht zum Außengrund gehören, bleiben Handschuh (sie sind es schon).
-    maske = verengen(maske, 2)
+    maske = verengen(maske, erosion)
+    if not beschneiden:
+        voll_maske = np.zeros(voll.shape[:2], bool)
+        voll_maske[y_0:y_1, x_0:x_1] = maske
+        return voll.astype(np.float32), voll_maske
     ys, xs = np.where(maske)
     y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     return rgb[y0:y1, x0:x1].astype(np.float32), maske[y0:y1, x0:x1]
+
+
+# ---------------------------------------------------------------- Akzente (Gold, Silber, Edelsteine)
+def hsv(rgb):
+    r, g, b = rgb[..., 0] / 255, rgb[..., 1] / 255, rgb[..., 2] / 255
+    v = np.maximum(np.maximum(r, g), b)
+    m = np.minimum(np.minimum(r, g), b)
+    d = v - m
+    sat = np.where(v > 1e-6, d / np.maximum(v, 1e-6), 0)
+    h = np.zeros_like(v)
+    dd = np.maximum(d, 1e-6)
+    h = np.where(v == r, ((g - b) / dd) % 6, h)
+    h = np.where((v == g) & (v != r), (b - r) / dd + 2, h)
+    h = np.where((v == b) & (v != r) & (v != g), (r - g) / dd + 4, h)
+    return h * 60.0, sat, v
+
+
+def oeffnen(m, n):
+    """Dünne Teile (Stiche, Fäden) entfernen: n mal verengen, dann n mal verbreitern."""
+    return verbreitern(verengen(m, n), n)
+
+
+def akzent_maske(rgb, maske, regeln):
+    """Pixel der Vorlage, die als Gold, Silber oder Edelstein erhalten bleiben sollen.
+    Gold wird großzügig (auch die Schattenseite des Rings) erkannt, dünne Goldstiche fallen durch das Öffnen heraus;
+    alles wird um 3 Pixel verdickt, damit Ringe in 48 Pixeln noch als Fläche ankommen."""
+    h, sat, v = hsv(rgb)
+    m = np.zeros(maske.shape, bool)
+    if "gold" in regeln:
+        gold = (h > 26) & (h < 70) & (sat > 0.22) & (v > 0.34)
+        m |= verbreitern(oeffnen(gold & maske, 2), 3)
+    if "silber" in regeln:
+        silber = (sat < 0.17) & (v > 0.58) & maske
+        m |= verbreitern(silber, 1)
+    if "rot" in regeln:
+        rot = (((h < 22) | (h > 330)) & (sat > 0.45) & (v > 0.5)) & maske
+        m |= verbreitern(oeffnen(rot, 1), 3)
+    if "gruen" in regeln:
+        gruen = ((h > 90) & (h < 175) & (sat > 0.35) & (v > 0.38)) & maske
+        m |= verbreitern(oeffnen(gruen, 1), 3)
+    return m & maske
 
 
 # ---------------------------------------------------------------- Verkleinern
@@ -121,7 +174,7 @@ def lumi(rgb):
     return rgb[..., 0] * 0.299 + rgb[..., 1] * 0.587 + rgb[..., 2] * 0.114
 
 
-def verkleinern(rgb, maske, groesse, verfahren, farben, schaerfe, kontrast, dunkel_schwelle, linien_flaeche, innen_flaeche, raster, extrem=0.0, metall_flaeche=0.1):
+def verkleinern(rgb, maske, groesse, verfahren, farben, schaerfe, kontrast, dunkel_schwelle, linien_flaeche, innen_flaeche, raster, extrem=0.0, metall_flaeche=0.1, akzente=None, akzent_flaeche=0.12):
     h, w = maske.shape
     innen = groesse - 2  # 1 Pixel Rand rundum für den hellen Außenrand
     k = innen / max(w, h)
@@ -130,7 +183,9 @@ def verkleinern(rgb, maske, groesse, verfahren, farben, schaerfe, kontrast, dunk
 
     fg = maske.astype(np.float32)
     dunkel = (lumi(rgb) < dunkel_schwelle) & maske
-    leder = maske & ~dunkel
+    acc = akzent_maske(rgb, maske, akzente) if akzente else np.zeros(maske.shape, bool)
+    dunkel &= ~acc
+    leder = maske & ~dunkel & ~acc
     cov = mittel(fg, wy, wx)
     cov_dunkel = mittel(dunkel.astype(np.float32), wy, wx)
     cov_leder = mittel(leder.astype(np.float32), wy, wx)
@@ -187,7 +242,20 @@ def verkleinern(rgb, maske, groesse, verfahren, farben, schaerfe, kontrast, dunk
     metall_hires = maske & (lumi(rgb) > 110) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 38)
     cov_metall = mittel(metall_hires.astype(np.float32), wy, wx)
     metall = deckend & ~umriss & (cov_metall > metall_flaeche)
-    return dict(farbe=farbe, deckend=deckend, umriss=umriss, linie=linie, th=th, tw=tw, cov_dunkel=cov_dunkel, metall=metall, cov_metall=cov_metall)
+    akz = np.zeros_like(deckend)
+    akz_farbe = np.zeros_like(farbe)
+    if akzente is not None:
+        cov_acc = mittel(acc.astype(np.float32), wy, wx)
+        akz_farbe = mittel(rgb * acc[..., None], wy, wx) / np.maximum(cov_acc, 1e-6)[..., None]
+        akz = deckend & ~umriss & (cov_acc > akzent_flaeche)
+        metall = np.zeros_like(deckend)
+        linie &= ~akz
+    erg = dict(farbe=farbe, deckend=deckend, umriss=umriss, linie=linie, th=th, tw=tw, cov_dunkel=cov_dunkel, metall=metall, cov_metall=cov_metall, akzent=akz, akzent_farbe=akz_farbe)
+    if akzente is not None and dunkel.any():
+        mittel_dunkel = rgb[dunkel].mean(axis=0)
+        erg["linienfarbe"] = np.clip(mittel_dunkel * 1.25 + 6, 0, 255)
+        erg["umrissfarbe"] = np.clip(mittel_dunkel * 0.75, 0, 255)
+    return erg
 
 
 # ---------------------------------------------------------------- Palette
@@ -214,7 +282,8 @@ def bayer(n):
 
 def zusammensetzen(e, groesse, farben, raster):
     farbe, deckend, umriss, linie, th, tw = e["farbe"], e["deckend"], e["umriss"], e["linie"], e["th"], e["tw"]
-    pal = kmeans(farbe[deckend & ~umriss & ~linie], farben)
+    akzent = e.get("akzent", np.zeros_like(deckend))
+    pal = kmeans(farbe[deckend & ~umriss & ~linie & ~akzent], farben)
     pal = pal[np.argsort(lumi(pal))]
     f = farbe.copy()
     if raster > 0:
@@ -223,9 +292,18 @@ def zusammensetzen(e, groesse, farben, raster):
     q = pal[d.argmin(axis=2)]
     # Umriss: Farbton etwas vom Leder übernehmen, damit er nicht tot schwarz wirkt
     rgb = q.copy()
-    rgb[linie] = INNENLINIE
+    rgb[linie] = e.get("linienfarbe", INNENLINIE)
     rgb[e["metall"]] = np.clip(np.array([150, 152, 150]) + e["cov_metall"][e["metall"]][:, None] * 160, 0, 235)
-    rgb[umriss] = UMRISS
+    if akzent.any():
+        # Akzente (Gold, Edelsteine) etwas heller und satter als der Mittelwert, damit sie gegen das Leder stehen
+        ak_f = e["akzent_farbe"].copy()
+        gr = lumi(ak_f)[..., None]
+        ak_f = np.clip((gr + (ak_f - gr) * 1.25) * 1.28 + 8, 0, 255)
+        e = dict(e, akzent_farbe=ak_f)
+        ak = kmeans(e["akzent_farbe"][akzent], min(8, int(akzent.sum())), runden=30)
+        da = ((e["akzent_farbe"][akzent][:, None, :] - ak[None]) ** 2).sum(axis=2)
+        rgb[akzent] = ak[da.argmin(axis=1)]
+    rgb[umriss] = e.get("umrissfarbe", UMRISS)
     # auf Leinwand setzen
     leinwand = np.zeros((groesse, groesse, 4), np.uint8)
     inh = np.zeros((groesse, groesse), bool)
@@ -241,7 +319,7 @@ def zusammensetzen(e, groesse, farben, raster):
         for dx in range(3):
             rand |= p[dy:dy + groesse, dx:dx + groesse]
     rand &= ~inh
-    leinwand[rand] = RAND
+    leinwand[rand] = e.get("randfarbe", RAND)
 
     def auf(m, dtyp=bool):
         c = np.zeros((groesse, groesse), dtyp)
@@ -251,7 +329,7 @@ def zusammensetzen(e, groesse, farben, raster):
     metall = e["metall"]
     masken = dict(
         deckend=inh, umriss=auf(umriss), linie=auf(linie), metall=auf(metall), cov_metall=auf(e["cov_metall"], np.float32),
-        leder=auf(deckend & ~umriss & ~linie & ~metall),
+        leder=auf(deckend & ~umriss & ~linie & ~metall & ~akzent), akzent=auf(akzent), rand=rand,
     )
     return leinwand, pal, masken
 
@@ -430,6 +508,154 @@ def klickzustand_stufe(bild, m, cfg):
     return b.round().astype(np.uint8)
 
 
+
+# ---------------------------------------------------------------- Stufen aus eigenen Vorlagen (Gemini-Bilder des Nutzers)
+# Je Stufe: Dateiname, Schwelle für den weißen Grund, Akzentregeln, Lage der Schnalle in der Vorlage (x, y).
+GEMINI = {
+    1: ("1_gemeiner.png", 250, [], (636, 435)),
+    2: ("2_buerger.jpg", 215, ["silber"], (1245, 885)),
+    3: ("3_patrizier.png", 250, ["silber"], (640, 337)),
+    4: ("4_edler.png", 250, ["gold"], (638, 338)),
+    5: ("5_freiherr.png", 250, ["gold", "rot"], (638, 342)),
+    6: ("6_reichsgraf.png", 250, ["gold", "rot", "gruen"], (636, 343)),
+    # freie Wahl in den Einstellungen, nicht nach Stand: Plattenhandschuh (Wache) und schwarzer Polsterhandschuh (Dieb)
+    7: ("7_wache.png", 238, [], (645, 430)),
+    8: ("8_dieb.png", 238, [], (632, 440)),
+}
+NAMEN = {7: "wache", 8: "dieb"}
+RAND_DIEB = (246, 238, 218, 254)     # schwarzer Handschuh: deckender heller Rand, sonst auf dunklem Grund kaum zu sehen
+BEZUG = 2           # alle Stufen werden nach dieser ausgerichtet
+LEINWAND = (900, 1000)   # Höhe, Breite der gemeinsamen Arbeitsfläche
+BEZUG_SPITZE = (90.0, 70.0)
+BEZUG_LAENGE = 520.0     # Abstand Fingerspitze - Schnalle auf der Arbeitsfläche
+
+
+def fingerspitze(maske):
+    """Fingerspitze = Maskenpixel mit dem kleinsten Wert entlang der Achse Spitze -> Stulpe."""
+    ys, xs = np.where(maske)
+    i = (xs * ACHSE[0] + ys * ACHSE[1]).argmin()
+    return np.array([xs[i] + 0.5, ys[i] + 0.5])
+
+
+def bilinear(a, x, y):
+    """Bild a (HxWxC oder HxW) an Stellen (x, y) abtasten; außerhalb: Rand wiederholen."""
+    h, w = a.shape[:2]
+    x = np.clip(x, 0, w - 1.001)
+    y = np.clip(y, 0, h - 1.001)
+    x0, y0 = np.floor(x).astype(int), np.floor(y).astype(int)
+    fx, fy = x - x0, y - y0
+    if a.ndim == 3:
+        fx, fy = fx[..., None], fy[..., None]
+    return (a[y0, x0] * (1 - fx) * (1 - fy) + a[y0, x0 + 1] * fx * (1 - fy) + a[y0 + 1, x0] * (1 - fx) * fy + a[y0 + 1, x0 + 1] * fx * fy)
+
+
+def ausrichten(rgb, maske, spitze, schnalle, ziel_spitze, ziel_winkel, ziel_laenge):
+    """Ähnlichkeitsabbildung (Drehen, Skalieren, Verschieben): Spitze -> ziel_spitze, Schnalle auf Winkel und Länge."""
+    v = np.array(schnalle, float) - spitze
+    skal = ziel_laenge / np.hypot(*v)
+    dreh = ziel_winkel - np.arctan2(v[1], v[0])
+    c, s_ = np.cos(-dreh), np.sin(-dreh)
+    hh, ww = LEINWAND
+    yy, xx = np.mgrid[0:hh, 0:ww].astype(np.float32)
+    px, py = xx + 0.5 - ziel_spitze[0], yy + 0.5 - ziel_spitze[1]
+    qx = spitze[0] + (c * px - s_ * py) / skal
+    qy = spitze[1] + (s_ * px + c * py) / skal
+    m = bilinear(maske.astype(np.float32), qx - 0.5, qy - 0.5)
+    r = bilinear(rgb, qx - 0.5, qy - 0.5)
+    ausserhalb = (qx < 0) | (qy < 0) | (qx > rgb.shape[1]) | (qy > rgb.shape[0])
+    return r, (m > 0.5) & ~ausserhalb
+
+
+def laden_ausgerichtet(ordner):
+    """Alle sechs Vorlagen freistellen, deckungsgleich ausrichten und auf die gemeinsame Hüllbox beschneiden."""
+    roh = {}
+    for st, (name, schwelle, regeln, schnalle) in GEMINI.items():
+        rgb, maske = freistellen(lies(os.path.join(ordner, name))[..., :3], schwelle=schwelle, erosion=2 if schwelle < 240 else 1, beschneiden=False)
+        sp = fingerspitze(maske)
+        sc = np.array(schnalle, float)
+        faktor = BEZUG_LAENGE / np.hypot(*(sc - sp))
+        if faktor < 0.8:
+            # große Vorlage vor dem Ausrichten mit Flächenmittel verkleinern (sonst Treppen und dünne Linien)
+            hh, ww = maske.shape
+            nh, nw = round(hh * faktor), round(ww * faktor)
+            wy, wx = gewichte(hh, nh), gewichte(ww, nw)
+            rgb = mittel(rgb, wy, wx)
+            maske = mittel(maske.astype(np.float32), wy, wx) > 0.5
+            sp = np.array([sp[0] * nw / ww, sp[1] * nh / hh])
+            sc = np.array([sc[0] * nw / ww, sc[1] * nh / hh])
+        roh[st] = (rgb, maske, sp, sc)
+    rgb2, m2, sp2, sc2 = roh[BEZUG]
+    v2 = sc2 - sp2
+    winkel = np.arctan2(v2[1], v2[0])
+    ergebnis = {}
+    for st, (rgb, maske, sp, sc) in roh.items():
+        ergebnis[st] = ausrichten(rgb, maske, sp, sc, np.array(BEZUG_SPITZE), winkel, BEZUG_LAENGE)
+    union = np.zeros(LEINWAND, bool)
+    for r, m in ergebnis.values():
+        union |= m
+    ys, xs = np.where(union)
+    y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    return {st: (r[y0:y1, x0:x1], m[y0:y1, x0:x1]) for st, (r, m) in ergebnis.items()}
+
+
+def klick_gemini(bild, m):
+    """Klick: etwas heller und wärmer, Farbton bleibt; Umriss und Innenlinien unverändert, Rand cremefarben."""
+    b = bild.astype(np.float32)
+    rgb = b[..., :3]
+    neu = rgb * 1.14 + np.array([14, 8, 2])
+    nur = m["deckend"] & ~m["umriss"] & ~m["linie"]
+    rgb = np.where(nur[..., None], neu, rgb)
+    rand = m["rand"]
+    rgb = np.where(rand[..., None], np.array([252, 240, 206]) if m.get("dieb") else np.array([248, 232, 196]), rgb)
+    b[..., :3] = np.clip(rgb, 0, 255)
+    return b.round().astype(np.uint8)
+
+
+def gemini_lauf(args):
+    # Vorgaben für Vorlagen dieser Art (kleinere, weichere Bilder als die erste Vorlage)
+    args.schaerfe = 1.0 if args.schaerfe is None else args.schaerfe
+    args.kontrast = 1.2 if args.kontrast is None else args.kontrast
+    args.innen = 0.34 if args.innen is None else args.innen
+    ordner_aus = args.ausgabe
+    os.makedirs(ordner_aus, exist_ok=True)
+    stufen = laden_ausgerichtet(args.gemini)
+    for st, (r, m) in stufen.items():
+        print(f"Stufe {st}: ausgerichtet {m.shape[1]} x {m.shape[0]}, Handschuhfläche {int(m.sum())}")
+    # Schwelle für dunkle Linien je Vorlage nach der Helligkeit des Handschuhs (Bürger = Maßstab 45)
+    med = {st: np.median(lumi(r)[m]) for st, (r, m) in stufen.items()}
+    zeilen = []
+    for g in [int(x) for x in args.groessen.split(",")]:
+        farben, schaerfe, kontrast, dunkel, lf, inf, raster = STANDARD[g]
+        hots = []
+        for st, (r, m) in stufen.items():
+            regeln = GEMINI[st][2]
+            schw = dunkel * med[st] / med[BEZUG] if args.schwelle is None else args.schwelle
+            sch_st = args.schaerfe if args.schaerfe is not None else schaerfe
+            kon_st = args.kontrast if args.kontrast is not None else kontrast
+            if st == 8:      # schwarzer Handschuh: mehr Kontrast, sonst verschwinden Polster und Falten
+                sch_st, kon_st = sch_st * 1.3, kon_st * 1.25
+            e = verkleinern(r, m, g, "linien", farben, sch_st, kon_st, schw, lf, args.innen if args.innen is not None else inf,
+                            raster, 0.0, 0.08, regeln, args.akzent)
+            if st == 8:
+                e["randfarbe"] = RAND_DIEB
+            # dunkle Vorlagen (Bordeaux, Schwarz, Blau) heben, damit Falten und Glanz in 48 Pixeln noch zu lesen sind
+            leder_l = np.median(lumi(e["farbe"][e["deckend"] & ~e["umriss"] & ~e["linie"] & ~e["akzent"]]))
+            ziel = {8: 44.0, 5: 50.0}.get(st, args.ziel_hell)     # Dieb und Freiherr bleiben dunkel
+            gain = float(np.clip(ziel / leder_l, 1.0, 1.8))
+            e["farbe"] = np.clip(e["farbe"] * gain, 0, 255)
+            bild, pal, masken = zusammensetzen(e, g, farben, raster)
+            masken["dieb"] = st == 8
+            for kl in (False, True):
+                erg = klick_gemini(bild, masken) if kl else bild
+                schreibe(os.path.join(ordner_aus, f"hand_{NAMEN.get(st, st)}_{'klick' if kl else 'normal'}_{g}.png"), erg)
+            hots.append(hotspot(bild))
+        hx, hy = hots[BEZUG - 1]
+        zeilen.append(f"{g}: {hx},{hy}   (Fingerspitze je Stufe: " + " ".join(f"{a},{b}" for a, b in hots) + ")")
+        print(zeilen[-1])
+    with open(os.path.join(ordner_aus, "hotspots.txt"), "w") as f:
+        f.write("\n".join(zeilen) + "\n")
+
+
 # ---------------------------------------------------------------- Hauptprogramm
 STANDARD = {
     # groesse: (farben, schaerfe, kontrast, dunkel_schwelle, linien_flaeche, innen_flaeche, raster)
@@ -447,6 +673,9 @@ def main():
     ap.add_argument("--groessen", default="32,48,64,80")
     ap.add_argument("--verfahren", default="linien", choices=["linien", "flaeche"])
     ap.add_argument("--nachsilbe", default="")
+    ap.add_argument("--gemini", help="Ordner mit den sechs Stufenvorlagen (1_gemeiner.png ... 6_reichsgraf.png); dann ist VORLAGE ohne Bedeutung")
+    ap.add_argument("--ziel-hell", type=float, default=58.0, help="Zielhelligkeit des Leders (dunklere Stufen werden darauf angehoben)")
+    ap.add_argument("--akzent", type=float, default=0.08, help="Mindestfläche Gold/Silber/Edelstein je Pixel")
     ap.add_argument("--stufen", action="store_true", help="sechs Stufen nach Stand als hand_<stufe>_normal|klick_<px>.png schreiben")
     ap.add_argument("--innen", type=float, help="Schwelle für Innenlinien (überschreibt die Standardwerte)")
     ap.add_argument("--schwelle", type=float, help="Helligkeit, unter der ein Vorlagenpixel als Linie zählt")
@@ -457,6 +686,8 @@ def main():
     ap.add_argument("--extrem", type=float, default=0.0, help="Anteil der Lichter/Tiefen aus Teilpixeln (0 bis 1)")
     args = ap.parse_args()
     os.makedirs(args.ausgabe, exist_ok=True)
+    if args.gemini:
+        return gemini_lauf(args)
     rgb, maske = freistellen(lies(args.vorlage)[..., :3])
     print(f"Vorlage freigestellt: {maske.shape[1]} x {maske.shape[0]} Pixel")
     zeilen = []
