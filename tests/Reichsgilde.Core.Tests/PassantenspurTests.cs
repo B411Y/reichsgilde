@@ -164,7 +164,8 @@ static class PassantenspurTests
                         var faktor = MathF.Sqrt(gang.Bewegung.X * gang.Bewegung.X + gang.Bewegung.Z * gang.Bewegung.Z);
                         // Takt (Länge der Bewegung) und gemessener Weg auf dem Boden stimmen überein: geradeaus Schritt für Schritt, sonst (an den Rändern des
                         // Eckenfensters ändert sich die Steigung sprunghaft, die Schrittweite von 0,3 m mittelt das) über jedes Stück von einem Meter
-                        if (name == "gerade") Pruefe.Wahr(MathF.Abs(faktor - wirklich) <= 0.12f, $"{name}, Nummer {n}, bei {s} m: Takt {faktor}, Weg auf dem Boden {wirklich}");
+                        // (Meldungen nur im Fehlerfall gebaut: gut eine halbe Million Schritte, Testzeit 07.11.2026)
+                        if (name == "gerade" && !(MathF.Abs(faktor - wirklich) <= 0.12f)) Pruefe.Wahr(false, $"{name}, Nummer {n}, bei {s} m: Takt {faktor}, Weg auf dem Boden {wirklich}");
                         (summeTakt, summeBoden, schritte) = (summeTakt + faktor, summeBoden + wirklich, schritte + 1);
                         if (schritte == 100)
                         {
@@ -172,10 +173,10 @@ static class PassantenspurTests
                             (summeTakt, summeBoden, schritte) = (0, 0, 0);
                         }
                         // und die Figur springt nirgends (auch an der Ecke nicht): höchstens 3 cm je Zentimeter Weg
-                        Pruefe.Wahr(wirklich <= 3f, $"{name}, Nummer {n}, bei {s} m: springt ({wirklich} cm je cm)");
+                        if (!(wirklich <= 3f)) Pruefe.Wahr(false, $"{name}, Nummer {n}, bei {s} m: springt ({wirklich} cm je cm)");
                         // im Gehen auf gerader Strecke ohne Übergang höchstens 4,5 % mehr, in den Übergängen bis 1,6
-                        if (name == "gerade" && s > 1.5f && laenge - s > 1.5f) Pruefe.Wahr(faktor <= 1.045f, $"Nummer {n} bei {s} m: Faktor {faktor} im Gehen");
-                        if (name != "Anschluss") Pruefe.Wahr(faktor <= 2.5f, $"{name}, Nummer {n}, bei {s} m: Faktor {faktor}");
+                        if (name == "gerade" && s > 1.5f && laenge - s > 1.5f && !(faktor <= 1.045f)) Pruefe.Wahr(false, $"Nummer {n} bei {s} m: Faktor {faktor} im Gehen");
+                        if (name != "Anschluss" && !(faktor <= 2.5f)) Pruefe.Wahr(false, $"{name}, Nummer {n}, bei {s} m: Faktor {faktor}");
                         vorher = gang.Ort;
                     }
                 }
