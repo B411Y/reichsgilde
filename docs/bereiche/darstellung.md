@@ -14,6 +14,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 - (Streife) Köln, Wachhaus am Heumarkt: Von der Tür aus ist kein Knoten des Gassennetzes am Heumarkt erreichbar (zwei getrennte Teile des Netzes, gesehen mit `--streifentest=markt`); die Marktrunde endet daher nach 5 m, Viertel- und Mauerrunden sind nicht betroffen. Ursache nicht geklärt (Tür nicht angeschlossen oder der Platz hängt nicht am Netz); die Marktbesucher laufen über die Fläche des Marktes.
 
+- (Umland) Böschung am Hang: Figuren und Pflanzen im Saum stehen auf dem Boden, nicht auf dem Netz (nur wenige dm Unterschied, im Klicktest nicht sichtbar); der Erdsaum ist nur Erdfarbe, ohne Farbverlauf zum Gras im Netz
 - (Boden) Stempel in der Kartenwerkstatt (dort fehlen Höfe, Wege und Restflächen-Untergründe, die Modelle haben keine Platte mehr); Stempel für Stadthäuser (Vorplatz Pflaster) und ein Pinsel „Stempel anpassen“
 - (Umland) Felder: Am Rand zu Wegen, Gebäuden und Aussparungen bleiben die Ränder Treppen aus ganzen Zellen (2 m längs, bis 8 m quer); die Kit-Bäume kosten im Wald etwa +2,5 ms GPU gegenüber den alten (Schatten davon 2,4 ms; weiterer Hebel: Schatten der Kit-Bäume nur bei nahem Zoom, Fernfassung mit weniger Blattkarten); `lesesteinhaufen`, `kopfweide` und die Büsche sind noch die eigenen Modelle
 - (Pixel-Look) Das Beleuchtungsbild (zweite Zeichnung der Welt) kostet rund ein Drittel; billiger gingen: halbe Auflösung nur für das Licht (Schattenkanten würden grob), alle zwei Bilder nur bei ruhiger Kamera, oder Gras, Partikel und Wasser aus der Beleuchtungskamera per Sichtebene nehmen (jede Erzeugerstelle braucht eine Ebene)
@@ -227,6 +228,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Ladezeit, für den Ladebildschirm-Plan Teil 2; Köln, Vulkan RTX 2000 Ada, Rest nach „Köln lädt schneller“, je ungefähr bei ruhiger NAS) Was sich nicht schnell lösen ließ: **Felder** rund 4,1 s (Verteilung im Kern ~1,0 s – `Modellmass` ruft Godot, darum nicht in einen Hintergrundfaden –, Zuschneiden mit `Geometry2D` ~0,8 s, Ecken ~0,6 s, Netz ~0,8 s, Pflanzen ~1 s; Schätzung 1–1,5 s Gewinn mit Aufwand 1–2 Tage: Zuschneiden und Netz je Frucht auf Fäden verteilen, Pflanzen später zellenweise); **erste Zeichnung** hinter dem Ladebild 3–4 s (257 Pipelines, Gras ~1,1 s, `Gras: Kacheln rechnen` 0,7 s); **Betriebe** 1,1 s (8 Betriebe, je ~140 ms `WerkstattBauen`); **Markt und Sonderbauten** 1,1 s, **Gelände-Netz** (Kachel-Netz und Dunstring) 0,6–1,2 s, **Wegeschicht** (SchichtTeile, Tor-Erde) 0,4 s; **Kern und Oberfläche** zusammen 1,5 s (Tafeln bauen 0,6 s, `PartieStarten` 0,75 s, Partie aufstellen 0,75 s – gehören Oberfläche und Kern); **Wohnhäuser** setzt die Stadtansicht erst im ersten Bild nach dem Ladebild (0,3–0,5 s, der Kern vergibt die Häuser erst im ersten Takt): ein Bild mit rund 1 s Stillstand bleibt. Für die Balken-Anteile (`Hauptszene`/`Stadtansicht.Karte`) gilt die neue Verteilung der Tabelle unten, die alten Anteile stammen von der Messung am 29.10.
 
 ## Entscheidungen
+
+### Umlandplätze am Hang ohne eckigen Sockel (Branch phase5/sockel-hang)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Seit den Bodenstempeln (PR #336) haben Umlandplätze keine Bodenplatte mehr; am Hang baute `SockelBauen` für sie einen Quader aus Erde (ab `SockelMindestTiefe` 0,12 m), dessen gerade Kante im Gras zu sehen war (Köln: Bauernhof an der Mühle). |
+| Lösung (Weg B) | `BoeschungBauen` (`Stadtansicht.Gelaende.cs`) ersetzt den Quader durch ein Netz in Weltkoordinaten: oben eben auf der Höhe des Fußbodens, ringsum ein weicher Übergang auf die Höhe des Bodens, am Rand 0,04 m darunter. Die Breite folgt dem Gefälle (etwa 1 : 2,5, mindestens 1 m, höchstens `BoeschungBreite` 4,5 m), der Rand schwankt mit Wertrauschen (`BoeschungRauschen`, Saat aus der Kennung des Platzes). Wo der Boden höher liegt, verdeckt er das Netz. Material wie bisher die Erde (`Weg`). |
+| Grenzen | Nur Darstellung: Gelände, Wege, Kern und `FussHoehe` bleiben. Figuren und Pflanzen im Saum stehen auf dem Boden, nicht auf der Böschung. Gebäude und Stadtplätze (Bruchsteinsockel) bleiben Quader. Weg A (Gelände zur Laufzeit planieren) hätte `BodenHoehe`, Wege und Pflanzenhöhen berührt und wurde nicht gewählt. |
+| Klicktest NAS (Vulkan, Pixel-Look) | Köln, Bauernhof an der Mühle, Zoom 15, 35 und 70 vor und nach der Änderung: Kante weg, weicher Erdsaum, keine Löcher, keine schwebenden Kanten, kein Z-Konflikt mit Bodenstempel oder Gras. Figuren im Saum stehen nur wenige dm unter der Böschung, auf den Bildern nicht zu sehen. Bauernhof Mommersloch und Greybox liegen eben (kein Sockel, lädt ohne Fehler). | |
+| Vergleich | `--sockelquader=1` zeigt den alten Quader. | 07.11.2026 |
 
 ### Bauzonen glühen nicht, Beschriftungen scharf (PR #314)
 

@@ -546,6 +546,9 @@ public sealed class Stadtkarte
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<Restflaeche>? Restflaechen { get; init; }
+
+    /// <summary>Die Restflächen, nie null: Karten ohne Liste (probestadt, alte Spielstände) liefern eine leere. Die Darstellung liest immer diese.</summary>
+    public IReadOnlyList<Restflaeche> RestflaechenOderLeer() => Restflaechen ?? (IReadOnlyList<Restflaeche>)Array.Empty<Restflaeche>();
     public Kartennatur Natur { get; init; } = new();
     public List<Gewaesser> Wasser { get; init; } = new();
     public List<Gelaende> Gelaende { get; init; } = new();
