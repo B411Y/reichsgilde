@@ -583,7 +583,8 @@ public partial class Stadtansicht
         foreach (var h in _haefen)
         {
             if (!h.Wurzel.IsInsideTree()) continue;
-            if (h.Tretrad is not null) h.Tretrad.Rotation = new Vector3((float)(_wasserZeit * 0.35), h.Tretrad.Rotation.Y, h.Tretrad.Rotation.Z);
+            // Das Tretrad am Hafensteg dreht der Kran selbst (Stadtansicht.Kranladen.cs: nur beim Heben und Senken, Winkel = Seillänge); nur ein Rad ohne Steg dreht sich hier langsam
+            if (h.Tretrad is not null && !h.Wurzel.Name.ToString().StartsWith("Hafensteg_")) h.Tretrad.Rotation = new Vector3((float)(_wasserZeit * 0.35), h.Tretrad.Rotation.Y, h.Tretrad.Rotation.Z);
             for (var i = 0; i < h.Kaehne.Length; i++)
             {
                 var kahn = h.Kaehne[i];

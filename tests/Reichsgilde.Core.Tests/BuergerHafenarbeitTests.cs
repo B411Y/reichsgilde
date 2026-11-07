@@ -78,6 +78,23 @@ static class BuergerHafenarbeitTests
             Pruefe.Wahr(!Zierfahrplan.Plan(Zierfahrplan.Fenster + 100, 30).Nieder, "nachmittags der Oberländer");
         }),
 
+        ("Zierfahrplan: Die Hübe des Krans schließen lückenlos aneinander (Entladen: erster Hub kürzer, Beladen: gleich lang)", () =>
+        {
+            const int huebe = 6;
+            foreach (var entladen in new[] { true, false })
+            {
+                var von = entladen ? Zierfahrplan.EntladeAb : Zierfahrplan.OberLadeAb;
+                var bis = entladen ? Zierfahrplan.NiederEntladeBis : Zierfahrplan.OberLadeBis;
+                Pruefe.Gleich(von, Zierfahrplan.HubAnteil(entladen, 0, huebe).Von);
+                Pruefe.Gleich(bis, Zierfahrplan.HubAnteil(entladen, huebe - 1, huebe).Bis);
+                for (var h = 1; h < huebe; h++)
+                    Pruefe.Gleich(Zierfahrplan.HubAnteil(entladen, h - 1, huebe).Bis, Zierfahrplan.HubAnteil(entladen, h, huebe).Von, $"Hub {h}");
+                var (v0, b0) = Zierfahrplan.HubAnteil(entladen, 0, huebe);
+                var (v1, b1) = Zierfahrplan.HubAnteil(entladen, 1, huebe);
+                Pruefe.Wahr(Math.Abs((b0 - v0) - (entladen ? Zierfahrplan.ErsterHubGewicht : 1.0) * (b1 - v1)) < 1e-9, "Länge des ersten Hubs");
+            }
+        }),
+
         ("Hafenarbeit: zwei Besuche je Tag in Köln – Träger arbeiten Hand in Hand mit dem Kran (Entladen nach dem Absetzen, Beladen vor dem Heben), Stapel nur Puffer, danach leer; im Winter keine", () =>
         {
             var (_, w) = Partie(Daten(), "koeln");
@@ -118,7 +135,13 @@ static class BuergerHafenarbeitTests
                         for (var i = 1; i < reihe.Count; i++)
                             Pruefe.Wahr((x.Entladen ? reihe[i].VomStapel : reihe[i].ImSchuppen) >= reihe[i - 1].Zurueck - 1e-9, $"{jahr}: Träger {platz.Key} ist nicht an zwei Stellen");
                     }
-                    Pruefe.Wahr(x.Gaenge.Count(g => g.Platz == 0) >= 18 / x.Traeger, "die Gänge sind verteilt");
+                    // Der Kran hebt Bündel zu je drei Stücken (Zierfahrplan.HubGroesse); die Gänge verteilen sich trotzdem gleichmäßig: jeder Träger macht
+                    // mindestens 18 / n und höchstens aufgerundet 18 / n Gänge (bei vier Trägern 4, 4, 5, 5)
+                    for (var p = 0; p < x.Traeger; p++)
+                    {
+                        var gaenge = x.Gaenge.Count(g => g.Platz == p);
+                        Pruefe.Wahr(gaenge >= 18 / x.Traeger && gaenge <= (18 + x.Traeger - 1) / x.Traeger, $"{jahr}: die Gänge sind verteilt (Träger {p}: {gaenge} von 18, {x.Traeger} Träger, {(x.Entladen ? "Entladen" : "Beladen")})");
+                    }
                     for (var m = anlegen - 60.0; m <= x.Ende + 60; m += 0.5)
                         groessterStapel = Math.Max(groessterStapel, x.StapelUm(m));
                     // vor dem Niederländer ist der Steg leer; für den Oberländer tragen sie schon vor dem Anlegen heraus
@@ -132,7 +155,7 @@ static class BuergerHafenarbeitTests
             }
             Pruefe.Wahr(zahlen.Count == 3, $"Mal 2, mal 3, mal 4 Träger ({string.Join(",", zahlen)})");
             Pruefe.Wahr(groessterStapel is > 0 and <= 18, $"Der Stapel ist Puffer (höchstens {groessterStapel} Stücke)");
-            Pruefe.Wahr(nachlauf <= 60, $"Nach dem Ablegen tragen sie höchstens eine Stunde nach ({nachlauf:0} min)");
+            Pruefe.Wahr(nachlauf <= 57, $"Nach dem Ablegen tragen sie höchstens knapp eine Stunde nach ({nachlauf:0.0} min)");
         }),
 
         ("Hafenarbeit: Während der Schicht sind n Tagelöhner und ein Vorarbeiter am Hafen (echte Einwohner), auch vor 8 Uhr; davor und danach niemand; jeden Tag andere Träger", () =>

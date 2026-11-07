@@ -87,6 +87,11 @@ public partial class Stadtansicht
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
+            if (name.StartsWith("Verdraenger"))
+            {
+                WasserVerdraengerEinrichten(teil); // Schiffe und Boote: Rumpfform, die die Wasserfläche im Boot ausspart (Stadtansicht.Schiffe.cs)
+                continue;
+            }
             teil.Visible = name switch
             {
                 "Stufe1" => zustand.Stufe == 1,
