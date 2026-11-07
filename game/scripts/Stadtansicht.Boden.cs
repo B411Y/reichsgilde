@@ -151,19 +151,17 @@ public partial class Stadtansicht
             _bodenStoffe[(ti, tj)] = eintrag;
         }
         eintrag.Stoff.SetShaderParameter("gemalt", gemalt);
-        if (gemalt) BodenBilderSetzen(raster!, ti, tj, eintrag);
+        if (gemalt) BodenBilderSetzen(raster!, ti, tj, eintrag, _splatVorrat?.GetValueOrDefault((ti, tj)));
         SchichtSetzen(ti, tj, eintrag.Stoff);
         return eintrag.Stoff;
     }
 
     /// <summary>Schreibt die drei Gewichtsbilder der Kachel neu (beim ersten Mal legt es die Bilder an).</summary>
-    private static void BodenBilderSetzen(Bodenraster raster, int ti, int tj, (ShaderMaterial Stoff, ImageTexture[] Bilder) eintrag)
+    private static void BodenBilderSetzen(Bodenraster raster, int ti, int tj, (ShaderMaterial Stoff, ImageTexture[] Bilder) eintrag, byte[][]? vorgerechnet = null)
     {
-        var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
         for (var gruppe = 0; gruppe < 3; gruppe++)
         {
-            var daten = raster.Splat(i0, j0, BodenBild, BodenBild, gruppe);
-            if (gruppe == 2) FelsnaeheEintragen(raster, i0, j0, daten); // A ist frei: die Nähe zu Fels und Schutt (Stadtansicht.Felsboden.cs, Fels R1)
+            var daten = vorgerechnet?[gruppe] ?? SplatRechnen(raster, ti, tj, gruppe);
             var bild = Image.CreateFromData(BodenBild, BodenBild, false, Image.Format.Rgba8, daten);
             if (eintrag.Bilder[gruppe] is { } alt) alt.Update(bild);
             else
@@ -172,6 +170,36 @@ public partial class Stadtansicht
                 eintrag.Stoff.SetShaderParameter("splat" + gruppe, eintrag.Bilder[gruppe]);
             }
         }
+    }
+
+    /// <summary>Das Gewichtsbild einer Gruppe für eine Geländekachel (Gruppe 2 mit der Felsnähe in A, Stadtansicht.Felsboden.cs, Fels R1); liest nur das Raster, darum auch in mehreren Fäden.</summary>
+    private static byte[] SplatRechnen(Bodenraster raster, int ti, int tj, int gruppe)
+    {
+        var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
+        var daten = raster.Splat(i0, j0, BodenBild, BodenBild, gruppe);
+        if (gruppe == 2) FelsnaeheEintragen(raster, i0, j0, daten); // A ist frei: die Nähe zu Fels und Schutt
+        return daten;
+    }
+
+    /// <summary>
+    /// Die Gewichtsbilder aller gemalten Kacheln, die der Aufbau des Bodens gleich braucht – von allen Prozessorkernen vorgerechnet (die Kacheln haben
+    /// nichts miteinander zu tun, und jede rechnete sonst auf dem Hauptfaden ihre drei Bilder samt Felsnähe: gut 2 s beim Laden von Köln).
+    /// Nur während <see cref="GelaendeBauen"/> gesetzt.
+    /// </summary>
+    private Dictionary<(int I, int J), byte[][]>? _splatVorrat;
+
+    private void BodenVorrechnen(int ti0, int tj0, int ti1, int tj1)
+    {
+        _splatVorrat = null;
+        if (!BodenShaderLaden() || BodenRaster is not { IstLeer: false } raster) return;
+        var liste = new List<(int I, int J)>();
+        for (var tj = tj0; tj <= tj1; tj++)
+            for (var ti = ti0; ti <= ti1; ti++)
+                if (BodenKachelGemalt(raster, ti, tj)) liste.Add((ti, tj));
+        var ergebnis = new byte[liste.Count][][];
+        Parallel.For(0, liste.Count, n => ergebnis[n] = new[] { SplatRechnen(raster, liste[n].I, liste[n].J, 0), SplatRechnen(raster, liste[n].I, liste[n].J, 1), SplatRechnen(raster, liste[n].I, liste[n].J, 2) });
+        _splatVorrat = new Dictionary<(int, int), byte[][]>();
+        for (var n = 0; n < liste.Count; n++) _splatVorrat[liste[n]] = ergebnis[n];
     }
 
     /// <summary>
