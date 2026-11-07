@@ -211,7 +211,7 @@ public partial class Stadtansicht
             Volk.Mensch, Stadtrot, Kopfputz.Helm, 0.2f);
         a.Besucher.Add(waechter);
         var fackel = Leuchtend(new Color(1f, 0.7f, 0.3f), new Color(1f, 0.55f, 0.2f));
-        Teil(a, new Vector3(kerker + 3.05f, 2.4f, 0.8f), new Vector3(0.12f, 0.3f, 0.12f), fackel);
+        FlammeAnlegen(a, new Vector3(kerker + 3.05f, 2.3f, 0.8f), FeuerVorgabe.Fackel, 0.8f, () => true); // die Fackel an der Wand des Kerkers
         FeuerAnlegen(a, new Vector3(kerker + 2.6f, 2.6f, 0.8f), fackel, lichtAn: 1.2f, lichtAus: 1.2f, glutAn: 2f, glutAus: 2f, an: () => true, reichweite: 7);
 
         // ── Amtsstube: Kanzleipult, Ständetafel, Stadtkasse, Stadtschreiber ──
@@ -445,7 +445,7 @@ public partial class Stadtansicht
         foreach (var x in new[] { -3.6f, 3.6f })
         {
             Rund(a, new Vector3(x, 1.1f, -7.6f + v), 0.06f, 1.6f, Metall(new Color(0.2f, 0.2f, 0.22f)), segmente: 6);
-            Teil(a, new Vector3(x, 2.0f, -7.6f + v), new Vector3(0.08f, 0.15f, 0.08f), flamme);
+            Kerzenflamme(a, new Vector3(x, 1.925f, -7.6f + v), () => messe[0]);
         }
 
         // Katholisch: Hochaltar mit goldenem Retabel, Marienfigur, Weihrauchfass, Bischof mit Mitra
@@ -462,7 +462,7 @@ public partial class Stadtansicht
         for (var i = 0; i < 6; i++)
         {
             Rund(a, new Vector3(-1.1f + i * 0.44f, 1.75f, -9.5f + v), 0.05f, 0.4f, weiss, katholisch, segmente: 6);
-            Teil(a, new Vector3(-1.1f + i * 0.44f, 2.0f, -9.5f + v), new Vector3(0.06f, 0.1f, 0.06f), flamme, katholisch);
+            Kerzenflamme(a, new Vector3(-1.1f + i * 0.44f, 1.95f, -9.5f + v), () => messe[0], katholisch);
         }
         Teil(a, new Vector3(-3.4f, 0.9f, -9.0f + v), new Vector3(0.7f, 1.0f, 0.7f), stein, katholisch);   // Marienfigur auf Sockel
         katholisch.AddChild(new MeshInstance3D { Mesh = new CapsuleMesh { Radius = 0.3f, Height = 1.5f }, MaterialOverride = Material(new Color(0.20f, 0.30f, 0.62f)), Position = a.Mitte + new Vector3(-3.4f, 2.15f, -9.0f + v) });

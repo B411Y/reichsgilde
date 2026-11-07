@@ -1,4 +1,5 @@
 using Godot;
+using Reichsgilde.Core.Buerger;
 using Reichsgilde.Core.Gauner;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
@@ -61,6 +62,10 @@ public partial class Stadtansicht
         /// <summary>Das Opfer, wenn es steht: seine Lage vor dem Zucken (Rempeln), damit es danach wieder so steht.</summary>
         public Vector3? OpferRotation { get; set; }
         public bool Gezuckt { get; set; }
+        /// <summary>Die zweite Bahn, wenn eine Streife dem Dieb nahe kommt: auf dem Weg zum Opfer (beim Aufbau geplant) und im Abgang (geplant, sobald der Abgang beginnt).</summary>
+        public Ausweichbahn? AusweichHin { get; set; }
+        public Ausweichbahn? AusweichAb { get; set; }
+        public bool AbGeplant { get; set; }
     }
 
     /// <summary>Eine Festnahme in Arbeit.</summary>
@@ -75,6 +80,12 @@ public partial class Stadtansicht
         public required Vector3 Ort { get; init; }
         public required double LaufDauer { get; init; }
         public required double FuehrDauer { get; init; }
+        /// <summary>Fasst ein Torwächter (statt eines eigens erscheinenden Gardisten): er selbst, sein Weg zurück zum Posten und dessen Dauer (Spielminuten).</summary>
+        public Torposten? Torwaechter { get; init; }
+        public Vector3[] Heim { get; init; } = Array.Empty<Vector3>();
+        public double RueckDauer { get; init; }
+        /// <summary>Wo die Festnahme zuletzt war (für den Text der Auswahltafel des Torwächters).</summary>
+        public Taschendiebgang.Fest Phase { get; set; }
     }
 
     private readonly Dictionary<string, Diebfigur> _diebfiguren = new();
@@ -87,6 +98,9 @@ public partial class Stadtansicht
     private Node3D? _diebEbene;
     private long _diebAbfrage = -1;
     private int _diebZaehler, _festZaehler;
+    /// <summary>Uhrzeit (Minuten im Tag, mit Bruchteil) und Tag des laufenden Bildes: für den Dienstplan der Torwächter bei einer Festnahme.</summary>
+    private double _festUhr;
+    private int _festTag;
     private StandardMaterial3D? _beutelStoff;
     /// <summary>Mit <c>--diebtest</c> schreibt die Stadt Zeilen <c>[taschendieb]</c> ins Protokoll (Griffe, Festnahmen).</summary>
     private static readonly bool DiebLog = Wasserarten.Startoption("diebtest") is { Length: > 0 } and not "0";
@@ -96,8 +110,33 @@ public partial class Stadtansicht
     /// <summary>Test (<c>--diebtest=bildfolge</c>): Die Zeit hält 5 s lang bei einem eigenen Dieb an – kurz vor dem Griff, mitten im Griff, kurz danach – für drei Bilder.</summary>
     public bool Bildfolge { get; set; }
     private int _haltStufe;
+    /// <summary>Test (<c>--diebtest=festnahmetor</c>): wie <see cref="FestnahmeProbe"/>, aber die Zeit hält dreimal 6 s an – der Wächter läuft los, packt zu, führt ab – für Bilder.</summary>
+    public bool FestFolge { get; set; }
+    private int _festHaltStufe;
     private ulong _haltBis;
     private Griffszene? _haltSzene;
+    /// <summary>Test: Mit <c>--diebbild=&lt;ordner&gt;</c> legt die Stadt 1,5 s nach einem Halt das Bild des Fensters ab (<c>&lt;name&gt;.png</c>), statt dass ein Bildschirmfoto von außen den Zeitpunkt treffen muss.</summary>
+    private void DiebBildAblegen(string name, Func<IEnumerable<Node3D?>>? um = null)
+    {
+        if (Wasserarten.Startoption("diebbild") is not { Length: > 0 } ordner) return;
+        GetTree().CreateTimer(1.5).Timeout += () =>
+        {
+            var bild = GetViewport().GetTexture().GetImage();
+            var fehler = bild.SavePng($"{ordner}/{name}.png");
+            GD.Print($"[taschendieb] Bild {ordner}/{name}.png: {fehler}");
+            // Ausschnitt um die Mitte der Gestalten (2,5fach vergrößert, Pixel scharf)
+            var punkte = um?.Invoke().Where(k => k is not null && IsInstanceValid(k)).Select(k => StadtKamera.UnprojectPosition(k!.GlobalPosition + new Vector3(0, 0.9f, 0))).ToList();
+            if (punkte is { Count: > 0 })
+            {
+                var mitte = punkte.Aggregate(Vector2.Zero, (a, p) => a + p) / punkte.Count;
+                var x = Mathf.Clamp((int)mitte.X - 240, 0, bild.GetWidth() - 480);
+                var y = Mathf.Clamp((int)mitte.Y - 135, 0, bild.GetHeight() - 270);
+                var teil = bild.GetRegion(new Rect2I(x, y, 480, 270));
+                teil.Resize(1200, 675, Image.Interpolation.Nearest);
+                teil.SavePng($"{ordner}/{name}_nah.png");
+            }
+        };
+    }
     private static void DiebMelden(string text) { if (DiebLog) GD.Print("[taschendieb] " + text); }
 
     /// <summary>Test (Startoption <c>--diebtest=festnahme</c>): eine Festnahme zeigen, sobald Passanten am Markt sind.</summary>
@@ -124,11 +163,13 @@ public partial class Stadtansicht
         var jetzt = zeit.VergangeneMinuten + bruchteil;
         var pausiert = _simulation.Takt.IstPausiert;
         var sekunden = pausiert ? 0 : delta;
+        (_festUhr, _festTag) = (zeit.UhrzeitInMinuten + bruchteil, zeit.Jahr);
+        (_ausweichJetzt, _ausweichUhr) = (jetzt, _festUhr);
 
         if (!gezeigt)
         {
             _diebVorfaelle.Clear();
-            foreach (var f in _festnahmen) { f.WacheKnoten.QueueFree(); DiebEntfernen(f.Dieb); }
+            foreach (var f in _festnahmen) FestnahmeAbbauen(f, true);
             foreach (var g in _griffszenen.Values) DiebEntfernen(g.Dieb);
             _griffszenen.Clear();
             _festnahmen.Clear();
@@ -139,10 +180,11 @@ public partial class Stadtansicht
         {
             FestnahmeProbe = false;
             var wache = w.Konten.FirstOrDefault(k => k != _spielerKonto && k.IstAktiv);
+            if (FestFolge && _spielerKonto is { } eigenes && w.Betriebe.Any(b => b.Konto == eigenes && w.Wache.IstWachbetrieb(b))) wache = eigenes; // Test festnahmetor mit --beruf=Gardist: die eigene Wache fasst (Wachhaus nahe am Tor: Rückkehr des Torwächters)
             _diebVorfaelle.Add(new Vorfall
             {
                 Art = Vorfallart.Taschendiebstahl, Ort = Vorfallort.Markt, Ziel = "Markt", Erfolg = false, Wache = wache,
-                TaeterName = "Hans Hellermann", Taeterbetrieb = "Unterschlupf", OpferName = "Bürger am Markt", Minute = zeit.VergangeneMinuten,
+                TaeterName = "Konrad Hellermann", Taeterbetrieb = "Unterschlupf", OpferName = "Bürger am Markt", Minute = zeit.VergangeneMinuten,
             });
         }
 
@@ -182,8 +224,7 @@ public partial class Stadtansicht
         for (var i = _festnahmen.Count - 1; i >= 0; i--)
             if (!FestnahmeSetzen(_festnahmen[i], jetzt, sekundenJeMinute, sekunden))
             {
-                DiebEntfernen(_festnahmen[i].Dieb);
-                _festnahmen[i].WacheKnoten.QueueFree();
+                FestnahmeAbbauen(_festnahmen[i]);
                 _festnahmen.RemoveAt(i);
             }
 
@@ -243,10 +284,10 @@ public partial class Stadtansicht
     }
 
     /// <summary>Nur mit <c>--diebtest</c>, für Bilder: ein farbiger Punkt über dem Kopf (gelb eigener, blau fremder Dieb, rot Gefasster, grün Gardist), damit man sie im Gedränge findet.</summary>
-    private static void DiebMarke(Node3D knoten, Color farbe) => knoten.AddChild(new MeshInstance3D
+    private static void DiebMarke(Node3D knoten, Color farbe, float radius = 0.14f) => knoten.AddChild(new MeshInstance3D
     {
         Name = "Marke",
-        Mesh = new SphereMesh { Radius = 0.14f, Height = 0.28f }, Position = new Vector3(0, 2.1f, 0),
+        Mesh = new SphereMesh { Radius = radius, Height = 2 * radius }, Position = new Vector3(0, 2.1f, 0),
         MaterialOverride = new StandardMaterial3D { AlbedoColor = farbe, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded },
     });
 
@@ -345,11 +386,18 @@ public partial class Stadtansicht
         var dieb = DiebfigurBauen($"dieb:{++_diebZaehler}", MarktDiebAussehen(nummer, griff.Dieb.Arbeitskraft), nummer, eigen, griff.Dieb, haus.Name, null);
         var richtung = new Vector3(s.X - opfer.Ort.X, 0, s.Z - opfer.Ort.Z);
         richtung = richtung.LengthSquared() < 1e-4f ? Vector3.Back : richtung.Normalized();
-        return new Griffszene
+        var szene = new Griffszene
         {
             Dieb = dieb, Griff = minute, Eigen = eigen, Vorlauf = vorlauf, Opfer = opfer.Nummer, Platz = opfer.Platz, OpferOrt = opfer.Ort,
             Hin = WegAuf(opfer.Platz, s, opfer.Ort, opfer.Platz.Hoehe), Hinten = richtung,
         };
+        // Kommt eine Streife dem Dieb auf dem Weg zum Opfer nahe, weicht er aus – nicht in der Schlussphase (ab 60 % des Weges geht er auf die Stelle hinter dem Opfer zu)
+        var hinLaenge = Gassennetz.Laenge(szene.Hin);
+        var anfang = Math.Max(minute - vorlauf, jetzt);
+        var minDauer = eigen ? Ausweichgang.MinDauer : Ausweichgang.MinDauerFremd;
+        szene.AusweichHin = AusweichenPlanen(szene.Hin, t => Taschendiebgang.AnschleichenAusweichAnteil(t, minute, eigen, vorlauf) * hinLaenge,
+            anfang, minute - vorlauf + Taschendiebgang.AusweichBisAnteil * vorlauf, 0, opfer.Platz, $"Dieb {griff.Dieb.Nummer} (Anschleichen)", minDauer);
+        return szene;
     }
 
     /// <summary>Setzt den Dieb für diese Zeit. Gibt false zurück, wenn der Griff vorbei ist.</summary>
@@ -365,6 +413,7 @@ public partial class Stadtansicht
         string bewegung;
         float tempo; // Meter je echter Sekunde (bei Tempo 1)
         var neigung = 0.0;
+        Vector3? blickFest = null; // beim Ausweichen die eigene Blickrichtung
         switch (abschnitt)
         {
             case Taschendiebgang.Abschnitt.Anschleichen:
@@ -375,6 +424,8 @@ public partial class Stadtansicht
                 tempo = (float)(laenge / (s.Vorlauf * sekundenJeMinute));
                 bewegung = "Gehen";
                 d.Zustand = "schleicht sich an einen Passanten heran";
+                if (s.AusweichHin is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, 0f, out var ao, out var ab, out var abew, out var at))
+                    (ort, blickFest, bewegung, tempo, d.Zustand) = (ao, ab, abew, at, "weicht der Streife aus");
                 break;
             }
             case Taschendiebgang.Abschnitt.Griff:
@@ -402,11 +453,24 @@ public partial class Stadtansicht
                 tempo = (float)(s.WegLaenge / (Taschendiebgang.Abgang(s.Eigen) * sekundenJeMinute));
                 bewegung = "Gehen";
                 d.Zustand = "geht mit der Beute davon";
+                if (!s.AbGeplant)
+                {
+                    // Der Abgang ist erst jetzt bekannt (der Weg hängt vom Ort des Opfers beim Griff ab): einmal planen, ab jetzt bis kurz vor dem Ende
+                    s.AbGeplant = true;
+                    var abLaenge = s.WegLaenge;
+                    var abBeginn = s.Griff + Taschendiebgang.GriffDauer;
+                    var abDauer = Taschendiebgang.Abgang(s.Eigen);
+                    s.AusweichAb = AusweichenPlanen(s.Weg, t => Taschendiebgang.AbgangAnteil(t, s.Griff, s.Eigen) * abLaenge,
+                        Math.Max(abBeginn, jetzt), abBeginn + abDauer - 0.6, 0, s.Platz, $"Dieb (Abgang um {new Spielzeit((long)s.Griff).UhrzeitText})",
+                        s.Eigen ? Ausweichgang.MinDauer : Ausweichgang.MinDauerFremd);
+                }
+                if (s.AusweichAb is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, 0f, out var ao, out var ab, out var abew, out var at))
+                    (ort, blickFest, bewegung, tempo, d.Zustand) = (ao, ab, abew, at, "weicht der Streife aus");
                 break;
             }
         }
         ort = AufBoden(ort);
-        var blick = abschnitt == Taschendiebgang.Abschnitt.Griff ? new Vector3(s.OpferOrt.X - ort.X, 0, s.OpferOrt.Z - ort.Z) : ort - d.Letzte;
+        var blick = blickFest ?? (abschnitt == Taschendiebgang.Abschnitt.Griff ? new Vector3(s.OpferOrt.X - ort.X, 0, s.OpferOrt.Z - ort.Z) : ort - d.Letzte);
         DiebStellen(d, ort, blick, bewegung, tempo, sekunden, neigung, abschnitt != Taschendiebgang.Abschnitt.Anschleichen);
         if (Bildfolge && s.Eigen && _haltBis == 0 && _haltStufe < 3 && (_haltSzene is null || _haltSzene == s))
         {
@@ -492,14 +556,70 @@ public partial class Stadtansicht
         return aus.Count >= 2 ? aus.ToArray() : new[] { pfad[^1], pfad[^1] };
     }
 
+    /// <summary>Der Weg von <paramref name="von"/> über die Gassen zu <paramref name="nach"/> und über das Pflaster mit Umweg um die Stände. <paramref name="netzVon"/>: der Punkt, an dem ein Anfang abseits der Gassen (Posten am Tor) auf das Netz trifft.</summary>
+    private Vector3[] FestWeg(Vector3 von, Vector3 nach, Vector3? netzVon = null)
+    {
+        var weg = new List<Vector3> { von };
+        var anfang = von;
+        if (netzVon is { } nv) { anfang = nv; if (von.DistanceTo(nv) > 0.05f) weg.Add(nv); }
+        if (_netz.Knoten.Count > 0)
+            foreach (var punkt in _netz.Pfad(_netz.KnotenBei(anfang), _netz.KnotenBei(nach)))
+                if (weg[^1].DistanceTo(punkt) > 0.05f) weg.Add(punkt);
+        weg.Add(nach);
+        return UeberDenPlatz(weg).ToArray();
+    }
+
+    /// <summary>
+    /// Fasst ein sichtbarer Torwächter den Dieb? Das nächste Tor liegt höchstens <see cref="Taschendiebgang.TorwaechterNaehe"/> m vom Ort, mindestens zwei Wächter stehen dort
+    /// am Posten (einer bleibt als Ersatzmann) und der Gewählte (der dem Ort nächste) hat bis zum Ende der Festnahme Dienst (nicht über 23 Uhr, kein Schichtwechsel).
+    /// Null: dann kommt wie bisher ein Gardist. <paramref name="dauer"/> rechnet die Szene nach der Wahl aus (Spielminuten).
+    /// </summary>
+    private (Torposten Posten, Torlage Lage)? TorwaechterWaehlen(Vector3 ort, Func<Torposten, Torlage, double> dauer)
+    {
+        if (_torposten.Count == 0 || _tore.Count == 0 || _simulation?.Wirtschaft?.Einwohnerschaft is not { IstAktiv: true } ew) return null;
+        var tor = _tore.OrderBy(t => new Vector2(t.Ort.X - ort.X, t.Ort.Z - ort.Z).Length()).First();
+        if (Wasserarten.Startoption("festtor") is { Length: > 0 } festTor && _tore.FirstOrDefault(t => t.Name == festTor) is { Name: not null } gewaehlt) tor = gewaehlt; // nur Test (--festtor=<Name>): dieses Tor
+        var abstand = new Vector2(tor.Ort.X - ort.X, tor.Ort.Z - ort.Z).Length();
+        if (abstand > Taschendiebgang.TorwaechterNaehe) { DiebMelden($"Festnahme bei {ort.X:0}|{ort.Z:0}: nächstes Tor {tor.Name} {abstand:0} m weit, ein Gardist kommt"); return null; }
+        var amPosten = _torposten.Values.Where(p => p.Sichtbar && p.Abgeordnet is null && p.Dienst == Wachdienst.Posten && p.Wache.Tor == tor.Name && p.Figur is not null)
+            .OrderBy(p => p.Knoten.Position.DistanceTo(ort)).ToList();
+        if (!Taschendiebgang.TorwaechterFasst(abstand, amPosten.Count) || TorlageVon(tor.Name) is not { } lage || lage.Gasse.Length == 0)
+        {
+            DiebMelden($"Festnahme bei {ort.X:0}|{ort.Z:0}: Tor {tor.Name} {abstand:0} m weit, aber {amPosten.Count} Wächter am Posten sichtbar, ein Gardist kommt");
+            return null;
+        }
+        var posten = amPosten[0];
+        var bis = _festUhr + dauer(posten, lage) + 1;
+        if (bis >= Reichsgilde.Core.Zeit.Spielzeit.TagesendeMinute || ew.Torwache.Dienst(posten.Wache, bis, _festTag).Dienst != Wachdienst.Posten) // Tagesende, Schichtwechsel
+        {
+            DiebMelden($"Festnahme bei {ort.X:0}|{ort.Z:0}: der Wächter hätte vor dem Ende Dienstschluss, ein Gardist kommt");
+            return null;
+        }
+        return (posten, lage);
+    }
+
+    /// <summary>Gibt die Festnahme frei: den Dieb und – bei einem Gardisten – seinen Knoten; ein Torwächter bleibt (er gehört der Torwache und geht zurück auf den Posten).</summary>
+    private void FestnahmeAbbauen(Festnahmeszene f, bool abgebrochen = false)
+    {
+        DiebEntfernen(f.Dieb);
+        if (f.Torwaechter is { } tw)
+        {
+            tw.Abgeordnet = null;
+            DiebMelden(abgebrochen ? $"Festnahme abgebrochen, {tw.Wache.Person.Name} wird neu gestellt" : $"{tw.Wache.Person.Name} ist zurück auf seinem Posten am {tw.Wache.Tor}");
+            if (abgebrochen) TorpostenVerstecken(tw); // Stadt nicht mehr gezeigt: die Torwache stellt ihn beim nächsten Mal an seinen Platz
+        }
+        else if (IsInstanceValid(f.WacheKnoten)) f.WacheKnoten.QueueFree();
+    }
+
     private Festnahmeszene? FestnahmeBauen(Vorfall v, double jetzt)
     {
         if (_simulation?.Wirtschaft is not { } w) return null;
         // Wo: beim bestohlenen Einwohner, wenn er am Markt zu sehen ist, sonst auf dem Platz, der dem Wachhaus am nächsten ist
         Vector3? tuer = null;
+        Vector3? wachhaus = null;
         if (v.Wache is { } wache)
             foreach (var b in w.Betriebe.Where(x => x.Konto == wache && w.Wache.IstWachbetrieb(x)))
-                if (TuerAnker(b.Name) is { } t) { tuer = t; break; }
+                if (TuerAnker(b.Name) is { } t) { tuer = wachhaus = t; break; }
         tuer ??= _tore.Count > 0 ? _tore[(int)(Taschendiebgang.Streu(v.TaeterName?.Length ?? 0, v.Jahr, 4) % (uint)_tore.Count)].Ort : null;
         if (tuer is not { } eingang) return null;
         var leute = Marktleute();
@@ -509,51 +629,126 @@ public partial class Stadtansicht
             (platz, ort) = (opfer.Platz, opfer.Ort + new Vector3(0.7f, 0, 0));
         else
         {
-            platz = _maerkte.Where(m => m.Flaeche is not null).OrderBy(m => new Vector2(m.Mitte.X - eingang.X, m.Mitte.Z - eingang.Z).Length()).FirstOrDefault();
+            platz = _maerkte.Where(m => m.Flaeche is not null && (!DiebLog || Wasserarten.Startoption("festtor") is not null || DiebTestPlatz(m))).OrderBy(m => new Vector2(m.Mitte.X - eingang.X, m.Mitte.Z - eingang.Z).Length()).FirstOrDefault(); // beim Test (--diebtest) der Markt, auf den die Kamera blickt
             if (platz is null) return null;
             ort = PunktUm(platz, platz.Mitte, platz.Halb * 0.4f, Taschendiebgang.Streu(v.TaeterName?.Length ?? 0, v.Jahr, 5)) ?? platz.Mitte;
         }
         ort = new Vector3(ort.X, platz.Hoehe, ort.Z);
-        // Weg vom Eingang über die Gassen zum Dieb, über das Pflaster mit Umweg um die Stände
-        var hin = new List<Vector3> { eingang };
-        if (_netz.Knoten.Count > 0)
-            foreach (var punkt in _netz.Pfad(_netz.KnotenBei(eingang), _netz.KnotenBei(ort)))
-                if (hin[^1].DistanceTo(punkt) > 0.05f) hin.Add(punkt);
-        hin.Add(ort);
-        var ganz = UeberDenPlatz(hin).ToArray();
-        if (ganz.Length < 2) return null;
-        var laenge = Gassennetz.Laenge(ganz);
-        var lauf = WegAb(ganz, Mathf.Max(0, laenge - Taschendiebgang.WacheVorlauf));
-        var rueck = ganz.Reverse().ToArray();
-        var sekundenJeMinute = _simulation.Takt.RundenDauerSekunden / Spielzeit.MinutenProTag;
+        var tempoDrei = Gehtempo.MeterJeSpielminute(3.0, _simulation.Takt.RundenDauerSekunden);
+        var tempoFuehren = Gehtempo.MeterJeSpielminute(1.2, _simulation.Takt.RundenDauerSekunden);
+        var tempoGehen = Gehtempo.MeterJeSpielminute(Gehtempo.Gehen, _simulation.Takt.RundenDauerSekunden);
+
+        // Ein Torwächter, wenn ein Tor nahe ist (statt eines Gardisten): Er läuft vom Posten zum Dieb, führt ihn zum Wachhaus (liegt es nahe am Tor) bzw. in den Torturm
+        // und kehrt danach auf seinen Posten zurück. Wege und Dauern stehen mit dem Wächter fest (Funktion der Zeit).
+        Torposten? torwaechter = null;
+        Vector3[] lauf, rueck, heim = Array.Empty<Vector3>();
+        var rueckDauer = 0.0;
+        float laenge;
+        var geholt = TorwaechterWaehlen(ort, (p, lage) =>
+        {
+            var weg = TorFestwege(p, lage, ort, wachhaus);
+            return Gassennetz.Laenge(weg.Hin) / tempoDrei + Taschendiebgang.ZugriffDauer + Gassennetz.Laenge(weg.Rueck) / tempoFuehren + (weg.Heim.Length > 1 ? Gassennetz.Laenge(weg.Heim) / tempoGehen : 0);
+        });
+        if (geholt is { } tw)
+        {
+            torwaechter = tw.Posten;
+            var weg = TorFestwege(tw.Posten, tw.Lage, ort, wachhaus);
+            (lauf, rueck, heim) = (weg.Hin, weg.Rueck, weg.Heim);
+            laenge = Gassennetz.Laenge(rueck);
+            rueckDauer = heim.Length > 1 ? Gassennetz.Laenge(heim) / tempoGehen : 0;
+        }
+        else
+        {
+            // Weg vom Eingang über die Gassen zum Dieb, über das Pflaster mit Umweg um die Stände
+            var ganz = FestWeg(eingang, ort);
+            if (ganz.Length < 2) return null;
+            laenge = Gassennetz.Laenge(ganz);
+            lauf = WegAb(ganz, Mathf.Max(0, laenge - Taschendiebgang.WacheVorlauf));
+            rueck = ganz.Reverse().ToArray();
+        }
         var nummer = 30000 + ++_festZaehler;
         var name = string.IsNullOrWhiteSpace(v.TaeterName) ? "Ein Taschendieb" : v.TaeterName;
         var text = $"{name}\n\nAm Markt auf frischer Tat ertappt" + (v.OpferName is { } o ? $" – die Hand in der Tasche von {o}." : ".")
                    + (v.Wache is { } wh ? $" Die Wache von {wh.Inhaber} führt ihn ab." : " Ein Bürger hat ihn erkannt, die Büttel führen ihn ab.");
         var dieb = DiebfigurBauen($"dieb:fest:{_festZaehler}", MarktDiebAussehen(nummer, "Geselle"), nummer, false, null, "", text);
-        var knoten = new Node3D { Name = $"Festnahme_Wache_{_festZaehler}", Visible = false };
-        _diebEbene!.AddChild(knoten);
-        if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, new Color(0.2f, 0.9f, 0.2f));
-        var figur = FigurEinsetzen(knoten, WacheAussehen(nummer + 500, "Geselle", false), nummer + 500);
-        return new Festnahmeszene
+        Node3D knoten;
+        Figur? figur;
+        if (torwaechter is not null) { knoten = torwaechter.Knoten; figur = torwaechter.Figur; }
+        else
+        {
+            knoten = new Node3D { Name = $"Festnahme_Wache_{_festZaehler}", Visible = false };
+            _diebEbene!.AddChild(knoten);
+            if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, new Color(0.2f, 0.9f, 0.2f));
+            figur = FigurEinsetzen(knoten, WacheAussehen(nummer + 500, "Geselle", false), nummer + 500);
+        }
+        var szene = new Festnahmeszene
         {
             Dieb = dieb, WacheKnoten = knoten, Wache = figur, Start = jetzt, Hin = lauf, Rueck = rueck, Ort = ort,
-            LaufDauer = Gassennetz.Laenge(lauf) / Gehtempo.MeterJeSpielminute(3.0, _simulation.Takt.RundenDauerSekunden),
-            FuehrDauer = laenge / Gehtempo.MeterJeSpielminute(1.2, _simulation.Takt.RundenDauerSekunden),
+            LaufDauer = Gassennetz.Laenge(lauf) / tempoDrei,
+            FuehrDauer = laenge / tempoFuehren,
+            Torwaechter = torwaechter, Heim = heim, RueckDauer = rueckDauer,
         };
+        if (torwaechter is not null)
+        {
+            torwaechter.Abgeordnet = szene;
+            DiebMelden($"Torwächter {torwaechter.Wache.Person.Name} vom {torwaechter.Wache.Tor} fasst zu: Lauf {Gassennetz.Laenge(lauf):0} m, Abführen {laenge:0} m, zurück {Gassennetz.Laenge(heim):0} m");
+        }
+        return szene;
+    }
+
+    /// <summary>
+    /// Die Wege eines Torwächters bei einer Festnahme: hin vom Posten zum Dieb, mit dem Dieb ins Ziel (das Wachhaus der fassenden Wache, wenn es höchstens
+    /// <see cref="Taschendiebgang.TorwaechterNaehe"/> m vom Tor liegt, sonst der Torturm am Posten) und zurück auf den Posten.
+    /// </summary>
+    private (Vector3[] Hin, Vector3[] Rueck, Vector3[] Heim) TorFestwege(Torposten posten, Torlage lage, Vector3 ort, Vector3? wachhaus)
+    {
+        var beginn = lage.Gasse[0];
+        var stand = TorStandplatz(lage, posten.Wache.Platz);
+        var start = posten.Knoten.Position;
+        var hin = FestWeg(start, ort, beginn);
+        if (wachhaus is { } haus && new Vector2(haus.X - lage.Ort.X, haus.Z - lage.Ort.Z).Length() <= Taschendiebgang.TorwaechterNaehe)
+        {
+            var rueck = FestWeg(ort, haus);
+            var heim = FestWeg(stand, haus, beginn).Reverse().ToArray();
+            return (hin, rueck, heim);
+        }
+        return (hin, hin.Reverse().ToArray(), Array.Empty<Vector3>()); // in den Torturm: zurück zum Posten, dort übergibt er den Dieb
     }
 
     private bool FestnahmeSetzen(Festnahmeszene s, double jetzt, double sekundenJeMinute, double sekunden)
     {
-        var abschnitt = Taschendiebgang.FestnahmeBei(jetzt - s.Start, s.LaufDauer, s.FuehrDauer, out var anteil);
+        var abschnitt = Taschendiebgang.FestnahmeBei(jetzt - s.Start, s.LaufDauer, s.FuehrDauer, out var anteil, s.RueckDauer);
+        s.Phase = abschnitt;
         if (abschnitt == Taschendiebgang.Fest.Fertig) return false;
+        if (FestFolge && _haltBis == 0 && _festHaltStufe < (s.Heim.Length > 1 ? 4 : 3) && s.Torwaechter is not null)
+        {
+            var da = _festHaltStufe switch
+            {
+                0 => abschnitt == Taschendiebgang.Fest.Lauf && anteil >= 0.4,
+                1 => abschnitt == Taschendiebgang.Fest.Zugriff && anteil >= 0.5,
+                2 => abschnitt == Taschendiebgang.Fest.Abfuehren && anteil >= 0.25,
+                _ => abschnitt == Taschendiebgang.Fest.Rueckkehr && anteil >= 0.5,
+            };
+            if (da)
+            {
+                _haltBis = Time.GetTicksMsec() + 6000;
+                _simulation!.Takt.IstPausiert = true;
+                var wp = StadtKamera.UnprojectPosition(s.WacheKnoten.GlobalPosition + new Vector3(0, 0.9f, 0));
+                var dp = StadtKamera.UnprojectPosition(s.Dieb.Knoten.GlobalPosition + new Vector3(0, 0.9f, 0));
+                GD.Print($"[taschendieb] Halt {_festHaltStufe} {Time.GetUnixTimeFromSystem():0.0} Festnahme {abschnitt} {anteil:0.00}, Wächter im Bild bei {wp.X:0}|{wp.Y:0}, Dieb bei {dp.X:0}|{dp.Y:0}");
+                DiebBildAblegen($"fest{_festHaltStufe}", () => abschnitt == Taschendiebgang.Fest.Lauf ? new[] { s.WacheKnoten } : new[] { s.WacheKnoten, s.Dieb.Knoten });
+                _festHaltStufe++;
+            }
+        }
         var tempoMal = (float)_simulation!.Takt.Tempo;
         void Wache(Vector3 ort, Vector3 blick, string bewegung, float meterJeSekunde)
         {
             ort = AufBoden(ort);
             if (!s.WacheKnoten.Visible) s.WacheKnoten.Visible = true;
+            if (s.Torwaechter is { } tw) tw.Sichtbar = true;
             blick.Y = 0;
             if (blick.LengthSquared() > 1e-5f) s.WacheKnoten.Rotation = new Vector3(0, Mathf.Atan2(blick.X, blick.Z), 0);
+            if (s.Torwaechter is { } tw2) tw2.Blick = s.WacheKnoten.Rotation.Y; // zurück am Posten dreht er von dort weiter (kein Sprung)
             s.WacheKnoten.Position = ort;
             if (s.Wache is not { } f) return;
             BewegungSetzen(f, bewegung, meterJeSekunde <= 0 ? 1 : meterJeSekunde * tempoMal / ((bewegung == "Eilen" ? EilenTempo : GehenTempo) * f.Beinfaktor));
@@ -577,7 +772,7 @@ public partial class Stadtansicht
                 DiebStellen(s.Dieb, s.Ort, an - s.Ort, "Stehen", 0, sekunden, 0.1 * Math.Sin(anteil * 14), false);
                 break;
             }
-            default:
+            case Taschendiebgang.Fest.Abfuehren:
             {
                 var laenge = Mathf.Max(1, Gassennetz.Laenge(s.Rueck));
                 var meter = (float)anteil * laenge;
@@ -586,6 +781,15 @@ public partial class Stadtansicht
                 var vorn = Gassennetz.PunktAuf(s.Rueck, Mathf.Min(1, (meter + 2f) / laenge));
                 Wache(wache, vorn - wache, "Gehen", 1.2f);
                 DiebStellen(s.Dieb, dieb, vorn - dieb, "Gebeugt", 1.0f * 1.2f / 1.0f, sekunden, 0, false);
+                break;
+            }
+            default: // Rückkehr des Torwächters auf seinen Posten: der Dieb ist übergeben (im Wachhaus bzw. Torturm)
+            {
+                DiebVerstecken(s.Dieb);
+                var laenge = Mathf.Max(1, Gassennetz.Laenge(s.Heim));
+                var wache = Gassennetz.PunktAuf(s.Heim, (float)anteil);
+                var vorn = Gassennetz.PunktAuf(s.Heim, Mathf.Min(1, (float)anteil + 0.5f / laenge));
+                Wache(wache, vorn - wache, "Gehen", (float)Gehtempo.Gehen);
                 break;
             }
         }

@@ -68,8 +68,8 @@ public partial class Stadtansicht
     /// <summary>Schneller als so viele Schleifen „Fahren“ je Sekunde dreht kein Rad: bei hohem Tempo rutschen sie lieber, als zu flimmern.</summary>
     private const float KarrenMaxTempo = 3f;
 
-    /// <summary>Ab dieser Kamerahöhe (Meter) ist ein Karren so klein, dass er nur jedes dritte Bild animiert wird.</summary>
-    private const float KarrenFernZoom = 100f;
+    /// <summary>Ab dieser Kamerahöhe (Meter) ist ein Karren so klein, dass er nur jedes dritte Bild animiert wird (über der weiten Zoomstufe 100 m, wie der gewohnte Zoom 95 davor).</summary>
+    private const float KarrenFernZoom = 105f;
 
     /// <summary>So weit (in Metern) darf ein Karren außerhalb des Bildes stehen und wird noch animiert (seine Tiere sind rund 5 m lang).</summary>
     private const float KarrenRandMeter = 6f;

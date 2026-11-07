@@ -181,6 +181,8 @@ public partial class Stadtansicht : Node3D
 
         /// <summary>Glut und Flammen, die bei der Arbeit (oder zu ihrer eigenen Zeit) hell leuchten.</summary>
         public List<Feuerstelle> Feuer { get; } = new();
+        /// <summary>Echte Flammen (<see cref="Feuer"/>) in Räumen aus Grundkörpern: sie brennen, wenn die Bedingung gilt (ohne: solange gearbeitet wird).</summary>
+        public List<(Feuer Flamme, Func<bool>? An)> Flammen { get; } = new();
         /// <summary>Teile, die sich bei der Arbeit drehen oder auf und ab gehen.</summary>
         public List<Bewegtteil> Bewegt { get; } = new();
         /// <summary>Einrichtung, die erst ab einer Gebäudestufe dasteht.</summary>
@@ -669,7 +671,11 @@ public partial class Stadtansicht : Node3D
     private string WerkstattModellDatei(string beruf) => Katalog?.Werkstatt(beruf)?.Modell ?? "gebaeude/" + beruf.ToLowerInvariant();
 
     /// <summary>Die Betriebsstufe der Modelle (Knoten „Stufe1“ bis „Stufe3“).</summary>
-    private static int Modellstufe(int stufe) => Math.Clamp(stufe, 1, 3);
+    private static int Modellstufe(int stufe) => _modellstufeVorgabe ?? Math.Clamp(stufe, 1, 3);
+
+    /// <summary>Startoption <c>--modellstufe=&lt;1–3&gt;</c>: alle Modelle (und ihre Räume) zeigen diese Stufe, nur für Bildschirmfotos aller Räume ohne Ausbau.</summary>
+    private static readonly int? _modellstufeVorgabe =
+        OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--modellstufe="))?["--modellstufe=".Length..] is { } wert && int.TryParse(wert, out var zahl) ? Math.Clamp(zahl, 1, 3) : null;
 
     /// <summary>
     /// Eine verkaufte Werkstatt steht leer zum Verkauf: das Modell in seiner Stufe, aber mit „Leerstand“ (Tor und Fenster vernagelt, dunkles Glas),

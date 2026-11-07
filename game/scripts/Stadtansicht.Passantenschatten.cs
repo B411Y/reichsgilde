@@ -4,7 +4,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Schatten der Passanten in allen Zoomstufen – ein Teil der <c>partial class Stadtansicht</c>.
-/// Bis zur Zoomstufe 35 m werfen die Passanten echte Schatten (<see cref="FigurSchatten"/>, Sonne und Mond). Bei 70 und 140 m sind
+/// Bis zur Zoomstufe 25 m werfen die Passanten echte Schatten (<see cref="FigurSchatten"/>, Sonne und Mond). Bei 50 und 100 m sind
 /// echte Schatten für hunderte Figuren zu teuer (jede Figur kommt mit ihren Teilen noch einmal in den Schattendurchgang) und die Figuren sind klein;
 /// dort zeichnet diese Datei stattdessen <b>einen Fleck je Passant</b>: eine flache Ellipse am Boden, in Schattenrichtung der Sonne gestreckt und
 /// am Fuß verankert, alle zusammen in <b>einem</b> Vielfach-Zeichenaufruf (<see cref="MultiMesh"/>, Puffer in einem Zug).
@@ -19,7 +19,7 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Wie die Passanten ihren Schatten zeigen: Flecken ab Zoom 70 (Standard), immer echt (teuer) oder fern gar nicht (Stand vor dieser Änderung).</summary>
+    /// <summary>Wie die Passanten ihren Schatten zeigen: Flecken ab Zoom 50 (Standard), immer echt (teuer) oder fern gar nicht (Stand vor dieser Änderung).</summary>
     private enum FigurSchattenArt { Fleck, Echt, Aus }
 
     private static readonly FigurSchattenArt PassantenSchattenArt = Wasserarten.Startoption("figurenschatten") switch

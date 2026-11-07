@@ -44,6 +44,9 @@ public partial class Stadtansicht
         public required bool Eigen { get; init; }
         public required bool Sack { get; init; }
         public int Folge { get; set; }
+        /// <summary>Die zweite Bahn, wenn eine Streife dem Täter nahe kommt: beim Anschleichen und auf der Flucht (beim Aufbau geplant, Stadtansicht.Ausweichen.cs).</summary>
+        public Ausweichbahn? AusweichHin { get; set; }
+        public Ausweichbahn? AusweichFlucht { get; set; }
     }
 
     private readonly List<Vorfall> _nachtVorfaelle = new();
@@ -78,6 +81,7 @@ public partial class Stadtansicht
             return;
         }
         var jetzt = zeit.VergangeneMinuten + bruchteil;
+        (_ausweichJetzt, _ausweichUhr) = (jetzt, zeit.UhrzeitInMinuten + bruchteil);
         var sekunden = _simulation.Takt.IstPausiert ? 0 : delta;
         var sekundenJeMinute = _simulation.Takt.RundenDauerSekunden / Spielzeit.MinutenProTag;
 
@@ -260,7 +264,20 @@ public partial class Stadtansicht
             if (sack && i < 2 && (anzahl < 3 || i < anzahl - 1)) dieb.Sack = NachtSackBauen(dieb);
             leute.Add(dieb);
         }
-        return new Nachtszene { Vorfall = v, Start = v.Minute, Plan = plan, Hin = hin, Naeher = naeher, Flucht = fluchtRoute, Tuer = tuer, Blick = blick, Leute = leute, Eigen = eigen, Sack = sack };
+        var szene = new Nachtszene { Vorfall = v, Start = v.Minute, Plan = plan, Hin = hin, Naeher = naeher, Flucht = fluchtRoute, Tuer = tuer, Blick = blick, Leute = leute, Eigen = eigen, Sack = sack };
+        // Kommt eine Streife dem Täter nahe, weicht er aus: auf dem Weg zum Ziel (nicht kurz vor dem Warten) und auf der Flucht (nicht bei einem Zeugen: dann läuft er)
+        var hinLaenge = Gassennetz.Laenge(hin);
+        var fluchtLaenge = Gassennetz.Laenge(fluchtRoute);
+        var vonSeit = Math.Max(0, jetzt - v.Minute);
+        szene.AusweichHin = AusweichenPlanen(hin, t => Nachtgang.Bei(t, plan, out var a) == Nachtgang.Abschnitt.Anschleichen ? a * hinLaenge : null,
+            vonSeit, plan.Anschleichen - 0.5, v.Minute, null, $"Täter {nr} (Anschleichen)");
+        if (!v.Zeuge)
+        {
+            var fluchtBeginn = plan.Gesamt - plan.Flucht;
+            szene.AusweichFlucht = AusweichenPlanen(fluchtRoute, t => Nachtgang.Bei(t, plan, out var a) == Nachtgang.Abschnitt.Flucht ? a * fluchtLaenge : null,
+                Math.Max(fluchtBeginn, vonSeit), plan.Gesamt - 0.5, v.Minute, null, $"Täter {nr} (Flucht)");
+        }
+        return szene;
     }
 
     /// <summary>Das letzte Stück eines Weges (höchstens <paramref name="meter"/> Meter bis zur Tür).</summary>
@@ -307,6 +324,7 @@ public partial class Stadtansicht
             float tempo = 0;
             var neigung = 0.0;
             var sackZeigen = false;
+            var ausgewichen = false;
             switch (abschnitt)
             {
                 case Nachtgang.Abschnitt.Vorher or Nachtgang.Abschnitt.Nachher:
@@ -317,6 +335,8 @@ public partial class Stadtansicht
                     blick = Gassennetz.PunktAuf(s.Hin, Mathf.Min(1, (float)anteil + 0.5f / Mathf.Max(1, Gassennetz.Laenge(s.Hin)))) - ort;
                     bewegung = "Gebeugt";
                     tempo = Gehtempo.Gebeugt;
+                    if (s.AusweichHin is { } ah && AusweichenStellen(ah, tm, sekundenJeMinute, true, (i - (n - 1) / 2f) * 0.9f, out var ao, out var ab, out var abew, out var at))
+                        (ort, blick, bewegung, tempo, ausgewichen) = (ao, ab, abew == "Gehen" ? "Gebeugt" : abew, at, true);
                     break;
                 case Nachtgang.Abschnitt.Warten:
                     ort = s.Hin[^1] + versatz;
@@ -347,10 +367,12 @@ public partial class Stadtansicht
                     sackZeigen = d.Sack is not null;
                     bewegung = zeuge ? "Eilen" : sackZeigen ? "Tragen" : "Gehen";
                     tempo = (float)(Gassennetz.Laenge(s.Flucht) / (s.Plan.Flucht * sekundenJeMinute));
+                    if (s.AusweichFlucht is { } af && AusweichenStellen(af, tm, sekundenJeMinute, true, (i - (n - 1) / 2f) * 0.9f, out var fo, out var fb, out var fbew, out var ft))
+                        (ort, blick, bewegung, tempo, ausgewichen) = (fo, fb, fbew == "Gehen" && sackZeigen ? "Tragen" : fbew, ft, true);
                     break;
             }
             ort = new Vector3(ort.X, new Vector2(ort.X - s.Tuer.X, ort.Z - s.Tuer.Z).Length() < 1.6f ? s.Tuer.Y : AufBoden(ort).Y, ort.Z);
-            d.Zustand = Nachtgang.Zustand(abschnitt, v.Art, s.Plan.Betritt, traegtSack, zeuge);
+            d.Zustand = ausgewichen ? "weicht der Streife aus und duckt sich in den Schatten" : Nachtgang.Zustand(abschnitt, v.Art, s.Plan.Betritt, traegtSack, zeuge);
             DiebStellen(d, ort, blick, bewegung, tempo, sekunden, neigung, false);
             if (d.Sack is { } sack && sack.Visible != sackZeigen) sack.Visible = sackZeigen;
             if (i == 0) NachtFolgeProbe(s, abschnitt, anteil);

@@ -23,7 +23,7 @@ public partial class Stadtansicht
     private FogVolume? _dunstVolumen;
     private FogMaterial? _dunstStoff;
     private Vector2 _wolkenVersatz;
-    private (float Zoom, Miniaturunschaerfe Stufe)? _tiltShiftFuer;
+    private (float Zoom, Miniaturunschaerfe Stufe, bool Pixel)? _tiltShiftFuer;
 
     /// <summary>Einmal beim Aufbau (nach Umgebung, Licht und Kamera).</summary>
     private void GrafikEinrichten()
@@ -99,7 +99,7 @@ public partial class Stadtansicht
     /// </summary>
     private void TiltShiftNachfuehren()
     {
-        var stand = (_kamera.Size, Fenster.AktuelleUnschaerfe);
+        var stand = (_kamera.Size, Fenster.AktuelleUnschaerfe, Fenster.PixelLookAn);
         if (_tiltShiftFuer == stand) return;
         _tiltShiftFuer = stand;
         var an = Fenster.AktuelleUnschaerfe != Miniaturunschaerfe.Aus;
@@ -112,7 +112,9 @@ public partial class Stadtansicht
         _tiltShift.DofBlurFarTransition = uebergang * halbeTiefe;
         _tiltShift.DofBlurNearDistance = KameraAbstand - nah * halbeTiefe;
         _tiltShift.DofBlurNearTransition = uebergang * halbeTiefe;
-        var nahFaktor = Mathf.Lerp(1.5f, 0.7f, Mathf.Clamp((_kamera.Size - KameraMinZoom) / (KameraMaxZoom - KameraMinZoom), 0, 1));
+        // im Pixel-Look reicht der Zoom nur bis zur weiten Stufe (100 m): die Unschärfe läuft von nah bis dorthin, wie sie vor „Zoom A“ bis 140 m lief
+        var obenZoom = Fenster.PixelLookAn && _entwurf is null ? PixelZoomStufen[^1] : KameraMaxZoom;
+        var nahFaktor = Mathf.Lerp(1.5f, 0.7f, Mathf.Clamp((_kamera.Size - KameraMinZoom) / (obenZoom - KameraMinZoom), 0, 1));
         _tiltShift.DofBlurAmount = menge * nahFaktor;
     }
 
@@ -243,13 +245,6 @@ public partial class Stadtansicht
     /// <summary>Höhennebel der niedrigen Stufe: bis zu dieser Höhe (Meter) und wie dicht darunter.</summary>
     private const float DunstHoehe = 3f, DunstHoehenDichte = 0.055f;
 
-    /// <summary>Feiner Staub in der Luft der Raumansicht (nur Stufe Hoch): macht das Licht der Fenster als Bahn sichtbar.</summary>
-    private const float RaumDunstDichte = 0.025f;
-
-    /// <summary>So viel heller als ihr Licht im Raum leuchten die Fensterlichter im Staub (Godots <c>LightVolumetricFogEnergy</c>, Grundwert 1):
-    /// Die Lichtbahn soll zu sehen sein, ohne dass der ganze Raum neblig wird.</summary>
-    private const float RaumLichtbahn = 8f;
-
     private float _dunstAnteil = -1;
 
     /// <summary>
@@ -346,33 +341,12 @@ public partial class Stadtansicht
         umgebung.FogSkyAffect = 0;
         if (_dunstVolumen is not null) _dunstVolumen.Visible = stufe == Morgendunst.Hoch;
         foreach (var v in _stadtDunst) v.Visible = stufe == Morgendunst.Hoch;
-        _raumUmgebung.VolumetricFogEnabled = stufe == Morgendunst.Hoch;
-        _raumUmgebung.VolumetricFogDensity = RaumDunstDichte;
-        _raumUmgebung.VolumetricFogLength = 40;
-        _raumUmgebung.VolumetricFogAlbedo = new Color(0.9f, 0.85f, 0.75f);
-        _raumUmgebung.VolumetricFogTemporalReprojectionEnabled = true;
-        _raumUmgebung.VolumetricFogAmbientInject = 0.3f; // der Staub hellt den Raum etwas auf, statt ihn zu verdunkeln
+        _raumUmgebung.VolumetricFogEnabled = false; // in den Räumen ist die Luft klar: Der Staub im Licht (Dichte 0,025, Lichtbahnen mit Faktor 8) machte sie auf Hoch milchig (Nutzer 07.11.2026)
         _dunstAnteil = -1;
-        _lichtbahnenFuer = null;
-    }
-
-    private Raum? _lichtbahnenFuer;
-
-    /// <summary>
-    /// In der Raumansicht: Die Fensterlichter (<see cref="SpotLight3D"/> im Modell) bekommen eine kräftige Lichtbahn im Staub. Einmal je
-    /// Raum, denn das Durchsuchen der Einrichtung kostet etwas.
-    /// </summary>
-    private void LichtbahnenImRaum()
-    {
-        if (_raum is null || _raum == _lichtbahnenFuer || _innen?.Innen is not { } innen) return;
-        _lichtbahnenFuer = _raum;
-        foreach (var licht in innen.FindChildren("*", nameof(SpotLight3D), true, false).OfType<SpotLight3D>())
-            licht.LightVolumetricFogEnergy = Fenster.AktuellerDunst == Morgendunst.Hoch ? RaumLichtbahn : 1f;
     }
 
     private void DunstNachUhrzeit()
     {
-        LichtbahnenImRaum();
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         StadtDunstAnlegen();
         var anteil = DunstAnteilJetzt(); // folgt dem Bodennebel und dem Wetter (dazu Entfernungsnebel bei Wetter „Nebel“)
@@ -429,8 +403,8 @@ public partial class Stadtansicht
     /// <summary>Feinheiten (Bodenpflanzen, Steine, Holz) bis zu welchem Zoom: Nah, Mittel, Weit (darüber ausgeblendet).</summary>
     private static float FeinheitenBisZoom(Feinheiten f) => f switch
     {
-        Feinheiten.Nah => 55f,
-        Feinheiten.Mittel => 100f,
+        Feinheiten.Nah => 37f,    // nur die nahe Zoomstufe (25 m; bis Zoom A 55 für die Stufe 35)
+        Feinheiten.Mittel => 75f, // die nahe und die mittlere Stufe (25 und 50 m; bis Zoom A 100 für 35 und 70)
         _ => float.MaxValue,
     };
 

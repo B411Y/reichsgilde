@@ -43,6 +43,20 @@ static class TaschendiebgangTests
             Pruefe.Gleich(Taschendiebgang.Fest.Fertig, Taschendiebgang.FestnahmeBei(1000, 5, 40, out _));
         }),
 
+        ("Taschendiebgang: Ein Torwächter fasst nur nahe am Tor und wenn ein Ersatzmann bleibt; danach geht er zurück auf den Posten", () =>
+        {
+            Pruefe.Wahr(Taschendiebgang.TorwaechterFasst(40, 2), "nahes Tor, zwei am Posten");
+            Pruefe.Wahr(Taschendiebgang.TorwaechterFasst(Taschendiebgang.TorwaechterNaehe, 3), "genau an der Grenze");
+            Pruefe.Wahr(!Taschendiebgang.TorwaechterFasst(Taschendiebgang.TorwaechterNaehe + 1, 2), "zu weit");
+            Pruefe.Wahr(!Taschendiebgang.TorwaechterFasst(40, 1), "keiner bliebe als Ersatzmann");
+            Pruefe.Wahr(!Taschendiebgang.TorwaechterFasst(40, 0), "keiner am Posten");
+            // mit Rückkehr: Lauf, Zugriff, Abführen, dann zurück, dann fertig; ohne Rückkehr (Gardist) unverändert
+            Pruefe.Gleich(Taschendiebgang.Fest.Rueckkehr, Taschendiebgang.FestnahmeBei(5 + Taschendiebgang.ZugriffDauer + 40 + 3, 5, 40, out var a, 10));
+            Pruefe.Wahr(a is > 0.25 and < 0.35, "dreißig Prozent der Rückkehr");
+            Pruefe.Gleich(Taschendiebgang.Fest.Fertig, Taschendiebgang.FestnahmeBei(5 + Taschendiebgang.ZugriffDauer + 40 + 10.1, 5, 40, out _, 10));
+            Pruefe.Gleich(Taschendiebgang.Fest.Fertig, Taschendiebgang.FestnahmeBei(5 + Taschendiebgang.ZugriffDauer + 40.1, 5, 40, out _), "Gardist: nach dem Abführen fertig");
+        }),
+
         ("Entwicklerbefehl Diebeshaus: Versteck mit Dieben, die laut Kern am Markt greifen; ohne Sperre abgelehnt", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie());
