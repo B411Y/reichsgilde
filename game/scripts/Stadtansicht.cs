@@ -341,16 +341,16 @@ public partial class Stadtansicht : Node3D
     public override void _Ready()
     {
         Ladezeit.Marke("Szene laden (Datei und Knoten)");
-        OberflaecheEinrichten(); // vor dem Aufbau: Jeder neue Knoten bekommt sein Material mit Struktur (Stadtansicht.Oberflaechendetails.cs)
-        UmgebungUndLicht();
-        KameraAufbauen();
-        SchattenEinrichten(); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
+        Ladezeit.Teil("Ready: OberflaecheEinrichten", OberflaecheEinrichten); // vor dem Aufbau: Jeder neue Knoten bekommt sein Material mit Struktur (Stadtansicht.Oberflaechendetails.cs)
+        Ladezeit.Teil("Ready: UmgebungUndLicht", UmgebungUndLicht);
+        Ladezeit.Teil("Ready: KameraAufbauen", KameraAufbauen);
+        Ladezeit.Teil("Ready: SchattenEinrichten", SchattenEinrichten); // braucht Sonne und Kamera (Stadtansicht.Licht.cs)
         BloomNachfuehren();   // beide Umgebungen stehen jetzt (Stadtansicht.Licht.cs)
         Fenster.BloomGeaendert += BloomNachfuehren;
-        VerdeckungNachfuehren(); // Umgebungsverdeckung, indirektes Licht und SDFGI (Stadtansicht.Licht.cs)
-        GlobaleBeleuchtungEinrichten(); // SDFGI: neues Feld, Partikel und Figuren tragen nicht bei (Stadtansicht.GlobaleBeleuchtung.cs)
+        Ladezeit.Teil("Ready: VerdeckungNachfuehren", VerdeckungNachfuehren); // Umgebungsverdeckung, indirektes Licht und SDFGI (Stadtansicht.Licht.cs)
+        Ladezeit.Teil("Ready: GlobaleBeleuchtungEinrichten", GlobaleBeleuchtungEinrichten); // SDFGI: neues Feld, Partikel und Figuren tragen nicht bei (Stadtansicht.GlobaleBeleuchtung.cs)
         Fenster.VerdeckungGeaendert += VerdeckungNachfuehren;
-        GrafikEinrichten(); // Unschärfe, Wolken, Dunst, Farbstimmung, Detailstufe (Stadtansicht.Grafik.cs)
+        Ladezeit.Teil("Ready: GrafikEinrichten", GrafikEinrichten); // Unschärfe, Wolken, Dunst, Farbstimmung, Detailstufe (Stadtansicht.Grafik.cs)
         Ladezeit.Marke("Stadtansicht: Licht, Kamera, Grafik");
 
         // Die Stadt selbst kommt aus der Karte (Stadtansicht.Karte.cs): mit Partie aus Verbinden (die Karte der Partie), ohne Partie (Hauptmenü)
@@ -449,7 +449,7 @@ public partial class Stadtansicht : Node3D
         if (_wirtschaft is not { } w) yield break;
         yield return new Ladeschritt(0.89f, "Werkstätten öffnen ihre Läden …");
         foreach (var betrieb in w.Betriebe)
-            BetriebHinzufuegen(betrieb);
+            Ladezeit.Teil("Betrieb hinzufügen", () => BetriebHinzufuegen(betrieb));
         Ladezeit.Marke("Szene: Betriebe (Werkstätten, Umland)");
         yield return new Ladeschritt(0.985f, "Die Bürger ziehen ein …");
         foreach (var frei in w.FreieLiegenschaften)
@@ -782,15 +782,23 @@ public partial class Stadtansicht : Node3D
         // nehmen wir den Bruchteil der angebrochenen Minute dazu – sonst springen Sonne, Schatten und Karren
         // einmal pro Sekunde, statt sich jedes Bild ein Stückchen weiterzubewegen.
         var bruchteil = _simulation.Takt.AngebrocheneMinute;
+        Ladezeit.PhaseStart();
         FensterNachtSetzen(zeit.VergangeneMinuten); // jede Nacht andere Fenster hell (Stadtansicht.Modelle.cs)
+        Ladezeit.Phase("im Bild: FensterNacht");
         WetterAktualisieren(zeit.VergangeneMinuten + bruchteil, zeit.Jahreszeit, delta); // vor dem Licht: Wolken dämpfen es (Stadtansicht.Wetter.cs)
         LichtNachUhrzeit(_lichtUhrVorgabe is { } lichtUhr ? lichtUhr * 60f : zeit.UhrzeitInMinuten + (float)bruchteil, delta, GezeigteJahreszeit(zeit.Jahreszeit)); // Stadtansicht.Licht.cs
+        Ladezeit.Phase("im Bild: Wetter und Licht");
         NachtlichterAktualisieren(delta); // Stadtansicht.Nachtlichter.cs
+        Ladezeit.Phase("im Bild: Nachtlichter");
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
+        Ladezeit.Phase("im Bild: Passanten");
         JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
+        Ladezeit.Phase("im Bild: Jahreszeit setzen");
         VoegelAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Stadtansicht.Voegel.cs
+        Ladezeit.Phase("im Bild: Vögel");
         TiereAktualisieren(zeit.UhrzeitInMinuten + (float)bruchteil, delta, _simulation.Takt.IstPausiert); // Hühner, Hunde, Katzen: Stadtansicht.Tiere.cs
 
+        Ladezeit.Phase("im Bild: Tiere");
         if (_simulation.Wirtschaft is not { } w) return;
         var arbeitszeit = w.IstArbeitszeit(zeit);
         if (!_simulation.Takt.IstPausiert) _animationszeit += delta;
@@ -820,20 +828,26 @@ public partial class Stadtansicht : Node3D
                 KarrenBewegen(betrieb.Karren[i], i, ansicht, fahrzeit, zeit.VergangeneMinuten + bruchteil, delta, ansicht.Spieler);
             }
         }
+        Ladezeit.Phase("im Bild: Betriebe und Karren");
         if (_karren.Keys.Any(k => !k.Heimat.Karren.Contains(k))) KarrenOhneBetriebEntfernen(); // ein Karren ist verkauft
         KarrenKlangAbgleichen(delta); // Hufe fahrender Pferdekarren nach Untergrund (Stadtansicht.KarrenKlang.cs)
         if (_domFenster is { } dom) // der Dom: schwacher Schein, zur Messe heller
             FenstergruppeSetzen(dom, _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm)
                 ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
+        Ladezeit.Phase("im Bild: Karrenklang und Dom");
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
+        Ladezeit.Phase("im Bild: Schiffe");
         NachtwaechterAktualisieren(w, zeit, bruchteil, delta); // Wachleute auf Streife (Stadtansicht.Nachtlichter.cs)
         TorwacheAktualisieren(w, zeit, bruchteil, delta); // Torwächter am Tor, Schichtwechsel (Stadtansicht.Torwache.cs)
         TaschendiebeAktualisieren(w, zeit, bruchteil, delta); // Taschendiebe und Festnahmen am Markt (Stadtansicht.Taschendiebe.cs)
         NachtdiebeAktualisieren(w, zeit, bruchteil, delta); // Einbruch und Banden bei Nacht (Stadtansicht.Nachtdiebe.cs)
         DiebzeichenAktualisieren(); // Zeichen über den eigenen Dieben (Stadtansicht.Diebzeichen.cs)
         BlitzbrandAktualisieren(w, zeit.VergangeneMinuten, bruchteil, delta); // Blitzschlag: Strahl, Feuer, Ruß, Löschkette (Stadtansicht.Blitzbrand.cs)
+        Ladezeit.Phase("im Bild: Wachen, Diebe, Blitz");
         FeuerAktualisieren(w, zeit, bruchteil, delta); // Kaminrauch und brennende Häuser (Stadtansicht.Feuer.cs)
+        Ladezeit.Phase("im Bild: Feuer");
         StadtbauAktualisieren(w); // Bauvorhaben und Fest der Stadt (Stadtansicht.Stadtbau.cs)
+        Ladezeit.Phase("im Bild: Stadtbau");
         if (_innen is SonderbauAnsicht sonderbau)
             SonderbauAktualisieren(sonderbau, zeit, arbeitszeit, delta);
     }
