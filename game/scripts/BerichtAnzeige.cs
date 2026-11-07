@@ -37,6 +37,10 @@ public partial class BerichtAnzeige : PanelContainer
     /// <summary>Liefert den Verlauf (alle Meldungen der Sitzung), die neueste zuerst – die Hauptszene sammelt sie.</summary>
     public Func<IReadOnlyList<Meldungsposten>> Meldungen { get; set; } = () => Array.Empty<Meldungsposten>();
 
+    /// <summary>Wohin ein Klick auf eine Zeile des Verlaufs führt (Tooltip; null: nirgends hin) und was er tut – setzt die Hauptszene (Stufe 2, „Hinsehen“).</summary>
+    public Func<Reichsgilde.Core.Wirtschaft.Meldung, string?> HinsehenZiel { get; set; } = _ => null;
+    public Action<Reichsgilde.Core.Wirtschaft.Meldung>? Hinsehen { get; set; }
+
     /// <summary>Der Spieler will den ganzen Jahresbericht des Vorjahres sehen (Fenster in der Bildmitte).</summary>
     public event Action? JahresberichtGewuenscht;
 
@@ -255,6 +259,16 @@ public partial class BerichtAnzeige : PanelContainer
                 Meldestufe.Siegel => "kam als Siegel in die Ecke",
                 _ => "nur im Verlauf",
             } + (m.Bezug == Betroffenheit.Fremd ? " · betrifft ein anderes Haus" : "");
+            if (m.Kern is { } kern && HinsehenZiel(kern) is { } ziel)
+            {
+                text.TooltipText += "\nKlick: " + ziel;
+                text.MouseFilter = MouseFilterEnum.Stop;
+                text.MouseDefaultCursorShape = CursorShape.PointingHand;
+                text.GuiInput += e =>
+                {
+                    if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) Hinsehen?.Invoke(kern);
+                };
+            }
         }
     }
 

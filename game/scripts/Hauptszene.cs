@@ -234,7 +234,7 @@ public partial class Hauptszene : Node
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wegTafel); // ebenfalls rechts: Belag und Ausbau eines angeklickten Weges
         _wohnhaus = new WohnhausAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_wohnhaus); // rechts: das eigene Wohnhaus mit seinen Reitern
-        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf };
+        _berichtTafel = new BerichtAnzeige { Meldungen = () => _verlauf, HinsehenZiel = HinsehenZiel, Hinsehen = MeldungAnsteuern };
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_berichtTafel); // rechts: Jahresrechnung, Rivalen, Umsätze, Protokoll
         _hafenTafel = new HafenAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_hafenTafel); // rechts: Schiffe und ferne Städte eines Hafens (PR #199)
@@ -296,8 +296,11 @@ public partial class Hauptszene : Node
         await lade.Durchlaufen(_stadt.Aufbauen(), 0.16f, 0.71f);
         lade.Fortschritt(0.71f, "Die Zunftglocke wird geläutet …");
         await Ladebildschirm.Bild(GetTree());
+        Ladezeit.Marke("Stadt aufgebaut bis Aufbau-Ende (Bild, Fortschritt)");
         PartieStarten(optionen);
+        Ladezeit.Marke("PartieStarten (Startoptionen, Spielmenü)");
         await ErsteBilderAbwarten(lade, 0.75f);
+        Ladezeit.Marke("ErsteBilderAbwarten (Shader, Gras, Wetterprobe)");
         SetProcess(true);
         SetProcessUnhandledInput(true);
         _stadt.Ruhen(false);
@@ -327,9 +330,11 @@ public partial class Hauptszene : Node
         {
             lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 8f), bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
             if (bild >= 1 && bild - 1 < proben.Length) _stadt.WetterProbe(proben[bild - 1]);
-            _stadt.Aktualisieren(GetProcessDeltaTime());
+            if (bild == 2) _stadt.VoegelUndTiereVorbauen(); // sonst baut sie das erste Bild nach dem Ladebildschirm (Stadtansicht.Voegel.cs)
+            Ladezeit.Teil("Aktualisieren hinter dem Ladebild", () => _stadt.Aktualisieren(GetProcessDeltaTime()));
             await Ladebildschirm.Bild(GetTree());
             var jetzt = Time.GetTicksMsec();
+            if (Ladezeit.An) GD.Print($"Ladezeit: Vorwärmbild {bild}: {jetzt - vorher} ms");
             ruhig = bild > proben.Length && jetzt - vorher < 50 ? ruhig + 1 : 0;
             vorher = jetzt;
             if (ruhig >= 3 || jetzt - anfang > 5000) break;
@@ -1122,12 +1127,10 @@ public partial class Hauptszene : Node
             if (konto == spieler)
                 simulation.Beenden($"Das Haus {w.Familien.Von(spieler)?.Nachname ?? spieler.Inhaber} ist ohne Erben erloschen.");
         };
-        w.Meldung += meldung => Protokollieren(BlitzMeldung(SchiffsMeldung(meldung))); // Überfälle auf eigene Schiffe und Blitzschlag ins eigene Haus als Warnung (Hauptszene.Hafen.cs, Hauptszene.Blitz.cs)
+        w.Gemeldet += Protokollieren; // mit Art, Haus und Ort; gelungene Brände und Überfälle gegen das eigene Haus als Warnung (Hauptszene.Meldungen.cs)
         AnsagenVerbinden(simulation, w, spieler);
-        // Die ersten Züge der KI fielen schon beim Aufstellen – ins Protokoll nachtragen (älteste zuerst).
-        foreach (var rivale in w.Rivalen)
-            foreach (var zug in rivale.Entscheidungen.Reverse())
-                Protokollieren(zug);
+        // Was vorher geschah (die ersten Züge der KI beim Aufstellen, nach dem Laden die letzten Meldungen aus dem Spielstand), steht im Verlauf.
+        VerlaufAusSpielstand(w, spieler);
 
         _wohnhaus.Verbinden(simulation, spieler);
         _berichtTafel.Verbinden(simulation, spieler);

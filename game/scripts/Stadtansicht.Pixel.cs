@@ -301,6 +301,10 @@ public partial class Stadtansicht
         if (_nebelSchichten.Count > 0)
             foreach (var (netz, _) in _nebelSchichten)
                 if (netz.Layers != teilchen) netz.Layers = teilchen;
+        // und die Wasserverdränger der Boote (Stadtansicht.Schiffe.cs): durchsichtig mit Tiefe, das Beleuchtungsbild machte daraus einen dunklen Deckel über Ladung, Schiffer und Boden
+        _verdraengerNetze.RemoveAll(v => !IsInstanceValid(v));
+        foreach (var v in _verdraengerNetze)
+            if (v.Layers != teilchen) v.Layers = teilchen;
         Feuer.EbeneSetzen(GetTree(), teilchen);
         if (!laeuft || kamera is null) return;
 

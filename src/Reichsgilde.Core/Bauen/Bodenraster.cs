@@ -184,14 +184,38 @@ public sealed partial class Bodenraster
     {
         if (gruppe is < 0 or > 2) throw new ArgumentOutOfRangeException(nameof(gruppe), "Gruppe 0, 1 oder 2.");
         var aus = new byte[breite * tiefe * 4];
+        // Gerechnet wird wie mit Gewicht (je Punkt und Textur), aber die Kachel wird nur beim Wechsel nachgeschlagen: ein Bild von 130 × 130 Punkten
+        // lag sonst 70.000 Mal in der Tabelle (jede Geländekachel des Ladens ruft es mehrmals auf).
+        var (letzteKachel, kanaele) = ((int.MinValue, int.MinValue), (byte[]?[]?)null);
         for (var j = 0; j < tiefe; j++)
             for (var i = 0; i < breite; i++)
             {
+                var (pi, pj) = (i0 + i, j0 + j);
+                var schluessel = KachelVon(pi, pj);
+                if (schluessel != letzteKachel)
+                {
+                    letzteKachel = schluessel;
+                    kanaele = _kacheln.GetValueOrDefault(schluessel);
+                }
                 var n = (j * breite + i) * 4;
+                if (kanaele is null) // keine Kachel: überall Wiese
+                {
+                    if (gruppe == 0) aus[n] = 255;
+                    continue;
+                }
+                var punkt = Index(pi, pj);
                 for (var c = 0; c < 4; c++)
                 {
                     var t = gruppe * 4 + c;
-                    if (t < Texturen) aus[n + c] = Gewicht(i0 + i, j0 + j, (Bodentextur)t);
+                    if (t >= Texturen) break;
+                    if (t != (int)Bodentextur.Wiese) aus[n + c] = kanaele[t - 1] is { } w ? w[punkt] : (byte)0;
+                    else
+                    {
+                        var summe = 0;
+                        for (var k = 0; k < DekoKanal; k++)
+                            if (kanaele[k] is { } w2) summe += w2[punkt];
+                        aus[n + c] = (byte)(255 - summe);
+                    }
                 }
             }
         return aus;

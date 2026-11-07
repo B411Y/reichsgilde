@@ -252,9 +252,11 @@ public partial class Stadtansicht
         _gelaendeKnoten = new Node3D { Name = "Gelaende" };
         eltern.AddChild(_gelaendeKnoten);
         var (ti0, tj0, ti1, tj1) = KachelBereich(aussen);
+        Ladezeit.Teil("Boden: Gewichtsbilder vorrechnen (Parallel)", () => BodenVorrechnen(ti0, tj0, ti1, tj1));
         for (var tj = tj0; tj <= tj1; tj++)
             for (var ti = ti0; ti <= ti1; ti++)
                 GelaendeKachelBauen(ti, tj);
+        _splatVorrat = null;
         // ringsum flach: über die Kacheln hinaus bis zur Zugabe (ein Streifen je Seite, Ecken zu den Streifen Nord und Süd)
         var k = KachelRechteck(ti0, tj0, ti1, tj1);
         void Streifen(string name, double x0, double z0, double x1, double z1)
@@ -324,7 +326,7 @@ public partial class Stadtansicht
     private void GelaendeKachelBauen(int ti, int tj)
     {
         if (_gelaendeKnoten is null || _gelaende is null) return;
-        var (netz, flach) = KachelNetz(ti, tj);
+        var (netz, flach) = Ladezeit.Zaehlen("Kachel: Netz", () => KachelNetz(ti, tj));
         if (!_gelaendeKacheln.TryGetValue((ti, tj), out var kachel))
         {
             kachel = new MeshInstance3D { Name = $"Kachel_{ti}_{tj}", Layers = 1 | TorErdeEbene }; // Ebene der Erde im Torweg (Stadtansicht.Torerde.cs)
@@ -332,8 +334,8 @@ public partial class Stadtansicht
             _gelaendeKacheln[(ti, tj)] = kachel;
         }
         kachel.Mesh = netz;
-        kachel.MaterialOverride = KachelStoff(ti, tj); // Wiese oder Boden-Shader (Stadtansicht.Boden.cs)
-        BueschelHoeheGeaendert(ti, tj); // die Grasbüschel stehen auf der neuen Höhe (Stadtansicht.Bueschel.cs)
+        kachel.MaterialOverride = Ladezeit.Zaehlen("Kachel: Stoff", () => KachelStoff(ti, tj)); // Wiese oder Boden-Shader (Stadtansicht.Boden.cs)
+        Ladezeit.Teil("Kachel: Büschel-Höhe", () => BueschelHoeheGeaendert(ti, tj)); // die Grasbüschel stehen auf der neuen Höhe (Stadtansicht.Bueschel.cs)
         kachel.CastShadow = flach ? GeometryInstance3D.ShadowCastingSetting.Off : GeometryInstance3D.ShadowCastingSetting.On;
     }
 

@@ -159,6 +159,9 @@ public partial class Stadtansicht
     private const int GrauAb = 55, GebeugtAb = 65;
 
     /// <summary>Jedes Bild: alle Einwohner an ihren Platz stellen und die Figuren im Bild bewegen.</summary>
+    /// <summary>Wie viele Figuren der Einwohner höchstens in einem Bild neu gebaut werden (der Rest folgt in den nächsten Bildern).</summary>
+    private const int PassantenNeuJeBild = 24;
+
     private void PassantenAktualisieren(double minuteGenau, double delta)
     {
         _passantenUhr.Restart();
@@ -180,10 +183,17 @@ public partial class Stadtansicht
         // In großen Städten (Bürgerdichte, Köln über 400 Einwohner) laufen Figuren außerhalb des Bildes nur jedes sechste Bild weiter
         var viele = einwohner.Count > VieleFiguren;
         var ausserhalbJedes = viele ? 2 * AusserhalbJedes : AusserhalbJedes;
+        var neuGebaut = 0;
         foreach (var e in einwohner)
         {
             if (!_passanten.TryGetValue(e.Nummer, out var p))
-                _passanten[e.Nummer] = p = PassantBauen(e);
+            {
+                // Eine Figur baut sich in ein paar Millisekunden; alle 430 auf einmal waren das erste Bild nach dem Laden von Köln mit 1,3 bis 3 s Stillstand.
+                // Darum nur so viele je Bild – wer noch fehlt, kommt im nächsten (die Figuren sind beim Start meist zu Hause).
+                if (neuGebaut >= PassantenNeuJeBild) continue;
+                neuGebaut++;
+                _passanten[e.Nummer] = p = Ladezeit.Zaehlen("Passant bauen", () => PassantBauen(e));
+            }
             if (!PassantGezeigt(e.Nummer)) // Einstellung „Menge der Passanten“ (Stadtansicht.Grafik.cs)
             {
                 PassantVerbergen(p, e.Nummer);

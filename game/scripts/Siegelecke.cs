@@ -1,4 +1,6 @@
 using Godot;
+using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Wirtschaft;
 
 namespace Reichsgilde;
 
@@ -17,6 +19,14 @@ public sealed class Meldungsposten
     public bool RivalenZug;
     /// <summary>Name eines eigenen Betriebs, den der Text nennt (für den Knopf „Zum Betrieb“).</summary>
     public string? Betrieb;
+    /// <summary>Die Meldung des Kerns mit Art, Haus, Person und Ort (Stufe 2) – null bei Meldungen der Oberfläche selbst.</summary>
+    public Meldung? Kern;
+}
+
+/// <summary>Eine Zeile eines Briefes: Kopf (Zeit, Art), Text, Warnung (rot) und die Meldung des Kerns, zu der ein Knopf „Hinsehen“ springt.</summary>
+public sealed record Briefzeile(string Kopf, string Text, bool Warnung, Meldung? Kern = null)
+{
+    public static implicit operator Briefzeile((string Kopf, string Text, bool Warnung) z) => new(z.Kopf, z.Text, z.Warnung);
 }
 
 /// <summary>Ein Brief: Absender, Titel und Zeilen; <see cref="Ziel"/> ist, wohin der Knopf unten führt (siehe <see cref="Meldeart.Ziel"/>).</summary>
@@ -28,10 +38,15 @@ public sealed class Brief
     public Color Farbe = new(0.7f, 0.6f, 0.3f);
     /// <summary>Das Thema (Farbe und Zeichen des Siegels am Fuß).</summary>
     public string Thema = "stadt";
-    public List<(string Kopf, string Text, bool Warnung)> Zeilen = new();
+    public List<Briefzeile> Zeilen = new();
     public string Ziel = "";
     public string? Betrieb;
     public string Fuss = "";
+    /// <summary>Wen der Brief zeigt (Porträt neben dem Titel; ein Klick öffnet das Charakterfenster) – null: kein Porträt.</summary>
+    public Person? Person;
+    public Familienbuch? Buch;
+    /// <summary>Die Meldung, zu der der Knopf „Hinsehen“ unten springt (bei einem Brief mit einer Meldung).</summary>
+    public Meldung? Kern;
 }
 
 /// <summary>
@@ -138,6 +153,7 @@ public sealed partial class Siegel : Control
     /// <summary>Echtzeit in Sekunden, nach der das Siegel von selbst verschwindet (0: bleibt, bis es gelesen ist).</summary>
     public double Frist;
     public List<Meldungsposten> Posten = new();
+    private Control? _bild;
     /// <summary>Baut den Brief, wenn das Siegel angeklickt wird (so zeigt ein Stillstand immer den neuesten Stand).</summary>
     public Func<Siegel, Brief>? BriefBauer;
     public event Action<Siegel>? Angeklickt, Verworfen;
@@ -153,6 +169,21 @@ public sealed partial class Siegel : Control
         MouseDefaultCursorShape = CursorShape.PointingHand;
         MouseEntered += () => { _ueber = true; QueueRedraw(); };
         MouseExited += () => { _ueber = false; QueueRedraw(); };
+    }
+
+    /// <summary>
+    /// Ein kleines Bild unten links am Siegel (das Porträt des Betroffenen, Stufe 2) – ersetzt das vorige; null nimmt es weg. Fängt keine Klicks ab:
+    /// ein Klick liest weiter den Brief.
+    /// </summary>
+    public void BildSetzen(Control? bild)
+    {
+        _bild?.QueueFree();
+        _bild = bild;
+        if (bild is null) return;
+        bild.MouseFilter = MouseFilterEnum.Ignore;
+        foreach (var kind in bild.FindChildren("*", owned: false).OfType<Control>()) kind.MouseFilter = MouseFilterEnum.Ignore;
+        bild.Position = new Vector2(-4, Groesse - 30);
+        AddChild(bild);
     }
 
     /// <summary>Ein neuer Posten kam dazu: das Siegel springt kurz auf.</summary>

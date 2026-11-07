@@ -156,17 +156,27 @@ public partial class Stadtansicht
         _schichtVeraltet.Clear();
 
         var uhr = System.Diagnostics.Stopwatch.StartNew();
-        var (teile, spuren) = SchichtTeile();
-        TorErdeNachfuehren(teile); // Erde im Torweg (Stadtansicht.Torerde.cs)
+        var (teile, spuren) = Ladezeit.Zaehlen("Wegeschicht: SchichtTeile", () => SchichtTeile());
+        Ladezeit.Teil("Wegeschicht: TorErde", () => TorErdeNachfuehren(teile));
+        var uhrRechnen = Ladezeit.Uhr(); // Erde im Torweg (Stadtansicht.Torerde.cs)
         var ergebnis = new (byte[] Bild, byte[] Info, byte[] Spur)?[liste.Count];
+        var bilder = new (Image Bild, Image Info, Image Spur)?[liste.Count]; // schon im Faden der Kachel gebaut samt Mipmaps (das kostete sonst auf dem Hauptfaden gut 1 s)
         var bueschel = new Vector4[]?[liste.Count];
         var raster = BodenRaster;
         Parallel.For(0, liste.Count, k =>
         {
             ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile, spuren);
             // Grasbüschel am Wegrand (Stadtansicht.Bueschel.cs), solange das Bild noch da ist
-            if (ergebnis[k] is { } d) bueschel[k] = BueschelAusWegen(liste[k].I, liste[k].J, d.Bild, d.Info, raster);
+            if (ergebnis[k] is not { } d) return;
+            bueschel[k] = BueschelAusWegen(liste[k].I, liste[k].J, d.Bild, d.Info, raster);
+            var (bild, info, spur) = (Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, d.Bild),
+                Image.CreateFromData(SchichtInfoBild, SchichtInfoBild, false, Image.Format.Rgba8, d.Info), Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, d.Spur));
+            bild.GenerateMipmaps(); // weit weg mittelt sich der Abstand: kein Flimmern am Rand
+            spur.GenerateMipmaps();
+            bilder[k] = (bild, info, spur);
         });
+        Ladezeit.Dazu("Wegeschicht: Kacheln rechnen (Parallel)", uhrRechnen);
+        var uhrBilder = Ladezeit.Uhr();
         for (var k = 0; k < liste.Count; k++)
         {
             var kachel = liste[k];
@@ -177,11 +187,7 @@ public partial class Stadtansicht
             }
             else
             {
-                var bild = Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, daten.Bild);
-                bild.GenerateMipmaps(); // weit weg mittelt sich der Abstand: kein Flimmern am Rand
-                var info = Image.CreateFromData(SchichtInfoBild, SchichtInfoBild, false, Image.Format.Rgba8, daten.Info);
-                var spur = Image.CreateFromData(SchichtBild, SchichtBild, false, Image.Format.Rgba8, daten.Spur);
-                spur.GenerateMipmaps();
+                var (bild, info, spur) = bilder[k]!.Value;
                 if (_schichtKacheln.TryGetValue(kachel, out var alt))
                 {
                     alt.Bild.Update(bild);
@@ -194,6 +200,7 @@ public partial class Stadtansicht
             if (_gelaendeKacheln.TryGetValue(kachel, out var netz)) netz.MaterialOverride = KachelStoff(kachel.I, kachel.J);
             BueschelWegeGesetzt(kachel, bueschel[k]);
         }
+        Ladezeit.Dazu("Wegeschicht: Bilder und Stoffe", uhrBilder);
         if (alles) GD.Print($"Wegeschicht: {teile.Count} Teile, {_schichtKacheln.Count} von {liste.Count} Kacheln mit Wegen, {uhr.ElapsedMilliseconds} ms");
     }
 

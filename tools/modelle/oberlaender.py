@@ -10,13 +10,16 @@ fast kiellos mit flachem Boden, Rumpf aus überlappenden Planken (Klinker), schm
 Spiegel mit kleinem Achterdeck und einer Hütte (Satteldach), ein Mast mit einem Rahsegel, Heckruder mit Pinne.
 X ist die Längsachse, der Bug liegt bei +X, die Seite zum Kai bei −Y (im Spiel +Z). Ursprung auf der Wasserlinie in der Mitte.
 
-    Schiff         Rumpf (Klinkerplanken, Dollbord in Steghöhe), Boden, Spanten, Achterdeck, Hütte, Mastfuß, Ruder, Pinne.
-    Mast           Mast mit Rah (ohne Fuß); Drehpunkt (2,9; 0; Dollbord + 0,25) – im Hafen am Kran legt das Spiel ihn nach vorn.   Takelage  Wanten, Stagen, Webeleinen.
+    Schiff         Rumpf (Klinkerplanken, Dollbord in Steghöhe, Boden unten mit Teer geschlossen), Wegerung, Spanten, Achterdeck, Vordeck, Hütte, Mastfuß, Ruder, Pinne.
+    Mast           Mast mit Rah (ohne Fuß), steht immer: als Treidelmast vorn im Schiff (x = 8,4 auf dem Vordeck, der Laderaum liegt dahinter; Rheinschiffe wurden
+                   vom Ufer gezogen). Das Spiel legt ihn nicht mehr.   Takelage  Wanten, Stagen, Webeleinen (nur um den Mast, nie über dem Laderaum).
+    Verdraenger    unsichtbarer Körper in Rumpfform (Boden bis Dollbord, etwas schmaler als der Rumpf): Das Spiel gibt ihm einen Stoff, der nur Tiefe schreibt, damit
+                   die Wasserfläche im Rumpf ausgespart bleibt (kein Wasser im Boot, auch bei Wellengang), Stadtansicht.Schiffe.cs.
     Segel_Gesetzt  das Rahsegel, voll (Wind von achtern) – zur Fahrt;   Segel_Gerefft  dasselbe an der Rah aufgetucht – im Hafen.
     Laufplanke     Ursprung am Dollbord mittschiffs (Kaiseite), führt 2,6 m nach −Y und fällt 0,16 m (auf das Deck des Stegs).
-    Ladung_1–18    Einzelstücke (Fass, Kiste, Sack, Tuchballen) im Raum; das Spiel blendet so viele ein, wie geladen ist.
-                   Ausgeblendet wird von hinten nach vorn in der Nummer: erst die oben gestapelten (18–15), dann die unteren
-                   (14 … 1), die Mittschiffs (bei der Laufplanke) zuerst, die an den Enden zuletzt.
+    Ladung_1–18    Einzelstücke (Fass, Kiste, Sack, Tuchballen) im Raum hinter dem Mast; das Spiel blendet so viele ein, wie geladen ist. Je drei Nummern sind ein
+                   Bündel (6 Bündel zu 3): 3c+1 und 3c+2 unten (y = ∓0,85), 3c+3 obenauf – ein Hub des Krans hebt ein Bündel. Bündel 1 (Nr. 1–3) liegt am Bug,
+                   Bündel 6 (Nr. 16–18) achtern; ausgeblendet wird von der höchsten Nummer her, ein Stück liegt also nie ohne sein Unterlager.
     Fahne          Wimpel in der Hausfarbe am Masttopp.
     Anker_Bug (Blick +X), Anker_Heck (Blick −X), Anker_Kai (Wasserlinie, 0,3 m vor der Bordwand mittschiffs zum Kai),
     Anker_Planke (Ende der Laufplanke), Anker_Schiffer (auf dem Achterdeck an der Pinne, Blick +X).
@@ -41,7 +44,7 @@ BODEN = 0.22            # Wegerung im Raum über der Wasserlinie: kein Wasser im
 DECK = 0.95             # Achterdeck
 GAENGE = 8              # Plankengänge je Seite
 DICKE = 0.045           # Überlappung der Klinker
-MAST = 2.9              # Mast (x)
+MAST = 8.4              # Mast (x): Treidelmast vorn auf dem Vordeck, der Laderaum liegt dahinter
 MAST_HOCH = 11.0        # über dem Dollbord
 RAH = 9.0               # Höhe der Rah über dem Dollbord
 PLANKE = 2.6
@@ -52,6 +55,7 @@ SPANTEN = [-5.4 + 1.5 * i for i in range(9)]
 DUCHTEN = (-5.9, 0.3, 7.6)
 FUGEN = range(-6, 8)                                    # Quernähte der Wegerung
 SCHIFFER_X = None                                       # x des Schiffers (None: 1,1 m vor dem Heck)
+VORDECK_Z = None                                        # Höhe des Vordecks (None: 0,45 m unter dem Dollbord an der Vorderwand des Raums)
 
 
 def glatt(t):
@@ -92,6 +96,11 @@ def innen_breite(x, z):
     w, b, zb, g = profil(x)
     u = min(1.0, max(0.0, (z - zb) / max(1e-6, g - zb)))
     return max(0.05, b + (w - b) * u - 0.07)
+
+
+def vordeck_z():
+    """Höhe des Vordecks: 0,45 m unter dem Dollbord an der vorderen Stirnwand, nicht unter der Wegerung."""
+    return VORDECK_Z if VORDECK_Z is not None else max(BODEN + 0.4, profil(SCHOTTEN[1])[3] - 0.45)
 
 
 def stationen():
@@ -146,6 +155,9 @@ def rumpf(st):
             # Dollbord: breite Leiste oben
             netz.vieleck_nach([(xa, s * (wa + 0.03), ga + 0.025), (xb, s * (wb + 0.03), gb + 0.025),
                                (xb, s * (wb - 0.10), gb + 0.025), (xa, s * (wa - 0.10), ga + 0.025)], (0, 0, 1), st["Holz alt"])
+        # Unterseite des Rumpfs geschlossen (Teer): sonst sähe man durch die Fugen der Wegerung ins Wasser
+        (_, bua, zua, _), (_, bub, zub, _) = profil(xa), profil(xb)
+        netz.vieleck([(xa, bua, zua), (xb, bub, zub), (xb, -bub, zub), (xa, -bua, zua)], st["Teerholz"], immer=True)
         # Boden (Wegerung) im Raum; vorn und hinten steigt er mit dem Rumpf
         (fza, fa), (fzb, fb) = flur(xa), flur(xb)
         if fa > 0.06 and fb > 0.06:
@@ -191,23 +203,34 @@ def rumpf(st):
     for x in DUCHTEN:
         w_, _, _, g_ = profil(x)
         netz.stab((x, -(w_ - 0.1), g_ - 0.14), (x, w_ - 0.1, g_ - 0.14), 0.3, 0.1, st["Holz"], quer=(0, 0, 1))
-    # Mast, Rah, Wanten, Stagen: Mast (mit Rah) und Takelage sind eigene Knoten, damit das Spiel im Hafen den Mast legen kann (Kran, Stadtansicht.Kranladen.cs);
-    # im Rumpf bleibt der Mastfuß mit einem Stumpf des Mastes
-    netz.stab((MAST, 0, BODEN), (MAST, 0, BORD + 0.25), 0.28, 0.28, st["Holz"])
-    netz.quader((MAST + 0.1, 0, BORD + 0.25), (0.8, 0.6, 0.5), st["Holz alt"], ohne=("-z",))   # Mastfuß-Block
+    # Vordeck: Der Treidelmast steht vorn auf einem Deck vor der vorderen Stirnwand des Raums; dahinter liegt die Ladung
+    zv = vordeck_z()
+    x_v0, x_v1 = SCHOTTEN[1], HALB - 0.9
+    vx = [x_v0 + (x_v1 - x_v0) * i / 6 for i in range(7)]
+    for xa, xb in zip(vx, vx[1:]):
+        ya, yb = innen_breite(xa, zv), innen_breite(xb, zv)
+        netz.vieleck_nach([(xa, -ya, zv), (xb, -yb, zv), (xb, yb, zv), (xa, ya, zv)], (0, 0, 1), st["Bretter"])
+    for y in (-0.5, 0.0, 0.5):
+        ws.linie(netz, st, (x_v0, y, zv), (x_v1, y, zv), (0, 0, 1), "Fuge", breite=0.03, abstand=0.004)
+    # Mast, Rah, Wanten, Stagen: Mast (mit Rah) und Takelage sind eigene Knoten; der Mast steht immer (Stadtansicht.Kranladen.cs legt ihn nicht mehr),
+    # im Rumpf bleibt der Mastfuß mit einem Stumpf des Mastes. Takelage nur um den Mast: nie über dem Laderaum, dort schwenkt der Kran.
+    netz.stab((MAST, 0, zv), (MAST, 0, zv + 0.45), 0.28, 0.28, st["Holz"])
+    netz.quader((MAST + 0.1, 0, zv + 0.12), (0.8, 0.6, 0.5), st["Holz alt"], ohne=("-z",))   # Mastfuß-Block
     mast = bs.Netz("Mast")
-    mast.stab((MAST, 0, BORD + 0.25), (MAST, 0, BORD + MAST_HOCH), 0.28, 0.28, st["Holz"])
+    mast.stab((MAST, 0, zv + 0.4), (MAST, 0, BORD + MAST_HOCH), 0.28, 0.28, st["Holz"])
     mast.quader((MAST, 0, BORD + MAST_HOCH - 0.6), (0.38, 0.38, 0.4), st["Holz alt"])
     mast.stab((MAST + 0.2, -4.0, BORD + RAH), (MAST + 0.2, 4.0, BORD + RAH), 0.15, 0.15, st["Holz"], quer=(1, 0, 0))
     tak = bs.Netz("Takelage")
     tak.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (HALB - 0.2, 0, gb_ + 0.55), 0.04, 0.04, st["Seil"])       # Vorstag
-    tak.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (-HALB + 0.8, 0, g + 0.2), 0.04, 0.04, st["Seil"])          # Achterstag
+    xs_ = MAST - 3.2                                                                                          # Achterstag endet auf dem Vordeck, nicht über der Ladung
+    tak.stab((MAST, 0, BORD + MAST_HOCH - 0.4), (xs_, 0, profil(xs_)[3] + 0.1), 0.04, 0.04, st["Seil"])
     w_, _, _, g_ = profil(MAST)
     for s in (-1, 1):
         for dx in (-0.55, 0.45):
             tak.stab((MAST + dx, s * (w_ - 0.12), g_ + 0.04), (MAST + dx * 0.2, s * 0.14, BORD + MAST_HOCH - 0.5 - abs(dx)), 0.04, 0.04,
                      st["Seil"], quer=(1, 0, 0))
-        tak.stab((MAST + 0.2, s * 3.9, BORD + RAH), (MAST - 3.2, s * (w_ - 0.15), g_ + 0.05), 0.035, 0.035, st["Seil"], quer=(1, 0, 0))
+        wx = profil(MAST - 2.4)[0]
+        tak.stab((MAST + 0.2, s * 3.9, BORD + RAH), (MAST - 2.4, s * (wx - 0.15), profil(MAST - 2.4)[3] + 0.05), 0.035, 0.035, st["Seil"], quer=(1, 0, 0))
         for k in range(1, 9):                                         # Webeleinen zwischen den Wanten
             t = k / 9
             za = g_ + 0.04 + (BORD + MAST_HOCH - 0.5 - 0.55 - g_ - 0.04) * t
@@ -325,29 +348,27 @@ def stueck(netz, st, art, x, y, z, nummer):
     return 0.62
 
 
-# Unten: sieben Reihen zu je zwei Stücken (y = ∓0,85); oben: vier Stücke auf Kisten/Ballen
-UNTEN = [(-5.3, "fass", "fass"), (-3.6, "kiste", "sack"), (-1.9, "fass", "ballen"), (-0.2, "kiste", "kiste"),
-         (1.5, "sack", "fass"), (4.3, "ballen", "kiste"), (6.0, "fass", "sack")]
-OBEN = [(-3.6, -0.85, "ballen"), (-0.2, -0.85, "ballen"), (-0.2, 0.85, "ballen"), (4.3, 0.85, "ballen")]
-ANKER_X = 0.3
+# Sechs Bündel zu je drei Stücken (ein Bündel = ein Hub des Krans, Stadtansicht.Kranladen.cs): Nr. 3c+1 unten links (y = −0,85, Kaiseite), 3c+2 unten rechts,
+# 3c+3 obenauf, und zwar auf der Seite, wo ein flaches Stück (Kiste, Ballen) liegt. Bündel 1 am Bug, Bündel 6 achtern; in der Mitte bleibt bei der Laufplanke
+# eine Lücke. Der Niederländer (niederlaender.py) setzt andere x, die Arten sind dieselben (der Stapel am Steg gilt für beide Schiffe).
+BUENDEL_X = [4.6, 3.0, 1.4, -1.4, -3.0, -4.6]
+BUENDEL = [("kiste", "fass", "ballen", -1), ("fass", "kiste", "ballen", 1), ("sack", "ballen", "ballen", 1),
+           ("kiste", "sack", "ballen", -1), ("fass", "kiste", "ballen", 1), ("ballen", "fass", "ballen", -1)]
+HOEHEN = {"fass": 0.95, "kiste": 0.72, "sack": 0.95, "ballen": 0.62}
+ANKER_X = 0.0
 
 
-def ladungsplan(unten_reihen=None, oben_reihen=None, boden=None):
-    """Die nummerierten Plätze der Ladung (Liste von Wörterbüchern, Nummer = Index + 1): erst die unteren, dann die oberen Stücke;
-    wer weit von der Laufplanke liegt, bekommt die kleinere Nummer (wird zuletzt entladen)."""
-    unten_reihen = UNTEN if unten_reihen is None else unten_reihen
-    oben_reihen = OBEN if oben_reihen is None else oben_reihen
+def ladungsplan(xs=None, boden=None):
+    """Die nummerierten Plätze der Ladung (Liste von Wörterbüchern, Nummer = Index + 1), Bündel für Bündel (3 Nummern je Bündel)."""
+    xs = BUENDEL_X if xs is None else xs
     boden = BODEN if boden is None else boden
     plaetze = []
-    for x, a, b in unten_reihen:
-        plaetze.append({"x": x, "y": -0.85, "art": a, "z": boden, "oben": False})
-        plaetze.append({"x": x, "y": 0.85, "art": b, "z": boden, "oben": False})
-    plaetze.sort(key=lambda p: -abs(p["x"] - ANKER_X) - 0.001 * abs(p["y"]))
-    unten = {(p["x"], p["y"]): p for p in plaetze}
-    hoehen = {"fass": 0.95, "kiste": 0.72, "sack": 0.95, "ballen": 0.62}
-    oben = [{"x": x, "y": y, "art": art, "z": boden + hoehen[unten[(x, y)]["art"]], "oben": True} for x, y, art in oben_reihen]
-    oben.sort(key=lambda p: -abs(p["x"] - ANKER_X))
-    return plaetze + oben
+    for x, (links, rechts, oben, seite) in zip(xs, BUENDEL):
+        plaetze.append({"x": x, "y": -0.85, "art": links, "z": boden, "oben": False})
+        plaetze.append({"x": x, "y": 0.85, "art": rechts, "z": boden, "oben": False})
+        unter = links if seite < 0 else rechts
+        plaetze.append({"x": x, "y": 0.85 * seite, "art": oben, "z": boden + HOEHEN[unter], "oben": True})
+    return plaetze
 
 
 def ladung(st):
@@ -359,9 +380,31 @@ def ladung(st):
     return objekte
 
 
+def verdraenger(st, profil_fn, halb, innen=0.14, schritt=0.5):
+    """Wasserverdränger: ein geschlossener Körper in Rumpfform von knapp über dem Boden bis knapp unter das Dollbord, auf jeder Seite `innen` schmaler als
+    die Außenhaut. Das Spiel gibt ihm einen Stoff, der nur Tiefe schreibt: Die Wasserfläche wird dort nicht gezeichnet, wo sie durch den Rumpf schnitte
+    (Wasser im Boot, auch bei Wellengang). Sichtbar ist er nie; die Vorschau zeigt ihn nicht."""
+    netz = bs.Netz("Verdraenger", alle=True)
+    n = max(2, int(round(2 * halb / schritt)))
+    xs = [-halb + 2 * halb * i / n for i in range(n + 1)]
+
+    def ring(x):
+        w, b, zb, g = profil_fn(x)
+        wo, bo = max(0.03, w - innen), max(0.03, b - innen)
+        return [(x, -bo, zb + 0.05), (x, bo, zb + 0.05), (x, wo, g - 0.05), (x, -wo, g - 0.05)]
+    ringe = [ring(x) for x in xs]
+    for ra, rb in zip(ringe, ringe[1:]):
+        for i in range(4):
+            j = (i + 1) % 4
+            netz.vieleck([ra[i], ra[j], rb[j], rb[i]], st["Holz"], immer=True)
+    netz.vieleck(list(reversed(ringe[0])), st["Holz"], immer=True)
+    netz.vieleck(ringe[-1], st["Holz"], immer=True)
+    return netz.objekt()
+
+
 def bauen(st):
     rumpf_obj = rumpf(st)
-    teile = [rumpf_obj] + [n.objekt() for n in _MASTTEILE] + [segel_gesetzt(st), segel_gerefft(st), wimpel(st)] + ladung(st)
+    teile = [rumpf_obj, verdraenger(st, profil, HALB)] + [n.objekt() for n in _MASTTEILE] + [segel_gesetzt(st), segel_gerefft(st), wimpel(st)] + ladung(st)
     planke = laufplanke(st)
     w, _, _, g = profil(ANKER_X)
     planke.location = (ANKER_X, -w, g)
@@ -376,15 +419,15 @@ def bauen(st):
 def vorschau(objekte, schnell):
     ws.buehne(26.0, 2.5, schnell)
     ws.gelaende([(-60, -3.0), (60, -3.0)], (-60, 60, 0.0), achse="y")
-    zeigen = {o for o in objekte if o.name != "Segel_Gerefft"} | {k for o in objekte for k in o.children_recursive}
+    zeigen = {o for o in objekte if o.name not in ("Segel_Gerefft", "Verdraenger")} | {k for o in objekte for k in o.children_recursive}
     ws.stempel("Oberländer: Segel gesetzt, Ladung 1–18, Laufplanke, Wimpel")
     a = bs.rendern("_wasser_schiff_a", lambda o: o in zeigen)
-    zeigen = {o for o in objekte if o.name not in ("Segel_Gesetzt", "Fahne") and not o.name.startswith("Ladung_")}
+    zeigen = {o for o in objekte if o.name not in ("Segel_Gesetzt", "Fahne", "Verdraenger") and not o.name.startswith("Ladung_")}
     ws.stempel("im Hafen: Segel gerefft, leer")
     b = bs.rendern("_wasser_schiff_b", lambda o: o in zeigen, 2)
     if "--seite" in sys.argv:                                     # große Einzelansicht für Bilder (nicht im Repository)
         ws.stempel("Oberländer, von der Seite")
-        zeigen = {o for o in objekte if o.name != "Segel_Gerefft"} | {k for o in objekte for k in o.children_recursive}
+        zeigen = {o for o in objekte if o.name not in ("Segel_Gerefft", "Verdraenger")} | {k for o in objekte for k in o.children_recursive}
         bs.rendern("_oberlaender_seite", lambda o: o in zeigen, 3)
     return ws.nebeneinander("wasser_schiff", [a, b])
 

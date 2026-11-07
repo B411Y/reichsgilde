@@ -62,6 +62,7 @@ public partial class Fenster : Node
     public override void _Ready()
     {
         _instanz = this;
+        Vorladen.Starten(GetTree()); // die großen Texturen im Hintergrund entpacken (Vorladen.cs), vor allem anderen
         SigtermAbfangen();
         Schriften.Einrichten(GetTree());
         Oberflaechenstil.Einrichten();

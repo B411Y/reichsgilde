@@ -7,11 +7,18 @@ namespace Reichsgilde;
 /// <summary>
 /// Kranladen (Teil der <c>partial class Stadtansicht</c>): Der Tretradkran auf dem Hafensteg hebt die Ladung des Zierschiffs (Entladen, Stufe 2).
 ///
-/// Jedes Stück der Ladung ist ein Hub: Der Kran schwenkt das Kranhaus, bis der Ausleger über dem Stück steht (Haken oben), das Seil senkt sich, das Stück
-/// hängt am Haken (die Kopie aus dem Stapel am Steg, das Schiffsstück wird ausgeblendet), der Haken hebt, schwenkt über den Stapelplatz auf dem Steg und
-/// setzt ab. Die Rückfracht läuft umgekehrt: vom Stapel (Stücke, die der Träger nicht wegträgt) auf das Schiff. Das Tretrad dreht sich nur, solange sich der
-/// Haken hebt oder senkt (Winkel = Hakenhöhe, ohne eigenen Zähler). Das Seil hängt an einer Laufkatze am Ausleger, deren Abstand von der Drehachse dem
-/// des Hakens entspricht (das Schiff liegt für den Kran etwas längs versetzt, siehe <see cref="ZierLaengs"/>).
+/// Ein Hub hebt ein <b>Bündel</b> von <see cref="Zierfahrplan.HubGroesse"/> Stücken (drei Ladungsnummern des Schiffsmodells: zwei unten, eins obenauf): Der Kran
+/// schwenkt das Kranhaus, bis der Ausleger über dem Bündel steht, das Seil senkt sich, das Bündel hängt am Haken (Kopien aus dem Stapel, die Schiffsstücke sind
+/// aus), der Haken hebt, schwenkt über den Stapelplatz auf dem Steg und setzt ab. Die Rückfracht läuft umgekehrt. Weniger, dafür größere Hübe, damit das
+/// Kranhaus langsam und weich schwenken kann (ein Drittel der früheren Geschwindigkeit, Anfahren und Abbremsen) und die Hübe trotzdem in die Liegezeit passen.
+/// Das Kranhaus schwenkt mit gleichmäßig gedehntem Winkel (sanft an und aus), nicht auf der Geraden des Hakens.
+///
+/// Das Tretrad dreht sich <b>nur</b>, solange sich der Haken hebt oder senkt: sein Winkel ist die Seillänge (Hakenhöhe) geteilt durch den Trommelradius; Schwenken
+/// und Stillstand lassen es stehen, Heben und Senken drehen es entgegengesetzt, in dem Tempo, in dem das Seil läuft. Das Seil hängt an einer Laufkatze am Ausleger,
+/// deren Abstand von der Drehachse dem des Hakens entspricht (das Schiff liegt für den Kran etwas längs versetzt, siehe <see cref="ZierLaengs"/>).
+///
+/// Der Mast der Schiffe steht immer (Treidelmast vorn im Schiff, die Ladung liegt dahinter): Der Ausleger kommt ihm und der Takelage nie nahe, der Kran
+/// arbeitet nur am Laderaum.
 ///
 /// Alles ist eine reine Funktion des Liegeanteils: Bei hoher Spielgeschwindigkeit werden die Hübe einfach schneller durchlaufen, übersprungene Hübe zeigen
 /// beim nächsten Bild das richtige Standbild (Stück auf dem Stapel bzw. an Bord), ohne Sprung am Haken.
@@ -21,19 +28,25 @@ public partial class Stadtansicht
     /// <summary>So weit liegt das Schiff für den Zierbesuch längs zum Steg versetzt (m, in Stegrichtung zum Kran hin): Der Ausleger reicht dann an alle Stücke.</summary>
     private const float ZierLaengs = 5.0f;
 
-    /// <summary>Höhe des Hakens oben (Steg-Raum, m): über den Stapeln und der Ladung.</summary>
-    private const float KranHochY = 4.0f;
+    /// <summary>Höhe des Hakens oben (Steg-Raum, m): über den Stapeln und der Ladung, unter der Laufkatze am Ausleger.</summary>
+    private const float KranHochY = 4.4f;
 
-    /// <summary>Das Stück hängt so weit (m) unter dem Haken.</summary>
-    private const float KranGehaenge = 0.7f;
+    /// <summary>Das Bündel hängt so weit (m) unter dem Haken (Oberkante des höchsten Stücks).</summary>
+    private const float KranGehaenge = 0.5f;
 
-    /// <summary>Anteile eines Hubs (0…1): Anfahrt und Heben aus der Ruhe, Senken, Heben mit Last, Schwenken, Absetzen.</summary>
-    private const double KranAnfahrtBis = 0.25, KranSenkenBis = Hafenarbeit.KranHebtBei, KranHebenBis = 0.58, KranSchwenkenBis = 0.82;
+    /// <summary>Radius der Seiltrommel (m): Das Tretrad dreht sich um Seillänge geteilt durch diesen Wert (Bogenmaß je Meter Seil = 1 / Radius).</summary>
+    private const float KranTrommelRadius = 1.0f;
+
+    /// <summary>
+    /// Anteile eines Hubs (0…1): Haken steigt über den Stapel, Schwenken zum Bündel, Senken, Heben, Schwenken zum Ziel, Absetzen. Das Heben des Bündels
+    /// (<see cref="Hafenarbeit.KranHebtBei"/>) und das Absetzen (Ende des Hubs) kennt der Kern für die Träger; die Schwenkphasen sind je gut ein Drittel des Hubs lang.
+    /// </summary>
+    private const double KranAufBis = 0.06, KranAnfahrtBis = 0.33, KranSenkenBis = Hafenarbeit.KranHebtBei, KranHebenBis = 0.50, KranSchwenkenBis = 0.84;
 
     private Node3D? _kranHaus, _kranRad, _kranHaken, _kranGehaenge, _kranKatze;
     private MeshInstance3D? _kranSeil;
+    private readonly List<MeshInstance3D> _kranTaue = new();
     private Vector3 _kranAchse;
-    private int _kranGehalten = -1;
 
     private sealed class ZierStueck
     {
@@ -58,39 +71,10 @@ public partial class Stadtansicht
         return f.Start + f.Rate * (Time.GetTicksMsec() - f.Seit) / 1000.0;
     }
 
-    // ── Mast legen ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-    // Der Ausleger des Krans schwenkt auf Höhe des Mastes und käme nicht an ihm vorbei. Wie bei den Oberländern unter Brücken üblich, wird der Mast im Hafen
-    // gelegt: Gleich nach dem Anlegen (vor dem ersten Hub, 0,5–4,5 % der Liegezeit) kippt er um seinen Fuß nach vorn aufs Deck, mit Rah, gerefftem Segel und
-    // Wimpel; die Wanten und Stagen sind dann abgenommen. Vor dem Ablegen (94–98 %) wird er wieder aufgerichtet und aufgetakelt.
-    private const double MastLegenAb = 0.005, MastLegenBis = 0.045, MastAufAb = 0.94, MastAufBis = 0.98;
-    private SchiffAnsicht? _mastAnsicht;
-    private Node3D? _mastKnoten, _takelage;
-    private Node3D[] _mastMit = System.Array.Empty<Node3D>();
-    private float _mastWinkel = -1;
-
-    private void ZierMastSetzen(SchiffAnsicht ansicht, Besuchsphase phase, double a)
-    {
-        if (_mastAnsicht != ansicht)
-        {
-            _mastAnsicht = ansicht;
-            var w = ansicht.Wurzel;
-            _mastKnoten = w.FindChild("Mast", true, false) as Node3D;
-            _takelage = w.FindChild("Takelage", true, false) as Node3D;
-            _mastMit = new[] { _mastKnoten, ansicht.SegelGerefft, w.FindChild("Fahne", true, false) as Node3D }.OfType<Node3D>().ToArray();
-            _mastWinkel = -1;
-        }
-        if (_mastKnoten is null) return;
-        var t = phase != Besuchsphase.Liegen ? 0f : Math.Min(Glatt((a - MastLegenAb) / (MastLegenBis - MastLegenAb)), 1 - Glatt((a - MastAufAb) / (MastAufBis - MastAufAb)));
-        if (Math.Abs(t - _mastWinkel) < 1e-4f) return;
-        _mastWinkel = t;
-        var drehen = new Transform3D(new Basis(Vector3.Back, -t * Mathf.Pi / 2), Vector3.Zero);
-        var fuss = _mastAnsicht!.MastFuss;
-        var um = new Transform3D(Basis.Identity, fuss) * drehen * new Transform3D(Basis.Identity, -fuss);
-        foreach (var n in _mastMit) n.Transform = um;
-        if (_takelage is not null) _takelage.Visible = t <= 0f;
-    }
-
     private static float Glatt(double x) { var t = (float)Math.Clamp(x, 0, 1); return t * t * (3 - 2 * t); }
+
+    /// <summary>Noch weicher als <see cref="Glatt"/>: Anfahren und Abbremsen ohne Ruck (die Beschleunigung ist an den Enden null).</summary>
+    private static float Glatter(double x) { var t = (float)Math.Clamp(x, 0, 1); return t * t * t * (t * (t * 6 - 15) + 10); }
 
     private static void StueckSetzen(ZierStueck s, Vector3 unten, float dreh)
     {
@@ -123,24 +107,23 @@ public partial class Stadtansicht
         _kranKatze = new Node3D { Name = "Laufkatze" };
         _kranHaken.AddChild(_kranKatze);
         Kasten(_kranKatze, "Rolle", new Vector3(0.34f, 0.16f, 0.34f), eisen);
-        // Gehänge: zwei Taue vom Haken zu den oberen Ecken der Last (nur sichtbar, solange etwas hängt)
+        // Gehänge: je Stück am Haken zwei Taue vom Haken zu den oberen Ecken (Länge und Lage setzt KranTaueSetzen; nur sichtbar, solange etwas hängt)
         _kranGehaenge = new Node3D { Name = "Gehaenge", Visible = false };
         _kranHaken.AddChild(_kranGehaenge);
-        foreach (var s in new[] { -1f, 1f })
-        {
-            var tau = Kasten(_kranGehaenge, "Tau", new Vector3(0.05f, 0.75f, 0.05f), seil);
-            tau.Position = new Vector3(s * 0.2f, -0.43f, 0);
-            tau.Rotation = new Vector3(0, 0, s * 0.43f);
-        }
-        _kranGehalten = -1;
-        KranHakenSetzen(KranRuheOrt(), 0);
+        _kranTaue.Clear();
+        for (var i = 0; i < 2 * Zierfahrplan.HubGroesse; i++)
+            _kranTaue.Add(Kasten(_kranGehaenge, "Tau", new Vector3(0.05f, 1f, 0.05f), seil));
+        KranHakenSetzen(KranRuheOrt(), null);
     }
 
     /// <summary>Ruhestellung des Hakens: oben über dem Stapelplatz.</summary>
     private static Vector3 KranRuheOrt() => new(1.0f, KranHochY, -9.3f);
 
-    /// <summary>Setzt Haken, Seil, Kranhausdrehung und Tretrad; <paramref name="dreh"/> = Drehung der Last (nur fürs Gehänge).</summary>
-    private void KranHakenSetzen(Vector3 haken, float dreh)
+    /// <summary>
+    /// Setzt Haken, Seil, Kranhausdrehung und Tretrad; <paramref name="lasten"/> sind die Stücke am Haken (Oberkante in der Mitte und Drehung, Steg-Raum): Das
+    /// Gehänge spannt zwei Taue je Stück vom Block zu den oberen Ecken.
+    /// </summary>
+    private void KranHakenSetzen(Vector3 haken, IReadOnlyList<(Vector3 Oben, float Dreh)>? lasten)
     {
         if (_kranHaken is null || !IsInstanceValid(_kranHaken) || _kranHaus is null) return;
         _kranHaken.Position = haken;
@@ -155,8 +138,32 @@ public partial class Stadtansicht
         _kranKatze!.Position = new Vector3(0, katzeY - haken.Y, 0);
         _kranSeil!.Scale = new Vector3(1, laenge, 1);
         _kranSeil.Position = new Vector3(0, laenge / 2, 0);
-        _kranGehaenge!.Rotation = new Vector3(0, dreh, 0);
-        if (_kranRad is not null) _kranRad.Rotation = new Vector3((KranHochY - haken.Y) * 0.9f, _kranRad.Rotation.Y, _kranRad.Rotation.Z);
+        // Das Tretrad dreht sich nur mit dem Seil: Winkel = Seillänge unter dem obersten Haken / Trommelradius (Heben und Senken entgegengesetzt, Schwenken: Stillstand)
+        if (_kranRad is not null) _kranRad.Rotation = new Vector3((KranHochY - haken.Y) / KranTrommelRadius, _kranRad.Rotation.Y, _kranRad.Rotation.Z);
+        KranTaueSetzen(haken, lasten);
+    }
+
+    /// <summary>Zwei Taue je Stück vom Block unter dem Haken zu den oberen Ecken des Stücks (in der Längsrichtung des Stücks, 0,3 m von der Mitte).</summary>
+    private void KranTaueSetzen(Vector3 haken, IReadOnlyList<(Vector3 Oben, float Dreh)>? lasten)
+    {
+        if (_kranGehaenge is null) return;
+        var n = lasten?.Count ?? 0;
+        if (_kranGehaenge.Visible != n > 0) _kranGehaenge.Visible = n > 0;
+        for (var i = 0; i < _kranTaue.Count; i++)
+        {
+            var tau = _kranTaue[i];
+            var stueck = i / 2;
+            if (stueck >= n) { if (tau.Visible) tau.Visible = false; continue; }
+            tau.Visible = true;
+            var (oben, dreh) = lasten![stueck];
+            var ecke = oben + new Basis(Vector3.Up, dreh) * new Vector3(i % 2 == 0 ? -0.3f : 0.3f, 0, 0);
+            var von = new Vector3(0, -0.4f, 0);
+            var d = ecke - haken - von;
+            var l = Mathf.Max(d.Length(), 0.05f);
+            tau.Quaternion = new Quaternion(Vector3.Up, d / l);
+            tau.Scale = new Vector3(1, l, 1);
+            tau.Position = von + d / 2;
+        }
     }
 
     /// <summary>Kein Schiff in der Liegephase: Haken in Ruhe, nichts hängt; <paramref name="stapel"/> Stücke stehen am Steg.</summary>
@@ -165,36 +172,38 @@ public partial class Stadtansicht
         // Steht ein Stapel (zwischen den Besuchen), muss er gebaut sein, auch wenn gerade kein Schiff zu sehen ist
         if (stapel > 0 && hafen is not null) ZierStapelBauen(ZierSchiffHolen(true), hafen);
         if (_kranHaken is null || !IsInstanceValid(_kranHaken)) return;
-        if (_kranHaken.Position != KranRuheOrt() || _kranGehaenge!.Visible)
-        {
-            _kranGehaenge!.Visible = false;
-            KranHakenSetzen(KranRuheOrt(), 0);
-        }
-        _kranGehalten = -1;
+        if (_kranHaken.Position != KranRuheOrt() || _kranGehaenge!.Visible) KranHakenSetzen(KranRuheOrt(), null);
         KranLastenAus(); // Stadtansicht.Hafenarbeit.cs
         ZierStapelZeigen(stapel);
     }
 
-    private Vector3 KranWeg(Vector3 von, Vector3 nach, double u) => von.Lerp(nach, Glatt(u));
+    private static Vector3 KranWeg(Vector3 von, Vector3 nach, double u) => von.Lerp(nach, Glatt(u));
 
     /// <summary>
-    /// Ein Hub zur Zeit <paramref name="u"/> (0…1): Haken von <paramref name="start"/> hoch über die Quelle, runter, mit dem Stück hoch, über das Ziel, runter.
-    /// <paramref name="haengt"/> sagt, ob das Stück am Haken hängt, <paramref name="dreht"/> wie weit seine Drehung von Quelle zu Ziel ist (0…1).
+    /// Schwenken: Der Winkel um die Drehachse des Krans wird weich von <paramref name="von"/> nach <paramref name="nach"/> gedehnt (Anfahren und Abbremsen), der
+    /// Abstand von der Achse und die Höhe gleiten mit. So schwenkt das Kranhaus gleichmäßig; auf der Geraden zwischen zwei Punkten wäre es nahe der Achse viel schneller.
     /// </summary>
-    private Vector3 KranHub(Vector3 start, Vector3 quelleOben, Vector3 zielOben, double u, out bool haengt, out float dreht)
+    private Vector3 KranSchwenk(Vector3 von, Vector3 nach, double u)
     {
-        var obenQ = new Vector3(quelleOben.X, KranHochY, quelleOben.Z);
-        var untenQ = quelleOben + new Vector3(0, KranGehaenge, 0);
-        var obenZ = new Vector3(zielOben.X, KranHochY, zielOben.Z);
-        var untenZ = zielOben + new Vector3(0, KranGehaenge, 0);
-        haengt = u >= KranSenkenBis && u < 1.0;
-        dreht = Glatt((u - KranHebenBis) / (KranSchwenkenBis - KranHebenBis));
-        if (u < KranAnfahrtBis) return KranWeg(start, obenQ, u / KranAnfahrtBis);
-        if (u < KranSenkenBis) return KranWeg(obenQ, untenQ, (u - KranAnfahrtBis) / (KranSenkenBis - KranAnfahrtBis));
-        if (u < KranHebenBis) return KranWeg(untenQ, obenQ, (u - KranSenkenBis) / (KranHebenBis - KranSenkenBis));
-        if (u < KranSchwenkenBis) return KranWeg(obenQ, obenZ, (u - KranHebenBis) / (KranSchwenkenBis - KranHebenBis));
-        return KranWeg(obenZ, untenZ, (u - KranSchwenkenBis) / (1.0 - KranSchwenkenBis));
+        var t = Glatter(u);
+        var (a0, r0) = KranPolar(von);
+        var (a1, r1) = KranPolar(nach);
+        var a = a0 + Mathf.Wrap(a1 - a0, -Mathf.Pi, Mathf.Pi) * t;
+        var r = Mathf.Lerp(r0, r1, t);
+        return new Vector3(_kranAchse.X - r * Mathf.Sin(a), Mathf.Lerp(von.Y, nach.Y, t), _kranAchse.Z - r * Mathf.Cos(a));
     }
+
+    /// <summary>Drehwinkel des Kranhauses (wie in <see cref="KranHakenSetzen"/>) und Abstand von der Drehachse eines Punktes.</summary>
+    private (float Winkel, float Abstand) KranPolar(Vector3 p)
+    {
+        var dx = p.X - _kranAchse.X;
+        var dz = p.Z - _kranAchse.Z;
+        return (Mathf.Atan2(-dx, -dz), Mathf.Sqrt(dx * dx + dz * dz));
+    }
+
+    private static Vector3 KranHoch(Vector3 o) => new(o.X, KranHochY, o.Z);
+
+    private static Vector3 KranTief(Vector3 o) => o + new Vector3(0, KranGehaenge, 0);
 
     /// <summary>Oberkante (Mitte) des Schiffsstücks <paramref name="i"/> im Steg-Raum und seine Drehung gegen den Steg.</summary>
     private (Vector3 Oben, float Dreh) KranSchiffStueck(SchiffAnsicht ansicht, Node3D steg, int i)
@@ -207,124 +216,145 @@ public partial class Stadtansicht
         return (oben, b.GetEuler().Y);
     }
 
+    /// <summary>Ein Bündel von bis zu <see cref="Zierfahrplan.HubGroesse"/> Stücken, die ein Hub zusammen hebt: Plätze am Stapel, Lage an der Quelle und am Ziel.</summary>
+    private sealed class KranBuendel
+    {
+        public int[] Platz = Array.Empty<int>();          // Stapelplatz je Stück (die Kopie am Haken zeigt ein Stück dieses Platzes)
+        public Vector3[] QUnten = Array.Empty<Vector3>(), ZUnten = Array.Empty<Vector3>(); // Mitte der Unterseite an Quelle und Ziel
+        public float[] QDreh = Array.Empty<float>(), ZDreh = Array.Empty<float>(), Hoehe = Array.Empty<float>();
+        public Vector3 QBezug, ZBezug;                    // Mitte (x, z) der Stücke und Oberkante des höchsten: Der Haken hängt KranGehaenge darüber
+    }
+
+    /// <summary>Der Stapelplatz, auf dem der Hub das Stück <paramref name="h"/> absetzt (Entladen) bzw. von dem er es hebt (Rückfracht); mit Träger aus dem Plan des Kerns.</summary>
+    private static int KranPlatzVon(int h, bool nieder, int voll, HafenPlan? plan)
+    {
+        var p = plan is null ? (nieder ? h : voll - 1 - h) : plan.KranPlatz[Math.Min(h, plan.KranPlatz.Length - 1)];
+        return Math.Clamp(p, 0, voll - 1);
+    }
+
+    private KranBuendel KranBuendelBauen(SchiffAnsicht ansicht, Node3D steg, int hub, bool nieder, int voll, HafenPlan? plan)
+    {
+        var g = Zierfahrplan.HubGroesse;
+        var n = Math.Min(g, voll - hub * g);
+        var b = new KranBuendel
+        {
+            Platz = new int[n], QUnten = new Vector3[n], ZUnten = new Vector3[n], QDreh = new float[n], ZDreh = new float[n], Hoehe = new float[n],
+        };
+        for (var i = 0; i < n; i++)
+        {
+            var h = hub * g + i;
+            var schiffNr = nieder ? voll - 1 - h : h;
+            b.Platz[i] = KranPlatzVon(h, nieder, voll, plan);
+            var stapel = _zierStapel[b.Platz[i]];
+            var (oben, dreh) = KranSchiffStueck(ansicht, steg, schiffNr);
+            var schiffHoehe = ansicht.Ladung[schiffNr].Mesh?.GetAabb().Size.Y ?? stapel.Hoehe;
+            var schiffUnten = oben - new Vector3(0, schiffHoehe, 0);
+            b.Hoehe[i] = stapel.Hoehe;
+            (b.QUnten[i], b.QDreh[i], b.ZUnten[i], b.ZDreh[i]) = nieder ? (schiffUnten, dreh, stapel.Unten, stapel.Dreh) : (stapel.Unten, stapel.Dreh, schiffUnten, dreh);
+        }
+        b.QBezug = KranBezug(b.QUnten, b.Hoehe);
+        b.ZBezug = KranBezug(b.ZUnten, b.Hoehe);
+        return b;
+    }
+
+    private static Vector3 KranBezug(Vector3[] unten, float[] hoehe)
+    {
+        var x = 0f; var z = 0f; var y = float.MinValue;
+        for (var i = 0; i < unten.Length; i++)
+        {
+            x += unten[i].X / unten.Length;
+            z += unten[i].Z / unten.Length;
+            y = Mathf.Max(y, unten[i].Y + hoehe[i]);
+        }
+        return new Vector3(x, y, z);
+    }
+
     /// <summary>
-    /// Liegephase: setzt Kran, Last, Stapel; gibt zurück, wie viele Stücke (die niedrigsten Nummern) an Bord sichtbar sind.
+    /// Haken im Hub zur Zeit <paramref name="u"/> (0…1): von <paramref name="start"/> hoch, zum Bündel schwenken, senken, mit dem Bündel hoch, zum Ziel schwenken,
+    /// absetzen. <paramref name="haengt"/> sagt, ob das Bündel am Haken hängt, <paramref name="schwenk"/> wie weit sich seine Anordnung von der Quelle zum Ziel
+    /// gelöst hat (0…1, im Takt des Schwenkens).
     /// </summary>
-    private int KranLadung(SchiffAnsicht ansicht, double a, bool nieder, int voll)
+    private Vector3 KranHubHaken(KranBuendel b, Vector3 start, double u, out bool haengt, out float schwenk)
+    {
+        haengt = u >= KranSenkenBis && u < 1.0;
+        schwenk = Glatter((u - KranHebenBis) / (KranSchwenkenBis - KranHebenBis));
+        var qHoch = KranHoch(b.QBezug);
+        if (u < KranAufBis) return KranWeg(start, KranHoch(start), u / KranAufBis);
+        if (u < KranAnfahrtBis) return KranSchwenk(KranHoch(start), qHoch, (u - KranAufBis) / (KranAnfahrtBis - KranAufBis));
+        if (u < KranSenkenBis) return KranWeg(qHoch, KranTief(b.QBezug), (u - KranAnfahrtBis) / (KranSenkenBis - KranAnfahrtBis));
+        if (u < KranHebenBis) return KranWeg(KranTief(b.QBezug), qHoch, (u - KranSenkenBis) / (KranHebenBis - KranSenkenBis));
+        if (u < KranSchwenkenBis) return KranSchwenk(qHoch, KranHoch(b.ZBezug), (u - KranHebenBis) / (KranSchwenkenBis - KranHebenBis));
+        return KranWeg(KranHoch(b.ZBezug), KranTief(b.ZBezug), (u - KranSchwenkenBis) / (1.0 - KranSchwenkenBis));
+    }
+
+    /// <summary>
+    /// Liegephase (mit <paramref name="plan"/> der Hafenarbeit ist der Stapel Puffer, sonst nicht): setzt Kran, Last und Stapel; gibt zurück, wie viele Stücke
+    /// (die niedrigsten Nummern) an Bord sichtbar sind. Niederländer: alles vom Schiff auf den Stapel (Entladen); Oberländer: alles vom Stapel aufs Schiff.
+    /// </summary>
+    private int KranLadung(SchiffAnsicht ansicht, double a, bool nieder, int voll, HafenPlan? plan, double minute)
     {
         var steg = _zierStapel.Count > 0 && IsInstanceValid(_zierStapel[0].Knoten) ? _zierStapel[0].Knoten.GetParent() as Node3D : null;
         if (steg is null || _zierStapel.Count < voll || _kranHaken is null || !IsInstanceValid(_kranHaken)) return voll;
-        // Niederländer: alles vom Schiff auf den Stapel (Entladen); Oberländer: alles vom Stapel aufs Schiff (Laden, Stapelrecht)
-        var rueck = nieder ? 0 : voll;
-        var entladen = nieder ? voll : 0;
-        var w = (ZierNiederEntladeBis - ZierEntladeAb) / voll;
-        var wr = (ZierOberLadeBis - ZierOberLadeAb) / voll;
-        var ende1 = ZierEntladeAb + entladen * w;
-        var ende2 = ZierOberLadeAb + rueck * wr;
+        var g = Zierfahrplan.HubGroesse;
+        var huebe = (voll + g - 1) / g;
+        var von = nieder ? ZierEntladeAb : ZierOberLadeAb;
+        var bis = nieder ? ZierNiederEntladeBis : ZierOberLadeBis;
 
-        // Quelle und Ziel des Hubs: Entladen i = voll−1−h (Schiff → Stapel h), Rückfracht i = j (Stapel voll−1−j → Schiff)
-        (Vector3 Oben, float Dreh) Schiff(int i) => KranSchiffStueck(ansicht, steg, i);
-        (Vector3 Oben, float Dreh) Stapel(int k) => (_zierStapel[k].Oben, _zierStapel[k].Dreh);
-        Vector3 Hoch(Vector3 o) => new(o.X, KranHochY, o.Z);
-        Vector3 Tief(Vector3 o) => o + new Vector3(0, KranGehaenge, 0);
-
-        Vector3 haken = KranRuheOrt();
-        var gehalten = -1;
-        var dreh0 = 0f;
-        var dreh1 = 0f;
-        var dreht = 0f;
+        var haken = KranRuheOrt();
+        KranBuendel? hub = null;
         var haengt = false;
-        int anBord;
-        int abgesetzt = 0, gehoben = 0;          // Entladen: Stapel fertig / vom Schiff gehoben
-        int rueckGehoben = 0, rueckAbgesetzt = 0; // Rückfracht: vom Stapel gehoben / aufs Schiff gesetzt
-        if (a < (nieder ? ZierEntladeAb : ZierOberLadeAb))
+        var schwenk = 0f;
+        var fertig = 0; // Stücke aller früheren Hübe
+        if (a >= von && a < bis)
         {
-            anBord = nieder ? voll : 0;
-            abgesetzt = nieder ? 0 : voll;
-            gehoben = nieder ? 0 : voll;
+            var nr = 0; // der Hub, in dem a liegt (Zierfahrplan.HubAnteil: beim Entladen ist der erste Hub kürzer)
+            while (nr < huebe - 1 && a >= Zierfahrplan.HubAnteil(nieder, nr, huebe).Bis) nr++;
+            var (hubVon, hubBis) = Zierfahrplan.HubAnteil(nieder, nr, huebe);
+            var x = nr + (a - hubVon) / (hubBis - hubVon);
+            hub = KranBuendelBauen(ansicht, steg, nr, nieder, voll, plan);
+            var start = nr == 0 ? KranRuheOrt() : KranTief(KranBuendelBauen(ansicht, steg, nr - 1, nieder, voll, plan).ZBezug);
+            haken = KranHubHaken(hub, start, x - nr, out haengt, out schwenk);
+            fertig = nr * g;
         }
-        else if (nieder && a < ende1)
+        else if (a >= bis)
         {
-            var x = (a - ZierEntladeAb) / w;
-            var h = Math.Min((int)x, voll - 1);
-            var u = x - h;
-            var q = Schiff(voll - 1 - h);
-            var z = Stapel(h);
-            var start = h == 0 ? KranRuheOrt() : Tief(Stapel(h - 1).Oben);
-            haken = KranHub(start, q.Oben, z.Oben, u, out haengt, out dreht);
-            (dreh0, dreh1) = (q.Dreh, z.Dreh);
-            if (haengt) gehalten = h;
-            abgesetzt = h;
-            gehoben = haengt ? h + 1 : h;
-            anBord = voll - gehoben;
+            // Nach dem letzten Hub: Der Haken steigt über dem zuletzt abgesetzten Bündel und kehrt vor dem Ablegen in die Ruhe zurück
+            var letzt = KranBuendelBauen(ansicht, steg, huebe - 1, nieder, voll, plan).ZBezug;
+            haken = a < 0.93 ? KranWeg(KranTief(letzt), KranHoch(letzt), (a - bis) / 0.03) : KranSchwenk(KranHoch(letzt), KranRuheOrt(), (a - 0.93) / 0.06);
+            fertig = voll;
         }
-        else if (nieder)
-        {
-            // Der Haken steigt über dem zuletzt abgesetzten Stück und kehrt vor dem Ablegen in die Ruhe zurück
-            haken = KranWeg(Tief(Stapel(voll - 1).Oben), Hoch(Stapel(voll - 1).Oben), (a - ende1) / 0.02).Lerp(KranRuheOrt(), Glatt((a - 0.93) / 0.06));
-            abgesetzt = voll;
-            gehoben = voll;
-            anBord = 0;
-        }
-        else if (a < ende2)
-        {
-            var x = (a - ZierOberLadeAb) / wr;
-            var j = Math.Min((int)x, rueck - 1);
-            var u = x - j;
-            var k = voll - 1 - j;
-            var q = Stapel(k);
-            var z = Schiff(j);
-            var start = j == 0 ? KranRuheOrt() : Tief(Schiff(j - 1).Oben);
-            haken = KranHub(start, q.Oben, z.Oben, u, out haengt, out dreht);
-            (dreh0, dreh1) = (q.Dreh, z.Dreh);
-            if (haengt) gehalten = k;
-            abgesetzt = voll;
-            gehoben = voll;
-            rueckGehoben = haengt ? j + 1 : j;
-            rueckAbgesetzt = j;
-            anBord = rueckAbgesetzt;
-        }
-        else
-        {
-            // Nach der Rückfracht: Haken steigt, kehrt vor dem Ablegen in die Ruhe zurück
-            var letzt = Schiff(rueck - 1).Oben;
-            var rueckkehr = Glatt((a - 0.93) / 0.06);
-            haken = KranWeg(Tief(letzt), Hoch(letzt), (a - ende2) / 0.02).Lerp(KranRuheOrt(), rueckkehr);
-            abgesetzt = voll;
-            gehoben = voll;
-            rueckGehoben = rueck;
-            rueckAbgesetzt = rueck;
-            anBord = rueck;
-        }
+        var dabei = haengt && hub is not null ? hub.Platz.Length : 0; // Stücke am Haken
 
-        // Stücke am Steg: abgesetzte und (Rückfracht) noch nicht gehobene sind da, das gehobene hängt am Haken
-        var nichtRueck = voll - rueck;
-        for (var k = 0; k < voll; k++)
+        // Stapel: mit Träger nach dem Plan des Kerns, sonst nach dem Stand der Hübe (Niederländer: abgesetzt; Oberländer: noch nicht gehoben)
+        for (var k = 0; k < _zierStapel.Count; k++)
         {
-            var s = _zierStapel[k];
-            bool sichtbar;
-            if (nieder && a < ende1) sichtbar = k < abgesetzt;
-            else if (k < nichtRueck) sichtbar = true; // Niederländer: der Stapel bleibt stehen (bis der Oberländer ihn aufnimmt)
-            else sichtbar = voll - 1 - k >= rueckGehoben; // Rückfracht-Stück bleibt bis zum Heben
-            if (k == gehalten) sichtbar = true;
-            if (s.Knoten.Visible != sichtbar) s.Knoten.Visible = sichtbar;
+            var sichtbar = plan is not null ? k < plan.Schicht.StapelUm(minute) : nieder ? k < fertig : voll - 1 - k >= fertig + dabei;
+            if (_zierStapel[k].Knoten.Visible != sichtbar) _zierStapel[k].Knoten.Visible = sichtbar;
         }
-        // ein Stück, das eben noch am Haken hing, steht wieder (genau) auf seinem Platz
-        if (_kranGehalten >= 0 && _kranGehalten != gehalten)
-        {
-            var alt = _zierStapel[_kranGehalten];
-            StueckSetzen(alt, alt.Unten, alt.Dreh);
-        }
-        _kranGehalten = gehalten;
-        if (gehalten >= 0)
-        {
-            var yaw = Mathf.LerpAngle(dreh0, dreh1, dreht);
-            StueckSetzen(_zierStapel[gehalten], haken - new Vector3(0, KranGehaenge + _zierStapel[gehalten].Hoehe, 0), yaw);
-            _kranGehaenge!.Rotation = new Vector3(0, yaw, 0);
-        }
-        _kranGehaenge!.Visible = gehalten >= 0;
-        KranHakenSetzen(haken, gehalten >= 0 ? Mathf.LerpAngle(dreh0, dreh1, dreht) : 0);
         _zierStapelGezeigt = -1;
-        return anBord;
+
+        // Das Bündel am Haken: Kopien der Stapelstücke, angeordnet wie an der Quelle und beim Schwenken ins Gefüge des Ziels übergehend
+        var lasten = new List<(Vector3 Oben, float Dreh)>(g);
+        var haelt = new HashSet<int>();
+        if (haengt && hub is not null)
+        {
+            var q = hub.QBezug;
+            var z = hub.ZBezug;
+            for (var i = 0; i < hub.Platz.Length; i++)
+            {
+                if (KranLast(hub.Platz[i]) is not { } last) continue;
+                var lage = (hub.QUnten[i] - q).Lerp(hub.ZUnten[i] - z, schwenk);
+                var yaw = Mathf.LerpAngle(hub.QDreh[i], hub.ZDreh[i], schwenk);
+                var unten = haken - new Vector3(0, KranGehaenge, 0) + lage;
+                last.Knoten.Visible = true;
+                StueckSetzen(last, unten, yaw);
+                haelt.Add(hub.Platz[i]);
+                lasten.Add((unten + new Vector3(0, last.Hoehe, 0), yaw));
+            }
+        }
+        for (var k = 0; k < _kranLasten.Count; k++)
+            if (!haelt.Contains(k) && IsInstanceValid(_kranLasten[k].Knoten) && _kranLasten[k].Knoten.Visible) _kranLasten[k].Knoten.Visible = false;
+        KranHakenSetzen(haken, lasten);
+        return nieder ? voll - fertig - dabei : fertig;
     }
 }

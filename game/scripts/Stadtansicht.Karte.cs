@@ -134,38 +134,38 @@ public partial class Stadtansicht
         Ladezeit.Marke("vor dem Kartenaufbau");
         yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
-        LagenLesen(karte);
+        Ladezeit.Teil("LagenLesen", () => LagenLesen(karte));
         BodenstempelAusKarte(karte); // Höfe, Wege und Restflächen als Bodenart im Raster, vor dem Boden (Stadtansicht.Bodenstempel.cs)
-        BodenLegen(karte);
+        Ladezeit.Teil("BodenLegen", () => BodenLegen(karte));
         Ladezeit.Marke("Szene: Boden und Gelände");
         yield return new Ladeschritt(0.28f, "Die Stadtmauer wird hochgezogen …");
-        foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); // Häuser bekommen ihren Sockel selbst
-        foreach (var mauer in karte.Mauern) MauerAusKarte(mauer);
+        Ladezeit.Teil("Sockel", () => { foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); }); // Häuser bekommen ihren Sockel selbst
+        Ladezeit.Teil("Mauern", () => { foreach (var mauer in karte.Mauern) MauerAusKarte(mauer); });
         Ladezeit.Marke("Szene: Sockel und Mauern");
         yield return new Ladeschritt(0.30f, "Rathaus und Dom werden errichtet …");
-        foreach (var platz in _maerkte) Marktstaende(platz); // Stadtansicht.Markt.cs: Stände, Verkäufer und Klickfläche an jedem Platz
-        SonderbautenBauen(karte); // Rathaus, Dom und Bauten ohne eigene Ansicht
+        Ladezeit.Teil("Marktstände", () => { foreach (var platz in _maerkte) Marktstaende(platz); }); // Stadtansicht.Markt.cs: Stände, Verkäufer und Klickfläche an jedem Platz
+        Ladezeit.Teil("Sonderbauten", () => SonderbautenBauen(karte)); // Rathaus, Dom und Bauten ohne eigene Ansicht
         Ladezeit.Marke("Szene: Markt und Sonderbauten");
         yield return new Ladeschritt(0.33f, "Häuser werden gebaut …");
         Kulissenhaeuser(karte);
         Ladezeit.Marke("Szene: Kulissenhäuser");
         yield return new Ladeschritt(0.34f, "Wege werden gepflastert …");
-        foreach (var berg in karte.GebaeudeDerArt(Bausteinart.Berg)) BergBauen(berg);
-        WegeAnlegen(karte);
+        Ladezeit.Teil("Berge", () => { foreach (var berg in karte.GebaeudeDerArt(Bausteinart.Berg)) BergBauen(berg); });
+        Ladezeit.Teil("WegeAnlegen", () => WegeAnlegen(karte));
         Ladezeit.Marke("Szene: Berge und Wege");
         yield return new Ladeschritt(0.54f, "Der Fluss wird eingelassen …");
-        GewaesserBauen();    // Wasser, Brücken, Furten, Fähren (Stadtansicht.Wasser.cs)
+        Ladezeit.Teil("GewaesserBauen", GewaesserBauen);    // Wasser, Brücken, Furten, Fähren (Stadtansicht.Wasser.cs)
         FaehrenAnsNetz();    // Karren setzen mit Fähren über (Stadtansicht.Wasser.Uebergaenge.cs)
         Ladezeit.Marke("Szene: Wasser");
         yield return new Ladeschritt(0.555f, "Höfe und Gruben werden angelegt …");
-        UmlandstellenBauen(karte); // Stadtansicht.Umland.cs
-        Anschliessen(karte);
+        Ladezeit.Teil("UmlandstellenBauen", () => UmlandstellenBauen(karte)); // Stadtansicht.Umland.cs
+        Ladezeit.Teil("Anschliessen", () => Anschliessen(karte));
         Ladezeit.Marke("Szene: Umland und Anschlüsse");
         yield return new Ladeschritt(0.58f, "Bäume werden gepflanzt …");
-        NaturAusKarte(karte); // Stadtansicht.Natur.cs
-        RestflaechenAusKarte(karte); // Stadtansicht.Restflaechen.cs: Gärten, Werkhöfe und Gestrüpp auf den freien Flächen
-        FelsenAusKarte(karte); // Stadtansicht.Felsen.cs
-        KulisseAusKarte(karte); // Stadtansicht.Kulisse.cs
+        Ladezeit.Teil("NaturAusKarte", () => NaturAusKarte(karte)); // Stadtansicht.Natur.cs
+        Ladezeit.Teil("RestflaechenAusKarte", () => RestflaechenAusKarte(karte)); // Stadtansicht.Restflaechen.cs: Gärten, Werkhöfe und Gestrüpp auf den freien Flächen
+        Ladezeit.Teil("FelsenAusKarte", () => FelsenAusKarte(karte)); // Stadtansicht.Felsen.cs
+        Ladezeit.Teil("KulisseAusKarte", () => KulisseAusKarte(karte)); // Stadtansicht.Kulisse.cs
         Ladezeit.Marke("Szene: Natur");
         yield return new Ladeschritt(0.605f, "Felder werden bestellt …");
         FelderAusKarte(karte); // Stadtansicht.Rand.cs
@@ -173,7 +173,7 @@ public partial class Stadtansicht
         yield return new Ladeschritt(0.70f, "Das Pflaster wird gelegt …");
         KameraAusKarte(karte);
         _schichtAlles = true;
-        WegeschichtBild(); // Wege, Anschlüsse und Pflaster in den Boden (Stadtansicht.Wegeschicht.cs)
+        Ladezeit.Teil("WegeschichtBild", WegeschichtBild); // Wege, Anschlüsse und Pflaster in den Boden (Stadtansicht.Wegeschicht.cs)
         Ladezeit.Marke("Szene: Wegeschicht");
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz der Karte „{karte.Kennung}“: {_netz.Teile()} getrennte Teile – nicht jedes Ziel ist erreichbar.");
@@ -182,21 +182,23 @@ public partial class Stadtansicht
     /// <summary>Marktplatz, Tore, Mauerflächen und Rahmen der Karte – was später beim Zeichnen und Laufen gebraucht wird.</summary>
     private void LagenLesen(Stadtkarte karte)
     {
+        var uhrMarkt = Ladezeit.Uhr();
         foreach (var markt in karte.Marktplaetze)
         {
             var platz = new MarktplatzAnsicht
             {
                 Nummer = _maerkte.Count,
                 Gebaeude = markt,
-                Lage = ModellLage(markt),
+                Lage = Ladezeit.Zaehlen("LagenLesen: ModellLage", () => ModellLage(markt)),
                 Mitte = Punkt3(markt.Punkt),
-                Hoehe = FundamentVon(markt).Hoehe,
-                Halb = Mathf.Min(GroesseVon(markt).X, GroesseVon(markt).Y) / 2,
+                Hoehe = Ladezeit.Zaehlen("LagenLesen: FundamentVon", () => FundamentVon(markt).Hoehe),
+                Halb = Ladezeit.Zaehlen("LagenLesen: GroesseVon", () => Mathf.Min(GroesseVon(markt).X, GroesseVon(markt).Y) / 2),
             };
             _maerkte.Add(platz);
             if (_maerkte.Count > 1) continue;
             (_marktLage, _markt, _marktY, _marktHalb) = (platz.Lage, platz.Mitte, platz.Hoehe, platz.Halb); // der erste Platz bleibt „der Markt“ der übrigen Dateien
         }
+        Ladezeit.Dazu("LagenLesen: Marktplätze (Fundament)", uhrMarkt);
         foreach (var mauer in karte.Mauern)
         {
             var linie = mauer.Linie.Select(Punkt3).ToList();
@@ -377,10 +379,10 @@ public partial class Stadtansicht
             var punkte = weg.Verlauf.Where(p => p is { Length: 2 }).Select(Punkt3).ToArray();
             if (punkte.Length < 2) continue;
             var breite = (float)weg.BreiteWirksam;
-            if (WegeschichtMoeglich) WegBelagZeichnen(nummer, punkte, breite, neuAuchGleich: true); // in den Boden eingebacken (Stadtansicht.Wegeschicht.cs, Wegbelag.cs)
+            if (WegeschichtMoeglich) Ladezeit.Teil("WegeAnlegen: WegBelagZeichnen", () => WegBelagZeichnen(nummer, punkte, breite, neuAuchGleich: true)); // in den Boden eingebacken (Stadtansicht.Wegeschicht.cs, Wegbelag.cs)
             else WegZeichnen(punkte, breite, weg.IstGlatt, luecken: WegLuecken(nummer), boden: WegBoden(nummer)); // unter Brücken kein Band, in Furten eben (Stadtansicht.Wasser.Uebergaenge.cs)
             for (var i = 0; i + 1 < punkte.Length; i++) _wegStrecken.Add((punkte[i], punkte[i + 1], breite));
-            _netz.Weg(weg.IstGlatt ? NetzPunkte(punkte) : punkte);
+            Ladezeit.Teil("WegeAnlegen: Gassennetz", () => _netz.Weg(weg.IstGlatt ? NetzPunkte(punkte) : punkte));
         }
     }
 

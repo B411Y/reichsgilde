@@ -604,11 +604,12 @@ public sealed class Schiffahrt
             var beute = schiff.Ausrauben(p.BeuteAnteil);
             var wert = Ladungswert(beute);
             konto.Raub(wert);
-            _w.Melden($"{p.Name} überfallen {schiff.Name} ({konto.Inhaber}) {wo} und erbeuten {string.Join(" und ", beute.Select(b => $"{b.Value} {b.Key}"))} " +
-                      $"(Wert {Zahlenformat.Ganz(wert)} {waehrung}).");
+            _w.Melden(Meldungsart.Ueberfall, $"{p.Name} überfallen {schiff.Name} ({konto.Inhaber}) {wo} und erbeuten {string.Join(" und ", beute.Select(b => $"{b.Value} {b.Key}"))} " +
+                      $"(Wert {Zahlenformat.Ganz(wert)} {waehrung}).", haus: konto);
         }
         else
-            _w.Melden($"{p.Name} greifen {schiff.Name} ({konto.Inhaber}) {wo} an – die Mannschaft schlägt sie zurück.");
+            _w.Melden(Meldungsart.Ueberfall, $"{p.Name} greifen {schiff.Name} ({konto.Inhaber}) {wo} an – die Mannschaft schlägt sie zurück.", haus: konto,
+                wichtigkeit: Meldungswichtigkeit.Normal);
     }
 
     private void InDerStadt(Schiff schiff, long jetzt)

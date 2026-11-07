@@ -66,7 +66,7 @@ public partial class Stadtansicht
 
         var aussen = g.Aussen.Vergroessert(RandZugabe);
         GelaendeBauen(_randKnoten, g.Aussen, RandZugabe); // Stadtansicht.Gelaende.cs: die eine Ebene der flachen Karte oder die Kacheln des Geländes
-        DunstBauen(g, aussen);
+        Ladezeit.Teil("Boden: DunstBauen", () => DunstBauen(g, aussen));
         if (_entwurf is not null) KartenrandZeichnen(g);
     }
 
@@ -351,10 +351,12 @@ public partial class Stadtansicht
     {
         var polygone = umrisse.Select(u => u.Where(p => p is { Length: 2 }).Select(p => new Vector2((float)p[0], (float)p[1])).ToArray()).Where(u => u.Length >= 3).ToList();
         var rahmen = polygone.Select(pg => { var r = new Rect2(pg[0], Vector2.Zero); foreach (var q in pg) r = r.Expand(q); return r; }).ToList();
-        var maske = new Feldmaske(parzellen, polygone); // wo wirklich Acker liegt und der Abstand zu seinem Rand
+        var maske = Ladezeit.Zaehlen("Felder: Feldmaske", () => new Feldmaske(parzellen, polygone)); // wo wirklich Acker liegt und der Abstand zu seinem Rand
+        var uhrTeile = Ladezeit.Uhr();
         var sperr = new List<(Vector2 Mitte, float Drehung, Vector2 Halb)>(); // wo kein Gras steht (Stadtansicht.Gras.cs)
         foreach (var gruppe in parzellen.GroupBy(p => p.Frucht))
         {
+            uhrTeile = Ladezeit.Uhr();
             // Erst werden die Teile (Vielecke in der Welt) gesammelt, danach rechnen alle Prozessorkerne ihre Ecken (Abstand zum Rand, Höhe, Normale): Das war der Löwenanteil der Ladezeit.
             var teile = new List<(Vector2[] Stueck, int Nr)>();
             var infos = new List<(Vector2 Mitte, float Winkel, Basis Zurueck, Color Farbstich)>();
@@ -416,7 +418,9 @@ public partial class Stadtansicht
                     }
                 }
             }
+            Ladezeit.Dazu("Felder: Teile sammeln und zuschneiden", uhrTeile);
             if (teile.Count == 0) continue;
+            var uhrEcken = Ladezeit.Uhr();
             var hoehe0 = BodenHoehe(0, 0); BodenNormale(0, 0); // Gelände einmal im Hauptfaden anfragen (rechnet seine Höhen bei Bedarf), danach lesen es alle Fäden nur
             var fuss = BodenBewegt ? FeldHoeheAmHang : FeldHoehe;
             var teilDaten = new (Vector3[] Ecken, Vector3[] Normalen, Vector2[] Uv, Vector2[] Uv2, int[] Indizes)[teile.Count];
@@ -439,6 +443,8 @@ public partial class Stadtansicht
                 }
                 teilDaten[t] = (e, nm, u, u2, stueck.Length == 4 ? new[] { 0, 1, 2, 0, 2, 3 } : Array.Empty<int>());
             });
+            Ladezeit.Dazu("Felder: Ecken (Parallel)", uhrEcken);
+            var uhrNetz = Ladezeit.Uhr();
             var ecken = new List<Vector3>();
             var normalen = new List<Vector3>();
             var uv = new List<Vector2>();
@@ -489,12 +495,13 @@ public partial class Stadtansicht
             arrays[(int)Mesh.ArrayType.Index] = indizes.ToArray();
             var netz = new ArrayMesh();
             netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+            Ladezeit.Dazu("Felder: Netz zusammenbauen", uhrNetz);
             eltern.AddChild(new MeshInstance3D
             {
                 Name = "Acker_" + gruppe.Key, Mesh = netz, MaterialOverride = FeldStoff(gruppe.Key), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             });
         }
-        GrasAeckerMelden(eltern, sperr, maske); // über Äckern kein Grasteppich (Stadtansicht.Gras.cs)
+        Ladezeit.Teil("Felder: GrasAeckerMelden", () => GrasAeckerMelden(eltern, sperr, maske)); // über Äckern kein Grasteppich (Stadtansicht.Gras.cs)
         FeldPflanzenSetzen(parzellen, maske, eltern); // Pflanzen in den Reihen (Stadtansicht.Feldpflanzen.cs)
     }
 
@@ -522,7 +529,7 @@ public partial class Stadtansicht
     /// <summary>Die Äcker der Karte im Spiel (Kern: <see cref="FeldVerteilung.Alle"/>), alle in einem Knoten.</summary>
     private void FelderAusKarte(Stadtkarte karte)
     {
-        var parzellen = FeldVerteilung.Alle(karte, Modellmass, bisZumRand: true);
+        var parzellen = Ladezeit.Zaehlen("Felder: FeldVerteilung.Alle", () => FeldVerteilung.Alle(karte, Modellmass, bisZumRand: true));
         if (parzellen.Count == 0) return;
         var felder = new Node3D { Name = "Felder" };
         AddChild(felder);

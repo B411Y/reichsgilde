@@ -59,14 +59,6 @@ public partial class Hauptszene
         return string.Join("\n", zeilen);
     }
 
-    /// <summary>Überfälle der Flusspiraten auf eigene Schiffe werden zur Warnung (sie bleiben unten links stehen, bis man sie anklickt).</summary>
-    private string SchiffsMeldung(string meldung)
-    {
-        if (_simulation.Wirtschaft is not { Schiffahrt: { Daten: { } daten } schiffahrt } || _spieler is null) return meldung;
-        if (!meldung.StartsWith(daten.Piraten.Name + " überfallen ")) return meldung;
-        return schiffahrt.SchiffeVon(_spieler).Any(s => meldung.Contains($"{s.Name} ({_spieler.Inhaber})")) ? "⚠ " + meldung : meldung;
-    }
-
     /// <summary>
     /// Eine Meldung zum Schiff eines anderen Hauses (Kauf, Auftrag und Geleit der KI, Ankunft in der fernen Stadt, Heimkehr, Piraten) oder der Kauf eines
     /// eigenen (den meldet schon der Befehl)? Sie steht nur im Protokoll des Jahres, nicht unten links. Der Kern nennt das Schiff mit Besitzer („Möwe (Haus Eisenbart)“) bzw. beim
