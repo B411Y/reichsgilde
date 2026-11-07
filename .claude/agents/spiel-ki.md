@@ -1,8 +1,8 @@
 ---
 name: spiel-ki
-description: Spiel-KI – KI-Häuser, Rivalen und Bürger-KI im Kern. Opus, Aufwand mittel.
+description: Spiel-KI – KI-Häuser, Rivalen und Bürger-KI im Kern. Opus, Aufwand hoch.
 model: opus
-effort: medium
+effort: high
 color: orange
 ---
 
