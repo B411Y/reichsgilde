@@ -328,6 +328,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Bilder | Neue Hände (`tools/modelle/handschuh_mpfb.py`, MPFB-Grundnetz CC0, Runde 16) ersetzen alle 36 Handbilder; Türschloss unverändert. Stufe 3 (Waldgrün): nur ein schmales Messingband an der Stulpe (vorher drei). Zeigerpunkte jetzt je Größe 6/6, 9/10, 12/13 (`Mauszeiger.HandPunkte`), nicht mehr 1,5- bzw. 2-mal 32. | 05.11.2026 |
 | Wahl | Reihe aus sieben Kacheln (Auto + 6) mit 48-Pixel-Vorschau unter „Eigener Mauszeiger“ (Barrierefreiheit); alle sechs unabhängig vom Stand wählbar (nur Zierde), gespeichert als `zeiger_stufe` im Abschnitt „anzeige“ der Einstellungsdatei (0 = automatisch), nicht im Spielstand. Kacheln nur aktiv bei eingeschaltetem Zeiger; Name der Wahl darunter, Tooltip der Zeile listet alle. `--zeigerstufe` schlägt die Wahl nur für diesen Start. | 05.11.2026 |
 
+### Neue Handschuh-Zeiger aus gezeichneten Vorlagen (PR „Oberfläche: neue Handschuh-Zeiger“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bilder | Acht Hände als feine Pixel-Art („realistisch, wie alte 90er-Spiele“) aus Zeichnungen des Nutzers, mit Gemini überarbeitet (erlaubt, Prompts unbekannt, Quellbilder nicht im Repo). `tools/oberflaeche/zeiger_aus_vorlage.py --gemini`: freistellen, deckungsgleich ausrichten (Fingerspitze, Schnalle), je Größe einzeln pixeln (Flächenmittel, Umriss neu, Palette, Gold/Silber/Edelsteine als eigene Pixel, heller Rand). Ersetzt die Blender-Hände (PR #330); Türschloss unverändert. | 07.11.2026 |
+| Größen | 48 (Standard bei 1080p), 64, 80 statt 32/48/64; Zeigerpunkt der Hand 2/1, 3/1, 3/1; Türschloss 80 neu gerendert, 32 entfällt. | 07.11.2026 |
+| Hände | Sechs nach Stand (Gemeiner bis Reichsgraf) plus Wache (Plattenhandschuh) und Dieb (schwarz, deckender heller Rand) nur zur freien Wahl; Einstellungen: neun Kacheln (Auto + 8), `zeiger_stufe` 0..8, alter Wert bleibt gültig, `--zeigerstufe=1..8`. | 07.11.2026 |
+
 ### Start-Hinweis zum Personalbuch (PR „Hinweis zum Start – weitere Lehrlinge im Personalbuch“)
 
 | Thema | Entscheidung | Datum |

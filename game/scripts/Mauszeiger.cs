@@ -3,37 +3,43 @@ using Godot;
 namespace Reichsgilde;
 
 /// <summary>
-/// Der eigene Mauszeiger: ein Lederhandschuh, dessen Stufe dem Stand des Hauses folgt (1 Gemeiner bis 6 Reichsgraf; PNGs aus
-/// <c>tools/modelle/handschuh.py</c>, Blender, unter <c>assets/oberflaeche/zeiger/</c>). Drei Bilder:
+/// Der eigene Mauszeiger: ein Lederhandschuh, dessen Stufe dem Stand des Hauses folgt (1 Gemeiner bis 6 Reichsgraf), dazu zwei Handschuhe
+/// nur zur freien Wahl in den Einstellungen (7 Wache = Plattenhandschuh, 8 Dieb = schwarzes Leder). Die Bilder sind feine Pixel-Art aus gezeichneten
+/// Vorlagen (<c>tools/oberflaeche/zeiger_aus_vorlage.py</c>) unter <c>assets/oberflaeche/zeiger/</c>. Drei Bilder:
 /// <b>normal</b> (offene Hand), <b>klick</b> (wärmer, über Anklickbarem: Gebäude, Figur, Bauplatz im Baumodus, Knöpfe der Oberfläche)
 /// und das <b>Türschloss</b> (Bronze mit S-Griff) über einem Gebäude mit Innenraum, das ein Doppelklick öffnet.
-/// Das Steuerknoten-Objekt hängt in der Hauptszene (liest die Stadt) und im Hauptmenü (nur Stufe 1, normal). Die Größe (32, 48 oder 64 Pixel)
+/// Das Steuerknoten-Objekt hängt in der Hauptszene (liest die Stadt) und im Hauptmenü (nur Stufe 1, normal). Die Größe (48, 64 oder 80 Pixel)
 /// folgt der Fensterhöhe und der Größe der Oberfläche. Ein-/Ausschalter: <see cref="Fenster.EigenerZeigerAn"/>.
 /// </summary>
 public partial class Mauszeiger : Node
 {
+    /// <summary>Handstufen nach Stand des Hauses (1 Gemeiner bis 6 Reichsgraf).</summary>
     public const int Stufen = 6;
+
+    /// <summary>Alle wählbaren Handschuhe: die sechs Stände, dazu 7 Wache und 8 Dieb (nur freie Wahl, nie nach Stand).</summary>
+    public const int Haende = 8;
 
     public enum Art { Normal, Klick, Schloss }
 
-    /// <summary>Handstufe fest nur für diesen Start (Startoption <c>--zeigerstufe</c>, schlägt die Wahl in den Einstellungen); 0 = die Wahl der Einstellungen
+    /// <summary>Handstufe fest nur für diesen Start (Startoption <c>--zeigerstufe</c> 1..8, schlägt die Wahl in den Einstellungen); 0 = die Wahl der Einstellungen
     /// (<see cref="Fenster.ZeigerStufe"/>), und deren 0 heißt: nach dem Stand des Hauses.</summary>
     public static int StufeFest { get; set; }
 
-    private static readonly int[] Groessen = { 32, 48, 64 };
+    private static readonly int[] Groessen = { 48, 64, 80 };
 
-    /// <summary>Namen der sechs Handschuhe (Index 0 = Stufe 1), für die Wahl in den Einstellungen.</summary>
+    /// <summary>Namen der acht Handschuhe (Index 0 = Stufe 1; 7 und 8 nur freie Wahl), für die Wahl in den Einstellungen.</summary>
     public static readonly string[] StufenNamen =
     {
         "Gemeiner – Arbeitsleder", "Bürger – helles Leder", "Patrizier – Braunleder mit Waldgrün",
         "Edler – schwarzes Leder", "Freiherr – Purpursamt", "Reichsgraf – Königsblau mit Hermelin",
+        "Wache – Plattenhandschuh", "Dieb – schwarzes Leder",
     };
 
-    /// <summary>Zeigerpunkt der Hand (Fingerspitze) je Größe 32, 48, 64 (Ausgabe von <c>handschuh_mpfb.py</c>, Runde 16/17: nicht genau 1,5 bzw. 2 mal 32).</summary>
-    private static readonly Vector2I[] HandPunkte = { new(6, 6), new(9, 10), new(12, 13) };
+    /// <summary>Zeigerpunkt der Hand (Fingerspitze) je Größe 48, 64, 80 (Ausgabe von <c>zeiger_aus_vorlage.py</c>, <c>hotspots.txt</c>; für alle acht Hände gleich).</summary>
+    private static readonly Vector2I[] HandPunkte = { new(2, 1), new(3, 1), new(3, 1) };
 
-    /// <summary>Zeigerpunkt (Mitte des Schlüssellochs) des Türschlosses bei 32 Pixeln; bei 48 und 64 mal 1,5 bzw. 2.</summary>
-    private static readonly Vector2I SchlossPunkt32 = new(11, 16);
+    /// <summary>Zeigerpunkt (Mitte des Schlüssellochs) des Türschlosses je Größe 48, 64, 80.</summary>
+    private static readonly Vector2[] SchlossPunkte = { new(16.5f, 24), new(22, 32), new(29, 41) };
 
     /// <summary>Das Bild eines Handschuhs (normal, 48 Pixel) für die Vorschau in den Einstellungen.</summary>
     public static Texture2D? Vorschau(int stufe) => Bild(stufe, Art.Normal, 48);
@@ -71,7 +77,7 @@ public partial class Mauszeiger : Node
     private void Anwenden()
     {
         var an = Fenster.EigenerZeigerAn;
-        var stufe = StufeFest > 0 ? StufeFest : Fenster.ZeigerStufe > 0 ? Fenster.ZeigerStufe : Math.Clamp((StandAbfrage?.Invoke() ?? 0) + 1, 1, Stufen);
+        var stufe = StufeFest > 0 ? Math.Clamp(StufeFest, 1, Haende) : Fenster.ZeigerStufe > 0 ? Math.Clamp(Fenster.ZeigerStufe, 1, Haende) : Math.Clamp((StandAbfrage?.Invoke() ?? 0) + 1, 1, Stufen);
         var art = an ? ArtErmitteln() : Art.Normal;
         var groesse = an ? GroesseWaehlen() : 0;
         if (_gesetzt == (stufe, art, groesse, an)) return;
@@ -83,9 +89,8 @@ public partial class Mauszeiger : Node
         }
         var bild = Bild(stufe, art, groesse);
         if (bild is null) return;
-        var hotspot = art == Art.Schloss
-            ? new Vector2(SchlossPunkt32.X, SchlossPunkt32.Y) * (groesse / 32f)
-            : new Vector2(HandPunkte[Array.IndexOf(Groessen, groesse)].X, HandPunkte[Array.IndexOf(Groessen, groesse)].Y);
+        var nr = Array.IndexOf(Groessen, groesse);
+        var hotspot = art == Art.Schloss ? SchlossPunkte[nr] : new Vector2(HandPunkte[nr].X, HandPunkte[nr].Y);
         // Pfeil = der gewählte Zustand; „Zeigefinger“ (Knöpfe mit Handform) immer klick.
         Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
         var klick = art == Art.Normal ? Bild(stufe, Art.Klick, groesse) : bild;
@@ -118,18 +123,19 @@ public partial class Mauszeiger : Node
         return Stadt.Baumodus ? Art.Klick : Art.Normal;
     }
 
-    /// <summary>32, 48 oder 64 Pixel: Fensterhöhe (1080 = 1) mal Größe der Oberfläche; Standard 48 bei 1080p.</summary>
+    /// <summary>48, 64 oder 80 Pixel: Fensterhöhe (1080 = 1) mal Größe der Oberfläche; Standard 48 bei 1080p.</summary>
     private static int GroesseWaehlen()
     {
         var mass = DisplayServer.WindowGetSize().Y / 1080f * Fenster.Oberflaechengroesse / 100f;
-        return mass < 0.75f ? Groessen[0] : mass < 1.35f ? Groessen[1] : Groessen[2];
+        return mass < 1.35f ? Groessen[0] : mass < 1.8f ? Groessen[1] : Groessen[2];
     }
 
     private static readonly Dictionary<string, Texture2D?> Vorrat = new();
 
     private static Texture2D? Bild(int stufe, Art art, int groesse)
     {
-        var name = art == Art.Schloss ? $"tuer_schloss_{groesse}" : $"hand_{stufe}_{(art == Art.Klick ? "klick" : "normal")}_{groesse}";
+        var hand = stufe switch { 7 => "wache", 8 => "dieb", _ => stufe.ToString() };
+        var name = art == Art.Schloss ? $"tuer_schloss_{groesse}" : $"hand_{hand}_{(art == Art.Klick ? "klick" : "normal")}_{groesse}";
         if (Vorrat.TryGetValue(name, out var bild)) return bild;
         var pfad = $"res://assets/oberflaeche/zeiger/{name}.png";
         bild = ResourceLoader.Exists(pfad) ? GD.Load<Texture2D>(pfad) : null;
