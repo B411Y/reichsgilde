@@ -791,6 +791,7 @@ public partial class Stadtansicht : Node3D
         NachtlichterAktualisieren(delta); // Stadtansicht.Nachtlichter.cs
         Ladezeit.Phase("im Bild: Nachtlichter");
         PassantenAktualisieren(zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Passanten.cs
+        PassantenFleckenAktualisieren(); // Schattenflecken der Passanten bei Zoom 70 und 140 (Stadtansicht.Passantenschatten.cs)
         Ladezeit.Phase("im Bild: Passanten");
         JahreszeitSetzen(GezeigteJahreszeit(zeit.Jahreszeit)); // Laub je Jahreszeit, im Winter kahl (Stadtansicht.Natur.cs)
         Ladezeit.Phase("im Bild: Jahreszeit setzen");

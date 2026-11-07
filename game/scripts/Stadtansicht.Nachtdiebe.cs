@@ -114,11 +114,6 @@ public partial class Stadtansicht
                 _nachtszenen.RemoveAt(i);
             }
 
-        // FigurHervorheben (Maus darüber, ausgewählt) ersetzt die Überlagerung und setzt sie danach auf null: Der Mondrand kommt zurück
-        foreach (var d in _diebfiguren.Values)
-            if (d.Figur is { Hervorgehoben: false } fig && d.Kennung.StartsWith("dieb:nacht:", StringComparison.Ordinal))
-                foreach (var teil in fig.Teile)
-                    if (IsInstanceValid(teil) && teil.MaterialOverlay is null) teil.MaterialOverlay = MondrandStoff();
         if (NachtKlick is { } art && _diebfiguren.Values.FirstOrDefault(d => d.Sichtbar && d.Kennung.StartsWith("dieb:nacht:", StringComparison.Ordinal)
                 && (art == "klickfremd" ? !d.Eigen : art == "klickbande" ? d.Eigen && d.Kennung.EndsWith(":b", StringComparison.Ordinal) : d.Eigen && !d.Kennung.EndsWith(":b", StringComparison.Ordinal))) is { } probeFigur)
         {
@@ -260,7 +255,7 @@ public partial class Stadtansicht
             var aussehen = MarktDiebAussehen(nummer, "Geselle");
             var dieb = DiebfigurBauen(kennung, aussehen, nummer, eigen, null, v.Taeterbetrieb ?? "", null);
             dieb.Knoten.GetNodeOrNull("Marke")?.QueueFree(); // keine Bildpunkte: nachts soll man die Gestalten selbst erkennen
-            if (dieb.Figur is { } figur) foreach (var teil in figur.Teile) teil.MaterialOverlay = MondrandStoff(); // Mondschein-Rand: dunkle Gestalten bleiben nachts erkennbar
+            // kein Mondschein-Rand mehr (war: Fresnel-Überlagerung, ließ die Täter nachts bläulich leuchten): Fremde Diebe sind nachts dunkle Schatten, nur das Hervorheben bei Maus und Auswahl bleibt
             dieb.Beschreibung = d => NachtText(v, d, eigen, bande, anzahl, sack, betritt);
             if (sack && i < 2 && (anzahl < 3 || i < anzahl - 1)) dieb.Sack = NachtSackBauen(dieb);
             leute.Add(dieb);
@@ -271,29 +266,6 @@ public partial class Stadtansicht
     /// <summary>Das letzte Stück eines Weges (höchstens <paramref name="meter"/> Meter bis zur Tür).</summary>
     private static Vector3[] Wegende(Vector3[] route, float meter) => WegAb(route, Mathf.Max(0, Gassennetz.Laenge(route) - meter));
 
-    private static ShaderMaterial? _mondrandStoff;
-
-    /// <summary>
-    /// Ein leichter, kühler Rand an den Kanten der Gestalt (Mondschein, Fresnel, nur addiert, ohne Licht): Die Täter tragen dunkle Kleidung und kein Licht,
-    /// sollen aber im dunklen Pflaster nicht verschwinden. Der Shader steht im Code, nicht in einer Datei.
-    /// </summary>
-    private static ShaderMaterial MondrandStoff()
-    {
-        if (_mondrandStoff is not null) return _mondrandStoff;
-        var shader = new Shader
-        {
-            Code = @"shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled;
-uniform vec3 farbe : source_color = vec3(0.42, 0.55, 0.9);
-uniform float staerke = 0.6;
-void fragment() {
-    float rand = pow(1.0 - clamp(dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), 2.0);
-    ALBEDO = farbe * rand * staerke;
-}",
-        };
-        return _mondrandStoff = new ShaderMaterial { Shader = shader };
-    }
-
     private MeshInstance3D NachtSackBauen(Diebfigur d)
     {
         _sackStoff ??= new StandardMaterial3D { AlbedoColor = new Color(0.62f, 0.5f, 0.32f), Roughness = 1f };
@@ -302,7 +274,6 @@ void fragment() {
             Name = "Sack", Mesh = new CapsuleMesh { Radius = 0.17f, Height = 0.62f }, MaterialOverride = _sackStoff,
             Position = new Vector3(-0.12f, 1.28f, -0.24f), RotationDegrees = new Vector3(28, 0, 18), Scale = new Vector3(1, 1, 0.85f), Visible = false,
         };
-        sack.MaterialOverlay = MondrandStoff();
         d.Knoten.AddChild(sack);
         return sack;
     }
