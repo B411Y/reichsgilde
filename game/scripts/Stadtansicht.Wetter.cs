@@ -557,11 +557,12 @@ public partial class Stadtansicht
         // Welt -> Kasten (Drehung um die Hochachse zurück)
         Vector3 InKasten(Vector3 v) => new(cd * v.X - sd * v.Z, v.Y, sd * v.X + cd * v.Z);
 
-        // Wind treibt Regen und Schnee schräg (Schräge je Wetterart: Regen (Wind 0,5) senkrecht, Gewitter (0,75) und Sturm (1) gleich leicht schräg (18°),
-        // dazwischen weich – Nutzer 04.11.2026; der Wind selbst bleibt unverändert: Fahnen, Gras, Bäume, Wolken, Seegang. Traufentropfen fallen immer senkrecht.)
+        // Wind treibt Regen und Schnee schräg (Schräge je Wetterart: normaler Regen (Wind 0,5) leicht schräg, 6,5° in Windrichtung; Gewitter (0,75) und Sturm (1)
+        // gleich stark schräg (18°), dazwischen weich – Nutzer 04.11. und 07.11.2026; bei schwächerem Wind nimmt die Schräge mit ihm ab. Der Wind selbst bleibt
+        // unverändert: Fahnen, Gras, Bäume, Wolken, Seegang. Traufentropfen fallen immer senkrecht.)
         var wind = new Vector3(_windRichtung.X, 0, _windRichtung.Y) * _wetter.Wind;
         var windRichtung = wind.LengthSquared() > 1e-6f ? wind.Normalized() : Vector3.Zero;
-        var schraege = Mathf.Clamp((_wetter.Wind - 0.5f) / 0.25f, 0f, 1f) * 0.325f; // tan 18°
+        var schraege = RegenSchraege(_wetter.Wind);
         var regenRichtung = (Vector3.Down + windRichtung * schraege).Normalized();
         var schneeRichtung = (Vector3.Down + wind * 0.4f).Normalized();
 
@@ -590,9 +591,23 @@ public partial class Stadtansicht
         _schneeFall = Mathf.PosMod(_schneeFall + sTempo * dt / sHoehe, 20f);
         NiederschlagKasten(_schnee, _schneeFarbe, mitte, sHoehe, neigung, drehung, sGanz, _schneeVersatz, k);
         _schneeFarbe.SetShaderParameter("fall", _schneeFall);
-        _schneeFarbe.SetShaderParameter("groesse", 0.5f * Mathf.Pow(k, 0.6f) * 1.2f);
+        _schneeFarbe.SetShaderParameter("groesse", SchneeFlockenGroesse * Mathf.Pow(k, 0.6f));
         PartikelFarbe();
     }
+
+    /// <summary>
+    /// Wie schräg der Regen fällt (Tangens des Winkels zur Senkrechten) bei dieser Windstärke: bis Windstärke 0,5 (normaler Regen) wächst sie auf 6,5° an,
+    /// von 0,5 bis 0,75 weiter auf 18° (Gewitter, Sturm). Ohne Wind fällt der Regen senkrecht.
+    /// </summary>
+    internal static float RegenSchraege(float wind)
+    {
+        const float leicht = 0.114f; // tan 6,5°
+        const float stark = 0.325f;  // tan 18°
+        return Mathf.Lerp(leicht * Mathf.Clamp(wind / 0.5f, 0f, 1f), stark, Mathf.Clamp((wind - 0.5f) / 0.25f, 0f, 1f));
+    }
+
+    /// <summary>Flockengröße in Metern bei Zoom 95 (vor dem Faktor je Flocke 0,6–1,5): halb so groß wie bis 06.11.2026 (0,6), Nutzer 07.11.2026.</summary>
+    private const float SchneeFlockenGroesse = 0.3f;
 
     private static Vector3 Umlauf(Vector3 v) => new(Mathf.PosMod(v.X, 1f), Mathf.PosMod(v.Y, 1f), Mathf.PosMod(v.Z, 1f));
 
