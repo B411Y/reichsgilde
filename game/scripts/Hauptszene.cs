@@ -330,6 +330,7 @@ public partial class Hauptszene : Node
         {
             lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 8f), bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
             if (bild >= 1 && bild - 1 < proben.Length) _stadt.WetterProbe(proben[bild - 1]);
+            if (bild == 2) _stadt.VoegelUndTiereVorbauen(); // sonst baut sie das erste Bild nach dem Ladebildschirm (Stadtansicht.Voegel.cs)
             Ladezeit.Teil("Aktualisieren hinter dem Ladebild", () => _stadt.Aktualisieren(GetProcessDeltaTime()));
             await Ladebildschirm.Bild(GetTree());
             var jetzt = Time.GetTicksMsec();

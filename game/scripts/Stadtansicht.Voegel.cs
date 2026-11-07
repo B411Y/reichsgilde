@@ -349,6 +349,12 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Bewegt die Vögel; <paramref name="uhrzeit"/> in Minuten seit Mitternacht. Steht das Spiel, stehen auch die Vögel.</summary>
+    /// <summary>Beim Laden (Hauptszene.ErsteBilderAbwarten): Vögel und Tiere schon jetzt hinter dem Ladebildschirm anlegen statt erst zwei Sekunden nach dem Start (das war ein Bild mit gut 1 s Stillstand).</summary>
+    public void VoegelUndTiereVorbauen()
+    {
+        if (_vogelEbene is null) _dachSuche = 2f;
+    }
+
     private void VoegelAktualisieren(float uhrzeit, double delta, bool pausiert)
     {
         if (_vogelEbene is null)
