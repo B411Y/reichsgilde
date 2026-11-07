@@ -420,6 +420,11 @@ public partial class Stadtansicht
         public Traglicht? Licht { get; set; }
         public int Stempel { get; set; }
         public bool Sichtbar { get; set; }
+        /// <summary>Die Runde, die er gerade geht, ihre Länge, sein Platz in der Reihe und der Wachwechsel (Stunde / 2): Daraus folgt sein Ort zu jeder Zeit (<see cref="StreifeOrtBei"/>, Stadtansicht.Ausweichen.cs).</summary>
+        public Vector3[]? Runde { get; set; }
+        public float Laenge { get; set; }
+        public int Reihe { get; set; }
+        public int Wechsel { get; set; }
     }
 
     private readonly Dictionary<(string Haus, int Nummer), Wachgang> _wachgaenge = new();
@@ -435,6 +440,10 @@ public partial class Stadtansicht
 
     /// <summary>Abstand (Meter) zwischen zwei Wachleuten desselben Hauses, wenn eine Schicht aufbricht.</summary>
     private const float WachAbstand = 18f;
+
+    /// <summary>Wie weit (Meter) ein Wachmann auf seiner Runde ist, <paramref name="vergangen"/> Spielminuten nach dem Wachwechsel (negativ: er ist noch nicht aufgebrochen).</summary>
+    private static float StreifeMeter(double vergangen, int reihe, double sekundenJeMinute) =>
+        (float)((vergangen + StreifenVersatz) * WachTempo * sekundenJeMinute) - reihe * WachAbstand;
 
     /// <summary>
     /// Jedes Bild: Die Wachleute auf Streife (Kern: <see cref="Wachwesen.AnwesenheitJetzt"/>, einmal je Spielminute abgefragt) gehen ihre Runde.
@@ -496,7 +505,8 @@ public partial class Stadtansicht
                 if (!_wachgaenge.TryGetValue(schluessel, out var gang))
                     _wachgaenge[schluessel] = gang = WachgangBauen(haus, stand);
                 gang.Stempel = _wachStempel;
-                var meter = (float)(vergangen * WachTempo * sekundenJeMinute) - reihe * WachAbstand;
+                (gang.Runde, gang.Laenge, gang.Reihe, gang.Wechsel) = (runde.Runde, runde.Laenge, reihe, zeit.UhrzeitInMinuten / 120);
+                var meter = StreifeMeter(vergangen, reihe, sekundenJeMinute);
                 var steht = meter < 0 || runde.Laenge < 1;
                 if (gang.Sichtbar == steht) gang.Knoten.Visible = gang.Sichtbar = !steht;
                 if (steht) continue;
@@ -546,6 +556,7 @@ public partial class Stadtansicht
         var nummer = 5000 + stand.Arbeiter.Nummer;
         var knoten = new Node3D { Name = $"Wache_{haus.Name}_{stand.Arbeiter.Nummer}", Visible = false };
         _wachEbene.AddChild(knoten);
+        if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, new Color(0.9f, 0.2f, 1f), 0.24f); // nur mit --diebtest: großer violetter Punkt über dem Wachmann auf Streife (Bilder)
         return new Wachgang
         {
             Knoten = knoten,
