@@ -10,7 +10,8 @@ Eisfassung Sinn hat, gibt es einen zweiten Knoten `<Name>_Winter` am selben Ort.
 
 Wiederverwendet statt neu gebaut (Paket 2, fuellung_hof.glb und fuellung_holzplatz.glb): Trog, Futtertrog, PferchHuerde, Hackklotz.
 Hühner und Hähne gibt es als Tiere der Stadt (game/assets/modelle/tiere/tier_huhn_*.glb, tier_hahn.glb) – sie kommen hier nicht noch
-einmal vor. Alles deterministisch (Zufall nur aus festen Saaten), nichts stammt aus Fremdmodellen.
+einmal vor. Alles deterministisch (Zufall nur aus festen Saaten). Fremdmodelle nur bei den Tieren: Schwein und Ziege kommen aus freien
+CC0-Modellen (tiere_cc0.py, Quellen dort); alles andere ist selbst gebaut.
 """
 
 import math
@@ -22,166 +23,32 @@ import bausteine as bs  # noqa: E402
 import fuellung_p2 as p2  # noqa: E402
 import landbau as lb  # noqa: E402
 import natur as nt  # noqa: E402
-import tiere as ti  # noqa: E402
+import tiere_cc0 as tc  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 
 bs.FARBEN.update({
-    "Schwein": (0.44, 0.35, 0.30),                  # graubraun und dunkel behaart – das Landschwein um 1400 war kein rosa Hausschwein
-    "Schwein dunkel": (0.25, 0.195, 0.165),
-    "Schwein hell": (0.60, 0.50, 0.43),
-    "Schwein Borste": (0.13, 0.10, 0.085),
-    "Schwein Nase": (0.58, 0.40, 0.38),
-    "Ziege": (0.48, 0.38, 0.27),
-    "Ziege hell": (0.80, 0.74, 0.62),
-    "Ziege fleck": (0.64, 0.55, 0.40),
-    "Ziege dunkel": (0.21, 0.165, 0.125),
-    "Horn": (0.60, 0.54, 0.42),
-    "Huf": (0.11, 0.095, 0.085),
     "Fuellung Schlamm": (0.19, 0.15, 0.105),
 })
 rng = p2.rng
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Werkzeuge
+#  Tiere (Standbilder aus CC0-Fremdmodellen, siehe tiere_cc0.py)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def rohr(netz, st, stationen, n, stoff, feiner=True, kappen=(True, True)):
-    """Körperteil entlang eines Wegs (tiere.rohr), glatt schattiert. stationen = [(Mitte, Halbachse quer, Halbachse hoch)]."""
-    if not hasattr(netz, "glatt"):
-        netz.glatt = []
-    start = len(netz.flaechen)
-    if isinstance(stoff, str):
-        stoff = ti.einfach(stoff)
-    for _ in range(int(feiner)):
-        stationen = ti.unterteilen(stationen)
-    ti.rohr(netz, st, stationen, n, stoff, kappen)
-    netz.glatt.extend(range(start, len(netz.flaechen)))
+TIERE = [
+    ("SchweinStehend", tc.schwein, {}),
+    ("SchweinWuehlend", tc.schwein, {"wuehlen": True}),
+    ("ZiegeStehend", tc.ziege, {}),
+    ("ZiegeFressend", tc.ziege, {"fressen": True}),
+]
 
 
-def lappen(netz, m, punkte, normale):
-    """Dünne Fläche (Ohr, Tuch) von beiden Seiten sichtbar."""
-    netz.vieleck_nach(punkte, normale, m)
-    netz.vieleck_nach(punkte, tuple(-c for c in normale), m)
-
-
-def hoehe_bei(stationen, y):
-    """Obere Kante (Mitte + Halbachse hoch) einer Stationenfolge bei Tiefe y (linear zwischen den Stationen)."""
-    for a, b in zip(stationen, stationen[1:]):
-        if (a[0][1] - y) * (b[0][1] - y) <= 0 and a[0][1] != b[0][1]:
-            t = (y - a[0][1]) / (b[0][1] - a[0][1])
-            return a[0][2] + (b[0][2] - a[0][2]) * t + a[2] + (b[2] - a[2]) * t
-    return stationen[-1][0][2] + stationen[-1][2]
-
-
-def bein(netz, st, x, y, z_oben, r, stoff, unten=None, huf="Huf", knick=0.0):
-    """Bein von z_oben bis zum Boden: Oberschenkel dick, Gelenk mit leichtem Knick, schlanke Röhre, Spalthuf aus zwei Klauen.
-    `unten`: Stoff für die untere Hälfte (Strümpfe), sonst wie `stoff`."""
-    unten = unten or stoff
-    rohr(netz, st, [((x, y, z_oben + 0.05), r * 1.35, r * 1.4), ((x, y + knick * 0.3, z_oben * 0.78), r * 1.0, r * 1.05),
-                    ((x, y + knick, z_oben * 0.5), r * 0.66, r * 0.7), ((x, y + knick * 0.2, z_oben * 0.25), r * 0.56, r * 0.6),
-                    ((x, y, 0.05), r * 0.52, r * 0.55)], 8, lambda i, k, s, c: stoff if i < 4 else unten, feiner=True, kappen=(False, False))
-    for s in (-1, 1):
-        netz.quader((x + s * r * 0.3, y - r * 0.2, 0.024), (r * 0.58, r * 1.5, 0.048), st[huf])
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Tiere (Standbilder)
-# ─────────────────────────────────────────────────────────────────────────────
-
-def schwein(netz, st, saat, wuehlen=False):
-    """Landschwein um 1400: lang, flachrückig, mager, buntscheckig, mit Borstenkamm – kein Mastschwein. Stehend oder wühlend (Rüssel am Boden)."""
-    z = rng(saat)
-    netz.glatt = []
-    leib = [((0, 0.52, 0.37), 0.10, 0.12), ((0, 0.46, 0.42), 0.15, 0.17), ((0, 0.36, 0.45), 0.185, 0.205), ((0, 0.22, 0.465), 0.195, 0.215),
-            ((0, 0.06, 0.47), 0.195, 0.22), ((0, -0.10, 0.48), 0.2, 0.225), ((0, -0.22, 0.475), 0.19, 0.22), ((0, -0.32, 0.46), 0.16, 0.2),
-            ((0, -0.38, 0.45), 0.13, 0.17)]
-
-    def fell(i, k, s, c):                                              # Flecken wie beim Bunten Bentheimer: weiche Inseln, keine Streifen
-        if s < -0.3:
-            return "Schwein hell"
-        return "Schwein dunkel" if p2._blob(i * 0.2, k * 0.55 + 1.0, saat) > 0.22 else "Schwein"
-    rohr(netz, st, leib, 14, fell, feiner=2, kappen=(True, True))
-    if wuehlen:
-        kopf = [((0, -0.31, 0.45), 0.15, 0.19), ((0, -0.38, 0.43), 0.13, 0.17), ((0, -0.47, 0.37), 0.115, 0.14), ((0, -0.55, 0.25), 0.092, 0.113), ((0, -0.61, 0.14), 0.068, 0.085),
-                ((0, -0.645, 0.07), 0.06, 0.068)]
-        nase = ((0, -0.66, 0.062), 70)
-    else:
-        kopf = [((0, -0.31, 0.45), 0.15, 0.19), ((0, -0.38, 0.45), 0.13, 0.17), ((0, -0.46, 0.44), 0.115, 0.14), ((0, -0.55, 0.41), 0.09, 0.11), ((0, -0.63, 0.37), 0.066, 0.08),
-                ((0, -0.68, 0.35), 0.06, 0.068)]
-        nase = ((0, -0.695, 0.35), 90)
-    rohr(netz, st, kopf, 12, lambda i, k, s, c: "Schwein hell" if s < -0.4 else "Schwein", feiner=2, kappen=(False, True))
-    (nx, ny, nz), grad = nase
-    netz.quader((0, 0, 0), (0.105, 0.03, 0.095), st["Schwein Nase"], Matrix.Translation((nx, ny, nz)) @ Matrix.Rotation(math.radians(grad - 90), 4, "X"))
-    kx, ky, kz = kopf[3][0]
-    for sx in (-1, 1):
-        netz.quader((kx + sx * 0.088, ky - 0.05, kz + 0.07), (0.022, 0.03, 0.022), st["Auge"])
-        # Schlappohr: großes Dreieck, das über das Auge nach vorn fällt
-        lappen(netz, st["Schwein dunkel"], [(sx * 0.075, ky + 0.09, kz + 0.12), (sx * 0.165, ky + 0.07, kz + 0.1), (sx * 0.185, ky - 0.05, kz + 0.005),
-                                           (sx * 0.1, ky + 0.0, kz + 0.05)], (sx, 0.1, 0.8))
-    # Ringelschwanz
-    rohr(netz, st, [((0, 0.52, 0.42), 0.022, 0.022), ((0, 0.58, 0.47), 0.017, 0.017), ((0.03, 0.62, 0.52), 0.014, 0.014), ((0.05, 0.6, 0.56), 0.012, 0.012),
-                    ((0.03, 0.58, 0.575), 0.01, 0.01)], 5, "Schwein", feiner=True, kappen=(False, True))
-    # Borstenkamm auf dem Rücken
-    for k in range(11):
-        y = 0.44 - 0.07 * k
-        top = hoehe_bei(leib, y)
-        lb.kegel(netz, (z.uniform(-0.008, 0.008), y), 0.03, top - 0.035, top + z.uniform(0.07, 0.11), st["Schwein Borste"], n=4, dreh=z.uniform(0, 3))
-    bein(netz, st, 0.105, -0.24, 0.36, 0.058, "Schwein", unten="Schwein hell", knick=0.01)
-    bein(netz, st, -0.105, -0.24, 0.36, 0.058, "Schwein", unten="Schwein hell", knick=0.01)
-    bein(netz, st, 0.11, 0.38, 0.36, 0.064, "Schwein", unten="Schwein hell", knick=0.03)
-    bein(netz, st, -0.11, 0.38, 0.36, 0.064, "Schwein", unten="Schwein hell", knick=0.03)
-    if wuehlen:                                                       # aufgewühlte Erde vor dem Rüssel
-        p2.kuppel(netz, st, (0.02, -0.8, 0.0), 0.26, 0.17, 0.1, ("Fuellung Erde", "Fuellung Erde hell", "Fuellung Erde"), n=14, saat=saat + 3, jitter=0.18)
-        p2.kuppel(netz, st, (-0.2, -0.68, 0.0), 0.1, 0.08, 0.05, ("Fuellung Erde hell",), n=14, saat=saat + 4, jitter=0.2)
-
-
-def ziege(netz, st, saat, fressen=False):
-    """Hausziege um 1400: leicht, hochbeinig, mit Bart, Hörnern und kurzem Stummelschwanz. Stehend (Kopf oben) oder grasend."""
-    z = rng(saat)
-    netz.glatt = []
-    leib = [((0, 0.38, 0.50), 0.07, 0.09), ((0, 0.32, 0.54), 0.11, 0.14), ((0, 0.18, 0.55), 0.125, 0.165), ((0, 0.02, 0.55), 0.125, 0.17),
-            ((0, -0.12, 0.56), 0.12, 0.17), ((0, -0.24, 0.57), 0.10, 0.15)]
-
-    def fell(i, k, s, c):
-        if s < -0.3:
-            return "Ziege hell"
-        if s > 0.85:
-            return "Ziege dunkel"                                      # Aalstrich über dem Rücken
-        return "Ziege fleck" if p2._blob(i * 0.22, k * 0.6 + 2.0, saat) > 0.3 else "Ziege"
-    rohr(netz, st, leib, 12, fell, feiner=2, kappen=(True, True))
-    if fressen:
-        hals = [((0, -0.2, 0.57), 0.1, 0.14), ((0, -0.24, 0.56), 0.09, 0.13), ((0, -0.31, 0.47), 0.07, 0.1), ((0, -0.38, 0.35), 0.06, 0.085), ((0, -0.43, 0.23), 0.055, 0.07)]
-        kopf = [((0, -0.43, 0.23), 0.055, 0.07), ((0, -0.48, 0.16), 0.05, 0.06), ((0, -0.53, 0.09), 0.036, 0.042)]
-    else:
-        hals = [((0, -0.2, 0.57), 0.1, 0.14), ((0, -0.24, 0.58), 0.09, 0.13), ((0, -0.29, 0.66), 0.07, 0.1), ((0, -0.33, 0.75), 0.06, 0.085), ((0, -0.36, 0.82), 0.055, 0.07)]
-        kopf = [((0, -0.36, 0.82), 0.055, 0.07), ((0, -0.43, 0.81), 0.05, 0.06), ((0, -0.50, 0.78), 0.036, 0.042)]
-    rohr(netz, st, hals, 10, lambda i, k, s, c: "Ziege hell" if s < -0.5 else "Ziege", feiner=2, kappen=(False, False))
-    rohr(netz, st, kopf, 10, lambda i, k, s, c: "Ziege hell" if (i > 2 and s < 0.2) else "Ziege", feiner=2, kappen=(False, True))
-    k0, k1, k2 = kopf[0][0], kopf[1][0], kopf[-1][0]
-    netz.quader((0, 0, 0), (0.05, 0.03, 0.04), st["Schwein Nase"], Matrix.Translation(Vector(k2) + Vector((0, -0.015, 0))))
-    for sx in (-1, 1):
-        netz.quader((sx * 0.05, k1[1] - 0.015, k1[2] + 0.025), (0.018, 0.026, 0.018), st["Auge"])
-        # Ohr: waagrecht abstehendes Blatt
-        lappen(netz, st["Ziege dunkel"], [(sx * 0.045, k0[1] - 0.035, k0[2] + 0.03), (sx * 0.16, k0[1] - 0.02, k0[2] + 0.015), (sx * 0.05, k0[1] + 0.035, k0[2] + 0.02)],
-               (0, 0, 1))
-        # Horn: nach hinten gebogen, am Fuß dick
-        h0 = Vector((sx * 0.032, k0[1] - 0.04, k0[2] + 0.05))
-        horn = [(h0, 0.022, 0.022), (h0 + Vector((sx * 0.015, 0.03, 0.09)), 0.017, 0.017), (h0 + Vector((sx * 0.03, 0.11, 0.15)), 0.012, 0.012),
-                (h0 + Vector((sx * 0.03, 0.20, 0.155)), 0.006, 0.006)]
-        if fressen:                                                   # Kopf zeigt nach unten: das Horn liegt am Hinterkopf
-            horn = [(h0, 0.022, 0.022), (h0 + Vector((sx * 0.015, 0.09, 0.03)), 0.017, 0.017), (h0 + Vector((sx * 0.03, 0.17, 0.09)), 0.012, 0.012),
-                    (h0 + Vector((sx * 0.03, 0.24, 0.17)), 0.006, 0.006)]
-        rohr(netz, st, horn, 5, "Horn", kappen=(False, True))
-    bart = Vector(k2) + Vector((0, 0.03, -0.03))                     # Kinnbart
-    lb.kegel(netz, (bart.x, bart.y), 0.024, bart.z - 0.11, bart.z + 0.02, st["Ziege hell"], n=6)
-    rohr(netz, st, [((0, 0.38, 0.55), 0.03, 0.03), ((0, 0.41, 0.6), 0.02, 0.02)], 4, "Ziege dunkel", kappen=(False, True))   # Stummelschwanz
-    for sx in (-1, 1):
-        bein(netz, st, sx * 0.08, -0.17, 0.43, 0.04, "Ziege", unten="Ziege dunkel", knick=0.0)
-        bein(netz, st, sx * 0.08, 0.27, 0.43, 0.04, "Ziege", unten="Ziege dunkel", knick=0.045)
-    if fressen:
-        for k in range(7):
-            p2.gras(netz, st, Vector((k2[0] + z.uniform(-0.12, 0.12), k2[1] + z.uniform(-0.12, 0.08), 0.0)), 0.12)
+def tiere_bauen():
+    """Die vier Tiere als Objekte (Sommer; Tiere haben keine Winterfassung). Aufruf nach bs.neue_szene()."""
+    bs.neue_szene()
+    p2.STOFFE = bs.Stoffe()
+    return [bauer(name, **kw) for name, bauer, kw in TIERE], []
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -514,12 +381,7 @@ def pfuetze_gross(netz, st, saat, winter=False):
 # ─────────────────────────────────────────────────────────────────────────────
 
 GRUPPEN = {
-    "tiere": [
-        ("SchweinStehend", schwein, (101,), {}, False),
-        ("SchweinWuehlend", schwein, (102,), {"wuehlen": True}, False),
-        ("ZiegeStehend", ziege, (103,), {}, False),
-        ("ZiegeFressend", ziege, (104,), {"fressen": True}, False),
-    ],
+    "tiere": None,                                   # Fremdmodelle, siehe tiere_bauen
     "hof2": [
         ("Huehnerstall", huehnerstall, (111,), {}, True),
         ("Schuppen", schuppen, (112,), {}, True),
@@ -545,7 +407,7 @@ def main():
         if nur and gruppe not in nur:
             continue
         name = "fuellung_" + gruppe
-        sommer, winter = p2.knoten(teile)
+        sommer, winter = tiere_bauen() if teile is None else p2.knoten(teile)
         alle = sommer + winter
         bs.bericht(name, alle, einzeln=True)
         for o in alle:
