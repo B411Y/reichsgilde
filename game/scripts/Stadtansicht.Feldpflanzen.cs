@@ -129,16 +129,24 @@ public partial class FeldPflanzenBauer : Node3D
     /// (16 Zahlen je Büschel: Transform und Instanzfarbe). Liest <paramref name="hoehe"/> (das Gelände muss vorher einmal im Hauptfaden angefragt sein): darf in
     /// einem Hintergrundfaden laufen, auch die MultiMeshes (Ressourcen ohne Baum) entstehen dort.
     /// </summary>
-    public static SortedDictionary<(string Frucht, int I, int J), MultiMesh> Rechnen(IReadOnlyList<Feldparzelle> parzellen, Feldmaske maske, Func<float, float, float> hoehe, float fuss, Mesh netz)
+    public static SortedDictionary<(string Frucht, int I, int J), MultiMesh> Rechnen(IReadOnlyList<Feldparzelle> parzellen, Feldmaske maske, Func<float, float, float> hoehe, float fuss, Mesh netz, ParallelOptions po)
     {
-        var je = new Dictionary<(string Frucht, int I, int J), List<float>>[parzellen.Count];
-        Parallel.For(0, parzellen.Count, n => je[n] = Stueck(parzellen[n], maske, hoehe, fuss));
-        var alle = new SortedDictionary<(string Frucht, int I, int J), List<float>>();
-        foreach (var d in je)
-            foreach (var (schluessel, liste) in d)
+        var je = new Dictionary<(int I, int J), Puffer>[parzellen.Count];
+        Parallel.For(0, parzellen.Count, po, n => je[n] = Stueck(parzellen[n], maske, hoehe, fuss));
+        // Je Frucht und Zelle ein Puffer genau der Größe, in der Reihenfolge der Stücke (wie bei der Rechnung nacheinander)
+        var summen = new SortedDictionary<(string Frucht, int I, int J), int>();
+        for (var n = 0; n < je.Length; n++)
+            foreach (var ((i, j), puffer) in je[n])
+                summen[(parzellen[n].Frucht, i, j)] = summen.GetValueOrDefault((parzellen[n].Frucht, i, j)) + puffer.Anzahl;
+        var alle = new SortedDictionary<(string Frucht, int I, int J), float[]>();
+        var stand = new Dictionary<(string Frucht, int I, int J), int>();
+        foreach (var (schluessel, summe) in summen) { alle[schluessel] = new float[summe]; stand[schluessel] = 0; }
+        for (var n = 0; n < je.Length; n++)
+            foreach (var ((i, j), puffer) in je[n])
             {
-                if (!alle.TryGetValue(schluessel, out var l)) alle[schluessel] = l = new();
-                l.AddRange(liste);
+                var schluessel = (parzellen[n].Frucht, i, j);
+                Array.Copy(puffer.Daten, 0, alle[schluessel], stand[schluessel], puffer.Anzahl);
+                stand[schluessel] += puffer.Anzahl;
             }
         var ergebnis = new SortedDictionary<(string Frucht, int I, int J), MultiMesh>();
         var buescheln = 0;
@@ -147,14 +155,29 @@ public partial class FeldPflanzenBauer : Node3D
         {
             var vielfach = new MultiMesh
             {
-                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = netz, InstanceCount = puffer.Count / 16,
+                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = netz, InstanceCount = puffer.Length / 16,
             };
-            vielfach.Buffer = puffer.ToArray();
-            buescheln += puffer.Count / 16;
+            vielfach.Buffer = puffer;
+            buescheln += puffer.Length / 16;
             ergebnis[schluessel] = vielfach;
         }
         GD.Print($"[felder] Pflanzen fertig: {ergebnis.Count} Zellen, {buescheln} Büschel");
         return ergebnis;
+    }
+
+    /// <summary>Wachsender Zahlenpuffer (16 Zahlen je Büschel).</summary>
+    private sealed class Puffer
+    {
+        public float[] Daten = new float[16 * 32];
+        public int Anzahl;
+
+        public int Neu()
+        {
+            if (Anzahl + 16 > Daten.Length) Array.Resize(ref Daten, Daten.Length * 2);
+            var o = Anzahl;
+            Anzahl += 16;
+            return o;
+        }
     }
 
     private static uint Hash(uint a, uint b, uint c)
@@ -177,9 +200,10 @@ public partial class FeldPflanzenBauer : Node3D
     }
 
     /// <summary>Die Büschel eines Stücks je Zelle: Frucht auf den Kämmen (ausgedünnt zum Rand), dazwischen Randgras und Unkraut am Rand.</summary>
-    private static Dictionary<(string, int, int), List<float>> Stueck(Feldparzelle p, Feldmaske maske, Func<float, float, float> hoehe, float fuss)
+    private static Dictionary<(int, int), Puffer> Stueck(Feldparzelle p, Feldmaske maske, Func<float, float, float> hoehe, float fuss)
     {
-        var ergebnis = new Dictionary<(string, int, int), List<float>>();
+        var ergebnis = new Dictionary<(int, int), Puffer>();
+        var (letzteZelle, letzter) = ((int.MinValue, int.MinValue), (Puffer?)null);
         var (b, l) = ((float)p.Breite / 2, (float)p.Laenge / 2);
         var basis = new Basis(Vector3.Up, Mathf.DegToRad((float)p.Drehung));
         var anzahl = Mathf.Max(1, Mathf.RoundToInt(2 * b / 0.8f));
@@ -191,12 +215,21 @@ public partial class FeldPflanzenBauer : Node3D
 
         void Dazu(float x, float zz, float s, float dreh, float helle, float rest)
         {
-            var schluessel = (p.Frucht, Mathf.FloorToInt(x / Zelle), Mathf.FloorToInt(zz / Zelle));
-            if (!ergebnis.TryGetValue(schluessel, out var puffer)) ergebnis[schluessel] = puffer = new();
+            var zelle = (Mathf.FloorToInt(x / Zelle), Mathf.FloorToInt(zz / Zelle));
+            if (letzter is null || zelle != letzteZelle)
+            {
+                if (!ergebnis.TryGetValue(zelle, out letzter)) ergebnis[zelle] = letzter = new Puffer();
+                letzteZelle = zelle;
+            }
             var (c, sn) = (Mathf.Cos(dreh) * s, Mathf.Sin(dreh) * s);
             var y = hoehe(x, zz) + fuss;
             // Transform3D als zwölf Zahlen (Zeilen der Basis mit dem Ort) und die Farbe
-            puffer.AddRange(new[] { c, 0, sn, x, 0, s, 0, y, -sn, 0, c, zz, helle, helle, helle * (p.Variante % 2 == 0 ? 1.02f : 0.97f), (stehend + rest) / 2f });
+            var o = letzter.Neu();
+            var d = letzter.Daten;
+            (d[o], d[o + 1], d[o + 2], d[o + 3]) = (c, 0, sn, x);
+            (d[o + 4], d[o + 5], d[o + 6], d[o + 7]) = (0, s, 0, y);
+            (d[o + 8], d[o + 9], d[o + 10], d[o + 11]) = (-sn, 0, c, zz);
+            (d[o + 12], d[o + 13], d[o + 14], d[o + 15]) = (helle, helle, helle * (p.Variante % 2 == 0 ? 1.02f : 0.97f), (stehend + rest) / 2f);
         }
 
         for (var k = -1; k <= anzahl; k++) // eine Reihe und ein Schritt über das Stück hinaus: Unkraut wächst auch knapp außerhalb des Randes

@@ -371,8 +371,9 @@ public partial class Stadtansicht
     /// Feldrain ins Gras auslaufen), einen leichten Farbstich der Variante und die halbe Breite des Stücks (COLOR). Dazu die Pflanzen (<see cref="FeldPflanzenBauer.Rechnen"/>).
     /// Rechnet nur Zahlen und liest das Gelände (das der Aufrufer vorher einmal im Hauptfaden angefragt haben muss, siehe <see cref="FeldGelaendeVorbereiten"/>): darf in einem Hintergrundfaden laufen.
     /// </summary>
-    private FeldRechnung FeldRechnen(IReadOnlyList<Feldparzelle> parzellen, IReadOnlyList<double[][]> umrisse)
+    private FeldRechnung FeldRechnen(IReadOnlyList<Feldparzelle> parzellen, IReadOnlyList<double[][]> umrisse, ParallelOptions? po = null)
     {
+        po ??= new ParallelOptions();
         var r = new FeldRechnung { Parzellen = parzellen };
         var gesamt = System.Diagnostics.Stopwatch.StartNew();
         void Zeit(string name, System.Diagnostics.Stopwatch uhr) { lock (r.Zeiten) r.Zeiten.Add((name, uhr.ElapsedTicks * 1_000_000 / System.Diagnostics.Stopwatch.Frequency)); uhr.Restart(); }
@@ -384,9 +385,9 @@ public partial class Stadtansicht
         var gruppen = parzellen.GroupBy(p => p.Frucht).ToList();
         var ergebnisse = new (FeldNetzDaten? Netz, List<(Vector2 Mitte, float Drehung, Vector2 Halb)> Sperr)[gruppen.Count];
         // Die Pflanzen brauchen nur die Maske und laufen neben den Netzen der Früchte; die Früchte sind voneinander unabhängig und rechnen alle zugleich (die Reihenfolge der Ergebnisse bleibt die der Früchte).
-        var netzeAufgabe = Task.Run(() => Parallel.For(0, gruppen.Count, g => ergebnisse[g] = FeldFruchtRechnen(gruppen[g].Key, gruppen[g].ToList(), polygone, rahmen, maske, fuss, Zeit)));
+        var netzeAufgabe = Task.Run(() => Parallel.For(0, gruppen.Count, po, g => ergebnisse[g] = FeldFruchtRechnen(gruppen[g].Key, gruppen[g].ToList(), polygone, rahmen, maske, fuss, po, Zeit)));
         var uhrPflanzen = System.Diagnostics.Stopwatch.StartNew();
-        r.Pflanzen = FeldPflanzenBauer.Rechnen(parzellen, maske, (x, z) => BodenHoehe(x, z), fuss - 0.02f, PflanzenNetz()); // Stadtansicht.Feldpflanzen.cs
+        r.Pflanzen = FeldPflanzenBauer.Rechnen(parzellen, maske, (x, z) => BodenHoehe(x, z), fuss - 0.02f, PflanzenNetz(), po); // Stadtansicht.Feldpflanzen.cs
         Zeit("Felder: Pflanzen rechnen (mit MultiMesh)", uhrPflanzen);
         netzeAufgabe.Wait();
         foreach (var (netz, sperr) in ergebnisse)
@@ -405,13 +406,13 @@ public partial class Stadtansicht
     /// Reihenfolge ist die der Teile – dasselbe Netz wie bei der Rechnung nacheinander) und das <see cref="ArrayMesh"/>.
     /// </summary>
     private (FeldNetzDaten? Netz, List<(Vector2 Mitte, float Drehung, Vector2 Halb)> Sperr) FeldFruchtRechnen(string frucht, List<Feldparzelle> stuecke, List<Vector2[]> polygone, List<Rect2> rahmen,
-        Feldmaske maske, float fuss, Action<string, System.Diagnostics.Stopwatch> zeit)
+        Feldmaske maske, float fuss, ParallelOptions po, Action<string, System.Diagnostics.Stopwatch> zeit)
     {
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         // Erst werden die Teile (Vielecke in der Welt) gesammelt, danach rechnen alle Prozessorkerne ihre Ecken (Abstand zum Rand, Höhe, Normale): Das war der Löwenanteil der Ladezeit.
         var infos = new (Vector2 Mitte, float Winkel, Basis Zurueck, Color Farbstich)[stuecke.Count];
         var teileJe = new List<Vector2[]>[stuecke.Count];
-        Parallel.For(0, stuecke.Count, nr =>
+        Parallel.For(0, stuecke.Count, po, nr =>
         {
             {
                 var p = stuecke[nr];
@@ -481,7 +482,7 @@ public partial class Stadtansicht
         // Dreiecke: Vierecke bekommen ihre zwei ohne Aufruf, andere Vielecke zerlegt Godot (Geometry2D, ohne Szene, in jedem Faden erlaubt); eine Zerlegung ohne Dreieck lässt den Teil weg.
         var viereck = new[] { 0, 1, 2, 0, 2, 3 };
         var zerlegt = new int[teile.Count][];
-        Parallel.For(0, teile.Count, t =>
+        Parallel.For(0, teile.Count, po, t =>
         {
             var idx = teile[t].Stueck.Length == 4 ? viereck : Geometry2D.TriangulatePolygon(teile[t].Stueck);
             zerlegt[t] = idx.Length < 3 ? Array.Empty<int>() : idx;
@@ -501,33 +502,45 @@ public partial class Stadtansicht
         var indizes = new int[indexOffset[^1]];
         var grenzeMin = new Vector2[teile.Count];
         var grenzeMax = new Vector2[teile.Count];
-        Parallel.For(0, teile.Count, t =>
+        // Je Stück eines Ackers ein Lauf: Die Teile eines Stücks teilen sich Ecken (Nachbarstreifen, die Naht zur nächsten Zelle längs), und Höhe, Normale und Abstand zum Rand
+        // hängen nur vom Ort ab – jede Ecke wird je Stück einmal gerechnet und danach aus einer Merkliste gelesen (gleiche Zahlen wie bei jeder Ecke einzeln).
+        var teilVon = new int[infos.Length + 1];
+        foreach (var (_, nr) in teile) teilVon[nr + 1]++;
+        for (var nr = 0; nr < infos.Length; nr++) teilVon[nr + 1] += teilVon[nr];
+        Parallel.For(0, infos.Length, po, nr =>
         {
-            var (stueck, nr) = teile[t];
-            var idx = zerlegt[t];
-            if (idx.Length == 0) return;
             var (mitte, winkel, zurueck, farbstich) = infos[nr];
-            var anfang = eckenOffset[t];
-            var (mn, mx) = (new Vector2(float.MaxValue, float.MaxValue), new Vector2(float.MinValue, float.MinValue));
-            for (var i = 0; i < stueck.Length; i++)
+            var merk = new Dictionary<(float, float), (float Hoehe, Vector3 Normale, Vector2 Uv, float Abstand)>();
+            for (var t = teilVon[nr]; t < teilVon[nr + 1]; t++)
             {
-                var q = stueck[i];
-                ecken[anfang + i] = new Vector3(q.X, BodenHoehe(q.X, q.Y) + fuss, q.Y);
-                normalen[anfang + i] = BodenNormale(q.X, q.Y);
-                var e3 = zurueck * new Vector3(q.X - mitte.X, 0, q.Y - mitte.Y);
-                var u = new Vector2(e3.X, e3.Z);
-                uv[anfang + i] = u;
-                uv2[anfang + i] = new Vector2(winkel, Mathf.Clamp(maske.Abstand(q.X, q.Y), 0f, FeldRandMax));
-                farben[anfang + i] = farbstich;
-                (mn, mx) = (new Vector2(Mathf.Min(mn.X, u.X), Mathf.Min(mn.Y, u.Y)), new Vector2(Mathf.Max(mx.X, u.X), Mathf.Max(mx.Y, u.Y)));
-            }
-            (grenzeMin[t], grenzeMax[t]) = (mn, mx);
-            var k0 = indexOffset[t];
-            for (var k = 0; k + 2 < idx.Length; k += 3)
-            {
-                int i0 = anfang + idx[k], i1 = anfang + idx[k + 1], i2 = anfang + idx[k + 2];
-                var gegen = (new Vector2(ecken[i1].X, ecken[i1].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)).Cross(new Vector2(ecken[i2].X, ecken[i2].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)) >= 0;
-                (indizes[k0 + k], indizes[k0 + k + 1], indizes[k0 + k + 2]) = gegen ? (i0, i1, i2) : (i0, i2, i1);
+                var stueck = teile[t].Stueck;
+                var idx = zerlegt[t];
+                if (idx.Length == 0) continue;
+                var anfang = eckenOffset[t];
+                var (mn, mx) = (new Vector2(float.MaxValue, float.MaxValue), new Vector2(float.MinValue, float.MinValue));
+                for (var i = 0; i < stueck.Length; i++)
+                {
+                    var q = stueck[i];
+                    if (!merk.TryGetValue((q.X, q.Y), out var w))
+                    {
+                        var e3 = zurueck * new Vector3(q.X - mitte.X, 0, q.Y - mitte.Y);
+                        merk[(q.X, q.Y)] = w = (BodenHoehe(q.X, q.Y) + fuss, BodenNormale(q.X, q.Y), new Vector2(e3.X, e3.Z), Mathf.Clamp(maske.Abstand(q.X, q.Y), 0f, FeldRandMax));
+                    }
+                    ecken[anfang + i] = new Vector3(q.X, w.Hoehe, q.Y);
+                    normalen[anfang + i] = w.Normale;
+                    uv[anfang + i] = w.Uv;
+                    uv2[anfang + i] = new Vector2(winkel, w.Abstand);
+                    farben[anfang + i] = farbstich;
+                    (mn, mx) = (new Vector2(Mathf.Min(mn.X, w.Uv.X), Mathf.Min(mn.Y, w.Uv.Y)), new Vector2(Mathf.Max(mx.X, w.Uv.X), Mathf.Max(mx.Y, w.Uv.Y)));
+                }
+                (grenzeMin[t], grenzeMax[t]) = (mn, mx);
+                var k0 = indexOffset[t];
+                for (var k = 0; k + 2 < idx.Length; k += 3)
+                {
+                    int i0 = anfang + idx[k], i1 = anfang + idx[k + 1], i2 = anfang + idx[k + 2];
+                    var gegen = (new Vector2(ecken[i1].X, ecken[i1].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)).Cross(new Vector2(ecken[i2].X, ecken[i2].Z) - new Vector2(ecken[i0].X, ecken[i0].Z)) >= 0;
+                    (indizes[k0 + k], indizes[k0 + k + 1], indizes[k0 + k + 2]) = gegen ? (i0, i1, i2) : (i0, i2, i1);
+                }
             }
         });
         var grenzen = new (Vector2 Min, Vector2 Max)[infos.Length];
@@ -596,6 +609,9 @@ public partial class Stadtansicht
     /// <summary>
     /// Die Zelle (vier Ecken in der Welt) gerade an den Rand der Feldflächen geschnitten: die Teile in der Fläche, jedes ein Vieleck. Eine Zelle, die
     /// ganz in einer Fläche liegt (alle Ecken drin, keine Ecke der Fläche in der Zelle), bleibt unverändert.
+    /// Die meisten Zellen liegen klar innen oder klar außen: Das entscheidet <see cref="FeldPunktLage"/> in C#, ohne die teuren Aufrufe von Geometry2D (Marshalling der
+    /// Vielecke); nur Zellen am Rand (eine Ecke näher als <see cref="FeldGrenzabstand"/> an einer Kante, oder eine Kante läuft durch die Zelle) gehen wie früher an Godot.
+    /// Das Ergebnis ist dasselbe: wo C# „innen“ oder „außen“ sagt, ist es kein Grenzfall.
     /// </summary>
     private static IEnumerable<(Vector2[] Teil, bool Ganz)> FeldZelleZuschneiden(Vector2[] zelle, List<Vector2[]> polygone, List<Rect2> rahmen)
     {
@@ -605,10 +621,65 @@ public partial class Stadtansicht
         {
             if (!rahmen[i].Intersects(box, true)) continue;
             var pg = polygone[i];
-            if (zelle.All(q => Geometry2D.IsPointInPolygon(q, pg)) && !pg.Any(q => box.HasPoint(q))) { yield return (zelle, true); yield break; }
+            var (innen, sicher) = (0, true);
+            foreach (var q in zelle)
+            {
+                var (drin, fern) = FeldPunktLage(q, pg);
+                sicher &= fern;
+                if (drin) innen++;
+            }
+            if (sicher && innen == 0 && !FeldKanteInBox(pg, box.Grow(FeldGrenzabstand))) continue; // klar außerhalb: der Schnitt wäre leer
+            var ganz = sicher ? innen == 4 && !pg.Any(q => box.HasPoint(q)) : zelle.All(q => Geometry2D.IsPointInPolygon(q, pg)) && !pg.Any(q => box.HasPoint(q));
+            if (ganz) { yield return (zelle, true); yield break; }
             foreach (var teil in Geometry2D.IntersectPolygons(zelle, pg))
                 if (teil.Length >= 3 && !Geometry2D.IsPolygonClockwise(teil)) yield return (teil, false); // Löcher (im Uhrzeigersinn) zeichnet niemand
         }
+    }
+
+    /// <summary>So nah (Meter) an einer Kante des Umrisses gilt ein Punkt als Grenzfall und geht an Godot.</summary>
+    private const float FeldGrenzabstand = 0.001f;
+
+    /// <summary>Liegt der Punkt im Vieleck (gerade-ungerade-Regel wie <c>Geometry2D.IsPointInPolygon</c>), und ist er mehr als <see cref="FeldGrenzabstand"/> von jeder Kante weg?</summary>
+    private static (bool Innen, bool Fern) FeldPunktLage(Vector2 q, Vector2[] pg)
+    {
+        var (innen, fern) = (false, true);
+        for (int i = 0, j = pg.Length - 1; i < pg.Length; j = i++)
+        {
+            var (a, c) = (pg[j], pg[i]);
+            if ((c.Y > q.Y) != (a.Y > q.Y) && q.X < (a.X - c.X) * (q.Y - c.Y) / (a.Y - c.Y) + c.X) innen = !innen;
+            var kante = c - a;
+            var laenge2 = kante.LengthSquared();
+            var t = laenge2 > 0 ? Mathf.Clamp((q - a).Dot(kante) / laenge2, 0f, 1f) : 0f;
+            if ((q - (a + kante * t)).LengthSquared() <= FeldGrenzabstand * FeldGrenzabstand) fern = false;
+        }
+        return (innen, fern);
+    }
+
+    /// <summary>Berührt eine Kante des Umrisses die Box, oder liegt eine Ecke des Umrisses darin?</summary>
+    private static bool FeldKanteInBox(Vector2[] pg, Rect2 box)
+    {
+        var (lo, hi) = (box.Position, box.End);
+        for (int i = 0, j = pg.Length - 1; i < pg.Length; j = i++)
+        {
+            var (a, c) = (pg[j], pg[i]);
+            if (box.HasPoint(c)) return true;
+            // Strecke gegen Box (Liang-Barsky)
+            var d = c - a;
+            float t0 = 0, t1 = 1;
+            var ausserhalb = false;
+            for (var achse = 0; achse < 2 && !ausserhalb; achse++)
+            {
+                var (p0, dd, l, h) = achse == 0 ? (a.X, d.X, lo.X, hi.X) : (a.Y, d.Y, lo.Y, hi.Y);
+                if (Mathf.Abs(dd) < 1e-12f) { if (p0 < l || p0 > h) ausserhalb = true; continue; }
+                var (ta, tb) = ((l - p0) / dd, (h - p0) / dd);
+                if (ta > tb) (ta, tb) = (tb, ta);
+                t0 = Mathf.Max(t0, ta);
+                t1 = Mathf.Min(t1, tb);
+                if (t0 > t1) ausserhalb = true;
+            }
+            if (!ausserhalb) return true;
+        }
+        return false;
     }
 
     /// <summary>Weiter als so viel (Meter) vom Rand des Ackers (<see cref="Feldmaske"/>) weg zählt der Abstand nicht mehr (der Feldrain im Shader ist schmaler).</summary>
@@ -636,17 +707,20 @@ public partial class Stadtansicht
         uhr = Ladezeit.Uhr();
         PflanzenNetz(); // das gemeinsame Büschelnetz im Hauptfaden anlegen
         Ladezeit.Dazu("Felder: vorbereiten: Pflanzennetz", uhr);
+        // Der Hauptfaden lädt währenddessen weiter und braucht seine Kerne: die Hintergrundrechnung nimmt höchstens die Hälfte (sie hat Zeit bis zum Schritt „Felder“).
+        var grad = Math.Max(2, System.Environment.ProcessorCount / 2);
+        var po = new ParallelOptions { MaxDegreeOfParallelism = grad, TaskScheduler = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, grad).ConcurrentScheduler }; // ein Planer für alle Schleifen: auch verschachtelte teilen sich die Fäden
         _felderAufgabe = Task.Run(() =>
         {
             var uhrKern = System.Diagnostics.Stopwatch.StartNew();
             var frei = Naturfreiraum.Aus(karte, b => masse.GetValueOrDefault(b));
             var felder = karte.Natur.Felder;
             var je = new List<Feldparzelle>[felder.Count]; // jede Feldfläche für sich (der Freiraum wird nur gelesen), danach in der Reihenfolge der Datei
-            Parallel.For(0, felder.Count, i => je[i] = FeldVerteilung.Flaeche(felder[i], frei, true));
+            Parallel.For(0, felder.Count, po, i => je[i] = FeldVerteilung.Flaeche(felder[i], frei, true));
             var parzellen = je.SelectMany(l => l).ToList();
             var kern = uhrKern.ElapsedTicks * 1_000_000 / System.Diagnostics.Stopwatch.Frequency;
             if (parzellen.Count == 0) return (parzellen, (FeldRechnung?)null);
-            var rechnung = FeldRechnen(parzellen, karte.Natur.Felder.Select(f => f.Flaeche.ToArray()).ToList());
+            var rechnung = FeldRechnen(parzellen, karte.Natur.Felder.Select(f => f.Flaeche.ToArray()).ToList(), po);
             rechnung.Zeiten.Insert(0, ("Felder: Kern (Freiraum und Verteilung)", kern));
             return (parzellen, rechnung);
         });
