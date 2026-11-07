@@ -39,6 +39,10 @@ public partial class Stadtansicht
         /// <summary>Blickrichtung (Drehung um Y), wird sanft nachgeführt.</summary>
         public float Blick { get; set; }
         public bool BlickGesetzt { get; set; }
+        /// <summary>Was der Kern dem Wächter zuletzt als Dienst gab (für die Wahl des Festnehmers, Stadtansicht.Taschendiebe.cs).</summary>
+        public Wachdienst Dienst { get; set; } = Wachdienst.Frei;
+        /// <summary>Solange der Wächter einen Taschendieb festnimmt: die Szene, die ihn führt; die Torwache lässt ihn dann in Ruhe.</summary>
+        public Festnahmeszene? Abgeordnet { get; set; }
     }
 
     /// <summary>Die Lage eines Tores für die Wache: Standplätze, Blickrichtungen und der Weg in die Stadt (je Tor einmal berechnet).</summary>
@@ -182,24 +186,31 @@ public partial class Stadtansicht
         {
             var nummer = wache.Person.Nummer;
             _torposten.TryGetValue(nummer, out var posten);
+            if (posten is { Abgeordnet: not null }) continue; // er fasst gerade einen Dieb: die Festnahme führt ihn (Stadtansicht.Taschendiebe.cs)
             var verstecken = true;
             if (PassantGezeigt(nummer) && TorlageVon(wache.Tor) is { } lage && ImBild(lage.Anker, TorBildRand))
             {
                 var (dienst, anteil) = ew.Torwache.Dienst(wache, minute, tag);
+                if (posten is not null) posten.Dienst = dienst;
                 if (dienst != Wachdienst.Frei)
                 {
                     posten ??= TorpostenBauen(wache);
+                    posten.Dienst = dienst;
                     verstecken = !TorpostenStellen(posten, lage, dienst, (float)anteil, minute, laenge, sekunden, tempoMal, an);
                 }
             }
-            if (verstecken && posten is { Sichtbar: true }) TorpostenVerstecken(posten);
+            if (verstecken && posten is { Sichtbar: true })
+            {
+                posten.Dienst = Wachdienst.Frei;
+                TorpostenVerstecken(posten);
+            }
         }
     }
 
     private void TorwacheVerbergen()
     {
         foreach (var posten in _torposten.Values)
-            if (posten.Sichtbar) TorpostenVerstecken(posten);
+            if (posten.Sichtbar && posten.Abgeordnet is null) TorpostenVerstecken(posten);
     }
 
     private void TorpostenVerstecken(Torposten posten)
@@ -369,6 +380,14 @@ public partial class Stadtansicht
             Wachdienst.Abmarsch => "Geht nach der Wache heim",
             _ => "Hat dienstfrei",
         };
+        if (_torposten.TryGetValue(e.Nummer, out var posten) && posten.Abgeordnet is { } fest) // fasst gerade einen Taschendieb (Stadtansicht.Taschendiebe.cs)
+            tun = fest.Phase switch
+            {
+                Taschendiebgang.Fest.Lauf => "Eilt einem Taschendieb nach",
+                Taschendiebgang.Fest.Zugriff => "Packt einen Taschendieb am Kragen",
+                Taschendiebgang.Fest.Abfuehren => "Führt einen gefassten Taschendieb ab",
+                _ => "Kehrt von der Festnahme auf seinen Posten am " + tor + " zurück",
+            };
         return string.Join("\n", e.Name, "", $"{ew.RollenName(e)} · {volk}, {e.Alter(jahr)} Jahre · Stadtwache am {tor}", tun + ".");
     }
 }

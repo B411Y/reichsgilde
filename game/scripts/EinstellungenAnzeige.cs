@@ -136,7 +136,7 @@ public sealed class EinstellungenAnzeige
     {
         (Morgendunst.Aus, "Aus", "Klare Luft zu jeder Stunde."),
         (Morgendunst.Niedrig, "Niedrig", "Ein Schleier am Boden an ruhigen Morgen, an Nebelmorgen dazu Nebelfetzen über Wasser und Wiesen; nach Sonnenaufgang verflogen. Kostet wenig."),
-        (Morgendunst.Hoch, "Hoch", "Echter Nebel in der Luft: Die tief stehende Sonne zieht Lichtbahnen hindurch, Häuser und Mauern werfen Schatten hinein; in den Räumen tanzt Staub im Licht der Fenster. Kostet deutlich Grafikleistung."),
+        (Morgendunst.Hoch, "Hoch", "Echter Nebel in der Luft: Die tief stehende Sonne zieht Lichtbahnen hindurch, Häuser und Mauern werfen Schatten hinein; in den Räumen bleibt die Luft klar. Kostet deutlich Grafikleistung."),
     };
 
     private static readonly (Wettereffekte Stufe, string Name, string Erklaerung)[] Wetterstufen =

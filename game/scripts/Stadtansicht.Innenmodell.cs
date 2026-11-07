@@ -266,7 +266,7 @@ public partial class Stadtansicht
         public string EinrichtungStand { get; set; } = "";
         public string ArbeiterStand { get; set; } = "";
         public bool Glueht { get; set; }
-        /// <summary>Echte Flammen im Raum (Kerzen, Esse; Stadtansicht.Feuer.cs): sie brennen, wenn die Glut glüht.</summary>
+        /// <summary>Echte Flammen im Raum (Kamin, Kerzen, Esse, Feuerlöcher; Stadtansicht.Feuer.cs): sie brennen, wenn die Glut glüht.</summary>
         public List<Feuer> Flammen { get; } = new();
         public Color Hausfarbe { get; set; }
         public float Hell { get; set; } = -1;
@@ -299,6 +299,7 @@ public partial class Stadtansicht
         a.Modellraum = md;
 
         var dauerfeuer = wurzel.FindChild("AnimationPlayer", true, false) is AnimationPlayer { } feuerspieler && feuerspieler.HasAnimation("Feuer"); // ein Kamin, der immer brennt (Empfang der Geldleihe)
+        var altFlammen = KegelflammenErsetzen(wurzel); // die alten Kegel der Kamine und Kerzen fallen weg, echtes Feuer kommt in InnenFlammenAnlegen (Stadtansicht.Feuer.cs)
         InnenModellStoffe(md, wurzel, dauerfeuer);
         foreach (var knoten in wurzel.FindChildren("*", nameof(Node3D), true, false).OfType<Node3D>())
             InnenModellKnoten(a, md, knoten);
@@ -358,7 +359,7 @@ public partial class Stadtansicht
         md.Schreiberplaetze.Sort((x, y) => x.Gruppe != y.Gruppe ? string.CompareOrdinal(x.Gruppe, y.Gruppe) : x.Reihe.CompareTo(y.Reihe));
         md.Kundenplaetze.Sort((x, y) => x.Art != y.Art ? x.Art.CompareTo(y.Art) : x.Reihe.CompareTo(y.Reihe));
         DampfAnlegen(wurzel, md);
-        InnenFlammenAnlegen(md, wurzel, datei, dauerfeuer); // Kerzen und Esse mit echter Flamme (Stadtansicht.Feuer.cs)
+        InnenFlammenAnlegen(md, wurzel, datei, dauerfeuer, altFlammen); // Kamin, Kerzen, Esse und Feuerlöcher mit echter Flamme (Stadtansicht.Feuer.cs)
         GiFensterGewichten(md.Lichter.Where(l => l.Art == LichtArt.Fenster).Select(l => l.Licht)); // viele Fenster in einem Raum: jedes trägt weniger zu SDFGI bei (Stadtansicht.GlobaleBeleuchtung.cs)
         md.Auslageplaetze.Sort((x, y) => NummerImNamen(x).CompareTo(NummerImNamen(y)));
         RaumEbeneUebernehmen(wurzel); // alles, was bis hier im Modell steht, auch Lichter, Werkstücke, Dampf und Flammen

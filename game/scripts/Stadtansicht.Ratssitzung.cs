@@ -144,8 +144,10 @@ public partial class Stadtansicht
         wurzel.Position = a.Mitte + ort;
         a.Innen.AddChild(wurzel);
         var md = new ModellRaumDaten { Wurzel = wurzel };
+        var altFlammen = KegelflammenErsetzen(wurzel);
         InnenModellStoffe(md, wurzel, false);
         foreach (var glut in md.Glut) glut.EmissionEnergyMultiplier = md.GlutAn; // Kerzen und Leuchter brennen während der Sitzung
+        InnenFlammenAnlegen(md, wurzel, RatssaalDatei, false, altFlammen, immer: true); // die Kerzen mit echter Flamme (Stadtansicht.Feuer.cs); sichtbar ist der Raum nur während der Sitzung
         var m = new Ratssaalmodell { Wurzel = wurzel };
         Stuhl? buergermeister = null;
         var sitze = new List<(int Platz, Stuhl Stuhl)>();
