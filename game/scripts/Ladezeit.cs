@@ -41,6 +41,16 @@ public static class Ladezeit
         return ergebnis;
     }
 
+    /// <summary>Wie <see cref="Zaehlen{T}"/> für Arbeit ohne Ergebnis: <c>Ladezeit.Teil("Gelände", () =&gt; GelaendeBauen());</c> – die Summe steht als „davon …“ beim Abschnitt.</summary>
+    public static void Teil(string name, Action arbeit)
+    {
+        if (!An) { arbeit(); return; }
+        var anfang = Time.GetTicksUsec();
+        arbeit();
+        var (usec, anzahl) = _summen.GetValueOrDefault(name);
+        _summen[name] = (usec + Time.GetTicksUsec() - anfang, anzahl + 1);
+    }
+
     /// <summary>Für Arbeit in jedem Bild (ohne Zuweisung eines Lambdas): <c>var t = Ladezeit.Uhr(); …; Ladezeit.Dazu("Gras", t);</c></summary>
     public static ulong Uhr() => An ? Time.GetTicksUsec() : 0;
 
@@ -50,6 +60,24 @@ public static class Ladezeit
         if (!An) return;
         var (usec, anzahl) = _summen.GetValueOrDefault(name);
         _summen[name] = (usec + Time.GetTicksUsec() - anfang, anzahl + 1);
+    }
+
+    private static ulong _phase;
+
+    /// <summary>Beginnt eine Folge von Abschnitten in jedem Bild: <c>Ladezeit.PhaseStart(); A(); Ladezeit.Phase("A"); B(); Ladezeit.Phase("B");</c> – jede Phase zählt die Zeit seit der vorigen zur Summe ihres Namens.</summary>
+    public static void PhaseStart()
+    {
+        if (An) _phase = Time.GetTicksUsec();
+    }
+
+    /// <summary>Zählt die Zeit seit dem letzten <see cref="PhaseStart"/> bzw. <see cref="Phase"/> zur Summe <paramref name="name"/>.</summary>
+    public static void Phase(string name)
+    {
+        if (!An) return;
+        var jetzt = Time.GetTicksUsec();
+        var (usec, anzahl) = _summen.GetValueOrDefault(name);
+        _summen[name] = (usec + jetzt - _phase, anzahl + 1);
+        _phase = jetzt;
     }
 
     /// <summary>Schreibt die Summen seit der letzten Marke (sie gehören zu deren Abschnitt) und setzt sie zurück.</summary>

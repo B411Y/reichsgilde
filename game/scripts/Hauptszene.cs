@@ -296,8 +296,11 @@ public partial class Hauptszene : Node
         await lade.Durchlaufen(_stadt.Aufbauen(), 0.16f, 0.71f);
         lade.Fortschritt(0.71f, "Die Zunftglocke wird geläutet …");
         await Ladebildschirm.Bild(GetTree());
+        Ladezeit.Marke("Stadt aufgebaut bis Aufbau-Ende (Bild, Fortschritt)");
         PartieStarten(optionen);
+        Ladezeit.Marke("PartieStarten (Startoptionen, Spielmenü)");
         await ErsteBilderAbwarten(lade, 0.75f);
+        Ladezeit.Marke("ErsteBilderAbwarten (Shader, Gras, Wetterprobe)");
         SetProcess(true);
         SetProcessUnhandledInput(true);
         _stadt.Ruhen(false);
@@ -327,9 +330,11 @@ public partial class Hauptszene : Node
         {
             lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 8f), bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
             if (bild >= 1 && bild - 1 < proben.Length) _stadt.WetterProbe(proben[bild - 1]);
-            _stadt.Aktualisieren(GetProcessDeltaTime());
+            if (bild == 2) _stadt.VoegelUndTiereVorbauen(); // sonst baut sie das erste Bild nach dem Ladebildschirm (Stadtansicht.Voegel.cs)
+            Ladezeit.Teil("Aktualisieren hinter dem Ladebild", () => _stadt.Aktualisieren(GetProcessDeltaTime()));
             await Ladebildschirm.Bild(GetTree());
             var jetzt = Time.GetTicksMsec();
+            if (Ladezeit.An) GD.Print($"Ladezeit: Vorwärmbild {bild}: {jetzt - vorher} ms");
             ruhig = bild > proben.Length && jetzt - vorher < 50 ? ruhig + 1 : 0;
             vorher = jetzt;
             if (ruhig >= 3 || jetzt - anfang > 5000) break;

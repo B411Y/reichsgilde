@@ -233,6 +233,7 @@ public partial class Stadtansicht
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         // auf dem Hauptfaden sammeln, was die Rechnung liest
         var raster = BodenRaster;
+        var uhrGras = Ladezeit.Uhr();
         var frei = GrasFreiraum();
         var wasser = GrasWasser(GewaesserForm);
         // Bauzonen wie Seen als Vielecke: In der Werkstatt (ihre farbige Fläche bleibt frei von Halmen) und im Hauptmenü; im Spiel wächst dort Gras,
@@ -244,12 +245,17 @@ public partial class Stadtansicht
         var masken = _grasMasken.Where(m => IsInstanceValid(m.Key) && !m.Key.IsQueuedForDeletion()).Select(m => m.Value).ToArray();
         // die Höhen der Rasterpunkte je Kachel am Stück (der Kern rechnet das Bett der Wege dabei nach, das geht nicht parallel)
         var hoehen = liste.Select(k => BodenBewegt ? _gelaende!.Ausschnitt(k.I * KachelZellen - 1, k.J * KachelZellen - 1, GrasRaster, GrasRaster) : null).ToArray();
+        Ladezeit.Dazu("Gras: Vorbereiten und Höhen", uhrGras);
+        uhrGras = Ladezeit.Uhr();
         var ergebnis = new (float[] Daten, byte[] Farbe, float Unten, float Oben, int[] Felder)[liste.Count];
         var stadt = liste.Select(k => _grasStadt.GetValueOrDefault(k)).ToArray();
         var stark = _grasMakroStark = Fenster.AktuelleBodenqualitaet == Bodenqualitaet.Hoch;
         var felsKarte = _felsbodenAn == true; // nur Karten mit Felsen: die Wiese um und zwischen den Flecken wird steinig (Stadtansicht.Felsboden.cs)
         Parallel.For(0, liste.Count, n => ergebnis[n] = GrasKachelRechnen(liste[n].I, liste[n].J, hoehen[n], stadt[n], raster, frei, wasser, flaechen, masken, stark, felsKarte));
+        Ladezeit.Dazu("Gras: Kacheln rechnen (Parallel)", uhrGras);
+        uhrGras = Ladezeit.Uhr();
         for (var n = 0; n < liste.Count; n++) GrasKachelSetzen(liste[n], ergebnis[n]);
+        Ladezeit.Dazu("Gras: Kacheln setzen", uhrGras);
         _grasBlickFuer = null;
         if (alles) GD.Print($"Grasteppich: {_grasKacheln.Count} Kacheln, {_grasKacheln.Values.Sum(k => k.Felder.Length)} Felder mit Gras, {uhr.ElapsedMilliseconds} ms");
     }

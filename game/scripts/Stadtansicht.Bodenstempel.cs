@@ -109,8 +109,9 @@ public partial class Stadtansicht
         _stempelBoden = null;
         if (_entwurf is not null || BodenstempelAus) return;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
-        var kopie = karte.Boden.Kopie();
+        var kopie = Ladezeit.Zaehlen("Stempel: Kopie", () => karte.Boden.Kopie());
         var (modelle, restflaechen) = (0, 0);
+        var uhrStempel = Ladezeit.Uhr();
         var tabelle = StempelModelle();
         foreach (var g in karte.Gebaeude)
         {
@@ -126,6 +127,8 @@ public partial class Stadtansicht
             modelle++;
         }
         // Auf hängigem Gelände steht ein Sockel unter dem Platz (SockelBauen, Erde oben): Erde ins Gelände darum, damit der Sockel dort, wo er im Hang steckt, ohne Kante in den Boden übergeht
+        Ladezeit.Dazu("Stempel: Modelle", uhrStempel);
+        uhrStempel = Ladezeit.Uhr();
         if (BodenBewegt)
             foreach (var g in karte.Gebaeude.Where(g => g.Art is Bausteinart.Umlandbetrieb or Bausteinart.Umlandstelle && g.Baustein?.Modell?.StartsWith("wasser/") != true))
             {
@@ -133,6 +136,8 @@ public partial class Stadtansicht
                 var ecken = FlaechenEcken(Punkt3(g.Punkt), DrehungVon(g), GroesseVon(g)).Select(e => (e.X, e.Z)).ToList();
                 kopie.Stempeln(new IReadOnlyList<(double X, double Z)>[] { ecken }, new Bodenstempel(Bodentextur.Erde, 0.9, 1.5, 0.4, 0, 5));
             }
+        Ladezeit.Dazu("Stempel: Sockel", uhrStempel);
+        uhrStempel = Ladezeit.Uhr();
         if (!FuellungAus && FuellRezepte() is { Untergruende.Count: > 0 } rezepte)
             foreach (var r in karte.Restflaechen)
             {
@@ -149,6 +154,7 @@ public partial class Stadtansicht
                     kopie.Stempeln(felder, a.Stempel with { Saat = saat });
                 restflaechen++;
             }
+        Ladezeit.Dazu("Stempel: Restflächen", uhrStempel);
         if (modelle + restflaechen == 0) return;
         _stempelBoden = kopie;
         Ladezeit.Marke("Szene: Bodenstempel");
