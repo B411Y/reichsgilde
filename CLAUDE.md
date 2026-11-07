@@ -31,7 +31,7 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 - **Nichts aus dem Original-Spiel** (Grafiken, Sounds, Musik, Texte, Modelle); es ist nur Vorbild für Mechaniken. **Mechanik-Katalog** und **Design-Dossier** kommen **nie** ins Repository.
 - Spieltag 04:00–23:00 Uhr (1140 Ticks = 1 Spieljahr, im Code nur über die `Spielzeit`-Konstanten), Arbeitszeit 8–20 Uhr (Wirtshaus 8–22 Uhr), Gauner ab 20 Uhr.
 - Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer deutsch, kurz, ohne Emojis.
-- Tests bleiben grün, nie einen Test abschalten. **Neue Tests:** neue Datei, statische Klasse mit `public static IEnumerable<(string, Action)> Alle()` (wird automatisch gefunden); `Program.cs` nicht anfassen.
+- Tests bleiben grün, nie einen Test abschalten. **Neue Tests:** neue Datei, statische Klasse mit `public static IEnumerable<(string, Action)> Alle()` (wird automatisch gefunden); für neue Tests `Program.cs` nicht anfassen (dort steht nur noch der Test-Filter, `Testauswahl.cs`). Läuft ein Test allein etwa 3 s oder länger, kommt er in `tests/Reichsgilde.Core.Tests/LangsameTests.cs` (wird mit `--ohne-langsam` übersprungen, nie abgeschaltet).
 - **Mehrspieler-Tauglichkeit** (Nutzer, 29.10.2026): Spieleraktionen nur über Befehle; der Kern bleibt deterministisch – `DetMathe` statt `Math.Pow/Exp/Log/Sin/Cos/Atan2` (`Math.Pow(x, 2)` → `x * x`), Zufall nur aus der gemeinsamen `Zufallsquelle`, keine Uhrzeit, keine Threads, keine Reihenfolge aus Dictionary/HashSet, Zahlen als Text nur über `Zahlenformat`; der Gleichheitstest (`GleichheitTests.cs`, CI-Job „Gleichheit Linux/Windows“) muss grün bleiben.
 - **Datenversion** (`"version"` in `wirtschaft.json`) erhöht nur kern.
 - **Messungen** (`messen`) nur kern und spiel-ki, jede nennt den `main`-Commit (Einzelheiten in ihren Agentendateien).
@@ -49,7 +49,11 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 ```bash
 dotnet build Reichsgilde.sln
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests     # alle Tests
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --filter=Taschendieb,Nachtgang   # nur passende Tests
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --ohne-langsam                   # alle außer den langsamen
 ```
+
+**Gezielt testen:** Während der Arbeit nur die betroffenen Tests (`--filter=<Muster>` gegen Klassen- und Testname, Komma für mehrere, `*` als Platzhalter; `--klasse=<Name>`; `--ohne-langsam`; `--liste` zeigt die Auswahl, `--zeiten` die langsamsten; `-- --hilfe` alle Schalter). Vor dem PR bzw. dem Abschlussbericht **einmal alle Tests** ohne Schalter – so prüft auch die CI.
 
 Ohne nuget.org genügt eine NuGet-Quelle auf `GodotSharp/Tools/nupkgs` der Godot-Version.
 Klicktest: `tools/klicktest/lauf.sh` (Bedienung im Kopf der Datei; Godot unter `~/werkzeuge/godot/`, Xvfb unter `~/werkzeuge/xvfb/`), Startoptionen in `docs/STARTOPTIONEN.md` (neue dort eintragen). `opengl3` zeigt keine Texturen; für Texturen und Schatten Vulkan. Bilder selbst ansehen.
