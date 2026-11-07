@@ -139,7 +139,7 @@ public partial class Stadtansicht
         Ladezeit.Dazu("Stempel: Sockel", uhrStempel);
         uhrStempel = Ladezeit.Uhr();
         if (!FuellungAus && FuellRezepte() is { Untergruende.Count: > 0 } rezepte)
-            foreach (var r in karte.Restflaechen)
+            foreach (var r in karte.RestflaechenOderLeer())
             {
                 if (FuellThemaWaehlen(r, karte, rezepte) is not { } thema || !rezepte.Untergruende.TryGetValue(thema, out var varianten) || varianten.Count == 0) continue;
                 var saat = (int)Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 4);
