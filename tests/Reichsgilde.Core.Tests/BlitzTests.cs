@@ -43,23 +43,36 @@ static class BlitzTests
         throw new Exception("Kein Gewitter in 40 Jahren");
     }
 
+    /// <summary>Der erste Startwert ab 1400, dessen erstes Gewitter eine Werkstatt trifft (auf main 10f77b45, 07.11.2026).</summary>
+    const int BekannterTreffer = 1433;
+
     /// <summary>
     /// Eine Partie (Chance 1), deren erstes Gewitter eine Werkstatt mit Besitzer trifft – gesucht ab Startwert 1400, damit der Test nicht von der Zielwahl
     /// eines einzelnen Startwerts abhängt. Die Uhr steht kurz vor dem Gewitter.
     /// </summary>
     static (Simulation Sim, Konto Spieler, long Gewitter) PartieMitWerkstattTreffer(Wirtschaftsdaten daten)
     {
-        for (var startwert = 1400; startwert < 1440; startwert++)
+        var (sim, spieler) = Partie(daten, StartwertMitWerkstattTreffer.Value);
+        return (sim, spieler, ErstesGewitter(sim.Wirtschaft!));
+    }
+
+    /// <summary>
+    /// Der Startwert dazu (Chance 1): einmal gesucht und für beide Tests gemerkt – die Suche spielt je Startwert bis zum ersten Gewitter. Zuerst der
+    /// zuletzt gefundene (<see cref="BekannterTreffer"/>), dann wie bisher ab 1400: Trifft er nicht mehr, sucht der Test weiter (Testzeit, 07.11.2026:
+    /// die Suche ab 1400 spielte 34 Partien). Gesucht wird mit genau den Daten der Tests (<see cref="MitChance"/> 1).
+    /// </summary>
+    static readonly Lazy<int> StartwertMitWerkstattTreffer = new(() =>
+    {
+        var daten = MitChance(1);
+        foreach (var startwert in Enumerable.Range(1400, 40).Prepend(BekannterTreffer))
         {
-            var (sim, spieler) = Partie(daten, startwert);
-            var gewitter = ErstesGewitter(sim.Wirtschaft!);
             var (probe, _) = Partie(daten, startwert);
-            BisMinute(probe, gewitter + 1);
+            BisMinute(probe, ErstesGewitter(probe.Wirtschaft!) + 1);
             if (probe.Wirtschaft!.Blitz.Einschlaege.LastOrDefault() is { Ziel.Betrieb: { } b } && b.Konto.IstAktiv)
-                return (sim, spieler, gewitter);
+                return startwert;
         }
         throw new Exception("Kein Startwert 1400–1439, dessen erstes Gewitter eine Werkstatt trifft");
-    }
+    });
 
     static void BisMinute(Simulation sim, long minute)
     {

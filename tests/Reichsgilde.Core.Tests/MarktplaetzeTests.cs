@@ -47,7 +47,7 @@ static class MarktplaetzeTests
     /// </summary>
     static (Simulation Sim, Konto Spieler, Stadtkarte Karte) Probestadt(params (string Name, double X)[] weitere)
     {
-        var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+        var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
         foreach (var (name, x) in weitere)
         {
             var g = e.Setzen("markt", x, 0);
@@ -62,7 +62,7 @@ static class MarktplaetzeTests
     /// <summary>Die Probestadt ohne ihren Marktplatz (eine Karte ohne Markt: der Ursprung gilt).</summary>
     static Simulation ProbestadtOhneMarkt()
     {
-        var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+        var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
         e.Loeschen(e.Gebaeude.Single(g => g.Katalog == "markt").Kennung);
         return Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos }, Daten.Value, new NeuePartie(Rivalen: 2),
             karte: e.ZuStadtkarte()).Simulation;
@@ -270,7 +270,7 @@ static class MarktplaetzeTests
         {
             foreach (var kennung in new[] { "greybox", "probestadt", "messstadt", "koeln" })
                 Pruefe.Wahr(!Kartenentwurf.AusJson(File.ReadAllText(Datenpfad.Karte(kennung)), Katalog.Value).Befunde.Any(b => b.Regel == "markt"), kennung);
-            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             var abseits = e.Setzen("markt", -130, -30); // im Feld zwischen den Feldwegen, kein Weg berührt ihn
             var befunde = e.Befunde.Where(b => b.Regel == "markt").ToList();
             Pruefe.Gleich(1, befunde.Count);

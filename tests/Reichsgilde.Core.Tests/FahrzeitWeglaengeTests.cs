@@ -59,7 +59,7 @@ static class FahrzeitWeglaengeTests
     /// <summary>Probepartie in der Probestadt (Spieler Schmied, Werkstatt bei (−30 | −10) an der Hauptstraße, Markt bei (0 | 0)).</summary>
     static (Simulation Sim, Konto Spieler, Betrieb Werkstatt) Partie(Wirtschaftsdaten? daten = null, Partieeinstellungen? einstellungen = null)
     {
-        var (sim, spieler) = new Probestadt().Bauen(Katalog.Value, Daten.Value).Ausprobieren(daten ?? Daten.Value, "Schmied", einstellungen);
+        var (sim, spieler) = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value).Ausprobieren(daten ?? Daten.Value, "Schmied", einstellungen);
         return (sim, spieler, sim.Wirtschaft!.Betriebe.Single(b => b.Konto == spieler));
     }
 
@@ -163,7 +163,7 @@ static class FahrzeitWeglaengeTests
             var (simA, _, wa) = Partie(alt);
             foreach (var typ in Arten) Pruefe.Gleich((30, 30), (simA.Wirtschaft!.Fahrzeit(wa, typ, true), simA.Wirtschaft.Fahrzeit(wa, typ, false)), typ);
             // alte Daten mit Pflaster auf der Hauptstraße: die feste Zeit mal dem Mittel der Belagfaktoren (0,85, ohne Ausbau-Grenze in alten Daten)
-            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             e.BelagSetzen(e.Wege.Single(x => x.Name == "Hauptstraße"), Belagstufe.Pflaster);
             var ganzAlt = DatenMit(d => { d["logistik"]!.AsObject().Remove("weglaenge"); d["wegebau"]!.AsObject().Remove("ausbauHoechstens"); });
             var (simP, spielerP) = e.Ausprobieren(ganzAlt, "Schmied");

@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// Einbrecher und Bandenmitglieder bei Nacht tragen über dem Kopf eine kleiner grauer Kapuzenkopf mit Augenmaske (Holzschnitt: schwarzer Umriss, Schraffur).
 /// <list type="bullet">
 /// <item><b>Scharf</b>: Das Zeichen ist ein Control auf einer eigenen <see cref="CanvasLayer"/> (wie die Beschriftungen im Pixel-Look), also in voller Auflösung über der
-/// Welt; Größe nach dem Zoom (mindestens 12 Bildpunkte, damit es bei 140 m noch zu lesen ist). Es hängt an der Kamera der Logik und liegt damit auch ohne Pixel-Look richtig.</item>
+/// Welt; Größe nach dem Zoom (mindestens 12 Bildpunkte, damit es bei 100 m noch zu lesen ist). Es hängt an der Kamera der Logik und liegt damit auch ohne Pixel-Look richtig.</item>
 /// <item><b>Kein Licht</b>: nur eine Zeichnung, kein Lichtquelle; nachts etwas gedämpft (wie das Licht der Stadt), die Nacht bleibt dunkel.</item>
 /// <item><b>Nur eigene</b>: fremde Täter und Gefasste (<see cref="Diebfigur.Eigen"/> falsch) bekommen keines und bleiben „Verdächtige Gestalt“.</item>
 /// <item><b>Anklickbar</b>: <see cref="DiebBei"/> prüft zuerst die Zeichen; ein Klick wählt den Dieb aus.</item>

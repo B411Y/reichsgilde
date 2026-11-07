@@ -298,7 +298,7 @@ static class WasserTests
         ("Fahrzeit mit Wasser: Eine Furt auf dem Weg zum Markt kostet hin und zurück die Minuten aus logistik.wasser; Brücken und Karten ohne Wasser nichts", () =>
         {
             // Probestadt: ein Bach quert die Hauptstraße zwischen der Werkstatt des Spielers (−30 | −10) und dem Markt
-            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             e.FlussAnlegen(new[] { O(-20, -8), O(-20, 8) }, "bach", 3);
             e.BauzonenAusRaster();   // der Bach läuft durch die Kernlage: die Zonen aus dem Raster weichen ihm aus
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
@@ -311,7 +311,7 @@ static class WasserTests
             int Fahrt(IReadOnlyList<Fahrtstueck> f, int aufschlag) => (int)Math.Round(f.Sum(x => x.Laenge) / karren.Daten.MeterJeMinute + aufschlag, MidpointRounding.AwayFromZero);
             Pruefe.Gleich((Fahrt(hin, 5), Fahrt(zurueck, 5)), (w.Fahrzeit(karren, true), w.Fahrzeit(karren, false)));
             // tief genug für eine Brücke: kein Aufschlag
-            var b = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var b = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             var fluss = b.FlussAnlegen(new[] { O(-20, -8), O(-20, 8) }, "bach", 3);
             b.FlussTiefeSetzen(fluss, -1, 1);
             b.BauzonenAusRaster();
@@ -403,7 +403,7 @@ static class WasserTests
                 var projekt = Projektordner.Finden()!;
                 Directory.CreateDirectory(ordner);
                 var datei = Path.Combine(ordner, "probestadt.json");
-                File.WriteAllText(datei, new Probestadt().Bauen(Katalog.Value, Daten.Value).ZuJson());
+                File.WriteAllText(datei, Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value).ZuJson());
                 var aus = new StringWriter();
                 // ein Fluss quer durch den Norden (der Waldweg quert ihn), ein Teich im Randstreifen
                 Pruefe.Gleich(0, Befehle.Fluss(projekt, datei, new[] { (O(-400, -120), (double?)null, (double?)null), (O(400, -120), (double?)24, (double?)2) },

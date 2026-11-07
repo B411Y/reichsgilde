@@ -100,6 +100,8 @@ Schalter wirken zusammen: `-- --klasse=Buerger* --filter=Hafen` nimmt nur die Ha
 
 **Langsame Tests:** Ein Test, der allein etwa 3 Sekunden oder länger läuft (mehrjährige Partien, Gleichheitstest, Messungen in Tests), bekommt eine Zeile in `LangsameTests.cs`: Klasse, Muster für den Testnamen (oder `null` für die ganze Klasse) und wie viele Tests die Zeile trifft. Er wird dadurch **nicht** abgeschaltet: Ohne Schalter und in der CI läuft er mit. Wird ein eingetragener Test umbenannt oder nimmt ein Muster plötzlich mehr Tests mit, meldet `TestfilterTests` den Eintrag. Welche Tests gerade langsam sind, zeigt `-- --zeiten=60`.
 
+**Testzeit sparen, ohne Aussage zu verlieren:** Die Probestadt als Testkarte kommt aus `Probestadtvorlage.Entwurf(katalog, daten)` (Skript einmal, danach ein frischer Entwurf aus dem Text; nur Tests, die das Skript selbst prüfen, rufen `new Probestadt().Bauen(…)`). Meldungen in Schleifen mit vielen tausend Prüfungen erst im Fehlerfall bauen (`if (!bedingung) Pruefe.Wahr(false, $"…")`): Eine interpolierte Meldung mit Kommazahlen kostet mehr als die Prüfung selbst. Eine Suche, die in jedem Lauf dasselbe findet (z. B. ein passender Startwert), einmal je Lauf in einem `Lazy` merken und den bekannten Treffer zuerst probieren. Jede Kürzung mit Gegenprobe: Ein absichtlicher Fehler im Code muss den Test weiter rot machen.
+
 Hängt ein Test unbemerkt von einem anderen ab (gemeinsamer Zustand, Reihenfolge), fällt das beim gezielten Lauf auf: Dann ist der Test zu reparieren, nicht der Filter.
 
 ## Klicktest unter Windows

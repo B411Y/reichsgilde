@@ -384,7 +384,13 @@ public sealed class Bauwesen
     }
 
     /// <summary>Warum das Gebäude an dieser Stelle nicht stehen kann (Bauzone, Überdeckung, Straße) – oder null. Für die rote Vorschau.</summary>
-    public string? PlatzVerboten(BauBefehl befehl)
+    public string? PlatzVerboten(BauBefehl befehl) => PlatzVerboten(befehl, null);
+
+    /// <summary>
+    /// Wie <see cref="PlatzVerboten(BauBefehl)"/>; <paramref name="suche"/> (aus <see cref="FreieOrte"/>, für viele Stellen hintereinander) spart das
+    /// Vorbereiten der Rechtecke je Stelle. Ohne sie wird sie für diesen einen Aufruf gebaut – das Ergebnis ist dasselbe.
+    /// </summary>
+    private string? PlatzVerboten(BauBefehl befehl, Platzsuche? suche)
     {
         if (!IstAktiv) return "In dieser Stadt wird nicht gebaut.";
         if (Mass(befehl) is not { } mass) return "Dieses Gebäude kann man nicht bauen.";
@@ -419,7 +425,7 @@ public sealed class Bauwesen
         foreach (var feld in felder)
         {
             var bauplatz = BauplatzBei(feld);
-            var zone = bauplatz is null ? karte.Bauzonen.FirstOrDefault(z => z.Enthaelt(feld.X, feld.Z)) : null;
+            var zone = bauplatz is null ? (suche ??= new Platzsuche(karte)).ZoneBei(feld.X, feld.Z) : null;
             var lage = bauplatz?.Lage ?? zone?.Art;
             if (lage is null) return "Hier ist keine Bauzone – gebaut wird nur in den Bauzonen und auf Bauplätzen.";
             if (zone is { NurWerkstaetten: true } && befehl is not WerkstattBauen) return "Dieser Bauplatz ist für eine Werkstatt.";
@@ -428,9 +434,9 @@ public sealed class Bauwesen
         }
 
         var werkstatt = befehl is WerkstattBauen;
-        var wege = karte.Wege.Where(w => w.IstKarrenstrasse || !werkstatt && w.Klasse == Wegklasse.Gasse).ToList();
         var vorplatz = g.Felder(d.Raster, nurVorplatz: true).ToList();
-        var anDerStrasse = vorplatz.Count(f => wege.Any(w => w.Abstand(f.X, f.Z) <= d.StrassenAbstand));
+        var strassen = suche ?? new Platzsuche(karte);
+        var anDerStrasse = vorplatz.Count(f => strassen.AnDerStrasse(f.X, f.Z, d.StrassenAbstand, werkstatt));
         if (anDerStrasse < Math.Min(2, vorplatz.Count))
             return werkstatt
                 ? "Die Vorderseite einer Werkstatt muss an einer Karrenstraße liegen (Haupt-, Ring- oder Wallstraße)."
@@ -456,9 +462,10 @@ public sealed class Bauwesen
         var d = Daten!;
         var orte = new List<BauBefehl>();
         var geprueft = new HashSet<(double, double, int)>();
+        var suche = new Platzsuche(Karte!); // Karte und Daten ändern sich während dieses Aufrufs nicht
         void Pruefen(BauBefehl b)
         {
-            if (geprueft.Add((b.X, b.Z, b.Drehung)) && PlatzVerboten(b) is null) orte.Add(b);
+            if (geprueft.Add((b.X, b.Z, b.Drehung)) && PlatzVerboten(b, suche) is null) orte.Add(b);
         }
 
         var bauplaetze = Bauplaetze.OrderBy(p => p.Nummer).ToList();
@@ -473,9 +480,9 @@ public sealed class Bauwesen
 
         // Rasterstellen: Das Gebiet umfasst alle passenden Bauzonen und die Bauplätze. Vorab genügt ein billiger Blick auf die vier Eckfelder:
         // Liegt eines weder auf einem Bauplatz noch in einer passenden Zone, lehnt PlatzVerboten die Stelle sicher ab.
-        var zonen = Karte!.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)).ToList();
+        var zonen = Karte!.Bauzonen.Where(z => mass.Lagen.Contains(z.Art)).Select(z => (Zone: z, Rahmen: Platzsuche.Rahmen(z.Flaeche))).ToList();
         var freie = bauplaetze.Where(p => !IstWohnhausplatz(p)).ToList();
-        var ecken = zonen.SelectMany(z => z.Flaeche.Select(e => (X: e[0], Z: e[1])))
+        var ecken = zonen.SelectMany(z => z.Zone.Flaeche.Select(e => (X: e[0], Z: e[1])))
             .Concat(freie.SelectMany(p => new[] { (X: p.Grundriss.X - p.Grundriss.HalbX, Z: p.Grundriss.Z - p.Grundriss.HalbZ),
                                                    (X: p.Grundriss.X + p.Grundriss.HalbX, Z: p.Grundriss.Z + p.Grundriss.HalbZ) }))
             .ToList();
@@ -483,7 +490,14 @@ public sealed class Bauwesen
         var r = d.Raster;
         var (x0, x1) = (Math.Floor(ecken.Min(e => e.X) / r) * r, ecken.Max(e => e.X));
         var (z0, z1) = (Math.Floor(ecken.Min(e => e.Z) / r) * r, ecken.Max(e => e.Z));
-        bool Bebaubar(double fx, double fz) => freie.Any(p => p.Grundriss.Enthaelt(fx, fz)) || zonen.Any(zone => zone.Enthaelt(fx, fz));
+        // Je Feldmitte nur einmal gerechnet (benachbarte Stellen und Drehungen teilen sich Eckfelder); nur nachgeschlagen, nie der Reihe nach gelesen.
+        var bebaubar = new Dictionary<(double, double), bool>();
+        bool Bebaubar(double fx, double fz)
+        {
+            if (!bebaubar.TryGetValue((fx, fz), out var ja))
+                bebaubar[(fx, fz)] = ja = freie.Any(p => p.Grundriss.Enthaelt(fx, fz)) || zonen.Any(z => Platzsuche.InZone(z.Zone, z.Rahmen, fx, fz));
+            return ja;
+        }
         for (var ez = z0; ez < z1; ez += r)
             for (var ex = x0; ex < x1; ex += r)
                 for (var drehung = 0; drehung < 4; drehung++)
@@ -497,6 +511,65 @@ public sealed class Bauwesen
                     if (Wohnhausplatz(befehl) is null) Pruefen(befehl); // genau auf einem Wohnhausplatz: schon oben, in seiner Drehung
                 }
         return orte;
+    }
+
+    /// <summary>
+    /// Für viele Platzprüfungen hintereinander (<see cref="FreieOrte"/>): die umschließenden Rechtecke der Bauzonen und Wege. Ein Punkt außerhalb
+    /// eines Rechtecks braucht so nicht erst das ganze Vieleck bzw. jede Strecke des Wegs – das Ergebnis ist genau das von
+    /// <see cref="Bauzone.Enthaelt"/> und <see cref="Kartenweg.Abstand"/> (Begründung an <see cref="InZone"/> und <see cref="AnDerStrasse"/>).
+    /// Gilt nur, solange sich die Karte nicht ändert – darum nur innerhalb eines Aufrufs (in Köln je Bauorte-Abfrage etwa 6.000 Stellen).
+    /// </summary>
+    internal sealed class Platzsuche
+    {
+        private readonly List<(Bauzone Zone, (double X0, double Z0, double X1, double Z1) Rahmen)> _zonen;
+        private readonly List<(Kartenweg Weg, (double X0, double Z0, double X1, double Z1) Rahmen)> _wege;
+
+        public Platzsuche(Stadtkarte karte)
+        {
+            _zonen = karte.Bauzonen.Select(z => (z, Rahmen(z.Flaeche))).ToList();
+            _wege = karte.Wege.Select(w => (w, Rahmen(w.Verlauf))).ToList();
+        }
+
+        /// <summary>Das umschließende Rechteck der Punkte (leer: ein Rechteck, das nichts enthält).</summary>
+        public static (double X0, double Z0, double X1, double Z1) Rahmen(IReadOnlyList<double[]> punkte)
+        {
+            var (x0, z0, x1, z1) = (double.PositiveInfinity, double.PositiveInfinity, double.NegativeInfinity, double.NegativeInfinity);
+            foreach (var p in punkte) (x0, z0, x1, z1) = (Math.Min(x0, p[0]), Math.Min(z0, p[1]), Math.Max(x1, p[0]), Math.Max(z1, p[1]));
+            return (x0, z0, x1, z1);
+        }
+
+        /// <summary>
+        /// Wie <see cref="Bauzone.Enthaelt"/>. Außerhalb des Rechtecks ist das Ergebnis sicher „nein“: Eine Kante zählt nur, wenn z zwischen
+        /// ihren Enden liegt (z0 ≤ z &lt; z1); rechts des Rechtecks schneidet keine Kante den Strahl, links davon jede, die z überspannt – und das
+        /// sind bei einem geschlossenen Vieleck immer gerade viele. Der Rand von 1 m in x fängt Rundung im Schnittpunkt ab.
+        /// </summary>
+        public static bool InZone(Bauzone zone, (double X0, double Z0, double X1, double Z1) r, double x, double z) =>
+            z >= r.Z0 && z < r.Z1 && x >= r.X0 - 1 && x <= r.X1 + 1 && zone.Enthaelt(x, z);
+
+        /// <summary>Die erste Bauzone der Karte, die den Punkt enthält – wie <c>Bauzonen.FirstOrDefault(z =&gt; z.Enthaelt(x, z))</c>.</summary>
+        public Bauzone? ZoneBei(double x, double z)
+        {
+            foreach (var (zone, rahmen) in _zonen)
+                if (InZone(zone, rahmen, x, z)) return zone;
+            return null;
+        }
+
+        /// <summary>
+        /// Liegt der Punkt höchstens <paramref name="abstand"/> von einer Karrenstraße (für ein Wohnhaus auch einer Gasse) entfernt? Wie
+        /// <see cref="Kartenweg.Abstand"/> für jeden dieser Wege; liegt der Punkt mehr als <paramref name="abstand"/> + 1 m neben dem Rechteck
+        /// des Verlaufs, ist er sicher weiter weg (jede Strecke liegt im Rechteck).
+        /// </summary>
+        public bool AnDerStrasse(double x, double z, double abstand, bool werkstatt)
+        {
+            var rand = abstand + 1;
+            foreach (var (weg, r) in _wege)
+            {
+                if (!(weg.IstKarrenstrasse || !werkstatt && weg.Klasse == Wegklasse.Gasse)) continue;
+                if (x < r.X0 - rand || x > r.X1 + rand || z < r.Z0 - rand || z > r.Z1 + rand) continue;
+                if (weg.Abstand(x, z) <= abstand) return true;
+            }
+            return false;
+        }
     }
 
     /// <summary>Was der Neubau kosten würde und ob er hier geht.</summary>

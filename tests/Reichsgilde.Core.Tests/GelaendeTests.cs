@@ -450,7 +450,7 @@ static class GelaendeTests
         ("Fahrzeit der Karren: bergauf zum Markt länger, bergab zurück wie in der Ebene; auf flachen Wegen Länge ÷ Tempo der Karrenart", () =>
         {
             // Probestadt: der Markt auf einem Hügel (6 m, Radius 60) – die Werkstatt im Westen fährt die Hauptstraße hinauf
-            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             e.GelaendePinseln(new Pinsel(Pinselart.Heben, 60, 6, Kante: 1), new[] { O(0, 0) });
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var w = sim.Wirtschaft!;
@@ -467,7 +467,7 @@ static class GelaendeTests
             Pruefe.Ungefaehr(-hin.Sum(x => x.Anstieg), zurueck.Sum(x => x.Anstieg), 1e-9);
             Pruefe.Gleich(w.Uhr.UhrzeitInMinuten + w.Fahrzeit(karren, true), w.AnkunftAmMarkt(karren));
             // ohne Hügel: die Werkstätten der flachen Stadt fahren Länge ÷ Tempo, obwohl die Karte Gelände hat
-            var f = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var f = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             var (simF, spielerF) = f.Ausprobieren(Daten.Value, "Schmied");
             var wf = simF.Wirtschaft!;
             Pruefe.Wahr(!wf.Karte!.Gelaendeform.IstFlach, "Probestadt hat Gelände");
@@ -490,7 +490,7 @@ static class GelaendeTests
 
         ("Spielstand: Das Gelände der Karte liegt im Spielstand und kommt beim Laden genauso wieder", () =>
         {
-            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             Pruefe.Wahr(!e.Hoehen.IstLeer, "die Probestadt hat Gelände");
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var json = Speicherung.Speichern(sim, spieler);

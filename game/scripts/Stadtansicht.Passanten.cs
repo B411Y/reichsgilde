@@ -312,7 +312,7 @@ public partial class Stadtansicht
             else if (_figurenTeiler > 1 && p.Stand is null && p.Knoten.Visible && !p.WartetDrinnen && p.Pfad.Length > 0 && (p.Nummer + _figurenBild) % (_figurenTeiler + 1) != 0
                      && ImBild(p.Knoten.Position))
             {
-                // Weit herausgezoomt (Zoomstufe 70 und 140): Die volle Rechnung (Spur, Ecken, Platz) nur jedes dritte oder vierte Bild, gestaffelt nach der Nummer;
+                // Weit herausgezoomt (Zoomstufe 50 und 100): Die volle Rechnung (Spur, Ecken, Platz) nur jedes dritte oder vierte Bild, gestaffelt nach der Nummer;
                 // dazwischen schiebt die Figur sich mit ihrer letzten Geschwindigkeit weiter (Höhe und Blick bleiben) – im nächsten vollen Bild gilt wieder der Plan, es driftet nichts
                 if (p.Geschwindigkeit != Vector3.Zero) p.Knoten.Position += p.Geschwindigkeit * (float)sekunden;
                 Profil(3);
