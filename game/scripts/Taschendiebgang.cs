@@ -63,6 +63,24 @@ public static class Taschendiebgang
         return Abschnitt.Nachher;
     }
 
+    /// <summary>Bis zu diesem Anteil des Weges zum Opfer darf ein Dieb der Streife ausweichen; danach geht er auf die Stelle hinter dem Opfer zu (zur Tat steht er immer am Ziel).</summary>
+    public const double AusweichBisAnteil = 0.6;
+
+    /// <summary>Wie weit (Meter-Anteil 0 bis 1 des Weges) der Dieb zur Zeit <paramref name="t"/> beim Anschleichen ist, solange er noch ausweichen darf; sonst null. Mit Toleranz am Rand (Gleitkomma).</summary>
+    public static double? AnschleichenAusweichAnteil(double t, double griff, bool eigen, double vorlauf)
+    {
+        var abschnitt = AbschnittBei(t, griff, eigen, vorlauf, out var a);
+        return abschnitt == Abschnitt.Anschleichen && a <= AusweichBisAnteil + 1e-6 ? System.Math.Min(a, AusweichBisAnteil) : null;
+    }
+
+    /// <summary>Wie weit (Anteil 0 bis 1) der Dieb zur Zeit <paramref name="t"/> im Abgang ist; sonst null.</summary>
+    public static double? AbgangAnteil(double t, double griff, bool eigen)
+    {
+        var anfang = griff + GriffDauer;
+        var dauer = Abgang(eigen);
+        return t >= anfang - 1e-9 && t < anfang + dauer ? System.Math.Clamp((t - anfang) / dauer, 0, 1) : null;
+    }
+
     /// <summary>Kürzester Vorlauf (Spielminuten): Auch ein Griff, den der Kern erst zum Stundenwechsel meldet, beginnt so weit vorher.</summary>
     public const double VorlaufKuerzest = 2;
 
@@ -104,19 +122,31 @@ public static class Taschendiebgang
     /// <summary>Wie lange der Zugriff dauert (Spielminuten): Der Gardist packt zu, der Dieb wehrt sich kurz.</summary>
     public const double ZugriffDauer = 2;
 
-    public enum Fest { Lauf, Zugriff, Abfuehren, Fertig }
+    public enum Fest { Lauf, Zugriff, Abfuehren, Rueckkehr, Fertig }
+
+    /// <summary>
+    /// Ein Torwächter fasst nur, wenn die Festnahme höchstens so weit (Meter) vom Tor liegt (Luftlinie vom Ort des Diebes); sonst kommt wie bisher ein Gardist
+    /// vom Wachhaus bzw. vom nächsten Tor.
+    /// </summary>
+    public const float TorwaechterNaehe = 80;
+
+    /// <summary>Fasst ein Torwächter? Das Tor ist nahe genug (<see cref="TorwaechterNaehe"/>) und am Posten stehen mindestens zwei (einer bleibt als Ersatzmann).</summary>
+    public static bool TorwaechterFasst(float torAbstand, int amPosten) => torAbstand <= TorwaechterNaehe && amPosten >= 2;
 
     /// <summary>
     /// Der Abschnitt der Festnahme <paramref name="seit"/> Spielminuten nach dem Alarm: der Gardist läuft <paramref name="laufDauer"/> Minuten, packt zu
     /// (<see cref="ZugriffDauer"/>) und führt den Dieb in <paramref name="fuehrDauer"/> Minuten ab. <paramref name="anteil"/>: wie weit der Abschnitt ist.
+    /// Fasst ein Torwächter, geht er danach noch <paramref name="rueckDauer"/> Minuten auf seinen Posten zurück (<see cref="Fest.Rueckkehr"/>); sonst 0.
     /// </summary>
-    public static Fest FestnahmeBei(double seit, double laufDauer, double fuehrDauer, out double anteil)
+    public static Fest FestnahmeBei(double seit, double laufDauer, double fuehrDauer, out double anteil, double rueckDauer = 0)
     {
         if (seit < laufDauer) { anteil = laufDauer <= 0 ? 1 : System.Math.Max(0, seit) / laufDauer; return Fest.Lauf; }
         seit -= laufDauer;
         if (seit < ZugriffDauer) { anteil = seit / ZugriffDauer; return Fest.Zugriff; }
         seit -= ZugriffDauer;
         if (seit < fuehrDauer) { anteil = seit / fuehrDauer; return Fest.Abfuehren; }
+        seit -= fuehrDauer;
+        if (seit < rueckDauer) { anteil = seit / rueckDauer; return Fest.Rueckkehr; }
         anteil = 1;
         return Fest.Fertig;
     }
