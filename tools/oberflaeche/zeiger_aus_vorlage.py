@@ -18,6 +18,9 @@ Schritte je Größe:
 Herkunft der Vorlage: Nutzerzeichnung, mit Gemini überarbeitet (Teamleiter, 07.11.2026). Erst nach Freigabe nach game/assets legen,
 dann mit Protokollzeile.
 
+Mit --stufen entstehen sechs Stufen nach Stand (Umfärben über Farbverläufe nach der Helligkeit, Ringe, Goldnaht, Borte,
+Schnalle aus Eisen, Silber oder Gold) als hand_<stufe>_normal|klick_<px>.png.
+
 Ausgabe: zeiger_<px>.png, zeiger_<px>_klick.png, hotspots.txt (Fingerspitze = deckendes Pixel mit kleinstem x+y).
 """
 import argparse
@@ -239,7 +242,18 @@ def zusammensetzen(e, groesse, farben, raster):
             rand |= p[dy:dy + groesse, dx:dx + groesse]
     rand &= ~inh
     leinwand[rand] = RAND
-    return leinwand, pal
+
+    def auf(m, dtyp=bool):
+        c = np.zeros((groesse, groesse), dtyp)
+        c[1:1 + th, 1:1 + tw] = m
+        return c
+
+    metall = e["metall"]
+    masken = dict(
+        deckend=inh, umriss=auf(umriss), linie=auf(linie), metall=auf(metall), cov_metall=auf(e["cov_metall"], np.float32),
+        leder=auf(deckend & ~umriss & ~linie & ~metall),
+    )
+    return leinwand, pal, masken
 
 
 def klickzustand(bild, pal):
@@ -263,6 +277,159 @@ def hotspot(bild):
     return int(xs[i]), int(ys[i])
 
 
+
+# ---------------------------------------------------------------- Stufen nach Stand
+# Lederfarben als Verlauf (dunkel, mittel, hell, Glanz); die Schattierung der Vorlage bleibt, nur der Farbton wechselt.
+VERLAEUFE = {
+    "bordeaux": [(34, 10, 15), (92, 25, 36), (156, 62, 68), (206, 134, 128)],
+    "schwarz": [(15, 11, 14), (46, 37, 42), (96, 82, 86), (160, 146, 144)],
+    "blau": [(16, 24, 56), (38, 64, 126), (96, 132, 196), (170, 198, 234)],
+}
+GOLD = [(118, 78, 20), (206, 154, 44), (246, 214, 104), (255, 240, 170)]
+EISEN = [(46, 50, 54), (92, 96, 100), (150, 154, 156), (200, 204, 204)]
+SILBER = [(104, 106, 106), (150, 152, 150), (200, 202, 198), (238, 240, 236)]
+ACHSE = np.array([0.64, 0.77])  # Richtung Fingerspitze -> Stulpe (Bildkoordinaten)
+QUER = np.array([-0.77, 0.64])
+SPITZE80 = np.array([3.0, 1.0])  # Fingerspitze bei 80 px; Ringe sind in 80-px-Einheiten angegeben
+
+# Stufe: (Lederverlauf oder None, Metallton Schnalle, Ringe, Naht, Umrissfarbe, Innenlinie)
+# Ringe: ("finger", Abstand von der Fingerspitze in 80-px-Einheiten) oder ("daumen", Abstand von der Daumenspitze)
+STUFEN = {
+    1: dict(leder=None, schnalle=EISEN, ringe=[], naht=None, umriss=(26, 16, 12), linie=(48, 29, 20), abgenutzt=True),
+    2: dict(leder=None, schnalle=SILBER, ringe=[], naht=None, umriss=(26, 16, 12), linie=(48, 29, 20)),
+    3: dict(leder="bordeaux", schnalle=SILBER, ringe=[("finger", 13.5)], naht=None, umriss=(28, 10, 13), linie=(54, 20, 24)),
+    4: dict(leder="bordeaux", schnalle=GOLD, ringe=[("finger", 13.5)], naht="naht", umriss=(28, 10, 13), linie=(54, 20, 24)),
+    5: dict(leder="schwarz", schnalle=GOLD, ringe=[("finger", 10.5), ("finger", 15.5)], naht=None, umriss=(8, 6, 8), linie=(26, 20, 24)),
+    6: dict(leder="blau", schnalle=GOLD, ringe=[("finger", 10.5), ("finger", 15.5), ("daumen", 7.5)], naht="borte", umriss=(12, 15, 30), linie=(22, 34, 70)),
+}
+DAUMEN80 = np.array([8.5, 29.0])  # Mitte der Daumenspitze bei 80 px
+DAUMENACHSE = np.array([0.89, 0.45])
+
+
+def verlauf(t, stuetzen):
+    """Farbe an der Stelle t (0 bis 1) eines Verlaufs aus vier Stützfarben bei 0, 0,35, 0,75, 1."""
+    st = np.array(stuetzen, np.float32)
+    pos = np.array([0.0, 0.35, 0.75, 1.0])
+    return np.stack([np.interp(t, pos, st[:, k]) for k in range(3)], axis=-1)
+
+
+def pixelmaske(groesse, mitte, achse, dicke, quer_max):
+    """Pixel, deren Mittelpunkt in einem Band senkrecht zur Achse liegt (Dicke in Pixeln, begrenzt in der Quere)."""
+    yy, xx = np.mgrid[0:groesse, 0:groesse]
+    q = np.stack([xx + 0.5, yy + 0.5], axis=-1) - mitte
+    ent = q @ achse
+    quer = q @ np.array([-achse[1], achse[0]])
+    return (np.abs(ent) <= dicke / 2) & (np.abs(quer) <= quer_max), ent, quer
+
+
+def stufe_bild(basis, m, stufe, groesse, klick=False, saat=7):
+    """Baut aus dem braunen Grundbild die Stufe. basis: RGBA der Größe groesse, m: Masken von zusammensetzen."""
+    cfg = STUFEN[stufe]
+    b = basis.astype(np.float32)
+    rgb = b[..., :3].copy()
+    leder = m["leder"]
+    l = lumi(rgb)
+    lo, hi = np.percentile(l[leder], 1), np.percentile(l[leder], 99)
+    t = np.clip((l - lo) / (hi - lo), 0, 1)
+    if cfg["leder"]:
+        rgb[leder] = verlauf(t[leder], VERLAEUFE[cfg["leder"]])
+    if cfg.get("abgenutzt"):
+        # stumpferes Leder: weniger Farbe, weniger Kontrast, leichte Scheuerstellen auf den Erhebungen
+        grau = lumi(rgb)[..., None]
+        stumpf = grau + (rgb - grau) * 0.85
+        stumpf = stumpf * 0.9 + 20
+        rgb[leder] = stumpf[leder]
+        zu = np.random.RandomState(saat)
+        helle = leder & (t > 0.55)
+        zufall = zu.rand(*leder.shape)
+        scheuer = helle & (zufall < 0.13 * groesse / 48)
+        rgb[scheuer] = rgb[scheuer] * 0.5 + np.array([176, 150, 118]) * 0.5
+        dunkel_fleck = leder & (t < 0.3) & (zu.rand(*leder.shape) < 0.05)
+        rgb[dunkel_fleck] *= 0.82
+    rgb[m["linie"]] = cfg["linie"]
+    rgb[m["umriss"]] = cfg["umriss"]
+    # Schnalle
+    mt = m["metall"]
+    if mt.any():
+        tt = np.clip(m["cov_metall"][mt] * 1.8, 0, 1)
+        rgb[mt] = verlauf(tt, cfg["schnalle"])
+
+    # Ringe
+    mask_hand = m["deckend"]
+    sk = groesse / 80.0
+    dicke = 1.2 + 0.018 * groesse
+    aufgelegt = np.zeros_like(mask_hand)
+    for ort, abstand in cfg["ringe"]:
+        if ort == "finger":
+            mitte = (SPITZE80 + ACHSE * abstand + QUER * 0.5) * sk
+            achse, quer_max = ACHSE, 6.5 * sk
+        else:
+            mitte = (DAUMEN80 + DAUMENACHSE * abstand) * sk
+            achse, quer_max = DAUMENACHSE, 4.2 * sk
+        band, ent, quer = pixelmaske(groesse, mitte, achse, dicke, quer_max)
+        band &= mask_hand
+        if not band.any():
+            continue
+        ys, xs = np.where(band)
+        # nur der zusammenhängende Teil beim Mittelpunkt (nicht ein Stück eines anderen Fingers)
+        nah = (xs + 0.5 - mitte[0]) ** 2 + (ys + 0.5 - mitte[1]) ** 2 < (quer_max + 1) ** 2
+        for y, x in zip(ys[nah], xs[nah]):
+            d = ent[y, x] / dicke
+            ton = 0.55 if d < -0.2 else (0.15 if d > 0.2 else 0.42)
+            if m["umriss"][y, x]:
+                ton = 0.02
+            rgb[y, x] = verlauf(ton, GOLD)
+            aufgelegt[y, x] = True
+        # Glanzpixel: das hellste Pixel auf der lichtzugewandten Seite
+        kand = [(ent[y, x], y, x) for y, x in zip(ys[nah], xs[nah]) if not m["umriss"][y, x]]
+        if kand:
+            kand.sort()
+            _, gy, gx = kand[0]
+            rgb[gy, gx] = GOLD[3]
+
+    # Naht und Borte an der Stulpe: Streifen parallel zum Stulpenrand, 2 bis 3 Pixel hinter dem Umriss
+    if cfg["naht"]:
+        yy, xx = np.mgrid[0:groesse, 0:groesse]
+        sw = (xx + 0.5) * ACHSE[0] + (yy + 0.5) * ACHSE[1]
+        smax = sw[mask_hand].max()
+        f = groesse / 48.0
+        if cfg["naht"] == "naht":
+            band = (sw >= smax - 3.4 * f) & (sw <= smax - 2.0 * f)
+        else:
+            band = (sw >= smax - 5.0 * f) & (sw <= smax - 2.0 * f)
+        band &= m["leder"] | m["linie"]
+        if cfg["naht"] == "naht":
+            rgb[band] = verlauf(0.5, GOLD)
+        else:
+            qd = (xx + 0.5) * QUER[0] + (yy + 0.5) * QUER[1]
+            muster = (np.floor(qd / (1.6 * f)).astype(int) % 2) == 0
+            rgb[band & muster] = verlauf(0.45, GOLD)
+            rgb[band & ~muster] = verlauf(0.1, GOLD)
+            kante = band & (sw >= smax - 2.4 * f)
+            rgb[kante & muster] = verlauf(0.8, GOLD)
+
+    out = b.copy()
+    out[..., :3] = np.clip(rgb, 0, 255)
+    out = out.round().astype(np.uint8)
+    if klick:
+        out = klickzustand_stufe(out, m, cfg)
+    return out
+
+
+def klickzustand_stufe(bild, m, cfg):
+    """Klick: wärmer und etwas heller; Umriss und Innenlinien bleiben, der Rand wird cremefarben."""
+    b = bild.astype(np.float32)
+    rgb = b[..., :3]
+    neutral = ~(m["umriss"] | m["linie"])
+    warm = rgb * np.array([1.10, 1.03, 0.90]) + np.array([12, 6, 0])
+    warm = warm + np.maximum(lumi(rgb)[..., None] - 90, 0) * 0.10
+    rgb = np.where((m["deckend"] & neutral)[..., None], warm, rgb)
+    rand = (b[..., 3] > 0) & (b[..., 3] < 255)
+    rgb = np.where(rand[..., None], np.array([248, 232, 196]), rgb)
+    b[..., :3] = np.clip(rgb, 0, 255)
+    return b.round().astype(np.uint8)
+
+
 # ---------------------------------------------------------------- Hauptprogramm
 STANDARD = {
     # groesse: (farben, schaerfe, kontrast, dunkel_schwelle, linien_flaeche, innen_flaeche, raster)
@@ -280,6 +447,7 @@ def main():
     ap.add_argument("--groessen", default="32,48,64,80")
     ap.add_argument("--verfahren", default="linien", choices=["linien", "flaeche"])
     ap.add_argument("--nachsilbe", default="")
+    ap.add_argument("--stufen", action="store_true", help="sechs Stufen nach Stand als hand_<stufe>_normal|klick_<px>.png schreiben")
     ap.add_argument("--innen", type=float, help="Schwelle für Innenlinien (überschreibt die Standardwerte)")
     ap.add_argument("--schwelle", type=float, help="Helligkeit, unter der ein Vorlagenpixel als Linie zählt")
     ap.add_argument("--schaerfe", type=float)
@@ -300,10 +468,16 @@ def main():
         kontrast = args.kontrast if args.kontrast is not None else kontrast
         raster = args.raster if args.raster is not None else raster
         e = verkleinern(rgb, maske, g, args.verfahren, farben, schaerfe, kontrast, dunkel, lf, inf, raster, args.extrem, args.metall)
-        bild, pal = zusammensetzen(e, g, farben, raster)
+        bild, pal, masken = zusammensetzen(e, g, farben, raster)
+        if args.stufen:
+            for st in range(1, 7):
+                for kl in (False, True):
+                    erg = stufe_bild(bild, masken, st, g, kl)
+                    schreibe(os.path.join(args.ausgabe, f"hand_{st}_{'klick' if kl else 'normal'}_{g}.png"), erg)
         klick = klickzustand(bild, pal)
-        schreibe(os.path.join(args.ausgabe, f"zeiger_{g}{args.nachsilbe}.png"), bild)
-        schreibe(os.path.join(args.ausgabe, f"zeiger_{g}{args.nachsilbe}_klick.png"), klick)
+        if not args.stufen:
+            schreibe(os.path.join(args.ausgabe, f"zeiger_{g}{args.nachsilbe}.png"), bild)
+            schreibe(os.path.join(args.ausgabe, f"zeiger_{g}{args.nachsilbe}_klick.png"), klick)
         hx, hy = hotspot(bild)
         zeilen.append(f"{g}: {hx},{hy}")
         print(f"{g} px: Zeigerpunkt ({hx}, {hy}), Farben {len(np.unique(bild.reshape(-1, 4), axis=0))}")
