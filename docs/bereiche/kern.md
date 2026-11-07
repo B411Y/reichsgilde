@@ -283,7 +283,7 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Griff-Formel | **Im Kern** neben `AnwesenheitJetzt` (`GriffeDieserStunde`, `Taschengriffe`): Sie hängt an der Anwesenheit am Markt und an `WertJeMinute`, ist ohne Zufall und ohne Zustand, lässt sich testen, und die Darstellung bleibt frei von Regeln. Sie liest nur; die Rechnung bucht weiter die Summe je Stunde. | 05.11.2026 |
 | Umfang | Köln, 5 Jahre, gezählt auf main c3408733 + dieser Branch: Startwert 1401 (KI ausgewogen) 61 Vorfälle (12 je Spieltag; 32 Hauseinbrüche, 16 Einbrüche, 7 Überfälle, 6 Brandanschläge), 4711 (KI wagemutig) 57 (11 je Spieltag; 52 Hauseinbrüche, 5 Überfälle). Eigene Diebe und Taschendiebe kamen in Köln nicht vor (die KI lernt den Dieb selten); der Test stellt dafür ein Diebeshaus auf. | 05.11.2026 |
 
-### Benachrichtigungen Stufe 2: strukturierte Meldungen (PR „Kern: Meldungen strukturiert“)
+### Benachrichtigungen Stufe 2: strukturierte Meldungen (PR #339)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|

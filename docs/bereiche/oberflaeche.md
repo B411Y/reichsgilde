@@ -349,7 +349,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Gestaltung | Siegel und Brief zeichnet der Code (schwarzer Umriss, Farbe leicht versetzt, Schraffur); „Siegel und Briefe bewegen“ schaltet Einblenden und Pulsieren ab. Startoptionen `--meldungen=demo|brief|jahr`. | 05.11.2026 |
 | Messung nachher | Siegel plus Briefe etwa 9 je Spieljahr statt gut 80 Zeilen (Messung `messen meldungen`, Mittel); Bündelung und Filter wirken zusätzlich. | 05.11.2026 |
 
-### Benachrichtigungen Stufe 2: Porträt, Hinsehen, Verlauf aus dem Spielstand (PR „Kern: Meldungen strukturiert“)
+### Benachrichtigungen Stufe 2: Porträt, Hinsehen, Verlauf aus dem Spielstand (PR #339)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
