@@ -453,7 +453,7 @@ public partial class Stadtansicht : Node3D
         foreach (var betrieb in w.Betriebe)
             Ladezeit.Teil("Betrieb hinzufügen", () => BetriebHinzufuegen(betrieb));
         Ladezeit.Marke("Szene: Betriebe (Werkstätten, Umland)");
-        yield return new Ladeschritt(0.985f, "Die Bürger ziehen ein …");
+        yield return new Ladeschritt(0.99f, "Die Bürger ziehen ein …");
         foreach (var frei in w.FreieLiegenschaften)
             FreienPlatzZeigen(frei);
         Ladezeit.Marke("Szene: freie Plätze");

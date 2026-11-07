@@ -280,7 +280,7 @@ public partial class Hauptszene : Node
     /// <summary>
     /// Baut die Partie hinter dem Ladebildschirm auf, ein Abschnitt je Bild: Kern (Daten, Karte, Partie), die Stadt (<see cref="Stadtansicht.Aufbauen"/>),
     /// die Startoptionen (<see cref="PartieStarten"/>) und die ersten Bilder (<see cref="ErsteBilderAbwarten"/>). Bis der Ladebildschirm geht,
-    /// laufen weder Zeit noch Eingabe. Die Anteile des Balkens folgen der Messung mit <c>--ladezeit=1</c> (Köln, 29.10.2026).
+    /// laufen weder Zeit noch Eingabe. Die Anteile des Balkens folgen der Messung mit <c>--ladezeit=1</c> (Köln und Greybox, 07.11.2026).
     /// </summary>
     private async void PartieAufbauen(Dictionary<string, string> optionen)
     {
@@ -293,13 +293,13 @@ public partial class Hauptszene : Node
         _stadt.Welt3DSperren(true); // die halbe Stadt zu zeichnen kostete je Abschnitt Zeit, zu sehen ist sie ohnehin nicht (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
         _simulation = SimulationAufbauen(optionen);
-        await lade.Durchlaufen(_stadt.Aufbauen(), 0.16f, 0.71f);
-        lade.Fortschritt(0.71f, "Die Zunftglocke wird geläutet …");
+        await lade.Durchlaufen(_stadt.Aufbauen(), 0.106f, 0.725f);
+        lade.Fortschritt(0.73f, "Die Zunftglocke wird geläutet …");
         await Ladebildschirm.Bild(GetTree());
         Ladezeit.Marke("Stadt aufgebaut bis Aufbau-Ende (Bild, Fortschritt)");
         PartieStarten(optionen);
         Ladezeit.Marke("PartieStarten (Startoptionen, Spielmenü)");
-        await ErsteBilderAbwarten(lade, 0.75f);
+        await ErsteBilderAbwarten(lade, 0.784f);
         Ladezeit.Marke("ErsteBilderAbwarten (Shader, Gras, Wetterprobe)");
         SetProcess(true);
         SetProcessUnhandledInput(true);
@@ -328,7 +328,9 @@ public partial class Hauptszene : Node
             ? Array.Empty<Wetterlage?>() : new Wetterlage?[] { null, Wetterlage.Regen, Wetterlage.Regen, Wetterlage.Schnee, Wetterlage.Schnee, null };
         for (var bild = 0; bild < 300; bild++)
         {
-            lade.Fortschritt(von + (1 - von) * Math.Min(1f, bild / 8f), bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
+            // Das erste Bild (Gras, Büschel, Wegeschicht) dauert am längsten, das dritte (Vögel und Tiere) etwa halb so lang, der Rest ist kurz
+            var anteil = bild switch { 0 => von, 1 => von + 0.006f, _ => 0.925f + 0.075f * Math.Min(1f, (bild - 2) / 6f) };
+            lade.Fortschritt(anteil, bild < 2 ? "Gras wächst …" : "Letzte Handgriffe …");
             if (bild >= 1 && bild - 1 < proben.Length) _stadt.WetterProbe(proben[bild - 1]);
             if (bild == 2) _stadt.VoegelUndTiereVorbauen(); // sonst baut sie das erste Bild nach dem Ladebildschirm (Stadtansicht.Voegel.cs)
             Ladezeit.Teil("Aktualisieren hinter dem Ladebild", () => _stadt.Aktualisieren(GetProcessDeltaTime()));
