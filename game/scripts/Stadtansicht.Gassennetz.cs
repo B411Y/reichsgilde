@@ -52,6 +52,13 @@ public sealed class Gassennetz
     /// <summary>Die Fähren als Strecken (Anleger zu Anleger).</summary>
     public IEnumerable<(Vector3 Von, Vector3 Bis)> FaehrKanten => _faehren.Select(k => (_knoten[k.A], _knoten[k.B]));
 
+    /// <summary>Die Knoten, die über eine Kante (ohne Fähren) mit diesem Knoten verbunden sind (leer bei einer ungültigen Nummer).</summary>
+    public IEnumerable<int> NachbarnVon(int knoten)
+    {
+        if (knoten < 0 || knoten >= _knoten.Count) return Enumerable.Empty<int>();
+        return Nachbarn()[knoten].Select(n => n.Ziel);
+    }
+
     /// <summary>Knoten an diesem Punkt (vorhandener in Fangweite oder neuer).</summary>
     public int KnotenBei(Vector3 p)
     {

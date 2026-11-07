@@ -4,7 +4,7 @@ using Reichsgilde.Core.Entwickler;
 namespace Reichsgilde;
 
 /// <summary>
-/// Startoption <c>--diebtest=1|festnahme|klick|klickfremd|klickfest|bildfolge</c> (Teil der <c>partial class Hauptszene</c>; nur für Bilder und Tests, braucht <c>--entwickler=1</c>): Das eigene Haus
+/// Startoption <c>--diebtest=1|festnahme|festnahmetor|ausweichen|ausweichnacht|klick|klickfremd|klickfest|bildfolge</c> (Teil der <c>partial class Hauptszene</c>; nur für Bilder und Tests, braucht <c>--entwickler=1</c>): Das eigene Haus
 /// und das erste Haus der KI bekommen per Entwicklerbefehl <see cref="EntwicklerDiebeshaus"/> ein Versteck voller Diebe – so sind in Köln, wo die KI kaum
 /// Diebe einsetzt, Taschendiebe am Markt zu sehen (Stadtansicht.Taschendiebe.cs). <c>festnahme</c>: zusätzlich zeigt die Stadt, sobald Passanten am Markt
 /// sind, eine Festnahme (nur Bild, der Kern merkt nichts). <c>klick</c>, <c>klickfremd</c>, <c>klickfest</c>: dazu wird die erste sichtbare eigene, fremde bzw. gefasste Gestalt angeklickt (Auswahltafel, für Bilder). Dazu <c>--startstunde=9</c> (Taschendiebe arbeiten 8 bis 20 Uhr).
@@ -19,11 +19,14 @@ public partial class Hauptszene
         if (w.Konten.FirstOrDefault(k => k != _spieler && k.IstAktiv) is { } rivale)
             _simulation.Bote.Einreihen(_spieler, new EntwicklerDiebeshaus(rivale.Inhaber), e => { if (!e.Erfolg) Protokollieren("--diebtest: " + e.Meldung); });
         _stadt.Bildfolge = wahl == "bildfolge";
-        _stadt.FestnahmeProbe = wahl is "festnahme" or "klickfest";
+        _stadt.FestnahmeProbe = wahl is "festnahme" or "klickfest" or "festnahmetor";
+        _stadt.FestFolge = wahl == "festnahmetor";
         if (wahl is "klick" or "klickfremd" or "klickfest") _stadt.KlickProbe = wahl;
         // Nacht (Stadtansicht.Nachtdiebe.cs): die Stadt trägt kurz nach 20 Uhr einen Vorfall ins Bild ein (nur Bild); „echt“ bestellt dagegen wirklich Einbruch und Bande beim Kern
-        if (wahl is "nacht" or "einbruch" or "bande" or "fremd" or "nachtfolge" or "bandefolge" or "klicknacht" or "klickbande" or "klickfremdnacht")
-            _stadt.NachtProbe = wahl switch { "nachtfolge" or "klicknacht" => "einbruch", "bandefolge" or "klickbande" => "bande", "klickfremdnacht" => "fremd", _ => wahl };
+        if (wahl is "nacht" or "einbruch" or "bande" or "fremd" or "nachtfolge" or "bandefolge" or "klicknacht" or "klickbande" or "klickfremdnacht" or "ausweichnacht")
+            _stadt.NachtProbe = wahl switch { "nachtfolge" or "klicknacht" or "ausweichnacht" => "einbruch", "bandefolge" or "klickbande" => "bande", "klickfremdnacht" => "fremd", _ => wahl };
+        // Ausweichen (Stadtansicht.Ausweichen.cs): die Zeit hält an, wenn der eigene Dieb der Streife ausweicht (Tag: Taschendieb, Nacht: Einbrecher)
+        _stadt.AusweichFolge = wahl is "ausweichen" or "ausweichnacht";
         _stadt.NachtFolge = wahl is "nachtfolge" or "bandefolge" or "echtfolge";
         if (wahl is "klicknacht" or "klickbande" or "klickfremdnacht") _stadt.NachtKlick = wahl == "klickfremdnacht" ? "klickfremd" : wahl;
         if (wahl is "echt" or "echtfolge") DiebtestEchteAuftraege(w);

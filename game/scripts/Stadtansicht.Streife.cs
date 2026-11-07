@@ -140,6 +140,7 @@ public partial class Stadtansicht
                 runde = (ganz, Gassennetz.Laenge(ganz));
             }
         }
+        if (runde is null && StreifeLog) GD.Print($"[streife] keine Runde: Tür {TuerAnker(haus.Name)}, Netz {_netz.Knoten.Count} Knoten");
         if (runde is null) _streifeFehl[schluessel] = _figurenBild + 900; // später neu versuchen (etwa alle 15 s)
         else _streifenrunden[schluessel] = runde;
         if (StreifeLog) GD.Print($"[streife] {haus.Name} ({w.Befugnisse.ViertelVon(haus)}): {art} {viertel}, " + (runde is { } r ? $"{r.Laenge / 2:0} m hin, Tür {TuerAnker(haus.Name)?.X:0}|{TuerAnker(haus.Name)?.Z:0}, Ziel {r.Runde[r.Runde.Length / 2].X:0}|{r.Runde[r.Runde.Length / 2].Z:0}" : "keine Runde"));

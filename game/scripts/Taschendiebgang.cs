@@ -104,19 +104,31 @@ public static class Taschendiebgang
     /// <summary>Wie lange der Zugriff dauert (Spielminuten): Der Gardist packt zu, der Dieb wehrt sich kurz.</summary>
     public const double ZugriffDauer = 2;
 
-    public enum Fest { Lauf, Zugriff, Abfuehren, Fertig }
+    public enum Fest { Lauf, Zugriff, Abfuehren, Rueckkehr, Fertig }
+
+    /// <summary>
+    /// Ein Torwächter fasst nur, wenn die Festnahme höchstens so weit (Meter) vom Tor liegt (Luftlinie vom Ort des Diebes); sonst kommt wie bisher ein Gardist
+    /// vom Wachhaus bzw. vom nächsten Tor.
+    /// </summary>
+    public const float TorwaechterNaehe = 80;
+
+    /// <summary>Fasst ein Torwächter? Das Tor ist nahe genug (<see cref="TorwaechterNaehe"/>) und am Posten stehen mindestens zwei (einer bleibt als Ersatzmann).</summary>
+    public static bool TorwaechterFasst(float torAbstand, int amPosten) => torAbstand <= TorwaechterNaehe && amPosten >= 2;
 
     /// <summary>
     /// Der Abschnitt der Festnahme <paramref name="seit"/> Spielminuten nach dem Alarm: der Gardist läuft <paramref name="laufDauer"/> Minuten, packt zu
     /// (<see cref="ZugriffDauer"/>) und führt den Dieb in <paramref name="fuehrDauer"/> Minuten ab. <paramref name="anteil"/>: wie weit der Abschnitt ist.
+    /// Fasst ein Torwächter, geht er danach noch <paramref name="rueckDauer"/> Minuten auf seinen Posten zurück (<see cref="Fest.Rueckkehr"/>); sonst 0.
     /// </summary>
-    public static Fest FestnahmeBei(double seit, double laufDauer, double fuehrDauer, out double anteil)
+    public static Fest FestnahmeBei(double seit, double laufDauer, double fuehrDauer, out double anteil, double rueckDauer = 0)
     {
         if (seit < laufDauer) { anteil = laufDauer <= 0 ? 1 : System.Math.Max(0, seit) / laufDauer; return Fest.Lauf; }
         seit -= laufDauer;
         if (seit < ZugriffDauer) { anteil = seit / ZugriffDauer; return Fest.Zugriff; }
         seit -= ZugriffDauer;
         if (seit < fuehrDauer) { anteil = seit / fuehrDauer; return Fest.Abfuehren; }
+        seit -= fuehrDauer;
+        if (seit < rueckDauer) { anteil = seit / rueckDauer; return Fest.Rueckkehr; }
         anteil = 1;
         return Fest.Fertig;
     }
