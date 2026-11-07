@@ -287,7 +287,7 @@ public partial class Stadtansicht
         if (_regen is not null && _regen.Layers != teilchen) _regen.Layers = teilchen;
         if (_schnee is not null && _schnee.Layers != teilchen) _schnee.Layers = teilchen;
         // ebenso alle anderen durchsichtigen Flächen: Traufentropfen und -spritzer, Lichtflecken und -schein, Flammen und Rauch (sonst dunkle Rechtecke im Beleuchtungsbild)
-        foreach (VisualInstance3D? knoten in new VisualInstance3D?[] { _traufTropfen, _traufRinge, _fleckBoden, _fleckSchein })
+        foreach (VisualInstance3D? knoten in new VisualInstance3D?[] { _traufTropfen, _traufRinge, _fleckBoden, _fleckSchein, _fleckPassanten })
             if (knoten is not null && knoten.Layers != teilchen) knoten.Layers = teilchen;
         // Hilfsflächen mit Lichtzwilling: das Beleuchtungsbild zeichnet durchsichtige Flächen undurchsichtig und verdeckte den Zwilling, es sieht sie darum nicht (wie die Teilchen)
         _pxHilfeNetze.RemoveAll(h => !IsInstanceValid(h.Netz) || !IsInstanceValid(h.Zwilling));
