@@ -41,11 +41,12 @@ TIERE = [
     ("SchweinWuehlend", tc.schwein, {"wuehlen": True}),
     ("ZiegeStehend", tc.ziege, {}),
     ("ZiegeFressend", tc.ziege, {"fressen": True}),
+    ("Huhn", tc.huhn, {}),
 ]
 
 
 def tiere_bauen():
-    """Die vier Tiere als Objekte (Sommer; Tiere haben keine Winterfassung). Aufruf nach bs.neue_szene()."""
+    """Die Tiere als Objekte (Sommer; Tiere haben keine Winterfassung). Aufruf nach bs.neue_szene()."""
     bs.neue_szene()
     p2.STOFFE = bs.Stoffe()
     return [bauer(name, **kw) for name, bauer, kw in TIERE], []
@@ -85,10 +86,10 @@ def huehnerstall(netz, st, saat, winter=False):
         for sy in (-1, 1):
             netz.quader((sx * (B / 2 - 0.02), sy * (T / 2 - 0.02), z0 + 0.05 + H / 2 + 0.05), (0.07, 0.07, H + 0.1), st["Holz alt"])
     # Dach: fällt nach hinten (+x tief ist rechts), Schindeln
-    bs.pultdach(netz, st, -B / 2 - 0.05, B / 2 + 0.05, -T / 2, T / 2, z0 + H + 0.3, z0 + H + 0.12, stoff="Schindel")
+    bs.pultdach(netz, st, -B / 2 - 0.05, B / 2 + 0.05, -T / 2, T / 2, z0 + H + 0.3, z0 + H + 0.12, stoff="Holz alt")
     # Einschlupfklappe vorn rechts und Hühnerleiter
     klappe_x = 0.38
-    netz.quader((klappe_x, -T / 2 - 0.012, z0 + 0.3), (0.3, 0.02, 0.34), st["Loch"])
+    netz.quader((klappe_x, -T / 2 - 0.012, z0 + 0.3), (0.3, 0.02, 0.34), st["Rinde"])
     netz.quader((klappe_x, -T / 2 - 0.03, z0 + 0.3), (0.38, 0.02, 0.04), st["Holz alt"])
     netz.quader((klappe_x, -T / 2 - 0.03, z0 + 0.47), (0.38, 0.02, 0.04), st["Holz alt"])
     for sx in (-1, 1):
@@ -98,10 +99,10 @@ def huehnerstall(netz, st, saat, winter=False):
         netz.stab(an + Vector((sx, 0, 0)), aus + Vector((sx, 0, 0)), 0.05, 0.03, st["Holz alt"], quer=(1, 0, 0))
     for k in range(1, 6):
         p = an + (aus - an) * (k / 6)
-        netz.quader((p.x, p.y, p.z + 0.03), (0.26, 0.025, 0.025), st["Holz"])
+        netz.quader((p.x, p.y, p.z + 0.03), (0.26, 0.025, 0.025), st["Holz alt"])
     # Sitzstange an der linken Seitenwand, auf zwei Stützen
     s0 = Vector((-B / 2 - 0.58, 0.05, z0 + 0.34))
-    nt.ast(netz, st, s0, s0 + Vector((0.56, 0, 0)), 0.03, 0.03, stoff="Holz", n=5)
+    nt.ast(netz, st, s0, s0 + Vector((0.56, 0, 0)), 0.03, 0.03, stoff="Holz alt", n=5)
     for y in (-0.15, 0.25):
         nt.ast(netz, st, (-B / 2 - 0.54, y, 0.0), (-B / 2 - 0.54, y, z0 + 0.34), 0.03, 0.025, stoff="Holz alt", n=4)
     nt.ast(netz, st, (-B / 2 - 0.54, -0.15, z0 + 0.3), (-B / 2 - 0.54, 0.25, z0 + 0.3), 0.025, 0.025, stoff="Holz alt", n=4)
@@ -139,7 +140,7 @@ def schuppen(netz, st, saat, winter=False):
     # Dachbalken und Dach
     for y in (-T / 2 + 0.05, 0, T / 2 - 0.05):
         netz.stab((-L / 2 - 0.1, y, h_hoch - 0.12), (L / 2 + 0.1, y, h_tief - 0.12), 0.1, 0.08, st["Holz alt"])
-    bs.pultdach(netz, st, -L / 2 - 0.1, L / 2 + 0.1, -T / 2 - 0.05, T / 2 + 0.05, h_hoch + 0.03, h_tief - 0.12, stoff="Schindel")
+    bs.pultdach(netz, st, -L / 2 - 0.1, L / 2 + 0.1, -T / 2 - 0.05, T / 2 + 0.05, h_hoch + 0.03, h_tief - 0.12, stoff="Holz alt")
     # Tür vorn rechts
     tb, th = 1.0, 1.58
     tx = L / 2 - 0.62
@@ -180,10 +181,10 @@ def gatter(netz, st, saat, winter=False):
         lb.kegel(netz, (sx * X, 0), 0.062, H - 0.02, H + 0.09, st["Holz alt"], n=6)
     riegel = (0.22, 0.62, 1.0)
     for zz in riegel:
-        netz.stab((-X + 0.07, 0.0, zz), (X - 0.07, 0.0, zz), 0.09, 0.05, st["Holz"])
+        netz.stab((-X + 0.07, 0.0, zz), (X - 0.07, 0.0, zz), 0.09, 0.05, st["Holz alt"])
     for sx in (-1, 1):
-        netz.stab((sx * (X - 0.14), 0.0, 0.14), (sx * (X - 0.14), 0.0, 1.08), 0.08, 0.05, st["Holz"], quer=(1, 0, 0))
-    netz.stab((-X + 0.16, -0.035, 0.28), (X - 0.2, -0.035, 0.96), 0.09, 0.03, st["Holz"])            # Strebe von unten (Angel) nach oben (Schloss)
+        netz.stab((sx * (X - 0.14), 0.0, 0.14), (sx * (X - 0.14), 0.0, 1.08), 0.08, 0.05, st["Holz alt"], quer=(1, 0, 0))
+    netz.stab((-X + 0.16, -0.035, 0.28), (X - 0.2, -0.035, 0.96), 0.09, 0.03, st["Holz alt"])            # Strebe von unten (Angel) nach oben (Schloss)
     for zz in (0.3, 0.9):                                                                              # Eisenbänder am Angelpfosten
         netz.quader((-X + 0.28, -0.042, zz), (0.5, 0.012, 0.055), st["Eisen"])
         netz.quader((-X, -0.062, zz), (0.1, 0.03, 0.08), st["Eisen"])
@@ -192,9 +193,9 @@ def gatter(netz, st, saat, winter=False):
     for k in range(5):                                                                                 # Seilschlaufe
         a = 2 * math.pi * k / 5
         netz.stab((X - 0.3 + 0.045 * math.cos(a), -0.08, 0.52 + 0.045 * math.sin(a)), (X - 0.3 + 0.045 * math.cos(a + 1.25), -0.08, 0.52 + 0.045 * math.sin(a + 1.25)),
-                  0.014, 0.014, st["Seil"])
+                  0.014, 0.014, st["Holz alt"])
     for sx in (-1, 1):                                                                                 # Erdanhäufung am Pfosten, Trampelstelle
-        p2.kuppel(netz, st, (sx * X, -0.1, 0.0), 0.2, 0.17, 0.05, ("Fuellung Erde", "Fuellung Erde hell"), n=14, saat=saat + sx, jitter=0.15)
+        p2.kuppel(netz, st, (sx * X, -0.1, 0.0), 0.2, 0.17, 0.05, ("Fuellung Erde", "Fuellung Erde"), n=14, saat=saat + sx, jitter=0.15)
     if winter:
         for zz in riegel:
             p2.schneestreifen(netz, st, -X + 0.08, X - 0.08, 0.0, zz + 0.045, 0.09, 0.035)
@@ -221,7 +222,7 @@ def futterraufe(netz, st, saat, winter=False):
     for sy in (-1, 1):
         for k in range(9):
             x = -0.74 + 0.185 * k
-            netz.stab((x, sy * 0.24, 0.62), (x, sy * 0.4, 1.15), 0.035, 0.03, st["Holz"], quer=(1, 0, 0))
+            netz.stab((x, sy * 0.24, 0.62), (x, sy * 0.4, 1.15), 0.035, 0.03, st["Holz alt"], quer=(1, 0, 0))
         netz.stab((-0.78, sy * 0.405, 1.14), (0.78, sy * 0.405, 1.14), 0.05, 0.04, st["Holz alt"])
         netz.stab((-0.78, sy * 0.3, 0.84), (0.78, sy * 0.3, 0.84), 0.04, 0.035, st["Holz alt"])
     for sx in (-1, 1):                                                                                  # Stirnbretter
@@ -244,9 +245,9 @@ def futterraufe(netz, st, saat, winter=False):
 def strohschuettung(netz, st, saat, winter=False):
     """Strohschütte am Boden: flache, zertretene Lage mit Hügeln, Halmen und einem dunkleren, feuchten Rand."""
     z = rng(saat)
-    p2.kuppel(netz, st, (0, 0, 0.0), 1.05, 0.8, 0.17, ("Stroh", "Heu", "Stroh", "Strohkante", "Stroh"), n=20, saat=saat, jitter=0.18,
+    p2.kuppel(netz, st, (0, 0, 0.0), 1.05, 0.8, 0.17, ("Stroh", "Heu", "Stroh", "Stroh", "Stroh"), n=20, saat=saat, jitter=0.18,
               profil=((1.0, 0.0), (0.96, 0.35), (0.75, 0.75), (0.35, 1.0)))
-    p2.kuppel(netz, st, (0.35, 0.2, 0.0), 0.5, 0.4, 0.27, ("Stroh", "Strohkante", "Stroh"), n=16, saat=saat + 1, jitter=0.2)
+    p2.kuppel(netz, st, (0.35, 0.2, 0.0), 0.5, 0.4, 0.27, ("Stroh", "Stroh", "Stroh"), n=16, saat=saat + 1, jitter=0.2)
     p2.kuppel(netz, st, (-0.5, -0.25, 0.0), 0.4, 0.35, 0.2, ("Heu", "Stroh", "Stroh"), n=16, saat=saat + 2, jitter=0.2)
     for k in range(34):
         r = z.uniform(0.2, 1.0)
@@ -254,7 +255,7 @@ def strohschuettung(netz, st, saat, winter=False):
         x, y = 1.0 * r * math.cos(w), 0.78 * r * math.sin(w)
         zz = 0.12 * (1 - r * r) + 0.02
         d = z.uniform(0, 6.28)
-        p2.halm(netz, st, (x, y, zz), (x + 0.26 * math.cos(d), y + 0.26 * math.sin(d), zz + z.uniform(0.0, 0.1)), "Stroh" if k % 3 else "Strohkante")
+        p2.halm(netz, st, (x, y, zz), (x + 0.26 * math.cos(d), y + 0.26 * math.sin(d), zz + z.uniform(0.0, 0.1)), "Stroh" if k % 3 else "Stroh")
     for k in range(12):                                                                                 # verstreute Halme außerhalb
         w = z.uniform(0, 6.28)
         x, y = 1.2 * math.cos(w), 0.95 * math.sin(w)
@@ -280,7 +281,7 @@ def ziehbrunnen(netz, st, saat, winter=False):
         for k in range(n):
             w = 2 * math.pi * (k + 0.5 * lage) / n + z.uniform(-0.03, 0.03)
             tang = 2 * (R_aus + 0.02) * math.tan(math.pi / n) + 0.02
-            stoff = "Sandstein alt" if (k + lage) % 4 else "Bruchstein"
+            stoff = "Sandstein alt" if (k + lage) % 4 else "Sandstein alt"
             tiefe = R_aus - R_in + z.uniform(-0.03, 0.03)
             h = hoehe + z.uniform(-0.015, 0.015)
             mitte = Vector(((R_aus + R_in) / 2 + (0.01 if lage else -0.01), 0, lage * hoehe + h / 2))
@@ -295,13 +296,13 @@ def ziehbrunnen(netz, st, saat, winter=False):
         for sy in (-1, 1):
             netz.stab((sx * 0.98, sy * 0.05, 0.9), (sx * 0.66, sy * 0.05, 1.8), 0.07, 0.05, st["Holz alt"], quer=(0, 1, 0))
     netz.stab((-1.1, 0, 2.12), (1.1, 0, 2.12), 0.12, 0.1, st["Holz alt"])
-    nt.ast(netz, st, (-1.05, 0, 1.78), (1.2, 0, 1.78), 0.075, 0.075, stoff="Holz", n=8)              # Walze der Haspel
-    netz.quader((1.2, 0.08, 1.78), (0.05, 0.05, 0.3), st["Holz"])                                      # Kurbelarm
-    netz.quader((1.2, 0.2, 1.64), (0.05, 0.24, 0.05), st["Holz"])                                      # Handgriff
-    nt.ast(netz, st, (0, 0, 1.78), (0.0, 0.0, 0.92), 0.012, 0.012, stoff="Seil", n=4)                # Seil zum Eimer
+    nt.ast(netz, st, (-1.05, 0, 1.78), (1.2, 0, 1.78), 0.075, 0.075, stoff="Holz alt", n=8)              # Walze der Haspel
+    netz.quader((1.2, 0.08, 1.78), (0.05, 0.05, 0.3), st["Holz alt"])                                      # Kurbelarm
+    netz.quader((1.2, 0.2, 1.64), (0.05, 0.24, 0.05), st["Holz alt"])                                      # Handgriff
+    nt.ast(netz, st, (0, 0, 1.78), (0.0, 0.0, 0.92), 0.012, 0.012, stoff="Holz alt", n=4)                # Seil zum Eimer
     for k in range(4):                                                                                 # Seilwindungen auf der Walze
         netz.prisma([(0.082 * math.cos(2 * math.pi * j / 8), 0.082 * math.sin(2 * math.pi * j / 8)) for j in range(8)], -0.18 + 0.07 * k, -0.18 + 0.07 * k + 0.04,
-                    st["Seil"], matrix=Matrix.Translation((0, 0, 1.78)) @ Matrix.Rotation(math.radians(0), 4, "Y"))
+                    st["Holz alt"], matrix=Matrix.Translation((0, 0, 1.78)) @ Matrix.Rotation(math.radians(0), 4, "Y"))
     bs.fass(netz, st, Vector((0, 0, 0.7)), r=0.15, h=0.26, reifen=(0.06, 0.18))                      # Eimer hängt im Rohr
     netz.stab((-0.13, 0, 1.0), (0.13, 0, 1.0), 0.02, 0.02, st["Eisen"])                              # Bügel
     if winter:
@@ -332,10 +333,10 @@ def wassertrog_stein(netz, st, saat, winter=False):
         s = z.choice((-1, 1))
         netz.quader((x, s * (B / 2 + 0.003 + 0.003 * k), z.uniform(0.04, 0.2)), (z.uniform(0.2, 0.4), 0.012, z.uniform(0.07, 0.14)), st["Moos"])
     for sx in (-1, 1):                                                                                  # Standfuß: zwei flache Steine
-        netz.quader((sx * 0.68, 0, 0.0), (0.5, B + 0.1, 0.06), st["Bruchstein"], ohne=("-z",))
+        netz.quader((sx * 0.68, 0, 0.0), (0.5, B + 0.1, 0.06), st["Sandstein alt"], ohne=("-z",))
     # Brunnenrohr aus ausgehöhltem Holz, hängt auf einem Pfosten über dem linken Ende
     nt.ast(netz, st, (-L / 2 - 0.2, 0, -0.03), (-L / 2 - 0.2, 0, 1.0), 0.07, 0.06, stoff="Holz alt", n=6)
-    nt.ast(netz, st, (-L / 2 - 0.2, 0, 0.95), (-L / 2 + 0.3, 0, 0.78), 0.04, 0.045, stoff="Holz", n=6)
+    nt.ast(netz, st, (-L / 2 - 0.2, 0, 0.95), (-L / 2 + 0.3, 0, 0.78), 0.04, 0.045, stoff="Holz alt", n=6)
     if winter:
         for s in (-1, 1):
             p2.schneestreifen(netz, st, -L / 2 + 0.02, L / 2 - 0.02, s * (B / 2 - 0.05), H + 0.002, 0.09, 0.04)

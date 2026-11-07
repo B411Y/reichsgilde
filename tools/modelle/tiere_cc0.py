@@ -33,8 +33,10 @@ bs.FARBEN.update({
     "Ziege hell": (0.80, 0.74, 0.62),
     "Ziege fleck": (0.64, 0.55, 0.40),
     "Ziege dunkel": (0.23, 0.18, 0.14),
-    "Horn": (0.50, 0.45, 0.36),
     "Huf": (0.11, 0.095, 0.085),
+    "Huhn Hof": (0.55, 0.33, 0.16),                 # Körper des Hofhuhns (die drei Brauntöne des Stadthuhns in einem)
+    "Huhn Kamm": (0.76, 0.09, 0.09),
+    "Huhn Fuss": (0.84, 0.69, 0.28),                # Beine und Schnabel
 })
 LAENGE_SCHWEIN = 1.2       # Meter von der Nase bis zum Hintern
 FAKTOR_ZIEGE = 0.29        # Maßstab der Quelle (Ziegenhöhe 3,7 → 1,07 m, Länge ohne Schwanzrest rund 1,1 m)
@@ -149,6 +151,42 @@ def _laden_schwein():
     return bm, kopf, hals, huf_index
 
 
+HUHN_DATEI = os.path.join(bs.MODELLE, "tiere", "tier_huhn_braun.glb")
+HUHN_FAKTOR = 0.55       # das Stadthuhn ist 0,8 m hoch (Maßstab 1 in der Stadt); als Hofhuhn 0,44 m
+HUHN_STOFFE = {"Kamm": "Huhn Kamm", "Huhn Bein": "Huhn Fuss", "Huhn Schnabel": "Huhn Fuss"}   # alles andere: Huhn Hof
+
+
+def huhn(name):
+    """Das Huhn der Stadt (tiere/tier_huhn_braun.glb, eigenes Modell) im Ruhezustand ohne Skelett, auf Hofmaß und mit nur drei Stoffen
+    (Huhn Hof, Huhn Kamm, Huhn Fuss) statt acht – jeder Stoff ist in der Füllung eine Fläche und kostet Zeichenaufrufe."""
+    vorher = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=HUHN_DATEI)
+    neue = [o for o in bpy.data.objects if o not in vorher]
+    quelle = next(o for o in neue if o.type == "MESH")
+    for o in neue:
+        if o.type == "ARMATURE":
+            o.data.pose_position = "REST"
+            if o.animation_data:
+                o.animation_data.action = None
+    bpy.context.view_layer.update()
+    e = quelle.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    me = e.to_mesh()
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.transform(e.matrix_world)
+    mats = [m.name.split(".")[0] if m else "" for m in quelle.data.materials]
+    e.to_mesh_clear()
+    for o in neue:
+        bpy.data.objects.remove(o)
+    z0 = min(v.co.z for v in bm.verts)
+    ys = [v.co.y for v in bm.verts]
+    ym = (min(ys) + max(ys)) / 2
+    for v in bm.verts:
+        v.co = Vector((v.co.x * HUHN_FAKTOR, (v.co.y - ym) * HUHN_FAKTOR, (v.co.z - z0) * HUHN_FAKTOR))
+    klassen = {fl.index: HUHN_STOFFE.get(mats[fl.material_index], "Huhn Hof") for fl in bm.faces}
+    return _objekt(name, bm, klassen)
+
+
 def schwein(name, wuehlen=False):
     """Hausschwein (Quaternius, CC0), rosa mit hellem Bauch, Hufe dunkel; Länge 1,2 m, Ursprung Mitte am Boden, Nase nach -Y."""
     bm, kopf, hals, huf_index = _laden_schwein()
@@ -199,8 +237,8 @@ def ziege(name, fressen=False):
     for fl in bm.faces:
         c = fl.calc_center_median()
         zr, yr = c.z, c.y
-        if zr > 3.3 and yr > -1.25:
-            n = "Horn"
+        if zr > 3.42 and yr > -1.25:
+            n = "Ziege dunkel"            # Hörner und Ohren dunkel (ein Stoff weniger als mit Horn-Stoff: weniger Zeichenaufrufe)
         elif zr < 0.28:
             n = "Huf"
         elif zr < 1.15:

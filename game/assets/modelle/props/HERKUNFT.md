@@ -20,6 +20,7 @@ Die Pakete selbst liegen nicht im Repository.
 - **Ziege** (`ZiegeStehend`, `ZiegeFressend`): „Goat“ von **Copabrangorandel**, geladen von https://opengameart.org/node/142490 (Lizenz auf der
   Seite: CC0; Anmerkung des Urhebers: „CC0 intended“). Ein unbewegliches OBJ ohne Textur (in ZBrush modelliert), hier auf rund 2000 Dreiecke
   vereinfacht, der Schwanz gekürzt, für das Fressen der Kopf geneigt.
+- **Huhn** (`Huhn`): das eigene Modell der Stadt (`tiere/tier_huhn_braun.glb`) ohne Skelett, auf Hofmaß (0,44 m) und mit drei statt acht Stoffen; kein Fremdmaterial.
 - Bearbeitung: `tools/modelle/tiere_cc0.py` (Maßstab, Fuß auf den Boden, Stoffe je Fläche, glatt schattiert). Die Quelldateien liegen nicht im
   Repository (Ordner `RG_KITS`, `Quaternius_Pig_CC0/pig_TNvG3QUFlp.glb` und `OGA_Goat_CC0/goatlowrez.obj`).
 - Geprüft am 07.11.2026 an den Seiten der Quellen. Eine eigene Lizenzdatei liegt den Downloads nicht bei.
