@@ -8,7 +8,9 @@ Nachen: 5 m × 1,3 m (Maße plausibel, nicht belegt), flacher Boden, drei überl
 beide Enden spitz und hochgezogen. Ein Schiffer steht achtern und staket (die Figur setzt das Spiel an Anker_Schiffer).
 Bug bei +X, Ursprung auf der Wasserlinie in der Mitte.
 
-    Nachen          Rumpf mit Duchten und Leinenring am Bug.
+    Nachen          Rumpf mit Duchten und Leinenring am Bug, Boden unten geschlossen.
+    Verdraenger     unsichtbarer Körper in Rumpfform: Das Spiel gibt ihm einen Stoff, der nur Tiefe schreibt, damit die Wasserfläche im Boot ausgespart bleibt
+                    (der Boden liegt unter der Wasserlinie; ohne Verdränger stünde der Schiffer im Wasser).
     Stange          Stakstange im Gebrauch: schräg vom Schiffer zum Grund (nur beim Staken sichtbar).
     Stange_Liegend  dieselbe Stange längs im Boot (festgemacht).
     Anker_Bug, Anker_Heck, Anker_Schiffer (achtern, Blick +X).
@@ -20,6 +22,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
+import oberlaender as ob  # noqa: E402  (Verdränger)
 import wasser as ws  # noqa: E402
 from bausteine import Vector  # noqa: E402
 
@@ -68,6 +71,9 @@ def rumpf(st):
             # Dollbord
             netz.vieleck_nach([(xa, s * (wa + 0.02), ga + 0.02), (xb, s * (wb + 0.02), gb + 0.02), (xb, s * (wb - 0.08), gb + 0.02), (xa, s * (wa - 0.08), ga + 0.02)],
                               (0, 0, 1), st["Holz alt"])
+        # Unterseite geschlossen (Teer)
+        netz.vieleck([(xa, profil(xa)[1], profil(xa)[2]), (xb, profil(xb)[1], profil(xb)[2]), (xb, -profil(xb)[1], profil(xb)[2]), (xa, -profil(xa)[1], profil(xa)[2])],
+                     st["Teerholz"], immer=True)
         # Boden: Bretter längs
         za, zb_ = profil(xa)[2] + 0.04, profil(xb)[2] + 0.04
         fa, fb = profil(xa)[1] * 0.98, profil(xb)[1] * 0.98
@@ -99,7 +105,7 @@ def stange(st, liegend):
 
 
 def bauen(st):
-    return [rumpf(st), stange(st, False), stange(st, True),
+    return [rumpf(st), ob.verdraenger(st, profil, HALB, innen=0.08, schritt=0.25), stange(st, False), stange(st, True),
             bs.anker("Anker_Bug", (HALB + 0.1, 0, 0), 270), bs.anker("Anker_Heck", (-HALB - 0.1, 0, 0), 90),
             bs.anker("Anker_Schiffer", (-1.35, 0, 0.02), 270)]
 
@@ -107,10 +113,10 @@ def bauen(st):
 def vorschau(objekte, schnell):
     ws.buehne(9.0, 1.2, schnell)
     ws.gelaende([(-60, -3.0), (60, -3.0)], (-60, 60, 0.0), achse="y")
-    zeigen = {o for o in objekte if o.name != "Stange_Liegend"} | {k for o in objekte for k in o.children_recursive}
+    zeigen = {o for o in objekte if o.name not in ("Stange_Liegend", "Verdraenger")} | {k for o in objekte for k in o.children_recursive}
     ws.stempel("Nachen mit Stakstange")
     a = bs.rendern("_wasser_nachen_a", lambda o: o in zeigen)
-    zeigen = {o for o in objekte if o.name != "Stange"} | {k for o in objekte for k in o.children_recursive}
+    zeigen = {o for o in objekte if o.name not in ("Stange", "Verdraenger")} | {k for o in objekte for k in o.children_recursive}
     ws.stempel("festgemacht: Stange liegt im Boot")
     b = bs.rendern("_wasser_nachen_b", lambda o: o in zeigen, 2)
     return ws.nebeneinander("wasser_nachen", [a, b])
