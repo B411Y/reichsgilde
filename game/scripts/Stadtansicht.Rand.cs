@@ -709,7 +709,8 @@ public partial class Stadtansicht
         Ladezeit.Dazu("Felder: vorbereiten: Pflanzennetz", uhr);
         // Der Hauptfaden lädt währenddessen weiter und braucht seine Kerne: die Hintergrundrechnung nimmt höchstens die Hälfte (sie hat Zeit bis zum Schritt „Felder“).
         var grad = Math.Max(2, System.Environment.ProcessorCount / 2);
-        var po = new ParallelOptions { MaxDegreeOfParallelism = grad, TaskScheduler = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, grad).ConcurrentScheduler }; // ein Planer für alle Schleifen: auch verschachtelte teilen sich die Fäden
+        _felderAbbruch = new CancellationTokenSource();
+        var po = new ParallelOptions { MaxDegreeOfParallelism = grad, CancellationToken = _felderAbbruch.Token, TaskScheduler = new ConcurrentExclusiveSchedulerPair(TaskScheduler.Default, grad).ConcurrentScheduler }; // ein Planer für alle Schleifen: auch verschachtelte teilen sich die Fäden
         _felderAufgabe = Task.Run(() =>
         {
             var uhrKern = System.Diagnostics.Stopwatch.StartNew();
@@ -724,6 +725,18 @@ public partial class Stadtansicht
             rechnung.Zeiten.Insert(0, ("Felder: Kern (Freiraum und Verteilung)", kern));
             return (parzellen, rechnung);
         });
+    }
+
+    private CancellationTokenSource? _felderAbbruch;
+
+    /// <summary>Beim Verlassen der Stadtansicht (<c>_ExitTree</c>): Läuft die Hintergrundrechnung der Äcker noch (Beenden mitten im Laden), bricht sie ab und der Aufrufer wartet, bis kein Faden mehr Godot-Objekte anfasst.</summary>
+    private void FelderAufgeben()
+    {
+        if (_felderAufgabe is not { } aufgabe) return;
+        _felderAbbruch?.Cancel();
+        try { aufgabe.Wait(10000); }
+        catch (Exception) { } // abgebrochen oder gescheitert: es zählt nur, dass sie nicht mehr läuft
+        _felderAufgabe = null;
     }
 
     /// <summary>Die Äcker der Karte im Spiel (Kern: <see cref="FeldVerteilung.Alle"/>), alle in einem Knoten: nimmt die Hintergrundrechnung (<see cref="FelderVorrechnen"/>) und legt sie an.</summary>
