@@ -59,6 +59,41 @@ static class BuergerTorwacheTests
         return json.ToJsonString();
     }
 
+    /// <summary>Bis zu welchem Alter ein Wächter Dienst tut (wie <c>Torwache.Ruhestand</c>).</summary>
+    static int Grenze(Stadtwirtschaft w, Volk volk)
+    {
+        var vd = w.Familien.VolkDaten(volk);
+        return vd.Volljaehrig + (int)(((int)vd.Sterbealter - vd.Volljaehrig) * 0.6);
+    }
+
+    /// <summary>Keiner ist im Jahr <paramref name="jahr"/> älter als seine Grenze.</summary>
+    static void ImDienstalter(Torwache tw, Stadtwirtschaft w, int jahr)
+    {
+        foreach (var t in tw.Waechter)
+            Pruefe.Wahr(t.Person.Alter(jahr) <= Grenze(w, t.Person.Volk), $"{jahr}: {t.Person.Name} ({t.Person.Volk}, {t.Person.Alter(jahr)}) ist über dem Ruhestand {Grenze(w, t.Person.Volk)}");
+    }
+
+    /// <summary>Original und geladene Partie haben dieselbe Torwache: dieselben Personen an denselben Plätzen, im selben Dienst.</summary>
+    static void GleicheWache(Torwache a, Torwache b, string wann)
+    {
+        Pruefe.Gleich(a.Waechter.Count, b.Waechter.Count, wann);
+        for (var i = 0; i < a.Waechter.Count; i++)
+        {
+            var (x, y) = (a.Waechter[i], b.Waechter[i]);
+            var was = $"{wann}, Wächter {i}";
+            Pruefe.Gleich(x.Person.Name, y.Person.Name, was);
+            Pruefe.Gleich(x.Person.Nummer, y.Person.Nummer, was);
+            Pruefe.Gleich(x.Person.Geburtsjahr, y.Person.Geburtsjahr, was);
+            Pruefe.Gleich(x.Person.Volk, y.Person.Volk, was);
+            Pruefe.Gleich(x.Person.Geschlecht, y.Person.Geschlecht, was);
+            Pruefe.Gleich(x.Person.Glaube, y.Person.Glaube, was);
+            Pruefe.Gleich(x.Tor, y.Tor, was);
+            Pruefe.Gleich(x.Mannschaft, y.Mannschaft, was);
+            Pruefe.Gleich(x.Platz, y.Platz, was);
+            Pruefe.Gleich(a.DienstJetzt(x), b.DienstJetzt(y), was);
+        }
+    }
+
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
         ("Torwache: je Tor zwei Mannschaften zu je zwei Wächtern (Köln 10 Tore = 40, Greybox 3 Tore = 12); ohne Karte oder ohne Daten keine", () =>
@@ -168,35 +203,71 @@ static class BuergerTorwacheTests
 
         ("Torwache: Spielstand geladen – dieselben Wächter, derselbe Dienst; nach Jahren gehen Alte in den Ruhestand", () =>
         {
+            // Kurzfassung (7.11.2026): Früher liefen Original und geladene Partie 30 Spieljahre nebeneinander (233 s), nur damit
+            // genug Wächter alt werden. Jetzt sind am Stichtag einige Wächter von vornherein „über der Grenze“ bzw. „genau an der
+            // Grenze“ – der erste echte Jahreswechsel bringt Ruhestand und Nachrücken in beiden Partien. Die übrigen 29 Jahreswechsel
+            // laufen ohne die Wirtschaft (nur die Torwache, die ja nichts von ihr nimmt) und prüfen dieselben Bedingungen wie früher.
             var (sim, w) = Partie(Daten(), "koeln");
-            Bis(sim, 13 * 60 + 50);
-            var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, w.Konten[0]), Stadtkarte.AusDatei(Datenpfad.Karte("koeln")));
             var a = w.Einwohnerschaft.Torwache;
+            Bis(sim, 13 * 60 + 50);
+            var neuesJahr = sim.Zeit.Jahr + 1;
+            for (var i = 0; i < a.Waechter.Count; i++)
+            {
+                var p = a.Waechter[i].Person;
+                if (i % 3 == 0) p.Geburtsjahr = neuesJahr - Grenze(w, p.Volk) - 1; // im neuen Jahr eins über der Grenze: geht in den Ruhestand
+                else if (i % 3 == 1) p.Geburtsjahr = neuesJahr - Grenze(w, p.Volk); // genau an der Grenze: bleibt noch ein Jahr
+            }
+            Pruefe.Wahr(a.Waechter.Where((_, i) => i % 3 == 0).Select(t => t.Person.Volk).Distinct().Count() >= 2, "Ruhestand in mehreren Völkern");
+            var vorher = a.Waechter.Select(t => t.Person).ToList();
+            var naechsteNummer = vorher.Max(e => e.Nummer) + 1;
+
+            var (geladen, _) = Speicherung.Laden(Speicherung.Speichern(sim, w.Konten[0]), Stadtkarte.AusDatei(Datenpfad.Karte("koeln")));
             var b = geladen.Wirtschaft!.Einwohnerschaft.Torwache;
-            Pruefe.Gleich(a.Waechter.Count, b.Waechter.Count);
+            GleicheWache(a, b, "geladen um 13:50");
+
+            // Bis zum Ende des Spieltags beide Partien ganz – der Jahreswechsel läuft auf dem echten Weg (Stadtwirtschaft → Einwohnerschaft).
+            Bis(sim, 22 * 60 + 59);
+            Bis(geladen, 22 * 60 + 59);
+            GleicheWache(a, b, "22:59");
+            sim.Tick();
+            geladen.Tick();
+            Pruefe.Gleich(neuesJahr, sim.Zeit.Jahr);
+            Pruefe.Gleich(neuesJahr, geladen.Zeit.Jahr);
+            GleicheWache(a, b, "nach dem Jahreswechsel");
             for (var i = 0; i < a.Waechter.Count; i++)
             {
-                Pruefe.Gleich(a.Waechter[i].Person.Name, b.Waechter[i].Person.Name);
-                Pruefe.Gleich(a.Waechter[i].Person.Nummer, b.Waechter[i].Person.Nummer);
-                Pruefe.Gleich(a.Waechter[i].Tor, b.Waechter[i].Tor);
-                Pruefe.Gleich(a.DienstJetzt(a.Waechter[i]), b.DienstJetzt(b.Waechter[i]));
-            }
-            var namen = a.Waechter.Select(t => t.Person.Name).ToList();
-            for (var jahr = 0; jahr < 30; jahr++)
-                for (var minute = 0; minute < Spielzeit.MinutenProTag; minute++)
+                var e = a.Waechter[i].Person;
+                if (i % 3 == 0)
                 {
-                    sim.Tick();
-                    geladen.Tick();
+                    Pruefe.Wahr(!ReferenceEquals(e, vorher[i]), $"{vorher[i].Name} hätte in den Ruhestand gehen sollen");
+                    Pruefe.Gleich(naechsteNummer++, e.Nummer, $"Nummer des Nachfolgers von {vorher[i].Name}");
+                    Pruefe.Gleich(Herkunft.Torwache, e.Herkunft);
+                    Pruefe.Gleich(TorwacheDaten.Rolle, e.Rolle);
+                    var vd = w.Familien.VolkDaten(e.Volk);
+                    var jung = vd.Volljaehrig + Math.Max(1, (int)(((int)vd.Sterbealter - vd.Volljaehrig) * 0.15));
+                    Pruefe.Wahr(e.Alter(neuesJahr) > vd.Volljaehrig && e.Alter(neuesJahr) <= jung, $"{e.Name} ({e.Volk}, {e.Alter(neuesJahr)}) ist kein junger Wächter");
                 }
-            Pruefe.Wahr(a.Waechter.Count(t => !namen.Contains(t.Person.Name)) >= 5, "Nach 30 Jahren sollten neue Wächter da sein");
-            foreach (var t in a.Waechter)
-            {
-                var vd = w.Familien.VolkDaten(t.Person.Volk);
-                var grenze = vd.Volljaehrig + (int)(((int)vd.Sterbealter - vd.Volljaehrig) * 0.6);
-                Pruefe.Wahr(t.Person.Alter(sim.Zeit.Jahr) <= grenze + 1, $"{t.Person.Name} ({t.Person.Volk}, {t.Person.Alter(sim.Zeit.Jahr)}) ist über dem Ruhestand {grenze}");
+                else
+                    Pruefe.Wahr(ReferenceEquals(e, vorher[i]), $"{vorher[i].Name} ({vorher[i].Alter(neuesJahr)}) ist zu früh gegangen");
+                Pruefe.Wahr(ReferenceEquals(e, w.Einwohnerschaft.Nummer(e.Nummer)), $"{e.Name} per Nummer");
             }
-            for (var i = 0; i < a.Waechter.Count; i++)
-                Pruefe.Gleich(a.Waechter[i].Person.Name, b.Waechter[i].Person.Name, "auch nach dem Laden dieselben Neuen");
+            ImDienstalter(a, w, neuesJahr);
+
+            // Die übrigen 29 Jahreswechsel bis 1430 (wie früher 30 Jahre): nur die Torwache, in beiden Partien.
+            var namen = vorher.Select(e => e.Name).ToList();
+            var grenzfaelle = a.Waechter.Where((_, i) => i % 3 == 1).ToList();
+            for (var jahr = neuesJahr + 1; jahr <= 1430; jahr++)
+            {
+                a.Jahresende(jahr);
+                b.Jahresende(jahr);
+                GleicheWache(a, b, $"Jahr {jahr}");
+                ImDienstalter(a, w, jahr);
+                if (jahr == neuesJahr + 1)
+                    Pruefe.Wahr(grenzfaelle.All(t => !vorher.Contains(t.Person)), "Wer an der Grenze stand, geht ein Jahr später");
+            }
+            var unberuehrt = a.Waechter.Where((_, i) => i % 3 == 2).Count(t => !namen.Contains(t.Person.Name));
+            Pruefe.Wahr(unberuehrt >= 5, $"Nach 30 Jahren sollten auch ohne Nachhilfe neue Wächter da sein (waren {unberuehrt})");
+            Pruefe.Wahr(a.Waechter.Count(t => !namen.Contains(t.Person.Name)) >= 5, "Nach 30 Jahren sollten neue Wächter da sein");
             Pruefe.Wahr(a.Waechter.Select(t => t.Person.Nummer).Distinct().Count() == a.Waechter.Count, "Nummern eindeutig");
         }),
 
