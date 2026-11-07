@@ -157,7 +157,7 @@ static class RestflaechenfuellungTests
             }
         }),
 
-        ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die neuen Themen Kirchhof, Holzplatz, Heuschober und Bildstock sind da, ihr Winterknoten auch", () =>
+        ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die Themen Kirchhof, Holzplatz, Heuschober, Bildstock, Hof, Pferch und Wasserstelle sind da, ihr Winterknoten auch (die Tiere haben keinen: Schwein und Ziege stehen im Winter wie im Sommer)", () =>
         {
             var pfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json");
             var wurzel = JsonNode.Parse(File.ReadAllText(pfad))!;
@@ -171,7 +171,7 @@ static class RestflaechenfuellungTests
                 var json = JsonNode.Parse(System.Text.Encoding.UTF8.GetString(bytes, 20, laenge))!;
                 return namen[datei] = json["nodes"]!.AsArray().Select(n => n!["name"]?.GetValue<string>() ?? "").ToHashSet();
             }
-            foreach (var thema in new[] { "kirchhof", "holzplatz", "heuschober", "bildstock" })
+            foreach (var thema in new[] { "kirchhof", "holzplatz", "heuschober", "bildstock", "hof", "pferch", "wasserstelle" })
                 Pruefe.Wahr(wurzel["themen"]![thema] is not null, $"Thema {thema} gibt es");
             foreach (var (thema, inhalt) in wurzel["themen"]!.AsObject())
                 foreach (var (format, teile) in inhalt!["formate"]!.AsObject())
@@ -182,7 +182,7 @@ static class RestflaechenfuellungTests
                         foreach (var k in gesucht)
                         {
                             Pruefe.Wahr(Knoten(datei).Contains(k), $"{thema} {format}: Knoten {k} in {datei}.glb");
-                            if (datei.StartsWith("props/fuellung_")) Pruefe.Wahr(Knoten(datei).Contains(k + "_Winter") || k == "Kohlenmeiler", $"{datei}: {k} hat eine Winterfassung");
+                            if (datei.StartsWith("props/fuellung_")) Pruefe.Wahr(Knoten(datei).Contains(k + "_Winter") || k == "Kohlenmeiler" || datei == "props/fuellung_tiere", $"{datei}: {k} hat eine Winterfassung");
                         }
                     }
             Pruefe.Wahr(wurzel["hoechstens_felder"]!["bildstock"]!.GetValue<int>() > 0, "der Bildstock gilt nur für kleine Flächen");
