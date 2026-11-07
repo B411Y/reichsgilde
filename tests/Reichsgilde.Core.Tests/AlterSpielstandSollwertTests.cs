@@ -9,7 +9,8 @@ using Reichsgilde.Core.Speichern;
 /// (Greybox, Herbst 1406, Datenversion 55) bringt seine Daten mit und muss Jahr für Jahr genau so weiterlaufen wie mit dem Kern auf main – die
 /// Fahrzeit nach Weglänge, die gemeinsame Strecke und die Marktplätze gelten nur mit <c>logistik.weglaenge</c>. Verglichen wird der Spielstand
 /// ohne die Abschnitte „Daten“ und „Karte“ (die schreibt der neue Kern mit seinen neuen, leeren Feldern; die Simulation selbst steht in
-/// „Wirtschaft“). Die Sollwerte sind auf main 880e3387 gerechnet (Probe mit demselben Ablauf, 1.11.2026).
+/// „Wirtschaft“). Die Sollwerte sind auf main 880e3387 gerechnet (Probe mit demselben Ablauf, 1.11.2026). Ebenso ohne „Meldungen“ (Benachrichtigungen
+/// Stufe 2, 6.11.2026): der Verlauf der Meldungen ist neu, die Simulation liest ihn nie – „Wirtschaft“ bleibt bitgleich.
 /// </summary>
 static class AlterSpielstandSollwertTests
 {
@@ -22,7 +23,7 @@ static class AlterSpielstandSollwertTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Alter Spielstand (Greybox, Herbst 1406, Datenversion 55): drei Jahre weiter bitgleich mit dem Kern auf main 880e3387 (SHA-256 ohne Daten und Karte)", () =>
+        ("Alter Spielstand (Greybox, Herbst 1406, Datenversion 55): drei Jahre weiter bitgleich mit dem Kern auf main 880e3387 (SHA-256 ohne Daten, Karte und Meldungen)", () =>
         {
             var datei = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!,
                 "tests", "Reichsgilde.Core.Tests", "Spielstaende", "format2-greybox-herbst1406.json.gz");
@@ -35,7 +36,8 @@ static class AlterSpielstandSollwertTests
                 while (sim.Zeit.Jahr == j) sim.Tick();
                 var n = JsonNode.Parse(Speicherung.Speichern(sim, null, new DateTime(2026, 1, 1)))!.AsObject();
                 foreach (var schluessel in n.Select(p => p.Key).ToList())
-                    if (schluessel.Equals("daten", StringComparison.OrdinalIgnoreCase) || schluessel.Equals("karte", StringComparison.OrdinalIgnoreCase))
+                    if (schluessel.Equals("daten", StringComparison.OrdinalIgnoreCase) || schluessel.Equals("karte", StringComparison.OrdinalIgnoreCase)
+                        || schluessel.Equals("meldungen", StringComparison.OrdinalIgnoreCase))
                         n.Remove(schluessel);
                 var ist = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant();
                 Pruefe.Gleich(Sollwerte[jahr], ist, $"Jahr {jahr + 1} nach dem Laden");

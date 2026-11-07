@@ -109,8 +109,8 @@ internal sealed class Oberflaechendetails
         if (ResourceLoader.Exists(BibFarbePfad) && ResourceLoader.Exists(BibNormalenPfad)
             && Json.ParseString(Godot.FileAccess.GetFileAsString(BibliothekPfad)).AsGodotDictionary() is { Count: > 0 } bib)
         {
-            _bibFarbe = GD.Load<TextureLayered>(BibFarbePfad);
-            _bibNormalen = GD.Load<TextureLayered>(BibNormalenPfad);
+            _bibFarbe = Vorladen.Laden<TextureLayered>(BibFarbePfad);
+            _bibNormalen = Vorladen.Laden<TextureLayered>(BibNormalenPfad);
             var schichten = new Dictionary<string, Schicht>();
             var liste = bib["schichten"].AsGodotArray();
             if (liste.Count > BibMax) GD.PushError($"Material-Bibliothek: {liste.Count} Schichten, der Shader kennt höchstens {BibMax}.");

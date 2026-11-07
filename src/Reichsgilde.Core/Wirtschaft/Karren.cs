@@ -382,7 +382,7 @@ public sealed class Karren
         if (nurNoetigstes && Heimat.KasseKnappGemeldetAm != tag)
         {
             Heimat.KasseKnappGemeldetAm = tag;
-            w.Melden($"{Heimat.Name}: Verwalter kauft nur das Nötigste – die Kasse ist knapp.");
+            w.Melden(Meldungsart.KasseKnapp, $"{Heimat.Name}: Verwalter kauft nur das Nötigste – die Kasse ist knapp.", betrieb: Heimat);
         }
     }
 

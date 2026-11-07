@@ -587,7 +587,8 @@ public sealed class Stadtrat
         _wahlStimmen.Clear(); // neues Jahr, neue Wahl
 
         foreach (var eintrag in _letzteSitzung)
-            _w.Melden(eintrag);
+            _w.Melden(eintrag.StartsWith("Wahl ", StringComparison.Ordinal) ? Meldungsart.Wahl
+                : eintrag.StartsWith("Ratssitzung ", StringComparison.Ordinal) ? Meldungsart.Ratssitzung : Meldungsart.Sonstiges, eintrag);
         LetzteRatssitzung = LaufendeSitzung;
         LaufendeSitzung = null;
     }

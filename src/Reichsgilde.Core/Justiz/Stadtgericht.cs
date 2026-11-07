@@ -361,9 +361,9 @@ public sealed class Stadtgericht
         var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter);
         _verfahren.Add(v);
         _w.Meinungen.Verklagt(anklaeger, beklagter);
-        _w.Melden($"{anklaeger.Inhaber} klagt {beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))} an " +
+        _w.Melden(Meldungsart.Anklage, $"{anklaeger.Inhaber} klagt {beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))} an " +
                   $"({beweise} {(beweise == 1 ? "Beweis" : "Beweise")}). " +
-                  $"Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.");
+                  $"Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.", haus: beklagter);
         return Befehlsergebnis.Ok($"Anklage gegen {beklagter.Inhaber} erhoben. Schöffen: {string.Join(" und ", richter.Skip(1).Select(r => r.Name))}.");
     }
 
@@ -471,7 +471,7 @@ public sealed class Stadtgericht
             var gesamt = Beweise(auftraggeber, ziel).Count();
             Eintrag($"Der Spitzel von {auftraggeber.Inhaber} berichtet über {ziel.Inhaber}: " +
                     (gefunden == 0 ? "nichts Neues" : $"{gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}") +
-                    $" (insgesamt {gesamt}).");
+                    $" (insgesamt {gesamt}).", fuer: auftraggeber);
         }
         _spitzel.Clear();
 
@@ -490,7 +490,7 @@ public sealed class Stadtgericht
                     }
                 if (gefunden > 0)
                     Eintrag($"In der dunklen Ecke von {schaenke.Name} hört {lauscher.Inhaber} Gerüchte: " +
-                            $"{gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}.");
+                            $"{gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}.", fuer: lauscher);
             }
         }
 
@@ -505,10 +505,11 @@ public sealed class Stadtgericht
     /// <summary>Der Gefängniswärter lässt das Oberhaupt gegen Kaution vorzeitig frei (PR #200).</summary>
     internal void Freilassen(Konto konto) => _kerkerBis.Remove(konto);
 
-    private void Eintrag(string text)
+    /// <param name="fuer">Spitzelbericht und Gerüchte: nur für dieses Haus bestimmt (vertraulich).</param>
+    private void Eintrag(string text, Konto? fuer = null)
     {
         _letzterGerichtstag.Add(text);
-        _w.Melden(text);
+        _w.Melden(Meldungsart.Sonstiges, text, haus: fuer, vertraulich: fuer is not null);
     }
 
     private void SpurenEntfernen(Func<Spur, bool> bedingung)

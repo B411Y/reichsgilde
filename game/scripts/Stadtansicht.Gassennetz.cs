@@ -56,12 +56,20 @@ public sealed class Gassennetz
     public int KnotenBei(Vector3 p)
     {
         p.Y = 0;
+        // Die Vorprüfungen (Abstand je Achse, Rahmen der Kante) schließen nur aus, was ohnehin nicht näher als Fang liegt: dasselbe Ergebnis,
+        // aber nicht für jeden Punkt jedes Netzstück gerechnet (beim Laden von Köln über 0,9 s).
         for (var i = 0; i < _knoten.Count; i++)
-            if (_knoten[i].DistanceTo(p) < Fang) return i;
+        {
+            var k = _knoten[i];
+            if (Mathf.Abs(k.X - p.X) >= Fang || Mathf.Abs(k.Z - p.Z) >= Fang) continue;
+            if (k.DistanceTo(p) < Fang) return i;
+        }
         // Liegt der Punkt auf einer vorhandenen Kante (Einmündung), wird sie dort geteilt.
         foreach (var kante in _kanten)
         {
-            var q = NaechsterPunkt(p, _knoten[kante.A], _knoten[kante.B]);
+            var (ka, kb) = (_knoten[kante.A], _knoten[kante.B]);
+            if (p.X < Mathf.Min(ka.X, kb.X) - Fang || p.X > Mathf.Max(ka.X, kb.X) + Fang || p.Z < Mathf.Min(ka.Z, kb.Z) - Fang || p.Z > Mathf.Max(ka.Z, kb.Z) + Fang) continue;
+            var q = NaechsterPunkt(p, ka, kb);
             if (q.DistanceTo(p) < Fang) return Teilen(kante, q);
         }
         _knoten.Add(p);
@@ -286,16 +294,30 @@ public sealed class Gassennetz
         if (a == b) return;
         // Kreuzungen mit vorhandenen Kanten suchen und dort Knoten einfügen (der Reihe nach entlang a → b).
         var schnitte = new List<(float T, int Knoten)>();
-        foreach (var (c, d) in _kanten.ToList())
+        // Erst die Kanten sammeln, deren Rahmen den der neuen Kante berührt (nur sie können sich schneiden; Teilen ändert die Menge, darum erst danach),
+        // in derselben Reihenfolge wie die Menge sie liefert.
+        var (na, nb) = (_knoten[a], _knoten[b]);
+        var (x0, x1, z0, z1) = (Mathf.Min(na.X, nb.X) - 0.01f, Mathf.Max(na.X, nb.X) + 0.01f, Mathf.Min(na.Z, nb.Z) - 0.01f, Mathf.Max(na.Z, nb.Z) + 0.01f);
+        var nahe = new List<(int C, int D)>();
+        foreach (var (c, d) in _kanten)
         {
             if (c == a || c == b || d == a || d == b) continue;
+            var (kc, kd) = (_knoten[c], _knoten[d]);
+            if (Mathf.Max(kc.X, kd.X) < x0 || Mathf.Min(kc.X, kd.X) > x1 || Mathf.Max(kc.Z, kd.Z) < z0 || Mathf.Min(kc.Z, kd.Z) > z1) continue;
+            nahe.Add((c, d));
+        }
+        foreach (var (c, d) in nahe)
+        {
             if (!Schnitt(_knoten[a], _knoten[b], _knoten[c], _knoten[d], out var t, out var punkt)) continue;
             schnitte.Add((t, Teilen((c, d), punkt)));
         }
         // Knoten, die schon auf der neuen Kante liegen (z. B. eine Einmündung), werden mit durchlaufen.
+        var rand = Fang + 0.01f; // ein Knoten näher als Fang an der Kante liegt höchstens so weit außerhalb ihres Rahmens
         for (var k = 0; k < _knoten.Count; k++)
         {
             if (k == a || k == b) continue;
+            var kn = _knoten[k];
+            if (kn.X < x0 - rand || kn.X > x1 + rand || kn.Z < z0 - rand || kn.Z > z1 + rand) continue;
             var ab = _knoten[b] - _knoten[a];
             var t = (_knoten[k] - _knoten[a]).Dot(ab) / ab.LengthSquared();
             if (t is <= 0 or >= 1) continue;
