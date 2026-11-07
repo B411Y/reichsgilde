@@ -57,7 +57,6 @@ public partial class Stadtansicht
         var zinn = Metall(new Color(0.62f, 0.62f, 0.64f));
         var dunkel = Material(DunklesHolz);
         var teppich = Material(new Color(0.42f, 0.14f, 0.12f));
-        var kerze = Leuchtend(new Color(1f, 0.85f, 0.5f), new Color(1f, 0.7f, 0.3f));
 
         // ── Wohnstube ──
         Ab(1, Teil(a, s + new Vector3(0.4f, 0.11f, 0), new Vector3(3.8f, 0.02f, 2.8f), teppich));
@@ -76,7 +75,7 @@ public partial class Stadtansicht
         {
             var winkel = i * Mathf.Tau / 6;
             var ort = s + new Vector3(0.4f + 0.6f * Mathf.Cos(winkel), 3.12f, 0.6f * Mathf.Sin(winkel));
-            Ab(3, Rund(a, ort, 0.04f, 0.18f, Material(Leinen), segmente: 6), Teil(a, ort + new Vector3(0, 0.13f, 0), new Vector3(0.05f, 0.08f, 0.05f), kerze));
+            Ab(3, Rund(a, ort, 0.04f, 0.18f, Material(Leinen), segmente: 6), Kerzenflamme(a, ort + new Vector3(0, 0.09f, 0), () => true));
         }
         FeuerAnlegen(a, s + new Vector3(0.4f, 2.7f, 0), null, lichtAn: 1.1f, lichtAus: 0, an: () => konto.WohnhausStufe >= 3, reichweite: 7);
 
@@ -90,7 +89,7 @@ public partial class Stadtansicht
               Teil(a, k + new Vector3(2.9f, 0.82f, 1.4f), new Vector3(1.25f, 0.06f, 0.85f), eisen),
               Rund(a, k + new Vector3(-2.6f, 0.8f, 1.6f), 0.05f, 1.6f, eisen, segmente: 8),
               Rund(a, k + new Vector3(-2.6f, 1.68f, 1.6f), 0.05f, 0.18f, Material(Leinen), segmente: 6),
-              Teil(a, k + new Vector3(-2.6f, 1.82f, 1.6f), new Vector3(0.06f, 0.1f, 0.06f), kerze));
+              Kerzenflamme(a, k + new Vector3(-2.6f, 1.77f, 1.6f), () => true));
         Ab(4, Wappen(a, k + new Vector3(0, 2.9f, -2.98f), gold, hausfarbe));
 
         a.Raumzustaende.Add((_, _) =>

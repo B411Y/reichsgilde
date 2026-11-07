@@ -215,6 +215,26 @@ public partial class Stadtansicht
         a.Feuer.Add(new Feuerstelle(licht, glut, lichtAn, lichtAus, glutAn, glutAus, an));
     }
 
+    /// <summary>
+    /// Eine echte Flamme (<see cref="Feuer"/>, die Simulation wie bei Fackeln und Feuerkörben) in einem Raum aus Grundkörpern, ohne eigenes Licht: das hat <see cref="FeuerAnlegen"/>.
+    /// Gibt den Halter zurück (er steht am Fuß der Flamme und lässt sich wie jedes Teil einer Stufe zuordnen); die Flamme brennt, wenn <paramref name="an"/> gilt.
+    /// <paramref name="herd"/>: die niedrigen Flammen einer Esse oder eines Herds (<see cref="Herdfeuer"/>) statt der Kerzenflamme.
+    /// </summary>
+    private Node3D FlammeAnlegen(InnenAnsicht a, Vector3 ort, FeuerVorgabe vorgabe, float groesse, Func<bool>? an, Node3D? eltern = null, bool herd = false)
+    {
+        var halter = new Node3D { Position = a.Mitte + ort };
+        (eltern ?? a.Innen!).AddChild(halter);
+        var flamme = Feuer.Neu(vorgabe, false, -1f, groesse);
+        flamme.Ausrichtung = FeuerAusrichtung.Hochachse; // aufrecht: Im Raum blickt die Kamera nur leicht von oben
+        if (herd) flamme.Art = Herdfeuer();
+        halter.AddChild(flamme);
+        a.Flammen.Add((flamme, an));
+        return halter;
+    }
+
+    /// <summary>Eine Kerzenflamme auf dem Docht (<paramref name="ort"/> = Oberkante des Wachses).</summary>
+    private Node3D Kerzenflamme(InnenAnsicht a, Vector3 ort, Func<bool>? an, Node3D? eltern = null) => FlammeAnlegen(a, ort, FeuerVorgabe.Kerze, 1f, an, eltern);
+
     private void Infotafel(InnenAnsicht a, Vector3 ort) => a.Infotafel = Beschriftung("", a.Mitte + ort, 38, a.Innen);
 
     private void Plaetze(BetriebsAnsicht a, params Arbeitsplatz[] plaetze) => a.Plaetze.AddRange(plaetze);
@@ -619,7 +639,7 @@ public partial class Stadtansicht
         foreach (var z in new[] { -0.7f, 0.7f })
         {
             Rund(a, new Vector3(3.6f, 1.3f, z), 0.05f, 0.4f, weiss, segmente: 8);
-            Teil(a, new Vector3(3.6f, 1.55f, z), new Vector3(0.06f, 0.1f, 0.06f), flamme);
+            Kerzenflamme(a, new Vector3(3.6f, 1.5f, z), () => messe[0]);
         }
         Rund(a, new Vector3(3.55f, 1.12f, 0), 0.22f, 0.06f, gold, obenRadius: 0.27f);
         var kollekte = Rund(a, new Vector3(3.55f, 1.17f, 0), 0.15f, 0.06f, gold, segmente: 10);
@@ -633,7 +653,7 @@ public partial class Stadtansicht
         {
             Rund(a, new Vector3(3.6f, 0.8f, z), 0.05f, 1.4f, Metall(new Color(0.2f, 0.2f, 0.22f)), segmente: 6);
             Rund(a, new Vector3(3.6f, 1.65f, z), 0.07f, 0.3f, weiss, segmente: 8);
-            Teil(a, new Vector3(3.6f, 1.88f, z), new Vector3(0.07f, 0.12f, 0.07f), flamme);
+            Kerzenflamme(a, new Vector3(3.6f, 1.82f, z), () => messe[0]);
         }
         FeuerAnlegen(a, new Vector3(3.0f, 2.2f, 0), flamme, lichtAn: 1.3f, lichtAus: 0.15f, glutAn: 2.5f, glutAus: 0.6f, an: () => messe[0], reichweite: 8);
 
@@ -1242,6 +1262,11 @@ public partial class Stadtansicht
             var an = f.An?.Invoke() ?? aktiv;
             if (f.Licht is not null) f.Licht.LightEnergy = an ? f.LichtAn : f.LichtAus;
             if (f.Glut is not null) f.Glut.EmissionEnergyMultiplier = an ? f.GlutAn : f.GlutAus;
+        }
+        foreach (var (flamme, flammeAn) in a.Flammen)
+        {
+            var brennt = flammeAn?.Invoke() ?? aktiv;
+            if (flamme.Visible != brennt) flamme.Visible = brennt;
         }
         if (aktiv)
             foreach (var t in a.Bewegt)

@@ -815,19 +815,206 @@ public partial class Stadtansicht
         return _herdfeuer;
     }
 
-    /// <summary>
-    /// Echte Flammen in einem Raummodell: Die Kerzen der Modelle haben eine kleine Flamme aus dem Material „Glut“ (ein Kegel von 6–8 cm auf dem
-    /// Wachs); auf jeden solchen Kegel setzt das Spiel eine Kerzenflamme (<see cref="FeuerVorgabe.Kerze"/>). In der Schmiede brennen über der
-    /// flachen Glut der Esse (und der zweiten Esse ab Stufe 2) niedrige Flammen mit Funken. Ohne eigenes Licht: Die Räume haben ihre Glut-Lichter.
-    /// Sie brennen, wenn die Glut glüht (<see cref="ModellRaumDaten.Glueht"/>). Die Flammen eines immer brennenden Kamins (Teil „Flammen“) bleiben, wie sie sind.
-    /// </summary>
-    private void InnenFlammenAnlegen(ModellRaumDaten md, Node3D wurzel, string datei, bool dauerfeuer)
+    /// <summary>Das Feuer eines Kamins im Raum: mittelgroß, mit drei Zungen über dem Glutbett, ein paar Funken und nur einem Hauch Rauch (der Rauch steigt durch den Rauchfang).</summary>
+    private static FeuerArt? _kaminfeuer;
+    private static FeuerArt Kaminfeuer()
     {
-        var schmiede = datei.Contains("schmied");
-        int kerzen = 0, essen = 0;
+        if (_kaminfeuer is not null) return _kaminfeuer;
+        _kaminfeuer = (FeuerArt)FeuerArt.Neu(FeuerVorgabe.Feuerkorb).Duplicate();
+        _kaminfeuer.Bezeichnung = "Kamin im Raum";
+        _kaminfeuer.Hoehe = 0.62f;
+        _kaminfeuer.Breite = 0.36f;
+        _kaminfeuer.Zungen = 3;
+        _kaminfeuer.Radius = 0.15f;
+        _kaminfeuer.Helligkeit = 1.25f;
+        _kaminfeuer.Funken = 3;
+        _kaminfeuer.FunkenHoehe = 2.2f;
+        _kaminfeuer.RauchMenge = 0.12f; // nur ein Hauch, die Luft im Raum soll klar bleiben
+        _kaminfeuer.RauchHoehe = 1.3f;
+        _kaminfeuer.RauchBreite = 0.4f;
+        _kaminfeuer.RauchSchichten = 1;
+        return _kaminfeuer;
+    }
+
+    /// <summary>
+    /// Die Kegelflammen im Glutmaterial der Räume (die Kamine der Wachstube, der Schänke und der Geldleihe: fünf bis sechs Kegel von 0,13–0,15 m Breite und 0,3–0,47 m Höhe, und die Kerzenflammen) ersetzt das Spiel durch echtes
+    /// Feuer: Sie werden aus dem Netz herausgenommen (ganze Netze nur unsichtbar), und aus jeder Gruppe wird die Mitte des Kamins gemerkt (Ort im Raum des Modells, Höhe des Glutbetts).
+    /// Muss vor <see cref="InnenModellStoffe"/> laufen, weil ein neues Netz die Überschreibung der Materialien neu anfängt.
+    /// </summary>
+    private sealed record Altflammen(List<(Vector3 Ort, MeshInstance3D Teil)> Kamine, List<(Vector3 Ort, float Hoehe, MeshInstance3D Teil)> Kerzen, List<(Vector3 Ort, float Breite, MeshInstance3D Teil)> Loecher);
+
+    private static Altflammen KegelflammenErsetzen(Node3D wurzel)
+    {
+        var alt = new Altflammen(new(), new(), new());
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
-            if (teil.Mesh is not { } netz || (dauerfeuer && teil.Name.ToString() == "Flammen")) continue;
+            if (teil.Mesh is not { } netz) continue;
+            for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            {
+                if (netz.SurfaceGetMaterial(i)?.ResourceName != "Glut") continue;
+                var teile = Bauteile(netz, i, Transform3D.Identity);
+                var kegel = teile.Where(IstKegelflamme).ToList();
+                var kerzen = teile.Where(IstKerzenflamme).ToList();
+                var loecher = teile.Where(IstFeuerloch).ToList();
+                if (kegel.Count + kerzen.Count + loecher.Count == 0) continue;
+                if (kegel.Count > 0)
+                {
+                    var mitte = kegel.Aggregate(Vector3.Zero, (summe, k) => summe + k.Mitte) / kegel.Count;
+                    alt.Kamine.Add((new Vector3(mitte.X, kegel.Min(k => k.Min.Y), mitte.Z), teil));
+                }
+                foreach (var k in kerzen) alt.Kerzen.Add((new Vector3(k.Mitte.X, k.Max.Y - Mathf.Min(k.Groesse.Y, 0.075f), k.Mitte.Z), k.Groesse.Y, teil)); // der Kegel steht auf dem Docht, die echte Flamme sitzt in seiner Spitze (höchstens 7,5 cm, die Stümpfe der Gildenhalle sind höher)
+                foreach (var l in loecher)
+                {
+                    // die Flamme steht vor der Öffnung, auf ihrer Unterkante
+                    var vorn = l.Groesse.X < l.Groesse.Z ? new Vector3(Mathf.Sign(l.Normale.X), 0, 0) : new Vector3(0, 0, Mathf.Sign(l.Normale.Z));
+                    alt.Loecher.Add((new Vector3(l.Mitte.X, l.Min.Y + 0.02f, l.Mitte.Z) + vorn * 0.05f, Mathf.Max(l.Groesse.X, l.Groesse.Z), teil));
+                }
+                var rest = NetzOhneBauteile(netz, i, kegel.Concat(kerzen).ToList(), loecher, Glutreste());
+                if (rest is null) teil.Visible = false; // das ganze Netz bestand aus Kegeln (Teil „Flammen“)
+                else teil.Mesh = rest;
+                break; // ein Glut-Material je Netz
+            }
+        }
+        return alt;
+    }
+
+    /// <summary>Ein Kegel der alten Flammen: 0,10–0,20 m breit und tief, 0,25–0,60 m hoch, die Spitze nach oben.</summary>
+    private static bool IstKegelflamme(Bauteil b)
+    {
+        var g = b.Groesse;
+        return g.X is >= 0.1f and <= 0.2f && g.Z is >= 0.1f and <= 0.2f && g.Y is >= 0.25f and <= 0.6f && b.Normale.Y > 0.5f;
+    }
+
+    /// <summary>Die Flamme einer Kerze im Modell: ein Kegel von höchstens 0,1 m Breite und 0,03–0,22 m Höhe (die Stümpfe der Gildenhalle sind bis 0,2 m hoch).</summary>
+    private static bool IstKerzenflamme(Bauteil b)
+    {
+        var g = b.Groesse;
+        return g.X <= 0.1f && g.Z <= 0.1f && Mathf.Min(g.X, g.Z) > 0.01f && g.Y is >= 0.03f and <= 0.22f;
+    }
+
+    /// <summary>Eine senkrechte Glutfläche von 0,2–0,4 m: die Öffnung eines Ofens (Brauofen, Brennblase, Laborkessel, Athanor, Kerzenzieher, Leimtopf), hinter der jetzt eine Flamme brennt.</summary>
+    private static bool IstFeuerloch(Bauteil b)
+    {
+        var g = b.Groesse;
+        return Mathf.Min(g.X, g.Z) < 0.01f && Mathf.Max(g.X, g.Z) is >= 0.2f and <= 0.4f && g.Y is >= 0.18f and <= 0.4f;
+    }
+
+    private static StandardMaterial3D? _glutreste;
+
+    /// <summary>Der Grund einer Ofenöffnung: dunkle Glut ohne Wechsel (die helle gelbe Fläche der Modelle übertönte die Flamme davor).</summary>
+    private static StandardMaterial3D Glutreste() => _glutreste ??= new StandardMaterial3D
+    {
+        ResourceName = "Glutreste", AlbedoColor = new Color(0.10f, 0.04f, 0.02f), EmissionEnabled = true, Emission = new Color(1f, 0.28f, 0.05f), EmissionEnergyMultiplier = 0.45f,
+    };
+
+    /// <summary>
+    /// Eine Kopie des Netzes ohne die Dreiecke dieser Teile in der Fläche <paramref name="flaeche"/>; die <paramref name="umlegen"/>-Teile kommen als eigene Fläche mit
+    /// <paramref name="stoff"/> dazu (sie bleiben sichtbar, nur anders). Null, wenn nichts übrig bleibt.
+    /// </summary>
+    private static ArrayMesh? NetzOhneBauteile(Mesh netz, int flaeche, List<Bauteil> weg, List<Bauteil>? umlegen = null, Material? stoff = null)
+    {
+        Godot.Collections.Array? umgelegt = null;
+        var kopie = new ArrayMesh();
+        for (var i = 0; i < netz.GetSurfaceCount(); i++)
+        {
+            var felder = netz.SurfaceGetArrays(i);
+            if (i == flaeche)
+            {
+                var ecken = felder[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+                var alt = felder[(int)Mesh.ArrayType.Index].VariantType == Variant.Type.Nil ? Enumerable.Range(0, ecken.Length).ToArray() : felder[(int)Mesh.ArrayType.Index].AsInt32Array();
+                var neu = new List<int>(alt.Length);
+                var verschoben = new List<int>();
+                bool Drin(List<Bauteil> liste, Vector3 p) => liste.Any(b => p.X >= b.Min.X - 0.002f && p.X <= b.Max.X + 0.002f && p.Y >= b.Min.Y - 0.002f && p.Y <= b.Max.Y + 0.002f && p.Z >= b.Min.Z - 0.002f && p.Z <= b.Max.Z + 0.002f);
+                for (var d = 0; d + 2 < alt.Length; d += 3)
+                {
+                    var p = ecken[alt[d]];
+                    if (Drin(weg, p)) continue;
+                    var ziel = umlegen is not null && Drin(umlegen, p) ? verschoben : neu;
+                    ziel.Add(alt[d]); ziel.Add(alt[d + 1]); ziel.Add(alt[d + 2]);
+                }
+                if (verschoben.Count > 0)
+                {
+                    umgelegt = (Godot.Collections.Array)felder.Duplicate();
+                    umgelegt[(int)Mesh.ArrayType.Index] = verschoben.ToArray();
+                }
+                if (neu.Count == 0) continue;
+                felder[(int)Mesh.ArrayType.Index] = neu.ToArray();
+            }
+            kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, felder);
+            kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, netz.SurfaceGetMaterial(i));
+        }
+        if (umgelegt is not null)
+        {
+            kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, umgelegt);
+            kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, stoff);
+        }
+        return kopie.GetSurfaceCount() == 0 ? null : kopie;
+    }
+
+    /// <summary>
+    /// Echte Flammen in einem Raummodell (<see cref="Feuer"/>, dieselben wie bei Fackeln und Feuerkörben), alle ohne eigenes Licht – die Räume haben ihre Glut-Lichter:
+    /// <list type="bullet">
+    /// <item>Kamine (<paramref name="kamine"/> aus <see cref="KegelflammenErsetzen"/>): ein mittleres Feuer auf dem Glutbett.</item>
+    /// <item>Kerzen: Die Kerzen der Modelle haben eine kleine Flamme aus dem Material „Glut“ (ein Kegel von 3–13 cm auf dem Wachs, auch die Stümpfe der Gildenhalle); auf jeden setzt das Spiel
+    /// eine Kerzenflamme (<see cref="FeuerVorgabe.Kerze"/>).</item>
+    /// <item>Essen und Herde: Über einer flachen Glut (Esse der Schmiede und der zweiten Esse ab Stufe 2, Herd der Schänke, Feuerstelle unter dem Kessel) brennen niedrige Flammen mit Funken.</item>
+    /// <item>Feuerlöcher: Die senkrechten Glutflächen von 0,2–0,4 m (Ofen unter Braukessel, Brennblase, Laborkessel, Athanor, Kerzenzieher, Leimtopf) bekommen eine kleine Flamme davor.</item>
+    /// </list>
+    /// Sie brennen, wenn die Glut glüht (<see cref="ModellRaumDaten.Glueht"/>); der Kamin eines immer brennenden Raums (<paramref name="dauerfeuer"/>, Geldleihe) immer.
+    /// <paramref name="immer"/>: alles brennt ständig (der Ratssaal während der Sitzung).
+    /// </summary>
+    private void InnenFlammenAnlegen(ModellRaumDaten md, Node3D wurzel, string datei, bool dauerfeuer, Altflammen alt, bool immer = false)
+    {
+        int kerzen = 0, essen = 0, loecher = 0;
+        void Einhaengen(Feuer flamme, MeshInstance3D teil, Vector3 ort, bool ruhend)
+        {
+            // Im Raum blickt die Kamera nur leicht von oben: aufrecht stehende Flammen (nur um die Hochachse gedreht), sonst neigt sich die Fläche
+            // nach vorn und legt sich vor eine Figur, die vor der Esse steht
+            flamme.Ausrichtung = FeuerAusrichtung.Hochachse;
+            flamme.Name = "Flamme";
+            flamme.Visible = immer || ruhend || md.Glueht;
+            if (teil.Name.ToString() == "Flammen")
+            {
+                // das Teil „Flammen“ bewegt die Animation des Raums: das Feuer hängt am Modell, nicht an ihm
+                flamme.Position = LageImModell(wurzel, teil) * ort;
+                wurzel.AddChild(flamme);
+            }
+            else
+            {
+                flamme.Position = ort;
+                teil.AddChild(flamme);
+            }
+            if (!immer && !ruhend) md.Flammen.Add(flamme);
+        }
+
+        var kamine = alt.Kamine;
+        // Kamine: ein mittleres Feuer an der Stelle der alten Kegel
+        for (var k = 0; k < kamine.Count; k++)
+        {
+            var flamme = Feuer.Neu(FeuerVorgabe.Feuerkorb, false, (Streuung(k + 11, 5) & 0xFFFF) / 65535f);
+            flamme.Art = Kaminfeuer();
+            Einhaengen(flamme, kamine[k].Teil, kamine[k].Ort, dauerfeuer);
+        }
+        // Kerzen: eine Kerzenflamme auf jedem Docht
+        foreach (var (kerzenOrt, kerzenHoehe, kerzenTeil) in alt.Kerzen)
+        {
+            var flamme = Feuer.Neu(FeuerVorgabe.Kerze, false, (Streuung(kerzen + 7, (int)(kerzenOrt.X * 1000)) & 0xFFFF) / 65535f, Mathf.Clamp(kerzenHoehe / 0.065f, 0.8f, 1.5f));
+            Einhaengen(flamme, kerzenTeil, kerzenOrt, false);
+            kerzen++;
+        }
+
+        // Feuerlöcher: eine Flamme in der Öffnung, so breit wie sie
+        foreach (var (lochOrt, lochBreite, lochTeil) in alt.Loecher)
+        {
+            var flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(loecher + 5, 33) & 0xFFFF) / 65535f, Mathf.Clamp(lochBreite / 0.22f, 0.7f, 1.5f));
+            flamme.Art = Herdfeuer();
+            Einhaengen(flamme, lochTeil, lochOrt, false);
+            loecher++;
+        }
+
+        foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            if (teil.Mesh is not { } netz) continue;
             for (var i = 0; i < netz.GetSurfaceCount(); i++)
             {
                 if (netz.SurfaceGetMaterial(i)?.ResourceName != "Glut") continue;
@@ -835,33 +1022,34 @@ public partial class Stadtansicht
                 {
                     var g = b.Groesse;
                     Feuer? flamme = null;
-                    if (g.X <= 0.06f && g.Z <= 0.06f && g.Y is >= 0.03f and <= 0.13f)
+                    var ort = Vector3.Zero;
+                    var flach = g.Y < 0.12f && Mathf.Min(g.X, g.Z) is >= 0.4f and <= 2f && Mathf.Max(g.X, g.Z) <= 2.2f && b.Normale.Y > 0.7f;
+                    if (flach && !AmKamin(kamine, wurzel, teil, b))
                     {
-                        // Kerzenflamme: der Kegel steht auf dem Docht, die echte Flamme so hoch wie er
-                        flamme = Feuer.Neu(FeuerVorgabe.Kerze, false, (Streuung(kerzen + 7, (int)(b.Mitte.X * 1000)) & 0xFFFF) / 65535f, Mathf.Clamp(g.Y / 0.065f, 0.8f, 1.3f));
-                        flamme.Position = new Vector3(b.Mitte.X, b.Min.Y, b.Mitte.Z);
-                        kerzen++;
-                    }
-                    else if (schmiede && g.Y < 0.12f && Mathf.Min(g.X, g.Z) is >= 0.4f and <= 2f && Mathf.Max(g.X, g.Z) <= 2.2f && b.Normale.Y > 0.7f)
-                    {
-                        // Glutbett der Esse: niedrige Flammen über der Mitte
+                        // Glutbett einer Esse oder eines Herds: niedrige Flammen über der Mitte
                         flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(essen + 3, 77) & 0xFFFF) / 65535f, Mathf.Clamp(Mathf.Min(g.X, g.Z) / 0.75f, 0.9f, 1.25f));
                         flamme.Art = Herdfeuer();
-                        flamme.Position = new Vector3(b.Mitte.X, b.Max.Y, b.Mitte.Z);
+                        ort = new Vector3(b.Mitte.X, b.Max.Y, b.Mitte.Z);
                         essen++;
                     }
                     if (flamme is null) continue;
-                    // Im Raum blickt die Kamera nur leicht von oben: aufrecht stehende Flammen (nur um die Hochachse gedreht), sonst neigt sich die Fläche
-                    // nach vorn und legt sich vor eine Figur, die vor der Esse steht
-                    flamme.Ausrichtung = FeuerAusrichtung.Hochachse;
-                    flamme.Name = "Flamme";
-                    flamme.Visible = md.Glueht;
-                    teil.AddChild(flamme);
-                    md.Flammen.Add(flamme);
+                    Einhaengen(flamme, teil, ort, false);
                 }
             }
         }
-        if (kerzen + essen > 0) GD.Print($"[feuer] Raum {datei}: {kerzen} Kerzen, {essen} Essen mit Flamme");
+        if (kamine.Count + kerzen + essen + loecher > 0) GD.Print($"[feuer] Raum {datei}: {kamine.Count} Kamine, {kerzen} Kerzen, {essen} Essen, {loecher} Feuerlöcher mit Flamme");
+    }
+
+    /// <summary>Liegt das flache Glutbett am Fuß eines Kamins (höchstens 0,8 m neben seiner Mitte)? Dann brennt dort das Kaminfeuer und keine Esse.</summary>
+    private static bool AmKamin(List<(Vector3 Ort, MeshInstance3D Teil)> kamine, Node3D wurzel, MeshInstance3D teil, Bauteil b)
+    {
+        var ort = LageImModell(wurzel, teil) * b.Mitte;
+        foreach (var (kaminOrt, kaminTeil) in kamine)
+        {
+            var k = LageImModell(wurzel, kaminTeil) * kaminOrt;
+            if (new Vector2(ort.X - k.X, ort.Z - k.Z).Length() < 0.8f && Mathf.Abs(ort.Y - k.Y) < 0.8f) return true;
+        }
+        return false;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

@@ -243,13 +243,6 @@ public partial class Stadtansicht
     /// <summary>Höhennebel der niedrigen Stufe: bis zu dieser Höhe (Meter) und wie dicht darunter.</summary>
     private const float DunstHoehe = 3f, DunstHoehenDichte = 0.055f;
 
-    /// <summary>Feiner Staub in der Luft der Raumansicht (nur Stufe Hoch): macht das Licht der Fenster als Bahn sichtbar.</summary>
-    private const float RaumDunstDichte = 0.025f;
-
-    /// <summary>So viel heller als ihr Licht im Raum leuchten die Fensterlichter im Staub (Godots <c>LightVolumetricFogEnergy</c>, Grundwert 1):
-    /// Die Lichtbahn soll zu sehen sein, ohne dass der ganze Raum neblig wird.</summary>
-    private const float RaumLichtbahn = 8f;
-
     private float _dunstAnteil = -1;
 
     /// <summary>
@@ -346,33 +339,12 @@ public partial class Stadtansicht
         umgebung.FogSkyAffect = 0;
         if (_dunstVolumen is not null) _dunstVolumen.Visible = stufe == Morgendunst.Hoch;
         foreach (var v in _stadtDunst) v.Visible = stufe == Morgendunst.Hoch;
-        _raumUmgebung.VolumetricFogEnabled = stufe == Morgendunst.Hoch;
-        _raumUmgebung.VolumetricFogDensity = RaumDunstDichte;
-        _raumUmgebung.VolumetricFogLength = 40;
-        _raumUmgebung.VolumetricFogAlbedo = new Color(0.9f, 0.85f, 0.75f);
-        _raumUmgebung.VolumetricFogTemporalReprojectionEnabled = true;
-        _raumUmgebung.VolumetricFogAmbientInject = 0.3f; // der Staub hellt den Raum etwas auf, statt ihn zu verdunkeln
+        _raumUmgebung.VolumetricFogEnabled = false; // in den Räumen ist die Luft klar: Der Staub im Licht (Dichte 0,025, Lichtbahnen mit Faktor 8) machte sie auf Hoch milchig (Nutzer 07.11.2026)
         _dunstAnteil = -1;
-        _lichtbahnenFuer = null;
-    }
-
-    private Raum? _lichtbahnenFuer;
-
-    /// <summary>
-    /// In der Raumansicht: Die Fensterlichter (<see cref="SpotLight3D"/> im Modell) bekommen eine kräftige Lichtbahn im Staub. Einmal je
-    /// Raum, denn das Durchsuchen der Einrichtung kostet etwas.
-    /// </summary>
-    private void LichtbahnenImRaum()
-    {
-        if (_raum is null || _raum == _lichtbahnenFuer || _innen?.Innen is not { } innen) return;
-        _lichtbahnenFuer = _raum;
-        foreach (var licht in innen.FindChildren("*", nameof(SpotLight3D), true, false).OfType<SpotLight3D>())
-            licht.LightVolumetricFogEnergy = Fenster.AktuellerDunst == Morgendunst.Hoch ? RaumLichtbahn : 1f;
     }
 
     private void DunstNachUhrzeit()
     {
-        LichtbahnenImRaum();
         if (Fenster.AktuellerDunst == Morgendunst.Aus) return;
         StadtDunstAnlegen();
         var anteil = DunstAnteilJetzt(); // folgt dem Bodennebel und dem Wetter (dazu Entfernungsnebel bei Wetter „Nebel“)

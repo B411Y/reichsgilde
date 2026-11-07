@@ -17,6 +17,7 @@ Startoptionen (nach `--`):
 - `--innen=1` (eigene Werkstatt) oder `--innen=Rathaus|Dom|wohnhaus:<Inhaber>`
 - `--raum=<Nummer>` (mit `--innen`: Raum der Raumleiste, 1 = erster)
 - `--innenblick=<0|L1|L2|R1|R2|O1|U1>` (mit `--innen`: Blickpunkt des Raums, was das Modell hat)
+- `--modellstufe=<1|2|3>` (alle Gebäudemodelle und ihre Räume zeigen diese Stufe, ohne Ausbau; nur für Bildschirmfotos aller Räume, z. B. `--innen=1 --raum=4 --modellstufe=3`)
 - `--tafel=<personal|produktion|lager|karren|einrichten|talentbaum|wache|bank|auftraege>` (mit `--innen`: Tafel der Bedienung öffnen; `bank` = Bankgeschäft der Geldleihe, `auftraege` = Kartentisch des Diebs mit Aufträgen und Banden im Hinterzimmer)
 - `--arbeiter=<Nummern>` (mit `--innen`: Arbeiter im Raum auswählen)
 - `--baum=<wohnhaus|betrieb>` (Talentbaum der Einrichtung von außen öffnen: Wohnhaus oder eigene Werkstatt; mit `--vermoegen=5000`; `--tafel=talentbaum` mit `--innen=1` ist derselbe Baum der Werkstatt, `--tafel=personal` das Personalbuch mit Porträts)
