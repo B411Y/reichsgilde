@@ -34,6 +34,7 @@ public partial class Ladebildschirm : CanvasLayer
     private static readonly string? FotoOrdner = OS.GetCmdlineUserArgs().LastOrDefault(a => a.StartsWith("--ladebildfotos="))?["--ladebildfotos=".Length..];
     private static readonly float[] FotoStufen = { 0.1f, 0.5f, 0.9f };
     private int _foto;
+    private bool _schliesst;
 
     private static readonly Color HolzRahmen = new(0.34f, 0.22f, 0.12f);
 
@@ -43,7 +44,7 @@ public partial class Ladebildschirm : CanvasLayer
     private Control _wurzel = null!;
     private string[] _tipps = Array.Empty<string>();
     private int _tippNummer;
-    private double _tippZeit;
+    private double _tippStart = -1;
 
     /// <summary>
     /// Öffnet den Ladebildschirm (oder gibt den offenen zurück) mit der Vorschau der Karte <paramref name="karte"/> als Bild.
@@ -207,10 +208,12 @@ public partial class Ladebildschirm : CanvasLayer
 
     public override void _Process(double delta)
     {
-        if (FotoOrdner is not null && _foto < FotoStufen.Length && _balken.Gezeigt >= FotoStufen[_foto]) FotoMachen(FotoStufen[_foto++]);
-        _tippZeit += delta;
-        if (_tippZeit < TippSekunden || _tipps.Length < 2) return;
-        _tippZeit = 0;
+        if (FotoOrdner is not null && !_schliesst && _foto < FotoStufen.Length && _balken.Gezeigt >= FotoStufen[_foto]) FotoMachen(FotoStufen[_foto++]);
+        // Echte Zeit statt delta: während der Abschnitte (ein Bild dauert bis zu 5 s) blieb delta klein, der Tipp wechselte nie
+        var jetzt = Time.GetTicksMsec() / 1000.0;
+        if (_tippStart < 0) _tippStart = jetzt;
+        if (jetzt - _tippStart < TippSekunden || _tipps.Length < 2) return;
+        _tippStart = jetzt;
         _tippNummer++;
         TippZeigen();
     }
@@ -251,6 +254,8 @@ public partial class Ladebildschirm : CanvasLayer
     {
         if (Ladezeit.An) GD.Print($"Ladezeit: Balken 1.000 „Ladebild schließt“ bei {Time.GetTicksMsec()} ms");
         if (Aktuell == this) Aktuell = null;
+        if (FotoOrdner is not null && _foto < FotoStufen.Length) FotoMachen(FotoStufen[_foto++]); // der Balken kommt oft nicht bis 90 %, bevor das Bild schließt
+        _schliesst = true;
         _balken.Ziel = 1;
         _wurzel.MouseFilter = Control.MouseFilterEnum.Ignore;
         var blende = CreateTween();
