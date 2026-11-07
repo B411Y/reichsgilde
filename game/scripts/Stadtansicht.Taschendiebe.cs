@@ -124,15 +124,15 @@ public partial class Stadtansicht
             var bild = GetViewport().GetTexture().GetImage();
             var fehler = bild.SavePng($"{ordner}/{name}.png");
             GD.Print($"[taschendieb] Bild {ordner}/{name}.png: {fehler}");
-            // Ausschnitt um die Mitte der Gestalten (zweifach vergrößert, Pixel scharf)
+            // Ausschnitt um die Mitte der Gestalten (2,5fach vergrößert, Pixel scharf)
             var punkte = um?.Invoke().Where(k => k is not null && IsInstanceValid(k)).Select(k => StadtKamera.UnprojectPosition(k!.GlobalPosition + new Vector3(0, 0.9f, 0))).ToList();
             if (punkte is { Count: > 0 })
             {
                 var mitte = punkte.Aggregate(Vector2.Zero, (a, p) => a + p) / punkte.Count;
-                var x = Mathf.Clamp((int)mitte.X - 300, 0, bild.GetWidth() - 600);
-                var y = Mathf.Clamp((int)mitte.Y - 169, 0, bild.GetHeight() - 338);
-                var teil = bild.GetRegion(new Rect2I(x, y, 600, 338));
-                teil.Resize(1200, 676, Image.Interpolation.Nearest);
+                var x = Mathf.Clamp((int)mitte.X - 240, 0, bild.GetWidth() - 480);
+                var y = Mathf.Clamp((int)mitte.Y - 135, 0, bild.GetHeight() - 270);
+                var teil = bild.GetRegion(new Rect2I(x, y, 480, 270));
+                teil.Resize(1200, 675, Image.Interpolation.Nearest);
                 teil.SavePng($"{ordner}/{name}_nah.png");
             }
         };
@@ -180,10 +180,11 @@ public partial class Stadtansicht
         {
             FestnahmeProbe = false;
             var wache = w.Konten.FirstOrDefault(k => k != _spielerKonto && k.IstAktiv);
+            if (FestFolge && _spielerKonto is { } eigenes && w.Betriebe.Any(b => b.Konto == eigenes && w.Wache.IstWachbetrieb(b))) wache = eigenes; // Test festnahmetor mit --beruf=Gardist: die eigene Wache fasst (Wachhaus nahe am Tor: Rückkehr des Torwächters)
             _diebVorfaelle.Add(new Vorfall
             {
                 Art = Vorfallart.Taschendiebstahl, Ort = Vorfallort.Markt, Ziel = "Markt", Erfolg = false, Wache = wache,
-                TaeterName = "Hans Hellermann", Taeterbetrieb = "Unterschlupf", OpferName = "Bürger am Markt", Minute = zeit.VergangeneMinuten,
+                TaeterName = "Konrad Hellermann", Taeterbetrieb = "Unterschlupf", OpferName = "Bürger am Markt", Minute = zeit.VergangeneMinuten,
             });
         }
 
@@ -283,10 +284,10 @@ public partial class Stadtansicht
     }
 
     /// <summary>Nur mit <c>--diebtest</c>, für Bilder: ein farbiger Punkt über dem Kopf (gelb eigener, blau fremder Dieb, rot Gefasster, grün Gardist), damit man sie im Gedränge findet.</summary>
-    private static void DiebMarke(Node3D knoten, Color farbe) => knoten.AddChild(new MeshInstance3D
+    private static void DiebMarke(Node3D knoten, Color farbe, float radius = 0.14f) => knoten.AddChild(new MeshInstance3D
     {
         Name = "Marke",
-        Mesh = new SphereMesh { Radius = 0.14f, Height = 0.28f }, Position = new Vector3(0, 2.1f, 0),
+        Mesh = new SphereMesh { Radius = radius, Height = 2 * radius }, Position = new Vector3(0, 2.1f, 0),
         MaterialOverride = new StandardMaterial3D { AlbedoColor = farbe, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded },
     });
 
@@ -422,7 +423,7 @@ public partial class Stadtansicht
                 tempo = (float)(laenge / (s.Vorlauf * sekundenJeMinute));
                 bewegung = "Gehen";
                 d.Zustand = "schleicht sich an einen Passanten heran";
-                if (s.AusweichHin is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, s.Eigen, out var ao, out var ab, out var abew, out var at))
+                if (s.AusweichHin is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, out var ao, out var ab, out var abew, out var at))
                     (ort, blickFest, bewegung, tempo, d.Zustand) = (ao, ab, abew, at, "weicht der Streife aus");
                 break;
             }
@@ -461,7 +462,7 @@ public partial class Stadtansicht
                     s.AusweichAb = AusweichenPlanen(s.Weg, t => t >= abBeginn && t < abBeginn + abDauer ? (t - abBeginn) / abDauer * abLaenge : null,
                         Math.Max(abBeginn, jetzt), abBeginn + abDauer - 0.6, 0, s.Platz, $"Dieb (Abgang um {new Spielzeit((long)s.Griff).UhrzeitText})");
                 }
-                if (s.AusweichAb is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, s.Eigen, out var ao, out var ab, out var abew, out var at))
+                if (s.AusweichAb is { } ausweichen && AusweichenStellen(ausweichen, jetzt, sekundenJeMinute, false, out var ao, out var ab, out var abew, out var at))
                     (ort, blickFest, bewegung, tempo, d.Zustand) = (ao, ab, abew, at, "weicht der Streife aus");
                 break;
             }
@@ -575,6 +576,7 @@ public partial class Stadtansicht
     {
         if (_torposten.Count == 0 || _tore.Count == 0 || _simulation?.Wirtschaft?.Einwohnerschaft is not { IstAktiv: true } ew) return null;
         var tor = _tore.OrderBy(t => new Vector2(t.Ort.X - ort.X, t.Ort.Z - ort.Z).Length()).First();
+        if (Wasserarten.Startoption("festtor") is { Length: > 0 } festTor && _tore.FirstOrDefault(t => t.Name == festTor) is { Name: not null } gewaehlt) tor = gewaehlt; // nur Test (--festtor=<Name>): dieses Tor
         var abstand = new Vector2(tor.Ort.X - ort.X, tor.Ort.Z - ort.Z).Length();
         if (abstand > Taschendiebgang.TorwaechterNaehe) { DiebMelden($"Festnahme bei {ort.X:0}|{ort.Z:0}: nächstes Tor {tor.Name} {abstand:0} m weit, ein Gardist kommt"); return null; }
         var amPosten = _torposten.Values.Where(p => p.Sichtbar && p.Abgeordnet is null && p.Dienst == Wachdienst.Posten && p.Wache.Tor == tor.Name && p.Figur is not null)
@@ -601,6 +603,7 @@ public partial class Stadtansicht
         if (f.Torwaechter is { } tw)
         {
             tw.Abgeordnet = null;
+            DiebMelden(abgebrochen ? $"Festnahme abgebrochen, {tw.Wache.Person.Name} wird neu gestellt" : $"{tw.Wache.Person.Name} ist zurück auf seinem Posten am {tw.Wache.Tor}");
             if (abgebrochen) TorpostenVerstecken(tw); // Stadt nicht mehr gezeigt: die Torwache stellt ihn beim nächsten Mal an seinen Platz
         }
         else if (IsInstanceValid(f.WacheKnoten)) f.WacheKnoten.QueueFree();
@@ -624,7 +627,7 @@ public partial class Stadtansicht
             (platz, ort) = (opfer.Platz, opfer.Ort + new Vector3(0.7f, 0, 0));
         else
         {
-            platz = _maerkte.Where(m => m.Flaeche is not null && (!DiebLog || DiebTestPlatz(m))).OrderBy(m => new Vector2(m.Mitte.X - eingang.X, m.Mitte.Z - eingang.Z).Length()).FirstOrDefault(); // beim Test (--diebtest) der Markt, auf den die Kamera blickt
+            platz = _maerkte.Where(m => m.Flaeche is not null && (!DiebLog || Wasserarten.Startoption("festtor") is not null || DiebTestPlatz(m))).OrderBy(m => new Vector2(m.Mitte.X - eingang.X, m.Mitte.Z - eingang.Z).Length()).FirstOrDefault(); // beim Test (--diebtest) der Markt, auf den die Kamera blickt
             if (platz is null) return null;
             ort = PunktUm(platz, platz.Mitte, platz.Halb * 0.4f, Taschendiebgang.Streu(v.TaeterName?.Length ?? 0, v.Jahr, 5)) ?? platz.Mitte;
         }
@@ -715,13 +718,14 @@ public partial class Stadtansicht
         var abschnitt = Taschendiebgang.FestnahmeBei(jetzt - s.Start, s.LaufDauer, s.FuehrDauer, out var anteil, s.RueckDauer);
         s.Phase = abschnitt;
         if (abschnitt == Taschendiebgang.Fest.Fertig) return false;
-        if (FestFolge && _haltBis == 0 && _festHaltStufe < 3 && s.Torwaechter is not null)
+        if (FestFolge && _haltBis == 0 && _festHaltStufe < (s.Heim.Length > 1 ? 4 : 3) && s.Torwaechter is not null)
         {
             var da = _festHaltStufe switch
             {
                 0 => abschnitt == Taschendiebgang.Fest.Lauf && anteil >= 0.4,
                 1 => abschnitt == Taschendiebgang.Fest.Zugriff && anteil >= 0.5,
-                _ => abschnitt == Taschendiebgang.Fest.Abfuehren && anteil >= 0.25,
+                2 => abschnitt == Taschendiebgang.Fest.Abfuehren && anteil >= 0.25,
+                _ => abschnitt == Taschendiebgang.Fest.Rueckkehr && anteil >= 0.5,
             };
             if (da)
             {

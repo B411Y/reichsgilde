@@ -29,6 +29,9 @@ public partial class Stadtansicht
     /// <summary>Wie weit ein Dieb seitlich ausweicht, wenn sich keine Seitengasse findet (Meter): in den Schatten der Hauswand am Rand der Gasse.</summary>
     private const float SchattenAbstand = 1.6f;
 
+    /// <summary>Ein Seitenpunkt am Markt, zu dem der Weg (um Stände und Brunnen herum) länger wäre als so viel (Meter), zählt nicht: Der Dieb weicht dann in den Schatten aus.</summary>
+    private const float MaxSeitenweg = 12f;
+
     /// <summary>Test (<c>--diebtest=ausweichen|ausweichnacht</c>): Die Zeit hält dreimal 6 s an – der Dieb tritt zur Seite, steht im Schatten, kehrt zurück – für Bilder.</summary>
     public bool AusweichFolge { get; set; }
     private int _ausweichHaltStufe;
@@ -105,7 +108,7 @@ public partial class Stadtansicht
         float mQ = (float)mM;
         Vector3[] zumPunkt;
         Vector3 seite;
-        if (platz is not null && MarktSeite(platz, am, s) is { } frei) { seite = frei; zumPunkt = WegAuf(platz, am, frei, am.Y); }
+        if (platz is not null && MarktSeite(platz, am, s) is { } frei && Gassennetz.Laenge(WegAuf(platz, am, frei, am.Y)) <= MaxSeitenweg) { seite = frei; zumPunkt = WegAuf(platz, am, frei, am.Y); }
         else if (platz is null && GassenSeite(route, (float)mA, (float)mB, (float)mM, s) is { } gasse) { (seite, zumPunkt, mQ) = gasse; }
         else
         {
@@ -199,7 +202,7 @@ public partial class Stadtansicht
     /// Wo der Dieb zur Zeit <paramref name="t"/> auf seiner Ausweichbahn ist; false, wenn er nicht ausweicht (er geht seinen Weg). <paramref name="kniend"/>: nachts duckt er sich
     /// am Seitenpunkt. <paramref name="tempo"/>: Meter je echter Sekunde bei Tempo 1, schon auf <c>GehenTempo</c> umgerechnet, wenn die Bewegung „Eilen“ ist.
     /// </summary>
-    private bool AusweichenStellen(Ausweichbahn b, double t, double sekundenJeMinute, bool kniend, bool eigen, out Vector3 ort, out Vector3 blick, out string bewegung, out float tempo)
+    private bool AusweichenStellen(Ausweichbahn b, double t, double sekundenJeMinute, bool kniend, out Vector3 ort, out Vector3 blick, out string bewegung, out float tempo)
     {
         (ort, blick, bewegung, tempo) = (default, default, "Gehen", 0f);
         var phase = Ausweichgang.Bei(b.Fenster, t, b.Hinweg, out var anteil);
@@ -220,7 +223,7 @@ public partial class Stadtansicht
             bewegung = mps > Gehtempo.Gehen * 1.7 ? "Eilen" : "Gehen";
             tempo = bewegung == "Eilen" ? mps * GehenTempo / EilenTempo : mps; // DiebStellen teilt durch GehenTempo
         }
-        if (AusweichFolge && eigen && _haltBis == 0 && _ausweichHaltStufe < 3)
+        if (AusweichFolge && _haltBis == 0 && _ausweichHaltStufe < 3)
         {
             var da = _ausweichHaltStufe switch
             {
@@ -233,7 +236,7 @@ public partial class Stadtansicht
                 _haltBis = Time.GetTicksMsec() + 6000;
                 _simulation!.Takt.IstPausiert = true;
                 GD.Print($"[ausweichen] Halt {_ausweichHaltStufe} {Time.GetUnixTimeFromSystem():0.0} {phase} {anteil:0.00}");
-                DiebBildAblegen($"aus{_ausweichHaltStufe}", () => _diebfiguren.Values.Where(d => d.Sichtbar && d.Eigen && d.Zustand.StartsWith("weicht", StringComparison.Ordinal)).Take(1).Select(d => d.Knoten)
+                DiebBildAblegen($"aus{_ausweichHaltStufe}", () => _diebfiguren.Values.Where(d => d.Sichtbar && d.Zustand.StartsWith("weicht", StringComparison.Ordinal)).Take(1).Select(d => d.Knoten)
                     .Concat(_wachgaenge.Values.Where(g => g.Sichtbar).Select(g => g.Knoten)));
                 _ausweichHaltStufe++;
             }

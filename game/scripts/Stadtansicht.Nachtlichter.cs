@@ -556,6 +556,7 @@ public partial class Stadtansicht
         var nummer = 5000 + stand.Arbeiter.Nummer;
         var knoten = new Node3D { Name = $"Wache_{haus.Name}_{stand.Arbeiter.Nummer}", Visible = false };
         _wachEbene.AddChild(knoten);
+        if (DiebLog && Wasserarten.Startoption("diebmarken") != "0") DiebMarke(knoten, new Color(0.9f, 0.2f, 1f), 0.24f); // nur mit --diebtest: großer violetter Punkt über dem Wachmann auf Streife (Bilder)
         return new Wachgang
         {
             Knoten = knoten,

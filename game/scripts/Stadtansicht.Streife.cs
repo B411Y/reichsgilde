@@ -123,14 +123,16 @@ public partial class Stadtansicht
             {
                 Streifenart.Viertel => ViertelPunkte(w, haus, tuer, viertel, out start),
                 Streifenart.Mauer => MauerPunkte(tuer, haus.Name),
-                _ => new List<Vector3> { (NaechsterMarkt(tuer)?.Mitte ?? _markt) },
+                _ => new List<Vector3> { MarktAnschluss(tuer) },
             };
-            if (punkte.Count == 0) { punkte = new List<Vector3> { (NaechsterMarkt(tuer)?.Mitte ?? _markt) }; start = tuer; }
+            if (punkte.Count == 0) { punkte = new List<Vector3> { MarktAnschluss(tuer) }; start = tuer; }
             var hin = new List<Vector3> { start };
             var von = start;
             foreach (var ziel in punkte)
             {
-                foreach (var punkt in _netz.Pfad(_netz.KnotenBei(von), _netz.KnotenBei(ziel)))
+                var teilweg = _netz.Pfad(KnotenNaechster(von), KnotenNaechster(ziel));
+                if (StreifeLog && teilweg.Length == 0) GD.Print($"[streife] kein Weg im Netz von {von.X:0}|{von.Z:0} nach {ziel.X:0}|{ziel.Z:0}");
+                foreach (var punkt in teilweg)
                     if (hin[^1].DistanceTo(punkt) > 0.05f) hin.Add(punkt);
                 von = ziel;
             }
@@ -145,6 +147,45 @@ public partial class Stadtansicht
         else _streifenrunden[schluessel] = runde;
         if (StreifeLog) GD.Print($"[streife] {haus.Name} ({w.Befugnisse.ViertelVon(haus)}): {art} {viertel}, " + (runde is { } r ? $"{r.Laenge / 2:0} m hin, Tür {TuerAnker(haus.Name)?.X:0}|{TuerAnker(haus.Name)?.Z:0}, Ziel {r.Runde[r.Runde.Length / 2].X:0}|{r.Runde[r.Runde.Length / 2].Z:0}" : "keine Runde"));
         return runde;
+    }
+
+    /// <summary>
+    /// Der dem Punkt nächste vorhandene Knoten des Gassennetzes (legt keinen neuen an, anders als <see cref="Gassennetz.KnotenBei"/>). Die Tür eines Wachhauses liegt oft einen Meter
+    /// neben der Gasse; ein neuer Knoten dort hing an nichts, die Runde fand keinen Weg und der Wachmann blieb unsichtbar (Befund 07.11.2026, Köln und Greybox).
+    /// </summary>
+    private int KnotenNaechster(Vector3 p)
+    {
+        var knoten = _netz.Knoten;
+        var beste = -1;
+        var abstand = float.MaxValue;
+        for (var i = 0; i < knoten.Count; i++)
+        {
+            var d = Abstand2D(knoten[i], p);
+            if (d < abstand) (beste, abstand) = (i, d);
+        }
+        return beste;
+    }
+
+    /// <summary>
+    /// Der Punkt des Gassennetzes, bis zu dem die Marktrunde geht: der dem nächsten Marktplatz nächste Knoten, der von der Tür aus erreichbar ist. Die Mitte des Platzes selbst
+    /// hängt oft nicht am Netz (die Gassen enden am Rand des Pflasters; über den Platz laufen die Passanten über die Fläche) – dann fand die Runde keinen Weg und der Wachmann
+    /// blieb unsichtbar (Befund 07.11.2026: Köln und Greybox, „keine Runde“ bei der Marktrunde).
+    /// </summary>
+    private Vector3 MarktAnschluss(Vector3 tuer)
+    {
+        var markt = NaechsterMarkt(tuer);
+        var mitte = markt?.Mitte ?? _markt;
+        var rand = (markt?.Halb ?? 15f) + 25f;
+        var knoten = _netz.Knoten;
+        var enden = new List<(int Knoten, float Nachlauf)>();
+        for (var i = 0; i < knoten.Count; i++)
+        {
+            var d = Abstand2D(knoten[i], mitte);
+            if (d <= rand) enden.Add((i, d));
+        }
+        // ein Durchgang von der Tür aus zu allen Knoten am Platz; gewählt wird der mit dem kürzesten Weg samt Rest bis zur Mitte
+        if (enden.Count > 0 && _netz.PfadZwischen(new[] { (KnotenNaechster(tuer), 0f) }, enden) is { } treffer) return knoten[enden[treffer.Ende].Knoten];
+        return mitte;
     }
 
     /// <summary>

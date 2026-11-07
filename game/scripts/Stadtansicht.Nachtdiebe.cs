@@ -335,7 +335,7 @@ public partial class Stadtansicht
                     blick = Gassennetz.PunktAuf(s.Hin, Mathf.Min(1, (float)anteil + 0.5f / Mathf.Max(1, Gassennetz.Laenge(s.Hin)))) - ort;
                     bewegung = "Gebeugt";
                     tempo = Gehtempo.Gebeugt;
-                    if (s.AusweichHin is { } ah && AusweichenStellen(ah, tm, sekundenJeMinute, true, s.Eigen && i == 0, out var ao, out var ab, out var abew, out var at))
+                    if (s.AusweichHin is { } ah && AusweichenStellen(ah, tm, sekundenJeMinute, true, out var ao, out var ab, out var abew, out var at))
                         (ort, blick, bewegung, tempo, ausgewichen) = (ao, ab, abew == "Gehen" ? "Gebeugt" : abew, at, true);
                     break;
                 case Nachtgang.Abschnitt.Warten:
@@ -367,7 +367,7 @@ public partial class Stadtansicht
                     sackZeigen = d.Sack is not null;
                     bewegung = zeuge ? "Eilen" : sackZeigen ? "Tragen" : "Gehen";
                     tempo = (float)(Gassennetz.Laenge(s.Flucht) / (s.Plan.Flucht * sekundenJeMinute));
-                    if (s.AusweichFlucht is { } af && AusweichenStellen(af, tm, sekundenJeMinute, true, s.Eigen && i == 0, out var fo, out var fb, out var fbew, out var ft))
+                    if (s.AusweichFlucht is { } af && AusweichenStellen(af, tm, sekundenJeMinute, true, out var fo, out var fb, out var fbew, out var ft))
                         (ort, blick, bewegung, tempo, ausgewichen) = (fo, fb, fbew == "Gehen" && sackZeigen ? "Tragen" : fbew, ft, true);
                     break;
             }
