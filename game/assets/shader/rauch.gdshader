@@ -49,41 +49,70 @@ varying float neigung;
 varying float staerke;
 varying flat uint saat;
 
+// Wind am Kopf der Säule (Anteil der Säulenhöhe): bei Windstärke 0,25 (ruhiges Wetter) wie bisher gut ein Zehntel, bei Regen (0,5) ein Viertel,
+// bei Gewitter (0,75) die Hälfte, bei Sturm (1) über vier Fünftel – dann liegt die Säule 40° geneigt. Dieselbe Quelle wie die Fahnen: Richtung
+// wind_richtung, Stärke aus dem Wetter (wetter_wind, Stadtansicht.Wetter.cs setzt auch wind_staerke der Fahnen daraus).
+float lehne_nach_wind(float w) {
+	return 0.05 + 0.8 * w * w;
+}
+
 void vertex() {
 	// Ohne Instanz-Uniform (sie belegten je Fläche Platz im knappen Puffer der Grafikkarte): die Stärke steckt in der Tiefe der flachen Fläche
 	// (Skalierung Z / X − 1, Feuer.RauchStaerke), der Startwert kommt aus der Lage in der Welt (Rauch steht still)
 	staerke = clamp(length(MODEL_MATRIX[2].xyz) / max(length(MODEL_MATRIX[0].xyz), 1e-6) - 1.0, 0.0, 1.0);
 	saat = f_hash_u(uvec4(uvec3(ivec3(round(MODEL_MATRIX[3].xyz * 100.0))), 3u));
+	vec3 v0 = VERTEX;
+	float sx = length(MODEL_MATRIX[0].xyz);
+	float sy = length(MODEL_MATRIX[1].xyz);
+	float w = clamp(wetter_wind, 0.0, 1.0);
+
+	// Jeder Schornstein ein wenig anders (Werte aus seiner Lage, kein Spielzufall): Windrichtung bis ±14° verdreht, Neigung 0,75- bis 1,25-fach,
+	// eigener Takt der Böen. Bei Windstille fällt das kaum auf, im Sturm bläst es jede Säule etwas anders.
+	float p1 = f_hash(uvec4(saat, 11u, 0u, 0u));
+	float p2 = f_hash(uvec4(saat, 12u, 0u, 0u));
+	float drehwinkel = (p1 - 0.5) * 0.5 * w;
+	vec2 wind = normalize(wind_richtung + vec2(0.0001));
+	wind = vec2(cos(drehwinkel) * wind.x - sin(drehwinkel) * wind.y, sin(drehwinkel) * wind.x + cos(drehwinkel) * wind.y);
+	float boe = 1.0 + 0.3 * w * sin(TIME * (0.5 + 0.4 * p1) + p2 * 6.2832);
+	float lehne = lehne_nach_wind(w) * (0.75 + 0.5 * p2) * boe;
+
 	float lage = 0.0;
 	if (billboard == 2) {
-		float sx = length(MODEL_MATRIX[0].xyz);
-		float sy = length(MODEL_MATRIX[1].xyz);
 		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * sx, INV_VIEW_MATRIX[1] * sy, INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
-		lage = dot(normalize(wind_richtung + vec2(0.0001)), INV_VIEW_MATRIX[0].xz);
+		lage = dot(wind, INV_VIEW_MATRIX[0].xz);
+		// Der Wind schiebt den Kopf der Säule in der Welt: Der Versatz (Meter) geht in die Fläche, mit der Höhe wachsend (auch auf die Kamera zu oder
+		// von ihr weg: dann sinkt oder steigt der Kopf im Bild)
+		vec3 d = vec3(wind.x, 0.0, wind.y) * lehne * sy * VERTEX.y;
+		VERTEX.x += dot(d, INV_VIEW_MATRIX[0].xyz) / sx;
+		VERTEX.y += dot(d, INV_VIEW_MATRIX[1].xyz) / sy;
 	} else if (billboard == 1) {
-		float sx = length(MODEL_MATRIX[0].xyz);
 		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0] * sx, MODEL_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
-		lage = dot(normalize(wind_richtung + vec2(0.0001)), INV_VIEW_MATRIX[0].xz);
+		lage = dot(wind, INV_VIEW_MATRIX[0].xz);
+		vec3 d = vec3(wind.x, 0.0, wind.y) * lehne * sy * VERTEX.y;
+		VERTEX.x += dot(d, INV_VIEW_MATRIX[0].xyz) / sx;
 	} else {
-		lage = dot(normalize(wind_richtung + vec2(0.0001)), normalize(MODEL_MATRIX[0].xyz).xz);
+		vec3 achse = normalize(MODEL_MATRIX[0].xyz);
+		lage = dot(wind, achse.xz);
+		vec3 d = vec3(wind.x, 0.0, wind.y) * lehne * sy * VERTEX.y;
+		VERTEX.x += dot(d, achse) / sx;
 	}
-	// Auch bei Windstille steigt der Rauch nicht ganz gerade
-	neigung = lage * (0.15 + 1.4 * wetter_wind);
+	// Ein Rest der Biegung im Shader (der Fuß steigt gerade, der Kopf läuft aus): auch bei Windstille steigt der Rauch nicht ganz gerade
+	neigung = lage * (0.1 + 0.5 * w);
 	if (an_wand && billboard != 0) {
 		vec2 weg = normalize(MODEL_MATRIX[0].xz + vec2(1e-6));
-		vec3 rechts = INV_VIEW_MATRIX[0].xyz * length(MODEL_MATRIX[0].xyz);
-		vec3 oben = billboard == 2 ? INV_VIEW_MATRIX[1].xyz * length(MODEL_MATRIX[1].xyz) : vec3(0.0, length(MODEL_MATRIX[1].xyz), 0.0);
+		vec3 rechts = INV_VIEW_MATRIX[0].xyz * sx;
+		vec3 oben = billboard == 2 ? INV_VIEW_MATRIX[1].xyz * sy : vec3(0.0, sy, 0.0);
 		// Die zur Kamera gedrehte Fläche kippt oben nach hinten; zeigt das in die Wand, steigt sie stattdessen senkrecht hoch (nur auf die Wand
 		// projiziert neigte sie sich seitlich). Die Seiten bleiben, wo sie sind: Was seitlich in einer Wand steckt, verdeckt die Wand selbst,
 		// die Kante blendet weich aus.
 		float kipp = -dot(normalize(oben.xz + vec2(1e-6)), weg);
 		oben.xz *= 1.0 - smoothstep(0.0, 0.35, kipp);
-		VERTEX = MODEL_MATRIX[3].xyz + rechts * VERTEX.x + oben * VERTEX.y;
+		// Wind: den Anteil auf die Wand zu weglassen (nur von der Wand weg oder an ihr entlang)
+		vec2 wf = wind - weg * min(dot(wind, weg), 0.0);
+		float hoehe = clamp(v0.y, 0.0, 1.0);
+		VERTEX = MODEL_MATRIX[3].xyz + rechts * v0.x + oben * v0.y + vec3(wf.x, 0.0, wf.y) * lehne * sy * hoehe;
 		MODELVIEW_MATRIX = VIEW_MATRIX;
-		// Wind: den Anteil auf die Wand zu weglassen
-		vec2 w = normalize(wind_richtung + vec2(0.0001));
-		w -= weg * min(dot(w, weg), 0.0);
-		neigung = dot(w, INV_VIEW_MATRIX[0].xz) * (0.15 + 1.4 * wetter_wind);
+		neigung = dot(wf, INV_VIEW_MATRIX[0].xz) * (0.1 + 0.5 * w);
 	}
 }
 
@@ -95,12 +124,14 @@ void fragment() {
 
 	// Die Säule wird schnell breiter (Rauch quillt auf), schlängelt sich und franst am Rand aus; innen ist sie fleckig
 	float breite = mix(fuss_breite, 1.0, 1.0 - pow(1.0 - h, 2.2));
-	float xl = x - neigung * h * h * 1.2;
+	// Böiger Wind verwirbelt die Säule: ein Schlängeln mit eigener Phase je Schornstein und ein stärkeres Ausfransen (bei Windstärke 0,25 kaum zu sehen)
+	float wirbel = wetter_wind * wetter_wind;
+	float xl = x - neigung * h * h * 1.2 - sin(h * (4.0 + 3.0 * ph) - t * (1.0 + 2.0 * wetter_wind) + ph * 6.2832) * 0.22 * wirbel * (0.25 + h);
 	float n1 = texture(rausch, vec2(xl * 0.30 + ph, h * 0.55 - t * 0.10)).r;
 	float n2 = texture(rausch, vec2(xl * 0.80 + ph * 1.9 + 0.31, h * 1.30 - t * 0.17)).g;
 	float n3 = texture(rausch, vec2(xl * 1.60 + ph * 2.7 + 0.62, h * 2.40 - t * 0.28)).b;
 
-	float versatz = (n1 - 0.5) * 1.4 * h;
+	float versatz = (n1 - 0.5) * 1.4 * h * (1.0 + 1.2 * wirbel);
 	float d = 1.0 - abs(xl - versatz) / breite;
 	d -= (1.0 - (0.5 * n2 + 0.5 * n3)) * 0.8 * (0.15 + h);
 	float deckung = smoothstep(0.0, 0.4, d) * smoothstep(0.0, 0.05, h) * (1.0 - smoothstep(0.5, 1.0, h)) * (0.55 + 0.9 * n2 * n3 * 1.6);

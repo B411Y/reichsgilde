@@ -472,8 +472,8 @@ public partial class Feuer : Node3D
                 Scale = new Vector3(groesse.X, groesse.Y, groesse.X * (1f + kennwert)),
                 RotationDegrees = new Vector3(0, f * 90f + phase * 40f, 0),
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-                // Die Flamme darf nie weggeschnitten werden, solange ihr Fuß sichtbar ist
-                ExtraCullMargin = 2f,
+                // Die Flamme darf nie weggeschnitten werden, solange ihr Fuß sichtbar ist; der Rauch im Sturm liegt bis zu 5 m neben seiner Fläche (rauch.gdshader)
+                ExtraCullMargin = 6f,
             };
             AddChild(m);
             neu.Add(m);
