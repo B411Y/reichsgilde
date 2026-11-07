@@ -270,7 +270,7 @@ static class KartenbauTests
             var ordner = Path.Combine(Path.GetTempPath(), "reichsgilde-kartenbau-" + Guid.NewGuid().ToString("N"));
             try
             {
-                var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+                var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
                 var (karte, vorschau) = (Path.Combine(ordner, "karten", "probestadt.json"), Path.Combine(ordner, "vorschau"));
                 var aus = new StringWriter();
                 Pruefe.Gleich(0, Befehle.Schreiben(e, karte, vorschau, false, aus), aus.ToString());
@@ -283,7 +283,7 @@ static class KartenbauTests
                 Pruefe.Gleich(0, Befehle.Schreiben(e, karte, vorschau, true, aus));
                 Pruefe.Gleich(e.ZuJson(), File.ReadAllText(karte), "mit --ueberschreiben ersetzt");
                 // mit einem Fehler: nichts
-                var kaputt = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+                var kaputt = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
                 kaputt.Setzen("werkstattplatz", -30, -10);  // genau auf einen anderen Werkstattplatz
                 var andere = Path.Combine(ordner, "karten", "kaputt.json");
                 Pruefe.Gleich(1, Befehle.Schreiben(kaputt, andere, vorschau, true, aus));

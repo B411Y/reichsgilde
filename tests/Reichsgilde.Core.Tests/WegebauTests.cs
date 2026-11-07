@@ -27,7 +27,7 @@ static class WegebauTests
         return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
     }
 
-    static Kartenentwurf Probestadt() => new Probestadt().Bauen(Katalog.Value, Daten.Value);
+    static Kartenentwurf Probestadt() => Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
     static int Nr(Stadtkarte k, string name) => k.Wege.FindIndex(w => w.Name == name);
 
     /// <summary>Probepartie in der Probestadt (Spieler Schmied, Werkstatt bei (−30 | −10) an der Hauptstraße, Markt bei (0 | 0)).</summary>
