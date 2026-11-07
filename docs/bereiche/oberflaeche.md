@@ -234,7 +234,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hauptszene in Abschnitten | `_Ready` baut die Tafeln, dann `PartieAufbauen` (async): Kern, Stadt in Abschnitten, `PartieStarten` (der frühere Rest von `_Ready`: Spielmenü, Ereignisse, Startoptionen), `ErsteBilderAbwarten`. Startoptionen, die eine fertige Stadt brauchen (`--blick`, `--innen`, `--wetter`), wirken dadurch wie bisher. Hauptmenue.cs/Hauptszene.cs: Änderung durch die Außenstelle im Auftrag. | 29.10.2026 |
 | Klicktest | `tools/klicktest/lauf.ps1`, Vulkan und D3D12 (RTX 4080), Köln: neue Partie, Spielstand, Kartenwerkstatt je 14 Bilder alle 0,5 s (Balken und Text laufen, Ausblenden, fertiges Bild vollständig mit Wohnhäusern und Nachtlicht), dazu Regen 8 s nach dem Start. Bilder: `C:\Reichsgilde_Austausch\aussenstelle\ladebild\` (`uebersicht-*.png`). | 29.10.2026 |
 
-### Holzschnitt-Platzhalter im Ladebildschirm (PR #…)
+### Holzschnitt-Platzhalter im Ladebildschirm (PR #…, ersetzt durch das Köln-Bild, siehe unten)
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
@@ -365,3 +365,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Porträt | Person der Meldung, sonst bei Anklage, Schulden, Meisterprüfung und Aufstieg das Oberhaupt; am Siegel klein unten links (fängt keine Klicks), im Brief 64 px mit Name und Haus (Klick: Charakterfenster). | 06.11.2026 |
 | Hinsehen | Knopf im Brief (ersetzt „Zu <Betrieb>“), je Zeile in gestapelten Briefen, Klick auf eine Zeile im Verlauf: Kamera hin, eigener Betrieb → Kurzübersicht, fremdes Gebäude → Auswahl, eigenes Wohnhaus → Tafel, Blitzschlag → Ort; ohne Ort Charakterfenster der Person. Drinnen erst hinaus. | 06.11.2026 |
 | Verlauf | Nach dem Laden aus dem Spielstand (500 Meldungen des Kerns), ohne Siegel und Briefe neu auszulösen. | 06.11.2026 |
+
+### Ladebildschirm mit Bild, Tipps und geeichtem Balken (Branch phase5/ladebildschirm-bild)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Balken neu eichen, ein großes Holzschnitt-Ladebild, 20–30 Tipps, Rahmen im Stil der Oberfläche (Teamleiter nach Nutzerwunsch). | 07.11.2026 |
+| Balken | Gemessen mit `--ladezeit=1` (Release, Köln und Greybox, je 3 Läufe, Vulkan RTX 4080): Die Anteile der Abschnitte in `Stadtansicht.Karte.cs`, `Stadtansicht.cs` und `Hauptszene.cs` folgen jetzt dem Mittel beider Karten (Anteil = Zeit, die davor verstrichen ist; Balken von 0,02 bis 1). Mittlere Abweichung des Balkens von der verstrichenen Zeit 5,4 → 0,6 Punkte (Köln), 4,7 → 0,8 (Greybox); größte Abweichung 12 → 1,4 Punkte. Die Phase hinter dem Ladebild (Gras, Vögel, Wetterprobe) hat eigene Stufen (`ErsteBilderAbwarten`: 0,784 / 0,79 / 0,925 bis 1). Die Kartenwerkstatt hat noch ihre alten Anteile. Neu: Das Log zeigt je Abschnitt „Ladezeit: Balken <Anteil> „<Text>“ bei <ms>“; die Dauer eines Abschnitts ist der Abstand zur nächsten Zeile. | 07.11.2026 |
+| Bild | `ladebilder/koeln.webp` (1664 × 928): Köln am Rhein mit Dom-Baustelle, Kran und Schiffen, aus Qwen-Image 2512 + holzschnitt_v1 (Ablauf `docs/assets/prompts/ladebilder.md`). Es füllt das Fenster (zugeschnitten, bei sehr breiten Fenstern oben und unten beschnitten), in einem Holzrahmen. Die acht quadratischen Platzhalter entfallen. Drei Entwürfe liegen beim Nutzer zur Auswahl. | 07.11.2026 |
+| Tipps | `ladetipps.json`: 30 Tipps, alle aus dem Spielbuch (Wirtschaft, Hafen, Stände). Unten auf einer Pergamenttafel über dem Balken. | 07.11.2026 |
+| Bilder | `--ladebildfotos=<ordner>` speichert den Ladebildschirm bei 10, 50 und 90 % des Balkens. | 07.11.2026 |
