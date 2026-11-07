@@ -249,7 +249,7 @@ static class BodenTests
 
         ("Spielstand: Der Boden der Karte liegt im Spielstand und kommt beim Laden genauso wieder", () =>
         {
-            var e = new Probestadt().Bauen(Katalog.Value, Daten.Value);
+            var e = Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value);
             Pruefe.Wahr(!e.Boden.IstLeer, "die Probestadt hat Bodentexturen");
             var (sim, spieler) = e.Ausprobieren(Daten.Value, "Schmied");
             var json = Speicherung.Speichern(sim, spieler);
