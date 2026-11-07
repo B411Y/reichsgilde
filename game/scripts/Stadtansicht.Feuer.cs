@@ -837,7 +837,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Die Kegelflammen im Glutmaterial der Räume (die Kamine der Wachstube, der Schänke und der Geldleihe: fünf Kegel von 0,13 × 0,33 × 0,13 m, und die Kerzenflammen) ersetzt das Spiel durch echtes
+    /// Die Kegelflammen im Glutmaterial der Räume (die Kamine der Wachstube, der Schänke und der Geldleihe: fünf bis sechs Kegel von 0,13–0,15 m Breite und 0,3–0,47 m Höhe, und die Kerzenflammen) ersetzt das Spiel durch echtes
     /// Feuer: Sie werden aus dem Netz herausgenommen (ganze Netze nur unsichtbar), und aus jeder Gruppe wird die Mitte des Kamins gemerkt (Ort im Raum des Modells, Höhe des Glutbetts).
     /// Muss vor <see cref="InnenModellStoffe"/> laufen, weil ein neues Netz die Überschreibung der Materialien neu anfängt.
     /// </summary>
@@ -878,11 +878,11 @@ public partial class Stadtansicht
         return alt;
     }
 
-    /// <summary>Ein Kegel der alten Flammen: 0,10–0,16 m breit und tief, 0,25–0,45 m hoch, die Spitze nach oben.</summary>
+    /// <summary>Ein Kegel der alten Flammen: 0,10–0,20 m breit und tief, 0,25–0,60 m hoch, die Spitze nach oben.</summary>
     private static bool IstKegelflamme(Bauteil b)
     {
         var g = b.Groesse;
-        return g.X is >= 0.1f and <= 0.16f && g.Z is >= 0.1f and <= 0.16f && g.Y is >= 0.25f and <= 0.45f && b.Normale.Y > 0.5f;
+        return g.X is >= 0.1f and <= 0.2f && g.Z is >= 0.1f and <= 0.2f && g.Y is >= 0.25f and <= 0.6f && b.Normale.Y > 0.5f;
     }
 
     /// <summary>Die Flamme einer Kerze im Modell: ein Kegel von höchstens 0,1 m Breite und 0,03–0,22 m Höhe (die Stümpfe der Gildenhalle sind bis 0,2 m hoch).</summary>
