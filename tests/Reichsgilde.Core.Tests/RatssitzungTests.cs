@@ -295,7 +295,7 @@ static class RatssitzungTests
             var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
             foreach (var nein in new[] { false, true })
             {
-                var (sim, spieler) = new Probestadt().Bauen(katalog, daten).Ausprobieren(daten, "Schmied");
+                var (sim, spieler) = Probestadtvorlage.Entwurf(katalog, daten).Ausprobieren(daten, "Schmied");
                 var w = sim.Wirtschaft!;
                 // Der Spieler beantragt (er hat Aktionspunkte), ein zweites Haus ohne KI stimmt – es spielt hier den Spieler am Tisch.
                 var nachbar = w.KontoEroeffnen("Nachbar", startvermoegen: 20_000);

@@ -908,7 +908,9 @@ public static class KlangUmgebungModell
                         {
                             var w = Gewicht(i, stunde, b, n, h);
                             if (kaputt && i == 0 && stunde > 12f) w = 1.5f;
-                            Pruefe(w is >= 0f and <= 1f && float.IsFinite(w), $"{Schichten[i].Name}: Gewicht {w} außerhalb 0–1 (Uhr {stunde:0.0}, b {b:0.0}, S {s})");
+                            // Meldung nur im Fehlerfall bauen: Die Schleife läuft einige Millionen Mal (Testzeit, 07.11.2026: 7 s je Selbsttest)
+                            if (!(w is >= 0f and <= 1f && float.IsFinite(w)))
+                                Pruefe(false, $"{Schichten[i].Name}: Gewicht {w} außerhalb 0–1 (Uhr {stunde:0.0}, b {b:0.0}, S {s})");
                             var db = Math.Abs(Gewicht(i, stunde + 0.1f, b, n, h) - w);
                             var dbz = Math.Abs(Gewicht(i, stunde, b + 0.1f, n, h) - w);
                             groessteSpruenge = Math.Max(groessteSpruenge, Math.Max(db, dbz));

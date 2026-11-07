@@ -67,44 +67,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Nutzer, Startlehrling) Soll die KI zum Start ebenso mit einem Lehrling arbeiten (z. B. erst ab dem zweiten Spieltag einstellen, Bereich spiel-ki)? Heute stellt sie beim Anmelden nach. Empfehlung: nein – gleiche Mittel genügen, der Mensch kann ebenso sofort und kostenlos einstellen.
 - (Nutzer, Startlehrling, an Oberfläche) Hinweis zum Start „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein“ (Brief oder Meldung). Empfehlung: ja, sonst bleibt ein neuer Spieler bei halber Leistung.
 - (Nutzer, Startlehrling) Weitere Gegenmaßnahmen nur nach der vollen Messung: Handgeld beim Einstellen (bremst vor allem die KI; Empfehlung nein), mehr Startgeld oder billigerer Lehrling (Empfehlung nein, kein Bankrott), Lernzeit unverändert.
+- (Testzeit) Paralleler Testlauf als Schalter `--parallel[=N]` nur lokal (Klassen als Einheit, Ausgabe gepuffert, Klassen mit Zeitgrenzen danach allein), CI erst einmal seriell; vorher drei bis fünf parallele Läufe ohne Abweichung. Geschätzt 4 min → 1–1,5 min. Nicht gebaut, weil die NAS geteilt wird und es erst nach Wiederholungsläufen sicher ist (Bewertung im PR „Tests: langsame Tests gekürzt“).
+- (Testzeit) `Pruefe.Wahr`/`Pruefe.Gleich` mit Meldung als Funktion (Überladung in `Program.cs`), damit Meldungen in Schleifen erst im Fehlerfall gebaut werden – `Program.cs` bleibt nach CLAUDE.md unberührt, darum Vorschlag an den Teamleiter.
 
 ## Entscheidungen
 
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
-
-### Felspinsel F3: Felsstücke in der Karte (PR #284)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Sperren | Felsstücke sperren nichts (Nutzer): keine Fehler der Prüfung, nur Hinweise `fels` (unbekannte Form oder Gesteinsart, außerhalb der Karte); `Stadtkarte.Pruefen` kennt sie nicht, eine Karte mit Felsen lädt immer. | 01.11. |
-| Gestein | Ein Grundgestein je Karte (`felsen.grundgestein`, ohne Angabe Grauwacke), je Stück `gestein` nur bei Abweichung (Nutzer). Die vier Kennungen stehen fest im Kern, ein Test vergleicht sie mit `gestein.json`. | 01.11. |
-| Format | Neues freiwilliges Feld `felsen` zwischen `natur` und `wasser`; ohne Stücke und Grundgestein fällt es weg, alte Karten bleiben Byte für Byte gleich (Test über alle vier Karten). Formen mit den Kennungen der F1-Knoten (klein, Umlaute umschrieben), nicht mit den Namen aus dem Plan. | 01.11. |
-| Lage im Raum | Gespeichert werden Anteile statt fertiger Winkel: `neigung` (0–1 zur Hangnormalen) und `einsinken` (0–0,9 der Höhe) – die Darstellung rechnet Hangnormale und Bodenhöhe selbst, ein späteres Formen des Hangs nimmt das Stück mit. `kippen` als zwei Grad-Werte (±8°), nur wenn nicht 0. | 01.11. |
-| Spielstand | `Stadtkarte.Felsen` mit `JsonIgnore(WhenWritingNull)`: `Speicherstand*.cs` bleibt unberührt, ein Stand ohne Felsen schreibt das Feld nicht (der Bauart nach Byte für Byte wie vorher; der Test mit `format2-greybox-herbst1406` prüft, dass es fehlt), einer mit Felsen lädt sie wieder und speichert sich Byte für Byte gleich. | 01.11. |
-| Dichte | Als gedeckter Anteil der Fläche (Grundflächen als Kreise), nicht als Stückzahl: gleich sinnvoll für Schuttbrocken und Wände, Einzelstück und Gruppe. Abstand: Kreise überdecken sich höchstens 35 % der Radiensumme; Stücke einer Gruppe untereinander nicht geprüft. | 01.11. |
-| Strich | Tupfer alle Radius/2 m (Geländepinsel: Radius/4), Versuche je Tupfer aus der noch freien Zieldichte (dreimal so viele wie Plätze hineinpassen, 24–2.000, Schluss nach 60 Fehlversuchen in Folge) – so deckt ein großer Radius wie ein kleiner. Beim Ziehen ändert sich die Liste sofort (jede Änderung gemeldet), Beenden legt den Strich ohne erneutes Ausführen (`SchonAusgefuehrt`) als einen Schritt ab. Rückgängig/Wiederholen beenden einen laufenden Felsstrich zuerst. | 01.11. |
-| Zufall | Je Strich bzw. Stempel eine `Zufallsquelle` aus dem Startwert (ohne Angabe aus erstem Punkt und Zahl der Stücke); Winkel nur `DetMathe` (`Dreh`, `Atan2`), Punkt im Kreis durch Verwerfen statt Winkel; alles gerundet wie in der Datei. Vorschau und Stempel rechnen dasselbe. | 01.11. |
-| Zum Hang | Formen mit Schauseite und Gruppen zeigen ab 3 % Steigung hangabwärts ± 20°, sonst voll zufällig; das erste Stück einer Gruppe steht genau in ihrer Drehung (Stempel mit fester Drehung). | 01.11. |
-| Filter | Der `Pinselfilter` gilt für Streuen (Wahrscheinlichkeit = Faktor, weicher Rand), Stempel und Radierer (Faktor ≥ ½), gemessen an der Mitte des Stücks bzw. der Gruppe. | 01.11. |
-| Gleichheit | Der Gleichheitstest hat einen Felsfall (`FelsenTests.Ablauf`: drei Stempel, zwei Striche, Radierer, Rückgängig/Wiederholen, Grundgestein); seine SHA-256 steht als Zeile „fels …“ in der Datei der CI. | 01.11. |
-| Gestein | Ein unbekanntes Gestein gilt nicht (`GesteinVon`, `Wirksam` fallen auf Grundgestein bzw. Grauwacke zurück, wie der Prüfhinweis sagt); ein Pinsel mit dem Grundgestein schreibt kein `gestein` – die Stücke folgen einem späteren Wechsel. | 01.11. |
-| Nach der Prüfung | Unabhängiger Prüfer: kein hoher, 1 mittlerer, 8 niedrige Befunde. Behoben: `FelsStrichWeiter` ohne Strich gibt 0 statt zu werfen (Strg+Z bei gedrückter Maus; die Werkstatt prüft `FelsStrichLaeuft`), `Kartengeschichte.Gespeichert` beendet einen laufenden Felsstrich, `Stadtkarte` verträgt `"stuecke": null`, Bodenfilter am nächsten Bodenpunkt (gerundet), Form im Stück zwischengespeichert, Kommentar zum Radius (Ellipsenfläche, Absicht), Tests geschärft (Kippen, langer Radierstrich mit zweimal Rückgängig/Wiederholen, Dichte-Schranke, Radierer im Gleichheitsablauf abgesichert). Bleibt: von Hand geschriebene `felsen` ohne Inhalt fallen samt unbekannten Feldern weg (wie `natur`); Streuen über Tausende Stücke ohne Suchraster (20–30 ms je Tupfer bei 4.000 Stücken) – ein Raster mit F5/F6, wenn Karten so viele haben. | 01.11. |
-| Zweite Prüfung | Zweiter unabhängiger Prüfer: 1 mittel (Dichte bei großem Radius weit unter dem Regler, Radius 30 m nur 0,1 statt 0,3), 4 niedrig. Behoben: Versuche aus der Zieldichte (Test: Radius 5, 20, 50 m decken 0,15–0,48 bei Dichte 0,3); `Kartengeschichte.Rueckgaengig`/`Wiederholen` beenden einen laufenden Felsstrich selbst; `Stadtkarte.Pruefen` meldet leere Felsstücke und Punkte ohne zwei Zahlen (Fehler, sonst Absturz in der Darstellung); Hinweis `fels` für Maßstab, Einsinken, Neigung, Drehung außerhalb der Grenzen. Bleibt wie bei Pflanzen: Ein von Hand kaputter `punkt` wird im Entwurf still [0, 0]. | 01.11. |
-
-### Felspinsel F6: Boden um den Fels (PR #284)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Ein Befehl | Stempel und Strich malen den Boden mit (`Felspinsel.Boden`, Vorgabe an; Werkstatt-Häkchen „Boden mitmalen“). Die Kacheln (`BodenAendern`) stehen im selben Sammelbefehl wie die Stücke: ein Schritt bei Rückgängig; beim Ziehen sofort sichtbar, erst „Beenden“ legt den Schritt an. | 01.11.2026 |
-| Kanäle | Nur die vorhandenen Kanäle Fels, Kies, Moos (die 12 Kanäle sind voll); die Dekodichte bleibt. Je Punkt das stärkste Gewicht je Textur über den Strich, neu gerechnet aus dem Stand vor dem Strich: Moos, Kies, Fels darüber – unabhängig von Reihenfolge und Überfahren. | 01.11.2026 |
-| Form | Fels unter der gedrehten Grundfläche (0,8 × Breite × Tiefe, der Fuß ist kleiner als der Kasten) + 0,4 m; Kies-Kegel hangabwärts, 1,3 × Höhe lang (0,6–1,4 je Steigung, 1,2–14 m), unten breiter, Ende ausgefranst; in der Ebene (unter 3 %) ein Kiesring; Moossaum 1,6–3 m breit nach der Höhe des Stücks (Plan 0,5–1 m: auf dem 1-m-Raster nur ein Punkt, im Bild nicht zu sehen), voll hangaufwärts und im Norden (−z), sonst 25 %. Ränder ± 25 cm aus ganzzahligem Rauschen. | 01.11.2026 |
-| Was nicht malt | Schuttbrocken (sie sind der Schutt); Radierer, Verschieben und Drehen lassen den Boden (eigene Wahl: der alte Boden unter einem Stück ist nicht bekannt; dafür gibt es den Radierer der Bodentexturen). | 01.11.2026 |
-| Schuttsteine | `Felsboden.Schuttsteine`: je Stück 1,4 je Meter Höhe (höchstens 9) Steine der Form „schuttbrocken“ im Kegel, aus Lage und Form gerechnet, nicht gespeichert (wie die Bodendeko). | 01.11.2026 |
-| Spielstand | Unberührt: Der Boden steht schon im Feld `boden` der Karte; `Speicherstand*.cs` nicht geändert. | 01.11.2026 |
-| Suchraster | `Felsraster` (16 m) beim Streuen für Abstand und Dichte; Summen in der Reihenfolge der Liste. Der feste Ablauf der FelsenTests ohne Boden gibt dieselbe Prüfsumme wie vor F6 (Test). 6.900 Stücke in einem Werkstattlauf ohne spürbare Wartezeit. | 01.11.2026 |
-| Tests | `FelsbodenTests` (8): Fels/Kies/Moos am Hang und in der Ebene, ein Schritt mit Rückgängig Byte für Byte, Strich beim Ziehen, Boden aus, Reihenfolge, alle Karten aus `game/karten/` nach Stempel und Rückgängig Byte für Byte gleich, Schuttsteine. Gleichheitstest: neue Zeile „felsboden …“. | 01.11.2026 |
 
 ### Blitzschlag im Gewitter (PR #288)
 
@@ -302,3 +272,14 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Fehler sichtbar | Unbekannter Schalter (Tippfehler) oder leeres Muster: Hilfe und Rückgabe 2; keine Auswahl getroffen: Rückgabe 1. So läuft nie aus Versehen „nichts“ grün durch. | 07.11.2026 |
 | Langsam | Liste in `LangsameTests.cs` (Klasse, Namensmuster – `null` = ganze Klasse – und Anzahl der getroffenen Tests) statt Namenspräfix oder Attribut: Testnamen und fremde Testdateien bleiben unberührt, die Liste ist an einer Stelle. `TestfilterTests` meldet Einträge, die nicht genau so viele Tests treffen wie angegeben (umbenannt oder Muster zu weit); doppelte Testfälle laufen weiter doppelt (kein `Except`). Schwelle: allein etwa 3 s oder mehr (gemessen auf main 36e57cd6, NAS unter Last 4,5–12,5): 30 Tests, zusammen gut 7 der 11 Minuten. Größter Brocken: `BuergerTorwacheTests` „Spielstand geladen …“ mit 233 s. | 07.11.2026 |
 | Regel | Während der Arbeit gezielt testen, vor dem PR bzw. Abschlussbericht einmal alle (CLAUDE.md, Agentendateien). | 07.11.2026 |
+
+### Testzeit gekürzt (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bauorte | `Bauwesen.Platzsuche`: je Abfrage die umschließenden Rechtecke von Bauzonen und Wegen, außerhalb sicher „keine Zone“ bzw. „nicht an der Straße“ (Begründung im Code: Strahlprüfung zählt links des Rechtecks gerade viele Kanten; Rand 1 m in x, Straßenabstand + 1 m); im Vorfilter jedes Eckfeld nur einmal (`Dictionary` nur zum Nachschlagen). Köln 4–13 s → etwa 0,5 s je Abfrage, auch für die KI im Spiel. Ergebnis Byte für Byte gleich: Gegenprobe alt gegen neu auf allen vier Karten (drei Runden mit Bauten, alle Bauorte und alle Meldungen von `PlatzVerboten` an jeder Rasterstelle); neuer Test `BauortsucheTests`. | 07.11.2026 |
+| Probestadt | `Probestadtvorlage.Entwurf(katalog, daten)`: Skript einmal je Lauf, jeder Test bekommt einen frischen Entwurf aus dem Text. Gleich: Text (auch mit anderen Daten, und gleich `game/karten/probestadt.json`), Befunde, Prüfsumme der Partie nach 1.500 Ticks; anders nur die leere Geschichte (kein umgestellter Test nimmt Schritte des Skripts zurück). Tests, die das Skript selbst prüfen (Kartenbau, Kartengrenzen, Wasser „Stadtskript“, Gelände „Hügel im Rand“), rufen es weiter. | 07.11.2026 |
+| Meldungen | In Schleifen mit vielen tausend Prüfungen die Meldung erst im Fehlerfall bauen (Klang-Selbsttest, Kurvenprüfung: die Hälfte der 14 s; Passantenspur). Klang ist Bereich sound: nur diese eine Zeile, Prüfung und Meldungen gleich. | 07.11.2026 |
+| Blitz | Die Suche nach einem Startwert, dessen erstes Gewitter eine Werkstatt trifft, einmal je Lauf (`Lazy`), zuerst der bekannte Treffer 1433, sonst wie bisher ab 1400. | 07.11.2026 |
+| Gegenprobe | Jede Kürzung mit absichtlichem Fehler im Code geprüft (Platzsuche: vier Fehler; Blitz: halber Stillstand; Probestadt: Wasser-Aufschlag und Belagfaktor, 8 Tests rot; Klang: zu lauter Morgenchor; Passantenspur: 10 % zu schnelle Bewegung). | 07.11.2026 |
+| Langsam | `LangsameTests.cs` neu gemessen: 30 → 16 Einträge (neu: Startwege in Köln). B bleiben die Statistik-Tests (Eisenbart, Krankheit, Eskorte, Gaunerei-Nächte), Gleichheit, Aussehen über 35 Jahre, Greybox-Bauorte gegen jede Rasterstelle, Klang-Selbsttest. Keine doppelten Tests gefunden. Kein gemeinsamer Köln-Stand: Der Aufbau kostet 20–40 ms, teuer war nur die Bauort-Suche. | 07.11.2026 |
