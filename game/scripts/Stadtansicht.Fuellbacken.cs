@@ -11,23 +11,23 @@ namespace Reichsgilde;
 /// **Netzen mit einer Fläche je Stoff** gebacken (<see cref="Fuellnetz"/>; gleiche Stoffe aus verschiedenen Baukästen kommen in eine Fläche). Godot zeichnet jede Fläche zweimal
 /// (Tiefenvorlauf und Bild), die Zeichenaufrufe sind also etwa das Doppelte der Flächen. Drei Netze-Arten, je nach Zoom:
 /// <list type="bullet">
-/// <item><b>Nah</b> (Zoom bis <see cref="FuellNahBisZoom"/>, 35 m): je Zelle (nahe Restflächen eines Themas) ein Netz mit allen Teilen, unverändert im Aussehen; was nicht im Bild liegt,
+/// <item><b>Nah</b> (Zoom bis <see cref="FuellNahBisZoom"/>, 25 m): je Zelle (nahe Restflächen eines Themas) ein Netz mit allen Teilen, unverändert im Aussehen; was nicht im Bild liegt,
 /// fällt beim Ausblenden weg, im dichtesten Blick von Köln sind es rund 60 Zeichenaufrufe. Gebacken beim Hinsehen, höchstens <see cref="FuellBackZeit"/> Millisekunden je Bild.</item>
-/// <item><b>Mittel und fern</b> (70 und 140 m, <see cref="FuellFernAbZoom"/>): je ein Netz der <i>ganzen</i> Füllung (<see cref="Fuellsatz"/>), also unabhängig davon, wie viele Zellen im
+/// <item><b>Mittel und fern</b> (50 und 100 m, <see cref="FuellFernAbZoom"/>): je ein Netz der <i>ganzen</i> Füllung (<see cref="Fuellsatz"/>), also unabhängig davon, wie viele Zellen im
 /// Bild liegen, nur mit den Stoffen der Füllung; seltene Stoffe nehmen dafür einen ähnlichen häufigen (<c>fern_stoffe</c> in <c>restflaechen.json</c>). Das mittlere zeigt alle Teile, das
 /// weite lässt die Kleinstteile weg (Gras, Kraut, Steine, Reisig, Pilze, Blumen). Gebacken in Schritten über mehrere Bilder, beim ersten Bedarf.</item>
 /// <item><b>Schatten</b> (je Zelle): Die Schattenwerfer stehen zusätzlich in einem Netz mit einer Fläche und <c>ShadowsOnly</c>; die Netze fürs Bild werfen selbst keinen Schatten.
-/// Gezeigt bis Zoom 55 (alle) bzw. 75 (nur die großen).</item>
+/// Gezeigt bis Zoom 37 (alle) bzw. 75 (nur die großen).</item>
 /// </list>
 /// Je Jahreszeit eine Fassung (Winter: kahle Fassungen <c>_Winter</c>, ohne die Sommerteile); bis die neue gebacken ist, bleibt die alte stehen.
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Bis zu diesem Zoom (sichtbare Höhe in Metern) zeigen die Schatten aller Schattenwerfer (nahe Pixel-Zoomstufe 35 m); bis <see cref="FuellGrossBisZoom"/> nur die der großen Teile (70 m).</summary>
-    private const float FuellNahBisZoom = 55f, FuellGrossBisZoom = 75f;
+    /// <summary>Bis zu diesem Zoom (sichtbare Höhe in Metern) zeigen die Schatten aller Schattenwerfer (nahe Pixel-Zoomstufe 25 m); bis <see cref="FuellGrossBisZoom"/> nur die der großen Teile (50 m).</summary>
+    private const float FuellNahBisZoom = 37f, FuellGrossBisZoom = 75f;
 
-    /// <summary>Ab diesem Zoom zeigt das ferne Bildnetz die Kleinstteile nicht mehr (weite Pixel-Zoomstufe 140 m): Gras, Kraut, Steine, Reisig, Pilze, Blumen sind dort nur noch Flimmern.</summary>
-    private const float FuellFernAbZoom = 100f;
+    /// <summary>Über diesem Zoom zeigt das ferne Bildnetz die Kleinstteile nicht mehr (weite Pixel-Zoomstufe 100 m): Gras, Kraut, Steine, Reisig, Pilze, Blumen sind dort nur noch Flimmern.</summary>
+    private const float FuellFernAbZoom = 75f;
 
     /// <summary>Wie weit (Meter) Restflächen eines Themas auseinanderliegen dürfen und trotzdem eine Zelle bilden, und wie groß eine Zelle höchstens wird.</summary>
     private const float FuellAbstand = 12f, FuellGroesst = 64f;

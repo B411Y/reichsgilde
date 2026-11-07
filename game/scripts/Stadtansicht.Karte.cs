@@ -549,12 +549,13 @@ public partial class Stadtansicht
         if (karte.Kamera is { } k)
         {
             _kameraDrehung.Position = Punkt3(k.Punkt);
-            if (k.Zoom > 0) _kamera.Size = Mathf.Clamp((float)k.Zoom, KameraMinZoom, KameraGroessterZoom());
+            if (k.Zoom > 0) _kamera.Size = PixelZoomEinrasten(Mathf.Clamp((float)k.Zoom, KameraMinZoom, KameraGroessterZoom())); // im Pixel-Look auf die nächste Zoomstufe
             _zielDrehung += (float)k.Drehung;
             _kameraDrehung.RotationDegrees = new Vector3(0, _zielDrehung, 0);
             KameraHoeheSofort();
             return;
         }
+        _kamera.Size = PixelZoomEinrasten(_kamera.Size); // der gewohnte Zoom (95 m) rastet im Pixel-Look auf die weite Stufe (100 m)
         var gebaeude = karte.Gebaeude.Select(g => Punkt2(g.Punkt)).ToList();
         if (gebaeude.Count == 0) return;
         var rahmen = new Rect2(gebaeude[0], Vector2.Zero);

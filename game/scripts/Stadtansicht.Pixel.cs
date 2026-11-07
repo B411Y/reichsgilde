@@ -21,7 +21,7 @@ namespace Reichsgilde;
 /// (<c>PixelGlueh</c>) und wird weich auf Fenstergröße gezogen: nur ein Viertel (N = 2) bzw. ein Neuntel (N = 3) der Bildpunkte, 24 statt 72 Abtastungen je Punkt.</item>
 /// <item><b>Reihenfolge der Ansichten:</b> Godot zeichnet verschachtelte Ansichten innen vor außen. Darum liegt <c>PixelLicht</c> in <c>PixelWelt</c> und diese in <c>PixelGlueh</c>:
 /// Beleuchtung, dann Welt, dann Schein, dann das Fenster.</item>
-/// <item><b>Drei feste Zoomstufen</b> der Spielkamera (<see cref="PixelZoomStufe"/>: 140/70/35 m), nur im Pixel-Look und nicht in der Kartenwerkstatt; sonst bleibt der Zoom stufenlos. Ruhiges Gras (<c>gras.gdshader</c>, Uniform <c>ruhig</c>) und
+/// <item><b>Drei feste Zoomstufen</b> der Spielkamera (<see cref="PixelZoomStufen"/>: 100/50/25 m, seit „Zoom A“ näher als die früheren 140/70/35 m), nur im Pixel-Look und nicht in der Kartenwerkstatt; sonst bleibt der Zoom stufenlos. Ruhiges Gras (<c>gras.gdshader</c>, Uniform <c>ruhig</c>) und
 /// weniger Halme (<see cref="GrasWerte"/>); die Vignette liegt in voller Auflösung auf der Welt-Ebene.</item>
 /// <item><b>Räume</b> (Raumkamera) und Innenansichten: Pixel 3, ebenfalls mit Beleuchtungsbild (Stufenlicht, Umrisse) und Glühen.</item>
 /// </list>
@@ -59,11 +59,17 @@ public partial class Stadtansicht
     private double _pxMessSekunden, _pxMessLauf; // _pxMessSekunden: 0 = noch nicht geprüft, −1 = keine Messung
     private readonly List<(double Fenster, double Welt, double Licht, double Glueh, double Cpu)> _pxMessung = new();
 
-    /// <summary>Feste Zoomstufen der Spielkamera im Pixel-Look (sichtbare Höhe in Metern): nah, mittel, weit; die letzte Stufe ist der größte erlaubte Zoom.</summary>
-    private static readonly float[] PixelZoomStufen = { 35f, 70f, 140f };
+    /// <summary>Feste Zoomstufen der Spielkamera im Pixel-Look (sichtbare Höhe in Metern): nah, mittel, weit (Nutzer 07.11.2026: näher als vorher 35/70/140); die letzte Stufe ist der größte erlaubte Zoom.</summary>
+    private static readonly float[] PixelZoomStufen = { 25f, 50f, 100f };
 
-    /// <summary>Ab diesem Zoom (Meter sichtbare Höhe) und darunter sind die Weltpixel 3 × 3 groß (nah), darüber 2 × 2. Zwischen nah (35 m) und mittel (70 m); Rückschaltung mit Abstand, damit eine Kamerafahrt nicht flackert.</summary>
-    private const float PixelNahBis = 52f, PixelNahZurueck = 56f;
+    /// <summary>
+    /// Wie viel größer die Zoomzahlen vor „Zoom A“ waren (140 : 100): Die Umgebungsklänge sind auf das alte Maß abgestimmt (Nähe, Höhe, Umkreis der Menschen, Hörweite der Karren),
+    /// <see cref="KlangZoom"/> rechnet darum im Pixel-Look auf das alte Maß um – jede Stufe klingt wie vorher (nah wie 35, mittel wie 70, weit wie 140).
+    /// </summary>
+    private const float PixelKlangMass = 1.4f;
+
+    /// <summary>Ab diesem Zoom (Meter sichtbare Höhe) und darunter sind die Weltpixel 3 × 3 groß (nah, nur die Stufe 25 m), darüber 2 × 2. Zwischen nah (25 m) und mittel (50 m); Rückschaltung mit Abstand, damit eine Kamerafahrt nicht flackert.</summary>
+    private const float PixelNahBis = 36f, PixelNahZurueck = 40f;
 
     /// <summary>
     /// Welche Pixelgröße gerade gilt: Räume und Innenansichten 3, die Kartenwerkstatt 2 (freier Zoom), draußen nah (bis <see cref="PixelNahBis"/>) 3, sonst 2.
@@ -86,10 +92,31 @@ public partial class Stadtansicht
         if (_pxWelt is not null) PixelBild();
     }
 
+    /// <summary>
+    /// Die Zoomstufen, die zwischen dem kleinsten und dem größten erlaubten Zoom liegen (bei einer kleinen Karte ist der größte Zoom die letzte Stufe, falls er nicht
+    /// gerade neben der vorigen liegt; nie über der letzten festen Stufe, auch wenn die Karte mehr erlaubt).
+    /// </summary>
+    private static float[] PixelStufenBis(float min, float max)
+    {
+        var obergrenze = Mathf.Min(max, PixelZoomStufen[^1]);
+        var stufen = PixelZoomStufen.Where(s => s >= min - 0.01f && s < obergrenze - 0.01f).ToList();
+        if (stufen.Count == 0 || obergrenze - stufen[^1] > 5f) stufen.Add(obergrenze);
+        else stufen[^1] = obergrenze; // zwei Stufen dicht beieinander: die höhere gilt
+        return stufen.ToArray();
+    }
+
+    /// <summary>Rastet einen Zoom auf die nächste Zoomstufe ein (Start, Zoom der Karte); ohne Pixel-Look und in der Kartenwerkstatt bleibt er, wie er ist.</summary>
+    private float PixelZoomEinrasten(float zoom)
+    {
+        if (!Fenster.PixelLookAn || _entwurf is not null || _innen is not null) return zoom;
+        var stufen = PixelStufenBis(KameraMinZoom, KameraGroessterZoom());
+        return stufen.OrderBy(s => Mathf.Abs(s - zoom)).First();
+    }
+
     /// <summary>Die nächste Zoomstufe: <paramref name="hinein"/> zur nächsten kleineren, sonst zur nächsten größeren (von einem Zoom zwischen den Stufen aus die benachbarte).</summary>
     private static float PixelZoomStufe(float jetzt, bool hinein, float min, float max)
     {
-        var stufen = PixelZoomStufen.Where(s => s >= min - 0.01f && s < max - 0.01f).Append(max).ToArray();
+        var stufen = PixelStufenBis(min, max);
         if (hinein) return stufen.Where(s => s < jetzt - 0.5f).DefaultIfEmpty(Mathf.Min(stufen[0], jetzt)).Max(); // unter der kleinsten Stufe (Mindestzoom 25 m) bleibt der Zoom, wie er ist
         return stufen.Where(s => s > jetzt + 0.5f).DefaultIfEmpty(stufen[^1]).Min();
     }

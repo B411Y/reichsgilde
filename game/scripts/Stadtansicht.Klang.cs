@@ -11,11 +11,17 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Kameragröße (sichtbare Bildhöhe in Metern, 25–140), auch mit freier Kamera (deren Größe folgt ihr ungefähr).</summary>
-    public float KlangZoom => Mathf.Clamp(_kamera.Size, KameraMinZoom, KameraMaxZoom);
+    /// <summary>
+    /// Kameragröße (sichtbare Bildhöhe in Metern, 25–140), auch mit freier Kamera (deren Größe folgt ihr ungefähr). Im Pixel-Look im alten Maß (vor „Zoom A“,
+    /// <see cref="PixelKlangMass"/>): die Stufen 25/50/100 m zählen 35/70/140, damit die Mischung jeder Stufe wie vorher klingt.
+    /// </summary>
+    public float KlangZoom => Mathf.Clamp(_kamera.Size * KlangMass, KameraMinZoom, KameraMaxZoom);
 
-    /// <summary>Der wirkliche Höchstzoom dieser Karte und dieses Seitenverhältnisses (<see cref="KameraGroessterZoom"/>).</summary>
-    public float KlangZoomGroesst => KameraGroessterZoom();
+    /// <summary>Der wirkliche Höchstzoom dieser Karte und dieses Seitenverhältnisses (<see cref="KameraGroessterZoom"/>), im Pixel-Look höchstens die weite Stufe, im Maß von <see cref="KlangZoom"/>.</summary>
+    public float KlangZoomGroesst => Fenster.PixelLookAn && _entwurf is null ? Mathf.Min(KameraGroessterZoom(), PixelZoomStufen[^1]) * PixelKlangMass : KameraGroessterZoom();
+
+    /// <summary>Faktor vom Zoom der Kamera auf den Klang-Zoom: im Pixel-Look 1,4 (draußen und in der Werkstatt gilt die Stufenwahl nicht), sonst 1.</summary>
+    private float KlangMass => Fenster.PixelLookAn && _entwurf is null ? PixelKlangMass : 1f;
 
     /// <summary>Die Bezugsstunde des Lichts (5 = Dämmerung beginnt … 22 = Nacht, je Jahreszeit gestreckt, Stadtansicht.Licht.cs).</summary>
     public float KlangBezugStunde => _bezugStunde;
@@ -100,7 +106,7 @@ public partial class Stadtansicht
     }
 
     /// <summary>Nur für die Hörprobe: Zoom fest vorgeben (wie das Mausrad, in den Grenzen der Karte).</summary>
-    public void KlangZoomVorgeben(float groesse) => _kamera.Size = Mathf.Clamp(groesse, KameraMinZoom, KameraGroessterZoom());
+    public void KlangZoomVorgeben(float groesse) => _kamera.Size = Mathf.Clamp(groesse / KlangMass, KameraMinZoom, KameraGroessterZoom()); // groesse im Maß von KlangZoom
 
     // ── Die Menschen der Stadt (KlangStadtlebenModell) ─────────────────────────────────────────────────────────────
 

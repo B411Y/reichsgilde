@@ -37,7 +37,7 @@ Dieses Kapitel zeigt, wie du durch die Stadt kommst, Gebäude öffnest, baust un
 
 | Du willst … | So geht es |
 |---|---|
-| näher heran oder weiter weg | **Mausrad** |
+| näher heran oder weiter weg | **Mausrad**: im Pixel-Look (Standard) in drei Stufen – nah 25 m, mittel 50 m, weit 100 m sichtbare Bildhöhe, der Start steht auf „weit“; ohne Pixel-Look stufenlos |
 | die Stadt verschieben | **rechte Maustaste halten und ziehen**, oder **W A S D**, oder die **Pfeiltasten** |
 | um die Stadt herum schauen | **Q** und **E** drehen die Kamera in Vierteln (90°); in der Kopfzeile steht, wohin du blickst |
 | alle Namen sehen | **Alt** gedrückt halten |
