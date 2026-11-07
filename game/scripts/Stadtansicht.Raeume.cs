@@ -342,7 +342,7 @@ public partial class Stadtansicht
         Teil(a, k + new Vector3(0.35f, 1.12f, -1.2f), new Vector3(0.1f, 0.12f, 0.1f), Material(new Color(0.08f, 0.08f, 0.1f)));
         var flamme = Leuchtend(new Color(1f, 0.85f, 0.5f), new Color(1f, 0.7f, 0.3f));
         Rund(a, k + new Vector3(0.9f, 1.25f, -1.5f), 0.05f, 0.35f, Material(Leinen), segmente: 8);
-        Teil(a, k + new Vector3(0.9f, 1.47f, -1.5f), new Vector3(0.06f, 0.1f, 0.06f), flamme);
+        Kerzenflamme(a, k + new Vector3(0.9f, 1.425f, -1.5f), () => true);
         FeuerAnlegen(a, k + new Vector3(0.9f, 1.8f, -1.2f), flamme, lichtAn: 0.9f, lichtAus: 0.9f, glutAn: 2f, glutAus: 2f, an: () => true, reichweite: 6);
         // Stuhl hinter dem Pult
         Teil(a, k + new Vector3(0, 0.42f, -2.3f), new Vector3(0.6f, 0.08f, 0.6f), dunkel);
@@ -405,6 +405,8 @@ public partial class Stadtansicht
         var glut = Leuchtend(new Color(0.15f, 0.08f, 0.05f), new Color(1f, 0.45f, 0.1f));
         Teil(a, s + new Vector3(-3.1f, 1.03f, -2.4f), new Vector3(1.2f, 0.06f, 0.8f), glut);
         Kugel(a, s + new Vector3(-3.1f, 1.35f, -2.4f), 0.35f, Metall(new Color(0.18f, 0.18f, 0.2f)), hoehe: 0.55f);
+        foreach (var fx in new[] { -3.5f, -2.7f }) // die Flammen schlagen vorn neben dem Kessel aus dem Herd
+            FlammeAnlegen(a, s + new Vector3(fx, 1.06f, -2.05f), FeuerVorgabe.Esse, 0.75f, () => true, herd: true);
         FeuerAnlegen(a, s + new Vector3(-2.6f, 1.6f, -1.6f), glut, lichtAn: 1.4f, lichtAus: 1.4f, glutAn: 1.5f, glutAus: 1.5f, an: () => true, reichweite: 7);
         // Tisch mit zwei Bänken in der Mitte
         Teil(a, s + new Vector3(0.4f, 0.78f, 0), new Vector3(2.6f, 0.1f, 1.1f), hell);
