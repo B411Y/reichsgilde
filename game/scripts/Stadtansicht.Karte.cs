@@ -134,6 +134,7 @@ public partial class Stadtansicht
         Ladezeit.Marke("vor dem Kartenaufbau");
         yield return new Ladeschritt(0f, "Das Land wird vermessen …");
         _gelaende = karte.Gelaendeform; // der Boden: vor allem, was darauf steht (Stadtansicht.Gelaende.cs)
+        FelderVorrechnen(karte); // die Äcker rechnen im Hintergrund, während der Hauptfaden den Rest lädt (Stadtansicht.Rand.cs)
         Ladezeit.Teil("LagenLesen", () => LagenLesen(karte));
         BodenstempelAusKarte(karte); // Höfe, Wege und Restflächen als Bodenart im Raster, vor dem Boden (Stadtansicht.Bodenstempel.cs)
         Ladezeit.Teil("BodenLegen", () => BodenLegen(karte));
