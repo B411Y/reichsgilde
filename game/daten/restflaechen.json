@@ -31,6 +31,16 @@
       [{"textur": "kies", "staerke": 0.8, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.92, "rand": 1.0, "rauschen": 0.3}]
     ]
   },
+  "fern_stoffe": {
+    "_hinweis": "Stoffe der Netze für Zoom 70 und 140 m: seltene oder nur um einen Farbton verschiedene einfache Stoffe (ohne Textur, undurchsichtig) nehmen einen ähnlichen häufigen (Name -> Name), damit die ganze Füllung höchstens rund 25 Flächen hat (Godot zeichnet jede Fläche zweimal, Tiefenvorlauf und Bild). Stoffe mit Textur (Zierholz der Zäune, Möbel, Beschlag, Pfadsteine) und Blätter mit Alphamaske bleiben, wie sie sind. Gilt nur ab Zoom 55; nah bleibt jeder Stoff, wie er ist (Stadtansicht.Fuellbacken.cs).",
+    "Holz alt": "Holz", "Bretter": "Holz", "Spaene": "Holz", "Totholz": "Rinde",
+    "Glut": "Meilererde", "Loch": "Meilererde", "Meilererde hell": "Meilererde",
+    "Fels dunkel": "Fels", "Bruchstein": "Sandstein alt", "Haustein": "Sandstein alt", "Stadtweiss": "Sandstein alt",
+    "Heu": "Stroh", "Strohkante": "Stroh", "Seil": "Stroh", "Pilzstiel": "Stroh", "Pilzhut": "Rinde",
+    "Tanne": "Laub dunkel", "Tanne hell": "Laub dunkel", "Beere": "Laub dunkel",
+    "Ginster": "Rasen", "Blüte weiß": "Rasen", "Nessel": "Rasen", "Kornblume": "Rasen", "Mohn": "Rasen",
+    "Moos": "Rasen", "Gras": "Rasen", "Erde hell": "Erde"
+  },
   "themen": {
     "garten": { "name": "Wohngarten", "formate": {
       "1x1": [

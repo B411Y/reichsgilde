@@ -71,7 +71,7 @@ public partial class Stadtansicht
         WetterNebel(); // Nebel des Wetters (Stadtansicht.Wetter.cs)
         BodennebelNachfuehren(); // Schwaden am Boden (Stadtansicht.Bodennebel.cs)
         FeinheitenNachZoom();
-        FuellungNachZoom(); // Restflächen (Stadtansicht.Restflaechen.cs)
+        FuellungNachZoom(delta); // Restflächen (Stadtansicht.Restflaechen.cs)
         FelsenBild();   // Feinheit und Schatten der Felsen nach Zoom (Stadtansicht.Felsen.cs)
         KulisseBild();  // Dunst der Kulissenberge nach Tageszeit und Wetter, Namen der Gipfel (Stadtansicht.Kulisse.cs)
         FelsmessungSchritt(delta); // --felsvergleich=1 (Stadtansicht.Felsmessung.cs)

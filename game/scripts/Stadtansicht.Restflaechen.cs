@@ -14,8 +14,8 @@ namespace Reichsgilde;
 /// <item>Der Kern zerlegt die Felder lückenlos in Kästen der Formate 1×1 … 3×3 (<see cref="Restflaechenfuellung.Zerlegen"/>) und nennt die Nachbarart (Wohnen, Werkstatt, Rand …).</item>
 /// <item>Das Thema (Garten, Werkhof, Randgestrüpp) wird je Restfläche nach den Gewichten der Nachbarart gewürfelt; die Rezepte stehen in <c>game/daten/restflaechen.json</c>
 /// (je Thema und Format eine Anordnung aus Einzelteil, Reihe, Streuung oder Raster; einmal gelesen und in <see cref="Rezeptteil"/> übersetzt).</item>
-/// <item>Gezeichnet wird wie die übrige Natur: je Art und Zelle (64 m) ein MultiMesh. Kleinteile hängen an den Natur-Details (Natur-Dichte); gezeigt wird die Füllung nur in der
-/// nahen Zoomstufe (<see cref="FuellKleinBisZoom"/>), Sommerteile (Blumen) fehlen im Winter, Büsche tauschen gegen ihre kahle Fassung.</item>
+/// <item>Gezeichnet wird als gebackene Netze mit einer Fläche je Stoff (<c>Stadtansicht.Fuellbacken.cs</c>, <see cref="Fuellnetz"/>), in allen drei Zoomstufen; Kleinteile hängen an der
+/// Natur-Dichte, Sommerteile (Blumen) fehlen im Winter, Büsche tauschen gegen ihre kahle Fassung.</item>
 /// <item>Steht auf einem Kasten ein Gebäude, fällt seine Füllung weg (<see cref="Restflaechenfuellung.Bebaut"/>).</item>
 /// </list>
 /// Aus mit der Startoption <c>--fuellung=0</c>.
@@ -47,23 +47,9 @@ public partial class Stadtansicht
         public readonly Dictionary<string, int> HoechstensFelder = new();
         /// <summary>Thema → Varianten des Untergrunds (je Variante die Stempel, siehe Stadtansicht.Bodenstempel.cs); ein Thema ohne Eintrag lässt den Boden, wie er ist.</summary>
         public readonly Dictionary<string, List<List<StempelAngabe>>> Untergruende = new();
+        /// <summary>Stoffname → Ersatzstoff für die weit entfernten Bildnetze (Zoom 70 und 140): seltene oder nur um einen Farbton verschiedene Stoffe nehmen einen häufigen, damit die ganze Füllung höchstens rund 30 Flächen (Zeichenaufrufe ×2 durch den Tiefenvorlauf) hat.</summary>
+        public readonly Dictionary<string, string> FernStoffe = new(StringComparer.Ordinal);
     }
-
-    private const float FuellZelle = 64f;
-
-    /// <summary>
-    /// Bis zu diesem Zoom (sichtbare Höhe in Metern) zeigt die Füllung ihre Teile: Kleinteile (Beete, Gras, Steine) bis 45 m, Mittelteile (Zäune, Fässer, Büsche) bis 55 m –
-    /// also nur in der nahen Pixel-Zoomstufe (35 m). Die Füllung kostet je Zelle und Art einen Zeichenaufruf, und in den Stufen 70 und 140 m wäre das ein Mehrfaches ohne Gewinn.
-    /// </summary>
-    private const float FuellKleinBisZoom = 45f, FuellMittelBisZoom = 55f;
-
-    /// <summary>Große Teile (Heuschober, Holzstapel, Meiler, Bildstock; im Rezept <c>"gross": true</c>) bleiben bis zur mittleren Zoomstufe (70 m) sichtbar, in der weiten (140 m) nicht mehr.</summary>
-    private const float FuellGrossBisZoom = 75f;
-
-    private Node3D? _fuellWurzel;
-    private readonly List<MultiMeshInstance3D> _fuellKlein = new(), _fuellMittel = new(), _fuellGross = new();
-    private (bool Klein, bool Mittel, bool Gross)? _fuellSichtbar;
-    private Node3D? _fuellSommer;
 
     /// <summary>Was zuletzt für die Karte gesetzt wurde: je Restfläche die Kästen mit ihren Teilen (für den Neuaufbau, wenn gebaut wurde).</summary>
     private readonly SortedDictionary<string, List<(Fuellkasten Kasten, List<Fuellteil> Teile)>> _fuellFlaechen = new(StringComparer.Ordinal);
@@ -98,6 +84,8 @@ public partial class Stadtansicht
             }
             if (wurzel["hoechstens_felder"] is JsonObject grenzen)
                 foreach (var (thema, felder) in grenzen) r.HoechstensFelder[thema] = felder!.GetValue<int>();
+            if (wurzel["fern_stoffe"] is JsonObject fern)
+                foreach (var (stoff, ersatz) in fern) r.FernStoffe[stoff] = ersatz!.GetValue<string>();
             if (wurzel["untergruende"] is JsonObject untergruende)
                 foreach (var (thema, varianten) in untergruende)
                     r.Untergruende[thema] = varianten!.AsArray().Select(v => StempelLesen(v!.AsArray(), wurzel["standard_untergrund"] as JsonObject)).ToList();
@@ -209,7 +197,7 @@ public partial class Stadtansicht
         var (nk, nt) = FuellZahlen;
         GD.Print($"Restflächen: {_fuellFlaechen.Count} Flächen, {nk} Kästen, {nt} Teile; Themen: "
             + string.Join(", ", _fuellThemen.GroupBy(t => t.Value).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}"))
-            + $"; {logik} ms Rechnung + {uhr.ElapsedMilliseconds - logik} ms Aufbau ({_fuellWurzel?.GetChildCount() ?? 0}+{_fuellSommer?.GetChildCount() ?? 0} MultiMeshes)");
+            + $"; {logik} ms Rechnung + {uhr.ElapsedMilliseconds - logik} ms Aufbau ({_fuellZellen.Count} Zellen, gebacken wird beim Hinsehen)");
     }
 
     /// <summary>Das Thema einer Restfläche (Garten, Werkhof, Randgestrüpp): nach den Gewichten der Nachbarart und dem festen Würfel; null, wenn die Datei keins kennt.</summary>
@@ -290,125 +278,5 @@ public partial class Stadtansicht
             }
         }
         return teile;
-    }
-
-    // ═════════════════════════════════════════════════════════════════════════
-    //  Aufbau
-    // ═════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Baut die MultiMeshes aus dem Gesetzten neu; Kästen, auf denen ein Gebäude steht, bleiben leer. Auch nach Änderungen der Karte aufrufbar
-    /// (Kartenwerkstatt) – es wird nichts neu gewürfelt, nur neu gezeichnet.
-    /// </summary>
-    internal void FuellungAufbauen(Stadtkarte karte)
-    {
-        if (_fuellWurzel is not null && IsInstanceValid(_fuellWurzel))
-        {
-            _naturWinter.RemoveAll(w => !IsInstanceValid(w.Vielfach));
-            _fuellWurzel.QueueFree();
-        }
-        _fuellKlein.Clear();
-        _fuellMittel.Clear();
-        _fuellGross.Clear();
-        _fuellSichtbar = null;
-        _fuellWurzel = new Node3D { Name = "Restflaechenfuellung" };
-        AddChild(_fuellWurzel);
-        _fuellSommer = new Node3D { Name = "Sommerteile", Visible = _jahreszeit != Jahreszeit.Winter };
-        _fuellWurzel.AddChild(_fuellSommer);
-        if (_fuellFlaechen.Count == 0) return;
-
-        var frei = Naturfreiraum.Aus(karte, Modellmass);
-        var gruppen = new SortedDictionary<(string Datei, string Knoten, bool Schatten, bool Klein, bool Sommer, bool Gross, int Zx, int Zz), List<Transform3D>>(
-            Comparer<(string, string, bool, bool, bool, bool, int, int)>.Create((a, b) => a.CompareTo(b)));
-        var weggelassen = 0;
-        foreach (var kaesten in _fuellFlaechen.Values)
-            foreach (var (kasten, teile) in kaesten)
-            {
-                if (Restflaechenfuellung.Bebaut(kasten, frei)) { weggelassen++; continue; }
-                foreach (var t in teile)
-                {
-                    var schluessel = (t.Datei, t.Knoten, t.Schatten, t.Klein, t.Sommer, t.Gross, Mathf.FloorToInt(t.Lage.Origin.X / FuellZelle), Mathf.FloorToInt(t.Lage.Origin.Z / FuellZelle));
-                    if (!gruppen.TryGetValue(schluessel, out var liste)) gruppen[schluessel] = liste = new();
-                    liste.Add(t.Lage);
-                }
-            }
-        if (weggelassen > 0) GD.Print($"Restflächen: {weggelassen} Kästen unter Gebäuden ohne Füllung.");
-
-        FuellNetzeVorladen(gruppen.Keys.Select(k => (k.Datei, k.Knoten)));
-        foreach (var (schluessel, lagen) in gruppen)
-        {
-            if (NaturNetz(schluessel.Datei, schluessel.Knoten) is not { } netz) continue;
-            // gemischt (fest aus der Lage): Die Natur-Dichte zeigt nur die ersten Kopien, und die sollen über alle Flächen verteilt sein
-            var geordnet = lagen.OrderBy(l => Restflaechenfuellung.Wuerfel("f", (int)(l.Origin.X * 10), (int)(l.Origin.Z * 10))).ToList();
-            var vielfach = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz, InstanceCount = geordnet.Count };
-            for (var i = 0; i < geordnet.Count; i++) vielfach.SetInstanceTransform(i, geordnet[i]);
-            if (HatWinterfassung(schluessel.Datei) && NaturNetz(schluessel.Datei, schluessel.Knoten + "_Winter", pflicht: false) is { } winter)
-            {
-                _naturWinter.Add((vielfach, netz, winter));
-                if (_jahreszeit == Jahreszeit.Winter) vielfach.Mesh = winter;
-            }
-            var teil = new MultiMeshInstance3D
-            {
-                Name = $"{schluessel.Knoten}_{schluessel.Zx}_{schluessel.Zz}",
-                Multimesh = vielfach,
-                CastShadow = schluessel.Schatten ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off,
-            };
-            (schluessel.Sommer ? _fuellSommer : _fuellWurzel).AddChild(teil);
-            if (schluessel.Klein)
-            {
-                _fuellKlein.Add(teil);
-                var detail = new NaturDetail(teil, teil.Multimesh.InstanceCount, false, false); // nur Natur-Dichte; den Zoom regelt FuellungNachZoom
-                _naturDetails.Add(detail);
-                NaturDichteSetzen(detail);
-            }
-            else if (schluessel.Gross) _fuellGross.Add(teil);
-            else _fuellMittel.Add(teil);
-        }
-    }
-
-    /// <summary>
-    /// Holt die Netze aller gebrauchten Knoten (und die kahlen Fassungen der Büsche) mit einmal Instanziieren je Baukasten – <see cref="NaturNetz"/> allein
-    /// instanziiert den ganzen Baukasten für jeden einzelnen Knoten.
-    /// </summary>
-    private void FuellNetzeVorladen(IEnumerable<(string Datei, string Knoten)> gebraucht)
-    {
-        foreach (var gruppe in gebraucht.Distinct().GroupBy(g => g.Datei))
-        {
-            var namen = gruppe.Select(g => g.Knoten).ToList();
-            if (HatWinterfassung(gruppe.Key)) namen.AddRange(namen.Select(n => n + "_Winter").ToList());
-            namen = namen.Where(n => !_naturNetze.ContainsKey((gruppe.Key, n))).Distinct().ToList();
-            if (namen.Count == 0 || Modell(gruppe.Key)?.Instantiate<Node3D>() is not { } kasten) continue;
-            foreach (var n in namen)
-            {
-                var netz = (kasten.FindChild(n, true, false) as MeshInstance3D)?.Mesh;
-                if (netz is not null) LaubMelden(netz);
-                _naturNetze[(gruppe.Key, n)] = netz;
-            }
-            kasten.Free();
-        }
-    }
-
-    /// <summary>Baukästen, deren Teile eine kahle bzw. verschneite Fassung <c>&lt;Name&gt;_Winter</c> haben (das Netz wird mit der Jahreszeit getauscht).</summary>
-    private static bool HatWinterfassung(string datei) => datei is "natur/natur_buesche" or "natur/natur_baeume" || datei.StartsWith("props/fuellung_", StringComparison.Ordinal);
-
-    /// <summary>Jedes Bild (aus <see cref="FeinheitenNachZoom"/>): Die Füllung nur in der nahen Zoomstufe zeigen (siehe <see cref="FuellKleinBisZoom"/>).</summary>
-    private void FuellungNachZoom()
-    {
-        var innen = _raum is not null;
-        var sichtbar = (innen || _kamera.Size <= Math.Min(FuellKleinBisZoom, FeinheitenBisZoom(Fenster.AktuelleFeinheiten)), innen || _kamera.Size <= FuellMittelBisZoom, innen || _kamera.Size <= FuellGrossBisZoom);
-        if (_fuellSichtbar == sichtbar) return;
-        _fuellSichtbar = sichtbar;
-        foreach (var teil in _fuellKlein)
-            if (IsInstanceValid(teil)) teil.Visible = sichtbar.Item1;
-        foreach (var teil in _fuellMittel)
-            if (IsInstanceValid(teil)) teil.Visible = sichtbar.Item2;
-        foreach (var teil in _fuellGross)
-            if (IsInstanceValid(teil)) teil.Visible = sichtbar.Item3;
-    }
-
-    /// <summary>Die Jahreszeit hat gewechselt: Blumen gibt es im Winter nicht (Büsche tauschen in <see cref="JahreszeitSetzen"/> gegen die kahle Fassung).</summary>
-    private void FuellungJahreszeit(bool winter)
-    {
-        if (_fuellSommer is not null && IsInstanceValid(_fuellSommer)) _fuellSommer.Visible = !winter;
     }
 }
