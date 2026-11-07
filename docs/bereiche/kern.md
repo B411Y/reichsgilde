@@ -293,3 +293,12 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Anklage | Betroffen ist der Beklagte; die eigene Klage gegen ein anderes Haus ist für die Oberfläche „Fremd“ (Rückmeldung kommt vom Befehl). | 06.11.2026 |
 | Ereignis | `Stadtwirtschaft.Gemeldet` kommt unmittelbar vor `Meldung` (Text bleibt für alle Leser, Messungen und Tests). | 06.11.2026 |
 | Spielstand | Die letzten 500 Meldungen (gut drei Spieljahre Köln; 200 wären nur gut eines) im eigenen Abschnitt `Meldungen` neben `Wirtschaft`: die Simulation liest ihn nie, also bleibt `Wirtschaft` bitgleich (Sollwert-Tests vergleichen ohne „Meldungen“). Fehlt er, beginnt der Verlauf leer. Kein neues Format, keine neue Datenversion. Die Zustandsprüfsumme schließt ihn ein (Mehrspieler: gleicher Verlauf). | 06.11.2026 |
+
+### Test-Filter (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Schalter | `--filter=<Muster>` (Klassen- **oder** Testname enthält das Muster, ohne Groß- und Kleinschreibung, Komma trennt, `*` beliebig), `--klasse=<Name>` (ganzer Klassenname, `*` erlaubt), `--ohne-langsam`, `--liste`, `--zeiten[=N]` (Standard 20), `--hilfe`. Schalter wirken zusammen (Klasse **und** Filter). Ohne Schalter wie bisher alle Tests; die CI bleibt unverändert. Code in `tests/Reichsgilde.Core.Tests/Testauswahl.cs`, `Program.cs` ruft nur noch auf (Freigabe des Nutzers, 07.11.2026). | 07.11.2026 |
+| Fehler sichtbar | Unbekannter Schalter (Tippfehler) oder leeres Muster: Hilfe und Rückgabe 2; keine Auswahl getroffen: Rückgabe 1. So läuft nie aus Versehen „nichts“ grün durch. | 07.11.2026 |
+| Langsam | Liste in `LangsameTests.cs` (Klasse, Namensmuster – `null` = ganze Klasse – und Anzahl der getroffenen Tests) statt Namenspräfix oder Attribut: Testnamen und fremde Testdateien bleiben unberührt, die Liste ist an einer Stelle. `TestfilterTests` meldet Einträge, die nicht genau so viele Tests treffen wie angegeben (umbenannt oder Muster zu weit); doppelte Testfälle laufen weiter doppelt (kein `Except`). Schwelle: allein etwa 3 s oder mehr (gemessen auf main 36e57cd6, NAS unter Last 4,5–12,5): 30 Tests, zusammen gut 7 der 11 Minuten. Größter Brocken: `BuergerTorwacheTests` „Spielstand geladen …“ mit 233 s. | 07.11.2026 |
+| Regel | Während der Arbeit gezielt testen, vor dem PR bzw. Abschlussbericht einmal alle (CLAUDE.md, Agentendateien). | 07.11.2026 |
