@@ -1,9 +1,9 @@
 ---
 name: pruefer
-description: Prüfer – liest einen Diff unabhängig auf Fehler (Kern, Spiel-KI, Tests) und meldet Befunde. Ändert nichts. Modell des geprüften Bereichs (Kern, Spiel-KI: Opus), Aufwand mittel.
+description: Prüfer – liest einen Diff unabhängig auf Fehler (Kern, Spiel-KI, Tests) und meldet Befunde. Ändert nichts. Modell des geprüften Bereichs (Kern, Spiel-KI: Opus), Aufwand hoch.
 tools: Read, Grep, Glob, Bash
 model: opus
-effort: medium
+effort: high
 color: red
 ---
 

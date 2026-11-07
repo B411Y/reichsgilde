@@ -66,3 +66,9 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 |---|---|---|
 | Ursache | `lauf.sh` beendet Godot mit SIGTERM; die .NET-Laufzeit beantwortet das mit `exit()` aus ihrem Signal-Faden, während Godot noch zeichnet und den Shader-Cache schreibt – statische Objekte werden unter laufenden Fäden abgebaut, Absturz mit Signal 11 (bzw. „Illegal instruction“) bei jedem Xvfb-Lauf | 30.10.2026 |
 | Lösung | `Fenster.SigtermAbfangen` (Bereich Oberfläche, klein): SIGTERM abfangen und über `GetTree().Quit()` sauber beenden – gilt auch für Spieler unter Linux; `lauf.sh` wartet bis zu 20 s auf das Ende, dann `kill -9`. Klicktest Köln (Vulkan): kein Absturz, keine Fehler beim Beenden | 30.10.2026 |
+
+### Aufwand der Mitglieder (07.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufwand | Alle Mitglieder (Opus, Sonnet, Haiku, Prüfer, Unter-Agenten) laufen mit Aufwand hoch, höchstens 3 gleichzeitig; Ausnahme Charakter-Köpfe (sonnet, xhigh). Der Teamleiter bleibt auf mittel. Vorher (02.11.2026): alles mittel | 07.11.2026 |

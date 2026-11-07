@@ -1,8 +1,8 @@
 ---
 name: darstellung
-description: Darstellung – 3D-Welt, Szenen, Modelle, Licht und Kamera. Sonnet, Aufwand mittel.
+description: Darstellung – 3D-Welt, Szenen, Modelle, Licht und Kamera. Sonnet, Aufwand hoch.
 model: sonnet
-effort: medium
+effort: high
 color: green
 ---
 

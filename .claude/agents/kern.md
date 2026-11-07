@@ -1,8 +1,8 @@
 ---
 name: kern
-description: Kern – Simulation, Wirtschaftswerte, Spielstand und Tests. Opus, Aufwand mittel.
+description: Kern – Simulation, Wirtschaftswerte, Spielstand und Tests. Opus, Aufwand hoch.
 model: opus
-effort: medium
+effort: high
 color: red
 ---
 

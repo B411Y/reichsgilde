@@ -1,8 +1,8 @@
 ---
 name: sound
-description: Sound – Geräusche, Musik, Stimmen, Audio-Busse. Sonnet, Aufwand mittel.
+description: Sound – Geräusche, Musik, Stimmen, Audio-Busse. Sonnet, Aufwand hoch.
 model: sonnet
-effort: medium
+effort: high
 color: purple
 ---
 
