@@ -122,15 +122,14 @@ public sealed class Hafenarbeit
         int von;
         if (entladen)
         {
-            var w = (Zierfahrplan.NiederEntladeBis - Zierfahrplan.EntladeAb) / huebe;
             // Sie kommen in der Stunde, aus der sie sicher vor dem ersten abgesetzten Stück da sind
-            var ersterHub = a + liegen * (Zierfahrplan.EntladeAb + w);
+            var ersterHub = a + liegen * Zierfahrplan.HubAnteil(true, 0, huebe).Bis;
             von = (int)Math.Floor((Uhr(ersterHub) - puffer) / 60);
             var da = tagesanfang + von * 60.0 - Spielzeit.TagesbeginnMinute + puffer;
             var frei = Enumerable.Repeat(da, n).ToArray();
             for (var h = 0; h < stuecke; h++)
             {
-                var auf = a + liegen * (Zierfahrplan.EntladeAb + (h / Zierfahrplan.HubGroesse + 1) * w); // der Haken setzt das Bündel ab
+                var auf = a + liegen * Zierfahrplan.HubAnteil(true, h / Zierfahrplan.HubGroesse, huebe).Bis; // der Haken setzt das Bündel ab
                 var p = 0;
                 for (var i = 1; i < n; i++) if (frei[i] < frei[p]) p = i;
                 var nimmt = Math.Max(auf + 0.25 + 0.05 * (h % Zierfahrplan.HubGroesse), frei[p]); // greift zu, sobald es steht (die Stücke eines Bündels nacheinander)
@@ -140,13 +139,17 @@ public sealed class Hafenarbeit
         }
         else
         {
-            var wr = (Zierfahrplan.OberLadeBis - Zierfahrplan.OberLadeAb) / huebe;
             var gebraucht = Enumerable.Repeat(double.MaxValue, n).ToArray(); // spätester Beginn des nächsten Gangs je Träger
+            var gaengeJe = new int[n];
             for (var j = stuecke - 1; j >= 0; j--)
             {
-                var hebt = a + liegen * (Zierfahrplan.OberLadeAb + (j / Zierfahrplan.HubGroesse + KranHebtBei) * wr); // der Haken hebt das ganze Bündel zugleich
+                var (hubVon, hubBis) = Zierfahrplan.HubAnteil(false, j / Zierfahrplan.HubGroesse, huebe);
+                var hebt = a + liegen * (hubVon + KranHebtBei * (hubBis - hubVon)); // der Haken hebt das ganze Bündel zugleich
+                // Wer die wenigsten Gänge hat, dann wer am spätesten gebraucht wird (sonst bekommen mit vier Trägern zwei nur drei Gänge, zwei sechs)
                 var p = 0;
-                for (var i = 1; i < n; i++) if (gebraucht[i] > gebraucht[p]) p = i;
+                for (var i = 1; i < n; i++)
+                    if (gaengeJe[i] < gaengeJe[p] || gaengeJe[i] == gaengeJe[p] && gebraucht[i] > gebraucht[p]) p = i;
+                gaengeJe[p]++;
                 var ab = Math.Min(hebt - 0.5 - 0.05 * (j % Zierfahrplan.HubGroesse), gebraucht[p] - halb); // legt auf den Stapel (die Stücke eines Bündels nacheinander)
                 gaenge[j] = new Hafengang(p, j, ab, hebt, ab - halb, ab + halb);
                 gebraucht[p] = ab - halb;

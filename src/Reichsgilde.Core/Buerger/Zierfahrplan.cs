@@ -30,13 +30,34 @@ public static class Zierfahrplan
     public const int Fenster = Spielzeit.MinutenProTag / 2;
 
     /// <summary>Anteile der Liegezeit: Der Kran entlädt den Niederländer von <see cref="EntladeAb"/> bis <see cref="NiederEntladeBis"/>, belädt den Oberländer von <see cref="OberLadeAb"/> bis <see cref="OberLadeBis"/>.</summary>
-    public const double EntladeAb = 0.05, NiederEntladeBis = 0.88, OberLadeAb = 0.08, OberLadeBis = 0.90;
+    public const double EntladeAb = 0.02, NiederEntladeBis = 0.88, OberLadeAb = 0.08, OberLadeBis = 0.90;
 
     /// <summary>
     /// Wie viele Stücke ein Hub des Krans hebt (ein Bündel am Haken, Darstellung: <c>Stadtansicht.Kranladen.cs</c>): Der Kran schwenkt deutlich langsamer als bei
     /// einem Stück je Hub, also hat er weniger Hübe in derselben Liegezeit. Alle Stücke eines Bündels werden zugleich auf den Stapel gesetzt bzw. gehoben.
     /// </summary>
     public const int HubGroesse = 3;
+
+    /// <summary>
+    /// Der erste Hub beim Entladen dauert nur so viel mal einen der übrigen: Ab dem ersten Absetzen tragen die Träger, und bei nur zwei Trägern sind sie sonst erst
+    /// gut eine Stunde nach dem Ablegen fertig (mit 0,5 bleibt der Nachlauf unter etwa 55 Minuten).
+    /// </summary>
+    public const double ErsterHubGewicht = 0.5;
+
+    /// <summary>
+    /// Anteil der Liegezeit, in dem der Hub <paramref name="hub"/> (0 …) von <paramref name="huebe"/> läuft: Entladen von <see cref="EntladeAb"/> bis <see cref="NiederEntladeBis"/>
+    /// (der erste Hub kürzer, <see cref="ErsterHubGewicht"/>), Beladen von <see cref="OberLadeAb"/> bis <see cref="OberLadeBis"/> in gleich langen Hüben. Der Kran hebt das Bündel bei
+    /// <c>Von + KranHebtBei · (Bis − Von)</c> und setzt es bei <c>Bis</c> ab.
+    /// </summary>
+    public static (double Von, double Bis) HubAnteil(bool entladen, int hub, int huebe)
+    {
+        var von = entladen ? EntladeAb : OberLadeAb;
+        var bis = entladen ? NiederEntladeBis : OberLadeBis;
+        var erster = entladen ? ErsterHubGewicht : 1.0;
+        var einheit = (bis - von) / (huebe - 1 + erster);
+        double Start(int h) => h <= 0 ? von : h >= huebe ? bis : von + einheit * (erster + h - 1);
+        return (Start(hub), Start(hub + 1));
+    }
 
     /// <summary>Wie lange die Fahrt zwischen Kartenrand und Kai dauert (Minuten): Routenlänge / 10 m, nicht unter 20 und nicht über 70.</summary>
     public static int FahrtMinuten(double routenLaenge) => (int)Math.Clamp(routenLaenge / 10, 20, 70);
