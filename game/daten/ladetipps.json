@@ -20,6 +20,16 @@
     "Der Markt hat von 8 bis 20 Uhr offen; ist dein Karren unterwegs, wartet der Handelsauftrag, bis er zurück ist.",
     "Im Marktfenster heißt ein grünes ▲ über dem Grundpreis, ein rotes ▼ darunter; die gelbe Zahl im Icon ist dein Lagerbestand.",
     "Das Wetter ändert nichts an Wirtschaft oder Einwohnern. Das Symbol oben links zeigt es, der Tooltip nennt die Aussicht.",
-    "Gebaut wird nur in den Bauzonen und auf Bauplätzen, mit der Vorderseite an einer Straße; grün heißt: hier darf gebaut werden."
+    "Gebaut wird nur in den Bauzonen und auf Bauplätzen, mit der Vorderseite an einer Straße; grün heißt: hier darf gebaut werden.",
+    "Jedes gekaufte Stück hebt den Preis, jeder Verkauf senkt ihn; eingekauft wird zum Marktpreis plus 10 Prozent Händlerspanne, Verhandeln senkt sie.",
+    "Der Hafen ist ein zweiter Ort zum Handeln: dieselben Waren, derselbe Vorrat und dieselben Preise wie am Marktplatz.",
+    "Im Winter treiben Eisschollen auf dem Fluss, der Hafen ist zu; gehandelt wird dann auf dem Marktplatz, der offen bleibt.",
+    "Zweimal im Jahr legt ein Schiff am Kai an, liegt ein bis zweieinhalb Stunden und fährt wieder fort; angeklickt werden kann es nicht.",
+    "Jedes Haus beginnt als Gemeiner; über Bürger, Patrizier und Edler führt der Weg bis zum Reichsgrafen. Der Jahresbericht zeigt den Fortschritt.",
+    "Wer drei Jahresabschlüsse in Folge im Minus steht, ist bankrott; seine Betriebe stehen danach zum Verkauf.",
+    "Eine zweite Werkstatt kostet 3.500 Gulden; freie Plätze sind mit Zaun und Schild „zu verkaufen“ markiert, ein Klick zeigt den erwarteten Gewinn.",
+    "Verkaufst du einen Betrieb, bekommst du 75 Prozent seines Werts; Lagerware geht zum Marktpreis minus 20 Prozent mit, am Markt bringt sie oft mehr.",
+    "Der Rahmen eines Waren-Knopfs zeigt die Stufe: Holz für Rohstoffe, Stein für Stufe 1, Silber für Stufe 2, Gold für Stufe 3.",
+    "Eine Ware, die der Betrieb nicht verarbeitet, hält das Spiel automatisch zurück; der Karren verkauft sie nicht von selbst."
   ]
 }
