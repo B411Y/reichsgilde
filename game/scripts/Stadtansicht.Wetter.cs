@@ -199,7 +199,21 @@ public partial class Stadtansicht
         AddChild(_blitzLicht);
     }
 
-    /// <summary>Ein Niederschlags-MultiMesh: nur Quads, die Lage kommt aus dem Shader (INSTANCE_ID), darum kein Platzhalter-Transform und keine Sichtbarkeitsprüfung.</summary>
+    /// <summary>
+    /// Schreibt in jede Instanz des MultiMeshs ein gültiges Transform (Einheitsmatrix). Die Shader von Regen und Schnee rechnen den Ort aus der
+    /// <c>INSTANCE_ID</c> und lesen das Transform nie – aber Godot legt den Puffer unbeschrieben an, und was dort an Grafikspeicher lag, ist nicht
+    /// gleich null: Bei hoher Auslastung (Ultra: MSAA, Morgendunst, Gras, Verdeckung) standen in einzelnen Instanzen NaN oder unendliche Werte, und Godot
+    /// gab sie an die Nachbearbeitung weiter – Bloom machte daraus weiße Flächen über dem ganzen Bild, die Miniatur-Unschärfe schwarze Kästchen (Wetter-
+    /// fehler vom 07.11.2026, gleich bei Regen, Sturm und Schnee).
+    /// </summary>
+    private static void MultiMeshAnfangswerte(MultiMesh mm)
+    {
+        var puffer = new float[mm.InstanceCount * 12];
+        for (var i = 0; i < mm.InstanceCount; i++) { puffer[i * 12] = 1; puffer[i * 12 + 5] = 1; puffer[i * 12 + 10] = 1; }
+        mm.Buffer = puffer;
+    }
+
+    /// <summary>Ein Niederschlags-MultiMesh: nur Quads, die Lage kommt aus dem Shader (INSTANCE_ID), darum keine Sichtbarkeitsprüfung; die Transforms sind nur Platzhalter (<see cref="MultiMeshAnfangswerte"/>).</summary>
     private MultiMeshInstance3D NiederschlagBauen(string name, ShaderMaterial stoff, Vector2 groesse)
     {
         var teil = new MultiMeshInstance3D
@@ -215,6 +229,7 @@ public partial class Stadtansicht
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             CustomAabb = new Aabb(new Vector3(-4000, -4000, -4000), new Vector3(8000, 8000, 8000)), // der Shader setzt die Orte, Godot kennt sie nicht
         };
+        MultiMeshAnfangswerte(teil.Multimesh);
         AddChild(teil);
         return teil;
     }
@@ -519,6 +534,8 @@ public partial class Stadtansicht
             _schnee.Multimesh.InstanceCount = schnee;
             _regen.Multimesh.VisibleInstanceCount = -1;
             _schnee.Multimesh.VisibleInstanceCount = -1;
+            MultiMeshAnfangswerte(_regen.Multimesh);
+            MultiMeshAnfangswerte(_schnee.Multimesh);
             _anteilRegen = _anteilSchnee = -1;
         }
         var draussen = _raum is null;
