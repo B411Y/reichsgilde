@@ -5,7 +5,8 @@ using Reichsgilde.Core.Zeit;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Automatische Tests für den Simulationskern
-//  Start:  dotnet run --project tests/Reichsgilde.Core.Tests
+//  Start:  dotnet run -c Release --project tests/Reichsgilde.Core.Tests
+//  Gezielt: … -- --filter=Taschendieb,Nachtgang  bzw.  … -- --ohne-langsam  (alle Schalter: … -- --hilfe)
 //
 //  Jeder Test ist ein Name + eine Funktion. Schlägt eine Prüfung fehl,
 //  wird eine Ausnahme geworfen und der Test als FEHLER gemeldet.
@@ -243,36 +244,11 @@ var tests = new List<(string Name, Action Pruefung)>
 //   public static IEnumerable<(string, Action)> Alle()
 // Eine neue Testdatei anzulegen genügt – hier muss nichts eingetragen werden. Früher stand hier eine Liste,
 // die jeder Chat an derselben Stelle ergänzte; zwei PRs gleichzeitig ergaben dann sicher einen Merge-Konflikt.
-// Reihenfolge: nach Klassenname (fest, damit jeder Lauf gleich abläuft).
-foreach (var klasse in typeof(Pruefe).Assembly.GetTypes()
-             .Where(t => t is { IsClass: true, IsAbstract: true, IsSealed: true }) // = statische Klasse
-             .OrderBy(t => t.Name, StringComparer.Ordinal))
-    if (klasse.GetMethod("Alle", BindingFlags.Public | BindingFlags.Static, Type.EmptyTypes)?.Invoke(null, null)
-        is IEnumerable<(string, Action)> liste)
-        tests.AddRange(liste);
-
-// ── Testlauf ────────────────────────────────────────────────────────────────
-var fehler = 0;
-foreach (var (name, pruefung) in tests)
-{
-    try
-    {
-        pruefung();
-        Console.WriteLine($"  OK      {name}");
-    }
-    catch (Exception ex)
-    {
-        fehler++;
-        Console.WriteLine($"  FEHLER  {name}");
-        Console.WriteLine($"          → {ex.Message}");
-    }
-}
-
-Console.WriteLine();
-Console.WriteLine(fehler == 0
-    ? $"Alle {tests.Count} Tests bestanden."
-    : $"{fehler} von {tests.Count} Tests fehlgeschlagen.");
-return fehler == 0 ? 0 : 1;
+// Reihenfolge: erst die Tests oben in dieser Datei, dann die Klassen nach Name (fest, damit jeder Lauf gleich abläuft).
+// Gezielt testen (--filter, --klasse, --ohne-langsam, --liste, --zeiten): siehe Testauswahl.cs.
+var alle = tests.Select(t => new Testfall("Program", t.Name, t.Pruefung)).ToList();
+alle.AddRange(Testlauf.KlassenTests(typeof(Pruefe).Assembly));
+return Testlauf.Ausfuehren(alle, Testauswahl.Lesen(args), Console.Out);
 
 // Simuliert Echtzeit so, wie Godot sie liefert: in Häppchen von 1/60 Sekunde.
 static void SimuliereEchtzeit(Simulation sim, double sekunden)

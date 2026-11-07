@@ -76,10 +76,31 @@ Warum diese Aufteilung? → [ARCHITEKTUR.md](ARCHITEKTUR.md) · Was wann entschi
 Im Terminal (in VS Code: *Terminal → Neues Terminal*) im Ordner `reichsgilde`:
 
 ```
-dotnet run --project tests/Reichsgilde.Core.Tests
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests
 ```
 
-Am Ende muss stehen: `Alle … Tests bestanden.`
+Am Ende muss stehen: `Alle … Tests bestanden.` Darunter steht, wie viele Tests gelaufen sind, wie viele übersprungen wurden und wie lange es gedauert hat.
+
+### Gezielt testen
+
+Alle Tests zusammen brauchen auf der NAS gut elf Minuten, ohne die 30 langsamen gut drei (gemessen am 7.11.2026; ein einziger Test, der 30 Jahre Torwache mit Spielstand durchspielt, braucht allein knapp vier). Während der Arbeit genügt meist ein Teil; die Schalter stehen hinter `--` (damit `dotnet` sie an das Testprogramm weitergibt):
+
+| Schalter | Was er tut | Beispiel |
+|---|---|---|
+| `--filter=<Muster>` | nur Tests, deren Klassen- **oder** Testname das Muster enthält; ohne Groß- und Kleinschreibung, mehrere Muster mit Komma, `*` steht für beliebigen Text | `-- --filter=Taschendieb,Nachtgang` |
+| `--klasse=<Name>` | nur diese Testklassen (der ganze Name muss passen, `*` erlaubt); die Tests oben in `Program.cs` heißen `Program` | `-- --klasse=DiebTests,Wache*` |
+| `--ohne-langsam` | überspringt die langsamen Tests aus `tests/Reichsgilde.Core.Tests/LangsameTests.cs` | `-- --ohne-langsam` |
+| `--liste` | zeigt nur, welche Tests ausgewählt wären (mit „langsam“ markiert), und führt nichts aus | `-- --liste --filter=Hafen` |
+| `--zeiten[=<Anzahl>]` | nennt am Ende die langsamsten Tests mit Sekunden (Standard 20) | `-- --zeiten=40` |
+| `--hilfe` | zeigt alle Schalter | `-- --hilfe` |
+
+Schalter wirken zusammen: `-- --klasse=Buerger* --filter=Hafen` nimmt nur die Hafen-Tests der Bürger-Klassen. Ein Komma trennt Muster; steht im Testnamen selbst ein Komma, an seiner Stelle `*` schreiben. Ein unbekannter Schalter (Tippfehler) bricht mit der Hilfe ab, eine Auswahl ohne Treffer (auch mit `--liste`) mit einem Fehler – so läuft nie aus Versehen „nichts“ grün durch.
+
+**Regel:** Während der Arbeit gezielt testen, vor dem PR (bzw. dem Abschlussbericht eines Mitglieds) **einmal alle Tests ohne Schalter**. Die CI prüft immer alle.
+
+**Langsame Tests:** Ein Test, der allein etwa 3 Sekunden oder länger läuft (mehrjährige Partien, Gleichheitstest, Messungen in Tests), bekommt eine Zeile in `LangsameTests.cs`: Klasse, Muster für den Testnamen (oder `null` für die ganze Klasse) und wie viele Tests die Zeile trifft. Er wird dadurch **nicht** abgeschaltet: Ohne Schalter und in der CI läuft er mit. Wird ein eingetragener Test umbenannt oder nimmt ein Muster plötzlich mehr Tests mit, meldet `TestfilterTests` den Eintrag. Welche Tests gerade langsam sind, zeigt `-- --zeiten=60`.
+
+Hängt ein Test unbemerkt von einem anderen ab (gemeinsamer Zustand, Reihenfolge), fällt das beim gezielten Lauf auf: Dann ist der Test zu reparieren, nicht der Filter.
 
 ## Klicktest unter Windows
 
