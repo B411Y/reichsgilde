@@ -89,6 +89,21 @@
     "Wolle": "tuch",
     "Schnittstein": "quader",
     "Elbenstein": "quader",
-    "Elbendach": "kupfer"
+    "Elbendach": "kupfer",
+    "Fuellung Weide": "fachwerkholz",
+    "Fuellung Kohl": "laub",
+    "Fuellung Kraut": "laub",
+    "Fuellung Leinen": "tuch",
+    "Fuellung Leinen blau": "tuch",
+    "Fuellung Leinen braun": "tuch",
+    "Sandstein alt": "quader",
+    "Mist": "stroh",
+    "Salbei": "laub",
+    "Fenchel": "laub",
+    "Lauch": "laub",
+    "Bohne": "laub",
+    "Rasen": "laub",
+    "Schlacke": "fels",
+    "Schlacke rot": "fels"
   }
 }
