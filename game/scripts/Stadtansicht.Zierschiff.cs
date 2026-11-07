@@ -202,6 +202,13 @@ public partial class Stadtansicht
         int anBord;
         // Mit Hafenarbeit (Träger, Stadtansicht.Hafenarbeit.cs) ist der Stapel Puffer; ohne (keine Daten, Winter, --zierschiff) wie bisher
         var traeger = HafenPlanUm(minute) is { } hp && hp.Schicht.Entladen == nieder && _zierStapel.Count >= voll ? hp : null;
+        if (traeger is not null && traeger.Schicht.Stuecke != voll)
+        {
+            // Die Daten des Kerns (buerger.hafenarbeit.stuecke) und das Schiffsmodell (Ladung_1–18) passen nicht zusammen: Der Kran zeigt dann seinen Ablauf ohne Plan
+            if (!_hafenStueckeGemeldet) GD.PushWarning($"Hafenarbeit plant {traeger.Schicht.Stuecke} Stücke, das Schiff hat {voll}: Der Kran arbeitet ohne Plan der Träger.");
+            _hafenStueckeGemeldet = true;
+            traeger = null;
+        }
         if (phase == Besuchsphase.Liegen)
             anBord = KranLadung(ansicht, anteil, nieder, voll, traeger, minute); // Stadtansicht.Kranladen.cs: der Kran hebt Bündel zu je drei Stücken
         else
@@ -218,6 +225,7 @@ public partial class Stadtansicht
         }
     }
 
+    private bool _hafenStueckeGemeldet;
     private readonly List<ZierStueck> _zierStapel = new();
     private int _zierStapelGezeigt = -1;
 

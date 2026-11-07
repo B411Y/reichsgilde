@@ -106,6 +106,7 @@ public partial class Stadtansicht
     }
 
     private ShaderMaterial? _verdraengerStoff;
+    private readonly List<MeshInstance3D> _verdraengerNetze = new();
 
     /// <summary>
     /// Der Wasserverdränger eines Schiffs oder Boots (Knoten <c>Verdraenger</c> im Modell, ein geschlossener Körper in Rumpfform): Er bekommt einen Stoff, der nichts
@@ -118,6 +119,7 @@ public partial class Stadtansicht
         teil.MaterialOverride = _verdraengerStoff;
         teil.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         teil.Visible = true;
+        _verdraengerNetze.Add(teil); // im Pixel-Look auf der Teilchenebene, nicht im Beleuchtungsbild (Stadtansicht.Pixel.cs)
     }
 
     /// <summary>Der Schiffer am Heck (<c>Anker_Schiffer</c>, blickt mit −Z wie die Anker der Karren): ein Mensch im Gewand der gedämpften Hausfarbe.</summary>

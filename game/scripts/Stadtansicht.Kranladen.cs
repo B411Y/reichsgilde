@@ -299,7 +299,6 @@ public partial class Stadtansicht
         var huebe = (voll + g - 1) / g;
         var von = nieder ? ZierEntladeAb : ZierOberLadeAb;
         var bis = nieder ? ZierNiederEntladeBis : ZierOberLadeBis;
-        var breite = (bis - von) / huebe;
 
         var haken = KranRuheOrt();
         KranBuendel? hub = null;
@@ -308,8 +307,10 @@ public partial class Stadtansicht
         var fertig = 0; // Stücke aller früheren Hübe
         if (a >= von && a < bis)
         {
-            var x = (a - von) / breite;
-            var nr = Math.Min((int)x, huebe - 1);
+            var nr = 0; // der Hub, in dem a liegt (Zierfahrplan.HubAnteil: beim Entladen ist der erste Hub kürzer)
+            while (nr < huebe - 1 && a >= Zierfahrplan.HubAnteil(nieder, nr, huebe).Bis) nr++;
+            var (hubVon, hubBis) = Zierfahrplan.HubAnteil(nieder, nr, huebe);
+            var x = nr + (a - hubVon) / (hubBis - hubVon);
             hub = KranBuendelBauen(ansicht, steg, nr, nieder, voll, plan);
             var start = nr == 0 ? KranRuheOrt() : KranTief(KranBuendelBauen(ansicht, steg, nr - 1, nieder, voll, plan).ZBezug);
             haken = KranHubHaken(hub, start, x - nr, out haengt, out schwenk);
