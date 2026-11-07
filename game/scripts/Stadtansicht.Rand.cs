@@ -360,8 +360,11 @@ public partial class Stadtansicht
     /// <summary>
     /// Baut die Äcker unter <paramref name="eltern"/> (rechnen und anlegen in einem Zug; der Ladebildschirm rechnet vorab im Hintergrund, <see cref="FelderVorrechnen"/>).
     /// </summary>
-    private void FeldNetzeBauen(IReadOnlyList<Feldparzelle> parzellen, IReadOnlyList<double[][]> umrisse, Node3D eltern) =>
+    private void FeldNetzeBauen(IReadOnlyList<Feldparzelle> parzellen, IReadOnlyList<double[][]> umrisse, Node3D eltern)
+    {
+        FeldGelaendeVorbereiten(); // das Gelände (in der Werkstatt nach dem Pinseln veraltet) im Hauptfaden aktualisieren, bevor mehrere Fäden es lesen
         FeldAnlegen(FeldRechnen(parzellen, umrisse), eltern);
+    }
 
     /// <summary>
     /// Rechnet die Äcker: je Frucht ein Netz. Die Stücke des Kerns (mit „bis zum Rand“, <see cref="FeldVerteilung.Flaeche"/>) liegen zum Teil über den Rand ihrer
@@ -379,17 +382,25 @@ public partial class Stadtansicht
         void Zeit(string name, System.Diagnostics.Stopwatch uhr) { lock (r.Zeiten) r.Zeiten.Add((name, uhr.ElapsedTicks * 1_000_000 / System.Diagnostics.Stopwatch.Frequency)); uhr.Restart(); }
         var polygone = umrisse.Select(u => u.Where(p => p is { Length: 2 }).Select(p => new Vector2((float)p[0], (float)p[1])).ToArray()).Where(u => u.Length >= 3).ToList();
         var rahmen = polygone.Select(pg => { var q0 = new Rect2(pg[0], Vector2.Zero); foreach (var q in pg) q0 = q0.Expand(q); return q0; }).ToList();
-        var maske = r.Maske = new Feldmaske(parzellen, polygone); // wo wirklich Acker liegt und der Abstand zu seinem Rand
+        var einfach = polygone.Select(FeldEinfach).ToArray();
+        var maske = r.Maske = new Feldmaske(parzellen, polygone, po); // wo wirklich Acker liegt und der Abstand zu seinem Rand
         Zeit("Felder: Feldmaske", gesamt);
         var fuss = BodenBewegt ? FeldHoeheAmHang : FeldHoehe;
         var gruppen = parzellen.GroupBy(p => p.Frucht).ToList();
         var ergebnisse = new (FeldNetzDaten? Netz, List<(Vector2 Mitte, float Drehung, Vector2 Halb)> Sperr)[gruppen.Count];
         // Die Pflanzen brauchen nur die Maske und laufen neben den Netzen der Früchte; die Früchte sind voneinander unabhängig und rechnen alle zugleich (die Reihenfolge der Ergebnisse bleibt die der Früchte).
-        var netzeAufgabe = Task.Run(() => Parallel.For(0, gruppen.Count, po, g => ergebnisse[g] = FeldFruchtRechnen(gruppen[g].Key, gruppen[g].ToList(), polygone, rahmen, maske, fuss, po, Zeit)));
+        var netzeAufgabe = Task.Run(() => Parallel.For(0, gruppen.Count, po, g => ergebnisse[g] = FeldFruchtRechnen(gruppen[g].Key, gruppen[g].ToList(), polygone, rahmen, einfach, maske, fuss, po, Zeit)));
         var uhrPflanzen = System.Diagnostics.Stopwatch.StartNew();
-        r.Pflanzen = FeldPflanzenBauer.Rechnen(parzellen, maske, (x, z) => BodenHoehe(x, z), fuss - 0.02f, PflanzenNetz(), po); // Stadtansicht.Feldpflanzen.cs
+        try
+        {
+            r.Pflanzen = FeldPflanzenBauer.Rechnen(parzellen, maske, (x, z) => BodenHoehe(x, z), fuss - 0.02f, PflanzenNetz(), po); // Stadtansicht.Feldpflanzen.cs
+        }
+        finally
+        {
+            try { netzeAufgabe.Wait(); } catch (Exception) { } // auch bei Abbruch oder Fehler abwarten: kein Faden rechnet weiter, wenn der Aufrufer zurückkehrt
+        }
+        netzeAufgabe.Wait(); // wirft, falls die Früchte gescheitert sind
         Zeit("Felder: Pflanzen rechnen (mit MultiMesh)", uhrPflanzen);
-        netzeAufgabe.Wait();
         foreach (var (netz, sperr) in ergebnisse)
         {
             if (netz is null) continue;
@@ -405,7 +416,7 @@ public partial class Stadtansicht
     /// danach Ecken, Normalen, UV, Farben und Indizes aller Teile in Arrays genau der Größe, die ein Prefixsummen-Lauf ergibt (jeder Teil schreibt seinen eigenen Bereich, die
     /// Reihenfolge ist die der Teile – dasselbe Netz wie bei der Rechnung nacheinander) und das <see cref="ArrayMesh"/>.
     /// </summary>
-    private (FeldNetzDaten? Netz, List<(Vector2 Mitte, float Drehung, Vector2 Halb)> Sperr) FeldFruchtRechnen(string frucht, List<Feldparzelle> stuecke, List<Vector2[]> polygone, List<Rect2> rahmen,
+    private (FeldNetzDaten? Netz, List<(Vector2 Mitte, float Drehung, Vector2 Halb)> Sperr) FeldFruchtRechnen(string frucht, List<Feldparzelle> stuecke, List<Vector2[]> polygone, List<Rect2> rahmen, bool[] einfach,
         Feldmaske maske, float fuss, ParallelOptions po, Action<string, System.Diagnostics.Stopwatch> zeit)
     {
         var uhr = System.Diagnostics.Stopwatch.StartNew();
@@ -445,7 +456,7 @@ public partial class Stadtansicht
                         var i1 = Mathf.Min(halbe, i0 + gruppeBreite);
                         var (u0, u1) = (-b + breiteHalb * i0, i1 == halbe ? b : -b + breiteHalb * i1);
                         var zelle = new[] { Welt(u0, v0), Welt(u1, v0), Welt(u1, v1), Welt(u0, v1) };
-                        foreach (var (stueck, ganz) in FeldZelleZuschneiden(zelle, polygone, rahmen))
+                        foreach (var (stueck, ganz) in FeldZelleZuschneiden(zelle, polygone, rahmen, einfach))
                         {
                             if (ganz)
                             {
@@ -613,7 +624,7 @@ public partial class Stadtansicht
     /// Vielecke); nur Zellen am Rand (eine Ecke näher als <see cref="FeldGrenzabstand"/> an einer Kante, oder eine Kante läuft durch die Zelle) gehen wie früher an Godot.
     /// Das Ergebnis ist dasselbe: wo C# „innen“ oder „außen“ sagt, ist es kein Grenzfall.
     /// </summary>
-    private static IEnumerable<(Vector2[] Teil, bool Ganz)> FeldZelleZuschneiden(Vector2[] zelle, List<Vector2[]> polygone, List<Rect2> rahmen)
+    private static IEnumerable<(Vector2[] Teil, bool Ganz)> FeldZelleZuschneiden(Vector2[] zelle, List<Vector2[]> polygone, List<Rect2> rahmen, bool[] einfach)
     {
         var box = new Rect2(zelle[0], Vector2.Zero);
         foreach (var q in zelle) box = box.Expand(q);
@@ -621,8 +632,8 @@ public partial class Stadtansicht
         {
             if (!rahmen[i].Intersects(box, true)) continue;
             var pg = polygone[i];
-            var (innen, sicher) = (0, true);
-            foreach (var q in zelle)
+            var (innen, sicher) = (0, einfach[i]);
+            if (sicher) foreach (var q in zelle)
             {
                 var (drin, fern) = FeldPunktLage(q, pg);
                 sicher &= fern;
@@ -634,6 +645,35 @@ public partial class Stadtansicht
             foreach (var teil in Geometry2D.IntersectPolygons(zelle, pg))
                 if (teil.Length >= 3 && !Geometry2D.IsPolygonClockwise(teil)) yield return (teil, false); // Löcher (im Uhrzeigersinn) zeichnet niemand
         }
+    }
+
+    /// <summary>
+    /// Ein Umriss ohne doppelte Punkte, dessen Kanten sich nicht kreuzen oder berühren: nur für solche (die Felder der Karten) rechnet <see cref="FeldZelleZuschneiden"/> klare Fälle in C#;
+    /// kreuzende oder entartete Umrisse (Werkstatt, beim Ziehen einer Ecke) gehen immer an Geometry2D.
+    /// </summary>
+    private static bool FeldEinfach(Vector2[] pg)
+    {
+        for (var i = 0; i < pg.Length; i++)
+            for (var j = i + 1; j < pg.Length; j++)
+                if (pg[i] == pg[j]) return false;
+        static float Kreuz(Vector2 o, Vector2 a, Vector2 b) => (a - o).Cross(b - o);
+        static bool Auf(Vector2 a, Vector2 b, Vector2 q) => q.X >= Mathf.Min(a.X, b.X) && q.X <= Mathf.Max(a.X, b.X) && q.Y >= Mathf.Min(a.Y, b.Y) && q.Y <= Mathf.Max(a.Y, b.Y);
+        for (var i = 0; i < pg.Length; i++)
+        {
+            var (a, b) = (pg[i], pg[(i + 1) % pg.Length]);
+            for (var j = i + 1; j < pg.Length; j++)
+            {
+                if (j == i + 1 || (i == 0 && j == pg.Length - 1)) continue; // Nachbarkanten teilen einen Punkt
+                var (c, d) = (pg[j], pg[(j + 1) % pg.Length]);
+                var (d1, d2, d3, d4) = (Kreuz(a, b, c), Kreuz(a, b, d), Kreuz(c, d, a), Kreuz(c, d, b));
+                if (((d1 > 0) != (d2 > 0) || d1 == 0 || d2 == 0) && ((d3 > 0) != (d4 > 0) || d3 == 0 || d4 == 0)
+                    && (d1 != 0 || Auf(a, b, c)) && (d2 != 0 || Auf(a, b, d)) && (d3 != 0 || Auf(c, d, a)) && (d4 != 0 || Auf(c, d, b))) return false;
+            }
+            // Nachbarkanten dürfen sich nicht überlagern (Rückspitze): der Punkt vor a liegt nicht auf der Strecke a–b und umgekehrt
+            var vor = pg[(i + pg.Length - 1) % pg.Length];
+            if (Kreuz(vor, a, b) == 0 && (vor - a).Dot(b - a) > 0) return false;
+        }
+        return true;
     }
 
     /// <summary>So nah (Meter) an einer Kante des Umrisses gilt ein Punkt als Grenzfall und geht an Godot.</summary>
@@ -734,8 +774,13 @@ public partial class Stadtansicht
     {
         if (_felderAufgabe is not { } aufgabe) return;
         _felderAbbruch?.Cancel();
-        try { aufgabe.Wait(10000); }
-        catch (Exception) { } // abgebrochen oder gescheitert: es zählt nur, dass sie nicht mehr läuft
+        for (var versuch = 0; versuch < 6 && !aufgabe.IsCompleted; versuch++)
+        {
+            try { if (aufgabe.Wait(10000)) break; }
+            catch (Exception) { break; } // abgebrochen oder gescheitert: sie läuft nicht mehr
+            GD.PushWarning("Felder: Die Hintergrundrechnung läuft nach dem Abbruch noch, warte weiter.");
+        }
+        if (!aufgabe.IsCompleted) GD.PushError("Felder: Die Hintergrundrechnung ließ sich nicht abwarten (60 s).");
         _felderAufgabe = null;
     }
 
@@ -749,6 +794,7 @@ public partial class Stadtansicht
         catch (Exception e) // die Hintergrundrechnung ist gescheitert: im Hauptfaden wie früher rechnen, das Spiel soll trotzdem laden
         {
             GD.PushError("Felder: Hintergrundrechnung gescheitert (" + e.Message + "), rechne im Hauptfaden.");
+            FeldGelaendeVorbereiten();
             var parzellenNeu = FeldVerteilung.Alle(karte, Modellmass, bisZumRand: true);
             ergebnis = (parzellenNeu, parzellenNeu.Count == 0 ? null : FeldRechnen(parzellenNeu, karte.Natur.Felder.Select(f => f.Flaeche.ToArray()).ToList()));
         }

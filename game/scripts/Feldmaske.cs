@@ -25,7 +25,7 @@ public sealed class Feldmaske
 
     private readonly Gitter?[] _gitter;
 
-    public Feldmaske(IReadOnlyList<Feldparzelle> parzellen, IReadOnlyList<Vector2[]> polygone)
+    public Feldmaske(IReadOnlyList<Feldparzelle> parzellen, IReadOnlyList<Vector2[]> polygone, ParallelOptions? po = null)
     {
         var stuecke = parzellen.Select(p =>
         {
@@ -41,7 +41,7 @@ public sealed class Feldmaske
             return (Mitte: mitte, Zurueck: basis.Inverse(), B: b, L: l, Rahmen: r);
         }).ToArray();
         _gitter = new Gitter?[polygone.Count];
-        Parallel.For(0, polygone.Count, n => _gitter[n] = Bauen(polygone[n], stuecke));
+        Parallel.For(0, polygone.Count, po ?? new ParallelOptions(), n => _gitter[n] = Bauen(polygone[n], stuecke));
     }
 
     private static Gitter? Bauen(Vector2[] pg, (Vector2 Mitte, Basis Zurueck, float B, float L, Rect2 Rahmen)[] stuecke)
