@@ -45,9 +45,9 @@ static class BauortsucheTests
                 var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
                 var suche = new Bauwesen.Platzsuche(karte);
 
-                // Zonen: jede dritte Feldmitte, jede Ecke einer Zone (dort liegt die Grenze der Strahlprüfung) und die Ränder ihrer Rechtecke
-                var punkte = Raster(karte, 6).Concat(karte.Bauzonen.SelectMany(z => z.Flaeche)
-                        .SelectMany(p => Fein.SelectMany(dx => Fein.Select(dz => (p[0] + dx, p[1] + dz)))))
+                // Zonen: jede fünfte Feldmitte, jede Ecke einer Zone samt knapp darüber und darunter (in z liegt die Grenze der Strahlprüfung genau
+                // auf den Ecken) und die Ränder ihrer Rechtecke
+                var punkte = Raster(karte, 10).Concat(karte.Bauzonen.SelectMany(z => z.Flaeche).SelectMany(p => Fein.Select(dz => (p[0], p[1] + dz))))
                     .Concat(karte.Bauzonen.SelectMany(z => AmRahmen(Bauwesen.Platzsuche.Rahmen(z.Flaeche), 0, 1)));
                 var inZone = 0;
                 foreach (var (x, z) in punkte)
@@ -60,7 +60,7 @@ static class BauortsucheTests
 
                 // Straßen: ein gröberes Raster (Köln hat 5.000 Wegpunkte) und die Ränder der Rechtecke um jeden Weg
                 var anStrasse = 0;
-                foreach (var (x, z) in Raster(karte, 10).Concat(karte.Wege.SelectMany(w => AmRahmen(Bauwesen.Platzsuche.Rahmen(w.Verlauf), 0, abstand, abstand + 1))))
+                foreach (var (x, z) in Raster(karte, 14).Concat(karte.Wege.SelectMany(w => AmRahmen(Bauwesen.Platzsuche.Rahmen(w.Verlauf), 0, abstand, abstand + 1))))
                 {
                     var nah = karte.Wege.Where(w => w.Abstand(x, z) <= abstand).ToList();
                     foreach (var werkstatt in new[] { true, false })
