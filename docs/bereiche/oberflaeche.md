@@ -348,3 +348,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Start-Hinweis | Der Hinweis zum Personalbuch (PR #321) kommt als Brief mit Knopf „Zum Personalbuch“. | 05.11.2026 |
 | Gestaltung | Siegel und Brief zeichnet der Code (schwarzer Umriss, Farbe leicht versetzt, Schraffur); „Siegel und Briefe bewegen“ schaltet Einblenden und Pulsieren ab. Startoptionen `--meldungen=demo|brief|jahr`. | 05.11.2026 |
 | Messung nachher | Siegel plus Briefe etwa 9 je Spieljahr statt gut 80 Zeilen (Messung `messen meldungen`, Mittel); Bündelung und Filter wirken zusätzlich. | 05.11.2026 |
+
+### Benachrichtigungen Stufe 2: Porträt, Hinsehen, Verlauf aus dem Spielstand (PR #339)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Zuordnung | Art des Kerns, wenn eine Art in `meldungen.json` sie unter `kern` nennt; Feuer, Überfall, Ratssitzung und Sonstiges weiter über die Textmuster (Blitz/Anschlag bzw. Steuer/Rat liegen in verschiedenen Arten). Betroffenheit aus dem Haus der Meldung, ohne Haus wie Stufe 1. | 06.11.2026 |
+| Porträt | Person der Meldung, sonst bei Anklage, Schulden, Meisterprüfung und Aufstieg das Oberhaupt; am Siegel klein unten links (fängt keine Klicks), im Brief 64 px mit Name und Haus (Klick: Charakterfenster). | 06.11.2026 |
+| Hinsehen | Knopf im Brief (ersetzt „Zu <Betrieb>“), je Zeile in gestapelten Briefen, Klick auf eine Zeile im Verlauf: Kamera hin, eigener Betrieb → Kurzübersicht, fremdes Gebäude → Auswahl, eigenes Wohnhaus → Tafel, Blitzschlag → Ort; ohne Ort Charakterfenster der Person. Drinnen erst hinaus. | 06.11.2026 |
+| Verlauf | Nach dem Laden aus dem Spielstand (500 Meldungen des Kerns), ohne Siegel und Briefe neu auszulösen. | 06.11.2026 |

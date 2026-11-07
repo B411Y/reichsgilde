@@ -34,7 +34,78 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Der eine Zufallsgenerator der Wirtschaft (nur intern, damit niemand die Reihenfolge stört).</summary>
     internal Zufallsquelle Zufall => _zufall;
 
-    internal void Melden(string meldung) => Meldung?.Invoke(meldung);
+    /// <summary>Eine Meldung ohne Art (die Stelle meldet noch nur Text): <see cref="Meldungsart.Sonstiges"/>.</summary>
+    internal void Melden(string meldung) => Melden(new Meldung(Meldungsart.Sonstiges, meldung));
+
+    /// <summary>
+    /// Eine Meldung mit Art, Betroffenem und Ort. <paramref name="haus"/> fehlt, wird das Haus des <paramref name="betrieb"/>s genommen.
+    /// Ort: der Betrieb, sonst das Gebäude der Karte (<paramref name="gebaeude"/>, mit Lage), sonst mit <paramref name="wohnhaus"/> das Wohnhaus des Hauses.
+    /// </summary>
+    internal void Melden(Meldungsart art, string text, Konto? haus = null, Dynastie.Person? person = null, Betrieb? betrieb = null,
+        bool wohnhaus = false, Meldungswichtigkeit? wichtigkeit = null, bool vertraulich = false, Gefahren.Blitzziel? gebaeude = null)
+    {
+        haus ??= betrieb?.Konto ?? gebaeude?.Betrieb?.Konto ?? gebaeude?.Bewohner;
+        betrieb ??= gebaeude?.Betrieb;
+        var nummer = haus is null ? -1 : _konten.IndexOf(haus);
+        Melden(new Meldung(art, text)
+        {
+            Wichtigkeit = wichtigkeit ?? Wirtschaft.Meldung.Vorgabe(art),
+            Haus = nummer >= 0 ? nummer : null,
+            Person = person?.Nummer,
+            Ort = betrieb is not null ? Meldungsort.Betrieb : gebaeude is not null ? Meldungsort.Gebaeude : wohnhaus && nummer >= 0 ? Meldungsort.Wohnhaus : Meldungsort.Keiner,
+            Ortsname = betrieb?.Name ?? gebaeude?.Kennung,
+            X = gebaeude?.X,
+            Z = gebaeude?.Z,
+            Vertraulich = vertraulich && nummer >= 0,
+        });
+    }
+
+    /// <summary>Stempelt die Spielminute, legt die Meldung in den <see cref="Meldungsverlauf"/> und meldet sie (<see cref="Gemeldet"/>, dann <see cref="Meldung"/>).</summary>
+    private void Melden(Meldung m)
+    {
+        m = m with { Minute = Uhr.VergangeneMinuten };
+        _meldungsverlauf.Add(m);
+        if (_meldungsverlauf.Count > MeldungsverlaufLaenge) _meldungsverlauf.RemoveAt(0);
+        Gemeldet?.Invoke(m);
+        Meldung?.Invoke(m.Text);
+    }
+
+    /// <summary>So viele Meldungen behält der <see cref="Meldungsverlauf"/> (und der Spielstand): gut drei Spieljahre in Köln.</summary>
+    public const int MeldungsverlaufLaenge = 500;
+
+    private readonly List<Meldung> _meldungsverlauf = new();
+
+    /// <summary>Für <see cref="Betrieb.Arbeitsminute"/>: ohne neue Hülle je Minute.</summary>
+    private readonly Action<Betrieb, Meldungsart, string> _stillstandMelden;
+
+    /// <summary>Die letzten <see cref="MeldungsverlaufLaenge"/> Meldungen aller Häuser, die älteste zuerst – mit dem Spielstand gespeichert.</summary>
+    public IReadOnlyList<Meldung> Meldungsverlauf => _meldungsverlauf;
+
+    /// <summary>Der Verlauf für den Spielstand (null, solange nichts gemeldet ist).</summary>
+    internal List<MeldungStand>? MeldungenSichern() => _meldungsverlauf.Count == 0 ? null : _meldungsverlauf.Select(m => new MeldungStand
+    {
+        Art = m.Art, Text = m.Text, Minute = m.Minute, Wichtigkeit = m.Wichtigkeit, Haus = m.Haus, Person = m.Person, Ort = m.Ort, Ortsname = m.Ortsname,
+        X = m.X, Z = m.Z, Vertraulich = m.Vertraulich,
+    }).ToList();
+
+    /// <summary>Stellt den Verlauf aus dem Spielstand her (nach den Konten). Unbekannte Kontonummern werden zu „kein Haus“; mehr als die Länge: die neuesten.</summary>
+    internal void MeldungenWiederherstellen(IReadOnlyList<MeldungStand>? stand)
+    {
+        _meldungsverlauf.Clear();
+        if (stand is null) return;
+        foreach (var s in stand.Skip(Math.Max(0, stand.Count - MeldungsverlaufLaenge)))
+            _meldungsverlauf.Add(new Meldung(s.Art, s.Text ?? "")
+            {
+                Minute = s.Minute, Wichtigkeit = s.Wichtigkeit, Haus = s.Haus is int h && h >= 0 && h < _konten.Count ? h : null, Person = s.Person,
+                Ort = s.Ort, Ortsname = s.Ortsname, X = s.X, Z = s.Z, Vertraulich = s.Vertraulich,
+            });
+    }
+
+    /// <summary>Das betroffene Haus einer Meldung (null: keines oder unbekannt).</summary>
+    public Konto? HausVon(Meldung m) => m.Haus is int i && i >= 0 && i < _konten.Count ? _konten[i] : null;
+
+    /// <summary>Die betroffene Person einer Meldung (null: keine, oder sie steht nicht mehr im Familienbuch).</summary>
+    public Dynastie.Person? PersonVon(Meldung m) => m.Person is int n ? Familien.PersonNummer(n) : null;
 
     public Wirtschaftsdaten Daten { get; }
     public Markt Markt { get; }
@@ -161,8 +232,11 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Konten, die von der KI geführt werden.</summary>
     public IReadOnlyList<KiRivale> Rivalen => _rivalen;
 
-    /// <summary>Meldungen für den Spieler (Ausbrüche, Entlassungen …).</summary>
+    /// <summary>Meldungen für den Spieler (Ausbrüche, Entlassungen …) – nur der Text; mit Art, Haus und Ort: <see cref="Gemeldet"/>.</summary>
     public event Action<string>? Meldung;
+
+    /// <summary>Jede Meldung mit Art, Betroffenem und Ort (Benachrichtigungen Stufe 2) – kommt unmittelbar vor <see cref="Meldung"/> mit demselben Text.</summary>
+    public event Action<Meldung>? Gemeldet;
 
     /// <summary>Ein Konto ist bankrott gegangen (nach der Jahresabrechnung).</summary>
     public event Action<Konto>? Bankrott;
@@ -320,6 +394,7 @@ public sealed partial class Stadtwirtschaft
     {
         Daten = daten;
         Statut = statut;
+        _stillstandMelden = (b, art, text) => Melden(art, text, betrieb: b);
         Markt = new Markt(daten);
         _zufall = new Zufallsquelle(zufallsstartwert);
         // Eigener Generator nur für die Reihenfolge – so bleiben die Ereignis-Würfel unabhängig
@@ -534,7 +609,7 @@ public sealed partial class Stadtwirtschaft
             if (IstArbeitszeit(betrieb, zeit))
             {
                 var volk = VolksFaktor(betrieb.Konto, betrieb.Artdaten.Beruf); // Zwerge schmieden besser, Elben predigen besser …
-                betrieb.Arbeitsminute(Melden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb), volk);
+                betrieb.Arbeitsminute(_stillstandMelden, Familien.LeistungsFaktor(betrieb.Konto) * volk * (1 - Gesundheit.Krankenstand) * Jahreszeiten.Arbeitsfaktor(betrieb), volk);
             }
 
         // Bei Nacht und Nebel: Die Banden aus dem Hinterzimmer ziehen los – um 20 Uhr und, mit gauner.nachtVersuche, zu jeder vollen
@@ -610,7 +685,7 @@ public sealed partial class Stadtwirtschaft
         if (Gauner.VersuchUm(Spielzeit.MinutenProTag) is { } versuch) // Gaunerei je Nachtstunde: der Versuch um 23 Uhr
             Nachtversuch(zeit, versuch);
         foreach (var betrieb in _betriebe.Where(b => b.Konto.IstAktiv))
-            betrieb.Jahresabrechnung(_zufall, m => Meldung?.Invoke(m));
+            betrieb.Jahresabrechnung(_zufall, Melden);
         Rat.ProtokollBeginnen();
         Justiz.Gerichtstag(); // vor dem Amtseinkommen: Wer verurteilt wird, verliert Amt und Einkommen
         Rat.EinkommenZahlen();
@@ -669,14 +744,15 @@ public sealed partial class Stadtwirtschaft
             {
                 konto.IstBankrott = true;
                 Stilllegen(konto);
-                Melden($"{konto.Inhaber} ist bankrott! Die Gläubiger lassen die Betriebe schließen.");
+                Melden(Meldungsart.Schulden, $"{konto.Inhaber} ist bankrott! Die Gläubiger lassen die Betriebe schließen.", haus: konto,
+                    wichtigkeit: Meldungswichtigkeit.Dringend);
                 Bankrott?.Invoke(konto);
             }
             else
             {
                 var rest = grenze - konto.Schuldenjahre;
-                Melden($"Der Kämmerer mahnt {konto.Inhaber}: {Zahlenformat.Ganz(-konto.Reinvermoegen)} {Daten.Allgemein.Waehrung} Schulden. " +
-                       $"Noch {rest} {(rest == 1 ? "Jahresabschluss" : "Jahresabschlüsse")} im Minus, dann droht der Bankrott.");
+                Melden(Meldungsart.Schulden, $"Der Kämmerer mahnt {konto.Inhaber}: {Zahlenformat.Ganz(-konto.Reinvermoegen)} {Daten.Allgemein.Waehrung} Schulden. " +
+                       $"Noch {rest} {(rest == 1 ? "Jahresabschluss" : "Jahresabschlüsse")} im Minus, dann droht der Bankrott.", haus: konto);
             }
         }
     }
@@ -699,10 +775,10 @@ public sealed partial class Stadtwirtschaft
     {
         if (neu == Statut) return;
         Statut = neu;
-        Meldung?.Invoke($"Der Rat hat ein neues Statut beschlossen: {neu.Kuerzel()} – {neu.Name()}.");
+        Melden($"Der Rat hat ein neues Statut beschlossen: {neu.Kuerzel()} – {neu.Name()}.");
         foreach (var betrieb in _betriebe)
             foreach (var (kraft, anzahl) in betrieb.UnerlaubteEntlassen(neu))
-                Meldung?.Invoke($"{betrieb.Name}: {anzahl}× {kraft} musste unter dem neuen Statut entlassen werden.");
+                Melden($"{betrieb.Name}: {anzahl}× {kraft} musste unter dem neuen Statut entlassen werden.");
     }
 
     /// <summary>Hilfsfunktion: Einstellen unter dem aktuell geltenden Statut.</summary>
@@ -988,7 +1064,7 @@ public sealed partial class Stadtwirtschaft
 
         konto.Standesgebuehr(neu.Gebuehr); // geht an den Landesherrn, nicht in die Stadtkasse (PR #200)
         konto.Stand++;
-        Melden($"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})");
+        Melden(Meldungsart.StandAufstieg, $"{konto.Inhaber} ist nun {neu.Name}! (Gebühr {Zahlenformat.Ganz(neu.Gebuehr)} {waehrung})", haus: konto);
         Aufgestiegen?.Invoke(konto, neu);
         return Befehlsergebnis.Ok($"{konto.Inhaber} steigt in den Stand {neu.Name} auf.");
     }
@@ -1021,7 +1097,7 @@ public sealed partial class Stadtwirtschaft
         var freigeschaltet = Daten.Betriebsarten.Values.FirstOrDefault(a => a.Beruf == beruf && m.GradFuerStufe(a.Stufe) == grad && a.Stufe > 1);
         var zusatz = freigeschaltet is not null ? $" Nun dürfen die Werkstätten auf Stufe {freigeschaltet.Stufe} ausgebaut werden ({freigeschaltet.Name})."
                    : grad == m.ApBonusAbGrad ? $" Höchster Meister: {m.ApBonus} Aktionspunkt mehr je Runde." : "";
-        Melden($"{konto.Inhaber} legt die Meisterprüfung ab: {beruf} im {grad}. Grad.");
+        Melden(Meldungsart.Meisterpruefung, $"{konto.Inhaber} legt die Meisterprüfung ab: {beruf} im {grad}. Grad.", haus: konto);
         return Befehlsergebnis.Ok($"{konto.Inhaber} ist nun {beruf} im {grad}. Meistergrad ({Zahlenformat.Ganz(p.Gebuehr)} {Daten.Allgemein.Waehrung} Gebühr).{zusatz}");
     }
 

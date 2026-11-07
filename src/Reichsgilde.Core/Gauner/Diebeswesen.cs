@@ -838,7 +838,16 @@ public sealed class Diebeswesen
             oeffentlich += $" Ein Zeuge hat Leute von {a.Dieb.Inhaber} erkannt!";
         }
         VorfallEintragen(a, b, erfolg, betrag, zeuge, zeuge && spur is not null ? a.Ziel : null, opferName);
-        _w.Gauner.Melden(null, oeffentlich);
+        // Art und Wichtigkeit der öffentlichen Nachricht: ein gelungener Brand und ein Einbruch mit Beute hoch, sonst normal
+        var art = a.Art switch
+        {
+            Diebesstueck.Einbruch => Meldungsart.Diebstahl,
+            Diebesstueck.Brandstiftung => Meldungsart.Feuer,
+            _ => Meldungsart.Sonstiges,
+        };
+        var wichtigkeit = art == Meldungsart.Sonstiges ? Meldungswichtigkeit.Gering
+            : erfolg && (betrag > 0 || art == Meldungsart.Feuer) ? Meldung.Vorgabe(art) : Meldungswichtigkeit.Normal;
+        _w.Gauner.Melden(null, oeffentlich, art, a.Ziel, b, wichtigkeit: wichtigkeit);
     }
 
     /// <summary>Eine Tat der eigenen Leute in die Liste der Vorfälle schreiben (liest nur, würfelt nichts).</summary>

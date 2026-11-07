@@ -382,7 +382,7 @@ public sealed class Blitzwesen
                 else _einschlaege.Add(j);
         if (!wirken) return e;
         var wem = ziel.Betrieb is { } bb ? $" ({bb.Konto.Inhaber})" : "";
-        _w.Melden($"Blitzschlag! {Gross(ziel.Name)}{wem} brennt.{Wirken(e)}");
+        _w.Melden(Meldungsart.Feuer, $"Blitzschlag! {Gross(ziel.Name)}{wem} brennt.{Wirken(e)}", gebaeude: ziel);
         return e;
     }
 
@@ -394,7 +394,7 @@ public sealed class Blitzwesen
         if (j.Ziel.Bewohner is { IstAktiv: false }) return;
         _einschlaege.Add(j);
         var wem = j.Ziel.Betrieb is { } bb ? $" ({bb.Konto.Inhaber})" : "";
-        _w.Melden($"Funkenflug! Das Feuer springt von {j.Von} auf {j.Ziel.Name}{wem} über.{Wirken(j)}");
+        _w.Melden(Meldungsart.Feuer, $"Funkenflug! Das Feuer springt von {j.Von} auf {j.Ziel.Name}{wem} über.{Wirken(j)}", gebaeude: j.Ziel);
     }
 
     private void Einreihen(Blitzeinschlag j)

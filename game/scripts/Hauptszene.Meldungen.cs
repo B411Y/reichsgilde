@@ -1,6 +1,7 @@
 using System.Linq;
 using Godot;
 using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
 using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
@@ -9,10 +10,13 @@ namespace Reichsgilde;
 /// <summary>
 /// <b>Meldungen</b> (Benachrichtigungen, Stufe 1) und die <b>Hilfe</b> (PR #197) – ein Teil der <c>partial class Hauptszene</c>.
 ///
-/// Der Kern meldet nur Text (<c>Stadtwirtschaft.Meldung</c>). <see cref="Protokollieren"/> ordnet jede Meldung ein (<see cref="Meldungsordnung"/>, Zuordnung in
-/// <c>game/daten/meldungen.json</c>) und verteilt sie nach <see cref="Meldestufe"/>: <b>Verlauf</b> (Liste zum Nachlesen im Bericht, über alle Jahre der Sitzung),
+/// Der Kern meldet jede Meldung mit Art, Haus, Person und Ort (<see cref="Meldung"/>, <c>Stadtwirtschaft.Gemeldet</c>, Stufe 2). <see cref="Protokollieren"/> ordnet
+/// sie ein (<see cref="Meldungsordnung"/>, Zuordnung in <c>game/daten/meldungen.json</c>: die Art des Kerns, sonst wie in Stufe 1 der Text) und verteilt sie nach
+/// <see cref="Meldestufe"/>: <b>Verlauf</b> (Liste zum Nachlesen im Bericht, über alle Jahre der Sitzung),
 /// <b>Siegel</b> (Ecke unten rechts, <see cref="Siegelecke"/>, ein Siegel je Thema mit Zähler) oder <b>Brief</b> (<see cref="BriefAnzeige"/>, hält nie die Zeit an).
 /// Die Wahl je Art steht in den Einstellungen (<see cref="Meldungseinstellungen"/>). Alle Meldungen kommen nach rechts unten, auch abgelehnte Befehle („✗“).
+/// Siegel und Brief zeigen das Porträt des Betroffenen (<see cref="PortraetFuer"/>); „Hinsehen“ fährt zu Betrieb, Wohnhaus oder Ort und öffnet die Auswahl bzw.
+/// das Charakterfenster (<see cref="MeldungAnsteuern"/>). Nach dem Laden kommt der Verlauf aus dem Spielstand (<see cref="VerlaufAusSpielstand"/>).
 ///
 /// Damit nichts überflutet:
 ///   • <b>Jahreswechsel</b>: Gericht, Rat, Steuer, Stand, Personal, Bank und Spitzel der Jahresabrechnung werden zu <i>einem</i> Brief „Jahresbericht“; einzeln bleiben
@@ -52,6 +56,8 @@ public partial class Hauptszene
         _brief = new BriefAnzeige();
         GetNode<CanvasLayer>("Oberflaeche").AddChild(_brief);
         _brief.ZielGewaehlt += BriefZiel;
+        _brief.Hinsehen += MeldungAnsteuern;
+        _brief.HinsehenZiel = HinsehenZiel;
     }
 
     private Meldungsordnung Ordnung => Meldungseinstellungen.Ordnung;
@@ -59,13 +65,24 @@ public partial class Hauptszene
     /// <summary>Ist es eine Warnung? Abgelehnte Befehle („✗“) und Gefahren („⚠“).</summary>
     private static bool IstWarnung(string meldung) => meldung.StartsWith('✗') || meldung.StartsWith('⚠');
 
-    private void Protokollieren(string meldung)
+    /// <summary>Eine Meldung des Kerns (<c>Stadtwirtschaft.Gemeldet</c>). Gelungene Brände und Überfälle gegen das eigene Haus bekommen das Warnzeichen „⚠ “.</summary>
+    private void Protokollieren(Meldung m)
+    {
+        var warnen = m.Art is Meldungsart.Feuer or Meldungsart.Ueberfall && m.Wichtigkeit >= Meldungswichtigkeit.Hoch
+                     && _spieler is not null && _simulation?.Wirtschaft?.HausVon(m) == _spieler;
+        Protokollieren(warnen ? "⚠ " + m.Text : m.Text, m);
+    }
+
+    /// <summary>Eine Meldung der Oberfläche selbst (abgelehnter Befehl „✗ …“, Betreten eines Gebäudes …) – ohne Art des Kerns.</summary>
+    private void Protokollieren(string meldung) => Protokollieren(meldung, null);
+
+    private void Protokollieren(string meldung, Meldung? kern)
     {
         // Ein Befehl meldet sein Ergebnis, die Stadt dieselbe Nachricht für alle – nur einmal zeigen.
         if (_verlauf.Count > 0 && _verlauf[0].Original == meldung) return;
         var w = _simulation?.Wirtschaft;
         Einstufung e;
-        if (w is not null && _spieler is not null) e = Ordnung.Einstufen(w, _spieler, meldung);
+        if (w is not null && _spieler is not null) e = Ordnung.Einstufen(w, _spieler, meldung, kern);
         else e = new Einstufung(Ordnung.Einordnen(meldung), Betroffenheit.Stadt, Meldungsordnung.Ohne(meldung), IstWarnung(meldung), false, false);
         if (e.Verwerfen) return; // Geheimnisse anderer Häuser: der Kern meldet sie an alle, der Spieler soll sie nicht lesen
         var stufe = Meldungsordnung.Stufe(e.Art, e.Bezug, e.Text, Meldungseinstellungen.Wahl(e.Art.Id));
@@ -75,13 +92,55 @@ public partial class Hauptszene
         var posten = new Meldungsposten
         {
             Zeit = _simulation?.Zeit.UhrzeitText ?? "", Jahr = _simulation?.Zeit.Jahr ?? 0, Text = e.Text, Original = meldung, Art = e.Art, Bezug = e.Bezug, Stufe = stufe,
-            Warnung = e.Warnung, RivalenZug = e.RivalenZug,
-            Betrieb = w is null || _spieler is null ? null : w.Betriebe.Where(b => b.Konto == _spieler && e.Text.Contains(b.Name, StringComparison.Ordinal))
-                .OrderByDescending(b => b.Name.Length).Select(b => b.Name).FirstOrDefault(),
+            Warnung = e.Warnung, RivalenZug = e.RivalenZug, Kern = kern,
+            Betrieb = EigenerBetrieb(w, kern, e.Text),
         };
         _verlauf.Insert(0, posten);
         if (_verlauf.Count > VerlaufHoechstens) _verlauf.RemoveAt(_verlauf.Count - 1);
         if (stufe >= Meldestufe.Siegel) Verteilen(posten, stufe);
+    }
+
+    /// <summary>Der eigene Betrieb einer Meldung: der Ort des Kerns, sonst der längste eigene Betriebsname im Text.</summary>
+    private string? EigenerBetrieb(Stadtwirtschaft? w, Meldung? kern, string text)
+    {
+        if (w is null || _spieler is null) return null;
+        if (kern is { Ort: Meldungsort.Betrieb, Ortsname: { } name } && w.Betriebe.Any(b => b.Konto == _spieler && b.Name == name)) return name;
+        return w.Betriebe.Where(b => b.Konto == _spieler && text.Contains(b.Name, StringComparison.Ordinal))
+            .OrderByDescending(b => b.Name.Length).Select(b => b.Name).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Nach dem Laden (und zum Spielbeginn): der Verlauf aus dem Spielstand des Kerns (<c>Stadtwirtschaft.Meldungsverlauf</c>, die letzten Meldungen aller Häuser),
+    /// eingeordnet wie im Spiel, aber ohne Siegel und Briefe. Züge der KI erkennt der Text in den Entscheidungen der Rivalen. Ein alter Spielstand hat keinen Verlauf –
+    /// dann wie früher nur die letzten Züge der KI.
+    /// </summary>
+    private void VerlaufAusSpielstand(Stadtwirtschaft w, Konto spieler)
+    {
+        _verlauf.Clear();
+        if (w.Meldungsverlauf.Count == 0)
+        {
+            foreach (var rivale in w.Rivalen)
+                foreach (var zug in rivale.Entscheidungen.Reverse())
+                    Protokollieren(zug);
+            return;
+        }
+        var kiZug = Ordnung.Art("KI-Zug");
+        foreach (var m in w.Meldungsverlauf)
+        {
+            var zeit = new Spielzeit(m.Minute);
+            var e = w.Rivalen.Any(r => r.Entscheidungen.Contains(m.Text))
+                ? new Einstufung(kiZug, Betroffenheit.Fremd, m.Text, false, false, true)
+                : Ordnung.Einstufen(w, spieler, m.Text, m);
+            if (e.Verwerfen) continue;
+            var stufe = Meldungsordnung.Stufe(e.Art, e.Bezug, e.Text, Meldungseinstellungen.Wahl(e.Art.Id));
+            if (stufe == Meldestufe.Aus) continue;
+            _verlauf.Insert(0, new Meldungsposten
+            {
+                Zeit = zeit.UhrzeitText, Jahr = zeit.Jahr, Text = e.Text, Original = m.Text, Art = e.Art, Bezug = e.Bezug, Stufe = stufe, Warnung = e.Warnung,
+                RivalenZug = e.RivalenZug, Kern = m, Betrieb = EigenerBetrieb(w, m, e.Text),
+            });
+        }
+        if (_verlauf.Count > VerlaufHoechstens) _verlauf.RemoveRange(VerlaufHoechstens, _verlauf.Count - VerlaufHoechstens);
     }
 
     private bool IstJahreswechsel => _simulation?.Zeit is { } z && z.VergangeneMinuten > 0 && (z.MinuteImTag == 0 || z.MinuteImTag >= Spielzeit.MinutenProTag - 2);
@@ -123,6 +182,7 @@ public partial class Hauptszene
         var thema = Ordnung.Thema(posten.Art.Thema);
         var fehler = posten.Art.Id == "Fehler";
         var neu = _ecke.Hinzufuegen("thema:" + thema.Id, thema, posten, SiegelBrief, fehler ? FehlerSekunden : 0);
+        _ecke.Finden("thema:" + thema.Id)?.BildSetzen(SiegelBild(posten)); // das Porträt des Neuesten (oder keins)
         if (neu || !fehler) KlangOberflaeche.Spielen(KlangOberflaeche.Ereignis.MeldungSiegel);
         _ecke.TippsAuffrischen();
     }
@@ -151,7 +211,9 @@ public partial class Hauptszene
             Schluessel = s.Schluessel, Titel = einzeln ? art.Titel : thema.Name, Absender = einzeln ? art.Absender : "Euer Haushofmeister", Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id,
             Ziel = einzeln ? art.Ziel : "", Betrieb = einzeln ? s.Posten[0].Betrieb : null,
         };
-        foreach (var p in s.Posten.Take(60)) brief.Zeilen.Add(($"{p.Jahr} · {p.Zeit}" + (einzeln ? "" : " · " + p.Art.Name), p.Art.Id == "Fehler" ? p.Text.TrimStart('✗', ' ') : p.Text, p.Warnung));
+        foreach (var p in s.Posten.Take(60))
+            brief.Zeilen.Add(new Briefzeile($"{p.Jahr} · {p.Zeit}" + (einzeln ? "" : " · " + p.Art.Name), p.Art.Id == "Fehler" ? p.Text.TrimStart('✗', ' ') : p.Text, p.Warnung, p.Kern));
+        if (s.Posten.Count == 1) PortraetUndZiel(brief, s.Posten[0].Kern);
         return brief;
     }
 
@@ -168,11 +230,111 @@ public partial class Hauptszene
     private Brief EinzelBrief(Meldungsposten p)
     {
         var thema = Ordnung.Thema(p.Art.Thema);
-        return new Brief
+        var brief = new Brief
         {
             Titel = p.Art.Titel, Absender = p.Art.Absender, Farbe = Color.FromHtml(thema.Farbe), Thema = thema.Id, Ziel = p.Art.Ziel, Betrieb = p.Betrieb,
-            Zeilen = { ($"{p.Jahr} · {p.Zeit}", p.Text, p.Warnung) },
+            Zeilen = { new Briefzeile($"{p.Jahr} · {p.Zeit}", p.Text, p.Warnung, p.Kern) },
         };
+        PortraetUndZiel(brief, p.Kern);
+        return brief;
+    }
+
+    // ── Porträt und Hinsehen (Stufe 2) ───────────────────────────────────────
+
+    /// <summary>
+    /// Wen eine Meldung zeigt: die Person, die der Kern nennt; bei Anklage, Schulden, Meisterprüfung und Aufstieg das Oberhaupt des Hauses; sonst niemanden
+    /// (ein Stillstand oder Einbruch hat kein Gesicht).
+    /// </summary>
+    private Person? PortraetFuer(Meldung? m)
+    {
+        if (m is null || _simulation?.Wirtschaft is not { } w || !w.Familien.IstAktiv) return null;
+        if (w.PersonVon(m) is { } p) return p;
+        return m.Art is Meldungsart.Anklage or Meldungsart.Schulden or Meldungsart.Meisterpruefung or Meldungsart.StandAufstieg && w.HausVon(m) is { } haus
+            ? w.Familien.Von(haus)?.Oberhaupt : null;
+    }
+
+    private void PortraetUndZiel(Brief brief, Meldung? m)
+    {
+        brief.Kern = m;
+        if (PortraetFuer(m) is { } p && _simulation.Wirtschaft is { } w)
+        {
+            brief.Person = p;
+            brief.Buch = w.Familien;
+        }
+    }
+
+    /// <summary>Das kleine Porträt am Siegel (gerahmt) – oder null.</summary>
+    private Control? SiegelBild(Meldungsposten posten)
+    {
+        if (PortraetFuer(posten.Kern) is not { } p || _simulation.Wirtschaft is not { } w) return null;
+        var rahmen = new PanelContainer();
+        rahmen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.09f, 0.07f, 0.05f), BorderColor = new Color(0.09f, 0.07f, 0.05f),
+            BorderWidthLeft = 2, BorderWidthTop = 2, BorderWidthRight = 2, BorderWidthBottom = 2,
+        });
+        var bild = PortraetAnzeige.Neu(28);
+        bild.Zeigen(w.Familien, p);
+        rahmen.AddChild(bild);
+        return rahmen;
+    }
+
+    /// <summary>Wohin „Hinsehen“ zu einer Meldung führt (Tooltip) – null, wenn sie keinen Ort, kein Haus und keine Person nennt.</summary>
+    private string? HinsehenZiel(Meldung m)
+    {
+        if (_simulation?.Wirtschaft is not { } w) return null;
+        var haus = w.HausVon(m);
+        return m.Ort switch
+        {
+            Meldungsort.Betrieb when w.Betriebe.Any(b => b.Name == m.Ortsname) => $"Zu {m.Ortsname} fahren",
+            Meldungsort.Gebaeude when m.X is not null || m.Ortsname is not null => "Zum Ort fahren",
+            Meldungsort.Wohnhaus when haus is not null => haus == _spieler ? "Zum eigenen Wohnhaus" : $"Zum Wohnhaus von {haus.Inhaber}",
+            _ => w.PersonVon(m) is { } p ? $"{p.Name}: Charakterfenster"
+                : haus is not null && haus.IstAktiv ? (haus == _spieler ? "Zum eigenen Wohnhaus" : $"Zum Wohnhaus von {haus.Inhaber}") : null,
+        };
+    }
+
+    /// <summary>
+    /// „Hinsehen“: fährt die Kamera zum Ort der Meldung und öffnet, was dazugehört – den eigenen Betrieb (Kurzübersicht), die Auswahl eines fremden Gebäudes,
+    /// die Tafel des eigenen Wohnhauses. Ohne Ort: das Charakterfenster der Person, sonst das Wohnhaus des Hauses. Drinnen geht es erst hinaus.
+    /// </summary>
+    private void MeldungAnsteuern(Meldung m)
+    {
+        if (_simulation?.Wirtschaft is not { } w) return;
+        var haus = w.HausVon(m);
+        if (m.Ort is Meldungsort.Keiner && w.PersonVon(m) is { } person)
+        {
+            _charakter.Oeffnen(person);
+            return;
+        }
+        if (_stadt.InnenKennung is not null) _stadt.InnenansichtVerlassen();
+        switch (m.Ort)
+        {
+            case Meldungsort.Betrieb when w.Betriebe.FirstOrDefault(b => b.Name == m.Ortsname) is { } betrieb:
+                if (betrieb.Konto == _spieler) BetriebAuswaehlen(betrieb, hinfahren: true);
+                else GebaeudeZeigen(Stadtansicht.BetriebsKennung(betrieb));
+                return;
+            case Meldungsort.Gebaeude:
+                if (m.Ortsname is { } kennung && _stadt.Hinfahren(kennung)) return;
+                if (m.X is { } x && m.Z is { } z) _stadt.HinfahrenZu(x, z);
+                return;
+        }
+        if (haus is null) return;
+        if (haus == _spieler)
+        {
+            WohnhausOeffnen(WohnhausAnzeige.Reiter.Haus);
+            _stadt.Hinfahren(Stadtansicht.WohnhausKennung(haus));
+        }
+        else GebaeudeZeigen(Stadtansicht.WohnhausKennung(haus));
+    }
+
+    /// <summary>Wie ein Klick auf das Gebäude: Auswahl rechts, die Kamera fährt hin.</summary>
+    private void GebaeudeZeigen(string kennung)
+    {
+        RechtsSchliessen();
+        _auswahlKennung = kennung;
+        AuswahlAnzeigen();
+        _stadt.Hinfahren(kennung);
     }
 
     private void BriefEinreihen(Brief brief, bool gefahr = false)
@@ -282,9 +444,14 @@ public partial class Hauptszene
         var name = haus?.Nachname ?? "Brendel";
         var betrieb = w.Betriebe.FirstOrDefault(b => b.Konto == _spieler)?.Name ?? "Werkstatt";
         var jahr = _simulation.Zeit.Jahr;
+        var nr = w.Konten.ToList().IndexOf(_spieler);
+        var minute = _simulation.Zeit.VergangeneMinuten;
+        // Mit Art, Haus und Person wie aus dem Kern (Stufe 2): Siegel mit Porträt, Brief mit „Hinsehen“
+        if (haus is not null)
+            Protokollieren(new Meldung(Meldungsart.Krankheit, $"{haus.Oberhaupt.Vorname} {name} ist krank: Fieber – bis zum Jahresende.")
+                { Haus = nr, Person = haus.Oberhaupt.Nummer, Wichtigkeit = Meldungswichtigkeit.Normal, Minute = minute });
         foreach (var text in new[]
         {
-            $"Anna {name} ist krank: Fieber, der Medicus ist unterwegs.",
             $"Karren von {betrieb} (Holz) am Markt: Handelsauftrag erledigt.",
             $"Ratssitzung {jahr}: Antrag von {_spieler.Inhaber} – Steuer auf 12 % – ANGENOMMEN (3 dafür, 1 dagegen).",
             $"Einbruchsversuch in {betrieb} – die Diebe wurden verscheucht (der Wächter war wachsam).",
@@ -309,8 +476,14 @@ public partial class Hauptszene
         }
         if (wahl == "brief")
         {
-            Protokollieren($"Trauer im Haus {name}: Großvater {name} ist gestorben. Das Haus trauert, der Rat bekundet sein Beileid.");
-            Protokollieren($"Freude im Haus {name}: ein gesundes Kind, ein Sohn.");
+            var kind = haus?.Mitglieder.LastOrDefault(p => p != haus.Oberhaupt) ?? haus?.Oberhaupt;
+            Protokollieren(new Meldung(Meldungsart.TodFamilie, $"Trauer im Haus {name}: Großvater {name} ist mit 71 Jahren gestorben.")
+                { Haus = nr, Wichtigkeit = Meldungswichtigkeit.Hoch, Minute = minute });
+            Protokollieren(new Meldung(Meldungsart.Geburt, $"Freude im Haus {name}: ein gesundes Kind, {kind?.Vorname ?? "ein Sohn"}.")
+                { Haus = nr, Person = kind?.Nummer, Wichtigkeit = Meldungswichtigkeit.Hoch, Minute = minute });
+            if (w.Betriebe.FirstOrDefault(b => b.Konto == _spieler) is { } eigen)
+                Protokollieren(new Meldung(Meldungsart.Diebstahl, $"Einbruch in {eigen.Name}: 4 Eisen gestohlen.")
+                    { Haus = nr, Ort = Meldungsort.Betrieb, Ortsname = eigen.Name, Wichtigkeit = Meldungswichtigkeit.Hoch, Minute = minute });
         }
     }
 

@@ -66,11 +66,12 @@ public static class Speicherung
             Warteschlange = simulation.Bote.Warteschlange.Count > 0 ? simulation.Bote.Warteschlange.ToList() : null,
             MitEntwicklerhilfe = w?.Entwicklerhilfe.Benutzt ?? false,
             EntwicklerErlaubt = w?.Entwicklerhilfe.Erlaubt ?? false,
+            Meldungen = w?.MeldungenSichern(),
         };
     }
 
     /// <summary>Liest nur die Kopfdaten (Titel, Zeitpunkt) – für die Liste im Ladedialog.</summary>
-    public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null, Karte = null, Warteschlange = null };
+    public static Speicherstand Kopf(string json) => Lesen(json) with { Wirtschaft = null, Daten = null, Karte = null, Warteschlange = null, Meldungen = null };
 
     /// <summary>Stellt eine Partie aus einem Spielstand wieder her.</summary>
     /// <param name="karte">Die Karte der Stadt für Spielstände, die noch keine mitgespeichert haben oder eine in Format 1 (dann muss die
@@ -111,6 +112,7 @@ public static class Speicherung
                 simulation.Bote.Wiederherstellen(stand.Warteschlange); // noch nicht ausgeführte Befehle (Mehrspieler M2)
                 w.Entwicklerhilfe.Benutzt = stand.MitEntwicklerhilfe;
                 w.Entwicklerhilfe.Erlaubt = stand.EntwicklerErlaubt;
+                w.MeldungenWiederherstellen(stand.Meldungen); // Verlauf der Meldungen (fehlt in alten Spielständen: leer)
                 if (stand.Spielerkonto is int nummer && nummer >= 0 && nummer < w.Konten.Count)
                     spieler = w.Konten[nummer];
             }

@@ -6,7 +6,7 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Hängt die <b>Ansagen des Haushofmeisters</b> (<see cref="KlangAnsagen"/>) an die Ereignisse der Partie – ein Teil der <c>partial class Hauptszene</c>.
-/// Textmeldungen des Kerns erkennt <see cref="KlangAnsagenErkennung"/>; Aufstieg im Stand und Jahresende sind eigene Ereignisse, Ratssitzung und
+/// Meldungen des Kerns ordnet <see cref="KlangAnsagenErkennung"/> nach ihrer Art zu; Aufstieg im Stand und Jahresende sind eigene Ereignisse, Ratssitzung und
 /// Wahl kommen aus <c>Hauptszene.Ratssitzung.cs</c>. Immer nur für das eigene Haus (<paramref name="spieler"/>), nicht in einer Probepartie.
 /// </summary>
 public partial class Hauptszene
@@ -14,7 +14,7 @@ public partial class Hauptszene
     private void AnsagenVerbinden(Simulation simulation, Stadtwirtschaft w, Konto spieler)
     {
         KlangAnsagen.Entwicklermodus = () => simulation.EntwicklerErlaubt;
-        w.Meldung += meldung =>
+        w.Gemeldet += meldung =>
         {
             if (!_probepartie) KlangAnsagen.Meldung(meldung, w, spieler);
         };

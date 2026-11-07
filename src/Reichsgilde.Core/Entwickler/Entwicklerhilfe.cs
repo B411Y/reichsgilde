@@ -243,7 +243,7 @@ public sealed class Entwicklerhilfe
         if (wert <= 0) return Befehlsergebnis.Ok($"Einbruch in {b.Name} – doch das Lager war leer.");
         b.RaubBuchen(wert);
         var text = $"Einbruch in {b.Name}: {_w.Gauner.Diebesgut(beute, kasse)} gestohlen.";
-        _w.Gauner.Melden(null, text);
+        _w.Gauner.Melden(null, text, Meldungsart.Diebstahl, betrieb: b);
         return Befehlsergebnis.Ok(text);
     }
 
@@ -256,7 +256,7 @@ public sealed class Entwicklerhilfe
         b.Sabotieren(sabotage.StillstandMinuten);
         b.SchadenBuchen(sabotage.Reparatur);
         var text = $"Feuer in {b.Name}! {sabotage.StillstandMinuten / 60} Arbeitsstunden Stillstand, Reparatur {Zahlenformat.Ganz(sabotage.Reparatur)}.";
-        _w.Gauner.Melden(null, text);
+        _w.Gauner.Melden(null, text, Meldungsart.Feuer, betrieb: b);
         return Befehlsergebnis.Ok(text);
     }
 
@@ -269,7 +269,7 @@ public sealed class Entwicklerhilfe
         k.Schaden(schaden);
         _w.Wohnen.Brand(k, _w.Uhr.VergangeneMinuten + _w.Gauner.Daten.Wohnhaus!.Brand.InstandMinuten);
         var text = $"Feuer am {_w.Wohnen.Stufe(k)!.Name} von {k.Inhaber}! Reparatur {Zahlenformat.Ganz(schaden)} {Waehrung}.";
-        _w.Gauner.Melden(null, text);
+        _w.Gauner.Melden(null, text, Meldungsart.Feuer, haus: k, wohnhaus: true);
         return Befehlsergebnis.Ok(text);
     }
 

@@ -1022,6 +1022,14 @@ public partial class Stadtansicht : Node3D
         return true;
     }
 
+    /// <summary>Fährt die Kamera zu einem Punkt der Karte (Meter), etwa zum Ort einer Meldung (Blitzschlag). Drinnen nicht.</summary>
+    public bool HinfahrenZu(double x, double z)
+    {
+        if (_innen is not null) return false;
+        Kamerafahrt(new Vector3((float)x, 0, (float)z), _kamera.Size);
+        return true;
+    }
+
     /// <summary>Dreht die Kamera um ganze Vierteldrehungen (+1 = 90° gegen den Uhrzeigersinn von oben).</summary>
     public void Drehen(int vierteldrehungen, bool sofort = false)
     {

@@ -471,10 +471,11 @@ public sealed partial class Familienbuch
         }
     }
 
-    internal void Ereignis(Konto konto, string text)
+    /// <summary>Ein Ereignis der Familie: ins Familienbuch und als Meldung mit dem Haus (und, wo genannt, der Person und der Art).</summary>
+    internal void Ereignis(Konto konto, string text, Meldungsart art = Meldungsart.Sonstiges, Person? person = null, Meldungswichtigkeit? wichtigkeit = null)
     {
         _laufend.Add(new FamilienEreignis(konto, text));
-        _w.Melden(text);
+        _w.Melden(art, text, haus: konto, person: person, wichtigkeit: wichtigkeit);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -560,7 +561,7 @@ public sealed partial class Familienbuch
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
                         $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre)." +
                         (kosten > 0 ? $" Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." : "") +
-                        (uebertritt ? $" {p.Vorname} tritt zum {p.Glaube.Glaube()} über – die {p.Herkunftsglaube.Gemeinde()} im Rat sehen es ungern." : ""));
+                        (uebertritt ? $" {p.Vorname} tritt zum {p.Glaube.Glaube()} über – die {p.Herkunftsglaube.Gemeinde()} im Rat sehen es ungern." : ""), Meldungsart.Heirat, p);
     }
 
     internal Befehlsergebnis ErbenBestimmen(Konto konto, int nummer)
@@ -715,10 +716,11 @@ public sealed partial class Familienbuch
         if (p == f.Ehepartner)
         {
             f.Ehepartner = null;
-            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname}, {p.Ehepartnertitel} von {f.Oberhaupt.Vorname}, ist mit {alter} Jahren{woran} gestorben.");
+            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname}, {p.Ehepartnertitel} von {f.Oberhaupt.Vorname}, ist mit {alter} Jahren{woran} gestorben.",
+                Meldungsart.TodFamilie, p);
         }
         else if (p != f.Oberhaupt)
-            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname} ist mit {alter} Jahren{woran} gestorben.");
+            Ereignis(f.Konto, $"Trauer im Haus {f.Nachname}: {p.Vorname} ist mit {alter} Jahren{woran} gestorben.", Meldungsart.TodFamilie, p);
         if (f.Testament == p) f.Testament = null;
     }
 
@@ -770,7 +772,7 @@ public sealed partial class Familienbuch
         if (erbe is null)
         {
             Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren{(tot.Todesursache is { } u1 ? " " + u1 : "")} gestorben – ohne Erben. " +
-                              $"Das Haus {f.Nachname} ist erloschen{(waisen > 0 ? $"; {waisen} unmündige Kinder bleiben zurück" : "")}.");
+                              $"Das Haus {f.Nachname} ist erloschen{(waisen > 0 ? $"; {waisen} unmündige Kinder bleiben zurück" : "")}.", Meldungsart.TodOberhaupt, tot);
             f.Konto.IstErloschen = true;
             _w.Stilllegen(f.Konto);
             Erloschen?.Invoke(f.Konto);
@@ -786,7 +788,7 @@ public sealed partial class Familienbuch
         ZuneigungEntfernen(s => s.Item1 == f.Konto);
         _w.Rat.Neuanfang(f.Konto);
         Ereignis(f.Konto, $"{tot.OberhauptTitel} {tot.Name} ist mit {tot.Alter(Jahr)} Jahren{(tot.Todesursache is { } u2 ? " " + u2 : "")} gestorben. {wieErbe} ({erbe.Alter(Jahr)} Jahre). " +
-                          "Ämter und Gunst im Rat beginnen von vorn.");
+                          "Ämter und Gunst im Rat beginnen von vorn.", Meldungsart.TodOberhaupt, tot);
         Erbfall?.Invoke(f, tot, erbe);
     }
 
@@ -825,7 +827,8 @@ public sealed partial class Familienbuch
         kind.GlaubeSetzen(f.Oberhaupt.Glaube); // getauft im Glauben des Hauses
         ZuegeBeiGeburt(kind, vater, mutter);
         f.MitgliederListe.Add(kind);
-        Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.");
+        Ereignis(f.Konto, $"Freude im Haus {f.Nachname}: {mutter.Vorname} und {vater.Vorname} bekommen {(geschlecht == Geschlecht.Frau ? "eine Tochter" : "einen Sohn")}, {kind.Vorname}.",
+            Meldungsart.Geburt, kind);
         return kind;
     }
 

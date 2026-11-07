@@ -40,11 +40,12 @@ internal static class Ueberfall
             wert = verloren.Sum(v => w.Markt[v.Key].Preis * v.Value);
             karren.Heimat.Konto.Raub(wert);
             var beute = string.Join(" und ", verloren.Select(v => $"{v.Value} {v.Key}"));
-            w.Melden($"Überfall {wo}: {wer} erbeutet {beute} (Wert {Zahlenformat.Ganz(wert)} {w.Daten.Allgemein.Waehrung}).");
+            w.Melden(Meldungsart.Ueberfall, $"Überfall {wo}: {wer} erbeutet {beute} (Wert {Zahlenformat.Ganz(wert)} {w.Daten.Allgemein.Waehrung}).", betrieb: karren.Heimat);
         }
         else
         {
-            w.Melden($"Überfall {wo}: Die Eskorte schlägt {wer.Replace("Eine ", "eine ")} in die Flucht.");
+            w.Melden(Meldungsart.Ueberfall, $"Überfall {wo}: Die Eskorte schlägt {wer.Replace("Eine ", "eine ")} in die Flucht.", betrieb: karren.Heimat,
+                wichtigkeit: Meldungswichtigkeit.Normal);
         }
         // Für die Darstellung (liest nur): eine Bande der Landstraße, kein Haus dahinter.
         w.Gauner.Vorfaelle.Eintragen(new Gauner.Vorfall

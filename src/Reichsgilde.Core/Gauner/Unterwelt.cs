@@ -676,7 +676,8 @@ public sealed class Unterwelt
             oeffentlich += $" Ein Zeuge hat Leute von {a.Auftraggeber.Inhaber} erkannt!";
         }
         VorfallEintragen(a, b, erfolg, betrag, zeuge, zeuge && spur is not null ? a.Ziel : null, karren, geleit);
-        Ereignis(null, oeffentlich);
+        var (art, wichtigkeit) = ArtDerTat(a.Art, erfolg, betrag);
+        Ereignis(null, oeffentlich, art, a.Ziel, b ?? karren?.Heimat, wohnhaus, wichtigkeit);
     }
 
     /// <summary>Den Versuch einer Bande in die Liste der Vorfälle schreiben (liest nur, würfelt nichts).</summary>
@@ -709,12 +710,32 @@ public sealed class Unterwelt
     internal void BetriebAufgegeben(Betrieb b) => _letzterAngriff.Remove(b.Name);
 
     /// <summary>Nachricht aus der Unterwelt (auch von den Dieben) – erscheint im Hinterzimmer und im Protokoll.</summary>
-    internal void Melden(Konto? fuer, string text) => Ereignis(fuer, text);
+    /// <remarks>Mit <paramref name="fuer"/> ist die Nachricht nur für dieses Haus bestimmt (vertraulich); sonst ist sie öffentlich, und
+    /// <paramref name="haus"/>, <paramref name="betrieb"/> und <paramref name="wohnhaus"/> sagen, wen und wo sie betrifft.</remarks>
+    internal void Melden(Konto? fuer, string text, Meldungsart art = Meldungsart.Sonstiges, Konto? haus = null, Betrieb? betrieb = null, bool wohnhaus = false,
+        Meldungswichtigkeit? wichtigkeit = null) => Ereignis(fuer, text, art, haus, betrieb, wohnhaus, wichtigkeit);
 
-    private void Ereignis(Konto? fuer, string text)
+    private void Ereignis(Konto? fuer, string text, Meldungsart art = Meldungsart.Sonstiges, Konto? haus = null, Betrieb? betrieb = null, bool wohnhaus = false,
+        Meldungswichtigkeit? wichtigkeit = null)
     {
         _diesesJahr.Add(new Nachtereignis(fuer, text));
-        _w.Melden(text);
+        if (fuer is not null) _w.Melden(art, text, haus: fuer, wichtigkeit: wichtigkeit, vertraulich: true);
+        else _w.Melden(art, text, haus: haus, betrieb: betrieb, wohnhaus: wohnhaus, wichtigkeit: wichtigkeit);
+    }
+
+    /// <summary>Art und Wichtigkeit der öffentlichen Nachricht zu einer Gaunerei: ein gelungener Brand oder Überfall und ein Einbruch mit Beute hoch, sonst normal.</summary>
+    private static (Meldungsart Art, Meldungswichtigkeit Wichtigkeit) ArtDerTat(Gaunerstueck stueck, bool erfolg, double betrag)
+    {
+        var art = stueck switch
+        {
+            Gaunerstueck.Diebstahl or Gaunerstueck.Hauseinbruch => Meldungsart.Diebstahl,
+            Gaunerstueck.Sabotage or Gaunerstueck.Brandstiftung => Meldungsart.Feuer,
+            Gaunerstueck.Ueberfall => Meldungsart.Ueberfall,
+            _ => Meldungsart.Sonstiges,
+        };
+        var hoch = erfolg && (betrag > 0 || art != Meldungsart.Diebstahl); // ein Einbruch in ein leeres Lager bleibt normal
+        return (art, art == Meldungsart.Sonstiges ? Meldungswichtigkeit.Gering
+            : hoch ? Meldung.Vorgabe(art) : Meldungswichtigkeit.Normal);
     }
 
     /// <summary>

@@ -162,14 +162,15 @@ public sealed class Gesundheitswesen
         {
             IstPestjahr = true;
             NaechstePest = jahr + PestAbstand(pest);
-            _w.Melden($"Die Pest ist in der Stadt! In diesem Jahr fehlen {Zahlenformat.Ganz(pest.Krankenstand * 100)} % der Arbeitskräfte.");
+            _w.Melden(Meldungsart.Pest, $"Die Pest ist in der Stadt! In diesem Jahr fehlen {Zahlenformat.Ganz(pest.Krankenstand * 100)} % der Arbeitskräfte.");
             foreach (var (konto, p) in Personen().ToList())
             {
                 if (_zufall.NextDouble() >= pest.Ansteckung * pest.Anfaelligkeit(p.Volk) * _w.Ratsantraege.Krankheitsfaktor // Brunnen
                     * _w.Familien.KrankheitFaktor(p)) continue; // Charakterzüge (Kränklich, Stark – PR #227)
                 p.Krankheit = Erkrankung.Aus(d, Erkrankung.PestName, jahr);
                 if (konto is not null)
-                    _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} hat die Pest! Ohne Hilfe stirbt {Er(p)} mit {Zahlenformat.Ganz(pest.Sterben * 100)} % Wahrscheinlichkeit.");
+                    _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} hat die Pest! Ohne Hilfe stirbt {Er(p)} mit {Zahlenformat.Ganz(pest.Sterben * 100)} % Wahrscheinlichkeit.",
+                        Meldungsart.Krankheit, p, Meldungswichtigkeit.Hoch);
             }
         }
 
@@ -203,7 +204,8 @@ public sealed class Gesundheitswesen
         var e = p.Krankheit;
         var bis = dauer == 1 ? "bis zum Jahresende" : $"bis Ende {e.Bis}";
         _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} ist krank: {e.Beschreibung} – {bis}" +
-                                    (e.SterbeChance > 0 ? $", gefährlich ({Zahlenformat.Ganz(e.SterbeChance * 100)} % tödlich)." : "."));
+                                    (e.SterbeChance > 0 ? $", gefährlich ({Zahlenformat.Ganz(e.SterbeChance * 100)} % tödlich)." : "."), Meldungsart.Krankheit, p,
+                                    name == Erkrankung.PestName ? Meldungswichtigkeit.Hoch : null);
         return true;
     }
 

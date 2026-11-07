@@ -64,7 +64,7 @@ Startoptionen (nach `--`):
 - `--lexikon=<1|kennung|suche:text>` (das Lexikon öffnen: `1` = Startseite, `<kennung>` = gleich bei diesem Begriff, z. B. `--lexikon=stand`, `suche:<text>` = mit diesem Suchtext, Leerzeichen als `_`)
 - `--lexikon-pruefen=1` (nur die Datei `game/daten/lexikon.json` prüfen und beenden: Verweise, Platzhalter, Kennungen; Rückgabewert 0 = in Ordnung, 1 = Fehler; Ausgabe auf der Konsole, z. B. `Godot --headless --path game -- --lexikon-pruefen=1`)
 - `--meldung=<Text>` (eine Meldung einstellen, Leerzeichen als `_`; sie wird wie jede Kernmeldung eingeordnet und kommt als Verlauf, Siegel oder Brief; mit ✗ am Anfang ein abgelehnter Befehl)
-- `--meldungen=<demo|brief>` (Benachrichtigungen vorführen: `demo` legt sechs Siegel in die Ecke unten rechts – Familie, Handel, Rat, Gefahr, Stadt, Befehl – und lässt einen Betrieb als „steht still“ erscheinen; `brief` dazu einen Todesfall und eine Geburt als Briefe; Meldungsart und Stufe stehen im Bericht unter „Verlauf“)
+- `--meldungen=<demo|brief>` (Benachrichtigungen vorführen: `demo` legt sechs Siegel in die Ecke unten rechts – Familie, Handel, Rat, Gefahr, Stadt, Befehl – und lässt einen Betrieb als „steht still“ erscheinen; `brief` dazu einen Todesfall, eine Geburt und einen Einbruch als Briefe; Krankheit, Geburt und Einbruch kommen wie aus dem Kern mit Haus, Person bzw. Betrieb – Siegel und Brief zeigen das Porträt, „Hinsehen“ fährt hin; Meldungsart und Stufe stehen im Bericht unter „Verlauf“)
 - `--einstellungen=1`
 - `--wegenetz=1` (Gassennetz der Passanten einblenden)
 - `--laden=<datei.json>` (aus `~/.local/share/godot/app_userdata/Reichsgilde/spielstaende`)
