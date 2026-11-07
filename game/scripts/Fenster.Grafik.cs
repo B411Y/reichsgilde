@@ -719,7 +719,7 @@ public partial class Fenster
         if (optionen.TryGetValue("fahnen", out var fahnen)) FahnenSetzen(An(fahnen), speichern: false);
         if (Zahl("uigroesse", out var uigroesse)) OberflaechengroesseSetzen(uigroesse, speichern: false);
         if (Art<Farbfilter>("farbfilter", out var farbfilter)) FarbfilterSetzen(farbfilter, speichern: false);
-        ZeigerStartoptionen(optionen); // --zeiger=0|1, --zeigerstufe=1..6 (Fenster.Zeiger.cs)
+        ZeigerStartoptionen(optionen); // --zeiger=0|1, --zeigerstufe=1..8 (Fenster.Zeiger.cs)
         PixelStartoptionen(optionen); // --pixellook=0|2|3, --pixelgluehen=0|1 (Fenster.Pixel.cs)
         if (optionen.GetValueOrDefault("automatisch") == "1") AutomatischWaehlen();
         if (Zahl("messung", out var messung) && messung > 0) MessungStarten(messung);
