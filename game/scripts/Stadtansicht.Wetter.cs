@@ -199,7 +199,21 @@ public partial class Stadtansicht
         AddChild(_blitzLicht);
     }
 
-    /// <summary>Ein Niederschlags-MultiMesh: nur Quads, die Lage kommt aus dem Shader (INSTANCE_ID), darum kein Platzhalter-Transform und keine Sichtbarkeitsprüfung.</summary>
+    /// <summary>
+    /// Schreibt in jede Instanz des MultiMeshs ein gültiges Transform (Einheitsmatrix). Die Shader von Regen und Schnee rechnen den Ort aus der
+    /// <c>INSTANCE_ID</c> und lesen das Transform nie – aber Godot legt den Puffer unbeschrieben an, und was dort an Grafikspeicher lag, ist nicht
+    /// gleich null: Bei hoher Auslastung (Ultra: MSAA, Morgendunst, Gras, Verdeckung) standen in einzelnen Instanzen NaN oder unendliche Werte, und Godot
+    /// gab sie an die Nachbearbeitung weiter – Bloom machte daraus weiße Flächen über dem ganzen Bild, die Miniatur-Unschärfe schwarze Kästchen (Wetter-
+    /// fehler vom 07.11.2026, gleich bei Regen, Sturm und Schnee).
+    /// </summary>
+    private static void MultiMeshAnfangswerte(MultiMesh mm)
+    {
+        var puffer = new float[mm.InstanceCount * 12];
+        for (var i = 0; i < mm.InstanceCount; i++) { puffer[i * 12] = 1; puffer[i * 12 + 5] = 1; puffer[i * 12 + 10] = 1; }
+        mm.Buffer = puffer;
+    }
+
+    /// <summary>Ein Niederschlags-MultiMesh: nur Quads, die Lage kommt aus dem Shader (INSTANCE_ID), darum keine Sichtbarkeitsprüfung; die Transforms sind nur Platzhalter (<see cref="MultiMeshAnfangswerte"/>).</summary>
     private MultiMeshInstance3D NiederschlagBauen(string name, ShaderMaterial stoff, Vector2 groesse)
     {
         var teil = new MultiMeshInstance3D
@@ -215,6 +229,7 @@ public partial class Stadtansicht
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             CustomAabb = new Aabb(new Vector3(-4000, -4000, -4000), new Vector3(8000, 8000, 8000)), // der Shader setzt die Orte, Godot kennt sie nicht
         };
+        MultiMeshAnfangswerte(teil.Multimesh);
         AddChild(teil);
         return teil;
     }
@@ -519,6 +534,8 @@ public partial class Stadtansicht
             _schnee.Multimesh.InstanceCount = schnee;
             _regen.Multimesh.VisibleInstanceCount = -1;
             _schnee.Multimesh.VisibleInstanceCount = -1;
+            MultiMeshAnfangswerte(_regen.Multimesh);
+            MultiMeshAnfangswerte(_schnee.Multimesh);
             _anteilRegen = _anteilSchnee = -1;
         }
         var draussen = _raum is null;
@@ -540,11 +557,12 @@ public partial class Stadtansicht
         // Welt -> Kasten (Drehung um die Hochachse zurück)
         Vector3 InKasten(Vector3 v) => new(cd * v.X - sd * v.Z, v.Y, sd * v.X + cd * v.Z);
 
-        // Wind treibt Regen und Schnee schräg (Schräge je Wetterart: Regen (Wind 0,5) senkrecht, Gewitter (0,75) und Sturm (1) gleich leicht schräg (18°),
-        // dazwischen weich – Nutzer 04.11.2026; der Wind selbst bleibt unverändert: Fahnen, Gras, Bäume, Wolken, Seegang. Traufentropfen fallen immer senkrecht.)
+        // Wind treibt Regen und Schnee schräg (Schräge je Wetterart: normaler Regen (Wind 0,5) leicht schräg, 6,5° in Windrichtung; Gewitter (0,75) und Sturm (1)
+        // gleich stark schräg (18°), dazwischen weich – Nutzer 04.11. und 07.11.2026; bei schwächerem Wind nimmt die Schräge mit ihm ab. Der Wind selbst bleibt
+        // unverändert: Fahnen, Gras, Bäume, Wolken, Seegang. Traufentropfen fallen immer senkrecht.)
         var wind = new Vector3(_windRichtung.X, 0, _windRichtung.Y) * _wetter.Wind;
         var windRichtung = wind.LengthSquared() > 1e-6f ? wind.Normalized() : Vector3.Zero;
-        var schraege = Mathf.Clamp((_wetter.Wind - 0.5f) / 0.25f, 0f, 1f) * 0.325f; // tan 18°
+        var schraege = RegenSchraege(_wetter.Wind);
         var regenRichtung = (Vector3.Down + windRichtung * schraege).Normalized();
         var schneeRichtung = (Vector3.Down + wind * 0.4f).Normalized();
 
@@ -573,9 +591,23 @@ public partial class Stadtansicht
         _schneeFall = Mathf.PosMod(_schneeFall + sTempo * dt / sHoehe, 20f);
         NiederschlagKasten(_schnee, _schneeFarbe, mitte, sHoehe, neigung, drehung, sGanz, _schneeVersatz, k);
         _schneeFarbe.SetShaderParameter("fall", _schneeFall);
-        _schneeFarbe.SetShaderParameter("groesse", 0.5f * Mathf.Pow(k, 0.6f) * 1.2f);
+        _schneeFarbe.SetShaderParameter("groesse", SchneeFlockenGroesse * Mathf.Pow(k, 0.6f));
         PartikelFarbe();
     }
+
+    /// <summary>
+    /// Wie schräg der Regen fällt (Tangens des Winkels zur Senkrechten) bei dieser Windstärke: bis Windstärke 0,5 (normaler Regen) wächst sie auf 6,5° an,
+    /// von 0,5 bis 0,75 weiter auf 18° (Gewitter, Sturm). Ohne Wind fällt der Regen senkrecht.
+    /// </summary>
+    internal static float RegenSchraege(float wind)
+    {
+        const float leicht = 0.114f; // tan 6,5°
+        const float stark = 0.325f;  // tan 18°
+        return Mathf.Lerp(leicht * Mathf.Clamp(wind / 0.5f, 0f, 1f), stark, Mathf.Clamp((wind - 0.5f) / 0.25f, 0f, 1f));
+    }
+
+    /// <summary>Flockengröße in Metern bei Zoom 95 (vor dem Faktor je Flocke 0,6–1,5): halb so groß wie bis 06.11.2026 (0,6), Nutzer 07.11.2026.</summary>
+    private const float SchneeFlockenGroesse = 0.3f;
 
     private static Vector3 Umlauf(Vector3 v) => new(Mathf.PosMod(v.X, 1f), Mathf.PosMod(v.Y, 1f), Mathf.PosMod(v.Z, 1f));
 

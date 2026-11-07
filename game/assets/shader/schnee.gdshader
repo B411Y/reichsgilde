@@ -21,7 +21,7 @@ uniform vec3 ganz = vec3(100.0, 12.0, 100.0);
 uniform vec3 versatz = vec3(0.0);
 // Fallweg in Kastenhöhen, umlaufend 0–20 (je Flocke mit n/20 malgenommen, darum geht der Umlauf ohne Sprung)
 uniform float fall = 0.0;
-// Flockengröße in Metern (vor dem Faktor je Flocke) und kleinste Größe in Bildpunkten
+// Flockengröße in Metern (vor dem Faktor je Flocke 0,6–1,5; die kleinste Größe in Bildpunkten steht im Shader)
 uniform float groesse = 0.4;
 
 varying float v_winkel;
@@ -61,7 +61,7 @@ void vertex() {
 	ort += weg;
 	vec3 vp = (VIEW_MATRIX * vec4(ort, 1.0)).xyz;
 	float px = 2.0 / PROJECTION_MATRIX[1][1] / VIEWPORT_SIZE.y;   // Meter je Bildpunkt (Kamera ohne Perspektive)
-	float gr = max(groesse * (0.6 + 0.9 * h2), px * 2.4);
+	float gr = max(groesse * (0.6 + 0.9 * h2), px * 1.5);   // nie unter 1,5 Bildpunkte, sonst flimmern die Flocken (bis 06.11.2026 2,4)
 	POSITION = PROJECTION_MATRIX * vec4(vp + vec3(VERTEX.xy * gr, 0.0), 1.0);
 	// Neigung: Die Flocke kippt mit dem Schwung, flach gesehen wird sie schmal
 	v_neigung = 0.9 * cos(th) * sign(cos(psi) + 0.0001);
