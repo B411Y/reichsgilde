@@ -228,6 +228,16 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Restflächen Paket 3, Teil 1: Modelle (Branch phase5/restflaechen-p3-modelle)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Dateien | `props/fuellung_tiere.glb` (Schwein stehend/wühlend, Ziege stehend/fressend), `fuellung_hof2.glb` (Hühnerstall, Schuppen), `fuellung_pferch.glb` (Gatter, Futterraufe, Strohschüttung), `fuellung_wasserstelle.glb` (Ziehbrunnen, Steintrog, zwei Pfützen), aus `tools/modelle/fuellung_p3.py`; Vorschauen `docs/modelle/fuellung_<name>.png`. |
+| Wiederverwendet | Hühner (`tiere/tier_huhn_*.glb`), Trog, Futtertrog, Pferch-Hürde (Paket 2 `fuellung_hof`), Hackklotz (`fuellung_holzplatz`): nicht neu gebaut. |
+| Dreiecke | Tiere 1654 bis 2297 (Grenze 2500), alle übrigen Teile unter 1500 (größtes: Strohschüttung Winter). |
+| Tiere | Standbilder ohne Skelett, glatt schattiert; Fellflecken aus weichem Rauschen (`_blob`). Schwein dunkel und langbeinig behaart wie die Landschweine der Handschriften, nicht rosa. |
+| Offen | Einbau in die Themen Hof, Pferch, Wasserstelle (`restflaechen.json`) erst nach Freigabe der Vorschauen durch den Nutzer. |
+
 ### Bauzonen glühen nicht, Beschriftungen scharf (PR #314)
 
 | Thema | Entscheidung | Datum |
