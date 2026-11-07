@@ -228,6 +228,15 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Umlandplätze am Hang ohne eckigen Sockel (Branch phase5/sockel-hang)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Seit den Bodenstempeln (PR #336) haben Umlandplätze keine Bodenplatte mehr; am Hang baute `SockelBauen` für sie einen Quader aus Erde (ab `SockelMindestTiefe` 0,12 m), dessen gerade Kante im Gras zu sehen war (Köln: Bauernhof an der Mühle). |
+| Lösung (Weg B) | `BoeschungBauen` (`Stadtansicht.Gelaende.cs`) ersetzt den Quader durch ein Netz in Weltkoordinaten: oben eben auf der Höhe des Fußbodens, ringsum ein weicher Übergang auf die Höhe des Bodens, am Rand 0,04 m darunter. Die Breite folgt dem Gefälle (etwa 1 : 2,5, mindestens 1 m, höchstens `BoeschungBreite` 4,5 m), der Rand schwankt mit Wertrauschen (`BoeschungRauschen`, Saat aus der Kennung des Platzes). Wo der Boden höher liegt, verdeckt er das Netz. Material wie bisher die Erde (`Weg`). |
+| Grenzen | Nur Darstellung: Gelände, Wege, Kern und `FussHoehe` bleiben. Figuren und Pflanzen im Saum stehen auf dem Boden, nicht auf der Böschung. Gebäude und Stadtplätze (Bruchsteinsockel) bleiben Quader. Weg A (Gelände zur Laufzeit planieren) hätte `BodenHoehe`, Wege und Pflanzenhöhen berührt und wurde nicht gewählt. |
+| Vergleich | `--sockelquader=1` zeigt den alten Quader. | 07.11.2026 |
+
 ### Bauzonen glühen nicht, Beschriftungen scharf (PR #314)
 
 | Thema | Entscheidung | Datum |
