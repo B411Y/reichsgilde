@@ -23,7 +23,7 @@ public partial class Stadtansicht
     private FogVolume? _dunstVolumen;
     private FogMaterial? _dunstStoff;
     private Vector2 _wolkenVersatz;
-    private (float Zoom, Miniaturunschaerfe Stufe)? _tiltShiftFuer;
+    private (float Zoom, Miniaturunschaerfe Stufe, bool Pixel)? _tiltShiftFuer;
 
     /// <summary>Einmal beim Aufbau (nach Umgebung, Licht und Kamera).</summary>
     private void GrafikEinrichten()
@@ -99,7 +99,7 @@ public partial class Stadtansicht
     /// </summary>
     private void TiltShiftNachfuehren()
     {
-        var stand = (_kamera.Size, Fenster.AktuelleUnschaerfe);
+        var stand = (_kamera.Size, Fenster.AktuelleUnschaerfe, Fenster.PixelLookAn);
         if (_tiltShiftFuer == stand) return;
         _tiltShiftFuer = stand;
         var an = Fenster.AktuelleUnschaerfe != Miniaturunschaerfe.Aus;
@@ -112,7 +112,9 @@ public partial class Stadtansicht
         _tiltShift.DofBlurFarTransition = uebergang * halbeTiefe;
         _tiltShift.DofBlurNearDistance = KameraAbstand - nah * halbeTiefe;
         _tiltShift.DofBlurNearTransition = uebergang * halbeTiefe;
-        var nahFaktor = Mathf.Lerp(1.5f, 0.7f, Mathf.Clamp((_kamera.Size - KameraMinZoom) / (KameraMaxZoom - KameraMinZoom), 0, 1));
+        // im Pixel-Look reicht der Zoom nur bis zur weiten Stufe (100 m): die Unschärfe läuft von nah bis dorthin, wie sie vor „Zoom A“ bis 140 m lief
+        var obenZoom = Fenster.PixelLookAn && _entwurf is null ? PixelZoomStufen[^1] : KameraMaxZoom;
+        var nahFaktor = Mathf.Lerp(1.5f, 0.7f, Mathf.Clamp((_kamera.Size - KameraMinZoom) / (obenZoom - KameraMinZoom), 0, 1));
         _tiltShift.DofBlurAmount = menge * nahFaktor;
     }
 
@@ -429,8 +431,8 @@ public partial class Stadtansicht
     /// <summary>Feinheiten (Bodenpflanzen, Steine, Holz) bis zu welchem Zoom: Nah, Mittel, Weit (darüber ausgeblendet).</summary>
     private static float FeinheitenBisZoom(Feinheiten f) => f switch
     {
-        Feinheiten.Nah => 55f,
-        Feinheiten.Mittel => 100f,
+        Feinheiten.Nah => 37f,    // nur die nahe Zoomstufe (25 m; bis Zoom A 55 für die Stufe 35)
+        Feinheiten.Mittel => 75f, // die nahe und die mittlere Stufe (25 und 50 m; bis Zoom A 100 für 35 und 70)
         _ => float.MaxValue,
     };
 

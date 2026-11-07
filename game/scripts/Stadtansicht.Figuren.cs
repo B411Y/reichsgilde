@@ -216,16 +216,16 @@ public partial class Stadtansicht
     //  Rechenzeit: nur Figuren im Bild, ganz herausgezoomt seltener
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Ab dieser sichtbaren Höhe (Meter) bewegen sich die Figuren nur jedes zweite Bild (Zoomstufe 70) …</summary>
-    private const float FigurenHalbeRateAb = 60f;
-    /// <summary>… und ab dieser nur jedes dritte (Zoomstufe 140); die nahe Stufe 35 bewegt jedes Bild. Die Figuren sind nach ihrer Nummer gestaffelt, nie alle im selben Bild.</summary>
-    private const float FigurenDrittelRateAb = 120f;
+    /// <summary>Ab dieser sichtbaren Höhe (Meter) bewegen sich die Figuren nur jedes zweite Bild (mittlere Zoomstufe 50 m) …</summary>
+    private const float FigurenHalbeRateAb = 43f;
+    /// <summary>… und ab dieser nur jedes dritte (weite Stufe 100 m; der gewohnte Zoom 95 ohne Pixel-Look bleibt bei jedem zweiten); die nahe Stufe 25 bewegt jedes Bild. Die Figuren sind nach ihrer Nummer gestaffelt, nie alle im selben Bild.</summary>
+    private const float FigurenDrittelRateAb = 98f;
 
     /// <summary>Langsame Schleifen bekommen nur jedes dritte Bild eine neue Pose (bei 60 Bildern je Sekunde noch 20 – das Atmen sieht gleich aus).</summary>
     private const int LangsamTeiler = 3;
 
-    /// <summary>Bis zu dieser sichtbaren Höhe (Meter, nahe Zoomstufe 35 m) werfen Passanten Schatten; bei 70 und 140 m zeichnet <see cref="PassantenFleckenAktualisieren"/> stattdessen einen Fleck am Boden (echte Schatten wären dort teuer im Schattendurchgang).</summary>
-    private const float PassantenSchattenBisZoom = 50f;
+    /// <summary>Bis zu dieser sichtbaren Höhe (Meter, nahe Zoomstufe 25 m) werfen Passanten Schatten; bei 50 und 100 m zeichnet <see cref="PassantenFleckenAktualisieren"/> stattdessen einen Fleck am Boden (echte Schatten wären dort teuer im Schattendurchgang).</summary>
+    private const float PassantenSchattenBisZoom = 37f;
 
     private readonly Plane[] _bildEbenen = new Plane[6];
     private Transform3D _stadtLage = Transform3D.Identity;
