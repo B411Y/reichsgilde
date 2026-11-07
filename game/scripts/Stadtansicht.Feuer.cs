@@ -841,11 +841,11 @@ public partial class Stadtansicht
     /// Feuer: Sie werden aus dem Netz herausgenommen (ganze Netze nur unsichtbar), und aus jeder Gruppe wird die Mitte des Kamins gemerkt (Ort im Raum des Modells, Höhe des Glutbetts).
     /// Muss vor <see cref="InnenModellStoffe"/> laufen, weil ein neues Netz die Überschreibung der Materialien neu anfängt.
     /// </summary>
-    private sealed record Altflammen(List<(Vector3 Ort, MeshInstance3D Teil)> Kamine, List<(Vector3 Ort, float Hoehe, MeshInstance3D Teil)> Kerzen);
+    private sealed record Altflammen(List<(Vector3 Ort, MeshInstance3D Teil)> Kamine, List<(Vector3 Ort, float Hoehe, MeshInstance3D Teil)> Kerzen, List<(Vector3 Ort, float Breite, MeshInstance3D Teil)> Loecher);
 
     private static Altflammen KegelflammenErsetzen(Node3D wurzel)
     {
-        var alt = new Altflammen(new(), new());
+        var alt = new Altflammen(new(), new(), new());
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not { } netz) continue;
@@ -855,14 +855,21 @@ public partial class Stadtansicht
                 var teile = Bauteile(netz, i, Transform3D.Identity);
                 var kegel = teile.Where(IstKegelflamme).ToList();
                 var kerzen = teile.Where(IstKerzenflamme).ToList();
-                if (kegel.Count + kerzen.Count == 0) continue;
+                var loecher = teile.Where(IstFeuerloch).ToList();
+                if (kegel.Count + kerzen.Count + loecher.Count == 0) continue;
                 if (kegel.Count > 0)
                 {
                     var mitte = kegel.Aggregate(Vector3.Zero, (summe, k) => summe + k.Mitte) / kegel.Count;
                     alt.Kamine.Add((new Vector3(mitte.X, kegel.Min(k => k.Min.Y), mitte.Z), teil));
                 }
-                foreach (var k in kerzen) alt.Kerzen.Add((new Vector3(k.Mitte.X, k.Min.Y, k.Mitte.Z), k.Groesse.Y, teil)); // der Kegel steht auf dem Docht, die echte Flamme so hoch wie er
-                var rest = NetzOhneBauteile(netz, i, kegel.Concat(kerzen).ToList());
+                foreach (var k in kerzen) alt.Kerzen.Add((new Vector3(k.Mitte.X, k.Max.Y - Mathf.Min(k.Groesse.Y, 0.075f), k.Mitte.Z), k.Groesse.Y, teil)); // der Kegel steht auf dem Docht, die echte Flamme sitzt in seiner Spitze (höchstens 7,5 cm, die Stümpfe der Gildenhalle sind höher)
+                foreach (var l in loecher)
+                {
+                    // die Flamme steht vor der Öffnung, auf ihrer Unterkante
+                    var vorn = l.Groesse.X < l.Groesse.Z ? new Vector3(Mathf.Sign(l.Normale.X), 0, 0) : new Vector3(0, 0, Mathf.Sign(l.Normale.Z));
+                    alt.Loecher.Add((new Vector3(l.Mitte.X, l.Min.Y + 0.02f, l.Mitte.Z) + vorn * 0.05f, Mathf.Max(l.Groesse.X, l.Groesse.Z), teil));
+                }
+                var rest = NetzOhneBauteile(netz, i, kegel.Concat(kerzen).ToList(), loecher, Glutreste());
                 if (rest is null) teil.Visible = false; // das ganze Netz bestand aus Kegeln (Teil „Flammen“)
                 else teil.Mesh = rest;
                 break; // ein Glut-Material je Netz
@@ -885,9 +892,28 @@ public partial class Stadtansicht
         return g.X <= 0.1f && g.Z <= 0.1f && Mathf.Min(g.X, g.Z) > 0.01f && g.Y is >= 0.03f and <= 0.22f;
     }
 
-    /// <summary>Eine Kopie des Netzes ohne die Dreiecke dieser Teile in der Fläche <paramref name="flaeche"/>; null, wenn die Fläche danach leer ist und das Netz keine andere hat.</summary>
-    private static ArrayMesh? NetzOhneBauteile(Mesh netz, int flaeche, List<Bauteil> weg)
+    /// <summary>Eine senkrechte Glutfläche von 0,2–0,4 m: die Öffnung eines Ofens (Brauofen, Brennblase, Laborkessel, Athanor, Kerzenzieher, Leimtopf), hinter der jetzt eine Flamme brennt.</summary>
+    private static bool IstFeuerloch(Bauteil b)
     {
+        var g = b.Groesse;
+        return Mathf.Min(g.X, g.Z) < 0.01f && Mathf.Max(g.X, g.Z) is >= 0.2f and <= 0.4f && g.Y is >= 0.18f and <= 0.4f;
+    }
+
+    private static StandardMaterial3D? _glutreste;
+
+    /// <summary>Der Grund einer Ofenöffnung: dunkle Glut ohne Wechsel (die helle gelbe Fläche der Modelle übertönte die Flamme davor).</summary>
+    private static StandardMaterial3D Glutreste() => _glutreste ??= new StandardMaterial3D
+    {
+        ResourceName = "Glutreste", AlbedoColor = new Color(0.10f, 0.04f, 0.02f), EmissionEnabled = true, Emission = new Color(1f, 0.28f, 0.05f), EmissionEnergyMultiplier = 0.45f,
+    };
+
+    /// <summary>
+    /// Eine Kopie des Netzes ohne die Dreiecke dieser Teile in der Fläche <paramref name="flaeche"/>; die <paramref name="umlegen"/>-Teile kommen als eigene Fläche mit
+    /// <paramref name="stoff"/> dazu (sie bleiben sichtbar, nur anders). Null, wenn nichts übrig bleibt.
+    /// </summary>
+    private static ArrayMesh? NetzOhneBauteile(Mesh netz, int flaeche, List<Bauteil> weg, List<Bauteil>? umlegen = null, Material? stoff = null)
+    {
+        Godot.Collections.Array? umgelegt = null;
         var kopie = new ArrayMesh();
         for (var i = 0; i < netz.GetSurfaceCount(); i++)
         {
@@ -897,17 +923,30 @@ public partial class Stadtansicht
                 var ecken = felder[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var alt = felder[(int)Mesh.ArrayType.Index].VariantType == Variant.Type.Nil ? Enumerable.Range(0, ecken.Length).ToArray() : felder[(int)Mesh.ArrayType.Index].AsInt32Array();
                 var neu = new List<int>(alt.Length);
+                var verschoben = new List<int>();
+                bool Drin(List<Bauteil> liste, Vector3 p) => liste.Any(b => p.X >= b.Min.X - 0.002f && p.X <= b.Max.X + 0.002f && p.Y >= b.Min.Y - 0.002f && p.Y <= b.Max.Y + 0.002f && p.Z >= b.Min.Z - 0.002f && p.Z <= b.Max.Z + 0.002f);
                 for (var d = 0; d + 2 < alt.Length; d += 3)
                 {
                     var p = ecken[alt[d]];
-                    if (weg.Any(b => p.X >= b.Min.X - 0.002f && p.X <= b.Max.X + 0.002f && p.Y >= b.Min.Y - 0.002f && p.Y <= b.Max.Y + 0.002f && p.Z >= b.Min.Z - 0.002f && p.Z <= b.Max.Z + 0.002f)) continue;
-                    neu.Add(alt[d]); neu.Add(alt[d + 1]); neu.Add(alt[d + 2]);
+                    if (Drin(weg, p)) continue;
+                    var ziel = umlegen is not null && Drin(umlegen, p) ? verschoben : neu;
+                    ziel.Add(alt[d]); ziel.Add(alt[d + 1]); ziel.Add(alt[d + 2]);
+                }
+                if (verschoben.Count > 0)
+                {
+                    umgelegt = (Godot.Collections.Array)felder.Duplicate();
+                    umgelegt[(int)Mesh.ArrayType.Index] = verschoben.ToArray();
                 }
                 if (neu.Count == 0) continue;
                 felder[(int)Mesh.ArrayType.Index] = neu.ToArray();
             }
             kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, felder);
             kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, netz.SurfaceGetMaterial(i));
+        }
+        if (umgelegt is not null)
+        {
+            kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, umgelegt);
+            kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, stoff);
         }
         return kopie.GetSurfaceCount() == 0 ? null : kopie;
     }
@@ -959,9 +998,18 @@ public partial class Stadtansicht
         // Kerzen: eine Kerzenflamme auf jedem Docht
         foreach (var (kerzenOrt, kerzenHoehe, kerzenTeil) in alt.Kerzen)
         {
-            var flamme = Feuer.Neu(FeuerVorgabe.Kerze, false, (Streuung(kerzen + 7, (int)(kerzenOrt.X * 1000)) & 0xFFFF) / 65535f, Mathf.Clamp(kerzenHoehe / 0.065f, 0.8f, 1.3f));
+            var flamme = Feuer.Neu(FeuerVorgabe.Kerze, false, (Streuung(kerzen + 7, (int)(kerzenOrt.X * 1000)) & 0xFFFF) / 65535f, Mathf.Clamp(kerzenHoehe / 0.065f, 0.8f, 1.5f));
             Einhaengen(flamme, kerzenTeil, kerzenOrt, false);
             kerzen++;
+        }
+
+        // Feuerlöcher: eine Flamme in der Öffnung, so breit wie sie
+        foreach (var (lochOrt, lochBreite, lochTeil) in alt.Loecher)
+        {
+            var flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(loecher + 5, 33) & 0xFFFF) / 65535f, Mathf.Clamp(lochBreite / 0.22f, 0.7f, 1.5f));
+            flamme.Art = Herdfeuer();
+            Einhaengen(flamme, lochTeil, lochOrt, false);
+            loecher++;
         }
 
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
@@ -976,7 +1024,6 @@ public partial class Stadtansicht
                     Feuer? flamme = null;
                     var ort = Vector3.Zero;
                     var flach = g.Y < 0.12f && Mathf.Min(g.X, g.Z) is >= 0.4f and <= 2f && Mathf.Max(g.X, g.Z) <= 2.2f && b.Normale.Y > 0.7f;
-                    var senkrecht = Mathf.Min(g.X, g.Z) < 0.01f && Mathf.Max(g.X, g.Z) is >= 0.2f and <= 0.4f && g.Y is >= 0.18f and <= 0.4f;
                     if (flach && !AmKamin(kamine, wurzel, teil, b))
                     {
                         // Glutbett einer Esse oder eines Herds: niedrige Flammen über der Mitte
@@ -984,15 +1031,6 @@ public partial class Stadtansicht
                         flamme.Art = Herdfeuer();
                         ort = new Vector3(b.Mitte.X, b.Max.Y, b.Mitte.Z);
                         essen++;
-                    }
-                    else if (senkrecht)
-                    {
-                        // Feuerloch: eine kleine Flamme vor der Glutfläche, auf ihrer Unterkante
-                        flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(loecher + 5, 33) & 0xFFFF) / 65535f, 0.55f);
-                        flamme.Art = Herdfeuer();
-                        var vorn = g.X < g.Z ? new Vector3(Mathf.Sign(b.Normale.X), 0, 0) : new Vector3(0, 0, Mathf.Sign(b.Normale.Z));
-                        ort = new Vector3(b.Mitte.X, b.Min.Y, b.Mitte.Z) + vorn * 0.06f;
-                        loecher++;
                     }
                     if (flamme is null) continue;
                     Einhaengen(flamme, teil, ort, false);

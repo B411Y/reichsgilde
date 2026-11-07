@@ -406,7 +406,7 @@ public partial class Stadtansicht
         Teil(a, s + new Vector3(-3.1f, 1.03f, -2.4f), new Vector3(1.2f, 0.06f, 0.8f), glut);
         Kugel(a, s + new Vector3(-3.1f, 1.35f, -2.4f), 0.35f, Metall(new Color(0.18f, 0.18f, 0.2f)), hoehe: 0.55f);
         foreach (var fx in new[] { -3.5f, -2.7f }) // die Flammen schlagen vorn neben dem Kessel aus dem Herd
-            FlammeAnlegen(a, s + new Vector3(fx, 1.06f, -2.05f), FeuerVorgabe.Esse, 0.75f, () => true, herd: true);
+            FlammeAnlegen(a, s + new Vector3(fx, 1.06f, -2.2f), FeuerVorgabe.Esse, 1.5f, () => true, herd: true);
         FeuerAnlegen(a, s + new Vector3(-2.6f, 1.6f, -1.6f), glut, lichtAn: 1.4f, lichtAus: 1.4f, glutAn: 1.5f, glutAus: 1.5f, an: () => true, reichweite: 7);
         // Tisch mit zwei Bänken in der Mitte
         Teil(a, s + new Vector3(0.4f, 0.78f, 0), new Vector3(2.6f, 0.1f, 1.1f), hell);
