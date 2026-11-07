@@ -118,7 +118,10 @@ static class BuergerHafenarbeitTests
                         for (var i = 1; i < reihe.Count; i++)
                             Pruefe.Wahr((x.Entladen ? reihe[i].VomStapel : reihe[i].ImSchuppen) >= reihe[i - 1].Zurueck - 1e-9, $"{jahr}: Träger {platz.Key} ist nicht an zwei Stellen");
                     }
-                    Pruefe.Wahr(x.Gaenge.Count(g => g.Platz == 0) >= 18 / x.Traeger, "die Gänge sind verteilt");
+                    // Der Kran hebt Bündel zu je drei Stücken (Zierfahrplan.HubGroesse): Beim Beladen kommen drei Stücke zugleich dran, die Gänge verteilen sich dann etwas
+                    // ungleicher als bei einem Stück je Hub (bei vier Trägern z. B. 3, 6, 6, 3). Jeder Träger arbeitet, keiner trägt weniger als einen Gang unter dem Durchschnitt.
+                    for (var p = 0; p < x.Traeger; p++)
+                        Pruefe.Wahr(x.Gaenge.Count(g => g.Platz == p) >= 18 / x.Traeger - 1, $"die Gänge sind verteilt (Träger {p})");
                     for (var m = anlegen - 60.0; m <= x.Ende + 60; m += 0.5)
                         groessterStapel = Math.Max(groessterStapel, x.StapelUm(m));
                     // vor dem Niederländer ist der Steg leer; für den Oberländer tragen sie schon vor dem Anlegen heraus

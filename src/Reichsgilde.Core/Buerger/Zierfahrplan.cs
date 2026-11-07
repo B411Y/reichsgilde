@@ -32,6 +32,12 @@ public static class Zierfahrplan
     /// <summary>Anteile der Liegezeit: Der Kran entlädt den Niederländer von <see cref="EntladeAb"/> bis <see cref="NiederEntladeBis"/>, belädt den Oberländer von <see cref="OberLadeAb"/> bis <see cref="OberLadeBis"/>.</summary>
     public const double EntladeAb = 0.05, NiederEntladeBis = 0.88, OberLadeAb = 0.08, OberLadeBis = 0.90;
 
+    /// <summary>
+    /// Wie viele Stücke ein Hub des Krans hebt (ein Bündel am Haken, Darstellung: <c>Stadtansicht.Kranladen.cs</c>): Der Kran schwenkt deutlich langsamer als bei
+    /// einem Stück je Hub, also hat er weniger Hübe in derselben Liegezeit. Alle Stücke eines Bündels werden zugleich auf den Stapel gesetzt bzw. gehoben.
+    /// </summary>
+    public const int HubGroesse = 3;
+
     /// <summary>Wie lange die Fahrt zwischen Kartenrand und Kai dauert (Minuten): Routenlänge / 10 m, nicht unter 20 und nicht über 70.</summary>
     public static int FahrtMinuten(double routenLaenge) => (int)Math.Clamp(routenLaenge / 10, 20, 70);
 
