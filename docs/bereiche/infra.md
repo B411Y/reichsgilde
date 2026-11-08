@@ -33,7 +33,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Gemini | Gemini (API und Antigravity-CLI `agy`) wird nicht mehr genutzt und steht nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata (abgelöst am 07.11.2026, siehe unten) | 29.10.2026 |
+| Gemini | (überholt am 07.11.2026, siehe unten) Gemini (API und Antigravity-CLI `agy`) wurde damals nicht mehr genutzt und stand nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata (abgelöst am 07.11.2026, siehe unten) | 29.10.2026 |
 | Historie | Protokoll, Prompts, Herkunftsdateien und alte Bereichseinträge nennen Gemini weiter als Herkunft bestehender Assets | 29.10.2026 |
 | Bot-Token | `prs-aktuell.yml` pusht mit dem Repository-Geheimnis `BOT_TOKEN` (klassisches Token des Bot-Kontos, `repo` + `workflow`); dann starten die PR-Prüfungen von selbst und der eigene `build.yml`-Lauf entfällt | 29.10.2026 |
 | Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
@@ -80,3 +80,15 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 | Gemini | Gemini ist nicht verboten. Die Aussage vom 29.10. (PR #249) war als „erst mal die lokale KI nutzen“ gemeint, nicht als Verbot. Bilder, die der Nutzer mit Gemini erstellt oder überarbeitet, dürfen als Grundlage für Assets dienen; die Herkunft steht im Asset-Protokoll (`docs/assets/protokoll.csv`) | 07.11.2026 |
 | Verbindung | Das Team hat derzeit keine eigene Gemini-Verbindung (keine API, kein Agent-CLI); Gemini-Bilder liefert der Nutzer selbst | 07.11.2026 |
 | Standardweg | Für neue Bilder bleibt die lokale Bild-KI (ComfyUI, Qwen-Image) der Standardweg | 07.11.2026 |
+
+### Merge-Ablauf Einbahnstraße (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Arbeitsweise | Mitglieder arbeiten parallel, aber nur lokal (Worktree, Commits) und pushen nie; fertige Branches warten in der Warteschlange des Teamleiters. Löst die Merge-Warteschlange vom 29.10.2026 ab | 08.11.2026 |
+| Ein PR | Auf GitHub ist immer nur ein PR offen; der nächste kommt erst nach dem Merge des vorigen | 08.11.2026 |
+| Vor dem Hochladen | Aktuellen `origin/main` einmergen, Konflikte lösen, bauen und testen (gezielt mit `--filter`, einmal alle; bei Darstellung bzw. Oberfläche kurzer Klicktest); hat „PRs aktuell halten“ etwas eingemergt, vorher `origin/<branch>` mergen. Dann pusht der Push-Agent und legt den PR an | 08.11.2026 |
+| Merge | Der Teamleiter mergt alle PRs selbst, auch mit geschützten Dateien: einmal `gh pr checks <nr>`, bei 3 grünen Pflichtprüfungen und erledigtem Klicktest bzw. Prüfer führt der Push-Agent einmal `gh pr merge <nr> --merge` aus, danach der nächste Branch. „Nutzer gibt frei und mergt selbst“ entfällt | 08.11.2026 |
+| Verboten | `--admin`, `--auto`, `--delete-branch` (Hook `~/.claude/hooks/github_sperre.py`), Force-Push, `gh api`, Schleifen um `gh` | 08.11.2026 |
+| Schutzregel | `main`: nur per PR, 3 Pflichtprüfungen; „Require review from Code Owners“ ist seit 08.11.2026 aus, `.github/CODEOWNERS` bleibt als Kennzeichnung | 08.11.2026 |
+| Konto | Alles über das Konto des Nutzers (B411Y); das Bot-Konto ist gesperrt, kein Ersatz-Bot (überholt die Bot-Token-Zeilen aus PR #249; `BOT_TOKEN` in `prs-aktuell.yml` bleibt als Rückfall-Schalter, ohne Token gilt der Rückfall). Nur der Push-Agent (haiku, mittel) führt push, `gh pr create` und `gh pr merge` aus | 08.11.2026 |

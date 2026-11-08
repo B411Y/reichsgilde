@@ -151,6 +151,8 @@ Die Konfiguration steht in [`.github/workflows/build.yml`](../.github/workflows/
 
 Nach jedem Merge auf `main` hält die Action **„PRs aktuell halten“** ([`.github/workflows/prs-aktuell.yml`](../.github/workflows/prs-aktuell.yml)) alle fertigen Pull Requests auf dem neuen Stand: Sie mergt `main` hinein und startet die Prüfung neu. Lässt sich das nicht automatisch lösen, bekommt der PR das Label **„Konflikt mit main“**. Damit das selten passiert, schreibt jeder Bereich seine Entscheidungen und offenen Punkte in eine eigene Datei unter `docs/bereiche/`.
 
+*Stand 08.11.2026: Das Bot-Konto ist gesperrt, es gibt keinen Ersatz-Bot (Entscheidung „Einbahnstraße“, `.claude/teamleiter.md`). Ohne gültiges `BOT_TOKEN` gilt der Rückfall unten; ob das Geheimnis neu mit einem Token des Nutzers gesetzt wird, entscheidet der Nutzer.*
+
 **Prüfungen nach dem automatischen Einspielen (einmalig einrichten).** Pushes mit dem eingebauten `GITHUB_TOKEN` starten aus Sicherheitsgründen keine Pull-Request-Prüfungen; ohne Einrichtung startet die Action `build.yml` deshalb selbst, und die PR-Seite zeigt die Prüfung nicht als reguläre Prüfung. Besser ist ein Token des Bot-Kontos:
 
 1. Auf GitHub als Bot-Konto (Claude-Reichsgilde) unter Settings → Developer settings → Personal access tokens → Tokens (classic) ein Token mit den Rechten `repo` und `workflow` anlegen (oder das vorhandene klassische Token des Bot-Kontos nehmen). `workflow` ist nötig, weil `main` auch Dateien unter `.github/workflows/` ändern kann.
