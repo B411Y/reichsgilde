@@ -194,6 +194,8 @@ public partial class Stadtansicht
     {
         public required Node3D Wurzel { get; init; }
         public List<StandardMaterial3D> Glut { get; } = new();
+        /// <summary>Das Horn der Laternen im Raum (eigene Kopien, Stadtansicht.Feuer.cs): ein sanfter Schein, solange die Flamme brennt.</summary>
+        public List<StandardMaterial3D> Laternenglas { get; } = new();
         public float GlutAn { get; set; } = 2.5f;
         public List<StandardMaterial3D> Hausfarben { get; } = new();
         public Node3D?[] Stufen { get; } = new Node3D?[4];
@@ -403,6 +405,11 @@ public partial class Stadtansicht
                         kopie.EmissionEnergyMultiplier = 0; // aus, bis gearbeitet wird
                         teil.SetSurfaceOverrideMaterial(i, kopie);
                         md.Glut.Add(kopie);
+                        break;
+                    case "Laternenglas" when stoff is StandardMaterial3D horn:
+                        var hornKopie = (StandardMaterial3D)horn.Duplicate();
+                        teil.SetSurfaceOverrideMaterial(i, hornKopie);
+                        md.Laternenglas.Add(hornKopie);
                         break;
                     case "Hausfarbe" when stoff is StandardMaterial3D haus:
                         var farbe = (StandardMaterial3D)haus.Duplicate();
@@ -794,6 +801,7 @@ public partial class Stadtansicht
         {
             md.Glueht = arbeitet;
             foreach (var stoff in md.Glut) stoff.EmissionEnergyMultiplier = arbeitet ? md.GlutAn : 0f;
+            foreach (var horn in md.Laternenglas) horn.EmissionEnergyMultiplier = arbeitet ? 0.9f : 0f;
             foreach (var flamme in md.Flammen) flamme.Visible = arbeitet; // Kerzen und Esse brennen mit der Glut
             md.Hell = -1;
             if (md.Glut.Count > 0) GiRaumNeuAnlegen(); // SDFGI trägt die leuchtende Glut nur beim Anlegen ein (Stadtansicht.GlobaleBeleuchtung.cs)
