@@ -51,6 +51,10 @@ static class Messung
         // [--karten=…] [--rollen=Wirt,Schmied,Ausbau] [--muster=datei] – siehe Meldungsmessung.cs
         if (args.Length > 0 && args[0] == "meldungen")
             return Meldungsmessung.Erstellen(args[1..]);
+        // Pfad und Knoten der Lebensweise des KI-geführten Spielers (Lebensweise 3a, 8.11.2026): … -- messen lebensweg [Jahre] [Startwerte]
+        // [--berufe=…] [--voelker=…] – siehe Lebenswegmessung.cs
+        if (args.Length > 0 && args[0] == "lebensweg")
+            return Lebenswegmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();
