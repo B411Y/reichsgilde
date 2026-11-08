@@ -60,6 +60,36 @@ static class Datenpfad
             : throw new InvalidDataException("Schalter „schiffshandel.aktiv“ steht nicht wie erwartet in den Daten – Datenpfad.MitSchiffshandel anpassen.");
     }
 
+    /// <summary>
+    /// Die Daten ohne Karren zum Hafen (<c>schiffshandel.karrenZumHafen</c> false, Datenversion 73): Die Karren fahren nur zu den Marktplätzen,
+    /// wie bis Datenversion 72 – für Tests, die bitgleich mit dem Stand davor rechnen, und für den Vergleich in <c>messen hafen --ohne-hafenziel</c>.
+    /// </summary>
+    public static string OhneHafenziel(string? json = null)
+    {
+        // (als Text, damit die Form der Datei bleibt und MitSchiffshandel danach noch greift)
+        json ??= File.ReadAllText(Wirtschaft());
+        const string an = "\"karrenZumHafen\": true", aus = "\"karrenZumHafen\": false";
+        if (json.Contains(an, StringComparison.Ordinal)) return json.Replace(an, aus);
+        return System.Text.Json.Nodes.JsonNode.Parse(json)!["schiffshandel"]?["karrenZumHafen"] is null || json.Contains(aus, StringComparison.Ordinal) ? json
+            : throw new InvalidDataException("Schalter „schiffshandel.karrenZumHafen“ steht nicht wie erwartet in den Daten – Datenpfad.OhneHafenziel anpassen.");
+    }
+
+    /// <summary>Die Daten mit diesem Handgeld (<c>personal.handgeld</c>, Datenversion 73; 0 = keins, wie bis Datenversion 72).</summary>
+    public static string MitHandgeld(string? json, double handgeld)
+    {
+        // (als Text, damit die Form der Datei bleibt): den Wert ersetzen oder nach „startJeBetrieb“ einfügen
+        json ??= File.ReadAllText(Wirtschaft());
+        var wert = handgeld.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var treffer = System.Text.RegularExpressions.Regex.Match(json, "\"handgeld\": [0-9.]+");
+        if (treffer.Success) return json.Remove(treffer.Index, treffer.Length).Insert(treffer.Index, $"\"handgeld\": {wert}");
+        const string anker = "\"startJeBetrieb\": 1,";
+        return json.Contains(anker, StringComparison.Ordinal) ? json.Replace(anker, $"{anker} \"handgeld\": {wert},")
+            : throw new InvalidDataException("„personal.startJeBetrieb“ steht nicht wie erwartet in den Daten – Datenpfad.MitHandgeld anpassen.");
+    }
+
+    /// <summary>Die Daten wie bis Datenversion 72: ohne Karren zum Hafen und ohne Handgeld.</summary>
+    public static string WieVorHafenziel(string? json = null) => MitHandgeld(OhneHafenziel(json), 0);
+
     /// <summary>Die Karte game/karten/&lt;kennung&gt;.json (neben game/daten/).</summary>
     public static string Karte(string kennung) =>
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Wirtschaft()))!, "karten", kennung + ".json");

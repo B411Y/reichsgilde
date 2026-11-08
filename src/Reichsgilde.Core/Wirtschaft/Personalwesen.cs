@@ -60,16 +60,50 @@ public sealed class Personalwesen
 
     /// <summary>
     /// Darf dieser Betrieb eine Arbeitskraft dieser Art neu einstellen (Befehle <see cref="PersonalSetzen"/> und <see cref="ArbeiterEinstellen"/>)?
-    /// Nur Anfänger seiner Laufbahn und Arbeitskräfte ohne Stufen (Unfreie, Orks – das Statut prüft der Betrieb). null: Es geht.
+    /// Nur Anfänger seiner Laufbahn und Arbeitskräfte ohne Stufen (Unfreie, Orks – das Statut prüft der Betrieb); für einen Anfänger muss das
+    /// Bargeld für das Handgeld reichen (<see cref="Handgeld"/>, Datenversion 73). null: Es geht.
     /// </summary>
     public string? EinstellenVerboten(Betrieb b, string arbeitskraft)
     {
         if (Daten is not { } d || Laufbahn(b) is not { } l) return null;
         var stufe = d.StufeVon(arbeitskraft);
-        if (stufe == 0 || arbeitskraft == l.Anfaenger) return null;
+        if (stufe == 0 || arbeitskraft == l.Anfaenger) return HandgeldFehlt(b, arbeitskraft, 1);
         if (!l.Stufen.Contains(arbeitskraft))
             return $"Ein {arbeitskraft} arbeitet nicht in einer {b.Artdaten.Name} – hier lernen {Mehrzahl(l.Anfaenger)}.";
         return $"Eingestellt werden nur {Mehrzahl(l.Anfaenger)} – ein {arbeitskraft} wird man durch Beförderung.";
+    }
+
+    /// <summary>
+    /// Das Handgeld, das ein Haus beim Einstellen einer Arbeitskraft dieser Art einmal zahlt (<see cref="PersonalDaten.Handgeld"/>, Datenversion 73):
+    /// für jeden, den man einstellen kann: Anfänger einer Laufbahn (Lehrling, Knecht, Taschendieb, Rekrut) und Arbeitskräfte ohne Stufen
+    /// (Unfreie, Orks; Nutzer 08.11.2026: gleiche Regel für alle außer dem Startlehrling). 0 ohne Abschnitt „personal“ oder ohne Angabe.
+    /// </summary>
+    public double Handgeld(string arbeitskraft) => Daten is { Handgeld: > 0 and var h } d && ZahltHandgeld(d.StufeVon(arbeitskraft)) ? h : 0;
+
+    /// <summary>
+    /// Wer Handgeld bekommt, nach der Stufe der Arbeitskraft: Anfänger einer Laufbahn (1) und Arbeitskräfte ohne Stufen (0: Unfreie, Orks) –
+    /// gleiche Regel für alle, die man einstellen kann (Nutzer, 08.11.2026). Höhere Stufen stellt man nicht ein (Beförderung).
+    /// </summary>
+    private static bool ZahltHandgeld(int stufe) => stufe <= 1;
+
+    /// <summary>Über so viele Jahre darf sich das Handgeld für die KI bezahlt machen (<see cref="PersonalDaten.HandgeldJahre"/>; ohne Abschnitt 3).</summary>
+    public double HandgeldJahre => Daten?.HandgeldJahre ?? 3;
+
+    /// <summary>Reicht das Bargeld des Hauses für das Handgeld von <paramref name="anzahl"/> Neuen? null: ja, sonst der Grund.</summary>
+    public string? HandgeldFehlt(Betrieb b, string arbeitskraft, int anzahl)
+    {
+        var summe = Handgeld(arbeitskraft) * anzahl;
+        return summe > 0 && b.Konto.Vermoegen < summe
+            ? $"Das Handgeld für {(anzahl == 1 ? $"einen {arbeitskraft}" : $"{anzahl} {Mehrzahl(arbeitskraft)}")} kostet {Zahlenformat.Ganz(summe)} {Waehrung}."
+            : null;
+    }
+
+    /// <summary>Bucht das Handgeld für <paramref name="anzahl"/> neu eingestellte Arbeitskräfte (Posten „Handgeld“ der Jahresrechnung); gibt den Betrag zurück.</summary>
+    internal double HandgeldZahlen(Betrieb b, string arbeitskraft, int anzahl)
+    {
+        var summe = Handgeld(arbeitskraft) * anzahl;
+        if (summe > 0) b.HandgeldBuchen(summe);
+        return summe;
     }
 
     private static string Mehrzahl(string kraft) => kraft switch
