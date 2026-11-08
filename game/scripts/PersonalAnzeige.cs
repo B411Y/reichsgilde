@@ -108,7 +108,10 @@ public sealed class PersonalAnzeige : InnenTafel
         if (anfaenger is null) Text(Inhalt, "Hier gibt es kein Personal zum Einstellen.", 12, Grau);
         else
         {
-            Knopf(einstellen, $"{anfaenger} einstellen · Lohn {Zahlenformat.Ganz(w.Daten.Lohn(anfaenger, b.Art))}", () => Befehlen(new ArbeiterEinstellen(b.Name, anfaenger)),
+            // Handgeld (Datenversion 73): einmal beim Einstellen, steht auf dem Knopf
+            var handgeld = w.Personal.Handgeld(anfaenger);
+            Knopf(einstellen, $"{anfaenger} einstellen · Lohn {Zahlenformat.Ganz(w.Daten.Lohn(anfaenger, b.Art))}"
+                              + (handgeld > 0 ? $" · Handgeld {Zahlenformat.Ganz(handgeld)}" : ""), () => Befehlen(new ArbeiterEinstellen(b.Name, anfaenger)),
                 w.Personal.EinstellenVerboten(b, anfaenger));
             Text(einstellen, "Man stellt nur Anfänger ein; alle anderen steigen durch Erfahrung und Beförderung auf.", 12, Grau, 500);
         }

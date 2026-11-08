@@ -87,6 +87,7 @@ public partial class JahresberichtAnzeige : PanelContainer
             Zeile(raster, "Umsatz", Zahlenformat.Ganz(bilanz.Umsatz));
             Zeile(raster, "− Zutaten", Zahlenformat.Ganz(bilanz.Zutaten));
             Zeile(raster, "− Löhne", Zahlenformat.Ganz(bilanz.Personal));
+            if (bilanz.Handgeld > 0) Zeile(raster, "− Handgeld", Zahlenformat.Ganz(bilanz.Handgeld)); // für neu eingestellte Anfänger (Datenversion 73)
             Zeile(raster, "− Unterhalt und Pacht", Zahlenformat.Ganz(bilanz.Fixkosten));
             Zeile(raster, "− Steuern", Zahlenformat.Ganz(bilanz.Steuer));
             if (bilanz.Transport > 0) Zeile(raster, "− Eskorten", Zahlenformat.Ganz(bilanz.Transport));

@@ -35,7 +35,8 @@ static class KiWohnhausTests
             Pruefe.Wahr(k.Reinvermoegen >= neu.Schwelle, "Schwelle erreicht");
             ki.Stunde();
             Pruefe.Wahr(k.WohnhausFertigAb is not null, "Die KI baut das Steinhaus");
-            Pruefe.Ungefaehr(21_000 - Steinhaus(w, k), k.Vermoegen, 1e-6); // nur das Haus bezahlt, noch keine Gebühr
+            // nur das Haus bezahlt, noch keine Gebühr – dazu das Handgeld für die Leute, die die KI in dieser Stunde eingestellt hat (Datenversion 73)
+            Pruefe.Ungefaehr(21_000 - Steinhaus(w, k) - k.Laufend.Handgeld, k.Vermoegen, 1e-6);
             Pruefe.Wahr(k.Reinvermoegen >= neu.Schwelle, "Mit dem Bau bleibt sie über der Schwelle");
         }),
 

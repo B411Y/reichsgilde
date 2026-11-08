@@ -756,3 +756,17 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Spielstand | Unberührt: Der Boden steht schon im Feld `boden` der Karte; `Speicherstand*.cs` nicht geändert. | 01.11.2026 |
 | Suchraster | `Felsraster` (16 m) beim Streuen für Abstand und Dichte; Summen in der Reihenfolge der Liste. Der feste Ablauf der FelsenTests ohne Boden gibt dieselbe Prüfsumme wie vor F6 (Test). 6.900 Stücke in einem Werkstattlauf ohne spürbare Wartezeit. | 01.11.2026 |
 | Tests | `FelsbodenTests` (8): Fels/Kies/Moos am Hang und in der Ebene, ein Schritt mit Rückgängig Byte für Byte, Strich beim Ziehen, Boden aus, Reihenfolge, alle Karten aus `game/karten/` nach Stempel und Rückgängig Byte für Byte gleich, Schuttsteine. Gleichheitstest: neue Zeile „felsboden …“. | 01.11.2026 |
+
+### Blitzschlag im Gewitter (PR #288)
+
+| Frage | Entscheidung |
+|---|---|
+| Wetter im Kern | Der Plan der Lagen (`Zeit/Wetterplan.cs`) zog aus `game/scripts/Wetter.cs` in den Kern, mit `Zufallsquelle` statt `Random` – dieselben Zahlen (Test gegen den alten Ablauf); die Darstellung mischt weiter die Bildwerte. |
+| Wann | Je Gewitter-Abschnitt ein Wurf in seiner Mitte (das Gewitter steht über der Stadt), Chance 0,25 (Teamleiter: etwa jedes 3.–5. Gewitter). |
+| Zufall | Je Gewitter eine eigene `Zufallsquelle` mit Startwert aus Partie-Startwert und Minute (durchmischt mit `Zugwuerfel.Mischen`) (wie der Wetterplan): kein Wurf eines anderen Generators verschoben, kein Feld im Spielstand. Abweichung von „aus der gemeinsamen Zufallsquelle“, gleich deterministisch. |
+| Ziel | Jedes Gebäude der Karte und jeder Neubau außer Markt, Fels, Feld, Wald, Bauplatz, Baustelle; Gewicht Höhe + Boden über dem Mittel (linear, Teamleiter 2.11.2026; zum Quadrat bekamen Kirchen zwei Drittel), Höhen in `blitz.hoehen` (Dom 55 m, Kirche 40 m, Haus 8–13 m). Häuser der Spieler eingeschlossen. Kein Überspringen. |
+| Dauer | 60–180 Spielminuten (`blitz.dauerMinuten`). |
+| Schaden (Platzhalter) | Werkstatt: `Sabotieren(stillstandMinuten = 300)` ab dem Einschlag, Arbeit ruht also auch während des Brandes; Wohnhaus: `WohnhausInstandBis` = Ende + 1.140 Minuten (Ansehen fehlt). Reparatursummen 0 (Felder `reparatur`, `wohnhausReparatur` vorhanden). Andere Gebäude nur im Bild. |
+| Spielstand | Unverändert. Laufende Feuer rechnet der Kern nach dem Laden aus dem Plan nach (`Einschlaege`, nur fürs Bild; auch Feuer des Vorjahres, die über 23 Uhr hinaus brennen); Gleichheitstest mit Ladepunkten im Brand, verglichen werden Minute und Text jeder Meldung „Blitzschlag!“. Grenze: Das nachgerechnete Ziel folgt dem Zustand beim Laden – wurde dazwischen gebaut oder ausgebaut, kann das Bild ein anderes Haus brennen lassen (der Schaden im Kern bleibt richtig). |
+| Datenversion | 68 (nach #286 und #287 mit 66 und 67; im Branch zuvor 69). |
+| Messung | Main 4220c631 + Branch, linear und durchmischt, je 10 Startwerte, 20 Jahre: Greybox und Köln je 17 Einschläge in 200 Jahren (1,7 je Partie); Kirchen und Dom 24 % (vorher zum Quadrat 69 %), Wohnhäuser 44 %, das Haus des Spielers einmal, KI-Werkstätten zweimal; Vermögen nur verrauscht (WIRTSCHAFTSMODELL „Blitzschlag im Gewitter“). |

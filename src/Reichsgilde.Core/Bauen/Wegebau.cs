@@ -77,6 +77,10 @@ public sealed class Wegebau
     private readonly Dictionary<string, int> _fahrten = new(StringComparer.Ordinal);
 
     private Dictionary<string, int> _fahrtenVorjahr = new(StringComparer.Ordinal);
+
+    /// <summary>Davon zum Hafen und zurück (Datenversion 73; <see cref="Stadtwirtschaft.FahrtenZumHafen"/>) – im laufenden Jahr und im Vorjahr.</summary>
+    private readonly Dictionary<string, int> _fahrtenHafen = new(StringComparer.Ordinal);
+    private Dictionary<string, int> _fahrtenHafenVorjahr = new(StringComparer.Ordinal);
     private readonly List<Wegbaustelle> _baustellen = new();
     private readonly Dictionary<Konto, int> _ansehenBis = new(ReferenceEqualityComparer.Instance);
 
@@ -173,8 +177,23 @@ public sealed class Wegebau
     /// <summary>Verkehr an dieser Stelle (Fahrten im Jahr: Karren des Vorjahres, Grund- und Fußverkehr) – 0 ohne Belag im Spiel.</summary>
     public double Verkehr(int weg, double stelle) => StueckZahl(weg) == 0 ? 0 : Verkehr(Wege[weg], StueckBei(weg, stelle));
 
-    /// <summary>Wie viele einfache Fahrten die Karren dieses Betriebs im Vorjahr machten.</summary>
+    /// <summary>Wie viele einfache Fahrten die Karren dieses Betriebs im Vorjahr machten (zum Marktplatz und zum Hafen).</summary>
     public int FahrtenVorjahr(string betrieb) => _fahrtenVorjahr.GetValueOrDefault(betrieb);
+
+    /// <summary>Wie viele davon zum Hafen oder von dort zurück führten (Datenversion 73).</summary>
+    public int FahrtenHafenVorjahr(string betrieb) => _fahrtenHafenVorjahr.GetValueOrDefault(betrieb);
+
+    /// <summary>
+    /// Die Fahrten eines Betriebs (Anzahl im Jahr) je Strecke: zum Marktplatz und zum Hafen (Datenversion 73) – nur Strecken mit Fahrten und Weg.
+    /// Fahrten zum Hafen ohne Weg dorthin (die Daten haben sich geändert) zählen zum Marktplatz.
+    /// </summary>
+    private IEnumerable<(int Anzahl, IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)> FahrtenJeStrecke(Betrieb b, int alle, int hafen)
+    {
+        var zumHafen = hafen > 0 ? _w.FahrtenZumHafen(b) : null;
+        if (zumHafen is null) hafen = 0;
+        if (alle - hafen > 0 && _w.Fahrten(b) is var (hin, zurueck)) yield return (alle - hafen, hin, zurueck);
+        if (hafen > 0) yield return (hafen, zumHafen!.Value.Hin, zumHafen.Value.Zurueck);
+    }
 
     /// <summary>
     /// Wie viel mal so lang ein Stück einer Fahrt dauert als auf dem Bezugsbelag (<see cref="WegebauDaten.Bezug"/>): Bezugstempo ÷ Tempo des
@@ -263,10 +282,15 @@ public sealed class Wegebau
     //  Verkehr und Jahreswechsel
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Ein Karren dieses Betriebs fährt los (zum Markt oder zurück) – zählt für den Verkehr seiner Strecke.</summary>
-    internal void FahrtZaehlen(Betrieb betrieb)
+    /// <summary>
+    /// Ein Karren dieses Betriebs fährt los (zum Markt oder zurück) – zählt für den Verkehr seiner Strecke: <paramref name="hafen"/> die zum Hafen
+    /// (Datenversion 73), sonst die zum Marktplatz.
+    /// </summary>
+    internal void FahrtZaehlen(Betrieb betrieb, bool hafen = false)
     {
-        if (IstAktiv) _fahrten[betrieb.Name] = _fahrten.GetValueOrDefault(betrieb.Name) + 1;
+        if (!IstAktiv) return;
+        _fahrten[betrieb.Name] = _fahrten.GetValueOrDefault(betrieb.Name) + 1;
+        if (hafen) _fahrtenHafen[betrieb.Name] = _fahrtenHafen.GetValueOrDefault(betrieb.Name) + 1;
     }
 
     /// <summary>
@@ -281,10 +305,11 @@ public sealed class Wegebau
         foreach (var z in wege) Array.Clear(z.Karren);
         foreach (var b in _w.Betriebe.OrderBy(b => b.Name, StringComparer.Ordinal))
         {
-            if (_fahrten.GetValueOrDefault(b.Name) is not (> 0 and var anzahl) || _w.Fahrten(b) is not var (hin, _)) continue;
-            foreach (var (weg, i) in hin.Where(s => s.Art == Fahrbahn.Strasse && s.Weg >= 0 && s.Weg < wege.Length)
-                         .Select(s => (s.Weg, StueckBei(s.Weg, s.Stelle))).Distinct())
-                wege[weg].Karren[i] += anzahl;
+            if (_fahrten.GetValueOrDefault(b.Name) is not (> 0 and var alle)) continue;
+            foreach (var (anzahl, hin, _) in FahrtenJeStrecke(b, alle, _fahrtenHafen.GetValueOrDefault(b.Name)))
+                foreach (var (weg, i) in hin.Where(s => s.Art == Fahrbahn.Strasse && s.Weg >= 0 && s.Weg < wege.Length)
+                             .Select(s => (s.Weg, StueckBei(s.Weg, s.Stelle))).Distinct())
+                    wege[weg].Karren[i] += anzahl;
         }
         for (var w = 0; w < wege.Length; w++)
         {
@@ -313,6 +338,8 @@ public sealed class Wegebau
         }
         _fahrtenVorjahr = new Dictionary<string, int>(_fahrten, StringComparer.Ordinal);
         _fahrten.Clear();
+        _fahrtenHafenVorjahr = new Dictionary<string, int>(_fahrtenHafen, StringComparer.Ordinal);
+        _fahrtenHafen.Clear();
         Wegekasse = Math.Min(d.Rat.KasseHoechstens, Wegekasse + d.Rat.BudgetJeJahr);
         Geaendert();
     }
@@ -447,24 +474,26 @@ public sealed class Wegebau
         var summe = 0.0;
         foreach (var b in _w.Betriebe.Where(b => b.Konto == konto))
         {
-            if (FahrtenVorjahr(b.Name) is not (> 0 and var anzahl) || _w.Fahrten(b) is not var (hin, zurueck)) continue;
-            double Ersparnis(IReadOnlyList<Fahrtstueck> fahrt)
-            {
-                var laenge = fahrt.Sum(s => s.Laenge);
-                if (laenge <= 0) return 0;
-                var gespart = 0.0;
-                foreach (var s in fahrt)
-                {
-                    if (s.Weg != weg || s.Art != Fahrbahn.Strasse) continue;
-                    var i = StueckBei(weg, s.Stelle);
-                    if (i < vonStueck || i > bisStueck || z.Stufe[i] > stufe) continue;
-                    gespart += s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * Math.Max(0, Faktor(s) - neu);
-                }
-                return _w.GesparteMinuten(b, fahrt, gespart);
-            }
-            summe += anzahl * (Ersparnis(hin) + Ersparnis(zurueck)) / 2;
+            if (FahrtenVorjahr(b.Name) is not (> 0 and var alle)) continue;
+            foreach (var (anzahl, hin, zurueck) in FahrtenJeStrecke(b, alle, FahrtenHafenVorjahr(b.Name)))
+                summe += anzahl * (Ersparnis(b, hin) + Ersparnis(b, zurueck)) / 2;
         }
         return summe;
+
+        double Ersparnis(Betrieb b, IReadOnlyList<Fahrtstueck> fahrt)
+        {
+            var laenge = fahrt.Sum(s => s.Laenge);
+            if (laenge <= 0) return 0;
+            var gespart = 0.0;
+            foreach (var s in fahrt)
+            {
+                if (s.Weg != weg || s.Art != Fahrbahn.Strasse) continue;
+                var i = StueckBei(weg, s.Stelle);
+                if (i < vonStueck || i > bisStueck || z.Stufe[i] > stufe) continue;
+                gespart += s.Laenge * (steigung?.Faktor(s.Steigung) ?? 1) * Math.Max(0, Faktor(s) - neu);
+            }
+            return _w.GesparteMinuten(b, fahrt, gespart);
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -676,6 +705,8 @@ public sealed class Wegebau
         }).ToList(),
         Fahrten = new Dictionary<string, int>(_fahrten),
         FahrtenVorjahr = new Dictionary<string, int>(_fahrtenVorjahr),
+        FahrtenHafen = new Dictionary<string, int>(_fahrtenHafen),
+        FahrtenHafenVorjahr = new Dictionary<string, int>(_fahrtenHafenVorjahr),
         Baustellen = _baustellen.Select(b => new WegbaustelleStand
         {
             Weg = b.Weg, Von = b.Von, Bis = b.Bis, VonStueck = b.VonStueck, BisStueck = b.BisStueck, Stufe = b.Stufe,
@@ -706,6 +737,8 @@ public sealed class Wegebau
         }
         foreach (var (name, n) in s.Fahrten) _fahrten[name] = n;
         _fahrtenVorjahr = new Dictionary<string, int>(s.FahrtenVorjahr, StringComparer.Ordinal);
+        foreach (var (name, n) in s.FahrtenHafen ?? new()) _fahrtenHafen[name] = n;
+        _fahrtenHafenVorjahr = new Dictionary<string, int>(s.FahrtenHafenVorjahr ?? new(), StringComparer.Ordinal);
         foreach (var b in s.Baustellen.Where(b => b.Weg >= 0 && b.Weg < wege.Length && b.BisStueck < wege[b.Weg].Anzahl))
             _baustellen.Add(new Wegbaustelle(b.Weg, b.Von, b.Bis, b.Stufe, b.Bauherr is int n ? konten[n] : null, b.FertigAb, b.Kosten)
             {

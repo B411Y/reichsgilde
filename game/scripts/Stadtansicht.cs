@@ -230,6 +230,11 @@ public partial class Stadtansicht : Node3D
         public bool WegVomKern { get; init; }
         /// <summary>Der Marktplatz, zu dem die Karren des Betriebs fahren (<c>Stadtwirtschaft.MarktplatzVon</c>); null ohne Marktplatz.</summary>
         public MarktplatzAnsicht? Markt { get; set; }
+        /// <summary>
+        /// Der Weg der Karren zum Hafen, wie der Kern ihn rechnet (<c>Stadtwirtschaft.KarrenverlaufZumHafen</c>, Datenversion 73) – beim ersten Bedarf
+        /// geholt (<c>KarrenWeg</c>); null, solange keiner zum Hafen fuhr oder es keinen Weg dorthin gibt.
+        /// </summary>
+        public Vector3[]? WegZumHafen { get; set; }
         /// <summary>Alles, was zum Betrieb gehört (Gebäude, Weg, Innenraum) – verschwindet beim Verkauf in einem Zug.</summary>
         public Node3D? Gruppe { get; set; }
         public bool Spieler { get; set; }

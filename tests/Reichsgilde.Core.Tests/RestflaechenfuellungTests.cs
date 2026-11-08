@@ -265,5 +265,17 @@ static class RestflaechenfuellungTests
                     }
             Pruefe.Wahr(wurzel["hoechstens_felder"]!["bildstock"]!.GetValue<int>() > 0, "der Bildstock gilt nur für kleine Flächen");
         }),
+        ("Restflächenfüllung: der Taubenschlag-Baukasten kommt mit fünf Stoffen aus (Holz alt, Taube, Taube dunkel, Taube Hals, Taube weiss; Winter dazu Schnee), und jeder Stoff hat ferne Ersatzstoffe", () =>
+        {
+            var pfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json");
+            var wurzel = JsonNode.Parse(File.ReadAllText(pfad))!;
+            var bytes = File.ReadAllBytes(Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(pfad))!, "assets", "modelle", "props", "fuellung_taube.glb"));
+            var json = JsonNode.Parse(System.Text.Encoding.UTF8.GetString(bytes, 20, BitConverter.ToInt32(bytes, 12)))!;
+            var stoffe = json["materials"]!.AsArray().Select(m => m!["name"]!.GetValue<string>()).ToList();
+            Pruefe.Wahr(stoffe.Count <= 6, "höchstens fünf Stoffe im Sommer plus Schnee im Winter – " + string.Join(", ", stoffe));
+            var fern = wurzel["fern_stoffe"]!.AsObject();
+            foreach (var stoff in stoffe)
+                Pruefe.Wahr(fern.ContainsKey(stoff) || stoff == "Schnee", $"Stoff {stoff} hat einen fernen Ersatz");
+        }),
     };
 }

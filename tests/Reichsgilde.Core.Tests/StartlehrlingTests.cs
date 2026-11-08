@@ -24,7 +24,7 @@ static class StartlehrlingTests
         ("Startlehrling: Daten personal.startJeBetrieb = 1 (Datenversion 72); 0 lehnt die Prüfung ab", () =>
         {
             var d = Daten();
-            Pruefe.Gleich(72, d.Version);
+            Pruefe.Gleich(73, d.Version);
             Pruefe.Gleich(1, d.Personal!.StartJeBetrieb ?? 0);
             Pruefe.Wahr(OhneAngabe().Personal!.StartJeBetrieb is null, "ohne Angabe null");
             var falsch = false;
@@ -77,7 +77,7 @@ static class StartlehrlingTests
                 Pruefe.Wahr(!ki.Entscheidungen.Any(e => e.Contains(" ein (erwarteter Ertrag")), string.Join(" | ", ki.Entscheidungen));
         }),
 
-        ("Startlehrling: Der Spieler behält seinen einen Lehrling, bis er selbst einstellt; Einstellen kostet nichts", () =>
+        ("Startlehrling: Der Spieler behält seinen einen Lehrling, bis er selbst einstellt; Einstellen kostet nur das Handgeld (Datenversion 73)", () =>
         {
             var (sim, spieler) = Partie(Daten(), Schwierigkeit.Normal);
             var w = sim.Wirtschaft!;
@@ -88,7 +88,7 @@ static class StartlehrlingTests
             var e = w.Ausfuehren(spieler, new ArbeiterEinstellen(eigene.Name, "Lehrling"));
             Pruefe.Wahr(e.Erfolg, e.Meldung);
             Pruefe.Gleich(2, eigene.Belegt, "nach dem Einstellen");
-            Pruefe.Gleich(vorher, spieler.Vermoegen, "Einstellen kostet nichts (der Lohn kommt am Jahresende)");
+            Pruefe.Gleich(vorher - w.Personal.Handgeld("Lehrling"), spieler.Vermoegen, "Einstellen kostet nur das Handgeld (der Lohn kommt am Jahresende)");
         }),
     };
 }

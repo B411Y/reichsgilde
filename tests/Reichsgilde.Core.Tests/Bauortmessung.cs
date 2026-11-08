@@ -49,6 +49,12 @@ static class Bauortmessung
             Console.WriteLine($"Handkarren hin: kleinste {m[0]:0}, 10 % {Q(0.1)}, 25 % {Q(0.25)}, Median {Q(0.5)}, 75 % {Q(0.75)}, größte {m[^1]:0} min");
             Console.WriteLine($"Stellen bis 30 min {Anteil(x => x <= 30)}, bis 45 {Anteil(x => x <= 45)}, bis 60 {Anteil(x => x <= 60)}, bis 120 {Anteil(x => x <= 120)}, " +
                               $"an der Höchstdauer {Anteil(x => x >= hoechst)}");
+            // Datenversion 73: Stellen, an denen ein Handkarren schneller am Hafen wäre (hin und zurück) – die fünf mit der kürzesten Fahrt zum Hafen
+            var hafen = stellen.Select(x => (x.Ort, Markt: x.Minuten + (w.FahrzeitAmBauort(x.Ort, "Handkarren", false) ?? 0),
+                    Hafen: w.FahrzeitZumHafenAmBauort(x.Ort, "Handkarren") is { } h ? h + (w.FahrzeitZumHafenAmBauort(x.Ort, "Handkarren", false) ?? 0) : (int?)null))
+                .Where(x => x.Hafen < x.Markt).OrderBy(x => x.Hafen).ThenBy(x => x.Hafen - x.Markt).ToList();
+            Console.WriteLine($"Stellen mit kürzerer Fahrt zum Hafen (hin + zurück): {hafen.Count} von {stellen.Count}" +
+                              (hafen.Count > 0 ? "; z. B. " + string.Join(", ", hafen.Take(5).Select(x => $"({x.Ort.X:0}, {x.Ort.Z:0}, {x.Ort.Drehung}) Markt {x.Markt} / Hafen {x.Hafen} min")) : ""));
             Folge("KI (Luftlinie zum nächsten Platz)", orte.OrderBy(x => karte.MarktAbstandQuadrat(x.Ort.X, x.Ort.Z)).ToList());
             Folge("schnellster freier Ort", orte.OrderBy(x => x.Minuten).ThenBy(x => karte.MarktAbstandQuadrat(x.Ort.X, x.Ort.Z)).ToList());
 
