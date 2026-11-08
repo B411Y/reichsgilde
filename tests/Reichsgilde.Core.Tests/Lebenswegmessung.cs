@@ -69,7 +69,9 @@ static class Lebenswegmessung
                     .OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal).Take(12).Select(g => $"{g.Key} {g.Count()}"));
                 var jePfad = string.Join(", ", liste.GroupBy(x => x.Z.PfadAmEnde).OrderBy(g => g.Key)
                     .Select(g => $"{g.Key?.ToString() ?? "–"} n={g.Count()} {g.Average(x => x.P.Spieler.Im(jahre).Rein - start):0}"));
-                Console.WriteLine($"{b} {v}: Zuwachs {zuwachs:0} (n={liste.Count}); Oberhaupt-Jahre je Pfad: {anteile}");
+                var umsatz = liste.Average(x => x.P.Spieler.Jahre.Average(j => j.Umsatz));
+                var gewinn = liste.Average(x => x.P.Spieler.Jahre.Average(j => j.Gewinn));
+                Console.WriteLine($"{b} {v}: Zuwachs {zuwachs:0} (n={liste.Count}), Umsatz {umsatz:0} und Betriebsgewinn {gewinn:0} je Jahr; Oberhaupt-Jahre je Pfad: {anteile}");
                 Console.WriteLine($"    Knoten am Ende je Partie {liste.Average(x => x.Z.Knoten.Count):0.0}: {knoten}");
                 Console.WriteLine($"    Zuwachs nach Pfad am Ende: {jePfad}");
                 var sonder = liste.SelectMany(x => x.P.Spieler.Jahre.SelectMany(j => j.Sonder)).GroupBy(s => s.Key, StringComparer.Ordinal)
