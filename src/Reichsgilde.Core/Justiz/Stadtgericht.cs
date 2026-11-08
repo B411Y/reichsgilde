@@ -241,7 +241,19 @@ public sealed class Stadtgericht
 
     /// <summary>Welche Buße bei einem Schuldspruch fällig würde (nach den Beweisen, die der Ankläger heute hat).</summary>
     public double DrohendeBusse(Konto anklaeger, Konto beklagter) =>
-        Busse(beklagter, Beweise(anklaeger, beklagter)) * (1 + _w.Befugnisse.Strafmass(anklaeger, beklagter) / 100.0); // Stadtrichter ±25 %
+        Busse(beklagter, Beweise(anklaeger, beklagter)) * (1 + _w.Befugnisse.Strafmass(anklaeger, beklagter) / 100.0) // Stadtrichter ±25 %
+        * _w.Familien.Lebenswirkung(beklagter).BusseFaktor; // Gnadengesuch
+
+    /// <summary>
+    /// Chance je Spur, dass der Spitzel dieses Hauses sie beim Ziel findet: <c>spitzelChance</c> + Ohr an der Wand des Auftraggebers,
+    /// mal Falsche Fährte des Ziels (Lebensweise), höchstens 95 % (oder spitzelChance, wenn die höher ist).
+    /// </summary>
+    public double SpitzelChance(Konto auftraggeber, Konto ziel) =>
+        Math.Min(Math.Max(0.95, Daten.SpitzelChance), // ohne Knoten genau spitzelChance wie bisher
+            (Daten.SpitzelChance + _w.Familien.Lebenswirkung(auftraggeber).SpitzelBonus) * _w.Familien.Lebenswirkung(ziel).FremdeSpitzelFaktor);
+
+    /// <summary>Gerichtsgebühr für eine Klage dieses Hauses (Rechtskundig: die Hälfte).</summary>
+    public double Gerichtsgebuehr(Konto anklaeger) => Daten.Gerichtsgebuehr * _w.Familien.Lebenswirkung(anklaeger).GebuehrFaktor;
 
     /// <summary>
     /// Buße für diese Taten: Faktor × Summe, mindestens die Mindestbuße – und höchstens der festgelegte Anteil
@@ -349,13 +361,14 @@ public sealed class Stadtgericht
         var beweise = Beweise(anklaeger, beklagter).Count();
         if (beweise == 0)
             return Befehlsergebnis.Abgelehnt($"Ohne Beweise gegen {beklagter.Inhaber} nimmt das Gericht keine Anklage an. Setzt einen Spitzel an!");
-        if (anklaeger.Vermoegen < Daten.Gerichtsgebuehr)
-            return Befehlsergebnis.Abgelehnt($"Die Gerichtsgebühr beträgt {Zahlenformat.Ganz(Daten.Gerichtsgebuehr)} {_w.Daten.Allgemein.Waehrung}.");
+        var gebuehr = Gerichtsgebuehr(anklaeger);
+        if (anklaeger.Vermoegen < gebuehr)
+            return Befehlsergebnis.Abgelehnt($"Die Gerichtsgebühr beträgt {Zahlenformat.Ganz(gebuehr)} {_w.Daten.Allgemein.Waehrung}.");
         if (VorsitzFuer(anklaeger, beklagter) is not { } vorsitz)
             return Befehlsergebnis.Abgelehnt("Es gibt niemanden, der den Vorsitz führen könnte.");
 
-        anklaeger.Gerichtskosten(Daten.Gerichtsgebuehr);
-        _w.Kasse.Buchen(Politik.Kassenposten.Gebuehren, Daten.Gerichtsgebuehr);
+        anklaeger.Gerichtskosten(gebuehr);
+        _w.Kasse.Buchen(Politik.Kassenposten.Gebuehren, gebuehr);
         var richter = new List<Richter> { vorsitz };
         richter.AddRange(SchoeffenAuslosen(vorsitz).Select(r => new Richter("Schöffe", r, null)));
         var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter);
@@ -412,7 +425,8 @@ public sealed class Stadtgericht
             string text;
             if (schuldig)
             {
-                var busse = Busse(v.Beklagter, beweise) * (1 + _w.Befugnisse.Strafmass(v.Anklaeger, v.Beklagter) / 100.0); // Stadtrichter ±25 %
+                var busse = Busse(v.Beklagter, beweise) * (1 + _w.Befugnisse.Strafmass(v.Anklaeger, v.Beklagter) / 100.0) // Stadtrichter ±25 %
+                            * _w.Familien.Lebenswirkung(v.Beklagter).BusseFaktor; // Gnadengesuch (Lebensweise)
                 v.Beklagter.Gerichtskosten(busse);
                 _w.Kasse.Buchen(Politik.Kassenposten.Strafen, busse);
                 var folgen = new List<string> { $"Buße {Zahlenformat.Ganz(busse)} {waehrung}" };
@@ -423,10 +437,11 @@ public sealed class Stadtgericht
                     _w.Rat.Ausscheiden(v.Beklagter);
                     folgen.Add($"Verlust des Amtes {amt.Name}");
                 }
-                if (d.PrangerJahre > 0)
+                var pranger = Math.Max(0, d.PrangerJahre - _w.Familien.Lebenswirkung(v.Beklagter).PrangerMinus); // Gnadengesuch
+                if (pranger > 0)
                 {
-                    _prangerBis[v.Beklagter] = jahr + d.PrangerJahre;
-                    folgen.Add($"{d.PrangerJahre} Jahre am Pranger");
+                    _prangerBis[v.Beklagter] = jahr + pranger;
+                    folgen.Add($"{pranger} {(pranger == 1 ? "Jahr" : "Jahre")} am Pranger");
                 }
                 if (d.KerkerJahre > 0 && beweise.Any(b => d.KerkerFuer.Contains(b.Art)))
                 {
@@ -441,10 +456,11 @@ public sealed class Stadtgericht
             }
             else
             {
-                v.Anklaeger.Gerichtskosten(d.Entschaedigung);
-                v.Beklagter.Gerichtskosten(-d.Entschaedigung);
+                var entschaedigung = d.Entschaedigung * _w.Familien.Lebenswirkung(v.Beklagter).EntschaedigungFaktor; // Rechtskundig
+                v.Anklaeger.Gerichtskosten(entschaedigung);
+                v.Beklagter.Gerichtskosten(-entschaedigung);
                 text = $"Gerichtstag {jahr}: {v.Beklagter.Inhaber} wird freigesprochen ({zaehlung}). " +
-                       $"{v.Anklaeger.Inhaber} zahlt {Zahlenformat.Ganz(d.Entschaedigung)} {waehrung} Entschädigung.";
+                       $"{v.Anklaeger.Inhaber} zahlt {Zahlenformat.Ganz(entschaedigung)} {waehrung} Entschädigung.";
             }
             Eintrag(text);
             _letzteUrteile.Add(new Urteil(v.Anklaeger, v.Beklagter, schuldig, stimmen.Count(s => s.Schuldig), text));
@@ -462,7 +478,7 @@ public sealed class Stadtgericht
         {
             var gefunden = 0;
             foreach (var spur in _spuren.Where(s => s.Taeter == ziel && !_beweise.Contains((auftraggeber, s.Nummer))).ToList())
-                if (_zufall.NextDouble() < d.SpitzelChance)
+                if (_zufall.NextDouble() < SpitzelChance(auftraggeber, ziel))
                 {
                     _beweise.Add((auftraggeber, spur.Nummer));
                     gefunden++;

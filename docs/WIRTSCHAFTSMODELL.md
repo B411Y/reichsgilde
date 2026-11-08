@@ -2311,3 +2311,124 @@ Dateien: `docs/messungen/schaenke-2026-11-04-startlehrling-{vorher,passiv-vorher
 Endgültige Regeln (nach der Prüfung: KI rechnet über drei Jahre Bleibedauer; Nutzer 08.11.: auch Unfreie und Orks zahlen Handgeld), gemessen auf main 5d1b0bbf + dieser Branch, NAS mit Last 8–19, 638 s. Die KI-Häuser verlieren im Mittel etwa 3,1 % (≈ 60–78 Gulden Handgeld im Jahr, vor allem für die Orks im Umland; ≈ 1.400 in 20 Jahren), die Spieler liegen in der Streuung oder gewinnen gegen die schwächere KI (Greybox +0 / −2 / +2 %, Köln +7 / +8 / +9 %). Erste Messung (Handgeld nur für Anfänger, KI über ein Jahr, main 4a529082): KI-Häuser −1,4 %, KI-Haus 33 Gulden im Jahr. „Handgeld 0“ ist mit Karren zum Hafen gerechnet; ohne Schalter (`--ohne-hafenziel`) ist sie Zahl für Zahl gleich (4 Startwerte verglichen).
 
 **Fahrten zum Hafen** (dieselbe Messung): **0 %** auf beiden Karten, bei Spieler und KI – die Fahrzeiten sind unverändert (Greybox: Spieler mit einem Betrieb hin Ø 24–28 Minuten, KI-Haus 68–70; Köln 28–30 bzw. 80–85; Ausbau 52–75). Grund: Alle Startwerkstätten und Umlandbetriebe liegen näher an einem Marktplatz (`messen karren`: in Köln Werkstätten 28–34 Minuten zum Markt, 50–332 zum Hafen; Greybox 18–48 gegen 301–339), und die KI baut nach der Luftlinie zum nächsten Marktplatz. `messen bauorte`: In der Greybox ist an keinem der 138 Bauorte der Hafen näher, in Köln an 198 von 575 – vor allem zwischen Heumarkt und Rheinhafen; am besten bei 26 | −11 (im Frühling 76 statt 138 Minuten hin, im Sommer 65). Wer dort baut, fährt im Frühling, Sommer und Herbst zum Hafen, im Winter zum Marktplatz. Eine KI, die Bauplätze nach der Fahrzeit zum Hafen sucht, stünde unter „Offen“ in `docs/bereiche/kern.md`.
+
+## Lebensweise (Charaktersystem Teil 3a, Datenversion 74, 8.11.2026)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md`, „Lebensweise (PR #…)“): Oberhaupt, Erbe und Ehepartner sammeln Erfahrung in fünf Pfaden und nehmen Knoten (Abschnitt `lebensweise`). Die KI-Häuser und der Messspieler (KI-geführt, ein Betrieb) wählen Pfad und Knoten nach Talent und Zügen (`KiRivale.Lebensweise`) und nehmen jeden Punkt sofort. **Kein Grundwert eines Berufs ist geändert.**
+
+Gemessen auf main `18c40e7a` (bis main `4a529082` nur die Restflächen der Darstellung) + diesem PR (`7599edc3`), `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 37,7 Min.) → `docs/messungen/balancing-2026-11-08-lebensweise.json`; Vergleich: main `18c40e7a` mit derselben Messung → `docs/messungen/balancing-2026-11-08-main-18c40e7a.json`.
+
+| | main | mit Lebensweise |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 10/10 (Dieb −14,2 %, Parfumeur +14,2 %) | 8/10 (Dieb −16,8 %, Parfumeur +16,4 %) |
+| Mittel des Zuwachses | 31.253 | 32.706 (+4,6 %) |
+| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 7,8 … 9,9 | 7,8 … 9,9 |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,27; 1,69 | 1,21; 1,96 |
+| Messstadt: Vermögen je KI-Haus allein / 3 / 8 Häuser | 88.747 / 52.211 / 46.980 | 97.158 / 57.698 / 49.739 |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,42 / 0,80 / 0,17 | 0,40 / 0,86 / 0,17 |
+| Spitzel / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 95 / 198 | 95 / 197 |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −3.567 / −6.891 | −4.042 / −6.870 |
+| Karren in Not verkauft | 3 | 0 |
+
+Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwerte; ± Fehler des Mittels):
+
+| Beruf | main | mit Lebensweise | Änderung |
+|---|---|---|---|
+| Schmied | 36.922 ± 1.352 | 39.566 ± 1.369 | +7,2 % |
+| Tischler | 31.933 ± 1.025 | 34.652 ± 1.271 | +8,5 % |
+| Steinmetz | 36.040 ± 1.313 | 39.591 ± 1.180 | +9,9 % |
+| Alchimist | 35.863 ± 1.101 | 37.058 ± 1.241 | +3,3 % |
+| Wirt | 33.429 ± 1.053 | 35.620 ± 1.118 | +6,6 % |
+| Prediger | 36.105 ± 1.310 | 35.674 ± 1.204 | −1,2 % |
+| Dieb | 30.800 ± 1.102 | 31.226 ± 1.237 | +1,4 % |
+| Parfumeur | 39.681 ± 1.171 | 42.074 ± 1.293 | +6,0 % |
+| Geldleiher | 37.531 ± 1.022 | 36.487 ± 946 | −2,8 % |
+| Gardist | 34.228 ± 710 | 35.116 ± 710 | +2,6 % |
+| Dieb (wagemutig, nicht im Mittel) | 23.858 ± 1.205 | 22.876 ± 1.029 | −4,1 % |
+
+**Völker** (Schmied und Parfumeur, Reinvermögen; 20 Jahre aus dem Bericht, 40 Jahre aus `messen bericht 40 30 --teile=2` auf denselben Ständen, je 240 Partien):
+
+| Beruf, Volk | 20 Jahre main → Lebensweise | 40 Jahre main → Lebensweise | gegen Mensch nach 40 Jahren (main → Lebensweise) |
+|---|---|---|---|
+| Schmied, Mensch | 36.922 → 39.566 (+7,2 %) | 98.537 → 107.984 (+9,6 %) | 0 → 0 |
+| Schmied, Zwerg | 40.698 → 42.195 (+3,7 %) | 112.774 → 117.914 (+4,6 %) | +15,1 → +9,5 % |
+| Schmied, Elb | 37.213 → 38.003 (+2,1 %) | 100.289 → 106.876 (+6,6 %) | +1,9 → −1,1 % |
+| Schmied, Halbling | 31.566 → 32.099 (+1,7 %) | 93.372 → 94.018 (+0,7 %) | −5,5 → −13,4 % |
+| Parfumeur, Mensch | 39.681 → 42.074 (+6,0 %) | 121.156 → 130.678 (+7,9 %) | 0 → 0 |
+| Parfumeur, Zwerg | 37.193 → 38.914 (+4,6 %) | 119.853 → 124.134 (+3,6 %) | −1,1 → −5,2 % |
+| Parfumeur, Elb | 43.390 → 44.985 (+3,7 %) | 131.326 → 143.676 (+9,4 %) | +8,7 → +10,3 % |
+| Parfumeur, Halbling | 38.658 → 37.712 (−2,4 %) | 113.923 → 120.189 (+5,5 %) | −6,2 → −8,3 % |
+
+**Befund:**
+- Die Wirtschaft wächst im Mittel um 4,6 %: Die Knoten für Werkstatt und Markt (Zeit, Zutaten, Lohn, Erlös) bringen den Handwerkern +3 bis +10 %. Prediger, Geldleiher, Gardist und Dieb haben kaum Ware am Markt und gewinnen −3 bis +3 %. Darum rutschen Dieb (−16,8 %) und Parfumeur (+16,4 %) knapp aus dem Band; beide lagen schon auf main am Rand (±14,2 %). Jede einzelne Änderung liegt innerhalb von etwa zwei Fehlern des Mittels (≈ 1.700–1.800 Gulden für den Unterschied zweier Mittel), das Muster (Handwerk vorn, Berufe ohne Ware hinten) aber in allen zehn Zeilen.
+- **Völker:** Die KI wählt den Pfad nach dem stärksten Talent: Zwerge meist Handwerk, Elben Rhetorik, Halblinge Nacht und Nebel, Menschen Verhandeln oder Handwerk. Nach 20 Jahren gewinnen darum Menschen am meisten (+6 bis +7 %), Halblinge am wenigsten (−2 bis +2 %). Nach 40 Jahren holen die Elben auf (+6,6 / +9,4 %, gegen Menschen fast wie auf main) – vermutlich, weil ihr langes Leben mehr Knoten und ein größeres Vermächtnis bringt (nicht einzeln gemessen). Zwerge leben ebenfalls länger, gewinnen aber weniger als Menschen (+4,6 / +3,6 %) – ihr Vorsprung als Schmied schrumpft von +15,1 auf +9,5 %. Der Halbling-Schmied fällt gegen den Menschen von −5,5 auf −13,4 % (Pfad der Schatten bringt dem Schmied fast nichts). Elben und Zwerge ziehen also nicht davon.
+- Die KI-Häuser mit mehreren Betrieben gewinnen mehr als der Spieler mit einem (Werkstatt-Knoten zählen in jedem Betrieb): „Schwer“ 1,69 → 1,96; gegen den Bezugsspieler mit derselben Strategie bleiben sie im Rahmen (1,27 → 1,21).
+- Der Nutzer hat nachsteuern lassen: siehe „Lebensweise: Nachsteuerung“ gleich darunter.
+
+## Lebensweise: Nachsteuerung (Datenversion 74, 8.11.2026)
+
+**Was sich geändert hat** (Entscheidungen in `docs/bereiche/kern.md`, „Lebensweise“, Zeilen „Nachsteuerung“). **Kein Grundwert eines Berufs ist geändert.**
+- **Dieb:** Der Pfad der Schatten traf die Haupteinnahme des Diebes, die Taschendiebe, bisher nicht. „Leise Sohlen“ (Reihe 1) bringt den eigenen Taschendieben jetzt 5 % mehr Beute (`beuteFaktor` 1,05).
+- **Parfumeur:** Kein Knoten wirkt für ihn überproportional.
+  - Sein Umsatz je Gewinn liegt wie bei Prediger und Steinmetz (`messen lebensweg`: 7.544 zu 2.892 im Jahr).
+  - Stufe 3 erreicht in 20 Jahren kein Spieler mit einem Betrieb, „Meisterstück“ zählt also nicht.
+  - Er gewann vorher +6,0 %, weniger als Schmied, Tischler und Steinmetz; er stand nur schon auf main am Rand. Darum gibt es hier keinen eigenen Eingriff.
+- **KI-Pfad:**
+  - Ein Haus mit einem Betrieb mit Ware bekommt +2 auf den Pfad des Meisters.
+  - Den Pfad der Schatten nimmt die KI nur, wenn das Haus einen Betrieb des Diebes führt (dann ebenfalls +2).
+  - Ein Pfad ohne eigenen Knoten wird jedes Jahr neu gewählt. Bisher hielt der Kern beim ersten Buchen das stärkste Talent fest, und neue Erben und Ehepartner blieben dabei.
+  - Vorher folgten rund 30 % der Oberhaupt-Jahre jedes Berufs dem Pfad der Schatten, auch bei Menschen. Häuser auf diesem Pfad hatten nach 20 Jahren deutlich weniger Zuwachs.
+
+Gemessen auf main `b5444c09` (#371, Hafen und Handgeld; bis `2da3d75d` ohne Änderung an Kern und Daten) + diesem PR (`46f9eaab`), `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler; main 33,4 Min., Branch 36,8 Min.) und `messen bericht 40 30 --teile=2` (je 240 Partien; 16,5 bzw. 14,3 Min.). Last auf der geteilten NAS 7 bis 22 bei 8 Kernen, `--parallel=7`. Dateien: `docs/messungen/balancing-2026-11-08-main-b5444c09.json` gegen `…-lebensweise-nachgesteuert.json`, `…-voelker40-main-b5444c09.json` gegen `…-voelker40-lebensweise-nachgesteuert.json`.
+
+| | main b5444c09 | mit Lebensweise, nachgesteuert |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 8/10 (Dieb −19,6 %, Parfumeur +18,1 %) | 8/10 (Dieb −21,1 %, Parfumeur +16,7 %) |
+| Mittel des Zuwachses | 30.915 | 33.081 (+7,0 %) |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,21; 1,88 | 1,20; 1,79 |
+| Messstadt: Vermögen je KI-Haus allein / 3 / 8 Häuser | 86.377 / 52.890 / 44.887 | 99.410 / 60.571 / 51.192 |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,46 / 0,82 / 0,17 | 0,43 / 0,81 / 0,17 |
+| Spitzel / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 95 / 206 | 95 / 202 |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −3.208 / −6.976 | −3.526 / −6.690 |
+| Karren in Not / nach einem Jahr ohne Fahrt verkauft | 0 / 47 | 0 / 74 |
+
+Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwerte; ± Fehler des Mittels; in Klammern der Abstand des Zuwachses zum Mittel):
+
+| Beruf | main b5444c09 | nachgesteuert | Änderung |
+|---|---|---|---|
+| Schmied | 35.983 ± 1.091 (+3,5 %) | 40.128 ± 1.127 (+9,2 %) | +11,5 % |
+| Tischler | 31.765 ± 977 (−10,2 %) | 33.407 ± 1.239 (−11,1 %) | +5,2 % |
+| Steinmetz | 37.985 ± 1.159 (+9,9 %) | 41.812 ± 1.373 (+14,3 %) | +10,1 % |
+| Alchimist | 35.436 ± 1.252 (+1,7 %) | 37.635 ± 1.261 (+1,7 %) | +6,2 % |
+| Wirt | 33.581 ± 993 (−4,3 %) | 35.614 ± 1.199 (−4,4 %) | +6,1 % |
+| Prediger | 35.559 ± 1.414 (+2,1 %) | 37.587 ± 1.449 (+1,5 %) | +5,7 % |
+| Dieb | 28.851 ± 1.246 (−19,6 %) | 30.107 ± 1.435 (−21,1 %) | +4,4 % |
+| Parfumeur | 40.512 ± 1.120 (+18,1 %) | 42.607 ± 1.295 (+16,7 %) | +5,2 % |
+| Geldleiher | 35.702 ± 1.068 (+2,5 %) | 37.735 ± 1.239 (+2,0 %) | +5,7 % |
+| Gardist | 33.773 ± 787 (−3,7 %) | 34.175 ± 882 (−8,8 %) | +1,2 % |
+| Dieb (wagemutig, nicht im Mittel) | 22.104 ± 991 | 25.108 ± 1.195 | +13,6 % |
+
+**Völker** (Reinvermögen, Abstand zum Menschen desselben Berufs):
+
+| Beruf, Volk | 20 Jahre main → nachgesteuert | 40 Jahre main → nachgesteuert | gegen Mensch nach 40 Jahren (main → nachgesteuert) |
+|---|---|---|---|
+| Schmied, Mensch | 35.983 → 40.128 (+11,5 %) | 103.178 → 111.160 (+7,7 %) | 0 → 0 |
+| Schmied, Zwerg | 40.627 → 44.060 (+8,5 %) | 107.901 → 124.702 (+15,6 %) | +4,6 → +12,2 % |
+| Schmied, Elb | 36.156 → 38.335 (+6,0 %) | 98.774 → 113.334 (+14,7 %) | −4,3 → +2,0 % |
+| Schmied, Halbling | 32.044 → 34.305 (+7,1 %) | 95.044 → 98.319 (+3,4 %) | −7,9 → −11,6 % |
+| Parfumeur, Mensch | 40.512 → 42.607 (+5,2 %) | 117.340 → 130.643 (+11,3 %) | 0 → 0 |
+| Parfumeur, Zwerg | 36.739 → 38.609 (+5,1 %) | 118.304 → 125.559 (+6,1 %) | +0,8 → −3,9 % |
+| Parfumeur, Elb | 42.971 → 45.631 (+6,2 %) | 128.824 → 145.656 (+13,1 %) | +9,8 → +11,5 % |
+| Parfumeur, Halbling | 37.714 → 40.356 (+7,0 %) | 114.936 → 124.921 (+8,7 %) | −2,0 → −4,4 % |
+
+**Befund:**
+- **Schon main `b5444c09` hat Dieb und Parfumeur außerhalb des Bands** (−19,6 / +18,1 %; vor #371 −14,2 / +14,2 %).
+  - Das Handgeld trifft den Dieb: Gefangene Taschendiebe werden mit Handgeld ersetzt, dazu kommt mehr Gericht.
+  - Die Lebensweise verschiebt den Dieb jetzt um −1,5 Punkte (vor der Nachsteuerung −2,6) und den Parfumeur um −1,4 Punkte (vorher +2,2).
+  - Auf der Basis vor #371 lagen mit der Nachsteuerung alle zehn Berufe im Band (Teilmessung `--teile=1` auf `be885074`: Dieb −11,9 %, Parfumeur +14,9 %).
+  - Dass die Lebensweise neutral bleibt und Dieb und Parfumeur über ihre Grundwerte nachgesteuert werden, hat der Teamleiter entschieden (offener Punkt in `docs/bereiche/kern.md`).
+- **Halbling-Schmied** gegen den Menschen nach 40 Jahren: main −7,9 %, vor der Nachsteuerung −5,5 → −13,4 % (−7,9 Punkte, alte Basis), jetzt −7,9 → −11,6 % (−3,7 Punkte). Der Fehler des Unterschieds liegt bei etwa 5 Punkten, der Rest ist also nicht von main zu unterscheiden.
+  - Halblinge haben nach 40 Jahren weniger Knoten (9,0 gegen 12,6 je Partie, `messen lebensweg 40 30`), weil sie früher sterben (60 gegen 64 Jahre), später volljährig werden und weniger Heiratskandidaten haben. Das gehört zum Volk, nicht zur Pfadwahl.
+- **Zwerge** folgen jetzt verlässlich dem Pfad des Meisters (Handwerk 3 + 2) und leben lang: Der Zwerg-Schmied steigt gegen den Menschen von +4,6 auf +12,2 % (vor #371 auf main +15,1 %). Elben holen nach 40 Jahren ebenfalls auf (+2,0 / +11,5 %).
+- **Handwerk** gewinnt am meisten (Schmied +11,5 %, Steinmetz +10,1 %), weil jetzt fast jedes Handwerkshaus dem Pfad des Meisters folgt. Der Gardist gewinnt am wenigsten (+1,2 %).
+- Die KI gegen den Bezugsspieler bleibt im Rahmen (1,21 → 1,20). Die Gaunerei der KI ändert sich kaum, obwohl ihre Häuser den Pfad der Schatten nicht mehr nehmen.

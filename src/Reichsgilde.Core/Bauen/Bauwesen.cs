@@ -372,7 +372,7 @@ public sealed class Bauwesen
                     return $"Eine {art.Name} darf erst bauen, wer mindestens {mindestStand} ist – {konto.Inhaber} ist {_w.StandVon(konto).Name}.";
                 if (_w.Daten.Berufe.Count > 0 && konto.Berufe.Count > 0 && !konto.Beherrscht(art.Beruf))
                     return $"Eine {art.Name} ist ein Betrieb der {art.Beruf}. {konto.Inhaber} beherrscht dieses Handwerk nicht – erst erlernen.";
-                var preis = WerkstattPreis(b.Art);
+                var preis = _w.Baupreis(konto, WerkstattPreis(b.Art)); // Baumeister (Lebensweise)
                 if (konto.Vermoegen < preis + art.Fixkosten)
                     return $"Für eine neue {art.Name} braucht es {Zahlenformat.Ganz(preis + art.Fixkosten)} {waehrung} " +
                            $"(Bau {Zahlenformat.Ganz(preis)} und ein Jahr Unterhalt).";
@@ -585,13 +585,13 @@ public sealed class Bauwesen
             {
                 var preis = _w.Wohnen.WertDerStufe(w.Stufe);
                 var anrechnung = _w.Wohnen.Hauswert(konto);
-                return new Bauvorschau(g, wd.Stufen[w.Stufe].Name, null, preis, anrechnung, Math.Max(0, preis - anrechnung),
+                return new Bauvorschau(g, wd.Stufen[w.Stufe].Name, null, preis, anrechnung, WohnhausKosten(konto, w.Stufe),
                     wd.Stufen[w.Stufe].Unterhalt, bauzeit, verboten);
             }
             case WerkstattBauen b when _w.Daten.KenntArt(b.Art):
             {
                 var preis = WerkstattPreis(b.Art);
-                return new Bauvorschau(g, _w.Daten.Art(b.Art).Name, IstAktiv ? NeuerName(b.Art, g) : null, preis, 0, preis,
+                return new Bauvorschau(g, _w.Daten.Art(b.Art).Name, IstAktiv ? NeuerName(b.Art, g) : null, preis, 0, _w.Baupreis(konto, preis),
                     _w.Daten.Art(b.Art).Fixkosten, bauzeit, verboten);
             }
             default:
@@ -673,7 +673,7 @@ public sealed class Bauwesen
     // ── Preise und Namen ────────────────────────────────────────────────────
 
     /// <summary>Wohnhaus-Neubau: Hauswert der Zielstufe minus Hauswert des alten Hauses, nie unter 0.</summary>
-    private double WohnhausKosten(Konto konto, int stufe) => Math.Max(0, _w.Wohnen.WertDerStufe(stufe) - _w.Wohnen.Hauswert(konto));
+    private double WohnhausKosten(Konto konto, int stufe) => _w.Baupreis(konto, Math.Max(0, _w.Wohnen.WertDerStufe(stufe) - _w.Wohnen.Hauswert(konto)));
 
     /// <summary>Werkstatt-Neubau: der Kaufpreis der Stufe 1 (<c>kaufpreis</c> der Art, siehe <see cref="Stadtwirtschaft.Grundpreis"/>).</summary>
     public double WerkstattPreis(Betriebsart art) => _w.Grundpreis("", art);

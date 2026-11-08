@@ -425,7 +425,7 @@ public sealed class Ratssitzung
     {
         var abstand = Math.Abs((int)statut - (int)r.Haltung);
         var gunst = _w.Rat.Meinung(r, antragsteller);
-        var schwelle = _w.Rat.Daten.Gunst.SchwelleNachbarstatut;
+        var schwelle = _w.Rat.Daten.Gunst.SchwelleNachbarstatut - _w.Rat.AntragSchwelleMinus(antragsteller); // wie in Stadtrat.StimmtZu
         if (abstand == 0) return $"Das ist seine Haltung ({r.Haltung.Name()}).";
         if (abstand > 1) return $"Zu weit von seiner Haltung ({r.Haltung.Name()}).";
         return ja == true
@@ -443,10 +443,10 @@ public sealed class Ratssitzung
         if (glaube is null)
             return gl.Stadtglaube != eigener ? $"Der Stadtglaube ist nicht seiner ({eigener.Name()}) – lieber Freiheit."
                 : ja == true ? $"Er will den Stadtglauben behalten, aber er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)})."
-                : $"Er will den Stadtglauben behalten – seine Meinung ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFrei)}).";
+                : $"Er will den Stadtglauben behalten – seine Meinung ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFrei - _w.Rat.AntragSchwelleMinus(antragsteller))}).";
         return ja == true
             ? $"Nicht sein Glaube, aber er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)})."
-            : $"Nicht sein Glaube ({eigener.Name()}) – seine Meinung ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFremd)}).";
+            : $"Nicht sein Glaube ({eigener.Name()}) – seine Meinung ist zu schlecht ({Zahlenformat.Ganz(gunst)} von {Zahlenformat.Ganz(d.SchwelleFremd - _w.Rat.AntragSchwelleMinus(antragsteller))}).";
     }
 
     private string GrundGlaubeKi(Konto ki, Konfession? glaube, bool? ja)
@@ -462,7 +462,7 @@ public sealed class Ratssitzung
     {
         var d = _w.Wegebau.Daten!.Rat;
         var gunst = _w.Rat.Meinung(r, antragsteller);
-        if (gunst >= d.AntragGunst) return $"Er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)}).";
+        if (gunst >= d.AntragGunst - _w.Rat.AntragSchwelleMinus(antragsteller)) return $"Er hält viel von {antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)}).";
         if (ja == true) return $"Viel Verkehr ({Zahlenformat.Ganz(verkehr)} Fahrten im Jahr).";
         return $"Zu wenig Verkehr ({Zahlenformat.Ganz(verkehr)} von {Zahlenformat.Ganz(d.AntragVerkehr)} Fahrten) und seine Meinung zu schlecht ({Zahlenformat.Ganz(gunst)}).";
     }
@@ -472,7 +472,7 @@ public sealed class Ratssitzung
         var kasse = _w.Kasse;
         var k = kasse.Daten;
         var gunst = _w.Rat.Meinung(r, a.Antragsteller);
-        if (gunst >= k.AntragGunst) return $"Er hält viel von {a.Antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)}).";
+        if (gunst >= k.AntragGunst - _w.Rat.AntragSchwelleMinus(a.Antragsteller)) return $"Er hält viel von {a.Antragsteller.Inhaber} (Meinung {Zahlenformat.Ganz(gunst)}).";
         var reserve = k.ReserveVon(r.Daten.Volk);
         var stand = Zahlenformat.Ganz(kasse.Stand);
         var res = Zahlenformat.Ganz(reserve);

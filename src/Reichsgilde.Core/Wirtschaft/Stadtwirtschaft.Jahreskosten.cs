@@ -22,5 +22,5 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>Was dieser Betrieb erst zum Jahresabschluss zahlt: Löhne, Wächter und Unterhalt bzw. Pacht für das ganze Jahr.</summary>
     public double OffeneKosten(Betrieb b) =>
-        b.Lohnkosten + b.Artdaten.Fixkosten + (b.Waechter ? Daten.Gauner?.WaechterKosten ?? 0 : 0);
+        b.Lohnkosten + b.Unterhalt + (b.Waechter ? Daten.Gauner?.WaechterKosten ?? 0 : 0);
 }

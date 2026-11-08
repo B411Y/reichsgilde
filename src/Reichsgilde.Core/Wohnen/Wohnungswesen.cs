@@ -175,7 +175,7 @@ public sealed class Wohnungswesen
     public bool IstBeschaedigt(Konto k) => k.WohnhausInstandBis is not null;
 
     /// <summary>Unterhalt des Wohnhauses im Jahr.</summary>
-    public double Unterhalt(Konto k) => Stufe(k)?.Unterhalt ?? 0;
+    public double Unterhalt(Konto k) => (Stufe(k)?.Unterhalt ?? 0) * _w.Familien.Lebenswirkung(k).UnterhaltFaktor; // Hüter des Hauses (Lebensweise)
 
     /// <summary>
     /// Häuser, deren Wohnhaus leer steht (erloschen oder bankrott) und noch nicht verkauft oder abgerissen ist.
@@ -196,9 +196,10 @@ public sealed class Wohnungswesen
             return $"Ein {naechste.Name} entsteht nur als Neubau – im Baumodus neu bauen oder einen Leerstand kaufen.";
         if (k.Stand < naechste.AbStand - 1)
             return $"Ein {naechste.Name} darf erst bauen, wer mindestens {_w.Daten.Staende[naechste.AbStand - 1].Name} ist.";
-        if (k.Vermoegen < naechste.Ausbau)
-            return $"Der Ausbau zum {naechste.Name} kostet {Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung} – " +
-                   $"es fehlen {Zahlenformat.Ganz(naechste.Ausbau - k.Vermoegen)}.";
+        var ausbau = _w.Baupreis(k, naechste.Ausbau); // Baumeister (Lebensweise)
+        if (k.Vermoegen < ausbau)
+            return $"Der Ausbau zum {naechste.Name} kostet {Zahlenformat.Ganz(ausbau)} {_w.Daten.Allgemein.Waehrung} – " +
+                   $"es fehlen {Zahlenformat.Ganz(ausbau - k.Vermoegen)}.";
         return null;
     }
 
@@ -209,14 +210,15 @@ public sealed class Wohnungswesen
     {
         if (AusbauVerboten(k) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var naechste = NaechsteStufe(k)!;
-        k.Investition(naechste.Ausbau);
+        var preis = _w.Baupreis(k, naechste.Ausbau);
+        k.Investition(preis);
         k.WohnhausFertigAb = zeit.VergangeneMinuten + Daten!.BauzeitMinuten;
         HauswertAktualisieren(k); // das Geld steckt jetzt im Haus
 
         if (Daten.BauzeitMinuten == 0) Minute(zeit);
         var dauer = Daten.BauzeitMinuten >= 60 ? $"{Zahlenformat.Knapp(Daten.BauzeitMinuten / 60.0)} Stunden" : $"{Daten.BauzeitMinuten} Minuten";
         return Befehlsergebnis.Ok($"{k.Inhaber} baut das Wohnhaus zum {naechste.Name} aus " +
-                                  $"({Zahlenformat.Ganz(naechste.Ausbau)} {_w.Daten.Allgemein.Waehrung}, fertig in {dauer}).");
+                                  $"({Zahlenformat.Ganz(preis)} {_w.Daten.Allgemein.Waehrung}, fertig in {dauer}).");
     }
 
     // ── Einrichtung des Wohnhauses (PR #224) ────────────────────────────────
@@ -266,7 +268,7 @@ public sealed class Wohnungswesen
         var stufe = k.WohnhausStufe + 1;
         if (stufe < e.AbStufe) return $"{e.Name} passt erst in ein {d.Stufen[e.AbStufe - 1].Name} – {k.Inhaber} wohnt im {d.Stufen[k.WohnhausStufe].Name}.";
         if (e.Voraussetzung is { } v && d.Stueck(v) is { } vor && !HatEinrichtung(k, vor)) return $"Erst braucht es: {vor.Name}.";
-        if (k.Vermoegen < e.Preis) return $"{e.Name} kostet {Zahlenformat.Ganz(e.Preis)} {_w.Daten.Allgemein.Waehrung}.";
+        if (k.Vermoegen < _w.Baupreis(k, e.Preis)) return $"{e.Name} kostet {Zahlenformat.Ganz(_w.Baupreis(k, e.Preis))} {_w.Daten.Allgemein.Waehrung}.";
         return null;
     }
 
@@ -275,9 +277,10 @@ public sealed class Wohnungswesen
         if (EinrichtungVerboten(k, kennung) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var e = Daten!.Stueck(kennung)!;
         if (e.Vorhanden == "Hauswaechter") return HauswaechterSetzen(k, true);
-        k.Investition(e.Preis); // wie Einrichtung der Betriebe: ein Kauf, kein Rückverkauf
+        var preis = _w.Baupreis(k, e.Preis); // Baumeister (Lebensweise)
+        k.Investition(preis); // wie Einrichtung der Betriebe: ein Kauf, kein Rückverkauf
         k.WohnhausEinrichtungHinzufuegen(kennung);
-        return Befehlsergebnis.Ok($"{k.Inhaber}: {e.Name} fürs Wohnhaus gekauft ({Zahlenformat.Ganz(e.Preis)} {_w.Daten.Allgemein.Waehrung}) – {e.Wirkung.Text()}.");
+        return Befehlsergebnis.Ok($"{k.Inhaber}: {e.Name} fürs Wohnhaus gekauft ({Zahlenformat.Ganz(preis)} {_w.Daten.Allgemein.Waehrung}) – {e.Wirkung.Text()}.");
     }
 
     /// <summary>

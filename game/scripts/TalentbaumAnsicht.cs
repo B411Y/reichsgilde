@@ -32,7 +32,7 @@ public static partial class TalentbaumAnsicht
     };
 
     private const int Knopf = 80;
-    private const int StueckBreite = 96;
+    private const int StueckBreite = 104;
 
     /// <summary>Waren-Icons als Platzhalter, bis es eigene Einrichtungs-Icons gibt (Kennung → Datei ohne Endung in assets/oberflaeche/icons).</summary>
     private static readonly Dictionary<string, string> Ersatz = new()
@@ -43,8 +43,14 @@ public static partial class TalentbaumAnsicht
         ["Hauswaechter"] = "armbrust", ["Hauswappen"] = "prunkschwert", ["Hunde"] = "armbrust", ["Kettenhemd"] = "silberkette",
     };
 
+    /// <summary>
+    /// Eigene Texte und Bilder für einen anderen Baum auf derselben Ansicht (Lebensweise, Charaktersystem Teil 3a): Zeile unter dem Namen (statt Preis in Gulden),
+    /// Hinweistext und Bild je Stück. Ohne Angabe gilt der Einrichtungsbaum.
+    /// </summary>
+    public sealed record BaumTexte(Func<BaumStueck, string> Preis, Func<BaumStueck, string> Tipp, Func<BaumStueck, Texture2D?> Bild);
+
     /// <summary>Baut den Baum. <paramref name="reihenName"/> nennt die Reihe (z. B. „Stufe 1“ oder der Name der Wohnhausstufe).</summary>
-    public static Control Bauen(Einrichtungsbaum baum, string waehrung, Func<int, string> reihenName, Action<BaumStueck> klick)
+    public static Control Bauen(Einrichtungsbaum baum, string waehrung, Func<int, string> reihenName, Action<BaumStueck> klick, BaumTexte? texte = null)
     {
         var feld = new Linienfeld();
         var raster = new GridContainer { Columns = baum.Spalten.Count + 1 };
@@ -76,20 +82,21 @@ public static partial class TalentbaumAnsicht
                 inhalt.AddThemeConstantOverride("separation", 6);
                 zelle.AddChild(inhalt);
                 foreach (var stueck in baum.Stuecke.Where(s => s.Spalte == spalte && s.Reihe == reihe))
-                    feld.Merken(stueck.Kennung, Stueck(inhalt, baum, stueck, waehrung, klick, grund), stueck.Voraussetzung,
+                    feld.Merken(stueck.Kennung, Stueck(inhalt, baum, stueck, waehrung, klick, grund, texte), stueck.Voraussetzung,
                         baum.Stuecke.FirstOrDefault(x => x.Kennung == stueck.Voraussetzung)?.Zustand == Baumzustand.Gekauft);
             }
         }
         return feld;
     }
 
-    private static Button Stueck(Container eltern, Einrichtungsbaum baum, BaumStueck s, string waehrung, Action<BaumStueck> klick, Color grund)
+    private static Button Stueck(Container eltern, Einrichtungsbaum baum, BaumStueck s, string waehrung, Action<BaumStueck> klick, Color grund, BaumTexte? texte)
     {
         var spalte = new VBoxContainer { CustomMinimumSize = new Vector2(StueckBreite - 8, 0) };
         spalte.AddThemeConstantOverride("separation", 0);
         eltern.AddChild(spalte);
         var gesperrt = s.Zustand is Baumzustand.Gesperrt or Baumzustand.NichtJetzt;
-        var hatIcon = Icon(s.Kennung) is not null;
+        var icon = texte is not null ? texte.Bild(s) : Icon(s.Kennung);
+        var hatIcon = icon is not null;
         // Der Rahmen im Icon zeigt die Stufe; der Zustand zeigt sich an Farbe (gesperrt: entsättigt und dunkel), Schein beim Darüberfahren (kaufbar) und Haken (gekauft)
         StyleBox Kasten(bool schein) => new StyleBoxFlat
         {
@@ -103,14 +110,14 @@ public static partial class TalentbaumAnsicht
             CustomMinimumSize = new Vector2(Knopf, Knopf), SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter, FocusMode = Control.FocusModeEnum.None,
             ExpandIcon = true, IconAlignment = HorizontalAlignment.Center, VerticalIconAlignment = VerticalAlignment.Center,
             MouseDefaultCursorShape = s.Zustand == Baumzustand.Gekauft ? Control.CursorShape.Arrow : Control.CursorShape.PointingHand,
-            TooltipText = Tipp(baum, s, waehrung),
+            TooltipText = texte is not null ? texte.Tipp(s) : Tipp(baum, s, waehrung),
         };
         var scheinMoeglich = s.Zustand == Baumzustand.Kaufbar;
         foreach (var art in new[] { "normal", "pressed", "disabled", "focus" }) knopf.AddThemeStyleboxOverride(art, Kasten(false));
         knopf.AddThemeStyleboxOverride("hover", Kasten(scheinMoeglich));
         knopf.AddThemeConstantOverride("icon_max_width", Knopf);
         if (gesperrt) knopf.Material = Entsaettigt;
-        if (Icon(s.Kennung) is { } bild) knopf.Icon = bild;
+        if (icon is not null) knopf.Icon = icon;
         else
         {
             knopf.Text = s.Name.Length > 0 ? s.Name[..1] : "?"; // Platzhalter, bis das Icon da ist
@@ -129,13 +136,13 @@ public static partial class TalentbaumAnsicht
         knopf.Pressed += () => { if (s.Zustand != Baumzustand.Gekauft) klick(s); };
         spalte.AddChild(knopf);
 
-        var name = Hauptmenue.Text(spalte, s.Name, 10, gesperrt ? Grau : Hell, zentriert: true, umbruchBreite: StueckBreite - 8);
+        var name = Hauptmenue.Text(spalte, s.Name, s.Name.Length > 14 ? 9 : 10, gesperrt ? Grau : Hell, zentriert: true, umbruchBreite: StueckBreite - 8);
         // Hintergrund wie die Zelle: die Linien laufen dahinter und tauchen nur zwischen den Reihen auf
         name.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });
         name.AutowrapMode = TextServer.AutowrapMode.WordSmart; // nur an Wortgrenzen umbrechen
         name.TooltipText = knopf.TooltipText;
         name.MouseFilter = Control.MouseFilterEnum.Pass;
-        var preis = s.Zustand == Baumzustand.Gekauft ? "gekauft"
+        var preis = texte is not null ? texte.Preis(s) : s.Zustand == Baumzustand.Gekauft ? "gekauft"
             : s.Jaehrlich ? $"{Zahlenformat.Ganz(s.Preis)} im Jahr" : Zahlenformat.Ganz(s.Preis) + " " + waehrung;
         var preisZeile = Hauptmenue.Text(spalte, preis, 11, s.Zustand switch { Baumzustand.Gekauft => Gruen, Baumzustand.Kaufbar => Gold, Baumzustand.NichtJetzt => Rot, _ => Grau }, zentriert: true);
         preisZeile.AddThemeStyleboxOverride("normal", new StyleBoxFlat { BgColor = grund });

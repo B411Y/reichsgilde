@@ -207,6 +207,7 @@ public sealed class Stadtrat
                + _w.Ratsantraege.AnsehenBonus(konto)    // ein Fest oder Bauvorhaben auf Antrag
                - _w.Glaube.AnsehenAbzug(konto)          // gerade erst die Konfession gewechselt
                - _w.Meinungen.AnsehenAbzug(konto)       // Streit im Haus (PR #231)
+               + _w.Familien.Lebenswirkung(konto).Ansehen // Gönner, Volksredner (Lebensweise)
                + konto.EntwicklerAnsehen;               // Entwicklerfenster (0 ohne Entwicklerhilfe)
     }
 
@@ -237,11 +238,14 @@ public sealed class Stadtrat
                + (amt.Konto == kandidat ? g.Amtsbonus : 0);
     }
 
+    /// <summary>So viel niedriger liegen die Meinungsschwellen der Anträge dieses Hauses (Lebensweise „Fürsprecher“; 0 ohne).</summary>
+    public double AntragSchwelleMinus(Konto antragsteller) => _w.Familien.Lebenswirkung(antragsteller).AntragSchwelleMinus;
+
     /// <summary>Würde dieser Ratsherr dem Statut zustimmen, das dieses Haus beantragt? (Nachbarstatut: Meinung ab der Schwelle)</summary>
     public bool StimmtZu(Ratsherr ratsherr, Fronstatut statut, Konto antragsteller)
     {
         var abstand = Math.Abs((int)statut - (int)ratsherr.Haltung);
-        return abstand == 0 || abstand == 1 && Meinung(ratsherr, antragsteller) >= _daten.Gunst.SchwelleNachbarstatut;
+        return abstand == 0 || abstand == 1 && Meinung(ratsherr, antragsteller) >= _daten.Gunst.SchwelleNachbarstatut - AntragSchwelleMinus(antragsteller);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

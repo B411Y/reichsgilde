@@ -163,6 +163,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Charakterzüge der Personen und Ratsherren (ab Datenversion 60, PR #227). Fehlt der Abschnitt, hat niemand Züge.</summary>
     public Dynastie.CharakterzuegeDaten? Charakterzuege { get; init; }
 
+    /// <summary>Lebensweise (ab Datenversion 73, Charaktersystem Teil 3a). Fehlt der Abschnitt, sammelt niemand Erfahrung.</summary>
+    public Dynastie.LebensweiseDaten? Lebensweise { get; init; }
+
     /// <summary>Meinungen und Aktivitäten (ab Datenversion 61, PR #231). Fehlt der Abschnitt, gibt es nur die frühere Gunst der Ratsherren.</summary>
     public Dynastie.MeinungDaten? Meinungen { get; init; }
 
@@ -542,6 +545,11 @@ public sealed class Wirtschaftsdaten
         }
         Meinungen?.Pruefen(f, StandStufe, Charakterzuege?.Zuege.Keys ?? (ICollection<string>)Array.Empty<string>(),
             Gesundheit?.Krankheiten.Keys ?? (ICollection<string>)Array.Empty<string>());
+        Lebensweise?.Pruefen(f, StandStufe, Charakterzuege?.Zuege.Keys, // ohne Charakterzüge wirken die Zug-Faktoren nicht – dann kein Fehler
+            typeof(Befehl).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Befehl)) && !t.IsAbstract).Select(t => t.Name));
+        if (Lebensweise is { IstAktiv: true } lw)
+            foreach (var (pfad, kennung, k) in lw.AlleKnoten)
+                k.Einrichtung?.Pruefen(f, $"lebensweise.pfade.{pfad}.knoten.{kennung}.einrichtung", Waren);
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);
         return f;

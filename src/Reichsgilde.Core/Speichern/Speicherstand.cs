@@ -744,6 +744,23 @@ public sealed record PersonStand
     /// nachgewürfelt, fest nach Personennummer (wie bei einer neuen Partie mit demselben Startwert).
     /// </summary>
     public List<string>? Zuege { get; init; }
+
+    /// <summary>Lebensweise (Charaktersystem Teil 3a): null, solange die Person nichts gesammelt hat, und in Spielständen von davor.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public LebenswegStand? Lebensweg { get; init; }
+}
+
+/// <summary>Die Lebensweise einer Person im Spielstand.</summary>
+public sealed record LebenswegStand
+{
+    /// <summary>Der gewählte Pfad (null: noch keiner).</summary>
+    public Dynastie.Talent? Pfad { get; init; }
+
+    /// <summary>Erfahrung je Pfad in der Reihenfolge des Talent-Enums.</summary>
+    public List<double> Erfahrung { get; init; } = new();
+
+    /// <summary>Genommene Knoten (Kennungen) in der Reihenfolge der Wahl.</summary>
+    public List<string> Knoten { get; init; } = new();
 }
 
 public sealed record ErkrankungStand
