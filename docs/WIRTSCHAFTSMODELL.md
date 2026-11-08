@@ -2379,7 +2379,7 @@ Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwer
   - Ein Pfad ohne eigenen Knoten wird jedes Jahr neu gewählt. Bisher hielt der Kern beim ersten Buchen das stärkste Talent fest, und neue Erben und Ehepartner blieben dabei.
   - Vorher folgten rund 30 % der Oberhaupt-Jahre jedes Berufs dem Pfad der Schatten, auch bei Menschen. Häuser auf diesem Pfad hatten nach 20 Jahren deutlich weniger Zuwachs.
 
-Gemessen auf main `b5444c09` (#371, Hafen und Handgeld; bis `00c328cc` nur Oberfläche) + diesem PR (`46f9eaab`), `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler; main 33,4 Min., Branch 36,8 Min.) und `messen bericht 40 30 --teile=2` (je 240 Partien; 16,5 bzw. 14,3 Min.). Last auf der geteilten NAS 7 bis 22 bei 8 Kernen, `--parallel=7`. Dateien: `docs/messungen/balancing-2026-11-08-main-b5444c09.json` gegen `…-lebensweise-nachgesteuert.json`, `…-voelker40-main-b5444c09.json` gegen `…-voelker40-lebensweise-nachgesteuert.json`.
+Gemessen auf main `b5444c09` (#371, Hafen und Handgeld; bis `2da3d75d` ohne Änderung an Kern und Daten) + diesem PR (`46f9eaab`), `messen bericht 20 30` (je 1.320 Partien, keine mit Fehler; main 33,4 Min., Branch 36,8 Min.) und `messen bericht 40 30 --teile=2` (je 240 Partien; 16,5 bzw. 14,3 Min.). Last auf der geteilten NAS 7 bis 22 bei 8 Kernen, `--parallel=7`. Dateien: `docs/messungen/balancing-2026-11-08-main-b5444c09.json` gegen `…-lebensweise-nachgesteuert.json`, `…-voelker40-main-b5444c09.json` gegen `…-voelker40-lebensweise-nachgesteuert.json`.
 
 | | main b5444c09 | mit Lebensweise, nachgesteuert |
 |---|---|---|
