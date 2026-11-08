@@ -941,6 +941,9 @@ public sealed record BilanzStand
 
     /// <summary>Erlös aus verkauften Betrieben (0 in alten Spielständen).</summary>
     public double Verkaeufe { get; init; }
+
+    /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73; 0 in alten Spielständen).</summary>
+    public double Handgeld { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 
@@ -1045,6 +1048,9 @@ public sealed record BetriebsrechnungStand
     /// <summary>Von Dieben geholt (Ware bzw. Kasse) und Schaden durch Feuer – nur zur Information (0 in alten Spielständen).</summary>
     public double Raub { get; init; }
     public double Brandschaden { get; init; }
+
+    /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73; 0 in alten Spielständen).</summary>
+    public double Handgeld { get; init; }
 }
 
 public sealed record KarrenStand

@@ -1150,12 +1150,15 @@ public sealed partial class Stadtwirtschaft
     private Befehlsergebnis PersonalAusfuehren(Betrieb betrieb, PersonalSetzen befehl)
     {
         var vorher = betrieb.Belegung.GetValueOrDefault(befehl.Arbeitskraft);
-        if (befehl.Anzahl > vorher && Personal.EinstellenVerboten(betrieb, befehl.Arbeitskraft) is { } nurAnfaenger)
+        if (befehl.Anzahl > vorher && (Personal.EinstellenVerboten(betrieb, befehl.Arbeitskraft)
+                                       ?? Personal.HandgeldFehlt(betrieb, befehl.Arbeitskraft, befehl.Anzahl - vorher)) is { } nurAnfaenger)
             return Befehlsergebnis.Abgelehnt(nurAnfaenger); // entlassen geht immer
         betrieb.Einstellen(befehl.Arbeitskraft, befehl.Anzahl, Statut); // prüft Statut, Plätze und Namen
         var diff = befehl.Anzahl - vorher;
+        var handgeld = diff > 0 ? Personal.HandgeldZahlen(betrieb, befehl.Arbeitskraft, diff) : 0; // erst nach dem Einstellen (Datenversion 73)
         return Befehlsergebnis.Ok(diff switch
         {
+            > 0 when handgeld > 0 => $"{betrieb.Name}: {diff}× {befehl.Arbeitskraft} eingestellt (Handgeld {Zahlenformat.Ganz(handgeld)} {Daten.Allgemein.Waehrung}).",
             > 0 => $"{betrieb.Name}: {diff}× {befehl.Arbeitskraft} eingestellt.",
             < 0 => $"{betrieb.Name}: {-diff}× {befehl.Arbeitskraft} entlassen.",
             _ => $"{betrieb.Name}: Belegung unverändert.",

@@ -29,6 +29,14 @@ public sealed class PersonalDaten
     /// </summary>
     public int? StartJeBetrieb { get; init; }
 
+    /// <summary>
+    /// Handgeld (Gulden), das ein Haus beim Einstellen eines Anfängers einmal zahlt – Lehrling, Knecht, Taschendieb, Rekrut; Spieler und KI
+    /// gleich (Nutzer, 08.11.2026). Nicht für die Startbelegung (<see cref="StartJeBetrieb"/>) und nicht für Arbeitskräfte ohne Stufen (Unfreie,
+    /// Orks). Gebucht als eigener Posten der Jahresrechnung (<see cref="Jahresbilanz.Handgeld"/>). Ohne Angabe 0: kein Handgeld, wie bis
+    /// Datenversion 72.
+    /// </summary>
+    public double Handgeld { get; init; }
+
     /// <summary>Die Laufbahnen; für einen Betrieb gilt die erste, deren Beruf und Ort passen (die letzte ohne Bedingung ist die Vorgabe).</summary>
     public List<LaufbahnDaten> Laufbahnen { get; init; } = new();
 
@@ -71,6 +79,7 @@ public sealed class PersonalDaten
         if (Briefe.Count != 2 || Briefe.Any(b => b < 0)) f.Add("personal.briefe: zwei Werte (zweite und dritte Stufe), nicht negativ.");
         if (VorarbeiterJeBetrieb < 0) f.Add("personal.vorarbeiterJeBetrieb darf nicht negativ sein.");
         if (StartJeBetrieb is < 1) f.Add("personal.startJeBetrieb muss mindestens 1 sein.");
+        if (Handgeld < 0 || double.IsNaN(Handgeld)) f.Add("personal.handgeld darf nicht negativ sein.");
         if (EigenesVolk is < 0 or > 1) f.Add("personal.eigenesVolk muss zwischen 0 und 1 liegen.");
         if (Frauen is < 0 or > 1) f.Add("personal.frauen muss zwischen 0 und 1 liegen.");
         if (Laufbahnen.Count == 0) f.Add("personal.laufbahnen darf nicht leer sein.");

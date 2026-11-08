@@ -60,16 +60,42 @@ public sealed class Personalwesen
 
     /// <summary>
     /// Darf dieser Betrieb eine Arbeitskraft dieser Art neu einstellen (Befehle <see cref="PersonalSetzen"/> und <see cref="ArbeiterEinstellen"/>)?
-    /// Nur Anfänger seiner Laufbahn und Arbeitskräfte ohne Stufen (Unfreie, Orks – das Statut prüft der Betrieb). null: Es geht.
+    /// Nur Anfänger seiner Laufbahn und Arbeitskräfte ohne Stufen (Unfreie, Orks – das Statut prüft der Betrieb); für einen Anfänger muss das
+    /// Bargeld für das Handgeld reichen (<see cref="Handgeld"/>, Datenversion 73). null: Es geht.
     /// </summary>
     public string? EinstellenVerboten(Betrieb b, string arbeitskraft)
     {
         if (Daten is not { } d || Laufbahn(b) is not { } l) return null;
         var stufe = d.StufeVon(arbeitskraft);
-        if (stufe == 0 || arbeitskraft == l.Anfaenger) return null;
+        if (stufe == 0) return null;
+        if (arbeitskraft == l.Anfaenger) return HandgeldFehlt(b, arbeitskraft, 1);
         if (!l.Stufen.Contains(arbeitskraft))
             return $"Ein {arbeitskraft} arbeitet nicht in einer {b.Artdaten.Name} – hier lernen {Mehrzahl(l.Anfaenger)}.";
         return $"Eingestellt werden nur {Mehrzahl(l.Anfaenger)} – ein {arbeitskraft} wird man durch Beförderung.";
+    }
+
+    /// <summary>
+    /// Das Handgeld, das ein Haus beim Einstellen einer Arbeitskraft dieser Art einmal zahlt (<see cref="PersonalDaten.Handgeld"/>, Datenversion 73):
+    /// für jeden Anfänger einer Laufbahn (Lehrling, Knecht, Taschendieb, Rekrut), nicht für Arbeitskräfte ohne Stufen (Unfreie, Orks). 0 ohne
+    /// Abschnitt „personal“ oder ohne Angabe.
+    /// </summary>
+    public double Handgeld(string arbeitskraft) => Daten is { Handgeld: > 0 and var h } d && d.StufeVon(arbeitskraft) == 1 ? h : 0;
+
+    /// <summary>Reicht das Bargeld des Hauses für das Handgeld von <paramref name="anzahl"/> Neuen? null: ja, sonst der Grund.</summary>
+    public string? HandgeldFehlt(Betrieb b, string arbeitskraft, int anzahl)
+    {
+        var summe = Handgeld(arbeitskraft) * anzahl;
+        return summe > 0 && b.Konto.Vermoegen < summe
+            ? $"Das Handgeld für {(anzahl == 1 ? $"einen {arbeitskraft}" : $"{anzahl} {Mehrzahl(arbeitskraft)}")} kostet {Zahlenformat.Ganz(summe)} {Waehrung}."
+            : null;
+    }
+
+    /// <summary>Bucht das Handgeld für <paramref name="anzahl"/> neu eingestellte Arbeitskräfte (Posten „Handgeld“ der Jahresrechnung); gibt den Betrag zurück.</summary>
+    internal double HandgeldZahlen(Betrieb b, string arbeitskraft, int anzahl)
+    {
+        var summe = Handgeld(arbeitskraft) * anzahl;
+        if (summe > 0) b.HandgeldBuchen(summe);
+        return summe;
     }
 
     private static string Mehrzahl(string kraft) => kraft switch

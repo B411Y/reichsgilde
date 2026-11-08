@@ -324,7 +324,9 @@ public sealed class Werkstattwesen
             return Befehlsergebnis.Abgelehnt($"{befehl.Ware} kann eine {b.Artdaten.Name} nicht herstellen.");
         if (_w.Personal.EinstellenVerboten(b, befehl.Arbeitskraft) is { } nurAnfaenger) return Befehlsergebnis.Abgelehnt(nurAnfaenger);
         var a = b.EinenEinstellen(befehl.Arbeitskraft, befehl.Ware, _w.Statut); // prüft Statut, Plätze und Namen
-        return Befehlsergebnis.Ok($"{b.Name}: {Personalwesen.Wer(a)} eingestellt" + (b.IstWerkstatt ? $", arbeitet an {b.WareVon(a)}." : "."));
+        var handgeld = _w.Personal.HandgeldZahlen(b, befehl.Arbeitskraft, 1); // erst nach dem Einstellen: Ein abgelehnter kostet nichts
+        return Befehlsergebnis.Ok($"{b.Name}: {Personalwesen.Wer(a)} eingestellt" + (b.IstWerkstatt ? $", arbeitet an {b.WareVon(a)}" : "")
+                                  + (handgeld > 0 ? $" (Handgeld {Zahlenformat.Ganz(handgeld)} {Waehrung})." : "."));
     }
 
     internal static Befehlsergebnis Entlassen(Betrieb b, ArbeiterEntlassen befehl)
