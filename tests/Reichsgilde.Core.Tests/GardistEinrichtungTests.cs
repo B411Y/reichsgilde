@@ -15,10 +15,10 @@ static class GardistEinrichtungTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Jeder Taschendieb wird in der ersten Stunde erwischt.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Tolpatschig = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 1")));
+    static readonly Lazy<Wirtschaftsdaten> Tolpatschig = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 1")));
 
     /// <summary>Niemand wird am Markt erwischt.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Unerwischt = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0")));
+    static readonly Lazy<Wirtschaftsdaten> Unerwischt = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null, int startwert = 1400) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert }, wirtschaftsdaten: daten ?? Daten.Value);
@@ -82,7 +82,7 @@ static class GardistEinrichtungTests
         ("Gardist-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(74, Daten.Value.Version);
+            Pruefe.Gleich(75, Daten.Value.Version);
             var wache = d.EinrichtungFuer("Gardist");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Hunde Kettenhemd Regale Loeschfass Eisentuer", string.Join(" ", wache.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 die Lehrlingsstube
             Pruefe.Gleich("Hellebarden, Armbrüste, Wachhunde, Kettenhemden, Waffenkammer, Löschfass, Eisentür", string.Join(", ", wache.Take(7).Select(e => e.Name)));

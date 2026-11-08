@@ -1,5 +1,5 @@
 {
-  "version": 74,
+  "version": 75,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -543,7 +543,7 @@
     },
     "Moschusduft": {
       "typ": "Fertigprodukt",
-      "grundpreis": 226,
+      "grundpreis": 220,
       "zeit": 70,
       "zutaten": { "Jasmin": 2, "Lavendel": 1, "Weingeist": 1 },
       "nachfrage": 100,
@@ -551,7 +551,7 @@
     },
     "Fechterduft": {
       "typ": "Fertigprodukt",
-      "grundpreis": 215,
+      "grundpreis": 210,
       "zeit": 60,
       "zutaten": { "Jasmin": 2, "Politur": 1 },
       "nachfrage": 100,
@@ -1173,7 +1173,7 @@
     "beruf": "Dieb",
     "ansehen": 3,
     "auftraegeJeStufe": [ 1, 2, 3 ],
-    "taschendiebstahl": { "beuteJeMinute": 1.16, "beuteJeStufe": [ 1, 1.2, 1.4 ], "fangJeStunde": 0.012, "fangJeStufe": [ 1, 0.8, 0.6 ] },
+    "taschendiebstahl": { "beuteJeMinute": 1.16, "beuteJeStufe": [ 1, 1.2, 1.4 ], "fangJeStunde": 0.009, "fangJeStufe": [ 1, 0.8, 0.6 ] },
     "einbruch": { "abStufe": 1, "chanceBonus": 0.1, "stueckJeStufe": 6, "zeugenFaktor": 0.75 },
     "auskundschaften": { "abStufe": 1, "chance": 0.4 },
     "schutzgeld": { "abStufe": 2, "sabotageBonus": 0.1 },

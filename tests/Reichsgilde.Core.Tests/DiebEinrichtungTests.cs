@@ -13,11 +13,11 @@ static class DiebEinrichtungTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Niemand wird am Markt erwischt – die Belegschaft bleibt, wie sie ist.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Unerwischt = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0")));
+    static readonly Lazy<Wirtschaftsdaten> Unerwischt = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0")));
 
     /// <summary>Auskundschafter finden jede Spur (gedeckelt 95 %), niemand wird am Markt erwischt.</summary>
     static readonly Lazy<Wirtschaftsdaten> Spuersinn = new(() => Wirtschaftsdaten.AusJson(Json
-        .Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0")
+        .Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0")
         .Replace("\"auskundschaften\": { \"abStufe\": 1, \"chance\": 0.4 }", "\"auskundschaften\": { \"abStufe\": 1, \"chance\": 1 }")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null, int startwert = 1400) =>
@@ -84,7 +84,7 @@ static class DiebEinrichtungTests
         ("Dieb-Einrichtung: Daten – sieben Stücke mit den Kennungen des Raummodells, Preise wie bei den Werkstätten, Datenversion 52", () =>
         {
             var d = Daten.Value.Werkstatt!;
-            Pruefe.Gleich(74, Daten.Value.Version);
+            Pruefe.Gleich(75, Daten.Value.Version);
             var dieb = d.EinrichtungFuer("Dieb");
             Pruefe.Gleich("Werkzeug1 Werkzeug2 Verkleidung Regale Loeschfass Eisentuer Handschuhe", string.Join(" ", dieb.Take(7).Select(e => e.Kennung))); // dazu ab PR #224 die Lehrlingsstube
             Pruefe.Gleich("Dietriche, Meisterdietriche, Verkleidungstruhe, Hehlerkammer, Löschfass, Eisentür, Lederhandschuhe",
@@ -178,7 +178,7 @@ static class DiebEinrichtungTests
         ("Dieb-Einrichtung: Die Hehlerkammer fasst 20 Stück mehr Beute je Ware – ein Einbruch bringt mehr ins eigene Lager", () =>
         {
             var daten = Wirtschaftsdaten.AusJson(Json
-                .Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0")
+                .Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0")
                 .Replace("\"diebstahl\": { \"kosten\": 150, \"chance\": 0.7", "\"diebstahl\": { \"kosten\": 150, \"chance\": 1")
                 .Replace("\"zeugenChance\": 0.25", "\"zeugenChance\": 0"));
             foreach (var kammer in new[] { false, true })

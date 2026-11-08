@@ -90,6 +90,20 @@ static class Datenpfad
     /// <summary>Die Daten wie bis Datenversion 72: ohne Karren zum Hafen und ohne Handgeld.</summary>
     public static string WieVorHafenziel(string? json = null) => MitHandgeld(OhneHafenziel(json), 0);
 
+    /// <summary>
+    /// Die Werte wie bis Datenversion 74, vor dem Balancing nach dem Handgeld (Datenversion 75): Taschendiebe werden mit 0,012 je Stunde gefasst
+    /// (jetzt 0,009), Moschusduft kostet 226 und Fechterduft 215 (jetzt 220 und 210) – für die Vergleiche mit Sollwerten älterer Kerne.
+    /// </summary>
+    public static string WieVorBalancingHandgeld(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        string Ersetzen(string text, string alt, string neu) => text.Contains(alt, StringComparison.Ordinal) ? text.Replace(alt, neu)
+            : throw new InvalidDataException($"„{alt}“ steht nicht wie erwartet in den Daten – Datenpfad.WieVorBalancingHandgeld anpassen.");
+        json = Ersetzen(json, "\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0.012");
+        json = Ersetzen(json, "\"Moschusduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 220,", "\"Moschusduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 226,");
+        return Ersetzen(json, "\"Fechterduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 210,", "\"Fechterduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 215,");
+    }
+
     /// <summary>Die Karte game/karten/&lt;kennung&gt;.json (neben game/daten/).</summary>
     public static string Karte(string kennung) =>
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Wirtschaft()))!, "karten", kennung + ".json");

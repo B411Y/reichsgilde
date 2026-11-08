@@ -41,6 +41,7 @@ static class HafenRuhtTests
     {
         // Karren zum Hafen und Handgeld (Datenversion 73) wie vor dem Schalter abschalten
         json = Datenpfad.WieVorHafenziel(json);
+        json = Datenpfad.WieVorBalancingHandgeld(json); // Fang der Taschendiebe, Moschus- und Fechterduft (Datenversion 75) wie vor dem Schalter
         // Blitzschaden (Datenversion 71) wie vor dem Schalter abschalten: alte Blitzwerte (Reparatur 0, keine Anteile, kein Sprung)
         var knoten = JsonNode.Parse(json)!;
         var blitz = knoten["blitz"]!.AsObject();
@@ -97,7 +98,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(74, d.Version);
+            Pruefe.Gleich(75, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");

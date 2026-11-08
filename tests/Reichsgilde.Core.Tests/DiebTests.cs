@@ -15,14 +15,14 @@ static class DiebTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Niemand wird je erwischt – für Rechnungen ohne Zufall.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Unerwischt = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0")));
+    static readonly Lazy<Wirtschaftsdaten> Unerwischt = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0")));
 
     /// <summary>Jede Stunde wird einer erwischt.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Tolpatschig = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 1")));
+    static readonly Lazy<Wirtschaftsdaten> Tolpatschig = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 1")));
 
     /// <summary>Alles gelingt so sicher wie möglich (95 %), niemand wird am Markt erwischt.</summary>
     static readonly Lazy<Wirtschaftsdaten> Geschickt = new(() => Wirtschaftsdaten.AusJson(Json
-        .Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0")
+        .Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0")
         .Replace("\"auskundschaften\": { \"abStufe\": 1, \"chance\": 0.4 }", "\"auskundschaften\": { \"abStufe\": 1, \"chance\": 1 }")
         .Replace("\"entfuehrung\": { \"abStufe\": 3, \"chance\": 0.55 }", "\"entfuehrung\": { \"abStufe\": 3, \"chance\": 1 }")
         .Replace("\"diebstahl\": { \"kosten\": 150, \"chance\": 0.7", "\"diebstahl\": { \"kosten\": 150, \"chance\": 1")

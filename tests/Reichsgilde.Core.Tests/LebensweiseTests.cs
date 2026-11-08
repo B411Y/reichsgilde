@@ -68,7 +68,7 @@ static class LebensweiseTests
         ("Lebensweise: Daten – fünf Pfade (einer je Talent) mit 3 × 3 Knoten, voller Baum 1.350 Erfahrung, Datenversion 74", () =>
         {
             var d = Daten.Value.Lebensweise!;
-            Pruefe.Gleich(74, Daten.Value.Version);
+            Pruefe.Gleich(75, Daten.Value.Version);
             Pruefe.Gleich(5, d.Pfade.Count);
             Pruefe.Wahr(TalentTexte.Alle.All(d.Pfade.ContainsKey), "jedes Talent hat einen Pfad");
             Pruefe.Gleich(45, d.AlleKnoten.Count());
@@ -274,7 +274,7 @@ static class LebensweiseTests
         ("Lebensweise: Leise Sohlen – die Taschendiebe des Hauses bringen 5 % mehr Beute; ein Haus ohne den Knoten nicht (Gegenprobe)", () =>
         {
             // Niemand wird am Markt erwischt – die Beute ist dann genau Minuten × Gulden je Minute (wie in DiebTests).
-            var daten = Wirtschaftsdaten.AusJson(Json.Value.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0"));
+            var daten = Wirtschaftsdaten.AusJson(Json.Value.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0"));
             var sim = NeueSimulation(daten: daten);
             var w = sim.Wirtschaft!;
             var (mit, f) = Haus(w, "Haus Elster");
