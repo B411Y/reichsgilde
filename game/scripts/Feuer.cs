@@ -71,6 +71,7 @@ public partial class Feuer : Node3D
         if (ebene == Ebene) return;
         Ebene = ebene;
         foreach (var f in baum.GetNodesInGroup("feuer")) (f as Feuer)?.EbeneAnwenden();
+        Kaminrauch.Aktuell?.EbeneAnwenden();
     }
 
     private void EbeneAnwenden()
@@ -98,6 +99,15 @@ public partial class Feuer : Node3D
         foreach (var m in _umgebungMaterialien) m.SetShaderParameter("umgebung", Umgebung);
     }
 
+    /// <summary>Gibt einem Material der Rauch-Ballen (<see cref="Kaminrauch"/>) die gemeinsame Uhr und die Umgebung wie den anderen Feuern.</summary>
+    internal static void Zeitgeber(ShaderMaterial m)
+    {
+        m.SetShaderParameter("zeit", (float)Zeit);
+        m.SetShaderParameter("umgebung", Umgebung);
+        _zeitMaterialien.Add(m);
+        _umgebungMaterialien.Add(m);
+    }
+
     // Startwert je Zunge (für das Licht)
     private readonly List<uint> _saaten = new();
     private SimKennwerte? _sim;
@@ -106,6 +116,39 @@ public partial class Feuer : Node3D
     private readonly List<MeshInstance3D> _flammen = new();   // Zungen und Glutbett
     private float _rauchStaerke = 1f;
     private bool _flammeAn = true;
+    private Kaminrauch? _kaminrauch;
+    private int _kaminNr = -1;
+    private bool _kaminBereit;
+    private RauchSorte _rauchSorte = RauchSorte.Werkstatt;
+
+    /// <summary>Wie dick der Rauch eines Kamins ist (nur Kamine im <see cref="Kaminrauch"/> der Stadt): Wohnhaus dünn und hell, Gießerei und Schmiede dick und dunkel.</summary>
+    public RauchSorte Sorte
+    {
+        get => _rauchSorte;
+        set
+        {
+            _rauchSorte = value;
+            if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) _kaminrauch.SorteSetzen(_kaminNr, value);
+        }
+    }
+
+    public override void _EnterTree()
+    {
+        // Wieder eingehängt (nach dem Aushängen): beim Rauch der Stadt neu anmelden
+        if (_kaminBereit && _kaminrauch is null && Kaminrauch.Aktuell is { } rauch)
+        {
+            _kaminrauch = rauch;
+            _kaminNr = rauch.Anmelden(this, _rauchSorte, Phase);
+            rauch.StaerkeSetzen(_kaminNr, _rauchStaerke);
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) _kaminrauch.Freigeben(_kaminNr);
+        _kaminrauch = null;
+        _kaminNr = -1;
+    }
 
     /// <summary>Legt ein Feuer an (noch nicht im Baum).</summary>
     public static Feuer Neu(FeuerVorgabe vorgabe, bool mitLicht = true, float phase = -1f, float groesse = 1f) =>
@@ -122,7 +165,12 @@ public partial class Feuer : Node3D
         }
         var zufall = new RandomNumberGenerator { Seed = (ulong)(Phase * 1000000f) + 17UL };
         if (Art.Form != FeuerForm.NurRauch) FlammeBauen(Art, zufall);
-        if (Art.RauchMenge > 0f) RauchBauen(Art, zufall);
+        if (Art.RauchMenge > 0f)
+        {
+            // Kamine der Stadt: ein gemeinsamer Rauch aus Ballen (Kaminrauch.cs); ohne ihn (Editor, alte Testszenen) die Säule aus Flächen
+            if (Art.Form == FeuerForm.NurRauch && Kaminrauch.Aktuell is { } rauch) { _kaminrauch = rauch; _kaminNr = rauch.Anmelden(this, _rauchSorte, Phase); _kaminBereit = true; rauch.StaerkeSetzen(_kaminNr, _rauchStaerke); }
+            else RauchBauen(Art, zufall);
+        }
         if (Art.Form == FeuerForm.Glut) GlutBauen(Art);
         if (MitLicht && Art.LichtEnergie > 0f) LichtBauen(Art);
         if (_rauchStaerke < 1f) RauchStaerke = _rauchStaerke;
@@ -254,6 +302,7 @@ public partial class Feuer : Node3D
         set
         {
             _rauchStaerke = Mathf.Clamp(value, 0f, 1f);
+            if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) _kaminrauch.StaerkeSetzen(_kaminNr, _rauchStaerke);
             foreach (var m in _rauch)
             {
                 m.Scale = new Vector3(m.Scale.X, m.Scale.Y, m.Scale.X * (1f + _rauchStaerke)); // die Stärke steckt in der Tiefe der Fläche (FlaechenSetzen)

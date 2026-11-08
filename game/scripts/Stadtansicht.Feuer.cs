@@ -485,6 +485,9 @@ public partial class Stadtansicht
             _schornsteinListen[datei] = liste = SchornsteineSuchen(modell);
             GD.Print($"[feuer] Schornsteine in {datei}: {liste.Count}");
         }
+        // Der gemeinsame Rauch aller Schornsteine (ein Zeichenaufruf, Kaminrauch.cs); die Kamine melden sich beim Bau dort an
+        // (RG_ALTERRAUCH nur für Vergleichsbilder: die alte Säule aus Flächen)
+        if (OS.GetEnvironment("RG_ALTERRAUCH") == "" && (Kaminrauch.Aktuell is null || !IsInstanceValid(Kaminrauch.Aktuell))) AddChild(new Kaminrauch());
         foreach (var (pfad, lage) in liste)
         {
             if (modell.GetNodeOrNull<Node3D>(pfad) is not { } teil) continue;
@@ -516,6 +519,14 @@ public partial class Stadtansicht
         };
     }
 
+    /// <summary>Wie dick und dunkel der Rauch eines Betriebs ist: Feuer und Esse (Gießerei, Schmiede, Goldschmiede, Alchimist, Siederei) und Braukessel (Wirt) dick und dunkel, alles andere mittel.</summary>
+    private static RauchSorte RauchSorteVon(Betriebsart art) => art switch
+    {
+        Betriebsart.Giesserei or Betriebsart.Schmiede or Betriebsart.Goldschmiede or Betriebsart.Tinkturei
+            or Betriebsart.Alchimistenstube or Betriebsart.Siederei or Betriebsart.Schaenke or Betriebsart.Wirtshaus or Betriebsart.Gasthaus => RauchSorte.Schwer,
+        _ => RauchSorte.Werkstatt,
+    };
+
     /// <summary>Jedes Bild: Rauch nach Haus, Tageszeit und Arbeit weich ein- und ausblenden (etwa vier Sekunden). Ein brennendes Haus hat keinen Kaminrauch.</summary>
     private void KamineAktualisieren(Stadtwirtschaft w, Spielzeit zeit, float uhrzeit, double delta)
     {
@@ -534,8 +545,15 @@ public partial class Stadtansicht
             bool soll;
             if (_braende.ContainsKey(k.Kennung) || _braende.ContainsKey("blitz:" + k.Kennung.Replace("kulisse:", ""))) soll = false;
             else if (_betriebNachName.TryGetValue(k.Kennung, out var b))
+            {
                 soll = w.IstArbeitszeit(b, zeit) && b.Belegt > 0 && b.Stillstand is null && b.SabotageMinuten == 0;
-            else soll = WohnhausHeizt(k.Saat, uhrzeit, jahreszeit);
+                k.Rauch.Sorte = RauchSorteVon(b.Art);
+            }
+            else
+            {
+                soll = WohnhausHeizt(k.Saat, uhrzeit, jahreszeit);
+                k.Rauch.Sorte = RauchSorte.Wohnhaus;
+            }
             var stand = Mathf.MoveToward(k.Stand, soll ? 1f : 0f, schritt);
             if (Mathf.IsEqualApprox(stand, k.Stand)) continue;
             k.Stand = stand;

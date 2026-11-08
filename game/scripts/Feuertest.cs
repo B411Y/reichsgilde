@@ -98,6 +98,7 @@ public partial class Feuertest : Node
 
         StoffeBauen();
         UmgebungBauen();
+        AddChild(new Kaminrauch());   // der Kamin zeigt den Rauch aus Ballen wie die Stadt (Kaminrauch.cs)
         BodenBauen();
         if (_fackeln > 0) FackelRasterBauen(); else PaareBauen();
         KameraBauen();
