@@ -9,7 +9,7 @@ namespace Reichsgilde;
 /// Streife hat (<see cref="Reichsgilde.Core.Ordnung.Wachwesen.AnwesenheitJetzt"/>), gehen nicht mehr alle dieselbe Runde, sondern je Wachwechsel und Nummer
 /// eine von bis zu drei:
 /// <list type="bullet">
-/// <item><b>Markt</b>: Tür, Marktplatz und zurück.</item>
+/// <item><b>Markt</b>: von der Tür reihum an den Seiten des nächsten Marktplatzes vorbei und zurück, mindestens 150 m (<see cref="Marktrunde"/>).</item>
 /// <item><b>Viertel</b>: drei Punkte der Gassen des eigenen Viertels (des Wachhauses; Viertel wie im Kern, <see cref="Amtsbefugnisse.ViertelBei"/>).</item>
 /// <item><b>Mauer</b>: ein Stück Weg an der Stadtmauer (Gassenpunkte innerhalb von <see cref="MauerAbstand"/> m der Mauer, in der Reihenfolge entlang der
 /// Mauer), wo die Karte eine Mauer mit Gassen daran hat; sonst entfällt diese Runde.</item>
@@ -123,9 +123,9 @@ public partial class Stadtansicht
             {
                 Streifenart.Viertel => ViertelPunkte(w, haus, tuer, viertel, out start),
                 Streifenart.Mauer => MauerPunkte(tuer, haus.Name),
-                _ => new List<Vector3> { MarktAnschluss(tuer) },
+                _ => new List<Vector3>(), // die Marktrunde plant MarktrundePlanen
             };
-            if (punkte.Count == 0) { punkte = new List<Vector3> { MarktAnschluss(tuer) }; start = tuer; }
+            if (punkte.Count == 0) runde = MarktrundePlanen(tuer); // Marktrunde, oder keine Punkte dieser Art: dann über den Markt
             var hin = new List<Vector3> { start };
             var von = start;
             foreach (var ziel in punkte)
@@ -136,7 +136,7 @@ public partial class Stadtansicht
                     if (hin[^1].DistanceTo(punkt) > 0.05f) hin.Add(punkt);
                 von = ziel;
             }
-            if (hin.Count >= 2)
+            if (hin.Count >= 2 && punkte.Count > 0)
             {
                 var ganz = hin.Concat(Enumerable.Reverse(hin).Skip(1)).ToArray();
                 runde = (ganz, Gassennetz.Laenge(ganz));
@@ -145,7 +145,7 @@ public partial class Stadtansicht
         if (runde is null && StreifeLog) GD.Print($"[streife] keine Runde: Tür {TuerAnker(haus.Name)}, Netz {_netz.Knoten.Count} Knoten");
         if (runde is null) _streifeFehl[schluessel] = _figurenBild + 900; // später neu versuchen (etwa alle 15 s)
         else _streifenrunden[schluessel] = runde;
-        if (StreifeLog) GD.Print($"[streife] {haus.Name} ({w.Befugnisse.ViertelVon(haus)}): {art} {viertel}, " + (runde is { } r ? $"{r.Laenge / 2:0} m hin, Tür {TuerAnker(haus.Name)?.X:0}|{TuerAnker(haus.Name)?.Z:0}, Ziel {r.Runde[r.Runde.Length / 2].X:0}|{r.Runde[r.Runde.Length / 2].Z:0}" : "keine Runde"));
+        if (StreifeLog) GD.Print($"[streife] {haus.Name} ({w.Befugnisse.ViertelVon(haus)}): {art} {viertel}, " + (runde is { } r ? $"{r.Laenge:0} m Runde, Tür {TuerAnker(haus.Name)?.X:0}|{TuerAnker(haus.Name)?.Z:0}, Ziel {r.Runde[r.Runde.Length / 2].X:0}|{r.Runde[r.Runde.Length / 2].Z:0}" : "keine Runde"));
         return runde;
     }
 
@@ -167,25 +167,27 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Der Punkt des Gassennetzes, bis zu dem die Marktrunde geht: der dem nächsten Marktplatz nächste Knoten, der von der Tür aus erreichbar ist. Die Mitte des Platzes selbst
-    /// hängt oft nicht am Netz (die Gassen enden am Rand des Pflasters; über den Platz laufen die Passanten über die Fläche) – dann fand die Runde keinen Weg und der Wachmann
-    /// blieb unsichtbar (Befund 07.11.2026: Köln und Greybox, „keine Runde“ bei der Marktrunde).
+    /// Die Marktrunde (<see cref="Marktrunde"/>, reine Rechnung): von der Tür reihum an den Seiten des nächsten Marktplatzes vorbei und zurück, mindestens
+    /// <see cref="Marktrunde.MindestLaenge"/> m. Haltepunkte sind die Knoten des Gassennetzes auf den Wegen der Karte (nicht die Anschlüsse von Türen und Höfen)
+    /// auf derselben Seite der Mauer wie der Platz. Früher ging sie nur bis zum ersten Knoten am Platz und zurück – in Köln vom Wachhaus am Heumarkt 5 m, weil
+    /// der Knoten vor der Tür schon im Umkreis des Platzes lag (Befund 08.11.2026).
     /// </summary>
-    private Vector3 MarktAnschluss(Vector3 tuer)
+    private (Vector3[] Runde, float Laenge)? MarktrundePlanen(Vector3 tuer)
     {
         var markt = NaechsterMarkt(tuer);
         var mitte = markt?.Mitte ?? _markt;
-        var rand = (markt?.Halb ?? 15f) + 25f;
-        var knoten = _netz.Knoten;
-        var enden = new List<(int Knoten, float Nachlauf)>();
-        for (var i = 0; i < knoten.Count; i++)
-        {
-            var d = Abstand2D(knoten[i], mitte);
-            if (d <= rand) enden.Add((i, d));
-        }
-        // ein Durchgang von der Tür aus zu allen Knoten am Platz; gewählt wird der mit dem kürzesten Weg samt Rest bis zur Mitte
-        if (enden.Count > 0 && _netz.PfadZwischen(new[] { (KnotenNaechster(tuer), 0f) }, enden) is { } treffer) return knoten[enden[treffer.Ende].Knoten];
-        return mitte;
+        var halb = markt?.Halb ?? 15f;
+        var reichweite = halb + Marktrunde.Ringe[^1];
+        var drinnen = InDerStadt(mitte);
+        var wegpunkte = new List<(float X, float Z)>();
+        foreach (var k in _netz.Knoten)
+            if (Abstand2D(k, mitte) <= reichweite && InDerStadt(k) == drinnen && NaechsterWegpunkt(k).Abstand < 0.3f) wegpunkte.Add((k.X, k.Z));
+        IReadOnlyList<(float X, float Z)> Weg((float X, float Z) a, (float X, float Z) b) =>
+            _netz.Pfad(KnotenNaechster(new Vector3(a.X, 0, a.Z)), KnotenNaechster(new Vector3(b.X, 0, b.Z))).Select(p => (p.X, p.Z)).ToList();
+        if (Marktrunde.Planen((tuer.X, tuer.Z), (mitte.X, mitte.Z), halb, wegpunkte, Weg) is not { } plan) return null;
+        var punkte = plan.Runde.Select(p => new Vector3(p.X, 0, p.Z)).ToArray();
+        punkte[0] = punkte[^1] = tuer; // die Tür mit ihrer Höhe wie bisher
+        return (punkte, Gassennetz.Laenge(punkte));
     }
 
     /// <summary>
