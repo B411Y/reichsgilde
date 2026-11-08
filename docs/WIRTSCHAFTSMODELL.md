@@ -2293,7 +2293,7 @@ Dateien: `docs/messungen/schaenke-2026-11-04-startlehrling-{vorher,passiv-vorher
 
 **Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md`, „Lebensweise (PR #…)“): Oberhaupt, Erbe und Ehepartner sammeln Erfahrung in fünf Pfaden und nehmen Knoten (Abschnitt `lebensweise`). Die KI-Häuser und der Messspieler (KI-geführt, ein Betrieb) wählen Pfad und Knoten nach Talent und Zügen (`KiRivale.Lebensweise`) und nehmen jeden Punkt sofort. **Kein Grundwert eines Berufs ist geändert.**
 
-Gemessen auf main `18c40e7a` + diesem PR (`7599edc3`), `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 37,7 Min.) → `docs/messungen/balancing-2026-11-08-lebensweise.json`; Vergleich: main `18c40e7a` mit derselben Messung → `docs/messungen/balancing-2026-11-08-main-18c40e7a.json`.
+Gemessen auf main `18c40e7a` (bis main `4a529082` nur die Restflächen der Darstellung) + diesem PR (`7599edc3`), `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 37,7 Min.) → `docs/messungen/balancing-2026-11-08-lebensweise.json`; Vergleich: main `18c40e7a` mit derselben Messung → `docs/messungen/balancing-2026-11-08-main-18c40e7a.json`.
 
 | | main | mit Lebensweise |
 |---|---|---|
