@@ -45,6 +45,34 @@ public partial class Stadtansicht
     private int _fuellDichte = 100, _fuellGebacken;
     private double _fuellDichteSeit;
 
+    private Shader? _pfuetzeShader;
+    private ShaderMaterial? _pfuetzeStoff;
+
+    /// <summary>
+    /// Das Material der Pfützen und des stehenden Wassers der Füllung (<c>pfuetze.gdshader</c>): Himmelsspiegelung, bei Regen glänzender, in Hoch mit Tropfenringen. Eines für alle
+    /// Netze (eine Fläche je Netz wie vorher das „Wasser“). Null, wenn die Datei fehlt: dann bleibt das einfache Material des Modells.
+    /// </summary>
+    private ShaderMaterial? PfuetzeStoff()
+    {
+        if (_pfuetzeStoff is not null) return _pfuetzeStoff;
+        const string pfad = "res://assets/shader/pfuetze.gdshader";
+        if (!ResourceLoader.Exists(pfad)) return null;
+        _pfuetzeShader ??= GD.Load<Shader>(pfad);
+        _pfuetzeStoff = new ShaderMaterial { Shader = _pfuetzeShader, ResourceName = "Pfuetze" };
+        PfuetzeStufeSetzen();
+        return _pfuetzeStoff;
+    }
+
+    /// <summary>Die Stufe der Pfütze folgt der Einstellung „Boden“ (Niedrig, Mittel, Hoch).</summary>
+    private void PfuetzeStufeSetzen() => _pfuetzeStoff?.SetShaderParameter("stufe", (int)Fenster.AktuelleBodenqualitaet);
+
+    /// <summary>Gibt den Flächen „Pfuetze“ eines frisch gebackenen Netzes das Pfützen-Material (ferne Netze haben sie meist schon mit dem „Wasser“ zusammengelegt).</summary>
+    private void PfuetzenTauschen(ArrayMesh netz)
+    {
+        for (var i = 0; i < netz.GetSurfaceCount(); i++)
+            if (netz.SurfaceGetMaterial(i) is { ResourceName: "Pfuetze" } && PfuetzeStoff() is { } stoff) netz.SurfaceSetMaterial(i, stoff);
+    }
+
     /// <summary>Ein Bildnetz der ganzen Füllung (je Jahreszeit und Stufe): zuerst die Arbeit (Sammeln, dann Fläche für Fläche backen), danach der Knoten.</summary>
     private sealed class Fuellsatz
     {
@@ -179,6 +207,7 @@ public partial class Stadtansicht
             yield return 0;
         }
         if (!IsInstanceValid(wurzel) || gebacken.GetSurfaceCount() == 0) yield break;
+        PfuetzenTauschen(gebacken);
         satz.Ecken = sammler.Ecken;
         satz.Flaechen = gebacken.GetSurfaceCount();
         satz.Knoten = new MeshInstance3D { Name = $"bild_{(winter ? "winter" : "sommer")}_{(stufe == 1 ? "fern" : "alle")}", Mesh = gebacken, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Visible = false };
@@ -196,6 +225,7 @@ public partial class Stadtansicht
             if (!(winter && t.Sommer) && FuellNetz(t, winter) is { } netz) _fuellBacker.Hinzu(sammler, netz, t.Lage);
         if (_fuellBacker.Backen(sammler) is { } gebacken)
         {
+            PfuetzenTauschen(gebacken);
             var knoten = new MeshInstance3D { Name = $"bild_{(winter ? "winter" : "sommer")}", Mesh = gebacken, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Visible = false };
             _fuellWurzel!.AddChild(knoten);
             zelle.Bild[jahr] = knoten;
