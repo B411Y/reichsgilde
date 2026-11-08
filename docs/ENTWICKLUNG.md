@@ -83,7 +83,7 @@ Am Ende muss stehen: `Alle … Tests bestanden.` Darunter steht, wie viele Tests
 
 ### Gezielt testen
 
-Alle Tests zusammen brauchen auf der NAS knapp vier Minuten (3 min 43 s, gemessen am 8.11.2026). Während der Arbeit genügt meist ein Teil; die Schalter stehen hinter `--` (damit `dotnet` sie an das Testprogramm weitergibt):
+Alle Tests zusammen brauchen auf der NAS knapp vier Minuten (3 min 43 s bis 4 min 8 s je nach Last, gemessen am 8.11.2026). Während der Arbeit genügt meist ein Teil; die Schalter stehen hinter `--` (damit `dotnet` sie an das Testprogramm weitergibt):
 
 | Schalter | Was er tut | Beispiel |
 |---|---|---|
@@ -105,7 +105,7 @@ Schalter wirken zusammen: `-- --klasse=Buerger* --filter=Hafen` nimmt nur die Ha
 
 ### Parallel testen
 
-`-- --parallel` lässt die Testklassen gleichzeitig laufen, die Tests einer Klasse wie gewohnt nacheinander. Auf der NAS dauert der volle Lauf so etwa 3 Minuten statt 3 min 43 s (gemessen am 8.11.2026, während andere Mitglieder mit Godot maßen): Die NAS hat nur vier Kerne, unter Last rechnet jeder Test parallel drei- bis viermal so lange, und mit zwei Fäden war der Lauf ebenso schnell wie mit sechs. Auf einem freien Rechner mit mehr Kernen bringt der Schalter mehr. Der Schalter wirkt mit allen anderen zusammen (`-- --parallel --ohne-langsam`, `-- --parallel=2 --klasse=Buerger*`).
+`-- --parallel` lässt die Testklassen gleichzeitig laufen, die Tests einer Klasse wie gewohnt nacheinander. Auf der NAS dauert der volle Lauf so etwa 3 bis 3½ Minuten statt knapp 4 (gemessen am 8.11.2026, während andere Mitglieder mit Godot maßen): Die NAS hat nur vier Kerne, unter Last rechnet jeder Test parallel drei- bis viermal so lange, und mit zwei Fäden war der Lauf ebenso schnell wie mit sechs. Auf einem freien Rechner mit mehr Kernen bringt der Schalter mehr. Der Schalter wirkt mit allen anderen zusammen (`-- --parallel --ohne-langsam`, `-- --parallel=2 --klasse=Buerger*`).
 
 - **Ausgabe:** Jede Klasse schreibt in ihren eigenen Puffer (auch was ihre Tests mit `Console.WriteLine` ausgeben). Die Blöcke erscheinen in der gewohnten Reihenfolge, sobald eine Klasse und alle vor ihr fertig sind. Zusammenfassung und Rückgabewert sind dieselben wie seriell; dazu kommt die Zahl der Fäden und die Rechenzeit aller Tests zusammen.
 - **Allein am Ende:** Klassen mit Zeitgrenzen („unter 150 ms“, „schneller als das Raster“) stehen in `tests/Reichsgilde.Core.Tests/SeriellTests.cs` und laufen erst danach, eine nach der anderen – unter Volllast würde die Grenze sonst zufällig reißen. Wer einen Test mit Zeitgrenze schreibt oder etwas für den ganzen Prozess ändert (Umgebungsvariable, aktuelles Verzeichnis, Datei mit festem Namen, `Console.SetOut`), trägt seine Klasse dort ein. Zähler, `Lazy` und `CultureInfo.CurrentCulture` (gilt je Faden) sind kein Grund: Eine Klasse läuft immer in einem Faden.
