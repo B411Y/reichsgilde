@@ -29,6 +29,8 @@
     <Compile Include="..\..\game\scripts\Ausweichgang.cs" Link="Gehtempo\Ausweichgang.cs" />
     <!-- Wahl der Streifenrunde (Wachen und Diebe, Paket P5) – StreifengangTests.cs -->
     <Compile Include="..\..\game\scripts\Streifengang.cs" Link="Gehtempo\Streifengang.cs" />
+    <!-- Die Marktrunde der Streife (Haltepunkte um den Platz, Mindestlänge) – StreifeMarktrundeTests.cs -->
+    <Compile Include="..\..\game\scripts\Marktrunde.cs" Link="Gehtempo\Marktrunde.cs" />
     <!-- Die Spuren der Passanten (Rechtsverkehr, Schwanken, weiche Übergänge) – PassantenspurTests.cs -->
     <Compile Include="..\..\game\scripts\Passantenspur.cs" Link="Gehtempo\Passantenspur.cs" />
     <!-- Ausweichen der Passanten (Schicht 4) und ihr Einstieg auf das nächste Wegstück – PassantenausweichenTests.cs, PassantenwegeTests.cs -->
