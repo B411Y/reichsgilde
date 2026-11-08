@@ -213,7 +213,9 @@ public partial class Stadtansicht
                 var hahn = i == hennen;
                 if (Modell(hahn ? "tiere/tier_hahn" : HuhnModelle[(farbe + i) % 3]) is not { } szene) continue;
                 var knoten = szene.Instantiate<Node3D>();
+                var mergeUhr = Ladezeit.Uhr();
                 FlaechenZusammenlegen(knoten); // Stadtansicht.Flaechenmerge.cs
+                Ladezeit.Dazu("Flächen zusammenlegen", mergeUhr);
                 knoten.Scale = Vector3.One * TierMassstab;
                 knoten.Visible = false;
                 _tierEbene!.AddChild(knoten);
@@ -362,7 +364,9 @@ public partial class Stadtansicht
                 : new[] { "tiere/tier_katze", "tiere/tier_katze_gefleckt", "tiere/tier_katze_schwarz" }[farbe];
             if (Modell(modell) is not { } szene) continue;
             var knoten = szene.Instantiate<Node3D>();
+            var mergeUhr = Ladezeit.Uhr();
             FlaechenZusammenlegen(knoten); // Stadtansicht.Flaechenmerge.cs
+            Ladezeit.Dazu("Flächen zusammenlegen", mergeUhr);
             knoten.Scale = Vector3.One * TierMassstab;
             knoten.Visible = false;
             _tierEbene!.AddChild(knoten);

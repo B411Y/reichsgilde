@@ -76,15 +76,18 @@ public partial class Stadtansicht
             var knochen = new List<int>();
             var gewichte = new List<float>();
             var indizes = new List<int>();
-            var mitNormalen = true; var mitTangenten = true; var mitUv = true; var mitKnochen = true;
+            var mitNormalen = true; var mitTangenten = true; var mitUv = true; var mitKnochen = true; var ohneKnochen = true;
             foreach (var i in flaechen)
             {
                 var f = netz.SurfaceGetArrays(i);
                 mitNormalen &= f[(int)Mesh.ArrayType.Normal].VariantType != Variant.Type.Nil;
                 mitTangenten &= f[(int)Mesh.ArrayType.Tangent].VariantType != Variant.Type.Nil;
                 mitUv &= f[(int)Mesh.ArrayType.TexUV].VariantType != Variant.Type.Nil;
-                mitKnochen &= f[(int)Mesh.ArrayType.Bones].VariantType != Variant.Type.Nil && f[(int)Mesh.ArrayType.Weights].VariantType != Variant.Type.Nil;
+                var hat = f[(int)Mesh.ArrayType.Bones].VariantType != Variant.Type.Nil && f[(int)Mesh.ArrayType.Weights].VariantType != Variant.Type.Nil;
+                mitKnochen &= hat;
+                ohneKnochen &= !hat;
             }
+            if (!mitKnochen && !ohneKnochen) return null; // nur ein Teil der Flächen hat Knochen: nicht zusammenlegen, sonst gingen sie verloren
             // Knochen je Ecke müssen in allen Flächen gleich viele sein (4 oder 8)
             var knochenJeEcke = 0;
             foreach (var i in flaechen)

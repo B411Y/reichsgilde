@@ -23,13 +23,18 @@ public partial class Stadtansicht
 {
     private const string FensterShaderPfad = "res://assets/shader/fenster.gdshader";
     /// <summary>
-    /// Startoption <c>--zeichensparen=…</c> für Vorher-Nachher-Bilder und Messungen mit demselben Bau: ohne die Option sind alle Maßnahmen dieses PR an, <c>0</c> schaltet alle aus,
+    /// Startoption <c>--zeichensparen=…</c> für Vorher-Nachher-Bilder und Messungen mit demselben Bau: ohne die Option (oder mit <c>1</c>, <c>an</c>) sind alle Maßnahmen dieses PR an, <c>0</c> schaltet alle aus,
     /// sonst gelten nur die genannten (Komma getrennt): <c>proxy</c> (Schattenwerfer der Modelle), <c>merge</c> (Flächen der Tiere und Vögel).
     /// </summary>
     private static bool ZeichenSparen(string massnahme)
     {
-        var wert = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--zeichensparen="))?["--zeichensparen=".Length..];
-        return wert is null || (wert != "0" && wert.Split(',').Contains(massnahme));
+        var wert = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--zeichensparen="))?["--zeichensparen=".Length..].Trim();
+        if (string.IsNullOrEmpty(wert) || wert is "1" or "an" or "An" or "AN") return true;
+        if (wert == "0") return false;
+        var teile = wert.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var teil in teile)
+            if (teil is not ("proxy" or "merge") && massnahme == "proxy") GD.PushWarning($"--zeichensparen: „{teil}“ ist unbekannt (gültig: 0, 1, an, proxy, merge)");
+        return teile.Contains(massnahme);
     }
 
     internal static readonly bool ZeichenSparenProxy = ZeichenSparen("proxy"), ZeichenSparenMerge = ZeichenSparen("merge");
