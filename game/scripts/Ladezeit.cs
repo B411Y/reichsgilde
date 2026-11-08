@@ -51,6 +51,14 @@ public static class Ladezeit
         _summen[name] = (usec + Time.GetTicksUsec() - anfang, anzahl + 1);
     }
 
+    /// <summary>Zählt eine anderswo (z. B. in einem Hintergrundfaden) gemessene Zeit (Mikrosekunden) zur Summe <paramref name="name"/>.</summary>
+    public static void Summe(string name, long usec)
+    {
+        if (!An) return;
+        var (alt, anzahl) = _summen.GetValueOrDefault(name);
+        _summen[name] = (alt + (ulong)usec, anzahl + 1);
+    }
+
     /// <summary>Für Arbeit in jedem Bild (ohne Zuweisung eines Lambdas): <c>var t = Ladezeit.Uhr(); …; Ladezeit.Dazu("Gras", t);</c></summary>
     public static ulong Uhr() => An ? Time.GetTicksUsec() : 0;
 
