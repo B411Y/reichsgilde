@@ -16,6 +16,7 @@ using Reichsgilde.Core.Wirtschaft;
 ///          … -- messen bauorte [Karte …]   (Fahrzeit an jedem Werkstatt-Bauort, siehe Bauortmessung.cs)
 ///          … -- messen blitz 20 8 [--karten=…] [--berufe=…]   (Blitzschaden mit/ohne, Sprünge je Partie, siehe Blitzmessung.cs)
 ///          … -- messen meldungen 20 8 [--karten=…] [--rollen=…]   (Meldungen je Spieljahr nach Art und Stufe, siehe Meldungsmessung.cs)
+///          … -- messen hafen 20 4 [--karten=…] [--ohne-hafenziel] [--handgeld=N]   (Karren zum Hafen und Handgeld, siehe Hafenmessung.cs)
 /// </summary>
 static class Messung
 {
@@ -51,6 +52,10 @@ static class Messung
         // [--karten=…] [--rollen=Wirt,Schmied,Ausbau] [--muster=datei] – siehe Meldungsmessung.cs
         if (args.Length > 0 && args[0] == "meldungen")
             return Meldungsmessung.Erstellen(args[1..]);
+        // Karren zum Hafen und Handgeld für Lehrlinge (Datenversion 73, 8.11.2026): … -- messen hafen [Jahre] [Startwerte] [--karten=…]
+        // [--ohne-hafenziel] [--handgeld=N] – siehe Hafenmessung.cs
+        if (args.Length > 0 && args[0] == "hafen")
+            return Hafenmessung.Erstellen(args[1..]);
         var daten = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
         var mitKarte = args.Contains("greybox");
         args = args.Where(a => a != "greybox").ToArray();

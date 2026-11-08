@@ -38,7 +38,7 @@ static class Karrenmessung
             var w = sim.Wirtschaft!;
             Console.WriteLine();
             Console.WriteLine($"== {kennung} ({haeuser} KI-Häuser) ==");
-            Console.WriteLine("Betrieb | Ort | Länge (m) | fest | Hand hin/zurück | Ochse hin/zurück | Pferd hin/zurück | Startkarren");
+            Console.WriteLine("Betrieb | Ort | Länge (m) | fest | Hand hin/zurück | Ochse hin/zurück | Pferd hin/zurück | Startkarren | Hafen: Länge, Hand hin/zurück, Ziel offen");
             var jeOrt = new SortedDictionary<string, List<(double Laenge, int Gekappt)>>(StringComparer.Ordinal);
             foreach (var b in w.Betriebe.OrderBy(b => b.Ort).ThenBy(b => b.Name, StringComparer.Ordinal))
             {
@@ -61,7 +61,10 @@ static class Karrenmessung
                     return $"{Eine(true)}/{Eine(false)}";
                 }
                 var zeilen = string.Join(" | ", Arten.Select(Zeiten));
-                Console.WriteLine($"{b.Name} | {b.Ort} | {laenge:0} | {daten.Logistik.FahrzeitAb(b.Ort)} | {zeilen} | {string.Join(", ", b.Karren.Select(k => k.Typ))}");
+                // Datenversion 73: der Weg zum Hafen und wohin ein Handkarren bei offenem Hafen führe
+                var hafen = w.FahrtenZumHafen(b) is var (hh, _) ? $"{hh.Sum(s => s.Laenge):0} m, {w.FahrzeitZumHafen(b, "Handkarren", true)}/{w.FahrzeitZumHafen(b, "Handkarren", false)}, " +
+                                                                 (w.FaehrtZumHafen(b, "Handkarren") ? "Hafen" : "Markt") : "kein Weg";
+                Console.WriteLine($"{b.Name} | {b.Ort} | {laenge:0} | {daten.Logistik.FahrzeitAb(b.Ort)} | {zeilen} | {string.Join(", ", b.Karren.Select(k => k.Typ))} | {hafen}");
                 if (!jeOrt.TryGetValue(b.Ort.ToString(), out var liste)) jeOrt[b.Ort.ToString()] = liste = new();
                 liste.Add((laenge, gekappt));
             }
