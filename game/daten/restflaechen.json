@@ -1,15 +1,15 @@
 {
   "version": 1,
   "_hinweis": "Untergründe: \"untergruende\" gibt je Thema Varianten (je Variante die Bodenstempel, Felder siehe bodenstempel.json; der Stempel deckt alle Felder der Restfläche, die Variante wählt der feste Würfel; Randgestrüpp bleibt Wiese). Rezepte der Restflächen-Füllung (nur Darstellung, Stadtansicht.Restflaechen.cs). Maße in Metern im Kasten: x entlang der langen Seite, z quer, Mitte = 0; ein Feld = 2 m. Formate: 1x1 2x2 m, 1x2 4x2, 2x2 4x4, 1x3 6x2, 1x4 8x2, 1x5 10x2, 2x3 6x4, 3x3 6x6 (Hochkant wird gedreht). Gedrehte Kästen und 180°-Wenden würfelt die Stadtansicht je Ort.",
-  "modelle": {"dorf": "props/props_dorf", "ding": "props/props_gegenstaende", "boden": "natur/natur_boden", "kitboden": "natur/natur_kit_boden", "busch": "natur/natur_buesche", "holz": "natur/natur_holz", "stein": "natur/natur_steine", "kitstein": "natur/natur_kit_steine", "baum": "natur/natur_baeume", "kirchhof": "props/fuellung_kirchhof", "holzplatz": "props/fuellung_holzplatz", "heuschober": "props/fuellung_heuschober", "bildstock": "props/fuellung_bildstock", "kit": "props/props_fuellung_kit", "tiere": "props/fuellung_tiere", "hof": "props/fuellung_hof", "hof2": "props/fuellung_hof2", "pferch": "props/fuellung_pferch", "wasser": "props/fuellung_wasserstelle"},
+  "modelle": {"dorf": "props/props_dorf", "ding": "props/props_gegenstaende", "boden": "natur/natur_boden", "kitboden": "natur/natur_kit_boden", "busch": "natur/natur_buesche", "holz": "natur/natur_holz", "stein": "natur/natur_steine", "kitstein": "natur/natur_kit_steine", "baum": "natur/natur_baeume", "kirchhof": "props/fuellung_kirchhof", "holzplatz": "props/fuellung_holzplatz", "heuschober": "props/fuellung_heuschober", "bildstock": "props/fuellung_bildstock", "kit": "props/props_fuellung_kit", "tiere": "props/fuellung_tiere", "hof": "props/fuellung_hof", "hof2": "props/fuellung_hof2", "pferch": "props/fuellung_pferch", "wasser": "props/fuellung_wasserstelle", "steinmetz": "props/fuellung_steinmetz", "taube": "props/fuellung_taube"},
   "nachbarn": {
-    "wohnen": {"garten": 56, "werkhof": 8, "randgestruepp": 16, "bildstock": 8, "heuschober": 6, "holzplatz": 6, "hof": 10, "pferch": 8, "wasserstelle": 8},
-    "werkstatt": {"werkhof": 40, "garten": 8, "randgestruepp": 17, "holzplatz": 20, "heuschober": 10, "bildstock": 5, "hof": 22, "pferch": 14, "wasserstelle": 6},
-    "kirche": {"garten": 25, "randgestruepp": 20, "kirchhof": 45, "bildstock": 10, "wasserstelle": 6},
-    "rand": {"randgestruepp": 45, "garten": 6, "werkhof": 9, "heuschober": 20, "holzplatz": 12, "bildstock": 8, "pferch": 14, "hof": 12, "wasserstelle": 2},
-    "sonst": {"garten": 25, "werkhof": 20, "randgestruepp": 25, "holzplatz": 8, "heuschober": 12, "bildstock": 10, "hof": 6, "pferch": 6, "wasserstelle": 14}
+    "wohnen": {"garten": 56, "werkhof": 8, "randgestruepp": 16, "bildstock": 8, "heuschober": 6, "holzplatz": 6, "hof": 10, "pferch": 8, "wasserstelle": 8, "steinmetzplatz": 18, "taubenschlag": 1},
+    "werkstatt": {"werkhof": 40, "garten": 8, "randgestruepp": 17, "holzplatz": 20, "heuschober": 10, "bildstock": 5, "hof": 22, "pferch": 14, "wasserstelle": 6, "steinmetzplatz": 8, "taubenschlag": 10},
+    "kirche": {"garten": 25, "randgestruepp": 20, "kirchhof": 45, "bildstock": 10, "wasserstelle": 6, "steinmetzplatz": 34, "taubenschlag": 6},
+    "rand": {"randgestruepp": 45, "garten": 6, "werkhof": 9, "heuschober": 20, "holzplatz": 12, "bildstock": 8, "pferch": 14, "hof": 12, "wasserstelle": 2, "steinmetzplatz": 6, "taubenschlag": 4},
+    "sonst": {"garten": 25, "werkhof": 20, "randgestruepp": 25, "holzplatz": 8, "heuschober": 12, "bildstock": 10, "hof": 6, "pferch": 6, "wasserstelle": 14, "steinmetzplatz": 14, "taubenschlag": 4}
   },
-  "hoechstens_felder": {"bildstock": 4, "wasserstelle": 6, "pferch": 24, "hof": 32},
+  "hoechstens_felder": {"bildstock": 4, "wasserstelle": 6, "pferch": 24, "hof": 32, "steinmetzplatz": 16, "taubenschlag": 8},
   "untergruende": {
     "garten": [
       [{"textur": "erde", "staerke": 0.75, "fleck": 0.6, "rand": 1.0, "rauschen": 0.3}]
@@ -40,6 +40,14 @@
     "wasserstelle": [
       [{"textur": "pflaster", "staerke": 0.8, "fleck": 0.3, "rand": 0.8, "rauschen": 0.2}],
       [{"textur": "erde", "staerke": 0.85, "fleck": 0.3, "rand": 1.0, "rauschen": 0.3}, {"textur": "schlamm", "staerke": 0.5, "fleck": 0.6, "rand": 1.0, "rauschen": 0.3}]
+    ],
+    "steinmetzplatz": [
+      [{"textur": "kies", "staerke": 0.85, "fleck": 0.4, "rand": 1.0, "rauschen": 0.3}],
+      [{"textur": "erde", "staerke": 0.8, "fleck": 0.4, "rand": 1.0, "rauschen": 0.3}, {"textur": "kies", "staerke": 0.7, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}]
+    ],
+    "taubenschlag": [
+      [{"textur": "erde", "staerke": 0.85, "fleck": 0.3, "rand": 1.0, "rauschen": 0.3}],
+      [{"textur": "kies", "staerke": 0.6, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.85, "rand": 1.0, "rauschen": 0.3}]
     ]
   },
   "fern_stoffe": {
@@ -50,7 +58,8 @@
     "Heu": "Stroh", "Strohkante": "Stroh", "Seil": "Stroh", "Pilzstiel": "Stroh", "Pilzhut": "Rinde",
     "Tanne": "Laub dunkel", "Tanne hell": "Laub dunkel", "Beere": "Laub dunkel",
     "Ginster": "Rasen", "Blüte weiß": "Rasen", "Nessel": "Rasen", "Kornblume": "Rasen", "Mohn": "Rasen",
-    "Moos": "Rasen", "Gras": "Rasen", "Erde hell": "Erde", "Huhn Hof": "Stroh", "Huhn Kamm": "Stroh", "Huhn Fuss": "Stroh", "Schwein hell": "Schwein", "Huf": "Ziege", "Ziege dunkel": "Ziege", "Ziege hell": "Ziege", "Scheitholz": "Holz", "Eisen": "Holz", "Mist": "Erde", "Fuellung Erde": "Erde", "Fuellung Erde hell": "Erde", "Fuellung Schlamm": "Erde", "Fuellung Weide": "Rasen"
+    "Moos": "Rasen", "Gras": "Rasen", "Erde hell": "Erde", "Huhn Hof": "Stroh", "Huhn Kamm": "Stroh", "Huhn Fuss": "Stroh", "Schwein hell": "Schwein", "Huf": "Ziege", "Ziege dunkel": "Ziege", "Ziege hell": "Ziege", "Scheitholz": "Holz", "Eisen": "Holz", "Mist": "Erde", "Fuellung Erde": "Erde", "Fuellung Erde hell": "Erde", "Fuellung Schlamm": "Erde", "Fuellung Weide": "Rasen",
+    "Taube": "Fels", "Taube dunkel": "Fels", "Pfuetze": "Wasser"
   },
   "themen": {
     "garten": { "name": "Wohngarten", "formate": {
@@ -655,6 +664,122 @@
         {"m": "ding", "k": "Fass1", "x": -2.4, "z": -1.3, "dreh": 0, "groesse": 1},
         {"m": "ding", "k": "Fass1", "x": -2.4, "z": -0.4, "dreh": 90, "groesse": 1},
         {"m": "ding", "k": "Bank1", "x": 2.2, "z": -1.5, "dreh": 90, "groesse": 1}
+      ]
+    } },
+    "steinmetzplatz": { "name": "Steinmetzplatz", "formate": {
+      "1x1": [
+        {"m": "steinmetz", "k": "Werkbank", "x": 0, "z": -0.5, "dreh": 0, "groesse": 0.7},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": 0.4, "z": 0.55, "dreh": 12, "groesse": 0.6, "klein": true},
+        {"m": "steinmetz", "k": "Rohsteine", "x": -0.6, "z": 0.5, "dreh": 20, "groesse": 0.4}
+      ],
+      "1x2": [
+        {"m": "steinmetz", "k": "Werkbank", "x": -1.2, "z": -0.4, "dreh": 0, "groesse": 0.8},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": 1.0, "z": 0.0, "dreh": 5, "groesse": 0.7},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": -1.0, "z": 0.6, "dreh": -10, "groesse": 0.65, "klein": true},
+        {"m": "steinmetz", "k": "Splitterhaufen", "x": 0.0, "z": 0.62, "dreh": 0, "groesse": 0.4, "klein": true}
+      ],
+      "2x2": [
+        {"m": "steinmetz", "k": "Dreibock", "x": -0.85, "z": -0.85, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "steinmetz", "k": "Werkbank", "x": 1.0, "z": -1.45, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": -1.0, "z": 1.25, "dreh": 0, "groesse": 0.75},
+        {"m": "steinmetz", "k": "Rohsteine", "x": 1.1, "z": 0.3, "dreh": 0, "groesse": 0.75},
+        {"m": "steinmetz", "k": "Splitterhaufen", "x": 0.4, "z": 1.45, "dreh": 0, "groesse": 0.5, "klein": true},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": 1.55, "z": 1.55, "dreh": 15, "groesse": 0.8, "klein": true}
+      ],
+      "1x3": [
+        {"m": "steinmetz", "k": "Werkbank", "x": -2.1, "z": -0.4, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "Saeulenrohling", "x": 0.2, "z": -0.45, "dreh": 0, "groesse": 0.8},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": 2.2, "z": 0.15, "dreh": 0, "groesse": 0.7},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": -0.8, "z": 0.6, "dreh": -8, "groesse": 0.7, "klein": true},
+        {"m": "steinmetz", "k": "Splitterhaufen", "x": -2.3, "z": 0.6, "dreh": 0, "groesse": 0.4, "klein": true}
+      ],
+      "1x4": [
+        {"m": "steinmetz", "k": "Dreibock", "x": -3.2, "z": 0.0, "dreh": 0, "groesse": 0.6, "gross": true, "schatten": true},
+        {"m": "steinmetz", "k": "Werkbank", "x": -0.9, "z": -0.4, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "Saeulenrohling", "x": 1.0, "z": 0.55, "dreh": 0, "groesse": 0.8},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": 3.1, "z": -0.1, "dreh": 0, "groesse": 0.65},
+        {"m": "steinmetz", "k": "Rohsteine", "x": -1.2, "z": 0.6, "dreh": 30, "groesse": 0.45, "klein": true},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": 1.5, "z": -0.5, "dreh": 5, "groesse": 0.65, "klein": true}
+      ],
+      "1x5": [
+        {"m": "steinmetz", "k": "Werkbank", "x": -3.9, "z": -0.4, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "Splitterhaufen", "x": -2.2, "z": 0.5, "dreh": 0, "groesse": 0.55, "klein": true},
+        {"m": "steinmetz", "k": "Saeulenrohling", "x": -0.1, "z": -0.45, "dreh": 0, "groesse": 0.8},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": 2.0, "z": 0.1, "dreh": 0, "groesse": 0.7},
+        {"m": "steinmetz", "k": "Dreibock", "x": 3.9, "z": 0.0, "dreh": 0, "groesse": 0.6, "gross": true, "schatten": true},
+        {"m": "steinmetz", "k": "Rohsteine", "x": 0.6, "z": 0.6, "dreh": 0, "groesse": 0.45, "klein": true},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": -2.9, "z": 0.6, "dreh": 10, "groesse": 0.65, "klein": true}
+      ],
+      "2x3": [
+        {"m": "steinmetz", "k": "Dreibock", "x": -2.0, "z": -0.85, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"m": "steinmetz", "k": "Werkbank", "x": 0.5, "z": -1.45, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "Saeulenrohling", "x": 1.5, "z": -0.1, "dreh": 90, "groesse": 0.85},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": -1.4, "z": 1.2, "dreh": 0, "groesse": 0.8},
+        {"m": "steinmetz", "k": "Rohsteine", "x": 0.2, "z": 1.25, "dreh": 0, "groesse": 0.7},
+        {"m": "steinmetz", "k": "Splitterhaufen", "x": 2.2, "z": 1.5, "dreh": 0, "groesse": 0.45, "klein": true},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": -0.2, "z": 0.1, "dreh": -10, "groesse": 0.8, "klein": true}
+      ],
+      "3x3": [
+        {"m": "steinmetz", "k": "Dreibock", "x": -1.6, "z": -1.6, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "steinmetz", "k": "Werkbank", "x": 1.6, "z": -2.4, "dreh": 0, "groesse": 1},
+        {"m": "steinmetz", "k": "Saeulenrohling", "x": 1.0, "z": -0.7, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "BloeckeBehauen", "x": -1.7, "z": 1.2, "dreh": 0, "groesse": 0.9},
+        {"m": "steinmetz", "k": "Rohsteine", "x": 1.7, "z": 1.0, "dreh": 0, "groesse": 0.8},
+        {"m": "steinmetz", "k": "Splitterhaufen", "x": 0.1, "z": 2.3, "dreh": 0, "groesse": 0.6, "klein": true},
+        {"m": "steinmetz", "k": "Werkzeugkiste", "x": -0.2, "z": 0.0, "dreh": 12, "groesse": 0.85, "klein": true},
+        {"m": "steinmetz", "k": "Rohsteine", "x": -2.4, "z": 2.4, "dreh": 70, "groesse": 0.5, "klein": true},
+        {"m": "ding", "k": "Sack1", "x": 2.5, "z": 2.4, "dreh": 20, "groesse": 0.9}
+      ]
+    } },
+    "taubenschlag": { "name": "Taubenschlag", "formate": {
+      "1x1": [
+        {"m": "taube", "k": "Taubenschlag", "x": 0, "z": 0, "dreh": 0, "groesse": 0.8, "gross": true, "schatten": true}
+      ],
+      "1x2": [
+        {"m": "taube", "k": "Taubenschlag", "x": -1.1, "z": 0.0, "dreh": 0, "groesse": 0.8, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 0.9, "z": 0.1, "dreh": 30, "groesse": 0.9},
+        {"m": "ding", "k": "Sack1", "x": 0.2, "z": -0.6, "dreh": 10, "groesse": 0.8}
+      ],
+      "2x2": [
+        {"m": "taube", "k": "Taubenhaus", "x": -0.6, "z": -0.8, "dreh": 0, "groesse": 0.95, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 1.2, "z": 1.0, "dreh": 20, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 1.3, "z": -1.2, "dreh": 40, "groesse": 0.9},
+        {"m": "ding", "k": "Fass1", "x": 0.7, "z": -0.4, "dreh": 0, "groesse": 0.8}
+      ],
+      "1x3": [
+        {"m": "taube", "k": "Taubenschlag", "x": -2.0, "z": 0.0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 0.3, "z": 0.2, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 1.6, "z": -0.4, "dreh": 20, "groesse": 0.9},
+        {"m": "ding", "k": "Eimer1", "x": 2.3, "z": 0.4, "dreh": 0, "groesse": 1}
+      ],
+      "1x4": [
+        {"m": "taube", "k": "Taubenhaus", "x": -2.6, "z": 0.0, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 0.3, "z": 0.3, "dreh": 40, "groesse": 1},
+        {"m": "taube", "k": "Taubenfutter", "x": 2.6, "z": -0.2, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Sack1", "x": 1.2, "z": -0.5, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Fass1", "x": 3.6, "z": 0.5, "dreh": 0, "groesse": 1}
+      ],
+      "1x5": [
+        {"m": "taube", "k": "Taubenschlag", "x": -3.8, "z": 0.0, "dreh": 0, "groesse": 0.85, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenhaus", "x": -0.8, "z": 0.0, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 2.0, "z": 0.3, "dreh": 0, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": 3.0, "z": -0.4, "dreh": 30, "groesse": 0.9},
+        {"m": "ding", "k": "Eimer1", "x": 4.0, "z": 0.4, "dreh": 0, "groesse": 1}
+      ],
+      "2x3": [
+        {"m": "taube", "k": "Taubenhaus", "x": -1.8, "z": -0.9, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenschlag", "x": 1.8, "z": -1.0, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 0.0, "z": 1.0, "dreh": 20, "groesse": 1},
+        {"m": "ding", "k": "Sack1", "x": -1.9, "z": 1.3, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Fass1", "x": 2.1, "z": 1.4, "dreh": 0, "groesse": 1}
+      ],
+      "3x3": [
+        {"m": "taube", "k": "Taubenhaus", "x": -1.6, "z": -1.6, "dreh": 0, "groesse": 1, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenschlag", "x": 1.8, "z": -1.8, "dreh": 0, "groesse": 0.9, "gross": true, "schatten": true},
+        {"m": "taube", "k": "Taubenfutter", "x": 0.2, "z": 0.6, "dreh": 30, "groesse": 1.1},
+        {"m": "taube", "k": "Taubenfutter", "x": -2.0, "z": 1.8, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Sack1", "x": 2.0, "z": 1.2, "dreh": 0, "groesse": 0.9},
+        {"m": "ding", "k": "Fass1", "x": 2.5, "z": 2.4, "dreh": 0, "groesse": 1}
       ]
     } }
   }

@@ -157,7 +157,26 @@ static class RestflaechenfuellungTests
             }
         }),
 
-        ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die Themen Kirchhof, Holzplatz, Heuschober, Bildstock, Hof, Pferch und Wasserstelle sind da, ihr Winterknoten auch (die Tiere haben keinen: Schwein und Ziege stehen im Winter wie im Sommer)", () =>
+        ("Restflächenfüllung: Köln bekommt einige Steinmetzplätze und wenige Taubenschläge (Themenwahl wie in Stadtansicht.Restflaechen.cs nachgerechnet: Gewichte der Nachbarart, nie über `hoechstens_felder`)", () =>
+        {
+            var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
+            var grenzen = wurzel["hoechstens_felder"]!.AsObject().ToDictionary(e => e.Key, e => e.Value!.GetValue<int>());
+            var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
+            var zaehler = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            foreach (var r in karte.Restflaechen ?? new List<Restflaeche>())
+            {
+                var wahl = wurzel["nachbarn"]![Restflaechenfuellung.Nachbarart(r, karte)]!.AsObject().OrderBy(e => e.Key, StringComparer.Ordinal).ToList(); // feste Reihenfolge wie im Spiel
+                var felder = Restflaechenfuellung.Felder(r).Count;
+                var gewichte = wahl.Select(e => grenzen.TryGetValue(e.Key, out var g) && felder > g ? 0 : e.Value!.GetValue<int>()).ToArray();
+                var nummer = Restflaechenfuellung.Waehlen(gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
+                if (nummer >= 0) zaehler[wahl[nummer].Key] = zaehler.GetValueOrDefault(wahl[nummer].Key) + 1;
+            }
+            var uebersicht = string.Join(", ", zaehler.Select(e => $"{e.Key} {e.Value}"));
+            Pruefe.Wahr(zaehler.GetValueOrDefault("steinmetzplatz") is >= 2 and <= 6, "Köln: einige Steinmetzplätze – " + uebersicht);
+            Pruefe.Wahr(zaehler.GetValueOrDefault("taubenschlag") is >= 1 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
+        }),
+
+        ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die Themen Kirchhof, Holzplatz, Heuschober, Bildstock, Hof, Pferch, Wasserstelle, Steinmetzplatz und Taubenschlag sind da, ihr Winterknoten auch (die Tiere haben keinen: Schwein und Ziege stehen im Winter wie im Sommer)", () =>
         {
             var pfad = Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json");
             var wurzel = JsonNode.Parse(File.ReadAllText(pfad))!;
@@ -171,7 +190,7 @@ static class RestflaechenfuellungTests
                 var json = JsonNode.Parse(System.Text.Encoding.UTF8.GetString(bytes, 20, laenge))!;
                 return namen[datei] = json["nodes"]!.AsArray().Select(n => n!["name"]?.GetValue<string>() ?? "").ToHashSet();
             }
-            foreach (var thema in new[] { "kirchhof", "holzplatz", "heuschober", "bildstock", "hof", "pferch", "wasserstelle" })
+            foreach (var thema in new[] { "kirchhof", "holzplatz", "heuschober", "bildstock", "hof", "pferch", "wasserstelle", "steinmetzplatz", "taubenschlag" })
                 Pruefe.Wahr(wurzel["themen"]![thema] is not null, $"Thema {thema} gibt es");
             foreach (var (thema, inhalt) in wurzel["themen"]!.AsObject())
                 foreach (var (format, teile) in inhalt!["formate"]!.AsObject())
