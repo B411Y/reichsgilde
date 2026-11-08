@@ -1053,6 +1053,7 @@ public partial class Stadtansicht : Node3D
     {
         ProzessBild(delta);
         PixelBild(); // nach allem anderen: die Kamera des Pixel-Looks folgt der Spielkamera (Stadtansicht.Pixel.cs)
+        ZeichenAnalyseBild(); // nur mit --zeichenanalyse: Gruppen ausblenden und Zeichenaufrufe zählen (Stadtansicht.Zeichenanalyse.cs)
     }
 
     private void ProzessBild(double delta)
