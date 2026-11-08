@@ -400,7 +400,11 @@ static class WasserTests
             var ordner = Path.Combine(Path.GetTempPath(), "rg-wasser-" + Guid.NewGuid().ToString("N"));
             try
             {
-                var projekt = Projektordner.Finden()!;
+                // Eigener Projektordner im Temp-Ordner: das Skript schreibt sonst die Vorschau nach docs/karten/probestadt*.svg
+                // (feste Dateinamen im Repository – bei --parallel könnten Wasser und Wegebau gleichzeitig schreiben).
+                var projekt = new Projektordner(Path.Combine(ordner, "projekt"));
+                Directory.CreateDirectory(projekt.Daten);
+                foreach (var name in new[] { "katalog.json", "wirtschaft.json" }) File.Copy(Path.Combine(Datenordner, name), Path.Combine(projekt.Daten, name));
                 Directory.CreateDirectory(ordner);
                 var datei = Path.Combine(ordner, "probestadt.json");
                 File.WriteAllText(datei, Probestadtvorlage.Entwurf(Katalog.Value, Daten.Value).ZuJson());
