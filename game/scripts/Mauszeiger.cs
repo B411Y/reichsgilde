@@ -6,8 +6,9 @@ namespace Reichsgilde;
 /// Der eigene Mauszeiger: ein Lederhandschuh, dessen Stufe dem Stand des Hauses folgt (1 Gemeiner bis 6 Reichsgraf), dazu zwei Handschuhe
 /// nur zur freien Wahl in den Einstellungen (7 Wache = Plattenhandschuh, 8 Dieb = schwarzes Leder). Die Bilder sind feine Pixel-Art aus gezeichneten
 /// Vorlagen (<c>tools/oberflaeche/zeiger_aus_vorlage.py</c>) unter <c>assets/oberflaeche/zeiger/</c>. Drei Bilder:
-/// <b>normal</b> (offene Hand), <b>klick</b> (wärmer, über Anklickbarem: Gebäude, Figur, Bauplatz im Baumodus, Knöpfe der Oberfläche)
-/// und das <b>Türschloss</b> (Bronze mit S-Griff) über einem Gebäude mit Innenraum, das ein Doppelklick öffnet.
+/// <b>normal</b> (offene Hand, ohne hellen Rand), <b>klick</b> (über Anklickbarem: Gebäude, Figur, Bauplatz im Baumodus, Knöpfe der Oberfläche; derselbe Handschuh,
+/// unverändert in den Lederfarben, mit weichem weißem Schein außen herum – beide Bilder gleich groß mit durchsichtigem Rand, daher gleicher Zeigerpunkt)
+/// und das <b>Türschloss</b> (Bronze mit S-Griff, ebenfalls ohne hellen Rand und mit Außenschein, denn es erscheint nur über Anklickbarem) über einem Gebäude mit Innenraum, das ein Doppelklick öffnet.
 /// Das Steuerknoten-Objekt hängt in der Hauptszene (liest die Stadt) und im Hauptmenü (nur Stufe 1, normal). Die Größe (48, 64 oder 80 Pixel)
 /// folgt der Fensterhöhe und der Größe der Oberfläche. Ein-/Ausschalter: <see cref="Fenster.EigenerZeigerAn"/>.
 /// </summary>
@@ -36,13 +37,17 @@ public partial class Mauszeiger : Node
     };
 
     /// <summary>Zeigerpunkt der Hand (Fingerspitze) je Größe 48, 64, 80 (Ausgabe von <c>zeiger_aus_vorlage.py</c>, <c>hotspots.txt</c>; für alle acht Hände gleich).</summary>
-    private static readonly Vector2I[] HandPunkte = { new(2, 1), new(3, 1), new(3, 1) };
+    private static readonly Vector2I[] HandPunkte = { new(8, 7), new(11, 9), new(13, 11) };
 
-    /// <summary>Zeigerpunkt (Mitte des Schlüssellochs) des Türschlosses je Größe 48, 64, 80.</summary>
-    private static readonly Vector2[] SchlossPunkte = { new(16.5f, 24), new(22, 32), new(29, 41) };
+    /// <summary>Durchsichtiger Rand rundum je Größe 48, 64, 80 für den Außenschein (<c>SCHEINRAND</c> in <c>zeiger_aus_vorlage.py</c>); der Zeigerpunkt der Hand liegt um diesen Rand nach innen versetzt.</summary>
+    private static readonly int[] Scheinrand = { 6, 8, 10 };
 
-    /// <summary>Das Bild eines Handschuhs (normal, 48 Pixel) für die Vorschau in den Einstellungen.</summary>
-    public static Texture2D? Vorschau(int stufe) => Bild(stufe, Art.Normal, 48);
+    /// <summary>Zeigerpunkt (Mitte des Schlüssellochs, samt Scheinrand 6/8/10) des Türschlosses je Größe 48, 64, 80.</summary>
+    private static readonly Vector2[] SchlossPunkte = { new(22.5f, 30), new(30, 40), new(39, 51) };
+
+    /// <summary>Das Bild eines Handschuhs (normal, 48 Pixel, ohne den durchsichtigen Rand für den Schein) für die Vorschau in den Einstellungen.</summary>
+    public static Texture2D? Vorschau(int stufe) =>
+        Bild(stufe, Art.Normal, 48) is { } bild ? new AtlasTexture { Atlas = bild, Region = new Rect2(Scheinrand[0], Scheinrand[0], 48, 48) } : null;
 
     private static Mauszeiger? _aktiv;
     private static (int Stufe, Art Art, int Groesse, bool An)? _gesetzt;
