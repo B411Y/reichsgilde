@@ -283,6 +283,34 @@ static class LebensweiseTests
             Pruefe.Ungefaehr(stueck.Preis * 0.9, vorher - konto.Vermoegen, 1e-6);
         }),
 
+        ("Lebensweise: weitere Knoten – Wohnhaus-Ausbau und Unterhalt, Schutz nur der Karren (nicht der Schiffe), Gnadengesuch, Fürsprecher; Gegenprobe ohne Knoten", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (konto, f) = Haus(w, "Haus Probe", geld: 200_000);
+            var (anderes, _) = Haus(w, "Haus Anders");
+            var o = f.Oberhaupt;
+            var schutz = w.Familien.KampfSchutz(konto);
+            var busse = w.Justiz.DrohendeBusse(anderes, konto);
+            Pruefe.Ungefaehr(0, w.Rat.AntragSchwelleMinus(konto), 1e-12);
+            Pruefe.Ungefaehr(schutz, w.Familien.KarrenSchutz(konto), 1e-12);
+            Nehmen(w, konto, o, "Ordnung", "Baumeister", "HueterDesHauses", "BewaffneteKnechte", "Plaedoyer", "Rechtskundig", "Gnadengesuch",
+                "WohlgesetzteWorte", "Fuersprecher");
+            Pruefe.Ungefaehr(schutz + 0.05, w.Familien.KarrenSchutz(konto), 1e-12);
+            Pruefe.Ungefaehr(schutz, w.Familien.KampfSchutz(konto), 1e-12); // Schiffe: nur das Talent
+            Pruefe.Ungefaehr(busse * 0.75, w.Justiz.DrohendeBusse(anderes, konto), 1e-9);
+            Pruefe.Ungefaehr(5, w.Rat.AntragSchwelleMinus(konto), 1e-12);
+            Pruefe.Ungefaehr(0, w.Rat.AntragSchwelleMinus(anderes), 1e-12);
+            var stufe = w.Wohnen.NaechsteStufe(konto)!;
+            var vorher = konto.Vermoegen;
+            var ausbau = w.Ausfuehren(konto, new WohnhausAusbauen());
+            Pruefe.Wahr(ausbau.Erfolg, ausbau.Meldung);
+            Pruefe.Ungefaehr(stufe.Ausbau * 0.9, vorher - konto.Vermoegen, 1e-6);
+            w.Wohnen.Minute(new Reichsgilde.Core.Zeit.Spielzeit(konto.WohnhausFertigAb!.Value));
+            Pruefe.Gleich(stufe, w.Wohnen.Stufe(konto));
+            Pruefe.Ungefaehr(stufe.Unterhalt * 0.9, w.Wohnen.Unterhalt(konto), 1e-9);
+            Pruefe.Ungefaehr(w.Wohnen.Stufe(anderes)!.Unterhalt, w.Wohnen.Unterhalt(anderes), 1e-9);
+        }),
+
         ("Lebensweise: persönliche Knoten – Liebenswürdig und Geschäftsfreund heben die Meinung über die Person, Eisern senkt ihre Krankheit", () =>
         {
             var w = NeueSimulation().Wirtschaft!;

@@ -218,7 +218,7 @@ public sealed class Unterwelt
     {
         var waren = Warenfolge(b, Daten.Diebstahl.HoechstensStueck, VersucheJeNacht);
         return ErwartetJeNacht(Erfolgschance(Gaunerstueck.Diebstahl, b, auftraggeber),
-                   k => waren[k - 1] * Daten.HehlerAnteil + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b, k) : 0))
+                   k => waren[k - 1] * Daten.HehlerAnteil * (auftraggeber is null ? 1 : _w.Familien.Lebenswirkung(auftraggeber).HehlerFaktor) + (_w.Bank.IstAktiv ? _w.Bank.Kassenbeute(b, k) : 0))
                - Daten.Diebstahl.Kosten;
     }
 
@@ -524,11 +524,12 @@ public sealed class Unterwelt
             if (wert > 0)
             {
                 b.RaubBuchen(wert);
-                a.Auftraggeber.Gaunerkosten(-(waren * d.HehlerAnteil * _w.Familien.Lebenswirkung(a.Auftraggeber).HehlerFaktor + kasse)); // Hehlerring
+                var hehler = waren * d.HehlerAnteil * _w.Familien.Lebenswirkung(a.Auftraggeber).HehlerFaktor; // Hehlerring (Lebensweise)
+                a.Auftraggeber.Gaunerkosten(-(hehler + kasse));
                 oeffentlich = $"Einbruch in {b.Name}: {Diebesgut(beute, kasse)} gestohlen.";
                 Ereignis(a.Auftraggeber, kasse > 0 && waren <= 0
                     ? $"Eure Diebe haben aus der Kasse von {b.Name} {Zahlenformat.Ganz(kasse)} {_w.Daten.Allgemein.Waehrung} geholt."
-                    : $"Eure Diebe haben in {b.Name} Ware für {Zahlenformat.Ganz(waren)} erbeutet – der Hehler zahlt {Zahlenformat.Ganz(waren * d.HehlerAnteil)}" +
+                    : $"Eure Diebe haben in {b.Name} Ware für {Zahlenformat.Ganz(waren)} erbeutet – der Hehler zahlt {Zahlenformat.Ganz(hehler)}" +
                       (kasse > 0 ? $", dazu {Zahlenformat.Ganz(kasse)} {_w.Daten.Allgemein.Waehrung} aus der Kasse." : "."));
             }
             else
@@ -639,7 +640,7 @@ public sealed class Unterwelt
         _hinterhalte.Remove(h);
 
         var d = Daten;
-        var schutz = Math.Min(0.95, eskorte.Schutz + _w.Familien.KampfSchutz(karren.Heimat.Konto));
+        var schutz = Math.Min(0.95, eskorte.Schutz + _w.Familien.KarrenSchutz(karren.Heimat.Konto));
         var erfolg = _zufall.NextDouble() < Staerke(h.Auftraggeber) * (1 - schutz) * _w.Wache.UeberfallFaktor(eskorte)
                      * _w.Familien.Lebenswirkung(karren.Heimat.Konto).UeberfallFaktor; // Wegekundig (Lebensweise)
         double wert = 0;
@@ -649,10 +650,11 @@ public sealed class Unterwelt
             var verloren = karren.LadungVerlieren();
             wert = verloren.Sum(v => _w.Markt[v.Key].Preis * v.Value);
             karren.Heimat.Konto.Raub(wert);
-            h.Auftraggeber.Gaunerkosten(-wert * d.HehlerAnteil * _w.Familien.Lebenswirkung(h.Auftraggeber).HehlerFaktor); // Hehlerring
+            var hehlerlohn = wert * d.HehlerAnteil * _w.Familien.Lebenswirkung(h.Auftraggeber).HehlerFaktor; // Hehlerring (Lebensweise)
+            h.Auftraggeber.Gaunerkosten(-hehlerlohn);
             oeffentlich = $"Hinterhalt auf {karren.Name} von {karren.Heimat.Name}: Wegelagerer erbeuten {string.Join(" und ", verloren.Select(v => $"{v.Value} {v.Key}"))} " +
                           $"(Wert {Zahlenformat.Ganz(wert)}).";
-            Ereignis(h.Auftraggeber, $"Eure Wegelagerer haben {karren.Heimat.Name} um Ware für {Zahlenformat.Ganz(wert)} erleichtert – der Hehler zahlt {Zahlenformat.Ganz(wert * d.HehlerAnteil)}.");
+            Ereignis(h.Auftraggeber, $"Eure Wegelagerer haben {karren.Heimat.Name} um Ware für {Zahlenformat.Ganz(wert)} erleichtert – der Hehler zahlt {Zahlenformat.Ganz(hehlerlohn)}.");
         }
         else
             oeffentlich = $"Hinterhalt auf {karren.Name} von {karren.Heimat.Name} – die Eskorte schlägt die Wegelagerer in die Flucht.";

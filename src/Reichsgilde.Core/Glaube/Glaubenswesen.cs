@@ -365,9 +365,10 @@ public sealed class Glaubenswesen
     {
         var eigener = GlaubeVon(r);
         var gunst = _w.Rat.Meinung(r, antragsteller); // Meinung über das Oberhaupt (PR #231, früher Gunst)
+        var minus = _w.Rat.AntragSchwelleMinus(antragsteller); // Fürsprecher (Lebensweise)
         if (glaube == eigener) return true;
-        if (glaube is null) return Stadtglaube != eigener || gunst >= Daten.Stadtglaube.SchwelleFrei;
-        return gunst >= Daten.Stadtglaube.SchwelleFremd;
+        if (glaube is null) return Stadtglaube != eigener || gunst >= Daten.Stadtglaube.SchwelleFrei - minus;
+        return gunst >= Daten.Stadtglaube.SchwelleFremd - minus;
     }
 
     /// <summary>Stimme eines KI-Hauses im Rat: für den eigenen Glauben; für Freiheit, wenn ein fremder Stadtglaube gilt.</summary>

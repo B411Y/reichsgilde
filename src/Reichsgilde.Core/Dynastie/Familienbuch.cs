@@ -110,7 +110,10 @@ public sealed partial class Familienbuch
     public double KampfUeberfall(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfUeberfall + Lebenswirkung(k).WegelagererBonus; // Hauptmann
 
     /// <summary>Zusätzlicher Schutz der eigenen Karren (Kampf).</summary>
-    public double KampfSchutz(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfSchutz + Lebenswirkung(k).KarrenSchutz; // Bewaffnete Knechte
+    public double KampfSchutz(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfSchutz;
+
+    /// <summary>Schutz der eigenen Karren (nicht der Schiffe): Kampf und der Knoten „Bewaffnete Knechte“ der Lebensweise.</summary>
+    public double KarrenSchutz(Konto k) => KampfSchutz(k) + Lebenswirkung(k).KarrenSchutz;
 
     private double Runden(double wert) => Math.Clamp(Math.Round(wert * 2) / 2, 0, _d.Talente.Hoechstwert);
 

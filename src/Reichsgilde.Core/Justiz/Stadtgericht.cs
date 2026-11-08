@@ -246,10 +246,11 @@ public sealed class Stadtgericht
 
     /// <summary>
     /// Chance je Spur, dass der Spitzel dieses Hauses sie beim Ziel findet: <c>spitzelChance</c> + Ohr an der Wand des Auftraggebers,
-    /// mal Falsche Fährte des Ziels (Lebensweise), höchstens 95 %.
+    /// mal Falsche Fährte des Ziels (Lebensweise), höchstens 95 % (oder spitzelChance, wenn die höher ist).
     /// </summary>
     public double SpitzelChance(Konto auftraggeber, Konto ziel) =>
-        Math.Min(0.95, (Daten.SpitzelChance + _w.Familien.Lebenswirkung(auftraggeber).SpitzelBonus) * _w.Familien.Lebenswirkung(ziel).FremdeSpitzelFaktor);
+        Math.Min(Math.Max(0.95, Daten.SpitzelChance), // ohne Knoten genau spitzelChance wie bisher
+            (Daten.SpitzelChance + _w.Familien.Lebenswirkung(auftraggeber).SpitzelBonus) * _w.Familien.Lebenswirkung(ziel).FremdeSpitzelFaktor);
 
     /// <summary>Gerichtsgebühr für eine Klage dieses Hauses (Rechtskundig: die Hälfte).</summary>
     public double Gerichtsgebuehr(Konto anklaeger) => Daten.Gerichtsgebuehr * _w.Familien.Lebenswirkung(anklaeger).GebuehrFaktor;
