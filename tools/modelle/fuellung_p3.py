@@ -28,7 +28,9 @@ from bausteine import Matrix, Vector  # noqa: E402
 
 bs.FARBEN.update({
     "Fuellung Schlamm": (0.19, 0.15, 0.105),
+    "Pfuetze": (0.14, 0.2, 0.22),             # Wasser der Wasserstelle: wie „Wasser“, aber eigener Name; das Spiel gibt ihm pfuetze.gdshader (Himmelsspiegelung, Regenringe)
 })
+bs.RAUHEIT["Pfuetze"] = 0.03
 rng = p2.rng
 
 
@@ -289,7 +291,7 @@ def ziehbrunnen(netz, st, saat, winter=False):
     top = 2 * hoehe
     # dunkle Wasserfläche in der Tiefe
     tiefe = [(R_in * 0.97 * math.cos(2 * math.pi * k / 14), R_in * 0.97 * math.sin(2 * math.pi * k / 14), 0.12) for k in range(14)]
-    netz.vieleck_nach(tiefe, (0, 0, 1), st["Eis"] if winter else st["Wasser"])
+    netz.vieleck_nach(tiefe, (0, 0, 1), st["Eis"] if winter else st["Pfuetze"])
     # Gestell: zwei Pfosten mit Gabel, Haspel, Dachbalken, Streben
     for sx in (-1, 1):
         nt.ast(netz, st, (sx * 0.98, 0, -0.05), (sx * 0.98, 0, 2.15), 0.085, 0.07, stoff="Holz alt", n=6)
@@ -327,7 +329,7 @@ def wassertrog_stein(netz, st, saat, winter=False):
         netz.quader((sx * (L / 2 - 0.115), 0, H / 2 + 0.03), (0.2, B - 0.2, H - 0.06), st["Sandstein alt"], ohne=("-z",))
     wasser = [(-L / 2 + 0.2, -B / 2 + 0.115, H * 0.82), (L / 2 - 0.2, -B / 2 + 0.115, H * 0.82), (L / 2 - 0.2, B / 2 - 0.115, H * 0.82),
               (-L / 2 + 0.2, B / 2 - 0.115, H * 0.82)]
-    netz.vieleck_nach(wasser, (0, 0, 1), st["Eis"] if winter else st["Wasser"])
+    netz.vieleck_nach(wasser, (0, 0, 1), st["Eis"] if winter else st["Pfuetze"])
     for k in range(5):                                                                                  # Moosflecken und Absplitterungen
         x = z.uniform(-L / 2 + 0.3, L / 2 - 0.3)
         s = z.choice((-1, 1))
@@ -361,7 +363,7 @@ def pfuetze(netz, st, saat, winter=False, rx=0.8, ry=0.55):
         stoff = ("Schnee" if k % 3 else "Schnee schatten") if winter else "Fuellung Schlamm"
         zr = 0.006 + 0.001 * (k % 2)                                                                 # versetzt, damit keine Flächen deckungsgleich liegen
         netz.vieleck_nach([(*aussen[k], zr), (*aussen[j], zr), (*innen[j], zr), (*innen[k], zr)], (0, 0, 1), st[stoff])
-    netz.vieleck_nach([(*p, 0.014) for p in innen], (0, 0, 1), st["Eis" if winter else "Wasser"])
+    netz.vieleck_nach([(*p, 0.014) for p in innen], (0, 0, 1), st["Eis" if winter else "Pfuetze"])
     if winter:                                                                                          # Risse im Eis
         for k in range(3):
             a = z.uniform(0, 6.28)
