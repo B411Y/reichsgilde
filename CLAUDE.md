@@ -51,6 +51,7 @@ dotnet build Reichsgilde.sln
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests     # alle Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --filter=Taschendieb,Nachtgang   # nur passende Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --ohne-langsam                   # alle außer den langsamen
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --parallel                       # Klassen gleichzeitig (nur lokal; vor dem PR einmal seriell)
 ```
 
 **Gezielt testen:** Während der Arbeit nur die betroffenen Tests (`--filter=<Muster>` gegen Klassen- und Testname, Komma für mehrere, `*` als Platzhalter; `--klasse=<Name>`; `--ohne-langsam`; `--liste` zeigt die Auswahl, `--zeiten` die langsamsten; `-- --hilfe` alle Schalter). Vor dem PR bzw. dem Abschlussbericht **einmal alle Tests** ohne Schalter – so prüft auch die CI.
