@@ -12,7 +12,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Offen
 
-- (Streife) Köln, Wachhaus am Heumarkt: Von der Tür aus ist kein Knoten des Gassennetzes am Heumarkt erreichbar (zwei getrennte Teile des Netzes, gesehen mit `--streifentest=markt`); die Marktrunde endet daher nach 5 m, Viertel- und Mauerrunden sind nicht betroffen. Ursache nicht geklärt (Tür nicht angeschlossen oder der Platz hängt nicht am Netz); die Marktbesucher laufen über die Fläche des Marktes.
 
 - (Umland) Böschung am Hang: Figuren und Pflanzen im Saum stehen auf dem Boden, nicht auf dem Netz (nur wenige dm Unterschied, im Klicktest nicht sichtbar); der Erdsaum ist nur Erdfarbe, ohne Farbverlauf zum Gras im Netz
 - (Boden) Stempel in der Kartenwerkstatt (dort fehlen Höfe, Wege und Restflächen-Untergründe, die Modelle haben keine Platte mehr); Stempel für Stadthäuser (Vorplatz Pflaster) und ein Pinsel „Stempel anpassen“
