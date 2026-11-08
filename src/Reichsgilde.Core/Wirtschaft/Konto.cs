@@ -10,6 +10,9 @@ public sealed class Jahresbilanz
     public double Umsatz { get; internal set; }
     public double Zutaten { get; internal set; }
     public double Personal { get; internal set; }
+
+    /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73, <see cref="PersonalDaten.Handgeld"/>) – laufende Kosten wie der Lohn.</summary>
+    public double Handgeld { get; internal set; }
     public double Fixkosten { get; internal set; }
     public double Steuer { get; internal set; }
     public double Schaden { get; internal set; }
@@ -51,7 +54,7 @@ public sealed class Jahresbilanz
     public Dictionary<string, int> Hergestellt { get; } = new();
 
     /// <summary>Betriebsgewinn: Umsatz minus alle laufenden Kosten (ohne Investitionen).</summary>
-    public double Gewinn => Umsatz - Zutaten - Personal - Fixkosten - Steuer - Schaden - Transport;
+    public double Gewinn => Umsatz - Zutaten - Personal - Handgeld - Fixkosten - Steuer - Schaden - Transport;
 }
 
 /// <summary>
@@ -173,6 +176,7 @@ public sealed class Konto
     internal void Umsatz(double betrag) { Vermoegen += betrag; Laufend.Umsatz += betrag; }
     internal void Zutaten(double betrag) { Vermoegen -= betrag; Laufend.Zutaten += betrag; }
     internal void Personal(double betrag) { Vermoegen -= betrag; Laufend.Personal += betrag; }
+    internal void Handgeld(double betrag) { Vermoegen -= betrag; Laufend.Handgeld += betrag; }
     internal void Fixkosten(double betrag) { Vermoegen -= betrag; Laufend.Fixkosten += betrag; }
     /// <summary>Steuern und Abgaben gehen an die Stadt: in die Stadtkasse unter diesem Posten (PR #200).</summary>
     internal void Steuer(double betrag, Politik.Kassenposten posten = Politik.Kassenposten.Umsatzsteuer)
@@ -259,7 +263,7 @@ public sealed class Konto
         Steuer = b.Steuer, Schaden = b.Schaden, Transport = b.Transport, Raubwert = b.Raubwert,
         Investitionen = b.Investitionen, Standesgebuehren = b.Standesgebuehren, Hergestellt = new(b.Hergestellt),
         Amtseinkommen = b.Amtseinkommen, Geschenke = b.Geschenke, Familie = b.Familie, Gericht = b.Gericht, Gaunerei = b.Gaunerei,
-        Zinsen = b.Zinsen, Verkaeufe = b.Verkaeufe,
+        Zinsen = b.Zinsen, Verkaeufe = b.Verkaeufe, Handgeld = b.Handgeld,
     };
 
     private static Jahresbilanz BilanzLaden(BilanzStand s)
@@ -270,7 +274,7 @@ public sealed class Konto
             Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raubwert = s.Raubwert,
             Investitionen = s.Investitionen, Standesgebuehren = s.Standesgebuehren,
             Amtseinkommen = s.Amtseinkommen, Geschenke = s.Geschenke, Familie = s.Familie, Gericht = s.Gericht, Gaunerei = s.Gaunerei,
-            Zinsen = s.Zinsen, Verkaeufe = s.Verkaeufe,
+            Zinsen = s.Zinsen, Verkaeufe = s.Verkaeufe, Handgeld = s.Handgeld,
         };
         foreach (var (ware, stueck) in s.Hergestellt) b.Hergestellt[ware] = stueck;
         return b;

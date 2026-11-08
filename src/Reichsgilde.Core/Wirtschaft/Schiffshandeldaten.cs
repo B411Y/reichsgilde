@@ -110,6 +110,14 @@ public sealed class SchiffshandelDaten
     public bool Aktiv { get; init; } = true;
 
     /// <summary>
+    /// Fahren die Karren zum Handeln auch an den Hafen (Nutzer, 08.11.2026)? Dann fährt jeder Karren, der zum Markt aufbricht, zum näheren
+    /// Handelsort – Marktplatz oder Hafen, nach der Fahrzeit hin und zurück –, solange der Hafen offen ist (<see cref="Schiffahrt.HafenOffen"/>);
+    /// gehandelt wird an beiden mit demselben Markt (<see cref="Schiffahrt.HafenMarkt"/>). Ohne Angabe false: Die Karren fahren nur zu den
+    /// Marktplätzen, wie bis Datenversion 72 – so rechnen alte Spielstände mit ihren mitgespeicherten Daten weiter wie bisher.
+    /// </summary>
+    public bool KarrenZumHafen { get; init; }
+
+    /// <summary>
     /// Landhandel, solange der Schiffshandel ruht (<see cref="Aktiv"/> false) und die Karte einen Hafen hat: Faktoren je Ware auf Grundversorgung
     /// („angebot“: Fuhrleute bringen, was sonst die Rückfracht brachte) und Nachfrage („nachfrage“: Händler kaufen für die fernen Städte, was
     /// sonst die Schiffe ausführten). Gleicht aus, was die Stadt ohne Schiffe verliert (Datenversion 70, Nutzer: Option A). Mit laufendem

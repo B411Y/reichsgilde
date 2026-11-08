@@ -278,8 +278,11 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Was ein Einkauf von Hand jetzt kosten würde (jedes Stück hebt den Preis).</summary>
     public double HandKaufpreis(Konto konto, string ware, int stueck, double anteil = 1) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto), anteil: anteil);
 
-    /// <summary>Wann käme dieser Karren am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht; die Fahrzeit hängt an seiner Art)</summary>
-    public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + Fahrzeit(karren, zumMarkt: true);
+    /// <summary>
+    /// Wann käme dieser Karren am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht; die Fahrzeit hängt an seiner Art und
+    /// daran, ob er jetzt zum Hafen führe, <see cref="FahrzeitBeiAbfahrt"/>)
+    /// </summary>
+    public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + FahrzeitBeiAbfahrt(karren);
 
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;
@@ -1163,12 +1166,15 @@ public sealed partial class Stadtwirtschaft
     private Befehlsergebnis PersonalAusfuehren(Betrieb betrieb, PersonalSetzen befehl)
     {
         var vorher = betrieb.Belegung.GetValueOrDefault(befehl.Arbeitskraft);
-        if (befehl.Anzahl > vorher && Personal.EinstellenVerboten(betrieb, befehl.Arbeitskraft) is { } nurAnfaenger)
+        if (befehl.Anzahl > vorher && (Personal.EinstellenVerboten(betrieb, befehl.Arbeitskraft)
+                                       ?? Personal.HandgeldFehlt(betrieb, befehl.Arbeitskraft, befehl.Anzahl - vorher)) is { } nurAnfaenger)
             return Befehlsergebnis.Abgelehnt(nurAnfaenger); // entlassen geht immer
         betrieb.Einstellen(befehl.Arbeitskraft, befehl.Anzahl, Statut); // prüft Statut, Plätze und Namen
         var diff = befehl.Anzahl - vorher;
+        var handgeld = diff > 0 ? Personal.HandgeldZahlen(betrieb, befehl.Arbeitskraft, diff) : 0; // erst nach dem Einstellen (Datenversion 73)
         return Befehlsergebnis.Ok(diff switch
         {
+            > 0 when handgeld > 0 => $"{betrieb.Name}: {diff}× {befehl.Arbeitskraft} eingestellt (Handgeld {Zahlenformat.Ganz(handgeld)} {Daten.Allgemein.Waehrung}).",
             > 0 => $"{betrieb.Name}: {diff}× {befehl.Arbeitskraft} eingestellt.",
             < 0 => $"{betrieb.Name}: {-diff}× {befehl.Arbeitskraft} entlassen.",
             _ => $"{betrieb.Name}: Belegung unverändert.",

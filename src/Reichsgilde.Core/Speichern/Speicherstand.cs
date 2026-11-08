@@ -347,6 +347,10 @@ public sealed record WegebauStand
     public Dictionary<string, int> Fahrten { get; init; } = new();
 
     public Dictionary<string, int> FahrtenVorjahr { get; init; } = new();
+
+    /// <summary>Davon zum Hafen und zurück, im laufenden Jahr und im Vorjahr (Datenversion 73; alte Spielstände: null – alle zum Marktplatz).</summary>
+    public Dictionary<string, int>? FahrtenHafen { get; init; }
+    public Dictionary<string, int>? FahrtenHafenVorjahr { get; init; }
     public List<WegbaustelleStand> Baustellen { get; init; } = new();
     public double Wegekasse { get; init; }
     public int? AntragKonto { get; init; }
@@ -954,6 +958,9 @@ public sealed record BilanzStand
 
     /// <summary>Erlös aus verkauften Betrieben (0 in alten Spielständen).</summary>
     public double Verkaeufe { get; init; }
+
+    /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73; 0 in alten Spielständen).</summary>
+    public double Handgeld { get; init; }
     public Dictionary<string, int> Hergestellt { get; init; } = new();
 }
 
@@ -1058,6 +1065,9 @@ public sealed record BetriebsrechnungStand
     /// <summary>Von Dieben geholt (Ware bzw. Kasse) und Schaden durch Feuer – nur zur Information (0 in alten Spielständen).</summary>
     public double Raub { get; init; }
     public double Brandschaden { get; init; }
+
+    /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73; 0 in alten Spielständen).</summary>
+    public double Handgeld { get; init; }
 }
 
 public sealed record KarrenStand
@@ -1092,6 +1102,9 @@ public sealed record KarrenStand
 
     /// <summary>Zählt <see cref="FahrtenImJahr"/> seit Jahresbeginn? (PR #205; alte Spielstände: nein – das laufende Jahr zählt dann nicht)</summary>
     public bool FahrtenGanzesJahr { get; init; }
+
+    /// <summary>Fährt (bzw. fuhr zuletzt) zum Hafen statt zum Marktplatz (Datenversion 73; alte Spielstände: false – zum Marktplatz).</summary>
+    public bool ZielHafen { get; init; }
 }
 
 public sealed record MarktstandStand

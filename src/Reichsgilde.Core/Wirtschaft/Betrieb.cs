@@ -115,6 +115,9 @@ public sealed class Betriebsrechnung
     public double Schaden { get; internal set; }
     public double Transport { get; internal set; }
 
+    /// <summary>Handgeld für neu eingestellte Anfänger (Datenversion 73, <see cref="PersonalDaten.Handgeld"/>).</summary>
+    public double Handgeld { get; internal set; }
+
     /// <summary>
     /// Was Diebe aus diesem Betrieb geholt haben: Marktwert der Lagerware, beim Geldleiher die Gulden aus der Kasse. Nur zur Information
     /// (schon aus Lager bzw. Kasse verschwunden, kein Posten des Gewinns) – Grundlage für den Wert der Eisentür.
@@ -127,19 +130,19 @@ public sealed class Betriebsrechnung
     /// </summary>
     public double Brandschaden { get; internal set; }
 
-    /// <summary>Gewinn des Betriebs: Umsatz minus Zutaten, Personal, Unterhalt bzw. Pacht, Steuer, Schaden und Transport.</summary>
-    public double Gewinn => Umsatz - Zutaten - Personal - Fixkosten - Steuer - Schaden - Transport;
+    /// <summary>Gewinn des Betriebs: Umsatz minus Zutaten, Personal, Handgeld, Unterhalt bzw. Pacht, Steuer, Schaden und Transport.</summary>
+    public double Gewinn => Umsatz - Zutaten - Personal - Handgeld - Fixkosten - Steuer - Schaden - Transport;
 
     internal BetriebsrechnungStand Sichern() => new()
     {
         Jahr = Jahr, Ganzjaehrig = Ganzjaehrig, Umsatz = Umsatz, Zutaten = Zutaten, Personal = Personal, Fixkosten = Fixkosten,
-        Steuer = Steuer, Schaden = Schaden, Transport = Transport, Raub = Raub, Brandschaden = Brandschaden,
+        Steuer = Steuer, Schaden = Schaden, Transport = Transport, Raub = Raub, Brandschaden = Brandschaden, Handgeld = Handgeld,
     };
 
     internal static Betriebsrechnung Laden(BetriebsrechnungStand s) => new()
     {
         Jahr = s.Jahr, Ganzjaehrig = s.Ganzjaehrig, Umsatz = s.Umsatz, Zutaten = s.Zutaten, Personal = s.Personal, Fixkosten = s.Fixkosten,
-        Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raub = s.Raub, Brandschaden = s.Brandschaden,
+        Steuer = s.Steuer, Schaden = s.Schaden, Transport = s.Transport, Raub = s.Raub, Brandschaden = s.Brandschaden, Handgeld = s.Handgeld,
     };
 }
 
@@ -606,6 +609,7 @@ public sealed class Betrieb
     internal void UmsatzBuchen(double betrag) { Konto.Umsatz(betrag); Laufend.Umsatz += betrag; }
     internal void ZutatenBuchen(double betrag) { Konto.Zutaten(betrag); Laufend.Zutaten += betrag; }
     internal void PersonalBuchen(double betrag) { Konto.Personal(betrag); Laufend.Personal += betrag; }
+    internal void HandgeldBuchen(double betrag) { Konto.Handgeld(betrag); Laufend.Handgeld += betrag; }
     internal void FixkostenBuchen(double betrag) { Konto.Fixkosten(betrag); Laufend.Fixkosten += betrag; }
     internal void SteuerBuchen(double betrag) { Konto.Steuer(betrag); Laufend.Steuer += betrag; }
     internal void SchadenBuchen(double betrag) { Konto.Schaden(betrag); Laufend.Schaden += betrag; }

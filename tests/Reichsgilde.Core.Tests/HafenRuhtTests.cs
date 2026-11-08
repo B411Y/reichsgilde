@@ -39,6 +39,8 @@ static class HafenRuhtTests
     /// </summary>
     static List<string> Partie(string json, int jahre)
     {
+        // Karren zum Hafen und Handgeld (Datenversion 73) wie vor dem Schalter abschalten
+        json = Datenpfad.WieVorHafenziel(json);
         // Blitzschaden (Datenversion 71) wie vor dem Schalter abschalten: alte Blitzwerte (Reparatur 0, keine Anteile, kein Sprung)
         var knoten = JsonNode.Parse(json)!;
         var blitz = knoten["blitz"]!.AsObject();
@@ -47,7 +49,7 @@ static class HafenRuhtTests
         // Ein Lehrling zum Start (Datenversion 72) wie vor dem Schalter abschalten: ohne die Angabe zwei in der Stadt, drei im Umland
         knoten["personal"]!.AsObject().Remove("startJeBetrieb");
         foreach (var feld in Buergermessung.NeueFelder) knoten["buerger"]!.AsObject().Remove(feld); // Bürgerdichte (5.11.2026) wie vor dem Schalter
-        knoten.AsObject().Remove("lebensweise"); // Lebensweise (Datenversion 73) gab es vor dem Schalter nicht
+        knoten.AsObject().Remove("lebensweise"); // Lebensweise (Datenversion 74) gab es vor dem Schalter nicht
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
@@ -70,6 +72,7 @@ static class HafenRuhtTests
             // Das Feld „Blitz“ (Einschläge im Spielstand, seit dem Blitzschaden) gab es vor dem Schalter nicht
             foreach (var schluessel in n.Select(p => p.Key).Where(k => k.Equals("wirtschaft", StringComparison.OrdinalIgnoreCase)).ToList())
                 n[schluessel]!.AsObject().Remove("Blitz");
+            Spielstandfelder.OhneLeere(n, Spielstandfelder.Hafenziel); // neue Felder (Datenversion 73), solange sie nichts tragen
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
@@ -93,7 +96,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(73, d.Version);
+            Pruefe.Gleich(74, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");

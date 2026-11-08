@@ -1,6 +1,6 @@
 # Bereich kern – Archiv der älteren Entscheidungen
 
-Hier stehen die Entscheidungsabschnitte, die vor dem 27.10.2026 abgeschlossen wurden, **wörtlich** aus [../kern.md](../kern.md) verschoben (Stand 29.10.2026; am 31.10.2026 dazu PR #219 und #224, am 1.11.2026 PR #227, #231, #232, #244, #247, #251, #253 und #254, am 2.11.2026 PR #259, am 3.11.2026 PR #282: Fahrzeit nach Weglänge, Mehrere Marktplätze, später Hausreihe vor dem Tor, Nachbesserung nach der Prüfung, Werkstatt-Bauplätze und KI nach Fahrzeit; am 5.11.2026 PR #279 und #280: Pinsel-Paket 1, Höhenkarten; am 8.11.2026 PR #288 und #286: Blitzschlag im Gewitter, Karren-Höchstzahl je Arbeitsort). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
+Hier stehen die Entscheidungsabschnitte, die vor dem 27.10.2026 abgeschlossen wurden, **wörtlich** aus [../kern.md](../kern.md) verschoben (Stand 29.10.2026; am 31.10.2026 dazu PR #219 und #224, am 1.11.2026 PR #227, #231, #232, #244, #247, #251, #253 und #254, am 2.11.2026 PR #259, am 3.11.2026 PR #282: Fahrzeit nach Weglänge, Mehrere Marktplätze, später Hausreihe vor dem Tor, Nachbesserung nach der Prüfung, Werkstatt-Bauplätze und KI nach Fahrzeit; am 5.11.2026 PR #279 und #280: Pinsel-Paket 1, Höhenkarten). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
 
 ## Entscheidungen (älter)
 
@@ -770,12 +770,3 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Spielstand | Unverändert. Laufende Feuer rechnet der Kern nach dem Laden aus dem Plan nach (`Einschlaege`, nur fürs Bild; auch Feuer des Vorjahres, die über 23 Uhr hinaus brennen); Gleichheitstest mit Ladepunkten im Brand, verglichen werden Minute und Text jeder Meldung „Blitzschlag!“. Grenze: Das nachgerechnete Ziel folgt dem Zustand beim Laden – wurde dazwischen gebaut oder ausgebaut, kann das Bild ein anderes Haus brennen lassen (der Schaden im Kern bleibt richtig). |
 | Datenversion | 68 (nach #286 und #287 mit 66 und 67; im Branch zuvor 69). |
 | Messung | Main 4220c631 + Branch, linear und durchmischt, je 10 Startwerte, 20 Jahre: Greybox und Köln je 17 Einschläge in 200 Jahren (1,7 je Partie); Kirchen und Dom 24 % (vorher zum Quadrat 69 %), Wohnhäuser 44 %, das Haus des Spielers einmal, KI-Werkstätten zweimal; Vermögen nur verrauscht (WIRTSCHAFTSMODELL „Blitzschlag im Gewitter“). |
-
-### Karren-Höchstzahl je Arbeitsort (PR #286)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Regel | Entscheidung des Nutzers (2.11.2026): Ein Umlandbetrieb darf bis zu **5** Karren haben, eine Werkstatt in der Stadt **3**. Neu in `wirtschaft.json`: `logistik.karrenHoechstens` = `{ "Werkstatt": 3, "Umland": 5 }`, **Datenversion 66**. Gilt für Spieler und KI gleich: `Stadtwirtschaft.KarrenKaufVerboten(b)` (Kern), `KarrenKaufen` lehnt mit Grund ab. Vorher gab es im Kern keine Grenze (nur die KI hielt sich an `KiProfil.MaxKarrenJeBetrieb` = 3) – für den Spieler ist die Grenze von 3 in der Stadt also neu; begründet: dieselbe Regel für alle, und in der Stadt liegen die Werkstätten nahe am Markt. Ohne Eintrag (alte Daten, alte Spielstände mit ihren Daten) keine Grenze, ein Stand mit mehr Karren lädt unverändert (nur weiterer Kauf ist gesperrt). | 2.11.2026 |
-| Oberfläche | `BetriebsVerwaltung`: Der Knopf „Kaufen“ ist an der Grenze gesperrt, der Grund steht im Tooltip (vorher keine Annahme einer festen Zahl; die Karrenzeilen sind dynamisch). | 2.11.2026 |
-| KI | Die KI hält sich an dieselbe Grenze (Einzelheiten in `docs/bereiche/spiel-ki.md`, „Karren-Höchstzahl“). | 2.11.2026 |
-| Tests | `KarrenHoechstzahlTests` (Daten und Prüfung, Spieler im Umland bis 5 und in der Stadt bis 3, alte Daten ohne Grenze, KI kauft am gebremsten Holzschlag einen vierten und tauscht erst an der Grenze von 5); Datenversion 66 in den Tests, die sie nennen; `KiUmlandTests` mit 5 erlaubten Karren (Schätzung beim Pachten weiter mit 3). Messung in `docs/bereiche/spiel-ki.md` („Karren-Höchstzahl: Umland bis 5 Karren“). | 2.11.2026 |
