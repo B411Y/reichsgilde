@@ -117,7 +117,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Der Aufbau der Karte in Abschnitten (für den Ladebildschirm): Vor jedem Abschnitt meldet er, wie viel schon fertig ist und was jetzt kommt;
-    /// gerechnet wird beim nächsten Weiterzählen. Die Anteile folgen der Messung mit <c>--ladezeit=1</c> (Köln, 29.10.2026).
+    /// gerechnet wird beim nächsten Weiterzählen. Die Anteile folgen der Messung mit <c>--ladezeit=1</c> (Köln und Greybox, 07.11.2026; Herleitung in <c>docs/bereiche/darstellung.md</c>, Ladebildschirm).
     /// </summary>
     private IEnumerable<Ladeschritt> KarteAufbauenSchritte(Stadtkarte? karte)
     {
@@ -138,40 +138,40 @@ public partial class Stadtansicht
         BodenstempelAusKarte(karte); // Höfe, Wege und Restflächen als Bodenart im Raster, vor dem Boden (Stadtansicht.Bodenstempel.cs)
         Ladezeit.Teil("BodenLegen", () => BodenLegen(karte));
         Ladezeit.Marke("Szene: Boden und Gelände");
-        yield return new Ladeschritt(0.28f, "Die Stadtmauer wird hochgezogen …");
+        yield return new Ladeschritt(0.2f, "Die Stadtmauer wird hochgezogen …");
         FelderVorrechnen(karte); // die Äcker rechnen im Hintergrund, während der Hauptfaden Mauern, Markt, Wege und Natur lädt; erst nach dem Boden, dessen Kacheln selbst alle Kerne brauchen (Stadtansicht.Rand.cs)
         Ladezeit.Teil("Sockel", () => { foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); }); // Häuser bekommen ihren Sockel selbst
         Ladezeit.Teil("Mauern", () => { foreach (var mauer in karte.Mauern) MauerAusKarte(mauer); });
         Ladezeit.Marke("Szene: Sockel und Mauern");
-        yield return new Ladeschritt(0.30f, "Rathaus und Dom werden errichtet …");
+        yield return new Ladeschritt(0.24f, "Rathaus und Dom werden errichtet …");
         Ladezeit.Teil("Marktstände", () => { foreach (var platz in _maerkte) Marktstaende(platz); }); // Stadtansicht.Markt.cs: Stände, Verkäufer und Klickfläche an jedem Platz
         Ladezeit.Teil("Sonderbauten", () => SonderbautenBauen(karte)); // Rathaus, Dom und Bauten ohne eigene Ansicht
         Ladezeit.Marke("Szene: Markt und Sonderbauten");
-        yield return new Ladeschritt(0.33f, "Häuser werden gebaut …");
+        yield return new Ladeschritt(0.34f, "Häuser werden gebaut …");
         Kulissenhaeuser(karte);
         Ladezeit.Marke("Szene: Kulissenhäuser");
-        yield return new Ladeschritt(0.34f, "Wege werden gepflastert …");
+        yield return new Ladeschritt(0.37f, "Wege werden gepflastert …");
         Ladezeit.Teil("Berge", () => { foreach (var berg in karte.GebaeudeDerArt(Bausteinart.Berg)) BergBauen(berg); });
         Ladezeit.Teil("WegeAnlegen", () => WegeAnlegen(karte));
         Ladezeit.Marke("Szene: Berge und Wege");
-        yield return new Ladeschritt(0.54f, "Der Fluss wird eingelassen …");
+        yield return new Ladeschritt(0.39f, "Der Fluss wird eingelassen …");
         Ladezeit.Teil("GewaesserBauen", GewaesserBauen);    // Wasser, Brücken, Furten, Fähren (Stadtansicht.Wasser.cs)
         FaehrenAnsNetz();    // Karren setzen mit Fähren über (Stadtansicht.Wasser.Uebergaenge.cs)
         Ladezeit.Marke("Szene: Wasser");
-        yield return new Ladeschritt(0.555f, "Höfe und Gruben werden angelegt …");
+        yield return new Ladeschritt(0.46f, "Höfe und Gruben werden angelegt …");
         Ladezeit.Teil("UmlandstellenBauen", () => UmlandstellenBauen(karte)); // Stadtansicht.Umland.cs
         Ladezeit.Teil("Anschliessen", () => Anschliessen(karte));
         Ladezeit.Marke("Szene: Umland und Anschlüsse");
-        yield return new Ladeschritt(0.58f, "Bäume werden gepflanzt …");
+        yield return new Ladeschritt(0.48f, "Bäume werden gepflanzt …");
         Ladezeit.Teil("NaturAusKarte", () => NaturAusKarte(karte)); // Stadtansicht.Natur.cs
         Ladezeit.Teil("RestflaechenAusKarte", () => RestflaechenAusKarte(karte)); // Stadtansicht.Restflaechen.cs: Gärten, Werkhöfe und Gestrüpp auf den freien Flächen
         Ladezeit.Teil("FelsenAusKarte", () => FelsenAusKarte(karte)); // Stadtansicht.Felsen.cs
         Ladezeit.Teil("KulisseAusKarte", () => KulisseAusKarte(karte)); // Stadtansicht.Kulisse.cs
         Ladezeit.Marke("Szene: Natur");
-        yield return new Ladeschritt(0.605f, "Felder werden bestellt …");
+        yield return new Ladeschritt(0.52f, "Felder werden bestellt …");
         FelderAusKarte(karte); // Stadtansicht.Rand.cs
         Ladezeit.Marke("Szene: Felder");
-        yield return new Ladeschritt(0.70f, "Das Pflaster wird gelegt …");
+        yield return new Ladeschritt(0.935f, "Das Pflaster wird gelegt …");
         KameraAusKarte(karte);
         _schichtAlles = true;
         Ladezeit.Teil("WegeschichtBild", WegeschichtBild); // Wege, Anschlüsse und Pflaster in den Boden (Stadtansicht.Wegeschicht.cs)

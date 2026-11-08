@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bk22upnxp8mab"
-path="res://.godot/imported/markt.webp-8d9f4601059317e093226f7060e0eeca.ctex"
+uid="uid://ohxol4nfev5u"
+path="res://.godot/imported/koeln.webp-cd5303c19354df6dd3f39d7dced122bb.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/oberflaeche/ladebilder/markt.webp"
-dest_files=["res://.godot/imported/markt.webp-8d9f4601059317e093226f7060e0eeca.ctex"]
+source_file="res://assets/oberflaeche/ladebilder/koeln.webp"
+dest_files=["res://.godot/imported/koeln.webp-cd5303c19354df6dd3f39d7dced122bb.ctex"]
 
 [params]
 
