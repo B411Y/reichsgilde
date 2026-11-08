@@ -41,6 +41,8 @@ public sealed class LebenswegWirkung
     public double SpurenFaktor { get; init; } = 1;
     /// <summary>Faktor auf den Erlös des Diebesguts.</summary>
     public double HehlerFaktor { get; init; } = 1;
+    /// <summary>Faktor auf die Beute der eigenen Taschendiebe am Markt (Leise Sohlen 1,05).</summary>
+    public double BeuteFaktor { get; init; } = 1;
     /// <summary>Mehr Erfolg eigener Spitzel (0,1 = +10 Prozentpunkte).</summary>
     public double SpitzelBonus { get; init; }
     /// <summary>Chance je fremdem Geheimnis und Jahr, es ohne Spitzel zu erfahren (wirkt mit den Geheimnissen, Teil 3c).</summary>
@@ -103,6 +105,7 @@ public sealed class LebenswegWirkung
         MeinungOberhaeupter = MeinungOberhaeupter + b.MeinungOberhaeupter, Ansehen = Ansehen + b.Ansehen,
         BauFaktor = BauFaktor * b.BauFaktor, UnterhaltFaktor = UnterhaltFaktor * b.UnterhaltFaktor,
         NachtErfolg = NachtErfolg + b.NachtErfolg, SpurenFaktor = SpurenFaktor * b.SpurenFaktor, HehlerFaktor = HehlerFaktor * b.HehlerFaktor,
+        BeuteFaktor = BeuteFaktor * b.BeuteFaktor,
         SpitzelBonus = SpitzelBonus + b.SpitzelBonus, Geruechte = Geruechte + b.Geruechte,
         ErpressungSpurFaktor = ErpressungSpurFaktor * b.ErpressungSpurFaktor, GeheimnisSchutz = GeheimnisSchutz * b.GeheimnisSchutz,
         FremdeSpitzelFaktor = FremdeSpitzelFaktor * b.FremdeSpitzelFaktor,
@@ -124,7 +127,7 @@ public sealed class LebenswegWirkung
                      ("geheimnisSchutz", GeheimnisSchutz), ("fremdeSpitzelFaktor", FremdeSpitzelFaktor), ("ueberfallFaktor", UeberfallFaktor),
                      ("wohnhausFaktor", WohnhausFaktor), ("krankheitFaktor", KrankheitFaktor), ("gebuehrFaktor", GebuehrFaktor), ("busseFaktor", BusseFaktor) })
             if (faktor is < 0 or > 1) f.Add($"{wo}.{name} muss zwischen 0 und 1 liegen.");
-        foreach (var (name, faktor) in new[] { ("geschenkFaktor", GeschenkFaktor), ("hehlerFaktor", HehlerFaktor), ("entschaedigungFaktor", EntschaedigungFaktor),
+        foreach (var (name, faktor) in new[] { ("geschenkFaktor", GeschenkFaktor), ("hehlerFaktor", HehlerFaktor), ("beuteFaktor", BeuteFaktor), ("entschaedigungFaktor", EntschaedigungFaktor),
                      ("aktivitaetFaktor", AktivitaetFaktor), ("werbeFaktor", WerbeFaktor) })
             if (faktor is < 1 or > 3) f.Add($"{wo}.{name} muss zwischen 1 und 3 liegen.");
         foreach (var (name, wert) in new[] { ("erloes", Erloes), ("zinsMinus", ZinsMinus), ("nachtErfolg", NachtErfolg), ("spitzelBonus", SpitzelBonus),

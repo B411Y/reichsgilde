@@ -508,7 +508,7 @@ public sealed class Diebeswesen
             var minuten = b.ArbeitsminutenAbholen();
             if (minuten <= 0 || !b.Konto.IstAktiv) continue;
             var k = b.Konto;
-            var beute = minuten * WertJeMinute(b.Stufe);
+            var beute = minuten * WertJeMinute(b.Stufe) * _w.Familien.Lebenswirkung(k).BeuteFaktor; // Leise Sohlen (Lebensweise)
             if (passanten != 1) beute *= passanten;
             b.UmsatzBuchen(beute); // gestohlenes Geld zahlt keine Steuer
             var buch = DiesesJahr(k);

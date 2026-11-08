@@ -271,6 +271,27 @@ static class LebensweiseTests
             Pruefe.Ungefaehr((w.Daten.Justiz.SpitzelChance + 0.1) * 0.7, w.Justiz.SpitzelChance(konto, anderes), 1e-12);
         }),
 
+        ("Lebensweise: Leise Sohlen – die Taschendiebe des Hauses bringen 5 % mehr Beute; ein Haus ohne den Knoten nicht (Gegenprobe)", () =>
+        {
+            // Niemand wird am Markt erwischt – die Beute ist dann genau Minuten × Gulden je Minute (wie in DiebTests).
+            var daten = Wirtschaftsdaten.AusJson(Json.Value.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0"));
+            var sim = NeueSimulation(daten: daten);
+            var w = sim.Wirtschaft!;
+            var (mit, f) = Haus(w, "Haus Elster");
+            var (ohne, _) = Haus(w, "Haus Rabe");
+            foreach (var k in new[] { mit, ohne })
+            {
+                var b = w.BetriebEroeffnen($"Schmugglerloch {k.Inhaber}", Betriebsart.Schmugglerloch, k, startkarren: "");
+                w.Einstellen(b, "Geselle", b.Plaetze);
+            }
+            Nehmen(w, mit, f.Oberhaupt, "LeiseSohlen");
+            Pruefe.Ungefaehr(1.05, w.Familien.Lebenswirkung(mit).BeuteFaktor, 1e-12);
+            for (var i = 0; i < 20 * 60 + 1 - Reichsgilde.Core.Zeit.Spielzeit.TagesbeginnMinute; i++) sim.Tick(); // bis nach der Arbeitszeit
+            var ohneBeute = w.Diebe.DiesesJahr(ohne).Beute;
+            Pruefe.Ungefaehr(4 * 720 * w.Diebe.WertJeMinute(1), ohneBeute, 1e-6);
+            Pruefe.Ungefaehr(ohneBeute * 1.05, w.Diebe.DiesesJahr(mit).Beute, 1e-6);
+        }),
+
         ("Lebensweise: Baumeister – Einrichtung und Ausbau 10 % billiger", () =>
         {
             var w = NeueSimulation().Wirtschaft!;

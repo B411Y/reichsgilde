@@ -2027,7 +2027,7 @@
         "spalten": [ "Gaunerei", "Kundschaft", "Deckung" ], "passend": [ "Verschlagen", "Zynisch" ], "hemmend": [ "Ehrlich" ],
         "taten": [ "Beauftragen", "SpitzelAnsetzen", "Erpressen", "Einbrechen", "Auskundschaften" ],
         "knoten": {
-          "LeiseSohlen":     { "name": "Leise Sohlen", "spalte": "Gaunerei", "reihe": 1, "beschreibung": "Gaunerstücke +3 Prozentpunkte Erfolg.", "wirkung": { "nachtErfolg": 0.03 } },
+          "LeiseSohlen":     { "name": "Leise Sohlen", "spalte": "Gaunerei", "reihe": 1, "beschreibung": "Gaunerstücke +3 Prozentpunkte Erfolg; eigene Taschendiebe 5 % mehr Beute.", "wirkung": { "nachtErfolg": 0.03, "beuteFaktor": 1.05 } },
           "SaubereArbeit":   { "name": "Saubere Arbeit", "spalte": "Gaunerei", "reihe": 2, "beschreibung": "Eigene Gaunerstücke hinterlassen 15 % seltener Zeugen.", "wirkung": { "spurenFaktor": 0.85 } },
           "Hehlerring":      { "name": "Hehlerring", "spalte": "Gaunerei", "reihe": 3, "beschreibung": "Diebesgut bringt beim Hehler 15 % mehr.", "wirkung": { "hehlerFaktor": 1.15 } },
           "OhrAnDerWand":    { "name": "Ohr an der Wand", "spalte": "Kundschaft", "reihe": 1, "beschreibung": "Eigene Spitzel finden jede Spur mit 10 Prozentpunkten mehr.", "wirkung": { "spitzelBonus": 0.1 } },
