@@ -160,6 +160,51 @@ static class RestflaechenfuellungTests
             }
         }),
 
+        ("Restflächenfüllung: Stufe 1 der Themenwahl ist die Rechnung von Paket 3 (Köln, Greybox, Probestadt, Messstadt): alles außer Randgestrüpp bleibt gleich", () =>
+        {
+            var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
+            var grenzen = wurzel["hoechstens_felder"]!.AsObject().ToDictionary(e => e.Key, e => e.Value!.GetValue<int>());
+            var ersetzt = wurzel["erweiterung"]!["ersetzt"]!.GetValue<string>();
+            var geprueft = 0;
+            foreach (var kennung in new[] { "koeln", "greybox", "probestadt", "messstadt" })
+            {
+                var karte = Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
+                foreach (var r in karte.Restflaechen ?? new List<Restflaeche>())
+                {
+                    var art = Restflaechenfuellung.Nachbarart(r, karte);
+                    var wahl = wurzel["nachbarn"]![art]!.AsObject().OrderBy(e => e.Key, StringComparer.Ordinal).ToList();
+                    var erw = wurzel["erweiterung"]!["nachbarn"]![art]!.AsObject().OrderBy(e => e.Key, StringComparer.Ordinal).ToList();
+                    var felder = Restflaechenfuellung.Felder(r).Count;
+                    // die alte Rechnung von Paket 3, ausgeschrieben
+                    var gewichte = wahl.Select(e => grenzen.TryGetValue(e.Key, out var g) && felder > g ? 0 : e.Value!.GetValue<int>()).ToArray();
+                    var nummer = Restflaechenfuellung.Waehlen(gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
+                    var alt = nummer < 0 ? null : wahl[nummer].Key;
+                    var neu = Restflaechenfuellung.ThemaWaehlen(karte.Kennung + "/" + r.Kennung, felder, wahl.Select(e => e.Key).ToList(), wahl.Select(e => e.Value!.GetValue<int>()).ToList(), grenzen,
+                                                                 ersetzt, erw.Select(e => e.Key).ToList(), erw.Select(e => e.Value!.GetValue<int>()).ToList());
+                    if (alt != ersetzt) Pruefe.Gleich(alt, neu);
+                    else Pruefe.Wahr(neu is not null, $"{kennung} {r.Kennung}: Randgestrüpp wird höchstens ersetzt");
+                    geprueft++;
+                }
+            }
+            Pruefe.Wahr(geprueft >= 41, $"mindestens die 41 Flächen von Köln und Greybox geprüft ({geprueft})");
+        }),
+
+        ("Restflächenfüllung: ThemaWaehlen – Grenzfälle (alle Gewichte 0, alles über hoechstens, ersetzt null oder leer)", () =>
+        {
+            var namen = new[] { "garten", "randgestruepp" };
+            var keine = new Dictionary<string, int>();
+            var erwNamen = new[] { "randgestruepp", "steinmetzplatz" };
+            Pruefe.Gleich((string?)null, Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 0, 0 }, keine));
+            Pruefe.Gleich((string?)null, Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 5, 5 }, new Dictionary<string, int> { ["garten"] = 1, ["randgestruepp"] = 1 })); // alles über der Grenze
+            Pruefe.Gleich("randgestruepp", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 0, 5 }, keine, null, erwNamen, new[] { 0, 100 })); // ersetzt null: keine Stufe 2
+            Pruefe.Gleich("randgestruepp", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 0, 5 }, keine, "randgestruepp", new string[0], new int[0])); // Erweiterung leer
+            Pruefe.Gleich("randgestruepp", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 0, 5 }, keine, "randgestruepp", erwNamen, new[] { 10, 0 })); // Erweiterung ohne Gewicht für neue: bleibt
+            Pruefe.Gleich("randgestruepp", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 0, 5 }, keine, "randgestruepp", erwNamen, new[] { 0, 0 })); // Erweiterung ohne Gewicht: bleibt
+            Pruefe.Gleich("steinmetzplatz", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 0, 5 }, keine, "randgestruepp", erwNamen, new[] { 0, 100 }));
+            Pruefe.Gleich("randgestruepp", Restflaechenfuellung.ThemaWaehlen("k/R1", 30, namen, new[] { 0, 5 }, new Dictionary<string, int> { ["steinmetzplatz"] = 16 }, "randgestruepp", erwNamen, new[] { 0, 100 })); // zu groß für den Steinmetzplatz
+            Pruefe.Gleich("garten", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 5, 0 }, keine, "randgestruepp", erwNamen, new[] { 0, 100 })); // nur Randgestrüpp wird ersetzt
+        }),
+
         ("Restflächenfüllung: Köln bekommt einige Steinmetzplätze und wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Paket 3: 3 Höfe, 2 Pferche, 2 Wasserstellen, 5 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
         {
             var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
