@@ -324,17 +324,19 @@ public sealed partial class KiRivale
         if (frei <= 0) return;
 
         // Mit „personal“ (PR #224) nur, wen der Betrieb einstellen darf: Anfänger seiner Laufbahn, Unfreie und Orks nach Statut.
+        // Das Handgeld (Datenversion 73) muss sich im ersten Jahr bezahlt machen: erwarteter Ertrag (nach dem Lohn) über dem Handgeld.
         var beste = _w.Daten.Arbeitskraefte.Keys
             .Where(k => _w.Daten.Arbeitskraefte[k].IstErlaubt(_w.Statut, betrieb.Ort) && _w.Personal.EinstellenVerboten(betrieb, k) is null)
             .Select(k => (Kraft: k, Ertrag: Jahresertrag(betrieb, k)))
-            .Where(x => x.Ertrag > 0)
+            .Where(x => x.Ertrag > _w.Personal.Handgeld(x.Kraft))
             .OrderByDescending(x => x.Ertrag)
             .ThenBy(x => x.Kraft, StringComparer.Ordinal)
             .FirstOrDefault();
         if (beste.Kraft is null) return;
 
         // Löhne werden erst am Jahresende fällig – trotzdem keine Einstellung, wenn sie die Reserve auffressen.
-        var lohn = _w.Daten.Lohn(beste.Kraft, betrieb.Art); // im Wirtshaus für die längere Schicht
+        // Das Handgeld ist gleich fällig, der Lohn am Jahresende: Beides zusammen darf die halbe Reserve nicht angreifen.
+        var lohn = _w.Daten.Lohn(beste.Kraft, betrieb.Art) + _w.Personal.Handgeld(beste.Kraft); // im Wirtshaus für die längere Schicht
         var bezahlbar = (int)Math.Floor((Konto.Vermoegen - Profil.Reserve / 2) / lohn);
         var anzahl = Math.Min(frei, bezahlbar);
         if (anzahl <= 0) return;
