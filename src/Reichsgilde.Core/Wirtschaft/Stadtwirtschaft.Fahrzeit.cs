@@ -24,6 +24,12 @@ namespace Reichsgilde.Core.Wirtschaft;
 ///   • Keine Karte, kein Platz oder kein Weg zum Markt: die feste Fahrzeit des Arbeitsorts (<c>logistik.fahrzeiten</c>: Werkstatt 30, Umland 120).
 ///   • Alte Daten ohne <c>logistik.weglaenge</c> (vor Datenversion 65): die feste Fahrzeit, mit Steigung und Belag nach Länge gemittelt
 ///     malgenommen, dazu Furten und Fähren – für alle Karrenarten gleich, wie bis PR #182.
+///   • Hafen als Handelsort (Datenversion 73, <see cref="SchiffshandelDaten.KarrenZumHafen"/>; Nutzer, 08.11.2026): Hat die Karte einen Hafen,
+///     rechnet der Kern je Betrieb auch die Strecke zum nächsten Hafen (dieselbe Wegwahl wie zum Marktplatz, Halt 3,5 m vor der Fläche des
+///     Hafens; <see cref="FahrtenZumHafen"/>). Ein Karren, der zum Handeln aufbricht, fährt zum Hafen, wenn der offen ist
+///     (<see cref="Schiffahrt.HafenOffen"/>: nicht im Winter, nicht im Eis) und Hin- und Rückfahrt dorthin kürzer dauern als zum Marktplatz
+///     (<see cref="FaehrtZumHafen"/>); bei Gleichstand zum Marktplatz. Er merkt sich das Ziel für die ganze Fahrt (<see cref="Karren.ZielHafen"/>,
+///     im Spielstand) – schließt der Hafen unterwegs, fährt er die Fahrt trotzdem zu Ende. Gehandelt wird am Hafen mit demselben Markt.
 ///   • Der Belag ändert sich zum Jahreswechsel und wenn ein Ausbau fertig ist; dann rechnet der Kern die Fahrzeiten neu
 ///     (<see cref="FahrzeitenVeraltet"/>). Nichts davon steht im Spielstand: Karte und Daten sind dieselben, also auch die Strecken; der Belag
 ///     steht im Stand des Wegebaus, die Ankunft jedes Karrens als Spielminute.
@@ -42,8 +48,22 @@ public sealed partial class Stadtwirtschaft
     private readonly Dictionary<Betrieb, (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt, IReadOnlyList<Kartenort>? Punkte)> _strecken =
         new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>Gerechnete Fahrzeiten zum Hafen je Betrieb und Karrenart (hin, zurück; Datenversion 73).</summary>
+    private readonly Dictionary<Betrieb, Dictionary<string, (int Hin, int Zurueck)>> _fahrzeitenHafen = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Strecke je Betrieb zum nächsten Hafen (hin, zurück, der Hafen, der Verlauf) – null: kein Weg zum Hafen (Datenversion 73,
+    /// <see cref="FahrtenZumHafen"/>).
+    /// </summary>
+    private readonly Dictionary<Betrieb, (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude Hafen, IReadOnlyList<Kartenort>? Punkte)?> _streckenHafen =
+        new(ReferenceEqualityComparer.Instance);
+
     /// <summary>Der Belag hat sich geändert: Die Fahrzeiten werden beim nächsten Mal neu gerechnet (die Strecken bleiben).</summary>
-    internal void FahrzeitenVeraltet() => _fahrzeiten.Clear();
+    internal void FahrzeitenVeraltet()
+    {
+        _fahrzeiten.Clear();
+        _fahrzeitenHafen.Clear();
+    }
 
     /// <summary>
     /// Für welche Lage die gemerkten Fahrzeiten gelten: Jahreszeit (Schlamm) und Eis auf dem Fluss (Fähre). Ändert sie sich, gelten sie nicht mehr –
@@ -85,8 +105,65 @@ public sealed partial class Stadtwirtschaft
     private KarrenDaten? NachWeglaenge(string karrenTyp) =>
         Daten.Logistik.Weglaenge is not null && Daten.Logistik.Karren.TryGetValue(karrenTyp, out var k) && k.Tempo > 0 ? k : null;
 
-    /// <summary>Wie lange dieser Karren fährt (Spielminuten): <paramref name="zumMarkt"/> zum Markt, sonst zurück zu seinem Betrieb.</summary>
-    public int Fahrzeit(Karren karren, bool zumMarkt) => Fahrzeit(karren.Heimat, karren.Typ, zumMarkt);
+    /// <summary>
+    /// Wie lange dieser Karren fährt (Spielminuten): <paramref name="zumMarkt"/> zum Handelsort seiner Fahrt, sonst zurück zu seinem Betrieb.
+    /// Der Handelsort ist der Marktplatz oder – wenn er dorthin aufgebrochen ist (<see cref="Karren.ZielHafen"/>) – der Hafen.
+    /// </summary>
+    public int Fahrzeit(Karren karren, bool zumMarkt) =>
+        karren.ZielHafen && FahrzeitZumHafen(karren.Heimat, karren.Typ, zumMarkt) is { } hafen ? hafen : Fahrzeit(karren.Heimat, karren.Typ, zumMarkt);
+
+    /// <summary>
+    /// Wie lange dieser Karren zum Handeln führe, wenn er jetzt aufbräche (Spielminuten): zum Hafen, wenn er jetzt dorthin führe
+    /// (<see cref="FaehrtZumHafen"/>), sonst zum Marktplatz.
+    /// </summary>
+    public int FahrzeitBeiAbfahrt(Karren karren) =>
+        FaehrtZumHafen(karren.Heimat, karren.Typ) && FahrzeitZumHafen(karren.Heimat, karren.Typ, true) is { } hafen
+            ? hafen : Fahrzeit(karren.Heimat, karren.Typ, zumMarkt: true);
+
+    /// <summary>
+    /// Führe ein Karren der Art <paramref name="karrenTyp"/> von diesem Betrieb jetzt zum Hafen statt zum Marktplatz (Datenversion 73)? Ja, wenn
+    /// Karren zum Hafen fahren (<see cref="Schiffahrt.KarrenZumHafen"/>), der Hafen offen ist (<see cref="Schiffahrt.HafenOffen"/>: nicht im
+    /// Winter, nicht im Eis), es einen Weg dorthin gibt und Hin- und Rückfahrt zum Hafen kürzer dauern als zum Marktplatz. Bei Gleichstand
+    /// der Marktplatz.
+    /// </summary>
+    public bool FaehrtZumHafen(Betrieb betrieb, string karrenTyp)
+    {
+        if (!Schiffahrt.KarrenZumHafen || !Schiffahrt.HafenOffen) return false;
+        if (FahrzeitZumHafen(betrieb, karrenTyp, true) is not { } hin || FahrzeitZumHafen(betrieb, karrenTyp, false) is not { } zurueck) return false;
+        return hin + zurueck < Fahrzeit(betrieb, karrenTyp, zumMarkt: true) + Fahrzeit(betrieb, karrenTyp, zumMarkt: false);
+    }
+
+    /// <summary>
+    /// Wie lange ein Karren der Art <paramref name="karrenTyp"/> von diesem Betrieb zum nächsten Hafen fährt (<paramref name="hin"/>) bzw. von
+    /// dort zurück (Spielminuten; Datenversion 73) – dieselbe Rechnung wie zum Marktplatz (<see cref="Fahrzeit(Betrieb, string, bool)"/>: Weglänge,
+    /// Tempo der Art, Steigung, Belag, Schlamm, Furten und Fähren, Mindest- und Höchstdauer). Null, wenn die Karren nicht zum Hafen fahren
+    /// (<see cref="Schiffahrt.KarrenZumHafen"/>), es keinen Weg dorthin gibt oder die Art ohne Tempo fährt. Ob der Hafen offen ist, spielt
+    /// hier keine Rolle.
+    /// </summary>
+    public int? FahrzeitZumHafen(Betrieb betrieb, string karrenTyp, bool hin)
+    {
+        if (NachWeglaenge(karrenTyp) is null || StreckeZumHafen(betrieb) is not var (wegHin, wegZurueck, _, _)) return null;
+        LageAbgleichen();
+        if (!_fahrzeitenHafen.TryGetValue(betrieb, out var jeArt))
+            _fahrzeitenHafen[betrieb] = jeArt = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
+        if (!jeArt.TryGetValue(karrenTyp, out var zeiten))
+            jeArt[karrenTyp] = zeiten = Zeiten(wegHin, wegZurueck, karrenTyp, FesteFahrzeit(betrieb.Ort));
+        return hin ? zeiten.Hin : zeiten.Zurueck;
+    }
+
+    /// <summary>
+    /// Gelten die gemerkten Fahrzeiten noch? Ändert sich die Lage (Jahreszeit für den Schlamm, Eis für die Fähre), vergessen der Weg zum
+    /// Marktplatz und der zum Hafen ihre Zeiten.
+    /// </summary>
+    private void LageAbgleichen()
+    {
+        if (Jahreszeiten.IstAktiv && (Uhr.Jahreszeit, Jahreszeiten.FlussZugefroren) is var lage && lage != _fahrzeitenLage)
+        {
+            _fahrzeiten.Clear();
+            _fahrzeitenHafen.Clear();
+            _fahrzeitenLage = lage;
+        }
+    }
 
     /// <summary>
     /// Wie lange ein Karren der Art <paramref name="karrenTyp"/> von diesem Betrieb fährt (Spielminuten): <paramref name="zumMarkt"/> zum Markt,
@@ -98,11 +175,7 @@ public sealed partial class Stadtwirtschaft
     {
         var basis = FesteFahrzeit(betrieb.Ort);
         if (!NachStrecke(karrenTyp)) return basis;
-        if (Jahreszeiten.IstAktiv && (Uhr.Jahreszeit, Jahreszeiten.FlussZugefroren) is var lage && lage != _fahrzeitenLage)
-        {
-            _fahrzeiten.Clear();
-            _fahrzeitenLage = lage;
-        }
+        LageAbgleichen();
         if (!_fahrzeiten.TryGetValue(betrieb, out var jeArt))
             _fahrzeiten[betrieb] = jeArt = new Dictionary<string, (int, int)>(StringComparer.Ordinal);
         if (!jeArt.TryGetValue(karrenTyp, out var zeiten))
@@ -130,6 +203,22 @@ public sealed partial class Stadtwirtschaft
         var (hin, zurueck) = StreckeAmBauort(ort, artDaten, karte, netz);
         var zeiten = Zeiten(hin, zurueck, karrenTyp, basis);
         return zumMarkt ? zeiten.Hin : zeiten.Zurueck;
+    }
+
+    /// <summary>
+    /// Wie <see cref="FahrzeitAmBauort"/>, aber zum nächsten Hafen (Datenversion 73; wie <see cref="FahrzeitZumHafen"/> nach dem Bau). Null, wenn
+    /// die Karren nicht zum Hafen fahren, ohne Weg dorthin, ohne Tempo der Art oder wenn die Betriebsart keine Werkstatt in der Stadt ist. Ändert nichts.
+    /// </summary>
+    public int? FahrzeitZumHafenAmBauort(WerkstattBauen ort, string karrenTyp, bool hin = true)
+    {
+        if (!NachWeglaengeGerechnet || NachWeglaenge(karrenTyp) is null || !Schiffahrt.KarrenZumHafen || Karte is not { } karte
+            || Karrennetz is not { } netz || !Bauen.IstAktiv || !Daten.Betriebsarten.TryGetValue(ort.Art, out var artDaten) || !artDaten.InDerStadt)
+            return null;
+        var platz = new Betriebsplatz("", null, new Grundstueck(-1, Bauen.Grundriss(ort), Grundstuecksart.Werkstatt, null, null));
+        var (wegHin, wegZurueck, hafen, _) = StreckeWieImBild(Karrenweg.Start(platz, ort.Art, artDaten, karte.Katalog), karte, netz, Schiffahrt.Hafengebaeude);
+        if (wegHin.Count == 0 || hafen is null) return null;
+        var zeiten = Zeiten(wegHin, wegZurueck, karrenTyp, FesteFahrzeit(artDaten.Ort));
+        return hin ? zeiten.Hin : zeiten.Zurueck;
     }
 
     /// <summary>Die Strecke (hin, zurück), die eine Werkstatt an diesem Bauort hätte – wie <see cref="Fahrten"/> nach dem Bau (für Tests auch mit alten Daten).</summary>
@@ -261,6 +350,46 @@ public sealed partial class Stadtwirtschaft
     /// </summary>
     public Kartengebaeude? MarktplatzVon(Betrieb betrieb) => Strecke(betrieb)?.Markt;
 
+    /// <summary>
+    /// Die Fahrt eines Betriebs zum nächsten Hafen und zurück (Datenversion 73; wie <see cref="Fahrten"/>, nur mit dem Hafen als Ziel) – null,
+    /// wenn die Karren nicht zum Hafen fahren (<see cref="Schiffahrt.KarrenZumHafen"/>), der Betrieb keinen Platz hat oder kein Weg zum Hafen führt.
+    /// </summary>
+    public (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)? FahrtenZumHafen(Betrieb betrieb) =>
+        StreckeZumHafen(betrieb) is var (hin, zurueck, _, _) ? (hin, zurueck) : null;
+
+    /// <summary>Wo die Karren dieses Betriebs zum Hafen fahren (wie <see cref="Karrenverlauf(Betrieb)"/>); null ohne Weg zum Hafen.</summary>
+    public IReadOnlyList<Kartenort>? KarrenverlaufZumHafen(Betrieb betrieb) => StreckeZumHafen(betrieb)?.Punkte;
+
+    /// <summary>Der Hafen, zu dem die Karren dieses Betriebs fahren, wenn sie zum Hafen fahren (null ohne Weg zum Hafen).</summary>
+    public Kartengebaeude? HafenVon(Betrieb betrieb) => StreckeZumHafen(betrieb)?.Hafen;
+
+    /// <summary>
+    /// Wo dieser Karren auf seiner Fahrt fährt: zum Hafen (<see cref="Karren.ZielHafen"/>, mit Weg dorthin) oder zum Marktplatz seines Betriebs.
+    /// Für die Darstellung; null wie <see cref="Karrenverlauf(Betrieb)"/>.
+    /// </summary>
+    public IReadOnlyList<Kartenort>? Karrenverlauf(Karren karren) =>
+        karren.ZielHafen && KarrenverlaufZumHafen(karren.Heimat) is { } hafen ? hafen : Karrenverlauf(karren.Heimat);
+
+    /// <summary>Die Stücke der Fahrt dieses Karrens (hin, zurück): zum Hafen oder zum Marktplatz, wie <see cref="Karrenverlauf(Karren)"/>.</summary>
+    public (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck)? Fahrten(Karren karren) =>
+        karren.ZielHafen && FahrtenZumHafen(karren.Heimat) is { } hafen ? hafen : Fahrten(karren.Heimat);
+
+    /// <summary>Wohin dieser Karren zum Handeln fährt bzw. zuletzt fuhr: der Hafen oder der Marktplatz seines Betriebs (null wie <see cref="MarktplatzVon"/>).</summary>
+    public Kartengebaeude? HandelsortVon(Karren karren) =>
+        karren.ZielHafen && HafenVon(karren.Heimat) is { } hafen ? hafen : MarktplatzVon(karren.Heimat);
+
+    private (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude Hafen, IReadOnlyList<Kartenort>? Punkte)? StreckeZumHafen(Betrieb betrieb)
+    {
+        if (_streckenHafen.TryGetValue(betrieb, out var bekannt)) return bekannt;
+        if (!NachWeglaengeGerechnet || !Schiffahrt.KarrenZumHafen || Karte is not { } karte || Karrennetz is not { } netz
+            || Bauen.PlatzVon(betrieb.Name) is not { } platz)
+            return null; // (ohne Platz nicht merken: er kann noch kommen)
+        var haefen = Schiffahrt.Hafengebaeude;
+        if (haefen.Count == 0) return _streckenHafen[betrieb] = null;
+        var (hin, zurueck, hafen, punkte) = StreckeWieImBild(Karrenweg.Start(platz, betrieb, karte.Katalog), karte, netz, haefen);
+        return _streckenHafen[betrieb] = hin.Count > 0 && hafen is not null ? (hin, zurueck, hafen, punkte) : null;
+    }
+
     private (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt, IReadOnlyList<Kartenort>? Punkte)? Strecke(Betrieb betrieb)
     {
         if (_strecken.TryGetValue(betrieb, out var bekannt)) return bekannt;
@@ -295,12 +424,13 @@ public sealed partial class Stadtwirtschaft
     /// Marktplatz, zurück dieselbe rückwärts. Unter mehreren Plätzen der mit den kleinsten Kosten der Wegwahl bis zum Halt (bei Gleichstand der
     /// erste der Karte); ist keiner erreichbar, der erste ohne Stücke (feste Fahrzeit). Ohne Marktplatz in der Karte zum Ursprung, ohne Halt.
     /// </summary>
+    /// <param name="ziele">Statt der Marktplätze diese Ziele (die Häfen, Datenversion 73): dieselbe Wahl, derselbe Halt vor ihrer Fläche.</param>
     internal static (IReadOnlyList<Fahrtstueck> Hin, IReadOnlyList<Fahrtstueck> Zurueck, Kartengebaeude? Markt, IReadOnlyList<Kartenort>? Punkte) StreckeWieImBild(
-        (Kartenort Anker, Kartenort Hof) start, Stadtkarte karte, Karrennetz netz)
+        (Kartenort Anker, Kartenort Hof) start, Stadtkarte karte, Karrennetz netz, IReadOnlyList<Kartengebaeude>? ziele = null)
     {
         var (anker, hof) = start;
         Netzfahrt Zum(Kartenort ziel) => Karrenweg.MitZubringer(netz.FahrtMitVerlauf(hof, ziel), anker, hof, karte.Gelaendeform);
-        var maerkte = karte.Marktplaetze;
+        var maerkte = ziele ?? karte.Marktplaetze;
         (Netzfahrt Fahrt, Kartengebaeude? Markt, double Kosten) best = (Netzfahrt.Leer, null, double.MaxValue);
         if (maerkte.Count == 0) best = (Zum(default), null, 0);
         // Wie im Bild (AnWegAnschliessen): Liegt der Hof näher am Pflaster eines Platzes als am nächsten Weg, führt der Zubringer gerade zur Mitte des

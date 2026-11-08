@@ -2111,6 +2111,7 @@
   "handel": { "aufschlag": 0.10, "marktVon": 8, "marktBis": 20 },
   "schiffshandel": {
     "aktiv": false,
+    "karrenZumHafen": true,
     "landhandel": {
       "angebot": {"Wachs": 1.1, "Jasmin": 1.1, "Gold": 1.06, "Bruchstein": 1.03, "Granit": 1.02},
       "nachfrage": {"Armbrust": 1.08, "Dolch": 1.06, "Silberkette": 1.08, "Silberring": 1.08, "Werkzeug": 1.08, "Goldkette": 1.05, "Körnermahlzeit": 1.09, "Dünnbier": 1.09, "Starkbier": 1.09, "Kerze": 1.09, "Rosenwasser": 1.1, "Moschusduft": 1.08, "Fechterduft": 1.08, "Grabstein": 1.12, "Mühlstein": 1.12, "Taufbecken": 1.1, "Steinfigur": 1.1}

@@ -278,8 +278,11 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Was ein Einkauf von Hand jetzt kosten würde (jedes Stück hebt den Preis).</summary>
     public double HandKaufpreis(Konto konto, string ware, int stueck, double anteil = 1) => Markt[ware].HandKaufpreis(stueck, HandKaufFaktor(konto), anteil: anteil);
 
-    /// <summary>Wann käme dieser Karren am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht; die Fahrzeit hängt an seiner Art)</summary>
-    public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + Fahrzeit(karren, zumMarkt: true);
+    /// <summary>
+    /// Wann käme dieser Karren am Markt an, wenn er jetzt losführe? (Uhrzeit in Minuten nach Mitternacht; die Fahrzeit hängt an seiner Art und
+    /// daran, ob er jetzt zum Hafen führe, <see cref="FahrzeitBeiAbfahrt"/>)
+    /// </summary>
+    public int AnkunftAmMarkt(Karren karren) => Uhr.UhrzeitInMinuten + FahrzeitBeiAbfahrt(karren);
 
     /// <summary>Was dieser Karren beim Verkauf bringt: Kaufpreis × <c>logistik.karrenVerkaufAnteil</c> (PR #205).</summary>
     public double KarrenErloes(Karren karren) => karren.Daten.Preis * Daten.Logistik.KarrenVerkaufAnteil;

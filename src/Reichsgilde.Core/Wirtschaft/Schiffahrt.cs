@@ -1,3 +1,4 @@
+using Reichsgilde.Core.Bauen;
 using Reichsgilde.Core.Kartenwerkstatt;
 using Reichsgilde.Core.Speichern;
 using Reichsgilde.Core.Zeit;
@@ -70,6 +71,21 @@ public sealed class Schiffahrt
     /// Datenversion 70). Der Hafen ist ein zweiter Ort zum Handeln, kein eigener Markt.
     /// </summary>
     public Markt HafenMarkt => _w.Markt;
+
+    /// <summary>
+    /// Fahren die Karren auch an den Hafen (<see cref="SchiffshandelDaten.KarrenZumHafen"/>, Datenversion 73)? Der Schalter und ein Hafen auf der
+    /// Karte – ob er gerade offen ist, sagt <see cref="HafenOffen"/>. Ohne Hafen (oder ohne Schalter) fahren sie nur zu den Marktplätzen.
+    /// </summary>
+    public bool KarrenZumHafen => Daten is { KarrenZumHafen: true } && _w.Karte is not null && HatHafen;
+
+    private List<Kartengebaeude>? _hafengebaeude;
+
+    /// <summary>
+    /// Die Gebäude der Häfen in der Karte (in der Reihenfolge von <see cref="Haefen"/>) – die Ziele der Karren, die zum Hafen fahren
+    /// (<see cref="Stadtwirtschaft.HafenVon"/>). Leer ohne Hafen.
+    /// </summary>
+    public IReadOnlyList<Kartengebaeude> Hafengebaeude => _w.Karte is not { } karte ? Array.Empty<Kartengebaeude>() // (ohne Karte nichts merken)
+        : _hafengebaeude ??= Haefen.Select(h => karte.Gebaeude.FirstOrDefault(g => g.Kennung == h.Kennung)).OfType<Kartengebaeude>().ToList();
 
     /// <summary>Wirkt der Landhandel (<see cref="SchiffshandelDaten.Landhandel"/>)? Der Schiffshandel ruht, und die Karte hat einen Hafen.</summary>
     public bool LandhandelWirkt => Ruht && HatHafen;
