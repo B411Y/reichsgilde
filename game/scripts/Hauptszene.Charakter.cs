@@ -7,11 +7,13 @@ public partial class Hauptszene
 {
     /// <summary>
     /// <c>oberhaupt</c>, <c>ehepartner</c>, <c>kind</c> (das erste des eigenen Hauses, sonst irgendeines), <c>ratsherr</c> (der erste Ratsherr mit Amt), <c>ratsherr:&lt;n&gt;</c> (der n-te Ratsherr, 1 = erster)
-    /// oder eine Personennummer: öffnet das Charakterfenster dieser Person.
+    /// oder eine Personennummer: öffnet das Charakterfenster dieser Person. Mit dem Zusatz <c>:lebensweg</c> (z. B. <c>oberhaupt:lebensweg</c>) gleich im Reiter „Lebensweg“.
     /// </summary>
     private void CharakterStartoption(string wert)
     {
         if (_simulation.Wirtschaft is not { } w) return;
+        var lebensweg = wert.EndsWith(":lebensweg");
+        if (lebensweg) wert = wert[..^":lebensweg".Length];
         var familie = w.Familien.Von(_spieler!);
         var ratsherren = w.Rat.Aemter.Select(a => a.Ratsherr).OfType<Reichsgilde.Core.Politik.Ratsherr>().ToList();
         if (wert.StartsWith("ratsherr"))
@@ -30,6 +32,7 @@ public partial class Hauptszene
             _ => int.TryParse(wert, out var nr) ? w.Familien.PersonNummer(nr) : null,
         };
         if (person is null) Protokollieren($"--charakter={wert}: Diese Person gibt es nicht (oberhaupt, ehepartner, kind, ratsherr[:n] oder eine Nummer).");
+        else if (lebensweg) _charakter.LebensweiseOeffnen(person);
         else _charakter.Oeffnen(person);
     }
 
