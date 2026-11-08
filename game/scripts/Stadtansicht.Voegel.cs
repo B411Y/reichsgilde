@@ -112,6 +112,7 @@ public partial class Stadtansicht
         for (var i = 0; i < anzahl; i++)
         {
             var knoten = szene.Instantiate<Node3D>();
+            FlaechenZusammenlegen(knoten); // Flächen gleicher Eigenschaften zu einer (Stadtansicht.Flaechenmerge.cs)
             _vogelEbene.AddChild(knoten);
             var spieler = knoten.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().FirstOrDefault();
             if (spieler is not null)
