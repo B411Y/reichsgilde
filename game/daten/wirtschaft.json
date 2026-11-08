@@ -1,5 +1,5 @@
 {
-  "version": 72,
+  "version": 73,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -1982,6 +1982,96 @@
       "Jagd":       { "name": "Jagd im Umland", "beschreibung": "Pferde, Hunde und Treiber – ein Vergnügen für hohe Herren.",
                       "ap": 2, "gulden": 80, "wirkung": 10, "mindestStand": "Patrizier", "mag": [ "Mutig", "Stark" ], "magNicht": [ "Feige", "Kraenklich" ],
                       "gefahr": 0.15, "unglueck": "Jagdunfall", "unglueckWirkung": -5, "talent": "Kampf", "verletzung": "Knochenbruch", "verletzungChance": 0.3 }
+    }
+  },
+  "lebensweise": {
+    "grund": 30, "jeStern": 5, "anteilFamilie": 0.5, "jeAp": 10,
+    "zugPassend": 1.2, "zugHemmend": 0.8, "zugfaktoren": { "Gelehrt": 1.1 }, "wohnhaus": { "Bibliothek": 1.1 },
+    "vermaechtnis": 0.2,
+    "kosten": [ 100, 100, 100, 150, 150, 150, 200, 200, 200 ],
+    "pfade": {
+      "Verhandeln": {
+        "name": "Pfad des Kaufmanns", "beschreibung": "Wer rechnen kann, dem fällt das Geld zu.",
+        "spalten": [ "Markt", "Geld", "Gunst" ], "passend": [ "Gierig", "Klug" ], "hemmend": [ "Grosszuegig" ],
+        "taten": [ "KreditAufnehmen", "Schenken", "Aktivitaet:Geschenk", "BerufErlernen" ],
+        "knoten": {
+          "Marktschreier":    { "name": "Marktschreier", "spalte": "Markt", "reihe": 1, "beschreibung": "Erlös am Markt +1 %.", "wirkung": { "erloes": 0.01 } },
+          "Feilscher":        { "name": "Feilscher", "spalte": "Markt", "reihe": 2, "beschreibung": "In allen Betrieben 3 % weniger Zutaten je Stück.", "einrichtung": { "rohstoffFaktor": 0.97 } },
+          "Handelsherr":      { "name": "Handelsherr", "spalte": "Markt", "reihe": 3, "beschreibung": "Erlös am Markt +2 %.", "wirkung": { "erloes": 0.02 } },
+          "Rechenkunst":      { "name": "Rechenkunst", "spalte": "Geld", "reihe": 1, "beschreibung": "Eigene Kredite 1 Prozentpunkt weniger Zins.", "wirkung": { "zinsMinus": 0.01 } },
+          "Haushaelter":      { "name": "Haushälter", "spalte": "Geld", "reihe": 2, "beschreibung": "Haushalt der Familie 5 % billiger.", "wirkung": { "haushaltFaktor": 0.95 } },
+          "Steuerkniff":      { "name": "Steuerkniff", "spalte": "Geld", "reihe": 3, "beschreibung": "Marktsteuer auf eigene Verkäufe −20 % (mit dem Amt des Marktmeisters nicht zusätzlich).", "wirkung": { "marktsteuerFaktor": 0.8 } },
+          "OffeneHand":       { "name": "Offene Hand", "spalte": "Gunst", "reihe": 1, "beschreibung": "Geschenke wirken 15 % stärker.", "wirkung": { "geschenkFaktor": 1.15 } },
+          "Geschaeftsfreund": { "name": "Geschäftsfreund", "spalte": "Gunst", "reihe": 2, "beschreibung": "Die Oberhäupter der anderen Häuser denken +5 besser über die Person.", "wirkung": { "meinungOberhaeupter": 5 } },
+          "Goenner":          { "name": "Gönner", "spalte": "Gunst", "reihe": 3, "beschreibung": "Ansehen +2.", "wirkung": { "ansehen": 2 } }
+        }
+      },
+      "Handwerk": {
+        "name": "Pfad des Meisters", "beschreibung": "Gute Arbeit lobt ihren Meister.",
+        "spalten": [ "Werkstatt", "Gesinde", "Bau" ], "passend": [ "Fleissig", "Stark" ], "hemmend": [ "Traege" ],
+        "taten": [ "ArbeiterBefoerdern", "BerufErlernen", "MeisterpruefungAblegen" ],
+        "knoten": {
+          "Sorgfalt":       { "name": "Sorgfalt", "spalte": "Werkstatt", "reihe": 1, "beschreibung": "Unfälle in allen Betrieben 20 % seltener.", "einrichtung": { "unfallFaktor": 0.8 } },
+          "Kniffe":         { "name": "Kniffe", "spalte": "Werkstatt", "reihe": 2, "beschreibung": "3 % weniger Zeit je Stück.", "einrichtung": { "zeitFaktor": 0.97 } },
+          "Meisterstueck":  { "name": "Meisterstück", "spalte": "Werkstatt", "reihe": 3, "beschreibung": "Erlös der Betriebe der Stufe 3 +4 %.", "einrichtung": { "preisFaktor": 1.04 }, "abStufe": 3 },
+          "Lehrherr":       { "name": "Lehrherr", "spalte": "Gesinde", "reihe": 1, "beschreibung": "Anfänger sammeln 25 % mehr Erfahrung.", "einrichtung": { "erfahrungFaktor": 1.25 } },
+          "GutesWort":      { "name": "Gutes Wort", "spalte": "Gesinde", "reihe": 2, "beschreibung": "Laune +5 in allen Werkstätten.", "einrichtung": { "laune": 5 } },
+          "Zunftmeister":   { "name": "Zunftmeister", "spalte": "Gesinde", "reihe": 3, "beschreibung": "Löhne 4 % niedriger.", "einrichtung": { "lohnFaktor": 0.96 } },
+          "Ordnung":        { "name": "Ordnung", "spalte": "Bau", "reihe": 1, "beschreibung": "In allen Betrieben 10 mehr Lager je Ware.", "einrichtung": { "lagerPlus": 10 } },
+          "Baumeister":     { "name": "Baumeister", "spalte": "Bau", "reihe": 2, "beschreibung": "Bau, Ausbau und Einrichtung 10 % billiger.", "wirkung": { "bauFaktor": 0.9 } },
+          "HueterDesHauses": { "name": "Hüter des Hauses", "spalte": "Bau", "reihe": 3, "beschreibung": "Unterhalt der Betriebe und des Wohnhauses 10 % niedriger.", "wirkung": { "unterhaltFaktor": 0.9 }, "einrichtung": { "unterhaltFaktor": 0.9 } }
+        }
+      },
+      "NachtUndNebel": {
+        "name": "Pfad der Schatten", "beschreibung": "Was keiner sieht, ist nicht geschehen.",
+        "spalten": [ "Gaunerei", "Kundschaft", "Deckung" ], "passend": [ "Verschlagen", "Zynisch" ], "hemmend": [ "Ehrlich" ],
+        "taten": [ "Beauftragen", "SpitzelAnsetzen", "Erpressen", "Einbrechen", "Auskundschaften" ],
+        "knoten": {
+          "LeiseSohlen":     { "name": "Leise Sohlen", "spalte": "Gaunerei", "reihe": 1, "beschreibung": "Gaunerstücke +3 Prozentpunkte Erfolg.", "wirkung": { "nachtErfolg": 0.03 } },
+          "SaubereArbeit":   { "name": "Saubere Arbeit", "spalte": "Gaunerei", "reihe": 2, "beschreibung": "Eigene Gaunerstücke hinterlassen 15 % seltener Zeugen.", "wirkung": { "spurenFaktor": 0.85 } },
+          "Hehlerring":      { "name": "Hehlerring", "spalte": "Gaunerei", "reihe": 3, "beschreibung": "Diebesgut bringt beim Hehler 15 % mehr.", "wirkung": { "hehlerFaktor": 1.15 } },
+          "OhrAnDerWand":    { "name": "Ohr an der Wand", "spalte": "Kundschaft", "reihe": 1, "beschreibung": "Eigene Spitzel finden jede Spur mit 10 Prozentpunkten mehr.", "wirkung": { "spitzelBonus": 0.1 } },
+          "Geruechtekueche": { "name": "Gerüchteküche", "spalte": "Kundschaft", "reihe": 2, "beschreibung": "Je fremdem Geheimnis 4 % im Jahr, es ohne Spitzel zu erfahren (wirkt, sobald es Geheimnisse gibt).", "wirkung": { "geruechte": 0.04 } },
+          "SchwarzesBuch":   { "name": "Schwarzes Buch", "spalte": "Kundschaft", "reihe": 3, "beschreibung": "Eigene Erpresserbriefe verraten den Schreiber nur mit 50 %.", "wirkung": { "erpressungSpurFaktor": 0.5 } },
+          "WachsamesAuge":   { "name": "Wachsames Auge", "spalte": "Deckung", "reihe": 1, "beschreibung": "Diebstahl und Einbruch in die eigenen Betriebe 15 % seltener.", "einrichtung": { "einbruchFaktor": 0.85 } },
+          "Verschwiegen":    { "name": "Verschwiegen", "spalte": "Deckung", "reihe": 2, "beschreibung": "Geheimnisse der eigenen Familie werden 40 % seltener entdeckt (wirkt, sobald es Geheimnisse gibt).", "wirkung": { "geheimnisSchutz": 0.6 } },
+          "FalscheFaehrte":  { "name": "Falsche Fährte", "spalte": "Deckung", "reihe": 3, "beschreibung": "Fremde Spitzel finden eure Spuren 30 % seltener.", "wirkung": { "fremdeSpitzelFaktor": 0.7 } }
+        }
+      },
+      "Kampf": {
+        "name": "Pfad des Schwertes", "beschreibung": "Wer sich wehren kann, wird selten angegriffen.",
+        "spalten": [ "Geleit", "Wehr", "Jagd" ], "passend": [ "Mutig", "Jaehzornig" ], "hemmend": [ "Feige" ],
+        "taten": [ "Aktivitaet:Jagd", "Razzia", "Beauftragen:Ueberfall", "Entfuehren" ],
+        "knoten": {
+          "BewaffneteKnechte": { "name": "Bewaffnete Knechte", "spalte": "Geleit", "reihe": 1, "beschreibung": "Schutz der eigenen Karren +5 Prozentpunkte.", "wirkung": { "karrenSchutz": 0.05 } },
+          "Wegekundig":        { "name": "Wegekundig", "spalte": "Geleit", "reihe": 2, "beschreibung": "Überfälle auf eigene Karren 15 % seltener erfolgreich.", "wirkung": { "ueberfallFaktor": 0.85 } },
+          "Hauptmann":         { "name": "Hauptmann", "spalte": "Geleit", "reihe": 3, "beschreibung": "Eigene Wegelagerer 10 Prozentpunkte stärker.", "wirkung": { "wegelagererBonus": 0.1 } },
+          "Hauswehr":          { "name": "Hauswehr", "spalte": "Wehr", "reihe": 1, "beschreibung": "Einbruch und Brand am Wohnhaus 20 % seltener.", "wirkung": { "wohnhausFaktor": 0.8 } },
+          "WehrhafteWerkstatt": { "name": "Wehrhafte Werkstatt", "spalte": "Wehr", "reihe": 2, "beschreibung": "Sabotage und Feuer gegen eigene Betriebe 20 % seltener.", "einrichtung": { "brandFaktor": 0.8 } },
+          "Eisern":            { "name": "Eisern", "spalte": "Wehr", "reihe": 3, "beschreibung": "Die Person erkrankt 20 % seltener.", "wirkung": { "krankheitFaktor": 0.8 } },
+          "Weidmann":          { "name": "Weidmann", "spalte": "Jagd", "reihe": 1, "beschreibung": "Gefahr bei der Jagd −5 Prozentpunkte.", "wirkung": { "jagdGefahrMinus": 0.05 } },
+          "Jagdherr":          { "name": "Jagdherr", "spalte": "Jagd", "reihe": 2, "beschreibung": "Jagd schon ab dem Stand Bürger.", "wirkung": { "jagdAbStand": "Bürger" } },
+          "Jagdgesellschaft":  { "name": "Jagdgesellschaft", "spalte": "Jagd", "reihe": 3, "beschreibung": "Die Jagd kostet 1 AP statt 2.", "wirkung": { "jagdApMinus": 1 } }
+        }
+      },
+      "Rhetorik": {
+        "name": "Pfad des Redners", "beschreibung": "Ein gutes Wort öffnet jede Tür.",
+        "spalten": [ "Rat", "Gericht", "Gesellschaft" ], "passend": [ "Gesellig", "Schoen" ], "hemmend": [ "Scheu" ],
+        "taten": [ "AmtBewerben", "StatutBeantragen", "SteuersatzBeantragen", "BauvorhabenBeantragen", "FestBeantragen", "StadtglaubeBeantragen",
+                   "WegPflasterBeantragen", "Anklagen", "Aktivitaet:Gastmahl", "Aktivitaet:Zechen", "Aktivitaet:Messe", "Aktivitaet:Brettspiel",
+                   "Bekehrungspredigt", "Werben" ],
+        "knoten": {
+          "WohlgesetzteWorte": { "name": "Wohlgesetzte Worte", "spalte": "Rat", "reihe": 1, "beschreibung": "Wahlpunkte +2.", "wirkung": { "wahlpunkte": 2 } },
+          "Fuersprecher":      { "name": "Fürsprecher", "spalte": "Rat", "reihe": 2, "beschreibung": "Eigene Anträge brauchen 5 Punkte weniger Meinung.", "wirkung": { "antragSchwelleMinus": 5 } },
+          "Volksredner":       { "name": "Volksredner", "spalte": "Rat", "reihe": 3, "beschreibung": "Ansehen +3.", "wirkung": { "ansehen": 3 } },
+          "Plaedoyer":         { "name": "Plädoyer", "spalte": "Gericht", "reihe": 1, "beschreibung": "Jeder Richter +3 zu euren Gunsten.", "wirkung": { "plaedoyer": 3 } },
+          "Rechtskundig":      { "name": "Rechtskundig", "spalte": "Gericht", "reihe": 2, "beschreibung": "Halbe Gerichtsgebühr; als Beklagter doppelte Entschädigung bei Freispruch.", "wirkung": { "gebuehrFaktor": 0.5, "entschaedigungFaktor": 2 } },
+          "Gnadengesuch":      { "name": "Gnadengesuch", "spalte": "Gericht", "reihe": 3, "beschreibung": "Buße −25 %, ein Jahr kürzer am Pranger.", "wirkung": { "busseFaktor": 0.75, "prangerMinus": 1 } },
+          "Gastgeber":         { "name": "Gastgeber", "spalte": "Gesellschaft", "reihe": 1, "beschreibung": "Aktivitäten wirken 15 % stärker.", "wirkung": { "aktivitaetFaktor": 1.15 } },
+          "Brautwerber":       { "name": "Brautwerber", "spalte": "Gesellschaft", "reihe": 2, "beschreibung": "Werben bringt 15 % mehr Zuneigung je Gulden.", "wirkung": { "werbeFaktor": 1.15 } },
+          "Liebenswuerdig":    { "name": "Liebenswürdig", "spalte": "Gesellschaft", "reihe": 3, "beschreibung": "Alle wichtigen Personen denken +5 besser über die Person.", "wirkung": { "meinungAlle": 5 } }
+        }
+      }
     }
   },
   "justiz": {
