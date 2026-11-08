@@ -62,6 +62,8 @@ public partial class FeuerArt : Resource
     [Export(PropertyHint.Range, "0,1")] public float RauchRuss { get; set; } = 0.4f;
     /// <summary>Wie stark das Feuer den Fuß der Säule anleuchtet.</summary>
     [Export(PropertyHint.Range, "0,1")] public float RauchGlut { get; set; } = 0.5f;
+    /// <summary>Wie der Rauch aussieht, wenn er aus Ballen besteht (<see cref="Kaminrauch"/>, nur Feuer im Freien): Größe, Dichte, Ruß, Glut.</summary>
+    [Export] public RauchSorte RauchArt { get; set; } = RauchSorte.Werkstatt;
     /// <summary>So viele Flächen mit verschiedenem Startwert ergeben eine dichtere Säule.</summary>
     [Export] public int RauchSchichten { get; set; } = 1;
     /// <summary>Deckkraft der Säule bei Tag und bei Nacht (Faktor, 1 = wie <see cref="RauchMenge"/> sagt); dazwischen nach der Umgebung.</summary>
@@ -104,7 +106,7 @@ public partial class FeuerArt : Resource
         {
             Bezeichnung = "Fackel", Hoehe = 0.42f, Breite = 0.2f, Zungen = 2, Radius = 0.025f, Tempo = 1f,
             Funken = 3, FunkenHoehe = 3.2f, FunkenGroesse = 0.011f,
-            RauchMenge = 0.4f, RauchHoehe = 1.9f, RauchBreite = 0.55f, RauchRuss = 0.6f, RauchGlut = 0.6f,
+            RauchArt = RauchSorte.Fackel, RauchMenge = 0.4f, RauchHoehe = 1.9f, RauchBreite = 0.55f, RauchRuss = 0.6f, RauchGlut = 0.6f,
             LichtEnergie = 2.4f, LichtReichweite = 9f, LichtFlackern = 0.32f,
         },
         // Laterne: ein kleines, ruhiges Flämmchen hinter Glas oder Horn, kein Rauch. Seit 08.11.2026 etwas größer und heller (0,16 m statt 0,10 m, etwa zwei Weltpixel): aus der
@@ -120,7 +122,7 @@ public partial class FeuerArt : Resource
         {
             Bezeichnung = "Feuerkorb", Hoehe = 0.72f, Breite = 0.46f, Zungen = 4, Radius = 0.17f, Tempo = 1f, Helligkeit = 1.8f,
             Funken = 5, FunkenHoehe = 3.4f, FunkenGroesse = 0.013f,
-            RauchMenge = 0.5f, RauchHoehe = 3.2f, RauchBreite = 1.0f, RauchRuss = 0.5f, RauchGlut = 0.6f, RauchSchichten = 2,
+            RauchArt = RauchSorte.Feuerkorb, RauchMenge = 0.5f, RauchHoehe = 3.2f, RauchBreite = 1.0f, RauchRuss = 0.5f, RauchGlut = 0.6f, RauchSchichten = 2,
             LichtEnergie = 4.5f, LichtReichweite = 12f, LichtFlackern = 0.3f, LichtAusblendenAb = 60f,
         },
         // Esse: flaches Glutbett mit niedrigen, gedämpften Flammen (sonst nur ein heller Fleck im Bloom) und aufstiebenden Glutstückchen
@@ -129,7 +131,7 @@ public partial class FeuerArt : Resource
             Bezeichnung = "Esse", Form = FeuerForm.Glut, Hoehe = 0.22f, Breite = 0.18f, Zungen = 3, Radius = 0.18f, Flackern = 0.25f, Tempo = 0.85f, Helligkeit = 1.0f,
             Toenung = new Color(1.0f, 0.8f, 0.7f),
             Funken = 5, FunkenHoehe = 5f, FunkenGroesse = 0.010f,
-            RauchMenge = 0.3f, RauchHoehe = 2.6f, RauchBreite = 0.6f, RauchRuss = 0.4f, RauchGlut = 0.5f,
+            RauchArt = RauchSorte.Esse, RauchMenge = 0.3f, RauchHoehe = 2.6f, RauchBreite = 0.6f, RauchRuss = 0.4f, RauchGlut = 0.5f,
             LichtEnergie = 3.2f, LichtReichweite = 7.5f, LichtFlackern = 0.22f, LichtFarbeKalt = new Color(1.0f, 0.38f, 0.1f), LichtFarbeHeiss = new Color(1.0f, 0.6f, 0.25f),
             LichtAusblendenAb = 40f,
         },
@@ -138,7 +140,7 @@ public partial class FeuerArt : Resource
         FeuerVorgabe.Kamin => new FeuerArt
         {
             Bezeichnung = "Kamin", Form = FeuerForm.NurRauch, Zungen = 0,
-            RauchMenge = 0.55f, RauchHoehe = 6f, RauchBreite = 1.8f, RauchRuss = 0.3f, RauchGlut = 0f, RauchSchichten = 2,
+            RauchArt = RauchSorte.Werkstatt, RauchMenge = 0.55f, RauchHoehe = 6f, RauchBreite = 1.8f, RauchRuss = 0.3f, RauchGlut = 0f, RauchSchichten = 2,
             RauchDeckungTag = 0.3f, RauchDeckungNacht = 0.5f,
             LichtEnergie = 0f,
         },
@@ -147,7 +149,7 @@ public partial class FeuerArt : Resource
         {
             Bezeichnung = "Gebäudebrand", Flipbook = FeuerFlipbook.Wild, Hoehe = 3.0f, Breite = 1.9f, Zungen = 10, Radius = 2.2f, Tempo = 1.1f, Helligkeit = 1.8f,
             Funken = 8, FunkenHoehe = 2.6f, FunkenGroesse = 0.05f,
-            RauchMenge = 1f, RauchHoehe = 16f, RauchBreite = 6f, RauchRuss = 0.85f, RauchGlut = 0.7f, RauchSchichten = 3,
+            RauchArt = RauchSorte.Brand, RauchMenge = 1f, RauchHoehe = 16f, RauchBreite = 6f, RauchRuss = 0.85f, RauchGlut = 0.7f, RauchSchichten = 3,
             LichtEnergie = 16f, LichtReichweite = 30f, LichtFlackern = 0.35f, LichtAusblendenAb = 140f, LichtAusblendenLaenge = 50f,
         },
         // Fensterbrand: Flammen schlagen aus einem Fenster (gehört zum Gebäudebrand, ohne eigenes Licht)
@@ -155,7 +157,7 @@ public partial class FeuerArt : Resource
         {
             Bezeichnung = "Fensterbrand", Flipbook = FeuerFlipbook.Wild, Hoehe = 1.1f, Breite = 0.85f, Zungen = 3, Radius = 0.3f, Tempo = 1.15f,
             Funken = 3, FunkenHoehe = 2.2f, FunkenGroesse = 0.03f,
-            RauchMenge = 0.6f, RauchHoehe = 4.5f, RauchBreite = 1.8f, RauchRuss = 0.8f, RauchGlut = 0.7f,
+            RauchArt = RauchSorte.Fensterbrand, RauchMenge = 0.6f, RauchHoehe = 4.5f, RauchBreite = 1.8f, RauchRuss = 0.8f, RauchGlut = 0.7f,
             LichtEnergie = 0f,
         },
         _ => new FeuerArt(),
