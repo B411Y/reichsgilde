@@ -8,8 +8,8 @@ Material-Weg wie fuellung_p2.py und fuellung_p3.py: Jedes Teil ist ein Knoten mi
 beim Bauen, zu jedem Teil ein Knoten `<Name>_Winter` mit Schnee. Alles selbst gebaut, nichts aus Fremdquellen; deterministisch.
 
 Stoffe sparen (jeder Stoff ist in der Füllung eine Fläche und kostet zwei Zeichenaufrufe je Zelle): der Steinmetzplatz kommt mit sechs Stoffen aus
-(Haustein, Sandstein alt, Holz alt, Eisen, Fels, Seil; Winter dazu Schnee, Schnee schatten), der Taubenschlag mit vier (Holz alt, Rinde, Taube,
-Taube dunkel). Haustein und Sandstein alt tragen die Textur der Material-Bibliothek („quader“).
+(Haustein, Sandstein alt, Holz alt, Eisen, Fels, Seil; Winter dazu Schnee, Schnee schatten), der Taubenschlag mit fünf (Holz alt, Taube, Taube dunkel,
+Taube Hals, Taube weiss). Haustein und Sandstein alt tragen die Textur der Material-Bibliothek („quader“).
 """
 
 import math
@@ -25,8 +25,10 @@ import tiere as tr  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 
 bs.FARBEN.update({
-    "Taube": (0.50, 0.52, 0.57),
-    "Taube dunkel": (0.27, 0.28, 0.33),
+    "Taube": (0.47, 0.52, 0.60),                     # blaugrau
+    "Taube dunkel": (0.21, 0.23, 0.29),              # Flügelbinden, Schwanzbinde, Schnabel, Füße; auch Dachschiefer, Fluglöcher, Körner
+    "Taube Hals": (0.32, 0.44, 0.46),                # Halsschimmer, dezent grün mit einem Hauch Violett
+    "Taube weiss": (0.88, 0.88, 0.85),               # weiße und gescheckte Tiere, Wachshaut
 })
 rng = p2.rng
 
@@ -237,32 +239,103 @@ def saeulenrohling(netz, st, saat, winter=False):
 #  Taubenschlag
 # ─────────────────────────────────────────────────────────────────────────────
 
-def taube(netz, st, x, y, z, dreh=0.0, pose="sitzen"):
-    """Taube als Standbild (rund 0,36 m lang): Körper, Kopf, Schwanz, angelegte Flügel in zwei Stoffen (Taube, Taube dunkel). Blick nach -Y, gedreht um Z.
-    pose: `sitzen` (Kopf hoch), `picken` (Kopf zum Boden)."""
+G_TAUBE = 1.25                                                                               # Taube etwas größer als echt (0,34 m x 1,25), damit sie aus 25 m noch als Taube zu erkennen ist
+
+
+def _rohr(netz, st, stationen, n, stoff, lat):
+    """Körper entlang eines Wegs wie tiere.rohr, aber mit fester Querachse `lat` (Seitenrichtung der Taube): so bleibt die Taube auch gedreht
+    breit statt flach. stationen = [(Mitte, Halbachse seitlich, Halbachse hoch)]; stoff(i, k) je Streifen (Ring, Seite)."""
+    ringe, mitten, tang = [], [], []
+    for i, (c, ru, rv) in enumerate(stationen):
+        c = Vector(c)
+        t = (Vector(stationen[min(i + 1, len(stationen) - 1)][0]) - Vector(stationen[max(i - 1, 0)][0])).normalized()
+        u = (lat - t * lat.dot(t)).normalized()
+        v = t.cross(u)
+        v = v if v.z >= 0 else -v
+        ringe.append([c + u * (ru * math.cos(2 * math.pi * k / n)) + v * (rv * math.sin(2 * math.pi * k / n)) for k in range(n)])
+        mitten.append(c)
+        tang.append(t)
+    for i in range(len(stationen) - 1):
+        m = (mitten[i] + mitten[i + 1]) / 2
+        for k in range(n):
+            j = (k + 1) % n
+            quad = [ringe[i][k], ringe[i][j], ringe[i + 1][j], ringe[i + 1][k]]
+            netz.vieleck_nach(quad, sum(quad, Vector()) / 4 - m, st[stoff(i, k)])
+    netz.vieleck_nach(ringe[0], -tang[0], st[stoff(0, 0)])
+    netz.vieleck_nach(ringe[-1], tang[-1], st[stoff(len(stationen) - 2, 0)])
+
+
+# Haltungen: Stationen (v nach hinten, w hoch, Halbbreite, Halbhöhe) von Brust bis Schwanzansatz, Hals und Kopf, Schnabelspitze (v, w)
+_SITZEN = dict(
+    rumpf=[(-0.115, 0.150, 0.040, 0.050), (-0.085, 0.155, 0.068, 0.078), (-0.030, 0.155, 0.088, 0.090), (0.030, 0.150, 0.080, 0.080),
+           (0.085, 0.145, 0.052, 0.055), (0.120, 0.148, 0.026, 0.030)],
+    hals=[(-0.080, 0.185, 0.050, 0.050), (-0.100, 0.220, 0.038, 0.040), (-0.114, 0.250, 0.033, 0.034), (-0.126, 0.270, 0.034, 0.036),
+          (-0.146, 0.276, 0.028, 0.028), (-0.160, 0.272, 0.018, 0.018)],
+    schnabel=((-0.158, 0.272), (-0.186, 0.264)), schwanz=(0.115, 0.148, -0.03))
+_PICKEN = dict(
+    rumpf=[(-0.105, 0.125, 0.040, 0.050), (-0.080, 0.140, 0.068, 0.078), (-0.030, 0.150, 0.088, 0.090), (0.030, 0.155, 0.080, 0.080),
+           (0.085, 0.160, 0.052, 0.055), (0.120, 0.172, 0.026, 0.030)],
+    hals=[(-0.080, 0.150, 0.050, 0.050), (-0.112, 0.130, 0.038, 0.040), (-0.146, 0.103, 0.033, 0.034), (-0.172, 0.078, 0.034, 0.036),
+          (-0.192, 0.062, 0.028, 0.028), (-0.204, 0.052, 0.018, 0.018)],
+    schnabel=((-0.203, 0.052), (-0.222, 0.026)), schwanz=(0.115, 0.172, 0.035))
+
+
+def taube(netz, st, x, y, z, dreh=0.0, pose="sitzen", farbe="grau"):
+    """Taube als Standbild (rund 0,34 m x 1,25): rundlicher Rumpf mit Brust, kleiner Kopf mit Schnabel, Hals mit grün-violettem Schimmer (Stoff Taube Hals),
+    angelegte Flügel mit zwei dunklen Binden und dunkler Spitze, Schwanzfächer mit Endbinde, Füße. Blick nach -Y, gedreht um Z.
+    pose: `sitzen` (Kopf hoch), `picken` (Kopf zum Boden), `fluegel` (sitzend, ein Flügel halb geöffnet).
+    farbe: `grau` (blaugrau), `weiss` (weiße Taube), `scheckig` (blaugrau mit weißem Rücken und Brustfleck).
+    Stoffe: Taube, Taube dunkel, Taube Hals, Taube weiss (die vier Stoffe der Taubenschlag-Datei außer Holz alt)."""
     d = math.radians(dreh)
     c, s = math.cos(d), math.sin(d)
+    h = _PICKEN if pose == "picken" else _SITZEN
+    lat = Vector((c, s, 0.0))
 
     def p(u, v, w):
-        return (x + u * c - v * s, y + u * s + v * c, z + w)
-    if pose == "picken":
-        stationen = [(p(0, 0.14, 0.14), 0.045, 0.05), (p(0, 0.06, 0.17), 0.075, 0.085), (p(0, -0.04, 0.17), 0.085, 0.095),
-                     (p(0, -0.12, 0.15), 0.07, 0.08), (p(0, -0.19, 0.11), 0.045, 0.05), (p(0, -0.22, 0.07), 0.03, 0.035)]
-    else:
-        stationen = [(p(0, 0.15, 0.13), 0.04, 0.045), (p(0, 0.08, 0.16), 0.07, 0.08), (p(0, -0.02, 0.18), 0.08, 0.09),
-                     (p(0, -0.1, 0.22), 0.062, 0.07), (p(0, -0.14, 0.28), 0.04, 0.045), (p(0, -0.16, 0.3), 0.034, 0.036)]
-    tr.rohr(netz, st, stationen, 6, lambda i, k, sn, cs: "Taube dunkel" if (i == 1 and sn > 0.3 and abs(cs) > 0.5) else "Taube")
-    # Schwanz: flacher Keil nach hinten
-    netz.vieleck_nach([p(-0.03, 0.14, 0.13), p(0.03, 0.14, 0.13), p(0.045, 0.3, 0.1), p(-0.045, 0.3, 0.1)], (0, 0, 1), st["Taube dunkel"])
-    netz.vieleck_nach([p(0.03, 0.14, 0.12), p(-0.03, 0.14, 0.12), p(-0.045, 0.3, 0.09), p(0.045, 0.3, 0.09)], (0, 0, -1), st["Taube dunkel"])
-    # Flügel: je ein Blatt, am Körper anliegend
+        return Vector((x + (u * c - v * s) * G_TAUBE, y + (u * s + v * c) * G_TAUBE, z + w * G_TAUBE))
+    weiss = farbe == "weiss"
+    leib = "Taube weiss" if weiss else "Taube"
+    binde = "Taube weiss" if weiss else "Taube dunkel"
+    hals = "Taube weiss" if weiss else "Taube Hals"
+
+    def rumpf_stoff(i, k):
+        if farbe == "scheckig" and i in (1, 2) and k in (0, 1, 2, 3, 4):                     # weiße Brust und Rücken in der Mitte des Rumpfs
+            return "Taube weiss"
+        return leib
+    _rohr(netz, st, [(p(0, v, w), ru * G_TAUBE, rv * G_TAUBE) for v, w, ru, rv in h["rumpf"]], 8, rumpf_stoff, lat)
+    # Hals: erste Ringe schillernd, Kopf in der Körperfarbe, Schnabel dunkel
+    _rohr(netz, st, [(p(0, v, w), ru * G_TAUBE, rv * G_TAUBE) for v, w, ru, rv in h["hals"]], 6, lambda i, k: hals if i in (1, 2) else leib, lat)
+    (v0, w0), (v1, w1) = h["schnabel"]
+    netz.stab(p(0, v0, w0), p(0, v1, w1), 0.009 * G_TAUBE, 0.003 * G_TAUBE, st["Taube dunkel"])
+    netz.quader((0, 0, 0), (0.016 * G_TAUBE, 0.012 * G_TAUBE, 0.012 * G_TAUBE), st["Taube weiss"], Matrix.Translation(p(0, v0 + 0.004, w0 + 0.004)))      # Wachshaut
+    # Schwanz: Fächer nach hinten, Endbinde dunkel
+    sv, sw, sg = h["schwanz"]
+    wurzel = [p(-0.026, sv - 0.01, sw), p(0.026, sv - 0.01, sw)]
+    ende = [p(0.052, sv + 0.145, sw + sg), p(0.0, sv + 0.155, sw + sg + 0.002), p(-0.052, sv + 0.145, sw + sg)]
+    mitte = [p(0.040, sv + 0.095, sw + sg * 0.6), p(-0.040, sv + 0.095, sw + sg * 0.6)]
+    fl = [wurzel[1], *mitte[:1], ende[0], ende[1], ende[2], *mitte[1:], wurzel[0]]
+    netz.vieleck_nach(fl, Vector((0, 0, 1)), st[binde if weiss else "Taube"])
+    netz.vieleck_nach(list(reversed(fl)), Vector((0, 0, -1)), st[binde if weiss else "Taube"])
+    band = [mitte[0], ende[0], ende[1], ende[2], mitte[1]]
+    if not weiss:
+        for o in (0.003, -0.012):
+            netz.vieleck_nach([b + Vector((0, 0, o)) for b in (band if o > 0 else reversed(band))], Vector((0, 0, 1 if o > 0 else -1)), st["Taube dunkel"])
+    # Flügel: je ein Lappen am Körper, zwei dunkle Binden und dunkle Schwungfederspitze
     for sx in (-1, 1):
-        flg = [p(sx * 0.07, -0.02, 0.22), p(sx * 0.095, 0.1, 0.2), p(sx * 0.07, 0.22, 0.14), p(sx * 0.055, 0.12, 0.24)]
-        netz.vieleck_nach(flg, (sx, 0, 1), st["Taube dunkel"])
-        netz.vieleck_nach(list(reversed(flg)), (-sx, 0, -1), st["Taube dunkel"])
+        offen = pose == "fluegel" and sx == 1
+        k0 = 0.0 if not offen else 0.04
+        wing = [(-0.058, 0.184, 0.076, 0.014, 0.036), (-0.010, 0.195, 0.082 + k0, 0.022, 0.048), (0.050, 0.186, 0.076 + 2 * k0, 0.022, 0.044),
+                (0.110, 0.166, 0.056 + 2.4 * k0, 0.016, 0.030), (0.170, 0.156, 0.036 + 2.4 * k0, 0.007, 0.011)]
+        if h is _PICKEN:
+            wing = [(v, w - 0.01 + 0.012 * i, u, a, b) for i, (v, w, u, a, b) in enumerate(wing)]
+        if offen:                                                                             # halb geöffnet: Spitze hebt sich und schwenkt nach außen
+            wing = [(v + 0.01 * i, w + 0.005 * i * i, u, a, b) for i, (v, w, u, a, b) in enumerate(wing)]
+        wbinde = ("Taube weiss",) * 3 if weiss else ("Taube", "Taube dunkel", "Taube", "Taube dunkel")
+        _rohr(netz, st, [(p(sx * u, v, w), a * G_TAUBE, b * G_TAUBE) for v, w, u, a, b in wing], 6, lambda i, k: wbinde[min(i, len(wbinde) - 1)], lat)
     # Füße
     for sx in (-1, 1):
-        netz.stab(p(sx * 0.03, 0.0, 0.0), p(sx * 0.03, 0.0, 0.1), 0.012, 0.012, st["Taube dunkel"])
+        netz.stab(p(sx * 0.032, 0.0, 0.0), p(sx * 0.032, 0.0, 0.07), 0.009 * G_TAUBE, 0.009 * G_TAUBE, st["Taube dunkel"])
+        netz.quader((0, 0, 0), (0.028 * G_TAUBE, 0.05 * G_TAUBE, 0.012 * G_TAUBE), st["Taube dunkel"], Matrix.Translation(p(sx * 0.032, -0.012, 0.006)))
 
 
 def taubenschlag(netz, st, saat, winter=False):
@@ -283,15 +356,15 @@ def taubenschlag(netz, st, saat, winter=False):
         ca, sa = round(math.cos(a)), round(math.sin(a))
         for d in (-0.2, 0.2):
             ox, oy = (-sa * d, ca * d)
-            netz.quader((0, 0, 0), (0.15 if ca else 0.01, 0.01 if ca else 0.15, 0.17), st["Rinde"], lage(ox + ca * (K / 2 + 0.003), oy + sa * (K / 2 + 0.003), zk + 0.08))
+            netz.quader((0, 0, 0), (0.15 if ca else 0.01, 0.01 if ca else 0.15, 0.17), st["Taube dunkel"], lage(ox + ca * (K / 2 + 0.003), oy + sa * (K / 2 + 0.003), zk + 0.08))
             netz.quader((0, 0, 0), (0.24 if sa else 0.12, 0.24 if ca else 0.12, 0.03), st["Holz alt"], lage(ox + ca * (K / 2 + 0.08), oy + sa * (K / 2 + 0.08), zk - 0.12))
-    # Dach: vierseitig, steil, mit Überstand; Rinde statt Schindel (ein Stoff weniger)
+    # Dach: vierseitig, steil, mit Überstand; dunkler Schiefer in „Taube dunkel“ (ein Stoff weniger)
     ecken = [Vector((sx * 0.66, sy * 0.66, zk + 0.32)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
     spitze = Vector((0, 0, zk + 1.0))
     for i in range(4):
         pa, pb = ecken[i], ecken[(i + 1) % 4]
-        netz.vieleck_nach([pa, pb, spitze], (pa + pb) / 2 - Vector((0, 0, zk + 0.32)), st["Rinde"])
-        netz.vieleck_nach([pa, spitze, pb], Vector((0, 0, zk + 0.32)) - (pa + pb) / 2, st["Rinde"])    # Unterseite, damit man vom Kasten aus nicht hindurchsieht
+        netz.vieleck_nach([pa, pb, spitze], (pa + pb) / 2 - Vector((0, 0, zk + 0.32)), st["Taube dunkel"])
+        netz.vieleck_nach([pa, spitze, pb], Vector((0, 0, zk + 0.32)) - (pa + pb) / 2, st["Taube dunkel"])    # Unterseite, damit man vom Kasten aus nicht hindurchsieht
     netz.stab((0, 0, zk + 0.95), (0, 0, zk + 1.22), 0.05, 0.05, st["Holz alt"])             # Firstspitze
     # Leiter an der Rückseite (+Y)
     for sx in (-0.15, 0.15):
@@ -301,14 +374,14 @@ def taubenschlag(netz, st, saat, winter=False):
         netz.stab((-0.15, 0.55 - 0.43 * t, (H - 0.02) * t), (0.15, 0.55 - 0.43 * t, (H - 0.02) * t), 0.03, 0.03, st["Holz alt"], quer=(1, 0, 0))
     # Tauben: zwei auf dem Anflugbrett vorn, eine auf dem Dach, zwei am Boden
     taube(netz, st, -0.2, -K / 2 - 0.08, zk - 0.105, 175)
-    taube(netz, st, 0.2, -K / 2 - 0.08, zk - 0.105, 188, "sitzen")
-    taube(netz, st, K / 2 + 0.08, 0.2, zk - 0.105, 262)
+    taube(netz, st, 0.2, -K / 2 - 0.08, zk - 0.105, 188, "fluegel")
+    taube(netz, st, K / 2 + 0.08, 0.2, zk - 0.105, 262, "sitzen", "weiss")
     taube(netz, st, 0.55, -0.55, 0.0, 30, "picken")
-    taube(netz, st, -0.5, -0.7, 0.0, 190, "picken")
+    taube(netz, st, -0.5, -0.7, 0.0, 190, "picken", "scheckig")
     for k in range(10):                                                                      # Körner und Federn auf dem Boden
         w = z.uniform(0, 6.28)
         r = z.uniform(0.3, 0.9)
-        netz.quader((0, 0, 0.004), (0.02, 0.012, 0.008), st["Rinde"], lage(r * math.cos(w), r * math.sin(w), 0.0, z.uniform(0, 90)))
+        netz.quader((0, 0, 0.004), (0.02, 0.012, 0.008), st["Taube dunkel"], lage(r * math.cos(w), r * math.sin(w), 0.0, z.uniform(0, 90)))
     if winter:
         p2.schneestreifen(netz, st, -0.5, 0.5, 0.0, zk + 0.67, 0.2, 0.05)
         netz.quader((0, 0, H + 0.016), (K + 0.1, K + 0.1, 0.03), st["Schnee"])
@@ -333,13 +406,13 @@ def taubenhaus(netz, st, saat, winter=False):
     H = 0.8
     netz.quader((0, 0, zb + 0.06 + H / 2), (L, T, H), st["Holz alt"])
     for d in (-0.3, 0.3):
-        netz.quader((d, -T / 2 - 0.003, zb + 0.5), (0.16, 0.01, 0.18), st["Rinde"])
+        netz.quader((d, -T / 2 - 0.003, zb + 0.5), (0.16, 0.01, 0.18), st["Taube dunkel"])
     netz.quader((0, -T / 2 - 0.1, zb + 0.14), (0.9, 0.2, 0.03), st["Holz alt"])           # Anflugbrett
     xa, xb, ye, zt, zf = -L / 2 - 0.1, L / 2 + 0.1, T / 2 + 0.12, zb + H + 0.07, zb + H + 0.75        # Satteldach: First entlang X, Traufen bei y = ±ye
     for sy in (-1, 1):
         flaeche = [Vector((xa, sy * ye, zt)), Vector((xb, sy * ye, zt)), Vector((xb, 0, zf)), Vector((xa, 0, zf))]
-        netz.vieleck_nach(flaeche, (0, sy, 1), st["Rinde"])
-        netz.vieleck_nach(list(reversed(flaeche)), (0, -sy, -1), st["Rinde"])
+        netz.vieleck_nach(flaeche, (0, sy, 1), st["Taube dunkel"])
+        netz.vieleck_nach(list(reversed(flaeche)), (0, -sy, -1), st["Taube dunkel"])
     for sx, x in ((-1, xa), (1, xb)):
         giebel = [Vector((x, -ye, zt)), Vector((x, ye, zt)), Vector((x, 0, zf))]
         netz.vieleck_nach(giebel, (sx, 0, 0), st["Holz alt"])
@@ -350,12 +423,12 @@ def taubenhaus(netz, st, saat, winter=False):
         t = k / 6
         netz.stab((0.5, -0.8 + (0.8 - T / 2 - 0.08) * t, (zb + 0.1) * t), (0.74, -0.8 + (0.8 - T / 2 - 0.08) * t, (zb + 0.1) * t), 0.03, 0.03, st["Holz alt"], quer=(1, 0, 0))
     taube(netz, st, -0.25, -T / 2 - 0.1, zb + 0.155, 182)
-    taube(netz, st, 0.3, -T / 2 - 0.1, zb + 0.155, 168)
+    taube(netz, st, 0.3, -T / 2 - 0.1, zb + 0.155, 168, "fluegel")
     taube(netz, st, -0.7, -0.9, 0.0, 40, "picken")
-    taube(netz, st, 0.0, -1.05, 0.0, 120, "picken")
-    taube(netz, st, 0.65, -0.95, 0.0, 215)
+    taube(netz, st, 0.0, -1.05, 0.0, 120, "picken", "scheckig")
+    taube(netz, st, 0.65, -0.95, 0.0, 215, "sitzen", "weiss")
     for k in range(14):                                                                      # Körner
-        netz.quader((0, 0, 0.004), (0.02, 0.012, 0.008), st["Rinde"], lage(z.uniform(-0.9, 0.9), z.uniform(-1.2, -0.7), 0.0, z.uniform(0, 90)))
+        netz.quader((0, 0, 0.004), (0.02, 0.012, 0.008), st["Taube dunkel"], lage(z.uniform(-0.9, 0.9), z.uniform(-1.2, -0.7), 0.0, z.uniform(0, 90)))
     if winter:
         netz.quader((0, 0, 0.012), (L + 0.08, T + 0.08, 0.03), st["Schnee"], lage(0, 0, zb + H + 0.06))
         netz.quader((0, 0, 0.012), (0.88, 0.2, 0.03), st["Schnee"], lage(0, -T / 2 - 0.1, zb + 0.155))
@@ -365,16 +438,16 @@ def taubenfutter(netz, st, saat, winter=False):
     """Futterplatz: flache Holzschale mit Körnern, ein offener Kornsack aus Holz-Rinde-Kiste, vier Tauben picken ringsum."""
     z = rng(saat)
     netz.prisma([(-0.35, 0.0), (0.35, 0.0), (0.33, 0.1), (-0.33, 0.1)], -0.35, 0.35, st["Holz alt"], matrix=Matrix.Translation((0, 0, 0)))
-    netz.quader((0, 0, 0.1), (0.62, 0.52, 0.02), st["Rinde"])
+    netz.quader((0, 0, 0.1), (0.62, 0.52, 0.02), st["Holz alt"])
     for k in range(3):
         for j in range(3):
-            netz.quader((0, 0, 0.012), (0.03, 0.02, 0.025), st["Rinde"], lage(-0.2 + 0.2 * k, -0.15 + 0.15 * j, 0.1))
+            netz.quader((0, 0, 0.012), (0.03, 0.02, 0.025), st["Taube dunkel"], lage(-0.2 + 0.2 * k, -0.15 + 0.15 * j, 0.1))
     taube(netz, st, -0.5, -0.1, 0.0, 70, "picken")
-    taube(netz, st, 0.5, 0.2, 0.0, 250, "picken")
-    taube(netz, st, 0.1, 0.55, 0.0, 190, "picken")
-    taube(netz, st, -0.05, -0.55, 0.0, 10)
+    taube(netz, st, 0.5, 0.2, 0.0, 250, "picken", "scheckig")
+    taube(netz, st, 0.1, 0.55, 0.0, 190, "picken", "weiss")
+    taube(netz, st, -0.05, -0.55, 0.0, 10, "fluegel")
     for k in range(10):
-        netz.quader((0, 0, 0.004), (0.02, 0.012, 0.008), st["Rinde"], lage(z.uniform(-0.9, 0.9), z.uniform(-0.8, 0.8), 0.0, z.uniform(0, 90)))
+        netz.quader((0, 0, 0.004), (0.02, 0.012, 0.008), st["Taube dunkel"], lage(z.uniform(-0.9, 0.9), z.uniform(-0.8, 0.8), 0.0, z.uniform(0, 90)))
     if winter:
         netz.quader((0, 0, 0.012), (0.7, 0.4, 0.03), st["Schnee"], lage(0, 0, 0.1) @ Matrix.Translation((0, 0.0, 0.0)))
 

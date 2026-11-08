@@ -337,6 +337,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Größen | 48 (Standard bei 1080p), 64, 80 statt 32/48/64; Zeigerpunkt der Hand 2/1, 3/1, 3/1; Türschloss 80 neu gerendert, 32 entfällt. | 07.11.2026 |
 | Hände | Sechs nach Stand (Gemeiner bis Reichsgraf) plus Wache (Plattenhandschuh) und Dieb (schwarz, deckender heller Rand) nur zur freien Wahl; Einstellungen: neun Kacheln (Auto + 8), `zeiger_stufe` 0..8, alter Wert bleibt gültig, `--zeigerstufe=1..8`. | 07.11.2026 |
 
+### Mauszeiger ohne weißen Rand, Schein beim Drüberfahren (PR „Oberfläche: Mauszeiger ohne weißen Rand, Leuchten beim Drüberfahren“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Rand | Alle Hände (acht, drei Größen) und das Türschloss ohne hellen Außenrand; harte Alpha-Kante (0/255), die durchsichtigen Pixel tragen die Umrissfarbe, damit beim Filtern kein heller Saum entsteht. Der schwarze Dieb braucht den deckenden hellen Rand nicht mehr. | 08.11.2026 |
+| Hover | Kein Aufhellen und Erwärmen mehr; „klick“ ist derselbe Handschuh Pixel für Pixel, dazu ein weicher weißer Außenschein (Abstand zur Silhouette, quadratisch auslaufend, höchstens 80 % Deckkraft) in einem durchsichtigen Rand von 6/8/10 Pixeln. Auch das Türschloss (erscheint nur über Anklickbarem) bekommt den Schein. | 08.11.2026 |
+| Größe | Bilder 60/80/100 Pixel (Hand 48/64/80 plus Rand); normal und klick gleich groß, damit der Zeigerpunkt gleich bleibt: Hand 8/7, 11/9, 13/11, Schloss 22,5/30, 30/40, 39/51. Die Vorschau in den Einstellungen schneidet den Rand weg (`AtlasTexture`). Das Skript: `zeiger_aus_vorlage.py --gemini` bzw. `--schloss`. | 08.11.2026 |
+
 ### Start-Hinweis zum Personalbuch (PR „Hinweis zum Start – weitere Lehrlinge im Personalbuch“)
 
 | Thema | Entscheidung | Datum |
