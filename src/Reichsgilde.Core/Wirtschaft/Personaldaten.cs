@@ -37,6 +37,13 @@ public sealed class PersonalDaten
     /// </summary>
     public double Handgeld { get; init; }
 
+    /// <summary>
+    /// Über so viele Jahre darf sich das Handgeld für die KI bezahlt machen (Datenversion 73): Sie stellt nur ein, wenn der erwartete
+    /// Jahresertrag eines Neuen (nach dem Lohn) mal diese Jahre das Handgeld übersteigt. Vorgabe 3 – etwa die Lehrzeit bis zur zweiten
+    /// Stufe (<see cref="Erfahrung"/>: 24 Stunden ≈ 3 Jahre); danach bleibt der Arbeiter meist weiter im Betrieb.
+    /// </summary>
+    public double HandgeldJahre { get; init; } = 3;
+
     /// <summary>Die Laufbahnen; für einen Betrieb gilt die erste, deren Beruf und Ort passen (die letzte ohne Bedingung ist die Vorgabe).</summary>
     public List<LaufbahnDaten> Laufbahnen { get; init; } = new();
 
@@ -80,6 +87,7 @@ public sealed class PersonalDaten
         if (VorarbeiterJeBetrieb < 0) f.Add("personal.vorarbeiterJeBetrieb darf nicht negativ sein.");
         if (StartJeBetrieb is < 1) f.Add("personal.startJeBetrieb muss mindestens 1 sein.");
         if (Handgeld < 0 || double.IsNaN(Handgeld)) f.Add("personal.handgeld darf nicht negativ sein.");
+        if (!(HandgeldJahre > 0)) f.Add("personal.handgeldJahre muss größer 0 sein.");
         if (EigenesVolk is < 0 or > 1) f.Add("personal.eigenesVolk muss zwischen 0 und 1 liegen.");
         if (Frauen is < 0 or > 1) f.Add("personal.frauen muss zwischen 0 und 1 liegen.");
         if (Laufbahnen.Count == 0) f.Add("personal.laufbahnen darf nicht leer sein.");

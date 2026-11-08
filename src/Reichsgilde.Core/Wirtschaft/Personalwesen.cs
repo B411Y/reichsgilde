@@ -79,7 +79,16 @@ public sealed class Personalwesen
     /// für jeden Anfänger einer Laufbahn (Lehrling, Knecht, Taschendieb, Rekrut), nicht für Arbeitskräfte ohne Stufen (Unfreie, Orks). 0 ohne
     /// Abschnitt „personal“ oder ohne Angabe.
     /// </summary>
-    public double Handgeld(string arbeitskraft) => Daten is { Handgeld: > 0 and var h } d && d.StufeVon(arbeitskraft) == 1 ? h : 0;
+    public double Handgeld(string arbeitskraft) => Daten is { Handgeld: > 0 and var h } d && ZahltHandgeld(d.StufeVon(arbeitskraft)) ? h : 0;
+
+    /// <summary>
+    /// Wer Handgeld bekommt, nach der Stufe der Arbeitskraft (1 = Anfänger einer Laufbahn, 0 = ohne Stufen: Unfreie, Orks). Die einzige Stelle
+    /// dieser Regel – sollen auch Unfreie und Orks Handgeld bekommen (offene Frage an den Nutzer), wird hier aus „== 1“ „&lt;= 1“.
+    /// </summary>
+    private static bool ZahltHandgeld(int stufe) => stufe == 1;
+
+    /// <summary>Über so viele Jahre darf sich das Handgeld für die KI bezahlt machen (<see cref="PersonalDaten.HandgeldJahre"/>; ohne Abschnitt 3).</summary>
+    public double HandgeldJahre => Daten?.HandgeldJahre ?? 3;
 
     /// <summary>Reicht das Bargeld des Hauses für das Handgeld von <paramref name="anzahl"/> Neuen? null: ja, sonst der Grund.</summary>
     public string? HandgeldFehlt(Betrieb b, string arbeitskraft, int anzahl)
