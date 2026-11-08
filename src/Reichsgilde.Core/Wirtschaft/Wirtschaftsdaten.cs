@@ -545,7 +545,7 @@ public sealed class Wirtschaftsdaten
         }
         Meinungen?.Pruefen(f, StandStufe, Charakterzuege?.Zuege.Keys ?? (ICollection<string>)Array.Empty<string>(),
             Gesundheit?.Krankheiten.Keys ?? (ICollection<string>)Array.Empty<string>());
-        Lebensweise?.Pruefen(f, StandStufe, Charakterzuege?.Zuege.Keys ?? (ICollection<string>)Array.Empty<string>(),
+        Lebensweise?.Pruefen(f, StandStufe, Charakterzuege?.Zuege.Keys, // ohne Charakterzüge wirken die Zug-Faktoren nicht – dann kein Fehler
             typeof(Befehl).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Befehl)) && !t.IsAbstract).Select(t => t.Name));
         if (Lebensweise is { IstAktiv: true } lw)
             foreach (var (pfad, kennung, k) in lw.AlleKnoten)

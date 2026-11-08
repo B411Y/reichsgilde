@@ -187,17 +187,12 @@ public sealed partial class Familienbuch
     // ═════════════════════════════════════════════════════════════════════════
 
     /// <summary>Erfahrung in den aktiven Pfad buchen; beim ersten Mal wird der Pfad des stärksten Talents festgehalten.</summary>
-    private void ErfahrungBuchen(Konto konto, Person p, double roh)
+    private void ErfahrungBuchen(Person p, double roh)
     {
         if (roh <= 0) return;
-        var d = LebensweiseDaten!;
         var pfad = AktiverPfad(p);
         p.Lebensweg.Pfad ??= pfad;
-        var vorher = d.PunkteAus(pfad, p.Lebensweg.Erfahrung(pfad));
-        p.Lebensweg.ErfahrungDazu(pfad, roh * ErfahrungFaktor(p, pfad));
-        if (d.PunkteAus(pfad, p.Lebensweg.Erfahrung(pfad)) > vorher)
-            Ereignis(konto, $"{p.Vorname} {p.Familienname} hat im {d.Pfade[pfad].Name} dazugelernt: ein Punkt für einen neuen Knoten.", person: p,
-                wichtigkeit: Meldungswichtigkeit.Gering);
+        p.Lebensweg.ErfahrungDazu(pfad, roh * ErfahrungFaktor(p, pfad)); // ein neuer Punkt zeigt sich im Charakterfenster, ohne Meldung
     }
 
     /// <summary>
@@ -219,7 +214,7 @@ public sealed partial class Familienbuch
         };
         var passt = befehl is TalentTrainieren t ? t.Talent == pfad
             : pd.Taten.Contains(typ) || (art is not null && pd.Taten.Contains($"{typ}:{art}"));
-        if (passt) ErfahrungBuchen(konto, o, d.JeAp * ap);
+        if (passt) ErfahrungBuchen(o, d.JeAp * ap);
     }
 
     /// <summary>Am Jahresende (vor den Todesfällen): Grundwert und Sterne für Oberhaupt, Erbe und Ehepartner.</summary>
@@ -232,7 +227,7 @@ public sealed partial class Familienbuch
         foreach (var p in personen.Where(HatLebensweg))
         {
             var pfad = AktiverPfad(p);
-            ErfahrungBuchen(f.Konto, p, (d.Grund + d.JeStern * p.Talent(pfad)) * LebenswegAnteil(p));
+            ErfahrungBuchen(p, (d.Grund + d.JeStern * p.Talent(pfad)) * LebenswegAnteil(p));
         }
     }
 

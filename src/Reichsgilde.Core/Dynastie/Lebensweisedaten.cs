@@ -262,7 +262,7 @@ public sealed class LebensweiseDaten
         return n;
     }
 
-    internal void Pruefen(List<string> f, Func<string, int> standStufe, ICollection<string> zuege, IEnumerable<string> befehle)
+    internal void Pruefen(List<string> f, Func<string, int> standStufe, ICollection<string>? zuege, IEnumerable<string> befehle)
     {
         const string q = "lebensweise";
         if (!IstAktiv) return;
@@ -272,7 +272,7 @@ public sealed class LebensweiseDaten
         if (Kosten.Any(k => k <= 0)) f.Add($"{q}.kosten: Jeder Punkt kostet mehr als 0.");
         foreach (var (z, faktor) in Zugfaktoren)
         {
-            if (!zuege.Contains(z)) f.Add($"{q}.zugfaktoren: Den Charakterzug „{z}“ gibt es nicht.");
+            if (zuege is not null && !zuege.Contains(z)) f.Add($"{q}.zugfaktoren: Den Charakterzug „{z}“ gibt es nicht.");
             if (faktor <= 0) f.Add($"{q}.zugfaktoren.{z} muss größer als 0 sein.");
         }
         foreach (var (e, faktor) in Wohnhaus)
@@ -284,7 +284,7 @@ public sealed class LebensweiseDaten
             var wo = $"{q}.pfade.{t}";
             if (string.IsNullOrWhiteSpace(p.Name)) f.Add($"{wo}: name fehlt.");
             if (p.Spalten.Count == 0 || p.Spalten.Distinct().Count() != p.Spalten.Count) f.Add($"{wo}.spalten: mindestens eine, keine doppelt.");
-            foreach (var z in p.Passend.Concat(p.Hemmend).Where(z => !zuege.Contains(z)))
+            foreach (var z in p.Passend.Concat(p.Hemmend).Where(z => zuege is not null && !zuege.Contains(z)))
                 f.Add($"{wo}: Den Charakterzug „{z}“ gibt es nicht.");
             foreach (var tat in p.Taten)
                 if (!befehlsnamen.Contains(tat.Split(':')[0])) f.Add($"{wo}.taten: Einen Befehl „{tat}“ gibt es nicht.");
