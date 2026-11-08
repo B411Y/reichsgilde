@@ -166,16 +166,16 @@ def bauen(st):
     eis = bs.Netz("Brunnen_Eis")
     z_w = RAND - WASSER
 
-    bs.achteck(stein, st, (0, 0, 0), R + 0.05 + 0.42, 0.0, 0.17, "Sandstein", n=N)                  # eine Stufe
-    platten(stein, st, N, R, 0.0, RAND - 0.1, 0.3, "Sandstein")                                      # Beckenwand
+    bs.achteck(stein, st, (0, 0, 0), R + 0.05 + 0.42, 0.0, 0.17, "Haustein", n=N)                    # eine Stufe
+    platten(stein, st, N, R, 0.0, RAND - 0.1, 0.3, "Haustein")                                       # Beckenwand
     platten(stein, st, N, R + 0.05, RAND - 0.1, RAND, 0.42, "Haustein", spalt=0.014)               # Randplatten, breiter als die Wand
     stein.vieleck_nach([ecke(N, R - 0.3, k) + Vector((0, 0, 0.18)) for k in range(N)], (0, 0, 1), st["Haustein"])    # Beckenboden
     wasser.vieleck_nach([ecke(N, R - 0.29, k) + Vector((0, 0, z_w)) for k in range(N)], (0, 0, 1), st["Brunnenwasser"])
     # Säule: Sockel im Becken, Schaft, Ringe, Kapitell mit Brüstungsplatte, vier Fialen, Sockel mit Wappen, Ritter
-    nt.ast(stein, st, (0, 0, 0.18), (0, 0, 0.7), 0.5, 0.4, stoff="Sandstein", n=8)
-    nt.ast(stein, st, (0, 0, 0.7), (0, 0, 3.0), 0.3, 0.24, stoff="Sandstein", n=8)
+    nt.ast(stein, st, (0, 0, 0.18), (0, 0, 0.7), 0.5, 0.4, stoff="Haustein", n=8)
+    nt.ast(stein, st, (0, 0, 0.7), (0, 0, 3.0), 0.3, 0.24, stoff="Haustein", n=8)
     for z in (1.4, 2.2):
-        nt.ast(stein, st, (0, 0, z), (0, 0, z + 0.1), 0.33, 0.33, stoff="Haustein", n=8)
+        nt.ast(stein, st, (0, 0, z), (0, 0, z + 0.1), 0.33, 0.33, stoff="Sandstein", n=8)
     nt.ast(stein, st, (0, 0, 2.9), (0, 0, 3.15), 0.34, 0.5, stoff="Sandstein", n=8)
     nt.ast(stein, st, (0, 0, 3.15), (0, 0, 3.3), 0.5, 0.5, stoff="Haustein", n=8)
     for k in range(4):                                                                               # vier Fialen über den Ecken der Brüstung

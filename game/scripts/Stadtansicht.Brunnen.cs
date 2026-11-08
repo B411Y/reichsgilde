@@ -16,7 +16,7 @@ namespace Reichsgilde;
 /// <item><b>Grafikstufe:</b> beide Shader folgen der Einstellung „Boden“ (wie die Pfützen): Niedrig ruhig und glatt, Mittel mit Himmelsspiegelung, Hoch mit laufenden Streifen und Ringen.</item>
 /// </list>
 /// Wasser und Strahl sind je <b>ein</b> Stoff mit eigenem Shader und werden nicht zusammengelegt (die Schattenproxys fassen nur Netze mit mehreren Flächen zusammen; der Strahl und das
-/// Wasser haben je eine). Der Strahl wirft keinen Schatten. Der ganze Brunnen kostet etwa 14 Zeichenaufrufe (vier Stoffe Stein, Trog, Wasser, Strahl, je zwei).
+/// Wasser haben je eine). Strahl und Wasser werfen keinen Schatten. Der ganze Brunnen kostet etwa 14 Zeichenaufrufe (vier Stoffe Stein, Trog, Wasser, Strahl, je zwei).
 /// </summary>
 public partial class Stadtansicht
 {
@@ -52,6 +52,7 @@ public partial class Stadtansicht
         if (!teile.TryGetValue("Brunnen_Wasser", out var wasser)) return;
         var wStoff = BrunnenStoff(ref _brunnenWasserStoff, BrunnenWasserPfad, "Brunnenwasser");
         for (var i = 0; i < wasser.Mesh.GetSurfaceCount() && wStoff is not null; i++) wasser.SetSurfaceOverrideMaterial(i, wStoff);
+        wasser.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off; // das Wasser liegt im Becken, sein Schatten wäre nur ein unnützer Aufruf in der Schattenkarte
         teile.TryGetValue("Brunnen_Strahl", out var strahl);
         if (strahl is not null)
         {
