@@ -329,6 +329,7 @@ public partial class Stadtansicht
         var winter = jahreszeit == Jahreszeit.Winter;
         foreach (var (vielfach, sommerNetz, winterNetz) in _naturWinter) vielfach.Mesh = OberflaecheNetz(winter ? winterNetz : sommerNetz); // mit Struktur (Oberflächendetails)
         FuellungJahreszeit(); // Restflächen (Stadtansicht.Restflaechen.cs)
+        BrunnenSichtbar();    // Wasser und Strahl im Sommer, Eis im Winter (Stadtansicht.Brunnen.cs)
         _kronen.RemoveAll(k => !IsInstanceValid(k.Knoten));
         foreach (var (knoten, aeste) in _kronen) knoten.Visible = aeste == winter;
         _markerBaeume.RemoveAll(b => !IsInstanceValid(b.Knoten));
