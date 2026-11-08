@@ -176,6 +176,7 @@ public partial class Stadtansicht
         _schichtAlles = true;
         Ladezeit.Teil("WegeschichtBild", WegeschichtBild); // Wege, Anschlüsse und Pflaster in den Boden (Stadtansicht.Wegeschicht.cs)
         Ladezeit.Marke("Szene: Wegeschicht");
+        RasenBildSchreiben(karte); // nur mit --rasenbild: Draufsicht des Untergrunds je Restfläche (Stadtansicht.Rasen.cs)
         if (_netz.Teile() != 1)
             GD.PushWarning($"Gassennetz der Karte „{karte.Kennung}“: {_netz.Teile()} getrennte Teile – nicht jedes Ziel ist erreichbar.");
     }

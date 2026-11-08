@@ -12,12 +12,13 @@ namespace Reichsgilde;
 /// <item><b>Umlandmodelle</b>: <c>game/daten/bodenstempel.json</c> sagt je Modell (bei Baukästen mit Knoten), welche Fläche welche Bodenart bekommt – Hof und Wege
 /// des Bauernhofs, Wege der Gärten, Klosterhof, Wachturm, Steinbruch, Grube, Holzschlag, dazu Feld und Wald der Einwohner. Die Umrisse stehen im Modell (x, z) und werden mit
 /// <see cref="ModellLage"/> auf die Karte gelegt; die Datei ist je Art einstellbar (Rand, Rauschen, Fleck, Stärke).</item>
-/// <item><b>Restflächen</b>: <c>untergruende</c> in <c>game/daten/restflaechen.json</c> gibt dem Thema den Boden (Garten Erde mit Wiese dazwischen, Werkhof Erde oder
-/// Kies, Randgestrüpp nichts); der Stempel deckt die Felder der ganzen Restfläche, damit keine Nähte zwischen den Kästen entstehen.</item>
+/// <item><b>Restflächen</b>: <c>untergruende</c> in <c>game/daten/restflaechen.json</c> gibt dem Thema den Boden (Werkhof Erde oder Kies, Hof Erde, Garten
+/// Erdflecken); der Stempel deckt die Felder der ganzen Restfläche, damit keine Nähte zwischen den Kästen entstehen. Themen mit Rasen (Garten, Gestrüpp, Kirchhof …)
+/// bekommen vorher Pfad, Saum, Beete und Erde unter Bäumen und in der Mauer Gras statt Stadtlehm (<c>rasen</c>, Stadtansicht.Rasen.cs).</item>
 /// <item><b>Nur Wiese</b>: Der Stempel nimmt nur, was die Wiese übrig lässt; was das Leveldesign gemalt hat, gewinnt. Der Grasteppich liest die Wiese aus demselben Raster und
 /// wächst darum nicht auf gestempelten Flächen (<see cref="BodenRaster"/>), die Grasbüschel am Rand der Wiese gehen mit.</item>
 /// <item><b>Einmal</b>: gestempelt wird einmal vor dem Bau des Bodens (<see cref="KarteAufbauenSchritte"/>); nichts davon steht im Spielstand oder in der Karte, nichts kostet je Bild.
-/// In der Kartenwerkstatt gibt es keine Stempel (dort malt man auf dem Raster der Karte). Inneres der Mauer: Dort deckt der Stadtlehm den Boden, wie bisher.</item>
+/// In der Kartenwerkstatt gibt es keine Stempel (dort malt man auf dem Raster der Karte). Inneres der Mauer: Dort deckt der Stadtlehm den Boden, außer im Rasen der Restflächen.</item>
 /// </list>
 /// Aus mit <c>--bodenstempel=0</c> (nur für Vergleiche; die Platten sind dann trotzdem aus den Modellen).
 /// </summary>
@@ -96,7 +97,8 @@ public partial class Stadtansicht
                 }
                 else flaechen.Add(a.Select(p => (p![0]!.GetValue<double>(), p[1]!.GetValue<double>())).ToList());
             }
-            aus.Add(new StempelAngabe(new Bodenstempel(textur, Zahl(e, "staerke", 1), Zahl(e, "rand", 1.5), Zahl(e, "rauschen", 0.5), Zahl(e, "fleck", 0), 0), flaechen));
+            aus.Add(new StempelAngabe(new Bodenstempel(textur, Zahl(e, "staerke", 1), Zahl(e, "rand", 1.5), Zahl(e, "rauschen", 0.5), Zahl(e, "fleck", 0), 0,
+                                                       Zahl(e, "einzug", 0), Zahl(e, "saum", 0)), flaechen));
         }
         return aus;
     }
@@ -107,6 +109,8 @@ public partial class Stadtansicht
     private void BodenstempelAusKarte(Stadtkarte karte)
     {
         _stempelBoden = null;
+        _rasenMaske = null;
+        _rasenInDerMauer = 0;
         if (_entwurf is not null || BodenstempelAus) return;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
         var kopie = Ladezeit.Zaehlen("Stempel: Kopie", () => karte.Boden.Kopie());
@@ -138,26 +142,36 @@ public partial class Stadtansicht
             }
         Ladezeit.Dazu("Stempel: Sockel", uhrStempel);
         uhrStempel = Ladezeit.Uhr();
-        if (!FuellungAus && FuellRezepte() is { Untergruende.Count: > 0 } rezepte)
+        var (rasenFlaechen, rasenMs) = (0, 0.0);
+        if (!FuellungAus && FuellRezepte() is { } rezepte && (rezepte.Untergruende.Count > 0 || rezepte.Rasen is not null))
+        {
+            var wege = RasenWege(karte);
             foreach (var r in karte.RestflaechenOderLeer())
             {
-                if (FuellThemaWaehlen(r, karte, rezepte) is not { } thema || !rezepte.Untergruende.TryGetValue(thema, out var varianten) || varianten.Count == 0) continue;
+                if (FuellThemaWaehlen(r, karte, rezepte) is not { } thema) continue;
                 var saat = (int)Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 4);
-                var felder = Restflaechenfuellung.Felder(r)
-                    .Select(f => (IReadOnlyList<(double X, double Z)>)new List<(double, double)>
+                // die Felder als Kästen der Zerlegung (dieselbe Vereinigung, aber rund dreimal weniger Vielecke und innere Kanten: der Stempel ist schneller)
+                const double ra = Restflaechenfuellung.Raster;
+                var felder = Restflaechenfuellung.Zerlegen(Restflaechenfuellung.Felder(r))
+                    .Select(k => (IReadOnlyList<(double X, double Z)>)new List<(double, double)>
                     {
-                        (f.I * Restflaechenfuellung.Raster, f.J * Restflaechenfuellung.Raster), ((f.I + 1) * Restflaechenfuellung.Raster, f.J * Restflaechenfuellung.Raster),
-                        ((f.I + 1) * Restflaechenfuellung.Raster, (f.J + 1) * Restflaechenfuellung.Raster), (f.I * Restflaechenfuellung.Raster, (f.J + 1) * Restflaechenfuellung.Raster),
+                        (k.I * ra, k.J * ra), ((k.I + k.Breite) * ra, k.J * ra), ((k.I + k.Breite) * ra, (k.J + k.Tiefe) * ra), (k.I * ra, (k.J + k.Tiefe) * ra),
                     }).ToList();
                 if (felder.Count == 0) continue;
+                // Rasen zuerst (Stadtansicht.Rasen.cs): Beete, Pfad, Bäume, Saum haben Vorrang vor den fleckigen Untergründen
+                var uhrRasen = System.Diagnostics.Stopwatch.StartNew();
+                if (!RasenAus && RasenStempeln(r, thema, karte, rezepte, kopie, wege, felder)) rasenFlaechen++;
+                rasenMs += uhrRasen.Elapsed.TotalMilliseconds;
+                if (!rezepte.Untergruende.TryGetValue(thema, out var varianten) || varianten.Count == 0) continue;
                 foreach (var a in varianten[(saat & 0xFFFF) % varianten.Count])
                     kopie.Stempeln(felder, a.Stempel with { Saat = saat });
                 restflaechen++;
             }
+        }
         Ladezeit.Dazu("Stempel: Restflächen", uhrStempel);
-        if (modelle + restflaechen == 0) return;
+        if (modelle + restflaechen + rasenFlaechen == 0) return;
         _stempelBoden = kopie;
         Ladezeit.Marke("Szene: Bodenstempel");
-        GD.Print($"Bodenstempel: {modelle} Umlandplätze, {restflaechen} Restflächen, {uhr.ElapsedMilliseconds} ms");
+        GD.Print($"Bodenstempel: {modelle} Umlandplätze, {restflaechen} Restflächen, {rasenFlaechen} mit Rasen ({_rasenInDerMauer} in der Mauer, {rasenMs:F0} ms), {uhr.ElapsedMilliseconds} ms");
     }
 }

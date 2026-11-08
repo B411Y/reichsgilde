@@ -264,7 +264,7 @@ public partial class Stadtansicht
     /// Die Gebäude der Karte, unter denen kein Gras steht. In der Werkstatt und im Hauptmenü alle (dort steht auf jedem Platz ein Modell). Im Spiel
     /// (Schritt 5j) nur, was wirklich steht: Kulissen, Sonderbauten, Umland und die Werkstattplätze mit einem Betrieb oder einem leeren Haus –
     /// freie Werkstatt-, Wohnhaus- und Einwohnerplätze tragen Gras; die Häuser darauf stehen in <see cref="GrasSperrflaechen"/>. In der Mauer ist
-    /// Stadtlehm, dort wächst ohnehin keins (auch nicht auf freien Plätzen, Entscheidung des Nutzers).
+    /// Stadtlehm, dort wächst ohnehin keins (auch nicht auf freien Plätzen, Entscheidung des Nutzers) – außer im Rasen der Restflächen (Stadtansicht.Rasen.cs).
     /// </summary>
     private Naturfreiraum? GrasFreiraum()
     {

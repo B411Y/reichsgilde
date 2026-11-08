@@ -21,21 +21,36 @@
     }
   },
   "hoechstens_felder": {"bildstock": 4, "wasserstelle": 6, "pferch": 24, "hof": 32, "steinmetzplatz": 16, "taubenschlag": 8},
+  "rasen": {
+    "_hinweis": "Rasen als Grund (Stadtansicht.Rasen.cs): Die Themen unter \"themen\" haben Gras statt Stadtlehm. \"maske\" sagt, wo in der Mauer der Lehm weicht (Einzug: der weiche Rand bleibt ganz in der Fläche, Fleck: Lehm schimmert stellenweise durch); außerhalb der Mauer ist ohnehin Wiese. Dazu je Thema Erde: \"saum\" (Streifen innen am Rand), \"pfad\" (ausgetretener Pfad vom nächsten Weg durch die Mitte, ab \"ab_felder\" Feldern), \"beet\" (unter den Beeten der Rezepte, art raster, um \"zugabe\" Meter größer), \"baum\" und \"busch\" (Kreis unter Bäumen bzw. Büschen mit Schatten, Radius mal Größe des Teils). Hof, Pferch, Werkhof, Steinmetzplatz, Holzplatz und Wasserstelle bleiben Erde (Nutzer 08.11.2026).",
+    "themen": {
+      "garten": ["saum", "pfad", "beet"],
+      "randgestruepp": ["busch"],
+      "kirchhof": ["saum", "pfad", "baum"],
+      "bildstock": ["pfad", "baum", "busch"],
+      "heuschober": ["saum", "pfad"],
+      "taubenschlag": ["saum"]
+    },
+    "maske": {"einzug": 0.6, "rand": 0.8, "rauschen": 0.2, "fleck": 0.15},
+    "saum": {"textur": "erde", "saum": 0.5, "staerke": 0.4, "rand": 0.8, "rauschen": 0.4, "fleck": 0.6},
+    "pfad": {"textur": "erde", "breite": 0.8, "einzug": 0.3, "ab_felder": 3, "weg_hoechstens": 24, "staerke": 0.65, "rand": 0.6, "rauschen": 0.2, "fleck": 0.35},
+    "beet": {"textur": "erde", "zugabe": 0.1, "staerke": 0.6, "rand": 0.5, "rauschen": 0.12, "fleck": 0.4},
+    "baum": {"textur": "erde", "radius": 1.4, "staerke": 0.7, "rand": 1.2, "rauschen": 0.4, "fleck": 0.45},
+    "busch": {"textur": "erde", "radius": 0.8, "staerke": 0.5, "rand": 0.8, "rauschen": 0.3, "fleck": 0.4}
+  },
   "untergruende": {
-    "garten": [
-      [{"textur": "erde", "staerke": 0.75, "fleck": 0.6, "rand": 1.0, "rauschen": 0.3}]
-    ],
+    "garten": [[]],
     "kirchhof": [[]],
     "holzplatz": [
       [{"textur": "erde", "staerke": 0.92, "rand": 1.0, "rauschen": 0.3}],
       [{"textur": "waldboden", "staerke": 0.8, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.9, "rand": 1.0, "rauschen": 0.3}]
     ],
     "heuschober": [
-      [{"textur": "erde", "staerke": 0.85, "fleck": 0.4, "rand": 1.0, "rauschen": 0.3}],
-      [{"textur": "lehm", "staerke": 0.8, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.8, "rand": 1.0, "rauschen": 0.3}]
+      [{"textur": "erde", "staerke": 0.4, "fleck": 1.0, "rand": 1.0, "rauschen": 0.3}],
+      [{"textur": "lehm", "staerke": 0.35, "fleck": 1.0, "rand": 1.0, "rauschen": 0.3}]
     ],
     "bildstock": [
-      [{"textur": "kies", "staerke": 0.6, "fleck": 0.5, "rand": 0.8, "rauschen": 0.3}]
+      [{"textur": "kies", "staerke": 0.5, "fleck": 1.0, "rand": 0.8, "rauschen": 0.3}]
     ],
     "werkhof": [
       [{"textur": "erde", "staerke": 0.92, "rand": 1.0, "rauschen": 0.3}],
@@ -57,8 +72,8 @@
       [{"textur": "erde", "staerke": 0.8, "fleck": 0.4, "rand": 1.0, "rauschen": 0.3}, {"textur": "kies", "staerke": 0.7, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}]
     ],
     "taubenschlag": [
-      [{"textur": "erde", "staerke": 0.85, "fleck": 0.3, "rand": 1.0, "rauschen": 0.3}],
-      [{"textur": "kies", "staerke": 0.6, "fleck": 0.5, "rand": 1.0, "rauschen": 0.3}, {"textur": "erde", "staerke": 0.85, "rand": 1.0, "rauschen": 0.3}]
+      [{"textur": "erde", "staerke": 0.5, "fleck": 1.0, "rand": 1.0, "rauschen": 0.3}],
+      [{"textur": "kies", "staerke": 0.4, "fleck": 1.0, "rand": 1.0, "rauschen": 0.3}]
     ]
   },
   "fern_stoffe": {
