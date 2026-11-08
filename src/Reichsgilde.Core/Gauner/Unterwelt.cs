@@ -259,7 +259,8 @@ public sealed class Unterwelt
         var wh = Daten.Wohnhaus ?? throw new InvalidOperationException("Es gibt keine Gaunerstücke gegen Wohnhäuser.");
         var grund = art == Gaunerstueck.Brandstiftung ? wh.Brand.Chance : wh.Einbruch.Chance;
         var schutz = (ziel.Hauswaechter ? Daten.WaechterSchutz : 1)
-                     * (art == Gaunerstueck.Brandstiftung ? _w.Wohnen.BrandFaktor(ziel) : _w.Wohnen.EinbruchFaktor(ziel)); // Riegel, Hund (PR #224)
+                     * (art == Gaunerstueck.Brandstiftung ? _w.Wohnen.BrandFaktor(ziel) : _w.Wohnen.EinbruchFaktor(ziel)) // Riegel, Hund (PR #224)
+                     * _w.Familien.Lebenswirkung(ziel).WohnhausFaktor; // Hauswehr (Lebensweise)
         var nacht = auftraggeber is null ? 0 : _w.Familien.NachtBonus(auftraggeber);
         return Math.Min(0.95, grund * schutz + nacht) * _w.Wache.Patrouillefaktor(null);
     }
@@ -404,7 +405,10 @@ public sealed class Unterwelt
 
         _forderungen.Add(new Forderung(erpresser, opfer, betrag, _w.Jahr));
         // Der Brief selbst ist ein Beweis – das Opfer weiß, wer schreibt.
-        if (_w.Justiz.TatMelden(erpresser, Vergehen.Erpressung, opfer.Inhaber, betrag) is { } spur)
+        // Schwarzes Buch (Lebensweise): Der Brief verrät den Schreiber nur mit dieser Chance (gewürfelt nur mit dem Knoten).
+        var spurChance = _w.Familien.Lebenswirkung(erpresser).ErpressungSpurFaktor;
+        if ((spurChance >= 1 || _zufall.NextDouble() < spurChance)
+            && _w.Justiz.TatMelden(erpresser, Vergehen.Erpressung, opfer.Inhaber, betrag) is { } spur)
             _w.Justiz.BeweisGeben(opfer, spur);
         _w.Melden($"{opfer.Inhaber} erhält einen Erpresserbrief von {erpresser.Inhaber}: " +
                   $"{Zahlenformat.Ganz(betrag)} {_w.Daten.Allgemein.Waehrung} Schweigegeld, sonst kommt es vor Gericht.");
@@ -520,7 +524,7 @@ public sealed class Unterwelt
             if (wert > 0)
             {
                 b.RaubBuchen(wert);
-                a.Auftraggeber.Gaunerkosten(-(waren * d.HehlerAnteil + kasse));
+                a.Auftraggeber.Gaunerkosten(-(waren * d.HehlerAnteil * _w.Familien.Lebenswirkung(a.Auftraggeber).HehlerFaktor + kasse)); // Hehlerring
                 oeffentlich = $"Einbruch in {b.Name}: {Diebesgut(beute, kasse)} gestohlen.";
                 Ereignis(a.Auftraggeber, kasse > 0 && waren <= 0
                     ? $"Eure Diebe haben aus der Kasse von {b.Name} {Zahlenformat.Ganz(kasse)} {_w.Daten.Allgemein.Waehrung} geholt."
@@ -636,7 +640,8 @@ public sealed class Unterwelt
 
         var d = Daten;
         var schutz = Math.Min(0.95, eskorte.Schutz + _w.Familien.KampfSchutz(karren.Heimat.Konto));
-        var erfolg = _zufall.NextDouble() < Staerke(h.Auftraggeber) * (1 - schutz) * _w.Wache.UeberfallFaktor(eskorte);
+        var erfolg = _zufall.NextDouble() < Staerke(h.Auftraggeber) * (1 - schutz) * _w.Wache.UeberfallFaktor(eskorte)
+                     * _w.Familien.Lebenswirkung(karren.Heimat.Konto).UeberfallFaktor; // Wegekundig (Lebensweise)
         double wert = 0;
         string oeffentlich;
         if (erfolg)
@@ -644,7 +649,7 @@ public sealed class Unterwelt
             var verloren = karren.LadungVerlieren();
             wert = verloren.Sum(v => _w.Markt[v.Key].Preis * v.Value);
             karren.Heimat.Konto.Raub(wert);
-            h.Auftraggeber.Gaunerkosten(-wert * d.HehlerAnteil);
+            h.Auftraggeber.Gaunerkosten(-wert * d.HehlerAnteil * _w.Familien.Lebenswirkung(h.Auftraggeber).HehlerFaktor); // Hehlerring
             oeffentlich = $"Hinterhalt auf {karren.Name} von {karren.Heimat.Name}: Wegelagerer erbeuten {string.Join(" und ", verloren.Select(v => $"{v.Value} {v.Key}"))} " +
                           $"(Wert {Zahlenformat.Ganz(wert)}).";
             Ereignis(h.Auftraggeber, $"Eure Wegelagerer haben {karren.Heimat.Name} um Ware für {Zahlenformat.Ganz(wert)} erleichtert – der Hehler zahlt {Zahlenformat.Ganz(wert * d.HehlerAnteil)}.");

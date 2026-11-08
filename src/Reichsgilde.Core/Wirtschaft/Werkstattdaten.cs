@@ -292,6 +292,9 @@ public sealed class EinrichtungWirkung
     /// <summary>Faktor auf das Risiko von Ausbruch und Aufstand der Unfreien (Aufseher 0,5).</summary>
     public double RisikoFaktor { get; init; } = 1;
 
+    /// <summary>Faktor auf den Unterhalt bzw. die Pacht des Betriebs im Jahr (Lebensweise „Hüter des Hauses“ 0,9).</summary>
+    public double UnterhaltFaktor { get; init; } = 1;
+
     /// <summary>Wohnhaus: Faktor auf Haushalt und Unterhalt der Familie (Vorratskammer 0,8).</summary>
     public double HaushaltFaktor { get; init; } = 1;
 
@@ -319,7 +322,7 @@ public sealed class EinrichtungWirkung
                      ("razziaBonus", RazziaBonus), ("geleitFaktor", GeleitFaktor), ("lohnFaktor", LohnFaktor),
                      ("ausfallFaktor", AusfallFaktor), ("ladenAnteil", LadenAnteil), ("ladenAufschlag", LadenAufschlag),
                      ("rohstoffFaktor", RohstoffFaktor), ("risikoFaktor", RisikoFaktor), ("haushaltFaktor", HaushaltFaktor),
-                     ("krankheitFaktor", KrankheitFaktor) })
+                     ("krankheitFaktor", KrankheitFaktor), ("unterhaltFaktor", UnterhaltFaktor) })
             if (faktor is < 0 or > 1) f.Add($"{wo}.{name} muss zwischen 0 und 1 liegen.");
         foreach (var (name, faktor) in new[] { ("streifenFaktor", StreifenFaktor), ("rahmenFaktor", RahmenFaktor), ("wechselFaktor", WechselFaktor),
                      ("kreditFaktor", KreditFaktor), ("preisFaktor", PreisFaktor), ("tempoFaktor", TempoFaktor) })
@@ -365,6 +368,7 @@ public sealed class EinrichtungWirkung
             teile.Add(ErfahrungFaktor == 2 ? "Anfänger sammeln doppelte Erfahrung" : $"Anfänger sammeln {Zahlenformat.Ganz((ErfahrungFaktor - 1) * 100)} % mehr Erfahrung");
         if (ArbeitsminutenPlus > 0) teile.Add($"{Zahlenformat.Kommazahl(ArbeitsminutenPlus / 60.0)} Std. länger Arbeit ohne mehr Lohn");
         if (RisikoFaktor < 1) teile.Add($"Ausbrüche und Aufstände der Unfreien {Zahlenformat.Ganz((1 - RisikoFaktor) * 100)} % seltener");
+        if (UnterhaltFaktor < 1) teile.Add($"Unterhalt {Zahlenformat.Ganz((1 - UnterhaltFaktor) * 100)} % niedriger");
         if (HaushaltFaktor < 1) teile.Add($"Haushalt und Unterhalt der Familie {Zahlenformat.Ganz((1 - HaushaltFaktor) * 100)} % billiger");
         if (KrankheitFaktor < 1) teile.Add($"die Familie erkrankt {Zahlenformat.Ganz((1 - KrankheitFaktor) * 100)} % seltener");
         if (AnsehenPlus > 0) teile.Add($"Ansehen +{Zahlenformat.Ganz(AnsehenPlus)}");

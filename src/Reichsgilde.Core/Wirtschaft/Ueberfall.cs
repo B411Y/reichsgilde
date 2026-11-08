@@ -28,7 +28,8 @@ internal static class Ueberfall
         var bande = BandeWaehlen(daten.Banden, w.Zufall);
         // Kampf des Oberhaupts: seine Leute verteidigen die Karren mit.
         var schutz = Math.Min(0.95, eskorte.Schutz + w.Familien.KampfSchutz(karren.Heimat.Konto));
-        var erfolgschance = Math.Min(1, bande.Staerke * (1 - schutz) * w.Wache.UeberfallFaktor(eskorte));
+        var erfolgschance = Math.Min(1, bande.Staerke * (1 - schutz) * w.Wache.UeberfallFaktor(eskorte)
+                                        * w.Familien.Lebenswirkung(karren.Heimat.Konto).UeberfallFaktor); // Wegekundig (Lebensweise)
         var wer = $"{(bande.Wild ? "Eine wilde " : "Eine Bande „")}{bande.Name}{(bande.Wild ? "" : "“")} ({bande.ZusammensetzungText})";
         var wo = karren.Zustand == KarrenZustand.ZumMarkt ? $"auf dem Weg von {karren.Heimat.Name} zum Markt" : $"auf dem Rückweg nach {karren.Heimat.Name}";
 

@@ -32,6 +32,16 @@ public sealed partial class Meinungswesen
     /// <summary>Was eine Aktivität an AP kostet (0, wenn es sie nicht gibt).</summary>
     public int ApKosten(string art) => _d?.Aktivitaeten.GetValueOrDefault(art)?.Ap ?? 0;
 
+    /// <summary>Die Jagd (Kennung in "meinungen.aktivitaeten") – drei Knoten der Lebensweise machen sie leichter.</summary>
+    private const string Jagd = "Jagd";
+
+    /// <summary>Was eine Aktivität dieses Haus an AP kostet: Die Jagdgesellschaft (Lebensweise) jagt billiger, nie unter 1 AP.</summary>
+    public int ApKosten(Konto konto, string art)
+    {
+        var ap = ApKosten(art);
+        return art == Jagd && ap > 1 ? Math.Max(1, ap - _w.Familien.Lebenswirkung(konto).JagdApMinus) : ap;
+    }
+
     /// <summary>
     /// Alle Aktivitäten, die das Oberhaupt dieses Hauses mit dieser Person unternehmen könnte – mit Kosten, Gefahr, erwarteter Wirkung
     /// und Sperrgrund. <paramref name="geschenk"/>: der Betrag, für den das Geschenk gerechnet wird.
@@ -54,8 +64,8 @@ public sealed partial class Meinungswesen
         var ich = Oberhaupt(konto);
         var gulden = a.Geschenk ? geschenk : a.Gulden;
         var sperre = Sperrgrund(konto, ich, mit, art, a, gulden);
-        if (sperre is null && _w.HatAktionspunkte && !konto.Aktionspunkte.Reicht(a.Ap))
-            sperre = $"Das kostet {a.Ap} AP – {konto.Inhaber} hat noch {konto.Aktionspunkte.Vorrat}.";
+        if (sperre is null && _w.HatAktionspunkte && !konto.Aktionspunkte.Reicht(ApKosten(konto, art)))
+            sperre = $"Das kostet {ApKosten(konto, art)} AP – {konto.Inhaber} hat noch {konto.Aktionspunkte.Vorrat}.";
         if (a.Geschenk)
         {
             var wirkung = ich is null ? 0 : GeschenkWirkung(mit, konto, gulden);
@@ -66,17 +76,17 @@ public sealed partial class Meinungswesen
             var hinweis = string.Join(" ", zuege
                 .Concat(schon > 0 ? new[] { $"Schon {schon}× beschenkt in diesem Jahr – jedes weitere wirkt weniger." } : Array.Empty<string>())
                 .Concat(voll ? new[] { $"Mit Geschenken gewinnt man {mit.Name} höchstens bis +{Zahlenformat.Ganz(a.Hoechstens ?? 0)}." } : Array.Empty<string>()));
-            return new Aktivitaetsangebot(art, a.Name, a.Beschreibung, a.Ap, gulden, 0, wirkung, 0, "", wirkung, hinweis, sperre);
+            return new Aktivitaetsangebot(art, a.Name, a.Beschreibung, ApKosten(konto, art), gulden, 0, wirkung, 0, "", wirkung, hinweis, sperre);
         }
-        var (gefahr, wirkung2) = ich is null ? (a.Gefahr, a.Wirkung) : Bewerten(a, ich, mit);
+        var (gefahr, wirkung2) = ich is null ? (a.Gefahr, a.Wirkung) : Bewerten(art, a, ich, mit);
         var mag = mit.Zuege.Where(z => a.Mag.Contains(z.Kennung)).Select(z => $"{z.Name}: mag es.");
         var magNicht = mit.Zuege.Where(z => a.MagNicht.Contains(z.Kennung)).Select(z => $"{z.Name}: mag es nicht.");
-        return new Aktivitaetsangebot(art, a.Name, a.Beschreibung, a.Ap, gulden, gefahr, wirkung2, a.UnglueckWirkung, a.Unglueck,
+        return new Aktivitaetsangebot(art, a.Name, a.Beschreibung, ApKosten(konto, art), gulden, gefahr, wirkung2, a.UnglueckWirkung, a.Unglueck,
             (1 - gefahr) * wirkung2 + gefahr * a.UnglueckWirkung, string.Join(" ", mag.Concat(magNicht)), sperre);
     }
 
     /// <summary>Gefahr und Wirkung nach den Zügen der Person (je Zug, der es mag: Wirkung × 1,5; der es nicht mag: × 0,5 und Gefahr × 2) und dem Talent.</summary>
-    private (double Gefahr, double Wirkung) Bewerten(AktivitaetDaten a, Person ich, ICharakter mit)
+    private (double Gefahr, double Wirkung) Bewerten(string art, AktivitaetDaten a, Person ich, ICharakter mit)
     {
         var zw = _d!.Zugwirkung;
         double gefahr = a.Gefahr, wirkung = a.Wirkung;
@@ -86,6 +96,9 @@ public sealed partial class Meinungswesen
             if (a.MagNicht.Contains(z.Kennung)) { wirkung *= zw.MagNicht; gefahr *= zw.Gefahr; }
         }
         if (a.Talent is { } t && _w.Familien.HatTalente) gefahr -= ich.Talent(t) * a.GefahrJeStern;
+        var lw = _w.Familien.Lebenswirkung(ich); // ich ist das Oberhaupt: seine Knoten gelten für das Haus
+        wirkung *= lw.AktivitaetFaktor;           // Gastgeber
+        if (art == Jagd) gefahr -= lw.JagdGefahrMinus; // Weidmann
         return (Math.Clamp(gefahr, 0, 0.95), wirkung);
     }
 
@@ -95,7 +108,7 @@ public sealed partial class Meinungswesen
     /// </summary>
     public double GeschenkJeGulden(ICharakter mit, Konto von)
     {
-        var grund = _w.Daten.Politik.Gunst.JeGulden * Bestechlichkeit(mit);
+        var grund = _w.Daten.Politik.Gunst.JeGulden * Bestechlichkeit(mit) * _w.Familien.Lebenswirkung(von).GeschenkFaktor; // Offene Hand
         if (GeschenkArt is not { } art) return grund;
         var schon = _diesesJahr.GetValueOrDefault((art, mit.Kennung, HausKennung(von)));
         return grund * DetMathe.Pow(_d!.Aktivitaeten[art].Abnahme, schon);
@@ -126,7 +139,8 @@ public sealed partial class Meinungswesen
             return $"{a.Name} mit {mit.Name} gab es in diesem Jahr schon – im nächsten Jahr wieder.";
         if (a.GleicherGlaube && _w.Glaube.IstAktiv && GlaubeVon(mit) != ich.Glaube)
             return $"{mit.Name} hat einen anderen Glauben ({GlaubeVon(mit)?.Name()}).";
-        if (a.MindestStand is { } st && konto.Stand < _w.Daten.StandStufe(st))
+        if ((art == Jagd && _w.Familien.Lebenswirkung(konto).JagdAbStand is { } jagdherr ? jagdherr : a.MindestStand) is { } st
+            && konto.Stand < _w.Daten.StandStufe(st)) // Jagdherr (Lebensweise): früher jagen
             return $"Erst ab dem Stand {st}.";
         if (a.Geschenk && (gulden <= 0 || double.IsNaN(gulden))) return "Ein Geschenk muss etwas wert sein.";
         if (konto.Vermoegen < gulden) return $"So viel Geld hat {konto.Inhaber} nicht ({Zahlenformat.Ganz(gulden)} {_w.Daten.Allgemein.Waehrung}).";
@@ -153,7 +167,7 @@ public sealed partial class Meinungswesen
         }
 
         if (gulden > 0) konto.Familienkosten(gulden);
-        var (gefahr, wirkung) = Bewerten(a, ich!, person);
+        var (gefahr, wirkung) = Bewerten(art, a, ich!, person);
         _diesesJahr[(art, person.Kennung, ich!.Kennung)] = 1;
         var kosten = gulden > 0 ? $" ({Zahlenformat.Ganz(gulden)} {waehrung})" : "";
         if (gefahr > 0 && _zufall.NextDouble() < gefahr)
