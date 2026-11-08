@@ -48,7 +48,9 @@ public partial class Stadtansicht
         public bool Hervorgehoben { get; set; }
         /// <summary>KI-Schmied aus TRELLIS (Stadtansicht.KiFiguren.cs): ein Netz mit eigener Textur, Clips nach Namen in der Bibliothek statt der zehn Schleifen.</summary>
         public bool Ki { get; init; }
-        /// <summary>Welche Animation des KI-Schmieds gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
+        /// <summary>Probefigur „Weg A“ (Stadtansicht.Passantenprobe.cs): MPFB-Körper mit Spielskelett, vier Clips nach Namen, ab Zoom 50 gebacken (VAT).</summary>
+        public bool Probe { get; init; }
+        /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
         public double Anfang { get; set; } = SchleifenAnfang;
@@ -189,6 +191,7 @@ public partial class Stadtansicht
     private static void BewegungSetzen(Figur f, string bewegung, float takt = 1, string[]? werkzeug = null)
     {
         f.Takt = takt;
+        if (f.Probe) { ProbeBewegungSetzen(f, bewegung, takt); return; }
         if (f.Ki) { KiBewegungSetzen(f, bewegung, takt); return; }
         if (f.Bewegung == bewegung) return;
         f.Bewegung = bewegung;
@@ -208,6 +211,7 @@ public partial class Stadtansicht
     {
         if (f.Ki && f.Takt == 0 && !f.Neu) return; // stehende KI-Figur: die Pose ist schon gesetzt
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
+        if (f.Probe && _probeVat) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
         f.Spieler.Seek(f.Anfang + f.Phase, true);
         f.Neu = false;
     }
