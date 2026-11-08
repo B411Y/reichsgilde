@@ -41,6 +41,9 @@ public partial class Stadtansicht
     private sealed class Fuellrezepte
     {
         public readonly Dictionary<string, (string[] Themen, int[] Gewichte)> Nachbarn = new();
+        /// <summary>Zweite Stufe der Themenwahl (neue Themen): greift nur, wo die erste Stufe <see cref="Ersetzt"/> ergab (siehe <see cref="Restflaechenfuellung.ThemaWaehlen"/>); je Nachbarart Themen (nach Namen sortiert) mit Gewichten.</summary>
+        public readonly Dictionary<string, (string[] Themen, int[] Gewichte)> Erweiterung = new();
+        public string? Ersetzt;
         public readonly Dictionary<string, Dictionary<string, List<Rezeptteil>>> Themen = new();
         public readonly SortedSet<string> Baukaesten = new(StringComparer.Ordinal);
         /// <summary>Thema → größte Fläche (in Feldern), auf der es noch gewählt wird (der Bildstock steht nur an kleinen Ecken, nicht auf großen Plätzen).</summary>
@@ -74,6 +77,15 @@ public partial class Stadtansicht
             {
                 var namen = gewichte!.AsObject().Select(g => g.Key).OrderBy(n => n, StringComparer.Ordinal).ToArray(); // feste Reihenfolge, unabhängig von der Datei
                 r.Nachbarn[art] = (namen, namen.Select(n => gewichte[n]!.GetValue<int>()).ToArray());
+            }
+            if (wurzel["erweiterung"] is JsonObject erw && erw["nachbarn"] is JsonObject erwNachbarn)
+            {
+                r.Ersetzt = erw["ersetzt"]?.GetValue<string>();
+                foreach (var (art, gewichte) in erwNachbarn)
+                {
+                    var namen = gewichte!.AsObject().Select(g => g.Key).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+                    r.Erweiterung[art] = (namen, namen.Select(n => gewichte[n]!.GetValue<int>()).ToArray());
+                }
             }
             foreach (var (thema, inhalt) in wurzel["themen"]!.AsObject())
             {
@@ -204,15 +216,11 @@ public partial class Stadtansicht
     private static string? FuellThemaWaehlen(Restflaeche r, Stadtkarte karte, Fuellrezepte rezepte)
     {
         if (Wasserarten.Startoption("fuellthema") is { } erzwungen && rezepte.Themen.ContainsKey(erzwungen)) return erzwungen; // nur für Bilder: jede Fläche bekommt dieses Thema
-        if (rezepte.Nachbarn.GetValueOrDefault(Restflaechenfuellung.Nachbarart(r, karte)) is not { Themen: { Length: > 0 } namen } wahl) return null;
-        var gewichte = wahl.Gewichte;
-        if (rezepte.HoechstensFelder.Count > 0)
-        {
-            var felder = Restflaechenfuellung.Felder(r).Count;
-            gewichte = gewichte.Select((g, i) => rezepte.HoechstensFelder.TryGetValue(namen[i], out var grenze) && felder > grenze ? 0 : g).ToArray();
-        }
-        var nummer = Restflaechenfuellung.Waehlen(gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
-        return nummer < 0 ? null : namen[nummer];
+        var art = Restflaechenfuellung.Nachbarart(r, karte);
+        if (rezepte.Nachbarn.GetValueOrDefault(art) is not { Themen: { Length: > 0 } namen } wahl) return null;
+        var erweiterung = rezepte.Erweiterung.GetValueOrDefault(art);
+        return Restflaechenfuellung.ThemaWaehlen(karte.Kennung + "/" + r.Kennung, Restflaechenfuellung.Felder(r).Count, namen, wahl.Gewichte, rezepte.HoechstensFelder,
+                                                 rezepte.Ersetzt, erweiterung.Themen, erweiterung.Gewichte);
     }
 
     /// <summary>Die Teile eines Kastens: Rezept des Themas für sein Format, gedreht und gewendet, in Weltlage.</summary>

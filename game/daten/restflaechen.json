@@ -3,11 +3,22 @@
   "_hinweis": "Untergründe: \"untergruende\" gibt je Thema Varianten (je Variante die Bodenstempel, Felder siehe bodenstempel.json; der Stempel deckt alle Felder der Restfläche, die Variante wählt der feste Würfel; Randgestrüpp bleibt Wiese). Rezepte der Restflächen-Füllung (nur Darstellung, Stadtansicht.Restflaechen.cs). Maße in Metern im Kasten: x entlang der langen Seite, z quer, Mitte = 0; ein Feld = 2 m. Formate: 1x1 2x2 m, 1x2 4x2, 2x2 4x4, 1x3 6x2, 1x4 8x2, 1x5 10x2, 2x3 6x4, 3x3 6x6 (Hochkant wird gedreht). Gedrehte Kästen und 180°-Wenden würfelt die Stadtansicht je Ort.",
   "modelle": {"dorf": "props/props_dorf", "ding": "props/props_gegenstaende", "boden": "natur/natur_boden", "kitboden": "natur/natur_kit_boden", "busch": "natur/natur_buesche", "holz": "natur/natur_holz", "stein": "natur/natur_steine", "kitstein": "natur/natur_kit_steine", "baum": "natur/natur_baeume", "kirchhof": "props/fuellung_kirchhof", "holzplatz": "props/fuellung_holzplatz", "heuschober": "props/fuellung_heuschober", "bildstock": "props/fuellung_bildstock", "kit": "props/props_fuellung_kit", "tiere": "props/fuellung_tiere", "hof": "props/fuellung_hof", "hof2": "props/fuellung_hof2", "pferch": "props/fuellung_pferch", "wasser": "props/fuellung_wasserstelle", "steinmetz": "props/fuellung_steinmetz", "taube": "props/fuellung_taube"},
   "nachbarn": {
-    "wohnen": {"garten": 56, "werkhof": 8, "randgestruepp": 16, "bildstock": 8, "heuschober": 6, "holzplatz": 6, "hof": 10, "pferch": 8, "wasserstelle": 8, "steinmetzplatz": 18, "taubenschlag": 1},
-    "werkstatt": {"werkhof": 40, "garten": 8, "randgestruepp": 17, "holzplatz": 20, "heuschober": 10, "bildstock": 5, "hof": 22, "pferch": 14, "wasserstelle": 6, "steinmetzplatz": 8, "taubenschlag": 10},
-    "kirche": {"garten": 25, "randgestruepp": 20, "kirchhof": 45, "bildstock": 10, "wasserstelle": 6, "steinmetzplatz": 34, "taubenschlag": 6},
-    "rand": {"randgestruepp": 45, "garten": 6, "werkhof": 9, "heuschober": 20, "holzplatz": 12, "bildstock": 8, "pferch": 14, "hof": 12, "wasserstelle": 2, "steinmetzplatz": 6, "taubenschlag": 4},
-    "sonst": {"garten": 25, "werkhof": 20, "randgestruepp": 25, "holzplatz": 8, "heuschober": 12, "bildstock": 10, "hof": 6, "pferch": 6, "wasserstelle": 14, "steinmetzplatz": 14, "taubenschlag": 4}
+    "wohnen": {"garten": 56, "werkhof": 8, "randgestruepp": 16, "bildstock": 8, "heuschober": 6, "holzplatz": 6, "hof": 10, "pferch": 8, "wasserstelle": 8},
+    "werkstatt": {"werkhof": 40, "garten": 8, "randgestruepp": 17, "holzplatz": 20, "heuschober": 10, "bildstock": 5, "hof": 22, "pferch": 14, "wasserstelle": 6},
+    "kirche": {"garten": 25, "randgestruepp": 20, "kirchhof": 45, "bildstock": 10, "wasserstelle": 6},
+    "rand": {"randgestruepp": 45, "garten": 6, "werkhof": 9, "heuschober": 20, "holzplatz": 12, "bildstock": 8, "pferch": 14, "hof": 12, "wasserstelle": 2},
+    "sonst": {"garten": 25, "werkhof": 20, "randgestruepp": 25, "holzplatz": 8, "heuschober": 12, "bildstock": 10, "hof": 6, "pferch": 6, "wasserstelle": 14}
+  },
+  "erweiterung": {
+    "_hinweis": "Neue Themen (Paket 4) greifen nur dort ein, wo die Wahl oben Randgestrüpp ergab: ein zweiter Würfel wählt unter diesen Gewichten (Randgestrüpp = bleibt). Alle anderen Themen behalten so auf jeder Karte ihre Flächen (Paket 3: Köln 3 Höfe, 2 Pferche, 2 Wasserstellen, 5 Heuschober).",
+    "ersetzt": "randgestruepp",
+    "nachbarn": {
+      "wohnen": {"randgestruepp": 30, "steinmetzplatz": 26, "taubenschlag": 8},
+      "werkstatt": {"randgestruepp": 30, "steinmetzplatz": 24, "taubenschlag": 10},
+      "kirche": {"randgestruepp": 30, "steinmetzplatz": 40, "taubenschlag": 6},
+      "rand": {"randgestruepp": 30, "steinmetzplatz": 12, "taubenschlag": 12},
+      "sonst": {"randgestruepp": 30, "steinmetzplatz": 20, "taubenschlag": 6}
+    }
   },
   "hoechstens_felder": {"bildstock": 4, "wasserstelle": 6, "pferch": 24, "hof": 32, "steinmetzplatz": 16, "taubenschlag": 8},
   "untergruende": {

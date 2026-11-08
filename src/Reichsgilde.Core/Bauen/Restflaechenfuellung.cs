@@ -189,6 +189,28 @@ public static class Restflaechenfuellung
         return -1;
     }
 
+    /// <summary>
+    /// Das Thema einer Restfläche in zwei Stufen (damit neue Themen die Wahl der alten nicht umwürfeln): Stufe 1 würfelt über die alten Themen
+    /// (<paramref name="namen"/> nach Namen sortiert, <paramref name="gewichte"/>), Stufe 2 darf nur dann eingreifen, wenn Stufe 1 das Thema
+    /// <paramref name="ersetzt"/> (das Randgestrüpp) ergab: ein zweiter Würfel wählt unter <paramref name="erweiterungNamen"/> (ebenfalls nach Namen sortiert, mit dem ersetzten Thema selbst als „bleibt“).
+    /// So behalten alle anderen Themen auf jeder Karte genau ihre Flächen. <paramref name="hoechstens"/>: Thema → größte Fläche in Feldern. Null, wenn kein Gewicht übrig ist.
+    /// </summary>
+    public static string? ThemaWaehlen(string kartenFlaeche, int felder, IReadOnlyList<string> namen, IReadOnlyList<int> gewichte, IReadOnlyDictionary<string, int> hoechstens,
+                                       string? ersetzt = null, IReadOnlyList<string>? erweiterungNamen = null, IReadOnlyList<int>? erweiterungGewichte = null)
+    {
+        int[] Begrenzen(IReadOnlyList<string> n, IReadOnlyList<int> g) =>
+            g.Select((w, i) => hoechstens.TryGetValue(n[i], out var grenze) && felder > grenze ? 0 : w).ToArray();
+        var nummer = Waehlen(Begrenzen(namen, gewichte), Wuerfel(kartenFlaeche, 1));
+        if (nummer < 0) return null;
+        var thema = namen[nummer];
+        if (ersetzt is not null && thema == ersetzt && erweiterungNamen is { Count: > 0 } && erweiterungGewichte is not null)
+        {
+            var zweite = Waehlen(Begrenzen(erweiterungNamen, erweiterungGewichte), Wuerfel(kartenFlaeche, 2));
+            if (zweite >= 0) thema = erweiterungNamen[zweite];
+        }
+        return thema;
+    }
+
     /// <summary>Eine Zahl in [0, 1) aus einem Würfel und einer laufenden Nummer (für die Streuung der Teile).</summary>
     public static double Zufall(uint wuerfel, int nummer)
     {

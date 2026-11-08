@@ -140,6 +140,9 @@ static class RestflaechenfuellungTests
             foreach (var (art, gewichte) in wurzel["nachbarn"]!.AsObject())
                 foreach (var (thema, _) in gewichte!.AsObject())
                     Pruefe.Wahr(themen.Contains(thema), $"Nachbarart {art}: Thema {thema} gibt es");
+            foreach (var (art, gewichte) in wurzel["erweiterung"]!["nachbarn"]!.AsObject())
+                foreach (var (thema, _) in gewichte!.AsObject())
+                    Pruefe.Wahr(themen.Contains(thema), $"Erweiterung {art}: Thema {thema} gibt es");
             foreach (var art in new[] { Restflaechenfuellung.Wohnen, Restflaechenfuellung.Werkstatt, Restflaechenfuellung.Kirche, Restflaechenfuellung.Rand, Restflaechenfuellung.Sonst })
                 Pruefe.Wahr(wurzel["nachbarn"]![art] is not null, $"Gewichte für die Nachbarart {art}");
         }),
@@ -157,23 +160,34 @@ static class RestflaechenfuellungTests
             }
         }),
 
-        ("Restflächenfüllung: Köln bekommt einige Steinmetzplätze und wenige Taubenschläge (Themenwahl wie in Stadtansicht.Restflaechen.cs nachgerechnet: Gewichte der Nachbarart, nie über `hoechstens_felder`)", () =>
+        ("Restflächenfüllung: Köln bekommt einige Steinmetzplätze und wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Paket 3: 3 Höfe, 2 Pferche, 2 Wasserstellen, 5 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
         {
             var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
             var grenzen = wurzel["hoechstens_felder"]!.AsObject().ToDictionary(e => e.Key, e => e.Value!.GetValue<int>());
+            var ersetzt = wurzel["erweiterung"]!["ersetzt"]!.GetValue<string>();
             var karte = Stadtkarte.AusDatei(Datenpfad.Karte("koeln"));
-            var zaehler = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            var mit = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            var ohne = new SortedDictionary<string, int>(StringComparer.Ordinal);
             foreach (var r in karte.Restflaechen ?? new List<Restflaeche>())
             {
-                var wahl = wurzel["nachbarn"]![Restflaechenfuellung.Nachbarart(r, karte)]!.AsObject().OrderBy(e => e.Key, StringComparer.Ordinal).ToList(); // feste Reihenfolge wie im Spiel
+                var art = Restflaechenfuellung.Nachbarart(r, karte);
+                var wahl = wurzel["nachbarn"]![art]!.AsObject().OrderBy(e => e.Key, StringComparer.Ordinal).ToList(); // feste Reihenfolge wie im Spiel
+                var erw = wurzel["erweiterung"]!["nachbarn"]![art]!.AsObject().OrderBy(e => e.Key, StringComparer.Ordinal).ToList();
                 var felder = Restflaechenfuellung.Felder(r).Count;
-                var gewichte = wahl.Select(e => grenzen.TryGetValue(e.Key, out var g) && felder > g ? 0 : e.Value!.GetValue<int>()).ToArray();
-                var nummer = Restflaechenfuellung.Waehlen(gewichte, Restflaechenfuellung.Wuerfel(karte.Kennung + "/" + r.Kennung, 1));
-                if (nummer >= 0) zaehler[wahl[nummer].Key] = zaehler.GetValueOrDefault(wahl[nummer].Key) + 1;
+                var kennung = karte.Kennung + "/" + r.Kennung;
+                var namen = wahl.Select(e => e.Key).ToList();
+                var gewichte = wahl.Select(e => e.Value!.GetValue<int>()).ToList();
+                var alt = Restflaechenfuellung.ThemaWaehlen(kennung, felder, namen, gewichte, grenzen);
+                var neu = Restflaechenfuellung.ThemaWaehlen(kennung, felder, namen, gewichte, grenzen, ersetzt, erw.Select(e => e.Key).ToList(), erw.Select(e => e.Value!.GetValue<int>()).ToList());
+                if (alt is not null) ohne[alt] = ohne.GetValueOrDefault(alt) + 1;
+                if (neu is not null) mit[neu] = mit.GetValueOrDefault(neu) + 1;
+                Pruefe.Wahr(neu == alt || alt == ersetzt, $"{kennung}: nur Randgestrüpp wird ersetzt ({alt} → {neu})");
             }
-            var uebersicht = string.Join(", ", zaehler.Select(e => $"{e.Key} {e.Value}"));
-            Pruefe.Wahr(zaehler.GetValueOrDefault("steinmetzplatz") is >= 2 and <= 6, "Köln: einige Steinmetzplätze – " + uebersicht);
-            Pruefe.Wahr(zaehler.GetValueOrDefault("taubenschlag") is >= 1 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
+            var uebersicht = string.Join(", ", mit.Select(e => $"{e.Key} {e.Value}"));
+            Pruefe.Wahr(mit.GetValueOrDefault("steinmetzplatz") is >= 2 and <= 6, "Köln: einige Steinmetzplätze – " + uebersicht);
+            Pruefe.Wahr(mit.GetValueOrDefault("taubenschlag") is >= 1 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
+            foreach (var (thema, zahl) in new[] { ("hof", 3), ("pferch", 2), ("wasserstelle", 2), ("heuschober", 5) })
+                Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema));
         }),
 
         ("Restflächenfüllung: jedes Teil der Rezepte nennt einen Knoten, den es im Baukasten (.glb) gibt; die Themen Kirchhof, Holzplatz, Heuschober, Bildstock, Hof, Pferch, Wasserstelle, Steinmetzplatz und Taubenschlag sind da, ihr Winterknoten auch (die Tiere haben keinen: Schwein und Ziege stehen im Winter wie im Sommer)", () =>
