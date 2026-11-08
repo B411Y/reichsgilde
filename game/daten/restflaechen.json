@@ -70,7 +70,7 @@
     "Tanne": "Laub dunkel", "Tanne hell": "Laub dunkel", "Beere": "Laub dunkel",
     "Ginster": "Rasen", "Blüte weiß": "Rasen", "Nessel": "Rasen", "Kornblume": "Rasen", "Mohn": "Rasen",
     "Moos": "Rasen", "Gras": "Rasen", "Erde hell": "Erde", "Huhn Hof": "Stroh", "Huhn Kamm": "Stroh", "Huhn Fuss": "Stroh", "Schwein hell": "Schwein", "Huf": "Ziege", "Ziege dunkel": "Ziege", "Ziege hell": "Ziege", "Scheitholz": "Holz", "Eisen": "Holz", "Mist": "Erde", "Fuellung Erde": "Erde", "Fuellung Erde hell": "Erde", "Fuellung Schlamm": "Erde", "Fuellung Weide": "Rasen",
-    "Taube": "Fels", "Taube dunkel": "Fels", "Pfuetze": "Wasser"
+    "Taube": "Fels", "Taube dunkel": "Fels", "Taube Hals": "Fels", "Taube weiss": "Fels", "Pfuetze": "Wasser"
   },
   "themen": {
     "garten": { "name": "Wohngarten", "formate": {
