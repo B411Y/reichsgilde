@@ -107,10 +107,11 @@ public partial class FeuerArt : Resource
             RauchMenge = 0.4f, RauchHoehe = 1.9f, RauchBreite = 0.55f, RauchRuss = 0.6f, RauchGlut = 0.6f,
             LichtEnergie = 2.4f, LichtReichweite = 9f, LichtFlackern = 0.32f,
         },
-        // Laterne: ein kleines, ruhiges Flämmchen hinter Glas oder Horn, kein Rauch
+        // Laterne: ein kleines, ruhiges Flämmchen hinter Glas oder Horn, kein Rauch. Seit 08.11.2026 etwas größer und heller (0,16 m statt 0,10 m, etwa zwei Weltpixel): aus der
+        // Spielkamera (Pixel-Look, 12 Weltpixel je Meter bei Zoom 25) ist ein Flämmchen von 9 cm nur ein halber Pixel; so bleibt es ein heller Kern im Horn
         FeuerVorgabe.Laterne => new FeuerArt
         {
-            Bezeichnung = "Laterne", Hoehe = 0.1f, Breite = 0.045f, Tempo = 0.65f, Helligkeit = 1.6f,
+            Bezeichnung = "Laterne", Hoehe = 0.16f, Breite = 0.07f, Tempo = 0.65f, Helligkeit = 1.8f, Toenung = new Color(1.0f, 0.82f, 0.6f),
             LichtEnergie = 1.1f, LichtReichweite = 5.5f, LichtFlackern = 0.12f, LichtFarbeKalt = new Color(1.0f, 0.55f, 0.2f), LichtFarbeHeiss = new Color(1.0f, 0.7f, 0.35f),
             LichtAusblendenAb = 35f, LichtAusblendenLaenge = 15f,
         },
