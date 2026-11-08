@@ -73,6 +73,7 @@ static class HafenRuhtTests
             foreach (var schluessel in n.Select(p => p.Key).Where(k => k.Equals("wirtschaft", StringComparison.OrdinalIgnoreCase)).ToList())
                 n[schluessel]!.AsObject().Remove("Blitz");
             Spielstandfelder.OhneLeere(n, Spielstandfelder.Hafenziel); // neue Felder (Datenversion 73), solange sie nichts tragen
+            Spielstandfelder.Ohne(n, Spielstandfelder.NurLaden); // nur fürs Laden (Datenversion 75), durchgehend ohne Wirkung
             summen.Add(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant());
         }
         summen[0] += $" → {w.Schiffahrt.Schiffe.Count}, Fahrten {w.Schiffahrt.Schiffe.Sum(s => s.Fahrten)}";
