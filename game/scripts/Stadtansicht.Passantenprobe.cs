@@ -6,13 +6,15 @@ namespace Reichsgilde;
 
 /// <summary>
 /// Probe „Weg A“ (Teil der <c>partial class Stadtansicht</c>): Passanten mit echtem Skelett aus MakeHuman/MPFB und Bewegungen von Quaternius
-/// (<c>figuren/probe/passant_probe.glb</c>, gebaut von <c>tools/modelle/passanten_probe.py</c>). Nur mit der Startoption <c>--passantenprobe</c>.
+/// (<c>figuren/probe/passant_probe.glb</c> für Männer, <c>passant_probe_frau.glb</c> für Frauen, gebaut von <c>tools/modelle/passanten_probe.py</c>).
+/// Nur mit der Startoption <c>--passantenprobe</c>.
 ///
 /// <para>Zwei Stufen: nah (Zoom 25) ein echtes <see cref="Skeleton3D"/> mit <see cref="AnimationPlayer"/> je Figur – dieselbe <see cref="Figur"/>-Hülle
-/// wie die Figuren aus Blender, also auch dieselben Sparregeln (<see cref="FigurImBildBewegen"/>). Ab Zoom 50 (<see cref="FigurenHalbeRateAb"/>)
-/// zeichnet das Spiel die Probefiguren als gebackene Vertex-Animation (VAT) in einem <see cref="MultiMesh"/> je Netz: Die Lage jeder Ecke in jedem Bild
-/// der vier Clips liegt in einer Textur, der Shader <c>figur_vat.gdshader</c> liest sie; die Skelette stehen dann still und unsichtbar.
-/// Gebacken wird beim ersten Gebrauch im Spiel selbst (eigene Lösung, kein Plugin), aus genau den Netzen, Gewichten und Clips der .glb.</para>
+/// wie die Figuren aus Blender, also auch dieselben Sparregeln (<see cref="FigurImBildBewegen"/>) und die Oberflächendetails (Stoffe „tuch“ und
+/// „leder“ der Material-Bibliothek, Schicht je Fläche in UV.y). Ab Zoom 50 (<see cref="FigurenHalbeRateAb"/>) zeichnet das Spiel die Probefiguren als
+/// gebackene Vertex-Animation (VAT) in einem <see cref="MultiMesh"/> je Netz: Die Lage jeder Ecke in jedem Bild der sieben Clips liegt in einer
+/// Textur, der Shader <c>figur_vat.gdshader</c> liest sie; die Skelette stehen dann still und unsichtbar. Gebacken wird beim Start im Spiel selbst
+/// (eigene Lösung, kein Plugin), aus genau den Netzen, Gewichten und Clips der .glb.</para>
 ///
 /// <para>Startoptionen: <c>--passantenprobe=1</c> ersetzt alle Passanten durch die Probefigur; <c>--passantenprobe=&lt;n&gt;</c> (n &gt; 1) zusätzlich
 /// n Messfiguren, die um den Blickpunkt der Kamera beim Start hin und her gehen (zum Messen, z. B. 400); <c>--probestufe=auto|skelett|vat|vatfern</c>
@@ -20,15 +22,26 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
-    private const string ProbeDatei = "figuren/probe/passant_probe";
-    private static readonly string[] ProbeVarianten = { "cotte", "gugel", "rock" };
-    /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur.</summary>
-    private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden" };
+    /// <summary>
+    /// Eine Probedatei: Varianten (Netze „Nah_&lt;variante&gt;“ und „Fern_&lt;variante&gt;“) und die Maße aus dem Bericht von passanten_probe.py:
+    /// Hüfthöhe (Kopf des Oberschenkelknochens), Meter je Sekunde, die „Gehen“ und „Tragen“ bei Takt 1 schaffen (Standfuß: so rutschen die Füße
+    /// nicht), Höhe des Gesäßes über den Sohlen beim Sitzen.
+    /// </summary>
+    private sealed record ProbeArtDaten(string Datei, string[] Varianten, float Huefte, float GehTempo, float TragTempo, float Sitzhoehe);
 
-    /// <summary>Hüfthöhe des Probemenschen (Meter, Kopf des Oberschenkelknochens; aus dem Bericht von passanten_probe.py).</summary>
-    private const float ProbeHuefte = 0.933f;
-    /// <summary>Meter je Sekunde, die eine Schleife bei Takt 1 schafft (Standfuß in „Gehen“ und „Tragen“, gemessen im Blender-Skript): so rutschen die Füße nicht.</summary>
-    private const float ProbeGehTempo = 1.107f, ProbeTragTempo = 0.682f;
+    private static readonly ProbeArtDaten[] ProbeArten =
+    {
+        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock" }, 0.933f, 1.107f, 0.682f, 0.447f),
+        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende" }, 0.822f, 0.969f, 0.597f, 0.390f),
+    };
+
+    /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
+    private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken" };
+
+    /// <summary>„Tragen“ läuft so viel langsamer, als das Tempo der Füße verlangte (Quaternius trägt mit 0,68 m/s, die Passanten mit 0,95 m/s;
+    /// mit vollem Takt wirkte die Bewegung gehetzt, Auftrag Teamleiter 08.11.2026). Die Füße rutschen dafür etwas.</summary>
+    private const float ProbeTragBremse = 0.7f;
+
     /// <summary>Bilder je Sekunde der gebackenen Clips (wie in Blender).</summary>
     private const int ProbeVatBilder = 24;
 
@@ -42,54 +55,82 @@ public partial class Stadtansicht
     private static bool _probeVat;
     private bool _probeFern, _probeVatVersucht;
 
-    /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Netz-Variante, Palettenplätze der fünf Farben).</summary>
-    private sealed record ProbeTracht(int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf);
+    /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Datei, Netz-Variante, Palettenplätze der fünf Farben).</summary>
+    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf);
     private readonly Dictionary<Figur, ProbeTracht> _probeTrachten = new();
     /// <summary>Alle Farben der Probefiguren (linear) für den VAT-Shader; Platz in der Liste = Index im Shader.</summary>
     private readonly List<Color> _probePalette = new();
 
+    // Gedeckte Farben um 1400 (Pflanzenfarben, sRGB): Krapp, Waid, Wau, Walnuss, Eichenrinde, ungefärbte Wolle und Leinen, Loden, Waid mit Wau (grün)
+    private static readonly Color[] ProbeGewandfarben =
+    {
+        new(0.45f, 0.22f, 0.17f), new(0.24f, 0.30f, 0.40f), new(0.56f, 0.48f, 0.27f), new(0.33f, 0.24f, 0.16f), new(0.40f, 0.33f, 0.22f),
+        new(0.62f, 0.57f, 0.47f), new(0.40f, 0.39f, 0.35f), new(0.30f, 0.36f, 0.24f), new(0.32f, 0.22f, 0.26f), new(0.52f, 0.38f, 0.22f),
+    };
+    private static readonly Color[] ProbeBeinkleidfarben =
+    {
+        new(0.28f, 0.24f, 0.20f), new(0.22f, 0.22f, 0.23f), new(0.34f, 0.27f, 0.18f), new(0.25f, 0.27f, 0.32f), new(0.38f, 0.33f, 0.27f),
+        new(0.42f, 0.24f, 0.19f),
+    };
+    /// <summary>Leinen der Hauben und Gebende (gebleicht bis naturfarben).</summary>
+    private static readonly Color[] ProbeLeinen = { new(0.84f, 0.81f, 0.73f), new(0.78f, 0.74f, 0.64f), new(0.88f, 0.86f, 0.80f) };
+
     /// <summary>
     /// Setzt eine Probefigur als Kind von <paramref name="eltern"/> ein: das Netz „Nah_&lt;variante&gt;“ und die Kiste („Last“, nur beim Tragen),
-    /// eingefärbt über das Material der Tracht (<see cref="FigurStoff"/>, dieselben fünf Zonen). Völker sind vorerst nur gleichmäßig skaliert.
+    /// eingefärbt über das Material der Tracht (<see cref="FigurStoff"/>, dieselben fünf Zonen) in gedeckten Pflanzenfarben. Frauen bekommen die
+    /// Frauen-Datei; Völker sind vorerst nur gleichmäßig skaliert.
     /// </summary>
     private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer)
     {
-        if (Modell(ProbeDatei) is not { } szene) return null;
+        var art = aussehen.Frau ? 1 : 0;
+        var daten = ProbeArten[art];
+        if (Modell(daten.Datei) is not { } szene) return null;
         var variante = ProbeVarianteFuer(aussehen, nummer);
+        aussehen = aussehen with
+        {
+            Gewand = ProbeGewandfarben[Streuung(nummer, 211) % ProbeGewandfarben.Length],
+            Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
+            Kopffarbe = aussehen.Frau ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
+        };
         var (_, huefte, _, groesse) = FigurMasse(aussehen.Volk);
-        var massstab = huefte / 0.92f * groesse.Y * (aussehen.Frau ? FrauenGroesse : 1f);
+        // Der Frauenkörper ist schon kleiner gebaut: dieselben Völkerfaktoren, aber kein zweites Verkleinern
+        var massstab = huefte / 0.92f * groesse.Y;
         var modell = szene.Instantiate<Node3D>();
         modell.Scale = Vector3.One * massstab;
         eltern.AddChild(modell);
         var spieler = modell.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
         spieler.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
-        if (_figurSchleifen.Add(ProbeDatei))
+        if (_figurSchleifen.Add(daten.Datei))
             foreach (var name in spieler.GetAnimationList())
                 spieler.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
         var figur = new Figur
         {
-            Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true,
-            Beinfaktor = ProbeHuefte / 0.92f * massstab, Kniehoehe = 0.50f * massstab,
+            Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art,
+            Beinfaktor = daten.Huefte / 0.92f * massstab, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
         var stoff = FigurStoff(aussehen);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
-            if (name != $"Nah_{ProbeVarianten[variante]}" && name != "Last") { teil.QueueFree(); continue; }
+            if (name != $"Nah_{daten.Varianten[variante]}" && name != "Last") { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
             if (name == "Last") { teil.Visible = false; figur.Werkzeuge["Last"] = teil; }
             figur.Teile.Add(teil);
         }
-        _probeTrachten[figur] = new ProbeTracht(variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
+        _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
             ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe));
         if (_probeVat) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
         return figur;
     }
 
-    /// <summary>Gugel bei Kapuze und Eisenhut, langer Rock für Frauen, sonst nach der Nummer Cotte oder Gugel.</summary>
-    private static int ProbeVarianteFuer(FigurAussehen a, int nummer) =>
-        a.Kopf is Kopfbedeckung.Kapuze or Kopfbedeckung.Eisenhut ? 1 : a.Frau ? 2 : (int)(Streuung(nummer, 977) % 2);
+    /// <summary>Männer: Gugel bei Kapuze und Eisenhut, sonst nach der Nummer Cotte, Gugel oder langer Rock. Frauen: Gebende bei Schleier, Haube
+    /// bei Haube, sonst nach der Nummer.</summary>
+    private static int ProbeVarianteFuer(FigurAussehen a, int nummer)
+    {
+        if (a.Frau) return a.Kopf == Kopfbedeckung.Schleier ? 1 : a.Kopf == Kopfbedeckung.Haube ? 0 : (int)(Streuung(nummer, 977) % 2);
+        return a.Kopf is Kopfbedeckung.Kapuze or Kopfbedeckung.Eisenhut ? 1 : (int)(Streuung(nummer, 977) % 3);
+    }
 
     private int ProbeFarbe(Color srgb)
     {
@@ -105,23 +146,25 @@ public partial class Stadtansicht
     private bool _probePaletteNeu;
 
     /// <summary>
-    /// <see cref="BewegungSetzen"/> für die Probe: Gehen, Eilen und Gebeugt nehmen „Gehen“, Tragen „Tragen“ (mit Kiste), Reden „Reden“, alles andere
-    /// „Stehen“. Der Takt gleicht das Tempo an, damit die Füße nicht rutschen.
+    /// <see cref="BewegungSetzen"/> für die Probe: Gehen, Eilen und Gebeugt nehmen „Gehen“, Tragen „Tragen“ (mit Kiste), Reden, Sitzen, Hacken und
+    /// Buecken ihren Clip, alles andere „Stehen“. Der Takt gleicht das Tempo an, damit die Füße nicht rutschen (Tragen gebremst, <see cref="ProbeTragBremse"/>).
     /// </summary>
     private static void ProbeBewegungSetzen(Figur f, string bewegung, float takt)
     {
         string klip;
         float probeTakt;
+        var daten = ProbeArten[f.ProbeArt];
         if (bewegung is "Gehen" or "Eilen" or "Gebeugt" or "Tragen")
         {
             var grund = bewegung switch { "Eilen" => EilenTempo, "Gebeugt" => GebeugtTempo, "Tragen" => TragenTempo, _ => GehenTempo };
             klip = bewegung == "Tragen" ? "Tragen" : "Gehen";
-            var modellTempo = (klip == "Tragen" ? ProbeTragTempo : ProbeGehTempo) * f.Modell.Scale.Y;
+            var modellTempo = (klip == "Tragen" ? daten.TragTempo : daten.GehTempo) * f.Modell.Scale.Y;
             probeTakt = takt * grund * f.Beinfaktor / modellTempo; // gewünschte Meter je Sekunde ÷ Meter je Schleife
+            if (klip == "Tragen") probeTakt *= ProbeTragBremse;
         }
         else
         {
-            klip = bewegung == "Reden" ? "Reden" : "Stehen";
+            klip = bewegung is "Reden" or "Sitzen" or "Hacken" or "Buecken" ? bewegung : "Stehen";
             probeTakt = 1;
         }
         f.Takt = probeTakt;
@@ -135,8 +178,9 @@ public partial class Stadtansicht
         f.Dauer = Math.Max(0.1, f.Spieler.GetAnimation(klip).Length);
         f.Phase = (Streuung(f.Nummer, 131) & 0xFFFF) / 65536.0 * f.Dauer;
         f.Neu = true;
-        f.Langsam = klip is "Stehen";
+        f.Langsam = klip is "Stehen" or "Sitzen";
     }
+
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Stufe wählen
@@ -181,15 +225,45 @@ public partial class Stadtansicht
         public int Anzahl { get; set; }
     }
 
+    /// <summary>Gebackene Netze, Schlüssel „&lt;Art&gt;:&lt;Netzname&gt;“ (Art 0 Mann, 1 Frau).</summary>
     private Dictionary<string, ProbeVatNetz>? _probeVatNetze;
-    /// <summary>Erste Zeile und Bildzahl je Clip (Reihenfolge <see cref="ProbeKlips"/>).</summary>
-    private readonly (int Start, int Bilder)[] _probeKlipZeilen = new (int, int)[4];
+    /// <summary>Je Art: erste Zeile und Bildzahl je Clip (Reihenfolge <see cref="ProbeKlips"/>).</summary>
+    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = { new (int, int)[7], new (int, int)[7] };
 
-    /// <summary>Backt alle Netze der Probe-.glb (je Variante nah und fern, dazu die Kiste) für die vier Clips. False, wenn das Modell fehlt.</summary>
+    /// <summary>Backt alle Netze beider Probedateien (je Variante nah und fern, dazu die Kiste) für alle Clips. False, wenn kein Modell da ist.</summary>
     private bool ProbeVatBacken()
     {
-        if (Modell(ProbeDatei) is not { } szene) return false;
         var uhr = Stopwatch.StartNew();
+        _probeVatNetze = new();
+        for (var art = 0; art < ProbeArten.Length; art++) ProbeVatBacken(art);
+        _probePaletteNeu = true;
+        GD.Print($"[passantenprobe] VAT gebacken in {uhr.ElapsedMilliseconds} ms ({_probeVatNetze.Count} Netze, Clips {string.Join(", ", ProbeKlips.Select((k, i) => $"{k} {_probeKlipZeilen[0][i].Bilder}"))} Bilder)");
+        return _probeVatNetze.Count > 0;
+    }
+
+    /// <summary>Werte der Material-Bibliothek für die Stoffe im VAT-Shader: Schicht, Kachel (Meter) und mittlere Farbe von „tuch“ und „leder“.</summary>
+    private static (int Schicht, float Kachel, Vector3 Mittel)[] ProbeStoffschichten()
+    {
+        var aus = new (int, float, Vector3)[] { (-1, 1f, Vector3.One), (-1, 1f, Vector3.One) };
+        if (Json.ParseString(Godot.FileAccess.GetFileAsString("res://daten/materialbibliothek.json")).AsGodotDictionary() is not { Count: > 0 } bib) return aus;
+        var liste = bib["schichten"].AsGodotArray();
+        for (var i = 0; i < liste.Count; i++)
+        {
+            var d = liste[i].AsGodotDictionary();
+            var stelle = d["name"].AsString() switch { "tuch" => 0, "leder" => 1, _ => -1 };
+            if (stelle < 0) continue;
+            var m = d["mittel"].AsGodotArray();
+            aus[stelle] = (i, (float)d["kachel"].AsDouble(), new Vector3((float)m[0].AsDouble(), (float)m[1].AsDouble(), (float)m[2].AsDouble()));
+        }
+        return aus;
+    }
+
+    private void ProbeVatBacken(int art)
+    {
+        if (Modell(ProbeArten[art].Datei) is not { } szene) return;
+        var stoffe = ProbeStoffschichten();
+        var bibFarbe = ResourceLoader.Exists("res://assets/texturen/modelle/modelle_farbe_hoehe.webp")
+            ? Vorladen.Laden<TextureLayered>("res://assets/texturen/modelle/modelle_farbe_hoehe.webp") : null;
         var wurzel = szene.Instantiate<Node3D>();
         var skelett = wurzel.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().First();
         var spieler = wurzel.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
@@ -203,13 +277,12 @@ public partial class Stadtansicht
         {
             var anim = spieler.GetAnimation(ProbeKlips[c]);
             var bilder = Math.Max(1, (int)Math.Round(anim.Length * ProbeVatBilder));
-            _probeKlipZeilen[c] = (zeilen, bilder);
+            _probeKlipZeilen[art][c] = (zeilen, bilder);
             for (var b = 0; b < bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilder, zuWurzel));
             zeilen += bilder;
         }
 
         var shader = GD.Load<Shader>("res://assets/shader/figur_vat.gdshader");
-        _probeVatNetze = new();
         _passantenEbene ??= NeueEbene();
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
@@ -271,7 +344,11 @@ public partial class Stadtansicht
             var stoff = new ShaderMaterial { Shader = shader };
             stoff.SetShaderParameter("lage", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgbah, lage)));
             stoff.SetShaderParameter("normale", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgba8, richtung)));
-            stoff.SetShaderParameter("klips", _probeKlipZeilen.Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
+            stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
+            if (bibFarbe is not null) stoff.SetShaderParameter("bib_farbe", bibFarbe);
+            stoff.SetShaderParameter("stoff_schicht", stoffe.Select(s => s.Schicht).ToArray());
+            stoff.SetShaderParameter("stoff_kachel", stoffe.Select(s => s.Kachel).ToArray());
+            stoff.SetShaderParameter("stoff_mittel", stoffe.Select(s => s.Mittel).ToArray());
             var mm = new MultiMesh
             {
                 TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseCustomData = true, Mesh = vatNetz,
@@ -279,19 +356,16 @@ public partial class Stadtansicht
             };
             var knotenMm = new MultiMeshInstance3D
             {
-                Name = "ProbeVat_" + teil.Name, Multimesh = mm, MaterialOverride = stoff, TopLevel = true,
+                Name = $"ProbeVat_{art}_{teil.Name}", Multimesh = mm, MaterialOverride = stoff, TopLevel = true,
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             };
             AddChild(knotenMm);
             knotenMm.GlobalTransform = Transform3D.Identity;
-            _probeVatNetze[teil.Name] = new ProbeVatNetz { Name = teil.Name, Knoten = knotenMm, Stoff = stoff };
-            GD.Print($"[passantenprobe] VAT {teil.Name}: {ecken.Length} Ecken, {netz.SurfaceGetArrayIndexLen(0) / 3} Dreiecke, {zeilen} Bilder, Textur {ecken.Length}×{zeilen}");
+            _probeVatNetze![$"{art}:{teil.Name}"] = new ProbeVatNetz { Name = teil.Name, Knoten = knotenMm, Stoff = stoff };
+            GD.Print($"[passantenprobe] VAT {ProbeArten[art].Datei} {teil.Name}: {ecken.Length} Ecken, {netz.SurfaceGetArrayIndexLen(0) / 3} Dreiecke, {zeilen} Bilder, Textur {ecken.Length}×{zeilen}");
         }
         if (Wasserarten.Startoption("probepruefen") is "1") ProbeVatPruefen(wurzel, skelett, spieler, zuWurzel);
         wurzel.Free();
-        _probePaletteNeu = true;
-        GD.Print($"[passantenprobe] VAT gebacken in {uhr.ElapsedMilliseconds} ms ({_probeVatNetze.Count} Netze, Clips {string.Join(", ", ProbeKlips.Select((k, i) => $"{k} {_probeKlipZeilen[i].Bilder}"))} Bilder)");
-        return _probeVatNetze.Count > 0;
     }
 
     /// <summary>Haltung aller Knochen (Modellraum) zur Zeit <paramref name="sekunden"/> eines Clips: Spuren aus der Animation, sonst die Ruhelage.</summary>
@@ -437,13 +511,13 @@ public partial class Stadtansicht
         if (!_probeTrachten.TryGetValue(f, out var tracht) || !ImBild(lage, 2f)) return;
         var klip = Array.IndexOf(ProbeKlips, f.KiKlip);
         if (klip < 0) klip = 0;
-        var netzName = $"{(_probeFern ? "Fern" : "Nah")}_{ProbeVarianten[tracht.Variante]}";
-        var (start, bilder) = _probeKlipZeilen[klip];
+        var netzName = $"{tracht.Art}:{(_probeFern ? "Fern" : "Nah")}_{ProbeArten[tracht.Art].Varianten[tracht.Variante]}";
+        var (_, bilder) = _probeKlipZeilen[tracht.Art][klip];
         var bild = (float)(f.Phase / f.Dauer * bilder); // Stand in der Schleife, in Bildern
         var farben = tracht.Gewand + 64f * tracht.Beinkleid + 4096f * tracht.Haut + 262144f * tracht.Haar;
         var xf = f.Modell.GlobalTransform;
         Eintragen(netzName, xf, bild, klip + 8f * tracht.Kopf, farben);
-        if (klip == 2) Eintragen("Last", xf, bild, klip, farben); // die Kiste beim Tragen
+        if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         _probeGezeichnet++;
     }
 
@@ -482,7 +556,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Legt einmal die Messfiguren an: ein Raster um den Punkt, auf den die Kamera beim Start blickt (1,6 m Abstand), sechs von zehn gehen auf einer
-    /// 8-m-Strecke hin und her, zwei stehen, eine trägt, eine redet. Sie sind keine Einwohner (kein Kern, keine Wege, kein Ausweichen) und
+    /// 8-m-Strecke hin und her, eine steht, eine hackt, eine trägt, eine redet; Männer und Frauen gemischt. Sie sind keine Einwohner (kein Kern, keine Wege, kein Ausweichen) und
     /// stehen auch in Häusern; sie dienen nur der Messung der Zeichen- und Posenkosten.
     /// </summary>
     private void ProbeMessfigurenBauen()
@@ -507,7 +581,7 @@ public partial class Stadtansicht
             var zeile = i / seite;
             var spalte = i % seite;
             var anfang = mitte + new Vector3((spalte - seite / 2f) * 1.6f, 0, (zeile - seite / 2f) * 1.6f);
-            var art = (i % 10) switch { 6 or 7 => "Stehen", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
+            var art = (i % 10) switch { 6 => "Stehen", 7 => "Hacken", 8 => "Tragen", 9 => "Reden", _ => "Gehen" };
             var richtung = zeile % 2 == 0 ? Vector3.Right : Vector3.Left;
             var knoten = new Node3D { Name = $"Probefigur_{i}" };
             _passantenEbene.AddChild(knoten);

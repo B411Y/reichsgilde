@@ -48,8 +48,10 @@ public partial class Stadtansicht
         public bool Hervorgehoben { get; set; }
         /// <summary>KI-Schmied aus TRELLIS (Stadtansicht.KiFiguren.cs): ein Netz mit eigener Textur, Clips nach Namen in der Bibliothek statt der zehn Schleifen.</summary>
         public bool Ki { get; init; }
-        /// <summary>Probefigur „Weg A“ (Stadtansicht.Passantenprobe.cs): MPFB-Körper mit Spielskelett, vier Clips nach Namen, ab Zoom 50 gebacken (VAT).</summary>
+        /// <summary>Probefigur „Weg A“ (Stadtansicht.Passantenprobe.cs): MPFB-Körper mit Spielskelett, Clips nach Namen, ab Zoom 50 gebacken (VAT).</summary>
         public bool Probe { get; init; }
+        /// <summary>Welche Probedatei (0 Mann, 1 Frau, <c>ProbeArten</c>).</summary>
+        public int ProbeArt { get; init; }
         /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
