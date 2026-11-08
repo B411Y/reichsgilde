@@ -23,7 +23,9 @@ Schnalle aus Eisen, Silber oder Gold) als hand_<stufe>_normal|klick_<px>.png.
 
 Mit --gemini ORDNER werden acht fertig gezeichnete Handschuhe (1_gemeiner.png bis 6_reichsgraf.png, 7_wache.png, 8_dieb.png)
 deckungsgleich ausgerichtet (Fingerspitze und Schnalle), je einzeln gepixelt (Gold, Silber und Edelsteine als Akzente) und als
-hand_<1..6|wache|dieb>_normal|klick_<px>.png geschrieben.
+hand_<1..6|wache|dieb>_normal|klick_<px>.png geschrieben. Seit 08.11.2026 ohne hellen Außenrand: „normal“ ist der Handschuh mit
+rundum durchsichtigem Rand (SCHEINRAND), „klick“ (beim Drüberfahren über Anklickbares) derselbe Handschuh unverändert mit einem
+weichen weißen Außenschein in diesem Rand. Beide Bilder sind gleich groß, der Zeigerpunkt in hotspots.txt gilt für beide.
 
 Ausgabe: zeiger_<px>.png, zeiger_<px>_klick.png, hotspots.txt (Fingerspitze = deckendes Pixel mit kleinstem x+y).
 """
@@ -319,7 +321,12 @@ def zusammensetzen(e, groesse, farben, raster):
         for dx in range(3):
             rand |= p[dy:dy + groesse, dx:dx + groesse]
     rand &= ~inh
-    leinwand[rand] = e.get("randfarbe", RAND)
+    if e.get("randfarbe", RAND) is not None:
+        leinwand[rand] = e.get("randfarbe", RAND)
+    else:
+        # kein heller Außenrand: die durchsichtigen Pixel tragen die Umrissfarbe, damit beim Verkleinern oder Filtern kein heller Saum entsteht
+        leinwand[~inh, :3] = np.array(e.get("umrissfarbe", UMRISS)).round().astype(np.uint8)
+        rand = np.zeros_like(inh)
 
     def auf(m, dtyp=bool):
         c = np.zeros((groesse, groesse), dtyp)
@@ -598,17 +605,64 @@ def laden_ausgerichtet(ordner):
     return {st: (r[y0:y1, x0:x1], m[y0:y1, x0:x1]) for st, (r, m) in ergebnis.items()}
 
 
-def klick_gemini(bild, m):
-    """Klick: etwas heller und wärmer, Farbton bleibt; Umriss und Innenlinien unverändert, Rand cremefarben."""
-    b = bild.astype(np.float32)
-    rgb = b[..., :3]
-    neu = rgb * 1.14 + np.array([14, 8, 2])
-    nur = m["deckend"] & ~m["umriss"] & ~m["linie"]
-    rgb = np.where(nur[..., None], neu, rgb)
-    rand = m["rand"]
-    rgb = np.where(rand[..., None], np.array([252, 240, 206]) if m.get("dieb") else np.array([248, 232, 196]), rgb)
-    b[..., :3] = np.clip(rgb, 0, 255)
-    return b.round().astype(np.uint8)
+SCHEINRAND = {32: 4, 48: 6, 64: 8, 80: 10}   # Pixel durchsichtiger Rand rundum für den Außenschein je Größe
+SCHEIN_FARBE = (255, 249, 232)
+SCHEIN_STAERKE = 0.80
+
+
+def auffuellen(bild, pad):
+    """Rundum pad durchsichtige Pixel (Farbe der Umrissfarbe, damit kein heller Saum entsteht)."""
+    h, w = bild.shape[:2]
+    neu = np.zeros((h + 2 * pad, w + 2 * pad, 4), np.uint8)
+    neu[..., :3] = UMRISS.astype(np.uint8)
+    neu[pad:pad + h, pad:pad + w] = bild
+    return neu
+
+
+def mit_schein(bild, pad):
+    """Weicher weißer Schein außerhalb der Silhouette (Abstand zum nächsten deckenden Pixel, quadratisch auslaufend);
+    der Handschuh selbst bleibt Pixel für Pixel unverändert."""
+    innen = bild[..., 3] == 255
+    h, w = innen.shape
+    dist = np.full((h, w), 1e9, np.float32)
+    p = np.pad(innen, pad)
+    for dy in range(-pad, pad + 1):
+        for dx in range(-pad, pad + 1):
+            d = (dy * dy + dx * dx) ** 0.5
+            if d > pad:
+                continue
+            versetzt = p[pad + dy:pad + dy + h, pad + dx:pad + dx + w]
+            dist = np.where(versetzt, np.minimum(dist, d), dist)
+    t = np.clip(1.0 - (dist - 0.5) / pad, 0.0, 1.0)
+    alpha = SCHEIN_STAERKE * t * t
+    alpha[innen] = 0
+    out = bild.copy()
+    aussen = ~innen
+    out[aussen, :3] = np.array(SCHEIN_FARBE, np.uint8)
+    out[aussen, 3] = (alpha[aussen] * 255).round().astype(np.uint8)
+    return out
+
+
+def schloss_lauf(args):
+    """Türschloss (aus tools/modelle/handschuh.py gerendert, tuer_schloss_<px>.png in QUELLE): den hellen halbdurchsichtigen Rand entfernen
+    (nur voll deckende Pixel bleiben) und wie beim Handschuh einen durchsichtigen Rand mit weißem Außenschein anfügen
+    (das Schloss erscheint nur über Anklickbarem). QUELLE muss die unveränderten Bilder enthalten; Ausgabe nach args.ausgabe."""
+    os.makedirs(args.ausgabe, exist_ok=True)
+    for g in [int(x) for x in args.groessen.split(",") if int(x) in SCHEINRAND and int(x) != 32]:
+        puffer = oiio.ImageBuf(os.path.join(args.schloss, f"tuer_schloss_{g}.png"), 0, 0, _ohne_vormultiplikation())
+        bild = puffer.get_pixels(oiio.UINT8).copy()
+        durch = bild[..., 3] < 255
+        bild[durch, :3] = UMRISS.astype(np.uint8)
+        bild[durch, 3] = 0
+        pad = SCHEINRAND[g]
+        schreibe(os.path.join(args.ausgabe, f"tuer_schloss_{g}.png"), mit_schein(auffuellen(bild, pad), pad))
+        print(f"Schloss {g}: {bild.shape[1]} x {bild.shape[0]} + Rand {pad}")
+
+
+def _ohne_vormultiplikation():
+    c = oiio.ImageSpec()
+    c.attribute("oiio:UnassociatedAlpha", 1)
+    return c
 
 
 def gemini_lauf(args):
@@ -636,8 +690,7 @@ def gemini_lauf(args):
                 sch_st, kon_st = sch_st * 1.3, kon_st * 1.25
             e = verkleinern(r, m, g, "linien", farben, sch_st, kon_st, schw, lf, args.innen if args.innen is not None else inf,
                             raster, 0.0, 0.08, regeln, args.akzent)
-            if st == 8:
-                e["randfarbe"] = RAND_DIEB
+            e["randfarbe"] = None     # seit 08.11.2026 kein heller Außenrand mehr (der Schein kommt erst beim Drüberfahren)
             # dunkle Vorlagen (Bordeaux, Schwarz, Blau) heben, damit Falten und Glanz in 48 Pixeln noch zu lesen sind
             leder_l = np.median(lumi(e["farbe"][e["deckend"] & ~e["umriss"] & ~e["linie"] & ~e["akzent"]]))
             ziel = {8: 44.0, 5: 50.0}.get(st, args.ziel_hell)     # Dieb und Freiherr bleiben dunkel
@@ -645,12 +698,16 @@ def gemini_lauf(args):
             e["farbe"] = np.clip(e["farbe"] * gain, 0, 255)
             bild, pal, masken = zusammensetzen(e, g, farben, raster)
             masken["dieb"] = st == 8
+            # normal und beim Drüberfahren („klick“) gleich groß: Rand für den Schein, Zeigerpunkt für beide um SCHEINRAND[g] verschoben
+            pad = SCHEINRAND[g]
+            normal = auffuellen(bild, pad)
             for kl in (False, True):
-                erg = klick_gemini(bild, masken) if kl else bild
+                erg = mit_schein(normal, pad) if kl else normal
                 schreibe(os.path.join(ordner_aus, f"hand_{NAMEN.get(st, st)}_{'klick' if kl else 'normal'}_{g}.png"), erg)
             hots.append(hotspot(bild))
         hx, hy = hots[BEZUG - 1]
-        zeilen.append(f"{g}: {hx},{hy}   (Fingerspitze je Stufe: " + " ".join(f"{a},{b}" for a, b in hots) + ")")
+        p = SCHEINRAND[g]
+        zeilen.append(f"{g}: {hx + p},{hy + p}   (Fingerspitze je Stufe, ohne Scheinrand {p}: " + " ".join(f"{a},{b}" for a, b in hots) + ")")
         print(zeilen[-1])
     with open(os.path.join(ordner_aus, "hotspots.txt"), "w") as f:
         f.write("\n".join(zeilen) + "\n")
@@ -674,6 +731,7 @@ def main():
     ap.add_argument("--verfahren", default="linien", choices=["linien", "flaeche"])
     ap.add_argument("--nachsilbe", default="")
     ap.add_argument("--gemini", help="Ordner mit den sechs Stufenvorlagen (1_gemeiner.png ... 6_reichsgraf.png); dann ist VORLAGE ohne Bedeutung")
+    ap.add_argument("--schloss", help="Ordner mit den unveränderten tuer_schloss_<px>.png: Rand entfernen, Schein anfügen (Ausgabe nach AUSGABE)")
     ap.add_argument("--ziel-hell", type=float, default=58.0, help="Zielhelligkeit des Leders (dunklere Stufen werden darauf angehoben)")
     ap.add_argument("--akzent", type=float, default=0.08, help="Mindestfläche Gold/Silber/Edelstein je Pixel")
     ap.add_argument("--stufen", action="store_true", help="sechs Stufen nach Stand als hand_<stufe>_normal|klick_<px>.png schreiben")
@@ -686,6 +744,8 @@ def main():
     ap.add_argument("--extrem", type=float, default=0.0, help="Anteil der Lichter/Tiefen aus Teilpixeln (0 bis 1)")
     args = ap.parse_args()
     os.makedirs(args.ausgabe, exist_ok=True)
+    if args.schloss:
+        return schloss_lauf(args)
     if args.gemini:
         return gemini_lauf(args)
     rgb, maske = freistellen(lies(args.vorlage)[..., :3])
