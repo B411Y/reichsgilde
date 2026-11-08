@@ -26,3 +26,7 @@ Die Pakete selbst liegen nicht im Repository.
 - Geprüft am 07.11.2026 an den Seiten der Quellen. Eine eigene Lizenzdatei liegt den Downloads nicht bei.
 
 Herkunft je Datei aller Assets (auch dieser): `docs/assets/protokoll.csv`.
+
+## fuellung_steinmetz.glb und fuellung_taube.glb: eigene Modelle
+
+- Steinmetzplatz und Taubenschlag der Restflächen (Paket 4) sind vollständig selbst gebaut (`tools/modelle/fuellung_p4.py`, Blender), einschließlich der Tauben (Standbilder). Keine Fremdquelle, nichts aus „Die Gilde“.
