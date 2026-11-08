@@ -51,12 +51,12 @@ public partial class Stadtansicht
         var mitte = lage.Origin;
         var flaeche = new Marktflaeche(mitte.X, mitte.Z, achse.X, achse.Z, platz.Halb);
         Vector3 Im(float x, float y, float z) => lage * new Vector3(x, y, z);
-        // Brunnen: Becken mit Rand (Halbmesser 1,98 m im Modell), dazu der Eimer
+        // Brunnen: Stufe und Becken (Umkreis der Stufe 2,77 m im Modell, tools/modelle/brunnen.py), dazu der Viehtrog (1,9 × 0,8 m, Mitte am Anker „Anker_Trog“)
         platz.Brunnen = new Vector3(mitte.X, 0, mitte.Z);
-        platz.BrunnenRadius = 1.98f * m;
+        platz.BrunnenRadius = 2.8f * m;
         flaeche.Kreis(mitte.X, mitte.Z, platz.BrunnenRadius);
-        var eimer = Im(1.7f, 0, 1.5f);
-        flaeche.Kreis(eimer.X, eimer.Z, 0.22f * m);
+        var eimer = anker.TryGetValue("Anker_Trog", out var trogLage) ? trogLage.Origin : Im(0f, 0, 3.35f);
+        flaeche.Rechteckig(new Marktflaeche.Rechteck(eimer.X, eimer.Z, achse.X, achse.Z, 1.05f * m, 0.5f * m));
         // Marktkreuz: Sockel 1,4 × 1,4 m
         var kreuz = Im(-10.4f, 0, 10.4f);
         flaeche.Rechteckig(new Marktflaeche.Rechteck(kreuz.X, kreuz.Z, achse.X, achse.Z, 0.72f * m, 0.72f * m));
@@ -100,16 +100,16 @@ public partial class Stadtansicht
             }
         }
 
-        // Brunnenrand: Plätze zum Anlehnen rundum (mit dem Rücken am Becken stehen, Blick nach außen), nicht vor den Wasserstellen und nicht am Eimer.
+        // Brunnenrand: Plätze zum Anlehnen rundum (mit dem Rücken am Becken stehen, Blick nach außen), nicht vor den Wasserstellen und nicht am Trog.
         // Gesessen wird nur auf Bänken: Der Rand ist 0,78 m hoch, die Beine hingen in der Luft (Teamleiter, 1.11.2026)
         var wasser = _marktstellen.Where(s => s.Platz == platz && s.Art == Marktbummel.Art.Brunnen).Select(s => s.Ort).ToList();
         for (var k = 0; k < 8; k++)
         {
             var w = Mathf.Pi / 8 + k * Mathf.Pi / 4;
-            var aussen = Im(Mathf.Cos(w) * 2.6f, 0, Mathf.Sin(w) * 2.6f);
+            var aussen = Im(Mathf.Cos(w) * 3.4f, 0, Mathf.Sin(w) * 3.4f);
             if (wasser.Any(q => new Vector2(q.X - aussen.X, q.Z - aussen.Z).Length() < 1.3f * m)) continue;
-            if (new Vector2(eimer.X - aussen.X, eimer.Z - aussen.Z).Length() < 1.2f * m) continue;
-            var lehnen = Im(Mathf.Cos(w) * 1.98f, 0, Mathf.Sin(w) * 1.98f);
+            if (new Vector2(eimer.X - aussen.X, eimer.Z - aussen.Z).Length() < 1.6f * m) continue;
+            var lehnen = Im(Mathf.Cos(w) * 2.2f, 0, Mathf.Sin(w) * 2.2f); // auf der Stufe, am Beckenrand (Seitenmitten des Achtecks 2,17 m)
             var raus = new Vector3(lehnen.X - mitte.X, 0, lehnen.Z - mitte.Z).Normalized();
             lehnen += raus * 0.26f; // Körper (Rücken) gerade am Beckenrand
             _marktstellen.Add(new Marktstelle(new Vector3(lehnen.X, platz.Hoehe, lehnen.Z), Mathf.Atan2(raus.X, raus.Z), "Stehen") { Platz = platz, Art = Marktbummel.Art.Rand });

@@ -6,10 +6,11 @@
 Schreibt game/assets/modelle/gebaeude/marktplatz.glb und marktstaende.glb, Bilder nach docs/modelle/.
 
 marktplatz.glb (24 × 24 m, Ursprung in der Mitte des Platzes = `Marktplatz` im Spiel):
-    Platz               Brunnen mit Säule und Wasserspeiern, Marktkreuz, drei Bänke (ohne eigenen Boden: das Kopfsteinpflaster malt
+    Platz               Marktkreuz, drei Bänke (ohne eigenen Boden: das Kopfsteinpflaster malt
                         der Kartenboden, Kartenregel „Marktplatz“ in docs/LEVELDESIGN.md; alles steht auf Höhe 0 des Bodens)
+    Brunnen, Brunnen_Trog, Brunnen_Wasser, Brunnen_Strahl, Brunnen_Eis   der Marktbrunnen (brunnen.py; Wasser, Strahl und Eis tauscht das Spiel nach Jahreszeit)
     Anker_Stand1–7      Stellplätze der Stände (wie heute im Spiel), Blick zum Stand = Stand schaut mit der Front zur Mitte
-    Anker_Brunnen1–4    am Brunnenrand, Blick zum Brunnen (Wasser holen, „Stehen“)
+    Anker_Brunnen1–4    vor der Stufe des Brunnens, Blick zum Brunnen (Wasser holen, „Stehen“); Anker_Trog = Mitte des Viehtrogs (Hindernis)
     Anker_Sitz1–6       auf den Bänken, Blick vom Sitz weg („Sitzen“)
     Anker_Plausch<g>_<n> Plauderrunden aus zwei oder drei Plätzen, die sich anschauen („Reden“); g = Gruppe
     Anker_Weg1–12       Rundgang an den Ständen vorbei, in Laufrichtung nummeriert (Schlendern)
@@ -38,6 +39,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bausteine as bs  # noqa: E402
 import landbau as lb  # noqa: E402
 import natur as nt  # noqa: E402
+import brunnen as br  # noqa: E402
 from bausteine import Matrix, Vector  # noqa: E402
 
 bs.FARBEN.update({
@@ -73,31 +75,12 @@ def blender(x, z):
 
 def platz_bauen(st):
     netz = bs.Netz("Platz")
-    brunnen(netz, st)
     marktkreuz(netz, st, blender(-10.4, 10.4))
     # Brunnen und Kreuz sind noch für die alte Platte (Oberkante 4 cm) gebaut: auf den Boden setzen
     netz.ecken = [Vector(v) - Vector((0, 0, PLATTE)) for v in netz.ecken]
     for (x, z), dreh in (((10.6, 10.0), 0.0), ((-10.6, -3.4), 90.0), ((10.6, -3.4), -90.0)):
         bank(netz, st, blender(x, z), dreh)
     return netz.objekt()
-
-
-def brunnen(netz, st):
-    """Achteckiges Becken aus Sandstein, Wasser, Mittelsäule mit vier Speiern und Kugel, ein Eimer am Rand."""
-    bs.achteck(netz, st, (0, 0, 0.04), 1.9, 0.0, 0.75, "Sandstein")
-    bs.rund_oben(netz, st, (0, 0), 1.6, 0.62, stoff="Wasser")
-    bs.achteck(netz, st, (0, 0, 0.04), 1.98, 0.7, 0.82, "Sandstein")          # Rand oben
-    bs.achteck(netz, st, (0, 0, 0.0), 0.28, 0.62, 2.4, "Sandstein", n=8)
-    bs.achteck(netz, st, (0, 0, 0.0), 0.42, 2.3, 2.5, "Sandstein", n=8)
-    bs.achteck(netz, st, (0, 0, 0.0), 0.16, 2.5, 2.9, "Sandstein", n=8)
-    lb.kegel(netz, (0, 0), 0.22, 2.9, 3.25, st["Sandstein"], n=8)
-    for k in range(4):
-        w = math.pi / 4 + k * math.pi / 2
-        a = Vector((math.cos(w) * 0.3, math.sin(w) * 0.3, 1.85))
-        b = Vector((math.cos(w) * 0.6, math.sin(w) * 0.6, 1.78))
-        nt.ast(netz, st, a, b, 0.05, 0.035, stoff="Kupfer", n=5)
-        nt.ast(netz, st, b, b + Vector((math.cos(w) * 0.35, math.sin(w) * 0.35, -1.1)), 0.025, 0.04, stoff="Wasser", n=4)
-    bs.fass(netz, st, Vector((1.7, -1.5, 0.04)), r=0.18, h=0.32, reifen=(0.06, 0.25))
 
 
 def marktkreuz(netz, st, fuss):
@@ -116,7 +99,7 @@ def bank(netz, st, fuss, dreh):
         netz.quader((x, 0, 0.225), (0.1, 0.36, 0.41), st["Holz alt"], t)
 
 
-BRUNNENPLATZ = 2.65          # Abstand der Brunnenanker von der Mitte: Rand 1,98 m + halbe Figur + etwas Luft
+BRUNNENPLATZ = 3.45          # Abstand der Brunnenanker von der Mitte: Stufe 2,56 m (Seitenmitte) bis 2,77 m (Ecke) + halbe Figur + etwas Luft
 
 
 def platz_anker():
@@ -131,8 +114,8 @@ def platz_anker():
     for i, (x, z) in enumerate(STAENDE):
         p = blender(x, z)
         anker.append(bs.anker(f"Anker_Stand{i + 1}", (p.x, p.y, 0.0), blick(mitte, p)))      # Front (-Y) zur Mitte
-    for k in range(4):                  # frei vor dem Beckenrand (Halbmesser 1,98 m), nicht am Eimer (1,7|−1,5)
-        w = math.pi / 4 + k * math.pi / 2 - 0.35
+    for k, grad in enumerate((20, 90, 160, 215)):      # frei vor der Stufe, nicht beim Trog (bei 270°, 3,35 m)
+        w = math.radians(grad)
         p = Vector((math.cos(w) * BRUNNENPLATZ, math.sin(w) * BRUNNENPLATZ, 0.0))
         anker.append(bs.anker(f"Anker_Brunnen{k + 1}", tuple(p), blick(p, mitte)))
     for (x, z), dreh in (((10.6, 10.0), 0.0), ((-10.6, -3.4), 90.0), ((10.6, -3.4), -90.0)):
@@ -340,7 +323,7 @@ def main():
     schnell = "--schnell" in sys.argv
     bs.neue_szene()
     st = bs.Stoffe()
-    platz = [platz_bauen(st)] + platz_anker()
+    platz = [platz_bauen(st)] + list(br.bauen(st).values()) + platz_anker() + br.anker()
     bs.bericht("marktplatz", platz)
     print("geschrieben:", bs.exportieren("marktplatz", platz))
     bs.neue_szene()
@@ -377,11 +360,11 @@ def vorschau_platz(schnell):
     import bpy
     bs.neue_szene()
     st = bs.Stoffe()
-    platz = [platz_bauen(st)] + platz_anker()
+    platz = [platz_bauen(st)] + list(br.bauen(st).values()) + platz_anker()
     staende = staende_bauen(st)
     netze = {o.name: o for o in staende if o.type == "MESH"}
     formen = ["Stand_Plane", "Stand_Plane", "Stand_Bock", "Stand_Karren"]
-    sichtbar = [platz[0]]
+    sichtbar = [platz[0]] + [o for o in platz if o.name.startswith("Brunnen") and o.name != "Brunnen_Eis"]
     for i, a in enumerate([a for a in platz if a.name.startswith("Anker_Stand")]):
         for teil in (formen[i % 4], "Auslage_" + AUSLAGEN[i % len(AUSLAGEN)]):
             k = netze[teil].copy()
