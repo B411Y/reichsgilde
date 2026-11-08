@@ -117,37 +117,54 @@ public partial class Feuer : Node3D
     private float _rauchStaerke = 1f;
     private bool _flammeAn = true;
     private Kaminrauch? _kaminrauch;
-    private int _kaminNr = -1;
+    private readonly List<int> _kaminNr = new();   // die Plätze im Rauch der Stadt (Brand: mehrere Schichten)
     private bool _kaminBereit;
-    private RauchSorte _rauchSorte = RauchSorte.Werkstatt;
+    private RauchSorte? _rauchSorte;
+
+    /// <summary>
+    /// Ein Feuer im Freien: Sein Rauch besteht aus Ballen im gemeinsamen <see cref="Kaminrauch"/> der Stadt (ein Zeichenaufruf für alle), nicht aus einer Fläche
+    /// je Feuer. Kamine sind es immer; Räume (eigene Kamera und Sichtebenen) setzen es nicht. Nur beim Bau gelesen.
+    /// </summary>
+    public bool Aussen { get; set; }
 
     /// <summary>Wie dick der Rauch eines Kamins ist (nur Kamine im <see cref="Kaminrauch"/> der Stadt): Wohnhaus dünn und hell, Gießerei und Schmiede dick und dunkel.</summary>
     public RauchSorte Sorte
     {
-        get => _rauchSorte;
+        get => _rauchSorte ?? Art?.RauchArt ?? RauchSorte.Werkstatt;
         set
         {
             _rauchSorte = value;
-            if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) _kaminrauch.SorteSetzen(_kaminNr, value);
+            if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) foreach (var nr in _kaminNr) _kaminrauch.SorteSetzen(nr, value);
         }
     }
 
     public override void _EnterTree()
     {
         // Wieder eingehängt (nach dem Aushängen): beim Rauch der Stadt neu anmelden
-        if (_kaminBereit && _kaminrauch is null && Kaminrauch.Aktuell is { } rauch)
-        {
-            _kaminrauch = rauch;
-            _kaminNr = rauch.Anmelden(this, _rauchSorte, Phase);
-            rauch.StaerkeSetzen(_kaminNr, _rauchStaerke);
-        }
+        if (_kaminBereit && _kaminrauch is null && Kaminrauch.Aktuell is { } rauch) KaminAnmelden(rauch);
     }
 
     public override void _ExitTree()
     {
-        if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) _kaminrauch.Freigeben(_kaminNr);
+        if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) foreach (var nr in _kaminNr) _kaminrauch.Freigeben(nr);
         _kaminrauch = null;
-        _kaminNr = -1;
+        _kaminNr.Clear();
+    }
+
+    /// <summary>Meldet den Rauch dieses Feuers beim Rauch der Stadt an: eine Instanz je Schicht (Kamin 1), über der Flamme beginnend.</summary>
+    private void KaminAnmelden(Kaminrauch rauch)
+    {
+        _kaminrauch = rauch;
+        _kaminBereit = true;
+        var art = Art!;
+        var fuss = art.Form switch { FeuerForm.Flamme => art.Hoehe * Groesse * 0.6f, FeuerForm.Glut => 0.2f, _ => 0f };
+        var schichten = art.Form == FeuerForm.NurRauch ? 1 : Math.Max(art.RauchSchichten, 1);
+        for (var k = 0; k < schichten; k++)
+        {
+            var nr = rauch.Anmelden(this, Sorte, Mathf.PosMod(Phase + 0.37f * k, 1f), new Vector3(0f, fuss, 0f));
+            rauch.StaerkeSetzen(nr, _rauchStaerke);
+            _kaminNr.Add(nr);
+        }
     }
 
     /// <summary>Legt ein Feuer an (noch nicht im Baum).</summary>
@@ -168,7 +185,7 @@ public partial class Feuer : Node3D
         if (Art.RauchMenge > 0f)
         {
             // Kamine der Stadt: ein gemeinsamer Rauch aus Ballen (Kaminrauch.cs); ohne ihn (Editor, alte Testszenen) die Säule aus Flächen
-            if (Art.Form == FeuerForm.NurRauch && Kaminrauch.Aktuell is { } rauch) { _kaminrauch = rauch; _kaminNr = rauch.Anmelden(this, _rauchSorte, Phase); _kaminBereit = true; rauch.StaerkeSetzen(_kaminNr, _rauchStaerke); }
+            if ((Art.Form == FeuerForm.NurRauch || Aussen) && Kaminrauch.Aktuell is { } rauch) KaminAnmelden(rauch);
             else RauchBauen(Art, zufall);
         }
         if (Art.Form == FeuerForm.Glut) GlutBauen(Art);
@@ -302,7 +319,7 @@ public partial class Feuer : Node3D
         set
         {
             _rauchStaerke = Mathf.Clamp(value, 0f, 1f);
-            if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) _kaminrauch.StaerkeSetzen(_kaminNr, _rauchStaerke);
+            if (_kaminrauch is not null && IsInstanceValid(_kaminrauch)) foreach (var nr in _kaminNr) _kaminrauch.StaerkeSetzen(nr, _rauchStaerke);
             foreach (var m in _rauch)
             {
                 m.Scale = new Vector3(m.Scale.X, m.Scale.Y, m.Scale.X * (1f + _rauchStaerke)); // die Stärke steckt in der Tiefe der Fläche (FlaechenSetzen)

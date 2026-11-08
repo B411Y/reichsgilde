@@ -34,6 +34,8 @@ varying float dichte;
 varying float russ;
 varying float radius;
 varying float glut;
+varying float glutn;
+varying float glutt;
 varying vec2 ecke;
 
 float h11(float x) {
@@ -44,9 +46,12 @@ void vertex() {
 	// Die Daten des Schornsteins stecken in der Matrix der Instanz (INSTANCE_CUSTOM zeichnete in Godot 4.7.2 mit diesem Netz nichts): Stärke in
 	// der x-Achse (x), Saat (y), Menge in der y-Achse (y), Ruß in der z-Achse (z); der Ort ist die Verschiebung
 	float st = MODEL_MATRIX[0].x;
-	float menge = MODEL_MATRIX[1].y;
-	russ = MODEL_MATRIX[2].z;
 	float saat = MODEL_MATRIX[0].y;
+	float skala = max(MODEL_MATRIX[0].z, 0.05);   // Größe des Rauchs: Ballen, Höhe, Lebensdauer (Kamin 1, Fackel klein, Brand 3)
+	float menge = MODEL_MATRIX[1].y;
+	glutn = MODEL_MATRIX[1].z;                    // Schein der Glut am Fuß: nachts
+	glutt = MODEL_MATRIX[2].y;                    // und bei Tag
+	russ = MODEL_MATRIX[2].z;
 	float idx = COLOR.r;
 
 	float w = clamp(wetter_wind, 0.0, 1.0);
@@ -61,7 +66,7 @@ void vertex() {
 
 	// Alter dieses Ballens: alle Ballen eines Schornsteins sind gleichmäßig über den Kreislauf verteilt. Im Wind ist der Kreislauf kürzer (der Wind
 	// trägt die Ballen schnell fort und mischt sie mit Luft): so bleiben sie dicht hintereinander, die Fahne reißt nicht in einzelne Bälle auf
-	float leben_s = lebensdauer / (1.0 + 0.55 * u);
+	float leben_s = lebensdauer * sqrt(skala) / (1.0 + 0.55 * u);
 	float z = zeit / leben_s + idx + saat * 7.0;
 	float zyklus = floor(z);
 	alter = fract(z);
@@ -73,7 +78,7 @@ void vertex() {
 	zufall = r1;
 
 	// Aufsteigen: warme Luft; dicker, heißer Rauch steigt schneller; Nässe und Wind drücken ihn nieder
-	float v0 = (0.95 + 0.7 * menge) * (1.0 - 0.35 * nass) / (1.0 + 0.45 * u);
+	float v0 = (0.95 + 0.7 * menge) * pow(skala, 0.65) * (1.0 - 0.35 * nass) / (1.0 + 0.45 * u / pow(skala, 0.3));
 	float ty = 3.2 * (1.0 - 0.3 * nass);
 	float hoehe = v0 * ty * (1.0 - exp(-t / ty)) + 0.12 * t;
 	// Abknicken: der Wind nimmt den Ballen mit Trägheit mit
@@ -82,16 +87,16 @@ void vertex() {
 
 	// Waberndes Schlängeln: langsam wechselnd mit der Entstehungszeit (benachbarte Ballen folgen einander, die Fahne schlängelt sich),
 	// dazu ein kleiner Zufallsversatz je Ballen
-	float amp = (0.04 + 0.34 * alter) * (0.7 + 0.5 * menge) * (1.0 + 1.1 * w);
+	float amp = (0.04 + 0.34 * alter) * (0.7 + 0.5 * menge) * (1.0 + 1.1 * w) * skala;
 	float geb = zeit - t;
 	vec2 schlaengel = vec2(sin(geb * 0.55 + saat * 6.28), sin(geb * 0.43 + saat * 9.1 + 1.3)) * amp * 1.3;
 	vec2 versatz = (vec2(r1, r2) - 0.5) * amp * 1.2;
 
-	float groesse = mix(0.8, 1.4, menge) * (0.6 + 0.4 * st) * (0.82 + 0.36 * r3);
-	float r0 = 0.26 * groesse;
+	float groesse = mix(0.8, 1.4, menge) * skala * (0.6 + 0.4 * st) * (0.82 + 0.36 * r3);
+	float r0 = 0.30 * groesse;
 	radius = r0 * (1.0 + 3.4 * pow(alter, 0.6));
 
-	vec3 p = MODEL_MATRIX[3].xyz + vec3(0.0, 0.18 + hoehe, 0.0)
+	vec3 p = MODEL_MATRIX[3].xyz + vec3(0.0, 0.05 + hoehe, 0.0)
 		+ vec3(wd.x, 0.0, wd.y) * drift + vec3(schlaengel.x + versatz.x, 0.0, schlaengel.y + versatz.y);
 
 	// Fläche zur Kamera gedreht, Ballen am Ort p; Viereck 1,4 Radien breit (Platz für den ausgefransten Rand)
@@ -101,7 +106,7 @@ void vertex() {
 
 	dichte = st * mix(0.40, 0.68, menge);
 	// Am Fuß leuchtet die Glut durch den Rauch (nur nachts sichtbar): mehr bei dickem Rauch
-	glut = (1.0 - smoothstep(0.0, 0.22, alter)) * (0.35 + 0.65 * menge);
+	glut = (1.0 - smoothstep(0.0, 0.22, alter));
 	// POSITION immer setzen (wer es nur manchmal setzt, bekommt sonst gar keine Position); Feuer aus: außerhalb des Bildes, nichts zeichnen
 	POSITION = st < 0.004 ? vec4(2.0, 2.0, 2.0, 1.0) : PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
 }
@@ -129,11 +134,12 @@ void fragment() {
 	float form = smoothstep(-0.02, 0.6, d);
 
 	// Deckung über das Leben: weich einsetzen, nach oben ausdünnen
-	float leben = smoothstep(0.0, 0.07, alter) * (1.0 - smoothstep(0.45, 1.0, alter));
+	float leben = smoothstep(0.0, 0.03, alter) * (1.0 - smoothstep(0.45, 1.0, alter));
 	float jahr = jahreszeit_anteile.w;
 	float nass = clamp(wetter_naesse, 0.0, 1.0);
-	float tagnacht = mix(0.3, 1.0, umgebung);   // nachts kaum zu sehen
-	float a = form * leben * dichte * tagnacht * (1.0 + 0.3 * jahr);
+	// nachts kaum zu sehen; große Feuer (Brand, Feuerkorb: Glut bei Tag > 0) leuchten ihren Rauch an und bleiben sichtbarer
+	float tagnacht = mix(mix(0.3, 0.9, clamp(glutt * 2.0, 0.0, 1.0)), 1.0, umgebung);
+	float a = form * leben * dichte * tagnacht * (1.0 + 0.3 * jahr) * mix(1.5, 1.0, smoothstep(0.0, 0.25, alter));   // junger Rauch ist dichter
 
 	// Licht: Kugel aus der Fläche, Sonne von oben und leicht von vorn; jung und dick = innen dunkler, alt und dünn = hell
 	vec3 nrm = normalize(vec3(q.x, q.y, sqrt(max(0.05, 1.0 - rr * rr))) + vec3(0.0, 0.0, 0.0));
@@ -146,10 +152,11 @@ void fragment() {
 	grund = mix(grund, grund * vec3(0.92, 0.96, 1.06), jahr);   // Frost: eine Spur kühler (und dichter, siehe oben)
 	vec3 tag = grund * schatten * (1.0 - 0.2 * nass);
 	vec3 nacht = mond_farbe * 0.7 * mix(1.0, 0.3, russ) * mix(0.7, 1.1, hell) * mix(0.9, 1.0, alter);
+	nacht += vec3(0.55, 0.28, 0.12) * glutt * hell * (1.0 - 0.5 * alter);   // vom Feuer angeleuchtet
 	vec3 farbe = mix(nacht, tag, umgebung);
 
 	float nachts = 1.0 - umgebung;
-	float gl = glut * nachts * (1.0 - clamp(rr, 0.0, 1.0)) * (1.0 - hell * 0.5);
+	float gl = glut * (nachts * glutn + umgebung * glutt) * (1.0 - clamp(rr, 0.0, 1.0)) * (1.0 - hell * 0.5);
 	farbe = mix(farbe, vec3(1.0, 0.42, 0.12) * 0.9, clamp(gl * 0.6, 0.0, 0.7));
 	a += gl * 0.2 * form * leben;
 

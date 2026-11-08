@@ -55,7 +55,7 @@ public partial class Rauchtest : Node
         UmgebungBauen();
         AddChild(new Kaminrauch());
         BodenBauen();
-        HaeuserBauen();
+        if (Option("rauchreihe", "haeuser") == "feuer") FeuerReiheBauen(); else HaeuserBauen();
         KameraBauen();
         OberflaecheBauen();
         WetterSetzen();
@@ -107,6 +107,7 @@ public partial class Rauchtest : Node
             Kasten(haus, new Vector3(7.6f, 0.5f, 6.6f), new Vector3(0, 5f, 0), dach);
             Kasten(haus, new Vector3(0.9f, 2.0f, 0.9f), new Vector3(1.8f, 5f, 0), stein);
             var rauch = Feuer.Neu(FeuerVorgabe.Kamin, false, 0.13f + i * 0.21f);
+            rauch.Aussen = true;
             rauch.Position = new Vector3(1.8f, 7.0f, 0);
             rauch.Sorte = sorten[i];
             rauch.RauchStaerke = i == 3 ? 0f : 1f;
@@ -118,6 +119,31 @@ public partial class Rauchtest : Node
                 Modulate = new Color(1f, 0.85f, 0.5f), OutlineModulate = new Color(0, 0, 0, 0.9f), Position = new Vector3(0, 0.4f, 3.4f),
             };
             haus.AddChild(text);
+        }
+    }
+
+    /// <summary>Die Feuer im Freien (<c>--rauchreihe=feuer</c>): Fackel, Feuerkorb, Esse, Gebäudebrand und Fensterbrand, alle mit dem Ballenrauch; Brand mit Licht.</summary>
+    private void FeuerReiheBauen()
+    {
+        var arten = new[] { FeuerVorgabe.Fackel, FeuerVorgabe.Feuerkorb, FeuerVorgabe.Esse, FeuerVorgabe.Gebaeudebrand, FeuerVorgabe.Fensterbrand };
+        var hoehen = new[] { 1.7f, 1.15f, 0.9f, 3.0f, 2.0f };
+        var stein = Stoff(new Color(0.42f, 0.40f, 0.37f));
+        for (var i = 0; i < arten.Length; i++)
+        {
+            var x = (i - 2f) * 10f;
+            var wurzel = new Node3D { Name = arten[i].ToString(), Position = new Vector3(x, 0, 0) };
+            AddChild(wurzel);
+            Kasten(wurzel, new Vector3(i == 3 ? 6f : 0.6f, hoehen[i], i == 3 ? 5f : 0.6f), Vector3.Zero, i == 3 ? Stoff(new Color(0.68f, 0.62f, 0.52f)) : stein);
+            var f = Feuer.Neu(arten[i], i == 3, 0.2f + i * 0.17f);
+            f.Aussen = true;
+            f.Position = new Vector3(0, hoehen[i] + (i == 3 ? 0.2f : 0f), 0);
+            wurzel.AddChild(f);
+            _kamine.Add(f);
+            wurzel.AddChild(new Label3D
+            {
+                Text = arten[i].ToString(), Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, FixedSize = true, NoDepthTest = true, PixelSize = 0.0011f, FontSize = 34, OutlineSize = 8,
+                Modulate = new Color(1f, 0.85f, 0.5f), OutlineModulate = new Color(0, 0, 0, 0.9f), Position = new Vector3(0, 0.4f, 3.4f),
+            });
         }
     }
 

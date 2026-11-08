@@ -244,6 +244,7 @@ public partial class Feuertest : Node
     private Feuer FeuerSetzen(Node3D eltern, FeuerVorgabe vorgabe, Vector3 lage, bool mitLicht = true)
     {
         var f = Feuer.Neu(vorgabe, mitLicht);
+        f.Aussen = true;
         f.Position = lage;
         eltern.AddChild(f);
         f.LichtSetzen(_licht);

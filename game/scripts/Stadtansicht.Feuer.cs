@@ -473,6 +473,7 @@ public partial class Stadtansicht
     }
 
     private readonly List<Kamin> _kamine = new();
+    private static readonly bool _rauchImmer = OS.GetEnvironment("RG_RAUCHAN") != "";
     private readonly Dictionary<string, Betrieb> _betriebNachName = new();
 
     /// <summary>Setzt auf jeden Schornstein des Modells einen Kaminrauch (zunächst aus); <paramref name="kennung"/> sagt, wem das Haus gehört.</summary>
@@ -493,6 +494,7 @@ public partial class Stadtansicht
             if (modell.GetNodeOrNull<Node3D>(pfad) is not { } teil) continue;
             var saat = Streuung(kennung.Length * 131 + kennung.Sum(c => c), (int)(lage.X * 10 + lage.Z * 7));
             var rauch = Feuer.Neu(FeuerVorgabe.Kamin, false, (saat & 0xFFFF) / 65535f);
+            rauch.Aussen = true;
             rauch.Name = "Kaminrauch";
             rauch.Position = lage;
             rauch.RauchStaerke = 0f;
@@ -554,6 +556,7 @@ public partial class Stadtansicht
                 soll = WohnhausHeizt(k.Saat, uhrzeit, jahreszeit);
                 k.Rauch.Sorte = RauchSorte.Wohnhaus;
             }
+            if (_rauchImmer) soll = true;   // RG_RAUCHAN: nur für Bilder, alle Schornsteine rauchen immer
             var stand = Mathf.MoveToward(k.Stand, soll ? 1f : 0f, schritt);
             if (Mathf.IsEqualApprox(stand, k.Stand)) continue;
             k.Stand = stand;
@@ -618,6 +621,7 @@ public partial class Stadtansicht
         var groesse = Mathf.Clamp(Mathf.Min(dachMax.X - dachMin.X, dachMax.Z - dachMin.Z) / 5f, 0.7f, 1.3f);
         if (blitz) groesse = Mathf.Clamp(Mathf.Min(max.X - min.X, max.Z - min.Z) / 4f, 1.4f, 2.4f);
         var dach = Feuer.Neu(FeuerVorgabe.Gebaeudebrand, true, (Streuung(kennung.Sum(c => c), 41) & 0xFFFF) / 65535f, groesse);
+        dach.Aussen = true;
         dach.Position = new Vector3(mitte.X, blitz ? DachHoeheBei(modell.Wurzel, mitte.X, mitte.Z, max.Y) - 0.6f : max.Y - Mathf.Min(2.4f, (max.Y - min.Y) * 0.3f), mitte.Z);
         wurzel.AddChild(dach);
         brand.Feuer.Add(dach);
@@ -630,6 +634,7 @@ public partial class Stadtansicht
                 var x = lang ? Mathf.Lerp(min.X, max.X, t) : (min.X + max.X) / 2;
                 var z = lang ? (min.Z + max.Z) / 2 : Mathf.Lerp(min.Z, max.Z, t);
                 var herd = Feuer.Neu(FeuerVorgabe.Gebaeudebrand, false, (Streuung((int)(t * 1000) + kennung.Length, 43) & 0xFFFF) / 65535f, groesse * 0.8f);
+                herd.Aussen = true;
                 herd.Position = new Vector3(x, DachHoeheBei(modell.Wurzel, x, z, max.Y) - 0.4f, z);
                 wurzel.AddChild(herd);
                 brand.Feuer.Add(herd);
@@ -638,6 +643,7 @@ public partial class Stadtansicht
         foreach (var lage in BrandFenster(modell, blitz ? 6 : 3))
         {
             var f = Feuer.Neu(FeuerVorgabe.Fensterbrand, false, (Streuung((int)(lage.X * 100), (int)(lage.Z * 100)) & 0xFFFF) / 65535f, blitz ? 1.4f : 1f);
+            f.Aussen = true;
             f.Position = lage;
             wurzel.AddChild(f);
             brand.Feuer.Add(f);

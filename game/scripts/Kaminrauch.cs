@@ -2,8 +2,11 @@ using Godot;
 
 namespace Reichsgilde;
 
-/// <summary>Was für einen Schornstein: dünner heller Rauch (Wohnhaus), mittlerer (Werkstatt) oder dicker dunkler (Gießerei, Schmiede, Brauerei …).</summary>
-public enum RauchSorte { Wohnhaus, Werkstatt, Schwer }
+/// <summary>
+/// Was für ein Rauch: Schornsteine dünn und hell (Wohnhaus), mittel (Werkstatt) oder dick und dunkel (Gießerei, Schmiede, Brauerei …); Feuer im Freien:
+/// Fackel (dünn, kurz), Feuerkorb, Esse, Gebäudebrand (riesig, schwarz) und Fensterbrand.
+/// </summary>
+public enum RauchSorte { Wohnhaus, Werkstatt, Schwer, Fackel, Feuerkorb, Esse, Brand, Fensterbrand }
 
 /// <summary>
 /// Der Kaminrauch der ganzen Stadt: <b>ein</b> <see cref="MultiMeshInstance3D"/> mit <b>einem</b> Material (<c>kaminrauch.gdshader</c>), also ein Zeichenaufruf
@@ -13,7 +16,7 @@ public enum RauchSorte { Wohnhaus, Werkstatt, Schwer }
 /// <para>
 /// Einer je Szene (die Stadtansicht und die Testszene legen ihn an, <see cref="Aktuell"/>). Ein <see cref="Feuer"/> der Art Kamin meldet sich beim Bau
 /// dort an (<see cref="Anmelden"/>) und gibt Stärke und Sorte weiter; ohne <see cref="Aktuell"/> baut es seinen Rauch wie früher selbst. Der Ort folgt dem
-/// Anker (alle halbe Sekunde geprüft, das Haus kann in der Kartenwerkstatt wandern). Die Stufe der Wettereffekte (Niedrig, Mittel, Hoch) wählt Zahl der
+/// Anker (alle Viertelsekunde geprüft: Ort, das Haus kann in der Kartenwerkstatt wandern, und Sichtbarkeit, ein Haus zeigt nur seine gewählte Stufe). Die Stufe der Wettereffekte (Niedrig, Mittel, Hoch) wählt Zahl der
 /// Ballen und Feinheit des Shaders; sie wird jedes Bild nachgeführt.
 /// </para>
 /// </summary>
@@ -35,10 +38,13 @@ public partial class Kaminrauch : Node3D
     {
         public Node3D? Anker;
         public Vector3 Ort;
+        public Vector3 Versatz;
         public float Staerke;
         public RauchSorte Sorte;
         public float Saat;
         public bool Frei = true;
+        /// <summary>Ist der Anker im Baum sichtbar? Ein Haus zeigt nur die gewählte Stufe und Variante, die anderen Schornsteine (unsichtbare Teile) rauchen nicht.</summary>
+        public bool Sichtbar = true;
     }
 
     private readonly List<Platz> _plaetze = new();
@@ -103,16 +109,18 @@ public partial class Kaminrauch : Node3D
             _schmutzig = false;
         }
         _ortUhr += delta;
-        if (_ortUhr < 0.5) return;
+        if (_ortUhr < 0.25) return;
         _ortUhr = 0;
         for (var i = 0; i < _plaetze.Count; i++)
         {
             var p = _plaetze[i];
             if (p.Frei || p.Anker is null) continue;
             if (!IsInstanceValid(p.Anker)) { Freigeben(i); continue; }
-            var ort = p.Anker.GlobalPosition;
-            if (ort.DistanceSquaredTo(p.Ort) < 1e-6f) continue;
+            var ort = p.Anker.GlobalPosition + p.Versatz;
+            var sichtbar = p.Anker.IsVisibleInTree();
+            if (ort.DistanceSquaredTo(p.Ort) < 1e-6f && sichtbar == p.Sichtbar) continue;
             p.Ort = ort;
+            p.Sichtbar = sichtbar;
             Schreiben(i);
         }
     }
@@ -187,7 +195,7 @@ public partial class Kaminrauch : Node3D
     /// Meldet einen Schornstein an (am <paramref name="anker"/> beginnt der Rauch); die Stärke ist zunächst 0. Gibt die Nummer zurück, mit der er sich
     /// später abmeldet und Stärke und Sorte setzt.
     /// </summary>
-    public int Anmelden(Node3D anker, RauchSorte sorte, float saat)
+    public int Anmelden(Node3D anker, RauchSorte sorte, float saat, Vector3 versatz = default)
     {
         int nr;
         if (_frei.Count > 0) nr = _frei.Pop();
@@ -200,7 +208,9 @@ public partial class Kaminrauch : Node3D
         var p = _plaetze[nr];
         p.Frei = false;
         p.Anker = anker;
-        p.Ort = anker.IsInsideTree() ? anker.GlobalPosition : Vector3.Zero;
+        p.Versatz = versatz;
+        p.Ort = anker.IsInsideTree() ? anker.GlobalPosition + versatz : Vector3.Zero;
+        p.Sichtbar = !anker.IsInsideTree() || anker.IsVisibleInTree();
         p.Staerke = 0f;
         p.Sorte = sorte;
         p.Saat = Mathf.Clamp(saat, 0f, 0.999f);
@@ -236,12 +246,21 @@ public partial class Kaminrauch : Node3D
         Schreiben(nr);
     }
 
-    /// <summary>Menge (dünn … dick) und Ruß (hell … dunkel) je Sorte.</summary>
-    private static (float Menge, float Russ) Werte(RauchSorte s) => s switch
+    /// <summary>
+    /// Die Werte einer Sorte: Menge (dünn … dick: Deckung, Größe, Auftrieb), Ruß (hell … dunkel), Größe (Faktor auf Ballen, Höhe und Lebensdauer),
+    /// Glut nachts und bei Tag (rötlicher Schein am Fuß des Rauchs).
+    /// </summary>
+    private static (float Menge, float Russ, float Groesse, float GlutNacht, float GlutTag) Werte(RauchSorte s) => s switch
     {
-        RauchSorte.Wohnhaus => (0.25f, 0.12f),
-        RauchSorte.Werkstatt => (0.55f, 0.20f),
-        _ => (1.00f, 0.55f),
+        RauchSorte.Wohnhaus => (0.25f, 0.12f, 1f, 0.5f, 0f),
+        RauchSorte.Werkstatt => (0.55f, 0.20f, 1f, 0.7f, 0f),
+        RauchSorte.Schwer => (1.00f, 0.55f, 1f, 1.0f, 0f),
+        RauchSorte.Fackel => (0.30f, 0.60f, 0.45f, 0.6f, 0.05f),
+        RauchSorte.Feuerkorb => (0.50f, 0.50f, 0.80f, 0.8f, 0.2f),
+        RauchSorte.Esse => (0.45f, 0.45f, 0.70f, 0.8f, 0.2f),
+        RauchSorte.Brand => (1.00f, 0.85f, 3.00f, 1.0f, 0.5f),
+        RauchSorte.Fensterbrand => (0.80f, 0.80f, 1.50f, 1.0f, 0.4f),
+        _ => (0.55f, 0.20f, 1f, 0.7f, 0f),
     };
 
     private void Schreiben(int nr)
@@ -251,15 +270,18 @@ public partial class Kaminrauch : Node3D
         Array.Clear(_puffer, o, 12);
         _schmutzig = true;
         if (nr >= _plaetze.Count || _plaetze[nr].Frei) return;   // Matrix aus Nullen: Stärke 0, der Shader zeichnet nichts
-        // Die Daten des Schornsteins stecken in der Matrix (der Shader liest sie dort, siehe kaminrauch.gdshader): Stärke x.x, Saat x.y, Menge y.y, Ruß z.z,
+        // Die Daten des Schornsteins stecken in der Matrix (der Shader liest sie dort, siehe kaminrauch.gdshader): Stärke x.x, Saat x.y, Größe x.z, Menge y.y, Glut nachts y.z, Glut bei Tag z.y, Ruß z.z (Spalte.Zeile der Matrix),
         // dazu der Ort. Godot erwartet die Zeilen: (x.x, y.x, z.x, Ort.x), (x.y, y.y, z.y, Ort.y), (x.z, y.z, z.z, Ort.z)
         var p = _plaetze[nr];
-        var (menge, russ) = Werte(p.Sorte);
-        _puffer[o + 0] = p.Staerke;
+        var (menge, russ, groesse, glutNacht, glutTag) = Werte(p.Sorte);
+        _puffer[o + 0] = p.Sichtbar ? p.Staerke : 0f;
+        _puffer[o + 8] = groesse;
         _puffer[o + 3] = p.Ort.X;
         _puffer[o + 4] = p.Saat;
         _puffer[o + 5] = menge;
+        _puffer[o + 9] = glutNacht;
         _puffer[o + 7] = p.Ort.Y;
+        _puffer[o + 6] = glutTag;
         _puffer[o + 10] = russ;
         _puffer[o + 11] = p.Ort.Z;
     }
