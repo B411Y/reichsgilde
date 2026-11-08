@@ -168,6 +168,7 @@ public sealed partial class KiRivale
             if (frei)
             {
                 Amtspolitik(); // Befugnisse der Ämter (PR #200) – kosten keine AP
+                Lebensweise(); // Pfad und Knoten der Lebensweise (KiRivale.Lebensweise.cs) – keine AP
                 // Die Aktionspunkte reichen nicht für alles: Familie und Verteidigung zuerst, dann nach Charakter –
                 // der Wagemutige geht ins Hinterzimmer, bevor er Ratsherren beschenkt; die anderen umgekehrt.
                 Familienpolitik();
