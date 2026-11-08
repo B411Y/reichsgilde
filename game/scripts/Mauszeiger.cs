@@ -43,7 +43,7 @@ public partial class Mauszeiger : Node
     private static readonly int[] Scheinrand = { 6, 8, 10 };
 
     /// <summary>Zeigerpunkt (Mitte des Schlüssellochs, samt Scheinrand 6/8/10) des Türschlosses je Größe 48, 64, 80.</summary>
-    private static readonly Vector2[] SchlossPunkte = { new(22.5f, 30), new(30, 40), new(39, 51) };
+    private static readonly Vector2[] SchlossPunkte = { new(21, 31), new(27, 41), new(34, 52) };
 
     /// <summary>Das Bild eines Handschuhs (normal, 48 Pixel, ohne den durchsichtigen Rand für den Schein) für die Vorschau in den Einstellungen.</summary>
     public static Texture2D? Vorschau(int stufe) =>

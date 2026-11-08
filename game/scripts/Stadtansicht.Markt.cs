@@ -157,6 +157,7 @@ public partial class Stadtansicht
                 }
             }
             MarktHindernisseSammeln(platz.Wurzel, anker, ansicht);
+            BrunnenEinrichten(platz.Wurzel); // Wasser, Strahl und Eis des Brunnens (Stadtansicht.Brunnen.cs)
             if (!MarktV2) MarktV3Aufbauen(ansicht, anker, gruppen); // Gesprächsgruppen zu viert, Brunnenrand, Schaustellen, freie Fläche (Stadtansicht.Marktbummel.cs)
             // Rundgang: Anker_Weg1 … Anker_Weg12 in Laufrichtung; an jedem Wegpunkt beginnt ein Schlendernder
             var rundgang = Enumerable.Range(1, 99).Select(n => anker.TryGetValue($"Anker_Weg{n}", out var w) ? (Vector3?)w.Origin : null)
@@ -367,6 +368,7 @@ public partial class Stadtansicht
         var brunnen = 0f;
         foreach (var teil in wurzel.GetChildren().OfType<MeshInstance3D>())
         {
+            if (teil.Name.ToString().StartsWith("Brunnen_")) continue; // Wasser, Strahl, Eis, Trog (der Trog ist ein eigenes Hindernis, siehe unten)
             var lage = wurzel.Transform * teil.Transform;
             foreach (var ecke in teil.Mesh.GetFaces())
             {
@@ -376,6 +378,9 @@ public partial class Stadtansicht
             }
         }
         _marktHindernisse.Add((platz.Mitte, Mathf.Max(brunnen, 2f)));
+        if (anker.TryGetValue("Anker_Trog", out var trog)) // Viehtrog 1,9 × 0,8 m: drei Kreise längs
+            foreach (var d in new[] { -0.6f, 0f, 0.6f })
+                _marktHindernisse.Add((trog.Origin + trog.Basis.X.Normalized() * d, 0.6f));
         _marktHindernisse.Add((platz.Lage * new Vector3(-10.4f, 0, 10.4f), 1.0f)); // das Marktkreuz (Lage im Modell)
         for (var n = 1; anker.TryGetValue($"Anker_Sitz{2 * n - 1}", out var a) && anker.TryGetValue($"Anker_Sitz{2 * n}", out var b); n++)
         {

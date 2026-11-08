@@ -343,7 +343,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 |---|---|---|
 | Rand | Alle Hände (acht, drei Größen) und das Türschloss ohne hellen Außenrand; harte Alpha-Kante (0/255), die durchsichtigen Pixel tragen die Umrissfarbe, damit beim Filtern kein heller Saum entsteht. Der schwarze Dieb braucht den deckenden hellen Rand nicht mehr. | 08.11.2026 |
 | Hover | Kein Aufhellen und Erwärmen mehr; „klick“ ist derselbe Handschuh Pixel für Pixel, dazu ein weicher weißer Außenschein (Abstand zur Silhouette, quadratisch auslaufend, höchstens 80 % Deckkraft) in einem durchsichtigen Rand von 6/8/10 Pixeln. Auch das Türschloss (erscheint nur über Anklickbarem) bekommt den Schein. | 08.11.2026 |
-| Größe | Bilder 60/80/100 Pixel (Hand 48/64/80 plus Rand); normal und klick gleich groß, damit der Zeigerpunkt gleich bleibt: Hand 8/7, 11/9, 13/11, Schloss 22,5/30, 30/40, 39/51. Die Vorschau in den Einstellungen schneidet den Rand weg (`AtlasTexture`). Das Skript: `zeiger_aus_vorlage.py --gemini` bzw. `--schloss`. | 08.11.2026 |
+| Größe | Bilder 60/80/100 Pixel (Hand 48/64/80 plus Rand); normal und klick gleich groß, damit der Zeigerpunkt gleich bleibt: Hand 8/7, 11/9, 13/11, Schloss (seit 08.11. neu, siehe unten) 21/31, 27/41, 34/52. Die Vorschau in den Einstellungen schneidet den Rand weg (`AtlasTexture`). Das Skript: `zeiger_aus_vorlage.py --gemini` bzw. `--schloss`. | 08.11.2026 |
+
+### Türschloss so groß wie der Handschuh (PR „Oberfläche: Türschloss-Zeiger an Handschuhgröße angepasst“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Ursache | Das Schloss war mit demselben Kamerarand wie die Hand (3 von 16 Einheiten je Seite) gerendert, aber auf seine eigene, kleine Silhouette zugeschnitten: sichtbar nur 26 × 32 Pixel bei 48 gegen 44 × 40 der Hand (64 und 80 entsprechend). Größe und Stufenwahl im Code waren richtig (gleiche `GroesseWaehlen` für beide). | 08.11.2026 |
+| Neu | `handschuh.py` bekommt `--schloss-rand` (Rand in 16-Einheiten; 1 statt 3), `--super` und `--groessen`; Schloss mit `--super=960 --schloss-rand=1` neu gerendert, dann `zeiger_aus_vorlage.py --schloss`. Sichtbar jetzt 34 × 44 (48), 46 × 58 (64), 56 × 72 (80), also etwa so hoch bzw. breit wie die Hand. Zeigerpunkt (Schlüssellochmitte samt Scheinrand): 21/31, 27/41, 34/52. | 08.11.2026 |
 
 ### Start-Hinweis zum Personalbuch (PR „Hinweis zum Start – weitere Lehrlinge im Personalbuch“)
 
