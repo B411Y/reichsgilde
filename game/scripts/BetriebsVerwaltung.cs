@@ -757,7 +757,10 @@ public partial class BetriebsVerwaltung : VBoxContainer
             anzahl.HorizontalAlignment = HorizontalAlignment.Center;
             var plus = KleinerKnopf(zeile, "+");
             var info = NeuesLabel(zeile, 12, Grau);
-            var kraftTipp = $"{kraft}: Grundlohn {Zahlenformat.Ganz(w.Daten.Lohn(kraft, b.Art))} {w.Daten.Allgemein.Waehrung}. Mit − und + stellt ihr Leute ein oder entlasst sie.";
+            var handgeld = w.Personal.Handgeld(kraft); // einmal beim Einstellen (Datenversion 73)
+            var kraftTipp = $"{kraft}: Grundlohn {Zahlenformat.Ganz(w.Daten.Lohn(kraft, b.Art))} {w.Daten.Allgemein.Waehrung}"
+                            + (handgeld > 0 ? $", Handgeld beim Einstellen {Zahlenformat.Ganz(handgeld)} {w.Daten.Allgemein.Waehrung}" : "")
+                            + ". Mit − und + stellt ihr Leute ein oder entlasst sie.";
             name.TooltipText = anzahl.TooltipText = info.TooltipText = kraftTipp;
             minus.Pressed += () => Befehlen(new PersonalSetzen(b.Name, kraft, b.Belegung.GetValueOrDefault(kraft) - 1));
             plus.Pressed += () => Befehlen(new PersonalSetzen(b.Name, kraft, b.Belegung.GetValueOrDefault(kraft) + 1));
