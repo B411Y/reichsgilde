@@ -1,6 +1,6 @@
 # Bereich kern – Archiv der älteren Entscheidungen
 
-Hier stehen die Entscheidungsabschnitte, die vor dem 27.10.2026 abgeschlossen wurden, **wörtlich** aus [../kern.md](../kern.md) verschoben (Stand 29.10.2026; am 31.10.2026 dazu PR #219 und #224, am 1.11.2026 PR #227, #231, #232, #244, #247, #251, #253 und #254, am 2.11.2026 PR #259, am 3.11.2026 PR #282: Fahrzeit nach Weglänge, Mehrere Marktplätze, später Hausreihe vor dem Tor, Nachbesserung nach der Prüfung, Werkstatt-Bauplätze und KI nach Fahrzeit; am 5.11.2026 PR #279 und #280: Pinsel-Paket 1, Höhenkarten). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
+Hier stehen die Entscheidungsabschnitte, die vor dem 27.10.2026 abgeschlossen wurden, **wörtlich** aus [../kern.md](../kern.md) verschoben (Stand 29.10.2026; am 31.10.2026 dazu PR #219 und #224, am 1.11.2026 PR #227, #231, #232, #244, #247, #251, #253 und #254, am 2.11.2026 PR #259, am 3.11.2026 PR #282: Fahrzeit nach Weglänge, Mehrere Marktplätze, später Hausreihe vor dem Tor, Nachbesserung nach der Prüfung, Werkstatt-Bauplätze und KI nach Fahrzeit; am 5.11.2026 PR #279 und #280: Pinsel-Paket 1, Höhenkarten; am 8.11.2026 PR #288 und #286: Blitzschlag im Gewitter, Karren-Höchstzahl je Arbeitsort). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
 
 ## Entscheidungen (älter)
 
@@ -756,3 +756,26 @@ Unabhängige Prüfung vom 1.11.2026 („nicht PR-reif“): H1 (Karrenwahl der KI
 | Spielstand | Unberührt: Der Boden steht schon im Feld `boden` der Karte; `Speicherstand*.cs` nicht geändert. | 01.11.2026 |
 | Suchraster | `Felsraster` (16 m) beim Streuen für Abstand und Dichte; Summen in der Reihenfolge der Liste. Der feste Ablauf der FelsenTests ohne Boden gibt dieselbe Prüfsumme wie vor F6 (Test). 6.900 Stücke in einem Werkstattlauf ohne spürbare Wartezeit. | 01.11.2026 |
 | Tests | `FelsbodenTests` (8): Fels/Kies/Moos am Hang und in der Ebene, ein Schritt mit Rückgängig Byte für Byte, Strich beim Ziehen, Boden aus, Reihenfolge, alle Karten aus `game/karten/` nach Stempel und Rückgängig Byte für Byte gleich, Schuttsteine. Gleichheitstest: neue Zeile „felsboden …“. | 01.11.2026 |
+
+### Blitzschlag im Gewitter (PR #288)
+
+| Frage | Entscheidung |
+|---|---|
+| Wetter im Kern | Der Plan der Lagen (`Zeit/Wetterplan.cs`) zog aus `game/scripts/Wetter.cs` in den Kern, mit `Zufallsquelle` statt `Random` – dieselben Zahlen (Test gegen den alten Ablauf); die Darstellung mischt weiter die Bildwerte. |
+| Wann | Je Gewitter-Abschnitt ein Wurf in seiner Mitte (das Gewitter steht über der Stadt), Chance 0,25 (Teamleiter: etwa jedes 3.–5. Gewitter). |
+| Zufall | Je Gewitter eine eigene `Zufallsquelle` mit Startwert aus Partie-Startwert und Minute (durchmischt mit `Zugwuerfel.Mischen`) (wie der Wetterplan): kein Wurf eines anderen Generators verschoben, kein Feld im Spielstand. Abweichung von „aus der gemeinsamen Zufallsquelle“, gleich deterministisch. |
+| Ziel | Jedes Gebäude der Karte und jeder Neubau außer Markt, Fels, Feld, Wald, Bauplatz, Baustelle; Gewicht Höhe + Boden über dem Mittel (linear, Teamleiter 2.11.2026; zum Quadrat bekamen Kirchen zwei Drittel), Höhen in `blitz.hoehen` (Dom 55 m, Kirche 40 m, Haus 8–13 m). Häuser der Spieler eingeschlossen. Kein Überspringen. |
+| Dauer | 60–180 Spielminuten (`blitz.dauerMinuten`). |
+| Schaden (Platzhalter) | Werkstatt: `Sabotieren(stillstandMinuten = 300)` ab dem Einschlag, Arbeit ruht also auch während des Brandes; Wohnhaus: `WohnhausInstandBis` = Ende + 1.140 Minuten (Ansehen fehlt). Reparatursummen 0 (Felder `reparatur`, `wohnhausReparatur` vorhanden). Andere Gebäude nur im Bild. |
+| Spielstand | Unverändert. Laufende Feuer rechnet der Kern nach dem Laden aus dem Plan nach (`Einschlaege`, nur fürs Bild; auch Feuer des Vorjahres, die über 23 Uhr hinaus brennen); Gleichheitstest mit Ladepunkten im Brand, verglichen werden Minute und Text jeder Meldung „Blitzschlag!“. Grenze: Das nachgerechnete Ziel folgt dem Zustand beim Laden – wurde dazwischen gebaut oder ausgebaut, kann das Bild ein anderes Haus brennen lassen (der Schaden im Kern bleibt richtig). |
+| Datenversion | 68 (nach #286 und #287 mit 66 und 67; im Branch zuvor 69). |
+| Messung | Main 4220c631 + Branch, linear und durchmischt, je 10 Startwerte, 20 Jahre: Greybox und Köln je 17 Einschläge in 200 Jahren (1,7 je Partie); Kirchen und Dom 24 % (vorher zum Quadrat 69 %), Wohnhäuser 44 %, das Haus des Spielers einmal, KI-Werkstätten zweimal; Vermögen nur verrauscht (WIRTSCHAFTSMODELL „Blitzschlag im Gewitter“). |
+
+### Karren-Höchstzahl je Arbeitsort (PR #286)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Regel | Entscheidung des Nutzers (2.11.2026): Ein Umlandbetrieb darf bis zu **5** Karren haben, eine Werkstatt in der Stadt **3**. Neu in `wirtschaft.json`: `logistik.karrenHoechstens` = `{ "Werkstatt": 3, "Umland": 5 }`, **Datenversion 66**. Gilt für Spieler und KI gleich: `Stadtwirtschaft.KarrenKaufVerboten(b)` (Kern), `KarrenKaufen` lehnt mit Grund ab. Vorher gab es im Kern keine Grenze (nur die KI hielt sich an `KiProfil.MaxKarrenJeBetrieb` = 3) – für den Spieler ist die Grenze von 3 in der Stadt also neu; begründet: dieselbe Regel für alle, und in der Stadt liegen die Werkstätten nahe am Markt. Ohne Eintrag (alte Daten, alte Spielstände mit ihren Daten) keine Grenze, ein Stand mit mehr Karren lädt unverändert (nur weiterer Kauf ist gesperrt). | 2.11.2026 |
+| Oberfläche | `BetriebsVerwaltung`: Der Knopf „Kaufen“ ist an der Grenze gesperrt, der Grund steht im Tooltip (vorher keine Annahme einer festen Zahl; die Karrenzeilen sind dynamisch). | 2.11.2026 |
+| KI | Die KI hält sich an dieselbe Grenze (Einzelheiten in `docs/bereiche/spiel-ki.md`, „Karren-Höchstzahl“). | 2.11.2026 |
+| Tests | `KarrenHoechstzahlTests` (Daten und Prüfung, Spieler im Umland bis 5 und in der Stadt bis 3, alte Daten ohne Grenze, KI kauft am gebremsten Holzschlag einen vierten und tauscht erst an der Grenze von 5); Datenversion 66 in den Tests, die sie nennen; `KiUmlandTests` mit 5 erlaubten Karren (Schätzung beim Pachten weiter mit 3). Messung in `docs/bereiche/spiel-ki.md` („Karren-Höchstzahl: Umland bis 5 Karren“). | 2.11.2026 |

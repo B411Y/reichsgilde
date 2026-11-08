@@ -2288,3 +2288,56 @@ Dateien: `docs/messungen/schaenke-2026-11-04-startlehrling-{vorher,passiv-vorher
 **Regel:** Mit Karte gibt es einen Haushalt je freiem Hausplatz (Einwohnerplätze und Kulissenhäuser ohne die Ratsherren- und Bürgerhäuser) zu `buerger.jeHausplatz` ± 1 = 5–7 Personen: Köln rund 400 statt 200 gewöhnliche Einwohner, die Greybox rund 145 statt 100. Fassen die Plätze weniger als `jeHaus` × Häuser, gilt die alte Regel. `buerger.tagesplan`: Zwischen 8 und 20 Uhr rastet ein Einwohner 70 % seiner Ruhestunden am Markt, Knechte und Mägde machen 50 % ihrer Dienststunden dort Besorgungen. Nur der Ort ändert sich.
 
 **Keine Wirkung auf die Wirtschaft (gewollt):** Die Nachfrage der Stadt hängt an `stadt` (Grundbewohner + je Haus), nicht an den Figuren der Bürger-KI. Die Kopplungen an Schänke, Messe, Markt, Warenkorb und Taschendiebe zählen aber Einwohner, und eine Gegenprobe zeigte, dass schon die Zahl wirkt: Mit doppelt so vielen Einwohnern nach der alten Regel (`jeHaus` 50) wurde der Spieler mit einem Betrieb in Köln 10–20 % reicher. Deshalb gilt ein **Wirtschaftsgewicht**: Für alle Kopplungen zählen von den gewöhnlichen Einwohnern nur so viele, wie es nach `jeHaus` × Häuser gäbe (`Einwohner.ZaehltFuerWirtschaft`, Zuzügler erben es); Ratsherren und Kandidaten zählen immer. Die Zählenden entstehen, heißen und entscheiden Wurf für Wurf wie vor der Bürgerdichte (die Haushaltsgrößen der alten Regel werden als Leerwürfe gezogen), die übrigen würfeln mit einem eigenen Generator. Schänken und Kirchen verteilen die Zählenden zuerst als feste Quote, die übrigen danach. Der Tagesplan würfelt nicht, und die Taschendiebe zählen die Passanten wie ohne Tagesplan. Ergebnis: Die Wirtschaft ist **bitgleich** mit und ohne Bürgerdichte und Tagesplan (Test über zwei Jahre in Köln und der Greybox; Messung über 20 Jahre Wert für Wert gleich). Messung: `docs/bereiche/spiel-ki.md`, „Bürgerdichte und Tagesplan“.
+
+## Lebensweise (Charaktersystem Teil 3a, Datenversion 73, 8.11.2026)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md`, „Lebensweise (PR #…)“): Oberhaupt, Erbe und Ehepartner sammeln Erfahrung in fünf Pfaden und nehmen Knoten (Abschnitt `lebensweise`). Die KI-Häuser und der Messspieler (KI-geführt, ein Betrieb) wählen Pfad und Knoten nach Talent und Zügen (`KiRivale.Lebensweise`) und nehmen jeden Punkt sofort. **Kein Grundwert eines Berufs ist geändert.**
+
+Gemessen auf main `18c40e7a` + diesem PR (`7599edc3`), `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 37,7 Min.) → `docs/messungen/balancing-2026-11-08-lebensweise.json`; Vergleich: main `18c40e7a` mit derselben Messung → `docs/messungen/balancing-2026-11-08-main-18c40e7a.json`.
+
+| | main | mit Lebensweise |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 10/10 (Dieb −14,2 %, Parfumeur +14,2 %) | 8/10 (Dieb −16,8 %, Parfumeur +16,4 %) |
+| Mittel des Zuwachses | 31.253 | 32.706 (+4,6 %) |
+| Bürger mit einem Betrieb (Ø Jahre, Spanne der Berufe) | 7,8 … 9,9 | 7,8 … 9,9 |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,27; 1,69 | 1,21; 1,96 |
+| Messstadt: Vermögen je KI-Haus allein / 3 / 8 Häuser | 88.747 / 52.211 / 46.980 | 97.158 / 57.698 / 49.739 |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,42 / 0,80 / 0,17 | 0,40 / 0,86 / 0,17 |
+| Spitzel / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 95 / 198 | 95 / 197 |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −3.567 / −6.891 | −4.042 / −6.870 |
+| Karren in Not verkauft | 3 | 0 |
+
+Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwerte; ± Fehler des Mittels):
+
+| Beruf | main | mit Lebensweise | Änderung |
+|---|---|---|---|
+| Schmied | 36.922 ± 1.352 | 39.566 ± 1.369 | +7,2 % |
+| Tischler | 31.933 ± 1.025 | 34.652 ± 1.271 | +8,5 % |
+| Steinmetz | 36.040 ± 1.313 | 39.591 ± 1.180 | +9,9 % |
+| Alchimist | 35.863 ± 1.101 | 37.058 ± 1.241 | +3,3 % |
+| Wirt | 33.429 ± 1.053 | 35.620 ± 1.118 | +6,6 % |
+| Prediger | 36.105 ± 1.310 | 35.674 ± 1.204 | −1,2 % |
+| Dieb | 30.800 ± 1.102 | 31.226 ± 1.237 | +1,4 % |
+| Parfumeur | 39.681 ± 1.171 | 42.074 ± 1.293 | +6,0 % |
+| Geldleiher | 37.531 ± 1.022 | 36.487 ± 946 | −2,8 % |
+| Gardist | 34.228 ± 710 | 35.116 ± 710 | +2,6 % |
+| Dieb (wagemutig, nicht im Mittel) | 23.858 ± 1.205 | 22.876 ± 1.029 | −4,1 % |
+
+**Völker** (Schmied und Parfumeur, Reinvermögen; 20 Jahre aus dem Bericht, 40 Jahre aus `messen bericht 40 30 --teile=2` auf denselben Ständen, je 240 Partien):
+
+| Beruf, Volk | 20 Jahre main → Lebensweise | 40 Jahre main → Lebensweise | gegen Mensch nach 40 Jahren (main → Lebensweise) |
+|---|---|---|---|
+| Schmied, Mensch | 36.922 → 39.566 (+7,2 %) | 98.537 → 107.984 (+9,6 %) | 0 → 0 |
+| Schmied, Zwerg | 40.698 → 42.195 (+3,7 %) | 112.774 → 117.914 (+4,6 %) | +15,1 → +9,5 % |
+| Schmied, Elb | 37.213 → 38.003 (+2,1 %) | 100.289 → 106.876 (+6,6 %) | +1,9 → −1,1 % |
+| Schmied, Halbling | 31.566 → 32.099 (+1,7 %) | 93.372 → 94.018 (+0,7 %) | −5,5 → −13,4 % |
+| Parfumeur, Mensch | 39.681 → 42.074 (+6,0 %) | 121.156 → 130.678 (+7,9 %) | 0 → 0 |
+| Parfumeur, Zwerg | 37.193 → 38.914 (+4,6 %) | 119.853 → 124.134 (+3,6 %) | −1,1 → −5,2 % |
+| Parfumeur, Elb | 43.390 → 44.985 (+3,7 %) | 131.326 → 143.676 (+9,4 %) | +8,7 → +10,3 % |
+| Parfumeur, Halbling | 38.658 → 37.712 (−2,4 %) | 113.923 → 120.189 (+5,5 %) | −6,2 → −8,3 % |
+
+**Befund:**
+- Die Wirtschaft wächst im Mittel um 4,6 %: Die Knoten für Werkstatt und Markt (Zeit, Zutaten, Lohn, Erlös) bringen den Handwerkern +3 bis +10 %. Prediger, Geldleiher, Gardist und Dieb haben kaum Ware am Markt und gewinnen −3 bis +3 %. Darum rutschen Dieb (−16,8 %) und Parfumeur (+16,4 %) knapp aus dem Band; beide lagen schon auf main am Rand (±14,2 %). Jede einzelne Änderung liegt innerhalb von etwa zwei Fehlern des Mittels (≈ 1.700–1.800 Gulden für den Unterschied zweier Mittel), das Muster (Handwerk vorn, Berufe ohne Ware hinten) aber in allen zehn Zeilen.
+- **Völker:** Die KI wählt den Pfad nach dem stärksten Talent: Zwerge meist Handwerk, Elben Rhetorik, Halblinge Nacht und Nebel, Menschen Verhandeln oder Handwerk. Nach 20 Jahren gewinnen darum Menschen am meisten (+6 bis +7 %), Halblinge am wenigsten (−2 bis +2 %). Nach 40 Jahren holen die Elben auf (+6,6 / +9,4 %, gegen Menschen fast wie auf main) – vermutlich, weil ihr langes Leben mehr Knoten und ein größeres Vermächtnis bringt (nicht einzeln gemessen). Zwerge leben ebenfalls länger, gewinnen aber weniger als Menschen (+4,6 / +3,6 %) – ihr Vorsprung als Schmied schrumpft von +15,1 auf +9,5 %. Der Halbling-Schmied fällt gegen den Menschen von −5,5 auf −13,4 % (Pfad der Schatten bringt dem Schmied fast nichts). Elben und Zwerge ziehen also nicht davon.
+- Die KI-Häuser mit mehreren Betrieben gewinnen mehr als der Spieler mit einem (Werkstatt-Knoten zählen in jedem Betrieb): „Schwer“ 1,69 → 1,96; gegen den Bezugsspieler mit derselben Strategie bleiben sie im Rahmen (1,27 → 1,21).
+- Ob nachgesteuert wird (Knoten für Berufe ohne Ware, Pfadwahl der KI nach Beruf), entscheidet der Nutzer (offene Punkte in `docs/bereiche/kern.md`).

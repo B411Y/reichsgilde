@@ -68,35 +68,32 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Nutzer, Startlehrling, an Oberfläche) Hinweis zum Start „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein“ (Brief oder Meldung). Empfehlung: ja, sonst bleibt ein neuer Spieler bei halber Leistung.
 - (Nutzer, Startlehrling) Weitere Gegenmaßnahmen nur nach der vollen Messung: Handgeld beim Einstellen (bremst vor allem die KI; Empfehlung nein), mehr Startgeld oder billigerer Lehrling (Empfehlung nein, kein Bankrott), Lernzeit unverändert.
 - (Testzeit) `Pruefe.Wahr`/`Pruefe.Gleich` mit Meldung als Funktion (Überladung in `Program.cs`), damit Meldungen in Schleifen erst im Fehlerfall gebaut werden – `Program.cs` bleibt nach CLAUDE.md unberührt, darum Vorschlag an den Teamleiter.
+- (Balancing, Lebensweise) Mit der Lebensweise liegen Dieb (−16,8 %) und Parfumeur (+16,4 %) knapp außerhalb ±15 % (main ±14,2 %): Handwerker gewinnen +3 bis +10 %, Berufe ohne Ware (Prediger, Geldleiher, Gardist, Dieb) −3 bis +3 %. Möglich: Knoten, die auch Taschendiebe, Kollekte, Sold oder Zins heben (z. B. Hehlerring auch auf die Beute der Taschendiebe), die KI wählt den Pfad auch nach dem Beruf, oder so lassen (Nutzer). Messung in WIRTSCHAFTSMODELL „Lebensweise“.
+- (Balancing, Lebensweise) Der Halbling-Schmied fällt gegen den Menschen nach 40 Jahren von −5,5 auf −13,4 %, weil die KI für Halblinge den Pfad der Schatten wählt (stärkstes Talent). Ein Mensch am Steuer kann den Pfad frei wählen; ob die KI nach Nutzen statt nach Talent wählen soll, entscheidet der Nutzer.
+- (Lebensweise, 3c) „Gerüchteküche“ und „Verschwiegen“ wirken erst mit den Geheimnissen (Teil 3c); bis dahin sagt es ihre Beschreibung, die KI nimmt sie trotzdem mit (Gewicht 1).
+- (Lebensweise) Ein Erbe oder Ehepartner, der diese Rolle verliert (neues Testament, Witwer nach dem Erbfall), behält Erfahrung und Knoten, sammelt aber nicht weiter und kann freie Punkte nicht mehr ausgeben, bis er wieder Erbe, Ehepartner oder Oberhaupt ist.
+- (an Oberfläche, Lebensweise) Charakterfenster: Reiter „Lebensweise“ mit `Familienbuch.Pfade(p)`, `ErfahrungJeJahr(p)`, `Lebensbaum(p, pfad, spieler)` in der `TalentbaumAnsicht` (Preis 1 als „1 Punkt“ zeigen, nicht als Gulden), Befehle `LebenswegWaehlen`/`KnotenWaehlen`; Pfad-Zeichen als Bilder.
 
 ## Entscheidungen
+
+### Lebensweise (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Umfang | Charaktersystem Teil 3a nach dem Entwurf vom 8.11.2026: fünf Pfade (einer je Talent) mit je 3 × 3 Knoten, Reihe 2 und 3 brauchen den Knoten darüber; Erfahrung je Pfad, Punkte 100/100/100/150/150/150/200/200/200 (voller Baum 1.350). Stress (3b) und Geheimnisse (3c) folgen. Entscheidung des Nutzers (alle fünf Empfehlungen angenommen). | 08.11.2026 |
+| Wer sammelt | Oberhaupt voll, Erbe und Ehepartner halb (`anteilFamilie` 0,5); übrige Familie, Ratsherren und Bürger nicht. Die Wirkung zählt, solange der Besitzer Oberhaupt ist; persönlich (immer) sind nur Meinung über die Person (Geschäftsfreund, Liebenswürdig) und die eigene Krankheit (Eisern). Entscheidung des Nutzers. | 08.11.2026 |
+| Erfahrung | Am Jahresende vor den Todesfällen: (30 + 5 × Sterne im Talent des Pfads) × Anteil; Taten des aktiven Pfads 10 je AP, **sofort** gebucht und nur fürs Oberhaupt (Üben, wenn das Talent das des Pfads ist). Passender Zug × 1,2, hemmender × 0,8, Gelehrt und Bibliothek × 1,1. Alle Völker gleich viel je Jahr. Taten-Liste in den Daten (`taten`, auch „Befehl:Art“); dazu selbst entschieden: Meisterprüfung (Meister), Auskundschaften (Schatten). Ohne eigene Wahl gilt der Pfad des stärksten Talents, beim ersten Buchen festgehalten. Ein neuer Punkt meldet sich nicht (zu viele Meldungen „Sonstiges“), er steht im Charakterfenster. | 08.11.2026 |
+| Befehle | `LebenswegWaehlen(Person, Pfad)` und `KnotenWaehlen(Person, Knoten)`, 0 AP, auch im Kerker. Wechsel kostenlos, Gesammeltes und Knoten bleiben; kein Rückkauf. | 08.11.2026 |
+| Erbe | Der Erbe behält seine Knoten und bekommt als **Vermächtnis** 20 % der Erfahrung des Toten in dessen Pfad; dessen Knoten gehen nicht über. Entscheidung des Nutzers. | 08.11.2026 |
+| Knoten und Wirkung | 45 Knoten wie im Entwurf. Werkstatt-Knoten als `EinrichtungWirkung` in jedem Betrieb des Hauses (Feilscher, Sorgfalt, Kniffe, Meisterstück, Lehrherr, Gutes Wort, Zunftmeister, Ordnung, Hüter, Wachsames Auge, Wehrhafte Werkstatt). Selbst entschieden: Meisterstück wirkt in **Betrieben der Stufe 3** (nicht je Ware); Hüter senkt auch Pacht im Umland; neues Feld `EinrichtungWirkung.UnterhaltFaktor`; Baumeister gilt für Werkstatt- und Wohnhaus-Neubau, Ausbau beider und Einrichtung beider; Steuerkniff nicht zusammen mit dem Marktmeister; Rechtskundig: der Kläger zahlt die doppelte Entschädigung; Fürsprecher senkt alle Meinungsschwellen eigener Anträge (Statut, Steuer, Bau, Fest, Stadtglaube, Pflaster); Bewaffnete Knechte und Wegekundig schützen Karren, nicht Schiffe; Schwarzes Buch würfelt nur mit dem Knoten. Gerüchteküche und Verschwiegen wirken erst mit 3c. | 08.11.2026 |
+| KI | `KiRivale.Lebensweise()` in der Politikstunde (Spiel-KI, hier mitgebaut): freie Punkte sofort in den Knoten mit dem höchsten Gewicht `ki` (alle 1), dann Reihe, dann Spalte; Pfad = höchstes Talent + 1 je passendem − 1 je hemmendem Zug, Wechsel erst bei vollem Baum. | 08.11.2026 |
+| Spielstand | `PersonStand.Lebensweg` (Pfad, Erfahrung je Talent, Knoten), nur geschrieben, wenn die Person etwas hat. Alte Spielstände bringen ihre Daten ohne `lebensweise` mit: Lebensweise aus, alle Wirkungen neutral, keine Umrechnung (Test: laden, ein Jahr, speichern, laden). Datenversion 73. | 08.11.2026 |
+| Messung | `messen bericht 20 30` auf main `18c40e7a` + `7599edc3` gegen main `18c40e7a` (je 1.320 Partien): Mittel des Zuwachses 31.253 → 32.706 (+4,6 %), Berufe 8/10 im Band (Dieb −16,8 %, Parfumeur +16,4 %; main 10/10 mit ±14,2 %), KI ÷ Bezug 1,27 → 1,21, „Schwer“ 1,69 → 1,96, Karren in Not 3 → 0. Völker nach 40 Jahren (`--teile=2`): Menschen +8 bis +10 %, Elben +7 bis +9 %, Zwerge +4 bis +5 %, Halblinge +1 bis +6 % – Elben und Zwerge ziehen nicht davon, der Halbling-Schmied fällt gegen den Menschen auf −13,4 % (main −5,5 %). Nachsteuern entscheidet der Nutzer (Offen). Einzelheiten in WIRTSCHAFTSMODELL „Lebensweise“. | 08.11.2026 |
+| Andockstellen 3b/3c | Stress-Faktoren auf die Erfahrung: `Familienbuch.ErfahrungFaktor(p, pfad)`. Geheimnisse: `LebenswegWirkung.Geruechte` und `GeheimnisSchutz` stehen bereit. | 08.11.2026 |
 
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
-
-### Blitzschlag im Gewitter (PR #288)
-
-| Frage | Entscheidung |
-|---|---|
-| Wetter im Kern | Der Plan der Lagen (`Zeit/Wetterplan.cs`) zog aus `game/scripts/Wetter.cs` in den Kern, mit `Zufallsquelle` statt `Random` – dieselben Zahlen (Test gegen den alten Ablauf); die Darstellung mischt weiter die Bildwerte. |
-| Wann | Je Gewitter-Abschnitt ein Wurf in seiner Mitte (das Gewitter steht über der Stadt), Chance 0,25 (Teamleiter: etwa jedes 3.–5. Gewitter). |
-| Zufall | Je Gewitter eine eigene `Zufallsquelle` mit Startwert aus Partie-Startwert und Minute (durchmischt mit `Zugwuerfel.Mischen`) (wie der Wetterplan): kein Wurf eines anderen Generators verschoben, kein Feld im Spielstand. Abweichung von „aus der gemeinsamen Zufallsquelle“, gleich deterministisch. |
-| Ziel | Jedes Gebäude der Karte und jeder Neubau außer Markt, Fels, Feld, Wald, Bauplatz, Baustelle; Gewicht Höhe + Boden über dem Mittel (linear, Teamleiter 2.11.2026; zum Quadrat bekamen Kirchen zwei Drittel), Höhen in `blitz.hoehen` (Dom 55 m, Kirche 40 m, Haus 8–13 m). Häuser der Spieler eingeschlossen. Kein Überspringen. |
-| Dauer | 60–180 Spielminuten (`blitz.dauerMinuten`). |
-| Schaden (Platzhalter) | Werkstatt: `Sabotieren(stillstandMinuten = 300)` ab dem Einschlag, Arbeit ruht also auch während des Brandes; Wohnhaus: `WohnhausInstandBis` = Ende + 1.140 Minuten (Ansehen fehlt). Reparatursummen 0 (Felder `reparatur`, `wohnhausReparatur` vorhanden). Andere Gebäude nur im Bild. |
-| Spielstand | Unverändert. Laufende Feuer rechnet der Kern nach dem Laden aus dem Plan nach (`Einschlaege`, nur fürs Bild; auch Feuer des Vorjahres, die über 23 Uhr hinaus brennen); Gleichheitstest mit Ladepunkten im Brand, verglichen werden Minute und Text jeder Meldung „Blitzschlag!“. Grenze: Das nachgerechnete Ziel folgt dem Zustand beim Laden – wurde dazwischen gebaut oder ausgebaut, kann das Bild ein anderes Haus brennen lassen (der Schaden im Kern bleibt richtig). |
-| Datenversion | 68 (nach #286 und #287 mit 66 und 67; im Branch zuvor 69). |
-| Messung | Main 4220c631 + Branch, linear und durchmischt, je 10 Startwerte, 20 Jahre: Greybox und Köln je 17 Einschläge in 200 Jahren (1,7 je Partie); Kirchen und Dom 24 % (vorher zum Quadrat 69 %), Wohnhäuser 44 %, das Haus des Spielers einmal, KI-Werkstätten zweimal; Vermögen nur verrauscht (WIRTSCHAFTSMODELL „Blitzschlag im Gewitter“). |
-
-### Karren-Höchstzahl je Arbeitsort (PR #286)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Regel | Entscheidung des Nutzers (2.11.2026): Ein Umlandbetrieb darf bis zu **5** Karren haben, eine Werkstatt in der Stadt **3**. Neu in `wirtschaft.json`: `logistik.karrenHoechstens` = `{ "Werkstatt": 3, "Umland": 5 }`, **Datenversion 66**. Gilt für Spieler und KI gleich: `Stadtwirtschaft.KarrenKaufVerboten(b)` (Kern), `KarrenKaufen` lehnt mit Grund ab. Vorher gab es im Kern keine Grenze (nur die KI hielt sich an `KiProfil.MaxKarrenJeBetrieb` = 3) – für den Spieler ist die Grenze von 3 in der Stadt also neu; begründet: dieselbe Regel für alle, und in der Stadt liegen die Werkstätten nahe am Markt. Ohne Eintrag (alte Daten, alte Spielstände mit ihren Daten) keine Grenze, ein Stand mit mehr Karren lädt unverändert (nur weiterer Kauf ist gesperrt). | 2.11.2026 |
-| Oberfläche | `BetriebsVerwaltung`: Der Knopf „Kaufen“ ist an der Grenze gesperrt, der Grund steht im Tooltip (vorher keine Annahme einer festen Zahl; die Karrenzeilen sind dynamisch). | 2.11.2026 |
-| KI | Die KI hält sich an dieselbe Grenze (Einzelheiten in `docs/bereiche/spiel-ki.md`, „Karren-Höchstzahl“). | 2.11.2026 |
-| Tests | `KarrenHoechstzahlTests` (Daten und Prüfung, Spieler im Umland bis 5 und in der Stadt bis 3, alte Daten ohne Grenze, KI kauft am gebremsten Holzschlag einen vierten und tauscht erst an der Grenze von 5); Datenversion 66 in den Tests, die sie nennen; `KiUmlandTests` mit 5 erlaubten Karren (Schätzung beim Pachten weiter mit 3). Messung in `docs/bereiche/spiel-ki.md` („Karren-Höchstzahl: Umland bis 5 Karren“). | 2.11.2026 |
 
 ### Sitzplätze der Schänken (PR #287)
 
