@@ -139,6 +139,7 @@ public partial class Stadtansicht
         Ladezeit.Teil("BodenLegen", () => BodenLegen(karte));
         Ladezeit.Marke("Szene: Boden und Gelände");
         yield return new Ladeschritt(0.2f, "Die Stadtmauer wird hochgezogen …");
+        FelderVorrechnen(karte); // die Äcker rechnen im Hintergrund, während der Hauptfaden Mauern, Markt, Wege und Natur lädt; erst nach dem Boden, dessen Kacheln selbst alle Kerne brauchen (Stadtansicht.Rand.cs)
         Ladezeit.Teil("Sockel", () => { foreach (var g in karte.Gebaeude.Where(g => g.Art is not (Bausteinart.Wohnhausplatz or Bausteinart.Einwohnerplatz))) GebaeudeSockel(g); }); // Häuser bekommen ihren Sockel selbst
         Ladezeit.Teil("Mauern", () => { foreach (var mauer in karte.Mauern) MauerAusKarte(mauer); });
         Ladezeit.Marke("Szene: Sockel und Mauern");

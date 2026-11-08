@@ -59,8 +59,9 @@ public partial class Stadtansicht
     {
         Lichtart.Fackel => (new Vector3(0, 0.5f, 0), FeuerVorgabe.Fackel, 0.85f),
         Lichtart.Feuerkorb => (new Vector3(0, 2.04f, 0), FeuerVorgabe.Feuerkorb, 1f),
-        Lichtart.Handlaterne => (new Vector3(0, -0.25f, 0), FeuerVorgabe.Laterne, 0.9f),
-        Lichtart.Wandlaterne => (new Vector3(0, -0.55f, -0.58f), FeuerVorgabe.Laterne, 1.3f),
+        // Das Horn der Handlaterne reicht von −0,30 bis −0,13 m (Blender: `lichter.py`), das der Wandlaterne von −0,62 bis −0,34 m: die Flamme füllt etwa zwei Drittel
+        Lichtart.Handlaterne => (new Vector3(0, -0.285f, 0), FeuerVorgabe.Laterne, 1.0f),
+        Lichtart.Wandlaterne => (new Vector3(0, -0.6f, -0.58f), FeuerVorgabe.Laterne, 1.5f),
         _ => null,
     };
 

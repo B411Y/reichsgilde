@@ -27,7 +27,7 @@ Nur **kern** ändert `wirtschaft.json`, `Stadtwirtschaft.cs` und `Speicherstand.
 
 ## Feste Regeln
 
-- **Mergen** (Nutzer, 19.10.2026; Bot-Konto und Schutzregel 28.10.2026): Claude arbeitet auf GitHub mit einem eigenen Bot-Konto, nicht mit dem des Nutzers. Schutzregel auf `main`: nur per PR, drei CI-Prüfungen Pflicht, Freigabe der Code-Besitzer für die Pfade in `.github/CODEOWNERS` (u. a. `wirtschaft.json`, `Speicherstand*.cs`, `CLAUDE.md`, `.github/`, `.claude/`). Der Nutzer darf an der Regel vorbei mergen, der Bot nicht. Nach `main` mergt nur der Teamleiter (Ablauf in `.claude/teamleiter.md`); PRs mit geschützten Dateien gibt der Nutzer frei und mergt selbst. **Kein Auto-merge** (auch nicht `gh pr merge --auto`): ohne Klicktest nichts nach `main`.
+- **Mergen** (Nutzer, 08.11.2026, „Einbahnstraße“): Mitglieder arbeiten nur lokal und pushen nie; auf GitHub ist immer nur **ein** PR offen. Der Teamleiter mergt alle PRs selbst (auch mit geschützten Dateien), sobald die 3 Pflichtprüfungen grün sind und Klicktest bzw. Prüfer erledigt; push, PR und Merge führt nur der Push-Agent aus. Verboten: `--admin`, `--auto`, `--delete-branch`, Force-Push, `gh api`. **Kein Auto-merge:** ohne Klicktest nichts nach `main`. Ablauf in `.claude/teamleiter.md`.
 - **Nichts aus dem Original-Spiel** (Grafiken, Sounds, Musik, Texte, Modelle); es ist nur Vorbild für Mechaniken. **Mechanik-Katalog** und **Design-Dossier** kommen **nie** ins Repository.
 - Spieltag 04:00–23:00 Uhr (1140 Ticks = 1 Spieljahr, im Code nur über die `Spielzeit`-Konstanten), Arbeitszeit 8–20 Uhr (Wirtshaus 8–22 Uhr), Gauner ab 20 Uhr.
 - Bezeichner deutsch, Umlaute umschrieben (`Waehrung`), deutsche Kommentare. Antworten an den Nutzer deutsch, kurz, ohne Emojis.
@@ -51,6 +51,7 @@ dotnet build Reichsgilde.sln
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests     # alle Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --filter=Taschendieb,Nachtgang   # nur passende Tests
 dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --ohne-langsam                   # alle außer den langsamen
+dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --parallel                       # Klassen gleichzeitig (nur lokal; vor dem PR einmal seriell)
 ```
 
 **Gezielt testen:** Während der Arbeit nur die betroffenen Tests (`--filter=<Muster>` gegen Klassen- und Testname, Komma für mehrere, `*` als Platzhalter; `--klasse=<Name>`; `--ohne-langsam`; `--liste` zeigt die Auswahl, `--zeiten` die langsamsten; `-- --hilfe` alle Schalter). Vor dem PR bzw. dem Abschlussbericht **einmal alle Tests** ohne Schalter – so prüft auch die CI.

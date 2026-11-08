@@ -815,6 +815,39 @@ public partial class Stadtansicht
         return _herdfeuer;
     }
 
+    /// <summary>
+    /// Das Feuer unter einem Kessel (Braukessel, Brennblase, Kessel des Alchimisten und des Parfumeurs): wie das Herdfeuer, aber höher und breiter, damit die Zungen
+    /// den Boden des Kessels belecken und aus der normalen Spielkamera (Pixel-Look, Zoom 25 und 50) als Feuer zu erkennen sind (Nutzer 08.11.2026: vorher kaum zu sehen).
+    /// </summary>
+    private static FeuerArt? _kesselfeuer;
+    private static FeuerArt Kesselfeuer()
+    {
+        if (_kesselfeuer is not null) return _kesselfeuer;
+        _kesselfeuer = (FeuerArt)Herdfeuer().Duplicate();
+        _kesselfeuer.Bezeichnung = "Kessel";
+        _kesselfeuer.Hoehe = 0.58f;
+        _kesselfeuer.Breite = 0.38f;
+        _kesselfeuer.Zungen = 5;
+        _kesselfeuer.Radius = 0.26f;
+        _kesselfeuer.Flackern = 0.3f;
+        _kesselfeuer.Helligkeit = 1.45f;
+        _kesselfeuer.Toenung = new Color(1.0f, 0.9f, 0.8f);
+        _kesselfeuer.Funken = 4;
+        _kesselfeuer.FunkenHoehe = 3.2f;
+        return _kesselfeuer;
+    }
+
+    /// <summary>Gehört das Teil zu einem Kessel, einer Brennblase oder einem Herd mit Kessel (sein Name oder der eines Elternknotens, etwa <c>Bedienung_Produktion_Kessel</c>, <c>Braukessel</c>, <c>Brennblase</c>, <c>Bedienung_Produktion_Herd</c>)?</summary>
+    private static bool IstKesselTeil(Node3D wurzel, Node teil)
+    {
+        for (var k = teil; k is not null && k != wurzel; k = k.GetParent())
+        {
+            var name = k.Name.ToString();
+            if (name.Contains("kessel", StringComparison.OrdinalIgnoreCase) || name.Contains("Brennblase", StringComparison.OrdinalIgnoreCase) || name.EndsWith("_Herd", StringComparison.Ordinal)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Das Feuer eines Kamins im Raum: mittelgroß, mit drei Zungen über dem Glutbett, ein paar Funken und nur einem Hauch Rauch (der Rauch steigt durch den Rauchfang).</summary>
     private static FeuerArt? _kaminfeuer;
     private static FeuerArt Kaminfeuer()
@@ -841,11 +874,12 @@ public partial class Stadtansicht
     /// Feuer: Sie werden aus dem Netz herausgenommen (ganze Netze nur unsichtbar), und aus jeder Gruppe wird die Mitte des Kamins gemerkt (Ort im Raum des Modells, Höhe des Glutbetts).
     /// Muss vor <see cref="InnenModellStoffe"/> laufen, weil ein neues Netz die Überschreibung der Materialien neu anfängt.
     /// </summary>
-    private sealed record Altflammen(List<(Vector3 Ort, MeshInstance3D Teil)> Kamine, List<(Vector3 Ort, float Hoehe, MeshInstance3D Teil)> Kerzen, List<(Vector3 Ort, float Breite, MeshInstance3D Teil)> Loecher);
+    private sealed record Altflammen(List<(Vector3 Ort, MeshInstance3D Teil)> Kamine, List<(Vector3 Ort, float Hoehe, MeshInstance3D Teil)> Kerzen, List<(Vector3 Ort, float Breite, MeshInstance3D Teil)> Loecher,
+        List<(Vector3 Ort, MeshInstance3D Teil)> Laternen);
 
     private static Altflammen KegelflammenErsetzen(Node3D wurzel)
     {
-        var alt = new Altflammen(new(), new(), new());
+        var alt = new Altflammen(new(), new(), new(), new());
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not { } netz) continue;
@@ -856,7 +890,8 @@ public partial class Stadtansicht
                 var kegel = teile.Where(IstKegelflamme).ToList();
                 var kerzen = teile.Where(IstKerzenflamme).ToList();
                 var loecher = teile.Where(IstFeuerloch).ToList();
-                if (kegel.Count + kerzen.Count + loecher.Count == 0) continue;
+                var scheiben = teile.Where(IstLaternenscheibe).ToList();
+                if (kegel.Count + kerzen.Count + loecher.Count + scheiben.Count == 0) continue;
                 if (kegel.Count > 0)
                 {
                     var mitte = kegel.Aggregate(Vector3.Zero, (summe, k) => summe + k.Mitte) / kegel.Count;
@@ -869,7 +904,10 @@ public partial class Stadtansicht
                     var vorn = l.Groesse.X < l.Groesse.Z ? new Vector3(Mathf.Sign(l.Normale.X), 0, 0) : new Vector3(0, 0, Mathf.Sign(l.Normale.Z));
                     alt.Loecher.Add((new Vector3(l.Mitte.X, l.Min.Y + 0.02f, l.Mitte.Z) + vorn * 0.05f, Mathf.Max(l.Groesse.X, l.Groesse.Z), teil));
                 }
-                var rest = NetzOhneBauteile(netz, i, kegel.Concat(kerzen).ToList(), loecher, Glutreste());
+                // Laternen: vier senkrechte Scheiben (0,16 × 0,23 m, ohne Deckel und Boden) um eine Mitte; sie werden durchscheinendes Horn, die Flamme steht darin
+                var laternen = LaternenGruppen(scheiben);
+                foreach (var l in laternen) alt.Laternen.Add((new Vector3(l.Mitte.X, l.MinY + 0.03f, l.Mitte.Z), teil));
+                var rest = NetzOhneBauteile(netz, i, kegel.Concat(kerzen).ToList(), (loecher, Glutreste()), (laternen.SelectMany(l => l.Scheiben).ToList(), Laternenglas()));
                 if (rest is null) teil.Visible = false; // das ganze Netz bestand aus Kegeln (Teil „Flammen“)
                 else teil.Mesh = rest;
                 break; // ein Glut-Material je Netz
@@ -877,6 +915,44 @@ public partial class Stadtansicht
         }
         return alt;
     }
+
+    /// <summary>Eine Scheibe einer Laterne im Raum: senkrecht, 0,14–0,18 m breit und 0,2–0,26 m hoch (vier davon bilden einen Körper ohne Deckel und Boden).</summary>
+    private static bool IstLaternenscheibe(Bauteil b)
+    {
+        var g = b.Groesse;
+        return Mathf.Min(g.X, g.Z) < 0.01f && Mathf.Max(g.X, g.Z) is >= 0.14f and <= 0.18f && g.Y is >= 0.2f and <= 0.26f;
+    }
+
+    /// <summary>Eine Laterne aus mindestens drei Scheiben gleicher Höhe, die um dieselbe Mitte stehen: ihre Mitte, Unterkante und die Scheiben.</summary>
+    private sealed record RaumLaterne(Vector3 Mitte, float MinY, List<Bauteil> Scheiben);
+
+    private static List<RaumLaterne> LaternenGruppen(List<Bauteil> scheiben)
+    {
+        var gruppen = new List<List<Bauteil>>();
+        foreach (var b in scheiben)
+        {
+            var gruppe = gruppen.FirstOrDefault(g => Mathf.Abs(g[0].Mitte.Y - b.Mitte.Y) < 0.02f && new Vector2(g[0].Mitte.X - b.Mitte.X, g[0].Mitte.Z - b.Mitte.Z).Length() < 0.16f);
+            if (gruppe is null) gruppen.Add(new List<Bauteil> { b });
+            else gruppe.Add(b);
+        }
+        return gruppen.Where(g => g.Count >= 3).Select(g =>
+        {
+            var mitte = g.Aggregate(Vector3.Zero, (summe, b) => summe + b.Mitte) / g.Count;
+            return new RaumLaterne(mitte, g.Min(b => b.Min.Y), g);
+        }).ToList();
+    }
+
+    private static StandardMaterial3D? _laternenglas;
+
+    /// <summary>
+    /// Das Horn einer Raumlaterne: durchscheinend (die Flamme dahinter ist zu sehen), warm getönt; die Emission stellt der Raum mit der Arbeit
+    /// (<see cref="ModellRaumDaten.Laternenglas"/>), bei der Arbeit ein sanfter Schein, sonst dunkles Horn.
+    /// </summary>
+    private static StandardMaterial3D Laternenglas() => _laternenglas ??= new StandardMaterial3D
+    {
+        ResourceName = "Laternenglas", AlbedoColor = new Color(0.55f, 0.38f, 0.18f, 0.42f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, CullMode = BaseMaterial3D.CullModeEnum.Disabled,
+        Roughness = 0.5f, EmissionEnabled = true, Emission = new Color(1f, 0.62f, 0.25f), EmissionEnergyMultiplier = 0f,
+    };
 
     /// <summary>Ein Kegel der alten Flammen: 0,10–0,20 m breit und tief, 0,25–0,60 m hoch, die Spitze nach oben.</summary>
     private static bool IstKegelflamme(Bauteil b)
@@ -908,12 +984,12 @@ public partial class Stadtansicht
     };
 
     /// <summary>
-    /// Eine Kopie des Netzes ohne die Dreiecke dieser Teile in der Fläche <paramref name="flaeche"/>; die <paramref name="umlegen"/>-Teile kommen als eigene Fläche mit
-    /// <paramref name="stoff"/> dazu (sie bleiben sichtbar, nur anders). Null, wenn nichts übrig bleibt.
+    /// Eine Kopie des Netzes ohne die Dreiecke dieser Teile in der Fläche <paramref name="flaeche"/>; die <paramref name="umlegen"/>-Teile kommen je Gruppe als eigene
+    /// Fläche mit ihrem Stoff dazu (sie bleiben sichtbar, nur anders). Null, wenn nichts übrig bleibt.
     /// </summary>
-    private static ArrayMesh? NetzOhneBauteile(Mesh netz, int flaeche, List<Bauteil> weg, List<Bauteil>? umlegen = null, Material? stoff = null)
+    private static ArrayMesh? NetzOhneBauteile(Mesh netz, int flaeche, List<Bauteil> weg, params (List<Bauteil> Teile, Material Stoff)[] umlegen)
     {
-        Godot.Collections.Array? umgelegt = null;
+        var umgelegt = new Godot.Collections.Array?[umlegen.Length];
         var kopie = new ArrayMesh();
         for (var i = 0; i < netz.GetSurfaceCount(); i++)
         {
@@ -923,19 +999,21 @@ public partial class Stadtansicht
                 var ecken = felder[(int)Mesh.ArrayType.Vertex].AsVector3Array();
                 var alt = felder[(int)Mesh.ArrayType.Index].VariantType == Variant.Type.Nil ? Enumerable.Range(0, ecken.Length).ToArray() : felder[(int)Mesh.ArrayType.Index].AsInt32Array();
                 var neu = new List<int>(alt.Length);
-                var verschoben = new List<int>();
+                var verschoben = umlegen.Select(_ => new List<int>()).ToArray();
                 bool Drin(List<Bauteil> liste, Vector3 p) => liste.Any(b => p.X >= b.Min.X - 0.002f && p.X <= b.Max.X + 0.002f && p.Y >= b.Min.Y - 0.002f && p.Y <= b.Max.Y + 0.002f && p.Z >= b.Min.Z - 0.002f && p.Z <= b.Max.Z + 0.002f);
                 for (var d = 0; d + 2 < alt.Length; d += 3)
                 {
                     var p = ecken[alt[d]];
                     if (Drin(weg, p)) continue;
-                    var ziel = umlegen is not null && Drin(umlegen, p) ? verschoben : neu;
+                    var gruppe = Array.FindIndex(umlegen, u => Drin(u.Teile, p));
+                    var ziel = gruppe >= 0 ? verschoben[gruppe] : neu;
                     ziel.Add(alt[d]); ziel.Add(alt[d + 1]); ziel.Add(alt[d + 2]);
                 }
-                if (verschoben.Count > 0)
+                for (var g = 0; g < verschoben.Length; g++)
                 {
-                    umgelegt = (Godot.Collections.Array)felder.Duplicate();
-                    umgelegt[(int)Mesh.ArrayType.Index] = verschoben.ToArray();
+                    if (verschoben[g].Count == 0) continue;
+                    umgelegt[g] = (Godot.Collections.Array)felder.Duplicate();
+                    umgelegt[g]![(int)Mesh.ArrayType.Index] = verschoben[g].ToArray();
                 }
                 if (neu.Count == 0) continue;
                 felder[(int)Mesh.ArrayType.Index] = neu.ToArray();
@@ -943,10 +1021,11 @@ public partial class Stadtansicht
             kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, felder);
             kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, netz.SurfaceGetMaterial(i));
         }
-        if (umgelegt is not null)
+        for (var g = 0; g < umgelegt.Length; g++)
         {
-            kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, umgelegt);
-            kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, stoff);
+            if (umgelegt[g] is not { } felder) continue;
+            kopie.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, felder);
+            kopie.SurfaceSetMaterial(kopie.GetSurfaceCount() - 1, umlegen[g].Stoff);
         }
         return kopie.GetSurfaceCount() == 0 ? null : kopie;
     }
@@ -965,7 +1044,7 @@ public partial class Stadtansicht
     /// </summary>
     private void InnenFlammenAnlegen(ModellRaumDaten md, Node3D wurzel, string datei, bool dauerfeuer, Altflammen alt, bool immer = false)
     {
-        int kerzen = 0, essen = 0, loecher = 0;
+        int kerzen = 0, essen = 0, loecher = 0, laternen = 0;
         void Einhaengen(Feuer flamme, MeshInstance3D teil, Vector3 ort, bool ruhend)
         {
             // Im Raum blickt die Kamera nur leicht von oben: aufrecht stehende Flammen (nur um die Hochachse gedreht), sonst neigt sich die Fläche
@@ -1006,10 +1085,19 @@ public partial class Stadtansicht
         // Feuerlöcher: eine Flamme in der Öffnung, so breit wie sie
         foreach (var (lochOrt, lochBreite, lochTeil) in alt.Loecher)
         {
-            var flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(loecher + 5, 33) & 0xFFFF) / 65535f, Mathf.Clamp(lochBreite / 0.22f, 0.7f, 1.5f));
-            flamme.Art = Herdfeuer();
+            var kessel = IstKesselTeil(wurzel, lochTeil);
+            var flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(loecher + 5, 33) & 0xFFFF) / 65535f, Mathf.Clamp(lochBreite / (kessel ? 0.26f : 0.22f), 0.7f, 1.5f));
+            flamme.Art = kessel ? Kesselfeuer() : Herdfeuer();
             Einhaengen(flamme, lochTeil, lochOrt, false);
             loecher++;
+        }
+
+        // Laternen: ein Flämmchen im Horn (wie die Handlaternen der Stadt), es brennt wie die Glut
+        foreach (var (laternenOrt, laternenTeil) in alt.Laternen)
+        {
+            var flamme = Feuer.Neu(FeuerVorgabe.Laterne, false, (Streuung(laternen + 13, (int)(laternenOrt.X * 1000)) & 0xFFFF) / 65535f, 1.2f);
+            Einhaengen(flamme, laternenTeil, laternenOrt, false);
+            laternen++;
         }
 
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
@@ -1027,9 +1115,10 @@ public partial class Stadtansicht
                     if (flach && !AmKamin(kamine, wurzel, teil, b))
                     {
                         // Glutbett einer Esse oder eines Herds: niedrige Flammen über der Mitte
-                        flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(essen + 3, 77) & 0xFFFF) / 65535f, Mathf.Clamp(Mathf.Min(g.X, g.Z) / 0.75f, 0.9f, 1.25f));
-                        flamme.Art = Herdfeuer();
-                        ort = new Vector3(b.Mitte.X, b.Max.Y, b.Mitte.Z);
+                        var kessel = IstKesselTeil(wurzel, teil);
+                        flamme = Feuer.Neu(FeuerVorgabe.Esse, false, (Streuung(essen + 3, 77) & 0xFFFF) / 65535f, Mathf.Clamp(Mathf.Min(g.X, g.Z) / 0.75f, 0.9f, kessel ? 1.35f : 1.25f));
+                        flamme.Art = kessel ? Kesselfeuer() : Herdfeuer();
+                        ort = new Vector3(b.Mitte.X, b.Max.Y + (kessel ? 0.07f : 0f), b.Mitte.Z); // unter dem Kessel liegt Holz auf der Glut: die Zungen beginnen darüber
                         essen++;
                     }
                     if (flamme is null) continue;
@@ -1037,7 +1126,7 @@ public partial class Stadtansicht
                 }
             }
         }
-        if (kamine.Count + kerzen + essen + loecher > 0) GD.Print($"[feuer] Raum {datei}: {kamine.Count} Kamine, {kerzen} Kerzen, {essen} Essen, {loecher} Feuerlöcher mit Flamme");
+        if (kamine.Count + kerzen + essen + loecher + laternen > 0) GD.Print($"[feuer] Raum {datei}: {kamine.Count} Kamine, {kerzen} Kerzen, {essen} Essen, {loecher} Feuerlöcher, {laternen} Laternen mit Flamme");
     }
 
     /// <summary>Liegt das flache Glutbett am Fuß eines Kamins (höchstens 0,8 m neben seiner Mitte)? Dann brennt dort das Kaminfeuer und keine Esse.</summary>
