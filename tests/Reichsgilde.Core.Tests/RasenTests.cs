@@ -75,6 +75,27 @@ static class RasenTests
             Pruefe.Wahr(saum.Gewicht(0, 10, Bodentextur.Erde) > 60, "am Rand Erde");
         }),
 
+        ("Rasen: Ein großer Einzug oder Saum (tiefer als 4 m) stempelt überall gleich – keine Stufe an der Suchzelle", () =>
+        {
+            // Quadrat 20,1 … 40,1 (nicht auf dem Raster): Mitte 30 m, 10 m tief
+            var ein = new Bodenraster();
+            ein.Stempeln(Quadrat(3.9, 3.9, 33.9, 33.9), new Bodenstempel(Bodentextur.Erde, 1, 1, 0, 0, 1, Einzug: 6));
+            for (var i = 5; i <= 33; i++) // tiefer als 6 m innen: voll, flacher: nichts
+            {
+                var tiefe = Math.Min(Math.Min(i - 3.9, 33.9 - i), 15);
+                Pruefe.Wahr(tiefe < 5.4 ? ein.Gewicht(i, 18, Bodentextur.Erde) == 0 : tiefe > 6.6 ? ein.Gewicht(i, 18, Bodentextur.Erde) == 255 : true, $"Einzug 6: Punkt {i} (Tiefe {tiefe:F1})");
+            }
+            var saum = new Bodenraster();
+            saum.Stempeln(Quadrat(3.9, 3.9, 33.9, 33.9), new Bodenstempel(Bodentextur.Erde, 1, 1, 0, 0, 1, Saum: 4));
+            var vorher = 999;
+            for (var i = 5; i <= 19; i++) // (ab 1 m Tiefe, am Umriss selbst hält der weiche Rand die Deckung halb) nach innen nie wieder stärker: keine Stufe (vorher sprang es bei 4 m Tiefe von 224 auf 0)
+            {
+                var g = (int)saum.Gewicht(i, 18, Bodentextur.Erde);
+                Pruefe.Wahr(g <= vorher, $"Saum 4: Punkt {i} nicht stärker als der davor ({g} > {vorher})");
+                vorher = g;
+            }
+        }),
+
         ("Rasen: Der Pfad liegt in der Fläche, kommt von der Seite des Weges und ist fest", () =>
         {
             // 8 × 4 m, der Weg südlich (z = −5): Der Pfad läuft von Süd nach Nord quer durch

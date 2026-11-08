@@ -67,7 +67,8 @@ public sealed partial class Bodenraster
             }
         }
         // Stücke in Zellen sortieren (Seite mindestens die Reichweite): gefragt wird nur die Nachbarschaft
-        var zelle = Math.Max(4, Math.Ceiling(reichweite));
+        // (Einzug und Saum reichen tiefer in die Fläche: sie zählen mit, sonst fände die Suche die nächste Kante nicht mehr)
+        var zelle = Math.Max(4, Math.Ceiling(reichweite + Math.Max(0, s.Einzug) + Math.Max(0, s.Saum) * 1.4));
         var zellen = new Dictionary<(int, int), List<int>>();
         for (var n = 0; n < stuecke.Count; n++)
         {
