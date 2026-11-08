@@ -1329,6 +1329,7 @@
     "briefe": [150, 400],
     "vorarbeiterJeBetrieb": 1,
     "startJeBetrieb": 1,
+    "handgeld": 100,
     "eigenesVolk": 0.6,
     "frauen": 0.15,
     "namen": {

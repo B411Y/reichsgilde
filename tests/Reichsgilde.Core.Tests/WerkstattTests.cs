@@ -315,7 +315,7 @@ static class WerkstattTests
             JahreSimulieren(sim, 2); // nach einem Spieltag ist sie verflogen
             Pruefe.Ungefaehr(50, w.Werkstaetten.LauneZiel(g, g.ArbeiterNr(1)!), 1e-12);
             Pruefe.Wahr(g.Arbeiter.All(a => a.Laune == 50), string.Join(", ", g.Arbeiter.Select(a => a.Laune)));
-            var arm = w.KontoEroeffnen("Haus Arm", startvermoegen: 10);
+            var arm = w.KontoEroeffnen("Haus Arm", startvermoegen: 10 + w.Personal.Handgeld("Lehrling")); // nach dem Handgeld (Datenversion 73) bleiben 10
             var ga = w.BetriebEroeffnen("Gießerei Arm", Betriebsart.Giesserei, arm, startkarren: "");
             Abgelehnt(w, arm, new PraemieZahlen(ga.Name), "arbeitet niemand");
             Ok(w, arm, new PersonalSetzen(ga.Name, "Lehrling", 1));

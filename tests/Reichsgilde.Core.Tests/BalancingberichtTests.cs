@@ -98,7 +98,8 @@ static class BalancingberichtTests
             Pruefe.Gleich("Giesserei,Schmiede,Goldschmiede", string.Join(",", Balancingbericht.Stufen(daten, "Schmied")));
             var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1, Einrichtung: "Werkzeug1,Blasebalg"), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
-            Pruefe.Ungefaehr(4000 - 650, r.Spieler.StartBar, 1e-6);
+            // der KI-geführte Spieler stellt beim Anmelden ein und zahlt je Neuem das Handgeld (Datenversion 73)
+            Pruefe.Ungefaehr(4000 - 650 - daten.Personal!.Handgeld * (r.Spieler.StartArbeiter - daten.Personal.StartJeBetrieb!.Value), r.Spieler.StartBar, 1e-6);
         }),
 
         ("Messstadt: 9 Werkstatt- und 9 Wohnhausplätze, 8 KI-Häuser, 17 Umlandbetriebe; eine Partie mit 8 Häusern und Geist läuft", () =>
