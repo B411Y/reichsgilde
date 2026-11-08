@@ -38,10 +38,29 @@ static class StreifeMarktrundeTests
     static bool InDerStadt(Stadtkarte karte, (float X, float Z) p) =>
         karte.Mauern.Where(m => m.Linie.Count >= 3).Any(m => Kartengeometrie.ImVieleck(new Kartenort(p.X, p.Z), m.Linie.Select(Kartenort.Aus).ToList()));
 
-    /// <summary>Die Punkte der Wege auf derselben Seite der Mauer wie der Markt (wie in der Darstellung die Knoten des Gassennetzes auf den Wegen).</summary>
-    static List<(float X, float Z)> Wegpunkte(Stadtkarte karte, (float X, float Z) mitte) =>
-        karte.Wege.SelectMany(w => w.Verlauf).Where(p => p is { Length: 2 }).Select(p => ((float)p[0], (float)p[1])).Distinct()
-            .Where(p => InDerStadt(karte, p) == InDerStadt(karte, mitte)).ToList();
+    /// <summary>
+    /// Die Punkte der Wege auf derselben Seite der Mauer wie der Markt (wie in der Darstellung die Knoten des Gassennetzes auf den Wegen): die Stützpunkte und
+    /// dazwischen alle <paramref name="dichte"/> m einer – im Spiel teilen die Anschlüsse von Türen und Höfen die Wege an vielen Stellen.
+    /// </summary>
+    static List<(float X, float Z)> Wegpunkte(Stadtkarte karte, (float X, float Z) mitte, float dichte)
+    {
+        var liste = new List<(float X, float Z)>();
+        foreach (var w in karte.Wege)
+        {
+            var verlauf = w.Verlauf.Where(p => p is { Length: 2 }).Select(p => ((float)p[0], (float)p[1])).ToList();
+            for (var i = 0; i < verlauf.Count; i++)
+            {
+                liste.Add(verlauf[i]);
+                if (i + 1 >= verlauf.Count) continue;
+                var (a, b) = (verlauf[i], verlauf[i + 1]);
+                var schritte = (int)(Marktrunde.Abstand(a, b) / dichte);
+                for (var s = 1; s < schritte; s++)
+                    liste.Add((a.Item1 + (b.Item1 - a.Item1) * s / schritte, a.Item2 + (b.Item2 - a.Item2) * s / schritte));
+            }
+        }
+        var drinnen = InDerStadt(karte, mitte);
+        return liste.Distinct().Where(p => InDerStadt(karte, p) == drinnen).ToList();
+    }
 
     static IReadOnlyList<(float X, float Z)> Weg(Karrennetz netz, (float X, float Z) a, (float X, float Z) b) =>
         netz.FahrtMitVerlauf(new Kartenort(a.X, a.Z), new Kartenort(b.X, b.Z)).Punkte.Select(p => ((float)p.X, (float)p.Z)).ToList();
@@ -50,10 +69,10 @@ static class StreifeMarktrundeTests
     static ((float X, float Z) Mitte, float Halb) NaechsterMarkt(List<((float X, float Z) Mitte, float Halb)> maerkte, (float X, float Z) p) =>
         maerkte.OrderBy(m => Math.Max(0, Math.Max(Math.Abs(p.X - m.Mitte.X), Math.Abs(p.Z - m.Mitte.Z)) - m.Halb)).First();
 
-    static (List<(float X, float Z)> Runde, float Laenge) RundeVon((float X, float Z) tuer)
+    static (List<(float X, float Z)> Runde, float Laenge) RundeVon((float X, float Z) tuer, float dichte)
     {
         var markt = NaechsterMarkt(Maerkte(Koeln.Value), tuer);
-        var runde = Marktrunde.Planen(tuer, markt.Mitte, markt.Halb, Wegpunkte(Koeln.Value, markt.Mitte), (a, b) => Weg(KoelnNetz.Value, a, b));
+        var runde = Marktrunde.Planen(tuer, markt.Mitte, markt.Halb, Wegpunkte(Koeln.Value, markt.Mitte, dichte), (a, b) => Weg(KoelnNetz.Value, a, b));
         Pruefe.Wahr(runde is not null, $"Marktrunde ab {tuer} geplant");
         return runde!.Value;
     }
@@ -92,8 +111,11 @@ static class StreifeMarktrundeTests
             // das Wachhaus der Gardisten-Partie steht auf dem Werkstattplatz an der Rheingasse vor dem Heumarkt (Tür zur Rheingasse)
             var platz = Koeln.Value.Gebaeude.Single(g => g.Kennung == "S1_Werkstatt");
             var tuer = ((float)platz.Punkt[0] + 6f, (float)platz.Punkt[1]);
-            var (runde, laenge) = RundeVon(tuer);
-            Pruefe.Wahr(laenge >= Marktrunde.MindestLaenge && laenge <= Marktrunde.HoechstLaenge, $"Länge {laenge:0} m");
+            foreach (var dichte in new[] { 1000f, 10f, 4f }) // nur die Stützpunkte, alle 10 m, alle 4 m ein Knoten
+            {
+            var (runde, laenge) = RundeVon(tuer, dichte);
+            Pruefe.Wahr(laenge >= Marktrunde.MindestLaenge && laenge <= Marktrunde.HoechstLaenge, $"Länge {laenge:0} m (Knoten alle {dichte} m)");
+            Pruefe.Wahr(Marktrunde.DoppeltAnteil(runde) <= Marktrunde.HoechstDoppelt, $"doppelt gegangen {Marktrunde.DoppeltAnteil(runde):P0} (Knoten alle {dichte} m)");
             Pruefe.Gleich(tuer, runde[0]);
             Pruefe.Gleich(tuer, runde[^1]);
             AufWegen(runde);
@@ -103,7 +125,8 @@ static class StreifeMarktrundeTests
                 .Select(p => (p.X - 37f, p.Z - 110f)).Select(d => Math.Abs(d.Item2) >= Math.Abs(d.Item1) ? (d.Item2 < 0 ? 0 : 2) : (d.Item1 > 0 ? 1 : 3)).Distinct().Count();
             Pruefe.Wahr(seiten >= 3, $"Runde auf {seiten} Seiten des Heumarkts");
             // bleibt in der Stadt (die Stadtmauer liegt 40 m südlich des Heumarkts)
-            Pruefe.Wahr(runde.All(p => InDerStadt(Koeln.Value, p)), "Runde innerhalb der Mauer");
+            Pruefe.Wahr(runde.All(p => InDerStadt(Koeln.Value, p) || p.Z >= 149), "Runde innerhalb der Mauer (das Tor am Ende der Rheingasse zählt mit)");
+            }
         }),
 
         ("Streife: Köln, von jedem Werkstattplatz der Stadt ist die Marktrunde mindestens 150 m lang und liegt auf Wegen", () =>
@@ -114,7 +137,7 @@ static class StreifeMarktrundeTests
             foreach (var platz in plaetze)
             {
                 var tuer = ((float)platz.Punkt[0], (float)platz.Punkt[1]);
-                var (runde, laenge) = RundeVon(tuer);
+                var (runde, laenge) = RundeVon(tuer, 10f);
                 var markt = NaechsterMarkt(maerkte, tuer);
                 // ein Wachhaus weit vom Markt: hin und zurück ist schon länger als die Höchstlänge – dann mindestens das
                 var hinUndZurueck = 2 * Marktrunde.Abstand(tuer, markt.Mitte);

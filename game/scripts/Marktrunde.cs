@@ -8,7 +8,8 @@ namespace Reichsgilde;
 /// <para><b>Regel</b>: Die Runde umläuft den Markt. Um den Platz herum liegen vier Seiten (Norden, Osten, Süden, Westen, je nachdem, ob ein
 /// Punkt mehr quer oder mehr längs vom Platz liegt); auf jeder Seite wird der äußerste Wegpunkt innerhalb eines Ringes gewählt. Die Streife geht
 /// von der Tür zur nächsten Seite, reihum über die übrigen und zurück zur Tür, jedes Stück auf dem kürzesten Weg des Netzes. Ist die Runde
-/// kürzer als <see cref="MindestLaenge"/> oder berührt sie weniger als <see cref="MindestSeiten"/> Seiten, wird der Ring weiter (<see cref="Ringe"/>);
+/// kürzer als <see cref="MindestLaenge"/>, berührt sie weniger als <see cref="MindestSeiten"/> Seiten oder geht sie mehr als <see cref="HoechstDoppelt"/>
+/// ihrer Länge zweimal (dieselbe Gasse hin und zurück), wird der Ring weiter (<see cref="Ringe"/>);
 /// länger als <see cref="HoechstLaenge"/> wird sie nur, wenn es nicht anders geht (Wachhaus weit vom Markt). Wegpunkte außerhalb der Mauer gibt der
 /// Aufrufer gar nicht erst mit (die Streife bleibt auf der Seite der Mauer, auf der der Markt liegt).</para>
 /// <para>Keine Regel des Kerns, kein Zufall: dieselbe Karte ergibt dieselbe Runde.</para>
@@ -33,30 +34,61 @@ public static class Marktrunde
     public static (List<(float X, float Z)> Runde, float Laenge)? Planen((float X, float Z) tuer, (float X, float Z) mitte, float halb,
         IReadOnlyList<(float X, float Z)> wegpunkte, Func<(float X, float Z), (float X, float Z), IReadOnlyList<(float X, float Z)>> weg)
     {
-        var versuche = new List<(List<(float X, float Z)> Runde, float Laenge, int Seiten)>();
+        var versuche = new List<(List<(float X, float Z)> Runde, float Laenge, int Seiten, float Doppelt)>();
         List<(float X, float Z)>? vorher = null;
         foreach (var ring in Ringe)
         {
             var halte = Haltepunkte(tuer, mitte, halb, halb + ring, wegpunkte);
             if (halte.Count == 0 || (vorher is not null && halte.SequenceEqual(vorher))) continue; // dieselben Punkte wie im engeren Ring
             vorher = halte;
-            // reihum in beiden Richtungen (beginnend an der Seite nahe der Tür); die kürzere, die noch lang genug ist – so läuft die Streife einen Ring statt
-            // eine Gasse hin und zurück
-            var andersherum = halte.Take(1).Concat(Enumerable.Reverse(halte).SkipLast(1)).ToList();
-            var wahlen = new List<((List<(float X, float Z)> Runde, float Laenge) Runde, int Seiten)>();
-            if (Zusammensetzen(tuer, halte, weg, out var seitenA) is { } a) wahlen.Add((a, seitenA));
-            if (halte.Count > 2 && Zusammensetzen(tuer, andersherum, weg, out var seitenB) is { } b) wahlen.Add((b, seitenB));
-            if (wahlen.Count == 0) continue;
-            var (runde, seiten) = wahlen.OrderByDescending(w => w.Seiten).ThenByDescending(w => w.Runde.Laenge >= MindestLaenge).ThenBy(w => w.Runde.Laenge).First();
-            if (runde.Laenge >= MindestLaenge && runde.Laenge <= HoechstLaenge && seiten >= MindestSeiten) return runde;
-            versuche.Add((runde.Runde, runde.Laenge, seiten));
+            // reihum in beiden Richtungen (beginnend an der Seite nahe der Tür)
+            var richtungen = new List<List<(float X, float Z)>> { halte };
+            if (halte.Count > 2) richtungen.Add(halte.Take(1).Concat(Enumerable.Reverse(halte).SkipLast(1)).ToList());
+            foreach (var folge in richtungen)
+            {
+                if (Zusammensetzen(tuer, folge, weg, out var seiten) is not { } runde) continue;
+                var doppelt = DoppeltAnteil(runde.Runde);
+                if (runde.Laenge >= MindestLaenge && runde.Laenge <= HoechstLaenge && seiten >= MindestSeiten && doppelt <= HoechstDoppelt) return runde;
+                versuche.Add((runde.Runde, runde.Laenge, seiten, doppelt));
+            }
         }
-        // kein Ring mit allem: lieber die richtige Länge mit weniger Seiten (die meisten, der engste Ring), sonst die kürzeste über der Mindestlänge,
-        // sonst die längste darunter
-        var wahl = versuche.Where(v => v.Laenge >= MindestLaenge && v.Laenge <= HoechstLaenge).OrderByDescending(v => v.Seiten).Take(1)
+        // kein Ring mit allem: in der richtigen Länge die mit drei Seiten, dann die mit dem wenigsten doppelten Weg (bei Gleichstand die kürzere), sonst die
+        // kürzeste über der Höchstlänge, sonst die längste unter der Mindestlänge
+        var wahl = versuche.Where(v => v.Laenge >= MindestLaenge && v.Laenge <= HoechstLaenge)
+                .OrderByDescending(v => v.Seiten >= MindestSeiten).ThenBy(v => v.Doppelt).ThenBy(v => v.Laenge).Take(1)
             .Concat(versuche.Where(v => v.Laenge > HoechstLaenge).OrderBy(v => v.Laenge).Take(1))
             .Concat(versuche.OrderByDescending(v => v.Laenge).Take(1)).ToList();
         return wahl.Count == 0 ? null : (wahl[0].Runde, wahl[0].Laenge);
+    }
+
+    /// <summary>
+    /// Höchstens so viel der Runde (Anteil der Länge) darf die Streife zweimal gehen (hin und zurück durch dieselbe Gasse), sonst wird der nächste Ring probiert
+    /// – ohne diese Grenze ging die Runde in Köln 15 m die Rheingasse hinauf und wieder zurück, statt um den Block zu laufen.
+    /// </summary>
+    public const float HoechstDoppelt = 0.25f;
+
+    /// <summary>
+    /// Welcher Anteil der Länge einer Runde zweimal gegangen wird: Stücke (auf 0,5 m gerundet, gleich in welcher Richtung), die mehr als einmal vorkommen; ohne
+    /// das erste und letzte Stück (Tür zum Weg, das ist immer hin und zurück).
+    /// </summary>
+    public static float DoppeltAnteil(IReadOnlyList<(float X, float Z)> runde)
+    {
+        if (runde.Count < 4) return 0;
+        static (int, int) Raster((float X, float Z) p) => ((int)MathF.Round(p.X * 2), (int)MathF.Round(p.Z * 2));
+        var zahl = new Dictionary<((int, int), (int, int)), int>();
+        var stuecke = new List<(((int, int), (int, int)) Schluessel, float Laenge)>();
+        var gesamt = 0f;
+        for (var i = 2; i < runde.Count - 1; i++)
+        {
+            var (a, b) = (Raster(runde[i - 1]), Raster(runde[i]));
+            var schluessel = a.CompareTo(b) <= 0 ? (a, b) : (b, a);
+            var laenge = Abstand(runde[i - 1], runde[i]);
+            zahl[schluessel] = zahl.GetValueOrDefault(schluessel) + 1;
+            stuecke.Add((schluessel, laenge));
+            gesamt += laenge;
+        }
+        var doppelt = stuecke.Where(s => zahl[s.Schluessel] > 1).Sum(s => s.Laenge);
+        return gesamt <= 0 ? 0 : doppelt / gesamt;
     }
 
     /// <summary>An so vielen Seiten des Platzes soll die Runde vorbeikommen (wo die Karte so viele hat).</summary>
