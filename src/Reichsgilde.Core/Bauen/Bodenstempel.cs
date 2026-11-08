@@ -5,7 +5,8 @@ namespace Reichsgilde.Core.Bauen;
 //
 //  Ein Stempel drückt eine Bodentextur (Erde, Kies, Pflaster …) in das Bodenraster, und zwar nur dort, wo noch Wiese ist: Was das Leveldesign
 //  gemalt hat, bleibt. Der Rand ist weich (Anteil fällt über „Rand“ Meter ab) und mit einem Rauschen ausgefranst; „Fleck“ lässt auch das
-//  Innere stellenweise Wiese durchblicken (ein Garten mit etwas Gras). Das Ergebnis hängt nur von den Angaben ab (feste Hash-Zahlen, keine
+//  Innere stellenweise Wiese durchblicken (ein Garten mit etwas Gras). „Einzug“ rückt den Rand nach innen, „Saum“ stempelt nur einen
+//  Streifen innen am Rand (Rasen der Restflächen, Stadtansicht.Rasen.cs). Das Ergebnis hängt nur von den Angaben ab (feste Hash-Zahlen, keine
 //  Uhr, kein Zufall): auf jedem Rechner dasselbe Bild.
 //
 //  Gedacht für eine Kopie des Rasters (<see cref="Bodenraster.Kopie"/>), die nur die Darstellung zeichnet – die Karte und der Spielstand bleiben
@@ -19,7 +20,9 @@ namespace Reichsgilde.Core.Bauen;
 /// <param name="Rauschen">Wie weit (Meter) das Rauschen den Rand verschiebt.</param>
 /// <param name="Fleck">0 … 1: wie stark die Stärke im Innern nach einem langsamen Rauschen schwankt (0 = gleichmäßig).</param>
 /// <param name="Saat">Verschiebt das Rauschen (jede Fläche ein eigenes Muster).</param>
-public sealed record Bodenstempel(Bodentextur Textur, double Staerke, double Rand, double Rauschen, double Fleck, int Saat);
+/// <param name="Einzug">Meter, um die der Rand nach innen rückt (0 = auf dem Umriss). So bleibt ein Stempel samt weichem Rand ganz in der Fläche (Rasen der Restflächen).</param>
+/// <param name="Saum">Meter: &gt; 0 stempelt nur einen Streifen dieser Breite innen am Rand (ausgetretene Erde am Zaun), das Innere bleibt frei; 0 = die ganze Fläche.</param>
+public sealed record Bodenstempel(Bodentextur Textur, double Staerke, double Rand, double Rauschen, double Fleck, int Saat, double Einzug = 0, double Saum = 0);
 
 public sealed partial class Bodenraster
 {
@@ -103,10 +106,12 @@ public sealed partial class Bodenraster
                 var d = abstand[b * breite + a];
                 if (d > reichweite) continue;
                 var (px, pz) = ((i0 + a) * Abstand, (j0 + b) * Abstand);
-                var verschoben = d + (Rausch(px * 0.45, pz * 0.45, s.Saat) - 0.5) * 2 * s.Rauschen;
+                var verschoben = d + Math.Max(0, s.Einzug) + (Rausch(px * 0.45, pz * 0.45, s.Saat) - 0.5) * 2 * s.Rauschen;
                 var deckung = 1 - GlatterSchritt(-rand / 2, rand / 2, verschoben);
                 if (deckung <= 0) continue;
                 var staerke = s.Staerke;
+                // Saum: nur ein Streifen innen am Rand, nach innen weich auslaufend
+                if (s.Saum > 0) staerke *= 1 - GlatterSchritt(s.Saum * 0.6, s.Saum * 1.4, -verschoben);
                 if (s.Fleck > 0) staerke *= 1 - s.Fleck * GlatterSchritt(0.3, 0.7, Rausch(px * 0.28, pz * 0.28, s.Saat + 17));
                 var soll = (int)Math.Round(staerke * deckung * 255);
                 if (soll <= 0) continue;
