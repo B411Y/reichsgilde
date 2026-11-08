@@ -11,9 +11,11 @@ using Reichsgilde.Core;
 //    dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --ohne-langsam
 //    dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --liste --filter=Hafen
 //    dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --zeiten
+//    dotnet run -c Release --project tests/Reichsgilde.Core.Tests -- --parallel
 //
-//  Ohne Schalter laufen wie bisher alle Tests (so prüft auch die CI).
-//  Welche Tests als langsam gelten, steht in LangsameTests.cs.
+//  Ohne Schalter laufen wie bisher alle Tests nacheinander (so prüft auch die CI).
+//  Welche Tests als langsam gelten, steht in LangsameTests.cs; welche Klassen mit --parallel
+//  am Ende allein laufen, in SeriellTests.cs (der parallele Lauf selbst: Parallellauf.cs).
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>Ein Test mit seiner Klasse (Tests direkt in Program.cs haben die Klasse „Program“).</summary>
@@ -30,6 +32,8 @@ sealed class Testauswahl
     public bool NurListe { get; set; }
     /// <summary>Wie viele der langsamsten Tests am Ende genannt werden (0 = keine Zeitliste).</summary>
     public int Zeiten { get; set; }
+    /// <summary>Wie viele Fäden mit --parallel (0 = seriell wie bisher).</summary>
+    public int Parallel { get; set; }
     public bool Hilfe { get; set; }
     /// <summary>Gesetzt, wenn ein Schalter unbekannt oder falsch ist.</summary>
     public string? Fehler { get; private set; }
@@ -43,6 +47,8 @@ sealed class Testauswahl
           --ohne-langsam                 langsame Tests überspringen (Liste in LangsameTests.cs)
           --liste                        die ausgewählten Tests nur auflisten, nicht ausführen
           --zeiten[=<Anzahl>]            am Ende die langsamsten Tests mit Sekunden (Standard 20)
+          --parallel[=<Fäden>]           Testklassen gleichzeitig (Standard: Kerne − 2, höchstens 6); Ausgabe
+                                         je Klasse in fester Reihenfolge, Klassen aus SeriellTests.cs am Ende allein
           --hilfe                        diesen Text zeigen
         Mehrere Schalter wirken zusammen: --klasse=Buerger* --filter=Hafen
         """;
@@ -72,6 +78,12 @@ sealed class Testauswahl
                     break;
                 case "--zeiten" when int.TryParse(wert, out var anzahl) && anzahl > 0:
                     auswahl.Zeiten = anzahl;
+                    break;
+                case "--parallel" when wert is null:
+                    auswahl.Parallel = Parallellauf.StandardFaeden;
+                    break;
+                case "--parallel" when int.TryParse(wert, out var faeden) && faeden is > 0 and <= 64:
+                    auswahl.Parallel = faeden;
                     break;
                 case "--hilfe" or "-h" or "--help" when wert is null:
                     auswahl.Hilfe = true;
@@ -171,23 +183,22 @@ static class Testlauf
 
         var fehler = 0;
         var dauer = new List<(Testfall Test, double Sekunden)>();
+        Parallellauf.Ergebnis? parallel = null;
         var uhr = Stopwatch.StartNew();
-        foreach (var test in laufen)
+        if (auswahl.Parallel > 0)
         {
-            var start = uhr.Elapsed.TotalSeconds;
-            try
-            {
-                test.Pruefung();
-                aus.WriteLine($"  OK      {test.Name}");
-            }
-            catch (Exception ex)
-            {
-                fehler++;
-                aus.WriteLine($"  FEHLER  {test.Name}");
-                aus.WriteLine($"          → {ex.Message}");
-            }
-            dauer.Add((test, uhr.Elapsed.TotalSeconds - start));
+            parallel = Parallellauf.Ausfuehren(laufen, auswahl.Parallel, aus);
+            fehler = parallel.Fehler;
+            dauer = parallel.Dauer;
         }
+        else
+            foreach (var test in laufen)
+            {
+                var start = uhr.Elapsed.TotalSeconds;
+                if (!EinTest(test, aus))
+                    fehler++;
+                dauer.Add((test, uhr.Elapsed.TotalSeconds - start));
+            }
         uhr.Stop();
 
         aus.WriteLine();
@@ -197,7 +208,8 @@ static class Testlauf
         aus.WriteLine($"Gelaufen: {laufen.Count}, übersprungen: {uebersprungen}"
                       + (langsam > 0 ? $" (davon {langsam} langsam)" : "")
                       + $", Laufzeit: {Zeit(uhr.Elapsed.TotalSeconds)}"
-                      + (gefiltert ? " – nur eine Auswahl, vor dem PR einmal alle Tests laufen lassen." : "."));
+                      + (gefiltert ? " – nur eine Auswahl, vor dem PR einmal alle Tests laufen lassen." : ".")
+                      + (parallel is null ? "" : $" Parallel mit {auswahl.Parallel} Fäden, Rechenzeit zusammen {Zeit(dauer.Sum(d => d.Sekunden))}."));
 
         if (auswahl.Zeiten > 0)
         {
@@ -205,8 +217,33 @@ static class Testlauf
             aus.WriteLine($"Die {Math.Min(auswahl.Zeiten, dauer.Count)} langsamsten Tests:");
             foreach (var (test, sekunden) in dauer.OrderByDescending(d => d.Sekunden).Take(auswahl.Zeiten))
                 aus.WriteLine($"  {Zahlenformat.Kommazahl(sekunden),7} s  {(LangsameTests.IstLangsam(test) ? "langsam" : "       ")}  {test.Klasse}: {test.Name}");
+            if (parallel is not null)
+            {
+                // Parallel zählt die Klasse als Ganzes: die längste bestimmt, wie früh der Lauf fertig sein kann.
+                aus.WriteLine();
+                aus.WriteLine($"Die {Math.Min(auswahl.Zeiten, parallel.Klassen.Count)} langsamsten Klassen (unter Last gemessen):");
+                foreach (var (klasse, sekunden, seriell) in parallel.Klassen.OrderByDescending(k => k.Sekunden).Take(auswahl.Zeiten))
+                    aus.WriteLine($"  {Zahlenformat.Kommazahl(sekunden),7} s  {(seriell ? "allein " : "       ")}  {klasse}");
+            }
         }
         return fehler == 0 ? 0 : 1;
+    }
+
+    /// <summary>Führt einen Test aus und schreibt OK oder FEHLER mit Meldung. Rückgabe: bestanden?</summary>
+    public static bool EinTest(Testfall test, TextWriter aus)
+    {
+        try
+        {
+            test.Pruefung();
+            aus.WriteLine($"  OK      {test.Name}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            aus.WriteLine($"  FEHLER  {test.Name}");
+            aus.WriteLine($"          → {ex.Message}");
+            return false;
+        }
     }
 
     static string Zeit(double sekunden) =>
