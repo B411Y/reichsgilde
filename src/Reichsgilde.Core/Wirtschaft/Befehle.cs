@@ -135,6 +135,12 @@ public sealed record AusbildungWaehlen(int Kind, string? Weg) : Befehl;
 /// <summary>Das Oberhaupt übt ein Talent: +½ Stern, höchstens einmal je Talent und Jahr (kostet Aktionspunkte).</summary>
 public sealed record TalentTrainieren(Dynastie.Talent Talent) : Befehl;
 
+/// <summary>Lebensweise: Ab jetzt sammelt diese Person (Oberhaupt, Erbe oder Ehepartner) Erfahrung in diesem Pfad. 0 AP; Gesammeltes und Knoten bleiben.</summary>
+public sealed record LebenswegWaehlen(int Person, Dynastie.Talent Pfad) : Befehl;
+
+/// <summary>Lebensweise: Diese Person nimmt einen Knoten (Kennung) mit einem freien Punkt seines Pfads. 0 AP, für immer.</summary>
+public sealed record KnotenWaehlen(int Person, string Knoten) : Befehl;
+
 /// <summary>Die Werkstatt stellt ab sofort diese Ware her: Sie wird die Ware des Betriebs, und alle Arbeiter arbeiten an ihr.</summary>
 public sealed record ProduktWaehlen(string Betrieb, string Ware) : BetriebsBefehl(Betrieb);
 

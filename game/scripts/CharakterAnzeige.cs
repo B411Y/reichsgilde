@@ -68,7 +68,7 @@ public partial class CharakterAnzeige : PanelContainer
     private void Zeigen(object ziel)
     {
         if (_simulation?.Wirtschaft is null) return;
-        if (_verlauf.Count == 0 || !_verlauf[^1].Equals(ziel)) { _verlauf.Add(ziel); _aktivMit = null; _meldung = ""; }
+        if (_verlauf.Count == 0 || !_verlauf[^1].Equals(ziel)) { _verlauf.Add(ziel); _aktivMit = null; _meldung = ""; _lebensweg = false; _pfadAnsicht = null; }
         if (_verlauf.Count > 30) _verlauf.RemoveAt(0);
         Aufbauen();
         Show();
@@ -107,6 +107,14 @@ public partial class CharakterAnzeige : PanelContainer
     {
         var buch = w.Familien;
         var familie = buch.FamilieVon(p);
+        if (!buch.HatLebensweg(p)) _lebensweg = false;
+        if (_lebensweg) // Reiter „Lebensweg“: nur ein schmaler Kopf, damit der Baum ins Fenster passt
+        {
+            KompakterKopf(buch, p, familie);
+            ReiterBauen(buch, p);
+            LebenswegBauen(w, p);
+            return;
+        }
         var kopf = new HBoxContainer();
         kopf.AddThemeConstantOverride("separation", 16);
         _inhalt.AddChild(kopf);
@@ -136,6 +144,8 @@ public partial class CharakterAnzeige : PanelContainer
         daten.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
         Hauptmenue.Text(daten, "Talente", 17, Gold);
         foreach (var t in TalentTexte.Alle) TalentZeile(daten, p, t);
+
+        if (buch.HatLebensweg(p)) ReiterBauen(buch, p); // Reiter „Züge und Familie“ / „Lebensweg“ (Lebensweise, Teil 3a)
 
         _inhalt.AddChild(new HSeparator());
         ZuegeBauen(w, p.Zuege, buch.IstVolljaehrig(p) || !p.Lebt, p.Lebt && !buch.IstVolljaehrig(p));

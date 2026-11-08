@@ -195,7 +195,8 @@ public sealed class Amtsbefugnisse
             .Select(s => new Marktvorschau(s.Ware, s.Nachfrage, s.Preis, s.PreisNaechsteStunde)).ToList();
 
     /// <summary>Steuersatz auf eigene Verkäufe am Markt: für den Marktmeister nur <c>marktmeisterSteuer</c> davon.</summary>
-    public double SteuersatzMarkt(Konto konto) => _w.Umsatzsteuer * (HatAmt(konto, Marktmeister) ? _d.MarktmeisterSteuer : 1);
+    public double SteuersatzMarkt(Konto konto) =>
+        _w.Umsatzsteuer * (HatAmt(konto, Marktmeister) ? _d.MarktmeisterSteuer : _w.Familien.Lebenswirkung(konto).MarktsteuerFaktor); // Steuerkniff nicht zusammen mit dem Marktmeister
 
     // ── Gefängniswärter ─────────────────────────────────────────────────────
 

@@ -365,17 +365,30 @@ public sealed class Betrieb
         _daten.Personal is not { } p ? null
             : _daten.Laufbahn(Art)?.Eigenschaft(kennung) ?? p.Laufbahnen.Select(l => l.Eigenschaft(kennung)).FirstOrDefault(e => e is not null);
 
+    private readonly Func<Betrieb, IEnumerable<EinrichtungWirkung>>? _hauswirkung; // Lebensweise: Knoten des Oberhaupts (Charaktersystem Teil 3a)
+
+    /// <summary>Die Knoten der Lebensweise des Hauses haben sich geändert (Knoten genommen, Erbfall, Laden).</summary>
+    internal void HauswirkungNeu()
+    {
+        WirkungenNeu();
+        ErfahrungNeu();
+    }
+
     private void WirkungenNeu()
     {
         var liste = Einrichtungsstuecke.Select(e => e.Wirkung).ToList();
         foreach (var a in _arbeiter)
             if (a.Eigenschaft is { } k && EigenschaftVon(k) is { } e) liste.Add(e.Wirkung);
+        if (_hauswirkung is not null) liste.AddRange(_hauswirkung(this));
         _wirkungen = liste;
         _lagerPlus = liste.Sum(w => w.LagerPlus);
         _tempoBonus = liste.Aggregate(1.0, (f, w) => f * w.TempoFaktor);
     }
 
     private double _tempoBonus = 1;
+
+    /// <summary>Unterhalt bzw. Pacht im Jahr: Fixkosten der Art × Wirkungen (Lebensweise „Hüter des Hauses“).</summary>
+    public double Unterhalt => _art.Fixkosten * _wirkungen.Aggregate(1.0, (f, w) => f * w.UnterhaltFaktor);
 
     /// <summary>Faktor der Einrichtung (und des Vorarbeiters) auf die Zeit je Stück dieser Ware (1 = ohne Wirkung).</summary>
     public double ZeitFaktor(string ware)
@@ -513,8 +526,9 @@ public sealed class Betrieb
     /// <param name="jetzt">Die Uhr der Stadt in Spielminuten (für Dienstzeit und Unfälle; ohne Angabe steht sie auf 0).</param>
     /// <param name="steckbrief">Würfelt Name und Aussehen eines neuen Arbeiters (ohne: namenlos – nur in Tests ohne Stadt).</param>
     internal Betrieb(string name, Betriebsart art, Konto konto, Wirtschaftsdaten daten, bool ganzjaehrig = false, Func<long>? jetzt = null,
-        Action<Betrieb, Arbeiter>? steckbrief = null)
+        Action<Betrieb, Arbeiter>? steckbrief = null, Func<Betrieb, IEnumerable<EinrichtungWirkung>>? hauswirkung = null)
     {
+        _hauswirkung = hauswirkung;
         Name = name;
         Art = art;
         Konto = konto;
@@ -1097,7 +1111,7 @@ public sealed class Betrieb
             }
         }
 
-        FixkostenBuchen(_art.Fixkosten);
+        FixkostenBuchen(Unterhalt);
         if (Waechter && _daten.Gauner is { } gauner)
             PersonalBuchen(gauner.WaechterKosten);
 

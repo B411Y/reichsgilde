@@ -307,7 +307,7 @@ public static class Kalkulation
                        * w.Jahreszeiten.Arbeitsfaktor(b);
             lohn = b.LohnJeArbeiter("Geselle");
         }
-        var unterhalt = b.Artdaten.Fixkosten + (b.Waechter && w.Daten.Gauner is { } g ? g.WaechterKosten : 0);
+        var unterhalt = b.Unterhalt + (b.Waechter && w.Daten.Gauner is { } g ? g.WaechterKosten : 0);
         var jeMinute = leistung > 0 ? 1 / (leistung * b.Arbeitsminuten) : 0; // Anteil an den Jahreskosten je Arbeitsminute eines Gesellen
         return new Stueckrechnung(preis, steuer, zutaten, lohn * jeMinute * minuten, unterhalt * jeMinute * minuten, minuten);
     }

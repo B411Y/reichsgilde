@@ -20,6 +20,8 @@ public partial class Hauptszene
     private Label _kopfGeld = null!;
     private Label _kopfStand = null!;
     private Label _kopfAp = null!;
+    private Label _kopfPunkte = null!;                       // Lebensweise: freie Punkte (Teil 3a)
+    private Dictionary<int, int>? _lebenswegFrei;            // Person → freie Punkte beim letzten Blick (null: noch nicht gelesen)
     private Label _blick = null!;
     private PanelContainer _zeitTafel = null!;
     private Label _zeitText = null!;
@@ -86,6 +88,16 @@ public partial class Hauptszene
         _kopfGeld = KopfText(20);
         _kopfStand = KopfText(15, new Color(0.95f, 0.82f, 0.45f));
         _kopfAp = KopfText(15, new Color(0.95f, 0.82f, 0.45f));
+        _kopfPunkte = KopfText(14, new Color(0.55f, 0.85f, 0.5f)); // „2 Lebensweg-Punkte frei“: ein Klick öffnet den Reiter
+        _kopfPunkte.MouseFilter = Control.MouseFilterEnum.Stop;
+        _kopfPunkte.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
+        _kopfPunkte.Visible = false;
+        _kopfPunkte.GuiInput += eingabe =>
+        {
+            if (eingabe is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || _simulation.Wirtschaft is not { } w || _spieler is null) return;
+            if (LebenswegPersonMitPunkten(w) is { } person) _charakter.LebensweiseOeffnen(person);
+            GetViewport().SetInputAsHandled();
+        };
         _blick = Hauptmenue.Text(kopfSpalte, "", 12, new Color(0.75f, 0.75f, 0.75f));
         _blick.MouseFilter = Control.MouseFilterEnum.Ignore;
 
@@ -154,7 +166,7 @@ public partial class Hauptszene
         if (_simulation.Wirtschaft is not { } w || _spieler is null)
         {
             _kopfzeile.Visible = _blick.Text != "";
-            _kopfGeld.Visible = _kopfStand.Visible = _kopfAp.Visible = _kopfPortraet.Visible = false;
+            _kopfGeld.Visible = _kopfStand.Visible = _kopfAp.Visible = _kopfPortraet.Visible = _kopfPunkte.Visible = false;
             return;
         }
         var waehrung = w.Daten.Allgemein.Waehrung;
@@ -162,6 +174,7 @@ public partial class Hauptszene
         var oberhaupt = w.Familien.Von(_spieler)?.Oberhaupt;
         _kopfPortraet.Visible = oberhaupt is not null;
         if (oberhaupt is not null) _kopfPortraet.Zeigen(w.Familien, oberhaupt);
+        LebenswegPunkteAnzeigen(w);
         Setzen(_kopfGeld, $"{Zahlenformat.Ganz(_spieler.Vermoegen)} {waehrung}");
         _kopfGeld.AddThemeColorOverride("font_color", _spieler.Reinvermoegen < 0 ? new Color(0.95f, 0.45f, 0.4f) : new Color(1, 1, 1));
         _kopfGeld.TooltipText = WohnhausAnzeige.VermoegenTeile(_spieler, waehrung);
@@ -174,6 +187,51 @@ public partial class Hauptszene
             _kopfAp.TooltipText = $"Aktionspunkte: {_spieler.Aktionspunkte.Vorrat} von höchstens {ap.Hoechstens}, +{w.AktionspunkteJeRunde + w.ApBonus(_spieler)} zum Jahreswechsel.\n"
                                   + WohnhausAnzeige.ApTipp;
         }
+    }
+
+    /// <summary>Die Person des eigenen Hauses mit den meisten freien Punkten der Lebensweise (Oberhaupt, Ehepartner, Erbe), sonst null.</summary>
+    private Reichsgilde.Core.Dynastie.Person? LebenswegPersonMitPunkten(Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w)
+    {
+        if (_spieler is null || w.Familien.Von(_spieler) is not { } haus) return null;
+        var buch = w.Familien;
+        return new[] { haus.Oberhaupt, haus.Ehepartner, buch.Erbe(haus) }.OfType<Reichsgilde.Core.Dynastie.Person>().Distinct()
+            .Where(buch.HatLebensweg).Select(p => (Person: p, Frei: Reichsgilde.Core.Dynastie.TalentTexte.Alle.Sum(t => buch.FreiePunkte(p, t))))
+            .Where(x => x.Frei > 0).OrderByDescending(x => x.Frei).Select(x => x.Person).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Lebensweise (Teil 3a): Das Zeichen in der Kopfzeile zeigt freie Punkte der eigenen Leute; wird einer neu frei, kommt eine Meldung
+    /// („Neuigkeiten aus dem Haus“). Der Kern sagt es nicht von selbst – darum liest die Oberfläche die Punkte jedes Bild (ein paar Rechnungen).
+    /// </summary>
+    private void LebenswegPunkteAnzeigen(Reichsgilde.Core.Wirtschaft.Stadtwirtschaft w)
+    {
+        if (_spieler is null || !w.Familien.HatLebensweise || w.Familien.Von(_spieler) is not { } haus)
+        {
+            _kopfPunkte.Visible = false;
+            _lebenswegFrei = null;
+            return;
+        }
+        var buch = w.Familien;
+        var jetzt = new Dictionary<int, int>();
+        var personen = new[] { haus.Oberhaupt, haus.Ehepartner, buch.Erbe(haus) }.OfType<Reichsgilde.Core.Dynastie.Person>().Distinct().Where(buch.HatLebensweg).ToList();
+        foreach (var p in personen)
+            jetzt[p.Nummer] = Reichsgilde.Core.Dynastie.TalentTexte.Alle.Sum(t => buch.FreiePunkte(p, t));
+        if (_lebenswegFrei is not null)
+            foreach (var p in personen)
+                if (jetzt[p.Nummer] > _lebenswegFrei.GetValueOrDefault(p.Nummer, 0))
+                {
+                    var pfad = Reichsgilde.Core.Dynastie.TalentTexte.Alle.First(t => buch.FreiePunkte(p, t) > 0);
+                    var name = buch.LebensweiseDaten?.Pfade.GetValueOrDefault(pfad)?.Name ?? "der Lebensweise";
+                    Protokollieren(new Reichsgilde.Core.Wirtschaft.Meldung(Reichsgilde.Core.Wirtschaft.Meldungsart.Sonstiges,
+                        $"Neuer Punkt der Lebensweise: {p.Vorname} kann einen Knoten im {name} lernen.")
+                        { Haus = w.Konten.ToList().IndexOf(_spieler), Person = p.Nummer, Wichtigkeit = Reichsgilde.Core.Wirtschaft.Meldungswichtigkeit.Normal, Minute = _simulation.Zeit.VergangeneMinuten });
+                }
+        _lebenswegFrei = jetzt;
+        var summe = jetzt.Values.Sum();
+        _kopfPunkte.Visible = summe > 0;
+        if (summe <= 0) return;
+        Setzen(_kopfPunkte, summe == 1 ? "1 Punkt frei" : $"{summe} Punkte frei");
+        _kopfPunkte.TooltipText = "Freie Punkte der Lebensweise – ein Klick öffnet den Lebensweg:\n" + string.Join("\n", personen.Where(p => jetzt[p.Nummer] > 0).Select(p => $"{p.Vorname}: {jetzt[p.Nummer]}"));
     }
 
     /// <summary>Setzt einen Text nur bei einer Änderung (sonst misst Godot die Tafel jedes Bild neu).</summary>

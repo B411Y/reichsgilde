@@ -462,7 +462,7 @@ public sealed class Bankwesen
     internal Befehlsergebnis KreditAufnehmen(Konto nehmer, Konto geber, double betrag, int jahre)
     {
         if (KreditVerboten(geber, nehmer, betrag, jahre) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
-        var satz = Zinssatz(geber);
+        var satz = Math.Max(0, Zinssatz(geber) - _w.Familien.Lebenswirkung(nehmer).ZinsMinus); // Rechenkunst (Lebensweise)
         var kredit = new Kredit
         {
             Nummer = _naechsterKredit++, Geber = geber, Nehmer = nehmer, Betrag = betrag, Rest = betrag,

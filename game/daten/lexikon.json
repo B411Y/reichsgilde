@@ -666,6 +666,12 @@
   "text": "Jede Person hat fünf Talente mit 0 bis 6 Sternen: Verhandeln (bessere Markterlöse), Handwerkskunst (mehr Leistung aller Arbeitskräfte), Bei Nacht und Nebel (Gaunerstücke gelingen öfter, Zeugen sehen weniger), Kampf (stärkere Wegelagerer, besser geschützte eigene Karren) und Rhetorik (Ratswahlen, Plädoyer vor Gericht, Brautgeschenke). Es zählen die Talente des [[oberhaupt|Oberhaupts]]. Üben kostet [[aktionspunkte|AP]]: ein halber Stern je Übung, je Talent einmal im Jahr."
  },
  {
+  "kennung": "lebensweise",
+  "titel": "Lebensweise",
+  "gruppe": "Haus und Familie",
+  "text": "Oberhaupt, Erbe und Ehepartner lernen im Lauf ihres Lebens eine Lebensweise: fünf Pfade, einer je [[talente|Talent]] (Kaufmann, Meister, Schatten, Schwert, Redner), jeder ein Baum aus drei mal drei Knoten. Erfahrung fließt in den Pfad, dem die Person gerade folgt: am Jahresende {wert:lebensweise_grund} und {wert:lebensweise_jestern} je Stern im Talent des Pfads, dazu sofort {wert:lebensweise_jeap} je [[aktionspunkte|AP]] für eine Tat des Pfads (nur beim [[oberhaupt|Oberhaupt]]). Erbe und Ehepartner sammeln die Hälfte. Je 100 Erfahrung (später 150, dann 200) gibt einen Punkt; mit einem Punkt lernt man einen Knoten, für immer. Ein Knoten der zweiten und dritten Reihe braucht den darüber. Den Pfad wechselt man jederzeit ohne Kosten; Gesammeltes und Knoten bleiben. Die Knoten wirken für das ganze Haus, solange ihr Besitzer Oberhaupt ist. Stirbt das Oberhaupt, behält der Erbe seine Knoten und erbt als Vermächtnis ein Fünftel der Erfahrung im Pfad des Toten. Im Charakterfenster gibt es dafür den Reiter „Lebensweg“ (ein Klick auf ein Porträt öffnet es); freie Punkte zeigt die Kopfzeile."
+ },
+ {
   "kennung": "charakterzuege",
   "titel": "Charakterzüge",
   "gruppe": "Haus und Familie",
