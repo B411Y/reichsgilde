@@ -33,7 +33,7 @@ Werkzeuge, Abläufe, Lizenz und Asset-Protokoll. Neue Einträge unten anhängen,
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Gemini | Gemini (API und Antigravity-CLI `agy`) wird nicht mehr genutzt und steht nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata (abgelöst am 07.11.2026, siehe unten) | 29.10.2026 |
+| Gemini | (überholt am 07.11.2026, siehe unten) Gemini (API und Antigravity-CLI `agy`) wurde damals nicht mehr genutzt und stand nicht mehr in den Regeln (`CLAUDE.md`, `.claude/`); Commit-Zusatz nur noch `(Strata)`. Bild-KI nur lokal (ComfyUI, Qwen-Image), daneben Strata (abgelöst am 07.11.2026, siehe unten) | 29.10.2026 |
 | Historie | Protokoll, Prompts, Herkunftsdateien und alte Bereichseinträge nennen Gemini weiter als Herkunft bestehender Assets | 29.10.2026 |
 | Bot-Token | `prs-aktuell.yml` pusht mit dem Repository-Geheimnis `BOT_TOKEN` (klassisches Token des Bot-Kontos, `repo` + `workflow`); dann starten die PR-Prüfungen von selbst und der eigene `build.yml`-Lauf entfällt | 29.10.2026 |
 | Rückfall | Ohne `BOT_TOKEN`: `GITHUB_TOKEN` und selbst gestarteter `build.yml`-Lauf wie bisher | 29.10.2026 |
