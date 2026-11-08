@@ -14,7 +14,7 @@ static class SeriellTests
     /// <summary>Klassenname (ganzer Name) und Grund.</summary>
     public static readonly (string Klasse, string Grund)[] Liste =
     {
-        ("KlangUmgebungTests", "Raster jeder Karte unter 1.500 ms"),
+        ("KlangUmgebungTests", "Raster jeder Karte unter 1.500 ms; die Selbstprüfung tauscht kurz das statische KlangUmgebungModell.Gespraeche"),
         ("GreyboxTests", "Bauorte unter 500 ms je Abfrage"),
         ("KartenbauTests", "Kapazität Köln unter 150 ms (Median)"),
         ("KartenwerkstattTests", "volle Prüfung unter 20 ms, eine Stelle unter 2 ms (Median)"),

@@ -83,7 +83,7 @@ Am Ende muss stehen: `Alle … Tests bestanden.` Darunter steht, wie viele Tests
 
 ### Gezielt testen
 
-Alle Tests zusammen brauchen auf der NAS gut elf Minuten, ohne die 30 langsamen gut drei (gemessen am 7.11.2026; ein einziger Test, der 30 Jahre Torwache mit Spielstand durchspielt, braucht allein knapp vier). Während der Arbeit genügt meist ein Teil; die Schalter stehen hinter `--` (damit `dotnet` sie an das Testprogramm weitergibt):
+Alle Tests zusammen brauchen auf der NAS knapp vier Minuten (3 min 43 s, gemessen am 8.11.2026). Während der Arbeit genügt meist ein Teil; die Schalter stehen hinter `--` (damit `dotnet` sie an das Testprogramm weitergibt):
 
 | Schalter | Was er tut | Beispiel |
 |---|---|---|
@@ -91,7 +91,8 @@ Alle Tests zusammen brauchen auf der NAS gut elf Minuten, ohne die 30 langsamen 
 | `--klasse=<Name>` | nur diese Testklassen (der ganze Name muss passen, `*` erlaubt); die Tests oben in `Program.cs` heißen `Program` | `-- --klasse=DiebTests,Wache*` |
 | `--ohne-langsam` | überspringt die langsamen Tests aus `tests/Reichsgilde.Core.Tests/LangsameTests.cs` | `-- --ohne-langsam` |
 | `--liste` | zeigt nur, welche Tests ausgewählt wären (mit „langsam“ markiert), und führt nichts aus | `-- --liste --filter=Hafen` |
-| `--zeiten[=<Anzahl>]` | nennt am Ende die langsamsten Tests mit Sekunden (Standard 20) | `-- --zeiten=40` |
+| `--zeiten[=<Anzahl>]` | nennt am Ende die langsamsten Tests mit Sekunden (Standard 20), mit `--parallel` zusätzlich die langsamsten Klassen | `-- --zeiten=40` |
+| `--parallel[=<Fäden>]` | Testklassen gleichzeitig auf mehreren Fäden (Standard: Kerne − 2, höchstens 6); siehe „Parallel testen“ | `-- --parallel` |
 | `--hilfe` | zeigt alle Schalter | `-- --hilfe` |
 
 Schalter wirken zusammen: `-- --klasse=Buerger* --filter=Hafen` nimmt nur die Hafen-Tests der Bürger-Klassen. Ein Komma trennt Muster; steht im Testnamen selbst ein Komma, an seiner Stelle `*` schreiben. Ein unbekannter Schalter (Tippfehler) bricht mit der Hilfe ab, eine Auswahl ohne Treffer (auch mit `--liste`) mit einem Fehler – so läuft nie aus Versehen „nichts“ grün durch.
@@ -101,6 +102,14 @@ Schalter wirken zusammen: `-- --klasse=Buerger* --filter=Hafen` nimmt nur die Ha
 **Langsame Tests:** Ein Test, der allein etwa 3 Sekunden oder länger läuft (mehrjährige Partien, Gleichheitstest, Messungen in Tests), bekommt eine Zeile in `LangsameTests.cs`: Klasse, Muster für den Testnamen (oder `null` für die ganze Klasse) und wie viele Tests die Zeile trifft. Er wird dadurch **nicht** abgeschaltet: Ohne Schalter und in der CI läuft er mit. Wird ein eingetragener Test umbenannt oder nimmt ein Muster plötzlich mehr Tests mit, meldet `TestfilterTests` den Eintrag. Welche Tests gerade langsam sind, zeigt `-- --zeiten=60`.
 
 **Testzeit sparen, ohne Aussage zu verlieren:** Die Probestadt als Testkarte kommt aus `Probestadtvorlage.Entwurf(katalog, daten)` (Skript einmal, danach ein frischer Entwurf aus dem Text; nur Tests, die das Skript selbst prüfen, rufen `new Probestadt().Bauen(…)`). Meldungen in Schleifen mit vielen tausend Prüfungen erst im Fehlerfall bauen (`if (!bedingung) Pruefe.Wahr(false, $"…")`): Eine interpolierte Meldung mit Kommazahlen kostet mehr als die Prüfung selbst. Eine Suche, die in jedem Lauf dasselbe findet (z. B. ein passender Startwert), einmal je Lauf in einem `Lazy` merken und den bekannten Treffer zuerst probieren. Jede Kürzung mit Gegenprobe: Ein absichtlicher Fehler im Code muss den Test weiter rot machen.
+
+### Parallel testen
+
+`-- --parallel` lässt die Testklassen gleichzeitig laufen, die Tests einer Klasse wie gewohnt nacheinander. Auf der NAS dauert der volle Lauf so etwa 3 Minuten statt 3 min 43 s (gemessen am 8.11.2026, während andere Mitglieder mit Godot maßen): Die NAS hat nur vier Kerne, unter Last rechnet jeder Test parallel drei- bis viermal so lange, und mit zwei Fäden war der Lauf ebenso schnell wie mit sechs. Auf einem freien Rechner mit mehr Kernen bringt der Schalter mehr. Der Schalter wirkt mit allen anderen zusammen (`-- --parallel --ohne-langsam`, `-- --parallel=2 --klasse=Buerger*`).
+
+- **Ausgabe:** Jede Klasse schreibt in ihren eigenen Puffer (auch was ihre Tests mit `Console.WriteLine` ausgeben). Die Blöcke erscheinen in der gewohnten Reihenfolge, sobald eine Klasse und alle vor ihr fertig sind. Zusammenfassung und Rückgabewert sind dieselben wie seriell; dazu kommt die Zahl der Fäden und die Rechenzeit aller Tests zusammen.
+- **Allein am Ende:** Klassen mit Zeitgrenzen („unter 150 ms“, „schneller als das Raster“) stehen in `tests/Reichsgilde.Core.Tests/SeriellTests.cs` und laufen erst danach, eine nach der anderen – unter Volllast würde die Grenze sonst zufällig reißen. Wer einen Test mit Zeitgrenze schreibt oder etwas für den ganzen Prozess ändert (Umgebungsvariable, aktuelles Verzeichnis, Datei mit festem Namen, `Console.SetOut`), trägt seine Klasse dort ein. Zähler, `Lazy` und `CultureInfo.CurrentCulture` (gilt je Faden) sind kein Grund: Eine Klasse läuft immer in einem Faden.
+- **Wann seriell:** Vor dem PR bzw. dem Abschlussbericht einmal **ohne** `--parallel` – so prüft auch die CI, die seriell bleibt. Seriell auch, wenn die NAS gerade misst (Godot-Läufe, Messungen anderer Mitglieder): `--parallel` belegt bis zu sechs Kerne. Fällt ein Test nur parallel durch, hängt er von einem anderen ab oder von der Zeit – dann den Test reparieren bzw. seine Klasse in `SeriellTests.cs` eintragen.
 
 Hängt ein Test unbemerkt von einem anderen ab (gemeinsamer Zustand, Reihenfolge), fällt das beim gezielten Lauf auf: Dann ist der Test zu reparieren, nicht der Filter.
 
