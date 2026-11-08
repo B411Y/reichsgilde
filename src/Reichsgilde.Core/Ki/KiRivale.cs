@@ -324,11 +324,12 @@ public sealed partial class KiRivale
         if (frei <= 0) return;
 
         // Mit „personal“ (PR #224) nur, wen der Betrieb einstellen darf: Anfänger seiner Laufbahn, Unfreie und Orks nach Statut.
-        // Das Handgeld (Datenversion 73) muss sich im ersten Jahr bezahlt machen: erwarteter Ertrag (nach dem Lohn) über dem Handgeld.
+        // Das Handgeld (Datenversion 73) muss sich in der erwarteten Bleibedauer bezahlt machen (personal.handgeldJahre, Vorgabe 3 ≈ Lehrzeit):
+        // erwarteter Jahresertrag (nach dem Lohn) mal diese Jahre über dem Handgeld. Ohne Handgeld wie vorher (Ertrag > 0).
         var beste = _w.Daten.Arbeitskraefte.Keys
             .Where(k => _w.Daten.Arbeitskraefte[k].IstErlaubt(_w.Statut, betrieb.Ort) && _w.Personal.EinstellenVerboten(betrieb, k) is null)
             .Select(k => (Kraft: k, Ertrag: Jahresertrag(betrieb, k)))
-            .Where(x => x.Ertrag > _w.Personal.Handgeld(x.Kraft))
+            .Where(x => x.Ertrag > 0 && x.Ertrag * _w.Personal.HandgeldJahre > _w.Personal.Handgeld(x.Kraft))
             .OrderByDescending(x => x.Ertrag)
             .ThenBy(x => x.Kraft, StringComparer.Ordinal)
             .FirstOrDefault();
@@ -781,7 +782,7 @@ public sealed partial class KiRivale
         // die Stücke der eigenen Strecken, je Weg sortiert
         var stuecke = new SortedDictionary<int, SortedSet<int>>();
         foreach (var b in Betriebe.Where(b => wb.FahrtenVorjahr(b.Name) > 0).OrderBy(b => b.Name, StringComparer.Ordinal))
-            if (_w.Fahrten(b) is var (hin, _))
+            foreach (var hin in EigeneStrecken(b))
                 foreach (var s in hin.Where(s => s.Weg >= 0 && s.Art == Reichsgilde.Core.Bauen.Fahrbahn.Strasse))
                 {
                     if (!stuecke.TryGetValue(s.Weg, out var menge)) stuecke[s.Weg] = menge = new SortedSet<int>();
@@ -1578,8 +1579,18 @@ public sealed partial class KiRivale
         var wb = _w.Wegebau;
         if (wb.MittlererVerkehr(weg, von, bis) >= wb.Daten!.Rat.AntragVerkehr) return true;
         var (i0, i1) = (wb.StueckBei(weg, Math.Min(von, bis)), wb.StueckBei(weg, Math.Max(von, bis) - 1e-6));
-        return Betriebe.Any(b => _w.Fahrten(b) is var (hin, _) &&
-                                 hin.Any(s => s.Weg == weg && wb.StueckBei(weg, s.Stelle) is var i && i >= i0 && i <= i1));
+        return Betriebe.Any(b => EigeneStrecken(b).Any(hin =>
+                                 hin.Any(s => s.Weg == weg && wb.StueckBei(weg, s.Stelle) is var i && i >= i0 && i <= i1)));
+    }
+
+    /// <summary>
+    /// Die Hinwege, die die Karren dieses Betriebs fahren: zum Marktplatz und – fuhren sie im Vorjahr auch zum Hafen (Datenversion 73,
+    /// <see cref="Bauen.Wegebau.FahrtenHafenVorjahr"/>) – zum Hafen. So zählen für Ausbau und Wegeantrag dieselben Strecken wie im Wegebau.
+    /// </summary>
+    private IEnumerable<IReadOnlyList<Reichsgilde.Core.Bauen.Fahrtstueck>> EigeneStrecken(Betrieb b)
+    {
+        if (_w.Fahrten(b) is var (hin, _)) yield return hin;
+        if (_w.Wegebau.FahrtenHafenVorjahr(b.Name) > 0 && _w.FahrtenZumHafen(b) is var (hafen, _)) yield return hafen;
     }
 
     /// <summary>

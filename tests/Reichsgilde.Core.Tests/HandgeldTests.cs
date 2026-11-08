@@ -124,10 +124,11 @@ static class HandgeldTests
         }),
 
         ("Handgeld: Die KI zahlt es wie der Spieler, wenn sie beim Anmelden den freien Platz füllt, und stellt nicht ein, wenn das Handgeld den " +
-         "erwarteten Jahresertrag übersteigt (auch mit Geld genug); Gegenprobe ohne Handgeld: sie stellt ein", () =>
+         "erwarteten Ertrag der Bleibedauer übersteigt (personal.handgeldJahre, auch mit Geld genug); mit drei Jahren lohnt es, ohne Handgeld ohnehin", () =>
         {
             var (sim, spieler) = Partie(Json(Betrag));
             var w = sim.Wirtschaft!;
+            Pruefe.Gleich(3.0, w.Personal.HandgeldJahre, "Vorgabe: etwa die Lehrzeit");
             var kiBetriebe = w.Betriebe.Where(x => x.Konto != spieler).ToList();
             Pruefe.Wahr(kiBetriebe.Count > 0, "KI-Häuser");
             foreach (var b in kiBetriebe)
@@ -138,23 +139,53 @@ static class HandgeldTests
                 Pruefe.Ungefaehr(neu * Betrag, b.Laufend.Handgeld, 1e-9);
             }
 
-            // Ein Handgeld über dem Jahresertrag eines Lehrlings (1.000 Gulden, die Kasse reicht dafür): Die KI-Häuser stellen niemanden ein
+            // Ein Handgeld über dem Jahresertrag eines Lehrlings (1.000 Gulden, die Kasse reicht dafür), aber unter dem Ertrag von drei Jahren:
+            // Soll es sich in einem Jahr bezahlt machen (handgeldJahre 1), stellt die KI niemanden ein, mit der Vorgabe 3 schon.
             const double teuer = 1000;
-            var (simTeuer, spielerTeuer) = Partie(Json(teuer));
-            var wT = simTeuer.Wirtschaft!;
-            foreach (var b in wT.Betriebe.Where(x => x.Konto != spielerTeuer))
+            int Eingestellt(double jahre, bool pruefen)
             {
-                var ki = wT.Rivalen.Single(r => r.Konto == b.Konto);
-                var ertrag = ki.Jahresertrag(b, "Lehrling");
-                Pruefe.Wahr(b.Konto.Vermoegen > 2 * teuer && ertrag is > 0 and < teuer && wT.Personal.EinstellenVerboten(b, "Lehrling") is null,
-                    $"{b.Name}: Geld genug ({b.Konto.Vermoegen:0}), Ertrag {ertrag:0}");
-                Pruefe.Gleich(w.Personal.StartAnzahl(b.Art, 2), b.Belegt, $"{b.Name}: niemand eingestellt");
-                Pruefe.Gleich(0.0, b.Konto.Laufend.Handgeld);
+                var knoten = JsonNode.Parse(Json(teuer))!;
+                knoten["personal"]!["handgeldJahre"] = jahre;
+                var (simT, spielerT) = Partie(knoten.ToJsonString());
+                var wT = simT.Wirtschaft!;
+                var summe = 0;
+                foreach (var b in wT.Betriebe.Where(x => x.Konto != spielerT))
+                {
+                    var ertrag = wT.Rivalen.Single(r => r.Konto == b.Konto).Jahresertrag(b, "Lehrling");
+                    if (pruefen)
+                        Pruefe.Wahr(ertrag is > 0 and < teuer && ertrag * 3 > teuer && wT.Personal.EinstellenVerboten(b, "Lehrling") is null,
+                            $"{b.Name}: Ertrag {ertrag:0}, Kasse {b.Konto.Vermoegen:0}");
+                    summe += b.Belegt - wT.Personal.StartAnzahl(b.Art, 2);
+                }
+                return summe;
             }
+            Pruefe.Gleich(0, Eingestellt(1, pruefen: true), "ein Jahr: niemand eingestellt");
+            Pruefe.Wahr(Eingestellt(3, pruefen: false) > 0, "drei Jahre: eingestellt");
             // Gegenprobe ohne Handgeld: dieselben Häuser stellen ein
             var (sim0, spieler0) = Partie(Json(0));
             foreach (var b in sim0.Wirtschaft!.Betriebe.Where(x => x.Konto != spieler0))
                 Pruefe.Wahr(b.Belegt > w.Personal.StartAnzahl(b.Art, 2), $"{b.Name}: ohne Handgeld eingestellt");
+            // Die Daten lehnen eine Bleibedauer von 0 ab
+            var null0 = JsonNode.Parse(Json(Betrag))!;
+            null0["personal"]!["handgeldJahre"] = 0;
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(null0.ToJsonString()), "personal.handgeldJahre");
+        }),
+
+        ("Handgeld: Betriebe ohne Ware stellen weiter ein – das Wachhaus Rekruten, das Schmugglerloch Taschendiebe; die KI zahlt das Handgeld", () =>
+        {
+            foreach (var (art, kraft) in new[] { (Betriebsart.Wachhaus, "Rekrut"), (Betriebsart.Schmugglerloch, "Taschendieb") })
+            {
+                var sim = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
+                    wirtschaftsdaten: Wirtschaftsdaten.AusJson(Json(Betrag)));
+                var w = sim.Wirtschaft!;
+                var k = w.KontoEroeffnen("Haus Ohneware", startvermoegen: 10_000);
+                var b = w.BetriebEroeffnen($"{w.Daten.Art(art).Name} Ohneware", art, k, startkarren: "");
+                Pruefe.Wahr(b.Artdaten.OhneProduktion && b.Belegt == 0, $"{b.Name}: ohne Ware, leer");
+                var ki = w.KiAnmelden(k);
+                Pruefe.Wahr(b.Belegt > 0 && b.Arbeiter.All(a => a.Arbeitskraft == kraft),
+                    $"{b.Name}: {b.Belegt} eingestellt (Jahresertrag eines {kraft}: {ki.Jahresertrag(b, kraft):0})");
+                Pruefe.Ungefaehr(b.Belegt * Betrag, b.Laufend.Handgeld, 1e-9);
+            }
         }),
     };
 }
