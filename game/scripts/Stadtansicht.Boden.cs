@@ -105,6 +105,7 @@ public partial class Stadtansicht
     private void BodenqualitaetNachfuehren()
     {
         PfuetzeStufeSetzen(); // Pfützen der Füllung (Stadtansicht.Fuellbacken.cs)
+        BrunnenStufeSetzen(); // Wasser und Strahl des Marktbrunnens (Stadtansicht.Brunnen.cs)
         BueschelSichtbarkeit(); // Stadtansicht.Bueschel.cs
         GrasNachfuehren();      // Werte des Grasteppichs (Stadtansicht.Gras.cs)
         if (!_bodenShaderGeprueft || _bodenShader[0] is null || _bodenStufe == Fenster.AktuelleBodenqualitaet) return;

@@ -292,6 +292,7 @@ public partial class Stadtansicht
     /// </summary>
     private void FuellungNachZoom(double delta)
     {
+        BrunnenNachZoom(); // Strahl des Marktbrunnens nur nah (Stadtansicht.Brunnen.cs)
         if (Wasserarten.Startoption("fuellung") == "vergleich") FuellungVergleich();
         if (_fuellKarte is null || _fuellZellen.Count == 0) return;
         if (_fuellDichte != Fenster.NaturDichte)
