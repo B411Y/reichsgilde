@@ -30,9 +30,8 @@ public sealed class PersonalDaten
     public int? StartJeBetrieb { get; init; }
 
     /// <summary>
-    /// Handgeld (Gulden), das ein Haus beim Einstellen eines Anfängers einmal zahlt – Lehrling, Knecht, Taschendieb, Rekrut; Spieler und KI
-    /// gleich (Nutzer, 08.11.2026). Nicht für die Startbelegung (<see cref="StartJeBetrieb"/>) und nicht für Arbeitskräfte ohne Stufen (Unfreie,
-    /// Orks). Gebucht als eigener Posten der Jahresrechnung (<see cref="Jahresbilanz.Handgeld"/>). Ohne Angabe 0: kein Handgeld, wie bis
+    /// Handgeld (Gulden), das ein Haus beim Einstellen einmal zahlt – Lehrling, Knecht, Taschendieb, Rekrut, auch Unfreie und Orks; Spieler und
+    /// KI gleich (Nutzer, 08.11.2026: gleiche Regel für alle außer dem Startlehrling). Nicht für die Startbelegung (<see cref="StartJeBetrieb"/>). Gebucht als eigener Posten der Jahresrechnung (<see cref="Jahresbilanz.Handgeld"/>). Ohne Angabe 0: kein Handgeld, wie bis
     /// Datenversion 72.
     /// </summary>
     public double Handgeld { get; init; }

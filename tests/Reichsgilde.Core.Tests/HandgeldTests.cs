@@ -69,8 +69,8 @@ static class HandgeldTests
             Pruefe.Gleich(0.0, spieler0.Laufend.Handgeld);
         }),
 
-        ("Handgeld: Reicht das Bargeld nicht, lehnen beide Befehle ab und nennen den Betrag; Arbeitskräfte ohne Stufen (Ork, Leibeigener) zahlen keins; " +
-         "die Daten lehnen ein negatives Handgeld ab", () =>
+        ("Handgeld: Reicht das Bargeld nicht, lehnen beide Befehle ab und nennen den Betrag; Ork und Leibeigener bekommen es ebenso (Nutzer 08.11.: " +
+         "gleiche Regel für alle außer dem Startlehrling), Gesellen stellt man nicht ein; die Daten lehnen ein negatives Handgeld ab", () =>
         {
             var (sim, spieler) = Partie(Json(Betrag));
             var w = sim.Wirtschaft!;
@@ -90,10 +90,24 @@ static class HandgeldTests
             Pruefe.Wahr(w.Ausfuehren(spieler, new PersonalSetzen(b.Name, "Lehrling", 2)).Erfolg, "einer geht");
             Pruefe.Ungefaehr(1, spieler.Vermoegen, 1e-9);
 
-            Pruefe.Gleich(0.0, w.Personal.Handgeld("Ork"));
-            Pruefe.Gleich(0.0, w.Personal.Handgeld("Leibeigener"));
             Pruefe.Gleich(0.0, w.Personal.Handgeld("Geselle"));
-            foreach (var anfaenger in new[] { "Lehrling", "Knecht", "Taschendieb", "Rekrut" }) Pruefe.Gleich(Betrag, w.Personal.Handgeld(anfaenger), anfaenger);
+            foreach (var kraft in new[] { "Lehrling", "Knecht", "Taschendieb", "Rekrut", "Ork", "Leibeigener" }) Pruefe.Gleich(Betrag, w.Personal.Handgeld(kraft), kraft);
+            Pruefe.Wahr(w.Personal.EinstellenVerboten(b, "Ork") is { } ork && ork.Contains("Handgeld"), "ohne Geld auch kein Ork");
+
+            // Unter Statut C (Unfreie in allen Gewerben) kostet ein Ork bzw. Leibeigener in der Werkstatt das Handgeld wie ein Lehrling
+            var simC = new Simulation(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, StartStatut = Fronstatut.FreieStadt + 2 },
+                wirtschaftsdaten: Wirtschaftsdaten.AusJson(Json(Betrag)));
+            var wC = simC.Wirtschaft!;
+            var kC = wC.KontoEroeffnen("Haus Fron", startvermoegen: 1000);
+            var gC = wC.BetriebEroeffnen("Gießerei Fron", Betriebsart.Giesserei, kC, startkarren: "");
+            foreach (var kraft in new[] { "Ork", "Leibeigener" })
+            {
+                var vorher = kC.Vermoegen;
+                var eC = wC.Ausfuehren(kC, new PersonalSetzen(gC.Name, kraft, 1));
+                Pruefe.Wahr(eC.Erfolg && eC.Meldung.Contains($"Handgeld {Zahlenformat.Ganz(Betrag)}"), $"{kraft}: {eC.Meldung}");
+                Pruefe.Ungefaehr(vorher - Betrag, kC.Vermoegen, 1e-9);
+            }
+            Pruefe.Ungefaehr(2 * Betrag, gC.Laufend.Handgeld, 1e-9);
             Pruefe.Gleich(0.0, Wirtschaftsdaten.AusJson(File.ReadAllText(Datenpfad.Wirtschaft()).Replace("\"handgeld\":", "\"handgeldAlt\":")).Personal!.Handgeld, "ohne Angabe 0");
             Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json(-1)), "personal.handgeld");
         }),
