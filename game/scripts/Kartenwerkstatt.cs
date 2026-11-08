@@ -110,7 +110,7 @@ public partial class Kartenwerkstatt : Node
         var optionen = _startoptionenErledigt ? new Dictionary<string, string>() : Startoptionen();
         _startoptionenErledigt = true;
         var lade = Ladebildschirm.Zeigen(GetTree(), optionen.GetValueOrDefault("kartenwerkstatt"));
-        lade.Fortschritt(0.03f, "Der Entwurf wird ausgerollt …");
+        lade.Fortschritt(0.077f, "Der Entwurf wird ausgerollt …");
         _stadt.Welt3DSperren(true); // erst die fertige Werkstatt zeichnen (ErsteBilderAbwarten)
         await Ladebildschirm.Bild(GetTree());
         string? meldung = null;
@@ -125,8 +125,8 @@ public partial class Kartenwerkstatt : Node
         _entwurf.Daten ??= _daten; // Betriebsarten je Platz und die Prüfung der Startbelegung
         Ladezeit.Marke("Kern: Entwurf und wirtschaft.json lesen");
 
-        await lade.Durchlaufen(_stadt.EntwurfZeigenSchritte(_entwurf), 0.09f, 0.60f);
-        lade.Fortschritt(0.60f, "Werkzeug wird bereitgelegt …");
+        await lade.Durchlaufen(_stadt.EntwurfZeigenSchritte(_entwurf), 0.106f, 0.532f);
+        lade.Fortschritt(0.532f, "Werkzeug wird bereitgelegt …");
         await Ladebildschirm.Bild(GetTree());
         OberflaecheBauen(); // Kartenwerkstatt.Tafeln.cs
         Ladezeit.Marke("Werkstatt: Tafeln bauen");
@@ -169,7 +169,7 @@ public partial class Kartenwerkstatt : Node
         if (meldung is not null) Melden(meldung);
         else if (datenFehler is not null) Melden(datenFehler, fehler: true);
         StartoptionenAusfuehren(optionen);
-        await ErsteBilderAbwarten(lade, 0.66f);
+        await ErsteBilderAbwarten(lade, 0.777f);
         Ruhen(false);
         _stadt.Ruhen(false);
         Ladezeit.Marke("Ladebild weg");
@@ -187,7 +187,9 @@ public partial class Kartenwerkstatt : Node
 
     /// <summary>
     /// Die ersten Bilder noch hinter dem Ladebildschirm: Werkstatt und Stadt rechnen (Natur, Wegeschicht, Gras), der Grafiktreiber übersetzt die
-    /// Shader; Eingaben ruhen noch. Fertig, wenn drei Bilder in Folge kurz sind (höchstens 5 s).
+    /// Shader; Eingaben ruhen noch. Fertig, wenn drei Bilder in Folge kurz sind (höchstens 5 s). Das erste Bild dauert 5–10 s (Felder, Wegeschicht und
+    /// Gras rechnen erst jetzt) und der Balken steht darin still; <paramref name="von"/> ist darum der Sollwert in der Mitte dieses Bildes (nicht an seinem
+    /// Anfang wie bei den Abschnitten), das senkt die größte Abweichung von 44 auf 23 Punkte.
     /// </summary>
     private async Task ErsteBilderAbwarten(Ladebildschirm lade, float von)
     {
