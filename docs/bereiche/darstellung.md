@@ -230,6 +230,20 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 ## Entscheidungen
 
+### Neuer Marktbrunnen mit fließendem Wasser (Branch phase5/marktbrunnen)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wahl (Nutzer) | Entwurf A (achteckiges Becken, gotische Säule, vier Röhren) mit der Ritterfigur aus B oben und nur vier Fialen; Wappen ja, aber **nicht das Kölner** (der Brunnen steht auf allen Karten): acht Schilde mit neutralen Mustern (geteilt, gespalten, Balken, Schrägbalken, zweimal Löwe, zweimal Adler); schlichter Stein, nur Wappen, Krone und Röhren farbig bzw. golden; kleiner Viehtrog mit Überlauf aus dem Becken. Historisch ist in Köln um 1400 ein Ziehbrunnen belegt, ein Röhrenbrunnen wäre Nürnberger oder Ulmer Art (Recherche in `C:\Reichsgilde_Austauschrunnenecherche.md`). | 08.11.2026 |
+| Modell | `tools/modelle/brunnen.py` (aus `markt.py` aufgerufen, Ausgabe `marktplatz.glb`): Netze **`Brunnen`** (Stein: Stufe, Becken aus Platten mit Gehrung, Säule, Fialen, Sockel, Ritter, Röhren; Stoffe Sandstein, Haustein, Stadtrot, Fassung), **`Brunnen_Trog`**, **`Brunnen_Wasser`**, **`Brunnen_Strahl`**, **`Brunnen_Eis`**; dazu `Anker_Trog`. Umkreis der Stufe 2,77 m (vorher Rand 1,98 m), Gesamthöhe rund 5 m, Becken 4,6 m, Trog 1,9 × 0,8 m bei 3,35 m (Spiel +Z). Das alte Modell (Becken, Mittelsäule, Kupferspeier, Fass) ist ersetzt. Alles selbst gebaut. | 08.11.2026 |
+| Wasser | `brunnenwasser.gdshader` nach dem Vorbild von `pfuetze.gdshader` (Himmelsspiegelung nach Fresnel, bei Regen dunkler und glänzender) plus **Wellenringe** um die vier Auftreffpunkte (±1,06 | ±1,06 m, im Shader fest); Stufe wie die Einstellung „Boden“ (Niedrig glatt, Mittel Spiegelung, Hoch Ringe und Regentropfen). | 08.11.2026 |
+| Strahl | `brunnenstrahl.gdshader`: dünne Bogenröhren (vier Ecken) aus einem Stoff für alle vier Strahlen und den Überlauf, halb durchsichtig, helle Streifen laufen mit der Zeit an der abnehmenden Höhe entlang (keine UV nötig); Stufe Niedrig ruhiger Strahl. Wirft keinen Schatten. Spritzer als kleine Quader am Ende. Statt echter Bänder Röhren, weil sie aus jeder Richtung rund wirken. | 08.11.2026 |
+| Winter | `Brunnen_Eis` (Eis in Becken und Trog, Eiszapfen an Röhren und Rand, Schnee auf Rand, Brüstung und Trog) ersetzt Wasser und Strahl; Umschalten in `JahreszeitSetzen` (`Stadtansicht.Brunnen.cs`, `BrunnenSichtbar`). | 08.11.2026 |
+| Zoom (LOD) | Ab 60 m Zoom (`BrunnenFernAbZoom`) ist der Strahl aus und das Wasser ohne Ringe; das Wasser bleibt eine Fläche. | 08.11.2026 |
+| Zeichenaufrufe | Stein 4 Stoffe, Trog 1, Wasser 1, Strahl 1 = 7 Flächen, **14 Aufrufe** (Winter: Stein 4, Trog 1, Eis und Schnee 2 = 14). Die Schattenproxys fassen die Mehrflächennetze zusammen (Brunnen 4 → 1), der Strahl ist ein Netz mit einer Fläche und wirft keinen Schatten. Der Shader-Stoff wird von der Flächenzusammenlegung (`Stadtansicht.Flaechenmerge.cs`) nicht berührt: sie gilt nur für Tiere und Vögel. Gemessen ist es nicht (kein Fenster). | 08.11.2026 |
+| Wege und Hindernisse | Brunnenhindernis aus dem Modell (ohne die Netze `Brunnen_*`) und `BrunnenRadius` 2,8 m (vorher 1,98 m); der Trog als eigenes Rechteck der freien Fläche und drei Kreise (`Anker_Trog`); die vier Brunnenplätze zum Wasserholen stehen 3,45 m von der Mitte bei 20°, 90°, 160°, 215° (der Trog liegt bei 270°); Anlehnplätze auf der Stufe am Rand (2,2 m). Der Eimer entfällt. Der Platz ist auf allen Karten dasselbe Modell (Greybox, Probestadt, Messstadt, Köln dreimal: Heumarkt, Alter Markt, Neumarkt, immer 24 × 24 m, Drehung 0); Stände (ab 8,5 m), Bänke, Plauderrunden (ab 5,8 m) und Rundgang (ab 5,9 m) liegen außerhalb, der Test `MarktbrunnenTests` prüft die Abstände aller Anker. | 08.11.2026 |
+| Nicht geprüft | Die beiden Shader wurden nur geparst (Godot headless, Uniforms gelesen), nicht übersetzt oder gesehen; die NAS muss sie prüfen. Eisenklammern über den Beckenfugen fehlen (erster Versuch zeigte schwarze Dreiecke). | 08.11.2026 |
+
 ### Restflächen Paket 4: Steinmetzplatz, Taubenschlag, Pfützen mit Spiegelung (Branch phase5/restflaechen-p4)
 
 | Thema | Entscheidung | Datum |
