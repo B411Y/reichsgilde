@@ -224,7 +224,7 @@ public partial class Stadtansicht
     /// <summary>Langsame Schleifen bekommen nur jedes dritte Bild eine neue Pose (bei 60 Bildern je Sekunde noch 20 – das Atmen sieht gleich aus).</summary>
     private const int LangsamTeiler = 3;
 
-    /// <summary>Bis zu dieser sichtbaren Höhe (Meter, nahe Zoomstufe 25 m) werfen Passanten Schatten; bei 50 und 100 m zeichnet <see cref="PassantenFleckenAktualisieren"/> stattdessen einen Fleck am Boden (echte Schatten wären dort teuer im Schattendurchgang).</summary>
+    /// <summary>Bis zu dieser sichtbaren Höhe (Meter, nahe Zoomstufe 25 m) werfen Passanten Schatten; bei 50 und 100 m wirft <see cref="PassantenFleckenAktualisieren"/> stattdessen den Schatten über einfache Stellvertreter (echte Schatten aller Teile wären dort teuer im Schattendurchgang).</summary>
     private const float PassantenSchattenBisZoom = 37f;
 
     private readonly Plane[] _bildEbenen = new Plane[6];

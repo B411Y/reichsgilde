@@ -225,6 +225,7 @@ public partial class Stadtansicht
         if (FlammenFuss(art) is not { } f || OS.GetEnvironment("RG_OHNEFLAMMEN") != "") return null; // RG_OHNEFLAMMEN: nur für Messungen
         var flamme = Feuer.Neu(f.Vorgabe, false, (Streuung(nummer, 2071) & 0xFFFF) / 65535f, f.Groesse);
         flamme.Wand = wand;
+        flamme.Aussen = true;
         if (wandert && art == Lichtart.Fackel) flamme.Art = Handfackel();
         flamme.Name = "Flamme";
         flamme.Position = f.Fuss;

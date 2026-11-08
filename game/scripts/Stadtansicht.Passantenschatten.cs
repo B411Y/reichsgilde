@@ -5,21 +5,23 @@ namespace Reichsgilde;
 /// <summary>
 /// Schatten der Passanten in allen Zoomstufen – ein Teil der <c>partial class Stadtansicht</c>.
 /// Bis zur Zoomstufe 25 m werfen die Passanten echte Schatten (<see cref="FigurSchatten"/>, Sonne und Mond). Bei 50 und 100 m sind
-/// echte Schatten für hunderte Figuren zu teuer (jede Figur kommt mit ihren Teilen noch einmal in den Schattendurchgang) und die Figuren sind klein;
-/// dort zeichnet diese Datei stattdessen <b>einen Fleck je Passant</b>: eine flache Ellipse am Boden, in Schattenrichtung der Sonne gestreckt und
-/// am Fuß verankert, alle zusammen in <b>einem</b> Vielfach-Zeichenaufruf (<see cref="MultiMesh"/>, Puffer in einem Zug).
+/// echte Schatten für hunderte Figuren zu teuer (jede Figur kommt mit ihren Teilen noch einmal in den Schattendurchgang) und die Figuren sind klein.
+/// Dort wirft stattdessen <b>ein einfacher Stellvertreter je Passant</b> den Schatten: ein schlankes, senkrechtes Achteck-Prisma in Körpergröße am Fuß, das
+/// <b>nur in die Schattenkarte der Sonne</b> gezeichnet wird (<see cref="GeometryInstance3D.ShadowCastingSetting.ShadowsOnly"/>), alle zusammen in <b>einem</b>
+/// Vielfach-Zeichenaufruf (<see cref="MultiMesh"/>, Puffer in einem Zug).
 /// <list type="bullet">
-/// <item>Der Fleck <b>multipliziert</b> das fertige Bild (unbeleuchtet, <c>blend_mul</c>, ohne Tiefenschreiben, mit Tiefenprüfung – Häuser verdecken ihn). Er liegt im Pixel-Look
-/// auf der Teilchen-Ebene, das Beleuchtungsbild sieht ihn nicht (sonst stünde dort ein undurchsichtiges Rechteck, siehe <see cref="PixelTeilchenEbene"/>); die harte Kante der
-/// Ellipse rastert im Low-Res-Bild zu Weltpixeln, wie die Kante der echten Schatten.</item>
-/// <item>Die Dunkelheit folgt dem Licht: Verhältnis Umgebungslicht zu Umgebung plus Sonne (bzw. Mond), mal der Schattendeckkraft; bei Wolken, Regen und
-/// in der Dämmerung wird der Fleck blasser, wie die echten Schatten.</item>
-/// <item>Startoption <c>--figurenschatten=blob|echt|aus</c> (nur für Vergleiche und Messungen): <c>blob</c> (Standard) echte Schatten nah, Flecken fern; <c>echt</c> immer echte; <c>aus</c> fern keine.</item>
+/// <item><b>Der Schatten ist ein echter Sonnenschatten</b> (früher ein Fleck, der das fertige Bild multiplizierte – der addierte sich, wo sich Flecken überlappten, und lag
+/// im Pixel-Look neben dem Stufenlicht, das Häuserschatten bekommen, dunkler als diese und doppelt dunkel im Hausschatten): Die Schattenkarte ist binär, überlappende
+/// Schatten werden nicht dunkler, ein Schatten im Schatten eines Hauses bleibt so dunkel wie dieser, und Tag, Nacht, Wetter, Jahreszeit, Deckkraft und im Pixel-Look
+/// Stufenlicht und weiche Kante sind genau die der Gebäudeschatten – ohne eigene Rechnung.</item>
+/// <item>Form und Richtung bleiben die des früheren Flecks: schulterbreit (0,44 m), in Schattenrichtung der Sonne gestreckt, die Länge folgt der Sonnenhöhe
+/// (Körpergröße geteilt durch den Tangens der Sonnenhöhe) – nur dass kein Grenzwert sie bei sehr tiefer Sonne kappt, wie bei den echten Schatten der nahen Stufe.</item>
+/// <item>Startoption <c>--figurenschatten=blob|echt|aus</c> (nur für Vergleiche und Messungen): <c>blob</c> (Standard, Name aus der Zeit der Flecken) echte Schatten nah, Stellvertreter fern; <c>echt</c> immer echte; <c>aus</c> fern keine.</item>
 /// </list>
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Wie die Passanten ihren Schatten zeigen: Flecken ab Zoom 50 (Standard), immer echt (teuer) oder fern gar nicht (Stand vor dieser Änderung).</summary>
+    /// <summary>Wie die Passanten ihren Schatten zeigen: Stellvertreter ab Zoom 50 (Standard), immer echt (teuer) oder fern gar nicht (Stand vor dem Fleck).</summary>
     private enum FigurSchattenArt { Fleck, Echt, Aus }
 
     private static readonly FigurSchattenArt PassantenSchattenArt = Wasserarten.Startoption("figurenschatten") switch
@@ -29,18 +31,16 @@ public partial class Stadtansicht
         _ => FigurSchattenArt.Fleck,
     };
 
-    /// <summary>Halbe Breite des Flecks (Schulterbreite) in Metern und seine Länge je Meter Körpergröße bei Sonnenhöhe 45°; Grenzen der Länge.</summary>
-    private const float FleckHalbBreite = 0.22f, FleckGroesse = 1.65f, FleckLaengeMin = 0.7f, FleckLaengeMax = 3.2f;
+    /// <summary>Halbe Breite des Stellvertreters (Schulterbreite) und seine Höhe in Metern (ein Mensch; Orks und Oger größer nach dem Maßstab ihres Modells).</summary>
+    private const float FleckHalbBreite = 0.22f, FleckGroesse = 1.65f;
 
-    /// <summary>So viel höher als der Boden der Figur liegt der Fleck (gegen Flackern; Hänge: der Fleck liegt flach).</summary>
-    private const float FleckHoehe = 0.07f;
+    /// <summary>Wie weit (Meter) ein Passant außerhalb des Bildes noch mitzählt: Sein Schatten kann ins Bild ragen (mindestens 3 m, sonst Schattenlänge plus 1 m).</summary>
+    private const float FleckRandMin = 3f;
 
     private MultiMeshInstance3D? _fleckPassanten;
-    private StandardMaterial3D? _fleckStoff;
     private float[] _fleckPuffer = Array.Empty<float>();
-    private float _fleckDunkel = -1f;
 
-    /// <summary>Einmal je Bild, nach den Passanten: Flecken an die Füße der sichtbaren Passanten setzen (oder alle ausblenden).</summary>
+    /// <summary>Einmal je Bild, nach den Passanten: Stellvertreter an die Füße der sichtbaren Passanten setzen (oder alle ausblenden).</summary>
     private void PassantenFleckenAktualisieren()
     {
         var an = !_passantenSchatten && PassantenSchattenArt == FigurSchattenArt.Fleck && !_stadtVerdeckt && _sonne.ShadowEnabled && _passanten.Count > 0;
@@ -52,62 +52,63 @@ public partial class Stadtansicht
         FleckenBereitstellen(_passanten.Count);
         var mm = _fleckPassanten!.Multimesh;
 
-        // Schattenrichtung (Richtung des Lichts, flach) und Länge nach Sonnenhöhe
+        // Länge des Schattens eines Menschen nach Sonnenhöhe, nur für den Rand des Bildes (die Schattenkarte rechnet die echte Richtung selbst)
         var licht = (GlobalBasis.Inverse() * -_sonne.GlobalBasis.Z).Normalized();
-        var flach = new Vector3(licht.X, 0, licht.Z);
-        var hoehe = Mathf.Max(-licht.Y, 0.2f); // sin der Sonnenhöhe
-        var richtung = flach.LengthSquared() > 1e-6f ? flach.Normalized() : Vector3.Right;
-        var laenge = Mathf.Clamp(FleckGroesse * Mathf.Sqrt(Mathf.Max(1f - hoehe * hoehe, 0f)) / hoehe, FleckLaengeMin, FleckLaengeMax);
-        var halb = laenge * 0.5f;
-        var quer = new Vector3(-richtung.Z, 0, richtung.X);
-        FleckDunkelSetzen(hoehe);
+        var hoehe = Mathf.Max(-licht.Y, 0.05f); // sin der Sonnenhöhe
+        var schattenLaenge = FleckGroesse * Mathf.Sqrt(Mathf.Max(1f - hoehe * hoehe, 0f)) / hoehe;
+        var rand = Mathf.Clamp(schattenLaenge + 1f, FleckRandMin, 40f);
 
         var puffer = _fleckPuffer;
         var n = 0;
         foreach (var p in _passanten.Values)
         {
             var knoten = p.Knoten;
-            if (!knoten.Visible || p.Figur is null || !ImBild(knoten.Position, 3f)) continue;
-            var o = knoten.Position + richtung * (halb * 0.55f) + new Vector3(0, FleckHoehe, 0); // am Fuß verankert, zum größeren Teil in Schattenrichtung
+            if (!knoten.Visible || p.Figur is not { } figur || !ImBild(knoten.Position, rand)) continue;
+            var o = knoten.Position;
             var i = n++ * 12;
-            // Reihen der 3×4-Matrix: X-Achse = Längsrichtung (halbe Länge), Y unbenutzt (flach), Z-Achse = quer (halbe Breite)
-            puffer[i + 0] = richtung.X * halb; puffer[i + 1] = 0; puffer[i + 2] = quer.X * FleckHalbBreite; puffer[i + 3] = o.X;
-            puffer[i + 4] = 0;                 puffer[i + 5] = 1; puffer[i + 6] = 0;                         puffer[i + 7] = o.Y;
-            puffer[i + 8] = richtung.Z * halb; puffer[i + 9] = 0; puffer[i + 10] = quer.Z * FleckHalbBreite; puffer[i + 11] = o.Z;
+            var breite = FleckHalbBreite * figur.Modell.Scale.X;
+            var hohe = FleckGroesse * figur.Modell.Scale.Y;
+            // Reihen der 3×4-Matrix: senkrechtes Prisma, Grundriss rund, Höhe nach oben
+            puffer[i + 0] = breite; puffer[i + 1] = 0;    puffer[i + 2] = 0;      puffer[i + 3] = o.X;
+            puffer[i + 4] = 0;      puffer[i + 5] = hohe; puffer[i + 6] = 0;      puffer[i + 7] = o.Y;
+            puffer[i + 8] = 0;      puffer[i + 9] = 0;    puffer[i + 10] = breite; puffer[i + 11] = o.Z;
         }
         mm.VisibleInstanceCount = n;
         if (n > 0) mm.Buffer = puffer;
     }
 
-    /// <summary>Legt Netz und Material einmal an und vergrößert den Puffer bei Bedarf.</summary>
+    /// <summary>Prisma mit Einheitsradius und Höhe 1 (Fuß bei y = 0) aus <paramref name="ecken"/> Seiten und einem Deckel; die Instanz streckt es. Nur Eckpunkte: Die Schattenkarte braucht nichts anderes.</summary>
+    private static ArrayMesh FleckNetz(int ecken)
+    {
+        var punkte = new List<Vector3>();
+        for (var k = 0; k < ecken; k++)
+        {
+            float a0 = k * Mathf.Tau / ecken, a1 = (k + 1) * Mathf.Tau / ecken;
+            Vector3 u0 = new(Mathf.Cos(a0), 0, Mathf.Sin(a0)), u1 = new(Mathf.Cos(a1), 0, Mathf.Sin(a1));
+            Vector3 o0 = u0 + Vector3.Up, o1 = u1 + Vector3.Up;
+            punkte.AddRange(new[] { u0, o0, o1, u0, o1, u1 }); // Seite
+            punkte.AddRange(new[] { Vector3.Up, o1, o0 });     // Deckel
+        }
+        var felder = new Godot.Collections.Array();
+        felder.Resize((int)Mesh.ArrayType.Max);
+        felder[(int)Mesh.ArrayType.Vertex] = punkte.ToArray();
+        var netz = new ArrayMesh();
+        netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, felder);
+        // beidseitig: Die Schattenkarte soll unabhängig von der Umlaufrichtung werfen
+        netz.SurfaceSetMaterial(0, new StandardMaterial3D { CullMode = BaseMaterial3D.CullModeEnum.Disabled, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded });
+        return netz;
+    }
+
+    /// <summary>Legt Netz und Knoten einmal an und vergrößert den Puffer bei Bedarf.</summary>
     private void FleckenBereitstellen(int zahl)
     {
         if (_fleckPassanten is null)
         {
-            // Ellipse als Fächer um die Mitte (Einheitskreis, 16 Ecken); die Instanz streckt sie
-            var ecken = new Vector3[16 * 3];
-            for (var k = 0; k < 16; k++)
-            {
-                float a0 = k * Mathf.Tau / 16f, a1 = (k + 1) * Mathf.Tau / 16f;
-                ecken[k * 3] = Vector3.Zero;
-                ecken[k * 3 + 1] = new Vector3(Mathf.Cos(a1), 0, Mathf.Sin(a1));
-                ecken[k * 3 + 2] = new Vector3(Mathf.Cos(a0), 0, Mathf.Sin(a0));
-            }
-            var felder = new Godot.Collections.Array();
-            felder.Resize((int)Mesh.ArrayType.Max);
-            felder[(int)Mesh.ArrayType.Vertex] = ecken;
-            var netz = new ArrayMesh();
-            netz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, felder);
-            _fleckStoff = new StandardMaterial3D
-            {
-                ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, BlendMode = BaseMaterial3D.BlendModeEnum.Mul, Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-                CullMode = BaseMaterial3D.CullModeEnum.Disabled, NoDepthTest = false, AlbedoColor = Colors.White, DisableFog = true,
-            };
-            netz.SurfaceSetMaterial(0, _fleckStoff);
+            var netz = FleckNetz(8);
             _fleckPassanten = new MultiMeshInstance3D
             {
-                Name = "Passantenflecken", CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, GIMode = GeometryInstance3D.GIModeEnum.Disabled,
-                ExtraCullMargin = 16384f, // die Flecken liegen verstreut über die Stadt: nie wegen der Umgrenzung ausblenden
+                Name = "Passantenschatten", CastShadow = GeometryInstance3D.ShadowCastingSetting.ShadowsOnly, GIMode = GeometryInstance3D.GIModeEnum.Disabled,
+                ExtraCullMargin = 16384f, // die Stellvertreter liegen verstreut über die Stadt: nie wegen der Umgrenzung ausblenden
                 Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = netz },
             };
             AddChild(_fleckPassanten);
@@ -122,24 +123,4 @@ public partial class Stadtansicht
         }
         else if (_fleckPuffer.Length < mm.InstanceCount * 12) _fleckPuffer = new float[mm.InstanceCount * 12];
     }
-
-    /// <summary>
-    /// Grauwert des Flecks: Anteil des Lichts, der im Schatten bleibt (Umgebung ÷ Umgebung plus gerichtetes Licht, das schräg einfällt), mit der Schattendeckkraft verblasst.
-    /// Nach unten begrenzt – die echten Schatten sind im Pixel-Look auch nie ganz schwarz.
-    /// </summary>
-    private void FleckDunkelSetzen(float sonnenhoehe)
-    {
-        var umgebung = _umgebung.Environment;
-        float Hell(Color c) => 0.2126f * c.R + 0.7152f * c.G + 0.0722f * c.B;
-        var ambient = Hell(umgebung.AmbientLightColor) * umgebung.AmbientLightEnergy;
-        var direkt = Hell(_sonne.LightColor) * _sonne.LightEnergy * sonnenhoehe;
-        var verhaeltnis = ambient / Mathf.Max(ambient + direkt, 0.001f);
-        var dunkel = Mathf.Lerp(1f, Mathf.Max(verhaeltnis, FleckDunkelMin), _sonne.ShadowOpacity);
-        if (Mathf.Abs(dunkel - _fleckDunkel) < 0.01f) return;
-        _fleckDunkel = dunkel;
-        _fleckStoff!.AlbedoColor = new Color(dunkel, dunkel, dunkel, 1f);
-    }
-
-    /// <summary>Untergrenze des Flecks: so dunkel wie die dunkelste Stufe der echten Schatten im Pixel-Look etwa wirkt.</summary>
-    private const float FleckDunkelMin = 0.5f;
 }
