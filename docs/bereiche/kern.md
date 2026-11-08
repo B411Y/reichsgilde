@@ -72,7 +72,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Balancing, Lebensweise) Der Halbling-Schmied fällt gegen den Menschen nach 40 Jahren von −5,5 auf −13,4 %, weil die KI für Halblinge den Pfad der Schatten wählt (stärkstes Talent). Ein Mensch am Steuer kann den Pfad frei wählen; ob die KI nach Nutzen statt nach Talent wählen soll, entscheidet der Nutzer.
 - (Lebensweise, 3c) „Gerüchteküche“ und „Verschwiegen“ wirken erst mit den Geheimnissen (Teil 3c); bis dahin sagt es ihre Beschreibung, die KI nimmt sie trotzdem mit (Gewicht 1).
 - (Lebensweise) Ein Erbe oder Ehepartner, der diese Rolle verliert (neues Testament, Witwer nach dem Erbfall), behält Erfahrung und Knoten, sammelt aber nicht weiter und kann freie Punkte nicht mehr ausgeben, bis er wieder Erbe, Ehepartner oder Oberhaupt ist.
-- (an Oberfläche, Lebensweise) Charakterfenster: Reiter „Lebensweise“ mit `Familienbuch.Pfade(p)`, `ErfahrungJeJahr(p)`, `Lebensbaum(p, pfad, spieler)` in der `TalentbaumAnsicht` (Preis 1 als „1 Punkt“ zeigen, nicht als Gulden), Befehle `LebenswegWaehlen`/`KnotenWaehlen`; Pfad-Zeichen als Bilder.
 
 ## Entscheidungen
 
