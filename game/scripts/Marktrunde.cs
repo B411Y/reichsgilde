@@ -7,7 +7,9 @@ namespace Reichsgilde;
 /// Wachmann drehte sich auf der Stelle (Befund 08.11.2026).
 /// <para><b>Regel</b>: Die Runde umläuft den Markt. Um den Platz herum liegen vier Seiten (Norden, Osten, Süden, Westen, je nachdem, ob ein
 /// Punkt mehr quer oder mehr längs vom Platz liegt); auf jeder Seite wird der äußerste Wegpunkt innerhalb eines Ringes gewählt. Die Streife geht
-/// von der Tür zur nächsten Seite, reihum über die übrigen und zurück zur Tür, jedes Stück auf dem kürzesten Weg des Netzes. Ist die Runde
+/// von der Tür zuerst über den Platz (seine Mitte), dann reihum über die Seiten – die Seite nahe der Tür zuletzt – und zurück zur Tür, jedes Stück auf
+/// dem kürzesten Weg des Netzes. Über den Platz zuerst, weil ein Wachmann in einer Schicht (zwei Spielstunden) nur etwa 140 m weit kommt und danach an der
+/// Tür neu beginnt: So ist er in jeder Schicht auf dem Markt, auch wenn er die Runde nicht schafft. Ist die Runde
 /// kürzer als <see cref="MindestLaenge"/>, berührt sie weniger als <see cref="MindestSeiten"/> Seiten oder geht sie mehr als <see cref="HoechstDoppelt"/>
 /// ihrer Länge zweimal (dieselbe Gasse hin und zurück), wird der Ring weiter (<see cref="Ringe"/>);
 /// länger als <see cref="HoechstLaenge"/> wird sie nur, wenn es nicht anders geht (Wachhaus weit vom Markt). Wegpunkte außerhalb der Mauer gibt der
@@ -41,12 +43,14 @@ public static class Marktrunde
             var halte = Haltepunkte(tuer, mitte, halb, halb + ring, wegpunkte);
             if (halte.Count == 0 || (vorher is not null && halte.SequenceEqual(vorher))) continue; // dieselben Punkte wie im engeren Ring
             vorher = halte;
-            // reihum in beiden Richtungen (beginnend an der Seite nahe der Tür)
-            var richtungen = new List<List<(float X, float Z)>> { halte };
-            if (halte.Count > 2) richtungen.Add(halte.Take(1).Concat(Enumerable.Reverse(halte).SkipLast(1)).ToList());
+            // erst über den Platz, dann reihum in beiden Richtungen; die Seite nahe der Tür zuletzt, von dort geht es heim
+            var reihum = halte.Skip(1).Append(halte[0]).ToList();
+            var richtungen = new List<List<(float X, float Z)>> { reihum };
+            if (halte.Count > 2) richtungen.Add(Enumerable.Reverse(halte.Skip(1)).Append(halte[0]).ToList());
             foreach (var folge in richtungen)
             {
-                if (Zusammensetzen(tuer, folge, weg, out var seiten) is not { } runde) continue;
+                if (Zusammensetzen(tuer, folge.Prepend(mitte).ToList(), weg, out var erreicht) is not { } runde) continue;
+                var seiten = erreicht - (runde.Runde.Any(p => Abstand(p, mitte) < 0.5f) ? 1 : 0);
                 var doppelt = DoppeltAnteil(runde.Runde);
                 if (runde.Laenge >= MindestLaenge && runde.Laenge <= HoechstLaenge && seiten >= MindestSeiten && doppelt <= HoechstDoppelt) return runde;
                 versuche.Add((runde.Runde, runde.Laenge, seiten, doppelt));
