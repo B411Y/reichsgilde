@@ -50,7 +50,8 @@ static class BalancingTests
                     var betriebe = w.Betriebe.Where(b => b.Konto == ki).ToList();
                     Pruefe.Gleich(1, betriebe.Count, ki.Inhaber);
                     Pruefe.Wahr(betriebe[0].IstWerkstatt && betriebe[0].Belegung.GetValueOrDefault("Lehrling") == 2, $"{ki.Inhaber}: {betriebe[0].Name}");
-                    Pruefe.Ungefaehr(spieler.Vermoegen, ki.Vermoegen, 1e-9); // gleiches Startgeld
+                    // gleiches Startgeld – die KI hat beim Anmelden schon den zweiten Lehrling eingestellt und das Handgeld gezahlt (Datenversion 73)
+                    Pruefe.Ungefaehr(spieler.Vermoegen, ki.Vermoegen + ki.Laufend.Handgeld, 1e-9);
                 }
                 var frei = w.FreieLiegenschaften.Select(l => l.Name).ToHashSet();
                 foreach (var name in new[] { "Grube Eisenbart", "Holzschlag Eichwald", "Steinbruch Kieselbach" })

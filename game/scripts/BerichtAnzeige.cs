@@ -176,7 +176,8 @@ public partial class BerichtAnzeige : PanelContainer
         var zeilen = new List<string>
         {
             $"Dieses Jahr ({_simulation!.Zeit.DatumText}) bisher:",
-            $"  Umsatz {Zahlenformat.Ganz(l.Umsatz)} · Zutaten {Zahlenformat.Ganz(l.Zutaten)} · Fahrten {Zahlenformat.Ganz(l.Transport)} · Steuer {Zahlenformat.Ganz(l.Steuer)}",
+            $"  Umsatz {Zahlenformat.Ganz(l.Umsatz)} · Zutaten {Zahlenformat.Ganz(l.Zutaten)} · Fahrten {Zahlenformat.Ganz(l.Transport)} · Steuer {Zahlenformat.Ganz(l.Steuer)}"
+                + (l.Handgeld > 0 ? $" · Handgeld {Zahlenformat.Ganz(l.Handgeld)}" : ""),
             $"  Löhne und Unterhalt werden am Jahresende fällig.",
             hergestellt == "" ? "  Noch nichts hergestellt." : $"  Hergestellt: {hergestellt}",
             "",
@@ -186,6 +187,7 @@ public partial class BerichtAnzeige : PanelContainer
         {
             zeilen.Add($"Jahresrechnung {v.Jahr}: Gewinn {Zahlenformat.MitVorzeichen(v.Gewinn)} {waehrung}");
             zeilen.Add($"  Umsatz {Zahlenformat.Ganz(v.Umsatz)} − Zutaten {Zahlenformat.Ganz(v.Zutaten)} − Löhne {Zahlenformat.Ganz(v.Personal)} − Unterhalt {Zahlenformat.Ganz(v.Fixkosten)}"
+                      + (v.Handgeld > 0 ? $" − Handgeld {Zahlenformat.Ganz(v.Handgeld)}" : "")
                       + $" − Steuer {Zahlenformat.Ganz(v.Steuer)} − Fahrten {Zahlenformat.Ganz(v.Transport)} − Schaden {Zahlenformat.Ganz(v.Schaden)}");
             if (v.Raubwert > 0) zeilen.Add($"  Geraubt: {Zahlenformat.Ganz(v.Raubwert)} {waehrung}");
         }

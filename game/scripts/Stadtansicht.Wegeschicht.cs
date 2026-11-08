@@ -163,9 +163,10 @@ public partial class Stadtansicht
         var bilder = new (Image Bild, Image Info, Image Spur)?[liste.Count]; // schon im Faden der Kachel gebaut samt Mipmaps (das kostete sonst auf dem Hauptfaden gut 1 s)
         var bueschel = new Vector4[]?[liste.Count];
         var raster = BodenRaster;
+        var rasen = _rasenMaske; // Rasen der Restflächen: dort kein Stadtlehm (Stadtansicht.Rasen.cs)
         Parallel.For(0, liste.Count, k =>
         {
-            ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile, spuren);
+            ergebnis[k] = SchichtKachelRechnen(liste[k].I, liste[k].J, teile, spuren, rasen);
             // Grasbüschel am Wegrand (Stadtansicht.Bueschel.cs), solange das Bild noch da ist
             if (ergebnis[k] is not { } d) return;
             bueschel[k] = BueschelAusWegen(liste[k].I, liste[k].J, d.Bild, d.Info, raster);
@@ -310,7 +311,7 @@ public partial class Stadtansicht
     /// berührt. Bildpunkt k deckt [Kachel + (k − 1) · 0,25 m, Kachel + k · 0,25 m]. Gerechnet wird 4 m über die Kachel hinaus (<see cref="SchichtErdRand"/>),
     /// damit der Abstand zur Erde (Schritt 5j, grobes Bild A) auch an Kachelgrenzen stimmt; in die Bilder kommt nur die Kachel.
     /// </summary>
-    private static (byte[] Bild, byte[] Info, byte[] Spur)? SchichtKachelRechnen(int ti, int tj, List<Schichtteil> teile, List<Spurlinie> spuren)
+    private static (byte[] Bild, byte[] Info, byte[] Spur)? SchichtKachelRechnen(int ti, int tj, List<Schichtteil> teile, List<Spurlinie> spuren, Bodenraster? rasen = null)
     {
         const int n = SchichtBild, r0 = SchichtErdRand, gn = n + 2 * r0;
         const float t = SchichtTexel, kachel = KachelZellen * 2f;
@@ -424,6 +425,8 @@ public partial class Stadtansicht
         // Pflaster als Grund (in der Mauer): Deckung je Meter, am Rand auf einem Meter weich
         var grund = new float[gm * gm];
         foreach (var f in pflaster) FlaecheDecken(f.Linie, ti * kachel - 1 - rg, tj * kachel - 1 - rg, gm, grund);
+        // Rasen der Restflächen (Gärten, Gestrüpp …): Dort ist kein Lehm, die Wiese bleibt (Stadtansicht.Rasen.cs)
+        if (rasen is not null && pflaster.Count > 0) RasenAbziehen(rasen, (int)(ti * kachel) - 1 - rg, (int)(tj * kachel) - 1 - rg, gm, grund);
         // Erde, die auf Pflaster getragen wird: Punkte auf Pfad oder Fahrweg außerhalb der Stadt
         var erde = new bool[gm * gm];
         var erdeDa = false;

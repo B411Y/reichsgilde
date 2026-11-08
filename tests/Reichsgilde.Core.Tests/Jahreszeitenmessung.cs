@@ -511,7 +511,7 @@ static class Jahreszeitenmessung
 
     /// <summary>Was diese Rechnung am Bargeld und an den Forderungen ändert (alle Posten mit Vorzeichen, ohne Hauswert).</summary>
     static double Netto(Jahresbilanz v) =>
-        v.Umsatz - v.Zutaten - v.Personal - v.Fixkosten - v.Steuer - v.Schaden - v.Transport - v.Investitionen
+        v.Umsatz - v.Zutaten - v.Personal - v.Handgeld - v.Fixkosten - v.Steuer - v.Schaden - v.Transport - v.Investitionen
         - v.Standesgebuehren + v.Amtseinkommen - v.Geschenke - v.Familie - v.Gericht - v.Gaunerei - v.Zinsen + v.Verkaeufe;
 
     /// <summary>Am Ende jedes Jahres: Umsatz der Jahresrechnung von Spieler und KI-Häusern und der Schiffsertrag – nach der Jahreszeit des Jahres.</summary>

@@ -43,6 +43,15 @@ public sealed class Karren
     /// <summary>Spielminute der Ankunft am Ziel (nur unterwegs von Bedeutung).</summary>
     public long Ankunft { get; private set; }
 
+    /// <summary>
+    /// Fährt der Karren zum Handeln an den Hafen statt zum Marktplatz (Datenversion 73)? Gewählt beim Aufbruch (<see cref="Stadtwirtschaft.FaehrtZumHafen"/>)
+    /// und für die ganze Fahrt behalten, auch auf dem Rückweg und danach am Betrieb (bis zum nächsten Aufbruch) – so fährt das Bild denselben Weg zu Ende.
+    /// </summary>
+    public bool ZielHafen { get; private set; }
+
+    /// <summary>„Hafen“ oder „Markt“ – wohin der Karren zum Handeln fährt bzw. zuletzt fuhr (für Texte).</summary>
+    public string Handelsort => ZielHafen ? "Hafen" : "Markt";
+
     public IReadOnlyDictionary<string, int> Ladung => _ladung;
 
     /// <summary>Ein Handelsauftrag von Hand: Was der Karren am Markt kaufen soll (null: er fährt nach Verwalterregel).</summary>
@@ -101,7 +110,7 @@ public sealed class Karren
         : Zustand switch
     {
         KarrenZustand.AmBetrieb => "wartet am Betrieb",
-        KarrenZustand.ZumMarkt => $"{(Auftrag is null ? "unterwegs zum Markt" : "mit Handelsauftrag zum Markt")} (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
+        KarrenZustand.ZumMarkt => $"{(Auftrag is null ? "unterwegs zum " : "mit Handelsauftrag zum ")}{Handelsort} (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         KarrenZustand.ZumBetrieb => $"auf dem Rückweg (noch {Math.Max(0, Ankunft - zeit.VergangeneMinuten)} Min.)",
         _ => Zustand.ToString(),
     };
@@ -241,9 +250,10 @@ public sealed class Karren
     private void Losfahren(KarrenZustand ziel, Spielzeit zeit, Stadtwirtschaft w)
     {
         Zustand = ziel;
+        if (ziel == KarrenZustand.ZumMarkt) ZielHafen = w.FaehrtZumHafen(Heimat, Typ); // der nähere Handelsort (Datenversion 73)
         Ankunft = zeit.VergangeneMinuten + w.Fahrzeit(this, zumMarkt: ziel == KarrenZustand.ZumMarkt);
         if (ziel == KarrenZustand.ZumMarkt) FahrtenImJahr++;
-        w.Wegebau.FahrtZaehlen(Heimat); // Verkehr auf den Wegen (Austritt)
+        w.Wegebau.FahrtZaehlen(Heimat, ZielHafen); // Verkehr auf den Wegen (Austritt)
 
         if (_ladung.Count == 0)
             return; // Leere Karren kosten nichts und lohnen keinen Überfall.
@@ -293,7 +303,7 @@ public sealed class Karren
             gekauft.Add($"{stueck} {ware} für {Zahlenformat.Ganz(kosten)}");
         }
         var waehrung = w.Daten.Allgemein.Waehrung;
-        LetzterHandel = $"{Name} ({Heimat.Name}) am Markt: " +
+        LetzterHandel = $"{Name} ({Heimat.Name}) am {Handelsort}: " +
                         (erloes > 0 ? $"verkauft für {Zahlenformat.Ganz(erloes)} {waehrung}" : "nichts verkauft") +
                         (gekauft.Count > 0 ? $"; gekauft {string.Join(", ", gekauft)} {waehrung}" : "") + ".";
         w.Melden(LetzterHandel);
@@ -432,7 +442,7 @@ public sealed class Karren
         Auftrag = Auftrag is null ? null : new(Auftrag.Kauf),
         VormerkungVerkauf = Vormerkung is null ? null : new(Vormerkung.Verkauf),
         VormerkungKauf = Vormerkung is null ? null : new(Vormerkung.Kauf),
-        FahrtenImJahr = FahrtenImJahr, FahrtenVorjahr = FahrtenVorjahr, FahrtenGanzesJahr = _ganzesJahr,
+        FahrtenImJahr = FahrtenImJahr, FahrtenVorjahr = FahrtenVorjahr, FahrtenGanzesJahr = _ganzesJahr, ZielHafen = ZielHafen,
     };
 
     internal void Wiederherstellen(KarrenStand s)
@@ -452,6 +462,7 @@ public sealed class Karren
         FahrtenImJahr = s.FahrtenImJahr;
         FahrtenVorjahr = s.FahrtenVorjahr;
         _ganzesJahr = s.FahrtenGanzesJahr;
+        ZielHafen = s.ZielHafen;
     }
 
     /// <summary>Die Ladung geht verloren (Überfall).</summary>

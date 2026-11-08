@@ -956,7 +956,7 @@ def fugen_klein(a, ids, n, hand=True):
     return out
 
 
-def alles(aus, stufen, mit_uebersicht=True):
+def alles(aus, stufen, mit_uebersicht=True, schloss_rand=3):
     tmp = os.path.join(aus, "_tmp.png")
     os.makedirs(aus, exist_ok=True)
     # gemeinsamer Bildausschnitt für alle Hand-Bilder (größte Hand = Stufe 6)
@@ -975,7 +975,8 @@ def alles(aus, stufen, mit_uebersicht=True):
                 continue
             art = {"normal": "normal", "klick": "normal", "tuer_schloss": "schloss", "tuer_schloss_eisen": "schloss_eisen", "tuer_ring": "ring"}[zustand]
             b, _ = szene_aufbauen(art, stufe, zustand == "klick")
-            kamera_setzen({"ring": rahmen_ring, "schloss": rahmen_schloss, "schloss_eisen": rahmen_schloss}.get(art, rahmen_hand))
+            kamera_setzen({"ring": rahmen_ring, "schloss": rahmen_schloss, "schloss_eisen": rahmen_schloss}.get(art, rahmen_hand),
+                          rand_px=schloss_rand if art in ("schloss", "schloss_eisen") else 3)
             hs = hotspot_norm(b.tipp)
             gross = aufnehmen(tmp)
             ids = id_aufnehmen(tmp)
@@ -1136,4 +1137,9 @@ if __name__ == "__main__":
     a = args()
     aus = a.get("aus", os.path.join(os.getcwd(), "mauszeiger3d"))
     stufen = [int(x) for x in a.get("stufen", "1,2,3,4,5,6").split(",")]
-    alles(aus, stufen, not a.get("ohne-uebersicht"))
+    if "super" in a:       # z. B. 960: teilt 48, 64 und 80 ganzzahlig
+        SUPER = int(a["super"])
+    if "groessen" in a:
+        GROESSEN = tuple(int(x) for x in a["groessen"].split(","))
+    # schloss-rand: Rand in 16-Pixel-Einheiten; 1 statt 3 füllt das Schloss so, dass es so groß wirkt wie der Handschuh
+    alles(aus, stufen, not a.get("ohne-uebersicht"), int(a.get("schloss-rand", 3)))
