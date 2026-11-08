@@ -84,7 +84,7 @@ public sealed partial class Familienbuch
     private TalentWirkung W => _d.Talente.Wirkung;
 
     /// <summary>Faktor auf die Markterlöse (Verhandeln).</summary>
-    public double VerkaufsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Verhandeln) * W.Verhandeln;
+    public double VerkaufsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Verhandeln) * W.Verhandeln + Lebenswirkung(k).Erloes; // Marktschreier, Handelsherr
 
     /// <summary>Faktor auf den Einkaufspreis beim Handel von Hand (Verhandeln senkt ihn so, wie es den Erlös hebt).</summary>
     public double EinkaufsFaktor(Konto k) => Math.Max(0.5, 1 - Talent(k, Dynastie.Talent.Verhandeln) * W.Verhandeln);
@@ -93,23 +93,27 @@ public sealed partial class Familienbuch
     public double LeistungsFaktor(Konto k) => 1 + Talent(k, Dynastie.Talent.Handwerk) * W.Handwerk;
 
     /// <summary>Zusätzliche Punkte bei Ratswahlen (Rhetorik).</summary>
-    public double RhetorikPunkte(Konto k) => Talent(k, Dynastie.Talent.Rhetorik) * W.RhetorikRat;
+    public double RhetorikPunkte(Konto k) => Talent(k, Dynastie.Talent.Rhetorik) * W.RhetorikRat + Lebenswirkung(k).Wahlpunkte; // Wohlgesetzte Worte
 
     /// <summary>Plädoyer vor Gericht: positiv hilft dem Ankläger, negativ dem Beklagten.</summary>
     public double Plaedoyer(Konto anklaeger, Konto beklagter) =>
-        (Talent(anklaeger, Dynastie.Talent.Rhetorik) - Talent(beklagter, Dynastie.Talent.Rhetorik)) * W.RhetorikGericht;
+        (Talent(anklaeger, Dynastie.Talent.Rhetorik) - Talent(beklagter, Dynastie.Talent.Rhetorik)) * W.RhetorikGericht
+        + Lebenswirkung(anklaeger).Plaedoyer - Lebenswirkung(beklagter).Plaedoyer; // Knoten „Plädoyer“
 
     /// <summary>Zusätzliche Erfolgschance im Hinterzimmer (Bei Nacht und Nebel).</summary>
-    public double NachtBonus(Konto k) => Talent(k, Dynastie.Talent.NachtUndNebel) * W.NachtErfolg;
+    public double NachtBonus(Konto k) => Talent(k, Dynastie.Talent.NachtUndNebel) * W.NachtErfolg + Lebenswirkung(k).NachtErfolg; // Leise Sohlen
 
     /// <summary>Faktor auf die Zeugenchance (Bei Nacht und Nebel – wer geschickt ist, wird seltener gesehen).</summary>
-    public double ZeugenFaktor(Konto k) => Math.Max(0, 1 - Talent(k, Dynastie.Talent.NachtUndNebel) * W.NachtZeugen);
+    public double ZeugenFaktor(Konto k) => Math.Max(0, 1 - Talent(k, Dynastie.Talent.NachtUndNebel) * W.NachtZeugen) * Lebenswirkung(k).SpurenFaktor; // Saubere Arbeit
 
     /// <summary>Zusätzliche Stärke angeheuerter Wegelagerer (Kampf des Auftraggebers).</summary>
-    public double KampfUeberfall(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfUeberfall;
+    public double KampfUeberfall(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfUeberfall + Lebenswirkung(k).WegelagererBonus; // Hauptmann
 
     /// <summary>Zusätzlicher Schutz der eigenen Karren (Kampf).</summary>
     public double KampfSchutz(Konto k) => Talent(k, Dynastie.Talent.Kampf) * W.KampfSchutz;
+
+    /// <summary>Schutz der eigenen Karren (nicht der Schiffe): Kampf und der Knoten „Bewaffnete Knechte“ der Lebensweise.</summary>
+    public double KarrenSchutz(Konto k) => KampfSchutz(k) + Lebenswirkung(k).KarrenSchutz;
 
     private double Runden(double wert) => Math.Clamp(Math.Round(wert * 2) / 2, 0, _d.Talente.Hoechstwert);
 
@@ -286,7 +290,7 @@ public sealed partial class Familienbuch
     /// </summary>
     public double Haushaltskosten(Familie f) => f.Lebende.Sum(p =>
         (p == f.Oberhaupt || p == f.Ehepartner ? _d.Volk(p.Volk).Haushalt : _d.Volk(p.Volk).Unterhalt) * HaushaltFaktor(p))
-        * _w.Meinungen.HaushaltFaktor(f);
+        * _w.Meinungen.HaushaltFaktor(f) * Lebenswirkung(f.Konto).HaushaltFaktor; // Haushälter (Lebensweise)
 
     public double Zuneigung(Konto konto, Kandidat k) => _zuneigung.GetValueOrDefault((konto, k.Person.Nummer));
 
@@ -310,7 +314,7 @@ public sealed partial class Familienbuch
     public double GuldenJeZuneigung(Konto konto) =>
         Von(konto) is { } f
             ? 1 / (_d.ZuneigungJeGulden * _d.Volk(f.Oberhaupt.Volk).Werbefaktor * (1 + Talent(konto, Dynastie.Talent.Rhetorik) * W.RhetorikWerben)
-                   * _w.Wohnen.WerbeFaktor(konto)) // Stube im Wohnhaus (PR #224)
+                   * _w.Wohnen.WerbeFaktor(konto) * Lebenswirkung(konto).WerbeFaktor) // Stube im Wohnhaus (PR #224), Brautwerber
             : 1 / _d.ZuneigungJeGulden;
 
     /// <summary>Gulden für einen Punkt Zuneigung bei diesem Kandidaten: Wer ihm gefällt, wirbt billiger (Meinung, PR #231).</summary>
@@ -673,6 +677,7 @@ public sealed partial class Familienbuch
         {
             if (Von(konto) is not { } f) continue;
 
+            LebensweiseImJahreswechsel(f); // Erfahrung des Jahres – vor den Todesfällen (Familienbuch.Lebensweise.cs)
             foreach (var p in f.Lebende.ToList())
                 if (_zufall.NextDouble() < Sterberisiko(p))
                     Sterben(f, p);
@@ -783,6 +788,7 @@ public sealed partial class Familienbuch
             : erbe == f.Testament ? $"Wie im Testament bestimmt, erbt {erbe.SohnOderTochter} {erbe.Vorname}"
             : $"{erbe.SohnOderTochter} {erbe.Vorname} erbt";
         f.Oberhaupt = erbe;
+        Vermaechtnis(f, tot, erbe);
         f.Ehepartner = null; // der Witwer/die Witwe bleibt im Haus, ist aber nicht Ehepartner des neuen Oberhaupts
         f.Testament = null;
         ZuneigungEntfernen(s => s.Item1 == f.Konto);
@@ -853,6 +859,7 @@ public sealed partial class Familienbuch
                 Gesicht = p.Aussehen.Gesicht, Haar = p.Aussehen.Haar, Augen = p.Aussehen.Augen,
                 Erbgut = ErbgutText(p),
                 Zuege = HatZuege ? p.Zuege.Select(z => z.Kennung).ToList() : null,
+                Lebensweg = LebenswegSichern(p),
             }).ToList();
         return new FamilienbuchStand
         {
@@ -936,5 +943,7 @@ public sealed partial class Familienbuch
         _laufend = s.DiesesJahr.Select(e => new FamilienEreignis(konten[e.Konto], e.Text)).ToList();
         _letztesJahr = s.LetztesJahr.Select(e => new FamilienEreignis(konten[e.Konto], e.Text)).ToList();
         ZuegeWiederherstellen(s, personen);
+        foreach (var ps in s.Personen)
+            LebenswegWiederherstellen(personen[ps.Nummer], ps.Lebensweg);
     }
 }

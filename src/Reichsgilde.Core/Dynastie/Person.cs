@@ -115,6 +115,9 @@ public sealed class Person : ICharakter
 
     internal void TalentSetzen(Talent t, double wert) => _talente[(int)t] = wert;
 
+    /// <summary>Die Lebensweise (Charaktersystem Teil 3a): Pfad, Erfahrung je Pfad und Knoten – nur Oberhaupt, Erbe und Ehepartner sammeln.</summary>
+    public Lebensweg Lebensweg { get; } = new();
+
     /// <summary>Die Krankheit, an der die Person gerade leidet (oder null).</summary>
     public Gesundheit.Erkrankung? Krankheit { get; internal set; }
 

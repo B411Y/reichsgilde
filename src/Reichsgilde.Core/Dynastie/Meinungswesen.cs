@@ -224,6 +224,15 @@ public sealed partial class Meinungswesen
                 Grund(() => $"{e2.Vorname} trat vom {gv.Glaube()} über", g.Mischehe);
         }
 
+        // Lebensweise (Teil 3a): Knoten, die die Meinung über ihren Besitzer heben – persönlich, also auch für Erbe und Ehepartner.
+        if (ueberP is not null && fb.HatLebensweise)
+        {
+            var lw = fb.Lebenswirkung(ueberP);
+            if (lw.MeinungOberhaeupter > 0 && hausVon is not null && hausVon.Oberhaupt == vonP && hausVon != hausUeber)
+                Grund(() => "Ein guter Geschäftsfreund", lw.MeinungOberhaeupter);
+            if (lw.MeinungAlle > 0) Grund(() => "Liebenswürdig", lw.MeinungAlle);
+        }
+
         // Taten
         if (_taten.TryGetValue((von.Kennung, ueber.Kennung), out var taten))
             foreach (var (_, (text, wert)) in taten)

@@ -232,7 +232,7 @@ public sealed partial class Stadtwirtschaft
     {
         var anteil = Uhr.TagesFortschritt;
         var loehne = betrieb.Lohnkosten + (betrieb.Waechter && Daten.Gauner is { } g ? g.WaechterKosten : 0);
-        return (loehne * anteil, betrieb.Artdaten.Fixkosten * anteil);
+        return (loehne * anteil, betrieb.Unterhalt * anteil);
     }
 
     private Befehlsergebnis VerkaufenAusfuehren(Betrieb betrieb)

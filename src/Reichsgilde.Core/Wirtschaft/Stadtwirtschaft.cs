@@ -408,6 +408,7 @@ public sealed partial class Stadtwirtschaft
         Ratsantraege = new Politik.Ratsantraege(this, daten.Politik);
         Befugnisse = new Politik.Amtsbefugnisse(this, daten.Politik.Befugnisse);
         Familien = new Familienbuch(this, daten.Dynastie, zufallsstartwert);
+        Familien.LebenswirkungGeaendert += konto => { foreach (var b in _betriebe.Where(b => b.Konto == konto)) b.HauswirkungNeu(); };
         Entwicklerhilfe = new Entwickler.Entwicklerhilfe(this);
         Meinungen = new Meinungswesen(this, daten.Meinungen, zufallsstartwert);
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
@@ -485,6 +486,7 @@ public sealed partial class Stadtwirtschaft
         if (befehl is MeisterpruefungAblegen m)
             return HatAktionspunkte && MeisterpruefungVerboten(konto, m.Beruf) is null ? NaechstePruefung(konto, m.Beruf)!.Ap : 0;
         if (Befugnisse.OhneAktionspunkte(konto, befehl)) return 0; // Kämmerer: Steuersatz; Bürgermeister: ein Antrag im Jahr
+        if (befehl is Aktivitaet aktivitaet && HatAktionspunkte) return Meinungen.ApKosten(konto, aktivitaet.Art); // Jagdgesellschaft (Lebensweise)
         return ApKosten(befehl);
     }
 
@@ -537,8 +539,9 @@ public sealed partial class Stadtwirtschaft
         var noetig = m.GradFuerStufe(neu.Stufe);
         if (konto.Meistergrad(beruf) < noetig)
             return $"Für Stufe {neu.Stufe} ({neu.Name}) braucht es {beruf} im {noetig}. Meistergrad – {konto.Inhaber} ist im {konto.Meistergrad(beruf)}.";
-        if (konto.Vermoegen < betrieb.Artdaten.AusbauKosten + neu.Fixkosten)
-            return $"Der Ausbau ({neu.Name}) kostet {Zahlenformat.Ganz(betrieb.Artdaten.AusbauKosten)} {Daten.Allgemein.Waehrung}, " +
+        var ausbau = Baupreis(konto, betrieb.Artdaten.AusbauKosten);
+        if (konto.Vermoegen < ausbau + neu.Fixkosten)
+            return $"Der Ausbau ({neu.Name}) kostet {Zahlenformat.Ganz(ausbau)} {Daten.Allgemein.Waehrung}, " +
                    $"dazu ein Jahr Unterhalt ({Zahlenformat.Ganz(neu.Fixkosten)}).";
         return null;
     }
@@ -556,7 +559,7 @@ public sealed partial class Stadtwirtschaft
         if (_betriebe.Any(b => b.Name == name))
             throw new ArgumentException($"Einen Betrieb „{name}“ gibt es schon.", nameof(name));
         var betrieb = new Betrieb(name, art, konto, Daten, ganzjaehrig: Uhr.MinuteImTag == 0, jetzt: () => Uhr.VergangeneMinuten, // zum Jahresbeginn: ganzes Jahr
-            steckbrief: Personal.Steckbrief);
+            steckbrief: Personal.Steckbrief, hauswirkung: Hauswirkung);
         _betriebe.Add(betrieb);
         konto.BerufLernen(betrieb.Artdaten.Beruf); // wer einen Betrieb führt, beherrscht sein Handwerk
 
@@ -565,6 +568,12 @@ public sealed partial class Stadtwirtschaft
             betrieb.KarrenHinzufuegen(startkarren);
         return betrieb;
     }
+
+    /// <summary>Was Bau, Ausbau oder Einrichtung dieses Haus kostet: Preis × Baumeister (Lebensweise).</summary>
+    public double Baupreis(Konto konto, double preis) => preis * Familien.Lebenswirkung(konto).BauFaktor;
+
+    /// <summary>Werkstatt-Wirkungen der Lebensweise (Knoten des Oberhaupts), die in einem Betrieb wie Einrichtung zählen.</summary>
+    private IEnumerable<EinrichtungWirkung> Hauswirkung(Betrieb b) => Familien.Werkstattwirkungen(b.Konto, b.Stufe);
 
     /// <summary>
     /// Übergibt ein Konto samt seinen Betrieben an die KI. Sie trifft sofort erste Entscheidungen
@@ -810,7 +819,10 @@ public sealed partial class Stadtwirtschaft
         var frei = Politik.Amtsbefugnisse.IstAntrag(befehl) && Befugnisse.OhneAktionspunkte(absender, befehl);
         var ergebnis = Bearbeiten(absender, befehl);
         if (ergebnis.Erfolg && kosten > 0)
+        {
             absender.Aktionspunkte.Ausgeben(kosten);
+            Familien.TatGebucht(absender, befehl, kosten); // Lebensweise: Taten des aktiven Pfads
+        }
         if (ergebnis.Erfolg && frei)
             Befugnisse.AntragGestellt(absender, befehl);
         return ergebnis;
@@ -824,7 +836,7 @@ public sealed partial class Stadtwirtschaft
             return Befehlsergebnis.Abgelehnt($"{absender.Inhaber} ist bankrott und kann nichts mehr unternehmen.");
         if (absender.IstErloschen)
             return Befehlsergebnis.Abgelehnt($"Das Haus {absender.Inhaber} ist erloschen.");
-        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
+        if (Justiz.IstAktiv && Justiz.ImKerker(absender) && befehl is not (BetriebsBefehl or ErbenBestimmen or LebenswegWaehlen or KnotenWaehlen or ErpressungBeantworten or DiebesforderungBeantworten or AusbildungWaehlen or KreditTilgen
                                                                      or MedicusRufen or SchnapsKaufen or SchnapsGeben or GegengiftGeben or HauswaechterSetzen
                                                                      or SchiffahrtBefehl))
             return Befehlsergebnis.Abgelehnt($"Das Oberhaupt von {absender.Inhaber} sitzt bis Ende {Justiz.KerkerBis(absender)} im Kerker. " +
@@ -1001,6 +1013,10 @@ public sealed partial class Stadtwirtschaft
             return Familien.Heiraten(absender, heirat.Kandidat);
         if (befehl is ErbenBestimmen testament)
             return Familien.ErbenBestimmen(absender, testament.Person);
+        if (befehl is LebenswegWaehlen lebensweg)
+            return Familien.PfadWaehlen(absender, lebensweg.Person, lebensweg.Pfad);
+        if (befehl is KnotenWaehlen knoten)
+            return Familien.KnotenNehmen(absender, knoten.Person, knoten.Knoten);
         if (befehl is SchiffahrtBefehl schiffahrt)
             return Schiffahrt.Ausfuehren(absender, schiffahrt);
         if (befehl is not BetriebsBefehl betriebsBefehl)
@@ -1108,7 +1124,7 @@ public sealed partial class Stadtwirtschaft
     {
         if (AusbauVerboten(betrieb.Konto, betrieb) is { } grund)
             return Befehlsergebnis.Abgelehnt(grund);
-        var kosten = betrieb.Artdaten.AusbauKosten;
+        var kosten = Baupreis(betrieb.Konto, betrieb.Artdaten.AusbauKosten); // Baumeister (Lebensweise)
         var neu = Daten.Art(betrieb.Artdaten.Ausbau!.Value);
         betrieb.Konto.Investition(kosten);
         betrieb.Ausbauen(betrieb.Artdaten.Ausbau.Value, Daten.Meistergrade!.UmbauMinuten);
@@ -1304,7 +1320,8 @@ public sealed partial class Stadtwirtschaft
         Wohnen.HauswerteNachDemLaden(_konten);
         foreach (var bs in s.Betriebe)
         {
-            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten, jetzt: () => Uhr.VergangeneMinuten, steckbrief: Personal.Steckbrief);
+            var betrieb = new Betrieb(bs.Name, bs.Art, _konten[bs.Konto], Daten, jetzt: () => Uhr.VergangeneMinuten, steckbrief: Personal.Steckbrief,
+                hauswirkung: Hauswirkung);
             betrieb.Wiederherstellen(bs);
             _betriebe.Add(betrieb);
         }
@@ -1323,7 +1340,10 @@ public sealed partial class Stadtwirtschaft
         if (s.Rat is { } rat)
             Rat.Wiederherstellen(rat, _konten);
         if (s.Familien is { } familien && Familien.IstAktiv)
+        {
             Familien.Wiederherstellen(familien, _konten);
+            foreach (var b in _betriebe) b.HauswirkungNeu(); // Knoten der Lebensweise kennt der Betrieb erst jetzt
+        }
         if (s.Justiz is { } justiz && Justiz.IstAktiv)
             Justiz.Wiederherstellen(justiz, _konten);
         if (s.Gauner is { } gauner && Gauner.IstAktiv)

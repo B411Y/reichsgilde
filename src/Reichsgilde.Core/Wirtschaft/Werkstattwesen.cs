@@ -303,7 +303,7 @@ public sealed class Werkstattwesen
         if (e.Voraussetzung is { } v && !b.HatEinrichtung(v))
             return $"Erst braucht es: {d.Stueck(b.Artdaten.Beruf, v)?.Name ?? v}.";
         if (b.UmbauMinuten > 0) return $"{b.Name} wird gerade umgebaut.";
-        if (b.Konto.Vermoegen < e.Preis) return $"{e.Name} kostet {Zahlenformat.Ganz(e.Preis)} {Waehrung}.";
+        if (b.Konto.Vermoegen < _w.Baupreis(b.Konto, e.Preis)) return $"{e.Name} kostet {Zahlenformat.Ganz(_w.Baupreis(b.Konto, e.Preis))} {Waehrung}.";
         return null;
     }
 
@@ -376,9 +376,10 @@ public sealed class Werkstattwesen
     {
         if (EinrichtungVerboten(b, befehl.Kennung) is { } grund) return Befehlsergebnis.Abgelehnt(grund);
         var e = Daten!.Stueck(b.Artdaten.Beruf, befehl.Kennung)!;
-        b.Konto.Investition(e.Preis);
+        var preis = _w.Baupreis(b.Konto, e.Preis); // Baumeister (Lebensweise)
+        b.Konto.Investition(preis);
         b.EinrichtungHinzufuegen(e.Kennung);
-        return Befehlsergebnis.Ok($"{b.Name}: {e.Name} gekauft ({Zahlenformat.Ganz(e.Preis)} {Waehrung}) – {e.Wirkung.Text()}.");
+        return Befehlsergebnis.Ok($"{b.Name}: {e.Name} gekauft ({Zahlenformat.Ganz(preis)} {Waehrung}) – {e.Wirkung.Text()}.");
     }
 
     /// <summary>Was die Einrichtung des Betriebs gekostet hat – sie zählt zum Wert (Verkauf).</summary>

@@ -508,7 +508,7 @@ public sealed class Diebeswesen
             var minuten = b.ArbeitsminutenAbholen();
             if (minuten <= 0 || !b.Konto.IstAktiv) continue;
             var k = b.Konto;
-            var beute = minuten * WertJeMinute(b.Stufe);
+            var beute = minuten * WertJeMinute(b.Stufe) * _w.Familien.Lebenswirkung(k).BeuteFaktor; // Leise Sohlen (Lebensweise)
             if (passanten != 1) beute *= passanten;
             b.UmsatzBuchen(beute); // gestohlenes Geld zahlt keine Steuer
             var buch = DiesesJahr(k);
@@ -729,7 +729,7 @@ public sealed class Diebeswesen
                 var platz = Math.Max(0, versteck!.LagerKapazitaetJeWare - versteck.ImLager(ware));
                 var behalten = Math.Min(platz, stueck);
                 if (behalten > 0) versteck.Einlagern(ware, behalten);
-                hehler += (stueck - behalten) * _w.Markt[ware].Preis * _w.Gauner.Daten.HehlerAnteil;
+                hehler += (stueck - behalten) * _w.Markt[ware].Preis * _w.Gauner.Daten.HehlerAnteil * _w.Familien.Lebenswirkung(a.Dieb).HehlerFaktor; // Hehlerring
             }
             var waren = beute.Sum(x => x.Wert);
             // Beim Geldleiher liegt Geld in der Kasse – es geht ohne Hehler ins Bargeld der Diebe.

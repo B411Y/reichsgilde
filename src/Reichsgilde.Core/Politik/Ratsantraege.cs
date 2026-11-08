@@ -215,7 +215,7 @@ public sealed class Ratsantraege
     public bool StimmtZu(Ratsherr r, Ratsantrag a)
     {
         var k = Kasse.Daten;
-        if (_w.Rat.Meinung(r, a.Antragsteller) >= k.AntragGunst) return true; // Meinung über das Oberhaupt (PR #231)
+        if (_w.Rat.Meinung(r, a.Antragsteller) >= k.AntragGunst - _w.Rat.AntragSchwelleMinus(a.Antragsteller)) return true; // Meinung über das Oberhaupt (PR #231), Fürsprecher
         var reserve = k.ReserveVon(r.Daten.Volk);
         return a.Art switch
         {
