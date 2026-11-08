@@ -105,8 +105,9 @@ static class KiTests
             var w = NeueSimulation().Wirtschaft!;
             var konto = w.KontoEroeffnen("Rivale");
             var g = w.BetriebEroeffnen("G", Betriebsart.Giesserei, konto);
-            // Reserve so hoch, dass nach Abzug der halben Reserve nur noch ein Lehrlingslohn (120) übrig ist – eingestellt werden nur Anfänger (PR #224).
-            w.KiAnmelden(konto, KiProfil.Standard with { Reserve = 2 * (konto.Vermoegen - 150) });
+            // Reserve so hoch, dass nach Abzug der halben Reserve nur noch ein Lehrlingslohn (120) und das Handgeld (Datenversion 73) übrig sind –
+            // eingestellt werden nur Anfänger (PR #224).
+            w.KiAnmelden(konto, KiProfil.Standard with { Reserve = 2 * (konto.Vermoegen - 150 - w.Personal.Handgeld("Lehrling")) });
             Pruefe.Gleich(1, g.Belegt);
         }),
 
