@@ -39,6 +39,7 @@ static class AlterSpielstandSollwertTests
                     if (schluessel.Equals("daten", StringComparison.OrdinalIgnoreCase) || schluessel.Equals("karte", StringComparison.OrdinalIgnoreCase)
                         || schluessel.Equals("meldungen", StringComparison.OrdinalIgnoreCase))
                         n.Remove(schluessel);
+                Spielstandfelder.OhneLeere(n, Spielstandfelder.Hafenziel); // neue Felder (Datenversion 73), solange sie nichts tragen
                 var ist = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(n.ToJsonString()))).ToLowerInvariant();
                 Pruefe.Gleich(Sollwerte[jahr], ist, $"Jahr {jahr + 1} nach dem Laden");
             }
