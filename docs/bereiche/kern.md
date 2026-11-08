@@ -1,6 +1,6 @@
 # Bereich Kern – Offen und Entscheidungen
 
-> **Archiv:** Ältere und abgelöste Entscheidungen (bis PR #254 und PR #259) stehen in [archiv/kern.md](archiv/kern.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
+> **Archiv:** Ältere und abgelöste Entscheidungen (bis PR #254 und PR #259, dazu PR #288) stehen in [archiv/kern.md](archiv/kern.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
 
 **Nur der Kern-Chat schreibt hier.** Ausnahme: Ein anderer Bereich darf unter „Offen“ eine Zeile mit „(von …)“ anhängen, wenn er hier etwas braucht.
 
@@ -57,7 +57,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Balancing, Jahreszeiten) Ausbau in der Greybox: ein Bankrott in 80 Partien mit Jahreszeiten (mit dem Schiffsverkehr, auch ohne Weingeist im Winter), ohne Jahreszeiten keiner – Partie ansehen.
 - (Designfrage, aus der Prüfung des Schiffsverkehrs) Mit dem Schiffsverkehr bekommt das erste Haus in der festen Reihenfolge der Rivalen (und ein Mensch über Befehle am Taktanfang) die gute Fahrt, die anderen weichen aus; vorher teilten sich alle den Verlust. Empfehlung: in der Messung je Rang des Hauses ansehen und erst mischen, wenn sich ein Vorteil zeigt (dann hinter dem Schalter, sonst verschieben sich Zufall und Sollwerte).
 - (Designfrage) Soll auch der Verwalter des Spielers im späten Herbst Wintervorrat anlegen (heute nur die KI)? Empfehlung: nein, das bleibt Handel von Hand; der Spieler erfährt es aus der Meldung zum Herbst.
-- (Hafen ruht) Soll der Hafen ein eigenes Ziel der Karren werden? Sie fahren zum näheren Handelsort, im Eis nur zum Marktplatz.
 - (Hafen ruht) Schmied in der Greybox −9 % gegenüber Schiffshandel (Köln im Ziel); ggf. Landhandel-Nachfrage der Schmiedewaren nachstellen.
 - (Fels) Ein von Hand falsch langes `achsen` (nicht drei Zahlen) fällt still weg; ein Prüfhinweis fehlt (der Entwurf kennt den Rohwert nicht).
 - (Raster-Bauzonen, an Oberfläche/Darstellung) Kartenwerkstatt: Knopf „Bauzonen berechnen“ (`Kartenentwurf.BauzonenAusRaster()`, ein Schritt mit Rückgängig), Werkzeug für die Lage-Gebiete (`LagenSetzen`) und Anzeige der Restflächen; heute rechnet nur das Kartenskript (`bauzonen <karte>`).
@@ -66,28 +65,14 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Raster-Bauzonen, Designfrage) Restflächen „klein“ unter 24 Feldern, in die ein Gebäude passt (z. B. 20 Felder = 4 × 5 Wohnhaus): Bleiben sie Garten oder wird die Mindestgröße einer Zone 20 bzw. „passt ein Wohnhaus“? Empfehlung: so lassen (24 wie bisher in Köln), erst nach der Darstellung der Gärten entscheiden.
 - (Nutzer, Startlehrling) Soll die KI zum Start ebenso mit einem Lehrling arbeiten (z. B. erst ab dem zweiten Spieltag einstellen, Bereich spiel-ki)? Heute stellt sie beim Anmelden nach. Empfehlung: nein – gleiche Mittel genügen, der Mensch kann ebenso sofort und kostenlos einstellen.
 - (Nutzer, Startlehrling, an Oberfläche) Hinweis zum Start „Eure Werkstatt hat einen Lehrling – im Personalbuch stellt Ihr weitere ein“ (Brief oder Meldung). Empfehlung: ja, sonst bleibt ein neuer Spieler bei halber Leistung.
-- (Nutzer, Startlehrling) Weitere Gegenmaßnahmen nur nach der vollen Messung: Handgeld beim Einstellen (bremst vor allem die KI; Empfehlung nein), mehr Startgeld oder billigerer Lehrling (Empfehlung nein, kein Bankrott), Lernzeit unverändert.
 - (Testzeit) `Pruefe.Wahr`/`Pruefe.Gleich` mit Meldung als Funktion (Überladung in `Program.cs`), damit Meldungen in Schleifen erst im Fehlerfall gebaut werden – `Program.cs` bleibt nach CLAUDE.md unberührt, darum Vorschlag an den Teamleiter.
+- (Hafenziel) Die KI sucht Bauplätze und rechnet Karren (Durchfluss, `KiRivale.Karren.cs`) nur mit der Fahrzeit zum Marktplatz; Fahrten zum Hafen kommen deshalb in Messungen nicht vor (0 % auf Greybox und Köln). Möglich: `FahrzeitZumHafenAmBauort` in der Wahl des Bauplatzes (spiel-ki), dann neu messen – Entscheidung des Nutzers.
 
 ## Entscheidungen
 
 ## Messungen
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
-
-### Blitzschlag im Gewitter (PR #288)
-
-| Frage | Entscheidung |
-|---|---|
-| Wetter im Kern | Der Plan der Lagen (`Zeit/Wetterplan.cs`) zog aus `game/scripts/Wetter.cs` in den Kern, mit `Zufallsquelle` statt `Random` – dieselben Zahlen (Test gegen den alten Ablauf); die Darstellung mischt weiter die Bildwerte. |
-| Wann | Je Gewitter-Abschnitt ein Wurf in seiner Mitte (das Gewitter steht über der Stadt), Chance 0,25 (Teamleiter: etwa jedes 3.–5. Gewitter). |
-| Zufall | Je Gewitter eine eigene `Zufallsquelle` mit Startwert aus Partie-Startwert und Minute (durchmischt mit `Zugwuerfel.Mischen`) (wie der Wetterplan): kein Wurf eines anderen Generators verschoben, kein Feld im Spielstand. Abweichung von „aus der gemeinsamen Zufallsquelle“, gleich deterministisch. |
-| Ziel | Jedes Gebäude der Karte und jeder Neubau außer Markt, Fels, Feld, Wald, Bauplatz, Baustelle; Gewicht Höhe + Boden über dem Mittel (linear, Teamleiter 2.11.2026; zum Quadrat bekamen Kirchen zwei Drittel), Höhen in `blitz.hoehen` (Dom 55 m, Kirche 40 m, Haus 8–13 m). Häuser der Spieler eingeschlossen. Kein Überspringen. |
-| Dauer | 60–180 Spielminuten (`blitz.dauerMinuten`). |
-| Schaden (Platzhalter) | Werkstatt: `Sabotieren(stillstandMinuten = 300)` ab dem Einschlag, Arbeit ruht also auch während des Brandes; Wohnhaus: `WohnhausInstandBis` = Ende + 1.140 Minuten (Ansehen fehlt). Reparatursummen 0 (Felder `reparatur`, `wohnhausReparatur` vorhanden). Andere Gebäude nur im Bild. |
-| Spielstand | Unverändert. Laufende Feuer rechnet der Kern nach dem Laden aus dem Plan nach (`Einschlaege`, nur fürs Bild; auch Feuer des Vorjahres, die über 23 Uhr hinaus brennen); Gleichheitstest mit Ladepunkten im Brand, verglichen werden Minute und Text jeder Meldung „Blitzschlag!“. Grenze: Das nachgerechnete Ziel folgt dem Zustand beim Laden – wurde dazwischen gebaut oder ausgebaut, kann das Bild ein anderes Haus brennen lassen (der Schaden im Kern bleibt richtig). |
-| Datenversion | 68 (nach #286 und #287 mit 66 und 67; im Branch zuvor 69). |
-| Messung | Main 4220c631 + Branch, linear und durchmischt, je 10 Startwerte, 20 Jahre: Greybox und Köln je 17 Einschläge in 200 Jahren (1,7 je Partie); Kirchen und Dom 24 % (vorher zum Quadrat 69 %), Wohnhäuser 44 %, das Haus des Spielers einmal, KI-Werkstätten zweimal; Vermögen nur verrauscht (WIRTSCHAFTSMODELL „Blitzschlag im Gewitter“). |
 
 ### Karren-Höchstzahl je Arbeitsort (PR #286)
 
@@ -292,3 +277,20 @@ Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt
 | Ausgabe | Je Klasse ein Puffer; `Console.Out` geht über eine Weiche (`AsyncLocal`, fließt in Fäden, die ein Test selbst startet) in den Puffer der Klasse. Die Blöcke erscheinen in der seriellen Reihenfolge, sobald eine Klasse und alle vor ihr fertig sind; danach die seriellen Klassen. Zusammenfassung und Rückgabewert wie seriell, dazu Fäden und Rechenzeit; `--zeiten` nennt parallel auch die langsamsten Klassen. | 08.11.2026 |
 | Seriell | `SeriellTests.cs` (Klasse und Grund, `ParallellaufTests` prüft, dass es jede Klasse gibt): Klang-Umgebung (Raster < 1.500 ms; die Selbstprüfung tauscht kurz das statische `KlangUmgebungModell.Gespraeche`), Greybox (Bauorte < 500 ms), Kartenbau (Kapazität Köln < 150 ms), Kartenwerkstatt und Kartenwerkstatt-Wege (Mediane < 2/10/20 ms), Marktnetz (Netz schneller als Raster), Boden (Deko < 2 s/10 s). Sie laufen am Ende allein, zusammen etwa 37 s. Geprüft und unbedenklich: Kern ohne veränderliche statische Felder; Test-Zähler je Klasse; `CultureInfo.CurrentCulture` je Faden mit `finally`; Temp-Ordner mit Guid; Gleichheits-Datei nur aus einer Klasse; `Marktflaeche.NetzAus` setzt nur Godot; keine Umgebungsvariablen, kein Verzeichniswechsel, kein `Console.SetOut` in Tests. Gefunden und behoben: `WasserTests` und `WegebauTests` riefen das Kartenskript mit dem echten Projektordner und schrieben so `docs/karten/probestadt*.svg` (auch seriell ins Repository) – jetzt ein eigener Projektordner im Temp-Ordner. | 08.11.2026 |
 | Gewinn | Gemessen auf main e63b91be + dieser PR, NAS (4 Kerne, Godot-Läufe und Tests anderer Mitglieder daneben, Last 2–16): seriell 3 min 43 s; `--parallel` (6 Fäden) 2 min 57 s und 3 min 24 s, `--parallel=4` 3 min 5 s, `--parallel=2` 3 min 6 s – alle 1401 Tests grün, Testzeilen und Gleichheits-Prüfsumme wie seriell (sechs volle Läufe, dazu zwei verworfene mit Server-GC). Unter Last rechnet jeder Test parallel drei- bis viermal so lange (Rechenzeit 14–15 min statt 3 min 43 s); die Schätzung 1–1,5 min gilt nur für einen freien Rechner. Server-GC brachte im vollen Lauf nichts Messbares und bleibt aus (keine Änderung an der Projektdatei). Nach dem Einmergen gemessen auf main 7ff3d865 + dieser PR (1404 Tests, Last 4–17): seriell 4 min 8 s, `--parallel` 3 min 20 s, grün, Prüfsumme gleich. | 08.11.2026 |
+
+### Karren zum Hafen und Handgeld (PR #…)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Auftrag | Nutzer: Der Hafen wird Ziel der Karren (löst „Hafen als Handelsort“ aus PR #293 ab, dort fuhren sie nur zum Marktplatz), und beim Einstellen eines Lehrlings zahlt das Haus ein Handgeld (vorher Empfehlung nein). Datenversion 73. | 8.11.2026 |
+| Hafen als Karrenziel | Schalter `schiffshandel.karrenZumHafen` (in `wirtschaft.json` an, ohne Angabe aus). Beim Aufbruch zum Handeln fährt ein Karren (Spieler und KI) zum Hafen, wenn `HafenOffen` und Hin- plus Rückfahrt dorthin kürzer als zum Marktplatz (Gleichstand: Marktplatz); sonst wie bisher. Strecke wie zum Marktplatz (`StreckeWieImBild` mit den Häfen als Zielen, Halt 3,5 m vor der Fläche). Derselbe Markt. Ohne Hafen, ohne Weg oder mit alten Daten wie bisher. | 8.11.2026 |
+| Ziel für die ganze Fahrt (selbst getroffen) | `Karren.ZielHafen` wird beim Aufbruch gesetzt und bleibt bis zum nächsten Aufbruch (Rückweg, Bild). Schließt der Hafen unterwegs (Wechsel zum Winter), fährt der Karren zu Ende – sonst müsste er mitten auf dem Weg umkehren. | 8.11.2026 |
+| Abfragen | `Fahrzeit(betrieb, …)`, `Fahrten(betrieb)`, `MarktplatzVon` bleiben beim Marktplatz (KI, Bauort, Oberfläche); neu `FahrzeitZumHafen`, `FahrtenZumHafen`, `KarrenverlaufZumHafen`, `HafenVon`, `FaehrtZumHafen`, `FahrzeitBeiAbfahrt`, `FahrzeitZumHafenAmBauort` und je Karren `Fahrzeit(karren, …)`, `Fahrten(karren)`, `Karrenverlauf(karren)`, `HandelsortVon(karren)`. `AnkunftAmMarkt` rechnet mit dem Ziel, das der Karren jetzt wählte. | 8.11.2026 |
+| Wegebau (selbst getroffen) | Fahrten zum Hafen zählen auf der Strecke zum Hafen (`FahrtenHafen`, getrennt gezählt, im Spielstand), für Austritt und für die Ersparnis eines Ausbaus. Sonst trügen die Wege zum Marktplatz Verkehr, der dort nie fuhr. | 8.11.2026 |
+| Handgeld | `personal.handgeld` = 100 Gulden (ohne Angabe 0). Für jeden Anfänger einer Laufbahn (Lehrling, Knecht, Taschendieb, Rekrut) über beide Befehle (`ArbeiterEinstellen`, `PersonalSetzen`), Spieler und KI gleich; nicht die Startbelegung, nicht Unfreie und Orks (selbst getroffen: keine Stufe, kein Lehrvertrag). Reicht das Bargeld nicht, lehnen `EinstellenVerboten` bzw. der Befehl ab (kein Bankrott durch Einstellen). Eigener Posten `Handgeld` in Jahres- und Betriebsrechnung, Teil des Gewinns. | 8.11.2026 |
+| Betrag | 100 Gulden: knapp ein Jahreslohn des Lehrlings (120), 2,5 % des Startgelds; beim Ausbau spürbar (Stufe 3 mit sechs Plätzen 600). Messung 0 gegen 100 (12 Startwerte): KI-Häuser −1,4 % im Mittel, Spieler in der Streuung, kein Bankrott; Probe 50/100/150. Tabelle in WIRTSCHAFTSMODELL „Karren zum Hafen und Handgeld“. | 8.11.2026 |
+| KI (spiel-ki, Andockstelle) | `KiRivale.PersonalBesetzen`: nur Arbeitskräfte mit Jahresertrag (nach dem Lohn) über dem Handgeld; Lohn plus Handgeld gegen die halbe Reserve. Ohne Handgeld wie vorher. | 8.11.2026 |
+| Spielstand | `KarrenStand.ZielHafen`, `BilanzStand.Handgeld`, `BetriebsrechnungStand.Handgeld`, `WegebauStand.FahrtenHafen`/`FahrtenHafenVorjahr`; alte Spielstände laden mit false bzw. 0 und rechnen mit ihren Daten (ohne Schalter, ohne Handgeld) weiter wie bisher. Die Sollwerttests gegen ältere Kerne entfernen die neuen Felder, solange sie nichts tragen (`Spielstandfelder.OhneLeere`). | 8.11.2026 |
+| Tests | Neu `HafenzielTests` (5) und `HandgeldTests` (4); Gegenproben mit der alten Regel rot (nie zum Hafen, auch im Winter, Ziel nicht gespeichert, Wegebau ohne Hafen; Handgeld nicht gebucht, KI wie vorher, nicht gespeichert, ohne Kassenprüfung). `HafenRuhtTests` „Schalter an“ rechnet mit `Datenpfad.WieVorHafenziel`. | 8.11.2026 |
+| Messung | `messen hafen` neu, dazu die Spalte „Hafen“ in `messen karren` und `messen bauorte`. Fahrten zum Hafen 0 % (alle Startbetriebe und die Bauplätze der KI liegen näher am Markt); siehe WIRTSCHAFTSMODELL. | 8.11.2026 |
+| Außerhalb des Bereichs | Darstellung (`Stadtansicht.cs`, `Stadtansicht.Karren.cs`): Karren fahren den Weg zum Hafen, Profile je Ziel. Oberfläche (`PersonalAnzeige.cs`, `BetriebsVerwaltung.cs`, `JahresberichtAnzeige.cs`, `BerichtAnzeige.cs`): Handgeld auf dem Knopf „einstellen“, im Tooltip und als Posten. Spiel-KI: `KiRivale.cs` (oben). | 8.11.2026 |
