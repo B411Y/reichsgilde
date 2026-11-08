@@ -134,7 +134,9 @@ public partial class Stadtansicht
 
     private int ProbeFarbe(Color srgb)
     {
-        var linear = srgb.SrgbToLinear();
+        // Godot rechnet Farben in Uniform-Feldern beim Hochladen selbst von sRGB nach linear (Messung 08.11.: mit SrgbToLinear hier waren
+        // Gewand und Haut doppelt abgedunkelt); darum die sRGB-Farbe unverändert ablegen.
+        var linear = srgb;
         var i = _probePalette.IndexOf(linear);
         if (i >= 0) return i;
         if (_probePalette.Count >= 63) return 0; // die Palette im Shader hat 64 Plätze
