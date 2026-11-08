@@ -835,4 +835,3 @@ Auftrag des Teamleiters 1.11.2026.
 | Leistung | Je Modell 1 Kamin, bis 3 Essen oder Herde, bis 3 Feuerlöcher und bis 22 Kerzen (Wechselstube 20, Ratssaal 22); alle ohne Licht und ohne Schatten, nur der sichtbare Raum zeichnet (Knoten „Innen“ ist sonst unsichtbar) | 07.11.2026 |
 | Startoption | `--modellstufe=<1–3>`: alle Modelle zeigen diese Stufe ohne Ausbau, nur für Bildschirmfotos der Räume ab Stufe 2 und 3 (`docs/STARTOPTIONEN.md`) | 07.11.2026 |
 | Nicht geändert | Die Laternen (leuchtende Glasflächen im Material „Glut“, vier Flächen je Laterne) haben weiter keine Flamme; die alten Werkstatträume aus Grundkörpern (`GiessereiEinrichten` … `BankEinrichten`, nur Rückfall ohne `.glb`) und die Glutbetten der Kessel in der Tinkturei und der Siederei aus Grundkörpern haben noch ihre leuchtenden Quader | 07.11.2026 |
-

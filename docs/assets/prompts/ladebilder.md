@@ -1,3 +1,20 @@
+# Ablauf: Ladebild Köln am Rhein (07.11.2026)
+
+Datei: `game/assets/oberflaeche/ladebilder/koeln.webp` (1664 x 928, 16 : 9, füllt den Ladebildschirm). Es ersetzt die acht quadratischen Platzhalter vom 31.10.2026 (Ablauf unten, nur noch als Quelle für die Entwürfe des Nutzers). Protokoll: `docs/assets/protokoll.csv`.
+
+Werkzeug und Einstellungen wie unten (Qwen-Image 2512 Q4_K_M, Lightning aus, LoRA holzschnitt_v1 Stand 2250, euler/simple, 30 Schritte, cfg 4.0, ModelSamplingAuraFlow shift 3.0), aber **1664 x 928** statt 1024 x 1024. Seed = 5000 + Motivnummer x 7919 + Lauf x 101. Negativ-Prompt unverändert. Nachbearbeitung: PNG nach WebP (Qualität 92, Pillow).
+
+Entwürfe (Bilder im Austausch-Ordner, nicht im Repository): vier Motive, je mit LoRA-Stärke 1.0 und 0.8. Eingebaut ist `koeln_rhein`, Stärke 1.0, Seed 5000. Die Auswahl trifft der Nutzer.
+
+1. koeln_rhein: `rgholzschnitt, hand-coloured woodcut. Panorama of the walled city of Cologne on the broad river Rhine seen from the opposite bank, many church towers and gabled houses, the large unfinished cathedral with a single stump of a tower carrying a wooden crane, sailing boats and barges on the river, a long city wall with towers, wide plain paper sky.`
+2. koeln_hafen: `rgholzschnitt, hand-coloured woodcut. Harbour of a medieval city on a river, a tall wooden treadwheel crane loading barrels onto a trading ship, porters with sacks, merchant ships with square sails, the city wall and a great unfinished cathedral behind, wide landscape view.`
+3. dombaustelle: `rgholzschnitt, hand-coloured woodcut. A great Gothic cathedral under construction beside a medieval town, a huge wooden crane on top of the unfinished tower, scaffolding, masons carving stone blocks, ox carts bringing stone, the river with boats in the background, wide landscape view.`
+4. stadt_ufer: `rgholzschnitt, hand-coloured woodcut. Wide view of a medieval imperial city on a river bank, towers, gates and half-timbered houses inside a wall, fishing boats and a ferry on the river, vineyards on the hills behind, a cathedral with a crane, plain paper sky.`
+
+Nichts aus dem Original-Spiel; die Bilder sind frei erzeugt, keine Vorlage.
+
+---
+
 # Ablauf: Ladebilder (Holzschnitt-Platzhalter, 31.10.2026)
 
 Dateien: `game/assets/oberflaeche/ladebilder/*.webp` (acht Bilder, 1024 x 1024). **Platzhalter**, werden später ersetzt. Protokoll: `docs/assets/protokoll.csv`.
