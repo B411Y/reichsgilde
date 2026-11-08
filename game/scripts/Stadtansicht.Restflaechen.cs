@@ -52,6 +52,8 @@ public partial class Stadtansicht
         public readonly Dictionary<string, List<List<StempelAngabe>>> Untergruende = new();
         /// <summary>Stoffname → Ersatzstoff für die weit entfernten Bildnetze (Zoom 70 und 140): seltene oder nur um einen Farbton verschiedene Stoffe nehmen einen häufigen, damit die ganze Füllung höchstens rund 30 Flächen (Zeichenaufrufe ×2 durch den Tiefenvorlauf) hat.</summary>
         public readonly Dictionary<string, string> FernStoffe = new(StringComparer.Ordinal);
+        /// <summary>Rasen als Grund (Stadtansicht.Rasen.cs); null, wenn die Datei keinen Abschnitt „rasen“ hat.</summary>
+        public Rasenrezept? Rasen;
     }
 
     /// <summary>Was zuletzt für die Karte gesetzt wurde: je Restfläche die Kästen mit ihren Teilen (für den Neuaufbau, wenn gebaut wurde).</summary>
@@ -101,6 +103,7 @@ public partial class Stadtansicht
             if (wurzel["untergruende"] is JsonObject untergruende)
                 foreach (var (thema, varianten) in untergruende)
                     r.Untergruende[thema] = varianten!.AsArray().Select(v => StempelLesen(v!.AsArray(), wurzel["standard_untergrund"] as JsonObject)).ToList();
+            if (wurzel["rasen"] is JsonObject rasen) r.Rasen = RasenLesen(rasen);
             return _fuellRezepte = r;
         }
         catch (Exception e) { GD.PushError("Restflächen: " + pfad + " ist kaputt: " + e.Message); return null; }
@@ -223,16 +226,22 @@ public partial class Stadtansicht
                                                  rezepte.Ersetzt, erweiterung.Themen, erweiterung.Gewichte);
     }
 
-    /// <summary>Die Teile eines Kastens: Rezept des Themas für sein Format, gedreht und gewendet, in Weltlage.</summary>
-    private List<Fuellteil> KastenFuellen(List<Rezeptteil> anordnung, string karte, string flaeche, Fuellkasten kasten)
+    /// <summary>Lage eines Kastens in der Welt (Mitte, gedreht und gewendet nach dem Würfel) und sein Würfel – für die Teile und für den Rasen (Beete).</summary>
+    private static (Transform3D Lage, uint Wuerfel) KastenLage(string karte, string flaeche, Fuellkasten kasten)
     {
-        var teile = new List<Fuellteil>(anordnung.Count * 3);
         var wuerfel = Restflaechenfuellung.Wuerfel(karte + "/" + flaeche, kasten.I, kasten.J);
         // Hochkant: die lange Seite liegt in z, der Satz wird um 90° gedreht; gewendet wird in 180°-Schritten, quadratische Kästen in 90°-Schritten
         var winkel = kasten.Hochkant ? Mathf.Pi / 2 : 0f;
         winkel += kasten.Breite == kasten.Tiefe ? Mathf.Pi / 2 * (wuerfel % 4) : Mathf.Pi * ((wuerfel >> 3) & 1);
         var (mx, mz) = kasten.Mitte;
-        var kastenLage = new Transform3D(new Basis(Vector3.Up, winkel), new Vector3((float)mx, 0, (float)mz));
+        return (new Transform3D(new Basis(Vector3.Up, winkel), new Vector3((float)mx, 0, (float)mz)), wuerfel);
+    }
+
+    /// <summary>Die Teile eines Kastens: Rezept des Themas für sein Format, gedreht und gewendet, in Weltlage.</summary>
+    private List<Fuellteil> KastenFuellen(List<Rezeptteil> anordnung, string karte, string flaeche, Fuellkasten kasten)
+    {
+        var teile = new List<Fuellteil>(anordnung.Count * 3);
+        var (kastenLage, wuerfel) = KastenLage(karte, flaeche, kasten);
         var nummer = 0;
         foreach (var teil in anordnung)
         {
