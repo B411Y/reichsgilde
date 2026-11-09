@@ -82,25 +82,36 @@ public sealed partial class KiRivale
 
     /// <summary>
     /// Vor dem Werben (eigene Wahl, eigener Statut-Antrag): Ratsherren, deren Stimme fehlt und deren Geheimnis die KI kennt, um die Ratsstimme
-    /// erpressen (nie mit ehrlichem Oberhaupt). Fehlt eine Stimme ohne bekanntes Geheimnis, vielleicht ein Spitzel auf ihn.
+    /// erpressen (nie mit ehrlichem Oberhaupt) – nur so viele, wie zur Mehrheit fehlen (jede Erpressung ist eine Spur und kostet Meinung).
+    /// Fehlt dann noch eine Stimme ohne bekanntes Geheimnis, vielleicht ein Spitzel auf ihn.
     /// </summary>
     private void RatsstimmenErpressen()
     {
         var gw = _w.Geheimnisse;
         var rat = _w.Rat;
         if (!gw.IstAktiv || !rat.IstAktiv || _w.Familien.Von(Konto) is not { } f || f.Oberhaupt.HatZug("Ehrlich")) return;
+        var wahl = EigeneWahl();
+        var antrag = rat.Antrag is { } a && a.Antragsteller == Konto ? a.Statut : (Fronstatut?)null;
+        var (fehltWahl, fehltAntrag) = (wahl is null ? 0 : FehlendeWahlstimmen(wahl), antrag is { } s ? FehlendeStatutstimmen(s) : 0);
         Ratsherr? ohneWissen = null;
-        foreach (var r in rat.Ratsherren.Where(BrauchtStimme).ToList())
+        foreach (var r in rat.Ratsherren.ToList())
         {
+            var (fuerWahl, fuerAntrag) = (fehltWahl > 0 && BrauchtWahlstimme(r, wahl), fehltAntrag > 0 && BrauchtStatutstimme(r, antrag));
+            if (!fuerWahl && !fuerAntrag) continue;
             var g = gw.Von(r).Where(x => gw.NutzenVerboten(Konto, x, Geheimnisnutzung.Ratsstimme) is null).OrderBy(x => x.Nummer).FirstOrDefault();
             if (g is null)
             {
                 if (!gw.Von(r).Any(x => gw.KenntNutzbar(Konto, x))) ohneWissen ??= r;
                 continue;
             }
-            Befehlen(new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Ratsstimme),
-                $"erpresst die Ratsstimme von {r.Name} – sie weiß von „{gw.Beschreibung(g)}“.");
+            if (!Befehlen(new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Ratsstimme),
+                    $"erpresst die Ratsstimme von {r.Name} – sie weiß von „{gw.Beschreibung(g)}“.")) continue;
+            if (fuerWahl) fehltWahl--;
+            if (fuerAntrag) fehltAntrag--;
         }
+        if (fehltWahl <= 0 && fehltAntrag <= 0) return; // die Mehrheit steht
+        if (ohneWissen is not null && !(fehltWahl > 0 && BrauchtWahlstimme(ohneWissen, wahl) || fehltAntrag > 0 && BrauchtStatutstimme(ohneWissen, antrag)))
+            ohneWissen = null;
         // Ein Spitzel auf einen Ratsherrn, dessen Stimme fehlt – aus demselben Budget wie die Spitzel auf Häuser (höchstens jedes zweite Jahr
         // einer, PR #208; der Ratsherr geht vor, weil die Politik vor den Anklagen kommt), nur mit Aktionspunkten für Spitzel und Erpressung.
         if (ohneWissen is null || _spitzelDiesesJahr.Count > 0 || _spitzelVorjahr.Count > 0 || !_w.Justiz.IstAktiv) return;
@@ -111,22 +122,43 @@ public sealed partial class KiRivale
             _spitzelDiesesJahr.Add(ohneWissen.Kennung);
     }
 
-    /// <summary>
-    /// Braucht die KI die Stimme dieses Ratsherrn? Er sitzt im Rat, seine Stimme ist nicht schon erpresst, und er stimmt bei der eigenen Wahl
-    /// nicht sicher für sie bzw. beim eigenen Antrag auf ein Statut nicht dafür.
-    /// </summary>
-    internal bool BrauchtStimme(Ratsherr r)
+    /// <summary>Das Amt, um das sich die KI dieses Jahr bewirbt (null: keins, oder sie steht nicht zur Wahl).</summary>
+    private Amt? EigeneWahl() =>
+        _w.Rat.Bewerbungen.TryGetValue(Konto, out var amtName) && _w.Rat.AmtNamens(amtName) is { } amt && _w.Rat.KandidatenListe(amt).Contains(Konto) ? amt : null;
+
+    /// <summary>Wie viele Stimmen der KI bei ihrer Wahl zur Mehrheit der Wähler fehlen (sichere und erpresste zählen schon).</summary>
+    private int FehlendeWahlstimmen(Amt amt)
     {
         var rat = _w.Rat;
-        if (rat.Aemter.FirstOrDefault(a => a.Ratsherr == r) is not { } sitz || rat.Erpresser(sitz) is not null) return false;
-        if (rat.Bewerbungen.TryGetValue(Konto, out var amtName) && rat.AmtNamens(amtName) is { } amt)
-        {
-            var kandidaten = rat.KandidatenListe(amt);
-            if (kandidaten.Contains(Konto) && rat.WahlWaehler(amt, kandidaten).Contains(sitz)
-                && rat.WahlStimmeVonSitz(sitz, amt, kandidaten) is var stimme && !(stimme.Count == 1 && stimme[0] == Konto))
-                return true;
-        }
-        return rat.Antrag is { } antrag && antrag.Antragsteller == Konto && rat.StatutStimmeVonSitz(sitz, Konto, antrag.Statut) != true;
+        var kandidaten = rat.KandidatenListe(amt);
+        var waehler = rat.WahlWaehler(amt, kandidaten);
+        var sicher = waehler.Count(s => rat.WahlStimmeVonSitz(s, amt, kandidaten) is { Count: 1 } stimme && stimme[0] == Konto);
+        return waehler.Count / 2 + 1 - sicher;
+    }
+
+    /// <summary>Wie viele Ja-Stimmen dem eigenen Antrag auf ein Statut zur Mehrheit der besetzten Sitze fehlen (erpresste zählen schon).</summary>
+    private int FehlendeStatutstimmen(Fronstatut statut)
+    {
+        var rat = _w.Rat;
+        var besetzt = rat.Aemter.Where(a => a.IstBesetzt).ToList();
+        return besetzt.Count / 2 + 1 - besetzt.Count(a => rat.StatutStimmeVonSitz(rat.StimmSitz(a), Konto, statut) == true);
+    }
+
+    /// <summary>Er sitzt im Rat, seine Stimme ist nicht schon erpresst, und er wählt bei der eigenen Wahl nicht sicher die KI.</summary>
+    private bool BrauchtWahlstimme(Ratsherr r, Amt? amt)
+    {
+        var rat = _w.Rat;
+        if (amt is null || rat.Aemter.FirstOrDefault(a => a.Ratsherr == r) is not { } sitz || rat.Erpresser(sitz) is not null) return false;
+        var kandidaten = rat.KandidatenListe(amt);
+        return rat.WahlWaehler(amt, kandidaten).Contains(sitz) && rat.WahlStimmeVonSitz(sitz, amt, kandidaten) is var stimme && !(stimme.Count == 1 && stimme[0] == Konto);
+    }
+
+    /// <summary>Er sitzt im Rat, seine Stimme ist nicht schon erpresst, und er stimmt beim eigenen Antrag auf ein Statut nicht dafür.</summary>
+    private bool BrauchtStatutstimme(Ratsherr r, Fronstatut? statut)
+    {
+        var rat = _w.Rat;
+        if (statut is not { } s || rat.Aemter.FirstOrDefault(a => a.Ratsherr == r) is not { } sitz || rat.Erpresser(sitz) is not null) return false;
+        return rat.StatutStimmeVonSitz(sitz, Konto, s) != true;
     }
 
     /// <summary>
@@ -142,7 +174,8 @@ public sealed partial class KiRivale
         if (_w.Justiz.IstAktiv && a.Beweiskraft > 0 && (!a.NurMitStadtglaube || _w.Glaube.IstAktiv && _w.Glaube.Stadtglaube is not null))
         {
             var j = _w.Justiz.Daten;
-            anzeige = Math.Min(a.Busse, Math.Max(j.Mindestbusse, j.BusseHoechstensAnteil * Math.Max(0, Konto.Reinvermoegen))) + PrangerWert
+            var deckel = Math.Max(j.Mindestbusse, j.BusseHoechstensAnteil > 0 ? j.BusseHoechstensAnteil * Math.Max(0, Konto.Reinvermoegen) : double.MaxValue); // wie am Gerichtstag
+            anzeige = Math.Min(a.Busse, deckel) + PrangerWert
                       + (a.KerkerJahre > 0 ? KerkerWert : 0) + (_w.Rat.AmtVon(Konto) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
         }
         var bloss = a.Ansehen * gw.Daten.Ki.GuldenJeAnsehen * gw.Daten.AnsehenJahre;

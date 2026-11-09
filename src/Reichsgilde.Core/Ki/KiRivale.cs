@@ -1295,8 +1295,9 @@ public sealed partial class KiRivale
                     kosten.Add((r, fehlt));
             }
         var freisprechen = stimmen.Count(s => !s.Schuldig);
-        // Ein Freispruch erspart die Buße (auf die schon bekannten Taten) und das Amt.
-        var nutzen = gericht.DrohendeBusse(v.Anklaeger, Konto)
+        // Ein Freispruch erspart die Buße (auf die schon bekannten Taten und ein angezeigtes Geheimnis, dazu dessen Kerker) und das Amt.
+        var (geheimBusse, geheimKerker) = gericht.GeheimnisStrafe(v); // Teil 3c, ohne Geheimnis (0, 0)
+        var nutzen = gericht.DrohendeBusse(v.Anklaeger, Konto) + geheimBusse + (geheimKerker > 0 ? KerkerWert : 0)
                      + (_w.Rat.AmtVon(Konto) is { } amt ? amt.Daten.Einkommen * NutzenJahre : 0);
         Schenkplan(kosten, stimmen.Count / 2 + 1 - freisprechen, $"vor dem Gerichtstag (angeklagt von {v.Anklaeger.Inhaber})", nutzen);
     }
