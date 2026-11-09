@@ -644,6 +644,7 @@ public partial class Kartenwerkstatt : Node
     /// </summary>
     private void StartoptionenAusfuehren(Dictionary<string, string> o)
     {
+        WasserprobeEinsetzen(o); // --wasserprobe: Messkarte der Wasserübergänge (Kartenwerkstatt.Wasserprobe.cs)
         try
         {
             // --werkstatt-groesse=<breite>,<tiefe>[,<rand>] (400 × 300 bis 2.000 × 2.000, Rand 100 bis 600 m), --werkstatt-randvorschlag=1 (oder eine Zahl als Startwert)
