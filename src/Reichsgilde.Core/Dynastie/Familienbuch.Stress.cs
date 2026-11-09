@@ -147,12 +147,18 @@ public sealed partial class Familienbuch
     }
 
     /// <summary>Oberhaupt, Ehepartner und Erbe eines Hauses, soweit sie Stress haben (in dieser Reihenfolge).</summary>
-    private List<Person> StressTraeger(Familie f)
+    private List<Person> StressTraeger(Familie f) => Hauptpersonen(f).Where(HatStress).ToList();
+
+    /// <summary>
+    /// Oberhaupt, Ehepartner und Erbe eines Hauses, soweit sie leben (in dieser Reihenfolge, ohne Doppelte) – wer Lebensweise, Stress und
+    /// Geheimnisse hat.
+    /// </summary>
+    public IReadOnlyList<Person> Hauptpersonen(Familie f)
     {
         var liste = new List<Person> { f.Oberhaupt };
         if (f.Ehepartner is { } e && !liste.Contains(e)) liste.Add(e);
         if (Erbe(f) is { } erbe && !liste.Contains(erbe)) liste.Add(erbe);
-        return liste.Where(HatStress).ToList();
+        return liste.Where(p => p.Lebt).ToList();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -194,8 +200,22 @@ public sealed partial class Familienbuch
         if (befehl is Schenken || geschenk && befehl is Aktivitaet { Mit: var mit } && mit.StartsWith("R:", StringComparison.Ordinal)) liste.Add("Bestechung");
         if (befehl is Bekehrungspredigt && _w.Glaube.IstAktiv && _w.Glaube.Stadtglaube is { } s && _w.Glaube.GlaubeVon(konto) is { } eigener && s != eigener)
             liste.Add("Ketzerei");
+        if (GeheimnisTat(befehl) is { } tat) liste.Add(tat); // Erpressen bzw. Anklagen mit einem Geheimnis (Teil 3c)
         return liste;
     }
+
+    /// <summary>
+    /// Ein Geheimnis zu nutzen zählt wie die vorhandene Tat (Teil 3c): Erpressen um Gulden oder die Ratsstimme wie „Erpressen“, die Anzeige wie
+    /// „Anklagen“ – für Stress und Lebensweise, ohne eigene Einträge in den Daten. Bloßstellen zählt nichts.
+    /// </summary>
+    internal static string? GeheimnisTat(Befehl befehl) => befehl is GeheimnisNutzen g
+        ? g.Nutzung switch
+        {
+            Geheimnisse.Geheimnisnutzung.Gulden or Geheimnisse.Geheimnisnutzung.Ratsstimme => nameof(Erpressen),
+            Geheimnisse.Geheimnisnutzung.Anzeige => nameof(Anklagen),
+            _ => null,
+        }
+        : null;
 
     private static double Betrag(Befehl befehl) => befehl switch
     {
@@ -212,7 +232,7 @@ public sealed partial class Familienbuch
     {
         var liste = new List<StressPosten>();
         if (befehl is BetriebsBefehl || StressDaten is not { } d) return liste;
-        if (!d.KenntBefehl(befehl.GetType().Name) && befehl is not (Aktivitaet or Schenken or Bekehrungspredigt)) return liste; // schnell: bringt nie Stress
+        if (!d.KenntBefehl(befehl.GetType().Name) && befehl is not (Aktivitaet or Schenken or Bekehrungspredigt or GeheimnisNutzen)) return liste; // schnell: bringt nie Stress
         if (Von(konto) is not { } f || !HatStress(f.Oberhaupt)) return liste;
         var o = f.Oberhaupt;
         var schluessel = TatSchluessel(konto, befehl);
@@ -363,6 +383,10 @@ public sealed partial class Familienbuch
                 .Select(ware => (Ware: ware, Faktor: _w.Markt[ware].Preisfaktor)).Where(x => x.Faktor < d.Haus.PreisverfallAb)
                 .OrderBy(x => x.Faktor).ThenBy(x => x.Ware, StringComparer.Ordinal).FirstOrDefault() is { Ware: { } verfallen })
             StressAendern(o, d.Haus.Preisverfall, $"Preise verfallen ({verfallen})");
+        // Geheimnisse (Teil 3c): Wer eines hütet, trägt schwer daran – Ehrliche und Fromme schwerer.
+        foreach (var p in StressTraeger(f))
+            if (_w.Geheimnisse.StressJeJahr(p) is var geheim and > 0)
+                StressAendern(p, geheim, _w.Geheimnisse.GeheimeAnzahl(p) == 1 ? "Ein Geheimnis hüten" : "Geheimnisse hüten");
 
         foreach (var p in f.Lebende.Where(p => p.Stresslage.Wert > 0).ToList())
         {

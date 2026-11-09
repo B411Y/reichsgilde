@@ -194,6 +194,101 @@ public sealed record WirtschaftStand
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public BlitzStand? Blitz { get; init; }
+
+    /// <summary>
+    /// Geheimnisse, wer was weiß, erpresste Ratsstimmen, Spitzel auf Ratsherren, Anzeigen gegen Ratsherren, Schande (Charaktersystem Teil 3c).
+    /// Nur mit dem Abschnitt "geheimnisse" geschrieben – alte Spielstände bleiben Byte für Byte, wie sie waren.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public GeheimnisseStand? Geheimnisse { get; init; }
+}
+
+/// <summary>Die Geheimnisse der Stadt (siehe <see cref="Reichsgilde.Core.Geheimnisse.Geheimniswesen"/>).</summary>
+public sealed record GeheimnisseStand
+{
+    public long ZufallWuerfe { get; init; }
+    public int NaechsteNummer { get; init; } = 1;
+    public List<GeheimnisStand> Geheimnisse { get; init; } = new();
+    public List<GeheimnisWissenStand> Wissen { get; init; } = new();
+    public List<ErpressteStimmeStand> Stimmen { get; init; } = new();
+    public List<RatsspitzelStand> Ratsspitzel { get; init; } = new();
+    public List<RatsherrVerfahrenStand> Verfahren { get; init; } = new();
+    public List<SchandeStand> Schande { get; init; } = new();
+
+    /// <summary>Ratsherr → bis zu welchem Jahr er (verurteilt) in kein Amt nachrückt.</summary>
+    public Dictionary<string, int> Gesperrt { get; init; } = new();
+}
+
+/// <summary>Ein Geheimnis: Inhaber als Kennung („P12“, „R:Name“), bei Mord das Opfer als Personennummer.</summary>
+public sealed record GeheimnisStand
+{
+    public int Nummer { get; init; }
+    public Reichsgilde.Core.Geheimnisse.Geheimnisart Art { get; init; }
+    public string Inhaber { get; init; } = "";
+    public int Jahr { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Opfer { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Oeffentlich { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool EhepartnerWeiss { get; init; }
+}
+
+/// <summary>Was ein Haus (Kontonummer) von einem Geheimnis weiß.</summary>
+public sealed record GeheimnisWissenStand
+{
+    public int Haus { get; init; }
+    public int Geheimnis { get; init; }
+    public int Jahr { get; init; }
+    public string Quelle { get; init; } = "";
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public bool AusBeichte { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? GenutztIm { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? BriefIm { get; init; }
+}
+
+/// <summary>Eine erpresste Ratsstimme: Erpresser (Kontonummer), Opfer als Ratsherr (Name) oder Haus (Kontonummer).</summary>
+public sealed record ErpressteStimmeStand
+{
+    public int Erpresser { get; init; }
+    public string? Ratsherr { get; init; }
+    public int? Haus { get; init; }
+    public int Geheimnis { get; init; }
+    public int Jahr { get; init; }
+}
+
+public sealed record RatsspitzelStand
+{
+    public int Auftraggeber { get; init; }
+    public string Ratsherr { get; init; } = "";
+}
+
+public sealed record RatsherrVerfahrenStand
+{
+    public int Anklaeger { get; init; }
+    public string Ratsherr { get; init; } = "";
+    public int Geheimnis { get; init; }
+    public Reichsgilde.Core.Geheimnisse.Geheimnisart Art { get; init; }
+    public int Jahr { get; init; }
+    public List<RichterStand> Richter { get; init; } = new();
+}
+
+/// <summary>Schande nach dem Bloßstellen: Haus (Kontonummer) oder Ratsherr (Name), Art, Ansehen, bis einschließlich Jahr.</summary>
+public sealed record SchandeStand
+{
+    public int? Haus { get; init; }
+    public string? Ratsherr { get; init; }
+    public Reichsgilde.Core.Geheimnisse.Geheimnisart Art { get; init; }
+    public double Ansehen { get; init; }
+    public int Bis { get; init; }
 }
 
 /// <summary>Die Einschläge des Blitzwesens (siehe <see cref="Reichsgilde.Core.Gefahren.Blitzwesen"/>).</summary>
@@ -596,6 +691,10 @@ public sealed record ForderungStand
     public int Opfer { get; init; }
     public double Betrag { get; init; }
     public int Jahr { get; init; }
+
+    /// <summary>Ein Brief mit einem Geheimnis statt Beweisen (Teil 3c): seine Nummer. Fehlt sonst.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Geheimnis { get; init; }
 }
 
 public sealed record NachtereignisStand
@@ -653,6 +752,13 @@ public sealed record VerfahrenStand
     public int Beklagter { get; init; }
     public int Jahr { get; init; }
     public List<RichterStand> Richter { get; init; } = new();
+
+    /// <summary>Eine Anzeige mit einem Geheimnis (Teil 3c): Nummer und Art. Fehlt sonst.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Geheimnis { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Reichsgilde.Core.Geheimnisse.Geheimnisart? GeheimnisArt { get; init; }
 }
 
 public sealed record RichterStand
@@ -796,6 +902,10 @@ public sealed record ErkrankungStand
     public int Bis { get; init; }
     public bool Medicus { get; init; }
     public bool Schnaps { get; init; }
+
+    /// <summary>Krötenschleim oder Giftdolch (Teil 3c): die Nummer des Oberhaupts, das den Anschlag in Auftrag gab. Fehlt sonst.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public int? Taeter { get; init; }
 }
 
 public sealed record GesundheitStand

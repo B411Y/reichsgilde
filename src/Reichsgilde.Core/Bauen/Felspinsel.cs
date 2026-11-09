@@ -25,6 +25,11 @@ namespace Reichsgilde.Core.Bauen;
 //  Bereich (null), gilt das Verhalten von vorher. Drehung, Kippen und Rollen nutzen die Würfe, die es schon gab; neue Würfe (Achsen,
 //  Versatz) gibt es nur für einen Bereich, der nicht leer ist (Bis > Von), und sie kommen je Stück hinten an. So ergibt ein alter Strich mit
 //  gleichem Startwert dieselben Stücke. „Neu würfeln“ (Kartenentwurf.FelsNeuWuerfeln) zieht dieselben Würfe für schon gesetzte Stücke.
+//
+//  Felspinsel P3 (alle Werte in der Tafel, wie das Foliage-Werkzeug von Unreal): Abstand (Meter zusätzlich zwischen den Grundflächen beim
+//  Streuen), Streuung des Einsinkens (vorher fest ± 0,05; derselbe Wurf), Höhenfilter (Geländehöhe von–bis an der Mitte, wie der Filter),
+//  „nur diese Formen“ für Radierer, Ausdünnen und Neu verteilen, Ausdünnen (Radierer bis zur Dichte statt alles) und Neu verteilen
+//  (ein Strich würfelt die Stücke unter dem Pinsel neu, nur die Werte in Verteilen). Alles mit Vorgaben, die alte Striche nicht ändern.
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// <summary>
@@ -56,14 +61,40 @@ public sealed record Felsbereich(double Von, double Bis)
 /// herum, sonst ab Norden; vorher ±20° bzw. 0 … 360°); <paramref name="Kippbereich"/>, <paramref name="Rollbereich"/> – Grad (−180 … 180; vorher
 /// ±8°); <paramref name="Versatzbereich"/> – Höhenversatz in Metern (±20); <paramref name="NeigungBis"/> – am Hang höchstens so viele Grad aus
 /// der Senkrechten neigen (wie „Align Max Angle“ in Unreal). <paramref name="HangFormen"/>: „Hang mitformen“ (R5, <see cref="Felshang"/>): Der Stempel hebt das Gelände hinter den Wänden des Wand-Satzes an, damit sie im Hang stecken.
+/// P3: <paramref name="Abstand"/> – Meter, die beim Streuen zusätzlich zwischen zwei Grundflächen frei bleiben (0 … 50); <paramref name="EinsinkenStreuung"/> –
+/// ± Anteil der Höhe um das Einsinken (0 … 0,5; vorher fest 0,05); <paramref name="Hoehenbereich"/> – nur wo das Gelände an der Mitte so hoch ist (Meter,
+/// von–bis; null: überall); <paramref name="NurFormen"/> – Radierer, Ausdünnen und Neu verteilen nehmen nur Stücke der <paramref name="Formen"/> (bei einer
+/// Gruppe: ihrer Formen); <paramref name="Ausduennen"/> – der Radierer nimmt Stücke weg, bis die Grundflächen im Kreis nur noch <paramref name="Dichte"/>
+/// decken; <paramref name="Verteilen"/> – der Strich setzt nichts, sondern würfelt diese Werte der Stücke unter dem Pinsel neu („Reapply“).
 /// </summary>
 public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, string? Gestein = null, double Radius = 8, double Dichte = 0.2,
     double Groesse = 1, double Streuung = 0.25, double Einsinken = Felsformen.EinsinkenVorgabe, double Neigung = 0.5, bool ZumHang = true,
     Pinselfilter? Filter = null, bool Radierer = false, bool Boden = true,
     Felsbereich? AchseX = null, Felsbereich? AchseY = null, Felsbereich? AchseZ = null, Felsbereich? Drehbereich = null,
     Felsbereich? Kippbereich = null, Felsbereich? Rollbereich = null, Felsbereich? Versatzbereich = null, double? NeigungBis = null,
-    bool HangFormen = false)
+    bool HangFormen = false, double Abstand = 0, double EinsinkenStreuung = Felspinsel.EinsinkenStreuungVorgabe, Felsbereich? Hoehenbereich = null,
+    bool NurFormen = false, bool Ausduennen = false, Felswurf? Verteilen = null)
 {
+    /// <summary>Streuung des Einsinkens ohne Angabe (± Anteil der Höhe, wie vor P3).</summary>
+    public const double EinsinkenStreuungVorgabe = 0.05;
+
+    /// <summary>Größte Streuung des Einsinkens (± Anteil) und größter Abstand (Meter).</summary>
+    public const double EinsinkenStreuungMax = 0.5, AbstandMax = 50;
+
+    /// <summary>Was der Pinsel tut (für Texte und die Darstellung).</summary>
+    public string Taetigkeit => Radierer ? Ausduennen ? "ausgedünnt" : "radiert" : Verteilen is not null ? "neu verteilt" : "gestreut";
+
+    /// <summary>
+    /// Wirkt der Pinsel (Radierer, Ausdünnen, Neu verteilen) auf ein Stück dieser Form? Ohne <see cref="NurFormen"/> auf jedes; sonst nur auf die
+    /// angehakten Formen bzw. die Formen der Gruppe.
+    /// </summary>
+    public bool NimmtForm(string form)
+    {
+        if (!NurFormen) return true;
+        if (Felsformen.Gruppe(Gruppe) is { } g) return g.Stuecke.Any(s => s.Form == form);
+        return FormenWirksam.Any(f => f.Kennung == form);
+    }
+
     /// <summary>Größte Streuung der Größe (± Anteil): so reicht min–max bis zum 19-Fachen.</summary>
     public const double StreuungMax = 0.9;
 
@@ -151,6 +182,10 @@ public sealed record Felspinsel(string[]? Formen = null, string? Gruppe = null, 
         Rollbereich = Rollbereich?.Begrenzt(-Felsformen.KippenGrenze, Felsformen.KippenGrenze),
         Versatzbereich = Versatzbereich?.Begrenzt(-Felsformen.VersatzMax, Felsformen.VersatzMax),
         NeigungBis = NeigungBis is { } nb ? Math.Clamp(nb, 0, 90) : null,
+        Abstand = Math.Clamp(Abstand, 0, AbstandMax),
+        EinsinkenStreuung = Math.Clamp(EinsinkenStreuung, 0, EinsinkenStreuungMax),
+        Hoehenbereich = Hoehenbereich?.Begrenzt(Hoehenraster.Tiefste, Hoehenraster.Hoechste),
+        Verteilen = Verteilen is { } v && (v & Felswurf.Alle) != Felswurf.Keins ? v & Felswurf.Alle : null,
     };
 }
 
@@ -202,6 +237,20 @@ public static class Felsstreuung
     /// Wie oben, der Boden aber aus <paramref name="gewicht"/> (Punkt i, j, Textur → 0 … 255) – der Felsstrich mit „Boden“ liest so den Boden vor
     /// dem Strich, sonst sähe der Filter, was der Strich selbst gerade malt (F6, wie beim Texturpinsel).
     /// </summary>
+    /// <summary>
+    /// Der Filterfaktor des ganzen Pinsels (P3): wie <see cref="Filterfaktor(Pinselfilter?, Hoehenraster, Bodenraster, double, double)"/>, dazu der
+    /// Höhenfilter (<see cref="Felspinsel.Hoehenbereich"/>: Geländehöhe am Ort von–bis, sonst 0). Ohne Höhenfilter genau der Faktor des Filters.
+    /// </summary>
+    public static double Filterfaktor(Felspinsel p, Hoehenraster hoehen, Bodenraster boden, double x, double z) =>
+        Filterfaktor(p, hoehen, boden.Gewicht, x, z);
+
+    /// <summary>Wie oben, der Boden aber aus <paramref name="gewicht"/> (der Stand vor dem Strich, F6).</summary>
+    internal static double Filterfaktor(Felspinsel p, Hoehenraster hoehen, Func<int, int, Bodentextur, byte> gewicht, double x, double z)
+    {
+        if (p.Hoehenbereich is { } h && hoehen.Hoehe(x, z) is var hoehe && (hoehe < h.Von || hoehe > h.Bis)) return 0;
+        return Filterfaktor(p.Filter, hoehen, gewicht, x, z);
+    }
+
     internal static double Filterfaktor(Pinselfilter? filter, Hoehenraster hoehen, Func<int, int, Bodentextur, byte> gewicht, double x, double z)
     {
         if (filter is null) return 1;
@@ -236,7 +285,7 @@ public static class Felsstreuung
             var o = Kartengeometrie.Dreh(s.X * groesse, s.Z * groesse, grund);
             var eigen = n == 0 ? 0 : Plusminus(6); // das erste Stück (die Mitte der Gruppe) steht genau in der Drehung der Gruppe
             var massstab = n == 0 ? groesse * s.Massstab : groesse * s.Massstab * (1 + Plusminus(0.08));
-            var einsinken = p.Einsinken * (Felsformen.Finde(s.Form)?.EinsinkenFaktor ?? 1) + s.Einsinken + Plusminus(0.05); // die großen Wände stecken weniger tief (R4)
+            var einsinken = p.Einsinken * (Felsformen.Finde(s.Form)?.EinsinkenFaktor ?? 1) + s.Einsinken + Plusminus(p.EinsinkenStreuung); // die großen Wände stecken weniger tief (R4); Streuung seit P3 einstellbar (Vorgabe 0,05: derselbe Wurf)
             var (uk, ur) = (zufall.NextDouble(), zufall.NextDouble());
             var kx = p.Kippbereich is { } kb ? Felsraum.Winkel(kb.Wert(uk)) : Math.Round((2 * uk - 1) * Felsformen.KippenMax, 1) + 0.0;
             var kz = p.Rollbereich is { } rb ? Felsraum.Winkel(rb.Wert(ur)) : Math.Round((2 * ur - 1) * Felsformen.KippenMax, 1) + 0.0;

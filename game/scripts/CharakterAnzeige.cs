@@ -150,6 +150,7 @@ public partial class CharakterAnzeige : PanelContainer
 
         _inhalt.AddChild(new HSeparator());
         ZuegeBauen(w, p.Zuege, buch.IstVolljaehrig(p) || !p.Lebt, p.Lebt && !buch.IstVolljaehrig(p));
+        GeheimnisseBauen(w, p); // Geheimnisse (Teil 3c): nur, was Euer Haus weiß (CharakterAnzeige.Geheimnisse.cs)
 
         var v = buch.Verwandte(p);
         if (v.Vater is null && v.Mutter is null && v.Ehepartner is null && v.Kinder.Count == 0) return;
@@ -235,6 +236,7 @@ public partial class CharakterAnzeige : PanelContainer
         }
         _inhalt.AddChild(new HSeparator());
         ZuegeBauen(w, r.Zuege, true, false);
+        GeheimnisseBauen(w, r); // Geheimnisse und Spitzel (Teil 3c, CharakterAnzeige.Geheimnisse.cs)
     }
 
     // ── Züge ────────────────────────────────────────────────────────────────

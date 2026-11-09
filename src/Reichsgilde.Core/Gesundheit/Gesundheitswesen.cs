@@ -21,6 +21,12 @@ public sealed record Erkrankung(string Name, int Bis, IReadOnlyDictionary<Talent
     /// <summary>Kräuterschnaps wurde gegeben (nur bei der Pest – leichte Krankheiten heilt er sofort).</summary>
     public bool Schnaps { get; init; }
 
+    /// <summary>
+    /// Krötenschleim oder Giftdolch (nur mit Geheimnissen, Teil 3c): die Nummer des Oberhaupts, das den Anschlag in Auftrag gab. Stirbt die
+    /// Person daran, hütet es einen Mord.
+    /// </summary>
+    public int? Taeter { get; init; }
+
     public double Abzug(Talent t) => Talentabzug.GetValueOrDefault(t);
 
     /// <summary>„Husten (Rhetorik −1)"</summary>
@@ -138,6 +144,7 @@ public sealed class Gesundheitswesen
             if (_zufall.NextDouble() < Sterberisiko(k))
             {
                 _w.Familien.AnKrankheitSterben(p, k.IstPest ? "an der Pest" : $"an {k.Name}");
+                if (k.Taeter is int taeter && konto is not null) _w.Geheimnisse.Mord(taeter, p); // Krötenschleim, Giftdolch: ein Mord (Teil 3c)
                 continue;
             }
             if (k.Bis > jahr) continue;
@@ -202,11 +209,12 @@ public sealed class Gesundheitswesen
     /// <summary>Eine Person erkrankt (Zufall oder Krötenschleim). Wer schon krank ist, bleibt bei seiner Krankheit.</summary>
     /// <param name="stress">Die Krankheit bringt Stress (nicht beim Zusammenbruch, der sie selbst auslöst).</param>
     /// <param name="melden">Als Familienereignis melden (beim Zusammenbruch nennt dessen Meldung die Krankheit).</param>
-    internal bool Erkranken(Konto konto, Person p, string name, bool stress = true, bool melden = true)
+    /// <param name="taeter">Krötenschleim, Giftdolch: das Oberhaupt des Auftraggebers – vermerkt nur mit Geheimnissen (Teil 3c), für den Mord.</param>
+    internal bool Erkranken(Konto konto, Person p, string name, bool stress = true, bool melden = true, Person? taeter = null)
     {
         if (!IstAktiv || p.Krankheit is not null || !p.Lebt) return false;
         var dauer = Daten.Krankheiten.TryGetValue(name, out var k) ? k.Dauer : 1;
-        p.Krankheit = Erkrankung.Aus(Daten, name, _w.Familien.Jahr + dauer - 1);
+        p.Krankheit = Erkrankung.Aus(Daten, name, _w.Familien.Jahr + dauer - 1) with { Taeter = taeter is not null && _w.Geheimnisse.IstAktiv ? taeter.Nummer : null };
         var e = p.Krankheit;
         var bis = dauer == 1 ? "bis zum Jahresende" : $"bis Ende {e.Bis}";
         if (melden)

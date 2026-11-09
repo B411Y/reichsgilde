@@ -205,7 +205,7 @@ public sealed partial class Familienbuch
         var o = f.Oberhaupt;
         var pfad = AktiverPfad(o);
         if (!d.Pfade.TryGetValue(pfad, out var pd)) return;
-        var typ = befehl.GetType().Name;
+        var typ = GeheimnisTat(befehl) ?? befehl.GetType().Name; // ein Geheimnis zu nutzen zählt wie Erpressen bzw. Anklagen (Teil 3c)
         var art = befehl switch
         {
             Aktivitaet a => a.Art,

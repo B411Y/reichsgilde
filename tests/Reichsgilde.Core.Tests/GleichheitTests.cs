@@ -27,7 +27,7 @@ using Reichsgilde.Core.Zeit;
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Dazu der Wasserverbund (Befund 1, 09.11.2026, Zeile „wasserverbund“) und der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
 /// der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl, die Felslage (R2): Zufallsbereiche, Transformieren, Einrasten, Neu würfeln,
-/// und das Kopieren von Felsstücken (P2).
+/// das Kopieren von Felsstücken (P2) und die Pinselwerte, Ausdünnen und Neu verteilen (P3).
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -65,7 +65,10 @@ static class GleichheitTests
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
     /// <param name="Erloschen">Ab welchem Jahr (0 = erstes) das Haus des Spielers nicht mehr aktiv ist (gestorben ohne Erben, bankrott) – sonst null.</param>
     /// <param name="Stress">Wie viele Stressquellen (Einträge mit Wert über 0) die Personen der Häuser nach jedem Jahr tragen, zusammen – der Stress steht im Spielstand und damit in der Prüfsumme.</param>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress);
+    /// <param name="Geheimnisse">Wie viele Geheimnisse es nach jedem Jahr gibt, zusammen (Teil 3c) – sie stehen im Spielstand.</param>
+    /// <param name="Wissen">Was die Häuser nach jedem Jahr von fremden Geheimnissen wissen, zusammen (Teil 3c) – steht im Spielstand.</param>
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress,
+        int Geheimnisse, int Wissen);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -85,7 +88,19 @@ static class GleichheitTests
         "Gleichheit: Felsen kopieren und schieben P2 (versetzt und an Ort, Kopien gedreht, geschoben und aufgesetzt, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelskopiePruefen)).Append((
         "Gleichheit: Wasserverbund (Fluss und See als eine Fläche, Boden, Bett, Ufer, Spiegel, Strömung auf einem Gitter) ergibt zweimal und mit deutscher Ländereinstellung dieselben Bits",
-        WasserverbundPruefen));
+        WasserverbundPruefen)).Append((
+        "Gleichheit: Felspinsel P3 (Abstand, Streuung des Einsinkens, Ausdünnen, Neu verteilen, Radierer nur für Formen, Höhenfilter, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsP3Pruefen));
+
+    /// <summary>Felspinsel P3: die neuen Pinselwerte, Ausdünnen und Neu verteilen – gleiche Bytes (Zeile „felsp3 …“ in der Datei der CI).</summary>
+    static void FelsP3Pruefen()
+    {
+        var a = Sha256(FelspinselP3Tests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelspinselP3Tests.Ablauf()), "Fels P3: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelspinselP3Tests.Ablauf())), "Fels P3: de-DE");
+        Zeilen[-6] = new[] { $"felsp3 {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felsen kopieren (Fels P2, Strg+D): gleiche Auswahl, gleiche Kopien – gleiche Bytes (Zeile „felskopie …“ in der Datei der CI).</summary>
     static void FelskopiePruefen()
@@ -103,7 +118,7 @@ static class GleichheitTests
         var a = Sha256(WasserverbundTests.Ablauf());
         Pruefe.Gleich(a, Sha256(WasserverbundTests.Ablauf()), "Wasserverbund: zweiter Lauf");
         Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(WasserverbundTests.Ablauf())), "Wasserverbund: de-DE");
-        Zeilen[-6] = new[] { $"wasserverbund {a}" };
+        Zeilen[-7] = new[] { $"wasserverbund {a}" };
         DateiSchreiben();
     }
 
@@ -175,6 +190,12 @@ static class GleichheitTests
         // Stress (Datenversion 77) soll im Spiel vorkommen – sonst prüft die Prüfsumme ihn nicht mit.
         Pruefe.Wahr(a.Stress > 0, $"Kein Stress in {p.Jahre} Jahren (Startwert {p.Startwert})");
         Pruefe.Gleich(a.Stress, c.Stress, "Stressquellen mit Speichern und Laden");
+        // Geheimnisse (Datenversion 78) sollen vorkommen – Ratsherren haben schon zu Partiebeginn welche, das Gerede verbreitet sie.
+        Pruefe.Wahr(a.Geheimnisse > 0, $"Keine Geheimnisse in {p.Jahre} Jahren (Startwert {p.Startwert})");
+        Pruefe.Gleich(a.Geheimnisse, c.Geheimnisse, "Geheimnisse mit Speichern und Laden");
+        // Die Häuser sollen auch etwas wissen (Gerede, Spitzel der KI) – sonst prüfte der Lauf ihre Pfade nicht.
+        Pruefe.Wahr(a.Wissen > 0, $"Kein Wissen über Geheimnisse in {p.Jahre} Jahren (Startwert {p.Startwert})");
+        Pruefe.Gleich(a.Wissen, c.Wissen, "Wissen über Geheimnisse mit Speichern und Laden");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -234,6 +255,8 @@ static class GleichheitTests
         var jahre = new List<string>();
         int? erloschen = null;
         var stress = 0;
+        var geheimnisse = 0;
+        var wissen = 0;
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
@@ -264,9 +287,11 @@ static class GleichheitTests
                 var fb = sim.Wirtschaft!.Familien;
                 stress += sim.Wirtschaft.Konten.Select(fb.Von).OfType<Reichsgilde.Core.Dynastie.Familie>()
                     .Sum(f => f.Lebende.Sum(x => x.Stresslage.Eintraege.Count(e => e.Wert > 0)));
+                geheimnisse += sim.Wirtschaft.Geheimnisse.Alle.Count;
+                wissen += sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>
