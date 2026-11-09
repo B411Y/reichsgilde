@@ -92,6 +92,7 @@ void fragment() {
 		vec3 muster = (tx * w.x + ty * w.y + tz * w.z) / max(stoff_mittel[stoff_nr], vec3(0.01));
 		farbe *= clamp(muster, vec3(0.4), vec3(1.8));
 	}
-	ALBEDO = farbe;
+	// nie heller als weiß: das Glühen des Pixel-Looks hält Bildpunkte, die heller sind als ihr Licht, für Leuchtendes
+	ALBEDO = min(farbe, vec3(1.0));
 	ROUGHNESS = 0.9;
 }

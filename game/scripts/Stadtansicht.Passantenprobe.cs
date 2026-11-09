@@ -31,16 +31,15 @@ public partial class Stadtansicht
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
-        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock" }, 0.933f, 1.107f, 0.682f, 0.447f),
-        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende" }, 0.822f, 0.969f, 0.597f, 0.390f),
+        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock" }, 0.933f, 1.287f, 0.898f, 0.451f),
+        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende" }, 0.822f, 1.118f, 0.786f, 0.390f),
     };
 
     /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
     private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken" };
 
-    /// <summary>„Tragen“ läuft so viel langsamer, als das Tempo der Füße verlangte (Quaternius trägt mit 0,68 m/s, die Passanten mit 0,95 m/s;
-    /// mit vollem Takt wirkte die Bewegung gehetzt, Auftrag Teamleiter 08.11.2026). Die Füße rutschen dafür etwas.</summary>
-    private const float ProbeTragBremse = 0.7f;
+    // „Gehen“ und „Tragen“ haben seit Runde 3 die Schrittweite für das Tempo der Passanten (im Blender-Skript verstärkt, SCHRITT): Takt nahe 1,
+    // nicht gehetzt, und die Füße rutschen nicht (die Bremse ×0,7 aus Runde 2 ließ sie rutschen).
 
     /// <summary>Bilder je Sekunde der gebackenen Clips (wie in Blender).</summary>
     private const int ProbeVatBilder = 24;
@@ -73,7 +72,27 @@ public partial class Stadtansicht
         new(0.42f, 0.24f, 0.19f),
     };
     /// <summary>Leinen der Hauben und Gebende (gebleicht bis naturfarben).</summary>
-    private static readonly Color[] ProbeLeinen = { new(0.84f, 0.81f, 0.73f), new(0.78f, 0.74f, 0.64f), new(0.88f, 0.86f, 0.80f) };
+    private static readonly Color[] ProbeLeinen = { new(0.76f, 0.72f, 0.62f), new(0.70f, 0.66f, 0.55f), new(0.80f, 0.77f, 0.68f) };
+    /// <summary>Natürliche Haarfarben (sRGB): dunkelbraun, braun, schwarz, hellbraun, dunkelblond, rotblond; Alte grau (Klicktest 08.11.: Haar wirkte weiß).</summary>
+    private static readonly Color[] ProbeHaarfarben =
+    {
+        new(0.20f, 0.13f, 0.08f), new(0.30f, 0.20f, 0.12f), new(0.09f, 0.08f, 0.07f), new(0.40f, 0.28f, 0.16f), new(0.52f, 0.40f, 0.22f), new(0.48f, 0.26f, 0.13f),
+    };
+    private static readonly Color ProbeGrau = new(0.50f, 0.48f, 0.46f);
+
+    /// <summary>Hautfarben je Volk (sRGB), bei Menschen etwas gestreut; kräftiger als die Hautfarbe der Blender-Figuren, die im Spiel fast weiß wirkte.</summary>
+    private static Color ProbeHaut(Volk volk, int nummer) => volk switch
+    {
+        Volk.Elb => new Color(0.80f, 0.66f, 0.56f),
+        Volk.Zwerg => new Color(0.72f, 0.50f, 0.40f),
+        Volk.Halbling => new Color(0.75f, 0.55f, 0.43f),
+        Volk.Ork => new Color(0.38f, 0.46f, 0.28f),
+        Volk.Oger => new Color(0.48f, 0.45f, 0.40f),
+        _ => (Streuung(nummer, 233) % 4) switch
+        {
+            0 => new Color(0.76f, 0.57f, 0.45f), 1 => new Color(0.70f, 0.51f, 0.40f), 2 => new Color(0.66f, 0.47f, 0.36f), _ => new Color(0.79f, 0.60f, 0.48f),
+        },
+    };
 
     /// <summary>
     /// Setzt eine Probefigur als Kind von <paramref name="eltern"/> ein: das Netz „Nah_&lt;variante&gt;“ und die Kiste („Last“, nur beim Tragen),
@@ -91,6 +110,8 @@ public partial class Stadtansicht
             Gewand = ProbeGewandfarben[Streuung(nummer, 211) % ProbeGewandfarben.Length],
             Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
             Kopffarbe = aussehen.Frau ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
+            Haut = ProbeHaut(aussehen.Volk, nummer),
+            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
         };
         var (_, huefte, _, groesse) = FigurMasse(aussehen.Volk);
         // Der Frauenkörper ist schon kleiner gebaut: dieselben Völkerfaktoren, aber kein zweites Verkleinern
@@ -112,9 +133,9 @@ public partial class Stadtansicht
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
-            if (name != $"Nah_{daten.Varianten[variante]}" && name != "Last") { teil.QueueFree(); continue; }
+            if (name != $"Nah_{daten.Varianten[variante]}" && name != "Last" && name != "Werkzeug") { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
-            if (name == "Last") { teil.Visible = false; figur.Werkzeuge["Last"] = teil; }
+            if (name is "Last" or "Werkzeug") { teil.Visible = false; figur.Werkzeuge[name] = teil; }
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
@@ -149,7 +170,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// <see cref="BewegungSetzen"/> für die Probe: Gehen, Eilen und Gebeugt nehmen „Gehen“, Tragen „Tragen“ (mit Kiste), Reden, Sitzen, Hacken und
-    /// Buecken ihren Clip, alles andere „Stehen“. Der Takt gleicht das Tempo an, damit die Füße nicht rutschen (Tragen gebremst, <see cref="ProbeTragBremse"/>).
+    /// Buecken ihren Clip (Hacken mit Axt), alles andere „Stehen“. Der Takt gleicht das Tempo an, damit die Füße nicht rutschen.
     /// </summary>
     private static void ProbeBewegungSetzen(Figur f, string bewegung, float takt)
     {
@@ -162,7 +183,6 @@ public partial class Stadtansicht
             klip = bewegung == "Tragen" ? "Tragen" : "Gehen";
             var modellTempo = (klip == "Tragen" ? daten.TragTempo : daten.GehTempo) * f.Modell.Scale.Y;
             probeTakt = takt * grund * f.Beinfaktor / modellTempo; // gewünschte Meter je Sekunde ÷ Meter je Schleife
-            if (klip == "Tragen") probeTakt *= ProbeTragBremse;
         }
         else
         {
@@ -173,6 +193,7 @@ public partial class Stadtansicht
         if (f.Bewegung == bewegung) return;
         f.Bewegung = bewegung;
         if (f.Werkzeuge.TryGetValue("Last", out var last)) last.Visible = klip == "Tragen";
+        if (f.Werkzeuge.TryGetValue("Werkzeug", out var axt)) axt.Visible = klip == "Hacken";
         if (klip == f.KiKlip) return; // Gehen ↔ Eilen: die Schleife läuft in derselben Phase weiter
         f.KiKlip = klip;
         f.Spieler.Play(klip);
@@ -359,7 +380,7 @@ public partial class Stadtansicht
             var knotenMm = new MultiMeshInstance3D
             {
                 Name = $"ProbeVat_{art}_{teil.Name}", Multimesh = mm, MaterialOverride = stoff, TopLevel = true,
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Layers = _probeVatEbene,
             };
             AddChild(knotenMm);
             knotenMm.GlobalTransform = Transform3D.Identity;
@@ -477,6 +498,25 @@ public partial class Stadtansicht
 
     private int _probeGezeichnet, _probeSkelettSichtbar;
 
+    /// <summary>Render-Ebene der VAT-Netze: im Pixel-Look mit Beleuchtungsbild die Ebene, die die Beleuchtungskamera nicht sieht (wie Regen und Feuer).</summary>
+    private uint _probeVatEbene = 1u;
+
+    /// <summary>
+    /// Vom Pixel-Look jedes Bild (<see cref="PixelBild"/>): Das Beleuchtungsbild zeichnet mit Godots Debug-Zeichnung „Beleuchtung“, und die nimmt für
+    /// jede Fläche das eingebaute Standardmaterial statt des eigenen Shaders (Godot-Quelltext, render_forward_clustered.cpp). Die VAT-Figuren standen
+    /// dort darum in der Ruhehaltung (A-Haltung aus dem Netz), nicht in ihrer Bewegung: Wo Kopf, Haar und Hände im Bild lagen, fand das Stufenlicht
+    /// Boden oder Schatten, und das Glühen hielt die hellen Flächen für Licht (Befund Klicktest 08.11.: leuchtende Köpfe, Schleier). Darum sieht die
+    /// Beleuchtungskamera die VAT-Netze nicht; dort steht der Boden dahinter und gibt das Licht vor. Die Figuren mit Skelett betrifft das nicht (die
+    /// Haut wird vor dem Shader verformt).
+    /// </summary>
+    private void ProbeVatEbeneSetzen(uint ebene)
+    {
+        _probeVatEbene = ebene;
+        if (_probeVatNetze is null) return;
+        foreach (var v in _probeVatNetze.Values)
+            if (IsInstanceValid(v.Knoten) && v.Knoten.Layers != ebene) v.Knoten.Layers = ebene;
+    }
+
     /// <summary>Einmal je Bild nach den Passanten: alle sichtbaren Probefiguren im Bild in die MultiMeshes schreiben (Lage, Clip, Bild, Farben).</summary>
     private void ProbeVatZeichnen()
     {
@@ -520,6 +560,7 @@ public partial class Stadtansicht
         var xf = f.Modell.GlobalTransform;
         Eintragen(netzName, xf, bild, klip + 8f * tracht.Kopf, farben);
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
+        if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken
         _probeGezeichnet++;
     }
 
