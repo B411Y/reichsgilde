@@ -127,12 +127,12 @@ public partial class GaunerAnzeige : PanelContainer
 
     /// <summary>
     /// Ein Erpresserbrief mit einem Geheimnis statt Beweisen (Teil 3c): links das Siegel seiner Art, rechts wer droht und womit. Zahlen heißt,
-    /// er vergisst es; wer nicht zahlt, dem kann er es anzeigen oder bloßstellen.
+    /// er vergisst es; wer nicht zahlt, dem kann er es anzeigen oder bloßstellen. Ohne Art (älterer Spielstand, Geheimnis inzwischen vorbei) ohne Siegel.
     /// </summary>
-    private void GeheimnisBrief(Stadtwirtschaft w, Forderung f, Geheimnisart art, string waehrung)
+    private void GeheimnisBrief(Stadtwirtschaft w, Forderung f, Geheimnisart? art, string waehrung)
     {
         var gw = w.Geheimnisse;
-        var daten = gw.IstAktiv ? gw.Daten.Art(art) : null;
+        var daten = gw.IstAktiv && art is { } a ? gw.Daten.Art(a) : null;
         var tipp = daten is null ? "Ein Geheimnis" : $"Ein Geheimnis – {daten.Name}: {daten.Beschreibung}";
         var reihe = new HBoxContainer();
         reihe.AddThemeConstantOverride("separation", 12);
@@ -147,7 +147,7 @@ public partial class GaunerAnzeige : PanelContainer
                                            "sonst kommt ein Geheimnis ans Licht.", 15, Rot, umbruchBreite: breite);
         kopf.TooltipText = "Jemand weiß ein Geheimnis eures Hauses und verlangt Schweigegeld. Zahlt ihr, vergisst er es; zahlt ihr nicht, " +
                            "kann er es anzeigen (wo es ein Vergehen ist) oder bloßstellen.";
-        var worum = gw.WorumDerBrief(f) ?? daten?.Name ?? art.ToString();
+        var worum = gw.WorumDerBrief(f) ?? daten?.Name ?? "ein Geheimnis eures Hauses";
         var text = Hauptmenue.Text(spalte, $"Er weiß: {worum}. Zahlt ihr, schweigt er und vergisst es. Zahlt ihr nicht, kann er es anzeigen " +
                                            "oder in der ganzen Stadt bloßstellen.", 13, null, umbruchBreite: breite);
         text.TooltipText = tipp;
@@ -252,8 +252,8 @@ public partial class GaunerAnzeige : PanelContainer
         foreach (var f in unterwelt.Forderungen.Where(f => f.Opfer == _spieler))
         {
             _inhalt.AddChild(new HSeparator());
-            if (w.Geheimnisse.ArtDesBriefes(f) is { } geheimnisArt)
-                GeheimnisBrief(w, f, geheimnisArt, waehrung); // Teil 3c: mit dem Siegel der Art
+            if (f.Geheimnis is not null)
+                GeheimnisBrief(w, f, w.Geheimnisse.ArtDesBriefes(f), waehrung); // Teil 3c: mit dem Siegel der Art (wenn sie bekannt ist)
             else
             {
                 var busse = gericht.DrohendeBusse(f.Erpresser, _spieler);

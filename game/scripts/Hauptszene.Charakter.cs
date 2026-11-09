@@ -114,7 +114,8 @@ public partial class Hauptszene
         var oberhaupt = w.Familien.Von(_spieler)?.Oberhaupt;
         var rivale = w.Konten.FirstOrDefault(k => k != _spieler && k.IstAktiv && w.Familien.Von(k) is not null);
         var betrag = 500.0;
-        if (oberhaupt is null || rivale is null || !Enum.TryParse<Core.Geheimnisse.Geheimnisart>(teile[0], out var art) || art == Core.Geheimnisse.Geheimnisart.Mord
+        if (oberhaupt is null || rivale is null || !Enum.TryParse<Core.Geheimnisse.Geheimnisart>(teile[0], out var art) || !Enum.IsDefined(art)
+            || art == Core.Geheimnisse.Geheimnisart.Mord
             || teile.Length > 1 && !double.TryParse(teile[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out betrag))
         {
             Protokollieren($"--erpresserbrief={wert}: erwartet <Ehebruch|Ketzerei|Schulden>[:Betrag] und ein anderes Haus mit Familie.");
