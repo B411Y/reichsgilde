@@ -779,9 +779,12 @@ public static class Kartenpruefung
             Vorgabe("Spieler", s.SpielerWohnhaus, s.SpielerWerkstatt?.Platz);
             foreach (var h in s.Haeuser)
                 Vorgabe(h.Name, h.Wohnhaus, h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz }));
+            // gelost wird für den Spieler und jedes Haus, das auf einer Hofstelle sitzt (ein Haus ganz außerhalb bleibt, wo es ist)
             var start = s.Hofstellen.Count(h => h.Start);
-            if (start < 1 + s.Haeuser.Count)
-                HofFehler($"Hofstellen: {start} Startplätze für den Spieler und {s.Haeuser.Count} KI-Häuser – es braucht mindestens {1 + s.Haeuser.Count}.");
+            var haeuser = s.Haeuser.Count(h => s.HofstelleVon(h.Wohnhaus) is not null // wie Hofstellenvergabe.VorgabeVon: die erste Werkstatt oder das Wohnhaus
+                || s.HofstelleVon(h.Betriebe.Select(b => b.Platz).FirstOrDefault(p => _e.GebaeudeMit(p) is { Art: Bausteinart.Werkstattplatz })) is not null);
+            if (start < 1 + haeuser)
+                HofFehler($"Hofstellen: {start} Startplätze für den Spieler und {haeuser} KI-Häuser – es braucht mindestens {1 + haeuser}.");
         }
 
         /// <summary>

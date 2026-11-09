@@ -96,15 +96,24 @@ public static class Hofstellenvergabe
             return (gewaehlt, haeuser);
         }
 
-        if (plaetze.Count < 1 + mitspielend.Count)
-            throw new ArgumentException($"Die Karte hat {plaetze.Count} Startplätze (Hofstellen) – für den Spieler und {mitspielend.Count} KI-Häuser zu wenig.");
+        // Gelost wird für jedes Haus, das in der Startbelegung auf einer Hofstelle sitzt. Ein Haus ganz außerhalb der Hofstellen (alte eigene Karte:
+        // ein Haus nur mit Umlandbetrieb und einem Wohnhaus, das zu keiner Hofstelle gehört) bleibt, wo es ist (Befund der Prüfung).
+        var losen = mitspielend.Select(h => VorgabeVon(karte, h) is not null).ToList();
+        var anzahl = losen.Count(x => x);
+        if (plaetze.Count < 1 + anzahl)
+            throw new ArgumentException($"Die Karte hat {plaetze.Count} Startplätze (Hofstellen) – für den Spieler und {anzahl} KI-Häuser zu wenig.");
         var frei = plaetze.ToList();
         var los = Losquelle(zufallsstartwert);
         var eigene = gewaehlt ?? frei[los.Next(frei.Count)];
         frei.Remove(eigene);
         var gelost = new List<Hofstelle?>();
-        foreach (var _ in mitspielend)
+        foreach (var mitLos in losen)
         {
+            if (!mitLos)
+            {
+                gelost.Add(null);
+                continue;
+            }
             var h = frei[los.Next(frei.Count)];
             frei.Remove(h);
             gelost.Add(h);
@@ -160,6 +169,12 @@ public static class Hofstellenvergabe
             Haeuser = neueHaeuser,
             Hofstellen = start.Hofstellen,
         };
+        // Widerspruchsfrei? Ohne Los mit gewählter Hofstelle kann eine Startbelegung, deren Häuser nicht auf ihrer eigenen Hofstelle wohnen, einen
+        // Platz doppelt vergeben (Befund der Prüfung) – dann lieber jetzt eine klare Meldung als eine Partie, die sich nicht wieder laden lässt.
+        var wohnhaeuser = neueHaeuser.Select(x => x.Wohnhaus).Prepend(belegung.Spieler.Wohnhaus).OfType<string>().ToList();
+        var werkstaetten = neueHaeuser.SelectMany(x => x.Betriebe.Select(b => b.Platz)).Prepend(belegung.Spieler.Werkstatt.Platz).ToList();
+        if (wohnhaeuser.Count != wohnhaeuser.Distinct().Count() || werkstaetten.Count != werkstaetten.Distinct().Count())
+            throw new ArgumentException("Diese Wahl der Hofstelle passt nicht zur Startbelegung der Karte ohne Los (ein Platz wäre doppelt vergeben) – mit Los spielen oder eine andere Hofstelle wählen.");
         return karte.MitBelegung(belegung, betriebe);
     }
 
@@ -189,7 +204,7 @@ public static class Hofstellenvergabe
     internal static bool MitPraeposition(string name)
     {
         var erstes = name.Trim().Split(' ')[0];
-        return char.IsLower(erstes[0]) || Praepositionen.Contains(erstes.ToLowerInvariant());
+        return erstes.Length > 0 && (char.IsLower(erstes[0]) || Praepositionen.Contains(erstes.ToLowerInvariant()));
     }
 
     private static readonly HashSet<string> Praepositionen = new(StringComparer.Ordinal)

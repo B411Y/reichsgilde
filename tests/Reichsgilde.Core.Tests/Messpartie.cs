@@ -214,11 +214,14 @@ static class Messpartie
         var daten = Wirtschaftsdaten.AusJson(a.OhneSchiffshandel ? OhneAbschnitt(q.Wirtschaft, "schiffshandel") : q.Wirtschaft);
         var kartenText = q.Karte(a.Karte);
         var anzahl = a.Rivalen > 0 ? a.Rivalen : (JsonNode.Parse(kartenText)!["start"]?["haeuser"]?.AsArray().Count ?? 1);
-        var karte = Stadtkarte.AusJson(KarteRotiert(kartenText, a.Rotation, anzahl), Gebaeudekatalog.AusJson(q.Katalog));
+        // Mit Hofstellen (jede Karte mit Startbelegung, alte werden beim Lesen umgerechnet) rotiert der Spieler über die Hofstellen (unten), nicht die
+        // Wohnhäuser – sonst stünde ein Wohnhausplatz doppelt in der Belegung (Befund der Prüfung)
+        var karte = Stadtkarte.AusJson(kartenText, Gebaeudekatalog.AusJson(q.Katalog));
+        if (!karte.HatHofstellen && a.Rotation > 0) karte = Stadtkarte.AusJson(KarteRotiert(kartenText, a.Rotation, anzahl), Gebaeudekatalog.AusJson(q.Katalog));
         // Hofstellen (09.11.2026): wie im Spiel gelost; die Startfairness (Rotation) setzt den Spieler auf die r-te Start-Hofstelle, die KI-Häuser
         // ohne Los (wer dort säße, bekommt die Hofstelle des Spielers)
         var neu = new NeuePartie(Volk: a.Volk, Beruf: a.Beruf, Rivalen: anzahl, Startplaetze: OhneLos ? Startplatzvergabe.Vorgabe : a.Startplaetze);
-        if (a.Rotation > 0 && Hofstellenvergabe.Startplaetze(karte) is { Count: > 0 } plaetze)
+        if ((a.Rotation > 0 || a.Startplaetze == Startplatzvergabe.Vorgabe) && Hofstellenvergabe.Startplaetze(karte) is { Count: > 0 } plaetze)
             neu = neu with { Hofstelle = plaetze[a.Rotation % plaetze.Count].Kennung, Startplaetze = Startplatzvergabe.Vorgabe };
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = a.Startwert, Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = a.Schwierigkeit },

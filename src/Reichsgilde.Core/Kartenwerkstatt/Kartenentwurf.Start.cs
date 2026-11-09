@@ -539,7 +539,7 @@ public sealed partial class Kartenentwurf
     {
         var h = PruefeHofstelle(kennung);
         var alt = _start.SpielerWerkstatt;
-        var lage = h.Name ?? GebaeudeMit(h.Werkstatt)?.Name ?? h.Kennung;
+        var lage = new[] { h.Name, GebaeudeMit(h.Werkstatt)?.Name, h.Kennung }.First(x => !string.IsNullOrWhiteSpace(x))!;
         var neu = (alt ?? new EntwurfStartplatz("", "")) with
         {
             Platz = h.Werkstatt,

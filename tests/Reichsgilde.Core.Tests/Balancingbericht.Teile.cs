@@ -24,7 +24,8 @@ static partial class Balancingbericht
         foreach (var (karte, anzahl) in Fairnesskarten(e))
         {
             var rotationen = Rotationen(e, anzahl);
-            var laeufe = Gut(e.Werte.SelectMany(s => Enumerable.Range(0, rotationen).Select(r => p(new Messaufbau(karte, s, e.Jahre, Rotation: r)))));
+            // ohne Los (Hofstellen, 9.11.2026): Rotation r setzt den Spieler auf die r-te Start-Hofstelle (Messpartie)
+            var laeufe = Gut(e.Werte.SelectMany(s => Enumerable.Range(0, rotationen).Select(r => p(new Messaufbau(karte, s, e.Jahre, Rotation: r, Startplaetze: Startplatzvergabe.Vorgabe)))));
             if (laeufe.Count == 0) continue;
             var start = new JsonArray(laeufe[0].Haeuser.Select(h => (JsonNode)new JsonObject
             {

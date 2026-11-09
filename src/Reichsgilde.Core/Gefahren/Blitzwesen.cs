@@ -281,8 +281,9 @@ public sealed class Blitzwesen
         var katalog = karte.Katalog;
         var bau = _w.Bauen;
         var betriebeAufPlaetzen = new Dictionary<string, Betrieb>();
+        // über das Bauwesen: Eine Werkstatt auf dem Werkstattplatz einer Hofstelle (Neubau, 9.11.2026) steht auf dem Platz der Karte
         foreach (var b in _w.Betriebe)
-            if (karte.PlatzVon(b.Name) is { } platz && !betriebeAufPlaetzen.ContainsKey(platz.Kennung))
+            if ((bau.IstAktiv ? bau.PlatzVon(b.Name)?.Gebaeude : karte.PlatzVon(b.Name)) is { } platz && !betriebeAufPlaetzen.ContainsKey(platz.Kennung))
                 betriebeAufPlaetzen[platz.Kennung] = b;
         var grundstueckNachKennung = new Dictionary<string, Grundstueck>();
         foreach (var g in bau.Grundstuecke)
@@ -301,6 +302,8 @@ public sealed class Blitzwesen
                 case Bausteinart.Werkstattplatz:
                 case Bausteinart.Umlandbetrieb:
                 {
+                    // der Werkstattteil einer freien Hofstelle als Bauplatz oder Baustelle brennt nicht (ohne Hofstellen hat ein Platz nie ein Grundstück)
+                    if (grundstueckNachKennung.TryGetValue(g.Kennung, out var frei) && (frei.Art == Grundstuecksart.Bauplatz || frei.Arbeit is not null)) continue;
                     var b = betriebeAufPlaetzen.GetValueOrDefault(g.Kennung);
                     var h = g.Art == Bausteinart.Umlandbetrieb ? Hoehe(g.Katalog) : b is null ? Hoehe(g.Katalog) : Hoehe(WerkstattModell(b));
                     if (h <= 0) continue;

@@ -228,7 +228,7 @@ static partial class Balancingbericht
                     break;
                 case 3:
                     foreach (var (karte, haeuser) in Fairnesskarten(e))
-                        for (var r = 0; r < Rotationen(e, haeuser); r++) yield return new Messaufbau(karte, s, e.Jahre, Rotation: r);
+                        for (var r = 0; r < Rotationen(e, haeuser); r++) yield return new Messaufbau(karte, s, e.Jahre, Rotation: r, Startplaetze: Startplatzvergabe.Vorgabe);
                     break;
                 case 4:
                     foreach (var n in Hausstufen)
