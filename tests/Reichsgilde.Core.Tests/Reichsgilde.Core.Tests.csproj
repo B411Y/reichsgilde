@@ -20,6 +20,8 @@
     <Compile Include="..\..\game\scripts\KlangAnsagenErkennung.cs" Link="Ansagen\KlangAnsagenErkennung.cs" />
     <!-- Die Zuordnung der Textmeldungen zu Arten und Stufen (Benachrichtigungen Stufe 1) kennt ebenfalls kein Godot – MeldungsordnungTests.cs -->
     <Compile Include="..\..\game\scripts\Meldungsordnung.cs" Link="Ansagen\Meldungsordnung.cs" />
+    <!-- Was man Arbeitern im Innenraum ansieht (Stufe, Volk, Geschlecht, Haar; Personal PR #224) – ArbeitertrachtTests.cs -->
+    <Compile Include="..\..\game\scripts\Arbeitertracht.cs" Link="Arbeitertracht\Arbeitertracht.cs" />
     <!-- Die festen Geschwindigkeiten von Figuren und Karren (Gehtempo, Karrentempo, Fahrprofil, Karrenzug) – GehtempoTests.cs -->
     <Compile Include="..\..\game\scripts\Gehtempo.cs" Link="Gehtempo\Gehtempo.cs" />
     <Compile Include="..\..\game\scripts\Taschendiebgang.cs" Link="Gehtempo\Taschendiebgang.cs" />

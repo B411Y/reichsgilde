@@ -166,6 +166,7 @@ public partial class Stadtansicht
     {
         _passantenUhr.Restart();
         FigurenBildVorbereiten(); // Sichtfeld und Bildrate der Figuren (Stadtansicht.Figuren.cs)
+        ProbeStufeWaehlen();      // nur mit --passantenprobe: Skelett oder gebacken (Stadtansicht.Passantenprobe.cs)
         _figurenBewegt = 0;
         var sekunden = _simulation is { Takt.IstPausiert: false } ? delta : 0; // in der Pause stehen auch die Bewegungen still
         _bildSekunden = sekunden;
@@ -173,6 +174,7 @@ public partial class Stadtansicht
         MarktAktualisieren(minuteGenau, sekunden); // Auslagen und Verkäufer (Stadtansicht.Markt.cs)
         if (_simulation?.Wirtschaft?.Einwohnerschaft is not { IstAktiv: true } einwohnerschaft || !_wohnhaeuserGebaut) return;
         _passantenEbene ??= NeueEbene();
+        ProbeMessfigurenAktualisieren(sekunden, delta); // nur mit --passantenprobe=<n> (Stadtansicht.Passantenprobe.cs)
         var ticksJeSekunde = _simulation.Takt.TicksProSekunde;
 
         MarktflaechenPflegen(sekunden); // Markt v3: Belegung der Wege, Stehende (Stadtansicht.Marktbummel.cs)
@@ -325,7 +327,7 @@ public partial class Stadtansicht
             // In großen Städten ist das Modell weit außerhalb des Bildes ausgeblendet (kein Schatten, kein Zeichnen); die Figur selbst läuft weiter
             if (p.Figur is { } modell && (!viele || p.Knoten.Visible))
             {
-                var zeigen = !viele || ImBild(p.Knoten.Position, 30f);
+                var zeigen = (!viele || ImBild(p.Knoten.Position, 30f)) && !(modell.Probe && _probeVat && !modell.ProbeNah); // gebackene Probe: das MultiMesh zeichnet sie (außer nah vor der Ego-Kamera)
                 if (modell.Modell.Visible != zeigen) modell.Modell.Visible = zeigen;
             }
             PassantLichtStellen(p, e); // Laterne oder Fackel im Dunkeln (Stadtansicht.Nachtlichter.cs)
@@ -353,6 +355,9 @@ public partial class Stadtansicht
         Profil(7); // Messung (nur mit --passantennaehe)
         PassantenHervorheben();
         Profil(8); // Hervorheben
+        ProbeVatZeichnen(); // nur mit --passantenprobe (Stadtansicht.Passantenprobe.cs)
+        ProbeMelden(delta);
+        PassantNahFolgen(delta); // nur mit --passantnah (Stadtansicht.Passantnah.cs)
         _passantenZeit += _passantenUhr.Elapsed.TotalMilliseconds;
         _passantenSchlimmstes = Math.Max(_passantenSchlimmstes, _passantenUhr.Elapsed.TotalMilliseconds);
         _passantenBilder++;
@@ -1236,9 +1241,10 @@ public partial class Stadtansicht
         var tracht = TrachtVon(e);
         var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GebeugtAb;
         var gebeugt = tracht.Gebeugt || alt;
-        var ki = KiSchmiedFuer(e, tracht, gebeugt);
-        if (ki) _kiPassanten.Add(e.Nummer);
-        var figur = FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
+        var ki = !ProbeErsetztAlle && KiSchmiedFuer(e, tracht, gebeugt); // der KI-Schmied (Wunsch des Nutzers, 28.10.) bleibt neben den neuen Figuren
+        if (ki) _kiPassanten.Add(e.Nummer); // der KI-Schmied kann noch nicht sitzen (die Probefigur schon)
+        var figur = ProbeAktiv && !ki ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer, e.Rolle) // Figur mit Skelett, Weg A (Stadtansicht.Passantenprobe.cs)
+                               : FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
         if (figur is not null && !_passantenSchatten) FigurSchatten(figur, false);
         return new Passant
         {

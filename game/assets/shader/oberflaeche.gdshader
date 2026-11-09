@@ -26,6 +26,7 @@ uniform vec4 beinkleid : source_color = vec4(0.30, 0.26, 0.22, 1.0);
 uniform vec4 haut : source_color = vec4(0.86, 0.68, 0.55, 1.0);
 uniform vec4 haar : source_color = vec4(0.32, 0.22, 0.14, 1.0);
 uniform vec4 kopfbedeckung : source_color = vec4(0.78, 0.74, 0.64, 1.0);
+uniform bool bart = false; // Zone 6 (Bart): Haarfarbe statt Haut
 // Aus dem alten Material übernommen
 uniform float rauheit = 1.0;
 uniform float metall = 0.0;
@@ -112,6 +113,7 @@ void fragment() {
 		else if (v_zone == 3) grund = haut.rgb;
 		else if (v_zone == 4) grund = haar.rgb;
 		else if (v_zone == 5) grund = kopfbedeckung.rgb;
+		else if (v_zone == 6) grund = bart ? mix(haut.rgb, haar.rgb, 0.7) : haut.rgb;
 	}
 	float rau = rauheit;   // Rauheit nach Bibliothek bzw. Modell; das Wetter (Nässe) ändert sie danach
 	float tiefe = 0.5;     // Tiefe der Textur der Bibliothek (0 oben … 1 Fuge, Rinne); das Wetter hält dort das Wasser länger

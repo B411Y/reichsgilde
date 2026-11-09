@@ -69,6 +69,7 @@ from bausteine import Matrix, Vector  # noqa: E402
 import figuren as fg  # noqa: E402  (Arbeitshöhen der Bewegungen Mörsern, Rühren, Destillieren, Blasebalg)
 import innenausbau as ia  # noqa: E402  (Böden, Putz, Ruß, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import schmied_innen as si  # noqa: E402  (Mauern, Fenster, Pult, Türen, Werkzeugwand, Kisten, Löschfass, Blasebalg, Anker)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Hoftor, Laterne, Animation, Export)
 
 NAME = "alchimist_innen"
@@ -1140,6 +1141,10 @@ def bauen():
     si.tuerstock(werk, st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.eisentuer(teil("Einrichtung_Eisentuer"), st, M_holz, HOLZTUER_B, HOLZTUER_H)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-1.65, 3.05, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.athanor(teil("Einrichtung_Athanor"), st, pe.rahmen(0.47, -3.50, 0))
+    pe.ladentheke(teil("Einrichtung_Ladentheke", "Laden"), st, pe.rahmen(7.65, -3.50, 0), "Alchimist", 1.8)
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube", "Lager"), st, pe.rahmen(-4.00, 2.04, -90, Z_LAGER))
     handschuhe(teil("Einrichtung_Handschuhe"), st)
     ia.treppe(teil("Tuer_Werk_Lager"), st, TREPPE_X, TREPPE_FUSS, TREPPE_OBEN, Z_LAGER)       # Treppe hinauf ins Kräuterlager
     M_lt = si.rahmen(WX1, LADENTUER_Y, 90)                                                  # Tür zum Laden (ab Stufe 2)
