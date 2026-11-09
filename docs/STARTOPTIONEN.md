@@ -262,6 +262,7 @@ Nach dem Speichern und dem Umriss:
 - `--werkstatt-werkzeug=<weg[:art]|bauzone[:lage]|wald|streu|feldflaeche|aussparung|mauer|tor|pinsel|radierer|gelaende:<pinsel> (auch terrassen)|rampe|wasser:<fluss|bach|see|teich|faehre|hafen>|<katalog>>` (wie ein Klick im Katalog)
 - `--werkstatt-netz=1` (Gassennetz zeigen)
 - `--werkstatt-bildpunkte=<x>,<z>;…` schreibt nach 1,5 s ins Protokoll, wo diese Orte auf dem Bildschirm liegen (für Klicks mit `xdotool`)
+- `--pinselmessung=<datei.md>` (oder `=1`: nur ins Protokoll) misst die Pinsel: Nach dem Laden malt die Werkstatt mit Boden (Erde), Gelände (Heben, Glätten), Fels (Streuen, Radieren) und Natur (Pinsel, Radierer) je einen Strich aus 30 Tupfern durch die Mitte des Spielfelds (ein Tupfer je Bild), legt einen Weg und eine Bauzone an und schreibt je Pinsel die Dauer der Bilder (Tupfer, Loslassen, danach bis es ruhig ist) und die Teilschritte als Markdown-Tabelle; danach beendet sich das Spiel. Die Karte wird verändert, aber nicht gespeichert. Headless geht (`--headless`), misst dann nur die Rechenzeit; Beispiel `--kartenwerkstatt=koeln --pinselmessung=/tmp/pinsel.md`
 
 `--blick`, `--drehung` und `--ui=0` gelten auch hier.
 

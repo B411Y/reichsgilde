@@ -420,3 +420,11 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ehepartner und Erbe | Ein Hinweis nennt den Anteil (50 %) und dass die Knoten für das Haus erst wirken, wenn die Person Oberhaupt ist. Beim Erben steht das Vermächtnis (20 % der Erfahrung des Oberhaupts im aktiven Pfad, mit der Zahl von jetzt), beim Oberhaupt, wer erbt. | 08.11.2026 |
 | Neuer Punkt | Der Kern meldet das nicht. Die Hauptszene liest die freien Punkte jedes Bild (Oberhaupt, Ehepartner, Erbe) und zeigt in der Kopfzeile „n Punkte frei“ (grün, Tooltip nennt die Personen, Klick öffnet den Lebensweg dieser Person). Wird bei einer Person ein Punkt neu frei, kommt eine Meldung „Neuer Punkt der Lebensweise: …“ als Siegel (Art „Familie“ in `meldungen.json`, Hinsehen öffnet das Fenster der Person). Nach dem Laden gibt es keine Meldung für schon freie Punkte. | 08.11.2026 |
 | Lexikon | Neuer Eintrag „Lebensweise“ mit den Zahlen aus den Daten (`lebensweise_grund`, `lebensweise_jestern`, `lebensweise_jeap`); die Tooltips verweisen darauf. | 08.11.2026 |
+
+### Werkstatt-Pinsel: Fehlerliste nach dem Strich, Ladebalken mit Vorwärmen (Branch phase5/werkstatt-pinsel-fluessig)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fehlerliste | Kopf und Fehlerliste der Werkstatt (`Auffrischen`, mit der vollen Prüfung) frischen während eines Pinselstrichs (Gelände, Boden, Fels) und 0,3 s danach nicht auf, sondern merken es sich (`_auffrischenNachStrich`) und holen es in `_Process` nach (`Stadtansicht.WerkstattPruefungAufschieben`). Vorher rechnete jeder Tupfer die ganze Prüfung und baute bis zu 150 Knöpfe neu (Köln 12–40 ms je Tupfer). Rückgängig-Knopf und „ungespeichert“ stehen damit erst nach dem Strich neu. Einzelheiten und Messung in `darstellung.md` („Werkstatt-Pinsel malen ohne Ruckeln“) | 09.11.2026 |
+| Ladebalken | Neuer Abschnitt nach den Tafeln: 0,56 „Die Pinsel werden ausgewaschen …“ (`Stadtansicht.WerkstattVorwaermen`, Köln 76 ms, headless gemessen mit `--ladezeit=1`); die übrigen Anteile bleiben (0,532 Tafeln, 0,777 erstes Bild) | 09.11.2026 |
+| Messung | Startoption `--pinselmessung=<datei.md>` (`Kartenwerkstatt.Pinselmessung.cs`): malt nach dem Laden mit jeder Pinselart einen Strich aus 30 Tupfern, legt dazu einen Weg und eine Bauzone an, schreibt die Tabelle und beendet das Spiel | 09.11.2026 |
