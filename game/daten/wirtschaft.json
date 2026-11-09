@@ -2037,10 +2037,10 @@
           "SaubereArbeit":   { "name": "Saubere Arbeit", "spalte": "Gaunerei", "reihe": 2, "beschreibung": "Eigene Gaunerstücke hinterlassen 15 % seltener Zeugen.", "wirkung": { "spurenFaktor": 0.85 } },
           "Hehlerring":      { "name": "Hehlerring", "spalte": "Gaunerei", "reihe": 3, "beschreibung": "Diebesgut bringt beim Hehler 15 % mehr.", "wirkung": { "hehlerFaktor": 1.15 } },
           "OhrAnDerWand":    { "name": "Ohr an der Wand", "spalte": "Kundschaft", "reihe": 1, "beschreibung": "Eigene Spitzel finden jede Spur mit 10 Prozentpunkten mehr.", "wirkung": { "spitzelBonus": 0.1 } },
-          "Geruechtekueche": { "name": "Gerüchteküche", "spalte": "Kundschaft", "reihe": 2, "beschreibung": "Je fremdem Geheimnis 4 % im Jahr, es ohne Spitzel zu erfahren (wirkt, sobald es Geheimnisse gibt).", "wirkung": { "geruechte": 0.04 } },
+          "Geruechtekueche": { "name": "Gerüchteküche", "spalte": "Kundschaft", "reihe": 2, "beschreibung": "Je fremdem Geheimnis 4 % im Jahr mehr, es ohne Spitzel zu erfahren (Gerede).", "wirkung": { "geruechte": 0.04 } },
           "SchwarzesBuch":   { "name": "Schwarzes Buch", "spalte": "Kundschaft", "reihe": 3, "beschreibung": "Eigene Erpresserbriefe verraten den Schreiber nur mit 50 %.", "wirkung": { "erpressungSpurFaktor": 0.5 } },
           "WachsamesAuge":   { "name": "Wachsames Auge", "spalte": "Deckung", "reihe": 1, "beschreibung": "Diebstahl und Einbruch in die eigenen Betriebe 15 % seltener.", "einrichtung": { "einbruchFaktor": 0.85 } },
-          "Verschwiegen":    { "name": "Verschwiegen", "spalte": "Deckung", "reihe": 2, "beschreibung": "Geheimnisse der eigenen Familie werden 40 % seltener entdeckt (wirkt, sobald es Geheimnisse gibt).", "wirkung": { "geheimnisSchutz": 0.6 } },
+          "Verschwiegen":    { "name": "Verschwiegen", "spalte": "Deckung", "reihe": 2, "beschreibung": "Geheimnisse der eigenen Familie werden 40 % seltener entdeckt (Spitzel, Gerede, Beichte).", "wirkung": { "geheimnisSchutz": 0.6 } },
           "FalscheFaehrte":  { "name": "Falsche Fährte", "spalte": "Deckung", "reihe": 3, "beschreibung": "Fremde Spitzel finden eure Spuren 30 % seltener.", "wirkung": { "fremdeSpitzelFaktor": 0.7 } }
         }
       },
