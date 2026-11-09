@@ -53,9 +53,15 @@ public sealed class StressTrauerDaten
     public double Kind { get; init; } = 20;
     public double Elternteil { get; init; } = 10;
     public double Geschwister { get; init; } = 5;
+
+    /// <summary>Jeder andere Tod im Haus (Enkel, Schwägerin …), für alle Stressträger. Ohne Angabe 0.</summary>
+    public double Haus { get; init; }
 }
 
-/// <summary>Sorgen ums Haus (Abschnitt "stress.haus"): Streit, ein Jahr mit Verlust, Bargeld im Minus.</summary>
+/// <summary>
+/// Sorgen ums Haus (Abschnitt "stress.haus"): Streit, ein Jahr mit Verlust, Bargeld im Minus – und was das Haus von außen trifft
+/// (Nachtrag 9.11.2026, damit der Stress auch bei der KI sichtbar wird; ohne Angabe 0, dann wirkt es nicht). Alles beim Oberhaupt, Streit auch beim Erben.
+/// </summary>
 public sealed class StressHausDaten
 {
     /// <summary>Streit im Haus – für Oberhaupt und Erben.</summary>
@@ -66,6 +72,37 @@ public sealed class StressHausDaten
 
     /// <summary>Bargeld am Jahresende unter 0 (beim Oberhaupt).</summary>
     public double BargeldNegativ { get; init; } = 10;
+
+    /// <summary>Lager bestohlen oder Einbruch ins Wohnhaus mit Beute (öffentliche Meldung „Diebstahl“, ab hoch).</summary>
+    public double Diebstahl { get; init; }
+
+    /// <summary>Brand oder Anschlag auf einen eigenen Betrieb oder das Wohnhaus (Brandstiftung, Sabotage, Blitz, Funkenflug; öffentliche Meldung „Feuer“, ab hoch).</summary>
+    public double Brand { get; init; }
+
+    /// <summary>Ein eigener Karren oder ein eigenes Schiff ausgeraubt (öffentliche Meldung „Überfall“, ab hoch).</summary>
+    public double Ueberfall { get; init; }
+
+    /// <summary>Je Betrieb, der das ganze Jahr lief und mit Verlust schloss (am Jahresende).</summary>
+    public double BetriebVerlust { get; init; }
+
+    /// <summary>Die Ware einer eigenen Werkstatt steht am Jahresende unter <see cref="PreisverfallAb"/> × Grundpreis (Konkurrenz am Markt), einmal im Jahr.</summary>
+    public double Preisverfall { get; init; }
+
+    /// <summary>
+    /// Unter diesem Preisfaktor (Marktpreis durch Grundpreis der Daten) gilt die Ware als verfallen. In den Partien steht der Preis der
+    /// Werkstattware fast immer über dem Grundpreis (Median um 1,18); 1,1 trifft die schlechtesten gut zehn Prozent der Jahre.
+    /// </summary>
+    public double PreisverfallAb { get; init; }
+}
+
+/// <summary>Niederlagen im Rat (Abschnitt "stress.rat"), beim Oberhaupt. Ohne Angabe 0.</summary>
+public sealed class StressRatDaten
+{
+    /// <summary>Das Haus hat sich um ein Amt beworben und die Wahl verloren.</summary>
+    public double WahlVerloren { get; init; }
+
+    /// <summary>Ein eigener Antrag (Statut, Steuer, Bau, Fest, Stadtglaube, Pflaster) wurde abgelehnt.</summary>
+    public double AntragAbgelehnt { get; init; }
 }
 
 /// <summary>Vor Gericht (Abschnitt "stress.gericht"), beim Oberhaupt des beklagten Hauses.</summary>
@@ -143,6 +180,7 @@ public sealed class StressDaten
     public List<StressTatDaten> Taten { get; init; } = new();
     public StressTrauerDaten Trauer { get; init; } = new();
     public StressHausDaten Haus { get; init; } = new();
+    public StressRatDaten Rat { get; init; } = new();
     public StressGerichtDaten Gericht { get; init; } = new();
     public StressKrankheitDaten Krankheit { get; init; } = new();
     public StressZusammenbruchDaten Zusammenbruch { get; init; } = new();
@@ -202,10 +240,13 @@ public sealed class StressDaten
             if (string.IsNullOrWhiteSpace(t.Name)) f.Add($"{wo}: name fehlt.");
         }
         foreach (var (name, wert) in new[] { ("trauer.ehepartner", Trauer.Ehepartner), ("trauer.kind", Trauer.Kind), ("trauer.elternteil", Trauer.Elternteil),
-                     ("trauer.geschwister", Trauer.Geschwister), ("haus.streit", Haus.Streit), ("haus.jahrImMinus", Haus.JahrImMinus),
-                     ("haus.bargeldNegativ", Haus.BargeldNegativ), ("gericht.angeklagt", Gericht.Angeklagt), ("gericht.verurteilt", Gericht.Verurteilt),
+                     ("trauer.geschwister", Trauer.Geschwister), ("trauer.haus", Trauer.Haus), ("haus.streit", Haus.Streit), ("haus.jahrImMinus", Haus.JahrImMinus),
+                     ("haus.bargeldNegativ", Haus.BargeldNegativ), ("haus.diebstahl", Haus.Diebstahl), ("haus.brand", Haus.Brand), ("haus.ueberfall", Haus.Ueberfall),
+                     ("haus.betriebVerlust", Haus.BetriebVerlust), ("haus.preisverfall", Haus.Preisverfall), ("rat.wahlVerloren", Rat.WahlVerloren),
+                     ("rat.antragAbgelehnt", Rat.AntragAbgelehnt), ("gericht.angeklagt", Gericht.Angeklagt), ("gericht.verurteilt", Gericht.Verurteilt),
                      ("gericht.kerker", Gericht.Kerker), ("krankheit.erkrankt", Krankheit.Erkrankt), ("krankheit.pest", Krankheit.Pest) })
             if (wert < 0 || wert > Hoechstwert) f.Add($"{q}.{name} liegt zwischen 0 und dem Höchstwert.");
+        if (Haus.PreisverfallAb is < 0 or > 2) f.Add($"{q}.haus.preisverfallAb liegt zwischen 0 und 2.");
         if (Zusammenbruch.ZugChance is < 0 or > 1) f.Add($"{q}.zusammenbruch.zugChance liegt zwischen 0 und 1.");
         foreach (var k in Zusammenbruch.Krankheiten.Where(k => krankheiten is not null && !krankheiten.Contains(k)))
             f.Add($"{q}.zusammenbruch.krankheiten: Die Krankheit „{k}“ gibt es nicht.");

@@ -194,6 +194,10 @@ public sealed class Ratssitzung
             foreach (var bewerber in vorher.Kandidaten.Select(k => k.Haus).OfType<Konto>())
                 foreach (var (waehler, wahl, _) in ausgang?.Stimmen ?? Array.Empty<(Amt, Konto?, bool)>())
                     _w.Meinungen.StimmeGemerkt(waehler, bewerber, wahl == bewerber);
+            // Stress (Teil 3b): Wer sich beworben hat und verliert, ärgert sich.
+            if (ausgang is not null)
+                foreach (var bewerber in vorher.Kandidaten.Select(k => k.Haus).OfType<Konto>().Where(h => h != ausgang.Gewinner).Distinct())
+                    _w.Familien.StressRat(bewerber, r => r.WahlVerloren, $"Wahl zum Amt {schritt.Amt!.Name} verloren");
         }
         else
         {
@@ -210,8 +214,11 @@ public sealed class Ratssitzung
             };
             // Der Antragsteller merkt sich, wer dafür und wer dagegen stimmte (Enthaltung zählt nicht).
             if (vorher.Antragsteller is { } antragsteller)
+            {
                 foreach (var st in vorher.Stimmen.Where(st => st.Ja is not null))
                     _w.Meinungen.StimmeGemerkt(st.Sitz, antragsteller, st.Ja == true);
+                if (!angenommen) _w.Familien.StressRat(antragsteller, r => r.AntragAbgelehnt, "Antrag im Rat abgelehnt"); // Stress (Teil 3b)
+            }
         }
         _abgehalten.Add(punkt);
         _naechster++;

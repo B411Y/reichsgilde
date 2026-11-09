@@ -68,6 +68,7 @@ public sealed partial class Stadtwirtschaft
         if (_meldungsverlauf.Count > MeldungsverlaufLaenge) _meldungsverlauf.RemoveAt(0);
         Gemeldet?.Invoke(m);
         Meldung?.Invoke(m.Text);
+        Familien?.StressNachMeldung(m); // Stress (Teil 3b): Diebstahl, Feuer, Überfall gegen das Haus stehen hier schon mit Art und Haus
     }
 
     /// <summary>So viele Meldungen behält der <see cref="Meldungsverlauf"/> (und der Spielstand): gut drei Spieljahre in Köln.</summary>

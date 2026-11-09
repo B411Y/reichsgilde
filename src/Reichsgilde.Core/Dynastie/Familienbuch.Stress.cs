@@ -277,9 +277,41 @@ public sealed partial class Familienbuch
                 : tot.IstKindVon(b) ? (d.Trauer.Kind, tot.SohnOderTochter)
                 : b.IstKindVon(tot) ? (d.Trauer.Elternteil, tot.Geschlecht == Geschlecht.Frau ? "Mutter" : "Vater")
                 : tot.Vater is { } v && v == b.Vater || tot.Mutter is { } m && m == b.Mutter ? (d.Trauer.Geschwister, tot.Geschlecht == Geschlecht.Frau ? "Schwester" : "Bruder")
-                : (0, "");
-            if (wert > 0) StressAendern(b, wert, $"{wie} {wer} {tot.Vorname}");
+                : (d.Trauer.Haus, (string?)null); // jeder andere aus dem Haus (Enkel, Schwiegertochter, zweite Frau des Vaters …)
+            var text = wer is not null ? $"{wie} {wer} {tot.Vorname}" : wie == "Trauer um" ? $"Tod im Haus: {tot.Vorname}" : $"{wie} {tot.Vorname}";
+            if (wert > 0) StressAendern(b, wert, text);
         }
+    }
+
+    /// <summary>
+    /// Nach jeder Meldung (aus Stadtwirtschaft.Melden): Was das Haus von außen trifft, steht schon als öffentliche Meldung mit Art und Haus da –
+    /// Einbruch mit Beute, Brand (Anschlag, Sabotage, Blitz, Funkenflug), ausgeraubter Karren oder Schiff. Nur ab Wichtigkeit Hoch: Vereitelte Taten
+    /// und der Einbruch ins leere Lager melden „Normal“; vertrauliche Nachrichten an den Auftraggeber zählen nicht. So braucht keine dieser Stellen
+    /// einen eigenen Haken. Der Ort steht dabei: der Betrieb, sonst das Wohnhaus.
+    /// </summary>
+    internal void StressNachMeldung(Meldung m)
+    {
+        if (StressDaten is not { } d || m.Vertraulich || m.Wichtigkeit < Meldungswichtigkeit.Hoch || m.Haus is not int nr || nr < 0 || nr >= _w.Konten.Count) return;
+        var (wert, text) = m.Art switch
+        {
+            Meldungsart.Diebstahl => (d.Haus.Diebstahl, "Bestohlen"),
+            Meldungsart.Feuer => (d.Haus.Brand, "Brand oder Anschlag"),
+            Meldungsart.Ueberfall => (d.Haus.Ueberfall, "Überfallen"),
+            _ => (0.0, ""),
+        };
+        var ort = m.Ort switch
+        {
+            Meldungsort.Betrieb => m.Ortsname,
+            Meldungsort.Wohnhaus or Meldungsort.Gebaeude => "Wohnhaus", // ein Gebäude der Karte ohne Betrieb, das dem Haus gehört, ist sein Wohnhaus
+            _ => null,
+        };
+        if (wert > 0 && Von(_w.Konten[nr]) is { } f) StressAendern(f.Oberhaupt, wert, ort is not null ? $"{text} ({ort})" : text);
+    }
+
+    /// <summary>Eine Niederlage im Rat (Ratssitzung): verlorene Wahl, abgelehnter Antrag – beim Oberhaupt.</summary>
+    internal void StressRat(Konto konto, Func<StressRatDaten, double> wert, string text)
+    {
+        if (StressDaten is { } d && Von(konto) is { } f) StressAendern(f.Oberhaupt, wert(d.Rat), text);
     }
 
     /// <summary>Streit im Haus (Meinungswesen, am Jahresende): Oberhaupt und Erbe.</summary>
@@ -322,6 +354,15 @@ public sealed partial class Familienbuch
         if (konto.Vermoegen < 0) StressAendern(o, d.Haus.BargeldNegativ, "Bargeld im Minus");
         if (_w.Justiz.IstAktiv && _w.Justiz.PrangerBis(konto) is not null) StressTat(konto, "Pranger");
         if (_w.VerfallendeAktionspunkte(konto) > 0) StressTat(konto, "ApVerfallen");
+        // Sorgen aus den Betrieben: jeder Betrieb, der das ganze Jahr lief und mit Verlust schloss; Ware einer Werkstatt im Preis verfallen (einmal)
+        var eigene = _w.Betriebe.Where(b => b.Konto == konto).ToList();
+        if (d.Haus.BetriebVerlust > 0)
+            foreach (var b in eigene.Where(b => b.Vorjahr is { Ganzjaehrig: true } r && r.Gewinn < 0))
+                StressAendern(o, d.Haus.BetriebVerlust, $"Verlust in {b.Name}");
+        if (d.Haus.Preisverfall > 0 && eigene.Where(b => b.IstWerkstatt).Select(b => b.Produkt).Distinct().Where(_w.Daten.Waren.ContainsKey)
+                .Select(ware => (Ware: ware, Faktor: _w.Markt[ware].Preisfaktor)).Where(x => x.Faktor < d.Haus.PreisverfallAb)
+                .OrderBy(x => x.Faktor).ThenBy(x => x.Ware, StringComparer.Ordinal).FirstOrDefault() is { Ware: { } verfallen })
+            StressAendern(o, d.Haus.Preisverfall, $"Preise verfallen ({verfallen})");
 
         foreach (var p in f.Lebende.Where(p => p.Stresslage.Wert > 0).ToList())
         {
