@@ -31,6 +31,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Benachrichtigungen Stufe 2 (kern + oberflaeche): Der Kern meldet strukturierte Ereignisse (Art, Betroffener, Ort, Familienmitglied); dann fallen `game/daten/meldungen.json` und die Textmuster weg, Briefe bekommen Porträts und Sprung zu Haus oder Person (Krankheit des Oberhaupts als Brief statt Siegel, die Spitzel- und Unterwelt-Filter ohne Textsuche), und der Verlauf kann mit dem Spielstand gespeichert werden (Datenversion). Stufe 3: Entscheidungen mit Wahl, im Mehrspieler als Frist.
 - Benachrichtigungen: Ton von `siegel_neu_*` und `pergament_*` ist rechnerisch erzeugt und noch nicht abgehört (Hörurteil des Nutzers); ein Siegel-Tooltip zeigt nur die neueste Meldung; `Meldungsmessung.Einordnen` (Test) und `Meldungsordnung` führen noch dieselben Textmuster doppelt (die Messung könnte die neue Klasse nutzen).
 - Benachrichtigungen: Das ✕ des Fensterrahmens ist hell und bekommt im Brief eine dunkle Platte; ein gemeinsames Pergament-Fenster für andere Tafeln (Oberflächen-Stil Schriftrolle) fehlt noch.
+- (Werkstatt-Pinsel) Pinselmessung (`Kartenwerkstatt.Pinselmessung.cs`, `Rest()`): Die Spalte „übriges Bild (Godot, Leerlauf)“ zieht die Summe aller Teilschritte ab, manche stecken aber ineinander („  Nacharbeit: …“ in „Nacharbeit nach dem Strich“, „  Gras: …“ in „im Bild: Grasteppich“) und zählen doppelt; die Spalte ist dann zu klein und kann negativ werden. Betrifft nur das Messwerkzeug.
 
 ## Entscheidungen
 

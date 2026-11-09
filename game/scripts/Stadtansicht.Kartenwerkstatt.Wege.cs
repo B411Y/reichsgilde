@@ -205,6 +205,26 @@ public partial class Stadtansicht
         NetzAnsichtBauen();
     }
 
+    /// <summary>
+    /// Liegt im Rechteck ein Anschluss des Gassennetzes (Hof, Karrenplatz, Gatter, Mauertor)? <see cref="NetzBauen"/> hängt sie an das nächste Wegstück im
+    /// Raum, also mit Höhe: Eine neue Höhe kann den Anschluss verschieben oder einen anderen Weg zum nächsten machen. Dann darf das Netz nach einem
+    /// Geländestrich nicht warten (Stadtansicht.Kartenwerkstatt.Gelaende.cs).
+    /// </summary>
+    private bool NetzAnschlussImRechteck(Rect2 rect)
+    {
+        if (_entwurf is null) return false;
+        if (_entwurf.Mauern.SelectMany(m => m.Tore).Any(t => rect.HasPoint(V2(t.Punkt)))) return true;
+        foreach (var g in _entwurf.Gebaeude)
+        {
+            Vector3? ort = null;
+            if (g.Art == Bausteinart.Werkstattplatz && g.Hof is { } hof) ort = V3(hof);
+            else if (g.Art == Bausteinart.Umlandbetrieb && g.Baustein?.Modell is { } datei) ort = ModellLage(g) * UmlandAnkerImModell(datei).Karren;
+            else if (g.Art == Bausteinart.Umlandstelle && g.Baustein?.Modell is { } stelle) ort = ModellLage(g) * UmlandAnkerImModell(stelle).Tuer;
+            if (ort is { } o && rect.HasPoint(new Vector2(o.X, o.Z))) return true;
+        }
+        return false;
+    }
+
     private void NetzAnsichtBauen()
     {
         if (_wsNetzAnsicht is not null) KnotenEntfernen(_wsNetzAnsicht);

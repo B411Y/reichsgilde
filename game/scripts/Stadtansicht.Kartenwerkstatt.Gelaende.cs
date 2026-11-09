@@ -391,10 +391,11 @@ public partial class Stadtansicht
             NaturBereichVormerken(rect.Grow(NaturUeberstand)); // die Natur der Flächen und die Äcker folgen dem Boden (Stadtansicht.Kartenwerkstatt.Natur.cs)
         });
         // erst wenn alles steht: Höfe und Karrenplätze hängen am Netz. Liegen die Anschlüsse flach in der Wegeschicht und ist das Netz nicht zu sehen,
-        // ändert eine neue Höhe nichts Sichtbares – dann erst, wenn jemand das Netz ansieht (in Köln kostete der Neubau 50–140 ms)
+        // ändert eine neue Höhe nichts Sichtbares – dann erst, wenn jemand das Netz ansieht (in Köln kostete der Neubau 50–140 ms). Liegt aber ein Hof,
+        // Karrenplatz, Gatter oder Tor im Rechteck, kann die neue Höhe den Anschluss verschieben (der nächste Weg wird mit Höhe gesucht): sofort neu.
         Nacharbeit("Gassennetz vormerken", () =>
         {
-            if (WegeschichtMoeglich && _grenzen is not null && !_wsNetzSichtbar) _wsNetzHoeheVeraltet = true; // wie WegZiehen (Stadtansicht.cs)
+            if (WegeschichtMoeglich && _grenzen is not null && !_wsNetzSichtbar && !NetzAnschlussImRechteck(rect)) _wsNetzHoeheVeraltet = true; // wie WegZiehen (Stadtansicht.cs)
             else _wsNetzNeu = true;
         });
         _wsFehlerNeu = true; // die Hangsperre hat sich vielleicht geändert
