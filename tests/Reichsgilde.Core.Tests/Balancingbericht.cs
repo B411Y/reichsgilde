@@ -575,7 +575,7 @@ static partial class Balancingbericht
         return new JsonObject
         {
             ["jeVolkUeberBerufe"] = jeVolk.Count > 0 ? jeVolk : null,
-            ["erklaerung"] = "Wie Berufe (simuliert), derselbe Beruf mit jedem spielbaren Volk. Der Völkerbonus wirkt auf die Leistung (±5 %); das Volk " +
+            ["erklaerung"] = "Wie Berufe (simuliert), derselbe Beruf mit jedem spielbaren Volk. Der Völkerbonus wirkt auf die Leistung (±3 %, ohne Ware ±2 %); das Volk " +
                              "ändert auch Familie (Kinderzahl, Lebenserwartung) und Talente – die Messung zeigt die Summe. Abstand zum Menschen derselben Startwerte.",
             ["zeilen"] = zeilen,
         };
