@@ -207,7 +207,7 @@ public partial class GerichtAnzeige : PanelContainer
                 var beteiligt = v.Anklaeger == _spieler || v.Beklagter == _spieler;
                 var stimmen = gericht.Prognose(v);
                 var schuldig = Stadtgericht.IstSchuldig(stimmen);
-                Text(_inhalt, $"{v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(gericht.Beweise(v.Anklaeger, v.Beklagter).Select(b => b.Art))} – " +
+                Text(_inhalt, $"{v.Anklaeger.Inhaber} gegen {v.Beklagter.Inhaber} wegen {gericht.Anklagepunkte(v)} – " + // mit einem angezeigten Geheimnis (Teil 3c)
                               $"Stand heute: {(schuldig ? "SCHULDIG" : "Freispruch")} ({stimmen.Count(s => s.Schuldig)} von {stimmen.Count})", 14,
                     !beteiligt ? Grau : (schuldig == (v.Anklaeger == _spieler)) ? Gruen : Rot, umbrechen: true);
                 StrafmassZeile(w, v);

@@ -97,6 +97,9 @@ public sealed partial class Familienbuch
     /// <summary>Zusätzliche Punkte bei Ratswahlen (Rhetorik).</summary>
     public double RhetorikPunkte(Konto k) => Talent(k, Dynastie.Talent.Rhetorik) * W.RhetorikRat + Lebenswirkung(k).Wahlpunkte; // Wohlgesetzte Worte
 
+    /// <summary>Plädoyer des Anklägers allein – gegen einen Ratsherrn, der kein Haus hat (Geheimnisse, Teil 3c).</summary>
+    public double PlaedoyerAllein(Konto anklaeger) => Talent(anklaeger, Dynastie.Talent.Rhetorik) * W.RhetorikGericht + Lebenswirkung(anklaeger).Plaedoyer;
+
     /// <summary>Plädoyer vor Gericht: positiv hilft dem Ankläger, negativ dem Beklagten.</summary>
     public double Plaedoyer(Konto anklaeger, Konto beklagter) =>
         (Talent(anklaeger, Dynastie.Talent.Rhetorik) - Talent(beklagter, Dynastie.Talent.Rhetorik)) * W.RhetorikGericht
@@ -564,6 +567,7 @@ public sealed partial class Familienbuch
         if (uebertritt) p.Glaube = f.Oberhaupt.Glaube; // Mischehe: Der Partner tritt zum Glauben des Hauses über
         f.MitgliederListe.Add(p);
         f.Ehepartner = p;
+        if (uebertritt) _w.Geheimnisse.Glaubenswechsel(p); // heimlich beim alten Glauben? (Ketzerei, Teil 3c – eigener Würfel)
         Ereignis(konto, $"Hochzeit im Haus {f.Nachname}: {f.Oberhaupt.Name} heiratet {p.Vorname}, geb. {p.Geburtsname} " +
                         $"({p.Volk.Einzahl()}, {p.Alter(Jahr)} Jahre)." +
                         (kosten > 0 ? $" Das Fest kostet {Zahlenformat.Ganz(kosten)} {_w.Daten.Allgemein.Waehrung}." : "") +
@@ -856,7 +860,7 @@ public sealed partial class Familienbuch
                 Volk = p.Volk, Geschlecht = p.Geschlecht, Geburtsjahr = p.Geburtsjahr, Todesjahr = p.Todesjahr,
                 Vater = p.Vater, Mutter = p.Mutter,
                 Talente = HatTalente ? TalentTexte.Alle.Select(p.Anlage).ToList() : null,
-                Krankheit = p.Krankheit is { } k ? new ErkrankungStand { Name = k.Name, Bis = k.Bis, Medicus = k.Medicus, Schnaps = k.Schnaps } : null,
+                Krankheit = p.Krankheit is { } k ? new ErkrankungStand { Name = k.Name, Bis = k.Bis, Medicus = k.Medicus, Schnaps = k.Schnaps, Taeter = k.Taeter } : null,
                 Todesursache = p.Todesursache,
                 Glaube = p.Glaube, Herkunftsglaube = p.Herkunftsglaube,
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss,
@@ -912,7 +916,8 @@ public sealed partial class Familienbuch
             var person = new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk, p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr)
             {
                 Ausbildung = p.Ausbildung, Abschluss = p.Abschluss, Todesursache = p.Todesursache,
-                Krankheit = p.Krankheit is { } k && _w.Daten.Gesundheit is { } g ? Gesundheit.Erkrankung.Aus(g, k.Name, k.Bis) with { Medicus = k.Medicus, Schnaps = k.Schnaps } : null,
+                Krankheit = p.Krankheit is { } k && _w.Daten.Gesundheit is { } g
+                    ? Gesundheit.Erkrankung.Aus(g, k.Name, k.Bis) with { Medicus = k.Medicus, Schnaps = k.Schnaps, Taeter = k.Taeter } : null,
             };
             person.Glaube = p.Glaube ?? _w.Glaube.Startglaube(p.Volk); // alte Spielstände ohne Glauben: Startglaube des Volkes
             person.Herkunftsglaube = p.Herkunftsglaube ?? person.Glaube;

@@ -296,14 +296,31 @@ public sealed class Kirchenwesen
     {
         if (!_w.Justiz.IstAktiv) return Befehlsergebnis.Abgelehnt("Ohne Gericht nützt kein Geheimnis.");
         var wissen = Beichtwissen(prediger, gegen).ToList();
-        if (wissen.Count == 0) return Befehlsergebnis.Abgelehnt($"Aus der Beichte wisst ihr nichts gegen {gegen.Inhaber}.");
+        var geheim = _w.Geheimnisse.IstAktiv ? _w.Geheimnisse.Beichtwissen(prediger, gegen).ToList() : new(); // Geheimnisse aus der Beichte (Teil 3c)
+        if (wissen.Count == 0 && geheim.Count == 0) return Befehlsergebnis.Abgelehnt($"Aus der Beichte wisst ihr nichts gegen {gegen.Inhaber}.");
         foreach (var spur in wissen)
         {
             _w.Justiz.BeweisGeben(prediger, spur);
             _beichtwissen.Remove((prediger, spur.Nummer));
         }
+        _w.Geheimnisse.BeichteOffenbaren(prediger, geheim);
         _w.Justiz.TatMelden(prediger, Vergehen.Beichtbruch, gegen.Inhaber, Daten.Beichte.Betrag);
-        return Befehlsergebnis.Ok($"Ihr brecht das Beichtgeheimnis: {wissen.Count} {(wissen.Count == 1 ? "Beweis" : "Beweise")} gegen {gegen.Inhaber}. " +
+        var teile = new List<string>();
+        if (wissen.Count > 0) teile.Add($"{wissen.Count} {(wissen.Count == 1 ? "Beweis" : "Beweise")}");
+        if (geheim.Count > 0) teile.Add($"{geheim.Count} {(geheim.Count == 1 ? "Geheimnis" : "Geheimnisse")}");
+        return Befehlsergebnis.Ok($"Ihr brecht das Beichtgeheimnis: {string.Join(" und ", teile)} gegen {gegen.Inhaber}. " +
+                                  "Das ist selbst ein Vergehen – hoffentlich erfährt es niemand.");
+    }
+
+    /// <summary>Das Beichtgeheimnis gegen einen Ratsherrn brechen (Teil 3c): seine Geheimnisse aus der Beichte werden nutzbar – ein Vergehen.</summary>
+    internal Befehlsergebnis BeichtgeheimnisBrechen(Konto prediger, Politik.Ratsherr r)
+    {
+        if (!_w.Justiz.IstAktiv) return Befehlsergebnis.Abgelehnt("Ohne Gericht nützt kein Geheimnis.");
+        var geheim = _w.Geheimnisse.IstAktiv ? _w.Geheimnisse.Beichtwissen(prediger, r).ToList() : new();
+        if (geheim.Count == 0) return Befehlsergebnis.Abgelehnt($"Aus der Beichte wisst ihr nichts über {r.Name}.");
+        _w.Geheimnisse.BeichteOffenbaren(prediger, geheim);
+        _w.Justiz.TatMelden(prediger, Vergehen.Beichtbruch, r.Name, Daten.Beichte.Betrag);
+        return Befehlsergebnis.Ok($"Ihr brecht das Beichtgeheimnis: {string.Join(", ", geheim.Select(_w.Geheimnisse.Beschreibung))} – {r.Name}. " +
                                   "Das ist selbst ein Vergehen – hoffentlich erfährt es niemand.");
     }
 
