@@ -141,6 +141,51 @@ public partial class Kartenwerkstatt
         TiefeLoggen("verbund_streifen (x −280, quer über Fluss, altes Ufer und See A)", -280, Enumerable.Range(0, 15).Select(i => -136.0 - 3 * i));
         TiefeLoggen("verbund_ecke (z −320, entlang des Westufers des Sees, wo der Fluss eintritt)", null, Enumerable.Range(0, 13).Select(i => -452.0 + 2 * i), -320);
         TiefeLoggen("verbund_ecke (z −326, am Nordufer des Flusses in den See hinein)", null, Enumerable.Range(0, 13).Select(i => -452.0 + 2 * i), -326);
+        KehleLoggen();
+        GrasImVerbundLoggen();
+    }
+
+    /// <summary>
+    /// Prüfhilfe für die Kehle südlich der Einmündung (Fluss 4 in See 3, Blick verbund_ecke): Tiefe und gemeinsamer Abstand diagonal vom Land ins Wasser,
+    /// alle 0,25 m – zeigt, wie steil der Grund an der Wasserkante abfällt (die Wasserfläche blendet über die ersten 0,35 m Uferabstand ein).
+    /// </summary>
+    private void KehleLoggen()
+    {
+        var form = _entwurf.Gelaendeform;
+        var zeilen = Enumerable.Range(0, 33).Select(i =>
+        {
+            var (x, z) = (-446 + 0.25 * i * 0.7071, -341 + 0.25 * i * 0.7071);
+            var s = form.Wasser.Verbundabstand(x, z);
+            var sp = form.Wasser.Spiegel(x, z) ?? form.Wasser.Seen.FirstOrDefault(q => q.Name == "See 3")?.Wasserstand ?? 0;
+            return s is { } w && w < 0.6 ? $"{0.25 * i:0.00}: s {w:0.00} Tiefe {sp - form.Hoehe(x, z):0.00}" : null;
+        }).Where(t => t is not null);
+        GD.Print($"[wasserprobe] Kehle südlich der Einmündung (diagonal ins Wasser, Meter: gemeinsamer Abstand, Tiefe): {string.Join("; ", zeilen)}");
+    }
+
+    /// <summary>
+    /// Prüfhilfe für das Gras im Verbund: Punkte im 1-m-Raster, die nach dem Kern Wasser eines Verbunds sind (gemeinsamer Abstand unter 0), die die
+    /// Wasserregel des Grasteppichs ohne Verbund aber nicht freiräumt (Lauf: halbe Breite + 0,3 m, See: Umriss + 0,7 m; Stadtansicht.Gras.cs).
+    /// </summary>
+    private void GrasImVerbundLoggen()
+    {
+        var form = _entwurf.Gelaendeform.Wasser;
+        foreach (var v in form.Verbuende)
+        {
+            var (zahl, beispiele) = (0, new List<string>());
+            for (var z = Math.Floor(v.Bereich.Z0); z <= v.Bereich.Z1; z++)
+                for (var x = Math.Floor(v.Bereich.X0); x <= v.Bereich.X1; x++)
+                {
+                    if (v.AbstandAm(x, z) is not { } s || s >= 0) continue;
+                    var imLauf = v.Lauf.Punkte.Zip(v.Lauf.Punkte.Skip(1)).Any(t =>
+                        Kartengeometrie.AbstandStrecke(new Kartenort(x, z), t.First.Ort, t.Second.Ort) < Math.Max(t.First.Breite, t.Second.Breite) / 2 + 0.3);
+                    var imSee = v.See.Enthaelt(new Kartenort(x, z)) || v.See.Randabstand(new Kartenort(x, z)) < 0.7;
+                    if (imLauf || imSee) continue;
+                    zahl++;
+                    if (beispiele.Count < 4) beispiele.Add($"{x:0},{z:0} (s {s:0.00})");
+                }
+            GD.Print($"[wasserprobe] Gras im Verbund {v.Lauf.Name}–{v.See.Name}: {zahl} Punkte Wasser, die die Wasserregel des Grases ohne Verbund nicht freiräumt" +
+                     (beispiele.Count > 0 ? $", z. B. {string.Join("; ", beispiele)}" : ""));
+        }
     }
 
     /// <summary>Schreibt je Ort die Tiefe (Spiegel − Boden), den gemeinsamen Abstand und den Abstand zum geschlossenen Seeufer ins Protokoll.</summary>

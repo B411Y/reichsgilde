@@ -333,6 +333,8 @@ public partial class Stadtansicht
         var kappen = new List<(Vector2 Mittelpunkt, float Halbmesser, float Radius, float Vorzeichen, float Stelle, Vector2 Richtung, Vector2 Mitte, float Halb,
             float Hoehe, float Schaum, float FurtOffen)>();
         var (folgeAb, engsteR) = (-1f, float.MaxValue);
+        // Prüfhilfe: Ecken am äußeren Rand des Bandes, die sichtbar sind (Uferabstand > 0 und Deckkraft über 5 %) – dort endet das Band mit einer harten Kante
+        var (randSichtbar, randBeispiel) = (0, Vector2.Zero);
 
         for (var r = 0; r < reihen.Count; r++)
         {
@@ -359,6 +361,8 @@ public partial class Stadtansicht
                     geklemmt = true;
                 }
                 Ecke(mitte + quer * o, o, (float)pt.Stelle, richtung, halb, hoehe, schaum, furtOffen);
+                if ((j == 0 || j == felder) && farben[^1].R > 0.0005f && farben[^1].A > 0.05f)
+                    (randSichtbar, randBeispiel) = (randSichtbar + 1, randSichtbar == 0 ? mitte + quer * o : randBeispiel);
             }
             if (geklemmt)
             {
@@ -387,6 +391,9 @@ public partial class Stadtansicht
                 stueckAnfang = r;
             }
         }
+
+        if (randSichtbar > 0)
+            GD.Print($"[wasser] {lauf.Name}: {randSichtbar} Ecken am äußeren Rand des Bandes sichtbar (harte Kante), z. B. bei {randBeispiel.X:0.0},{randBeispiel.Y:0.0}");
 
         // Die Kehlenkappen: je geklemmte Reihe eine kleine Scheibe um den Krümmungsmittelpunkt, auf der Höhe der Reihe, mit denselben Netzwerten. Der Abstand
         // eines Punktes der Scheibe zur Mitte des Laufs ist Halbmesser − Abstand zum Mittelpunkt; die Strömung wie im Band (sonst stünde die Scheibe als
@@ -780,6 +787,9 @@ public partial class Stadtansicht
     /// </summary>
     private static float BandUfer(Wasserform form, Wasserlauf lauf, Vector2 ort, float eigen, float tiefe)
     {
+        // nur im eigenen Bett: Außerhalb seines Ufers (der Rand des Bandes, 15 % breiter) bleibt das Band unsichtbar – dort zeichnet das Verbundnetz.
+        // Sonst endete das Band dort sichtbar mit einer harten Kante (Prüfhilfe „Ecken am äußeren Rand des Bandes sichtbar“; NAS 09.11.2026)
+        if (eigen <= 0) return eigen;
         foreach (var v in form.Verbuende)
             if (ReferenceEquals(v.Lauf, lauf) && v.AbstandAm(ort.X, ort.Y) is { } s && v.AnteilAm(ort.X, ort.Y) is { } a)
                 return Mathf.Lerp(eigen, Mathf.Max(eigen, VerbundUfer((float)s, tiefe)), (float)a.Gewicht);
