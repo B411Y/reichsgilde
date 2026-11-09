@@ -166,7 +166,7 @@ public sealed class Wirtschaftsdaten
     /// <summary>Lebensweise (ab Datenversion 73, Charaktersystem Teil 3a). Fehlt der Abschnitt, sammelt niemand Erfahrung.</summary>
     public Dynastie.LebensweiseDaten? Lebensweise { get; init; }
 
-    /// <summary>Stress (ab Datenversion 76, Charaktersystem Teil 3b). Fehlt der Abschnitt, hat niemand Stress.</summary>
+    /// <summary>Stress (ab Datenversion 77, Charaktersystem Teil 3b). Fehlt der Abschnitt, hat niemand Stress.</summary>
     public Dynastie.StressDaten? Stress { get; init; }
 
     /// <summary>Meinungen und Aktivitäten (ab Datenversion 61, PR #231). Fehlt der Abschnitt, gibt es nur die frühere Gunst der Ratsherren.</summary>

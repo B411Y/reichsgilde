@@ -100,7 +100,7 @@ public sealed class StressZusammenbruchDaten
 }
 
 /// <summary>
-/// Stress (Abschnitt "stress" in wirtschaft.json, ab Datenversion 76, Charaktersystem Teil 3b). Fehlt der Abschnitt, hat niemand Stress
+/// Stress (Abschnitt "stress" in wirtschaft.json, ab Datenversion 77, Charaktersystem Teil 3b). Fehlt der Abschnitt, hat niemand Stress
 /// (alte Spielstände bringen ihre Daten mit).
 ///
 /// Stress (0 … <see cref="Hoechstwert"/>) haben nur Oberhaupt, Erbe und Ehepartner der Häuser. Er steigt durch Taten gegen den eigenen

@@ -147,7 +147,7 @@ static class GleichheitTests
         Pruefe.Gleich(string.Join("\n", a.Braende), string.Join("\n", c.Braende), "Lager und Vermögen der brennenden Häuser an den Ladepunkten");
         // Ein Blitzfall (Datenversion 68): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
         if (p.Startwert is 4711 or 2027) Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
-        // Stress (Datenversion 76) soll im Spiel vorkommen – sonst prüft die Prüfsumme ihn nicht mit.
+        // Stress (Datenversion 77) soll im Spiel vorkommen – sonst prüft die Prüfsumme ihn nicht mit.
         Pruefe.Wahr(a.Stress > 0, $"Kein Stress in {p.Jahre} Jahren (Startwert {p.Startwert})");
         Pruefe.Gleich(a.Stress, c.Stress, "Stressquellen mit Speichern und Laden");
 

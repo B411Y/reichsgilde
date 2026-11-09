@@ -84,11 +84,11 @@ static class StressTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Stress: Daten – Datenversion 76, Stufen ab 40 (angespannt) und 70 (zermürbt), Höchstwert 100, danach 60; Ventile Wirtshaus, Messe, Jagd; " +
+        ("Stress: Daten – Datenversion 77, Stufen ab 40 (angespannt) und 70 (zermürbt), Höchstwert 100, danach 60; Ventile Wirtshaus, Messe, Jagd; " +
          "neue erworbene Züge Schwermütig und Reizbar ohne Anlass", () =>
         {
             var d = Daten.Value.Stress!;
-            Pruefe.Gleich(76, Daten.Value.Version);
+            Pruefe.Gleich(77, Daten.Value.Version);
             Pruefe.Wahr(d.IstAktiv, "Stress aktiv");
             Pruefe.Gleich("angespannt:40,zermürbt:70", string.Join(",", d.Stufen.Select(s => $"{s.Name}:{s.Ab}")));
             Pruefe.Gleich(100.0, d.Hoechstwert);
