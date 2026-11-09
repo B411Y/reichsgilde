@@ -188,6 +188,8 @@ public partial class Rauchtest : Node
     private void WetterSetzen()
     {
         RenderingServer.GlobalShaderParameterSet("wetter_wind", _wind);
+        Kaminrauch.Wind = _wind;
+        Kaminrauch.Richtung = new Vector2(1f, 0.15f);
         RenderingServer.GlobalShaderParameterSet("wind_richtung", new Vector2(1f, 0.15f));
         RenderingServer.GlobalShaderParameterSet("wetter_naesse", _nass);
         RenderingServer.GlobalShaderParameterSet("jahreszeit_anteile", new Vector4(0, 1f - _winter, 0, _winter));

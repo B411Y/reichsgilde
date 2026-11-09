@@ -58,6 +58,12 @@ public partial class Kaminrauch : Node3D
     private int _stufe = -1;
     private int _ballen;
     private double _ortUhr;
+
+    // Der Wind der letzten Sekunden (siehe kaminrauch.gdshader): jetzt, alle 0,5 s eine Probe (24 = 12 s), Zeit seit der letzten Probe
+    private readonly Vector4[] _windVerlauf = new Vector4[24];
+    private Vector2 _windJetzt;
+    private float _windPhase;
+    private bool _windStart = true;
     private static readonly System.Collections.Generic.Dictionary<int, ArrayMesh> _netze = new();
 
     public override void _EnterTree()
@@ -100,8 +106,57 @@ public partial class Kaminrauch : Node3D
         if (_instanz is not null) _instanz.Layers = Feuer.Ebene;
     }
 
+    /// <summary>
+    /// Windgeschwindigkeit in m/s (x, z) aus den globalen Wetterwerten (<c>wetter_wind</c>, <c>wind_richtung</c>, dieselbe Quelle wie Fahnen und Regen), mit
+    /// langsamen Böen. Bis Windstärke 0,5 wächst sie mit dem Quadrat (0,10 + 3,4 · w²), darüber nur noch flach (Sturm 1,25 m/s): Sonst zöge der Sturm
+    /// eine viel zu lange Fahne.
+    /// </summary>
+    /// <summary>Windstärke 0–1 wie <c>wetter_wind</c> (die Stadtansicht und die Testszene setzen sie mit den globalen Werten; <c>GlobalShaderParameterGet</c> darf außerhalb des Editors nicht gerufen werden).</summary>
+    public static float Wind { get; set; } = 0.25f;
+
+    /// <summary>Weltrichtung des Windes (x, z) wie <c>wind_richtung</c>; in der Stadt ändert sie sich nie (Einstellung des Projekts).</summary>
+    public static Vector2 Richtung { get; set; } = RichtungAusProjekt();
+
+    private static Vector2 RichtungAusProjekt() =>
+        ProjectSettings.GetSetting("shader_globals/wind_richtung").AsGodotDictionary() is { } d && d.TryGetValue("value", out var v) ? v.AsVector2() : new Vector2(1, 0.4f);
+
+    private static Vector2 WindJetzt()
+    {
+        var w = Mathf.Clamp(Wind, 0f, 1f);
+        var r = Richtung;
+        if (r.LengthSquared() < 1e-8f) r = Vector2.Right;
+        var tempo = w <= 0.5f ? 0.10f + 3.4f * w * w : 0.95f + 0.6f * (w - 0.5f);
+        var t = Feuer.Zeit;
+        var boe = 1f + w * (0.30f * (float)Math.Sin(0.9 * t) + 0.15f * (float)Math.Sin(2.3 * t + 1.0));
+        return r.Normalized() * (tempo * Mathf.Max(boe, 0.3f));
+    }
+
+    /// <summary>Führt den Windverlauf nach: jedes Bild der Wert „jetzt“, alle 0,5 s eine Probe in den Verlauf (der Shader rechnet den Weg jedes Ballens aus dem Wind seines Lebens).</summary>
+    private void WindNachfuehren(double delta)
+    {
+        _windJetzt = WindJetzt();
+        var neu = _windStart;
+        if (_windStart)
+        {
+            for (var i = 0; i < _windVerlauf.Length; i++) _windVerlauf[i] = new Vector4(_windJetzt.X, _windJetzt.Y, 0, 0);
+            _windStart = false;
+        }
+        _windPhase += (float)delta;
+        while (_windPhase >= 0.5f)
+        {
+            _windPhase -= 0.5f;
+            for (var i = _windVerlauf.Length - 1; i > 0; i--) _windVerlauf[i] = _windVerlauf[i - 1];
+            _windVerlauf[0] = new Vector4(_windJetzt.X, _windJetzt.Y, 0, 0);
+            neu = true;
+        }
+        _material.SetShaderParameter("wind_jetzt", _windJetzt);
+        _material.SetShaderParameter("wind_phase", _windPhase);
+        if (neu) _material.SetShaderParameter("wind_verlauf", Variant.CreateFrom(_windVerlauf));
+    }
+
     public override void _Process(double delta)
     {
+        WindNachfuehren(delta);
         StufeNachfuehren();
         if (_schmutzig)
         {
