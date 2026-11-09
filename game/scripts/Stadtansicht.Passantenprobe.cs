@@ -78,7 +78,10 @@ public partial class Stadtansicht
     private bool _probeFern, _probeVatVersucht;
 
     /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Datei, Netz-Variante, Palettenplätze der fünf Farben).</summary>
-    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer);
+    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss, string[] Zubehoer, bool Bart);
+
+    /// <summary>Figurstoffe mit Bart (Zone 6 in Haarfarbe), je Stoff ohne Bart einmal angelegt.</summary>
+    private readonly Dictionary<ShaderMaterial, ShaderMaterial> _probeBartStoffe = new();
     private readonly Dictionary<Figur, ProbeTracht> _probeTrachten = new();
     /// <summary>Alle Farben der Probefiguren (linear) für den VAT-Shader; Platz in der Liste = Index im Shader.</summary>
     private readonly List<Color> _probePalette = new();
@@ -141,8 +144,8 @@ public partial class Stadtansicht
         if (variante < 0) variante = unfrei ? 0 : ProbeVarianteFuer(aussehen, nummer);
         var fuss = unfrei ? 2 : ProbeFussFuer(rolle, nummer); // Orks und Oger barfuß
         var zubehoer = ProbeZubehoerFuer(aussehen, daten.Varianten[variante]);
-        // Bart bzw. Stoppeln (Vorlage 09.11.): zwei von drei Männern, nicht bei Mönchen
-        if (art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0) zubehoer = zubehoer.Append("bart").ToArray();
+        // Bart bzw. Stoppeln (Vorlage 09.11.): zwei von drei Männern, nicht bei Mönchen – Zone 6 der Gesichtshaut in Haarfarbe statt Haut
+        var bart = art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0;
         // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
         var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
         // Kopffarbe: Schwarz (Barett, Witwe) und Weiß (Nonne) bleiben; Hauben und Schürzen in Leinen, Gugeln der Männer in Gewandfarben
@@ -175,6 +178,16 @@ public partial class Stadtansicht
             Beinfaktor = daten.Huefte / 0.92f * massstab, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
         var stoff = FigurStoff(aussehen);
+        if (bart)
+        {
+            if (!_probeBartStoffe.TryGetValue(stoff, out var mitBart))
+            {
+                mitBart = (ShaderMaterial)stoff.Duplicate();
+                mitBart.SetShaderParameter("bart", true);
+                _probeBartStoffe[stoff] = mitBart;
+            }
+            stoff = mitBart;
+        }
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
@@ -185,7 +198,7 @@ public partial class Stadtansicht
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer);
+            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss, zubehoer, bart);
         if (_probeVat) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
         return figur;
@@ -680,7 +693,7 @@ public partial class Stadtansicht
         var bild = (float)(f.Phase / f.Dauer * bilder); // Stand in der Schleife, in Bildern
         var farben = tracht.Gewand + 64f * tracht.Beinkleid + 4096f * tracht.Haut + 262144f * tracht.Haar;
         var xf = f.Modell.GlobalTransform;
-        Eintragen(netzName, xf, bild, klip + 16f * tracht.Kopf, farben);
+        Eintragen(netzName, xf, bild, klip + 16f * tracht.Kopf + (tracht.Bart ? 1024f : 0f), farben); // y: Clip, Kopffarbe, Bart (figur_vat.gdshader)
         Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben); // Füße (nah und fern dieselben)
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken

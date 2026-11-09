@@ -1,6 +1,6 @@
 // Probefiguren „Weg A“ als gebackene Vertex-Animation (VAT) im MultiMesh (Stadtansicht.Passantenprobe.cs): ab Zoom 50 statt Skelett.
 // Die Lage jeder Ecke (Modellraum, Halbfloat) und ihre Normale stehen je Bild der Clips in zwei Texturen: Spalte = Eckennummer (UV2.x),
-// Zeile = Bild. Das Spiel schreibt je Figur in INSTANCE_CUSTOM: x = Stand in der Schleife (Bilder, mit Bruchteil), y = Clip + 16 × Kopffarbe,
+// Zeile = Bild. Das Spiel schreibt je Figur in INSTANCE_CUSTOM: x = Stand in der Schleife (Bilder, mit Bruchteil), y = Clip + 16 × Kopffarbe + 1024 × Bart,
 // z = Farben (Gewand + 64 × Beinkleid + 4096 × Haut + 262144 × Haar, je ein Platz in „farben“). Zonen und feste Farben wie figur.gdshader.
 // Stoffe: UV.y = Art + 16 × (Schicht der Material-Bibliothek + 1) wie bei den Modellen; „tuch“ und „leder“ bekommen die Farbe ihrer Schicht
 // aus modelle_farbe_hoehe (dreiseitig im Modellraum, geteilt durch die mittlere Farbe der Schicht) – eine einfache Fassung von oberflaeche.gdshader.
@@ -26,6 +26,7 @@ varying flat vec3 f_beinkleid;
 varying flat vec3 f_haut;
 varying flat vec3 f_haar;
 varying flat vec3 f_kopf;
+varying flat float f_bart;
 
 vec3 farbe_aus(int i, bool srgb) {
 	vec3 c = farben[clamp(i, 0, 63)].rgb;
@@ -70,7 +71,8 @@ void vertex() {
 	f_beinkleid = farbe_aus((f / 64) % 64, srgb);
 	f_haut = farbe_aus((f / 4096) % 64, srgb);
 	f_haar = farbe_aus((f / 262144) % 64, srgb);
-	f_kopf = farbe_aus(code / 16, srgb);
+	f_kopf = farbe_aus((code / 16) % 64, srgb);
+	f_bart = float(code / 1024); // Bart an (Zone 6 in Haarfarbe) – sonst Haut
 }
 
 void fragment() {
@@ -80,6 +82,7 @@ void fragment() {
 	else if (zone == 3) farbe = f_haut;
 	else if (zone == 4) farbe = f_haar;
 	else if (zone == 5) farbe = f_kopf;
+	else if (zone == 6) farbe = f_bart > 0.5 ? mix(f_haut, f_haar, 0.7) : f_haut;
 	if (stoff_nr >= 0) {
 		// dreiseitig im Modellraum: Stoffbild je Achse, gewichtet nach der Normalen
 		float s = 1.0 / stoff_kachel[stoff_nr];

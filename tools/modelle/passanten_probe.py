@@ -68,6 +68,8 @@ STOFFE = {  # Name: (Zone, feste Farbe sRGB, Schicht der Material-Bibliothek ode
     "Stroh": (0, (0.66, 0.56, 0.32), None),
     "Wams": (1, (1.0, 1.0, 1.0), "leder"),
     "Strick": (0, (0.50, 0.41, 0.27), "tuch"),
+    "Schnur": (0, (0.46, 0.36, 0.24), None),
+    "Bart": (6, (1.0, 1.0, 1.0), None),       # Zone 6: im Spiel Haarfarbe (mit Bart) oder Haut (ohne), je Figur
     "Leinen": (0, (0.86, 0.83, 0.75), "tuch"),
     "Reisig": (0, (0.34, 0.26, 0.17), None),
 }
@@ -138,7 +140,7 @@ FIGUREN = {
     # leicht gebeugt; Oger wie im Entwurf mit Unterbiss und kleinen Hauern. Die Größe im Spiel bleibt beim Volksfaktor (FigurMasse: Ork 1,1,
     # Oger 1,35); das Modell selbst hat Menschengröße mit anderen Proportionen.
     "ork": {"datei": "passant_probe_ork.glb", "gender": 1.0, "varianten": ("wams",), "hauer": "ork", "beugen": 9.0,
-            "arme": {"upperarm": 1.4, "lowerarm": 1.45, "hand": 1.15, "thigh": 1.12, "calf": 1.12},
+            "arme": {"upperarm": 1.33, "lowerarm": 1.33, "hand": 1.15, "thigh": 1.15, "calf": 1.15},   # Nutzer 09.11.: zwischen v3 und v4
             "makros": {"muscle": 1.0, "weight": 0.8, "height": 0.5, "proportions": 0.1},
             "ziele": {"measure-shoulder-dist-incr": 1.0, "torso-scale-horiz-incr": 1.0, "torso-muscle-dorsi-incr": 1.0,
                       "upperarm-scale-horiz-incr": 0.8, "upperarm-scale-depth-incr": 0.8, "lowerarm-scale-horiz-incr": 0.6,
@@ -154,7 +156,7 @@ FIGUREN = {
                       "ear-rot-backward": 0.3, "mouth-scale-horiz-incr": 0.5, "ear-shape-pointed": 1.0,
                       "hand-fingers-diameter-incr": 1.0, "stomach-pregnant-incr": 0.35, "lowerleg-muscle-incr": 0.8, "foot-scale-incr": 0.5}},
     "oger": {"datei": "passant_probe_oger.glb", "gender": 1.0, "varianten": ("sack",), "hauer": "oger", "kahl": True,
-             "arme": {"upperarm": 1.35, "lowerarm": 1.4, "hand": 1.18, "thigh": 1.08, "calf": 1.1},
+             "arme": {"upperarm": 1.33, "lowerarm": 1.33, "hand": 1.18, "thigh": 1.12, "calf": 1.12},   # Nutzer 09.11.: zwischen v3 und v4
              "makros": {"muscle": 0.8, "weight": 1.0, "height": 0.55, "proportions": 0.0},
              "ziele": {"stomach-pregnant-incr": 1.0, "measure-shoulder-dist-incr": 0.6, "torso-scale-horiz-incr": 1.0,
                        "torso-scale-depth-incr": 1.0, "measure-neck-height-decr": 0.6, "neck-scale-horiz-incr": 0.6,
@@ -186,7 +188,7 @@ VORSCHAU = {
     "cotte": {1: (0.45, 0.22, 0.17), 2: (0.30, 0.26, 0.21), 3: (0.72, 0.52, 0.40), 4: (0.20, 0.13, 0.08), 5: (0.6, 0.5, 0.3)},
     "gugel": {1: (0.30, 0.36, 0.24), 2: (0.24, 0.24, 0.25), 3: (0.72, 0.52, 0.40), 4: (0.22, 0.15, 0.10), 5: (0.43, 0.20, 0.15)},
     "rock": {1: (0.24, 0.30, 0.40), 2: (0.34, 0.28, 0.19), 3: (0.72, 0.52, 0.40), 4: (0.48, 0.26, 0.13), 5: (0.6, 0.5, 0.3)},
-    "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.62, 0.56, 0.44)},
+    "haube": {1: (0.30, 0.40, 0.52), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.70, 0.52, 0.22)},
     "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.56, 0.60, 0.66)},
     "bettler": {1: (0.36, 0.34, 0.30), 2: (0.28, 0.25, 0.21), 3: (0.70, 0.52, 0.41), 4: (0.24, 0.18, 0.12), 5: (0.50, 0.46, 0.38)},
     "wams": {1: (0.34, 0.24, 0.15), 2: (0.28, 0.24, 0.20), 3: (0.72, 0.52, 0.40), 4: (0.10, 0.09, 0.08), 5: (0.34, 0.24, 0.15)},
@@ -303,6 +305,11 @@ def glieder_verdicken(mensch, rig, faktoren):
             if basis != "hand" and b.name in (f"{basis}_l", f"{basis}_r"):
                 achsen[b.name] = (b.head_local.copy(), b.tail_local.copy(), f)
     gelenk = {s: rig.data.bones[f"hand_{s}"].head_local.copy() for s in ("l", "r")}
+    flaeche = {}
+    for s, vz in (("l", 1.0), ("r", -1.0)):
+        f_ = (rig.data.bones[f"middle_01_{s}"].head_local - gelenk[s]).normalized()
+        q = Vector((-vz, -0.3, 0.0))                       # Handfläche zum Oberschenkel (wie haende_entspannen)
+        flaeche[s] = (q - f_ * q.dot(f_)).normalized()
     hand_f = faktoren.get("hand", 1.0)
     me = mensch.data
     for v in me.vertices:
@@ -316,12 +323,23 @@ def glieder_verdicken(mensch, rig, faktoren):
                 a, b, f = achsen[n]
                 d = b - a
                 u = max(0.0, min(1.0, (v.co - a).dot(d) / d.length_squared))
-                verschiebung += (v.co - (a + d * u)) * (f - 1.0) * e.weight
+                # Muskelform: Oberarm in der Mitte am dicksten (Bizeps, Schulter), Unterarm am Ellbogen dick, zum Handgelenk schmaler
+                if n.startswith("upperarm"):
+                    form = 0.75 + 0.5 * math.sin(math.pi * u)
+                elif n.startswith("lowerarm"):
+                    form = 1.25 - 0.6 * u
+                else:
+                    form = 1.0
+                verschiebung += (v.co - (a + d * u)) * (f - 1.0) * form * e.weight
             elif n.startswith(("hand_",) + FINGER) and n[-2:] in ("_l", "_r"):
                 hand_w[n[-1]] += e.weight
         for s in ("l", "r"):
             if hand_w[s] > 0:
-                verschiebung += (v.co - gelenk[s]) * (hand_f - 1.0) * min(hand_w[s], 1.0)
+                w = min(hand_w[s], 1.0)
+                verschiebung += (v.co - gelenk[s]) * (hand_f - 1.0) * w
+                # Handfläche dicker (sonst flach): quer zur Handebene um 25 % mehr
+                quer = flaeche[s]
+                verschiebung += quer * (v.co - gelenk[s]).dot(quer) * 0.25 * w
         v.co += verschiebung
     me.update()
 
@@ -599,6 +617,8 @@ def gesicht_wert(co, masse, art):
         ax, zu, zo = 0.068, masse["kinn"] - 0.005, masse["stirn"] - 0.005
     elif art == "gebende":
         ax, zu, zo = 0.055, masse["kinn"] + 0.018, masse["stirn"] - 0.02
+    elif art == "haube":
+        ax, zu, zo = 0.066, masse["kinn"] - 0.075, masse["stirn"] - 0.014   # Kinn frei, Wangen und Ohren bedeckt (Vorlage 09.11.)
     else:
         return 1.0
     zm, az = (zu + zo) / 2, (zo - zu) / 2
@@ -634,13 +654,13 @@ def kopf_aussparen(koerper, masse, art, name):
     ansatz = None
     if art == "haube":
         # Haaransatz (NAS 09.11.): ein Streifen Haar unter dem Haubenrand vorn und an den Schläfen, sauber geschnitten
-        ansatz = lambda v: kappe_wert(v.co, masse, art) + 0.024 if kopfanteil(v) > 0.3 else None
+        ansatz = lambda v: gesicht_wert(v.co, masse, art) + 0.22 if kopfanteil(v) > 0.3 else None
         isolinie_schneiden(bm, ansatz)
     weg = []
     for f in bm.faces:
         c = f.calc_center_median()
         if ansatz is not None and seite(f, ansatz) is not None and seite(f, ansatz) > 0 and c.y < masse["kopfmitte"].y + 0.02 \
-                and c.z > masse["stirn"] - 0.11 and kappe_wert(c, masse, art) <= 0.015:
+                and c.z > masse["stirn"] - 0.075 and gesicht_wert(c, masse, art) <= 0.35:
             f.material_index = stoff("Haar")
         if sum(kopfanteil(v) for v in f.verts) / len(f.verts) < 0.6:
             # Gugel: auch Schultern und Brust unter dem Schulterkragen (Runde 4: rotbraune Pünktchen = Cotte durch den Kragen)
@@ -652,6 +672,8 @@ def kopf_aussparen(koerper, masse, art, name):
             continue
         if art in ("gugel", "gebende"):
             bedeckt = gesicht_wert(c, masse, art) > 0.35
+        elif art == "haube":
+            bedeckt = gesicht_wert(c, masse, art) > 0.35 and c.z > masse["hals_fuss"] + 0.05
         else:
             bedeckt = kappe_wert(c, masse, art) > 0.015
         if bedeckt:
@@ -695,10 +717,15 @@ def kopfteil_bauen(koerper, masse, name, art):
     def schleier_tiefe(v):
         return v.co.y - (k.y - 0.02)
 
-    if art in ("haube", "haar"):
+    def haube_unten(v):
+        return v.co.z - (masse["hals_fuss"] + 0.03)
+
+    if art == "haar":
         isolinie_schneiden(bm, lambda v: haube(v) if kopfanteil(v) > 0.3 else None)
     else:
         isolinie_schneiden(bm, lambda v: gesicht(v) if kopfanteil(v) > 0.3 else None)
+    if art == "haube":
+        isolinie_schneiden(bm, lambda v: haube_unten(v) if kopfanteil(v) > 0.3 else None)
     if art == "gugel":
         isolinie_schneiden(bm, lambda v: kragen(v) if kopfanteil(v) <= 0.3 else None)
     if art == "gebende":
@@ -713,6 +740,8 @@ def kopfteil_bauen(koerper, masse, name, art):
         elif art == "gebende":
             schleier = seite(f, schleier_tiefe) > 0 and seite(f, schleier_hoehe) > 0 and abs(c.x) < 0.24
             drin = (anteil > 0.3 and seite(f, gesicht) > 0) or schleier
+        elif art == "haube":
+            drin = anteil > 0.3 and seite(f, gesicht) > 0 and seite(f, haube_unten) > 0
         else:
             drin = anteil > 0.3 and seite(f, haube) > 0
         if not drin:
@@ -790,37 +819,85 @@ def saum_fransen(obj, tiefe=0.018):
     return obj
 
 
-def bart_bauen(koerper, masse):
-    """Bart bzw. Stoppeln (Vorlage 09.11., je Figur an oder aus): Kinn, Kiefer und Oberlippe des Körpers als dünne Haarschicht."""
-    obj = kopie(koerper, "Bart")
-    namen = gruppen_index(obj)
+def bart_zone(koerper, masse):
+    """Bart bzw. Stoppeln (Vorlage 09.11.) als Zone 6 der Haut: Kinn, Kiefer und Oberlippe, mit glatt geschnittenem oberem Rand. Ob ein Mann
+    einen Bart trägt, entscheidet das Spiel je Figur (Haarfarbe oder Haut) – kein eigenes Netz, also keine aufgesetzte Kante und kein Flimmern."""
+    namen = gruppen_index(koerper)
     bm = bmesh.new()
-    bm.from_mesh(obj.data)
+    bm.from_mesh(koerper.data)
     deform = bm.verts.layers.deform.active
     k = masse["kopfmitte"]
     vorn = [v.co for v in bm.verts if abs(v.co.x) < 0.035 and masse["kinn"] - 0.01 < v.co.z < masse["kinn"] + 0.05 and v.co.y < k.y]
     y_vorn = min(c.y for c in vorn) if vorn else k.y - 0.09
     mund = sorted(c.z for c in vorn if c.y < y_vorn + 0.02)
     z_mund = mund[len(mund) // 3] if mund else masse["kinn"] + 0.02
-    weg = []
+
+    def kopf(v):
+        return sum(w for gi, w in v[deform].items() if namen[gi] == "head")
+
+    def oben(v):        # > 0 = über der Bartgrenze (an den Wangen höher, Koteletten)
+        if kopf(v) < 0.5 or v.co.y > k.y + 0.01:
+            return None
+        return v.co.z - (z_mund + 0.012 + 0.014 * min(abs(v.co.x) / 0.07, 1.0))   # v4: tiefer an den Wangen (wirkte wie eine Maske)
+
+    isolinie_schneiden(bm, oben)
+    haut = stoff("Haut")
     for f in bm.faces:
+        if f.material_index != haut:
+            continue
         c = f.calc_center_median()
-        kopf = sum(sum(w for gi, w in v[deform].items() if namen[gi] == "head") for v in f.verts) / len(f.verts)
-        seitlich = abs(c.x)
-        grenze = z_mund + 0.012 + 0.03 * min(seitlich / 0.07, 1.0)      # an den Wangen höher (Koteletten)
-        lippe = abs(c.z - z_mund) < 0.006 and seitlich < 0.022 and c.y < y_vorn + 0.012   # Mund frei
-        drin = kopf > 0.5 and c.y < k.y + 0.01 and masse["kinn"] - 0.05 < c.z < grenze and seitlich < 0.075 and not lippe
-        if not drin:
-            weg.append(f)
-    bmesh.ops.delete(bm, geom=weg, context="FACES")
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
-    bm.normal_update()
-    for v in bm.verts:
-        v.co += v.normal * (0.003 + 0.004 * _zerzaust(v.co))
-    for f in bm.faces:
-        f.material_index = stoff("Haar")
-    bm.to_mesh(obj.data)
+        o = seite(f, oben)
+        lippe = abs(c.z - z_mund) < 0.006 and abs(c.x) < 0.022 and c.y < y_vorn + 0.012
+        if o is not None and o < 0 and c.z > masse["kinn"] - 0.05 and abs(c.x) < 0.08 and not lippe:
+            f.material_index = stoff("Bart")
+    bm.to_mesh(koerper.data)
     bm.free()
+
+
+def schnuerung_bauen(koerper, masse):
+    """Schnürung vorn am Wams (Vorlage 09.11.): Kreuzbänder vom Halsausschnitt bis über den Gürtel, auf die Brust gelegt (Strahl von vorn)."""
+    from mathutils.bvhtree import BVHTree
+    bm_k = bmesh.new()
+    bm_k.from_mesh(koerper.data)
+    baum = BVHTree.FromBMesh(bm_k)
+    punkte = []
+    z = masse["schluesselbein"] - 0.06
+    while z > masse["guertel"] + 0.05:
+        reihe = []
+        for x in (-0.016, 0.016):
+            treffer = baum.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))
+            reihe.append((treffer[0] if treffer[0] is not None else Vector((x, masse["brust_y"], z))) + Vector((0, -0.005, 0)))
+        punkte.append(reihe)
+        z -= 0.05
+    bm_k.free()
+    bm = bmesh.new()
+    flaechen = []
+    for (l1, r1), (l2, r2) in zip(punkte, punkte[1:]):
+        flaechen += _zylinder(bm, l1, r2, 0.0035, n=4)
+        flaechen += _zylinder(bm, r1, l2, 0.0035, n=4)
+    me = bpy.data.meshes.new("Schnuerung")
+    bm.to_mesh(me)
+    bm.free()
+    obj = neues_objekt("Schnuerung", me)
+    stoffe_anlegen(obj)
+    for p_ in me.polygons:
+        p_.material_index = stoff("Schnur")
+    g3 = obj.vertex_groups.new(name="spine_03")
+    g2 = obj.vertex_groups.new(name="spine_02")
+    for v in me.vertices:
+        u = max(0.0, min(1.0, (masse["schluesselbein"] - v.co.z) / 0.3))
+        g3.add([v.index], 1 - u, "REPLACE")
+        g2.add([v.index], u, "REPLACE")
+    return obj
+
+
+def haar_struppig(obj):
+    """Struppiges kurzes Haar (Ork, Vorlage 09.11.): Strähnen stehen ungleich ab, kleinräumiger als beim Menschen."""
+    me = obj.data
+    for v in me.vertices:
+        z_ = math.sin(v.co.x * 520.0 + v.co.z * 310.0) * math.sin(v.co.y * 470.0 - v.co.z * 260.0)
+        v.co += v.normal * (0.006 + 0.012 * max(0.0, z_))
+    me.update()
     return obj
 
 
@@ -978,7 +1055,7 @@ def aermellos(vorlage, masse, name, stoffname, flicken=False):
             return None
         a = masse[f"schulter_{s}"]
         d = (masse[f"ellbogen_{s}"] - a).normalized()
-        return (v.co - a).dot(d) - 0.04
+        return (v.co - a).dot(d) + 0.02       # 2 cm vor dem Gelenk (v3: 4 cm dahinter stand der Stoff wie ein Brett ab)
 
     for s in ("l", "r"):
         isolinie_schneiden(bm, lambda v, s=s: arm(v, s))
@@ -1231,6 +1308,12 @@ def schuh_bauen(koerper_quelle, s, masse, form="halb"):
     stoffe_anlegen(obj)
     for p in me.polygons:
         p.material_index = stoff("Holzschuh" if holz else "Schuh")
+        if not holz:
+            # Schnürung (Vorlage 09.11.): Band oben am Schaft und vorn über dem Spann
+            c = p.center
+            t_ = (ferse - c.y) / (ferse - zehe)
+            if (c.z > schaft - 0.012 and t_ < 0.45) or (0.30 < t_ < 0.62 and abs(c.x - xm) < 0.012 and c.z > sohle + 0.035):
+                p.material_index = stoff("Schnur")
     gf = obj.vertex_groups.new(name=f"foot_{s}")
     gb = obj.vertex_groups.new(name=f"ball_{s}")
     gc = obj.vertex_groups.new(name=f"calf_{s}")
@@ -2156,6 +2239,8 @@ def figur_bauen(art, quellen):
     bpy.data.objects.remove(mensch)
     schuhe = {form: [schuh_bauen(roh, s, masse, form) for s in ("l", "r")] for form in ("halb", "holz")}
     fuesse_roh = koerper_zonen(koerper, masse)
+    if cfg.get("bart"):
+        bart_zone(koerper, masse)
     bpy.data.objects.remove(roh)
     unter_guertel = masse["guertel"] - 0.03
     koerper_knie = koerper_aussparen(koerper, masse["knie"] + 0.02, unter_guertel, "KoerperKnie")
@@ -2204,8 +2289,11 @@ def figur_bauen(art, quellen):
             "kutte": [k_kutte, rock_lang] + gugel,       # Mönch (Schritt 4): langer Rock mit Gugel
         }
         if "wams" in cfg["varianten"] or "sack" in cfg["varianten"]:
-            kopf_ = [] if cfg.get("kahl") else [haar]
-            teile["wams"] = [k_wams, r_wams] + kopf_
+            kopf_ = [] if cfg.get("kahl") else [haar_struppig(kopie(haar, "HaarStruppig"))]
+            hilfen += kopf_
+            schnur = schnuerung_bauen(k_wams, masse)
+            hilfen.append(schnur)
+            teile["wams"] = [k_wams, r_wams, schnur] + kopf_
             teile["sack"] = [k_sack, r_sack] + kopf_
         if cfg.get("hauer"):
             hauer = hauer_bauen(koerper, masse, cfg["hauer"])
@@ -2242,10 +2330,6 @@ def figur_bauen(art, quellen):
     schuerze = schuerze_bauen(rock_knie, masse)
     hilfen.append(schuerze)
     extra = [("schuerze", [schuerze])]
-    if cfg.get("bart"):
-        bart = bart_bauen(koerper, masse)
-        hilfen.append(bart)
-        extra.append(("bart", [bart]))
     for form, liste in [("halb", schuhe["halb"]), ("holz", schuhe["holz"]), ("barfuss", [fuesse_roh])] + extra:
         obj = zusammenfuegen(liste, f"Zub_{form}" if form in ("schuerze", "bart") else f"Fuss_{form}")
         vorher = dreiecke(obj)
@@ -2435,7 +2519,7 @@ def vorschau_material(name, schicht):
     return m
 
 
-VORSCHAU_FUSS = {"wams": "barfuss", "sack": "barfuss", "cotte": "holz", "gugel": "halb", "rock": "halb", "haube": "holz", "gebende": "halb", "bettler": "barfuss"}
+VORSCHAU_FUSS = {"wams": "barfuss", "sack": "barfuss", "cotte": "halb", "gugel": "halb", "rock": "halb", "haube": "halb", "gebende": "halb", "bettler": "barfuss"}
 
 
 # Berufe in der Vorschau (Schritt 4): (Name, Variante, Fußform, Zubehör)
@@ -2506,7 +2590,7 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen,
         werte = []
         for li in range(len(me.loops)):
             z = int(round(zone[li].uv[0]))
-            c = pal.get(z) if z else tuple(basis[li].color[:3])   # „Farbe“ hält die sRGB-Zahlen als Rohwerte (wie figuren.py, das Spiel liest sie als sRGB)
+            c = (tuple(0.3 * h + 0.7 * b for h, b in zip(pal[3], pal[4])) if z == 6 else pal.get(z)) if z else tuple(basis[li].color[:3])   # Vorschau: Bart an (wie im Spiel 70 % Haarfarbe)   # „Farbe“ hält die sRGB-Zahlen als Rohwerte (wie figuren.py, das Spiel liest sie als sRGB)
             werte += [c[0], c[1], c[2], 1.0]
         v.data.foreach_set("color_srgb", werte)   # Vorschaufarben sind sRGB wie die Farben im Spiel
         me.color_attributes.active_color = v
@@ -2522,7 +2606,7 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen,
     for obj in netze:
         stufe, variante = obj.name.split("_")
         fuss = fuesse[VORSCHAU_FUSS.get(variante, "halb")]
-        bart_ = zubehoer.get("bart") if variante == "cotte" else None     # Mann mit Bart in der Vorschau
+        bart_ = None
         eigene = [("Gehen", 8), ("Betteln", 20), ("Kauern", 20)] if variante == "bettler" else posen
         for bewegung, bild in eigene:
             if stufe == "Fern" and bewegung != "Gehen":
@@ -2612,7 +2696,7 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen,
         rig.animation_data.action = aktionen["Stehen"][0]
         sc.frame_set(20)
         quelle = varianten[0]
-        for teil in [quelle, fuesse[VORSCHAU_FUSS.get(quelle.name.split("_")[-1], "halb")]] + ([zubehoer["bart"]] if "bart" in zubehoer else []):
+        for teil in [quelle, fuesse[VORSCHAU_FUSS.get(quelle.name.split("_")[-1], "halb")]]:
             dg = bpy.context.evaluated_depsgraph_get()
             me = bpy.data.meshes.new_from_object(teil.evaluated_get(dg))
             k = neues_objekt(f"Vergleich_{art}_{teil.name}", me)
