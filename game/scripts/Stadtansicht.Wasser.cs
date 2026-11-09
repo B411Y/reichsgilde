@@ -271,6 +271,11 @@ public partial class Stadtansicht
     /// (Abstand höchstens <paramref name="abstand"/>, mindestens vier Felder), alle auf der Höhe des Spiegels. UV = (quer, Stelle) in Metern, UV2 = Strömung
     /// nach x und z, COLOR = (Uferabstand / 32, Eiskanal (<see cref="Wasserarten.EisKanal"/>: offen bzw. still vor einer Kaimauer), Schaumanteil, Deckkraft) –
     /// wie <c>wasser_realistisch.gdshaderinc</c> sie liest.
+    /// <para>Kurven (Befund 3, 09.11.2026): Die Richtung einer Reihe ist geglättet (<see cref="GeglaetteteRichtungen"/>), sonst gaben Knicke des Polygonzugs
+    /// örtlich winzige Halbmesser. Wo eine Kurve enger ist als das halbe Band (Ecke · Krümmung ≥ 1), fielen die Reihen auf der Innenseite übereinander
+    /// (ein Fächer): Dort rückt eine Ecke höchstens bis auf <see cref="KurveKlemme"/> des Halbmessers an den Krümmungsmittelpunkt heran, und eine
+    /// Kehlenkappe um den Mittelpunkt schließt das Loch (<see cref="Kehlenkappe"/>). Der Uferabstand ist der wahre Abstand der Ecke zur Mitte – ohne
+    /// Faltung liegt jede Ecke ihrer Reihe am nächsten, so passt er zum Kern.</para>
     /// </summary>
     private List<ArrayMesh> FlussNetze(Wasserlauf lauf, Wasserform form, float abstand, Wasserart art)
     {
@@ -288,45 +293,78 @@ public partial class Stadtansicht
         var tempo = (float)lauf.Stroemung;
         // Läufe, in die dieser mündet: Dort blendet er weich über (statt an der ersten Ecke drinnen hart abzubrechen)
         var muendetIn = _muendungen.Where(m => m.Bach == lauf && m.Ziel is not null).Select(m => m.Ziel!).Distinct().ToList();
+        var richtungen = GeglaetteteRichtungen(p, schritt);
 
         var ecken = new List<Vector3>();
         var uv = new List<Vector2>();
         var uv2 = new List<Vector2>();
         var farben = new List<Color>();
         var stueckAnfang = 0; // erste Reihe des Stücks
+
+        // Eine Ecke: Höhe, Laufachsen, Strömung und Netzwerte am Ort; o = Abstand zur Mitte (quer, mit Vorzeichen; sein Betrag gibt den Uferabstand)
+        void Ecke(Vector2 ort, float o, float stelle, Vector2 richtung, float halb, float hoehe, float schaum, float furtOffen)
+        {
+            // In der Mündung: Liegt der Bach höher als der Fluss, fällt seine Fläche über die letzten Meter auf dessen Spiegel (statt als Platte über
+            // dem Fluss zu enden) und blendet vom Rand des Flusses 1 m davor bis 3 m hinein weich aus – das Bachwasser läuft sichtbar hinein
+            var muendung = muendetIn.Count > 0 ? EinMuendung(muendetIn, ort) : null;
+            var eckHoehe = hoehe;
+            if (muendung is { } mu && hoehe > mu.Spiegel + 0.02f)
+                eckHoehe = Mathf.Lerp(hoehe, mu.Spiegel + 0.02f, Mathf.SmoothStep(-4f, 1.5f, mu.Hinein));
+            ecken.Add(new Vector3(ort.X, eckHoehe, ort.Y));
+            uv.Add(new Vector2(o, stelle));
+            uv2.Add(richtung * tempo);
+            var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
+            var fremd = andere.Count > 0 && ImAnderenWasser(form, andere, ort, lauf, null);
+            var deckkraft = fremd ? 0f : 1f;
+            if (muendung is { } m2) deckkraft = 1f - Mathf.SmoothStep(-1f, 3f, m2.Hinein);
+            // Vor einer Kaimauer ist das Wasser still und friert wie das Hafenbecken (das Becken selbst ist in Köln schmal und liegt unter den Kähnen)
+            farben.Add(new Color(Mathf.Clamp((halb - Mathf.Abs(o)) / 32f, 0f, 1f), Wasserarten.EisKanal(fremd ? 1f : offen, kai),
+                schaum * Mathf.Lerp(1f, Wasserarten.KaiSchaumAnteil, kai), deckkraft));
+        }
+
+        // Geklemmte Reihen (für die Kehlenkappen) und je Folge eine Zeile im Protokoll
+        var kappen = new List<(Vector2 Mittelpunkt, float Halbmesser, float Radius, float Vorzeichen, float Stelle, Vector2 Richtung, Vector2 Mitte, float Halb,
+            float Hoehe, float Schaum, float FurtOffen)>();
+        var (folgeAb, engsteR) = (-1f, float.MaxValue);
+
         for (var r = 0; r < reihen.Count; r++)
         {
             var i = reihen[r];
             var pt = p[i];
-            var (vor, nach) = (p[Math.Max(0, i - 1)].Ort, p[Math.Min(p.Count - 1, i + 1)].Ort);
-            var richtung = new Vector2((float)(nach.X - vor.X), (float)(nach.Z - vor.Z)).Normalized();
-            if (richtung == Vector2.Zero) richtung = new Vector2((float)pt.RichtungX, (float)pt.RichtungZ);
+            var richtung = richtungen[i];
             var quer = new Vector2(-richtung.Y, richtung.X);
             var halb = (float)pt.Breite / 2;
             var mitte = new Vector2((float)pt.Ort.X, (float)pt.Ort.Z);
             var hoehe = Mathf.Max((float)pt.Spiegel, Wasserdeckel(mitte, richtung, halb));
             var schaum = Mathf.SmoothStep(Wasserarten.SchaumAbBreite - 4f, Wasserarten.SchaumAbBreite, (float)pt.Breite);
             var furtOffen = Wasserarten.FurtOffen(art, halb);
+            // Krümmung (1/m, + = die Kurve biegt zur Seite von quer, dort liegt der Mittelpunkt) aus den geglätteten Richtungen der Nachbarreihen
+            var (iv, inach) = (reihen[Math.Max(0, r - 1)], reihen[Math.Min(reihen.Count - 1, r + 1)]);
+            var weg = (float)(p[inach].Stelle - p[iv].Stelle);
+            var kappa = weg > 1e-3f ? Mathf.Atan2(richtungen[iv].Cross(richtungen[inach]), richtungen[iv].Dot(richtungen[inach])) / weg : 0f;
+            var geklemmt = false;
             for (var j = 0; j <= felder; j++)
             {
                 var o = halb * FlussRandFaktor * (2f * j / felder - 1f);
-                var ort = mitte + quer * o;
-                // In der Mündung: Liegt der Bach höher als der Fluss, fällt seine Fläche über die letzten Meter auf dessen Spiegel (statt als Platte über
-                // dem Fluss zu enden) und blendet vom Rand des Flusses 1 m davor bis 3 m hinein weich aus – das Bachwasser läuft sichtbar hinein
-                var muendung = muendetIn.Count > 0 ? EinMuendung(muendetIn, ort) : null;
-                var eckHoehe = hoehe;
-                if (muendung is { } mu && hoehe > mu.Spiegel + 0.02f)
-                    eckHoehe = Mathf.Lerp(hoehe, mu.Spiegel + 0.02f, Mathf.SmoothStep(-4f, 1.5f, mu.Hinein));
-                ecken.Add(new Vector3(ort.X, eckHoehe, ort.Y));
-                uv.Add(new Vector2(o, (float)pt.Stelle));
-                uv2.Add(richtung * tempo);
-                var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
-                var fremd = andere.Count > 0 && ImAnderenWasser(form, andere, ort, lauf, null);
-                var deckkraft = fremd ? 0f : 1f;
-                if (muendung is { } m2) deckkraft = 1f - Mathf.SmoothStep(-1f, 3f, m2.Hinein);
-                // Vor einer Kaimauer ist das Wasser still und friert wie das Hafenbecken (das Becken selbst ist in Köln schmal und liegt unter den Kähnen)
-                farben.Add(new Color(Mathf.Clamp((halb - Mathf.Abs(o)) / 32f, 0f, 1f), Wasserarten.EisKanal(fremd ? 1f : offen, kai),
-                    schaum * Mathf.Lerp(1f, Wasserarten.KaiSchaumAnteil, kai), deckkraft));
+                if (o * kappa > KurveKlemme) // Innenseite einer zu engen Kurve: nicht über den Mittelpunkt hinaus (sonst fallen die Reihen übereinander)
+                {
+                    o = KurveKlemme / kappa;
+                    geklemmt = true;
+                }
+                Ecke(mitte + quer * o, o, (float)pt.Stelle, richtung, halb, hoehe, schaum, furtOffen);
+            }
+            if (geklemmt)
+            {
+                var halbmesser = 1f / Mathf.Abs(kappa);
+                kappen.Add((mitte + quer / kappa, halbmesser, halb * FlussRandFaktor - KurveKlemme * halbmesser + 0.3f, Mathf.Sign(kappa), (float)pt.Stelle,
+                    richtung, mitte, halb, hoehe, schaum, furtOffen));
+                if (folgeAb < 0) folgeAb = (float)pt.Stelle;
+                engsteR = Mathf.Min(engsteR, halbmesser);
+            }
+            if (folgeAb >= 0 && (!geklemmt || r == reihen.Count - 1))
+            {
+                GD.Print($"[wasser] Kurve {lauf.Name} bei {folgeAb:0} m: R={engsteR:0.0} m bei halber Breite {halb:0.0} m, geklemmt");
+                (folgeAb, engsteR) = (-1f, float.MaxValue);
             }
             // Stück abschließen: nach FlussStueck Metern oder am Ende (die letzte Reihe ist zugleich die erste des nächsten Stücks)
             var laenge = (float)(pt.Stelle - p[reihen[stueckAnfang]].Stelle);
@@ -342,7 +380,75 @@ public partial class Stadtansicht
                 stueckAnfang = r;
             }
         }
+
+        // Die Kehlenkappen: je geklemmte Reihe eine kleine Scheibe um den Krümmungsmittelpunkt, auf der Höhe der Reihe, mit denselben Netzwerten. Der Abstand
+        // eines Punktes der Scheibe zur Mitte des Laufs ist Halbmesser − Abstand zum Mittelpunkt; die Strömung wie im Band (sonst stünde die Scheibe als
+        // ruhender Fleck im fließenden Wasser – die Normalkarten liegen in Weltachsen, gleiche Strömung heißt gleiches Bild)
+        if (kappen.Count > 0)
+        {
+            (ecken, uv, uv2, farben) = (new List<Vector3>(), new List<Vector2>(), new List<Vector2>(), new List<Color>());
+            var indizes = new List<int>();
+            foreach (var k in kappen)
+                Kehlenkappe(k.Mittelpunkt, k.Radius, indizes, ecken, ort =>
+                {
+                    var o = k.Vorzeichen * (k.Halbmesser - ort.DistanceTo(k.Mittelpunkt));
+                    Ecke(ort, o, k.Stelle + (ort - k.Mitte).Dot(k.Richtung), k.Richtung, k.Halb, k.Hoehe, k.Schaum, k.FurtOffen);
+                });
+            netze.Add(NetzAusFeldern(ecken, uv, uv2, farben, indizes));
+        }
         return netze;
+    }
+
+    /// <summary>
+    /// So nah (Anteil des Halbmessers) rückt eine Ecke auf der Innenseite einer Kurve höchstens an den Krümmungsmittelpunkt heran (Vorgabe Teamleiter
+    /// 09.11.2026): näher, und die Reihen fielen übereinander.
+    /// </summary>
+    private const float KurveKlemme = 0.85f;
+
+    /// <summary>So viele Dreiecke hat eine Kehlenkappe (ein Fächer um den Mittelpunkt).</summary>
+    private const int KappeTeile = 10;
+
+    /// <summary>
+    /// Die Fließrichtung je Punkt eines Laufs (Befund 3, 09.11.2026): erst als Sehne über ± max(2, <paramref name="schritt"/>) Punkte (statt ± 1 m – Knicke des
+    /// Polygonzugs gaben sonst örtlich winzige Halbmesser), dann gleitend gemittelt über ein Fenster von etwa der halben Breite. Dieselbe Richtung geht in die
+    /// Strömung (UV2).
+    /// </summary>
+    private static Vector2[] GeglaetteteRichtungen(IReadOnlyList<Wasserpunkt> p, int schritt)
+    {
+        var n = p.Count;
+        var k = Math.Max(2, schritt);
+        var roh = new Vector2[n];
+        for (var i = 0; i < n; i++)
+        {
+            var (a, b) = (p[Math.Max(0, i - k)].Ort, p[Math.Min(n - 1, i + k)].Ort);
+            var d = new Vector2((float)(b.X - a.X), (float)(b.Z - a.Z));
+            roh[i] = d.LengthSquared() > 1e-8f ? d.Normalized() : new Vector2((float)p[i].RichtungX, (float)p[i].RichtungZ);
+        }
+        // gleitendes Mittel über Präfixsummen (die Punkte liegen etwa 1 m auseinander: das Fenster in Punkten ist die halbe Breite in Metern)
+        var summe = new Vector2[n + 1];
+        for (var i = 0; i < n; i++) summe[i + 1] = summe[i] + roh[i];
+        var aus = new Vector2[n];
+        for (var i = 0; i < n; i++)
+        {
+            var w = Math.Max(1, Mathf.RoundToInt((float)p[i].Breite / 2));
+            var (von, bis) = (Math.Max(0, i - w), Math.Min(n - 1, i + w));
+            var m = summe[bis + 1] - summe[von];
+            aus[i] = m.LengthSquared() > 1e-8f ? m.Normalized() : roh[i];
+        }
+        return aus;
+    }
+
+    /// <summary>Eine Kehlenkappe: ein Fächer aus <see cref="KappeTeile"/> Dreiecken um <paramref name="mittelpunkt"/> mit dem Halbmesser <paramref name="radius"/>; <paramref name="ecke"/> legt jede Ecke an.</summary>
+    private static void Kehlenkappe(Vector2 mittelpunkt, float radius, List<int> indizes, List<Vector3> ecken, Action<Vector2> ecke)
+    {
+        var basis = ecken.Count;
+        ecke(mittelpunkt);
+        for (var t = 0; t < KappeTeile; t++)
+        {
+            var winkel = Mathf.Tau * t / KappeTeile;
+            ecke(mittelpunkt + new Vector2(Mathf.Cos(winkel), Mathf.Sin(winkel)) * radius);
+        }
+        for (var t = 0; t < KappeTeile; t++) DreieckNachOben(indizes, ecken, basis, basis + 1 + t, basis + 1 + (t + 1) % KappeTeile);
     }
 
     /// <summary>
@@ -533,8 +639,8 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Mündungen in einen Fluss als Uniforms (<c>muendung</c>: quer, Stelle, Seite, Breite des Baches in den Laufachsen des Flusses): Der Shader
-    /// zeichnet dort das Bachwasser als helleren, trüben Streifen, der am Ufer stromab zieht, breiter wird und sich in Schlieren einmischt, mit dünnen
-    /// Schaumstreifen an der Mischkante; den Uferschaum blendet er an der Mündung aus.
+    /// zeichnet dort das Bachwasser als feine, trübere Linien, die am Ufer stromab ziehen (höchstens ein Drittel der örtlichen Flussbreite) und nach 25 bis
+    /// 70 m weich auslaufen, mit dünnen Schaumstreifen an der Mischkante; den Uferschaum blendet er an der Mündung aus.
     /// </summary>
     private void MuendungenSetzen(ShaderMaterial stoff, Wasserlauf lauf)
     {
