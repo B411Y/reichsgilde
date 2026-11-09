@@ -61,6 +61,7 @@ public partial class Hauptmenue : Node
     private SpinBox _startvermoegen = null!;
     private SpinBox _aktionspunkte = null!;
     private OptionButton _beruf = null!;
+    private OptionButton _hofstelle = null!;
     private OptionButton _rivalen = null!;
     private OptionButton _rivale = null!;
     private OptionButton _schwierigkeit = null!;
@@ -434,6 +435,11 @@ public partial class Hauptmenue : Node
         _beruf.AddItem("Geldleiher (Wechselstube: Kasse, Wechsel, Kredite an Häuser)");
         _beruf.AddItem("Parfumeur (Siederei: Politur, Blume der Zwietracht, Giftdolch)");
         Zeile(raster, "Startberuf", _beruf);
+
+        _hofstelle = new OptionButton { FocusMode = Control.FocusModeEnum.None };
+        _hofstelle.TooltipText = "Eine Hofstelle ist Wohnhaus und Werkstatt nebeneinander. Zufall lost eine unter den Startplätzen der Karte; die KI-Häuser bekommen immer geloste Hofstellen.";
+        Zeile(raster, "Hofstelle", _hofstelle);
+        HofstellenWahlFuellen();
         VolkHinweisZeigen();
 
         _sieg = new OptionButton { FocusMode = Control.FocusModeEnum.None };
@@ -620,6 +626,30 @@ public partial class Hauptmenue : Node
         if (haeuser.Count > 0) _rivalen.Select(haeuser.Count - 1);
     }
 
+    /// <summary>
+    /// Die Wahl der Hofstelle: „Zufall“ (Vorgabe) und je Start-Hofstelle der gewählten Karte ein Eintrag „Heumarkt – 120 m zum Heumarkt“.
+    /// Karten ohne Hofstellen: die Zeile verschwindet. Der Weg wird beim Wechsel der Karte einmal gerechnet (Köln einige 10 ms).
+    /// </summary>
+    private void HofstellenWahlFuellen()
+    {
+        _hofstelle.Clear();
+        _hofstelle.AddItem("Zufall", 0);
+        _hofstelle.SetItemMetadata(0, "");
+        var karte = Stadtkarten.Startkarte;
+        if (karte is { HatHofstellen: true })
+        {
+            var start = karte.Hofstellen.Where(h => h.Start).Select(h => h.Kennung).ToHashSet();
+            foreach (var a in Hofstellenvergabe.Angebot(karte).Where(a => start.Contains(a.Kennung)))
+            {
+                var text = a.Meter is { } m && a.Markt is { } markt ? $"{a.Name} – {Math.Round(m):0} m zum {markt}" : a.Name;
+                _hofstelle.AddItem(text);
+                _hofstelle.SetItemMetadata(_hofstelle.ItemCount - 1, a.Kennung);
+            }
+        }
+        _hofstelle.Select(0);
+        ZeileZeigen(_hofstelle, _hofstelle.ItemCount > 1);
+    }
+
     /// <summary>Warum dieses Wappen nicht geht – oder null.</summary>
     private string? WappenProblem()
     {
@@ -709,6 +739,7 @@ public partial class Hauptmenue : Node
                 string.IsNullOrWhiteSpace(_vorname.Text) ? null : _vorname.Text.Trim(),
                 Beruf: _beruf.Selected switch { 1 => "Tischler", 2 => "Steinmetz", 3 => "Alchimist", 4 => "Wirt", 5 => "Prediger", 6 => "Dieb", 7 => "Gardist", 8 => "Geldleiher", 9 => "Parfumeur", _ => "Schmied" },
                 Rivalen: _rivalen.GetSelectedId(),
+                Hofstelle: _hofstelle.Selected > 0 ? _hofstelle.GetItemMetadata(_hofstelle.Selected).AsString() : null,
                 Glaube: _glaube.GetSelectedId() < 0 ? null : (Konfession)_glaube.GetSelectedId(),
                 Wappen: _wappen, Aussehen: GewaehltesAussehen));
         SpielStarten();

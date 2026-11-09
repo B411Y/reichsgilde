@@ -137,8 +137,17 @@ public partial class Hauptmenue
         var teile = new List<string>();
         var rivalen = karte.Startbelegung.Haeuser.Count;
         teile.Add(rivalen == 1 ? "1 Rivale" : $"{rivalen} Rivalen");
-        var plaetze = karte.Gebaeude.Count(g => g.Art == Bausteinart.Werkstattplatz);
-        teile.Add(plaetze == 1 ? "1 Werkstattplatz" : $"{plaetze} Werkstattplätze");
+        if (karte.HatHofstellen)
+        {
+            var start = karte.Hofstellen.Count(h => h.Start);
+            var frei = karte.Hofstellen.Count - (rivalen + 1); // der Spieler und die Rivalen sitzen beim Start auf je einer
+            teile.Add($"Hofstellen: {start} zum Start, {Math.Max(0, frei)} frei");
+        }
+        else
+        {
+            var plaetze = karte.Gebaeude.Count(g => g.Art == Bausteinart.Werkstattplatz);
+            teile.Add(plaetze == 1 ? "1 Werkstattplatz" : $"{plaetze} Werkstattplätze");
+        }
         if (karte.Wasser.Any(w => w.Art is "fluss" or "bach")) teile.Add("Fluss");
         if (karte.Haefen.Count > 0) teile.Add("Hafen");
         var g = karte.Kartengrenzen;
@@ -157,6 +166,7 @@ public partial class Hauptmenue
         einstellungen.Save("user://einstellungen.cfg");
         _rivalen.Clear(); // die Rivalen gehören zur Karte
         RivalenWahlFuellen();
+        HofstellenWahlFuellen();
         Zeigen(_oberhaupt);
     }
 
