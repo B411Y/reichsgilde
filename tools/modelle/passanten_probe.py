@@ -1617,9 +1617,9 @@ def vorschau(art, rig, netze, last, werkzeug, aktionen, ordner, quellen):
         werte = []
         for li in range(len(me.loops)):
             z = int(round(zone[li].uv[0]))
-            c = pal.get(z) if z else tuple(basis[li].color[:3])
+            c = pal.get(z) if z else tuple(basis[li].color_srgb[:3])
             werte += [c[0], c[1], c[2], 1.0]
-        v.data.foreach_set("color", werte)
+        v.data.foreach_set("color_srgb", werte)   # Vorschaufarben sind sRGB wie die Farben im Spiel
         me.color_attributes.active_color = v
         me.materials.clear()
         for s_ in stoffe:
