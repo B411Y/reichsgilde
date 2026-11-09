@@ -35,6 +35,8 @@ public sealed partial class Geheimniswesen
                 if (hausDes is null) return $"{inhaber.Name} hat kein Geld, das ihm gehörte – bei einem Ratsherrn erpresst man die Stimme.";
                 if (betrag <= 0 || !double.IsFinite(betrag)) return "Wie viel Schweigegeld soll es denn sein?";
                 if (_w.Gauner.ForderungAn(hausDes, haus) is not null) return $"{hausDes.Inhaber} hat schon einen Brief von euch – wartet die Antwort ab.";
+                if (_w.Justiz.IstAktiv && _w.Justiz.VerfahrenGegen(haus, hausDes) is not null) // wie beim Erpresserbrief mit Beweisen
+                    return $"Eure Anklage gegen {hausDes.Inhaber} läuft schon – zum Erpressen ist es zu spät.";
                 return null;
             case Geheimnisnutzung.Ratsstimme:
                 if (!_w.Rat.IstAktiv) return "In dieser Stadt gibt es keinen Stadtrat.";
@@ -89,7 +91,7 @@ public sealed partial class Geheimniswesen
     {
         var opfer = HausVon(g)!;
         var inhaber = Inhaber(g)!;
-        var ergebnis = _w.Gauner.GeheimnisErpressen(haus, opfer, betrag, g.Nummer, $"{inhaber.Name}: {Beschreibung(g)}");
+        var ergebnis = _w.Gauner.GeheimnisErpressen(haus, opfer, betrag, g.Nummer, $"{inhaber.Name}: {Beschreibung(g)}", _zufall);
         if (!ergebnis.Erfolg) return ergebnis;
         Wissen(haus, g)!.BriefIm = Jahr;
         InhaberStress(g, Daten.Stress.Erpresst, $"Erpresst: {Beschreibung(g)}");

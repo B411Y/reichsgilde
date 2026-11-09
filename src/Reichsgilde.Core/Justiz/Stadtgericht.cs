@@ -234,7 +234,7 @@ public sealed class Stadtgericht
         v.GeheimnisArt is { } art && _w.Daten.Geheimnisse is { } g ? g.Art(art).Beweiskraft : 0;
 
     /// <summary>Was ein angezeigtes Geheimnis bei einem Schuldspruch kostet (Buße, Jahre Kerker; ohne Geheimnis 0).</summary>
-    private (double Busse, int Kerker) GeheimnisStrafe(Verfahren v) =>
+    internal (double Busse, int Kerker) GeheimnisStrafe(Verfahren v) =>
         v.GeheimnisArt is { } art && _w.Daten.Geheimnisse is { } g ? (g.Art(art).Busse, g.Art(art).KerkerJahre) : (0, 0);
 
     /// <summary>Wofür angeklagt wird: die Vergehen der Beweise und ein angezeigtes Geheimnis – „Bestechung und Ehebruch“.</summary>

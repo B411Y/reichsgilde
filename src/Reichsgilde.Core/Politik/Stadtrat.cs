@@ -261,11 +261,14 @@ public sealed class Stadtrat
     /// <summary>Darf dieses Haus bei der Wahl zu diesem Amt eine Stimme festlegen? (null = ja, sonst der Grund)</summary>
     public string? WahlStimmeVerboten(Konto konto, Amt amt)
     {
-        if (StimmeVerboten(konto) is { } grund) return grund;
+        if (StimmeGrundVerboten(konto) is { } grund) return grund;
         var kandidaten = KandidatenListe(amt);
         if (kandidaten.Count == 0) return $"Um das Amt {amt.Name} bewirbt sich dieses Jahr niemand – es gibt keine Wahl.";
         if (kandidaten.Contains(konto)) return $"{konto.Inhaber} steht bei dieser Wahl selbst zur Wahl und stimmt nicht mit.";
         if (!Waehler(amt).Any(s => s.Konto == konto)) return $"Über das Amt {amt.Name} stimmen nur die Inhaber höherer Ämter ab.";
+        // Erpresst (Teil 3c): gesperrt nur, wenn der Erpresser diese Stimme wirklich bestimmt (dieselbe Regel wie WahlStimmeVonSitz)
+        if (AmtVon(konto) is { } sitz && Erpresser(sitz) is { } erpresser && WahlErpresst(sitz, erpresser, amt, kandidaten) is { } fuer)
+            return $"{erpresser.Inhaber} hat eure Stimme erpresst: Bei dieser Wahl stimmt ihr {(fuer ? $"für {erpresser.Inhaber}" : $"wie {erpresser.Inhaber}")}.";
         return null;
     }
 
@@ -299,14 +302,35 @@ public sealed class Stadtrat
     public bool? StatutStimmeVon(Konto konto) =>
         StatutStimmeVerboten(konto) is null && _statutStimmen.TryGetValue(konto, out var ja) ? ja : null;
 
-    /// <summary>Gemeinsame Prüfung für alle Stimmen im Rat: Rat vorhanden, keine KI, Mitglied des Rates.</summary>
+    /// <summary>
+    /// Gemeinsame Prüfung für alle Stimmen im Rat zu Anträgen: Rat vorhanden, keine KI, Mitglied des Rates – und nicht erpresst
+    /// (Teil 3c: gesperrt nur, wenn der Erpresser selbst einen Sitz hat; sonst stimmt das Haus wie sonst, siehe <see cref="StimmSitz"/>).
+    /// </summary>
     internal string? StimmeVerboten(Konto konto)
+    {
+        if (StimmeGrundVerboten(konto) is { } grund) return grund;
+        if (AmtVon(konto) is { } sitz && StimmSitz(sitz) is var stimmSitz && stimmSitz != sitz && Erpresser(sitz) is { } erpresser)
+            return $"{erpresser.Inhaber} hat eure Stimme erpresst: In dieser Sitzung stimmt ihr bei allen Anträgen wie {erpresser.Inhaber}.";
+        return null;
+    }
+
+    /// <summary>Rat vorhanden, keine KI, Mitglied des Rates (ohne die Erpressung).</summary>
+    private string? StimmeGrundVerboten(Konto konto)
     {
         if (!IstAktiv) return "In dieser Stadt gibt es keinen Stadtrat.";
         if (_w.Rivalen.Any(r => r.Konto == konto)) return $"{konto.Inhaber} stimmt nach eigenem Ermessen ab.";
         if (AmtVon(konto) is null) return "Abstimmen dürfen nur Mitglieder des Rates.";
-        if (_w.Geheimnisse.ErpresserVon(konto) is { } erpresser)
-            return $"{erpresser.Inhaber} hat eure Stimme erpresst: In dieser Sitzung stimmt ihr bei allen Punkten wie {erpresser.Inhaber}.";
+        return null;
+    }
+
+    /// <summary>
+    /// Bestimmt der Erpresser bei dieser Wahl die Stimme dieses Sitzes? true = für ihn (er kandidiert), false = wie er (er wählt selbst mit),
+    /// null = nein (der Sitz stimmt wie sonst).
+    /// </summary>
+    private bool? WahlErpresst(Amt sitz, Konto erpresser, Amt amt, IReadOnlyList<Konto?> kandidaten)
+    {
+        if (kandidaten.Contains(erpresser)) return true;
+        if (AmtVon(erpresser) is { } eigener && eigener != sitz && WahlWaehler(amt, kandidaten).Contains(eigener)) return false;
         return null;
     }
 
@@ -658,11 +682,11 @@ public sealed class Stadtrat
     {
         // Erpresst (Teil 3c): für den Erpresser, wenn er kandidiert; sonst wie er, wenn er bei dieser Wahl selbst wählt; sonst wie sonst.
         if (Erpresser(waehler) is { } erpresser)
-        {
-            if (kandidaten.Contains(erpresser)) return new List<Konto?> { erpresser };
-            if (AmtVon(erpresser) is { } eigener && eigener != waehler && WahlWaehler(amt, kandidaten).Contains(eigener))
-                return EigeneWahlStimme(eigener, amt, kandidaten);
-        }
+            switch (WahlErpresst(waehler, erpresser, amt, kandidaten))
+            {
+                case true: return new List<Konto?> { erpresser };
+                case false: return EigeneWahlStimme(AmtVon(erpresser)!, amt, kandidaten);
+            }
         return EigeneWahlStimme(waehler, amt, kandidaten);
     }
 

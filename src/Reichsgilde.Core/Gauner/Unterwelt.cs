@@ -423,11 +423,12 @@ public sealed class Unterwelt
     /// Wie <see cref="Erpressen"/> ist der Brief eine Spur „Erpressung“ (Schwarzes Buch), Antwort bis Ende des Folgejahres. Öffentlich wird nur
     /// bekannt, dass ein Brief kam – nicht das Geheimnis.
     /// </summary>
-    internal Befehlsergebnis GeheimnisErpressen(Konto erpresser, Konto opfer, double betrag, int geheimnis, string worum)
+    /// <param name="zufall">Der Würfel der Geheimnisse (Schwarzes Buch) – damit die Würfe der Unterwelt bleiben, wie sie ohne Geheimnisse wären.</param>
+    internal Befehlsergebnis GeheimnisErpressen(Konto erpresser, Konto opfer, double betrag, int geheimnis, string worum, Zufallsquelle zufall)
     {
         _forderungen.Add(new Forderung(erpresser, opfer, betrag, _w.Jahr, geheimnis));
         var spurChance = _w.Familien.Lebenswirkung(erpresser).ErpressungSpurFaktor;
-        if ((spurChance >= 1 || _zufall.NextDouble() < spurChance)
+        if ((spurChance >= 1 || zufall.NextDouble() < spurChance)
             && _w.Justiz.TatMelden(erpresser, Vergehen.Erpressung, opfer.Inhaber, betrag) is { } spur)
             _w.Justiz.BeweisGeben(opfer, spur);
         _w.Melden($"{opfer.Inhaber} erhält einen Erpresserbrief von {erpresser.Inhaber}: " +

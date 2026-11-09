@@ -100,6 +100,11 @@ public sealed partial class Geheimniswesen
         // Wer tot ist oder dessen Haus nicht mehr spielt, hat keine Geheimnisse mehr.
         foreach (var g in _geheimnisse.Where(g => Inhaber(g) is not ICharakter c || c is Person p && (!p.Lebt || HausVon(g) is not { IstAktiv: true })).ToList())
             Entfernen(g);
+        // Aufräumen, damit der Spielstand nicht wächst: Wissen ausgeschiedener Häuser, abgelaufene Schande und Sperren (wirken nicht mehr)
+        _wissen.RemoveAll(x => !x.Haus.IstAktiv);
+        _schande.RemoveAll(s => s.Bis < Jahr);
+        foreach (var name in _gesperrt.Where(x => x.Value < Jahr).Select(x => x.Key).OrderBy(n => n, StringComparer.Ordinal).ToList())
+            _gesperrt.Remove(name);
 
         var fb = _w.Familien;
         var schulden = d.Art(Geheimnisart.Schulden);
