@@ -1479,9 +1479,9 @@
     "chance": 0.25,
     "dauerMinuten": [60, 180],
     "hoehen": {
-      "dom": 55, "koelner_dom": 50, "kirche": 40, "rathaus": 22, "markt": 0,
+      "dom": 55, "koelner_dom": 50, "kirche": 40, "rathaus": 22, "koelner_rathaus": 16, "markt": 0,
       "kirche_gross_st_martin": 40, "kirche_st_gereon": 40, "kirche_st_aposteln": 40, "kirche_st_severin": 40, "kirche_st_kunibert": 40,
-      "hafen": 6, "hafenkran": 12, "lagerschuppen": 7, "zollstelle": 8, "leerstand": 10,
+      "hafen": 6, "hafenkran": 12, "lagerschuppen": 7, "zollstelle": 8, "stapelhaus": 14, "rheinkran": 6, "leerstand": 10,
       "werkstattplatz": 10, "kulisse_buergerhaus": 10, "einwohnerplatz_ring": 10, "einwohnerplatz_vorstadt": 8,
       "fachwerkhaus": 9, "buergerhaus": 10, "steinhaus": 11, "stadtpalais": 13, "stadthof": 12,
       "wachturm": 15, "klosterhof": 12, "bauernhof": 9, "grube": 7, "holzschlag": 6, "steinbruch": 6, "kraeutergarten": 5, "duftgarten": 5
