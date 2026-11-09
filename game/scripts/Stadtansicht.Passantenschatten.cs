@@ -14,8 +14,9 @@ namespace Reichsgilde;
 /// im Pixel-Look neben dem Stufenlicht, das Häuserschatten bekommen, dunkler als diese und doppelt dunkel im Hausschatten): Die Schattenkarte ist binär, überlappende
 /// Schatten werden nicht dunkler, ein Schatten im Schatten eines Hauses bleibt so dunkel wie dieser, und Tag, Nacht, Wetter, Jahreszeit, Deckkraft und im Pixel-Look
 /// Stufenlicht und weiche Kante sind genau die der Gebäudeschatten – ohne eigene Rechnung.</item>
-/// <item>Form und Richtung bleiben die des früheren Flecks: schulterbreit (0,44 m), in Schattenrichtung der Sonne gestreckt, die Länge folgt der Sonnenhöhe
-/// (Körpergröße geteilt durch den Tangens der Sonnenhöhe) – nur dass kein Grenzwert sie bei sehr tiefer Sonne kappt, wie bei den echten Schatten der nahen Stufe.</item>
+/// <item>Breite, Richtung und <b>Länge</b> bleiben die des früheren Flecks (Nutzer, 09.11.2026: der echte Schatten war bei tiefer Sonne zu lang): schulterbreit (0,44 m), in
+/// Schattenrichtung der Sonne, die Länge folgt der Sonnenhöhe (Körpergröße geteilt durch den Tangens, zwischen 0,7 und 3,2 m, vom Fuß aus 77,5 % davon). Dafür ist das Prisma bei
+/// flacher Sonne <b>niedriger</b> als der Mensch (Höhe = Reichweite mal Tangens der wahren Sonnenhöhe, höchstens Körpergröße), sein Schatten erreicht also nie mehr als die alte Länge.</item>
 /// <item>Startoption <c>--figurenschatten=blob|echt|aus</c> (nur für Vergleiche und Messungen): <c>blob</c> (Standard, Name aus der Zeit der Flecken) echte Schatten nah, Stellvertreter fern; <c>echt</c> immer echte; <c>aus</c> fern keine.</item>
 /// </list>
 /// </summary>
@@ -31,8 +32,15 @@ public partial class Stadtansicht
         _ => FigurSchattenArt.Fleck,
     };
 
-    /// <summary>Halbe Breite des Stellvertreters (Schulterbreite) und seine Höhe in Metern (ein Mensch; Orks und Oger größer nach dem Maßstab ihres Modells).</summary>
+    /// <summary>Halbe Breite des Stellvertreters (Schulterbreite) und seine größte Höhe in Metern (ein Mensch; Orks und Oger größer nach dem Maßstab ihres Modells).</summary>
     private const float FleckHalbBreite = 0.22f, FleckGroesse = 1.65f;
+
+    /// <summary>
+    /// Länge des Schattens eines Menschen bei Sonnenhöhe 45° und ihre Grenzen (Meter) – die alte Länge des Flecks (Nutzer, 09.11.2026): Bei flacher Sonne bleibt der
+    /// Schatten bei 3,2 m (statt Körpergröße ÷ Tangens, bei 10° über 9 m), bei hoher Sonne mindestens 0,7 m. Der Schatten reicht vom Fuß aus in Schattenrichtung
+    /// nur <see cref="FleckReichweite"/> dieser Länge weit (der alte Fleck lag zu einem Teil hinter dem Fuß).
+    /// </summary>
+    private const float FleckLaengeMin = 0.7f, FleckLaengeMax = 3.2f, FleckReichweite = 0.775f;
 
     /// <summary>Wie weit (Meter) ein Passant außerhalb des Bildes noch mitzählt: Sein Schatten kann ins Bild ragen (mindestens 3 m, sonst Schattenlänge plus 1 m).</summary>
     private const float FleckRandMin = 3f;
@@ -52,11 +60,16 @@ public partial class Stadtansicht
         FleckenBereitstellen(_passanten.Count);
         var mm = _fleckPassanten!.Multimesh;
 
-        // Länge des Schattens eines Menschen nach Sonnenhöhe, nur für den Rand des Bildes (die Schattenkarte rechnet die echte Richtung selbst)
+        // Länge des Schattens: wie der alte Fleck (Körpergröße ÷ Tangens der Sonnenhöhe, mit Grenzen, bei sehr flacher Sonne ab sin 0,2 gerechnet).
+        // Das Prisma ist so hoch, dass sein echter Sonnenschatten genau so weit reicht (Höhe = Reichweite × Tangens der wahren Sonnenhöhe), höchstens so hoch wie der Mensch.
         var licht = (GlobalBasis.Inverse() * -_sonne.GlobalBasis.Z).Normalized();
-        var hoehe = Mathf.Max(-licht.Y, 0.05f); // sin der Sonnenhöhe
-        var schattenLaenge = FleckGroesse * Mathf.Sqrt(Mathf.Max(1f - hoehe * hoehe, 0f)) / hoehe;
-        var rand = Mathf.Clamp(schattenLaenge + 1f, FleckRandMin, 40f);
+        var hoehe = Mathf.Max(-licht.Y, 0.02f); // sin der Sonnenhöhe
+        var tangens = hoehe / Mathf.Sqrt(Mathf.Max(1f - hoehe * hoehe, 1e-6f));
+        var sinGerechnet = Mathf.Max(hoehe, 0.2f);
+        var laenge = Mathf.Clamp(FleckGroesse * Mathf.Sqrt(Mathf.Max(1f - sinGerechnet * sinGerechnet, 0f)) / sinGerechnet, FleckLaengeMin, FleckLaengeMax);
+        var reichweite = laenge * FleckReichweite;
+        var maxHoehe = reichweite * tangens; // höher als das wäre der Schatten länger als die alte Länge
+        var rand = Mathf.Clamp(reichweite + 1f, FleckRandMin, 40f);
 
         var puffer = _fleckPuffer;
         var n = 0;
@@ -67,7 +80,7 @@ public partial class Stadtansicht
             var o = knoten.Position;
             var i = n++ * 12;
             var breite = FleckHalbBreite * figur.Modell.Scale.X;
-            var hohe = FleckGroesse * figur.Modell.Scale.Y;
+            var hohe = Mathf.Min(FleckGroesse * figur.Modell.Scale.Y, maxHoehe);
             // Reihen der 3×4-Matrix: senkrechtes Prisma, Grundriss rund, Höhe nach oben
             puffer[i + 0] = breite; puffer[i + 1] = 0;    puffer[i + 2] = 0;      puffer[i + 3] = o.X;
             puffer[i + 4] = 0;      puffer[i + 5] = hohe; puffer[i + 6] = 0;      puffer[i + 7] = o.Y;

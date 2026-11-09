@@ -966,3 +966,10 @@ Auftrag des Teamleiters 1.11.2026.
 | Messung (Köln, Markt, Zoom 50, Hoch, Vulkan RTX 2000 Ada, `--lichtuhr=10 --jahreszeit=herbst`) | Zeichenaufrufe vorher 1499–1538, nachher 1501–1539 (der Markt füllt sich in den 12 s; gleich). GPU-Zeit: Die NAS war mit Läufen anderer Mitglieder belegt (dieselbe Einstellung schwankte von Lauf zu Lauf zwischen 5 und 13 ms); darum im selben Prozess verglichen, alle 4 s wechselnd (Messzeit 36 s, rund 500 Bilder je Zustand): ohne Schatten 13,3 ms, Stellvertreter mit 8 Ecken 12,1 ms, mit 4 Ecken 12,4 ms – kein messbarer Unterschied. | 08.11.2026 |
 | Bilder | Vorher und nachher an derselben Stelle (Markt, Zoom 50 und 100, Herbst 10 Uhr): im Ordner der Sitzung unter `blobschatten/` (`vor_50`, `nach_50`, `vor_100`, `nach_100`). | 08.11.2026 |
 | Offen | Bei Zoom 100 ist ein Schatten schmaler als ein Weltpixel (0,44 m gegen 0,22 m je Pixel bei Pixelgröße 2): er zeigt sich als dünne, harte Linie (wie vorher der Fleck). Die Stellvertreter stecken im Körper der Figur; sie beschatten sie nicht selbst (im Bild geprüft). Wachen, Torwächter und Diebe behalten ihre echten Schatten in allen Stufen. | 08.11.2026 |
+
+### Passanten-Schatten wieder kürzer (Branch phase5/passantenschatten-kurz)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wunsch | Der echte Schatten der Stellvertreter (Zoom 50 und 100) war bei tiefer Sonne viel länger als der alte Fleck (dessen Länge war gekappt). Der Nutzer will die alte, kürzere Länge zurück; gleich dunkel und ohne Aufaddieren bleibt es. | 09.11.2026 |
+| Lösung | Die Länge rechnet wie der alte Fleck: Körpergröße ÷ Tangens der Sonnenhöhe (bei sehr flacher Sonne ab sin 0,2 gerechnet), begrenzt auf 0,7 bis 3,2 m, vom Fuß aus 77,5 % davon (`FleckLaengeMin`, `FleckLaengeMax`, `FleckReichweite`; der alte Fleck lag zu einem Teil hinter dem Fuß). Das Prisma wird dafür **niedriger**: Höhe = Reichweite × Tangens der wahren Sonnenhöhe, höchstens Körpergröße mal Maßstab. Breite (0,44 m) und Richtung unverändert. Höchstreichweite so gut 2,5 m (vorher bei 10° Sonnenhöhe über 9 m). | 09.11.2026 |
