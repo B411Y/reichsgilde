@@ -65,9 +65,10 @@ static class GleichheitTests
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
     /// <param name="Erloschen">Ab welchem Jahr (0 = erstes) das Haus des Spielers nicht mehr aktiv ist (gestorben ohne Erben, bankrott) – sonst null.</param>
     /// <param name="Stress">Wie viele Stressquellen (Einträge mit Wert über 0) die Personen der Häuser nach jedem Jahr tragen, zusammen – der Stress steht im Spielstand und damit in der Prüfsumme.</param>
-    /// <param name="Geheimnisse">Wie viele Geheimnisse es nach jedem Jahr gibt und was die Häuser davon wissen, zusammen (Teil 3c) – beides steht im Spielstand.</param>
+    /// <param name="Geheimnisse">Wie viele Geheimnisse es nach jedem Jahr gibt, zusammen (Teil 3c) – sie stehen im Spielstand.</param>
+    /// <param name="Wissen">Was die Häuser nach jedem Jahr von fremden Geheimnissen wissen, zusammen (Teil 3c) – steht im Spielstand.</param>
     sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress,
-        int Geheimnisse);
+        int Geheimnisse, int Wissen);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -167,7 +168,10 @@ static class GleichheitTests
         Pruefe.Gleich(a.Stress, c.Stress, "Stressquellen mit Speichern und Laden");
         // Geheimnisse (Datenversion 78) sollen vorkommen – Ratsherren haben schon zu Partiebeginn welche, das Gerede verbreitet sie.
         Pruefe.Wahr(a.Geheimnisse > 0, $"Keine Geheimnisse in {p.Jahre} Jahren (Startwert {p.Startwert})");
-        Pruefe.Gleich(a.Geheimnisse, c.Geheimnisse, "Geheimnisse und Wissen mit Speichern und Laden");
+        Pruefe.Gleich(a.Geheimnisse, c.Geheimnisse, "Geheimnisse mit Speichern und Laden");
+        // Die Häuser sollen auch etwas wissen (Gerede, Spitzel der KI) – sonst prüfte der Lauf ihre Pfade nicht.
+        Pruefe.Wahr(a.Wissen > 0, $"Kein Wissen über Geheimnisse in {p.Jahre} Jahren (Startwert {p.Startwert})");
+        Pruefe.Gleich(a.Wissen, c.Wissen, "Wissen über Geheimnisse mit Speichern und Laden");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -228,6 +232,7 @@ static class GleichheitTests
         int? erloschen = null;
         var stress = 0;
         var geheimnisse = 0;
+        var wissen = 0;
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
@@ -258,10 +263,11 @@ static class GleichheitTests
                 var fb = sim.Wirtschaft!.Familien;
                 stress += sim.Wirtschaft.Konten.Select(fb.Von).OfType<Reichsgilde.Core.Dynastie.Familie>()
                     .Sum(f => f.Lebende.Sum(x => x.Stresslage.Eintraege.Count(e => e.Wert > 0)));
-                geheimnisse += sim.Wirtschaft.Geheimnisse.Alle.Count + sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
+                geheimnisse += sim.Wirtschaft.Geheimnisse.Alle.Count;
+                wissen += sim.Wirtschaft.Geheimnisse.AllesWissen.Count;
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress, geheimnisse, wissen);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>

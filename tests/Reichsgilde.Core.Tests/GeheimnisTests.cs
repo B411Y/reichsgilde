@@ -355,6 +355,42 @@ static class GeheimnisTests
             Pruefe.Wahr(w.Justiz.SpurenVon(p).Any(s => s.Art == Vergehen.Beichtbruch), "ein Vergehen");
         }),
 
+        ("Geheimnisse: Ratsherren – auch ein Ratsherr beichtet (Beichtgeheimnis brechen mit „R:Name“ macht es nutzbar, Gegenprobe ohne Bruch); " +
+         "bloßgestellt bekommt er als Amtsinhaber weniger Wahlpunkte (zwei Jahre)", () =>
+        {
+            // Ein Ratsherr mit Glauben und Zügen; beichten lassen wir seinen ersten Zug (die Züge der Ratsherren stehen fest)
+            var probe = NeueSimulation().Wirtschaft!;
+            var r0 = probe.Rat.Aemter.Select(x => x.Ratsherr).OfType<Ratsherr>().First(x => x.Zuege.Count > 0);
+            var glaube = probe.Glaube.GlaubeVon(r0);
+            var daten = Wirtschaftsdaten.AusJson(Ersetzen(Json.Value, Ruhig.Where(x => x.Item1 != "\"beichte\": 0.25")
+                .Append(("\"beichte\": 0.25", "\"beichte\": 1")).Append(("\"beichteZuege\": [ \"Fromm\", \"Pilger\" ]", $"\"beichteZuege\": [ \"{r0.Zuege[0].Kennung}\" ]")).ToArray()));
+            var sim = NeueSimulation(daten);
+            var w = sim.Wirtschaft!;
+            var r = w.Rat.RatsherrNamens(r0.Name)!;
+            var amt = w.Rat.Aemter.First(x => x.Ratsherr == r);
+            var (p, _) = Haus(w, "Haus Psalm", glaube);
+            var kirche = w.BetriebEroeffnen("Kirche Psalm", Betriebsart.Kirche, p, startkarren: "");
+            w.Einstellen(kirche, "Geselle", 1);
+            var g = GeheimnisGeben(w, r, Geheimnisart.Ehebruch);
+            JahrBeenden(sim);
+            Pruefe.Wahr(w.Geheimnisse.Wissen(p, g) is { AusBeichte: true }, "aus der Beichte");
+            Pruefe.Wahr(!w.Geheimnisse.KenntNutzbar(p, g), "Gegenprobe: ohne Bruch nicht nutzbar");
+            p.Aktionspunkte.Setzen(12);
+            Ok(w, p, new BeichtgeheimnisBrechen(r.Kennung));
+            Pruefe.Wahr(w.Geheimnisse.KenntNutzbar(p, g), "nach dem Beichtbruch nutzbar");
+            Pruefe.Wahr(w.Justiz.SpurenVon(p).Any(s => s.Art == Vergehen.Beichtbruch), "ein Vergehen");
+            // Bloßstellen: Der Ratsherr im Amt verliert Wahlpunkte (Ehebruch −5), ein anderer Ratsherr nicht
+            var waehler = w.Rat.Aemter.Select(x => x.Ratsherr).OfType<Ratsherr>().First(x => x != r);
+            var anderesAmt = w.Rat.Aemter.First(x => x.Ratsherr is { } y && y != r && y != waehler);
+            var (vorher, anderes) = (w.Rat.Punkte(waehler, amt, null), w.Rat.Punkte(waehler, anderesAmt, null));
+            Ok(w, p, new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Blossstellen));
+            Pruefe.Ungefaehr(vorher - 5, w.Rat.Punkte(waehler, amt, null), 1e-9);
+            Pruefe.Ungefaehr(anderes, w.Rat.Punkte(waehler, anderesAmt, null), 1e-9);
+            JahrBeenden(sim);
+            JahrBeenden(sim);
+            Pruefe.Gleich(0.0, w.Geheimnisse.AnsehenAbzug(r));
+        }),
+
         ("Geheimnisse: Der Ehepartner entdeckt einen Ehebruch (Chance 1) – privat: Meinung −40, beide +15 Stress, nicht öffentlich; mit 0 nichts", () =>
         {
             foreach (var chance in new[] { "1", "0" })
@@ -413,8 +449,8 @@ static class GeheimnisTests
             var w = sim.Wirtschaft!;
             var (a, _) = Haus(w, "Haus Hebel");
             InDenRat(w, a);
-            // ein Ratsherr mit Amt, der dem Antrag nicht zustimmt: Haltung an einem Rand, Antrag am anderen
-            var sitz = w.Rat.Aemter.First(x => x.Ratsherr is { } rh && rh.Haltung != Fronstatut.Bestienfron && rh.Haltung != w.Statut);
+            // ein Ratsherr mit Amt (möglichst hoch, damit er bei der Wahl unten mitwählt), der dem Antrag nicht zustimmt: Haltung an einem Rand, Antrag am anderen
+            var sitz = w.Rat.Aemter.OrderByDescending(x => x.Stufe).First(x => x.Ratsherr is { } rh && rh.Haltung != Fronstatut.Bestienfron && rh.Haltung != w.Statut);
             var r = sitz.Ratsherr!;
             var statut = r.Haltung == Fronstatut.FreieStadt ? Fronstatut.Leibeigenschaft : Fronstatut.FreieStadt;
             Pruefe.Wahr(statut != w.Statut, "ein Antrag ist möglich");
@@ -436,8 +472,8 @@ static class GeheimnisTests
             if (amt is null) { a.Stand = 4; amt = w.Rat.WaehlbareAemter(a).First(); }
             Ok(w, a, new AmtBewerben(amt.Name));
             var kandidaten = w.Rat.KandidatenListe(amt);
-            if (w.Rat.WahlWaehler(amt, kandidaten).Contains(sitz))
-                Pruefe.Gleich(a, w.Rat.WahlStimmeVonSitz(sitz, amt, kandidaten).Single());
+            Pruefe.Wahr(w.Rat.WahlWaehler(amt, kandidaten).Contains(sitz), $"{sitz.Name} wählt den {amt.Name} mit");
+            Pruefe.Gleich(a, w.Rat.WahlStimmeVonSitz(sitz, amt, kandidaten).Single());
             // Gegenprobe: Ein Erpresser ohne eigenen Sitz – der Ratsherr stimmt beim Antrag eines anderen wie sonst
             var (c, _) = Haus(w, "Haus Draussen");
             var r2sitz = w.Rat.Aemter.First(x => x.Ratsherr is not null && x != sitz);
@@ -452,21 +488,54 @@ static class GeheimnisTests
             Pruefe.Gleich((Konto?)null, w.Rat.Erpresser(sitz));
         }),
 
-        ("Geheimnisse: Eine erpresste Ratsstimme eines Hauses mit Sitz – das Haus darf in der Sitzung nicht selbst stimmen (Grund genannt)", () =>
+        ("Geheimnisse: Eine erpresste Ratsstimme eines Hauses mit Sitz – das Haus darf in der Sitzung nicht selbst stimmen (Grund genannt), " +
+         "aber nur, wo der Erpresser die Stimme bestimmt: ohne Sitz des Erpressers und bei einer Wahl ohne ihn stimmt es selbst", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (a, _) = Haus(w, "Haus Hebel");
             var (b, fb) = Haus(w, "Haus Sitz");
-            InDenRat(w, a);
-            InDenRat(w, b, "Gefängniswärter");
+            var zoellner = InDenRat(w, a);
+            var sitzB = InDenRat(w, b, "Stadthauptmann");
             var statut = w.Statut == Fronstatut.FreieStadt ? Fronstatut.Bestienfron : Fronstatut.FreieStadt;
             Ok(w, a, new StatutBeantragen(statut));
             Pruefe.Gleich((string?)null, w.Rat.StatutStimmeVerboten(b));
             var g = GeheimnisGeben(w, fb.Oberhaupt, Geheimnisart.Ehebruch, wisser: a);
             Ok(w, a, new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Ratsstimme));
             Pruefe.Wahr(w.Rat.StatutStimmeVerboten(b)?.Contains("erpresst") == true, w.Rat.StatutStimmeVerboten(b) ?? "");
-            Pruefe.Gleich(true, w.Rat.StatutStimmeVonSitz(w.Rat.StimmSitz(w.Rat.AmtVon(b)!), a, statut));
+            Nein(w, b, new StatutStimme(false), "erpresst");
+            Pruefe.Gleich(true, w.Rat.StatutStimmeVonSitz(w.Rat.StimmSitz(sitzB), a, statut));
             Pruefe.Wahr(w.Justiz.Beweise(b, a).Any(s => s.Art == Vergehen.Erpressung), "das Haus weiß, wer es zwingt");
+            // Wahl zum Gefängniswärter (Stufe 1): Es wählen nur höhere Ämter – der Stadthauptmann ja, der Erpresser (Zöllner) nicht. Er kandidiert
+            // nicht, also wählt das erpresste Haus selbst (die Gegenprobe mit kandidierendem Erpresser unten).
+            var (d, _) = Haus(w, "Haus Bewerber");
+            d.Stand = 4;
+            var wahl = w.Rat.AmtNamens("Gefängniswärter")!;
+            Pruefe.Wahr(w.Rat.Waehler(wahl).Contains(sitzB) && !w.Rat.Waehler(wahl).Contains(zoellner), "der Stadthauptmann wählt mit, der Zöllner nicht");
+            Ok(w, d, new AmtBewerben(wahl.Name));
+            Pruefe.Gleich((string?)null, w.Rat.WahlStimmeVerboten(b, wahl));
+            Ok(w, b, new WahlStimme(wahl.Name, d.Inhaber));
+            Pruefe.Gleich(d, w.Rat.WahlStimmeVonSitz(sitzB, wahl, w.Rat.KandidatenListe(wahl)).Single());
+
+            // Ein Erpresser ohne Sitz: Beim Antrag stimmt das erpresste Haus selbst (seine Stimme zählt); kandidiert er bei einer Wahl, stimmt es für ihn
+            var w2 = NeueSimulation().Wirtschaft!;
+            var (a2, _) = Haus(w2, "Haus Antrag");
+            var (b2, fb2) = Haus(w2, "Haus Sitz");
+            var (c2, _) = Haus(w2, "Haus Draussen");
+            InDenRat(w2, a2);
+            var sitzB2 = InDenRat(w2, b2, "Stadthauptmann");
+            Ok(w2, a2, new StatutBeantragen(statut));
+            var g2 = GeheimnisGeben(w2, fb2.Oberhaupt, Geheimnisart.Ehebruch, wisser: c2);
+            Ok(w2, c2, new GeheimnisNutzen(g2.Nummer, Geheimnisnutzung.Ratsstimme));
+            Pruefe.Gleich(c2, w2.Rat.Erpresser(sitzB2));
+            Pruefe.Gleich(sitzB2, w2.Rat.StimmSitz(sitzB2));
+            Pruefe.Gleich((string?)null, w2.Rat.StatutStimmeVerboten(b2));
+            Ok(w2, b2, new StatutStimme(false));
+            Pruefe.Gleich(false, w2.Rat.StatutStimmeVonSitz(w2.Rat.StimmSitz(sitzB2), a2, statut));
+            c2.Stand = 4;
+            var wahl2 = w2.Rat.AmtNamens("Gefängniswärter")!;
+            Ok(w2, c2, new AmtBewerben(wahl2.Name));
+            Pruefe.Wahr(w2.Rat.WahlStimmeVerboten(b2, wahl2)?.Contains("für Haus Draussen") == true, w2.Rat.WahlStimmeVerboten(b2, wahl2) ?? "");
+            Pruefe.Gleich(c2, w2.Rat.WahlStimmeVonSitz(sitzB2, wahl2, w2.Rat.KandidatenListe(wahl2)).Single());
         }),
 
         ("Geheimnisse: Anzeige – gegen ein Haus ein Verfahren, Mord 25 Beweiskraft: schuldig, Buße 1.000, ein Jahr Kerker, Pranger; danach öffentlich. " +
@@ -484,7 +553,6 @@ static class GeheimnisTests
             Nein(w, a, new GeheimnisNutzen(ketzer.Nummer, Geheimnisnutzung.Anzeige), "Stadtglaube");
             Nein(w, a, new GeheimnisNutzen(schulden.Nummer, Geheimnisnutzung.Anzeige), "kein Vergehen");
             var stress = w.Familien.Stress(fb.Oberhaupt);
-            var vorher = b.Vermoegen;
             Ok(w, a, new GeheimnisNutzen(mord.Nummer, Geheimnisnutzung.Anzeige));
             Pruefe.Wahr(mord.Oeffentlich, "öffentlich");
             Pruefe.Gleich(stress + 15, w.Familien.Stress(fb.Oberhaupt));
@@ -493,11 +561,12 @@ static class GeheimnisTests
             Pruefe.Gleich(25.0, w.Justiz.Beweiskraft(v));
             Pruefe.Wahr(Stadtgericht.IstSchuldig(w.Justiz.Prognose(v)), "sicher schuldig");
             Nein(w, a, new GeheimnisNutzen(mord.Nummer, Geheimnisnutzung.Blossstellen), "ganze Stadt");
+            Nein(w, a, new GeheimnisNutzen(ketzer.Nummer, Geheimnisnutzung.Gulden, 500), "Anklage"); // wie der Brief mit Beweisen: zu spät
             JahrBeenden(sim);
             var urteil = w.Justiz.LetzteUrteile.Single(u => u.Beklagter == b);
             Pruefe.Wahr(urteil.Schuldig && urteil.Text.Contains("Mord") && urteil.Text.Contains("Kerker"), urteil.Text);
             Pruefe.Wahr(w.Justiz.ImKerker(b) && w.Justiz.PrangerBis(b) is not null, "Kerker und Pranger");
-            Pruefe.Wahr(b.Vermoegen < vorher - 900, $"Buße: {vorher} → {b.Vermoegen}");
+            Pruefe.Wahr(urteil.Text.Contains("Buße 1.000 "), urteil.Text); // Mord ohne weitere Beweise: genau die Buße der Art
         }),
 
         ("Geheimnisse: Anzeige gegen einen Ratsherrn – schuldig verliert er seinen Sitz und rückt drei Jahre in kein Amt nach; freigesprochen zahlt der Ankläger", () =>
@@ -514,14 +583,23 @@ static class GeheimnisTests
                 var g = GeheimnisGeben(w, r, Geheimnisart.Ehebruch, wisser: a);
                 Ok(w, a, new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Anzeige));
                 Pruefe.Gleich(1, w.Geheimnisse.RatsherrVerfahren.Count);
-                var vorher = a.Vermoegen;
                 JahrBeenden(sim);
                 Pruefe.Gleich(!schuldig, sitz.Ratsherr == r, $"Sitz ({schuldig})");
                 Pruefe.Gleich(schuldig, w.Geheimnisse.IstGesperrt(r));
                 Pruefe.Wahr(w.Rat.Aemter.All(x => x.Ratsherr != r) == schuldig, "kein anderes Amt");
                 Pruefe.Wahr(w.Justiz.LetzterGerichtstag.Any(z => z.Contains(r.Name) && z.Contains(schuldig ? "SCHULDIG" : "freigesprochen")),
                     string.Join(" | ", w.Justiz.LetzterGerichtstag));
-                if (!schuldig) Pruefe.Wahr(a.Vermoegen < vorher - 150, "Entschädigung");
+                if (!schuldig) Pruefe.Wahr(w.Justiz.LetzterGerichtstag.Any(z => z.Contains($"{a.Inhaber} zahlt 200 ") && z.Contains("in die Stadtkasse")),
+                    "Entschädigung: " + string.Join(" | ", w.Justiz.LetzterGerichtstag));
+                if (!schuldig) continue;
+                // Die Sperre gilt drei Jahre nach dem Gerichtstag, danach darf er wieder nachrücken
+                for (var i = 2; i <= 3; i++)
+                {
+                    JahrBeenden(sim);
+                    Pruefe.Wahr(w.Geheimnisse.IstGesperrt(r), $"im {i}. Jahr gesperrt");
+                }
+                JahrBeenden(sim);
+                Pruefe.Wahr(!w.Geheimnisse.IstGesperrt(r), "nach drei Jahren frei");
             }
         }),
 
