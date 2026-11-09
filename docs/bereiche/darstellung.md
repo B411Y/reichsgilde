@@ -249,6 +249,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Köln, Paket 3) Ungeprüft (headless, kein Fenster): die neuen Bauten im Spiel mit Vulkan ansehen – Torburgen Eigelstein, Hahnen und Severin samt Anschluss an die Mauer und Tor-Erde im Torweg, Bayenturm am Südende der Rheinmauer (längs der Mauer gedreht?), Rathaus mit Raumansicht und Klick am Ratsturm, Stapelhaus mit Waage an der Rheingasse, Rheinkran (Ponton auf dem Wasser, wiegt sich, Tretrad dreht sich, Steg trifft den Kai; liegt der Kai im Gelände?). Klickstellen im Bericht des Branchs `phase5/koeln-stadtbauten`
 - (Köln, Paket 3) Katalogbilder der Palette fehlen für `koelner_rathaus`, `stapelhaus`, `rheinkran` (`tools/katalogbilder/katalogbilder.sh koelner_rathaus,stapelhaus,rheinkran`, braucht ein Fenster); bis dahin das allgemeine Symbol
 - (Köln, Paket 3) `Anker_Waage` am Stapelhaus ist noch ungenutzt (für eine spätere Wiege-Bewegung oder einen Händler)
+- (von Kern, Hofstellen) Seit den Hofstellen (9.11.2026) sitzt der Spieler gewählt oder gelost auf einer von mehreren Start-Hofstellen; der Kamera-Start der Karte (`karte.Kamera`, Köln zwischen S1 und Heumarkt) zeigt dann oft ein fremdes Haus. Empfehlung: zu Beginn einer neuen Partie (nicht nach dem Laden) die Kamera auf das Wohnhaus bzw. die Werkstatt des Spielers stellen (`Bauwesen.Wohnhaus(spieler)`, `Bauwesen.PlatzVon`).
+- (von Kern, Hofstellen) Köln bekommt nach den neuen Restflächen am Hafen und in Deutz nur noch einen Steinmetzplatz und keinen Taubenschlag (Test `RestflaechenfuellungTests` gelockert); ggf. die Gewichte in `restflaechen.json` nachstellen. Freie Hofstellen zeigen ihre beiden Teile als Bauplätze (Pflöcke); ungeprüft im Bild (headless).
 
 ## Entscheidungen
 
