@@ -1047,28 +1047,25 @@ public partial class Stadtansicht
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, AlbedoColor = new Color(0.98f, 0.82f, 0.35f),
     };
 
-    /// <summary>Die erste Stufe der Laufbahn (PR #224): Lehrling, Knecht, Taschendieb, Rekrut – je Beruf anders benannt.</summary>
-    private static bool IstAnfaenger(string arbeitskraft) => arbeitskraft is "Lehrling" or "Knecht" or "Taschendieb" or "Rekrut";
-
-    /// <summary>Die dritte Stufe: Vorarbeiter, Großknecht, Meisterdieb, Feldwebel.</summary>
-    private static bool IstVorarbeiter(string arbeitskraft) => arbeitskraft is "Vorarbeiter" or "Großknecht" or "Meisterdieb" or "Feldwebel";
-
-    /// <summary>Wie ein Arbeiter aussieht: Anfänger (Lehrlinge, Knechte …) heller und schlichter, Gesellen in Braun, Orks grün; alle mit Lederschürze.</summary>
+    /// <summary>
+    /// Wie ein Arbeiter aussieht (PR #224: nach der Stufe seiner Laufbahn, <see cref="Arbeiterbild"/>, nicht nach dem Namen der Arbeitskraft):
+    /// Anfänger (Lehrling, Knecht, Taschendieb, Rekrut) heller und schlichter, Stufe 2 in Braun, Stufe 3 in dunklerem Braun, Orks grün; alle mit Lederschürze.
+    /// Volk, Geschlecht und Haarfarbe sind die des Arbeiters im Kern.
+    /// </summary>
     private static FigurAussehen ArbeiterAussehen(ArbeiterZeile zeile)
     {
-        var volk = zeile.Arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
-        var gewand = zeile.Arbeitskraft switch
+        var bild = Arbeiterbild.Von(zeile);
+        var gewand = bild switch
         {
-            var k when IstAnfaenger(k) => new Color(0.62f, 0.55f, 0.40f),
-            var k when IstVorarbeiter(k) => new Color(0.30f, 0.21f, 0.15f), // Vorarbeiter in dunklerem Braun
-            "Ork" => new Color(0.30f, 0.27f, 0.22f),
-            "Leibeigener" => new Color(0.45f, 0.43f, 0.39f),
+            { Anfaenger: true } => new Color(0.62f, 0.55f, 0.40f),
+            { Vorarbeiter: true } => new Color(0.30f, 0.21f, 0.15f), // Stufe 3 in dunklerem Braun
+            { Volk: Volk.Ork } => new Color(0.30f, 0.27f, 0.22f),
+            { Arbeitskraft: "Leibeigener" } => new Color(0.45f, 0.43f, 0.39f),
             _ => new Color(0.42f, 0.30f, 0.20f),
         };
-        var haare = Haarfarben(volk);
-        var frau = volk == Volk.Mensch && Streuung(zeile.Nummer, 53) % 5 == 0;
-        return new FigurAussehen(volk, frau, gewand, Beinkleidfarben[zeile.Nummer % Beinkleidfarben.Length], HautVon(volk),
-            haare[zeile.Nummer * 5 % haare.Length], Leinenfarbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true);
+        var frau = FrauVon(bild, zeile.Nummer, 5);
+        return new FigurAussehen(bild.Volk, frau, gewand, Beinkleidfarben[zeile.Nummer % Beinkleidfarben.Length], HautVon(bild.Volk),
+            HaarVon(bild, zeile.Nummer), Leinenfarbe, frau ? Kopfbedeckung.Haube : Kopfbedeckung.Keine, Last.Keine, Schuerze: true);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
