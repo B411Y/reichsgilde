@@ -7,7 +7,8 @@ namespace Reichsgilde;
 /// <summary>
 /// Die Tafel rechts für gewählte Felsstücke (Fels R3) – ein Teil der <c>partial class Kartenwerkstatt</c>: oben die Knöpfe des Gizmos (Verschieben,
 /// Drehen, Skalieren, Welt- oder Stückachsen, Einrasten), darunter Zahlenfelder für Lage, Drehung (Euler-Winkel) und Maßstab je Achse, dann Neigung
-/// zum Hang, Einsinken und die Knöpfe „Auf den Boden“, „Am Hang ausrichten“ und „Neu würfeln“. Jede Eingabe ist ein Befehl des Kerns
+/// zum Hang, Einsinken und die Knöpfe „Auf den Boden“, „Am Hang ausrichten“, „Neu würfeln“ und „Kopieren“, dazu die Auswahl (P2: gleiche Form,
+/// gleiches Gestein, umkehren, alle). Jede Eingabe ist ein Befehl des Kerns
 /// (<see cref="Kartenentwurf.FelsTransformieren(IEnumerable{EntwurfFels}, Felswerte)"/>) und damit ein Schritt bei Rückgängig. Sind mehrere Stücke
 /// gewählt, zeigen die Felder die Werte des zuletzt gewählten: Die Lage verschiebt alle um den Unterschied, die übrigen Felder setzen den Wert für alle.
 /// </summary>
@@ -25,9 +26,9 @@ public partial class Kartenwerkstatt
         modi.AddThemeConstantOverride("separation", 4);
         foreach (var (art, text, tipp) in new[]
                  {
-                     (Stadtansicht.FelsGizmoArt.Verschieben, "Verschieben", "Taste W: Pfeile ziehen, Quadrate ziehen in einer Ebene"),
-                     (Stadtansicht.FelsGizmoArt.Drehen, "Drehen", "Taste E: Ringe ziehen"),
-                     (Stadtansicht.FelsGizmoArt.Skalieren, "Skalieren", "Taste R: Würfel ziehen, der mittlere skaliert gleichmäßig"),
+                     (Stadtansicht.FelsGizmoArt.Verschieben, "Verschieben", "Pfeil links: Pfeile ziehen, Quadrate ziehen in einer Ebene"),
+                     (Stadtansicht.FelsGizmoArt.Drehen, "Drehen", "Pfeil oben: Ringe ziehen"),
+                     (Stadtansicht.FelsGizmoArt.Skalieren, "Skalieren", "Pfeil rechts: Würfel ziehen, der mittlere skaliert gleichmäßig"),
                  })
         {
             var knopf = new Button { Text = text, ToggleMode = true, ButtonPressed = _stadt.FelsGizmoModus == art, FocusMode = Control.FocusModeEnum.None, TooltipText = tipp };
@@ -38,7 +39,7 @@ public partial class Kartenwerkstatt
         }
         Zeile(raster, "Gizmo", modi);
 
-        var achsen = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Taste Q: Die Achsen des Gizmos sind die der Welt oder die des Stücks (beim Skalieren immer die des Stücks)" };
+        var achsen = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Pfeil unten: Die Achsen des Gizmos sind die der Welt oder die des Stücks (beim Skalieren immer die des Stücks)" };
         achsen.AddItem("Welt");
         achsen.AddItem("Stück");
         achsen.Select(_stadt.FelsGizmoWelt ? 0 : 1);
@@ -78,13 +79,26 @@ public partial class Kartenwerkstatt
         knoepfe.AddThemeConstantOverride("h_separation", 6);
         knoepfe.AddThemeConstantOverride("v_separation", 4);
         _eigenschaften.AddChild(knoepfe);
-        Knopf(knoepfe, "Auf den Boden (B)", () => _stadt.FelsAufsetzen(false), "Setzt die Stücke so auf den Boden, dass ihr tiefster Punkt genau so tief steckt wie das Einsinken sagt (Taste End in Unreal)");
-        Knopf(knoepfe, "Am Hang ausrichten", () => _stadt.FelsAufsetzen(true), "Wie „Auf den Boden“, dazu an der Hangnormalen ausgerichtet, gerade (Umschalt+B)");
+        Knopf(knoepfe, "Auf den Boden (End)", () => _stadt.FelsAufsetzen(false), "Setzt die Stücke so auf den Boden, dass ihr tiefster Punkt genau so tief steckt wie das Einsinken sagt (Taste End wie in Unreal, oder B)");
+        Knopf(knoepfe, "Am Hang ausrichten", () => _stadt.FelsAufsetzen(true), "Wie „Auf den Boden“, dazu an der Hangnormalen ausgerichtet, gerade (Umschalt+End oder Umschalt+B)");
         Knopf(knoepfe, "Neu würfeln", () =>
         {
             _stadt.WerkstattBefehl(() => _entwurf.FelsNeuWuerfeln(auswahl, _stadt.FelsPinsel with { Radierer = false }));
         }, "Würfelt Größe und Drehung (und was der Pinsel als Bereich hat) für die gewählten Stücke neu – wie „Reapply“ in Unreal");
-        Hauptmenue.Text(_eigenschaften, "W Verschieben · E Drehen · R Skalieren · Q Welt/Stück · B auf den Boden · Umschalt+Klick wählt mehrere. Der Zug ist erst beim Loslassen ein Schritt für Strg+Z, Esc nimmt ihn zurück.",
+        Knopf(knoepfe, "Kopieren (Strg+D)", () => _stadt.FelsKopieren(), "Kopiert die gewählten Stücke an Ort und Stelle (ein Schritt für Strg+Z); danach sind die Kopien gewählt – mit dem Gizmo wegziehen");
+
+        // Auswahl (P2): alle einer Art, umkehren, alle
+        var wahl = new HFlowContainer();
+        wahl.AddThemeConstantOverride("h_separation", 6);
+        wahl.AddThemeConstantOverride("v_separation", 4);
+        _eigenschaften.AddChild(wahl);
+        Knopf(wahl, "Gleiche Form", () => _stadt.FelsGleicheWaehlen(nachGestein: false), "Wählt alle Felsstücke mit derselben Form wie die gewählten");
+        Knopf(wahl, "Gleiches Gestein", () => _stadt.FelsGleicheWaehlen(nachGestein: true), "Wählt alle Felsstücke aus demselben Gestein wie die gewählten (auch das Grundgestein der Karte)");
+        Knopf(wahl, "Umkehren (Strg+I)", () => _stadt.FelsAuswahlUmkehren(), "Die gewählten Stücke fallen heraus, alle anderen Felsstücke werden gewählt");
+        Knopf(wahl, "Alle (Strg+A)", () => _stadt.FelsAlleWaehlen(), "Wählt alle Felsstücke der Karte");
+        Hauptmenue.Text(_eigenschaften, "Pfeiltasten: links Verschieben, oben Drehen, rechts Skalieren, unten Welt/Stück · End oder B auf den Boden · Q/E drehen um 15° · Strg+D kopiert · "
+                                        + "Umschalt+Klick wählt mehrere, Ziehen ins Leere zieht einen Rahmen (mit Umschalt: dazu). Der Zug ist erst beim Loslassen ein Schritt für Strg+Z, Esc nimmt ihn zurück. "
+                                        + "WASD schiebt die Kamera.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);
     }
 
