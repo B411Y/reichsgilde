@@ -47,15 +47,15 @@ static class KartenbauTests
     {
         // ── Kapazität ────────────────────────────────────────────────────────
 
-        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026): 7.197 Felder, Pflicht und Reserve passen – 79 % frei nach der Pflicht", () =>
+        ("Kapazität Köln (Stadtskript, PR #213; Märkte an den Enden der Mauer und in Deutz seit 31.10.2026, eine Hausreihe vor dem Tor und Werkstatt-Bauplätze nahe den Märkten und Häuser in der Deutzer Südhälfte seit 1.11.2026, die romanischen Kirchen als Modelle seit 9.11.2026, Rathaus, Stapelhaus und Rheinkran als Modelle seit 9.11.2026): 7.093 Felder, Pflicht und Reserve passen – 79 % frei nach der Pflicht", () =>
         {
             var k = Kapazitaetspruefung.Pruefen(Oeffnen("koeln"));
             Pruefe.Gleich(string.Join("\n", new[]
             {
-                "Stadt-Bauzonen: 7197 Felder, davon fest belegt 0",   // bis zu den Kirchenmodellen (9.11.2026) 7.608
+                "Stadt-Bauzonen: 7093 Felder, davon fest belegt 0",   // bis zu den Kirchenmodellen (9.11.2026) 7.608, bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 7.197
                 "Pflicht Werkstatt: 16 von 16 passen", "Pflicht Ratsherrenhaus: 13 von 13 passen", "Pflicht Einwohner-Bürgerhaus: 3 von 3 passen",
                 "Pflicht Einwohner-Wohnhaus: 40 von 40 passen", "Reserve Stadthof: 4 von 4 passen", "Reserve Stadtpalais: 8 von 8 passen",
-                "Frei nach der Pflicht: 5685 Felder (79%), nach der Reserve: 5221 Felder",
+                "Frei nach der Pflicht: 5581 Felder (79%), nach der Reserve: 5117 Felder",
             }), string.Join("\n", k.Bericht));
             Pruefe.Gleich(0, k.Befunde.Count);
             // Die gesetzten Gebäude: alle 84 aus Pflicht und Reserve; feste keine (die Plätze der Karte liegen neben den Zonen; bis 31.10.2026 4 Felder)
@@ -72,8 +72,8 @@ static class KartenbauTests
                 // seit den Märkten an den Enden der Mauer und in Deutz die Prüfsumme neu, vorher −12.931.232; seit der Hausreihe vor dem Tor (1.11.2026) die
                 // Prüfsumme neu, vorher −4.666.812; seit den Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) die Prüfsumme neu, vorher −8.247.264, und mit „nur werkstatt“ (keine Wohnhäuser dort) noch einmal, vorher −6.835.905; seit den Häusern in der Deutzer Südhälfte (1.11.2026) noch einmal, vorher −6.192.870; Greybox mit dem Weinmarktgässchen ein Platz mehr, vorher 22 / 698 / −2.115.343;
                 // seit den Bauzonen aus dem Raster (4.11.2026; Köln unverändert) Greybox vorher 4 / 23 / 714 / −2.170.301, Probestadt vorher 0 / 80 / 1.752 / 7.598.432;
-                // seit den Kirchenmodellen in Köln (9.11.2026) die Prüfsumme neu, vorher −5.342.922
-                ("koeln", 0, 84, 1976, -7195386L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 80, 1752, 6597050L),
+                // seit den Kirchenmodellen in Köln (9.11.2026) die Prüfsumme neu, vorher −5.342.922; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) noch einmal, vorher −7.195.386
+                ("koeln", 0, 84, 1976, -8093550L), ("greybox", 4, 26, 901, -2835284L), ("probestadt", 0, 84, 1976, 12679538L), ("messstadt", 0, 80, 1752, 6597050L),
             };
             var gemessen = erwartet.Select(x =>
             {
@@ -153,13 +153,13 @@ static class KartenbauTests
 
         // ── Katalog gegen die Modelle ────────────────────────────────────────
 
-        ("Katalog gegen die Modelle: 0 Fehler, 13 Hinweise – dieselben Bausteine wie tools/karten/katalog_pruefen.py; Kran und Zoll ragen übers Wasser", () =>
+        ("Katalog gegen die Modelle: 0 Fehler, 14 Hinweise – dieselben Bausteine wie tools/karten/katalog_pruefen.py; Kran, Rheinkran (Ponton) und Zoll ragen übers Wasser", () =>
         {
             var befunde = Katalogpruefung.Pruefen(Katalog.Value, Modellordner);
             Pruefe.Gleich(0, befunde.Count(b => b.Schwere == Schwere.Fehler), Liste(befunde));
-            Pruefe.Gleich("hafenkran, zollstelle, grube, holzschlag, steinbruch, kraeutergarten, duftgarten, bauernhof, klosterhof, wachturm, weide, einwohner_wohnhaus, einwohner_ratsherrenhaus",
+            Pruefe.Gleich("hafenkran, rheinkran, zollstelle, grube, holzschlag, steinbruch, kraeutergarten, duftgarten, bauernhof, klosterhof, wachturm, weide, einwohner_wohnhaus, einwohner_ratsherrenhaus",
                 string.Join(", ", befunde.Select(b => b.Gebaeude[0])));
-            Pruefe.Wahr(befunde[2].Text.Contains("x -10,6 … 10,4, z -8,9 … 7,5 (21 × 16,4 m) – ragt bis 2,6 m über die Fläche (Umland: bekannt"), befunde[2].Text);
+            Pruefe.Wahr(befunde[3].Text.Contains("x -10,6 … 10,4, z -8,9 … 7,5 (21 × 16,4 m) – ragt bis 2,6 m über die Fläche (Umland: bekannt"), befunde[3].Text); // die Grube (seit dem Rheinkran an vierter Stelle)
             Pruefe.Wahr(befunde[^1].Text.Contains("ragt bis 0,5 m"), befunde[^1].Text);
         }),
 

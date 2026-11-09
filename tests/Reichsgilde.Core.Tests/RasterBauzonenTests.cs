@@ -204,8 +204,8 @@ static class RasterBauzonenTests
             }
             var koeln = Oeffnen("koeln");
             Pruefe.Gleich(7, koeln.Bauzonen.Count(z => !z.Berechnet && z.Nur == Bauzone.NurWerkstatt), "7 Werkstatt-Bauplätze von Hand");
-            Pruefe.Gleich(49, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50
-            Pruefe.Wahr(koeln.Bauzonen.TakeWhile(z => z.Berechnet).Count() == 49, "die Rasterzonen stehen vorn");
+            Pruefe.Gleich(48, koeln.Bauzonen.Count(z => z.Berechnet)); // seit den Kirchenmodellen (9.11.2026) 49, vorher 50; seit Rathaus, Stapelhaus und Rheinkran (Paket 3) 48
+            Pruefe.Wahr(koeln.Bauzonen.TakeWhile(z => z.Berechnet).Count() == 48, "die Rasterzonen stehen vorn");
             Pruefe.Wahr(koeln.Restflaechen.Count > 0, "Köln hat Restflächen");
         }),
 

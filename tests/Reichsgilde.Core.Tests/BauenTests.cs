@@ -101,9 +101,9 @@ static class BauenTests
             Pruefe.Gleich(36, k.Wege.Count); // Stadtskript Köln (PR #213): 16 Haupt- (seit 1.11.2026 mit dem Malzbüchel und Unter Fettenhennen), 8 Land-, 3 Wallstraßen, 7 Gassen (seit 1.11.2026 Urbanusgasse und Abteigasse in Deutz), 2 Leinpfade
             Pruefe.Wahr(k.Wege.Any(w => w.Klasse == Wegklasse.Gasse) && k.Wege.Any(w => w.Klasse == Wegklasse.Wall), "Gassen und Wallstraße fehlen");
             Pruefe.Gleich(k.Wege.Count(w => w.Klasse is Wegklasse.Land or Wegklasse.Haupt or Wegklasse.Ring or Wegklasse.Wall), k.Wege.Count(w => w.IstKarrenstrasse));
-            Pruefe.Gleich(56, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56
+            Pruefe.Gleich(55, k.Bauzonen.Count); // seit der gemeinsamen Strecke von Kern und Bild (31.10.2026) 52, seit den Märkten an den Enden der Mauer und in Deutz 51, seit der Hausreihe vor dem Tor (1.11.2026) 52, seit den sieben Werkstatt-Bauplätzen nahe den Märkten (1.11.2026) 58, seit den Häusern in der Deutzer Südhälfte (1.11.2026) 57, seit den Kirchenmodellen (9.11.2026) 56, seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3, 9.11.2026) 55
             Pruefe.Gleich(7, k.Bauzonen.Count(z => z.Kennung.StartsWith("WB_"))); // je ein Werkstatt-Bauplatz als eigene Zone (Koeln.Bauplaetze.cs)
-            Pruefe.Gleich(13, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13
+            Pruefe.Gleich(12, k.Bauzonen.Count(z => z.Art == Lage.Kern)); // um den alten Heumarkt ist Bauland: 11 → 12; seit 1.11.2026 liegt das Startgrundstück an der Stadtseite des Alter Markts auf der Zone zwischen Dom und Trankgasse: 11; dazu die zwei Werkstatt-Bauplätze am Alter Markt: 13; seit Rathaus, Stapelhaus und Rheinkran als Modelle (Paket 3) 12
             Pruefe.Gleich(8, k.Bauzonen.Count(z => z.Art == Lage.Umland));
             Pruefe.Wahr(k.Gebaeude.All(g => g.Baustein is not null), "jedes Gebäude ist im Katalog aufgelöst");
             Pruefe.Gleich(8, k.Wohnhausplaetze.Count);
@@ -111,7 +111,7 @@ static class BauenTests
             Pruefe.Gleich(2, k.Mauern.Count); // Stadtmauer und Deutzer Mauer
             Pruefe.Gleich(10, k.Mauern.Sum(m => m.Tore.Count)); // 7 in der Stadtmauer (fünf Tore, zwei Ufertore), 3 in Deutz
             Pruefe.Wahr(k.Wasser.Any(x => x.Name == "Rhein") && k.Wasser.Any(x => x.Name == "Duffesbach") && k.Uebergaenge.Count == 1, "Rhein, Duffesbach, Fähre");
-            Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran") is null, "Hafen am Ufer; der Kran steht auf dem Hafensteg, nicht mehr als eigenes Gebäude");
+            Pruefe.Wahr(k.GebaeudeMit("Rheinhafen")!.Katalog == "hafenplatz" && k.GebaeudeMit("Rheinkran")!.Katalog == "rheinkran", "Hafen am Ufer; am Hafensteg entlädt ein Kran, dazu steht seit Paket 3 der Wahrzeichen der Rheinkran als Schwimmkran am Ufer");
             Pruefe.Wahr(k.Wasserplan.Bruecken.Any(b => b.WegName == "Rheinbrücke" && b.Art == Uebergangsart.Steinbruecke), "Rheinbrücke aus Stein");
             Pruefe.Wahr(k.Start is not null, "Köln hat eine Startbelegung");
             Pruefe.Gleich(7, k.Startbelegung.Haeuser.Count); // sieben KI-Häuser und der Spieler auf den acht Startgrundstücken
