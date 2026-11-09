@@ -310,8 +310,8 @@ public sealed partial class Kartenentwurf
 
     /// <summary>
     /// Fügt ein KI-Haus hinten an (bis <see cref="HoechstensHaeuser"/>): erster freier Name aus <see cref="Hausnamen"/> (oder
-    /// <paramref name="name"/>), Mensch, Mann, ein freies Wappen und eine freie Farbe, der erste freie Wohnhausplatz, noch ohne Betrieb. Gibt den
-    /// Index zurück; −1 (kein Schritt), wenn schon acht Häuser da sind.
+    /// <paramref name="name"/>), Mensch, Mann, ein freies Wappen und eine freie Farbe, das Wohnhaus der ersten freien Start-Hofstelle (ohne sie der
+    /// erste freie Wohnhausplatz), noch ohne Betrieb. Gibt den Index zurück; −1 (kein Schritt), wenn schon acht Häuser da sind.
     /// </summary>
     public int HausHinzufuegen(string? name = null)
     {
@@ -323,7 +323,7 @@ public sealed partial class Kartenentwurf
         var neu = new EntwurfHaus(name, Volk.Mensch, Geschlecht.Mann,
             Wappen.Vorlagen.Skip(1).FirstOrDefault(w => !wappen.Contains(w)) ?? Wappen.AusName(name),
             Hausfarben.FirstOrDefault(f => f != s.SpielerFarbe && s.Haeuser.All(h => h.Farbe != f)),
-            FreieWohnhausplaetze().FirstOrDefault()?.Kennung);
+            FreieHofstellen().FirstOrDefault(h => h.Start)?.Wohnhaus ?? FreieWohnhausplaetze().FirstOrDefault()?.Kennung);
         Aendern(s, $"{name} hinzugefügt", n => n.HaeuserSetzen(n.Haeuser.Append(neu)));
         return s.Haeuser.Count - 1;
     }
@@ -606,10 +606,9 @@ public sealed partial class Kartenentwurf
         var namen = start.Rivalennamen.ToHashSet();
         var familie = new[] { "Hammerschmid", "Probst", "Kartenmacher", "Feldmesser" }.FirstOrDefault(n => !namen.Contains(Partieaufbau.Hausname(n))) ?? "Neubürger";
         var wappen = Wappen.Vorlagen.FirstOrDefault(w => !start.Rivalenwappen.Contains(w)) ?? Wappen.AusName(familie);
-        // Mit Hofstellen: der Spieler auf seiner Hofstelle aus der Startbelegung, die KI-Häuser gelost wie im Spiel
-        var eigene = _start.HofstelleVon(_start.SpielerWerkstatt?.Platz) ?? _start.HofstelleVon(_start.SpielerWohnhaus);
+        // Mit Hofstellen ohne Los: jedes Haus, wo die Startbelegung es hinsetzt – so, wie die Karte eingestellt ist (im Spiel wird gelost)
         return new NeuePartie(Familienname: familie, Beruf: beruf, Rivalen: Math.Max(1, start.Haeuser.Count), Wappen: wappen,
-            Hofstelle: eigene is { Start: true } ? eigene.Kennung : null);
+            Startplaetze: Startplatzvergabe.Vorgabe);
     }
 
     /// <summary>

@@ -14,7 +14,7 @@ public sealed record Hofstellenangebot(string Kennung, string Name, double? Mete
 ///
 ///   • Der Spieler bekommt die gewählte Start-Hofstelle (<see cref="NeuePartie.Hofstelle"/>), ohne Wahl eine geloste.
 ///   • Jedes mitspielende KI-Haus bekommt eine geloste unter den übrigen Start-Hofstellen – in Kontoreihenfolge, je eine aus der Liste in
-///     der Reihenfolge der Karte. Gelost wird mit einer eigenen Zufallsquelle aus dem Startwert der Partie (·89 + 71), nur hier: Alle
+///     der Reihenfolge der Karte. Gelost wird mit einer eigenen Zufallsquelle aus dem Startwert der Partie (<see cref="Losquelle"/>), nur hier: Alle
 ///     übrigen Würfe der Partie bleiben, wie sie ohne Hofstellen wären, und jeder Rechner einer Mehrspielerpartie lost dasselbe.
 ///   • Mit <see cref="Startplatzvergabe.Vorgabe"/> sitzt jedes Haus, wo die Startbelegung der Karte es hinsetzt.
 ///
@@ -25,8 +25,15 @@ public sealed record Hofstellenangebot(string Kennung, string Name, double? Mete
 /// </summary>
 public static class Hofstellenvergabe
 {
-    /// <summary>Die eigene Zufallsquelle des Loses: Startwert · <see cref="LosFaktor"/> + <see cref="LosVersatz"/>.</summary>
-    public const int LosFaktor = 89, LosVersatz = 71;
+    /// <summary>
+    /// Die eigene Zufallsquelle des Loses: ihr Startwert ist der Startwert der Partie, mit <see cref="LosSchluessel"/> gemischt
+    /// (<c>Zugwuerfel.Mischen</c>). Nicht einfach Startwert · k + c wie bei den Wesen: Der erste Wurf von <see cref="Random"/> hängt bei nahen
+    /// Startwerten kaum vom Startwert ab (die Startwerte 1 bis 12 losten den Spieler auf nur zwei der vier Hofstellen der Greybox) – und das Los
+    /// besteht aus genau diesen ersten Würfen.
+    /// </summary>
+    public const int LosSchluessel = 0x486F66; // „Hof“
+
+    internal static Zufallsquelle Losquelle(int zufallsstartwert) => new(Zugwuerfel.Mischen(zufallsstartwert, LosSchluessel, 89));
 
     /// <summary>Die Hofstellen, die als Startplatz taugen, in der Reihenfolge der Karte.</summary>
     public static IReadOnlyList<Hofstelle> Startplaetze(Stadtkarte karte) => karte.Hofstellen.Where(h => h.Start).ToList();
@@ -59,10 +66,11 @@ public static class Hofstellenvergabe
     }
 
     /// <summary>
-    /// Wer bekommt welche Hofstelle: der Spieler und die mitspielenden KI-Häuser (in deren Reihenfolge; null = keine Hofstelle, das Haus
-    /// bleibt, wie die Startbelegung es setzt). Wirft, wenn die Wahl nicht geht oder die Start-Hofstellen nicht reichen.
+    /// Wer bekommt welche Hofstelle: der Spieler und die mitspielenden KI-Häuser (in deren Reihenfolge). Null heißt (nur ohne Los): Das Haus
+    /// bleibt genau, wie die Startbelegung es setzt (auch ein Wohnhaus oder Startplatz je Beruf außerhalb der Hofstellen). Wirft, wenn die Wahl
+    /// nicht geht oder die Start-Hofstellen nicht reichen.
     /// </summary>
-    public static (Hofstelle Spieler, IReadOnlyList<Hofstelle?> Haeuser) Zuteilen(Stadtkarte karte, NeuePartie neu, int zufallsstartwert,
+    public static (Hofstelle? Spieler, IReadOnlyList<Hofstelle?> Haeuser) Zuteilen(Stadtkarte karte, NeuePartie neu, int zufallsstartwert,
         IReadOnlyList<Starthaus> mitspielend)
     {
         var plaetze = Startplaetze(karte);
@@ -76,20 +84,22 @@ public static class Hofstellenvergabe
 
         if (neu.Startplaetze == Startplatzvergabe.Vorgabe)
         {
-            var haeuser = mitspielend.Select(h => VorgabeVon(karte, h)).ToList();
+            // Ohne Los bleibt jedes Haus, wie die Startbelegung es setzt (null). Wählt der Spieler die Hofstelle eines KI-Hauses, bekommt das Haus
+            // die Vorgabe des Spielers (getauscht) – oder, hat er keine, die erste unbelegte Start-Hofstelle.
+            var vorgaben = mitspielend.Select(h => VorgabeVon(karte, h)).ToList();
             var vorgabe = VorgabeSpieler(karte);
-            var spieler = gewaehlt ?? vorgabe ?? plaetze.FirstOrDefault(h => !haeuser.Contains(h))
-                ?? throw new ArgumentException("Die Karte hat keine Hofstelle für den Spieler.");
-            // Wählt der Spieler die Hofstelle eines KI-Hauses, bekommt das Haus seine (tauschen – alles bleibt ohne Los)
-            for (var i = 0; i < haeuser.Count; i++)
-                if (haeuser[i] == spieler && spieler != vorgabe) haeuser[i] = vorgabe;
-            return (spieler, haeuser);
+            if (gewaehlt is null || gewaehlt == vorgabe) return (null, vorgaben.Select(_ => (Hofstelle?)null).ToList());
+            var haeuser = vorgaben.Select(v => v == gewaehlt
+                ? vorgabe ?? plaetze.FirstOrDefault(p => p != gewaehlt && !vorgaben.Contains(p))
+                  ?? throw new ArgumentException("Die Karte hat keine freie Start-Hofstelle für das Haus, dessen Hofstelle der Spieler wählt.")
+                : null).ToList();
+            return (gewaehlt, haeuser);
         }
 
         if (plaetze.Count < 1 + mitspielend.Count)
             throw new ArgumentException($"Die Karte hat {plaetze.Count} Startplätze (Hofstellen) – für den Spieler und {mitspielend.Count} KI-Häuser zu wenig.");
         var frei = plaetze.ToList();
-        var los = new Zufallsquelle(unchecked(zufallsstartwert * LosFaktor + LosVersatz));
+        var los = Losquelle(zufallsstartwert);
         var eigene = gewaehlt ?? frei[los.Next(frei.Count)];
         frei.Remove(eigene);
         var gelost = new List<Hofstelle?>();
@@ -141,7 +151,8 @@ public static class Hofstellenvergabe
 
         var belegung = new Startbelegung
         {
-            Spieler = new Spielerstart
+            // ohne Los auf seiner Vorgabe: genau wie die Startbelegung (mit den Startplätzen je Beruf)
+            Spieler = spieler is null ? start.Spieler : new Spielerstart
             {
                 Farbe = start.Spieler.Farbe, Wohnhaus = spieler.Wohnhaus,
                 Werkstatt = new Startwerkstatt { Platz = spieler.Werkstatt, Name = WerkstattnameSpieler(karte, spieler) },
