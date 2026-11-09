@@ -250,8 +250,21 @@ public sealed class Kartengebaeude
     /// <summary>Größenfaktor des Modells und der Grundfläche (1 = wie im Katalog), z. B. ein kleinerer Felsberg.</summary>
     public double Massstab { get; init; } = 1;
 
-    /// <summary>Werkstattplatz eines KI-Hauses oder Umlandbetrieb: der Name des Betriebs, der hier steht (genau wie im Spiel bzw. in „liegenschaften“).</summary>
-    public string? Betrieb { get; init; }
+    /// <summary>
+    /// Werkstattplatz eines KI-Hauses oder Umlandbetrieb: der Name des Betriebs, der hier steht (genau wie im Spiel bzw. in „liegenschaften“). Auf
+    /// dem Werkstattplatz einer Hofstelle ist es der Name der Werkstatt des Hauses, das sie ohne Los bekommt; die Partiekarte setzt ihn an die
+    /// geloste Hofstelle (<see cref="Hofstellenvergabe"/>).
+    /// </summary>
+    public string? Betrieb { get => _betrieb; init => _betrieb = value; }
+    private string? _betrieb;
+
+    /// <summary>Eine Kopie mit einem anderen <see cref="Betrieb"/> (für die Partiekarte; alles Übrige, auch der Baustein, bleibt).</summary>
+    internal Kartengebaeude MitBetrieb(string? betrieb)
+    {
+        var k = (Kartengebaeude)MemberwiseClone();
+        k._betrieb = betrieb;
+        return k;
+    }
 
     /// <summary>Wohnhausplatz: in welcher Lage er liegt (für den Bauplatz nach einem Abriss). Fehlt sie, gilt die nächste Bauzone.</summary>
     public Lage? Lage { get; init; }
@@ -535,7 +548,8 @@ public sealed class Stadtkarte
     /// <summary>Rastergröße der Bauzonen in Metern (2).</summary>
     public double Raster { get; init; } = 2;
 
-    public List<Kartengebaeude> Gebaeude { get; init; } = new();
+    public List<Kartengebaeude> Gebaeude { get => _gebaeude; init => _gebaeude = value; }
+    private List<Kartengebaeude> _gebaeude = new(); // eigenes Feld: die Partiekarte (MitBelegung) bekommt eine eigene Liste
     public List<Kartenmauer> Mauern { get; init; } = new();
     public List<Kartenweg> Wege { get; init; } = new();
     public List<Bauzone> Bauzonen { get; init; } = new();
@@ -559,7 +573,8 @@ public sealed class Stadtkarte
     public List<Vorkommenstelle> Vorkommen { get; init; } = new();
 
     /// <summary>Wer am Start wo wohnt und arbeitet – null: <see cref="Partie.Startbelegung.Ersatz"/>.</summary>
-    public Startbelegung? Start { get; init; }
+    public Startbelegung? Start { get => _start; init => _start = value; }
+    private Startbelegung? _start; // eigenes Feld: die Partiekarte (MitBelegung) bekommt die geloste Belegung
 
     public Kartenkamera? Kamera { get; init; }
 
@@ -661,6 +676,33 @@ public sealed class Stadtkarte
     /// <summary>Das Gebäude mit dieser Kennung – oder null.</summary>
     public Kartengebaeude? GebaeudeMit(string? kennung) => kennung is null ? null : Gebaeude.FirstOrDefault(g => g.Kennung == kennung);
 
+    /// <summary>Die Hofstellen der Karte in der Reihenfolge der Datei (nie null; leer bei Karten ohne Hofstellen, z. B. in alten Spielständen).</summary>
+    [JsonIgnore]
+    public IReadOnlyList<Hofstelle> Hofstellen => Start?.Hofstellen ?? (IReadOnlyList<Hofstelle>)Array.Empty<Hofstelle>();
+
+    /// <summary>Hat die Karte Hofstellen? Dann gelten die Regeln der Hofstellen (Los am Start, freie Hofstellen als Bauplätze).</summary>
+    [JsonIgnore]
+    public bool HatHofstellen => Start?.Hofstellen is { Count: > 0 };
+
+    /// <summary>Die Hofstelle mit dieser Kennung – oder null.</summary>
+    public Hofstelle? HofstelleMit(string? kennung) => kennung is null ? null : Hofstellen.FirstOrDefault(h => h.Kennung == kennung);
+
+    /// <summary>Die Hofstelle, zu der dieser Platz (Kennung eines Werkstatt- oder Wohnhausplatzes) gehört – oder null.</summary>
+    public Hofstelle? HofstelleVon(string? platz) => platz is null ? null : Hofstellen.FirstOrDefault(h => h.Umfasst(platz));
+
+    /// <summary>
+    /// Die Partiekarte: dieselbe Karte mit einer anderen Startbelegung und anderen Betriebsnamen an Werkstattplätzen (Kennung → Name, null:
+    /// keiner). Alles Übrige teilt sie mit dieser Karte (Wege, Gelände, Natur, auch die schon gerechneten Formen – die Geometrie ist dieselbe).
+    /// Diese Karte bleibt unverändert. Siehe <see cref="Hofstellenvergabe"/>.
+    /// </summary>
+    internal Stadtkarte MitBelegung(Startbelegung start, IReadOnlyDictionary<string, string?> betriebe)
+    {
+        var k = (Stadtkarte)MemberwiseClone();
+        k._start = start;
+        k._gebaeude = Gebaeude.Select(g => betriebe.TryGetValue(g.Kennung, out var name) && name != g.Betrieb ? g.MitBetrieb(name) : g).ToList();
+        return k;
+    }
+
     /// <summary>Alle Gebäude einer Art (<see cref="Bausteinart"/>), in der Reihenfolge der Datei.</summary>
     public IEnumerable<Kartengebaeude> GebaeudeDerArt(string art) => Gebaeude.Where(g => g.Art == art);
 
@@ -756,6 +798,10 @@ public sealed class Stadtkarte
         if (karte is null)
             throw new KartenFehler(new[] { "Die Datei ist leer." });
         karte.Katalog = katalog;
+        // Eine Karte von vor den Hofstellen (09.11.2026): jedes Startpaar wird eine Start-Hofstelle. Nur Kartendateien – die Karte in einem
+        // Spielstand liest Speicherung ohne diesen Weg und bleibt, wie sie war.
+        if (karte.Start is { Hofstellen: null } s && Hofstellenvergabe.AusStartpaaren(s, k => katalog.Finde(karte.GebaeudeMit(k)?.Katalog ?? "")?.Art) is { } hofstellen)
+            s.Hofstellen = hofstellen;
         var fehler = karte.Pruefen();
         if (fehler.Count > 0)
             throw new KartenFehler(fehler);
@@ -922,6 +968,21 @@ public sealed class Stadtkarte
             f.Add($"Start: Der Platz „{doppelt.Key}“ ist mehrfach vergeben.");
         foreach (var doppelt in s.Haeuser.Select(h => h.Wohnhaus).Prepend(s.Spieler.Wohnhaus).OfType<string>().GroupBy(p => p).Where(x => x.Count() > 1))
             f.Add($"Start: Der Wohnhausplatz „{doppelt.Key}“ ist mehrfach vergeben.");
+
+        // Hofstellen: was das Spiel braucht (die übrigen Regeln – Vorgabe, Fairness, Anzahl – prüft die Kartenprüfung)
+        foreach (var h in s.Hofstellen ?? new List<Hofstelle>())
+        {
+            var wer = $"Hofstelle „{h.Kennung}“";
+            if (string.IsNullOrWhiteSpace(h.Kennung)) f.Add("Hofstellen: Eine Hofstelle hat keine Kennung.");
+            if (GebaeudeMit(h.Werkstatt) is not { Art: Bausteinart.Werkstattplatz })
+                f.Add($"{wer}: „{h.Werkstatt}“ ist kein Werkstattplatz der Karte.");
+            if (GebaeudeMit(h.Wohnhaus) is not { Art: Bausteinart.Wohnhausplatz })
+                f.Add($"{wer}: „{h.Wohnhaus}“ ist kein Wohnhausplatz der Karte.");
+        }
+        foreach (var doppelt in (s.Hofstellen ?? new List<Hofstelle>()).GroupBy(h => h.Kennung).Where(x => x.Count() > 1))
+            f.Add($"Hofstellen: Die Kennung „{doppelt.Key}“ ist doppelt.");
+        foreach (var doppelt in (s.Hofstellen ?? new List<Hofstelle>()).SelectMany(h => new[] { h.Werkstatt, h.Wohnhaus }).GroupBy(p => p).Where(x => x.Count() > 1))
+            f.Add($"Hofstellen: Der Platz „{doppelt.Key}“ gehört zu mehreren Hofstellen.");
     }
 
     /// <summary>Die Bauzone, in der der Punkt liegt – sonst die nächste (null ohne Bauzonen).</summary>

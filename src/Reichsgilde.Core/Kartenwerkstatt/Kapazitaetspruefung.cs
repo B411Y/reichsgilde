@@ -56,6 +56,9 @@ public static class Kapazitaetspruefung
 
     public static readonly IReadOnlyList<(string Art, int Anzahl)> Reserve = new[] { ("Stadthof", 4), ("Stadtpalais", 8) };
 
+    /// <summary>Für so viele Häuser rechnet die Pflicht (LEVELDESIGN §1: jede Karte ist für 8 Häuser ausgelegt).</summary>
+    public const int Haeuser = 8;
+
     /// <summary>
     /// Prüft die Karte. <paramref name="schwere"/>: wie schwer es wiegt, wenn die Pflicht nicht passt (Köln: Fehler, neue Karten: Hinweis).
     /// Die Reserve steht nur im Bericht.
@@ -317,10 +320,16 @@ public static class Kapazitaetspruefung
             var bericht = new List<string>();
             var gesamt = _felder.Length;
             bericht.Add($"Stadt-Bauzonen: {gesamt} Felder, davon fest belegt {gesamt - _freiAnzahl}");
-            foreach (var (art, anzahl) in Pflicht)
+            // Hofstellen (seit 9.11.2026): Die Häuser einer Partie mit 8 Häusern sitzen auf 8 Hofstellen; jede weitere ist frei, und ihr Werkstattplatz
+            // nimmt eine der Werkstätten der Pflicht auf (er steht als Platz der Karte schon fest belegt da).
+            var freieHofstellen = Math.Max(0, _e.Start.Hofstellen.Count - Haeuser);
+            foreach (var (art, pflicht) in Pflicht)
             {
+                var aufHofstellen = art == "Werkstatt" ? Math.Min(pflicht, freieHofstellen) : 0;
+                var anzahl = pflicht - aufHofstellen;
+                if (aufHofstellen > 0) bericht.Add($"Pflicht {art}: {aufHofstellen} auf freien Hofstellen");
                 var gesetzt = Enumerable.Range(0, anzahl).Count(_ => Setzen(art));
-                var text = $"Pflicht {art}: {gesetzt} von {anzahl} passen";
+                var text = $"Pflicht {art}: {gesetzt} von {anzahl} passen" + (aufHofstellen > 0 ? " (dazu die freien Hofstellen)" : "");
                 bericht.Add(text);
                 if (gesetzt != anzahl)
                     befunde.Add(new Befund(schwere, "kapazitaet", $"Kapazität (Partie mit 8 Häusern): {text} in die Bauzonen der Stadt.", Array.Empty<string>(), null));

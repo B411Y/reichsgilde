@@ -450,7 +450,8 @@ public sealed partial class Kartenentwurf
     {
         if (_startwege is { } bekannt) return bekannt;
         var start = Start.AlsStartbelegung();
-        var kennungen = start.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Append(start.Spieler.Werkstatt.Platz).ToHashSet(StringComparer.Ordinal);
+        var kennungen = start.Haeuser.SelectMany(h => h.Betriebe.Select(b => b.Platz)).Append(start.Spieler.Werkstatt.Platz)
+            .Concat((start.Hofstellen ?? new List<Hofstelle>()).Select(h => h.Werkstatt)).ToHashSet(StringComparer.Ordinal); // mit Hofstellen: deren Werkstätten
         _startplaetze = (kennungen, kennungen.Select(GebaeudeMit).OfType<EntwurfGebaeude>().ToHashSet(ReferenceEqualityComparer.Instance));
         return _startwege = Startwegpruefung.Rechnen(this);
     }
@@ -540,7 +541,12 @@ public sealed partial class Kartenentwurf
         var mauern = Teilleser.Liste<Kartenmauer>(daten["mauern"], "Mauer").Select(x => EntwurfMauer.Aus(x.Wert, x.Vorlage)).ToList();
         var felder = Teilleser.Liste<Feldflaeche>(daten["natur"]?["felder"], "Feld").Select(x => EntwurfFeld.Aus(x.Wert, x.Vorlage)).ToList();
         if (daten["start"] is not (null or JsonObject)) throw new KartenFehler(new[] { "start ist kein Objekt." });
-        var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, Teilleser.Einzeln<Startbelegung>(daten["start"], "start"));
+        var startbelegung = Teilleser.Einzeln<Startbelegung>(daten["start"], "start");
+        // Eine Karte von vor den Hofstellen (09.11.2026): jedes Startpaar wird eine Start-Hofstelle (wie Stadtkarte.AusJson); gespeichert stehen sie dann in der Datei
+        if (startbelegung is { Hofstellen: null } alt
+            && Hofstellenvergabe.AusStartpaaren(alt, k => katalog.Finde(gebaeude.FirstOrDefault(g => g.Kennung == k)?.Katalog ?? "")?.Art) is { } hofstellen)
+            alt.Hofstellen = hofstellen;
+        var start = EntwurfStart.Aus(daten["start"]?.DeepClone() as JsonObject, startbelegung);
         var hoehen = Hoehenraster.AusJson(daten["hoehen"]);
         var boden = Bodenraster.AusJson(daten["boden"]);
         var gewaesser = Teilleser.Liste<Gewaesser>(daten["wasser"], "Gewässer")
@@ -771,7 +777,14 @@ public sealed partial class Kartenentwurf
         if (neu == kennung) return;
         if (neu.Length == 0 || neu.Any(c => !(char.IsAsciiLetterOrDigit(c) || c == '_'))) throw new ArgumentException($"„{neu}“ ist keine gültige Kennung.", nameof(neu));
         if (GebaeudeMit(neu) is not null) throw new ArgumentException($"Die Kennung „{neu}“ gibt es schon.", nameof(neu));
-        Aendern(kennung, "Kennung geändert", g => g.Kennung = neu);
+        var g = GebaeudeMit(kennung)!;
+        // Die Hofstelle zieht den Verweis im selben Schritt nach (die Startbelegung nicht – siehe oben)
+        if (_start.HofstelleVon(kennung) is not null
+            && Aenderung(_start, t => t.HofstellenSetzen(t.Hofstellen.Select(h => h.Werkstatt == kennung ? h with { Werkstatt = neu } : h.Wohnhaus == kennung ? h with { Wohnhaus = neu } : h))) is { } verweis
+            && Aenderung(g, x => x.Kennung = neu) is { } umbenennen)
+            Geschichte.Ausfuehren(new Sammelbefehl($"{g.Bezeichnung} Kennung geändert", new IKartenbefehl[] { umbenennen, verweis }));
+        else
+            Aendern(kennung, "Kennung geändert", x => x.Kennung = neu);
     }
 
     /// <summary>Name des Betriebs, der hier steht (Werkstattplatz eines KI-Hauses, Umlandbetrieb); null oder leer entfernt ihn.</summary>
@@ -790,7 +803,12 @@ public sealed partial class Kartenentwurf
     public void Loeschen(string kennung)
     {
         var g = GebaeudeMit(kennung) ?? throw new ArgumentException($"Kein Gebäude „{kennung}“.", nameof(kennung));
-        Geschichte.Ausfuehren(new TeilLoeschen(g, _gebaeude.IndexOf(g)));
+        var loeschen = new TeilLoeschen(g, _gebaeude.IndexOf(g));
+        // Ein Platz einer Hofstelle nimmt die Hofstelle mit (der andere Platz bleibt stehen) – im selben Schritt
+        if (_start.HofstelleVon(kennung) is { } hof && Aenderung(_start, t => t.HofstellenSetzen(t.Hofstellen.Where(h => h.Kennung != hof.Kennung))) is { } ohne)
+            Geschichte.Ausfuehren(new Sammelbefehl($"{g.Bezeichnung} gelöscht (Hofstelle {hof.Kennung} aufgelöst)", new IKartenbefehl[] { ohne, loeschen }));
+        else
+            Geschichte.Ausfuehren(loeschen);
     }
 
     public bool Rueckgaengig()
@@ -921,7 +939,8 @@ public sealed partial class Kartenentwurf
     private void Vormerken(Kartenaenderung a)
     {
         BefundeVerwerfen();
-        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) _kapazitaet = null;
+        // die Startbelegung auch: Die Zahl der Hofstellen zählt für die Werkstätten der Pflicht
+        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen or Kartenteil.Start) _kapazitaet = null;
         StartwegeVormerken(a);
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken

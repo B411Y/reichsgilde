@@ -38,20 +38,35 @@ public static class Startwegpruefung
     public static IReadOnlyList<Startweg> Rechnen(Kartenentwurf entwurf)
     {
         if (entwurf.Startnetz() is not var (karte, netz)) return Array.Empty<Startweg>();
-        // die Plätze so, wie sie jetzt im Entwurf stehen (das gespeicherte Netz kennt nur Wege, Wasser und Marktplätze)
-        Kartengebaeude? Platz(string kennung) => entwurf.GebaeudeMit(kennung) is { } g
-            ? new Kartengebaeude { Kennung = g.Kennung, Katalog = g.Katalog, Name = g.Name, Punkt = new[] { g.X, g.Z }, Drehung = g.Drehung, Massstab = g.Massstab, Baustein = g.Baustein }
-            : null;
-        return Rechnen(karte, netz, entwurf.Start.AlsStartbelegung(), Platz);
+        return Rechnen(karte, netz, entwurf.Start.AlsStartbelegung(), PlatzImEntwurf(entwurf), nurHofstellen: false);
     }
+
+    /// <summary>Die Plätze so, wie sie jetzt im Entwurf stehen (das gespeicherte Netz kennt nur Wege, Wasser und Marktplätze).</summary>
+    private static Func<string, Kartengebaeude?> PlatzImEntwurf(Kartenentwurf entwurf) => kennung => entwurf.GebaeudeMit(kennung) is { } g
+        ? new Kartengebaeude { Kennung = g.Kennung, Katalog = g.Katalog, Name = g.Name, Punkt = new[] { g.X, g.Z }, Drehung = g.Drehung, Massstab = g.Massstab, Baustein = g.Baustein }
+        : null;
 
     /// <summary>Wie oben für eine geladene Karte.</summary>
     public static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte) =>
         karte.Start is { } start && karte.Marktplaetze.Count > 0
-            ? Rechnen(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit)
+            ? Rechnen(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, nurHofstellen: false)
             : Array.Empty<Startweg>();
 
-    private static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit)
+    /// <summary>
+    /// Nur die Werkstätten der Start-Hofstellen (Wer = Kennung der Hofstelle) – für die Wahl im Startmenü (<see cref="Hofstellenvergabe.Angebot"/>).
+    /// Leer ohne Hofstellen oder ohne Marktplatz.
+    /// </summary>
+    public static IReadOnlyList<Startweg> Hofstellen(Stadtkarte karte) =>
+        karte.Start is { } start && karte.HatHofstellen && karte.Marktplaetze.Count > 0
+            ? Rechnen(karte, Karrennetz.Von(karte, marktlinien: true, alleWege: true), start, karte.GebaeudeMit, nurHofstellen: true)
+            : Array.Empty<Startweg>();
+
+    /// <summary>
+    /// Mit Hofstellen (seit 09.11.2026) gilt die Fairness für jede Start-Hofstelle, nicht nur für die Plätze der Startbelegung: Gemessen werden die
+    /// Werkstätten aller Start-Hofstellen (Wer = „Hofstelle S3“) und die Umlandbetriebe der KI-Häuser; ohne Hofstellen wie bisher die Werkstatt des
+    /// Spielers und jeder Betrieb der KI-Häuser.
+    /// </summary>
+    private static IReadOnlyList<Startweg> Rechnen(Stadtkarte karte, Karrennetz netz, Startbelegung start, Func<string, Kartengebaeude?> platzMit, bool nurHofstellen)
     {
         if (karte.Marktplaetze.Count == 0) return Array.Empty<Startweg>();
         var liste = new List<Startweg>();
@@ -66,6 +81,17 @@ public static class Startwegpruefung
                 Karrenweg.Start(platz, umland ? art ?? Betriebsart.Mine : Betriebsart.Giesserei, daten, karte.Katalog), karte, netz);
             liste.Add(new Startweg(wer, kennung, ort, hin.Count > 0 ? hin.Sum(s => s.Laenge) : null, markt?.Name, new Kartenort(g.Punkt[0], g.Punkt[1])));
         }
+        var hofstellen = (start.Hofstellen ?? new List<Hofstelle>()).Where(h => h.Start).ToList();
+        if (hofstellen.Count > 0)
+        {
+            foreach (var h in hofstellen) Messen(nurHofstellen ? h.Kennung : $"Hofstelle {h.Kennung}", h.Werkstatt, null);
+            if (nurHofstellen) return liste;
+            foreach (var h in start.Haeuser)
+                foreach (var b in h.Betriebe.Where(b => platzMit(b.Platz) is { Art: Bausteinart.Umlandbetrieb }))
+                    Messen(h.Name, b.Platz, b.Art);
+            return liste;
+        }
+        if (nurHofstellen) return liste;
         Messen("Spieler", start.Spieler.Werkstatt.Platz, null);
         foreach (var h in start.Haeuser)
             foreach (var b in h.Betriebe)

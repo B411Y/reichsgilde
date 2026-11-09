@@ -70,6 +70,26 @@ public sealed record EntwurfStartplatz(string Platz, string Name)
     internal JsonObject AlsJson() => EntwurfTeil.Zusammensetzen(Vorlage, ("platz", Platz), ("name", Name));
 }
 
+/// <summary>
+/// Eine Hofstelle im Entwurf (seit 09.11.2026, siehe <see cref="Hofstelle"/>): Werkstattplatz und Wohnhausplatz, die zusammengehören, ihr Name und
+/// ob sie als Startplatz taugt.
+/// </summary>
+public sealed record EntwurfHofstelle(string Kennung, string? Name, string Werkstatt, string Wohnhaus, bool Start)
+{
+    /// <summary>Der Eintrag aus der Datei; zählt beim Vergleich nicht.</summary>
+    internal JsonObject? Vorlage { get; init; }
+
+    public bool Equals(EntwurfHofstelle? o) => o is not null && Kennung == o.Kennung && Name == o.Name && Werkstatt == o.Werkstatt && Wohnhaus == o.Wohnhaus && Start == o.Start;
+    public override int GetHashCode() => HashCode.Combine(Kennung, Name, Werkstatt, Wohnhaus, Start);
+
+    /// <summary>Gehört dieser Platz (Kennung) zur Hofstelle?</summary>
+    public bool Umfasst(string? platz) => platz is not null && (platz == Werkstatt || platz == Wohnhaus);
+
+    internal JsonObject AlsJson() => EntwurfTeil.Zusammensetzen(Vorlage,
+        ("kennung", Kennung), ("name", string.IsNullOrWhiteSpace(Name) ? null : JsonValue.Create(Name)), ("werkstatt", Werkstatt), ("wohnhaus", Wohnhaus),
+        ("start", Start ? JsonValue.Create(true) : null));
+}
+
 /// <summary>Was ein Platz der Karte am Start ist.</summary>
 public enum Belegungsart
 {
@@ -109,6 +129,7 @@ public sealed class EntwurfStart : EntwurfTeil
 
     private List<KeyValuePair<string, EntwurfStartplatz>> _jeBeruf = new();
     private List<EntwurfHaus> _haeuser = new();
+    private List<EntwurfHofstelle> _hofstellen = new();
 
     /// <summary>Abweichende Startplätze je Beruf, in der Reihenfolge der Datei.</summary>
     public IReadOnlyList<KeyValuePair<string, EntwurfStartplatz>> JeBeruf => _jeBeruf;
@@ -116,17 +137,28 @@ public sealed class EntwurfStart : EntwurfTeil
     /// <summary>Die KI-Häuser in Konto-Reihenfolge (das erste spielt immer mit).</summary>
     public IReadOnlyList<EntwurfHaus> Haeuser => _haeuser;
 
+    /// <summary>Die Hofstellen der Karte in der Reihenfolge der Datei (Feld <c>hofstellen</c>; leer: keine).</summary>
+    public IReadOnlyList<EntwurfHofstelle> Hofstellen => _hofstellen;
+
+    /// <summary>Die Hofstelle, zu der dieser Platz gehört – oder null.</summary>
+    public EntwurfHofstelle? HofstelleVon(string? platz) => _hofstellen.FirstOrDefault(h => h.Umfasst(platz));
+
+    /// <summary>Die Hofstelle mit dieser Kennung – oder null.</summary>
+    public EntwurfHofstelle? HofstelleMit(string? kennung) => _hofstellen.FirstOrDefault(h => h.Kennung == kennung);
+
     /// <summary>Die Felder von <c>spieler</c> aus der Datei (Reihenfolge, unbekannte Felder).</summary>
     private JsonObject? _spielerVorlage;
 
     /// <summary>Steht nichts darin (dann fehlt der Abschnitt <c>start</c> in der Datei, und das Spiel nimmt den Ersatz)?</summary>
-    public bool IstLeer => _haeuser.Count == 0 && SpielerWerkstatt is null && _jeBeruf.Count == 0 && SpielerWohnhaus is null && SpielerFarbe is null;
+    public bool IstLeer => _haeuser.Count == 0 && SpielerWerkstatt is null && _jeBeruf.Count == 0 && SpielerWohnhaus is null && SpielerFarbe is null
+                           && _hofstellen.Count == 0;
 
     /// <summary>Der Startplatz des Spielers für diesen Beruf (der eigene oder der allgemeine).</summary>
     public EntwurfStartplatz? StartplatzFuer(string beruf) => _jeBeruf.FirstOrDefault(e => e.Key == beruf).Value ?? SpielerWerkstatt;
 
     internal void HaeuserSetzen(IEnumerable<EntwurfHaus> haeuser) => _haeuser = haeuser.ToList();
     internal void JeBerufSetzen(IEnumerable<KeyValuePair<string, EntwurfStartplatz>> plaetze) => _jeBeruf = plaetze.ToList();
+    internal void HofstellenSetzen(IEnumerable<EntwurfHofstelle> hofstellen) => _hofstellen = hofstellen.ToList();
 
     /// <summary>Die Belegung in den Typen der Partie (wie der Kern sie aus der Datei liest).</summary>
     public Startbelegung AlsStartbelegung() => JsonSerializer.Deserialize<Startbelegung>(AlsJson().ToJsonString(), Stadtkarte.Optionen)!;
@@ -157,6 +189,11 @@ public sealed class EntwurfStart : EntwurfTeil
                 }).ToList(),
             };
         }).ToList();
+        var hofstellen = vorlage?["hofstellen"] as JsonArray;
+        e._hofstellen = (s.Hofstellen ?? new List<Hofstelle>()).Select((h, i) => new EntwurfHofstelle(h.Kennung, h.Name, h.Werkstatt, h.Wohnhaus, h.Start)
+        {
+            Vorlage = hofstellen is not null && i < hofstellen.Count ? hofstellen[i]?.DeepClone() as JsonObject : null,
+        }).ToList();
         return e;
     }
 
@@ -166,7 +203,7 @@ public sealed class EntwurfStart : EntwurfTeil
         {
             SpielerWohnhaus = SpielerWohnhaus, SpielerFarbe = SpielerFarbe, SpielerWerkstatt = SpielerWerkstatt, Vorlage = Vorlage, _spielerVorlage = _spielerVorlage,
         };
-        (k._jeBeruf, k._haeuser) = (_jeBeruf.ToList(), _haeuser.ToList());
+        (k._jeBeruf, k._haeuser, k._hofstellen) = (_jeBeruf.ToList(), _haeuser.ToList(), _hofstellen.ToList());
         return k;
     }
 
@@ -174,7 +211,7 @@ public sealed class EntwurfStart : EntwurfTeil
     {
         var o = (EntwurfStart)werte;
         (SpielerWohnhaus, SpielerFarbe, SpielerWerkstatt, Vorlage, _spielerVorlage) = (o.SpielerWohnhaus, o.SpielerFarbe, o.SpielerWerkstatt, o.Vorlage, o._spielerVorlage);
-        (_jeBeruf, _haeuser) = (o._jeBeruf.ToList(), o._haeuser.ToList());
+        (_jeBeruf, _haeuser, _hofstellen) = (o._jeBeruf.ToList(), o._haeuser.ToList(), o._hofstellen.ToList());
     }
 
     internal override bool GleicheWerte(EntwurfTeil anderer) => anderer is EntwurfStart o && AlsJson().ToJsonString() == o.AlsJson().ToJsonString();
@@ -185,7 +222,8 @@ public sealed class EntwurfStart : EntwurfTeil
         var spieler = Zusammensetzen(_spielerVorlage,
             ("wohnhaus", SpielerWohnhaus is null ? null : JsonValue.Create(SpielerWohnhaus)), ("farbe", SpielerFarbe is null ? null : JsonValue.Create(SpielerFarbe)),
             ("werkstatt", SpielerWerkstatt?.AlsJson()), ("jeBeruf", jeBeruf));
-        return Zusammensetzen(Vorlage, ("spieler", spieler), ("haeuser", new JsonArray(_haeuser.Select(h => (JsonNode)h.AlsJson()).ToArray())));
+        var hofstellen = _hofstellen.Count == 0 ? null : new JsonArray(_hofstellen.Select(h => (JsonNode)h.AlsJson()).ToArray());
+        return Zusammensetzen(Vorlage, ("hofstellen", hofstellen), ("spieler", spieler), ("haeuser", new JsonArray(_haeuser.Select(h => (JsonNode)h.AlsJson()).ToArray())));
     }
 }
 
@@ -389,6 +427,160 @@ public sealed partial class Kartenentwurf
             else n.JeBerufSetzen(n.JeBeruf.Where(e => e.Key != beruf));
         });
 
+    // ── Befehle: Hofstellen (seit 09.11.2026) ───────────────────────────────
+
+    /// <summary>Die Hofstellen, die die Startbelegung niemandem gibt (Reihenfolge der Datei) – zur Wahl für Spieler und Häuser.</summary>
+    public IReadOnlyList<EntwurfHofstelle> FreieHofstellen()
+    {
+        var belegt = Belegung().Select(b => b.Kennung).ToHashSet();
+        return _start.Hofstellen.Where(h => !belegt.Contains(h.Werkstatt) && !belegt.Contains(h.Wohnhaus)).ToList();
+    }
+
+    /// <summary>
+    /// Setzt eine neue Hofstelle (Werkzeug „Hofstelle“): Werkstattplatz und Wohnhausplatz nebeneinander, vorn bündig, die Werkstatt links (von vorn
+    /// gesehen), beide in der Drehung <paramref name="drehung"/>; (x, z) ist die Mitte des Ganzen (16 + 8 = 24 m breit, 14 m tief). Kennung „H1“,
+    /// „H2“ …, die Plätze „H1_Werkstatt“ und „H1_Wohnhaus“. Ein Schritt (Rückgängig nimmt alles zurück).
+    /// </summary>
+    public EntwurfHofstelle HofstelleSetzen(double x, double z, double drehung = 0, bool start = false)
+    {
+        var bw = Katalog.Finde("werkstattplatz") ?? throw new InvalidOperationException("Der Katalog kennt keinen Werkstattplatz.");
+        var bh = Katalog.Finde("wohnhausplatz") ?? throw new InvalidOperationException("Der Katalog kennt keinen Wohnhausplatz.");
+        var (ww, wt) = bw.Groesse is { Length: 2 } a ? (a[0], a[1]) : (16, 14);
+        var (hw, ht) = bh.Groesse is { Length: 2 } b ? (b[0], b[1]) : (8, 10);
+        var n = 1;
+        while (_start.HofstelleMit($"H{n}") is not null || GebaeudeMit($"H{n}_Werkstatt") is not null || GebaeudeMit($"H{n}_Wohnhaus") is not null) n++;
+        var kennung = $"H{n}";
+        var d = Kartenraster.Drehung(drehung);
+        var w = d * Math.PI / 180;
+        var (c, s) = (DetMathe.Cos(w), DetMathe.Sin(w));
+        Kartenort Ort(double lx, double lz) => new(x + lx * c + lz * s, z - lx * s + lz * c);
+        var breite = ww + hw;
+        var pw = Ort(-breite / 2 + ww / 2, 0);
+        var ph = Ort(breite / 2 - hw / 2, (wt - ht) / 2);
+        var werkstatt = new EntwurfGebaeude
+        {
+            Kennung = $"{kennung}_Werkstatt", Katalog = "werkstattplatz", Name = $"Hofstelle {kennung}", Baustein = bw,
+            X = Kartenraster.Punkt(pw.X), Z = Kartenraster.Punkt(pw.Z), Drehung = d,
+        };
+        var wohnhaus = new EntwurfGebaeude
+        {
+            Kennung = $"{kennung}_Wohnhaus", Katalog = "wohnhausplatz", Name = $"Hofstelle {kennung}", Baustein = bh,
+            X = Kartenraster.Punkt(ph.X), Z = Kartenraster.Punkt(ph.Z), Drehung = d,
+        };
+        var hof = new EntwurfHofstelle(kennung, null, werkstatt.Kennung, wohnhaus.Kennung, start);
+        var befehle = new List<IKartenbefehl> { new TeilSetzen(werkstatt, _gebaeude.Count), new TeilSetzen(wohnhaus, _gebaeude.Count + 1) };
+        if (Aenderung(_start, t => t.HofstellenSetzen(t.Hofstellen.Append(hof))) is { } eintrag) befehle.Add(eintrag);
+        Geschichte.Ausfuehren(new Sammelbefehl($"Hofstelle {kennung} gesetzt", befehle));
+        return hof;
+    }
+
+    /// <summary>
+    /// Macht aus einem Werkstattplatz und einem Wohnhausplatz, die schon in der Karte stehen, eine Hofstelle (Kartenskripte, alte Karten).
+    /// Kennung: <paramref name="kennung"/>, sonst „H1“, „H2“ … Gibt die Kennung zurück.
+    /// </summary>
+    /// <exception cref="ArgumentException">Wenn ein Platz fehlt, die falsche Art hat, schon zu einer Hofstelle gehört oder die Kennung vergeben ist.</exception>
+    public string HofstelleBilden(string werkstatt, string wohnhaus, bool start = false, string? name = null, string? kennung = null)
+    {
+        if (GebaeudeMit(werkstatt) is not { Art: Bausteinart.Werkstattplatz }) throw new ArgumentException($"„{werkstatt}“ ist kein Werkstattplatz.", nameof(werkstatt));
+        if (GebaeudeMit(wohnhaus) is not { Art: Bausteinart.Wohnhausplatz }) throw new ArgumentException($"„{wohnhaus}“ ist kein Wohnhausplatz.", nameof(wohnhaus));
+        if (_start.HofstelleVon(werkstatt) is { } hw) throw new ArgumentException($"„{werkstatt}“ gehört schon zur Hofstelle {hw.Kennung}.", nameof(werkstatt));
+        if (_start.HofstelleVon(wohnhaus) is { } hh) throw new ArgumentException($"„{wohnhaus}“ gehört schon zur Hofstelle {hh.Kennung}.", nameof(wohnhaus));
+        if (kennung is null)
+        {
+            var n = 1;
+            while (_start.HofstelleMit($"H{n}") is not null) n++;
+            kennung = $"H{n}";
+        }
+        else if (_start.HofstelleMit(kennung) is not null) throw new ArgumentException($"Die Hofstelle „{kennung}“ gibt es schon.", nameof(kennung));
+        var hof = new EntwurfHofstelle(kennung, string.IsNullOrWhiteSpace(name) ? null : name, werkstatt, wohnhaus, start);
+        Aendern(_start, $"Hofstelle {kennung} gebildet", t => t.HofstellenSetzen(t.Hofstellen.Append(hof)));
+        return kennung;
+    }
+
+    /// <summary>Taugt die Hofstelle als Startplatz (Fairness ±10 %, nur unter diesen wird gelost)?</summary>
+    public void HofstelleStartSetzen(string kennung, bool start) => HofstelleAendern(kennung, start ? "als Startplatz" : "nicht mehr Startplatz", h => h with { Start = start });
+
+    /// <summary>Name der Hofstelle (Lage für den Namen der Spielerwerkstatt; null oder leer: die nächste Karrenstraße).</summary>
+    public void HofstelleUmbenennen(string kennung, string? name) =>
+        HofstelleAendern(kennung, "umbenannt", h => h with { Name = string.IsNullOrWhiteSpace(name) ? null : name.Trim() });
+
+    /// <summary>Löst die Hofstelle auf – die beiden Plätze bleiben als einzelne Plätze stehen.</summary>
+    public void HofstelleAufloesen(string kennung)
+    {
+        PruefeHofstelle(kennung);
+        Aendern(_start, $"Hofstelle {kennung} aufgelöst", t => t.HofstellenSetzen(t.Hofstellen.Where(h => h.Kennung != kennung)));
+    }
+
+    /// <summary>Löscht die Hofstelle mit beiden Plätzen (ein Schritt). Wer sie in der Startbelegung hatte, hat danach keinen Platz – das meldet die Prüfung.</summary>
+    public void HofstelleLoeschen(string kennung)
+    {
+        var h = PruefeHofstelle(kennung);
+        var befehle = new List<IKartenbefehl>();
+        if (Aenderung(_start, t => t.HofstellenSetzen(t.Hofstellen.Where(x => x.Kennung != kennung))) is { } eintrag) befehle.Add(eintrag);
+        // erst den hinteren Platz, damit Rückgängig beide an ihre alte Stelle der Reihenfolge setzt
+        foreach (var g in new[] { GebaeudeMit(h.Werkstatt), GebaeudeMit(h.Wohnhaus) }.OfType<EntwurfGebaeude>().OrderByDescending(g => _gebaeude.IndexOf(g)))
+            befehle.Add(new TeilLoeschen(g, _gebaeude.IndexOf(g)));
+        Geschichte.Ausfuehren(new Sammelbefehl($"Hofstelle {kennung} gelöscht", befehle));
+    }
+
+    /// <summary>
+    /// Setzt den Spieler (ohne Los) auf diese Hofstelle: sein Wohnhaus und den Startplatz seiner Werkstatt in einem Schritt. Der Name der Werkstatt
+    /// bleibt; ohne bisherigen Namen „{art} am &lt;Name der Hofstelle&gt;“.
+    /// </summary>
+    public void SpielerHofstelleSetzen(string kennung)
+    {
+        var h = PruefeHofstelle(kennung);
+        var alt = _start.SpielerWerkstatt;
+        var lage = h.Name ?? GebaeudeMit(h.Werkstatt)?.Name ?? h.Kennung;
+        var neu = (alt ?? new EntwurfStartplatz("", "")) with
+        {
+            Platz = h.Werkstatt,
+            Name = alt?.Name is { Length: > 0 } n ? n : "{art} " + (Hofstellenvergabe.MitPraeposition(lage) ? lage : Bauwesen.Lagebezeichnung(lage)),
+        };
+        Aendern(_start, $"Spieler auf Hofstelle {kennung}", t => (t.SpielerWohnhaus, t.SpielerWerkstatt) = (h.Wohnhaus, neu));
+    }
+
+    /// <summary>
+    /// Setzt ein KI-Haus (ohne Los) auf diese Hofstelle: sein Wohnhaus und seine Werkstatt (der erste Startbetrieb auf einem Werkstattplatz) in
+    /// einem Schritt. Der Name der Werkstatt zieht mit an den neuen Platz (ohne Namen: „{art} &lt;Nachname&gt;“). Hat das Haus keine Werkstatt,
+    /// bekommt es nur das Wohnhaus.
+    /// </summary>
+    public void HausHofstelleSetzen(int haus, string kennung)
+    {
+        PruefeHaus(haus);
+        var h = PruefeHofstelle(kennung);
+        var alt = _start.Haeuser[haus];
+        var befehle = new List<IKartenbefehl>();
+        var j = alt.Betriebe.ToList().FindIndex(b => GebaeudeMit(b.Platz) is { Art: Bausteinart.Werkstattplatz });
+        if (j >= 0 && alt.Betriebe[j].Platz != h.Werkstatt)
+        {
+            var b = alt.Betriebe[j];
+            var vorher = GebaeudeMit(b.Platz)!;
+            var artName = Daten is { } d && d.KenntArt(b.Art) ? d.Art(b.Art).Name : b.Art.ToString();
+            var name = vorher.Betrieb ?? FreierName($"{artName} {Familie.NachnameAus(alt.Name)}", _gebaeude.Select(x => x.Betrieb).OfType<string>());
+            // Der alte Platz behält den Namen nur, wenn ihn noch ein anderes Haus als Startplatz hat
+            var andere = _start.Haeuser.Where((x, i) => i != haus).Any(x => x.Betriebe.Any(y => y.Platz == vorher.Kennung));
+            if (!andere && Aenderung(vorher, x => x.Betrieb = null) is { } frei) befehle.Add(frei);
+            if (GebaeudeMit(h.Werkstatt) is { } ziel && Aenderung(ziel, x => x.Betrieb = name) is { } benennen) befehle.Add(benennen);
+        }
+        if (Aenderung(_start, t => t.HaeuserSetzen(t.Haeuser.Select((x, i) => i != haus ? x : x with
+            {
+                Wohnhaus = h.Wohnhaus,
+                Betriebe = x.Betriebe.Select((b, k) => k == j ? b with { Platz = h.Werkstatt } : b).ToList(),
+            }))) is { } eigener)
+            befehle.Insert(0, eigener);
+        Buendeln($"{alt.Name} auf Hofstelle {kennung}", befehle.FirstOrDefault(), befehle.Skip(1));
+    }
+
+    private void HofstelleAendern(string kennung, string was, Func<EntwurfHofstelle, EntwurfHofstelle> aenderung)
+    {
+        PruefeHofstelle(kennung);
+        Aendern(_start, $"Hofstelle {kennung} {was}", t => t.HofstellenSetzen(t.Hofstellen.Select(h => h.Kennung == kennung ? aenderung(h) : h)));
+    }
+
+    private EntwurfHofstelle PruefeHofstelle(string kennung) =>
+        _start.HofstelleMit(kennung) ?? throw new ArgumentException($"Keine Hofstelle „{kennung}“.", nameof(kennung));
+
     private void HausAendern(int haus, string was, Func<EntwurfHaus, EntwurfHaus> aenderung)
     {
         PruefeHaus(haus);
@@ -414,7 +606,10 @@ public sealed partial class Kartenentwurf
         var namen = start.Rivalennamen.ToHashSet();
         var familie = new[] { "Hammerschmid", "Probst", "Kartenmacher", "Feldmesser" }.FirstOrDefault(n => !namen.Contains(Partieaufbau.Hausname(n))) ?? "Neubürger";
         var wappen = Wappen.Vorlagen.FirstOrDefault(w => !start.Rivalenwappen.Contains(w)) ?? Wappen.AusName(familie);
-        return new NeuePartie(Familienname: familie, Beruf: beruf, Rivalen: Math.Max(1, start.Haeuser.Count), Wappen: wappen);
+        // Mit Hofstellen: der Spieler auf seiner Hofstelle aus der Startbelegung, die KI-Häuser gelost wie im Spiel
+        var eigene = _start.HofstelleVon(_start.SpielerWerkstatt?.Platz) ?? _start.HofstelleVon(_start.SpielerWohnhaus);
+        return new NeuePartie(Familienname: familie, Beruf: beruf, Rivalen: Math.Max(1, start.Haeuser.Count), Wappen: wappen,
+            Hofstelle: eigene is { Start: true } ? eigene.Kennung : null);
     }
 
     /// <summary>
