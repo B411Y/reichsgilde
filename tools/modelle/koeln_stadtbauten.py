@@ -319,12 +319,15 @@ def rathaus(st):
 def mauerstummel(netz, st, x_innen, y0, s):
     """Mauerstück vom Torbau bis x = ±7,9 (die Mauerstücke des Baukastens schließen bei ±7,6 an), 6 m hoch wie der Wehrgang."""
     x0, x1 = sorted((s * x_innen, s * 7.9))
-    netz.quader(((x0 + x1) / 2, (y0 + 1.0) / 2, 3.0), (x1 - x0, 1.0 - y0, 6.0), st["Tuff"], ohne=("-z",))
+    # 1 cm vor der Stadtseite und unter dem Wehrgang des Mauerstücks: wo beide sich überlappen (±7,6 … ±7,9), lägen sonst ihre
+    # Flächen in einer Ebene und flimmerten (in Cycles schwarz)
+    y1, h = 0.99, 5.98
+    netz.quader(((x0 + x1) / 2, (y0 + y1) / 2, h / 2), (x1 - x0, y1 - y0, h), st["Tuff"], ohne=("-z",))
     streifen(netz, st, bs.wandmatrix(((x0 + x1) / 2, y0, 0), "vorne"), -(x1 - x0) / 2 + 0.02, (x1 - x0) / 2 - 0.02, 0.0, 2.0, 0.2,
              "Basalt")
-    zinnen_linie(netz, st, (x0, y0), (x1, y0), 6.0, hb=0.6, hz=0.8, breite=0.7)
+    zinnen_linie(netz, st, (x0, y0), (x1, y0), h, hb=0.62, hz=0.8, breite=0.7)
     # Anschlusszinne: deckt das offene Ende der Brustwehr des anschließenden Mauerstücks (y −1 … −0,5, bis 7,6 m hoch)
-    netz.quader((s * 7.75, -0.75, 6.8), (0.3, 0.5, 1.6), st["Tuff"], ohne=("-z",))
+    netz.quader((s * 7.75, -0.75, 6.79), (0.3, 0.52, 1.62), st["Tuff"], ohne=("-z",))
 
 
 def doppelturmtor(st, wort, hb, ht):
