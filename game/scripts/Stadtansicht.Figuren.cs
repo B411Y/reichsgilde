@@ -52,6 +52,8 @@ public partial class Stadtansicht
         public bool Probe { get; init; }
         /// <summary>Welche Probedatei (0 Mann, 1 Frau, <c>ProbeArten</c>).</summary>
         public int ProbeArt { get; init; }
+        /// <summary>Probefigur als Bettler: kauert und bettelt statt zu stehen (Vollausbau Schritt 2).</summary>
+        public bool ProbeBettler { get; init; }
         /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>

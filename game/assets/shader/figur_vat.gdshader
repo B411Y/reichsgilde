@@ -1,6 +1,6 @@
 // Probefiguren „Weg A“ als gebackene Vertex-Animation (VAT) im MultiMesh (Stadtansicht.Passantenprobe.cs): ab Zoom 50 statt Skelett.
 // Die Lage jeder Ecke (Modellraum, Halbfloat) und ihre Normale stehen je Bild der Clips in zwei Texturen: Spalte = Eckennummer (UV2.x),
-// Zeile = Bild. Das Spiel schreibt je Figur in INSTANCE_CUSTOM: x = Stand in der Schleife (Bilder, mit Bruchteil), y = Clip + 8 × Kopffarbe,
+// Zeile = Bild. Das Spiel schreibt je Figur in INSTANCE_CUSTOM: x = Stand in der Schleife (Bilder, mit Bruchteil), y = Clip + 16 × Kopffarbe,
 // z = Farben (Gewand + 64 × Beinkleid + 4096 × Haut + 262144 × Haar, je ein Platz in „farben“). Zonen und feste Farben wie figur.gdshader.
 // Stoffe: UV.y = Art + 16 × (Schicht der Material-Bibliothek + 1) wie bei den Modellen; „tuch“ und „leder“ bekommen die Farbe ihrer Schicht
 // aus modelle_farbe_hoehe (dreiseitig im Modellraum, geteilt durch die mittlere Farbe der Schicht) – eine einfache Fassung von oberflaeche.gdshader.
@@ -9,7 +9,7 @@ render_mode cull_disabled;
 
 uniform sampler2D lage : filter_nearest, repeat_disable;
 uniform sampler2D normale : filter_nearest, repeat_disable;
-uniform vec2 klips[8];          // erste Zeile und Bildzahl je Clip
+uniform vec2 klips[16];          // erste Zeile und Bildzahl je Clip
 uniform vec4 farben[64];        // Palette (linear), vom Spiel gefüllt
 uniform sampler2DArray bib_farbe : source_color, repeat_enable, filter_linear_mipmap;
 uniform int stoff_schicht[2];   // Schicht von „tuch“ und „leder“ (−1 = keine)
@@ -38,8 +38,8 @@ vec3 farbe_aus(int i, bool srgb) {
 void vertex() {
 	int ecke = int(UV2.x);
 	int code = int(round(INSTANCE_CUSTOM.y));
-	int klip = code % 8;
-	vec2 k = klips[clamp(klip, 0, 7)];
+	int klip = code % 16;
+	vec2 k = klips[clamp(klip, 0, 15)];
 	int start = int(k.x);
 	int bilder = max(int(k.y), 1);
 	float bild = INSTANCE_CUSTOM.x;
@@ -70,7 +70,7 @@ void vertex() {
 	f_beinkleid = farbe_aus((f / 64) % 64, srgb);
 	f_haut = farbe_aus((f / 4096) % 64, srgb);
 	f_haar = farbe_aus((f / 262144) % 64, srgb);
-	f_kopf = farbe_aus(code / 8, srgb);
+	f_kopf = farbe_aus(code / 16, srgb);
 }
 
 void fragment() {

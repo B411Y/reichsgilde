@@ -1242,7 +1242,7 @@ public partial class Stadtansicht
         var gebeugt = tracht.Gebeugt || alt;
         var ki = !ProbeAktiv && KiSchmiedFuer(e, tracht, gebeugt);
         if (ki) _kiPassanten.Add(e.Nummer); // der KI-Schmied kann noch nicht sitzen (die Probefigur schon)
-        var figur = ProbeAktiv ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer) // Probe „Weg A“ (Stadtansicht.Passantenprobe.cs)
+        var figur = ProbeAktiv ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer, e.Rolle) // Probe „Weg A“ (Stadtansicht.Passantenprobe.cs)
                                : FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
         if (figur is not null && !_passantenSchatten) FigurSchatten(figur, false);
         return new Passant

@@ -31,12 +31,15 @@ public partial class Stadtansicht
 
     private static readonly ProbeArtDaten[] ProbeArten =
     {
-        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock" }, 0.933f, 1.287f, 0.898f, 0.446f),
-        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende" }, 0.822f, 1.118f, 0.786f, 0.389f),
+        new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock", "bettler" }, 0.933f, 1.287f, 0.898f, 0.446f),
+        new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende", "bettler" }, 0.822f, 1.118f, 0.786f, 0.389f),
     };
 
     /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
-    private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken" };
+    private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken", "Kauern", "Betteln" };
+
+    /// <summary>Fußformen (eigene Netze „Fuss_&lt;form&gt;“, nah und fern dieselben): Halbschuh aus Leder, Holzschuh, barfuß (nur Bettler).</summary>
+    private static readonly string[] ProbeFussformen = { "halb", "holz", "barfuss" };
 
     // „Gehen“ und „Tragen“ haben seit Runde 3 die Schrittweite für das Tempo der Passanten (im Blender-Skript verstärkt, SCHRITT): Takt nahe 1,
     // nicht gehetzt, und die Füße rutschen nicht (die Bremse ×0,7 aus Runde 2 ließ sie rutschen).
@@ -55,7 +58,7 @@ public partial class Stadtansicht
     private bool _probeFern, _probeVatVersucht;
 
     /// <summary>Wie eine Probefigur in der VAT-Stufe aussieht (Datei, Netz-Variante, Palettenplätze der fünf Farben).</summary>
-    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf);
+    private sealed record ProbeTracht(int Art, int Variante, int Gewand, int Beinkleid, int Haut, int Haar, int Kopf, int Fuss);
     private readonly Dictionary<Figur, ProbeTracht> _probeTrachten = new();
     /// <summary>Alle Farben der Probefiguren (linear) für den VAT-Shader; Platz in der Liste = Index im Shader.</summary>
     private readonly List<Color> _probePalette = new();
@@ -104,12 +107,14 @@ public partial class Stadtansicht
     /// eingefärbt über das Material der Tracht (<see cref="FigurStoff"/>, dieselben fünf Zonen) in gedeckten Pflanzenfarben. Frauen bekommen die
     /// Frauen-Datei; Völker sind vorerst nur gleichmäßig skaliert.
     /// </summary>
-    private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer)
+    private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer, string? rolle = null)
     {
         var art = aussehen.Frau ? 1 : 0;
         var daten = ProbeArten[art];
         if (Modell(daten.Datei) is not { } szene) return null;
-        var variante = ProbeVarianteFuer(aussehen, nummer);
+        var bettler = rolle == "Bettler";
+        var variante = bettler ? Array.IndexOf(daten.Varianten, "bettler") : ProbeVarianteFuer(aussehen, nummer);
+        var fuss = ProbeFussFuer(rolle, nummer);
         aussehen = aussehen with
         {
             Gewand = ProbeGewandfarben[Streuung(nummer, 211) % ProbeGewandfarben.Length],
@@ -131,31 +136,44 @@ public partial class Stadtansicht
                 spieler.GetAnimation(name).LoopMode = Animation.LoopModeEnum.Linear;
         var figur = new Figur
         {
-            Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art,
+            Modell = modell, Spieler = spieler, Nummer = nummer, Probe = true, ProbeArt = art, ProbeBettler = bettler,
             Beinfaktor = daten.Huefte / 0.92f * massstab, Kniehoehe = (daten.Sitzhoehe + 0.02f) * massstab,
         };
         var stoff = FigurStoff(aussehen);
         foreach (var teil in modell.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             var name = teil.Name.ToString();
-            if (name != $"Nah_{daten.Varianten[variante]}" && name != "Last" && name != "Werkzeug") { teil.QueueFree(); continue; }
+            if (name != $"Nah_{daten.Varianten[variante]}" && name != $"Fuss_{ProbeFussformen[fuss]}" && name != "Last" && name != "Werkzeug") { teil.QueueFree(); continue; }
             teil.MaterialOverride = stoff;
             if (name is "Last" or "Werkzeug") { teil.Visible = false; figur.Werkzeuge[name] = teil; }
             figur.Teile.Add(teil);
         }
         _probeTrachten[figur] = new ProbeTracht(art, variante, ProbeFarbe(aussehen.Gewand), ProbeFarbe(aussehen.Beinkleid), ProbeFarbe(aussehen.Haut),
-            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe));
+            ProbeFarbe(aussehen.Haar), ProbeFarbe(aussehen.Kopffarbe), fuss);
         if (_probeVat) modell.Visible = false;
         BewegungSetzen(figur, "Stehen");
         return figur;
     }
+
+    /// <summary>
+    /// Fußform nach Rolle (Schritt 1 des Vollausbaus): barfuß nur der Bettler; Holzschuhe für Arme und Bauern (Tagelöhner, Knecht, Hirte,
+    /// Feldarbeiter, Holzsammler); Halbschuhe aus Leder für Bürger, Krämer, Boten, Mönche, Ratsherren, Witwen und Torwächter. Ohne Rolle
+    /// (Messfiguren) nach der Nummer Halb- oder Holzschuh.
+    /// </summary>
+    private static int ProbeFussFuer(string? rolle, int nummer) => rolle switch
+    {
+        "Bettler" => 2,
+        "Tagelöhner" or "Knecht" or "Hirte" or "Feldarbeiter" or "Holzsammler" => 1,
+        null => (int)(Streuung(nummer, 241) % 2),
+        _ => 0,
+    };
 
     /// <summary>Männer: Gugel bei Kapuze und Eisenhut, sonst nach der Nummer Cotte, Gugel oder langer Rock. Frauen: Gebende bei Schleier, Haube
     /// bei Haube, sonst nach der Nummer.</summary>
     private static int ProbeVarianteFuer(FigurAussehen a, int nummer)
     {
         if (a.Frau) return a.Kopf == Kopfbedeckung.Schleier ? 1 : a.Kopf == Kopfbedeckung.Haube ? 0 : (int)(Streuung(nummer, 977) % 2);
-        return a.Kopf is Kopfbedeckung.Kapuze or Kopfbedeckung.Eisenhut ? 1 : (int)(Streuung(nummer, 977) % 3);
+        return a.Kopf is Kopfbedeckung.Kapuze or Kopfbedeckung.Eisenhut ? 1 : (int)(Streuung(nummer, 977) % 3); // die Bettler-Variante nur über die Rolle
     }
 
     private int ProbeFarbe(Color srgb)
@@ -192,6 +210,7 @@ public partial class Stadtansicht
         else
         {
             klip = bewegung is "Reden" or "Sitzen" or "Hacken" or "Buecken" ? bewegung : "Stehen";
+            if (f.ProbeBettler && klip is "Stehen" or "Reden" or "Sitzen") klip = "Betteln"; // Schritt 2: der Bettler kauert und streckt die Hand aus
             probeTakt = 1;
         }
         f.Takt = probeTakt;
@@ -206,7 +225,7 @@ public partial class Stadtansicht
         f.Dauer = Math.Max(0.1, f.Spieler.GetAnimation(klip).Length);
         f.Phase = (Streuung(f.Nummer, 131) & 0xFFFF) / 65536.0 * f.Dauer;
         f.Neu = true;
-        f.Langsam = klip is "Stehen" or "Sitzen";
+        f.Langsam = klip is "Stehen" or "Sitzen" or "Kauern";
     }
 
 
@@ -256,7 +275,7 @@ public partial class Stadtansicht
     /// <summary>Gebackene Netze, Schlüssel „&lt;Art&gt;:&lt;Netzname&gt;“ (Art 0 Mann, 1 Frau).</summary>
     private Dictionary<string, ProbeVatNetz>? _probeVatNetze;
     /// <summary>Je Art: erste Zeile und Bildzahl je Clip (Reihenfolge <see cref="ProbeKlips"/>).</summary>
-    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = { new (int, int)[7], new (int, int)[7] };
+    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = { new (int, int)[9], new (int, int)[9] };
 
     /// <summary>Backt alle Netze beider Probedateien (je Variante nah und fern, dazu die Kiste) für alle Clips. False, wenn kein Modell da ist.</summary>
     private bool ProbeVatBacken()
@@ -550,7 +569,8 @@ public partial class Stadtansicht
         var bild = (float)(f.Phase / f.Dauer * bilder); // Stand in der Schleife, in Bildern
         var farben = tracht.Gewand + 64f * tracht.Beinkleid + 4096f * tracht.Haut + 262144f * tracht.Haar;
         var xf = f.Modell.GlobalTransform;
-        Eintragen(netzName, xf, bild, klip + 8f * tracht.Kopf, farben);
+        Eintragen(netzName, xf, bild, klip + 16f * tracht.Kopf, farben);
+        Eintragen($"{tracht.Art}:Fuss_{ProbeFussformen[tracht.Fuss]}", xf, bild, klip + 16f * tracht.Kopf, farben); // Füße (nah und fern dieselben)
         if (klip == 2) Eintragen($"{tracht.Art}:Last", xf, bild, klip, farben); // die Kiste beim Tragen
         if (klip == 5) Eintragen($"{tracht.Art}:Werkzeug", xf, bild, klip, farben); // die Axt beim Hacken
         _probeGezeichnet++;
@@ -622,7 +642,7 @@ public partial class Stadtansicht
             _passantenEbene.AddChild(knoten);
             var aussehen = AussehenAusNummer(i * 4 + (i % 7 == 0 ? 1 : 0)); // meist Menschen, Farben gestreut
             aussehen = aussehen with { Volk = Volk.Mensch, Haut = HautVon(Volk.Mensch), Kopf = i % 3 == 0 ? Kopfbedeckung.Kapuze : aussehen.Kopf };
-            if (ProbefigurEinsetzen(knoten, aussehen, nummer) is not { } figur) { knoten.QueueFree(); continue; }
+            if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
             if (!_passantenSchatten) FigurSchatten(figur, false);
             var tempo = art == "Tragen" ? 0.9f : 1.3f;
             _probeMessfiguren.Add(new ProbeMessfigur(knoten, figur, anfang, richtung, 8f, tempo, art));
