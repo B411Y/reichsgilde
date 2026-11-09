@@ -29,11 +29,15 @@ Bauweise (R4b: ein Felskörper aus einem Dichtefeld statt gestapelter Kluftblöc
       - unten eine Schutthalde aus kantigen Steinen und einzelnen Brocken, die flach in den Boden ausläuft.
   * Danach Glätten, Voxel-Remesh (3–5 cm) und feines Aufrauen: Haarrisse (3D-Voronoi, ein Netz aus feinen Linien, nur
     stellenweise), die Hauptklüfte als feine Linie, Feinschichtung in einzelnen Bänken, flache Abplatzungen, Körnung.
-    Dann unten und hinten abgeschnitten (offen), auf die Spielstufen vereinfacht und gebacken.
+    Dann unten abgeschnitten (offen), auf die Spielstufen vereinfacht und gebacken.
+  * Rückseite (R7): Die Spielkamera dreht in 90°-Schritten, ein einzeln gestempeltes Stück wird auch von hinten gesehen. Darum
+    schließt jedes Stück hinten mit einer groben Bruchfläche knapp vor y = T/2 (Felder von etwa 3 m mit eigenem Rücksprung und
+    eigener Neigung, leicht nach vorn geneigt, oben gerundet); die feine Oberfläche ist dort gedämpft, damit das Vereinfachen
+    hinten wenige Dreiecke lässt, und ihre UV-Inseln sind im Atlas auf 45 % verkleinert (die Schauseite behält ihre Auflösung).
 
 Knoten „<Form>_<Stufe>“ (0 fein, 1 mittel, 2 grob), Ursprung Mitte der Grundfläche, z = 0 Unterkante, nichts darunter;
-im Spiel Y oben, Schauseite +Z, die Rückseite (−Z) gehört in den Hang. Unterseite offen (außer bei den Gesimsen, deren
-Unterseite beim Stapeln als Überhang zu sehen ist), Rückseite offen (außer beim freistehenden Pfeiler).
+im Spiel Y oben, Schauseite +Z, die Rückseite (−Z) gehört in den Hang, ist aber geschlossen (R7). Unterseite offen (außer bei
+den Gesimsen, deren Unterseite beim Stapeln als Überhang zu sehen ist).
 Extras je Knoten: „kennung“, „stufe“, „schicht_neigung“ (Neigung der Schichtfugen in der Wandebene in Grad, + = nach +X
 steigend; für Shader-Bänder, die der Schichtung folgen sollen). Ein Material „Fels“ (Platzhalter, das Spiel setzt das
 Fels-Material). Vertexfarbe COLOR_0 (linear) wie F1: R Höhlung (Verdeckung × (1 − 0,6 · Rinne)), G Kante, B Höhe im Stück
@@ -59,6 +63,7 @@ import bodentexturen_blender as bt  # noqa: E402  (nur der WebP-Schreiber)
 NAME = "natur_felswand"
 TEXTUREN = os.path.join(bs.WURZEL, "game", "assets", "texturen", "felswand")
 ATLAS = (4096, 2048)
+RUECK_UV = 0.45          # so groß bleiben die UV-Inseln der Rückseite im Atlas (Maßstab, R7)
 
 # Kennung, Knotenname, Dreiecke je Stufe 0/1/2, Voxelgröße (m) des hohen Netzes
 FORMEN = (
@@ -102,10 +107,12 @@ GESTEIN = {
 # Je Stück: Grundkörper (art), Maße B × T × H (m, T einschließlich Schuttfuß), Gestein, Schichtung (fallen in Grad,
 # richtung = Fallrichtung in Grad: 0 fällt nach +X, 90 in den Hang, −90 zum Betrachter), Kluftachse (fallen, richtung;
 # ohne Angabe senkrecht zur Schichtung), Hauptkluft-Zellen (m), Anteil tiefer Spalten, Versatz der Säulen (m),
-# große Formen (m), Rippen und Rinnen entlang der Wand (m), Anteil offener Bankfugen, Front-Neigung (m zurück je m Höhe), Schutthalde (Höhe von–bis, m), Gitter (m)
+# große Formen (m), Rippen und Rinnen entlang der Wand (m), Anteil offener Bankfugen, Front-Neigung (m zurück je m Höhe), Schutthalde (Höhe von–bis, m), Gitter (m),
+# Rückseite (Neigung nach vorn in m je m Höhe, größter Abstand von der Hinterkante in m; R7)
 STANDARD = dict(lehne=0.22, kluft=5.0, anis=1.0, spalten=0.2, spalt_tiefe=2.2, spalt_breite=0.4, relief=0.45,
                 gross=1.1, rippe=1.0, kluft_rund=0.3, fuge_offen=0.7, welle=0.3, schutt=(0.5, 1.6), raster=0.08, hoehe=(0.8, 1.0), enden=(1.0, 1.0),
-                offen_rechts=False, stufen=(), risse=1.8, bruch=0.13, rund_oben=0.6, kluft_achse=None)
+                offen_rechts=False, stufen=(), risse=1.8, bruch=0.13, rund_oben=0.6, kluft_achse=None,
+                rueck=(0.03, 0.8))
 STUECKE = {
     "wand_gross_1": dict(art="wand", B=20, T=10, H=16, gestein="grauwacke", fallen=32, richtung=200, lehne=0.3,
                          kluft=6.5, spalten=0.22, relief=0.3, gross=0.6, rippe=1.3, schutt=(0.7, 2.0), risse=2.0),
@@ -115,7 +122,7 @@ STUECKE = {
     "wand_gross_3": dict(art="wand", B=18, T=11, H=12, gestein="sandstein", fallen=22, richtung=-12, lehne=0.2,
                          kluft=6.0, spalten=0.15, relief=0.3, gross=0.7, rippe=1.1, stufen=((4.2, 2.2), (8.3, 2.0)), risse=2.0,
                          hoehe=(0.88, 1.0)),
-    "wand_mittel_1": dict(art="wand", B=9, T=6, H=8, gestein="grauwacke", fallen=38, richtung=-5, lehne=0.3,
+    "wand_mittel_1": dict(art="wand", B=9, T=6, H=8, gestein="grauwacke", fallen=30, richtung=-5, lehne=0.22,
                           kluft=4.0, relief=0.3, gross=0.6, rippe=1.0, schutt=(0.5, 1.3), raster=0.06),
     "wand_mittel_2": dict(art="wand", B=6, T=6, H=10, gestein="grauwacke", fallen=26, richtung=160, lehne=0.18,
                           kluft=3.6, relief=0.4, gross=0.6, rippe=0.9, enden=(1.0, 0.0), offen_rechts=True, schutt=(0.5, 1.3),
@@ -123,10 +130,10 @@ STUECKE = {
     "wand_mittel_3": dict(art="wand", B=8, T=6.5, H=5, gestein="sandstein", fallen=20, richtung=20, lehne=0.2,
                           kluft=4.0, relief=0.3, gross=0.5, rippe=0.8, stufen=((2.4, 2.0),), schutt=(0.4, 1.0), raster=0.06,
                           hoehe=(0.9, 1.0)),
-    "gesims_1": dict(art="gesims", B=10, T=4, H=1.8, gestein="sandstein", fallen=3, richtung=90, kluft=3.5,
+    "gesims_1": dict(art="gesims", B=10, T=4, H=1.8, gestein="sandstein", fallen=3, richtung=90, kluft=3.5, rueck=(0.0, 0.6),
                      relief=0.15, gross=0.35, rippe=0.2, welle=0.08, schutt=None, raster=0.05, rund_oben=0.35, spalten=0.0,
                      bruch=0.05),
-    "gesims_2": dict(art="gesims2", B=8.4, T=4, H=2.95, gestein="sandstein", fallen=3, richtung=90, kluft=3.2,
+    "gesims_2": dict(art="gesims2", B=8.4, T=4, H=2.95, gestein="sandstein", fallen=3, richtung=90, kluft=3.2, rueck=(0.0, 0.6),
                      relief=0.15, gross=0.3, rippe=0.2, welle=0.08, schutt=None, raster=0.05, rund_oben=0.35, spalten=0.0,
                      bruch=0.05),
     "pfeiler_1": dict(art="pfeiler", B=4, T=4, H=20, gestein="trachyt", fallen=15, richtung=45, kluft_achse=(3, 0),
@@ -136,7 +143,7 @@ STUECKE = {
                            kluft_achse=(4, 30), kluft=2.8, spalten=0.35, relief=0.4, gross=0.6, rippe=1.0, lehne=0.1,
                            schutt=(0.4, 1.2), raster=0.07, hoehe=(0.88, 1.0)),
     "schuttkegel": dict(art="schutt", B=12.5, T=9, H=4, gestein="grauwacke", fallen=30, richtung=0, raster=0.06,
-                        schutt=None),
+                        schutt=None, rueck=(0.25, 1.8)),
 }
 # Fallen und Fallrichtung der Schichtung je Stück (für Shader-Bänder: Neigung in der Wandebene als Extra im Knoten)
 SCHICHTUNG = {k: (v["fallen"], v["richtung"]) for k, v in STUECKE.items()}
@@ -586,7 +593,25 @@ class Fels:
         # Schutthalde am Fuß
         if p["schutt"]:
             f = self.halde(f, X, Y, Z, rippe, rippe + p["relief"] * (2 * zufall(zu, zv, self.saat, k=5) - 1))
+        # geschlossene Rückseite zuletzt (auch die Halde reicht sonst nach hinten durch); der Pfeiler ist rundum zu
+        if p["art"] != "pfeiler":
+            f = smax(f, self.rueckseite(X, Y, Z), 0.45)
         return f
+
+    def rueckseite(self, X, Y, Z):
+        """Feld der Rückseite (R7, < 0 = davor): grobe Bruchfläche knapp vor der Hinterkante y = T/2, aus Feldern von etwa
+        3 m (in der Ebene x, z), jedes mit eigenem Rücksprung und eigener Neigung, dazu sanfte Wellen; nach oben leicht nach
+        vorn geneigt, aber nie weiter als rueck[1] vor der Hinterkante (sonst würde die Wand oben zu dünn)."""
+        lehne, tiefst = self.p["rueck"]
+        _, zx, zz, cx, cz = zellen2(X, Z, 3.0, self.saat + 61)
+        d = 0.4 * zufall(zx, zz, self.saat, k=16) \
+            + 0.18 * (2 * zufall(zx, zz, self.saat, k=17) - 1) * (X - cx) \
+            + 0.14 * (2 * zufall(zx, zz, self.saat, k=18) - 1) * (Z - cz)
+        _, kx, kz, _, _ = zellen2(X + 0.5 * Z, Z, 1.3, self.saat + 62)        # kleinere Ausbrüche in den Feldern
+        d = d + 0.12 * zufall(kx, kz, self.saat, k=19)
+        d = d + 0.25 * (fbm(self.r[1], X / 6.0, 3.7, Z / 6.0, 2) + 0.6)
+        yb = self.yh - 0.12 - lehne * np.maximum(Z, 0) - np.clip(d, 0.0, 0.75)
+        return Y - np.maximum(yb, self.yh - tiefst)
 
     def rippe(self, w, zu, zv):
         """Rippen und Rinnen: je Hauptkluft-Säule ein eigener Vorsprung (ebene Fläche, Stufe an der Kluft), dazu ein
@@ -664,7 +689,7 @@ class Fels:
             k, kid, _, _ = zellen3(X[nah], Y[nah], Z[nah] * 1.6, 0.9, self.saat + 41)
             gross = 0.16 * (1 - glatt(0.0, 0.12, k)) - (zufall(*kid, self.saat, k=4) - 0.5) * 0.36
             f[nah] = f[nah] + np.where(fuss > 0.55, gross + 0.4 * klein, klein) * auf[nah]
-        return f
+        return smax(f, self.rueckseite(X, Y, Z), 0.6)          # hinten geschlossen (R7)
 
     # Gitter und Fläche
     def gitter(self):
@@ -707,6 +732,9 @@ class Fels:
         d -= 0.02 * (1 - np.clip(r1 / 0.5, 0, 1)) ** 2
         # Körnung
         d += 0.006 * fbm(self.r[8], X / 0.12, Y / 0.12, Z / 0.12, 3)
+        # auf der Rückseite (R7) gedämpft: grob, damit das Vereinfachen dort wenige Dreiecke lässt
+        if p["art"] != "pfeiler":
+            d *= 1 - 0.8 * glatt(0.35, 0.75, no[:, 1]) * glatt(self.yh - 1.9, self.yh - 1.0, Y)
         return d
 
 
@@ -824,21 +852,17 @@ def aufrauen(obj, fels):
     me.update()
 
 
-def hinten_offen(form):
-    return form != "pfeiler_1"
-
-
 def unten_offen(form):
     return not form.startswith("gesims")
 
 
 def hinterkante(form):
-    """y der Schnittebene an der Hangseite (Blender +Y)."""
+    """y der Hinterkante (Blender +Y, Hangseite); die Rückseite liegt knapp davor (R7)."""
     return STUECKE[form]["T"] / 2
 
 
 def abschneiden(obj, form):
-    """Unter z = 0 weg (Unterseite offen), hinten an der Hangseite weg (Rückseite offen)."""
+    """Unter z = 0 weg (Unterseite offen); die Rückseite ist geschlossen (R7), dort wird nicht geschnitten."""
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     if unten_offen(form):
@@ -847,9 +871,6 @@ def abschneiden(obj, form):
     else:                                    # geschlossene Unterseite: der Remesher reicht ein halbes Voxel unter 0
         tief = min(v.co.z for v in bm.verts)
         bmesh.ops.translate(bm, verts=bm.verts, vec=(0, 0, -tief))
-    if hinten_offen(form):
-        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
-        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=(0, hinterkante(form), 0), plane_no=(0, 1, 0), clear_outer=True)
     nur_groesste_insel(bm, obj.name)
     bm.to_mesh(obj.data)
     bm.free()
@@ -897,12 +918,9 @@ def vereinfachen(quelle, name, ziel, form):
     anwenden(obj)
     obj.modifiers.new("Tri", "TRIANGULATE")
     anwenden(obj)
-    yh = hinterkante(form) if hinten_offen(form) else None
-    for v in obj.data.vertices:              # Collapse legt Punkte am offenen Rand auch knapp über die Schnitte
-        if v.co.z < 0:
+    for v in obj.data.vertices:              # Collapse legt Punkte am offenen Rand auch knapp unter den Schnitt
+        if v.co.z < 0 and unten_offen(form):
             v.co.z = 0.0
-        if yh is not None and v.co.y > yh:
-            v.co.y = yh
     # Collapse kann doppelte Flächen und lose Kanten hinterlassen und kleine Teile abtrennen: entfernen, sonst meldet
     # der glTF-Export „not valid“ und bereinigt selbst
     bm = bmesh.new()
@@ -923,6 +941,60 @@ def vereinfachen(quelle, name, ziel, form):
     return obj
 
 
+def rueckseite_verkleinern(obj, form):
+    """UV-Inseln, die nach hinten zeigen und an der Hinterkante liegen (R7), um ihre Mitte auf RUECK_UV verkleinern; das
+    folgende Packen behält die Verhältnisse, so bleibt der Schauseite mehr Atlas. Inseln: Flächen, die über eine Kante mit
+    gleichen UV an beiden Enden zusammenhängen. Gibt die Zahl der verkleinerten Inseln zurück."""
+    me = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    uv = bm.loops.layers.uv.active
+    bm.faces.ensure_lookup_table()
+    eltern = list(range(len(bm.faces)))
+
+    def wurzel(i):
+        while eltern[i] != i:
+            eltern[i] = eltern[eltern[i]]
+            i = eltern[i]
+        return i
+    for e in bm.edges:
+        if len(e.link_faces) != 2:
+            continue
+        f1, f2 = e.link_faces
+        a = {l.vert: l[uv].uv.copy() for l in f1.loops if l.vert in e.verts}
+        b = {l.vert: l[uv].uv.copy() for l in f2.loops if l.vert in e.verts}
+        if all((a[v] - b[v]).length < 1e-6 for v in e.verts):
+            r1, r2 = wurzel(f1.index), wurzel(f2.index)
+            if r1 != r2:
+                eltern[r1] = r2
+    inseln = {}
+    for f in bm.faces:
+        inseln.setdefault(wurzel(f.index), []).append(f)
+    yh, anzahl = hinterkante(form), 0
+    for flaechen in inseln.values():
+        groesse = sum(f.calc_area() for f in flaechen)
+        if groesse <= 0:
+            continue
+        ny = sum(f.normal.y * f.calc_area() for f in flaechen) / groesse
+        my = sum(f.calc_center_median().y * f.calc_area() for f in flaechen) / groesse
+        if ny > 0.6 and my > yh - 2.0:
+            schleifen = [l for f in flaechen for l in f.loops]
+            mitte = sum((l[uv].uv for l in schleifen), Vector((0.0, 0.0))) / len(schleifen)
+            for l in schleifen:
+                l[uv].uv = mitte + (l[uv].uv - mitte) * RUECK_UV
+            anzahl += 1
+    bm.to_mesh(me)
+    bm.free()
+    return anzahl
+
+
+def dreiecke_hinten(obj, form):
+    """Dreiecke auf der Rückseite (zeigt nach hinten, liegt an der Hinterkante) und alle – zur Kontrolle (R7)."""
+    yh = hinterkante(form)
+    hinten = sum(1 for p in obj.data.polygons if p.normal.y > 0.6 and p.center.y > yh - 1.5)
+    return hinten, len(obj.data.polygons)
+
+
 def aufklappen(obj, form):
     """UV: Smart Project, in das Atlasfeld der Form gepackt."""
     for o in bpy.context.scene.objects:
@@ -932,8 +1004,13 @@ def aufklappen(obj, form):
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=math.radians(55), island_margin=0.004, area_weight=0.0, scale_to_bounds=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    klein = rueckseite_verkleinern(obj, form)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.pack_islands(rotate=True, margin=0.004)
     bpy.ops.object.mode_set(mode="OBJECT")
+    print(f"  {obj.name}: {klein} UV-Inseln der Rückseite auf {RUECK_UV:.0%} verkleinert", flush=True)
     px, py, groesse = FELDER[form]
     rand = 4 / groesse                                       # 4 Pixel Abstand zum Nachbarfeld
     uv = obj.data.uv_layers.active.data
@@ -1495,8 +1572,10 @@ def main():
         paare.append((form, hoch, stufe0))
         hochnetze[form] = hoch
         d = stufe0.dimensions
+        hinten, alle = dreiecke_hinten(stufe0, form)
         print(f"{form} ({knoten}): {d.x:.2f} × {d.y:.2f} × {d.z:.2f} m (B × T × H), hoch {tri_hoch} Dreiecke, Stufen "
-              + " / ".join(str(len(spielnetze[(form, s)].data.polygons)) for s in range(3)), flush=True)
+              + " / ".join(str(len(spielnetze[(form, s)].data.polygons)) for s in range(3))
+              + f", Rückseite {hinten} von {alle} ({hinten / max(1, alle):.0%})", flush=True)
     if arg["nur_form"]:                               # schnelle Formprobe: ohne Backen, ohne Export
         for _, h, _ in paare:
             h.hide_render = True

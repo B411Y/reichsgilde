@@ -7,7 +7,8 @@ game/daten/gestein.json im Shader fels.gdshaderinc):
     R, G  Neigung der Fläche in U und V (Normale, 128 = flach)
     B     Höhe (0 tief … 1 hoch): Bruchflächen, Risse und Körnung; der Shader nimmt sie für Höhlungen (Moos) und Kanten (Flechten)
     A     Flecken (0 … 1): grobes und feines Rauschen gemischt, aus dem der Shader Moospolster und Flechtenflecken schneidet
-Platzhalter bis F1: Dort wird die Struktur aus hochaufgelösten Felsformen in Blender gebacken und ersetzt diese Datei (gleiche Kanäle).
+Abgelöst (Felsen R7): Die Datei im Spiel backt jetzt tools/oberflaeche/felstexturen_blender.py in Blender (gleiche Kanäle, gleiche
+Kachel). Dieses Skript bleibt als einfacher Ersatz ohne Blender; es überschreibt die gebackene Fassung.
 """
 import os
 import sys
