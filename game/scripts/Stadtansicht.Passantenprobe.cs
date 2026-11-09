@@ -33,9 +33,10 @@ public partial class Stadtansicht
     {
         new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.933f, 1.287f, 0.898f, 0.446f),
         new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende", "bettler" }, 0.822f, 1.118f, 0.786f, 0.389f),
-        // Orks und Oger (Vollausbau Schritt 3, Nutzer 09.11.): nur Männer, barfuß, ärmelloses Lederwams oder Sackleinen; der Ork leicht gebeugt
-        new("figuren/probe/passant_probe_ork", new[] { "wams", "sack" }, 0.920f, 1.213f, 0.854f, 0.438f),
-        new("figuren/probe/passant_probe_oger", new[] { "wams", "sack" }, 0.952f, 1.258f, 0.886f, 0.449f),
+        // Orks und Oger (Vollausbau Schritt 3, Nutzer und Vorlage 09.11.): nur Männer, barfuß; der Ork in geflicktem Lederwams und leicht gebeugt,
+        // der Oger in Sackleinen (ocker)
+        new("figuren/probe/passant_probe_ork", new[] { "wams" }, 0.920f, 1.213f, 0.854f, 0.439f),
+        new("figuren/probe/passant_probe_oger", new[] { "sack" }, 0.952f, 1.258f, 0.886f, 0.449f),
     };
 
     /// <summary>Datei der Probe nach Volk und Geschlecht: Orks und Oger haben eigene Dateien (auch Frauen nehmen sie: es gibt nur Männer).</summary>
@@ -46,7 +47,7 @@ public partial class Stadtansicht
 
     /// <summary>Lederwams und Sackleinen der Orks und Oger (sRGB): Leder braun, Sackleinen ungefärbt.</summary>
     private static readonly Color[] ProbeLeder = { new(0.34f, 0.24f, 0.15f), new(0.28f, 0.20f, 0.13f), new(0.40f, 0.30f, 0.19f), new(0.22f, 0.17f, 0.12f) };
-    private static readonly Color[] ProbeSackleinen = { new(0.50f, 0.45f, 0.35f), new(0.44f, 0.40f, 0.31f), new(0.55f, 0.50f, 0.40f) };
+    private static readonly Color[] ProbeSackleinen = { new(0.62f, 0.50f, 0.30f), new(0.58f, 0.49f, 0.33f), new(0.66f, 0.55f, 0.36f) }; // hell bis ocker
 
     /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
     private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken", "Kauern", "Betteln" };
@@ -88,10 +89,11 @@ public partial class Stadtansicht
         new(0.45f, 0.22f, 0.17f), new(0.24f, 0.30f, 0.40f), new(0.56f, 0.48f, 0.27f), new(0.33f, 0.24f, 0.16f), new(0.40f, 0.33f, 0.22f),
         new(0.62f, 0.57f, 0.47f), new(0.40f, 0.39f, 0.35f), new(0.30f, 0.36f, 0.24f), new(0.32f, 0.22f, 0.26f), new(0.52f, 0.38f, 0.22f),
     };
+    // Beinlinge: meist graubeige Wolle (Vorlage 09.11.), einige dunkler oder gefärbt
     private static readonly Color[] ProbeBeinkleidfarben =
     {
-        new(0.28f, 0.24f, 0.20f), new(0.22f, 0.22f, 0.23f), new(0.34f, 0.27f, 0.18f), new(0.25f, 0.27f, 0.32f), new(0.38f, 0.33f, 0.27f),
-        new(0.42f, 0.24f, 0.19f),
+        new(0.50f, 0.47f, 0.40f), new(0.44f, 0.41f, 0.35f), new(0.55f, 0.51f, 0.43f), new(0.40f, 0.38f, 0.33f), new(0.28f, 0.24f, 0.20f),
+        new(0.25f, 0.27f, 0.32f), new(0.42f, 0.24f, 0.19f),
     };
     /// <summary>Hauben und Gebende: ungebleichtes Leinen und gefärbtes Tuch. Klicktest NAS 09.11.: das Beige (0,62/0,56/0,44) lag zu nah an der Haut,
     /// die Haube las sich als Glatze; darum dunkler und kühler, dazu mehr gefärbte (Ocker, Blassblau, Rötlich, Moosgrün, Dunkelbraun). Am Modell
@@ -136,16 +138,18 @@ public partial class Stadtansicht
         var bettler = rolle == "Bettler";
         var variante = Array.IndexOf(daten.Varianten, bettler ? "bettler"
             : !aussehen.Frau && rolle == "Mönch" ? "kutte" : !aussehen.Frau && rolle == "Ratsherr" ? "rock" : "");
-        if (variante < 0) variante = unfrei ? (int)(Streuung(nummer, 977) % 2) : ProbeVarianteFuer(aussehen, nummer);
+        if (variante < 0) variante = unfrei ? 0 : ProbeVarianteFuer(aussehen, nummer);
         var fuss = unfrei ? 2 : ProbeFussFuer(rolle, nummer); // Orks und Oger barfuß
         var zubehoer = ProbeZubehoerFuer(aussehen, daten.Varianten[variante]);
+        // Bart bzw. Stoppeln (Vorlage 09.11.): zwei von drei Männern, nicht bei Mönchen
+        if (art == 0 && daten.Varianten[variante] != "kutte" && Streuung(nummer, 251) % 3 != 0) zubehoer = zubehoer.Append("bart").ToArray();
         // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
         var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
         // Kopffarbe: Schwarz (Barett, Witwe) und Weiß (Nonne) bleiben; Hauben und Schürzen in Leinen, Gugeln der Männer in Gewandfarben
         var festeKopffarbe = aussehen.Kopffarbe == Schwarz || aussehen.Kopffarbe.R > 0.85f;
         aussehen = aussehen with
         {
-            Gewand = unfrei ? (variante == 0 ? ProbeLeder[Streuung(nummer, 211) % ProbeLeder.Length] : ProbeSackleinen[Streuung(nummer, 211) % ProbeSackleinen.Length])
+            Gewand = unfrei ? (art == 2 ? ProbeLeder[Streuung(nummer, 211) % ProbeLeder.Length] : ProbeSackleinen[Streuung(nummer, 211) % ProbeSackleinen.Length])
                 : eigeneFarbe ? aussehen.Gewand : ProbeGewandFuer(rolle, nummer),
             Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
             Kopffarbe = festeKopffarbe ? aussehen.Kopffarbe
