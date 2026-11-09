@@ -48,8 +48,12 @@ public partial class Stadtansicht
     private const int ProbeVatBilder = 24;
 
     private static readonly string? ProbeOption = Wasserarten.Startoption("passantenprobe");
-    /// <summary>Ersetzt die Probefigur alle Passanten?</summary>
-    private static readonly bool ProbeAktiv = ProbeOption is not null and not "0" and not "aus";
+    /// <summary>Sind die Passanten Figuren mit Skelett (Weg A)? Seit Schritt 5 des Vollausbaus der Normalfall; <c>--passantenprobe=0</c> holt die
+    /// Figuren aus Blender zurück (zum Vergleichen).</summary>
+    private static readonly bool ProbeAktiv = ProbeOption is null or not ("0" or "aus");
+    /// <summary>Mit ausdrücklichem <c>--passantenprobe</c> sind alle Passanten Probefiguren, auch die sonst vom KI-Schmied gestellten, und alle 10 s
+    /// steht eine Messzeile im Protokoll.</summary>
+    private static readonly bool ProbeErsetztAlle = ProbeOption is not null && ProbeAktiv;
     private static readonly int ProbeMessfigurenZahl = int.TryParse(ProbeOption, out var n) && n > 1 ? n : 0;
     private static readonly string ProbeStufe = Wasserarten.Startoption("probestufe") ?? "auto";
     /// <summary><c>--probeklip=&lt;Clip&gt;</c>: alle Messfiguren mit diesem Clip (z. B. Buecken, Kauern, Betteln), zum Ansehen einzelner Bewegungen.</summary>
@@ -739,7 +743,7 @@ public partial class Stadtansicht
     /// <summary>Nach dem Zeichnen: Zeit der Probe mitzählen und alle 10 s eine Zeile <c>[passantenprobe]</c> ins Protokoll.</summary>
     private void ProbeMelden(double delta)
     {
-        if (!ProbeAktiv) return;
+        if (!ProbeAktiv || ProbeOption is null && Wasserarten.Startoption("messung") is null) return; // Messzeilen nur zum Messen
         _probeBilder++;
         _probeMeldeZeit += delta;
         if (_probeMeldeZeit < 10) return;

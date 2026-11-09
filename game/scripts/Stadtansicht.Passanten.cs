@@ -1241,9 +1241,9 @@ public partial class Stadtansicht
         var tracht = TrachtVon(e);
         var alt = _simulation is { } sim && e.Alter(sim.Zeit.Jahr) >= GebeugtAb;
         var gebeugt = tracht.Gebeugt || alt;
-        var ki = !ProbeAktiv && KiSchmiedFuer(e, tracht, gebeugt);
+        var ki = !ProbeErsetztAlle && KiSchmiedFuer(e, tracht, gebeugt); // der KI-Schmied (Wunsch des Nutzers, 28.10.) bleibt neben den neuen Figuren
         if (ki) _kiPassanten.Add(e.Nummer); // der KI-Schmied kann noch nicht sitzen (die Probefigur schon)
-        var figur = ProbeAktiv ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer, e.Rolle) // Probe „Weg A“ (Stadtansicht.Passantenprobe.cs)
+        var figur = ProbeAktiv && !ki ? ProbefigurEinsetzen(knoten, AussehenVon(e, tracht), e.Nummer, e.Rolle) // Figur mit Skelett, Weg A (Stadtansicht.Passantenprobe.cs)
                                : FigurEinsetzen(knoten, AussehenVon(e, tracht) with { KiSchmied = ki }, e.Nummer);
         if (figur is not null && !_passantenSchatten) FigurSchatten(figur, false);
         return new Passant

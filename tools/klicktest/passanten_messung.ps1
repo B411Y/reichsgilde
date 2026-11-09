@@ -8,11 +8,13 @@ Aufruf (Windows PowerShell 5.1, im Worktree mit dem Branch phase5/passanten-prob
   powershell -NoProfile -ExecutionPolicy Bypass -File tools\klicktest\passanten_messung.ps1 [-Ausgabe <ordner>] [-Laeufe 3] [-Treiber vulkan]
 
 Läufe: je Fall × Zoom × Lauf ein Start von Köln (Markt, 10 Uhr, klar) mit --messung=15:
-  alt       ohne Probe (die Figuren aus Blender wie in main)
-  probe     --passantenprobe=1 (alle Passanten Probefigur; Zoom 25 Skelett, 50 VAT nah, 100 VAT fern)
+  alt       --passantenprobe=0 (die Figuren aus Blender wie vor dem Vollausbau)
+  neu       ohne Option: der Normalfall seit Schritt 5 (Figuren mit Skelett, Zoom 25 Skelett, 50 VAT nah, 100 VAT fern; der KI-Schmied bleibt)
+  probe     --passantenprobe=1 (alle Passanten Probefigur, auch statt des KI-Schmieds)
   probe400  --passantenprobe=400 (dazu 400 Messfiguren um den Blickpunkt)
   skelett400 --passantenprobe=400 --probestufe=skelett (nur bei Zoom 50 und 100: dieselben 400 mit Skelett statt VAT)
-Zoom 25, 50, 100 (--blick=37,-110,<zoom>). Standard 3 Läufe: 4 Fälle, zusammen 33 Starts zu je etwa 1,5 min.
+Zoom 25, 50, 100 (--blick=37,-110,<zoom>). Standard 3 Läufe: 5 Fälle, zusammen 42 Starts zu je etwa 1,5 min.
+In der Tabelle zusätzlich die Backzeit der VAT beim Start (Zeile „VAT gebacken in … ms“).
 
 Ergebnis: je Lauf ein Ordner mit godot.log und bild.png (nach 20 s), dazu <ausgabe>\ergebnis.csv mit Bilder/s, Bildzeit, GPU-Zeit, Mittel
 der Zeichenaufrufe (Sekundenzeilen der Messung), Grafikspeicher (Godot-Monitor, falls im Log) und der letzten Zeile [passantenprobe].
@@ -48,7 +50,8 @@ foreach ($werkzeug in 'reichsgilde-frage', 'reichsgilde-pruefen') {
 
 # Fälle: Name, zusätzliche Optionen, Zoomstufen
 $faelle = @(
-    @{ Name = 'alt'; Optionen = @(); Zoom = @(25, 50, 100) },
+    @{ Name = 'alt'; Optionen = @('--passantenprobe=0'); Zoom = @(25, 50, 100) },
+    @{ Name = 'neu'; Optionen = @(); Zoom = @(25, 50, 100) },
     @{ Name = 'probe'; Optionen = @('--passantenprobe=1'); Zoom = @(25, 50, 100) },
     @{ Name = 'probe400'; Optionen = @('--passantenprobe=400'); Zoom = @(25, 50, 100) },
     @{ Name = 'skelett400'; Optionen = @('--passantenprobe=400', '--probestufe=skelett'); Zoom = @(50, 100) }
@@ -64,7 +67,7 @@ function Zitieren([string]$text) {
     return '"' + (($text -replace '(\\*)"', '$1$1\"') -replace '(\\+)$', '$1$1') + '"'
 }
 
-$zeilen = @('fall;zoom;lauf;bilder_s;bildzeit_ms;gpu_ms;zeichenaufrufe_mittel;probe_zeile')
+$zeilen = @('fall;zoom;lauf;bilder_s;bildzeit_ms;gpu_ms;zeichenaufrufe_mittel;backen_ms;probe_zeile')
 $kultur = [Globalization.CultureInfo]::InvariantCulture
 foreach ($f in $faelle) {
     foreach ($zoom in $f.Zoom) {
@@ -112,7 +115,8 @@ foreach ($f in $faelle) {
                     if ($_ -match ' (\d+) Zeichenaufrufe') { [double]$Matches[1] } })
             $mittel = if ($aufrufe.Count -gt 0) { ($aufrufe | Measure-Object -Average).Average.ToString('0', $kultur) } else { '' }
             $probe = ($text | Where-Object { $_ -match '^\[passantenprobe\] Stufe' } | Select-Object -Last 1) -replace ';', ','
-            $zeilen += ('{0};{1};{2};{3};{4};{5};{6};{7}' -f $f.Name, $zoom, $lauf, $bilder, $bildzeit, $gpu, $mittel, $probe)
+            $backen = ($text | Where-Object { $_ -match 'VAT gebacken in (\d+) ms' } | Select-Object -First 1) -replace '.*VAT gebacken in (\d+) ms.*', '$1'
+            $zeilen += ('{0};{1};{2};{3};{4};{5};{6};{7};{8}' -f $f.Name, $zoom, $lauf, $bilder, $bildzeit, $gpu, $mittel, $backen, $probe)
             Write-Output ("  {0} Bilder/s, Bildzeit {1} ms, GPU {2} ms, Zeichenaufrufe {3}" -f $bilder, $bildzeit, $gpu, $mittel)
         }
     }
