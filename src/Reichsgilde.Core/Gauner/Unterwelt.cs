@@ -13,9 +13,10 @@ public sealed record Hinterhalt(Konto Auftraggeber, Konto Ziel, long BisMinute);
 
 /// <summary>
 /// Ein Erpresserbrief: Schweigegeld gegen die Beweise des Erpressers – oder (Teil 3c) gegen sein Schweigen über ein Geheimnis
-/// (<paramref name="Geheimnis"/>: dessen Nummer).
+/// (<paramref name="Geheimnis"/>: dessen Nummer, <paramref name="GeheimnisArt"/>: dessen Art für das Siegel des Briefes; in Spielständen von
+/// vor dem Siegel fehlt die Art – dann nennt sie <see cref="Geheimnisse.Geheimniswesen.ArtDesBriefes"/>).
 /// </summary>
-public sealed record Forderung(Konto Erpresser, Konto Opfer, double Betrag, int Jahr, int? Geheimnis = null);
+public sealed record Forderung(Konto Erpresser, Konto Opfer, double Betrag, int Jahr, int? Geheimnis = null, Geheimnisse.Geheimnisart? GeheimnisArt = null);
 
 /// <summary>
 /// Was nachts geschah. <see cref="Fuer"/> = null: Die ganze Stadt weiß es (Einbruch, Brand, Überfall).
@@ -424,16 +425,18 @@ public sealed class Unterwelt
     /// bekannt, dass ein Brief kam – nicht das Geheimnis.
     /// </summary>
     /// <param name="zufall">Der Würfel der Geheimnisse (Schwarzes Buch) – damit die Würfe der Unterwelt bleiben, wie sie ohne Geheimnisse wären.</param>
-    internal Befehlsergebnis GeheimnisErpressen(Konto erpresser, Konto opfer, double betrag, int geheimnis, string worum, Zufallsquelle zufall)
+    internal Befehlsergebnis GeheimnisErpressen(Konto erpresser, Konto opfer, double betrag, int geheimnis, Geheimnisse.Geheimnisart art, string worum,
+        Zufallsquelle zufall)
     {
-        _forderungen.Add(new Forderung(erpresser, opfer, betrag, _w.Jahr, geheimnis));
+        _forderungen.Add(new Forderung(erpresser, opfer, betrag, _w.Jahr, geheimnis, art));
         var spurChance = _w.Familien.Lebenswirkung(erpresser).ErpressungSpurFaktor;
         if ((spurChance >= 1 || zufall.NextDouble() < spurChance)
             && _w.Justiz.TatMelden(erpresser, Vergehen.Erpressung, opfer.Inhaber, betrag) is { } spur)
             _w.Justiz.BeweisGeben(opfer, spur);
         _w.Melden($"{opfer.Inhaber} erhält einen Erpresserbrief von {erpresser.Inhaber}: " +
                   $"{Zahlenformat.Ganz(betrag)} {_w.Daten.Allgemein.Waehrung} Schweigegeld, sonst kommt ein Geheimnis ans Licht.");
-        _w.Melden(Meldungsart.Sonstiges, $"Der Brief von {erpresser.Inhaber} nennt das Geheimnis: {worum}.", haus: opfer, vertraulich: true);
+        // Nur das Opfer erfährt, worum es geht (mit der Art fürs Siegel); der Satz für alle nennt kein Geheimnis und keine Art.
+        _w.Melden(Meldungsart.Sonstiges, $"Der Brief von {erpresser.Inhaber} nennt das Geheimnis: {worum}.", haus: opfer, vertraulich: true, geheimnis: art);
         return Befehlsergebnis.Ok($"Der Brief ist zugestellt. {opfer.Inhaber} hat bis zum Jahresende Zeit. Aber Vorsicht: Der Brief ist selbst ein Beweis gegen euch.");
     }
 
@@ -804,7 +807,10 @@ public sealed class Unterwelt
             Erfolgreich = i < _erfolgreich.Count && _erfolgreich[i],
         }).ToList(),
         Hinterhalte = _hinterhalte.Select(h => new HinterhaltStand { Auftraggeber = nr(h.Auftraggeber), Ziel = nr(h.Ziel), BisMinute = h.BisMinute }).ToList(),
-        Forderungen = _forderungen.Select(f => new ForderungStand { Erpresser = nr(f.Erpresser), Opfer = nr(f.Opfer), Betrag = f.Betrag, Jahr = f.Jahr, Geheimnis = f.Geheimnis }).ToList(),
+        Forderungen = _forderungen.Select(f => new ForderungStand
+        {
+            Erpresser = nr(f.Erpresser), Opfer = nr(f.Opfer), Betrag = f.Betrag, Jahr = f.Jahr, Geheimnis = f.Geheimnis, GeheimnisArt = f.GeheimnisArt,
+        }).ToList(),
         DiesesJahr = _diesesJahr.Select(e => new NachtereignisStand { Fuer = e.Fuer is null ? null : nr(e.Fuer), Text = e.Text }).ToList(),
         LetztesJahr = _letztesJahr.Select(e => new NachtereignisStand { Fuer = e.Fuer is null ? null : nr(e.Fuer), Text = e.Text }).ToList(),
         LetzterAngriff = _letzterAngriff.OrderBy(x => x.Key, StringComparer.Ordinal).ToDictionary(x => x.Key, x => x.Value),
@@ -820,7 +826,7 @@ public sealed class Unterwelt
         _hinterhalte.Clear();
         _hinterhalte.AddRange(s.Hinterhalte.Select(h => new Hinterhalt(k[h.Auftraggeber], k[h.Ziel], h.BisMinute)));
         _forderungen.Clear();
-        _forderungen.AddRange(s.Forderungen.Select(f => new Forderung(k[f.Erpresser], k[f.Opfer], f.Betrag, f.Jahr, f.Geheimnis)));
+        _forderungen.AddRange(s.Forderungen.Select(f => new Forderung(k[f.Erpresser], k[f.Opfer], f.Betrag, f.Jahr, f.Geheimnis, f.GeheimnisArt)));
         _diesesJahr = s.DiesesJahr.Select(e => new Nachtereignis(e.Fuer is int n ? k[n] : null, e.Text)).ToList();
         _letztesJahr = s.LetztesJahr.Select(e => new Nachtereignis(e.Fuer is int n ? k[n] : null, e.Text)).ToList();
         _letzterAngriff.Clear();
