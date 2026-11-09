@@ -2697,3 +2697,42 @@ Jede Änderung liegt innerhalb von etwa einem Fehler des Unterschieds (1.000–2
 Vorstände mit denselben Messungen: **Vor der Ketzerei-Entscheidung** (Ketzerei anzeigbar, sobald ein Stadtglaube gilt; `7fac6918`): Berufe fast Zahl für Zahl gleich (Schmied 39.560, Tischler 31.676 = −15,0 %, damit 10/10 im Band, Prediger 35.967), Anzeigen 0,50 (0,38 schuldig) – ein Stadtglaube gilt in KI-Partien selten, die Regel ändert wenig. **Vor den Befunden der Prüfung** (`3db333af` auf main `7b9516f1` + 3b `ab93e848`): 3,8 Ratsstimmen und 8,2 Spitzel auf Ratsherren – „nur so viele, wie zur Mehrheit fehlen“ spart ein Zehntel der Erpressungen; Berufe 9/10 im Band (Tischler −15,6 %), Mittel 32.752, KI ÷ Bezug 1,00. Erste Probe (20 Jahre, 5 Startwerte) mit höchstens einem Spitzel je Jahr statt des gemeinsamen Budgets: 16,9 Spitzel auf Ratsherren je Partie.
 
 **Befund:** Geheimnisse sind in jeder Partie da, die KI nutzt sie vor allem im Rat (Ratsstimmen); Briefe, Anzeigen und Bloßstellen gibt es in knapp der Hälfte der Partien. Die Wirtschaft bleibt im Rauschen (der Tischler liegt wie ohne Geheimnisse knapp außerhalb des Bandes). Schulden und Mord kommen in KI-Partien bei Häusern fast nie vor (die KI hat kaum Bargeld im Minus, nimmt keine Kredite, und Giftanschläge töten selten) – offener Punkt in `kern.md`.
+
+## Personal-Nacharbeit: Gulden-Rechnung für jede Wirkung (Datenversion 78, 9.11.2026)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md` und `docs/bereiche/spiel-ki.md`, „Personal-Nacharbeit“; **Datenversion 78**): Der Schalter `werkstatt.jedeWirkungRechnen` gibt in `Werkstattwesen.MehrgewinnDurch` auch den Wirkungen einen Wert, die bisher 0 brachten. Dieselbe Rechnung gilt für Vorarbeiter-Eigenschaften (`Personalwesen.MehrgewinnJeJahr`, `ErwarteterVorarbeiterGewinn`), für den Kauf von Einrichtung (`Amortisationsjahre`) und für die Anzeige im Talentbaum. **Kein Grundwert ist geändert**, Beute und Sold bleiben.
+
+| Wirkung (Eigenschaft, Einrichtung) | Rechnung |
+|---|---|
+| Lager + (Ordnungsliebend; Regale) | Stand der Betrieb im Vorjahr den Anteil s still: (s − s ^ (Durchfluss nachher ÷ vorher)) × Wert eines vollen Arbeitsjahres; Durchfluss je Karren = min(Ladung des Karrens, Lager × Waren) ÷ Fahrzeit hin und zurück (wie die KI beim Karrenkauf). Ein Handkarren (15) oder Ochsenkarren (2 × 20) fasst nicht mehr als das Lager – dann 0 |
+| Fänge × 0,75 (Vorsichtig; Verkleidungstruhe) | erwartete Fänge im Jahr (Stunden × (1 − (1 − Fangchance) ^ Leute)) mit − ohne × Kosten je Fang = Handgeld + Buße je Spur |
+| Spuren × 0,75 (Verschwiegen; Lederhandschuhe), nur im Versteck | erwartete Buße der Fänge aller Diebesbetriebe des Hauses × 0,25 |
+| Einbruch +0,1 (Einbrecher; Dietriche, Meisterdietriche), nur im Versteck | Diebesgut des Vorjahres × (Chance mit ÷ ohne − 1), Chance 0,7 + 0,1 + vorhandene Dietriche, Deckel 0,95 |
+| Erlös × 1,1 (Hehlerfreund), nur im Versteck | Diebesgut des Vorjahres × 0,1 |
+| Razzia +0,1 (Spürnase; Hellebarden, Armbrüste), nur die Wachstube | Kopfgeld des Vorjahres × (Razzia-Chance mit ÷ ohne − 1) |
+| Streife × 1,15 / 1,25 (Streifengänger; Wachhunde) | mehr Schutz der Streife (mit Deckel 0,4): eigener Raub und Brand in der Stadt im Vorjahr × mehr Schutz ÷ (1 − Schutz) + Fänge fremder Taschendiebe im Vorjahr × Kopfgeld 50 ÷ Wachhäuser × relativ mehr Fänge |
+| Geleit × 0,85 / 0,8 (Geleitmann; Kettenhemden), nur die Geleitstube | Raub des Hauses an Karren und Schiffen im Vorjahr (Raub des Hauses ohne den aus den Lagern) × Anteil der eigenen Karren mit dem Geleit der Wache × (1 − Faktor) |
+
+**Buße je Spur** = max(Mindestbuße, Bußfaktor × Beute einer Stunde) × Spitzelchance × Gnadengesuch × Spuren des Hauses – so rechnet die KI schon das Risiko einer Bestechung (Bußfaktor × Spitzelchance). Nachgerechnet an den Messungen seit dem Handgeld: Das Gericht des Diebes liegt je Fang 400–410 Gulden über dem Mittel der anderen Berufe (Messungen vom 8. und 9.11.: 243 ÷ 0,61, 170 ÷ 0,42, 173 ÷ 0,42), die Rechnung gibt ≈ 490 (Beute 325 je Stunde). **Diebesgut des Vorjahres** = Umsatz der Diebesbetriebe − Beute der Taschendiebe (Diebesbuch) – nur, was am Markt verkauft wurde; Hehler und Kasse zählen nicht (untere Schätzung). **Wachsam** (Diebstahl × 0,5) rechnete schon vorher mit dem Raub des Vorjahres wie die Eisentür und bleibt so.
+
+Gemessen mit `messen bericht 20 30 --parallel=8` auf main `f0f572d3` („vorher“) und main `f0f572d3` + `99c35a3b` („nachher“), je 1.320 Partien → `docs/messungen/balancing-2026-11-09-personal-vorher.json` und `…-personal.json`:
+
+| Beruf (ein Betrieb, Mensch, 20 Jahre) | Reinvermögen vorher | nachher | Abstand zum Mittel vorher → nachher |
+|---|---|---|---|
+| Dieb | 33.805 ± 1.171 | 33.109 ± 1.191 | −9,2 → −11,1 % |
+| Gardist | 34.503 ± 619 | 34.597 ± 627 | −7,1 → −6,5 % |
+| Dieb (wagemutig geführt, nicht im Mittel) | 25.351 ± 1.406 | 27.312 ± 1.237 | −35,0 → −28,8 % |
+| übrige Berufe | | | je ±0,6 Punkte; Tischler −17,6 → −17,0 % (schon auf main außerhalb) |
+
+| | vorher | nachher |
+|---|---|---|
+| Berufe im Band ±15 % / Mittel des Zuwachses | 9/10 / 32.834 | 9/10 / 32.730 |
+| Dieb bis Bürger Ø (im Ziel 8–12 von 30) / Gardist | 7,3 (10) / 8,9 (29) | 7,7 (15) / 9,1 (30) |
+| Dieb ausgewogen ohne / mit Wachhaus: Gewinn je Jahr, Fänge | 2.534 / 2.625; 0,42 / 0,56 | 2.514 / 2.626; 0,41 / 0,54 |
+| Dieb wagemutig ohne Wachhaus: Gewinn, Fänge | 2.631; 0,43 | 2.703; 0,39 |
+| Wache: Sold, Kopfgeld, Geleitgeld je Jahr; Razzien | 3.326, 49, 313; 0,92 | 3.321, 53, 316; 0,94 |
+| KI ÷ Bezug (Median); „Schwer“ | 1,14; 1,85 | 1,15; 1,83 |
+
+**Probe** (drei Startwerte, Greybox, 12 Jahre, das Haus des Spielers frei von der KI geführt): Der Dieb kauft im dritten Jahr die Lederhandschuhe (erwartet 33–35 Gulden im Jahr, bezahlt in 2,3 Jahren), sein Meisterdieb wird „Verschwiegen“ (26–40 Gulden; zur Wahl Einbrecher, Verschwiegen, Versteckkundig – vorher wurde er Einbrecher, die erste der Wahl, weil alle drei 0 brachten). Der Gardist kauft wie vorher die Waffenkammer und in zwei von drei Partien die Hellebarden (Kopfgeld des Vorjahres 670–815, erwartet 134–163 Gulden im Jahr); sein Vorarbeiter bleibt Antreiber. Wachhunde und Kettenhemden kauft er nicht: Streife und Geleit schützen alle Häuser, dem eigenen bringen sie kaum Gulden (Designfrage in kern.md). Die Werkstätten wählen „Ordnungsliebend“ weiter fast nie – ihre Karren fassen nicht mehr als das Lager.
+
+**Beute und Sold** bleiben: Dieb und Gardist liegen im Band, die Unterschiede liegen im Fehler (Dieb −696 bei ± 1.200). In der statischen Tabelle der Eigenschaften (Abschnitt Einrichtung) ist „Vorsichtig“ zu hoch (135 / 272 / 414 nach Stufe), weil die Probebetriebe des Berichts in einer Stadt mit vielen Probe-Wachhäusern stehen (Streife am Deckel, Fänge × 3); „Verschwiegen“ zeigt dort 0, weil die Probe nicht das Versteck des Messhauses ist.
