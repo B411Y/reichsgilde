@@ -48,6 +48,7 @@ namespace Reichsgilde;
 ///   --starthinweis=1   den Start-Hinweis zum Personalbuch zeigen (nur bei neuer Partie; ohne Startoptionen kommt er von selbst)
 ///   --arbeiter=1,2     mit --innen: diese Arbeiter im Raum auswählen (Nummern wie im Personalbuch)
 ///   --einrichtung=Werkzeug1,Regale  der eigenen Werkstatt gleich diese Einrichtung kaufen (mit --vermoegen=5000)
+///   --wohnhaus-einrichtung=alle  dem Wohnhaus gleich diese Einrichtung kaufen (baut es dafür aus; mit --vermoegen=30000)
 ///   --einstellen=Lehrling,Geselle   der eigenen Werkstatt gleich diese Arbeiter einstellen
 ///   --ausbauen=2       die eigene Werkstatt gleich zweimal ausbauen und den Umbau abwarten (Stufe 3; mit --vermoegen=30000)
 ///   --verwalten=1      die Kurzübersicht der eigenen Werkstatt gleich öffnen (=mehr: mit „…“ aufgeklappt)
@@ -642,6 +643,8 @@ public partial class Hauptszene : Node
                     if (!ergebnis.Erfolg) Protokollieren("--einrichtung=" + kennung + ": " + ergebnis.Meldung);
                 });
             }
+        if (optionen.TryGetValue("wohnhaus-einrichtung", out var wohnEinrichtung) && _simulation.Wirtschaft is not null && _spieler is not null)
+            WohnhausEinrichtungVorbereiten(wohnEinrichtung);
         if (optionen.TryGetValue("bauen", out var bauen) && bauen != "0" && _spieler is not null)
             BauenStarten(bauen, optionen);
         if (optionen.TryGetValue("leerstand", out var leerstand) && leerstand is "kaufen" or "abreissen"
@@ -914,6 +917,35 @@ public partial class Hauptszene : Node
         if (gekauft) return;
         _simulation.Bote.SofortAusfuehren(_spieler, new StandErwerben());
         if (!Kaufen()) Protokollieren("--verkaufen=2: Keine freie Liegenschaft zu haben – mehr Vermögen mit --vermoegen=20000.");
+    }
+
+    /// <summary>
+    /// Nur für den Klicktest (--wohnhaus-einrichtung=alle oder Kennungen): dem Wohnhaus die Einrichtung kaufen, vorher wird es so oft ausgebaut,
+    /// wie die Stücke es verlangen (Umbau abwarten, zum Bürger aufsteigen nötig: mit --vermoegen=30000). Alles mit den gewöhnlichen Befehlen.
+    /// </summary>
+    private void WohnhausEinrichtungVorbereiten(string angabe)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null || w.Wohnen.Daten is not { } d) return;
+        var kennungen = angabe == "alle"
+            ? d.Einrichtung.Where(e => e.Vorhanden is null).Select(e => e.Kennung).ToList()
+            : angabe.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+        for (var runde = 0; runde < 4; runde++)
+        {
+            var offen = false;
+            foreach (var kennung in kennungen)
+            {
+                if (_spieler.WohnhausEinrichtung.Contains(kennung)) continue;
+                var r = _simulation.Bote.SofortAusfuehren(_spieler, new WohnhausEinrichtungKaufen(kennung));
+                if (!r.Erfolg) offen = true;
+            }
+            if (!offen) return;
+            var ausbau = _simulation.Bote.SofortAusfuehren(_spieler, new WohnhausAusbauen());
+            if (!ausbau.Erfolg && _spieler.WohnhausStufe >= 1) _simulation.Bote.SofortAusfuehren(_spieler, new StandErwerben());
+            for (var i = 0; i < 245 && !_simulation.IstBeendet; i++) _simulation.Tick();
+            if (_spieler.WohnhausStufe >= 1) _simulation.Bote.SofortAusfuehren(_spieler, new StandErwerben());
+        }
+        foreach (var kennung in kennungen.Where(k => !_spieler.WohnhausEinrichtung.Contains(k)))
+            Protokollieren("--wohnhaus-einrichtung=" + kennung + ": nicht gekauft (mehr Vermögen, Stand?).");
     }
 
     /// <summary>

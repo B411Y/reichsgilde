@@ -193,7 +193,7 @@ public partial class Stadtansicht
         var nummer = stand.Arbeiter.Nummer;
         var halter = new Node3D { Rotation = new Vector3(0, Mathf.Pi, 0), Visible = false }; // der Anker blickt mit −Z auf sein Ziel, die Figur mit +Z: um 180° gedreht einsetzen
         platz.Anker.AddChild(halter);
-        if (FigurEinsetzen(halter, WacheAussehen(nummer, stand.Arbeiter.Arbeitskraft, stand.Hauptmann), nummer) is not { } figur)
+        if (FigurEinsetzen(halter, WacheAussehen(nummer, Arbeiterbild.Von(stand.Arbeiter, _wirtschaft?.Personal), stand.Hauptmann), nummer) is not { } figur)
         {
             halter.QueueFree();
             return null;
@@ -315,16 +315,15 @@ public partial class Stadtansicht
     /// Aussehen eines Wachmanns, fest je Arbeiter: der Wappenrock der Stadt in Rot (Lehrlinge in blassem, ungefärbtem Rot), meist barhäuptig, manche mit dunklem Barett, Orks grün;
     /// der Hauptmann trägt ein dunkles Weinrot mit schwarzem Barett über grauem Haar.
     /// </summary>
-    private static FigurAussehen WacheAussehen(int nummer, string arbeitskraft, bool hauptmann)
+    private static FigurAussehen WacheAussehen(int nummer, Arbeiterbild bild, bool hauptmann)
     {
-        var volk = arbeitskraft == "Ork" ? Volk.Ork : Volk.Mensch;
+        var volk = bild.Volk;
         if (hauptmann)
-            return new FigurAussehen(volk, false, new Color(0.46f, 0.07f, 0.09f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
-        var rock = IstAnfaenger(arbeitskraft) ? new Color(0.62f, 0.34f, 0.30f) : Stadtrot.Lerp(new Color(0.55f, 0.10f, 0.10f), (Streuung(nummer, 7) % 5) / 8f);
-        var haare = Haarfarben(volk);
-        var frau = volk == Volk.Mensch && Streuung(nummer, 53) % 6 == 0;
+            return new FigurAussehen(volk, bild.Frau ?? false, new Color(0.46f, 0.07f, 0.09f), Beinkleidfarben[1], HautVon(volk), GrauesHaar, Schwarz, Kopfbedeckung.Barett);
+        var rock = bild.Anfaenger ? new Color(0.62f, 0.34f, 0.30f) : Stadtrot.Lerp(new Color(0.55f, 0.10f, 0.10f), (Streuung(nummer, 7) % 5) / 8f);
+        var frau = FrauVon(bild, nummer, 6);
         var kopf = Streuung(nummer, 29) % 4 == 0 ? Kopfbedeckung.Barett : Kopfbedeckung.Keine;
-        return new FigurAussehen(volk, frau, rock, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), haare[nummer * 5 % haare.Length], new Color(0.20f, 0.14f, 0.12f), kopf);
+        return new FigurAussehen(volk, frau, rock, Beinkleidfarben[nummer * 3 % Beinkleidfarben.Length], HautVon(volk), HaarVon(bild, nummer), new Color(0.20f, 0.14f, 0.12f), kopf);
     }
 
     /// <summary>Aussehen eines Gefangenen: ein Taschendieb in ärmlichem, geflicktem Lumpengewand ohne Kapuze (wie die Lehrlinge der Diebe), mancher ein Ork.</summary>
