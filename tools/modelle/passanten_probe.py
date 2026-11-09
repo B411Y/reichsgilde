@@ -60,6 +60,8 @@ STOFFE = {  # Name: (Zone, feste Farbe sRGB, Schicht der Material-Bibliothek ode
     "Haut": (3, (1.0, 1.0, 1.0), None),
     "Haar": (4, (1.0, 1.0, 1.0), None),
     "Kopf": (5, (1.0, 1.0, 1.0), "tuch"),
+    "Holz": (0, (0.38, 0.26, 0.15), None),
+    "Eisen": (0, (0.30, 0.30, 0.32), None),
 }
 STOFF_NAMEN = list(STOFFE)
 
@@ -101,6 +103,16 @@ BEWEGUNGEN = {
     "Buecken": ("ual2", "Farm_Harvest"),
 }
 
+# Haltung (Klicktest 08.11.: vornübergebeugt): Bei diesen Clips wird der Oberkörper um so viel aufgerichtet, wie er im Mittel des Clips
+# weiter vorgebeugt ist als in der Ruhelage, abzüglich AUFRECHT_REST Grad (ein wenig Vorlage bleibt beim Gehen natürlich)
+AUFRECHT = {"Stehen", "Gehen", "Tragen", "Reden", "Sitzen"}
+AUFRECHT_REST = 3.0
+# Schrittweite: Beindrehungen um ihr Mittel verstärkt, damit der Clip zum Tempo der Passanten passt (Gehen 1,4 m/s, Tragen 0,95 m/s
+# bei Beinfaktor 1) und der Takt nahe 1 bleibt – die Füße rutschen nicht und die Schritte wirken nicht gehetzt
+SCHRITT = {"Gehen": 1.15, "Tragen": 1.35}
+# Arme locker (Klicktest 08.11.: Hände vor dem Bauch): Ellbogenbeugung beim Gehen und Stehen um diesen Faktor kleiner
+LOCKER = {"Gehen": 0.45, "Stehen": 0.6}
+
 FIGUREN = {
     "mann": {"datei": "passant_probe.glb", "gender": 1.0, "varianten": ("cotte", "gugel", "rock")},
     "frau": {"datei": "passant_probe_frau.glb", "gender": 0.0, "varianten": ("haube", "gebende")},
@@ -108,11 +120,11 @@ FIGUREN = {
 
 # Vorschaufarben (sRGB, gedeckte Pflanzenfarben) je Zone und Variante – nur für die Bilder, das Spiel setzt die Farben selbst
 VORSCHAU = {
-    "cotte": {1: (0.45, 0.22, 0.17), 2: (0.30, 0.26, 0.21), 3: (0.80, 0.63, 0.51), 4: (0.33, 0.22, 0.13), 5: (0.6, 0.5, 0.3)},
-    "gugel": {1: (0.30, 0.36, 0.24), 2: (0.24, 0.24, 0.25), 3: (0.80, 0.63, 0.51), 4: (0.22, 0.15, 0.10), 5: (0.43, 0.20, 0.15)},
-    "rock": {1: (0.24, 0.30, 0.40), 2: (0.34, 0.28, 0.19), 3: (0.80, 0.63, 0.51), 4: (0.55, 0.43, 0.26), 5: (0.6, 0.5, 0.3)},
-    "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.82, 0.66, 0.55), 4: (0.33, 0.22, 0.13), 5: (0.82, 0.79, 0.70)},
-    "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.82, 0.66, 0.55), 4: (0.33, 0.22, 0.13), 5: (0.84, 0.81, 0.73)},
+    "cotte": {1: (0.45, 0.22, 0.17), 2: (0.30, 0.26, 0.21), 3: (0.72, 0.52, 0.40), 4: (0.20, 0.13, 0.08), 5: (0.6, 0.5, 0.3)},
+    "gugel": {1: (0.30, 0.36, 0.24), 2: (0.24, 0.24, 0.25), 3: (0.72, 0.52, 0.40), 4: (0.22, 0.15, 0.10), 5: (0.43, 0.20, 0.15)},
+    "rock": {1: (0.24, 0.30, 0.40), 2: (0.34, 0.28, 0.19), 3: (0.72, 0.52, 0.40), 4: (0.48, 0.26, 0.13), 5: (0.6, 0.5, 0.3)},
+    "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.76, 0.72, 0.62)},
+    "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.80, 0.77, 0.68)},
 }
 
 
@@ -197,6 +209,48 @@ def mensch_bauen(gender):
         if m.type != "ARMATURE":
             mensch.modifiers.remove(m)
     return mensch, rig, makros
+
+
+def haende_entspannen(mensch, rig):
+    """Die Hände des Grundnetzes sind flach mit gespreizten Fingern (Klicktest 08.11.: „gespreizte Hände“). Die Finger werden locker
+    zur Handfläche gekrümmt und diese Haltung ins Netz übernommen (neue Ruhelage); danach gehen die Fingergewichte in die Hand."""
+    kn = rig.data.bones
+    for pb in rig.pose.bones:
+        pb.rotation_mode = "QUATERNION"
+        pb.rotation_quaternion = Quaternion()
+
+    def drehen(name, achse, grad):
+        r = kn[name].matrix_local.to_3x3()
+        lokal = (r.inverted() @ achse).normalized()
+        pb = rig.pose.bones[name]
+        pb.rotation_quaternion = Quaternion(lokal, math.radians(grad)) @ pb.rotation_quaternion
+
+    beugen = {"index": (28, 38, 22), "middle": (32, 42, 25), "ring": (36, 45, 28), "pinky": (40, 48, 30)}
+    for s, vorzeichen in (("l", 1.0), ("r", -1.0)):
+        f = (kn[f"middle_03_{s}"].tail_local - kn[f"hand_{s}"].head_local).normalized()
+        handflaeche = Vector((-vorzeichen, -0.3, 0.0))          # die Hände hängen mit der Fläche zum Oberschenkel
+        handflaeche = (handflaeche - f * handflaeche.dot(f)).normalized()
+        achse = f.cross(handflaeche).normalized()                # Drehung um diese Achse krümmt zur Handfläche
+        for finger, winkel in beugen.items():
+            for g, w in enumerate(winkel):
+                drehen(f"{finger}_0{g + 1}_{s}", achse, w)
+        for g, w in enumerate((12, 18, 15)):
+            drehen(f"thumb_0{g + 1}_{s}", achse, w)
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = mensch.evaluated_get(dg)
+    me = ev.to_mesh()
+    lagen = [0.0] * (len(me.vertices) * 3)
+    me.vertices.foreach_get("co", lagen)
+    ev.to_mesh_clear()
+    if len(lagen) == len(mensch.data.vertices) * 3:
+        if mensch.data.shape_keys:
+            mensch.shape_key_clear()
+        mensch.data.vertices.foreach_set("co", lagen)
+        mensch.data.update()
+    for pb in rig.pose.bones:
+        pb.rotation_quaternion = Quaternion()
+    bpy.context.view_layer.update()
 
 
 def gruppen_index(obj):
@@ -408,6 +462,63 @@ def koerper_aussparen(koerper, unten, oben, name):
     return neu
 
 
+def gesicht_wert(co, masse, art):
+    """Gugel und Gebende: Ellipse vor dem Gesicht (nur die vordere Hälfte des Kopfes); < 0 = Öffnung, > 0 = bedeckt."""
+    k = masse["kopfmitte"]
+    if co.y > k.y - 0.01:
+        return 1.0
+    if art == "gugel":
+        ax, zu, zo = 0.068, masse["kinn"] - 0.005, masse["stirn"] - 0.005
+    elif art == "gebende":
+        ax, zu, zo = 0.055, masse["kinn"] + 0.018, masse["stirn"] - 0.02
+    else:
+        return 1.0
+    zm, az = (zu + zo) / 2, (zo - zu) / 2
+    return (co.x / ax) ** 2 + ((co.z - zm) / az) ** 2 - 1.0
+
+
+def kappe_wert(co, masse, art):
+    """Haube und Haar: über einer schrägen Ebene von der Stirn (vorn) zum Nacken (hinten); > 0 = bedeckt. Haar: Ansatz höher, im Nacken kürzer."""
+    k = masse["kopfmitte"]
+    if art == "haar":
+        vorn, hinten = masse["stirn"] - 0.002, masse["kinn"] + 0.03
+    else:
+        vorn, hinten = masse["stirn"] - 0.02, masse["hals_fuss"] + 0.01
+    u = min(max((co.y - (k.y - 0.09)) / 0.18, 0.0), 1.0)
+    u = u * u * (3 - 2 * u)
+    return co.z - (vorn + (hinten - vorn) * u)
+
+
+def kopf_aussparen(koerper, masse, art, name):
+    """Kopie des Körpers ohne die Kopf- und Halsflächen, die Haar, Haube, Gugel oder Gebende ganz bedecken (mit Rand zur Öffnung): Sonst stach
+    nach dem Verkleinern die Haut als helle Pünktchen durch die Kopfbedeckung (Klicktest 08.11.: orange Punkte an der Gugel)."""
+    neu = kopie(koerper, name)
+    namen = gruppen_index(neu)
+    bm = bmesh.new()
+    bm.from_mesh(neu.data)
+    deform = bm.verts.layers.deform.active
+
+    def kopfanteil(v):
+        g = {namen[i]: w for i, w in v[deform].items()}
+        return g.get("head", 0) + g.get("neck_01", 0)
+
+    weg = []
+    for f in bm.faces:
+        if sum(kopfanteil(v) for v in f.verts) / len(f.verts) < 0.6:
+            continue
+        c = f.calc_center_median()
+        if art in ("gugel", "gebende"):
+            bedeckt = gesicht_wert(c, masse, art) > 0.35
+        else:
+            bedeckt = kappe_wert(c, masse, art) > 0.015
+        if bedeckt:
+            weg.append(f)
+    bmesh.ops.delete(bm, geom=weg, context="FACES")
+    bm.to_mesh(neu.data)
+    bm.free()
+    return neu
+
+
 def kopfteil_bauen(koerper, masse, name, art):
     """Kopfbedeckung aus den Kopf- und Halsflächen des Körpers, aufgedickt, mit glatt geschnittener Gesichtsöffnung:
     „gugel“ (Kapuze mit Schulterkragen, Zipfel), „gebende“ (eng um Kopf und Kinn, Schleier über den Nacken bis auf die Schultern),
@@ -418,7 +529,6 @@ def kopfteil_bauen(koerper, masse, name, art):
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     deform = bm.verts.layers.deform.active
-    kn = {}
 
     def gruppen(v):
         return {namen[i]: w for i, w in v[deform].items()}
@@ -428,27 +538,10 @@ def kopfteil_bauen(koerper, masse, name, art):
         return g.get("head", 0) + g.get("neck_01", 0)
 
     def gesicht(v):
-        # Ellipse vor dem Gesicht (nur die vordere Hälfte des Kopfes); < 0 = Öffnung
-        if v.co.y > k.y - 0.01:
-            return 1.0
-        if art == "gugel":
-            ax, zu, zo = 0.068, masse["kinn"] - 0.005, masse["stirn"] - 0.005
-        elif art == "gebende":
-            ax, zu, zo = 0.055, masse["kinn"] + 0.018, masse["stirn"] - 0.02
-        else:
-            return 1.0
-        zm, az = (zu + zo) / 2, (zo - zu) / 2
-        return (v.co.x / ax) ** 2 + ((v.co.z - zm) / az) ** 2 - 1.0
+        return gesicht_wert(v.co, masse, art)
 
     def haube(v):
-        # Haube: über einer schrägen Ebene von der Stirn (vorn) zum Nacken (hinten); Haar: Ansatz höher, im Nacken kürzer
-        if art == "haar":
-            vorn, hinten = masse["stirn"] - 0.002, masse["kinn"] + 0.03
-        else:
-            vorn, hinten = masse["stirn"] - 0.02, masse["hals_fuss"] + 0.01
-        u = min(max((v.co.y - (k.y - 0.09)) / 0.18, 0.0), 1.0)
-        u = u * u * (3 - 2 * u)
-        return v.co.z - (vorn + (hinten - vorn) * u)
+        return kappe_wert(v.co, masse, art)
 
     def kragen(v):
         return v.co.z - masse["kragen"]
@@ -965,12 +1058,70 @@ def uebertragen(quelle, ziel, act, name):
     hq_ruhe = mq @ quelle.data.bones[qhuefte].head_local
     hz_ruhe = mz @ ziel.data.bones["Hips"].head_local
     massstab = hz / hq
+    q_von_z = {z: q for q, z in paare}
+
+    # Vorlauf: Neigung des Oberkörpers (Hüfte → Hals, nach vorn positiv; die Figur schaut nach −Y) und Drehungen der Beine über den Clip
+    beine = [z for z in q_von_z if z.endswith(("UpperLeg", "LowerLeg", "Foot", "UpperArm"))]   # Oberarme: Mittel für das lockere Hängen
+    deltas = {z: [] for z in beine}
+    neigungen = []
+
+    def neigung(unten, oben):
+        v = oben - unten
+        return math.atan2(-v.y, v.z)
+
+    hals_q = q_von_z["Neck"]
+    kopf_q = q_von_z["Head"]
+    kopfneigungen = []
+    for bild in range(a, e + 1):
+        bpy.context.scene.frame_set(bild)
+        neigungen.append(neigung(mq @ quelle.pose.bones[qhuefte].head, mq @ quelle.pose.bones[hals_q].head))
+        kp = mq @ quelle.pose.bones[kopf_q].matrix
+        kopfneigungen.append(neigung(kp.to_translation(), kp @ Vector((0, 0.15, 0))))
+        for z in beine:
+            rq_ruhe, _ = bezug[z]
+            deltas[z].append((mq @ quelle.pose.bones[q_von_z[z]].matrix).to_quaternion() @ rq_ruhe.inverted())
+    ruhe_neigung = neigung(hq_ruhe, mq @ quelle.data.bones[hals_q].head_local)
+    vorgebeugt = sum(neigungen) / len(neigungen) - ruhe_neigung
+    korrektur = max(0.0, vorgebeugt - math.radians(AUFRECHT_REST)) if name in AUFRECHT else 0.0
+    zurueck = Quaternion(mz.to_quaternion() @ Vector((1, 0, 0)), -korrektur)
+    # Kopf: der Blick der Quaternius-Puppe hängt nach unten; Hals und Kopf so weit heben, wie der Kopf im Mittel über die
+    # Ruhelage hinaus (nach der Korrektur des Rumpfes) nach vorn kippt, abzüglich 4 Grad
+    kr = mq @ quelle.data.bones[kopf_q].matrix_local
+    ruhe_kopf = neigung(kr.to_translation(), kr @ Vector((0, 0.15, 0)))
+    kopf_vor = sum(kopfneigungen) / len(kopfneigungen) - ruhe_kopf - korrektur
+    kopf_korrektur = max(0.0, kopf_vor - math.radians(4.0)) if name in AUFRECHT else 0.0
+    kopf_zurueck = Quaternion(mz.to_quaternion() @ Vector((1, 0, 0)), -kopf_korrektur)
+    oberkoerper = {"Spine", "Chest", "UpperChest", "Neck", "Head"} | {f"{s}{t}" for s in ("Left", "Right")
+                                                                     for t in ("Shoulder", "UpperArm", "LowerArm", "Hand")}
+    schritt = SCHRITT.get(name, 1.0)
+    locker = LOCKER.get(name, 1.0)
+    alt_unterarm, neu_unterarm = {}, {}
+    mittel = {}
+    for z, liste in deltas.items():
+        summe = Quaternion((0, 0, 0, 0))
+        for q in liste:
+            q = q.copy()
+            if q.dot(liste[0]) < 0:
+                q.negate()
+            summe = Quaternion((summe.w + q.w, summe.x + q.x, summe.y + q.y, summe.z + q.z))
+        mittel[z] = summe.normalized()
+    BERICHT.setdefault("uebertragung", {})[name] = {"vorgebeugt_grad": math.degrees(vorgebeugt), "korrektur_grad": math.degrees(korrektur), "kopf_korrektur_grad": math.degrees(kopf_korrektur),
+                                                    "schrittfaktor": schritt}
+
+    def schritt_verstaerken(z, delta):
+        if schritt == 1.0 or z not in mittel or z.endswith("UpperArm"):
+            return delta
+        m = mittel[z]
+        rest = m.inverted() @ delta
+        achse, winkel = rest.to_axis_angle()
+        if winkel > math.pi:
+            winkel -= 2 * math.pi
+        return m @ Quaternion(achse, winkel * schritt)
 
     neu = bpy.data.actions.new(name)
     ziel.animation_data_create()
     ziel.animation_data.action = neu
     reihenfolge = [b.name for b in ziel.data.bones]  # Eltern stehen vor Kindern
-    q_von_z = {z: q for q, z in paare}
     for bild in range(a, e + 1):
         bpy.context.scene.frame_set(bild)
         posen = {}
@@ -984,7 +1135,38 @@ def uebertragen(quelle, ziel, act, name):
                 qp = quelle.pose.bones[q_von_z[zn]]
                 rq_pose = (mq @ qp.matrix).to_quaternion()
                 rq_ruhe, rz_bezug = bezug[zn]
-                welt = rq_pose @ rq_ruhe.inverted() @ rz_bezug
+                delta = schritt_verstaerken(zn, rq_pose @ rq_ruhe.inverted())
+                welt = delta @ rz_bezug
+                if locker < 1.0 and zn.endswith("UpperArm"):
+                    # Arme hängen lassen: die Quaternius-Puppe trägt die Arme vor dem Körper; ihr Schwingen um das Mittel bleibt (×0,8),
+                    # das Mittel selbst wird zur hängenden Haltung (leicht seitlich)
+                    schwung = delta @ mittel[zn].inverted()
+                    achse_s, winkel_s = schwung.to_axis_angle()
+                    if winkel_s > math.pi:
+                        winkel_s -= 2 * math.pi
+                    seitlich = 0.18 if zn.startswith("Left") else -0.18
+                    haengen = (rz_bezug @ Vector((0, 1, 0))).rotation_difference(Vector((seitlich, 0.04, -1.0)).normalized())
+                    welt = Quaternion(achse_s, winkel_s * 0.8) @ haengen @ rz_bezug
+                if zn in oberkoerper:
+                    welt = zurueck @ welt
+                if zn in ("Neck", "Head"):
+                    welt = kopf_zurueck @ welt
+                if locker < 1.0 and zn.endswith("LowerArm"):
+                    # Ellbogen weniger gebeugt: Beugung gegenüber der Bezugshaltung um den Faktor „locker“ verkleinern
+                    oberarm = mz.to_quaternion() @ posen[eltern.name].to_quaternion()
+                    ruhe_rel_q = bezug[eltern.name][1].inverted() @ bezug[zn][1]
+                    beuge = oberarm.inverted() @ welt @ ruhe_rel_q.inverted()
+                    achse, winkel = beuge.to_axis_angle()
+                    if winkel > math.pi:
+                        winkel -= 2 * math.pi
+                    alt_unterarm[zn] = welt
+                    BERICHT.setdefault("ellbogen", {}).setdefault(name, []).append(round(math.degrees(winkel), 1))
+                    welt = oberarm @ Quaternion(achse, winkel * locker) @ ruhe_rel_q
+                    neu_unterarm[zn] = welt
+                if locker < 1.0 and zn.endswith("Hand") and zn.replace("Hand", "LowerArm") in neu_unterarm:
+                    ua = zn.replace("Hand", "LowerArm")
+                    # Handgelenk gerade: die Hand setzt den Unterarm fort (die Fäuste der Quaternius-Puppe knickten die offenen Hände nach vorn ab)
+                    welt = neu_unterarm[ua] @ bezug[ua][1].inverted() @ bezug[zn][1]
                 arm = mz.to_quaternion().inverted() @ welt
                 ort = (elter_pose @ ruhe_rel).to_translation()
                 if zn == "Hips":
@@ -1053,6 +1235,71 @@ def sitz_messen(rig, netz, act, tiefe):
 # ─────────────────────────────────────────────────────────────────────────────
 #  7. Last (Kiste beim Tragen)
 # ─────────────────────────────────────────────────────────────────────────────
+
+def werkzeug_bauen(rig, hacken):
+    """Axt für „Hacken“: Stiel durch beide Fäuste in der ersten Haltung des Clips, Blatt hinter der rechten Hand. Jede Ecke hängt nach
+    ihrer Lage auf dem Stiel an der linken bzw. rechten Hand (das Blatt ganz rechts) und wird mit dieser Mischung in die Ruhelage gerechnet."""
+    rig.animation_data.action = hacken
+    bpy.context.scene.frame_set(1)
+    mw = rig.matrix_world
+    pose = {s: mw @ rig.pose.bones[f"{s}Hand"].matrix for s in ("Left", "Right")}
+    ruhe = {s: mw @ rig.data.bones[f"{s}Hand"].matrix_local for s in ("Left", "Right")}
+    # Faust: etwa 8 cm vom Handgelenk entlang der Hand
+    faust = {s: pose[s] @ Vector((0, 0.08, 0)) for s in ("Left", "Right")}
+    rig.animation_data.action = None
+    bpy.context.scene.frame_set(1)
+    l, r = faust["Left"], faust["Right"]
+    u = (r - l).normalized()
+    anfang, ende = l - u * 0.12, r + u * 0.30
+    seite = u.cross(Vector((0, 0, 1)))
+    if seite.length < 1e-3:
+        seite = Vector((1, 0, 0))
+    seite.normalize()
+    oben = seite.cross(u).normalized()
+    bm = bmesh.new()
+    teile = []
+
+    def quader(mitte, a, b, c, stoffname):
+        erg = bmesh.ops.create_cube(bm, size=1.0)
+        for v in erg["verts"]:
+            p = v.co.copy()
+            v.co = mitte + a * p.x + b * p.y + c * p.z
+        teile.append((set(erg["verts"]), stoffname))
+
+    laenge = (ende - anfang).length
+    quader((anfang + ende) / 2, u * laenge, seite * 0.035, oben * 0.035, "Holz")
+    quader(ende - u * 0.04 + oben * 0.05, u * 0.06, seite * 0.025, oben * 0.16, "Eisen")
+    me = bpy.data.meshes.new("Werkzeug")
+    misch = {}
+    bm.verts.index_update()
+    for v in bm.verts:
+        t = max(0.0, min(1.0, (v.co - l).dot(u) / max((r - l).length, 1e-3)))
+        misch[v.index] = t
+        m = (pose["Left"] @ ruhe["Left"].inverted()) * (1 - t) + (pose["Right"] @ ruhe["Right"].inverted()) * t
+        v.co = m.inverted() @ v.co
+    stoff_je_flaeche = []
+    for f in bm.faces:
+        name = next(n for vs, n in teile if f.verts[0] in vs)
+        stoff_je_flaeche.append(name)
+    bm.to_mesh(me)
+    bm.free()
+    obj = neues_objekt("Werkzeug", me)
+    stoffe_anlegen(obj)
+    for p, name in zip(me.polygons, stoff_je_flaeche):
+        p.material_index = stoff(name)
+    gl = obj.vertex_groups.new(name="LeftHand")
+    gr = obj.vertex_groups.new(name="RightHand")
+    for i, t in misch.items():
+        if 1 - t > 1e-4:
+            gl.add([i], 1 - t, "REPLACE")
+        if t > 1e-4:
+            gr.add([i], t, "REPLACE")
+    zonen_setzen(obj)
+    me.polygons.foreach_set("use_smooth", [False] * len(me.polygons))
+    obj.parent = rig
+    obj.modifiers.new("Skelett", "ARMATURE").object = rig
+    return obj
+
 
 def last_bauen(rig, tragen):
     """Kiste zwischen den Händen in der ersten Haltung von „Tragen“; je zur Hälfte an beiden Händen."""
@@ -1125,6 +1372,7 @@ def figur_bauen(art, quellen):
         if o.name not in [q.name for q in quellen.values()] and o not in QUELLNETZE.values():
             bpy.data.objects.remove(o)
     mensch, rig, makros = mensch_bauen(cfg["gender"])
+    haende_entspannen(mensch, rig)
     masse = masse_messen(rig)
     bericht = {"makros": makros, "masse": {k: (list(v) if isinstance(v, Vector) else v) for k, v in masse.items()}, "netze": {},
                "bewegungen": {}}
@@ -1148,19 +1396,24 @@ def figur_bauen(art, quellen):
     if art == "mann":
         haar = kopfteil_bauen(koerper, masse, "Haar", "haar")[0]
         gugel = kopfteil_bauen(koerper, masse, "Gugel", "gugel")
-        hilfen += [haar] + gugel
+        k_cotte = kopf_aussparen(koerper_knie, masse, "haar", "KoerperCotte")
+        k_gugel = kopf_aussparen(koerper_knie, masse, "gugel", "KoerperGugel")
+        k_rock = kopf_aussparen(koerper_lang, masse, "haar", "KoerperRock")
+        hilfen += [haar, k_cotte, k_gugel, k_rock] + gugel
         teile = {
-            "cotte": [koerper_knie, rock_knie, haar] + schuhe,
-            "gugel": [koerper_knie, rock_knie] + gugel + schuhe,
-            "rock": [koerper_lang, rock_lang, haar] + schuhe,
+            "cotte": [k_cotte, rock_knie, haar] + schuhe,
+            "gugel": [k_gugel, rock_knie] + gugel + schuhe,
+            "rock": [k_rock, rock_lang, haar] + schuhe,
         }
     else:
         haube = kopfteil_bauen(koerper, masse, "Haube", "haube")
         gebende = kopfteil_bauen(koerper, masse, "Gebende", "gebende")
-        hilfen += haube + gebende
+        k_haube = kopf_aussparen(koerper_lang, masse, "haube", "KoerperHaube")
+        k_gebende = kopf_aussparen(koerper_lang, masse, "gebende", "KoerperGebende")
+        hilfen += haube + gebende + [k_haube, k_gebende]
         teile = {
-            "haube": [koerper_lang, rock_lang] + haube + schuhe,
-            "gebende": [koerper_lang, rock_lang] + gebende + schuhe,
+            "haube": [k_haube, rock_lang] + haube + schuhe,
+            "gebende": [k_gebende, rock_lang] + gebende + schuhe,
         }
     netze = []
     for variante, liste in teile.items():
@@ -1199,6 +1452,9 @@ def figur_bauen(art, quellen):
     bericht["sitzen_sohle_z"] = sohle
     last = last_bauen(rig, aktionen["Tragen"][0])
     bericht["netze"]["Last"] = {"dreiecke": dreiecke(last), "ecken": len(last.data.vertices)}
+    werkzeug = werkzeug_bauen(rig, aktionen["Hacken"][0])
+    bericht["netze"]["Werkzeug"] = {"dreiecke": dreiecke(werkzeug), "ecken": len(werkzeug.data.vertices)}
+    bericht["uebertragung"] = BERICHT.pop("uebertragung", {})
     rig.animation_data.action = None
     for pb in rig.pose.bones:
         pb.rotation_quaternion = Quaternion()
@@ -1207,7 +1463,7 @@ def figur_bauen(art, quellen):
     pfad = os.path.abspath(os.path.join(OPT["aus"], cfg["datei"]))
     os.makedirs(os.path.dirname(pfad), exist_ok=True)
     for o in bpy.context.scene.objects:
-        o.select_set(o in netze or o is rig or o is last)
+        o.select_set(o in netze or o is rig or o is last or o is werkzeug)
     bpy.ops.export_scene.gltf(
         filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=False,
         export_extras=True, export_normals=True, export_texcoords=True, export_skins=True, export_animations=True,
@@ -1215,7 +1471,7 @@ def figur_bauen(art, quellen):
         export_cameras=False, export_image_format="NONE", export_vertex_color="ACTIVE", export_all_vertex_colors=False)
     print("Geschrieben:", pfad)
     if "bilder" in OPT:
-        vorschau(art, rig, netze, last, aktionen, OPT["bilder"], quellen)
+        vorschau(art, rig, netze, last, werkzeug, aktionen, OPT["bilder"], quellen)
     return bericht
 
 
@@ -1308,7 +1564,7 @@ def vorschau_material(name, schicht):
     return m
 
 
-def vorschau(art, rig, netze, last, aktionen, ordner, quellen):
+def vorschau(art, rig, netze, last, werkzeug, aktionen, ordner, quellen):
     os.makedirs(ordner, exist_ok=True)
     sc = bpy.context.scene
     for motor in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"):
@@ -1351,7 +1607,7 @@ def vorschau(art, rig, netze, last, aktionen, ordner, quellen):
 
     # Vorschaufarben und Stoffe mit Textur: zweite Eckenfarbe, Material je Schicht
     stoffe = [vorschau_material("V_glatt", None), vorschau_material("V_tuch", "tuch"), vorschau_material("V_leder", "leder")]
-    for obj in netze + [last]:
+    for obj in netze + [last, werkzeug]:
         me = obj.data
         zone = me.uv_layers["Zone"].data
         basis = me.color_attributes["Farbe"].data
@@ -1373,7 +1629,7 @@ def vorschau(art, rig, netze, last, aktionen, ordner, quellen):
             schicht = code // 16 - 1
             p.material_index = 1 if schicht == BIB["tuch"] else 2 if schicht == BIB["leder"] else 0
     posen = [("Stehen", 20), ("Gehen", 8), ("Tragen", 12), ("Reden", 30), ("Sitzen", 10), ("Hacken", 8), ("Buecken", 30)]
-    alle = netze + [last]
+    alle = netze + [last, werkzeug]
     stuhl = None
     for obj in netze:
         stufe, variante = obj.name.split("_")
@@ -1383,7 +1639,7 @@ def vorschau(art, rig, netze, last, aktionen, ordner, quellen):
             rig.animation_data.action = aktionen[bewegung][0]
             sc.frame_set(bild)
             for o in alle:
-                o.hide_render = not (o is obj or (o is last and bewegung == "Tragen"))
+                o.hide_render = not (o is obj or (o is last and bewegung == "Tragen") or (o is werkzeug and bewegung == "Hacken"))
             blick(Vector((0, 0, 0.9 if bewegung != "Sitzen" else 0.7)), 2.3)
             sc.render.filepath = os.path.join(ordner, f"{art}_{variante}_{stufe.lower()}_{bewegung.lower()}.png")
             bpy.ops.render.render(write_still=True)
@@ -1399,6 +1655,13 @@ def vorschau(art, rig, netze, last, aktionen, ordner, quellen):
             blick(Vector((0, -0.05, 0.12)), 0.6, Vector((2.0, -3.4, 1.6)))
             sc.render.filepath = os.path.join(ordner, f"{art}_{variante}_schuhe.png")
             bpy.ops.render.render(write_still=True)
+            # Haltung von der Seite (aufrecht oder vorgebeugt?): Stehen und Gehen
+            for bewegung, bild in (("Stehen", 20), ("Gehen", 8)):
+                rig.animation_data.action = aktionen[bewegung][0]
+                sc.frame_set(bild)
+                blick(Vector((0, 0, 0.9)), 2.3, Vector((5.0, 0.0, 0.3)))
+                sc.render.filepath = os.path.join(ordner, f"{art}_{variante}_seite_{bewegung.lower()}.png")
+                bpy.ops.render.render(write_still=True)
     # Reihe: alle Varianten nebeneinander im Gehen (nah)
     rig.animation_data.action = aktionen["Gehen"][0]
     sc.frame_set(8)

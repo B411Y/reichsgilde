@@ -19,7 +19,8 @@ Prüfsummen der geladenen Archive (SHA-256, abgerufen 08.11.2026): MPFB `mpfb2-2
 Bearbeitung: Kleidung auf dem Körper gebaut (aufgedickte Körperflächen mit Schnittkanten entlang eines Feldes, Rockhelfer gekürzt bzw.
 verlängert, Kopfbedeckungen aus den Kopfflächen, Zipfel), Bundschuhe als eigener Körper über dem Fuß, Netz je Variante auf 2.900 (nah, Kopf
 und Kanten geschont) und 560 Dreiecke (fern) verkleinert, Skelett auf 23 Knochen mit den Namen von Godots `SkeletonProfileHumanoid` (Finger
-in die Hand gelegt), die sieben Clips auf dieses Skelett übertragen (Richtung der Arm- und Beinknochen wie in der Quelle, Hüfthöhe
-angeglichen). Nicht benutzt: MakeHuman-Kleidung, Kimodo, Mixamo, Human Generator, Kaufpakete.
+in die Hand gelegt, die Finger vorher locker gekrümmt), die sieben Clips auf dieses Skelett übertragen (Richtung der Arm- und Beinknochen wie
+in der Quelle, Hüfthöhe angeglichen; Oberkörper und Kopf aufgerichtet, Arme hängend und Ellbogen lockerer, Handgelenk gerade, Schrittweite von
+Gehen und Tragen verstärkt), dazu eine Axt aus zwei Quadern für „Hacken“. Nicht benutzt: MakeHuman-Kleidung, Kimodo, Mixamo, Human Generator, Kaufpakete.
 
 Herkunft je Datei aller Assets: `docs/assets/protokoll.csv`.
