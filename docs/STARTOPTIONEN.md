@@ -210,6 +210,7 @@ Zur Kartenwerkstatt (Level-Editor): `--kartenwerkstatt=<kennung|neu|datei.json>`
 - `--werkstatt-groesse=<breite>,<tiefe>[,<rand>]` (Größe des Spielfelds, 400 × 300 bis 2.000 × 2.000 m, Rand 100–600 m; mit `--werkstatt-rueckgaengig` zurücknehmen)
 - `--werkstatt-randvorschlag=1` (Felder, Wald und Streu im Randstreifen; eine Zahl über 1 ist der Startwert)
 - `--werkstatt-setzen=<katalog>,<x>,<z>,<grad>` (mehrere mit `;`)
+- `--werkstatt-hofstelle=<x>,<z>[,<grad>[,start]]` (setzt eine Hofstelle – Werkstattplatz und Wohnhausplatz nebeneinander, (x, z) ist die Mitte des Ganzen; mehrere mit `;`; mit `start` als Startplatz; wie das Werkzeug „Hofstelle“, ein Schritt für Strg+Z; den Umriss zeigt `--werkstatt-umriss=hofstelle,<x>,<z>[,<grad>]`, die Palette `--werkstatt-gruppe=gebaeude`; die Eigenschaften der Plätze mit `--werkstatt-auswahl=H1_Werkstatt`, die Tafel „Start“ mit `--werkstatt-tafel=start`)
 - `--werkstatt-versetzen=<kennung>,<x>,<z>,<grad>`
 - `--werkstatt-rueckgaengig=<n>`
 - `--werkstatt-auswahl=<kennung>` (wählen und hinfahren)
