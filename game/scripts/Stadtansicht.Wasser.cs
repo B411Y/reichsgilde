@@ -533,8 +533,8 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Mündungen in einen Fluss als Uniforms (<c>muendung</c>: quer, Stelle, Seite, Breite des Baches in den Laufachsen des Flusses): Der Shader
-    /// zeichnet dort das Bachwasser als helleren, trüben Streifen, der am Ufer stromab zieht, breiter wird und sich in Schlieren einmischt, mit dünnen
-    /// Schaumstreifen an der Mischkante; den Uferschaum blendet er an der Mündung aus.
+    /// zeichnet dort das Bachwasser als feine, trübere Linien, die am Ufer stromab ziehen (höchstens ein Drittel der örtlichen Flussbreite) und nach 25 bis
+    /// 70 m weich auslaufen, mit dünnen Schaumstreifen an der Mischkante; den Uferschaum blendet er an der Mündung aus.
     /// </summary>
     private void MuendungenSetzen(ShaderMaterial stoff, Wasserlauf lauf)
     {

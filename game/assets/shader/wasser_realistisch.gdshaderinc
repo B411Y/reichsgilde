@@ -103,7 +103,7 @@ uniform int loch_zahl = 0;
 uniform vec4 loch_ort[8];              // x, z, Halbmesser, weicher Rand (m)
 uniform vec4 loch_form[8];             // Richtung x, z (Einheitsvektor), Länge (m), –
 
-// ── Mündungen: Bachwasser zieht als trüber, hellerer Streifen am Ufer stromab und mischt sich ein (nur Flüsse, Laufachsen) ──
+// ── Mündungen: Bachwasser zieht in feinen, trüberen Linien am Ufer stromab und mischt sich ein (nur Flüsse, Laufachsen) ──
 uniform int muendung_zahl = 0;
 uniform vec4 muendung[4];              // quer (m), Stelle (m), Seite (+1/−1: an welchem Ufer), Breite des Baches (m)
 uniform vec3 muendung_farbe : source_color = vec3(0.52, 0.53, 0.42);
@@ -270,27 +270,37 @@ vec2 ringe(vec2 p, float t) {
 #endif
 
 
-// Mündungen in diesen Fluss (Laufachsen): x = wie viel Bachwasser hier ist (trüber Streifen), y = dünne Schaumstreifen an der Mischkante,
-// z = Nähe zur Mündung (dort kein Uferschaum: das Ufer ist offen, der Grund flach)
-vec3 muendung_fahne(vec2 lauf, float ufer_m, float zeit) {
+// Mündungen in diesen Fluss (Laufachsen): x = wie viel Bachwasser hier ist (feine Mischlinien), y = dünne Schaumstreifen an der Mischkante,
+// z = Nähe zur Mündung (dort kein Uferschaum: das Ufer ist offen, der Grund flach).
+// Befund 09.11.2026 (zu groß, hell, hart, abrupt endend): Die Breite wuchs ohne Deckel (3-m-Bach nach 60 m gut 19 m, bis über die Flussmitte),
+// an der Flussmitte (Seite) und nach 110 m brach die Fahne hart ab, und sie war eine Fläche mit Grundwert 0,35. Jetzt: Linien ohne Grundwert,
+// höchstens ein Drittel der örtlichen Flussbreite, alle Ränder weich, Auslauf von 25 bis 70 m.
+vec3 muendung_fahne(vec2 lauf, float ufer_m, float zeit, float aa) {
 	vec3 r = vec3(0.0);
+	// Die örtliche halbe Breite des Flusses: Uferabstand plus Abstand zur Mitte (auf der Seite der Mündung). Der Uferabstand im Netz endet bei 32 m:
+	// in sehr breiten Flüssen (Rhein) wird sie unterschätzt, der Deckel liegt dann bei gut 22 m und greift nicht – hinnehmbar
+	float halb_l = ufer_m + abs(lauf.x);
 	for (int i = 0; i < muendung_zahl; i++) {
 		vec4 m = muendung[i];
 		float ds = lauf.y - m.y;
-		if (ds < -m.w - 8.0 || ds > 110.0 || m.z * lauf.x < 0.0) {
+		if (ds < -m.w - 8.0 || ds > 80.0) { // nur Rechenzeit sparen: dort ist alles schon ausgeblendet
 			continue;
 		}
-		float t = ds + m.w * 0.5;                                  // ab dem oberen Rand der Einmündung
-		float breite = m.w * (1.3 + 0.65 * sqrt(max(t, 0.0)));     // der Streifen wird stromab breiter (Duffesbach: 20 m stromab gut 12 m)
-		vec2 sp = vec2(lauf.x, lauf.y - stroemung.y * zeit * 0.9);  // mit dem Wasser treibend
+		float seite = smoothstep(-0.25 * halb_l, 0.1 * halb_l, m.z * lauf.x); // weich zur Mitte hin statt einer Kante
+		float t = ds + m.w * 0.5;                                              // ab dem oberen Rand der Einmündung
+		float breite = min(m.w * (0.8 + 0.25 * sqrt(max(t, 0.0))), 0.7 * halb_l); // wird stromab etwas breiter, höchstens ein Drittel des Flusses
+		vec2 sp = vec2(lauf.x, lauf.y - stroemung.y * zeit * 0.9);              // mit dem Wasser treibend
 		float wirbel = w_fbm(sp * vec2(0.3, 0.09) + float(i) * 13.1);
 		float kante = ufer_m - breite * (0.7 + 0.75 * (wirbel - 0.5));
-		float laengs = smoothstep(0.0, m.w * 0.9, t) * exp(-max(t, 0.0) / 60.0);
-		float drin = (1.0 - smoothstep(-breite * 0.45, breite * 0.12, kante)) * laengs;
-		float streifen = w_rausch(sp * vec2(1.3, 0.16) + float(i) * 7.7);
-		r.x = max(r.x, drin * (0.35 + 0.65 * streifen));
+		float laengs = smoothstep(-0.5 * m.w, 2.5 * m.w, t) * (1.0 - smoothstep(25.0, 70.0, t));
+		float drin = (1.0 - smoothstep(-0.6 * breite, 0.35 * breite, kante)) * laengs * seite;
+		// Feine Strömungslinien (quer gut 0,5 m, längs rund 8 m), ohne flächigen Grundwert; die Kante mindestens 1,5 Bildpunkte weich (Pixel-Look)
+		float n = w_rausch(sp * vec2(1.8, 0.12) + float(i) * 7.7);
+		float weich = max(0.15, aa);
+		float linie = smoothstep(0.5 - weich * 0.5, 0.8 + weich * 0.5, n);
+		r.x = max(r.x, drin * linie * 0.7);
 		// Schaum nur als dünne, abreißende Streifen an der Mischkante
-		r.y = max(r.y, (1.0 - smoothstep(0.0, 0.16 + breite * 0.025, abs(kante))) * smoothstep(0.55, 0.85, streifen) * laengs * 0.8);
+		r.y = max(r.y, (1.0 - smoothstep(0.0, 0.16 + breite * 0.025, abs(kante))) * smoothstep(0.55, 0.85, n) * laengs * seite * 0.8);
 		r.z = max(r.z, smoothstep(-m.w - 7.0, -m.w - 1.5, ds) * (1.0 - smoothstep(18.0, 40.0, ds)) * (1.0 - smoothstep(breite + 1.0, breite + 6.0, ufer_m)));
 	}
 	return r;
@@ -301,6 +311,8 @@ void fragment() {
 	vec2 d_ort_x = dFdx(welt_xz);
 	vec2 d_ort_y = dFdy(welt_xz);
 	float bildpunkt_m = max(length(d_ort_x), length(d_ort_y));
+	// Wie weit sich die Mischlinien der Mündung je Bildpunkt ändern (für ihre weiche Kante, auch im Pixel-Look); hier oben, nicht in der Schleife
+	float fahne_aa = 1.5 * 1.8 * fwidth(lauf_uv.x);
 	float d_ufer_x = dFdx(ufer);
 	float d_ufer_y = dFdy(ufer);
 	float det = d_ort_x.x * d_ort_y.y - d_ort_x.y * d_ort_y.x;
@@ -381,18 +393,18 @@ void fragment() {
 	}
 #endif
 
-	// ── Mündung: das Bachwasser zieht als hellerer, trüber Streifen am Ufer stromab und mischt sich in Schlieren ein ──
+	// ── Mündung: das Bachwasser zieht in feinen, trüberen Linien am Ufer stromab und mischt sich ein ──
 	vec3 fahne = vec3(0.0);
 	if (muendung_zahl > 0 && lauf_netz > 0.5) {
-		fahne = muendung_fahne(lauf_uv, ufer, TIME);
+		fahne = muendung_fahne(lauf_uv, ufer, TIME, fahne_aa);
 		fahne.x *= 1.0 - 0.75 * winter_ton; // im Winter führt der Bach wenig und kaltes, klares Wasser: der Streifen ist kaum zu sehen
 		vec3 trueb = mix(muendung_farbe, vec3(dot(muendung_farbe, vec3(0.3, 0.5, 0.2))) * vec3(0.75, 0.85, 0.95) * 0.7, winter_ton * 0.7);
-		color = mix(color, trueb * mix(0.7, 1.0, depth_blend), fahne.x * 0.6);
+		color = mix(color, trueb * mix(0.7, 1.0, depth_blend), fahne.x * 0.35);
 	}
 
 	float specular = 0.2 + depth_blend_pow * 0.4;
-	float roughness = rauheit + fahne.x * 0.12; // das einströmende Wasser wirbelt: die Fläche ist unruhiger, spiegelt weniger
-	normalmap.xy = mix(normalmap.xy, normalmap.xy * 1.35 - 0.175, fahne.x * 0.6);
+	float roughness = rauheit + fahne.x * 0.04; // das einströmende Wasser wirbelt: die Fläche ist etwas unruhiger, spiegelt weniger
+	normalmap.xy = mix(vec2(0.5), normalmap.xy, 1.0 + 0.25 * fahne.x); // etwas kräftigere Kräusel in den Linien (ohne die Fläche zu verschieben)
 
 	// ── Schaum: weicher, zerrissener Saum dort, wo hinter der Fläche etwas dicht darunter liegt (Ufer, Fels, Pfahl), mit der Strömung getragen ──
 	float schaum = 0.0;
@@ -610,9 +622,9 @@ void fragment() {
 	METALLIC = 0.1 * (1.0 - schaum) * (1.0 - eismaske);
 	ROUGHNESS = roughness;
 	SPECULAR = specular;
-	EMISSION = wetter_himmel * (fresnel * himmel_staerke + himmel_spiegel) * (1.0 - schaum) * (1.0 - fahne.x * 0.45);
+	EMISSION = wetter_himmel * (fresnel * himmel_staerke + himmel_spiegel) * (1.0 - schaum) * (1.0 - fahne.x * 0.225);
 	// Trübes Wasser streut das Himmelslicht zurück (Eigenfarbe), auch dort, wo die Spiegelung überwiegt
-	EMISSION += muendung_farbe * wetter_himmel * fahne.x * 0.22 * (1.0 - 0.6 * winter_ton);
+	EMISSION += muendung_farbe * wetter_himmel * fahne.x * 0.11 * (1.0 - 0.6 * winter_ton);
 	// Eis spiegelt und leuchtet wie die Schollen (eis_material.gdshaderinc)
 	EMISSION = mix(EMISSION, eis_leuchten, eismaske);
 	NORMAL_MAP = normalmap;
