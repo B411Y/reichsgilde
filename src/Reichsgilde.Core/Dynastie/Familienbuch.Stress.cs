@@ -162,8 +162,8 @@ public sealed partial class Familienbuch
     /// <summary>Ein Ereignis (Buße, Pranger, verfallene AP …) gegen den Charakter des Oberhaupts: Stress je passendem Eintrag in "stress.taten".</summary>
     internal void StressTat(Konto konto, string tat, double betrag = 0)
     {
-        if (StressDaten is not { } d || Von(konto) is not { } f) return;
-        foreach (var (wert, text) in TatPosten(d, f.Oberhaupt, new[] { tat }, betrag))
+        if (StressDaten is not { } d || Von(konto) is not { } f || !HatStress(f.Oberhaupt)) return;
+        foreach (var (wert, text) in TatPosten(d, f.Oberhaupt, new[] { tat }, betrag).ToList()) // erst sammeln: ein Zusammenbruch gibt Züge dazu
             StressAendern(f.Oberhaupt, wert, text);
     }
 
@@ -205,8 +205,8 @@ public sealed partial class Familienbuch
     };
 
     /// <summary>
-    /// Was dieser Befehl an Stress brächte, wenn er gelingt: Taten gegen die Züge des Oberhaupts und bei einer Aktivität Abbau (Ventil) oder
-    /// Stress (mag sie nicht) für das Oberhaupt und ein Gegenüber, das selbst Stress hat. Ventile, die in diesem Jahr schon wirkten, zählen nicht.
+    /// Was dieser Befehl an Stress brächte, wenn er gelingt: Taten gegen die Züge des Oberhaupts und bei einer Aktivität Stress (das Oberhaupt
+    /// mag sie nicht) oder Abbau (Ventil) für das Oberhaupt und ein Gegenüber, das selbst Stress hat. Ventile, die in diesem Jahr schon wirkten, zählen nicht.
     /// </summary>
     public IReadOnlyList<StressPosten> StressVorschau(Konto konto, Befehl befehl)
     {
@@ -220,23 +220,27 @@ public sealed partial class Familienbuch
             liste.Add(new StressPosten(o, wert, text, null));
         if (befehl is Aktivitaet a && _w.Meinungen.Daten?.Aktivitaeten.GetValueOrDefault(a.Art) is { Geschenk: false } ad)
         {
-            AktivitaetPosten(d, o, a.Art, ad, liste);
+            AktivitaetPosten(d, o, a.Art, ad, liste, handelnd: true);
             if (_w.Meinungen.Charakter(a.Mit) is Person mit && mit != o && HatStress(mit))
-                AktivitaetPosten(d, mit, a.Art, ad, liste);
+                AktivitaetPosten(d, mit, a.Art, ad, liste, handelnd: false);
         }
         return liste;
     }
 
-    /// <summary>Was eine Aktivität dieser Person an Stress bringt: mag sie sie nicht, +<see cref="StressDaten.MagNicht"/>; ist sie ein Ventil, Abbau (× 1,5, wenn sie sie mag).</summary>
-    private static void AktivitaetPosten(StressDaten d, Person p, string art, AktivitaetDaten ad, List<StressPosten> liste)
+    /// <summary>
+    /// Was eine Aktivität dieser Person an Stress bringt: mag sie sie nicht, +<see cref="StressDaten.MagNicht"/> – nur, wer sie selbst unternimmt
+    /// (das Gegenüber hat sie nicht gewählt; sonst ließe sich einem Rivalen gezielt Stress machen, Befund der Prüfung); ist sie ein Ventil und hat
+    /// die Person Stress, Abbau (× 1,5, wenn sie sie mag). Ein Ventil ohne Stress verbraucht die Art des Jahres nicht.
+    /// </summary>
+    private static void AktivitaetPosten(StressDaten d, Person p, string art, AktivitaetDaten ad, List<StressPosten> liste, bool handelnd)
     {
         if (p.Stresslage.VentilGenutzt(art)) return;
         if (p.Zuege.FirstOrDefault(z => ad.MagNicht.Contains(z.Kennung)) is { } nicht)
         {
-            if (d.MagNicht > 0) liste.Add(new StressPosten(p, d.MagNicht, $"{ad.Name} – mag es nicht ({nicht.Name.ToLowerInvariant()})", art));
+            if (handelnd && d.MagNicht > 0) liste.Add(new StressPosten(p, d.MagNicht, $"{ad.Name} – mag es nicht ({nicht.Name.ToLowerInvariant()})", art));
             return;
         }
-        if (!d.Ventile.TryGetValue(art, out var abbau)) return;
+        if (p.Stresslage.Wert <= 0 || !d.Ventile.TryGetValue(art, out var abbau)) return;
         var mag = p.Zuege.FirstOrDefault(z => ad.Mag.Contains(z.Kennung));
         liste.Add(new StressPosten(p, -abbau * (mag is null ? 1 : d.MagFaktor), mag is null ? ad.Name : $"{ad.Name} – mag es ({mag.Name.ToLowerInvariant()})", art));
     }

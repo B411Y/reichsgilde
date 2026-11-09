@@ -211,6 +211,14 @@ static class StressTests
             a.Aktionspunkte.Setzen(12);
             Ok(w, a, new Aktivitaet("Zechen", Ratsherr(w, 0).Kennung)); // neues Jahr: wieder frei
             Pruefe.Ungefaehr(35, Stress(w, fa.Oberhaupt), 1e-9);
+            // Ohne Stress verbraucht ein Ventil die Art nicht (Befund der Prüfung): erst ruhig zur Messe, dann gestresst noch einmal
+            w.Familien.StressSetzen(fb.Oberhaupt, 0);
+            b.Aktionspunkte.Setzen(12);
+            Ok(w, b, new Aktivitaet("Zechen", Ratsherr(w, 1).Kennung));
+            Pruefe.Gleich(0, fb.Oberhaupt.Stresslage.Ventile.Count);
+            w.Familien.StressSetzen(fb.Oberhaupt, 50);
+            Ok(w, b, new Aktivitaet("Zechen", Ratsherr(w, 2).Kennung));
+            Pruefe.Ungefaehr(27.5, Stress(w, fb.Oberhaupt), 1e-9); // gesellig: 22,5
         }),
 
         ("Stress: Gastmahl ist kein Ventil (ruhig bleibt), Scheu bekommt 8; Zechen mit dem eigenen Ehepartner senkt den Stress beider", () =>
@@ -230,6 +238,15 @@ static class StressTests
             Ok(w, c, new Aktivitaet("Zechen", e.Kennung));
             Pruefe.Ungefaehr(25, Stress(w, fc.Oberhaupt), 1e-9);
             Pruefe.Ungefaehr(25, Stress(w, e), 1e-9);
+            // Das Gegenüber hat die Aktivität nicht gewählt: Mag es sie nicht, bekommt es keine +8, nur keinen Abbau (Befund der Prüfung)
+            var (d, fd) = Haus(w, "Haus Fromme Frau");
+            var e2 = Heiraten(w, d);
+            Zuege(w, e2, "Fromm");
+            w.Familien.StressSetzen(fd.Oberhaupt, 40);
+            w.Familien.StressSetzen(e2, 40);
+            Ok(w, d, new Aktivitaet("Zechen", e2.Kennung));
+            Pruefe.Ungefaehr(25, Stress(w, fd.Oberhaupt), 1e-9);
+            Pruefe.Ungefaehr(40, Stress(w, e2), 1e-9);
         }),
 
         ("Stress: Trauer – stirbt ein Kind, +20 für beide Eltern; stirbt der Ehepartner, +30; stirbt das Oberhaupt, +10 für den Erben (Elternteil)", () =>
@@ -274,6 +291,66 @@ static class StressTests
             Pruefe.Gleich(45.0, Stress(w, fc.Oberhaupt)); // +10, dann −15
             Pruefe.Gleich("Bargeld im Minus +10 | Abklingen −15",
                 string.Join(" | ", fc.Oberhaupt.Stresslage.Eintraege.Select(x => $"{x.Text} {Zahlenformat.MitVorzeichen(x.Wert)}")));
+        }),
+
+        ("Stress: weitere Quellen – Jahr mit Verlust, verfallene AP (fleißig), Buße (gierig), Pranger (hochmütig), Ausbau und Neubau zum Stadtpalais " +
+         "(bescheiden), Ketzerei (fromm), Erpressen (ehrlich und großzügig), Streit, Pest im Haus, Trauer um Geschwister und Verschleppte – mit Gegenproben", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            // Jahr mit Verlust (Betriebsgewinn unter 0) und verfallende Aktionspunkte beim fleißigen Oberhaupt
+            var (a, fa) = Haus(w, "Haus Verlust", "Fleissig");
+            a.Schaden(5_000);
+            a.JahrAbschliessen(a.Laufend.Jahr + 1);
+            w.Familien.StressImJahreswechsel(fa);
+            var texte = string.Join(" | ", fa.Oberhaupt.Stresslage.Eintraege.Select(x => $"{x.Text} {Zahlenformat.MitVorzeichen(x.Wert)}"));
+            Pruefe.Gleich("Ein Jahr mit Verlust +5 | Aktionspunkte verfallen lassen (fleißig) +5 | Abklingen −10", texte);
+            var (b, fb) = Haus(w, "Haus Gewinn", "Traege"); // Gegenprobe: kein Verlust, träge lässt AP gern verfallen
+            b.JahrAbschliessen(b.Laufend.Jahr + 1);
+            w.Familien.StressImJahreswechsel(fb);
+            Pruefe.Gleich(0, fb.Oberhaupt.Stresslage.Eintraege.Count);
+            // Buße, Pranger (Ereignisse aus Gericht und Jahresende)
+            var (c, fc) = Haus(w, "Haus Geiz", "Gierig", "Hochmuetig");
+            w.Familien.StressTat(c, "Busse", 300);
+            w.Familien.StressTat(c, "Pranger");
+            Pruefe.Gleich(20.0, Stress(w, fc.Oberhaupt));
+            // Wohnhaus zum Stadtpalais (Ausbau von Stufe 2, Neubau Stufe 3), nicht zum Steinhaus
+            var (d, _) = Haus(w, "Haus Demut", "Bescheiden");
+            d.WohnhausStufe = 2;
+            Pruefe.Gleich(10.0, w.Familien.StressDurch(d, new WohnhausAusbauen()));
+            Pruefe.Gleich(10.0, w.Familien.StressDurch(d, new WohnhausBauen(3, 0, 0, 0)));
+            Pruefe.Gleich(10.0, w.Familien.StressDurch(d, new WohnhausBauen(4, 0, 0, 0)));
+            Pruefe.Gleich(0.0, w.Familien.StressDurch(d, new WohnhausBauen(2, 0, 0, 0)));
+            d.WohnhausStufe = 1;
+            Pruefe.Gleich(0.0, w.Familien.StressDurch(d, new WohnhausAusbauen())); // zum Steinhaus
+            // Ketzerei: Bekehrungspredigt gegen den Stadtglauben; gilt der eigene Glaube, nicht
+            var (e, _) = Haus(w, "Haus Fromm", "Fromm");
+            w.Glaube.Stadtglaube = Konfession.Evangelisch;
+            Pruefe.Gleich(15.0, w.Familien.StressDurch(e, new Bekehrungspredigt()));
+            w.Glaube.Stadtglaube = Konfession.Katholisch;
+            Pruefe.Gleich(0.0, w.Familien.StressDurch(e, new Bekehrungspredigt()));
+            // Erpressen: ehrlich +15, großzügig +10
+            var (g, _) = Haus(w, "Haus Gut", "Ehrlich", "Grosszuegig");
+            Pruefe.Gleich(25.0, w.Familien.StressDurch(g, new Erpressen(a.Inhaber, 500)));
+            // Streit im Haus (Oberhaupt und Erbe), Pest im Haus (alle Stressträger einmal)
+            var (h, fh) = Haus(w, "Haus Zank");
+            var erbe = w.Familien.KindAufnehmen(h, 25);
+            var kind = w.Familien.KindAufnehmen(h, 20);
+            w.Familien.StressStreit(fh, erbe);
+            Pruefe.Gleich(10.0, Stress(w, fh.Oberhaupt));
+            Pruefe.Gleich(10.0, Stress(w, erbe));
+            w.Familien.StressPestImHaus(h);
+            Pruefe.Gleich(20.0, Stress(w, fh.Oberhaupt));
+            Pruefe.Gleich(20.0, Stress(w, erbe));
+            Pruefe.Gleich(0.0, Stress(w, kind)); // das zweite Kind ist kein Erbe
+            // Trauer um Geschwister: das zweite Kind stirbt – der Erbe trauert um seine Schwester (+5), das Oberhaupt um die Tochter (+20)
+            w.Familien.AnKrankheitSterben(kind, "an der Ruhr");
+            Pruefe.Gleich(25.0, Stress(w, erbe));
+            Pruefe.Gleich(40.0, Stress(w, fh.Oberhaupt));
+            // Eine Geisel, die in die Fremde verkauft wird, zählt wie ein Todesfall
+            var kind2 = w.Familien.KindAufnehmen(h, 3);
+            w.Familien.Verschwinden(h, kind2, "Probe");
+            Pruefe.Gleich(60.0, Stress(w, fh.Oberhaupt));
+            Pruefe.Wahr(fh.Oberhaupt.Stresslage.Eintraege[^1].Text.StartsWith("Verschleppt: Tochter", StringComparison.Ordinal), fh.Oberhaupt.Stresslage.Eintraege[^1].Text);
         }),
 
         ("Stress: Abklingen – jedes Jahr −15, in glücklicher Ehe −20, schwermütig −10; nie unter 0; die Ventile sind im neuen Jahr frei", () =>
@@ -401,6 +478,8 @@ static class StressTests
             w.Familien.StressSetzen(o, 98);
             w.Familien.StressAendern(o, 5, "Probe"); // Zusammenbruch: würfelt
             o.Stresslage.VentilMerken("Messe");
+            w.Familien.StressAendern(o, 15, "Probe"); // 75: zermürbt – der Abzug an den Talenten muss nach dem Laden wieder da sein
+            Pruefe.Gleich(0.5, o.Stresslage.TalentAbzug);
             var zeitpunkt = new DateTime(2026, 11, 9, 12, 0, 0);
             var json = Speicherung.Speichern(sim, spieler, zeitpunkt);
             Pruefe.Wahr(StressImSpielstand(json) && json.Contains("\"StressWuerfe\""), "Stress im Spielstand");
@@ -410,6 +489,8 @@ static class StressTests
             Pruefe.Gleich(o.Stresslage.Wert, neu.Stresslage.Wert);
             Pruefe.Gleich(string.Join("|", o.Stresslage.Eintraege), string.Join("|", neu.Stresslage.Eintraege));
             Pruefe.Gleich("Messe", string.Join(",", neu.Stresslage.Ventile));
+            Pruefe.Gleich(0.5, neu.Stresslage.TalentAbzug);
+            foreach (var t in TalentTexte.Alle) Pruefe.Gleich(o.Talent(t), neu.Talent(t), $"{t} nach dem Laden");
             Pruefe.Gleich(Zustandspruefsumme.Berechnen(sim), Zustandspruefsumme.Berechnen(geladen));
             // ein zweiter Zusammenbruch würfelt in beiden gleich
             foreach (var (welt, p) in new[] { (w, o), (geladen.Wirtschaft, neu) })
