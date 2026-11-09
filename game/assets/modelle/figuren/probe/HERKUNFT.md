@@ -9,7 +9,7 @@ Bildschirm). Nur für die Probe: Das Spiel zeigt die Figuren nur mit der Startop
 | Skelett und Gewichte | Rig „game_engine“ aus MPFB 2.0.18 | CC0 1.0 | wie oben |
 | Stehen, Gehen, Reden, Sitzen, Kauern (daraus „Betteln“ mit eigener Armhaltung) | Quaternius, Universal Animation Library [Standard]: `Idle_Loop`, `Walk_Loop`, `Idle_Talking_Loop`, `Sitting_Idle_Loop`, `Crouch_Idle_Loop` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library |
 | Tragen, Hacken, Bücken | Quaternius, Universal Animation Library 2 [Standard]: `Walk_Carry_Loop`, `TreeChopping_Loop`, `Farm_Harvest` | CC0 1.0 (`License.txt` im Paket) | https://opengameart.org/content/universal-animation-library-2 |
-| Kleidung (Cotte, Gürtel, Gugel mit Zipfel, langer Rock, Kleid, Haube, Gebende mit Schleier, Bettlerkleidung), Haar, Halb- und Holzschuhe, Kiste, Axt, Zonen | eigenes Skript | Alle Rechte vorbehalten (`LICENSE-INHALTE.md`) | `tools/modelle/passanten_probe.py` |
+| Kleidung (Cotte, Gürtel, Gugel mit Zipfel, langer Rock, Kleid, Haube, Gebende mit Schleier, Bettlerkleidung, Kutte), Haar, Halb- und Holzschuhe, Berufszubehör (Strohhut, Barett, Eisenhut, Schürze, Kiepe, Reisigbündel, Tasche, Stab), Kiste, Axt, Zonen | eigenes Skript | Alle Rechte vorbehalten (`LICENSE-INHALTE.md`) | `tools/modelle/passanten_probe.py` |
 | Stoffstruktur (Wolle/Leinen, Leder) | Schichten „tuch“ und „leder“ der Material-Bibliothek des Spiels (nur ihre Nummer steht im Netz, UV.y) | wie die Bibliothek | `game/daten/materialbibliothek.json` |
 
 Prüfsummen der geladenen Archive (SHA-256, abgerufen 08.11.2026): MPFB `mpfb2-2.0.18.zip` ADA7C4FF11E79CF6ED9B441BCCABC52C9359F2848B988F66E89C14C30B21FED7,

@@ -65,6 +65,8 @@ STOFFE = {  # Name: (Zone, feste Farbe sRGB, Schicht der Material-Bibliothek ode
     "Holzschuh": (0, (0.50, 0.38, 0.24), None),
     "Hauer": (0, (0.84, 0.79, 0.64), None),
     "Flicken": (0, (0.30, 0.25, 0.19), "tuch"),
+    "Stroh": (0, (0.66, 0.56, 0.32), None),
+    "Reisig": (0, (0.34, 0.26, 0.17), None),
 }
 STOFF_NAMEN = list(STOFFE)
 
@@ -122,7 +124,7 @@ LOCKER = {"Gehen": 0.45, "Stehen": 0.6}
 SCHLEIFE_SCHLIESSEN = {"Buecken"}
 
 FIGUREN = {
-    "mann": {"datei": "passant_probe.glb", "gender": 1.0, "varianten": ("cotte", "gugel", "rock", "bettler")},
+    "mann": {"datei": "passant_probe.glb", "gender": 1.0, "varianten": ("cotte", "gugel", "rock", "bettler", "kutte")},
     "frau": {"datei": "passant_probe_frau.glb", "gender": 0.0, "varianten": ("haube", "gebende", "bettler")},
     # Schritt 3 des Vollausbaus (Entwurf): Orks und Oger aus demselben Grundnetz und Skelett, eigene Maße über MPFB-Makros und Formziele
     # (docs/WELT.md: Orks Söldner, Jäger, Knechte, „kurz und rau“, Hauer und grünliche Haut; Oger riesig, schwerste Arbeit). Die Größe im
@@ -160,7 +162,7 @@ VORSCHAU_HAUT = {"ork": (0.42, 0.50, 0.30), "oger": (0.60, 0.54, 0.45)}
 # Fußformen: eigene Netze, für nah und fern dieselben (Schritt 1 des Vollausbaus): Halbschuh aus Leder (Bürger), Holzschuh (Arme, Bauern),
 # barfuß (nur Bettler)
 FUSSFORMEN = ("halb", "holz", "barfuss")
-FUSS_ZIEL = {"halb": 160, "holz": 160, "barfuss": 220
+FUSS_ZIEL = {"halb": 160, "holz": 160, "barfuss": 220, "schuerze": 320
 }
 
 # Vorschaufarben (sRGB, gedeckte Pflanzenfarben) je Zone und Variante – nur für die Bilder, das Spiel setzt die Farben selbst
@@ -171,6 +173,7 @@ VORSCHAU = {
     "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.62, 0.56, 0.44)},
     "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.56, 0.60, 0.66)},
     "bettler": {1: (0.36, 0.34, 0.30), 2: (0.28, 0.25, 0.21), 3: (0.70, 0.52, 0.41), 4: (0.24, 0.18, 0.12), 5: (0.50, 0.46, 0.38)},
+    "kutte": {1: (0.36, 0.24, 0.14), 2: (0.28, 0.24, 0.20), 3: (0.72, 0.52, 0.40), 4: (0.22, 0.15, 0.10), 5: (0.36, 0.24, 0.14)},
 }
 
 
@@ -1636,6 +1639,198 @@ def betteln_bauen(rig, kauern, name="Betteln"):
     return neu, e - a
 
 
+def zubehoer_masse(koerper, masse):
+    """Maße am Körpernetz für Hüte, Kiepe und Tasche: Scheitel, Rücken und Brust in Brusthöhe, Hüftbreite."""
+    zs = [v.co.copy() for v in koerper.data.vertices]
+    masse["kopf_oben"] = max(c.z for c in zs)
+    brust = [c for c in zs if masse["schluesselbein"] - 0.28 < c.z < masse["schluesselbein"] - 0.05 and abs(c.x) < 0.12]
+    masse["ruecken_y"] = max(c.y for c in brust)
+    masse["brust_y"] = min(c.y for c in brust)
+    masse["huefte_x"] = max(c.x for c in zs if abs(c.z - masse["huefte"]) < 0.04)
+
+
+def schuerze_bauen(rock, masse):
+    """Schürze (Knecht und Magd): eine eigene, gerade geschnittene Bahn vom Gürtel bis eine Handbreit über das Knie, oben 30 cm, unten 38 cm
+    breit, 3 cm vor dem Rock (Strahl von vorn auf den knielangen Rock); jede Ecke nimmt die Gewichte der getroffenen Rockfläche, damit die
+    Schürze den Beinen folgt. Farbe der Kopfbedeckung (Zone 5, im Spiel Leinen). Runde 5: aus Rockflächen ausgeschnitten war der Rand gezackt
+    und der Rock stach durch."""
+    from mathutils.bvhtree import BVHTree
+    namen = gruppen_index(rock)
+    bm_r = bmesh.new()
+    bm_r.from_mesh(rock.data)
+    bm_r.faces.ensure_lookup_table()
+    deform = bm_r.verts.layers.deform.active
+    baum = BVHTree.FromBMesh(bm_r)
+    oben, unten = masse["guertel"] - 0.01, masse["knie"] + 0.04
+    spalten, zeilen = 6, 6
+    bm = bmesh.new()
+    raster, gewichte = [], []
+    for j in range(zeilen + 1):
+        v_ = j / zeilen
+        z = oben + (unten - oben) * v_
+        halb = 0.15 + 0.04 * v_
+        reihe = []
+        for i in range(spalten + 1):
+            x = -halb + 2 * halb * i / spalten
+            lage, _, index, _ = baum.ray_cast(Vector((x, -1.0, z)), Vector((0, 1, 0)))
+            g = {}
+            if lage is None:
+                lage = Vector((x, masse["kopfmitte"].y - 0.16, z))
+                g = {"pelvis": 1.0}
+            else:
+                f = bm_r.faces[index]
+                for ecke in f.verts:
+                    for gi, w in ecke[deform].items():
+                        g[namen[gi]] = g.get(namen[gi], 0.0) + w / len(f.verts)
+                lage = lage + Vector((0, -0.03, 0))
+            reihe.append(bm.verts.new(lage))
+            gewichte.append(g)
+        raster.append(reihe)
+    for j in range(zeilen):
+        for i in range(spalten):
+            bm.faces.new((raster[j][i], raster[j + 1][i], raster[j + 1][i + 1], raster[j][i + 1]))   # Fläche nach vorn (−Y)
+    bm_r.free()
+    me = bpy.data.meshes.new("Schuerze")
+    bm.to_mesh(me)
+    bm.free()
+    obj = neues_objekt("Schuerze", me)
+    stoffe_anlegen(obj)
+    for p_ in me.polygons:
+        p_.material_index = stoff("Kopf")
+    for i, g in enumerate(gewichte):
+        for n, w in g.items():
+            gruppe = obj.vertex_groups.get(n) or obj.vertex_groups.new(name=n)
+            gruppe.add([i], w, "REPLACE")
+    return obj
+
+
+def _zubehoer_objekt(rig, name, bm, stoffe_je_flaeche, gewichte):
+    """bmesh → Objekt am Skelett: beidseitig (jede Fläche doppelt, umgedreht), Stoff je Fläche, feste Gewichte {Knochen: Anteil} oder je Ecke."""
+    flaechen = list(bm.faces)
+    for f, s in zip(flaechen, list(stoffe_je_flaeche)):
+        f.material_index = stoff(s)
+    kopie_ = bmesh.ops.duplicate(bm, geom=flaechen)
+    bmesh.ops.reverse_faces(bm, faces=[g for g in kopie_["geom"] if isinstance(g, bmesh.types.BMFace)])
+    bm.verts.index_update()
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    zahl = len(bm.verts)
+    lagen = [v.co.copy() for v in bm.verts]
+    bm.free()
+    obj = neues_objekt(name, me)
+    mats = [f.material_index for f in me.polygons]
+    stoffe_anlegen(obj)
+    me.polygons.foreach_set("material_index", mats)
+    for i in range(zahl):
+        g = gewichte(lagen[i]) if callable(gewichte) else gewichte
+        for knochen, w in g.items():
+            gruppe = obj.vertex_groups.get(knochen) or obj.vertex_groups.new(name=knochen)
+            gruppe.add([i], w, "REPLACE")
+    zonen_setzen(obj)
+    me.polygons.foreach_set("use_smooth", [False] * len(me.polygons))
+    obj.parent = rig
+    obj.modifiers.new("Skelett", "ARMATURE").object = rig
+    return obj
+
+
+def _drehkoerper(bm, profil, mitte, n=12):
+    """Rotationskörper um die Senkrechte durch mitte (x, y) aus (Halbmesser, Höhe), von unten nach oben; oben geschlossen."""
+    ringe = [[bm.verts.new((mitte[0] + r * math.cos(2 * math.pi * i / n), mitte[1] + r * math.sin(2 * math.pi * i / n), z)) for i in range(n)]
+             for r, z in profil]
+    neu = []
+    for a, b in zip(ringe, ringe[1:]):
+        for i in range(n):
+            neu.append(bm.faces.new((a[i], a[(i + 1) % n], b[(i + 1) % n], b[i])))
+    neu.append(bm.faces.new(ringe[-1]))
+    return neu
+
+
+def _zylinder(bm, a, b, r, n=6):
+    u = (b - a).normalized()
+    q = u.cross(Vector((0, 0, 1)))
+    if q.length < 1e-3:
+        q = u.cross(Vector((1, 0, 0)))
+    q.normalize()
+    w = u.cross(q)
+    ringe = [[bm.verts.new(p + r * (math.cos(2 * math.pi * i / n) * q + math.sin(2 * math.pi * i / n) * w)) for i in range(n)] for p in (a, b)]
+    neu = [bm.faces.new((ringe[0][i], ringe[0][(i + 1) % n], ringe[1][(i + 1) % n], ringe[1][i])) for i in range(n)]
+    neu += [bm.faces.new(ringe[0]), bm.faces.new(ringe[1])]
+    return neu
+
+
+def _kasten(bm, unten_mitte, unten_halb, oben_mitte, oben_halb):
+    """Kasten mit unten und oben eigener halber Breite und Tiefe (x, y), Mitten (x, y, z)."""
+    ecken = []
+    for mitte, (hx, hy) in ((unten_mitte, unten_halb), (oben_mitte, oben_halb)):
+        ecken.append([bm.verts.new(mitte + Vector((sx * hx, sy * hy, 0))) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+    u, o = ecken
+    neu = [bm.faces.new((u[i], u[(i + 1) % 4], o[(i + 1) % 4], o[i])) for i in range(4)]
+    neu += [bm.faces.new(list(reversed(u))), bm.faces.new(o)]
+    return neu
+
+
+def zubehoer_bauen(rig, masse, stehen):
+    """Berufszubehör (Schritt 4 des Vollausbaus) als eigene Netze am Skelett, im Spiel nach Tracht und Rolle zugeschaltet:
+    Strohhut (Hirte, Feldarbeiter), Barett (Ratsherr, Bürgersohn), Eisenhut (Wache), Kiepe (Krämer), Reisigbündel (Holzsammler),
+    Tasche (Bote), Stab (Hirte). Hüte am Kopf, Kiepe und Bündel am Rücken, Tasche an der Hüfte, der Stab in der rechten Faust (gestellt in
+    der ersten Haltung von „Stehen“ und in die Ruhelage zurückgerechnet wie die Axt)."""
+    k = masse["kopfmitte"]
+    ko = masse["kopf_oben"]
+    kopf_xy = (0.0, k.y + 0.008)
+    aus = {}
+
+    bm = bmesh.new()
+    b = ko - 0.062
+    f = _drehkoerper(bm, [(0.19, b - 0.018), (0.108, b), (0.104, ko + 0.006), (0.074, ko + 0.032)], kopf_xy, n=14)
+    aus["stroh"] = _zubehoer_objekt(rig, "Zub_stroh", bm, ["Stroh"] * len(f), {"Head": 1.0})
+
+    bm = bmesh.new()
+    f = _drehkoerper(bm, [(0.104, ko - 0.048), (0.128, ko - 0.004), (0.122, ko + 0.022), (0.06, ko + 0.03)], kopf_xy, n=14)
+    aus["barett"] = _zubehoer_objekt(rig, "Zub_barett", bm, ["Kopf"] * len(f), {"Head": 1.0})
+
+    bm = bmesh.new()
+    b = ko - 0.072
+    f = _drehkoerper(bm, [(0.2, b - 0.022), (0.118, b), (0.116, ko - 0.02), (0.088, ko + 0.022), (0.04, ko + 0.036)], kopf_xy, n=14)
+    aus["eisenhut"] = _zubehoer_objekt(rig, "Zub_eisenhut", bm, ["Eisen"] * len(f), {"Head": 1.0})
+
+    ry = masse["ruecken_y"]
+    sb = masse["schluesselbein"]
+    bm = bmesh.new()
+    f = _kasten(bm, Vector((0, ry + 0.15, masse["huefte"] + 0.04)), (0.15, 0.11), Vector((0, ry + 0.19, sb + 0.05)), (0.21, 0.15))
+    rueck = {"UpperChest": 0.65, "Chest": 0.35}
+    aus["kiepe"] = _zubehoer_objekt(rig, "Zub_kiepe", bm, ["Holz"] * len(f), rueck)
+
+    bm = bmesh.new()
+    f = []
+    for i, (dx, dz) in enumerate(((0, 0), (0.035, 0.05), (-0.03, 0.045), (0.01, -0.05), (-0.04, -0.03))):
+        a = Vector((-0.30 + dx, ry + 0.10, sb - 0.36 + dz))
+        e = Vector((0.32 + dx, ry + 0.10, sb + 0.10 + dz))
+        f += _zylinder(bm, a, e, 0.03, n=5)
+    aus["buendel"] = _zubehoer_objekt(rig, "Zub_buendel", bm, ["Reisig"] * len(f), rueck)
+
+    hx = masse["huefte_x"] + 0.03
+    bm = bmesh.new()
+    f = _kasten(bm, Vector((hx, k.y - 0.01, masse["huefte"] - 0.10)), (0.03, 0.10), Vector((hx, k.y - 0.01, masse["huefte"] + 0.06)), (0.025, 0.09))
+    aus["tasche"] = _zubehoer_objekt(rig, "Zub_tasche", bm, ["Guertel"] * len(f), {"Hips": 1.0})
+
+    # Stab: senkrecht in der rechten Faust der ersten Haltung von „Stehen“, dann in die Ruhelage der Hand zurück
+    rig.animation_data.action = stehen
+    bpy.context.scene.frame_set(1)
+    mw = rig.matrix_world
+    pose = mw @ rig.pose.bones["RightHand"].matrix
+    ruhe = mw @ rig.data.bones["RightHand"].matrix_local
+    faust = pose @ Vector((0, 0.08, 0))
+    rig.animation_data.action = None
+    bpy.context.scene.frame_set(1)
+    bm = bmesh.new()
+    f = _zylinder(bm, faust - Vector((0, 0, faust.z - 0.02)), faust + Vector((0, 0, 0.62)), 0.017, n=6)
+    zurueck = (pose @ ruhe.inverted()).inverted()
+    for v in bm.verts:
+        v.co = zurueck @ v.co
+    aus["stab"] = _zubehoer_objekt(rig, "Zub_stab", bm, ["Holz"] * len(f), {"RightHand": 1.0})
+    return aus
+
+
 def last_bauen(rig, tragen):
     """Kiste zwischen den Händen in der ersten Haltung von „Tragen“; je zur Hälfte an beiden Händen."""
     rig.animation_data.action = tragen
@@ -1716,6 +1911,7 @@ def figur_bauen(art, quellen):
 
     koerper = teil_kopieren(mensch, "Koerper", in_gruppe("body"))
     tiefe = gesaess_tiefe(koerper, rig)
+    zubehoer_masse(koerper, masse)
     rockhelfer = teil_kopieren(mensch, "Rockhelfer", in_gruppe("helper-skirt"))
     haarhelfer = teil_kopieren(mensch, "Haarhelfer", in_gruppe("helper-hair"))
     roh = kopie(mensch, "Roh")                     # für die Fußmaße der Schuhe
@@ -1738,12 +1934,14 @@ def figur_bauen(art, quellen):
         k_rock = kopf_aussparen(koerper_lang, masse, "haar", "KoerperRock")
         k_bettler = bettler_koerper(k_cotte, masse, "KoerperBettler")
         r_bettler = bettler_rock(rock_knie, "RockBettler")
-        hilfen += [haar, k_cotte, k_gugel, k_rock, k_bettler, r_bettler] + gugel
+        k_kutte = kopf_aussparen(koerper_lang, masse, "gugel", "KoerperKutte")
+        hilfen += [haar, k_cotte, k_gugel, k_rock, k_bettler, r_bettler, k_kutte] + gugel
         teile = {
             "cotte": [k_cotte, rock_knie, haar],
             "gugel": [k_gugel, rock_knie] + gugel,
             "rock": [k_rock, rock_lang, haar],
             "bettler": [k_bettler, r_bettler, haar],
+            "kutte": [k_kutte, rock_lang] + gugel,       # Mönch (Schritt 4): langer Rock mit Gugel
         }
         if cfg.get("hauer"):
             hauer = hauer_bauen(koerper, masse)
@@ -1777,20 +1975,23 @@ def figur_bauen(art, quellen):
             netze.append(obj)
     # Fußformen als eigene Netze (nah und fern dieselben): Halbschuh, Holzschuh, barfuß
     fuesse = {}
-    for form, liste in (("halb", schuhe["halb"]), ("holz", schuhe["holz"]), ("barfuss", [fuesse_roh])):
-        obj = zusammenfuegen(liste, f"Fuss_{form}")
+    schuerze = schuerze_bauen(rock_knie, masse)
+    hilfen.append(schuerze)
+    for form, liste in (("halb", schuhe["halb"]), ("holz", schuhe["holz"]), ("barfuss", [fuesse_roh]), ("schuerze", [schuerze])):
+        obj = zusammenfuegen(liste, f"Zub_{form}" if form == "schuerze" else f"Fuss_{form}")
         vorher = dreiecke(obj)
         gewichte_aufraeumen(obj)
-        nachher = verkleinern(obj, FUSS_ZIEL[form], False)
+        nachher = verkleinern(obj, FUSS_ZIEL.get(form, 160), False)
         zonen_setzen(obj)
         bericht["netze"][obj.name] = {"dreiecke_vorher": vorher, "dreiecke": nachher, "ecken": len(obj.data.vertices)}
         fuesse[form] = obj
+    zubehoer = {"schuerze": fuesse.pop("schuerze")}
     for t in hilfen:
         if t.name in bpy.data.objects:
             bpy.data.objects.remove(t)
 
     skelett_umbauen(rig, "Skelett")
-    for obj in netze + list(fuesse.values()):
+    for obj in netze + list(fuesse.values()) + list(zubehoer.values()):
         obj.parent = rig
         for m in list(obj.modifiers):
             obj.modifiers.remove(m)
@@ -1818,6 +2019,9 @@ def figur_bauen(art, quellen):
     bericht["netze"]["Last"] = {"dreiecke": dreiecke(last), "ecken": len(last.data.vertices)}
     werkzeug = werkzeug_bauen(rig, aktionen["Hacken"][0])
     bericht["netze"]["Werkzeug"] = {"dreiecke": dreiecke(werkzeug), "ecken": len(werkzeug.data.vertices)}
+    zubehoer.update(zubehoer_bauen(rig, masse, aktionen["Stehen"][0]))
+    for name, obj in zubehoer.items():
+        bericht["netze"][obj.name] = {"dreiecke": dreiecke(obj), "ecken": len(obj.data.vertices)}
     bericht["uebertragung"] = BERICHT.pop("uebertragung", {})
     rig.animation_data.action = None
     for pb in rig.pose.bones:
@@ -1827,7 +2031,7 @@ def figur_bauen(art, quellen):
     pfad = os.path.abspath(os.path.join(OPT["aus"], cfg["datei"]))
     os.makedirs(os.path.dirname(pfad), exist_ok=True)
     for o in bpy.context.scene.objects:
-        o.select_set(o in netze or o in fuesse.values() or o is rig or o is last or o is werkzeug)
+        o.select_set(o in netze or o in fuesse.values() or o in zubehoer.values() or o is rig or o is last or o is werkzeug)
     bpy.ops.export_scene.gltf(
         filepath=pfad, export_format="GLB", use_selection=True, export_yup=True, export_apply=False,
         export_extras=True, export_normals=True, export_texcoords=True, export_skins=True, export_animations=True,
@@ -1835,7 +2039,7 @@ def figur_bauen(art, quellen):
         export_cameras=False, export_image_format="NONE", export_vertex_color="ACTIVE", export_all_vertex_colors=False)
     print("Geschrieben:", pfad)
     if "bilder" in OPT:
-        vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, OPT["bilder"], quellen)
+        vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, OPT["bilder"], quellen, zubehoer)
     return bericht
 
 
@@ -1963,7 +2167,20 @@ def vorschau_material(name, schicht):
 VORSCHAU_FUSS = {"cotte": "holz", "gugel": "halb", "rock": "halb", "haube": "holz", "gebende": "halb", "bettler": "barfuss"}
 
 
-def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen):
+# Berufe in der Vorschau (Schritt 4): (Name, Variante, Fußform, Zubehör)
+VORSCHAU_BERUFE = {
+    "mann": [("tageloehner", "cotte", "holz", ()), ("knecht", "cotte", "holz", ("schuerze",)), ("hirte", "cotte", "holz", ("stroh", "stab")),
+             ("feldarbeiter", "cotte", "holz", ("stroh",)), ("holzsammler", "cotte", "holz", ("buendel",)), ("kraemer", "cotte", "halb", ("kiepe",)),
+             ("bote", "cotte", "halb", ("tasche",)), ("ratsherr", "rock", "halb", ("barett",)), ("buergersohn", "cotte", "halb", ("barett",)),
+             ("moench", "kutte", "halb", ()), ("wache", "cotte", "halb", ("eisenhut",)), ("bettler", "bettler", "barfuss", ())],
+    "frau": [("magd", "haube", "holz", ("schuerze",)), ("kraemerin", "haube", "halb", ("kiepe",)), ("feldarbeiterin", "haube", "holz", ("stroh",)),
+             ("holzsammlerin", "haube", "holz", ("buendel",)), ("nonne", "gebende", "halb", ()), ("buergerin", "gebende", "halb", ()),
+             ("bettlerin", "bettler", "barfuss", ())],
+}
+
+
+def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen, zubehoer=None):
+    zubehoer = zubehoer or {}
     os.makedirs(ordner, exist_ok=True)
     sc = bpy.context.scene
     for motor in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"):
@@ -2006,7 +2223,7 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen)
 
     # Vorschaufarben und Stoffe mit Textur: zweite Eckenfarbe, Material je Schicht
     stoffe = [vorschau_material("V_glatt", None), vorschau_material("V_tuch", "tuch"), vorschau_material("V_leder", "leder")]
-    for obj in netze + list(fuesse.values()) + [last, werkzeug]:
+    for obj in netze + list(fuesse.values()) + list(zubehoer.values()) + [last, werkzeug]:
         me = obj.data
         zone = me.uv_layers["Zone"].data
         basis = me.color_attributes["Farbe"].data
@@ -2030,7 +2247,7 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen)
             schicht = code // 16 - 1
             p.material_index = 1 if schicht == BIB["tuch"] else 2 if schicht == BIB["leder"] else 0
     posen = [("Stehen", 20), ("Gehen", 8), ("Tragen", 12), ("Reden", 30), ("Sitzen", 10), ("Hacken", 8), ("Buecken", 30)]
-    alle = netze + list(fuesse.values()) + [last, werkzeug]
+    alle = netze + list(fuesse.values()) + list(zubehoer.values()) + [last, werkzeug]
     for obj in netze:
         stufe, variante = obj.name.split("_")
         fuss = fuesse[VORSCHAU_FUSS.get(variante, "halb")]
@@ -2088,6 +2305,31 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen)
     for k in kopien:
         bpy.data.objects.remove(k)
     sc.render.resolution_x, sc.render.resolution_y = 900, 1000
+    # Berufe nebeneinander im Gehen (Schritt 4)
+    if art in VORSCHAU_BERUFE:
+        rig.animation_data.action = aktionen["Gehen"][0]
+        sc.frame_set(8)
+        for o in alle:
+            o.hide_render = True
+        kopien = []
+        reihe = [b for b in VORSCHAU_BERUFE[art] if f"Nah_{b[1]}" in bpy.data.objects]
+        for i, (beruf, variante, fuss, zub) in enumerate(reihe):
+            for teil in [bpy.data.objects[f"Nah_{variante}"], fuesse[fuss]] + [zubehoer[z] for z in zub if z in zubehoer]:
+                dg = bpy.context.evaluated_depsgraph_get()
+                me = bpy.data.meshes.new_from_object(teil.evaluated_get(dg))
+                k_ = neues_objekt(f"Beruf_{beruf}_{teil.name}", me)
+                k_.matrix_world = rig.matrix_world
+                k_.location.x += (i - (len(reihe) - 1) / 2) * 0.75
+                me.color_attributes.active_color = me.color_attributes["Vorschau"]
+                kopien.append(k_)
+        breite = 0.75 * len(reihe) + 0.6
+        sc.render.resolution_x, sc.render.resolution_y = 2000, 900
+        blick(Vector((0, 0, 0.95)), breite, Vector((0.9, -5.0, 1.6)))
+        sc.render.filepath = os.path.join(ordner, f"{art}_berufe.png")
+        bpy.ops.render.render(write_still=True)
+        for k_ in kopien:
+            bpy.data.objects.remove(k_)
+        sc.render.resolution_x, sc.render.resolution_y = 900, 1000
     # Völkervergleich: die erste Variante stehend in der Größe des Spiels, für das gemeinsame Bild am Ende
     if art in VERGLEICH_MASS:
         rig.animation_data.action = aktionen["Stehen"][0]
