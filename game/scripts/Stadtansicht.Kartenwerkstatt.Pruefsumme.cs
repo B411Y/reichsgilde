@@ -92,6 +92,9 @@ public partial class Stadtansicht
     {
         var lage = eltern * knoten.Transform;
         var name = knoten.Name.ToString();
+        // was sich von selbst bewegt oder erst später kommt, gehört nicht in die Summe: der Prahm und die Seile der Fähre (sie pendelt), die Eisschollen
+        // (die Werkstatt baut sie erst, wenn Eis da ist)
+        if (name is "Faehre" or "SeilA" or "SeilB" || name.StartsWith("Eisschollen_")) return;
         if (name.StartsWith('@')) name = name.Split('@', StringSplitOptions.RemoveEmptyEntries)[0]; // von Godot vergebene Nummern ändern sich mit der Baureihenfolge
         var zeile = $"{pfad}/{name} {Cm(lage.Origin)} {Cm(lage.Basis.X)} {Cm(lage.Basis.Y)} {Cm(lage.Basis.Z)} {knoten.Visible}";
         if (knoten is MeshInstance3D m)
