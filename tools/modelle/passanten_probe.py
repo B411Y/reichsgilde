@@ -573,9 +573,17 @@ def kopf_aussparen(koerper, masse, art, name):
         g = {namen[i]: w for i, w in v[deform].items()}
         return g.get("head", 0) + g.get("neck_01", 0)
 
+    ansatz = None
+    if art == "haube":
+        # Haaransatz (NAS 09.11.): ein Streifen Haar unter dem Haubenrand vorn und an den Schläfen, sauber geschnitten
+        ansatz = lambda v: kappe_wert(v.co, masse, art) + 0.024 if kopfanteil(v) > 0.3 else None
+        isolinie_schneiden(bm, ansatz)
     weg = []
     for f in bm.faces:
         c = f.calc_center_median()
+        if ansatz is not None and seite(f, ansatz) is not None and seite(f, ansatz) > 0 and c.y < masse["kopfmitte"].y + 0.02 \
+                and c.z > masse["stirn"] - 0.11 and kappe_wert(c, masse, art) <= 0.015:
+            f.material_index = stoff("Haar")
         if sum(kopfanteil(v) for v in f.verts) / len(f.verts) < 0.6:
             # Gugel: auch Schultern und Brust unter dem Schulterkragen (Runde 4: rotbraune Pünktchen = Cotte durch den Kragen)
             if art == "gugel" and c.z > masse["kragen"] + 0.03 and gesicht_wert(c, masse, art) > 0.35:
@@ -673,12 +681,36 @@ def kopfteil_bauen(koerper, masse, name, art):
     for _ in range(7 if art == "haube" else 3):   # Haube: der Rand an den Ohren war unruhig (Runde 4)
         bmesh.ops.smooth_vert(bm, verts=[v for v in bm.verts if not v.is_boundary], factor=0.5,
                               use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    if art == "haube":
+        saum_umschlagen(bm, k)
     bm.to_mesh(obj.data)
     bm.free()
     teile = [obj]
     if art == "gugel":
         teile.append(zipfel_bauen(obj, masse))
     return teile
+
+
+def saum_umschlagen(bm, mitte, tiefe=0.014, wulst=0.003):
+    """Saum der Haube (NAS 09.11.): Der offene Rand wird etwas aufgeworfen (Wulst) und als schmales Band nach innen zur Haut umgeschlagen. Das Band
+    ist beidseitig (zwei Flächenlagen), weil es je nach Blick von innen oder außen zu sehen ist; so zeigt die Haube eine dunkle Kante statt
+    unmittelbar in die Haut überzugehen."""
+    bm.normal_update()
+    rand = [e for e in bm.edges if e.is_boundary]
+    alt = {v for e in rand for v in e.verts}
+    richtung = {v: (v.co - mitte).normalized() for v in alt}   # vom Kopfmittelpunkt aus: gleichmäßiger als die Eckennormalen (Runde 5: Saum zerknittert)
+    for v in alt:
+        v.co += richtung[v] * wulst
+    erg = bmesh.ops.extrude_edge_only(bm, edges=rand)
+    neu = [g for g in erg["geom"] if isinstance(g, bmesh.types.BMVert)]
+    for nv in neu:
+        quelle = next((e.other_vert(nv) for e in nv.link_edges if e.other_vert(nv) in alt), None)
+        if quelle is not None:
+            nv.co = quelle.co - richtung[quelle] * tiefe + Vector((0, 0, -0.003))
+    band = [g for g in erg["geom"] if isinstance(g, bmesh.types.BMFace)]
+    kopie_ = bmesh.ops.duplicate(bm, geom=band)
+    bmesh.ops.reverse_faces(bm, faces=[g for g in kopie_["geom"] if isinstance(g, bmesh.types.BMFace)])
+    bm.normal_update()
 
 
 def zipfel_bauen(vorlage, masse):
@@ -1051,7 +1083,8 @@ def gewichte_aufraeumen(obj):
 
 
 def erhalten_markieren(obj, fern=False):
-    """Eckengruppe „Erhalten“ für das Verkleinern: Grenzen zwischen Stoffen und offene Ränder 1, Kopf 0,8, Hände 0,4 –
+    """Eckengruppe „Erhalten“ für das Verkleinern: Grenzen zwischen Stoffen und offene Ränder 1, Kopf 0,8, Hände 0,85 (NAS 09.11.: bei 0,4 wurden
+    Finger zu langen Spitzen) –
     dort fallen weniger Ecken weg (sonst wird die Ausschnittkante wieder zur Treppe und das Gesicht kantig). Fernnetz: nur der Gürtel
     (0,7; das schmale Band zerfiel sonst in Lücken)."""
     me = obj.data
@@ -1074,7 +1107,7 @@ def erhalten_markieren(obj, fern=False):
                 if e.group == kopf and e.weight > 0.5:
                     w = max(w, 0.8)
                 if e.group in haende and e.weight > 0.5:
-                    w = max(w, 0.4)
+                    w = max(w, 0.85)
         if fern:
             w = 0.7 if guertel in stoffe.get(v.index, ()) else 0.0
         elif len(stoffe.get(v.index, ())) > 1 or v.index in rand:
