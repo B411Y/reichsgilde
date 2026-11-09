@@ -2542,7 +2542,7 @@ Beim Parfumeur ändert sich jedes Volk um höchstens 1,2 % (Halbling gegen Mensc
 
 Unverändert: Dieb, Gardist und Geldleiher (±2 % seit den Gauner-Regeln), Lebenszeit, Haushalt, Talente und alles andere je Volk. 3 % entsprechen etwa einem Stern Handwerkskunst.
 
-**Messung** (gemessen auf main `7143a4f6` + diesem PR, `f33947e4`; main stand bei der Messung auf `57964daf`, dazwischen nur Darstellung). Vorher ist main `fcbc7db4` (#380: ±5 %, Vermächtnis 0,35) mit denselben Startwerten:
+**Messung** (gemessen auf main `7143a4f6` + diesem PR, `f33947e4`; main stand bei der Messung auf `57964daf`, dazwischen nur Darstellung). Vorher ist main `fcbc7db4` (#380: ±5 %, Vermächtnis 0,35) mit denselben Startwerten; die beiden Vorher-Dateien `…-vermaechtnis35.json` tragen `commit 67dcd65d` (main `fb089712`) mit Vermächtnis 0,35 – Kern und Daten rechnen dort wie `fcbc7db4`:
 
 - `messen bericht 40 30 --teile=2` (240 Partien, 13,3 Min.) → `docs/messungen/balancing-2026-11-09-voelker40-voelkerbonus3.json`, gegen `…-voelker40-vermaechtnis35.json`;
 - `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 39 Min.; NAS mit anderen Läufen geteilt) → `…-voelkerbonus3.json`; die Berufe gegen `…-berufe-vermaechtnis35.json` (main), die übrigen Teile gegen `…-handgeld.json` (±5 %, Vermächtnis 0,2 – main hat nur Berufe und Völker mit 0,35 gemessen);
@@ -2561,7 +2561,7 @@ Unverändert: Dieb, Gardist und Geldleiher (±2 % seit den Gauner-Regeln), Leben
 | Parfumeur, Elb | +5 → +3 | 137.421 | 135.444 ± 4.074 | +13,7 → +9,1 % |
 | Parfumeur, Halbling | 0 | 122.205 | 124.060 ± 4.296 | +1,1 → −0,1 % |
 
-Der Abstand zwischen Zwerg- und Halbling-Schmied schrumpft von 21,7 auf 14,9 Punkte, der zwischen Elb- und Zwerg-Parfumeur von 11,6 auf 11,8 Punkte nicht (der Mensch-Parfumeur liegt diesmal 2,7 % höher, der Mensch-Schmied 3,7 % tiefer – beides in der Streuung). Nach 20 Jahren (Teil 2 im vollen Bericht, Abstand des Zuwachses): Schmied −14 … +5 % (vorher −14 … +10 %), Parfumeur −9 … +6 % (vorher −8 … +12 %).
+Der Abstand zwischen Zwerg- und Halbling-Schmied schrumpft von 21,7 auf 14,9 Punkte, der zwischen Elb- und Zwerg-Parfumeur von 11,6 auf 11,8 Punkte nicht (der Mensch-Parfumeur liegt diesmal 2,7 % höher, der Mensch-Schmied 3,7 % tiefer – beides in der Streuung). Nach 20 Jahren (Teil 2 im vollen Bericht, Abstand des Zuwachses): Schmied −14 … +5 %, Parfumeur −9 … +6 % (vorher aus `…-handgeld.json` mit Vermächtnis 0,2: −14 … +10 % und −8 … +12 %).
 
 **Berufe** (Mensch, ein Betrieb, Greybox, 20 Jahre; ± Fehler des Mittels; in Klammern der Abstand des Zuwachses zum Mittel):
 
