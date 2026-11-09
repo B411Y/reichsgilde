@@ -1043,6 +1043,17 @@ Auftrag des Teamleiters 1.11.2026.
 | Vorwärmen | Beim Öffnen hinter dem Ladebildschirm (`WerkstattVorwaermen`, Balken 0,56 „Die Pinsel werden ausgewaschen …“, Köln 76 ms): Netze aller Felsformen in allen Feinheiten und ihr Material, die Pflanzen des Naturpinsels, dazu je ein Probestück (Vorschau, Pinselkreis, Felsstück, Felsgeist) für die ersten Bilder vor der Kamera, damit der Grafiktreiber ihre Shader übersetzt; danach weg | 09.11.2026 |
 | Ergebnis (Köln, ms, Median je Tupfer / Bild beim Loslassen / größtes Bild danach; Leerlauf headless 7–8 ms) | Boden 36 → 9 / 89 → 65 / 98 (Prüfung, 0,3 s später); Gelände Heben 60 → 13 / 673 → 76 / 86; Glätten 47 → 19 / 527 → 59 / 102; Fels Streuen 31 → 9 / 43 → 54 / 41; Fels Radieren 29 → 8; Natur 8 → 8 (sammelte schon vorher nur). Greybox: Boden 21 → 7, Gelände 39 → 8, Loslassen 247 → 38 | 09.11.2026 |
 
+### Felspinsel P3: Neu verteilen, Umschalt radiert, alle Pinselwerte (Branch phase5/fels-k-p3, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Neu verteilen | Neue Art `FelsArt.Verteilen` (Palette Gelände › Felsen „Neu verteilen“, Farbfeld gold, kein neues Asset): ein Strich wie Streuen, der Kern würfelt die angehakten Werte (`FelsVerteilenWurf`, Vorgabe Größe und Drehung) jedes Stücks unter dem Pinsel einmal je Strich neu. Kreis gold. An gewählten Stücken der Knopf „Neu verteilen“ (`FelsAuswahlVerteilen`, ersetzt „Neu würfeln“, dieselben Häkchen) | 09.11.2026 |
+| Startwert | Ausdünnen, Neu verteilen und der Knopf an der Auswahl bekommen je Strich bzw. Druck einen neuen Startwert (`_felsZufallZaehler`, eigene Wahl): Mit dem Startwert aus dem ersten Punkt hätte ein zweiter Strich über dieselbe Stelle genau dieselben Stücke bzw. Werte gewählt und nichts geändert. Streuen und Radieren bleiben beim Startwert aus dem Punkt | 09.11.2026 |
+| Umschalt radiert | Umschalt beim Drücken mit „Felsen streuen“ macht den Strich zum Radierer (wie in Unreal) mit Formen, Filter und Höhe der Tafel, ohne Ausdünnen; der Kreis ist dann rot. Ausdünnen hat einen orangen Kreis | 09.11.2026 |
+| Pinselwerte | Die Stadtansicht hält alle Werte des Kerns (`FelsAbstand`, `FelsEinsinkenStreuung`, Bereiche, `FelsNeigungBis`, `FelsHoehenbereich`, `FelsNurFormen`, `FelsAusduennen`); `FelsPinselWerte` ist der Pinsel unabhängig von der Art (Startoptionen `streuen:`/`stempel:` nehmen ihn, vorher nahmen sie beim eingestellten Radierer die Vorgaben) | 09.11.2026 |
+| Tasten | Unverändert wie in P2 entschieden: WASD Kamera, Pfeiltasten schieben, 1–4 Gizmo, Alt+Pfeil Höhe; neu nur Umschalt beim Streuen | 09.11.2026 |
+| Messung | Pinselmessung Köln headless (Godot 4.7.2, Median je Tupfer / Bild beim Loslassen, ms), vor (main 4fa25271) und nach P3: Fels Streuen 10,4 / 53,0 → 10,4 / 54,4; Radieren 10,1 / 9,5 → 9,0 / 8,6 (nach dem Ausdünnen weniger Stücke); neu Neu verteilen 11,5 / 9,7 und Ausdünnen bis 10 % 10,1 / 9,0. Leerlauf je Bild 8–12 ms: kein Ruckeln, nichts Teures im Strich | 09.11.2026 |
+| Geprüft | Headless (neue Karte mit Hügel, Startoptionen): 421 gestreute Blöcke und Platten; Neu verteilen (Einsinken 45 %) unter dem Pinsel: „240 Felsstücke neu verteilt“, ein Schritt; Ausdünnen auf 15 % → 253, Platten über 4 m mit „nur diese Formen“ und Höhenfilter ausgedünnt → 196; Neu verteilen an der Auswahl (196) und Rückgängig; Streuen mit Abstand 3 m. Kein Bild (Godot nur headless) | 09.11.2026 |
 ### Werkstatt-Pinsel: Rest-Ruckler nach dem Loslassen (Branch phase5/pinsel-nacharbeit)
 
 | Thema | Entscheidung | Datum |

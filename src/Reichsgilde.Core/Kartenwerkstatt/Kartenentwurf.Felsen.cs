@@ -215,7 +215,7 @@ public sealed partial class Kartenentwurf
     public IReadOnlyList<Felslage> FelsStempelVorschau(Felspinsel pinsel, Kartenort ort, double? drehung = null, int? startwert = null)
     {
         var p = FelsBegrenzt(pinsel);
-        if (!Kartengrenzen.Aussen.Enthaelt(ort) || Felsstreuung.Filterfaktor(p.Filter, _hoehen, _boden, ort.X, ort.Z) < 0.5) return Array.Empty<Felslage>();
+        if (!Kartengrenzen.Aussen.Enthaelt(ort) || Felsstreuung.Filterfaktor(p, _hoehen, _boden, ort.X, ort.Z) < 0.5) return Array.Empty<Felslage>();
         var zufall = new Zufallsquelle(startwert ?? FelsStartwert(ort));
         return Felsstreuung.Treffer(p, zufall, _hoehen, ort.X, ort.Z, drehung is { } d ? Kartenraster.Drehung(d) : null)
             .Where(l => Kartengrenzen.Aussen.Enthaelt(l.X, l.Z)).ToList();
@@ -299,8 +299,8 @@ public sealed partial class Kartenentwurf
         if (_felsstrich is not { } strich) return false;
         _felsstrich = null;
         if (strich.Befehle.Count == 0) return false;
-        var (neu, weg) = (strich.Befehle.Count(b => b is TeilSetzen), strich.Befehle.Count(b => b is TeilLoeschen));
-        var text = strich.Pinsel.Radierer ? $"{weg} Felsstücke radiert" : $"{neu} Felsstücke gestreut";
+        var (neu, weg, anders) = (strich.Befehle.Count(b => b is TeilSetzen), strich.Befehle.Count(b => b is TeilLoeschen), strich.Befehle.Count(b => b is TeilAendern));
+        var text = $"{(strich.Pinsel.Radierer ? weg : strich.Pinsel.Verteilen is not null ? anders : neu)} Felsstücke {strich.Pinsel.Taetigkeit}";
         var befehle = strich.Befehle;
         if (strich.Boden is { } boden && FelsBodenBefehl(boden, "Boden um den Fels") is { } b) befehle = befehle.Append(b).ToList();
         Geschichte.Ausfuehren(new SchonAusgefuehrt(new Sammelbefehl(text, befehle)));
@@ -327,8 +327,11 @@ public sealed partial class Kartenentwurf
         public Felsstrich(Kartenentwurf entwurf, Felspinsel pinsel, int? startwert)
         {
             (_e, Pinsel, _startwert) = (entwurf, pinsel, startwert);
-            if (pinsel.Boden && !pinsel.Radierer) Boden = new Felsbodenstrich(entwurf._boden, entwurf._hoehen, entwurf.Kartengrenzen.Aussen);
+            if (pinsel.Boden && !pinsel.Radierer && pinsel.Verteilen is null) Boden = new Felsbodenstrich(entwurf._boden, entwurf._hoehen, entwurf.Kartengrenzen.Aussen);
         }
+
+        /// <summary>Die Stücke, die „Neu verteilen“ in diesem Strich schon gewürfelt hat (jedes nur einmal je Strich).</summary>
+        private readonly HashSet<EntwurfFels> _verteilt = new(ReferenceEqualityComparer.Instance);
 
         public Felspinsel Pinsel { get; }
 
@@ -385,13 +388,32 @@ public sealed partial class Kartenentwurf
             var p = Pinsel;
             var r2 = p.Radius * p.Radius;
             bool ImKreis(double x, double z) => (x - m.X) * (x - m.X) + (z - m.Z) * (z - m.Z) <= r2;
+            // Radierer, Ausdünnen und Neu verteilen: Stücke mit der Mitte im Kreis, wo der Filter wirkt (Faktor ≥ ½) und – mit „nur diese Formen“ – der Form
+            bool Nimmt(EntwurfFels f) => ImKreis(f.X, f.Z) && p.NimmtForm(f.Form) && Felsstreuung.Filterfaktor(p, _e._hoehen, _e._boden, f.X, f.Z) >= 0.5;
+            if (p.Radierer && p.Ausduennen)
+            {
+                Duennen(m, r2, Nimmt);
+                return;
+            }
             if (p.Radierer)
             {
                 // von hinten nach vorn: Rückgängig setzt jedes an seine alte Stelle zurück
                 for (var i = _e._felsen.Count - 1; i >= 0; i--)
                 {
                     var f = _e._felsen[i];
-                    if (ImKreis(f.X, f.Z) && Felsstreuung.Filterfaktor(p.Filter, _e._hoehen, _e._boden, f.X, f.Z) >= 0.5) Ausfuehren(new TeilLoeschen(f, i));
+                    if (Nimmt(f)) Ausfuehren(new TeilLoeschen(f, i));
+                }
+                return;
+            }
+            if (p.Verteilen is { } wurf)
+            {
+                // in der Reihenfolge der Liste, jedes Stück einmal je Strich – aus der Quelle des Strichs (wie Kartenentwurf.FelsNeuWuerfeln)
+                var neu = p with { Gruppe = null };
+                foreach (var f in _e._felsen) // Ändern lässt die Liste, wie sie ist
+                {
+                    if (_verteilt.Contains(f) || !Nimmt(f)) continue;
+                    _verteilt.Add(f);
+                    if (_e.Aenderung(f, n => Einsetzen(n, _e.NeuGewuerfelt(f, neu, _zufall!, wurf))) is { } b) Ausfuehren(b);
                 }
                 return;
             }
@@ -411,8 +433,8 @@ public sealed partial class Kartenentwurf
                 if (!_e.Kartengrenzen.Aussen.Enthaelt(x, z)) continue;
                 // der Bodenfilter am Stand vor dem Strich (F6: der Strich malt selbst Boden)
                 var faktor = Boden is { } bs
-                    ? Felsstreuung.Filterfaktor(p.Filter, _e._hoehen, bs.Aenderung.GewichtVorher, x, z)
-                    : Felsstreuung.Filterfaktor(p.Filter, _e._hoehen, _e._boden, x, z);
+                    ? Felsstreuung.Filterfaktor(p, _e._hoehen, bs.Aenderung.GewichtVorher, x, z)
+                    : Felsstreuung.Filterfaktor(p, _e._hoehen, _e._boden, x, z);
                 if (faktor < 1 && zufall.NextDouble() >= faktor) continue;
                 var lagen = Felsstreuung.Treffer(p, zufall, _e._hoehen, x, z);
                 if (lagen.Any(l => !_e.Kartengrenzen.Aussen.Enthaelt(l.X, l.Z) || ZuNah(l))) continue;
@@ -431,15 +453,43 @@ public sealed partial class Kartenentwurf
             if (bodenBereich is { } bereich) _e.Vormerken(new Kartenaenderung(Aenderungsart.Geaendert, _e._bodenTeil, bereich));
         }
 
-        /// <summary>Liegt das Stück zu nah an einem anderen (Kreise der Grundflächen überdecken sich mehr als erlaubt)?</summary>
+        /// <summary>
+        /// Ausdünnen (P3): Liegen im Kreis mehr Grundflächen als <see cref="Felspinsel.Dichte"/> des Kreises, fallen zufällig gewählte Stücke weg
+        /// (nur solche, die der Pinsel nimmt), bis die Dichte erreicht ist oder keins mehr übrig ist. Gezählt werden alle Stücke im Kreis, wie beim
+        /// Streuen. Die Wahl kommt aus der Quelle des Strichs, die Stücke in der Reihenfolge der Liste: gleicher Strich, gleiches Ergebnis.
+        /// </summary>
+        private void Duennen(Kartenort m, double r2, Func<EntwurfFels, bool> nimmt)
+        {
+            var p = Pinsel;
+            var ziel = p.Dichte * Math.PI * r2;
+            var belegt = 0.0;
+            var kandidaten = new List<EntwurfFels>();
+            foreach (var f in _e._felsen)
+            {
+                if ((f.X - m.X) * (f.X - m.X) + (f.Z - m.Z) * (f.Z - m.Z) > r2) continue;
+                belegt += Math.PI * f.Radius * f.Radius;
+                if (nimmt(f)) kandidaten.Add(f);
+            }
+            while (belegt > ziel && kandidaten.Count > 0)
+            {
+                var k = _zufall!.Next(kandidaten.Count);
+                var f = kandidaten[k];
+                kandidaten.RemoveAt(k);
+                belegt -= Math.PI * f.Radius * f.Radius;
+                Ausfuehren(new TeilLoeschen(f, _e.IndexVon(f)));
+            }
+        }
+
+        /// <summary>Liegt das Stück zu nah an einem anderen (Kreise der Grundflächen überdecken sich mehr als erlaubt, dazu der Abstand des Pinsels)?</summary>
         private bool ZuNah(Felslage l)
         {
             var raster = Raster;
             var meine = Felsformen.Finde(l.Form)?.Ueberlappung ?? Felspinsel.Ueberlappung;
-            foreach (var f in raster.Im(l.X, l.Z, (1 - Felspinsel.Ueberlappung) * (l.Radius + raster.GroessterRadius)))
+            var abstand = Pinsel.Abstand; // P3; 0 ändert keine Zahl (alte Striche bleiben gleich)
+            foreach (var f in raster.Im(l.X, l.Z, (1 - Felspinsel.Ueberlappung) * (l.Radius + raster.GroessterRadius) + abstand))
             {
                 // die großen Stücke des Wand-Satzes dürfen sich weiter überlappen (R4); gilt, was von beiden mehr erlaubt
-                var d = (1 - Math.Max(meine, f.Felsform?.Ueberlappung ?? Felspinsel.Ueberlappung)) * (l.Radius + f.Radius);
+                var d = (1 - Math.Max(meine, f.Felsform?.Ueberlappung ?? Felspinsel.Ueberlappung)) * (l.Radius + f.Radius) + abstand;
                 if ((f.X - l.X) * (f.X - l.X) + (f.Z - l.Z) * (f.Z - l.Z) < d * d) return true;
             }
             return false;

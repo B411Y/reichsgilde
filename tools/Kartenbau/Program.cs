@@ -23,6 +23,10 @@ namespace Reichsgilde.Kartenbau;
 //    dotnet run --project tools/Kartenbau -- textur <karte> <textur|radierer> <x,z;x,z…> [--radius= --staerke= --kante= --deko=an|aus --dichte=]
 //                                                   [--steigung=<ab>-<bis> --bodenfilter=<textur>[:<rand>]]
 //                                                   ein Strich mit dem Texturpinsel (wiese, erde, fels, kies, waldboden, sand, schlamm, moos, lehm, pflaster, mist)
+//    dotnet run --project tools/Kartenbau -- felsen <karte> --stempel|--streuen <vorlage[@gestein]> <x,z;x,z…> [--radius= --dichte= --abstand=
+//                                                   --groesse= --streuung= --einsinken= --neigung= --drehung= --startwert= --gestein= --boden=an|aus
+//                                                   --hang=an|aus --zumhang=an|aus --steigung= --bodenfilter= --hoehe=<von>,<bis>]
+//                                                   Felsen stempeln (je Ort ein Stück oder eine Gruppe) oder als Strich streuen (Felspinsel)
 //    dotnet run --project tools/Kartenbau -- rampe <karte> <x,z> <x,z> <breite> [--kante=]   eine Rampe mit gleichmäßigem Gefälle
 //    dotnet run --project tools/Kartenbau -- hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m>
 //                                                   --quelle=<…> --lizenz=<…> --abruf=<datum> [--breite=<px>] [--versatz=<m>] [--stufe=<cm>] [--bytefolge=be]
@@ -74,6 +78,10 @@ public static class Program
                     Befehle.Gelaende(ordner, ziel, pinsel, strich, Console.Out),
                 "textur" when ziel is not null && worte.Count == 4 && BodenpinselVon(worte[2], args) is { } bodenpinsel && Orte(worte[3]) is { Count: > 0 } bodenstrich =>
                     Befehle.Textur(ordner, ziel, bodenpinsel, bodenstrich, Console.Out),
+                "felsen" when ziel is not null && worte.Count == 4 && schalter.Contains("--stempel") != schalter.Contains("--streuen")
+                              && FelspinselVon(worte[2], args) is { } felspinsel && Orte(worte[3]) is { Count: > 0 } felsorte =>
+                    Befehle.Felsen(ordner, ziel, schalter.Contains("--stempel"), felspinsel, felsorte, Wert(args, "--drehung"),
+                        (int?)Wert(args, "--startwert"), Console.Out),
                 "hoehenkarte-einlesen" or "hoehenkarte-ausgeben" when Unlesbar(args, befehl == "hoehenkarte-einlesen") is { } falsch => Falsch(falsch),
                 "hoehenkarte-einlesen" when ziel is not null && worte.Count == 3 =>
                     Befehle.HoehenkarteEinlesen(ordner, ziel, worte[2], Wert(args, "--pixel"), Orte((Text(args, "--ursprung") ?? "").Replace('−', '-')) is { Count: 1 } u ? u[0] : null,
@@ -228,6 +236,54 @@ public static class Program
         };
     }
 
+    /// <summary>
+    /// Der Felspinsel (Felspinsel K) aus der Vorlage – eine Gruppe (<c>wand</c>, <c>kuppe</c>, <c>rippe</c>, <c>wandgross</c>) oder Formen mit
+    /// <c>+</c> (<c>block+platte</c>), hinten wahlweise <c>@&lt;gestein&gt;</c> – und den Schaltern: --gestein, --radius, --dichte, --abstand,
+    /// --groesse, --streuung, --einsinken, --neigung, --boden=an|aus, --hang=an|aus („Hang mitformen“ beim Stempel), --zumhang=an|aus, der Filter
+    /// (<see cref="FilterVon"/>) und --hoehe=&lt;von&gt;,&lt;bis&gt; (Meter). Null bei unbekannter Vorlage, Gestein oder unlesbarer Angabe; eine
+    /// angegebene Zahl, die keine ist, bricht ab statt still die Vorgabe zu nehmen.
+    /// </summary>
+    public static Felspinsel? FelspinselVon(string vorlage, IEnumerable<string> args)
+    {
+        var liste = args.ToList();
+        var (name, gestein) = (vorlage.Split('@')[0], vorlage.Contains('@') ? vorlage.Split('@', 2)[1] : Text(liste, "--gestein"));
+        if (gestein is not null && !Felsformen.IstGestein(gestein)) return null;
+        foreach (var zahl in new[] { "--radius", "--dichte", "--abstand", "--groesse", "--streuung", "--einsinken", "--neigung", "--drehung", "--startwert" })
+            if (Text(liste, zahl) is not null && Wert(liste, zahl) is null) return null;
+        foreach (var schalter in new[] { "--boden", "--hang", "--zumhang" })
+            if (Text(liste, schalter) is not (null or "an" or "aus")) return null;
+        if (!FilterVon(liste, out var filter)) return null;
+        Felsbereich? hoehe = null;
+        if (Text(liste, "--hoehe") is { } h)
+        {
+            if (Zahlen(h.Replace('−', '-').Split(',')) is not { Count: 2 } z) return null;
+            hoehe = new Felsbereich(z[0], z[1]);
+        }
+        var p = new Felspinsel(Gestein: gestein);
+        if (Felsformen.Gruppe(name) is { } g) p = p with { Gruppe = g.Kennung };
+        else
+        {
+            var formen = name.Split('+', StringSplitOptions.RemoveEmptyEntries);
+            if (formen.Length == 0 || formen.Any(f => Felsformen.Finde(f) is null)) return null;
+            p = p with { Formen = formen };
+        }
+        return p with
+        {
+            Radius = Wert(liste, "--radius") ?? p.Radius,
+            Dichte = Wert(liste, "--dichte") ?? p.Dichte,
+            Abstand = Wert(liste, "--abstand") ?? p.Abstand,
+            Groesse = Wert(liste, "--groesse") ?? p.Groesse,
+            Streuung = Wert(liste, "--streuung") ?? p.Streuung,
+            Einsinken = Wert(liste, "--einsinken") ?? p.Einsinken,
+            Neigung = Wert(liste, "--neigung") ?? p.Neigung,
+            Boden = Text(liste, "--boden") != "aus",
+            HangFormen = Text(liste, "--hang") == "an",
+            ZumHang = Text(liste, "--zumhang") != "aus",
+            Filter = filter,
+            Hoehenbereich = hoehe,
+        };
+    }
+
     /// <summary>Der Wert eines Schalters „--name=zahl“ (Punkt als Dezimaltrenner, auch mit dem Minuszeichen „−“) – oder null.</summary>
     private static double? Wert(IEnumerable<string> args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal)) is { } a
@@ -285,6 +341,15 @@ public static class Program
                        [--steigung=<ab>-<bis>] [--bodenfilter=<textur>[:<rand>]]
                                                   ein Strich mit dem Texturpinsel: wiese, erde, fels, kies, waldboden, sand, schlamm, moos,
                                                   lehm, pflaster, mist (Stärke 0–1; Deko streuen mit Dichte 0–2) oder radierer (zurück zur Wiese)
+              felsen <karte> --stempel <vorlage[@gestein]> <x,z;x,z…> [--drehung=<grad>] [--startwert=<n>] [--hang=an]
+              felsen <karte> --streuen <vorlage[@gestein]> <x,z;x,z…> [--radius=8] [--dichte=0.2] [--abstand=0] [--startwert=<n>]
+                       beide: [--gestein=…] [--groesse=1] [--streuung=0.25] [--einsinken=…] [--neigung=0.5] [--boden=an|aus] [--zumhang=an|aus]
+                              [--steigung=<ab>-<bis>] [--bodenfilter=<textur>[:<rand>]] [--hoehe=<von>,<bis>]
+                                                  Felsen mit dem Felspinsel der Werkstatt: --stempel setzt an jedem Ort ein Stück oder eine
+                                                  Gruppe (je Ort ein Schritt, Startwert n, n+1 …; ohne Drehung hangabwärts bzw. zufällig),
+                                                  --streuen streut einen Strich durch die Orte (Dichte 0–1 der Fläche, Abstand in m zusätzlich
+                                                  zwischen den Stücken). <vorlage> ist eine Gruppe (wand, kuppe, rippe, wandgross) oder Formen mit +
+                                                  (block+platte); gleiche Angaben, gleicher Startwert: dieselben Bytes
               rampe <karte> <x,z> <x,z> <breite> [--kante=4]
                                                   ein Band mit gleichmäßigem Gefälle von der Höhe am ersten zur Höhe am zweiten Punkt
               hoehenkarte-einlesen <karte> <datei.r16> --pixel=<m> --ursprung=<x,z> --unten=<m> --oben=<m> --quelle=<…> --lizenz=<…>
@@ -469,6 +534,32 @@ public static class Befehle
             return 0;
         }
         aus.WriteLine($"{e.Kennung}: {e.Geschichte.RueckgaengigText} ({strich.Count} Punkte, Radius {Kartenschreiber.Zahl(pinsel.Radius)} m)");
+        return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
+    }
+
+    /// <summary>
+    /// <c>felsen</c> (Felspinsel K): mit <paramref name="stempel"/> an jedem Ort ein Stempel (<see cref="Kartenentwurf.FelsStempeln"/>; Startwert
+    /// <paramref name="startwert"/> + Nummer des Orts, ohne einer aus Ort und Zahl der Stücke), sonst ein Strich durch alle Orte
+    /// (<see cref="Kartenentwurf.FelsStreuen"/>); dann schreiben – nur ohne Fehler. Setzt er nichts, bleibt die Datei, wie sie ist.
+    /// </summary>
+    public static int Felsen(Projektordner o, string karte, bool stempel, Felspinsel pinsel, IReadOnlyList<Kartenort> orte, double? drehung, int? startwert,
+        TextWriter aus)
+    {
+        var (katalog, daten) = Laden(o);
+        var e = Oeffnen(o, karte, katalog, daten);
+        var vorher = e.Felsen.Count;
+        if (stempel)
+            for (var i = 0; i < orte.Count; i++)
+                e.FelsStempeln(pinsel, orte[i], drehung, startwert is { } s ? s + i : null);
+        else e.FelsStreuen(pinsel, orte, startwert);
+        var neu = e.Felsen.Count - vorher;
+        if (neu == 0)
+        {
+            aus.WriteLine($"{e.Kennung}: Es kommt kein Felsstück dazu (außerhalb der Karte, Filter?) – nichts geschrieben.");
+            return 0;
+        }
+        aus.WriteLine($"{e.Kennung}: {neu} Felsstücke {(stempel ? $"gestempelt ({orte.Count} Orte)" : $"gestreut ({orte.Count} Punkte, Radius {Kartenschreiber.Zahl(pinsel.Radius)} m)")}, "
+                      + $"jetzt {e.Felsen.Count}");
         return Schreiben(e, PfadVon(o, karte), o.Vorschauen, true, aus, o);
     }
 

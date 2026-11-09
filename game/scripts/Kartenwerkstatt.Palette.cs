@@ -345,7 +345,9 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Fels, vorher: () => (_stadt.FelsModus, _stadt.FelsGruppe) = (Stadtansicht.FelsArt.Stempeln, null), bild: Farbfeld(felsfarbe.Darkened(0.15f)));
         Eintrag("fels:streuen", "Felsen streuen", "Mit gedrückter Maus malen: Stücke oder Gruppen locker in den Kreis streuen, bis die Dichte erreicht ist (Vorlage, Dichte und Größe rechts)",
             Werkstattwerkzeug.Fels, vorher: () => _stadt.FelsModus = Stadtansicht.FelsArt.Streuen, bild: Farbfeld(felsfarbe.Lightened(0.15f)));
-        Eintrag("fels:radierer", "Fels-Radierer", "Mit gedrückter Maus über Felsstücke fahren – alle mit der Mitte im Kreis sind weg (der Filter rechts gilt auch hier)",
+        Eintrag("fels:verteilen", "Neu verteilen", "Mit gedrückter Maus über Felsstücke fahren: Die angehakten Werte (Größe, Drehung, Einsinken …) werden mit den Werten rechts neu gewürfelt – wie „Reapply“ in Unreal",
+            Werkstattwerkzeug.Fels, vorher: () => _stadt.FelsModus = Stadtansicht.FelsArt.Verteilen, bild: Farbfeld(new Color(0.78f, 0.64f, 0.30f)));
+        Eintrag("fels:radierer", "Fels-Radierer", "Mit gedrückter Maus über Felsstücke fahren – alle mit der Mitte im Kreis sind weg, mit „Ausdünnen bis“ nur so viele, bis die Dichte erreicht ist (Formen und Filter rechts gelten auch hier)",
             Werkstattwerkzeug.Fels, "radierer", () => _stadt.FelsModus = Stadtansicht.FelsArt.Radieren);
 
         // Boden (Schritt 5e): die elf Texturen mit Farbfeld, dazu der Radierer
@@ -567,6 +569,12 @@ public partial class Kartenwerkstatt
 
     private bool _abschnitteVorgemerkt;
 
+    /// <summary>
+    /// Die Abschnitte, die zugeklappt sind (nach ihrer Überschrift) – sie bleiben es beim nächsten Aufbau der Tafel. „Erweitert“ (Felspinsel P3) beginnt
+    /// zugeklappt, damit die Tafel nicht zu voll wird.
+    /// </summary>
+    private readonly HashSet<string> _abschnitteZu = new() { "Erweitert" };
+
     /// <summary>Leert die Tafel „Eigenschaften“ für einen neuen Aufbau; danach (am Ende des Bildes) klappen die Überschriften zu Abschnitten.</summary>
     private void EigenschaftenLeeren()
     {
@@ -599,21 +607,24 @@ public partial class Kartenwerkstatt
             if (kind is Label kopf && Kopf(kind))
             {
                 var titel = kopf.Text;
+                var offen = !_abschnitteZu.Contains(titel);
                 var knopf = new Button
                 {
-                    Text = "– " + titel, Flat = true, ToggleMode = true, ButtonPressed = true, Alignment = HorizontalAlignment.Left, FocusMode = Control.FocusModeEnum.None,
-                    TooltipText = "Abschnitt ein- oder ausklappen",
+                    Text = (offen ? "– " : "+ ") + titel, Flat = true, ToggleMode = true, ButtonPressed = offen, Alignment = HorizontalAlignment.Left,
+                    FocusMode = Control.FocusModeEnum.None, TooltipText = "Abschnitt ein- oder ausklappen",
                 };
                 knopf.AddThemeFontSizeOverride("font_size", 15);
                 knopf.AddThemeColorOverride("font_color", Gold);
                 knopf.AddThemeColorOverride("font_pressed_color", Gold);
                 knopf.AddThemeColorOverride("font_hover_color", Hell);
-                var behaelter = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+                var behaelter = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, Visible = offen };
                 behaelter.AddThemeConstantOverride("separation", 6);
                 knopf.Toggled += an =>
                 {
                     behaelter.Visible = an;
                     knopf.Text = (an ? "– " : "+ ") + titel;
+                    if (an) _abschnitteZu.Remove(titel);
+                    else _abschnitteZu.Add(titel);
                 };
                 _eigenschaften.AddChild(knopf);
                 _eigenschaften.AddChild(behaelter);
