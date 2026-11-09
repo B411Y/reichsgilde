@@ -1144,6 +1144,7 @@ Offen zur Ego-Perspektive:
 | Tracht nach Stufe | Die Figuren der Arbeiter in Werkstatt, Versteck, Wachhaus und Wechselstube (und die Marktdiebe und Nachtwachen) färben nicht mehr nach dem Namen der Arbeitskraft („Lehrling“, „Geselle“, Listen von Knecht, Taschendieb, Rekrut …), sondern nach `Personalwesen.Stufe` (1 Anfänger, 2, 3 Vorarbeiter und Entsprechungen; 0 für Orks und Unfreie). Gemeinsam in `game/scripts/Arbeitertracht.cs` (`Arbeiterbild`, ohne Godot, Test `ArbeitertrachtTests`); ohne Abschnitt „personal“ in den Daten gilt die alte Laufbahn nach dem Namen (Lehrling 1, Geselle 2). |
 | Volk, Geschlecht, Haar | Volk, Geschlecht und Haarfarbe der Figur sind die des Arbeiters im Kern (`Arbeiter.Volk`, `Geschlecht`, `Aussehen.Haar`, Farbe wie im Porträt, `PortraetAnzeige.Farbe`); Orks und Oger behalten das Männermodell, kahle Haare fallen auf die Palette des Volks zurück. Ersatzfiguren ohne Arbeiter (Festnahme, Nachtdiebe) bleiben Menschen mit Würfel aus der Nummer. Zwerge, Halblinge und Elben stehen damit in den Werkstätten; ihre Arbeitshöhen sind unverändert (Arme gehoben, siehe oben): Im Klicktest ansehen. |
 | Meisterdieb, Hauptmann | Wer das ist, bestimmt weiter der Kern (`Diebesstand.Meisterdieb`, `Wachstand.Hauptmann`); die Tracht folgt ihm, nicht der Stufe. |
+| KI-Schmied | In der Schmiede (Gießerei) trägt jeder Arbeiter den KI-Schmied (`Stadtansicht.KiFiguren.cs`) – seit diesem PR nur noch, wenn er ein **Mensch** ist (Klicktest 09.11.2026: sonst standen Zwerg, Halbling und Elb als großer Mensch am Amboss). Die anderen Völker sind die Figuren aus Blender mit Tracht nach Stufe; die Menschen am Amboss behalten die feste Tracht des KI-Schmieds (keine Färbung nach Stufe). |
 
 ### Innenräume: neue Einrichtung aus Personal und Talentbaum (Platzhalter, Branch phase5/personal-nacharbeit-darstellung)
 
@@ -1156,6 +1157,7 @@ Offen zur Ego-Perspektive:
 
 Offen zu den neuen Stücken:
 
-- (Platzhalter) Zwerge, Halblinge und Elben stehen als Arbeiter in den Werkräumen (Volk aus dem Kern); ob die Arbeitshöhen passen, ist nur im Klicktest zu sehen.
+- (Platzhalter) Zwerge, Halblinge und Elben stehen als Arbeiter in den Werkräumen (Volk aus dem Kern). Klicktest 09.11.2026: Tracht und Haarfarbe stimmen; ein Zwerg am Hobel zeigt nur Kopf und Schultern über der Bank, der Elb am Drechsler und an der Steinsäge steht aufrecht neben dem Werkstück (Hände nicht am Gerät) – die Arbeitshöhen sind für Menschen gebaut.
+- (Platzhalter, Klicktest 09.11.2026) Tischler: Das Schwungrad der Drechselbank steht vor der Tür zur Sägehalle. Parfumeur: das Doppelstockbett steht vor dem Giebelfenster des Dachbodens. Alchimist: Warenstapel (Kräuter, Kröte) stehen vor dem unteren Bett. Wohnstube: Bibliothek und Stube sitzen an der Vorderwand und füllen die offene Seite – sie verdecken beim Hineinsehen die Küche (besser an die Seitenwand).
 - (Platzhalter) Die Stücke sind nicht animiert (Tretrad, Drechselbank, Hund); die Kupfer- und Glasflächen sehen in der Vorschau heller aus als im Spiel.
 - (Wohnhaus) Das Hauswappen und die Riegel sitzen an der Ostwand weiter vorn als das Tellerbord des Schmucks; bei neuen Schmuckteilen an der Ostwand prüfen.

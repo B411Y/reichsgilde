@@ -23,6 +23,7 @@ Startoptionen (nach `--`):
 - `--arbeiter=<Nummern>` (mit `--innen`: Arbeiter im Raum auswählen)
 - `--baum=<wohnhaus|betrieb>` (Talentbaum der Einrichtung von außen öffnen: Wohnhaus oder eigene Werkstatt; mit `--vermoegen=5000`; `--tafel=talentbaum` mit `--innen=1` ist derselbe Baum der Werkstatt, `--tafel=personal` das Personalbuch mit Porträts)
 - `--einrichtung=<Kennungen>` (der eigenen Werkstatt Einrichtung kaufen, z. B. `Werkzeug1,Regale`, mit `--vermoegen=5000`)
+- `--wohnhaus-einrichtung=<alle|Kennungen>` (dem eigenen Wohnhaus Einrichtung kaufen, z. B. `alle` oder `Vorratskammer,Kueche`; reicht die Stufe des Wohnhauses nicht, wird es vorher ausgebaut und aufgestiegen, bis zu viermal mit Umbau abwarten; mit `--vermoegen=30000`, bei Stufe 3 Meistergrad nötig; nur für Bilder der Wohnstube: `--innen="wohnhaus:<Inhaber>"`)
 - `--einstellen=<Arten>` (Arbeiter einstellen, z. B. `Lehrling,Geselle`)
 - `--ausbauen=<n>` (die Werkstatt n-mal ausbauen; braucht Meistergrad 3 und 5: Stand mit `--speichern` schreiben, `Meistergrade` des Hauses auf `{"Schmied":5}` setzen, mit `--laden` starten)
 - `--verwalten=1` (Kurzübersicht der eigenen Werkstatt rechts; `=mehr`: mit „…“ aufgeklappt)
