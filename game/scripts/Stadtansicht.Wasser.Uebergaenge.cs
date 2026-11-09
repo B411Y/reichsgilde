@@ -551,7 +551,7 @@ public partial class Stadtansicht
     //  Hafen
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Ein Hafenmodell in der Welt: das Tretrad (dreht sich), die Kähne (sitzen auf dem Wasserspiegel).</summary>
+    /// <summary>Ein Hafenmodell in der Welt: das Tretrad (dreht sich), die Kähne und der Ponton des Schwimmkrans (sitzen auf dem Wasserspiegel).</summary>
     private sealed class HafenAnsicht
     {
         public required Node3D Wurzel { get; init; }
@@ -566,7 +566,8 @@ public partial class Stadtansicht
     /// <summary>Wird von <see cref="ModellEinsetzen"/> gerufen, wenn das Modell ein Tretrad hat (der Hafen).</summary>
     private void HafenBelebt(Node3D wurzel)
     {
-        var kaehne = new[] { "Kahn1", "Kahn2" }.Select(n => wurzel.FindChild(n, true, false) as Node3D).Where(k => k is not null).Select(k => k!).ToArray();
+        // „Ponton“: der Schwimmkörper des Kölner Rheinkrans (wasser_schwimmkran.glb, Ursprung auf seiner Wasserlinie) mit Kranhaus und Tretrad
+        var kaehne = new[] { "Kahn1", "Kahn2", "Ponton" }.Select(n => wurzel.FindChild(n, true, false) as Node3D).Where(k => k is not null).Select(k => k!).ToArray();
         _haefen.Add(new HafenAnsicht
         {
             Wurzel = wurzel, Tretrad = wurzel.FindChild("Tretrad", true, false) as Node3D, Kaehne = kaehne, KahnHoehen = kaehne.Select(k => k.Position.Y).ToArray(),

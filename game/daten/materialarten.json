@@ -10,6 +10,7 @@
     "Stroh": "stroh", "Strohkante": "stroh", "Firstsoden": "stroh", "Heu": "stroh", "Schilf": "stroh", "Roggen": "stroh", "Stoppel": "stroh", "Korn": "stroh",
     "Schiefer": "schiefer", "Schieferkante": "schiefer", "Firstblech": "schiefer", "Schindel": "schiefer", "Schindelkante": "schiefer",
     "Erz": "fels", "Silbererz": "fels", "Kohle": "fels",
+    "Tuff": "mauer", "Trachyt": "mauer", "Basalt": "mauer", "Basaltquader": "mauer",
     "Gras": "boden", "Erde": "boden", "Erde hell": "boden", "Moos": "boden", "Lehm": "boden", "Pflaster": "mauer",
     "Farn": "laub", "Kraut": "laub", "Ginster": "laub", "Kohl": "laub"
   },

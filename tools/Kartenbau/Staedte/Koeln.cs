@@ -65,6 +65,9 @@ public sealed partial class Koeln : Stadtskript
     private static readonly Marktort MarktDeutz = new("Neumarkt", "am Neumarkt", "MarktDeutz", P(170, 6));
     private static readonly Marktort[] Maerkte = { MarktSued, MarktNord, MarktDeutz };
 
+    /// <summary>Mitte des Kölner Rathauses (seit 9.11.2026 am Alter Markt): x 21 … 34 (2,8 m zur Rheingasse), z −91,8 … −69,8 (3,2 m zu Unter Fettenhennen; 0,4 m weiter südlich als nötig, damit die Restflächen-Füllung ihren Taubenschlag behält).</summary>
+    private static readonly Kartenort RathausAmMarkt = P(27.5, -80.8);
+
     private readonly Dictionary<string, EntwurfWeg> _strassen = new();
     private EntwurfMauer _stadtmauer = null!, _deutzer = null!;
 
@@ -81,8 +84,9 @@ public sealed partial class Koeln : Stadtskript
         E.FiktionHinzufuegen("Rheinbrücke nach Deutz: Die erste feste Brücke gab es erst 1859; hier gehört sie zum Spielfeld (Fiktion).");
         E.FiktionHinzufuegen("Der Maßstab ist etwa 1 : 10; Märkte, Kirchen und Gassen sind so gerückt, dass sie ins Spiel passen. Nebengassen und Hausnamen sind erfunden.");
         E.FiktionHinzufuegen("Die drei Märkte liegen nicht an ihrer echten Stelle (Heumarkt und Alter Markt nebeneinander am Rathaus, der Neumarkt am Westende der Schildergasse; Deutz hatte keinen): Zwei stehen an den Enden der Mauer am Rhein, einer in Deutz.");
+        E.FiktionHinzufuegen("Das Stapelhaus steht hier schon um 1400 (das echte entstand 1558–61 und hatte Zinnen): eine lange Halle mit Treppengiebeln, Gemeinschaftswerk von Menschen und Zwergen, davor die Stadtwaage. Am Rathaus wird schon der Ratsturm gebaut (1407–1414).");
         E.FiktionHinzufuegen("Der Rhein ist 60–100 m breit (in Wirklichkeit 350–400 m); der Duffesbach läuft hier als Graben vor der Südmauer und mündet hinter dem Bayentor.");
-        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert stehen vorerst als Block des allgemeinen Bausteins „Kirche“ (16 × 14 m), bis es romanische Kirchenmodelle gibt.");
+        E.FiktionHinzufuegen("Groß St. Martin, St. Gereon, St. Severin, St. Aposteln und St. Kunibert sind etwa 1 : 2,5 verkleinert und so gerückt, dass sie zwischen die Straßen passen; St. Kunibert steht westlich des Alter Markts statt nördlich des Doms am Rhein.");
 
         Wasser();
         Gelaende();
@@ -188,7 +192,9 @@ public sealed partial class Koeln : Stadtskript
         var linie = new List<Kartenort> { P(50, -R) };
         for (var a = 0; a <= 180; a += 6) linie.Add(Bogen(a, R));
         linie.Add(P(50, R));
-        _stadtmauer = E.MauerAnlegen(linie, geschlossen: false, name: "Stadtmauer");
+        // Kölner Mauerbaukasten (Paket 3 der Wahrzeichen): eigene Torburgen für Eigelstein-, Hahnen- und Severinstor, der Bayenturm am Südende
+        // am Rhein; die Darstellung wählt das Teil nach dem Namen des Tors (Stadtansicht.Mauer.cs), die übrigen Tore bleiben die allgemeine Torburg
+        _stadtmauer = E.MauerAnlegen(linie, geschlossen: false, name: "Stadtmauer", katalog: "stadtmauer_koeln");
         foreach (var (name, ort) in new[]
         {
             ("Kunibertstor", P(RheinX, -R)), ("Eigelsteintor", Bogen(18, R)), ("Ehrentor", Bogen(60, R)), ("Hahnentor", Bogen(90, R)),
@@ -279,24 +285,48 @@ public sealed partial class Koeln : Stadtskript
         foreach (var m in Maerkte) Haus("markt", m.Name, m.Ort.X, m.Ort.Z, kennung: m.Kennung);
         MarktPflastern();
 
-        Haus("rathaus", "Rathaus", -20, -44, 90, "Rathaus");
-        Haus("kirche", "Groß St. Martin", 26, -44, 90, "Martin");
-        Haus("kirche", "St. Gereon", -52, -86, 90, "Gereon");
-        Haus("kirche", "St. Severin", -2, 96, 270, "Severin");
-        Haus("kirche", "St. Aposteln", -72, -34, 180, "Aposteln");
-        Haus("kirche", "St. Kunibert", 14, -128, 0, "Kunibert");
+        // Kölner Rathaus (Paket 3: Saalbau mit dem Hansasaal und der Ratsturm im Bau, 22 × 13 m) am Alter Markt wie in Köln (Entscheidung des
+        // Nutzers, 9.11.2026; bis dahin bei −20 | −44 in der Altstadt): südlich des Platzes zwischen Unter Fettenhennen, Rheingasse und Trankgasse,
+        // die Vorhalle zur Rheingasse (Drehung 90), der Ratsturm im Bau am Südende. Dort stand das Startgrundstück S4; es rückt nach Westen an
+        // Unter Fettenhennen auf den Werkstatt-Bauplatz WB_AlterMarkt1 (Koeln.Platzierung.cs, Koeln.Bauplaetze.cs).
+        Haus("koelner_rathaus", "Rathaus", RathausAmMarkt.X, RathausAmMarkt.Z, 90, "Rathaus");
         Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
+        // Die fünf romanischen Kirchen als eigene Modelle (seit 9.11.2026; vorher Blöcke des Bausteins „kirche“, 16 × 14 m): alle mit dem Chor
+        // nach Osten und der Westfront zur Gasse (Drehung 270, wie der Dom). Sie sind 22–32 m lang und mussten dafür rücken (Entscheidung des
+        // Nutzers): Groß St. Martin 4 m nach Westen (sonst auf der Rheingasse), St. Gereon 3 m nach Westen (Hohe Straße), St. Severin östlich der
+        // Severinstraße (vorher läge er quer über ihr), St. Aposteln zwischen Ehrenstraße und Hohe Straße (die Ehrenstraße lief durch den Block),
+        // St. Kunibert zwischen Trankgasse und Unter Fettenhennen westlich der Bauplätze – nördlich des Doms passt er zwischen Dom, Alter Markt und
+        // Kunibertswall nicht (13,7 statt 14 m); bei z = −76 bekommt die Restflächen-Füllung weiter Steinmetzplätze und einen Taubenschlag.
+        Kirche("kirche_gross_st_martin", "Groß St. Martin", 22, -44, "Martin");
+        Kirche("kirche_st_gereon", "St. Gereon", -55, -86, "Gereon");
+        Kirche("kirche_st_severin", "St. Severin", 7.5, 96, "Severin");
+        Kirche("kirche_st_aposteln", "St. Aposteln", -54, -34, "Aposteln");
+        Kirche("kirche_st_kunibert", "St. Kunibert", -16.6, -76, "Kunibert");
 
         // Rheinufer: Hafen, Kran und Zollstelle mit dem Rücken zum Wasser (Kran und Zollstelle südlich des Hafens, bis 31.10.2026 nördlich –
         // dort liegt jetzt ein Startgrundstück am Nordplatz; seit 1.11.2026 alle drei 6 m weiter südlich, damit das Grundstück mit dem Platz
-        // nach Süden rücken kann), das Stapelhaus am Ufer
+        // nach Süden rücken kann), das Stapelhaus am Ufer (seit Paket 3 der Wahrzeichen ein eigenes Modell, 26 × 16 m statt des Lagerschuppens;
+        // die Stadtwaage zur Rheingasse, die Giebel zum Rhein) und südlich davon der Rheinkran, ein Schwimmkran wie in Köln belegt
         Haus("hafenplatz", "Rheinhafen", 51, -54, 270, "Rheinhafen");
         Haus("zollstelle", "Zollstelle", 54, -24, 270, "Zollstelle");
-        Haus("lagerschuppen", "Stapelhaus", 50, 28, 270, "Stapelhaus");
+        Haus("stapelhaus", "Stapelhaus", 50, 30, 270, "Stapelhaus");
+        Haus("rheinkran", "Rheinkran", 54, 56, 270, "Rheinkran");
 
         // Leerstände und Ruinen: Hausnamen aus der Stadt (die Ruine von Deutz seit dem 1.11.2026 vor dem Südtor)
         Haus("leerstand", "Haus zum güldenen Hammer (leer)", -64, 94, 90, "L1");
         Haus("leerstand", "Haus zum weißen Schwan (leer)", -100, -40, 90, "L2");
         RuineVorDemSuedtor();   // bis 1.11.2026 bei 196 | 27 in Deutz, dort liegen jetzt Werkstatt-Bauplätze (Koeln.Bauplaetze.cs)
+    }
+
+    /// <summary>
+    /// Eine romanische Kirche (eigenes Modell im Katalog) mit Drehung 270: Chor nach Osten, Westfront zur Gasse. Bricht ab, wenn ihre Fläche nicht
+    /// frei ist (<see cref="Frei"/>: Gebäude, Wege, Mauer, Wasser, Werkstatt-Bauplätze) – die Kartenprüfung meldet einen Weg durch einen Sonderbau nicht.
+    /// </summary>
+    private void Kirche(string katalog, string name, double x, double z, string kennung)
+    {
+        var b = E.Katalog.Finde(katalog)?.Groesse ?? throw new ArgumentException($"Der Baustein „{katalog}“ hat keine Größe.", nameof(katalog));
+        if (!Frei(Rechteck(P(x, z), b[0], b[1], 270)))
+            throw new InvalidOperationException($"{name}: Die Fläche {b[0]} × {b[1]} m bei ({x} | {z}) ist nicht frei.");
+        Haus(katalog, name, x, z, 270, kennung);
     }
 }

@@ -61,10 +61,18 @@ public partial class Stadtansicht
         var g = new Node3D { Name = "Spielhaus", Position = AufFundament(mitte, drehungY, flaeche), Rotation = new Vector3(0, drehungY, 0) };
         AddChild(g);
         GruppenSockel(g, drehungY, flaeche); // auf einem Hang steht das Haus auf einem Bruchsteinsockel (Stadtansicht.Gelaende.cs)
+        var klick = new Aabb(new Vector3(-Mathf.Min(16, platzBreite) / 2, 0, -platzTiefe / 2), new Vector3(Mathf.Min(16, platzBreite), 10, platzTiefe)); // Klickkörper: die Fläche, 10 m hoch, solange das Modell nicht bekannt ist
         if (Katalog?.Wohnhaus(stufe) is { Modell: { } datei } baustein)
         {
             var instanz = ModellEinsetzen(datei, g, new Vector3(0, 0, vorne - ModellFront(baustein)),
                 new ModellZustand(Geruest: imBau || (brand && brennt is null), Leerstand: leer, Brand: brand, Besitzer: farbe), ankerKennung ?? kennung);
+            // Ein Quader um das ganze Haus verdeckt, was hinter ihm liegt, an den Ecken über dem schrägen Dach (Köln: der Steg des Rheinkrans zeigte „Haus Overstolz“):
+            // Der Klickkörper umschließt deshalb nur den Grundriss des Modells und drei Viertel seiner Höhe (Dachspitze und Fahnenmast sind trotzdem zu treffen: der Strahl läuft dahinter hindurch).
+            if (instanz is not null && LokalerUmriss(instanz.Wurzel) is { } umriss)
+            {
+                var u = instanz.Wurzel.Transform * umriss;
+                klick = new Aabb(new Vector3(u.Position.X, 0, u.Position.Z), new Vector3(u.Size.X, Mathf.Clamp(u.End.Y * 0.75f, 4f, 12f), u.Size.Z));
+            }
             if (brennt is { } start && instanz is not null && kennung is not null) BrandAnbringen(kennung, instanz, start);
         }
         else
@@ -72,7 +80,7 @@ public partial class Stadtansicht
 
         if (kennung is not null)
         {
-            Klickflaeche(kennung, new Vector3(0, 5, 0), new Vector3(Mathf.Min(16, platzBreite), 10, platzTiefe), g);
+            Klickflaeche(kennung, klick.GetCenter() with { Y = klick.Size.Y / 2 }, klick.Size, g);
             var text = name + (zusatz is not null ? $" ({zusatz})" : imBau ? " (Ausbau)" : brennt is not null ? " (brennt)" : brand ? " (nach Brand)" : leer ? " (Leerstand)" : "");
             Beschriftung(text, new Vector3(0, 16, 0), 44, g, kennung);
         }

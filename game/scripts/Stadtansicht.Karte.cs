@@ -294,7 +294,7 @@ public partial class Stadtansicht
     private string MauerDatei(string katalog) => Katalog?.Finde(katalog)?.Modell ?? "gebaeude/stadtmauer";
 
     /// <summary>
-    /// Die Sonderbauten der Karte: Rathaus und Dom mit Innenraum (Stadtansicht.Sonderbauten.cs), je das erste der Karte. Andere Sonderbauten mit
+    /// Die Sonderbauten der Karte: Rathaus und Dom mit Innenraum (Stadtansicht.Sonderbauten.cs; auch das Kölner Rathaus und der Kölner Dom), je das erste der Karte. Andere Sonderbauten mit
     /// Modell stehen als Modell da; ohne Modell (Kirche, Hafen) ein schlichter Block mit Namen, bis es eins gibt.
     /// </summary>
     private void SonderbautenBauen(Stadtkarte karte)
@@ -302,14 +302,15 @@ public partial class Stadtansicht
         foreach (var g in karte.GebaeudeDerArt(Bausteinart.Sonderbau))
         {
             if (g.Katalog == "markt") continue;
-            if (g.Katalog == "rathaus" && !_sonderbauten.ContainsKey("Rathaus")) RathausBauen(g);
+            if (g.Katalog is "rathaus" or "koelner_rathaus" && !_sonderbauten.ContainsKey("Rathaus")) RathausBauen(g);
             else if (g.Katalog is "dom" or "koelner_dom" && !_sonderbauten.ContainsKey("Dom")) DomBauen(g);
+            else if (g.Katalog.StartsWith("kirche_") && g.Baustein?.Modell is not null) KircheBauen(g); // die romanischen Kirchen Kölns (Stadtansicht.Sonderbauten.cs)
             else if (g.Baustein?.Modell is { } datei)
             {
                 if (ModellEinsetzen(datei, this, Vector3.Zero, new ModellZustand()) is { } modell)
                 {
                     modell.Wurzel.Transform = ModellLage(g);
-                    HafenbauKlickbar(karte, g, modell.Wurzel); // Kran und Lagerschuppen öffnen die Hafentafel (Stadtansicht.Schiffe.cs)
+                    HafenbauKlickbar(karte, g, modell.Wurzel); // Kräne, Lagerschuppen und Stapelhaus öffnen die Hafentafel (Stadtansicht.Schiffe.cs)
                 }
             }
             else Platzhalter(g);

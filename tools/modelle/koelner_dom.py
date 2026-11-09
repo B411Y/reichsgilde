@@ -474,10 +474,15 @@ def suedturm_bauen(netz, st):
 #  Tretradkran auf dem Südturm
 # ─────────────────────────────────────────────────────────────────────────────
 
-def kran_bauen(haus, rad, st):
+def kran_bauen(haus, rad, st, kran=None, h_turm=None, haken_z=None):
+    """Tretradkran: Kranhaus auf Pfosten, Ausleger nach +Y, zwei Treträder auf einer Welle entlang X. `kran` (Mitte des Kranhauses),
+    `h_turm` (Mauerkrone darunter) und `haken_z` (Höhe des Hakens, sonst knapp unter der Mauerkrone) gelten ohne Angabe für den Südturm des
+    Doms; St. Severin (koelner_kirchen.py) setzt eigene."""
     holz = st["Holz"]
-    kx, ky = KRAN.x, KRAN.y
-    z0 = H_SUED + 0.15
+    kran = KRAN if kran is None else kran
+    h_turm = H_SUED if h_turm is None else h_turm
+    kx, ky = kran.x, kran.y
+    z0 = h_turm + 0.15
     hx, hy = 1.2, 1.2
     fuss = z0 + 1.55                                       # Boden des Kranhauses auf Pfosten
     for sx in (-1, 1):
@@ -505,7 +510,7 @@ def kran_bauen(haus, rad, st):
     for sx in (-1, 1):
         haus.stab(spitze + Vector((sx * 0.17, -0.55, -0.2)), spitze + Vector((sx * 0.17, 0.15, 0.1)), 0.24, 0.05, st["Holz alt"], quer=(1, 0, 0))
     haus.stab((kx - 0.14, spitze.y + 0.05, spitze.z - 0.05), (kx + 0.14, spitze.y + 0.05, spitze.z - 0.05), 0.3, 0.3, st["Eisen"], quer=(0, 1, 0))
-    haken = Vector((kx, spitze.y + 0.2, H_SUED - 0.2))                # hängt über dem Langhausdach, nicht auf dem Turm
+    haken = Vector((kx, spitze.y + 0.2, h_turm - 0.2 if haken_z is None else haken_z))            # hängt über dem Langhausdach, nicht auf dem Turm
     haus.stab(spitze + Vector((0, 0.05, 0.1)), Vector((kx, ky + hy - 0.3, ob + 0.3)), 0.04, 0.04, st["Seil"])
     haus.stab(spitze + Vector((0, 0.22, -0.1)), haken + Vector((0, 0, 0.2)), 0.04, 0.04, st["Seil"])
     haus.quader(haken + Vector((0, 0, 0.1)), (0.1, 0.08, 0.2), st["Eisen"])

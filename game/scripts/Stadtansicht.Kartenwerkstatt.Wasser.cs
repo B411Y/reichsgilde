@@ -54,6 +54,9 @@ public partial class Stadtansicht
         _wsGewaesserMarken = new Node3D { Name = "GewaesserMarken" };
         AddChild(_wsGewaesserMarken);
         GewaesserBauen(); // das Wasser selbst (Stadtansicht.Wasser.cs)
+        _wsSeeStaende.Clear();
+        _wsVerbuende.Clear();
+        VerbuendeNachziehen(nurMerken: true); // merkt die Wasserstände und Verbünde
         foreach (var g in _entwurf!.Gewaesser)
         {
             if (g is EntwurfFluss f) FlussMarkieren(f, false);
@@ -76,10 +79,10 @@ public partial class Stadtansicht
             case EntwurfFluss f when f.Punkte.Count > 0:
             {
                 var breit = Enumerable.Range(0, f.Punkte.Count).Max(f.BreiteAn);
-                return Rahmen(f.Verlauf).Grow((float)(breit / 2 + Wasserform.Uferbreite(breit) + Wasserform.Glaettung + 4));
+                return Rahmen(f.Verlauf).Grow((float)(breit / 2 + Wasserform.Uferbreite(breit) + Wasserform.Glaettung + 4 + Wasserform.VerbundSpalt));
             }
             case EntwurfSee s when s.Ecken.Count > 0:
-                return Rahmen(s.Ecken).Grow((float)(Wasserform.SeeUfer + Wasserform.Glaettung + 4));
+                return Rahmen(s.Ecken).Grow((float)(Wasserform.SeeUfer + Wasserform.Glaettung + 4 + Wasserform.VerbundSpalt));
             case EntwurfGebaeude h when h.Ecken().Count > 0: // ein Hafen mit seinem Becken
                 return Rahmen(h.Ecken()).Grow((float)(Wasserform.BeckenSuche + Wasserform.BeckenImWasser + Wasserform.BeckenRand + 4));
         }
@@ -105,6 +108,7 @@ public partial class Stadtansicht
         _wsWasserNeu = false;
         if (_entwurf is null) return;
         GewaesserBauen();
+        VerbuendeNachziehen();
         foreach (var g in _entwurf.Gewaesser)
             if (g is EntwurfFluss f) FlussMarkieren(f, false);
         foreach (var fa in _entwurf.Faehren) FaehreMarkieren(fa, false);
@@ -114,6 +118,50 @@ public partial class Stadtansicht
             foreach (var w in _entwurf.Wege.ToList()) WegBauen(w, false);
             _wsNetzNeu = true;
         }
+    }
+
+    /// <summary>Je See der Wasserstand und je Verbund (Lauf–See) sein Bereich beim letzten Bau (für <see cref="VerbuendeNachziehen"/>).</summary>
+    private readonly Dictionary<string, (double Stand, Kartenrechteck Bereich)> _wsSeeStaende = new();
+    private readonly Dictionary<string, Kartenrechteck> _wsVerbuende = new();
+
+    /// <summary>
+    /// Wasserverbund (Befund 1, 09.11.2026): Ein See ohne Wasserstand am Lauf nimmt dessen Spiegel an, und ob beide eine Fläche bilden, hängt am Spiegel –
+    /// ein Strich am Lauf (oder ein neuer Wasserstand) kann also das Bett eines Sees ändern, den er nicht berührt. Hat sich ein Wasserstand geändert oder
+    /// ist ein Verbund dazugekommen oder weggefallen, werden die Kacheln dort neu gebaut (sonst nichts, #386); jede Änderung eines Verbunds steht im Protokoll.
+    /// </summary>
+    private void VerbuendeNachziehen(bool nurMerken = false)
+    {
+        if (GewaesserForm is not { } form) return;
+        var seen = new Dictionary<string, (double, Kartenrechteck)>();
+        foreach (var see in form.Seen)
+        {
+            var schluessel = $"{see.Nummer}|{see.Name}";
+            var bereich = see.Bereich.Vergroessert(Wasserform.VerbundReichweite);
+            seen[schluessel] = (see.Wasserstand, bereich);
+            if (_wsSeeStaende.TryGetValue(schluessel, out var alt) && Math.Abs(alt.Stand - see.Wasserstand) > 1e-6)
+            {
+                GD.Print($"[wasser] {see.Name}: Wasserstand {alt.Stand:0.00} → {see.Wasserstand:0.00} m");
+                GelaendeVormerken(alt.Bereich);
+                GelaendeVormerken(bereich);
+            }
+        }
+        _wsSeeStaende.Clear();
+        foreach (var (k, w) in seen) _wsSeeStaende[k] = w;
+        var verbuende = form.Verbuende.ToDictionary(v => $"{v.Lauf.Name}–{v.See.Name}", v => v.Bereich);
+        foreach (var (name, bereich) in verbuende)
+            if (!nurMerken && !_wsVerbuende.ContainsKey(name))
+            {
+                GD.Print($"[wasser] Verbund {name} an");
+                GelaendeVormerken(bereich);
+            }
+        foreach (var (name, bereich) in _wsVerbuende)
+            if (!verbuende.ContainsKey(name))
+            {
+                GD.Print($"[wasser] Verbund {name} aus");
+                GelaendeVormerken(bereich);
+            }
+        _wsVerbuende.Clear();
+        foreach (var (k, b) in verbuende) _wsVerbuende[k] = b;
     }
 
     // ═════════════════════════════════════════════════════════════════════════

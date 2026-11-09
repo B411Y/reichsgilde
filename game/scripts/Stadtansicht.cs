@@ -844,9 +844,9 @@ public partial class Stadtansicht : Node3D
         Ladezeit.Phase("im Bild: Betriebe und Karren");
         if (_karren.Keys.Any(k => !k.Heimat.Karren.Contains(k))) KarrenOhneBetriebEntfernen(); // ein Karren ist verkauft
         KarrenKlangAbgleichen(delta); // Hufe fahrender Pferdekarren nach Untergrund (Stadtansicht.KarrenKlang.cs)
-        if (_domFenster is { } dom) // der Dom: schwacher Schein, zur Messe heller
-            FenstergruppeSetzen(dom, _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm)
-                ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
+        var messe = _messeVorgegeben || (w.Kirchenwesen.IstAktiv && zeit.UhrzeitInMinuten / 60 == w.Kirchenwesen.Daten.MesseUm);
+        foreach (var kirche in _kirchenFenster) // Dom und Kirchen mit Modell (Köln): schwacher Schein, zur Messe heller
+            FenstergruppeSetzen(kirche, messe ? Fenstergruppe.Messe : Fenstergruppe.Kirche);
         Ladezeit.Phase("im Bild: Karrenklang und Dom");
         SchiffeAktualisieren(w, zeit.VergangeneMinuten + bruchteil, delta); // Stadtansicht.Schiffe.cs
         Ladezeit.Phase("im Bild: Schiffe");
