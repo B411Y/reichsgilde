@@ -74,6 +74,7 @@ public partial class Stadtansicht
         FuellungNachZoom(delta); // Restflächen (Stadtansicht.Restflaechen.cs)
         FelsenBild();   // Feinheit und Schatten der Felsen nach Zoom (Stadtansicht.Felsen.cs)
         KulisseBild();  // Dunst der Kulissenberge nach Tageszeit und Wetter, Namen der Gipfel (Stadtansicht.Kulisse.cs)
+        HimmelBild(delta); // Himmel, Fernland und Luftperspektive nur mit perspektivischer Kamera (Ego, freie Kamera; Stadtansicht.Himmel.cs)
         FelsmessungSchritt(delta); // --felsvergleich=1 (Stadtansicht.Felsmessung.cs)
     }
 

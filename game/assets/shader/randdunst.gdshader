@@ -8,6 +8,9 @@ render_mode unshaded, depth_draw_never, cull_disabled, fog_disabled;
 uniform vec4 innen = vec4(-100.0, -100.0, 100.0, 100.0);
 uniform float breite = 100.0;
 uniform vec3 farbe : source_color = vec3(0.47, 0.60, 0.72);
+// Wie dicht der Dunst außen wird (1 = deckt den Boden ganz zu). Die Ego-Ansicht und die freie Kamera zeigen den Rand mit weniger: Dahinter läuft das Fernland
+// (fernland.gdshader) weiter und nimmt den Dunst auf (Stadtansicht.Himmel.cs).
+uniform float deckung_max = 1.0;
 
 varying vec3 welt;
 
@@ -19,5 +22,5 @@ void fragment() {
 	vec2 aus = max(innen.xy - welt.xz, welt.xz - innen.zw);
 	float t = clamp(max(aus.x, aus.y) / breite, 0.0, 1.0);
 	ALBEDO = farbe;
-	ALPHA = t * t * (3.0 - 2.0 * t);
+	ALPHA = t * t * (3.0 - 2.0 * t) * deckung_max;
 }
