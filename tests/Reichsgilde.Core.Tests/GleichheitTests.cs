@@ -27,7 +27,7 @@ using Reichsgilde.Core.Zeit;
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
 /// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
 /// der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl, die Felslage (R2): Zufallsbereiche, Transformieren, Einrasten, Neu würfeln,
-/// und das Kopieren von Felsstücken (P2).
+/// das Kopieren von Felsstücken (P2) und die Pinselwerte, Ausdünnen und Neu verteilen (P3).
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
 /// </summary>
 static class GleichheitTests
@@ -83,7 +83,19 @@ static class GleichheitTests
         "Gleichheit: Felswand-Satz R3/R5 (Hang mitformen, Drehen und Skalieren mehrerer Stücke in Weltlage, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelswandPruefen)).Append((
         "Gleichheit: Felsen kopieren und schieben P2 (versetzt und an Ort, Kopien gedreht, geschoben und aufgesetzt, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelskopiePruefen));
+        FelskopiePruefen)).Append((
+        "Gleichheit: Felspinsel P3 (Abstand, Streuung des Einsinkens, Ausdünnen, Neu verteilen, Radierer nur für Formen, Höhenfilter, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
+        FelsP3Pruefen));
+
+    /// <summary>Felspinsel P3: die neuen Pinselwerte, Ausdünnen und Neu verteilen – gleiche Bytes (Zeile „felsp3 …“ in der Datei der CI).</summary>
+    static void FelsP3Pruefen()
+    {
+        var a = Sha256(FelspinselP3Tests.Ablauf());
+        Pruefe.Gleich(a, Sha256(FelspinselP3Tests.Ablauf()), "Fels P3: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelspinselP3Tests.Ablauf())), "Fels P3: de-DE");
+        Zeilen[-6] = new[] { $"felsp3 {a}" };
+        DateiSchreiben();
+    }
 
     /// <summary>Felsen kopieren (Fels P2, Strg+D): gleiche Auswahl, gleiche Kopien – gleiche Bytes (Zeile „felskopie …“ in der Datei der CI).</summary>
     static void FelskopiePruefen()
