@@ -54,8 +54,10 @@ static class KiUmlandTests
             while (sim.Zeit.Jahr == jahr) sim.Tick();
             var vorher = holz.StillstandMinutenVorjahr / (double)holz.Arbeitsminuten;
             Pruefe.Wahr(vorher >= ki.Profil.StillstandFuerKarrenkauf, $"Stillstand {vorher:P0}");
-            // „Ordnungsliebend“ (+20 Lager) bewertet der Kern mit 0; die KI nach dem Durchfluss mit dem größeren Lager
-            Pruefe.Gleich(0.0, w.Personal.MehrgewinnJeJahr(holz, "Ordnungsliebend"));
+            // „Ordnungsliebend“ (+20 Lager): Seit Datenversion 79 rechnet auch der Kern mehr Lager nach dem Durchfluss (werkstatt.jedeWirkungRechnen,
+            // ohne den Schalter 0 – PersonalNacharbeitTests); die KI zieht diesen Teil ab und rechnet hier wie beim Karrenkauf, nicht doppelt
+            var kernLager = w.Personal.MehrgewinnJeJahr(holz, "Ordnungsliebend");
+            Pruefe.Wahr(kernLager > 0 && Math.Abs(kernLager - w.Werkstaetten.LagerMehrgewinn(holz, 20)) < 1e-9, $"Kern {kernLager}");
             var jetzt = holz.Karren.Sum(k => ki.Durchfluss(holz, k.Typ));
             var mehr = holz.Karren.Sum(k => ki.Durchfluss(holz, k.Typ, holz.LagerKapazitaetJeWare + 20));
             Pruefe.Wahr(mehr > jetzt * 1.2, $"Durchfluss {jetzt} → {mehr}");
