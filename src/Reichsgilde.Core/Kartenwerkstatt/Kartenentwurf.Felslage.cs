@@ -13,6 +13,7 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //    Boden mit; DY und Drehungen um x oder z ändern den Versatz.
 //  • FelsEinrasten: auf den Boden setzen (der tiefste Punkt der Unterkante steckt Einsinken · Höhe tief), wahlweise an der Hangnormale ausgerichtet.
 //  • FelsNeuWuerfeln: wie „Reapply“ im Foliage-Werkzeug von Unreal – gesetzte Stücke mit den Zufallsbereichen des Pinsels neu würfeln.
+//  • FelsKopieren (Fels P2): Stücke kopieren, die Kopien hinten an die Liste (Strg+D in der Werkstatt).
 //  Der Boden um den Fels (Felsboden) bleibt dabei liegen, wie beim Verschieben und Drehen (entschieden 02.11.2026).
 //  Alles gerundet wie in der Datei; Winkel über DetMathe (Felsraum) – gleiche Befehle, gleiche Bytes auf jedem Rechner.
 // ═════════════════════════════════════════════════════════════════════════════
@@ -241,6 +242,31 @@ public sealed partial class Kartenentwurf
                 Neigung: Ja(Felswurf.Neigung) ? l.Neigung : null, Einsinken: Ja(Felswurf.Einsinken) ? l.Einsinken : null)));
         }
         FelsTransformieren(werte, "neu gewürfelt");
+    }
+
+    // ── Kopieren (Fels P2) ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Kopiert Stücke (Strg+D in der Werkstatt, wie „Duplicate“ in Unreal): Jede Kopie hat alle Werte ihres Vorbilds (Form, Gestein, Lage, Drehung,
+    /// Größe, Einsinken, Versatz, unbekannte Felder der Datei) und liegt um <paramref name="dx"/>/<paramref name="dz"/> Meter versetzt – ohne Versatz
+    /// genau auf ihm, der Gizmo schiebt sie dann weg. Die Kopien kommen in der Reihenfolge des Entwurfs hinten an die Liste; den Boden um den Fels
+    /// und den Hang ändern sie nicht. Ein Schritt; leer, wenn keins der Stücke im Entwurf ist.
+    /// </summary>
+    public IReadOnlyList<EntwurfFels> FelsKopieren(IEnumerable<EntwurfFels> felsen, double dx = 0, double dz = 0)
+    {
+        FelsStrichBeenden();
+        BodenStrichBeenden();
+        var neue = new List<EntwurfFels>();
+        foreach (var f in Geordnet(felsen))
+        {
+            var kopie = (EntwurfFels)f.KopieTeil();
+            if (dx != 0 || dz != 0) (kopie.X, kopie.Z) = (Kartenraster.Punkt(f.X + dx), Kartenraster.Punkt(f.Z + dz));
+            neue.Add(kopie);
+        }
+        if (neue.Count == 0) return neue;
+        var befehle = neue.Select((f, i) => (IKartenbefehl)new TeilSetzen(f, _felsen.Count + i)).ToList();
+        Geschichte.Ausfuehren(befehle.Count == 1 ? befehle[0] : new Sammelbefehl($"{befehle.Count} Felsstücke kopiert", befehle));
+        return neue;
     }
 
     // ── Hilfen ───────────────────────────────────────────────────────────────
