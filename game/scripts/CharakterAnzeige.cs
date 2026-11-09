@@ -140,6 +140,7 @@ public partial class CharakterAnzeige : PanelContainer
         if (w.Glaube.IstAktiv) Hauptmenue.Text(daten, $"Glaube: {p.Glaube.Name()}", 14, Grau);
         if (p.Krankheit is { } k) Hauptmenue.Text(daten, $"Krank: {k.Name}", 14, Rot);
         MeinungBauen(daten, w, p);
+        StressBauen(daten, w, p); // Stress (Teil 3b): Balken beim eigenen Haus, sonst nur die Stufe (CharakterAnzeige.Stress.cs)
 
         daten.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
         Hauptmenue.Text(daten, "Talente", 17, Gold);
@@ -199,6 +200,7 @@ public partial class CharakterAnzeige : PanelContainer
         foreach (var z in p.Zuege.Where(z => Math.Abs(z.Talent(t)) > 1e-9))
             tipp += $"\n{z.Name} {(z.Talent(t) > 0 ? "+" : "−")}{TalentTexte.Sterne(Math.Abs(z.Talent(t)))}";
         if (p.Krankheit is { } k && k.Abzug(t) > 0) tipp += $"\n{k.Name} −{TalentTexte.Sterne(k.Abzug(t))}";
+        if (p.Stresslage.TalentAbzug > 0) tipp += $"\nStress −{TalentTexte.Sterne(p.Stresslage.TalentAbzug)}";
         tipp += "\nMehr zu [[talente|Talenten]] und [[charakterzuege|Charakterzügen]].";
         zeile.TooltipText = tipp;
     }

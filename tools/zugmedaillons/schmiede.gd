@@ -2,7 +2,8 @@ extends SceneTree
 # Zug-Medaillons mit geschmiedetem Metallring: gewölbtes Profil, Hammerschlag-Dellen, Schleifspuren, Kerben von Schwert-/Axthieben.
 # Gerechnet in 256 px, gespeichert in 128 px. Kerben je Zug an anderer Stelle (aus dem Namen gewürfelt), Licht immer oben links.
 # Aufruf: godot --headless -s tools/zugmedaillons/schmiede.gd -- <quellordner> <zielordner>
-#   <quellordner>/<kennung>.jpg oder .png: die gemalten Bilder (Gemini/ChatGPT, quadratisch, Motiv in der Mitte)
+#   <quellordner>/<kennung>.jpg, .png oder .webp: die gemalten Bilder (Gemini/ChatGPT, Motiv in der Mitte; nicht quadratische werden mittig
+#   quadratisch zugeschnitten). Fehlt das Bild eines Zugs, wird er übersprungen – so lassen sich einzelne Züge nachschmieden.
 #   <zielordner>: dorthin kommen <kennung>.png (128 px) und uebersicht.png – im Spiel game/assets/oberflaeche/zuege/
 const N := 256
 const W := 22.0   # Ringbreite in 256 px (≈ 5,5 px bei 64)
@@ -23,7 +24,7 @@ func _init():
 	var art := {}
 	for k in ["gierig","grosszuegig","fleissig","traege","fromm","zynisch","mutig","feige","ehrlich","verschlagen","geduldig","jaehzornig","gesellig","scheu","bescheiden","hochmuetig"]: art[k] = "kupfer"
 	for k in ["klug","stark","schoen","kraenklich"]: art[k] = "gold"
-	for k in ["trinker","narbe","pilger","gelehrt"]: art[k] = "eisen"
+	for k in ["trinker","narbe","pilger","gelehrt","schwermuetig","reizbar"]: art[k] = "eisen"
 	var licht := Vector3(-1, -1, 1.3).normalized()
 	var halb := (licht + Vector3(0, 0, 1)).normalized()
 	var dellen := FastNoiseLite.new(); dellen.noise_type = FastNoiseLite.TYPE_CELLULAR; dellen.frequency = 0.06
@@ -40,9 +41,15 @@ func _init():
 		var start := rng.randf() * TAU
 		for n in anzahl:
 			kerben.append([start + n * TAU / anzahl + rng.randf_range(-0.5, 0.5), rng.randf_range(0.06, 0.11), rng.randf_range(0.65, 1.05)])
-		var pfad: String = quelle + k + ".jpg"
-		if not FileAccess.file_exists(pfad): pfad = quelle + k + ".png"
+		var pfad := ""
+		for endung in [".jpg", ".png", ".webp"]:
+			if pfad == "" and FileAccess.file_exists(quelle + k + endung): pfad = quelle + k + endung
+		if pfad == "":
+			print("übersprungen (kein Bild): ", k); continue
 		var foto := Image.load_from_file(pfad); foto.convert(Image.FORMAT_RGBA8)
+		if foto.get_width() != foto.get_height():   # mittig quadratisch zuschneiden
+			var kante := mini(foto.get_width(), foto.get_height())
+			foto = foto.get_region(Rect2i((foto.get_width() - kante) / 2, (foto.get_height() - kante) / 2, kante, kante))
 		var m := N / 2.0; var R := m - 1.0; var ri := R - W
 		var rb := ri + W * 0.35   # Bild reicht unter den Ring
 		var s := int(rb * 2.0 * 1.08); foto.resize(s, s, Image.INTERPOLATE_LANCZOS)

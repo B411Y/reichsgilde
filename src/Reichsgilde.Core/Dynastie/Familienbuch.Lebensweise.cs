@@ -44,11 +44,11 @@ public sealed partial class Familienbuch
     public Talent AktiverPfad(Person p) =>
         p.Lebensweg.Pfad ?? TalentTexte.Alle.OrderByDescending(t => p.Talent(t)).ThenBy(t => t).First();
 
-    /// <summary>Faktor auf jede Erfahrung dieser Person im Pfad: passende und hemmende Züge, Gelehrt, Bibliothek.</summary>
+    /// <summary>Faktor auf jede Erfahrung dieser Person im Pfad: passende und hemmende Züge, Gelehrt, Bibliothek, Stress (Teil 3b).</summary>
     public double ErfahrungFaktor(Person p, Talent pfad)
     {
         if (LebensweiseDaten is not { } d || !d.Pfade.TryGetValue(pfad, out var pd)) return 0;
-        var faktor = 1.0;
+        var faktor = StressErfahrungFaktor(p); // angespannt 0,75, zermürbt 0,5 (Familienbuch.Stress.cs)
         foreach (var z in p.Zuege)
         {
             if (pd.Passend.Contains(z.Kennung)) faktor *= d.ZugPassend;

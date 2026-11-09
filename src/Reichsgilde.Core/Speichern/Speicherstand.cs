@@ -684,6 +684,10 @@ public sealed record FamilienbuchStand
     /// <summary>Würfe für erworbene Charakterzüge (0 in Spielständen von vor den Charakterzügen, PR #227).</summary>
     public long ZugWuerfe { get; init; }
 
+    /// <summary>Würfe beim Zusammenbruch (Stress, Charaktersystem Teil 3b) – nur geschrieben, wenn schon gewürfelt wurde; sonst 0.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public long StressWuerfe { get; init; }
+
     /// <summary>Version der Gen-Vorlage (<c>erbgut.json</c>) beim Speichern – null in Spielständen von vor dem Erbgut.</summary>
     public int? ErbgutVersion { get; init; }
 
@@ -748,6 +752,29 @@ public sealed record PersonStand
     /// <summary>Lebensweise (Charaktersystem Teil 3a): null, solange die Person nichts gesammelt hat, und in Spielständen von davor.</summary>
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public LebenswegStand? Lebensweg { get; init; }
+
+    /// <summary>Stress (Charaktersystem Teil 3b): null, solange die Person keinen hatte, und in Spielständen von davor.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public StressStand? Stress { get; init; }
+}
+
+/// <summary>Der Stress einer Person im Spielstand.</summary>
+public sealed record StressStand
+{
+    public double Wert { get; init; }
+
+    /// <summary>Die letzten Einträge für den Tooltip, der älteste zuerst.</summary>
+    public List<StressEintragStand> Eintraege { get; init; } = new();
+
+    /// <summary>Aktivitäten, deren Stress in diesem Jahr schon gewirkt hat.</summary>
+    public List<string> Ventile { get; init; } = new();
+}
+
+public sealed record StressEintragStand
+{
+    public int Jahr { get; init; }
+    public string Text { get; init; } = "";
+    public double Wert { get; init; }
 }
 
 /// <summary>Die Lebensweise einer Person im Spielstand.</summary>
