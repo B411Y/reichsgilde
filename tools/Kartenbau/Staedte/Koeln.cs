@@ -65,6 +65,9 @@ public sealed partial class Koeln : Stadtskript
     private static readonly Marktort MarktDeutz = new("Neumarkt", "am Neumarkt", "MarktDeutz", P(170, 6));
     private static readonly Marktort[] Maerkte = { MarktSued, MarktNord, MarktDeutz };
 
+    /// <summary>Mitte des Kölner Rathauses (seit 9.11.2026 am Alter Markt): x 21 … 34 (2,8 m zur Rheingasse), z −91,8 … −69,8 (3,2 m zu Unter Fettenhennen; 0,4 m weiter südlich als nötig, damit die Restflächen-Füllung ihren Taubenschlag behält).</summary>
+    private static readonly Kartenort RathausAmMarkt = P(27.5, -80.8);
+
     private readonly Dictionary<string, EntwurfWeg> _strassen = new();
     private EntwurfMauer _stadtmauer = null!, _deutzer = null!;
 
@@ -282,9 +285,11 @@ public sealed partial class Koeln : Stadtskript
         foreach (var m in Maerkte) Haus("markt", m.Name, m.Ort.X, m.Ort.Z, kennung: m.Kennung);
         MarktPflastern();
 
-        // Kölner Rathaus (Paket 3): Saalbau mit dem Hansasaal und der Ratsturm im Bau, 22 × 13 m statt 16 × 10 – 2 m nach Westen gerückt, damit
-        // es 2 m von den Einwohnerplätzen am Ring hält. Am Markt (wie in Köln) ist kein Platz: Um die Plätze liegen die Startgrundstücke.
-        Haus("koelner_rathaus", "Rathaus", -22, -44, 90, "Rathaus");
+        // Kölner Rathaus (Paket 3: Saalbau mit dem Hansasaal und der Ratsturm im Bau, 22 × 13 m) am Alter Markt wie in Köln (Entscheidung des
+        // Nutzers, 9.11.2026; bis dahin bei −20 | −44 in der Altstadt): südlich des Platzes zwischen Unter Fettenhennen, Rheingasse und Trankgasse,
+        // die Vorhalle zur Rheingasse (Drehung 90), der Ratsturm im Bau am Südende. Dort stand das Startgrundstück S4; es rückt nach Westen an
+        // Unter Fettenhennen auf den Werkstatt-Bauplatz WB_AlterMarkt1 (Koeln.Platzierung.cs, Koeln.Bauplaetze.cs).
+        Haus("koelner_rathaus", "Rathaus", RathausAmMarkt.X, RathausAmMarkt.Z, 90, "Rathaus");
         Haus("koelner_dom", "Dom", 6, -112, 270, "Dom");
         // Die fünf romanischen Kirchen als eigene Modelle (seit 9.11.2026; vorher Blöcke des Bausteins „kirche“, 16 × 14 m): alle mit dem Chor
         // nach Osten und der Westfront zur Gasse (Drehung 270, wie der Dom). Sie sind 22–32 m lang und mussten dafür rücken (Entscheidung des

@@ -42,11 +42,11 @@ static class BauzoneNurTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Bauzone „nur werkstatt“: Köln hat sieben Werkstatt-Bauplätze; dort steht eine Werkstatt, ein Stadthof nicht", () =>
+        ("Bauzone „nur werkstatt“: Köln hat sechs Werkstatt-Bauplätze (bis zum Rathaus am Alter Markt, 9.11.2026, sieben); dort steht eine Werkstatt, ein Stadthof nicht", () =>
         {
             var w = Koeln();
             var plaetze = w.Karte!.Bauzonen.Where(z => z.NurWerkstaetten).Select(z => z.Kennung).ToList();
-            Pruefe.Gleich("WB_Neumarkt1, WB_Neumarkt2, WB_Neumarkt3, WB_Neumarkt4, WB_Neumarkt5, WB_AlterMarkt1, WB_AlterMarkt2", string.Join(", ", plaetze));
+            Pruefe.Gleich("WB_Neumarkt1, WB_Neumarkt2, WB_Neumarkt3, WB_Neumarkt4, WB_Neumarkt5, WB_AlterMarkt2", string.Join(", ", plaetze));
             Pruefe.Wahr(w.Karte.Bauzonen.Where(z => !z.Kennung.StartsWith("WB_")).All(z => z.Nur is null), "nur die Bauplätze tragen „nur“");
             // WB_AlterMarkt2 (−20 … −6 | −102 … −86): genau eine Werkstatt bzw. ein Stadthof (16 × 14), nach Osten gedreht
             Pruefe.Gleich(null, w.Bauen.PlatzVerboten(new WerkstattBauen(Betriebsart.Giesserei, -13, -94, 1)));
@@ -54,7 +54,7 @@ static class BauzoneNurTests
             Pruefe.Gleich("Dieser Bauplatz ist für eine Werkstatt.", w.Bauen.PlatzVerboten(new WohnhausBauen(1, -11, -90, 1)));
         }),
 
-        ("Bauzone „nur werkstatt“: Bauorte für Wohnhäuser meiden die Werkstatt-Bauplätze, Bauorte für Werkstätten finden alle sieben", () =>
+        ("Bauzone „nur werkstatt“: Bauorte für Wohnhäuser meiden die Werkstatt-Bauplätze, Bauorte für Werkstätten finden alle sechs", () =>
         {
             var w = Koeln();
             var k = Bauherr(w);
@@ -67,7 +67,7 @@ static class BauzoneNurTests
                 Pruefe.Wahr(!orte.Any(AufPlatz), $"Wohnhaus Stufe {stufe} auf einem Werkstatt-Bauplatz");
             }
             var werkstatt = w.Bauen.Bauorte(k, new WerkstattBauen(Betriebsart.Giesserei, 0, 0, 0)).Where(AufPlatz).ToList();
-            Pruefe.Gleich(7, plaetze.Count(z => werkstatt.Any(b => w.Bauen.Grundriss(b).Felder(2).All(f => z.Enthaelt(f.X, f.Z)))));
+            Pruefe.Gleich(6, plaetze.Count(z => werkstatt.Any(b => w.Bauen.Grundriss(b).Felder(2).All(f => z.Enthaelt(f.X, f.Z)))));
         }),
 
         ("Bauzone „nur“: ohne Feld wie bisher – Greybox ohne „nur“, Datei Byte für Byte, kein „nur“ in der Stadtkarte; unbekannter Wert ist ein Fehler", () =>

@@ -205,7 +205,7 @@ static class RestflaechenfuellungTests
             Pruefe.Gleich("garten", Restflaechenfuellung.ThemaWaehlen("k/R1", 3, namen, new[] { 5, 0 }, keine, "randgestruepp", erwNamen, new[] { 0, 100 })); // nur Randgestrüpp wird ersetzt
         }),
 
-        ("Restflächenfüllung: Köln bekommt einige Steinmetzplätze und wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Köln seit Rathaus, Stapelhaus und Rheinkran als Modelle: 5 Höfe, 5 Pferche, 1 Wasserstelle, 7 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
+        ("Restflächenfüllung: Köln bekommt einige Steinmetzplätze und wenige Taubenschläge, und die alten Themen behalten ihre Flächen (Köln seit dem Rathaus am Alter Markt: 4 Höfe, 5 Pferche, 3 Wasserstellen, 6 Heuschober; die neuen Themen ersetzen nur Randgestrüpp)", () =>
         {
             var wurzel = JsonNode.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(Datenpfad.Wirtschaft())!, "restflaechen.json")))!;
             var grenzen = wurzel["hoechstens_felder"]!.AsObject().ToDictionary(e => e.Key, e => e.Value!.GetValue<int>());
@@ -231,7 +231,7 @@ static class RestflaechenfuellungTests
             var uebersicht = string.Join(", ", mit.Select(e => $"{e.Key} {e.Value}"));
             Pruefe.Wahr(mit.GetValueOrDefault("steinmetzplatz") is >= 2 and <= 6, "Köln: einige Steinmetzplätze – " + uebersicht);
             Pruefe.Wahr(mit.GetValueOrDefault("taubenschlag") is >= 1 and <= 3, "Köln: wenige Taubenschläge – " + uebersicht);
-            foreach (var (thema, zahl) in new[] { ("hof", 5), ("pferch", 5), ("wasserstelle", 1), ("heuschober", 7) })   // bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5
+            foreach (var (thema, zahl) in new[] { ("hof", 4), ("pferch", 5), ("wasserstelle", 3), ("heuschober", 6) })   // bis zu den Kirchenmodellen (9.11.2026) 3, 2, 2, 5; bis zu Rathaus, Stapelhaus und Rheinkran (Paket 3) 6, 5, 2, 5; bis zum Rathaus am Alter Markt 5, 5, 1, 7
                 Pruefe.Gleich(zahl, mit.GetValueOrDefault(thema));
         }),
 
