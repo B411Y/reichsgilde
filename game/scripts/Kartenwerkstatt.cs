@@ -502,8 +502,9 @@ public partial class Kartenwerkstatt : Node
             case { CtrlPressed: true, Keycode: Key.S, Echo: false }:
                 Speichern();
                 break;
-            case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false } when GruppeFuerTaste(taste.Keycode) is { } gruppe:
-                GruppeWaehlen(gruppe.Kennung); // 1–0: die Gruppen der Leiste links
+            case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false } when GruppeFuerTaste(taste.Keycode) is { } gruppe
+                                                                                            && !(_stadt.ZiffernFuerGizmo && taste.Keycode is Key.Key1 or Key.Key2 or Key.Key3 or Key.Key4):
+                GruppeWaehlen(gruppe.Kennung); // 1–0: die Gruppen der Leiste links (1–4 nicht, solange der Fels-Gizmo steht: Stadtansicht.Felsgizmo.cs)
                 break;
             case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false, Keycode: Key.H } when GetViewport().GuiGetFocusOwner() is not LineEdit:
                 EbenenTaste(); // H: alle Ebenen aus oder an (Kartenwerkstatt.Ebenen.cs)
@@ -815,11 +816,10 @@ public partial class Kartenwerkstatt : Node
                         : new Bodenpinsel(Bodenraster.TexturVon(t[0]) ?? throw new ArgumentException($"Unbekannte Bodentextur „{t[0]}“."), Zahl(t[1]), Zahl(t[2]), kante, deko, dichte, bodenfilter);
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
-            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · hang:aus|an (R5) · wahl:<nr>+… und gizmo:… (R3, siehe FelsBefehl) · stempel:<vorlage>,x,z[,drehung] ·
+            // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · hang:aus|an (R5) · wahl:… und gizmo:… (R3/P2, siehe FelsBefehl) · stempel:<vorlage>,x,z[,drehung] ·
             // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
-            if (o.TryGetValue("werkstatt-fels", out var felsen))
-                foreach (var eintrag in felsen.Split('|', StringSplitOptions.RemoveEmptyEntries)) FelsBefehl(eintrag);
+            if (o.TryGetValue("werkstatt-fels", out var felsen)) FelsBefehle(felsen.Split('|', StringSplitOptions.RemoveEmptyEntries));
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
             if (o.TryGetValue("werkstatt-rampe", out var rampen))
                 foreach (var eintrag in rampen.Split('|', StringSplitOptions.RemoveEmptyEntries))
@@ -907,6 +907,36 @@ public partial class Kartenwerkstatt : Node
             };
     }
 
+    /// <summary>
+    /// Die Schritte der Startoption <c>--werkstatt-fels</c> nacheinander. Ein Rahmen (<c>wahl:rahmen,…</c>, P2) braucht die Kamera, wie <c>--blick</c> sie
+    /// stellt: Er und alle Schritte danach laufen eine Sekunde später (die übrigen Startoptionen warten nicht).
+    /// </summary>
+    private void FelsBefehle(IReadOnlyList<string> schritte)
+    {
+        for (var i = 0; i < schritte.Count; i++)
+        {
+            if (!schritte[i].StartsWith("wahl:rahmen", StringComparison.Ordinal))
+            {
+                FelsBefehl(schritte[i]);
+                continue;
+            }
+            var rest = schritte.Skip(i).ToList();
+            GetTree().CreateTimer(1.0).Timeout += () =>
+            {
+                try
+                {
+                    FelsBefehl(rest[0]);
+                    FelsBefehle(rest.Skip(1).ToList());
+                }
+                catch (Exception ex) when (ex is ArgumentException or FormatException or IndexOutOfRangeException)
+                {
+                    GD.PushError($"Kartenwerkstatt: Startoption nicht ausführbar – {ex.Message}");
+                }
+            };
+            return;
+        }
+    }
+
     /// <summary>Ein Schritt der Startoption <c>--werkstatt-fels</c> (siehe dort).</summary>
     private void FelsBefehl(string eintrag)
     {
@@ -983,14 +1013,41 @@ public partial class Kartenwerkstatt : Node
                     _ => throw new ArgumentException($"hang:{rest} – nur hang:an oder hang:aus."),
                 };
                 break;
-            case "wahl": // wahl:<nr>[+<nr>…] – Felsstücke wählen (Nummer ab 0), das letzte ist das gewählte; der Gizmo (R3) steht dann an ihnen
+            // wahl:<nr>[+<nr>…] – Felsstücke wählen (Nummer ab 0), das letzte ist das gewählte; der Gizmo (R3) steht dann an ihnen.
+            // P2: wahl:rahmen,x1,z1,x2,z2[,dazu] (Rahmen zwischen zwei Orten der Karte, auf den Bildschirm projiziert; läuft 1 s später, siehe FelsBefehle) ·
+            // wahl:alle · wahl:umkehren · wahl:form · wahl:gestein (alle derselben Form bzw. desselben Gesteins wie die gewählten) · wahl:keine
+            case "wahl" when rest.Split(',')[0] is "rahmen" or "alle" or "umkehren" or "form" or "gestein" or "keine":
+            {
+                var t = rest.Split(',');
+                var anzahl = t[0] switch
+                {
+                    "rahmen" => _stadt.WerkstattFelsRahmen(new Kartenort(Zahl(t[1]), Zahl(t[2])), new Kartenort(Zahl(t[3]), Zahl(t[4])), t.Length > 5 && t[5] == "dazu"),
+                    "alle" => _stadt.FelsAlleWaehlen(),
+                    "umkehren" => _stadt.FelsAuswahlUmkehren(),
+                    "form" => _stadt.FelsGleicheWaehlen(nachGestein: false),
+                    "gestein" => _stadt.FelsGleicheWaehlen(nachGestein: true),
+                    _ => Keine(),
+                };
+                int Keine()
+                {
+                    _stadt.WerkstattWaehlen((EntwurfTeil?)null);
+                    return 0;
+                }
+                GD.Print($"Felsauswahl ({t[0]}): {anzahl} von {_entwurf.Felsen.Count} Felsstücken gewählt"); // für Klicktests ohne Bild
+                break;
+            }
+            case "rueckgaengig": // rueckgaengig[:<n>] – wie Strg+Z (P2: Kopieren und Zurücknehmen in einem Klicktest)
+                for (var i = 0; i < (rest.Length > 0 ? (int)Zahl(rest) : 1); i++) _entwurf.Rueckgaengig();
+                GD.Print($"Felsen nach Rückgängig: {_entwurf.Felsen.Count}");
+                break;
+            case "wahl":
             {
                 var stuecke = rest.Split('+', StringSplitOptions.RemoveEmptyEntries).Select(n => (int)Zahl(n))
                     .Select(n => n >= 0 && n < _entwurf.Felsen.Count ? _entwurf.Felsen[n] : throw new ArgumentException($"wahl:{n} – es gibt {_entwurf.Felsen.Count} Felsstücke (Nummer ab 0).")).ToList();
                 _stadt.WerkstattFelsWaehlen(stuecke);
                 break;
             }
-            case "gizmo": // gizmo:verschieben,dx,dy,dz · gizmo:drehen,x|y|z,winkel[,stueck] · gizmo:skalieren,fx,fy,fz · gizmo:modus,w|e|r · gizmo:achsen,welt|stueck · gizmo:boden[,hang]
+            case "gizmo": // gizmo:verschieben,dx,dy,dz · gizmo:drehen,x|y|z,winkel[,stueck] · gizmo:skalieren,fx,fy,fz · gizmo:modus,w|e|r · gizmo:achsen,welt|stueck · gizmo:boden[,hang] · gizmo:kopie[,dx,dz] (P2, Strg+D) · gizmo:pfeil,<richtung>[,gross][,raster] (P2, Pfeiltasten)
             {
                 var t = rest.Split(',');
                 bool Ok(bool ok) => ok ? true : throw new ArgumentException("gizmo: nichts gewählt (erst wahl:<nr>).");
@@ -1019,13 +1076,29 @@ public partial class Kartenwerkstatt : Node
                     case "boden":
                         _stadt.FelsAufsetzen(t.Length > 1 && t[1] == "hang");
                         break;
+                    case "kopie":
+                        Ok(_stadt.FelsKopieren(t.Length > 2 ? Zahl(t[1]) : 0, t.Length > 2 ? Zahl(t[2]) : 0));
+                        GD.Print($"Felsen nach dem Kopieren: {_entwurf.Felsen.Count}, gewählt {_stadt.FelsAuswahl.Count}"); // für Klicktests ohne Bild
+                        break;
+                    case "pfeil": // pfeil,<links|rechts|vor|zurueck|hoch|runter>[,gross][,raster] – wie die Pfeiltasten (vor = Pfeil oben, hoch = Alt+Pfeil oben)
+                    {
+                        var taste = t[1] switch
+                        {
+                            "links" => Key.Left, "rechts" => Key.Right, "vor" or "hoch" => Key.Up, "zurueck" or "runter" => Key.Down,
+                            _ => throw new ArgumentException($"gizmo:pfeil – links, rechts, vor, zurueck, hoch oder runter, nicht „{t[1]}“."),
+                        };
+                        Ok(_stadt.WerkstattFelsPfeil(taste, t.Contains("gross"), t.Contains("raster"), t[1] is "hoch" or "runter"));
+                        var f = _stadt.FelsAuswahl[^1];
+                        GD.Print($"Felsschub: Schritte {_entwurf.Geschichte.Schritte}, gewähltes Stück bei {Kartenschreiber.Zahl(f.X)},{Kartenschreiber.Zahl(f.Z)}, Höhe {Kartenschreiber.Zahl(f.Versatz)}");
+                        break;
+                    }
                     default:
-                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen oder boden.");
+                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen, boden, kopie oder pfeil.");
                 }
                 break;
             }
             default:
-                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, hang, stempel, streuen, radierer, lage, wahl, gizmo).");
+                throw new ArgumentException($"Unbekannter Felsbefehl „{art}“ (grundgestein, boden, hang, stempel, streuen, radierer, lage, wahl, gizmo, rueckgaengig).");
         }
     }
 

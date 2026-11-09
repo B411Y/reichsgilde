@@ -23,7 +23,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von kern) Erbgut (Charakter-Editor, Phase 1): Knopf „Erbgut neu würfeln“ im Entwicklerfenster bei der Person (wie „Geben“/„Entfernen“ beim Zug) – der Befehl `EntwicklerErbgut(Person)` steht im Kern bereit.
 - DirectX 12 im Export: Godot legt `D3D12Core.dll` und `d3d12SDKLayers.dll` nur bei, wenn `application/export_d3d12` der Windows-Vorgabe auf „Yes“ steht oder `project.godot` selbst DirectX 12 nennt (Quelltext 4.5; für 4.7.2 nicht einzeln geprüft). Empfehlung: `application/export_d3d12=1` in `game/export_presets.cfg` (geschützte Datei, der Nutzer entscheidet).
 - Kartenwerkstatt mit `--werkstatt-ausprobieren=<Beruf>`: Die Probepartie startet, während `Kartenwerkstatt._Ready` noch in `ErsteBilderAbwarten` wartet; danach greift es auf die schon freigegebene Werkstatt zu (`ObjectDisposedException` bei `GetTree()`, Kartenwerkstatt.cs:192, einmal im Log). Nur über die Startoption, die Probepartie läuft trotzdem. Vorschlag: nach `StartoptionenAusfuehren` abbrechen, wenn die Werkstatt nicht mehr im Baum ist.
-- (Felsen) Einzelne Felsstücke lassen sich in der Werkstatt noch nicht wählen, verschieben oder drehen (nur stempeln, streuen, radieren). Empfehlung: mit F5 (Darstellung als MultiMesh) einen Treffer je Stück und Ziehen wie bei Pflanzen nachrüsten.
 - (von Kern) Mehrere Marktplätze je Stadt (Köln: Heumarkt, Alter Markt, Neumarkt; Branch phase5/gehtempo): Ein Stadtmarkt mit gemeinsamen Preisen – das Marktfenster gilt für alle Plätze. Karrentafel und Handel von Hand könnten nennen, zu welchem Platz ein Karren fährt (`Stadtwirtschaft.MarktplatzVon(betrieb)?.Name`); die Ankunft (`AnkunftAmMarkt(karren)`) rechnet schon mit dem Weg dorthin.
 - Schänke: „Plätze: belegt / frei“ und „heute kein Platz“ auch auf die Infotafel im Gastraum (steht bisher nur in der Betriebsverwaltung).
 - (von Kern) Jahreszeiten mit Folgen (Datenversion 69, `Stadtwirtschaft.Jahreszeiten`): Die Meldungen kommen schon (Jahresbeginn, Festmarkt, „Der Rhein ist zugefroren!“, Eisgang), die Hafentafel zeigt den Grund aus `AuftragVerboten`. Möglich: im Zeitstrahl ein Zeichen für Eis (`FlussZugefroren`, `EisDroht`) und Festmarkt (`FestmarktJetzt`); in der Markttafel bei der Nachfrage den Faktor der Jahreszeit (`Marktstand.Jahreszeitfaktor`, `Angebotsfaktor`); im Tooltip eines Betriebs im Umland die Leistung der Jahreszeit (`Arbeitsfaktor`); in der Wegtafel das Tempo mit Schlamm (`Schlamm(Belagstufe)`).
@@ -289,6 +288,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Startoption | `--werkstatt-fels=grundgestein:…|stempel:…|streuen:…|radierer:…` und die Werkzeuge `fels:<wand|kuppe|rippe|einzeln|streuen|radierer>` für `--werkstatt-werkzeug`/`--werkstatt-umriss` (STARTOPTIONEN.md). | 01.11. |
 | Dichte | Vorgabe beim Streuen 20 % für Einzelstücke, 10 % für Gruppen (Gruppen sind groß und standen mit 30 % zu dicht); die Werkstatt merkt sich beide getrennt. | 01.11. |
 | Klicktest | Vulkan (T400), neue Karte mit Hügel: Wand gestempelt (Schauseite hangabwärts, Geist der nächsten Wand), Rippen gestreut, radiert, Rückgängig; mit echter Maus Kuppe gestempelt, zweiter Stempel, Strg+Z nimmt ihn zurück. | 01.11. |
+
+### Kartenwerkstatt: Felspinsel P2 – Tafel und Tastenhilfe (Branch phase5/fels-p2, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Tafel Felsstück | `Kartenwerkstatt.Felslage.cs`: Tooltips der Gizmo-Knöpfe nennen die Tasten 1, 2, 3 (Achsen: 4); „Auf den Boden (End)“; neuer Knopf „Kopieren (Strg+D)“; neue Zeile Auswahl mit „Gleiche Form“, „Gleiches Gestein“, „Umkehren (Strg+I)“, „Alle (Strg+A)“. Die Hilfe unter den Knöpfen nennt die Gizmo-Tasten und das Schieben mit den Pfeiltasten in Worten (keine Pfeilzeichen: die Schrift hat sie vielleicht nicht) | 09.11.2026 |
+| Tastenhilfe unten | `Kartenwerkstatt.Tafeln.cs`: Zeile für ein gewähltes Felsstück mit 1/2/3/4 (Gruppen 1–4 erst nach Esc), Pfeiltasten zum Schieben (Umschalt, Strg, Alt), End/B, Q/E, Strg+D, Rahmen und Strg+A; beim Stempeln der Zusatz „danach steht der Gizmo an den neuen Stücken“; im Werkzeug Auswahl „Ziehen ins Leere: Rahmen um Felsen“. Entscheidungen zu Tasten und Verhalten in `darstellung.md` („Felspinsel P2“) | 09.11.2026 |
 
 ### Schilder und Ampeln des Fahrwegs (PR #282)
 
