@@ -271,7 +271,7 @@ static class StressTests
             Pruefe.Gleich(0.0, kind2.Stresslage.Wert); // Gegenprobe: das Kind hat keinen Stress
         }),
 
-        ("Stress: Haus, Gericht, Krankheit – Bargeld im Minus +10 am Jahresende, angeklagt +10, feiges Oberhaupt klagt an +5, erkrankt +5", () =>
+        ("Stress: Haus, Gericht, Krankheit – Bargeld im Minus +10 am Jahresende, angeklagt +15, feiges Oberhaupt klagt an +5, erkrankt +5", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (a, fa) = Haus(w, "Haus Feige", "Feige");
@@ -280,10 +280,10 @@ static class StressTests
             w.Justiz.BeweisGeben(a, spur);
             Ok(w, a, new Anklagen(b.Inhaber));
             Pruefe.Gleich(5.0, Stress(w, fa.Oberhaupt));
-            Pruefe.Gleich(10.0, Stress(w, fb.Oberhaupt));
+            Pruefe.Gleich(15.0, Stress(w, fb.Oberhaupt));
             Pruefe.Wahr(fb.Oberhaupt.Stresslage.Eintraege[^1].Text.Contains("Angeklagt von Haus Feige"), "Text");
             Pruefe.Wahr(w.Gesundheit.Erkranken(b, fb.Oberhaupt, "Husten"), "erkrankt");
-            Pruefe.Gleich(15.0, Stress(w, fb.Oberhaupt));
+            Pruefe.Gleich(20.0, Stress(w, fb.Oberhaupt));
             var (c, fc) = Haus(w, "Haus Pleite");
             w.Familien.StressSetzen(fc.Oberhaupt, 50);
             c.Gaunerkosten(c.Vermoegen + 100); // Bargeld −100
@@ -351,6 +351,101 @@ static class StressTests
             w.Familien.Verschwinden(h, kind2, "Probe");
             Pruefe.Gleich(60.0, Stress(w, fh.Oberhaupt));
             Pruefe.Wahr(fh.Oberhaupt.Stresslage.Eintraege[^1].Text.StartsWith("Verschleppt: Tochter", StringComparison.Ordinal), fh.Oberhaupt.Stresslage.Eintraege[^1].Text);
+        }),
+
+        ("Stress: Sorgen von außen – Diebstahl, Feuer und Überfall aus der öffentlichen Meldung (ab Hoch), nicht aus einer vertraulichen oder vereitelten; " +
+         "Betrieb mit Verlust, Ware im Preis verfallen, Tod im Haus", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 34 },
+                Daten.Value, new NeuePartie());
+            var w = sim.Wirtschaft!;
+            var d = w.Daten.Stress!;
+            var o = w.Familien.Von(spieler)!.Oberhaupt;
+            var betrieb = w.Betriebe.First(b => b.Konto == spieler && b.IstWerkstatt);
+            sim.EntwicklerErlaubt = true;
+            Pruefe.Wahr(sim.Bote.SofortAusfuehren(spieler, new Reichsgilde.Core.Entwickler.EntwicklerFeuer(betrieb.Name)).Erfolg, "Feuer");
+            Pruefe.Gleich(d.Haus.Brand, Stress(w, o));
+            Pruefe.Gleich($"Brand oder Anschlag ({betrieb.Name})", o.Stresslage.Eintraege[^1].Text);
+            if (w.Gauner.GegenWohnhaus)
+            {
+                Pruefe.Wahr(sim.Bote.SofortAusfuehren(spieler, new Reichsgilde.Core.Entwickler.EntwicklerHausbrand()).Erfolg, "Hausbrand");
+                Pruefe.Gleich(2 * d.Haus.Brand, Stress(w, o));
+                Pruefe.Gleich("Brand oder Anschlag (Wohnhaus)", o.Stresslage.Eintraege[^1].Text);
+            }
+            w.Familien.StressSetzen(o, 0);
+            w.Melden(Meldungsart.Ueberfall, "Probe: Überfall", haus: spieler); // Vorgabe der Art: hoch
+            Pruefe.Gleich(d.Haus.Ueberfall, Stress(w, o));
+            w.Melden(Meldungsart.Diebstahl, "Probe: leerer Einbruch", haus: spieler, wichtigkeit: Meldungswichtigkeit.Normal); // Gegenprobe: vereitelt/leer
+            w.Gauner.Melden(spieler, "Probe: Eure Bande hat gestohlen", Meldungsart.Diebstahl); // Gegenprobe: vertraulich an den Auftraggeber
+            Pruefe.Gleich(d.Haus.Ueberfall, Stress(w, o));
+            w.Melden(Meldungsart.Diebstahl, "Probe: Einbruch mit Beute", haus: spieler, wichtigkeit: Meldungswichtigkeit.Hoch);
+            Pruefe.Gleich(d.Haus.Ueberfall + d.Haus.Diebstahl, Stress(w, o));
+
+            // Jahresende: Betrieb mit Verlust, Ware unter dem Grundpreis
+            var f = w.Familien.Von(spieler)!;
+            bool Steht(string anfang) => o.Stresslage.Eintraege.Any(e => e.Text.StartsWith(anfang, StringComparison.Ordinal));
+            o.Stresslage.JahrAbschliessen(int.MaxValue); // Einträge leeren
+            betrieb.JahrAbschliessen(betrieb.Laufend.Jahr + 1); // das Jahr des Feuers (Schaden) ist vorbei
+            betrieb.JahrAbschliessen(betrieb.Laufend.Jahr + 1); // ein leeres Jahr ohne Verlust
+            w.Markt[betrieb.Produkt].NachfrageFaktor = 5; // gefragt: der Preis steht weit über der Schwelle
+            Pruefe.Wahr(w.Markt[betrieb.Produkt].Preisfaktor >= w.Daten.Stress!.Haus.PreisverfallAb, $"Preisfaktor {w.Markt[betrieb.Produkt].Preisfaktor}");
+            w.Familien.StressSetzen(o, 50);
+            w.Familien.StressImJahreswechsel(f);
+            Pruefe.Wahr(!Steht("Verlust in") && !Steht("Preise verfallen"), "Gegenprobe: kein Verlust, Preis nicht verfallen – " + string.Join(" | ", o.Stresslage.Eintraege.Select(e => e.Text)));
+            o.Stresslage.JahrAbschliessen(int.MaxValue);
+            betrieb.Laufend.Fixkosten += 1_000;
+            betrieb.JahrAbschliessen(betrieb.Laufend.Jahr + 1);
+            w.Markt[betrieb.Produkt].NachfrageFaktor = 0.05; // kaum Nachfrage: der Preis fällt unter die Schwelle
+            Pruefe.Wahr(w.Markt[betrieb.Produkt].Preisfaktor < d.Haus.PreisverfallAb, "Preisfaktor unter der Schwelle");
+            w.Familien.StressSetzen(o, 50);
+            w.Familien.StressImJahreswechsel(f);
+            var texte = string.Join(" | ", o.Stresslage.Eintraege.Select(e => e.Text));
+            Pruefe.Wahr(Steht($"Verlust in {betrieb.Name}") && Steht($"Preise verfallen ({betrieb.Produkt})"), texte);
+
+            // Tod im Haus: die zweite Frau des verstorbenen Oberhaupts ist mit dem Erben (Sohn aus erster Ehe) nicht verwandt
+            var w2 = NeueSimulation().Wirtschaft!;
+            var (k2, f2) = Haus(w2, "Haus Witwe");
+            var witwe = Heiraten(w2, k2);
+            var erbe = w2.Familien.KindAufnehmen(k2, 25, Geschlecht.Mann);
+            w2.Familien.AnKrankheitSterben(f2.Oberhaupt, "an der Ruhr");
+            Pruefe.Wahr(f2.Oberhaupt == erbe, "der Sohn erbt");
+            var vorher = Stress(w2, erbe);
+            w2.Familien.AnKrankheitSterben(witwe, "an der Ruhr");
+            Pruefe.Gleich(vorher + d.Trauer.Haus, Stress(w2, erbe));
+            Pruefe.Gleich($"Tod im Haus: {witwe.Vorname}", erbe.Stresslage.Eintraege[^1].Text);
+        }),
+
+        ("Stress: Rat – wer sich bewirbt und verliert, bekommt Stress, der Gewinner und wer sich nicht bewarb nicht; ein abgelehnter Antrag auch, ein angenommener nicht", () =>
+        {
+            var sim = NeueSimulation(35);
+            var w = sim.Wirtschaft!;
+            var amt = w.Rat.Aemter.Where(a => a.Stufe == 1).OrderBy(a => a.Name, StringComparer.Ordinal).First();
+            var (a, fa) = Haus(w, "Haus Anwärter");
+            var (b, fb) = Haus(w, "Haus Rivale");
+            var (_, fc) = Haus(w, "Haus Zuschauer");
+            a.Stand = b.Stand = w.Daten.StandStufe(amt.Daten.MindestStand);
+            Ok(w, a, new AmtBewerben(amt.Name));
+            Ok(w, b, new AmtBewerben(amt.Name));
+            JahrBeenden(sim);
+            bool Verloren(Familie f) => f.Oberhaupt.Stresslage.Eintraege.Any(e => e.Text == $"Wahl zum Amt {amt.Name} verloren");
+            Pruefe.Wahr(Verloren(fa) || Verloren(fb), "mindestens einer hat verloren");
+            foreach (var (k, f) in new[] { (a, fa), (b, fb) })
+                Pruefe.Wahr(Verloren(f) == (w.Rat.AmtVon(k)?.Name != amt.Name), $"{k.Inhaber}: verloren genau dann, wenn er das Amt nicht hat");
+            Pruefe.Wahr(!Verloren(fc), "Gegenprobe: wer sich nicht bewarb, hat nichts verloren");
+
+            // Antrag abgelehnt: die Steuer senken bei knapper Kasse will kein Ratsherr; erhöhen schon (Gegenprobe)
+            foreach (var (prozent, durch) in new[] { (4, false), (6, true) })
+            {
+                var sim2 = NeueSimulation(36);
+                var w2 = sim2.Wirtschaft!;
+                var (k, fk) = Haus(w2, "Haus Reformer");
+                StadtkasseTests.Sitz(w2, "Zöllner", k);
+                StadtkasseTests.KasseAuf(w2, durch ? 1000 : 3000);
+                Pruefe.Gleich((bool?)durch, w2.Ratsantraege.Prognose(new Ratsantrag(Antragsart.Steuersatz, k, Prozent: prozent)).Item4);
+                Ok(w2, k, new SteuersatzBeantragen(prozent));
+                JahrBeenden(sim2);
+                Pruefe.Gleich(!durch, fk.Oberhaupt.Stresslage.Eintraege.Any(e => e.Text == "Antrag im Rat abgelehnt"), $"Steuersatz {prozent} %: " + string.Join(" | ", w2.Rat.LetzteSitzung));
+            }
         }),
 
         ("Stress: Abklingen – jedes Jahr −15, in glücklicher Ehe −20, schwermütig −10; nie unter 0; die Ventile sind im neuen Jahr frei", () =>
