@@ -21,6 +21,9 @@ namespace Reichsgilde;
 /// −340) –, ein Bach (3 m), der in einen Teich mündet (bei 470, −330), und ein Teich 2 m neben dem zweiten Fluss (bei 400, 300).</item>
 /// <item><c>verbund_hang</c>: ein Fluss (12 m) an einem Hang mit 1 % Gefälle, daneben ein See mit festem Wasserstand (Spiegel des Flusses bei x 200):
 /// Er bildet nur auf einem Stück mit dem Fluss eine Fläche (bei 200, −340).</item>
+/// <item><c>verbund_ecke</c>, <c>verbund_streifen</c>, <c>verbund_teich</c> (Nachbesserung nach dem NAS-Klicktest 09.11.2026): näher an die Ecke, wo der Fluss in den
+/// See tritt (früher eine Landinsel), an das alte Ufer des Flusses vor See A (früher ein dunkler Streifen) und an den Teich am zweiten Fluss (im Winter
+/// mit <c>--jahreszeit=winter --winter=0.6</c>: ein Teich friert ganz zu, ein See nur am Rand; das Band vereist am alten Ufer nicht mehr).</item>
 /// </list>
 /// </summary>
 public partial class Kartenwerkstatt
@@ -35,6 +38,9 @@ public partial class Kartenwerkstatt
         ["kurven"] = "215,125,30",
         ["verbund"] = "-390,-330,40",
         ["verbund_hang"] = "200,-345,40",
+        ["verbund_ecke"] = "-440,-330,25",
+        ["verbund_streifen"] = "-280,-160,25",
+        ["verbund_teich"] = "400,310,25",
         ["alle"] = "0,-150,40",
     };
 

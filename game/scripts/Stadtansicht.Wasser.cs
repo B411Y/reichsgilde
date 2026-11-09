@@ -324,7 +324,8 @@ public partial class Stadtansicht
             var deckkraft = 1f - fremd;
             if (muendung is { } m2) deckkraft = 1f - Mathf.SmoothStep(-1f, 3f, m2.Hinein);
             // Vor einer Kaimauer ist das Wasser still und friert wie das Hafenbecken (das Becken selbst ist in Köln schmal und liegt unter den Kähnen)
-            farben.Add(new Color(Mathf.Clamp((halb - Mathf.Abs(o)) / 32f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai),
+            var ufer = form.Verbuende.Count > 0 ? BandUfer(form, lauf, ort, halb - Mathf.Abs(o)) : halb - Mathf.Abs(o);
+            farben.Add(new Color(Mathf.Clamp(ufer / 32f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai),
                 schaum * Mathf.Lerp(1f, Wasserarten.KaiSchaumAnteil, kai), deckkraft));
         }
 
@@ -758,6 +759,33 @@ public partial class Stadtansicht
     /// stetig aus dem Anteil des Sees im Kern (<see cref="Wasserverbund.AnteilAm"/>: im Bett des Laufs 0, in Lücke und See 1), längs mit dem Gewicht des
     /// Verbunds in die harte Regel überblendet – keine Zacken im 2-m-Raster, keine Naht an der Grenze, kein Eis in ehemaligem Land.
     /// </summary>
+    /// <summary>
+    /// Deckkraft des Verbundnetzes (NAS 09.11.2026: mit Deckkraft = Anteil des Sees lagen Band (1 − a) und Netz (a) halbdurchsichtig übereinander – wo a
+    /// um 0,5 lag, schien der Grund durch: eine Landinsel an der Ecke, wo der Fluss im See endet, und ein Streifen am alten Ufer). Das Netz liegt unter dem
+    /// Band und ist überall voll deckend, wo der See auch nur ein wenig Anteil hat (ab 5 %); das Band blendet darüber aus. Nur im Bett des Laufs, wo das
+    /// Band ganz deckt, fehlt es; längs mit dem Gewicht in die harte Regel.
+    /// </summary>
+    private static float VerbundDeckkraft(Wasserform form, List<Kartenrechteck> andere, Vector2 ort, Wassersee see)
+    {
+        var hart = andere.Count > 0 && ImAnderenWasser(form, andere, ort, null, see) ? 0f : 1f;
+        foreach (var v in form.Verbuende)
+            if (ReferenceEquals(v.See, see) && v.AnteilAm(ort.X, ort.Y) is { } a)
+                return Mathf.Lerp(hart, Mathf.SmoothStep(0f, 0.05f, (float)a.Anteil), (float)a.Gewicht);
+        return hart;
+    }
+
+    /// <summary>
+    /// Uferabstand einer Ecke des Bandes im Verbund: Dort, wo der See anschließt, ist das alte Ufer des Laufs kein Ufer mehr – der gemeinsame Abstand
+    /// (Kern), längs mit dem Gewicht überblendet; sonst der eigene (NAS 09.11.2026: im Winter vereiste das Band am alten Ufer mitten im See).
+    /// </summary>
+    private static float BandUfer(Wasserform form, Wasserlauf lauf, Vector2 ort, float eigen)
+    {
+        foreach (var v in form.Verbuende)
+            if (ReferenceEquals(v.Lauf, lauf) && v.AbstandAm(ort.X, ort.Y) is { } s && v.AnteilAm(ort.X, ort.Y) is { } a)
+                return Mathf.Lerp(eigen, Mathf.Max(eigen, -(float)s), (float)a.Gewicht);
+        return eigen;
+    }
+
     private static float Fremdanteil(Wasserform form, List<Kartenrechteck> andere, Vector2 ort, Wasserlauf? lauf, Wassersee? see)
     {
         var hart = andere.Count > 0 && ImAnderenWasser(form, andere, ort, lauf, see) ? 1f : 0f;
@@ -824,7 +852,7 @@ public partial class Stadtansicht
     /// <summary>
     /// Das Netz eines Sees im Wasserverbund (Befund 1, 09.11.2026; Kern: <see cref="Wasserform.Verbuende"/>): Dreiecke über allen Zellen des Bodens im Bereich
     /// des Sees und seiner Verbünde, an denen eine Ecke im Wasser liegt (gemeinsamer Abstand unter 0,5 m) – See, geschlossene Lücke und der Rand des Laufs
-    /// in einem Netz. Je Ecke COLOR.r = (Abstand + 4) / 36 mit Vorzeichen (Shader-Uniform <c>ufer_vorzeichen</c>): Die Kante liegt je Bildpunkt dort, wo
+    /// in einem Netz. Je Ecke COLOR.r = (4 − Abstand) / 36 (der gemeinsame Abstand des Kerns ist im Wasser negativ, der Uferabstand im Shader positiv) (Shader-Uniform <c>ufer_vorzeichen</c>): Die Kante liegt je Bildpunkt dort, wo
     /// der Abstand 0 wird, ohne Zacken im Raster; Höhe = Spiegel aus <see cref="Wasserform.An"/> (quer stetig) knapp darunter; Deckkraft = Anteil des Sees
     /// (im Bett des Laufs zeichnet dessen Band, das nicht ausblendet und seine Strömung, Wellen und Mündungslinien behält). Außerhalb der Verbünde gilt der
     /// Randabstand des Sees wie bisher.
@@ -874,8 +902,10 @@ public partial class Stadtansicht
                 var eigen = stelle is { } st && (ReferenceEquals(st.See, see) || verbuende.Any(v => ReferenceEquals(v.Lauf, st.Lauf)));
                 var hoehe = (eigen ? (float)stelle!.Value.Spiegel : (float)see.Wasserstand) - VerbundTiefer;
                 var fremd = Fremdanteil(form, andere, ort, null, see);
+                var deckkraft = VerbundDeckkraft(form, andere, ort, see);
                 var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
-                werte[(e.X, e.Z)] = wert = (hoehe, new Color(Mathf.Clamp((s + 4f) / 36f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai), 1f, 1f - fremd));
+                // Uferabstand im Netz positiv im Wasser: (4 − s) / 36 (NAS 09.11.2026: mit (s + 4) / 36 stand er verkehrt herum, die Seen waren unsichtbar)
+                werte[(e.X, e.Z)] = wert = (hoehe, new Color(Mathf.Clamp((4f - s) / 36f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai), 1f, deckkraft));
             }
             ecken[n] = new Vector3(e.X, wert.Hoehe, e.Z);
             farben.Add(wert.Farbe);
