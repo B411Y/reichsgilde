@@ -9,10 +9,10 @@ namespace Reichsgilde.Core.Ki;
 ///   Meiden    Ab der ersten Stufe („angespannt“) lässt die KI jeden Befehl, der ihrem Oberhaupt Stress brächte (<see cref="Familienbuch.StressDurch"/>):
 ///             Ein ehrliches Oberhaupt heuert keine Bande mehr an, ein scheues gibt kein Gastmahl, ein träges übt nicht. Ventile bleiben erlaubt.
 ///   Ventil    Hat ihr Oberhaupt mindestens <see cref="StressDaten.KiVentilAb"/> Stress und bleibt in der Politikstunde nach allem anderen ein
-///             Aktionspunkt übrig, nutzt sie ein Ventil (Wirtshaus, Messe, Jagd) – das mit dem meisten Abbau je AP, also zuerst eines, das ihr
-///             Oberhaupt mag; nie eines, das es nicht mag. Mit dem eigenen Ehepartner, wenn auch er gestresst ist (dann sinkt bei beiden der
-///             Stress), sonst mit dem Ratsherrn, bei dem die Aktivität die meiste Meinung verspricht. Muss sie ohnehin einen Ratsherrn umwerben,
-///             nimmt sie dafür ein Ventil, wenn es eines gibt (<see cref="BesteAktivitaet"/>).
+///             Aktionspunkt übrig, nutzt sie ein Ventil (Wirtshaus, Messe, Jagd), das ihrem Oberhaupt Stress abbaut (nie eines, das es nicht mag) –
+///             mit dem meisten Abbau je AP für beide Beteiligten zusammen: Hat der eigene Ehepartner selbst Stress, zählt seiner mit, sonst gewinnt
+///             ein Ventil, das das Oberhaupt mag, dann der Ratsherr mit der meisten Meinung. Muss sie ohnehin einen Ratsherrn umwerben, nimmt sie
+///             dafür ein Ventil, wenn es eines gibt (<see cref="BesteAktivitaet"/>).
 ///   Vorsicht  Ab „zermürbt“ rechnet sie vorsichtiger (<see cref="StressStufeDaten.KiVorsicht"/>, 1,2 auf die Raubfurcht). Kredite nimmt die KI
 ///             ohnehin keine – „nicht mehr auf Pump“ ändert darum nichts.
 /// Ohne Abschnitt "stress" ist alles wie vorher.
@@ -37,14 +37,18 @@ public sealed partial class KiRivale
         if (!SuchtVentil || !mw.IstAktiv || fb.Von(Konto) is not { } f) return;
         var ich = f.Oberhaupt;
         var partner = new List<ICharakter>();
-        if (f.Ehepartner is { Lebt: true } e && fb.Stress(e) >= fb.StressDaten!.KiVentilAb - 1e-9) partner.Add(e);
-        else partner.AddRange(_w.Rat.Ratsherren);
+        if (f.Ehepartner is { Lebt: true } e) partner.Add(e); // hat er selbst Stress, baut er mit ab (zählt in „Gesamt“)
+        partner.AddRange(_w.Rat.Ratsherren);
         var beste = partner
             .SelectMany(p => mw.Aktivitaeten(Konto, p)
                 .Where(a => a.Art != mw.GeschenkArt && a.Sperrgrund is null && Konto.Vermoegen - a.Gulden >= Profil.Reserve)
-                .Select(a => (Mit: p, Angebot: a, Abbau: -fb.StressDurch(Konto, new Aktivitaet(a.Art, p.Kennung)))))
+                .Select(a =>
+                {
+                    var posten = fb.StressVorschau(Konto, new Aktivitaet(a.Art, p.Kennung));
+                    return (Mit: p, Angebot: a, Abbau: -posten.Where(x => x.Person == ich).Sum(x => x.Wert), Gesamt: -posten.Sum(x => x.Wert));
+                }))
             .Where(x => x.Abbau > 0)
-            .OrderByDescending(x => x.Abbau / Math.Max(1, x.Angebot.Ap))
+            .OrderByDescending(x => x.Gesamt / Math.Max(1, x.Angebot.Ap))
             .ThenByDescending(x => x.Angebot.Erwartet)
             .ThenBy(x => x.Angebot.Gulden)
             .ThenBy(x => x.Angebot.Art, StringComparer.Ordinal)
