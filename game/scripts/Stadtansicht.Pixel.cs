@@ -15,37 +15,40 @@ namespace Reichsgilde;
 /// (<see cref="PixelBild"/>) und <b>rastet auf das Raster der Weltpixel</b> (Kamera-Snapping); den Rest des Rastens gleicht der Versatz des hochgezogenen Bildes aus –
 /// dann wandert nichts im Pixelraster, wenn die Kamera schiebt. Gesehen wird so viel wie mit der Logik-Kamera (auf ein Weltpixel genau). Die Raumkamera und die freie
 /// Kamera (<c>--freiekamera=1</c>) werden ohne Rasten übernommen.</item>
-/// <item><b>Beleuchtungsbild als zweiter Durchgang</b> (<c>PixelLicht</c>, Debug-Zeichnung „Beleuchtung“ mit weißen Flächen, gleiche Welt, gleiche Kamera, ohne das Nachbearbeitungs-Viereck):
+/// <item><b>Eigenfarbenbild als zweiter Durchgang</b> (<c>PixelLicht</c>, Debug-Zeichnung „Unbeleuchtet“ = nur die Eigenfarbe der Flächen, gleiche Welt, gleiche Kamera, ohne das Nachbearbeitungs-Viereck;
+/// die Zeichnung „Beleuchtung“ gibt es nur in Debug-Builds, im Release-Export fehlte sie – 09.11.2026): Die Beleuchtung ist Bild geteilt durch Eigenfarbe.
 /// <c>pixel_farbe.gdshader</c> setzt daraus Stufenlicht, weiche Schattenkanten, Umrisse, Tiefendunst und Kontrast auf das Bild (ein Vollbild-Viereck vor der Kamera).
 /// Wasser, Feuer, Rauch, Regen und Nebel werden danach darüber gezeichnet. Das Glühen (<c>pixel_gluehen.gdshader</c>) rechnet im Maßstab des Weltbildes in einem dritten SubViewport
 /// (<c>PixelGlueh</c>) und wird weich auf Fenstergröße gezogen: nur ein Viertel (N = 2) bzw. ein Neuntel (N = 3) der Bildpunkte, 24 statt 72 Abtastungen je Punkt.</item>
 /// <item><b>Reihenfolge der Ansichten:</b> Godot zeichnet verschachtelte Ansichten innen vor außen. Darum liegt <c>PixelLicht</c> in <c>PixelWelt</c> und diese in <c>PixelGlueh</c>:
-/// Beleuchtung, dann Welt, dann Schein, dann das Fenster.</item>
+/// Eigenfarbe, dann Welt, dann Schein, dann das Fenster.</item>
 /// <item><b>Drei feste Zoomstufen</b> der Spielkamera (<see cref="PixelZoomStufen"/>: 100/50/25 m, seit „Zoom A“ näher als die früheren 140/70/35 m), nur im Pixel-Look und nicht in der Kartenwerkstatt; sonst bleibt der Zoom stufenlos. Ruhiges Gras (<c>gras.gdshader</c>, Uniform <c>ruhig</c>) und
 /// weniger Halme (<see cref="GrasWerte"/>); die Vignette liegt in voller Auflösung auf der Welt-Ebene.</item>
-/// <item><b>Räume</b> (Raumkamera) und Innenansichten: Pixel 3, ebenfalls mit Beleuchtungsbild (Stufenlicht, Umrisse) und Glühen.</item>
+/// <item><b>Räume</b> (Raumkamera) und Innenansichten: Pixel 3, ebenfalls mit Eigenfarbenbild (Stufenlicht, Umrisse) und Glühen.</item>
 /// </list>
 /// Das Fenster schaltet das 3D-Bild beim Laden ebenfalls ab: Darüber läuft <see cref="Welt3DSperren"/>, damit der Pixel-Look dabei nicht gegen sich selbst arbeitet.
 /// Startoptionen: <c>--pixellook=0|1</c>, <c>--pixelgluehen=0|1</c> (Fenster.Pixel.cs), <c>--pixelmessung=&lt;s&gt;</c> (Zeiten der Ansichten im Log, dann beenden).
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Ebene (Bit 30), auf der nur das Nachbearbeitungs-Viereck liegt: Die Beleuchtungskamera sieht sie nicht.</summary>
+    /// <summary>Ebene (Bit 30), auf der nur das Nachbearbeitungs-Viereck liegt: Die Kamera des Eigenfarbenbildes sieht sie nicht.</summary>
     private const uint PixelFlaechenEbene = 1u << 30;
 
-    /// <summary>Ebene (Bit 29) für Regen und Schnee im Pixel-Look: Das Beleuchtungsbild zeichnet jedes Teilchen als undurchsichtiges Rechteck (Debug-Zeichnung „Beleuchtung“ kennt keine Durchsicht) – es sieht diese Ebene nicht.</summary>
+    /// <summary>Ebene (Bit 29) für Regen und Schnee im Pixel-Look: Das Nachbearbeitungs-Viereck liegt vor allen durchsichtigen Teilen; das Eigenfarbenbild dürfte sie nicht zeigen (es hätte ihre Farbe, das Bild noch nicht) – es sieht diese Ebene nicht.</summary>
     private const uint PixelTeilchenEbene = 1u << 29;
 
-    /// <summary>Ebene (Bit 28) der Lichtzwillinge: Nur das Beleuchtungsbild sieht sie (siehe <see cref="PixelHilfeZwilling"/>).</summary>
+    /// <summary>Ebene (Bit 28) der Lichtzwillinge: Nur das Eigenfarbenbild sieht sie (siehe <see cref="PixelHilfeZwilling"/>).</summary>
     private const uint PixelHilfeEbene = 1u << 28;
 
     private ShaderMaterial? _pxHilfeStoff;
-    private DirectionalLight3D? _pxHilfeLicht;
     private readonly List<(MeshInstance3D Netz, MeshInstance3D Zwilling)> _pxHilfeNetze = new();
     private SceneTree? _pxBaum;
     private readonly System.Collections.Concurrent.ConcurrentQueue<ulong> _pxNeueNetze = new();
 
     private SubViewport? _pxWelt, _pxLicht, _pxGlueh;
+
+    /// <summary>Umgebung der Albedo-Kamera: nur Farbe (linear, kein Nebel, kein Glühen, keine Umgebungsverdeckung), damit die Zeichnung „Unbeleuchtet“ die reine Eigenfarbe liefert.</summary>
+    private Godot.Environment? _pxAlbedoUmgebung;
     private Camera3D _pxKamera = null!, _pxLichtKamera = null!;
     private MeshInstance3D _pxFlaeche = null!;
     private ShaderMaterial _pxFarbe = null!, _pxGluehStoff = null!;
@@ -137,7 +140,13 @@ public partial class Stadtansicht
         _pxGlueh = Ansicht("PixelGlueh", false);
         _pxWelt = Ansicht("PixelWelt", true);
         _pxLicht = Ansicht("PixelLicht", true);
-        _pxLicht.DebugDraw = Viewport.DebugDrawEnum.Lighting;
+        // „Unbeleuchtet“ (nur Eigenfarbe) gibt es auch im Release-Export, anders als „Beleuchtung“ (nur in Debug-Builds; siehe docs/bereiche/darstellung.md, Pixel-Look im Release)
+        _pxLicht.DebugDraw = Viewport.DebugDrawEnum.Unshaded;
+        _pxAlbedoUmgebung = new Godot.Environment
+        {
+            BackgroundMode = Godot.Environment.BGMode.Color, BackgroundColor = Colors.Black, TonemapMode = Godot.Environment.ToneMapper.Linear,
+            AmbientLightSource = Godot.Environment.AmbientSource.Disabled,
+        };
         AddChild(_pxGlueh);
         _pxGlueh.AddChild(_pxWelt);
         _pxWelt.AddChild(_pxLicht);
@@ -151,7 +160,7 @@ public partial class Stadtansicht
 
         // Nachbearbeitung: ein Vollbild-Viereck vor der Kamera; kleinste Zeichenreihenfolge, damit Wasser, Feuer und Nebel danach darüber liegen
         _pxFarbe = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_farbe.gdshader"), RenderPriority = -128 };
-        _pxFarbe.SetShaderParameter("licht", _pxLicht.GetTexture());
+        _pxFarbe.SetShaderParameter("albedo", _pxLicht.GetTexture());
         _pxFlaeche = new MeshInstance3D
         {
             Name = "PixelFlaeche", Mesh = new QuadMesh { Size = new Vector2(2, 2), FlipFaces = true }, MaterialOverride = _pxFarbe,
@@ -162,7 +171,7 @@ public partial class Stadtansicht
         // Schein: im Maßstab des Weltbildes gerechnet (nächster SubViewport um die Welt), später weich hochgezogen
         _pxGluehStoff = new ShaderMaterial { Shader = GD.Load<Shader>("res://assets/shader/pixel_gluehen.gdshader") };
         _pxGluehStoff.SetShaderParameter("welt", _pxWelt.GetTexture());
-        _pxGluehStoff.SetShaderParameter("licht", _pxLicht.GetTexture());
+        _pxGluehStoff.SetShaderParameter("albedo", _pxLicht.GetTexture());
         var gluehRahmen = new ColorRect { Name = "Schein", Material = _pxGluehStoff, Color = Colors.White, MouseFilter = Control.MouseFilterEnum.Ignore };
         gluehRahmen.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _pxGlueh.AddChild(gluehRahmen);
@@ -201,11 +210,8 @@ public partial class Stadtansicht
         Fenster.PixelGpuZeit = _pxZeitFunktion;
 
         // Hilfs-Overlays (Bauzonen, Raster, Umrisse): jedes durchsichtige, unbeleuchtete Netz bekommt einen Lichtzwilling, auch die schon vorhandenen
-        // Zwilling: beleuchtet (unbeleuchtete und leuchtende Flächen zeigt das Beleuchtungsbild nur als dunklen Boden), die Normale zeigt zur Kamera, dazu ein starkes Licht entlang der Blickrichtung,
-        // das nur die Zwillingsebene trifft
-        _pxHilfeStoff = new ShaderMaterial { Shader = new Shader { Code = "shader_type spatial; render_mode cull_disabled; void fragment() { ALBEDO = vec3(1.0); NORMAL = vec3(0.0, 0.0, 1.0); ROUGHNESS = 1.0; SPECULAR = 0.0; }" } };
-        _pxHilfeLicht = new DirectionalLight3D { Name = "Hilfslicht", LightEnergy = 8f, LightCullMask = PixelHilfeEbene, ShadowEnabled = false, LightSpecular = 0f };
-        _pxLichtKamera.AddChild(_pxHilfeLicht);
+        // Zwilling: Magenta, unbeleuchtet (im Eigenfarbenbild das Zeichen „volles Licht, nichts glüht“; die Shader erkennen es)
+        _pxHilfeStoff = new ShaderMaterial { Shader = new Shader { Code = "shader_type spatial; render_mode unshaded, cull_disabled; void fragment() { ALBEDO = vec3(1.0, 0.0, 1.0); }" } };
         _pxBaum = GetTree();
         _pxBaum.NodeAdded += PixelKnotenHinzu;
         foreach (var m in GetTree().Root.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()) PixelHilfeZwilling(m);
@@ -225,8 +231,8 @@ public partial class Stadtansicht
     }
 
     /// <summary>
-    /// Bauzonen, Raster, Umrisse und andere Hilfsflächen sind durchsichtig und unbeleuchtet. Das Glühen hält alles für Licht, was im Bild heller ist als im Beleuchtungsbild
-    /// (<c>pixel_gluehen.gdshader</c>) – und das Beleuchtungsbild zeigt unbeleuchtete Flächen nur wie dunklen Boden. Darum bekommt jedes solche Netz einen <b>Zwilling</b> (gleiches Netz, undurchsichtig, weiß, von einem eigenen starken Licht beleuchtet, das nur diese Ebene trifft), den nur das Beleuchtungsbild sieht (Ebene <see cref="PixelHilfeEbene"/>): dort sind die Flächen hell, das Verhältnis liegt unter 1, nichts glüht.
+    /// Bauzonen, Raster, Umrisse und andere Hilfsflächen sind durchsichtig und unbeleuchtet. Das Glühen hält alles für Licht, was im Bild heller ist als die Eigenfarbe bei dem Licht der Umgebung erlaubt
+    /// (<c>pixel_gluehen.gdshader</c>) – und das Eigenfarbenbild sähe unter den durchsichtigen Flächen nur den Boden. Darum bekommt jedes solche Netz einen <b>Zwilling</b> (gleiches Netz, undurchsichtig, unbeleuchtet Magenta), den nur das Eigenfarbenbild sieht (Ebene <see cref="PixelHilfeEbene"/>): <c>pixel_gluehen.gdshader</c> lässt dort nichts glühen, <c>pixel_farbe.gdshader</c> stuft dort nicht (volles Licht).
     /// Die Flächen selbst bleiben, wie sie sind (nachts so hell wie ihre Farbe).
     /// </summary>
     private void PixelHilfeZwilling(MeshInstance3D m)
@@ -310,25 +316,24 @@ public partial class Stadtansicht
         _pxVignette.Visible = gewuenscht;
         PixelNeueNetze();
         PixelNamen(gewuenscht && laeuft && !raum ? kamera : null);
-        var teilchen = licht ? PixelTeilchenEbene : 1u; // nur wenn das Beleuchtungsbild läuft, sonst sehen Fenster- und Raumkamera die Teilchen wie sonst
+        var teilchen = licht ? PixelTeilchenEbene : 1u; // nur wenn das Eigenfarbenbild läuft, sonst sehen Fenster- und Raumkamera die Teilchen wie sonst
         if (_regen is not null && _regen.Layers != teilchen) _regen.Layers = teilchen;
         if (_schnee is not null && _schnee.Layers != teilchen) _schnee.Layers = teilchen;
-        // ebenso alle anderen durchsichtigen Flächen: Traufentropfen und -spritzer, Lichtflecken und -schein, Flammen und Rauch (sonst dunkle Rechtecke im Beleuchtungsbild)
+        // ebenso alle anderen durchsichtigen Flächen: Traufentropfen und -spritzer, Lichtflecken und -schein, Flammen und Rauch (sonst stünde ihre Farbe im Eigenfarbenbild, im Bild aber nicht)
         foreach (VisualInstance3D? knoten in new VisualInstance3D?[] { _traufTropfen, _traufRinge, _fleckBoden, _fleckSchein })
             if (knoten is not null && knoten.Layers != teilchen) knoten.Layers = teilchen;
-        // Hilfsflächen mit Lichtzwilling: das Beleuchtungsbild zeichnet durchsichtige Flächen undurchsichtig und verdeckte den Zwilling, es sieht sie darum nicht (wie die Teilchen)
+        // Hilfsflächen mit Lichtzwilling: das Eigenfarbenbild soll sie nicht zeigen, nur den Zwilling (wie die Teilchen)
         _pxHilfeNetze.RemoveAll(h => !IsInstanceValid(h.Netz) || !IsInstanceValid(h.Zwilling));
         foreach (var (netz, zwilling) in _pxHilfeNetze)
         {
             if (netz.Layers != teilchen) netz.Layers = teilchen;
             if (zwilling.Mesh != netz.Mesh) zwilling.Mesh = netz.Mesh; // das Raster tauscht sein Netz aus
         }
-        // ebenso die Nebelschichten des Bodennebels (Stadtansicht.Bodennebel.cs): Das Beleuchtungsbild zeichnete sie undurchsichtig und beleuchtet, mit dem Schatten der Sonne in ihrer
-        // Höhe, nicht auf dem Boden – wo ein Fetzen lag, stand im Stufenlicht ein zweiter, versetzter Schatten neben dem echten (besonders sichtbar bei Schnee am Mittag)
+        // ebenso die Nebelschichten des Bodennebels (Stadtansicht.Bodennebel.cs): Das Eigenfarbenbild soll den Boden zeigen, nicht den Nebel darüber (sonst stimmt das Verhältnis Bild zu Eigenfarbe nicht, und im Stufenlicht stünde ein Fleck neben dem echten Schatten)
         if (_nebelSchichten.Count > 0)
             foreach (var (netz, _) in _nebelSchichten)
                 if (netz.Layers != teilchen) netz.Layers = teilchen;
-        // und die Wasserverdränger der Boote (Stadtansicht.Schiffe.cs): durchsichtig mit Tiefe, das Beleuchtungsbild machte daraus einen dunklen Deckel über Ladung, Schiffer und Boden
+        // und die Wasserverdränger der Boote (Stadtansicht.Schiffe.cs): durchsichtig mit Tiefe, im Eigenfarbenbild wären sie ein Deckel über Ladung, Schiffer und Boden
         _verdraengerNetze.RemoveAll(v => !IsInstanceValid(v));
         foreach (var v in _verdraengerNetze)
             if (v.Layers != teilchen) v.Layers = teilchen;
@@ -375,6 +380,7 @@ public partial class Stadtansicht
         _pxFarbe.SetShaderParameter("tag", Mathf.SmoothStep(PixelLichtBoden, 0.85f, skala));
         _pxFarbe.SetShaderParameter("dunst_farbe", PixelDunstFarbe(skala));
         _pxGluehStoff.SetShaderParameter("welt_groesse", new Vector2(gross.X, gross.Y));
+        _pxGluehStoff.SetShaderParameter("licht_max", Mathf.Max(PixelLichtStaerke(), 0.05f));
     }
 
     /// <summary>
@@ -434,7 +440,7 @@ public partial class Stadtansicht
         ziel.Near = quelle.Near;
         ziel.Far = quelle.Far;
         ziel.KeepAspect = quelle.KeepAspect;
-        ziel.Environment = quelle.Environment;
+        ziel.Environment = hauptbild ? quelle.Environment : _pxAlbedoUmgebung;
         ziel.Attributes = null; // keine Miniatur-Unschärfe im Pixel-Look: weiche Ränder passen nicht zu harten Pixeln
         ziel.CullMask = hauptbild ? quelle.CullMask | PixelFlaechenEbene | PixelTeilchenEbene : (quelle.CullMask & ~(PixelFlaechenEbene | PixelTeilchenEbene)) | PixelHilfeEbene;
     }
@@ -461,14 +467,16 @@ public partial class Stadtansicht
         return farbe.Lerp(new Vector3(0.04f, 0.045f, 0.065f), NebelDunkel());
     }
 
-    private float PixelLichtskala()
+    /// <summary>Das stärkste Licht, das eine Fläche gerade bekommen kann (Sonne oder Mond plus Umgebungslicht, in Einheiten des Bildes über der Eigenfarbe): Bezug des Glühens, was heller leuchtet, glüht.</summary>
+    private float PixelLichtStaerke()
     {
         static float Hell(Color c) => 0.2126f * c.R + 0.7152f * c.G + 0.0722f * c.B;
         var umgebung = _umgebung.Environment;
         var sonne = _sonne.Visible ? _sonne.LightEnergy * Hell(_sonne.LightColor) : 0f;
-        var licht = sonne + umgebung.AmbientLightEnergy * Hell(umgebung.AmbientLightColor);
-        return Mathf.Clamp(licht / 1.55f, PixelLichtBoden, 1f);
+        return sonne + umgebung.AmbientLightEnergy * Hell(umgebung.AmbientLightColor);
     }
+
+    private float PixelLichtskala() => Mathf.Clamp(PixelLichtStaerke() / 1.55f, PixelLichtBoden, 1f);
 
     // ═══════════════════════════════════════════════════════════════════════
     //  Messung (--pixelmessung=<Sekunden>)

@@ -139,7 +139,7 @@ public partial class Stadtansicht
     /// ihn (eine Kachel ohne gemalten Punkt zeigt die Textur der Wiese, am Hang Fels) – sonst gäbe es Kanten zwischen Kacheln. Nur wenn der Shader fehlt
     /// (kaputter Export), die einfarbige Wiese.
     /// </summary>
-    private Material KachelStoff(int ti, int tj)
+    private Material KachelStoff(int ti, int tj, Kartenrechteck? bereich = null)
     {
         if (!BodenShaderLaden()) return Material(Wiese);
         var raster = BodenRaster;
@@ -153,17 +153,34 @@ public partial class Stadtansicht
             _bodenStoffe[(ti, tj)] = eintrag;
         }
         eintrag.Stoff.SetShaderParameter("gemalt", gemalt);
-        if (gemalt) BodenBilderSetzen(raster!, ti, tj, eintrag, _splatVorrat?.GetValueOrDefault((ti, tj)));
+        if (!gemalt) _bodenSplatDaten.Remove((ti, tj)); // wird sie wieder bemalt, rechnet sie ihre Bilder ganz
+        if (gemalt) BodenBilderSetzen(raster!, ti, tj, eintrag, _splatVorrat?.GetValueOrDefault((ti, tj)), bereich);
         SchichtSetzen(ti, tj, eintrag.Stoff);
         return eintrag.Stoff;
     }
 
-    /// <summary>Schreibt die drei Gewichtsbilder der Kachel neu (beim ersten Mal legt es die Bilder an).</summary>
-    private static void BodenBilderSetzen(Bodenraster raster, int ti, int tj, (ShaderMaterial Stoff, ImageTexture[] Bilder) eintrag, byte[][]? vorgerechnet = null)
+    /// <summary>Die Gewichtsbilder je Kachel, wie zuletzt hochgeladen – nur in der Werkstatt (dort ändert der Pinsel einen Teil davon, <see cref="BodenBilderTeil"/>).</summary>
+    private readonly Dictionary<(int I, int J), byte[][]> _bodenSplatDaten = new();
+
+    /// <summary>
+    /// Schreibt die drei Gewichtsbilder der Kachel neu (beim ersten Mal legt es die Bilder an). Mit <paramref name="bereich"/> (Werkstatt, Pinsel) rechnet es
+    /// nur die Punkte darin neu und nimmt den Rest aus dem letzten Bild der Kachel; hochgeladen wird immer das ganze Bild (Godot 4 kennt kein Hochladen eines
+    /// Teilbereichs einer Textur mehr).
+    /// </summary>
+    private void BodenBilderSetzen(Bodenraster raster, int ti, int tj, (ShaderMaterial Stoff, ImageTexture[] Bilder) eintrag, byte[][]? vorgerechnet = null,
+        Kartenrechteck? bereich = null)
     {
+        byte[][] alle;
+        if (bereich is { } r && _entwurf is not null && _bodenSplatDaten.TryGetValue((ti, tj), out var bisher) && eintrag.Bilder[0] is not null)
+            alle = BodenBilderTeil(raster, ti, tj, bisher, r);
+        else
+        {
+            alle = vorgerechnet ?? new[] { SplatRechnen(raster, ti, tj, 0), SplatRechnen(raster, ti, tj, 1), SplatRechnen(raster, ti, tj, 2) };
+            if (_entwurf is not null) _bodenSplatDaten[(ti, tj)] = alle;
+        }
         for (var gruppe = 0; gruppe < 3; gruppe++)
         {
-            var daten = vorgerechnet?[gruppe] ?? SplatRechnen(raster, ti, tj, gruppe);
+            var daten = alle[gruppe];
             var bild = Image.CreateFromData(BodenBild, BodenBild, false, Image.Format.Rgba8, daten);
             if (eintrag.Bilder[gruppe] is { } alt) alt.Update(bild);
             else
@@ -172,6 +189,48 @@ public partial class Stadtansicht
                 eintrag.Stoff.SetShaderParameter("splat" + gruppe, eintrag.Bilder[gruppe]);
             }
         }
+    }
+
+    /// <summary>
+    /// Die Gewichtsbilder einer Kachel, in denen sich nur das Rechteck <paramref name="r"/> (Meter) geändert hat: Die Gewichte der Punkte darin (samt 2 m Rand)
+    /// und die Felsnähe (Kanal A von Bild 2) dort samt ihrer Reichweite werden in <paramref name="alt"/> neu geschrieben – ein Pinseltupfer rechnet so nicht mehr
+    /// alle 3 × 130 × 130 Punkte (samt Felsnähe) der Kachel.
+    /// </summary>
+    private static byte[][] BodenBilderTeil(Bodenraster raster, int ti, int tj, byte[][] alt, Kartenrechteck r)
+    {
+        var (i0, j0) = (ti * KachelZellen * 2 - 1, tj * KachelZellen * 2 - 1);
+        (int A0, int B0, int A1, int B1)? Ausschnitt(int rand)
+        {
+            var (a0, b0) = (Math.Max(0, (int)Math.Floor(r.X0) - rand - i0), Math.Max(0, (int)Math.Floor(r.Z0) - rand - j0));
+            var (a1, b1) = (Math.Min(BodenBild - 1, (int)Math.Ceiling(r.X1) + rand - i0), Math.Min(BodenBild - 1, (int)Math.Ceiling(r.Z1) + rand - j0));
+            return a0 > a1 || b0 > b1 ? null : (a0, b0, a1, b1);
+        }
+        if (Ausschnitt(2) is var (x0, y0, x1, y1))
+        {
+            var (w, h) = (x1 - x0 + 1, y1 - y0 + 1);
+            for (var gruppe = 0; gruppe < 3; gruppe++)
+            {
+                var neu = raster.Splat(i0 + x0, j0 + y0, w, h, gruppe);
+                for (var y = 0; y < h; y++)
+                    for (var x = 0; x < w; x++)
+                    {
+                        var (q, z) = ((y * w + x) * 4, ((y0 + y) * BodenBild + x0 + x) * 4);
+                        alt[gruppe][z] = neu[q];
+                        alt[gruppe][z + 1] = neu[q + 1];
+                        alt[gruppe][z + 2] = neu[q + 2];
+                        if (gruppe < 2) alt[gruppe][z + 3] = neu[q + 3]; // A von Bild 2 ist die Felsnähe
+                    }
+            }
+        }
+        if (Ausschnitt(2 + FelsnaeheReichweite) is var (f0, g0, f1, g1))
+        {
+            var n = Math.Max(f1 - f0, g1 - g0) + 1; // ein Quadrat (FelsnaeheRechnen), das über das Bild hinausreichen darf
+            var naehe = FelsnaeheRechnen(raster, i0 + f0, j0 + g0, n);
+            for (var y = g0; y <= g1; y++)
+                for (var x = f0; x <= f1; x++)
+                    alt[2][(y * BodenBild + x) * 4 + 3] = naehe is null ? (byte)0 : (byte)Math.Clamp((int)(naehe[(y - g0) * n + x - f0] * 255f + 0.5f), 0, 255);
+        }
+        return alt;
     }
 
     /// <summary>Das Gewichtsbild einer Gruppe für eine Geländekachel (Gruppe 2 mit der Felsnähe in A, Stadtansicht.Felsboden.cs, Fels R1); liest nur das Raster, darum auch in mehreren Fäden.</summary>
@@ -222,7 +281,7 @@ public partial class Stadtansicht
         for (var j = Math.Max(j0, b0); j <= Math.Min(j1, b1); j++)
             for (var i = Math.Max(i0, a0); i <= Math.Min(i1, a1); i++)
             {
-                if (_gelaendeKacheln.TryGetValue((i, j), out var kachel)) kachel.MaterialOverride = KachelStoff(i, j);
+                if (_gelaendeKacheln.TryGetValue((i, j), out var kachel)) kachel.MaterialOverride = KachelStoff(i, j, bereich);
                 BueschelBodenGeaendert(i, j); // Grasbüschel an den Grenzen (Stadtansicht.Bueschel.cs)
             }
     }

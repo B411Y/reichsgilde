@@ -95,6 +95,8 @@ public partial class Stadtansicht
     /// <summary>Ein Teil (Weg oder Mauer der Werkstatt) hat sich geändert: alte und neue Stelle neu rechnen. Ohne <paramref name="punkte"/> ist er gelöscht.</summary>
     private void SchichtTeilGeaendert(object teil, IEnumerable<Vector2>? punkte, float halb)
     {
+        // nach einem Geländestrich wird der Teil nur wegen der Höhe neu gebaut – die flache Schicht bleibt, wie sie ist (Stadtansicht.Kartenwerkstatt.Gelaende.cs)
+        if (_schichtNurHoehe && punkte is not null && _schichtRahmen.ContainsKey(teil)) return;
         if (_schichtRahmen.Remove(teil, out var alt)) SchichtVeraltet(alt);
         if (punkte is null || Rahmen(punkte, halb) is not { } neu) return;
         _schichtRahmen[teil] = neu;
@@ -111,15 +113,32 @@ public partial class Stadtansicht
     /// <summary>Ein Stück zu einem Hof, Karrenplatz oder Gatter geht in die Schicht (statt eines Quaders, <see cref="WegZiehen"/>).</summary>
     private void SchichtAnschlussMerken(Vector3 von, Vector3 bis, float breite)
     {
-        _schichtAnschluesse.Add((new Vector2(von.X, von.Z), new Vector2(bis.X, bis.Z), breite));
-        SchichtVeraltet(new Rect2(new Vector2(von.X, von.Z), Vector2.Zero).Expand(new Vector2(bis.X, bis.Z)).Grow(breite / 2));
+        var stueck = (new Vector2(von.X, von.Z), new Vector2(bis.X, bis.Z), breite);
+        _schichtAnschluesse.Add(stueck);
+        if (_schichtAnschluesseAlt.Remove(stueck)) return; // dasselbe Stück wie vor dem Neubau des Netzes: nichts neu zu rechnen
+        SchichtVeraltet(new Rect2(stueck.Item1, Vector2.Zero).Expand(stueck.Item2).Grow(breite / 2));
     }
 
-    /// <summary>Die Werkstatt baut ihre Anschlüsse neu: die alten vergessen (ihre Stellen werden neu gerechnet).</summary>
+    /// <summary>Die Stücke vor dem Neubau des Gassennetzes (bis <see cref="SchichtAnschluesseAbschliessen"/>): Was gleich bleibt, rechnet die Schicht nicht neu.</summary>
+    private readonly HashSet<(Vector2 Von, Vector2 Bis, float Breite)> _schichtAnschluesseAlt = new();
+
+    /// <summary>
+    /// Die Werkstatt baut ihre Anschlüsse neu: Die alten werden gemerkt; ein Stück, das genauso wiederkommt, bleibt in der Schicht, die übrigen rechnet
+    /// <see cref="SchichtAnschluesseAbschliessen"/> neu. (Vorher rechnete jeder Neubau des Netzes alle Kacheln mit Anschlüssen neu – nach jedem Geländestrich
+    /// in Köln gut 70 ms, obwohl sich nur Höhen geändert hatten.)
+    /// </summary>
     private void SchichtAnschluesseVergessen()
     {
-        foreach (var (von, bis, breite) in _schichtAnschluesse) SchichtVeraltet(new Rect2(von, Vector2.Zero).Expand(bis).Grow(breite / 2));
+        foreach (var stueck in _schichtAnschluesse)
+            if (!_schichtAnschluesseAlt.Add(stueck)) SchichtVeraltet(new Rect2(stueck.Von, Vector2.Zero).Expand(stueck.Bis).Grow(stueck.Breite / 2)); // doppelt: sicher ist sicher
         _schichtAnschluesse.Clear();
+    }
+
+    /// <summary>Nach dem Neubau des Netzes: Stücke, die nicht wiederkamen, sind weg – ihre Stellen neu rechnen.</summary>
+    private void SchichtAnschluesseAbschliessen()
+    {
+        foreach (var (von, bis, breite) in _schichtAnschluesseAlt) SchichtVeraltet(new Rect2(von, Vector2.Zero).Expand(bis).Grow(breite / 2));
+        _schichtAnschluesseAlt.Clear();
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -198,7 +217,14 @@ public partial class Stadtansicht
                 else _schichtKacheln[kachel] = (ImageTexture.CreateFromImage(bild), ImageTexture.CreateFromImage(info), ImageTexture.CreateFromImage(spur));
                 _grasStadt[kachel] = daten.Info; // Pflaster als Grund: dort kein Grasteppich (Stadtansicht.Gras.cs)
             }
-            if (_gelaendeKacheln.TryGetValue(kachel, out var netz)) netz.MaterialOverride = KachelStoff(kachel.I, kachel.J);
+            if (_gelaendeKacheln.TryGetValue(kachel, out var netz))
+            {
+                // Werkstatt: Hat die Kachel ihren Boden-Stoff schon, genügen die neuen Bilder der Schicht – Änderungen des Bodens zieht dort BodenStoffeNeu
+                // selbst nach (im Spiel können Bodenstempel den Boden mit ändern, dort bleibt es beim ganzen Stoff)
+                if (_entwurf is not null && _bodenStoffe.TryGetValue(kachel, out var stoff) && ReferenceEquals(netz.MaterialOverride, stoff.Stoff))
+                    SchichtSetzen(kachel.I, kachel.J, stoff.Stoff);
+                else netz.MaterialOverride = KachelStoff(kachel.I, kachel.J);
+            }
             BueschelWegeGesetzt(kachel, bueschel[k]);
         }
         Ladezeit.Dazu("Wegeschicht: Bilder und Stoffe", uhrBilder);
