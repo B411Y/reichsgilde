@@ -10,7 +10,9 @@
 
 `natur_felsen.glb` (Felsstücke F1) und `natur_felswand.glb` (Felswand-Satz R4) entstehen aus eigenen Skripten (`tools/modelle/natur_felsen.py`,
 `natur_felswand.py`) und stehen unter **„Alle Rechte vorbehalten“** (© B411Y; Entscheidung des Nutzers vom 02.11.2026, siehe `LICENSE-INHALTE.md`);
-ihre Strukturkarten unter `game/assets/texturen/felsen/` und `felswand/` ebenso.
+ihre Strukturkarten unter `game/assets/texturen/felsen/` und `felswand/` ebenso. Die Fassung des Felswand-Satzes mit geschlossenen
+Rückseiten (Felsen R7, 09.11.2026) und die in Blender gebackene Körnung `game/assets/texturen/fels/fels_struktur.png`
+(`tools/oberflaeche/felstexturen_blender.py`) stehen ebenfalls unter „Alle Rechte vorbehalten“; keine Fremdquelle, keine KI.
 
 Die übrigen Dateien in diesem Ordner entstehen aus eigenen Skripten (CC BY 4.0, siehe `LICENSE-INHALTE.md`).
 

@@ -79,10 +79,10 @@ public sealed class Kartenfelsen
 /// <param name="Modell">Das Modell im Ordner <c>game/assets/modelle/</c> ohne Endung: F1 <c>natur/natur_felsen</c>, der Felswand-Satz (R4) <c>natur/natur_felswand</c>.</param>
 /// <param name="EinsinkenFaktor">Wie viel vom Einsinken des Pinsels diese Form nimmt (1: alles; die großen Wände stecken nur 5–15 % tief, Gesimse setzen auf).</param>
 /// <param name="Ueberlappung">So weit dürfen sich die Kreise der Grundfläche dieser Form mit denen der Nachbarn überdecken (Anteil der Summe der Radien).</param>
-/// <param name="HangFormt">Hat die Form eine offene Rückseite, hinter der das Gelände steigen muss („Hang mitformen“, R5)?</param>
+/// <param name="HangFormt">Hat die Form eine Rückseite (seit R7 grob geschlossen), hinter der das Gelände steigen muss („Hang mitformen“, R5)?</param>
 /// <param name="Schichtneigung">Neigung der Schichtfugen in der Wandebene in Grad (+ = nach +X steigend; aus dem Extra <c>schicht_neigung</c> des Knotens): die Bänder im Shader folgen ihr.</param>
 /// <param name="Fusslinie">Wo die Vorderseite am Boden steht (z im Modell, Meter bei Maßstab 1; der Schuttfuß davor zählt nicht) – nur für „Hang mitformen“.</param>
-/// <param name="Rueckwand">Wo die offene Rückseite endet (z im Modell, negativ): Dahinter muss das Gelände bis zur Oberkante reichen – nur für „Hang mitformen“.</param>
+/// <param name="Rueckwand">Wo die Rückseite endet (z im Modell, negativ; die Bruchfläche liegt seit R7 0,1–0,25 m davor): Dahinter muss das Gelände bis zur Oberkante reichen – nur für „Hang mitformen“.</param>
 public sealed record Felsform(string Kennung, string Name, string Knoten, double Breite, double Tiefe, double Hoehe, bool Gerichtet,
     string Modell = Felsformen.ModellF1, double EinsinkenFaktor = 1, double Ueberlappung = Felspinsel.Ueberlappung, bool HangFormt = false,
     double Schichtneigung = 0, double Fusslinie = 0, double Rueckwand = 0)
@@ -135,7 +135,7 @@ public static class Felsformen
 
     /// <summary>
     /// Die Formen: die acht aus F1 (Maße aus <c>tools/modelle/natur_felsen.py</c>) und die elf des Felswand-Satzes (R4, <c>tools/modelle/natur_felswand.py</c>;
-    /// Maße aus dem Netz der mittleren Stufe). Alle Formen haben ihren Ursprung in der Mitte der Grundfläche, die Schauseite zeigt nach +Z.
+    /// Maße aus dem Netz der feinen Stufe). Alle Formen haben ihren Ursprung in der Mitte der Grundfläche, die Schauseite zeigt nach +Z.
     /// </summary>
     public static readonly IReadOnlyList<Felsform> Alle = new Felsform[]
     {
@@ -147,18 +147,18 @@ public static class Felsformen
         new("ueberhang", "Überhang", "Ueberhang", 6.4, 4.5, 4.7, true),
         new("schuttbrocken", "Schuttbrocken", "Schuttbrocken", 0.63, 0.53, 0.42, false),
         new("felsnase", "Felsnase", "Felsnase", 3.2, 4.8, 3.2, true),
-        // Felswand-Satz (R4): große Stücke mit offener Rückseite (sie stecken im Hang), Wände überlappen zu 40–70 %
-        new("wand_gross_1", "Große Wand 1", "WandGross1", 20.4, 9.2, 16.0, true, ModellWand, 0.33, 0.6, true, 30.4, 2.0, -5.0),
-        new("wand_gross_2", "Große Wand 2 (Säulenfels)", "WandGross2", 14.0, 10.0, 18.7, true, ModellWand, 0.33, 0.6, true, -19.3, 2.9, -5.0),
-        new("wand_gross_3", "Große Wand 3", "WandGross3", 18.1, 10.4, 12.0, true, ModellWand, 0.33, 0.6, true, -21.6, 2.6, -5.5),
-        new("wand_mittel_1", "Mittlere Wand 1", "WandMittel1", 9.2, 5.7, 7.9, true, ModellWand, 0.33, 0.55, true, -37.9, 0.9, -3.0),
-        new("wand_mittel_2", "Mittlere Wand 2 (Eckstück)", "WandMittel2", 6.4, 5.1, 10.0, true, ModellWand, 0.33, 0.55, true, 24.6, 0.8, -3.0),
-        new("wand_mittel_3", "Mittlere Wand 3", "WandMittel3", 8.0, 6.3, 5.1, true, ModellWand, 0.33, 0.55, true, -18.9, 1.6, -3.2),
-        new("gesims_1", "Gesims 1", "Gesims1", 10.1, 3.9, 2.0, true, ModellWand, 0, 0.5),
-        new("gesims_2", "Gesims 2", "Gesims2", 8.5, 3.8, 3.1, true, ModellWand, 0, 0.5),
+        // Felswand-Satz (R4): große Stücke für den Hang (seit R7 hinten mit grober, geschlossener Rückseite), Wände überlappen zu 40–70 %
+        new("wand_gross_1", "Große Wand 1", "WandGross1", 20.3, 9.0, 16.0, true, ModellWand, 0.33, 0.6, true, 30.4, 2.0, -5.0),
+        new("wand_gross_2", "Große Wand 2 (Säulenfels)", "WandGross2", 14.0, 9.8, 18.5, true, ModellWand, 0.33, 0.6, true, -19.3, 2.9, -5.0),
+        new("wand_gross_3", "Große Wand 3", "WandGross3", 18.1, 10.3, 11.9, true, ModellWand, 0.33, 0.6, true, -21.6, 2.6, -5.5),
+        new("wand_mittel_1", "Mittlere Wand 1", "WandMittel1", 9.1, 5.5, 8.1, true, ModellWand, 0.33, 0.55, true, -29.9, 0.9, -3.0),
+        new("wand_mittel_2", "Mittlere Wand 2 (Eckstück)", "WandMittel2", 6.2, 4.9, 10.0, true, ModellWand, 0.33, 0.55, true, 24.6, 0.8, -3.0),
+        new("wand_mittel_3", "Mittlere Wand 3", "WandMittel3", 7.9, 6.1, 5.1, true, ModellWand, 0.33, 0.55, true, -18.9, 1.6, -3.2),
+        new("gesims_1", "Gesims 1", "Gesims1", 10.1, 3.7, 2.0, true, ModellWand, 0, 0.5),
+        new("gesims_2", "Gesims 2", "Gesims2", 8.4, 3.6, 3.1, true, ModellWand, 0, 0.5),
         new("pfeiler_1", "Pfeiler", "Pfeiler1", 6.2, 5.9, 17.4, false, ModellWand, 0.25, 0.45, false, -10.7),
-        new("pfeilerbuendel", "Pfeilerbündel", "Pfeilerbuendel", 10.2, 8.9, 13.9, false, ModellWand, 0.25, 0.45, true, -9.2, 4.0, -4.0),
-        new("schuttkegel", "Schuttkegel", "Schuttkegel", 14.3, 8.8, 3.9, true, ModellWand, 0.1, 0.7, false, -30),
+        new("pfeilerbuendel", "Pfeilerbündel", "Pfeilerbuendel", 10.2, 8.7, 14.0, false, ModellWand, 0.25, 0.45, true, -9.2, 4.0, -4.0),
+        new("schuttkegel", "Schuttkegel", "Schuttkegel", 14.1, 8.7, 3.1, true, ModellWand, 0.1, 0.7, false, -30),
     };
 
     /// <summary>
@@ -183,7 +183,7 @@ public static class Felsformen
             new("schuttbrocken", -0.8, 6.2, 30, 1.3), new("schuttbrocken", 1.6, 5.6, 110, 1.1), new("platte", 0.4, 7.4, 20, 0.6, -0.1),
         }),
         // Große Wand (R4/R5): drei große Wände nebeneinander (rund ein Drittel überlappt), ein Pfeiler am Rand und Schuttkegel davor; sinnvoll mit „Hang mitformen“.
-        // Die mittleren Wände fehlen mit Absicht: Ihre Rückseite ist offen, und von hinten (die Kamera dreht in 90°-Schritten) stünden sie hohl vor dem Hang.
+        // Die mittleren Wände fehlen (R4: offene Rückseite); seit R7 ist die Rückseite geschlossen, ob sie in die Gruppe sollen, ist offen (docs/bereiche/darstellung.md).
         new("wandgross", "Große Wand", new Gruppenstueck[]
         {
             new("wand_gross_1", 0, 0, 0, 1), new("wand_gross_2", -11.5, 1.0, 6, 0.95), new("wand_gross_3", 12.5, 1.5, -7, 0.95),

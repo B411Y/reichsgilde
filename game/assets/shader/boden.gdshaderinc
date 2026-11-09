@@ -350,7 +350,8 @@ vec3 gestein_farbe(int nr, vec3 c) {
 // Pflaster aus. Hier tragen stattdessen Rauschen in drei Größen (etwa 0,8, 2,5 und 8 m) Helligkeit und Höhe; dazu unregelmäßige Risse (Höhenlinien
 // eines Rauschens, nur stellenweise, weit weg ausgeblendet), die Körnung der Kies-Textur und in den Senken Schutt (Kies in der Schuttfarbe der
 // Gesteinsart). Die Höhe für die Mischung folgt dem Rauschen, damit Gras und Moos in unregelmäßigen Buchten über den Fels wachsen.
-Schicht felsgrund(Schicht s, vec2 p, vec3 n, vec2 dx, vec2 dy) {
+// felsgrund_wert: Farbe (rgb) und Höhe (a) aus einer Projektion p (Meter) mit ihren Ableitungen dx, dy.
+vec4 felsgrund_wert(vec2 p, vec2 dx, vec2 dy) {
 	float r1 = rausch(p * 1.25 + 2.1), r2 = rausch(p * 0.4 + 8.3), r3 = rausch(p * 0.12 + 4.4);
 	float km = massstab * 0.6;
 	vec4 k = textureGrad(texturen, vec3(p / km, float(T_KIES)), dx / km, dy / km);
@@ -369,11 +370,38 @@ Schicht felsgrund(Schicht s, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	float fleck = rausch(p * 0.33 + 12.7);
 	g = mix(g, vec3(0.075, 0.062, 0.045) * (0.8 + 0.5 * lk), smoothstep(0.62, 0.8, fleck) * 0.6);
 	g = mix(g, jahreszeit_wiese(vec3(0.08, 0.1, 0.035)) * (0.7 + 0.6 * lk), smoothstep(0.7, 0.85, 1.0 - fleck + (r3 - 0.5) * 0.3) * 0.55);
-	s.fh.rgb = mix(s.fh.rgb, g, boden_gestein_an);
-	s.fh.a = mix(s.fh.a, clamp(0.25 + 0.45 * r2 + 0.2 * r1 - 0.3 * senke + 0.2 * k.a * senke - 0.2 * riss, 0.0, 1.0), boden_gestein_an);
-	s.n = normalize(mix(s.n, n, 0.7 * boden_gestein_an));
+	return vec4(g, clamp(0.25 + 0.45 * r2 + 0.2 * r1 - 0.3 * senke + 0.2 * k.a * senke - 0.2 * riss, 0.0, 1.0));
+}
+
+// Legt Farbe und Höhe w über die Schicht; flach = wie weit die Normale zur Geländenormale zurückgeht (das Rauschen trägt kein Relief).
+Schicht felsgrund_mit(Schicht s, vec4 w, vec3 n, float flach) {
+	s.fh.rgb = mix(s.fh.rgb, w.rgb, boden_gestein_an);
+	s.fh.a = mix(s.fh.a, w.a, boden_gestein_an);
+	s.n = normalize(mix(s.n, n, flach * boden_gestein_an));
 	return s;
 }
+
+Schicht felsgrund(Schicht s, vec2 p, vec3 n, vec2 dx, vec2 dy) {
+	return felsgrund_mit(s, felsgrund_wert(p, dx, dy), n, 0.7);
+}
+
+#if BODEN_STUFE >= 2
+// Hoch (Felsen R7): Von oben gerechnet streckte sich das Rauschen an steilem Hang-Fels (über 60°, Rampe hinter einer Wand mit „Hang
+// mitformen“), der Fels sah grau und glatt aus. Hier dreiseitig wie dreiseitig(): von oben und von den Seiten X und Z, gewichtet nach der
+// Richtung des Geländes; Seiten unter 2 % Gewicht werden ausgelassen, auf fast ebenem Boden bleibt es bei einer Rechnung. Am steilen Hang
+// behält die Fläche mehr vom Relief der dreiseitigen Fels-Textur (Normale nur zu 30 statt 70 % zurück).
+Schicht felsgrund_dreiseitig(Schicht s, vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
+	vec3 b = pow(abs(n), vec3(4.0));
+	b /= b.x + b.y + b.z;
+	if (b.y > 0.98) return felsgrund(s, p.xz, n, dpx.xz, dpy.xz);
+	vec4 w = vec4(0.0);
+	float summe = 0.0;
+	if (b.y > 0.02) { w += felsgrund_wert(p.xz, dpx.xz, dpy.xz) * b.y; summe += b.y; }
+	if (b.x > 0.02) { w += felsgrund_wert(p.zy + vec2(31.7, 0.0), dpx.zy, dpy.zy) * b.x; summe += b.x; }
+	if (b.z > 0.02) { w += felsgrund_wert(p.xy + vec2(0.0, 57.3), dpx.xy, dpy.xy) * b.z; summe += b.z; }
+	return felsgrund_mit(s, w / summe, n, mix(0.3, 0.7, b.y));
+}
+#endif
 
 Schicht eben_gestein(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	Schicht s = eben(nr, p, n, dx, dy);
@@ -382,14 +410,15 @@ Schicht eben_gestein(int nr, vec2 p, vec3 n, vec2 dx, vec2 dy) {
 	return s;
 }
 
-// Der Fels am Hang: in Hoch dreiseitig, sonst von oben; in der Farbe der Gesteinsart
+// Der Fels am Hang: in Hoch dreiseitig (auch der Felsboden, R7), sonst von oben; in der Farbe der Gesteinsart
 Schicht hangfels(vec3 p, vec3 n, vec3 dpx, vec3 dpy) {
 #if BODEN_STUFE >= 2
 	Schicht s = dreiseitig(T_FELS, p, n, dpx, dpy);
+	if (boden_gestein_an > 0.0) return felsgrund_dreiseitig(s, p, n, dpx, dpy);
 #else
 	Schicht s = eben(T_FELS, p.xz, n, dpx.xz, dpy.xz);
-#endif
 	if (boden_gestein_an > 0.0) return felsgrund(s, p.xz, n, dpx.xz, dpy.xz);
+#endif
 	s.fh.rgb = gestein_farbe(T_FELS, s.fh.rgb);
 	return s;
 }
