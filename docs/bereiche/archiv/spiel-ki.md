@@ -1,6 +1,6 @@
 # Bereich spiel-ki – Archiv der älteren Entscheidungen
 
-Hier stehen die Entscheidungsabschnitte, die vor dem 25.10.2026 abgeschlossen wurden, **wörtlich** aus [../spiel-ki.md](../spiel-ki.md) verschoben (Stand 29.10.2026). Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
+Hier stehen die Entscheidungs- und Messabschnitte, die vor dem 25.10.2026 abgeschlossen wurden (Stand 29.10.2026), dazu die bis PR #274 (31.10.2026; Stand 9.11.2026), **wörtlich** aus [../spiel-ki.md](../spiel-ki.md) verschoben. Offene Punkte und die aktuellen Entscheidungen stehen in der Bereichsdatei selbst. Neue Einträge gehören dorthin, nicht hierher.
 
 ## Entscheidungen (älter)
 
@@ -104,6 +104,59 @@ Hier stehen die Entscheidungsabschnitte, die vor dem 25.10.2026 abgeschlossen wu
 | Ablauf | Zum Jahresende nach der Einrichtung, höchstens ein Abschnitt: zusammenhängende Stücke der eigenen Strecken zum Markt unter Kies bzw. Pflaster, je höchstens 100 m, der mit der kürzesten Amortisation. Danach bleibt 2 × Reserve; nicht in Not, nicht solange die Vorsichtige spart. Charakter ± 1 Jahr wie bei der Einrichtung. | 24.10.2026 |
 | Rat | Zum Antrag „Weg pflastern“ stimmt die KI dafür, wenn eigene Karren über den Abschnitt fahren oder dort viel Verkehr ist (die Stadt zahlt). | 24.10.2026 |
 | Andockstellen | `ki.wegebau` in `wirtschaft.json` (`KiWegebauDaten`), `KiRivale.WegAusbauen` und `StimmtFuerWegantrag`; gebaut vom Kern-Mitglied im Funktions-PR. | 24.10.2026 |
+
+### Fehler und Kleinkram (PR #219)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Gaunerei je Nacht | Hinterzimmer-Tafel und KI rechnen mit allen Versuchen der Nacht (`gauner.nachtVersuche` zu je `versuchFaktor` der Chance): `Unterwelt.ChanceMindestensErfolge(chance, k)` (Binomial), `ErwartetJeNacht(chance, ertrag(k))` = Σ Chance auf mindestens k Erfolge × Ertrag des k-ten. Diebstahl und eigener Einbruch: der k-te Griff holt die übrige Ware (`Warenfolge`) und den Rest der Kasse (`Bankwesen.Kassenbeute(b, k)`); Einbruch ins Wohnhaus: jeder Erfolg wieder die Beute aus der übrigen Truhe; Brand am Wohnhaus (`ErwarteterBrandschaden`) und Sabotage höchstens einmal. Mit vier Versuchen zu je ⅓ sind es 4/3 so viele Erfolge wie früher angenommen – die KI wählt deshalb **mehr** Einbrüche ins Wohnhaus, nicht weniger (Teil 1, 6 Startwerte: 1.639 → 1.850 Aufträge). Tests `KiGaunereiNachtTests`. | 27.10.2026 |
+| Sabotage einmal je Nacht | Mit der richtigen Erwartung lohnte die Sabotage: Jeder Erfolg brachte wieder 6 Stunden Stillstand, vier in einer Nacht legten eine Werkstatt zwei Arbeitsjahre still (Sabotage-Aufträge 30 → 235, Mittel der Berufe −8 %, Geldleiher −27 %). Wie der Brand am Wohnhaus wirkt eine Sabotage jetzt höchstens einmal je Nacht (Kern-Regel in `Unterwelt.Nacht`; dem Teamleiter als Designfrage gemeldet, Umsetzung siehe `kern.md`). | 27.10.2026 |
+| Karren | Die KI kaufte Karren nach Stillstand, der von Anschlägen kam, und verkaufte sie nach einem Jahr ohne Fahrt wieder (Gießereien mit drei Handkarren und vier Fahrten im Jahr). Behoben im Kern (Reparatur zählt nicht als Stillstand, siehe `kern.md`); dazu kaufen Wache und Geldleihe nie Karren (`KarrenNachkaufen` prüft `BrauchtKarren`). Tests `KiKarrenStillstandTests`. | 27.10.2026 |
+| Bürger-KI | Ratsherren gehen mit dem Geschlecht aus den Daten durch die Stadt (`Ratsherr.Geschlecht`, Datenversion 58), nicht mehr nach der Vornamenliste. | 27.10.2026 |
+
+### Personal und Talentbaum (PR #224)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Einstellen | Die KI besetzt freie Plätze nur mit Kräften, die der Betrieb einstellen darf (`Personalwesen.EinstellenVerboten` null): Anfänger der Laufbahn oder Ork/Leibeigener nach Statut, die ertragreichste wie bisher (`Kalkulation.Jahresertrag`). Die Lohnschätzung für Käufe (`HoechsterLohn`) und `Kalkulation.ErwarteterJahresgewinn` rechnen nur mit Kräften, die zur Art passen (`Wirtschaftsdaten.KraftPasst`) – auf Dauer also mit dem Gesellen bzw. Altknecht, nicht mit dem Vorarbeiter. | 28.10.2026 |
+| Befördern | Einmal am Tag in der Politikstunde nach der Meisterprüfung (`KiRivale.Personal.cs`, `Befoerdern`), vor Rat und Hinterzimmer, denn ein Brief kostet einen Aktionspunkt. Befördert wird jeder, der darf (`BefoerdernVerboten` null), die Erfahrensten zuerst, wenn sich der Brief in höchstens `KiProfil.MaxAmortisationJahre` Jahren bezahlt macht: Mehrertrag = `Jahresertrag(nächste Stufe) − Jahresertrag(jetzt)`, zur dritten Stufe plus der Erwartungswert der besten von drei gezogenen Eigenschaften (`Personalwesen.ErwarteterVorarbeiterGewinn`, über alle Kombinationen – die KI kennt die Ziehung vorher nicht). Danach bleibt die halbe Reserve (Geselle) bzw. die ganze (Vorarbeiter); nicht in der Not. | 28.10.2026 |
+| Eigenschaft | Gleich nach der Beförderung die Eigenschaft mit dem höchsten Mehrgewinn im Jahr (`Personalwesen.MehrgewinnJeJahr` = `Werkstattwesen.MehrgewinnDurch`, dieselbe Rechnung wie für Einrichtung); bei Gleichstand (Eigenschaften ohne Gulden-Wirkung: Lager, Razzia, Spuren …) die erste der Wahl, also die aus der Gruppe Ware. | 28.10.2026 |
+| Einrichtung | Die neuen Stücke ab Stufe 3 kauft die KI mit der bisherigen Regel (höchstens 4 Jahre bis bezahlt, `ErwarteterMehrgewinnJeJahr`): Werkstatt-Stück nach der kürzeren Zeit der Stufe-3-Waren, Ladentheke nach dem Erlös der Jahresmenge × 1,25 %, Lehrlingsstube nach dem früheren Gesellen – je Anfänger (Jahresertrag Geselle − Lehrling) × (1 − 1 ÷ 1,5). Dazu zum Jahresende höchstens ein Stück fürs Wohnhaus (`WohnhausEinrichtungKaufen`) nach `Wohnungswesen.MehrgewinnJeJahr` mit derselben Frist und Reserve: Vorratskammer nach Haushalt und Unterhalt, Riegel und Hund nur nach einem Einbruch im Vorjahr. | 28.10.2026 |
+| Tests | `KiPersonalTests`: befördert erst mit genug Erfahrung, Vorarbeiter höchstens einer mit gewählter Eigenschaft, ohne Geld über der halben Reserve kein Brief. `KiTests`: die Grube wird nach dem Statutwechsel mit Knechten besetzt, die Reserve trägt einen Lehrlingslohn. | 28.10.2026 |
+
+### KI nach Charakterzügen (PR #227)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Grundsatz | Der Charakter des Hauses (vorsichtig, ausgewogen, wagemutig im `KiProfil`) bleibt; die Züge des **Oberhaupts** verschieben ihn (`Familienbuch.KiNeigung` → `ZugNeigung`, `KiRivale.Zuege.cs`). Stirbt das Oberhaupt, handelt das Haus nach den Zügen des Erben. Faktoren werden multipliziert, Zuschläge addiert; Werte je Zug unter `charakterzuege.zuege.<Zug>.ki`. Ohne Abschnitt neutral. | 28.10.2026 |
+| Gierig / Großzügig | Zins der Geldleihe +4 / −3 Prozentpunkte (mindestens 4 %), Budget für Geschenke an den Rat × 0,7 / × 1,3; Großzügig holt in jeder Schänke einen Barden (mit voller Reserve). „Höhere Preise“ gibt es bei der KI nur beim Zins: Verkauf und Zutaten macht der Verwalter (PR #86). | 28.10.2026 |
+| Fleißig / Träge | Wechselschwelle × 0,8 / × 1,25 (stellt schneller bzw. seltener auf ein besseres Produkt um); die Arbeitsleistung kommt über Handwerk ±1. Erst gebaut: Fleißig übt, sobald die Aktionspunkte reichen, Träge übt nie – das machte den Schmied in der Messung reicher, ohne dass es der Zug allein erklärt; jetzt nur noch als Schalter `ki.ueben` (+1/−1) in den Daten, ungenutzt. | 28.10.2026 |
+| Fromm / Zynisch | Ablass schon, wenn danach ein Viertel statt der Hälfte der Reserve bleibt / erst mit voller Reserve; Fromm tritt nie zum fremden Stadtglauben über (zahlt lieber den Glaubenszins). Pilger wie Fromm beim Ablass. | 28.10.2026 |
+| Mutig / Feige | Raubfurcht für die Eskorte (Karren, Schiffe) × 0,85 / × 1,5; Feige: Käufe, Ausbau und Beförderung müssen sich ein Jahr früher bezahlt machen (`Amortisationsjahre`, mindestens 1). Mutig wartete erst auch ein Jahr länger – das trieb Häuser in die Not (Karren in Not, siehe Messung) und ist gestrichen. | 28.10.2026 |
+| Ehrlich / Verschlagen | Bezahlte Gaunerstücke im Jahr −1 / +1 (`Gaunerbudget`) – aber nur bei einem Haus, das seinem Charakter nach Gaunerstücke nutzt: Das vorsichtige Haus heuert auch mit verschlagenem Oberhaupt nie eine Bande an, und Ehrlich senkt nie unter eins (wirkt also beim wagemutigen Haus, 2 → 1). Dazu beschenkt Ehrlich vor dem Gerichtstag keine Richter (`unbestechlich`). Erst ließ Ehrlich das ausgewogene Haus ganz ohne Gaunerstücke – die Diebstähle der KI fielen um ein Viertel und alle Handwerke wurden reicher. Entscheidung des Teamleiters (Prüfung #227). | 28.10.2026 |
+| Geduldig / Jähzornig | Klage in Beweisen (`klageBeweise` +1 / −1): ohne Zug ab den Beweisen für einen sicheren Schuldspruch (heute 3 × 10 gegen 25), Geduldig erst mit einem Beweis mehr (4), Jähzornig schon mit einem weniger (2), nie unter der Schuldschwelle (15 → 2 Beweise); dann meldet die KI „genug für eine Anklage“ statt „sicherer Schuldspruch“. Ein Faktor auf die Beweiskraft (erst × 1,15 / × 0,8) wirkte bei Zehnerschritten gar nicht bzw. nur zufällig. Wechselschwelle × 1,3 / × 0,7. Das zuerst gebaute „ein Verlustjahr mehr vor dem Verkauf“ ist gestrichen (Not, siehe Messung). | 28.10.2026 |
+| Gesellig / Scheu | Geschenke × 1,2 / × 0,8; Barde immer / nie. | 28.10.2026 |
+| Bescheiden / Hochmütig | Keine Wohnhaus-Einrichtung / in der Brautschau zählt je Standesstufe der Braut +25 %. Die zuerst gebaute längere Frist für Wohnhaus-Einrichtung und +50 % je Stufe sind gestrichen (Not, siehe Messung). | 28.10.2026 |
+| Messung | `messen bericht 20 30` auf main `b59a372` + `d5985f5` gegen main ohne Züge: KI ÷ gleiche Strategie (Median) 1,08 → 1,01, „Schwer“ 1,73 → 1,79; Diebstahl der KI 0,85 → 0,80 je Jahr, Einbruch 0,60 → 0,69; Karren in Not 7 → 7 (1.320 Partien; vor dem Nachsteuern 12). Die Not trafen vor allem Häuser mit mutigem (weniger Eskorte, längere Amortisation), hochmütigem (teure Brautschau) und geduldigem Oberhaupt (Verlustbetriebe länger). Einzelheiten in WIRTSCHAFTSMODELL, „Charakterzüge (PR #227)“. | 28.10.2026 |
+| Richter | Die KI rechnet Geschenke mit der Bestechlichkeit des Ratsherrn (`Stadtrat.GunstJeGulden`) – Wahl, Statut, Gericht. | 28.10.2026 |
+
+### KI nach Meinungen (PR #231)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Rat: Aktivitäten vor Geschenken | Für jeden Ratsherrn, dessen Stimme fehlt (Wahl, eigener Statut-Antrag, Richter vor dem Gerichtstag), plant die KI zuerst eine Aktivität: eine, die ihr Oberhaupt selbst mag (Gesellig zecht, Fromm geht zur Messe, Klug spielt Brettspiel, Mutig jagt, Hochmütig lädt zum Gastmahl), sonst die mit der besten erwarteten Wirkung beim Ratsherrn – nie eine, die ihr Oberhaupt nicht mag, nie mit erwartetem Verlust, nur mit voller Reserve danach. Den Rest schließt ein Geschenk, nach der wirklichen Wirkung gerechnet (nie mehr als ein Geschenk allein gekostet hätte). Reichen die Aktionspunkte für Aktivitäten und Geschenke nicht, plant sie wie früher nur mit Geschenken („halbe Bestechung“ bleibt verboten). Das Bestechungsrisiko zählt nur auf die Geschenke (`KiRivale.Meinungen.cs`). | 28.10.2026 |
+| Häuser untereinander | Meinung des eigenen Oberhaupts über das andere (`MeinungUeber`): ab +25 (`meinungen.wirkung.kiVerschontAb`) verschont – keine Gaunerstücke, keine eigenen Diebe, kein Spitzel, Klage erst mit einem Beweis mehr; bis −25 (`kiVerhasstAb`) verhasst – erstes Ziel der Gaunerstücke (der Verhassteste zuerst, auch wenn er hinten liegt), Spitzel auch auf ein Haus hinter ihr, Klage schon mit einem Beweis weniger (nie unter der Schuldschwelle). Bei Wahlen: Gefahr = Reinvermögen × (1 − Meinung × 1 %), mindestens ein Zehntel – ein geliebtes Haus wirkt weniger gefährlich; ein verschuldetes Haus bleibt nach seinem Reinvermögen geordnet (sonst kehrte sich die Rechnung um, Befund der Prüfung). „Ertappt“ erkennt das Opfer am ganzen Namen seines Betriebs bzw. Wohnhauses (erst über Teilwörter). | 28.10.2026 |
+| Woher die Meinung kommt | Feste Gründe (Züge, Volk, Glaube, Stand) und Taten: Klage −15, ertappter Diebstahl/Sabotage/Überfall −20, Stimme im Rat ±5, Fest +5. Ein Haus, das die KI bestiehlt und dabei erkannt wird, macht sie sich so zum Feind – vorher galt nur „hat geschadet“ (Beweise). | 28.10.2026 |
+| Brautschau | Die KI rechnet mit `GuldenJeZuneigung(konto, kandidat)` – ein Kandidat, der ihr Oberhaupt mag, ist billiger. | 28.10.2026 |
+| Messung | `messen bericht 20 30` auf main `391874f5` + `13531d4d`: Geschenke der KI je Jahr (Messspieler, ein Betrieb) −25 … −92 → −14 … −55, KI ÷ Bezug (Median) 1,01 → 1,11, „Schwer“ 1,79 → 1,78, Diebstahl 0,80 → 0,81, Einbruch 0,69 → 0,66, Sabotage 0,01 → 0,02 je Jahr, Karren in Not 7 → 8; verheiratet nach 3 Jahren 88/90 wie main. In 3 Startwerten × 12 Jahren hinterlassen KI-Häuser 88 Gründe aus Aktivitäten bei Ratsherren (Test `KiMeinungTests`). Einzelheiten in WIRTSCHAFTSMODELL, „Meinungen und Aktivitäten (PR #231)“. | 28.10.2026 |
+
+### Schankschluss (PR #274)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Befund | „114–116 von 123 Einwohnern 22–23 Uhr in der Schänke“ (Ton-Messung, Wirt, Startwerte 1400 und 99) ist ein Zählfehler der Sonde, kein Fehler des Kerns: Sie rief `Einwohner.Wo(uhr)` mit `UhrzeitInMinuten` statt `VergangeneMinuten` auf. Ab dem zweiten Tag liegt die Uhrzeit vor jedem Abmarsch, also kam der Startort des letzten Weges heraus – die Schänke, aus der die Gäste um 22 Uhr heimgingen (nachgerechnet: 116,0 bzw. 113,7). Richtig gezählt ist die Schänke ab 22:10 leer und um 22:45 sind 122 von 123 daheim. Die Darstellung rechnet mit `VergangeneMinuten` und war nie betroffen. | 31.10.2026 |
+| Absicherung | Datenprüfung: `buerger.handlungen.Einkehren.bis` ≤ `Gastwirtschaft.SchliesstUm` (22), sonst säßen Einwohner in der geschlossenen Schänke; ebenso `Arbeiten.bis`, sobald eine Rolle `arbeitsort` Schaenke hat (heute keine). Ein zu früher Beginn (`Einkehren.von` vor `gastwirtschaft.oeffnetUm`) wird wie bisher nur mit Kopplung geprüft (`Wirtschaftsdaten`, Kern; heute beide 12 Uhr). Der Parameter von `Wo`, `IstUnterwegs` und `IstAngekommen` heißt jetzt `vergangeneMinuten`, der Kommentar warnt vor der Uhrzeit. Test `BuergerSchankschlussTests` (Wirt, Startwerte 1400 und 99, drei Tage): ab 22 Uhr wählen alle Ruhen daheim, wer geht, geht aus der Schänke ins eigene Haus, ab 22:10 ist jede Schänke leer, um 22:50 ist niemand mehr unterwegs, bis 23 Uhr bleibt sie leer; dazu die Datenprüfung mit `bis` = 23 (Einkehren, Arbeiten mit Schankrolle). Verhalten unverändert. | 31.10.2026 |
+| Mittagsandrang | Echt, aber keine Regel verletzt: Um 12 Uhr wählen 92–107 von 123 Einwohnern Einkehren, kurz vor 13 Uhr sitzen bis zu 107 (Startwert 1400) bzw. 103 (99) in der einen Schänke, abends um 21:45 bis 84 bzw. 78. Ursache: Vergnügen wächst ab 4 Uhr um 5 je Stunde (mittags etwa 40), Einkehren stillt 40 + 5 Ruhe, Arbeiten 25 (+ 5 Beharrung). Eine Kapazität für Einwohner gibt es nicht (`Gastwirtschaft.SitzplaetzeImRaum` = 12 begrenzt nur die Gäste, die der Innenraum zeigt); Gäste und Umsatz hängen nur am Verhältnis zum Üblichen je Uhrzeit (Faktor 1 ± 0,5), der Andrang kostet oder bringt also nichts. Nicht erfunden, als Designfrage gemeldet (siehe „Offen“). | 31.10.2026 |
 
 ## Messungen (älter)
 
@@ -254,3 +307,25 @@ Gemessen auf main `821bc97` + Funktions-Branch `phase5/balancing-1` mit Kern Sch
 - **Gekaufte Stücke** je KI-Haus in 30 Jahren: ausgewogen Ø 4,9, vorsichtig Ø 3,8, wagemutig Ø 5,0. Jedes Haus kauft Gutes Werkzeug, Meisterwerkzeug (ab Stufe 2), Lederschürzen und das Sonderstück seines Handwerks (Blasebalg, Leimofen, Flaschenzug); die Eisentür 52-mal (ausgewogen) bzw. 60-mal (wagemutig), bei den Vorsichtigen nie – dort stiehlt kein KI-Haus. Regale, Löschfass und die Stücke der Umlandbetriebe nie (keine Gulden-Wirkung, kein Brand bzw. keine Einrichtung).
 - **Stand am Ende:** ausgewogen Edler 58, Patrizier 2 → Edler 29, Freiherr 31; vorsichtig Edler 34, Freiherr 23, Gemeiner 3 → Edler 16, Freiherr 41, Gemeiner 3; wagemutig Edler 28, Patrizier 32 → Edler 55, Freiherr 4, Patrizier 1. Kein Haus bankrott.
 - Die Werkzeuge (10 % schneller je Stück, für alle Waren) machen sich deutlich unter 4 Jahren bezahlt; der große Zuwachs zeigt, dass die Einrichtung für jeden lohnt, der sie kauft – auch für den Spieler. Die gemeinsame Messung mit den neuen Kern-Werten macht der Teamleiter.
+
+### KI nach Meinungen (PR #231)
+
+Gemessen auf main `391874f5` (bis `b9825f32` nur Infra) + `13531d4d`, `messen bericht 20 30` gegen main (Werte von main gleich `balancing-2026-10-28-charakterzuege.json`) → `docs/messungen/balancing-2026-10-28-meinungen.json`: KI ÷ Bezugsspieler mit der Strategie der KI (Median) 1,01 → 1,11, davongezogen 3 → 3 von 90, abgeschlagen 1 → 1; „Schwer“ 1,79 → 1,78; Geschenke der KI-geführten Messspieler je Jahr −25 … −92 → −14 … −55 (Aktivitäten statt Geschenke, Abnahme je weiterem Geschenk), Familienkosten +6 … +29 (Aktivitäten); Diebstahl 0,80 → 0,81, Einbruch 0,69 → 0,66, Sabotage 0,01 → 0,02 je Jahr; Spitzel 91 → 92, Gericht 231 → 216 je Jahr; Karren in Not 7 → 8. Sonde (30 Partien): KI-Häuser verheiratet nach 3 Jahren 88/90 wie main, nach 6 Jahren 90/90 (main 89/90).
+
+### Schankschluss (PR #274)
+
+Gemessen auf main `24963d29` + PR #274, Wirt-Partie (Spieler Wirt, eine Schänke, 123 Einwohner), Startwerte 1400 und 99, Tage 2–4, alle 5 Minuten mit `Wo(VergangeneMinuten)` gezählt; Ø je Viertelstunde, in Klammern der Höchstwert. Vorher und nachher zeichengleich (die Änderung prüft nur Daten); „Sonde“ = dieselbe Zählung mit der Uhrzeit wie in der Ton-Messung:
+
+| Uhr | Schänke 1400 | daheim 1400 | unterwegs 1400 | Schänke 99 | daheim 99 | unterwegs 99 | Sonde Schänke 1400 / 99 |
+|---|---|---|---|---|---|---|---|
+| 20:00 | 10,4 (26) | 16,6 | 68,4 | 8,3 (20) | 11,2 | 74,9 | 24,7 / 20,0 |
+| 20:45 | 35,8 (42) | 76,2 | 10,3 | 38,3 (47) | 71,0 | 13,0 | 24,7 / 20,0 |
+| 21:00 | 18,7 (36) | 39,0 | 64,7 | 21,9 (44) | 37,3 | 63,1 | 37,3 / 40,0 |
+| 21:45 | 78,0 (84) | 43,4 | 0,9 | 73,0 (78) | 48,6 | 0,8 | 37,3 / 40,0 |
+| 22:00 | 29,3 (65) | 43,7 | 49,3 | 26,4 (65) | 48,7 | 47,2 | 116,0 / 113,7 |
+| 22:15 | 0 (0) | 46,4 | 75,9 | 0 (0) | 52,9 | 69,4 | 116,0 / 113,7 |
+| 22:30 | 0 (0) | 87,4 | 34,9 | 0 (0) | 95,3 | 27,0 | 116,0 / 113,7 |
+| 22:45 | 0 (0) | 122,1 | 0,2 | 0 (0) | 121,8 | 0,6 | 116,0 / 113,7 |
+
+- In der Viertelstunde ab 22:00 sitzen nur noch die, deren Abmarsch (0–9 Minuten nach der vollen Stunde) noch nicht gekommen ist; ab 22:10 ist die Schänke leer. Zwischen den vollen Stunden ist ein guter Teil der Stadt unterwegs (Wege 30 ± 10 Minuten), um 21:15 etwa 96 und um 22:15 etwa 69–76 auf dem Weg zur bzw. von der Schänke.
+- Gäste und Umsatz der Schänke (Tage 1–10) und `messen 30 20` (Eisenbart Ø 176.661, Eichwald Ø 135.108, Kieselbach Ø 172.261) zeichengleich mit main.
