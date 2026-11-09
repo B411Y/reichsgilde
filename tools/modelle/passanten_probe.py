@@ -112,6 +112,8 @@ AUFRECHT_REST = 3.0
 SCHRITT = {"Gehen": 1.15, "Tragen": 1.35}
 # Arme locker (Klicktest 08.11.: Hände vor dem Bauch): Ellbogenbeugung beim Gehen und Stehen um diesen Faktor kleiner
 LOCKER = {"Gehen": 0.45, "Stehen": 0.6}
+# Clips, die in der Quelle keine Schleife sind: Ende an den Anfang angleichen (Runde 4: Bücken sprang am Schleifenende)
+SCHLEIFE_SCHLIESSEN = {"Buecken"}
 
 FIGUREN = {
     "mann": {"datei": "passant_probe.glb", "gender": 1.0, "varianten": ("cotte", "gugel", "rock")},
@@ -123,8 +125,8 @@ VORSCHAU = {
     "cotte": {1: (0.45, 0.22, 0.17), 2: (0.30, 0.26, 0.21), 3: (0.72, 0.52, 0.40), 4: (0.20, 0.13, 0.08), 5: (0.6, 0.5, 0.3)},
     "gugel": {1: (0.30, 0.36, 0.24), 2: (0.24, 0.24, 0.25), 3: (0.72, 0.52, 0.40), 4: (0.22, 0.15, 0.10), 5: (0.43, 0.20, 0.15)},
     "rock": {1: (0.24, 0.30, 0.40), 2: (0.34, 0.28, 0.19), 3: (0.72, 0.52, 0.40), 4: (0.48, 0.26, 0.13), 5: (0.6, 0.5, 0.3)},
-    "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.76, 0.72, 0.62)},
-    "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.80, 0.77, 0.68)},
+    "haube": {1: (0.52, 0.40, 0.24), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.62, 0.56, 0.44)},
+    "gebende": {1: (0.32, 0.22, 0.26), 2: (0.30, 0.26, 0.21), 3: (0.74, 0.55, 0.44), 4: (0.33, 0.22, 0.13), 5: (0.56, 0.60, 0.66)},
 }
 
 
@@ -399,7 +401,7 @@ def koerper_zonen(koerper, masse):
     def knoechel(v):
         if knochen(v) not in ("calf_l", "calf_r", "foot_l", "foot_r", "ball_l", "ball_r"):
             return None
-        return v.co.z - (masse["knoechel"] + 0.055)
+        return v.co.z - (masse["knoechel"] - 0.004)
 
     # Der Gürtel sitzt auf dem Rock (rock_bauen): am Körper liegt er darunter und bleibt Gewand
     for feld in (ausschnitt, lambda v: manschette(v, "l"), lambda v: manschette(v, "r"), knoechel):
@@ -504,9 +506,15 @@ def kopf_aussparen(koerper, masse, art, name):
 
     weg = []
     for f in bm.faces:
-        if sum(kopfanteil(v) for v in f.verts) / len(f.verts) < 0.6:
-            continue
         c = f.calc_center_median()
+        if sum(kopfanteil(v) for v in f.verts) / len(f.verts) < 0.6:
+            # Gugel: auch Schultern und Brust unter dem Schulterkragen (Runde 4: rotbraune Pünktchen = Cotte durch den Kragen)
+            if art == "gugel" and c.z > masse["kragen"] + 0.03 and gesicht_wert(c, masse, art) > 0.35:
+                weg.append(f)
+            # Gebende: Nacken und Schultern unter dem Schleier (hinten)
+            elif art == "gebende" and c.y > masse["kopfmitte"].y + 0.01 and c.z > masse["schluesselbein"] - 0.04 and abs(c.x) < 0.2:
+                weg.append(f)
+            continue
         if art in ("gugel", "gebende"):
             bedeckt = gesicht_wert(c, masse, art) > 0.35
         else:
@@ -593,7 +601,7 @@ def kopfteil_bauen(koerper, masse, name, art):
         neu.append(v.co + v.normal * d)
     for v, c in zip(bm.verts, neu):
         v.co = c
-    for _ in range(3):
+    for _ in range(7 if art == "haube" else 3):   # Haube: der Rand an den Ohren war unruhig (Runde 4)
         bmesh.ops.smooth_vert(bm, verts=[v for v in bm.verts if not v.is_boundary], factor=0.5,
                               use_axis_x=True, use_axis_y=True, use_axis_z=True)
     bm.to_mesh(obj.data)
@@ -748,27 +756,29 @@ def schuh_bauen(koerper_quelle, s, masse):
             fuss.append(v.co.copy())
     xm = sum(p.x for p in fuss) / len(fuss)
     breite = max(p.x for p in fuss) - min(p.x for p in fuss)
-    ferse, zehe = max(p.y for p in fuss) + 0.008, min(p.y for p in fuss) - 0.035   # Spitze 3,5 cm über die Zehen
-    sohle = min(p.z for p in fuss) - 0.004
-    schaft = masse["knoechel"] + 0.085
+    ferse, zehe = max(p.y for p in fuss) + 0.004, min(p.y for p in fuss) - 0.014   # Spitze gut 1 cm über die Zehen
+    sohle = min(p.z for p in fuss) - 0.002
+    # Runde 4 (Nutzer: „klobig“): flacher Halbschuh statt hohem Schaft – Oberkante knapp über dem Knöchel, das Bein endet darin
+    # (Schnitt am Knöchel, koerper_zonen); kaum breiter als der Fuß
+    schaft = masse["knoechel"] + 0.012
     ball_t = (ferse - masse[f"ballen_{s}"].y) / (ferse - zehe)
 
     def schnitt(t):
         # halbe Breite, Höhe der Oberkante, Versatz der Mitte zur Innenseite (die Spitze zeigt leicht nach innen)
-        b = breite / 2 + 0.010
+        b = breite / 2 + 0.003
         if t < 0.15:
-            hb = b * (0.72 + 0.28 * t / 0.15)
-        elif t < 0.75:
+            hb = b * (0.70 + 0.30 * t / 0.15)
+        elif t < 0.7:
             hb = b
         else:
-            hb = b * max(0.0, 1 - (t - 0.75) / 0.25) ** 0.8
-        if t < 0.42:
+            hb = b * (1 - 0.62 * ((t - 0.7) / 0.3) ** 1.5)   # vorn rund zulaufend, nicht spitz
+        if t < 0.38:
             oben = schaft
         else:
-            u = min((t - 0.42) / 0.45, 1.0)
-            oben = schaft + (sohle + 0.055 - schaft) * (u * u * (3 - 2 * u))
-        if t > 0.9:
-            oben = sohle + 0.055 - (t - 0.9) / 0.1 * 0.02
+            u = min((t - 0.38) / 0.42, 1.0)
+            oben = schaft + (sohle + 0.038 - schaft) * (u * u * (3 - 2 * u))
+        if t > 0.88:
+            oben = sohle + 0.038 - (t - 0.88) / 0.12 * 0.008   # Zehenkappe rund, nicht keilförmig
         return hb, oben
 
     n_t, n_r = 10, 10
@@ -797,7 +807,7 @@ def schuh_bauen(koerper_quelle, s, masse):
     hinten = bm.verts.new(zentren[0] + Vector((0, 0.004, 0)))
     for j in range(n_r):
         bm.faces.new((reihen[0][0][(j + 1) % n_r], reihen[0][0][j], hinten))
-    spitze = bm.verts.new(zentren[-1] + Vector((0, -0.012, 0.006)))
+    spitze = bm.verts.new(zentren[-1] + Vector((0, -0.006, 0.0)))
     for j in range(n_r):
         bm.faces.new((reihen[-1][0][j], reihen[-1][0][(j + 1) % n_r], spitze))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
@@ -870,13 +880,15 @@ def gewichte_aufraeumen(obj):
             obj.vertex_groups[n].add([i], w, "REPLACE")
 
 
-def erhalten_markieren(obj):
+def erhalten_markieren(obj, fern=False):
     """Eckengruppe „Erhalten“ für das Verkleinern: Grenzen zwischen Stoffen und offene Ränder 1, Kopf 0,8, Hände 0,4 –
-    dort fallen weniger Ecken weg (sonst wird die Ausschnittkante wieder zur Treppe und das Gesicht kantig)."""
+    dort fallen weniger Ecken weg (sonst wird die Ausschnittkante wieder zur Treppe und das Gesicht kantig). Fernnetz: nur der Gürtel
+    (0,7; das schmale Band zerfiel sonst in Lücken)."""
     me = obj.data
     gruppe = obj.vertex_groups.new(name="Erhalten")
     kopf = obj.vertex_groups["Head"].index
     haende = {obj.vertex_groups["LeftHand"].index, obj.vertex_groups["RightHand"].index}
+    guertel = stoff("Guertel")
     stoffe = {}
     for p in me.polygons:
         for vi in p.vertices:
@@ -887,12 +899,15 @@ def erhalten_markieren(obj):
     bm.free()
     for v in me.vertices:
         w = 0.0
-        for e in v.groups:
-            if e.group == kopf and e.weight > 0.5:
-                w = max(w, 0.8)
-            if e.group in haende and e.weight > 0.5:
-                w = max(w, 0.4)
-        if len(stoffe.get(v.index, ())) > 1 or v.index in rand:
+        if not fern:
+            for e in v.groups:
+                if e.group == kopf and e.weight > 0.5:
+                    w = max(w, 0.8)
+                if e.group in haende and e.weight > 0.5:
+                    w = max(w, 0.4)
+        if fern:
+            w = 0.7 if guertel in stoffe.get(v.index, ()) else 0.0
+        elif len(stoffe.get(v.index, ())) > 1 or v.index in rand:
             w = 1.0
         if w > 0:
             gruppe.add([v.index], w, "REPLACE")
@@ -1217,6 +1232,77 @@ def gesaess_tiefe(koerper, rig):
     return rig.data.bones["pelvis"].head_local.z - tief
 
 
+def _kurven(act, pfad):
+    """F-Kurven einer Aktion zu einem Datenpfad (auch bei geschichteten Aktionen ab Blender 4.4)."""
+    kurven = []
+    if hasattr(act, "fcurves") and act.fcurves:
+        kurven = [fc for fc in act.fcurves if fc.data_path == pfad]
+    if not kurven and hasattr(act, "layers"):
+        for schicht in act.layers:
+            for streifen in schicht.strips:
+                for bag in getattr(streifen, "channelbags", []):
+                    kurven += [fc for fc in bag.fcurves if fc.data_path == pfad]
+    return sorted(kurven, key=lambda fc: fc.array_index)
+
+
+def schleife_schliessen(rig, act):
+    """Für Clips, die keine Schleife sind (Farm_Harvest → „Buecken“): Jede Knochendrehung bekommt über den Clip verteilt den Unterschied
+    zwischen letztem und erstem Bild abgezogen (Slerp), die Hüftlage ebenso – das letzte Bild gleicht dem ersten, kein Sprung am Ende."""
+    for pb in rig.pose.bones:
+        kurven = _kurven(act, f'pose.bones["{pb.name}"].rotation_quaternion')
+        if len(kurven) == 4:
+            n = len(kurven[0].keyframe_points)
+            qs = [Quaternion([kurven[k].keyframe_points[i].co[1] for k in range(4)]) for i in range(n)]
+            for i in range(1, n):
+                if qs[i].dot(qs[i - 1]) < 0:
+                    qs[i].negate()
+            fehler = qs[0] @ qs[-1].inverted()
+            for i, q in enumerate(qs):
+                neu = Quaternion().slerp(fehler, i / max(n - 1, 1)) @ q
+                for k in range(4):
+                    kurven[k].keyframe_points[i].co[1] = neu[k]
+        lagen = _kurven(act, f'pose.bones["{pb.name}"].location')
+        for fc in lagen:
+            pk = fc.keyframe_points
+            n = len(pk)
+            d = pk[n - 1].co[1] - pk[0].co[1]
+            for i in range(n):
+                pk[i].co[1] -= d * i / max(n - 1, 1)
+        for fc in kurven + lagen:
+            for k in fc.keyframe_points:
+                k.handle_left_type = k.handle_right_type = "AUTO_CLAMPED"
+            fc.update()
+
+
+def bodenkontakt(rig, netz, act, bilder):
+    """Füße auf den Boden: Die tiefste Ecke des Netzes je Bild soll im unteren Viertel des Clips auf 0 liegen (Runde 4: die Figuren steckten im Pflaster).
+    Die Übertragung hält nur die Hüfthöhe im Verhältnis, nicht die Fußsohle; die Hüfte wird um den Unterschied gehoben bzw. gesenkt.
+    Gibt die Verschiebung in Metern zurück."""
+    rig.animation_data.action = act
+    tiefste = []
+    mw = netz.matrix_world
+    for f in range(1, bilder + 2):
+        bpy.context.scene.frame_set(f)
+        dg = bpy.context.evaluated_depsgraph_get()
+        ev = netz.evaluated_get(dg)
+        me = ev.to_mesh()
+        tiefste.append(min((mw @ v.co).z for v in me.vertices))
+        ev.to_mesh_clear()
+    rig.animation_data.action = None
+    # unteres Viertel der tiefsten Punkte je Bild: der Standfuß steht auf 0, ein kurz abtauchender Zeh beim Abdruck hebt nicht den ganzen Clip
+    tiefste.sort()
+    d = -tiefste[len(tiefste) // 4]
+    if abs(d) > 0.002:
+        lokal = rig.data.bones["Hips"].matrix_local.to_3x3().inverted() @ (rig.matrix_world.to_3x3().inverted() @ Vector((0, 0, d)))
+        for fc in _kurven(act, 'pose.bones["Hips"].location'):
+            for k in fc.keyframe_points:
+                k.co[1] += lokal[fc.array_index]
+                k.handle_left[1] += lokal[fc.array_index]
+                k.handle_right[1] += lokal[fc.array_index]
+            fc.update()
+    return d
+
+
 def sitz_messen(rig, netz, act, tiefe):
     """Höhe des Gesäßes über den Fußsohlen beim Sitzen (erstes Bild): Hüftknochen minus Gesäßtiefe, gegen die tiefste Ecke."""
     rig.animation_data.action = act
@@ -1311,7 +1397,8 @@ def last_bauen(rig, tragen):
     ruhe_l = mw @ rig.data.bones["LeftHand"].matrix_local
     ruhe_r = mw @ rig.data.bones["RightHand"].matrix_local
     mitte = (hl.to_translation() + hr.to_translation()) / 2
-    breite = max(0.30, (hl.to_translation() - hr.to_translation()).length - 0.04)
+    # schmaler als der Abstand der Handgelenke: die gekrümmten Finger stachen sonst durch die Seiten (Runde 4)
+    breite = max(0.26, (hl.to_translation() - hr.to_translation()).length - 0.11)
     rig.animation_data.action = None
     bpy.context.scene.frame_set(1)
     groesse = Vector((breite, 0.30, 0.26))
@@ -1421,9 +1508,8 @@ def figur_bauen(art, quellen):
             obj = zusammenfuegen(liste, f"{stufe}_{variante}")
             vorher = dreiecke(obj)
             gewichte_aufraeumen(obj)
-            if stufe == "Nah":
-                erhalten_markieren(obj)
-            nachher = verkleinern(obj, ziel, stufe == "Nah")
+            erhalten_markieren(obj, fern=stufe == "Fern")
+            nachher = verkleinern(obj, ziel, True)
             zonen_setzen(obj)
             bericht["netze"][obj.name] = {"dreiecke_vorher": vorher, "dreiecke": nachher, "ecken": len(obj.data.vertices)}
             netze.append(obj)
@@ -1445,6 +1531,9 @@ def figur_bauen(art, quellen):
         neu, bilder = uebertragen(quellen[q], rig, clip_aktion(clip), name)
         aktionen[name] = (neu, bilder)
         bericht["bewegungen"][name] = {"quelle": q, "clip": clip, "bilder": bilder, "sekunden": bilder / FPS}
+        if name in SCHLEIFE_SCHLIESSEN:
+            schleife_schliessen(rig, neu)
+        bericht["bewegungen"][name]["boden_korrektur_m"] = bodenkontakt(rig, netze[0], neu, bilder)
     for name in ("Gehen", "Tragen"):
         bericht["bewegungen"][name]["tempo_m_s"] = tempo_messen(rig, aktionen[name][0], aktionen[name][1])
     sitz, sohle = sitz_messen(rig, netze[0], aktionen["Sitzen"][0], tiefe)
