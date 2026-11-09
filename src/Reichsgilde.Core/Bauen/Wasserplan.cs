@@ -249,17 +249,39 @@ public sealed class Wasserplan
 
     private (List<Wasserquerung>, List<Wegsperre>, List<Faehrverbindung>) Rechnen()
     {
+        (List<Wasserquerung>, List<Wegsperre>, List<Faehrverbindung>)? stand = null;
+        foreach (var _ in RechnenSchritte(s => stand = s)) { }
+        return stand!.Value;
+    }
+
+    /// <summary>
+    /// Rechnet den Plan in Häppchen, ein Weg je Häppchen (für einen Hintergrund-Lauf: die Startwege der Kartenprüfung, Kartenentwurf.StartwegSchritte);
+    /// dasselbe wie beim ersten Lesen. Hat ihn inzwischen jemand gelesen (und damit gerechnet), endet die Folge ohne Neues.
+    /// </summary>
+    internal IEnumerable<int> Schritte()
+    {
+        if (_stand is not null) yield break;
+        (List<Wasserquerung>, List<Wegsperre>, List<Faehrverbindung>)? stand = null;
+        foreach (var _ in RechnenSchritte(s => stand = s)) yield return 0;
+        _stand ??= stand;
+    }
+
+    private IEnumerable<int> RechnenSchritte(Action<(List<Wasserquerung>, List<Wegsperre>, List<Faehrverbindung>)> fertig)
+    {
         var querungen = new List<Wasserquerung>();
         var sperren = new List<Wegsperre>();
         var faehren = new List<Faehrverbindung>();
         var wasser = _gelaende.Wasser;
         if (!wasser.IstLeer)
             for (var w = 0; w < _wege.Count; w++)
+            {
                 WegRechnen(w, querungen, sperren);
+                yield return 0;
+            }
         for (var n = 0; n < _uebergaenge.Count; n++)
             if (_uebergaenge[n] is { Art: Uebergang.Faehre } u && u.Von is { Length: >= 2 } && u.Bis is { Length: >= 2 })
                 faehren.Add(FaehreRechnen(n, u));
-        return (querungen, sperren, faehren);
+        fertig((querungen, sperren, faehren));
     }
 
     /// <summary>Ein Punkt des Verlaufs an der Stelle (Meter ab dem Anfang).</summary>
