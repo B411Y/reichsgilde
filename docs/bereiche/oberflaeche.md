@@ -428,6 +428,12 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Neuer Punkt | Der Kern meldet das nicht. Die Hauptszene liest die freien Punkte jedes Bild (Oberhaupt, Ehepartner, Erbe) und zeigt in der Kopfzeile „n Punkte frei“ (grün, Tooltip nennt die Personen, Klick öffnet den Lebensweg dieser Person). Wird bei einer Person ein Punkt neu frei, kommt eine Meldung „Neuer Punkt der Lebensweise: …“ als Siegel (Art „Familie“ in `meldungen.json`, Hinsehen öffnet das Fenster der Person). Nach dem Laden gibt es keine Meldung für schon freie Punkte. | 08.11.2026 |
 | Lexikon | Neuer Eintrag „Lebensweise“ mit den Zahlen aus den Daten (`lebensweise_grund`, `lebensweise_jestern`, `lebensweise_jeap`); die Tooltips verweisen darauf. | 08.11.2026 |
 
+### Hilfe-Mauszeiger (PR „Oberfläche: Hilfe-Mauszeiger nach Vorlage“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen | Messing-Dreieck mit Fragezeichen nach einer Vorlage des Nutzers (mit Gemini erstellt, Herkunft im Protokoll); freigestellt mit `tools/oberflaeche/zeiger_hilfe.py`, Höhe 48/64/80 wie die Hände, 1 Pixel dunkle Kontur, ohne Schein und ohne Hover-Fassung. Feine Gravur und Nieten gehen bei 48 Pixel weich verloren, Form und Farbe bleiben. | 09.11.2026 |
+| Einbau | `Mauszeiger` setzt `CursorShape.Help` je Größe, unabhängig von Stufe und Zustand, Zeigerpunkt (0, 0) = Dreiecksspitze; `ZeigerEntfernen` setzt ihn zurück. | 09.11.2026 |
 ### Werkstatt-Pinsel: Fehlerliste nach dem Strich, Ladebalken mit Vorwärmen (Branch phase5/werkstatt-pinsel-fluessig)
 
 | Thema | Entscheidung | Datum |
