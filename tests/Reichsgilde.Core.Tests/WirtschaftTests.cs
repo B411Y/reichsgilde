@@ -92,7 +92,7 @@ static class Datenpfad
 
     /// <summary>
     /// Die Werte wie bis Datenversion 74, vor dem Balancing nach dem Handgeld (Datenversion 75): Taschendiebe werden mit 0,012 je Stunde gefasst
-    /// (jetzt 0,009), Moschusduft kostet 226 und Fechterduft 215 (jetzt 220 und 210) – für die Vergleiche mit Sollwerten älterer Kerne.
+    /// (jetzt 0,009), Moschusduft kostet 226 und Fechterduft 215 (jetzt 220 und 210), das Vermächtnis ist 0,2 (jetzt 0,35) – für die Vergleiche mit Sollwerten älterer Kerne.
     /// </summary>
     public static string WieVorBalancingHandgeld(string? json = null)
     {
@@ -100,6 +100,7 @@ static class Datenpfad
         string Ersetzen(string text, string alt, string neu) => text.Contains(alt, StringComparison.Ordinal) ? text.Replace(alt, neu)
             : throw new InvalidDataException($"„{alt}“ steht nicht wie erwartet in den Daten – Datenpfad.WieVorBalancingHandgeld anpassen.");
         json = Ersetzen(json, "\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0.012");
+        json = Ersetzen(json, "\"vermaechtnis\": 0.35,", "\"vermaechtnis\": 0.2,");
         json = Ersetzen(json, "\"Moschusduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 220,", "\"Moschusduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 226,");
         return Ersetzen(json, "\"Fechterduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 210,", "\"Fechterduft\": {\n      \"typ\": \"Fertigprodukt\",\n      \"grundpreis\": 215,");
     }

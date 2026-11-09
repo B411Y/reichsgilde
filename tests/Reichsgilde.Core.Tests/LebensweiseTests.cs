@@ -349,7 +349,7 @@ static class LebensweiseTests
             Pruefe.Ungefaehr(1, w.Familien.Lebenswirkung(konto).WohnhausFaktor, 1e-12); // Hauswehr wirkt nur fürs Oberhaupt
         }),
 
-        ("Lebensweise: Erbfall – der Erbe behält seine Knoten, bekommt 20 % Vermächtnis im Pfad des Toten; dessen Knoten wirken nicht mehr", () =>
+        ("Lebensweise: Erbfall – der Erbe behält seine Knoten, bekommt 35 % Vermächtnis im Pfad des Toten (Nutzer 9.11.2026, vorher 20 %); dessen Knoten wirken nicht mehr", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (konto, f) = Haus(w, "Haus Probe");
@@ -366,7 +366,7 @@ static class LebensweiseTests
             Pruefe.Ungefaehr(zeit * 0.97, schmiede.ZeitFaktor("Dolch"), 1e-12);
             w.Familien.AnKrankheitSterben(o, "an der Probe");
             Pruefe.Gleich(erbe, f.Oberhaupt);
-            Pruefe.Ungefaehr(200, erbe.Lebensweg.Erfahrung(Talent.Handwerk), 1e-9);
+            Pruefe.Ungefaehr(350, erbe.Lebensweg.Erfahrung(Talent.Handwerk), 1e-9);
             Pruefe.Wahr(erbe.Lebensweg.HatKnoten("Marktschreier") && !erbe.Lebensweg.HatKnoten("Kniffe"), "eigene Knoten, keine des Toten");
             Pruefe.Ungefaehr(zeit, schmiede.ZeitFaktor("Dolch"), 1e-12);
             Pruefe.Ungefaehr(1 + w.Familien.Talent(konto, Talent.Verhandeln) * w.Familien.TalentDaten.Wirkung.Verhandeln + 0.01, w.Familien.VerkaufsFaktor(konto), 1e-12);

@@ -1989,7 +1989,7 @@
   "lebensweise": {
     "grund": 30, "jeStern": 5, "anteilFamilie": 0.5, "jeAp": 10,
     "zugPassend": 1.2, "zugHemmend": 0.8, "zugfaktoren": { "Gelehrt": 1.1 }, "wohnhaus": { "Bibliothek": 1.1 },
-    "vermaechtnis": 0.2,
+    "vermaechtnis": 0.35,
     "kosten": [ 100, 100, 100, 150, 150, 150, 200, 200, 200 ],
     "pfade": {
       "Verhandeln": {

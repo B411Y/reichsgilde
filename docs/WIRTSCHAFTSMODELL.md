@@ -2507,4 +2507,16 @@ Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwer
 
 **Befund Völker** (Empfehlung als offener Punkt in `docs/bereiche/kern.md`): Die Knoten der Lebensweise folgen der Lebenszeit. Nach 40 Jahren hat ein Haus je Partie (`messen lebensweg 40 30 --berufe=Schmied --voelker=Mensch,Zwerg,Elb,Halbling` auf main `efbd166d`) als Elb 19,9 Knoten, als Zwerg 16,9, als Mensch 12,6 und als Halbling 9,0. Das Vermögen folgt den Knoten aber kaum: Der Elb-Schmied hat die meisten Knoten und liegt trotzdem nur +2 bis +3 % über dem Menschen. Den Abstand von Zwerg und Halbling als Schmied macht vor allem der Völkerbonus (±5 % Leistung, etwa ±10–15 % aufs Vermögen, siehe Balancing 3). Ohne Lebensweise lag er auf main schon bei +4,6 … +15,1 bzw. −5,5 … −7,9 %. Empfehlung: Das ist eine gewollte Volksfolge, nicht glätten. Würde die Erfahrung je Jahr mit der Lebenszeit des Volkes skaliert, fielen Zwerge und Elben in Partien von 20–30 Jahren zurück, in denen ihr Oberhaupt nie stirbt.
 
+**Vermächtnis 35 %** (Entscheidung des Nutzers 09.11.2026: „ausprobieren und schauen, was die Zahlen sagen“): `lebensweise.vermaechtnis` 0,2 → 0,35. Der Erbe bekommt also 35 statt 20 % der Erfahrung des Toten in dessen Pfad, das soll den kurzlebigen Völkern helfen. Gemessen auf main `efbd166d` + 67dcd65d + diesem Wert, gleiche Startwerte (`messen bericht 40 30 --teile=2`, 20,2 Min. → `…-voelker40-vermaechtnis35.json`; `messen bericht 20 30 --teile=1` → `…-berufe-vermaechtnis35.json`; NAS mit Last 2 bis 6):
+
+| Schmied, Volk | 40 Jahre, Vermächtnis 0,2 | 0,35 | Änderung | gegen Mensch (0,2 → 0,35) |
+|---|---|---|---|---|
+| Mensch | 109.261 | 110.475 ± 2.661 | +1,1 % | 0 → 0 |
+| Zwerg | 123.036 | 123.815 ± 3.436 | +0,6 % | +12,6 → +12,1 % |
+| Elb | 112.870 | 113.543 ± 3.551 | +0,6 % | +3,3 → +2,8 % |
+| Halbling | 99.919 | 99.883 ± 2.679 | 0,0 % | −8,6 → −9,6 % |
+
+Beim Parfumeur ändert sich jedes Volk um höchstens 1,2 % (Halbling gegen Mensch −0,2 → +1,1 %). Nach 20 Jahren liegen weiter alle zehn Berufe im Band (Mittel 33.233 → 33.133, jeder Beruf höchstens ±1,5 %). Auch die Knoten nehmen nicht sichtbar zu. Nach 40 Jahren hat ein Haus je Partie als Mensch 10,8 und als Halbling 9,0 Knoten (`messen lebensweg 40 30 --berufe=Schmied --voelker=Mensch,Halbling`). Die Messung auf main mit 0,2 ergab 12,6 / 9,0; sie lief auf einem anderen Stand, die Zahlen schwanken.
+**Befund:** Die Wirkung liegt im Rauschen. Ein größerer Wert würde genauso wenig helfen, denn die Knoten bewegen das Vermögen kaum (siehe den Elb oben). 0,35 kann bleiben, weil es nicht schadet, oder auf 0,2 zurück. Wer den Abstand des Schmieds verkleinern will, muss beim Völkerbonus ansetzen (offener Punkt in `docs/bereiche/kern.md`).
+
 **Nebenbefund Spielstand:** Mit den neuen Preisen lief der Gleichheitstest bei Startwert 4711 nach dem Laden auseinander. Ursache: Das Jahresende lernt das Übliche der Einkäufe neu, den Faktor der Bürger am Markt setzt die Bürger-KI aber erst zur nächsten vollen Stunde. Beim Laden in dieser Stunde wurde der Faktor schon mit dem neuen Üblichen gerechnet, und ein Karren, der um 4 Uhr verkaufte, bekam 0,08 % weniger. Der Fehler ist behoben (`EinkaufErwartetImMarkt` im Spielstand der Einwohnerschaft). Durchgehende Partien rechnen bitgleich weiter: Die Berufe der Endmessung gleichen der Probe ohne die Behebung Zahl für Zahl.
