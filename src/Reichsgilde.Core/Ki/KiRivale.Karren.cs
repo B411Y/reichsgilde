@@ -94,13 +94,7 @@ public sealed partial class KiRivale
     internal double Durchfluss(Betrieb b, string typ) => Durchfluss(b, typ, b.LagerKapazitaetJeWare);
 
     /// <summary>Wie <see cref="Durchfluss(Betrieb, string)"/>, mit einem anderen Lager je Ware (etwa nach einer Eigenschaft des Vorarbeiters, KiRivale.Umland.cs).</summary>
-    internal double Durchfluss(Betrieb b, string typ, int lagerJeWare)
-    {
-        var daten = _w.Daten.Logistik.Karren[typ];
-        var minuten = _w.Fahrzeit(b, typ, zumMarkt: true) + _w.Fahrzeit(b, typ, zumMarkt: false);
-        var waren = Math.Max(1, b.IstWerkstatt ? Math.Max(b.WarenInArbeit.Count, b.Zutaten.Count) : b.Rohstoffe.Count);
-        return Math.Min(daten.Gesamtkapazitaet, lagerJeWare * waren) / (double)Math.Max(1, minuten);
-    }
+    internal double Durchfluss(Betrieb b, string typ, int lagerJeWare) => _w.Werkstaetten.Durchfluss(b, typ, lagerJeWare); // seit Datenversion 79 im Kern
 
     /// <summary>
     /// Was die KI für einen Betrieb erwägt, der im Vorjahr den Anteil <paramref name="stillstand"/> der Arbeitszeit stillstand:

@@ -124,13 +124,15 @@ public sealed partial class KiRivale
 
     /// <summary>
     /// Was eine Eigenschaft des Vorarbeiters diesem Betrieb im Jahr einbringt (<see cref="EigenschaftWaehlenNachGewinn"/>). Grundsätzlich die Rechnung
-    /// des Kerns (<see cref="Personalwesen.MehrgewinnJeJahr"/>), die mehr Lager nicht bewertet. Ein Umlandbetrieb, der im Vorjahr ab
+    /// des Kerns (<see cref="Personalwesen.MehrgewinnJeJahr"/>; mehr Lager bewertet sie erst seit Datenversion 79, siehe unten). Ein Umlandbetrieb, der im Vorjahr ab
     /// <see cref="KiProfil.StillstandFuerKarrenkauf"/> stillstand, weil die Karren nicht nachkommen (Fahrzeit nach Weglänge), bewertet sie wie
     /// beim Karrenkauf:
     ///   • mehr Lager je Ware: jeder Karren lädt mehr (Durchfluss mit dem größeren Lager), der Stillstand fällt auf
     ///     <c>vorher ^ (Durchfluss nachher ÷ vorher)</c>, Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres – am Kölner Holzschlag
     ///     (nur Holz, Lager 40) fasst jeder Pferdekarren dann 60 statt 40;
     ///   • alles andere bringt nur für den Teil der Förderung etwas, der auch weggefahren wird: × (1 − Stillstand).
+    /// Seit Datenversion 79 (<c>werkstatt.jedeWirkungRechnen</c>) rechnet der Kern mehr Lager überall selbst (<see cref="Werkstattwesen.LagerMehrgewinn"/>,
+    /// dieselbe Formel); hier zählt dann nur die Rechnung oben, der Teil des Kerns wird abgezogen – sonst zählte das Lager doppelt.
     /// </summary>
     internal double EigenschaftWert(Betrieb b, string kennung)
     {
@@ -139,6 +141,7 @@ public sealed partial class KiRivale
         var vorher = Math.Clamp(b.StillstandMinutenVorjahr / (double)b.Arbeitsminuten, 0, 1);
         if (vorher < Profil.StillstandFuerKarrenkauf) return kern;
         var plus = b.EigenschaftVon(kennung)?.Wirkung.LagerPlus ?? 0;
+        if (plus > 0) kern -= _w.Werkstaetten.LagerMehrgewinn(b, plus); // 0 ohne den Schalter
         if (plus <= 0) return kern * (1 - vorher);
         var jetzt = b.Karren.Sum(k => Durchfluss(b, k.Typ));
         var nachher = b.Karren.Sum(k => Durchfluss(b, k.Typ, b.LagerKapazitaetJeWare + plus));
