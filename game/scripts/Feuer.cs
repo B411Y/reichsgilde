@@ -60,8 +60,7 @@ public partial class Feuer : Node3D
     public static float AusblendenZuschlag { get; set; }
 
     /// <summary>
-    /// Sichtebene der durchsichtigen Flächen (Flamme, Rauch, Glutbett). Im Pixel-Look zeichnet das Beleuchtungsbild jede Fläche undurchsichtig (Debug-Zeichnung kennt keine
-    /// Durchsicht) und legt Rechtecke um die Fackeln; dann stehen sie auf einer Ebene, die diese Kamera nicht sieht (<see cref="EbeneSetzen"/>, Stadtansicht.Pixel.cs).
+    /// Sichtebene der durchsichtigen Flächen (Flamme, Rauch, Glutbett). Im Pixel-Look hat das Eigenfarbenbild keine durchsichtigen Teile zu zeigen (sie liegen nach dem Nachbearbeitungs-Viereck, und es würde Rechtecke um die Fackeln legen); dann stehen sie auf einer Ebene, die diese Kamera nicht sieht (<see cref="EbeneSetzen"/>, Stadtansicht.Pixel.cs).
     /// </summary>
     public static uint Ebene { get; private set; } = 1u;
 
