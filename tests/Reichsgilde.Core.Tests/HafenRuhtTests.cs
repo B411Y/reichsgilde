@@ -101,7 +101,7 @@ static class HafenRuhtTests
         ("Hafen ruht: Datenversion 70, der Schalter schiffshandel.aktiv steht in wirtschaft.json auf false; ohne Angabe läuft der Schiffshandel (alte Daten)", () =>
         {
             var d = Wirtschaftsdaten.AusJson(Json.Value);
-            Pruefe.Gleich(78, d.Version);
+            Pruefe.Gleich(79, d.Version);
             Pruefe.Wahr(d.Schiffshandel is { Aktiv: false }, "schiffshandel.aktiv: false");
             Pruefe.Wahr(Wirtschaftsdaten.AusJson(Datenpfad.MitSchiffshandel(Json.Value)).Schiffshandel is { Aktiv: true }, "MitSchiffshandel: an");
             var ohne = Json.Value.Replace("\"schiffshandel\": {\n    \"aktiv\": false,", "\"schiffshandel\": {");

@@ -4,7 +4,7 @@ using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// KI nach der Personal-Nacharbeit (Datenversion 78, <c>werkstatt.jedeWirkungRechnen</c>): Mit der Gulden-Rechnung für Fänge und Spuren kauft ein
+/// KI nach der Personal-Nacharbeit (Datenversion 79, <c>werkstatt.jedeWirkungRechnen</c>): Mit der Gulden-Rechnung für Fänge und Spuren kauft ein
 /// KI-geführter Dieb Einrichtung (vorher keine) und wählt Vorarbeiter-Eigenschaften nach dem Nutzen; ohne den Schalter wie bisher.
 /// </summary>
 static class KiPersonalNacharbeitTests

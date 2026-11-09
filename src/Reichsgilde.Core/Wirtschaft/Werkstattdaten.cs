@@ -44,7 +44,7 @@ public sealed class WerkstattDaten
     public List<string> Spalten { get; init; } = new();
 
     /// <summary>
-    /// Datenversion 78 (Personal-Nacharbeit): Auch Wirkungen ohne direkten Ertrag bekommen eine Gulden-Rechnung in
+    /// Datenversion 79 (Personal-Nacharbeit): Auch Wirkungen ohne direkten Ertrag bekommen eine Gulden-Rechnung in
     /// <see cref="Werkstattwesen.MehrgewinnDurch"/> – mehr Lager (Ordnungsliebend, Regale), seltener gefasste Taschendiebe (Vorsichtig,
     /// Verkleidungstruhe), weniger Spuren (Verschwiegen, Lederhandschuhe), Einbruch (Einbrecher, Dietriche), Erlös des Diebesguts (Hehlerfreund),
     /// Razzia (Spürnase, Hellebarden), Streife (Streifengänger, Wachhunde) und Geleit (Geleitmann, Kettenhemden). Damit wählt die KI Vorarbeiter

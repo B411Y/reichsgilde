@@ -94,7 +94,7 @@ public sealed partial class KiRivale
     internal double Durchfluss(Betrieb b, string typ) => Durchfluss(b, typ, b.LagerKapazitaetJeWare);
 
     /// <summary>Wie <see cref="Durchfluss(Betrieb, string)"/>, mit einem anderen Lager je Ware (etwa nach einer Eigenschaft des Vorarbeiters, KiRivale.Umland.cs).</summary>
-    internal double Durchfluss(Betrieb b, string typ, int lagerJeWare) => _w.Werkstaetten.Durchfluss(b, typ, lagerJeWare); // seit Datenversion 78 im Kern
+    internal double Durchfluss(Betrieb b, string typ, int lagerJeWare) => _w.Werkstaetten.Durchfluss(b, typ, lagerJeWare); // seit Datenversion 79 im Kern
 
     /// <summary>
     /// Was die KI für einen Betrieb erwägt, der im Vorjahr den Anteil <paramref name="stillstand"/> der Arbeitszeit stillstand:

@@ -4,7 +4,7 @@ using Reichsgilde.Core.Partie;
 using Reichsgilde.Core.Wirtschaft;
 
 /// <summary>
-/// Personal-Nacharbeit (Datenversion 78, <c>werkstatt.jedeWirkungRechnen</c>): Wirkungen ohne direkten Ertrag bekommen eine Gulden-Rechnung in
+/// Personal-Nacharbeit (Datenversion 79, <c>werkstatt.jedeWirkungRechnen</c>): Wirkungen ohne direkten Ertrag bekommen eine Gulden-Rechnung in
 /// <see cref="Werkstattwesen.MehrgewinnDurch"/> – mehr Lager, Fänge, Spuren, Einbruch, Hehlerei, Razzia, Streife und Geleit. Damit wählt die KI
 /// Vorarbeiter-Eigenschaften und Einrichtung von Dieb und Wache nach dem Nutzen. Ohne den Schalter bringen sie 0 wie vorher (Gegenproben).
 /// </summary>
@@ -71,9 +71,9 @@ static class PersonalNacharbeitTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Jede Wirkung: Datenversion 78, werkstatt.jedeWirkungRechnen steht an; ohne die Angabe aus (ältere Daten)", () =>
+        ("Jede Wirkung: Datenversion 79, werkstatt.jedeWirkungRechnen steht an; ohne die Angabe aus (ältere Daten)", () =>
         {
-            Pruefe.Gleich(78, Daten.Value.Version);
+            Pruefe.Gleich(79, Daten.Value.Version);
             Pruefe.Wahr(Daten.Value.Werkstatt!.JedeWirkungRechnen, "an");
             Pruefe.Wahr(!OhneSchalter.Value.Werkstatt!.JedeWirkungRechnen, "ohne Angabe aus");
         }),

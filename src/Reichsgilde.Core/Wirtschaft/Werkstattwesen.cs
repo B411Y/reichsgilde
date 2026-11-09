@@ -464,13 +464,13 @@ public sealed class Werkstattwesen
         return Math.Max(0, mehr);
     }
 
-    // ── Wirkungen ohne direkten Ertrag (Datenversion 78, werkstatt.jedeWirkungRechnen) ──
+    // ── Wirkungen ohne direkten Ertrag (Datenversion 79, werkstatt.jedeWirkungRechnen) ──
 
     /// <summary>Rechnen auch Lager, Fänge, Spuren, Einbruch, Hehlerei, Razzia, Streife und Geleit in Gulden (<see cref="WerkstattDaten.JedeWirkungRechnen"/>)?</summary>
     public bool JedeWirkungRechnen => Daten?.JedeWirkungRechnen == true;
 
     /// <summary>
-    /// Was die Wirkungen ohne direkten Ertrag dem Betrieb im Jahr einbringen (Personal-Nacharbeit, Datenversion 78) – je eine Rechnung,
+    /// Was die Wirkungen ohne direkten Ertrag dem Betrieb im Jahr einbringen (Personal-Nacharbeit, Datenversion 79) – je eine Rechnung,
     /// erwartet aus dem Stand von jetzt oder „nach dem Vorjahr“ wie die Eisentür:
     /// <list type="bullet">
     /// <item>mehr Lager (Ordnungsliebend, Regale; Betriebe mit Ware bzw. Förderung und Karren): <see cref="LagerMehrgewinn"/></item>
