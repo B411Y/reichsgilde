@@ -11,19 +11,45 @@ namespace Reichsgilde;
 /// Bedienbar nur für Personen des eigenen Hauses (Oberhaupt, Erbe, Ehepartner); bei den Oberhäuptern anderer Häuser nur zum Ansehen.
 /// Das Fenster liest den Kern nur: Pfad und Knoten gehen als <see cref="LebenswegWaehlen"/> und <see cref="KnotenWaehlen"/> über den Boten.
 ///
-/// Die Zeichen der Pfade sind vorläufig Waren-Icons (<see cref="PfadZeichen"/>); die eigenen Zeichen und die 45 Knoten-Icons kommen als Nachtrag.
+/// Zeichen der Pfade und Icons der 45 Knoten: assets/oberflaeche/lebensweise (<see cref="PfadZeichen"/>, <see cref="KnotenDatei"/>).
 /// </summary>
 public partial class CharakterAnzeige
 {
     private bool _lebensweg;        // der Reiter „Lebensweg“ ist gewählt (statt Züge und Familie)
     private Talent? _pfadAnsicht;   // der Pfad, dessen Baum gezeigt wird (null: der aktive)
 
-    /// <summary>Waren-Icons als Platzhalter für die fünf Pfad-Zeichen (Datei ohne Endung in assets/oberflaeche/icons).</summary>
+    /// <summary>Dateien der fünf Pfad-Zeichen (ohne Endung) in assets/oberflaeche/lebensweise.</summary>
     private static readonly Dictionary<Talent, string> PfadZeichen = new()
     {
-        [Talent.Verhandeln] = "goldkette", [Talent.Handwerk] = "werkzeug", [Talent.NachtUndNebel] = "schattendolch",
-        [Talent.Kampf] = "prunkschwert", [Talent.Rhetorik] = "hetzschrift",
+        [Talent.Verhandeln] = "pfad_kaufmann", [Talent.Handwerk] = "pfad_meister", [Talent.NachtUndNebel] = "pfad_schatten",
+        [Talent.Kampf] = "pfad_schwert", [Talent.Rhetorik] = "pfad_redner",
     };
+
+    private static readonly Dictionary<string, Texture2D?> BilderSpeicher = new();
+
+    /// <summary>
+    /// Bild aus assets/oberflaeche/lebensweise (128 px, rund; mit Mipmaps eingelesen, damit es auch bei 38 oder 64 px scharf bleibt) oder null, wenn es die Datei nicht gibt.
+    /// </summary>
+    private static Texture2D? LebensweiseBild(string datei)
+    {
+        if (BilderSpeicher.TryGetValue(datei, out var bild)) return bild;
+        var pfad = "res://assets/oberflaeche/lebensweise/" + datei + ".png";
+        bild = ResourceLoader.Exists(pfad) ? GD.Load<Texture2D>(pfad) : null;
+        BilderSpeicher[datei] = bild;
+        return bild;
+    }
+
+    /// <summary>Knoten-Kennung („HueterDesHauses“) → Dateiname („hueter_des_hauses“).</summary>
+    internal static string KnotenDatei(string kennung)
+    {
+        var sb = new System.Text.StringBuilder();
+        for (var i = 0; i < kennung.Length; i++)
+        {
+            if (i > 0 && char.IsUpper(kennung[i])) sb.Append('_');
+            sb.Append(char.ToLowerInvariant(kennung[i]));
+        }
+        return sb.ToString();
+    }
 
     /// <summary>Die Reihen des Baums („Anfang“, „Mitte“, „Gipfel“): Eine Gebäudestufe ist es hier nicht.</summary>
     private static readonly string[] ReihenNamen = { "Anfang", "Mitte", "Gipfel" };
@@ -42,7 +68,7 @@ public partial class CharakterAnzeige
         ["Aktivitaet:Messe"] = "Messe", ["Aktivitaet:Brettspiel"] = "Brettspiel", ["Bekehrungspredigt"] = "Bekehrungspredigt", ["Werben"] = "Werben",
     };
 
-    private static Texture2D? PfadBild(Talent pfad) => PfadZeichen.TryGetValue(pfad, out var name) ? WarenIcons.Icon(name) : null;
+    private static Texture2D? PfadBild(Talent pfad) => PfadZeichen.TryGetValue(pfad, out var name) ? LebensweiseBild(name) : null;
 
     /// <summary>Wie viele Punkte der Lebensweise dieser Person noch auf einen Knoten warten (0 ohne Lebensweg).</summary>
     private static int FreiePunkte(Familienbuch buch, Person p) =>
@@ -165,7 +191,7 @@ public partial class CharakterAnzeige
         var texte = new TalentbaumAnsicht.BaumTexte(
             s => s.Zustand == Baumzustand.Gekauft ? "gelernt" : "1 Punkt",
             s => KnotenTipp(baum, s, zeile),
-            _ => PfadBild(ansicht));
+            s => LebensweiseBild(KnotenDatei(s.Kennung)) ?? PfadBild(ansicht)); // fehlt ein Knoten-Bild, steht das Zeichen des Pfads
         _inhalt.AddChild(TalentbaumAnsicht.Bauen(baum, "Punkt", r => ReihenNamen[Math.Clamp(r - 1, 0, ReihenNamen.Length - 1)],
             s => KnotenLernen(p, s), texte));
         if (zeile.Frei > 0 && eigen)
@@ -218,6 +244,7 @@ public partial class CharakterAnzeige
             if (eingabe is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } && _pfadAnsicht != z.Pfad)
             {
                 _pfadAnsicht = z.Pfad;
+                karte.AcceptEvent(); // sonst reicht der Klick an die Welt durch, sobald Aufbauen() die Karte freigibt (öffnete dahinter liegende Gebäude)
                 Aufbauen();
             }
         };
