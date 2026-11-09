@@ -279,19 +279,31 @@ public sealed partial class Wasserform
         return ziel;
     }
 
-    /// <summary>So steil (Meter je Meter) fällt der Grund im Verbund höchstens vom gemeinsamen Ufer ab: in Lücke und Kehle, wo das geschlossene Ufer weit ist.</summary>
+    /// <summary>
+    /// Wie der Grund im Verbund vom gemeinsamen Ufer abfällt (Lücke und Kehle, wo das geschlossene Ufer weit ist): bei u Metern vom Ufer erst
+    /// 0,3 · u + 0,85 · u² – an der Wasserkante flach wie jedes Seeufer –, ab 1 m (Tiefe 1,15 m) gerade mit <see cref="VerbundBoeschung"/>. NAS 09.11.2026:
+    /// Mit gerade 2 : 1 ab der Kante lag der Grund im 2-m-Raster des Bodens bis gut einen halben Meter vor der Wasserkante unter dem Spiegel, wo noch kein
+    /// Wasser gezeichnet ist – eine dünne dunkle Kante am Ufer der Kehle.
+    /// </summary>
     public const double VerbundBoeschung = 2.0;
+
+    /// <summary>Die Tiefe u Meter vom gemeinsamen Ufer (siehe <see cref="VerbundBoeschung"/>); die Neigung wächst stetig von 0,3 auf 2.</summary>
+    private static double Verbundgefaelle(double u)
+    {
+        const double knick = (VerbundBoeschung - Seeboeschung) / (2 * 0.85); // 1 m: dort ist die Neigung 2
+        return u <= knick ? u * (Seeboeschung + 0.85 * u) : knick * (Seeboeschung + 0.85 * knick) + (u - knick) * VerbundBoeschung;
+    }
 
     /// <summary>
     /// Die Tiefe des Sees im Verbund an einem Ort im Wasser (s &lt; 0): die Böschung des Sees (30 %) vom geschlossenen Ufer, also nicht von den Stücken des
     /// Umrisses, an denen der Lauf anliegt – Lücke und altes Ufer liegen so auf Seetiefe (Befund NAS 09.11.2026: dort war der Grund flach, ein olivgrüner
-    /// Schleier im Wasser); zum gemeinsamen Ufer hin höchstens <see cref="VerbundBoeschung"/> steil (am Rand der Lücke 0, ohne Kante zur Uferrampe).
+    /// Schleier im Wasser); zum gemeinsamen Ufer hin nach <see cref="Verbundgefaelle"/> (an der Kante flach wie ein Seeufer, ohne Kante zur Uferrampe).
     /// Vom Lauf weg (8 bis 16 m hinter seinem Ufer) geht die Tiefe in die des Sees allein über: Am Rand des Bereichs, in dem der Verbund wirkt, ist sie
     /// genau die alte (Prüfer 09.11.2026: bei einem tiefen See sprang der Grund dort sonst um mehrere Meter).
     /// </summary>
     private static double Verbundtiefe(Wasserverbund v, Kartenort p, double s, Verbundlage lage)
     {
-        var verbund = Math.Min(v.See.Tiefe, Math.Min(v.SeeuferAbstand(p.X, p.Z) * Seeboeschung, -s * VerbundBoeschung));
+        var verbund = Math.Min(v.See.Tiefe, Math.Min(v.SeeuferAbstand(p.X, p.Z) * Seeboeschung, Verbundgefaelle(-s)));
         var allein = v.See.Enthaelt(p) ? Math.Min(v.See.Tiefe, v.See.Randabstand(p) * Seeboeschung) : 0;
         return allein + (verbund - allein) * (1 - Gelaendeform.Weich((lage.SL - VerbundSpalt * 2) / (VerbundSpalt * 2)));
     }

@@ -333,7 +333,7 @@ static class WasserverbundTests
                 foreach (var z in new[] { -2.0, -5.0, -6.0, -7.0, -8.0, -10.0, -14.0 })
                 {
                     var tiefe = spiegel - w.Boden(x, z, 0, false);
-                    Pruefe.Wahr(tiefe >= 1.2, $"Tiefe bei {x}, {z}: {tiefe:0.00} m");
+                    Pruefe.Wahr(tiefe >= 1.0, $"Tiefe bei {x}, {z}: {tiefe:0.00} m");
                     // Gegenprobe: die Böschung vom gemeinsamen Ufer (Stand c_v2) gäbe dort nur flaches Wasser – der neue Grund ist deutlich tiefer
                     if (z is -6.0 or -7.0 or -8.0)
                     {
@@ -379,6 +379,28 @@ static class WasserverbundTests
                     Pruefe.Ungefaehr(allein.Gelaendeform.Wasser.Boden(x, z, 0, false), w.Boden(x, z, 0, false), 1e-9);
                 Pruefe.Wahr(w.Seen[0].Wasserstand - w.Boden(x, -9, 0, false) > 1.9, "am alten Ufer tief");
             }
+        }),
+
+        ("Wasserverbund: In der Kehle, wo ein Fluss in den See tritt, liegt der Boden (2-m-Raster) vor der Wasserkante nicht unter dem Spiegel", () =>
+        {
+            // wie die Messkarte (Blick verbund_ecke): Fluss 10 m endet im See, die Kehlen an seinem Ufer und am Westufer des Sees
+            var e = Kartenentwurf.Neu("probe", "Probe", 1200, 900, Katalog.Value);
+            e.FlussAnlegen(new[] { O(-550, -330), O(-470, -330), O(-400, -330) }, "fluss", 10);
+            e.SeeAnlegen(new[] { O(-440, -380), O(-340, -380), O(-340, -280), O(-440, -280) }, "see");
+            var g = e.Gelaendeform;
+            var spiegel = g.Wasser.Seen[0].Wasserstand;
+            var geprueft = 0;
+            foreach (var (x0, z0, dz) in new[] { (-446.0, -341.0, 1.0), (-446.0, -319.0, -1.0) }) // Süd- und Nordkehle, diagonal ins Wasser
+                for (var i = 0; i < 60; i++)
+                {
+                    var (x, z) = (x0 + 0.1 * i * 0.7071, z0 + dz * 0.1 * i * 0.7071);
+                    if (g.Wasser.Verbundabstand(x, z) is not { } st || st < 0.1 || st > 0.6) continue;
+                    geprueft++;
+                    var tiefe = spiegel - g.Hoehe(x, z);
+                    // Stand c_v3 (2 : 1 ab der Kante): bis 0,33 m unter dem Spiegel, wo noch kein Wasser gezeichnet wird – eine dunkle Kante
+                    Pruefe.Wahr(tiefe < 0.12, $"bei {x:0.00}, {z:0.00} (s {st:0.00}): Boden {tiefe:0.00} m unter dem Spiegel");
+                }
+            Pruefe.Wahr(geprueft >= 6, $"Orte an der Wasserkante geprüft: {geprueft}");
         }),
 
         ("Wasserverbund: Ein Haus in der geschlossenen Lücke steht im Wasser", () =>
