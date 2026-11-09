@@ -132,8 +132,17 @@ static class KiHafenStandortTests
             // Köln: an den Orten der Kandidatenliste, die zum Hafen führen, nach dem Bau dieselbe Zeit
             var (_, w, ki, gold, bau) = Stadt("koeln", Json.Value, Minute(1, 9));
             var kandidaten = ki.Standortkandidaten(NachLuftlinie(w, gold), Hand);
+            Pruefe.Gleich(KiRivale.StandortKandidaten, kandidaten.Count(x => x.Rang < KiRivale.StandortKandidaten), "Köln: die 20 am Markt vorn");
             var amHafen = kandidaten.Where(x => x.Rang >= KiRivale.StandortKandidaten).ToList();
-            Pruefe.Wahr(amHafen.Count > 0 && amHafen.All(x => x.ZumHafen), $"Köln: {amHafen.Count} Orte am Hafen, alle näher am Hafen");
+            Pruefe.Wahr(amHafen.Count > 0, $"Köln: {amHafen.Count} Orte am Hafen");
+            foreach (var x in amHafen) // nach den Abfragen des Kerns, nicht nach der Rechnung der KI: der Hafen ist dort der nähere Handelsort
+            {
+                var o = (WerkstattBauen)x.Ort;
+                var hafen = w.FahrzeitZumHafenAmBauort(o, Hand)!.Value + w.FahrzeitZumHafenAmBauort(o, Hand, hin: false)!.Value;
+                var markt = w.FahrzeitAmBauort(o, Hand)!.Value + w.FahrzeitAmBauort(o, Hand, zumMarkt: false)!.Value;
+                Pruefe.Wahr(hafen < markt, $"({o.X}, {o.Z}, {o.Drehung}): Hafen {hafen}, Markt {markt}");
+                Pruefe.Ungefaehr(markt - 0.75 * (markt - hafen), x.Rundfahrt, 1e-9);
+            }
             var probe = amHafen.OrderBy(x => x.Rundfahrt).First();
             Pruefe.Wahr(w.Ausfuehren(bau, probe.Ort).Erfolg, "gebaut");
             var b = w.Betriebe.Last(x => x.Konto == bau);
@@ -168,7 +177,7 @@ static class KiHafenStandortTests
             var hafen = (w.FahrzeitZumHafen(b, Hand, true)!.Value, w.FahrzeitZumHafen(b, Hand, false)!.Value);
             Pruefe.Wahr(Rund(hafen) < Rund(markt), $"Hafen {hafen} kürzer als Markt {markt}");
             Pruefe.Gleich("Rheinhafen", w.HafenVon(b)!.Kennung);
-            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains($"baut {b.Name} neu") && e.Contains($"{hafen.Item1} Minuten zum Hafen")),
+            Pruefe.Wahr(ki.Entscheidungen.Any(e => e.Contains($"baut {b.Name} neu") && e.Contains($"{hafen.Item1} Minuten zum Hafen (im Winter {markt.Item1} zum Markt)")),
                 string.Join(" | ", ki.Entscheidungen));
             var karren = b.Karren[0];
             Bis(sim, karren, KarrenZustand.ZumMarkt);

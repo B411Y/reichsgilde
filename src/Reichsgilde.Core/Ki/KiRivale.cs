@@ -658,7 +658,7 @@ public sealed partial class KiRivale
         var weg = wahl switch
         {
             { ZumHafen: true, Hafen: { } h } x => $"; der {startkarren} braucht {Zahlenformat.Ganz(h.Hin)} Minuten zum Hafen " +
-                                                  $"(zum Markt {Zahlenformat.Ganz(x.Markt.Hin)})",
+                                                  $"({(_w.Jahreszeiten.IstAktiv ? "im Winter " : "")}{Zahlenformat.Ganz(x.Markt.Hin)} zum Markt)",
             { } x => $"; der {startkarren} braucht {Zahlenformat.Ganz(x.Markt.Hin)} Minuten zum Markt",
             null => "",
         };

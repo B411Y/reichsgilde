@@ -61,7 +61,8 @@ public sealed partial class KiRivale
     /// Wie lange die Fahrt eines Karrens (hin und zurück) über die Jahre im Mittel dauert, wenn er <paramref name="markt"/> Minuten zum Marktplatz
     /// und <paramref name="hafen"/> zum Hafen bräuchte (null: kein Weg zum Hafen): Ist der Hafen näher, fährt er dorthin, solange er offen ist
     /// (<see cref="HafenOffenAnteil"/>), sonst zum Marktplatz – wie der Kern beim Aufbruch wählt (<see cref="Stadtwirtschaft.FaehrtZumHafen"/>,
-    /// Gleichstand: Marktplatz).
+    /// Gleichstand: Marktplatz). Die Minuten sind die der Jahreszeit, in der die KI entscheidet (Schlamm im Frühling, im strengen Winter die
+    /// Fähre im Eis); für die anderen Jahreszeiten nimmt sie dieselben – eine Abfrage je Jahreszeit hat der Kern nicht (Befund der Prüfung, Offen).
     /// </summary>
     internal double ErwarteteRundfahrt(int markt, int? hafen) =>
         hafen is { } h && h < markt ? markt - HafenOffenAnteil * (markt - h) : markt;
@@ -83,8 +84,10 @@ public sealed partial class KiRivale
         var liste = new List<Standortwahl>();
         void Pruefen(BauBefehl o, bool nurZumHafen)
         {
-            if (o is not WerkstattBauen wb || FahrzeitAmBauort(wb, karrenTyp) is not { } markt) return;
+            if (o is not WerkstattBauen wb) return;
             var hafen = FahrzeitZumHafenAmBauort(wb, karrenTyp);
+            if (nurZumHafen && hafen is null) return; // (zuerst der Hafen: ohne Weg dorthin spart das die Suche zum Markt)
+            if (FahrzeitAmBauort(wb, karrenTyp) is not { } markt) return;
             var wahl = new Standortwahl(o, liste.Count, markt, hafen, ErwarteteRundfahrt(markt.Hin + markt.Zurueck, hafen is { } h ? h.Hin + h.Zurueck : null));
             if (!nurZumHafen || wahl.ZumHafen) liste.Add(wahl);
         }
