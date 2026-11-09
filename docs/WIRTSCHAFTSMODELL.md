@@ -2737,3 +2737,29 @@ Gemessen mit `messen bericht 20 30 --parallel=8` auf main `31b9a9b0` („vorher�
 **Probe** (drei Startwerte, Greybox, 12 Jahre, das Haus des Spielers frei von der KI geführt, Stand nach der Prüfung): Der Dieb kauft die Lederhandschuhe erst, wenn jemand nach Spuren sucht – in einer von drei Partien im elften Jahr (erwartet 180 Gulden im Jahr für drei Schmugglerlöcher); sein Meisterdieb wird ohne Suchende und ohne Einbrüche weiter „Einbrecher“ (alle drei 0, die erste der Wahl). Der Gardist kauft wie vorher die Waffenkammer und in einer von drei Partien die Hellebarden (Kopfgeld aus Urteilen nach eigenen Razzien, erwartet 131 Gulden im Jahr); sein Vorarbeiter bleibt Antreiber. Wachhunde und Kettenhemden kauft er nicht: Streife und Geleit schützen alle Häuser, dem eigenen bringen sie kaum Gulden (Entscheidung des Nutzers: so lassen). Die Werkstätten wählen „Ordnungsliebend“ weiter fast nie – ihre Karren fassen nicht mehr als das Lager.
 
 **Beute und Sold** bleiben: Dieb und Gardist liegen im Band. Der Dieb verliert 1.450 Gulden nach 20 Jahren (gut ein Fehler des Unterschieds; Gewinn je Jahr −16, Beute gleich, Gericht +33 bei weniger Fängen – im Rauschen des Gerichts); der Gardist gewinnt 445. In der statischen Tabelle der Eigenschaften (Abschnitt Einrichtung) ist „Vorsichtig“ zu hoch (135 / 272 / 414 nach Stufe), weil die Probebetriebe des Berichts in einer Stadt mit vielen Probe-Wachhäusern stehen (Streife am Deckel, Fänge × 3).
+
+## Hofstellen: Startplatz gewählt oder gelost (9.11.2026, Datenversion bleibt 79)
+
+**Was sich geändert hat** (Umsetzung in `docs/bereiche/kern.md`, „Hofstellen“): Statt fester Startgrundstücke sitzt jedes Haus auf einer **Hofstelle** (Werkstatt- und Wohnhausplatz). Der Spieler wählt eine Start-Hofstelle oder lost, jedes KI-Haus lost (eigene Zufallsquelle, alle übrigen Würfe bleiben); freie Hofstellen sind Bauplätze. Kein Wert in `wirtschaft.json` geändert. Die Karten: Köln 16 Hofstellen (8 Start, 6 frei aus den Werkstatt-Bauplätzen, 2 frei am Rheinhafen), Greybox 4 Start-Hofstellen – davon H3 und H4 gerückt, damit alle vier im Band ±10 % liegen (Karrenweg zum Markt 20,3 / 18,1 / 19,1 / 21,1 m; vorher H3 10,6 und H4 25,1 m).
+
+**Warum die Greybox rücken musste:** Mit dem Los zählt jede Start-Hofstelle für den Spieler. Vor dem Rücken verlor der Spieler mit einem Betrieb auf H4 rund 20 % (Schmied nach 20 Jahren, 40 Startwerte: H1 34,7k, H2 35,0k, H3 37,5k, H4 27,9k), und der Gardist fiel mit dem Los aus dem Band (−17,1 %). Die Greybox ist die Bezugskarte des Balancing-Berichts, darum im selben PR (Entscheidung des Teamleiters).
+
+Gemessen mit `messen bericht 20 100 --teile=1,5` (Greybox) bzw. `20 30 --teile=1,5 --karte=koeln` und `20 40 --teile=3 --fairness=greybox,koeln` auf main `d4d2198c` („main“) und main `d4d2198c` + diesem PR (Stand `3188f4d0`; Köln auf `7b6465b7`, die Greybox-Änderung danach berührt Köln nicht). Die Berufe misst der Bericht **mit Los** (das ist künftig das Spiel); „ohne Los“ (`--startplaetze=vorgabe`) nur als Vergleich. Die Berichte: `docs/messungen/balancing-2026-11-09-hofstellen-*.json` (`vorher-greybox`, `greybox`, `greybox-ohne-los`, `vorher-koeln`, `koeln`, `startfairness`).
+
+| Greybox, 100 Startwerte | main | mit Los | ohne Los |
+|---|---|---|---|
+| Berufe im Band ±15 % / Mittel des Zuwachses | 9/10 (Tischler −15,5 %) / 32.069 | 9/10 (Gardist −15,6 %) / 31.674 | 10/10 / 31.985 |
+| Schmied / Tischler / Gardist / Dieb / Parfumeur | +8,1 / −15,5 / −6,1 / −8,7 / +11,6 % | +3,8 / −13,5 / −15,6 / −1,0 / +9,2 % | +9,3 / −13,0 / −6,2 / −9,5 / +7,4 % |
+| KI ÷ Bezug (Median); „Schwer“ | 1,17; 1,92 | 1,17; 1,79 | 1,19; 1,80 |
+| Bezug Ø / KI Ø | 66.216 / 77.565 | 63.759 / 74.985 | 64.930 / 75.654 |
+
+Vor dem Rücken der Greybox (Stand `7b6465b7`, 100 Startwerte): mit Los Gardist −17,1 %, KI ÷ Bezug 1,13; ohne Los Zahl für Zahl wie main (30 Startwerte).
+
+| Köln, 30 Startwerte | main | mit Los |
+|---|---|---|
+| KI ÷ Bezug; „Schwer“ | 1,20; 1,37 | 1,17; 1,30 |
+| Berufe außerhalb ±15 % | Tischler −26, Prediger +41, Dieb −25, Geldleiher +18 % | Tischler −26, Prediger +40, Dieb −21, Geldleiher +17 % |
+
+**Startfairness je Start-Hofstelle** (Abschnitt 3: der Spieler ohne Los nacheinander auf jeder Start-Hofstelle, die KI-Häuser auf ihrer Vorgabe; 40 Startwerte): Im Mittel aller Häuser verschiebt die Hofstelle das Vermögen nach 20 Jahren um −2 … +2 % (Greybox) bzw. −1 … +1 % (Köln). Der Spieler allein (Schmied, ein Betrieb, Reinvermögen nach 20 Jahren): Greybox H1 38,1k, H2 39,7k, H3 35,8k, H4 34,3k (−8 … +7 % um das Mittel; vor dem Rücken −20 % auf H4); Köln S1 … S8 35,7k … 39,0k (−4 … +6 %).
+
+**Der Gardist hängt an der Hofstelle – nicht über den Karrenweg** (Probe nach dem Rücken, 60 Startwerte, Gardist mit einem Betrieb ohne Los auf jeder Hofstelle): Zuwachs H1 30,1k, H2 25,6k, H3 29,9k, H4 23,2k; Sold je Jahr 3.324 / 2.945 / 3.319 / 2.941 bei gleich vielen Wachleuten (4,8–4,9) – die Leistung je Minute der Wache am Jahresende ist auf H2 und H4 11 % niedriger (4,43 gegen 4,98), das Kopfgeld gleich. Die Wache fährt keine Karren; die Ursache liegt in der Leistung der Leute (Ausfälle oder Tempo) und ist offen (kern.md). Darum fällt der Gardist mit Los knapp aus dem Band, ohne Los nicht.
