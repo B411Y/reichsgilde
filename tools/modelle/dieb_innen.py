@@ -67,6 +67,7 @@ import figuren as fg  # noqa: E402  (Übungsbrett, Zähltisch, Kartentisch, Arbe
 import innenausbau as ia  # noqa: E402  (Wand, Böden, Decke, Treppe, Dachboden, Prüfbericht, Vorschau)
 import parfumeur_innen as pi  # noqa: E402  (Lichter, Kinder, Wandquader)
 import schmied_innen as si  # noqa: E402  (Wände, Pult, Türen, Werkzeugwand, Regal, Kisten, Löschfass, Anker, Blickpunkte)
+import personal_einrichtung as pe  # noqa: E402  (neue Einrichtung aus Personal und Talentbaum: Schleifstein … Lehrlingsstube)
 import tischler_innen as ti  # noqa: E402  (Fenster, Laterne, Hoftor, Animation, Export)
 import wirt_innen as wi  # noqa: E402  (Netz versetzt bauen, Punkt am Platz, Sitzplätze, Tisch, Bank, Keller, Falltür, Handschuhe)
 
@@ -1223,6 +1224,8 @@ def bauen():
     verkleidungstruhe(teil("Einrichtung_Verkleidung"), st, si.rahmen(0.45, WY1, 180))
     stube_kram(werk, st)
     si.loeschfass(teil("Einrichtung_Loeschfass"), st, Vector((-4.55, 1.55, 0)))
+    # Personal und Talentbaum (PR #224): neue Einrichtung, Platzhalter (personal_einrichtung.py); Plätze am Bild festgelegt
+    pe.lehrlingsstube(teil("Einrichtung_Lehrlingsstube"), st, pe.rahmen(-5.00, 4.08, -90), "Dieb", False)   # nur Zusatz: Pritschen gibt es schon
     wi.handschuhe(teil("Einrichtung_Handschuhe"), st, si.rahmen(-0.45, WY0, 0))
     with wirtskeller():
         wi.falltuer(teil("Tuer_Werk_Lager"), st)

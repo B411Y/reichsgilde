@@ -33,6 +33,7 @@ def arg(name, vorgabe=None):
 
 
 TOLERANZ = float(arg("toleranz", "0.0"))
+ABWAND = float(arg("abwand", "0.0"))
 AUS = arg("aus", os.path.join(bs.WURZEL, "docs", "modelle", "personal_einrichtung"))
 os.makedirs(AUS, exist_ok=True)
 bs.VORSCHAU = AUS
@@ -45,6 +46,8 @@ class Raster:
         self.x0, self.x1, self.y0, self.y1 = x0, x1, y0, y1
         self.nx, self.ny = int(math.ceil((x1 - x0) / ZELLE)), int(math.ceil((y1 - y0) / ZELLE))
         self.belegt = [bytearray(self.ny) for _ in range(self.nx)]
+        self.quelle = {}                    # Zelle → Name des Objekts, das sie belegt (nur zur Prüfung)
+        self.aktuell = ""
 
     def zelle(self, x, y):
         return int((x - self.x0) / ZELLE), int((y - self.y0) / ZELLE)
@@ -53,6 +56,7 @@ class Raster:
         i, j = self.zelle(x, y)
         if 0 <= i < self.nx and 0 <= j < self.ny:
             self.belegt[i][j] = 1
+            self.quelle.setdefault((i, j), self.aktuell)
 
     def rechteck(self, ecken, rand=0.0):
         """Alle Zellen im (gedrehten) Rechteck `ecken` (vier Punkte), um `rand` erweitert."""
@@ -89,7 +93,7 @@ class Raster:
         return d
 
 
-def raster_bauen(raum, schluessel, rect, objekte):
+def raster_bauen(raum, schluessel, rect, objekte, z0=0.0, ohne_pe=False):
     """Belegte Fläche der Höhen 0,1 … 2,0 m aus den Netzen des Raums (Stufe 3, mit Einrichtung); Wände (näher als 12 cm an der Raumgrenze) zählen nicht."""
     import bpy
     x0, x1, y0, y1 = rect
@@ -99,15 +103,18 @@ def raster_bauen(raum, schluessel, rect, objekte):
     for o in bpy.context.scene.objects:
         if o.type != "MESH" or o.name.startswith(("_", "Decke_", "Himmel", "Kranbalken")) or not ia.sichtbar(o, 3, True, True, 2, {schluessel}):
             continue
+        if ohne_pe and o.name.startswith("Einrichtung_") and o.name[12:].split(".")[0] in pe.ALLE:
+            continue
         # Türen: Fläche davor freihalten
         tuer = o.name.startswith(("Tuer_", "Holztuer", "Bedienung_Karren_")) or o.name in ("Einrichtung_Eisentuer",)
+        r.aktuell = o.name
         w = o.matrix_world
         me = o.data
         vor_ = sum(sum(c) for c in r.belegt)
         for p in me.polygons:
             pts = [w @ me.vertices[i].co for i in p.vertices]
             zs = [q.z for q in pts]
-            if max(zs) < 0.1 or min(zs) > 2.0:
+            if max(zs) < z0 + 0.1 or min(zs) > z0 + 2.0:
                 continue
             if all(abs(q.x - x0) < rand or abs(q.x - x1) < rand or abs(q.y - y0) < rand or abs(q.y - y1) < rand for q in pts) and not tuer:
                 continue
@@ -170,7 +177,7 @@ def suche(raster, rect, bb, erlaubt):
             continue
         u = 0.4 - xmin
         while u + xmax < laenge - 0.3:
-            M = rahmen(ursprung[0] + richtung[0] * u, ursprung[1] + richtung[1] * u, drehung)
+            M = rahmen(ursprung[0] + richtung[0] * u, ursprung[1] + richtung[1] * u, drehung) @ Matrix.Translation((0, ABWAND, 0))
             ecken = [M @ Vector(p) for p in ((xmin - RAND, 0.01, 0), (xmax + RAND, 0.01, 0), (xmax + RAND, ymax + RAND, 0), (xmin - RAND, ymax + RAND, 0))]
             e2 = [(p.x, p.y) for p in ecken]
             zellen = list(raster.rechteck(e2))
@@ -223,7 +230,8 @@ def main():
         rect = (mod.WX0, mod.WX1, mod.WY0, mod.WY1)
     st = bs.Stoffe()
     raum_obj = bpy.data.objects[f"Raum_{schluessel}"]
-    raster = raster_bauen(raum, schluessel, rect, objekte)
+    z0 = float(getattr(mod, arg("z0")) if arg("z0") else 0.0)
+    raster = raster_bauen(raum, schluessel, rect, objekte, z0, ohne_pe=True)
     plan = []
     if "--karte" in sys.argv:                                   # Karte (10 cm) des Raums: oben = hinten, # belegt
         for j in range(raster.zelle(0, rect[3])[1], raster.zelle(0, rect[2])[1] - 1, -2):
@@ -233,9 +241,11 @@ def main():
         funktion, _ = pe.ALLE[name]
         probe = bs.Netz("_Probe", alle=True)
         if name == "Ladentheke":
-            funktion(probe, st, Matrix.Identity(4), arg("ware", "Schmied"))
+            funktion(probe, st, Matrix.Identity(4), arg("ware", "Schmied"), float(arg("breite", "2.3")))
         elif name == "Lehrlingsstube":
-            funktion(probe, st, Matrix.Identity(4), arg("lehrling", "Werkstatt"))
+            funktion(probe, st, Matrix.Identity(4), arg("lehrling", "Werkstatt"), arg("bett", "1") == "1")
+        elif name == "Gewoelbekeller":
+            funktion(probe, st, Matrix.Identity(4), False)
         else:
             funktion(probe, st, Matrix.Identity(4))
         bb = bbox_lokal(probe)
@@ -243,12 +253,15 @@ def main():
         if not treffer:
             print(f"KEINE STELLE für {name} (Breite {bb[1] - bb[0]:.2f}, Tiefe {bb[3]:.2f})")
             continue
-        punkt, wand, u, M = treffer[0]
+        punkt, wand, u, M = treffer[int(arg("rang", "0"))]
+        M = Matrix.Translation((0, 0, z0)) @ M
         netz = bs.Netz("Einrichtung_" + name, alle=True)
         if name == "Ladentheke":
-            funktion(netz, st, M, arg("ware", "Schmied"))
+            funktion(netz, st, M, arg("ware", "Schmied"), float(arg("breite", "2.3")))
         elif name == "Lehrlingsstube":
-            funktion(netz, st, M, arg("lehrling", "Werkstatt"))
+            funktion(netz, st, M, arg("lehrling", "Werkstatt"), arg("bett", "1") == "1")
+        elif name == "Gewoelbekeller":
+            funktion(netz, st, M, False)
         else:
             funktion(netz, st, M)
         o = netz.objekt()
@@ -261,6 +274,8 @@ def main():
         print(f"STELLE {raum} {name}: Wand {wand}, rahmen({t.x:.2f}, {t.y:.2f}, {drehung}), Breite {xmax - xmin:.2f} ({xmin:.2f} … {xmax:.2f}), Tiefe {ymax:.2f}, Höhe {zmax:.2f}, Platz davor {punkt:.2f}")
         plan.append((name, M, bb))
 
+    if "--ohne-bild" in sys.argv:
+        return
     # Rendern
     szene, kam = ia.buehne(SCHNELL, glut=260, fuell=[((rect[0] + rect[1]) / 2, (rect[2] + rect[3]) / 2, 3.2, 140, 1)])
     szene.render.resolution_x, szene.render.resolution_y = 960, 540
@@ -278,10 +293,10 @@ def main():
         wahl = blick_waehlen(blicke, mitte)
         if wahl is None:
             vorn = M.to_3x3() @ Vector((0, 1, 0))
-            auge = Vector((mitte.x + vorn.x * 4.2, mitte.y + vorn.y * 4.2, 2.6))
+            auge = Vector((mitte.x + vorn.x * 4.2, mitte.y + vorn.y * 4.2, z0 + 2.4))
             auge.x = min(max(auge.x, rect[0] + 0.3), rect[1] - 0.3)      # im Raum bleiben
             auge.y = min(max(auge.y, rect[2] + 0.3), rect[3] - 0.3)
-            ziel = Vector((mitte.x, mitte.y, 0.9))
+            ziel = Vector((mitte.x, mitte.y, z0 + 0.9))
             bezeichnung = "freier Blick"
         else:
             _, bname, auge, ziel = wahl
@@ -300,4 +315,5 @@ def main():
         print("BILD", bild)
 
 
-main()
+if __name__ == "__main__":
+    main()

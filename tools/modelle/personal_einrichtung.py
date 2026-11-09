@@ -56,6 +56,11 @@ bs.FARBEN.update({
 bs.METALL.update({"Zinn": 0.6})
 
 
+def rahmen(x, y, drehung, z=0.0):
+    """Wie `rahmen` der Raumskripte: Ursprung (x, y, z), +y zeigt in den Raum (drehung 0 = Vorderwand, 180 Rückwand, −90 linke, 90 rechte Wand)."""
+    return Matrix.Translation((x, y, z)) @ Matrix.Rotation(math.radians(drehung), 4, "Z")
+
+
 def q(netz, st, M, mitte, masse, stoff, ohne=()):
     netz.quader(mitte, masse, st[stoff], M, ohne=ohne)
 
@@ -340,7 +345,7 @@ def enfleurage(netz, st, M):
     bs.rund_oben(netz, st, v(M, (tx + 0.18, 0.32, 0.805)), 0.085, 0.04, "Rose", n=10)
 
 
-def gewoelbekeller(netz, st, M):
+def gewoelbekeller(netz, st, M, fass_davor=True):
     """Gewölbekeller des Wirts: ein gemauerter Tonnengewölbe-Anbau an der Wand (Ziegel, vorn ein Rundbogen aus Sandstein mit Schlussstein und Gewänden,
     innen das Gewölbe), darin Fässer liegend auf Lagerhölzern (zwei Reihen, ein Fass oben auf), eine Laterne am Bogen, ein Fass und ein Fässchen davor.
     Etwa 2,3 m breit, 1,4 m tief, 2,4 m hoch."""
@@ -394,13 +399,14 @@ def gewoelbekeller(netz, st, M):
     bs.achteck(netz, st, v(M, (R + 0.22, D, 1.7)), 0.06, 0.0, 0.16, "Eisen", n=6)
     bs.achteck(netz, st, v(M, (R + 0.22, D, 1.72)), 0.04, 0.0, 0.12, "Ocker", n=6)
     balken(netz, st, M, (R + 0.22, D - 0.2, 1.9), (R + 0.22, D, 1.85), 0.02, 0.02, "Eisen")
-    bs.fass(netz, st, v(M, (-R - 0.4, D - 0.1, 0.0)), r=0.34, h=0.85, reifen=(0.12, 0.62))
-    bs.fass(netz, st, v(M, (-R - 0.3, D + 0.55, 0.0)), r=0.26, h=0.65, reifen=(0.1, 0.48))
+    if fass_davor:
+        bs.fass(netz, st, v(M, (-R - 0.4, D - 0.1, 0.0)), r=0.34, h=0.85, reifen=(0.12, 0.62))
+        bs.fass(netz, st, v(M, (-R - 0.3, D + 0.55, 0.0)), r=0.26, h=0.65, reifen=(0.1, 0.48))
 
 
 def skriptorium(netz, st, M):
     """Skriptorium des Predigers: ein Schreibpult mit zwei schrägen Flächen für zwei Schreiber (je Pergament, Tintenhorn, Feder), ein hoher
-    Kerzenständer, ein Farbtisch-Brett mit Lapislazuli und Blattgold an der Wand, Hocker, Buchstapel auf dem Boden. Etwa 2,1 m breit, 1,2 m tief, 1,6 m hoch."""
+    Kerzenständer, ein Farbtisch-Brett mit Lapislazuli und Blattgold an der Wand, Hocker, Buchstapel auf dem Boden. Etwa 2,6 m breit, 1,2 m tief, 1,6 m hoch."""
     y = 0.7
     for x in (-0.82, 0.82):
         for sy in (-1, 1):
@@ -424,23 +430,23 @@ def skriptorium(netz, st, M):
     for dx in (-0.5, 0.5):                                                                            # Hocker
         hocker(netz, st, M, dx, y + 0.78, 0.46, 0.17)
     # Kerzenständer (hoch, Eisen) mit brennender Kerze
-    bs.achteck(netz, st, v(M, (1.38, 0.55, 0.0)), 0.12, 0.0, 0.03, "Eisen", n=8)
-    balken(netz, st, M, (1.38, 0.55, 0.0), (1.38, 0.55, 1.3), 0.03, 0.03, "Eisen")
-    bs.achteck(netz, st, v(M, (1.38, 0.55, 1.3)), 0.07, 0.0, 0.02, "Eisen", n=8)
-    bs.achteck(netz, st, v(M, (1.38, 0.55, 1.32)), 0.022, 0.0, 0.14, "Stadtweiss", n=6)
-    bs.achteck(netz, st, v(M, (1.38, 0.55, 1.46)), 0.012, 0.0, 0.05, "Glut", n=6)
+    bs.achteck(netz, st, v(M, (1.05, 0.55, 0.0)), 0.12, 0.0, 0.03, "Eisen", n=8)
+    balken(netz, st, M, (1.05, 0.55, 0.0), (1.05, 0.55, 1.3), 0.03, 0.03, "Eisen")
+    bs.achteck(netz, st, v(M, (1.05, 0.55, 1.3)), 0.07, 0.0, 0.02, "Eisen", n=8)
+    bs.achteck(netz, st, v(M, (1.05, 0.55, 1.32)), 0.022, 0.0, 0.14, "Stadtweiss", n=6)
+    bs.achteck(netz, st, v(M, (1.05, 0.55, 1.46)), 0.012, 0.0, 0.05, "Glut", n=6)
     # Farbbrett an der Wand
-    q(netz, st, M, (-1.35, 0.1, 0.95), (0.6, 0.18, 0.04), "Holz", ohne=("-y",))
+    q(netz, st, M, (-1.15, 0.1, 0.95), (0.6, 0.18, 0.04), "Holz", ohne=("-y",))
     for dx in (-0.25, 0.25):
-        q(netz, st, M, (-1.35 + dx, 0.07, 0.86), (0.04, 0.12, 0.18), "Holz", ohne=("-y",))
+        q(netz, st, M, (-1.15 + dx, 0.07, 0.86), (0.04, 0.12, 0.18), "Holz", ohne=("-y",))
     for k, farbe in enumerate(("Lapis", "Rose", "Gold", "Kraut", "Lapis")):
-        bs.achteck(netz, st, v(M, (-1.57 + 0.11 * k, 0.12, 0.97)), 0.04, 0.0, 0.05, farbe, n=6)
+        bs.achteck(netz, st, v(M, (-1.37 + 0.11 * k, 0.12, 0.97)), 0.04, 0.0, 0.05, farbe, n=6)
     for k in range(4):                                                                                # Pergamentrollen, im Regal darüber
-        T = M @ Matrix.Translation((-1.5 + 0.12 * k, 0.12, 1.45)) @ Matrix.Rotation(math.radians(90), 4, "Z")
+        T = M @ Matrix.Translation((-1.3 + 0.12 * k, 0.12, 1.45)) @ Matrix.Rotation(math.radians(90), 4, "Z")
         netz.prisma([(0.03 * math.cos(2 * math.pi * j / 6), 0.03 * math.sin(2 * math.pi * j / 6)) for j in range(6)], -0.25, 0.25, st["Pergament"], matrix=T)
-    q(netz, st, M, (-1.35, 0.1, 1.38), (0.6, 0.18, 0.03), "Holz", ohne=("-y",))
+    q(netz, st, M, (-1.15, 0.1, 1.38), (0.6, 0.18, 0.03), "Holz", ohne=("-y",))
     for k in range(3):                                                                                # Bücher auf dem Boden
-        q(netz, st, M, (-1.0, 0.45, 0.04 + 0.08 * k), (0.34 - 0.03 * k, 0.24, 0.08), ("Buch braun", "Buch rot", "Buch grün")[k])
+        q(netz, st, M, (-0.95, 0.45, 0.04 + 0.08 * k), (0.34 - 0.03 * k, 0.24, 0.08), ("Buch braun", "Buch rot", "Buch grün")[k])
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -474,9 +480,9 @@ def ladentheke(netz, st, M, ware="Schmied", breite=2.3):
     buch(netz, st, M, (-breite / 2 + 0.5, 0.42, 0.99), (0.34, 0.26, 0.04), "Buch braun", dreh=-8)
     q(netz, st, M, (-breite / 2 + 0.95, 0.46, 0.975), (0.3, 0.18, 0.02), "Holz")                      # Rechenbrett
     for j in range(4):
-        q(netz, st, M, (-breite / 2 + 0.95, 0.4 + 0.045 * j, 0.99), (0.24, 0.004, 0.012), "Fachwerk")
+        q(netz, st, M, (-breite / 2 + 0.95, 0.4 + 0.045 * j, 0.992), (0.24, 0.004, 0.008), "Fachwerk")
         for i in range(3):
-            q(netz, st, M, (-breite / 2 + 0.86 + 0.06 * i + 0.01 * j, 0.4 + 0.045 * j, 0.995), (0.025, 0.02, 0.02), "Gold")
+            q(netz, st, M, (-breite / 2 + 0.86 + 0.06 * i + 0.01 * j, 0.4 + 0.045 * j, 1.0), (0.025, 0.02, 0.02), "Gold")
     ladenware(netz, st, M, ware, wx - 0.65, breite)
     # Auslageregal an der Wand dahinter
     q(netz, st, M, (0.0, 0.03, 1.45), (breite - 0.3, 0.04, 0.5), "Holz alt", ohne=("-y",))
@@ -485,9 +491,6 @@ def ladentheke(netz, st, M, ware="Schmied", breite=2.3):
     for s in (-1, 1):
         q(netz, st, M, (s * (breite / 2 - 0.15), 0.12, 1.46), (0.035, 0.18, 0.55), "Holz", ohne=("-y",))
     ladenware(netz, st, M, ware, 0.0, breite - 0.4, z=1.22, y=0.14, regal=True)
-    # Klappe (Aufklappteil): eine zweite Platte mit Scharnier an der rechten Ecke, hochgestellt als Strich
-    q(netz, st, M, (breite / 2 + 0.2, t / 2, 0.93), (0.4, t - 0.1, 0.04), "Schnittholz")
-    q(netz, st, M, (breite / 2 + 0.2, t / 2, 0.91), (0.34, 0.04, 0.04), "Eisen")
 
 
 def ladenware(netz, st, M, ware, x, breite, z=0.96, y=0.38, regal=False):
@@ -521,36 +524,36 @@ def ladenware(netz, st, M, ware, x, breite, z=0.96, y=0.38, regal=False):
                 q(netz, st, M, (px + 0.08, y + 0.02, z + 0.03), (0.14, 0.1, 0.05), ("Buch rot", "Buch blau")[(k // 2) % 2])
 
 
-def lehrlingsstube(netz, st, M, variante="Werkstatt"):
+def lehrlingsstube(netz, st, M, variante="Werkstatt", bett=True):
     """Lehrlingsstube: ein schlichtes Doppelstockbett aus rohen Balken mit Strohsäcken und groben Decken, eine kleine Truhe am Fußende, ein Hocker, an der
-    Wand eine Schiefertafel mit Kreide und ein Haken mit dem Kittel. `variante` setzt eine Kleinigkeit (Dieb: Übungsschloss, Wache: Übungsstock und
+    Wand eine Schiefertafel mit Kreide und ein Haken mit dem Kittel. `bett=False`: nur Zusatz (Truhe, Hocker, Tafel; für Räume, die schon Pritschen haben). `variante` setzt eine Kleinigkeit (Dieb: Übungsschloss, Wache: Übungsstock und
     Helm, Bank: Rechenbrett, sonst Hobel/Hammer). Etwa 2,2 m breit, 1,0 m tief, 1,85 m hoch."""
     L, B = 1.9, 0.82
     x0 = -1.05
-    for etage, z in enumerate((0.42, 1.2)):
+    for etage, z in enumerate((0.42, 1.2) if bett else ()):
         for sy in (0, 1):                                                                           # Wangen
             q(netz, st, M, (x0 + L / 2, 0.06 + sy * (B - 0.08), z), (L, 0.06, 0.14), "Holz")
         for sx in (0, 1):
-            q(netz, st, M, (x0 + 0.03 + sx * (L - 0.06), B / 2, z), (0.06, B, 0.14), "Holz")
+            q(netz, st, M, (x0 + 0.03 + sx * (L - 0.06), B / 2, z), (0.06, B - 0.2, 0.14), "Holz")
         q(netz, st, M, (x0 + L / 2, B / 2, z + 0.05), (L - 0.08, B - 0.1, 0.02), "Holz alt")
         q(netz, st, M, (x0 + L / 2 - 0.05, B / 2, z + 0.13), (L - 0.2, B - 0.14, 0.16), "Strohsack", ohne=("-z",))
         q(netz, st, M, (x0 + 0.3, B / 2, z + 0.26), (0.38, 0.5, 0.08), "Leinen")                      # Kissen
         decke = "Decke rot" if etage == 0 else "Decke blau"
         q(netz, st, M, (x0 + L - 0.55, B / 2, z + 0.225), (0.95, B - 0.1, 0.03), decke)
         q(netz, st, M, (x0 + L - 0.06, B / 2, z + 0.1), (0.03, B - 0.1, 0.22), decke)                   # hängt am Fußende herab
-    for sx in (x0 + 0.03, x0 + L - 0.03):                                                             # Pfosten
+    for sx in ((x0 + 0.03, x0 + L - 0.03) if bett else ()):                                           # Pfosten
         for sy in (0.06, B - 0.06):
             balken(netz, st, M, (sx, sy, 0.0), (sx, sy, 1.85), 0.08, 0.08, "Holz")
-    for sy in (0.28, 0.54):
+    for sy in ((0.28, 0.54) if bett else ()):
         balken(netz, st, M, (x0 + L + 0.08, sy, 0.0), (x0 + L + 0.08, sy, 1.15), 0.04, 0.04, "Holz")
-    for k in range(4):
+    for k in range(4 if bett else 0):
         q(netz, st, M, (x0 + L + 0.08, 0.41, 0.25 + 0.27 * k), (0.04, 0.3, 0.035), "Holz")
     # Truhe am Fuß, Hocker, Tafel, Haken
     q(netz, st, M, (x0 + L + 0.55, 0.3, 0.2), (0.6, 0.42, 0.4), "Holz alt")
     q(netz, st, M, (x0 + L + 0.55, 0.3, 0.405), (0.64, 0.46, 0.04), "Holz")
     for s in (-1, 1):
         q(netz, st, M, (x0 + L + 0.55 + s * 0.2, 0.52, 0.2), (0.05, 0.02, 0.4), "Eisen")
-    hocker(netz, st, M, x0 + 0.55, B + 0.35, 0.38, 0.15)
+    hocker(netz, st, M, x0 + 0.55 if bett else x0 + L + 0.55, B + 0.35 if bett else 0.85, 0.38, 0.15)
     q(netz, st, M, (x0 + L + 0.55, 0.035, 1.35), (0.5, 0.03, 0.4), "Holz", ohne=("-y",))               # Tafel
     q(netz, st, M, (x0 + L + 0.55, 0.055, 1.35), (0.42, 0.012, 0.32), "Schiefer tafel", ohne=("-y",))
     for j in range(3):
@@ -664,20 +667,20 @@ def hauswappen(netz, st, M, hoehe=1.0):
     # Schild: Fünfeck (spanische Form) in der Hausfarbe
     umriss = [(-0.27, 0.16), (0.27, 0.16), (0.27, -0.1), (0.0, -0.4), (-0.27, -0.1)]
     netz.vieleck_nach([v(M, (x, 0.085, z + dz)) for x, dz in umriss], v(M, (0, 1, 0)) - v(M, (0, 0, 0)), st["Hausfarbe"])
-    for (xa, za), (xb, zb) in zip(umriss, umriss[1:] + umriss[:1]):                                    # goldener Rand
-        balken(netz, st, M, (xa, 0.09, z + za), (xb, 0.09, z + zb), 0.03, 0.02, "Gold", quer=(0, 1, 0))
-    balken(netz, st, M, (-0.25, 0.095, z - 0.0), (0.0, 0.095, z + 0.14), 0.05, 0.02, "Gold", quer=(0, 1, 0))      # Sparren
-    balken(netz, st, M, (0.25, 0.095, z - 0.0), (0.0, 0.095, z + 0.14), 0.05, 0.02, "Gold", quer=(0, 1, 0))
+    for i, ((xa, za), (xb, zb)) in enumerate(zip(umriss, umriss[1:] + umriss[:1])):                    # goldener Rand (Lagen um Millimeter versetzt: keine deckungsgleichen Flächen)
+        balken(netz, st, M, (xa, 0.09 + 0.003 * i, z + za), (xb, 0.09 + 0.003 * i, z + zb), 0.03, 0.02, "Gold", quer=(0, 1, 0))
+    balken(netz, st, M, (-0.25, 0.1, z - 0.0), (0.0, 0.1, z + 0.14), 0.05, 0.02, "Gold", quer=(0, 1, 0))      # Sparren
+    balken(netz, st, M, (0.25, 0.103, z - 0.0), (0.0, 0.103, z + 0.14), 0.05, 0.02, "Gold", quer=(0, 1, 0))
     for k in range(5):                                                                                 # Stern
         w = math.pi * 2 * k / 5 + math.pi / 2
-        balken(netz, st, M, (0.0, 0.095, z - 0.2), (0.07 * math.cos(w), 0.095, z - 0.2 + 0.07 * math.sin(w)), 0.03, 0.02, "Gold", quer=(0, 1, 0))
+        balken(netz, st, M, (0.0, 0.1 + 0.003 * k, z - 0.2), (0.07 * math.cos(w), 0.1 + 0.003 * k, z - 0.2 + 0.07 * math.sin(w)), 0.03, 0.02, "Gold", quer=(0, 1, 0))
     # Helm und Helmzier
     q(netz, st, M, (0.0, 0.09, z + 0.28), (0.24, 0.07, 0.17), "Silber")
     q(netz, st, M, (0.0, 0.1, z + 0.28), (0.18, 0.02, 0.02), "Kohle")
     for k in range(4):
         w = math.radians(30 + 40 * k)
-        balken(netz, st, M, (0.0, 0.09, z + 0.38), (0.24 * math.cos(w), 0.09, z + 0.38 + 0.18 * math.sin(w)), 0.045, 0.03, "Hausfarbe", quer=(0, 1, 0))
-        balken(netz, st, M, (0.0, 0.09, z + 0.38), (-0.24 * math.cos(w), 0.09, z + 0.38 + 0.18 * math.sin(w)), 0.045, 0.03, "Hausfarbe", quer=(0, 1, 0))
+        balken(netz, st, M, (0.0, 0.09 + 0.004 * k, z + 0.38), (0.24 * math.cos(w), 0.09 + 0.004 * k, z + 0.38 + 0.18 * math.sin(w)), 0.045, 0.03, "Hausfarbe", quer=(0, 1, 0))
+        balken(netz, st, M, (0.0, 0.092 + 0.004 * k, z + 0.38), (-0.24 * math.cos(w), 0.092 + 0.004 * k, z + 0.38 + 0.18 * math.sin(w)), 0.045, 0.03, "Hausfarbe", quer=(0, 1, 0))
     # Lorbeer seitlich
     for s in (-1, 1):
         for k in range(5):
