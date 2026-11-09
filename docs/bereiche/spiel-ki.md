@@ -165,7 +165,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | KI | Die Fahrt zum Hafen zählt in `ErwarteteRundfahrt` um 1 + Aufschlag × `Ausfuhranteil(art)` kürzer (gleiche Annahme wie beim Karrenvergleich: je Fahrt eine Ladung; bringt sie am Hafen 3 % mehr, wiegt das wie eine um 3 % kürzere Fahrt). `Ausfuhranteil`: 1, wenn das einträglichste Produkt der neuen Werkstatt (wie `Kalkulation.ErwarteterJahresgewinn`) Ausfuhrware ist, sonst 0; die Schänke 0, weil sie den Großteil ausschenkt (Befund der Prüfung). Ohne Aufschlag bitgleich mit v1. | 09.11.2026 |
 | Tests | Neu `HafenAufschlagTests` (3): Daten (79, 3 %, Ausfuhrwaren = Landhandel-Nachfrage, Prüfung 0–5 %, ohne Feld 0); Silberring am Hafen im Sommer Umsatz und Steuer genau × 1,03, Beschlag gleich, am Marktplatz gleich, Handelsauftrag × 1,03; Aufbruch im Herbst und Ankunft im Winter ohne, Herbst 9 Uhr mit Aufschlag. Gegenproben: Faktor immer 1 bzw. ohne Prüfung von Ware und Winter – je zwei Tests rot. `KiHafenStandortTests` um einen Test ergänzt (Formel mit 5 % und Anteil ½, ohne Aufschlag wie vorher, Anteil fest: Gießerei 1, Tischlerei, Siederei, Schänke 0; Kandidaten in Köln am Hafen um genau den Aufschlag kürzer, die übrigen gleich). `Hafenmessung`: `--hafenaufschlag=x`, neue Werkstätten am Hafen, Umsatz. | 09.11.2026 |
 | Prüfung | Unabhängiger Prüfer (Opus) über `d3498c54`: 0 hoch, 2 mittel, 5 niedrig. Umgesetzt: Doku (Spielbuch, ARCHITEKTUR, WIRTSCHAFTSMODELL, hier), Schänke mit Anteil 0, fester Test mit Anteil 1, Handelsauftrag im Test. An Oberfläche gemeldet (`oberflaeche.md`, Offen): Hafentafel sagt noch „dieselben Preise“, Aufschlag und Ausfuhrwaren sind für den Spieler unsichtbar. Als Näherung belassen: Erlös-Vorschauen ohne Aufschlag (`kern.md`, Offen). | 09.11.2026 |
-| Ergebnis | Gemessen (unten): Mit 0, 3 und 5 % wählt die KI in Köln dieselben Bauorte (KI-Häuser: 5 von 105 neuen Werkstätten am Hafen in 20 Jahren, 2 von 54 in 40 Jahren), Fahrten zum Hafen 0,1 bzw. 0,5 %, Vermögen im Rauschen; Greybox, Probestadt und Messstadt bitgleich. Weit unter „die Hälfte am Hafen“ – kein Grund, den Aufschlag zu senken. „Spürbar“ ist er aber nicht: Er wirkt nur für die wenigen Werkstätten, die ohnehin am Hafen stehen (Empfehlung unter „Offen“). | 09.11.2026 |
+| Ergebnis | Gemessen (unten, main `5e61a1c0`): Mit 0, 3 und 5 % wählt die KI in Köln dieselben Bauorte (KI-Häuser: 7 von 104 neuen Werkstätten am Hafen in 20 Jahren, 4 von 54 in 40 Jahren), Fahrten zum Hafen 0,3 bzw. 1,0 %, Vermögen im Rauschen; Greybox, Probestadt und Messstadt bitgleich. Weit unter „die Hälfte am Hafen“ – kein Grund, den Aufschlag zu senken. „Spürbar“ ist er aber nicht: Er wirkt nur für die wenigen Werkstätten, die ohnehin am Hafen stehen (Empfehlung unter „Offen“). | 09.11.2026 |
 
 ## Messungen
 
@@ -295,31 +295,32 @@ Befund: Die Regel wirkt, aber selten. In Köln liegen die besten Bauorte am Mark
 
 ### Aufschlag am Hafen (Hafen v2)
 
-Gemessen auf main `f8419a28` (nach dem Rebase des Branches; „main“ = ohne KI am Hafen und ohne Aufschlag, mit der Zählung der neuen Werkstätten aus `Hafenmessung.cs` dieses Branches) gegen main `f8419a28` + dieser Branch (`d3498c54` mit Nacharbeit der Prüfung; die Schänke mit Anteil 0 ändert in Köln nichts, Lauf mit 3 % Zeichen für Zeichen gleich). Aufschlag über `--hafenaufschlag=0|0.05`, 3 % sind die Spieldaten. Arbeits-PC, nur CPU, niedrige Priorität.
+Gemessen auf main `5e61a1c0` (nach dem zweiten Rebase; „main“ = ohne KI am Hafen und ohne Aufschlag, mit der Zählung der neuen Werkstätten aus `Hafenmessung.cs` dieses Branches) gegen main `5e61a1c0` + dieser Branch (Code-Stand `100b5e7b` nach dem Rebase). Aufschlag über `--hafenaufschlag=0|0.05`, 3 % sind die Spieldaten. Arbeits-PC, nur CPU, niedrige Priorität. Ein erster Lauf auf main `f8419a28` (vor den Kölner Kirchen, PR #398) zeigte dasselbe Bild mit etwas weniger Hafen (KI 5/105 bzw. 2/54 neue Werkstätten am Hafen, Fahrten 0,1 bzw. 0,5 %).
 
-`messen hafen 20 20 --karten=koeln` (20 Startwerte je Aufbau, Reinvermögen ± Streuung der Partien). Bei Spieler als Schmied bzw. Wirt (ein Betrieb) sind alle vier Spalten Zahl für Zahl gleich: KI-Häuser bauen 82 bzw. 74 neue Werkstätten, keine am Hafen, 0 % Fahrten zum Hafen. Beim ausbauenden Spieler („Ausbau“, Strategie der KI):
+`messen hafen 20 20 --karten=koeln` (20 Startwerte je Aufbau, Reinvermögen ± Streuung der Partien). Spieler als Wirt (ein Betrieb): alle vier Spalten Zahl für Zahl gleich (KI-Häuser 73 neue Werkstätten, keine am Hafen). Spieler als Schmied: mit KI am Hafen 1 von 84 KI-Werkstätten am Hafen, Fahrten 0,1 %, in allen drei Spalten +0/+3/+5 gleich. Beim ausbauenden Spieler („Ausbau“, Strategie der KI):
 
 | Köln, 20 Jahre, Ausbau | main | +0 % | +3 % | +5 % |
 |---|---|---|---|---|
-| KI-Häuser: neue Werkstätten, davon näher am Hafen | 105, 0 | 105, 5 (4,8 %) | 105, 5 (4,8 %) | 105, 5 (4,8 %) |
-| KI-Häuser: Fahrten zum Hafen | 0,0 % | 0,1 % | 0,1 % | 0,1 % |
-| Spieler: neue Werkstätten, davon am Hafen | 28, 0 | 28, 4 (14,3 %) | 28, 4 | 28, 4 |
-| Spieler: Fahrten zum Hafen | 0,0 % | 1,2 % | 1,2 % | 1,2 % |
-| Umsatz je Jahr KI-Haus / Spieler | 13.173 / 12.984 | 13.177 / 12.996 | 13.178 / 12.998 | 13.178 / 13.000 |
-| Reinvermögen J20 KI-Häuser | 72.337 ± 6.696 | 72.351 | 72.357 | 72.361 ± 6.738 |
-| Reinvermögen J20 Spieler | 69.655 ± 15.228 | 69.498 | 69.547 | 69.580 ± 15.074 |
+| KI-Häuser: neue Werkstätten, davon näher am Hafen | 104, 0 | 104, 7 (6,7 %) | 104, 7 (6,7 %) | 104, 7 (6,7 %) |
+| KI-Häuser: Fahrten zum Hafen | 0,0 % | 0,3 % | 0,3 % | 0,3 % |
+| Spieler: neue Werkstätten, davon am Hafen | 28, 0 | 28, 7 (25 %) | 28, 7 | 28, 7 |
+| Spieler: Fahrten zum Hafen | 0,0 % | 1,5 % | 1,5 % | 1,5 % |
+| Umsatz je Jahr KI-Haus / Spieler | 13.119 / 12.860 | 13.131 / 12.844 | 13.131 / 12.847 | 13.132 / 12.849 |
+| Reinvermögen J20 KI-Häuser | 71.346 ± 6.383 | 71.586 | 71.599 | 71.607 ± 6.381 |
+| Reinvermögen J20 Spieler | 67.679 ± 16.221 | 67.875 | 67.931 | 67.969 ± 16.446 |
 
 `messen hafen 40 10 --karten=koeln --beruf=Ausbau`:
 
 | Köln, 40 Jahre, Ausbau | main | +0 % | +3 % | +5 % |
 |---|---|---|---|---|
-| KI-Häuser: neue Werkstätten, davon am Hafen | 54, 0 | 54, 2 (3,7 %) | 54, 2 | 54, 2 |
-| KI-Häuser: Fahrten zum Hafen | 0,0 % | 0,5 % | 0,5 % | 0,5 % |
-| Spieler: neue Werkstätten, davon am Hafen / Fahrten zum Hafen | 15, 0 / 0,0 % | 15, 1 / 1,6 % | 15, 1 / 1,6 % | 15, 1 / 1,6 % |
-| Reinvermögen J40 KI-Häuser | 373.246 ± 38.552 | 371.908 | 372.011 | 372.145 ± 37.263 |
-| Reinvermögen J40 Spieler | 388.962 ± 125.426 | 390.189 | 390.580 | 390.411 ± 130.672 |
+| KI-Häuser: neue Werkstätten, davon am Hafen | 54, 0 | 54, 4 (7,4 %) | 54, 4 | 54, 4 |
+| KI-Häuser: Fahrten zum Hafen | 0,0 % | 1,0 % | 1,0 % | 1,0 % |
+| Spieler: neue Werkstätten, davon am Hafen / Fahrten zum Hafen | 14, 0 / 0,0 % | 14, 4 / 6,2 % | 14, 4 / 6,3 % | 14, 4 / 6,3 % |
+| Umsatz je Jahr KI-Haus / Spieler | 27.902 / 32.601 | 27.912 / 32.675 | 27.923 / 32.621 | 27.927 / 32.647 |
+| Reinvermögen J40 KI-Häuser | 373.978 ± 30.168 | 374.227 | 373.929 | 374.090 ± 32.640 |
+| Reinvermögen J40 Spieler | 388.931 ± 116.558 | 392.476 | 393.556 | 394.554 ± 116.160 |
 
-- `messen bericht 20 30` (1.320 Partien, Greybox, Probestadt, Messstadt): Ausgabe Zeile für Zeile gleich wie main. Berufe im Band 9/10 (Tischler −15 %), KI ÷ Bezug (Median) 1,05, davongezogen 7/90; „Schwer“ 1,82, 35/90.
-- `messen bericht 20 30 --teile=5 --karte=koeln` (60 Partien): Normal Bezug 65.508 → 65.955, KI-Häuser 73.442 → 73.440, KI ÷ Bezug 1,12 → 1,12, davongezogen 12/210 → 11/210; „Schwer“ Bezug 79.423 → 79.409, KI-Häuser 106.849 → 106.638, Median 1,36 → 1,37, davongezogen 20/210 → 20/210. Kein Bankrott.
+- `messen bericht 20 30` (1.320 Partien, Greybox, Probestadt, Messstadt; gemessen auf `f8419a28`, PR #398 ändert nur Köln): Ausgabe Zeile für Zeile gleich wie main. Berufe im Band 9/10 (Tischler −15 %), KI ÷ Bezug (Median) 1,05, davongezogen 7/90; „Schwer“ 1,82, 35/90.
+- `messen bericht 20 30 --teile=5 --karte=koeln` (60 Partien, `5e61a1c0`): Normal Bezug 63.501 → 63.988, KI-Häuser 72.421 → 72.526, KI ÷ Bezug 1,13 → 1,11, davongezogen 17/210 → 17/210; „Schwer“ Bezug 77.898 → 77.976, KI-Häuser 105.592 → 105.617, Median 1,38 → 1,39, davongezogen 16/210 → 21/210. Kein Bankrott.
 
-Befund: Der Aufschlag ändert keine Bauortwahl – 3–5 % verkürzen die beste Hafenfahrt (130 Minuten hin und zurück) in der Rechnung der KI um 4–6 Minuten, über die Jahre (× 3/4) um 3–5, die Orte am Hafen liegen aber 30–100 Minuten hinter den freien Orten am Markt. Er bringt nur den Werkstätten am Hafen mehr Umsatz (hier je Haus und Jahr wenige Gulden, weil es kaum solche gibt). Ziel „nicht alle am Hafen“ erfüllt (höchstens 5 % der KI-Neubauten), „spürbar“ nicht – Empfehlung unter „Offen“.
+Befund: Der Aufschlag ändert keine Bauortwahl – 3–5 % verkürzen die beste Hafenfahrt (130 Minuten hin und zurück) in der Rechnung der KI um 4–6 Minuten, über die Jahre (× 3/4) um 3–5, die Orte am Hafen liegen aber 30–100 Minuten hinter den freien Orten am Markt. Er bringt nur den Werkstätten am Hafen mehr Umsatz (je Haus und Jahr wenige Gulden, weil es kaum solche gibt). Was den Hafen nutzt, kommt aus der Bauortwahl selbst (v1): KI-Häuser bauen 7 % ihrer neuen Werkstätten dort, der ausbauende Spieler (KI-geführt) 25–29 %. Ziel „nicht alle am Hafen“ erfüllt (höchstens etwa 7 % der KI-Neubauten), „spürbar“ nicht – Empfehlung unter „Offen“.
