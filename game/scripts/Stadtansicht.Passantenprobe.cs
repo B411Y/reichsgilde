@@ -59,7 +59,12 @@ public partial class Stadtansicht
     // nicht gehetzt, und die Füße rutschen nicht (die Bremse ×0,7 aus Runde 2 ließ sie rutschen).
 
     /// <summary>Bilder je Sekunde der gebackenen Clips (wie in Blender).</summary>
-    private const int ProbeVatBilder = 24;
+    // 12 statt 24 (09.11.): halber Grafikspeicher; der Shader mischt zwischen zwei Bildern, die Abweichung zeigt --probepruefen=1
+    private const int ProbeVatBilder = 12;
+
+    /// <summary>Bilder je Sekunde eines Clips: „Hacken“ ist schnell (bei 12 Bildern/s lag die Axthand zwischen zwei Bildern bis 40 cm daneben)
+    /// und bleibt bei 24, alle übrigen 12.</summary>
+    private static int ProbeVatBilderFuer(string klip) => klip == "Hacken" ? 24 : ProbeVatBilder;
 
     private static readonly string? ProbeOption = Wasserarten.Startoption("passantenprobe");
     /// <summary>Sind die Passanten Figuren mit Skelett (Weg A)? Seit Schritt 5 des Vollausbaus der Normalfall; <c>--passantenprobe=0</c> holt die
@@ -360,8 +365,8 @@ public partial class Stadtansicht
     {
         if (!ProbeAktiv) return;
         ProbeEgoNahSetzen();
-        // gleich beim Start backen (rund eine halbe Sekunde), nicht erst beim ersten Herauszoomen – sonst stockt dort ein Bild
-        if (_probeVatNetze is null && !_probeVatVersucht && ProbeStufe != "skelett") { _probeVatVersucht = true; ProbeVatBacken(); }
+        // Gebacken wird hinter dem Ladebalken (Aufbauen); fehlt das (Tests, Werkzeuge), hier auf einmal
+        if (_probeVatNetze is null && !_probeVatVersucht && ProbeStufe != "skelett") ProbeVatBacken();
         var vat = ProbeStufe switch
         {
             "skelett" => false,
@@ -400,15 +405,256 @@ public partial class Stadtansicht
     /// <summary>Je Art: erste Zeile und Bildzahl je Clip (Reihenfolge <see cref="ProbeKlips"/>).</summary>
     private readonly (int Start, int Bilder)[][] _probeKlipZeilen = ProbeArten.Select(_ => new (int, int)[ProbeKlips.Length]).ToArray();
 
-    /// <summary>Backt alle Netze beider Probedateien (je Variante nah und fern, dazu die Kiste) für alle Clips. False, wenn kein Modell da ist.</summary>
+    /// <summary>
+    /// Backt alle Netze aller Probedateien auf einmal (Ersatz, falls der Ladebildschirm es nicht schon getan hat, z. B. in Tests); sonst läuft es in
+    /// Schritten hinter dem Ladebalken (<see cref="ProbeVatBackenSchritte"/>). False, wenn kein Modell da ist.
+    /// </summary>
     private bool ProbeVatBacken()
     {
+        foreach (var _ in ProbeVatBackenSchritte()) { }
+        return _probeVatNetze is { Count: > 0 };
+    }
+
+    /// <summary>
+    /// Backt die Passanten hinter dem Ladebalken (<see cref="Aufbauen"/>): ein Schritt je Netz, der Wert ist der Fortschritt 0–1. Was schon im
+    /// Zwischenspeicher auf der Platte liegt (<c>user://passanten_vat/</c>, Stadtansicht.Passantencache.cs), wird nur gelesen – beim zweiten Start
+    /// fast ohne Rechnen.
+    /// </summary>
+    public IEnumerable<float> ProbeVatBackenSchritte()
+    {
+        if (Wasserarten.Startoption("probecachetest") is "1") ProbeCacheSelbsttest();
+        if (!ProbeAktiv || ProbeStufe == "skelett" || _probeVatVersucht) yield break;
+        _probeVatVersucht = true;
         var uhr = Stopwatch.StartNew();
         _probeVatNetze = new();
-        for (var art = 0; art < ProbeArten.Length; art++) ProbeVatBacken(art);
+        _probeVatAusSpeicher = 0;
+        _probeVatBytes = 0;
+        for (var art = 0; art < ProbeArten.Length; art++)
+            foreach (var anteil in ProbeVatBackenArt(art))
+                yield return (art + anteil) / ProbeArten.Length;
         _probePaletteNeu = true;
-        GD.Print($"[passantenprobe] VAT gebacken in {uhr.ElapsedMilliseconds} ms ({_probeVatNetze.Count} Netze, Clips {string.Join(", ", ProbeKlips.Select((k, i) => $"{k} {_probeKlipZeilen[0][i].Bilder}"))} Bilder)");
-        return _probeVatNetze.Count > 0;
+        GD.Print($"[passantenprobe] VAT gebacken in {uhr.ElapsedMilliseconds} ms ({_probeVatNetze.Count} Netze, davon {_probeVatAusSpeicher} aus dem Zwischenspeicher, " +
+                 $"Texturen {_probeVatBytes / 1048576.0:0.0} MB, {ProbeVatBilder} Bilder/s, Clips {string.Join(", ", ProbeKlips.Select((k, i) => $"{k} {_probeKlipZeilen[0][i].Bilder}"))} Bilder)");
+    }
+
+    private int _probeVatAusSpeicher;
+    private long _probeVatBytes;
+
+    private IEnumerable<float> ProbeVatBackenArt(int art)
+    {
+        if (Modell(ProbeArten[art].Datei) is not { } szene) yield break;
+        var stoffe = ProbeStoffschichten();
+        var bibFarbe = ResourceLoader.Exists("res://assets/texturen/modelle/modelle_farbe_hoehe.webp")
+            ? Vorladen.Laden<TextureLayered>("res://assets/texturen/modelle/modelle_farbe_hoehe.webp") : null;
+        var wurzel = szene.Instantiate<Node3D>();
+        try
+        {
+            var skelett = wurzel.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().First();
+            var spieler = wurzel.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
+            var zuWurzel = Transform3D.Identity; // Skelett → Modellwurzel
+            for (Node? k = skelett; k is Node3D n && k != wurzel; k = k.GetParent()) zuWurzel = n.Transform * zuWurzel;
+
+            // Zeilen je Clip (billig); die Knochenhaltungen je Bild erst, wenn ein Netz wirklich gerechnet werden muss
+            var zeilen = 0;
+            for (var c = 0; c < ProbeKlips.Length; c++)
+            {
+                var bilder = Math.Max(1, (int)Math.Round(spieler.GetAnimation(ProbeKlips[c]).Length * ProbeVatBilderFuer(ProbeKlips[c])));
+                _probeKlipZeilen[art][c] = (zeilen, bilder);
+                zeilen += bilder;
+            }
+            List<Transform3D[]>? haltungen = null;
+            List<Transform3D[]> Haltungen()
+            {
+                if (haltungen is not null) return haltungen;
+                haltungen = new List<Transform3D[]>(zeilen);
+                for (var c = 0; c < ProbeKlips.Length; c++)
+                {
+                    var anim = spieler.GetAnimation(ProbeKlips[c]);
+                    for (var b = 0; b < _probeKlipZeilen[art][c].Bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilderFuer(ProbeKlips[c]), zuWurzel));
+                }
+                return haltungen;
+            }
+
+            var schluessel = ProbeCacheSchluessel(art, zeilen);
+            var gelesen = ProbeCacheLesen(art, schluessel);
+            var geschrieben = new List<ProbeVatDaten>();
+            var gerechnet = false;
+            var shader = GD.Load<Shader>("res://assets/shader/figur_vat.gdshader");
+            _passantenEbene ??= NeueEbene();
+            var teile = wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>()
+                .Where(t => t.Mesh is ArrayMesh && t.Skin is not null && !(art >= 2 && ProbeUnfreiOhne.Contains(t.Name.ToString()))).ToList();
+            for (var i = 0; i < teile.Count; i++)
+            {
+                var teil = teile[i];
+                var netz = (ArrayMesh)teil.Mesh;
+                var skin = teil.Skin!;
+                var arrays = netz.SurfaceGetArrays(0);
+                var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+                var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
+                var name = teil.Name.ToString();
+                ProbeVatDaten daten;
+                if (gelesen is not null && gelesen.TryGetValue(name, out var aus) && aus.Ecken == ecken.Length && aus.Zeilen == zeilen)
+                {
+                    daten = aus;
+                    _probeVatAusSpeicher++;
+                }
+                else
+                {
+                    daten = ProbeVatRechnen(name, arrays, skin, skelett, Haltungen(), zeilen);
+                    gerechnet = true;
+                    if (Wasserarten.Startoption("probepruefen") is "1" && name is "Nah_cotte" or "Nah_wams" or "Nah_haube")
+                        ProbeZwischenbildFehler(art, name, arrays, skin, skelett, spieler, zuWurzel);
+                }
+                geschrieben.Add(daten);
+                _probeVatBytes += daten.Lage.Length + daten.Richtung.Length;
+
+                // Netz ohne Knochen, Eckennummer in UV2.x
+                var neu = new Godot.Collections.Array();
+                neu.Resize((int)Mesh.ArrayType.Max);
+                neu[(int)Mesh.ArrayType.Vertex] = ecken;
+                neu[(int)Mesh.ArrayType.Normal] = normalen;
+                neu[(int)Mesh.ArrayType.Color] = arrays[(int)Mesh.ArrayType.Color];
+                neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
+                neu[(int)Mesh.ArrayType.TexUV2] = Enumerable.Range(0, ecken.Length).Select(e => new Vector2(e + 0.5f, 0)).ToArray();
+                neu[(int)Mesh.ArrayType.Index] = arrays[(int)Mesh.ArrayType.Index];
+                var vatNetz = new ArrayMesh();
+                vatNetz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, neu);
+                vatNetz.CustomAabb = daten.Kasten.Grow(0.1f);
+
+                var stoff = new ShaderMaterial { Shader = shader };
+                stoff.SetShaderParameter("lage", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgbah, daten.Lage)));
+                stoff.SetShaderParameter("normale", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgba8, daten.Richtung)));
+                stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
+                if (bibFarbe is not null) stoff.SetShaderParameter("bib_farbe", bibFarbe);
+                stoff.SetShaderParameter("stoff_schicht", stoffe.Select(s => s.Schicht).ToArray());
+                stoff.SetShaderParameter("stoff_kachel", stoffe.Select(s => s.Kachel).ToArray());
+                stoff.SetShaderParameter("stoff_mittel", stoffe.Select(s => s.Mittel).ToArray());
+                var mm = new MultiMesh
+                {
+                    TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseCustomData = true, Mesh = vatNetz,
+                    CustomAabb = new Aabb(new Vector3(-5000, -500, -5000), new Vector3(10000, 1000, 10000)), // alles im Bild (nur Sichtbare stehen drin)
+                };
+                var knotenMm = new MultiMeshInstance3D
+                {
+                    Name = $"ProbeVat_{art}_{name}", Multimesh = mm, MaterialOverride = stoff, TopLevel = true,
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                };
+                AddChild(knotenMm);
+                knotenMm.GlobalTransform = Transform3D.Identity;
+                _probeVatNetze![$"{art}:{name}"] = new ProbeVatNetz { Name = name, Knoten = knotenMm, Stoff = stoff };
+                if (Wasserarten.Startoption("probepruefen") is "1")
+                    GD.Print($"[passantenprobe] VAT {ProbeArten[art].Datei} {name}: {ecken.Length} Ecken, {netz.SurfaceGetArrayIndexLen(0) / 3} Dreiecke, {zeilen} Bilder, Textur {ecken.Length}×{zeilen}");
+                yield return (i + 1f) / teile.Count;
+            }
+            if (gerechnet) ProbeCacheSchreiben(art, schluessel, geschrieben);
+            if (Wasserarten.Startoption("probepruefen") is "1") ProbeVatPruefen(wurzel, skelett, spieler, zuWurzel);
+        }
+        finally
+        {
+            wurzel.Free();
+        }
+    }
+
+    /// <summary>Häutet ein Netz für alle Zeilen (Bilder aller Clips): Lage als Halbfloat (RGBAH), Normale als RGBA8, dazu der Umriss.</summary>
+    private static ProbeVatDaten ProbeVatRechnen(string name, Godot.Collections.Array arrays, Skin skin, Skeleton3D skelett, List<Transform3D[]> haltungen, int zeilen)
+    {
+        var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
+        var knochen = arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
+        var gewichte = arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
+        var jeEcke = knochen.Length / ecken.Length;
+        var bindKnochen = ProbeBindKnochen(skin, skelett);
+        var lage = new byte[ecken.Length * zeilen * 8];   // RGBAH
+        var richtung = new byte[ecken.Length * zeilen * 4]; // RGBA8
+        var haut = new Transform3D[bindKnochen.Length];
+        var kasten = new Aabb(ecken[0], Vector3.Zero);
+        for (var z = 0; z < zeilen; z++)
+        {
+            for (var b = 0; b < haut.Length; b++) haut[b] = haltungen[z][bindKnochen[b]] * skin.GetBindPose(b);
+            for (var e = 0; e < ecken.Length; e++)
+            {
+                var p = Vector3.Zero;
+                var nr = Vector3.Zero;
+                for (var j = 0; j < jeEcke; j++)
+                {
+                    var w = gewichte[e * jeEcke + j];
+                    if (w <= 0) continue;
+                    var t = haut[knochen[e * jeEcke + j]];
+                    p += w * (t * ecken[e]);
+                    nr += w * (t.Basis * normalen[e]);
+                }
+                nr = nr.Normalized();
+                kasten = kasten.Expand(p);
+                var o = (z * ecken.Length + e) * 8;
+                HalbSchreiben(lage, o, p.X); HalbSchreiben(lage, o + 2, p.Y); HalbSchreiben(lage, o + 4, p.Z); HalbSchreiben(lage, o + 6, 1f);
+                var q = (z * ecken.Length + e) * 4;
+                richtung[q] = (byte)Math.Clamp((int)Math.Round((nr.X * 0.5f + 0.5f) * 255), 0, 255);
+                richtung[q + 1] = (byte)Math.Clamp((int)Math.Round((nr.Y * 0.5f + 0.5f) * 255), 0, 255);
+                richtung[q + 2] = (byte)Math.Clamp((int)Math.Round((nr.Z * 0.5f + 0.5f) * 255), 0, 255);
+                richtung[q + 3] = 255;
+            }
+        }
+        return new ProbeVatDaten(name, ecken.Length, zeilen, kasten, lage, richtung);
+    }
+
+    private static int[] ProbeBindKnochen(Skin skin, Skeleton3D skelett)
+    {
+        var aus = new int[skin.GetBindCount()];
+        for (var b = 0; b < aus.Length; b++) aus[b] = skin.GetBindBone(b) >= 0 ? skin.GetBindBone(b) : skelett.FindBone(skin.GetBindName(b));
+        return aus;
+    }
+
+    /// <summary>Lagen aller Ecken eines Netzes in einer Haltung (Modellraum), für die Prüfung der Zwischenbilder.</summary>
+    private static Vector3[] ProbeHaeuten(Godot.Collections.Array arrays, Skin skin, int[] bindKnochen, Transform3D[] haltung)
+    {
+        var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+        var knochen = arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
+        var gewichte = arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
+        var jeEcke = knochen.Length / ecken.Length;
+        var haut = new Transform3D[bindKnochen.Length];
+        for (var b = 0; b < haut.Length; b++) haut[b] = haltung[bindKnochen[b]] * skin.GetBindPose(b);
+        var aus = new Vector3[ecken.Length];
+        for (var e = 0; e < ecken.Length; e++)
+            for (var j = 0; j < jeEcke; j++)
+            {
+                var w = gewichte[e * jeEcke + j];
+                if (w > 0) aus[e] += w * (haut[knochen[e * jeEcke + j]] * ecken[e]);
+            }
+        return aus;
+    }
+
+    /// <summary>
+    /// <c>--probepruefen=1</c>: Wie weit liegt eine Ecke zwischen zwei gebackenen Bildern (der Shader mischt linear) von der echten Haltung
+    /// weg? Je Clip größte und 95-%-Abweichung in Millimetern, bei <see cref="ProbeVatBilder"/> Bildern je Sekunde und zum Vergleich bei 24.
+    /// </summary>
+    private void ProbeZwischenbildFehler(int art, string name, Godot.Collections.Array arrays, Skin skin, Skeleton3D skelett, AnimationPlayer spieler, Transform3D zuWurzel)
+    {
+        var bind = ProbeBindKnochen(skin, skelett);
+        var zeilen = new List<string>();
+        foreach (var stufe in new[] { "gebacken", "24" })
+        {
+            var teile = new List<string>();
+            foreach (var klip in ProbeKlips)
+            {
+                var fps = stufe == "24" ? 24 : ProbeVatBilderFuer(klip);
+                var anim = spieler.GetAnimation(klip);
+                var bilder = Math.Max(1, (int)Math.Round(anim.Length * fps));
+                var fehler = new List<float>();
+                for (var b = 0; b < bilder; b++)
+                {
+                    var p0 = ProbeHaeuten(arrays, skin, bind, ProbeHaltung(skelett, anim, b / (double)fps, zuWurzel));
+                    var p1 = ProbeHaeuten(arrays, skin, bind, ProbeHaltung(skelett, anim, (b + 1) % bilder / (double)fps, zuWurzel));
+                    var pm = ProbeHaeuten(arrays, skin, bind, ProbeHaltung(skelett, anim, (b + 0.5) / fps, zuWurzel));
+                    var groesst = 0f;
+                    for (var e = 0; e < pm.Length; e++) groesst = Math.Max(groesst, (pm[e] - (p0[e] + p1[e]) * 0.5f).Length());
+                    fehler.Add(groesst * 1000f);
+                }
+                fehler.Sort();
+                teile.Add($"{klip} {fehler[^1]:0.0}/{fehler[(int)(fehler.Count * 0.95)]:0.0}");
+            }
+            zeilen.Add($"{(stufe == "24" ? "alle 24 Bilder/s" : $"gebacken ({ProbeVatBilder}, Hacken 24 Bilder/s)")}: {string.Join(", ", teile)}");
+        }
+        GD.Print($"[passantenprobe] Zwischenbilder {ProbeArten[art].Datei} {name} (größte/95-%-Abweichung je Bildpaar in mm, Modell ohne Volksmaßstab): {string.Join(" | ", zeilen)}");
     }
 
     /// <summary>Werte der Material-Bibliothek für die Stoffe im VAT-Shader: Schicht, Kachel (Meter) und mittlere Farbe von „tuch“ und „leder“.</summary>
@@ -428,116 +674,6 @@ public partial class Stadtansicht
         return aus;
     }
 
-    private void ProbeVatBacken(int art)
-    {
-        if (Modell(ProbeArten[art].Datei) is not { } szene) return;
-        var stoffe = ProbeStoffschichten();
-        var bibFarbe = ResourceLoader.Exists("res://assets/texturen/modelle/modelle_farbe_hoehe.webp")
-            ? Vorladen.Laden<TextureLayered>("res://assets/texturen/modelle/modelle_farbe_hoehe.webp") : null;
-        var wurzel = szene.Instantiate<Node3D>();
-        var skelett = wurzel.FindChildren("*", nameof(Skeleton3D), true, false).OfType<Skeleton3D>().First();
-        var spieler = wurzel.FindChildren("*", nameof(AnimationPlayer), true, false).OfType<AnimationPlayer>().First();
-        var zuWurzel = Transform3D.Identity; // Skelett → Modellwurzel
-        for (Node? k = skelett; k is Node3D n && k != wurzel; k = k.GetParent()) zuWurzel = n.Transform * zuWurzel;
-
-        // Knochenhaltungen je Bild (Modellraum), einmal für alle Netze
-        var zeilen = 0;
-        var haltungen = new List<Transform3D[]>();
-        for (var c = 0; c < ProbeKlips.Length; c++)
-        {
-            var anim = spieler.GetAnimation(ProbeKlips[c]);
-            var bilder = Math.Max(1, (int)Math.Round(anim.Length * ProbeVatBilder));
-            _probeKlipZeilen[art][c] = (zeilen, bilder);
-            for (var b = 0; b < bilder; b++) haltungen.Add(ProbeHaltung(skelett, anim, b / (double)ProbeVatBilder, zuWurzel));
-            zeilen += bilder;
-        }
-
-        var shader = GD.Load<Shader>("res://assets/shader/figur_vat.gdshader");
-        _passantenEbene ??= NeueEbene();
-        foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
-        {
-            if (teil.Mesh is not ArrayMesh netz || teil.Skin is not { } skin) continue;
-            if (art >= 2 && ProbeUnfreiOhne.Contains(teil.Name.ToString())) continue; // Orks und Oger: barfuß, ohne Hut (spart Backzeit und Grafikspeicher)
-            var arrays = netz.SurfaceGetArrays(0);
-            var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
-            var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
-            var knochen = arrays[(int)Mesh.ArrayType.Bones].AsInt32Array();
-            var gewichte = arrays[(int)Mesh.ArrayType.Weights].AsFloat32Array();
-            var jeEcke = knochen.Length / ecken.Length;
-            var bindKnochen = new int[skin.GetBindCount()];
-            for (var b = 0; b < bindKnochen.Length; b++)
-                bindKnochen[b] = skin.GetBindBone(b) >= 0 ? skin.GetBindBone(b) : skelett.FindBone(skin.GetBindName(b));
-
-            var lage = new byte[ecken.Length * zeilen * 8];   // RGBAH
-            var richtung = new byte[ecken.Length * zeilen * 4]; // RGBA8
-            var haut = new Transform3D[bindKnochen.Length];
-            var kasten = new Aabb(ecken[0], Vector3.Zero);
-            for (var z = 0; z < zeilen; z++)
-            {
-                for (var b = 0; b < haut.Length; b++) haut[b] = haltungen[z][bindKnochen[b]] * skin.GetBindPose(b);
-                for (var e = 0; e < ecken.Length; e++)
-                {
-                    var p = Vector3.Zero;
-                    var nr = Vector3.Zero;
-                    for (var j = 0; j < jeEcke; j++)
-                    {
-                        var w = gewichte[e * jeEcke + j];
-                        if (w <= 0) continue;
-                        var t = haut[knochen[e * jeEcke + j]];
-                        p += w * (t * ecken[e]);
-                        nr += w * (t.Basis * normalen[e]);
-                    }
-                    nr = nr.Normalized();
-                    kasten = kasten.Expand(p);
-                    var o = (z * ecken.Length + e) * 8;
-                    HalbSchreiben(lage, o, p.X); HalbSchreiben(lage, o + 2, p.Y); HalbSchreiben(lage, o + 4, p.Z); HalbSchreiben(lage, o + 6, 1f);
-                    var q = (z * ecken.Length + e) * 4;
-                    richtung[q] = (byte)Math.Clamp((int)Math.Round((nr.X * 0.5f + 0.5f) * 255), 0, 255);
-                    richtung[q + 1] = (byte)Math.Clamp((int)Math.Round((nr.Y * 0.5f + 0.5f) * 255), 0, 255);
-                    richtung[q + 2] = (byte)Math.Clamp((int)Math.Round((nr.Z * 0.5f + 0.5f) * 255), 0, 255);
-                    richtung[q + 3] = 255;
-                }
-            }
-
-            // Netz ohne Knochen, Eckennummer in UV2.x
-            var neu = new Godot.Collections.Array();
-            neu.Resize((int)Mesh.ArrayType.Max);
-            neu[(int)Mesh.ArrayType.Vertex] = ecken;
-            neu[(int)Mesh.ArrayType.Normal] = normalen;
-            neu[(int)Mesh.ArrayType.Color] = arrays[(int)Mesh.ArrayType.Color];
-            neu[(int)Mesh.ArrayType.TexUV] = arrays[(int)Mesh.ArrayType.TexUV];
-            neu[(int)Mesh.ArrayType.TexUV2] = Enumerable.Range(0, ecken.Length).Select(i => new Vector2(i + 0.5f, 0)).ToArray();
-            neu[(int)Mesh.ArrayType.Index] = arrays[(int)Mesh.ArrayType.Index];
-            var vatNetz = new ArrayMesh();
-            vatNetz.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, neu);
-            vatNetz.CustomAabb = kasten.Grow(0.1f);
-
-            var stoff = new ShaderMaterial { Shader = shader };
-            stoff.SetShaderParameter("lage", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgbah, lage)));
-            stoff.SetShaderParameter("normale", ImageTexture.CreateFromImage(Image.CreateFromData(ecken.Length, zeilen, false, Image.Format.Rgba8, richtung)));
-            stoff.SetShaderParameter("klips", _probeKlipZeilen[art].Select(k => new Vector2(k.Start, k.Bilder)).ToArray());
-            if (bibFarbe is not null) stoff.SetShaderParameter("bib_farbe", bibFarbe);
-            stoff.SetShaderParameter("stoff_schicht", stoffe.Select(s => s.Schicht).ToArray());
-            stoff.SetShaderParameter("stoff_kachel", stoffe.Select(s => s.Kachel).ToArray());
-            stoff.SetShaderParameter("stoff_mittel", stoffe.Select(s => s.Mittel).ToArray());
-            var mm = new MultiMesh
-            {
-                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseCustomData = true, Mesh = vatNetz,
-                CustomAabb = new Aabb(new Vector3(-5000, -500, -5000), new Vector3(10000, 1000, 10000)), // alles im Bild (nur Sichtbare stehen drin)
-            };
-            var knotenMm = new MultiMeshInstance3D
-            {
-                Name = $"ProbeVat_{art}_{teil.Name}", Multimesh = mm, MaterialOverride = stoff, TopLevel = true,
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            };
-            AddChild(knotenMm);
-            knotenMm.GlobalTransform = Transform3D.Identity;
-            _probeVatNetze![$"{art}:{teil.Name}"] = new ProbeVatNetz { Name = teil.Name, Knoten = knotenMm, Stoff = stoff };
-            GD.Print($"[passantenprobe] VAT {ProbeArten[art].Datei} {teil.Name}: {ecken.Length} Ecken, {netz.SurfaceGetArrayIndexLen(0) / 3} Dreiecke, {zeilen} Bilder, Textur {ecken.Length}×{zeilen}");
-        }
-        if (Wasserarten.Startoption("probepruefen") is "1") ProbeVatPruefen(wurzel, skelett, spieler, zuWurzel);
-        wurzel.Free();
-    }
 
     /// <summary>Haltung aller Knochen (Modellraum) zur Zeit <paramref name="sekunden"/> eines Clips: Spuren aus der Animation, sonst die Ruhelage.</summary>
     private static Transform3D[] ProbeHaltung(Skeleton3D sk, Animation anim, double sekunden, Transform3D zuWurzel)
