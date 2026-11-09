@@ -771,6 +771,8 @@ In jeder Partie setzt der Rat einen Stadtglauben durch (ausgewogen 14× katholis
 
 ## 32. Völkerboni je Beruf (umgesetzt)
 
+Seit Datenversion 76 (Entscheidung des Nutzers 9.11.2026) sind die Boni der Berufe mit Ware ±3 % statt ±5 %; Dieb, Gardist und Geldleiher haben seit den Gauner-Regeln ±2 % (siehe „Völkerboni ±3 %“ am Ende). Die Tabelle und die Messung unten zeigen den Stand bei der Einführung.
+
 | Volk | +5 % Leistung | −5 % Leistung |
 |---|---|---|
 | Mensch | Tischler, Gardist | – |
@@ -2520,3 +2522,73 @@ Beim Parfumeur ändert sich jedes Volk um höchstens 1,2 % (Halbling gegen Mensc
 **Befund:** Die Wirkung liegt im Rauschen. Ein größerer Wert würde genauso wenig helfen, denn die Knoten bewegen das Vermögen kaum (siehe den Elb oben). 0,35 kann bleiben, weil es nicht schadet, oder auf 0,2 zurück. Wer den Abstand des Schmieds verkleinern will, muss beim Völkerbonus ansetzen (offener Punkt in `docs/bereiche/kern.md`).
 
 **Nebenbefund Spielstand:** Mit den neuen Preisen lief der Gleichheitstest bei Startwert 4711 nach dem Laden auseinander. Ursache: Das Jahresende lernt das Übliche der Einkäufe neu, den Faktor der Bürger am Markt setzt die Bürger-KI aber erst zur nächsten vollen Stunde. Beim Laden in dieser Stunde wurde der Faktor schon mit dem neuen Üblichen gerechnet, und ein Karren, der um 4 Uhr verkaufte, bekam 0,08 % weniger. Der Fehler ist behoben (`EinkaufErwartetImMarkt` im Spielstand der Einwohnerschaft). Durchgehende Partien rechnen bitgleich weiter: Die Berufe der Endmessung gleichen der Probe ohne die Behebung Zahl für Zahl.
+
+## Völkerboni ±3 % (Datenversion 76, 9.11.2026)
+
+**Auftrag** (Entscheidung des Nutzers 9.11.2026): Vermächtnis zurück auf 20 %, Völkerboni der Berufe ±3 % statt ±5 %. Entscheidungen in `docs/bereiche/kern.md`, „Völkerboni ±3 %“.
+
+**Geändert:**
+
+| Was | vorher | nachher |
+|---|---|---|
+| `berufe.Schmied.voelker` | Zwerg +0,05, Halbling −0,05 | Zwerg +0,03, Halbling −0,03 |
+| `berufe.Tischler.voelker` | Mensch +0,05 | Mensch +0,03 |
+| `berufe.Steinmetz.voelker` | Zwerg +0,05, Elb −0,05 | Zwerg +0,03, Elb −0,03 |
+| `berufe.Alchimist.voelker` | Elb +0,05 | Elb +0,03 |
+| `berufe.Wirt.voelker` | Halbling +0,05 | Halbling +0,03 |
+| `berufe.Prediger.voelker` | Elb +0,05 | Elb +0,03 |
+| `berufe.Parfumeur.voelker` | Elb +0,05, Zwerg −0,05 | Elb +0,03, Zwerg −0,03 |
+| `lebensweise.vermaechtnis` | 0,35 | 0,2 |
+
+Unverändert: Dieb, Gardist und Geldleiher (±2 % seit den Gauner-Regeln), Lebenszeit, Haushalt, Talente und alles andere je Volk. 3 % entsprechen etwa einem Stern Handwerkskunst.
+
+**Messung** (gemessen auf main `7143a4f6` + diesem PR, `f33947e4`; main stand bei der Messung auf `57964daf`, dazwischen nur Darstellung). Vorher ist main `fcbc7db4` (#380: ±5 %, Vermächtnis 0,35) mit denselben Startwerten; die beiden Vorher-Dateien `…-vermaechtnis35.json` tragen `commit 67dcd65d` (main `fb089712`) mit Vermächtnis 0,35 – Kern und Daten rechnen dort wie `fcbc7db4`:
+
+- `messen bericht 40 30 --teile=2` (240 Partien, 13,3 Min.) → `docs/messungen/balancing-2026-11-09-voelker40-voelkerbonus3.json`, gegen `…-voelker40-vermaechtnis35.json`;
+- `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 39 Min.; NAS mit anderen Läufen geteilt) → `…-voelkerbonus3.json`; die Berufe gegen `…-berufe-vermaechtnis35.json` (main), die übrigen Teile gegen `…-handgeld.json` (±5 %, Vermächtnis 0,2 – main hat nur Berufe und Völker mit 0,35 gemessen);
+- Dieb und Geldleiher je Volk (`messen bericht 20 30 --teile=2 --voelkerberufe=Dieb,Geldleiher`, 240 Partien) auf main `fcbc7db4` und auf diesem PR → `…-voelker-gauner-main-fcbc7db4.json`, `…-voelker-gauner-voelkerbonus3.json`.
+
+**Völker** (Reinvermögen nach 40 Jahren, Abstand zum Menschen desselben Berufs; Fehler eines Mittels 2.800–5.200, eines Unterschieds etwa 4 Punkte):
+
+| Beruf, Volk | Bonus | main `fcbc7db4` | nachher | gegen Mensch (main → nachher) |
+|---|---|---|---|---|
+| Schmied, Mensch | 0 | 110.475 | 106.368 ± 3.152 | 0 → 0 |
+| Schmied, Zwerg | +5 → +3 | 123.815 | 117.009 ± 5.174 | +12,1 → +10,0 % |
+| Schmied, Elb | 0 | 113.543 | 111.246 ± 2.809 | +2,8 → +4,6 % |
+| Schmied, Halbling | −5 → −3 | 99.883 | 101.151 ± 2.777 | −9,6 → −4,9 % |
+| Parfumeur, Mensch | 0 | 120.902 | 124.139 ± 3.591 | 0 → 0 |
+| Parfumeur, Zwerg | −5 → −3 | 123.473 | 120.754 ± 3.185 | +2,1 → −2,7 % |
+| Parfumeur, Elb | +5 → +3 | 137.421 | 135.444 ± 4.074 | +13,7 → +9,1 % |
+| Parfumeur, Halbling | 0 | 122.205 | 124.060 ± 4.296 | +1,1 → −0,1 % |
+
+Der Abstand zwischen Zwerg- und Halbling-Schmied schrumpft von 21,7 auf 14,9 Punkte, der zwischen Elb- und Zwerg-Parfumeur von 11,6 auf 11,8 Punkte nicht (der Mensch-Parfumeur liegt diesmal 2,7 % höher, der Mensch-Schmied 3,7 % tiefer – beides in der Streuung). Nach 20 Jahren (Teil 2 im vollen Bericht, Abstand des Zuwachses): Schmied −14 … +5 %, Parfumeur −9 … +6 % (vorher aus `…-handgeld.json` mit Vermächtnis 0,2: −14 … +10 % und −8 … +12 %).
+
+**Berufe** (Mensch, ein Betrieb, Greybox, 20 Jahre; ± Fehler des Mittels; in Klammern der Abstand des Zuwachses zum Mittel):
+
+| Beruf | main `fcbc7db4` | nachher | Änderung |
+|---|---|---|---|
+| Schmied | 39.348 (+6,7 %) | 40.001 ± 1.218 (+9,3 %) | +1,7 % |
+| **Tischler** (Mensch +5 → +3 %) | 33.351 (−11,4 %) | 31.756 ± 1.523 (**−15,7 %**) | −4,8 % |
+| Steinmetz | 41.545 (+13,3 %) | 40.400 ± 1.267 (+10,5 %) | −2,8 % |
+| Alchimist | 37.585 (+1,4 %) | 36.820 ± 1.229 (−0,4 %) | −2,0 % |
+| Wirt | 35.965 (−3,5 %) | 36.767 ± 1.081 (−0,5 %) | +2,2 % |
+| Prediger | 37.928 (+2,4 %) | 37.548 ± 1.287 (+1,8 %) | −1,0 % |
+| Dieb | 33.673 (−10,4 %) | 34.346 ± 1.138 (−7,9 %) | +2,0 % |
+| Parfumeur | 40.312 (+9,6 %) | 41.776 ± 1.303 (+14,7 %) | +3,6 % |
+| Geldleiher | 37.500 (+1,1 %) | 36.242 ± 1.121 (−2,1 %) | −3,4 % |
+| Gardist | 34.123 (−9,1 %) | 33.782 ± 823 (−9,6 %) | −1,0 % |
+| Dieb (wagemutig, nicht im Mittel) | 27.621 (−28,7 %) | 23.577 ± 1.196 (−40,6 %) | −14,6 % |
+
+Mittel des Zuwachses 33.133 → 32.944. **9 von 10 im Band ±15 %**: Der Tischler fällt knapp heraus – er ist der einzige Startberuf, den der Mensch im Bericht mit Bonus spielt, und verliert zwei Punkte Leistung. Die übrigen bewegen sich über die KI-Häuser (Eisenbart als Zwergen-Schmied, Eichwald als Elb, Kieselbach als Halbling), die selbst ihren Bonus verlieren. Der wagemutige Dieb (nicht im Mittel, schon vorher außerhalb) verliert 4.000 Gulden; seine Opfer sind die KI-Häuser, er streut stark (Gericht).
+
+**Übrige Teile** (gegen `…-handgeld.json`, ±5 %, Vermächtnis 0,2): KI ÷ Bezugsspieler (Median) 1,25 → 1,15 (KI-Häuser im Mittel 80.309 → 79.195, Bezug 66.447 → 66.403), „Schwer“ 1,78 → 1,83; Messstadt je KI-Haus allein / 3 / 8 Häuser 99.449 / 61.164 / 50.319 → 96.119 / 59.059 / 49.834; Gaunerei der KI 0,44 / 0,80 / 0,16 → 0,45 / 0,80 / 0,17; Spitzel / Gericht 96 / 186 → 94 / 190; Karren in Not 0 → 0. Statische Berufe unverändert (sie rechnen ohne Volk).
+
+**Dieb und Geldleiher je Volk** (20 Jahre, ihr Bonus bleibt ±2 %; Abstand des Zuwachses zum Menschen; Fehler eines Mittels 800–1.300, eines Unterschieds etwa 5 Punkte):
+
+| Volk | Dieb main → nachher | Geldleiher main → nachher |
+|---|---|---|
+| Zwerg | −14,9 → −17,6 % (Bonus −2) | +20,1 → +25,7 % (Bonus +2) |
+| Elb | −11,0 → −15,6 % | −7,9 → −2,4 % |
+| Halbling | +23,4 → +21,8 % (Bonus +2) | +15,9 → +21,7 % |
+
+Die Änderung trifft beide nur über das Vermächtnis und die KI-Häuser; die Unterschiede liegen im Rauschen. Der Abstand des Halbling-Diebs und des Zwerg-Geldleihers bleibt bei +20 bis +25 %; der Halbling-Geldleiher ohne Bonus liegt ebenso hoch – der Bonus erklärt ihn nicht (offener Punkt in `kern.md`).

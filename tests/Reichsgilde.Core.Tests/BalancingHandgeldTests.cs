@@ -11,15 +11,15 @@ static class BalancingHandgeldTests
 {
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Balancing nach dem Handgeld: Daten – Taschendiebe 0,009 je Stunde gefasst, Moschusduft 220, Fechterduft 210, Vermächtnis 35 % (Datenversion 75); " +
+        ("Balancing nach dem Handgeld: Daten – Taschendiebe 0,009 je Stunde gefasst, Moschusduft 220, Fechterduft 210 (Datenversion 75; das Vermächtnis 35 % galt bis Datenversion 75); " +
          "Datenpfad.WieVorBalancingHandgeld gibt die alten Werte", () =>
         {
             var d = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-            Pruefe.Gleich(75, d.Version);
+            Pruefe.Gleich(76, d.Version);
             Pruefe.Ungefaehr(0.009, d.Dieb!.Taschendiebstahl.FangJeStunde, 1e-12);
             Pruefe.Gleich(220.0, d.Waren["Moschusduft"].Grundpreis);
             Pruefe.Gleich(210.0, d.Waren["Fechterduft"].Grundpreis);
-            Pruefe.Ungefaehr(0.35, d.Lebensweise!.Vermaechtnis, 1e-12); // Völker: Entscheidung des Nutzers 9.11.2026
+            Pruefe.Ungefaehr(0.2, d.Lebensweise!.Vermaechtnis, 1e-12); // Völker: 0,35 bis Datenversion 75, wieder 0,2 ab 76 (Nutzer 9.11.2026)
             // unverändert: Beute und Fang je Stufe, die Blume der Zwietracht (Stufe 1) und der Heiligenduft (Stufe 3)
             Pruefe.Ungefaehr(1.16, d.Dieb.Taschendiebstahl.BeuteJeMinute, 1e-12);
             Pruefe.Gleich("1 0,8 0,6", string.Join(" ", d.Dieb.Taschendiebstahl.FangJeStufe.Select(x => x.ToString(System.Globalization.CultureInfo.GetCultureInfo("de-DE")))));

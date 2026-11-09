@@ -91,12 +91,45 @@ static class Datenpfad
     public static string WieVorHafenziel(string? json = null) => MitHandgeld(OhneHafenziel(json), 0);
 
     /// <summary>
+    /// Die Werte wie bis Datenversion 75, vor den Völkerboni ±3 % (Datenversion 76, Entscheidung des Nutzers 9.11.2026): Die Völkerboni der
+    /// Berufe mit Ware sind ±5 % (jetzt ±3 %), das Vermächtnis ist 0,35 (jetzt 0,2) – für die Vergleiche mit Sollwerten älterer Kerne.
+    /// </summary>
+    public static string WieVorVoelkerbonusDrei(string? json = null)
+    {
+        json ??= File.ReadAllText(Wirtschaft());
+        string Ersetzen(string text, string alt, string neu) => text.Contains(alt, StringComparison.Ordinal) ? text.Replace(alt, neu)
+            : throw new InvalidDataException($"„{alt}“ steht nicht wie erwartet in den Daten – Datenpfad.WieVorVoelkerbonusDrei anpassen.");
+        foreach (var (alt, neu) in VoelkerbonusDrei) json = Ersetzen(json, neu, alt);
+        return Ersetzen(json, "\"vermaechtnis\": 0.2,", "\"vermaechtnis\": 0.35,");
+    }
+
+    /// <summary>Die Völkerboni der Berufe mit Ware bis Datenversion 75 und ab 76 (Text in wirtschaft.json).</summary>
+    public static readonly (string Alt, string Neu)[] VoelkerbonusDrei =
+    {
+        ("\"Schmied\":  { \"werkstatt\": \"Giesserei\",  \"umland\": \"Mine\",          \"voelker\": { \"Zwerg\": 0.05, \"Halbling\": -0.05 }",
+         "\"Schmied\":  { \"werkstatt\": \"Giesserei\",  \"umland\": \"Mine\",          \"voelker\": { \"Zwerg\": 0.03, \"Halbling\": -0.03 }"),
+        ("\"Tischler\": { \"werkstatt\": \"Tischlerei\", \"umland\": \"Holzfaellerei\", \"voelker\": { \"Mensch\": 0.05 }",
+         "\"Tischler\": { \"werkstatt\": \"Tischlerei\", \"umland\": \"Holzfaellerei\", \"voelker\": { \"Mensch\": 0.03 }"),
+        ("\"Steinmetz\": { \"werkstatt\": \"Maurerei\", \"umland\": \"Steinbruch\", \"voelker\": { \"Zwerg\": 0.05, \"Elb\": -0.05 }",
+         "\"Steinmetz\": { \"werkstatt\": \"Maurerei\", \"umland\": \"Steinbruch\", \"voelker\": { \"Zwerg\": 0.03, \"Elb\": -0.03 }"),
+        ("\"Alchimist\": { \"werkstatt\": \"Tinkturei\", \"umland\": \"Kraeutergarten\", \"voelker\": { \"Elb\": 0.05 }",
+         "\"Alchimist\": { \"werkstatt\": \"Tinkturei\", \"umland\": \"Kraeutergarten\", \"voelker\": { \"Elb\": 0.03 }"),
+        ("\"Wirt\": { \"werkstatt\": \"Schaenke\", \"umland\": \"Bauernhof\", \"voelker\": { \"Halbling\": 0.05 }",
+         "\"Wirt\": { \"werkstatt\": \"Schaenke\", \"umland\": \"Bauernhof\", \"voelker\": { \"Halbling\": 0.03 }"),
+        ("\"Prediger\": { \"werkstatt\": \"Kirche\", \"umland\": \"Klosterhof\", \"voelker\": { \"Elb\": 0.05 }",
+         "\"Prediger\": { \"werkstatt\": \"Kirche\", \"umland\": \"Klosterhof\", \"voelker\": { \"Elb\": 0.03 }"),
+        ("\"Parfumeur\": { \"werkstatt\": \"Siederei\", \"umland\": \"Duftgarten\", \"voelker\": { \"Elb\": 0.05, \"Zwerg\": -0.05 }",
+         "\"Parfumeur\": { \"werkstatt\": \"Siederei\", \"umland\": \"Duftgarten\", \"voelker\": { \"Elb\": 0.03, \"Zwerg\": -0.03 }"),
+    };
+
+    /// <summary>
     /// Die Werte wie bis Datenversion 74, vor dem Balancing nach dem Handgeld (Datenversion 75): Taschendiebe werden mit 0,012 je Stunde gefasst
-    /// (jetzt 0,009), Moschusduft kostet 226 und Fechterduft 215 (jetzt 220 und 210), das Vermächtnis ist 0,2 (jetzt 0,35) – für die Vergleiche mit Sollwerten älterer Kerne.
+    /// (jetzt 0,009), Moschusduft kostet 226 und Fechterduft 215 (jetzt 220 und 210), das Vermächtnis ist 0,2 und die Völkerboni der Berufe mit
+    /// Ware ±5 % (beides wie bis Datenversion 75, <see cref="WieVorVoelkerbonusDrei"/>) – für die Vergleiche mit Sollwerten älterer Kerne.
     /// </summary>
     public static string WieVorBalancingHandgeld(string? json = null)
     {
-        json ??= File.ReadAllText(Wirtschaft());
+        json = WieVorVoelkerbonusDrei(json);
         string Ersetzen(string text, string alt, string neu) => text.Contains(alt, StringComparison.Ordinal) ? text.Replace(alt, neu)
             : throw new InvalidDataException($"„{alt}“ steht nicht wie erwartet in den Daten – Datenpfad.WieVorBalancingHandgeld anpassen.");
         json = Ersetzen(json, "\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0.012");
