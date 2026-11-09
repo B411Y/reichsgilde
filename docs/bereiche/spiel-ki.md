@@ -1,6 +1,6 @@
 # Bereich Spiel-KI – Offen, Entscheidungen, Messungen
 
-> **Archiv:** Ältere und abgelöste Entscheidungen (bis 24.10.2026) stehen in [archiv/spiel-ki.md](archiv/spiel-ki.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
+> **Archiv:** Ältere und abgelöste Entscheidungen (bis 24.10.2026, dazu PR #219 und #274 samt der Messungen zu PR #231 und #274) stehen in [archiv/spiel-ki.md](archiv/spiel-ki.md). Zum Arbeiten genügt diese Datei; das Archiv nur bei Bedarf lesen.
 
 **Nur der Spiel-KI-Chat schreibt hier.** Ausnahme: Ein anderer Bereich darf unter „Offen“ eine Zeile mit „(von …)“ anhängen, wenn er hier etwas braucht.
 
@@ -23,15 +23,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (von Kern) Der Test `BuergerTorwacheTests` „Torwache: Spielstand geladen – dieselben Wächter …“ läuft allein 233 s (30 Jahre doppelt getickt) – ein Drittel aller Kern-Tests. Er steht jetzt in `LangsameTests.cs`; prüfen, ob weniger Jahre (z. B. nur bis zum ersten Ruhestand) dasselbe zeigen.
 
 ## Entscheidungen
-
-### Fehler und Kleinkram (PR #219)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Gaunerei je Nacht | Hinterzimmer-Tafel und KI rechnen mit allen Versuchen der Nacht (`gauner.nachtVersuche` zu je `versuchFaktor` der Chance): `Unterwelt.ChanceMindestensErfolge(chance, k)` (Binomial), `ErwartetJeNacht(chance, ertrag(k))` = Σ Chance auf mindestens k Erfolge × Ertrag des k-ten. Diebstahl und eigener Einbruch: der k-te Griff holt die übrige Ware (`Warenfolge`) und den Rest der Kasse (`Bankwesen.Kassenbeute(b, k)`); Einbruch ins Wohnhaus: jeder Erfolg wieder die Beute aus der übrigen Truhe; Brand am Wohnhaus (`ErwarteterBrandschaden`) und Sabotage höchstens einmal. Mit vier Versuchen zu je ⅓ sind es 4/3 so viele Erfolge wie früher angenommen – die KI wählt deshalb **mehr** Einbrüche ins Wohnhaus, nicht weniger (Teil 1, 6 Startwerte: 1.639 → 1.850 Aufträge). Tests `KiGaunereiNachtTests`. | 27.10.2026 |
-| Sabotage einmal je Nacht | Mit der richtigen Erwartung lohnte die Sabotage: Jeder Erfolg brachte wieder 6 Stunden Stillstand, vier in einer Nacht legten eine Werkstatt zwei Arbeitsjahre still (Sabotage-Aufträge 30 → 235, Mittel der Berufe −8 %, Geldleiher −27 %). Wie der Brand am Wohnhaus wirkt eine Sabotage jetzt höchstens einmal je Nacht (Kern-Regel in `Unterwelt.Nacht`; dem Teamleiter als Designfrage gemeldet, Umsetzung siehe `kern.md`). | 27.10.2026 |
-| Karren | Die KI kaufte Karren nach Stillstand, der von Anschlägen kam, und verkaufte sie nach einem Jahr ohne Fahrt wieder (Gießereien mit drei Handkarren und vier Fahrten im Jahr). Behoben im Kern (Reparatur zählt nicht als Stillstand, siehe `kern.md`); dazu kaufen Wache und Geldleihe nie Karren (`KarrenNachkaufen` prüft `BrauchtKarren`). Tests `KiKarrenStillstandTests`. | 27.10.2026 |
-| Bürger-KI | Ratsherren gehen mit dem Geschlecht aus den Daten durch die Stadt (`Ratsherr.Geschlecht`, Datenversion 58), nicht mehr nach der Vornamenliste. | 27.10.2026 |
 
 ### Personal und Talentbaum (PR #224)
 
@@ -68,14 +59,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Woher die Meinung kommt | Feste Gründe (Züge, Volk, Glaube, Stand) und Taten: Klage −15, ertappter Diebstahl/Sabotage/Überfall −20, Stimme im Rat ±5, Fest +5. Ein Haus, das die KI bestiehlt und dabei erkannt wird, macht sie sich so zum Feind – vorher galt nur „hat geschadet“ (Beweise). | 28.10.2026 |
 | Brautschau | Die KI rechnet mit `GuldenJeZuneigung(konto, kandidat)` – ein Kandidat, der ihr Oberhaupt mag, ist billiger. | 28.10.2026 |
 | Messung | `messen bericht 20 30` auf main `391874f5` + `13531d4d`: Geschenke der KI je Jahr (Messspieler, ein Betrieb) −25 … −92 → −14 … −55, KI ÷ Bezug (Median) 1,01 → 1,11, „Schwer“ 1,79 → 1,78, Diebstahl 0,80 → 0,81, Einbruch 0,69 → 0,66, Sabotage 0,01 → 0,02 je Jahr, Karren in Not 7 → 8; verheiratet nach 3 Jahren 88/90 wie main. In 3 Startwerten × 12 Jahren hinterlassen KI-Häuser 88 Gründe aus Aktivitäten bei Ratsherren (Test `KiMeinungTests`). Einzelheiten in WIRTSCHAFTSMODELL, „Meinungen und Aktivitäten (PR #231)“. | 28.10.2026 |
-
-### Schankschluss (PR #274)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Befund | „114–116 von 123 Einwohnern 22–23 Uhr in der Schänke“ (Ton-Messung, Wirt, Startwerte 1400 und 99) ist ein Zählfehler der Sonde, kein Fehler des Kerns: Sie rief `Einwohner.Wo(uhr)` mit `UhrzeitInMinuten` statt `VergangeneMinuten` auf. Ab dem zweiten Tag liegt die Uhrzeit vor jedem Abmarsch, also kam der Startort des letzten Weges heraus – die Schänke, aus der die Gäste um 22 Uhr heimgingen (nachgerechnet: 116,0 bzw. 113,7). Richtig gezählt ist die Schänke ab 22:10 leer und um 22:45 sind 122 von 123 daheim. Die Darstellung rechnet mit `VergangeneMinuten` und war nie betroffen. | 31.10.2026 |
-| Absicherung | Datenprüfung: `buerger.handlungen.Einkehren.bis` ≤ `Gastwirtschaft.SchliesstUm` (22), sonst säßen Einwohner in der geschlossenen Schänke; ebenso `Arbeiten.bis`, sobald eine Rolle `arbeitsort` Schaenke hat (heute keine). Ein zu früher Beginn (`Einkehren.von` vor `gastwirtschaft.oeffnetUm`) wird wie bisher nur mit Kopplung geprüft (`Wirtschaftsdaten`, Kern; heute beide 12 Uhr). Der Parameter von `Wo`, `IstUnterwegs` und `IstAngekommen` heißt jetzt `vergangeneMinuten`, der Kommentar warnt vor der Uhrzeit. Test `BuergerSchankschlussTests` (Wirt, Startwerte 1400 und 99, drei Tage): ab 22 Uhr wählen alle Ruhen daheim, wer geht, geht aus der Schänke ins eigene Haus, ab 22:10 ist jede Schänke leer, um 22:50 ist niemand mehr unterwegs, bis 23 Uhr bleibt sie leer; dazu die Datenprüfung mit `bis` = 23 (Einkehren, Arbeiten mit Schankrolle). Verhalten unverändert. | 31.10.2026 |
-| Mittagsandrang | Echt, aber keine Regel verletzt: Um 12 Uhr wählen 92–107 von 123 Einwohnern Einkehren, kurz vor 13 Uhr sitzen bis zu 107 (Startwert 1400) bzw. 103 (99) in der einen Schänke, abends um 21:45 bis 84 bzw. 78. Ursache: Vergnügen wächst ab 4 Uhr um 5 je Stunde (mittags etwa 40), Einkehren stillt 40 + 5 Ruhe, Arbeiten 25 (+ 5 Beharrung). Eine Kapazität für Einwohner gibt es nicht (`Gastwirtschaft.SitzplaetzeImRaum` = 12 begrenzt nur die Gäste, die der Innenraum zeigt); Gäste und Umsatz hängen nur am Verhältnis zum Üblichen je Uhrzeit (Faktor 1 ± 0,5), der Andrang kostet oder bringt also nichts. Nicht erfunden, als Designfrage gemeldet (siehe „Offen“). | 31.10.2026 |
 
 ### Karren und Bauort nach dem Karrenweg (PR #282)
 
@@ -191,32 +174,19 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Messung | Gemessen vom Kern (WIRTSCHAFTSMODELL „Geheimnisse“, main `5a7f6c51` + 3c `09b61b2c`): je Partie (20 Jahre, 80 Partien) 3,4 erpresste Ratsstimmen (74 % der Partien), 6,8 Spitzel auf Ratsherren, 0,8 Briefe (46 %, 0,56 bezahlt), 0,49 Anzeigen (0,35 schuldig), 0,55 Bloßstellen; KI ÷ Bezug 1,14 → 1,05, Berufe 9/10 im Band wie ohne Geheimnisse (Tischler −15,3 %). Ketzerei-Regel (Entscheidung des Nutzers): `GeheimnisSchaden` und die Anzeige folgen `Geheimniswesen.KeinVergehen`; kaum Wirkung, weil in KI-Partien selten ein Stadtglaube gilt. | 09.11.2026 |
 | Opfer | `Unterweltschutz` zahlt einen Brief mit Geheimnis, wenn der Betrag unter `GeheimnisSchaden(nummer)` liegt und die halbe Reserve bleibt: das Schlimmere aus Anzeige (Buße der Art, gedeckelt wie am Gerichtstag, + Pranger 500 + Kerker 1.500 + drei Jahre Amtseinkommen – nur bei einem Vergehen – `Geheimniswesen.KeinVergehen`, Ketzerei nur mit Stadtglauben und Bekenntnis des Inhabers zu ihm) und Bloßstellen (Ansehen × `guldenJeAnsehen` (100) × Jahre der Schande). Angezeigt, rechnet `Verteidigen` Buße und Kerker des Geheimnisses zum Nutzen eines Freispruchs (Befund der Prüfung; Mord mit 25 Beweiskraft ist ohnehin nicht zu kippen). | 09.11.2026 |
 | Tests | `KiGeheimnisTests` (4): Mord angezeigt und verurteilt, verschont ein Haus mit Meinung +100 (Gegenprobe); gierig ein Brief (≤ 1.500), still schweigt (Gegenprobe), nach der Ablehnung wird es öffentlich; Ratsstimme beim eigenen Antrag (verschlagen ja, ehrlich nein) und Spitzel auf den nächsten Ratsherrn ohne Wissen; als Opfer 100 Gulden gezahlt, 9.000 nicht. | 09.11.2026 |
+### Vorarbeiter und Einrichtung nach jeder Wirkung (PR „Kern: Personal-Nacharbeit …“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Grundsatz | Die KI rechnet weiter nur mit dem Kern (`Personalwesen.MehrgewinnJeJahr`, `Werkstattwesen.Amortisationsjahre`); seit Datenversion 78 (`werkstatt.jedeWirkungRechnen`) bringen dort auch Lager, Fänge, Spuren, Einbruch, Hehlerei, Razzia, Streife und Geleit Gulden (kern.md, „Personal-Nacharbeit“). Der Gleichstand „erste der Wahl“ (PR #224) kommt dadurch seltener vor: Ein Meisterdieb ohne Einbrüche wird „Verschwiegen“ statt „Einbrecher“ (0). | 09.11.2026 |
+| Durchfluss | `KiRivale.Durchfluss` ruft `Werkstattwesen.Durchfluss` (dieselbe Formel, jetzt im Kern; bitgleich). | 09.11.2026 |
+| Lager nicht doppelt | `EigenschaftWert` im gebremsten Umland (ab `StillstandFuerKarrenkauf`, Fahrzeit nach Weglänge) rechnet das Lager wie bisher selbst und zieht den Lagerteil des Kerns (`Werkstattwesen.LagerMehrgewinn`) ab; ohne den Schalter ist er 0, also bitgleich. Werkstätten und das übrige Umland nehmen den Kernwert. | 09.11.2026 |
+| Wache | Wachhunde, Kettenhemden, Streifengänger und Geleitmann bringen dem eigenen Haus kaum Gulden (sie schützen alle) – die KI kauft sie fast nie; Hellebarden nur mit viel Kopfgeld. Designfrage an den Teamleiter (Empfehlung: so lassen), offen in kern.md. | 09.11.2026 |
+| Tests | `KiPersonalNacharbeitTests` (2): Ein KI-Dieb kauft zum Jahresende die Lederhandschuhe (bezahlt in unter 4 Jahren), ohne Schalter kein Stück; „Vorsichtig“ und „Verschwiegen“ bringen Gulden, „Hehlerfreund“ und „Einbrecher“ ohne Diebesgut nicht, ohne Schalter alle 0. `KiUmlandTests`: der Kern rechnet „Ordnungsliebend“ im gebremsten Holzschlag jetzt selbst, die KI bleibt bei ihrer Rechnung. | 09.11.2026 |
 
 ## Messungen
 
 Neue Messungen der Spiel-KI stehen hier (mit main-Commit), nicht mehr in `docs/WIRTSCHAFTSMODELL.md`. Ältere: dort bis §42 (Taschendiebe, PR #69).
-
-### KI nach Meinungen (PR #231)
-
-Gemessen auf main `391874f5` (bis `b9825f32` nur Infra) + `13531d4d`, `messen bericht 20 30` gegen main (Werte von main gleich `balancing-2026-10-28-charakterzuege.json`) → `docs/messungen/balancing-2026-10-28-meinungen.json`: KI ÷ Bezugsspieler mit der Strategie der KI (Median) 1,01 → 1,11, davongezogen 3 → 3 von 90, abgeschlagen 1 → 1; „Schwer“ 1,79 → 1,78; Geschenke der KI-geführten Messspieler je Jahr −25 … −92 → −14 … −55 (Aktivitäten statt Geschenke, Abnahme je weiterem Geschenk), Familienkosten +6 … +29 (Aktivitäten); Diebstahl 0,80 → 0,81, Einbruch 0,69 → 0,66, Sabotage 0,01 → 0,02 je Jahr; Spitzel 91 → 92, Gericht 231 → 216 je Jahr; Karren in Not 7 → 8. Sonde (30 Partien): KI-Häuser verheiratet nach 3 Jahren 88/90 wie main, nach 6 Jahren 90/90 (main 89/90).
-
-### Schankschluss (PR #274)
-
-Gemessen auf main `24963d29` + PR #274, Wirt-Partie (Spieler Wirt, eine Schänke, 123 Einwohner), Startwerte 1400 und 99, Tage 2–4, alle 5 Minuten mit `Wo(VergangeneMinuten)` gezählt; Ø je Viertelstunde, in Klammern der Höchstwert. Vorher und nachher zeichengleich (die Änderung prüft nur Daten); „Sonde“ = dieselbe Zählung mit der Uhrzeit wie in der Ton-Messung:
-
-| Uhr | Schänke 1400 | daheim 1400 | unterwegs 1400 | Schänke 99 | daheim 99 | unterwegs 99 | Sonde Schänke 1400 / 99 |
-|---|---|---|---|---|---|---|---|
-| 20:00 | 10,4 (26) | 16,6 | 68,4 | 8,3 (20) | 11,2 | 74,9 | 24,7 / 20,0 |
-| 20:45 | 35,8 (42) | 76,2 | 10,3 | 38,3 (47) | 71,0 | 13,0 | 24,7 / 20,0 |
-| 21:00 | 18,7 (36) | 39,0 | 64,7 | 21,9 (44) | 37,3 | 63,1 | 37,3 / 40,0 |
-| 21:45 | 78,0 (84) | 43,4 | 0,9 | 73,0 (78) | 48,6 | 0,8 | 37,3 / 40,0 |
-| 22:00 | 29,3 (65) | 43,7 | 49,3 | 26,4 (65) | 48,7 | 47,2 | 116,0 / 113,7 |
-| 22:15 | 0 (0) | 46,4 | 75,9 | 0 (0) | 52,9 | 69,4 | 116,0 / 113,7 |
-| 22:30 | 0 (0) | 87,4 | 34,9 | 0 (0) | 95,3 | 27,0 | 116,0 / 113,7 |
-| 22:45 | 0 (0) | 122,1 | 0,2 | 0 (0) | 121,8 | 0,6 | 116,0 / 113,7 |
-
-- In der Viertelstunde ab 22:00 sitzen nur noch die, deren Abmarsch (0–9 Minuten nach der vollen Stunde) noch nicht gekommen ist; ab 22:10 ist die Schänke leer. Zwischen den vollen Stunden ist ein guter Teil der Stadt unterwegs (Wege 30 ± 10 Minuten), um 21:15 etwa 96 und um 22:15 etwa 69–76 auf dem Weg zur bzw. von der Schänke.
-- Gäste und Umsatz der Schänke (Tage 1–10) und `messen 30 20` (Eisenbart Ø 176.661, Eichwald Ø 135.108, Kieselbach Ø 172.261) zeichengleich mit main.
 
 ### Karren und Bauort nach dem Karrenweg (PR #282)
 
@@ -328,3 +298,7 @@ Darstellung (Köln, 12 Uhr, Zoom 70, Tempo 1, NAS mit RTX 2000): Passanten 5,4 �
 ### KI nach Stress (PR „Kern: Charaktersystem Teil 3b – Stress“, vom Kern gemessen)
 
 Gemessen auf main `432ceee2` + `a3ed79df` (Einzelheiten in `kern.md` und WIRTSCHAFTSMODELL „Stress“): KI ÷ Bezug (Median) 1,15 → 1,13, „Schwer“ 1,83 → 1,80, Gaunerei der KI 0,45 / 0,80 / 0,17 → 0,44 / 0,79 / 0,17 je Jahr, Karren in Not 0 → 1. `messen stress 20 30`: Die Oberhäupter sind in 99,8 % der Jahre ruhig, keines bricht zusammen; Ventile etwa 7 je 100 Oberhaupt-Jahre (Abbau zusammen etwa 110), keine Aktivität, die das Oberhaupt nicht mag. Gemieden wird darum selten – die KI kommt kaum über 40. Nachtrag mit den Quellen von außen (main `047cabd9` + `1961140a`, `messen stress 40 20`): KI ÷ Bezug 1,14, „Schwer“ 1,85, Gaunerei 0,44 / 0,77 / 0,17; in 16,3 % der Oberhaupt-Jahre wird es angespannt oder mehr (vorher 2,6 %), je Leben gut 4 Jahre angespannt, 23 % der Oberhäupter einmal zermürbt, 2,8 % brechen zusammen. Die Ventile kommen damit öfter zum Zug (Abbau zusammen etwa 450 je 100 Oberhaupt-Jahre); das Meiden ab 40 bleibt wie gebaut.
+
+### Vorarbeiter und Einrichtung nach jeder Wirkung (PR „Kern: Personal-Nacharbeit …“)
+
+Gemessen auf main `f0f572d3` + dieser PR (`99c35a3b`), `messen bericht 20 30 --parallel=8` gegen main (je 1.320 Partien; Tabellen in WIRTSCHAFTSMODELL „Personal-Nacharbeit“): Berufe 9/10 im Band wie main (Tischler schon außerhalb), Dieb −9,2 → −11,1 %, Gardist −7,1 → −6,5 %, Dieb wagemutig −35,0 → −28,8 %; KI ÷ Bezug (Median) 1,14 → 1,15, „Schwer“ 1,85 → 1,83. Probe (drei Startwerte, Greybox, 12 Jahre, Haus frei von der KI geführt): Der Dieb kauft im dritten Jahr die Lederhandschuhe (33–35 Gulden im Jahr), sein Meisterdieb wird „Verschwiegen“ (26–40); der Gardist kauft Waffenkammer und in zwei von drei Partien die Hellebarden (134–163 Gulden im Jahr), Vorarbeiter Antreiber.
