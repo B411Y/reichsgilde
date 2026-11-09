@@ -15,11 +15,26 @@ namespace Reichsgilde;
 ///
 /// Die vielen gleichen Teile (Mauerstücke, Mauertürme, Ecktürme) sind je Teil ein <see cref="MultiMeshInstance3D"/>: Die Grafikkarte zeichnet
 /// alle Kopien in einem Aufruf je Material, statt hundert einzelner Knoten.
+///
+/// Eigene Torburgen und Ecktürme (Kölner Mauerbaukasten <c>stadtmauer_koeln.glb</c>, Paket 3 der Kölner Wahrzeichen): Ein Teil „Tor_&lt;Wort&gt;“
+/// ersetzt das allgemeine „Tor“ an jedem Tor, dessen Name mit dem Wort beginnt („Tor_Eigelstein“ → „Eigelsteintor“; das längste Wort gewinnt),
+/// mit seinen Ankern „Anker_Tuer_&lt;Wort&gt;“ und „Anker_Feuer_&lt;Wort&gt;_&lt;n&gt;“. Ein Teil „Eckturm_&lt;Wort&gt;“ ersetzt den Eckturm, der einem solchen
+/// Tor am nächsten steht (höchstens <see cref="EigenerEckturmReichweite"/> m), ausgerichtet wie das nächste Mauerstück (der Bayenturm ist
+/// viereckig und steht längs der Mauer). Der Kern braucht dafür nichts: Er setzt nur Lagen, das Bild wählt das Teil nach dem Namen.
 /// </summary>
 public partial class Stadtansicht
 {
-    /// <summary>Die vier Teile eines Mauer-Baukastens und der Anker in der Durchfahrt des Tors – je Datei einmal aus dem Modell gelesen.</summary>
-    private sealed record Mauerteile(Mesh Stueck, Mesh Turm, Mesh Eckturm, Mesh Tor, Vector3? TorAnker, Transform3D[] Feuer);
+    /// <summary>Eine Torburg eines Baukastens: das Netz, der Anker in der Durchfahrt und die Feuerkörbe daneben.</summary>
+    private sealed record Torteil(Mesh Netz, Vector3? Anker, Transform3D[] Feuer);
+
+    /// <summary>
+    /// Die vier Teile eines Mauer-Baukastens (das allgemeine Tor mit seinen Ankern) und die eigenen Torburgen und Ecktürme nach dem Wort
+    /// ihres Namens – je Datei einmal aus dem Modell gelesen.
+    /// </summary>
+    private sealed record Mauerteile(Mesh Stueck, Mesh Turm, Mesh Eckturm, Torteil Tor, Dictionary<string, Torteil> Tore, Dictionary<string, Mesh> Ecktuerme);
+
+    /// <summary>So weit darf ein Eckturm von seinem Tor entfernt sein, damit ihn ein eigener „Eckturm_&lt;Wort&gt;“ ersetzt (Meter).</summary>
+    private const float EigenerEckturmReichweite = 25f;
 
     private readonly Dictionary<string, Mauerteile?> _mauerteile = new();
 
@@ -27,68 +42,114 @@ public partial class Stadtansicht
     {
         if (_mauerteile.TryGetValue(datei, out var teile)) return teile;
         if (Modell(datei)?.Instantiate<Node3D>() is not { } kasten) return _mauerteile[datei] = null;
-        var stueck = (kasten.FindChild("Mauerstueck", true, false) as MeshInstance3D)?.Mesh;
-        var turm = (kasten.FindChild("Mauerturm", true, false) as MeshInstance3D)?.Mesh;
-        var eck = (kasten.FindChild("Eckturm", true, false) as MeshInstance3D)?.Mesh;
-        var tor = (kasten.FindChild("Tor", true, false) as MeshInstance3D)?.Mesh;
-        var anker = (kasten.FindChild("Anker_Tuer", true, false) as Node3D)?.Position;
-        // Anker_Feuer_<n>: Feuerkörbe neben der Durchfahrt (Nachtlichter, Stadtansicht.Nachtlichter.cs), im Maßstab des Teils „Tor“
-        var feuer = kasten.FindChildren("Anker_Feuer_*", nameof(Node3D), true, false).OfType<Node3D>()
-                          .OrderBy(k => k.Name.ToString(), StringComparer.Ordinal).Select(k => k.Transform).ToArray();
-        kasten.Free();
+        Mesh? Netz(string name) => (kasten.FindChild(name, true, false) as MeshInstance3D)?.Mesh;
+        var stueck = Netz("Mauerstueck");
+        var turm = Netz("Mauerturm");
+        var eck = Netz("Eckturm");
+        var tor = Netz("Tor");
         if (stueck is null || turm is null || eck is null || tor is null)
         {
+            kasten.Free();
             GD.PushError($"Modell unvollständig: res://assets/modelle/{datei}.glb braucht Mauerstueck, Mauerturm, Eckturm und Tor.");
             return _mauerteile[datei] = null;
         }
-        return _mauerteile[datei] = new Mauerteile(stueck, turm, eck, tor, anker, feuer);
+        var tore = new Dictionary<string, Torteil>(StringComparer.Ordinal);
+        var ecktuerme = new Dictionary<string, Mesh>(StringComparer.Ordinal);
+        foreach (var k in kasten.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
+        {
+            var name = k.Name.ToString();
+            if (k.Mesh is null) continue;
+            if (name.StartsWith("Tor_", StringComparison.Ordinal)) tore[name[4..]] = TorteilLesen(kasten, k.Mesh, name[4..]);
+            else if (name.StartsWith("Eckturm_", StringComparison.Ordinal)) ecktuerme[name[8..]] = k.Mesh;
+        }
+        var allgemein = TorteilLesen(kasten, tor, null);
+        kasten.Free();
+        return _mauerteile[datei] = new Mauerteile(stueck, turm, eck, allgemein, tore, ecktuerme);
     }
+
+    /// <summary>
+    /// Anker eines Tors: „Anker_Tuer“ und „Anker_Feuer_&lt;n&gt;“ (allgemeines Tor) bzw. „Anker_Tuer_&lt;Wort&gt;“ und „Anker_Feuer_&lt;Wort&gt;_&lt;n&gt;“.
+    /// Anker_Feuer_&lt;n&gt;: Feuerkörbe neben der Durchfahrt (Nachtlichter, Stadtansicht.Nachtlichter.cs), im Maßstab des Teils.
+    /// </summary>
+    private static Torteil TorteilLesen(Node3D kasten, Mesh netz, string? wort)
+    {
+        var anker = (kasten.FindChild(wort is null ? "Anker_Tuer" : "Anker_Tuer_" + wort, true, false) as Node3D)?.Position;
+        var vor = wort is null ? "Anker_Feuer_" : $"Anker_Feuer_{wort}_";
+        var feuer = kasten.FindChildren(vor + "*", nameof(Node3D), true, false).OfType<Node3D>()
+                          .Where(k => k.Name.ToString()[vor.Length..].All(char.IsAsciiDigit))
+                          .OrderBy(k => k.Name.ToString(), StringComparer.Ordinal).Select(k => k.Transform).ToArray();
+        return new Torteil(netz, anker, feuer);
+    }
+
+    /// <summary>Das Wort des eigenen Teils für ein Tor: das längste, mit dem sein Name beginnt (Groß- und Kleinschreibung egal); null = allgemein.</summary>
+    private static string? TorWort(IEnumerable<string> woerter, string torname) =>
+        woerter.Where(w => torname.StartsWith(w, StringComparison.OrdinalIgnoreCase)).OrderByDescending(w => w.Length).ThenBy(w => w, StringComparer.Ordinal)
+               .FirstOrDefault();
 
     private readonly Dictionary<string, Vector3[]> _torfeuerWaende = new();
 
     /// <summary>
     /// Je Feuerkorb der Torburg die Wand daneben (Turm, Torbogen) im Raum seiner Flamme, damit der Rauch an ihr hochsteigt statt durch sie hindurch
-    /// (<see cref="WandFuerLicht"/>); gerechnet mit dem Netz „Tor“, einmal je Baukasten.
+    /// (<see cref="WandFuerLicht"/>); gerechnet mit dem Netz der Torburg, einmal je Baukasten und Torburg.
     /// </summary>
-    private Vector3[] TorfeuerWaende(string datei, Mauerteile teile)
+    private Vector3[] TorfeuerWaende(string schluessel, Torteil tor)
     {
-        if (_torfeuerWaende.TryGetValue(datei, out var bekannt)) return bekannt;
+        if (_torfeuerWaende.TryGetValue(schluessel, out var bekannt)) return bekannt;
         LichterLaden();
-        var netze = new[] { (teile.Tor, Transform3D.Identity) };
+        var netze = new[] { (tor.Netz, Transform3D.Identity) };
         var waende = _lichtNetze.TryGetValue(Lichtart.Feuerkorb, out var korb)
-            ? teile.Feuer.Select(f => WandFuerLicht(Lichtart.Feuerkorb, f * korb.Lage, netze)).ToArray()
-            : new Vector3[teile.Feuer.Length];
-        GD.Print($"[feuer] Torfeuer {datei}: {waende.Count(w => w != Vector3.Zero)} von {waende.Length} an einer Wand");
-        return _torfeuerWaende[datei] = waende;
+            ? tor.Feuer.Select(f => WandFuerLicht(Lichtart.Feuerkorb, f * korb.Lage, netze)).ToArray()
+            : new Vector3[tor.Feuer.Length];
+        GD.Print($"[feuer] Torfeuer {schluessel}: {waende.Count(w => w != Vector3.Zero)} von {waende.Length} an einer Wand");
+        return _torfeuerWaende[schluessel] = waende;
     }
 
     /// <summary>
     /// Zeichnet den Plan einer Mauer aus dem Baukasten <paramref name="datei"/> (<c>stadtmauer.glb</c>) unter <paramref name="eltern"/>. Im Spiel
     /// (<paramref name="spiel"/>) bekommt jede Torburg ihren Anker „Tor:&lt;Name&gt;“, eine Klickfläche und ein Schild; die Werkstatt zeichnet
-    /// nur die Modelle.
+    /// nur die Modelle. Eigene Torburgen und Ecktürme des Baukastens (Kopf der Datei) stehen als eigene Knoten da.
     /// </summary>
     private void MauerAufbauen(string datei, Mauerplan plan, Node3D eltern, bool spiel)
     {
         if (MauerteileVon(datei) is not { } teile) return;
         var feuerlagen = new List<Transform3D>();
         var feuerwaende = new List<Vector3>();
+        var eigeneTore = new List<(string Wort, Vector3 Ort)>();
         foreach (var tor in plan.Tore)
         {
+            var wort = TorWort(teile.Tore.Keys.Concat(teile.Ecktuerme.Keys), tor.Name);
+            var teil = wort is not null && teile.Tore.TryGetValue(wort, out var eigen) ? eigen : teile.Tor;
             var lage = new Transform3D(MauerBasis(tor.Lage), MauerOrt(tor.Lage));
+            if (wort is not null) eigeneTore.Add((wort, lage.Origin));
             if (spiel)
             {
-                feuerlagen.AddRange(teile.Feuer.Select(f => lage * f));
-                feuerwaende.AddRange(TorfeuerWaende(datei, teile));
+                feuerlagen.AddRange(teil.Feuer.Select(f => lage * f));
+                feuerwaende.AddRange(TorfeuerWaende(teil == teile.Tor ? datei : datei + "|" + wort, teil));
             }
-            var knoten = new MeshInstance3D { Name = tor.Name, Mesh = teile.Tor, Transform = lage, Layers = 1 | TorErdeEbene };
+            var knoten = new MeshInstance3D { Name = tor.Name, Mesh = teil.Netz, Transform = lage, Layers = 1 | TorErdeEbene };
             eltern.AddChild(knoten);
             TorErdeMerken(knoten); // Erde im Torweg, wenn ein Erdweg hindurchführt (Stadtansicht.Torerde.cs)
-            if (spiel) TorEinrichten(tor.Name, knoten, lage, teile.TorAnker);
+            if (spiel) TorEinrichten(tor.Name, knoten, lage, teil);
         }
         if (spiel) FeuerkoerbeVielfach(feuerlagen, eltern, feuerwaende); // Nachtlichter: ein Feuerkorb links und rechts jeder Durchfahrt
         Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerStueckBasis(s), MauerOrt(s))), eltern);
         Vielfach("Mauertuerme", teile.Turm, plan.Tuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
-        Vielfach("Eckturme", teile.Eckturm, plan.Ecktuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
+        // Ecktürme: ein eigener (Eckturm_<Wort>) ersetzt den, der seinem Tor am nächsten steht
+        var ersetzt = new Dictionary<int, string>();
+        foreach (var (wort, ort) in eigeneTore)
+        {
+            if (!teile.Ecktuerme.ContainsKey(wort) || plan.Ecktuerme.Count == 0) continue;
+            var naechster = Enumerable.Range(0, plan.Ecktuerme.Count).MinBy(i => MauerOrt(plan.Ecktuerme[i]).DistanceTo(ort));
+            if (MauerOrt(plan.Ecktuerme[naechster]).DistanceTo(ort) <= EigenerEckturmReichweite) ersetzt[naechster] = wort;
+        }
+        foreach (var (i, wort) in ersetzt.OrderBy(e => e.Key))
+        {
+            var eck = plan.Ecktuerme[i];
+            var stueck = plan.Stuecke.Count > 0 ? plan.Stuecke.MinBy(s => (s.X - eck.X) * (s.X - eck.X) + (s.Z - eck.Z) * (s.Z - eck.Z)) : eck;
+            eltern.AddChild(new MeshInstance3D { Name = "Eckturm_" + wort, Mesh = teile.Ecktuerme[wort], Transform = new Transform3D(MauerBasis(stueck), MauerOrt(eck)) });
+            GD.Print($"[mauer] Eckturm_{wort} bei ({eck.X:0.#} | {eck.Z:0.#})");
+        }
+        Vielfach("Eckturme", teile.Eckturm, plan.Ecktuerme.Where((_, i) => !ersetzt.ContainsKey(i)).Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
         if (spiel) EgoMauerMerken(teile, plan); // Kollision der Ego-Perspektive (Stadtansicht.Ego.cs)
     }
 
@@ -147,20 +208,24 @@ public partial class Stadtansicht
         return beste;
     }
 
-    /// <summary>Die Torburg im Spiel: Anker „Anker_Tuer“ in der Durchfahrt (Kennung „Tor:&lt;Name&gt;“), Klickfläche und Schild wie beim alten Torhaus.</summary>
-    private void TorEinrichten(string name, Node3D tor, Transform3D lage, Vector3? ankerLage)
+    /// <summary>
+    /// Die Torburg im Spiel: Anker „Anker_Tuer“ in der Durchfahrt (Kennung „Tor:&lt;Name&gt;“), Klickfläche und Schild wie beim alten Torhaus –
+    /// so hoch wie die Torburg (die Severinstorburg ist 22 m hoch).
+    /// </summary>
+    private void TorEinrichten(string name, Node3D tor, Transform3D lage, Torteil teil)
     {
-        if (ankerLage is { } anker)
+        if (teil.Anker is { } anker)
         {
             var knoten = new Node3D { Name = "Anker_Tuer", Position = anker };
             tor.AddChild(knoten);
             _modellAnker["Tor:" + name] = (knoten, null);
         }
         // Die Klickfläche liegt längs der Mauer: Torburg 16,5 m breit und 7 m tief
+        var hoehe = Mathf.Max(14f, teil.Netz.GetAabb().End.Y);
         var breit = new Vector3(Mathf.Abs(lage.Basis.X.X), 0, Mathf.Abs(lage.Basis.X.Z));
         var tief = new Vector3(Mathf.Abs(lage.Basis.Z.X), 0, Mathf.Abs(lage.Basis.Z.Z));
-        Klickflaeche(name, lage.Origin + new Vector3(0, 7, 0), breit * 16.5f + tief * 7 + new Vector3(0, 14, 0)).GetParent().SetMeta("ego_frei", true); // die Durchfahrt bleibt für die Ego-Perspektive frei (Stadtansicht.Ego.cs)
-        Beschriftung(name, lage.Origin + new Vector3(0, 20, 0), 48, kennung: name);
+        Klickflaeche(name, lage.Origin + new Vector3(0, hoehe / 2, 0), breit * 16.5f + tief * 7 + new Vector3(0, hoehe, 0)).GetParent().SetMeta("ego_frei", true); // die Durchfahrt bleibt für die Ego-Perspektive frei (Stadtansicht.Ego.cs)
+        Beschriftung(name, lage.Origin + new Vector3(0, Mathf.Max(20f, hoehe + 4f), 0), 48, kennung: name);
     }
 
     /// <summary>Viele Kopien eines Teils in einem Zeichenaufruf je Material (<see cref="MultiMeshInstance3D"/>).</summary>

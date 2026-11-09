@@ -294,7 +294,8 @@ public partial class Stadtansicht
         foreach (var tor in plan.Tore)
         {
             var lage = new Transform3D(MauerBasis(tor.Lage), MauerOrt(tor.Lage));
-            var a = teile.Tor.GetAabb();
+            // eigene Torburg des Baukastens (Kölner Torburgen, Stadtansicht.Mauer.cs), sonst die allgemeine
+            var a = (TorWort(teile.Tore.Keys, tor.Name) is { } wort ? teile.Tore[wort] : teile.Tor).Netz.GetAabb();
             var seite = (a.Size.X - EgoTorDurchfahrt) / 2f;
             if (seite <= 0.1f) continue;
             foreach (var vorzeichen in new[] { -1f, 1f })

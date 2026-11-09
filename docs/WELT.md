@@ -82,9 +82,9 @@ Je Stadt ein Abschnitt in gleichem Raster: Lage, Geschichte um 1400, Wahrzeichen
 | St. Severin | `Severin` | romanisches Langhaus, spätromanischer Chor (geweiht 1237), Westturm im Bau seit 1393/94 (im Modell Stumpf mit Gerüst und Tretradkran wie am Dom) | – |
 | St. Aposteln | `Aposteln` | Kleeblattchor mit Vierungsturm (Laterne unsicher), Westquerhaus mit wuchtigem Westturm (Dachform unsicher) | – |
 | St. Kunibert | `Kunibert` | Chor von zwei Türmen flankiert, Westturm nach dem Brand 1376 mit Knickhelm erneuert; eigentlich am Rhein nördlich des Doms, im Spiel westlich des Alter Markts (dort ist kein Platz) | – |
-| Rheinkran | (Teil des Hafenstegs) | Tretradkran an der Liegestelle der Schiffe, seit dem 14. Jahrhundert belegt; steht auf dem Hafensteg, kein eigenes Gebäude | – |
-| Stapelhaus | `Stapelhaus` | Lagerhalle mit Waage am Rhein (Fiktion) | Zwerge, Halblinge |
-| Torburgen, Bayenturm | Tore der Mauer | Doppelturmtore des 13. Jahrhunderts, Bayenturm am Rheinende | – |
+| Rheinkran | `Rheinkran` | Schwimmkran (Tretradkran auf einem Ponton) südlich des Stapelhauses, um 1500 belegt (mindestens vier Schwimmkrane); dazu entlädt ein Tretradkran auf dem Hafensteg die Schiffe | – |
+| Stapelhaus | `Stapelhaus` | Lagerhalle mit sechs Treppengiebeln, Basaltsockel und Stadtwaage am Rhein (Fiktion) | Zwerge (Sockel, Eisen, Erzkisten), Halblinge (Weinfässer) |
+| Torburgen, Bayenturm | Tore der Mauer | Eigelstein und Hahnentor als Doppelturmtore, Severinstor als Torturm mit Eckwarten (13. Jahrhundert, flache Dächer hinter den Zinnen); Bayenturm (Achteck von 1325) am Südende der Rheinmauer | – |
 
 Die steinerne **Rheinbrücke** nach Deutz ist eine Erfindung des Spiels (in Wirklichkeit gab es um 1400 keine feste Brücke).
 
