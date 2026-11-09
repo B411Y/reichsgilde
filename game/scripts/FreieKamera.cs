@@ -46,7 +46,7 @@ public partial class FreieKamera : Camera3D
     public bool Gesteuert { get; private set; }
 
     /// <summary>Drehung um die Hochachse und Neigung (Grad); Neigung −89 (senkrecht hinab) bis 89.</summary>
-    private float _gier, _nick;
+    protected float _gier, _nick;
 
     private CanvasLayer? _ebene;
     private Label? _hilfe;
@@ -208,7 +208,7 @@ public partial class FreieKamera : Camera3D
         Input.MouseMode = Input.MouseModeEnum.Visible;
     }
 
-    private void DrehungSetzen() => GlobalRotation = new Vector3(Mathf.DegToRad(_nick), Mathf.DegToRad(_gier), 0);
+    protected void DrehungSetzen() => GlobalRotation = new Vector3(Mathf.DegToRad(_nick), Mathf.DegToRad(_gier), 0);
 
     private void HilfeNachfuehren()
     {

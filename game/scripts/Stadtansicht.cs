@@ -1149,6 +1149,11 @@ public partial class Stadtansicht : Node3D
             RaumEingabe(eingabe);
             return;
         }
+        if (EgoWahlEingabe(eingabe))
+        {
+            GetViewport().SetInputAsHandled(); // Ego-Perspektive: der Klick wählt den Ort, Esc bricht ab (Stadtansicht.Ego.cs)
+            return;
+        }
         // Mausrad, rechte Maustaste und Q/E gehören der freien Kamera, wenn sie aktiv ist (Stadtansicht.FreieKamera.cs)
         if (FreiAktiv && eingabe is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown or MouseButton.Right }
                 or InputEventKey { Keycode: Key.Q or Key.E })
