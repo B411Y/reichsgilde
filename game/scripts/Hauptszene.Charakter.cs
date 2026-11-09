@@ -36,6 +36,30 @@ public partial class Hauptszene
         else _charakter.Oeffnen(person);
     }
 
+    /// <summary>Startoption <c>--stress=</c>, wartet wie <c>--charakter=</c> bis nach dem Vorspulen.</summary>
+    private string? _stressWartet;
+
+    /// <summary>
+    /// <c>--stress=&lt;Wert&gt;[:oberhaupt|ehepartner|Personennummer]</c> (Charaktersystem Teil 3b): setzt den Stress dieser Person des eigenen Hauses
+    /// (ohne Angabe das Oberhaupt) über den Entwicklerbefehl <see cref="Core.Entwickler.EntwicklerStress"/> – darum nur mit <c>--entwickler=1</c>;
+    /// 100 löst den Zusammenbruch aus. Für den Klicktest des Stressbalkens, z. B. <c>--stress=75 --charakter=oberhaupt</c>.
+    /// </summary>
+    private void StressStartoption(string wert)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        var teile = wert.Split(':');
+        var familie = w.Familien.Von(_spieler);
+        var person = teile.Length < 2 || teile[1] == "oberhaupt" ? familie?.Oberhaupt
+            : teile[1] == "ehepartner" ? familie?.Ehepartner
+            : int.TryParse(teile[1], out var nr) ? w.Familien.PersonNummer(nr) : null;
+        if (person is null || !double.TryParse(teile[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var stress))
+        {
+            Protokollieren($"--stress={wert}: erwartet <Wert>[:oberhaupt|ehepartner|Personennummer].");
+            return;
+        }
+        Protokollieren("--stress: " + UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(_spieler, new Core.Entwickler.EntwicklerStress(person.Nummer, stress))));
+    }
+
     /// <summary>
     /// <c>--charakter-ehe=1</c>: das ledige Oberhaupt wirbt um den Kandidaten, der am ehesten einwilligt (mit viel Geld, <c>--vermoegen=</c>),
     /// und heiratet – für Bildschirmfotos mit Familie. Seit PR #231 zählt die Meinung des Kandidaten mit; darum nicht mehr einfach der erste.

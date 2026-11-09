@@ -59,6 +59,7 @@ public sealed class Entwicklerhilfe
             case EntwicklerKrankheit kr: return Krankheit(kr.Person, kr.Krankheit);
             case EntwicklerTod t: return Tod(t.Person);
             case EntwicklerZug z: return Zug(z.Person, z.Zug, z.Hinzufuegen);
+            case EntwicklerStress st: return Stress(st.Person, st.Wert);
             case EntwicklerErbgut e: return Erbgut(e.Person);
             case EntwicklerDiebstahl d: return MitBetrieb(d.Betrieb, Diebstahl);
             case EntwicklerFeuer f: return MitBetrieb(f.Betrieb, Feuer);
@@ -180,6 +181,18 @@ public sealed class Entwicklerhilfe
                 : (null, null, Befehlsergebnis.Abgelehnt($"{p.Name} gehört zu keinem Haus."));
         if (!f.Konto.IstAktiv) return (null, null, Befehlsergebnis.Abgelehnt($"{f.Konto.Inhaber} ist nicht mehr im Spiel."));
         return (p, f, null);
+    }
+
+    private Befehlsergebnis Stress(int nummer, double wert)
+    {
+        var fb = _w.Familien;
+        if (!fb.HatStresswesen) return Befehlsergebnis.Abgelehnt("In dieser Stadt hat niemand Stress.");
+        var (p, _, fehler) = Angehoeriger(nummer);
+        if (fehler is not null) return fehler;
+        if (!fb.HatStress(p!)) return Befehlsergebnis.Abgelehnt($"{p!.Vorname} hat keinen Stress – nur Oberhaupt, Erbe und Ehepartner.");
+        if (!double.IsFinite(wert) || wert < 0) return Befehlsergebnis.Abgelehnt("Der Stress muss eine Zahl ab 0 sein.");
+        fb.StressAendern(p!, wert - fb.Stress(p!), "Entwicklerhilfe"); // bei 100 der Zusammenbruch
+        return Befehlsergebnis.Ok($"{p!.Vorname} {p.Familienname}: Stress jetzt {Zahlenformat.Ganz(fb.Stress(p))} ({fb.StressStufenname(fb.StressStufe(p))}).");
     }
 
     private Befehlsergebnis Krankheit(int nummer, string? name)

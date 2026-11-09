@@ -178,6 +178,7 @@ public sealed partial class Meinungswesen
                 var ehe = hausVon is not null && hausVon == hausUeber
                           && (hausVon.Oberhaupt == vonP && hausVon.Ehepartner == ueberP || hausVon.Oberhaupt == ueberP && hausVon.Ehepartner == vonP);
                 if (ehe) Grund(() => ueberP.Ehepartnertitel, v.Ehe);
+                if (ehe) Grund(() => "Unleidlich (Stress)", fb.StressMeinungEhepartner(ueberP)); // Stress ab „zermürbt“ (Teil 3b)
                 if (vonP.IstKindVon(ueberP)) Grund(() => ueberP.Geschlecht == Geschlecht.Frau ? "Mutter" : "Vater", v.ElternKind);
                 else if (ueberP.IstKindVon(vonP)) Grund(() => ueberP.SohnOderTochter, v.ElternKind);
                 else if (Geschwister(vonP, ueberP))
@@ -402,6 +403,7 @@ public sealed partial class Meinungswesen
                 _streitBis[konto] = _w.Familien.Jahr + 1;
                 _w.Familien.Ereignis(konto, $"Streit im Haus {f.Nachname}: {erbe.Vorname} überwirft sich mit {f.Oberhaupt.Vorname} (Meinung {Zahlenformat.Ganz(meinung)}). " +
                                             $"Die Stadt redet darüber – {Zahlenformat.Ganz(s.Ansehen)} Ansehen weniger bis zur Ratssitzung Ende {_w.Familien.Jahr}.");
+                _w.Familien.StressStreit(f, erbe); // Stress (Teil 3b) für beide
             }
         }
 

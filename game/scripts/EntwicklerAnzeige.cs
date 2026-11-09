@@ -42,7 +42,7 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
     private Waehler _haus = null!, _meinungVon = null!, _standWahl = null!;
     private Waehler _person = null!, _krankheit = null!, _zug = null!, _kandidat = null!, _betriebEreignis = null!;
     private Waehler _betriebWare = null!, _ware = null!;
-    private SpinBox _gulden = null!, _ap = null!, _ansehen = null!, _meinung = null!, _menge = null!;
+    private SpinBox _gulden = null!, _ap = null!, _ansehen = null!, _meinung = null!, _menge = null!, _stress = null!;
     private Button? _todKnopf;
 
     /// <summary>Die Tafel selbst (für die Prüfung, ob sie offen ist und die Maus darüber liegt).</summary>
@@ -299,6 +299,10 @@ public sealed partial class EntwicklerAnzeige : CenterContainer
         _zug = new Waehler(z, 220);
         Knopf(z, "Geben", () => { if (_person.Zahl is int p && _zug.Schluessel is { } k) Befehlen(new EntwicklerZug(p, k)); });
         Knopf(z, "Entfernen", () => { if (_person.Zahl is int p && _zug.Schluessel is { } k) Befehlen(new EntwicklerZug(p, k, false)); });
+
+        z = Zeile(s, "Stress", "Setzt den Stress der gewählten Person (nur Oberhaupt, Erbe und Ehepartner haben welchen); 100 löst den Zusammenbruch aus.");
+        _stress = Zahl(z, 0, 100, 5, 50, 90);
+        Knopf(z, "Setzen", () => { if (_person.Zahl is int p) Befehlen(new EntwicklerStress(p, Wert(_stress))); });
 
         z = Zeile(s, "Tod", "Die gewählte Person stirbt sofort, mit Erbfolge (ohne Erben erlischt das Haus). Zweimal klicken.");
         _todKnopf = Knopf(z, "Sterben lassen", TodGedrueckt);

@@ -99,7 +99,8 @@ public partial class CharakterAnzeige
                     ? $"Gefahr {Zahlenformat.Ganz(angebot.Gefahr * 100)} % – sonst {angebot.UnglueckText} ({Zahlenformat.MitVorzeichen(angebot.Unglueck)})" : "Kein Risiko";
                 info.Text = $"{kosten}\n{gefahr}" +
                             $"\nGelingt: {Zahlenformat.MitVorzeichen(angebot.Wirkung)} · im Mittel {Zahlenformat.MitVorzeichen(angebot.Erwartet)}";
-                hinweis.Text = angebot.Sperrgrund ?? angebot.Hinweis;
+                var stress = angebot.Sperrgrund is null ? StressHinweis(w, angebot.Art, c, angebot.Gulden) : ""; // Ventil oder „mag es nicht“ (Teil 3b)
+                hinweis.Text = angebot.Sperrgrund ?? string.Join(" ", new[] { angebot.Hinweis, stress }.Where(x => x != ""));
                 hinweis.AddThemeColorOverride("font_color", angebot.Sperrgrund is null ? Grau : Rot);
                 hinweis.Visible = hinweis.Text != "";
                 knopf.Disabled = angebot.Sperrgrund is not null;

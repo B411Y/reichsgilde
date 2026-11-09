@@ -39,7 +39,8 @@ public sealed partial class Familienbuch
     public double HaushaltFaktor(Person p) => p.Zuege.Aggregate(1.0, (f, z) => f * z.Daten.Haushalt);
 
     /// <summary>Faktor auf die Chance zu erkranken (Kränklich, Stark, Trinker).</summary>
-    public double KrankheitFaktor(Person p) => p.Zuege.Aggregate(1.0, (f, z) => f * z.Daten.Krankheit) * Lebenswirkung(p).KrankheitFaktor; // Eisern
+    public double KrankheitFaktor(Person p) =>
+        p.Zuege.Aggregate(1.0, (f, z) => f * z.Daten.Krankheit) * Lebenswirkung(p).KrankheitFaktor * StressKrankheitFaktor(p); // Eisern, Stress ab „zermürbt“
 
     /// <summary>Wie ein KI-Haus mit diesem Oberhaupt handelt (neutral ohne Familie oder ohne Züge).</summary>
     public Ki.ZugNeigung KiNeigung(Konto konto) =>
