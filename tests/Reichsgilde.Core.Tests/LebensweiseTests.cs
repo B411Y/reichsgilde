@@ -68,7 +68,7 @@ static class LebensweiseTests
         ("Lebensweise: Daten – fünf Pfade (einer je Talent) mit 3 × 3 Knoten, voller Baum 1.350 Erfahrung, Datenversion 74", () =>
         {
             var d = Daten.Value.Lebensweise!;
-            Pruefe.Gleich(75, Daten.Value.Version);
+            Pruefe.Gleich(76, Daten.Value.Version);
             Pruefe.Gleich(5, d.Pfade.Count);
             Pruefe.Wahr(TalentTexte.Alle.All(d.Pfade.ContainsKey), "jedes Talent hat einen Pfad");
             Pruefe.Gleich(45, d.AlleKnoten.Count());
@@ -349,7 +349,7 @@ static class LebensweiseTests
             Pruefe.Ungefaehr(1, w.Familien.Lebenswirkung(konto).WohnhausFaktor, 1e-12); // Hauswehr wirkt nur fürs Oberhaupt
         }),
 
-        ("Lebensweise: Erbfall – der Erbe behält seine Knoten, bekommt 35 % Vermächtnis im Pfad des Toten (Nutzer 9.11.2026, vorher 20 %); dessen Knoten wirken nicht mehr", () =>
+        ("Lebensweise: Erbfall – der Erbe behält seine Knoten, bekommt 20 % Vermächtnis im Pfad des Toten (Nutzer 9.11.2026: wieder 20 %, Datenversion 75 hatte 35 %); dessen Knoten wirken nicht mehr", () =>
         {
             var w = NeueSimulation().Wirtschaft!;
             var (konto, f) = Haus(w, "Haus Probe");
@@ -366,7 +366,7 @@ static class LebensweiseTests
             Pruefe.Ungefaehr(zeit * 0.97, schmiede.ZeitFaktor("Dolch"), 1e-12);
             w.Familien.AnKrankheitSterben(o, "an der Probe");
             Pruefe.Gleich(erbe, f.Oberhaupt);
-            Pruefe.Ungefaehr(350, erbe.Lebensweg.Erfahrung(Talent.Handwerk), 1e-9);
+            Pruefe.Ungefaehr(200, erbe.Lebensweg.Erfahrung(Talent.Handwerk), 1e-9);
             Pruefe.Wahr(erbe.Lebensweg.HatKnoten("Marktschreier") && !erbe.Lebensweg.HatKnoten("Kniffe"), "eigene Knoten, keine des Toten");
             Pruefe.Ungefaehr(zeit, schmiede.ZeitFaktor("Dolch"), 1e-12);
             Pruefe.Ungefaehr(1 + w.Familien.Talent(konto, Talent.Verhandeln) * w.Familien.TalentDaten.Wirkung.Verhandeln + 0.01, w.Familien.VerkaufsFaktor(konto), 1e-12);
