@@ -9,7 +9,7 @@ using Reichsgilde.Core.Zeit;
 namespace Reichsgilde;
 
 /// <summary>
-/// Rathaus (Raumansicht) und Dom (Diorama) – dritter Teil der Stadtansicht.
+/// Rathaus (Raumansicht) und Dom (Diorama) – dritter Teil der Stadtansicht; dazu die Kirchen mit eigenem Modell (nur von außen, <see cref="KircheBauen"/>).
 ///
 /// Beide sind keine Betriebe, nutzen aber dasselbe Gerüst wie die Werkstätten (<see cref="InnenAnsicht"/>):
 /// ein Knoten „Innen". Von außen stehen die Modelle <c>rathaus.glb</c> und <c>dom.glb</c> (Stadtansicht.Modelle.cs) an ihrer Lage in der Karte, auch
@@ -352,6 +352,34 @@ public partial class Stadtansicht
     }
 
     // ═════════════════════════════════════════════════════════════════════════
+    //  Kirchen mit Modell (die romanischen Kirchen Kölns)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Eine Kirche mit eigenem Modell (Katalog <c>kirche_…</c>, z. B. <c>koeln_st_gereon.glb</c>): nur von außen, ohne Innenraum. Die Fenster sind dunkel
+    /// und leuchten zur Messe wie die des Doms (<see cref="_kirchenFenster"/>), das Ewige Licht brennt im Westportal, bei St. Severin dreht sich das
+    /// Tretrad des Krans (beides <see cref="ModellEinsetzen"/>). Klickfläche und Name wie beim Block einer Kirche ohne Modell (<see cref="Platzhalter"/>),
+    /// Höhen aus dem Katalog (<c>klickHoehe</c>, <c>schildHoehe</c>).
+    /// </summary>
+    private void KircheBauen(Kartengebaeude g)
+    {
+        if (ModellEinsetzen(g.Baustein!.Modell!, this, Vector3.Zero, new ModellZustand()) is not { } modell)
+        {
+            Platzhalter(g); // die Datei fehlt
+            return;
+        }
+        modell.Wurzel.Name = "Kirche_" + g.Kennung;
+        modell.Wurzel.Transform = ModellLage(g);
+        FenstergruppeSetzen(modell, Fenstergruppe.Kirche);
+        _kirchenFenster.Add(modell);
+        var groesse = GroesseVon(g);
+        var hoehe = (float)(g.Baustein.KlickHoehe ?? 12);
+        var kennung = "karte:" + g.Kennung;
+        Klickflaeche(kennung, new Vector3(0, hoehe / 2, 0), new Vector3(groesse.X, hoehe, groesse.Y), modell.Wurzel);
+        Beschriftung(g.Name, new Vector3(0, (float)(g.Baustein.SchildHoehe ?? hoehe + 6), 0), 44, modell.Wurzel, kennung);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
     //  Dom
     // ═════════════════════════════════════════════════════════════════════════
 
@@ -379,7 +407,7 @@ public partial class Stadtansicht
         if (huelle is not null)
         {
             huelle.Wurzel.Transform = lage;
-            _domFenster = huelle;
+            _kirchenFenster.Add(huelle);
             FenstergruppeSetzen(huelle, Fenstergruppe.Kirche);
             var dach = new Node3D { Name = "Dach_Dom", Transform = lage };
             AddChild(dach);
