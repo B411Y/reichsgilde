@@ -89,6 +89,7 @@ public partial class Stadtansicht
         Vielfach("Mauerstuecke", teile.Stueck, plan.Stuecke.Select(s => new Transform3D(MauerStueckBasis(s), MauerOrt(s))), eltern);
         Vielfach("Mauertuerme", teile.Turm, plan.Tuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
         Vielfach("Eckturme", teile.Eckturm, plan.Ecktuerme.Select(t => new Transform3D(MauerBasis(t), MauerOrt(t))), eltern);
+        if (spiel) EgoMauerMerken(teile, plan); // Kollision der Ego-Perspektive (Stadtansicht.Ego.cs)
     }
 
     /// <summary>Wo ein Teil der Mauer steht: auf dem Boden (die Mauer liegt in ihrem Bett, Stadtansicht.Gelaende.cs).</summary>
@@ -158,7 +159,7 @@ public partial class Stadtansicht
         // Die Klickfläche liegt längs der Mauer: Torburg 16,5 m breit und 7 m tief
         var breit = new Vector3(Mathf.Abs(lage.Basis.X.X), 0, Mathf.Abs(lage.Basis.X.Z));
         var tief = new Vector3(Mathf.Abs(lage.Basis.Z.X), 0, Mathf.Abs(lage.Basis.Z.Z));
-        Klickflaeche(name, lage.Origin + new Vector3(0, 7, 0), breit * 16.5f + tief * 7 + new Vector3(0, 14, 0));
+        Klickflaeche(name, lage.Origin + new Vector3(0, 7, 0), breit * 16.5f + tief * 7 + new Vector3(0, 14, 0)).GetParent().SetMeta("ego_frei", true); // die Durchfahrt bleibt für die Ego-Perspektive frei (Stadtansicht.Ego.cs)
         Beschriftung(name, lage.Origin + new Vector3(0, 20, 0), 48, kennung: name);
     }
 

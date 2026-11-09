@@ -85,7 +85,12 @@ public partial class Stadtansicht
     private bool FreieKameraBild()
     {
         if (!FreiAktiv || _freieKamera is not { } frei) return false;
-        if (!frei.Gesteuert && !_freiStartFest) FreiVonSpielkamera();
+        if (frei is EgoKamera ego)
+        {
+            EgoBild(ego); // Ego-Perspektive: die Spielkamera folgt der Figur (Stadtansicht.Ego.cs); sie kann dabei enden
+            if (_ego is null) return FreiAktiv;
+        }
+        else if (!frei.Gesteuert && !_freiStartFest) FreiVonSpielkamera();
         else SpielkameraFolgt(frei);
         if (!_freiGemeldet && _gelaende is not null && Engine.GetProcessFrames() % 120 == 0)
         {

@@ -173,7 +173,7 @@ public partial class Stadtansicht
         // Klickfläche (das Pflaster ohne Rand) und Name: Die Kennung „Marktplatz“ (bei weiteren Plätzen „Marktplatz:<Name>“) öffnet die Preistafel (Hauptszene)
         var mitte = new Node3D { Name = "Markt_" + markt.Kennung, Transform = new Transform3D(ansicht.Lage.Basis.Orthonormalized(), ansicht.Mitte + new Vector3(0, ansicht.Hoehe, 0)) };
         AddChild(mitte);
-        Klickflaeche(ansicht.Kennung, new Vector3(0, 1, 0), new Vector3(2 * ansicht.Halb - 2, 2, 2 * ansicht.Halb - 2), mitte);
+        Klickflaeche(ansicht.Kennung, new Vector3(0, 1, 0), new Vector3(2 * ansicht.Halb - 2, 2, 2 * ansicht.Halb - 2), mitte).GetParent().SetMeta("ego_frei", true); // der Platz ist begehbar (Ego-Perspektive)
         Beschriftung(markt.Name, new Vector3(0, 6, 0), 56, mitte, ansicht.Kennung);
     }
 

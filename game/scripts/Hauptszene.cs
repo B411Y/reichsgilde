@@ -682,6 +682,7 @@ public partial class Hauptszene : Node
             if (lexikonWahl.StartsWith("suche:")) _lexikon.Suchen(lexikonWahl[6..].Replace('_', ' '));
         }
         EntwicklerBauen(optionen); // Fenster nur mit dem Haken „Entwickler-Optionen“ (Hauptszene.Entwickler.cs)
+        EgoVerbinden(optionen); // Ego-Perspektive: Oberfläche ausblenden, --ego (Hauptszene.Ego.cs)
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
         if (optionen.TryGetValue("meldungen", out var meldungenWahl)) MeldungenVorfuehren(meldungenWahl); // Siegel und Briefe zum Ansehen (Hauptszene.Meldungen.cs)
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
@@ -1194,6 +1195,7 @@ public partial class Hauptszene : Node
     public override void _Process(double delta)
     {
         _simulation.Aktualisieren(delta);
+        EgoPruefen();
         WegTippNachfuehren();
         if (_spulen > 0 && _bauAutoKlick == 0) // Klicktest: Zeit überspringen (z. B. eine Bauzeit)
         {

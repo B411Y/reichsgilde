@@ -182,12 +182,14 @@ public static class Felsformen
             new("rippe", 0, 0, 0, 1), new("rippe", -3.2, -1.0, 6, 0.8), new("rippe", 3.0, 0.8, -5, 0.85),
             new("schuttbrocken", -0.8, 6.2, 30, 1.3), new("schuttbrocken", 1.6, 5.6, 110, 1.1), new("platte", 0.4, 7.4, 20, 0.6, -0.1),
         }),
-        // Große Wand (R4/R5): drei große Wände nebeneinander (rund ein Drittel überlappt), ein Pfeiler am Rand und Schuttkegel davor; sinnvoll mit „Hang mitformen“.
-        // Die mittleren Wände fehlen (R4: offene Rückseite); seit R7 ist die Rückseite geschlossen, ob sie in die Gruppe sollen, ist offen (docs/bereiche/darstellung.md).
+        // Große Wand (R4/R5): drei große Wände nebeneinander (rund ein Drittel überlappt), zwei mittlere Wände als Stufe davor, ein Pfeiler am Rand und
+        // Schuttkegel am Fuß; sinnvoll mit „Hang mitformen“. Die mittleren Wände (Nutzer 09.11.2026, seit R7 mit geschlossener Rückseite) stecken mit der
+        // Rückseite im Fuß der großen und stehen mehr als 2 m vor ihnen: „Hang mitformen“ hebt dann nur hinter den großen an (Felshang.Vorgelagert).
         new("wandgross", "Große Wand", new Gruppenstueck[]
         {
             new("wand_gross_1", 0, 0, 0, 1), new("wand_gross_2", -11.5, 1.0, 6, 0.95), new("wand_gross_3", 12.5, 1.5, -7, 0.95),
-            new("pfeiler_1", -21, 5, 12, 0.85), new("schuttkegel", 0, 7.5, 0, 1), new("schuttkegel", -11, 8, 15, 0.8),
+            new("wand_mittel_1", 8, 5.0, -5, 0.9), new("wand_mittel_3", -8.5, 5.8, 12, 0.95),
+            new("pfeiler_1", -21, 5, 12, 0.85), new("schuttkegel", 1.5, 9.5, 0, 1), new("schuttkegel", -9.5, 10, 15, 0.8),
         }),
     };
 

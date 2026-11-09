@@ -70,6 +70,13 @@ public sealed partial class EntwicklerAnzeige
         _unschaerfe = Auswahl(z, new[] { "Aus", "Leicht", "Stark" }, (int)Fenster.AktuelleUnschaerfe, i => Fenster.UnschaerfeSetzen((Miniaturunschaerfe)i, speichern: false));
 
         s.AddChild(new HSeparator());
+        z = Zeile(s, "Ego-Perspektive", "Du stehst selbst in der Stadt und läufst wie in einem Ego-Shooter herum (Maus schaut, W/A/S/D läuft, Umschalt rennt, Leertaste springt, Esc zurück). Nach dem Knopf wählst du mit einem Klick auf die Karte den Ort. Gebäude, Mauern und Wasser versperren den Weg. Nur eine Ansicht: Die Spielzeit läuft weiter, nichts wird gespeichert, der Kern merkt nichts.");
+        Knopf(z, "Ego-Perspektive", () =>
+        {
+            if (_stadt.EgoWaehlen()) { Schliessen(); Melden("Ego-Perspektive: Klick auf die Karte wählt den Ort."); }
+            else Melden("Ego-Perspektive geht gerade nicht (in einem Raum, im Haus oder schon aktiv).", gut: false);
+        }, "Fenster schließen, dann mit einem Klick auf die Karte den Ort wählen. Esc beendet die Ego-Perspektive und stellt die Spielkamera wieder her.");
+
         z = Zeile(s, "Hilfsanzeigen");
         _wegenetz = new CheckBox { Text = "Wegenetz der Passanten", FocusMode = FocusModeEnum.None, TooltipText = "Gassennetz: Kanten pink, Knoten gelb (wie --wegenetz=1)." };
         _wegenetz.Toggled += an => _stadt.WegenetzSichtbar = an;

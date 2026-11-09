@@ -644,6 +644,7 @@ public partial class Kartenwerkstatt : Node
     /// </summary>
     private void StartoptionenAusfuehren(Dictionary<string, string> o)
     {
+        WasserprobeEinsetzen(o); // --wasserprobe: Messkarte der Wasserübergänge (Kartenwerkstatt.Wasserprobe.cs)
         try
         {
             // --werkstatt-groesse=<breite>,<tiefe>[,<rand>] (400 × 300 bis 2.000 × 2.000, Rand 100 bis 600 m), --werkstatt-randvorschlag=1 (oder eine Zahl als Startwert)
@@ -867,6 +868,7 @@ public partial class Kartenwerkstatt : Node
             if (o.GetValueOrDefault("werkstatt-ebenenliste") == "1" && _ebenenKnopf is not null) _ebenenKnopf.ButtonPressed = true; // Liste offen (Haken zeigen den Stand)
             if (o.TryGetValue("katalogbilder", out var katalogbilder)) KatalogbilderSchreiben(katalogbilder);
             if (o.GetValueOrDefault("werkstatt-netz") == "1") _netzSchalter.ButtonPressed = true;
+            WasserprobeNacharbeit(); // --wasserprobe: Breiten einzelner Stützpunkte (Kartenwerkstatt.Wasserprobe.cs)
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or IndexOutOfRangeException)
         {
