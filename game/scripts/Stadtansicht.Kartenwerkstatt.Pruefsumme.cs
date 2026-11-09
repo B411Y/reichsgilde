@@ -41,6 +41,7 @@ public partial class Stadtansicht
         var wasser = new List<string>();
         if (_gewaesserKnoten is not null && IsInstanceValid(_gewaesserKnoten)) KnotenSummen(_gewaesserKnoten, Transform3D.Identity, wasser, "");
         teile.Add("Wasser=" + Kurz(wasser, true));
+        if (Pinselmessung.Einzelsummen) foreach (var zeile in wasser.OrderBy(z => z, StringComparer.Ordinal)) GD.Print("WASSERZEILE " + zeile);
         teile.Add("Plan=" + (Uebergangsplan is { } plan
             ? Kurz(plan.Querungen.Select(q => $"{q.Art} {q.Weg} {q.GewaesserName} {q.VonStelle:0.000} {q.BisStelle:0.000} {q.Spiegel:0.000} {q.Deckhoehe:0.000}")
                 .Concat(plan.Faehren.Select(f => f.Name + f.Von + f.Bis)), true) : "keiner"));
