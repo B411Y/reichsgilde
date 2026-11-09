@@ -33,7 +33,20 @@ public partial class Stadtansicht
     {
         new("figuren/probe/passant_probe", new[] { "cotte", "gugel", "rock", "bettler", "kutte" }, 0.933f, 1.287f, 0.898f, 0.446f),
         new("figuren/probe/passant_probe_frau", new[] { "haube", "gebende", "bettler" }, 0.822f, 1.118f, 0.786f, 0.389f),
+        // Orks und Oger (Vollausbau Schritt 3, Nutzer 09.11.): nur Männer, barfuß, ärmelloses Lederwams oder Sackleinen; der Ork leicht gebeugt
+        new("figuren/probe/passant_probe_ork", new[] { "wams", "sack" }, 0.920f, 1.213f, 0.854f, 0.438f),
+        new("figuren/probe/passant_probe_oger", new[] { "wams", "sack" }, 0.952f, 1.258f, 0.886f, 0.449f),
     };
+
+    /// <summary>Datei der Probe nach Volk und Geschlecht: Orks und Oger haben eigene Dateien (auch Frauen nehmen sie: es gibt nur Männer).</summary>
+    /// <summary>Netze der Ork- und Oger-Dateien, die nie gezeigt werden (die Dateien enthalten alle Netze des gemeinsamen Bauskripts).</summary>
+    private static readonly HashSet<string> ProbeUnfreiOhne = new(StringComparer.Ordinal) { "Fuss_halb", "Fuss_holz", "Zub_stroh", "Zub_barett", "Zub_eisenhut" };
+
+    private static int ProbeArtVon(FigurAussehen a) => a.Volk switch { Volk.Ork => 2, Volk.Oger => 3, _ => a.Frau ? 1 : 0 };
+
+    /// <summary>Lederwams und Sackleinen der Orks und Oger (sRGB): Leder braun, Sackleinen ungefärbt.</summary>
+    private static readonly Color[] ProbeLeder = { new(0.34f, 0.24f, 0.15f), new(0.28f, 0.20f, 0.13f), new(0.40f, 0.30f, 0.19f), new(0.22f, 0.17f, 0.12f) };
+    private static readonly Color[] ProbeSackleinen = { new(0.50f, 0.45f, 0.35f), new(0.44f, 0.40f, 0.31f), new(0.55f, 0.50f, 0.40f) };
 
     /// <summary>Die Clips der Probe in der Reihenfolge ihrer Zeilen in der VAT-Textur (wie BEWEGUNGEN im Blender-Skript).</summary>
     private static readonly string[] ProbeKlips = { "Stehen", "Gehen", "Tragen", "Reden", "Sitzen", "Hacken", "Buecken", "Kauern", "Betteln" };
@@ -116,14 +129,15 @@ public partial class Stadtansicht
     /// </summary>
     private Figur? ProbefigurEinsetzen(Node3D eltern, FigurAussehen aussehen, int nummer, string? rolle = null)
     {
-        var art = aussehen.Frau ? 1 : 0;
+        var art = ProbeArtVon(aussehen);
         var daten = ProbeArten[art];
+        var unfrei = art >= 2; // Orks und Oger
         if (Modell(daten.Datei) is not { } szene) return null;
         var bettler = rolle == "Bettler";
         var variante = Array.IndexOf(daten.Varianten, bettler ? "bettler"
             : !aussehen.Frau && rolle == "Mönch" ? "kutte" : !aussehen.Frau && rolle == "Ratsherr" ? "rock" : "");
-        if (variante < 0) variante = ProbeVarianteFuer(aussehen, nummer);
-        var fuss = ProbeFussFuer(rolle, nummer);
+        if (variante < 0) variante = unfrei ? (int)(Streuung(nummer, 977) % 2) : ProbeVarianteFuer(aussehen, nummer);
+        var fuss = unfrei ? 2 : ProbeFussFuer(rolle, nummer); // Orks und Oger barfuß
         var zubehoer = ProbeZubehoerFuer(aussehen, daten.Varianten[variante]);
         // Woran man die Rolle erkennt, bleibt (Ratsherr rot, Mönch braun, Bote blau, Witwe schwarz, Bettler grau); sonst gedeckte Pflanzenfarben
         var eigeneFarbe = rolle is "Ratsherr" or "Bürgersohn" or "Mönch" or "Witwer" or "Bote" or "Bettler";
@@ -131,12 +145,13 @@ public partial class Stadtansicht
         var festeKopffarbe = aussehen.Kopffarbe == Schwarz || aussehen.Kopffarbe.R > 0.85f;
         aussehen = aussehen with
         {
-            Gewand = eigeneFarbe ? aussehen.Gewand : ProbeGewandFuer(rolle, nummer),
+            Gewand = unfrei ? (variante == 0 ? ProbeLeder[Streuung(nummer, 211) % ProbeLeder.Length] : ProbeSackleinen[Streuung(nummer, 211) % ProbeSackleinen.Length])
+                : eigeneFarbe ? aussehen.Gewand : ProbeGewandFuer(rolle, nummer),
             Beinkleid = ProbeBeinkleidfarben[Streuung(nummer, 223) % ProbeBeinkleidfarben.Length],
             Kopffarbe = festeKopffarbe ? aussehen.Kopffarbe
                 : aussehen.Frau || aussehen.Schuerze ? ProbeLeinen[Streuung(nummer, 227) % ProbeLeinen.Length] : ProbeGewandfarben[Streuung(nummer, 229) % ProbeGewandfarben.Length],
             Haut = ProbeHaut(aussehen.Volk, nummer),
-            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
+            Haar = aussehen.Haar == GrauesHaar ? ProbeGrau : unfrei ? ProbeHaarfarben[2] : ProbeHaarfarben[Streuung(nummer, 239) % ProbeHaarfarben.Length],
         };
         var (_, huefte, _, groesse) = FigurMasse(aussehen.Volk);
         // Der Frauenkörper ist schon kleiner gebaut: dieselben Völkerfaktoren, aber kein zweites Verkleinern
@@ -204,7 +219,7 @@ public partial class Stadtansicht
     private static string[] ProbeZubehoerFuer(FigurAussehen a, string variante)
     {
         var aus = new List<string>(3);
-        if (variante is not ("gugel" or "gebende" or "kutte"))
+        if (variante is not ("gugel" or "gebende" or "kutte" or "wams" or "sack")) // Orks und Oger ohne Hut
         {
             if (a.Kopf == Kopfbedeckung.Strohhut) aus.Add("stroh");
             else if (a.Kopf == Kopfbedeckung.Barett) aus.Add("barett");
@@ -233,10 +248,31 @@ public partial class Stadtansicht
     }
 
     private bool _probePaletteNeu;
+
+    /// <summary>Umkreis (Meter) um die Ego-Kamera, in dem Probefiguren auch in der VAT-Stufe mit Skelett gezeichnet werden (Nutzer 09.11.).</summary>
+    private const float ProbeEgoNahRadius = 15f;
+
+    /// <summary>
+    /// In der Ego-Perspektive steht die Spielkamera auf Zoom 80, also in der VAT-Stufe; die Figuren nahe vor dem Auge zeigt das Spiel trotzdem mit
+    /// Skelett (<see cref="Figur.ProbeNah"/>): Sie werden wieder sichtbar und bewegt, das MultiMesh lässt sie aus. Ohne Ego oder in der Skelettstufe
+    /// ist niemand „nah“.
+    /// </summary>
+    private void ProbeEgoNahSetzen()
+    {
+        var auge = _ego is { } ego && _probeVat ? ego.GlobalPosition : (Vector3?)null;
+        foreach (var p in _passanten.Values)
+        {
+            if (p.Figur is not { Probe: true } f) continue;
+            var nah = auge is { } a && p.Knoten.IsInsideTree() && (p.Knoten.GlobalPosition - a).LengthSquared() < ProbeEgoNahRadius * ProbeEgoNahRadius;
+            if (nah == f.ProbeNah) continue;
+            f.ProbeNah = nah;
+            f.Neu = true; // die Pose sofort setzen
+        }
+    }
     private Dictionary<Figur, double> _probeLetztePhase = new();
 
-    /// <summary><c>--probefarben=rolle</c> (Vorschlag des Teamleiters, Entscheidung des Nutzers offen): Gewandfarben nach Stand statt aus allen zehn.</summary>
-    private static readonly bool ProbeFarbenNachRolle = Wasserarten.Startoption("probefarben") == "rolle";
+    /// <summary>Gewandfarben nach Stand statt aus allen zehn (Nutzer 09.11.: Standard); <c>--probefarben=0</c> schaltet ab.</summary>
+    private static readonly bool ProbeFarbenNachRolle = Wasserarten.Startoption("probefarben") is not ("0" or "aus"); // Standard seit 09.11. (Nutzer)
 
     // Plätze in ProbeGewandfarben: 0 Krapp rot, 1 Waid blau, 2 Wau gelb, 3 Walnuss, 4 Eichenrinde, 5 ungefärbt, 6 graue Wolle, 7 Loden grün,
     // 8 Waid mit Krapp (violett), 9 Ocker. Arme und Bauern tragen ungefärbt, Braun, Grau, Grün und Ocker; Händler auch Rot, Blau und Violett.
@@ -306,6 +342,7 @@ public partial class Stadtansicht
     private void ProbeStufeWaehlen()
     {
         if (!ProbeAktiv) return;
+        ProbeEgoNahSetzen();
         // gleich beim Start backen (rund eine halbe Sekunde), nicht erst beim ersten Herauszoomen – sonst stockt dort ein Bild
         if (_probeVatNetze is null && !_probeVatVersucht && ProbeStufe != "skelett") { _probeVatVersucht = true; ProbeVatBacken(); }
         var vat = ProbeStufe switch
@@ -344,7 +381,7 @@ public partial class Stadtansicht
     /// <summary>Gebackene Netze, Schlüssel „&lt;Art&gt;:&lt;Netzname&gt;“ (Art 0 Mann, 1 Frau).</summary>
     private Dictionary<string, ProbeVatNetz>? _probeVatNetze;
     /// <summary>Je Art: erste Zeile und Bildzahl je Clip (Reihenfolge <see cref="ProbeKlips"/>).</summary>
-    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = { new (int, int)[9], new (int, int)[9] };
+    private readonly (int Start, int Bilder)[][] _probeKlipZeilen = ProbeArten.Select(_ => new (int, int)[ProbeKlips.Length]).ToArray();
 
     /// <summary>Backt alle Netze beider Probedateien (je Variante nah und fern, dazu die Kiste) für alle Clips. False, wenn kein Modell da ist.</summary>
     private bool ProbeVatBacken()
@@ -403,6 +440,7 @@ public partial class Stadtansicht
         foreach (var teil in wurzel.FindChildren("*", nameof(MeshInstance3D), true, false).OfType<MeshInstance3D>())
         {
             if (teil.Mesh is not ArrayMesh netz || teil.Skin is not { } skin) continue;
+            if (art >= 2 && ProbeUnfreiOhne.Contains(teil.Name.ToString())) continue; // Orks und Oger: barfuß, ohne Hut (spart Backzeit und Grafikspeicher)
             var arrays = netz.SurfaceGetArrays(0);
             var ecken = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             var normalen = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
@@ -606,7 +644,7 @@ public partial class Stadtansicht
         if (_probeVat && !_stadtVerdeckt)
         {
             foreach (var p in _passanten.Values)
-                if (p.Figur is { Probe: true } f && p.Knoten.Visible) ProbeVatEintragen(f, p.Knoten.Position);
+                if (p.Figur is { Probe: true, ProbeNah: false } f && p.Knoten.Visible) ProbeVatEintragen(f, p.Knoten.Position);
             foreach (var m in _probeMessfiguren) ProbeVatEintragen(m.Figur, m.Knoten.Position);
         }
         var schatten = _passantenSchatten ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off;
@@ -711,7 +749,8 @@ public partial class Stadtansicht
             var knoten = new Node3D { Name = $"Probefigur_{i}" };
             _passantenEbene.AddChild(knoten);
             var aussehen = AussehenAusNummer(i * 4 + (i % 7 == 0 ? 1 : 0)); // meist Menschen, Farben gestreut
-            aussehen = aussehen with { Volk = Volk.Mensch, Haut = HautVon(Volk.Mensch), Kopf = i % 3 == 0 ? Kopfbedeckung.Kapuze : aussehen.Kopf };
+            var volk = i % 9 == 4 ? Volk.Ork : i % 23 == 5 ? Volk.Oger : Volk.Mensch; // meist Menschen, einige Orks und Oger
+            aussehen = aussehen with { Volk = volk, Frau = volk == Volk.Mensch && aussehen.Frau, Haut = HautVon(volk), Kopf = i % 3 == 0 ? Kopfbedeckung.Kapuze : aussehen.Kopf };
             if (ProbefigurEinsetzen(knoten, aussehen, nummer, i % 13 == 0 ? "Bettler" : null) is not { } figur) { knoten.QueueFree(); continue; }
             if (!_passantenSchatten) FigurSchatten(figur, false);
             var tempo = art == "Tragen" ? 0.9f : 1.3f;
@@ -787,7 +826,7 @@ public partial class Stadtansicht
             jetzt[f] = f.Phase;
         }
         _probeLetztePhase = jetzt;
-        GD.Print($"[passantenprobe] Im Bild gehend {gehend}, davon seit 10 s ohne Fortschritt {still}");
+        GD.Print($"[passantenprobe] Im Bild gehend {gehend}, davon seit 10 s ohne Fortschritt {still}; nah vor der Ego-Kamera mit Skelett {_passanten.Values.Count(p => p.Figur is { ProbeNah: true })}");
         var zubehoer = _probeTrachten.Values.SelectMany(z => z.Zubehoer).GroupBy(z => z).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}");
         var varianten = _probeTrachten.Values.GroupBy(z => ProbeArten[z.Art].Varianten[z.Variante]).OrderBy(g => g.Key, StringComparer.Ordinal).Select(g => $"{g.Key} {g.Count()}");
         GD.Print($"[passantenprobe] Varianten: {string.Join(", ", varianten)}; Zubehör: {string.Join(", ", zubehoer)}");

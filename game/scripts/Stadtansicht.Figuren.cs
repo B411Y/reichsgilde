@@ -56,6 +56,8 @@ public partial class Stadtansicht
         public bool ProbeBettler { get; init; }
         /// <summary>Probefigur mit Kiepe oder Reisigbündel auf dem Rücken: trägt ohne die Arme vorn (Vollausbau Schritt 4).</summary>
         public bool ProbeRuecklast { get; init; }
+        /// <summary>Probefigur nah vor der Ego-Kamera: auch in der VAT-Stufe mit Skelett gezeichnet (Stadtansicht.Passantenprobe.cs).</summary>
+        public bool ProbeNah { get; set; }
         /// <summary>Welche Animation des KI-Schmieds oder der Probefigur gerade läuft (mehrere Bewegungen teilen sich einen Clip, etwa Gehen und Eilen).</summary>
         public string KiKlip { get; set; } = "";
         /// <summary>Zeit in der Animation, ab der die Schleife läuft (die Figuren aus Blender: <see cref="SchleifenAnfang"/>).</summary>
@@ -217,7 +219,7 @@ public partial class Stadtansicht
     {
         if (f.Ki && f.Takt == 0 && !f.Neu) return; // stehende KI-Figur: die Pose ist schon gesetzt
         f.Phase = (f.Phase + sekunden * f.Takt) % f.Dauer;
-        if (f.Probe && _probeVat) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
+        if (f.Probe && _probeVat && !f.ProbeNah) { f.Neu = false; return; } // gebacken: der Shader liest die Phase, das Skelett bleibt stehen
         f.Spieler.Seek(f.Anfang + f.Phase, true);
         f.Neu = false;
     }
