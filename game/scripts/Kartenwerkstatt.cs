@@ -502,8 +502,9 @@ public partial class Kartenwerkstatt : Node
             case { CtrlPressed: true, Keycode: Key.S, Echo: false }:
                 Speichern();
                 break;
-            case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false } when GruppeFuerTaste(taste.Keycode) is { } gruppe:
-                GruppeWaehlen(gruppe.Kennung); // 1–0: die Gruppen der Leiste links
+            case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false } when GruppeFuerTaste(taste.Keycode) is { } gruppe
+                                                                                            && !(_stadt.ZiffernFuerGizmo && taste.Keycode is Key.Key1 or Key.Key2 or Key.Key3 or Key.Key4):
+                GruppeWaehlen(gruppe.Kennung); // 1–0: die Gruppen der Leiste links (1–4 nicht, solange der Fels-Gizmo steht: Stadtansicht.Felsgizmo.cs)
                 break;
             case { CtrlPressed: false, AltPressed: false, ShiftPressed: false, MetaPressed: false, Echo: false, Keycode: Key.H } when GetViewport().GuiGetFocusOwner() is not LineEdit:
                 EbenenTaste(); // H: alle Ebenen aus oder an (Kartenwerkstatt.Ebenen.cs)

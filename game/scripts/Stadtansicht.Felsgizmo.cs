@@ -10,8 +10,8 @@ namespace Reichsgilde;
 /// ihrer gemeinsamen Mitte):
 /// <list type="bullet">
 /// <item><b>Verschieben</b>: drei Pfeile (eine Achse) und drei Quadrate (eine Ebene); <b>Drehen</b>: drei Ringe; <b>Skalieren</b>: drei Würfel an
-/// Linien (eine Achse) und ein Würfel in der Mitte (gleichmäßig). Den Modus wählen die Knöpfe der Tafel oder die Tasten <b>R</b>, <b>T</b>, <b>Z</b>
-/// (nebeneinander, in der Reihenfolge der Knöpfe), <b>U</b> schaltet zwischen Welt- und Stückachsen um (beim Skalieren gelten immer die Achsen des
+/// Linien (eine Achse) und ein Würfel in der Mitte (gleichmäßig). Den Modus wählen die Knöpfe der Tafel oder – solange der Gizmo steht – die Tasten
+/// <b>1</b>, <b>2</b>, <b>3</b> (die Gruppen 1–4 der Leiste gibt es dann erst nach Esc), <b>4</b> schaltet zwischen Welt- und Stückachsen um (beim Skalieren gelten immer die Achsen des
 /// Stücks, bei mehreren Stücken die der Welt). <b>B</b> oder <b>End</b> setzt die Stücke auf den Boden, mit Umschalt richtet sie sie zugleich am Hang
 /// aus. Mit gehaltener <b>Strg</b>-Taste (oder dem Häkchen in der Tafel) rastet der Zug ein: 0,25 m, 15°, 0,1. Die <b>Pfeiltasten</b> schieben die
 /// gewählten Stücke in kleinen Schritten (Entscheidung des Nutzers, P2; WASD bleibt immer bei der Kamera; Stadtansicht.Felsauswahl.cs).</item>
@@ -35,10 +35,10 @@ public partial class Stadtansicht
         Skalieren,
     }
 
-    /// <summary>Der gewählte Modus des Gizmos (Tasten R, T, Z oder die Knöpfe der Tafel).</summary>
+    /// <summary>Der gewählte Modus des Gizmos (Tasten 1, 2, 3 bei stehendem Gizmo oder die Knöpfe der Tafel).</summary>
     public FelsGizmoArt FelsGizmoModus { get; private set; } = FelsGizmoArt.Verschieben;
 
-    /// <summary>Welt- oder Stückachsen (Taste U)?</summary>
+    /// <summary>Welt- oder Stückachsen (Taste 4 bei stehendem Gizmo)?</summary>
     public bool FelsGizmoWelt { get; private set; } = true;
 
     /// <summary>Einrasten dauerhaft an (Häkchen in der Tafel); mit Strg rastet der Zug ohnehin ein.</summary>
@@ -162,19 +162,20 @@ public partial class Stadtansicht
                                    && (Kartenwerkzeug == Werkstattwerkzeug.Auswahl || (Kartenwerkzeug == Werkstattwerkzeug.Fels && FelsModus == FelsArt.Stempeln));
 
     /// <summary>
-    /// Die Tasten des Gizmos: R, T, Z wählen den Modus (Verschieben, Drehen, Skalieren – nebeneinander wie die Knöpfe der Tafel; 1–4 sind die Gruppen der
-    /// Leiste links), U schaltet die Achsen (Welt/Stück), B oder End setzt auf den Boden (mit <paramref name="umschalt"/> am Hang ausgerichtet). True, wenn
-    /// die Taste dem Gizmo gehörte. Die Pfeiltasten schieben die Stücke (<see cref="FelsPfeilTaste"/>, Stadtansicht.Felsauswahl.cs).
+    /// Die Tasten des Gizmos: 1, 2, 3 wählen den Modus (Verschieben, Drehen, Skalieren – wie die Knöpfe der Tafel), 4 schaltet die Achsen (Welt/Stück),
+    /// B oder End setzt auf den Boden (mit <paramref name="umschalt"/> am Hang ausgerichtet). True, wenn die Taste dem Gizmo gehörte. Solange der Gizmo
+    /// steht, gehören 1–4 ihm (Entscheidung des Nutzers, P2); die Gruppen 1–4 der Leiste links gibt es erst wieder ohne Gizmo (Esc). Die Pfeiltasten
+    /// schieben die Stücke (<see cref="FelsPfeilTaste"/>, Stadtansicht.Felsauswahl.cs).
     /// </summary>
     private bool FelsGizmoTaste(Key taste, bool umschalt)
     {
         if (!FelsGizmoAktiv || _wsTeilZiehen is not null || _wsZiehen is not null) return false;
         switch (taste)
         {
-            case Key.R: FelsGizmoModusSetzen(FelsGizmoArt.Verschieben); return true;
-            case Key.T: FelsGizmoModusSetzen(FelsGizmoArt.Drehen); return true;
-            case Key.Z: FelsGizmoModusSetzen(FelsGizmoArt.Skalieren); return true;
-            case Key.U:
+            case Key.Key1: FelsGizmoModusSetzen(FelsGizmoArt.Verschieben); return true;
+            case Key.Key2: FelsGizmoModusSetzen(FelsGizmoArt.Drehen); return true;
+            case Key.Key3: FelsGizmoModusSetzen(FelsGizmoArt.Skalieren); return true;
+            case Key.Key4:
                 FelsGizmoWeltSetzen(!FelsGizmoWelt);
                 return true;
             case Key.B or Key.End:
@@ -186,6 +187,9 @@ public partial class Stadtansicht
 
     /// <summary>Gehören die Pfeiltasten gerade den gewählten Felsen (dann schieben sie die Stücke, nicht die Kamera)?</summary>
     private bool PfeileFuerGizmo => FelsGizmoAktiv;
+
+    /// <summary>Gehören die Tasten 1–4 gerade dem Gizmo (Modus und Achsen) statt den Gruppen der Leiste links? Für die Szene (Kartenwerkstatt.cs).</summary>
+    public bool ZiffernFuerGizmo => FelsGizmoAktiv && _gizmoZug is null && _wsTeilZiehen is null && _wsZiehen is null;
 
     /// <summary>Stellt den Modus des Gizmos ein (Tafel oder Taste).</summary>
     public void FelsGizmoModusSetzen(FelsGizmoArt art)

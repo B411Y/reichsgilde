@@ -1204,8 +1204,8 @@ public partial class Stadtansicht
             or Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See;
         switch (eingabe)
         {
-            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.R or Key.T or Key.Z or Key.U or Key.B or Key.End, CtrlPressed: false, AltPressed: false } gizmoTaste
-                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (R/T/Z Modus, U Achsen, B/End auf den Boden)
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Key1 or Key.Key2 or Key.Key3 or Key.Key4 or Key.B or Key.End, CtrlPressed: false, AltPressed: false } gizmoTaste
+                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (1/2/3 Modus, 4 Achsen bei stehendem Gizmo – vor den Gruppen der Leiste; B/End auf den Boden)
                 return true;
             case InputEventKey { Pressed: true, Keycode: Key.Left or Key.Up or Key.Right or Key.Down } pfeil
                 when FelsPfeilTaste(pfeil.Keycode, pfeil.ShiftPressed, pfeil.CtrlPressed, pfeil.AltPressed): // die gewählten Felsen schieben, auch gehalten (Stadtansicht.Felsauswahl.cs)
