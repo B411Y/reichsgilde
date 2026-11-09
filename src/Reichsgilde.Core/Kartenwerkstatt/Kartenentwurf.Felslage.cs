@@ -12,7 +12,8 @@ namespace Reichsgilde.Core.Kartenwerkstatt;
 //    Die Höhe eines Stücks ist dabei sein Versatz (Meter über der Lage aus Boden und Einsinken): Wer ein Stück verschiebt, nimmt es über den
 //    Boden mit; DY und Drehungen um x oder z ändern den Versatz.
 //  • FelsEinrasten: auf den Boden setzen (der tiefste Punkt der Unterkante steckt Einsinken · Höhe tief), wahlweise an der Hangnormale ausgerichtet.
-//  • FelsNeuWuerfeln: wie „Reapply“ im Foliage-Werkzeug von Unreal – gesetzte Stücke mit den Zufallsbereichen des Pinsels neu würfeln.
+//  • FelsNeuWuerfeln: wie „Reapply“ im Foliage-Werkzeug von Unreal – gesetzte Stücke mit den Zufallsbereichen des Pinsels neu würfeln (die
+//    Tafel nennt es „Neu verteilen“; als Strich unter dem Pinsel: Felspinsel.Verteilen, P3).
 //  • FelsKopieren (Fels P2): Stücke kopieren, die Kopien hinten an die Liste (Strg+D in der Werkstatt).
 //  • FelsSchieben (Fels P2): Pfeiltasten – kleine Schübe, eine Folge davon ist ein Schritt (zusammengefasst).
 //  Der Boden um den Fels (Felsboden) bleibt dabei liegen, wie beim Verschieben und Drehen (entschieden 02.11.2026).
@@ -231,18 +232,24 @@ public sealed partial class Kartenentwurf
         var p = FelsBegrenzt(pinsel) with { Gruppe = null, Radierer = false };
         var zufall = new Zufallsquelle(startwert ?? FelsStartwert(liste[0].Punkt));
         var werte = new List<(EntwurfFels, Felswerte)>(liste.Count);
-        foreach (var f in liste)
-        {
-            var l = Felsstreuung.Treffer(p with { Formen = new[] { f.Form } }, zufall, _hoehen, f.X, f.Z)[0];
-            bool Ja(Felswurf w) => (wurf & w) != 0;
-            werte.Add((f, new Felswerte(
-                Versatz: Ja(Felswurf.Versatz) ? l.Versatz : null, Drehung: Ja(Felswurf.Drehung) ? l.Drehung : null,
-                Kippen: Ja(Felswurf.Kippen) ? l.KippenX : null, Rollen: Ja(Felswurf.Rollen) ? l.KippenZ : null,
-                Massstab: Ja(Felswurf.Groesse) ? l.Massstab : null,
-                AchseX: Ja(Felswurf.Achsen) ? l.AchseX : null, AchseY: Ja(Felswurf.Achsen) ? l.AchseY : null, AchseZ: Ja(Felswurf.Achsen) ? l.AchseZ : null,
-                Neigung: Ja(Felswurf.Neigung) ? l.Neigung : null, Einsinken: Ja(Felswurf.Einsinken) ? l.Einsinken : null)));
-        }
+        foreach (var f in liste) werte.Add((f, NeuGewuerfelt(f, p, zufall, wurf)));
         FelsTransformieren(werte, "neu gewürfelt");
+    }
+
+    /// <summary>
+    /// Die neuen Werte eines Stücks für „Neu würfeln“ bzw. „Neu verteilen“ (P3, auch im Strich): ein Treffer des Pinsels an der Stelle des Stücks mit
+    /// seiner Form, davon nur die Werte in <paramref name="wurf"/>. Zieht immer dieselben Würfe aus <paramref name="zufall"/> (wie ein Stück des Pinsels).
+    /// </summary>
+    private Felswerte NeuGewuerfelt(EntwurfFels f, Felspinsel p, Zufallsquelle zufall, Felswurf wurf)
+    {
+        var l = Felsstreuung.Treffer(p with { Formen = new[] { f.Form } }, zufall, _hoehen, f.X, f.Z)[0];
+        bool Ja(Felswurf w) => (wurf & w) != 0;
+        return new Felswerte(
+            Versatz: Ja(Felswurf.Versatz) ? l.Versatz : null, Drehung: Ja(Felswurf.Drehung) ? l.Drehung : null,
+            Kippen: Ja(Felswurf.Kippen) ? l.KippenX : null, Rollen: Ja(Felswurf.Rollen) ? l.KippenZ : null,
+            Massstab: Ja(Felswurf.Groesse) ? l.Massstab : null,
+            AchseX: Ja(Felswurf.Achsen) ? l.AchseX : null, AchseY: Ja(Felswurf.Achsen) ? l.AchseY : null, AchseZ: Ja(Felswurf.Achsen) ? l.AchseZ : null,
+            Neigung: Ja(Felswurf.Neigung) ? l.Neigung : null, Einsinken: Ja(Felswurf.Einsinken) ? l.Einsinken : null);
     }
 
     // ── Kopieren (Fels P2) ───────────────────────────────────────────────────

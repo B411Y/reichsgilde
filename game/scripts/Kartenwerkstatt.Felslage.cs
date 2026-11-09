@@ -7,7 +7,7 @@ namespace Reichsgilde;
 /// <summary>
 /// Die Tafel rechts für gewählte Felsstücke (Fels R3) – ein Teil der <c>partial class Kartenwerkstatt</c>: oben die Knöpfe des Gizmos (Verschieben,
 /// Drehen, Skalieren, Welt- oder Stückachsen, Einrasten), darunter Zahlenfelder für Lage, Drehung (Euler-Winkel) und Maßstab je Achse, dann Neigung
-/// zum Hang, Einsinken und die Knöpfe „Auf den Boden“, „Am Hang ausrichten“, „Neu würfeln“ und „Kopieren“, dazu die Auswahl (P2: gleiche Form,
+/// zum Hang, Einsinken und die Knöpfe „Auf den Boden“, „Am Hang ausrichten“, „Neu verteilen“ (P3: mit Häkchen je Wert) und „Kopieren“, dazu die Auswahl (P2: gleiche Form,
 /// gleiches Gestein, umkehren, alle). Jede Eingabe ist ein Befehl des Kerns
 /// (<see cref="Kartenentwurf.FelsTransformieren(IEnumerable{EntwurfFels}, Felswerte)"/>) und damit ein Schritt bei Rückgängig. Sind mehrere Stücke
 /// gewählt, zeigen die Felder die Werte des zuletzt gewählten: Die Lage verschiebt alle um den Unterschied, die übrigen Felder setzen den Wert für alle.
@@ -81,11 +81,11 @@ public partial class Kartenwerkstatt
         _eigenschaften.AddChild(knoepfe);
         Knopf(knoepfe, "Auf den Boden (End)", () => _stadt.FelsAufsetzen(false), "Setzt die Stücke so auf den Boden, dass ihr tiefster Punkt genau so tief steckt wie das Einsinken sagt (Taste End wie in Unreal, oder B)");
         Knopf(knoepfe, "Am Hang ausrichten", () => _stadt.FelsAufsetzen(true), "Wie „Auf den Boden“, dazu an der Hangnormalen ausgerichtet, gerade (Umschalt+End oder Umschalt+B)");
-        Knopf(knoepfe, "Neu würfeln", () =>
-        {
-            _stadt.WerkstattBefehl(() => _entwurf.FelsNeuWuerfeln(auswahl, _stadt.FelsPinsel with { Radierer = false }));
-        }, "Würfelt Größe und Drehung (und was der Pinsel als Bereich hat) für die gewählten Stücke neu – wie „Reapply“ in Unreal");
+        Knopf(knoepfe, "Neu verteilen", () => _stadt.FelsAuswahlVerteilen(),
+            "Würfelt die angehakten Werte darunter für die gewählten Stücke neu, mit den Werten des Felspinsels (Größe, Einsinken, Neigung, Bereiche unter „Erweitert“) – " +
+            "wie „Reapply“ in Unreal; jeder Druck würfelt neu, ein Schritt für Strg+Z. Unter dem Pinsel geht es mit „Felsen neu verteilen“ (Gelände › Felsen)");
         Knopf(knoepfe, "Kopieren (Strg+D)", () => _stadt.FelsKopieren(), "Kopiert die gewählten Stücke an Ort und Stelle (ein Schritt für Strg+Z); danach sind die Kopien gewählt – mit dem Gizmo wegziehen");
+        FelsWurfHaken(_eigenschaften); // was „Neu verteilen“ würfelt (Kartenwerkstatt.Felsen.cs)
 
         // Auswahl (P2): alle einer Art, umkehren, alle
         var wahl = new HFlowContainer();

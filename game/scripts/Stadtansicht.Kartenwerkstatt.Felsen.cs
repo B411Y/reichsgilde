@@ -8,10 +8,12 @@ namespace Reichsgilde;
 /// Die Felsstücke in der Kartenwerkstatt (Felspinsel F4) – ein Teil der <c>partial class Stadtansicht</c>. Der Kern führt die Stücke und den Pinsel
 /// (<see cref="Kartenentwurf.FelsStrichBeginnen"/>, <see cref="Kartenentwurf.FelsStempeln"/>); hier steht, was die Werkstatt in der 3D-Welt daraus macht:
 /// <list type="bullet">
-/// <item><b>Werkzeug</b> <see cref="Werkstattwerkzeug.Fels"/> in drei Arten (<see cref="FelsArt"/>): <b>Streuen</b> mit gedrückter Maus (jede Mausbewegung
-/// gibt der Kern weiter, die Stücke erscheinen sofort, Loslassen macht den Strich zu einem Schritt, Esc nimmt ihn zurück), <b>Stempeln</b> mit einem
-/// Klick (ein Stück oder eine Gruppe; die Vorschau unter der Maus zeigt genau, was der Klick setzt; danach sind die neuen Stücke gewählt und der Gizmo
-/// steht an ihnen – ein Klick auf einen Griff zieht, sonst stempelt er weiter, Fels P2), <b>Radieren</b> wie Streuen.</item>
+/// <item><b>Werkzeug</b> <see cref="Werkstattwerkzeug.Fels"/> in vier Arten (<see cref="FelsArt"/>): <b>Streuen</b> mit gedrückter Maus (jede Mausbewegung
+/// gibt der Kern weiter, die Stücke erscheinen sofort, Loslassen macht den Strich zu einem Schritt, Esc nimmt ihn zurück; mit Umschalt radiert der
+/// Strich, P3), <b>Stempeln</b> mit einem Klick (ein Stück oder eine Gruppe; die Vorschau unter der Maus zeigt genau, was der Klick setzt; danach sind die
+/// neuen Stücke gewählt und der Gizmo steht an ihnen – ein Klick auf einen Griff zieht, sonst stempelt er weiter, Fels P2), <b>Radieren</b> wie Streuen
+/// (P3: mit einer Dichte dünnt er nur aus, mit „nur diese Formen“ nur die angehakten), <b>Neu verteilen</b> (P3) wie Streuen, würfelt aber die angehakten
+/// Werte der Stücke unter dem Pinsel neu. Alle Werte des Pinsels stehen in der Tafel (Kartenwerkstatt.Felsen.cs); ein Strich ist ein Schritt.</item>
 /// <item><b>Hang mitformen</b> (R5, Häkchen in der Tafel, Standard aus): Der Stempel hebt das Gelände hinter den Wänden an – ein Schritt mit den Stücken.</item>
 /// <item><b>Vorschau</b>: Kreis des Pinsels; beim Stempeln dazu die Stücke als helle Geister (höchstens acht Netze, je Bild nur neu gesetzt).</item>
 /// <item><b>Anzeige</b> der Stücke wie im Spiel (Stadtansicht.Felsen.cs, F5): MultiMeshes je Zelle und Form, Feinheit nach dem Zoom; dort auch Wählen,
@@ -26,6 +28,9 @@ public partial class Stadtansicht
         Streuen,
         Stempeln,
         Radieren,
+
+        /// <summary>„Neu verteilen“ (P3, wie „Reapply“ in Unreal): Der Strich würfelt die angehakten Werte der Stücke unter dem Pinsel neu.</summary>
+        Verteilen,
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -77,11 +82,60 @@ public partial class Stadtansicht
     /// <summary>Startwert des nächsten Stempels: Vorschau und Klick würfeln gleich, nach jedem Stempel kommt ein neuer („neu würfeln“).</summary>
     public int FelsStempelStartwert { get; set; } = 1;
 
+    // ── P3: alle Pinselwerte (Felspinsel.cs), Vorgaben wie vorher ─────────────
+
+    /// <summary>Meter, die beim Streuen zusätzlich zwischen zwei Stücken frei bleiben.</summary>
+    public double FelsAbstand { get; set; }
+
+    /// <summary>± Anteil der Höhe um das Einsinken (Vorgabe ± 5 %).</summary>
+    public double FelsEinsinkenStreuung { get; set; } = Felspinsel.EinsinkenStreuungVorgabe;
+
+    /// <summary>Zufallsbereiche („Erweitert“ in der Tafel); null: wie ohne Bereich (Drehung zufällig bzw. hangabwärts ± 20°, Kippen und Rollen ± 8°).</summary>
+    public Felsbereich? FelsDrehbereich { get; set; }
+    public Felsbereich? FelsKippbereich { get; set; }
+    public Felsbereich? FelsRollbereich { get; set; }
+    public Felsbereich? FelsAchseX { get; set; }
+    public Felsbereich? FelsAchseY { get; set; }
+    public Felsbereich? FelsAchseZ { get; set; }
+    public Felsbereich? FelsVersatzbereich { get; set; }
+
+    /// <summary>Am Hang höchstens so viele Grad aus der Senkrechten neigen (null: ohne Grenze).</summary>
+    public double? FelsNeigungBis { get; set; }
+
+    /// <summary>Höhenfilter (Meter, Geländehöhe an der Mitte); null: überall.</summary>
+    public Felsbereich? FelsHoehenbereich { get; set; }
+
+    /// <summary>Radierer, Ausdünnen und Neu verteilen nehmen nur Stücke der angehakten Formen.</summary>
+    public bool FelsNurFormen { get; set; }
+
+    /// <summary>Radierer: bis zu dieser Dichte ausdünnen (Anteil der Kreisfläche); 0: alles weg wie bisher.</summary>
+    public double FelsAusduennen { get; set; }
+
+    /// <summary>Was „Neu verteilen“ (Strich und Knopf an der Auswahl) neu würfelt.</summary>
+    public Felswurf FelsVerteilenWurf { get; set; } = Felswurf.Groesse | Felswurf.Drehung;
+
+    /// <summary>
+    /// Der Pinsel mit allen eingestellten Werten, unabhängig von der Art (Streuen, Stempeln, Neu verteilen nutzen ihn; der Knopf „Neu verteilen“ an
+    /// der Auswahl auch, wenn gerade der Radierer eingestellt ist).
+    /// </summary>
+    public Felspinsel FelsPinselWerte => new(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken,
+        FelsNeigung, FelsZumHang, FelsFilter, Boden: FelsBoden, AchseX: FelsAchseX, AchseY: FelsAchseY, AchseZ: FelsAchseZ, Drehbereich: FelsDrehbereich,
+        Kippbereich: FelsKippbereich, Rollbereich: FelsRollbereich, Versatzbereich: FelsVersatzbereich, NeigungBis: FelsNeigungBis, HangFormen: FelsHangFormen,
+        Abstand: FelsAbstand, EinsinkenStreuung: FelsEinsinkenStreuung, Hoehenbereich: FelsHoehenbereich, NurFormen: FelsNurFormen);
+
+    /// <summary>Der Radierer mit Radius, Filter, Höhe und Formen (Ausdünnen, wenn eine Dichte eingestellt ist).</summary>
+    public Felspinsel FelsRadierer => Felspinsel.Radiergummi(FelsRadius, FelsFilter) with
+    {
+        Formen = FelsFormen.ToArray(), NurFormen = FelsNurFormen, Hoehenbereich = FelsHoehenbereich, Ausduennen = FelsAusduennen > 0, Dichte = FelsAusduennen,
+    };
+
     /// <summary>Der Pinsel mit den gewählten Werten.</summary>
-    public Felspinsel FelsPinsel => FelsModus == FelsArt.Radieren
-        ? Felspinsel.Radiergummi(FelsRadius, FelsFilter)
-        : new Felspinsel(FelsFormen.ToArray(), FelsGruppe, FelsGestein, FelsRadius, FelsDichte, FelsGroesse, FelsStreuung, FelsEinsinken, FelsNeigung,
-            FelsZumHang, FelsFilter, Boden: FelsBoden, HangFormen: FelsHangFormen);
+    public Felspinsel FelsPinsel => FelsModus switch
+    {
+        FelsArt.Radieren => FelsRadierer,
+        FelsArt.Verteilen => FelsPinselWerte with { Gruppe = null, Verteilen = FelsVerteilenWurf == Felswurf.Keins ? null : FelsVerteilenWurf },
+        _ => FelsPinselWerte,
+    };
 
     /// <summary>Die Farbe einer Gesteinsart (hell) für Symbol und Kreis.</summary>
     public static Color FelsFarbe(string? gestein) => Gesteinsarten.Nach(gestein ?? Felsformen.GrundgesteinVorgabe).Hell;
@@ -91,6 +145,9 @@ public partial class Stadtansicht
     // ═════════════════════════════════════════════════════════════════════════
 
     private bool _wsFelsStrich;
+
+    /// <summary>Radiert der laufende Strich, weil beim Drücken Umschalt gehalten war (P3)?</summary>
+    private bool _wsFelsRadiert;
 
     /// <summary>Linke Maustaste mit dem Felswerkzeug: Stempeln setzt gleich, Streuen und Radieren beginnen einen Strich.</summary>
     private void FelsDruecken(Vector2 maus)
@@ -103,10 +160,40 @@ public partial class Stadtansicht
             FelsStempelnBei(new Kartenort(boden.X, boden.Y));
             return;
         }
-        Befehl(() => _entwurf.FelsStrichBeginnen(FelsPinsel));
-        _wsFelsStrich = true;
+        _wsFelsRadiert = FelsUmschaltRadiert;
+        FelsStrichStarten(_wsFelsRadiert ? FelsRadierer with { Ausduennen = false } : FelsPinsel);
         FelsStrichPunkt(boden);
     }
+
+    private int _felsZufallZaehler;
+
+    /// <summary>
+    /// Beginnt den Strich im Kern. Ausdünnen und Neu verteilen bekommen je Strich einen neuen Startwert (sonst wählte ein zweiter Strich über dieselbe
+    /// Stelle genau dieselben Stücke bzw. Werte); Streuen und Radieren wie bisher den aus dem ersten Punkt.
+    /// </summary>
+    private void FelsStrichStarten(Felspinsel pinsel)
+    {
+        if (_entwurf is null) return;
+        int? startwert = pinsel.Ausduennen || pinsel.Verteilen is not null ? ++_felsZufallZaehler * 7919 : null;
+        Befehl(() => _entwurf.FelsStrichBeginnen(pinsel, startwert));
+        _wsFelsStrich = true;
+    }
+
+    /// <summary>
+    /// „Neu verteilen“ an der Auswahl (Knopf in der Tafel, wie „Reapply“ in Unreal): würfelt die angehakten Werte (<see cref="FelsVerteilenWurf"/>)
+    /// der gewählten Stücke mit den Werten des Pinsels neu – ein Schritt. Jeder Druck würfelt neu. Gibt zurück, wie viele Stücke gewählt waren.
+    /// </summary>
+    public int FelsAuswahlVerteilen(Felswurf? wurf = null)
+    {
+        var w = wurf ?? FelsVerteilenWurf;
+        if (_entwurf is null || FelsAuswahl.Count == 0 || w == Felswurf.Keins) return 0;
+        var liste = FelsAuswahl.ToList();
+        Befehl(() => _entwurf.FelsNeuWuerfeln(liste, FelsPinselWerte with { Radierer = false }, w, ++_felsZufallZaehler * 7919));
+        return liste.Count;
+    }
+
+    /// <summary>Umschalt beim Streuen radiert (P3, wie in Unreal): mit den Formen, dem Filter und der Höhe der Tafel, ohne Ausdünnen.</summary>
+    private bool FelsUmschaltRadiert => FelsModus == FelsArt.Streuen && Input.IsKeyPressed(Key.Shift);
 
     private void FelsStempelnBei(Kartenort ort)
     {
@@ -170,7 +257,12 @@ public partial class Stadtansicht
             FelsGeisterAus();
             return;
         }
-        var farbe = FelsModus == FelsArt.Radieren ? new Color(0.95f, 0.35f, 0.3f) : FelsFarbe(FelsGestein ?? _entwurf.Grundgestein.Wirksam).Lightened(0.2f);
+        // rot radiert (auch Umschalt beim Streuen), orange dünnt aus, gold verteilt neu, sonst die Farbe des Gesteins
+        var radiert = FelsModus == FelsArt.Streuen && (_wsFelsStrich ? _wsFelsRadiert : FelsUmschaltRadiert);
+        var farbe = FelsModus == FelsArt.Radieren && FelsAusduennen > 0 ? new Color(0.95f, 0.6f, 0.25f)
+            : FelsModus == FelsArt.Radieren || radiert ? new Color(0.95f, 0.35f, 0.3f)
+            : FelsModus == FelsArt.Verteilen ? new Color(0.95f, 0.82f, 0.35f)
+            : FelsFarbe(FelsGestein ?? _entwurf.Grundgestein.Wirksam).Lightened(0.2f);
         if (FelsModus == FelsArt.Stempeln)
         {
             if (_gizmoZug is not null || _gizmoHover is not null)

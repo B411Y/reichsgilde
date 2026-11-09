@@ -27,8 +27,7 @@ public partial class Stadtansicht
                 BodenStrichPunkt(boden);
                 break;
             case Werkstattwerkzeug.Fels when FelsModus != FelsArt.Stempeln:
-                Befehl(() => _entwurf.FelsStrichBeginnen(FelsPinsel));
-                _wsFelsStrich = true;
+                FelsStrichStarten(FelsPinsel); // Stadtansicht.Kartenwerkstatt.Felsen.cs
                 FelsStrichPunkt(boden);
                 break;
             case Werkstattwerkzeug.Pinsel or Werkstattwerkzeug.Radierer:

@@ -243,8 +243,9 @@ public partial class Kartenwerkstatt
             {
                 Stadtansicht.FelsArt.Stempeln => "Klick stempelt, was die Vorschau zeigt – Vorlage, Gestein, Größe, Einsinken und Neigung rechts · „Neu würfeln“ rechts · Strg+Z nimmt es zurück"
                                                  + " · danach steht der Gizmo an den neuen Stücken: Griff ziehen, Pfeiltasten schieben, Strg+D kopiert",
-                Stadtansicht.FelsArt.Streuen => "Mit gedrückter Maus streuen – Vorlage, Dichte, Größe und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
-                _ => "Mit gedrückter Maus radieren – Radius und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+                Stadtansicht.FelsArt.Streuen => "Mit gedrückter Maus streuen (mit Umschalt: radieren) – Vorlage, Dichte, Abstand, Größe, Bereiche und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+                Stadtansicht.FelsArt.Verteilen => "Mit gedrückter Maus über Felsstücke fahren: die angehakten Werte neu würfeln – Werte, Formen und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
+                _ => "Mit gedrückter Maus radieren (mit „Ausdünnen bis“ nur bis zur Dichte) – Radius, Formen und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
             },
             Werkstattwerkzeug.Rampe => "Zwei Klicks: Anfang und Ende der Rampe · Breite und Kante rechts · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Mauer => "Ecken klicken (Raster 2 m bzw. 1 m ohne Raster, Alt: frei, Umschalt: 45°-Winkel) · Klick auf die erste Ecke schließt den Ring · Doppelklick oder Enter: offen fertig · Rücktaste: letzte Ecke weg · Esc bricht ab",
