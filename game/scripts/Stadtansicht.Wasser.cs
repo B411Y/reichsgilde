@@ -119,8 +119,15 @@ public partial class Stadtansicht
 
         _gewaesserKnoten = new Node3D { Name = "Gewaesser" };
         AddChild(_gewaesserKnoten);
+        var uhr = Pinselmessung.Uhr();
         WasserflaechenBauen(form);
-        if (Uebergangsplan is { } plan) UebergaengeBauen(_gewaesserKnoten, plan);
+        Pinselmessung.Dazu("    Wasser: Flächen", uhr);
+        uhr = Pinselmessung.Uhr();
+        var plan0 = Uebergangsplan;
+        Pinselmessung.Dazu("    Wasser: Wasserplan (Kern)", uhr);
+        uhr = Pinselmessung.Uhr();
+        if (plan0 is { } plan) UebergaengeBauen(_gewaesserKnoten, plan);
+        Pinselmessung.Dazu("    Wasser: Übergänge", uhr);
     }
 
     /// <summary>Die Wasserflächen (ohne Übergänge) in der Stufe der Grafik-Voreinstellung, mit einem Stoff je Gewässer.</summary>

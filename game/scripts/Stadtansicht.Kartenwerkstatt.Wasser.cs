@@ -107,17 +107,23 @@ public partial class Stadtansicht
     {
         _wsWasserNeu = false;
         if (_entwurf is null) return;
+        var uhr = Pinselmessung.Uhr();
         GewaesserBauen();
+        Pinselmessung.Dazu("  Wasser: Flächen und Übergänge", uhr);
+        uhr = Pinselmessung.Uhr();
         VerbuendeNachziehen();
         foreach (var g in _entwurf.Gewaesser)
             if (g is EntwurfFluss f) FlussMarkieren(f, false);
         foreach (var fa in _entwurf.Faehren) FaehreMarkieren(fa, false);
+        Pinselmessung.Dazu("  Wasser: Verbünde und Markierungen", uhr);
+        uhr = Pinselmessung.Uhr();
         if (_wsWegeNeu)
         {
             _wsWegeNeu = false;
             foreach (var w in _entwurf.Wege.ToList()) WegBauen(w, false);
             _wsNetzNeu = true;
         }
+        Pinselmessung.Dazu("  Wasser: alle Wege neu", uhr);
     }
 
     /// <summary>Je See der Wasserstand und je Verbund (Lauf–See) sein Bereich beim letzten Bau (für <see cref="VerbuendeNachziehen"/>).</summary>

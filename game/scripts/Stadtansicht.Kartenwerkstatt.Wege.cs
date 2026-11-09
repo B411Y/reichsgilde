@@ -159,6 +159,7 @@ public partial class Stadtansicht
     {
         _wsNetzNeu = _wsNetzHoeheVeraltet = false;
         if (_entwurf is null || _wsAnschluesse is null) return;
+        var uhrNetz = Pinselmessung.Uhr();
         _wsNetz = new Gassennetz();
         var strecken = new List<(Vector3 Von, Vector3 Bis)>();
         foreach (var w in _entwurf.Wege)
@@ -166,8 +167,15 @@ public partial class Stadtansicht
             var punkte = w.Verlauf.Select(p => V3(p)).ToArray();
             if (punkte.Length < 2) continue;
             for (var i = 0; i + 1 < punkte.Length; i++) strecken.Add((punkte[i], punkte[i + 1]));
-            _wsNetz.Weg(w.IstGlatt ? NetzPunkte(punkte) : punkte);
+            var uhrW = Pinselmessung.Uhr();
+            var netzpunkte = w.IstGlatt ? NetzPunkte(punkte) : punkte;
+            Pinselmessung.Dazu("    Netz: NetzPunkte", uhrW);
+            uhrW = Pinselmessung.Uhr();
+            _wsNetz.Weg(netzpunkte);
+            Pinselmessung.Dazu("    Netz: Gassennetz.Weg", uhrW);
         }
+        Pinselmessung.Dazu("  Netz: Wege", uhrNetz);
+        uhrNetz = Pinselmessung.Uhr();
         foreach (var kind in _wsAnschluesse.GetChildren()) kind.QueueFree();
         SchichtAnschluesseVergessen(); // Stadtansicht.Wegeschicht.cs
 
@@ -201,8 +209,11 @@ public partial class Stadtansicht
         if (Uebergangsplan is { } plan)
             foreach (var f in plan.Faehren)
                 if (f.UeberWasser > 1) _wsNetz.Faehre(new Vector3((float)f.Von.X, 0, (float)f.Von.Z), new Vector3((float)f.Bis.X, 0, (float)f.Bis.Z)); // Karren setzen über
+        Pinselmessung.Dazu("  Netz: Anschlüsse", uhrNetz);
+        uhrNetz = Pinselmessung.Uhr();
         SchichtAnschluesseAbschliessen(); // weggefallene Anschlüsse aus der Wegeschicht nehmen (Stadtansicht.Wegeschicht.cs)
         NetzAnsichtBauen();
+        Pinselmessung.Dazu("  Netz: Schicht und Ansicht", uhrNetz);
     }
 
     /// <summary>

@@ -375,7 +375,9 @@ public partial class Stadtansicht
                 if (g.Baustein?.AmUfer == true) GewaesserGeaendert(g, weg); // ein Hafen: das Becken vor der Kaimauer (Stadtansicht.Kartenwerkstatt.Wasser.cs)
                 break;
             case EntwurfWeg w:
+                var uhrWeg = Pinselmessung.Uhr();
                 WegBauen(w, weg);
+                Pinselmessung.Dazu("  Weg: bauen (Knoten, Schicht, Markierung)", uhrWeg);
                 _wsNetzNeu = true;
                 if (!GewaesserLeer) _wsWasserNeu = true; // Brücken, Furten und Fähren hängen an den Wegen
                 break;

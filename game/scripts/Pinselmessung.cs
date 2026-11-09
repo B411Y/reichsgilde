@@ -21,6 +21,9 @@ public static class Pinselmessung
     /// <summary>Soll die Messung mit diesem Namen laufen (<see cref="Nur"/>)?</summary>
     public static bool Gewollt(string name) => Nur.Length == 0 || Nur.Any(n => name.StartsWith(n, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary><c>--pinselmessung-summen=1</c>: nach jedem Weg-Fall die Prüfsummen von Netz, Wasser, Gelände und Wegeschicht ins Protokoll (Zeilen „PRUEFSUMME“).</summary>
+    public static bool Pruefsumme { get; } = OS.GetCmdlineUserArgs().Any(a => a == "--pinselmessung-summen=1");
+
     /// <summary>Ist die Messung an?</summary>
     public static bool An => Wert is { Length: > 0 } && Wert != "0";
 
