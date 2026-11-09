@@ -618,9 +618,9 @@ Von der KI erlernte Berufe (in 20 Partien): Eisenbart → Alchimist 10×, → St
 
 | Stufe | Betrieb | Diebe | Unterhalt | Beute je Geselle und Jahr | Fang je Diebesstunde | Aufträge je Nacht | Neu |
 |---|---|---|---|---|---|---|---|
-| 1 | Schmugglerloch | 4 | 80 | 576 | 1,2 % | 1 | Einbruch, Auskundschaften |
-| 2 | Unterschlupf (2.500) | 6 | 120 | 634 | 0,96 % | 2 | Schutzgeld |
-| 3 | Diebesgilde (5.000) | 8 | 180 | 749 | 0,72 % | 3 | Entführung |
+| 1 | Schmugglerloch | 4 | 80 | 576 | 1,2 % (seit Datenversion 75: 0,9 %) | 1 | Einbruch, Auskundschaften |
+| 2 | Unterschlupf (2.500) | 6 | 120 | 634 | 0,96 % (0,72 %) | 2 | Schutzgeld |
+| 3 | Diebesgilde (5.000) | 8 | 180 | 749 | 0,72 % (0,54 %) | 3 | Entführung |
 
 Erwarteter Jahresgewinn voll mit Gesellen (Lohn 220): Schmugglerloch ≈ 1.344, also etwas über der Kirche (1.150); dafür −3 Ansehen, Fänge und Spuren. **Seit PR #177:** Beute 1,0 statt 0,8 je Minute (720 je Geselle und Jahr in Stufe 1), dafür halbe Erfahrung je Mann (`erfahrungFaktor` 0,5 – vier statt zwei Plätze).
 
@@ -1063,7 +1063,7 @@ Der Wirt rückt damit vom unteren Mittelfeld an die Spitze, ohne davonzuziehen.
 |---|---|---|
 | Dietriche (`Werkzeug1`) | 300 | Einbruchchance +0,10 absolut, wie `dieb.einbruch.chanceBonus`: (0,7 + 0,1 + 0,1) × Wächter 0,5 × Patrouille × Eisentür des Ziels, Deckel 95 %. Ohne Wächter 0,8 → 0,9, mit Wächter 0,4 → 0,45 |
 | Meisterdietriche (`Werkzeug2`, ab Unterschlupf, braucht Dietriche) | 800 | nochmals +0,10: ohne Wächter 0,95 (Deckel, statt 1,0), mit Wächter 0,5 |
-| Verkleidungstruhe (`Verkleidung`) | 350 | Fangchance der Taschendiebe × 0,75 (Schmugglerloch 1,2 % → 0,9 % je Diebesstunde) |
+| Verkleidungstruhe (`Verkleidung`) | 350 | Fangchance der Taschendiebe × 0,75 (Schmugglerloch 1,2 % → 0,9 % je Diebesstunde; seit Datenversion 75 0,9 % → 0,675 %) |
 | Hehlerkammer (`Regale`) | 200 | Lager +20 je Ware (60 statt 40): mehr Einbruchsbeute bleibt im eigenen Lager statt beim Hehler (50 % des Preises) |
 | Löschfass, Eisentür | 100, 300 (Eisentür seit PR #177: 150) | wie bei den Werkstätten: Feuer bzw. Diebstahl und Einbruch halb so oft |
 | Lederhandschuhe (`Handschuhe`) | 80 | Spuren × 0,75: Zeugen der eigenen Aufträge (Einbruch 25 % × 0,75 × 0,75 ≈ 14 % statt 18,75 %), Beweise beim Auskundschaften (40 % → 30 % je Tat) und bei der Razzia gegen das Haus. Unfälle hat der Dieb nicht. |
@@ -2432,3 +2432,79 @@ Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwer
 - **Zwerge** folgen jetzt verlässlich dem Pfad des Meisters (Handwerk 3 + 2) und leben lang: Der Zwerg-Schmied steigt gegen den Menschen von +4,6 auf +12,2 % (vor #371 auf main +15,1 %). Elben holen nach 40 Jahren ebenfalls auf (+2,0 / +11,5 %).
 - **Handwerk** gewinnt am meisten (Schmied +11,5 %, Steinmetz +10,1 %), weil jetzt fast jedes Handwerkshaus dem Pfad des Meisters folgt. Der Gardist gewinnt am wenigsten (+1,2 %).
 - Die KI gegen den Bezugsspieler bleibt im Rahmen (1,21 → 1,20). Die Gaunerei der KI ändert sich kaum, obwohl ihre Häuser den Pfad der Schatten nicht mehr nehmen.
+
+## Balancing nach dem Handgeld (Datenversion 75, 9.11.2026)
+
+**Auftrag** (Teamleiter 8.11.2026): Dieb und Parfumeur über ihre Grundwerte zurück ins Band ±15 %, nicht über Knoten der Lebensweise; dazu die Völker nach 40 Jahren beurteilen. Entscheidungen in `docs/bereiche/kern.md`, „Balancing nach dem Handgeld“.
+
+**Ursache Dieb:** das Handgeld (#371). Jeder gefasste Taschendieb fällt weg, die KI stellt einen neuen ein und zahlt 100 Gulden; dazu kommen fünf statt zwei bezahlte Plätze beim Einstellen (Schmugglerloch 4, Unterschlupf 6, einer frei zum Start). Von main `18c40e7a` zu `b5444c09` sank sein Gewinn um 59 Gulden im Jahr (0,6 Fänge × 100), die Fänge blieben gleich. Eine Probe ohne Handgeld für Taschendiebe (nur Diagnose, nicht übernommen) brachte ihn von −21,1 auf −11,0 %. Jeder Fang bringt außerdem eine Spur vor Gericht: Der Dieb zahlte 460 Gulden Gericht im Jahr, die anderen Berufe 150–200.
+
+**Ursache Parfumeur:** nicht das Handgeld. Er lag schon lange am oberen Rand (+13,9 % in Balancing 3, +15,7 % nach den Charakterzügen, +14,2 % auf main `18c40e7a`). Ab der Duftwerkstatt verdient er zu viel: statisch +21 % (Fechterduft 2,28, Moschusduft 2,22 Gulden je Minute, fast gleich gut), simuliert nach 20 Jahren 5.771 gegen 4.859 Gulden Gewinn im Mittel (+19 %). In den ersten Jahren liegt er dagegen hinten (Jahr 5: −29 %, Diebe und Blume der Zwietracht), deshalb bleibt die Siederei unverändert.
+
+**Proben** (`messen bericht 20 30 --teile=1`, nur Berufe, 330 Partien je Probe; Abstand des Vermögenszuwachses zum Mittel):
+
+| Probe | Dieb | Parfumeur | Steinmetz | Mittel |
+|---|---|---|---|---|
+| main `efbd166d` | −21,1 % | +16,7 % | +14,3 % | 33.081 |
+| ohne Handgeld für Taschendiebe (Diagnose) | −11,0 % | +15,4 % | +13,1 % | 33.445 |
+| Fang 0,010; Moschus 218, Fechter 207 (−3,5 %) | −13,0 % | +5,4 % | +14,8 % | 32.986 |
+| Fang 0,009; Moschus 214, Fechter 204 (−5 %) | −9,5 % | +1,5 % | +15,7 % | 32.900 |
+| **Fang 0,009; Moschus 220, Fechter 210 (−2,5 %) – übernommen** | **−10,6 %** | **+9,0 %** | **+14,0 %** | 33.233 |
+| Fang 0,009; Moschus 221, Fechter 211 (−2 %) | −10,9 % | +10,2 % | +13,8 % | 33.374 |
+
+**Geändert:**
+
+| Was | vorher | nachher | Grund |
+|---|---|---|---|
+| `dieb.taschendiebstahl.fangJeStunde` | 0,012 | 0,009 | Weniger Fänge heißt weniger Ersatz mit Handgeld und weniger Spuren vor Gericht. Mit 0,009 steht der Dieb wie ohne Handgeld für Taschendiebe (−10,6 gegen −11,0 %). 0,010 gliche nur das Handgeld je Fang aus, nicht das für die Plätze beim Einstellen (−13,0 %, knapp im Band). Beute und Handgeld-Regel bleiben: Mehr Beute höbe auch seinen statischen Wert (Stufe 1 schon +22 %), und das Handgeld gilt nach Entscheidung des Nutzers für alle gleich. |
+| Grundpreis Moschusduft | 226 | 220 | Beide Waren der Duftwerkstatt gleich stark senken, sonst wiche die KI auf die andere aus. Mit −2,5 % sinkt der Parfumeur auf +9,0 % (statisch Stufe 2 von +21 auf +16 %). −3,5 % und −5 % ziehen den Mittelwert und damit den Steinmetz über +15 %. |
+| Grundpreis Fechterduft | 215 | 210 | wie Moschusduft |
+
+**Messung** (gemessen auf main `efbd166d` + diesem PR, `b52370ca`): `messen bericht 20 30` (1.320 Partien, keine mit Fehler, 22,6 Min.) → `docs/messungen/balancing-2026-11-09-handgeld.json`, und `messen bericht 40 30 --teile=2` (240 Partien, 11,6 Min.) → `…-voelker40-handgeld.json`. Zum Vergleich dienen die Messungen „Lebensweise: Nachsteuerung“ (`…-lebensweise-nachgesteuert.json`, `…-voelker40-lebensweise-nachgesteuert.json`). Sie rechnen genau wie main `efbd166d`: Seitdem kamen nur Rasen und Bodenstempel der Darstellung dazu, und die Teilmessung Berufe auf `efbd166d` ergab Zahl für Zahl dasselbe. Die NAS war geteilt (8 Kerne, Last 4 bis 8, `--parallel=5` und `3` nebeneinander).
+
+| | main `efbd166d` | Balancing nach dem Handgeld |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 8/10 (Dieb −21,1 %, Parfumeur +16,7 %) | **10/10** (−11,4 … +14,0 %) |
+| Mittel des Zuwachses | 33.081 | 33.233 |
+| Statisch außerhalb ±15 % | Stufe 2: Parfumeur +21 % (dazu wie bisher Wirt, Dieb, Geldleiher, Gardist) | Stufe 2: Parfumeur +16 % |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,20; 1,79 | 1,25; 1,78 |
+| Messstadt: Vermögen je KI-Haus allein / 3 / 8 Häuser | 99.410 / 60.571 / 51.192 | 99.449 / 61.164 / 50.319 |
+| Dieb: Fänge je Jahr (ohne / mit Wachhaus) | 0,58 / 0,73 | 0,42 / 0,55 |
+| Dieb: Gewinn ohne / mit Wachhaus | 2.518 / 2.537 (+1 %) | 2.551 / 2.556 (0 %) |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,43 / 0,81 / 0,17 | 0,44 / 0,80 / 0,16 |
+| Spitzel / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 95 / 202 (Dieb 460) | 96 / 186 (Dieb 341) |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −3.526 / −6.690 | −3.612 / −6.719 |
+| Karren in Not / nach einem Jahr ohne Fahrt verkauft | 0 / 74 | 0 / 69 |
+
+Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwerte; ± Fehler des Mittels; in Klammern der Abstand des Zuwachses zum Mittel):
+
+| Beruf | main `efbd166d` | nachher | Änderung | Bürger Ø Jahr (im Ziel 8–12) |
+|---|---|---|---|---|
+| Schmied | 40.128 ± 1.127 (+9,2 %) | 39.931 ± 1.199 (+8,1 %) | −0,5 % | 9,2 (30/30) |
+| Tischler | 33.407 ± 1.239 (−11,1 %) | 33.433 ± 1.191 (−11,4 %) | +0,1 % | 9,9 (28/30) |
+| Steinmetz | 41.812 ± 1.373 (+14,3 %) | 41.895 ± 1.248 (+14,0 %) | +0,2 % | 10,0 (30/30) |
+| Alchimist | 37.635 ± 1.261 (+1,7 %) | 37.626 ± 1.097 (+1,2 %) | 0,0 % | 9,3 (29/30) |
+| Wirt | 35.614 ± 1.199 (−4,4 %) | 35.787 ± 1.169 (−4,4 %) | +0,5 % | 9,5 (26/30) |
+| Prediger | 37.587 ± 1.449 (+1,5 %) | 38.017 ± 1.306 (+2,4 %) | +1,1 % | 8,0 (22/30) |
+| **Dieb** | 30.107 ± 1.435 (−21,1 %) | 33.719 ± 1.152 (−10,6 %) | **+12,0 %** | 7,6 (10/30) |
+| **Parfumeur** | 42.607 ± 1.295 (+16,7 %) | 40.224 ± 1.282 (+9,0 %) | **−5,6 %** | 8,9 (28/30) |
+| Geldleiher | 37.735 ± 1.239 (+2,0 %) | 37.556 ± 1.266 (+1,0 %) | −0,5 % | 8,5 (25/30) |
+| Gardist | 34.175 ± 882 (−8,8 %) | 34.145 ± 824 (−9,3 %) | −0,1 % | 9,1 (28/30) |
+| Dieb (wagemutig, nicht im Mittel) | 25.108 ± 1.195 | 27.838 ± 1.110 | +10,9 % | 8,4 (10/30) |
+
+**Völker** (Reinvermögen nach 40 Jahren, Abstand zum Menschen desselben Berufs; Fehler eines Mittels 2.300–4.600, eines Unterschieds etwa 5 Punkte):
+
+| Beruf, Volk | main `efbd166d` | nachher | gegen Mensch (main → nachher) |
+|---|---|---|---|
+| Schmied, Mensch | 111.160 | 109.261 | 0 → 0 |
+| Schmied, Zwerg | 124.702 | 123.036 | +12,2 → +12,6 % |
+| Schmied, Elb | 113.334 | 112.870 | +2,0 → +3,3 % |
+| Schmied, Halbling | 98.319 | 99.919 | −11,6 → −8,6 % |
+| Parfumeur, Mensch | 130.643 | 121.055 | 0 → 0 |
+| Parfumeur, Zwerg | 125.559 | 123.992 | −3,9 → +2,4 % |
+| Parfumeur, Elb | 145.656 | 137.309 | +11,5 → +13,4 % |
+| Parfumeur, Halbling | 124.921 | 120.777 | −4,4 → −0,2 % |
+
+**Befund Völker** (Empfehlung als offener Punkt in `docs/bereiche/kern.md`): Die Knoten der Lebensweise folgen der Lebenszeit. Nach 40 Jahren hat ein Haus je Partie (`messen lebensweg 40 30 --berufe=Schmied --voelker=Mensch,Zwerg,Elb,Halbling` auf main `efbd166d`) als Elb 19,9 Knoten, als Zwerg 16,9, als Mensch 12,6 und als Halbling 9,0. Das Vermögen folgt den Knoten aber kaum: Der Elb-Schmied hat die meisten Knoten und liegt trotzdem nur +2 bis +3 % über dem Menschen. Den Abstand von Zwerg und Halbling als Schmied macht vor allem der Völkerbonus (±5 % Leistung, etwa ±10–15 % aufs Vermögen, siehe Balancing 3). Ohne Lebensweise lag er auf main schon bei +4,6 … +15,1 bzw. −5,5 … −7,9 %. Empfehlung: Das ist eine gewollte Volksfolge, nicht glätten. Würde die Erfahrung je Jahr mit der Lebenszeit des Volkes skaliert, fielen Zwerge und Elben in Partien von 20–30 Jahren zurück, in denen ihr Oberhaupt nie stirbt.
+
+**Nebenbefund Spielstand:** Mit den neuen Preisen lief der Gleichheitstest bei Startwert 4711 nach dem Laden auseinander. Ursache: Das Jahresende lernt das Übliche der Einkäufe neu, den Faktor der Bürger am Markt setzt die Bürger-KI aber erst zur nächsten vollen Stunde. Beim Laden in dieser Stunde wurde der Faktor schon mit dem neuen Üblichen gerechnet, und ein Karren, der um 4 Uhr verkaufte, bekam 0,08 % weniger. Der Fehler ist behoben (`EinkaufErwartetImMarkt` im Spielstand der Einwohnerschaft). Durchgehende Partien rechnen bitgleich weiter: Die Berufe der Endmessung gleichen der Probe ohne die Behebung Zahl für Zahl.
