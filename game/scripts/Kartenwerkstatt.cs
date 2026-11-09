@@ -257,7 +257,7 @@ public partial class Kartenwerkstatt : Node
     {
         AuffrischenVormerken();
         if (ReferenceEquals(a.Objekt, _stadt.WerkstattGewaehlt)) EigenschaftenZeigen(neu: false);
-        if (a.Objekt is EntwurfStart) StartVormerken(); // Kartenwerkstatt.Start.cs
+        if (a.Objekt is EntwurfStart) { HofstelleAuffrischen(); StartVormerken(); } // Kartenwerkstatt.Hofstelle.cs, Kartenwerkstatt.Start.cs
         if (a.Objekt is EntwurfKopf) KarteWerteSetzen(); // Kartenwerkstatt.Karte.cs
     }
 

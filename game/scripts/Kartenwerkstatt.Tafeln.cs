@@ -573,6 +573,7 @@ public partial class Kartenwerkstatt
         _eigenschaften.AddChild(knoepfe);
         Knopf(knoepfe, "Hinfahren", () => _stadt.WerkstattWaehlen(g.Kennung, hinfahren: true));
         Knopf(knoepfe, "Löschen", () => _entwurf.Loeschen(g.Kennung), "Das Gebäude aus der Karte nehmen (Entf)");
+        HofstelleGruppe(g); // Kartenwerkstatt.Hofstelle.cs
         WerteSetzen(g);
     }
 
