@@ -609,6 +609,7 @@ public partial class Hauptszene : Node
             _familientafel.Oeffnen();
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
+        if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -1199,6 +1200,11 @@ public partial class Hauptszene : Node
             var ticks = _spulen;
             _spulen = 0;
             for (var i = 0; i < ticks && !_simulation.IstBeendet; i++) _simulation.Tick();
+        }
+        if (_stressWartet is { } stressWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _stressWartet = null;
+            StressStartoption(stressWunsch); // vor --charakter, damit das Fenster den neuen Stress zeigt
         }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {

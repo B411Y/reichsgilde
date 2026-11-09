@@ -33,7 +33,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Benachrichtigungen: Das ✕ des Fensterrahmens ist hell und bekommt im Brief eine dunkle Platte; ein gemeinsames Pergament-Fenster für andere Tafeln (Oberflächen-Stil Schriftrolle) fehlt noch.
 - (Werkstatt-Pinsel) Pinselmessung (`Kartenwerkstatt.Pinselmessung.cs`, `Rest()`): Die Spalte „übriges Bild (Godot, Leerlauf)“ zieht die Summe aller Teilschritte ab, manche stecken aber ineinander („  Nacharbeit: …“ in „Nacharbeit nach dem Strich“, „  Gras: …“ in „im Bild: Grasteppich“) und zählen doppelt; die Spalte ist dann zu klein und kann negativ werden. Betrifft nur das Messwerkzeug.
 - (von Kern, Stress 3b) Zug-Medaillons für die neuen erworbenen Züge **Schwermütig** (`schwermuetig.png`) und **Reizbar** (`reizbar.png`) unter `game/assets/oberflaeche/zuege/` (128 px, Eisenring wie die anderen erworbenen Züge, Weg wie bei den übrigen Medaillons: Gemini-Bilder des Nutzers, `tools/zugmedaillons/schmiede.gd`, Prompt nach `docs/assets/prompts/zug_medaillons.md`, Protokollzeile). Bis dahin zeichnet `ZugIcon` den schlichten Ring mit dem Anfangsbuchstaben.
-- (Stress 3b) Klicktest des Stressbalkens auf der NAS steht aus (Bilder: Balken angespannt und zermürbt, Tooltip mit Einträgen, fremde Person „Wirkt …“, Aktivitätenliste mit Stresszeile, Entwicklerfenster „Stress setzen“, Zusammenbruch-Meldung).
+- (Stress 3b) Klicktest des Stressbalkens auf der NAS steht aus (Startoption `--entwickler=1 --stress=75 --charakter=oberhaupt`; Bilder: Balken angespannt und zermürbt, Tooltip mit Einträgen, fremde Person „Wirkt …“, Aktivitätenliste mit Stresszeile, Entwicklerfenster „Stress setzen“, Zusammenbruch-Meldung).
 
 ## Entscheidungen
 
