@@ -26,9 +26,9 @@ public partial class Kartenwerkstatt
         modi.AddThemeConstantOverride("separation", 4);
         foreach (var (art, text, tipp) in new[]
                  {
-                     (Stadtansicht.FelsGizmoArt.Verschieben, "Verschieben", "Pfeil links: Pfeile ziehen, Quadrate ziehen in einer Ebene"),
-                     (Stadtansicht.FelsGizmoArt.Drehen, "Drehen", "Pfeil oben: Ringe ziehen"),
-                     (Stadtansicht.FelsGizmoArt.Skalieren, "Skalieren", "Pfeil rechts: Würfel ziehen, der mittlere skaliert gleichmäßig"),
+                     (Stadtansicht.FelsGizmoArt.Verschieben, "Verschieben", "Taste R: Pfeile ziehen, Quadrate ziehen in einer Ebene"),
+                     (Stadtansicht.FelsGizmoArt.Drehen, "Drehen", "Taste T: Ringe ziehen"),
+                     (Stadtansicht.FelsGizmoArt.Skalieren, "Skalieren", "Taste Z: Würfel ziehen, der mittlere skaliert gleichmäßig"),
                  })
         {
             var knopf = new Button { Text = text, ToggleMode = true, ButtonPressed = _stadt.FelsGizmoModus == art, FocusMode = Control.FocusModeEnum.None, TooltipText = tipp };
@@ -39,7 +39,7 @@ public partial class Kartenwerkstatt
         }
         Zeile(raster, "Gizmo", modi);
 
-        var achsen = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Pfeil unten: Die Achsen des Gizmos sind die der Welt oder die des Stücks (beim Skalieren immer die des Stücks)" };
+        var achsen = new OptionButton { FocusMode = Control.FocusModeEnum.None, TooltipText = "Taste U: Die Achsen des Gizmos sind die der Welt oder die des Stücks (beim Skalieren immer die des Stücks)" };
         achsen.AddItem("Welt");
         achsen.AddItem("Stück");
         achsen.Select(_stadt.FelsGizmoWelt ? 0 : 1);
@@ -96,7 +96,8 @@ public partial class Kartenwerkstatt
         Knopf(wahl, "Gleiches Gestein", () => _stadt.FelsGleicheWaehlen(nachGestein: true), "Wählt alle Felsstücke aus demselben Gestein wie die gewählten (auch das Grundgestein der Karte)");
         Knopf(wahl, "Umkehren (Strg+I)", () => _stadt.FelsAuswahlUmkehren(), "Die gewählten Stücke fallen heraus, alle anderen Felsstücke werden gewählt");
         Knopf(wahl, "Alle (Strg+A)", () => _stadt.FelsAlleWaehlen(), "Wählt alle Felsstücke der Karte");
-        Hauptmenue.Text(_eigenschaften, "Pfeiltasten: links Verschieben, oben Drehen, rechts Skalieren, unten Welt/Stück · End oder B auf den Boden · Q/E drehen um 15° · Strg+D kopiert · "
+        Hauptmenue.Text(_eigenschaften, "Gizmo: R Verschieben, T Drehen, Z Skalieren, U Welt/Stück · Pfeiltasten schieben 0,25 m (Umschalt 1 m, Strg aufs Raster, Alt+oben/unten hebt), eine Tastenfolge ist ein Schritt für Strg+Z · "
+                                        + "End oder B auf den Boden · Q/E drehen um 15° · Strg+D kopiert · "
                                         + "Umschalt+Klick wählt mehrere, Ziehen ins Leere zieht einen Rahmen (mit Umschalt: dazu). Der Zug ist erst beim Loslassen ein Schritt für Strg+Z, Esc nimmt ihn zurück. "
                                         + "WASD schiebt die Kamera.",
             12, Grau, umbruchBreite: Rechtsbreite - 30);

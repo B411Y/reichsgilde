@@ -240,7 +240,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Fels => _stadt.FelsModus switch
             {
                 Stadtansicht.FelsArt.Stempeln => "Klick stempelt, was die Vorschau zeigt – Vorlage, Gestein, Größe, Einsinken und Neigung rechts · „Neu würfeln“ rechts · Strg+Z nimmt es zurück"
-                                                 + " · danach steht der Gizmo an den neuen Stücken: Griff ziehen, Pfeiltasten wählen den Modus, Strg+D kopiert",
+                                                 + " · danach steht der Gizmo an den neuen Stücken: Griff ziehen, Pfeiltasten schieben, Strg+D kopiert",
                 Stadtansicht.FelsArt.Streuen => "Mit gedrückter Maus streuen – Vorlage, Dichte, Größe und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
                 _ => "Mit gedrückter Maus radieren – Radius und Filter rechts · Loslassen beendet den Strich (ein Schritt für Strg+Z) · Esc nimmt ihn zurück",
             },
@@ -251,7 +251,7 @@ public partial class Kartenwerkstatt
             Werkstattwerkzeug.Faehre => "Zwei Klicks: die Anleger an beiden Ufern (rasten an Wegen ein, der Ring zeigt wo) · Esc: erster Klick zurück · Rechtsklick: fertig",
             Werkstattwerkzeug.Tor => "Klick auf eine Mauer setzt ein Tor · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Platz => (_stadt.WerkstattPlatzHinweis ?? "Einen Platz anklicken") + " · grün: passt · Esc oder Rechtsklick bricht ab",
-            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: Pfeiltasten links verschieben · oben drehen · rechts skalieren (Gizmo ziehen, Strg rastet ein) · unten Welt/Stück · End oder B auf den Boden · Q/E dreht · Strg+D kopiert · "
+            _ when _stadt.WerkstattGewaehlt is EntwurfFels => "Felsstück: Gizmo ziehen (R verschieben · T drehen · Z skalieren · U Welt/Stück, Strg rastet ein) · Pfeiltasten schieben (Umschalt 1 m, Strg aufs Raster, Alt+oben/unten Höhe) · End oder B auf den Boden · Q/E dreht · Strg+D kopiert · "
                                                               + "Umschalt+Klick oder Rahmen (Ziehen ins Leere) wählt mehrere, Strg+A alle · Entf löscht · Esc nimmt den Zug zurück · Strg+Z/Y",
             _ => "Klick wählt · Ziehen verschiebt (Mauer: mit Umschalt) · Ziehen ins Leere: Rahmen um Felsen · Griffe ziehen, Klick auf Linie oder Rand fügt ein · Q/E dreht · Entf löscht Griff oder Teil · Esc hebt auf · Strg+Z/Y · Strg+S",
         };
