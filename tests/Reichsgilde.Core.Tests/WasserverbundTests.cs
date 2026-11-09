@@ -321,6 +321,35 @@ static class WasserverbundTests
             }
         }),
 
+        ("Wasserverbund: Lücke und altes Ufer liegen auf Seetiefe (kein flacher Schleier), das geschlossene Ufer und das andere Ufer bleiben", () =>
+        {
+            var e = Leer();
+            Fluss(e);
+            See(e, 2);
+            var w = e.Gelaendeform.Wasser;
+            var v = w.Verbuende[0];
+            var spiegel = v.See.Wasserstand;
+            foreach (var x in new[] { -30.0, 0, 25 })
+                foreach (var z in new[] { -2.0, -5.0, -6.0, -7.0, -8.0, -10.0, -14.0 })
+                {
+                    var tiefe = spiegel - w.Boden(x, z, 0, false);
+                    Pruefe.Wahr(tiefe >= 1.2, $"Tiefe bei {x}, {z}: {tiefe:0.00} m");
+                    // Gegenprobe: die Böschung vom gemeinsamen Ufer (Stand c_v2) gäbe dort nur flaches Wasser – der neue Grund ist deutlich tiefer
+                    if (z is -6.0 or -7.0 or -8.0)
+                    {
+                        var alt = Math.Min(v.See.Tiefe, -w.Verbundabstand(x, z)!.Value * Wasserform.Seeboeschung);
+                        Pruefe.Wahr(alt < 0.7 && tiefe > alt + 0.5, $"bei {x}, {z}: vorher {alt:0.00} m, jetzt {tiefe:0.00} m");
+                    }
+                }
+            // das geschlossene Ufer des Sees (Nordufer, Seiten) fällt wie bisher mit 30 %
+            var allein = Leer();
+            See(allein, 2, wasserstand: spiegel);
+            foreach (var (x, z) in new[] { (0.0, -39.0), (0.0, -36.0), (-59.0, -25.0), (57.0, -30.0) })
+                Pruefe.Ungefaehr(allein.Gelaendeform.Wasser.Boden(x, z, 0, false), w.Boden(x, z, 0, false), 1e-12);
+            Pruefe.Wahr(v.SeeuferAbstand(0, -7) > 25, $"das Südufer am Fluss zählt nicht als Ufer: {v.SeeuferAbstand(0, -7):0.0} m");
+            Pruefe.Ungefaehr(1, v.SeeuferAbstand(0, -39), 1e-9);
+        }),
+
         ("Wasserverbund: Ein Haus in der geschlossenen Lücke steht im Wasser", () =>
         {
             var e = Leer();

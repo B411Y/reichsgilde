@@ -68,6 +68,34 @@ public sealed class Wasserverbund
                     liste.Add(k);
                 }
         }
+        // Das geschlossene Ufer des Sees: sein Umriss in Stücken zu höchstens 1 m, ohne die Stücke, an denen der Lauf anliegt (Lücke bis VerbundSpalt) –
+        // dort ist im Verbund kein Ufer mehr, und der Grund fällt nicht von dort ab (Befund NAS 09.11.2026: ein flacher Schleier am alten Ufer)
+        foreach (var (a, b) in Kartengeometrie.Strecken(see.Umriss))
+        {
+            var teile = Math.Max(1, (int)Math.Ceiling(a.Abstand(b)));
+            for (var t = 0; t < teile; t++)
+            {
+                var (pa, pb) = (Zwischen(a, b, (double)t / teile), Zwischen(a, b, (double)(t + 1) / teile));
+                if (Lage(Zwischen(pa, pb, 0.5)) is { SL: <= Wasserform.VerbundSpalt }) continue;
+                _geschlossen.Add((pa, pb));
+            }
+        }
+    }
+
+    private static Kartenort Zwischen(Kartenort a, Kartenort b, double t) => new(a.X + (b.X - a.X) * t, a.Z + (b.Z - a.Z) * t);
+
+    private readonly List<(Kartenort A, Kartenort B)> _geschlossen = new();
+
+    /// <summary>
+    /// Abstand zum geschlossenen Ufer des Sees (Meter): zum Umriss ohne die Stücke, an denen der Lauf anliegt; <see cref="double.MaxValue"/>, wenn der Lauf
+    /// den ganzen Umriss berührt.
+    /// </summary>
+    public double SeeuferAbstand(double x, double z)
+    {
+        var p = new Kartenort(x, z);
+        var best = double.MaxValue;
+        foreach (var (a, b) in _geschlossen) best = Math.Min(best, Kartengeometrie.AbstandStrecke(p, a, b));
+        return best;
     }
 
     /// <summary>Der gemeinsame Abstand zum Ufer am Ort (Meter, negativ = Wasser) – null, wo dieser Verbund nicht wirkt.</summary>
@@ -240,7 +268,7 @@ public sealed partial class Wasserform
             {
                 // im Wasser: die Böschung des Sees (30 %) vom gemeinsamen Ufer, wo der See näher als 4 m (bis 8 m weich) liegt – auch in der Lücke und am
                 // Ufer des Laufs zum See hin (sonst bliebe dort eine flache Schwelle, im Bild ein Streifen); am anderen Ufer des Laufs nur sein Querprofil
-                verbund = Math.Min(boden, spiegel - Nahe(lage) * Math.Min(v.See.Tiefe, -s * Seeboeschung));
+                verbund = Math.Min(boden, spiegel - Nahe(lage) * Verbundtiefe(v, p, s));
                 var halb = lage.W.Breite / 2;
                 if (lage.D <= halb) verbund = Math.Min(verbund, lage.W.Spiegel - lage.W.Tiefe * (1 - (lage.D / halb) * (lage.D / halb)));
             }
@@ -250,6 +278,18 @@ public sealed partial class Wasserform
         }
         return ziel;
     }
+
+    /// <summary>So steil (Meter je Meter) fällt der Grund im Verbund höchstens vom gemeinsamen Ufer ab: in Lücke und Kehle, wo das geschlossene Ufer weit ist.</summary>
+    public const double VerbundBoeschung = 2.0;
+
+    /// <summary>
+    /// Die Tiefe des Sees im Verbund an einem Ort im Wasser (s &lt; 0): die Böschung des Sees (30 %) vom geschlossenen Ufer, also nicht von den Stücken des
+    /// Umrisses, an denen der Lauf anliegt – Lücke und altes Ufer liegen so auf Seetiefe (Befund NAS 09.11.2026: dort war der Grund flach, ein olivgrüner
+    /// Schleier im Wasser); zum gemeinsamen Ufer hin höchstens <see cref="VerbundBoeschung"/> steil (am Rand der Lücke 0, ohne Kante zur Uferrampe).
+    /// Weit vom Lauf ist das geschlossene Ufer das nächste und alles wie im See allein.
+    /// </summary>
+    private static double Verbundtiefe(Wasserverbund v, Kartenort p, double s) =>
+        Math.Min(v.See.Tiefe, Math.Min(v.SeeuferAbstand(p.X, p.Z) * Seeboeschung, -s * VerbundBoeschung));
 
     /// <summary>Wie nah der See liegt: 1 bis <see cref="VerbundSpalt"/> (und im See), weich auf 0 beim Doppelten.</summary>
     private static double Nahe(Verbundlage lage) => 1 - Gelaendeform.Weich((lage.SS - VerbundSpalt) / VerbundSpalt);
