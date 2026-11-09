@@ -645,10 +645,10 @@ public partial class Hauptmenue : Node
         // Völkerboni und Startglaube stehen in wirtschaft.json („berufe…voelker", „glaube") – hier nur als Hinweis.
         text += " " + volk switch
         {
-            Volk.Zwerg => "Berufe: Schmied, Steinmetz +5 %, Geldleiher +2 %; Parfumeur −5 %, Dieb −2 %.",
-            Volk.Elb => "Berufe: Alchimist, Prediger, Parfumeur +5 %; Steinmetz −5 %, Gardist −2 %.",
-            Volk.Halbling => "Berufe: Wirt +5 %, Dieb +2 %; Schmied −5 %, Gardist −2 %.",
-            _ => "Berufe: Tischler +5 %, Gardist +2 %, keine Schwächen.",
+            Volk.Zwerg => "Berufe: Schmied, Steinmetz +3 %, Geldleiher +2 %; Parfumeur −3 %, Dieb −2 %.",
+            Volk.Elb => "Berufe: Alchimist, Prediger, Parfumeur +3 %; Steinmetz −3 %, Gardist −2 %.",
+            Volk.Halbling => "Berufe: Wirt +3 %, Dieb +2 %; Schmied −3 %, Gardist −2 %.",
+            _ => "Berufe: Tischler +3 %, Gardist +2 %, keine Schwächen.",
         };
         var glaube = volk is Volk.Zwerg or Volk.Halbling ? "meist evangelisch" : "meist katholisch";
         _volkHinweis.Text = $"{text} Glaube: {glaube} – im Rat schätzen Ratsherren Glaubensbrüder (7 katholisch, 6 evangelisch).";

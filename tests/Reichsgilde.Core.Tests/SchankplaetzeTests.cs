@@ -54,7 +54,7 @@ static class SchankplaetzeTests
     {
         ("Sitzplätze: Daten 20/30/40 je Stufe (Datenversion 67); ohne Angabe ohne Grenze; Werte unter 1 lehnt die Prüfung ab", () =>
         {
-            Pruefe.Gleich(75, Daten.Value.Version);
+            Pruefe.Gleich(76, Daten.Value.Version);
             Pruefe.Wahr(Daten.Value.Gastwirtschaft!.SitzplaetzeJeStufe.SequenceEqual(new[] { 20, 30, 40 }), "sitzplaetzeJeStufe");
             var sim = NeueSimulation();
             var (w, _, s) = Wirt(sim);
