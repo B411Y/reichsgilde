@@ -609,6 +609,7 @@ public partial class Hauptszene : Node
             _familientafel.Oeffnen();
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
+        if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -681,6 +682,7 @@ public partial class Hauptszene : Node
             if (lexikonWahl.StartsWith("suche:")) _lexikon.Suchen(lexikonWahl[6..].Replace('_', ' '));
         }
         EntwicklerBauen(optionen); // Fenster nur mit dem Haken „Entwickler-Optionen“ (Hauptszene.Entwickler.cs)
+        EgoVerbinden(optionen); // Ego-Perspektive: Oberfläche ausblenden, --ego (Hauptszene.Ego.cs)
         if (optionen.TryGetValue("meldung", out var testMeldung)) Protokollieren(testMeldung.Replace('_', ' '));
         if (optionen.TryGetValue("meldungen", out var meldungenWahl)) MeldungenVorfuehren(meldungenWahl); // Siegel und Briefe zum Ansehen (Hauptszene.Meldungen.cs)
         // Die Hilfe: auf Wunsch (--hilfe=1) und beim allerersten Spiel einmal von selbst – nicht bei Startoptionen (Klicktests sollen gleiche Bilder liefern).
@@ -1193,12 +1195,18 @@ public partial class Hauptszene : Node
     public override void _Process(double delta)
     {
         _simulation.Aktualisieren(delta);
+        EgoPruefen();
         WegTippNachfuehren();
         if (_spulen > 0 && _bauAutoKlick == 0) // Klicktest: Zeit überspringen (z. B. eine Bauzeit)
         {
             var ticks = _spulen;
             _spulen = 0;
             for (var i = 0; i < ticks && !_simulation.IstBeendet; i++) _simulation.Tick();
+        }
+        if (_stressWartet is { } stressWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _stressWartet = null;
+            StressStartoption(stressWunsch); // vor --charakter, damit das Fenster den neuen Stress zeigt
         }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {

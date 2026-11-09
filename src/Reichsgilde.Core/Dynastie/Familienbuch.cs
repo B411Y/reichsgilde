@@ -69,6 +69,8 @@ public sealed partial class Familienbuch
         _aussehenZufall = new Zufallsquelle(unchecked(zufallsstartwert * 53 + 29));
         // Charakterzüge: eigener Generator für die erworbenen (Familienbuch.Zuege.cs) – die übrigen Würfe bleiben wie vorher.
         _zugZufall = new Zufallsquelle(unchecked(zufallsstartwert * 59 + 31));
+        // Stress: eigener Generator für den Zusammenbruch (Familienbuch.Stress.cs) – die übrigen Würfe bleiben wie vorher.
+        _stressZufall = new Zufallsquelle(unchecked(zufallsstartwert * 67 + 43));
     }
 
     // ═════════════════════════════════════════════════════════════════════════
@@ -678,6 +680,7 @@ public sealed partial class Familienbuch
             if (Von(konto) is not { } f) continue;
 
             LebensweiseImJahreswechsel(f); // Erfahrung des Jahres – vor den Todesfällen (Familienbuch.Lebensweise.cs)
+            StressImJahreswechsel(f);      // Quellen des Jahres, Abklingen (Familienbuch.Stress.cs) – nach der Erfahrung, vor der Trauer
             foreach (var p in f.Lebende.ToList())
                 if (_zufall.NextDouble() < Sterberisiko(p))
                     Sterben(f, p);
@@ -714,6 +717,7 @@ public sealed partial class Familienbuch
 
     private void Sterben(Familie f, Person p)
     {
+        StressTrauer(f, p); // vor allem anderen: Ehepartner und Erbe gelten noch
         p.Todesjahr = Jahr;
         p.Krankheit = null;
         var alter = p.Alter(Jahr);
@@ -758,6 +762,7 @@ public sealed partial class Familienbuch
     internal void Verschwinden(Konto konto, Person p, string text)
     {
         if (Von(konto) is not { } f || p == f.Oberhaupt || !p.Lebt) return;
+        StressTrauer(f, p, "Verschleppt:");
         p.Todesjahr = Jahr;
         p.Todesursache = "in die Fremde verschleppt";
         p.Krankheit = null;
@@ -860,6 +865,7 @@ public sealed partial class Familienbuch
                 Erbgut = ErbgutText(p),
                 Zuege = HatZuege ? p.Zuege.Select(z => z.Kennung).ToList() : null,
                 Lebensweg = LebenswegSichern(p),
+                Stress = StressSichern(p),
             }).ToList();
         return new FamilienbuchStand
         {
@@ -868,6 +874,7 @@ public sealed partial class Familienbuch
             TalentWuerfe = _talentZufall.Wuerfe,
             AussehenWuerfe = _aussehenZufall.Wuerfe,
             ZugWuerfe = _zugZufall.Wuerfe,
+            StressWuerfe = _stressZufall.Wuerfe, // 0 (nicht geschrieben), solange niemand zusammengebrochen ist
             NaechsteNummer = _naechsteNummer,
             ErbgutVersion = Erbgutvorlage.Version,
             ErbgutGene = ErbgutGene(),
@@ -899,6 +906,7 @@ public sealed partial class Familienbuch
         _talentZufall = new Zufallsquelle(_talentZufall.Startwert, s.TalentWuerfe);
         _aussehenZufall = new Zufallsquelle(_aussehenZufall.Startwert, s.AussehenWuerfe);
         _zugZufall = new Zufallsquelle(_zugZufall.Startwert, s.ZugWuerfe);
+        _stressZufall = new Zufallsquelle(_stressZufall.Startwert, s.StressWuerfe);
         var personen = s.Personen.ToDictionary(p => p.Nummer, p =>
         {
             var person = new Person(p.Nummer, p.Vorname, p.Familienname, p.Volk, p.Geschlecht, p.Geburtsjahr, p.Vater, p.Mutter, p.Geburtsname, p.Todesjahr)
@@ -944,6 +952,9 @@ public sealed partial class Familienbuch
         _letztesJahr = s.LetztesJahr.Select(e => new FamilienEreignis(konten[e.Konto], e.Text)).ToList();
         ZuegeWiederherstellen(s, personen);
         foreach (var ps in s.Personen)
+        {
             LebenswegWiederherstellen(personen[ps.Nummer], ps.Lebensweg);
+            StressWiederherstellen(personen[ps.Nummer], ps.Stress);
+        }
     }
 }

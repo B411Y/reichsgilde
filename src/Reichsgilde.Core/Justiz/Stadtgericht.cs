@@ -374,6 +374,7 @@ public sealed class Stadtgericht
         var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter);
         _verfahren.Add(v);
         _w.Meinungen.Verklagt(anklaeger, beklagter);
+        _w.Familien.StressGericht(beklagter, g => g.Angeklagt, $"Angeklagt von {anklaeger.Inhaber}"); // Stress (Teil 3b)
         _w.Melden(Meldungsart.Anklage, $"{anklaeger.Inhaber} klagt {beklagter.Inhaber} wegen {VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))} an " +
                   $"({beweise} {(beweise == 1 ? "Beweis" : "Beweise")}). " +
                   $"Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.", haus: beklagter);
@@ -429,6 +430,8 @@ public sealed class Stadtgericht
                             * _w.Familien.Lebenswirkung(v.Beklagter).BusseFaktor; // Gnadengesuch (Lebensweise)
                 v.Beklagter.Gerichtskosten(busse);
                 _w.Kasse.Buchen(Politik.Kassenposten.Strafen, busse);
+                _w.Familien.StressGericht(v.Beklagter, g => g.Verurteilt, "Vor Gericht verurteilt"); // Stress (Teil 3b)
+                _w.Familien.StressTat(v.Beklagter, "Busse", busse); // Gierig zahlt ungern
                 var folgen = new List<string> { $"Buße {Zahlenformat.Ganz(busse)} {waehrung}" };
                 if (_w.Wache.KopfgeldNachUrteil(v.Anklaeger, busse) is var kopfgeld and > 0)
                     folgen.Add($"Kopfgeld {Zahlenformat.Ganz(kopfgeld)} {waehrung} für die Wache von {v.Anklaeger.Inhaber}");
@@ -446,6 +449,7 @@ public sealed class Stadtgericht
                 if (d.KerkerJahre > 0 && beweise.Any(b => d.KerkerFuer.Contains(b.Art)))
                 {
                     _kerkerBis[v.Beklagter] = jahr + d.KerkerJahre;
+                    _w.Familien.StressGericht(v.Beklagter, g => g.Kerker, "In den Kerker geworfen"); // Stress (Teil 3b)
                     folgen.Add($"{d.KerkerJahre} {(d.KerkerJahre == 1 ? "Jahr" : "Jahre")} Kerker");
                 }
                 // Die bestochenen Ratsherren rücken öffentlich ab.

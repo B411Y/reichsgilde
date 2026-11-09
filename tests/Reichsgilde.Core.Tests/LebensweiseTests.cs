@@ -68,7 +68,7 @@ static class LebensweiseTests
         ("Lebensweise: Daten – fünf Pfade (einer je Talent) mit 3 × 3 Knoten, voller Baum 1.350 Erfahrung, Datenversion 74", () =>
         {
             var d = Daten.Value.Lebensweise!;
-            Pruefe.Gleich(76, Daten.Value.Version);
+            Pruefe.Gleich(77, Daten.Value.Version);
             Pruefe.Gleich(5, d.Pfade.Count);
             Pruefe.Wahr(TalentTexte.Alle.All(d.Pfade.ContainsKey), "jedes Talent hat einen Pfad");
             Pruefe.Gleich(45, d.AlleKnoten.Count());

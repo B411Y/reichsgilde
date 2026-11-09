@@ -1,6 +1,6 @@
 # Prompts: Charakterzug-Medaillons (PR #227, #230, 28.10.2026)
 
-Dateien: `game/assets/oberflaeche/zuege/<kennung>.png` (24). Protokoll: `docs/assets/protokoll.csv`.
+Dateien: `game/assets/oberflaeche/zuege/<kennung>.png` (26). Protokoll: `docs/assets/protokoll.csv`.
 
 ## Werkzeug
 
@@ -47,3 +47,7 @@ Die ersten fünf (Gierig, Mutig, Jähzornig, Klug, Fromm) sind Vorlagen des Nutz
 | Narbe | schartiges Schwert über Verband | Blutrot |
 | Pilger | Jakobsmuschel mit Pilgerstab (ChatGPT) | Sandbeige |
 | Gelehrt | Federkiel, Tintenfass, Pergament (ChatGPT) | Tintenblau |
+| Schwermütig | Mann mit dem Kopf in der Hand am Tisch, Kerze (Vorlage des Nutzers, mit Gemini erstellt; Stress 3b, 9.11.2026) | Graublau |
+| Reizbar | Faust schlägt auf den Tisch, Splitter und Funken (Vorlage des Nutzers, mit Gemini erstellt; Stress 3b, 9.11.2026) | Glutrot |
+
+Schwermütig und Reizbar (26 Dateien insgesamt): Der Nutzer hat beide Bilder selbst mit Gemini erzeugt und als `vorlage_<zug>.webp` geliefert (975 × 980 px); der Prompt ist nicht erhalten. `schmiede.gd` schneidet sie mittig quadratisch zu und gibt ihnen den Eisenring der erworbenen Züge.

@@ -64,7 +64,8 @@ static class GleichheitTests
 
     /// <summary>Was ein Lauf ergibt: Prüfsumme nach jedem Jahr, am Ende, und die Befehle mit Erfolg.</summary>
     /// <param name="Erloschen">Ab welchem Jahr (0 = erstes) das Haus des Spielers nicht mehr aktiv ist (gestorben ohne Erben, bankrott) – sonst null.</param>
-    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende);
+    /// <param name="Stress">Wie viele Stressquellen (Einträge mit Wert über 0) die Personen der Häuser nach jedem Jahr tragen, zusammen – der Stress steht im Spielstand und damit in der Prüfsumme.</param>
+    sealed record Lauf(IReadOnlyList<string> Jahre, string Ende, IReadOnlyList<string> Befehle, IReadOnlyList<string> Blitze, int? Erloschen, IReadOnlyList<string> Braende, int Stress);
 
     /// <summary>Alle Zeilen für die Datei der CI, gesammelt über die Partien.</summary>
     static readonly SortedDictionary<int, IReadOnlyList<string>> Zeilen = new();
@@ -159,6 +160,9 @@ static class GleichheitTests
         Pruefe.Gleich(string.Join("\n", a.Braende), string.Join("\n", c.Braende), "Lager und Vermögen der brennenden Häuser an den Ladepunkten");
         // Ein Blitzfall (Datenversion 68): bei 4711 (Jahr 0) und 2027 (Jahre 5 und 8) schlägt der Blitz ein; 1400 und Köln bleiben in ihren Jahren verschont
         if (p.Startwert is 4711 or 2027) Pruefe.Wahr(a.Blitze.Count >= 1, $"Kein Blitzschlag in {p.Jahre} Jahren (Startwert {p.Startwert}) – Ladepunkte im Brand prüfen");
+        // Stress (Datenversion 77) soll im Spiel vorkommen – sonst prüft die Prüfsumme ihn nicht mit.
+        Pruefe.Wahr(a.Stress > 0, $"Kein Stress in {p.Jahre} Jahren (Startwert {p.Startwert})");
+        Pruefe.Gleich(a.Stress, c.Stress, "Stressquellen mit Speichern und Laden");
 
         // Das Skript soll seine Wege wirklich gehen – sonst prüft der Test weniger, als er verspricht.
         string Erfolge(string art) => $"{a.Befehle.Count(z => z.Contains($" {art} ok"))} × {art}; alle: " +
@@ -217,6 +221,7 @@ static class GleichheitTests
         var befehle = new List<string>();
         var jahre = new List<string>();
         int? erloschen = null;
+        var stress = 0;
         for (long t = 0; t < p.Jahre * (long)Spielzeit.MinutenProTag; t++)
         {
             if (laden && Ladepunkte.Contains(t)) { (sim, spieler) = SpeichernUndLaden(sim, spieler); BlitzeZaehlen(sim); }
@@ -244,9 +249,12 @@ static class GleichheitTests
             {
                 jahre.Add(Pruefsumme(sim));
                 if (erloschen is null && !spieler.IstAktiv) erloschen = jahre.Count;
+                var fb = sim.Wirtschaft!.Familien;
+                stress += sim.Wirtschaft.Konten.Select(fb.Von).OfType<Reichsgilde.Core.Dynastie.Familie>()
+                    .Sum(f => f.Lebende.Sum(x => x.Stresslage.Eintraege.Count(e => e.Wert > 0)));
             }
         }
-        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende);
+        return new Lauf(jahre, Pruefsumme(sim), befehle, blitze, erloschen, braende, stress);
     }
 
     /// <summary>Je brennendes Gebäude mit Besitzer: Kennung, Ursache, Lager des Betriebs (nach Ware, ordinal) und Vermögen des Hauses.</summary>

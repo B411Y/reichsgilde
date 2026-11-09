@@ -18,8 +18,8 @@ public sealed partial class KiRivale
     /// <summary>Alle Züge des Oberhaupts zusammen.</summary>
     public ZugNeigung Neigung => _w.Familien.KiNeigung(Konto);
 
-    /// <summary>Raubfurcht für die Eskorte (Profil × Mutig/Feige).</summary>
-    private double Vorsicht => Profil.Vorsicht * Neigung.Vorsicht;
+    /// <summary>Raubfurcht für die Eskorte (Profil × Mutig/Feige × Stress des Oberhaupts ab „zermürbt“).</summary>
+    private double Vorsicht => Profil.Vorsicht * Neigung.Vorsicht * _w.Familien.KiStressVorsicht(Konto);
 
     private double Wechselschwelle => Profil.Wechselschwelle * Neigung.Wechselschwelle;
 

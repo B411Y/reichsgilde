@@ -46,16 +46,16 @@ static class CharakterzugTests
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {
-        ("Charakterzüge: Daten – 24 Züge, 16 Persönlichkeitszüge in 8 Gegensatzpaaren, 4 angeborene, 4 erworbene; Datenversion 60", () =>
+        ("Charakterzüge: Daten – 26 Züge, 16 Persönlichkeitszüge in 8 Gegensatzpaaren, 4 angeborene, 6 erworbene (Schwermütig und Reizbar seit Datenversion 77); Datenversion 60", () =>
         {
             var d = Daten.Value.Charakterzuege!;
-            Pruefe.Gleich(76, Daten.Value.Version);
-            Pruefe.Gleich(24, d.Alle.Count);
+            Pruefe.Gleich(77, Daten.Value.Version);
+            Pruefe.Gleich(26, d.Alle.Count);
             var persoenlich = d.Alle.Where(z => z.Art == Zugart.Persoenlichkeit).ToList();
             Pruefe.Gleich(16, persoenlich.Count);
             Pruefe.Wahr(persoenlich.All(z => z.Gegenteil is { } g && d.Zug(g)!.Gegenteil == z.Kennung), "jeder Persönlichkeitszug hat ein Gegenteil, das zurückzeigt");
             Pruefe.Gleich(4, d.Alle.Count(z => z.Art == Zugart.Angeboren));
-            Pruefe.Gleich(4, d.Alle.Count(z => z.Art == Zugart.Erworben));
+            Pruefe.Gleich(6, d.Alle.Count(z => z.Art == Zugart.Erworben));
             Pruefe.Gleich(3, d.JePerson);
             Pruefe.Gleich("Jähzornig", d.Zug("Jaehzornig")!.Name);
             Pruefe.Gleich(Zugart.Persoenlichkeit, d.Alle[0].Art); // nach Art geordnet
