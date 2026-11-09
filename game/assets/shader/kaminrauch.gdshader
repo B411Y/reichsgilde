@@ -12,7 +12,6 @@
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled;
 
-global uniform vec2 wind_richtung;
 global uniform float wetter_wind;
 global uniform float wetter_naesse;
 global uniform vec4 jahreszeit_anteile;   // Frühling, Sommer, Herbst, Winter
@@ -26,6 +25,11 @@ uniform float umgebung = 1.0;
 uniform int stufe = 2;
 // Sekunden, bis ein Ballen vom Schornstein bis zum Verschwinden gestiegen ist
 uniform float lebensdauer = 11.0;
+// Der Wind (Geschwindigkeit in m/s, x und z) jetzt und in den letzten Sekunden: Kaminrauch.cs schreibt alle 0,5 s eine Probe in den Verlauf
+// (wind_verlauf[k] war vor wind_phase + 0,5 · k Sekunden), wind_phase = Zeit seit der letzten Probe
+uniform vec2 wind_jetzt = vec2(0.3, 0.1);
+uniform vec4 wind_verlauf[24];
+uniform float wind_phase = 0.0;
 uniform vec3 mond_farbe : source_color = vec3(0.30, 0.33, 0.40);
 
 varying float alter;
@@ -36,7 +40,17 @@ varying float radius;
 varying float glut;
 varying float glutn;
 varying float glutt;
+varying float wstark;
 varying vec2 ecke;
+
+// Windgeschwindigkeit vor tau Sekunden (linear zwischen den Proben)
+vec2 wind_vor(float tau) {
+	if (tau <= 0.0) return wind_jetzt;
+	if (tau < wind_phase) return mix(wind_jetzt, wind_verlauf[0].xy, tau / max(wind_phase, 1e-4));
+	float f = (tau - wind_phase) / 0.5;
+	int k = int(min(floor(f), 22.0));
+	return mix(wind_verlauf[k].xy, wind_verlauf[k + 1].xy, clamp(f - float(k), 0.0, 1.0));
+}
 
 float h11(float x) {
 	return fract(sin(x * 127.1) * 43758.5453);
@@ -57,18 +71,11 @@ void vertex() {
 	float w = clamp(wetter_wind, 0.0, 1.0);
 	float nass = clamp(wetter_naesse, 0.0, 1.0);
 
-	// Wind in m/s; jeder Schornstein ein wenig anders gerichtet und mit eigenem Takt der Böen
-	float dreh = (saat - 0.5) * 0.5 * w;
-	vec2 wd = normalize(wind_richtung + vec2(0.0001));
-	wd = vec2(cos(dreh) * wd.x - sin(dreh) * wd.y, sin(dreh) * wd.x + cos(dreh) * wd.y);
-	float boe = 1.0 + 0.35 * w * sin(zeit * (0.4 + 0.3 * saat) + saat * 40.0);
-	float u = (0.10 + 3.4 * w * w) * boe;
-
-	// Alter dieses Ballens: alle Ballen eines Schornsteins sind gleichmäßig über den Kreislauf verteilt. Im Wind ist der Kreislauf kürzer (der Wind
-	// trägt die Ballen schnell fort und mischt sie mit Luft): so bleiben sie dicht hintereinander, die Fahne reißt nicht in einzelne Bälle auf
-	float leben_s = lebensdauer * sqrt(skala) / (1.0 + 0.55 * u);
+	// Alter dieses Ballens: alle Ballen eines Schornsteins sind gleichmäßig über den Kreislauf verteilt. Die Lebensdauer ist FEST (hinge sie vom
+	// Wind ab, sprängen bei jeder Böe und jedem Wetterwechsel alle Alter, und der Rauch liefe sichtbar zurück in den Schornstein)
+	float leben_s = lebensdauer * sqrt(skala);
 	float z = zeit / leben_s + idx + saat * 7.0;
-	float zyklus = floor(z);
+	float zyklus = mod(floor(z), 1024.0);
 	alter = fract(z);
 	float t = alter * leben_s;
 	// Zufall je Ballen und Durchlauf (Größe, Versatz, Drehung): jeder Ballen jedes Mal ein wenig anders
@@ -77,27 +84,45 @@ void vertex() {
 	float r3 = h11(zyklus * 3.1 + COLOR.a * 17.7 + saat * 83.0 + 3.0);
 	zufall = r1;
 
+	// Der Wind, in dem dieser Ballen geboren wurde (Verlauf der letzten Sekunden, Kaminrauch.cs): bestimmt Auftrieb, Trägheit und Auflösen,
+	// bleibt für den Ballen also fest, auch wenn der Wind danach wechselt
+	vec2 geburtswind = wind_vor(t);
+	float wb = length(geburtswind);
+	wstark = clamp(wb / 1.25, 0.0, 1.0);
+
 	// Aufsteigen: warme Luft; dicker, heißer Rauch steigt schneller; Nässe und Wind drücken ihn nieder
-	float v0 = (0.95 + 0.7 * menge) * pow(skala, 0.65) * (1.0 - 0.35 * nass) / (1.0 + 0.45 * u / pow(skala, 0.3));
+	float v0 = (0.95 + 0.7 * menge) * pow(skala, 0.65) * (1.0 - 0.35 * nass) / (1.0 + 0.45 * wb / pow(skala, 0.3));
 	float ty = 3.2 * (1.0 - 0.3 * nass);
 	float hoehe = v0 * ty * (1.0 - exp(-t / ty)) + 0.12 * t;
-	// Abknicken: der Wind nimmt den Ballen mit Trägheit mit
-	float tx = 2.4 / (1.0 + 1.2 * u);
-	float drift = u * (t - tx * (1.0 - exp(-t / tx)));
+
+	// Abknicken: der Wind nimmt den Ballen mit Trägheit mit; der Weg ist das Integral der Windgeschwindigkeit über sein Leben (je Zeitpunkt die
+	// damalige), so kehrt er sich bei fallendem Wind nie um, und ein Wetterwechsel lässt die Fahne nicht schwenken
+	float tx = 2.4 / (1.0 + 1.2 * wb);
+	vec2 weg = vec2(0.0);
+	float dt_ = t / 12.0;
+	for (int i = 0; i < 12; i++) {
+		float tau = (float(i) + 0.5) * dt_;
+		weg += wind_vor(tau) * (1.0 - exp(-(t - tau) / tx)) * dt_;
+	}
+	// Jeder Schornstein ein wenig anders gerichtet und stark
+	float dreh = (saat - 0.5) * 0.35;
+	weg = vec2(cos(dreh) * weg.x - sin(dreh) * weg.y, sin(dreh) * weg.x + cos(dreh) * weg.y) * (0.85 + 0.3 * fract(saat * 13.0));
+	vec2 richtung = weg / max(length(weg), 1e-4);
 
 	// Waberndes Schlängeln: langsam wechselnd mit der Entstehungszeit (benachbarte Ballen folgen einander, die Fahne schlängelt sich),
-	// dazu ein kleiner Zufallsversatz je Ballen
-	float amp = (0.04 + 0.34 * alter) * (0.7 + 0.5 * menge) * (1.0 + 1.1 * w) * skala;
+	// dazu ein kleiner Zufallsversatz je Ballen; im Wind mehr Verwirbelung, auch quer zur Fahne (keine gerade Röhre)
+	float amp = (0.04 + 0.34 * alter) * (0.7 + 0.5 * menge) * (1.0 + 1.5 * wstark) * skala;
 	float geb = zeit - t;
 	vec2 schlaengel = vec2(sin(geb * 0.55 + saat * 6.28), sin(geb * 0.43 + saat * 9.1 + 1.3)) * amp * 1.3;
 	vec2 versatz = (vec2(r1, r2) - 0.5) * amp * 1.2;
+	vec2 quer = vec2(-richtung.y, richtung.x) * sin(geb * 1.3 + r2 * 6.28) * (0.1 + 0.9 * alter) * wstark * skala * 1.1;
 
 	float groesse = mix(0.8, 1.4, menge) * skala * (0.6 + 0.4 * st) * (0.82 + 0.36 * r3);
 	float r0 = 0.30 * groesse;
-	radius = r0 * (1.0 + 3.4 * pow(alter, 0.6));
+	radius = r0 * (1.0 + (3.4 + 2.0 * wstark) * pow(alter, 0.6));
 
 	vec3 p = MODEL_MATRIX[3].xyz + vec3(0.0, 0.05 + hoehe, 0.0)
-		+ vec3(wd.x, 0.0, wd.y) * drift + vec3(schlaengel.x + versatz.x, 0.0, schlaengel.y + versatz.y);
+		+ vec3(weg.x, 0.0, weg.y) + vec3(schlaengel.x + versatz.x + quer.x, 0.0, schlaengel.y + versatz.y + quer.y);
 
 	// Fläche zur Kamera gedreht, Ballen am Ort p; Viereck 1,4 Radien breit (Platz für den ausgefransten Rand)
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], vec4(p, 1.0));
@@ -130,11 +155,11 @@ void fragment() {
 
 	// Dichte: rund und in der Mitte am dichtesten; der Rand franst mit dem Alter stärker aus und zieht sich zusammen
 	float kern = 1.0 - rr;
-	float d = kern + (nz - 0.5) * (0.85 + 1.1 * alter) - 0.30 * alter * alter;
+	float d = kern + (nz - 0.5) * (0.85 + 1.1 * alter) - 0.30 * alter * alter - 0.25 * wstark * alter;
 	float form = smoothstep(-0.02, 0.6, d);
 
 	// Deckung über das Leben: weich einsetzen, nach oben ausdünnen
-	float leben = smoothstep(0.0, 0.03, alter) * (1.0 - smoothstep(0.45, 1.0, alter));
+	float leben = smoothstep(0.0, 0.03, alter) * (1.0 - smoothstep(0.45 - 0.3 * wstark, 1.0 - 0.45 * wstark, alter));
 	float jahr = jahreszeit_anteile.w;
 	float nass = clamp(wetter_naesse, 0.0, 1.0);
 	// nachts kaum zu sehen; große Feuer (Brand, Feuerkorb: Glut bei Tag > 0) leuchten ihren Rauch an und bleiben sichtbarer
