@@ -43,6 +43,7 @@ public sealed class Einwohnerschaft
     private readonly int[] _einkaeufe = new int[Spielzeit.StundenProTag]; // Einkaufende je Stunde, die letzten 19 Stunden (Ring)
     private int _einkaufFach;      // nächstes Fach im Ring
     private double _einkaufErwartet; // gleitender Mittelwert der Einkaufsstunden eines ganzen Tages
+    private double _einkaufErwartetImMarkt; // das Übliche, mit dem MarktSetzen zuletzt rechnete (bis zur nächsten vollen Stunde gilt es am Markt)
     private readonly int[] _einkehrTage = new int[24]; // wie oft das Übliche schon gelernt wurde (siehe Lernen)
     private int _messeTage;
     private readonly double[] _passantenErwartet = new double[24]; // üblich Passanten je Uhrzeit (Taschendiebe)
@@ -458,15 +459,14 @@ public sealed class Einwohnerschaft
     /// Faktor auf die Nachfrage der Fertigwaren: (1 − k) + k × Einkaufsstunden der letzten 19 Stunden ÷ üblich am Tag,
     /// begrenzt auf 1 ± marktSpanne. Ohne Kopplung oder im ersten Tag genau 1.
     /// </summary>
-    public double Marktfaktor
+    public double Marktfaktor => MarktfaktorMit(_einkaufErwartet);
+
+    private double MarktfaktorMit(double erwartet)
     {
-        get
-        {
-            var k = IstAktiv && _gegruendet ? Daten.Kopplung.Markt : 0;
-            if (k <= 0 || _einkaufErwartet <= 0) return 1;
-            var s = Daten.Kopplung.MarktSpanne;
-            return 1 - k + k * Math.Clamp(EinkaeufeImFenster / _einkaufErwartet, 1 - s, 1 + s);
-        }
+        var k = IstAktiv && _gegruendet ? Daten.Kopplung.Markt : 0;
+        if (k <= 0 || erwartet <= 0) return 1;
+        var s = Daten.Kopplung.MarktSpanne;
+        return 1 - k + k * Math.Clamp(EinkaeufeImFenster / erwartet, 1 - s, 1 + s);
     }
 
     /// <summary>Jede volle Stunde: die Einkäufe der Stunde, die gerade endet, in den Ring – und den Markt nachführen.</summary>
@@ -484,11 +484,16 @@ public sealed class Einwohnerschaft
         MarktSetzen();
     }
 
-    /// <summary>Setzt den Faktor auf die Nachfrage aller Waren, die Einwohner kaufen (Typ aus <see cref="KopplungDaten.MarktTypen"/>).</summary>
-    private void MarktSetzen()
+    /// <summary>
+    /// Setzt den Faktor auf die Nachfrage aller Waren, die Einwohner kaufen (Typ aus <see cref="KopplungDaten.MarktTypen"/>).
+    /// <paramref name="erwartet"/>: das Übliche, mit dem gerechnet wird (sonst das jetzige). Das Jahresende lernt das Übliche neu, gesetzt
+    /// wird erst zur nächsten vollen Stunde – das Laden rechnet darum mit dem Üblichen, das gerade am Markt gilt (Gleichheitstest).
+    /// </summary>
+    private void MarktSetzen(double? erwartet = null)
     {
         if (!IstAktiv || Daten.Kopplung.Markt <= 0) return;
-        var faktor = Marktfaktor;
+        _einkaufErwartetImMarkt = erwartet ?? _einkaufErwartet;
+        var faktor = MarktfaktorMit(_einkaufErwartetImMarkt);
         var typen = Daten.Kopplung.MarktTypen;
         WarenkorbRechnen();
         var k = Daten.Kopplung.Markt;
@@ -1114,6 +1119,7 @@ public sealed class Einwohnerschaft
         Warenkorb = Daten.Warenkorb is null ? null : _korb.Select(k => new Dictionary<string, double>(k)).ToList(),
         EinkaufFach = _einkaufFach,
         EinkaufErwartet = _einkaufErwartet,
+        EinkaufErwartetImMarkt = IstAktiv && Daten.Kopplung.Markt > 0 && _einkaufErwartetImMarkt != _einkaufErwartet ? _einkaufErwartetImMarkt : null,
         Gelernt = _einkehrTage.Append(_messeTage).Append(_einkaufTage).ToList(),
         PassantenErwartet = _passantenErwartet.ToList(),
         PassantenGelernt = _passantenTage.ToList(),
@@ -1200,7 +1206,7 @@ public sealed class Einwohnerschaft
         _haeuser.AddRange(s.Haeuser);
         if (_gegruendet && _haeuser.Count == 0)
             HaeuserNachruesten();
-        MarktSetzen(); // der Faktor steckt nicht im Marktstand-Spielstand – aus Ring und Üblichem neu setzen
+        MarktSetzen(s.EinkaufErwartetImMarkt); // der Faktor steckt nicht im Marktstand-Spielstand – aus Ring und Üblichem neu setzen
         Torwache.Wiederherstellen(s.Torwache, _gegruendet, _w.Uhr.Jahr);
         Hafenarbeit.Wiederherstellen(_w.Uhr, _einwohner);
     }
@@ -1244,6 +1250,12 @@ public sealed record EinwohnerschaftStand
     /// <summary>Warenkorb je Stunde der letzten 19 Stunden (Ring, Schlüssel „Beruf|Preisklasse“) – null ohne Warenkorb oder in älteren Spielständen.</summary>
     public List<Dictionary<string, double>>? Warenkorb { get; init; }
     public double EinkaufErwartet { get; init; }
+    /// <summary>
+    /// Das Übliche, mit dem der Faktor am Markt gerade gerechnet ist, wenn es vom jetzigen abweicht (zwischen dem Jahresende, das neu lernt,
+    /// und der nächsten vollen Stunde); sonst null, auch in älteren Spielständen.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public double? EinkaufErwartetImMarkt { get; init; }
     /// <summary>Wie oft das Übliche gelernt wurde: 24 Uhrzeiten der Schänke, dann Messe, dann Markt.</summary>
     public List<int> Gelernt { get; init; } = new();
     /// <summary>Üblich Passanten je Uhrzeit 0–23 und wie oft gelernt (leer in älteren Spielständen).</summary>

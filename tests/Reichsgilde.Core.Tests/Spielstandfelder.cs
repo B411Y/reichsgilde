@@ -12,6 +12,30 @@ static class Spielstandfelder
     /// </summary>
     public static readonly string[] Hafenziel = { "ZielHafen", "Handgeld", "FahrtenHafen", "FahrtenHafenVorjahr" };
 
+    /// <summary>
+    /// Datenversion 75: Felder, die nur das Laden braucht – eine durchgehende Partie rechnet mit und ohne sie gleich (das Übliche der Einkäufe,
+    /// mit dem der Faktor am Markt bis zur nächsten vollen Stunde nach dem Jahresende noch gerechnet ist).
+    /// </summary>
+    public static readonly string[] NurLaden = { "EinkaufErwartetImMarkt" };
+
+    /// <summary>Entfernt diese Felder überall im Spielstand, auch wenn sie etwas tragen (für Felder aus <see cref="NurLaden"/>).</summary>
+    public static void Ohne(JsonNode? knoten, IReadOnlyCollection<string> felder)
+    {
+        switch (knoten)
+        {
+            case JsonObject o:
+                foreach (var (name, wert) in o.ToList())
+                {
+                    if (felder.Contains(name)) o.Remove(name);
+                    else Ohne(wert, felder);
+                }
+                break;
+            case JsonArray a:
+                foreach (var e in a) Ohne(e, felder);
+                break;
+        }
+    }
+
     /// <summary>Entfernt diese Felder überall im Spielstand, wo sie „nichts“ tragen.</summary>
     public static void OhneLeere(JsonNode? knoten, IReadOnlyCollection<string> felder)
     {

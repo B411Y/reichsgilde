@@ -350,6 +350,7 @@ public partial class Stadtansicht
         WetterGlobal("wetter_dach", _schneeDecke);
         WetterGlobal("wetter_flaechen", draussen ? 1 : 0);
         WetterGlobal("wetter_wind", _wetter.Wind);
+        Kaminrauch.Wind = _wetter.Wind;   // der Rauch der Schornsteine führt den Windverlauf selbst (Kaminrauch.cs)
         WetterGlobal("wellen_seegang", _seegang, 0.0005f);
         // Fahnen: 0,2 + 1,2 · Wind ergibt bei leichtem Wind (0,25) den Grundwert 0,5; mehr als 1,1 ließe sie zu wild schlagen
         WetterGlobal("wind_staerke", Fenster.FahnenBewegen ? Mathf.Min(0.2f + 1.2f * _wetter.Wind, 1.1f) : 0f);

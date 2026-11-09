@@ -14,7 +14,7 @@ static class WacheTaschendiebTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Ein Dieb allein wird in seiner Stunde zu zwei Dritteln erwischt – mit der Streife eines Wachhauses (× 1,5) sicher.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Knapp = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0.667")));
+    static readonly Lazy<Wirtschaftsdaten> Knapp = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0.667")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, wirtschaftsdaten: daten ?? Daten.Value);
@@ -57,7 +57,7 @@ static class WacheTaschendiebTests
             w.Einstellen(loch, "Geselle", 4);
             var ohne = w.Diebe.Fangchance(loch);
             Pruefe.Ungefaehr(1, w.Wache.Taschendiebfaktor, 1e-12);
-            Pruefe.Ungefaehr(0.012 * w.Familien.ZeugenFaktor(dieb), ohne, 1e-12);
+            Pruefe.Ungefaehr(0.009 * w.Familien.ZeugenFaktor(dieb), ohne, 1e-12);
 
             var wacker = w.KontoEroeffnen("Familie Wacker", startvermoegen: 10_000);
             var stube = Wachhaus(w, wacker, "Wacker");
@@ -124,7 +124,7 @@ static class WacheTaschendiebTests
         ("Ohne Wachhaus ist der Faktor 1: Ein Dieb verläuft fünf Jahre lang Wurf für Wurf wie mit Daten ohne Zuschlag – mit Wachhaus fängt die Streife mehr", () =>
         {
             // Öfter erwischt (3 % je Diebesstunde), damit es genug Fänge gibt, die sich vergleichen lassen.
-            var oft = Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 0.03");
+            var oft = Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 0.03");
             var mitZuschlag = Wirtschaftsdaten.AusJson(oft);
             var ohneZuschlag = Wirtschaftsdaten.AusJson(oft.Replace(", \"taschendiebFang\": 5", ""));
             (int Faenge, string Stand) Lauf(Wirtschaftsdaten d, bool wachhaus)
