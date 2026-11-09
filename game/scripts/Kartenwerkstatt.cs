@@ -817,7 +817,8 @@ public partial class Kartenwerkstatt : Node
                     _stadt.WerkstattBodenMalen(bodenpinsel, punkte);
                 }
             // --werkstatt-fels=<schritt>[|…] (Felspinsel F4), je Schritt ein Befehl: grundgestein:<gestein> · boden:aus|an · hang:aus|an (R5) · wahl:… und gizmo:… (R3/P2, siehe FelsBefehl) · stempel:<vorlage>,x,z[,drehung] ·
-            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
+            // streuen:<vorlage>,<radius>,<dichte>,x1,z1;x2,z2;… · radierer:<radius>,x1,z1;… · lage:<nr>,<feld>=<wert>,… (R2) · P3: ausduennen:<radius>,<dichte>,x1,z1;… ·
+            // verteilen:<werte>[,<radius>,x1,z1;…] · pinsel:<feld>=<wert>,… – <vorlage> ist eine Gruppe (wand, kuppe, rippe) oder Formen mit +
             // (block+platte), hinten wahlweise @<gestein>; Größe, Einsinken, Neigung und Filter wie in der Tafel eingestellt
             if (o.TryGetValue("werkstatt-fels", out var felsen)) FelsBefehle(felsen.Split('|', StringSplitOptions.RemoveEmptyEntries));
             // --werkstatt-rampe=x1,z1;x2,z2,breite[|…]: eine Rampe (ein Schritt)
@@ -945,7 +946,7 @@ public partial class Kartenwerkstatt : Node
         {
             var (vorlage, gestein) = (text.Split('@')[0], text.Contains('@') ? text.Split('@')[1] : null);
             if (gestein is not null && !Felsformen.IstGestein(gestein)) throw new ArgumentException($"Unbekannte Gesteinsart „{gestein}“.");
-            var basis = _stadt.FelsPinsel with { Radierer = false, Gestein = gestein ?? _stadt.FelsGestein };
+            var basis = _stadt.FelsPinselWerte with { Gestein = gestein ?? _stadt.FelsGestein }; // alle Werte der Tafel, gleich welche Art eingestellt ist (P3)
             if (Felsformen.Gruppe(vorlage) is { } g) return basis with { Gruppe = g.Kennung };
             var formen = vorlage.Split('+');
             if (formen.Any(f => Felsformen.Finde(f) is null)) throw new ArgumentException($"Unbekannte Felsvorlage „{vorlage}“ (wand, kuppe, rippe oder Formen mit +).");
@@ -983,6 +984,66 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattFelsStreuen(Felspinsel.Radiergummi(Zahl(t[0]), _stadt.FelsFilter), Liste("-," + t[1]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
                 break;
             }
+            case "ausduennen": // ausduennen:<radius>,<dichte>,x1,z1;… – der Radierer mit „Ausdünnen bis“ (P3), Formen, Filter und Höhe aus der Tafel bzw. pinsel:
+            {
+                var t = rest.Split(',', 3);
+                var pinsel = _stadt.FelsRadierer with { Radius = Zahl(t[0]), Ausduennen = true, Dichte = Zahl(t[1]) };
+                _stadt.WerkstattFelsStreuen(pinsel, Liste("-," + t[2]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
+                GD.Print($"Felsen nach dem Ausdünnen: {_entwurf.Felsen.Count}");
+                break;
+            }
+            case "verteilen": // verteilen:<werte>[,<radius>,x1,z1;…] – Neu verteilen (P3) unter dem Pinsel, ohne Orte an der Auswahl; <werte> mit + (groesse, achsen, drehung, kippen, rollen, versatz, einsinken, neigung)
+            {
+                var t = rest.Split(',', 3);
+                var wurf = Felswurf.Keins;
+                foreach (var w in t[0].Split('+', StringSplitOptions.RemoveEmptyEntries))
+                    wurf |= w switch
+                    {
+                        "groesse" => Felswurf.Groesse, "achsen" => Felswurf.Achsen, "drehung" => Felswurf.Drehung, "kippen" => Felswurf.Kippen,
+                        "rollen" => Felswurf.Rollen, "versatz" => Felswurf.Versatz, "einsinken" => Felswurf.Einsinken, "neigung" => Felswurf.Neigung,
+                        _ => throw new ArgumentException($"verteilen: unbekannter Wert „{w}“ (groesse, achsen, drehung, kippen, rollen, versatz, einsinken, neigung)."),
+                    };
+                _stadt.FelsVerteilenWurf = wurf;
+                if (t.Length < 3)
+                {
+                    GD.Print($"Neu verteilt an der Auswahl: {_stadt.FelsAuswahlVerteilen()} Felsstücke ({_entwurf.Geschichte.RueckgaengigText})");
+                    break;
+                }
+                var pinsel = _stadt.FelsPinselWerte with { Gruppe = null, Radius = Zahl(t[1]), Verteilen = wurf };
+                _stadt.WerkstattFelsStreuen(pinsel, Liste("-," + t[2]).Punkte.Select(q => new Kartenort(q.X, q.Z)).ToList());
+                GD.Print($"Neu verteilt unter dem Pinsel: {_entwurf.Geschichte.RueckgaengigText}");
+                break;
+            }
+            case "pinsel": // pinsel:<feld>=<wert>,… – Werte der Tafel für die folgenden Schritte (P3)
+                foreach (var feld in rest.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (!feld.Contains('=')) throw new ArgumentException($"pinsel: „{feld}“ – jedes Feld als <feld>=<wert>.");
+                    var (name, wert) = (feld.Split('=', 2)[0], feld.Split('=', 2)[1]);
+                    switch (name)
+                    {
+                        case "radius": _stadt.FelsRadius = Zahl(wert); break;
+                        case "dichte": _stadt.FelsDichte = Zahl(wert); break;
+                        case "abstand": _stadt.FelsAbstand = Zahl(wert); break;
+                        case "groesse": _stadt.FelsGroesse = Zahl(wert); break;
+                        case "streuung": _stadt.FelsStreuung = Zahl(wert); break;
+                        case "einsinken": _stadt.FelsEinsinken = Zahl(wert); break;
+                        case "einsinkenstreuung": _stadt.FelsEinsinkenStreuung = Zahl(wert); break;
+                        case "neigung": _stadt.FelsNeigung = Zahl(wert); break;
+                        case "ausduennen": _stadt.FelsAusduennen = Zahl(wert); break;
+                        case "nurformen": _stadt.FelsNurFormen = wert == "an"; break;
+                        case "formen":
+                            _stadt.FelsFormen.Clear();
+                            _stadt.FelsFormen.AddRange(wert.Split('+', StringSplitOptions.RemoveEmptyEntries)
+                                .Select(f => Felsformen.Finde(f) is not null ? f : throw new ArgumentException($"pinsel: unbekannte Form „{f}“.")));
+                            break;
+                        case "hoehe": // hoehe=<von>/<bis> oder hoehe=aus
+                            _stadt.FelsHoehenbereich = wert == "aus" ? null : new Felsbereich(Zahl(wert.Split('/')[0]), Zahl(wert.Split('/')[1]));
+                            break;
+                        default:
+                            throw new ArgumentException($"pinsel: unbekanntes Feld „{name}“ (radius, dichte, abstand, groesse, streuung, einsinken, einsinkenstreuung, neigung, ausduennen, nurformen, formen, hoehe).");
+                    }
+                }
+                break;
             case "lage": // lage:<nr>,<feld>=<wert>,… – Werte eines Stücks setzen (Fels-Plan R2, Kartenentwurf.FelsTransformieren), Nummer ab 0
             {
                 var t = rest.Split(',');
