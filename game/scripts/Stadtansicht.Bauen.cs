@@ -433,9 +433,68 @@ public partial class Stadtansicht
         foreach (var zone in karte.Bauzonen) BauzoneZeichnen(zone, (float)karte.Raster, _bauzonen);
     }
 
+    /// <summary>Das Vorgerechnete einer Bauzone (Fläche auf dem Gelände und Rasterlinien), in Häppchen gerechnet: <see cref="BauzoneVorrechnen"/>.</summary>
+    private sealed class BauzoneVor
+    {
+        public string Kennung = "";
+        public Vector3[]? Flaeche;
+        public List<Vector3>? Linien;
+    }
+
+    /// <summary>Was <see cref="BauzoneZeichnen"/> als Nächstes statt zu rechnen nimmt (nur für die Bauzone dieser Kennung, einmal).</summary>
+    private BauzoneVor? _bauzoneVor;
+
+    /// <summary>
+    /// Rechnet die beiden teuren Teile einer Bauzone (die Dreiecke auf dem Boden, die Rasterlinien) in Häppchen vor – ein Schritt je Zeile bzw. Spalte von
+    /// Zellen –, damit <see cref="BauzoneZeichnen"/> nur noch die Knoten baut. Köln: eine große Zone bis 80 ms an einem Stück.
+    /// </summary>
+    private IEnumerable<int> BauzoneVorrechnen(Bauzone zone, float raster, BauzoneVor vor)
+    {
+        vor.Kennung = zone.Kennung;
+        var punkte = zone.Flaeche.Select(p => new Vector2((float)p[0], (float)p[1])).ToArray();
+        if (BodenBewegt)
+        {
+            var ecken = new List<Vector3>();
+            foreach (var schritt in RasterDreieckeSchritte(punkte, ZoneAmHang, null, ecken)) yield return schritt;
+            vor.Flaeche = ecken.ToArray();
+        }
+        var linien = new List<Vector3>();
+        foreach (var schritt in BauzoneRasterlinien(zone, raster, punkte, linien)) yield return schritt;
+        vor.Linien = linien;
+    }
+
+    /// <summary>Die Kanten aller Rasterfelder, deren Mitte in der Zone liegt (jede Kante nur einmal) als Linienpaare in <paramref name="linien"/>; ein Schritt je Spalte.</summary>
+    private IEnumerable<int> BauzoneRasterlinien(Bauzone zone, float raster, Vector2[] punkte, List<Vector3> linien)
+    {
+        var (minX, maxX) = (punkte.Min(p => p.X), punkte.Max(p => p.X));
+        var (minZ, maxZ) = (punkte.Min(p => p.Y), punkte.Max(p => p.Y));
+        var kanten = new HashSet<(int, int, int, int)>();
+        void Kante(int ax, int az, int bx, int bz)
+        {
+            if (!kanten.Add((ax, az, bx, bz))) return;
+            linien.Add(new Vector3(ax * raster, BodenHoehe(ax * raster, az * raster), az * raster));
+            linien.Add(new Vector3(bx * raster, BodenHoehe(bx * raster, bz * raster), bz * raster));
+        }
+        for (var x = Mathf.Floor(minX / raster) * raster; x < maxX; x += raster)
+        {
+            for (var z = Mathf.Floor(minZ / raster) * raster; z < maxZ; z += raster)
+            {
+                if (!zone.Enthaelt(x + raster / 2, z + raster / 2)) continue;
+                var (ix, iz) = ((int)Mathf.Round(x / raster), (int)Mathf.Round(z / raster));
+                Kante(ix, iz, ix + 1, iz);
+                Kante(ix, iz + 1, ix + 1, iz + 1);
+                Kante(ix, iz, ix, iz + 1);
+                Kante(ix + 1, iz, ix + 1, iz + 1);
+            }
+            yield return 0;
+        }
+    }
+
     /// <summary>Eine Bauzone als farbige Fläche (Farbe der Lage) mit ihrem Raster und der Beschriftung „Kennung · Lage“ – auch für die Kartenwerkstatt.</summary>
     private void BauzoneZeichnen(Bauzone zone, float raster, Node3D eltern)
     {
+        var vor = _bauzoneVor is { } v && v.Kennung == zone.Kennung ? v : null; // in Häppchen vorgerechnet (BauzoneVorrechnen)?
+        _bauzoneVor = null;
         var farbe = LageFarbe(zone.Art);
         var punkte = zone.Flaeche.Select(p => new Vector2((float)p[0], (float)p[1])).ToArray();
         var dreiecke = Geometry2D.TriangulatePolygon(punkte);
@@ -448,7 +507,7 @@ public partial class Stadtansicht
         if (BodenBewegt)
         {
             // auf Gelände genau auf den Dreiecken des Bodens (Stadtansicht.Gelaende.cs); die Fläche selbst liegt noch 8 cm höher (Position)
-            arrays[(int)Mesh.ArrayType.Vertex] = RasterDreiecke(punkte, ZoneAmHang).ToArray();
+            arrays[(int)Mesh.ArrayType.Vertex] = vor?.Flaeche ?? RasterDreiecke(punkte, ZoneAmHang).ToArray();
         }
         else
         {
@@ -466,24 +525,12 @@ public partial class Stadtansicht
         // Raster: die Kanten aller Rasterfelder, deren Mitte in der Zone liegt (jede Kante nur einmal)
         var (minX, maxX) = (punkte.Min(p => p.X), punkte.Max(p => p.X));
         var (minZ, maxZ) = (punkte.Min(p => p.Y), punkte.Max(p => p.Y));
-        var kanten = new HashSet<(int, int, int, int)>();
-        var linien = new List<Vector3>();
-        void Kante(int ax, int az, int bx, int bz)
+        var linien = vor?.Linien;
+        if (linien is null)
         {
-            if (!kanten.Add((ax, az, bx, bz))) return;
-            linien.Add(new Vector3(ax * raster, BodenHoehe(ax * raster, az * raster), az * raster));
-            linien.Add(new Vector3(bx * raster, BodenHoehe(bx * raster, bz * raster), bz * raster));
+            linien = new List<Vector3>();
+            foreach (var _ in BauzoneRasterlinien(zone, raster, punkte, linien)) { }
         }
-        for (var x = Mathf.Floor(minX / raster) * raster; x < maxX; x += raster)
-            for (var z = Mathf.Floor(minZ / raster) * raster; z < maxZ; z += raster)
-            {
-                if (!zone.Enthaelt(x + raster / 2, z + raster / 2)) continue;
-                var (ix, iz) = ((int)Mathf.Round(x / raster), (int)Mathf.Round(z / raster));
-                Kante(ix, iz, ix + 1, iz);
-                Kante(ix, iz + 1, ix + 1, iz + 1);
-                Kante(ix, iz, ix, iz + 1);
-                Kante(ix + 1, iz, ix + 1, iz + 1);
-            }
         if (linien.Count > 0)
         {
             var gitter = new ArrayMesh();

@@ -36,7 +36,7 @@ bs.FARBEN.update({
     "Tuff": (0.64, 0.62, 0.56),        # rheinischer Tuffstein, hell gelblich-grau
     "Trachyt": (0.52, 0.51, 0.48),     # Drachenfels-Trachyt: Lisenen, Friese, Gesimse, Gewände
     "Basalt": (0.25, 0.25, 0.27),      # Sockel, Säulchen der Zwerggalerie
-    "Blei": (0.50, 0.52, 0.55),        # Zeltdach von St. Gereon (Bleiplatten)
+    "Blei": (0.30, 0.31, 0.34),        # Zeltdach von St. Gereon (Bleiplatten, alt und bleigrau; Struktur „kupfer“: Bahnen mit Fugen und Regenstreifen)
 })
 bs.BIBLIOTHEK_JE_FLAECHE = True        # Material-Bibliothek je Fläche (Material „Farben“), wie beim Kölner Dom
 

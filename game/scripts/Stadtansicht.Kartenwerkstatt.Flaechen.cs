@@ -82,7 +82,7 @@ public partial class Stadtansicht
             BauzoneZeichnen(zone.AlsBauzone(), (float)_entwurf!.Raster, knoten); // Stadtansicht.Bauen.cs
             if (BereichVon(zone) is { } bereich) _wsBereiche[zone] = bereich;
         }
-        else if (f is not (EntwurfFeld or EntwurfSee)) knoten.AddChild(DurchsichtigesNetz(VieleckDreiecke(f.Ecken.Select(V2).ToList(), 0.09f), FlaechenFarbe(f), 0.12f)); // ein Feld zeigt seine Äcker selbst
+        else if (f is not (EntwurfFeld or EntwurfSee)) knoten.AddChild(DurchsichtigesNetz(_wsFlaecheVor.Remove(f, out var vor) ? vor : VieleckDreiecke(f.Ecken.Select(V2).ToList(), 0.09f), FlaechenFarbe(f), 0.12f)); // ein Feld zeigt seine Äcker selbst
         FlaecheMarkieren(f);
     }
 
@@ -144,14 +144,62 @@ public partial class Stadtansicht
     /// <summary>Die Dreiecke eines Vielecks (Vorderseite oben) – leer, wenn es sich nicht zerlegen lässt (etwa, weil es sich selbst schneidet).</summary>
     private Vector3[] VieleckDreiecke(List<Vector2> punkte, float hoehe)
     {
-        if (punkte.Count < 3) return Array.Empty<Vector3>();
-        var feld = punkte.ToArray();
-        if (BodenBewegt && feld.Length < 400 && GrossFlaeche(feld) < 150000) return RasterDreiecke(feld, hoehe).ToArray(); // genau auf dem Boden, ohne Risse (Stadtansicht.Gelaende.cs)
-        var dreiecke = Geometry2D.TriangulatePolygon(feld);
         var ecken = new List<Vector3>();
-        for (var i = 0; i + 2 < dreiecke.Length; i += 3) Dreieck(ecken, feld[dreiecke[i]], feld[dreiecke[i + 1]], feld[dreiecke[i + 2]], hoehe);
+        foreach (var _ in VieleckDreieckeSchritte(punkte, hoehe, ecken)) { }
         return ecken.ToArray();
     }
+
+    /// <summary><see cref="VieleckDreiecke"/> in Häppchen (ein Schritt je Zeile von Zellen, <see cref="RasterDreieckeSchritte"/>); die Dreiecke landen in <paramref name="ecken"/>.</summary>
+    private IEnumerable<int> VieleckDreieckeSchritte(List<Vector2> punkte, float hoehe, List<Vector3> ecken)
+    {
+        if (punkte.Count < 3) yield break;
+        var feld = punkte.ToArray();
+        if (BodenBewegt && feld.Length < 400 && GrossFlaeche(feld) < 150000) // genau auf dem Boden, ohne Risse (Stadtansicht.Gelaende.cs)
+        {
+            foreach (var schritt in RasterDreieckeSchritte(feld, hoehe, null, ecken)) yield return schritt;
+            yield break;
+        }
+        var dreiecke = Geometry2D.TriangulatePolygon(feld);
+        for (var i = 0; i + 2 < dreiecke.Length; i += 3)
+            foreach (var schritt in DreieckSchritte(ecken, feld[dreiecke[i]], feld[dreiecke[i + 1]], feld[dreiecke[i + 2]], hoehe)) yield return schritt;
+    }
+
+    /// <summary>
+    /// <see cref="Dreieck"/> in Häppchen (ein Schritt je 256 kleine Dreiecke) – dieselben Dreiecke in derselben Reihenfolge: Ein großes Stück Wald in Köln
+    /// wird in Tausende kleine Dreiecke geteilt (<see cref="DreieckAmBoden"/>, hier ohne Rekursion mit einem Stapel).
+    /// </summary>
+    private IEnumerable<int> DreieckSchritte(List<Vector3> ecken, Vector2 a, Vector2 b, Vector2 c, float hoehe)
+    {
+        if ((b - a).Cross(c - a) < 0) (b, c) = (c, b);
+        if (!BodenBewegt)
+        {
+            DreieckFlach(ecken, a, b, c, hoehe);
+            yield break;
+        }
+        const float schritt = DreieckSchritt;
+        var stapel = new Stack<(Vector2 A, Vector2 B, Vector2 C, int Tiefe)>();
+        stapel.Push((a, b, c, 0));
+        var n = 0;
+        while (stapel.Count > 0)
+        {
+            var (p, q, r, tiefe) = stapel.Pop();
+            var (pq, qr, rp) = (p.DistanceTo(q), q.DistanceTo(r), r.DistanceTo(p));
+            var laengste = Mathf.Max(pq, Mathf.Max(qr, rp));
+            if (laengste <= schritt || tiefe >= 24)
+            {
+                foreach (var e in new[] { p, q, r }) ecken.Add(new Vector3(e.X, hoehe + BodenHoehe(e.X, e.Y), e.Y));
+                if (++n % 256 == 0) yield return n;
+                continue;
+            }
+            // an der längsten Kante in der Mitte teilen; das erste Stück zuerst (wie die Rekursion in DreieckAmBoden): es kommt zuletzt auf den Stapel
+            if (laengste == pq) { var m = (p + q) / 2; stapel.Push((m, q, r, tiefe + 1)); stapel.Push((p, m, r, tiefe + 1)); }
+            else if (laengste == qr) { var m = (q + r) / 2; stapel.Push((p, m, r, tiefe + 1)); stapel.Push((p, q, m, tiefe + 1)); }
+            else { var m = (r + p) / 2; stapel.Push((m, q, r, tiefe + 1)); stapel.Push((p, q, m, tiefe + 1)); }
+        }
+    }
+
+    /// <summary>Die vorgerechneten Dreiecke einer Naturfläche (<see cref="FlaecheNeuSchritte"/>) – <see cref="FlaecheBauen"/> nimmt sie einmal statt zu rechnen.</summary>
+    private readonly Dictionary<EntwurfFlaeche, Vector3[]> _wsFlaecheVor = new(ReferenceEqualityComparer.Instance);
 
     // ═════════════════════════════════════════════════════════════════════════
     //  Finden

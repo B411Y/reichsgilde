@@ -610,6 +610,7 @@ public partial class Hauptszene : Node
         if (optionen.GetValueOrDefault("charakter-ehe") == "1") CharakterVerheiraten(); // sofort, damit die Kinder über --spulen heranwachsen
         if (optionen.TryGetValue("charakter", out var charakter)) _charakterWartet = charakter; // erst nach dem Vorspulen (--spulen)
         if (optionen.TryGetValue("stress", out var stressWert)) _stressWartet = stressWert; // ebenso (Hauptszene.Charakter.cs)
+        if (optionen.TryGetValue("geheimnis", out var geheimnisWert)) _geheimnisWartet = geheimnisWert; // ebenso (Teil 3c)
         if (optionen.TryGetValue("gericht", out var gericht) && gericht == "1")
             _gerichtssaal.Oeffnen();
         if (optionen.TryGetValue("hinterzimmer", out var hinterzimmer) && hinterzimmer == "1")
@@ -1208,6 +1209,11 @@ public partial class Hauptszene : Node
             _stressWartet = null;
             StressStartoption(stressWunsch); // vor --charakter, damit das Fenster den neuen Stress zeigt
         }
+        if (_geheimnisWartet is { } geheimnisWunsch && _bauAutoKlick == 0 && _spulen == 0)
+        {
+            _geheimnisWartet = null;
+            GeheimnisStartoption(geheimnisWunsch); // vor --charakter, damit das Fenster das Geheimnis zeigt
+        }
         if (_charakterWartet is { } wunsch && _bauAutoKlick == 0 && _spulen == 0)
         {
             _charakterWartet = null;
@@ -1536,6 +1542,7 @@ public partial class Hauptszene : Node
             _ when _stadt.WohnhausText(_auswahlKennung) is { } wohnhaus => wohnhaus + LeerstandZusatz(w), // Wohnhaus eines Spielhauses (Darstellung)
             _ when _stadt.GrundstueckText(_auswahlKennung) is { } grundstueck => grundstueck, // Baustelle oder Bauplatz (Darstellung)
             _ when _stadt.StadtbauText(_auswahlKennung) is { } stadtbau => stadtbau, // Bauvorhaben der Stadt (PR #200)
+            _ when _stadt.KartenText(_auswahlKennung) is { } gebaeude => gebaeude, // Kirchen mit Modell und Blöcke der Karte (Darstellung)
             _ => _auswahlKennung,
         };
         AktionKnopfAnzeigen(w, frei);

@@ -374,10 +374,7 @@ public partial class Stadtansicht
                 });
         foreach (var f in entwurf.Bauzonen.Cast<EntwurfFlaeche>().Concat(entwurf.Naturflaechen).Concat(entwurf.Felder).ToList())
             if (BereichVon(f) is { } b && b.Intersects(rect))
-                Nacharbeit("Flächen", () =>
-                {
-                    if (entwurf.Enthaelt(f)) FlaecheBauen(f, false);
-                });
+                NacharbeitSchritte(f is EntwurfBauzone ? "Fläche: Bauzone" : f is EntwurfFeld ? "Fläche: Feld" : "Fläche: Natur", () => FlaecheNeuSchritte(f));
         foreach (var p in entwurf.Pflanzen.ToList())
             if (rect.HasPoint(V2(p.Punkt)))
                 Nacharbeit("Pflanzen", () =>
@@ -406,30 +403,103 @@ public partial class Stadtansicht
     //  Nacharbeit: nach dem Strich, über mehrere Bilder verteilt
     // ═════════════════════════════════════════════════════════════════════════
 
-    /// <summary>Was nach einem Strich noch neu zu bauen ist (Gebäude, Wege, Flächen, Pflanzen im Rechteck), in der Reihenfolge des Anstellens.</summary>
-    private readonly Queue<Action> _wsNacharbeit = new();
+    /// <summary>
+    /// Was nach einem Strich noch neu zu bauen ist (Gebäude, Wege, Flächen, Pflanzen im Rechteck), in der Reihenfolge des Anstellens. Ein Teil bekommt
+    /// den Zeitpunkt (µs), bis zu dem er rechnen darf, und sagt, ob er fertig ist: Die meisten sind in einem Zug fertig, große Flächen rechnen in Häppchen
+    /// (<see cref="NacharbeitSchritte"/>).
+    /// </summary>
+    private readonly Queue<Func<ulong, bool>> _wsNacharbeit = new();
 
-    /// <summary>So viel Zeit (ms) bekommt die Nacharbeit je Bild – mindestens ein Teil kommt immer dran.</summary>
+    /// <summary>So viel Zeit (ms) bekommt die Nacharbeit je Bild – mindestens ein Teil (bzw. Häppchen) kommt immer dran.</summary>
     private const double NacharbeitBudget = 6;
 
     /// <summary>Stellt einen Teil der Nacharbeit an (<paramref name="art"/> nennt ihn in der Pinselmessung).</summary>
-    private void Nacharbeit(string art, Action arbeit) => _wsNacharbeit.Enqueue(() =>
+    private void Nacharbeit(string art, Action arbeit) => _wsNacharbeit.Enqueue(_ =>
     {
         var uhr = Pinselmessung.Uhr();
         arbeit();
         Pinselmessung.Dazu("  Nacharbeit: " + art, uhr);
+        return true;
     });
 
-    /// <summary>Ist noch Nacharbeit übrig (für die Messung)?</summary>
-    public bool WerkstattNacharbeitOffen => _wsNacharbeit.Count > 0;
+    /// <summary>
+    /// Stellt einen Teil an, der in Häppchen rechnet: <paramref name="schritte"/> liefert einen Schritt nach dem anderen (die Werte zählen nicht), die
+    /// Nacharbeit rechnet je Bild so viele, wie ins Budget passen, und macht im nächsten Bild an derselben Stelle weiter.
+    /// </summary>
+    private void NacharbeitSchritte(string art, Func<IEnumerable<int>> schritte)
+    {
+        IEnumerator<int>? lauf = null;
+        _wsNacharbeit.Enqueue(frist =>
+        {
+            var uhr = Pinselmessung.Uhr();
+            lauf ??= schritte().GetEnumerator();
+            var fertig = true;
+            while (true)
+            {
+                if (!lauf.MoveNext()) break;
+                if (Time.GetTicksUsec() >= frist)
+                {
+                    fertig = false;
+                    break;
+                }
+            }
+            Pinselmessung.Dazu("  Nacharbeit: " + art, uhr);
+            return fertig;
+        });
+    }
+
+    /// <summary>
+    /// Eine Fläche neu bauen, ihre teuren Teile in Häppchen: die Dreiecke einer Naturfläche, bei einer Bauzone die Dreiecke und die Rasterlinien
+    /// (<see cref="BauzoneVorrechnen"/>); der Rest, die Knoten, ist zuletzt in einem Schritt dran (<see cref="FlaecheBauen"/>).
+    /// </summary>
+    private IEnumerable<int> FlaecheNeuSchritte(EntwurfFlaeche f)
+    {
+        var entwurf = _entwurf;
+        if (entwurf is null || !entwurf.Enthaelt(f)) yield break;
+        if (f is EntwurfBauzone zone && f.Ecken.Count >= 3)
+        {
+            var vor = new BauzoneVor();
+            foreach (var schritt in BauzoneVorrechnen(zone.AlsBauzone(), (float)entwurf.Raster, vor)) yield return schritt;
+            if (!entwurf.Enthaelt(f)) yield break; // inzwischen gelöscht
+            _bauzoneVor = vor;
+        }
+        else if (f is EntwurfNaturflaeche && f.Ecken.Count >= 3)
+        {
+            var ecken = new List<Vector3>();
+            foreach (var schritt in VieleckDreieckeSchritte(f.Ecken.Select(V2).ToList(), 0.09f, ecken)) yield return schritt;
+            if (!entwurf.Enthaelt(f)) yield break;
+            _wsFlaecheVor[f] = ecken.ToArray();
+        }
+        try
+        {
+            FlaecheBauen(f, false);
+        }
+        finally
+        {
+            _bauzoneVor = null;
+            _wsFlaecheVor.Remove(f);
+        }
+    }
+
+    /// <summary>Ist noch Nacharbeit nach einem Strich übrig – auch die Natur, der Grasteppich, die Wegeschicht und die Prüfung in Häppchen (für die Messung)?</summary>
+    public bool WerkstattNacharbeitOffen => _wsNacharbeit.Count > 0 || NaturOffen || _grasLaeufe.Count > 0 || _grasNeu.Count > 0 || _schichtVeraltet.Count > 0 || _wsStoffAuftraege.Count > 0 || _torErdeVeraltet || _torErdeLauf is not null || _wsFehlerNeu;
+
+    /// <summary>Wofür noch Arbeit offen ist (für die Messung).</summary>
+    public string WerkstattOffenText() =>
+        $"Nacharbeit {_wsNacharbeit.Count}, Natur {_wsNaturRechnet.Count}/{_wsNaturNeu.Count}/{_wsFelderNeu.Count}, Gras {_grasLaeufe.Count}/{_grasNeu.Count}, Wegeschicht {_schichtVeraltet.Count}, Torerde {_torErdeVeraltet}/{_torErdeLauf is not null}, Fehler {_wsFehlerNeu}, Befunde bereit {_entwurf?.BefundeBereit}";
 
     /// <summary>Jedes Bild (aus <see cref="Nachziehen"/>): Teile der Nacharbeit, bis das Budget verbraucht ist.</summary>
     private void NacharbeitAbarbeiten()
     {
-        if (_wsNacharbeit.Count == 0) return;
+        if (_wsNacharbeit.Count == 0 || !SchwerDran()) return;
         var anfang = Time.GetTicksUsec();
-        do _wsNacharbeit.Dequeue()();
-        while (_wsNacharbeit.Count > 0 && (Time.GetTicksUsec() - anfang) / 1000.0 < NacharbeitBudget);
+        var frist = anfang + (ulong)(NacharbeitBudget * 1000);
+        do
+        {
+            if (_wsNacharbeit.Peek()(frist)) _wsNacharbeit.Dequeue();
+        }
+        while (_wsNacharbeit.Count > 0 && Time.GetTicksUsec() < frist);
+        SchwerGezaehlt(anfang);
     }
 
     /// <summary>Wird gerade nur wegen einer neuen Höhe neu gebaut? Dann bleibt die Wegeschicht (sie ist flach, Stadtansicht.Wegeschicht.cs).</summary>

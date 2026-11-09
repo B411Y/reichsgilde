@@ -279,7 +279,7 @@ public sealed class Duftwesen
             var erfolg = _zufall.NextDouble() < Giftchance(a.Auftraggeber, a.Dolch);
             var krankheit = Daten.Gift.Dolche[a.Dolch].Krankheit;
             string oeffentlich;
-            if (erfolg && _w.Gesundheit.Erkranken(a.Ziel, o, krankheit))
+            if (erfolg && _w.Gesundheit.Erkranken(a.Ziel, o, krankheit, taeter: _w.Familien.Von(a.Auftraggeber)?.Oberhaupt)) // stirbt er daran: ein Mord (Teil 3c)
             {
                 oeffentlich = $"Giftanschlag im Haus {f.Nachname}: {o.Name} ist vergiftet – {o.Krankheit!.Beschreibung}. Nur Gegengift kann helfen.";
                 Ereignis(a.Auftraggeber, $"Der {a.Dolch} hat {o.Name} getroffen.");
