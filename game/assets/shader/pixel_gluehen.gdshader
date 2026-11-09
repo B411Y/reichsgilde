@@ -22,9 +22,12 @@ float lum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 
 // Wie viel mal heller das Bild über der Eigenfarbe liegt, als die Eigenfarbe allein es hätte (= Licht an dieser Stelle, bei Leuchtendem darüber); Magenta (Hilfsfläche): 0
 float verhaeltnis(vec2 uv) {
-	vec3 a = texture(albedo, uv).rgb;
+	// ein Bildpunkt, nicht gemischt: an der Kante zwischen Himmel (schwarz im Eigenfarbenbild) und Gebäude mischte das lineare Abtasten beide Bilder verschieden
+	// (helles Himmelsbild ÷ halbdunkle Mischfarbe) und ließ einen hellen Saum um die Silhouette glühen – bei hellem Himmel (Ego-Ansicht) deutlich
+	ivec2 bp = ivec2(clamp(uv * welt_groesse, vec2(0.0), welt_groesse - 1.0));
+	vec3 a = texelFetch(albedo, bp, 0).rgb;
 	if ((a.r > 0.9 && a.g < 0.1 && a.b > 0.9) || a.r + a.g + a.b < 0.02) return 0.0;   // Hilfsfläche (Magenta) und Himmel (Schwarz im Eigenfarbenbild)
-	vec3 w = texture(welt, uv).rgb;
+	vec3 w = texelFetch(welt, bp, 0).rgb;
 	return lum(pow(w, vec3(2.2))) / max(lum(pow(a, vec3(2.2))), 0.03);
 }
 
