@@ -2648,3 +2648,50 @@ Jede Änderung liegt innerhalb von etwa einem Fehler des Unterschieds (1.300–2
 | Oberhäupter mit Zusammenbruch | 0 % | 2,8 % (14 in 12.720 Jahren) |
 
 Quellen je 100 Oberhaupt-Jahre (Oberhaupt, Ehepartner, Erbe; Summe, in Klammern Anzahl): Wahl verloren +391 (33), erkrankt +145 (29), Diebstahl +131 (13), Preise verfallen +124 (12), Überfall +95 (12), verurteilt +87, angeklagt +74, Betrieb mit Verlust +55 (6), Brand oder Anschlag +30 (2), Tod im Haus +8 (1), Antrag abgelehnt +6 (1); Ventile etwa −450, Abklingen −1.012. Der Preisfaktor der eigenen Werkstattware steht am Jahresende fast immer über dem Grundpreis (q10 1,09, Median 1,18, q75 1,23); deshalb die Schwelle 1,1 und nicht 1,0 (mit 1,0 kam „Preise verfallen“ 0,2-mal je 100 Jahre vor). Die Wirtschaft bleibt im Band (Tabellen oben).
+
+## Geheimnisse (Charaktersystem Teil 3c, Datenversion 78, 9.11.2026)
+
+**Was neu ist:** Oberhaupt, Ehepartner und Erbe der Häuser und die Ratsherren können ein Geheimnis hüten – Ehebruch (1,5 % im Jahr × Züge, nur Verheiratete), Ketzerei (beim Glaubenswechsel 20 %, Zyniker 1 % im Jahr), Schulden (das Oberhaupt mit Bargeld im Minus oder Krediten über der Hälfte des Reinvermögens) und Mord (das Opfer eines bestellten Giftanschlags stirbt daran); Ratsherren 25 % zu Partiebeginn, danach 2 % im Jahr. Andere Häuser erfahren davon über Spitzel (30 % ± 3 je Stern, auf einen Ratsherrn 40 %), Gerede (2 % im Jahr), Beichte (25 %, nutzbar erst nach dem Beichtbruch), der Ehepartner über einen Ehebruch (10 %). Genutzt wird mit Befehl `GeheimnisNutzen`: Erpresserbrief um Gulden, die Ratsstimme für die nächste Sitzung, Anzeige vor Gericht (Mord 25, Ehebruch und Ketzerei 20 Beweiskraft; Ketzerei nur mit Stadtglauben), Bloßstellen (Ansehen für zwei Jahre, Meinungen, bei Schulden Höchstkredit × 0,75). Wer hütet, hat Stress. Die KI zeigt Mord an, erpresst gierig oder verschlagen, stellt Gegner bei der Wahl bloß und erpresst fehlende Ratsstimmen (nicht ehrlich, nur so viele wie zur Mehrheit fehlen). Entscheidungen in `docs/bereiche/kern.md` „Geheimnisse“ und `spiel-ki.md` „KI nach Geheimnissen“.
+
+**Messung** (gemessen auf main `4fa25271` + Teil 3b (`80bc014a`, noch nicht in main) + diesem PR (`7fac6918`), 12 Kerne, niedrige Priorität). Vergleich: derselbe Stand mit `--ohne=geheimnisse` (der Abschnitt fehlt) – er rechnet Zahl für Zahl wie Teil 3b (`docs/messungen/balancing-2026-11-09-stress.json`). `messen bericht 20 30` (1.320 Partien, 4 Min.) → `docs/messungen/balancing-2026-11-09-geheimnisse.json`, `messen bericht 40 30 --teile=2` (240 Partien, 2 Min.) → `…-voelker40-geheimnisse.json`, `messen geheimnisse 20 20` (Greybox, Spieler KI-geführt mit Schmied, Wirt, Dieb, Parfumeur, 80 Partien).
+
+| | ohne Geheimnisse (wie 3b) | mit Geheimnissen |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 9/10 (Tischler −17,6 %) | 10/10 (Tischler −15,0 %, Parfumeur +13,5 %) |
+| Mittel des Zuwachses | 32.834 | 32.558 (−0,8 %) |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,14; 1,85 | 1,05; 1,82 |
+| Bezugsspieler / KI-Häuser nach 20 Jahren | 66.135 ± 3.288 / 78.374 ± 2.043 | 70.201 ± 2.820 / 78.505 ± 2.079 |
+| Messstadt: Vermögen je KI-Haus allein / 3 / 8 Häuser | 95.722 / 58.410 / 48.194 | 95.008 / 58.885 / 47.130 |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,44 / 0,77 / 0,17 | 0,45 / 0,77 / 0,17 |
+| Spitzel auf Häuser / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 94 / 191 | 68 / 178 |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −3.232 / −7.056 | −3.290 / −6.846 |
+| Karren in Not / nach einem Jahr ohne Fahrt verkauft | 1 / 63 | 1 / 82 |
+
+Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwerte; ± Fehler des Mittels):
+
+| Beruf | ohne | mit Geheimnissen | Änderung |
+|---|---|---|---|
+| Schmied | 39.541 ± 1.391 | 39.560 ± 1.089 | +0,0 % |
+| Tischler | 31.072 ± 1.532 | 31.676 ± 1.656 | +1,9 % |
+| Steinmetz | 39.089 ± 1.406 | 38.861 ± 1.418 | −0,6 % |
+| Alchimist | 37.079 ± 1.330 | 36.267 ± 1.099 | −2,2 % |
+| Wirt | 38.019 ± 967 | 36.510 ± 949 | −4,0 % |
+| Prediger | 38.394 ± 1.321 | 35.967 ± 1.845 | −6,3 % |
+| Dieb | 33.805 ± 1.171 | 34.829 ± 1.174 | +3,0 % |
+| Parfumeur | 40.741 ± 1.295 | 40.961 ± 1.316 | +0,5 % |
+| Geldleiher | 36.102 ± 1.222 | 37.076 ± 1.116 | +2,7 % |
+| Gardist | 34.503 ± 619 | 33.869 ± 777 | −1,8 % |
+| Dieb (wagemutig, nicht im Mittel) | 25.351 ± 1.406 | 26.580 ± 1.415 | +4,8 % |
+
+Jede Änderung liegt innerhalb von etwa einem Fehler des Unterschieds (1.000–2.300 Gulden); der Prediger am weitesten (−2.427, gut ein Fehler). Der Bezugsspieler gewinnt 4.066 (knapp ein Fehler), daher KI ÷ Bezug 1,14 → 1,05. Weniger Spitzel auf Häuser, weil die Spitzel auf Ratsherren aus demselben Budget kommen (sie zählen im Bericht nur im Posten Gericht).
+
+**Völker** (Zuwachs nach 40 Jahren, Abstand zum Menschen desselben Berufs; Fehler eines Unterschieds etwa 5 Punkte):
+
+| Beruf, Volk | ohne | mit Geheimnissen |
+|---|---|---|
+| Schmied: Mensch / Zwerg / Elb / Halbling | 105.531 / +5,6 / −0,3 / −7,7 % | 106.061 / +6,6 / −0,7 / −7,2 % |
+| Parfumeur: Mensch / Zwerg / Elb / Halbling | 120.946 / −0,6 / +8,3 / −3,1 % | 121.574 / −3,0 / +9,3 / −6,2 % |
+
+**Häufigkeit je Partie** (`messen geheimnisse 20 20`, 80 Partien zu 20 Jahren; in Klammern der Anteil der Partien mit mindestens einem): entstanden 8,3 (100 %) – davon 3,0 Ratsherren zu Partiebeginn; Ehebruch in Häusern 1,9, bei Ratsherren 1,3; Ketzerei in Häusern 1,6, bei Ratsherren 1,7; Schulden bei Ratsherren 1,7, in Häusern 0,01; **Mord 0** (kein Giftopfer starb). Erfahren durch Gerede 8,3, durch Spitzel 2,2; der Ehepartner entdeckt einen Ehebruch 1,1 (65 %). Die KI erpresst 3,4 Ratsstimmen (74 %), setzt 6,7 Spitzel auf Ratsherren, schreibt 0,8 Briefe mit Geheimnis (48 %; 0,6 bezahlt), zeigt 0,5 an (36 %; 0,4 schuldig) und stellt 0,55 bloß (41 %); öffentlich werden 1,05 Geheimnisse. Je Beruf des Spielers kaum Unterschied (Briefe 0,7–1,0, Ratsstimmen 3,0–3,7, Anzeigen 0,35–0,7). Probe vor den Befunden der Prüfung (`3db333af` auf main `7b9516f1` + 3b `ab93e848`, gleiche Messungen): 3,8 Ratsstimmen und 8,2 Spitzel auf Ratsherren – „nur so viele, wie zur Mehrheit fehlen“ spart ein Zehntel der Erpressungen; Berufe damals 9/10 im Band (Tischler −15,6 %), Mittel 32.752, KI ÷ Bezug 1,00. Erste Probe (20 Jahre, 5 Startwerte) mit höchstens einem Spitzel je Jahr statt des gemeinsamen Budgets: 16,9 Spitzel auf Ratsherren je Partie.
+
+**Befund:** Geheimnisse sind in jeder Partie da, die KI nutzt sie vor allem im Rat (Ratsstimmen); Briefe, Anzeigen und Bloßstellen gibt es in knapp der Hälfte der Partien. Die Wirtschaft bleibt im Band. Schulden und Mord kommen in KI-Partien bei Häusern fast nie vor (die KI hat kaum Bargeld im Minus, nimmt keine Kredite, und Giftanschläge töten selten) – offener Punkt in `kern.md`.
