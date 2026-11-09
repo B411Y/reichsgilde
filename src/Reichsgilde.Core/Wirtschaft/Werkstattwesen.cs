@@ -458,7 +458,186 @@ public sealed class Werkstattwesen
             mehr += (b.Vorjahr?.Brandschaden ?? 0) * (1 - wi.BrandFaktor);
         if (_w.Bank.IstBankbetrieb(b))
             mehr += _w.Bank.MehrgewinnJeJahr(b, wi);
+        if (JedeWirkungRechnen)
+            mehr += MehrgewinnOhneErtrag(b, wi);
         return Math.Max(0, mehr);
+    }
+
+    // ── Wirkungen ohne direkten Ertrag (Datenversion 78, werkstatt.jedeWirkungRechnen) ──
+
+    /// <summary>Rechnen auch Lager, Fänge, Spuren, Einbruch, Hehlerei, Razzia, Streife und Geleit in Gulden (<see cref="WerkstattDaten.JedeWirkungRechnen"/>)?</summary>
+    public bool JedeWirkungRechnen => Daten?.JedeWirkungRechnen == true;
+
+    /// <summary>
+    /// Was die Wirkungen ohne direkten Ertrag dem Betrieb im Jahr einbringen (Personal-Nacharbeit, Datenversion 78) – je eine Rechnung,
+    /// erwartet aus dem Stand von jetzt oder „nach dem Vorjahr“ wie die Eisentür:
+    /// <list type="bullet">
+    /// <item>mehr Lager (Ordnungsliebend, Regale; Betriebe mit Ware bzw. Förderung und Karren): <see cref="LagerMehrgewinn"/></item>
+    /// <item>Dieb, seltener gefasst (Vorsichtig, Verkleidungstruhe): weniger erwartete Fänge × Kosten eines Fangs (<see cref="KostenJeFang"/>)</item>
+    /// <item>Dieb, weniger Spuren (Verschwiegen, Lederhandschuhe; nur das Versteck): erwartete Buße der Fänge des Hauses im Jahr × (1 − Faktor) –
+    /// Annahme: Zeugen und Beweise seltener, die Buße im selben Maß</item>
+    /// <item>Dieb, Einbruch (Einbrecher, Dietriche; nur das Versteck): Diebesgut des Vorjahres × (Chance mit ÷ ohne − 1)</item>
+    /// <item>Dieb, mehr Erlös am Markt (Hehlerfreund; nur das Versteck): Diebesgut des Vorjahres × Aufschlag</item>
+    /// <item>Wache, Razzia (Spürnase, Hellebarden; nur die Wachstube): Kopfgeld des Vorjahres × (Chance mit ÷ ohne − 1)</item>
+    /// <item>Wache, Streife (Streifengänger, Wachhunde): <see cref="StreifeMehrgewinn"/></item>
+    /// <item>Wache, Geleit (Geleitmann, Kettenhemden; nur die Geleitstube): Raub an den eigenen Karren mit dem Geleit der Wache × (1 − Faktor)</item>
+    /// </list>
+    /// </summary>
+    private double MehrgewinnOhneErtrag(Betrieb b, EinrichtungWirkung wi)
+    {
+        var mehr = 0.0;
+        if (wi.LagerPlus > 0) mehr += LagerMehrgewinn(b, wi.LagerPlus);
+        var diebe = _w.Diebe;
+        if (diebe.IstDiebesbetrieb(b))
+        {
+            if (wi.FangFaktor < 1)
+                mehr += (FaengeJeJahr(b, diebe.Fangchance(b)) - FaengeJeJahr(b, diebe.Fangchance(b) * wi.FangFaktor)) * KostenJeFang(b);
+            if (diebe.Versteck(b.Konto) == b)
+            {
+                if (wi.SpurenFaktor < 1) mehr += BusseDerFaenge(b.Konto) * (1 - wi.SpurenFaktor);
+                var diebesgut = DiebesgutVorjahr(b.Konto);
+                if (wi.EinbruchBonus > 0 && diebesgut > 0 && _w.Gauner.IstAktiv)
+                {
+                    var ohne = Math.Min(0.95, _w.Gauner.Daten.Diebstahl.Chance + diebe.Daten.Einbruch.ChanceBonus + b.EinbruchBonus);
+                    if (ohne > 0) mehr += diebesgut * (Math.Min(0.95, ohne + wi.EinbruchBonus) / ohne - 1);
+                }
+                var aufschlag = wi.PreisFaktor * (1 + wi.LadenAnteil * wi.LadenAufschlag) - 1;
+                if (aufschlag > 0) mehr += diebesgut * aufschlag;
+            }
+        }
+        var wache = _w.Wache;
+        if (wache.IstWachbetrieb(b) && b.InDerStadt)
+        {
+            if (wi.RazziaBonus > 0 && wache.Wachstube(b.Konto) == b && wache.Vorjahr(b.Konto) is { Kopfgeld: > 0 } buch)
+            {
+                var ohne = wache.Razziachance(b.Konto);
+                if (ohne > 0) mehr += buch.Kopfgeld * (Math.Min(0.95, ohne + wi.RazziaBonus) / ohne - 1);
+            }
+            if (wi.StreifenFaktor > 1) mehr += StreifeMehrgewinn(b, wi.StreifenFaktor);
+            if (wi.GeleitFaktor < 1 && wache.Geleitstube == b) mehr += GeleitRaubVorjahr(b.Konto) * (1 - wi.GeleitFaktor);
+        }
+        return mehr;
+    }
+
+    /// <summary>
+    /// Was mehr Lager je Ware dem Betrieb im Jahr einbringt – dieselbe Rechnung wie die KI beim Karrenkauf: Hat er im Vorjahr den Anteil s der
+    /// Arbeitszeit stillgestanden, sinkt der Stillstand auf <c>s ^ (Durchfluss nachher ÷ vorher)</c> (<see cref="Durchfluss"/>: Ein Karren lädt höchstens
+    /// das Lager); Mehrgewinn = (vorher − nachher) × Wert eines vollen Arbeitsjahres. Lädt kein Karren mehr, weil er schon weniger fasst als das Lager
+    /// (Handkarren 15, Ochsenkarren 2 × 20 bei Lager 40), bringt mehr Lager nichts. 0 ohne Schalter, ohne Karren, ohne Ware oder ohne Stillstand.
+    /// </summary>
+    public double LagerMehrgewinn(Betrieb b, int plus)
+    {
+        if (!JedeWirkungRechnen || plus <= 0 || b.OhneProduktion || b.Arbeitsminuten <= 0 || b.Karren.Count == 0) return 0;
+        var vorher = Math.Clamp(b.StillstandMinutenVorjahr / (double)b.Arbeitsminuten, 0, 1);
+        if (vorher <= 0) return 0;
+        var jetzt = b.Karren.Sum(k => Durchfluss(b, k.Typ, b.LagerKapazitaetJeWare));
+        var nachher = b.Karren.Sum(k => Durchfluss(b, k.Typ, b.LagerKapazitaetJeWare + plus));
+        if (jetzt <= 0 || nachher <= jetzt) return 0;
+        return (vorher - DetMathe.Pow(vorher, nachher / jetzt)) * Gesamtwert(b);
+    }
+
+    /// <summary>
+    /// Wie viele Stück ein Karren dieser Art je Minute seiner Fahrt bewegt: Ladung ÷ (Fahrzeit hin + zurück, <see cref="Stadtwirtschaft.Fahrzeit(Betrieb, string, bool)"/>).
+    /// Ladung: was der Karren fasst, aber höchstens, was das Lager hergibt – <paramref name="lagerJeWare"/> × Zahl der Waren (Umland: seine Rohstoffe;
+    /// Werkstatt: Waren in Arbeit oder Zutaten-Sorten, was mehr ist). Dieselbe Rechnung nutzt die KI beim Karrenkauf.
+    /// </summary>
+    public double Durchfluss(Betrieb b, string typ, int lagerJeWare)
+    {
+        var daten = _w.Daten.Logistik.Karren[typ];
+        var minuten = _w.Fahrzeit(b, typ, zumMarkt: true) + _w.Fahrzeit(b, typ, zumMarkt: false);
+        var waren = Math.Max(1, b.IstWerkstatt ? Math.Max(b.WarenInArbeit.Count, b.Zutaten.Count) : b.Rohstoffe.Count);
+        return Math.Min(daten.Gesamtkapazitaet, lagerJeWare * waren) / (double)Math.Max(1, minuten);
+    }
+
+    /// <summary>Leute eines Betriebs ohne Ware je Minute (Gesellen-Leistung, mit Völkerbonus und Antreiber) – so viele Diebesstunden sammelt er je Stunde.</summary>
+    private double LeuteJeMinute(Betrieb b) =>
+        b.Arbeiter.Sum(a => _w.Daten.Arbeitskraefte[a.Arbeitskraft].TempoAm(b.Ort)) * _w.VolksFaktor(b.Konto, b.Artdaten.Beruf) * b.TempoBonus;
+
+    /// <summary>
+    /// Erwartete Fänge der Taschendiebe dieses Betriebs im Jahr bei dieser Fangchance je Diebesstunde – wie in <see cref="Gauner.Diebeswesen"/>:
+    /// je Arbeitsstunde höchstens einer, Chance 1 − (1 − c) ^ Diebesstunden.
+    /// </summary>
+    private double FaengeJeJahr(Betrieb b, double chance)
+    {
+        var leute = LeuteJeMinute(b);
+        if (leute <= 0 || chance <= 0) return 0;
+        return b.Arbeitsminuten / 60.0 * (1 - DetMathe.Pow(1 - Math.Min(1, chance), leute));
+    }
+
+    /// <summary>Beute der Taschendiebe dieses Betriebs in einer Arbeitsstunde (ohne die Passanten der Bürger-KI) – der Wert einer Tat vor Gericht.</summary>
+    private double BeuteJeStunde(Betrieb b) =>
+        60 * LeuteJeMinute(b) * _w.Diebe.WertJeMinute(b.Stufe) * _w.Familien.Lebenswirkung(b.Konto).BeuteFaktor;
+
+    /// <summary>
+    /// Was eine Spur im Mittel an Buße kostet: Buße der Tat (Bußfaktor × Wert, mindestens die Mindestbuße) × Spitzelchance – so rechnet die KI auch
+    /// das Risiko einer Bestechung –, mit dem Gnadengesuch des Hauses und seinen Spuren (Lederhandschuhe im Versteck, Verschwiegen). 0 ohne Gericht.
+    /// </summary>
+    private double BusseJeSpur(Konto k, double wert)
+    {
+        if (!_w.Justiz.IstAktiv) return 0;
+        var d = _w.Justiz.Daten;
+        return Math.Max(d.Mindestbusse, d.BusseFaktor * wert) * d.SpitzelChance * _w.Familien.Lebenswirkung(k).BusseFaktor * _w.Diebe.SpurenFaktor(k);
+    }
+
+    /// <summary>Was ein gefasster Taschendieb kostet: das Handgeld für den neuen Anfänger und die Buße für die Spur (<see cref="BusseJeSpur"/>).</summary>
+    private double KostenJeFang(Betrieb b)
+    {
+        var anfaenger = _w.Personal.AnfaengerFuer(b.Art, "");
+        return (anfaenger == "" ? 0 : _w.Personal.Handgeld(anfaenger)) + BusseJeSpur(b.Konto, BeuteJeStunde(b));
+    }
+
+    /// <summary>Erwartete Buße für die Fänge aller Diebesbetriebe dieses Hauses in einem Jahr (für die Spuren: Verschwiegen, Lederhandschuhe).</summary>
+    private double BusseDerFaenge(Konto k) =>
+        _w.Betriebe.Where(x => x.Konto == k && _w.Diebe.IstDiebesbetrieb(x))
+            .Sum(x => FaengeJeJahr(x, _w.Diebe.Fangchance(x)) * BusseJeSpur(k, BeuteJeStunde(x)));
+
+    /// <summary>
+    /// Was die Diebe dieses Hauses im Vorjahr an eingebrochener Ware am Markt verkauft haben: Umsatz der Diebesbetriebe ohne die Beute der Taschendiebe
+    /// (<see cref="Gauner.Diebeswesen.Vorjahr"/>). Was zum Hehler ging oder aus einer Kasse kam, zählt nicht – eine untere Schätzung.
+    /// </summary>
+    private double DiebesgutVorjahr(Konto k)
+    {
+        var umsatz = _w.Betriebe.Where(x => x.Konto == k && _w.Diebe.IstDiebesbetrieb(x)).Sum(x => x.Vorjahr?.Umsatz ?? 0);
+        var diebesgut = umsatz - (_w.Diebe.Vorjahr(k)?.Beute ?? 0);
+        return diebesgut >= 1 ? diebesgut : 0;
+    }
+
+    /// <summary>
+    /// Was mehr Streife (Wachhunde, Streifengänger) dem eigenen Haus einbringt – sie schützt alle, Gulden bringt sie dem Haus nur so:
+    /// <list type="bullet">
+    /// <item>Kopfgeld: Die Streife fasst fremde Taschendiebe öfter (× 1 + taschendiebFang × Schutz). Fänge der anderen Häuser im Vorjahr × Kopfgeld
+    /// ÷ Zahl der Wachhäuser (das Kopfgeld geht an eines von ihnen) × relativ mehr Fänge.</item>
+    /// <item>eigener Schaden in der Stadt: Raub und Brand der eigenen Betriebe im Vorjahr × relativ weniger Erfolg der Täter (Erfolg × (1 − Schutz)).</item>
+    /// </list>
+    /// </summary>
+    private double StreifeMehrgewinn(Betrieb b, double faktor)
+    {
+        var wache = _w.Wache;
+        var vorher = wache.Patrouilleschutz;
+        var mehrSchutz = wache.PatrouilleschutzMit(b, faktor) - vorher;
+        if (mehrSchutz <= 0) return 0;
+        var k = b.Konto;
+        var p = wache.Daten.Patrouille;
+        var fremdeFaenge = _w.Diebe.IstAktiv ? _w.Konten.Where(x => x != k).Sum(x => _w.Diebe.Vorjahr(x)?.Faenge ?? 0) : 0;
+        var kopfgeld = fremdeFaenge * wache.Daten.Kopfgeld.Taschendieb / Math.Max(1, wache.Wachhaushaeuser.Count())
+                       * p.TaschendiebFang * mehrSchutz / (1 + p.TaschendiebFang * vorher);
+        var schaden = _w.Betriebe.Where(x => x.Konto == k && x.InDerStadt).Sum(x => (x.Vorjahr?.Raub ?? 0) + (x.Vorjahr?.Brandschaden ?? 0));
+        return kopfgeld + schaden * mehrSchutz / Math.Max(0.05, 1 - vorher);
+    }
+
+    /// <summary>
+    /// Was Banden im Vorjahr den Karren dieses Hauses nahmen, die mit dem Geleit der Wache fahren: Raub des Hauses ohne den aus den Lagern der Betriebe
+    /// (also Karren und Schiffe), im Anteil der eigenen Karren, die jetzt mit dem Geleit der Wache fahren. 0 ohne eigene Karren mit diesem Geleit.
+    /// </summary>
+    private double GeleitRaubVorjahr(Konto k)
+    {
+        var eigene = _w.Betriebe.Where(x => x.Konto == k).ToList();
+        var karren = eigene.Sum(x => x.Karren.Count);
+        if (karren == 0) return 0;
+        var mitGeleit = eigene.Sum(x => x.Karren.Count(c => c.Eskorte == _w.Wache.Daten.Geleit.Eskorte));
+        if (mitGeleit == 0) return 0;
+        var raub = (k.Vorjahr?.Raubwert ?? 0) - eigene.Sum(x => x.Vorjahr?.Raub ?? 0);
+        return Math.Max(0, raub) * mitGeleit / karren;
     }
 
     /// <summary>Wie viel schneller die Leute bei so viel mehr Laune arbeiten (Anteil; linear wie <see cref="Betrieb.TempoFaktor"/>, um neutral).</summary>

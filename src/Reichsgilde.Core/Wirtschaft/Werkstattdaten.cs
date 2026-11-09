@@ -43,6 +43,15 @@ public sealed class WerkstattDaten
     /// </summary>
     public List<string> Spalten { get; init; } = new();
 
+    /// <summary>
+    /// Datenversion 78 (Personal-Nacharbeit): Auch Wirkungen ohne direkten Ertrag bekommen eine Gulden-Rechnung in
+    /// <see cref="Werkstattwesen.MehrgewinnDurch"/> – mehr Lager (Ordnungsliebend, Regale), seltener gefasste Taschendiebe (Vorsichtig,
+    /// Verkleidungstruhe), weniger Spuren (Verschwiegen, Lederhandschuhe), Einbruch (Einbrecher, Dietriche), Erlös des Diebesguts (Hehlerfreund),
+    /// Razzia (Spürnase, Hellebarden), Streife (Streifengänger, Wachhunde) und Geleit (Geleitmann, Kettenhemden). Damit wählt die KI Vorarbeiter
+    /// und Einrichtung danach. false (ältere Daten): Diese Wirkungen bringen 0, alles rechnet wie vorher.
+    /// </summary>
+    public bool JedeWirkungRechnen { get; init; }
+
     public LohnstufeDaten Stufe(Lohnstufe stufe) => Lohnstufen.GetValueOrDefault(stufe) ?? LohnstufeDaten.Neutral;
 
     /// <summary>Die Einrichtung, die eine Werkstatt dieses Berufs kaufen kann (leer, wenn es keine gibt).</summary>

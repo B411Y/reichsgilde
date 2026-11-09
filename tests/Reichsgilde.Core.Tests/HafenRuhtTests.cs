@@ -53,6 +53,7 @@ static class HafenRuhtTests
         knoten.AsObject().Remove("lebensweise"); // Lebensweise (Datenversion 74) gab es vor dem Schalter nicht
         knoten.AsObject().Remove("stress"); // Stress (Datenversion 77) ebenso wenig – die zwei neuen erworbenen Züge kommen ohne ihn nie vor
         knoten.AsObject().Remove("geheimnisse"); // Geheimnisse (Datenversion 78) ebenso wenig
+        knoten["werkstatt"]!.AsObject().Remove("jedeWirkungRechnen"); // Gulden-Rechnung jeder Wirkung (Datenversion 79) ebenso wenig
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },

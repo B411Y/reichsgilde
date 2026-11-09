@@ -1207,6 +1207,7 @@
     },
     "befoerderung": { "von": "Lehrling", "zu": "Geselle", "dienstMinuten": 2280 },
     "spalten": ["Werkstatt", "Lager & Handel", "Schutz & Personal"],
+    "jedeWirkungRechnen": true,
     "einrichtung": {
       "Schmied": [
         { "kennung": "Werkzeug1", "name": "Gutes Werkzeug", "preis": 300, "spalte": "Werkstatt", "abStufe": 1, "wirkung": { "zeitFaktor": 0.9 } },
