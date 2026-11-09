@@ -171,7 +171,7 @@ public sealed partial class KiRivale
         if (!gw.IstAktiv || gw.Nummer(nummer) is not { } g) return 0;
         var a = gw.Daten.Art(g.Art);
         var anzeige = 0.0;
-        if (_w.Justiz.IstAktiv && a.Beweiskraft > 0 && (!a.NurMitStadtglaube || _w.Glaube.IstAktiv && _w.Glaube.Stadtglaube is not null))
+        if (_w.Justiz.IstAktiv && gw.KeinVergehen(g) is null) // Ketzerei nur, wer sich zum Stadtglauben bekennt (Entscheidung des Nutzers 09.11.2026)
         {
             var j = _w.Justiz.Daten;
             var deckel = Math.Max(j.Mindestbusse, j.BusseHoechstensAnteil > 0 ? j.BusseHoechstensAnteil * Math.Max(0, Konto.Reinvermoegen) : double.MaxValue); // wie am Gerichtstag
