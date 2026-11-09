@@ -215,14 +215,18 @@ static class KiHafenStandortTests
             Pruefe.Ungefaehr(80, ki5.ErwarteteRundfahrt(80, null, 1), 1e-12);
 
             // Anteil: das einträglichste Produkt zu heutigen Preisen
-            foreach (var art in new[] { Betriebsart.Giesserei, Betriebsart.Tischlerei, Betriebsart.Siederei, Betriebsart.Maurerei, Betriebsart.Schaenke })
+            foreach (var art in new[] { Betriebsart.Giesserei, Betriebsart.Tischlerei, Betriebsart.Siederei, Betriebsart.Maurerei, Betriebsart.Kirche })
             {
                 var produkte = w5.Daten.Art(art).Produkte;
                 var best = produkte.First(p => Kalkulation.GewinnJeArbeitsminute(w5, p) == produkte.Max(q => Kalkulation.GewinnJeArbeitsminute(w5, q)));
                 Pruefe.Gleich(w5.Schiffahrt.Daten!.IstAusfuhrware(best) ? 1.0 : 0.0, ki5.Ausfuhranteil(art), $"{art}: {best}");
             }
+            // fest: Die Gießerei macht zu Startpreisen Dolch oder Silberring (beides Ausfuhrware, nicht Beschlag); Tischlerei und Siederei haben
+            // keine Ausfuhrware; die Schänke schenkt aus, ihr Karren fährt nur den Rest – 0, obwohl Körnermahlzeit und Dünnbier Ausfuhrware sind
+            Pruefe.Gleich(1.0, ki5.Ausfuhranteil(Betriebsart.Giesserei));
             Pruefe.Gleich(0.0, ki5.Ausfuhranteil(Betriebsart.Tischlerei));
             Pruefe.Gleich(0.0, ki5.Ausfuhranteil(Betriebsart.Siederei));
+            Pruefe.Gleich(0.0, ki5.Ausfuhranteil(Betriebsart.Schaenke));
 
             // Kandidaten in Köln: an den Orten am Hafen (mit Ausfuhrware) kürzer um genau den Aufschlag, die übrigen gleich
             var k5 = ki5.Standortkandidaten(NachLuftlinie(w5, gold5), Hand, 1);

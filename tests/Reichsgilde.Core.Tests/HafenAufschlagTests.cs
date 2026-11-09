@@ -64,7 +64,8 @@ static class HafenAufschlagTests
     /// der ersten Minute auf und nimmt die Ware mit; der Handkarren fasst 15 je Ladefläche). Bis er verkauft hat und umkehrt: Ziel, Umsatz und
     /// Steuer der Werkstatt.
     /// </summary>
-    static (bool ZielHafen, double Umsatz, double Steuer, bool HafenOffen) Verkauf(string json, long minute, string ware, int stueck = 15)
+    static (bool ZielHafen, double Umsatz, double Steuer, bool HafenOffen) Verkauf(string json, long minute, string ware, int stueck = 15,
+        bool handelsauftrag = false)
     {
         var (sim, w, k) = Koeln(json, minute);
         var e = w.Ausfuehren(k, NahAmHafen.Value);
@@ -73,6 +74,11 @@ static class HafenAufschlagTests
         var b = w.Betriebe.Single(x => x.Name == name);
         b.Einlagern(ware, stueck);
         var karren = b.Karren[0];
+        if (handelsauftrag) // Handel von Hand: derselbe Karren mit Auftrag (verkaufen, nichts kaufen)
+        {
+            var a = w.Ausfuehren(k, new Handelsauftrag(b.Name, 0, new Dictionary<string, int> { [ware] = stueck }, new Dictionary<string, int>()));
+            Pruefe.Wahr(a.Erfolg, a.Meldung);
+        }
         for (var i = 0; i < Spielzeit.MinutenProTag && karren.Zustand != KarrenZustand.ZumMarkt; i++) sim.Tick();
         Pruefe.Gleich(KarrenZustand.ZumMarkt, karren.Zustand, "aufgebrochen");
         Pruefe.Gleich(stueck, karren.Ladung.GetValueOrDefault(ware), $"{ware} geladen");
@@ -102,7 +108,7 @@ static class HafenAufschlagTests
         }),
 
         ("Hafenaufschlag: Ein Karren verkauft Silberringe (Ausfuhrware) im Sommer am Hafen – Umsatz und Steuer genau 3 % höher als ohne Aufschlag; " +
-         "Beschläge (keine Ausfuhrware) gleich; Gegenprobe: am Marktplatz (ohne Karren zum Hafen) kein Aufschlag", () =>
+         "Beschläge (keine Ausfuhrware) gleich; Gegenprobe: am Marktplatz (ohne Karren zum Hafen) kein Aufschlag; Handelsauftrag am Hafen ebenso 3 %", () =>
         {
             var mit = Verkauf(Daten(0.03), Minute(1, 9), "Silberring");
             var ohne = Verkauf(Daten(0), Minute(1, 9), "Silberring");
@@ -121,6 +127,12 @@ static class HafenAufschlagTests
             var marktOhne = Verkauf(Daten(0, zumHafen: false), Minute(1, 9), "Silberring");
             Pruefe.Wahr(!marktMit.ZielHafen, "zum Marktplatz");
             Pruefe.Gleich(marktOhne.Umsatz, marktMit.Umsatz);
+
+            // Handel von Hand (Handelsauftrag) am Hafen: derselbe Aufschlag
+            var handMit = Verkauf(Daten(0.03), Minute(1, 9), "Silberring", handelsauftrag: true);
+            var handOhne = Verkauf(Daten(0), Minute(1, 9), "Silberring", handelsauftrag: true);
+            Pruefe.Wahr(handMit.ZielHafen && handMit.HafenOffen, "Handelsauftrag am Hafen");
+            Pruefe.Ungefaehr(handOhne.Umsatz * 1.03, handMit.Umsatz, 1e-9 * handMit.Umsatz);
         }),
 
         ("Hafenaufschlag: Bricht der Karren im späten Herbst zum Hafen auf und kommt im Winter an (Hafen zu), gibt es keinen Aufschlag; " +

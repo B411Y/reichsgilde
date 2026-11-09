@@ -80,13 +80,15 @@ public sealed partial class KiRivale
     /// <summary>
     /// Welcher Anteil des Absatzes einer neuen Werkstatt dieser Art Ausfuhrware wäre (<see cref="SchiffshandelDaten.IstAusfuhrware"/>): Die KI
     /// rechnet wie beim erwarteten Gewinn (<see cref="Kalkulation.ErwarteterJahresgewinn"/>) mit dem einträglichsten Produkt zu heutigen Preisen
-    /// (bei Gleichstand das erste der Liste) – 1, wenn es eine Ausfuhrware ist, sonst 0. Ohne Schiffshandel-Daten 0.
+    /// (bei Gleichstand das erste der Liste) – 1, wenn es eine Ausfuhrware ist, sonst 0. Ohne Schiffshandel-Daten 0. Eine Schänke 0: Sie
+    /// schenkt den Großteil an ihre Gäste aus, der Karren fährt nur den Rest (Befund der Prüfung).
     /// </summary>
     internal double Ausfuhranteil(Betriebsart art)
     {
         if (_w.Schiffahrt.Daten is not { } daten) return 0;
         var d = _w.Daten.Art(art);
         if (!d.IstWerkstatt || d.OhneProduktion || d.Produkte.Count == 0) return 0;
+        if (_w.Daten.Gastwirtschaft is { } g && d.Beruf == g.Beruf) return 0; // Schänke (wie Betrieb.IstSchaenke)
         string? best = null;
         var bestWert = double.MinValue;
         foreach (var ware in d.Produkte) // feste Reihenfolge der Daten; nur ein echtes Mehr verdrängt das frühere
