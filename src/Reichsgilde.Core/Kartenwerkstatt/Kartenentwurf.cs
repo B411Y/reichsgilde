@@ -572,7 +572,18 @@ public sealed partial class Kartenentwurf
         while (!_startnetzGerechnet)
         {
             _startnetzLauf ??= StartnetzLauf().GetEnumerator();
-            if (!_startnetzLauf.MoveNext())
+            bool weiter;
+            try
+            {
+                weiter = _startnetzLauf.MoveNext();
+            }
+            catch (Exception)
+            {
+                // wie vorher: eine Ausnahme irgendwo beim Netz heißt kein Netz (Befund der Prüfung: sonst blieb ein toter Lauf stehen)
+                (_startnetz, _startnetzGerechnet, _startnetzLauf) = (null, true, null);
+                yield break;
+            }
+            if (!weiter)
             {
                 _startnetzLauf = null;
                 yield break;
@@ -592,7 +603,7 @@ public sealed partial class Kartenentwurf
         void Fehler() => ok = false;
         // die Höhen (die Hälfte der Datei) liest ein eigenes Häppchen: genau so, wie der Leser der Karte sie läse (Text → JSON → Hoehenraster.AusJson)
         string? text = null, hoehen = null;
-        foreach (var t in Geschuetzt(Einmal(() =>
+        foreach (var t in Geschuetzt(() => Einmal(() =>
                  {
                      var knoten = ZuJsonKnoten();
                      if (knoten["hoehen"] is { } h) (hoehen, _) = (h.ToJsonString(), knoten.Remove("hoehen"));
@@ -600,17 +611,27 @@ public sealed partial class Kartenentwurf
                  }), "Startwege: Karte schreiben", Fehler))
             yield return t;
         Stadtkarte? karte = null;
-        if (ok) foreach (var t in Geschuetzt(Einmal(() => karte = Stadtkarte.AusJson(text!, Katalog)), "Startwege: Karte lesen", Fehler)) yield return t;
+        var mitMarkt = false;
+        if (ok)
+            foreach (var t in Geschuetzt(() => Einmal(() =>
+                     {
+                         karte = Stadtkarte.AusJson(text!, Katalog);
+                         mitMarkt = karte.Marktplaetze.Count > 0;
+                     }), "Startwege: Karte lesen", Fehler))
+                yield return t;
         if (ok && hoehen is not null)
-            foreach (var t in Geschuetzt(Einmal(() => karte!.HoehenSetzen(Hoehenraster.AusJson(JsonNode.Parse(hoehen)))), "Startwege: Höhen", Fehler))
+            foreach (var t in Geschuetzt(() => Einmal(() => karte!.HoehenSetzen(Hoehenraster.AusJson(JsonNode.Parse(hoehen)))), "Startwege: Höhen", Fehler))
                 yield return t;
         Karrennetz? netz = null;
-        if (ok && karte!.Marktplaetze.Count > 0)
+        if (ok && mitMarkt)
         {
-            foreach (var t in Geschuetzt(karte.Gelaendeform.Wasser.Schritte(), "Startwege: Gewässer", Fehler)) yield return t;
-            if (ok) foreach (var t in Geschuetzt(karte.Gelaendeform.AktualisierenSchritte(), "Startwege: Gelände", Fehler)) yield return t;
-            if (ok) foreach (var t in Geschuetzt(karte.Wasserplan.Schritte(), "Startwege: Wasserplan", Fehler)) yield return t;
-            if (ok) foreach (var t in Geschuetzt(Karrennetz.VonInSchritten(karte, marktlinien: true, alleWege: true, n => netz = n), "Startwege: Karrennetz", Fehler)) yield return t;
+            // die Folgen erst im Schutz erzeugen: schon karte.Wasserplan rechnet die Verläufe aller Wege (Befund der Prüfung)
+            foreach (var t in Geschuetzt(() => karte!.Gelaendeform.Wasser.Schritte(), "Startwege: Gewässer", Fehler)) yield return t;
+            if (ok) foreach (var t in Geschuetzt(() => karte!.Gelaendeform.AktualisierenSchritte(), "Startwege: Gelände", Fehler)) yield return t;
+            if (ok) foreach (var t in Geschuetzt(() => karte!.Wasserplan.Schritte(), "Startwege: Wasserplan", Fehler)) yield return t;
+            if (ok)
+                foreach (var t in Geschuetzt(() => Karrennetz.VonInSchritten(karte!, marktlinien: true, alleWege: true, n => netz = n), "Startwege: Karrennetz", Fehler))
+                    yield return t;
         }
         (_startnetz, _startnetzGerechnet) = (ok && netz is not null ? (karte!, netz) : null, true);
 
@@ -621,24 +642,35 @@ public sealed partial class Kartenentwurf
         }
     }
 
-    /// <summary>Läuft die Schritte durch und gibt nach jedem <paramref name="teil"/> zurück; eine Ausnahme beendet sie und meldet <paramref name="fehler"/>.</summary>
-    private static IEnumerable<string> Geschuetzt(IEnumerable<int> schritte, string teil, Action fehler)
+    /// <summary>
+    /// Erzeugt die Schritte und läuft sie durch, nach jedem gibt sie <paramref name="teil"/> zurück; eine Ausnahme (auch schon beim Erzeugen) beendet sie
+    /// und meldet <paramref name="fehler"/>.
+    /// </summary>
+    private static IEnumerable<string> Geschuetzt(Func<IEnumerable<int>> schritte, string teil, Action fehler)
     {
-        using var lauf = schritte.GetEnumerator();
-        while (true)
+        IEnumerator<int>? lauf = null;
+        try
         {
-            bool weiter;
-            try
+            while (true)
             {
-                weiter = lauf.MoveNext();
+                bool weiter;
+                try
+                {
+                    lauf ??= schritte().GetEnumerator();
+                    weiter = lauf.MoveNext();
+                }
+                catch (Exception)
+                {
+                    fehler();
+                    yield break;
+                }
+                if (!weiter) yield break;
+                yield return teil;
             }
-            catch (Exception)
-            {
-                fehler();
-                yield break;
-            }
-            if (!weiter) yield break;
-            yield return teil;
+        }
+        finally
+        {
+            lauf?.Dispose();
         }
     }
 

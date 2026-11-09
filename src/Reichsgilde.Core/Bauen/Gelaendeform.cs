@@ -132,6 +132,9 @@ public sealed class Gelaendeform
     /// <summary>Zählt jede Änderung und jeden Durchgang des Neurechnens: Ein Durchgang in Häppchen bricht ab, sobald ein anderer dazwischenkam.</summary>
     private int _durchgang;
 
+    /// <summary>Rasterbereiche, die ein Durchgang schon geleert, aber nicht fertig gerechnet hat (er brach ab): Der nächste Durchgang rechnet sie mit.</summary>
+    private readonly List<(int I0, int J0, int I1, int J1)> _geleert = new();
+
     /// <summary>Rechnet das Bett neu, wo es veraltet ist.</summary>
     private void Aktualisieren()
     {
@@ -143,11 +146,12 @@ public sealed class Gelaendeform
     /// Regel „Wasser“ und die Startwege, die ihr Netz auf einer eigenen Stadtkarte bauen). Die Werte sind dieselben. Zwischen zwei Häppchen ist das Bett
     /// halb gerechnet, die Markierungen (was veraltet ist) stehen aber noch: Wer jetzt liest, rechnet in einem Zug selbst fertig. Kommt so ein Durchgang
     /// oder eine Änderung dazwischen, bricht dieser Lauf beim nächsten Häppchen ohne weitere Schreibzugriffe ab; die Markierungen löscht nur ein
-    /// Durchgang, der fertig wird.
+    /// Durchgang, der fertig wird. Was ein abgebrochener Durchgang schon geleert hat, merkt sich <see cref="_geleert"/>: Der nächste rechnet es mit
+    /// (Befund der Prüfung: sonst blieb nach einem schmaleren breitesten Weg ein Ring ohne Bett, weil die Reichweite aus den Linien von jetzt kommt).
     /// </summary>
     internal IEnumerable<int> AktualisierenSchritte()
     {
-        if (!_allesNeu && _veraltet.Count == 0) yield break;
+        if (!_allesNeu && _veraltet.Count == 0 && _geleert.Count == 0) yield break;
         var mein = ++_durchgang;
         if (IstFlach)
         {
@@ -155,6 +159,7 @@ public sealed class Gelaendeform
             if (!_bett.IstLeer) _bett.BereichLeeren(int.MinValue / 2, int.MinValue / 2, int.MaxValue / 2, int.MaxValue / 2);
             _allesNeu = false;
             _veraltet.Clear();
+            _geleert.Clear();
             yield break;
         }
         var linien = _linien().Where(l => l.Linie.Count >= 2 && l.Breite > 0).ToList();
@@ -170,9 +175,12 @@ public sealed class Gelaendeform
         else
         {
             var reichweite = Glaettung + Profilschritt + Hoehenraster.Abstand + (linien.Count == 0 ? 0 : linien.Max(l => l.Breite / 2)) + Bankett;
-            foreach (var r in _veraltet.ToList())
+            // die veralteten Rechtecke mit Reichweite und, was abgebrochene Durchgänge geleert haben, genau so (jeder Bereich rechnet seine Punkte mit
+            // allen Linien neu – die Reihenfolge der Bereiche ändert nichts)
+            var bereiche = _veraltet.Select(r => Hoehenraster.Punkte(r.Vergroessert(reichweite))).Concat(_geleert).ToList();
+            foreach (var (i0, j0, i1, j1) in bereiche)
             {
-                var (i0, j0, i1, j1) = Hoehenraster.Punkte(r.Vergroessert(reichweite));
+                if (!_geleert.Contains((i0, j0, i1, j1))) _geleert.Add((i0, j0, i1, j1));
                 _bett.BereichLeeren(i0, j0, i1, j1);
                 foreach (var _ in BettRechnen(linien, (i0, j0, i1, j1)))
                 {
@@ -181,6 +189,7 @@ public sealed class Gelaendeform
                 }
             }
         }
+        _geleert.Clear();
         _allesNeu = false;
         _veraltet.Clear();
     }

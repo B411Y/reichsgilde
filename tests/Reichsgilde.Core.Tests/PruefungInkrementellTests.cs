@@ -126,7 +126,7 @@ static class PruefungInkrementellTests
             _ = e.Gelaendeform.Punkthoehe(0, 0);
             for (var i = 0; i < 20; i++)
             {
-                var was = Werkstattaenderungen.Zufaellig(e, r, new[] { "weg-neu", "weg-verschieben", "weg-loeschen", "stuetzpunkt", "rueckgaengig", "wiederholen" });
+                var was = Werkstattaenderungen.Zufaellig(e, r, new[] { "weg-neu", "weg-verschieben", "weg-loeschen", "weg-breite", "stuetzpunkt", "mauer", "rueckgaengig", "wiederholen" });
                 if (Bettunterschied(e, Kartenentwurf.AusJson(e.ZuJson(), Katalog.Value)) is { } u) throw new Exception($"Änderung {i + 1} ({was}): {u}");
             }
             // weite Sprünge: dort, wo der Weg vorher lag, muss das Bett weg (die zufälligen Änderungen oben bleiben in der Nähe)
@@ -162,6 +162,50 @@ static class PruefungInkrementellTests
             for (var x = -40; x <= 40; x += 2)
                 for (var z = -40; z <= 40; z += 2)
                     Pruefe.Gleich(ganz.Hoehe(x, z), form.Hoehe(x, z), $"bei ({x}, {z})");
+        }),
+
+        ("Gelände in Häppchen: ein liegengebliebener Durchgang hinterlässt kein geleertes Bett, auch wenn danach der breiteste Weg schmaler wird (Befund der Prüfung)", () =>
+        {
+            // synthetisch: ein Durchgang leert seinen Bereich mit der Reichweite des breitesten Weges (20 m), bleibt liegen, dann fällt dieser Weg weg
+            var roh = new Hoehenraster();
+            for (var x = -100; x <= 100; x += 2)
+                for (var z = -100; z <= 100; z += 2)
+                    roh.WertSetzen(x / 2, z / 2, 100 * (x + 100) / 10 + 30 * z / 10);
+            var a = new List<Kartenort> { new(-30, 0), new(30, 0) };
+            var b = new List<Kartenort> { new(-30, 18), new(30, 18) };
+            var w = new List<Kartenort> { new(-30, 75), new(30, 75) };
+            var linien = new List<Bettlinie> { new(w, 20), new(a, 4), new(b, 4) };
+            var form = new Gelaendeform(roh, () => linien.ToList());
+            _ = form.Hoehe(0, 0);
+            var altA = Kartenrechteck.Um(a)!.Value.Vergroessert(2 + Gelaendeform.Bankett);
+            a = new List<Kartenort> { new(-30, 1), new(30, 1) };
+            linien[1] = new Bettlinie(a, 4);
+            form.LinienVeraltet(altA);
+            form.LinienVeraltet(Kartenrechteck.Um(a)!.Value.Vergroessert(2 + Gelaendeform.Bankett));
+            using (var lauf = form.AktualisierenSchritte().GetEnumerator())
+                Pruefe.Wahr(lauf.MoveNext(), "ein Häppchen, dann bleibt der Lauf liegen");
+            var altW = Kartenrechteck.Um(w)!.Value.Vergroessert(10 + Gelaendeform.Bankett);
+            linien.RemoveAt(0); // die Reichweite sinkt von 19 auf 11 m
+            form.LinienVeraltet(altW);
+            var ganz = new Gelaendeform(roh, () => linien.ToList());
+            for (var x = -40; x <= 40; x += 2)
+                for (var z = -40; z <= 40; z += 2)
+                    if (form.Hoehe(x, z) != ganz.Hoehe(x, z))
+                        throw new Exception($"bei ({x}, {z}): {form.Hoehe(x, z)} statt {ganz.Hoehe(x, z)}");
+
+            // Köln: die Prüfung bleibt in „Wasser: Gelände“ liegen, dann wird der breiteste Weg wieder schmal
+            var e = Lade("koeln");
+            var breit = e.Wege.Where(x => x.Punkte.Count >= 2).OrderByDescending(x => x.BreiteWirksam).First();
+            e.WegBreiteSetzen(breit, 20);
+            _ = e.Befunde.Count;
+            var markt = e.Gebaeude.First(g => g.Katalog == Stadtkarte.MarktKatalog);
+            var nah = e.Wege.Where(x => x != breit && x.Punkte.Count >= 2).OrderBy(x => x.Verlauf.Min(p => p.Abstand(markt.Punkt))).First();
+            e.WegVerschieben(nah, 1, 0);
+            while (!e.BefundeSchritt() && e.BefundeTeil != "Wasser: Gelände") { }
+            Pruefe.Gleich("Wasser: Gelände", e.BefundeTeil, "liegengeblieben im Bett");
+            e.WegBreiteSetzen(breit, 0);
+            Pruefe.Wahr(Bettunterschied(e, Kartenentwurf.AusJson(e.ZuJson(), Katalog.Value)) is null, "Köln: Bett wie neu");
+            Pruefe.Gleich(Frisch(e), Text(e.Befunde), "Köln: Befunde wie neu");
         }),
 
         ("Gelände in Häppchen: wer mitten im Lauf liest, bekommt das fertige Bett; der Lauf bricht danach ab – auch nach einer Änderung dazwischen", () =>

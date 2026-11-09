@@ -3,16 +3,17 @@ using Reichsgilde.Core.Kartenwerkstatt;
 
 /// <summary>
 /// Zufällige Änderungen in der Kartenwerkstatt für die Tests „in Häppchen und mit Vorrat gleich der vollen Prüfung“ (KapazitaetInHaeppchenTests,
-/// PruefungInkrementellTests): Wege anlegen, verschieben, löschen, umklassieren, Stützpunkte, Gebäude, Bauzonen, Gelände- und Bodenstriche,
-/// Rückgängig und Wiederholen – jeweils in der Nähe von etwas, das schon auf der Karte steht. Der Zufall ist der des Tests (fester Startwert).
+/// PruefungInkrementellTests): Wege anlegen, verschieben, löschen, umklassieren, breiter oder schmaler, Stützpunkte, Gebäude, Bauzonen, Mauern,
+/// Gelände- und Bodenstriche, Rückgängig und Wiederholen – jeweils in der Nähe von etwas, das schon auf der Karte steht. Der Zufall ist der des Tests
+/// (fester Startwert).
 /// </summary>
 static class Werkstattaenderungen
 {
     /// <summary>Alle Arten von Änderungen.</summary>
     public static readonly string[] Arten =
     {
-        "weg-neu", "weg-verschieben", "weg-loeschen", "weg-klasse", "stuetzpunkt", "gebaeude", "zone-neu", "zone-verschieben", "zone-loeschen",
-        "gelaende", "boden", "rueckgaengig", "wiederholen",
+        "weg-neu", "weg-verschieben", "weg-loeschen", "weg-klasse", "weg-breite", "stuetzpunkt", "gebaeude", "zone-neu", "zone-verschieben", "zone-loeschen",
+        "mauer", "gelaende", "boden", "rueckgaengig", "wiederholen",
     };
 
     static Kartenort O(double x, double z) => new(x, z);
@@ -58,6 +59,19 @@ static class Werkstattaenderungen
                     var w = e.Wege[r.Next(e.Wege.Count)];
                     e.WegKlasseSetzen(w, w.IstKarrenstrasse ? Wegklasse.Gasse : Wegklasse.Land);
                     return $"{art} {w.Name}";
+                }
+                case "weg-breite" when e.Wege.Count > 0:
+                {
+                    // breiter oder zurück auf die Vorgabe der Klasse (0) – auch der breiteste Weg kann schmaler werden
+                    var w = e.Wege[r.Next(e.Wege.Count)];
+                    e.WegBreiteSetzen(w, r.Next(3) == 0 ? 0 : w.BreiteWirksam + 2 + r.Next(10));
+                    return $"{art} {w.Name}";
+                }
+                case "mauer" when e.Mauern.Count > 0:
+                {
+                    var m = e.Mauern[r.Next(e.Mauern.Count)];
+                    e.MauerVerschieben(m, Math.Round((r.NextDouble() * 2 - 1) * 5, 1), Math.Round((r.NextDouble() * 2 - 1) * 5, 1));
+                    return $"{art} {m.Name}";
                 }
                 case "stuetzpunkt" when e.Wege.Count > 0:
                 {

@@ -256,13 +256,17 @@ public sealed class Wasserplan
 
     /// <summary>
     /// Rechnet den Plan in Häppchen, ein Weg je Häppchen (für einen Hintergrund-Lauf: die Startwege der Kartenprüfung, Kartenentwurf.StartwegSchritte);
-    /// dasselbe wie beim ersten Lesen. Hat ihn inzwischen jemand gelesen (und damit gerechnet), endet die Folge ohne Neues.
+    /// dasselbe wie beim ersten Lesen. Hat ihn inzwischen jemand gelesen (und damit gerechnet), endet die Folge beim nächsten Häppchen ohne Neues.
     /// </summary>
     internal IEnumerable<int> Schritte()
     {
         if (_stand is not null) yield break;
         (List<Wasserquerung>, List<Wegsperre>, List<Faehrverbindung>)? stand = null;
-        foreach (var _ in RechnenSchritte(s => stand = s)) yield return 0;
+        foreach (var _ in RechnenSchritte(s => stand = s))
+        {
+            yield return 0;
+            if (_stand is not null) yield break;
+        }
         _stand ??= stand;
     }
 

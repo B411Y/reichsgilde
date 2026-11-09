@@ -390,8 +390,8 @@ public sealed partial class Wasserform
 
     /// <summary>
     /// Rechnet die Gewässer in Häppchen, eins je Häppchen (die Kartenprüfung: ihre Regel „Wasser“ und die Startwege, Kartenentwurf.StartwegSchritte);
-    /// dasselbe wie beim ersten Lesen. Hat inzwischen jemand gelesen (und damit gerechnet), endet die Folge ohne Neues; kam eine Änderung dazwischen
-    /// (<see cref="AllesVeraltet"/>), bricht sie ab, ohne etwas zu merken.
+    /// dasselbe wie beim ersten Lesen. Hat inzwischen jemand gelesen (und damit gerechnet), endet die Folge beim nächsten Häppchen ohne Neues; kam eine
+    /// Änderung dazwischen (<see cref="AllesVeraltet"/>), bricht sie ab, ohne etwas zu merken.
     /// </summary>
     internal IEnumerable<int> Schritte()
     {
@@ -401,7 +401,7 @@ public sealed partial class Wasserform
         foreach (var _ in GewaesserRechnen(laeufe, roheSeen))
         {
             yield return 0;
-            if (stand != _aenderungen) yield break;
+            if (stand != _aenderungen || _stand is not null) yield break;
         }
         if (_stand is not null) yield break;
         _stand = MitVerbundUndBecken(laeufe, roheSeen);
