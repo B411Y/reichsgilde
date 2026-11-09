@@ -153,3 +153,12 @@ Die Kartenregeln selbst stehen in `docs/LEVELDESIGN.md`.
 | Ergebnis | `koeln.json` und die Vorschau-Bilder neu gebaut: 0 Fehler, dieselben 4 Hinweise, Katalog 0 Fehler und 13 Hinweise. Kapazität 7.197 Felder (vorher 7.608), Pflicht und Reserve passen, 79 % frei nach der Pflicht; 56 Bauzonen (49 aus dem Raster, vorher 57 und 50), Kern 13; 41 Restflächen (vorher 30). | 9.11.2026 |
 | Außerhalb des Bereichs | Tests mit Köln-Zahlen nachgezogen: `BauenTests` (56 Bauzonen, St. Gereon 14 × 30), `KartenbauTests` (Kapazität, Prüfsumme der Plätze), `RasterBauzonenTests` (49 Rasterzonen), `RestflaechenfuellungTests` (Köln jetzt 6 Höfe, 5 Pferche, 2 Wasserstellen, 5 Heuschober, 2 Steinmetzplätze, 1 Taubenschlag). | 9.11.2026 |
 
+### Felspinsel K: Kartenskript `felsen` (Branch phase5/fels-k-p3, PR folgt)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Befehl | `felsen <karte> --stempel\|--streuen <vorlage[@gestein]> <x,z;…>` (Plan K, nach dem Muster von `gelaende`): Vorlage wie in der Startoption der Werkstatt (Gruppe `wand`, `kuppe`, `rippe`, `wandgross` oder Formen mit `+`; `wand` allein ist die Gruppe), Schalter `--gestein`, `--radius`, `--dichte`, `--abstand`, `--groesse`, `--streuung`, `--einsinken`, `--neigung`, `--drehung`, `--startwert`, `--boden`, `--hang`, `--zumhang`, Filter wie bei `gelaende`, `--hoehe=<von>,<bis>`. Nur vorhandene Befehle des Kerns (`FelsStempeln`, `FelsStreuen`) | 09.11.2026 |
+| Stempel | Je Ort ein Stempel und ein Schritt; Startwert n, n+1 … (ohne Angabe aus Ort und Zahl der Stücke, wie in der Werkstatt) | 09.11.2026 |
+| Schreiben | Wie `gelaende`: nur ohne Fehler (Felsen geben nur Hinweise); setzt der Befehl kein Stück (außerhalb, Filter), bleibt die Datei, wie sie ist (Rückgabe 0). Eine angegebene, aber unlesbare Angabe (Zahl mit Komma, unbekanntes Gestein, `--boden=ja`) gilt nicht: Hilfe, Rückgabe 2 | 09.11.2026 |
+| Test | `FelsKartenskriptTests` (3): Drachenfels-Probe auf einer Kopie der Messstadt (Hügel 12 m, Große Wand mit Hang, zwei Kuppen, Schutt gestreut ab 5 % Steigung, alles Trachyt) – die Spielkarte lädt alle Stücke, zweimal ausgeführt dieselben Bytes; Ort außerhalb und Filter ohne Wirkung lassen die Datei gleich (Gegenprobe ohne Filter schreibt); Lesen der Angaben, Unlesbares gilt nicht | 09.11.2026 |
+| Köln | Noch keine Felsen im Stadtskript (Drachenfels-Kulisse, Steinbrüche): Das Skript kann sie jetzt setzen, wo und wie viele ist eine eigene Frage | 09.11.2026 |
