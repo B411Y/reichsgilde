@@ -129,6 +129,14 @@
           "lizenz": "CC0 1.0",
           "hinweis": "",
           "pflicht": false
+        },
+        {
+          "werk": "Probe-Passant mit Skelett: Körper, Gewichte und Spielskelett aus MakeHuman (MPFB 2), Bewegungen aus der Universal Animation Library 1 und 2 (bearbeitet, auf das eigene Skelett übertragen)",
+          "autor": "MakeHuman Community; Quaternius",
+          "quelle": "https://github.com/makehumancommunity/mpfb2 ; https://quaternius.com/packs/universalanimationlibrary.html ; https://quaternius.com/packs/universalanimationlibrary2.html",
+          "lizenz": "CC0 1.0",
+          "hinweis": "",
+          "pflicht": false
         }
       ],
       "dank": "Werkzeuge: Qwen-Image (Alibaba Qwen, Apache-2.0) für Bilder, TRELLIS.2 (Microsoft, MIT), AssetFurnace (Apache-2.0), SkinTokens (MIT) und Kimodo (NVIDIA Open Model License) für das KI-Schmiedmodell, Blender und ComfyUI. Das Schmiedmodell ist eine KI-Arbeit."
