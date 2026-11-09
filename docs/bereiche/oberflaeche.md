@@ -293,8 +293,8 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 | Thema | Entscheidung | Datum |
 |---|---|---|
-| Tafel Felsstück | `Kartenwerkstatt.Felslage.cs`: Tooltips der Gizmo-Knöpfe nennen die Pfeiltasten (links, oben, rechts; Achsen: unten); „Auf den Boden (End)“; neuer Knopf „Kopieren (Strg+D)“; neue Zeile Auswahl mit „Gleiche Form“, „Gleiches Gestein“, „Umkehren (Strg+I)“, „Alle (Strg+A)“. Die Hilfe unter den Knöpfen nennt die Pfeiltasten in Worten (keine Pfeilzeichen: die Schrift hat sie vielleicht nicht) | 09.11.2026 |
-| Tastenhilfe unten | `Kartenwerkstatt.Tafeln.cs`: Zeile für ein gewähltes Felsstück mit Pfeiltasten, End/B, Q/E, Strg+D, Rahmen und Strg+A; beim Stempeln der Zusatz „danach steht der Gizmo an den neuen Stücken“; im Werkzeug Auswahl „Ziehen ins Leere: Rahmen um Felsen“. Entscheidungen zu Tasten und Verhalten in `darstellung.md` („Felspinsel P2“) | 09.11.2026 |
+| Tafel Felsstück | `Kartenwerkstatt.Felslage.cs`: Tooltips der Gizmo-Knöpfe nennen die Tasten R, T, Z (Achsen: U); „Auf den Boden (End)“; neuer Knopf „Kopieren (Strg+D)“; neue Zeile Auswahl mit „Gleiche Form“, „Gleiches Gestein“, „Umkehren (Strg+I)“, „Alle (Strg+A)“. Die Hilfe unter den Knöpfen nennt die Gizmo-Tasten und das Schieben mit den Pfeiltasten in Worten (keine Pfeilzeichen: die Schrift hat sie vielleicht nicht) | 09.11.2026 |
+| Tastenhilfe unten | `Kartenwerkstatt.Tafeln.cs`: Zeile für ein gewähltes Felsstück mit R/T/Z/U, Pfeiltasten zum Schieben (Umschalt, Strg, Alt), End/B, Q/E, Strg+D, Rahmen und Strg+A; beim Stempeln der Zusatz „danach steht der Gizmo an den neuen Stücken“; im Werkzeug Auswahl „Ziehen ins Leere: Rahmen um Felsen“. Entscheidungen zu Tasten und Verhalten in `darstellung.md` („Felspinsel P2“) | 09.11.2026 |
 
 ### Schilder und Ampeln des Fahrwegs (PR #282)
 
