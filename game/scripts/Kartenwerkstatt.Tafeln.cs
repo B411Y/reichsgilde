@@ -230,6 +230,7 @@ public partial class Kartenwerkstatt
         var zeile = _stadt.Kartenwerkzeug switch
         {
             Werkstattwerkzeug.Baustein => "Klick setzt · Q/E dreht (15°, mit Alt 1°) · Alt: frei verschieben · Esc oder Rechtsklick: fertig",
+            Werkstattwerkzeug.Hofstelle => "Klick setzt Werkstatt- und Wohnhausplatz nebeneinander (Mitte des Ganzen) · Q/E dreht (15°, mit Alt 1°) · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Pflanze => "Klick setzt die Pflanze · Q/E dreht · Esc oder Rechtsklick: fertig",
             Werkstattwerkzeug.Weg => "Punkte klicken (rasten aufs Raster, Alt: frei, Umschalt: 45°-Winkel, V: Raster aus/an) · Doppelklick oder Enter: fertig · Rücktaste: letzter Punkt weg · Esc bricht ab · Ring: rastet ein (weiß Weg, orange Hof, blau Tor, grün Halteplatz)",
             Werkstattwerkzeug.Bauzone or Werkstattwerkzeug.Wald or Werkstattwerkzeug.Streu or Werkstattwerkzeug.Feld or Werkstattwerkzeug.Aussparung =>

@@ -665,6 +665,14 @@ public partial class Kartenwerkstatt : Node
                     var g = _entwurf.Setzen(t[0], Zahl(t[1]), Zahl(t[2]), t.Length > 3 ? Zahl(t[3]) : 0);
                     _stadt.WerkstattWaehlen(g.Kennung);
                 }
+            // --werkstatt-hofstelle=x,z[,drehung[,start]] (mehrere mit ;): setzt Werkstatt- und Wohnhausplatz wie das Werkzeug „Hofstelle“
+            if (o.TryGetValue("werkstatt-hofstelle", out var hofstellen))
+                foreach (var eintrag in hofstellen.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var t = eintrag.Split(',');
+                    var h = _entwurf.HofstelleSetzen(Zahl(t[0]), Zahl(t[1]), t.Length > 2 ? Zahl(t[2]) : 0, t.Length > 3 && t[3] == "start");
+                    _stadt.WerkstattWaehlen(h.Werkstatt);
+                }
             // --werkstatt-mauer=x1,z1;x2,z2;…[,offen] (ohne „offen“ ab drei Ecken geschlossen)
             if (o.TryGetValue("werkstatt-mauer", out var mauern))
                 foreach (var eintrag in mauern.Split('|', StringSplitOptions.RemoveEmptyEntries))
@@ -857,7 +865,7 @@ public partial class Kartenwerkstatt : Node
             if (o.TryGetValue("werkstatt-umriss", out var umriss))
             {
                 var t = umriss.Split(',');
-                KatalogWaehlen(t[0]);
+                KatalogWaehlen(t[0]); // auch „hofstelle“
                 _stadt.WerkstattDrehung = t.Length > 3 ? Zahl(t[3]) : 0;
                 _stadt.WerkstattUmrissSetzen(Zahl(t[1]), Zahl(t[2]));
             }
