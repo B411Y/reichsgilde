@@ -63,6 +63,7 @@ STOFFE = {  # Name: (Zone, feste Farbe sRGB, Schicht der Material-Bibliothek ode
     "Holz": (0, (0.38, 0.26, 0.15), None),
     "Eisen": (0, (0.30, 0.30, 0.32), None),
     "Holzschuh": (0, (0.50, 0.38, 0.24), None),
+    "Hauer": (0, (0.84, 0.79, 0.64), None),
     "Flicken": (0, (0.30, 0.25, 0.19), "tuch"),
 }
 STOFF_NAMEN = list(STOFFE)
@@ -123,7 +124,38 @@ SCHLEIFE_SCHLIESSEN = {"Buecken"}
 FIGUREN = {
     "mann": {"datei": "passant_probe.glb", "gender": 1.0, "varianten": ("cotte", "gugel", "rock", "bettler")},
     "frau": {"datei": "passant_probe_frau.glb", "gender": 0.0, "varianten": ("haube", "gebende", "bettler")},
+    # Schritt 3 des Vollausbaus (Entwurf): Orks und Oger aus demselben Grundnetz und Skelett, eigene Maße über MPFB-Makros und Formziele
+    # (docs/WELT.md: Orks Söldner, Jäger, Knechte, „kurz und rau“, Hauer und grünliche Haut; Oger riesig, schwerste Arbeit). Die Größe im
+    # Spiel bleibt beim Volksfaktor (FigurMasse: Ork 1,1, Oger 1,35); das Modell selbst hat Menschengröße mit anderen Proportionen.
+    "ork": {"datei": "passant_probe_ork.glb", "gender": 1.0, "varianten": ("cotte", "gugel"), "hauer": True,
+            "makros": {"muscle": 1.0, "weight": 0.65, "height": 0.5, "proportions": 0.2},
+            "ziele": {"measure-shoulder-dist-incr": 0.7, "torso-scale-horiz-incr": 0.4, "torso-muscle-dorsi-incr": 0.6,
+                      "measure-neck-height-decr": 0.7, "neck-scale-horiz-incr": 0.6,
+                      "measure-upperarm-length-incr": 0.5, "measure-lowerarm-length-incr": 0.5, "hand-scale-incr": 0.5,
+                      "measure-upperleg-height-decr": 0.3, "upperarm-muscle-incr": 0.5,
+                      "chin-width-incr": 0.8, "chin-prognathism-incr": 0.7, "chin-height-incr": 0.3, "eyebrows-trans-forward": 0.9,
+                      "forehead-trans-backward": 0.6, "forehead-scale-vert-decr": 0.5, "nose-flaring-incr": 0.8,
+                      "nose-scale-horiz-incr": 0.6, "nose-point-up": 0.5, "nose-scale-vert-decr": 0.4, "ear-scale-incr": 0.3,
+                      "ear-rot-backward": 0.5, "mouth-scale-horiz-incr": 0.5}},
+    "oger": {"datei": "passant_probe_oger.glb", "gender": 1.0, "varianten": ("cotte", "gugel"), "hauer": False,
+             "makros": {"muscle": 0.8, "weight": 1.0, "height": 0.55, "proportions": 0.0},
+             "ziele": {"stomach-pregnant-incr": 1.0, "measure-shoulder-dist-incr": 0.6, "torso-scale-horiz-incr": 1.0,
+                       "torso-scale-depth-incr": 1.0, "measure-neck-height-decr": 0.6, "neck-scale-horiz-incr": 0.6,
+                       "head-scale-horiz-decr": 0.45, "head-scale-vert-decr": 0.45, "head-fat-incr": 0.5,
+                       "measure-upperarm-length-incr": 0.6, "measure-lowerarm-length-incr": 0.6, "hand-scale-incr": 1.0,
+                       "foot-scale-incr": 0.5, "upperarm-fat-incr": 1.0, "lowerarm-muscle-incr": 0.8, "upperleg-fat-incr": 0.8,
+                       "measure-upperleg-height-decr": 0.4,
+                       "chin-width-incr": 1.0, "chin-prognathism-incr": 0.6, "eyebrows-trans-forward": 1.0, "eyebrows-trans-down": 0.6,
+                       "forehead-trans-backward": 0.8, "forehead-scale-vert-decr": 0.8, "nose-volume-incr": 0.8,
+                       "nose-scale-horiz-incr": 0.9, "nose-flaring-incr": 0.6, "mouth-scale-horiz-incr": 0.6, "ear-scale-incr": 0.4}},
 }
+
+# Vergleichsbild der Völker (Schritt 3): Größe im Spiel je Volk (FigurMasse, Größe Y), Menschen 1
+VERGLEICH_MASS = {"mann": 1.0, "frau": 1.0, "ork": 1.1, "oger": 1.35}
+VERGLEICH = []
+
+# Hautfarbe der Vorschau je Volk (sRGB); das Spiel setzt seine eigene (ProbeHaut)
+VORSCHAU_HAUT = {"ork": (0.42, 0.50, 0.30), "oger": (0.60, 0.54, 0.45)}
 
 # Fußformen: eigene Netze, für nah und fern dieselben (Schritt 1 des Vollausbaus): Halbschuh aus Leder (Bürger), Holzschuh (Arme, Bauern),
 # barfuß (nur Bettler)
@@ -205,7 +237,7 @@ def kopie(quelle, name):
 #  1. Mensch aus MPFB
 # ─────────────────────────────────────────────────────────────────────────────
 
-def mensch_bauen(gender):
+def mensch_bauen(gender, makros_extra=None, ziele=None):
     addon_utils.enable("bl_ext.user_default.mpfb", default_set=True, persistent=False)
     mpfb = sys.modules["bl_ext.user_default.mpfb"]
     BERICHT["quellen"]["mpfb"] = str(getattr(mpfb, "VERSION", "2.0.18"))
@@ -215,8 +247,20 @@ def mensch_bauen(gender):
     # etwa 25 Jahre, mittlere Kraft und Statur; Herkunft wie bei den Porträtköpfen (charakter-werkzeug)
     makros.update({"gender": gender, "age": 0.5, "muscle": 0.5, "weight": 0.5, "height": 0.5, "proportions": 0.5})
     makros["race"] = {"caucasian": 1.0, "asian": 0.0, "african": 0.0}
+    makros.update(makros_extra or {})
     mensch = hs.create_human(mask_helpers=False, detailed_helpers=True, extra_vertex_groups=True,
                              feet_on_ground=True, macro_detail_dict=makros)
+    # Formziele (Orks, Oger) vor dem Skelett, damit das Skelett auf die neue Form passt; „hand-scale-incr“ usw. ohne Seite gilt für beide
+    for name, wert in (ziele or {}).items():
+        namen = [name] if name.startswith(("measure", "torso", "neck", "head", "chin", "eyebrows", "forehead", "nose", "mouth",
+                                           "stomach", "lowerlegs", "upperlegs")) else [f"l-{name}", f"r-{name}"]
+        for n in namen:
+            pfad = ts.target_full_path(n)
+            if pfad is None:
+                raise RuntimeError("Formziel fehlt: " + n)
+            ts.load_target(mensch, pfad, weight=wert, name=n)
+    if ziele:
+        BERICHT.setdefault("formziele", {})[str(gender)] = dict(ziele)
     rig = hs.add_builtin_rig(mensch, "game_engine")
     ts.bake_targets(mensch)
     for m in list(mensch.modifiers):
@@ -740,6 +784,39 @@ def rock_bauen(rockhelfer, masse, saum, name):
             obj.vertex_groups["thigh_l"].add([v.index], wl, "REPLACE")
         if wr > 1e-4:
             obj.vertex_groups["thigh_r"].add([v.index], wr, "REPLACE")
+    return obj
+
+
+def hauer_bauen(koerper, masse):
+    """Hauer der Orks (docs/spielbuch/erbgut.md): zwei kleine Kegel aus dem Unterkiefer neben den Mundwinkeln, nach oben und leicht
+    nach außen, starr am Kopf. Die Lage misst sich am Netz: die vordersten Punkte des Gesichts knapp über dem Kinn."""
+    me = koerper.data
+    k = masse["kopfmitte"]
+    vorn = [v.co for v in me.vertices if abs(v.co.x) < 0.035 and masse["kinn"] - 0.01 < v.co.z < masse["kinn"] + 0.05 and v.co.y < k.y]
+    y_vorn = min(c.y for c in vorn) if vorn else k.y - 0.09
+    mund = [c for c in vorn if c.y < y_vorn + 0.02]
+    z_mund = sorted(c.z for c in mund)[len(mund) // 3] if mund else masse["kinn"] + 0.02
+    bm = bmesh.new()
+    n = 5
+    for s in (1, -1):
+        fuss = Vector((s * 0.021, y_vorn + 0.012, z_mund - 0.006))
+        richtung = Vector((s * 0.25, -0.15, 1.0)).normalized()
+        quer = Vector((1, 0, 0)).cross(richtung).normalized()
+        quer2 = richtung.cross(quer)
+        ring = [bm.verts.new(fuss + 0.0055 * (math.cos(2 * math.pi * i / n) * quer + math.sin(2 * math.pi * i / n) * quer2)) for i in range(n)]
+        spitze = bm.verts.new(fuss + richtung * 0.024)
+        for i in range(n):
+            bm.faces.new((ring[i], ring[(i + 1) % n], spitze))
+        bm.faces.new(list(reversed(ring)))
+    bm.normal_update()
+    me2 = bpy.data.meshes.new("Hauer")
+    bm.to_mesh(me2)
+    bm.free()
+    obj = neues_objekt("Hauer", me2)
+    stoffe_anlegen(obj)
+    for p in me2.polygons:
+        p.material_index = stoff("Hauer")
+    obj.vertex_groups.new(name="head").add(list(range(len(me2.vertices))), 1.0, "REPLACE")
     return obj
 
 
@@ -1596,9 +1673,9 @@ def masse_messen(rig):
 def figur_bauen(art, quellen):
     cfg = FIGUREN[art]
     for o in list(bpy.data.objects):
-        if o.name not in [q.name for q in quellen.values()] and o not in QUELLNETZE.values():
+        if o.name not in [q.name for q in quellen.values()] and o not in QUELLNETZE.values() and o not in VERGLEICH:
             bpy.data.objects.remove(o)
-    mensch, rig, makros = mensch_bauen(cfg["gender"])
+    mensch, rig, makros = mensch_bauen(cfg["gender"], cfg.get("makros"), cfg.get("ziele"))
     haende_entspannen(mensch, rig)
     masse = masse_messen(rig)
     bericht = {"makros": makros, "masse": {k: (list(v) if isinstance(v, Vector) else v) for k, v in masse.items()}, "netze": {},
@@ -1620,7 +1697,7 @@ def figur_bauen(art, quellen):
     rock_lang = rock_bauen(rockhelfer, masse, masse["knoechel"] + 0.05, "RockLang")
     hilfen = [koerper, koerper_knie, koerper_lang, rock_knie, rock_lang, rockhelfer, haarhelfer, fuesse_roh] + schuhe["halb"] + schuhe["holz"]
     teile = {}
-    if art == "mann":
+    if cfg["gender"] >= 0.5:
         haar = kopfteil_bauen(koerper, masse, "Haar", "haar")[0]
         gugel = kopfteil_bauen(koerper, masse, "Gugel", "gugel")
         k_cotte = kopf_aussparen(koerper_knie, masse, "haar", "KoerperCotte")
@@ -1635,6 +1712,11 @@ def figur_bauen(art, quellen):
             "rock": [k_rock, rock_lang, haar],
             "bettler": [k_bettler, r_bettler, haar],
         }
+        if cfg.get("hauer"):
+            hauer = hauer_bauen(koerper, masse)
+            hilfen.append(hauer)
+            for liste in teile.values():
+                liste.append(hauer)
     else:
         haube = kopfteil_bauen(koerper, masse, "Haube", "haube")
         gebende = kopfteil_bauen(koerper, masse, "Gebende", "gebende")
@@ -1648,6 +1730,7 @@ def figur_bauen(art, quellen):
             "gebende": [k_gebende, rock_lang] + gebende,
             "bettler": [k_bettler, r_bettler] + haube,
         }
+    teile = {k: v for k, v in teile.items() if k in cfg["varianten"]}
     netze = []
     for variante, liste in teile.items():
         for stufe, ziel in (("Nah", NAH_ZIEL), ("Fern", FERN_ZIEL)):
@@ -1729,8 +1812,10 @@ def hauptteil():
     bpy.context.scene.render.fps = FPS
     quellen = {"ual1": ual_laden(OPT["ual1"]), "ual2": ual_laden(OPT["ual2"])}
     for art in FIGUREN:
-        if OPT.get("nur", art) == art:
+        if art in OPT.get("nur", art).split(","):
             BERICHT[art] = figur_bauen(art, quellen)
+    if len({k["volk"] for k in VERGLEICH}) > 1 and "bilder" in OPT:
+        vergleich_rendern(OPT["bilder"])
     if "bericht" in OPT:
         with open(OPT["bericht"], "w", encoding="utf-8") as f:
             json.dump(BERICHT, f, indent=1, ensure_ascii=False, default=str)
@@ -1742,6 +1827,36 @@ def hauptteil():
 # ─────────────────────────────────────────────────────────────────────────────
 
 _SCHICHTBILDER = {}
+
+
+def vergleich_rendern(ordner):
+    """Alle gebauten Völker nebeneinander in ihrer Spielgröße (Mensch, Ork, Oger), von vorn schräg und von der Seite, dazu die Köpfe."""
+    sc = bpy.context.scene
+    for o in sc.objects:
+        if o.type == "MESH":
+            o.hide_render = True
+    reihe = []
+    for k in VERGLEICH:
+        if k["volk"] not in [r for r in reihe]:
+            reihe.append(k["volk"])
+    abstand = 0.95
+    for k in VERGLEICH:
+        i = reihe.index(k["volk"])
+        k.location.x = (i - (len(reihe) - 1) / 2) * abstand
+        k.hide_render = False
+    cam = bpy.data.objects["Kamera"]
+    sc.camera = cam
+    hoehe = 1.0
+    sc.render.resolution_x, sc.render.resolution_y = 1400, 1100
+    for name, von, mitte, groesse in (("vergleich_voelker", Vector((1.6, -5.0, 1.2)), Vector((0, 0, 1.05)), 3.0),
+                                      ("vergleich_voelker_seite", Vector((5.0, -1.2, 0.4)), Vector((0, 0, 1.05)), 3.0),
+                                      ("vergleich_koepfe", Vector((0.8, -5.0, 0.4)), Vector((0, 0, 1.55)), 2.9)):
+        cam.data.ortho_scale = groesse
+        cam.location = mitte + von
+        cam.rotation_euler = (-von).to_track_quat("-Z", "Y").to_euler()
+        sc.render.filepath = os.path.join(ordner, name + ".png")
+        bpy.ops.render.render(write_still=True)
+    sc.render.resolution_x, sc.render.resolution_y = 900, 1000
 
 
 def schichtbild(name):
@@ -1864,7 +1979,9 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen)
         basis = me.color_attributes["Farbe"].data
         v = me.color_attributes.new("Vorschau", "BYTE_COLOR", "CORNER")
         variante = obj.name.split("_")[-1]
-        pal = VORSCHAU.get(variante, VORSCHAU["cotte"])
+        pal = dict(VORSCHAU.get(variante, VORSCHAU["cotte"]))
+        if art in VORSCHAU_HAUT:
+            pal[3] = VORSCHAU_HAUT[art]
         werte = []
         for li in range(len(me.loops)):
             z = int(round(zone[li].uv[0]))
@@ -1901,7 +2018,8 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen)
             sc.frame_set(20)
             for o in alle:
                 o.hide_render = o is not obj and o is not fuss
-            blick(Vector((0, 0, 1.55)), 0.55, Vector((1.4, -4.0, 0.9)))
+            kopf_z = rig.data.bones["Head"].head_local.z - 0.04
+            blick(Vector((0, 0, kopf_z)), 0.55 * kopf_z / 1.55, Vector((1.4, -4.0, 0.9)))
             sc.render.filepath = os.path.join(ordner, f"{art}_{variante}_kopf.png")
             bpy.ops.render.render(write_still=True)
             blick(Vector((0, -0.05, 0.12)), 0.6, Vector((2.0, -3.4, 1.6)))
@@ -1937,8 +2055,23 @@ def vorschau(art, rig, netze, fuesse, last, werkzeug, aktionen, ordner, quellen)
     for k in kopien:
         bpy.data.objects.remove(k)
     sc.render.resolution_x, sc.render.resolution_y = 900, 1000
+    # Völkervergleich: die erste Variante stehend in der Größe des Spiels, für das gemeinsame Bild am Ende
+    if art in VERGLEICH_MASS:
+        rig.animation_data.action = aktionen["Stehen"][0]
+        sc.frame_set(20)
+        quelle = varianten[0]
+        for teil in (quelle, fuesse[VORSCHAU_FUSS.get(quelle.name.split("_")[-1], "halb")]):
+            dg = bpy.context.evaluated_depsgraph_get()
+            me = bpy.data.meshes.new_from_object(teil.evaluated_get(dg))
+            k = neues_objekt(f"Vergleich_{art}_{teil.name}", me)
+            k.matrix_world = rig.matrix_world
+            k.scale = Vector((1, 1, 1)) * VERGLEICH_MASS[art]
+            k["volk"] = art
+            me.color_attributes.active_color = me.color_attributes["Vorschau"]
+            k.hide_render = True
+            VERGLEICH.append(k)
     # Vergleich: die Quaternius-Puppe im selben Bild ihres Clips (nur einmal, beim Mann)
-    if art == "mann":
+    if art == "mann" and OPT.get("quelle", "1") == "1":
         for bewegung, bild in posen:
             q, clip = BEWEGUNGEN[bewegung]
             qrig = quellen[q]
