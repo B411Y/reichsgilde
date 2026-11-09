@@ -143,6 +143,20 @@ public sealed class Kartengeschichte
         return true;
     }
 
+    /// <summary>Der Befehl, den Rückgängig als nächstes zurücknähme, solange nichts zum Wiederholen da ist (sonst null) – zum Zusammenfassen gleichartiger Schritte.</summary>
+    internal IKartenbefehl? LetzterOhneWiederholen => _vor.Count == 0 ? _zurueck.Last?.Value : null;
+
+    /// <summary>
+    /// Nimmt den letzten Schritt zurück und vergisst ihn (kein Wiederholen): Danach legt der Aufrufer einen zusammengefassten Schritt an seine Stelle
+    /// (<see cref="Kartenentwurf.FelsSchieben"/>). Ohne Meldung – die kommt mit dem neuen Schritt.
+    /// </summary>
+    internal void LetztenVerwerfen()
+    {
+        if (_zurueck.Last is not { } letzter) return;
+        _zurueck.RemoveLast();
+        letzter.Value.Zuruecknehmen(_entwurf);
+    }
+
     public bool Wiederholen()
     {
         _entwurf.FelsStrichBeenden();
