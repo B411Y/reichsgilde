@@ -13,6 +13,9 @@ namespace Reichsgilde;
 /// </summary>
 public partial class Stadtansicht
 {
+    /// <summary>Die Summe der Bytes je Kachel, wie die Wegeschicht sie zuletzt gerechnet hat (nur mit der Prüfsumme der Messung).</summary>
+    private readonly Dictionary<(int I, int J), string> _schichtSummen = new();
+
     private static string Kurz(IEnumerable<string> zeilen, bool sortiert)
     {
         var liste = sortiert ? zeilen.OrderBy(z => z, StringComparer.Ordinal).ToList() : zeilen.ToList();
@@ -45,10 +48,8 @@ public partial class Stadtansicht
         foreach (var ((i, j), k) in _gelaendeKacheln.OrderBy(e => e.Key))
             kacheln.Add($"{i},{j} {NetzSumme(k.Mesh as ArrayMesh)}");
         teile.Add("Gelaende=" + Kurz(kacheln, false));
-        var schicht = new List<string>();
-        foreach (var ((i, j), s) in _schichtKacheln.OrderBy(e => e.Key))
-            schicht.Add($"{i},{j} {Kurz(s.Bild.GetImage().GetData())} {Kurz(s.Info.GetImage().GetData())} {Kurz(s.Spur.GetImage().GetData())}");
-        teile.Add("Wegeschicht=" + Kurz(schicht, false));
+        // die Bilder der Wegeschicht: die Summen der gerechneten Bytes (die Textur selbst gibt headless nichts her)
+        teile.Add("Wegeschicht=" + Kurz(_schichtSummen.OrderBy(e => e.Key).Select(e => $"{e.Key.I},{e.Key.J} {e.Value}"), false));
         var wege = new List<string>();
         if (_wsWegeKnoten is not null)
             foreach (var w in _wsWegeKnoten.GetChildren()) if (w is Node3D n) KnotenSummen(n, Transform3D.Identity, wege, "");
