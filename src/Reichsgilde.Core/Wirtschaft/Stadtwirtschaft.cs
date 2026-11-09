@@ -138,6 +138,9 @@ public sealed partial class Stadtwirtschaft
     /// <summary>Was die wichtigen Personen voneinander halten, und die Aktivitäten (Charaktersystem Teil 2, PR #231).</summary>
     public Meinungswesen Meinungen { get; }
 
+    /// <summary>Geheimnisse (Charaktersystem Teil 3c): Ehebruch, Ketzerei, Schulden, Mord – entdecken, erpressen, anzeigen, bloßstellen.</summary>
+    public Geheimnisse.Geheimniswesen Geheimnisse { get; }
+
     /// <summary>Das Stadtgericht: Spuren, Spitzel, Beweise und Anklagen.</summary>
     public Stadtgericht Justiz { get; }
 
@@ -412,6 +415,7 @@ public sealed partial class Stadtwirtschaft
         Familien.LebenswirkungGeaendert += konto => { foreach (var b in _betriebe.Where(b => b.Konto == konto)) b.HauswirkungNeu(); };
         Entwicklerhilfe = new Entwickler.Entwicklerhilfe(this);
         Meinungen = new Meinungswesen(this, daten.Meinungen, zufallsstartwert);
+        Geheimnisse = new Geheimnisse.Geheimniswesen(this, daten.Geheimnisse, zufallsstartwert); // nach Rat und Familien: Geheimnisse der Ratsherren zu Partiebeginn
         Justiz = new Stadtgericht(this, daten.Justiz, zufallsstartwert);
         Gauner = new Unterwelt(this, daten.Gauner, zufallsstartwert);
         Diebe = new Diebeswesen(this, daten.Dieb, zufallsstartwert);
@@ -474,7 +478,9 @@ public sealed partial class Stadtwirtschaft
 
     /// <summary>Was ein Befehl an Aktionspunkten kostet (0 = frei) – ohne Ansehen des Hauses.</summary>
     public int ApKosten(Befehl befehl) =>
-        Daten.Aktionspunkte is null ? 0 : befehl is Aktivitaet a ? Meinungen.ApKosten(a.Art) : Daten.Aktionspunkte.KostenFuer(befehl);
+        Daten.Aktionspunkte is null ? 0 : befehl is Aktivitaet a ? Meinungen.ApKosten(a.Art)
+        : befehl is GeheimnisNutzen g ? Geheimnisse.ApKosten(g.Nutzung) // je Nutzung aus "geheimnisse.ap" (Teil 3c)
+        : Daten.Aktionspunkte.KostenFuer(befehl);
 
     /// <summary>
     /// Was ein Befehl dieses Haus kostet. Fast immer wie <see cref="ApKosten(Befehl)"/>; nur das Üben hängt
@@ -720,6 +726,7 @@ public sealed partial class Stadtwirtschaft
         Wegebau.Jahresende(); // Verkehr des Jahres: Austritt, Verfall, Wegekasse – vor der Ratssitzung
         Gesundheit.Jahresende();  // Kranke sterben oder genesen – mit dem alten Jahr
         Familien.Jahreswechsel(); // Tod und Erbfall vor der Ratssitzung: Ein verwaistes Amt wird gleich neu besetzt
+        Geheimnisse.Jahreswechsel(); // Geheimnisse (Teil 3c): Tote hüten keine mehr, neue entstehen, Gerede, Beichte, der Ehepartner
         Gesundheit.NeuesJahr();   // Pest und neue Krankheiten
         Gastwirtschaft.Jahresende(); // Stammtisch-Gunst vor der Ratssitzung (Wahlen)
         Glaube.Jahresende();        // Ketzerkirchen (mit dem Kirchenbuch des Jahres), Anteile kehren zurück
@@ -879,6 +886,10 @@ public sealed partial class Stadtwirtschaft
             return _betriebe.FirstOrDefault(b => b.Name == ablass.Kirche) is { } kirche
                 ? Kirchenwesen.AblassKaufen(absender, kirche)
                 : Befehlsergebnis.Abgelehnt($"Eine Kirche „{ablass.Kirche}“ gibt es nicht.");
+        if (befehl is BeichtgeheimnisBrechen { Haus: var beichteZiel } && beichteZiel.StartsWith("R:", StringComparison.Ordinal)) // ein Ratsherr: nur Geheimnisse (Teil 3c)
+            return Rat.RatsherrNamens(beichteZiel[2..]) is { } beichtRatsherr
+                ? Kirchenwesen.BeichtgeheimnisBrechen(absender, beichtRatsherr)
+                : Befehlsergebnis.Abgelehnt($"Einen Ratsherrn „{beichteZiel[2..]}“ gibt es nicht.");
         if (befehl is BeichtgeheimnisBrechen beichte)
             return _konten.FirstOrDefault(k => k.Inhaber == beichte.Haus) is { } beichtHaus
                 ? Kirchenwesen.BeichtgeheimnisBrechen(absender, beichtHaus)
@@ -921,10 +932,14 @@ public sealed partial class Stadtwirtschaft
             return Befugnisse.StreifeVerlegen(absender, streife.Viertel);
         if (befehl is GefangenenFreilassen freilassen)
             return Befugnisse.GefangenenFreilassen(absender, freilassen.Haus);
+        if (befehl is GeheimnisNutzen nutzen)
+            return Geheimnisse.Nutzen(absender, nutzen.Geheimnis, nutzen.Nutzung, nutzen.Betrag);
         if (befehl is SpitzelAnsetzen or Anklagen)
         {
             if (!Justiz.IstAktiv)
                 return Befehlsergebnis.Abgelehnt("In dieser Stadt gibt es kein Gericht.");
+            if (befehl is SpitzelAnsetzen { Haus: var spitzelZiel } && spitzelZiel.StartsWith("R:", StringComparison.Ordinal))
+                return Geheimnisse.RatsspitzelAnsetzen(absender, spitzelZiel[2..]); // auf einen Ratsherrn: nur Geheimnisse (Teil 3c)
             var haus = befehl is SpitzelAnsetzen s ? s.Haus : ((Anklagen)befehl).Haus;
             if (_konten.FirstOrDefault(k => k.Inhaber == haus) is not { } ziel)
                 return Befehlsergebnis.Abgelehnt($"Ein Haus „{haus}“ gibt es nicht.");
@@ -1306,6 +1321,7 @@ public sealed partial class Stadtwirtschaft
         Befugnisse = Kasse.IstAktiv ? Befugnisse.Sichern(k => _konten.IndexOf(k)) : null,
         Meinungen = Meinungen.Sichern(k => _konten.IndexOf(k)),
         Blitz = Blitz.IstAktiv ? Blitz.Sichern(k => _konten.IndexOf(k)) : null,
+        Geheimnisse = Geheimnisse.IstAktiv ? Geheimnisse.Sichern(k => _konten.IndexOf(k)) : null,
     };
 
     /// <summary>
@@ -1374,6 +1390,7 @@ public sealed partial class Stadtwirtschaft
         if (s.Glaube is { } glaubeStand && Glaube.IstAktiv)
             Glaube.Wiederherstellen(glaubeStand, _konten);
         Meinungen.Wiederherstellen(s.Meinungen, s.Rat?.Gunst, _konten); // nach Rat und Familien: alte Gunst → Grund „Geschenke“
+        if (Geheimnisse.IstAktiv) Geheimnisse.Wiederherstellen(s.Geheimnisse, _konten); // nach Rat und Familien (Kennungen der Inhaber)
         if (s.Einwohner is { } einwohnerStand && Einwohnerschaft.IstAktiv)
             Einwohnerschaft.Wiederherstellen(einwohnerStand);
         Werkstaetten.Wiederherstellen(s.WerkstattWuerfe);

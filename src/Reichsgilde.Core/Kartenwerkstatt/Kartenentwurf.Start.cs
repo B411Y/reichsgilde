@@ -213,7 +213,11 @@ public sealed partial class Kartenentwurf
     public Wirtschaftsdaten? Daten
     {
         get => _wirtschaftsdaten;
-        set => (_wirtschaftsdaten, _befunde) = (value, null);
+        set
+        {
+            _wirtschaftsdaten = value;
+            BefundeVerwerfen();
+        }
     }
 
     private Wirtschaftsdaten? _wirtschaftsdaten;

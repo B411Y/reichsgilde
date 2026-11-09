@@ -347,9 +347,11 @@ public sealed class Ratssitzung
         var stimmen = new List<Sitzungsstimme>();
         foreach (var sitz in rat.Aemter.Where(a => a.IstBesetzt))
         {
-            var ja = stimme(sitz);
+            var stimmSitz = rat.StimmSitz(sitz); // erpresst: wie der Sitz des Erpressers (Teil 3c) – dieselbe Regel wie beim Zählen
+            var ja = stimme(stimmSitz);
             var haus = sitz.Konto;
-            string text2 = sitz.Ratsherr is not null ? grund(sitz, ja)
+            string text2 = stimmSitz != sitz ? $"Erpresst von {rat.Erpresser(sitz)!.Inhaber} – stimmt wie {rat.Erpresser(sitz)!.Inhaber}."
+                : sitz.Ratsherr is not null ? grund(sitz, ja)
                 : haus == antragsteller ? "Eigener Antrag."
                 : IstKi(haus!) ? grund(sitz, ja)
                 : ja is null ? "Keine Stimme gesetzt – Enthaltung."
@@ -380,7 +382,10 @@ public sealed class Ratssitzung
             zaehlung[kandidaten.IndexOf(wahl)]++;
             los |= gleichauf.Count > 1;
             string grund;
-            if (sitz.Ratsherr is { } r)
+            if (rat.Erpresser(sitz) is { } erpresser && (kandidaten.Contains(erpresser) || rat.AmtVon(erpresser) is { } es && es != sitz
+                    && rat.WahlWaehler(amt, kandidaten).Contains(es)))
+                grund = kandidaten.Contains(erpresser) ? $"Erpresst von {erpresser.Inhaber} – stimmt für ihn." : $"Erpresst von {erpresser.Inhaber} – stimmt wie {erpresser.Inhaber}.";
+            else if (sitz.Ratsherr is { } r)
                 grund = gleichauf.Count > 1
                     ? $"Gleichstand zwischen {string.Join(" und ", gleichauf.Select(NameVon))} ({Zahlenformat.Ganz(rat.Punkte(r, amt, wahl))} Punkte) – das Los entscheidet."
                     : GrundWahl(r, amt, kandidaten, wahl, NameVon);

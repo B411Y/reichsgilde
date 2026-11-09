@@ -66,6 +66,12 @@ public sealed record EntwicklerZug(int Person, string Zug, bool Hinzufuegen = tr
 /// </summary>
 public sealed record EntwicklerStress(int Person, double Wert) : EntwicklerBefehl;
 
+/// <summary>
+/// Ein Geheimnis (Charaktersystem Teil 3c): <paramref name="Inhaber"/> (Kennung „P12“ oder „R:Name“; Oberhaupt, Erbe, Ehepartner oder Ratsherr)
+/// bekommt eines dieser Art (nicht Mord – der braucht ein Opfer); mit <paramref name="Wissen"/> weiß das eigene Haus davon und kann es nutzen.
+/// </summary>
+public sealed record EntwicklerGeheimnis(string Inhaber, Geheimnisse.Geheimnisart Art, bool Wissen = true) : EntwicklerBefehl;
+
 /// <summary>Das Erbgut einer Person (Haus oder Brautschau) neu würfeln – wie für jemanden von außen, zum Ausprobieren der 3D-Köpfe.</summary>
 public sealed record EntwicklerErbgut(int Person) : EntwicklerBefehl;
 

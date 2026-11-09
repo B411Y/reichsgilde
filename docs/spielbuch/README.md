@@ -16,7 +16,7 @@ Alles, was das Spiel kann, im Detail – ein Kapitel je Thema. Die Kurzfassung s
 - [Haus und Dynastie](haus-und-dynastie.md) – Wappen, Familie, Erbfolge, Talente, Gesundheit, Wohnhaus
 - [Erbgut](erbgut.md) – Gene mit zwei Allelen, Vererbung, Dominanz und Völker: die Grundlage der 3D-Köpfe
 - [Stand, Rat und Glaube](stand-rat-und-glaube.md) – Stände, Stadtrat, Konfessionen
-- [Unterwelt und Gericht](unterwelt-und-gericht.md) – Banden, Erpressung, Spitzel, Anklage, Kerker
+- [Unterwelt und Gericht](unterwelt-und-gericht.md) – Banden, Erpressung, Spitzel, Anklage, Kerker, Geheimnisse
 - [Einwohner](einwohner.md) – Bürger-KI mit eigenem Tagesablauf
 - [KI-Häuser](ki-haeuser.md) – Rivalen nach denselben Regeln wie du
 - [Kartenwerkstatt](kartenwerkstatt.md) – Level-Editor: Karten bauen und prüfen

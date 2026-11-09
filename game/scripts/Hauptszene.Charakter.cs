@@ -27,6 +27,7 @@ public partial class Hauptszene
         {
             "oberhaupt" => familie?.Oberhaupt,
             "ehepartner" => familie?.Ehepartner,
+            "rivale" => Rivale(w), // das Oberhaupt des ersten anderen Hauses (Geheimnisse, Teil 3c)
             "kind" => familie?.Kinder.FirstOrDefault()
                       ?? Enumerable.Range(1, 400).Select(w.Familien.PersonNummer).FirstOrDefault(x => x is { Lebt: true, Vater: not null } && !w.Familien.IstVolljaehrig(x)), // sonst das erste Kind irgendeines Hauses
             _ => int.TryParse(wert, out var nr) ? w.Familien.PersonNummer(nr) : null,
@@ -58,6 +59,42 @@ public partial class Hauptszene
             return;
         }
         Protokollieren("--stress: " + UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(_spieler, new Core.Entwickler.EntwicklerStress(person.Nummer, stress))));
+    }
+
+    /// <summary>Das Oberhaupt des ersten anderen Hauses, das noch spielt (für <c>rivale</c>).</summary>
+    private Core.Dynastie.Person? Rivale(Core.Wirtschaft.Stadtwirtschaft w) =>
+        w.Konten.Where(k => k != _spieler && k.IstAktiv).Select(w.Familien.Von).OfType<Core.Dynastie.Familie>().FirstOrDefault()?.Oberhaupt;
+
+    /// <summary>Startoption <c>--geheimnis=</c>, wartet wie <c>--stress=</c> bis nach dem Vorspulen.</summary>
+    private string? _geheimnisWartet;
+
+    /// <summary>
+    /// <c>--geheimnis=&lt;Ehebruch|Ketzerei|Schulden&gt;[:oberhaupt|ehepartner|rivale|ratsherr[:n]|Personennummer]</c> (Charaktersystem Teil 3c): Die Person
+    /// bekommt ein Geheimnis dieser Art, und Euer Haus weiß davon – über den Entwicklerbefehl <see cref="Core.Entwickler.EntwicklerGeheimnis"/>, darum
+    /// nur mit <c>--entwickler=1</c>. Ohne Ziel: <c>rivale</c>. Für den Klicktest der Knöpfe im Charakterfenster, z. B.
+    /// <c>--entwickler=1 --geheimnis=Ehebruch:rivale --charakter=rivale</c> oder <c>--geheimnis=Ketzerei:ratsherr --charakter=ratsherr</c>.
+    /// </summary>
+    private void GeheimnisStartoption(string wert)
+    {
+        if (_simulation.Wirtschaft is not { } w || _spieler is null) return;
+        var teile = wert.Split(':');
+        var familie = w.Familien.Von(_spieler);
+        var ratsherren = w.Rat.Aemter.Select(a => a.Ratsherr).OfType<Reichsgilde.Core.Politik.Ratsherr>().ToList();
+        var ziel = teile.Length > 1 ? teile[1] : "rivale";
+        Core.Dynastie.ICharakter? person = ziel switch
+        {
+            "oberhaupt" => familie?.Oberhaupt,
+            "ehepartner" => familie?.Ehepartner,
+            "rivale" => Rivale(w),
+            "ratsherr" => (teile.Length > 2 && int.TryParse(teile[2], out var n) ? n : 1) is var i && i >= 1 && i <= ratsherren.Count ? ratsherren[i - 1] : null,
+            _ => int.TryParse(ziel, out var nr) ? w.Familien.PersonNummer(nr) : null,
+        };
+        if (person is null || !Enum.TryParse<Core.Geheimnisse.Geheimnisart>(teile[0], out var art))
+        {
+            Protokollieren($"--geheimnis={wert}: erwartet <Ehebruch|Ketzerei|Schulden>[:oberhaupt|ehepartner|rivale|ratsherr[:n]|Personennummer].");
+            return;
+        }
+        Protokollieren("--geheimnis: " + UiHilfe.MeldungText(_simulation.Bote.SofortAusfuehren(_spieler, new Core.Entwickler.EntwicklerGeheimnis(person.Kennung, art))));
     }
 
     /// <summary>

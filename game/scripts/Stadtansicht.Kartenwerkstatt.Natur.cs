@@ -40,10 +40,25 @@ public partial class Stadtansicht
 
     private void NaturBereichVormerken(Rect2 bereich) => _wsNaturBereiche.Add(bereich);
 
-    /// <summary>Am Ende des Bildes: die vorgemerkten Flächen und alle in der Nähe geänderter Hindernisse neu streuen, mit einem Freiraum für alle.</summary>
+    /// <summary>Die Pflanzen einer Naturfläche, die gerade in einem Hintergrundfaden gerechnet werden (<see cref="NaturNachziehen"/>).</summary>
+    private readonly Dictionary<EntwurfNaturflaeche, Task<List<Pflanzenlage>>> _wsNaturRechnet = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>So viele Flächen rechnen höchstens zugleich in Hintergrundfäden.</summary>
+    private const int NaturFaeden = 2;
+
+    /// <summary>Ist noch Natur in Arbeit (für die Messung)?</summary>
+    private bool NaturOffen => _wsNaturRechnet.Count > 0 || _wsNaturNeu.Count > 0 || _wsFelderNeu.Count > 0;
+
+    /// <summary>
+    /// Am Ende des Bildes: die vorgemerkten Flächen und alle in der Nähe geänderter Hindernisse neu streuen. Die Pflanzen einer Naturfläche rechnet der
+    /// Kern in einem Hintergrundfaden (<see cref="NaturVerteilung.Flaeche"/> liest nur seine Kopie der Fläche, den Katalog und den Freiraum, der hier
+    /// im Hauptfaden entsteht – in Köln braucht ein Wald 50 ms und mehr); gezeichnet wird im Hauptfaden, so viele je Bild, wie ins Budget passen. Hat sich
+    /// die Fläche inzwischen wieder geändert (sie steht erneut in <see cref="_wsNaturNeu"/>), gilt das Ergebnis nicht und sie rechnet noch einmal.
+    /// Die Äcker streut der Hauptfaden selbst, eine Fläche nach der anderen.
+    /// </summary>
     private void NaturNachziehen()
     {
-        if (_entwurf is null || (_wsNaturNeu.Count == 0 && _wsFelderNeu.Count == 0 && _wsNaturBereiche.Count == 0)) return;
+        if (_entwurf is null || (_wsNaturNeu.Count == 0 && _wsFelderNeu.Count == 0 && _wsNaturBereiche.Count == 0 && _wsNaturRechnet.Count == 0)) return;
         foreach (var f in _entwurf.Naturflaechen)
         {
             if (f.Ecken.Count == 0 || _wsNaturNeu.Contains(f)) continue;
@@ -56,21 +71,70 @@ public partial class Stadtansicht
             if (_wsNaturBereiche.Any(b => b.Intersects(Rahmen(f.Ecken).Grow(FeldUeberstand)))) _wsFelderNeu.Add(f);
         }
         _wsNaturBereiche.Clear();
-        if (_wsNaturNeu.Count == 0 && _wsFelderNeu.Count == 0) return;
-        var frei = _entwurf.Freiraum(Modellmass);
-        foreach (var f in _wsNaturNeu.Where(_entwurf.Enthaelt).ToList()) NaturStreuen(f, frei);
-        foreach (var f in _wsFelderNeu.Where(_entwurf.Enthaelt).ToList()) FeldStreuen(f, frei);
-        var gewaehlt = WerkstattGewaehlt is EntwurfNaturflaeche g && _wsNaturNeu.Contains(g) || WerkstattGewaehlt is EntwurfFeld h && _wsFelderNeu.Contains(h);
-        _wsNaturNeu.Clear();
-        _wsFelderNeu.Clear();
+        var gewaehlt = false;
+        // Fertiges aus den Hintergrundfäden zeichnen (und Überholtes wegwerfen)
+        foreach (var (f, aufgabe) in _wsNaturRechnet.ToList())
+        {
+            if (!aufgabe.IsCompleted) continue;
+            if (!_wsNaturNeu.Contains(f) && _entwurf.Enthaelt(f) && !aufgabe.IsFaulted)
+            {
+                if (!SchwerDran()) break;
+                var uhr = Time.GetTicksUsec();
+                NaturZeichnen(f, aufgabe.Result);
+                gewaehlt |= ReferenceEquals(WerkstattGewaehlt, f);
+                SchwerGezaehlt(uhr);
+            }
+            else if (aufgabe.IsFaulted) GD.PushWarning($"Natur der Fläche {f.Bezeichnung}: {aufgabe.Exception?.GetBaseException().Message}");
+            _wsNaturRechnet.Remove(f);
+        }
+        if (_wsNaturNeu.Count == 0 && _wsFelderNeu.Count == 0)
+        {
+            if (gewaehlt) WerkstattNaturGestreut?.Invoke();
+            return;
+        }
+        // neue Rechnungen starten: der Freiraum und die Kopie der Fläche entstehen hier, im Hauptfaden
+        var anfang = Time.GetTicksUsec();
+        Naturfreiraum? frei = null;
+        foreach (var natur in _wsNaturNeu.ToList())
+        {
+            if (_wsNaturRechnet.ContainsKey(natur)) continue; // läuft noch, danach gleich noch einmal
+            if (_wsNaturRechnet.Count >= NaturFaeden) break;
+            if (!_entwurf.Enthaelt(natur))
+            {
+                _wsNaturNeu.Remove(natur);
+                continue;
+            }
+            frei ??= _entwurf.Freiraum(Modellmass);
+            _entwurf.Katalog.Finde("_"); // die Nachschlagetabelle einmal hier anlegen, nicht in zwei Fäden
+            var kopie = natur.AlsNaturflaeche();
+            var katalog = _entwurf.Katalog;
+            var freiraum = frei;
+            _wsNaturNeu.Remove(natur);
+            _wsNaturRechnet[natur] = Task.Run(() => NaturVerteilung.Flaeche(kopie, katalog, freiraum));
+        }
+        // die Äcker: eine Fläche nach der anderen, so viele je Bild, wie ins Budget passen
+        if (_wsFelderNeu.Count > 0 && SchwerDran())
+        {
+            var frist = Time.GetTicksUsec() + (ulong)(NacharbeitBudget * 1000);
+            var feldFrei = frei ?? _entwurf.Freiraum(Modellmass);
+            do
+            {
+                var feld = _wsFelderNeu.First();
+                _wsFelderNeu.Remove(feld);
+                if (_entwurf.Enthaelt(feld)) FeldStreuen(feld, feldFrei);
+                gewaehlt |= ReferenceEquals(WerkstattGewaehlt, feld);
+            }
+            while (_wsFelderNeu.Count > 0 && Time.GetTicksUsec() < frist);
+        }
+        SchwerGezaehlt(anfang);
         if (gewaehlt) WerkstattNaturGestreut?.Invoke();
     }
 
     /// <summary>Die Natur der gewählten Fläche ist neu gestreut (die Tafel zeigt die Zahl der Pflanzen).</summary>
     public event Action? WerkstattNaturGestreut;
 
-    /// <summary>Die Natur einer Fläche neu: die Lagen des Kerns, je Art (Datei, Knoten mit Variante) ein MultiMesh.</summary>
-    private void NaturStreuen(EntwurfNaturflaeche f, Naturfreiraum frei)
+    /// <summary>Die Natur einer Fläche zeichnen: je Art (Datei, Knoten mit Variante) ein MultiMesh.</summary>
+    private void NaturZeichnen(EntwurfNaturflaeche f, List<Pflanzenlage> lagen)
     {
         NaturEntfernen(f);
         if (_entwurf is null) return;
@@ -79,12 +143,13 @@ public partial class Stadtansicht
             _wsNaturKnoten = new Node3D { Name = "Natur" };
             AddChild(_wsNaturKnoten);
         }
-        var lagen = _entwurf.NaturVon(f, frei);
+        var messen = Pinselmessung.Uhr();
         var knoten = new Node3D { Name = "Natur_" + f.Bezeichnung };
         _wsNaturKnoten.AddChild(knoten);
         _wsNatur[f] = knoten;
         _wsNaturAnzahl[f] = lagen.Count;
         LagenZeichnen(knoten, lagen); // Stadtansicht.Boden.cs
+        Pinselmessung.Dazu("  Natur: Zeichnen", messen);
     }
 
     private void NaturEntfernen(EntwurfNaturflaeche f)

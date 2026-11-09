@@ -281,9 +281,34 @@ public partial class Stadtansicht
         for (var j = Math.Max(j0, b0); j <= Math.Min(j1, b1); j++)
             for (var i = Math.Max(i0, a0); i <= Math.Min(i1, a1); i++)
             {
-                if (_gelaendeKacheln.TryGetValue((i, j), out var kachel)) kachel.MaterialOverride = KachelStoff(i, j, bereich);
+                if (_entwurf is { PinselstrichLaeuft: false })
+                {
+                    // Werkstatt nach dem Strich: Die Bilder einer Kachel kosten Köln und Greybox 10–30 ms, also eine Kachel nach der anderen (BodenStoffeAbarbeiten)
+                    _wsStoffAuftraege[(i, j)] = _wsStoffAuftraege.TryGetValue((i, j), out var alt) ? Vereinigt(new List<Kartenrechteck> { alt, bereich }) : bereich;
+                }
+                else if (_gelaendeKacheln.TryGetValue((i, j), out var kachel)) kachel.MaterialOverride = KachelStoff(i, j, bereich);
                 BueschelBodenGeaendert(i, j); // Grasbüschel an den Grenzen (Stadtansicht.Bueschel.cs)
             }
+    }
+
+    /// <summary>Die Kacheln, deren Boden-Stoff die Werkstatt nach einem Strich noch neu bauen muss, mit dem Bereich der Änderung (<see cref="BodenStoffeAbarbeiten"/>).</summary>
+    private readonly Dictionary<(int I, int J), Kartenrechteck> _wsStoffAuftraege = new();
+
+    /// <summary>Jedes Bild in der Werkstatt: Kacheln aus <see cref="_wsStoffAuftraege"/>, so viele, wie ins Budget passen (mindestens eine).</summary>
+    private void BodenStoffeAbarbeiten()
+    {
+        if (_wsStoffAuftraege.Count == 0 || _entwurf is null || _entwurf.PinselstrichLaeuft || !SchwerDran()) return;
+        var anfang = Time.GetTicksUsec();
+        var frist = anfang + (ulong)(SchwerBudget * 1000);
+        do
+        {
+            var (kachel, bereich) = _wsStoffAuftraege.First();
+            _wsStoffAuftraege.Remove(kachel);
+            if (_gelaendeKacheln.TryGetValue(kachel, out var netz)) netz.MaterialOverride = KachelStoff(kachel.I, kachel.J, bereich);
+        }
+        while (_wsStoffAuftraege.Count > 0 && Time.GetTicksUsec() < frist);
+        Pinselmessung.Dazu("Boden: Stoffe der Kacheln (Häppchen)", anfang);
+        SchwerGezaehlt(anfang);
     }
 
     // ═════════════════════════════════════════════════════════════════════════

@@ -12,6 +12,15 @@ public static class Pinselmessung
 {
     private static readonly string? Wert = OS.GetCmdlineUserArgs().LastOrDefault(a => a.StartsWith("--pinselmessung="))?["--pinselmessung=".Length..];
 
+    /// <summary>
+    /// <c>--pinselmessung-nur=Gelände,Boden</c>: nur die Messungen, deren Name mit einem dieser Wörter beginnt (sonst alle: Boden, Gelände, Fels, Natur, Weg, Bauzone).
+    /// </summary>
+    private static readonly string[] Nur = (OS.GetCmdlineUserArgs().LastOrDefault(a => a.StartsWith("--pinselmessung-nur="))?["--pinselmessung-nur=".Length..] ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    /// <summary>Soll die Messung mit diesem Namen laufen (<see cref="Nur"/>)?</summary>
+    public static bool Gewollt(string name) => Nur.Length == 0 || Nur.Any(n => name.StartsWith(n, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Ist die Messung an?</summary>
     public static bool An => Wert is { Length: > 0 } && Wert != "0";
 

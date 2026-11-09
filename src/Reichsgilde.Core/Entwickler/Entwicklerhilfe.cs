@@ -60,6 +60,7 @@ public sealed class Entwicklerhilfe
             case EntwicklerTod t: return Tod(t.Person);
             case EntwicklerZug z: return Zug(z.Person, z.Zug, z.Hinzufuegen);
             case EntwicklerStress st: return Stress(st.Person, st.Wert);
+            case EntwicklerGeheimnis gh: return _w.Geheimnisse.Entwickler(absender, gh.Inhaber, gh.Art, gh.Wissen);
             case EntwicklerErbgut e: return Erbgut(e.Person);
             case EntwicklerDiebstahl d: return MitBetrieb(d.Betrieb, Diebstahl);
             case EntwicklerFeuer f: return MitBetrieb(f.Betrieb, Feuer);

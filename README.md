@@ -42,7 +42,7 @@ Jede Zeile führt in das passende Kapitel des [Spielbuchs](docs/spielbuch/README
 | ⚒️ | [Berufe](docs/spielbuch/berufe.md) | Zehn Berufe – Schmied, Tischler, Steinmetz, Alchimist, Wirt, Prediger, Dieb, Gardist, Geldleiher, Parfumeur – mit eigenen Waren und Kniffen. |
 | 🛡️ | [Haus und Dynastie](docs/spielbuch/haus-und-dynastie.md) | Wappen, Heirat, Kinder, Erbfolge, Talente, gemalte Charakterzüge mit Wirkung in der Wirtschaft, Krankheiten und Pest, Wohnhaus vom Fachwerkhaus bis zum Stadthof. |
 | 👑 | [Stand, Rat und Glaube](docs/spielbuch/stand-rat-und-glaube.md) | Vom Gemeinen zum Reichsgrafen, Ämter im Stadtrat, Wahlen, Stadtkasse und Bauvorhaben, katholisch, evangelisch oder Naturglaube. |
-| 🗝️ | [Unterwelt und Gericht](docs/spielbuch/unterwelt-und-gericht.md) | Banden, Einbruch, Brand, Erpressung – und dagegen Wächter, Spitzel, Beweise, Anklage und Kerker. |
+| 🗝️ | [Unterwelt und Gericht](docs/spielbuch/unterwelt-und-gericht.md) | Banden, Einbruch, Brand, Erpressung, Geheimnisse (Ehebruch, Ketzerei, Schulden, Mord) zum Erpressen, Anzeigen und Bloßstellen – und dagegen Wächter, Spitzel, Beweise, Anklage und Kerker. |
 | 👥 | [Einwohner](docs/spielbuch/einwohner.md) | 25 Einwohner je Haus mit Rolle und Tagesablauf; sie füllen Schänken und Kirchen und kaufen am Markt. |
 | 🤖 | [KI-Häuser](docs/spielbuch/ki-haeuser.md) | Rivalen mit Charakter, bis zu acht je Karte, die nach denselben Regeln spielen wie du, ohne Schummelei. |
 | 🗺️ | [Kartenwerkstatt](docs/spielbuch/kartenwerkstatt.md) | Level-Editor im Spiel: Gebäude, Wege, Mauern, Gelände, Boden, Wasser und Häfen, Startbelegung, Prüfung nach den Kartenregeln; dazu das Kartenskript `tools/Kartenbau`. |

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using Godot;
 using Reichsgilde.Core.Bauen;
@@ -18,15 +19,48 @@ public partial class Kartenwerkstatt
     /// <summary>So viele Tupfer hat ein Strich der Messung.</summary>
     private const int Tupfer = 30;
 
-    /// <summary>Ein gemessenes Bild: Dauer und Teilschritte (µs).</summary>
-    private sealed record Messbild(ulong Usec, Dictionary<string, ulong> Teile);
+    /// <summary>
+    /// Ein gemessenes Bild: Dauer (Uhr) und Teilschritte (µs) und die Rechenzeit des Hauptfadens in diesem Bild (µs; Linux; sonst 0). Die Rechenzeit
+    /// zählt nur, was der Faden wirklich rechnet – auf einem belasteten Rechner wächst die Uhr, die Rechenzeit nicht (Leerlauf-Schlaf zählt auch nicht).
+    /// </summary>
+    private sealed record Messbild(ulong Usec, Dictionary<string, ulong> Teile, ulong Cpu = 0);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Zeitwert
+    {
+        public long Sek, Nsek;
+    }
+
+    [DllImport("libc", EntryPoint = "clock_gettime")]
+    private static extern int UhrLesen(int uhr, out Zeitwert wert);
+
+    private ulong _cpuLetzt;
+
+    /// <summary>Die Rechenzeit des aufrufenden Fadens seit seinem Start (µs); 0, wo das nicht geht.</summary>
+    private static ulong FadenCpu()
+    {
+        try
+        {
+            return UhrLesen(3, out var w) == 0 ? (ulong)(w.Sek * 1_000_000 + w.Nsek / 1000) : 0; // 3 = CLOCK_THREAD_CPUTIME_ID
+        }
+        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return 0;
+        }
+    }
 
     /// <summary>Was ein Pinsel gekostet hat: Bilder im Leerlauf, je Tupfer, beim Loslassen und danach.</summary>
     private sealed record Pinselergebnis(string Name, List<Messbild> Leerlauf, List<Messbild> Tupfer, Messbild Loslassen, List<Messbild> Nachlauf);
 
+    /// <summary>Wie lange ein Bild im Leerlauf dauert (headless etwa 7 ms, auf einem belasteten Rechner mehr) – „ruhig“ heißt: nicht mehr als 25 ms darüber.</summary>
+    private double _leerlaufUsec, _leerlaufCpu;
+
     private async Task PinselmessungLaufen()
     {
         Engine.MaxFps = 0; // ohne Bremse: die Dauer eines Bildes ist dann die Arbeit darin
+        var leerBilder = new List<Messbild>();
+        for (var i = 0; i < 80; i++) leerBilder.Add(await BildMessen(Time.GetTicksUsec())); // die ersten Bilder nach dem Laden sind noch nicht ruhig
+        (_leerlaufUsec, _leerlaufCpu) = (Median(leerBilder.Skip(60).Select(b => (double)b.Usec)), Median(leerBilder.Skip(60).Select(b => (double)b.Cpu)));
         var feld = _entwurf.Kartengrenzen.Spielfeld;
         var (cx, cz) = ((float)feld.Mitte.X, (float)feld.Mitte.Z);
         var ergebnisse = new List<Pinselergebnis>();
@@ -34,6 +68,7 @@ public partial class Kartenwerkstatt
 
         async Task Pinsel(string name, Werkstattwerkzeug werkzeug, Action einstellen)
         {
+            if (!Pinselmessung.Gewollt(name)) return;
             _stadt.WerkstattWerkzeugWaehlen(werkzeug);
             einstellen();
             ergebnisse.Add(await StrichMessen(name, strich));
@@ -51,10 +86,12 @@ public partial class Kartenwerkstatt
         await Pinsel("Natur: Bäume streuen (r 6)", Werkstattwerkzeug.Pinsel, () => { });
         await Pinsel("Natur: Radierer (r 6)", Werkstattwerkzeug.Radierer, () => { });
         _stadt.WerkstattWerkzeugWaehlen(Werkstattwerkzeug.Auswahl);
-        ergebnisse.Add(await BefehlMessen("Weg anlegen (Gasse, 3 Punkte)", () =>
-            _stadt.WerkstattWegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(cx - 30, cz + 24), new(cx, cz + 30), new(cx + 30, cz + 24) }, true)));
-        ergebnisse.Add(await BefehlMessen("Bauzone anlegen (30 × 30 m)", () =>
-            _entwurf.BauzoneAnlegen(Lage.Vorstadt, new List<Kartenort> { new(cx - 15, cz - 60), new(cx + 15, cz - 60), new(cx + 15, cz - 30), new(cx - 15, cz - 30) })));
+        if (Pinselmessung.Gewollt("Weg"))
+            ergebnisse.Add(await BefehlMessen("Weg anlegen (Gasse, 3 Punkte)", () =>
+                _stadt.WerkstattWegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(cx - 30, cz + 24), new(cx, cz + 30), new(cx + 30, cz + 24) }, true)));
+        if (Pinselmessung.Gewollt("Bauzone"))
+            ergebnisse.Add(await BefehlMessen("Bauzone anlegen (30 × 30 m)", () =>
+                _entwurf.BauzoneAnlegen(Lage.Vorstadt, new List<Kartenort> { new(cx - 15, cz - 60), new(cx + 15, cz - 60), new(cx + 15, cz - 30), new(cx - 15, cz - 30) })));
 
         var text = Tabelle(ergebnisse);
         GD.Print(text);
@@ -70,10 +107,13 @@ public partial class Kartenwerkstatt
     private async Task<Messbild> BildMessen(ulong anfang)
     {
         await Ladebildschirm.Bild(GetTree());
-        return new Messbild(Time.GetTicksUsec() - anfang, Pinselmessung.Abholen());
+        var cpu = FadenCpu();
+        var bild = new Messbild(Time.GetTicksUsec() - anfang, Pinselmessung.Abholen(), cpu - _cpuLetzt);
+        _cpuLetzt = cpu;
+        return bild;
     }
 
-    /// <summary>Wartet, bis die Bilder ruhig sind (drei in Folge unter 25 ms, höchstens 300 Bilder) – und gibt sie zurück.</summary>
+    /// <summary>Wartet, bis die Bilder ruhig sind (drei in Folge mit höchstens 8 ms Rechenzeit des Hauptfadens mehr als im Leerlauf, ohne Rechenzeit höchstens 25 ms Dauer mehr; höchstens 300 Bilder) – und gibt sie zurück.</summary>
     private async Task<List<Messbild>> RuhigWarten()
     {
         var bilder = new List<Messbild>();
@@ -84,7 +124,8 @@ public partial class Kartenwerkstatt
             bilder.Add(b);
             // ruhig erst, wenn auch die Nacharbeit und die aufgeschobene Prüfung (0,3 s nach dem Strich) gelaufen sind
             var offen = _stadt.WerkstattNacharbeitOffen || _stadt.WerkstattPruefungAufschieben || _auffrischenNachStrich || _auffrischenVorgemerkt;
-            ruhig = b.Usec < 25_000 && !offen ? ruhig + 1 : 0;
+            if (bilder.Count > 100 && bilder.Count < 104) GD.Print($"Pinselmessung: noch nicht ruhig (Bild {bilder.Count}): Rechenzeit {Ms(b.Cpu)} ms, offen: {_stadt.WerkstattNacharbeitOffen} aufschieben: {_stadt.WerkstattPruefungAufschieben} {_auffrischenNachStrich} {_auffrischenVorgemerkt}; {_stadt.WerkstattOffenText()}");
+            ruhig = (b.Cpu > 0 ? b.Cpu < 8_000 + _leerlaufCpu : b.Usec < 25_000 + _leerlaufUsec) && !offen ? ruhig + 1 : 0;
         }
         return bilder;
     }
@@ -150,17 +191,20 @@ public partial class Kartenwerkstatt
         sb.AppendLine($"## Pinselmessung {_entwurf.Stadt} ({_entwurf.Kennung})");
         sb.AppendLine();
         sb.AppendLine($"Strich aus {Tupfer} Tupfern (je Tupfer ein Bild) über 80 m durch die Mitte des Spielfelds; headless, nur Rechenzeit (ms).");
+        sb.AppendLine($"Ein Bild im Leerlauf dauert {Ms(_leerlaufUsec)} ms und braucht {Ms(_leerlaufCpu)} ms Rechenzeit des Hauptfadens (Rechenzeit: nur linux).");
         sb.AppendLine();
-        sb.AppendLine("| Pinsel | Leerlauf je Bild | Bild je Tupfer: Median | Mittel | Max | Loslassen (Bild) | danach: Spitze | danach: Summe (Bilder) |");
-        sb.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|");
+        sb.AppendLine("| Pinsel | Leerlauf je Bild | Bild je Tupfer: Median | Mittel | Max | Loslassen (Bild) | danach: Spitze | danach: Summe (Bilder) | danach: Bilder über 33 ms | Rechenzeit (Hauptfaden): Leerlauf | Tupfer Max über Leerlauf | Loslassen über Leerlauf | danach Spitze über Leerlauf |");
+        sb.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
         foreach (var e in ergebnisse)
         {
             var leer = Median(e.Leerlauf.Select(b => (double)b.Usec));
+            var leerCpu = Median(e.Leerlauf.Select(b => (double)b.Cpu));
             var t = e.Tupfer.Select(b => (double)b.Usec).ToList();
             var nachSpitze = e.Nachlauf.Count == 0 ? 0 : e.Nachlauf.Max(b => (double)b.Usec);
             var nachSumme = e.Nachlauf.Sum(b => (double)b.Usec);
             sb.AppendLine($"| {e.Name} | {Ms(leer)} | {(t.Count == 0 ? "–" : Ms(Median(t)))} | {(t.Count == 0 ? "–" : Ms(t.Average()))} | {(t.Count == 0 ? "–" : Ms(t.Max()))} | "
-                          + $"{Ms(e.Loslassen.Usec)} | {Ms(nachSpitze)} | {Ms(nachSumme)} ({e.Nachlauf.Count}) |");
+                          + $"{Ms(e.Loslassen.Usec)} | {Ms(nachSpitze)} | {Ms(nachSumme)} ({e.Nachlauf.Count}) | {e.Nachlauf.Count(b => b.Usec > 33_000)} | "
+                          + $"{Ms(leerCpu)} | {(t.Count == 0 ? "–" : Ms(e.Tupfer.Max(b => (double)b.Cpu) - leerCpu))} | {Ms(e.Loslassen.Cpu - leerCpu)} | {Ms((e.Nachlauf.Count == 0 ? 0 : e.Nachlauf.Max(b => (double)b.Cpu)) - leerCpu)} |");
         }
         sb.AppendLine();
         sb.AppendLine("Teilschritte (ms): je Tupfer im Mittel und das teuerste Bild; beim Loslassen und in den Bildern danach als Summe.");
@@ -180,8 +224,12 @@ public partial class Kartenwerkstatt
                 if (je.Sum() + nach + e.Loslassen.Teile.GetValueOrDefault(n) < 50) continue; // nie mehr als 0,05 ms: weglassen
                 sb.AppendLine($"| {n} | {(je.Count == 0 ? "–" : Ms(je.Average()))} | {(je.Count == 0 ? "–" : Ms(je.Max()))} | {Ms(e.Loslassen.Teile.GetValueOrDefault(n))} | {Ms(nach)} |");
             }
+            // die teuersten Bilder danach mit ihren drei größten Teilen (was erzeugt das Einzelbild?)
+            foreach (var b in e.Nachlauf.OrderByDescending(b => b.Cpu > 0 ? b.Cpu : b.Usec).Take(3).Where(b => (b.Cpu > 0 ? b.Cpu : b.Usec) > 12_000))
+                sb.AppendLine($"| (Spitzenbild danach {Ms(b.Usec)} ms, Rechenzeit {Ms(b.Cpu)} ms, davon nicht erfasst {Ms((b.Cpu > 0 ? b.Cpu : b.Usec) - (double)b.Teile.Where(t => !t.Key.StartsWith(' ')).Aggregate(0UL, (a, t) => a + t.Value))} ms: {string.Join(", ", b.Teile.Where(t => !t.Key.StartsWith(' ') || t.Key.StartsWith("  Nacharbeit")).OrderByDescending(t => t.Value).Take(4).Select(t => $"{t.Key.Trim()} {Ms(t.Value)}"))}) | | | | |");
             // der Rest des Bildes: Godot selbst (Szene, Physik, Zeichnen) und der Leerlauf von headless (etwa 6,9 ms je Bild)
-            static double Rest(Messbild b) => b.Usec - (double)b.Teile.Values.Aggregate(0UL, (a, x) => a + x);
+            // eingerückte Teile ("  Nacharbeit: …", "  Gras: …") stecken in einem äußeren und zählen nicht noch einmal (sonst wird die Spalte negativ)
+            static double Rest(Messbild b) => b.Usec - (double)b.Teile.Where(t => !t.Key.StartsWith(' ')).Aggregate(0UL, (a, t) => a + t.Value);
             var rest = e.Tupfer.Select(Rest).ToList();
             sb.AppendLine($"| (übriges Bild: Godot, Leerlauf) | {(rest.Count == 0 ? "–" : Ms(rest.Average()))} | {(rest.Count == 0 ? "–" : Ms(rest.Max()))} | {Ms(Rest(e.Loslassen))} | {Ms(e.Nachlauf.Sum(Rest))} |");
         }

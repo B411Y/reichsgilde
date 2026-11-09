@@ -143,7 +143,7 @@ public sealed partial class Kartenentwurf
             else if (plan[k] is JsonObject o) o["zone"] = zone.Kennung;
         }
         _probeplan = null;
-        _befunde = null;
+        BefundeVerwerfen();
         return ohne;
     }
 }

@@ -111,7 +111,10 @@ public sealed record Heiraten(int Kandidat) : Befehl;
 /// <summary>Testament: Dieses Kind (Nummer der Person) soll das Haus erben.</summary>
 public sealed record ErbenBestimmen(int Person) : Befehl;
 
-/// <summary>Einen Spitzel auf ein anderes Haus ansetzen (bis Jahresende; Bericht am Gerichtstag).</summary>
+/// <summary>
+/// Einen Spitzel auf ein anderes Haus ansetzen (bis Jahresende; Bericht am Gerichtstag). Mit Geheimnissen (Teil 3c) auch auf einen Ratsherrn:
+/// <paramref name="Haus"/> ist dann seine Kennung („R:Ulrich Wendelstein“) – der Spitzel findet nur Geheimnisse.
+/// </summary>
 public sealed record SpitzelAnsetzen(string Haus) : Befehl;
 
 /// <summary>Anklage gegen ein Haus erheben – mit allen Beweisen, die man gegen es hat. Verhandelt wird am Jahresende.</summary>
@@ -123,8 +126,15 @@ public sealed record Beauftragen(string Haus, Gauner.Gaunerstueck Art, string? B
 /// <summary>Schweigegeld verlangen – nur mit genug Beweisen gegen das Haus.</summary>
 public sealed record Erpressen(string Haus, double Betrag) : Befehl;
 
-/// <summary>Auf einen Erpresserbrief antworten: zahlen (die Beweise verbrennen) oder nicht.</summary>
+/// <summary>Auf einen Erpresserbrief antworten: zahlen (die Beweise verbrennen bzw. der Erpresser vergisst das Geheimnis) oder nicht.</summary>
 public sealed record ErpressungBeantworten(string Erpresser, bool Zahlen) : Befehl;
+
+/// <summary>
+/// Ein bekanntes Geheimnis nutzen (Charaktersystem Teil 3c): erpressen um Gulden (<paramref name="Betrag"/>) oder die Ratsstimme, vor Gericht
+/// anzeigen oder bloßstellen. <paramref name="Geheimnis"/> ist die Nummer (<see cref="Geheimnisse.Geheimnis.Nummer"/>). Aktionspunkte je Nutzung
+/// aus "geheimnisse.ap". Schweigen braucht keinen Befehl.
+/// </summary>
+public sealed record GeheimnisNutzen(int Geheimnis, Geheimnisse.Geheimnisnutzung Nutzung, double Betrag = 0) : Befehl;
 
 /// <summary>Einen Wächter für den Betrieb anstellen oder entlassen (Lohn am Jahresende).</summary>
 public sealed record WaechterSetzen(string Betrieb, bool Angestellt) : BetriebsBefehl(Betrieb);
@@ -228,7 +238,10 @@ public sealed record MeisterpruefungAblegen(string Beruf) : Befehl;
 /// <summary>In einer fremden Kirche Ablass kaufen: Eine eigene Tat verfällt sofort, mit allen Beweisen dafür.</summary>
 public sealed record AblassKaufen(string Kirche) : Befehl;
 
-/// <summary>Der Prediger verrät, was er in der Beichte über dieses Haus gehört hat: Beweise – aber selbst ein Vergehen.</summary>
+/// <summary>
+/// Der Prediger verrät, was er in der Beichte über dieses Haus gehört hat: Beweise und Geheimnisse (Teil 3c) – aber selbst ein Vergehen.
+/// Gegen einen Ratsherrn ist <paramref name="Haus"/> seine Kennung („R:Ulrich Wendelstein“, nur Geheimnisse).
+/// </summary>
 public sealed record BeichtgeheimnisBrechen(string Haus) : Befehl;
 
 /// <summary>Das Oberhaupt liest eine Lehrschrift (aus dem Lager oder vom Markt): +½ Stern bis 3 Sterne, einmal je Jahr, 1 AP.</summary>
