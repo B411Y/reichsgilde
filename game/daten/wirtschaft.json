@@ -1949,7 +1949,11 @@
                        "talente": { "Rhetorik": 0.5 }, "bestechlich": 0.9, "ki": { "ablass": 0.5 },
                        "anlaesse": { "jahr": 0.004, "trauer": 0.03 }, "zugFaktor": { "Fromm": 4, "Zynisch": 0 }, "meinung": { "allgemein": 5 } },
       "Gelehrt":     { "name": "Gelehrt", "art": "Erworben", "beschreibung": "Hat an der Universität Rechte und Artes gehört.",
-                       "talente": { "Verhandeln": 0.5, "Rhetorik": 0.5 }, "anlaesse": { "abschluss:Universität": 1 }, "meinung": { "allgemein": 5 } }
+                       "talente": { "Verhandeln": 0.5, "Rhetorik": 0.5 }, "anlaesse": { "abschluss:Universität": 1 }, "meinung": { "allgemein": 5 } },
+      "Schwermuetig": { "name": "Schwermütig", "art": "Erworben", "beschreibung": "Sieht in jedem Morgen schon den Abend.",
+                       "talente": { "Handwerk": -0.5, "Rhetorik": -0.5 } },
+      "Reizbar":     { "name": "Reizbar", "art": "Erworben", "beschreibung": "Fährt bei jedem Wort aus der Haut, das ihm nicht passt.",
+                       "talente": { "Verhandeln": -0.5, "Kampf": 0.5 }, "meinung": { "allgemein": -5 } }
     }
   },
   "meinungen": {
@@ -2075,6 +2079,45 @@
         }
       }
     }
+  },
+  "stress": {
+    "hoechstwert": 100, "nachZusammenbruch": 60,
+    "stufen": [
+      { "name": "angespannt", "ab": 40, "erfahrung": 0.75, "gefahr": 0.05 },
+      { "name": "zermürbt", "ab": 70, "erfahrung": 0.5, "gefahr": 0.05, "talente": 0.5, "krankheit": 1.25, "meinungEhepartner": -5, "kiVorsicht": 1.2 }
+    ],
+    "abklingen": 15, "glueckEheAb": 50, "glueckEhe": 5, "zugAbklingen": { "Schwermuetig": -5 },
+    "ventile": { "Zechen": 15, "Messe": 15, "Jagd": 30 }, "magFaktor": 1.5, "magNicht": 8,
+    "trauer": { "ehepartner": 30, "kind": 20, "elternteil": 10, "geschwister": 5 },
+    "haus": { "streit": 10, "jahrImMinus": 5, "bargeldNegativ": 10 },
+    "gericht": { "angeklagt": 10, "verurteilt": 15, "kerker": 25 },
+    "krankheit": { "erkrankt": 5, "pest": 10 },
+    "zusammenbruch": { "zugChance": 0.5, "zuege": [ "Trinker", "Schwermuetig", "Reizbar" ],
+                       "krankheiten": [ "Vergesslichkeit", "Lachanfälle", "Angst im Dunkeln", "Haarausfall" ] },
+    "kiVentilAb": 20,
+    "taten": [
+      { "zug": "Ehrlich", "tat": "Beauftragen", "stress": 10, "name": "Gaunerstück in Auftrag gegeben" },
+      { "zug": "Ehrlich", "tat": "Erpressen", "stress": 15, "name": "Erpresserbrief geschrieben" },
+      { "zug": "Ehrlich", "tat": "Bestechung", "stress": 5, "name": "Ratsherrn beschenkt" },
+      { "zug": "Fromm", "tat": "Giftanschlag", "stress": 15, "name": "Giftanschlag" },
+      { "zug": "Fromm", "tat": "Beauftragen:Kroetenschleim", "stress": 15, "name": "Krötenschleim in Auftrag gegeben" },
+      { "zug": "Fromm", "tat": "BeichtgeheimnisBrechen", "stress": 15, "name": "Beichtgeheimnis gebrochen" },
+      { "zug": "Fromm", "tat": "Ketzerei", "stress": 15, "name": "Gegen den Stadtglauben gepredigt" },
+      { "zug": "Grosszuegig", "tat": "Erpressen", "stress": 10, "name": "Erpresserbrief geschrieben" },
+      { "zug": "Grosszuegig", "tat": "SchutzgeldFordern", "stress": 10, "name": "Schutzgeld gefordert" },
+      { "zug": "Gierig", "tat": "Geschenk", "abGulden": 200, "stress": 5, "name": "Großes Geschenk gemacht" },
+      { "zug": "Gierig", "tat": "Busse", "stress": 10, "name": "Buße gezahlt" },
+      { "zug": "Feige", "tat": "Beauftragen:Ueberfall", "stress": 8, "name": "Überfall in Auftrag gegeben" },
+      { "zug": "Feige", "tat": "Anklagen", "stress": 5, "name": "Anklage erhoben" },
+      { "zug": "Bescheiden", "tat": "WohnhausAusbauen:Stadtpalais", "stress": 10, "name": "Ausbau zum Stadtpalais" },
+      { "zug": "Bescheiden", "tat": "WohnhausAusbauen:Stadthof", "stress": 10, "name": "Ausbau zum Stadthof" },
+      { "zug": "Bescheiden", "tat": "WohnhausBauen:Stadtpalais", "stress": 10, "name": "Stadtpalais gebaut" },
+      { "zug": "Bescheiden", "tat": "WohnhausBauen:Stadthof", "stress": 10, "name": "Stadthof gebaut" },
+      { "zug": "Hochmuetig", "tat": "Pranger", "stress": 10, "name": "Ein Jahr am Pranger" },
+      { "zug": "Traege", "tat": "TalentTrainieren", "stress": 5, "name": "Talent geübt" },
+      { "zug": "Traege", "tat": "BerufErlernen", "stress": 10, "name": "Beruf erlernt" },
+      { "zug": "Fleissig", "tat": "ApVerfallen", "stress": 5, "name": "Aktionspunkte verfallen lassen" }
+    ]
   },
   "justiz": {
     "verjaehrungJahre": 5,

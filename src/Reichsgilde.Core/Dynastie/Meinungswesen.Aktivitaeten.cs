@@ -99,6 +99,7 @@ public sealed partial class Meinungswesen
         var lw = _w.Familien.Lebenswirkung(ich); // ich ist das Oberhaupt: seine Knoten gelten für das Haus
         wirkung *= lw.AktivitaetFaktor;           // Gastgeber
         if (art == Jagd) gefahr -= lw.JagdGefahrMinus; // Weidmann
+        gefahr += _w.Familien.StressGefahr(ich);  // Stress ab „angespannt“ (Teil 3b)
         return (Math.Clamp(gefahr, 0, 0.95), wirkung);
     }
 

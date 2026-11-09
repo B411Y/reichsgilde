@@ -501,6 +501,11 @@ public sealed partial class Stadtwirtschaft
             konto.Aktionspunkte.NeueRunde(AktionspunkteJeRunde, ApBonus(konto), d.Hoechstens);
     }
 
+    /// <summary>So viele AP verfallen in der nächsten Runde, wenn das Haus bis dahin keine mehr ausgibt (Vorrat + neue über dem Höchstvorrat).</summary>
+    public int VerfallendeAktionspunkte(Konto konto) =>
+        Daten.Aktionspunkte is { } d && konto.IstAktiv
+            ? Math.Max(0, konto.Aktionspunkte.Vorrat + Math.Max(0, AktionspunkteJeRunde + ApBonus(konto)) - d.Hoechstens) : 0;
+
     /// <summary>Zusätzliche AP je Runde – ein Meister des höchsten Grades hat mehr Zeit für Persönliches.</summary>
     public int ApBonus(Konto konto) =>
         (Daten.Meistergrade is { } m && konto.HoechsterMeistergrad >= m.ApBonusAbGrad ? m.ApBonus : 0) + Bank.ApBonus(konto);
@@ -817,12 +822,15 @@ public sealed partial class Stadtwirtschaft
             && !(Justiz.IstAktiv && Justiz.ImKerker(absender)))
             return Befehlsergebnis.Abgelehnt($"Nicht genug Aktionspunkte: Das kostet {kosten} AP, {absender.Inhaber} hat noch {absender.Aktionspunkte.Vorrat}.");
         var frei = Politik.Amtsbefugnisse.IstAntrag(befehl) && Befugnisse.OhneAktionspunkte(absender, befehl);
+        var stress = Familien.StressVorschau(absender, befehl); // vorher: was der Befehl bewirkt, hängt am Stand davor (Ausbau zum …)
         var ergebnis = Bearbeiten(absender, befehl);
         if (ergebnis.Erfolg && kosten > 0)
         {
             absender.Aktionspunkte.Ausgeben(kosten);
             Familien.TatGebucht(absender, befehl, kosten); // Lebensweise: Taten des aktiven Pfads
         }
+        if (ergebnis.Erfolg && stress.Count > 0)
+            Familien.StressBuchen(stress); // Stress (Teil 3b): Taten gegen den Charakter, Ventile
         if (ergebnis.Erfolg && frei)
             Befugnisse.AntragGestellt(absender, befehl);
         return ergebnis;

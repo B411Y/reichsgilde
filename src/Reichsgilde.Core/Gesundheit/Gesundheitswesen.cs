@@ -163,15 +163,19 @@ public sealed class Gesundheitswesen
             IstPestjahr = true;
             NaechstePest = jahr + PestAbstand(pest);
             _w.Melden(Meldungsart.Pest, $"Die Pest ist in der Stadt! In diesem Jahr fehlen {Zahlenformat.Ganz(pest.Krankenstand * 100)} % der Arbeitskräfte.");
+            var pestHaeuser = new List<Konto>(); // Stress (Teil 3b): die Pest im Haus, einmal je Haus – in der Reihenfolge der Häuser
             foreach (var (konto, p) in Personen().ToList())
             {
                 if (_zufall.NextDouble() >= pest.Ansteckung * pest.Anfaelligkeit(p.Volk) * _w.Ratsantraege.Krankheitsfaktor // Brunnen
-                    * _w.Familien.KrankheitFaktor(p)) continue; // Charakterzüge (Kränklich, Stark – PR #227)
+                    * _w.Familien.KrankheitFaktor(p)) continue; // Charakterzüge (Kränklich, Stark – PR #227), Stress
                 p.Krankheit = Erkrankung.Aus(d, Erkrankung.PestName, jahr);
-                if (konto is not null)
-                    _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} hat die Pest! Ohne Hilfe stirbt {Er(p)} mit {Zahlenformat.Ganz(pest.Sterben * 100)} % Wahrscheinlichkeit.",
-                        Meldungsart.Krankheit, p, Meldungswichtigkeit.Hoch);
+                if (konto is null) continue;
+                _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} hat die Pest! Ohne Hilfe stirbt {Er(p)} mit {Zahlenformat.Ganz(pest.Sterben * 100)} % Wahrscheinlichkeit.",
+                    Meldungsart.Krankheit, p, Meldungswichtigkeit.Hoch);
+                _w.Familien.StressErkrankt(p, Erkrankung.PestName);
+                if (!pestHaeuser.Contains(konto)) pestHaeuser.Add(konto);
             }
+            foreach (var konto in pestHaeuser) _w.Familien.StressPestImHaus(konto);
         }
 
         // Gewöhnliche Krankheiten – nur für Familienmitglieder (die Brautschau wechselt ohnehin ständig).
@@ -196,16 +200,20 @@ public sealed class Gesundheitswesen
     private static string Er(Person p) => p.Geschlecht == Geschlecht.Frau ? "sie" : "er";
 
     /// <summary>Eine Person erkrankt (Zufall oder Krötenschleim). Wer schon krank ist, bleibt bei seiner Krankheit.</summary>
-    internal bool Erkranken(Konto konto, Person p, string name)
+    /// <param name="stress">Die Krankheit bringt Stress (nicht beim Zusammenbruch, der sie selbst auslöst).</param>
+    /// <param name="melden">Als Familienereignis melden (beim Zusammenbruch nennt dessen Meldung die Krankheit).</param>
+    internal bool Erkranken(Konto konto, Person p, string name, bool stress = true, bool melden = true)
     {
         if (!IstAktiv || p.Krankheit is not null || !p.Lebt) return false;
         var dauer = Daten.Krankheiten.TryGetValue(name, out var k) ? k.Dauer : 1;
         p.Krankheit = Erkrankung.Aus(Daten, name, _w.Familien.Jahr + dauer - 1);
         var e = p.Krankheit;
         var bis = dauer == 1 ? "bis zum Jahresende" : $"bis Ende {e.Bis}";
-        _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} ist krank: {e.Beschreibung} – {bis}" +
-                                    (e.SterbeChance > 0 ? $", gefährlich ({Zahlenformat.Ganz(e.SterbeChance * 100)} % tödlich)." : "."), Meldungsart.Krankheit, p,
-                                    name == Erkrankung.PestName ? Meldungswichtigkeit.Hoch : null);
+        if (melden)
+            _w.Familien.Ereignis(konto, $"{p.Vorname} {p.Familienname} ist krank: {e.Beschreibung} – {bis}" +
+                                        (e.SterbeChance > 0 ? $", gefährlich ({Zahlenformat.Ganz(e.SterbeChance * 100)} % tödlich)." : "."), Meldungsart.Krankheit, p,
+                                        name == Erkrankung.PestName ? Meldungswichtigkeit.Hoch : null);
+        if (stress) _w.Familien.StressErkrankt(p, name); // Stress (Teil 3b), nach der Meldung
         return true;
     }
 

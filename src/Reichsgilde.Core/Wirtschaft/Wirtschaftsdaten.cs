@@ -166,6 +166,9 @@ public sealed class Wirtschaftsdaten
     /// <summary>Lebensweise (ab Datenversion 73, Charaktersystem Teil 3a). Fehlt der Abschnitt, sammelt niemand Erfahrung.</summary>
     public Dynastie.LebensweiseDaten? Lebensweise { get; init; }
 
+    /// <summary>Stress (ab Datenversion 76, Charaktersystem Teil 3b). Fehlt der Abschnitt, hat niemand Stress.</summary>
+    public Dynastie.StressDaten? Stress { get; init; }
+
     /// <summary>Meinungen und Aktivitäten (ab Datenversion 61, PR #231). Fehlt der Abschnitt, gibt es nur die frühere Gunst der Ratsherren.</summary>
     public Dynastie.MeinungDaten? Meinungen { get; init; }
 
@@ -550,6 +553,8 @@ public sealed class Wirtschaftsdaten
         if (Lebensweise is { IstAktiv: true } lw)
             foreach (var (pfad, kennung, k) in lw.AlleKnoten)
                 k.Einrichtung?.Pruefen(f, $"lebensweise.pfade.{pfad}.knoten.{kennung}.einrichtung", Waren);
+        Stress?.Pruefen(f, Charakterzuege?.Zuege.Keys, Meinungen?.Aktivitaeten.Keys, Gesundheit?.Krankheiten.Keys, // fehlt ein Abschnitt, wirkt es nur nicht
+            typeof(Befehl).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(Befehl)) && !t.IsAbstract).Select(t => t.Name));
         Justiz?.Pruefen(f);
         Gauner?.Pruefen(f);
         return f;
