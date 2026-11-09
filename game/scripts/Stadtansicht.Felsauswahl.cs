@@ -14,8 +14,12 @@ namespace Reichsgilde;
 /// <item><b>Strg+A</b> wählt alle Felsstücke, <b>Strg+I</b> kehrt die Auswahl um; die Tafel wählt dazu alle derselben Form oder desselben Gesteins.</item>
 /// <item><b>Strg+D</b> kopiert die gewählten Stücke an Ort und Stelle (<see cref="Kartenentwurf.FelsKopieren"/>, ein Schritt) und wählt die Kopien –
 /// der Gizmo steht an ihnen und schiebt sie weg. Strg allein bleibt das Einrasten des Gizmos.</item>
-/// <item><b>Q/E</b> drehen die gewählten Stücke wie Gebäude und Pflanzen um die Senkrechte (15°, mit Alt 1°; mehrere um ihre Mitte) – seit die Pfeiltasten
-/// dem Gizmo gehören, ist E dafür wieder frei.</item>
+/// <item><b>Q/E</b> drehen die gewählten Stücke wie Gebäude und Pflanzen um die Senkrechte (15°, mit Alt 1°; mehrere um ihre Mitte) – seit W/E/R den
+/// Gizmo nicht mehr umschalten, ist E dafür wieder frei.</item>
+/// <item><b>Pfeiltasten</b> schieben die gewählten Stücke in Blickrichtung der Kamera (links, rechts, vom Betrachter weg, zu ihm hin) um 0,25 m, mit
+/// Umschalt um 1 m; mit Strg auf die nächste Linie des Rasters (0,25 bzw. 1 m, gemessen an der Mitte der Stücke); Alt+Pfeil oben/unten hebt und senkt
+/// (Höhenversatz; Bild auf/ab drehen in der Werkstatt die Kamera). Schübe im Abstand unter einer Sekunde fasst der Kern zu einem Rückgängig-Schritt
+/// zusammen (<see cref="Kartenentwurf.FelsSchieben"/>).</item>
 /// </list>
 /// Viele Stücke auf einmal werden in einem Zug gewählt (<see cref="FelsMehrfachWaehlen"/>): eine Meldung an die Tafel statt einer je Stück.
 /// </summary>
@@ -135,6 +139,57 @@ public partial class Stadtansicht
             + (dx == 0 && dz == 0 ? " – die Kopien liegen auf den alten und sind gewählt: mit dem Gizmo wegziehen." : "."), false);
         return true;
     }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  Schieben mit den Pfeiltasten
+    // ═════════════════════════════════════════════════════════════════════════
+
+    /// <summary>Schrittweite eines Schubs (Meter): klein, mit Umschalt groß; mit Strg zugleich das Raster.</summary>
+    private const double SchubKlein = 0.25, SchubGross = 1.0;
+
+    /// <summary>Folgt ein Schub innerhalb dieser Zeit (ms) auf den vorigen, ist er Teil derselben Tastenfolge (ein Rückgängig-Schritt).</summary>
+    private const ulong SchubFolgeMs = 1000;
+
+    private ulong _letzterSchub;
+
+    /// <summary>
+    /// Eine Pfeiltaste bei stehendem Gizmo (auch gehalten, jede Wiederholung ein Schub): schiebt die gewählten Stücke. Links/rechts und oben/unten folgen der
+    /// Kamera (oben = vom Betrachter weg, wie W); bei der schrägen Spielkamera also über Eck. Mit <paramref name="alt"/> heben und senken Pfeil oben/unten.
+    /// True, wenn die Taste den Felsen gehörte.
+    /// </summary>
+    private bool FelsPfeilTaste(Key taste, bool umschalt, bool strg, bool alt)
+    {
+        if (_entwurf is null || !FelsGizmoAktiv || _gizmoZug is not null || _wsTeilZiehen is not null || _wsZiehen is not null || _felsRahmen is not null) return false;
+        var schritt = umschalt ? SchubGross : SchubKlein;
+        double dx = 0, dy = 0, dz = 0;
+        if (alt && taste is Key.Up or Key.Down) dy = taste == Key.Up ? schritt : -schritt;
+        else
+        {
+            var basis = _kameraDrehung.GlobalTransform.Basis;
+            var rechts = new Vector2(basis.X.X, basis.X.Z).Normalized();
+            var weg = -new Vector2(basis.Z.X, basis.Z.Z).Normalized();
+            var r = taste switch { Key.Left => -rechts, Key.Right => rechts, Key.Up => weg, _ => -weg };
+            if (strg)
+            {
+                // auf die nächste Linie des Rasters in Schubrichtung, je Achse, die die Richtung merklich hat (die Mitte der Stücke rastet)
+                var mitte = Kartenentwurf.FelsMitte(_felsAuswahl);
+                static double Naechste(double m, double richtung, double raster) =>
+                    (richtung > 0 ? Math.Floor(m / raster + 1e-6) + 1 : Math.Ceiling(m / raster - 1e-6) - 1) * raster - m;
+                if (Math.Abs(r.X) > 0.2) dx = Naechste(mitte.X, r.X, schritt);
+                if (Math.Abs(r.Y) > 0.2) dz = Naechste(mitte.Z, r.Y, schritt);
+            }
+            else (dx, dz) = (r.X * schritt, r.Y * schritt);
+        }
+        var jetzt = Time.GetTicksMsec();
+        var folge = _letzterSchub > 0 && jetzt - _letzterSchub < SchubFolgeMs;
+        _letzterSchub = jetzt;
+        var auswahl = _felsAuswahl.ToList();
+        Befehl(() => _entwurf.FelsSchieben(auswahl, Math.Round(dx, 4), Math.Round(dy, 4), Math.Round(dz, 4), zusammenfassen: folge));
+        return true;
+    }
+
+    /// <summary>Für Startoptionen und Klicktests: ein Druck auf eine Pfeiltaste (wie mit der Tastatur; kurz hintereinander zusammengefasst).</summary>
+    public bool WerkstattFelsPfeil(Key taste, bool umschalt, bool strg, bool alt) => FelsPfeilTaste(taste, umschalt, strg, alt);
 
     /// <summary>Q/E bei mehreren gewählten Stücken: alle um ihre gemeinsame Mitte um die Senkrechte drehen (ein Schritt).</summary>
     private void FelsSenkrechtDrehen(double winkel)

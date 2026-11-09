@@ -1191,7 +1191,7 @@ public partial class Stadtansicht
 
     /// <summary>
     /// Die Eingabe der Kartenwerkstatt – vor der Kamera (wie <see cref="BauEingabe"/>). Gibt true zurück, wenn verbraucht. Mausrad, rechte
-    /// Maustaste, WASD und Strg+Q/E bleiben bei der Kamera, Strg+Z/Y/S bei der Szene; die Pfeiltasten gehören dem Fels-Gizmo, solange er steht.
+    /// Maustaste, WASD und Strg+Q/E bleiben bei der Kamera, Strg+Z/Y/S bei der Szene; die Pfeiltasten schieben die gewählten Felsen, solange der Gizmo steht.
     /// </summary>
     private bool WerkstattEingabe(InputEvent eingabe)
     {
@@ -1204,8 +1204,11 @@ public partial class Stadtansicht
             or Werkstattwerkzeug.Fluss or Werkstattwerkzeug.See;
         switch (eingabe)
         {
-            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Left or Key.Up or Key.Right or Key.Down or Key.B or Key.End, CtrlPressed: false, AltPressed: false } gizmoTaste
-                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (Pfeiltasten: Modus und Achsen, B/End auf den Boden)
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.R or Key.T or Key.Z or Key.U or Key.B or Key.End, CtrlPressed: false, AltPressed: false } gizmoTaste
+                when FelsGizmoTaste(gizmoTaste.Keycode, gizmoTaste.ShiftPressed): // Stadtansicht.Felsgizmo.cs (R/T/Z Modus, U Achsen, B/End auf den Boden)
+                return true;
+            case InputEventKey { Pressed: true, Keycode: Key.Left or Key.Up or Key.Right or Key.Down } pfeil
+                when FelsPfeilTaste(pfeil.Keycode, pfeil.ShiftPressed, pfeil.CtrlPressed, pfeil.AltPressed): // die gewählten Felsen schieben, auch gehalten (Stadtansicht.Felsauswahl.cs)
                 return true;
             case InputEventKey { Pressed: true, Echo: false, CtrlPressed: true, AltPressed: false, Keycode: Key.D or Key.A or Key.I } felsTaste
                 when FelsAuswahlTaste(felsTaste.Keycode): // Strg+D kopieren, Strg+A alle, Strg+I umkehren (Stadtansicht.Felsauswahl.cs)

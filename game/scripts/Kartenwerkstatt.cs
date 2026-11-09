@@ -1046,7 +1046,7 @@ public partial class Kartenwerkstatt : Node
                 _stadt.WerkstattFelsWaehlen(stuecke);
                 break;
             }
-            case "gizmo": // gizmo:verschieben,dx,dy,dz · gizmo:drehen,x|y|z,winkel[,stueck] · gizmo:skalieren,fx,fy,fz · gizmo:modus,w|e|r · gizmo:achsen,welt|stueck · gizmo:boden[,hang] · gizmo:kopie[,dx,dz] (P2, Strg+D)
+            case "gizmo": // gizmo:verschieben,dx,dy,dz · gizmo:drehen,x|y|z,winkel[,stueck] · gizmo:skalieren,fx,fy,fz · gizmo:modus,w|e|r · gizmo:achsen,welt|stueck · gizmo:boden[,hang] · gizmo:kopie[,dx,dz] (P2, Strg+D) · gizmo:pfeil,<richtung>[,gross][,raster] (P2, Pfeiltasten)
             {
                 var t = rest.Split(',');
                 bool Ok(bool ok) => ok ? true : throw new ArgumentException("gizmo: nichts gewählt (erst wahl:<nr>).");
@@ -1079,8 +1079,20 @@ public partial class Kartenwerkstatt : Node
                         Ok(_stadt.FelsKopieren(t.Length > 2 ? Zahl(t[1]) : 0, t.Length > 2 ? Zahl(t[2]) : 0));
                         GD.Print($"Felsen nach dem Kopieren: {_entwurf.Felsen.Count}, gewählt {_stadt.FelsAuswahl.Count}"); // für Klicktests ohne Bild
                         break;
+                    case "pfeil": // pfeil,<links|rechts|vor|zurueck|hoch|runter>[,gross][,raster] – wie die Pfeiltasten (vor = Pfeil oben, hoch = Alt+Pfeil oben)
+                    {
+                        var taste = t[1] switch
+                        {
+                            "links" => Key.Left, "rechts" => Key.Right, "vor" or "hoch" => Key.Up, "zurueck" or "runter" => Key.Down,
+                            _ => throw new ArgumentException($"gizmo:pfeil – links, rechts, vor, zurueck, hoch oder runter, nicht „{t[1]}“."),
+                        };
+                        Ok(_stadt.WerkstattFelsPfeil(taste, t.Contains("gross"), t.Contains("raster"), t[1] is "hoch" or "runter"));
+                        var f = _stadt.FelsAuswahl[^1];
+                        GD.Print($"Felsschub: Schritte {_entwurf.Geschichte.Schritte}, gewähltes Stück bei {Kartenschreiber.Zahl(f.X)},{Kartenschreiber.Zahl(f.Z)}, Höhe {Kartenschreiber.Zahl(f.Versatz)}");
+                        break;
+                    }
                     default:
-                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen, boden oder kopie.");
+                        throw new ArgumentException($"gizmo:{t[0]} – verschieben, drehen, skalieren, modus, achsen, boden, kopie oder pfeil.");
                 }
                 break;
             }
