@@ -101,6 +101,8 @@ public partial class Stadtansicht
         _sonne.LightColor = ziel.Farbe;
         _sonne.LightEnergy = ziel.Staerke;
         _sonne.ShadowOpacity = ziel.Schattendeckkraft;
+        var weich = WinterSchattenNeu && jahreszeit == Jahreszeit.Winter && ziel.Farbe.R > ziel.Farbe.B && Fenster.AktuelleSchattenqualitaet == Schattenqualitaet.Hoch; // Sonne, nicht Mond
+        _sonne.LightAngularDistance = weich ? WinterSonnenscheibe : 0f;
         var umgebung = _umgebung.Environment;
         umgebung.BackgroundColor = ziel.Himmel;
         umgebung.AmbientLightColor = ziel.Umgebung;
@@ -147,10 +149,11 @@ public partial class Stadtansicht
         if (sonnenStaerke >= mondStaerke)
         {
             // Tief stehende Sonne: warm und rot (Morgen- und Abendrot), hoch stehende: fast weiß
-            richtung = Drehung(4 + (SonnenHoechststand(jahreszeit) - 4) * sonnenhoehe, 90 - bogen * 180);
+            var tiefstand = SonnenTiefststand(jahreszeit);
+            richtung = Drehung(tiefstand + (SonnenHoechststand(jahreszeit) - tiefstand) * sonnenhoehe, 90 - bogen * 180);
             farbe = new Color(1f, 0.55f, 0.32f).Lerp(new Color(1f, 0.97f, 0.9f), Mathf.SmoothStep(0.05f, 0.6f, sonnenhoehe));
             staerke = sonnenStaerke;
-            schatten = 1f;
+            schatten = WinterSchattenNeu && jahreszeit == Jahreszeit.Winter ? WinterSchattenDeckkraft : 1f;
         }
         else
         {
@@ -196,6 +199,31 @@ public partial class Stadtansicht
         Jahreszeit.Sommer => 60f,
         _ => 46f,
     };
+
+    /// <summary>
+    /// Wie tief die Sonne kurz nach dem Aufgang und vor dem Untergang steht (Grad): im Winter nicht unter 9°, sonst werfen die Häuser um 9 und 15 Uhr (11° Sonnenhöhe) Schatten
+    /// von fast dem Fünffachen ihrer Höhe quer über Markt und Gassen (08.11.2026, Winterschatten); mit 9° sind es um 9 Uhr gut 15° und das gut Dreifache.
+    /// </summary>
+    private static float SonnenTiefststand(Jahreszeit jahreszeit) => WinterSchattenNeu && jahreszeit == Jahreszeit.Winter ? 9f : 4f;
+
+    /// <summary>
+    /// Startoption <c>--winterschatten=alt</c> (nur für Vergleichsbilder): der Winter hat wieder die alte Sonne (tiefer Stand, volle Schattentiefe, scharfe Ränder). Ohne die Option gilt
+    /// die neue: <see cref="SonnenTiefststand"/>, <see cref="WinterSchattenDeckkraft"/>, <see cref="WinterSonnenscheibe"/>.
+    /// </summary>
+    internal static readonly bool WinterSchattenNeu = OS.GetCmdlineUserArgs().All(a => a != "--winterschatten=alt");
+
+    /// <summary>
+    /// Tiefe der Sonnenschatten im Winter (1 = volle Deckkraft wie sonst): Schnee im Schatten liegt im Himmelslicht und ist heller als Gras oder Pflaster im Schatten; mit 0,86
+    /// bleibt er hell genug, dass große Schattenflächen nicht als graue Platten über dem weißen Platz liegen.
+    /// </summary>
+    private const float WinterSchattenDeckkraft = 0.86f;
+
+    /// <summary>
+    /// Weiche Schattenränder im Winter (<c>LightAngularDistance</c>, Grad; die echte Sonne misst 0,5°): Mit dem Abstand zum Werfer werden die Ränder weicher (PCSS), die Schatten
+    /// nahe am Fuß bleiben scharf, die langen Fernen eines Hauses laufen weich aus – wie bei flacher Sonne. 3° ist die Stärke ohne sichtbares Körnen; 8° verschmiert. Nur bei
+    /// Sonne, im Winter und in der Schattenqualität Hoch (kostet dort rund 1 ms GPU-Zeit im Pixel-Look, beide Ansichten zusammen; in Mittel gemessen +2 ms, darum dort aus).
+    /// </summary>
+    private const float WinterSonnenscheibe = 3f;
 
     /// <summary>
     /// Rechnet die Uhrzeit auf den <b>Bezugstag</b> um, für den <see cref="StimmungUm"/> seine Kurven kennt. Die Sonnenzeiten der Jahreszeit
