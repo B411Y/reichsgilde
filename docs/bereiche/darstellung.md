@@ -1042,3 +1042,17 @@ Auftrag des Teamleiters 1.11.2026.
 | Rückgängig | Unverändert ein Schritt je Strich (Gelände, Boden, Fels; Test `PinselstrichTests`: gleicher Strich mit und ohne Prüfung je Tupfer gibt dieselbe Kartendatei und dieselben Befunde, Tupfer für Tupfer gleich dem Strich in einem Aufruf) | 09.11.2026 |
 | Vorwärmen | Beim Öffnen hinter dem Ladebildschirm (`WerkstattVorwaermen`, Balken 0,56 „Die Pinsel werden ausgewaschen …“, Köln 76 ms): Netze aller Felsformen in allen Feinheiten und ihr Material, die Pflanzen des Naturpinsels, dazu je ein Probestück (Vorschau, Pinselkreis, Felsstück, Felsgeist) für die ersten Bilder vor der Kamera, damit der Grafiktreiber ihre Shader übersetzt; danach weg | 09.11.2026 |
 | Ergebnis (Köln, ms, Median je Tupfer / Bild beim Loslassen / größtes Bild danach; Leerlauf headless 7–8 ms) | Boden 36 → 9 / 89 → 65 / 98 (Prüfung, 0,3 s später); Gelände Heben 60 → 13 / 673 → 76 / 86; Glätten 47 → 19 / 527 → 59 / 102; Fels Streuen 31 → 9 / 43 → 54 / 41; Fels Radieren 29 → 8; Natur 8 → 8 (sammelte schon vorher nur). Greybox: Boden 21 → 7, Gelände 39 → 8, Loslassen 247 → 38 | 09.11.2026 |
+
+### Ego-Perspektive (Branch phase5/ego-perspektive, Auftrag des Nutzers 09.11.2026)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aufbau | `EgoKamera : FreieKamera` (`FreieKamera._gier/_nick/DrehungSetzen` sind jetzt `protected`), `Stadtansicht.Ego.cs`, Kollisionsquellen in `Stadtansicht.Mauer.cs` (`EgoMauerMerken`) und der Meta `ego_frei` an den Klickflächen von Marktplatz und Torburg. Alles Weitere in `ARCHITEKTUR.md` („Ego-Perspektive“) und im Spielbuch (`steuerung.md`). | 09.11.2026 |
+| Kollision | Ohne Physik: Kreis (0,45 m) gegen gedrehte Rechtecke aus den Klickflächen, dem Marktbrunnen und den Mauerteilen; Köln am Heumarkt: 46 Gebäude, 193 Mauerteile, Test: Der Lauf gegen ein Haus hält genau einen Radius vor der Wand (gemessen 0,35 m beim ersten Radius, später auf 0,45 m vergrößert). Wasser sperrt am Ufer (Rhein), Brückendeck trägt. Gelände, Fundamente und Decks über `FussHoehe`. | 09.11.2026 |
+| Grafik nah | Pixel-Look bleibt (Pixelgröße 2: die Spielkamera steht auf Zoom 80 m, 12 m vor der Figur). Geprüft in Köln bei Tag, Nacht (21 Uhr: Fenster und Feuerkörbe leuchten, Mond, Schatten) und am Ufer: Schatten (vier Stufen der freien Kamera), Dunst, Passanten (Kistenfiguren, nah gut lesbar), Gras (um die Figur, locker), Kulissenberge (flache, blasse Schicht über dem Horizont) ohne Fehler im Log; keine Anpassung nötig. Die Miniatur-Unschärfe liegt an der Spielkamera und wirkt in der Ego-Perspektive nicht. | 09.11.2026 |
+
+Offen zur Ego-Perspektive:
+
+- (Ego) Keine Kollision mit Zäunen, Marktständen, Bäumen, Felsen, Karren und Figuren (nur Gebäude, Gruben, Mauern, Brunnen, Wasser); der Sockel der Häuser ragt etwa 0,4 m über die Klickfläche hinaus, man steht dann halb im Sockel. Eine genauere Kollision brauchte Netze oder eigene Hindernismaße je Modell.
+- (Ego) Aus 0,45 m vor einer Wand wirken die Wandtexturen weich (geringe Texeldichte); der Abstand ließe sich mit `EgoKamera.Radius` vergrößern.
+- (Ego) Kein Betreten von Gebäuden (Innenansicht und Räume gehen nicht, die Ego-Perspektive endet dort).
