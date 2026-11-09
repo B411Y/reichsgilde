@@ -10,7 +10,7 @@ namespace Reichsgilde;
 /// unverändert in den Lederfarben, mit weichem weißem Schein außen herum – beide Bilder gleich groß mit durchsichtigem Rand, daher gleicher Zeigerpunkt)
 /// und das <b>Türschloss</b> (Bronze mit S-Griff, ebenfalls ohne hellen Rand und mit Außenschein, denn es erscheint nur über Anklickbarem) über einem Gebäude mit Innenraum, das ein Doppelklick öffnet.
 /// Das Steuerknoten-Objekt hängt in der Hauptszene (liest die Stadt) und im Hauptmenü (nur Stufe 1, normal). Die Größe (48, 64 oder 80 Pixel)
-/// folgt der Fensterhöhe und der Größe der Oberfläche. Ein-/Ausschalter: <see cref="Fenster.EigenerZeigerAn"/>.
+/// folgt der Fensterhöhe und der Größe der Oberfläche. Dazu der <b>Hilfe-Zeiger</b> (Dreieck mit Fragezeichen aus Messing, <c>hilfe_&lt;px&gt;.png</c>, nach einer Vorlage des Nutzers) für <c>CursorShape.Help</c>. Ein-/Ausschalter: <see cref="Fenster.EigenerZeigerAn"/>.
 /// </summary>
 public partial class Mauszeiger : Node
 {
@@ -100,6 +100,9 @@ public partial class Mauszeiger : Node
         Input.SetCustomMouseCursor(bild, Input.CursorShape.Arrow, hotspot);
         var klick = art == Art.Normal ? Bild(stufe, Art.Klick, groesse) : bild;
         if (klick is not null) Input.SetCustomMouseCursor(klick, Input.CursorShape.PointingHand, hotspot);
+        // Hilfe (Fragezeichen, Messing): erscheint über den Zug-Icons im Charakterfenster; unabhängig von Stufe und Zustand.
+        var hilfe = HilfeBild(groesse);
+        if (hilfe is not null) Input.SetCustomMouseCursor(hilfe, Input.CursorShape.Help, HilfePunkte[nr]);
         GD.Print($"[zeiger] Stufe {stufe} {art.ToString().ToLowerInvariant()} {groesse}px bei {GetViewport().GetMousePosition()} über {Beschreibung()}");
     }
 
@@ -111,6 +114,18 @@ public partial class Mauszeiger : Node
     {
         Input.SetCustomMouseCursor(null, Input.CursorShape.Arrow);
         Input.SetCustomMouseCursor(null, Input.CursorShape.PointingHand);
+        Input.SetCustomMouseCursor(null, Input.CursorShape.Help);
+    }
+
+    private static Texture2D? HilfeBild(int groesse)
+    {
+        var name = $"hilfe_{groesse}";
+        if (Vorrat.TryGetValue(name, out var bild)) return bild;
+        var pfad = $"res://assets/oberflaeche/zeiger/{name}.png";
+        bild = ResourceLoader.Exists(pfad) ? GD.Load<Texture2D>(pfad) : null;
+        if (bild is null) GD.PushWarning($"[zeiger] Bild fehlt: {pfad}");
+        Vorrat[name] = bild;
+        return bild;
     }
 
     /// <summary>Was liegt unter der Maus? Tafeln und Knöpfe zuerst, dann die Stadt.</summary>
@@ -134,6 +149,9 @@ public partial class Mauszeiger : Node
         var mass = DisplayServer.WindowGetSize().Y / 1080f * Fenster.Oberflaechengroesse / 100f;
         return mass < 1.35f ? Groessen[0] : mass < 1.8f ? Groessen[1] : Groessen[2];
     }
+
+    /// <summary>Zeigerpunkt des Hilfe-Zeigers (Spitze des Dreiecks) je Größe 48, 64, 80 (Ausgabe von <c>zeiger_hilfe.py</c>, <c>hotspots.txt</c>).</summary>
+    private static readonly Vector2[] HilfePunkte = { new(0, 0), new(0, 0), new(0, 0) };
 
     private static readonly Dictionary<string, Texture2D?> Vorrat = new();
 
