@@ -1070,17 +1070,25 @@ public partial class Stadtansicht : Node3D
         GiVergleichSchritt(delta); // nur mit --givergleich: Räume mit und ohne SDFGI (Stadtansicht.GlobaleBeleuchtung.Vergleich.cs)
         DunstFarbeNachfuehren(); // der Dunst am Kartenrand in der Farbe des Himmels (Stadtansicht.Rand.cs)
         WasserBild(delta);       // Eis auf dem Wasser, Fähren, Tretrad der Häfen (Stadtansicht.Wasser.Uebergaenge.cs)
+        var belag = Pinselmessung.Uhr();
         BelagBild();             // geänderte Wege neu zeichnen (Stadtansicht.Wegbelag.cs)
+        Pinselmessung.Dazu("im Bild: Wegbelag", belag);
         WegeModusBild();         // Wege-Modus: Leuchten nachziehen, Weg unter der Maus (Stadtansicht.Wegemodus.cs)
         var uhr = Ladezeit.Uhr(); // --ladezeit=1: was die ersten Bilder kosten (Ladezeit.cs)
+        var messen = Pinselmessung.Uhr(); // --pinselmessung: dasselbe je Pinseltupfer (Pinselmessung.cs)
         WegeschichtBild();       // geänderte Kacheln der Wegeschicht neu rechnen (Stadtansicht.Wegeschicht.cs)
         Ladezeit.Dazu("im Bild: Wegeschicht", uhr);
+        Pinselmessung.Dazu("im Bild: Wegeschicht", messen);
         uhr = Ladezeit.Uhr();
+        messen = Pinselmessung.Uhr();
         BueschelBild();          // Grasbüschel an den Grenzen der Wiese nachziehen (Stadtansicht.Bueschel.cs)
         Ladezeit.Dazu("im Bild: Grasbüschel", uhr);
+        Pinselmessung.Dazu("im Bild: Grasbüschel", messen);
         uhr = Ladezeit.Uhr();
+        messen = Pinselmessung.Uhr();
         GrasBild();              // Grasteppich: geänderte Kacheln, Felder im Bild (Stadtansicht.Gras.cs)
         Ladezeit.Dazu("im Bild: Grasteppich", uhr);
+        Pinselmessung.Dazu("im Bild: Grasteppich", messen);
 
         // Beschriftungen mitskalieren, damit sie bei jedem Zoom gleich groß wirken.
         var massstab = _raum is not null ? RaumSchildMassstab : _kamera.Size / BezugsZoom;

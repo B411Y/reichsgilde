@@ -31,6 +31,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Benachrichtigungen Stufe 2 (kern + oberflaeche): Der Kern meldet strukturierte Ereignisse (Art, Betroffener, Ort, Familienmitglied); dann fallen `game/daten/meldungen.json` und die Textmuster weg, Briefe bekommen Porträts und Sprung zu Haus oder Person (Krankheit des Oberhaupts als Brief statt Siegel, die Spitzel- und Unterwelt-Filter ohne Textsuche), und der Verlauf kann mit dem Spielstand gespeichert werden (Datenversion). Stufe 3: Entscheidungen mit Wahl, im Mehrspieler als Frist.
 - Benachrichtigungen: Ton von `siegel_neu_*` und `pergament_*` ist rechnerisch erzeugt und noch nicht abgehört (Hörurteil des Nutzers); ein Siegel-Tooltip zeigt nur die neueste Meldung; `Meldungsmessung.Einordnen` (Test) und `Meldungsordnung` führen noch dieselben Textmuster doppelt (die Messung könnte die neue Klasse nutzen).
 - Benachrichtigungen: Das ✕ des Fensterrahmens ist hell und bekommt im Brief eine dunkle Platte; ein gemeinsames Pergament-Fenster für andere Tafeln (Oberflächen-Stil Schriftrolle) fehlt noch.
+- (Werkstatt-Pinsel) Pinselmessung (`Kartenwerkstatt.Pinselmessung.cs`, `Rest()`): Die Spalte „übriges Bild (Godot, Leerlauf)“ zieht die Summe aller Teilschritte ab, manche stecken aber ineinander („  Nacharbeit: …“ in „Nacharbeit nach dem Strich“, „  Gras: …“ in „im Bild: Grasteppich“) und zählen doppelt; die Spalte ist dann zu klein und kann negativ werden. Betrifft nur das Messwerkzeug.
 
 ## Entscheidungen
 
@@ -420,3 +421,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Ehepartner und Erbe | Ein Hinweis nennt den Anteil (50 %) und dass die Knoten für das Haus erst wirken, wenn die Person Oberhaupt ist. Beim Erben steht das Vermächtnis (20 % der Erfahrung des Oberhaupts im aktiven Pfad, mit der Zahl von jetzt), beim Oberhaupt, wer erbt. | 08.11.2026 |
 | Neuer Punkt | Der Kern meldet das nicht. Die Hauptszene liest die freien Punkte jedes Bild (Oberhaupt, Ehepartner, Erbe) und zeigt in der Kopfzeile „n Punkte frei“ (grün, Tooltip nennt die Personen, Klick öffnet den Lebensweg dieser Person). Wird bei einer Person ein Punkt neu frei, kommt eine Meldung „Neuer Punkt der Lebensweise: …“ als Siegel (Art „Familie“ in `meldungen.json`, Hinsehen öffnet das Fenster der Person). Nach dem Laden gibt es keine Meldung für schon freie Punkte. | 08.11.2026 |
 | Lexikon | Neuer Eintrag „Lebensweise“ mit den Zahlen aus den Daten (`lebensweise_grund`, `lebensweise_jestern`, `lebensweise_jeap`); die Tooltips verweisen darauf. | 08.11.2026 |
+
+### Hilfe-Mauszeiger (PR „Oberfläche: Hilfe-Mauszeiger nach Vorlage“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Aussehen | Messing-Dreieck mit Fragezeichen nach einer Vorlage des Nutzers (mit Gemini erstellt, Herkunft im Protokoll); freigestellt mit `tools/oberflaeche/zeiger_hilfe.py`, Höhe 48/64/80 wie die Hände, 1 Pixel dunkle Kontur, ohne Schein und ohne Hover-Fassung. Feine Gravur und Nieten gehen bei 48 Pixel weich verloren, Form und Farbe bleiben. | 09.11.2026 |
+| Einbau | `Mauszeiger` setzt `CursorShape.Help` je Größe, unabhängig von Stufe und Zustand, Zeigerpunkt (0, 0) = Dreiecksspitze; `ZeigerEntfernen` setzt ihn zurück. | 09.11.2026 |
+### Werkstatt-Pinsel: Fehlerliste nach dem Strich, Ladebalken mit Vorwärmen (Branch phase5/werkstatt-pinsel-fluessig)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Fehlerliste | Kopf und Fehlerliste der Werkstatt (`Auffrischen`, mit der vollen Prüfung) frischen während eines Pinselstrichs (Gelände, Boden, Fels) und 0,3 s danach nicht auf, sondern merken es sich (`_auffrischenNachStrich`) und holen es in `_Process` nach (`Stadtansicht.WerkstattPruefungAufschieben`). Vorher rechnete jeder Tupfer die ganze Prüfung und baute bis zu 150 Knöpfe neu (Köln 12–40 ms je Tupfer). Rückgängig-Knopf und „ungespeichert“ stehen damit erst nach dem Strich neu. Einzelheiten und Messung in `darstellung.md` („Werkstatt-Pinsel malen ohne Ruckeln“) | 09.11.2026 |
+| Ladebalken | Neuer Abschnitt nach den Tafeln: 0,56 „Die Pinsel werden ausgewaschen …“ (`Stadtansicht.WerkstattVorwaermen`, Köln 76 ms, headless gemessen mit `--ladezeit=1`); die übrigen Anteile bleiben (0,532 Tafeln, 0,777 erstes Bild) | 09.11.2026 |
+| Messung | Startoption `--pinselmessung=<datei.md>` (`Kartenwerkstatt.Pinselmessung.cs`): malt nach dem Laden mit jeder Pinselart einen Strich aus 30 Tupfern, legt dazu einen Weg und eine Bauzone an, schreibt die Tabelle und beendet das Spiel | 09.11.2026 |

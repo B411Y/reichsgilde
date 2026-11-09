@@ -273,6 +273,19 @@ public partial class Stadtansicht
     /// <summary>Was am Ende des Bildes nachzuziehen ist: Fehlerfarben, Griffe des gewählten Teils.</summary>
     private bool _wsFehlerNeu, _wsGriffeNeu;
 
+    /// <summary>Wann zuletzt ein Pinselstrich lief (ms seit Programmstart).</summary>
+    private ulong _wsLetzterStrich;
+
+    /// <summary>So lange (ms) nach einem Pinselstrich wartet die volle Prüfung – malt man gleich weiter, rechnet sie nicht zwischen den Strichen.</summary>
+    private const ulong PruefungNachStrich = 300;
+
+    /// <summary>
+    /// Soll die volle Prüfung (<see cref="Kartenentwurf.Befunde"/>, Fehlerfarben, Fehlerliste der Tafel) noch warten? Ja, solange ein Pinselstrich läuft und
+    /// <see cref="PruefungNachStrich"/> danach: Sie rechnet die ganze Karte (Köln bis 100 ms) und hing vorher an jedem Tupfer.
+    /// </summary>
+    public bool WerkstattPruefungAufschieben =>
+        _entwurf is { PinselstrichLaeuft: true } || (_wsLetzterStrich > 0 && Time.GetTicksMsec() - _wsLetzterStrich < PruefungNachStrich);
+
     /// <summary>
     /// Wo jedes Hindernis der Natur (Gebäude, Weg, Bauzone) zuletzt lag – das Rechteck mit dem Rand, in dem es die Natur verdrängt: Ändert es sich,
     /// wird die Natur am alten und am neuen Ort neu gestreut.
@@ -369,16 +382,37 @@ public partial class Stadtansicht
     /// </summary>
     private void Nachziehen()
     {
+        if (_entwurf!.PinselstrichLaeuft) _wsLetzterStrich = Time.GetTicksMsec();
+        var uhr = Pinselmessung.Uhr(); // --pinselmessung: was jeder Teil kostet (Pinselmessung.cs)
         if (_wsBelegungNeu) BelegungNachziehen();
         if (_wsRandNeu) RandNeuBauen();
+        Pinselmessung.Dazu("Belegung und Rand", uhr);
         GelaendeNachziehen(); // vor der Natur: Sie liest die neue Höhe (Stadtansicht.Kartenwerkstatt.Gelaende.cs)
+        uhr = Pinselmessung.Uhr();
+        NacharbeitAbarbeiten(); // was nach einem Strich neu zu bauen ist, verteilt auf mehrere Bilder (ebenda)
+        Pinselmessung.Dazu("Nacharbeit nach dem Strich (Budget je Bild)", uhr);
         BodenNachziehen();    // Bilder der Bodentexturen und ihre Deko (Stadtansicht.Kartenwerkstatt.Boden.cs)
+        uhr = Pinselmessung.Uhr();
         if (_wsWasserNeu || _wsWegeNeu) WasserNachziehen(); // Stadtansicht.Kartenwerkstatt.Wasser.cs
+        Pinselmessung.Dazu("Wasser", uhr);
+        uhr = Pinselmessung.Uhr();
         NaturNachziehen();
+        Pinselmessung.Dazu("Natur und Felder streuen", uhr);
+        uhr = Pinselmessung.Uhr();
         if (_wsNetzNeu) NetzBauen();
-        if (_wsFehlerNeu) FehlerZeigen();
+        Pinselmessung.Dazu("Gassennetz", uhr);
+        // Die volle Prüfung erst nach dem Strich: Sie rechnet die ganze Karte (Köln 10–36 ms) und änderte sich sonst bei jedem Tupfer
+        var fehlerJetzt = _wsFehlerNeu && !WerkstattPruefungAufschieben;
+        uhr = Pinselmessung.Uhr();
+        if (fehlerJetzt && Pinselmessung.An) _ = _entwurf!.Befunde;
+        Pinselmessung.Dazu("Prüfung der ganzen Karte (Kern)", uhr);
+        uhr = Pinselmessung.Uhr();
+        if (fehlerJetzt) FehlerZeigen();
+        Pinselmessung.Dazu("Fehlerfarben", uhr);
+        uhr = Pinselmessung.Uhr();
         if (_wsGriffeNeu) GriffeBauen();
         FelsenNachziehen();        // vorgemerkte Zellen der Felsen (Stadtansicht.Felsen.cs)
+        Pinselmessung.Dazu("Felsen und Griffe", uhr);
         WerkstattEbenenAnwenden(); // Ebenen ein- und ausgeblendet (Stadtansicht.Kartenwerkstatt.Ebenen.cs)
     }
 
@@ -463,6 +497,24 @@ public partial class Stadtansicht
         if (_entwurf?.FehlerhafteGebaeude.Contains(g.Kennung) == true) FehlerUeberzug(stueck, true);
         MarkierungSetzen(g, stueck);
         if (BereichVon(g) is { } bereich) _wsBereiche[g] = bereich;
+    }
+
+    /// <summary>
+    /// Nach einem Geländestrich (Nacharbeit, Stadtansicht.Kartenwerkstatt.Gelaende.cs): Das Gebäude selbst ist dasselbe, nur der Boden darunter nicht – das
+    /// Stück rückt auf die neue Höhe seines Fundaments und bekommt einen neuen Sockel, statt ganz neu gebaut zu werden (ein großes Modell wie der Dom kostete
+    /// sonst 50 ms in einem Bild).
+    /// </summary>
+    private void StueckHoeheNeu(EntwurfGebaeude g)
+    {
+        if (_entwurf is null || !_stuecke.TryGetValue(g, out var s)) return;
+        var fundament = g.Groesse is not null ? _entwurf.Fundament(g) : default;
+        s.Wurzel.Position = s.Wurzel.Position with { Y = (float)fundament.Hoehe };
+        if (s.Wurzel.GetNodeOrNull<Node3D>("Sockel") is { } alt)
+        {
+            s.Wurzel.RemoveChild(alt); // sofort heraus: der neue Sockel soll wieder „Sockel“ heißen
+            KnotenEntfernen(alt);
+        }
+        if (g.Groesse is var (b, t)) SockelBauen(s.Wurzel, Vector3.Zero, 0, new Vector2((float)b, (float)t), (float)fundament.Tiefe);
     }
 
     /// <summary>
