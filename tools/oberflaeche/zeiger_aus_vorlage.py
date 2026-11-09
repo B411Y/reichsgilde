@@ -25,7 +25,7 @@ Mit --gemini ORDNER werden acht fertig gezeichnete Handschuhe (1_gemeiner.png bi
 deckungsgleich ausgerichtet (Fingerspitze und Schnalle), je einzeln gepixelt (Gold, Silber und Edelsteine als Akzente) und als
 hand_<1..6|wache|dieb>_normal|klick_<px>.png geschrieben. Seit 08.11.2026 ohne hellen Außenrand: „normal“ ist der Handschuh mit
 rundum durchsichtigem Rand (SCHEINRAND), „klick“ (beim Drüberfahren über Anklickbares) derselbe Handschuh unverändert mit einem
-weichen Außenschein in diesem Rand (seit 09.11.2026 dezent golden, 30 % statt weiß 80 %). Beide Bilder sind gleich groß, der Zeigerpunkt in hotspots.txt gilt für beide.
+dezenten Goldsaum von einem Pixel in diesem Rand (seit 09.11.2026: 230/190/110, 55 % Deckkraft; vorher weiche weiße Wolke). Beide Bilder sind gleich groß, der Zeigerpunkt in hotspots.txt gilt für beide.
 
 Ausgabe: zeiger_<px>.png, zeiger_<px>_klick.png, hotspots.txt (Fingerspitze = deckendes Pixel mit kleinstem x+y).
 """
@@ -607,8 +607,8 @@ def laden_ausgerichtet(ordner):
 
 SCHEINRAND = {32: 4, 48: 6, 64: 8, 80: 10}   # Pixel durchsichtiger Rand rundum für den Außenschein je Größe
 SCHEIN_FARBE = (230, 190, 110)   # warmes Gold (seit 09.11.2026; vorher Weiß 255/249/232)
-SCHEIN_STAERKE = 0.30            # höchste Deckkraft am Handschuhrand (vorher 0,80)
-SCHEIN_ALT = ((255, 249, 232), 0.80)
+SCHEIN_STAERKE = 0.55            # Deckkraft des Saums (seit 09.11.2026 ein Pixel breit; vorher weiche Wolke bis 0,80, dann 0,30)
+SCHEIN_BREITE = 1                # Pixel Breite des Goldsaums direkt an der Silhouette
 
 
 def auffuellen(bild, pad):
@@ -620,51 +620,51 @@ def auffuellen(bild, pad):
     return neu
 
 
+def saum_ring(innen, breite=SCHEIN_BREITE):
+    """Ring der Breite Pixel um die Silhouette (Nachbarschaft mit Diagonalen, damit der Saum an Ecken geschlossen bleibt)."""
+    m = innen
+    for _ in range(breite):
+        p = np.pad(m, 1)
+        h, w = m.shape
+        m = np.zeros_like(m)
+        for dy in (0, 1, 2):
+            for dx in (0, 1, 2):
+                m = m | p[dy:dy + h, dx:dx + w]
+    return m & ~innen
+
+
 def mit_schein(bild, pad):
-    """Weicher weißer Schein außerhalb der Silhouette (Abstand zum nächsten deckenden Pixel, quadratisch auslaufend);
-    der Handschuh selbst bleibt Pixel für Pixel unverändert."""
+    """Dezenter Goldsaum (SCHEIN_BREITE Pixel, SCHEIN_STAERKE) direkt außerhalb der Silhouette (voll deckende Pixel); der
+    Handschuh selbst bleibt Pixel für Pixel unverändert, alles andere ist durchsichtig."""
     innen = bild[..., 3] == 255
-    h, w = innen.shape
-    dist = np.full((h, w), 1e9, np.float32)
-    p = np.pad(innen, pad)
-    for dy in range(-pad, pad + 1):
-        for dx in range(-pad, pad + 1):
-            d = (dy * dy + dx * dx) ** 0.5
-            if d > pad:
-                continue
-            versetzt = p[pad + dy:pad + dy + h, pad + dx:pad + dx + w]
-            dist = np.where(versetzt, np.minimum(dist, d), dist)
-    t = np.clip(1.0 - (dist - 0.5) / pad, 0.0, 1.0)
-    alpha = SCHEIN_STAERKE * t * t
-    alpha[innen] = 0
+    ring = saum_ring(innen)
     out = bild.copy()
     aussen = ~innen
-    out[aussen, :3] = np.array(SCHEIN_FARBE, np.uint8)
-    out[aussen, 3] = (alpha[aussen] * 255).round().astype(np.uint8)
+    out[aussen, :3] = UMRISS.astype(np.uint8)
+    out[aussen, 3] = 0
+    out[ring, :3] = np.array(SCHEIN_FARBE, np.uint8)
+    out[ring, 3] = int(round(SCHEIN_STAERKE * 255))
     return out
 
 
 def schein_neu_lauf(args):
-    """Schein der fertigen Bilder (hand_*_klick_*.png, tuer_schloss_*.png) im Ordner args.schein_neu auf SCHEIN_FARBE und
-    SCHEIN_STAERKE umstellen, ohne die Vorlagen: Außenpixel mit der alten Scheinfarbe werden umgefärbt, ihre Deckkraft im
-    Verhältnis neu/alt skaliert. Bildgröße und Zeigerpunkt bleiben unverändert."""
-    alt = np.array(SCHEIN_ALT[0], np.uint8)
-    faktor = SCHEIN_STAERKE / SCHEIN_ALT[1]
+    """Schein der fertigen Bilder im Ordner args.schein_neu auf einen SCHEIN_BREITE Pixel breiten Goldsaum umstellen, ohne die
+    Vorlagen: hand_*_klick_*.png wird aus dem zugehörigen hand_*_normal_*.png (ohne Schein) neu gebildet, tuer_schloss_*.png
+    aus seinen voll deckenden Pixeln. Bildgröße, Rand und Zeigerpunkt bleiben unverändert; der Lauf ist wiederholbar."""
     for name in sorted(os.listdir(args.schein_neu)):
         if not name.endswith(".png") or not (name.startswith("tuer_schloss_") or "_klick_" in name):
             continue
         pfad = os.path.join(args.schein_neu, name)
-        bild = oiio.ImageBuf(pfad, 0, 0, _ohne_vormultiplikation()).get_pixels(oiio.UINT8).copy()
-        schein = (bild[..., 3] < 255) & np.all(bild[..., :3] == alt, axis=-1)
-        bild[schein, :3] = np.array(SCHEIN_FARBE, np.uint8)
-        bild[schein, 3] = np.round(bild[schein, 3] * faktor).astype(np.uint8)
-        schreibe(pfad, bild)
-        print(f"{name}: {int(schein.sum())} Scheinpixel")
+        quelle = os.path.join(args.schein_neu, name.replace("_klick_", "_normal_")) if "_klick_" in name else pfad
+        bild = oiio.ImageBuf(quelle, 0, 0, _ohne_vormultiplikation()).get_pixels(oiio.UINT8).copy()
+        neu = mit_schein(bild, 0)
+        schreibe(pfad, neu)
+        print(f"{name}: {int((neu[..., 3] == round(SCHEIN_STAERKE * 255)).sum())} Saumpixel")
 
 
 def schloss_lauf(args):
     """Türschloss (aus tools/modelle/handschuh.py gerendert, tuer_schloss_<px>.png in QUELLE): den hellen halbdurchsichtigen Rand entfernen
-    (nur voll deckende Pixel bleiben) und wie beim Handschuh einen durchsichtigen Rand mit weißem Außenschein anfügen
+    (nur voll deckende Pixel bleiben) und wie beim Handschuh einen durchsichtigen Rand mit dünnem Goldsaum anfügen
     (das Schloss erscheint nur über Anklickbarem). QUELLE muss die unveränderten Bilder enthalten; Ausgabe nach args.ausgabe."""
     os.makedirs(args.ausgabe, exist_ok=True)
     for g in [int(x) for x in args.groessen.split(",") if int(x) in SCHEINRAND and int(x) != 32]:
@@ -751,7 +751,7 @@ def main():
     ap.add_argument("--nachsilbe", default="")
     ap.add_argument("--gemini", help="Ordner mit den sechs Stufenvorlagen (1_gemeiner.png ... 6_reichsgraf.png); dann ist VORLAGE ohne Bedeutung")
     ap.add_argument("--schloss", help="Ordner mit den unveränderten tuer_schloss_<px>.png: Rand entfernen, Schein anfügen (Ausgabe nach AUSGABE)")
-    ap.add_argument("--schein-neu", help="Ordner mit fertigen Zeigerbildern: Schein auf Gold und neue Stärke umstellen (in place); VORLAGE und AUSGABE ohne Bedeutung")
+    ap.add_argument("--schein-neu", help="Ordner mit fertigen Zeigerbildern: Schein als 1-Pixel-Goldsaum aus den normal-Bildern neu bilden (in place); VORLAGE und AUSGABE ohne Bedeutung")
     ap.add_argument("--ziel-hell", type=float, default=58.0, help="Zielhelligkeit des Leders (dunklere Stufen werden darauf angehoben)")
     ap.add_argument("--akzent", type=float, default=0.08, help="Mindestfläche Gold/Silber/Edelstein je Pixel")
     ap.add_argument("--stufen", action="store_true", help="sechs Stufen nach Stand als hand_<stufe>_normal|klick_<px>.png schreiben")

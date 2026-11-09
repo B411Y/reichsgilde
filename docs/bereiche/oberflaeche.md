@@ -349,7 +349,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Thema | Entscheidung | Datum |
 |---|---|---|
 | Wunsch | Das Leuchten beim Drüberfahren war zu hell (Nutzer, 09.11.2026): nur merken, dass sich etwas ändert; Farbe leicht golden. | 09.11.2026 |
-| Umsetzung | Scheinfarbe warmes Gold 230/190/110 statt Weiß, höchste Deckkraft 30 % statt 80 % (Verlauf unverändert quadratisch auslaufend). Alle acht Hände (klick) und das Türschloss, alle Größen; Bildgröße, Scheinrand 6/8/10 und Zeigerpunkte bleiben, `Mauszeiger.cs` unverändert. Umgestellt mit `zeiger_aus_vorlage.py --schein-neu ORDNER` (Außenpixel der alten Farbe umfärben, Deckkraft mal 0,375), die Konstanten `SCHEIN_FARBE`/`SCHEIN_STAERKE` gelten auch für neue Läufe. | 09.11.2026 |
+| Umsetzung | Scheinfarbe warmes Gold 230/190/110 statt Weiß. Nach Rückmeldung des Nutzers (09.11.2026: auch 30 % noch zu kräftig) keine weiche Wolke mehr, sondern **ein Pixel breiter Saum** (8 Nachbarn, damit er an Ecken geschlossen bleibt) direkt an der Silhouette mit 55 % Deckkraft. Alle acht Hände (klick) und das Türschloss, alle Größen; Bildgröße, Scheinrand 6/8/10 und Zeigerpunkte bleiben, `Mauszeiger.cs` unverändert. `zeiger_aus_vorlage.py --schein-neu ORDNER` bildet den Saum aus den normal-Bildern (Schloss: aus seinen voll deckenden Pixeln) neu und ist wiederholbar; `SCHEIN_FARBE`, `SCHEIN_STAERKE`, `SCHEIN_BREITE` gelten auch für `--gemini` und `--schloss`. | 09.11.2026 |
 
 ### Türschloss so groß wie der Handschuh (PR „Oberfläche: Türschloss-Zeiger an Handschuhgröße angepasst“)
 
