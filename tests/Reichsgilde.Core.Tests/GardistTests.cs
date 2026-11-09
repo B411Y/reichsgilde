@@ -14,7 +14,7 @@ static class GardistTests
     static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json));
 
     /// <summary>Jeder Taschendieb wird in der ersten Stunde erwischt.</summary>
-    static readonly Lazy<Wirtschaftsdaten> Tolpatschig = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.012", "\"fangJeStunde\": 1")));
+    static readonly Lazy<Wirtschaftsdaten> Tolpatschig = new(() => Wirtschaftsdaten.AusJson(Json.Replace("\"fangJeStunde\": 0.009", "\"fangJeStunde\": 1")));
 
     static Simulation NeueSimulation(Wirtschaftsdaten? daten = null) =>
         new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 }, wirtschaftsdaten: daten ?? Daten.Value);
