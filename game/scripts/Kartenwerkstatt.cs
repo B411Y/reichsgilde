@@ -130,6 +130,10 @@ public partial class Kartenwerkstatt : Node
         await Ladebildschirm.Bild(GetTree());
         OberflaecheBauen(); // Kartenwerkstatt.Tafeln.cs
         Ladezeit.Marke("Werkstatt: Tafeln bauen");
+        lade.Fortschritt(0.56f, "Die Pinsel werden ausgewaschen …"); // Köln: Tafeln gut 0,2 s, Vorwärmen knapp 0,1 s (--ladezeit=1, 09.11.2026)
+        await Ladebildschirm.Bild(GetTree());
+        _stadt.WerkstattVorwaermen(); // Felsnetze, Pflanzen, Probestücke für die Shader (Stadtansicht.Kartenwerkstatt.Vorwaermen.cs)
+        Ladezeit.Marke("Werkstatt: Pinsel vorwärmen");
         _entwurf.Geaendert += EntwurfGeaendert;
         _stadt.WerkstattAuswahlGeaendert += AuswahlGeaendert;
         _stadt.FelsGizmoGeaendert += FelsGizmoGeaendert;
@@ -170,11 +174,13 @@ public partial class Kartenwerkstatt : Node
         else if (datenFehler is not null) Melden(datenFehler, fehler: true);
         StartoptionenAusfuehren(optionen);
         await ErsteBilderAbwarten(lade, 0.777f);
+        _stadt.WerkstattVorwaermenEnde();
         Ruhen(false);
         _stadt.Ruhen(false);
         Ladezeit.Marke("Ladebild weg");
         lade.Schliessen();
         Ladezeit.BilderMessen(GetTree(), "Kartenwerkstatt"); // --ladezeit=1: die ersten sichtbaren Bilder (Ladezeit.cs)
+        if (Pinselmessung.An) await PinselmessungLaufen(); // --pinselmessung: jede Pinselart einmal (Kartenwerkstatt.Pinselmessung.cs)
     }
 
     /// <summary>Während des Aufbaus: kein <c>_Process</c> (die Tafeln fehlen noch), keine Eingabe.</summary>
@@ -215,14 +221,21 @@ public partial class Kartenwerkstatt : Node
 
     public override void _Process(double delta)
     {
+        if (_auffrischenNachStrich && !_stadt.WerkstattPruefungAufschieben)
+        {
+            _auffrischenNachStrich = false;
+            AuffrischenVormerken();
+        }
         var uhr = Ladezeit.Uhr();
         _stadt.WerkstattAktualisieren();
         Ladezeit.Dazu("im Bild: WerkstattAktualisieren", uhr);
+        var messen = Pinselmessung.Uhr();
         PinselInfoZeigen(); // Kartenwerkstatt.Tafeln.cs: das Schild unter dem Pinsel
         // Höhe, Gefälle und Boden unter der Maus – nicht doppelt, solange das Schild sie zeigt (dort die Steigung, wie der Filter sie misst)
         var boden = _pinselInfo.Visible ? null : _stadt.WerkstattBodenInfo();
         var info = $"Werkzeug: {_werkzeugName}" + (boden is null ? "" : " · " + boden);
         if (_bodenInfo.Text != info) _bodenInfo.Text = info;
+        Pinselmessung.Dazu("im Bild: Pinselschild und Leiste", messen);
     }
 
     /// <summary>Die Szene geht (Hauptmenü, Öffnen, Ausprobieren): Der Entwurf kann sie überleben – also alle Ereignisse an ihn lösen.</summary>
@@ -264,6 +277,9 @@ public partial class Kartenwerkstatt : Node
 
     private bool _auffrischenVorgemerkt;
 
+    /// <summary>Während eines Pinselstrichs kam eine Änderung: Kopf und Fehlerliste frischen auf, sobald er zu Ende ist.</summary>
+    private bool _auffrischenNachStrich;
+
     /// <summary>
     /// Kopf und Fehlerliste einmal am Ende des Bildes auffrischen: Ein Befehl kann viele Teile ändern (der Pinsel setzt Dutzende Pflanzen, jede
     /// meldet sich einzeln), und mehrere Befehle in einem Bild (Startoptionen) bauen die Liste so nur einmal.
@@ -275,7 +291,17 @@ public partial class Kartenwerkstatt : Node
         Callable.From(() =>
         {
             _auffrischenVorgemerkt = false;
+            if (_stadt.WerkstattPruefungAufschieben)
+            {
+                _auffrischenNachStrich = true; // Kopf und Fehlerliste (mit der vollen Prüfung) erst nach dem Strich (_Process)
+                return;
+            }
+            var uhr = Pinselmessung.Uhr();
+            _ = _entwurf.Befunde;
+            Pinselmessung.Dazu("Prüfung der ganzen Karte (Kern)", uhr);
+            uhr = Pinselmessung.Uhr();
             Auffrischen();
+            Pinselmessung.Dazu("Tafeln: Kopf und Fehlerliste", uhr);
         }).CallDeferred();
     }
 

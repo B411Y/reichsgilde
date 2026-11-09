@@ -167,7 +167,9 @@ public partial class Stadtansicht
         {
             var r = Vereinigt(_wsBodenBereiche);
             _wsBodenBereiche.Clear();
+            var uhr = Pinselmessung.Uhr();
             BodenStoffeNeu(r);
+            Pinselmessung.Dazu("Boden: Gewichtsbilder der Kacheln", uhr);
             // Schuttsteine liegen nur auf Kies (F6): die Zellen darüber neu – erst nach dem Strich, nicht in jedem Bild
             var rect = new Rect2((float)r.X0, (float)r.Z0, (float)(r.X1 - r.X0), (float)(r.Z1 - r.Z0));
             _wsFelsBodenBereich = _wsFelsBodenBereich is { } alt ? alt.Merge(rect) : rect;
@@ -175,10 +177,21 @@ public partial class Stadtansicht
         if (_wsFelsBodenBereich is { } fb && !_entwurf.BodenStrichLaeuft && !_entwurf.FelsStrichLaeuft && !_wsBodenStrich)
         {
             _wsFelsBodenBereich = null;
+            var uhrFels = Pinselmessung.Uhr();
             FelsenImBereich(fb);
+            Pinselmessung.Dazu("Boden: Schuttsteine der Felsen", uhrFels);
         }
         if (_wsNaturBereiche.Count > 0) _wsDekoBereiche.AddRange(_wsNaturBereiche);
         if (_wsDekoBereiche.Count == 0 || _entwurf.BodenStrichLaeuft || _entwurf.FelsStrichLaeuft || _wsBodenStrich) return;
+        var uhrDeko = Pinselmessung.Uhr();
+        BodendekoNachziehen();
+        Pinselmessung.Dazu("Boden: Deko und Büschel streuen", uhrDeko);
+    }
+
+    /// <summary>Nach dem Strich: die Deko der Kacheln neu streuen, die ein vorgemerkter Bereich berührt (die Grasbüschel weichen mit).</summary>
+    private void BodendekoNachziehen()
+    {
+        if (_entwurf is null) return;
         var bereiche = _wsDekoBereiche.Select(b => b.Grow((float)Bodendeko.Rand + 1)).ToList();
         _wsDekoBereiche.Clear();
         foreach (var b in bereiche) BueschelBereich(b); // auch die Grasbüschel weichen (Stadtansicht.Bueschel.cs)

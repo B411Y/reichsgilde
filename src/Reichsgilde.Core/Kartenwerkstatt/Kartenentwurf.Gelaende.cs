@@ -81,6 +81,12 @@ public sealed partial class Kartenentwurf
     /// <summary>Läuft gerade ein Pinselstrich (zwischen <see cref="GelaendeStrichBeginnen"/> und <see cref="GelaendeStrichBeenden"/>)?</summary>
     public bool StrichLaeuft => _strich is not null;
 
+    /// <summary>
+    /// Läuft irgendein Pinselstrich (Gelände, Boden oder Fels)? Die Darstellung schiebt dann auf, was erst nach dem Strich gebraucht wird (die volle
+    /// Prüfung <see cref="Befunde"/>, die Fehlerliste, Gras und Natur) – die Karte ändert sich davon nicht.
+    /// </summary>
+    public bool PinselstrichLaeuft => _strich is not null || BodenStrichLaeuft || FelsStrichLaeuft;
+
     /// <summary>Beginnt einen Pinselstrich (ein laufender wird vorher beendet). Danach <see cref="GelaendeStrichWeiter"/> je Mausbewegung.</summary>
     public void GelaendeStrichBeginnen(Pinsel pinsel)
     {
