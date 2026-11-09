@@ -298,12 +298,12 @@ public partial class Stadtansicht
     private const double HafenbautenReichweite = 60;
 
     /// <summary>
-    /// Hafenkran und Lagerschuppen (Sonderbauten der Karte, aus <see cref="SonderbautenBauen"/>): ein Klick öffnet die Tafel des nächsten Hafens, wenn einer
+    /// Hafenkran, Rheinkran (Schwimmkran), Lagerschuppen und Stapelhaus (Sonderbauten der Karte, aus <see cref="SonderbautenBauen"/>): ein Klick öffnet die Tafel des nächsten Hafens, wenn einer
     /// nah genug steht. <paramref name="wurzel"/> trägt Lage, Drehung und Maßstab wie bei <see cref="HafenKlickbar"/>.
     /// </summary>
     private void HafenbauKlickbar(Stadtkarte karte, Kartengebaeude g, Node3D wurzel)
     {
-        if (g.Katalog is not ("hafenkran" or "lagerschuppen") || g.Baustein?.Groesse is not { Length: 2 } gr) return;
+        if (g.Katalog is not ("hafenkran" or "rheinkran" or "lagerschuppen" or "stapelhaus") || g.Baustein?.Groesse is not { Length: 2 } gr) return;
         var naechster = karte.GebaeudeDerArt(Bausteinart.Umlandstelle)
             .Where(h => h.Baustein?.Modell is { } m && m.StartsWith("wasser/"))
             .Select(h => (h.Kennung, Abstand: Math.Sqrt(Math.Pow(h.Punkt[0] - g.Punkt[0], 2) + Math.Pow(h.Punkt[1] - g.Punkt[1], 2))))
