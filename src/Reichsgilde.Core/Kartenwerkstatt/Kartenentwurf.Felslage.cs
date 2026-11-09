@@ -272,8 +272,12 @@ public sealed partial class Kartenentwurf
 
     // ── Schieben mit den Pfeiltasten (Fels P2) ──────────────────────────────
 
-    /// <summary>Der zuletzt gemachte Schub: sein Schritt in der Geschichte, die Stücke (Reihenfolge des Entwurfs) und der Versatz insgesamt.</summary>
-    private (IKartenbefehl Befehl, EntwurfFels[] Felsen, double DX, double DY, double DZ)? _schub;
+    /// <summary>
+    /// Der zuletzt gemachte Schub: sein Schritt in der Geschichte, die Stücke (Reihenfolge des Entwurfs), der Versatz insgesamt auf dem Boden und je
+    /// Stück der Höhenversatz, der wirklich ankam (an <see cref="Felsformen.VersatzMax"/> gekappt – sonst bräuchte der Rückweg erst die Tastendrücke
+    /// über der Grenze).
+    /// </summary>
+    private (IKartenbefehl Befehl, EntwurfFels[] Felsen, double DX, double[] DY, double DZ)? _schub;
 
     /// <summary>
     /// Schiebt Stücke um <paramref name="dx"/>, <paramref name="dy"/> (Höhenversatz) und <paramref name="dz"/> Meter (Pfeiltasten der Werkstatt). Mit
@@ -287,16 +291,21 @@ public sealed partial class Kartenentwurf
         FelsStrichBeenden();
         var liste = Geordnet(felsen);
         if (liste.Count == 0 || (dx == 0 && dy == 0 && dz == 0)) return false;
-        var (sx, sy, sz) = (dx, dy, dz);
+        var (sx, sz) = (dx, dz);
+        var sy = liste.Select(_ => dy).ToArray();
         if (zusammenfassen && _schub is { } alt && ReferenceEquals(Geschichte.LetzterOhneWiederholen, alt.Befehl)
             && alt.Felsen.Length == liste.Count && alt.Felsen.Zip(liste).All(p => ReferenceEquals(p.First, p.Second)))
         {
             Geschichte.LetztenVerwerfen(); // die Stücke stehen wieder wie vor der Tastenfolge
-            (sx, sy, sz) = (alt.DX + dx, alt.DY + dy, alt.DZ + dz);
+            (sx, sz) = (alt.DX + dx, alt.DZ + dz);
+            for (var i = 0; i < sy.Length; i++) sy[i] = alt.DY[i] + dy;
         }
         _schub = null;
         var vorher = Geschichte.LetzterOhneWiederholen;
-        var (werte, _) = FelsWerte(liste, new Felsaenderung(DX: sx, DY: sy, DZ: sz));
+        // Lage auf dem Boden für alle gleich; die Höhe je Stück (ohne Drehen und Skalieren rechnet FelsWerte am Boden: Versatz + DY)
+        var start = liste.Select(f => f.Versatz).ToArray();
+        var (boden, _) = FelsWerte(liste, new Felsaenderung(DX: sx, DZ: sz));
+        var werte = boden.Select((p, i) => (p.Item1, p.Item2 with { Versatz = sy[i] != 0 ? start[i] + sy[i] : null })).ToList();
         FelsTransformieren(werte, "geschoben");
         var befehl = Geschichte.LetzterOhneWiederholen;
         if (befehl is null || ReferenceEquals(befehl, vorher))
@@ -304,7 +313,12 @@ public sealed partial class Kartenentwurf
             MeldungenAusloesen(); // nur verworfen (die Folge hob sich auf): die Stücke stehen wieder am alten Platz
             return false;
         }
-        _schub = (befehl, liste.ToArray(), sx, sy, sz);
+        // gemerkt wird, was ankam: über der Grenze nur der Weg bis zu ihr (ungekappt bliebe die Summe exakt wie bisher)
+        var angekommen = new double[sy.Length];
+        for (var i = 0; i < sy.Length; i++)
+            angekommen[i] = start[i] + sy[i] > Felsformen.VersatzMax ? Felsformen.VersatzMax - start[i]
+                : start[i] + sy[i] < -Felsformen.VersatzMax ? -Felsformen.VersatzMax - start[i] : sy[i];
+        _schub = (befehl, liste.ToArray(), sx, angekommen, sz);
         return true;
     }
 

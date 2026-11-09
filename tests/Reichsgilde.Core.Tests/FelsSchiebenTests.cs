@@ -86,6 +86,38 @@ static class FelsSchiebenTests
             Pruefe.Wahr(!e.FelsSchieben(auswahl, 0, 0, 0, zusammenfassen: true), "ohne Versatz");
             Pruefe.Gleich(s, e.Geschichte.Schritte);
         }),
+        ("Fels P2: An der Höhengrenze (±20 m) merkt sich die Folge nur, was ankam – der erste Druck zurück bewegt das Stück wieder", () =>
+        {
+            var e = Probe();
+            var (a, b, c) = (e.Felsen[0], e.Felsen[1], e.Felsen[2]);
+            e.FelsTransformieren(new[] { a }, new Felswerte(Versatz: 19));
+            e.FelsTransformieren(new[] { b }, new Felswerte(Versatz: 0));
+            e.FelsTransformieren(new[] { c }, new Felswerte(Versatz: -19.5));
+            var vorher = e.ZuJson();
+            var s = e.Geschichte.Schritte;
+            var auswahl = new List<EntwurfFels> { a, b };
+            for (var i = 0; i < 3; i++) e.FelsSchieben(auswahl, 0, 1, 0, zusammenfassen: true);
+            Pruefe.Gleich(Felsformen.VersatzMax, a.Versatz, "oben gekappt");
+            Pruefe.Gleich(3.0, b.Versatz);
+            Pruefe.Wahr(e.FelsSchieben(auswahl, 0, -1, 0, zusammenfassen: true), "der erste Druck zurück ändert etwas");
+            Pruefe.Gleich(19.0, a.Versatz, "ein Druck zurück: 1 m unter der Grenze");
+            Pruefe.Gleich(2.0, b.Versatz, "das andere Stück läuft weiter mit");
+            Pruefe.Wahr(e.FelsSchieben(auswahl, 0, -1, 0, zusammenfassen: true), "zweiter Druck");
+            Pruefe.Gleich(18.0, a.Versatz);
+            Pruefe.Gleich(1.0, b.Versatz);
+            Pruefe.Gleich(s + 1, e.Geschichte.Schritte, "ein Schritt");
+            e.Rueckgaengig();
+            Pruefe.Gleich(vorher, e.ZuJson(), "Rückgängig: vor der Folge");
+            // unten genauso; hin und zurück hebt sich auf
+            var unten = new List<EntwurfFels> { c };
+            e.FelsSchieben(unten, 0, -0.5, 0, zusammenfassen: true);
+            e.FelsSchieben(unten, 0, -0.5, 0, zusammenfassen: true);
+            Pruefe.Gleich(-Felsformen.VersatzMax, c.Versatz, "unten gekappt");
+            Pruefe.Wahr(!e.FelsSchieben(unten, 0, 0.5, 0, zusammenfassen: true), "zurück auf den Anfang: kein Schritt");
+            Pruefe.Gleich(-19.5, c.Versatz);
+            Pruefe.Gleich(vorher, e.ZuJson());
+            Pruefe.Gleich(s, e.Geschichte.Schritte);
+        }),
         ("Fels P2: Ein gespeicherter Stand mitten in einer Folge gilt danach als geändert", () =>
         {
             var e = Probe();
