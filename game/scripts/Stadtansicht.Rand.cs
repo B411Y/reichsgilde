@@ -123,7 +123,9 @@ public partial class Stadtansicht
         _dunstRing.SetShaderParameter("breite", breite);
         _dunstFarbe = new Color(-1, 0, 0); // DunstFarbeNachfuehren setzt sie im nächsten Bild
         DunstFarbeNachfuehren();
+        _dunstRing.SetShaderParameter("deckung_max", _himmelAn ? RingDeckung : 1f); // mit Himmel (Ego, freie Kamera) schwächer: dahinter läuft das Fernland weiter
         _randKnoten!.AddChild(new MeshInstance3D { Name = "Randdunst", Mesh = netz, MaterialOverride = _dunstRing, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        FernlandBauen(aussen, innen); // Stadtansicht.Himmel.cs: Land hinter dem Ring, nur für den Blick zum Horizont
     }
 
     /// <summary>Größe der Zellen, in denen der Dunstring dem Gelände folgt (Meter).</summary>
@@ -164,10 +166,10 @@ public partial class Stadtansicht
     {
         if (_dunstRing is null) return;
         var farbe = _umgebung.Environment.BackgroundColor;
-        // Mit der freien Kamera (Stadtansicht.FreieKamera.cs) sieht man den Hintergrund hinter dem Kartenrand. Godot zeichnet die Hintergrundfarbe
+        // Mit der freien Kamera (Stadtansicht.FreieKamera.cs) und ohne Himmel (--himmel=0) sieht man den Hintergrund hinter dem Kartenrand. Godot zeichnet die Hintergrundfarbe
         // dunkler als dieselbe Farbe im Ring (gemessen: Himmel 64,107,156, Ring 137,173,205 – wie einmal zu oft von sRGB nach linear gewandelt);
         // die Spielkamera sieht den Hintergrund nie. Ein so gewandelter Ring geht ohne Kante in den Himmel über.
-        if (FreiAktiv) farbe = farbe.SrgbToLinear();
+        if (FreiAktiv && !_himmelAn) farbe = farbe.SrgbToLinear(); // mit dem Himmel (Stadtansicht.Himmel.cs) gilt die Farbe unverändert: Himmel und Ring zeigen dieselbe Dunstfarbe
         if (farbe == _dunstFarbe) return;
         _dunstFarbe = farbe;
         _dunstRing.SetShaderParameter("farbe", farbe);
