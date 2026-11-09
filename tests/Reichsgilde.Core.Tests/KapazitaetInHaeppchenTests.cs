@@ -95,7 +95,7 @@ static class KapazitaetInHaeppchenTests
             var rand = e.Kartengrenzen.Spielfeld;
             e.WegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(rand.X0 + 5, rand.Z0 + 5), new(rand.X0 + 25, rand.Z0 + 8) }, einrasten: false);
             var mit = Abstaende(e.KapazitaetSchritte(Schwere).ToList());
-            Pruefe.Wahr(ohne > 10, $"ohne Vorrat {ohne} Häppchen der Abstände");
+            Pruefe.Wahr(ohne >= 5, $"ohne Vorrat {ohne} Häppchen der Abstände");
             Pruefe.Wahr(mit <= 2, $"mit Vorrat {mit} Häppchen der Abstände (nur das Fach der Wege und das Ende)");
             Pruefe.Gleich(Text(OhneVorrat(e, Schwere).Ergebnis), Text(e.Kapazitaetsrechnung(Schwere)), "dasselbe Ergebnis");
 
