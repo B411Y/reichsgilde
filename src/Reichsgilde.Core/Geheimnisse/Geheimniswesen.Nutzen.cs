@@ -49,10 +49,7 @@ public sealed partial class Geheimniswesen
                 return null;
             case Geheimnisnutzung.Anzeige:
                 if (!_w.Justiz.IstAktiv) return "In dieser Stadt gibt es kein Gericht.";
-                var a = Daten.Art(g.Art);
-                if (a.Beweiskraft <= 0) return $"{a.Name} ist kein Vergehen – anzeigen kann man es nicht. Ihr könnt erpressen oder bloßstellen.";
-                if (a.NurMitStadtglaube && (!_w.Glaube.IstAktiv || _w.Glaube.Stadtglaube is null))
-                    return $"{a.Name} ist nur strafbar, wenn ein Stadtglaube gilt.";
+                if (KeinVergehen(g) is { } keines) return keines;
                 var gebuehr = _w.Justiz.Gerichtsgebuehr(haus);
                 if (haus.Vermoegen < gebuehr) return $"Die Gerichtsgebühr beträgt {Zahlenformat.Ganz(gebuehr)} {waehrung}.";
                 if (hausDes is not null)
@@ -69,6 +66,21 @@ public sealed partial class Geheimniswesen
             default:
                 return null;
         }
+    }
+
+    /// <summary>
+    /// Warum dieses Geheimnis vor Gericht kein Vergehen ist (null = es ist eines): Schulden nie. Ketzerei nur, wenn ein Stadtglaube gilt und
+    /// der Inhaber sich nach außen zu ihm bekennt, heimlich aber anderes glaubt – wer offen einen anderen Glauben lebt, ist kein Ketzer
+    /// (Entscheidung des Nutzers 09.11.2026).
+    /// </summary>
+    public string? KeinVergehen(Geheimnis g)
+    {
+        var a = Daten.Art(g.Art);
+        if (a.Beweiskraft <= 0) return $"{a.Name} ist kein Vergehen – anzeigen kann man es nicht. Ihr könnt erpressen oder bloßstellen.";
+        if (!a.NurMitStadtglaube) return null;
+        if (!_w.Glaube.IstAktiv || _w.Glaube.Stadtglaube is not { } stadt) return $"{a.Name} ist nur strafbar, wenn ein Stadtglaube gilt.";
+        if (Inhaber(g) is { } c && GlaubeVon(c) != stadt) return $"{c.Name} bekennt sich nicht zum Stadtglauben – kein Ketzer.";
+        return null;
     }
 
     /// <summary>Befehl <see cref="GeheimnisNutzen"/> (aus Stadtwirtschaft.Ausfuehren).</summary>

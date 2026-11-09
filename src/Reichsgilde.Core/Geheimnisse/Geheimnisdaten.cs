@@ -79,7 +79,7 @@ public sealed class GeheimnisArtDaten
     /// <summary>Faktor je Zug auf <see cref="Wechsel"/> (Fromm 2, Zynisch 0).</summary>
     public Dictionary<string, double> WechselZuege { get; init; } = new();
 
-    /// <summary>Anzeigbar nur, wenn ein Stadtglaube gilt.</summary>
+    /// <summary>Anzeigbar nur, wenn ein Stadtglaube gilt und der Inhaber sich nach außen zu ihm bekennt (<see cref="Geheimniswesen.KeinVergehen"/>).</summary>
     public bool NurMitStadtglaube { get; init; }
 
     // ── Schulden ────────────────────────────────────────────────────────────
