@@ -51,6 +51,9 @@ public partial class Stadtansicht
     private readonly HashSet<(int I, int J)> _schichtVeraltet = new();
     private bool _schichtAlles;
 
+    /// <summary>So viele Kacheln rechnet die Wegeschicht in der Werkstatt je Bild (nach der Zeit der letzten angepasst).</summary>
+    private int _schichtProBild = 1;
+
     /// <summary>Die Stücke zu Höfen, Karrenplätzen und Gattern (sonst als Quader gezeichnet).</summary>
     private readonly List<(Vector2 Von, Vector2 Bis, float Breite)> _schichtAnschluesse = new();
 
@@ -148,9 +151,14 @@ public partial class Stadtansicht
     /// <summary>Jedes Bild: veraltete Kacheln neu rechnen (parallel), ihre Bilder ersetzen und den Kacheln den Stoff geben.</summary>
     private void WegeschichtBild()
     {
+        if (!_schichtAlles && _schichtVeraltet.Count > 0 && _entwurf is not null && !SchwerDran()) return; // in diesem Bild war schon anderes dran
         if (!_schichtAlles && _schichtVeraltet.Count == 0)
         {
-            if (_torErdeVeraltet && _grenzen is not null && WegeschichtMoeglich) TorErdeNachfuehren(null); // eine neue Torburg (Stadtansicht.Torerde.cs)
+            if (_torErdeVeraltet && _grenzen is not null && WegeschichtMoeglich) // eine neue Torburg (Stadtansicht.Torerde.cs)
+            {
+                if (_entwurf is null) TorErdeNachfuehren(null);
+                else TorErdeSchritt(); // Werkstatt: in Häppchen
+            }
             return;
         }
         if (_grenzen is null || !WegeschichtMoeglich)
@@ -173,10 +181,22 @@ public partial class Stadtansicht
         var alles = _schichtAlles;
         _schichtAlles = false;
         _schichtVeraltet.Clear();
+        // In der Werkstatt nur so viele Kacheln, wie ins Budget passen (Köln: ein Strich über Wege rechnete 100 ms am Stück): der Rest im nächsten Bild
+        var anfangUsec = Time.GetTicksUsec();
+        if (_entwurf is not null && !alles && liste.Count > _schichtProBild)
+        {
+            foreach (var k in liste.Skip(_schichtProBild)) _schichtVeraltet.Add(k);
+            liste = liste.Take(_schichtProBild).ToList();
+        }
 
         var uhr = System.Diagnostics.Stopwatch.StartNew();
+        var messen = Pinselmessung.Uhr();
         var (teile, spuren) = Ladezeit.Zaehlen("Wegeschicht: SchichtTeile", () => SchichtTeile());
+        Pinselmessung.Dazu("  Wegeschicht: Teile sammeln", messen);
+        messen = Pinselmessung.Uhr();
         Ladezeit.Teil("Wegeschicht: TorErde", () => TorErdeNachfuehren(teile));
+        Pinselmessung.Dazu("  Wegeschicht: Torerde", messen);
+        messen = Pinselmessung.Uhr();
         var uhrRechnen = Ladezeit.Uhr(); // Erde im Torweg (Stadtansicht.Torerde.cs)
         var ergebnis = new (byte[] Bild, byte[] Info, byte[] Spur)?[liste.Count];
         var bilder = new (Image Bild, Image Info, Image Spur)?[liste.Count]; // schon im Faden der Kachel gebaut samt Mipmaps (das kostete sonst auf dem Hauptfaden gut 1 s)
@@ -196,6 +216,8 @@ public partial class Stadtansicht
             bilder[k] = (bild, info, spur);
         });
         Ladezeit.Dazu("Wegeschicht: Kacheln rechnen (Parallel)", uhrRechnen);
+        Pinselmessung.Dazu("  Wegeschicht: Kacheln rechnen", messen);
+        messen = Pinselmessung.Uhr();
         var uhrBilder = Ladezeit.Uhr();
         for (var k = 0; k < liste.Count; k++)
         {
@@ -228,7 +250,50 @@ public partial class Stadtansicht
             BueschelWegeGesetzt(kachel, bueschel[k]);
         }
         Ladezeit.Dazu("Wegeschicht: Bilder und Stoffe", uhrBilder);
+        Pinselmessung.Dazu("  Wegeschicht: Bilder und Stoffe", messen);
+        if (_entwurf is not null && !alles && liste.Count > 0)
+        {
+            var jeKachelMs = (Time.GetTicksUsec() - anfangUsec) / 1000.0 / liste.Count;
+            _schichtProBild = Math.Clamp((int)(SchwerBudget / Math.Max(0.5, jeKachelMs)), 1, 8);
+            SchwerGezaehlt(anfangUsec);
+        }
         if (alles) GD.Print($"Wegeschicht: {teile.Count} Teile, {_schichtKacheln.Count} von {liste.Count} Kacheln mit Wegen, {uhr.ElapsedMilliseconds} ms");
+    }
+
+    private (IEnumerator<int> Schritte, SchichtTeileErgebnis Ergebnis)? _torErdeLauf;
+
+    /// <summary>
+    /// Werkstatt: die Teile der Wegeschicht für die Erde in den Torwegen in Häppchen sammeln (<see cref="SchichtTeileSchritte"/>, je Bild höchstens das Budget),
+    /// zuletzt <see cref="TorErdeNachfuehren"/>. Wird in der Zwischenzeit wieder eine Torburg neu, rechnet es noch einmal.
+    /// </summary>
+    private void TorErdeSchritt()
+    {
+        if (!SchwerDran()) return;
+        var anfang = Time.GetTicksUsec();
+        if (_torErdeLauf is null)
+        {
+            _torErdeVeraltet = false; // wird sie während des Laufs wieder gesetzt, gilt es danach noch einmal
+            var ergebnis = new SchichtTeileErgebnis();
+            _torErdeLauf = (SchichtTeileSchritte(ergebnis).GetEnumerator(), ergebnis);
+        }
+        var (schritte, e) = _torErdeLauf.Value;
+        var frist = anfang + (ulong)(SchwerBudget * 1000);
+        var fertig = true;
+        while (schritte.MoveNext())
+            if (Time.GetTicksUsec() >= frist)
+            {
+                fertig = false;
+                break;
+            }
+        if (fertig)
+        {
+            _torErdeLauf = null;
+            var erneut = _torErdeVeraltet;
+            TorErdeNachfuehren(e.Teile);
+            _torErdeVeraltet = erneut;
+        }
+        Pinselmessung.Dazu("  Wegeschicht: Torerde (Häppchen)", anfang);
+        SchwerGezaehlt(anfang);
     }
 
     /// <summary>Gibt dem Stoff einer Kachel die Bilder der Schicht (oder schaltet sie aus).</summary>
@@ -249,15 +314,38 @@ public partial class Stadtansicht
     /// </summary>
     private (List<Schichtteil> Teile, List<Spurlinie> Spuren) SchichtTeile()
     {
-        var teile = new List<Schichtteil>();
+        var ergebnis = new SchichtTeileErgebnis();
+        foreach (var _ in SchichtTeileSchritte(ergebnis)) { }
+        return (ergebnis.Teile, ergebnis.Spuren);
+    }
+
+    /// <summary>Das Ergebnis von <see cref="SchichtTeileSchritte"/>.</summary>
+    private sealed class SchichtTeileErgebnis
+    {
+        public List<Schichtteil> Teile = new();
+        public List<Spurlinie> Spuren = new();
+    }
+
+    /// <summary>
+    /// <see cref="SchichtTeile"/> in Häppchen (ein Schritt nach je acht Wegen): Die Werkstatt braucht die Teile nach einem Pinselstrich für die Erde in den
+    /// Torwegen und rechnete sie in Köln in einem Bild (90 ms und mehr).
+    /// </summary>
+    private IEnumerable<int> SchichtTeileSchritte(SchichtTeileErgebnis ergebnis)
+    {
+        var teile = ergebnis.Teile;
         if (_entwurf is { } entwurf)
         {
             for (var i = 0; i < entwurf.Wege.Count; i++)
             {
                 var w = entwurf.Wege[i];
                 if (SchichtWeg(w.Verlauf.Select(V2).ToArray(), (float)w.BreiteWirksam, w.BelagAbschnitte, WegLuecken(i)) is { } teil) teile.Add(teil);
+                if (i % 8 == 7) yield return i;
             }
-            foreach (var m in entwurf.Mauern.Where(m => m.Ecken.Count >= 3)) teile.Add(SchichtFlaeche(m.Ecken.Select(V2).ToArray()));
+            foreach (var m in entwurf.Mauern.Where(m => m.Ecken.Count >= 3))
+            {
+                teile.Add(SchichtFlaeche(m.Ecken.Select(V2).ToArray()));
+                yield return 0;
+            }
         }
         else if (_karte is { } karte)
         {
@@ -276,10 +364,11 @@ public partial class Stadtansicht
             var stueck = new[] { new Belagabschnitt(0, von.DistanceTo(bis) + 1, stufe, Austritt: 0.7) };
             if (SchichtWeg(new[] { von, bis }, breite, stueck, null) is { } teil) teile.Add(teil);
         }
+        yield return 0;
         var wege = teile.Where(t => !t.Flaeche).ToList();
         var (ecken, spuren) = SchichtKreuzungen(wege, teile.Where(t => t.Flaeche).Select(t => t.Linie).ToList());
         teile.AddRange(ecken);
-        return (teile, spuren);
+        ergebnis.Spuren = spuren;
     }
 
     private static Schichtteil? SchichtWeg(Vector2[] roh, float breite, IReadOnlyList<Belagabschnitt> stuecke, List<(float Von, float Bis)>? luecken)

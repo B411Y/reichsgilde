@@ -296,10 +296,12 @@ public partial class Kartenwerkstatt : Node
                 _auffrischenNachStrich = true; // Kopf und Fehlerliste (mit der vollen Prüfung) erst nach dem Strich (_Process)
                 return;
             }
+            if (!_stadt.WerkstattBefundeBereit())
+            {
+                _auffrischenNachStrich = true; // die Prüfung rechnet in Häppchen über mehrere Bilder (_Process holt es nach)
+                return;
+            }
             var uhr = Pinselmessung.Uhr();
-            _ = _entwurf.Befunde;
-            Pinselmessung.Dazu("Prüfung der ganzen Karte (Kern)", uhr);
-            uhr = Pinselmessung.Uhr();
             Auffrischen();
             Pinselmessung.Dazu("Tafeln: Kopf und Fehlerliste", uhr);
         }).CallDeferred();

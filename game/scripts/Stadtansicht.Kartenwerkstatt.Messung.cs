@@ -56,9 +56,17 @@ public partial class Stadtansicht
     /// <summary>Wie das Loslassen der linken Maustaste.</summary>
     public void MessStrichEnde()
     {
+        var uhr = Pinselmessung.Uhr();
         StrichBeenden();
+        Pinselmessung.Dazu("  Loslassen: Natur-Strich", uhr);
+        uhr = Pinselmessung.Uhr();
         GelaendeStrichBeenden();
+        Pinselmessung.Dazu("  Loslassen: Gelände", uhr);
+        uhr = Pinselmessung.Uhr();
         BodenStrichBeenden();
+        Pinselmessung.Dazu("  Loslassen: Boden", uhr);
+        uhr = Pinselmessung.Uhr();
         FelsStrichBeenden();
+        Pinselmessung.Dazu("  Loslassen: Fels", uhr);
     }
 }

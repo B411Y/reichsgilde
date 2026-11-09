@@ -102,7 +102,8 @@ public partial class Stadtansicht
     {
         if (!BueschelAn || _gelaendeKnoten is null || _randKnoten is null) return;
         if (_wsBodenStrich || _entwurf is { BodenStrichLaeuft: true } or { FelsStrichLaeuft: true }) return; // auch der Felsstrich malt Boden (F6)
-        if (_bueschelBodenAlles || _bueschelBodenNeu.Count > 0) BueschelBodenRechnen();
+        // In der Werkstatt teilen sich die Kacheln und das Budget des Bildes mit der übrigen großen Arbeit (SchwerDran, Stadtansicht.Kartenwerkstatt.cs)
+        if ((_bueschelBodenAlles || _bueschelBodenNeu.Count > 0) && SchwerDran()) BueschelBodenRechnen();
         var alle = _bueschelAlleBauen;
         if (alle)
         {
@@ -111,7 +112,7 @@ public partial class Stadtansicht
             _bueschelBauen.UnionWith(_bueschelBoden.Keys);
             _bueschelBauen.UnionWith(_bueschelKnoten.Keys);
         }
-        if (_bueschelBauen.Count == 0) return;
+        if (_bueschelBauen.Count == 0 || !SchwerDran()) return;
         if (_bueschelWurzel is null || !IsInstanceValid(_bueschelWurzel))
         {
             _bueschelWurzel = new Node3D { Name = "Grasbueschel" };
@@ -119,10 +120,17 @@ public partial class Stadtansicht
         }
         Naturfreiraum? frei = _entwurf is not null ? _entwurf.Freiraum(Modellmass) : _karte is { } k ? Naturfreiraum.Aus(k, Modellmass) : null;
         var uhr = System.Diagnostics.Stopwatch.StartNew();
-        foreach (var kachel in _bueschelBauen) BueschelKachelBauen(kachel, frei);
+        var anfang = Time.GetTicksUsec();
+        var frist = anfang + (ulong)(SchwerBudget * 1000);
+        foreach (var kachel in _bueschelBauen.ToList())
+        {
+            BueschelKachelBauen(kachel, frei);
+            _bueschelBauen.Remove(kachel);
+            if (_entwurf is not null && Time.GetTicksUsec() >= frist) break; // Werkstatt: der Rest im nächsten Bild
+        }
+        SchwerGezaehlt(anfang);
         if (alle) GD.Print($"Grasbüschel: {_bueschelWeg.Values.Sum(v => v.Length)} am Weg, {_bueschelBoden.Values.Sum(v => v.Length)} an Grenzen (vor dem Freiraum), " +
                            $"{_bueschelKnoten.Count} Kacheln, {uhr.ElapsedMilliseconds} ms");
-        _bueschelBauen.Clear();
         _naturDetails.RemoveAll(d => !IsInstanceValid(d.Teil));
     }
 
@@ -137,8 +145,16 @@ public partial class Stadtansicht
             liste.AddRange(_bueschelBoden.Keys.Where(k => !_gelaendeKacheln.ContainsKey(k)));
         }
         else liste = _bueschelBodenNeu.ToList();
+        var alles = _bueschelBodenAlles;
         _bueschelBodenAlles = false;
         _bueschelBodenNeu.Clear();
+        // Werkstatt: nur so viele Kacheln, wie ins Budget passen (die erste kann länger dauern, danach wird angepasst); der Rest im nächsten Bild
+        var anfangUsec = Time.GetTicksUsec();
+        if (_entwurf is not null && !alles && liste.Count > _bueschelProBild)
+        {
+            foreach (var k in liste.Skip(_bueschelProBild)) _bueschelBodenNeu.Add(k);
+            liste = liste.Take(_bueschelProBild).ToList();
+        }
         var ergebnis = new Vector4[]?[liste.Count];
         var felsKarte = _felsbodenAn == true;
         if (raster is { IstLeer: false })
@@ -152,7 +168,15 @@ public partial class Stadtansicht
             else if (!_bueschelBoden.Remove(liste[k])) continue;
             _bueschelBauen.Add(liste[k]);
         }
+        if (_entwurf is not null && !alles && liste.Count > 0)
+        {
+            _bueschelProBild = Math.Clamp((int)(SchwerBudget / Math.Max(0.5, (Time.GetTicksUsec() - anfangUsec) / 1000.0 / liste.Count)), 1, 8);
+            SchwerGezaehlt(anfangUsec);
+        }
     }
+
+    /// <summary>So viele Kacheln rechnet <see cref="BueschelBodenRechnen"/> in der Werkstatt je Bild (nach der Zeit der letzten angepasst).</summary>
+    private int _bueschelProBild = 1;
 
     /// <summary>Baut den Knoten einer Kachel neu: Kandidaten von Wegen und Boden, ohne Gebäude, Wasser und steile Hänge.</summary>
     private void BueschelKachelBauen((int I, int J) kachel, Naturfreiraum? frei)

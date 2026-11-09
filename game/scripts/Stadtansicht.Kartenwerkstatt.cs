@@ -287,6 +287,61 @@ public partial class Stadtansicht
         _entwurf is { PinselstrichLaeuft: true } || (_wsLetzterStrich > 0 && Time.GetTicksMsec() - _wsLetzterStrich < PruefungNachStrich);
 
     /// <summary>
+    /// Die Rechenzeit, die nach einem Strich in einem Bild für große Arbeit übrig ist (ms): Wer sie verbraucht hat (Nacharbeit, Natur, Prüfung,
+    /// Grasteppich, Wegeschicht), nach dem kommen die anderen erst im nächsten Bild dran – so kommt nie alles in ein Bild. In der Werkstatt gilt das für
+    /// alles, im Spiel und im Hauptmenü nicht (dort ist <see cref="_entwurf"/> null).
+    /// </summary>
+    private const double SchwerBudget = 6;
+
+    private ulong _wsSchwerBild = ulong.MaxValue;
+    private double _wsSchwerMs;
+
+    /// <summary>Das Bild, in dem ein Pinselstrich zu Ende ging: Der Kern rechnet dort den Schritt der Geschichte (15–25 ms), alles andere wartet bis zum nächsten Bild.</summary>
+    private ulong _wsStrichEndeBild = ulong.MaxValue;
+
+    private bool _wsStrichLief;
+
+    /// <summary>Darf in diesem Bild noch große Arbeit rechnen? (Immer im Spiel.)</summary>
+    private bool SchwerDran()
+    {
+        if (_entwurf is null) return true;
+        var bild = Engine.GetProcessFrames();
+        if (bild != _wsSchwerBild) (_wsSchwerBild, _wsSchwerMs) = (bild, 0);
+        return _wsSchwerMs < SchwerBudget && bild != _wsStrichEndeBild;
+    }
+
+    /// <summary>Zählt die Zeit seit <paramref name="anfangUsec"/> zur großen Arbeit dieses Bildes (<see cref="SchwerDran"/>).</summary>
+    private void SchwerGezaehlt(ulong anfangUsec)
+    {
+        if (_entwurf is null) return;
+        _ = SchwerDran(); // das Bild nachführen
+        _wsSchwerMs += (Time.GetTicksUsec() - anfangUsec) / 1000.0;
+    }
+
+    /// <summary>
+    /// Stehen die Befunde der Karte bereit? Wenn nicht, rechnet sie ein Stück weiter (je Bild höchstens ein Häppchen von <see cref="SchwerBudget"/> ms;
+    /// <see cref="Kartenentwurf.BefundeSchritt"/>) – erst wenn die Nacharbeit fertig ist. Köln: die volle Prüfung kostete 15–120 ms an einem Stück, das
+    /// letzte Einzelbild nach jedem Strich. Wer sie danach liest (<see cref="Kartenentwurf.Befunde"/>), bekommt sie aus dem Zwischenspeicher.
+    /// </summary>
+    public bool WerkstattBefundeBereit()
+    {
+        if (_entwurf is null || _entwurf.BefundeBereit) return true;
+        if (_wsNacharbeit.Count > 0 || WerkstattPruefungAufschieben || !SchwerDran()) return false;
+        var anfang = Time.GetTicksUsec();
+        try
+        {
+            while ((Time.GetTicksUsec() - anfang) / 1000.0 < SchwerBudget)
+                if (_entwurf.BefundeSchritt()) return true;
+            return false;
+        }
+        finally
+        {
+            Pinselmessung.Dazu("Prüfung der ganzen Karte (Kern)", anfang);
+            SchwerGezaehlt(anfang);
+        }
+    }
+
+    /// <summary>
     /// Wo jedes Hindernis der Natur (Gebäude, Weg, Bauzone) zuletzt lag – das Rechteck mit dem Rand, in dem es die Natur verdrängt: Ändert es sich,
     /// wird die Natur am alten und am neuen Ort neu gestreut.
     /// </summary>
@@ -383,6 +438,8 @@ public partial class Stadtansicht
     private void Nachziehen()
     {
         if (_entwurf!.PinselstrichLaeuft) _wsLetzterStrich = Time.GetTicksMsec();
+        if (_wsStrichLief && !_entwurf.PinselstrichLaeuft) _wsStrichEndeBild = Engine.GetProcessFrames(); // der Strich ging in diesem Bild zu Ende
+        _wsStrichLief = _entwurf.PinselstrichLaeuft;
         var uhr = Pinselmessung.Uhr(); // --pinselmessung: was jeder Teil kostet (Pinselmessung.cs)
         if (_wsBelegungNeu) BelegungNachziehen();
         if (_wsRandNeu) RandNeuBauen();
@@ -402,10 +459,8 @@ public partial class Stadtansicht
         if (_wsNetzNeu) NetzBauen();
         Pinselmessung.Dazu("Gassennetz", uhr);
         // Die volle Prüfung erst nach dem Strich: Sie rechnet die ganze Karte (Köln 10–36 ms) und änderte sich sonst bei jedem Tupfer
-        var fehlerJetzt = _wsFehlerNeu && !WerkstattPruefungAufschieben;
-        uhr = Pinselmessung.Uhr();
-        if (fehlerJetzt && Pinselmessung.An) _ = _entwurf!.Befunde;
-        Pinselmessung.Dazu("Prüfung der ganzen Karte (Kern)", uhr);
+        // und in Häppchen (WerkstattBefundeBereit), nicht in einem Bild
+        var fehlerJetzt = _wsFehlerNeu && !WerkstattPruefungAufschieben && WerkstattBefundeBereit();
         uhr = Pinselmessung.Uhr();
         if (fehlerJetzt) FehlerZeigen();
         Pinselmessung.Dazu("Fehlerfarben", uhr);

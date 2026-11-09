@@ -138,6 +138,19 @@ public static class Kartenpruefung
     public static List<Befund> Pruefen(Kartenentwurf entwurf) => new Lauf(entwurf).Alles();
 
     /// <summary>
+    /// Dieselbe Prüfung in kleinen Schritten (für die Darstellung, die sie über mehrere Bilder verteilt): Jeder Aufruf von <c>MoveNext</c> rechnet ein
+    /// Stück, nach dem letzten steht das Ergebnis im <paramref name="ergebnis"/>. Die Befunde sind dieselben und in derselben Reihenfolge wie bei
+    /// <see cref="Pruefen"/> – die Schritte sind nur die Stellen, an denen <see cref="Pruefen"/> weitermacht. Der Entwurf darf sich zwischen den
+    /// Schritten nicht ändern (<see cref="Kartenentwurf.BefundeSchritt"/> prüft das).
+    /// </summary>
+    internal static IEnumerator<bool> PruefenInSchritten(Kartenentwurf entwurf, List<Befund> ergebnis)
+    {
+        var lauf = new Lauf(entwurf, ergebnis);
+        foreach (var _ in lauf.Schritte()) yield return false;
+        yield return true;
+    }
+
+    /// <summary>
     /// Prüft nur ein Gebäude an einer Stelle gegen den Rest der Karte – für den Umriss beim Setzen und Ziehen (grün = keine Fehler).
     /// Der Entwurf ändert sich nicht. <paramref name="kennung"/>: das Gebäude, das gerade gezogen wird (es zählt nicht als Nachbar);
     /// null beim Setzen eines neuen. Punkt und Drehung werden genommen, wie sie sind (die Darstellung rundet vorher, wenn sie will).
@@ -171,9 +184,10 @@ public static class Kartenpruefung
         private readonly Kartengrenzen _grenzen;
         private readonly Dictionary<EntwurfGebaeude, (IReadOnlyList<Kartenort> Ecken, Rahmen Rahmen)> _ecken = new(ReferenceEqualityComparer.Instance);
 
-        public Lauf(Kartenentwurf e)
+        public Lauf(Kartenentwurf e, List<Befund>? ergebnis = null)
         {
             (_e, _r, _grenzen) = (e, e.Regeln, e.Kartengrenzen);
+            if (ergebnis is not null) _b = ergebnis;
             // Wege mit ihrem Verlauf (bei glatten Wegen die abgetastete Kurve) – so sehen Spiel und Bauwesen sie
             _wege = e.Wege.Where(w => w.Punkte.Count > 0).Select(w => (w, l: w.Verlauf.ToArray())).Select(x => (x.w, x.l, x.w.BreiteWirksam, Rahmen.Um(x.l))).ToList();
             // Mauerlinien, geschlossene mit dem ersten Punkt hinten dran
@@ -227,39 +241,80 @@ public static class Kartenpruefung
 
         public List<Befund> Alles()
         {
+            foreach (var _ in Schritte()) { }
+            return _b;
+        }
+
+        /// <summary>
+        /// Die ganze Prüfung als Folge von Schritten (<c>yield return</c> nach jedem Teil, bei den Gebäuden und Paaren nach je einer Handvoll):
+        /// <see cref="Alles"/> läuft sie in einem Zug durch, die Darstellung verteilt sie auf mehrere Bilder (<see cref="Kartenpruefung.PruefenInSchritten"/>).
+        /// </summary>
+        public IEnumerable<int> Schritte()
+        {
+            yield return 0; // das Vorbereiten der Wege, Mauern und Zonen im Konstruktor
             var gebaeude = _e.Gebaeude;
-            foreach (var g in gebaeude) Einzeln(g);
             for (var i = 0; i < gebaeude.Count; i++)
+            {
+                Einzeln(gebaeude[i]);
+                if (i % 16 == 15) yield return 0;
+            }
+            for (var i = 0; i < gebaeude.Count; i++)
+            {
                 for (var j = i + 1; j < gebaeude.Count; j++)
                     Paar(gebaeude[i], gebaeude[j]);
+                if (i % 4 == 3) yield return 0;
+            }
             foreach (var doppelt in gebaeude.GroupBy(g => g.Kennung).Where(x => x.Count() > 1))
                 Fehler("kennung", $"Die Kennung „{doppelt.Key}“ gibt es {doppelt.Count()}-mal.", doppelt.First().Punkt, doppelt.Key);
             foreach (var doppelt in gebaeude.Where(g => g.Betrieb is not null).GroupBy(g => g.Betrieb).Where(x => x.Count() > 1))
                 Fehler("betrieb", $"Der Betrieb „{doppelt.Key}“ steht an mehreren Plätzen ({string.Join(", ", doppelt.Select(g => g.Kennung))}).",
                     doppelt.First().Punkt, doppelt.Select(g => g.Kennung).ToArray());
+            yield return 0;
 
-            Wege();
+            foreach (var schritt in Wege()) yield return schritt;
+            yield return 0;
             ZonenFormen();
-            Bauzonen();
-            ZonenAmHang();
-            if (_r.Stadtregeln) Probeplan();
+            if (_r.Stadtregeln && _felder is null)
+            {
+                // die Rasterfelder der Zonen eine nach der anderen (Felder rechnet sie sonst am Stück beim ersten Zugriff)
+                _felder = new Dictionary<EntwurfBauzone, HashSet<(int, int)>>();
+                foreach (var z in _zonen)
+                {
+                    _felder[z.Zone] = FelderVon(z.Flaeche);
+                    yield return 0;
+                }
+            }
+            foreach (var schritt in Bauzonen()) yield return schritt;
+            yield return 0;
+            foreach (var schritt in ZonenAmHang()) yield return schritt;
+            yield return 0;
+            if (_r.Stadtregeln)
+                foreach (var schritt in Probeplan()) yield return schritt;
+            yield return 0;
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
             if (_r.Startgrundstuecke > 0) Startgrundstuecke();
             Marktplaetze();
             Vorkommen();
+            yield return 0;
             Mauern();
             Haefen();
+            yield return 0;
             Wasser();
+            yield return 0;
             Natur();
+            yield return 0;
             Feldflaechen();
+            yield return 0;
             Pflanzen();
+            yield return 0;
             Felsen();
             Grenzen();
             Start();
+            yield return 0;
             Wegenetz();
+            yield return 0;
             Einwohnerplaetze();
             if (_r.Kapazitaet is { } schwere) _b.AddRange(_e.Kapazitaetsrechnung(schwere).Befunde);
-            return _b;
         }
 
         /// <summary>
@@ -361,11 +416,12 @@ public static class Kartenpruefung
         }
 
         /// <summary>Hangsperre für Bauzonen: die steilste Stelle in der Zone.</summary>
-        private void ZonenAmHang()
+        private IEnumerable<int> ZonenAmHang()
         {
-            if (_e.Gelaendeform.IstFlach) return;
+            if (_e.Gelaendeform.IstFlach) yield break;
             foreach (var (z, flaeche, _) in _zonen)
             {
+                yield return 0;
                 if (flaeche.Length < 3) continue;
                 var hang = _e.Gelaendeform.Hang(flaeche);
                 if (hang.Gefaelle > HangFehler)
@@ -480,11 +536,12 @@ public static class Kartenpruefung
         // ── Die Karte als Ganzes ─────────────────────────────────────────────
 
         /// <summary>Bauzonen: an einer Karrenstraße (karte.py, Regel 4); mit den Stadtregeln auf dem Raster, mit Abstand zu Wegen und Mauer, ohne Überlappung.</summary>
-        private void Bauzonen()
+        private IEnumerable<int> Bauzonen()
         {
             var karren = Karrenwege.ToList();
             foreach (var (z, flaeche, zr) in _zonen)
             {
+                yield return 0; // eine Zone kostet in Köln einige ms – so verteilt die Darstellung die Prüfung auf mehrere Bilder (Kartenpruefung.PruefenInSchritten)
                 var mitte = Kartengeometrie.Mitte(flaeche);
                 if (z.Nur is { } nur && nur != Bauzone.NurWerkstatt)
                     FehlerAn("zone-nur", $"Bauzone {z.Kennung}: „nur“ kennt nur „{Bauzone.NurWerkstatt}“, nicht „{nur}“.", mitte, new[] { z });
@@ -521,13 +578,17 @@ public static class Kartenpruefung
                 if (rand > Anschluss)
                     FehlerAn("zone-anschluss", $"Bauzone {z.Kennung}: Die nächste Karrenstraße ist {M(rand)} m vom Straßenrand entfernt (höchstens {M(Anschluss)} m).", mitte, new[] { z });
             }
-            if (!_r.Stadtregeln) return;
+            if (!_r.Stadtregeln) yield break;
             var felder = _zonen.Select(z => (z.Zone, Felder: Felder[z.Zone])).ToList();
+            yield return 0;
             for (var i = 0; i < felder.Count; i++)
+            {
                 for (var j = i + 1; j < felder.Count; j++)
                     if (felder[i].Felder.Overlaps(felder[j].Felder))
                         FehlerAn("zone-ueberlappung", $"Die Bauzonen {felder[i].Zone.Kennung} und {felder[j].Zone.Kennung} überlappen.",
                             Kartengeometrie.Mitte(_zonen[i].Flaeche), new[] { felder[i].Zone, felder[j].Zone });
+                if (i % 8 == 7) yield return 0;
+            }
         }
 
         /// <summary>Die Rasterfelder, deren Mitte in der Fläche liegt.</summary>
@@ -546,13 +607,15 @@ public static class Kartenpruefung
         /// Der Probeplan: Jedes Gebäude liegt ganz in seiner Zone, überlappt kein anderes, ein Stadthof nur in Kern oder Mauerring, und die
         /// Vorplatzreihe hat mindestens 2 Felder höchstens 7 m von einer passenden Straße (Eingangsregel des Kerns; greybox.py, Regel 3).
         /// </summary>
-        private void Probeplan()
+        private IEnumerable<int> Probeplan()
         {
             var r = _e.Raster;
             var zonen = _zonen.GroupBy(z => z.Zone.Kennung).ToDictionary(z => z.Key, z => (z.First().Zone, Felder: Felder[z.First().Zone]));
             var belegt = new Dictionary<(int, int), string>();
+            var nummer = 0;
             foreach (var p in _e.Probeplan)
             {
+                if (nummer++ % 8 == 7) yield return 0; // in Häppchen (Kartenpruefung.PruefenInSchritten)
                 var (wx, wz) = Kartengeometrie.Mod(p.Drehung, 180) == 0 ? (p.Breite, p.Tiefe) : (p.Tiefe, p.Breite);
                 var (x0, z0, x1, z1) = (p.Punkt.X - wx / 2, p.Punkt.Z - wz / 2, p.Punkt.X + wx / 2, p.Punkt.Z + wz / 2);
                 var wer = $"Probeplan {p.Art} in {p.Zone} ({M(x0)}, {M(z0)})";
@@ -979,7 +1042,7 @@ public static class Kartenpruefung
         /// Wege: mindestens zwei Punkte, nicht schmaler als die Mindestbreite der Klasse; eine glatte Kurve läuft über kein Haus (außer dem, an
         /// dessen Tür oder Hof sie beginnt oder endet). Gerade Wege prüfen die Regeln oben (Gassen über Häusern, Wege über Umlandbetrieben).
         /// </summary>
-        private void Wege()
+        private IEnumerable<int> Wege()
         {
             foreach (var w in _e.Wege)
             {
@@ -994,6 +1057,8 @@ public static class Kartenpruefung
                         w.Punkte[^1], new[] { w });
             }
             foreach (var (w, linie, breite, wr) in _wege.Where(x => x.Weg.IstGlatt && x.Linie.Length >= 2))
+            {
+                yield return 0;
                 foreach (var g in _e.Gebaeude)
                 {
                     var haus = g.Ecken(ohneVorplatz: true);
@@ -1006,6 +1071,7 @@ public static class Kartenpruefung
                     if (a < breite / 2)
                         FehlerAn("kurve-ueber-haus", $"Die Kurve von „{w.Name}“ läuft über {Wer(g)}: {M(a)} m zur Mitte, {M(breite)} m breit.", g.Punkt, new[] { w }, g.Kennung);
                 }
+            }
         }
 
         /// <summary>Bauzonen: Kennung eindeutig, mindestens drei Ecken, der Umriss kreuzt sich nicht selbst.</summary>
