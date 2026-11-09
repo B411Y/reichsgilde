@@ -569,6 +569,36 @@ static class GeheimnisTests
             Pruefe.Wahr(urteil.Text.Contains("Buße 1.000 "), urteil.Text); // Mord ohne weitere Beweise: genau die Buße der Art
         }),
 
+        ("Geheimnisse: Ketzerei ist nur anzeigbar, wenn der Inhaber sich nach außen zum Stadtglauben bekennt (Entscheidung des Nutzers 09.11.2026) – " +
+         "wer offen einen anderen Glauben lebt, ist kein Ketzer (Haus und Ratsherr); ohne Stadtglauben nie", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (a, _) = Haus(w, "Haus Klaeger");
+            var (_, fKath) = Haus(w, "Haus Romtreu", Konfession.Katholisch);
+            var (_, fEvang) = Haus(w, "Haus Luthertreu", Konfession.Evangelisch);
+            var kath = GeheimnisGeben(w, fKath.Oberhaupt, Geheimnisart.Ketzerei, wisser: a);
+            var evang = GeheimnisGeben(w, fEvang.Oberhaupt, Geheimnisart.Ketzerei, wisser: a);
+            var rKath = w.Rat.Aemter.Select(x => x.Ratsherr).OfType<Ratsherr>().First(r => w.Glaube.GlaubeVon(r) == Konfession.Katholisch);
+            var rAnders = w.Rat.Aemter.Select(x => x.Ratsherr).OfType<Ratsherr>().First(r => w.Glaube.GlaubeVon(r) != Konfession.Katholisch);
+            var gKath = GeheimnisGeben(w, rKath, Geheimnisart.Ketzerei, wisser: a);
+            var gAnders = GeheimnisGeben(w, rAnders, Geheimnisart.Ketzerei, wisser: a);
+            // ohne Stadtglauben: niemand ist ein Ketzer
+            Pruefe.Wahr(w.Glaube.Stadtglaube is null, "zu Beginn kein Stadtglaube");
+            foreach (var g in new[] { kath, evang, gKath, gAnders })
+                Pruefe.Wahr(w.Geheimnisse.NutzenVerboten(a, g, Geheimnisnutzung.Anzeige)?.Contains("nur strafbar, wenn ein Stadtglaube gilt") == true, "ohne Stadtglauben");
+            // katholischer Stadtglaube: die Katholiken sind Ketzer, wer offen anders glaubt, nicht
+            w.Glaube.Stadtglaube = Konfession.Katholisch;
+            Pruefe.Gleich((string?)null, w.Geheimnisse.NutzenVerboten(a, kath, Geheimnisnutzung.Anzeige));
+            Pruefe.Gleich((string?)null, w.Geheimnisse.KeinVergehen(gKath));
+            Pruefe.Gleich($"{fEvang.Oberhaupt.Name} bekennt sich nicht zum Stadtglauben – kein Ketzer.", w.Geheimnisse.NutzenVerboten(a, evang, Geheimnisnutzung.Anzeige));
+            Pruefe.Wahr(w.Geheimnisse.KeinVergehen(gAnders)?.Contains("kein Ketzer") == true, "Ratsherr anderen Glaubens");
+            Nein(w, a, new GeheimnisNutzen(evang.Nummer, Geheimnisnutzung.Anzeige), "kein Ketzer");
+            Ok(w, a, new GeheimnisNutzen(kath.Nummer, Geheimnisnutzung.Anzeige));
+            // Bloßstellen und Erpressen bleiben für beide möglich
+            Pruefe.Gleich((string?)null, w.Geheimnisse.NutzenVerboten(a, evang, Geheimnisnutzung.Blossstellen));
+            Pruefe.Gleich((string?)null, w.Geheimnisse.NutzenVerboten(a, evang, Geheimnisnutzung.Gulden, 500));
+        }),
+
         ("Geheimnisse: Anzeige gegen einen Ratsherrn – schuldig verliert er seinen Sitz und rückt drei Jahre in kein Amt nach; freigesprochen zahlt der Ankläger", () =>
         {
             foreach (var schuldig in new[] { true, false })
