@@ -220,7 +220,7 @@ public partial class Stadtansicht
         var abstand = float.MaxValue;
         foreach (var g in _karte?.Gebaeude ?? new List<Reichsgilde.Core.Bauen.Kartengebaeude>())
         {
-            if (g.Katalog is not ("kirche" or "dom" or "koelner_dom")) continue;
+            if (g.Katalog is not ("kirche" or "dom" or "koelner_dom") && !g.Katalog.StartsWith("kirche_")) continue; // kirche_…: die Kirchen Kölns
             var p = new Vector3((float)g.Punkt[0], 0, (float)g.Punkt[1]);
             var d = (p - new Vector3(ort.X, 0, ort.Z)).LengthSquared();
             if (d < abstand) (bestes, abstand) = (p, d);

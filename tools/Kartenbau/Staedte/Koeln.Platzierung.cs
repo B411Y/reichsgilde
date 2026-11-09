@@ -119,6 +119,27 @@ public sealed partial class Koeln
         Console.WriteLine($"   S{n}: {strasse} bei {t.S:0.#} m, {t.Abstand:0.#} m vom Markt, Werkstatt bei {t.W}");
     }
 
+    /// <summary>
+    /// Ein Startgrundstück an fester Stelle, wenn neben der Werkstatt kein Wohnhaus passt (seit den Freien Startplätzen, PR #209, darf das Wohnhaus
+    /// abseits stehen): S4 am Alter Markt seit dem Rathaus am Markt (9.11.2026) – die Werkstatt an Unter Fettenhennen auf dem früheren Werkstatt-
+    /// Bauplatz WB_AlterMarkt1 (Vorderseite nach Norden zur Straße), das Wohnhaus dahinter an der Trankgasse zwischen St. Kunibert und den
+    /// Einwohnerplätzen.
+    /// </summary>
+    private void StartgrundstueckFest(int n, string strasse, Kartenort werkstatt, double dWerkstatt, Kartenort wohnhaus, double dWohnhaus)
+    {
+        if (!Frei(Rechteck(werkstatt, 16, 14, dWerkstatt)) || !Frei(Rechteck(wohnhaus, 8, 10, dWohnhaus)))
+            throw new InvalidOperationException($"Startgrundstück {n} an der {strasse}: die feste Stelle ist nicht frei (Werkstatt {Frei(Rechteck(werkstatt, 16, 14, dWerkstatt))}, Wohnhaus {Frei(Rechteck(wohnhaus, 8, 10, dWohnhaus))}).");
+        var w = E.Setzen("werkstattplatz", werkstatt.X, werkstatt.Z, dWerkstatt);
+        var h = E.Setzen("wohnhausplatz", wohnhaus.X, wohnhaus.Z, dWohnhaus);
+        E.KennungSetzen(w.Kennung, $"S{n}_Werkstatt");
+        E.KennungSetzen(h.Kennung, $"S{n}_Wohnhaus");
+        E.Umbenennen($"S{n}_Werkstatt", $"Werkstatt {strasse}");
+        E.Umbenennen($"S{n}_Wohnhaus", $"Wohnhaus {strasse}");
+        E.LageSetzen($"S{n}_Wohnhaus", Lage.Mauerring);
+        _startMitten.Add(P((werkstatt.X + wohnhaus.X) / 2, (werkstatt.Z + wohnhaus.Z) / 2));
+        Console.WriteLine($"   S{n}: {strasse} (feste Stelle), Werkstatt {ZumMarkt(werkstatt):0.#} m vom Markt, bei {werkstatt}");
+    }
+
     private void Startgrundstuecke()
     {
         // Je Marktplatz Grundstücke an den Straßen, die auf ihn führen (Werkstatt zum Platz hin), je Straßenseite höchstens eins. Die Rheingasse
@@ -131,7 +152,7 @@ public sealed partial class Koeln
         Startgrundstueck(1, "Rheingasse", links: false, sHint: 224, ziel: ZielAbstand + 2);   // Südplatz, nördlich davon, zur Stadt hin (der Spieler)
         Startgrundstueck(2, "Rheingasse", links: true, sHint: 226);           // Südplatz, nördlich davon, zum Rhein
         Startgrundstueck(3, "Malzbüchel", links: false, sHint: 18);           // Südplatz, westlich davon, zwischen Malzbüchel und Kartäuserwall
-        Startgrundstueck(4, "Rheingasse", links: false, sHint: 74);           // Nordplatz, südlich davon, zur Stadt hin
+        StartgrundstueckFest(4, "Unter Fettenhennen", P(8.5, -84.5), 180, P(3.6, -68), 0); // Nordplatz, südwestlich davon (seit dem Rathaus am Markt, 9.11.2026)
         Startgrundstueck(5, "Rheingasse", links: true, sHint: 74);            // Nordplatz, südlich davon, zum Rhein
         Startgrundstueck(6, "Deutzer Kirchstraße", links: false, sHint: 19);  // Deutz, nördlich des Platzes, westlich der Kirchstraße
         Startgrundstueck(7, "Deutzer Kirchstraße", links: true, sHint: 19);   // Deutz, nördlich des Platzes, östlich der Kirchstraße
@@ -188,9 +209,12 @@ public sealed partial class Koeln
         foreach (var (strasse, links, von, bis, hoechstens) in new (string, bool, double, double, int)[]
         {
             ("Rheingasse", false, 150 + R - MarktVonMauer, 300, 1), ("Rheingasse", true, 150 + R - MarktVonMauer, 300, 2),
-            ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 3),
-            ("Hammergasse", true, 0, 200, 2), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
-            ("Kunibertswall", true, 0, 1000, 5), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
+            ("Trankgasse", true, 0, 200, 3), ("Trankgasse", false, 0, 200, 2),   // Südseite seit dem Rathaus am Markt (9.11.2026) höchstens 2: dort stand bis dahin das Rathaus, so bleibt es bei 82 Hausplätzen
+            // seit den Kirchenmodellen (9.11.2026) an der Hammergasse und am Kunibertswall je Seite mehr: St. Aposteln steht an der Südseite der
+            // Hammergasse, St. Kunibert an der Trankgasse; die Karte behält so ihre 82 Hausplätze (67 Einwohnerplätze und 15 Kulissenhäuser
+            // statt 68 und 14: an der Engelspforte passt jetzt das Kulissenhaus)
+            ("Hammergasse", true, 0, 200, 4), ("Hammergasse", false, 0, 200, 2), ("Wollgasse", true, 0, 200, 3), ("Wollgasse", false, 0, 200, 3),
+            ("Kunibertswall", true, 0, 1000, 6), ("Mauritiuswall", true, 0, 1000, 6), ("Kartäuserwall", true, 0, 1000, 5),
         })
             n += Reihe("einwohnerplatz_ring", strasse, links, von, bis, luecke: 1, hoechstens: hoechstens).Count;
         Console.WriteLine($"   Einwohnerplätze in der Altstadt: {n}");
