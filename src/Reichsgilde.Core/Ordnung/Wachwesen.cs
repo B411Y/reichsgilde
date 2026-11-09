@@ -222,6 +222,16 @@ public sealed class Wachwesen
         : 0;
 
     /// <summary>
+    /// Wie stark die Streife schützte, wenn die Leute dieses Wachhauses × <paramref name="faktor"/> mehr zählten (Wachhunde, Streifengänger) –
+    /// dieselbe Rechnung wie <see cref="Patrouilleschutz"/> samt Deckel; für den Mehrgewinn in <see cref="Wirtschaft.Werkstattwesen.MehrgewinnDurch"/>.
+    /// Zählt der Betrieb nicht zur Streife (Umland, ohne Leute), bleibt es beim Schutz von jetzt.
+    /// </summary>
+    internal double PatrouilleschutzMit(Betrieb b, double faktor) => IstAktiv
+        ? Math.Min(Daten.Patrouille.Hoechstens, Daten.Patrouille.SchutzJeWachmann
+            * Wachhaeuser.Sum(x => x.LeistungProMinute * x.StreifenFaktor * (x == b ? faktor : 1)))
+        : 0;
+
+    /// <summary>
     /// Faktor auf die Erfolgschance einer Tat gegen diesen Betrieb (1 = keine Streife; im Umland wirkt sie nicht). Im Viertel, in das
     /// der Stadthauptmann die Streife verlegt hat, schützt sie doppelt; eine ausgebesserte Stadtmauer schützt überall in der Stadt (PR #200).
     /// </summary>
