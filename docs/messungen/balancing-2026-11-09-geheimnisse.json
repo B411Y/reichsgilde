@@ -1,8 +1,8 @@
 {
   "bericht": "Balancing-Messung 6",
   "datum": "2026-11-09",
-  "mainCommit": "4fa25271",
-  "commit": "7fac6918",
+  "mainCommit": "5a7f6c51",
+  "commit": "09b61b2c",
   "datenversion": 78,
   "aufruf": "messen bericht 20 30 --parallel=20",
   "parameter": {
@@ -597,13 +597,13 @@
           "10": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 12407,
+              "mittel": 12451,
               "streuung": 1161,
               "fehlerMittel": 212,
               "min": 9951,
               "q10": 10979,
               "q25": 11665,
-              "median": 12445,
+              "median": 12510,
               "q75": 13223,
               "q90": 13920,
               "max": 14346
@@ -636,9 +636,9 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 9068,
-              "streuung": 3562,
-              "fehlerMittel": 375,
+              "mittel": 9060,
+              "streuung": 3569,
+              "fehlerMittel": 376,
               "min": 2638,
               "q10": 4855,
               "q25": 6129,
@@ -651,16 +651,16 @@
               "Arbeiter": 2,
               "Leistung": 2
             },
-            "abstandZuwachsProzent": 2.1,
+            "abstandZuwachsProzent": 2.6,
             "abstandGewinnProzent": 6.9,
             "imBand": true
           },
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 39560,
-              "streuung": 5965,
-              "fehlerMittel": 1089,
+              "mittel": 39594,
+              "streuung": 5970,
+              "fehlerMittel": 1090,
               "min": 30748,
               "q10": 32350,
               "q25": 35428,
@@ -671,8 +671,8 @@
             },
             "gewinn": {
               "n": 30,
-              "mittel": 4903,
-              "streuung": 1129,
+              "mittel": 4911,
+              "streuung": 1130,
               "fehlerMittel": 206,
               "min": 2767,
               "q10": 3716,
@@ -697,13 +697,13 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 78926,
-              "streuung": 18045,
-              "fehlerMittel": 1902,
+              "mittel": 78936,
+              "streuung": 17960,
+              "fehlerMittel": 1893,
               "min": 38962,
               "q10": 56728,
               "q25": 65230,
-              "median": 78816,
+              "median": 79037,
               "q75": 93691,
               "q90": 104475,
               "max": 113436
@@ -712,22 +712,22 @@
               "Arbeiter": 3,
               "Leistung": 3
             },
-            "abstandZuwachsProzent": 9.2,
-            "abstandGewinnProzent": 4.3,
+            "abstandZuwachsProzent": 9.3,
+            "abstandGewinnProzent": 4.8,
             "imBand": true
           }
         },
         "jeJahrImMittel": {
-          "gewinn": 2752,
-          "amtseinkommen": 81,
-          "familie": -393,
-          "geschenke": -50,
-          "gericht": -182,
-          "gaunerei": 11,
-          "investitionen": -697,
+          "gewinn": 2749,
+          "amtseinkommen": 83,
+          "familie": -394,
+          "geschenke": -48,
+          "gericht": -181,
+          "gaunerei": 13,
+          "investitionen": -715,
           "standesgebuehren": -185,
           "zinsen": -0,
-          "davonSteuer": -266,
+          "davonSteuer": -265,
           "davonSpitzel": -67,
           "schiffeAmEnde": 0
         },
@@ -903,34 +903,34 @@
               "Arbeiter": 1.9,
               "Leistung": 1.9
             },
-            "abstandZuwachsProzent": -27.4,
+            "abstandZuwachsProzent": -27.5,
             "abstandGewinnProzent": -31.7,
             "imBand": false
           },
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 31676,
-              "streuung": 9070,
-              "fehlerMittel": 1656,
+              "mittel": 31570,
+              "streuung": 9085,
+              "fehlerMittel": 1659,
               "min": 3706,
               "q10": 25129,
               "q25": 27064,
-              "median": 31733,
+              "median": 31051,
               "q75": 37269,
               "q90": 40901,
               "max": 52093
             },
             "gewinn": {
               "n": 30,
-              "mittel": 4021,
-              "streuung": 1267,
-              "fehlerMittel": 231,
+              "mittel": 3933,
+              "streuung": 1295,
+              "fehlerMittel": 236,
               "min": 0,
-              "q10": 2900,
-              "q25": 3366,
-              "median": 3790,
-              "q75": 4914,
+              "q10": 2804,
+              "q25": 3304,
+              "median": 3719,
+              "q75": 4843,
               "q90": 5535,
               "max": 6781
             },
@@ -949,14 +949,14 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 78060,
-              "streuung": 22677,
-              "fehlerMittel": 2390,
+              "mittel": 78167,
+              "streuung": 22790,
+              "fehlerMittel": 2402,
               "min": 33610,
               "q10": 47391,
               "q25": 59587,
               "median": 76773,
-              "q75": 96398,
+              "q75": 97212,
               "q90": 106841,
               "max": 119941
             },
@@ -964,18 +964,18 @@
               "Arbeiter": 2.9,
               "Leistung": 2.9
             },
-            "abstandZuwachsProzent": -15,
-            "abstandGewinnProzent": -14.4,
-            "imBand": true
+            "abstandZuwachsProzent": -15.3,
+            "abstandGewinnProzent": -16.1,
+            "imBand": false
           }
         },
         "jeJahrImMittel": {
-          "gewinn": 2294,
-          "amtseinkommen": 69,
+          "gewinn": 2289,
+          "amtseinkommen": 67,
           "familie": -388,
           "geschenke": -50,
-          "gericht": -167,
-          "gaunerei": 33,
+          "gericht": -168,
+          "gaunerei": 34,
           "investitionen": -566,
           "standesgebuehren": -165,
           "zinsen": -0,
@@ -1217,7 +1217,7 @@
               "Leistung": 3
             },
             "abstandZuwachsProzent": 7.1,
-            "abstandGewinnProzent": 17.8,
+            "abstandGewinnProzent": 18.1,
             "imBand": true
           }
         },
@@ -1469,7 +1469,7 @@
               "Leistung": 3
             },
             "abstandZuwachsProzent": -0.9,
-            "abstandGewinnProzent": 5.1,
+            "abstandGewinnProzent": 5.4,
             "imBand": true
           }
         },
@@ -1663,7 +1663,7 @@
               "Gaeste": 62.9,
               "Leistung": 2
             },
-            "abstandZuwachsProzent": -3.4,
+            "abstandZuwachsProzent": -3.5,
             "abstandGewinnProzent": -2.6,
             "imBand": true
           },
@@ -1727,7 +1727,7 @@
               "Leistung": 3
             },
             "abstandZuwachsProzent": -0.1,
-            "abstandGewinnProzent": 0.2,
+            "abstandGewinnProzent": 0.5,
             "imBand": true
           }
         },
@@ -1904,15 +1904,15 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 11830,
-              "streuung": 4684,
-              "fehlerMittel": 494,
-              "min": 3266,
+              "mittel": 11839,
+              "streuung": 4679,
+              "fehlerMittel": 493,
+              "min": 3766,
               "q10": 6092,
               "q25": 7543,
               "median": 11794,
               "q75": 15609,
-              "q90": 18145,
+              "q90": 18282,
               "max": 22419
             },
             "sonder": {
@@ -1921,16 +1921,16 @@
               "Kollekte": 369,
               "Leistung": 2
             },
-            "abstandZuwachsProzent": 19.9,
+            "abstandZuwachsProzent": 19.8,
             "abstandGewinnProzent": 8.7,
             "imBand": false
           },
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 35967,
-              "streuung": 10108,
-              "fehlerMittel": 1845,
+              "mittel": 36035,
+              "streuung": 10086,
+              "fehlerMittel": 1841,
               "min": 11615,
               "q10": 20197,
               "q25": 31142,
@@ -1941,13 +1941,13 @@
             },
             "gewinn": {
               "n": 30,
-              "mittel": 4688,
-              "streuung": 1435,
-              "fehlerMittel": 262,
+              "mittel": 4663,
+              "streuung": 1439,
+              "fehlerMittel": 263,
               "min": 1787,
               "q10": 3269,
               "q25": 3762,
-              "median": 4619,
+              "median": 4550,
               "q75": 4989,
               "q90": 6688,
               "max": 8697
@@ -1967,9 +1967,9 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 84564,
-              "streuung": 19847,
-              "fehlerMittel": 2092,
+              "mittel": 84601,
+              "streuung": 19924,
+              "fehlerMittel": 2100,
               "min": 44683,
               "q10": 58353,
               "q25": 69885,
@@ -1984,23 +1984,23 @@
               "Kollekte": 376.5,
               "Leistung": 3
             },
-            "abstandZuwachsProzent": -1.8,
-            "abstandGewinnProzent": -0.2,
+            "abstandZuwachsProzent": -1.6,
+            "abstandGewinnProzent": -0.5,
             "imBand": true
           }
         },
         "jeJahrImMittel": {
-          "gewinn": 2553,
+          "gewinn": 2556,
           "amtseinkommen": 96,
           "familie": -379,
-          "geschenke": -43,
+          "geschenke": -46,
           "gericht": -206,
-          "gaunerei": 2,
+          "gaunerei": 4,
           "investitionen": -721,
           "standesgebuehren": -175,
           "zinsen": -0,
-          "davonSteuer": -301,
-          "davonSpitzel": -64,
+          "davonSteuer": -300,
+          "davonSpitzel": -63,
           "schiffeAmEnde": 0
         },
         "jahreBisBuerger": {
@@ -2243,7 +2243,7 @@
               "Leistung": 5.7
             },
             "abstandZuwachsProzent": -5.3,
-            "abstandGewinnProzent": -10,
+            "abstandGewinnProzent": -9.8,
             "imBand": true
           }
         },
@@ -2440,26 +2440,26 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 40961,
-              "streuung": 7210,
-              "fehlerMittel": 1316,
+              "mittel": 40966,
+              "streuung": 7213,
+              "fehlerMittel": 1317,
               "min": 22940,
               "q10": 31357,
               "q25": 37575,
               "median": 41045,
-              "q75": 44826,
+              "q75": 44931,
               "q90": 49687,
               "max": 53087
             },
             "gewinn": {
               "n": 30,
-              "mittel": 5386,
-              "streuung": 1606,
+              "mittel": 5378,
+              "streuung": 1605,
               "fehlerMittel": 293,
               "min": -899,
               "q10": 3907,
               "q25": 4753,
-              "median": 5484,
+              "median": 5445,
               "q75": 6367,
               "q90": 7044,
               "max": 7472
@@ -2479,9 +2479,9 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 83475,
-              "streuung": 21369,
-              "fehlerMittel": 2252,
+              "mittel": 83446,
+              "streuung": 21402,
+              "fehlerMittel": 2256,
               "min": 40351,
               "q10": 54410,
               "q25": 64546,
@@ -2495,17 +2495,17 @@
               "Leistung": 3
             },
             "abstandZuwachsProzent": 13.5,
-            "abstandGewinnProzent": 14.6,
+            "abstandGewinnProzent": 14.7,
             "imBand": true
           }
         },
         "jeJahrImMittel": {
           "gewinn": 2769,
-          "amtseinkommen": 75,
+          "amtseinkommen": 74,
           "familie": -388,
           "geschenke": -49,
-          "gericht": -131,
-          "gaunerei": -3,
+          "gericht": -133,
+          "gaunerei": -0,
           "investitionen": -780,
           "standesgebuehren": -185,
           "zinsen": -0,
@@ -2695,7 +2695,7 @@
               "Stadtzinsen": 476,
               "Wechsel": 2740.5
             },
-            "abstandZuwachsProzent": 9.7,
+            "abstandZuwachsProzent": 9.6,
             "abstandGewinnProzent": -1.9,
             "imBand": true
           },
@@ -2762,7 +2762,7 @@
               "Wechsel": 5134.1
             },
             "abstandZuwachsProzent": 1.6,
-            "abstandGewinnProzent": 1.5,
+            "abstandGewinnProzent": 1.8,
             "imBand": true
           }
         },
@@ -2960,7 +2960,7 @@
               "Razzien": 0.9,
               "Sold": 3033.5
             },
-            "abstandZuwachsProzent": 3.2,
+            "abstandZuwachsProzent": 3.1,
             "abstandGewinnProzent": 19.8,
             "imBand": true
           },
@@ -3007,8 +3007,8 @@
             "kiHaeuserReinvermoegen": {
               "n": 90,
               "mittel": 88075,
-              "streuung": 21029,
-              "fehlerMittel": 2217,
+              "streuung": 21023,
+              "fehlerMittel": 2216,
               "min": 50740,
               "q10": 59913,
               "q25": 68925,
@@ -3026,7 +3026,7 @@
               "Sold": 4920.1
             },
             "abstandZuwachsProzent": -8.3,
-            "abstandGewinnProzent": -19,
+            "abstandGewinnProzent": -18.8,
             "imBand": true
           }
         },
@@ -3227,26 +3227,26 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 26580,
-              "streuung": 7748,
-              "fehlerMittel": 1415,
+              "mittel": 26455,
+              "streuung": 7690,
+              "fehlerMittel": 1404,
               "min": 6687,
               "q10": 17091,
               "q25": 22370,
-              "median": 28198,
-              "q75": 30182,
+              "median": 27955,
+              "q75": 29790,
               "q90": 34891,
               "max": 46726
             },
             "gewinn": {
               "n": 30,
-              "mittel": 4600,
+              "mittel": 4573,
               "streuung": 1329,
               "fehlerMittel": 243,
               "min": 0,
               "q10": 3837,
-              "q25": 4100,
-              "median": 4386,
+              "q25": 4098,
+              "median": 4335,
               "q75": 5120,
               "q90": 6296,
               "max": 7050
@@ -3266,11 +3266,11 @@
             },
             "kiHaeuserReinvermoegen": {
               "n": 90,
-              "mittel": 83866,
-              "streuung": 19779,
-              "fehlerMittel": 2085,
+              "mittel": 83914,
+              "streuung": 19765,
+              "fehlerMittel": 2083,
               "min": 41127,
-              "q10": 57245,
+              "q10": 56869,
               "q25": 67652,
               "median": 85543,
               "q75": 101691,
@@ -3283,23 +3283,23 @@
               "Faenge": 0.5,
               "Leistung": 5.5
             },
-            "abstandZuwachsProzent": -30.6,
-            "abstandGewinnProzent": -2.1,
+            "abstandZuwachsProzent": -31,
+            "abstandGewinnProzent": -2.4,
             "imBand": false
           }
         },
         "jeJahrImMittel": {
-          "gewinn": 2642,
+          "gewinn": 2643,
           "amtseinkommen": 5,
           "familie": -339,
-          "geschenke": -12,
-          "gericht": -758,
+          "geschenke": -13,
+          "gericht": -764,
           "gaunerei": -65,
           "investitionen": -456,
           "standesgebuehren": -169,
           "zinsen": -0,
           "davonSteuer": -29,
-          "davonSpitzel": -35,
+          "davonSpitzel": -34,
           "schiffeAmEnde": 0
         },
         "jahreBisBuerger": {
@@ -3356,12 +3356,12 @@
         "gewinn": 1495
       },
       "10": {
-        "zuwachs": 8231,
+        "zuwachs": 8235,
         "gewinn": 1842
       },
       "20": {
         "zuwachs": 32558,
-        "gewinn": 4699
+        "gewinn": 4688
       }
     }
   },
@@ -3423,13 +3423,13 @@
           "10": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 12407,
+              "mittel": 12451,
               "streuung": 1161,
               "fehlerMittel": 212,
               "min": 9951,
               "q10": 10979,
               "q25": 11665,
-              "median": 12445,
+              "median": 12510,
               "q75": 13223,
               "q90": 13920,
               "max": 14346
@@ -3468,9 +3468,9 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 39560,
-              "streuung": 5965,
-              "fehlerMittel": 1089,
+              "mittel": 39594,
+              "streuung": 5970,
+              "fehlerMittel": 1090,
               "min": 30748,
               "q10": 32350,
               "q25": 35428,
@@ -3481,8 +3481,8 @@
             },
             "gewinn": {
               "n": 30,
-              "mittel": 4903,
-              "streuung": 1129,
+              "mittel": 4911,
+              "streuung": 1130,
               "fehlerMittel": 206,
               "min": 2767,
               "q10": 3716,
@@ -3542,16 +3542,16 @@
         },
         "abstandZuwachsZuMenschProzent": 0,
         "jeJahrImMittel": {
-          "gewinn": 2752,
-          "amtseinkommen": 81,
-          "familie": -393,
-          "geschenke": -50,
-          "gericht": -182,
-          "gaunerei": 11,
-          "investitionen": -697,
+          "gewinn": 2749,
+          "amtseinkommen": 83,
+          "familie": -394,
+          "geschenke": -48,
+          "gericht": -181,
+          "gaunerei": 13,
+          "investitionen": -715,
           "standesgebuehren": -185,
           "zinsen": -0,
-          "davonSteuer": -266,
+          "davonSteuer": -265,
           "davonSpitzel": -67,
           "schiffeAmEnde": 0
         },
@@ -3656,9 +3656,9 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 42252,
-              "streuung": 6021,
-              "fehlerMittel": 1099,
+              "mittel": 42282,
+              "streuung": 6049,
+              "fehlerMittel": 1104,
               "min": 33592,
               "q10": 35247,
               "q25": 37797,
@@ -3669,14 +3669,14 @@
             },
             "gewinn": {
               "n": 30,
-              "mittel": 5023,
-              "streuung": 1249,
-              "fehlerMittel": 228,
+              "mittel": 5050,
+              "streuung": 1266,
+              "fehlerMittel": 231,
               "min": 2901,
               "q10": 3014,
               "q25": 4385,
               "median": 5116,
-              "q75": 5459,
+              "q75": 5506,
               "q90": 7014,
               "max": 7623
             },
@@ -3730,7 +3730,7 @@
         },
         "abstandZuwachsZuMenschProzent": 7.6,
         "jeJahrImMittel": {
-          "gewinn": 2875,
+          "gewinn": 2877,
           "amtseinkommen": 71,
           "familie": -352,
           "geschenke": -66,
@@ -3739,11 +3739,11 @@
           "investitionen": -766,
           "standesgebuehren": -185,
           "zinsen": -0,
-          "davonSteuer": -298,
+          "davonSteuer": -299,
           "davonSpitzel": -62,
           "schiffeAmEnde": 0
         },
-        "gewinnAbstandZuMenschProzent": 2.4
+        "gewinnAbstandZuMenschProzent": 2.8
       },
       {
         "beruf": "Schmied",
@@ -3844,27 +3844,27 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 39390,
-              "streuung": 6775,
-              "fehlerMittel": 1237,
+              "mittel": 39206,
+              "streuung": 6933,
+              "fehlerMittel": 1266,
               "min": 24888,
               "q10": 28156,
-              "q25": 36163,
-              "median": 41261,
+              "q25": 34940,
+              "median": 40123,
               "q75": 42962,
               "q90": 47937,
-              "max": 49947
+              "max": 50443
             },
             "gewinn": {
               "n": 30,
-              "mittel": 4794,
-              "streuung": 1273,
-              "fehlerMittel": 232,
+              "mittel": 4738,
+              "streuung": 1244,
+              "fehlerMittel": 227,
               "min": 1573,
               "q10": 3798,
               "q25": 4242,
-              "median": 4961,
-              "q75": 5555,
+              "median": 4949,
+              "q75": 5180,
               "q90": 6021,
               "max": 7265
             },
@@ -3916,22 +3916,22 @@
         "jahrStufe3": {
           "n": 0
         },
-        "abstandZuwachsZuMenschProzent": -0.5,
+        "abstandZuwachsZuMenschProzent": -1.1,
         "jeJahrImMittel": {
-          "gewinn": 2772,
-          "amtseinkommen": 64,
+          "gewinn": 2771,
+          "amtseinkommen": 62,
           "familie": -439,
-          "geschenke": -55,
-          "gericht": -157,
-          "gaunerei": 24,
-          "investitionen": -779,
+          "geschenke": -54,
+          "gericht": -163,
+          "gaunerei": 23,
+          "investitionen": -762,
           "standesgebuehren": -185,
           "zinsen": -0,
           "davonSteuer": -283,
           "davonSpitzel": -66,
           "schiffeAmEnde": 0
         },
-        "gewinnAbstandZuMenschProzent": -2.2
+        "gewinnAbstandZuMenschProzent": -3.5
       },
       {
         "beruf": "Schmied",
@@ -4104,7 +4104,7 @@
         "jahrStufe3": {
           "n": 0
         },
-        "abstandZuwachsZuMenschProzent": -10.2,
+        "abstandZuwachsZuMenschProzent": -10.3,
         "jeJahrImMittel": {
           "gewinn": 2571,
           "amtseinkommen": 53,
@@ -4119,7 +4119,7 @@
           "davonSpitzel": -68,
           "schiffeAmEnde": 0
         },
-        "gewinnAbstandZuMenschProzent": -10.1
+        "gewinnAbstandZuMenschProzent": -10.2
       },
       {
         "beruf": "Parfumeur",
@@ -4220,26 +4220,26 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 40961,
-              "streuung": 7210,
-              "fehlerMittel": 1316,
+              "mittel": 40966,
+              "streuung": 7213,
+              "fehlerMittel": 1317,
               "min": 22940,
               "q10": 31357,
               "q25": 37575,
               "median": 41045,
-              "q75": 44826,
+              "q75": 44931,
               "q90": 49687,
               "max": 53087
             },
             "gewinn": {
               "n": 30,
-              "mittel": 5386,
-              "streuung": 1606,
+              "mittel": 5378,
+              "streuung": 1605,
               "fehlerMittel": 293,
               "min": -899,
               "q10": 3907,
               "q25": 4753,
-              "median": 5484,
+              "median": 5445,
               "q75": 6367,
               "q90": 7044,
               "max": 7472
@@ -4295,11 +4295,11 @@
         "abstandZuwachsZuMenschProzent": 0,
         "jeJahrImMittel": {
           "gewinn": 2769,
-          "amtseinkommen": 75,
+          "amtseinkommen": 74,
           "familie": -388,
           "geschenke": -49,
-          "gericht": -131,
-          "gaunerei": -3,
+          "gericht": -133,
+          "gaunerei": -0,
           "investitionen": -780,
           "standesgebuehren": -185,
           "zinsen": -0,
@@ -4495,7 +4495,7 @@
           "davonSpitzel": -63,
           "schiffeAmEnde": 0
         },
-        "gewinnAbstandZuMenschProzent": -0.5
+        "gewinnAbstandZuMenschProzent": -0.3
       },
       {
         "beruf": "Parfumeur",
@@ -4596,28 +4596,28 @@
           "20": {
             "reinvermoegen": {
               "n": 30,
-              "mittel": 44276,
-              "streuung": 7142,
-              "fehlerMittel": 1304,
+              "mittel": 44147,
+              "streuung": 7021,
+              "fehlerMittel": 1282,
               "min": 23686,
               "q10": 35116,
               "q25": 40986,
               "median": 44712,
-              "q75": 49330,
-              "q90": 52590,
+              "q75": 48759,
+              "q90": 52238,
               "max": 56460
             },
             "gewinn": {
               "n": 30,
-              "mittel": 5546,
-              "streuung": 1794,
-              "fehlerMittel": 327,
+              "mittel": 5434,
+              "streuung": 1763,
+              "fehlerMittel": 322,
               "min": 352,
-              "q10": 4125,
-              "q25": 5076,
-              "median": 5849,
-              "q75": 6720,
-              "q90": 7359,
+              "q10": 4010,
+              "q25": 4888,
+              "median": 5606,
+              "q75": 6498,
+              "q90": 7234,
               "max": 8093
             },
             "stufe": {
@@ -4668,9 +4668,9 @@
         "jahrStufe3": {
           "n": 0
         },
-        "abstandZuwachsZuMenschProzent": 9,
+        "abstandZuwachsZuMenschProzent": 8.6,
         "jeJahrImMittel": {
-          "gewinn": 2948,
+          "gewinn": 2942,
           "amtseinkommen": 95,
           "familie": -435,
           "geschenke": -44,
@@ -4679,11 +4679,11 @@
           "investitionen": -862,
           "standesgebuehren": -195,
           "zinsen": -0,
-          "davonSteuer": -319,
+          "davonSteuer": -320,
           "davonSpitzel": -70,
           "schiffeAmEnde": 0
         },
-        "gewinnAbstandZuMenschProzent": 3
+        "gewinnAbstandZuMenschProzent": 1
       },
       {
         "beruf": "Parfumeur",
@@ -4856,7 +4856,7 @@
         "jahrStufe3": {
           "n": 0
         },
-        "abstandZuwachsZuMenschProzent": -10.1,
+        "abstandZuwachsZuMenschProzent": -10.2,
         "jeJahrImMittel": {
           "gewinn": 2690,
           "amtseinkommen": 52,
@@ -4871,7 +4871,7 @@
           "davonSpitzel": -61,
           "schiffeAmEnde": 0
         },
-        "gewinnAbstandZuMenschProzent": -1
+        "gewinnAbstandZuMenschProzent": -0.8
       }
     ]
   },
@@ -4942,21 +4942,21 @@
               },
               "10": {
                 "n": 120,
-                "mittel": 12406,
-                "streuung": 1145,
+                "mittel": 12450,
+                "streuung": 1146,
                 "fehlerMittel": 105,
                 "min": 9951,
                 "q10": 10979,
                 "q25": 11665,
-                "median": 12445,
+                "median": 12510,
                 "q75": 13223,
                 "q90": 13920,
                 "max": 14346
               },
               "20": {
                 "n": 120,
-                "mittel": 39561,
-                "streuung": 5891,
+                "mittel": 39595,
+                "streuung": 5895,
                 "fehlerMittel": 538,
                 "min": 30748,
                 "q10": 32350,
@@ -4974,16 +4974,16 @@
             "bankrott": 0,
             "erloschen": 0,
             "jeJahrImMittel": {
-              "gewinn": 2751,
-              "amtseinkommen": 80,
-              "familie": -393,
-              "geschenke": -50,
-              "gericht": -182,
-              "gaunerei": 12,
-              "investitionen": -697,
+              "gewinn": 2748,
+              "amtseinkommen": 82,
+              "familie": -394,
+              "geschenke": -48,
+              "gericht": -181,
+              "gaunerei": 13,
+              "investitionen": -714,
               "standesgebuehren": -185,
               "zinsen": -0,
-              "davonSteuer": -266,
+              "davonSteuer": -265,
               "davonSpitzel": -67,
               "schiffeAmEnde": 0
             }
@@ -5009,11 +5009,11 @@
               },
               "10": {
                 "n": 120,
-                "mittel": 10616,
-                "streuung": 3588,
-                "fehlerMittel": 328,
+                "mittel": 10598,
+                "streuung": 3613,
+                "fehlerMittel": 330,
                 "min": 4906,
-                "q10": 6031,
+                "q10": 5954,
                 "q25": 7179,
                 "median": 10819,
                 "q75": 13664,
@@ -5022,9 +5022,9 @@
               },
               "20": {
                 "n": 120,
-                "mittel": 83196,
-                "streuung": 17809,
-                "fehlerMittel": 1626,
+                "mittel": 83384,
+                "streuung": 17740,
+                "fehlerMittel": 1619,
                 "min": 52595,
                 "q10": 60498,
                 "q25": 68831,
@@ -5042,16 +5042,16 @@
             "bankrott": 0,
             "erloschen": 0,
             "jeJahrImMittel": {
-              "gewinn": 5890,
+              "gewinn": 5897,
               "amtseinkommen": 82,
               "familie": -385,
               "geschenke": -24,
-              "gericht": -170,
-              "gaunerei": 15,
-              "investitionen": -2175,
+              "gericht": -166,
+              "gaunerei": 14,
+              "investitionen": -2176,
               "standesgebuehren": -498,
               "zinsen": -0,
-              "davonSteuer": -537,
+              "davonSteuer": -540,
               "davonSpitzel": -56,
               "schiffeAmEnde": 0
             }
@@ -5077,8 +5077,8 @@
               },
               "10": {
                 "n": 120,
-                "mittel": 6528,
-                "streuung": 2286,
+                "mittel": 6524,
+                "streuung": 2289,
                 "fehlerMittel": 209,
                 "min": 2638,
                 "q10": 4239,
@@ -5090,11 +5090,11 @@
               },
               "20": {
                 "n": 120,
-                "mittel": 69384,
-                "streuung": 14375,
-                "fehlerMittel": 1312,
+                "mittel": 69463,
+                "streuung": 14271,
+                "fehlerMittel": 1303,
                 "min": 38962,
-                "q10": 54512,
+                "q10": 54750,
                 "q25": 58220,
                 "median": 68446,
                 "q75": 79763,
@@ -5109,17 +5109,17 @@
             "bankrott": 0,
             "erloschen": 0,
             "jeJahrImMittel": {
-              "gewinn": 5466,
-              "amtseinkommen": 90,
+              "gewinn": 5463,
+              "amtseinkommen": 91,
               "familie": -400,
-              "geschenke": -22,
-              "gericht": -149,
+              "geschenke": -23,
+              "gericht": -142,
               "gaunerei": 11,
               "investitionen": -2161,
               "standesgebuehren": -425,
               "zinsen": -0,
-              "davonSteuer": -482,
-              "davonSpitzel": -57,
+              "davonSteuer": -480,
+              "davonSpitzel": -58,
               "schiffeAmEnde": 0
             }
           },
@@ -5157,13 +5157,13 @@
               },
               "20": {
                 "n": 120,
-                "mittel": 84243,
-                "streuung": 17644,
-                "fehlerMittel": 1611,
+                "mittel": 84007,
+                "streuung": 17604,
+                "fehlerMittel": 1607,
                 "min": 44224,
                 "q10": 63977,
                 "q25": 71999,
-                "median": 87632,
+                "median": 83571,
                 "q75": 99942,
                 "q90": 104475,
                 "max": 113436
@@ -5177,9 +5177,9 @@
             "bankrott": 0,
             "erloschen": 0,
             "jeJahrImMittel": {
-              "gewinn": 6027,
-              "amtseinkommen": 115,
-              "familie": -382,
+              "gewinn": 6021,
+              "amtseinkommen": 110,
+              "familie": -381,
               "geschenke": -24,
               "gericht": -139,
               "gaunerei": 16,
@@ -5187,7 +5187,7 @@
               "standesgebuehren": -485,
               "zinsen": -0,
               "davonSteuer": -557,
-              "davonSpitzel": -47,
+              "davonSpitzel": -46,
               "schiffeAmEnde": 0
             }
           }
@@ -5228,57 +5228,57 @@
               "10": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 9903,
-                  "streuung": 3453,
-                  "fehlerMittel": 315,
+                  "mittel": 9908,
+                  "streuung": 3468,
+                  "fehlerMittel": 317,
                   "min": 2638,
                   "q10": 4961,
                   "q25": 6628,
                   "median": 10316,
-                  "q75": 12577,
+                  "q75": 12605,
                   "q90": 13920,
                   "max": 17540
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": 0,
-                  "streuung": 29.3,
+                  "streuung": 29.4,
                   "fehlerMittel": 2.7,
                   "min": -59.6,
                   "q10": -39.7,
                   "q25": -19.4,
-                  "median": -0.3,
-                  "q75": 15.3,
-                  "q90": 36.3,
-                  "max": 99.1
+                  "median": -0,
+                  "q75": 15.1,
+                  "q90": 36.5,
+                  "max": 99.2
                 }
               },
               "20": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 69025,
-                  "streuung": 23344,
-                  "fehlerMittel": 2131,
+                  "mittel": 69041,
+                  "streuung": 23287,
+                  "fehlerMittel": 2126,
                   "min": 30748,
                   "q10": 37586,
                   "q25": 47621,
                   "median": 69223,
-                  "q75": 89022,
+                  "q75": 88433,
                   "q90": 101289,
                   "max": 113436
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": -0.1,
-                  "streuung": 19.7,
+                  "streuung": 19.6,
                   "fehlerMittel": 1.8,
-                  "min": -47.5,
-                  "q10": -23.6,
+                  "min": -47.4,
+                  "q10": -23.4,
                   "q25": -14.3,
-                  "median": -2.4,
-                  "q75": 15.1,
-                  "q90": 26.8,
-                  "max": 40.4
+                  "median": -2.5,
+                  "q75": 15,
+                  "q90": 26.6,
+                  "max": 40.2
                 }
               }
             },
@@ -5298,22 +5298,22 @@
               },
               "10": {
                 "n": 30,
-                "mittel": 12407,
+                "mittel": 12451,
                 "streuung": 1161,
                 "fehlerMittel": 212,
                 "min": 9951,
                 "q10": 10979,
                 "q25": 11665,
-                "median": 12445,
+                "median": 12510,
                 "q75": 13223,
                 "q90": 13920,
                 "max": 14346
               },
               "20": {
                 "n": 30,
-                "mittel": 39560,
-                "streuung": 5965,
-                "fehlerMittel": 1089,
+                "mittel": 39594,
+                "streuung": 5970,
+                "fehlerMittel": 1090,
                 "min": 30748,
                 "q10": 32350,
                 "q25": 35428,
@@ -5359,57 +5359,57 @@
               "10": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 9903,
-                  "streuung": 3453,
-                  "fehlerMittel": 315,
+                  "mittel": 9909,
+                  "streuung": 3468,
+                  "fehlerMittel": 317,
                   "min": 2638,
                   "q10": 4961,
                   "q25": 6628,
                   "median": 10316,
-                  "q75": 12577,
+                  "q75": 12605,
                   "q90": 13920,
                   "max": 17540
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": 0,
-                  "streuung": 29.3,
+                  "streuung": 29.4,
                   "fehlerMittel": 2.7,
                   "min": -59.6,
                   "q10": -39.7,
                   "q25": -19.4,
-                  "median": -0.3,
-                  "q75": 15.3,
-                  "q90": 36.3,
-                  "max": 99.1
+                  "median": -0,
+                  "q75": 15.1,
+                  "q90": 36.5,
+                  "max": 99.2
                 }
               },
               "20": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 69154,
-                  "streuung": 23390,
-                  "fehlerMittel": 2135,
+                  "mittel": 69170,
+                  "streuung": 23334,
+                  "fehlerMittel": 2130,
                   "min": 30748,
                   "q10": 37586,
                   "q25": 47621,
                   "median": 70179,
-                  "q75": 89022,
+                  "q75": 88433,
                   "q90": 101289,
                   "max": 113436
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": 0.1,
-                  "streuung": 19.7,
+                  "streuung": 19.6,
                   "fehlerMittel": 1.8,
-                  "min": -47.5,
-                  "q10": -23.6,
+                  "min": -47.4,
+                  "q10": -23.4,
                   "q25": -14.3,
-                  "median": -1.1,
-                  "q75": 15.1,
-                  "q90": 26.8,
-                  "max": 40.4
+                  "median": -1.2,
+                  "q75": 15,
+                  "q90": 26.6,
+                  "max": 40.2
                 }
               }
             },
@@ -5429,22 +5429,22 @@
               },
               "10": {
                 "n": 30,
-                "mittel": 12407,
+                "mittel": 12451,
                 "streuung": 1161,
                 "fehlerMittel": 212,
                 "min": 9951,
                 "q10": 10979,
                 "q25": 11665,
-                "median": 12445,
+                "median": 12510,
                 "q75": 13223,
                 "q90": 13920,
                 "max": 14346
               },
               "20": {
                 "n": 30,
-                "mittel": 39560,
-                "streuung": 5965,
-                "fehlerMittel": 1089,
+                "mittel": 39594,
+                "streuung": 5970,
+                "fehlerMittel": 1090,
                 "min": 30748,
                 "q10": 32350,
                 "q25": 35428,
@@ -5490,57 +5490,57 @@
               "10": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 9901,
-                  "streuung": 3453,
-                  "fehlerMittel": 315,
+                  "mittel": 9906,
+                  "streuung": 3468,
+                  "fehlerMittel": 317,
                   "min": 2638,
                   "q10": 4961,
                   "q25": 6628,
                   "median": 10316,
-                  "q75": 12577,
+                  "q75": 12605,
                   "q90": 13920,
                   "max": 17540
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": -0,
-                  "streuung": 29.3,
+                  "streuung": 29.4,
                   "fehlerMittel": 2.7,
                   "min": -59.6,
                   "q10": -39.7,
                   "q25": -19.4,
-                  "median": -0.3,
-                  "q75": 15.3,
-                  "q90": 36.3,
-                  "max": 99.1
+                  "median": -0,
+                  "q75": 15.1,
+                  "q90": 36.5,
+                  "max": 99.2
                 }
               },
               "20": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 69085,
-                  "streuung": 23349,
-                  "fehlerMittel": 2131,
+                  "mittel": 69101,
+                  "streuung": 23292,
+                  "fehlerMittel": 2126,
                   "min": 30748,
                   "q10": 37586,
                   "q25": 47650,
                   "median": 70179,
-                  "q75": 89022,
+                  "q75": 88433,
                   "q90": 101289,
                   "max": 113436
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": -0,
-                  "streuung": 19.7,
+                  "streuung": 19.6,
                   "fehlerMittel": 1.8,
-                  "min": -47.5,
-                  "q10": -23.6,
+                  "min": -47.4,
+                  "q10": -23.4,
                   "q25": -14.3,
-                  "median": -1.9,
-                  "q75": 15.1,
-                  "q90": 26.8,
-                  "max": 40.4
+                  "median": -2,
+                  "q75": 15,
+                  "q90": 26.6,
+                  "max": 40.2
                 }
               }
             },
@@ -5560,22 +5560,22 @@
               },
               "10": {
                 "n": 30,
-                "mittel": 12403,
-                "streuung": 1158,
-                "fehlerMittel": 211,
+                "mittel": 12447,
+                "streuung": 1159,
+                "fehlerMittel": 212,
                 "min": 9951,
                 "q10": 10979,
                 "q25": 11665,
-                "median": 12445,
+                "median": 12510,
                 "q75": 13223,
                 "q90": 13920,
                 "max": 14346
               },
               "20": {
                 "n": 30,
-                "mittel": 39564,
-                "streuung": 5970,
-                "fehlerMittel": 1090,
+                "mittel": 39598,
+                "streuung": 5975,
+                "fehlerMittel": 1091,
                 "min": 30748,
                 "q10": 32350,
                 "q25": 35428,
@@ -5621,57 +5621,57 @@
               "10": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 9903,
-                  "streuung": 3453,
-                  "fehlerMittel": 315,
+                  "mittel": 9909,
+                  "streuung": 3468,
+                  "fehlerMittel": 317,
                   "min": 2638,
                   "q10": 4961,
                   "q25": 6628,
                   "median": 10316,
-                  "q75": 12577,
+                  "q75": 12605,
                   "q90": 13920,
                   "max": 17540
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": 0,
-                  "streuung": 29.3,
+                  "streuung": 29.4,
                   "fehlerMittel": 2.7,
                   "min": -59.6,
                   "q10": -39.7,
                   "q25": -19.4,
-                  "median": -0.3,
-                  "q75": 15.3,
-                  "q90": 36.3,
-                  "max": 99.1
+                  "median": -0,
+                  "q75": 15.1,
+                  "q90": 36.5,
+                  "max": 99.2
                 }
               },
               "20": {
                 "reinvermoegen": {
                   "n": 120,
-                  "mittel": 69120,
-                  "streuung": 23328,
-                  "fehlerMittel": 2130,
+                  "mittel": 69137,
+                  "streuung": 23271,
+                  "fehlerMittel": 2124,
                   "min": 30748,
                   "q10": 37586,
                   "q25": 47621,
                   "median": 70179,
-                  "q75": 89022,
+                  "q75": 88433,
                   "q90": 101289,
                   "max": 113436
                 },
                 "gegenHausmittelProzent": {
                   "n": 120,
                   "mittel": 0,
-                  "streuung": 19.6,
+                  "streuung": 19.5,
                   "fehlerMittel": 1.8,
-                  "min": -47.5,
-                  "q10": -23.6,
+                  "min": -47.4,
+                  "q10": -23.4,
                   "q25": -14.3,
-                  "median": -1.9,
-                  "q75": 15.1,
-                  "q90": 26.8,
-                  "max": 40.4
+                  "median": -2,
+                  "q75": 15,
+                  "q90": 26.6,
+                  "max": 40.2
                 }
               }
             },
@@ -5691,22 +5691,22 @@
               },
               "10": {
                 "n": 30,
-                "mittel": 12407,
+                "mittel": 12451,
                 "streuung": 1161,
                 "fehlerMittel": 212,
                 "min": 9951,
                 "q10": 10979,
                 "q25": 11665,
-                "median": 12445,
+                "median": 12510,
                 "q75": 13223,
                 "q90": 13920,
                 "max": 14346
               },
               "20": {
                 "n": 30,
-                "mittel": 39560,
-                "streuung": 5965,
-                "fehlerMittel": 1089,
+                "mittel": 39594,
+                "streuung": 5970,
+                "fehlerMittel": 1090,
                 "min": 30748,
                 "q10": 32350,
                 "q25": 35428,
@@ -7739,14 +7739,14 @@
           "10": {
             "reinvermoegen": {
               "n": 150,
-              "mittel": 5768,
-              "streuung": 2468,
-              "fehlerMittel": 201,
+              "mittel": 5773,
+              "streuung": 2471,
+              "fehlerMittel": 202,
               "min": 685,
               "q10": 3048,
               "q25": 3673,
               "median": 5837,
-              "q75": 7338,
+              "q75": 7357,
               "q90": 8843,
               "max": 14877
             },
@@ -7765,9 +7765,9 @@
             },
             "summeReinvermoegen": {
               "n": 30,
-              "mittel": 28839,
-              "streuung": 3818,
-              "fehlerMittel": 697,
+              "mittel": 28866,
+              "streuung": 3835,
+              "fehlerMittel": 700,
               "min": 21535,
               "q10": 25044,
               "q25": 26229,
@@ -7780,57 +7780,57 @@
           "20": {
             "reinvermoegen": {
               "n": 150,
-              "mittel": 50103,
-              "streuung": 20650,
-              "fehlerMittel": 1686,
+              "mittel": 50086,
+              "streuung": 20737,
+              "fehlerMittel": 1693,
               "min": 13330,
               "q10": 23676,
               "q25": 33419,
-              "median": 48906,
-              "q75": 64750,
-              "q90": 75747,
+              "median": 49049,
+              "q75": 64554,
+              "q90": 77562,
               "max": 107554
             },
             "gewinn": {
               "n": 150,
-              "mittel": 10493,
-              "streuung": 5242,
-              "fehlerMittel": 428,
+              "mittel": 10601,
+              "streuung": 5222,
+              "fehlerMittel": 426,
               "min": -3144,
               "q10": 3133,
-              "q25": 7468,
-              "median": 10856,
-              "q75": 14128,
+              "q25": 7557,
+              "median": 11173,
+              "q75": 14020,
               "q90": 16796,
               "max": 21788
             },
             "summeReinvermoegen": {
               "n": 30,
-              "mittel": 250517,
-              "streuung": 33307,
-              "fehlerMittel": 6081,
+              "mittel": 250430,
+              "streuung": 32635,
+              "fehlerMittel": 5958,
               "min": 187444,
               "q10": 202633,
-              "q25": 228123,
+              "q25": 232845,
               "median": 248351,
-              "q75": 275324,
+              "q75": 273210,
               "q90": 294682,
               "max": 296540
             }
           }
         },
         "jeJahrImMittel": {
-          "gewinn": 4360,
-          "amtseinkommen": 77,
+          "gewinn": 4359,
+          "amtseinkommen": 79,
           "familie": -378,
-          "geschenke": -31,
+          "geschenke": -30,
           "gericht": -127,
-          "gaunerei": 1,
-          "investitionen": -1880,
+          "gaunerei": 2,
+          "investitionen": -1884,
           "standesgebuehren": -285,
           "zinsen": -0,
-          "davonSteuer": -454,
-          "davonSpitzel": -58,
+          "davonSteuer": -453,
+          "davonSpitzel": -59,
           "schiffeAmEnde": 0
         },
         "jeHaus": [
@@ -7871,8 +7871,8 @@
               "10": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 7058,
-                  "streuung": 2606,
+                  "mittel": 7062,
+                  "streuung": 2605,
                   "fehlerMittel": 476,
                   "min": 3082,
                   "q10": 3906,
@@ -7899,28 +7899,28 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 73378,
-                  "streuung": 15955,
-                  "fehlerMittel": 2913,
+                  "mittel": 73199,
+                  "streuung": 16052,
+                  "fehlerMittel": 2931,
                   "min": 45429,
                   "q10": 53482,
-                  "q25": 59797,
+                  "q25": 59380,
                   "median": 74358,
                   "q75": 85977,
-                  "q90": 90141,
+                  "q90": 89875,
                   "max": 107554
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 11703,
-                  "streuung": 2619,
-                  "fehlerMittel": 478,
+                  "mittel": 11634,
+                  "streuung": 2551,
+                  "fehlerMittel": 466,
                   "min": 5789,
                   "q10": 7785,
                   "q25": 10705,
                   "median": 11727,
-                  "q75": 13623,
-                  "q90": 14578,
+                  "q75": 13379,
+                  "q90": 14347,
                   "max": 15516
                 }
               }
@@ -7993,11 +7993,11 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 43279,
-                  "streuung": 12597,
-                  "fehlerMittel": 2300,
+                  "mittel": 43169,
+                  "streuung": 12756,
+                  "fehlerMittel": 2329,
                   "min": 18358,
-                  "q10": 26607,
+                  "q10": 26577,
                   "q25": 32461,
                   "median": 44828,
                   "q75": 51845,
@@ -8006,12 +8006,12 @@
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 9429,
-                  "streuung": 3849,
-                  "fehlerMittel": 703,
+                  "mittel": 9480,
+                  "streuung": 3890,
+                  "fehlerMittel": 710,
                   "min": 1387,
                   "q10": 3233,
-                  "q25": 7468,
+                  "q25": 7332,
                   "median": 9236,
                   "q75": 12290,
                   "q90": 13825,
@@ -8059,15 +8059,15 @@
               "10": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 4983,
-                  "streuung": 2529,
-                  "fehlerMittel": 462,
+                  "mittel": 5006,
+                  "streuung": 2551,
+                  "fehlerMittel": 466,
                   "min": 923,
                   "q10": 2901,
                   "q25": 3262,
                   "median": 4513,
                   "q75": 6164,
-                  "q90": 7499,
+                  "q90": 7748,
                   "max": 12142
                 },
                 "gewinn": {
@@ -8087,25 +8087,25 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 54772,
-                  "streuung": 19624,
-                  "fehlerMittel": 3583,
+                  "mittel": 54645,
+                  "streuung": 19193,
+                  "fehlerMittel": 3504,
                   "min": 14450,
                   "q10": 30746,
-                  "q25": 39928,
-                  "median": 59912,
-                  "q75": 66584,
-                  "q90": 71641,
+                  "q25": 40123,
+                  "median": 58527,
+                  "q75": 66085,
+                  "q90": 70856,
                   "max": 101188
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 12850,
-                  "streuung": 5582,
-                  "fehlerMittel": 1019,
+                  "mittel": 13125,
+                  "streuung": 5334,
+                  "fehlerMittel": 974,
                   "min": -2687,
-                  "q10": 6769,
-                  "q25": 10286,
+                  "q10": 7504,
+                  "q25": 10364,
                   "median": 14671,
                   "q75": 16666,
                   "q90": 17285,
@@ -8181,27 +8181,27 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 49609,
-                  "streuung": 15302,
-                  "fehlerMittel": 2794,
+                  "mittel": 50155,
+                  "streuung": 16458,
+                  "fehlerMittel": 3005,
                   "min": 19425,
                   "q10": 31886,
-                  "q25": 40175,
+                  "q25": 40208,
                   "median": 48907,
                   "q75": 61133,
                   "q90": 71066,
-                  "max": 74338
+                  "max": 90670
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 11534,
-                  "streuung": 5808,
-                  "fehlerMittel": 1060,
+                  "mittel": 11560,
+                  "streuung": 5659,
+                  "fehlerMittel": 1033,
                   "min": 764,
                   "q10": 3317,
-                  "q25": 7764,
+                  "q25": 8346,
                   "median": 12315,
-                  "q75": 15575,
+                  "q75": 15139,
                   "q90": 18760,
                   "max": 21788
                 }
@@ -8275,28 +8275,28 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 29480,
-                  "streuung": 9334,
-                  "fehlerMittel": 1704,
+                  "mittel": 29262,
+                  "streuung": 8812,
+                  "fehlerMittel": 1609,
                   "min": 13330,
                   "q10": 18552,
-                  "q25": 22021,
+                  "q25": 23328,
                   "median": 28585,
-                  "q75": 38747,
-                  "q90": 42062,
-                  "max": 45595
+                  "q75": 35115,
+                  "q90": 41327,
+                  "max": 43213
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 6949,
-                  "streuung": 5663,
-                  "fehlerMittel": 1034,
+                  "mittel": 7205,
+                  "streuung": 6011,
+                  "fehlerMittel": 1097,
                   "min": -3144,
                   "q10": -375,
                   "q25": 2922,
                   "median": 7045,
                   "q75": 10073,
-                  "q90": 15569,
+                  "q90": 16056,
                   "max": 20200
                 }
               }
@@ -8315,12 +8315,12 @@
               "ware": "Armbrust",
               "typ": "Fertigprodukt",
               "grundpreis": 211,
-              "preisfaktor": 1.022,
+              "preisfaktor": 1.019,
               "nachfrage": 85.4,
               "npcAngebot": 63,
-              "verkauftHaeuser": 21,
-              "anteilHaeuserAmAngebotProzent": 21.5,
-              "hergestellt": 22,
+              "verkauftHaeuser": 21.2,
+              "anteilHaeuserAmAngebotProzent": 21.6,
+              "hergestellt": 22.1,
               "anteileJeHausProzent": {
                 "Haus Brendel": 100
               }
@@ -8329,11 +8329,11 @@
               "ware": "Beschlag",
               "typ": "Zwischenprodukt",
               "grundpreis": 48,
-              "preisfaktor": 0.988,
+              "preisfaktor": 0.986,
               "nachfrage": 170.4,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 56.2,
-              "anteilHaeuserAmAngebotProzent": 28.4,
+              "verkauftHaeuser": 56.1,
+              "anteilHaeuserAmAngebotProzent": 28.5,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -8341,30 +8341,30 @@
               "ware": "Blume der Zwietracht",
               "typ": "Fertigprodukt",
               "grundpreis": 124,
-              "preisfaktor": 1.154,
+              "preisfaktor": 1.157,
               "nachfrage": 173.3,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 15,
-              "anteilHaeuserAmAngebotProzent": 10.8,
-              "hergestellt": 15.5,
+              "verkauftHaeuser": 15.8,
+              "anteilHaeuserAmAngebotProzent": 11.2,
+              "hergestellt": 16.8,
               "anteileJeHausProzent": {
-                "Haus Falkner": 39.8,
-                "Haus Dornbusch": 30.3,
-                "Haus Brendel": 12.5,
-                "Haus Grünwald": 9,
-                "Haus Ahlbeck": 8.4
+                "Haus Falkner": 37.9,
+                "Haus Dornbusch": 28,
+                "Haus Grünwald": 12.3,
+                "Haus Brendel": 11.5,
+                "Haus Ahlbeck": 10.3
               }
             },
             {
               "ware": "Bruchstein",
               "typ": "Rohstoff",
               "grundpreis": 12,
-              "preisfaktor": 0.899,
+              "preisfaktor": 0.898,
               "nachfrage": 681.8,
               "npcAngebot": 607.5,
-              "verkauftHaeuser": 229.3,
-              "anteilHaeuserAmAngebotProzent": 27.3,
-              "hergestellt": 196.8,
+              "verkauftHaeuser": 230.6,
+              "anteilHaeuserAmAngebotProzent": 27.4,
+              "hergestellt": 197.7,
               "anteileJeHausProzent": {
                 "Haus Dornbusch": 100
               }
@@ -8373,16 +8373,16 @@
               "ware": "Dolch",
               "typ": "Fertigprodukt",
               "grundpreis": 141,
-              "preisfaktor": 1.151,
+              "preisfaktor": 1.146,
               "nachfrage": 145,
               "npcAngebot": 94.5,
-              "verkauftHaeuser": 25.3,
-              "anteilHaeuserAmAngebotProzent": 16.5,
-              "hergestellt": 20.2,
+              "verkauftHaeuser": 29,
+              "anteilHaeuserAmAngebotProzent": 18.6,
+              "hergestellt": 23.2,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 57,
-                "Haus Ahlbeck": 41.4,
-                "Haus Brendel": 1.6
+                "Haus Grünwald": 59.1,
+                "Haus Ahlbeck": 39.5,
+                "Haus Brendel": 1.4
               }
             },
             {
@@ -8392,23 +8392,23 @@
               "preisfaktor": 0.805,
               "nachfrage": 681.8,
               "npcAngebot": 607.5,
-              "verkauftHaeuser": 453.9,
+              "verkauftHaeuser": 452.7,
               "anteilHaeuserAmAngebotProzent": 42.4,
-              "hergestellt": 443.5,
+              "hergestellt": 441.9,
               "anteileJeHausProzent": {
-                "Haus Ahlbeck": 59,
-                "Haus Grünwald": 41
+                "Haus Ahlbeck": 59.1,
+                "Haus Grünwald": 40.9
               }
             },
             {
               "ware": "Farbe",
               "typ": "Zwischenprodukt",
               "grundpreis": 40,
-              "preisfaktor": 1.188,
+              "preisfaktor": 1.189,
               "nachfrage": 170.4,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 9.2,
-              "anteilHaeuserAmAngebotProzent": 5.4,
+              "verkauftHaeuser": 10.1,
+              "anteilHaeuserAmAngebotProzent": 5.8,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -8416,28 +8416,28 @@
               "ware": "Fechterduft",
               "typ": "Fertigprodukt",
               "grundpreis": 210,
-              "preisfaktor": 1.13,
+              "preisfaktor": 1.132,
               "nachfrage": 105.4,
               "npcAngebot": 78.8,
-              "verkauftHaeuser": 7,
-              "anteilHaeuserAmAngebotProzent": 7.2,
-              "hergestellt": 6.8,
+              "verkauftHaeuser": 6.3,
+              "anteilHaeuserAmAngebotProzent": 6.5,
+              "hergestellt": 6.1,
               "anteileJeHausProzent": {
-                "Haus Falkner": 48,
-                "Haus Dornbusch": 34.8,
-                "Haus Ahlbeck": 17.2
+                "Haus Dornbusch": 38.8,
+                "Haus Falkner": 38.8,
+                "Haus Ahlbeck": 22.4
               }
             },
             {
               "ware": "Gegengift",
               "typ": "Fertigprodukt",
               "grundpreis": 213,
-              "preisfaktor": 1.057,
+              "preisfaktor": 1.061,
               "nachfrage": 105.4,
               "npcAngebot": 78.8,
-              "verkauftHaeuser": 15.7,
-              "anteilHaeuserAmAngebotProzent": 15.1,
-              "hergestellt": 15.9,
+              "verkauftHaeuser": 15.2,
+              "anteilHaeuserAmAngebotProzent": 14.6,
+              "hergestellt": 15.7,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
               }
@@ -8446,11 +8446,11 @@
               "ware": "Gehstock",
               "typ": "Fertigprodukt",
               "grundpreis": 81,
-              "preisfaktor": 1.126,
+              "preisfaktor": 1.132,
               "nachfrage": 140.6,
               "npcAngebot": 94.5,
-              "verkauftHaeuser": 12.9,
-              "anteilHaeuserAmAngebotProzent": 8.2,
+              "verkauftHaeuser": 12.7,
+              "anteilHaeuserAmAngebotProzent": 8,
               "hergestellt": 12.8,
               "anteileJeHausProzent": {
                 "Haus Brendel": 100
@@ -8460,27 +8460,27 @@
               "ware": "Giftdolch",
               "typ": "Fertigprodukt",
               "grundpreis": 305,
-              "preisfaktor": 1.154,
+              "preisfaktor": 1.148,
               "nachfrage": 163,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 4.8,
-              "anteilHaeuserAmAngebotProzent": 3.5,
-              "hergestellt": 4.4,
+              "verkauftHaeuser": 5,
+              "anteilHaeuserAmAngebotProzent": 3.6,
+              "hergestellt": 4,
               "anteileJeHausProzent": {
-                "Haus Dornbusch": 40.2,
-                "Haus Falkner": 37.9,
-                "Haus Brendel": 22
+                "Haus Dornbusch": 43.8,
+                "Haus Falkner": 32.2,
+                "Haus Brendel": 24
               }
             },
             {
               "ware": "Gold",
               "typ": "Rohstoff",
               "grundpreis": 60,
-              "preisfaktor": 0.978,
+              "preisfaktor": 0.977,
               "nachfrage": 227.3,
               "npcAngebot": 213.8,
-              "verkauftHaeuser": 40,
-              "anteilHaeuserAmAngebotProzent": 14.8,
+              "verkauftHaeuser": 41.2,
+              "anteilHaeuserAmAngebotProzent": 15.1,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -8488,27 +8488,27 @@
               "ware": "Goldkette",
               "typ": "Fertigprodukt",
               "grundpreis": 351,
-              "preisfaktor": 1.113,
+              "preisfaktor": 1.111,
               "nachfrage": 68.2,
               "npcAngebot": 47.3,
-              "verkauftHaeuser": 10.2,
-              "anteilHaeuserAmAngebotProzent": 14.2,
-              "hergestellt": 10.2,
+              "verkauftHaeuser": 11.1,
+              "anteilHaeuserAmAngebotProzent": 15.5,
+              "hergestellt": 11,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 50.7,
-                "Haus Ahlbeck": 49.3
+                "Haus Grünwald": 54.2,
+                "Haus Ahlbeck": 45.8
               }
             },
             {
               "ware": "Grabmal",
               "typ": "Fertigprodukt",
               "grundpreis": 486,
-              "preisfaktor": 1.082,
+              "preisfaktor": 1.077,
               "nachfrage": 56.8,
               "npcAngebot": 39.4,
-              "verkauftHaeuser": 10.4,
-              "anteilHaeuserAmAngebotProzent": 17.6,
-              "hergestellt": 10.4,
+              "verkauftHaeuser": 11.3,
+              "anteilHaeuserAmAngebotProzent": 19.1,
+              "hergestellt": 11.3,
               "anteileJeHausProzent": {
                 "Haus Dornbusch": 100
               }
@@ -8517,12 +8517,12 @@
               "ware": "Grabstein",
               "typ": "Fertigprodukt",
               "grundpreis": 124,
-              "preisfaktor": 1.194,
+              "preisfaktor": 1.195,
               "nachfrage": 181.2,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 16.4,
-              "anteilHaeuserAmAngebotProzent": 10.2,
-              "hergestellt": 16.4,
+              "verkauftHaeuser": 15.4,
+              "anteilHaeuserAmAngebotProzent": 9.7,
+              "hergestellt": 15.1,
               "anteileJeHausProzent": {
                 "Haus Dornbusch": 100
               }
@@ -8531,12 +8531,12 @@
               "ware": "Granit",
               "typ": "Rohstoff",
               "grundpreis": 28,
-              "preisfaktor": 0.849,
+              "preisfaktor": 0.847,
               "nachfrage": 227.3,
               "npcAngebot": 202.5,
-              "verkauftHaeuser": 108.9,
-              "anteilHaeuserAmAngebotProzent": 34.6,
-              "hergestellt": 84.4,
+              "verkauftHaeuser": 112.3,
+              "anteilHaeuserAmAngebotProzent": 35.1,
+              "hergestellt": 84,
               "anteileJeHausProzent": {
                 "Haus Dornbusch": 100
               }
@@ -8545,12 +8545,12 @@
               "ware": "Heilsalbe",
               "typ": "Fertigprodukt",
               "grundpreis": 116,
-              "preisfaktor": 1.261,
+              "preisfaktor": 1.259,
               "nachfrage": 203.7,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 20.5,
-              "anteilHaeuserAmAngebotProzent": 12.2,
-              "hergestellt": 22.1,
+              "verkauftHaeuser": 20.7,
+              "anteilHaeuserAmAngebotProzent": 12.3,
+              "hergestellt": 22.2,
               "anteileJeHausProzent": {
                 "Haus Falkner": 86.6,
                 "Haus Brendel": 11,
@@ -8561,11 +8561,11 @@
               "ware": "Holz",
               "typ": "Rohstoff",
               "grundpreis": 10,
-              "preisfaktor": 1.123,
+              "preisfaktor": 1.122,
               "nachfrage": 1000.4,
               "npcAngebot": 607.5,
-              "verkauftHaeuser": 189.7,
-              "anteilHaeuserAmAngebotProzent": 23.8,
+              "verkauftHaeuser": 191.1,
+              "anteilHaeuserAmAngebotProzent": 23.9,
               "hergestellt": 193.4,
               "anteileJeHausProzent": {
                 "Haus Brendel": 100
@@ -8575,11 +8575,11 @@
               "ware": "Holzzapfen",
               "typ": "Zwischenprodukt",
               "grundpreis": 40,
-              "preisfaktor": 0.958,
+              "preisfaktor": 0.972,
               "nachfrage": 170.4,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 74.2,
-              "anteilHaeuserAmAngebotProzent": 34.1,
+              "verkauftHaeuser": 65.1,
+              "anteilHaeuserAmAngebotProzent": 31.2,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -8587,16 +8587,16 @@
               "ware": "Jasmin",
               "typ": "Rohstoff",
               "grundpreis": 25,
-              "preisfaktor": 0.923,
+              "preisfaktor": 0.924,
               "nachfrage": 227.3,
               "npcAngebot": 202.5,
-              "verkauftHaeuser": 61.9,
-              "anteilHaeuserAmAngebotProzent": 23.2,
+              "verkauftHaeuser": 61,
+              "anteilHaeuserAmAngebotProzent": 23,
               "hergestellt": 45.4,
               "anteileJeHausProzent": {
-                "Haus Falkner": 44.1,
+                "Haus Falkner": 40.7,
                 "Haus Dornbusch": 33.2,
-                "Haus Ahlbeck": 12.8,
+                "Haus Ahlbeck": 16.2,
                 "Haus Grünwald": 6.3,
                 "Haus Brendel": 3.6
               }
@@ -8608,8 +8608,8 @@
               "preisfaktor": 0.868,
               "nachfrage": 681.8,
               "npcAngebot": 607.5,
-              "verkauftHaeuser": 274.2,
-              "anteilHaeuserAmAngebotProzent": 30.8,
+              "verkauftHaeuser": 275.9,
+              "anteilHaeuserAmAngebotProzent": 30.9,
               "hergestellt": 226,
               "anteileJeHausProzent": {
                 "Haus Falkner": 98,
@@ -8620,11 +8620,11 @@
               "ware": "Kröte",
               "typ": "Rohstoff",
               "grundpreis": 25,
-              "preisfaktor": 0.811,
+              "preisfaktor": 0.812,
               "nachfrage": 227.3,
               "npcAngebot": 202.5,
-              "verkauftHaeuser": 132.6,
-              "anteilHaeuserAmAngebotProzent": 39.2,
+              "verkauftHaeuser": 133.2,
+              "anteilHaeuserAmAngebotProzent": 39.3,
               "hergestellt": 89.4,
               "anteileJeHausProzent": {
                 "Haus Falkner": 98.5,
@@ -8640,11 +8640,11 @@
               "npcAngebot": 607.5,
               "verkauftHaeuser": 142.7,
               "anteilHaeuserAmAngebotProzent": 18.9,
-              "hergestellt": 113.4,
+              "hergestellt": 113.3,
               "anteileJeHausProzent": {
-                "Haus Falkner": 43.9,
-                "Haus Dornbusch": 33.2,
-                "Haus Ahlbeck": 12.9,
+                "Haus Falkner": 40.5,
+                "Haus Dornbusch": 33.3,
+                "Haus Ahlbeck": 16.2,
                 "Haus Grünwald": 6.4,
                 "Haus Brendel": 3.6
               }
@@ -8670,7 +8670,7 @@
               "preisfaktor": 1.147,
               "nachfrage": 170.4,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 18.3,
+              "verkauftHaeuser": 18.1,
               "anteilHaeuserAmAngebotProzent": 12,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
@@ -8679,22 +8679,22 @@
               "ware": "Prunkschwert",
               "typ": "Fertigprodukt",
               "grundpreis": 372,
-              "preisfaktor": 1.138,
+              "preisfaktor": 1.141,
               "nachfrage": 56.8,
               "npcAngebot": 39.4,
-              "verkauftHaeuser": 9.8,
-              "anteilHaeuserAmAngebotProzent": 14.9,
-              "hergestellt": 9.8,
+              "verkauftHaeuser": 9.2,
+              "anteilHaeuserAmAngebotProzent": 14.2,
+              "hergestellt": 9.2,
               "anteileJeHausProzent": {
-                "Haus Ahlbeck": 58,
-                "Haus Grünwald": 42
+                "Haus Ahlbeck": 61.5,
+                "Haus Grünwald": 38.5
               }
             },
             {
               "ware": "Rosenwasser",
               "typ": "Fertigprodukt",
               "grundpreis": 115,
-              "preisfaktor": 1.163,
+              "preisfaktor": 1.159,
               "nachfrage": 115.5,
               "npcAngebot": 78.8,
               "verkauftHaeuser": 2.1,
@@ -8711,9 +8711,9 @@
               "preisfaktor": 1.091,
               "nachfrage": 175.7,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 42.8,
-              "anteilHaeuserAmAngebotProzent": 24.1,
-              "hergestellt": 43.3,
+              "verkauftHaeuser": 42.3,
+              "anteilHaeuserAmAngebotProzent": 23.8,
+              "hergestellt": 42.1,
               "anteileJeHausProzent": {
                 "Haus Brendel": 100
               }
@@ -8722,11 +8722,11 @@
               "ware": "Schleifziegel",
               "typ": "Zwischenprodukt",
               "grundpreis": 65,
-              "preisfaktor": 1.148,
+              "preisfaktor": 1.146,
               "nachfrage": 170.4,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 27.1,
-              "anteilHaeuserAmAngebotProzent": 16.5,
+              "verkauftHaeuser": 26.5,
+              "anteilHaeuserAmAngebotProzent": 16.2,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -8734,12 +8734,12 @@
               "ware": "Silber",
               "typ": "Rohstoff",
               "grundpreis": 30,
-              "preisfaktor": 0.714,
+              "preisfaktor": 0.716,
               "nachfrage": 227.3,
               "npcAngebot": 202.5,
-              "verkauftHaeuser": 240.4,
-              "anteilHaeuserAmAngebotProzent": 53.4,
-              "hergestellt": 178.5,
+              "verkauftHaeuser": 241.8,
+              "anteilHaeuserAmAngebotProzent": 53.5,
+              "hergestellt": 179.3,
               "anteileJeHausProzent": {
                 "Haus Ahlbeck": 57.7,
                 "Haus Grünwald": 42.3
@@ -8749,38 +8749,38 @@
               "ware": "Silberkette",
               "typ": "Fertigprodukt",
               "grundpreis": 213,
-              "preisfaktor": 1.007,
+              "preisfaktor": 1.005,
               "nachfrage": 110.2,
               "npcAngebot": 78.8,
-              "verkauftHaeuser": 23.9,
-              "anteilHaeuserAmAngebotProzent": 20,
-              "hergestellt": 24.4,
+              "verkauftHaeuser": 26.6,
+              "anteilHaeuserAmAngebotProzent": 21.5,
+              "hergestellt": 27.2,
               "anteileJeHausProzent": {
-                "Haus Ahlbeck": 54,
-                "Haus Grünwald": 46
+                "Haus Grünwald": 51.4,
+                "Haus Ahlbeck": 48.6
               }
             },
             {
               "ware": "Silberring",
               "typ": "Fertigprodukt",
               "grundpreis": 112,
-              "preisfaktor": 1.098,
+              "preisfaktor": 1.093,
               "nachfrage": 181.2,
               "npcAngebot": 118.1,
-              "verkauftHaeuser": 35.9,
-              "anteilHaeuserAmAngebotProzent": 20.3,
-              "hergestellt": 35.8,
+              "verkauftHaeuser": 33.8,
+              "anteilHaeuserAmAngebotProzent": 19.6,
+              "hergestellt": 33.8,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 58.3,
-                "Haus Ahlbeck": 40.4,
-                "Haus Brendel": 1.3
+                "Haus Grünwald": 55.2,
+                "Haus Ahlbeck": 43.4,
+                "Haus Brendel": 1.4
               }
             },
             {
               "ware": "Steinfigur",
               "typ": "Fertigprodukt",
               "grundpreis": 454,
-              "preisfaktor": 1.112,
+              "preisfaktor": 1.11,
               "nachfrage": 56.8,
               "npcAngebot": 39.4,
               "verkauftHaeuser": 9.5,
@@ -8794,12 +8794,12 @@
               "ware": "Säule",
               "typ": "Fertigprodukt",
               "grundpreis": 205,
-              "preisfaktor": 1.161,
+              "preisfaktor": 1.16,
               "nachfrage": 110.2,
               "npcAngebot": 78.8,
-              "verkauftHaeuser": 4,
-              "anteilHaeuserAmAngebotProzent": 3.6,
-              "hergestellt": 4.2,
+              "verkauftHaeuser": 4.6,
+              "anteilHaeuserAmAngebotProzent": 4.1,
+              "hergestellt": 5,
               "anteileJeHausProzent": {
                 "Haus Dornbusch": 100
               }
@@ -8808,12 +8808,12 @@
               "ware": "Taufbecken",
               "typ": "Fertigprodukt",
               "grundpreis": 259,
-              "preisfaktor": 1.105,
+              "preisfaktor": 1.103,
               "nachfrage": 113.6,
               "npcAngebot": 78.8,
-              "verkauftHaeuser": 15.6,
-              "anteilHaeuserAmAngebotProzent": 14.9,
-              "hergestellt": 15.5,
+              "verkauftHaeuser": 15.5,
+              "anteilHaeuserAmAngebotProzent": 15,
+              "hergestellt": 15.3,
               "anteileJeHausProzent": {
                 "Haus Dornbusch": 100
               }
@@ -8822,12 +8822,12 @@
               "ware": "Theriak",
               "typ": "Fertigprodukt",
               "grundpreis": 322,
-              "preisfaktor": 1.075,
+              "preisfaktor": 1.078,
               "nachfrage": 54.3,
               "npcAngebot": 39.4,
-              "verkauftHaeuser": 13.4,
-              "anteilHaeuserAmAngebotProzent": 21,
-              "hergestellt": 12.1,
+              "verkauftHaeuser": 13.8,
+              "anteilHaeuserAmAngebotProzent": 21.3,
+              "hergestellt": 12.3,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
               }
@@ -8836,12 +8836,12 @@
               "ware": "Truhe",
               "typ": "Fertigprodukt",
               "grundpreis": 179,
-              "preisfaktor": 1.043,
+              "preisfaktor": 1.042,
               "nachfrage": 128.1,
               "npcAngebot": 94.5,
-              "verkauftHaeuser": 21.8,
-              "anteilHaeuserAmAngebotProzent": 16.4,
-              "hergestellt": 22.2,
+              "verkauftHaeuser": 22.5,
+              "anteilHaeuserAmAngebotProzent": 16.8,
+              "hergestellt": 23,
               "anteileJeHausProzent": {
                 "Haus Brendel": 100
               }
@@ -8850,26 +8850,26 @@
               "ware": "Werkzeug",
               "typ": "Fertigprodukt",
               "grundpreis": 137,
-              "preisfaktor": 1.045,
+              "preisfaktor": 1.047,
               "nachfrage": 120.8,
               "npcAngebot": 78.8,
-              "verkauftHaeuser": 37.7,
-              "anteilHaeuserAmAngebotProzent": 28.2,
-              "hergestellt": 27.5,
+              "verkauftHaeuser": 33.3,
+              "anteilHaeuserAmAngebotProzent": 25.5,
+              "hergestellt": 23.1,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 62.5,
-                "Haus Ahlbeck": 37.5
+                "Haus Grünwald": 58.3,
+                "Haus Ahlbeck": 41.7
               }
             },
             {
               "ware": "Zinnober",
               "typ": "Fertigprodukt",
               "grundpreis": 362,
-              "preisfaktor": 1.152,
+              "preisfaktor": 1.155,
               "nachfrage": 54.3,
               "npcAngebot": 39.4,
-              "verkauftHaeuser": 4.7,
-              "anteilHaeuserAmAngebotProzent": 7.3,
+              "verkauftHaeuser": 4.8,
+              "anteilHaeuserAmAngebotProzent": 7.4,
               "hergestellt": 5.1,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
@@ -8968,53 +8968,53 @@
           "20": {
             "reinvermoegen": {
               "n": 240,
-              "mittel": 47130,
-              "streuung": 19352,
-              "fehlerMittel": 1249,
+              "mittel": 47284,
+              "streuung": 19426,
+              "fehlerMittel": 1254,
               "min": 3955,
               "q10": 23511,
               "q25": 33125,
-              "median": 46624,
-              "q75": 59966,
+              "median": 46824,
+              "q75": 60235,
               "q90": 73801,
               "max": 107617
             },
             "gewinn": {
               "n": 240,
-              "mittel": 10571,
-              "streuung": 4496,
+              "mittel": 10567,
+              "streuung": 4490,
               "fehlerMittel": 290,
               "min": -2713,
               "q10": 5189,
               "q25": 7930,
-              "median": 10471,
-              "q75": 13553,
+              "median": 10525,
+              "q75": 13507,
               "q90": 16024,
               "max": 23902
             },
             "summeReinvermoegen": {
               "n": 30,
-              "mittel": 377041,
-              "streuung": 35724,
-              "fehlerMittel": 6522,
+              "mittel": 378272,
+              "streuung": 37022,
+              "fehlerMittel": 6759,
               "min": 325634,
               "q10": 337169,
               "q25": 345028,
               "median": 369593,
-              "q75": 399684,
-              "q90": 428428,
+              "q75": 409064,
+              "q90": 429768,
               "max": 436738
             }
           }
         },
         "jeJahrImMittel": {
-          "gewinn": 4196,
-          "amtseinkommen": 47,
+          "gewinn": 4202,
+          "amtseinkommen": 48,
           "familie": -372,
           "geschenke": -37,
           "gericht": -182,
-          "gaunerei": 6,
-          "investitionen": -1796,
+          "gaunerei": 7,
+          "investitionen": -1799,
           "standesgebuehren": -243,
           "zinsen": -0,
           "davonSteuer": -405,
@@ -9087,22 +9087,22 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 69853,
-                  "streuung": 18055,
-                  "fehlerMittel": 3296,
+                  "mittel": 69905,
+                  "streuung": 18107,
+                  "fehlerMittel": 3306,
                   "min": 28247,
                   "q10": 47413,
                   "q25": 57154,
                   "median": 72108,
                   "q75": 84367,
-                  "q90": 86652,
+                  "q90": 88067,
                   "max": 107617
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 12452,
-                  "streuung": 3226,
-                  "fehlerMittel": 589,
+                  "mittel": 12398,
+                  "streuung": 3180,
+                  "fehlerMittel": 581,
                   "min": 5150,
                   "q10": 9508,
                   "q25": 10449,
@@ -9181,9 +9181,9 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 33775,
-                  "streuung": 18396,
-                  "fehlerMittel": 3359,
+                  "mittel": 33768,
+                  "streuung": 18402,
+                  "fehlerMittel": 3360,
                   "min": 4137,
                   "q10": 12818,
                   "q25": 20835,
@@ -9194,12 +9194,12 @@
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 9279,
-                  "streuung": 3512,
-                  "fehlerMittel": 641,
+                  "mittel": 9225,
+                  "streuung": 3550,
+                  "fehlerMittel": 648,
                   "min": 2603,
                   "q10": 5540,
-                  "q25": 7320,
+                  "q25": 7136,
                   "median": 8734,
                   "q75": 10562,
                   "q90": 14372,
@@ -9275,22 +9275,22 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 42349,
-                  "streuung": 17212,
+                  "mittel": 42345,
+                  "streuung": 17214,
                   "fehlerMittel": 3143,
                   "min": 20845,
                   "q10": 22948,
                   "q25": 28666,
-                  "median": 38635,
+                  "median": 38580,
                   "q75": 50022,
                   "q90": 61543,
                   "max": 93784
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 9494,
-                  "streuung": 4857,
-                  "fehlerMittel": 887,
+                  "mittel": 9475,
+                  "streuung": 4838,
+                  "fehlerMittel": 883,
                   "min": -2276,
                   "q10": 5024,
                   "q25": 7588,
@@ -9369,27 +9369,27 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 49343,
-                  "streuung": 18207,
-                  "fehlerMittel": 3324,
+                  "mittel": 49246,
+                  "streuung": 18015,
+                  "fehlerMittel": 3289,
                   "min": 16071,
                   "q10": 32099,
                   "q25": 35225,
                   "median": 46624,
                   "q75": 63257,
                   "q90": 74288,
-                  "max": 85425
+                  "max": 82513
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 10541,
-                  "streuung": 5928,
-                  "fehlerMittel": 1082,
+                  "mittel": 10424,
+                  "streuung": 5888,
+                  "fehlerMittel": 1075,
                   "min": -2713,
                   "q10": 2155,
                   "q25": 7699,
-                  "median": 10622,
-                  "q75": 14274,
+                  "median": 10560,
+                  "q75": 14094,
                   "q90": 17938,
                   "max": 22915
                 }
@@ -9463,11 +9463,11 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 41358,
-                  "streuung": 16195,
-                  "fehlerMittel": 2957,
+                  "mittel": 41353,
+                  "streuung": 16202,
+                  "fehlerMittel": 2958,
                   "min": 14766,
-                  "q10": 22480,
+                  "q10": 22463,
                   "q25": 27260,
                   "median": 40622,
                   "q75": 49712,
@@ -9476,12 +9476,12 @@
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 10912,
-                  "streuung": 5063,
-                  "fehlerMittel": 924,
+                  "mittel": 10790,
+                  "streuung": 5150,
+                  "fehlerMittel": 940,
                   "min": 2246,
                   "q10": 4434,
-                  "q25": 8023,
+                  "q25": 7980,
                   "median": 10108,
                   "q75": 13903,
                   "q90": 15903,
@@ -9557,25 +9557,25 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 48816,
-                  "streuung": 13643,
-                  "fehlerMittel": 2491,
+                  "mittel": 49170,
+                  "streuung": 13502,
+                  "fehlerMittel": 2465,
                   "min": 13509,
                   "q10": 34042,
-                  "q25": 38761,
-                  "median": 48231,
+                  "q25": 39709,
+                  "median": 48340,
                   "q75": 57486,
                   "q90": 65812,
                   "max": 75404
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 10696,
-                  "streuung": 3273,
-                  "fehlerMittel": 598,
+                  "mittel": 10877,
+                  "streuung": 3106,
+                  "fehlerMittel": 567,
                   "min": 4551,
-                  "q10": 6825,
-                  "q25": 7505,
+                  "q10": 7238,
+                  "q25": 8057,
                   "median": 10916,
                   "q75": 13022,
                   "q90": 14096,
@@ -9651,27 +9651,27 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 46051,
-                  "streuung": 14507,
-                  "fehlerMittel": 2649,
+                  "mittel": 46532,
+                  "streuung": 14898,
+                  "fehlerMittel": 2720,
                   "min": 3955,
                   "q10": 23657,
                   "q25": 41286,
-                  "median": 50058,
-                  "q75": 54688,
-                  "q90": 61185,
+                  "median": 50415,
+                  "q75": 55160,
+                  "q90": 62947,
                   "max": 65518
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 10659,
-                  "streuung": 3918,
-                  "fehlerMittel": 715,
+                  "mittel": 10781,
+                  "streuung": 3947,
+                  "fehlerMittel": 721,
                   "min": 0,
                   "q10": 7331,
                   "q25": 8577,
-                  "median": 10675,
-                  "q75": 13766,
+                  "median": 10794,
+                  "q75": 14052,
                   "q90": 15719,
                   "max": 17211
                 }
@@ -9745,26 +9745,26 @@
               "20": {
                 "reinvermoegen": {
                   "n": 30,
-                  "mittel": 45494,
-                  "streuung": 18619,
-                  "fehlerMittel": 3399,
+                  "mittel": 45952,
+                  "streuung": 19126,
+                  "fehlerMittel": 3492,
                   "min": 9296,
                   "q10": 23174,
                   "q25": 30202,
                   "median": 45305,
                   "q75": 57773,
-                  "q90": 67515,
+                  "q90": 69749,
                   "max": 89187
                 },
                 "gewinn": {
                   "n": 30,
-                  "mittel": 10533,
-                  "streuung": 5169,
-                  "fehlerMittel": 944,
+                  "mittel": 10564,
+                  "streuung": 5177,
+                  "fehlerMittel": 945,
                   "min": -731,
                   "q10": 2168,
                   "q25": 9177,
-                  "median": 11674,
+                  "median": 11951,
                   "q75": 13967,
                   "q90": 15499,
                   "max": 18019
@@ -9785,15 +9785,15 @@
               "ware": "Armbrust",
               "typ": "Fertigprodukt",
               "grundpreis": 211,
-              "preisfaktor": 1.012,
-              "nachfrage": 119.2,
+              "preisfaktor": 1.011,
+              "nachfrage": 119.1,
               "npcAngebot": 77,
-              "verkauftHaeuser": 37.8,
-              "anteilHaeuserAmAngebotProzent": 25.5,
-              "hergestellt": 37.7,
+              "verkauftHaeuser": 38.3,
+              "anteilHaeuserAmAngebotProzent": 25.8,
+              "hergestellt": 38.6,
               "anteileJeHausProzent": {
-                "Haus Lindenau": 50.3,
-                "Haus Brendel": 49.7
+                "Haus Brendel": 50.7,
+                "Haus Lindenau": 49.3
               }
             },
             {
@@ -9801,10 +9801,10 @@
               "typ": "Zwischenprodukt",
               "grundpreis": 48,
               "preisfaktor": 0.988,
-              "nachfrage": 236.6,
+              "nachfrage": 236.4,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 92.2,
-              "anteilHaeuserAmAngebotProzent": 35,
+              "verkauftHaeuser": 91,
+              "anteilHaeuserAmAngebotProzent": 34.6,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -9813,40 +9813,40 @@
               "typ": "Rohstoff",
               "grundpreis": 12,
               "preisfaktor": 0.879,
-              "nachfrage": 946.4,
+              "nachfrage": 945.6,
               "npcAngebot": 742.5,
-              "verkauftHaeuser": 441.2,
-              "anteilHaeuserAmAngebotProzent": 35,
-              "hergestellt": 307.9,
+              "verkauftHaeuser": 432.6,
+              "anteilHaeuserAmAngebotProzent": 34.5,
+              "hergestellt": 306.6,
               "anteileJeHausProzent": {
-                "Haus Rabenstein": 56.8,
-                "Haus Dornbusch": 43.2
+                "Haus Rabenstein": 56.7,
+                "Haus Dornbusch": 43.3
               }
             },
             {
               "ware": "Dolch",
               "typ": "Fertigprodukt",
               "grundpreis": 141,
-              "preisfaktor": 1.253,
-              "nachfrage": 202.4,
+              "preisfaktor": 1.252,
+              "nachfrage": 202.2,
               "npcAngebot": 115.5,
-              "verkauftHaeuser": 9.1,
+              "verkauftHaeuser": 9.2,
               "anteilHaeuserAmAngebotProzent": 5.2,
-              "hergestellt": 9.3,
+              "hergestellt": 9.4,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 55.7,
-                "Haus Ahlbeck": 44.3
+                "Haus Grünwald": 55.9,
+                "Haus Ahlbeck": 44.1
               }
             },
             {
               "ware": "Eisen",
               "typ": "Rohstoff",
               "grundpreis": 12,
-              "preisfaktor": 0.862,
-              "nachfrage": 946.4,
+              "preisfaktor": 0.861,
+              "nachfrage": 945.6,
               "npcAngebot": 742.5,
-              "verkauftHaeuser": 474.5,
-              "anteilHaeuserAmAngebotProzent": 36.8,
+              "verkauftHaeuser": 477.6,
+              "anteilHaeuserAmAngebotProzent": 37,
               "hergestellt": 452.1,
               "anteileJeHausProzent": {
                 "Haus Ahlbeck": 54.1,
@@ -9858,7 +9858,7 @@
               "typ": "Zwischenprodukt",
               "grundpreis": 40,
               "preisfaktor": 1.22,
-              "nachfrage": 236.6,
+              "nachfrage": 236.4,
               "npcAngebot": 144.4,
               "verkauftHaeuser": 8.6,
               "anteilHaeuserAmAngebotProzent": 4.3,
@@ -9869,12 +9869,12 @@
               "ware": "Festbier",
               "typ": "Fertigprodukt",
               "grundpreis": 218,
-              "preisfaktor": 1.215,
+              "preisfaktor": 1.214,
               "nachfrage": 77.3,
               "npcAngebot": 48.1,
               "verkauftHaeuser": 0,
               "anteilHaeuserAmAngebotProzent": 0,
-              "hergestellt": 1.2,
+              "hergestellt": 2.4,
               "anteileJeHausProzent": {
                 "Haus Hollerbach": 100
               }
@@ -9884,10 +9884,10 @@
               "typ": "Fertigprodukt",
               "grundpreis": 213,
               "preisfaktor": 1.088,
-              "nachfrage": 147.5,
+              "nachfrage": 147.4,
               "npcAngebot": 96.3,
-              "verkauftHaeuser": 13.7,
-              "anteilHaeuserAmAngebotProzent": 9.8,
+              "verkauftHaeuser": 13.6,
+              "anteilHaeuserAmAngebotProzent": 9.7,
               "hergestellt": 13.5,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
@@ -9897,15 +9897,15 @@
               "ware": "Gehstock",
               "typ": "Fertigprodukt",
               "grundpreis": 81,
-              "preisfaktor": 1.07,
-              "nachfrage": 196.4,
+              "preisfaktor": 1.072,
+              "nachfrage": 196.3,
               "npcAngebot": 115.5,
-              "verkauftHaeuser": 50.7,
-              "anteilHaeuserAmAngebotProzent": 21.7,
-              "hergestellt": 51.4,
+              "verkauftHaeuser": 48.5,
+              "anteilHaeuserAmAngebotProzent": 20.5,
+              "hergestellt": 49.2,
               "anteileJeHausProzent": {
-                "Haus Brendel": 54.2,
-                "Haus Lindenau": 45.8
+                "Haus Brendel": 52.1,
+                "Haus Lindenau": 47.9
               }
             },
             {
@@ -9913,9 +9913,9 @@
               "typ": "Rohstoff",
               "grundpreis": 10,
               "preisfaktor": 0.932,
-              "nachfrage": 946.4,
+              "nachfrage": 945.6,
               "npcAngebot": 742.5,
-              "verkauftHaeuser": 248,
+              "verkauftHaeuser": 248.1,
               "anteilHaeuserAmAngebotProzent": 23.5,
               "hergestellt": 238.6,
               "anteileJeHausProzent": {
@@ -9926,11 +9926,11 @@
               "ware": "Gold",
               "typ": "Rohstoff",
               "grundpreis": 60,
-              "preisfaktor": 0.994,
-              "nachfrage": 315.5,
+              "preisfaktor": 0.993,
+              "nachfrage": 315.2,
               "npcAngebot": 261.3,
-              "verkauftHaeuser": 48.7,
-              "anteilHaeuserAmAngebotProzent": 13.1,
+              "verkauftHaeuser": 49.2,
+              "anteilHaeuserAmAngebotProzent": 13.3,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -9938,15 +9938,15 @@
               "ware": "Goldkette",
               "typ": "Fertigprodukt",
               "grundpreis": 351,
-              "preisfaktor": 1.103,
-              "nachfrage": 94.1,
+              "preisfaktor": 1.101,
+              "nachfrage": 94,
               "npcAngebot": 57.7,
-              "verkauftHaeuser": 17.6,
-              "anteilHaeuserAmAngebotProzent": 19.3,
-              "hergestellt": 17.6,
+              "verkauftHaeuser": 18.5,
+              "anteilHaeuserAmAngebotProzent": 20.2,
+              "hergestellt": 18.5,
               "anteileJeHausProzent": {
-                "Haus Ahlbeck": 62.7,
-                "Haus Grünwald": 37.3
+                "Haus Ahlbeck": 64.4,
+                "Haus Grünwald": 35.6
               }
             },
             {
@@ -9956,50 +9956,50 @@
               "preisfaktor": 1.094,
               "nachfrage": 78.4,
               "npcAngebot": 48.1,
-              "verkauftHaeuser": 17.8,
-              "anteilHaeuserAmAngebotProzent": 21.8,
-              "hergestellt": 19.5,
+              "verkauftHaeuser": 17.3,
+              "anteilHaeuserAmAngebotProzent": 21.4,
+              "hergestellt": 19.1,
               "anteileJeHausProzent": {
-                "Haus Rabenstein": 75.6,
-                "Haus Dornbusch": 24.4
+                "Haus Rabenstein": 75.1,
+                "Haus Dornbusch": 24.9
               }
             },
             {
               "ware": "Grabstein",
               "typ": "Fertigprodukt",
               "grundpreis": 124,
-              "preisfaktor": 1.125,
-              "nachfrage": 253,
+              "preisfaktor": 1.124,
+              "nachfrage": 252.8,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 45.4,
-              "anteilHaeuserAmAngebotProzent": 19.5,
-              "hergestellt": 46.6,
+              "verkauftHaeuser": 49.6,
+              "anteilHaeuserAmAngebotProzent": 21,
+              "hergestellt": 50.8,
               "anteileJeHausProzent": {
-                "Haus Dornbusch": 55.8,
-                "Haus Rabenstein": 44.2
+                "Haus Dornbusch": 56.3,
+                "Haus Rabenstein": 43.7
               }
             },
             {
               "ware": "Granit",
               "typ": "Rohstoff",
               "grundpreis": 28,
-              "preisfaktor": 0.795,
-              "nachfrage": 315.5,
+              "preisfaktor": 0.797,
+              "nachfrage": 315.2,
               "npcAngebot": 247.5,
-              "verkauftHaeuser": 219.3,
-              "anteilHaeuserAmAngebotProzent": 43.9,
-              "hergestellt": 122.7,
+              "verkauftHaeuser": 220.5,
+              "anteilHaeuserAmAngebotProzent": 44,
+              "hergestellt": 123.4,
               "anteileJeHausProzent": {
-                "Haus Rabenstein": 57,
-                "Haus Dornbusch": 43
+                "Haus Rabenstein": 57.1,
+                "Haus Dornbusch": 42.9
               }
             },
             {
               "ware": "Heilsalbe",
               "typ": "Fertigprodukt",
               "grundpreis": 116,
-              "preisfaktor": 1.29,
-              "nachfrage": 285.8,
+              "preisfaktor": 1.289,
+              "nachfrage": 285.5,
               "npcAngebot": 144.4,
               "verkauftHaeuser": 32.6,
               "anteilHaeuserAmAngebotProzent": 15.3,
@@ -10013,11 +10013,11 @@
               "typ": "Rohstoff",
               "grundpreis": 10,
               "preisfaktor": 1.122,
-              "nachfrage": 1389.3,
+              "nachfrage": 1388,
               "npcAngebot": 742.5,
-              "verkauftHaeuser": 307.2,
+              "verkauftHaeuser": 306.9,
               "anteilHaeuserAmAngebotProzent": 26.9,
-              "hergestellt": 311.9,
+              "hergestellt": 311.7,
               "anteileJeHausProzent": {
                 "Haus Lindenau": 53.1,
                 "Haus Brendel": 46.9
@@ -10027,11 +10027,11 @@
               "ware": "Holzzapfen",
               "typ": "Zwischenprodukt",
               "grundpreis": 40,
-              "preisfaktor": 1.009,
-              "nachfrage": 236.6,
+              "preisfaktor": 1.004,
+              "nachfrage": 236.4,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 88.8,
-              "anteilHaeuserAmAngebotProzent": 32,
+              "verkauftHaeuser": 90.6,
+              "anteilHaeuserAmAngebotProzent": 32.5,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -10039,12 +10039,12 @@
               "ware": "Kräuter",
               "typ": "Rohstoff",
               "grundpreis": 10,
-              "preisfaktor": 0.943,
-              "nachfrage": 946.4,
+              "preisfaktor": 0.942,
+              "nachfrage": 945.6,
               "npcAngebot": 742.5,
-              "verkauftHaeuser": 251.7,
-              "anteilHaeuserAmAngebotProzent": 23.1,
-              "hergestellt": 197.4,
+              "verkauftHaeuser": 249.8,
+              "anteilHaeuserAmAngebotProzent": 23,
+              "hergestellt": 197.5,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
               }
@@ -10054,10 +10054,10 @@
               "typ": "Rohstoff",
               "grundpreis": 25,
               "preisfaktor": 0.887,
-              "nachfrage": 315.5,
+              "nachfrage": 315.2,
               "npcAngebot": 247.5,
-              "verkauftHaeuser": 118.6,
-              "anteilHaeuserAmAngebotProzent": 29.8,
+              "verkauftHaeuser": 118,
+              "anteilHaeuserAmAngebotProzent": 29.7,
               "hergestellt": 78.7,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
@@ -10068,11 +10068,11 @@
               "typ": "Fertigprodukt",
               "grundpreis": 56,
               "preisfaktor": 1.251,
-              "nachfrage": 254.9,
+              "nachfrage": 254.7,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 7.8,
-              "anteilHaeuserAmAngebotProzent": 4.2,
-              "hergestellt": 29,
+              "verkauftHaeuser": 7.4,
+              "anteilHaeuserAmAngebotProzent": 4,
+              "hergestellt": 26.2,
               "anteileJeHausProzent": {
                 "Haus Hollerbach": 100
               }
@@ -10081,26 +10081,26 @@
               "ware": "Mühlstein",
               "typ": "Fertigprodukt",
               "grundpreis": 165,
-              "preisfaktor": 1.21,
-              "nachfrage": 184.2,
+              "preisfaktor": 1.209,
+              "nachfrage": 184.1,
               "npcAngebot": 115.5,
-              "verkauftHaeuser": 3,
-              "anteilHaeuserAmAngebotProzent": 1.4,
-              "hergestellt": 3.1,
+              "verkauftHaeuser": 4.3,
+              "anteilHaeuserAmAngebotProzent": 2.2,
+              "hergestellt": 4.5,
               "anteileJeHausProzent": {
-                "Haus Rabenstein": 72,
-                "Haus Dornbusch": 28
+                "Haus Dornbusch": 50.4,
+                "Haus Rabenstein": 49.6
               }
             },
             {
               "ware": "Politur",
               "typ": "Zwischenprodukt",
               "grundpreis": 56,
-              "preisfaktor": 1.165,
-              "nachfrage": 236.6,
+              "preisfaktor": 1.163,
+              "nachfrage": 236.4,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 17.3,
-              "anteilHaeuserAmAngebotProzent": 8.7,
+              "verkauftHaeuser": 18.4,
+              "anteilHaeuserAmAngebotProzent": 9.3,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -10108,15 +10108,15 @@
               "ware": "Prunkschwert",
               "typ": "Fertigprodukt",
               "grundpreis": 372,
-              "preisfaktor": 1.096,
+              "preisfaktor": 1.097,
               "nachfrage": 78.4,
               "npcAngebot": 48.1,
-              "verkauftHaeuser": 14.8,
-              "anteilHaeuserAmAngebotProzent": 18.4,
-              "hergestellt": 15.3,
+              "verkauftHaeuser": 14.5,
+              "anteilHaeuserAmAngebotProzent": 18,
+              "hergestellt": 15.2,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 57,
-                "Haus Ahlbeck": 43
+                "Haus Grünwald": 57.4,
+                "Haus Ahlbeck": 42.6
               }
             },
             {
@@ -10124,10 +10124,10 @@
               "typ": "Rohstoff",
               "grundpreis": 12,
               "preisfaktor": 0.931,
-              "nachfrage": 788.7,
+              "nachfrage": 788,
               "npcAngebot": 618.8,
-              "verkauftHaeuser": 213.1,
-              "anteilHaeuserAmAngebotProzent": 24.1,
+              "verkauftHaeuser": 214.5,
+              "anteilHaeuserAmAngebotProzent": 24.2,
               "hergestellt": 199.7,
               "anteileJeHausProzent": {
                 "Haus Hollerbach": 100
@@ -10137,11 +10137,11 @@
               "ware": "Rosenwasser",
               "typ": "Fertigprodukt",
               "grundpreis": 115,
-              "preisfaktor": 1.156,
-              "nachfrage": 162.1,
+              "preisfaktor": 1.158,
+              "nachfrage": 161.9,
               "npcAngebot": 96.3,
-              "verkauftHaeuser": 8,
-              "anteilHaeuserAmAngebotProzent": 5.7,
+              "verkauftHaeuser": 7.6,
+              "anteilHaeuserAmAngebotProzent": 5.3,
               "hergestellt": 6.5,
               "anteileJeHausProzent": {
                 "Haus Falkner": 100
@@ -10151,12 +10151,12 @@
               "ware": "Schemel",
               "typ": "Fertigprodukt",
               "grundpreis": 122,
-              "preisfaktor": 1.069,
-              "nachfrage": 245.5,
+              "preisfaktor": 1.068,
+              "nachfrage": 245.3,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 54,
+              "verkauftHaeuser": 54.3,
               "anteilHaeuserAmAngebotProzent": 20.9,
-              "hergestellt": 54.3,
+              "hergestellt": 54.7,
               "anteileJeHausProzent": {
                 "Haus Lindenau": 50.4,
                 "Haus Brendel": 49.6
@@ -10166,11 +10166,11 @@
               "ware": "Schleifziegel",
               "typ": "Zwischenprodukt",
               "grundpreis": 65,
-              "preisfaktor": 1.086,
-              "nachfrage": 236.6,
+              "preisfaktor": 1.081,
+              "nachfrage": 236.4,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 51.3,
-              "anteilHaeuserAmAngebotProzent": 22.6,
+              "verkauftHaeuser": 53.5,
+              "anteilHaeuserAmAngebotProzent": 23.4,
               "hergestellt": 0,
               "anteileJeHausProzent": {}
             },
@@ -10178,12 +10178,12 @@
               "ware": "Schädelbrand",
               "typ": "Fertigprodukt",
               "grundpreis": 364,
-              "preisfaktor": 1.227,
+              "preisfaktor": 1.226,
               "nachfrage": 79,
               "npcAngebot": 48.1,
               "verkauftHaeuser": 0.4,
               "anteilHaeuserAmAngebotProzent": 0.8,
-              "hergestellt": 29.4,
+              "hergestellt": 29.3,
               "anteileJeHausProzent": {
                 "Haus Hollerbach": 100
               }
@@ -10192,11 +10192,11 @@
               "ware": "Silber",
               "typ": "Rohstoff",
               "grundpreis": 30,
-              "preisfaktor": 0.776,
-              "nachfrage": 315.5,
+              "preisfaktor": 0.777,
+              "nachfrage": 315.2,
               "npcAngebot": 247.5,
-              "verkauftHaeuser": 248.1,
-              "anteilHaeuserAmAngebotProzent": 47.5,
+              "verkauftHaeuser": 249,
+              "anteilHaeuserAmAngebotProzent": 47.6,
               "hergestellt": 184.3,
               "anteileJeHausProzent": {
                 "Haus Ahlbeck": 53.5,
@@ -10207,15 +10207,15 @@
               "ware": "Silberkette",
               "typ": "Fertigprodukt",
               "grundpreis": 213,
-              "preisfaktor": 1.055,
-              "nachfrage": 153.5,
+              "preisfaktor": 1.054,
+              "nachfrage": 153.4,
               "npcAngebot": 96.3,
-              "verkauftHaeuser": 34.4,
-              "anteilHaeuserAmAngebotProzent": 22.3,
-              "hergestellt": 34,
+              "verkauftHaeuser": 33.9,
+              "anteilHaeuserAmAngebotProzent": 21.9,
+              "hergestellt": 33.5,
               "anteileJeHausProzent": {
-                "Haus Ahlbeck": 52.1,
-                "Haus Grünwald": 47.9
+                "Haus Ahlbeck": 51.3,
+                "Haus Grünwald": 48.7
               }
             },
             {
@@ -10223,22 +10223,22 @@
               "typ": "Fertigprodukt",
               "grundpreis": 112,
               "preisfaktor": 1.183,
-              "nachfrage": 253,
+              "nachfrage": 252.8,
               "npcAngebot": 144.4,
-              "verkauftHaeuser": 38.2,
-              "anteilHaeuserAmAngebotProzent": 17.2,
-              "hergestellt": 38.2,
+              "verkauftHaeuser": 38.7,
+              "anteilHaeuserAmAngebotProzent": 17.3,
+              "hergestellt": 38.7,
               "anteileJeHausProzent": {
-                "Haus Grünwald": 65.1,
-                "Haus Ahlbeck": 34.9
+                "Haus Grünwald": 64.8,
+                "Haus Ahlbeck": 35.2
               }
             },
             {
               "ware": "Starkbier",
               "typ": "Fertigprodukt",
               "grundpreis": 134,
-              "preisfaktor": 1.263,
-              "nachfrage": 169.9,
+              "preisfaktor": 1.262,
+              "nachfrage": 169.8,
               "npcAngebot": 96.3,
               "verkauftHaeuser": 2.6,
               "anteilHaeuserAmAngebotProzent": 2.1,
@@ -10251,45 +10251,45 @@
               "ware": "Steinfigur",
               "typ": "Fertigprodukt",
               "grundpreis": 454,
-              "preisfaktor": 1.133,
+              "preisfaktor": 1.134,
               "nachfrage": 78.4,
               "npcAngebot": 48.1,
-              "verkauftHaeuser": 10.1,
-              "anteilHaeuserAmAngebotProzent": 13.5,
-              "hergestellt": 9.6,
+              "verkauftHaeuser": 10.4,
+              "anteilHaeuserAmAngebotProzent": 13.8,
+              "hergestellt": 9.9,
               "anteileJeHausProzent": {
-                "Haus Rabenstein": 79.2,
-                "Haus Dornbusch": 20.8
+                "Haus Rabenstein": 79.9,
+                "Haus Dornbusch": 20.1
               }
             },
             {
               "ware": "Säule",
               "typ": "Fertigprodukt",
               "grundpreis": 205,
-              "preisfaktor": 1.082,
-              "nachfrage": 153.5,
+              "preisfaktor": 1.083,
+              "nachfrage": 153.4,
               "npcAngebot": 96.3,
-              "verkauftHaeuser": 34.9,
-              "anteilHaeuserAmAngebotProzent": 20.8,
-              "hergestellt": 34.8,
+              "verkauftHaeuser": 32.4,
+              "anteilHaeuserAmAngebotProzent": 19.4,
+              "hergestellt": 32.2,
               "anteileJeHausProzent": {
-                "Haus Dornbusch": 62.7,
-                "Haus Rabenstein": 37.3
+                "Haus Dornbusch": 63.4,
+                "Haus Rabenstein": 36.6
               }
             },
             {
               "ware": "Taufbecken",
               "typ": "Fertigprodukt",
               "grundpreis": 259,
-              "preisfaktor": 1.059,
-              "nachfrage": 156.8,
+              "preisfaktor": 1.057,
+              "nachfrage": 156.7,
               "npcAngebot": 96.3,
-              "verkauftHaeuser": 34.8,
-              "anteilHaeuserAmAngebotProzent": 22.6,
-              "hergestellt": 34.1,
+              "verkauftHaeuser": 34,
+              "anteilHaeuserAmAngebotProzent": 22.1,
+              "hergestellt": 32.3,
               "anteileJeHausProzent": {
-                "Haus Dornbusch": 60.6,
-                "Haus Rabenstein": 39.4
+                "Haus Dornbusch": 58.5,
+                "Haus Rabenstein": 41.5
               }
             },
             {
@@ -10311,7 +10311,7 @@
               "typ": "Fertigprodukt",
               "grundpreis": 179,
               "preisfaktor": 1.048,
-              "nachfrage": 178.8,
+              "nachfrage": 178.6,
               "npcAngebot": 115.5,
               "verkauftHaeuser": 58.7,
               "anteilHaeuserAmAngebotProzent": 28.9,
@@ -10325,11 +10325,11 @@
               "ware": "Werkzeug",
               "typ": "Fertigprodukt",
               "grundpreis": 137,
-              "preisfaktor": 1.12,
-              "nachfrage": 168.7,
+              "preisfaktor": 1.116,
+              "nachfrage": 168.5,
               "npcAngebot": 96.3,
-              "verkauftHaeuser": 31.3,
-              "anteilHaeuserAmAngebotProzent": 19.6,
+              "verkauftHaeuser": 32.5,
+              "anteilHaeuserAmAngebotProzent": 20.4,
               "hergestellt": 18,
               "anteileJeHausProzent": {
                 "Haus Grünwald": 60.9,
@@ -10340,7 +10340,7 @@
               "ware": "Zinnober",
               "typ": "Fertigprodukt",
               "grundpreis": 362,
-              "preisfaktor": 1.188,
+              "preisfaktor": 1.187,
               "nachfrage": 75.3,
               "npcAngebot": 48.1,
               "verkauftHaeuser": 4.8,
@@ -10403,7 +10403,7 @@
         "20": {
           "vermoegenJeHausGegen1Prozent": -47.3,
           "vermoegenJeHausGegen3Prozent": -14.9,
-          "gewinnJeHausGegen1Prozent": -27.4
+          "gewinnJeHausGegen1Prozent": -26.7
         }
       },
       "8": {
@@ -10418,8 +10418,8 @@
           "gewinnJeHausGegen1Prozent": -68.4
         },
         "20": {
-          "vermoegenJeHausGegen1Prozent": -50.4,
-          "vermoegenJeHausGegen3Prozent": -20,
+          "vermoegenJeHausGegen1Prozent": -50.2,
+          "vermoegenJeHausGegen3Prozent": -19.7,
           "gewinnJeHausGegen1Prozent": -26.9
         }
       }
@@ -10457,7 +10457,7 @@
       },
       "20": {
         "n": 30,
-        "mittel": 70201,
+        "mittel": 70202,
         "streuung": 15444,
         "fehlerMittel": 2820,
         "min": 44774,
@@ -10583,13 +10583,13 @@
       "schiffeAmEnde": 0
     },
     "kiJeJahrImMittel": {
-      "gewinn": 5909,
+      "gewinn": 5910,
       "amtseinkommen": 89,
       "familie": -386,
       "geschenke": -23,
       "gericht": -140,
-      "gaunerei": 15,
-      "investitionen": -2373,
+      "gaunerei": 14,
+      "investitionen": -2374,
       "standesgebuehren": -455,
       "zinsen": -0,
       "davonSteuer": -512,
@@ -10625,12 +10625,12 @@
       },
       "20": {
         "n": 90,
-        "mittel": 78505,
-        "streuung": 19727,
-        "fehlerMittel": 2079,
+        "mittel": 78514,
+        "streuung": 19744,
+        "fehlerMittel": 2081,
         "min": 38899,
         "q10": 55285,
-        "q25": 65030,
+        "q25": 64756,
         "median": 77211,
         "q75": 93779,
         "q90": 103721,
@@ -10671,9 +10671,9 @@
           },
           "20": {
             "n": 30,
-            "mittel": 85086,
-            "streuung": 21402,
-            "fehlerMittel": 3907,
+            "mittel": 85120,
+            "streuung": 21430,
+            "fehlerMittel": 3913,
             "min": 45376,
             "q10": 60306,
             "q25": 69529,
@@ -10690,11 +10690,11 @@
         "bankrott": 0,
         "erloschen": 0,
         "jeJahrImMittel": {
-          "gewinn": 6211,
+          "gewinn": 6213,
           "amtseinkommen": 62,
           "familie": -375,
           "geschenke": -23,
-          "gericht": -171,
+          "gericht": -172,
           "gaunerei": 15,
           "investitionen": -2385,
           "standesgebuehren": -425,
@@ -10737,13 +10737,13 @@
           },
           "20": {
             "n": 30,
-            "mittel": 66277,
-            "streuung": 14089,
-            "fehlerMittel": 2572,
+            "mittel": 66237,
+            "streuung": 14092,
+            "fehlerMittel": 2573,
             "min": 38899,
             "q10": 46602,
             "q25": 58066,
-            "median": 66446,
+            "median": 65845,
             "q75": 77376,
             "q90": 82594,
             "max": 100093
@@ -10761,7 +10761,7 @@
           "familie": -402,
           "geschenke": -23,
           "gericht": -116,
-          "gaunerei": 1,
+          "gaunerei": -1,
           "investitionen": -2143,
           "standesgebuehren": -445,
           "zinsen": -0,
@@ -10803,12 +10803,12 @@
           },
           "20": {
             "n": 30,
-            "mittel": 84152,
-            "streuung": 17472,
-            "fehlerMittel": 3190,
+            "mittel": 84187,
+            "streuung": 17440,
+            "fehlerMittel": 3184,
             "min": 42125,
             "q10": 65430,
-            "q25": 68631,
+            "q25": 69250,
             "median": 85154,
             "q75": 98307,
             "q90": 103721,
@@ -10823,13 +10823,13 @@
         "bankrott": 0,
         "erloschen": 0,
         "jeJahrImMittel": {
-          "gewinn": 6136,
+          "gewinn": 6138,
           "amtseinkommen": 105,
           "familie": -383,
           "geschenke": -24,
           "gericht": -131,
           "gaunerei": 29,
-          "investitionen": -2592,
+          "investitionen": -2593,
           "standesgebuehren": -495,
           "zinsen": -0,
           "davonSteuer": -519,
@@ -10874,7 +10874,7 @@
         "q10": 0.7,
         "q25": 0.83,
         "median": 1.05,
-        "q75": 1.43,
+        "q75": 1.44,
         "q90": 1.85,
         "max": 2.34
       }
@@ -10912,22 +10912,22 @@
       },
       "10": {
         "n": 30,
-        "mittel": 12407,
+        "mittel": 12451,
         "streuung": 1161,
         "fehlerMittel": 212,
         "min": 9951,
         "q10": 10979,
         "q25": 11665,
-        "median": 12445,
+        "median": 12510,
         "q75": 13223,
         "q90": 13920,
         "max": 14346
       },
       "20": {
         "n": 30,
-        "mittel": 39560,
-        "streuung": 5965,
-        "fehlerMittel": 1089,
+        "mittel": 39594,
+        "streuung": 5970,
+        "fehlerMittel": 1090,
         "min": 30748,
         "q10": 32350,
         "q25": 35428,
@@ -12812,12 +12812,12 @@
           },
           "10": {
             "n": 30,
-            "mittel": 497,
-            "streuung": 1624,
-            "fehlerMittel": 296,
+            "mittel": 453,
+            "streuung": 1647,
+            "fehlerMittel": 301,
             "min": -3307,
             "q10": -1771,
-            "q25": -414,
+            "q25": -665,
             "median": 508,
             "q75": 1472,
             "q90": 2692,
@@ -13405,7 +13405,7 @@
         "n": 30,
         "gewinnJeJahr": {
           "n": 30,
-          "mittel": 2642,
+          "mittel": 2643,
           "streuung": 480,
           "fehlerMittel": 88,
           "min": 356,
@@ -13471,14 +13471,14 @@
           },
           "20": {
             "n": 30,
-            "mittel": 26580,
-            "streuung": 7748,
-            "fehlerMittel": 1415,
+            "mittel": 26455,
+            "streuung": 7690,
+            "fehlerMittel": 1404,
             "min": 6687,
             "q10": 17091,
             "q25": 22370,
-            "median": 28198,
-            "q75": 30182,
+            "median": 27955,
+            "q75": 29790,
             "q90": 34891,
             "max": 46726
           }
@@ -13565,7 +13565,7 @@
             "min": 5025,
             "q10": 22386,
             "q25": 27503,
-            "median": 31076,
+            "median": 31066,
             "q75": 36988,
             "q90": 40116,
             "max": 49861
@@ -13883,9 +13883,9 @@
       },
       {
         "art": "Hinterzimmer: Einbruch ins Wohnhaus",
-        "auftraege": 461,
-        "jePartieUndJahr": 0.768,
-        "erfolgschanceMittel": 0.439
+        "auftraege": 462,
+        "jePartieUndJahr": 0.77,
+        "erfolgschanceMittel": 0.438
       },
       {
         "art": "Hinterzimmer: Sabotage",
@@ -13897,9 +13897,9 @@
     "gaunereiEigeneDiebe": [
       {
         "art": "Diebe: Auskundschaften",
-        "auftraege": 379,
-        "jePartieUndJahr": 0.316,
-        "erfolgschanceMittel": 0.456
+        "auftraege": 378,
+        "jePartieUndJahr": 0.315,
+        "erfolgschanceMittel": 0.457
       },
       {
         "art": "Diebe: Brandstiftung",
@@ -13911,7 +13911,7 @@
         "art": "Diebe: Einbruch",
         "auftraege": 1048,
         "jePartieUndJahr": 0.873,
-        "erfolgschanceMittel": 0.49
+        "erfolgschanceMittel": 0.491
       }
     ]
   },
@@ -13925,11 +13925,11 @@
           "spieler": {
             "mit": {
               "n": 30,
-              "mittel": 14496,
-              "streuung": 2582,
-              "fehlerMittel": 471,
+              "mittel": 14512,
+              "streuung": 2557,
+              "fehlerMittel": 467,
               "min": 6258,
-              "q10": 12483,
+              "q10": 12529,
               "q25": 13951,
               "median": 15172,
               "q75": 15929,
@@ -13938,26 +13938,26 @@
             },
             "ohne": {
               "n": 30,
-              "mittel": 13497,
-              "streuung": 2779,
-              "fehlerMittel": 507,
+              "mittel": 13501,
+              "streuung": 2774,
+              "fehlerMittel": 506,
               "min": 5684,
-              "q10": 10041,
+              "q10": 10149,
               "q25": 13095,
               "median": 14101,
               "q75": 15271,
               "q90": 15858,
               "max": 16640
             },
-            "abstandProzent": 7.4,
+            "abstandProzent": 7.5,
             "abstandJePartie": {
               "n": 30,
-              "mittel": 9.9,
+              "mittel": 10,
               "streuung": 24.9,
               "fehlerMittel": 4.5,
               "min": -5.5,
-              "q10": -2.2,
-              "q25": 0.6,
+              "q10": -2,
+              "q25": 1.3,
               "median": 5.7,
               "q75": 9.3,
               "q90": 18.5,
@@ -13967,9 +13967,9 @@
           "kiHaeuserMittel": {
             "mit": {
               "n": 30,
-              "mittel": 87952,
-              "streuung": 8622,
-              "fehlerMittel": 1574,
+              "mittel": 87999,
+              "streuung": 8673,
+              "fehlerMittel": 1584,
               "min": 73432,
               "q10": 75917,
               "q25": 80954,
@@ -13980,9 +13980,9 @@
             },
             "ohne": {
               "n": 30,
-              "mittel": 79743,
-              "streuung": 10831,
-              "fehlerMittel": 1978,
+              "mittel": 79788,
+              "streuung": 10882,
+              "fehlerMittel": 1987,
               "min": 59572,
               "q10": 65144,
               "q25": 70520,
@@ -14013,11 +14013,11 @@
               "vergleich": {
                 "mit": {
                   "n": 30,
-                  "mittel": 14496,
-                  "streuung": 2582,
-                  "fehlerMittel": 471,
+                  "mittel": 14512,
+                  "streuung": 2557,
+                  "fehlerMittel": 467,
                   "min": 6258,
-                  "q10": 12483,
+                  "q10": 12529,
                   "q25": 13951,
                   "median": 15172,
                   "q75": 15929,
@@ -14026,26 +14026,26 @@
                 },
                 "ohne": {
                   "n": 30,
-                  "mittel": 13497,
-                  "streuung": 2779,
-                  "fehlerMittel": 507,
+                  "mittel": 13501,
+                  "streuung": 2774,
+                  "fehlerMittel": 506,
                   "min": 5684,
-                  "q10": 10041,
+                  "q10": 10149,
                   "q25": 13095,
                   "median": 14101,
                   "q75": 15271,
                   "q90": 15858,
                   "max": 16640
                 },
-                "abstandProzent": 7.4,
+                "abstandProzent": 7.5,
                 "abstandJePartie": {
                   "n": 30,
-                  "mittel": 9.9,
+                  "mittel": 10,
                   "streuung": 24.9,
                   "fehlerMittel": 4.5,
                   "min": -5.5,
-                  "q10": -2.2,
-                  "q25": 0.6,
+                  "q10": -2,
+                  "q25": 1.3,
                   "median": 5.7,
                   "q75": 9.3,
                   "q90": 18.5,
@@ -14059,20 +14059,20 @@
               "vergleich": {
                 "mit": {
                   "n": 30,
-                  "mittel": 106780,
-                  "streuung": 13859,
-                  "fehlerMittel": 2530,
+                  "mittel": 106867,
+                  "streuung": 13903,
+                  "fehlerMittel": 2538,
                   "min": 84735,
                   "q10": 88556,
                   "q25": 94354,
-                  "median": 108134,
+                  "median": 108884,
                   "q75": 118869,
                   "q90": 122471,
                   "max": 133417
                 },
                 "ohne": {
                   "n": 30,
-                  "mittel": 94380,
+                  "mittel": 94382,
                   "streuung": 15423,
                   "fehlerMittel": 2816,
                   "min": 60139,
@@ -14083,17 +14083,17 @@
                   "q90": 108164,
                   "max": 128686
                 },
-                "abstandProzent": 13.1,
+                "abstandProzent": 13.2,
                 "abstandJePartie": {
                   "n": 30,
-                  "mittel": 14.9,
-                  "streuung": 17.1,
+                  "mittel": 15,
+                  "streuung": 17.2,
                   "fehlerMittel": 3.1,
                   "min": -10.1,
                   "q10": -4.9,
                   "q25": 2.7,
                   "median": 11.4,
-                  "q75": 25.7,
+                  "q75": 25.9,
                   "q90": 39.9,
                   "max": 51.2
                 }
@@ -14105,40 +14105,40 @@
               "vergleich": {
                 "mit": {
                   "n": 30,
-                  "mittel": 66145,
-                  "streuung": 16723,
+                  "mittel": 65927,
+                  "streuung": 16722,
                   "fehlerMittel": 3053,
                   "min": 25606,
                   "q10": 46164,
                   "q25": 57916,
-                  "median": 63203,
+                  "median": 62802,
                   "q75": 78020,
                   "q90": 83118,
                   "max": 99331
                 },
                 "ohne": {
                   "n": 30,
-                  "mittel": 68371,
+                  "mittel": 68346,
                   "streuung": 19198,
                   "fehlerMittel": 3505,
                   "min": 21417,
                   "q10": 44090,
                   "q25": 54761,
-                  "median": 69815,
+                  "median": 69444,
                   "q75": 85032,
                   "q90": 90583,
                   "max": 102367
                 },
-                "abstandProzent": -3.3,
+                "abstandProzent": -3.5,
                 "abstandJePartie": {
                   "n": 30,
-                  "mittel": 0,
-                  "streuung": 22,
+                  "mittel": -0.2,
+                  "streuung": 22.1,
                   "fehlerMittel": 4,
                   "min": -34.9,
                   "q10": -28.3,
                   "q25": -12.8,
-                  "median": -0.2,
+                  "median": -3.7,
                   "q75": 15.7,
                   "q90": 27.6,
                   "max": 44.1
@@ -14151,39 +14151,39 @@
               "vergleich": {
                 "mit": {
                   "n": 30,
-                  "mittel": 90932,
-                  "streuung": 14742,
-                  "fehlerMittel": 2691,
+                  "mittel": 91203,
+                  "streuung": 15037,
+                  "fehlerMittel": 2745,
                   "min": 49300,
                   "q10": 68791,
                   "q25": 81585,
                   "median": 95433,
-                  "q75": 100597,
-                  "q90": 102738,
+                  "q75": 100276,
+                  "q90": 103722,
                   "max": 115902
                 },
                 "ohne": {
                   "n": 30,
-                  "mittel": 76479,
-                  "streuung": 19976,
-                  "fehlerMittel": 3647,
+                  "mittel": 76635,
+                  "streuung": 20242,
+                  "fehlerMittel": 3696,
                   "min": 39651,
                   "q10": 48466,
                   "q25": 58268,
                   "median": 83055,
                   "q75": 91984,
                   "q90": 101584,
-                  "max": 107448
+                  "max": 112121
                 },
-                "abstandProzent": 18.9,
+                "abstandProzent": 19,
                 "abstandJePartie": {
                   "n": 30,
-                  "mittel": 25.1,
-                  "streuung": 33.1,
+                  "mittel": 25.2,
+                  "streuung": 33,
                   "fehlerMittel": 6,
-                  "min": -5.8,
-                  "q10": -1.4,
-                  "q25": 1.9,
+                  "min": -3.6,
+                  "q10": -1.3,
+                  "q25": 1.8,
                   "median": 10,
                   "q75": 37.3,
                   "q90": 77.4,
@@ -14258,9 +14258,9 @@
             },
             "20": {
               "n": 30,
-              "mittel": 777,
-              "streuung": 4267,
-              "fehlerMittel": 779,
+              "mittel": 829,
+              "streuung": 4163,
+              "fehlerMittel": 760,
               "min": -8895,
               "q10": -5484,
               "q25": -967,
@@ -14272,10 +14272,10 @@
           },
           "standMittelUeberDieJahre": {
             "n": 30,
-            "mittel": -3290,
-            "streuung": 1761,
-            "fehlerMittel": 322,
-            "min": -6882,
+            "mittel": -3284,
+            "streuung": 1750,
+            "fehlerMittel": 320,
+            "min": -6836,
             "q10": -5980,
             "q25": -4213,
             "median": -3085,
@@ -14304,9 +14304,9 @@
           },
           "steuersatzMittelUeberDieJahre": 4.75,
           "postenJeJahr": {
-            "Umsatzsteuer": 1876,
+            "Umsatzsteuer": 1879,
             "Glaubenszins": 68,
-            "Bußen": 201,
+            "Bußen": 202,
             "Gerichtsgebühren": 11,
             "Amtsgehälter": 2148,
             "Bauvorhaben": 74,
@@ -14318,10 +14318,10 @@
           "steuerJeJahr": {
             "n": 90,
             "mittel": 621,
-            "streuung": 130,
+            "streuung": 129,
             "fehlerMittel": 14,
             "min": 353,
-            "q10": 456,
+            "q10": 457,
             "q25": 537,
             "median": 624,
             "q75": 695,
@@ -14350,21 +14350,21 @@
             "min": 25,
             "q10": 55,
             "q25": 75,
-            "median": 107,
+            "median": 109,
             "q75": 206,
             "q90": 308,
             "max": 412
           },
           "gewinnJeJahr": {
             "n": 90,
-            "mittel": 6320,
-            "streuung": 990,
-            "fehlerMittel": 104,
+            "mittel": 6325,
+            "streuung": 993,
+            "fehlerMittel": 105,
             "min": 2787,
             "q10": 5174,
             "q25": 5823,
             "median": 6409,
-            "q75": 6877,
+            "q75": 6891,
             "q90": 7457,
             "max": 8856
           }
@@ -14373,18 +14373,18 @@
           "n": 30,
           "steuerJeJahr": {
             "n": 30,
-            "mittel": 82,
+            "mittel": 83,
             "streuung": 40,
             "fehlerMittel": 7,
             "min": 19,
             "q10": 54,
             "q25": 60,
             "median": 63,
-            "q75": 114,
+            "q75": 116,
             "q90": 147,
             "max": 156
           },
-          "steuerAnteilAmUmsatzProzent": 6.68,
+          "steuerAnteilAmUmsatzProzent": 6.7,
           "spitzelJeJahr": {
             "n": 30,
             "mittel": 0,
@@ -14413,11 +14413,11 @@
           },
           "gewinnJeJahr": {
             "n": 30,
-            "mittel": 574,
-            "streuung": 137,
+            "mittel": 575,
+            "streuung": 135,
             "fehlerMittel": 25,
             "min": 130,
-            "q10": 474,
+            "q10": 476,
             "q25": 546,
             "median": 611,
             "q75": 651,
@@ -14892,18 +14892,18 @@
         "n": 30,
         "steuerJeJahr": {
           "n": 30,
-          "mittel": 266,
-          "streuung": 21,
+          "mittel": 265,
+          "streuung": 20,
           "fehlerMittel": 4,
           "min": 222,
           "q10": 236,
           "q25": 252,
           "median": 265,
-          "q75": 281,
-          "q90": 291,
-          "max": 301
+          "q75": 280,
+          "q90": 287,
+          "max": 296
         },
-        "steuerAnteilAmUmsatzProzent": 3.91,
+        "steuerAnteilAmUmsatzProzent": 3.9,
         "spitzelJeJahr": {
           "n": 30,
           "mittel": 67,
@@ -14913,13 +14913,13 @@
           "q10": 45,
           "q25": 60,
           "median": 60,
-          "q75": 75,
+          "q75": 86,
           "q90": 90,
           "max": 105
         },
         "gerichtJeJahr": {
           "n": 30,
-          "mittel": 182,
+          "mittel": 181,
           "streuung": 107,
           "fehlerMittel": 20,
           "min": 50,
@@ -14932,13 +14932,13 @@
         },
         "gewinnJeJahr": {
           "n": 30,
-          "mittel": 2752,
+          "mittel": 2749,
           "streuung": 202,
           "fehlerMittel": 37,
           "min": 2334,
           "q10": 2467,
           "q25": 2618,
-          "median": 2758,
+          "median": 2743,
           "q75": 2918,
           "q90": 2988,
           "max": 3091
@@ -14950,17 +14950,17 @@
         "steuerJeJahr": {
           "n": 30,
           "mittel": 263,
-          "streuung": 52,
+          "streuung": 53,
           "fehlerMittel": 10,
           "min": 37,
-          "q10": 231,
+          "q10": 230,
           "q25": 247,
           "median": 264,
           "q75": 292,
           "q90": 308,
           "max": 339
         },
-        "steuerAnteilAmUmsatzProzent": 4.23,
+        "steuerAnteilAmUmsatzProzent": 4.22,
         "spitzelJeJahr": {
           "n": 30,
           "mittel": 71,
@@ -14976,7 +14976,7 @@
         },
         "gerichtJeJahr": {
           "n": 30,
-          "mittel": 167,
+          "mittel": 168,
           "streuung": 135,
           "fehlerMittel": 25,
           "min": 0,
@@ -14989,12 +14989,12 @@
         },
         "gewinnJeJahr": {
           "n": 30,
-          "mittel": 2294,
-          "streuung": 448,
+          "mittel": 2289,
+          "streuung": 449,
           "fehlerMittel": 82,
           "min": 165,
-          "q10": 2136,
-          "q25": 2235,
+          "q10": 2123,
+          "q25": 2224,
           "median": 2324,
           "q75": 2501,
           "q90": 2602,
@@ -15177,21 +15177,21 @@
         "n": 30,
         "steuerJeJahr": {
           "n": 30,
-          "mittel": 301,
-          "streuung": 55,
+          "mittel": 300,
+          "streuung": 56,
           "fehlerMittel": 10,
           "min": 214,
           "q10": 235,
-          "q25": 262,
+          "q25": 257,
           "median": 292,
           "q75": 331,
           "q90": 375,
           "max": 409
         },
-        "steuerAnteilAmUmsatzProzent": 3.96,
+        "steuerAnteilAmUmsatzProzent": 3.95,
         "spitzelJeJahr": {
           "n": 30,
-          "mittel": 64,
+          "mittel": 63,
           "streuung": 26,
           "fehlerMittel": 5,
           "min": 0,
@@ -15217,12 +15217,12 @@
         },
         "gewinnJeJahr": {
           "n": 30,
-          "mittel": 2553,
-          "streuung": 287,
+          "mittel": 2556,
+          "streuung": 284,
           "fehlerMittel": 52,
           "min": 2054,
           "q10": 2132,
-          "q25": 2382,
+          "q25": 2390,
           "median": 2580,
           "q75": 2786,
           "q90": 2893,
@@ -15292,11 +15292,11 @@
         "steuerJeJahr": {
           "n": 30,
           "mittel": 298,
-          "streuung": 46,
+          "streuung": 45,
           "fehlerMittel": 8,
           "min": 221,
           "q10": 252,
-          "q25": 260,
+          "q25": 264,
           "median": 295,
           "q75": 320,
           "q90": 355,
@@ -15318,14 +15318,14 @@
         },
         "gerichtJeJahr": {
           "n": 30,
-          "mittel": 131,
+          "mittel": 133,
           "streuung": 73,
           "fehlerMittel": 13,
           "min": 25,
           "q10": 68,
-          "q25": 91,
-          "median": 110,
-          "q75": 155,
+          "q25": 94,
+          "median": 113,
+          "q75": 158,
           "q90": 240,
           "max": 363
         },
@@ -15462,8 +15462,8 @@
     "karrenVerkauft": {
       "partien": 1320,
       "inNot": 1,
-      "ungenutzt": 82,
-      "partienMitVerkauf": 77
+      "ungenutzt": 84,
+      "partienMitVerkauf": 78
     },
     "wetter": "ohne Wirkung im Kern (Entscheidung zu PR #195)"
   },
@@ -16169,29 +16169,29 @@
     "Z2 (Bürger mit einem Betrieb in 8–12 Jahren), Tischler: Ø Jahr 10,4, erreicht 29/30, davon im Ziel 27.",
     "Z2 (Bürger mit einem Betrieb in 8–12 Jahren), Dieb: Ø Jahr 7,3, erreicht 30/30, davon im Ziel 11.",
     "Jahre bis Bürger (Reinvermögen 10.000) je Beruf, Ø (im Ziel 8–12 von n): Schmied 8,9 (29/30), Tischler 10,4 (27/30), Steinmetz 10,2 (30/30), Alchimist 9,2 (28/30), Wirt 9,4 (26/30), Prediger 8,2 (22/30), Dieb 7,3 (11/30), Parfumeur 8,7 (28/30), Geldleiher 8,5 (25/30), Gardist 8,9 (28/30), Dieb (wagemutig geführt) 9,2 (7/30).",
-    "Berufe simuliert (ein Betrieb, 20 Jahre, Vermögenszuwachs gegen das Mittel 32.558): alle im Band ±15 %.",
+    "Berufe simuliert (ein Betrieb, 20 Jahre, Vermögenszuwachs gegen das Mittel 32.558): außerhalb ±15 %: Tischler −15 %.",
     "Völker, Schmied: Vermögenszuwachs nach 20 Jahren je Volk −10 … +8 % gegen Menschen (Bonus Mensch 0, Zwerg +3, Elb 0, Halbling −3).",
     "Völker, Parfumeur: Vermögenszuwachs nach 20 Jahren je Volk −10 … +9 % gegen Menschen (Bonus Mensch 0, Zwerg −3, Elb +3, Halbling 0).",
-    "Startfairness greybox: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … 0 % (gegen das Mittel desselben Hauses, 4 Rotationen × 30 Startwerte); der Spieler mit einem Betrieb hat 39.561 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 78.941 (−50 %). Bürger (Reinvermögen 10.000): Ø Jahr 8,9, im Ziel 8–12 Jahre 116/120.",
+    "Startfairness greybox: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … 0 % (gegen das Mittel desselben Hauses, 4 Rotationen × 30 Startwerte); der Spieler mit einem Betrieb hat 39.595 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 78.951 (−50 %). Bürger (Reinvermögen 10.000): Ø Jahr 8,9, im Ziel 8–12 Jahre 116/120.",
     "Startfairness probestadt: Wohnhausplatz verschiebt das Vermögen nach 20 Jahren um 0 … +1 % (gegen das Mittel desselben Hauses, 3 Rotationen × 30 Startwerte); der Spieler mit einem Betrieb hat 36.773 Gulden, die KI-Häuser (Start wie der Spieler, mit Expansion) im Mittel 61.758 (−40 %). Bürger (Reinvermögen 10.000): Ø Jahr 9,3, im Ziel 8–12 Jahre 87/90.",
-    "8 Häuser (Messstadt, Nachfrage nach Einwohnern ×1,50 statt ×0,88 bei 3): Vermögen je KI-Haus nach 20 Jahren 47.130 statt 95.008 allein (−50 %) und 58.885 bei 3 Häusern (−20 %); Preisindex der verkauften Waren 0,84 → 0,94.",
-    "KI-Stärke (greybox, 20 Jahre): Bezugsspieler mit der Strategie der KI 70.201 Gulden, KI-Häuser Ø 78.505 (Verhältnis KI ÷ Bezug Median 1,05); davongezogen (> 2×) 7/90, abgeschlagen (< ½) 0/90, bankrott 0, erloschen 0; gegen den Spieler mit einem Betrieb sind die KI-Häuser 2,0× so reich.",
+    "8 Häuser (Messstadt, Nachfrage nach Einwohnern ×1,50 statt ×0,88 bei 3): Vermögen je KI-Haus nach 20 Jahren 47.284 statt 95.008 allein (−50 %) und 58.885 bei 3 Häusern (−20 %); Preisindex der verkauften Waren 0,84 → 0,94.",
+    "KI-Stärke (greybox, 20 Jahre): Bezugsspieler mit der Strategie der KI 70.202 Gulden, KI-Häuser Ø 78.514 (Verhältnis KI ÷ Bezug Median 1,05); davongezogen (> 2×) 7/90, abgeschlagen (< ½) 0/90, bankrott 0, erloschen 0; gegen den Spieler mit einem Betrieb sind die KI-Häuser 2,0× so reich.",
     "KI-Stärke bei „Schwer“ (KI-Häuser mit Werkstatt und Umland): Bezug 65.812, KI-Häuser Ø 117.654 (Verhältnis Median 1,82; davongezogen 35/90).",
     "Eigenschaften der Vorarbeiter (statisch, Startpreise): die beste Gruppe je Betrieb – Betrieb 12×, Ware 12×, Führung 6× (von 30 Betrieben).",
     "Einrichtung statisch: 94 Stücke, 17 ohne direkte Gulden-Wirkung; Amortisation über 5 Jahre: Schmied/Löschfass 29 J., Schmied/Eisentür 10 J., Tischler/Löschfass 32 J., Tischler/Eisentür 10 J., Steinmetz/Löschfass 28 J., Steinmetz/Eisentür 10 J., Alchimist/Löschfass 30 J., Alchimist/Eisentür 10 J., Alchimist/Ladentheke 5 J., Wirt/Löschfass 34 J., Wirt/Eisentür 10 J., Wirt/Lederhandschuhe 7 J. … (24).",
     "Dieb (Ausgewogen): Gewinn je Jahr 2.504 ohne, 2.631 mit Wachhaus in der Stadt (+5 %).",
-    "Dieb (Wagemutig): Gewinn je Jahr 2.642 ohne, 2.675 mit Wachhaus in der Stadt (+1 %).",
+    "Dieb (Wagemutig): Gewinn je Jahr 2.643 ohne, 2.675 mit Wachhaus in der Stadt (+1 %).",
     "Wache: Raub und Schaden je KI-Haus und Jahr 338 ohne, 325 mit Wachhaus des Spielers (−4 %); Razzien Ø 0,96 im Jahr.",
     "Bank: Kredite in 1320 Partien: 0 (Wucher 0) – die KI nimmt keine Kredite, Wucher kommt deshalb nur mit Spielern vor; der Geldleiher (ein Betrieb) hat nach 20 Jahren Ø 8.128 in der Kasse, Zins 984 und Wechsel 5.134 im Jahr.",
     "Gaunerei (Hinterzimmer, Strategie der KI): Diebstahl 0,45/Jahr zu 49 %, Einbruch ins Wohnhaus 0,77/Jahr zu 44 %, Sabotage 0,17/Jahr zu 64 %.",
-    "Exportnachfrage greybox (30 Startwerte, 20 Jahre): passiver Spieler ohne Schiff 14.496 mit, 13.497 ohne Schiffshandel (+7,4 %); KI-Häuser +10,3 %; Ertrag je Schiff und Jahr nach Unterhalt 0.",
-    "Stadtkasse greybox: Stand Ø −4.429 / −6.678 / 777 (Jahr 5/10/20), im Mittel aller Jahre −3.290, Steuersatz am Ende 3 % in 19, 4 % in 6, 5 % in 4, 6 % in 1; Steuer je KI-Haus Ø 621 im Jahr, Spitzel 60, Gericht gesamt 152.",
+    "Exportnachfrage greybox (30 Startwerte, 20 Jahre): passiver Spieler ohne Schiff 14.512 mit, 13.501 ohne Schiffshandel (+7,5 %); KI-Häuser +10,3 %; Ertrag je Schiff und Jahr nach Unterhalt 0.",
+    "Stadtkasse greybox: Stand Ø −4.429 / −6.678 / 829 (Jahr 5/10/20), im Mittel aller Jahre −3.284, Steuersatz am Ende 3 % in 19, 4 % in 6, 5 % in 4, 6 % in 1; Steuer je KI-Haus Ø 621 im Jahr, Spitzel 60, Gericht gesamt 152.",
     "Exportnachfrage probestadt (30 Startwerte, 20 Jahre): passiver Spieler ohne Schiff 14.627 mit, 13.715 ohne Schiffshandel (+6,6 %); KI-Häuser +6,7 %; Ertrag je Schiff und Jahr nach Unterhalt 0.",
     "Stadtkasse probestadt: Stand Ø −4.273 / −9.219 / −7.131 (Jahr 5/10/20), im Mittel aller Jahre −6.846, Steuersatz am Ende 3 % in 10, 4 % in 3, 5 % in 12, 6 % in 4, 8 % in 1; Steuer je KI-Haus Ø 583 im Jahr, Spitzel 53, Gericht gesamt 147.",
     "Spitzel und Gericht (ein Betrieb, KI geführt, 20 Jahre): Spitzel Ø 68 im Jahr, Gericht gesamt 178 (Spanne Dieb 301, Prediger 206, Alchimist 195 …); Steuer Ø 230 im Jahr bei Gewinn Ø 2.550.",
-    "Karren verkaufen: in 1320 Partien verkauft die KI 1 Karren in Not und 82 nach einem Jahr ohne Fahrt (in 77 Partien).",
+    "Karren verkaufen: in 1320 Partien verkauft die KI 1 Karren in Not und 84 nach einem Jahr ohne Fahrt (in 78 Partien).",
     "Z6 neu (Umland, Lohnkosten je Arbeit = Lohn und Risiko ÷ Tempo): Leibeigener 101 statt Altknecht 150 (−33 %; unter Statut A die einzige Kraft) und Ork 114 (−11 %; unter Statut B die beste).",
     "Z6 Statut C (Startpreise): Gießerei 2.011 unter B, 2.011 unter C (0,0 %, Ziel +15–25 %); Werkstätten C gegen B 0,0 … 0,0 %, in 0 von 21 mehr. Gleichstand Leibeigener/Geselle bei einer Wertschöpfung von 893 je Kopf und Jahr."
   ],
-  "laufzeitSekunden": 246
+  "laufzeitSekunden": 250
 }
