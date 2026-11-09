@@ -60,7 +60,8 @@ public partial class CharakterAnzeige
         if (wissen is not null && !eigen) tipp += $"\nErfahren {wissen.Jahr} – {wissen.Quelle}.";
         tipp += art.Beweiskraft > 0
             ? $"\nVor Gericht ein Vergehen: Beweiskraft {Zahlenformat.Ganz(art.Beweiskraft)}, Buße {Zahlenformat.Ganz(art.Busse)}" +
-              (art.KerkerJahre > 0 ? $", {art.KerkerJahre} Jahr Kerker" : "") + (art.NurMitStadtglaube ? " (nur mit einem Stadtglauben)" : "") + "."
+              (art.KerkerJahre > 0 ? $", {art.KerkerJahre} Jahr Kerker" : "") + (art.NurMitStadtglaube ? " (nur wer sich nach außen zum Stadtglauben bekennt)" : "") + "."
+              + (art.NurMitStadtglaube && !g.Oeffentlich && gw.KeinVergehen(g) is { } keines ? $" Hier: {keines}" : "")
             : "\nKein Vergehen – nicht anzeigbar.";
         if (art.Ansehen > 0) tipp += $"\nBloßgestellt: Ansehen −{Zahlenformat.Ganz(art.Ansehen)} für {gw.Daten.AnsehenJahre} Jahre.";
         if (eigen) tipp += "\nWer es erfährt, kann Euch erpressen, anzeigen oder bloßstellen. Solange es geheim ist, drückt es jedes Jahr ein wenig auf die Seele (Stress).";
