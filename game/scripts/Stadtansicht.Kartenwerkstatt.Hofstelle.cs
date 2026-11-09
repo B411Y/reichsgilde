@@ -18,17 +18,12 @@ public partial class Stadtansicht
     private (double X, double Z, double Drehung)? _wsHofGeprueft;
     private bool _wsHofWohnFehler, _wsHofWohnHinweis;
 
-    /// <summary>Die Mitten beider Plätze für eine Hofstelle bei (x, z) – dieselbe Rechnung wie im Kern.</summary>
+    /// <summary>Die Mitten beider Plätze für eine Hofstelle bei (x, z) – die Rechnung des Kerns (<see cref="Kartenentwurf.HofstelleLagen"/>).</summary>
     private ((double X, double Z) Werkstatt, (double X, double Z) Wohnhaus, double Drehung) HofstelleLagen(double x, double z, double drehung)
     {
-        var bw = _entwurf?.Katalog.Finde("werkstattplatz")?.Groesse is { Length: 2 } a ? (a[0], a[1]) : (16.0, 14.0);
-        var bh = _entwurf?.Katalog.Finde("wohnhausplatz")?.Groesse is { Length: 2 } b ? (b[0], b[1]) : (8.0, 10.0);
-        var d = Kartenraster.Drehung(drehung);
-        var w = d * Math.PI / 180;
-        var (c, s) = (Math.Cos(w), Math.Sin(w)); // nur die Vorschau; gesetzt wird im Kern
-        (double, double) Ort(double lx, double lz) => (x + lx * c + lz * s, z - lx * s + lz * c);
-        var breite = bw.Item1 + bh.Item1;
-        return (Ort(-breite / 2 + bw.Item1 / 2, 0), Ort(breite / 2 - bh.Item1 / 2, (bw.Item2 - bh.Item2) / 2), d);
+        if (_entwurf is null) return ((x, z), (x, z), Kartenraster.Drehung(drehung));
+        var (w, h, d) = _entwurf.HofstelleLagen(x, z, drehung);
+        return ((w.X, w.Z), (h.X, h.Z), d);
     }
 
     /// <summary>Zeigt den Umriss beider Plätze an der Stelle (x, z) – grün, gelb oder rot, je nach Prüfung.</summary>

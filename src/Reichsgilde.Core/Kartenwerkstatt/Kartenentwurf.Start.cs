@@ -437,6 +437,22 @@ public sealed partial class Kartenentwurf
     }
 
     /// <summary>
+    /// Wo <see cref="HofstelleSetzen"/> die beiden Plätze einer Hofstelle mit der Mitte (x, z) hinsetzt: die Mitten von Werkstatt- und Wohnhausplatz
+    /// (noch nicht auf 5 cm gerundet) und die Drehung (auf 0,1°) – für die Vorschau des Werkzeugs, dieselbe Rechnung.
+    /// </summary>
+    public (Kartenort Werkstatt, Kartenort Wohnhaus, double Drehung) HofstelleLagen(double x, double z, double drehung = 0)
+    {
+        var (ww, wt) = Katalog.Finde("werkstattplatz")?.Groesse is { Length: 2 } a ? (a[0], a[1]) : (16, 14);
+        var (hw, ht) = Katalog.Finde("wohnhausplatz")?.Groesse is { Length: 2 } b ? (b[0], b[1]) : (8, 10);
+        var d = Kartenraster.Drehung(drehung);
+        var w = d * Math.PI / 180;
+        var (c, s) = (DetMathe.Cos(w), DetMathe.Sin(w));
+        Kartenort Ort(double lx, double lz) => new(x + lx * c + lz * s, z - lx * s + lz * c);
+        var breite = ww + hw;
+        return (Ort(-breite / 2 + ww / 2, 0), Ort(breite / 2 - hw / 2, (wt - ht) / 2), d);
+    }
+
+    /// <summary>
     /// Setzt eine neue Hofstelle (Werkzeug „Hofstelle“): Werkstattplatz und Wohnhausplatz nebeneinander, vorn bündig, die Werkstatt links (von vorn
     /// gesehen), beide in der Drehung <paramref name="drehung"/>; (x, z) ist die Mitte des Ganzen (16 + 8 = 24 m breit, 14 m tief). Kennung „H1“,
     /// „H2“ …, die Plätze „H1_Werkstatt“ und „H1_Wohnhaus“. Ein Schritt (Rückgängig nimmt alles zurück).
@@ -445,18 +461,10 @@ public sealed partial class Kartenentwurf
     {
         var bw = Katalog.Finde("werkstattplatz") ?? throw new InvalidOperationException("Der Katalog kennt keinen Werkstattplatz.");
         var bh = Katalog.Finde("wohnhausplatz") ?? throw new InvalidOperationException("Der Katalog kennt keinen Wohnhausplatz.");
-        var (ww, wt) = bw.Groesse is { Length: 2 } a ? (a[0], a[1]) : (16, 14);
-        var (hw, ht) = bh.Groesse is { Length: 2 } b ? (b[0], b[1]) : (8, 10);
         var n = 1;
         while (_start.HofstelleMit($"H{n}") is not null || GebaeudeMit($"H{n}_Werkstatt") is not null || GebaeudeMit($"H{n}_Wohnhaus") is not null) n++;
         var kennung = $"H{n}";
-        var d = Kartenraster.Drehung(drehung);
-        var w = d * Math.PI / 180;
-        var (c, s) = (DetMathe.Cos(w), DetMathe.Sin(w));
-        Kartenort Ort(double lx, double lz) => new(x + lx * c + lz * s, z - lx * s + lz * c);
-        var breite = ww + hw;
-        var pw = Ort(-breite / 2 + ww / 2, 0);
-        var ph = Ort(breite / 2 - hw / 2, (wt - ht) / 2);
+        var (pw, ph, d) = HofstelleLagen(x, z, drehung);
         var werkstatt = new EntwurfGebaeude
         {
             Kennung = $"{kennung}_Werkstatt", Katalog = "werkstattplatz", Name = $"Hofstelle {kennung}", Baustein = bw,
