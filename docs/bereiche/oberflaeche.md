@@ -344,6 +344,13 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 | Hover | Kein Aufhellen und Erwärmen mehr; „klick“ ist derselbe Handschuh Pixel für Pixel, dazu ein weicher weißer Außenschein (Abstand zur Silhouette, quadratisch auslaufend, höchstens 80 % Deckkraft) in einem durchsichtigen Rand von 6/8/10 Pixeln. Auch das Türschloss (erscheint nur über Anklickbarem) bekommt den Schein. | 08.11.2026 |
 | Größe | Bilder 60/80/100 Pixel (Hand 48/64/80 plus Rand); normal und klick gleich groß, damit der Zeigerpunkt gleich bleibt: Hand 8/7, 11/9, 13/11, Schloss (seit 08.11. neu, siehe unten) 21/31, 27/41, 34/52. Die Vorschau in den Einstellungen schneidet den Rand weg (`AtlasTexture`). Das Skript: `zeiger_aus_vorlage.py --gemini` bzw. `--schloss`. | 08.11.2026 |
 
+### Mauszeiger-Schein dezent und golden (PR „Oberfläche: Mauszeiger-Schein dezent und golden“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Wunsch | Das Leuchten beim Drüberfahren war zu hell (Nutzer, 09.11.2026): nur merken, dass sich etwas ändert; Farbe leicht golden. | 09.11.2026 |
+| Umsetzung | Scheinfarbe warmes Gold 230/190/110 statt Weiß, höchste Deckkraft 30 % statt 80 % (Verlauf unverändert quadratisch auslaufend). Alle acht Hände (klick) und das Türschloss, alle Größen; Bildgröße, Scheinrand 6/8/10 und Zeigerpunkte bleiben, `Mauszeiger.cs` unverändert. Umgestellt mit `zeiger_aus_vorlage.py --schein-neu ORDNER` (Außenpixel der alten Farbe umfärben, Deckkraft mal 0,375), die Konstanten `SCHEIN_FARBE`/`SCHEIN_STAERKE` gelten auch für neue Läufe. | 09.11.2026 |
+
 ### Türschloss so groß wie der Handschuh (PR „Oberfläche: Türschloss-Zeiger an Handschuhgröße angepasst“)
 
 | Thema | Entscheidung | Datum |

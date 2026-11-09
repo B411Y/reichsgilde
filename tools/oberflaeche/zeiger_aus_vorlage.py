@@ -25,7 +25,7 @@ Mit --gemini ORDNER werden acht fertig gezeichnete Handschuhe (1_gemeiner.png bi
 deckungsgleich ausgerichtet (Fingerspitze und Schnalle), je einzeln gepixelt (Gold, Silber und Edelsteine als Akzente) und als
 hand_<1..6|wache|dieb>_normal|klick_<px>.png geschrieben. Seit 08.11.2026 ohne hellen Außenrand: „normal“ ist der Handschuh mit
 rundum durchsichtigem Rand (SCHEINRAND), „klick“ (beim Drüberfahren über Anklickbares) derselbe Handschuh unverändert mit einem
-weichen weißen Außenschein in diesem Rand. Beide Bilder sind gleich groß, der Zeigerpunkt in hotspots.txt gilt für beide.
+weichen Außenschein in diesem Rand (seit 09.11.2026 dezent golden, 30 % statt weiß 80 %). Beide Bilder sind gleich groß, der Zeigerpunkt in hotspots.txt gilt für beide.
 
 Ausgabe: zeiger_<px>.png, zeiger_<px>_klick.png, hotspots.txt (Fingerspitze = deckendes Pixel mit kleinstem x+y).
 """
@@ -606,8 +606,9 @@ def laden_ausgerichtet(ordner):
 
 
 SCHEINRAND = {32: 4, 48: 6, 64: 8, 80: 10}   # Pixel durchsichtiger Rand rundum für den Außenschein je Größe
-SCHEIN_FARBE = (255, 249, 232)
-SCHEIN_STAERKE = 0.80
+SCHEIN_FARBE = (230, 190, 110)   # warmes Gold (seit 09.11.2026; vorher Weiß 255/249/232)
+SCHEIN_STAERKE = 0.30            # höchste Deckkraft am Handschuhrand (vorher 0,80)
+SCHEIN_ALT = ((255, 249, 232), 0.80)
 
 
 def auffuellen(bild, pad):
@@ -641,6 +642,24 @@ def mit_schein(bild, pad):
     out[aussen, :3] = np.array(SCHEIN_FARBE, np.uint8)
     out[aussen, 3] = (alpha[aussen] * 255).round().astype(np.uint8)
     return out
+
+
+def schein_neu_lauf(args):
+    """Schein der fertigen Bilder (hand_*_klick_*.png, tuer_schloss_*.png) im Ordner args.schein_neu auf SCHEIN_FARBE und
+    SCHEIN_STAERKE umstellen, ohne die Vorlagen: Außenpixel mit der alten Scheinfarbe werden umgefärbt, ihre Deckkraft im
+    Verhältnis neu/alt skaliert. Bildgröße und Zeigerpunkt bleiben unverändert."""
+    alt = np.array(SCHEIN_ALT[0], np.uint8)
+    faktor = SCHEIN_STAERKE / SCHEIN_ALT[1]
+    for name in sorted(os.listdir(args.schein_neu)):
+        if not name.endswith(".png") or not (name.startswith("tuer_schloss_") or "_klick_" in name):
+            continue
+        pfad = os.path.join(args.schein_neu, name)
+        bild = oiio.ImageBuf(pfad, 0, 0, _ohne_vormultiplikation()).get_pixels(oiio.UINT8).copy()
+        schein = (bild[..., 3] < 255) & np.all(bild[..., :3] == alt, axis=-1)
+        bild[schein, :3] = np.array(SCHEIN_FARBE, np.uint8)
+        bild[schein, 3] = np.round(bild[schein, 3] * faktor).astype(np.uint8)
+        schreibe(pfad, bild)
+        print(f"{name}: {int(schein.sum())} Scheinpixel")
 
 
 def schloss_lauf(args):
@@ -732,6 +751,7 @@ def main():
     ap.add_argument("--nachsilbe", default="")
     ap.add_argument("--gemini", help="Ordner mit den sechs Stufenvorlagen (1_gemeiner.png ... 6_reichsgraf.png); dann ist VORLAGE ohne Bedeutung")
     ap.add_argument("--schloss", help="Ordner mit den unveränderten tuer_schloss_<px>.png: Rand entfernen, Schein anfügen (Ausgabe nach AUSGABE)")
+    ap.add_argument("--schein-neu", help="Ordner mit fertigen Zeigerbildern: Schein auf Gold und neue Stärke umstellen (in place); VORLAGE und AUSGABE ohne Bedeutung")
     ap.add_argument("--ziel-hell", type=float, default=58.0, help="Zielhelligkeit des Leders (dunklere Stufen werden darauf angehoben)")
     ap.add_argument("--akzent", type=float, default=0.08, help="Mindestfläche Gold/Silber/Edelstein je Pixel")
     ap.add_argument("--stufen", action="store_true", help="sechs Stufen nach Stand als hand_<stufe>_normal|klick_<px>.png schreiben")
@@ -743,6 +763,8 @@ def main():
     ap.add_argument("--metall", type=float, default=0.08, help="Mindestfläche Metall je Pixel für die Schnalle")
     ap.add_argument("--extrem", type=float, default=0.0, help="Anteil der Lichter/Tiefen aus Teilpixeln (0 bis 1)")
     args = ap.parse_args()
+    if args.schein_neu:
+        return schein_neu_lauf(args)
     os.makedirs(args.ausgabe, exist_ok=True)
     if args.schloss:
         return schloss_lauf(args)
