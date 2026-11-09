@@ -411,10 +411,18 @@ public sealed partial class Kartenentwurf
             _befundeTeil = new List<Befund>();
             _befundeLauf = Kartenpruefung.PruefenInSchritten(this, _befundeTeil);
         }
-        if (_befundeLauf.MoveNext() && _befundeLauf.Current)
+        try
         {
-            (_befunde, _befundeLauf, _befundeTeil) = (_befundeTeil, null, null);
-            return true;
+            if (_befundeLauf.MoveNext() && _befundeLauf.Current)
+            {
+                (_befunde, _befundeLauf, _befundeTeil) = (_befundeTeil, null, null);
+                return true;
+            }
+        }
+        catch
+        {
+            (_befundeLauf, _befundeTeil) = (null, null); // ein Lauf nach einer Ausnahme ist tot: nicht für immer „noch nicht fertig“ melden
+            throw;
         }
         return false;
     }

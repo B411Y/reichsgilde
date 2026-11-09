@@ -55,6 +55,16 @@ static class BefundeSchrittweiseTests
             e.WegAnlegen(Wegklasse.Gasse, new List<Kartenort> { new(-20, 40), new(0, 44), new(20, 40) }); // noch einmal mitten im Lauf
             Haeppchen(e);
             Pruefe.Gleich(Text(Kartenpruefung.Pruefen(e)), Text(e.Befunde), "Befunde nach den Änderungen");
+
+            // eine Änderung mit sicherem neuen Befund (Bauzone ohne Karrenstraße in der Nähe) mitten im Lauf: der Befund muss im Ergebnis stehen
+            var f = Lade("greybox");
+            for (var i = 0; i < 3; i++) f.BefundeSchritt();
+            var vorher = Kartenpruefung.Pruefen(f).Count;
+            f.BauzoneAnlegen(Lage.Vorstadt, new List<Kartenort> { new(10000, 10000), new(10010, 10000), new(10010, 10010), new(10000, 10010) });
+            Pruefe.Wahr(!f.BefundeBereit, "Lauf verworfen");
+            Haeppchen(f);
+            Pruefe.Gleich(Text(Kartenpruefung.Pruefen(f)), Text(f.Befunde), "greybox nach der Zone");
+            Pruefe.Wahr(f.Befunde.Count > vorher, "die neue Zone hat einen Befund gebracht");
         }),
 
         ("Prüfung in Häppchen: wer die Befunde in einem Zug liest, bekommt dieselben und danach ist sie bereit", () =>
