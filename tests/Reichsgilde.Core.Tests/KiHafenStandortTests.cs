@@ -195,7 +195,7 @@ static class KiHafenStandortTests
             Pruefe.Wahr(!karrenO.ZielHafen, "ohne Schalter zum Marktplatz");
         }),
 
-        ("KI-Hafen: Aufschlag am Hafen (Datenversion 79) – die Fahrt zum Hafen zählt um 1 + Aufschlag × Anteil der Ausfuhrware kürzer; Anteil nach dem " +
+        ("KI-Hafen: Aufschlag am Hafen (Datenversion 80) – die Fahrt zum Hafen zählt um 1 + Aufschlag × Anteil der Ausfuhrware kürzer; Anteil nach dem " +
          "einträglichsten Produkt (Tischlerei und Siederei ohne Ausfuhrware 0); ohne Aufschlag in den Daten wie vorher", () =>
         {
             string MitAufschlag(double a)

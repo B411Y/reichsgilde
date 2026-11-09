@@ -185,7 +185,7 @@ static class Hafenmessung
         }
     }
 
-    /// <summary>Die Daten mit diesem Aufschlag am Hafen (<c>schiffshandel.hafenAufschlag</c>, Datenversion 79).</summary>
+    /// <summary>Die Daten mit diesem Aufschlag am Hafen (<c>schiffshandel.hafenAufschlag</c>, Datenversion 80).</summary>
     static string MitHafenaufschlag(string json, double aufschlag)
     {
         var knoten = System.Text.Json.Nodes.JsonNode.Parse(json)!;

@@ -20,7 +20,7 @@ namespace Reichsgilde.Core.Ki;
 /// KI zum Hafen. Jetzt wertet sie jeden Bauort nach der Fahrt, die sein Karren im Mittel über die Jahre macht (<see cref="ErwarteteRundfahrt"/>):
 /// zum Hafen, solange der offen ist und näher liegt, im Winter zum Marktplatz. Dazu nimmt sie die <see cref="StandortKandidaten"/> nächsten
 /// Bauorte am Hafen hinzu – nur die, an denen der Hafen wirklich der nähere Handelsort ist (sonst brächte die Nähe zum Hafen nichts).
-/// Seit Datenversion 79 zahlen die Händler am offenen Hafen für Ausfuhrware einen kleinen Aufschlag (Nutzerentscheidung „B“); den rechnet die KI
+/// Seit Datenversion 80 zahlen die Händler am offenen Hafen für Ausfuhrware einen kleinen Aufschlag (Nutzerentscheidung „B“); den rechnet die KI
 /// nach dem Anteil der Ausfuhrware am Absatz der neuen Werkstatt mit (<see cref="Ausfuhranteil"/>, <see cref="ErwarteteRundfahrt"/>).
 /// </summary>
 public sealed partial class KiRivale
@@ -65,7 +65,7 @@ public sealed partial class KiRivale
     /// Gleichstand: Marktplatz). Die Minuten sind die der Jahreszeit, in der die KI entscheidet (Schlamm im Frühling, im strengen Winter die
     /// Fähre im Eis); für die anderen Jahreszeiten nimmt sie dieselben – eine Abfrage je Jahreszeit hat der Kern nicht (Befund der Prüfung, Offen).
     ///
-    /// Aufschlag am Hafen (Datenversion 79, <see cref="SchiffshandelDaten.HafenAufschlag"/>): Verkauft der Karren am offenen Hafen, bringt der
+    /// Aufschlag am Hafen (Datenversion 80, <see cref="SchiffshandelDaten.HafenAufschlag"/>): Verkauft der Karren am offenen Hafen, bringt der
     /// <paramref name="ausfuhranteil"/> seiner Ladung (Ausfuhrwaren) den Aufschlag mehr. Wie viel das gegen Minuten wiegt, rechnet die KI so, wie
     /// sie auch Karren vergleicht: Eine Werkstatt, deren Karren nicht nachkommen, verkauft je Fahrt eine Ladung; bringt jede Ladung am Hafen
     /// (1 + Aufschlag × Anteil) mal so viel, zählt die Fahrt dorthin wie eine um diesen Faktor kürzere. Bei 3 % und nur Ausfuhrware wiegt der

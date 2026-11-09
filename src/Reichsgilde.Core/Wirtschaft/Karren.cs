@@ -311,7 +311,7 @@ public sealed class Karren
 
     private void Ankommen(Spielzeit zeit, Stadtwirtschaft w)
     {
-        // Am Hafen zahlen die Händler für Ausfuhrware einen kleinen Aufschlag, solange er offen ist (Datenversion 79); am Marktplatz 1.
+        // Am Hafen zahlen die Händler für Ausfuhrware einen kleinen Aufschlag, solange er offen ist (Datenversion 80); am Marktplatz 1.
         double Hafenfaktor(string ware) => ZielHafen ? w.Schiffahrt.HafenVerkaufsFaktor(ware) : 1;
 
         if (Zustand == KarrenZustand.ZumMarkt)

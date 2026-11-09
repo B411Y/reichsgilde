@@ -119,7 +119,7 @@ public sealed class SchiffshandelDaten
 
     /// <summary>
     /// Aufschlag auf den Erlös einer Ausfuhrware (<see cref="IstAusfuhrware"/>), die ein Karren direkt am Hafen verkauft, solange der Hafen offen
-    /// ist (Datenversion 79, Nutzerentscheidung „B“ vom 09.11.2026: der Hafen soll sich spürbar lohnen, aber nicht alle sollen dort bauen):
+    /// ist (Datenversion 80, Nutzerentscheidung „B“ vom 09.11.2026: der Hafen soll sich spürbar lohnen, aber nicht alle sollen dort bauen):
     /// 0,03 = 3 % mehr. Die Händler am Hafen zahlen etwas mehr für Ware, die sie gleich weiter verschiffen; Preis und Vorrat des Markts bleiben
     /// dieselben. Ohne Angabe 0 – so rechnen alte Spielstände mit ihren mitgespeicherten Daten weiter wie bisher. Höchstens 5 %.
     /// </summary>

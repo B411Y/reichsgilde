@@ -6,7 +6,7 @@ using Reichsgilde.Core.Wirtschaft;
 using Reichsgilde.Core.Zeit;
 
 /// <summary>
-/// Aufschlag am Hafen (Datenversion 79, Nutzerentscheidung „B“ vom 09.11.2026, <c>schiffshandel.hafenAufschlag</c> = 0,03): Verkauft ein Karren
+/// Aufschlag am Hafen (Datenversion 80, Nutzerentscheidung „B“ vom 09.11.2026, <c>schiffshandel.hafenAufschlag</c> = 0,03): Verkauft ein Karren
 /// eine Ausfuhrware (eine Ware, die eine ferne Stadt kauft) direkt am offenen Hafen, bringt sie 3 % mehr; am Marktplatz, für andere Waren und am
 /// geschlossenen Hafen (Winter) nichts. Preis und Vorrat des Markts bleiben dieselben. Die Proben stehen in Köln am Bauort mit der kürzesten Fahrt
 /// zum Hafen (wie in den Hafenziel-Tests); verglichen wird jeweils dieselbe Partie mit und ohne Aufschlag.
@@ -95,7 +95,7 @@ static class HafenAufschlagTests
          "des Landhandels); ohne Angabe 0, über 5 % oder negativ ein Fehler", () =>
         {
             var d = Wirtschaftsdaten.AusDatei(Datenpfad.Wirtschaft());
-            Pruefe.Gleich(79, d.Version);
+            Pruefe.Gleich(80, d.Version);
             var s = d.Schiffshandel!;
             Pruefe.Ungefaehr(0.03, s.HafenAufschlag, 1e-12);
             var ausfuhr = d.Waren.Keys.Where(s.IstAusfuhrware).OrderBy(x => x, StringComparer.Ordinal).ToList();

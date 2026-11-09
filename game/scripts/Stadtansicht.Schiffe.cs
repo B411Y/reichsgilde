@@ -64,7 +64,8 @@ public partial class Stadtansicht
     public static string? SchiffName(string? kennung) => kennung is not null && kennung.StartsWith("schiff:") ? kennung["schiff:".Length..] : null;
 
     /// <summary>Die Kennung des Hafens (Gebäude der Karte) aus der Kennung „hafen:…“, sonst null.</summary>
-    public static string? HafenAusKennung(string? kennung) => kennung is not null && kennung.StartsWith("hafen:") ? kennung["hafen:".Length..] : null;
+    /// <summary>Der Hafen einer Kennung <c>hafen:&lt;Hafen&gt;</c>; mit Zusatz <c>#&lt;Gebäude&gt;</c> (Kran, Stapelhaus, … eines Hafens: eigene Kennung für den Namen unter der Maus) ohne den Zusatz.</summary>
+    public static string? HafenAusKennung(string? kennung) => kennung is not null && kennung.StartsWith("hafen:") ? kennung["hafen:".Length..].Split('#')[0] : null;
 
     private SchiffAnsicht SchiffErzeugen(Schiff schiff, int nummer) => SchiffErzeugen(schiff.Name, Besitzerfarbe(schiff.Besitzer), nummer, true);
 
@@ -297,18 +298,27 @@ public partial class Stadtansicht
     /// <summary>Kran und Lagerschuppen gehören zum Hafen: Wer bis zu so viele Meter vom Hafen entfernt steht, öffnet bei Klick dessen Tafel.</summary>
     private const double HafenbautenReichweite = 60;
 
+    /// <summary>Stapelhaus und Rheinkran (Köln) stehen weiter vom Hafenbecken: Sie gehören zum nächsten Hafen der Karte, wie weit er auch ist (die Karte hat nur einen).</summary>
+    private const double HafenbautenReichweiteFern = 400;
+
     /// <summary>
-    /// Hafenkran und Lagerschuppen (Sonderbauten der Karte, aus <see cref="SonderbautenBauen"/>): ein Klick öffnet die Tafel des nächsten Hafens, wenn einer
-    /// nah genug steht. <paramref name="wurzel"/> trägt Lage, Drehung und Maßstab wie bei <see cref="HafenKlickbar"/>.
+    /// Hafenkran, Rheinkran (Schwimmkran), Lagerschuppen und Stapelhaus (Sonderbauten der Karte, aus <see cref="SonderbautenBauen"/>): ein Klick öffnet die Tafel des nächsten Hafens, wenn einer
+    /// nah genug steht (Stapelhaus und Rheinkran: der nächste, <see cref="HafenbautenReichweiteFern"/>). Die Klickfläche deckt das ganze Modell (auch den Steg des Rheinkrans) und trägt den Namen des Gebäudes
+    /// (unter der Maus, mit Alt). <paramref name="wurzel"/> trägt Lage, Drehung und Maßstab wie bei <see cref="HafenKlickbar"/>.
     /// </summary>
     private void HafenbauKlickbar(Stadtkarte karte, Kartengebaeude g, Node3D wurzel)
     {
-        if (g.Katalog is not ("hafenkran" or "lagerschuppen") || g.Baustein?.Groesse is not { Length: 2 } gr) return;
+        if (g.Katalog is not ("hafenkran" or "rheinkran" or "lagerschuppen" or "stapelhaus") || g.Baustein?.Groesse is not { Length: 2 } gr) return;
+        var reichweite = g.Katalog is "rheinkran" or "stapelhaus" ? HafenbautenReichweiteFern : HafenbautenReichweite;
         var naechster = karte.GebaeudeDerArt(Bausteinart.Umlandstelle)
             .Where(h => h.Baustein?.Modell is { } m && m.StartsWith("wasser/"))
-            .Select(h => (h.Kennung, Abstand: Math.Sqrt(Math.Pow(h.Punkt[0] - g.Punkt[0], 2) + Math.Pow(h.Punkt[1] - g.Punkt[1], 2))))
-            .Where(h => h.Abstand <= HafenbautenReichweite).OrderBy(h => h.Abstand).Select(h => h.Kennung).FirstOrDefault();
+            .Select(h => (h.Kennung, Abstand: Math.Sqrt((h.Punkt[0] - g.Punkt[0]) * (h.Punkt[0] - g.Punkt[0]) + (h.Punkt[1] - g.Punkt[1]) * (h.Punkt[1] - g.Punkt[1]))))
+            .Where(h => h.Abstand <= reichweite).OrderBy(h => h.Abstand).Select(h => h.Kennung).FirstOrDefault();
         if (naechster is null) return;
-        Klickflaeche(HafenKennung(naechster), new Vector3(0, 4, 0), new Vector3((float)gr[0], 8, (float)gr[1]), wurzel);
+        var kennung = HafenKennung(naechster) + "#" + g.Kennung; // eigene Kennung, damit unter der Maus nur der Name dieses Gebäudes steht (nicht auch der des Hafens und der anderen Bauten)
+        // Das ganze Modell (Gebäude, Steg, Ponton), mindestens die Fläche aus dem Katalog; sonst 8 m hoch
+        var umriss = LokalerUmriss(wurzel) is { } u ? new Aabb(u.Position with { Y = 0 }, u.Size with { Y = Math.Max(u.End.Y, 3f) }) : new Aabb(new Vector3((float)-gr[0] / 2, 0, (float)-gr[1] / 2), new Vector3((float)gr[0], 8, (float)gr[1]));
+        Klickflaeche(kennung, umriss.GetCenter(), umriss.Size, wurzel);
+        if (g.Name != "") Beschriftung(g.Name, new Vector3(umriss.GetCenter().X, umriss.End.Y + 1.5f, umriss.GetCenter().Z), 44, wurzel, kennung);
     }
 }
