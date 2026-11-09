@@ -11,7 +11,7 @@ namespace Reichsgilde;
 /// Geheimnisse im Charakterfenster (Charaktersystem Teil 3c): bei Personen des eigenen Hauses „Ihr hütet …“, bei anderen nur, was Euer Haus weiß
 /// (auch aus der Beichte), und was die ganze Stadt weiß. Bei einem bekannten Geheimnis die Knöpfe Erpressen (Gulden), Ratsstimme, Anzeigen und
 /// Bloßstellen – ausgegraut mit dem Grund; bei Beichtwissen „Beichtgeheimnis brechen“. Beim Ratsherrn dazu der Spitzel. Liest den Kern nur,
-/// handelt über Befehle. Bilder je Art fehlen noch (Platzhalter: Text).
+/// handelt über Befehle. Vor jeder Zeile das Siegel der Art (`GeheimnisSiegel`, Rückfall: nur Text).
 /// </summary>
 public partial class CharakterAnzeige
 {
@@ -38,6 +38,18 @@ public partial class CharakterAnzeige
         if (ratsherr is not null) RatsspitzelZeile(w, ratsherr);
     }
 
+    private static readonly Dictionary<Geheimnisart, Texture2D?> SiegelSpeicher = new();
+
+    /// <summary>Das Siegel einer Geheimnisart (assets/oberflaeche/geheimnisse/&lt;art&gt;.png, rund, 128 px) oder null, wenn es die Datei nicht gibt.</summary>
+    internal static Texture2D? GeheimnisSiegel(Geheimnisart art)
+    {
+        if (SiegelSpeicher.TryGetValue(art, out var bild)) return bild;
+        var pfad = "res://assets/oberflaeche/geheimnisse/" + art.ToString().ToLowerInvariant() + ".png";
+        bild = ResourceLoader.Exists(pfad) ? GD.Load<Texture2D>(pfad) : null;
+        SiegelSpeicher[art] = bild;
+        return bild;
+    }
+
     private void GeheimnisZeile(Stadtwirtschaft w, ICharakter c, Geheimnis g)
     {
         var gw = w.Geheimnisse;
@@ -54,7 +66,22 @@ public partial class CharakterAnzeige
         var kasten = new VBoxContainer();
         kasten.AddThemeConstantOverride("separation", 2);
         _inhalt.AddChild(kasten);
-        var zeile = Hauptmenue.Text(kasten, text, 15, g.Oeffentlich ? Grau : eigen ? Rot : Gold, umbruchBreite: Breite - 50);
+        var reihe = new HBoxContainer();
+        reihe.AddThemeConstantOverride("separation", 8);
+        kasten.AddChild(reihe);
+        var siegel = GeheimnisSiegel(g.Art);
+        if (siegel is not null)
+        {
+            // Siegel der Art (64 px, mit Mipmaps) in Zeilenhöhe; ohne Datei bleibt nur der Text
+            var bild = new TextureRect
+            {
+                Texture = siegel, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                CustomMinimumSize = new Vector2(36, 36), TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps, MouseFilter = MouseFilterEnum.Pass,
+                SizeFlagsVertical = SizeFlags.ShrinkBegin, TooltipText = art.Beschreibung,
+            };
+            reihe.AddChild(bild);
+        }
+        var zeile = Hauptmenue.Text(reihe, text, 15, g.Oeffentlich ? Grau : eigen ? Rot : Gold, umbruchBreite: Breite - 50 - (siegel is null ? 0 : 44));
         zeile.MouseFilter = MouseFilterEnum.Stop;
         var tipp = art.Beschreibung;
         if (wissen is not null && !eigen) tipp += $"\nErfahren {wissen.Jahr} – {wissen.Quelle}.";

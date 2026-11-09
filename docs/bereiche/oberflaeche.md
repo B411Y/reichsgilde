@@ -32,10 +32,17 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - Benachrichtigungen: Das ✕ des Fensterrahmens ist hell und bekommt im Brief eine dunkle Platte; ein gemeinsames Pergament-Fenster für andere Tafeln (Oberflächen-Stil Schriftrolle) fehlt noch.
 - (Werkstatt-Pinsel) Pinselmessung (`Kartenwerkstatt.Pinselmessung.cs`, `Rest()`): Die Spalte „übriges Bild (Godot, Leerlauf)“ zieht die Summe aller Teilschritte ab, manche stecken aber ineinander („  Nacharbeit: …“ in „Nacharbeit nach dem Strich“, „  Gras: …“ in „im Bild: Grasteppich“) und zählen doppelt; die Spalte ist dann zu klein und kann negativ werden. Betrifft nur das Messwerkzeug.
 - (Stress 3b) Klicktest des Stressbalkens auf der NAS steht aus (Startoption `--entwickler=1 --stress=75 --charakter=oberhaupt`; Bilder: Balken angespannt und zermürbt, Tooltip mit Einträgen, fremde Person „Wirkt …“, Aktivitätenliste mit Stresszeile, Entwicklerfenster „Stress setzen“, Zusammenbruch-Meldung).
-- (Geheimnisse 3c) Bilder je Art (Ehebruch, Ketzerei, Schulden, Mord) als kleine Zeichen vor der Zeile im Charakterfenster und ein Siegel für die Meldungen (Gerede, Beichte, „Unfriede im Haus“) – bis dahin nur Text; ein Bild bräuchte nur eine Zeile in `GeheimnisZeile` (wie `ZugIcon` mit Rückfall auf Text). Dazu der Gerichtssaal: Anzeigen mit Geheimnis stehen als gewöhnliches Verfahren in der Liste („wegen Ehebruch“ über `Stadtgericht.Anklagepunkte(v)`, die Prognose rechnet das Geheimnis mit), ein Verfahren gegen einen Ratsherrn erscheint dort nicht (nur als Meldung und im Gerichtstag-Protokoll) – ein eigener Abschnitt „Anzeigen gegen Ratsherren“ (`Geheimniswesen.RatsherrVerfahren`, `Ueberzeugung(richter, v)`) wäre klein.
+- (Geheimnisse) Ein Siegel für die Meldungen zu Geheimnissen (Gerede, Beichte, „Unfriede im Haus“, Erpresserbrief, Anzeige, Bloßstellen) fehlt: Diese Meldungen sind `Meldungsart.Sonstiges` (nur die Anzeige ist `Anklage`) und tragen keine Geheimnisart; sobald der Kern der Meldung die Art mitgibt, genügt `GeheimnisSiegel(art)` als Bild am Brief (`SiegelBild` in `Hauptszene.Meldungen.cs`). Das Lexikon kann keine Bilder zeigen; die vier Siegel im Eintrag „Geheimnisse“ brauchen erst einen Bild-Baustein im `Lexikon`. Klicktest der Siegel auf der NAS steht aus (Charakterfenster, Startoptionen siehe nächster Punkt).
 - (Geheimnisse 3c) Klicktest auf der NAS steht aus (Schritte im Bericht des PR): `--entwickler=1 --geheimnis=Ehebruch:rivale --charakter=rivale`, `--geheimnis=Ketzerei:ratsherr --charakter=ratsherr`, `--geheimnis=Schulden:oberhaupt --charakter=oberhaupt`; Godot legt beim ersten Öffnen `CharakterAnzeige.Geheimnisse.cs.uid` an (mit einchecken).
 
 ## Entscheidungen
+
+### Geheimnis-Siegel (PR „Oberfläche: Siegel für die Geheimnisse“)
+
+| Thema | Entscheidung | Datum |
+|---|---|---|
+| Bilder | Vier runde Medaillen (128 px, Holzschnitt, KI wie die Lebensweise-Icons, Runde 2 der Entwürfe: Ehebruch zwei zerbrochene Ringe, Ketzerei brennender Scheiterhaufen mit Buch, Mord Totenkopf mit gekreuzten Dolchen, Schulden Geldbeutel auf offener Hand) in `game/assets/oberflaeche/geheimnisse/<art>.png`; Prompts in `docs/assets/prompts/geheimnis_siegel.md`, Lizenz „Alle Rechte vorbehalten“. | 09.11.2026 |
+| Einsatz | Im Charakterfenster steht vor jeder Geheimniszeile das Siegel der Art (36 px, `CharakterAnzeige.GeheimnisSiegel`, mit Mipmaps; Tooltip: Beschreibung der Art). Fehlt die Datei, bleibt nur der Text. Test `GeheimnisSiegelTests`: für jede `Geheimnisart` PNG und Importdatei. | 09.11.2026 |
 
 ### Danksagung (PR „Oberfläche: Danksagung mit allen Lizenzhinweisen“)
 
