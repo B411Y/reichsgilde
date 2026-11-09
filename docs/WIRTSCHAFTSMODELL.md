@@ -2592,3 +2592,47 @@ Mittel des Zuwachses 33.133 → 32.944. **9 von 10 im Band ±15 %**: Der Tischle
 | Halbling | +23,4 → +21,8 % (Bonus +2) | +15,9 → +21,7 % |
 
 Die Änderung trifft beide nur über das Vermächtnis und die KI-Häuser; die Unterschiede liegen im Rauschen. Der Abstand des Halbling-Diebs und des Zwerg-Geldleihers bleibt bei +20 bis +25 %; der Halbling-Geldleiher ohne Bonus liegt ebenso hoch – der Bonus erklärt ihn nicht (offener Punkt in `kern.md`).
+
+## Stress (Charaktersystem Teil 3b, Datenversion 77, 9.11.2026)
+
+**Was neu ist:** Oberhaupt, Erbe und Ehepartner der Häuser haben Stress (0–100). Quellen: Taten gegen den eigenen Charakter (`stress.taten`, z. B. ehrlich und Gaunerstück +10), eine Aktivität, die man nicht mag (+8), Trauer (+5 … +30), Streit (+10), ein Jahr mit Verlust (+5), Bargeld im Minus (+10), Gericht (+10 / +15 / +25), Krankheit (+5, Pest im Haus +10). Ventile: Zechen und Messe −15, Jagd −30 (× 1,5, wenn man sie mag), je Art einmal im Jahr; jedes Jahr −15. Folgen ab 40 (Erfahrung × 0,75, Gefahr bei Aktivitäten +5 Punkte) und ab 70 (Erfahrung × 0,5, Talente −½, Krankheit × 1,25, Ehepartner −5, KI-Vorsicht × 1,2); bei 100 Zusammenbruch (Zug oder leichte Krankheit, danach 60). Die KI meidet ab 40, was stresst, und nutzt ab 20 übrige AP für ein Ventil. Entscheidungen in `docs/bereiche/kern.md` „Stress“ und `spiel-ki.md` „KI nach Stress“.
+
+**Messung** (gemessen auf main `432ceee2` + diesem PR, `a3ed79df`, gegen main `432ceee2` mit denselben Startwerten; 12 Kerne, niedrige Priorität): `messen bericht 20 30` (1.320 Partien, 5 Min.) → `docs/messungen/balancing-2026-11-09-stress.json`, `messen bericht 40 30 --teile=2` (240 Partien, 2 Min.) → `…-voelker40-stress.json`. Der Vergleich main `432ceee2` rechnet Zahl für Zahl wie `…-voelkerbonus3.json` bzw. `…-voelker40-voelkerbonus3.json` (#384). Probe: Mit `--ohne=stress` (der Abschnitt fehlt, sonst derselbe Code) rechnen die Berufe des Branches Zahl für Zahl wie main.
+
+| | main `432ceee2` | mit Stress |
+|---|---|---|
+| Berufe im Band ±15 % (simuliert, ein Betrieb, 20 Jahre) | 9/10 (Tischler −15,7 %) | 9/10 (Tischler −17,3 %) |
+| Mittel des Zuwachses | 32.944 | 32.592 (−1,1 %) |
+| KI ÷ Bezugsspieler (Median); „Schwer“ | 1,15; 1,83 | 1,13; 1,80 |
+| Messstadt: Vermögen je KI-Haus allein / 3 / 8 Häuser | 96.119 / 59.059 / 49.834 | 95.860 / 58.913 / 49.254 |
+| Gaunerei der KI: Diebstahl / Einbruch / Sabotage je Jahr | 0,45 / 0,80 / 0,17 | 0,44 / 0,79 / 0,17 |
+| Spitzel / Gericht gesamt je Jahr (ein Betrieb, KI geführt) | 94 / 190 | 93 / 192 |
+| Stadtkasse, Mittel aller Jahre (Greybox / Probestadt) | −3.304 / −6.984 | −3.551 / −6.998 |
+| Karren in Not / nach einem Jahr ohne Fahrt verkauft | 0 / 67 | 1 / 72 |
+
+Reinvermögen nach 20 Jahren je Beruf (Mensch, ein Betrieb, Greybox, 30 Startwerte; ± Fehler des Mittels; in Klammern der Abstand des Zuwachses zum Mittel):
+
+| Beruf | main `432ceee2` | mit Stress | Änderung |
+|---|---|---|---|
+| Schmied | 40.001 ± 1.218 (+9,3 %) | 39.785 ± 1.157 (+9,8 %) | −0,5 % |
+| Tischler | 31.756 ± 1.523 (−15,7 %) | 30.967 ± 1.508 (−17,3 %) | −2,5 % |
+| Steinmetz | 40.400 ± 1.267 (+10,5 %) | 39.924 ± 1.498 (+10,2 %) | −1,2 % |
+| Alchimist | 36.820 ± 1.229 (−0,4 %) | 35.331 ± 1.055 (−3,9 %) | −4,0 % |
+| Wirt | 36.767 ± 1.081 (−0,5 %) | 36.467 ± 979 (−0,4 %) | −0,8 % |
+| Prediger | 37.548 ± 1.287 (+1,8 %) | 37.492 ± 1.459 (+2,8 %) | −0,1 % |
+| Dieb | 34.346 ± 1.138 (−7,9 %) | 34.773 ± 1.231 (−5,6 %) | +1,2 % |
+| Parfumeur | 41.776 ± 1.303 (+14,7 %) | 41.199 ± 1.469 (+14,1 %) | −1,4 % |
+| Geldleiher | 36.242 ± 1.121 (−2,1 %) | 36.752 ± 1.191 (+0,5 %) | +1,4 % |
+| Gardist | 33.782 ± 823 (−9,6 %) | 33.226 ± 805 (−10,3 %) | −1,6 % |
+| Dieb (wagemutig, nicht im Mittel) | 23.577 ± 1.196 | 24.040 ± 1.335 | +2,0 % |
+
+Jede Änderung liegt innerhalb von etwa einem Fehler des Unterschieds (1.500–2.100 Gulden); der Tischler war schon auf main außerhalb des Bandes (offener Punkt „Völkerboni ±3 %“).
+
+**Völker** (Reinvermögen nach 40 Jahren, Abstand zum Menschen desselben Berufs; Fehler eines Unterschieds etwa 5 Punkte):
+
+| Beruf, Volk | main `432ceee2` | mit Stress |
+|---|---|---|
+| Schmied: Mensch / Zwerg / Elb / Halbling | 102.368 / +10,4 / +4,8 / −5,1 % | 107.064 / +5,9 / −0,1 / −8,8 % |
+| Parfumeur: Mensch / Zwerg / Elb / Halbling | 120.139 / −2,8 / +9,4 / −0,1 % | 120.370 / −3,4 / +7,9 / +0,6 % |
+
+**Wie viel Stress die Oberhäupter tragen** (`messen stress 20 30`, Greybox, Spieler KI-geführt mit Schmied, Wirt, Dieb, Parfumeur, dazu die KI-Häuser; 9.600 Oberhaupt-Jahre): am Jahresende Ø 2,5 (Median 0, q90 5, höchstens 85), **99,8 % ruhig, 0,2 % angespannt, 0 % zermürbt, kein Zusammenbruch**. Je 100 Oberhaupt-Jahre (Oberhaupt, Ehepartner, Erbe zusammen): Quellen etwa +520 – erkrankt +138, verurteilt +61, Gaunerstück (ehrlich) +52, angeklagt +48, Trauer um ein Kind +80, um den Ehepartner +43, Pranger (hochmütig) +33, Jahr mit Verlust +14, Bestechung (ehrlich) +14, Üben (träge) +12, Stadtpalais oder Stadthof (bescheiden) +9; Ventile −110 (Zechen, Messe, Jagd); Abklingen −396. Eine Aktivität, die das Oberhaupt nicht mag, kommt nicht vor – die KI wählt sie nie. Proben mit langsamerem Abklingen (20 Jahre, 10 Startwerte): 10 statt 15 → 99,8 % ruhig, 5 → 98,9 % ruhig, 0,1 % zermürbt. **Befund:** Die KI spielt nach ihren Zügen und baut ab, bevor es eng wird; der Stress trifft vor allem einen Spieler, der gegen den Charakter seines Oberhaupts handelt. Wirtschaftlich bleibt er damit im Rauschen. Soll er auch bei der KI sichtbar werden, sind mehr oder stärkere Quellen der Hebel, nicht das Abklingen (offener Punkt in `docs/bereiche/kern.md`).
