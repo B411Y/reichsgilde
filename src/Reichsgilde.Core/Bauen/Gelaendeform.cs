@@ -93,6 +93,12 @@ public sealed class Gelaendeform
         _veraltet.Add(bereich);
         var nass = Wasser.Bereiche.Where(b => b.Ueberdeckt(bereich.Vergroessert(Wasserform.Glaettung))).ToList();
         if (nass.Count == 0) return;
+        // Wasserverbund: Ein See am Lauf nimmt dessen Spiegel an, und ob beide eine Fläche bilden, hängt am Spiegel – ändert sich der Lauf, auch See
+        // und Lücke neu (geometrisch, unabhängig davon, ob der Verbund vorher bestand)
+        foreach (var l in Wasser.Laeufe.Where(l => nass.Contains(l.Bereich)).ToList())
+            foreach (var s in Wasser.Seen)
+                if (l.Bereich.Vergroessert(Wasserform.VerbundReichweite).Ueberdeckt(s.Bereich))
+                    nass.AddRange(new[] { s.Bereich.Vergroessert(Wasserform.VerbundReichweite), l.Bereich.Vergroessert(Wasserform.VerbundReichweite) });
         Wasser.AllesVeraltet();
         _veraltet.AddRange(nass);
     }

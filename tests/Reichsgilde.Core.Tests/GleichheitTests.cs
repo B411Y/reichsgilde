@@ -25,7 +25,7 @@ using Reichsgilde.Core.Zeit;
 ///   • Lauf C speichert und lädt an acht Zeitpunkten (mitten im Jahr, in der Gaunernacht, zum Jahresbeginn, am Abend, mitten in drei Bränden nach Blitzschlag, einer davon über den Jahreswechsel) und direkt nach jedem Löschen.
 /// Verglichen wird die Prüfsumme des Kerns (<see cref="Zustandspruefsumme"/>: SHA-256 über den Spielstand ohne Speicherzeit, Titel, Tempo,
 /// Spielerkonto und Warteschlange) nach jedem Jahr und am Ende.
-/// Dazu der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
+/// Dazu der Wasserverbund (Befund 1, 09.11.2026, Zeile „wasserverbund“) und der Felsfall (Felspinsel F3): ein fester Ablauf der Kartenwerkstatt mit Stempeln, Streuen und Radieren ergibt dieselbe Kartendatei,
 /// der Felsboden (F6): Stücke und Boden um den Fels als ein Befehl, die Felslage (R2): Zufallsbereiche, Transformieren, Einrasten, Neu würfeln,
 /// und das Kopieren von Felsstücken (P2).
 /// Die Prüfsummen stehen zusätzlich in einer Datei: Die CI vergleicht sie zwischen Linux und Windows (Job „Gleichheit Linux/Windows“).
@@ -83,7 +83,9 @@ static class GleichheitTests
         "Gleichheit: Felswand-Satz R3/R5 (Hang mitformen, Drehen und Skalieren mehrerer Stücke in Weltlage, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
         FelswandPruefen)).Append((
         "Gleichheit: Felsen kopieren und schieben P2 (versetzt und an Ort, Kopien gedreht, geschoben und aufgesetzt, Rückgängig) ergibt zweimal und mit deutscher Ländereinstellung dieselbe Kartendatei",
-        FelskopiePruefen));
+        FelskopiePruefen)).Append((
+        "Gleichheit: Wasserverbund (Fluss und See als eine Fläche, Boden, Bett, Ufer, Spiegel, Strömung auf einem Gitter) ergibt zweimal und mit deutscher Ländereinstellung dieselben Bits",
+        WasserverbundPruefen));
 
     /// <summary>Felsen kopieren (Fels P2, Strg+D): gleiche Auswahl, gleiche Kopien – gleiche Bytes (Zeile „felskopie …“ in der Datei der CI).</summary>
     static void FelskopiePruefen()
@@ -92,6 +94,16 @@ static class GleichheitTests
         Pruefe.Gleich(a, Sha256(FelsKopierenTests.Ablauf()), "Felskopie: zweiter Lauf");
         Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(FelsKopierenTests.Ablauf())), "Felskopie: de-DE");
         Zeilen[-5] = new[] { $"felskopie {a}" };
+        DateiSchreiben();
+    }
+
+    /// <summary>Der Wasserverbund (Befund 1, 09.11.2026): Boden, Wasser, Spiegel und Strömung eines festen Ablaufs – gleiche Bits (Zeile „wasserverbund …“ in der Datei der CI).</summary>
+    static void WasserverbundPruefen()
+    {
+        var a = Sha256(WasserverbundTests.Ablauf());
+        Pruefe.Gleich(a, Sha256(WasserverbundTests.Ablauf()), "Wasserverbund: zweiter Lauf");
+        Pruefe.Gleich(a, MitKultur("de-DE", () => Sha256(WasserverbundTests.Ablauf())), "Wasserverbund: de-DE");
+        Zeilen[-6] = new[] { $"wasserverbund {a}" };
         DateiSchreiben();
     }
 
