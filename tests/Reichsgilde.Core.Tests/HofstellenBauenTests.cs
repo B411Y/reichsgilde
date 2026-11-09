@@ -30,8 +30,8 @@ static class HofstellenBauenTests
         return (sim, sim.Wirtschaft!, spieler);
     }
 
-    /// <summary>Der freie Werkstattplatz von H3 in der Greybox: Mitte (22 | −13), Tür nach Süden.</summary>
-    static readonly WerkstattBauen AufH3 = new(Betriebsart.Giesserei, 22, -13, 0);
+    /// <summary>Der freie Werkstattplatz von H3 in der Greybox: Mitte (24 | −13, seit den fairen Hofstellen; vorher 22 | −13), Tür nach Süden.</summary>
+    static readonly WerkstattBauen AufH3 = new(Betriebsart.Giesserei, 24, -13, 0);
 
     public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
     {

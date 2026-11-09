@@ -20,6 +20,23 @@ static class HafenRuhtTests
 
     static Stadtkarte Karte(string kennung) => Stadtkarte.AusDatei(Datenpfad.Karte(kennung));
 
+    /// <summary>
+    /// Die Greybox, wie sie vor den fairen Hofstellen war (Umbau greybox-hofstellen-fair, 9.11.2026): Tischlerei Eichwald bei 22 | −13 und Maurerei
+    /// Kieselbach bei 25 | −29 mit ihren alten Gassen – auf dieser Karte rechnete der Kern vor dem Schalter die Sollwerte.
+    /// </summary>
+    static Stadtkarte GreyboxVorDenFairenHofstellen()
+    {
+        var n = JsonNode.Parse(File.ReadAllText(Datenpfad.Karte("greybox")))!.AsObject();
+        void Punkt(string kennung, double x, double z) => n["gebaeude"]!.AsArray().Single(g => (string)g!["kennung"]! == kennung)!["punkt"] = new JsonArray(x, z);
+        void Linie(string name, params double[][] punkte) =>
+            n["wege"]!.AsArray().Single(w => (string)w!["name"]! == name)!["linie"] = new JsonArray(punkte.Select(p => (JsonNode)new JsonArray(p[0], p[1])).ToArray());
+        Punkt("Tischlerei_Eichwald", 22, -13);
+        Punkt("Maurerei_Kieselbach", 25, -29);
+        Linie("Gasse Tischlerei Eichwald", new[] { 22, -6.5 }, new[] { 12.5, -6.5 }, new[] { 0.0, 0 });
+        Linie("Gasse Maurerei Kieselbach", new[] { 25, -22.5 }, new[] { 11, -22.5 }, new[] { 11.0, -13 }, new[] { 0.0, 0 });
+        return Stadtkarte.AusJson(n.ToJsonString(), Gebaeudekatalog.AusDatei(Stadtkarte.KatalogZu(Datenpfad.Karte("greybox"))));
+    }
+
     /// <summary>Eine Stadt mit Karte zu dieser Minute (ohne Häuser), Daten aus der Datei.</summary>
     static (Simulation Sim, Stadtwirtschaft W) Stadt(Wirtschaftsdaten daten, long minute = 9 * 60 - Spielzeit.TagesbeginnMinute, int startwert = 1400,
         string karte = "probestadt")
@@ -57,7 +74,7 @@ static class HafenRuhtTests
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
-            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Startplaetze: Startplatzvergabe.Vorgabe), karte: Karte("greybox")); // ohne Los wie vor den Hofstellen
+            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Startplaetze: Startplatzvergabe.Vorgabe), karte: GreyboxVorDenFairenHofstellen()); // ohne Los wie vor den Hofstellen
         var w = sim.Wirtschaft!;
         var kauf = w.Ausfuehren(spieler, new SchiffKaufen());
         if (kauf.Erfolg && w.Schiffahrt.SchiffeVon(spieler).FirstOrDefault() is { } schiff

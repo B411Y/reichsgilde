@@ -16,16 +16,19 @@ static class BalancingberichtNeuTests
     {
         ("Bericht: Passiver Spieler arbeitet mit seinem Startlehrling (Datenversion 72: einer); Stadtkasse und Steuer je Jahr gemessen", () =>
         {
-            // ohne Los (Hofstellen, 9.11.2026): gelost säße der passive Spieler mit diesem Startwert auf H2 und verkaufte im zweiten Jahr nichts
+            // ohne Los (Hofstellen, 9.11.2026): der Spieler auf seiner Vorgabe H1, wie vorher
             var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 2, Bezug: Bezugsart.Passiv, Startplaetze: Startplatzvergabe.Vorgabe), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
             Pruefe.Gleich(1, r.Spieler.StartArbeiter);
-            // Mit einem Lehrling (Datenversion 72) verdient die Werkstatt ohne Führung im ersten Jahr noch (Greybox +202), im zweiten nicht mehr
-            // (−247) – wer nicht einstellt, zehrt langsam vom Startgeld, geht aber nicht bankrott.
+            // Mit einem Lehrling (Datenversion 72) verdient die Werkstatt ohne Führung im ersten Jahr noch (Greybox +52), im zweiten nicht mehr
+            // (−350) – wer nicht einstellt, zehrt langsam vom Startgeld, geht aber nicht bankrott.
             Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Betriebe == 1) && r.Spieler.Jahre[0].Gewinn > 0, "die Werkstatt verdient im ersten Jahr ohne Führung: "
                 + string.Join(" / ", r.Spieler.Jahre.Select(j => $"{j.Gewinn:0} {j.Rein:0}")));
             Pruefe.Wahr(r.Spieler.Jahre.All(j => j.Rein > 3_000), "kein Absturz ohne Führung");
-            Pruefe.Wahr(r.Haeuser.All(h => h.Jahre[^1].Steuer > 0), "jedes Haus zahlt Umsatzsteuer");
+            // Steuer je Haus und Jahr: Die KI-Häuser zahlen jedes Jahr, der passive Spieler im ersten (seit den fairen Hofstellen der Greybox verkauft er
+            // mit diesem Startwert im zweiten Jahr nichts mehr; vorher noch 33 Gulden Steuer)
+            Pruefe.Wahr(r.Ki.All(h => h.Jahre.All(j => j.Steuer > 0)) && r.Spieler.Jahre[0].Steuer > 0, "jedes Haus zahlt Umsatzsteuer: "
+                + string.Join(" / ", r.Haeuser.Select(h => $"{h.Name} {string.Join(",", h.Jahre.Select(j => j.Steuer.ToString("0")))}")));
             Pruefe.Gleich(2, r.Kassenstand.Count);
             Pruefe.Gleich(2, r.Steuersatz.Count);
             Pruefe.Wahr(r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer) > 0, "Steuer in der Kasse");

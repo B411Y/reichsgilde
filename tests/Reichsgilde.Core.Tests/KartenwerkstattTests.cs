@@ -81,9 +81,7 @@ static class KartenwerkstattTests
                 ("weg-ueber-umland", "Wachturm_an_der_Landstrasse", "Weg zum Abzweig Bauernhof an der Mühle"),
                 ("weg-ueber-umland", "Grube_am_Silberberg", "Weg zu Kräutergarten am Bach"),
                 ("weg-ueber-umland", "Grube_am_Silberberg", "Weg zum Abzweig Klosterhof am Osthang"),
-                // seit den Hofstellen (9.11.2026) die Fairness der Start-Hofstellen und des Start-Umlands, wie in Köln
-                ("startweg", "Tischlerei_Eichwald", "Hofstelle H3"),
-                ("startweg", "Maurerei_Kieselbach", "Hofstelle H4"),
+                // seit den Hofstellen (9.11.2026) die Fairness des Start-Umlands wie in Köln (die vier Start-Hofstellen liegen im Band)
                 ("startweg", "Grube_Eisenbart", "Haus Eisenbart"),
                 ("startweg", "Steinbruch_Kieselbach", "Haus Kieselbach"),
             };
