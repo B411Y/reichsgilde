@@ -17,7 +17,7 @@ namespace Reichsgilde.Kartenbau.Staedte;
 //
 // Die Werkstattplätze der freien Hofstellen liegen dort, wo die Bauplätze lagen (gleiche Tür); vier rücken wenige Meter, weil die
 // Kartenprüfung 2 m zwischen zwei Werkstattplätzen verlangt (die Bauplätze stießen aneinander): N2 1,9 m nach Osten (bis an die Kirchstraße),
-// N1 0,15 m nach Westen (bis an die Urbanusgasse), N3 1,6 m nach Süden, N4 0,5 m nach Norden. Der Wohnhausteil steht daneben (vorn bündig oder
+// N1 0,15 m nach Westen (bis an die Urbanusgasse), N3 1,7 m nach Süden, N4 0,4 m nach Norden. Der Wohnhausteil steht daneben (vorn bündig oder
 // gegenüber), so nah, wie die Stadt es zulässt. Die Plätze stehen vor den Einwohnerplätzen und Kulissen (Einwohnerplaetze()), die ihnen weichen.
 
 public sealed partial class Koeln
