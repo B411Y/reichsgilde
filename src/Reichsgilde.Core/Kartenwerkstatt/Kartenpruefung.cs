@@ -308,9 +308,15 @@ public static class Kartenpruefung
             if (_r.Stadtregeln)
                 foreach (var schritt in Probeplan()) yield return schritt;
             yield return 0;
-            Teil = "Wohnhausplätze, Startgrundstücke, Marktplätze, Vorkommen";
+            Teil = "Wohnhausplätze und Startgrundstücke";
             if (_r.Wohnhausplaetze > 0) WohnhausplaetzeZaehlen();
-            if (_r.Startgrundstuecke > 0) Startgrundstuecke();
+            if (_r.Startgrundstuecke > 0)
+                foreach (var teil in Startgrundstuecke())
+                {
+                    Teil = teil;
+                    yield return 0;
+                }
+            Teil = "Marktplätze und Vorkommen";
             Marktplaetze();
             Vorkommen();
             yield return 0;
@@ -318,6 +324,14 @@ public static class Kartenpruefung
             Mauern();
             Haefen();
             yield return 0;
+            // Was die Regel „Wasser“ liest, vorher in eigenen Häppchen (sonst rechnete sie es beim ersten Lesen am Stück): Gewässer, Bett des Geländes
+            // (nach einem Weg nur um ihn herum, Gelaendeform.LinienVeraltet), Wasserplan je Weg – dieselben Werte
+            Teil = "Wasser: Gewässer";
+            foreach (var _ in _e.Wasserform.Schritte()) yield return 0;
+            Teil = "Wasser: Gelände";
+            foreach (var _ in _e.Gelaendeform.AktualisierenSchritte()) yield return 0;
+            Teil = "Wasser: Wasserplan";
+            foreach (var _ in _e.Wasserplan.Schritte()) yield return 0;
             Teil = "Wasser";
             Wasser();
             yield return 0;
@@ -740,15 +754,17 @@ public static class Kartenpruefung
         /// Köln: genau n Startgrundstücke (Werkstatt- und Wohnhausplatz „S&lt;n&gt;_…“), gleich weit vom Markt (karte.py, Regel 5). „Gleich weit“ misst
         /// seit dem 1.11.2026 den Karrenweg, wie ihn der Kern rechnet (<see cref="Startwegpruefung"/>, Befund M4 der Prüfung von phase5/gehtempo):
         /// Die Luftlinie wirkt im Kern nicht, der Weg über die Fahrzeit schon. Abweichungen über ±10 % vom Mittel (Werkstätten und Start-Umland
-        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet.
+        /// getrennt) und Startbetriebe ohne Weg sind Hinweise – die Startbelegung bleibt spielbar, die Leveldesignerin entscheidet. Die Startwege
+        /// rechnet der Entwurf in Häppchen (<see cref="Kartenentwurf.StartwegSchritte"/>, je Element ein Stück mit dem Namen seines Teils).
         /// </summary>
-        private void Startgrundstuecke()
+        private IEnumerable<string> Startgrundstuecke()
         {
             var starts = _e.Gebaeude.Select(g => (g, m: Regex.Match(g.Kennung, @"^(S\d+)_(Werkstatt|Wohnhaus)$"))).Where(x => x.m.Success)
                 .GroupBy(x => x.m.Groups[1].Value, x => x.g).ToList();
             if (starts.Count != _r.Startgrundstuecke)
                 Fehler("startgrundstuecke", $"Die Karte hat {starts.Count} Startgrundstücke statt {_r.Startgrundstuecke}.", null);
-            if (starts.Count == 0) return;
+            if (starts.Count == 0) yield break;
+            foreach (var teil in _e.StartwegSchritte()) yield return teil;
             _b.AddRange(Startwegpruefung.Befunde(_e.Startwegrechnung()));
         }
 
