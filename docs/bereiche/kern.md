@@ -74,6 +74,7 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 - (Balancing, Völkerboni ±3 %) Der Tischler fällt mit ±3 % knapp aus dem Band (−15,7 % nach 20 Jahren, vorher −11,4 %; der Mensch verliert als Tischler zwei Punkte Leistung). Empfehlung: so lassen, bis der nächste Balancing-Lauf ohnehin Preise anfasst – der Abstand liegt im Fehler (etwa ±5 Punkte); sonst Holzwaren um etwa 2 % teurer, vorher messen.
 - (Stress) „Preise verfallen“ misst den Preisfaktor der eigenen Werkstattware am Jahresende gegen eine feste Schwelle (1,1 × Grundpreis), weil die Preise in den Partien fast immer über dem Grundpreis stehen (Median 1,18). Ehrlicher wäre der Fall gegen das Vorjahr (z. B. −15 %); dafür bräuchte es den Preis des Vorjahres je Haus im Spielstand. Erst wenn der Spieler die Quelle als willkürlich empfindet.
 - (Stress, 3c) Die Geheimnisse bringen ihre Stressquellen über `Familienbuch.StressAendern` bzw. `StressTat` mit (neue Ereignisnamen in `StressDaten.Ereignisse` ergänzen).
+- (von Darstellung, Köln Paket 3) `blitz.hoehen` in `wirtschaft.json` kennt die neuen Kölner Sonderbauten noch nicht (es gilt `Standardhoehe`): Vorschlag `koelner_rathaus` 16 (Saalbau mit Walmdach, der Ratsturm im Bau 9), `stapelhaus` 14, `rheinkran` 6; die Torburgen und der Bayenturm (22,7 m) gehören zur Mauer und haben keine Höhe im Katalog
 
 ## Entscheidungen
 
