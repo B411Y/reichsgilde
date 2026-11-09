@@ -435,12 +435,65 @@ public sealed partial class Kartenentwurf
 
     /// <summary>
     /// Die Kapazitätsprüfung dieses Entwurfs (<see cref="Kapazitaetspruefung"/>) – aus dem Zwischenspeicher, bis sich ein Gebäude, ein Weg oder
-    /// eine Bauzone ändert (nur davon hängt sie ab; in Köln dauert sie einige 10 ms).
+    /// eine Bauzone ändert (nur davon hängt sie ab; in Köln 5–10 ms). Neu gerechnet wird mit dem Vorrat des letzten Laufs (<see cref="Abstandsvorrat"/>:
+    /// die Abstände zur Straße nur in der Nähe geänderter Wege); die volle Prüfung rechnet sie in Häppchen (<see cref="KapazitaetSchritte"/>), wer sie
+    /// hier fragt, bekommt den Rest in einem Zug.
     /// </summary>
-    public Kapazitaet Kapazitaetsrechnung(Schwere schwere = Schwere.Fehler) =>
-        _kapazitaet is { } k && k.Schwere == schwere ? k.Ergebnis : (_kapazitaet = (schwere, Kapazitaetspruefung.Pruefen(this, schwere))).Value.Ergebnis;
+    public Kapazitaet Kapazitaetsrechnung(Schwere schwere = Schwere.Fehler)
+    {
+        foreach (var _ in KapazitaetSchritte(schwere)) { }
+        return _kapazitaet!.Value.Ergebnis;
+    }
+
+    /// <summary>
+    /// Rechnet die <see cref="Kapazitaetsrechnung"/> in Häppchen (jedes Element ein Stück, sein Wert der Name des Teils); ist sie fertig oder steht sie im
+    /// Zwischenspeicher, endet die Folge. Ein halber Lauf bleibt über Änderungen erhalten, die die Kapazität nicht betreffen (Boden, Gelände, Natur …);
+    /// eine an Gebäuden, Wegen oder Bauzonen verwirft ihn (<see cref="Vormerken"/>).
+    /// </summary>
+    internal IEnumerable<string> KapazitaetSchritte(Schwere schwere)
+    {
+        while (_kapazitaet is not { } k || k.Schwere != schwere)
+        {
+            if (_kapazitaetLauf is null || _kapazitaetLaufSchwere != schwere)
+            {
+                var lauf = Kapazitaetspruefung.Schritte(this, schwere, _kapazitaetVorrat, (ergebnis, vorrat) =>
+                {
+                    _kapazitaet = (schwere, ergebnis);
+                    _kapazitaetVorrat = vorrat;
+                }).GetEnumerator();
+                (_kapazitaetLauf, _kapazitaetLaufSchwere) = (lauf, schwere);
+            }
+            bool weiter;
+            try
+            {
+                weiter = _kapazitaetLauf.MoveNext();
+            }
+            catch
+            {
+                _kapazitaetLauf = null; // nach einer Ausnahme ist der Lauf tot
+                throw;
+            }
+            if (!weiter)
+            {
+                _kapazitaetLauf = null;
+                yield break;
+            }
+            yield return _kapazitaetLauf.Current;
+        }
+    }
 
     private (Schwere Schwere, Kapazitaet Ergebnis)? _kapazitaet;
+
+    /// <summary>Ein angefangener Lauf der Kapazitätsprüfung (<see cref="KapazitaetSchritte"/>) und mit welcher Schwere er rechnet.</summary>
+    private IEnumerator<string>? _kapazitaetLauf;
+
+    private Schwere _kapazitaetLaufSchwere;
+
+    /// <summary>Raster und Abstände des letzten fertigen Laufs (<see cref="Abstandsvorrat"/>) – bleibt über Änderungen; der nächste Lauf vergleicht.</summary>
+    private Abstandsvorrat? _kapazitaetVorrat;
+
+    /// <summary>Für Tests: Raster und Abstände des letzten fertigen Laufs der Kapazitätsprüfung.</summary>
+    internal Abstandsvorrat? KapazitaetVorrat => _kapazitaetVorrat;
 
     /// <summary>
     /// Die Karrenwege der Startbetriebe zum Markt (<see cref="Startwegpruefung"/>, für die Fairness der Startgrundstücke) – aus dem
@@ -924,7 +977,7 @@ public sealed partial class Kartenentwurf
     private void Vormerken(Kartenaenderung a)
     {
         BefundeVerwerfen();
-        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) _kapazitaet = null;
+        if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) (_kapazitaet, _kapazitaetLauf) = (null, null);
         StartwegeVormerken(a);
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
         if (a.Teil == Kartenteil.Gewaesser || a.Objekt is EntwurfGebaeude { Baustein.AmUfer: true }) _gelaende.WasserVeraltet(); // Spiegel und Bett, Hafenbecken

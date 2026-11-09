@@ -338,9 +338,18 @@ public static class Kartenpruefung
             Teil = "Wegenetz";
             Wegenetz();
             yield return 0;
-            Teil = "Einwohnerplätze und Kapazität";
+            Teil = "Einwohnerplätze";
             Einwohnerplaetze();
-            if (_r.Kapazitaet is { } schwere) _b.AddRange(_e.Kapazitaetsrechnung(schwere).Befunde);
+            if (_r.Kapazitaet is { } schwere)
+            {
+                // die Kapazität in ihren eigenen Häppchen (Kartenentwurf.KapazitaetSchritte; aus dem Zwischenspeicher sofort fertig)
+                foreach (var teil in _e.KapazitaetSchritte(schwere))
+                {
+                    Teil = teil;
+                    yield return 0;
+                }
+                _b.AddRange(_e.Kapazitaetsrechnung(schwere).Befunde);
+            }
         }
 
         /// <summary>
