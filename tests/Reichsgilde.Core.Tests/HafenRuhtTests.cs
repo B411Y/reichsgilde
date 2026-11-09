@@ -51,6 +51,7 @@ static class HafenRuhtTests
         knoten["personal"]!.AsObject().Remove("startJeBetrieb");
         foreach (var feld in Buergermessung.NeueFelder) knoten["buerger"]!.AsObject().Remove(feld); // Bürgerdichte (5.11.2026) wie vor dem Schalter
         knoten.AsObject().Remove("lebensweise"); // Lebensweise (Datenversion 74) gab es vor dem Schalter nicht
+        knoten.AsObject().Remove("stress"); // Stress (Datenversion 76) ebenso wenig – die zwei neuen erworbenen Züge kommen ohne ihn nie vor
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },

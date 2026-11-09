@@ -1,0 +1,477 @@
+using System.IO.Compression;
+using System.Text.Json.Nodes;
+using Reichsgilde.Core;
+using Reichsgilde.Core.Dynastie;
+using Reichsgilde.Core.Gauner;
+using Reichsgilde.Core.Glaube;
+using Reichsgilde.Core.Justiz;
+using Reichsgilde.Core.Mehrspieler;
+using Reichsgilde.Core.Partie;
+using Reichsgilde.Core.Politik;
+using Reichsgilde.Core.Speichern;
+using Reichsgilde.Core.Wirtschaft;
+
+/// <summary>
+/// Tests für den Stress (Charaktersystem Teil 3b): Daten, wer Stress hat, Quellen (Taten gegen den Charakter, Trauer, Haus, Gericht, Krankheit),
+/// Ventile, Abklingen, Stufen und Folgen, Zusammenbruch und Spielstand – jeweils mit Gegenprobe.
+/// </summary>
+static class StressTests
+{
+    static readonly Lazy<string> Json = new(() => File.ReadAllText(Datenpfad.Wirtschaft()));
+    static readonly Lazy<Wirtschaftsdaten> Daten = new(() => Wirtschaftsdaten.AusJson(Json.Value));
+
+    /// <summary>Dieselben Daten ohne den Abschnitt "stress" – wie vor Teil 3b (alte Spielstände bringen solche Daten mit).</summary>
+    static readonly Lazy<Wirtschaftsdaten> Ohne = new(() =>
+    {
+        var knoten = JsonNode.Parse(Json.Value)!.AsObject();
+        knoten.Remove("stress");
+        return Wirtschaftsdaten.AusJson(knoten.ToJsonString());
+    });
+
+    static Simulation NeueSimulation(int startwert = 1400, Wirtschaftsdaten? daten = null) =>
+        new(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = startwert }, wirtschaftsdaten: daten ?? Daten.Value);
+
+    static void JahrBeenden(Simulation sim)
+    {
+        var jahr = sim.Zeit.Jahr;
+        while (sim.Zeit.Jahr == jahr) sim.Tick();
+    }
+
+    static (Konto Konto, Familie Familie) Haus(Stadtwirtschaft w, string name, params string[] zuege)
+    {
+        var konto = w.KontoEroeffnen(name, startvermoegen: 50_000);
+        var f = w.Familien.Gruenden(konto, Volk.Mensch, Geschlecht.Mann, alter: 30, glaube: Konfession.Katholisch);
+        konto.Aktionspunkte.Setzen(12);
+        Zuege(w, f.Oberhaupt, zuege);
+        return (konto, f);
+    }
+
+    static void Zuege(Stadtwirtschaft w, Person p, params string[] kennungen)
+    {
+        p.ZuegeLeeren();
+        foreach (var k in kennungen) p.ZugHinzufuegen(w.Daten.Charakterzuege!.Zug(k)!);
+    }
+
+    static Person Heiraten(Stadtwirtschaft w, Konto konto)
+    {
+        var k = w.Familien.Kandidaten.First(k => k.Person.Geschlecht == Geschlecht.Frau);
+        w.Familien.Vermaehlen(konto, k, 0);
+        var e = w.Familien.Von(konto)!.Ehepartner!;
+        e.ZuegeLeeren();
+        return e;
+    }
+
+    static Ratsherr Ratsherr(Stadtwirtschaft w, int nummer = 0) => w.Rat.Ratsherren[nummer];
+
+    static Ratsherr Katholisch(Stadtwirtschaft w) => w.Rat.Ratsherren.First(r => w.Glaube.GlaubeVon(r) == Konfession.Katholisch);
+
+    static double Stress(Stadtwirtschaft w, Person p) => w.Familien.Stress(p);
+
+    /// <summary>Steht Stress im Spielstand (außer in den mitgebrachten Daten, die den Abschnitt „Stress“ immer als Feld führen)?</summary>
+    static bool StressImSpielstand(string json)
+    {
+        var n = JsonNode.Parse(json)!.AsObject();
+        foreach (var k in n.Select(p => p.Key).Where(k => k.Equals("daten", StringComparison.OrdinalIgnoreCase)).ToList()) n.Remove(k);
+        var text = n.ToJsonString();
+        return text.Contains("\"Stress\"", StringComparison.Ordinal) || text.Contains("\"StressWuerfe\"", StringComparison.Ordinal);
+    }
+
+    static void Ok(Stadtwirtschaft w, Konto konto, Befehl befehl)
+    {
+        var e = w.Ausfuehren(konto, befehl);
+        Pruefe.Wahr(e.Erfolg, $"{befehl.GetType().Name}: {e.Meldung}");
+    }
+
+    public static IEnumerable<(string, Action)> Alle() => new (string, Action)[]
+    {
+        ("Stress: Daten – Datenversion 76, Stufen ab 40 (angespannt) und 70 (zermürbt), Höchstwert 100, danach 60; Ventile Wirtshaus, Messe, Jagd; " +
+         "neue erworbene Züge Schwermütig und Reizbar ohne Anlass", () =>
+        {
+            var d = Daten.Value.Stress!;
+            Pruefe.Gleich(76, Daten.Value.Version);
+            Pruefe.Wahr(d.IstAktiv, "Stress aktiv");
+            Pruefe.Gleich("angespannt:40,zermürbt:70", string.Join(",", d.Stufen.Select(s => $"{s.Name}:{s.Ab}")));
+            Pruefe.Gleich(100.0, d.Hoechstwert);
+            Pruefe.Gleich(60.0, d.NachZusammenbruch);
+            Pruefe.Gleich("Zechen=15,Messe=15,Jagd=30", string.Join(",", d.Ventile.Select(v => $"{v.Key}={v.Value}")));
+            Pruefe.Gleich("Trinker,Schwermuetig,Reizbar", string.Join(",", d.Zusammenbruch.Zuege));
+            var z = Daten.Value.Charakterzuege!;
+            foreach (var k in new[] { "Schwermuetig", "Reizbar" })
+            {
+                Pruefe.Gleich(Zugart.Erworben, z.Zug(k)!.Art);
+                Pruefe.Gleich(0, z.Zug(k)!.Daten.Anlaesse.Count); // kommen nur mit dem Zusammenbruch
+            }
+            Pruefe.Gleich(-0.5, z.Zug("Schwermuetig")!.Talent(Talent.Handwerk));
+            Pruefe.Gleich(0.5, z.Zug("Reizbar")!.Talent(Talent.Kampf));
+            Pruefe.Gleich(-5.0, z.Zug("Reizbar")!.Daten.Meinung.Allgemein);
+            Pruefe.Gleich(-5.0, d.ZugAbklingen["Schwermuetig"]);
+            Pruefe.Wahr(d.Taten.Count >= 20, "Taten gegen den Charakter");
+            // Gegenprobe: ohne Abschnitt gibt es keinen Stress
+            Pruefe.Wahr(Ohne.Value.Stress is null, "ohne Abschnitt");
+        }),
+
+        ("Stress: Daten werden geprüft – unbekannte Tat, unbekannter Zug, unbekannte Aktivität und Krankheit, ungeordnete Stufen", () =>
+        {
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"tat\": \"Erpressen\", \"stress\": 15", "\"tat\": \"Kuchenbacken\", \"stress\": 15")),
+                "„Kuchenbacken“");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("{ \"zug\": \"Ehrlich\", \"tat\": \"Beauftragen\"", "{ \"zug\": \"Bucklig\", \"tat\": \"Beauftragen\"")),
+                "„Bucklig“");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"ventile\": { \"Zechen\": 15", "\"ventile\": { \"Tanzen\": 15")), "„Tanzen“");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"name\": \"zermürbt\", \"ab\": 70", "\"name\": \"zermürbt\", \"ab\": 30")), "aufsteigend");
+            Pruefe.WirftMitMeldung(() => Wirtschaftsdaten.AusJson(Json.Value.Replace("\"Haarausfall\" ] }", "\"Schnupfen\" ] }")), "„Schnupfen“");
+            // Gegenprobe: die echten Daten laden
+            Pruefe.Wahr(Wirtschaftsdaten.AusJson(Json.Value).Stress is { IstAktiv: true }, "echte Daten laden");
+        }),
+
+        ("Stress: Wer Stress hat – Oberhaupt, Ehepartner und volljähriger Erbe, nicht das Kind und nicht die Brautschau; ohne Abschnitt niemand", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (konto, f) = Haus(w, "Haus Probe");
+            var e = Heiraten(w, konto);
+            var erbe = w.Familien.KindAufnehmen(konto, 25);
+            var kind = w.Familien.KindAufnehmen(konto, 5);
+            Pruefe.Wahr(w.Familien.HatStress(f.Oberhaupt) && w.Familien.HatStress(e) && w.Familien.HatStress(erbe), "Oberhaupt, Ehepartner, Erbe");
+            Pruefe.Wahr(!w.Familien.HatStress(kind), "das Kind nicht");
+            Pruefe.Wahr(!w.Familien.HatStress(w.Familien.Kandidaten[0].Person), "die Brautschau nicht");
+            w.Familien.StressAendern(kind, 30, "Probe");
+            Pruefe.Gleich(0.0, Stress(w, kind));
+            w.Familien.StressAendern(erbe, 30, "Probe");
+            Pruefe.Gleich(30.0, Stress(w, erbe));
+            // Gegenprobe: ohne Abschnitt "stress"
+            var w2 = NeueSimulation(daten: Ohne.Value).Wirtschaft!;
+            var (_, f2) = Haus(w2, "Haus Ohne");
+            Pruefe.Wahr(!w2.Familien.HatStresswesen && !w2.Familien.HatStress(f2.Oberhaupt), "ohne Abschnitt kein Stress");
+            w2.Familien.StressAendern(f2.Oberhaupt, 50, "Probe");
+            Pruefe.Gleich(0.0, Stress(w2, f2.Oberhaupt));
+        }),
+
+        ("Stress: Taten gegen den Charakter – ehrlich und fromm bestellt Krötenschleim (+10, +15), verschlagen nichts; ein abgelehnter Befehl bringt nichts", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (ziel, _) = Haus(w, "Haus Ziel");
+            var (a, fa) = Haus(w, "Haus Ehrlich", "Ehrlich", "Fromm");
+            var (b, fb) = Haus(w, "Haus Schlau", "Verschlagen", "Zynisch");
+            var befehl = new Beauftragen(ziel.Inhaber, Gaunerstueck.Kroetenschleim);
+            Pruefe.Gleich(25.0, w.Familien.StressDurch(a, befehl)); // Vorschau für KI und Oberfläche
+            Ok(w, a, befehl);
+            Pruefe.Gleich(25.0, Stress(w, fa.Oberhaupt));
+            var texte = string.Join(" | ", fa.Oberhaupt.Stresslage.Eintraege.Select(x => x.Text));
+            Pruefe.Wahr(texte.Contains("Gaunerstück in Auftrag gegeben (ehrlich)") && texte.Contains("Krötenschleim in Auftrag gegeben (fromm)"), texte);
+            Ok(w, b, befehl);
+            Pruefe.Gleich(0.0, Stress(w, fb.Oberhaupt)); // Gegenprobe: verschlagen
+            // Gegenprobe: abgelehnt (kein Geld) – kein Stress
+            var (c, fc) = Haus(w, "Haus Arm", "Ehrlich");
+            c.Gaunerkosten(c.Vermoegen);
+            Pruefe.Wahr(!w.Ausfuehren(c, befehl).Erfolg, "ohne Geld abgelehnt");
+            Pruefe.Gleich(0.0, Stress(w, fc.Oberhaupt));
+        }),
+
+        ("Stress: Träge übt (+5), Fleißig nicht; Gierig schenkt ab 200 Gulden (+5), darunter nicht; Ehrlich besticht einen Ratsherrn (+5)", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (a, fa) = Haus(w, "Haus Faul", "Traege");
+            var (b, fb) = Haus(w, "Haus Emsig", "Fleissig");
+            Ok(w, a, new TalentTrainieren(Talent.Kampf));
+            Ok(w, b, new TalentTrainieren(Talent.Kampf));
+            Pruefe.Gleich(5.0, Stress(w, fa.Oberhaupt));
+            Pruefe.Gleich(0.0, Stress(w, fb.Oberhaupt));
+            var (g, fg) = Haus(w, "Haus Geiz", "Gierig");
+            Ok(w, g, new Schenken(Ratsherr(w, 0).Name, 100));
+            Pruefe.Gleich(0.0, Stress(w, fg.Oberhaupt)); // unter 200 nichts
+            Ok(w, g, new Schenken(Ratsherr(w, 1).Name, 250));
+            Pruefe.Gleich(5.0, Stress(w, fg.Oberhaupt));
+            var (h, fh) = Haus(w, "Haus Redlich", "Ehrlich");
+            Ok(w, h, new Aktivitaet("Geschenk", Ratsherr(w, 2).Kennung, 50)); // auch als Aktivität ist ein Geschenk an einen Ratsherrn Bestechung
+            Pruefe.Gleich(5.0, Stress(w, fh.Oberhaupt));
+            Pruefe.Wahr(fh.Oberhaupt.Stresslage.Eintraege[^1].Text.Contains("Ratsherrn beschenkt"), "Text der Quelle");
+        }),
+
+        ("Stress: Ventile – Zechen baut 15 ab, wer es mag 22,5, wer es nicht mag bekommt 8; je Art einmal im Jahr, Messe trotzdem; im nächsten Jahr wieder", () =>
+        {
+            var sim = NeueSimulation();
+            var w = sim.Wirtschaft!;
+            var (a, fa) = Haus(w, "Haus Ruhe");
+            var (b, fb) = Haus(w, "Haus Zecher", "Gesellig");
+            var (c, fc) = Haus(w, "Haus Fromm", "Fromm");
+            foreach (var f in new[] { fa, fb, fc }) w.Familien.StressSetzen(f.Oberhaupt, 50);
+            Ok(w, a, new Aktivitaet("Zechen", Ratsherr(w, 0).Kennung));
+            Ok(w, b, new Aktivitaet("Zechen", Ratsherr(w, 0).Kennung));
+            Ok(w, c, new Aktivitaet("Zechen", Ratsherr(w, 0).Kennung));
+            Pruefe.Ungefaehr(35, Stress(w, fa.Oberhaupt), 1e-9);
+            Pruefe.Ungefaehr(27.5, Stress(w, fb.Oberhaupt), 1e-9);
+            Pruefe.Ungefaehr(58, Stress(w, fc.Oberhaupt), 1e-9); // mag es nicht
+            Ok(w, a, new Aktivitaet("Zechen", Ratsherr(w, 1).Kennung)); // dieselbe Art im selben Jahr: kein Abbau mehr
+            Pruefe.Ungefaehr(35, Stress(w, fa.Oberhaupt), 1e-9);
+            Pruefe.Gleich(0.0, w.Familien.StressDurch(a, new Aktivitaet("Zechen", Ratsherr(w, 2).Kennung)));
+            Ok(w, a, new Aktivitaet("Messe", Katholisch(w).Kennung)); // eine andere Art schon
+            Pruefe.Ungefaehr(20, Stress(w, fa.Oberhaupt), 1e-9);
+            JahrBeenden(sim);
+            Zuege(w, fa.Oberhaupt); // ohne Persönlichkeit hätte der Jahreswechsel ihm gerade drei Züge gegeben
+            w.Familien.StressSetzen(fa.Oberhaupt, 50);
+            a.Aktionspunkte.Setzen(12);
+            Ok(w, a, new Aktivitaet("Zechen", Ratsherr(w, 0).Kennung)); // neues Jahr: wieder frei
+            Pruefe.Ungefaehr(35, Stress(w, fa.Oberhaupt), 1e-9);
+        }),
+
+        ("Stress: Gastmahl ist kein Ventil (ruhig bleibt), Scheu bekommt 8; Zechen mit dem eigenen Ehepartner senkt den Stress beider", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (a, fa) = Haus(w, "Haus Gast");
+            var (b, fb) = Haus(w, "Haus Scheu", "Scheu");
+            foreach (var f in new[] { fa, fb }) w.Familien.StressSetzen(f.Oberhaupt, 50);
+            Ok(w, a, new Aktivitaet("Gastmahl", Ratsherr(w, 0).Kennung));
+            Ok(w, b, new Aktivitaet("Gastmahl", Ratsherr(w, 0).Kennung));
+            Pruefe.Ungefaehr(50, Stress(w, fa.Oberhaupt), 1e-9);
+            Pruefe.Ungefaehr(58, Stress(w, fb.Oberhaupt), 1e-9);
+            var (c, fc) = Haus(w, "Haus Ehe");
+            var e = Heiraten(w, c);
+            w.Familien.StressSetzen(fc.Oberhaupt, 40);
+            w.Familien.StressSetzen(e, 40);
+            Ok(w, c, new Aktivitaet("Zechen", e.Kennung));
+            Pruefe.Ungefaehr(25, Stress(w, fc.Oberhaupt), 1e-9);
+            Pruefe.Ungefaehr(25, Stress(w, e), 1e-9);
+        }),
+
+        ("Stress: Trauer – stirbt ein Kind, +20 für beide Eltern; stirbt der Ehepartner, +30; stirbt das Oberhaupt, +10 für den Erben (Elternteil)", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (konto, f) = Haus(w, "Haus Leid");
+            var o = f.Oberhaupt;
+            var e = Heiraten(w, konto);
+            var kind = w.Familien.EntwicklerGeburt(f, Geschlecht.Frau);
+            w.Familien.AnKrankheitSterben(kind, "an der Ruhr");
+            Pruefe.Gleich(20.0, Stress(w, o));
+            Pruefe.Gleich(20.0, Stress(w, e));
+            Pruefe.Wahr(o.Stresslage.Eintraege[^1].Text.Contains($"Trauer um Tochter {kind.Vorname}"), o.Stresslage.Eintraege[^1].Text);
+            w.Familien.AnKrankheitSterben(e, "an der Ruhr");
+            Pruefe.Gleich(50.0, Stress(w, o));
+            var (k2, f2) = Haus(w, "Haus Erbe");
+            var erbe = w.Familien.KindAufnehmen(k2, 25);
+            var kind2 = w.Familien.KindAufnehmen(k2, 5);
+            w.Familien.AnKrankheitSterben(f2.Oberhaupt, "an der Ruhr");
+            Pruefe.Wahr(f2.Oberhaupt == erbe, "der Erbe führt das Haus");
+            Pruefe.Gleich(10.0, Stress(w, erbe));
+            Pruefe.Gleich(0.0, kind2.Stresslage.Wert); // Gegenprobe: das Kind hat keinen Stress
+        }),
+
+        ("Stress: Haus, Gericht, Krankheit – Bargeld im Minus +10 am Jahresende, angeklagt +10, feiges Oberhaupt klagt an +5, erkrankt +5", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (a, fa) = Haus(w, "Haus Feige", "Feige");
+            var (b, fb) = Haus(w, "Haus Beklagt");
+            var spur = w.Justiz.TatMelden(b, Vergehen.Diebstahl, "Haus Feige", 100)!;
+            w.Justiz.BeweisGeben(a, spur);
+            Ok(w, a, new Anklagen(b.Inhaber));
+            Pruefe.Gleich(5.0, Stress(w, fa.Oberhaupt));
+            Pruefe.Gleich(10.0, Stress(w, fb.Oberhaupt));
+            Pruefe.Wahr(fb.Oberhaupt.Stresslage.Eintraege[^1].Text.Contains("Angeklagt von Haus Feige"), "Text");
+            Pruefe.Wahr(w.Gesundheit.Erkranken(b, fb.Oberhaupt, "Husten"), "erkrankt");
+            Pruefe.Gleich(15.0, Stress(w, fb.Oberhaupt));
+            var (c, fc) = Haus(w, "Haus Pleite");
+            w.Familien.StressSetzen(fc.Oberhaupt, 50);
+            c.Gaunerkosten(c.Vermoegen + 100); // Bargeld −100
+            w.Familien.StressImJahreswechsel(fc);
+            Pruefe.Gleich(45.0, Stress(w, fc.Oberhaupt)); // +10, dann −15
+            Pruefe.Gleich("Bargeld im Minus +10 | Abklingen −15",
+                string.Join(" | ", fc.Oberhaupt.Stresslage.Eintraege.Select(x => $"{x.Text} {Zahlenformat.MitVorzeichen(x.Wert)}")));
+        }),
+
+        ("Stress: Abklingen – jedes Jahr −15, in glücklicher Ehe −20, schwermütig −10; nie unter 0; die Ventile sind im neuen Jahr frei", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (a, fa) = Haus(w, "Haus Gleich");
+            var (b, fb) = Haus(w, "Haus Glueck");
+            var e = Heiraten(w, b);
+            var (c, fc) = Haus(w, "Haus Schwer", "Schwermuetig");
+            var (d, fd) = Haus(w, "Haus Leicht");
+            foreach (var f in new[] { fa, fb, fc }) w.Familien.StressSetzen(f.Oberhaupt, 50);
+            w.Familien.StressSetzen(fd.Oberhaupt, 10);
+            w.Meinungen.EntwicklerGrundSetzen(e, b, 60);
+            Pruefe.Wahr(w.Meinungen.Meinung(e, fb.Oberhaupt) >= 50, "glückliche Ehe");
+            fa.Oberhaupt.Stresslage.VentilMerken("Zechen");
+            foreach (var f in new[] { fa, fb, fc, fd }) w.Familien.StressImJahreswechsel(f);
+            Pruefe.Gleich(35.0, Stress(w, fa.Oberhaupt));
+            Pruefe.Gleich(30.0, Stress(w, fb.Oberhaupt));
+            Pruefe.Gleich(40.0, Stress(w, fc.Oberhaupt));
+            Pruefe.Gleich(0.0, Stress(w, fd.Oberhaupt));
+            Pruefe.Gleich(0, fa.Oberhaupt.Stresslage.Ventile.Count);
+        }),
+
+        ("Stress: Stufen und Folgen – ab 40 Erfahrung −25 % und Gefahr +5 Prozentpunkte; ab 70 Erfahrung −50 %, Talente −½, Krankheiten +25 %, " +
+         "Ehepartner −5 („unleidlich“), KI vorsichtiger; darunter nichts; ohne Abschnitt nichts", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (konto, f) = Haus(w, "Haus Last");
+            var o = f.Oberhaupt;
+            var e = Heiraten(w, konto);
+            var r = Ratsherr(w, 0);
+            var pfad = w.Familien.AktiverPfad(o);
+            w.Familien.StressSetzen(o, 30);
+            var erfahrung = w.Familien.ErfahrungFaktor(o, pfad);
+            var gefahr = w.Meinungen.Aktivitaet(konto, r, "Zechen")!.Gefahr;
+            var talent = o.Talent(Talent.Handwerk);
+            var krank = w.Familien.KrankheitFaktor(o);
+            var meinung = w.Meinungen.Meinung(e, o);
+            Pruefe.Gleich(0, w.Familien.StressStufe(o));
+            Pruefe.Gleich("ruhig", w.Familien.StressStufenname(0));
+            w.Familien.StressSetzen(o, 45);
+            Pruefe.Gleich(1, w.Familien.StressStufe(o));
+            Pruefe.Ungefaehr(erfahrung * 0.75, w.Familien.ErfahrungFaktor(o, pfad), 1e-12);
+            Pruefe.Ungefaehr(gefahr + 0.05, w.Meinungen.Aktivitaet(konto, r, "Zechen")!.Gefahr, 1e-12);
+            Pruefe.Ungefaehr(talent, o.Talent(Talent.Handwerk), 1e-12);
+            w.Familien.StressSetzen(o, 75);
+            Pruefe.Gleich(2, w.Familien.StressStufe(o));
+            Pruefe.Gleich("zermürbt", w.Familien.StressStufenname(2));
+            Pruefe.Ungefaehr(erfahrung * 0.5, w.Familien.ErfahrungFaktor(o, pfad), 1e-12);
+            Pruefe.Ungefaehr(Math.Max(0, talent - 0.5), o.Talent(Talent.Handwerk), 1e-12);
+            Pruefe.Ungefaehr(krank * 1.25, w.Familien.KrankheitFaktor(o), 1e-12);
+            Pruefe.Ungefaehr(meinung - 5, w.Meinungen.Meinung(e, o), 1e-9);
+            Pruefe.Wahr(w.Meinungen.Gruende(e, o).Any(g => g.Text == "Unleidlich (Stress)" && g.Wert == -5), "Grund im Tooltip");
+            Pruefe.Ungefaehr(1.2, w.Familien.KiStressVorsicht(konto), 1e-12);
+            Pruefe.Wahr(w.Familien.StressFolgen(2).Contains("alle Talente −½ Stern"), w.Familien.StressFolgen(2));
+            // Gegenprobe: zurück auf 30 – alles wie vorher
+            w.Familien.StressSetzen(o, 30);
+            Pruefe.Ungefaehr(talent, o.Talent(Talent.Handwerk), 1e-12);
+            Pruefe.Ungefaehr(meinung, w.Meinungen.Meinung(e, o), 1e-9);
+            // Gegenprobe: ohne Abschnitt wirkt auch ein hoher Wert nicht
+            var w2 = NeueSimulation(daten: Ohne.Value).Wirtschaft!;
+            var (_, f2) = Haus(w2, "Haus Ohne");
+            var t2 = f2.Oberhaupt.Talent(Talent.Handwerk);
+            w2.Familien.StressSetzen(f2.Oberhaupt, 90);
+            Pruefe.Gleich(0, w2.Familien.StressStufe(f2.Oberhaupt));
+            Pruefe.Ungefaehr(t2, f2.Oberhaupt.Talent(Talent.Handwerk), 1e-12);
+        }),
+
+        ("Stress: Zusammenbruch bei 100 – ein Zug (Trinker, Schwermütig, Reizbar) oder eine Krankheit (Vergesslichkeit, Lachanfälle, Angst im Dunkeln, " +
+         "Haarausfall), danach 60; mit derselben Partie dieselbe Folge", () =>
+        {
+            string Reihe()
+            {
+                var w = NeueSimulation(77).Wirtschaft!;
+                var meldungen = 0;
+                w.Meldung += m => { if (m.StartsWith("Zusammenbruch:", StringComparison.Ordinal)) meldungen++; };
+                var folgen = new List<string>();
+                for (var i = 0; i < 12; i++)
+                {
+                    var (_, f) = Haus(w, $"Haus {i}");
+                    var o = f.Oberhaupt;
+                    w.Familien.StressSetzen(o, 95);
+                    w.Familien.StressAendern(o, 10, "Probe");
+                    Pruefe.Gleich(60.0, Stress(w, o));
+                    Pruefe.Gleich("Zusammenbruch", o.Stresslage.Eintraege[^1].Text);
+                    var zug = o.Zuege.Select(z => z.Kennung).FirstOrDefault(k => k is "Trinker" or "Schwermuetig" or "Reizbar");
+                    var krank = o.Krankheit?.Name;
+                    Pruefe.Wahr((zug is null) != (krank is null), $"genau eine Folge: Zug {zug}, Krankheit {krank}");
+                    Pruefe.Wahr(krank is null or "Vergesslichkeit" or "Lachanfälle" or "Angst im Dunkeln" or "Haarausfall", $"Krankheit {krank}");
+                    folgen.Add(zug ?? krank!);
+                }
+                Pruefe.Gleich(12, meldungen);
+                Pruefe.Wahr(folgen.Any(x => x is "Trinker" or "Schwermuetig" or "Reizbar") && folgen.Any(x => x is not ("Trinker" or "Schwermuetig" or "Reizbar")),
+                    $"beides kommt vor: {string.Join(", ", folgen)}");
+                return string.Join(",", folgen);
+            }
+            Pruefe.Gleich(Reihe(), Reihe());
+        }),
+
+        ("Stress: Zusammenbruch mit allen drei Zügen und krank – nichts mehr zu geben, nur der Fall auf 60; mit allen drei Zügen und gesund eine Krankheit", () =>
+        {
+            var w = NeueSimulation().Wirtschaft!;
+            var (konto, f) = Haus(w, "Haus Ende", "Trinker", "Schwermuetig", "Reizbar");
+            var o = f.Oberhaupt;
+            Pruefe.Wahr(w.Gesundheit.Erkranken(konto, o, "Husten"), "krank");
+            w.Familien.StressSetzen(o, 99);
+            w.Familien.StressAendern(o, 5, "Probe");
+            Pruefe.Gleich(60.0, Stress(w, o));
+            Pruefe.Gleich(3, o.Zuege.Count);
+            Pruefe.Gleich("Husten", o.Krankheit!.Name);
+            var (k2, f2) = Haus(w, "Haus Gesund", "Trinker", "Schwermuetig", "Reizbar");
+            w.Familien.StressSetzen(f2.Oberhaupt, 99);
+            w.Familien.StressAendern(f2.Oberhaupt, 5, "Probe");
+            Pruefe.Wahr(f2.Oberhaupt.Krankheit is { Name: "Vergesslichkeit" or "Lachanfälle" or "Angst im Dunkeln" or "Haarausfall" }, "Krankheit statt Zug");
+            Pruefe.Gleich(60.0, Stress(w, f2.Oberhaupt)); // die Krankheit des Zusammenbruchs bringt keinen neuen Stress
+        }),
+
+        ("Stress: Spielstand – Wert, Einträge, Ventile und die Würfe des Zusammenbruchs bleiben; die Partie läuft gleich weiter", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 31 },
+                Daten.Value, new NeuePartie());
+            for (var i = 0; i < 2; i++) JahrBeenden(sim);
+            var w = sim.Wirtschaft!;
+            var o = w.Familien.Von(spieler)!.Oberhaupt;
+            w.Familien.StressSetzen(o, 98);
+            w.Familien.StressAendern(o, 5, "Probe"); // Zusammenbruch: würfelt
+            o.Stresslage.VentilMerken("Messe");
+            var zeitpunkt = new DateTime(2026, 11, 9, 12, 0, 0);
+            var json = Speicherung.Speichern(sim, spieler, zeitpunkt);
+            Pruefe.Wahr(StressImSpielstand(json) && json.Contains("\"StressWuerfe\""), "Stress im Spielstand");
+            var (geladen, geladenerSpieler) = Speicherung.Laden(json);
+            Pruefe.Gleich(json, Speicherung.Speichern(geladen, geladenerSpieler, zeitpunkt));
+            var neu = geladen.Wirtschaft!.Familien.Von(geladenerSpieler!)!.Oberhaupt;
+            Pruefe.Gleich(o.Stresslage.Wert, neu.Stresslage.Wert);
+            Pruefe.Gleich(string.Join("|", o.Stresslage.Eintraege), string.Join("|", neu.Stresslage.Eintraege));
+            Pruefe.Gleich("Messe", string.Join(",", neu.Stresslage.Ventile));
+            Pruefe.Gleich(Zustandspruefsumme.Berechnen(sim), Zustandspruefsumme.Berechnen(geladen));
+            // ein zweiter Zusammenbruch würfelt in beiden gleich
+            foreach (var (welt, p) in new[] { (w, o), (geladen.Wirtschaft, neu) })
+            {
+                welt.Familien.StressSetzen(p, 99);
+                welt.Familien.StressAendern(p, 5, "Probe");
+            }
+            Pruefe.Gleich(string.Join(",", o.Zuege) + o.Krankheit?.Name, string.Join(",", neu.Zuege) + neu.Krankheit?.Name);
+            for (var i = 0; i < 3; i++) { JahrBeenden(sim); JahrBeenden(geladen); }
+            Pruefe.Gleich(Speicherung.Speichern(sim, spieler, zeitpunkt), Speicherung.Speichern(geladen, geladenerSpieler, zeitpunkt));
+        }),
+
+        ("Stress: Spielstand ohne Stress (Daten ohne Abschnitt) lädt, läuft ein Jahr, speichert und lädt gleich – kein Feld, niemand hat Stress", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 32 },
+                Ohne.Value, new NeuePartie());
+            var json = Speicherung.Speichern(sim, spieler);
+            var (geladen, geladenerSpieler) = Speicherung.Laden(json);
+            Pruefe.Wahr(!geladen.Wirtschaft!.Familien.HatStresswesen, "kein Stress");
+            JahrBeenden(geladen);
+            var zeitpunkt = new DateTime(2026, 11, 9, 12, 0, 0);
+            var nachJahr = Speicherung.Speichern(geladen, geladenerSpieler, zeitpunkt);
+            Pruefe.Wahr(!StressImSpielstand(nachJahr), "kein Feld ohne Stress");
+            var (wieder, wiederSpieler) = Speicherung.Laden(nachJahr);
+            Pruefe.Gleich(nachJahr, Speicherung.Speichern(wieder, wiederSpieler, zeitpunkt));
+        }),
+
+        ("Stress: alter Spielstand (Greybox 1406, Datenversion 55) lädt mit seinen Daten, läuft ein Jahr, speichert und lädt gleich – ohne Stress", () =>
+        {
+            var datei = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(Datenpfad.Wirtschaft())))!,
+                "tests", "Reichsgilde.Core.Tests", "Spielstaende", "format2-greybox-herbst1406.json.gz");
+            using var gz = new GZipStream(File.OpenRead(datei), CompressionMode.Decompress);
+            var (sim, spieler) = Speicherung.Laden(new StreamReader(gz).ReadToEnd());
+            Pruefe.Wahr(!sim.Wirtschaft!.Familien.HatStresswesen, "Daten 55 ohne Stress");
+            JahrBeenden(sim);
+            var zeitpunkt = new DateTime(2026, 11, 9, 12, 0, 0);
+            var json = Speicherung.Speichern(sim, spieler, zeitpunkt);
+            Pruefe.Wahr(!StressImSpielstand(json), "kein Feld");
+            var (wieder, wiederSpieler) = Speicherung.Laden(json);
+            Pruefe.Gleich(json, Speicherung.Speichern(wieder, wiederSpieler, zeitpunkt));
+        }),
+
+        ("Stress: In einer Partie mit KI-Häusern (Greybox, 10 Jahre) bekommen Oberhäupter Stress, keiner kommt über 100", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
+                Daten.Value, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied"), karte: Reichsgilde.Core.Bauen.Stadtkarte.AusDatei(Datenpfad.Karte("greybox")));
+            var w = sim.Wirtschaft!;
+            var quellen = 0;
+            var hoechst = 0.0;
+            for (var i = 0; i < 10; i++)
+            {
+                JahrBeenden(sim);
+                foreach (var k in w.Konten)
+                    if (w.Familien.Von(k) is { } f)
+                        foreach (var p in f.Lebende)
+                        {
+                            hoechst = Math.Max(hoechst, p.Stresslage.Wert);
+                            quellen += p.Stresslage.Eintraege.Count(x => x.Wert > 0 && x.Jahr == w.Familien.Jahr - 1);
+                        }
+            }
+            Pruefe.Wahr(quellen > 0, "Quellen kommen vor");
+            Pruefe.Wahr(hoechst <= 100, $"höchstens 100 ({hoechst})");
+        }),
+    };
+}
