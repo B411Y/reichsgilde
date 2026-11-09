@@ -20,11 +20,13 @@ static class KarrenwegTests
     static readonly string[] Arten = { "Handkarren", "Ochsenkarren", "Pferdekarren" };
 
     /// <summary>Die Startpartie einer Karte mit allen KI-Häusern („Schwer“: mit Werkstatt und Umlandbetrieb, so sind auch die Umlandwege dabei).</summary>
-    static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null)
+    /// <param name="vorgabe">Ohne Los der Hofstellen (9.11.2026): jedes Haus auf seinem Platz der Startbelegung, wie vor den Hofstellen.</param>
+    static Stadtwirtschaft Partie(string kennung, Wirtschaftsdaten? daten = null, bool vorgabe = false)
     {
         var haeuser = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Datenpfad.Karte(kennung)))!["start"]?["haeuser"]?.AsArray().Count ?? 1;
         var (sim, _) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Schwierigkeit = Schwierigkeit.Schwer },
-            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser), karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
+            daten ?? Daten.Value, new NeuePartie(Rivalen: haeuser, Startplaetze: vorgabe ? Startplatzvergabe.Vorgabe : Startplatzvergabe.Gelost),
+            karte: Stadtkarte.AusDatei(Datenpfad.Karte(kennung)));
         return sim.Wirtschaft!;
     }
 
@@ -216,7 +218,7 @@ static class KarrenwegTests
             };
             foreach (var kennung in new[] { "greybox", "probestadt" })
             {
-                var w = Partie(kennung, alt);
+                var w = Partie(kennung, alt, vorgabe: true); // die Werte des alten Codes gelten für die Plätze der Startbelegung
                 var mitWeg = w.Betriebe.Where(b => w.Fahrten(b) is { Hin.Count: > 0 }).OrderBy(b => b.Name, StringComparer.Ordinal).ToList();
                 var erwartet = alterCode.Where(x => x.Karte == kennung).ToList();
                 Pruefe.Gleich(string.Join(", ", erwartet.Select(x => x.Betrieb)), string.Join(", ", mitWeg.Select(b => b.Name)), kennung);

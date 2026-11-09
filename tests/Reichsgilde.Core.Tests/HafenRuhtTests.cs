@@ -57,7 +57,7 @@ static class HafenRuhtTests
         var daten = Wirtschaftsdaten.AusJson(knoten.ToJsonString());
         var (sim, spieler) = Partieaufbau.Erstellen(
             Partieeinstellungen.Standard with { Zufallsstartwert = 1400, Siegbedingung = Siegbedingung.Endlos },
-            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied"), karte: Karte("greybox"));
+            daten, new NeuePartie(Startvermoegen: 15_000, Beruf: "Schmied", Startplaetze: Startplatzvergabe.Vorgabe), karte: Karte("greybox")); // ohne Los wie vor den Hofstellen
         var w = sim.Wirtschaft!;
         var kauf = w.Ausfuehren(spieler, new SchiffKaufen());
         if (kauf.Erfolg && w.Schiffahrt.SchiffeVon(spieler).FirstOrDefault() is { } schiff

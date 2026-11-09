@@ -16,7 +16,8 @@ static class BalancingberichtNeuTests
     {
         ("Bericht: Passiver Spieler arbeitet mit seinem Startlehrling (Datenversion 72: einer); Stadtkasse und Steuer je Jahr gemessen", () =>
         {
-            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 2, Bezug: Bezugsart.Passiv), Quellen.Value);
+            // ohne Los (Hofstellen, 9.11.2026): gelost säße der passive Spieler mit diesem Startwert auf H2 und verkaufte im zweiten Jahr nichts
+            var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 2, Bezug: Bezugsart.Passiv, Startplaetze: Startplatzvergabe.Vorgabe), Quellen.Value);
             Pruefe.Wahr(r.Fehler is null, r.Fehler ?? "");
             Pruefe.Gleich(1, r.Spieler.StartArbeiter);
             // Mit einem Lehrling (Datenversion 72) verdient die Werkstatt ohne Führung im ersten Jahr noch (Greybox +202), im zweiten nicht mehr
@@ -105,7 +106,7 @@ static class BalancingberichtNeuTests
     /// <summary>Umsatzsteuer, die im ersten Jahr der Partie „greybox“ (Startwert 101, passiv) in die Kasse ging.</summary>
     static double SteuerImErstenJahr()
     {
-        var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1, Bezug: Bezugsart.Passiv), Quellen.Value);
+        var r = Messpartie.Spielen(new Messaufbau("greybox", 101, 1, Bezug: Bezugsart.Passiv, Startplaetze: Startplatzvergabe.Vorgabe), Quellen.Value); // wie oben ohne Los
         return r.Kassenposten.GetValueOrDefault(Reichsgilde.Core.Politik.Kassenposten.Umsatzsteuer);
     }
 }
