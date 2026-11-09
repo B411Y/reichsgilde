@@ -125,6 +125,35 @@ public abstract class Stadtskript
     }
 
     /// <summary>
+    /// Hofstellen aus der Startbelegung (seit 9.11.2026; ein Stadtskript, das mit <see cref="Kartenentwurf.Neu"/> beginnt, wird nicht umgerechnet):
+    /// Der Spieler und jedes KI-Haus bekommen als Start-Hofstelle („S1“, „S2“ …) ihren Wohnhausplatz und den Werkstattplatz ihres ersten
+    /// Startbetriebs; <paramref name="name"/> nennt die Lage (Name der Hofstelle, nach dem die Werkstatt des Spielers heißt: „Gießerei am Markt“).
+    /// Mit <paramref name="freie"/> bildet jeder übrige Werkstattplatz mit dem nächsten freien Wohnhausplatz eine freie Hofstelle („H1“ …).
+    /// Nach der Startbelegung aufrufen.
+    /// </summary>
+    protected void HofstellenAusStart(Func<EntwurfGebaeude, string?> name, bool freie = false)
+    {
+        var start = E.Start;
+        var paare = new List<(string Werkstatt, string Wohnhaus)>();
+        if (start.SpielerWerkstatt is { } sw && start.SpielerWohnhaus is { } swh) paare.Add((sw.Platz, swh));
+        foreach (var haus in start.Haeuser)
+            if (haus.Wohnhaus is { } hw && haus.Betriebe.Select(b => b.Platz).FirstOrDefault(p => E.GebaeudeMit(p)?.Art == Bausteinart.Werkstattplatz) is { } wk)
+                paare.Add((wk, hw));
+        var n = 0;
+        foreach (var (werkstatt, wohnhaus) in paare)
+            E.HofstelleBilden(werkstatt, wohnhaus, start: true, name: name(E.GebaeudeMit(werkstatt)!), kennung: $"S{++n}");
+        if (!freie) return;
+        var belegt = paare.SelectMany(p => new[] { p.Werkstatt, p.Wohnhaus }).ToHashSet();
+        var wohnhaeuser = E.Gebaeude.Where(g => g.Art == Bausteinart.Wohnhausplatz && !belegt.Contains(g.Kennung)).ToList();
+        foreach (var w in E.Gebaeude.Where(g => g.Art == Bausteinart.Werkstattplatz && !belegt.Contains(g.Kennung)).ToList())
+        {
+            if (wohnhaeuser.MinBy(h => h.Punkt.Abstand(w.Punkt)) is not { } nah) break;
+            wohnhaeuser.Remove(nah);
+            E.HofstelleBilden(w.Kennung, nah.Kennung, name: name(w));
+        }
+    }
+
+    /// <summary>
     /// Ein Hügel (oder mit negativer <paramref name="hoehe"/> eine Senke): ein Tupfer des Geländepinsels Heben bzw. Senken mit ganz weicher
     /// Kante – in der Mitte <paramref name="hoehe"/> Meter, zum <paramref name="radius"/> hin auslaufend. Das steilste Gefälle liegt auf halbem
     /// Radius und ist etwa 1,5 · Höhe / Radius (6 m auf 200 m: 4,5 %). Ein Schritt.
