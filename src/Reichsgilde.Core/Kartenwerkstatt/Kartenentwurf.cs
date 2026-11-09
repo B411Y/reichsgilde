@@ -392,6 +392,36 @@ public sealed partial class Kartenentwurf
     /// </summary>
     public IReadOnlyList<Befund> Befunde => _befunde ??= Kartenpruefung.Pruefen(this);
 
+    /// <summary>Stehen die <see cref="Befunde"/> schon fertig (aus dem Zwischenspeicher, ohne Rechnen)?</summary>
+    public bool BefundeBereit => _befunde is not null;
+
+    private IEnumerator<bool>? _befundeLauf;
+    private List<Befund>? _befundeTeil;
+
+    /// <summary>
+    /// Rechnet die <see cref="Befunde"/> ein Stück weiter (die Darstellung verteilt die Prüfung so auf mehrere Bilder, Köln: ein Aufruf einige ms statt
+    /// bis 120 ms am Stück) und sagt, ob sie jetzt bereit sind. Ändert sich der Entwurf zwischen zwei Schritten, fängt sie von vorn an. Das Ergebnis ist
+    /// dasselbe wie das von <see cref="Kartenpruefung.Pruefen"/> (Test <c>BefundeSchrittweiseTests</c>).
+    /// </summary>
+    public bool BefundeSchritt()
+    {
+        if (_befunde is not null) return true;
+        if (_befundeLauf is null)
+        {
+            _befundeTeil = new List<Befund>();
+            _befundeLauf = Kartenpruefung.PruefenInSchritten(this, _befundeTeil);
+        }
+        if (_befundeLauf.MoveNext() && _befundeLauf.Current)
+        {
+            (_befunde, _befundeLauf, _befundeTeil) = (_befundeTeil, null, null);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>Die Befunde gelten nicht mehr: auch ein halb gerechneter Lauf (<see cref="BefundeSchritt"/>) fängt neu an.</summary>
+    private void BefundeVerwerfen() => (_befunde, _befundeLauf, _befundeTeil) = (null, null, null);
+
     /// <summary>
     /// Die Kapazitätsprüfung dieses Entwurfs (<see cref="Kapazitaetspruefung"/>) – aus dem Zwischenspeicher, bis sich ein Gebäude, ein Weg oder
     /// eine Bauzone ändert (nur davon hängt sie ab; in Köln dauert sie einige 10 ms).
@@ -882,7 +912,7 @@ public sealed partial class Kartenentwurf
 
     private void Vormerken(Kartenaenderung a)
     {
-        _befunde = null;
+        BefundeVerwerfen();
         if (a.Teil is Kartenteil.Gebaeude or Kartenteil.Weg or Kartenteil.Bauzone or Kartenteil.Rasterzonen) _kapazitaet = null;
         StartwegeVormerken(a);
         if (a.Teil is Kartenteil.Weg or Kartenteil.Mauer) _gelaende.AllesVeraltet(); // das Bett der Wege und Mauern
@@ -922,7 +952,8 @@ public sealed partial class Kartenentwurf
     {
         if (_daten["vorkommen"] is not JsonArray liste) FeldSetzen("vorkommen", liste = new JsonArray());
         liste.Add(new JsonObject { ["kennung"] = kennung, ["betrieb"] = betrieb, ["punkt"] = EntwurfTeil.JsonPunkt(Gerundet(punkt)) });
-        (_vorkommen, _befunde) = (null, null);
+        _vorkommen = null;
+        BefundeVerwerfen();
     }
 
     /// <summary>Setzt ein Feld des Kopfes; ein neues kommt an seine Stelle der <see cref="Reihenfolge"/> (wie <see cref="MitAbschnitten"/>).</summary>
