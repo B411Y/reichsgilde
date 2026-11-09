@@ -27,8 +27,9 @@
 //             still_reichweite (wie im Hafenbecken). Weich übergehend
 //   COLOR.b = Schaumanteil: Faktor auf Stärke und Breite des Saums (1 = wie die Art, 0 = keiner, ~0,35 = schmaler Saum an einer Kaimauer)
 //   COLOR.a = Deckkraft: 0 = durchsichtig (dort übernimmt ein anderes Gewässer, z. B. der Fluss vor einem Hafenbecken)
-// Flüsse und Bäche (lauf_netz = 1): UV = (quer, Stelle) in Metern, UV2 = Strömung in m/s (Weltachsen x, z). Die Normalkarten laufen dann
-// entlang des Laufs (auch durch Kurven, ohne dass sie sich mit der Zeit verzerren), `stroemung` ist (0, Tempo) in diesen Laufachsen.
+// Flüsse und Bäche (lauf_netz = 1): UV = (quer, Stelle) in Metern, UV2 = Strömung in m/s (Weltachsen x, z). Wellen, Schaum, Grieseis und die
+// Mündungslinien laufen in diesen Laufachsen (`stroemung` ist dort (0, Tempo)); die Normalkarten liegen seit 09.11.2026 in Weltachsen und wandern
+// mit UV2 in zwei Phasen (in Kurven nicht mehr gestaucht oder gezogen).
 render_mode cull_back, diffuse_burley, specular_schlick_ggx, blend_mix;
 
 #ifdef MIT_TIEFE
@@ -58,6 +59,7 @@ uniform float rand_breite = 6.0;       // Breite des Abklingens am Netzrand in m
 // ── Oberfläche und Strömung ──
 uniform vec2 stroemung = vec2(0.0);    // Strömung in m/s (Weltachsen x, z; bei lauf_netz = 1 in Laufachsen: (0, Tempo)), (0, 0) = stehend
 uniform vec2 ruhe_drift = vec2(0.05, 0.04); // langsames Kräuseln auch ohne Strömung
+uniform float fluss_periode = 1.6;     // Flüsse: so lange (s) wandert eine der zwei Abtastungen der Normalkarten, bevor sie zurückspringt
 uniform vec2 sampler_scale = vec2(0.25, 0.25);       // Bildwiederholung je Meter
 uniform sampler2D uv_sampler : hint_anisotropy;      // Strömungskarte (verschiebt die Normalkarten)
 uniform vec2 uv_sampler_scale = vec2(0.25, 0.25);
@@ -306,6 +308,20 @@ vec3 muendung_fahne(vec2 lauf, float ufer_m, float zeit, float aa) {
 	return r;
 }
 
+// Die Normalkarten (Weltachsen) an der Stelle uv (Bildwiederholungen), um versatz mit der Strömung verschoben (dieselben Einheiten), mit der
+// langsamen Drift; mit Feinkarten zwei Karten, von der Strömungskarte verwirbelt, in Stufe Niedrig nur eine (zwei Bildzugriffe weniger, flacher)
+vec3 normalkarten(vec2 uv, vec2 versatz, vec2 drift) {
+#ifdef MIT_FEINKARTEN
+	vec2 uv_versatz = uv_sampler_strength * texture(uv_sampler, uv * uv_sampler_scale + drift - versatz * 0.5).rg * 2.0 - 1.0;
+	vec2 u = uv + uv_versatz;
+	vec3 n = texture(normalmap_a_sampler, u - drift * 2.0 - versatz).rgb * 0.75;
+	n += texture(normalmap_b_sampler, u + drift - versatz * 1.35).rgb * 0.25;
+	return n;
+#else
+	return mix(vec3(0.5, 0.5, 1.0), texture(normalmap_a_sampler, uv - drift * 2.0 - versatz).rgb, 0.8);
+#endif
+}
+
 void fragment() {
 	// ── Ableitungen hier oben (gleichmäßiger Ablauf): Meter je Bildpunkt und wie sich der Uferabstand über die Welt ändert ──
 	vec2 d_ort_x = dFdx(welt_xz);
@@ -321,22 +337,25 @@ void fragment() {
 
 	// ── Oberfläche: zwei Normalkarten, die mit der Strömung wandern (und gegeneinander kräuseln) ──
 	vec2 drift = ruhe_drift * TIME;
-	vec2 fluss = stroemung * sampler_scale * TIME;
-#ifdef MIT_FEINKARTEN
-	vec2 uv_sampler_uv = UV * uv_sampler_scale + drift - fluss * 0.5;
-	vec2 uv_versatz = uv_sampler_strength * texture(uv_sampler, uv_sampler_uv).rg * 2.0 - 1.0;
-	vec2 uv = UV + uv_versatz;
-	vec3 normalmap = texture(normalmap_a_sampler, uv - drift * 2.0 - fluss).rgb * 0.75;
-	normalmap += texture(normalmap_b_sampler, uv + drift - fluss * 1.35).rgb * 0.25;
-#else
-	// Stufe Niedrig: nur eine Normalkarte, ohne Verwirbelung durch die Strömungskarte (zwei Bildzugriffe weniger), etwas flacher gewichtet
-	vec3 normalmap = mix(vec3(0.5, 0.5, 1.0), texture(normalmap_a_sampler, UV - drift * 2.0 - fluss).rgb, 0.8);
-#endif
+	vec3 normalmap;
 	if (lauf_netz > 0.5) {
-		// Die Karten liegen in Laufachsen (quer, längs): ihre Neigung zurück in die Weltachsen drehen
-		vec2 n = normalmap.xy * 2.0 - 1.0;
-		n = vec2(-lauf_dir.y, lauf_dir.x) * n.x + lauf_dir * n.y;
-		normalmap.xy = n * 0.5 + 0.5;
+		// Flüsse und Bäche (Befund 3, 09.11.2026): Früher lagen die Karten in Laufachsen (quer, Stelle). Die Stelle ist die Bogenlänge der Mitte; in einer
+		// Kurve ist ein Meter Stelle innen kürzer und außen länger (1 − quer · Krümmung), die Kräusel wurden innen gestaucht und außen gezogen (in engen
+		// Bachkurven ein Fächer). Jetzt in Weltachsen, mit der Strömung der Ecke verschoben (UV2), in zwei Phasen (Vlachos 2010): Jede Abtastung
+		// wandert eine Periode lang und springt dann zurück, während sie ausgeblendet ist – so zieht eine Strömung, die sich von Ort zu Ort ändert,
+		// das Bild nicht mit der Zeit immer weiter auseinander. Ein Versatz der Phase je Ort (großes Rauschen) verteilt das Zurückspringen.
+		vec2 uvw = welt_xz * sampler_scale;
+		vec2 weg = strom_welt * sampler_scale * fluss_periode;
+		float p0 = fract(TIME / fluss_periode + w_rausch(welt_xz * 0.05) * 0.5);
+		float p1 = fract(p0 + 0.5);
+		float g = abs(0.5 - p0) * 2.0;
+		vec3 n0 = normalkarten(uvw, weg * p0, drift);
+		vec3 n1 = normalkarten(uvw + 0.5, weg * p1, drift);
+		normalmap = mix(n0, n1, g);
+		// Zwei unabhängige Karten zur Hälfte gemischt sind flacher als jede allein: die Neigung so weit verstärken, dass sie gleich kräftig bleibt
+		normalmap.xy = 0.5 + (normalmap.xy - 0.5) * inversesqrt(g * g + (1.0 - g) * (1.0 - g));
+	} else {
+		normalmap = normalkarten(UV, stroemung * sampler_scale * TIME, drift);
 	}
 
 	float sturm = 0.0;
