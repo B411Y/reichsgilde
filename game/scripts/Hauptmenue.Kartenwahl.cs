@@ -109,7 +109,7 @@ public partial class Hauptmenue
         kurz.Visible = !string.IsNullOrWhiteSpace(karte.Beschreibung);
         Text(inhalt, Kennzahlen(karte), 12, new Color(0.85f, 0.82f, 0.72f), umbruchBreite: 320).MouseFilter = Control.MouseFilterEnum.Ignore;
         // ein Knopf misst seine Kinder nicht selbst: feste Höhe für Bild, Name, drei Zeilen Kurztext und Kennzahlen
-        knopf.CustomMinimumSize = new Vector2(350, 270);
+        knopf.CustomMinimumSize = new Vector2(350, 320);
         return knopf;
     }
 
