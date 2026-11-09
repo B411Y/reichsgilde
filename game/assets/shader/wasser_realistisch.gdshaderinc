@@ -20,7 +20,8 @@
 // Strömungskarte, Schaum, Kaustik) sind austauschbar: nur die Sampler-Uniforms belegen.
 //
 // Netzwerte (ufer_im_netz = 1, so baut sie das Spiel in Stadtansicht.Wasser.cs):
-//   COLOR.r = Abstand zum Ufer in Metern / 32 (0–32 m; 8 Bit)
+//   COLOR.r = Abstand zum Ufer in Metern / 32 (0–32 m; 8 Bit); im Netz eines Wasserverbunds (ufer_vorzeichen = 1) (Abstand + 4) / 36,
+//             −4 bis 32 m, außerhalb des Wassers negativ (Fluss und See als eine Fläche, Stadtansicht.Wasser.cs, VerbundNetz)
 //   COLOR.g = Eiskanal (Wasserarten.EisKanal), 0,5 = wie die Art. Darunter „offen“ = 1 − 2g: Anteil, um den das Eis zurückbleibt (Eis reicht
 //             eis · (1 − offen) · eis_reichweite weit; 0 = friert nie: Mündung, schnelle Stelle eines Baches, Fährrinne; an einer Furt so viel,
 //             dass nur Randeis bleibt). Darüber „still“ = 2g − 1: stilles Wasser vor einer Kaimauer, das Eis folgt dort eis_still und
@@ -94,6 +95,7 @@ uniform float kaustik_skala = 0.3;     // je Meter
 uniform float eis = 0.0;               // Eisfortschritt der Art 0–1 (Wasserarten.EisFortschritt: stilles Wasser früher als ein Bach)
 uniform float eis_reichweite = 0.0;    // Meter vom Ufer, die das Eis bei eis = 1 erreicht (0 = friert nie)
 uniform float ufer_im_netz = 0.0;      // 1 = COLOR trägt die Netzwerte (siehe oben); 0 = aus der Tiefe geschätzt
+uniform float ufer_vorzeichen = 0.0;   // 1 = Netz eines Wasserverbunds: COLOR.r = (Uferabstand + 4) / 36, außen negativ (die Kante folgt dem Abstand je Bildpunkt); 0 = r · 32
 uniform float winter_ton = 0.0;        // Winterfortschritt 0–1 (für alle Arten): offenes Wasser kälter, dunkler, schwächere Lichtnetze
 uniform float eis_still = 0.0;         // Eisfortschritt stillen Wassers (Hafenbecken) für Ecken mit „still“ (vor einer Kaimauer)
 uniform float still_reichweite = 4.5;  // seine Reichweite in m
@@ -181,7 +183,7 @@ void vertex() {
 	vec3 wp = (MODEL_MATRIX * vertex).xyz;
 	welt_xz = wp.xz;
 	if (ufer_im_netz > 0.5) {
-		ufer = COLOR.r * 32.0;
+		ufer = ufer_vorzeichen > 0.5 ? COLOR.r * 36.0 - 4.0 : COLOR.r * 32.0;
 		offen = clamp(1.0 - 2.0 * COLOR.g, 0.0, 1.0);
 		still = clamp(2.0 * COLOR.g - 1.0, 0.0, 1.0);
 		schaum_anteil = COLOR.b;
