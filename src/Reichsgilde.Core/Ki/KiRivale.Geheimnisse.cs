@@ -11,8 +11,8 @@ namespace Reichsgilde.Core.Ki;
 ///   Verschonen  Ein Haus, über das ihr Oberhaupt gut denkt (<c>kiVerschontAb</c>), verschont sie: Sie schweigt.
 ///   Ratsherr    Fehlt ihr die Stimme eines Ratsherrn bei der eigenen Wahl oder dem eigenen Antrag auf ein Statut, erpresst sie seine Ratsstimme,
 ///               wenn sie ein Geheimnis von ihm kennt – nie mit ehrlichem Oberhaupt –, und zwar bevor sie Geschenke plant (die erpresste Stimme
-///               zählt dann als sicher). Kennt sie keins, setzt sie einen Spitzel auf ihn an (höchstens einen im Jahr), wenn die Aktionspunkte
-///               für Spitzel und Erpressung reichen – das Wissen nützt im nächsten Jahr.
+///               zählt dann als sicher). Kennt sie keins, setzt sie einen Spitzel auf ihn an – aus dem Budget der Spitzel auf Häuser
+///               (höchstens jedes zweite Jahr einer) und nur, wenn die Aktionspunkte für Spitzel und Erpressung reichen; das Wissen nützt im nächsten Jahr.
 ///   Rivale      Mord zeigt sie immer an. Ehebruch oder Ketzerei zeigt sie an, wenn sie den Inhaber hasst (<c>kiVerhasstAb</c>), bei Ketzerei
 ///               auch mit frommem Oberhaupt, oder wenn ihr Oberhaupt jähzornig ist. Sonst erpresst sie Gulden, wenn ihr Oberhaupt gierig oder
 ///               verschlagen ist (<see cref="GeheimnisKiDaten.Anteil"/> vom Bargeld des Opfers, höchstens <see cref="GeheimnisKiDaten.Hoechstens"/>).
@@ -101,17 +101,15 @@ public sealed partial class KiRivale
             Befehlen(new GeheimnisNutzen(g.Nummer, Geheimnisnutzung.Ratsstimme),
                 $"erpresst die Ratsstimme von {r.Name} – sie weiß von „{gw.Beschreibung(g)}“.");
         }
-        // Ein Spitzel auf einen Ratsherrn, dessen Stimme fehlt: höchstens einer im Jahr, nur mit Aktionspunkten für Spitzel und Erpressung.
-        if (ohneWissen is null || _ratsspitzelIm == _w.Jahr || !_w.Justiz.IstAktiv) return;
+        // Ein Spitzel auf einen Ratsherrn, dessen Stimme fehlt – aus demselben Budget wie die Spitzel auf Häuser (höchstens jedes zweite Jahr
+        // einer, PR #208; der Ratsherr geht vor, weil die Politik vor den Anklagen kommt), nur mit Aktionspunkten für Spitzel und Erpressung.
+        if (ohneWissen is null || _spitzelDiesesJahr.Count > 0 || _spitzelVorjahr.Count > 0 || !_w.Justiz.IstAktiv) return;
         var spitzel = new SpitzelAnsetzen(ohneWissen.Kennung);
         if (gw.RatsspitzelVerboten(Konto, ohneWissen) is null && Konto.Vermoegen - _w.Justiz.Daten.SpitzelKosten >= Profil.Reserve
             && Konto.Aktionspunkte.Reicht(_w.ApKosten(Konto, spitzel) + gw.ApKosten(Geheimnisnutzung.Ratsstimme))
             && Befehlen(spitzel, $"setzt einen Spitzel auf {ohneWissen.Name} an – seine Stimme fehlt, vielleicht hat er etwas zu verbergen."))
-            _ratsspitzelIm = _w.Jahr;
+            _spitzelDiesesJahr.Add(ohneWissen.Kennung);
     }
-
-    /// <summary>In welchem Jahr die KI zuletzt einen Spitzel auf einen Ratsherrn ansetzte (nicht im Spielstand: im selben Jahr nur einmal gefragt).</summary>
-    private int _ratsspitzelIm;
 
     /// <summary>
     /// Braucht die KI die Stimme dieses Ratsherrn? Er sitzt im Rat, seine Stimme ist nicht schon erpresst, und er stimmt bei der eigenen Wahl
