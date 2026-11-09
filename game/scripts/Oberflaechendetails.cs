@@ -70,7 +70,7 @@ internal sealed class Oberflaechendetails
     private int _stufe = 2;
 
     /// <summary>Die Farben einer Figur (Gewand, Beinkleid, Haut, Haar, Kopfbedeckung): Wer gleich aussieht, teilt sich ein Material.</summary>
-    private readonly record struct Tracht(Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopf);
+    private readonly record struct Tracht(Color Gewand, Color Beinkleid, Color Haut, Color Haar, Color Kopf, bool Bart = false);
     private readonly Dictionary<Tracht, ShaderMaterial> _trachten = new();
 
     /// <summary>Zu jedem Ausgangsmaterial sein Material mit Struktur; null = bleibt, wie es ist (leuchtet, ist durchsichtig, hat keine Struktur …).</summary>
@@ -216,7 +216,8 @@ internal sealed class Oberflaechendetails
     {
         Color Farbe(string name, Color vorgabe) => figurStoff.GetShaderParameter(name) is { VariantType: Variant.Type.Color } v ? v.AsColor() : vorgabe;
         var tracht = new Tracht(Farbe("gewand", new Color(0.5f, 0.4f, 0.3f)), Farbe("beinkleid", new Color(0.35f, 0.3f, 0.25f)),
-                                Farbe("haut", new Color(0.85f, 0.66f, 0.52f)), Farbe("haar", new Color(0.3f, 0.2f, 0.12f)), Farbe("kopfbedeckung", new Color(0.6f, 0.5f, 0.3f)));
+                                Farbe("haut", new Color(0.85f, 0.66f, 0.52f)), Farbe("haar", new Color(0.3f, 0.2f, 0.12f)), Farbe("kopfbedeckung", new Color(0.6f, 0.5f, 0.3f)),
+                                figurStoff.GetShaderParameter("bart").AsBool()); // Zone 6: Bart der Passanten mit Skelett
         if (_trachten.TryGetValue(tracht, out var vorhanden)) return vorhanden;
         var figur = Neu("Figur");
         figur.SetShaderParameter("eckenfarbe", true);
@@ -228,6 +229,7 @@ internal sealed class Oberflaechendetails
         figur.SetShaderParameter("haut", tracht.Haut);
         figur.SetShaderParameter("haar", tracht.Haar);
         figur.SetShaderParameter("kopfbedeckung", tracht.Kopf);
+        figur.SetShaderParameter("bart", tracht.Bart);
         figur.SetShaderParameter("rauheit", 0.9f); // wie figur.gdshader
         return _trachten[tracht] = figur;
     }

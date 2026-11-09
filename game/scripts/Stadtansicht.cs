@@ -450,9 +450,12 @@ public partial class Stadtansicht : Node3D
     public IEnumerable<Ladeschritt> Aufbauen()
     {
         var karte = _wirtschaft?.Karte ?? Stadtkarten.Greybox;
-        // die Karte bis 0,89, ihre Anteile darauf umgerechnet; die Betriebe hängen mit ihren Wegen am Gassennetz der Karte
+        // die Karte bis 0,80, ihre Anteile darauf umgerechnet; die Betriebe hängen mit ihren Wegen am Gassennetz der Karte
         foreach (var schritt in KarteAufbauenSchritte(karte))
-            yield return schritt with { Anteil = schritt.Anteil * 0.89f };
+            yield return schritt with { Anteil = schritt.Anteil * 0.80f };
+        // Passanten backen (Vertex-Animation, ein Netz je Schritt; beim zweiten Start aus dem Zwischenspeicher, Stadtansicht.Passantencache.cs)
+        foreach (var anteil in ProbeVatBackenSchritte())
+            yield return new Ladeschritt(0.80f + 0.09f * anteil, "Die Leute lernen gehen …");
         if (_wirtschaft is not { } w) yield break;
         yield return new Ladeschritt(0.89f, "Werkstätten öffnen ihre Läden …");
         foreach (var betrieb in w.Betriebe)
