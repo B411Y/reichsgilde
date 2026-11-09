@@ -137,5 +137,25 @@ public partial class Kartenwerkstatt
         }
         for (var i = WasserprobeEngAb; i < eng.Punkte.Count; i++) _entwurf.FlussBreiteSetzen(eng, i, 6);
         GD.Print($"[wasserprobe] {eng.Bezeichnung}: ab Stützpunkt {WasserprobeEngAb} 6 m breit (Breite dort {eng.BreiteAn(WasserprobeEngAb):0.0} m)");
+        // Belege für den Grund im Verbund (NAS 09.11.2026, „Schleier“): Tiefe (Spiegel − Boden des Kerns) quer über das alte Ufer
+        TiefeLoggen("verbund_streifen (x −280, quer über Fluss, altes Ufer und See A)", -280, Enumerable.Range(0, 15).Select(i => -136.0 - 3 * i));
+        TiefeLoggen("verbund_ecke (z −320, entlang des Westufers des Sees, wo der Fluss eintritt)", null, Enumerable.Range(0, 13).Select(i => -452.0 + 2 * i), -320);
+        TiefeLoggen("verbund_ecke (z −326, am Nordufer des Flusses in den See hinein)", null, Enumerable.Range(0, 13).Select(i => -452.0 + 2 * i), -326);
+    }
+
+    /// <summary>Schreibt je Ort die Tiefe (Spiegel − Boden), den gemeinsamen Abstand und den Abstand zum geschlossenen Seeufer ins Protokoll.</summary>
+    private void TiefeLoggen(string titel, double? x, IEnumerable<double> werte, double z = 0)
+    {
+        var form = _entwurf.Gelaendeform;
+        var zeilen = werte.Select(w =>
+        {
+            var (px, pz) = x is { } fest ? (fest, w) : (w, z);
+            var spiegel = form.Wasser.Spiegel(px, pz);
+            var abstand = form.Wasser.Verbundabstand(px, pz);
+            var ufer = form.Wasser.Verbuende.Select(v => v.SeeuferAbstand(px, pz)).DefaultIfEmpty(double.MaxValue).Min();
+            return $"{px:0},{pz:0}: " + (spiegel is { } sp ? $"Tiefe {sp - form.Hoehe(px, pz):0.00} m" : "Land") +
+                   (abstand is { } s ? $", s {s:0.0}" : "") + (ufer < 1e6 ? $", Seeufer {ufer:0.0}" : "");
+        });
+        GD.Print($"[wasserprobe] Tiefe {titel}: {string.Join("; ", zeilen)}");
     }
 }

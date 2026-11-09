@@ -324,7 +324,7 @@ public partial class Stadtansicht
             var deckkraft = 1f - fremd;
             if (muendung is { } m2) deckkraft = 1f - Mathf.SmoothStep(-1f, 3f, m2.Hinein);
             // Vor einer Kaimauer ist das Wasser still und friert wie das Hafenbecken (das Becken selbst ist in Köln schmal und liegt unter den Kähnen)
-            var ufer = form.Verbuende.Count > 0 ? BandUfer(form, lauf, ort, halb - Mathf.Abs(o)) : halb - Mathf.Abs(o);
+            var ufer = form.Verbuende.Count > 0 ? BandUfer(form, lauf, ort, halb - Mathf.Abs(o), eckHoehe - BodenHoehe(ort.X, ort.Y)) : halb - Mathf.Abs(o);
             farben.Add(new Color(Mathf.Clamp(ufer / 32f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai),
                 schaum * Mathf.Lerp(1f, Wasserarten.KaiSchaumAnteil, kai), deckkraft));
         }
@@ -778,13 +778,20 @@ public partial class Stadtansicht
     /// Uferabstand einer Ecke des Bandes im Verbund: Dort, wo der See anschließt, ist das alte Ufer des Laufs kein Ufer mehr – der gemeinsame Abstand
     /// (Kern), längs mit dem Gewicht überblendet; sonst der eigene (NAS 09.11.2026: im Winter vereiste das Band am alten Ufer mitten im See).
     /// </summary>
-    private static float BandUfer(Wasserform form, Wasserlauf lauf, Vector2 ort, float eigen)
+    private static float BandUfer(Wasserform form, Wasserlauf lauf, Vector2 ort, float eigen, float tiefe)
     {
         foreach (var v in form.Verbuende)
             if (ReferenceEquals(v.Lauf, lauf) && v.AbstandAm(ort.X, ort.Y) is { } s && v.AnteilAm(ort.X, ort.Y) is { } a)
-                return Mathf.Lerp(eigen, Mathf.Max(eigen, -(float)s), (float)a.Gewicht);
+                return Mathf.Lerp(eigen, Mathf.Max(eigen, VerbundUfer((float)s, tiefe)), (float)a.Gewicht);
         return eigen;
     }
+
+    /// <summary>
+    /// Der Uferabstand, den das Netz im Verbund trägt: der gemeinsame Abstand des Kerns (−s), im Wasser aber mindestens so weit, wie es die Tiefe mit der
+    /// Böschung eines Sees ergäbe. Ohne Bildschirmtextur (Mittel, Niedrig) schätzt der Shader die Tiefe aus dem Uferabstand; am alten Ufer ist der gemeinsame
+    /// Abstand klein, obwohl das Wasser dort tief ist (NAS 09.11.2026: dort war das Wasser hell und halb durchsichtig). Auch das Eis wächst so nur vom echten Ufer.
+    /// </summary>
+    private static float VerbundUfer(float s, float tiefe) => s < 0 ? Mathf.Max(-s, tiefe / (float)Wasserform.Seeboeschung) : -s;
 
     private static float Fremdanteil(Wasserform form, List<Kartenrechteck> andere, Vector2 ort, Wasserlauf? lauf, Wassersee? see)
     {
@@ -905,7 +912,8 @@ public partial class Stadtansicht
                 var deckkraft = VerbundDeckkraft(form, andere, ort, see);
                 var (offen, kai) = Offenheit(offenStellen, ort, furtOffen);
                 // Uferabstand im Netz positiv im Wasser: (4 − s) / 36 (NAS 09.11.2026: mit (s + 4) / 36 stand er verkehrt herum, die Seen waren unsichtbar)
-                werte[(e.X, e.Z)] = wert = (hoehe, new Color(Mathf.Clamp((4f - s) / 36f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai), 1f, deckkraft));
+                var ufer = VerbundUfer(s, hoehe + VerbundTiefer - BodenHoehe(e.X, e.Z));
+                werte[(e.X, e.Z)] = wert = (hoehe, new Color(Mathf.Clamp((ufer + 4f) / 36f, 0f, 1f), Wasserarten.EisKanal(Mathf.Lerp(offen, 1f, fremd), kai), 1f, deckkraft));
             }
             ecken[n] = new Vector3(e.X, wert.Hoehe, e.Z);
             farben.Add(wert.Farbe);
