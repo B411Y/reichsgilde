@@ -27,7 +27,7 @@ public sealed class Stresslage
     public IReadOnlyList<string> Ventile => _ventile;
 
     /// <summary>Sterne weniger in jedem Talent aus der Stufe (gesetzt vom Familienbuch, wenn sich der Stress ändert und beim Laden).</summary>
-    internal double TalentAbzug { get; set; }
+    public double TalentAbzug { get; internal set; }
 
     /// <summary>Nichts gesammelt? (Dann schreibt der Spielstand nichts.)</summary>
     public bool IstLeer => Wert == 0 && _eintraege.Count == 0 && _ventile.Count == 0;

@@ -60,6 +60,12 @@ public sealed record EntwicklerTod(int Person) : EntwicklerBefehl;
 /// <summary>Einen Charakterzug (Kennung aus <c>charakterzuege</c>) hinzufügen oder entfernen. Beim Hinzufügen fällt sein Gegenteil weg.</summary>
 public sealed record EntwicklerZug(int Person, string Zug, bool Hinzufuegen = true) : EntwicklerBefehl;
 
+/// <summary>
+/// Den Stress einer Person (Oberhaupt, Erbe oder Ehepartner) auf <paramref name="Wert"/> setzen (0 … 100) – als Eintrag „Entwicklerhilfe“;
+/// beim Höchstwert bricht sie zusammen (Charaktersystem Teil 3b).
+/// </summary>
+public sealed record EntwicklerStress(int Person, double Wert) : EntwicklerBefehl;
+
 /// <summary>Das Erbgut einer Person (Haus oder Brautschau) neu würfeln – wie für jemanden von außen, zum Ausprobieren der 3D-Köpfe.</summary>
 public sealed record EntwicklerErbgut(int Person) : EntwicklerBefehl;
 

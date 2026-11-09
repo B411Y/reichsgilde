@@ -452,6 +452,28 @@ static class StressTests
             Pruefe.Gleich(json, Speicherung.Speichern(wieder, wiederSpieler, zeitpunkt));
         }),
 
+        ("Stress: Entwicklerfenster – Stress setzen (Eintrag „Entwicklerhilfe“), 100 löst den Zusammenbruch aus; gesperrt, beim Kind und ohne Abschnitt abgelehnt", () =>
+        {
+            var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 33 },
+                Daten.Value, new NeuePartie());
+            var w = sim.Wirtschaft!;
+            var o = w.Familien.Von(spieler)!.Oberhaupt;
+            Pruefe.Wahr(!sim.Bote.SofortAusfuehren(spieler, new Reichsgilde.Core.Entwickler.EntwicklerStress(o.Nummer, 50)).Erfolg, "gesperrt");
+            sim.EntwicklerErlaubt = true;
+            Pruefe.Wahr(sim.Bote.SofortAusfuehren(spieler, new Reichsgilde.Core.Entwickler.EntwicklerStress(o.Nummer, 75)).Erfolg, "gesetzt");
+            Pruefe.Gleich(75.0, Stress(w, o));
+            Pruefe.Gleich("Entwicklerhilfe", o.Stresslage.Eintraege[^1].Text);
+            Pruefe.Wahr(sim.Bote.SofortAusfuehren(spieler, new Reichsgilde.Core.Entwickler.EntwicklerStress(o.Nummer, 100)).Erfolg, "Zusammenbruch");
+            Pruefe.Gleich(60.0, Stress(w, o));
+            var kind = w.Familien.KindAufnehmen(spieler, 3);
+            Pruefe.Wahr(!sim.Bote.SofortAusfuehren(spieler, new Reichsgilde.Core.Entwickler.EntwicklerStress(kind.Nummer, 50)).Erfolg, "Kind ohne Stress");
+            var (sim2, spieler2) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 33 },
+                Ohne.Value, new NeuePartie());
+            sim2.EntwicklerErlaubt = true;
+            var e = sim2.Bote.SofortAusfuehren(spieler2, new Reichsgilde.Core.Entwickler.EntwicklerStress(sim2.Wirtschaft!.Familien.Von(spieler2)!.Oberhaupt.Nummer, 50));
+            Pruefe.Wahr(!e.Erfolg && e.Meldung.Contains("niemand Stress"), e.Meldung);
+        }),
+
         ("Stress: In einer Partie mit KI-Häusern (Greybox, 10 Jahre) bekommen Oberhäupter Stress, keiner kommt über 100", () =>
         {
             var (sim, spieler) = Partieaufbau.Erstellen(Partieeinstellungen.Standard with { Siegbedingung = Siegbedingung.Endlos, Zufallsstartwert = 1400 },
