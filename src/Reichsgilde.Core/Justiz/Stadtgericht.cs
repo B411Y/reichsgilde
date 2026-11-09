@@ -88,7 +88,8 @@ public sealed class Spur
         Vergehen.Diebstahl => $"{Jahr}: Diebstahl in {Betroffener} – Ware für {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Sabotage => $"{Jahr}: Sabotage in {Betroffener} – Schaden {Zahlenformat.Ganz(Betrag)} Gulden",
         Vergehen.Raub => $"{Jahr}: Überfall auf {Betroffener} – Beute für {Zahlenformat.Ganz(Betrag)} Gulden",
-        Vergehen.Erpressung => $"{Jahr}: Erpressung von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden verlangt",
+        Vergehen.Erpressung => Betrag > 0 ? $"{Jahr}: Erpressung von {Betroffener} – {Zahlenformat.Ganz(Betrag)} Gulden verlangt"
+            : $"{Jahr}: Erpressung von {Betroffener} um die Ratsstimme",
         Vergehen.Beichtbruch => $"{Jahr}: Beichtgeheimnis gebrochen – gegen {Betroffener}",
         Vergehen.Verleumdung => $"{Jahr}: Hetzschrift gegen {Betroffener}",
         Vergehen.Taschendiebstahl => $"{Jahr}: Taschendiebstahl am Markt – {Zahlenformat.Ganz(Betrag)} Gulden",
@@ -118,12 +119,20 @@ public sealed class Verfahren
     /// <summary>Vorsitz zuerst, dann die beiden Schöffen.</summary>
     public IReadOnlyList<Richter> Richter { get; }
 
-    internal Verfahren(Konto anklaeger, Konto beklagter, int jahr, IReadOnlyList<Richter> richter)
+    /// <summary>Eine Anzeige mit einem Geheimnis (Teil 3c): seine Nummer – es zählt als Beweis zu den übrigen. Null bei einer gewöhnlichen Anklage.</summary>
+    public int? Geheimnis { get; }
+
+    /// <summary>Die Art des angezeigten Geheimnisses (Beweiskraft, Buße und Kerker aus "geheimnisse.arten").</summary>
+    public Geheimnisse.Geheimnisart? GeheimnisArt { get; }
+
+    internal Verfahren(Konto anklaeger, Konto beklagter, int jahr, IReadOnlyList<Richter> richter, int? geheimnis = null, Geheimnisse.Geheimnisart? geheimnisArt = null)
     {
         Anklaeger = anklaeger;
         Beklagter = beklagter;
         Jahr = jahr;
         Richter = richter;
+        Geheimnis = geheimnis;
+        GeheimnisArt = geheimnisArt;
     }
 }
 
@@ -217,6 +226,27 @@ public sealed class Stadtgericht
 
     public double Beweiskraft(Konto anklaeger, Konto beklagter) => Beweise(anklaeger, beklagter).Count() * Daten.BeweiskraftJeBeweis;
 
+    /// <summary>Beweiskraft in diesem Verfahren: die Beweise des Anklägers, dazu ein angezeigtes Geheimnis (Teil 3c).</summary>
+    public double Beweiskraft(Verfahren v) => Beweiskraft(v.Anklaeger, v.Beklagter) + GeheimnisKraft(v);
+
+    /// <summary>Was ein angezeigtes Geheimnis vor Gericht wiegt (Mord 25, Ehebruch und Ketzerei 20; 0 ohne).</summary>
+    private double GeheimnisKraft(Verfahren v) =>
+        v.GeheimnisArt is { } art && _w.Daten.Geheimnisse is { } g ? g.Art(art).Beweiskraft : 0;
+
+    /// <summary>Was ein angezeigtes Geheimnis bei einem Schuldspruch kostet (Buße, Jahre Kerker; ohne Geheimnis 0).</summary>
+    private (double Busse, int Kerker) GeheimnisStrafe(Verfahren v) =>
+        v.GeheimnisArt is { } art && _w.Daten.Geheimnisse is { } g ? (g.Art(art).Busse, g.Art(art).KerkerJahre) : (0, 0);
+
+    /// <summary>Wofür angeklagt wird: die Vergehen der Beweise und ein angezeigtes Geheimnis – „Bestechung und Ehebruch“.</summary>
+    public string Anklagepunkte(Verfahren v) => Anklagepunkte(Beweise(v.Anklaeger, v.Beklagter).Select(b => b.Art), v.GeheimnisArt);
+
+    private string Anklagepunkte(IEnumerable<Vergehen> vergehen, Geheimnisse.Geheimnisart? geheimnis)
+    {
+        var namen = vergehen.Distinct().OrderBy(x => x).Select(x => x.Name()).ToList();
+        if (geheimnis is { } art && _w.Daten.Geheimnisse is { } g) namen.Add(g.Art(art).Name);
+        return namen.Count <= 1 ? namen.FirstOrDefault() ?? "—" : string.Join(", ", namen.Take(namen.Count - 1)) + " und " + namen[^1];
+    }
+
     /// <summary>
     /// Überzeugung eines Richters. Ein Ratsherr lässt sich von seiner Gunst leiten (Geschenke wirken also auch hier),
     /// ein Haus auf dem Richterstuhl urteilt nach den Beweisen.
@@ -272,7 +302,7 @@ public sealed class Stadtgericht
 
     /// <summary>Wie das Urteil heute ausfiele – dieselbe Rechnung wie am Gerichtstag.</summary>
     public IReadOnlyList<Stimme> Prognose(Verfahren v) => v.Richter
-        .Select(r => { var u = Ueberzeugung(r, v.Anklaeger, v.Beklagter); return new Stimme(r, u, u >= Daten.SchuldSchwelle - 1e-9); })
+        .Select(r => { var u = Ueberzeugung(r, v.Anklaeger, v.Beklagter) + GeheimnisKraft(v); return new Stimme(r, u, u >= Daten.SchuldSchwelle - 1e-9); })
         .ToList();
 
     public static bool IstSchuldig(IReadOnlyList<Stimme> stimmen) => stimmen.Count(s => s.Schuldig) * 2 > stimmen.Count;
@@ -381,17 +411,47 @@ public sealed class Stadtgericht
         return Befehlsergebnis.Ok($"Anklage gegen {beklagter.Inhaber} erhoben. Schöffen: {string.Join(" und ", richter.Skip(1).Select(r => r.Name))}.");
     }
 
+    /// <summary>
+    /// Anzeige mit einem Geheimnis (Teil 3c, aus dem <see cref="Geheimnisse.Geheimniswesen"/>, das schon geprüft hat): ein Verfahren wie bei
+    /// <see cref="Anklagen"/>, in dem das Geheimnis als Beweis zählt (die übrigen Beweise des Anklägers zählen mit). Die Schöffen lost der
+    /// Würfel der Geheimnisse aus – die Würfe des Gerichts bleiben, wie sie ohne Geheimnisse wären. Den Stress trägt der Inhaber des Geheimnisses.
+    /// </summary>
+    internal Befehlsergebnis AnzeigeErheben(Konto anklaeger, Konto beklagter, int geheimnis, Geheimnisse.Geheimnisart art, string worum, Zufallsquelle zufall)
+    {
+        if (VerfahrenGegen(anklaeger, beklagter) is not null)
+            return Befehlsergebnis.Abgelehnt($"Gegen {beklagter.Inhaber} läuft schon eine Anklage. Verhandelt wird am Jahresende.");
+        var gebuehr = Gerichtsgebuehr(anklaeger);
+        if (anklaeger.Vermoegen < gebuehr)
+            return Befehlsergebnis.Abgelehnt($"Die Gerichtsgebühr beträgt {Zahlenformat.Ganz(gebuehr)} {_w.Daten.Allgemein.Waehrung}.");
+        if (VorsitzFuer(anklaeger, beklagter) is not { } vorsitz)
+            return Befehlsergebnis.Abgelehnt("Es gibt niemanden, der den Vorsitz führen könnte.");
+        anklaeger.Gerichtskosten(gebuehr);
+        _w.Kasse.Buchen(Politik.Kassenposten.Gebuehren, gebuehr);
+        var richter = new List<Richter> { vorsitz };
+        richter.AddRange(SchoeffenAuslosen(vorsitz, zufall).Select(r => new Richter("Schöffe", r, null)));
+        var v = new Verfahren(anklaeger, beklagter, _w.Jahr, richter, geheimnis, art);
+        _verfahren.Add(v);
+        _w.Meinungen.Verklagt(anklaeger, beklagter);
+        var beweise = Beweise(anklaeger, beklagter).Count();
+        _w.Melden(Meldungsart.Anklage, $"{anklaeger.Inhaber} zeigt {beklagter.Inhaber} an: {worum}" +
+                  (beweise > 0 ? $", dazu {beweise} {(beweise == 1 ? "Beweis" : "Beweise")} ({VergehenTexte.Aufzaehlung(Beweise(anklaeger, beklagter).Select(b => b.Art))})" : "") +
+                  $". Es richten {string.Join(", ", richter.Select(r => r.Name))}. Gerichtstag ist am Jahresende.", haus: beklagter);
+        return Befehlsergebnis.Ok($"Anzeige gegen {beklagter.Inhaber} erhoben. Schöffen: {string.Join(" und ", richter.Skip(1).Select(r => r.Name))}.");
+    }
+
     /// <summary>Zwei Schöffen: zuerst aus den Ratsherren ohne Amt, sonst aus den übrigen Ratsherren.</summary>
-    private List<Ratsherr> SchoeffenAuslosen(Richter vorsitz)
+    /// <param name="zufall">Ein anderer Würfel als der des Gerichts (Anzeige mit einem Geheimnis); ohne Angabe der des Gerichts.</param>
+    private List<Ratsherr> SchoeffenAuslosen(Richter vorsitz, Zufallsquelle? zufall = null)
     {
         var rat = _w.Rat;
         var ohneAmt = rat.Ratsherren.Where(r => rat.Aemter.All(a => a.Ratsherr != r) && r != vorsitz.Ratsherr).ToList();
         var mitAmt = rat.Ratsherren.Where(r => !ohneAmt.Contains(r) && r != vorsitz.Ratsherr).ToList();
         var gewaehlt = new List<Ratsherr>();
+        var wuerfel = zufall ?? _zufall;
         foreach (var topf in new[] { ohneAmt, mitAmt })
             while (gewaehlt.Count < 2 && topf.Count > 0)
             {
-                var r = topf[_zufall.Next(topf.Count)];
+                var r = topf[wuerfel.Next(topf.Count)];
                 topf.Remove(r);
                 gewaehlt.Add(r);
             }
@@ -426,7 +486,11 @@ public sealed class Stadtgericht
             string text;
             if (schuldig)
             {
-                var busse = Busse(v.Beklagter, beweise) * (1 + _w.Befugnisse.Strafmass(v.Anklaeger, v.Beklagter) / 100.0) // Stadtrichter ±25 %
+                var (geheimBusse, geheimKerker) = GeheimnisStrafe(v); // ein angezeigtes Geheimnis (Teil 3c)
+                var grund = v.GeheimnisArt is null ? Busse(v.Beklagter, beweise)
+                    : Math.Min((beweise.Count > 0 ? Busse(v.Beklagter, beweise) : 0) + geheimBusse,
+                        Math.Max(d.Mindestbusse, d.BusseHoechstensAnteil > 0 ? d.BusseHoechstensAnteil * Math.Max(0, v.Beklagter.Reinvermoegen) : double.MaxValue));
+                var busse = grund * (1 + _w.Befugnisse.Strafmass(v.Anklaeger, v.Beklagter) / 100.0) // Stadtrichter ±25 %
                             * _w.Familien.Lebenswirkung(v.Beklagter).BusseFaktor; // Gnadengesuch (Lebensweise)
                 v.Beklagter.Gerichtskosten(busse);
                 _w.Kasse.Buchen(Politik.Kassenposten.Strafen, busse);
@@ -446,17 +510,18 @@ public sealed class Stadtgericht
                     _prangerBis[v.Beklagter] = jahr + pranger;
                     folgen.Add($"{pranger} {(pranger == 1 ? "Jahr" : "Jahre")} am Pranger");
                 }
-                if (d.KerkerJahre > 0 && beweise.Any(b => d.KerkerFuer.Contains(b.Art)))
+                var kerker = Math.Max(d.KerkerJahre > 0 && beweise.Any(b => d.KerkerFuer.Contains(b.Art)) ? d.KerkerJahre : 0, geheimKerker); // Mord: 1 Jahr (Teil 3c)
+                if (kerker > 0)
                 {
-                    _kerkerBis[v.Beklagter] = jahr + d.KerkerJahre;
+                    _kerkerBis[v.Beklagter] = jahr + kerker;
                     _w.Familien.StressGericht(v.Beklagter, g => g.Kerker, "In den Kerker geworfen"); // Stress (Teil 3b)
-                    folgen.Add($"{d.KerkerJahre} {(d.KerkerJahre == 1 ? "Jahr" : "Jahre")} Kerker");
+                    folgen.Add($"{kerker} {(kerker == 1 ? "Jahr" : "Jahre")} Kerker");
                 }
                 // Die bestochenen Ratsherren rücken öffentlich ab.
                 foreach (var b in beweise.Where(b => b.Art == Vergehen.Bestechung))
                     if (_w.Rat.RatsherrNamens(b.Betroffener) is { } r)
                         _w.Rat.GunstEntziehen(r, v.Beklagter);
-                text = $"Gerichtstag {jahr}: {v.Beklagter.Inhaber} ist {VergehenTexte.Aufzaehlung(beweise.Select(b => b.Art))} SCHULDIG ({zaehlung}) – {string.Join(", ", folgen)}.";
+                text = $"Gerichtstag {jahr}: {v.Beklagter.Inhaber} ist {Anklagepunkte(beweise.Select(b => b.Art), v.GeheimnisArt)} SCHULDIG ({zaehlung}) – {string.Join(", ", folgen)}.";
             }
             else
             {
@@ -474,6 +539,7 @@ public sealed class Stadtgericht
             SpurenEntfernen(s => erledigt.Contains(s.Nummer));
         }
         _verfahren.Clear();
+        _w.Geheimnisse.Gerichtstag(Eintrag); // Anzeigen gegen Ratsherren (Teil 3c)
         _w.Befugnisse.GerichtstagVorbei();
 
         // Spitzelberichte
@@ -489,11 +555,14 @@ public sealed class Stadtgericht
                 }
             if (!_beobachtet.Contains(ziel)) _beobachtet.Add(ziel);
             var gesamt = Beweise(auftraggeber, ziel).Count();
+            var geheim = _w.Geheimnisse.SpitzelBericht(auftraggeber, ziel); // Geheimnisse von Oberhaupt, Ehepartner, Erbe (Teil 3c; eigener Würfel)
             Eintrag($"Der Spitzel von {auftraggeber.Inhaber} berichtet über {ziel.Inhaber}: " +
                     (gefunden == 0 ? "nichts Neues" : $"{gefunden} {(gefunden == 1 ? "neuer Beweis" : "neue Beweise")}") +
-                    $" (insgesamt {gesamt}).", fuer: auftraggeber);
+                    $" (insgesamt {gesamt})" + (geheim.Count == 0 ? "."
+                        : $". Dazu {(geheim.Count == 1 ? "ein Geheimnis" : $"{geheim.Count} Geheimnisse")} – {string.Join("; ", geheim)}."), fuer: auftraggeber);
         }
         _spitzel.Clear();
+        _w.Geheimnisse.RatsspitzelBerichten(Eintrag); // Spitzel auf Ratsherren (Teil 3c): nur Geheimnisse
 
         // Die dunkle Ecke der Schänken: Wer ausschenkt, hört Gerüchte über alle anderen Häuser.
         if (_w.Gastwirtschaft.IstAktiv)
@@ -559,6 +628,7 @@ public sealed class Stadtgericht
         {
             Anklaeger = nr(v.Anklaeger), Beklagter = nr(v.Beklagter), Jahr = v.Jahr,
             Richter = v.Richter.Select(r => new RichterStand { Rolle = r.Rolle, Ratsherr = r.Ratsherr?.Name, Konto = r.Konto is null ? null : nr(r.Konto) }).ToList(),
+            Geheimnis = v.Geheimnis, GeheimnisArt = v.GeheimnisArt,
         }).ToList(),
         PrangerBis = _prangerBis.OrderBy(p => nr(p.Key)).ToDictionary(p => nr(p.Key).ToString(), p => p.Value),
         KerkerBis = _kerkerBis.OrderBy(p => nr(p.Key)).ToDictionary(p => nr(p.Key).ToString(), p => p.Value),
@@ -582,7 +652,8 @@ public sealed class Stadtgericht
         _spitzel.AddRange(s.Spitzel.Select(x => (konten[x.Auftraggeber], konten[x.Ziel])));
         _verfahren.Clear();
         _verfahren.AddRange(s.Verfahren.Select(v => new Verfahren(konten[v.Anklaeger], konten[v.Beklagter], v.Jahr,
-            v.Richter.Select(r => new Richter(r.Rolle, r.Ratsherr is { } n ? _w.Rat.RatsherrNamens(n) : null, r.Konto is int k ? konten[k] : null)).ToList())));
+            v.Richter.Select(r => new Richter(r.Rolle, r.Ratsherr is { } n ? _w.Rat.RatsherrNamens(n) : null, r.Konto is int k ? konten[k] : null)).ToList(),
+            v.Geheimnis, v.GeheimnisArt)));
         _prangerBis.Clear();
         foreach (var (nummer, bis) in s.PrangerBis) _prangerBis[konten[int.Parse(nummer)]] = bis;
         _kerkerBis.Clear();

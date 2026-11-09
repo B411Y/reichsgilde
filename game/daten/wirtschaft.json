@@ -1,5 +1,5 @@
 {
-  "version": 77,
+  "version": 78,
   "gesundheit": {
     "medicusKosten": 120,
     "medicusKostenPest": 300,
@@ -2119,6 +2119,29 @@
       { "zug": "Traege", "tat": "BerufErlernen", "stress": 10, "name": "Beruf erlernt" },
       { "zug": "Fleissig", "tat": "ApVerfallen", "stress": 5, "name": "Aktionspunkte verfallen lassen" }
     ]
+  },
+  "geheimnisse": {
+    "ap": { "Gulden": 2, "Ratsstimme": 2, "Anzeige": 2, "Blossstellen": 1 },
+    "ansehenJahre": 2, "meinungErpresser": -20, "meinungBlosssteller": -20,
+    "stress": { "jahr": 2, "jahrZuege": { "Ehrlich": 5, "Fromm": 5 }, "erpresst": 10, "blossgestellt": 15 },
+    "entdecken": { "spitzel": 0.3, "spitzelJeStern": 0.03, "spitzelMin": 0.1, "spitzelMax": 0.6, "spitzelRatsherr": 0.4,
+                   "gerede": 0.02, "beichte": 0.25, "beichteZuege": [ "Fromm", "Pilger" ],
+                   "ehepartner": 0.1, "ehepartnerZuege": { "Klug": 1.5 }, "ehepartnerMeinung": -40, "ehepartnerStress": 15 },
+    "ratsherren": { "start": 0.25, "jeJahr": 0.02, "arten": { "Ehebruch": 1, "Schulden": 1, "Ketzerei": 1 }, "sperreJahre": 3 },
+    "ki": { "anteil": 0.1, "hoechstens": 1500, "guldenJeAnsehen": 100 },
+    "arten": {
+      "Ehebruch": { "name": "Ehebruch", "beschreibung": "Hintergeht heimlich den Ehepartner.", "chance": 0.015,
+                    "zuege": { "Gesellig": 1.5, "Schoen": 1.5, "Verschlagen": 1.5, "Hochmuetig": 1.25, "Ehrlich": 0.3, "Fromm": 0.5, "Scheu": 0.5, "Bescheiden": 0.75 },
+                    "meinungEhepartnerAb": -25, "meinungFaktor": 2, "stressStufe": 2, "stressFaktor": 1.5,
+                    "beweiskraft": 20, "busse": 300, "ansehen": 5, "meinungEhepartner": -40 },
+      "Ketzerei": { "name": "Ketzerei", "beschreibung": "Hält heimlich nichts vom Glauben, den er nach außen bekennt.", "chance": 0.01, "nurMit": [ "Zynisch" ],
+                    "ratsherrZuege": { "Zynisch": 3, "Fromm": 0.3 }, "wechsel": 0.2, "wechselZuege": { "Fromm": 2, "Zynisch": 0 }, "nurMitStadtglaube": true,
+                    "beweiskraft": 20, "busse": 300, "ansehen": 5, "meinungGlaube": -10 },
+      "Schulden": { "name": "Schulden", "beschreibung": "Steckt tiefer in Schulden, als die Stadt ahnt.", "kreditAnteil": 0.5,
+                    "ratsherrZuege": { "Grosszuegig": 2, "Gierig": 0.5 }, "ansehen": 3, "kreditFaktor": 0.75 },
+      "Mord": { "name": "Mord", "beschreibung": "Gab einen Giftanschlag in Auftrag, an dem das Opfer starb.",
+                "beweiskraft": 25, "busse": 1000, "kerkerJahre": 1, "ansehen": 10, "meinungAngehoerige": -50 }
+    }
   },
   "justiz": {
     "verjaehrungJahre": 5,

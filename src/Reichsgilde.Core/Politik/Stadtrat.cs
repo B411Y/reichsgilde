@@ -207,6 +207,7 @@ public sealed class Stadtrat
                + _w.Ratsantraege.AnsehenBonus(konto)    // ein Fest oder Bauvorhaben auf Antrag
                - _w.Glaube.AnsehenAbzug(konto)          // gerade erst die Konfession gewechselt
                - _w.Meinungen.AnsehenAbzug(konto)       // Streit im Haus (PR #231)
+               - _w.Geheimnisse.AnsehenAbzug(konto)     // ein Geheimnis bloßgestellt (Teil 3c)
                + _w.Familien.Lebenswirkung(konto).Ansehen // Gönner, Volksredner (Lebensweise)
                + konto.EntwicklerAnsehen;               // Entwicklerfenster (0 ohne Entwicklerhilfe)
     }
@@ -231,8 +232,9 @@ public sealed class Stadtrat
     public double Punkte(Ratsherr waehler, Amt amt, Konto? kandidat)
     {
         var g = _daten.Gunst;
-        if (kandidat is null) // der bisherige Ratsherr im Amt
-            return g.AnsehenRatsherr + amt.Stufe * g.AnsehenRatsherrJeStufe + (amt.Ratsherr is not null ? g.Amtsbonus : 0);
+        if (kandidat is null) // der bisherige Ratsherr im Amt – weniger, wenn ein Geheimnis von ihm bloßgestellt wurde (Teil 3c)
+            return g.AnsehenRatsherr + amt.Stufe * g.AnsehenRatsherrJeStufe + (amt.Ratsherr is not null ? g.Amtsbonus : 0)
+                   - (amt.Ratsherr is { } r ? _w.Geheimnisse.AnsehenAbzug(r) : 0);
         return Ansehen(kandidat) + Meinung(waehler, kandidat)
                + _w.Familien.RhetorikPunkte(kandidat)
                + (amt.Konto == kandidat ? g.Amtsbonus : 0);
@@ -303,8 +305,21 @@ public sealed class Stadtrat
         if (!IstAktiv) return "In dieser Stadt gibt es keinen Stadtrat.";
         if (_w.Rivalen.Any(r => r.Konto == konto)) return $"{konto.Inhaber} stimmt nach eigenem Ermessen ab.";
         if (AmtVon(konto) is null) return "Abstimmen dürfen nur Mitglieder des Rates.";
+        if (_w.Geheimnisse.ErpresserVon(konto) is { } erpresser)
+            return $"{erpresser.Inhaber} hat eure Stimme erpresst: In dieser Sitzung stimmt ihr bei allen Punkten wie {erpresser.Inhaber}.";
         return null;
     }
+
+    /// <summary>
+    /// Wer die Stimme dieses Sitzes für die Sitzung erpresst hat (Geheimnisse, Teil 3c) – null, wenn niemand.
+    /// </summary>
+    public Konto? Erpresser(Amt sitz) => _w.Geheimnisse.ErpresserVon(sitz);
+
+    /// <summary>
+    /// Nach welchem Sitz dieser Sitz bei einem Antrag stimmt: Ist seine Stimme erpresst und hat der Erpresser selbst einen Sitz, nach dessen
+    /// (auch bei dessen eigenem Antrag); sonst nach sich selbst. Hat der Erpresser keinen Sitz, stimmt der Erpresste wie sonst.
+    /// </summary>
+    public Amt StimmSitz(Amt sitz) => Erpresser(sitz) is { } e && AmtVon(e) is { } eigener && eigener != sitz ? eigener : sitz;
 
     /// <summary>Kandidaten einer Wahl: die Bewerber (aktiv, Stand erfüllt, nach Namen) und der bisherige Inhaber (null = der Ratsherr im Amt).</summary>
     internal List<Konto?> KandidatenListe(Amt amt)
@@ -366,6 +381,13 @@ public sealed class Stadtrat
         foreach (var sitz in Waehler(amt).Where(w => w.Konto != bewerber && !mitbewerber.Contains(w.Konto)))
         {
             waehlerzahl++;
+            if (Erpresser(sitz) is not null) // erpresste Stimme (Teil 3c): dieselbe Regel wie in der Sitzung
+            {
+                var stimme = WahlStimmeVonSitz(sitz, amt, alle);
+                if (stimme.Count == 1 && stimme[0] == bewerber) sicher++;
+                else if (stimme.Count > 1 && stimme.Contains(bewerber)) unsicher++;
+                continue;
+            }
             if (sitz.Ratsherr is not { } r)
             {
                 // Häuser nach derselben Regel wie in der Wahl: KI nach Charakter, sonst die festgelegte Stimme oder die Vorgabe.
@@ -405,7 +427,7 @@ public sealed class Stadtrat
         bool? buergermeister = null;
         foreach (var amt in _aemter.Where(a => a.IstBesetzt))
         {
-            var stimme = stimmeVon(amt);
+            var stimme = stimmeVon(StimmSitz(amt)); // erpresst: wie der Sitz des Erpressers (Teil 3c)
             if (stimme == true) ja++;
             else if (stimme == false) nein++;
             else enthaltung++;
@@ -526,6 +548,16 @@ public sealed class Stadtrat
         _w.Befugnisse.Ausscheiden(konto);
     }
 
+    /// <summary>Ein Ratsherr ist verurteilt (Geheimnisse, Teil 3c): Er verliert seinen Sitz, ein anderer rückt nach.</summary>
+    internal void RatsherrAbsetzen(Ratsherr r)
+    {
+        foreach (var amt in _aemter.Where(a => a.Ratsherr == r).ToList())
+        {
+            amt.Ratsherr = null;
+            Nachruecken(amt);
+        }
+    }
+
     /// <summary>Nach einer Verurteilung rückt der bestochene Ratsherr öffentlich vom Haus ab.</summary>
     internal void GunstEntziehen(Ratsherr ratsherr, Konto konto) => _w.Meinungen.TatenEntfernen(ratsherr, konto);
 
@@ -589,6 +621,7 @@ public sealed class Stadtrat
     {
         _bewerbungen.Clear();
         _wahlStimmen.Clear(); // neues Jahr, neue Wahl
+        _w.Geheimnisse.SitzungVorbei(); // erpresste Stimmen sind abgegeben (Teil 3c)
 
         foreach (var eintrag in _letzteSitzung)
             _w.Melden(eintrag.StartsWith("Wahl ", StringComparison.Ordinal) ? Meldungsart.Wahl
@@ -622,6 +655,18 @@ public sealed class Stadtrat
     /// ihrem Charakter, sonst die festgelegte Stimme oder die Vorgabe.
     /// </summary>
     internal List<Konto?> WahlStimmeVonSitz(Amt waehler, Amt amt, IReadOnlyList<Konto?> kandidaten)
+    {
+        // Erpresst (Teil 3c): für den Erpresser, wenn er kandidiert; sonst wie er, wenn er bei dieser Wahl selbst wählt; sonst wie sonst.
+        if (Erpresser(waehler) is { } erpresser)
+        {
+            if (kandidaten.Contains(erpresser)) return new List<Konto?> { erpresser };
+            if (AmtVon(erpresser) is { } eigener && eigener != waehler && WahlWaehler(amt, kandidaten).Contains(eigener))
+                return EigeneWahlStimme(eigener, amt, kandidaten);
+        }
+        return EigeneWahlStimme(waehler, amt, kandidaten);
+    }
+
+    private List<Konto?> EigeneWahlStimme(Amt waehler, Amt amt, IReadOnlyList<Konto?> kandidaten)
     {
         if (waehler.Ratsherr is { } r)
         {
@@ -690,7 +735,8 @@ public sealed class Stadtrat
     /// <summary>Ein freier Sitz geht an den ersten Ratsherrn ohne Amt.</summary>
     private void Nachruecken(Amt amt)
     {
-        var frei = _ratsherren.FirstOrDefault(r => _aemter.All(a => a.Ratsherr != r));
+        // Ein verurteilter Ratsherr (Geheimnisse, Teil 3c) rückt eine Weile in kein Amt nach. (Beim Aufbau des Rates gibt es die Geheimnisse noch nicht.)
+        var frei = _ratsherren.FirstOrDefault(r => _aemter.All(a => a.Ratsherr != r) && (_w.Geheimnisse is null || !_w.Geheimnisse.IstGesperrt(r)));
         if (frei is null) return; // keine Nachrücker mehr – der Sitz bleibt leer
         amt.Ratsherr = frei;
         _letzteSitzung.Add($"{frei.Name} rückt als {amt.Name} in den Rat nach.");
