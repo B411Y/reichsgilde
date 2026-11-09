@@ -115,27 +115,6 @@ So wird eingetragen (damit sich die Chats nie an derselben Stelle treffen):
 
 Messungen des Kerns stehen in `docs/WIRTSCHAFTSMODELL.md` (nur der Kern schreibt dort).
 
-### Bauzonen aus dem Raster für jede Karte (PR #310)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Umfang | Variante A (Nutzer, C+A freigegeben): die Köln-Rechnung „frei heißt bebaubar“ als `Kartenentwurf.BauzonenAusRaster` im Kern (`Kartenwerkstatt/Rasterbauzonen.cs`). Köln, Greybox und Probestadt rechnen damit; gerechnet wird beim Kartenbau, nie in der Partie. Bauwesen, Befehle, Spielstand und Mehrspieler unverändert; Datenversion bleibt (wirtschaft.json unberührt). | 04.11. |
-| Lage | Grobe Lage-Gebiete `lagen` in der Karte (erstes Gebiet gilt, Art auch „keine“) oder eine Regel des Stadtskripts (`Rastervorgaben.LageVon`, Köln). Keine automatische Regel „Umkreis um den Markt“ – die Gebiete zeichnet man von Hand. | 04.11. |
-| Hand-Zonen | Zonen ohne `"berechnet": true` sind von Hand gezeichnet, bleiben bei jeder Rechnung, gehen vor (Felder darauf und daran bleiben frei) und stehen hinter den berechneten (Köln: 7 Werkstatt-Bauplätze). | 04.11. |
-| Abstände | Wege halbe Breite + 0,5 m, Gebäude 2 m, Mauer und Ufer 2 m wie die Prüfung (genau 2 m ist frei); Köln behält 3 m zu Mauer und Ufer und seinen Bereich x −340 … 250 – so bleiben seine 57 Zonen gleich. Hang bis 7 % (8-×-8-m-Fenster), Feld ≤ 30 m und Zone ≤ 7,5 m von einer Karrenstraße, mindestens 24 Felder. | 04.11. |
-| Restflächen | Freie Felder in Kern, Mauerring und Vorstadt, die keine Zone wurden, als `restflaechen` (Kennung R…, Lage, Grund `klein` unter 24 Feldern oder `abseits`, Felder, Umriss); im Umland keine. Nur Daten für die Darstellung, in `Stadtkarte.Restflaechen`. | 04.11. |
-| Greybox | Umbau `greybox-raster`: sieben Lage-Gebiete um die alten Zonen (der Mischwald im Westen bleibt Wald), 11 Hand-Zonen → 9 berechnete; jedes alte Feld bleibt Zone derselben Lage (Kern 268 → 335, Mauerring 130 → 156, Vorstadt 442 → 781 Felder). Der Probeplan bekommt die neuen Zonennamen. | 04.11. |
-| Probestadt | Drei Lage-Gebiete (Kern innerhalb der Ringstraße, Mauerring bis zur Mauer, Vorstadt bis zu den Feldwegen): Vorstadt 4.104 → 4.562 Felder, neu Kern 1.162 und Mauerring 464; die Reserve Stadthof passt jetzt (4 von 4, vorher 0). | 04.11. |
-| Köln-Felder | Das Kölner Stadtskript hat die sechs achsparallelen Felder aus `koeln.json` (PR „Felder an den Weltachsen“) übernommen, damit ein Neubau sie nicht zurücksetzt. | 04.11. |
-
-### Ein Lehrling zum Start (PR #318)
-
-| Thema | Entscheidung | Datum |
-|---|---|---|
-| Startpersonal | Jeder Startbetrieb beginnt mit einem Anfänger (Nutzer): Spieler und KI-Häuser gleich, bei „Schwer“ auch der Umlandbetrieb der KI (vorher 2 in der Stadt, 3 im Umland). Wert in den Daten: `personal.startJeBetrieb` = 1, Datenversion 72; ohne Angabe wie bisher. | 04.11. |
-| KI | Unverändert: Die KI füllt freie Plätze in ihrer ersten Stunde, schon beim Anmelden – für KI-Häuser und KI-geführte Spieler ist die Partie bitgleich mit vorher (Kurzmessung). Ob die KI langsamer anlaufen soll, ist offen (unten). | 04.11. |
-| Gegenmaßnahmen | Keine: kein Bankrott, kein Kredit; ein passiver Spieler verliert in 20 Jahren etwa die Hälfte (Greybox 28.802 → 15.018), bleibt aber zahlungsfähig. | 04.11. |
-
 ### Messhilfe Meldungen je Spieljahr (PR #320)
 
 | Thema | Entscheidung | Datum |
